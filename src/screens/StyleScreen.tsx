@@ -5,6 +5,8 @@ import { bounds } from '../engine/piece';
 import { FIT_EASE, SkirtDraft } from '../engine/skirt';
 import type { MeasurementValues } from '../measurements';
 import { PatternPreview, SketchPreview } from '../ui/Preview';
+import { FREE_SAVED_LIMIT } from '../account';
+import { BAND_ACROSS_MAX } from '../engine/instructions';
 
 interface Props {
   choices: Choices;
@@ -14,6 +16,9 @@ interface Props {
   error?: string;
   onEditMeasurements: () => void;
   onNext: () => void;
+  saveState: 'can' | 'saved' | 'full';
+  onSave: () => void;
+  onAccount: () => void;
 }
 
 type Group<K extends keyof Choices> = { id: K; label: string; options: [Choices[K], string][] };
@@ -34,20 +39,19 @@ export function describe(c: Choices) {
   return `${len} ${sil.toLowerCase()} skirt`;
 }
 
-/** Rough fabric need on 140 cm wide fabric: one or two skirt lengths plus a waistband. */
+/** Rough fabric need on 140 cm wide fabric: one or two skirt lengths, plus a strip for the waistband,
+ * which is cut across the fabric. */
 export function fabricMetres(draft: SkirtDraft): number {
-  const widths = draft.pieces.map((pc) => {
-    const [x0, , x1] = bounds(pc);
-    return x1 - x0;
-  });
-  const [front, back] = widths;
-  const across = front * 2 + back * 2; // front cut on the fold opens to twice its width; back is a pair
+  const [front, back] = draft.pieces.map(bounds);
+  const across = (front[2] - front[0]) * 2 + (back[2] - back[0]) * 2; // front on the fold opens to twice its width; back is a pair
   const lengths = across <= 136 ? 1 : 2;
-  const pieceLength = Math.max(...draft.pieces.map((pc) => bounds(pc)[3] - bounds(pc)[1]));
-  return Math.ceil(((lengths * pieceLength + 15) / 100) * 10) / 10;
+  const pieceLength = Math.max(front[3] - front[1], back[3] - back[1]);
+  const { cutLength, cutWidth } = draft.waistband;
+  const band = cutLength <= BAND_ACROSS_MAX ? cutWidth : cutLength;
+  return Math.ceil(((lengths * pieceLength + band + 15) / 100) * 10) / 10;
 }
 
-export function StyleScreen({ choices, onChoices, values, draft, error, onEditMeasurements, onNext }: Props) {
+export function StyleScreen({ choices, onChoices, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount }: Props) {
   const [view, setView] = useState<'sketch' | 'pattern'>('sketch');
   const sheet = useMemo(() => (draft ? layout(draft.pieces, '', []) : undefined), [draft]);
   const ease = FIT_EASE[choices.fit];
@@ -121,6 +125,11 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
           <ul className="pieces">
             <li>Skirt front: cut 1 on fold</li>
             <li>Skirt back: cut 2</li>
+            {draft && (
+              <li>
+                Waistband: a {draft.waistband.cutLength} × {draft.waistband.cutWidth} cm strip, marked straight on the fabric
+              </li>
+            )}
           </ul>
         </div>
         {draft && (
@@ -133,6 +142,22 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
         <button type="button" className="primary" disabled={!draft} onClick={onNext}>
           Print my pattern
         </button>
+        {saveState === 'can' && (
+          <button type="button" className="secondary" disabled={!draft} onClick={onSave}>
+            Save pattern
+          </button>
+        )}
+        {saveState === 'saved' && (
+          <p className="msg small" role="status">
+            Saved to <button type="button" className="link inline-link" onClick={onAccount}>your account</button>.
+          </p>
+        )}
+        {saveState === 'full' && (
+          <p className="muted small">
+            You've saved {FREE_SAVED_LIMIT} patterns, the free limit.{' '}
+            <button type="button" className="link inline-link" onClick={onAccount}>Manage saved patterns</button>
+          </p>
+        )}
         <button type="button" className="link" onClick={onEditMeasurements}>
           Edit measurements
         </button>

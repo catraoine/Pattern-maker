@@ -3,6 +3,7 @@ import { Check, MeasurementId, MeasurementValues, SKIRT_FIELDS, Unit } from '../
 import { TapeFigure } from '../ui/TapeFigure';
 
 interface Props {
+  profile: string;
   unit: Unit;
   values: MeasurementValues;
   checks: Check[];
@@ -16,7 +17,7 @@ interface Props {
 const toDisplay = (cm: number | undefined, unit: Unit) =>
   cm === undefined ? '' : String(unit === 'cm' ? cm : Math.round((cm / 2.54) * 10) / 10);
 
-export function MeasureScreen({ unit, values, checks, onUnit, onValues, onExample, canContinue, onNext }: Props) {
+export function MeasureScreen({ profile, unit, values, checks, onUnit, onValues, onExample, canContinue, onNext }: Props) {
   const [focus, setFocus] = useState<MeasurementId>('waist');
   // Raw text per field while typing, so "72." doesn't get rewritten mid-entry.
   const [draftText, setDraftText] = useState<Partial<Record<MeasurementId, string>>>({});
@@ -50,7 +51,7 @@ export function MeasureScreen({ unit, values, checks, onUnit, onValues, onExampl
       <section className="card grow" aria-labelledby="mtitle">
         <div className="row between wrap">
           <div>
-            <p className="muted small">Profile: Me · Skirt measurements</p>
+            <p className="muted small">Profile: {profile} · Skirt measurements</p>
             <h1 id="mtitle">Your measurements</h1>
           </div>
           <div className="seg" role="group" aria-label="Units">
