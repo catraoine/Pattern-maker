@@ -6,6 +6,7 @@ import { PatternPreview } from '../ui/Preview';
 import { describe } from './StyleScreen';
 
 interface Props {
+  profile: string;
   choices: Choices;
   draft?: SkirtDraft;
   error?: string;
@@ -28,7 +29,7 @@ function download(data: BlobPart, type: string, name: string) {
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
-export function ExportScreen({ choices, draft, error, onBack }: Props) {
+export function ExportScreen({ profile, choices, draft, error, onBack }: Props) {
   const [paper, setPaper] = useState<Paper>('a4');
   const [busy, setBusy] = useState(false);
   const title = describe(choices);
@@ -73,7 +74,7 @@ export function ExportScreen({ choices, draft, error, onBack }: Props) {
       <section className="card grow" aria-labelledby="ptitle">
         <div className="row between wrap">
           <h1 id="ptitle">{title[0].toUpperCase() + title.slice(1)}</h1>
-          <p className="muted">Profile: Me · {choices.fit[0].toUpperCase() + choices.fit.slice(1)} fit</p>
+          <p className="muted">Profile: {profile} · {choices.fit[0].toUpperCase() + choices.fit.slice(1)} fit</p>
         </div>
         <div className="preview tiles" style={{ ['--cols' as string]: grid.cols }}>
           <PatternPreview sheet={sheet} label={`Pattern laid over ${pages} numbered print pages`} />
@@ -106,7 +107,7 @@ export function ExportScreen({ choices, draft, error, onBack }: Props) {
         <button type="button" className="secondary" onClick={() => download(toSvg(sheet), 'image/svg+xml', `${fileBase}.svg`)}>
           Download SVG
         </button>
-        <p className="muted small">Your measurements and choices stay on this device. Accounts and saved patterns are coming.</p>
+        <p className="muted small">Your measurements and choices stay on this device. Save it from the style screen to find it again in your account.</p>
         <button type="button" className="link" onClick={onBack}>
           Back to style
         </button>

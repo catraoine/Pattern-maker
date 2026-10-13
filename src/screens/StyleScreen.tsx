@@ -5,6 +5,7 @@ import { bounds } from '../engine/piece';
 import { FIT_EASE, SkirtDraft } from '../engine/skirt';
 import type { MeasurementValues } from '../measurements';
 import { PatternPreview, SketchPreview } from '../ui/Preview';
+import { FREE_SAVED_LIMIT } from '../account';
 
 interface Props {
   choices: Choices;
@@ -14,6 +15,9 @@ interface Props {
   error?: string;
   onEditMeasurements: () => void;
   onNext: () => void;
+  saveState: 'can' | 'saved' | 'full';
+  onSave: () => void;
+  onAccount: () => void;
 }
 
 type Group<K extends keyof Choices> = { id: K; label: string; options: [Choices[K], string][] };
@@ -47,7 +51,7 @@ export function fabricMetres(draft: SkirtDraft): number {
   return Math.ceil(((lengths * pieceLength + 15) / 100) * 10) / 10;
 }
 
-export function StyleScreen({ choices, onChoices, values, draft, error, onEditMeasurements, onNext }: Props) {
+export function StyleScreen({ choices, onChoices, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount }: Props) {
   const [view, setView] = useState<'sketch' | 'pattern'>('sketch');
   const sheet = useMemo(() => (draft ? layout(draft.pieces, '', []) : undefined), [draft]);
   const ease = FIT_EASE[choices.fit];
@@ -133,6 +137,22 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
         <button type="button" className="primary" disabled={!draft} onClick={onNext}>
           Print my pattern
         </button>
+        {saveState === 'can' && (
+          <button type="button" className="secondary" disabled={!draft} onClick={onSave}>
+            Save pattern
+          </button>
+        )}
+        {saveState === 'saved' && (
+          <p className="msg small" role="status">
+            Saved to <button type="button" className="link inline-link" onClick={onAccount}>your account</button>.
+          </p>
+        )}
+        {saveState === 'full' && (
+          <p className="muted small">
+            You've saved {FREE_SAVED_LIMIT} patterns, the free limit.{' '}
+            <button type="button" className="link inline-link" onClick={onAccount}>Manage saved patterns</button>
+          </p>
+        )}
         <button type="button" className="link" onClick={onEditMeasurements}>
           Edit measurements
         </button>
