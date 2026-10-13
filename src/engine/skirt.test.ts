@@ -4,6 +4,7 @@ import { bounds } from './piece';
 import { draftSkirt } from './skirt';
 import { layout, tileGrid, toSvg } from './export';
 import { toTiledPdf } from './pdf';
+import { sewingGuide } from './instructions';
 
 const m = { waist: 70, full_hip: 96, waist_to_hip: 20.5, waist_to_knee: 58, waist_to_floor: 104 };
 // Same ease as the Python prototype's defaults, so the numbers can be compared directly.
@@ -40,5 +41,26 @@ describe('skirt block', () => {
     const pdf = await toTiledPdf(sheet, 'a4');
     expect(pdf.length).toBeGreaterThan(1000);
     expect(grid.rows * grid.cols).toBeGreaterThan(1);
+  });
+
+  it('sizes the waistband to the finished waist, and marks the zip', () => {
+    const draft = draftSkirt(m);
+    const band = draft.waistband;
+    expect(band.cutLength).toBeCloseTo(draft.finishedWaist + 3, 5);
+    expect(band.cutWidth).toBe(9);
+    expect(band.sideMark).toBeCloseTo(1.5 + (m.waist + 2) / 4 - 0.5, 1);
+    expect(draft.zipCm).toBe(20);
+    expect(draft.pieces[1].labels.some((l) => l.text === 'ZIP ENDS')).toBe(true);
+  });
+
+  it('adds sewing steps to the PDF', async () => {
+    const draft = draftSkirt(m, { silhouette: 'pencil' });
+    const guide = sewingGuide(draft, { silhouette: 'pencil', length: 'knee' }, 1.4);
+    expect(guide.steps.map((st) => st.text).join(' ')).toMatch(/walking slit/);
+    expect(guide.notions).toContain('20 cm invisible zip');
+    const sheet = layout(draft.pieces, 'Test skirt', []);
+    const plain = await toTiledPdf(sheet, 'a4');
+    const withSteps = await toTiledPdf(sheet, 'a4', { title: 'knee pencil skirt', guide });
+    expect(withSteps.length).toBeGreaterThan(plain.length);
   });
 });

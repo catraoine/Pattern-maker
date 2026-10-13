@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { DraftError, Fit, Length, Silhouette, SkirtDraft, draftSkirt } from './engine/skirt';
 import { EXAMPLE_VALUES, MeasurementValues, Unit, checkMeasurements, isComplete } from './measurements';
 import { usePersistent } from './store';
-import { Account, NEW_ACCOUNT, profileName, removePattern, renamePattern, sameChoices, savePattern, FREE_SAVED_LIMIT } from './account';
+import { Account, NEW_ACCOUNT, makeBackup, readBackup, profileName, removePattern, renamePattern, sameChoices, savePattern, FREE_SAVED_LIMIT } from './account';
 import { MeasureScreen } from './screens/MeasureScreen';
 import { StyleScreen, describe } from './screens/StyleScreen';
 import { ExportScreen } from './screens/ExportScreen';
@@ -134,6 +134,21 @@ export default function App() {
             onRename={(id, name) => setAccount(renamePattern(account, id, name))}
             onRemove={(id) => setAccount(removePattern(account, id))}
             onReset={reset}
+            onBackup={() => {
+              const url = URL.createObjectURL(new Blob([JSON.stringify(makeBackup(saved, account), null, 2)], { type: 'application/json' }));
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `pattern-maker-backup-${new Date().toISOString().slice(0, 10)}.json`;
+              a.click();
+              setTimeout(() => URL.revokeObjectURL(url), 10_000);
+            }}
+            onRestore={async (file) => {
+              const b = readBackup<Saved>(await file.text());
+              if (!b) return false;
+              setSaved({ ...INITIAL, ...b.skirt });
+              setAccount({ ...NEW_ACCOUNT, ...b.account, onboarded: true });
+              return true;
+            }}
           />
         )}
         {step === 'measure' && (

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { FREE_SAVED_LIMIT, NEW_ACCOUNT, profileName, removePattern, renamePattern, savePattern } from './account';
+import { FREE_SAVED_LIMIT, NEW_ACCOUNT, makeBackup, profileName, readBackup, removePattern, renamePattern, savePattern } from './account';
 
 const skirt = (length: 'mini' | 'knee' | 'midi' | 'maxi' | 'above_knee') => ({ fit: 'regular' as const, silhouette: 'a_line' as const, length });
 
@@ -22,5 +22,13 @@ describe('account', () => {
   it('falls back to "Me" when no name is given', () => {
     expect(profileName({ ...NEW_ACCOUNT, name: '  ' })).toBe('Me');
     expect(profileName({ ...NEW_ACCOUNT, name: 'Cat' })).toBe('Cat');
+  });
+
+  it('round-trips a backup and rejects other files', () => {
+    const acc = savePattern({ ...NEW_ACCOUNT, name: 'Cat', onboarded: true }, skirt('midi'), 'Midi');
+    const text = JSON.stringify(makeBackup({ unit: 'in', values: { waist: 70 } }, acc));
+    expect(readBackup(text)?.account.patterns[0].name).toBe('Midi');
+    expect(readBackup('{"hello":1}')).toBeNull();
+    expect(readBackup('not json')).toBeNull();
   });
 });

@@ -36,3 +36,33 @@ export function renamePattern(account: Account, id: string, name: string): Accou
 }
 
 export const profileName = (account: Account) => account.name.trim() || 'Me';
+
+/** A backup file holds everything the app keeps on this device, so it can move to a new phone or survive a cleared browser. */
+export interface Backup<S> {
+  app: 'pattern-maker';
+  version: 1;
+  savedAt: string;
+  skirt: S;
+  account: Account;
+}
+
+export function makeBackup<S>(skirt: S, account: Account): Backup<S> {
+  return { app: 'pattern-maker', version: 1, savedAt: new Date().toISOString(), skirt, account };
+}
+
+/** Read a backup file's text; returns null when it isn't a Pattern Maker backup. */
+export function readBackup<S extends object>(text: string): Backup<S> | null {
+  try {
+    const b = JSON.parse(text);
+    const ok =
+      b?.app === 'pattern-maker' &&
+      b.version === 1 &&
+      typeof b.skirt === 'object' &&
+      b.skirt !== null &&
+      typeof b.account?.name === 'string' &&
+      Array.isArray(b.account?.patterns);
+    return ok ? b : null;
+  } catch {
+    return null;
+  }
+}

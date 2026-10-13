@@ -12,11 +12,12 @@ import {
 } from 'pdf-lib';
 import { P } from './geometry';
 import { OVERLAP, PAGE_MARGIN, PAPER_CM, Paper, STYLES, Sheet, tileGrid } from './export';
+import type { SewingGuide } from './instructions';
 
 const CM = 72 / 2.54; // PDF points per cm
 
 /** Tile the sheet onto printer pages with trim guides, page labels and overlap for taping. */
-export async function toTiledPdf(sheet: Sheet, paper: Paper): Promise<Uint8Array> {
+export async function toTiledPdf(sheet: Sheet, paper: Paper, guide?: { title: string; guide: SewingGuide }): Promise<Uint8Array> {
   const [pw, ph] = PAPER_CM[paper];
   const tw = pw - 2 * PAGE_MARGIN;
   const th = ph - 2 * PAGE_MARGIN;
@@ -94,5 +95,52 @@ export async function toTiledPdf(sheet: Sheet, paper: Paper): Promise<Uint8Array
       );
     }
   }
+  if (guide) await addSewingPages(doc, paper, guide.title, guide.guide);
   return doc.save();
+}
+
+/** Sewing steps after the pattern pages, so the tiled pages keep their numbers. */
+async function addSewingPages(doc: PDFDocument, paper: Paper, title: string, guide: SewingGuide) {
+  const [pw, ph] = PAPER_CM[paper];
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  const bold = await doc.embedFont(StandardFonts.HelveticaBold);
+  const left = 2 * CM;
+  const width = (pw - 4) * CM;
+  let page = doc.addPage([pw * CM, ph * CM]);
+  let y = (ph - 2) * CM;
+
+  const wrap = (text: string, size: number, f = font) => {
+    const lines: string[] = [];
+    let line = '';
+    for (const word of text.split(' ')) {
+      const next = line ? `${line} ${word}` : word;
+      if (f.widthOfTextAtSize(next, size) > width - 18 && line) {
+        lines.push(line);
+        line = word;
+      } else line = next;
+    }
+    if (line) lines.push(line);
+    return lines;
+  };
+  const write = (text: string, size: number, f = font, indent = 0, gap = 4) => {
+    const lines = wrap(text, size, f);
+    if (y - lines.length * size * 1.35 < 2 * CM) {
+      page = doc.addPage([pw * CM, ph * CM]);
+      y = (ph - 2) * CM;
+    }
+    for (const l of lines) {
+      page.drawText(l, { x: left + indent, y, size, font: f, color: rgb(0, 0, 0) });
+      y -= size * 1.35;
+    }
+    y -= gap;
+  };
+
+  write(`How to sew your ${title}`, 18, bold, 0, 10);
+  write('You will need', 11, bold, 0, 2);
+  guide.notions.forEach((n) => write(`-  ${n}`, 10, font, 0, 1));
+  y -= 10;
+  guide.steps.forEach((st, i) => {
+    write(`${i + 1}. ${st.title}`, 11, bold, 0, 1);
+    write(st.text, 10, font, 18, 8);
+  });
 }

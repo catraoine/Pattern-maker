@@ -14,6 +14,8 @@ interface Props {
   onRename: (id: string, name: string) => void;
   onRemove: (id: string) => void;
   onReset: () => void;
+  onBackup: () => void;
+  onRestore: (file: File) => Promise<boolean>;
 }
 
 const show = (cm: number | undefined, unit: Unit) =>
@@ -21,8 +23,9 @@ const show = (cm: number | undefined, unit: Unit) =>
 
 const dateFmt = new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 
-export function AccountScreen({ account, unit, values, onName, onUnit, onEditMeasurements, onOpen, onRename, onRemove, onReset }: Props) {
+export function AccountScreen({ account, unit, values, onName, onUnit, onEditMeasurements, onOpen, onRename, onRemove, onReset, onBackup, onRestore }: Props) {
   const [confirmReset, setConfirmReset] = useState(false);
+  const [restoreMsg, setRestoreMsg] = useState('');
   const display = profileName(account);
 
   return (
@@ -60,6 +63,34 @@ export function AccountScreen({ account, unit, values, onName, onUnit, onEditMea
             Your account lives on this device for now. Signing in, so your patterns follow you to other devices, is coming soon.
           </p>
           <span className="badge">Coming soon</span>
+        </div>
+
+        <div className="backup">
+          <p className="eyebrow">Back up</p>
+          <p className="small">Keep a copy of your measurements and saved patterns, or move them to another phone or computer.</p>
+          <div className="row wrap">
+            <button type="button" className="secondary sm" onClick={onBackup}>
+              Download a backup
+            </button>
+            <label className="secondary sm filebtn">
+              Restore
+              <input
+                type="file"
+                accept="application/json,.json"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = '';
+                  if (!file) return;
+                  setRestoreMsg((await onRestore(file)) ? 'Restored from your backup.' : "That file isn't a Pattern Maker backup.");
+                }}
+              />
+            </label>
+          </div>
+          {restoreMsg && (
+            <p className="msg small" role="status">
+              {restoreMsg}
+            </p>
+          )}
         </div>
 
         <div className="footer">

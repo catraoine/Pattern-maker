@@ -693,3 +693,97 @@ button.link.inline-link {
     gap: 6px;
   }
 }
+
+/* Sewing steps on the print screen */
+.card.sew {
+  margin-top: 20px;
+}
+
+.sewgrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px 32px;
+  align-items: flex-start;
+}
+
+.notions {
+  flex: 1 1 240px;
+  padding: 14px;
+  background: var(--fill);
+}
+
+.notions ul {
+  margin: 0 0 10px;
+  padding-left: 18px;
+  line-height: 1.7;
+}
+
+.sewsteps {
+  flex: 999 1 420px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: sew;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sewsteps li {
+  counter-increment: sew;
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  gap: 2px 12px;
+}
+
+.sewsteps li::before {
+  content: counter(sew);
+  grid-row: span 2;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1.5px solid var(--ink);
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sewsteps strong {
+  font-family: var(--mono);
+}
+
+.backup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.filebtn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  background: var(--white);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.filebtn input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.filebtn:focus-within {
+  outline: 3px solid #888;
+  outline-offset: 2px;
+}

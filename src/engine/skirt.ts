@@ -69,6 +69,7 @@ interface HalfArgs {
   isFront: boolean;
   sa: number;
   hemSa: number;
+  zipCm: number;
 }
 
 /** Draft one quarter of the skirt. Centre at x=0, side seam at x≈hipQ. */
@@ -115,7 +116,9 @@ function half(a: HalfArgs): Piece {
   const cut = a.isFront ? 'Cut 1 on fold' : 'Cut 2 (1 pair)';
   const gx = a.hipQ * 0.45;
   const notches: [P, P][] = [[sh, p(1, 0)]];
-  if (!a.isFront) notches.push([p(0, a.hipDepth), p(-1, 0)]);
+  // The back centre seam holds the zip; its notch marks where the zip ends and the seam starts.
+  const zipEnd = p(0, a.centreDrop + a.zipCm);
+  if (!a.isFront) notches.push([zipEnd, p(-1, 0)]);
 
   return {
     name: a.name,
@@ -127,6 +130,7 @@ function half(a: HalfArgs): Piece {
     labels: [
       { at: p(a.hipQ * 0.5, a.hipDepth - 4), text: a.name.toUpperCase(), size: 1.6 },
       { at: add(p(a.hipQ * 0.5, a.hipDepth), p(0, 1)), text: cut, size: 1.0 },
+      ...(a.isFront ? [] : [{ at: add(zipEnd, p(3.2, 0.3)), text: 'ZIP ENDS', size: 0.7 }]),
     ],
     cut,
     seamAllowance: a.sa,
@@ -143,6 +147,32 @@ export interface SkirtDraft {
   lengthCm: number;
   finishedWaist: number;
   finishedHip: number;
+  zipCm: number; // invisible zip in the centre back seam
+  waistband: Waistband;
+  dartsPerSide: { front: number; back: number };
+}
+
+export const WAISTBAND_CM = 3; // finished width
+
+/** Pick a standard zip length that opens far enough to get over the hips. */
+export function zipLength(hipDepth: number): number {
+  return hipDepth < 18 ? 18 : hipDepth < 22 ? 20 : 23;
+}
+
+/**
+ * The waistband is a plain rectangle, so it is given as measurements to mark straight onto the fabric
+ * rather than printed (printing it would add a whole column of pages). Folded lengthwise, it ends at
+ * the zip on each side.
+ */
+export interface Waistband {
+  cutLength: number; // cm, including seam allowance at both ends
+  cutWidth: number; // cm, twice the finished width plus seam allowance on both long edges
+  sideMark: number; // cm from each end to the side seam marks
+}
+
+function waistband(finishedWaist: number, backQ: number, sa: number): Waistband {
+  const r = (v: number) => Math.round(v * 10) / 10;
+  return { cutLength: r(finishedWaist + 2 * sa), cutWidth: r(2 * WAISTBAND_CM + 2 * sa), sideMark: r(sa + backQ) };
 }
 
 export function draftSkirt(m: SkirtMeasurements, style: Partial<SkirtStyle> = {}): SkirtDraft {
@@ -161,14 +191,20 @@ export function draftSkirt(m: SkirtMeasurements, style: Partial<SkirtStyle> = {}
   const flare = { straight: 0, pencil: -2, a_line: Math.max(6, (length - hipDepth) * 0.15) }[s.silhouette];
   // Shift 0.5 cm of waist from back to front, take up to 3 cm at each side seam; darts take the rest.
   const sideSupp = Math.min(3, (hipQ - waistQ) * 0.4);
-  const common = { hipQ, hipDepth, length, sideSupp, flare, sa: s.seamAllowance, hemSa: s.hemAllowance };
+  const zipCm = zipLength(hipDepth);
+  const common = { hipQ, hipDepth, length, sideSupp, flare, sa: s.seamAllowance, hemSa: s.hemAllowance, zipCm };
   const front = half({ ...common, name: 'Skirt front', waistQ: waistQ + 0.5, centreDrop: 0, dartMax: 2.5, dartLen: 9, isFront: true });
   const back = half({ ...common, name: 'Skirt back', waistQ: waistQ - 0.5, centreDrop: 1, dartMax: 3.5, dartLen: 14, isFront: false });
+
+  const finishedWaist = m.waist + ease.waist;
 
   return {
     pieces: [front, back],
     lengthCm: Math.round(length * 10) / 10,
-    finishedWaist: m.waist + ease.waist,
+    finishedWaist,
     finishedHip: m.full_hip + ease.hip,
+    zipCm,
+    waistband: waistband(finishedWaist, waistQ - 0.5, s.seamAllowance),
+    dartsPerSide: { front: (front.meta.dartsCm as number[]).length, back: (back.meta.dartsCm as number[]).length },
   };
 }
