@@ -481,3 +481,309 @@ button.link {
     order: 2;
   }
 }
+
+/* Top bar: steps plus the account button */
+.nav {
+  gap: 8px;
+}
+
+.avatar {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border-radius: 50%;
+  border: 1.5px solid var(--ink);
+  background: var(--white);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.avatar.on {
+  background: var(--ink);
+  color: var(--white);
+}
+
+.avatar.big {
+  width: 56px;
+  height: 56px;
+  font-size: 22px;
+  cursor: default;
+}
+
+/* Welcome */
+.welcome {
+  display: flex;
+  justify-content: center;
+}
+
+.welcome-card {
+  max-width: 560px;
+  width: 100%;
+  flex: none;
+}
+
+.dots {
+  display: flex;
+  gap: 6px;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1.5px solid var(--ink);
+}
+
+.dot.on {
+  background: var(--ink);
+}
+
+.how {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.how li {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.how .num {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--white);
+  font-family: var(--mono);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.how strong {
+  font-family: var(--mono);
+}
+
+.checklist {
+  margin: 0;
+  padding-left: 20px;
+  line-height: 1.7;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.field.plain {
+  padding: 0;
+}
+
+.field.plain input,
+input.inline {
+  min-height: 48px;
+  padding: 0 12px;
+  border: 1.5px solid var(--ink);
+  border-radius: 0;
+  background: var(--white);
+  color: var(--ink);
+  font: inherit;
+  font-size: 17px;
+}
+
+input.inline {
+  width: 100%;
+  min-height: 40px;
+}
+
+/* Account */
+.col {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  flex: 999 1 460px;
+  min-width: 0;
+}
+
+.col > .card {
+  flex: none;
+}
+
+.signin {
+  padding: 14px;
+  background: var(--fill);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.mlist {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 12px 18px;
+}
+
+.mlist dt {
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.mlist dd {
+  margin: 2px 0 0;
+  font-family: var(--mono);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.saved {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.saved li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  align-items: center;
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+}
+
+.saved li .grow {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.saved .actions {
+  gap: 16px;
+}
+
+button.secondary.sm {
+  min-height: 44px;
+  padding: 0 18px;
+  font-size: 14px;
+}
+
+button.link.inline-link {
+  min-height: 0;
+  display: inline;
+  font-size: inherit;
+}
+
+@media (max-width: 640px) {
+  .step {
+    padding: 0 8px;
+    gap: 6px;
+  }
+}
+
+/* Sewing steps on the print screen */
+.card.sew {
+  margin-top: 20px;
+}
+
+.sewgrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px 32px;
+  align-items: flex-start;
+}
+
+.notions {
+  flex: 1 1 240px;
+  padding: 14px;
+  background: var(--fill);
+}
+
+.notions ul {
+  margin: 0 0 10px;
+  padding-left: 18px;
+  line-height: 1.7;
+}
+
+.sewsteps {
+  flex: 999 1 420px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: sew;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sewsteps li {
+  counter-increment: sew;
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  gap: 2px 12px;
+}
+
+.sewsteps li::before {
+  content: counter(sew);
+  grid-row: span 2;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1.5px solid var(--ink);
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sewsteps strong {
+  font-family: var(--mono);
+}
+
+.backup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.filebtn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  background: var(--white);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.filebtn input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.filebtn:focus-within {
+  outline: 3px solid #888;
+  outline-offset: 2px;
+}
