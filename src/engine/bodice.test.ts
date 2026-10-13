@@ -8,12 +8,14 @@ const B = { full_bust: 102, high_bust: 100, waist: 86, neck: 39, shoulder_width:
 const C = { full_bust: 132, high_bust: 118, waist: 118, neck: 40, shoulder_width: 39, shoulder_length: 12.5, across_back: 38, across_front: 36, nape_to_waist: 40, front_hps_to_waist: 50, bust_depth: 31, apex_separation: 22, armscye: 52 };
 
 describe('bodice block', () => {
-  it('matches the Python prototype for the three sample bodies', () => {
-    // Values printed by the Python prototype (drafting/pattern/bodice.py), fitted ease.
+  it('gives the expected darts and sizes for the three sample bodies', () => {
+    // Started as the Python prototype's numbers (drafting/pattern/bodice.py). Since then the engine
+    // draws shoulders at standard slopes, sizes the armhole from the high bust and gives the armhole
+    // more room as ease grows, so the bust dart and armhole differ from the prototype's.
     const expected = {
-      A: { bustDart: 3, front: 4.4, back: 2.4, armhole: 45.5, bust: 97, waist: 77 },
-      B: { bustDart: 1, front: 2.7, back: 2.7, armhole: 52.5, bust: 107, waist: 89 },
-      C: { bustDart: 7.81, front: 6.6, back: 0.6, armhole: 57.4, bust: 137, waist: 121 },
+      A: { bustDart: 3, front: 4.4, back: 2.4, armhole: 46.4, bust: 97, waist: 77 },
+      B: { bustDart: 1, front: 2.7, back: 2.7, armhole: 53.5, bust: 107, waist: 89 },
+      C: { bustDart: 10.89, front: 6.5, back: 0.5, armhole: 58.4, bust: 137, waist: 121.1 },
     };
     for (const [name, body] of Object.entries({ A, B, C })) {
       const d = draftBodice(body);

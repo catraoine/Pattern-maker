@@ -142,5 +142,31 @@ export function offsetPolygon(pts: P[], dists: number[] | number): P[] {
       out.push(x);
     }
   }
+  return removeLoops(out);
+}
+
+function segmentHit(a: P, b: P, c: P, d: P): P | null {
+  const r = sub(b, a);
+  const s = sub(d, c);
+  const den = r.x * s.y - r.y * s.x;
+  if (Math.abs(den) < 1e-12) return null;
+  const t = ((c.x - a.x) * s.y - (c.y - a.y) * s.x) / den;
+  const u = ((c.x - a.x) * r.y - (c.y - a.y) * r.x) / den;
+  return t > 1e-9 && t < 1 - 1e-9 && u > 1e-9 && u < 1 - 1e-9 ? add(a, mul(r, t)) : null;
+}
+
+/** Where a concave curve is tighter than the offset distance (a neckline corner, say), the offset
+ * folds back over itself in a small loop. Cut each loop out at the point where it crosses. */
+function removeLoops(pts: P[], window = 16): P[] {
+  const out = [...pts];
+  for (let i = 0; i < out.length; i++) {
+    for (let j = i + 2; j < Math.min(out.length - 1, i + window); j++) {
+      const hit = segmentHit(out[i], out[i + 1], out[j], out[j + 1]);
+      if (hit) {
+        out.splice(i + 1, j - i, hit);
+        break;
+      }
+    }
+  }
   return out;
 }
