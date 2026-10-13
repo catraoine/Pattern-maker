@@ -1,6 +1,7 @@
 // Straight skirt block, drafted flat from waist, hip and waist-to-hip depth (Aldrich-style).
 // Ported from the Python prototype in the drafting thread (pattern/skirt.py).
-import { P, Path, add, lerp, p } from './geometry';
+import { P, Path, add, lerp, p, sub, unit } from './geometry';
+import { finishDart } from './darts';
 import { Piece } from './piece';
 
 export interface SkirtMeasurements {
@@ -77,6 +78,8 @@ function half(a: HalfArgs): Piece {
   const supp = a.hipQ - a.waistQ;
   const ds = darts(supp - a.sideSupp, a.dartMax);
   const sideSupp = supp - ds.reduce((s, d) => s + d, 0);
+  // Keep dart tips at least 3 cm above the hip line, where the body is widest.
+  const dartLen = Math.min(a.dartLen, a.hipDepth - 3);
   const sideRise = sideSupp > 1 ? 1.25 : 0.6;
 
   const cw = p(0, a.centreDrop); // centre waist
@@ -92,26 +95,39 @@ function half(a: HalfArgs): Piece {
 
   // Dart centres spread across the waist, back darts biased toward centre.
   const centres =
-    ds.length === 1 ? [sw.x * 0.5] : (a.isFront ? [0.33, 0.62] : [0.3, 0.6]).map((f) => sw.x * f);
+    ds.length === 0 ? [] : ds.length === 1 ? [sw.x * 0.5] : (a.isFront ? [0.33, 0.62] : [0.3, 0.6]).map((f) => sw.x * f);
+
+  // Darts are pressed toward the centre, trued, and the waist seam is peaked over each one.
+  const finished = centres.map((c, i) => {
+    const w = ds[i];
+    const depth = ds.length === 1 ? dartLen : dartLen - (c > centres[0] ? 1.5 : 0);
+    const near = p(c - w / 2, waistY(c - w / 2));
+    const away = unit(sub(p(near.x - 0.5, waistY(near.x - 0.5)), near));
+    return finishDart(p(c, waistY(c) + depth), near, p(c + w / 2, waistY(c + w / 2)), away);
+  });
 
   const outline = new Path(cw);
-  for (let i = 1; i <= 8; i++) {
-    const x = (sw.x * i) / 8;
-    outline.line(p(x, waistY(x)), 'waist');
+  const waistTo = (fromX: number, toX: number) => {
+    for (let i = 1; i < 4; i++) {
+      const x = fromX + ((toX - fromX) * i) / 4;
+      outline.line(p(x, waistY(x)), 'waist');
+    }
+  };
+  let x = 0;
+  for (const d of finished) {
+    waistTo(x, d.near.x);
+    outline.line(d.near, 'waist').line(d.peak, 'dart').line(d.far, 'dart');
+    x = d.far.x;
   }
+  waistTo(x, sw.x);
+  outline.line(sw, 'waist');
   outline.curve(p(sw.x + sideSupp * 0.55, sw.y + a.hipDepth * 0.15), p(a.hipQ, a.hipDepth * 0.55), sh, 'side');
   outline.line(hemSide, 'side');
   outline.curve(lerp(hemSide, ch, 0.35), lerp(hemSide, ch, 0.7), ch, 'hem');
   outline.line(cw, a.isFront ? 'fold' : 'centre');
   outline.closed = true;
 
-  const lines = centres.map((c, i) => {
-    const w = ds[i];
-    const l = p(c - w / 2, waistY(c - w / 2));
-    const r = p(c + w / 2, waistY(c + w / 2));
-    const depth = ds.length === 1 ? a.dartLen : a.dartLen - (c > centres[0] ? 1.5 : 0);
-    return new Path(l).line(p(c, waistY(c) + depth)).line(r);
-  });
+  const lines = finished.map((d) => new Path(d.near).line(d.tip).line(d.far));
 
   const cut = a.isFront ? 'Cut 1 on fold' : 'Cut 2 (1 pair)';
   const gx = a.hipQ * 0.45;
@@ -189,12 +205,20 @@ export function draftSkirt(m: SkirtMeasurements, style: Partial<SkirtStyle> = {}
   }
 
   const flare = { straight: 0, pencil: -2, a_line: Math.max(6, (length - hipDepth) * 0.15) }[s.silhouette];
-  // Shift 0.5 cm of waist from back to front, take up to 3 cm at each side seam; darts take the rest.
-  const sideSupp = Math.min(3, (hipQ - waistQ) * 0.4);
+  // Shift 0.5 cm of waist from back to front, take up to 3 cm at each side seam; darts take the rest,
+  // at most two per piece. A big hip-to-waist difference puts the extra into the side seams (front
+  // and back alike, so they still match) rather than making darts too wide to sew flat.
+  const FRONT_DART_MAX = 2.5;
+  const BACK_DART_MAX = 3.5;
+  const sideSupp = Math.max(
+    Math.min(3, (hipQ - waistQ) * 0.4),
+    hipQ - (waistQ + 0.5) - 2 * FRONT_DART_MAX,
+    hipQ - (waistQ - 0.5) - 2 * BACK_DART_MAX,
+  );
   const zipCm = zipLength(hipDepth);
   const common = { hipQ, hipDepth, length, sideSupp, flare, sa: s.seamAllowance, hemSa: s.hemAllowance, zipCm };
-  const front = half({ ...common, name: 'Skirt front', waistQ: waistQ + 0.5, centreDrop: 0, dartMax: 2.5, dartLen: 9, isFront: true });
-  const back = half({ ...common, name: 'Skirt back', waistQ: waistQ - 0.5, centreDrop: 1, dartMax: 3.5, dartLen: 14, isFront: false });
+  const front = half({ ...common, name: 'Skirt front', waistQ: waistQ + 0.5, centreDrop: 0, dartMax: FRONT_DART_MAX, dartLen: 9, isFront: true });
+  const back = half({ ...common, name: 'Skirt back', waistQ: waistQ - 0.5, centreDrop: 1, dartMax: BACK_DART_MAX, dartLen: 14, isFront: false });
 
   const finishedWaist = m.waist + ease.waist;
 
