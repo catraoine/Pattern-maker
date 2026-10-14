@@ -36,6 +36,7 @@ import { WelcomeScreen } from './screens/WelcomeScreen';
 import { AccountScreen } from './screens/AccountScreen';
 import { PhotoScreen } from './screens/PhotoScreen';
 import { WhoseScreen } from './screens/WhoseScreen';
+import { LoadingScreen } from './ui/LoadingScreen';
 
 export type Step = 'measure' | 'style' | 'export';
 type View = Step | 'welcome' | 'account' | 'photo' | 'whose';
@@ -95,6 +96,8 @@ export default function App() {
   const measuredBefore = isComplete(values, garment);
   // People who measured before onboarding existed have already met the app, so they skip the welcome.
   const [step, setStep] = useState<View>(measuredBefore ? 'style' : account.onboarded ? 'measure' : 'welcome');
+  // The loading screen plays once each time the app opens, before anything else is drawn.
+  const [opening, setOpening] = useState(true);
   const profile = profileName(account);
   const owner = personName(account, account.people.find((p) => p.id === ME)!);
 
@@ -166,6 +169,8 @@ export default function App() {
     setAccount(NEW_ACCOUNT);
     setStep('welcome');
   };
+
+  if (opening) return <LoadingScreen onDone={() => setOpening(false)} />;
 
   return (
     <div className="app">

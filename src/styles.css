@@ -1197,3 +1197,20 @@ button.ghost:disabled {
   gap: 8px;
   flex-wrap: wrap;
 }
+
+/* The loading screen when the app opens: full screen, black, fading out when done */
+.loading {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: #000;
+  transition: opacity 0.4s ease;
+}
+.loading.leaving {
+  opacity: 0;
+}
+.loading canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
