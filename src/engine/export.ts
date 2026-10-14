@@ -7,9 +7,14 @@ const MARGIN = 3; // cm around the sheet
 
 export type LineStyle = 'cut' | 'stitch' | 'stitchSolid' | 'mark' | 'notch';
 
+/** Drafting order, for showing a pattern being drawn: the stitching line, darts, grain and fold
+ * marks, seam allowance, then notches and labels. */
+export type DraftStep = 'outline' | 'darts' | 'grain' | 'allowance' | 'labels';
+type Order = { piece?: number; step?: DraftStep };
+
 export type Prim =
-  | { kind: 'poly'; pts: P[]; style: LineStyle; closed: boolean }
-  | { kind: 'text'; at: P; text: string; size: number; rotate: number; anchor: 'middle' | 'start' };
+  | ({ kind: 'poly'; pts: P[]; style: LineStyle; closed: boolean } & Order)
+  | ({ kind: 'text'; at: P; text: string; size: number; rotate: number; anchor: 'middle' | 'start' } & Order);
 
 export interface Sheet {
   prims: Prim[];
@@ -38,21 +43,26 @@ function arrowHeads(a: P, b: P, head = 1.2): P[][] {
 
 export function layout(pieces: Piece[], title: string, notes: string[]): Sheet {
   const prims: Prim[] = [];
-  const poly = (pts: P[], style: LineStyle, closed = false) => prims.push({ kind: 'poly', pts, style, closed });
+  let order: Order = {};
+  const poly = (pts: P[], style: LineStyle, closed = false) => prims.push({ kind: 'poly', pts, style, closed, ...order });
   const text = (at: P, t: string, size: number, rotate = 0, anchor: 'middle' | 'start' = 'middle') =>
-    prims.push({ kind: 'text', at, text: t, size, rotate, anchor });
+    prims.push({ kind: 'text', at, text: t, size, rotate, anchor, ...order });
 
   let x = MARGIN;
   // Title block: the 10 cm test square at top left, title and notes beside it.
   const top = MARGIN + 10 + GAP;
   let height = 0;
-  for (const pc of pieces) {
+  pieces.forEach((pc, piece) => {
     const [x0, y0, x1, y1] = bounds(pc);
     const off = p(x - x0, top - y0);
     const t = (q: P) => add(q, off);
+    order = { piece, step: 'allowance' };
     poly(cutLine(pc).map(t), 'cut', true);
+    order = { piece, step: 'outline' };
     poly(pc.outline.points().map(t), 'stitch', true);
+    order = { piece, step: 'darts' };
     pc.lines.forEach((ln) => poly(ln.points().map(t), 'mark'));
+    order = { piece, step: 'grain' };
     if (pc.grain) {
       const [a, b] = pc.grain.map(t);
       poly([a, b], 'mark');
@@ -68,11 +78,13 @@ export function layout(pieces: Piece[], title: string, notes: string[]): Sheet {
       );
       text(t(p(pc.fold[0].x + 2.6, (pc.fold[0].y + pc.fold[1].y) / 2)), 'PLACE ON FOLD', 0.8, 90);
     }
+    order = { piece, step: 'labels' };
     pc.notches.forEach(([pt, d]) => poly([t(pt), t(add(pt, mul(unit(d), pc.seamAllowance)))], 'notch'));
     pc.labels.forEach((l) => text(t(l.at), l.text, l.size));
+    order = {};
     x += x1 - x0 + GAP;
     height = Math.max(height, y1 - y0);
-  }
+  });
 
   // 10 cm test square so a printed copy can be checked for scale. It sits in the title block
   // rather than under the pieces, which would often add a whole extra row of pages.

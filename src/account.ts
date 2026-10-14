@@ -24,8 +24,14 @@ export function sameChoices(a: PatternChoices, b: PatternChoices): boolean {
     return isBodice(a) && isBodice(b) && a.fit === b.fit && a.neckline === b.neckline && a.length === b.length && a.darts === b.darts;
   }
   return (
-    a.fit === b.fit && a.silhouette === b.silhouette && a.length === b.length && (a.look ?? '') === (b.look ?? '') &&
-    JSON.stringify(a.shape ?? null) === JSON.stringify(b.shape ?? null)
+    a.fit === b.fit &&
+    a.silhouette === b.silhouette &&
+    a.length === b.length &&
+    (a.look ?? '') === (b.look ?? '') &&
+    JSON.stringify(a.shape ?? null) === JSON.stringify(b.shape ?? null) &&
+    a.lengthCm === b.lengthCm &&
+    a.flareCm === b.flareCm &&
+    JSON.stringify(a.hem ?? null) === JSON.stringify(b.hem ?? null)
   );
 }
 

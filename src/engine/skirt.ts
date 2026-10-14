@@ -3,6 +3,7 @@
 import { P, Path, add, lerp, mul, p, sub, taggedLength, unit } from './geometry';
 import { finishDart } from './darts';
 import { Piece } from './piece';
+import { HemShape, isShaped, matchSides, shapeHem } from './hem';
 
 export interface SkirtMeasurements {
   waist: number;
@@ -27,6 +28,12 @@ export interface SkirtStyle {
   hemAllowance: number;
   /** Exact proportions, read from a photo, that override the standard length and fullness. */
   shape?: SkirtShape;
+  /** A length in cm set by dragging the hem, in place of the named length (or a photo's). */
+  lengthCm?: number;
+  /** How far the hem flares out past the hip at each side seam, in cm, set by dragging. Negative tapers in. */
+  flareCm?: number;
+  /** A hand-drawn hem shape. */
+  hem?: HemShape;
 }
 
 /**
@@ -298,7 +305,12 @@ function circlePiece(a: CircleArgs): Piece {
     cut,
     seamAllowance: a.sa,
     allowances: { hem: a.hemSa, fold: 0 },
-    meta: { dartsCm: a.darts.map((d) => Math.round(d * 100) / 100), sideSuppressionCm: 0, angleDeg: Math.round((a.angle * 180) / Math.PI * 10) / 10 },
+    meta: {
+      dartsCm: a.darts.map((d) => Math.round(d * 100) / 100),
+      sideSuppressionCm: 0,
+      angleDeg: Math.round((a.angle * 180) / Math.PI * 10) / 10,
+      waistRadius: a.r,
+    },
   };
 }
 
@@ -314,6 +326,10 @@ export interface SkirtDraft {
   circleShare?: number;
   /** Hem circumference, to show how full the skirt is. */
   hemCm: number;
+  /** For block skirts, the flare at each side seam in cm (negative tapers in), so it can be dragged from here. */
+  flareCm?: number;
+  /** The hem shape as drafted, after front and back were matched at the sides and kept to a wearable length. */
+  hem?: HemShape;
   zipCm: number; // invisible zip in the centre back seam
   waistband: Waistband;
   dartsPerSide: { front: number; back: number };
@@ -349,10 +365,31 @@ const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v
 
 export function draftSkirt(m: SkirtMeasurements, style: Partial<SkirtStyle> = {}): SkirtDraft {
   const s = { ...DEFAULT_STYLE, ...style };
+  const draft = draftShape(m, s);
+  // A drawn hem never takes the skirt above 5 cm below the hip or below the floor, and turns up
+  // narrowly so the curve lies flat.
+  if (!s.hem || !isShaped(s.hem)) return draft;
+  const L = draft.lengthCm;
+  const hem = matchSides(s.hem, (v) => Math.min(m.waist_to_floor - 1 - L, Math.max(m.waist_to_hip + 5 - L, v)));
+  const [front, back] = draft.pieces;
+  // Circle skirt hems are arcs round the waist circle's centre, so they move out along its radius.
+  const origin = (pc: Piece) => (draft.circleShare ? p(0, -(pc.meta.waistRadius as number)) : undefined);
+  shapeHem(front, hem.front, origin(front));
+  shapeHem(back, hem.back, origin(back));
+  for (const pc of [front, back]) pc.allowances.hem = Math.min(pc.allowances.hem, 1.5);
+  return { ...draft, hem, hemCm: hemCm(front, back) };
+}
+
+function draftShape(m: SkirtMeasurements, s: SkirtStyle): SkirtDraft {
   const ease = FIT_EASE[s.fit];
   const hipDepth = m.waist_to_hip;
   const shape = s.shape;
-  const length = shape ? clamp(shape.hemAt * m.waist_to_floor, hipDepth + 8, m.waist_to_floor - 2) : LENGTHS[s.length](m);
+  const length =
+    s.lengthCm !== undefined
+      ? lengthRange(m).clamp(s.lengthCm)
+      : shape
+        ? clamp(shape.hemAt * m.waist_to_floor, hipDepth + 8, m.waist_to_floor - 2)
+        : LENGTHS[s.length](m);
   if (!(length > hipDepth + 5)) throw new DraftError('The skirt length must reach well below the hip line.');
 
   const hipQ = (m.full_hip + ease.hip) / 4;
@@ -429,18 +466,12 @@ export function draftSkirt(m: SkirtMeasurements, style: Partial<SkirtStyle> = {}
       ? undefined
       : shape?.flareAt !== undefined
         ? clamp(shape.flareAt * m.waist_to_floor, hipDepth + 5, length - 10)
-        : Math.min(hipDepth + (m.waist_to_knee - hipDepth) * 0.6, length - 15);
+        : trumpetFrom(m, length);
   if (flareFrom !== undefined && flareFrom < hipDepth + 5) {
     throw new DraftError('A trumpet skirt needs more length below the hip to flare into. Try a longer length.');
   }
-  const standardFlare = {
-    straight: 0,
-    pencil: -2,
-    a_line: Math.max(6, (length - hipDepth) * 0.15),
-    trumpet: Math.max(8, (length - (flareFrom ?? 0)) * 0.35),
-    half_circle: 0,
-    circle: 0,
-  }[s.silhouette];
+  const range = flareRange(m, length, s.silhouette);
+  const standardFlare = s.flareCm !== undefined ? clamp(s.flareCm, range.min, range.max) : defaultFlare(s.silhouette, length, hipDepth, flareFrom);
   // Shift 0.5 cm of waist from back to front, take up to 3 cm at each side seam; darts take the rest,
   // at most two per piece. A big hip-to-waist difference puts the extra into the side seams (front
   // and back alike, so they still match) rather than making darts too wide to sew flat.
@@ -462,6 +493,7 @@ export function draftSkirt(m: SkirtMeasurements, style: Partial<SkirtStyle> = {}
       finishedWaist,
       finishedHip,
       hemCm: hemCm(front, back),
+      flareCm: Math.round(flare * 10) / 10,
       zipCm,
       waistband: waistband(finishedWaist, waistQ - 0.5, s.seamAllowance),
       dartsPerSide: { front: (front.meta.dartsCm as number[]).length, back: (back.meta.dartsCm as number[]).length },
@@ -483,4 +515,37 @@ export function draftSkirt(m: SkirtMeasurements, style: Partial<SkirtStyle> = {}
     return matchedCircle(targetHem);
   }
   return draft;
+}
+
+/** How long a skirt can be: from 6 cm below the hip line to 2 cm off the floor. */
+export function lengthRange(m: SkirtMeasurements) {
+  const min = m.waist_to_hip + 6;
+  const max = m.waist_to_floor - 2;
+  return { min, max, clamp: (v: number) => clamp(v, min, max) };
+}
+
+/** Trumpet skirts stay close to the body down to a little above the knee, never closer than 15 cm to the hem. */
+const trumpetFrom = (m: SkirtMeasurements, length: number) => Math.min(m.waist_to_hip + (m.waist_to_knee - m.waist_to_hip) * 0.6, length - 15);
+
+function defaultFlare(sil: Silhouette, length: number, hipDepth: number, flareFrom?: number): number {
+  return {
+    straight: 0,
+    pencil: -2,
+    a_line: Math.max(6, (length - hipDepth) * 0.15),
+    trumpet: Math.max(8, (length - (flareFrom ?? 0)) * 0.35),
+    half_circle: 0,
+    circle: 0,
+  }[sil];
+}
+
+/** The flare each block silhouette starts with, so a dragged shape can snap back to it. */
+export function presetFlare(m: SkirtMeasurements, length: number, sil: Silhouette): number {
+  return defaultFlare(sil, length, m.waist_to_hip, sil === 'trumpet' ? trumpetFrom(m, length) : undefined);
+}
+
+/** How far the side seam can be dragged in or out at the hem. Pencil skirts taper in by up to 4 cm;
+ * past about 45% of the drop below the hip a skirt is better cut as a circle. */
+export function flareRange(m: SkirtMeasurements, length: number, sil: Silhouette) {
+  if (sil === 'trumpet') return { min: 4, max: Math.max(5, (length - trumpetFrom(m, length)) * 0.5) };
+  return { min: -4, max: Math.max(1, (length - m.waist_to_hip) * 0.45) };
 }

@@ -49,10 +49,16 @@ export function MeasureScreen({ profile, garment, onGarment, unit, values, check
       <section className="card help" aria-label="How to measure">
         <p className="eyebrow">How to measure</p>
         <h2>{current.label}</h2>
-        <TapeFigure field={focus} />
-        <p>{current.tip}</p>
-        {current.helper && <p className="muted small">This one is much easier with a helper.</p>}
-        {current.optional && <p className="muted small">{current.optional}</p>}
+        <TapeFigure field={focus} onPick={setFocus} ids={fields.map((f) => f.id)} />
+        <p key={focus} className="tip">
+          {current.tip}
+        </p>
+        <div className="row between wrap">
+          <p className="muted small">Tap the form to see how to measure each part.</p>
+          <button type="button" className="ghost" onClick={() => document.getElementById(focus)?.focus()}>
+            Enter {current.label.toLowerCase()}
+          </button>
+        </div>
         <p className="muted small">Wear close-fitting clothes and keep the tape snug but not tight. A helper makes it easier.</p>
       </section>
 

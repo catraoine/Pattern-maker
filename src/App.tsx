@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import type { HemShape } from './engine/hem';
 import { DraftError, Fit, Length, Silhouette, SkirtDraft, SkirtMeasurements, SkirtShape, draftSkirt } from './engine/skirt';
 import { BodiceDraft, BodiceMeasurements, draftBodice } from './engine/bodice';
 import { bodiceGuide, sewingGuide } from './engine/instructions';
@@ -26,6 +27,12 @@ export interface Choices {
   look?: string;
   /** Exact proportions matched from a photo, kept while the shape and length chips are left alone. */
   shape?: SkirtShape;
+  /** Set by dragging the hem on the sketch: a length in cm between the named ones. */
+  lengthCm?: number;
+  /** Set by dragging the side seam on the sketch: the flare at the hem in cm. */
+  flareCm?: number;
+  /** Drawn on the sketch: a shaped hem. */
+  hem?: HemShape;
 }
 
 // Saved under the original "skirt" key so measurements from before bodices still load; older saves
