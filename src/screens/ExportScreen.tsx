@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { OVERLAP, PAGE_MARGIN, PAPER_CM, Paper, layout, tileGrid, toSvg } from '../engine/export';
 import type { Piece } from '../engine/piece';
 import type { SewingGuide } from '../engine/instructions';
+import type { SpecRow } from '../engine/techpack';
 import { PatternPreview } from '../ui/Preview';
 
 /** What to print: the drafted pieces of either garment, with its notes and sewing steps. */
@@ -9,6 +10,8 @@ export interface Printable {
   pieces: Piece[];
   notes: string[];
   guide: SewingGuide;
+  /** Body, ease and finished measurements, for the tech pack. */
+  spec: SpecRow[];
 }
 
 interface Props {
@@ -162,6 +165,8 @@ export function ExportScreen({ profile, title, fit, made, error, onBack }: Props
         </section>
       </div>
 
+      <MakerPack profile={profile} title={title} fit={fit} made={made} fileBase={fileBase} />
+
       <section className="card sew" aria-labelledby="sewtitle">
         <div>
           <p className="eyebrow">After printing</p>
@@ -188,6 +193,58 @@ export function ExportScreen({ profile, title, fit, made, error, onBack }: Props
         </div>
       </section>
     </>
+  );
+}
+
+const today = () => new Date().toISOString().slice(0, 10);
+
+/** Files for someone else to make the garment: a tech pack and the pattern as DXF for pattern software. */
+function MakerPack({ profile, title, fit, made, fileBase }: { profile: string; title: string; fit: string; made: Printable; fileBase: string }) {
+  const [busy, setBusy] = useState(false);
+  const fitName = fit[0].toUpperCase() + fit.slice(1);
+
+  const techPack = async () => {
+    setBusy(true);
+    try {
+      const { toTechPack } = await import('../engine/techpack');
+      const bytes = await toTechPack({
+        title,
+        profile,
+        fit: fitName,
+        date: today(),
+        pieces: made.pieces,
+        measurements: made.spec,
+        notes: made.notes,
+        guide: made.guide,
+      });
+      download(bytes, 'application/pdf', `${fileBase}-tech-pack.pdf`);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const dxf = async () => {
+    const { toDxf } = await import('../engine/dxf');
+    download(toDxf(made.pieces, { style: title, size: profile, date: today() }), 'application/dxf', `${fileBase}.dxf`);
+  };
+
+  return (
+    <section className="card" aria-labelledby="makertitle">
+      <p className="eyebrow">Having it made</p>
+      <h2 id="makertitle">For a dressmaker or factory</h2>
+      <p className="muted">
+        Send both files to whoever is making it. The tech pack has your measurements, the ease, the piece list, fabric and the construction
+        steps. The DXF opens in pattern software such as Gerber, Lectra, Optitex and CLO 3D.
+      </p>
+      <div className="row wrap">
+        <button type="button" className="secondary" onClick={techPack} disabled={busy}>
+          {busy ? 'Making the tech pack…' : 'Download tech pack (PDF)'}
+        </button>
+        <button type="button" className="secondary" onClick={dxf}>
+          Download pattern (DXF)
+        </button>
+      </div>
+    </section>
   );
 }
 
