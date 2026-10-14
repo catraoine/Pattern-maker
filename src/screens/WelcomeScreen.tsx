@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { Unit } from '../measurements';
 import { SKIRT_FIELDS } from '../measurements';
+import { ContourForm } from '../ui/ContourForm';
 
 interface Props {
   name: string;
@@ -32,33 +33,31 @@ export function WelcomeScreen({ name: initialName, unit: initialUnit, onFinish }
 
         {step === 0 && (
           <>
+            <div className="welcome-hero">
+              <ContourForm />
+            </div>
+            <p className="eyebrow">Measured, not sized</p>
             <h1 id="wtitle">Sewing patterns drafted to your body.</h1>
-            <p>No more grading between sizes or guessing at alterations. Pattern Maker draws a skirt pattern from your own measurements.</p>
+            <p className="muted">No more grading between sizes or guessing at alterations. Pattern Maker draws a skirt pattern from your own measurements.</p>
             <ol className="how">
               <li>
-                <span className="num">1</span>
-                <div>
-                  <strong>Measure</strong>
-                  <p className="muted small">Five measurements, with a picture showing where the tape goes.</p>
-                </div>
+                <span className="num">01</span>
+                <strong>Measure</strong>
+                <span className="muted">Five measurements, with a picture showing where the tape goes.</span>
               </li>
               <li>
-                <span className="num">2</span>
-                <div>
-                  <strong>Style</strong>
-                  <p className="muted small">Pick the fit, shape and length. The pattern redraws as you choose.</p>
-                </div>
+                <span className="num">02</span>
+                <strong>Style</strong>
+                <span className="muted">Pick the fit, shape and length. The pattern redraws as you choose.</span>
               </li>
               <li>
-                <span className="num">3</span>
-                <div>
-                  <strong>Print</strong>
-                  <p className="muted small">Download a PDF for A4 or Letter paper, tape the pages together and cut.</p>
-                </div>
+                <span className="num">03</span>
+                <strong>Print</strong>
+                <span className="muted">Download a PDF for A4 or Letter paper, tape the pages together and cut.</span>
               </li>
             </ol>
             <button type="button" className="primary" onClick={() => setStep(1)}>
-              Get started
+              Begin
             </button>
           </>
         )}

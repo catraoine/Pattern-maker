@@ -208,8 +208,8 @@ function TileOverlay({ sheetW, sheetH, paper, rows, cols }: { sheetW: number; sh
     for (let c = 0; c < cols; c++)
       cells.push(
         <g key={`${r}-${c}`}>
-          <rect x={c * stepX} y={r * stepY} width={tw} height={th} fill="none" stroke="#555" strokeWidth={0.12} strokeDasharray="0.8 0.6" />
-          <text x={c * stepX + 0.8} y={r * stepY + 2} fontSize={1.4} fill="#555" fontFamily="Space Mono, monospace">
+          <rect x={c * stepX} y={r * stepY} width={tw} height={th} fill="none" style={{ stroke: 'var(--muted)' }} strokeWidth={0.12} strokeDasharray="0.8 0.6" />
+          <text x={c * stepX + 0.8} y={r * stepY + 2} fontSize={1.4} style={{ fill: 'var(--muted)', fontFamily: 'var(--mono)' }}>
             {String.fromCharCode(65 + r)}
             {c + 1}
           </text>

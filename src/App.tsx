@@ -72,10 +72,10 @@ export default function App() {
       <header className="topbar">
         <div className="brand">
           <svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true">
-            <rect x="2" y="2" width="28" height="28" fill="#111" />
-            <path d="M9 22 L16 9 L23 22 M12 17 H20" stroke="#fff" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            <rect x="2.5" y="2.5" width="27" height="27" fill="none" style={{ stroke: 'var(--ink)' }} strokeWidth="1" />
+            <path d="M10 22 L16 10 L22 22 M12.5 17 H19.5" style={{ stroke: 'var(--ink)' }} strokeWidth="1" fill="none" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          <span>pattern_maker</span>
+          <span>Pattern Maker</span>
         </div>
         {step !== 'welcome' && (
           <div className="row nav">

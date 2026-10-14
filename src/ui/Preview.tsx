@@ -11,14 +11,13 @@ export function PatternPreview({ sheet, label }: { sheet: Sheet; label: string }
       {sheet.prims.map((pr, i) => {
         if (pr.kind === 'poly') {
           const Tag = pr.closed ? 'polygon' : 'polyline';
-          const stroke = pr.style === 'stitch' ? '#888' : '#111';
+          const stroke = pr.style === 'stitch' ? 'var(--muted)' : 'var(--ink)';
           const width = pr.style === 'cut' ? 0.12 : 0.07;
           return (
             <Tag
               key={i}
               points={pts(pr.pts)}
-              fill={pr.style === 'cut' ? '#fff' : 'none'}
-              stroke={stroke}
+              style={{ fill: pr.style === 'cut' ? 'var(--paper)' : 'none', stroke }}
               strokeWidth={width}
               strokeDasharray={pr.style === 'stitch' ? '0.5 0.3' : undefined}
               strokeLinejoin="round"
@@ -32,7 +31,7 @@ export function PatternPreview({ sheet, label }: { sheet: Sheet; label: string }
             y={pr.at.y}
             fontSize={pr.size}
             textAnchor={pr.anchor}
-            fontFamily="Space Mono, monospace"
+            style={{ fontFamily: 'var(--mono)', fill: 'var(--ink)' }}
             transform={pr.rotate ? `rotate(${pr.rotate} ${pr.at.x} ${pr.at.y})` : undefined}
           >
             {pr.text}
@@ -65,8 +64,8 @@ export function SketchPreview({ front, label }: { front: Piece; label: string })
   }, [front]);
   return (
     <svg viewBox={`0 0 ${d.w} ${d.h}`} role="img" aria-label={label} className="preview-svg sketch">
-      <path d={d.path} fill="#EDEDED" stroke="#111" strokeWidth={0.35} strokeLinejoin="round" />
-      <rect x={d.band.x} y={d.band.y} width={d.band.width} height={3.5} fill="#111" />
+      <path d={d.path} style={{ fill: 'var(--fill)', stroke: 'var(--ink)' }} strokeWidth={0.25} strokeLinejoin="round" />
+      <rect x={d.band.x} y={d.band.y} width={d.band.width} height={3.5} style={{ fill: 'var(--paper)', stroke: 'var(--ink)' }} strokeWidth={0.25} />
     </svg>
   );
 }
