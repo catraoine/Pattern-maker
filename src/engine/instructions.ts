@@ -23,7 +23,8 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
   const { front, back } = draft.dartsPerSide;
   const band = draft.waistband;
   const dartCount = 2 * front + 2 * back;
-  const circle = isCircle(style.silhouette);
+  // A shape matched from a photo can come out as part of a circle whatever its silhouette chip says.
+  const circle = isCircle(style.silhouette) || !!draft.circleShare;
   const frontSeam = !draft.pieces[0].fold;
   // A front too wide for the fold (big circle skirts) is cut as a pair with a centre front seam, and
   // the back is then too wide for folded fabric as well.
@@ -38,7 +39,7 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
     {
       title: 'Cut out',
       text: wide
-        ? `These pieces are too wide to cut from folded fabric, so open it out to a single layer. Cut each piece twice, turning the pattern over for the second one so you get a pair. Keep each grain arrow parallel to the selvedge. Cut along the solid outer line and snip the small notches.${circle ? ' To save fabric, turn every other piece upside down so the curves nest together.' : ''}`
+        ? `These pieces are too wide to cut from folded fabric, so open it out to a single layer. Cut each piece twice, turning the pattern over for the second one so you get a pair. Keep each grain arrow parallel to the selvedge. Cut along the solid outer line and snip the small notches.${dartCount ? ' Chalk-mark the dart lines.' : ''}${circle ? ' To save fabric, turn every other piece upside down so the curves nest together.' : ''}`
         : `Fold the fabric in half with the selvedges together. ${frontSeam ? 'Place the skirt front and the skirt back on both layers so you get a pair of each.' : 'Place the skirt front on the fold, and the skirt back on both layers so you get a pair.'} Keep each grain arrow parallel to the selvedge. Cut along the solid outer line, snip the small notches${dartCount ? ', and chalk-mark the dart lines' : ''}.`,
     },
     {

@@ -3,6 +3,7 @@ import type { Choices } from '../App';
 import { photoToJpeg } from '../photo/image';
 import type { Confidence, PhotoError, PhotoReading, PhotoResponse } from '../photo/types';
 import { GROUPS } from './StyleScreen';
+import { shapeLine, shapeOf } from '../photo/shape';
 
 interface Props {
   measured: boolean;
@@ -20,6 +21,34 @@ const ERRORS: Record<PhotoError | 'network', string> = {
   failed: 'Something went wrong reading the photo. Please try again.',
   network: "We couldn't reach the server. Check your connection and try again.",
 };
+
+// What makes a photo easy to match exactly. The hem position and fullness are measured against the
+// wearer's body, so the photo needs the body from waist to feet, seen straight on and standing still.
+const TIPS: [string, string][] = [
+  ['Show it being worn, waist to feet', 'We measure where the hem falls against the body, so we need to see the waist, knees and feet.'],
+  ['Stand straight on, camera at hip height', 'Shooting from above or below makes a skirt look shorter or longer than it is.'],
+  ['Stand still', 'Walking or twirling makes a skirt look fuller than it really is.'],
+  ['Use good light and a plain background', 'So the hem edge and the folds are easy to see.'],
+  ['Keep the whole skirt in the frame', 'If the hem is cropped off, we can only guess the length.'],
+  ['One skirt per photo', 'Shop and catalogue photos and screenshots all work.'],
+];
+
+const TIP_FLAT = 'No one to wear it? Lay it flat and smooth, or hang it straight. We can read the shape, but the length will be a guess.';
+
+function Tips() {
+  return (
+    <>
+      <ol className="tips small">
+        {TIPS.map(([tip, why]) => (
+          <li key={tip}>
+            <strong>{tip}.</strong> <span className="muted">{why}</span>
+          </li>
+        ))}
+      </ol>
+      <p className="muted small">{TIP_FLAT}</p>
+    </>
+  );
+}
 
 const OTHER: Partial<Record<PhotoReading['garment'], string>> = {
   dress: 'This looks like a dress. Photos can only be read as skirts so far, so here is the closest skirt to its lower half.',
@@ -67,7 +96,8 @@ export function PhotoScreen({ measured, onApply, onCancel }: Props) {
         setError("We couldn't find any clothing in that photo. Try one with the whole skirt in view.");
       } else {
         setReading(data.reading);
-        setChoices({ fit: data.reading.fit.value, silhouette: data.reading.silhouette.value, length: data.reading.length.value });
+        const r = data.reading;
+        setChoices({ fit: r.fit.value, silhouette: r.silhouette.value, length: r.length.value, shape: shapeOf(r) });
       }
     } catch {
       setError(ERRORS.network);
@@ -92,15 +122,18 @@ export function PhotoScreen({ measured, onApply, onCancel }: Props) {
           <img src={preview} alt="Your photo" className="photo" />
         ) : (
           <>
-            <p>We'll read its shape, length and fit, then draft it to your measurements. The photo sets the style, never the size.</p>
-            <ul className="checklist small">
-              <li>Get the whole skirt in the frame</li>
-              <li>Front view, on a plain background</li>
-              <li>Worn is best; on a hanger or laid flat works too</li>
-            </ul>
+            <p>We'll read its shape, length and fullness, then draft it to your measurements. The photo sets the style, never the size.</p>
+            <p className="eyebrow">For the closest match</p>
+            <Tips />
           </>
         )}
         {chooser(preview ? 'Try another photo' : 'Take or choose a photo', preview ? 'secondary' : 'primary')}
+        {preview && (
+          <details className="small">
+            <summary>Tips for a closer match</summary>
+            <Tips />
+          </details>
+        )}
         <p className="muted small">Your photo is sent to Claude to read the style. Pattern Maker doesn't keep it.</p>
         <button type="button" className="link" onClick={onCancel}>
           Back to styling by hand
@@ -137,7 +170,7 @@ export function PhotoScreen({ measured, onApply, onCancel }: Props) {
                         type="button"
                         className={choices[g.id] === id ? 'chip on' : 'chip'}
                         aria-pressed={choices[g.id] === id}
-                        onClick={() => setChoices({ ...choices, [g.id]: id })}
+                        onClick={() => setChoices({ ...choices, [g.id]: id, ...(g.id === 'fit' ? {} : { shape: undefined }) })}
                       >
                         {label}
                       </button>
@@ -146,8 +179,20 @@ export function PhotoScreen({ measured, onApply, onCancel }: Props) {
                 </fieldset>
               );
             })}
+            {(reading.shape?.confidence === 'low' || reading.length.confidence === 'low') && (
+              <p className="msg small">
+                This photo doesn't show the skirt clearly enough to match it exactly. For a closer match, try one of the skirt being worn,
+                from the front, with the feet in view.
+              </p>
+            )}
             {reading.details && <p className="small">{reading.details}</p>}
-            <p className="muted small">Inspired by your photo, not an exact copy. Change anything that doesn't look right.</p>
+            {choices.shape ? (
+              <p className="small">
+                {shapeLine(choices.shape)} Your pattern copies these proportions, scaled to your measurements. Tap a shape or length to use a standard one instead.
+              </p>
+            ) : (
+              <p className="muted small">Change anything that doesn't look right.</p>
+            )}
             <button type="button" className="primary" onClick={() => onApply(choices)}>
               {measured ? 'Draft my skirt' : 'Next: add my measurements'}
             </button>

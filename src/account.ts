@@ -23,7 +23,10 @@ export function sameChoices(a: PatternChoices, b: PatternChoices): boolean {
   if (isBodice(a) || isBodice(b)) {
     return isBodice(a) && isBodice(b) && a.fit === b.fit && a.neckline === b.neckline && a.length === b.length && a.darts === b.darts;
   }
-  return a.fit === b.fit && a.silhouette === b.silhouette && a.length === b.length && (a.look ?? '') === (b.look ?? '');
+  return (
+    a.fit === b.fit && a.silhouette === b.silhouette && a.length === b.length && (a.look ?? '') === (b.look ?? '') &&
+    JSON.stringify(a.shape ?? null) === JSON.stringify(b.shape ?? null)
+  );
 }
 
 export function savePattern(account: Account, choices: PatternChoices, name: string): Account {

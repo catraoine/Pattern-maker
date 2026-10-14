@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { DraftError, Fit, Length, Silhouette, SkirtDraft, SkirtMeasurements, draftSkirt } from './engine/skirt';
+import { DraftError, Fit, Length, Silhouette, SkirtDraft, SkirtMeasurements, SkirtShape, draftSkirt } from './engine/skirt';
 import { BodiceDraft, BodiceMeasurements, draftBodice } from './engine/bodice';
 import { bodiceGuide, sewingGuide } from './engine/instructions';
 import { EXAMPLE_VALUES, Garment, MeasurementValues, Unit, checkMeasurements, isComplete } from './measurements';
@@ -24,6 +24,8 @@ export interface Choices {
   length: Length;
   /** An era look the choices came from, kept while the shape and length still match it. */
   look?: string;
+  /** Exact proportions matched from a photo, kept while the shape and length chips are left alone. */
+  shape?: SkirtShape;
 }
 
 // Saved under the original "skirt" key so measurements from before bodices still load; older saves
