@@ -2,7 +2,6 @@ import { useState } from 'react';
 import type { Garment, Unit } from '../measurements';
 import { FIELDS } from '../measurements';
 import { ContourForm } from '../ui/ContourForm';
-import { GarmentSwitch } from '../ui/GarmentSwitch';
 
 interface Props {
   name: string;
@@ -17,7 +16,7 @@ export function WelcomeScreen({ name: initialName, unit: initialUnit, garment: i
   const [step, setStep] = useState(0);
   const [name, setName] = useState(initialName);
   const [unit, setUnit] = useState<Unit>(initialUnit);
-  const [garment, setGarment] = useState<Garment>(initialGarment);
+  const garment = initialGarment;
   const finish = (start: 'measure' | 'example' | 'photo') => onFinish({ name: name.trim(), unit, garment, start });
   const fields = FIELDS[garment].filter((f) => !f.optional);
 
@@ -64,11 +63,6 @@ export function WelcomeScreen({ name: initialName, unit: initialUnit, garment: i
               <label htmlFor="wname">What should we call you?</label>
               <input id="wname" autoComplete="given-name" value={name} placeholder="Optional" onChange={(e) => setName(e.target.value)} />
             </div>
-            <fieldset className="group">
-              <legend>What would you like to make first?</legend>
-              <GarmentSwitch garment={garment} onGarment={setGarment} />
-              <p className="muted small">{garment === 'skirt' ? 'A skirt with a waistband and zip.' : 'A sleeveless bodice with darts and a back zip.'} You can make the other one any time.</p>
-            </fieldset>
             <fieldset className="group">
               <legend>Which units does your tape measure use?</legend>
               <div className="seg" role="group" aria-label="Units">
