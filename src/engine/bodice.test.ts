@@ -12,11 +12,12 @@ describe('bodice block', () => {
     // Started as the Python prototype's numbers (drafting/pattern/bodice.py). Since then the engine
     // draws shoulders at standard slopes, sizes the armhole from the high bust and gives the armhole
     // more room as ease grows, so the bust dart and armhole differ from the prototype's. Body C's bust
-    // dart grew when the side seam was given a curve below the underarm to blend with the back's.
+    // dart grew when the side seam was given a curve below the underarm to blend with the back's. The
+    // finished waist is the waist seam's length with darts closed, a little over the pieces' width.
     const expected = {
-      A: { bustDart: 3, front: 4.4, back: 2.4, armhole: 46.4, bust: 97, waist: 77 },
-      B: { bustDart: 1, front: 2.7, back: 2.7, armhole: 53.5, bust: 107, waist: 89 },
-      C: { bustDart: 11.64, front: 6.5, back: 0.5, armhole: 58.4, bust: 137, waist: 121.1 },
+      A: { bustDart: 3, front: 4.4, back: 2.4, armhole: 46.4, bust: 97, waist: 77.3 },
+      B: { bustDart: 1, front: 2.7, back: 2.7, armhole: 53.5, bust: 107, waist: 89.5 },
+      C: { bustDart: 11.64, front: 6.5, back: 0.5, armhole: 58.4, bust: 137, waist: 121 },
     };
     for (const [name, body] of Object.entries({ A, B, C })) {
       const d = draftBodice(body);
@@ -47,5 +48,35 @@ describe('bodice block', () => {
   it('exports SVG', () => {
     const sheet = layout(draftBodice(A).pieces, 'Bodice block', []);
     expect(toSvg(sheet)).toContain('BODICE FRONT');
+  });
+});
+
+describe('bodice styles', () => {
+  const hips = { full_hip: 100, waist_to_hip: 21 };
+  it('lowers and widens the neckline without changing the shoulder seam match', () => {
+    const crew = draftBodice(A);
+    for (const neckline of ['scoop', 'v', 'square', 'boat'] as const) {
+      const d = draftBodice(A, { neckline });
+      expect(d.neck, neckline).toBeGreaterThan(crew.neck);
+      expect(d.shoulder.back - d.shoulder.front).toBeCloseTo(1, 1);
+      expect(d.shoulder.front).toBeGreaterThanOrEqual(5);
+    }
+  });
+
+  it('extends to the hip with fish-eye darts and a hem cut to the hip', () => {
+    const d = draftBodice({ ...A, ...hips }, { fit: 'regular', length: 'hip' });
+    expect(d.finishedHem).toBeCloseTo(107, 0);
+    expect(d.backLength).toBeCloseTo(41 + 21, 0);
+    expect(d.pieces[0].lines.some((l) => l.segs.length === 4)).toBe(true);
+    expect(Math.abs(d.sideSeam.frontLessDart - d.sideSeam.back)).toBeLessThan(0.05);
+  });
+
+  it('needs hip measurements for hip lengths', () => {
+    expect(() => draftBodice(A, { length: 'high_hip' })).toThrow(/hip/);
+  });
+
+  it('drops darts on request', () => {
+    expect(draftBodice(A, { fit: 'relaxed', darts: 'bust' }).waistDarts).toEqual({ front: 0, back: 0 });
+    expect(draftBodice(A, { fit: 'relaxed', darts: 'none' }).bustDart).toBe(0);
   });
 });

@@ -23,7 +23,16 @@ export function dartsOf(pc: Piece): DartLine[] {
 }
 
 export function drillHoles(pc: Piece): P[] {
-  return dartsOf(pc).map(({ near, tip, far }) => add(tip, mul(unit(sub(lerp(near, far, 0.5), tip)), DRILL_INSET)));
+  const darts = dartsOf(pc).map(({ near, tip, far }) => add(tip, mul(unit(sub(lerp(near, far, 0.5), tip)), DRILL_INSET)));
+  // Fish-eye darts (top, side, bottom, side, back to the top) get a drill hole inside each point.
+  const fishEyes = pc.lines
+    .map((ln) => ln.points())
+    .filter((pts) => pts.length === 5 && len(sub(pts[0], pts[4])) < 1e-6)
+    .flatMap(([top, , bottom]) => {
+      const u = unit(sub(bottom, top));
+      return [add(top, mul(u, DRILL_INSET)), sub(bottom, mul(u, DRILL_INSET))];
+    });
+  return [...darts, ...fishEyes];
 }
 
 /** Every notch on the piece: its own balance notches plus one at each dart leg, pointing out of the piece. */
@@ -123,7 +132,8 @@ export function edgeLabels(pc: Piece): EdgeLabel[] {
         continue;
       }
       const mid = lerp(pts[k], pts[k + 1], seg ? (target - acc) / seg : 0);
-      const u = unit(sub(pts[Math.min(k + 2, pts.length - 1)], pts[Math.max(k - 1, 0)]));
+      // Direction along the edge here, smoothed over the neighbouring points without crossing a corner.
+      const u = unit(sub(pts[Math.min(k + 2, b + 1)], pts[Math.max(k - 1, a)]));
       let n = p(-u.y, u.x);
       if (!insidePolygon(add(mid, mul(n, 0.6)), pts)) n = mul(n, -1);
       let rotate = (Math.atan2(u.y, u.x) * 180) / Math.PI;

@@ -113,14 +113,15 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
         });
       }
     }
-    if (opts.finishedWaist) {
+    if (opts.finishedWaist && taggedLength(front.outline, 'waist') > 0) {
       // Two of each piece (a pair, or a piece cut on the fold that is half the front).
       const seam = 2 * (taggedLength(front.outline, 'waist') + taggedLength(back.outline, 'waist'));
       checks.push({
         group: 'Seams',
-        label: 'Waist seam to waistband',
-        detail: `${cm(seam)} with darts closed, band ${cm(opts.finishedWaist)}`,
-        ok: Math.abs(seam - opts.finishedWaist) <= 1,
+        label: 'Waist seam to finished waist',
+        detail: `${cm(seam)} with darts closed, finished ${cm(opts.finishedWaist)}`,
+        // Up to 1.5 cm eases into a waistband or a matching seam without showing.
+        ok: Math.abs(seam - opts.finishedWaist) <= 1.5,
       });
     }
   }
@@ -130,7 +131,7 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
     const where = isFront(pc) ? 'centre front' : 'centre back';
     for (const c of corners(pc)) {
       const centre = ['fold', 'centre'].includes(c.a) ? c.b : ['fold', 'centre'].includes(c.b) ? c.a : '';
-      if (!centre || !NAMES[centre]) continue;
+      if (!centre || !NAMES[centre] || ((pc.meta.pointedAtCentre as string[] | undefined) ?? []).includes(centre)) continue;
       checks.push({
         group: 'Corners',
         label: `${cap(NAMES[centre])} square at ${where}`,
@@ -154,9 +155,10 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
 
 const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
 
+/** A row of the finished measurements table (the tech pack's SpecRow has the same shape). */
 export interface FinishedRow {
   label: string;
   body?: number;
   ease?: number;
-  finished: number;
+  finished: number | string;
 }

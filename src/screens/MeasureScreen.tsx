@@ -1,9 +1,12 @@
 import { useState } from 'react';
-import { Check, MeasurementId, MeasurementValues, SKIRT_FIELDS, Unit } from '../measurements';
+import { Check, FIELDS, Garment, MeasurementId, MeasurementValues, Unit } from '../measurements';
 import { TapeFigure } from '../ui/TapeFigure';
+import { GarmentSwitch } from '../ui/GarmentSwitch';
 
 interface Props {
   profile: string;
+  garment: Garment;
+  onGarment: (g: Garment) => void;
   unit: Unit;
   values: MeasurementValues;
   checks: Check[];
@@ -17,12 +20,15 @@ interface Props {
 const toDisplay = (cm: number | undefined, unit: Unit) =>
   cm === undefined ? '' : String(unit === 'cm' ? cm : Math.round((cm / 2.54) * 10) / 10);
 
-export function MeasureScreen({ profile, unit, values, checks, onUnit, onValues, onExample, canContinue, onNext }: Props) {
-  const [focus, setFocus] = useState<MeasurementId>('waist');
+export function MeasureScreen({ profile, garment, onGarment, unit, values, checks, onUnit, onValues, onExample, canContinue, onNext }: Props) {
+  const fields = FIELDS[garment];
+  const [focusId, setFocus] = useState<MeasurementId>(fields[0].id);
   // Raw text per field while typing, so "72." doesn't get rewritten mid-entry.
   const [draftText, setDraftText] = useState<Partial<Record<MeasurementId, string>>>({});
   const [touched, setTouched] = useState<Partial<Record<MeasurementId, boolean>>>({});
-  const current = SKIRT_FIELDS.find((f) => f.id === focus)!;
+  // Switching garment can leave the focused field behind; fall back to the first one.
+  const current = fields.find((f) => f.id === focusId) ?? fields[0];
+  const focus = current.id;
 
   const setField = (id: MeasurementId, text: string) => {
     setDraftText({ ...draftText, [id]: text });
@@ -43,17 +49,26 @@ export function MeasureScreen({ profile, unit, values, checks, onUnit, onValues,
       <section className="card help" aria-label="How to measure">
         <p className="eyebrow">How to measure</p>
         <h2>{current.label}</h2>
-        <TapeFigure field={focus} />
-        <p>{current.tip}</p>
+        <TapeFigure field={focus} onPick={setFocus} ids={fields.map((f) => f.id)} />
+        <p key={focus} className="tip">
+          {current.tip}
+        </p>
+        <div className="row between wrap">
+          <p className="muted small">Tap the form to see how to measure each part.</p>
+          <button type="button" className="ghost" onClick={() => document.getElementById(focus)?.focus()}>
+            Enter {current.label.toLowerCase()}
+          </button>
+        </div>
         <p className="muted small">Wear close-fitting clothes and keep the tape snug but not tight. A helper makes it easier.</p>
       </section>
 
       <section className="card grow" aria-labelledby="mtitle">
         <div className="row between wrap">
           <div>
-            <p className="muted small">Profile: {profile} · Skirt measurements</p>
+            <p className="muted small">Profile: {profile} · {garment === 'skirt' ? 'Skirt' : 'Bodice'} measurements</p>
             <h1 id="mtitle">Your measurements</h1>
           </div>
+          <GarmentSwitch garment={garment} onGarment={onGarment} />
           <div className="seg" role="group" aria-label="Units">
             {(['cm', 'in'] as Unit[]).map((u) => (
               <button key={u} type="button" aria-pressed={unit === u} className={unit === u ? 'on' : ''} onClick={() => switchUnit(u)}>
@@ -64,12 +79,15 @@ export function MeasureScreen({ profile, unit, values, checks, onUnit, onValues,
         </div>
 
         <div className="fields">
-          {SKIRT_FIELDS.map((f) => {
+          {fields.map((f) => {
             const problems = checks.filter((c) => c.id === f.id && (touched[f.id] || values[f.id] !== undefined));
             const err = problems.find((c) => c.level === 'error');
             return (
               <div key={f.id} className={focus === f.id ? 'field focus' : 'field'}>
-                <label htmlFor={f.id}>{f.label}</label>
+                <label htmlFor={f.id}>
+                  {f.label}
+                  {f.optional && <span className="muted"> (optional)</span>}
+                </label>
                 <div className="row">
                   <input
                     id={f.id}
@@ -95,11 +113,16 @@ export function MeasureScreen({ profile, unit, values, checks, onUnit, onValues,
         </div>
 
         <div className="row between wrap footer">
-          <button type="button" className="link" onClick={onExample}>
-            Fill in example measurements
-          </button>
+          {/* Examples only fill gaps, so measurements already taken for the other garment are kept. */}
+          {fields.some((f) => values[f.id] === undefined) ? (
+            <button type="button" className="link" onClick={onExample}>
+              {fields.some((f) => values[f.id] !== undefined) ? 'Fill the gaps with example measurements' : 'Fill in example measurements'}
+            </button>
+          ) : (
+            <span />
+          )}
           <button type="button" className="primary" disabled={!canContinue} onClick={onNext}>
-            Next: style your skirt
+            Next: style your {garment}
           </button>
         </div>
       </section>

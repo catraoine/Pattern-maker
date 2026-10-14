@@ -1,17 +1,25 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { Choices } from '../App';
 import { OVERLAP, PAGE_MARGIN, Paper, Sheet, layout, pageCount, pageName, pageSize, tileGrid, toSvg, usedTiles } from '../engine/export';
-import { FIT_EASE } from '../engine/skirt';
 import { checkPattern } from '../engine/qc';
-import { SkirtDraft } from '../engine/skirt';
+import type { Piece } from '../engine/piece';
+import type { SewingGuide } from '../engine/instructions';
+import type { SpecRow } from '../engine/techpack';
 import { PatternPreview } from '../ui/Preview';
-import { describe, fabricMetres } from './StyleScreen';
-import { sewingGuide } from '../engine/instructions';
+
+/** What to print: the drafted pieces of either garment, with its notes and sewing steps. */
+export interface Printable {
+  pieces: Piece[];
+  notes: string[];
+  guide: SewingGuide;
+  /** Body, ease and finished measurements, for the tech pack. */
+  spec: SpecRow[];
+}
 
 interface Props {
   profile: string;
-  choices: Choices;
-  draft?: SkirtDraft;
+  title: string;
+  fit: string;
+  made?: Printable;
   error?: string;
   onBack: () => void;
 }
@@ -28,7 +36,8 @@ const OUTPUTS: { id: Output; label: string }[] = [
 
 const isProjector = (o: Output): o is 'projector' | 'projectorDark' => o === 'projector' || o === 'projectorDark';
 
-const today = () => new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+/** The date as printed on the pattern, such as 14 Oct 2026. */
+const printedDate = () => new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
 // Phones can hand a file to the share sheet (email, Files, AirDrop, a printer app); most desktops can't.
 const canShareFiles = (() => {
@@ -52,41 +61,25 @@ function download(data: BlobPart, type: string, name: string) {
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
-export function ExportScreen({ profile, choices, draft, error, onBack }: Props) {
+export function ExportScreen({ profile, title, fit, made, error, onBack }: Props) {
   const [paper, setPaper] = useState<Output>('a4');
   const [pdf, setPdf] = useState<{ paper: Output; bytes: Uint8Array } | null>(null);
   const [shareNote, setShareNote] = useState('');
-  const title = describe(choices);
-  const guide = useMemo(() => (draft ? sewingGuide(draft, choices, fabricMetres(draft)) : undefined), [draft, choices]);
-  const date = useMemo(today, []);
+  const guide = made?.guide;
+  const date = useMemo(printedDate, []);
   const sheet = useMemo(
-    () =>
-      draft
-        ? layout(
-            draft.pieces,
-            `Pattern Maker: ${title}`,
-            [
-              `Finished waist ${draft.finishedWaist} cm, hip ${draft.finishedHip} cm, length ${draft.lengthCm} cm.`,
-              `Seam allowance ${draft.pieces[0].seamAllowance} cm included, ${draft.pieces[0].allowances.hem} cm at the hem. Dashed line = stitching line.`,
-              `Waistband: mark a ${draft.waistband.cutLength} x ${draft.waistband.cutWidth} cm strip on the fabric. Sewing steps are on the last pages.`,
-            ],
-            { pattern: title, madeFor: profile, date },
-          )
-        : undefined,
-    [draft, title, profile, date],
+    () => (made ? layout(made.pieces, `Pattern Maker: ${title}`, made.notes, { pattern: title, madeFor: profile, date }) : undefined),
+    [made, title, profile, date],
   );
-  const checks = useMemo(() => (draft ? checkPattern(draft.pieces, { finishedWaist: draft.finishedWaist }) : []), [draft]);
-  const summary = useMemo(() => {
-    if (!draft) return undefined;
-    const ease = FIT_EASE[choices.fit];
-    const rows = [
-      { label: 'Waist', body: draft.finishedWaist - ease.waist, ease: ease.waist, finished: draft.finishedWaist },
-      { label: 'Hip', body: draft.finishedHip - ease.hip, ease: ease.hip, finished: draft.finishedHip },
-      { label: 'Hem circumference', finished: draft.hemCm },
-      { label: 'Length, waist to hem', finished: draft.lengthCm },
-    ];
-    return { rows, checks, madeFor: profile, date };
-  }, [draft, choices.fit, checks, profile, date]);
+  const checks = useMemo(() => {
+    if (!made) return [];
+    const waist = made.spec.find((r) => r.label === 'Waist')?.finished;
+    return checkPattern(made.pieces, { finishedWaist: typeof waist === 'number' ? waist : undefined });
+  }, [made]);
+  const summary = useMemo(
+    () => (made ? { rows: made.spec.filter((r) => typeof r.finished === 'number'), checks, madeFor: profile, date } : undefined),
+    [made, checks, profile, date],
+  );
 
   // Build the PDF ahead of time, so share and print run straight from the tap (phones require that).
   useEffect(() => {
@@ -103,7 +96,7 @@ export function ExportScreen({ profile, choices, draft, error, onBack }: Props) 
     };
   }, [sheet, paper, title, guide, summary]);
 
-  if (!draft || !sheet || !guide) {
+  if (!made || !sheet || !guide) {
     return (
       <section className="card">
         <p className="msg error">{error ?? 'Add your measurements first.'}</p>
@@ -147,7 +140,7 @@ export function ExportScreen({ profile, choices, draft, error, onBack }: Props) 
           <div className="row between wrap">
             <h1 id="ptitle">{title[0].toUpperCase() + title.slice(1)}</h1>
             <p className="muted">
-              Profile: {profile} · {choices.fit[0].toUpperCase() + choices.fit.slice(1)} fit
+              Profile: {profile} · {fit[0].toUpperCase() + fit.slice(1)} fit
             </p>
           </div>
           <div className="preview tiles" style={{ ['--cols' as string]: grid.cols }}>
@@ -161,7 +154,7 @@ export function ExportScreen({ profile, choices, draft, error, onBack }: Props) 
                 ? `${pages} ${pages === 1 ? 'sheet' : 'sheets'} of A0. Ask the copy shop to print at 100% (actual size), then measure the 10 cm test square before you cut.`
                 : `${pages} pages. Trim each page along its dashed line on the left and top and lay it over the one before, so the half diamonds make whole ones. Print at 100% (actual size) and measure the 10 cm test square before you cut.`}
           </p>
-          <p className="muted small qc">
+          <p className="muted small">
             {passed === checks.length
               ? `Pattern check: all ${passed} checks pass. Seams walked to within 1 mm, curves blend across seams, darts trued.`
               : `Pattern check: ${passed} of ${checks.length} checks pass. The details are in the PDF.`}
@@ -204,6 +197,8 @@ export function ExportScreen({ profile, choices, draft, error, onBack }: Props) 
         </section>
       </div>
 
+      <MakerPack profile={profile} title={title} fit={fit} made={made} fileBase={fileBase} />
+
       <section className="card sew" aria-labelledby="sewtitle">
         <div>
           <p className="eyebrow">After printing</p>
@@ -230,6 +225,58 @@ export function ExportScreen({ profile, choices, draft, error, onBack }: Props) 
         </div>
       </section>
     </>
+  );
+}
+
+const today = () => new Date().toISOString().slice(0, 10);
+
+/** Files for someone else to make the garment: a tech pack and the pattern as DXF for pattern software. */
+function MakerPack({ profile, title, fit, made, fileBase }: { profile: string; title: string; fit: string; made: Printable; fileBase: string }) {
+  const [busy, setBusy] = useState(false);
+  const fitName = fit[0].toUpperCase() + fit.slice(1);
+
+  const techPack = async () => {
+    setBusy(true);
+    try {
+      const { toTechPack } = await import('../engine/techpack');
+      const bytes = await toTechPack({
+        title,
+        profile,
+        fit: fitName,
+        date: today(),
+        pieces: made.pieces,
+        measurements: made.spec,
+        notes: made.notes,
+        guide: made.guide,
+      });
+      download(bytes, 'application/pdf', `${fileBase}-tech-pack.pdf`);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const dxf = async () => {
+    const { toDxf } = await import('../engine/dxf');
+    download(toDxf(made.pieces, { style: title, size: profile, date: today() }), 'application/dxf', `${fileBase}.dxf`);
+  };
+
+  return (
+    <section className="card" aria-labelledby="makertitle">
+      <p className="eyebrow">Having it made</p>
+      <h2 id="makertitle">For a dressmaker or factory</h2>
+      <p className="muted">
+        Send both files to whoever is making it. The tech pack has your measurements, the ease, the piece list, fabric and the construction
+        steps. The DXF opens in pattern software such as Gerber, Lectra, Optitex and CLO 3D.
+      </p>
+      <div className="row wrap">
+        <button type="button" className="secondary" onClick={techPack} disabled={busy}>
+          {busy ? 'Making the tech pack…' : 'Download tech pack (PDF)'}
+        </button>
+        <button type="button" className="secondary" onClick={dxf}>
+          Download pattern (DXF)
+        </button>
+      </div>
+    </section>
   );
 }
 

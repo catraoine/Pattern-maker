@@ -51,10 +51,10 @@ function Tips() {
 }
 
 const OTHER: Partial<Record<PhotoReading['garment'], string>> = {
-  dress: 'This looks like a dress. We can only draft skirts so far, so here is the closest skirt to its lower half.',
-  trousers: 'This looks like trousers. We can only draft skirts so far, so here is our best skirt match.',
-  top: 'This looks like a top. We can only draft skirts so far, so these are just starting points.',
-  other: "This doesn't look like a skirt. We can only draft skirts so far, so these are just starting points.",
+  dress: 'This looks like a dress. Photos can only be read as skirts so far, so here is the closest skirt to its lower half.',
+  trousers: 'This looks like trousers. Photos can only be read as skirts so far, so here is our best skirt match.',
+  top: 'This looks like a top. Photos can only be read as skirts so far, so these are just starting points.',
+  other: "This doesn't look like a skirt. Photos can only be read as skirts so far, so these are just starting points.",
 };
 
 export function PhotoScreen({ measured, onApply, onCancel }: Props) {

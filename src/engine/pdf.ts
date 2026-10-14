@@ -304,7 +304,7 @@ function addSummaryPage(
   st.y -= 16;
   for (const row of s.rows) {
     room(16);
-    const cells = [row.label, row.body !== undefined ? `${fmt(row.body)} cm` : '', row.ease !== undefined ? `+${fmt(row.ease)} cm` : '', `${fmt(row.finished)} cm`];
+    const cells = [row.label, row.body !== undefined ? `${fmt(row.body)} cm` : '', row.ease !== undefined ? `${row.ease < 0 ? '' : '+'}${fmt(row.ease)} cm` : '', typeof row.finished === 'number' ? `${fmt(row.finished)} cm` : row.finished];
     cells.forEach((t, i) => drawText(st.page, t, { x: colX[i], y: st.y, size: 10, font: i === 3 ? fonts.bodyMedium : fonts.body }));
     st.y -= 16;
   }

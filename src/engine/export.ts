@@ -11,9 +11,14 @@ export type LineStyle = 'cut' | 'stitch' | 'stitchSolid' | 'mark' | 'notch' | 'f
 /** Typefaces: the Contour Line label face (tracked capitals) and the body face. */
 export type Face = 'label' | 'body' | 'bodyMedium';
 
+/** Drafting order, for showing a pattern being drawn: the stitching line, darts, grain and fold
+ * marks, seam allowance, then notches and labels. */
+export type DraftStep = 'outline' | 'darts' | 'grain' | 'allowance' | 'labels';
+type Order = { piece?: number; step?: DraftStep };
+
 export type Prim =
-  | { kind: 'poly'; pts: P[]; style: LineStyle; closed: boolean }
-  | {
+  | ({ kind: 'poly'; pts: P[]; style: LineStyle; closed: boolean } & Order)
+  | ({
       kind: 'text';
       at: P;
       text: string;
@@ -24,7 +29,7 @@ export type Prim =
       /** Extra space between letters, as a fraction of the size. */
       tracking?: number;
       grey?: number;
-    };
+    } & Order);
 
 export interface Sheet {
   prims: Prim[];
@@ -77,7 +82,8 @@ const TITLE_W = 46; // cm, the title block beside the test square
 
 export function layout(pieces: Piece[], title: string, notes: string[], info?: SheetInfo): Sheet {
   const prims: Prim[] = [];
-  const poly = (pts: P[], style: LineStyle, closed = false) => prims.push({ kind: 'poly', pts, style, closed });
+  let order: Order = {};
+  const poly = (pts: P[], style: LineStyle, closed = false) => prims.push({ kind: 'poly', pts, style, closed, ...order });
   const text = (
     at: P,
     t: string,
@@ -85,19 +91,24 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
     rotate = 0,
     anchor: 'middle' | 'start' = 'middle',
     opts: { face?: Face; tracking?: number; grey?: number } = {},
-  ) => prims.push({ kind: 'text', at, text: t, size, rotate, anchor, ...opts });
+  ) => prims.push({ kind: 'text', at, text: t, size, rotate, anchor, ...opts, ...order });
 
   let x = MARGIN;
   // Title block: the 10 cm test square at top left, title and notes beside it.
   const top = MARGIN + 10 + GAP;
   let height = 0;
-  pieces.forEach((pc, index) => {
+  pieces.forEach((pc, piece) => {
     const [x0, y0, x1, y1] = bounds(pc);
     const off = p(x - x0, top - y0);
     const t = (q: P) => add(q, off);
+    order = { piece, step: 'allowance' };
     poly(cutLine(pc).map(t), 'cut', true);
+    order = { piece, step: 'outline' };
     poly(pc.outline.points().map(t), 'stitch', true);
+    order = { piece, step: 'darts' };
     pc.lines.forEach((ln) => poly(ln.points().map(t), 'mark'));
+    drillHoles(pc).forEach((h) => drill(t(h)).forEach((ring) => poly(ring, 'mark')));
+    order = { piece, step: 'grain' };
     (pc.balance ?? []).forEach((b) => {
       poly(b.pts.map(t), 'fine');
       const [a, c] = [b.pts[0], b.pts[b.pts.length - 1]];
@@ -120,8 +131,8 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
       );
       text(t(p(pc.fold[0].x + 2.6, (pc.fold[0].y + pc.fold[1].y) / 2)), 'PLACE ON FOLD', 0.7, 90, 'middle', { face: 'label', tracking: 0.2 });
     }
+    order = { piece, step: 'labels' };
     allNotches(pc).forEach(([pt, d]) => poly(notchSlit(pc, pt, d).map(t), 'notch'));
-    drillHoles(pc).forEach((h) => drill(t(h)).forEach((ring) => poly(ring, 'mark')));
     edgeLabels(pc).forEach((l) => text(t(l.at), l.text, 0.45, l.rotate, 'middle', { face: 'label', tracking: 0.12, grey: 0.3 }));
     const name = pc.name.toUpperCase();
     pc.labels.forEach((l) => {
@@ -129,7 +140,7 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
       if (info && l.text === name) {
         // The piece's information block: name, piece number and cutting, the pattern and its owner.
         const lines = [
-          `PIECE ${index + 1} OF ${pieces.length} · ${pc.cut.toUpperCase()} · SELF FABRIC`,
+          `PIECE ${piece + 1} OF ${pieces.length} · ${pc.cut.toUpperCase()} · SELF FABRIC`,
           info.pattern.toUpperCase(),
           [info.madeFor && `MADE FOR ${info.madeFor}`, info.date].filter(Boolean).join(' · ').toUpperCase(),
         ].filter(Boolean);
@@ -139,6 +150,7 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
       }
       text(t(l.at), l.text, l.size, 0, 'middle', { face: 'label', tracking: 0.1 });
     });
+    order = {};
     x += x1 - x0 + GAP;
     height = Math.max(height, y1 - y0);
   });

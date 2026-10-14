@@ -25,7 +25,7 @@ describe('pattern checks', () => {
     expect(checks.find((c) => c.label === 'Side seams')?.ok).toBe(false);
   });
 
-  it('passes every check for 300 random bodies, every skirt shape and the bodice', () => {
+  it('passes every check for 300 random bodies, every skirt shape and bodice style', () => {
     const failures: string[] = [];
     for (let seed = 1; seed <= 300; seed++) {
       const body = randomBody(rng(seed));
@@ -43,7 +43,16 @@ describe('pattern checks', () => {
               if (!c.ok) failures.push(`seed ${seed} ${fit} ${silhouette} ${length}: ${c.label} (${c.detail})`);
           }
         }
-        for (const c of checkPattern(draftBodice(body, { fit }).pieces)) if (!c.ok) failures.push(`seed ${seed} ${fit} bodice: ${c.label} (${c.detail})`);
+        // Every bodice style in turn: necklines, lengths and dart choices.
+        const style = {
+          fit,
+          neckline: (['crew', 'scoop', 'v', 'square', 'boat'] as const)[seed % 5],
+          length: (['waist', 'high_hip', 'hip'] as const)[(seed >> 1) % 3],
+          darts: (['bust_waist', 'bust', 'none'] as const)[(seed >> 2) % 3],
+        };
+        const bd = draftBodice(body, style);
+        for (const c of checkPattern(bd.pieces, { finishedWaist: bd.finishedWaist }))
+          if (!c.ok) failures.push(`seed ${seed} bodice ${JSON.stringify(style)}: ${c.label} (${c.detail})`);
       }
     }
     expect(failures.slice(0, 10)).toEqual([]);
