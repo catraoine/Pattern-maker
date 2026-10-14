@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import type { HemShape } from './engine/hem';
 import { DraftError, Fit, Length, Silhouette, SkirtDraft, draftSkirt } from './engine/skirt';
 import { EXAMPLE_VALUES, MeasurementValues, Unit, checkMeasurements, isComplete } from './measurements';
 import { usePersistent } from './store';
@@ -19,6 +20,12 @@ export interface Choices {
   length: Length;
   /** An era look the choices came from, kept while the shape and length still match it. */
   look?: string;
+  /** Set by dragging the hem on the sketch: a length in cm between the named ones. */
+  lengthCm?: number;
+  /** Set by dragging the side seam on the sketch: the flare at the hem in cm. */
+  flareCm?: number;
+  /** Drawn on the sketch: a shaped hem. */
+  hem?: HemShape;
 }
 
 interface Saved {

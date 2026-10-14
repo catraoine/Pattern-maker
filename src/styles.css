@@ -940,3 +940,216 @@ strong,
 b {
   font-weight: var(--w-strong);
 }
+
+/* Hands-on shaping: drag handles, drawn hems, the turning figure, the drafting replay and undo. */
+button.ghost {
+  min-height: 40px;
+  padding: 0 14px;
+  border: var(--bw) solid var(--line-strong);
+  border-radius: var(--pill);
+  background: transparent;
+  color: var(--ink);
+  font-size: 12px;
+  cursor: pointer;
+}
+button.ghost:hover:not(:disabled),
+button.ghost.on {
+  border-color: var(--ink);
+  box-shadow: inset 0 0 0 var(--bw-on) var(--ink);
+}
+button.ghost:disabled {
+  color: #555;
+  border-color: var(--line);
+  cursor: default;
+}
+.tools {
+  gap: 12px;
+  align-items: center;
+}
+
+.preview-svg.shape {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.preview-svg.shape.drawing {
+  cursor: crosshair;
+}
+.shape .guide line {
+  stroke: var(--line-strong);
+}
+.shape .guide text,
+.shape .hint {
+  fill: var(--muted);
+  font-family: var(--mono);
+  letter-spacing: 0.2em;
+}
+.shape .handle circle {
+  fill: var(--paper);
+  stroke: var(--ink);
+}
+.shape .handle .dot {
+  fill: var(--ink);
+  stroke: none;
+}
+.shape .handle path {
+  stroke: var(--muted);
+}
+.shape .handle text {
+  fill: var(--ink);
+  font-family: var(--mono);
+  letter-spacing: 0.2em;
+  pointer-events: none;
+}
+.shape .handle .hit {
+  fill: transparent;
+  stroke: none;
+  cursor: grab;
+  outline: none;
+}
+.shape .handle.on circle:first-child,
+.shape .handle .hit:focus-visible ~ circle {
+  stroke-width: 0.45;
+}
+.shape .handle.on path {
+  stroke: var(--ink);
+}
+.shape .handle .hit:focus-visible {
+  stroke: var(--ink);
+  stroke-width: 0.15;
+  stroke-dasharray: 0.6 0.6;
+}
+.shape .stroke {
+  stroke: var(--ink);
+  filter: drop-shadow(0 0 0.6px rgba(255, 255, 255, 0.9));
+}
+
+.preview.flush {
+  padding: 0;
+}
+.turn {
+  position: relative;
+  width: 100%;
+  display: grid;
+  gap: 8px;
+}
+.turn-canvas {
+  width: 100%;
+  height: min(64vh, 560px);
+  min-height: 360px;
+  display: block;
+  touch-action: none;
+  cursor: grab;
+}
+.turn-read {
+  position: absolute;
+  top: 10px;
+  left: 12px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.turn-bar {
+  padding: 0 12px 12px;
+}
+
+.toast,
+.draft-caption {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 8px 14px;
+  border: var(--bw) solid var(--ink);
+  background: var(--paper);
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.toast {
+  bottom: 14px;
+}
+.draft-caption {
+  bottom: 12px;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+}
+
+.preview-svg .drawn {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: draw-line 1s ease-in-out forwards;
+}
+.preview-svg .faded {
+  opacity: 0;
+  animation: fade-in 0.7s ease-out forwards;
+}
+@keyframes draw-line {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes fade-in {
+  to {
+    opacity: 1;
+  }
+}
+
+.figure .spot {
+  cursor: pointer;
+  outline: none;
+}
+.figure .spot-hit {
+  fill: transparent;
+}
+.figure .spot-dot {
+  fill: var(--muted);
+}
+.figure .spot-ring {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 1;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: spot-pulse 2.4s ease-out infinite;
+}
+.figure .spot text {
+  fill: var(--muted);
+  font-family: var(--mono);
+  letter-spacing: 0.2em;
+}
+.figure .spot.on .spot-dot,
+.figure .spot:hover .spot-dot {
+  fill: var(--ink);
+}
+.figure .spot.on text,
+.figure .spot:hover text,
+.figure .spot:focus-visible text {
+  fill: var(--ink);
+}
+@keyframes spot-pulse {
+  0% {
+    opacity: 0.8;
+    transform: scale(0.5);
+  }
+  70%,
+  100% {
+    opacity: 0;
+    transform: scale(1.4);
+  }
+}
+.tip {
+  animation: fade-in 0.35s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .figure .spot-ring,
+  .tip {
+    animation: none;
+  }
+}
