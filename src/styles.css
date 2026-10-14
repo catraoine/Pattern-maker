@@ -787,3 +787,37 @@ button.link.inline-link {
   outline: 3px solid #888;
   outline-offset: 2px;
 }
+
+/* Photo to pattern */
+.filebtn.big {
+  min-height: 50px;
+  padding: 0 24px;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 15px;
+}
+
+.filebtn.primary {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--white);
+}
+
+.filebtn[aria-disabled] {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.photo {
+  width: 100%;
+  max-height: 50vh;
+  object-fit: contain;
+  border: 1px solid var(--line);
+  background: var(--white);
+}
+
+.group legend .badge,
+.group legend .muted {
+  margin-left: 8px;
+  font-weight: 400;
+}

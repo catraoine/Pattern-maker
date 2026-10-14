@@ -5,7 +5,7 @@ import { SKIRT_FIELDS } from '../measurements';
 interface Props {
   name: string;
   unit: Unit;
-  onFinish: (r: { name: string; unit: Unit; example: boolean }) => void;
+  onFinish: (r: { name: string; unit: Unit; start: 'measure' | 'example' | 'photo' }) => void;
 }
 
 const STEPS = 3;
@@ -14,7 +14,7 @@ export function WelcomeScreen({ name: initialName, unit: initialUnit, onFinish }
   const [step, setStep] = useState(0);
   const [name, setName] = useState(initialName);
   const [unit, setUnit] = useState<Unit>(initialUnit);
-  const finish = (example: boolean) => onFinish({ name: name.trim(), unit, example });
+  const finish = (start: 'measure' | 'example' | 'photo') => onFinish({ name: name.trim(), unit, start });
 
   return (
     <div className="welcome">
@@ -104,10 +104,13 @@ export function WelcomeScreen({ name: initialName, unit: initialUnit, onFinish }
             <p className="muted small">We'll ask for {SKIRT_FIELDS.map((f) => f.label.toLowerCase()).join(', ')}.</p>
             <p className="muted small">Everything stays on this device. Nothing is sent anywhere.</p>
             <div className="stack">
-              <button type="button" className="primary" onClick={() => finish(false)}>
+              <button type="button" className="primary" onClick={() => finish('measure')}>
                 Start measuring
               </button>
-              <button type="button" className="secondary" onClick={() => finish(true)}>
+              <button type="button" className="secondary" onClick={() => finish('photo')}>
+                Have a skirt you love? Start from a photo
+              </button>
+              <button type="button" className="secondary" onClick={() => finish('example')}>
                 Just looking? Try example measurements
               </button>
               <button type="button" className="link" onClick={() => setStep(1)}>
