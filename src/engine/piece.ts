@@ -14,6 +14,8 @@ export interface Piece {
   grain?: [P, P];
   fold?: [P, P]; // place-on-fold edge
   notches: [P, P][]; // point, direction into the seam allowance
+  /** Balance lines (hip, underarm) drawn across the piece, so a cutter can check it hangs level. */
+  balance?: { pts: P[]; label: string }[];
   labels: Label[];
   cut: string;
   seamAllowance: number;

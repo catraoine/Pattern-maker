@@ -19,8 +19,9 @@ describe('skirt block', () => {
     expect(back.meta.dartsCm).toEqual([2.42, 2.42]);
     expect(front.meta.sideSuppressionCm).toBe(2.9);
     const b = bounds(front).map((v) => Math.round(v * 100) / 100);
-    // -2.86 rather than the prototype's -2.85: the waist is now drawn through the trued dart legs.
-    expect(b).toEqual([0, -2.86, 26.5, 62]);
+    // -2.96 rather than the prototype's -2.85: the waist now eases onto the trued dart legs and meets
+    // the side seam square, so the seam allowance corner at the side sits a little higher.
+    expect(b).toEqual([0, -2.96, 26.5, 62]);
   });
 
   it.each(['straight', 'a_line', 'pencil'] as const)('front and back side seams match (%s)', (silhouette) => {

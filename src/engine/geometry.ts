@@ -135,7 +135,9 @@ export function offsetPolygon(pts: P[], dists: number[] | number): P[] {
     const p1 = add(b, mul(normal(a, b), d1));
     const p2 = add(b, mul(normal(b, c), d2));
     const x = intersect(p1, unit(sub(b, a)), p2, unit(sub(c, b)));
-    if (x === null || len(sub(x, b)) > 3 * Math.max(d1, d2, 0.1)) {
+    // A corner on a fold always mitres, so the cutting line ends on the fold (at the point of a V neck,
+    // say); elsewhere very sharp corners are bevelled.
+    if (x === null || (d1 > 0 && d2 > 0 && len(sub(x, b)) > 3 * Math.max(d1, d2, 0.1))) {
       out.push(p1);
       if (len(sub(p2, p1)) > 1e-6) out.push(p2);
     } else {
