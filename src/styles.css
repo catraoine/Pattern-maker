@@ -8,6 +8,15 @@
   --white: #ffffff;
   --mono: 'Space Mono', ui-monospace, Menlo, monospace;
   --sans: 'IBM Plex Sans', system-ui, sans-serif;
+  --grid: var(--line);
+  --w-head: 700;
+  --w-strong: 700;
+  --w-semi: 600;
+  --w-body: 400;
+  --head-tracking: 0;
+  --bw: 1.5px;
+  --bw-on: 2px;
+  --pill: 999px;
 }
 
 * {
@@ -18,9 +27,10 @@ body {
   margin: 0;
   color: var(--ink);
   font-family: var(--sans);
+  font-weight: var(--w-body);
   font-size: 16px;
   background-color: var(--paper);
-  background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
   background-size: 20px 20px;
   -webkit-text-size-adjust: 100%;
 }
@@ -33,6 +43,12 @@ button,
 .unit,
 label {
   font-family: var(--mono);
+}
+
+h1,
+h2 {
+  font-weight: var(--w-head);
+  letter-spacing: var(--head-tracking);
 }
 
 h1 {
@@ -79,7 +95,7 @@ p {
   gap: 12px;
   padding: calc(12px + env(safe-area-inset-top)) 20px 12px;
   background: var(--white);
-  border-bottom: 1.5px solid var(--ink);
+  border-bottom: var(--bw) solid var(--ink);
 }
 
 .brand {
@@ -87,7 +103,7 @@ p {
   align-items: center;
   gap: 10px;
   font-family: var(--mono);
-  font-weight: 700;
+  font-weight: var(--w-strong);
   font-size: 18px;
 }
 
@@ -103,7 +119,7 @@ p {
   min-height: 44px;
   padding: 0 12px;
   border: none;
-  border-radius: 999px;
+  border-radius: var(--pill);
   background: none;
   color: var(--muted);
   font-size: 14px;
@@ -113,7 +129,7 @@ p {
 .step.on {
   background: var(--fill);
   color: var(--ink);
-  font-weight: 700;
+  font-weight: var(--w-strong);
 }
 
 .step:disabled {
@@ -125,7 +141,7 @@ p {
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  border: 1.5px solid currentColor;
+  border: var(--bw) solid currentColor;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -155,7 +171,7 @@ p {
   flex: 1 1 280px;
   min-width: 0;
   background: var(--white);
-  border: 1.5px solid var(--ink);
+  border: var(--bw) solid var(--ink);
   padding: 22px;
   display: flex;
   flex-direction: column;
@@ -195,14 +211,14 @@ p {
   display: inline-flex;
   padding: 4px;
   background: var(--fill);
-  border-radius: 999px;
+  border-radius: var(--pill);
 }
 
 .seg button {
   min-height: 40px;
   padding: 0 16px;
   border: none;
-  border-radius: 999px;
+  border-radius: var(--pill);
   background: transparent;
   color: var(--muted);
   font-size: 14px;
@@ -212,7 +228,7 @@ p {
 .seg button.on {
   background: var(--ink);
   color: var(--white);
-  font-weight: 700;
+  font-weight: var(--w-strong);
 }
 
 .fields {
@@ -226,7 +242,7 @@ p {
   flex-direction: column;
   gap: 8px;
   padding: 10px;
-  border: 1.5px solid transparent;
+  border: var(--bw) solid transparent;
 }
 
 .field.focus {
@@ -235,7 +251,7 @@ p {
 }
 
 .field label {
-  font-weight: 700;
+  font-weight: var(--w-strong);
   font-size: 14px;
 }
 
@@ -244,7 +260,7 @@ p {
   min-width: 0;
   min-height: 48px;
   padding: 0 12px;
-  border: 1.5px solid var(--ink);
+  border: var(--bw) solid var(--ink);
   border-radius: 0;
   background: var(--white);
   color: var(--ink);
@@ -276,7 +292,7 @@ p {
 
 .msg.error {
   border-left-color: var(--ink);
-  font-weight: 600;
+  font-weight: var(--w-semi);
 }
 
 .footer {
@@ -288,10 +304,10 @@ button.primary,
 button.secondary {
   min-height: 50px;
   padding: 0 24px;
-  border-radius: 999px;
-  border: 1.5px solid var(--ink);
+  border-radius: var(--pill);
+  border: var(--bw) solid var(--ink);
   font-size: 15px;
-  font-weight: 700;
+  font-weight: var(--w-strong);
   cursor: pointer;
 }
 
@@ -318,7 +334,7 @@ button.link {
   background: none;
   color: var(--ink);
   font-size: 14px;
-  font-weight: 700;
+  font-weight: var(--w-strong);
   text-decoration: underline;
   text-underline-offset: 3px;
   cursor: pointer;
@@ -337,7 +353,7 @@ button.link {
 .group legend {
   padding: 0;
   margin-bottom: 10px;
-  font-weight: 700;
+  font-weight: var(--w-strong);
   font-size: 14px;
 }
 
@@ -350,7 +366,7 @@ button.link {
 .chip {
   min-height: 44px;
   padding: 0 14px;
-  border-radius: 999px;
+  border-radius: var(--pill);
   border: 1px solid var(--ink);
   background: var(--white);
   color: var(--ink);
@@ -361,7 +377,7 @@ button.link {
 .chip.on {
   background: var(--ink);
   color: var(--white);
-  font-weight: 700;
+  font-weight: var(--w-strong);
 }
 
 .preview {
@@ -417,7 +433,7 @@ button.link {
 .fabric .big {
   font-family: var(--mono);
   font-size: 26px;
-  font-weight: 700;
+  font-weight: var(--w-strong);
 }
 
 .radio {
@@ -427,14 +443,14 @@ button.link {
   min-height: 48px;
   padding: 0 14px;
   border: 1px solid var(--ink);
-  border-radius: 999px;
+  border-radius: var(--pill);
   font-family: var(--sans);
   cursor: pointer;
 }
 
 .radio.on {
-  border-width: 2px;
-  font-weight: 600;
+  border-width: var(--bw-on);
+  font-weight: var(--w-semi);
 }
 
 .radio input {
@@ -454,7 +470,7 @@ button.link {
 .badge {
   padding: 2px 10px;
   border: 1px solid var(--ink);
-  border-radius: 999px;
+  border-radius: var(--pill);
   font-family: var(--mono);
   font-size: 12px;
   color: var(--ink);
@@ -492,11 +508,11 @@ button.link {
   height: 44px;
   flex: none;
   border-radius: 50%;
-  border: 1.5px solid var(--ink);
+  border: var(--bw) solid var(--ink);
   background: var(--white);
   color: var(--ink);
   font-family: var(--mono);
-  font-weight: 700;
+  font-weight: var(--w-strong);
   font-size: 16px;
   display: inline-flex;
   align-items: center;
@@ -537,7 +553,7 @@ button.link {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  border: 1.5px solid var(--ink);
+  border: var(--bw) solid var(--ink);
 }
 
 .dot.on {
@@ -567,7 +583,7 @@ button.link {
   background: var(--ink);
   color: var(--white);
   font-family: var(--mono);
-  font-weight: 700;
+  font-weight: var(--w-strong);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -597,7 +613,7 @@ button.link {
 input.inline {
   min-height: 48px;
   padding: 0 12px;
-  border: 1.5px solid var(--ink);
+  border: var(--bw) solid var(--ink);
   border-radius: 0;
   background: var(--white);
   color: var(--ink);
@@ -648,7 +664,7 @@ input.inline {
   margin: 2px 0 0;
   font-family: var(--mono);
   font-size: 18px;
-  font-weight: 700;
+  font-weight: var(--w-strong);
 }
 
 .saved {
@@ -743,10 +759,10 @@ button.link.inline-link {
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  border: 1.5px solid var(--ink);
+  border: var(--bw) solid var(--ink);
   font-family: var(--mono);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: var(--w-strong);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -768,11 +784,11 @@ button.link.inline-link {
   align-items: center;
   min-height: 44px;
   padding: 0 18px;
-  border: 1.5px solid var(--ink);
-  border-radius: 999px;
+  border: var(--bw) solid var(--ink);
+  border-radius: var(--pill);
   background: var(--white);
   font-size: 14px;
-  font-weight: 700;
+  font-weight: var(--w-strong);
   cursor: pointer;
 }
 
@@ -786,4 +802,9 @@ button.link.inline-link {
 .filebtn:focus-within {
   outline: 3px solid #888;
   outline-offset: 2px;
+}
+
+strong,
+b {
+  font-weight: var(--w-strong);
 }

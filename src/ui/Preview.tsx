@@ -32,7 +32,7 @@ export function PatternPreview({ sheet, label }: { sheet: Sheet; label: string }
             y={pr.at.y}
             fontSize={pr.size}
             textAnchor={pr.anchor}
-            fontFamily="Space Mono, monospace"
+            style={{ fontFamily: 'var(--mono)' }}
             transform={pr.rotate ? `rotate(${pr.rotate} ${pr.at.x} ${pr.at.y})` : undefined}
           >
             {pr.text}
