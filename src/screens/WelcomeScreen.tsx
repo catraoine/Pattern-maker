@@ -24,15 +24,10 @@ export function WelcomeScreen({ name: initialName, unit: initialUnit, garment: i
   return (
     <div className="welcome">
       <section className="card welcome-card" aria-labelledby="wtitle">
-        <div className="row between">
-          <p className="eyebrow" aria-live="polite">
-            Step {step + 1} of {STEPS}
-          </p>
-          <div className="dots" aria-hidden="true">
-            {Array.from({ length: STEPS }, (_, i) => (
-              <span key={i} className={i <= step ? 'dot on' : 'dot'} />
-            ))}
-          </div>
+        <div className="dots" aria-hidden="true">
+          {Array.from({ length: STEPS }, (_, i) => (
+            <span key={i} className={i <= step ? 'dot on' : 'dot'} />
+          ))}
         </div>
 
         {step === 0 && (
