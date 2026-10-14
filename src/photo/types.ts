@@ -20,7 +20,7 @@ export interface PhotoReading {
 
 export type PhotoResponse = { ok: true; reading: PhotoReading } | { ok: false; error: PhotoError };
 
-export type PhotoError = 'not_configured' | 'too_large' | 'bad_image' | 'declined' | 'failed';
+export type PhotoError = 'not_configured' | 'too_large' | 'bad_image' | 'declined' | 'failed' | 'limit_reached' | 'busy';
 
 export const MAX_IMAGE_BYTES = 4_000_000; // base64 text, well under Netlify's 6 MB request limit
 export const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
