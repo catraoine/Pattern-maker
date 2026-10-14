@@ -38,22 +38,18 @@ export function WelcomeScreen({ name: initialName, unit: initialUnit, onFinish }
             </div>
             <p className="eyebrow">Measured, not sized</p>
             <h1 id="wtitle">Sewing patterns drafted to your body.</h1>
-            <p className="muted">No more grading between sizes or guessing at alterations. Pattern Maker draws a skirt pattern from your own measurements.</p>
-            <ol className="how">
+            <ol className="how" aria-label="How it works">
               <li>
                 <span className="num">01</span>
                 <strong>Measure</strong>
-                <span className="muted">Five measurements, with a picture showing where the tape goes.</span>
               </li>
               <li>
                 <span className="num">02</span>
                 <strong>Style</strong>
-                <span className="muted">Pick the fit, shape and length. The pattern redraws as you choose.</span>
               </li>
               <li>
                 <span className="num">03</span>
                 <strong>Print</strong>
-                <span className="muted">Download a PDF for A4 or Letter paper, tape the pages together and cut.</span>
               </li>
             </ol>
             <button type="button" className="primary" onClick={() => setStep(1)}>
