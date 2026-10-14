@@ -167,8 +167,8 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
   poly([p(tx, MARGIN), p(tx + TITLE_W, MARGIN), p(tx + TITLE_W, MARGIN + 10), p(tx, MARGIN + 10)], 'mark', true);
   poly([p(tx, MARGIN + 4.4), p(tx + TITLE_W, MARGIN + 4.4)], 'fine');
   const who = info ? [info.madeFor && `MADE FOR ${info.madeFor}`, info.date].filter(Boolean) : [];
-  text(p(tx + 1.2, MARGIN + 1.5), ['PATTERN MAKER', ...who].join('   ·   ').toUpperCase(), 0.5, 0, 'start', { face: 'label', tracking: 0.3, grey: 0.35 });
-  const name = title.replace(/^Pattern Maker:\s*/, '');
+  text(p(tx + 1.2, MARGIN + 1.5), ['MAISON TRACÉ', ...who].join('   ·   ').toUpperCase(), 0.5, 0, 'start', { face: 'label', tracking: 0.3, grey: 0.35 });
+  const name = title.replace(/^Maison Tracé:\s*/, '');
   text(p(tx + 1.2, MARGIN + 3.3), name.charAt(0).toUpperCase() + name.slice(1), 1.3, 0, 'start', { face: 'bodyMedium' });
   notes.forEach((line, i) => text(p(tx + 1.2, MARGIN + 5.6 + i * 1.0), line, 0.6, 0, 'start', { face: 'body' }));
 

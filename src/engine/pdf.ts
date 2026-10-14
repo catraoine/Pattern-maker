@@ -150,7 +150,7 @@ export async function toTiledPdf(sheet: Sheet, paper: Paper, extras?: PdfExtras)
   const { rows, cols } = tileGrid(sheet, paper);
   const doc = await PDFDocument.create();
   const fonts = await embedFonts(doc);
-  doc.setTitle(extras ? `Pattern Maker: ${extras.title}` : 'Pattern Maker pattern');
+  doc.setTitle(extras ? `Maison Tracé: ${extras.title}` : 'Maison Tracé pattern');
   const grey = rgb(0.6, 0.6, 0.6);
   // The top and left pages of a join are trimmed halfway across the overlap.
   const trim = OVERLAP / 2;
@@ -214,7 +214,7 @@ export async function toTiledPdf(sheet: Sheet, paper: Paper, extras?: PdfExtras)
 export async function toProjectorPdf(sheet: Sheet, opts: { dark?: boolean; title?: string } = {}): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
   const fonts = await embedFonts(doc);
-  doc.setTitle(opts.title ? `Pattern Maker: ${opts.title} (projector)` : 'Pattern Maker projector file');
+  doc.setTitle(opts.title ? `Maison Tracé: ${opts.title} (projector)` : 'Maison Tracé projector file');
   const page = doc.addPage([sheet.width * CM, sheet.height * CM]);
   if (opts.dark) page.drawRectangle({ x: 0, y: 0, width: sheet.width * CM, height: sheet.height * CM, color: rgb(0, 0, 0) });
   drawSheet(
@@ -287,7 +287,7 @@ function addSummaryPage(
   [stepX, stepY]: [number, number],
 ) {
   const { st, write, label, room, left, width } = flow(doc, paper, fonts);
-  drawText(st.page, ['PATTERN MAKER', s.madeFor && `MADE FOR ${s.madeFor}`, s.date].filter(Boolean).join('   ·   ').toUpperCase(), {
+  drawText(st.page, ['MAISON TRACÉ', s.madeFor && `MADE FOR ${s.madeFor}`, s.date].filter(Boolean).join('   ·   ').toUpperCase(), {
     x: left,
     y: st.y,
     size: 7.5,
@@ -364,7 +364,7 @@ function addSummaryPage(
 /** Sewing steps after the pattern pages, so the tiled pages keep their numbers. */
 function addSewingPages(doc: PDFDocument, fonts: Fonts, paper: 'a4' | 'letter', title: string, guide: SewingGuide) {
   const { write, label, st } = flow(doc, paper, fonts);
-  drawText(st.page, 'PATTERN MAKER', { x: 2 * CM, y: st.y, size: 7.5, font: fonts.label, tracking: 0.3, grey: 0.4 });
+  drawText(st.page, 'MAISON TRACÉ', { x: 2 * CM, y: st.y, size: 7.5, font: fonts.label, tracking: 0.3, grey: 0.4 });
   st.y -= 26;
   write(`How to sew your ${title}`, 20, fonts.bodyMedium, 0, 18);
   label('YOU WILL NEED');

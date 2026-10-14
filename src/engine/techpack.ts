@@ -47,7 +47,7 @@ export function allowanceText(pc: Piece): string {
 export async function toTechPack(tp: TechPack): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
   doc.setTitle(`Tech pack: ${tp.title}`);
-  doc.setCreator('Pattern Maker');
+  doc.setCreator('Maison Tracé');
   const font = await doc.embedFont(StandardFonts.Helvetica);
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
 
@@ -129,7 +129,7 @@ export async function toTechPack(tp: TechPack): Promise<Uint8Array> {
   page.drawText('TECH PACK', { x: LEFT, y: y - 8, size: 8, font: bold, color: GREY });
   y -= 14;
   write(tp.title[0].toUpperCase() + tp.title.slice(1), 20, bold, 0, 4);
-  write(`Made to measure for ${tp.profile}  -  ${tp.fit} fit  -  drafted ${tp.date}  -  Pattern Maker`, 9, font, 0, 6, GREY);
+  write(`Made to measure for ${tp.profile}  -  ${tp.fit} fit  -  drafted ${tp.date}  -  Maison Tracé`, 9, font, 0, 6, GREY);
 
   // Pieces drawn small, side by side, so whoever cuts can check the file they opened.
   heading('Pattern pieces');

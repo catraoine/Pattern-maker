@@ -142,7 +142,7 @@ export default function App() {
             <rect x="2.5" y="2.5" width="27" height="27" fill="none" style={{ stroke: 'var(--ink)' }} strokeWidth="1" />
             <path d="M10 22 L16 10 L22 22 M12.5 17 H19.5" style={{ stroke: 'var(--ink)' }} strokeWidth="1" fill="none" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          <span>Pattern Maker</span>
+          <span>Maison Tracé</span>
         </div>
         {step !== 'welcome' && (
           <div className="row nav">

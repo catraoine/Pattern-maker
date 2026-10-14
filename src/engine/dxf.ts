@@ -184,7 +184,7 @@ export function toDxf(pieces: Piece[], info: DxfInfo): string {
     x += x1 - x0 + 4;
   });
   // File annotation, above the pieces.
-  [`Style Name: ${info.style}`, `Creation Date: ${info.date}`, `Sample Size: ${info.size}`, 'Units: METRIC', 'Author: Pattern Maker'].forEach(
+  [`Style Name: ${info.style}`, `Creation Date: ${info.date}`, `Sample Size: ${info.size}`, 'Units: METRIC', 'Author: Maison Trace'].forEach(
     (t, k) => w.text({ x: 0, y: -8 + k * 1.2 }, t, LAYER.boundary, 4),
   );
   w.g(0, 'ENDSEC');

@@ -68,7 +68,7 @@ export function ExportScreen({ profile, title, fit, made, error, onBack }: Props
   const guide = made?.guide;
   const date = useMemo(printedDate, []);
   const sheet = useMemo(
-    () => (made ? layout(made.pieces, `Pattern Maker: ${title}`, made.notes, { pattern: title, madeFor: profile, date }) : undefined),
+    () => (made ? layout(made.pieces, `Maison Tracé: ${title}`, made.notes, { pattern: title, madeFor: profile, date }) : undefined),
     [made, title, profile, date],
   );
   const checks = useMemo(() => {
@@ -119,7 +119,7 @@ export function ExportScreen({ profile, title, fit, made, error, onBack }: Props
   const share = async () => {
     if (!ready) return;
     try {
-      await navigator.share({ files: [new File([ready], fileName, { type: 'application/pdf' })], title: `Pattern Maker: ${title}` });
+      await navigator.share({ files: [new File([ready], fileName, { type: 'application/pdf' })], title: `Maison Tracé: ${title}` });
       setShareNote('');
     } catch (e) {
       if ((e as Error).name !== 'AbortError') setShareNote("Sharing didn't work on this device. Download the PDF instead.");
