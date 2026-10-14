@@ -5,6 +5,15 @@ export interface Label {
   at: P;
   text: string;
   size: number; // cm
+  /** Degrees clockwise, for labels that run along a narrow piece. */
+  rotate?: number;
+}
+
+/** A numbered point of the draft, with how it was found, for the atelier view. */
+export interface DraftPoint {
+  n: string;
+  at: P;
+  note: string;
 }
 
 export interface Piece {
@@ -18,6 +27,12 @@ export interface Piece {
   balance?: { pts: P[]; label: string }[];
   labels: Label[];
   cut: string;
+  /** What it is cut from, when not just the garment fabric (lining, interfacing). */
+  fabric?: string;
+  /** Pieces beyond the garment's own block: its lining, facings and waistband. */
+  kind?: 'lining' | 'facing' | 'waistband';
+  /** How the piece was drafted: the frame and the numbered points, shown in the atelier view. */
+  draft?: { frame: P[][]; points: DraftPoint[] };
   seamAllowance: number;
   allowances: Record<string, number>; // per edge tag, e.g. { hem: 4, fold: 0 }
   meta: Record<string, unknown>;

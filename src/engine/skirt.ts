@@ -1,6 +1,6 @@
 // Straight skirt block, drafted flat from waist, hip and waist-to-hip depth (Aldrich-style).
 // Ported from the Python prototype in the drafting thread (pattern/skirt.py).
-import { P, Path, add, mul, p, sub, taggedLength, unit } from './geometry';
+import { P, Path, add, len, mul, p, sub, taggedLength, unit } from './geometry';
 import { finishDart } from './darts';
 import { Piece } from './piece';
 import { HemShape, isShaped, matchSides, shapeHem } from './hem';
@@ -74,6 +74,10 @@ export const DEFAULT_STYLE: SkirtStyle = {
 
 export class DraftError extends Error {}
 
+/** A length as printed in the drafting notes, such as 25.8 cm. */
+export const cm = (v: number) => `${(Math.round(v * 10) / 10).toFixed(1)} cm`;
+const centrePoint = (d: { near: P; far: P }) => p((d.near.x + d.far.x) / 2, (d.near.y + d.far.y) / 2);
+
 function darts(supp: number, maxPerDart: number): number[] {
   if (supp <= 0.3) return [];
   const n = supp <= maxPerDart ? 1 : 2;
@@ -119,6 +123,7 @@ function half(a: HalfArgs): Piece {
   // the lift stays under a quarter of the flaring part of the seam, which keeps short skirts sensible.
   let hemSide = p(a.hipQ + a.flare, a.length);
   let hemArc: { R: number; t: P } | undefined;
+  let hemLift = 0;
   if (a.flare > 0) {
     const k = a.length - flareStart.y;
     let lift = 0;
@@ -134,6 +139,7 @@ function half(a: HalfArgs): Piece {
       lift = 0.5 * lift + 0.5 * (a.hipQ + flare) * Math.tan(angle / 2);
     }
     const t = p(Math.sin(angle), Math.cos(angle));
+    hemLift = lift;
     hemSide = p(a.hipQ + flare, a.length - lift);
     hemArc = { R: hemSide.x / t.x, t };
   }
@@ -215,6 +221,44 @@ function half(a: HalfArgs): Piece {
 
   const cut = a.isFront ? 'Cut 1 on fold' : 'Cut 2 (1 pair)';
   const gx = a.hipQ * 0.45;
+  const dartTotal = ds.reduce((t, d) => t + d, 0);
+  const draft = {
+    frame: [
+      [p(0, 0), p(a.hipQ, 0)],
+      [p(a.hipQ, 0), p(a.hipQ, a.length)],
+      [p(0, a.length), p(a.hipQ, a.length)],
+    ],
+    points: [
+      {
+        n: '0',
+        at: cw,
+        note: a.isFront ? 'Centre waist. Square down for the centre front and across for the waist line.' : 'Centre waist, 1 cm below the waist line: the back waist sits lower.',
+      },
+      { n: '1', at: p(0, a.hipDepth), note: `0 to 1, waist to hip: ${cm(a.hipDepth)}. Square across for the hip line.` },
+      { n: '2', at: ch, note: `0 to 2, skirt length: ${cm(a.length)}. Square across for the hem line.` },
+      { n: '3', at: sh, note: `1 to 3, a quarter of the hip with ease: ${cm(4 * a.hipQ)} / 4 = ${cm(a.hipQ)}. Square up to the waist line.` },
+      {
+        n: '4',
+        at: sw,
+        note: `Side waist: a quarter of the waist with ease, ${a.isFront ? 'plus' : 'less'} 0.5 cm, is ${cm(a.waistQ)}; with ${cm(dartTotal)} of darts it sits ${cm(sideSupp)} in from the frame, raised ${cm(sideRise)}. The side seam curves from 4 to 3.`,
+      },
+      {
+        n: '5',
+        at: hemSide,
+        note:
+          hemSide.x > a.hipQ + 0.05
+            ? `Hem at the side: out ${cm(hemSide.x - a.hipQ)} and up ${cm(hemLift)}, so the hem meets the side seam square.${a.flareFrom !== undefined ? ` The flare starts ${cm(a.flareFrom)} below the waist.` : ''}`
+            : hemSide.x < a.hipQ - 0.05
+              ? `Hem at the side: in ${cm(a.hipQ - hemSide.x)} from the frame, tapering the skirt.`
+              : 'Hem at the side: straight down from 3.',
+      },
+      ...finished.map((d, i) => ({
+        n: `D${i + 1}`,
+        at: d.tip,
+        note: `Dart ${i + 1}: ${cm(ds[i])} wide, ${cm(len(sub(d.tip, centrePoint(d))))} long, centred ${cm(centres[i])} from the centre${a.isFront ? ' front' : ' back'}.`,
+      })),
+    ],
+  };
   // Balance notches at the hip: single on the front, double on the back, so the pieces can't be swapped.
   const notches: [P, P][] = a.isFront ? [[sh, p(1, 0)]] : [[add(sh, p(0, -0.5)), p(1, 0)], [add(sh, p(0, 0.5)), p(1, 0)]];
   // The back centre seam holds the zip; its notch marks where the zip ends and the seam starts.
@@ -235,6 +279,7 @@ function half(a: HalfArgs): Piece {
       ...(a.isFront ? [] : [{ at: add(zipEnd, p(3.2, 0.3)), text: 'ZIP ENDS', size: 0.7 }]),
     ],
     cut,
+    draft,
     seamAllowance: a.sa,
     allowances: { hem: a.hemSa, fold: 0 },
     meta: {
@@ -317,8 +362,27 @@ function circlePiece(a: CircleArgs): Piece {
   if (!a.isFront) notches.push([zipEnd, p(-1, 0)]);
   // Centre front and centre back on the straight grain, so the sides fall on the bias and drape evenly.
   const gx = Math.min(8, at(0.5).x * 0.5);
+  const waistSide = onCircle(a.r, a.r, a.angle);
+  const draft = {
+    frame: [] as P[][],
+    points: [
+      {
+        n: '0',
+        at: p(0, 0),
+        note: `Centre waist. The waist is an arc of radius ${cm(a.r)}, drawn from a centre ${cm(a.r)} above this point: the cut waist divided by 2 pi times the share of a circle.`,
+      },
+      { n: '1', at: p(0, a.length), note: `0 to 1, skirt length: ${cm(a.length)}. The hem is an arc of radius ${cm(R)} from the same centre.` },
+      {
+        n: '2',
+        at: waistSide,
+        note: `Side waist: the waist arc covers ${Math.round(((a.angle * 180) / Math.PI) * 10) / 10} degrees, ${cm(a.r * a.angle)} of waist${a.darts.length ? ` with ${cm(a.darts.reduce((t, d) => t + d, 0))} of darts` : ''}. The side seam runs straight out along the radius.`,
+      },
+      { n: '3', at: onCircle(a.r, R, a.angle), note: `Hem at the side, ${cm(R)} from the centre. Every point of the hem is the same distance from the waist, so it hangs level.` },
+    ],
+  };
   return {
     name: a.name,
+    draft,
     outline,
     lines: finished.map((f) => new Path(f.d.near).line(f.d.tip).line(f.d.far)),
     grain: [p(gx, a.length * 0.3), p(gx, a.length * 0.8)],

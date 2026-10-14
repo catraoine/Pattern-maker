@@ -5,6 +5,10 @@ import type { Piece } from '../engine/piece';
 import type { SewingGuide } from '../engine/instructions';
 import type { SpecRow } from '../engine/techpack';
 import { PatternPreview } from '../ui/Preview';
+import { ALLOWANCE_LABELS, AllowanceStyle } from '../engine/allowances';
+import type { BodiceEdges } from '../engine/instructions';
+import type { Finish } from '../App';
+import type { Garment } from '../measurements';
 
 /** What to print: the drafted pieces of either garment, with its notes and sewing steps. */
 export interface Printable {
@@ -19,6 +23,9 @@ interface Props {
   profile: string;
   title: string;
   fit: string;
+  garment: Garment;
+  finish: Finish;
+  onFinish: (f: Finish) => void;
   made?: Printable;
   error?: string;
   onBack: () => void;
@@ -32,6 +39,12 @@ const OUTPUTS: { id: Output; label: string }[] = [
   { id: 'a0', label: 'A0 copy shop' },
   { id: 'projector', label: 'Projector' },
   { id: 'projectorDark', label: 'Projector, dark' },
+];
+
+const EDGES: { id: BodiceEdges; label: string; detail: string }[] = [
+  { id: 'binding', label: 'Bias binding', detail: 'Quick and neat' },
+  { id: 'facings', label: 'Facings', detail: 'Clean edge, interfaced' },
+  { id: 'lined', label: 'Fully lined', detail: 'The couture finish' },
 ];
 
 const isProjector = (o: Output): o is 'projector' | 'projectorDark' => o === 'projector' || o === 'projectorDark';
@@ -61,24 +74,33 @@ function download(data: BlobPart, type: string, name: string) {
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
-export function ExportScreen({ profile, title, fit, made, error, onBack }: Props) {
+export function ExportScreen({ profile, title, fit, garment, finish, onFinish, made, error, onBack }: Props) {
   const [paper, setPaper] = useState<Output>('a4');
   const [pdf, setPdf] = useState<{ paper: Output; bytes: Uint8Array } | null>(null);
   const [shareNote, setShareNote] = useState('');
   const guide = made?.guide;
   const date = useMemo(printedDate, []);
   const sheet = useMemo(
-    () => (made ? layout(made.pieces, `Maison Tracé: ${title}`, made.notes, { pattern: title, madeFor: profile, date }) : undefined),
-    [made, title, profile, date],
+    () =>
+      made ? layout(made.pieces, `Maison Tracé: ${title}`, made.notes, { pattern: title, madeFor: profile, date }, { atelier: finish.atelier }) : undefined,
+    [made, title, profile, date, finish.atelier],
   );
+  // The seam check walks the garment's own pieces; its lining and facings follow them.
   const checks = useMemo(() => {
     if (!made) return [];
     const waist = made.spec.find((r) => r.label === 'Waist')?.finished;
-    return checkPattern(made.pieces, { finishedWaist: typeof waist === 'number' ? waist : undefined });
+    return checkPattern(
+      made.pieces.filter((pc) => !pc.kind),
+      { finishedWaist: typeof waist === 'number' ? waist : undefined },
+    );
   }, [made]);
+  const drafting = useMemo(() => (made ? made.pieces.filter((pc) => pc.draft).map((pc) => ({ piece: pc.name, points: pc.draft!.points })) : []), [made]);
   const summary = useMemo(
-    () => (made ? { rows: made.spec.filter((r) => typeof r.finished === 'number'), checks, madeFor: profile, date } : undefined),
-    [made, checks, profile, date],
+    () =>
+      made
+        ? { rows: made.spec.filter((r) => typeof r.finished === 'number'), checks, madeFor: profile, date, drafting: finish.atelier ? drafting : undefined }
+        : undefined,
+    [made, checks, profile, date, drafting, finish.atelier],
   );
 
   // Build the PDF ahead of time, so share and print run straight from the tap (phones require that).
@@ -154,6 +176,24 @@ export function ExportScreen({ profile, title, fit, made, error, onBack }: Props
                 ? `${pages} ${pages === 1 ? 'sheet' : 'sheets'} of A0. Ask the copy shop to print at 100% (actual size), then measure the 10 cm test square before you cut.`
                 : `${pages} pages. Trim each page along its dashed line on the left and top and lay it over the one before, so the half diamonds make whole ones. Print at 100% (actual size) and measure the 10 cm test square before you cut.`}
           </p>
+          {finish.atelier && (
+            <div className="atelier">
+              <p className="eyebrow">Atelier view: how it was drafted</p>
+              {drafting.map((d) => (
+                <div key={d.piece}>
+                  <h3>{d.piece}</h3>
+                  <ol className="draftpoints">
+                    {d.points.map((pt) => (
+                      <li key={pt.n}>
+                        <span className="num">{pt.n}</span>
+                        {pt.note}
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              ))}
+            </div>
+          )}
           <p className="muted small">
             {passed === checks.length
               ? `Pattern check: all ${passed} checks pass. Seams walked to within 1 mm, curves blend across seams, darts trued.`
@@ -172,6 +212,48 @@ export function ExportScreen({ profile, title, fit, made, error, onBack }: Props
               </label>
             ))}
           </fieldset>
+          <fieldset className="group">
+            <legend>Seam allowances</legend>
+            {(Object.keys(ALLOWANCE_LABELS) as AllowanceStyle[]).map((a) => (
+              <label key={a} className={finish.allowances === a ? 'radio on' : 'radio'}>
+                <input type="radio" name="allowances" checked={finish.allowances === a} onChange={() => onFinish({ ...finish, allowances: a })} />
+                <span>
+                  {ALLOWANCE_LABELS[a].label} <span className="muted small">{ALLOWANCE_LABELS[a].detail}</span>
+                </span>
+              </label>
+            ))}
+          </fieldset>
+          {garment === 'skirt' ? (
+            <fieldset className="group">
+              <legend>Lining</legend>
+              {[false, true].map((on) => (
+                <label key={String(on)} className={finish.skirtLined === on ? 'radio on' : 'radio'}>
+                  <input type="radio" name="lining" checked={finish.skirtLined === on} onChange={() => onFinish({ ...finish, skirtLined: on })} />
+                  <span>
+                    {on ? 'Lined' : 'Unlined'} <span className="muted small">{on ? 'Hangs better, never clings' : 'Lighter, quicker'}</span>
+                  </span>
+                </label>
+              ))}
+            </fieldset>
+          ) : (
+            <fieldset className="group">
+              <legend>Neck and armholes</legend>
+              {EDGES.map((e) => (
+                <label key={e.id} className={finish.bodiceEdges === e.id ? 'radio on' : 'radio'}>
+                  <input type="radio" name="edges" checked={finish.bodiceEdges === e.id} onChange={() => onFinish({ ...finish, bodiceEdges: e.id })} />
+                  <span>
+                    {e.label} <span className="muted small">{e.detail}</span>
+                  </span>
+                </label>
+              ))}
+            </fieldset>
+          )}
+          <label className="check">
+            <input type="checkbox" checked={finish.atelier} onChange={(e) => onFinish({ ...finish, atelier: e.target.checked })} />
+            <span>
+              Atelier view <span className="muted small">show the draft: the frame, numbered points and how each was found</span>
+            </span>
+          </label>
           <button type="button" className="primary" onClick={() => ready && download(ready, 'application/pdf', fileName)} disabled={!ready}>
             {ready ? `Download PDF (${pages} ${pages === 1 ? 'page' : 'pages'})` : 'Making your PDF…'}
           </button>

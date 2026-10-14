@@ -1197,3 +1197,71 @@ button.ghost:disabled {
   gap: 8px;
   flex-wrap: wrap;
 }
+
+/* Finishing choices on the print screen: a label with a short note under it. */
+.radio > span > .small,
+.check > span > .small {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--sans);
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.radio:has(.small) {
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+.check {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-family: var(--sans);
+  cursor: pointer;
+}
+
+.check input {
+  width: 20px;
+  height: 20px;
+  margin: 2px 0 0;
+  accent-color: var(--ink);
+  flex: none;
+}
+
+/* Atelier view: the drafting notes under the pattern preview. */
+.atelier {
+  display: grid;
+  gap: 16px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.atelier h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: var(--w-strong);
+}
+
+.draftpoints {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.draftpoints li {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 8px;
+}
+
+.draftpoints .num {
+  font-family: var(--mono);
+  font-weight: 600;
+}
