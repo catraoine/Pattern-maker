@@ -1,15 +1,30 @@
 // Lay out pieces and export them at true scale: SVG and tiled PDF for home printing.
-import { P, add, mul, p, sub, unit } from './geometry';
+import { P, add, lerp, mul, p, sub, unit } from './geometry';
+import { allNotches, drillHoles, edgeLabels, notchSlit } from './marks';
 import { Piece, bounds, cutLine } from './piece';
 
 const GAP = 4; // cm between pieces
 const MARGIN = 3; // cm around the sheet
 
-export type LineStyle = 'cut' | 'stitch' | 'stitchSolid' | 'mark' | 'notch';
+export type LineStyle = 'cut' | 'stitch' | 'stitchSolid' | 'mark' | 'notch' | 'fine';
+
+/** Typefaces: the Contour Line label face (tracked capitals) and the body face. */
+export type Face = 'label' | 'body' | 'bodyMedium';
 
 export type Prim =
   | { kind: 'poly'; pts: P[]; style: LineStyle; closed: boolean }
-  | { kind: 'text'; at: P; text: string; size: number; rotate: number; anchor: 'middle' | 'start' };
+  | {
+      kind: 'text';
+      at: P;
+      text: string;
+      size: number;
+      rotate: number;
+      anchor: 'middle' | 'start';
+      face?: Face;
+      /** Extra space between letters, as a fraction of the size. */
+      tracking?: number;
+      grey?: number;
+    };
 
 export interface Sheet {
   prims: Prim[];
@@ -17,12 +32,28 @@ export interface Sheet {
   height: number; // cm
 }
 
-export const STYLES: Record<LineStyle, { width: number; dash?: [number, number]; grey: number }> = {
+/** Who and what the pattern is for, printed in each piece's information block. */
+export interface SheetInfo {
+  pattern: string;
+  madeFor?: string;
+  date?: string;
+}
+
+// Line weights follow the industry hierarchy: the cutting line is heaviest, the stitching line a
+// fine dash, construction and balance lines finest of all.
+export const STYLES: Record<LineStyle, { width: number; dash?: number[]; grey: number }> = {
   cut: { width: 0.05, grey: 0 },
-  stitch: { width: 0.025, dash: [0.4, 0.25], grey: 0.35 },
+  stitch: { width: 0.02, dash: [0.4, 0.25], grey: 0.35 },
   stitchSolid: { width: 0.03, grey: 0 },
-  mark: { width: 0.03, grey: 0.1 },
+  mark: { width: 0.025, grey: 0.1 },
   notch: { width: 0.05, grey: 0 },
+  fine: { width: 0.015, dash: [0.8, 0.2, 0.12, 0.2], grey: 0.45 },
+};
+
+export const FONT_FAMILY: Record<Face, string> = {
+  label: "'Chakra Petch', Helvetica, Arial, sans-serif",
+  body: "'Space Grotesk', Helvetica, Arial, sans-serif",
+  bodyMedium: "'Space Grotesk', Helvetica, Arial, sans-serif",
 };
 
 function arrowHeads(a: P, b: P, head = 1.2): P[][] {
@@ -36,28 +67,49 @@ function arrowHeads(a: P, b: P, head = 1.2): P[][] {
   return [side(b, 1), side(a, -1)];
 }
 
-export function layout(pieces: Piece[], title: string, notes: string[]): Sheet {
+/** A drill hole: a small circle with a cross through it. */
+function drill(at: P, r = 0.25): P[][] {
+  const ring = Array.from({ length: 13 }, (_, i) => add(at, p(r * Math.cos((i * Math.PI) / 6), r * Math.sin((i * Math.PI) / 6))));
+  return [ring, [add(at, p(-r * 1.6, 0)), add(at, p(r * 1.6, 0))], [add(at, p(0, -r * 1.6)), add(at, p(0, r * 1.6))]];
+}
+
+const TITLE_W = 46; // cm, the title block beside the test square
+
+export function layout(pieces: Piece[], title: string, notes: string[], info?: SheetInfo): Sheet {
   const prims: Prim[] = [];
   const poly = (pts: P[], style: LineStyle, closed = false) => prims.push({ kind: 'poly', pts, style, closed });
-  const text = (at: P, t: string, size: number, rotate = 0, anchor: 'middle' | 'start' = 'middle') =>
-    prims.push({ kind: 'text', at, text: t, size, rotate, anchor });
+  const text = (
+    at: P,
+    t: string,
+    size: number,
+    rotate = 0,
+    anchor: 'middle' | 'start' = 'middle',
+    opts: { face?: Face; tracking?: number; grey?: number } = {},
+  ) => prims.push({ kind: 'text', at, text: t, size, rotate, anchor, ...opts });
 
   let x = MARGIN;
   // Title block: the 10 cm test square at top left, title and notes beside it.
   const top = MARGIN + 10 + GAP;
   let height = 0;
-  for (const pc of pieces) {
+  pieces.forEach((pc, index) => {
     const [x0, y0, x1, y1] = bounds(pc);
     const off = p(x - x0, top - y0);
     const t = (q: P) => add(q, off);
     poly(cutLine(pc).map(t), 'cut', true);
     poly(pc.outline.points().map(t), 'stitch', true);
     pc.lines.forEach((ln) => poly(ln.points().map(t), 'mark'));
+    (pc.balance ?? []).forEach((b) => {
+      poly(b.pts.map(t), 'fine');
+      const [a, c] = [b.pts[0], b.pts[b.pts.length - 1]];
+      const u = unit(sub(c, a));
+      const rot = (Math.atan2(u.y, u.x) * 180) / Math.PI;
+      text(t(add(lerp(a, c, 0.75), mul(p(u.y, -u.x), 0.35))), b.label, 0.5, rot, 'middle', { face: 'label', tracking: 0.15, grey: 0.35 });
+    });
     if (pc.grain) {
       const [a, b] = pc.grain.map(t);
       poly([a, b], 'mark');
       arrowHeads(a, b).forEach((h) => poly(h, 'mark'));
-      text(t(p(pc.grain[0].x + 0.6, (pc.grain[0].y + pc.grain[1].y) / 2)), 'GRAIN', 0.8, 90);
+      text(t(p(pc.grain[0].x + 0.6, (pc.grain[0].y + pc.grain[1].y) / 2)), 'GRAIN', 0.7, 90, 'middle', { face: 'label', tracking: 0.2 });
     }
     if (pc.fold) {
       const [a, b] = pc.fold.map(t);
@@ -66,25 +118,49 @@ export function layout(pieces: Piece[], title: string, notes: string[]): Sheet {
       arrowHeads(add(add(a, mul(inset, 0.5)), p(0, 1)), sub(add(b, mul(inset, 0.5)), p(0, 1)), 0.9).forEach((h) =>
         poly(h, 'mark'),
       );
-      text(t(p(pc.fold[0].x + 2.6, (pc.fold[0].y + pc.fold[1].y) / 2)), 'PLACE ON FOLD', 0.8, 90);
+      text(t(p(pc.fold[0].x + 2.6, (pc.fold[0].y + pc.fold[1].y) / 2)), 'PLACE ON FOLD', 0.7, 90, 'middle', { face: 'label', tracking: 0.2 });
     }
-    pc.notches.forEach(([pt, d]) => poly([t(pt), t(add(pt, mul(unit(d), pc.seamAllowance)))], 'notch'));
-    pc.labels.forEach((l) => text(t(l.at), l.text, l.size));
+    allNotches(pc).forEach(([pt, d]) => poly(notchSlit(pc, pt, d).map(t), 'notch'));
+    drillHoles(pc).forEach((h) => drill(t(h)).forEach((ring) => poly(ring, 'mark')));
+    edgeLabels(pc).forEach((l) => text(t(l.at), l.text, 0.45, l.rotate, 'middle', { face: 'label', tracking: 0.12, grey: 0.3 }));
+    const name = pc.name.toUpperCase();
+    pc.labels.forEach((l) => {
+      if (info && l.text === pc.cut) return; // part of the information block
+      if (info && l.text === name) {
+        // The piece's information block: name, piece number and cutting, the pattern and its owner.
+        const lines = [
+          `PIECE ${index + 1} OF ${pieces.length} · ${pc.cut.toUpperCase()} · SELF FABRIC`,
+          info.pattern.toUpperCase(),
+          [info.madeFor && `MADE FOR ${info.madeFor}`, info.date].filter(Boolean).join(' · ').toUpperCase(),
+        ].filter(Boolean);
+        text(t(l.at), name, l.size, 0, 'middle', { face: 'label', tracking: 0.12 });
+        lines.forEach((ln, i) => text(t(add(l.at, p(0, l.size * 0.45 + 0.72 * (i + 1)))), ln, 0.5, 0, 'middle', { face: 'label', tracking: 0.12, grey: i ? 0.35 : 0 }));
+        return;
+      }
+      text(t(l.at), l.text, l.size, 0, 'middle', { face: 'label', tracking: 0.1 });
+    });
     x += x1 - x0 + GAP;
     height = Math.max(height, y1 - y0);
-  }
+  });
 
   // 10 cm test square so a printed copy can be checked for scale. It sits in the title block
   // rather than under the pieces, which would often add a whole extra row of pages.
   const sq = p(MARGIN, MARGIN);
   poly([sq, add(sq, p(10, 0)), add(sq, p(10, 10)), add(sq, p(0, 10))], 'stitchSolid', true);
-  text(add(sq, p(5, 5.4)), '10 cm test square', 0.7);
+  text(add(sq, p(5, 4.9)), '10 CM', 0.8, 0, 'middle', { face: 'label', tracking: 0.25 });
+  text(add(sq, p(5, 5.9)), 'TEST SQUARE', 0.45, 0, 'middle', { face: 'label', tracking: 0.25, grey: 0.35 });
 
-  const tx = MARGIN + 10 + 2;
-  text(p(tx, MARGIN + 1.5), title, 1.6, 0, 'start');
-  notes.forEach((line, i) => text(p(tx, MARGIN + 3.3 + i * 1.1), line, 0.8, 0, 'start'));
+  // The title block, framed like an atelier's pattern card.
+  const tx = MARGIN + 10;
+  poly([p(tx, MARGIN), p(tx + TITLE_W, MARGIN), p(tx + TITLE_W, MARGIN + 10), p(tx, MARGIN + 10)], 'mark', true);
+  poly([p(tx, MARGIN + 4.4), p(tx + TITLE_W, MARGIN + 4.4)], 'fine');
+  const who = info ? [info.madeFor && `MADE FOR ${info.madeFor}`, info.date].filter(Boolean) : [];
+  text(p(tx + 1.2, MARGIN + 1.5), ['PATTERN MAKER', ...who].join('   ·   ').toUpperCase(), 0.5, 0, 'start', { face: 'label', tracking: 0.3, grey: 0.35 });
+  const name = title.replace(/^Pattern Maker:\s*/, '');
+  text(p(tx + 1.2, MARGIN + 3.3), name.charAt(0).toUpperCase() + name.slice(1), 1.3, 0, 'start', { face: 'bodyMedium' });
+  notes.forEach((line, i) => text(p(tx + 1.2, MARGIN + 5.6 + i * 1.0), line, 0.6, 0, 'start', { face: 'body' }));
 
-  return { prims, width: Math.max(x - GAP + MARGIN, 60), height: top + height + MARGIN };
+  return { prims, width: Math.max(x - GAP + MARGIN, tx + TITLE_W + MARGIN), height: top + height + MARGIN };
 }
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
@@ -99,7 +175,7 @@ export function toSvg(sheet: Sheet): string {
     if (pr.kind === 'poly') {
       const st = STYLES[pr.style];
       const tag = pr.closed ? 'polygon' : 'polyline';
-      const dash = st.dash ? ` stroke-dasharray="${st.dash[0]} ${st.dash[1]}"` : '';
+      const dash = st.dash ? ` stroke-dasharray="${st.dash.join(' ')}"` : '';
       const g = Math.round(st.grey * 255).toString(16).padStart(2, '0');
       const pts = pr.pts.map((q) => `${q.x.toFixed(3)},${q.y.toFixed(3)}`).join(' ');
       out.push(
@@ -107,8 +183,12 @@ export function toSvg(sheet: Sheet): string {
       );
     } else {
       const tr = pr.rotate ? ` transform="rotate(${pr.rotate} ${pr.at.x.toFixed(3)} ${pr.at.y.toFixed(3)})"` : '';
+      const face = pr.face ?? 'body';
+      const weight = face === 'label' ? 600 : face === 'bodyMedium' ? 500 : 400;
+      const g = Math.round((pr.grey ?? 0) * 255).toString(16).padStart(2, '0');
+      const track = pr.tracking ? ` letter-spacing="${(pr.tracking * pr.size).toFixed(3)}"` : '';
       out.push(
-        `<text x="${pr.at.x.toFixed(3)}" y="${pr.at.y.toFixed(3)}" font-family="Helvetica, Arial, sans-serif" font-size="${pr.size}" text-anchor="${pr.anchor}"${tr}>${esc(pr.text)}</text>`,
+        `<text x="${pr.at.x.toFixed(3)}" y="${pr.at.y.toFixed(3)}" font-family="${FONT_FAMILY[face]}" font-weight="${weight}" font-size="${pr.size}" fill="#${g}${g}${g}" text-anchor="${pr.anchor}"${track}${tr}>${esc(pr.text)}</text>`,
       );
     }
   }
@@ -116,23 +196,71 @@ export function toSvg(sheet: Sheet): string {
   return out.join('\n');
 }
 
-export type Paper = 'a4' | 'letter';
+export type Paper = 'a4' | 'letter' | 'a0';
 
 export const PAPER_CM: Record<Paper, [number, number]> = {
   a4: [21.0, 29.7],
   letter: [21.59, 27.94],
+  a0: [84.1, 118.9],
 };
 
 export const PAGE_MARGIN = 1; // printer-safe margin, cm
 export const OVERLAP = 1; // cm shared by neighbouring pages for taping
 
-export function tileGrid(sheet: Sheet, paper: Paper): { rows: number; cols: number } {
-  const [pw, ph] = PAPER_CM[paper];
+/** Page size for a sheet: home paper is always portrait; a copy-shop A0 turns sideways when that takes fewer sheets. */
+export function pageSize(sheet: Sheet, paper: Paper): [number, number] {
+  const [w, h] = PAPER_CM[paper];
+  if (paper !== 'a0') return [w, h];
+  const count = (pw: number, ph: number) => grid(sheet, pw, ph).rows * grid(sheet, pw, ph).cols;
+  return count(h, w) < count(w, h) ? [h, w] : [w, h];
+}
+
+function grid(sheet: Sheet, pw: number, ph: number) {
   const stepX = pw - 2 * PAGE_MARGIN - OVERLAP;
   const stepY = ph - 2 * PAGE_MARGIN - OVERLAP;
   return {
-    cols: Math.ceil((sheet.width - OVERLAP) / stepX),
-    rows: Math.ceil((sheet.height - OVERLAP) / stepY),
+    cols: Math.max(1, Math.ceil((sheet.width - OVERLAP) / stepX)),
+    rows: Math.max(1, Math.ceil((sheet.height - OVERLAP) / stepY)),
   };
 }
 
+export function tileGrid(sheet: Sheet, paper: Paper): { rows: number; cols: number } {
+  const [pw, ph] = pageSize(sheet, paper);
+  return grid(sheet, pw, ph);
+}
+
+/** True when anything is drawn in the region (x, y, w, h) of the sheet. */
+function inked(sheet: Sheet, x: number, y: number, w: number, h: number): boolean {
+  return sheet.prims.some((pr) => {
+    if (pr.kind === 'text') return pr.at.x > x - 1 && pr.at.x < x + w + 1 && pr.at.y > y && pr.at.y < y + h + pr.size;
+    // Any vertex inside, or any edge crossing the region's middle lines, puts ink on the page.
+    const pts = pr.closed ? [...pr.pts, pr.pts[0]] : pr.pts;
+    for (let i = 0; i < pts.length; i++) {
+      const q = pts[i];
+      if (q.x >= x && q.x <= x + w && q.y >= y && q.y <= y + h) return true;
+      if (i === 0) continue;
+      const a = pts[i - 1];
+      const lo = { x: Math.min(a.x, q.x), y: Math.min(a.y, q.y) };
+      const hi = { x: Math.max(a.x, q.x), y: Math.max(a.y, q.y) };
+      if (hi.x < x || lo.x > x + w || hi.y < y || lo.y > y + h) continue;
+      return true; // close enough: a segment's box overlapping the page almost always crosses it
+    }
+    return false;
+  });
+}
+
+/** Which tiles have something on them. Blank ones aren't printed, which saves paper on a wide layout. */
+export function usedTiles(sheet: Sheet, paper: Paper): boolean[][] {
+  const [pw, ph] = pageSize(sheet, paper);
+  const tw = pw - 2 * PAGE_MARGIN;
+  const th = ph - 2 * PAGE_MARGIN;
+  const { rows, cols } = tileGrid(sheet, paper);
+  return Array.from({ length: rows }, (_, r) =>
+    Array.from({ length: cols }, (_, c) => inked(sheet, c * (tw - OVERLAP), r * (th - OVERLAP), tw, th)),
+  );
+}
+
+export const pageCount = (sheet: Sheet, paper: Paper) => usedTiles(sheet, paper).flat().filter(Boolean).length;
+
+/** Page name used on the tiles and the assembly map: row letter, column number. */
+export const pageName = (r: number, c: number) => `${String.fromCharCode(65 + r)}${c + 1}`;

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { Choices } from '../App';
-import { OVERLAP, PAGE_MARGIN, PAPER_CM, Paper, layout, tileGrid, toSvg } from '../engine/export';
+import { OVERLAP, PAGE_MARGIN, Paper, Sheet, layout, pageCount, pageName, pageSize, tileGrid, toSvg, usedTiles } from '../engine/export';
+import { FIT_EASE } from '../engine/skirt';
+import { checkPattern } from '../engine/qc';
 import { SkirtDraft } from '../engine/skirt';
 import { PatternPreview } from '../ui/Preview';
 import { describe, fabricMetres } from './StyleScreen';
@@ -14,10 +16,19 @@ interface Props {
   onBack: () => void;
 }
 
-const PAPERS: { id: Paper; label: string }[] = [
-  { id: 'a4', label: 'A4, print at home' },
-  { id: 'letter', label: 'US Letter, print at home' },
+type Output = Paper | 'projector' | 'projectorDark';
+
+const OUTPUTS: { id: Output; label: string }[] = [
+  { id: 'a4', label: 'A4 at home' },
+  { id: 'letter', label: 'US Letter at home' },
+  { id: 'a0', label: 'A0 copy shop' },
+  { id: 'projector', label: 'Projector' },
+  { id: 'projectorDark', label: 'Projector, dark' },
 ];
+
+const isProjector = (o: Output): o is 'projector' | 'projectorDark' => o === 'projector' || o === 'projectorDark';
+
+const today = () => new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
 // Phones can hand a file to the share sheet (email, Files, AirDrop, a printer app); most desktops can't.
 const canShareFiles = (() => {
@@ -42,22 +53,40 @@ function download(data: BlobPart, type: string, name: string) {
 }
 
 export function ExportScreen({ profile, choices, draft, error, onBack }: Props) {
-  const [paper, setPaper] = useState<Paper>('a4');
-  const [pdf, setPdf] = useState<{ paper: Paper; bytes: Uint8Array } | null>(null);
+  const [paper, setPaper] = useState<Output>('a4');
+  const [pdf, setPdf] = useState<{ paper: Output; bytes: Uint8Array } | null>(null);
   const [shareNote, setShareNote] = useState('');
   const title = describe(choices);
   const guide = useMemo(() => (draft ? sewingGuide(draft, choices, fabricMetres(draft)) : undefined), [draft, choices]);
+  const date = useMemo(today, []);
   const sheet = useMemo(
     () =>
       draft
-        ? layout(draft.pieces, `Pattern Maker: ${title}`, [
-            `Finished waist ${draft.finishedWaist} cm, hip ${draft.finishedHip} cm, length ${draft.lengthCm} cm.`,
-            'Seam allowance 1.5 cm included, 4 cm at the hem. Dashed line = stitching line.',
-            `Waistband: mark a ${draft.waistband.cutLength} x ${draft.waistband.cutWidth} cm strip on the fabric. Sewing steps are on the last pages.`,
-          ])
+        ? layout(
+            draft.pieces,
+            `Pattern Maker: ${title}`,
+            [
+              `Finished waist ${draft.finishedWaist} cm, hip ${draft.finishedHip} cm, length ${draft.lengthCm} cm.`,
+              `Seam allowance ${draft.pieces[0].seamAllowance} cm included, ${draft.pieces[0].allowances.hem} cm at the hem. Dashed line = stitching line.`,
+              `Waistband: mark a ${draft.waistband.cutLength} x ${draft.waistband.cutWidth} cm strip on the fabric. Sewing steps are on the last pages.`,
+            ],
+            { pattern: title, madeFor: profile, date },
+          )
         : undefined,
-    [draft, title],
+    [draft, title, profile, date],
   );
+  const checks = useMemo(() => (draft ? checkPattern(draft.pieces, { finishedWaist: draft.finishedWaist }) : []), [draft]);
+  const summary = useMemo(() => {
+    if (!draft) return undefined;
+    const ease = FIT_EASE[choices.fit];
+    const rows = [
+      { label: 'Waist', body: draft.finishedWaist - ease.waist, ease: ease.waist, finished: draft.finishedWaist },
+      { label: 'Hip', body: draft.finishedHip - ease.hip, ease: ease.hip, finished: draft.finishedHip },
+      { label: 'Hem circumference', finished: draft.hemCm },
+      { label: 'Length, waist to hem', finished: draft.lengthCm },
+    ];
+    return { rows, checks, madeFor: profile, date };
+  }, [draft, choices.fit, checks, profile, date]);
 
   // Build the PDF ahead of time, so share and print run straight from the tap (phones require that).
   useEffect(() => {
@@ -65,12 +94,14 @@ export function ExportScreen({ profile, choices, draft, error, onBack }: Props) 
     let live = true;
     setPdf(null);
     import('../engine/pdf')
-      .then(({ toTiledPdf }) => toTiledPdf(sheet, paper, { title, guide }))
+      .then(({ toTiledPdf, toProjectorPdf }) =>
+        isProjector(paper) ? toProjectorPdf(sheet, { dark: paper === 'projectorDark', title }) : toTiledPdf(sheet, paper, { title, guide, summary }),
+      )
       .then((bytes) => live && setPdf({ paper, bytes }));
     return () => {
       live = false;
     };
-  }, [sheet, paper, title, guide]);
+  }, [sheet, paper, title, guide, summary]);
 
   if (!draft || !sheet || !guide) {
     return (
@@ -83,11 +114,13 @@ export function ExportScreen({ profile, choices, draft, error, onBack }: Props) 
     );
   }
 
-  const grid = tileGrid(sheet, paper);
-  const pages = grid.rows * grid.cols;
+  const projector = isProjector(paper);
+  const grid = projector ? { rows: 1, cols: 1 } : tileGrid(sheet, paper);
+  const pages = projector ? 1 : pageCount(sheet, paper);
+  const passed = checks.filter((c) => c.ok).length;
   const fileBase = title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
 
-  const fileName = `${fileBase}-${paper}.pdf`;
+  const fileName = `${fileBase}-${paper === 'projectorDark' ? 'projector-black' : paper}.pdf`;
   const ready = pdf?.paper === paper ? pdf.bytes : null;
 
   const share = async () => {
@@ -118,12 +151,20 @@ export function ExportScreen({ profile, choices, draft, error, onBack }: Props) 
             </p>
           </div>
           <div className="preview tiles" style={{ ['--cols' as string]: grid.cols }}>
-            <PatternPreview sheet={sheet} label={`Pattern laid over ${pages} numbered print pages`} />
-            <TileOverlay sheetW={sheet.width} sheetH={sheet.height} paper={paper} rows={grid.rows} cols={grid.cols} />
+            <PatternPreview sheet={sheet} label={projector ? 'Pattern on one page for a projector' : `Pattern laid over ${pages} numbered print pages`} />
+            {!projector && <TileOverlay sheet={sheet} paper={paper} />}
           </div>
           <p className="muted">
-            {pages} pages. Tape them together by matching the row letters and column numbers. Print at 100% (actual size) and measure the 10
-            cm test square before you cut.
+            {projector
+              ? 'One page at true size, in fine lines for projecting onto fabric. Calibrate your projector to the 10 cm test square.'
+              : paper === 'a0'
+                ? `${pages} ${pages === 1 ? 'sheet' : 'sheets'} of A0. Ask the copy shop to print at 100% (actual size), then measure the 10 cm test square before you cut.`
+                : `${pages} pages. Trim each page along its dashed line on the left and top and lay it over the one before, so the half diamonds make whole ones. Print at 100% (actual size) and measure the 10 cm test square before you cut.`}
+          </p>
+          <p className="muted small qc">
+            {passed === checks.length
+              ? `Pattern check: all ${passed} checks pass. Seams walked to within 1 mm, curves blend across seams, darts trued.`
+              : `Pattern check: ${passed} of ${checks.length} checks pass. The details are in the PDF.`}
           </p>
         </section>
 
@@ -131,19 +172,15 @@ export function ExportScreen({ profile, choices, draft, error, onBack }: Props) 
           <h2 id="pset">Print settings</h2>
           <fieldset className="group">
             <legend>Paper</legend>
-            {PAPERS.map((p) => (
+            {OUTPUTS.map((p) => (
               <label key={p.id} className={paper === p.id ? 'radio on' : 'radio'}>
                 <input type="radio" name="paper" checked={paper === p.id} onChange={() => setPaper(p.id)} />
                 <span>{p.label}</span>
               </label>
             ))}
-            <div className="radio locked" aria-disabled="true">
-              <span>A0, copy shop</span>
-              <span className="badge">Premium</span>
-            </div>
           </fieldset>
           <button type="button" className="primary" onClick={() => ready && download(ready, 'application/pdf', fileName)} disabled={!ready}>
-            {ready ? `Download PDF (${pages} pages)` : 'Making your PDF…'}
+            {ready ? `Download PDF (${pages} ${pages === 1 ? 'page' : 'pages'})` : 'Making your PDF…'}
           </button>
           {canShareFiles && (
             <button type="button" className="secondary" onClick={share} disabled={!ready}>
@@ -196,27 +233,27 @@ export function ExportScreen({ profile, choices, draft, error, onBack }: Props) 
   );
 }
 
-/** Dashed page boundaries drawn over the preview, matching how the PDF is tiled. */
-function TileOverlay({ sheetW, sheetH, paper, rows, cols }: { sheetW: number; sheetH: number; paper: Paper; rows: number; cols: number }) {
-  const [pw, ph] = PAPER_CM[paper];
+/** Dashed page boundaries drawn over the preview, matching how the PDF is tiled. Blank pages aren't printed. */
+function TileOverlay({ sheet, paper }: { sheet: Sheet; paper: Paper }) {
+  const [pw, ph] = pageSize(sheet, paper);
   const tw = pw - 2 * PAGE_MARGIN;
   const th = ph - 2 * PAGE_MARGIN;
   const stepX = tw - OVERLAP;
   const stepY = th - OVERLAP;
-  const cells = [];
-  for (let r = 0; r < rows; r++)
-    for (let c = 0; c < cols; c++)
-      cells.push(
+  const cells = usedTiles(sheet, paper).flatMap((row, r) =>
+    row.map((on, c) =>
+      on ? (
         <g key={`${r}-${c}`}>
           <rect x={c * stepX} y={r * stepY} width={tw} height={th} fill="none" style={{ stroke: 'var(--muted)' }} strokeWidth={0.12} strokeDasharray="0.8 0.6" />
           <text x={c * stepX + 0.8} y={r * stepY + 2} fontSize={1.4} style={{ fill: 'var(--muted)', fontFamily: 'var(--mono)' }}>
-            {String.fromCharCode(65 + r)}
-            {c + 1}
+            {pageName(r, c)}
           </text>
-        </g>,
-      );
+        </g>
+      ) : null,
+    ),
+  );
   return (
-    <svg viewBox={`0 0 ${sheetW} ${sheetH}`} className="preview-svg overlay" aria-hidden="true">
+    <svg viewBox={`0 0 ${sheet.width} ${sheet.height}`} className="preview-svg overlay" aria-hidden="true">
       {cells}
     </svg>
   );
