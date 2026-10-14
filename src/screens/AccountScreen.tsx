@@ -84,7 +84,7 @@ export function AccountScreen({ account, unit, values, onName, onUnit, onEditMea
                   const file = e.target.files?.[0];
                   e.target.value = '';
                   if (!file) return;
-                  setRestoreMsg((await onRestore(file)) ? 'Restored from your backup.' : "That file isn't a Pattern Maker backup.");
+                  setRestoreMsg((await onRestore(file)) ? 'Restored from your backup.' : "That file isn't a Maison Tracé backup.");
                 }}
               />
             </label>

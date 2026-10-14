@@ -134,7 +134,7 @@ export function PhotoScreen({ measured, onApply, onCancel }: Props) {
             <Tips />
           </details>
         )}
-        <p className="muted small">Your photo is sent to Claude to read the style. Pattern Maker doesn't keep it.</p>
+        <p className="muted small">Your photo is sent to Claude to read the style. Maison Tracé doesn't keep it.</p>
         <button type="button" className="link" onClick={onCancel}>
           Back to styling by hand
         </button>

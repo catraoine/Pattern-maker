@@ -64,7 +64,7 @@ export function makeBackup<S>(skirt: S, account: Account): Backup<S> {
   return { app: 'pattern-maker', version: 1, savedAt: new Date().toISOString(), skirt, account };
 }
 
-/** Read a backup file's text; returns null when it isn't a Pattern Maker backup. */
+/** Read a backup file's text; returns null when it isn't a Maison Tracé backup. */
 export function readBackup<S extends object>(text: string): Backup<S> | null {
   try {
     const b = JSON.parse(text);

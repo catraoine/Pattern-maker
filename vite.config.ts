@@ -9,8 +9,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icon.svg', 'apple-touch-icon.png'],
       manifest: {
-        name: 'Pattern Maker',
-        short_name: 'Patterns',
+        name: 'Maison Tracé',
+        short_name: 'Maison Tracé',
         description: 'Sewing patterns drafted to your own measurements.',
         theme_color: '#000000',
         background_color: '#000000',

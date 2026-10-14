@@ -1,3 +1,3 @@
-# Pattern Maker
+# Maison Tracé
 
 Sewing patterns drafted from your own measurements. Installable web app (PWA), hosted on Netlify.
