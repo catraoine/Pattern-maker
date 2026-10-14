@@ -8,9 +8,10 @@ import { StyleScreen, describe } from './screens/StyleScreen';
 import { ExportScreen } from './screens/ExportScreen';
 import { WelcomeScreen } from './screens/WelcomeScreen';
 import { AccountScreen } from './screens/AccountScreen';
+import { PhotoScreen } from './screens/PhotoScreen';
 
 export type Step = 'measure' | 'style' | 'export';
-type View = Step | 'welcome' | 'account';
+type View = Step | 'welcome' | 'account' | 'photo';
 
 export interface Choices {
   fit: Fit;
@@ -114,11 +115,21 @@ export default function App() {
           <WelcomeScreen
             name={account.name}
             unit={saved.unit}
-            onFinish={({ name, unit, example }) => {
+            onFinish={({ name, unit, start }) => {
               setAccount({ ...account, name, onboarded: true });
-              setSaved({ ...saved, unit, values: example ? EXAMPLE_VALUES : saved.values });
-              setStep(example ? 'style' : 'measure');
+              setSaved({ ...saved, unit, values: start === 'example' ? EXAMPLE_VALUES : saved.values });
+              setStep(start === 'example' ? 'style' : start);
             }}
+          />
+        )}
+        {step === 'photo' && (
+          <PhotoScreen
+            measured={canLeaveMeasure}
+            onApply={(choices) => {
+              setSaved({ ...saved, choices });
+              setStep(canLeaveMeasure ? 'style' : 'measure');
+            }}
+            onCancel={() => setStep(canLeaveMeasure ? 'style' : 'measure')}
           />
         )}
         {step === 'account' && (
@@ -178,6 +189,7 @@ export default function App() {
             saveState={saveState}
             onSave={() => setAccount(savePattern(account, saved.choices, describe(saved.choices)))}
             onAccount={() => setStep('account')}
+            onPhoto={() => setStep('photo')}
           />
         )}
         {step === 'export' && (

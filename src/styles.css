@@ -892,6 +892,50 @@ button.link.inline-link {
   outline-offset: 2px;
 }
 
+/* Photo to pattern: the file picker styled like the primary and secondary buttons */
+.filebtn.big {
+  min-height: 52px;
+  padding: 0 24px;
+  justify-content: center;
+  font-size: 12px;
+}
+
+.filebtn.primary {
+  background: transparent;
+  color: var(--ink);
+}
+
+.filebtn.secondary {
+  background: transparent;
+  color: var(--muted);
+  border-color: var(--line-strong);
+}
+
+.filebtn.big:hover {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+
+.filebtn[aria-disabled] {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.photo {
+  width: 100%;
+  max-height: 50vh;
+  object-fit: contain;
+  border: var(--bw) solid var(--line);
+  background: var(--white);
+}
+
+.group legend .badge,
+.group legend .muted {
+  margin-left: 8px;
+  font-weight: var(--w-body);
+}
+
 strong,
 b {
   font-weight: var(--w-strong);

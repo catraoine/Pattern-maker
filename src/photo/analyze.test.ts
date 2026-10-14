@@ -1,0 +1,49 @@
+import { describe, expect, it, vi } from 'vitest';
+import type Anthropic from '@anthropic-ai/sdk';
+import { analyzePhoto } from './analyze';
+
+const reading = {
+  garment: 'skirt',
+  silhouette: { value: 'a_line', confidence: 'high' },
+  length: { value: 'midi', confidence: 'medium' },
+  fit: { value: 'regular', confidence: 'low' },
+  details: 'It has box pleats at the front.',
+};
+
+const fakeClient = (result: object | Error) => {
+  const parse = vi.fn(async () => {
+    if (result instanceof Error) throw result;
+    return result;
+  });
+  return { client: { beta: { messages: { parse } } } as unknown as Anthropic, parse };
+};
+
+const photo = { image: 'aGVsbG8=', mediaType: 'image/jpeg' };
+
+describe('analyzePhoto', () => {
+  it('says so when no API key is set', async () => {
+    expect(await analyzePhoto(photo, null)).toEqual({ ok: false, error: 'not_configured' });
+  });
+
+  it('rejects unsupported or oversized uploads without calling Claude', async () => {
+    const { client, parse } = fakeClient({});
+    expect(await analyzePhoto({ image: 'x', mediaType: 'image/gif' }, client)).toEqual({ ok: false, error: 'bad_image' });
+    expect(await analyzePhoto({ image: 'x'.repeat(4_000_001), mediaType: 'image/png' }, client)).toEqual({ ok: false, error: 'too_large' });
+    expect(parse).not.toHaveBeenCalled();
+  });
+
+  it('returns the reading and sends the photo as an image block with fallbacks on', async () => {
+    const { client, parse } = fakeClient({ stop_reason: 'end_turn', parsed_output: reading });
+    expect(await analyzePhoto(photo, client)).toEqual({ ok: true, reading });
+    const req = (parse.mock.calls[0] as unknown[])[0] as { model: string; fallbacks: string; messages: { content: { type: string }[] }[] };
+    expect(req.model).toBe('claude-opus-5-5');
+    expect(req.fallbacks).toBe('default');
+    expect(req.messages[0].content[0].type).toBe('image');
+  });
+
+  it('turns a refusal or a failure into a friendly error', async () => {
+    expect(await analyzePhoto(photo, fakeClient({ stop_reason: 'refusal', parsed_output: null }).client)).toEqual({ ok: false, error: 'declined' });
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect(await analyzePhoto(photo, fakeClient(new Error('boom')).client)).toEqual({ ok: false, error: 'failed' });
+  });
+});

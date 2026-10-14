@@ -20,11 +20,12 @@ interface Props {
   saveState: 'can' | 'saved' | 'full';
   onSave: () => void;
   onAccount: () => void;
+  onPhoto: () => void;
 }
 
 type Group<K extends keyof Choices> = { id: K; label: string; options: [Choices[K], string][] };
 
-const GROUPS: [Group<'fit'>, Group<'silhouette'>, Group<'length'>] = [
+export const GROUPS: [Group<'fit'>, Group<'silhouette'>, Group<'length'>] = [
   { id: 'fit', label: 'Fit', options: [['fitted', 'Fitted'], ['regular', 'Regular'], ['relaxed', 'Relaxed']] },
   {
     id: 'silhouette',
@@ -77,7 +78,7 @@ export function fabricMetres(draft: SkirtDraft): number {
   return Math.ceil(((total + band + 15) / 100) * 10) / 10;
 }
 
-export function StyleScreen({ choices, onChoices, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount }: Props) {
+export function StyleScreen({ choices, onChoices, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, onPhoto }: Props) {
   const [view, setView] = useState<'sketch' | 'pattern'>('sketch');
   const sheet = useMemo(() => (draft ? layout(draft.pieces, '', []) : undefined), [draft]);
   const ease = FIT_EASE[choices.fit];
@@ -92,6 +93,9 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
     <div className="split three">
       <section className="card" aria-labelledby="opts">
         <h1 id="opts">Style your skirt</h1>
+        <button type="button" className="secondary" onClick={onPhoto}>
+          Start from a photo
+        </button>
         <fieldset className="group">
           <legend>Era</legend>
           <div className="chips">

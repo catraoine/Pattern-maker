@@ -10,3 +10,8 @@
   from = "/*"
   to = "/index.html"
   status = 200
+
+# Server functions (photo to pattern). Set ANTHROPIC_API_KEY in Site configuration > Environment variables.
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
