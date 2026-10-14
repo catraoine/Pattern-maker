@@ -1,7 +1,8 @@
-// Plain-language sewing steps for the drafted skirt, shown in the app and added to the end of the PDF.
+// Plain-language sewing steps for the drafted skirt and bodice, shown in the app and added to the end of the PDF.
 // Keep to plain ASCII punctuation: the PDF uses a standard font without curly quotes.
 import { isCircle } from './skirt';
 import type { Length, Silhouette, SkirtDraft } from './skirt';
+import type { BodiceDraft, BodiceLength } from './bodice';
 
 // Widest strip that fits across 140 cm fabric, leaving room for the selvedges.
 export const BAND_ACROSS_MAX = 135;
@@ -110,6 +111,92 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
       `${draft.zipCm} cm invisible zip`,
       'Hook and eye',
       '0.3 m lightweight fusible interfacing',
+      'Matching thread',
+    ],
+    steps,
+  };
+}
+
+/** Sewing steps for the sleeveless bodice: centre back zip, bias-bound neck and armholes. */
+export function bodiceGuide(draft: BodiceDraft, style: { length: BodiceLength }, fabricM: number, bindingM: number): SewingGuide {
+  const below = style.length !== 'waist';
+  const bust = draft.bustDart > 0.3;
+  const waist = draft.waistDarts.front > 0.3 || draft.waistDarts.back > 0.3;
+  const dartWords = bust && waist ? 'bust and waist darts' : bust ? 'bust darts' : 'waist darts';
+
+  const steps: SewStep[] = [
+    {
+      title: 'Print and check the size',
+      text: 'Print the pattern at 100% (actual size). Measure the test square: it should be exactly 10 cm. Trim each page along the dashed line, then tape the pages together, matching the row letters and column numbers.',
+    },
+    {
+      title: 'Cut out',
+      text: `Fold the fabric in half with the selvedges together. Place the bodice front on the fold, and the bodice back on both layers so you get a pair. Keep each grain arrow parallel to the selvedge. Cut along the solid outer line, snip the small notches${bust || waist ? ', and chalk-mark the dart lines and the bust point' : ''}.`,
+    },
+    {
+      title: 'Neaten the edges',
+      text: 'Zigzag or overlock the shoulder, side and centre back edges, so they will not fray inside.',
+    },
+    ...(bust || waist
+      ? [
+          {
+            title: `Sew the ${dartWords}`,
+            text: [
+              bust ? 'Fold each bust dart with right sides together so the dart lines meet, stitch from the side seam to the point, and press it down.' : '',
+              waist && below
+                ? 'The waist darts are pointed at both ends. Fold each one along its centre, stitch from one point through the widest part at the waist to the other point, then clip into the fold at the waist so it lies flat. Press toward the centre.'
+                : waist
+                  ? 'Fold each waist dart the same way, stitch from the hem edge to the point, and press toward the centre.'
+                  : '',
+              'Run each line of stitching off the fold at the point and knot the threads.',
+            ]
+              .filter(Boolean)
+              .join(' '),
+          },
+        ]
+      : []),
+    {
+      title: 'Put in the zip',
+      text: `Sew a ${draft.zipCm} cm invisible zip into the centre back edges, with the top of the teeth 1 cm below the neck edge, stopping at the ZIP ENDS notch.`,
+    },
+    {
+      title: 'Close the centre back',
+      text: `${below ? 'Sew the rest of the centre back seam, from the bottom of the zip to the hem, 1.5 cm from the edge, and press it open.' : 'Sew the last few centimetres of the centre back seam below the zip, 1.5 cm from the edge, and press it open.'}`,
+    },
+    {
+      title: 'Sew the shoulders',
+      text: 'Pin the front to the back at the shoulders, right sides together. The back shoulder is 1 cm longer: ease it in so it fits without pleats. Sew 1.5 cm from the edge and press the seams open.',
+    },
+    {
+      title: 'Sew the side seams',
+      text: 'Pin the front to the back at the sides, right sides together. Sew 1.5 cm from the edge and press the seams open. Try the bodice on now: this is the easiest moment to take it in or let it out at the sides.',
+    },
+    {
+      title: 'Bind the neckline',
+      text: 'Open out one fold of the bias binding and pin it to the neckline, right sides together, with the crease 1 cm from the edge and 1 cm extra at each end. Sew along the crease, trim the seam to 0.5 cm and clip the curves. Fold the ends in, then turn the binding to the inside, press it flat, and stitch it down close to its folded edge.',
+    },
+    {
+      title: 'Bind the armholes',
+      text: 'Bind each armhole the same way, starting and ending at the side seam with the ends overlapped by 1 cm.',
+    },
+    {
+      title: 'Hem',
+      text: below
+        ? 'Press up 1 cm, then 1.5 cm more, and stitch by hand or machine.'
+        : 'Press up 0.5 cm, then 1 cm more, and stitch close to the fold.',
+    },
+    {
+      title: 'Finish',
+      text: 'Sew a hook and eye at the top of the zip, inside the neckline. Give the bodice a final press.',
+    },
+  ];
+
+  return {
+    notions: [
+      `${fabricM.toFixed(1)} m of woven fabric, 140 cm wide`,
+      `${draft.zipCm} cm invisible zip`,
+      `${bindingM.toFixed(1)} m of 2 cm wide bias binding`,
+      'Hook and eye',
       'Matching thread',
     ],
     steps,

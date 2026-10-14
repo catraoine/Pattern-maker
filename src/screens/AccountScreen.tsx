@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { Account, FREE_SAVED_LIMIT, SavedPattern, profileName } from '../account';
-import { MeasurementValues, SKIRT_FIELDS, Unit } from '../measurements';
-import { describe } from './StyleScreen';
+import { BODICE_FIELDS, MeasurementValues, SKIRT_FIELDS, Unit } from '../measurements';
+import { describePattern } from './describe';
+
+// Skirt and bodice share a few measurements (waist, hip); list each once.
+const ALL_FIELDS = [...SKIRT_FIELDS, ...BODICE_FIELDS.filter((b) => !SKIRT_FIELDS.some((f) => f.id === b.id))];
 
 interface Props {
   account: Account;
@@ -123,7 +126,7 @@ export function AccountScreen({ account, unit, values, onName, onUnit, onEditMea
             </button>
           </div>
           <dl className="mlist">
-            {SKIRT_FIELDS.map((f) => (
+            {ALL_FIELDS.map((f) => (
               <div key={f.id}>
                 <dt>{f.label}</dt>
                 <dd>{show(values[f.id], unit)}</dd>
@@ -140,7 +143,7 @@ export function AccountScreen({ account, unit, values, onName, onUnit, onEditMea
             </span>
           </div>
           {account.patterns.length === 0 ? (
-            <p className="muted">Nothing saved yet. Style a skirt and tap "Save pattern" to keep it here.</p>
+            <p className="muted">Nothing saved yet. Style a skirt or bodice and tap "Save pattern" to keep it here.</p>
           ) : (
             <ul className="saved">
               {account.patterns.map((p) => (
@@ -166,7 +169,7 @@ function PatternRow({ pattern, onOpen, onRename, onRemove }: { pattern: SavedPat
     onRename(name.trim() || pattern.name);
     setEditing(false);
   };
-  const detail = describe(pattern.choices);
+  const detail = describePattern(pattern.choices);
 
   return (
     <li>

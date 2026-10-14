@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
 import type { Choices } from '../App';
 import { layout } from '../engine/export';
-import { bounds } from '../engine/piece';
+import { piecesLengthCm, toMetres } from '../engine/fabric';
 import { FIT_EASE, SkirtDraft } from '../engine/skirt';
-import type { MeasurementValues } from '../measurements';
+import type { Garment, MeasurementValues } from '../measurements';
+import { GarmentSwitch } from '../ui/GarmentSwitch';
 import { PatternPreview, SketchPreview } from '../ui/Preview';
 import { FREE_SAVED_LIMIT } from '../account';
 import { BAND_ACROSS_MAX } from '../engine/instructions';
@@ -21,6 +22,7 @@ interface Props {
   onSave: () => void;
   onAccount: () => void;
   onPhoto: () => void;
+  onGarment: (g: Garment) => void;
 }
 
 type Group<K extends keyof Choices> = { id: K; label: string; options: [Choices[K], string][] };
@@ -53,32 +55,15 @@ export function describe(c: Choices) {
   return `${len} ${sil.toLowerCase()} skirt`;
 }
 
-/** Rough fabric need on 140 cm wide fabric: the pieces laid out in rows across the width, plus a strip
- * for the waistband, which is cut across the fabric. A piece on the fold opens to twice its width; a
- * pair is two pieces. */
+/** Rough fabric need on 140 cm wide fabric: the pieces, plus a strip for the waistband, which is cut
+ * across the fabric. */
 export function fabricMetres(draft: SkirtDraft): number {
-  const items = draft.pieces.flatMap((pc) => {
-    const [x0, y0, x1, y1] = bounds(pc);
-    const w = x1 - x0;
-    const h = y1 - y0;
-    return pc.fold ? [{ w: 2 * w, h }] : [{ w, h }, { w, h }];
-  });
-  items.sort((a, b) => b.h - a.h);
-  let total = 0;
-  let rowW = Infinity;
-  for (const it of items) {
-    if (rowW + it.w > 136) {
-      total += it.h; // tallest first, so the first piece in a row sets its height
-      rowW = 0;
-    }
-    rowW += it.w;
-  }
   const { cutLength, cutWidth } = draft.waistband;
   const band = cutLength <= BAND_ACROSS_MAX ? cutWidth : cutLength;
-  return Math.ceil(((total + band + 15) / 100) * 10) / 10;
+  return toMetres(piecesLengthCm(draft.pieces) + band + 15);
 }
 
-export function StyleScreen({ choices, onChoices, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, onPhoto }: Props) {
+export function StyleScreen({ choices, onChoices, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, onPhoto, onGarment }: Props) {
   const [view, setView] = useState<'sketch' | 'pattern'>('sketch');
   const sheet = useMemo(() => (draft ? layout(draft.pieces, '', []) : undefined), [draft]);
   const ease = FIT_EASE[choices.fit];
@@ -92,7 +77,10 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
   return (
     <div className="split three">
       <section className="card" aria-labelledby="opts">
-        <h1 id="opts">Style your skirt</h1>
+        <div className="row between wrap">
+          <h1 id="opts">Style your skirt</h1>
+          <GarmentSwitch garment="skirt" onGarment={onGarment} />
+        </div>
         <button type="button" className="secondary" onClick={onPhoto}>
           Start from a photo
         </button>

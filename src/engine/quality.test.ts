@@ -4,7 +4,7 @@
 import { describe, expect, it } from 'vitest';
 import { P, len, sub, taggedLength } from './geometry';
 import { Piece, bounds, cutLine } from './piece';
-import { draftBodice } from './bodice';
+import { BodiceDarts, BodiceLength, Neckline, draftBodice } from './bodice';
 import { DraftError, FIT_EASE, Length, Silhouette, draftSkirt, isCircle } from './skirt';
 import { randomBody, rng } from './randomBodies';
 
@@ -118,26 +118,48 @@ describe('skirt block across random bodies', () => {
 });
 
 describe('bodice block across random bodies', () => {
+  const necklines: Neckline[] = ['crew', 'scoop', 'v', 'square', 'boat'];
+  const lengths: BodiceLength[] = ['waist', 'high_hip', 'hip'];
+  const darts: BodiceDarts[] = ['bust_waist', 'bust', 'none'];
+
   it(`drafts a sound pattern for ${BODIES} bodies`, () => {
     const failures: string[] = [];
     for (let seed = 1; seed <= BODIES; seed++) {
       const body = randomBody(rng(seed));
       const fit = (['fitted', 'regular', 'relaxed'] as const)[seed % 3];
-      const tag = `seed ${seed} ${fit}`;
-      const d = draftBodice(body, { fit });
+      // The first third keep the plain block; the rest cycle through every style choice.
+      const style =
+        seed <= BODIES / 3
+          ? { fit }
+          : { fit, neckline: necklines[seed % 5], length: lengths[(seed >> 1) % 3], darts: fit === 'fitted' ? 'bust_waist' : darts[(seed >> 2) % 3] };
+      const tag = `seed ${seed} ${JSON.stringify(style)}`;
+      const d = draftBodice(body, style as Parameters<typeof draftBodice>[1]);
       const [front, back] = d.pieces;
 
       for (const pc of d.pieces) pieceProblems(pc).forEach((pr) => failures.push(`${tag} ${pc.name}: ${pr}`));
       if (Math.abs(d.sideSeam.frontLessDart - d.sideSeam.back) > 0.05) failures.push(`${tag}: side seams differ`);
       if (Math.abs(d.shoulder.back - d.shoulder.front - 1) > 0.05) failures.push(`${tag}: shoulder ease`);
+      if (d.shoulder.front < 4.9) failures.push(`${tag}: shoulder ${d.shoulder.front} cm`);
       if (d.warnings.length) failures.push(`${tag}: ${d.warnings.join('; ')}`);
       if (d.bustDart > 12) failures.push(`${tag}: bust dart ${d.bustDart} cm`);
       if (d.waistDarts.front > 8 || d.waistDarts.back > 6) failures.push(`${tag}: waist darts ${JSON.stringify(d.waistDarts)}`);
       const apex = front.lines[front.lines.length - 1].points()[0];
       if (!inside(apex, front.outline.points())) failures.push(`${tag}: bust point outside the front`);
-      // Waist seam with darts closed should be the finished waist.
-      const waist = 2 * (taggedLength(front.outline, 'waist') + taggedLength(back.outline, 'waist'));
-      if (Math.abs(waist - d.finishedWaist) > 1.5) failures.push(`${tag}: waist ${waist.toFixed(1)} vs ${d.finishedWaist}`);
+      if (d.zipCm > d.backLength) failures.push(`${tag}: ${d.zipCm} cm zip in a ${d.backLength} cm back`);
+      if (!style.length || style.length === 'waist') {
+        // Waist seam with darts closed should be the finished waist.
+        const waist = 2 * (taggedLength(front.outline, 'waist') + taggedLength(back.outline, 'waist'));
+        if (Math.abs(waist - d.finishedWaist) > 1.5) failures.push(`${tag}: waist ${waist.toFixed(1)} vs ${d.finishedWaist}`);
+      } else {
+        // Fish-eye darts must sit inside the piece, and the hem is the finished hip.
+        for (const pc of d.pieces)
+          for (const ln of pc.lines.filter((l) => l.segs.length === 4))
+            if (!ln.points().every((q) => inside(q, pc.outline.points()) || pc.outline.points().some((o) => len(sub(o, q)) < 0.6)))
+              failures.push(`${tag} ${pc.name}: fish-eye dart outside the piece`);
+        // Without a bust dart the front hem slopes down to the centre, so it runs longer than its width.
+        const hem = 2 * (taggedLength(front.outline, 'hem') + taggedLength(back.outline, 'hem'));
+        if (style.darts !== 'none' && Math.abs(hem - d.finishedHem!) > 1.5) failures.push(`${tag}: hem ${hem.toFixed(1)} vs ${d.finishedHem}`);
+      }
     }
     report(failures);
   });

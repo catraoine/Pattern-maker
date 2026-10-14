@@ -48,3 +48,33 @@ describe('bodice block', () => {
     expect(toSvg(sheet)).toContain('BODICE FRONT');
   });
 });
+
+describe('bodice styles', () => {
+  const hips = { full_hip: 100, waist_to_hip: 21 };
+  it('lowers and widens the neckline without changing the shoulder seam match', () => {
+    const crew = draftBodice(A);
+    for (const neckline of ['scoop', 'v', 'square', 'boat'] as const) {
+      const d = draftBodice(A, { neckline });
+      expect(d.neck, neckline).toBeGreaterThan(crew.neck);
+      expect(d.shoulder.back - d.shoulder.front).toBeCloseTo(1, 1);
+      expect(d.shoulder.front).toBeGreaterThanOrEqual(5);
+    }
+  });
+
+  it('extends to the hip with fish-eye darts and a hem cut to the hip', () => {
+    const d = draftBodice({ ...A, ...hips }, { fit: 'regular', length: 'hip' });
+    expect(d.finishedHem).toBeCloseTo(107, 0);
+    expect(d.backLength).toBeCloseTo(41 + 21, 0);
+    expect(d.pieces[0].lines.some((l) => l.segs.length === 4)).toBe(true);
+    expect(Math.abs(d.sideSeam.frontLessDart - d.sideSeam.back)).toBeLessThan(0.05);
+  });
+
+  it('needs hip measurements for hip lengths', () => {
+    expect(() => draftBodice(A, { length: 'high_hip' })).toThrow(/hip/);
+  });
+
+  it('drops darts on request', () => {
+    expect(draftBodice(A, { fit: 'relaxed', darts: 'bust' }).waistDarts).toEqual({ front: 0, back: 0 });
+    expect(draftBodice(A, { fit: 'relaxed', darts: 'none' }).bustDart).toBe(0);
+  });
+});

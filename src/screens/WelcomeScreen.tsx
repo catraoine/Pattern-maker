@@ -1,21 +1,25 @@
 import { useState } from 'react';
-import type { Unit } from '../measurements';
-import { SKIRT_FIELDS } from '../measurements';
+import type { Garment, Unit } from '../measurements';
+import { FIELDS } from '../measurements';
 import { ContourForm } from '../ui/ContourForm';
+import { GarmentSwitch } from '../ui/GarmentSwitch';
 
 interface Props {
   name: string;
   unit: Unit;
-  onFinish: (r: { name: string; unit: Unit; start: 'measure' | 'example' | 'photo' }) => void;
+  garment: Garment;
+  onFinish: (r: { name: string; unit: Unit; garment: Garment; start: 'measure' | 'example' | 'photo' }) => void;
 }
 
 const STEPS = 3;
 
-export function WelcomeScreen({ name: initialName, unit: initialUnit, onFinish }: Props) {
+export function WelcomeScreen({ name: initialName, unit: initialUnit, garment: initialGarment, onFinish }: Props) {
   const [step, setStep] = useState(0);
   const [name, setName] = useState(initialName);
   const [unit, setUnit] = useState<Unit>(initialUnit);
-  const finish = (start: 'measure' | 'example' | 'photo') => onFinish({ name: name.trim(), unit, start });
+  const [garment, setGarment] = useState<Garment>(initialGarment);
+  const finish = (start: 'measure' | 'example' | 'photo') => onFinish({ name: name.trim(), unit, garment, start });
+  const fields = FIELDS[garment].filter((f) => !f.optional);
 
   return (
     <div className="welcome">
@@ -38,12 +42,12 @@ export function WelcomeScreen({ name: initialName, unit: initialUnit, onFinish }
             </div>
             <p className="eyebrow">Measured, not sized</p>
             <h1 id="wtitle">Sewing patterns drafted to your body.</h1>
-            <p className="muted">No more grading between sizes or guessing at alterations. Pattern Maker draws a skirt pattern from your own measurements.</p>
+            <p className="muted">No more grading between sizes or guessing at alterations. Pattern Maker draws a skirt or bodice pattern from your own measurements.</p>
             <ol className="how">
               <li>
                 <span className="num">01</span>
                 <strong>Measure</strong>
-                <span className="muted">Five measurements, with a picture showing where the tape goes.</span>
+                <span className="muted">A few measurements, with a picture showing where the tape goes.</span>
               </li>
               <li>
                 <span className="num">02</span>
@@ -70,6 +74,11 @@ export function WelcomeScreen({ name: initialName, unit: initialUnit, onFinish }
               <input id="wname" autoComplete="given-name" value={name} placeholder="Optional" onChange={(e) => setName(e.target.value)} />
             </div>
             <fieldset className="group">
+              <legend>What would you like to make first?</legend>
+              <GarmentSwitch garment={garment} onGarment={setGarment} />
+              <p className="muted small">{garment === 'skirt' ? 'A skirt with a waistband and zip.' : 'A sleeveless bodice with darts and a back zip.'} You can make the other one any time.</p>
+            </fieldset>
+            <fieldset className="group">
               <legend>Which units does your tape measure use?</legend>
               <div className="seg" role="group" aria-label="Units">
                 {(['cm', 'in'] as Unit[]).map((u) => (
@@ -94,21 +103,23 @@ export function WelcomeScreen({ name: initialName, unit: initialUnit, onFinish }
         {step === 2 && (
           <>
             <h1 id="wtitle">{name.trim() ? `Ready when you are, ${name.trim()}` : 'Ready when you are'}</h1>
-            <p>Measuring takes about five minutes. You'll need:</p>
+            <p>Measuring takes about {garment === 'skirt' ? 'five' : 'fifteen'} minutes. You'll need:</p>
             <ul className="checklist">
               <li>A soft tape measure</li>
               <li>Close-fitting clothes, or just underwear</li>
               <li>A helper if you have one, as it makes the lengths easier</li>
             </ul>
-            <p className="muted small">We'll ask for {SKIRT_FIELDS.map((f) => f.label.toLowerCase()).join(', ')}.</p>
+            <p className="muted small">We'll ask for {fields.map((f) => f.label.toLowerCase()).join(', ')}.</p>
             <p className="muted small">Everything stays on this device. Nothing is sent anywhere.</p>
             <div className="stack">
               <button type="button" className="primary" onClick={() => finish('measure')}>
                 Start measuring
               </button>
-              <button type="button" className="secondary" onClick={() => finish('photo')}>
-                Have a skirt you love? Start from a photo
-              </button>
+              {garment === 'skirt' && (
+                <button type="button" className="secondary" onClick={() => finish('photo')}>
+                  Have a skirt you love? Start from a photo
+                </button>
+              )}
               <button type="button" className="secondary" onClick={() => finish('example')}>
                 Just looking? Try example measurements
               </button>
