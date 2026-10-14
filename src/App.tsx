@@ -16,6 +16,8 @@ export interface Choices {
   fit: Fit;
   silhouette: Silhouette;
   length: Length;
+  /** An era look the choices came from, kept while the shape and length still match it. */
+  look?: string;
 }
 
 interface Saved {
@@ -27,7 +29,7 @@ interface Saved {
 const INITIAL: Saved = {
   unit: 'cm',
   values: {},
-  choices: { fit: 'regular', silhouette: 'a_line', length: 'knee' },
+  choices: { fit: 'regular', silhouette: 'a_line', length: 'knee' } as Choices,
 };
 
 const STEPS: { id: Step; label: string }[] = [

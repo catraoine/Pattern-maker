@@ -3,9 +3,9 @@
 // targets, and darts that are trued and sit inside the piece.
 import { describe, expect, it } from 'vitest';
 import { P, len, sub, taggedLength } from './geometry';
-import { Piece, cutLine } from './piece';
+import { Piece, bounds, cutLine } from './piece';
 import { draftBodice } from './bodice';
-import { FIT_EASE, Length, Silhouette, draftSkirt } from './skirt';
+import { DraftError, FIT_EASE, Length, Silhouette, draftSkirt, isCircle } from './skirt';
 import { randomBody, rng } from './randomBodies';
 
 const BODIES = 2000;
@@ -63,7 +63,7 @@ function report(failures: string[]) {
 }
 
 describe('skirt block across random bodies', () => {
-  const silhouettes: Silhouette[] = ['straight', 'a_line', 'pencil'];
+  const silhouettes: Silhouette[] = ['straight', 'a_line', 'pencil', 'trumpet', 'half_circle', 'circle'];
   const lengths: Length[] = ['mini', 'above_knee', 'knee', 'midi', 'maxi'];
 
   it(`drafts a sound pattern for ${BODIES} bodies`, () => {
@@ -72,9 +72,17 @@ describe('skirt block across random bodies', () => {
       const r = rng(seed);
       const body = randomBody(r);
       const fit = (['fitted', 'regular', 'relaxed'] as const)[seed % 3];
-      const style = { fit, silhouette: silhouettes[seed % 3], length: lengths[seed % 5] };
+      const style = { fit, silhouette: silhouettes[seed % 6], length: lengths[(seed >> 1) % 5] };
       const tag = `seed ${seed} ${style.silhouette} ${style.length} ${fit}`;
-      const draft = draftSkirt(body, style);
+      let draft;
+      try {
+        draft = draftSkirt(body, style);
+      } catch (e) {
+        // A trumpet skirt needs room between the hip and hem to flare; very short ones are refused.
+        if (e instanceof DraftError && style.silhouette === 'trumpet' && style.length === 'mini') continue;
+        failures.push(`${tag}: ${(e as Error).message}`);
+        continue;
+      }
       const [front, back] = draft.pieces;
 
       for (const pc of draft.pieces) pieceProblems(pc).forEach((pr) => failures.push(`${tag} ${pc.name}: ${pr}`));
@@ -86,6 +94,23 @@ describe('skirt block across random bodies', () => {
       if (Math.abs(waist - target) > 1) failures.push(`${tag}: waist ${waist.toFixed(1)} vs ${target.toFixed(1)}`);
       for (const [pc, max] of [[front, 2.5], [back, 3.5]] as const) {
         for (const d of pc.meta.dartsCm as number[]) if (d > max + 0.01) failures.push(`${tag} ${pc.name}: ${d} cm dart`);
+      }
+      if (isCircle(style.silhouette)) {
+        // The waist arcs of all four pieces make the finished waist exactly, and pieces fit 140 cm fabric.
+        for (const pc of draft.pieces) {
+          const [x0, , x1] = bounds(pc);
+          if (x1 - x0 > 136) failures.push(`${tag} ${pc.name}: ${(x1 - x0).toFixed(0)} cm wide`);
+        }
+      } else if (style.silhouette !== 'pencil') {
+        // A flared hem must meet the side seam square, so front and back join without a point or dip.
+        const sideEnd = (pc: Piece) => {
+          const { pts, tags } = pc.outline.taggedPoints(48);
+          const i = tags.lastIndexOf('side');
+          const a = sub(pts[i + 1], pts[i]);
+          const b = sub(pts[i + 2], pts[i + 1]);
+          return Math.abs((a.x * b.x + a.y * b.y) / (len(a) * len(b)));
+        };
+        if (sideEnd(front) > 0.05 && style.silhouette !== 'straight') failures.push(`${tag}: hem not square to side seam`);
       }
     }
     report(failures);
