@@ -2,8 +2,13 @@ import { useState } from 'react';
 import { Check, FIELDS, Garment, MeasurementId, MeasurementValues, Unit } from '../measurements';
 import { TapeFigure } from '../ui/TapeFigure';
 import { GarmentSwitch } from '../ui/GarmentSwitch';
+import { PeopleSwitch } from '../ui/PeopleSwitch';
+import { ME, type Account, type Person } from '../account';
 
 interface Props {
+  account: Account & { people: Person[]; active: string };
+  onSwitchPerson: (id: string) => void;
+  onAddPerson: (name: string) => void;
   profile: string;
   garment: Garment;
   onGarment: (g: Garment) => void;
@@ -20,7 +25,7 @@ interface Props {
 const toDisplay = (cm: number | undefined, unit: Unit) =>
   cm === undefined ? '' : String(unit === 'cm' ? cm : Math.round((cm / 2.54) * 10) / 10);
 
-export function MeasureScreen({ profile, garment, onGarment, unit, values, checks, onUnit, onValues, onExample, canContinue, onNext }: Props) {
+export function MeasureScreen({ account, onSwitchPerson, onAddPerson, profile, garment, onGarment, unit, values, checks, onUnit, onValues, onExample, canContinue, onNext }: Props) {
   const fields = FIELDS[garment];
   const [focusId, setFocus] = useState<MeasurementId>(fields[0].id);
   // Raw text per field while typing, so "72." doesn't get rewritten mid-entry.
@@ -65,8 +70,8 @@ export function MeasureScreen({ profile, garment, onGarment, unit, values, check
       <section className="card grow" aria-labelledby="mtitle">
         <div className="row between wrap">
           <div>
-            <p className="muted small">Profile: {profile} · {garment === 'skirt' ? 'Skirt' : 'Bodice'} measurements</p>
-            <h1 id="mtitle">Your measurements</h1>
+            <p className="muted small">{garment === 'skirt' ? 'Skirt' : 'Bodice'} measurements</p>
+            <h1 id="mtitle">{account.active === ME ? 'Your measurements' : `${profile}'s measurements`}</h1>
           </div>
           <GarmentSwitch garment={garment} onGarment={onGarment} />
           <div className="seg" role="group" aria-label="Units">
@@ -77,6 +82,7 @@ export function MeasureScreen({ profile, garment, onGarment, unit, values, check
             ))}
           </div>
         </div>
+        <PeopleSwitch account={account} onSwitch={onSwitchPerson} onAdd={onAddPerson} />
 
         <div className="fields">
           {fields.map((f) => {

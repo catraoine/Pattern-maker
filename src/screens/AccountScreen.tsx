@@ -1,18 +1,21 @@
 import { useState } from 'react';
-import { Account, FREE_SAVED_LIMIT, SavedPattern, profileName } from '../account';
-import { BODICE_FIELDS, MeasurementValues, SKIRT_FIELDS, Unit } from '../measurements';
+import { Account, FREE_SAVED_LIMIT, ME, Person, SavedPattern, activePerson, personName } from '../account';
+import { PeopleSwitch } from '../ui/PeopleSwitch';
+import { BODICE_FIELDS, SKIRT_FIELDS, Unit } from '../measurements';
 import { describePattern } from './describe';
 
 // Skirt and bodice share a few measurements (waist, hip); list each once.
 const ALL_FIELDS = [...SKIRT_FIELDS, ...BODICE_FIELDS.filter((b) => !SKIRT_FIELDS.some((f) => f.id === b.id))];
 
 interface Props {
-  account: Account;
+  account: Account & { people: Person[]; active: string };
   unit: Unit;
-  values: MeasurementValues;
   onName: (name: string) => void;
   onUnit: (u: Unit) => void;
   onEditMeasurements: () => void;
+  onSwitchPerson: (id: string) => void;
+  onAddPerson: (name: string) => void;
+  onRemovePerson: (id: string) => void;
   onOpen: (p: SavedPattern) => void;
   onRename: (id: string, name: string) => void;
   onRemove: (id: string) => void;
@@ -26,10 +29,16 @@ const show = (cm: number | undefined, unit: Unit) =>
 
 const dateFmt = new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 
-export function AccountScreen({ account, unit, values, onName, onUnit, onEditMeasurements, onOpen, onRename, onRemove, onReset, onBackup, onRestore }: Props) {
+export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurements, onSwitchPerson, onAddPerson, onRemovePerson, onOpen, onRename, onRemove, onReset, onBackup, onRestore }: Props) {
   const [confirmReset, setConfirmReset] = useState(false);
   const [restoreMsg, setRestoreMsg] = useState('');
-  const display = profileName(account);
+  const display = account.name.trim() || 'Me';
+  const person = activePerson(account);
+  const { values } = person;
+  const whoFor = (p: SavedPattern) => {
+    const who = p.personId && p.personId !== ME ? account.people.find((x) => x.id === p.personId) : undefined;
+    return who ? personName(account, who) : undefined;
+  };
 
   return (
     <div className="split">
@@ -45,7 +54,7 @@ export function AccountScreen({ account, unit, values, onName, onUnit, onEditMea
         </div>
 
         <div className="field plain">
-          <label htmlFor="aname">Name</label>
+          <label htmlFor="aname">Your name</label>
           <input id="aname" autoComplete="given-name" value={account.name} placeholder="Me" onChange={(e) => onName(e.target.value)} />
         </div>
 
@@ -99,7 +108,7 @@ export function AccountScreen({ account, unit, values, onName, onUnit, onEditMea
         <div className="footer">
           {confirmReset ? (
             <div className="stack">
-              <p className="small">This deletes your name, measurements and saved patterns from this device. It can't be undone.</p>
+              <p className="small">This deletes your name, everyone's measurements and saved patterns from this device. It can't be undone.</p>
               <div className="row wrap">
                 <button type="button" className="primary" onClick={onReset}>
                   Delete everything
@@ -120,11 +129,19 @@ export function AccountScreen({ account, unit, values, onName, onUnit, onEditMea
       <div className="col grow">
         <section className="card" aria-labelledby="mtitle">
           <div className="row between wrap">
-            <h2 id="mtitle">My measurements</h2>
-            <button type="button" className="link" onClick={onEditMeasurements}>
-              Edit
-            </button>
+            <h2 id="mtitle">{person.id === ME ? 'My measurements' : `${personName(account, person)}'s measurements`}</h2>
+            <div className="row wrap">
+              <button type="button" className="link" onClick={onEditMeasurements}>
+                Edit
+              </button>
+              {person.id !== ME && (
+                <button type="button" className="link" onClick={() => onRemovePerson(person.id)}>
+                  Delete
+                </button>
+              )}
+            </div>
           </div>
+          <PeopleSwitch account={account} onSwitch={onSwitchPerson} onAdd={onAddPerson} />
           <dl className="mlist">
             {ALL_FIELDS.map((f) => (
               <div key={f.id}>
@@ -147,7 +164,7 @@ export function AccountScreen({ account, unit, values, onName, onUnit, onEditMea
           ) : (
             <ul className="saved">
               {account.patterns.map((p) => (
-                <PatternRow key={p.id} pattern={p} onOpen={() => onOpen(p)} onRename={(n) => onRename(p.id, n)} onRemove={() => onRemove(p.id)} />
+                <PatternRow key={p.id} pattern={p} whoFor={whoFor(p)} onOpen={() => onOpen(p)} onRename={(n) => onRename(p.id, n)} onRemove={() => onRemove(p.id)} />
               ))}
             </ul>
           )}
@@ -162,7 +179,7 @@ export function AccountScreen({ account, unit, values, onName, onUnit, onEditMea
   );
 }
 
-function PatternRow({ pattern, onOpen, onRename, onRemove }: { pattern: SavedPattern; onOpen: () => void; onRename: (n: string) => void; onRemove: () => void }) {
+function PatternRow({ pattern, whoFor, onOpen, onRename, onRemove }: { pattern: SavedPattern; whoFor?: string; onOpen: () => void; onRename: (n: string) => void; onRemove: () => void }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(pattern.name);
   const commit = () => {
@@ -188,6 +205,7 @@ function PatternRow({ pattern, onOpen, onRename, onRemove }: { pattern: SavedPat
           <strong>{pattern.name}</strong>
         )}
         <p className="muted small">
+          {whoFor ? `For ${whoFor} · ` : ''}
           {pattern.name.toLowerCase() === detail.toLowerCase() ? '' : `${detail[0].toUpperCase()}${detail.slice(1)} · `}
           {pattern.choices.fit[0].toUpperCase() + pattern.choices.fit.slice(1)} fit · saved {dateFmt.format(new Date(pattern.savedAt))}
         </p>

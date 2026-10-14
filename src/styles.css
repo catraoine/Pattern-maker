@@ -1175,3 +1175,25 @@ button.ghost:disabled {
     animation: none;
   }
 }
+
+/* Whose measurements: one button per person, scrolling sideways when there are many */
+.people {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}
+
+.people-seg {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.people-seg button {
+  white-space: nowrap;
+}
+
+.people-add {
+  gap: 8px;
+  flex-wrap: wrap;
+}

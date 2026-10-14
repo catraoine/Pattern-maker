@@ -4,20 +4,18 @@ import { FIELDS } from '../measurements';
 import { ContourForm } from '../ui/ContourForm';
 
 interface Props {
-  name: string;
   unit: Unit;
   garment: Garment;
-  onFinish: (r: { name: string; unit: Unit; garment: Garment; start: 'measure' | 'example' | 'photo' }) => void;
+  onFinish: (r: { unit: Unit; start: 'measure' | 'example' | 'photo' }) => void;
 }
 
-const STEPS = 3;
+const STEPS = 2;
 
-export function WelcomeScreen({ name: initialName, unit: initialUnit, garment: initialGarment, onFinish }: Props) {
+// The name is asked later, once there are measurements to put it on (see WhoseScreen).
+export function WelcomeScreen({ unit: initialUnit, garment, onFinish }: Props) {
   const [step, setStep] = useState(0);
-  const [name, setName] = useState(initialName);
   const [unit, setUnit] = useState<Unit>(initialUnit);
-  const garment = initialGarment;
-  const finish = (start: 'measure' | 'example' | 'photo') => onFinish({ name: name.trim(), unit, garment, start });
+  const finish = (start: 'measure' | 'example' | 'photo') => onFinish({ unit, start });
   const fields = FIELDS[garment].filter((f) => !f.optional);
 
   return (
@@ -58,11 +56,14 @@ export function WelcomeScreen({ name: initialName, unit: initialUnit, garment: i
 
         {step === 1 && (
           <>
-            <h1 id="wtitle">A little about you</h1>
-            <div className="field plain">
-              <label htmlFor="wname">What should we call you?</label>
-              <input id="wname" autoComplete="given-name" value={name} placeholder="Optional" onChange={(e) => setName(e.target.value)} />
-            </div>
+            <h1 id="wtitle">Ready when you are</h1>
+            <p>Measuring takes about {garment === 'skirt' ? 'five' : 'fifteen'} minutes. You'll need:</p>
+            <ul className="checklist">
+              <li>A soft tape measure</li>
+              <li>Close-fitting clothes, or just underwear</li>
+              <li>A helper if you have one, as it makes the lengths easier</li>
+            </ul>
+            <p className="muted small">We'll ask for {fields.map((f) => f.label.toLowerCase()).join(', ')}.</p>
             <fieldset className="group">
               <legend>Which units does your tape measure use?</legend>
               <div className="seg" role="group" aria-label="Units">
@@ -72,29 +73,7 @@ export function WelcomeScreen({ name: initialName, unit: initialUnit, garment: i
                   </button>
                 ))}
               </div>
-              <p className="muted small">You can switch at any time.</p>
             </fieldset>
-            <div className="row between wrap footer">
-              <button type="button" className="link" onClick={() => setStep(0)}>
-                Back
-              </button>
-              <button type="button" className="primary" onClick={() => setStep(2)}>
-                Next
-              </button>
-            </div>
-          </>
-        )}
-
-        {step === 2 && (
-          <>
-            <h1 id="wtitle">{name.trim() ? `Ready when you are, ${name.trim()}` : 'Ready when you are'}</h1>
-            <p>Measuring takes about {garment === 'skirt' ? 'five' : 'fifteen'} minutes. You'll need:</p>
-            <ul className="checklist">
-              <li>A soft tape measure</li>
-              <li>Close-fitting clothes, or just underwear</li>
-              <li>A helper if you have one, as it makes the lengths easier</li>
-            </ul>
-            <p className="muted small">We'll ask for {fields.map((f) => f.label.toLowerCase()).join(', ')}.</p>
             <p className="muted small">Everything stays on this device. Nothing is sent anywhere.</p>
             <div className="stack">
               <button type="button" className="primary" onClick={() => finish('measure')}>
@@ -108,7 +87,7 @@ export function WelcomeScreen({ name: initialName, unit: initialUnit, garment: i
               <button type="button" className="secondary" onClick={() => finish('example')}>
                 Just looking? Try example measurements
               </button>
-              <button type="button" className="link" onClick={() => setStep(1)}>
+              <button type="button" className="link" onClick={() => setStep(0)}>
                 Back
               </button>
             </div>
