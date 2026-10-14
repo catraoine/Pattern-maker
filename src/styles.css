@@ -1,10 +1,14 @@
-/* Contour Line: true black, fine white lines, small tracked labels in Chakra Petch, Space Grotesk for reading. */
+/* Contour Line in champagne (Cat's G4 pick): true black, fine champagne lines, warm ivory text, small tracked labels in Chakra Petch, Space Grotesk for reading. */
 :root {
-  --ink: #ffffff;
-  --muted: #8c8c8c;
-  --line: #262626;
-  --line-strong: #444444;
-  --fill: #111111;
+  --ink: #efe4cc;
+  --gild: #d9c49b; /* champagne: drawings, the name, the main button */
+  --gild-glow: #f3e6c8;
+  --muted: #9a8e78;
+  --line: #2e2a22;
+  --line-strong: #4a4338;
+  --fill: #14110c;
+  --focus: #9a8e78;
+  --disabled: #5c5446;
   --paper: #000000;
   --white: #000000; /* the "card" ground; text on --ink fills uses it too */
   --mono: 'Chakra Petch', ui-monospace, Menlo, monospace;
@@ -115,6 +119,7 @@ p {
 }
 
 .brand {
+  color: var(--gild);
   display: flex;
   align-items: center;
   gap: 10px;
@@ -287,7 +292,7 @@ p {
 }
 
 .field input:focus {
-  outline: 3px solid #888;
+  outline: 3px solid var(--focus);
   outline-offset: 1px;
 }
 
@@ -304,7 +309,7 @@ p {
   font-size: 14px;
   color: var(--ink);
   padding-left: 10px;
-  border-left: 3px solid #888;
+  border-left: 3px solid var(--focus);
 }
 
 .msg.error {
@@ -330,7 +335,8 @@ button.secondary {
 
 button.primary {
   background: transparent;
-  color: var(--ink);
+  color: var(--gild);
+  border-color: var(--gild);
 }
 
 button.secondary {
@@ -339,7 +345,12 @@ button.secondary {
   border-color: var(--line-strong);
 }
 
-button.primary:hover,
+button.primary:hover {
+  background: var(--gild);
+  color: var(--paper);
+  border-color: var(--gild);
+}
+
 button.secondary:hover {
   background: var(--ink);
   color: var(--paper);
@@ -349,7 +360,7 @@ button.secondary:hover {
 button.primary:disabled,
 button.primary:disabled:hover {
   background: transparent;
-  color: #555;
+  color: var(--disabled);
   border-color: var(--line);
   cursor: not-allowed;
 }
@@ -905,7 +916,7 @@ button.link.inline-link {
 }
 
 .filebtn:focus-within {
-  outline: 3px solid #888;
+  outline: 3px solid var(--focus);
   outline-offset: 2px;
 }
 
@@ -980,7 +991,7 @@ button.ghost.on {
   box-shadow: inset 0 0 0 var(--bw-on) var(--ink);
 }
 button.ghost:disabled {
-  color: #555;
+  color: var(--disabled);
   border-color: var(--line);
   cursor: default;
 }
@@ -1043,7 +1054,7 @@ button.ghost:disabled {
 }
 .shape .stroke {
   stroke: var(--ink);
-  filter: drop-shadow(0 0 0.6px rgba(255, 255, 255, 0.9));
+  filter: drop-shadow(0 0 0.6px rgba(243, 230, 200, 0.9));
 }
 
 .preview.flush {

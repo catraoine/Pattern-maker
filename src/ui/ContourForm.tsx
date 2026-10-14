@@ -4,6 +4,9 @@ import { useEffect, useRef } from 'react';
 // It draws on once, a band of light sweeps across it, and a tape settles at the waist.
 
 const DURATION = 2900;
+// Champagne lines (Cat's G4 pick), matching --gild and --gild-glow in styles.css.
+const CHAMPAGNE = '#d9c49b';
+const CHAMPAGNE_GLOW = '#f3e6c8';
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const seg = (t: number, a: number, b: number) => clamp((t - a) / (b - a), 0, 1);
@@ -57,7 +60,7 @@ function draw(g: CanvasRenderingContext2D, w: number, h: number, t: number) {
   g.globalAlpha = 1;
   g.fillStyle = '#000';
   g.fillRect(0, 0, w, h);
-  g.strokeStyle = '#fff';
+  g.strokeStyle = CHAMPAGNE;
   g.lineCap = 'round';
   g.lineJoin = 'round';
 
@@ -98,7 +101,8 @@ function draw(g: CanvasRenderingContext2D, w: number, h: number, t: number) {
   if (n > 0) {
     g.save();
     g.globalAlpha = 1;
-    g.shadowColor = 'rgba(255,255,255,.9)';
+    g.shadowColor = 'rgba(243,230,200,.9)';
+    g.strokeStyle = CHAMPAGNE_GLOW;
     g.shadowBlur = 10;
     for (let i = 1; i <= n; i++) {
       g.lineWidth = lw * 2.5 * Math.sin((Math.PI * i) / 80) ** 0.8 + 0.3;
@@ -110,7 +114,7 @@ function draw(g: CanvasRenderingContext2D, w: number, h: number, t: number) {
   // Label: the measurement's name and units, never a number
   g.save();
   g.globalAlpha = out(seg(t, 2350, 2800));
-  g.fillStyle = '#fff';
+  g.fillStyle = CHAMPAGNE;
   g.font = "500 9px 'Chakra Petch', sans-serif";
   try {
     (g as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = '2px';

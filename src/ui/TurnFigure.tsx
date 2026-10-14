@@ -104,7 +104,7 @@ function draw(g: CanvasRenderingContext2D, w: number, h: number, md: Model, thet
   g.globalAlpha = 1;
   g.fillStyle = '#000';
   g.fillRect(0, 0, w, h);
-  g.strokeStyle = '#fff';
+  g.strokeStyle = '#d9c49b'; // champagne, matching --gild
   g.lineCap = 'round';
   g.lineJoin = 'round';
 
