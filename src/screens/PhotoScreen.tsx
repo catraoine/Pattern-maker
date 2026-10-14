@@ -3,6 +3,7 @@ import type { Choices } from '../App';
 import { photoToJpeg } from '../photo/image';
 import type { Confidence, PhotoError, PhotoReading, PhotoResponse } from '../photo/types';
 import { GROUPS } from './StyleScreen';
+import { shapeLine, shapeOf } from '../photo/shape';
 
 interface Props {
   measured: boolean;
@@ -67,7 +68,8 @@ export function PhotoScreen({ measured, onApply, onCancel }: Props) {
         setError("We couldn't find any clothing in that photo. Try one with the whole skirt in view.");
       } else {
         setReading(data.reading);
-        setChoices({ fit: data.reading.fit.value, silhouette: data.reading.silhouette.value, length: data.reading.length.value });
+        const r = data.reading;
+        setChoices({ fit: r.fit.value, silhouette: r.silhouette.value, length: r.length.value, shape: shapeOf(r) });
       }
     } catch {
       setError(ERRORS.network);
@@ -137,7 +139,7 @@ export function PhotoScreen({ measured, onApply, onCancel }: Props) {
                         type="button"
                         className={choices[g.id] === id ? 'chip on' : 'chip'}
                         aria-pressed={choices[g.id] === id}
-                        onClick={() => setChoices({ ...choices, [g.id]: id })}
+                        onClick={() => setChoices({ ...choices, [g.id]: id, ...(g.id === 'fit' ? {} : { shape: undefined }) })}
                       >
                         {label}
                       </button>
@@ -147,7 +149,13 @@ export function PhotoScreen({ measured, onApply, onCancel }: Props) {
               );
             })}
             {reading.details && <p className="small">{reading.details}</p>}
-            <p className="muted small">Inspired by your photo, not an exact copy. Change anything that doesn't look right.</p>
+            {choices.shape ? (
+              <p className="small">
+                {shapeLine(choices.shape)} Your pattern copies these proportions, scaled to your measurements. Tap a shape or length to use a standard one instead.
+              </p>
+            ) : (
+              <p className="muted small">Change anything that doesn't look right.</p>
+            )}
             <button type="button" className="primary" onClick={() => onApply(choices)}>
               {measured ? 'Draft my skirt' : 'Next: add my measurements'}
             </button>
