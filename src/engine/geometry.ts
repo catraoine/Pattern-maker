@@ -92,7 +92,8 @@ export function taggedLength(path: Path, tag: string): number {
   return total;
 }
 
-function intersect(a: P, u: P, b: P, v: P): P | null {
+/** Where the line through a along u meets the line through b along v. */
+export function intersect(a: P, u: P, b: P, v: P): P | null {
   const den = u.x * v.y - u.y * v.x;
   if (Math.abs(den) < 1e-9) return null;
   const t = ((b.x - a.x) * v.y - (b.y - a.y) * v.x) / den;

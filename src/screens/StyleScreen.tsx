@@ -329,7 +329,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
             ))}
             {draft && (
               <li>
-                Waistband: a {draft.waistband.cutLength} × {draft.waistband.cutWidth} cm strip, marked straight on the fabric
+                Waistband: cut 1, {draft.waistband.cutLength} × {draft.waistband.cutWidth} cm
               </li>
             )}
           </ul>

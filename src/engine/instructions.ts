@@ -3,6 +3,7 @@
 import { isCircle } from './skirt';
 import type { Length, Silhouette, SkirtDraft } from './skirt';
 import type { BodiceDraft, BodiceLength } from './bodice';
+import { SEAM_WIDTHS, SeamWidths } from './allowances';
 
 // Widest strip that fits across 140 cm fabric, leaving room for the selvedges.
 export const BAND_ACROSS_MAX = 135;
@@ -18,10 +19,31 @@ export interface SewingGuide {
 }
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+const n1 = (v: number) => `${v} cm`;
 
-export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; length: Length }, fabricM: number): SewingGuide {
+/** How the garment is finished, chosen on the print screen. */
+export interface SkirtFinish {
+  seams?: SeamWidths;
+  /** Lining fabric needed, in metres, when the skirt is lined. */
+  liningM?: number;
+  /** Hem allowance on a straight or A-line skirt, when it isn't the usual 4 cm. */
+  hem?: number;
+}
+
+export type BodiceEdges = 'binding' | 'facings' | 'lined';
+
+export interface BodiceFinish {
+  seams?: SeamWidths;
+  edges?: BodiceEdges;
+  liningM?: number;
+}
+
+export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; length: Length }, fabricM: number, finish: SkirtFinish = {}): SewingGuide {
   const { front, back } = draft.dartsPerSide;
-  const band = draft.waistband;
+  const sw = finish.seams ?? SEAM_WIDTHS.home;
+  const seam = n1(sw.seam);
+  const waist = n1(sw.waist);
+  const lined = finish.liningM !== undefined;
   const dartCount = 2 * front + 2 * back;
   // A shape matched from a photo can come out as part of a circle whatever its silhouette chip says.
   const circle = isCircle(style.silhouette) || !!draft.circleShare;
@@ -44,11 +66,19 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
     },
     {
       title: 'Cut the waistband',
-      text: `The waistband is a plain strip, so it isn't printed. On a single layer of fabric, mark a strip ${band.cutLength} cm long and ${band.cutWidth} cm wide, ${band.cutLength <= BAND_ACROSS_MAX ? 'running across the width of the fabric' : 'running along the length of the fabric'}, and cut it out. Snip a small notch at the middle of both long edges (centre front) and ${band.sideMark} cm in from each end (the side seams). Snip a notch at each end of the line halfway across the width: this is the fold line.`,
+      text: 'Cut the waistband from its pattern piece with the grain arrow along the selvedge, so it won\'t stretch. Snip the notches for the centre front and the side seams on both long edges, and at each end of the fold line.',
     },
+    ...(lined
+      ? [
+          {
+            title: 'Cut the lining',
+            text: 'Cut the lining front and back from the lining fabric the same way as the skirt. The lining pieces are 2.5 cm shorter, so the lining never shows below the hem.',
+          },
+        ]
+      : []),
     {
       title: 'Interface the waistband',
-      text: 'Fuse lightweight interfacing to the wrong side of the waistband, on one half of its width (from one long edge to the fold line). This half will be the outside.',
+      text: 'Fuse lightweight interfacing to the wrong side of the waistband, on the half marked HOOK and EYE (from the edge that joins the skirt to the fold line). This half will be the outside.',
     },
     {
       title: 'Neaten the edges',
@@ -66,29 +96,41 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
       ? [
           {
             title: 'Sew the centre front',
-            text: 'Pin the two front pieces right sides together along the straight centre edge. Sew 1.5 cm from the edge and press the seam open.',
+            text: `Pin the two front pieces right sides together along the straight centre edge. Sew ${seam} from the edge and press the seam open.`,
           },
         ]
       : []),
     {
       title: 'Put in the zip',
-      text: `Sew a ${draft.zipCm} cm invisible zip into the centre back edges, with the top of the teeth 1.5 cm below the waist edge, stopping at the ZIP ENDS notch.`,
+      text: `Sew a ${draft.zipCm} cm invisible zip into the centre back edges, with the top of the teeth ${waist} below the waist edge, stopping at the ZIP ENDS notch.`,
     },
     {
       title: 'Close the centre back',
-      text: `Sew the rest of the centre back seam, from the bottom of the zip to the hem, 1.5 cm from the edge.${slit ? ' Leave the bottom 15 cm open as a walking slit.' : ''} Press the seam open.`,
+      text: `Sew the rest of the centre back seam, from the bottom of the zip to the hem, ${seam} from the edge.${slit ? ' Leave the bottom 15 cm open as a walking slit.' : ''} Press the seam open.`,
     },
     {
       title: 'Sew the side seams',
-      text: 'Pin the front to the back at the sides, right sides together, matching the hip notches. Sew 1.5 cm from the edge and press the seams open. Try the skirt on now: this is the easiest moment to take it in or let it out at the sides.',
+      text: `Pin the front to the back at the sides, right sides together, matching the hip notches. Sew ${seam} from the edge and press the seams open. Try the skirt on now: this is the easiest moment to take it in or let it out at the sides.`,
     },
+    ...(lined
+      ? [
+          {
+            title: 'Make the lining',
+            text: `Sew the lining darts as tucks: stitch each one only 3 cm down from the waist, so the lining has room to move. Sew the lining side seams, and the centre back seam from the ZIP ENDS notch down, ${seam} from the edge. Press up 1 cm at the hem, then 1 cm more, and stitch.`,
+          },
+          {
+            title: 'Put the lining in',
+            text: `Slip the lining inside the skirt, wrong sides together, matching the side seams. Turn the lining's centre back edges under beside the zip and slip-stitch them to the zip tape, clear of the teeth. Tack the waist edges together ${n1(Math.max(0.5, sw.waist - 0.5))} from the edge, and treat them as one from here on.`,
+          },
+        ]
+      : []),
     {
       title: 'Attach the waistband',
-      text: 'Pin the interfaced long edge of the waistband to the skirt waist, right sides together. Match the centre front notch to the centre front, the side notches to the side seams, and let each end extend 1.5 cm past the zip. Sew 1.5 cm from the edge and press the seam up into the band.',
+      text: `Pin the interfaced long edge of the waistband to the skirt waist, right sides together. Match the centre front notch to the centre front, the side notches to the side seams, and let each end extend ${seam} past the zip. Sew ${waist} from the edge and press the seam up into the band.`,
     },
     {
       title: 'Finish the waistband',
-      text: 'Fold the band along its fold line, right sides together, and sew across each end 1.5 cm in. Trim the corners and turn it right side out. Press under 1.5 cm on the loose edge, then hand-stitch it over the seam inside, or stitch in the ditch from the outside.',
+      text: `Fold the band along its fold line, right sides together, and sew across each end ${seam} in. Trim the corners and turn it right side out. Press under ${seam} on the loose edge, then hand-stitch it over the seam inside, or stitch in the ditch from the outside.`,
     },
     {
       title: 'Hem',
@@ -97,18 +139,19 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
         : style.silhouette === 'trumpet'
           ? 'The hem is curved and full, so keep it narrow. Press up 0.5 cm, then 1.5 cm more, easing in the fullness with steam, and stitch by hand or machine.'
           : style.silhouette === 'a_line'
-            ? 'Press up 1 cm, then 3 cm more. The hem is curved, so ease in the extra fullness with steam as you press. Stitch by hand or machine.'
-            : `Press up 1 cm, then 3 cm more, and stitch by hand or machine.${slit ? ' Turn the slit edges under and stitch them down.' : ''}`,
+            ? `Press up 1 cm, then ${(finish.hem ?? 4) - 1} cm more. The hem is curved, so ease in the extra fullness with steam as you press. Stitch by hand or machine.`
+            : `Press up 1 cm, then ${(finish.hem ?? 4) - 1} cm more, and stitch by hand or machine.${slit ? ' Turn the slit edges under and stitch them down.' : ''}`,
     },
     {
       title: 'Finish',
-      text: 'Sew a hook and eye to the waistband ends above the zip. Give the skirt a final press.',
+      text: 'Sew the hook and eye to the waistband ends at the HOOK and EYE marks. Give the skirt a final press.',
     },
   ];
 
   return {
     notions: [
       `${fabricM.toFixed(1)} m of woven fabric, 140 cm wide`,
+      ...(lined ? [`${finish.liningM!.toFixed(1)} m of lining, 140 cm wide`] : []),
       `${draft.zipCm} cm invisible zip`,
       'Hook and eye',
       '0.3 m lightweight fusible interfacing',
@@ -118,9 +161,13 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
   };
 }
 
-/** Sewing steps for the sleeveless bodice: centre back zip, bias-bound neck and armholes. */
-export function bodiceGuide(draft: BodiceDraft, style: { length: BodiceLength }, fabricM: number, bindingM: number): SewingGuide {
+/** Sewing steps for the sleeveless bodice: centre back zip, and the neck and armholes bias-bound, faced or lined. */
+export function bodiceGuide(draft: BodiceDraft, style: { length: BodiceLength }, fabricM: number, bindingM: number, finish: BodiceFinish = {}): SewingGuide {
   const below = style.length !== 'waist';
+  const sw = finish.seams ?? SEAM_WIDTHS.home;
+  const seam = n1(sw.seam);
+  const curve = n1(sw.curve);
+  const edges = finish.edges ?? 'binding';
   const bust = draft.bustDart > 0.3;
   const waist = draft.waistDarts.front > 0.3 || draft.waistDarts.back > 0.3;
   const dartWords = bust && waist ? 'bust and waist darts' : bust ? 'bust darts' : 'waist darts';
@@ -132,8 +179,18 @@ export function bodiceGuide(draft: BodiceDraft, style: { length: BodiceLength },
     },
     {
       title: 'Cut out',
-      text: `Fold the fabric in half with the selvedges together. Place the bodice front on the fold, and the bodice back on both layers so you get a pair. Keep each grain arrow parallel to the selvedge. Cut along the solid outer line, snip the small notches${bust || waist ? ', and chalk-mark the dart lines and the bust point' : ''}.`,
+      text: `Fold the fabric in half with the selvedges together. Place the bodice front on the fold, and the bodice back on both layers so you get a pair. Keep each grain arrow parallel to the selvedge. Cut along the solid outer line, snip the small notches${bust || waist ? ', and chalk-mark the dart lines and the bust point' : ''}.${
+        edges === 'lined' ? ' Cut the front and back again from the lining the same way.' : edges === 'facings' ? ' Cut the four facing pieces from the fabric, and again from fusible interfacing.' : ''
+      }`,
     },
+    ...(edges === 'facings'
+      ? [
+          {
+            title: 'Interface the facings',
+            text: 'Fuse the interfacing to the wrong side of each facing. Join the front and back neck facings at the shoulders, and the armhole facings at the shoulders and the sides, ' + seam + ' from the edge. Press the seams open and overlock or zigzag the outer edges marked NEATEN THIS EDGE.',
+          },
+        ]
+      : []),
     {
       title: 'Neaten the edges',
       text: 'Zigzag or overlock the shoulder, side and centre back edges, so they will not fray inside.',
@@ -158,28 +215,60 @@ export function bodiceGuide(draft: BodiceDraft, style: { length: BodiceLength },
       : []),
     {
       title: 'Put in the zip',
-      text: `Sew a ${draft.zipCm} cm invisible zip into the centre back edges, with the top of the teeth 1 cm below the neck edge, stopping at the ZIP ENDS notch.`,
+      text: `Sew a ${draft.zipCm} cm invisible zip into the centre back edges, with the top of the teeth ${curve} below the neck edge, stopping at the ZIP ENDS notch.`,
     },
     {
       title: 'Close the centre back',
-      text: `${below ? 'Sew the rest of the centre back seam, from the bottom of the zip to the hem, 1.5 cm from the edge, and press it open.' : 'Sew the last few centimetres of the centre back seam below the zip, 1.5 cm from the edge, and press it open.'}`,
+      text: `${below ? 'Sew the rest of the centre back seam, from the bottom of the zip to the hem, ' + seam + ' from the edge, and press it open.' : 'Sew the last few centimetres of the centre back seam below the zip, ' + seam + ' from the edge, and press it open.'}`,
     },
-    {
-      title: 'Sew the shoulders',
-      text: 'Pin the front to the back at the shoulders, right sides together. The back shoulder is 1 cm longer: ease it in so it fits without pleats. Sew 1.5 cm from the edge and press the seams open.',
-    },
+    ...(edges === 'lined'
+      ? []
+      : [
+        {
+          title: 'Sew the shoulders',
+          text: `Pin the front to the back at the shoulders, right sides together. The back shoulder is 1 cm longer: ease it in so it fits without pleats. Sew ${seam} from the edge and press the seams open.`,
+        },
+        ]),
     {
       title: 'Sew the side seams',
-      text: 'Pin the front to the back at the sides, right sides together. Sew 1.5 cm from the edge and press the seams open. Try the bodice on now: this is the easiest moment to take it in or let it out at the sides.',
+      text: `Pin the front to the back at the sides, right sides together. Sew ${seam} from the edge and press the seams open. Try the bodice on now: this is the easiest moment to take it in or let it out at the sides.`,
     },
-    {
-      title: 'Bind the neckline',
-      text: 'Open out one fold of the bias binding and pin it to the neckline, right sides together, with the crease 1 cm from the edge and 1 cm extra at each end. Sew along the crease, trim the seam to 0.5 cm and clip the curves. Fold the ends in, then turn the binding to the inside, press it flat, and stitch it down close to its folded edge.',
-    },
-    {
-      title: 'Bind the armholes',
-      text: 'Bind each armhole the same way, starting and ending at the side seam with the ends overlapped by 1 cm.',
-    },
+    ...(edges === 'binding'
+      ? [
+          {
+            title: 'Bind the neckline',
+            text: `Open out one fold of the bias binding and pin it to the neckline, right sides together, with the crease ${curve} from the edge and 1 cm extra at each end. Sew along the crease, trim the seam to 0.5 cm and clip the curves. Fold the ends in, then turn the binding to the inside, press it flat, and stitch it down close to its folded edge.`,
+          },
+          {
+            title: 'Bind the armholes',
+            text: 'Bind each armhole the same way, starting and ending at the side seam with the ends overlapped by 1 cm.',
+          },
+        ]
+      : edges === 'facings'
+        ? [
+            {
+              title: 'Face the neckline',
+              text: `Pin the neck facing to the neckline, right sides together, matching the shoulder seams, with its centre back ends folded back over the zip tape. Sew ${curve} from the edge, trim the seam to 0.5 cm and clip the curves. Understitch the facing to the seam allowance close to the seam, so it rolls to the inside, then press it in and hand-tack it to the shoulder seams.`,
+            },
+            {
+              title: 'Face the armholes',
+              text: `Pin each armhole facing into its armhole, right sides together, matching the shoulder and side seams and the notches. Sew ${curve} from the edge, trim, clip, understitch and press to the inside the same way. Tack the facing to the shoulder and side seams.`,
+            },
+          ]
+        : [
+            {
+              title: 'Make the lining',
+              text: `Sew the lining's darts and side seams the same way as the bodice, and its centre back seam below the ZIP ENDS notch, ${seam} from the edge. Leave the shoulders of both open for now. Press the lining darts the opposite way to the bodice's, so they don't stack.`,
+            },
+            {
+              title: 'Line the neck and armholes',
+              text: `Pin the lining to the bodice, right sides together. Sew the neckline ${curve} from the edge, from one centre back seam line to the other, then sew each armhole from shoulder to shoulder. Trim to 0.5 cm, clip the curves, understitch as far as you can reach, and turn right side out by pulling the back through the shoulders. Sew the outer shoulders right sides together, easing in the extra 1 cm of the back, press them open, then turn the lining shoulders under and slip-stitch them closed over the seam. Press so the lining rolls just inside.`,
+            },
+            {
+              title: 'Finish the lining at the zip',
+              text: 'Turn the lining centre back edges under and slip-stitch them to the zip tape, clear of the teeth.',
+            },
+          ]),
     {
       title: 'Hem',
       text: below
@@ -196,7 +285,9 @@ export function bodiceGuide(draft: BodiceDraft, style: { length: BodiceLength },
     notions: [
       `${fabricM.toFixed(1)} m of woven fabric, 140 cm wide`,
       `${draft.zipCm} cm invisible zip`,
-      `${bindingM.toFixed(1)} m of 2 cm wide bias binding`,
+      ...(edges === 'binding' ? [`${bindingM.toFixed(1)} m of 2 cm wide bias binding`] : []),
+      ...(edges === 'facings' ? ['0.5 m lightweight fusible interfacing'] : []),
+      ...(edges === 'lined' ? [`${(finish.liningM ?? fabricM).toFixed(1)} m of lining, 140 cm wide`] : []),
       'Hook and eye',
       'Matching thread',
     ],
