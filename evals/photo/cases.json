@@ -1,0 +1,185 @@
+{
+  "note": "Truth values are starting guesses for the style each slot asks for. Correct them by eye once the photo is chosen, then set truthChecked to true.",
+  "cases": [
+    {
+      "id": "01-pencil",
+      "wanted": "Pencil skirt, worn, knee length, front view",
+      "photo": "",
+      "source": "",
+      "license": "",
+      "author": "",
+      "truth": {
+        "garment": "skirt",
+        "silhouette": "pencil",
+        "length": "knee",
+        "fit": "fitted",
+        "hemAt": 0.56,
+        "hemFullness": 0.9,
+        "hasDetails": false
+      },
+      "truthChecked": false
+    },
+    {
+      "id": "02-straight",
+      "wanted": "Straight skirt, worn, above the knee",
+      "photo": "",
+      "source": "",
+      "license": "",
+      "author": "",
+      "truth": {
+        "garment": "skirt",
+        "silhouette": "straight",
+        "length": "above_knee",
+        "fit": "regular",
+        "hemAt": 0.5,
+        "hemFullness": 1.0,
+        "hasDetails": false
+      },
+      "truthChecked": false
+    },
+    {
+      "id": "03-a-line-mini",
+      "wanted": "A-line mini, worn",
+      "photo": "",
+      "source": "",
+      "license": "",
+      "author": "",
+      "truth": {
+        "garment": "skirt",
+        "silhouette": "a_line",
+        "length": "mini",
+        "fit": "regular",
+        "hemAt": 0.38,
+        "hemFullness": 1.4,
+        "hasDetails": false
+      },
+      "truthChecked": false
+    },
+    {
+      "id": "04-a-line-midi",
+      "wanted": "A-line midi, worn",
+      "photo": "",
+      "source": "",
+      "license": "",
+      "author": "",
+      "truth": {
+        "garment": "skirt",
+        "silhouette": "a_line",
+        "length": "midi",
+        "fit": "regular",
+        "hemAt": 0.76,
+        "hemFullness": 1.7,
+        "hasDetails": false
+      },
+      "truthChecked": false
+    },
+    {
+      "id": "05-trumpet",
+      "wanted": "Trumpet or mermaid skirt, worn, long",
+      "photo": "",
+      "source": "",
+      "license": "",
+      "author": "",
+      "truth": {
+        "garment": "skirt",
+        "silhouette": "trumpet",
+        "length": "maxi",
+        "fit": "fitted",
+        "hemAt": 0.93,
+        "hemFullness": 2.0,
+        "hasDetails": false
+      },
+      "truthChecked": false
+    },
+    {
+      "id": "06-half-circle",
+      "wanted": "Skater or half circle skirt, worn",
+      "photo": "",
+      "source": "",
+      "license": "",
+      "author": "",
+      "truth": {
+        "garment": "skirt",
+        "silhouette": "half_circle",
+        "length": "above_knee",
+        "fit": "regular",
+        "hemAt": 0.48,
+        "hemFullness": 3.0,
+        "hasDetails": false
+      },
+      "truthChecked": false
+    },
+    {
+      "id": "07-full-circle",
+      "wanted": "1950s full circle skirt, worn",
+      "photo": "",
+      "source": "",
+      "license": "",
+      "author": "",
+      "truth": {
+        "garment": "skirt",
+        "silhouette": "circle",
+        "length": "midi",
+        "fit": "regular",
+        "hemAt": 0.7,
+        "hemFullness": 5.0,
+        "hasDetails": false
+      },
+      "truthChecked": false
+    },
+    {
+      "id": "08-pleated",
+      "wanted": "Pleated midi (tests the details sentence)",
+      "photo": "",
+      "source": "",
+      "license": "",
+      "author": "",
+      "truth": {
+        "garment": "skirt",
+        "silhouette": "a_line",
+        "length": "midi",
+        "fit": "regular",
+        "hemAt": 0.76,
+        "hemFullness": 2.0,
+        "hasDetails": true
+      },
+      "truthChecked": false
+    },
+    {
+      "id": "09-gathered-maxi",
+      "wanted": "Gathered or tiered maxi (not a circle skirt)",
+      "photo": "",
+      "source": "",
+      "license": "",
+      "author": "",
+      "truth": {
+        "garment": "skirt",
+        "silhouette": "a_line",
+        "length": "maxi",
+        "fit": "relaxed",
+        "hemAt": 0.93,
+        "hemFullness": 2.2,
+        "hasDetails": true
+      },
+      "truthChecked": false
+    },
+    {
+      "id": "10-flat-lay",
+      "wanted": "Any skirt laid flat or on a hanger (no wearer)",
+      "photo": "",
+      "source": "",
+      "license": "",
+      "author": "",
+      "truth": {
+        "garment": "skirt",
+        "silhouette": "a_line",
+        "length": "knee",
+        "fit": "regular",
+        "hemAt": 0.56,
+        "hemFullness": 1.5,
+        "hasDetails": false
+      },
+      "truthChecked": false
+    }
+  ]
+}
