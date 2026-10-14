@@ -957,6 +957,11 @@ b {
   font-weight: var(--w-strong);
 }
 
+.chip:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
 /* Hands-on shaping: drag handles, drawn hems, the turning figure, the drafting replay and undo. */
 button.ghost {
   min-height: 40px;

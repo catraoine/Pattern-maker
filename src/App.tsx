@@ -1,12 +1,17 @@
 import { useMemo, useState } from 'react';
 import type { HemShape } from './engine/hem';
-import { DraftError, Fit, Length, Silhouette, SkirtDraft, SkirtShape, draftSkirt } from './engine/skirt';
-import { EXAMPLE_VALUES, MeasurementValues, Unit, checkMeasurements, isComplete } from './measurements';
+import { DraftError, Fit, Length, Silhouette, SkirtDraft, SkirtMeasurements, SkirtShape, draftSkirt } from './engine/skirt';
+import { BodiceDraft, BodiceMeasurements, draftBodice } from './engine/bodice';
+import { bodiceGuide, sewingGuide } from './engine/instructions';
+import { EXAMPLE_VALUES, Garment, MeasurementValues, Unit, checkMeasurements, isComplete } from './measurements';
 import { usePersistent } from './store';
 import { Account, NEW_ACCOUNT, makeBackup, readBackup, profileName, removePattern, renamePattern, sameChoices, savePattern, FREE_SAVED_LIMIT } from './account';
+import { BodiceChoices, DEFAULT_BODICE, describeBodice, isBodice } from './garments';
 import { MeasureScreen } from './screens/MeasureScreen';
-import { StyleScreen, describe } from './screens/StyleScreen';
-import { ExportScreen } from './screens/ExportScreen';
+import { StyleScreen, describe, fabricMetres } from './screens/StyleScreen';
+import { BodiceStyleScreen, bindingMetres, bodiceFabricMetres } from './screens/BodiceStyleScreen';
+import { ExportScreen, Printable } from './screens/ExportScreen';
+import { describePattern } from './screens/describe';
 import { WelcomeScreen } from './screens/WelcomeScreen';
 import { AccountScreen } from './screens/AccountScreen';
 import { PhotoScreen } from './screens/PhotoScreen';
@@ -30,17 +35,26 @@ export interface Choices {
   hem?: HemShape;
 }
 
+// Saved under the original "skirt" key so measurements from before bodices still load; older saves
+// have no garment and open as a skirt.
 interface Saved {
   unit: Unit;
   values: MeasurementValues;
   choices: Choices;
+  garment: Garment;
+  bodice: BodiceChoices;
 }
 
 const INITIAL: Saved = {
   unit: 'cm',
   values: {},
   choices: { fit: 'regular', silhouette: 'a_line', length: 'knee' } as Choices,
+  garment: 'skirt',
+  bodice: DEFAULT_BODICE,
 };
+
+const ready = (values: MeasurementValues, unit: Unit, garment: Garment) =>
+  isComplete(values, garment) && !checkMeasurements(values, unit, garment).some((c) => c.level === 'error');
 
 const STEPS: { id: Step; label: string }[] = [
   { id: 'measure', label: 'Measure' },
@@ -51,27 +65,65 @@ const STEPS: { id: Step; label: string }[] = [
 export default function App() {
   const [saved, setSaved] = usePersistent<Saved>('skirt', INITIAL);
   const [account, setAccount] = usePersistent<Account>('account', NEW_ACCOUNT);
-  const measuredBefore = isComplete(saved.values);
+  const { garment } = saved;
+  const measuredBefore = isComplete(saved.values, garment);
   // People who measured before onboarding existed have already met the app, so they skip the welcome.
   const [step, setStep] = useState<View>(measuredBefore ? 'style' : account.onboarded ? 'measure' : 'welcome');
   const profile = profileName(account);
 
-  const checks = checkMeasurements(saved.values, saved.unit);
-  const blocked = checks.some((c) => c.level === 'error');
+  const checks = checkMeasurements(saved.values, saved.unit, garment);
+  const canLeaveMeasure = ready(saved.values, saved.unit, garment);
 
-  const result = useMemo((): { draft?: SkirtDraft; error?: string } => {
-    if (!isComplete(saved.values) || blocked) return {};
+  const result = useMemo((): { skirt?: SkirtDraft; bodice?: BodiceDraft; error?: string } => {
+    if (!canLeaveMeasure) return {};
     try {
-      return { draft: draftSkirt(saved.values, saved.choices) };
+      if (garment === 'bodice') return { bodice: draftBodice(saved.values as BodiceMeasurements, saved.bodice) };
+      return { skirt: draftSkirt(saved.values as SkirtMeasurements, saved.choices) };
     } catch (e) {
       return { error: e instanceof DraftError ? e.message : 'Something went wrong drafting this pattern.' };
     }
-  }, [saved.values, saved.choices, blocked]);
+  }, [saved.values, saved.choices, saved.bodice, garment, canLeaveMeasure]);
 
-  const canLeaveMeasure = isComplete(saved.values) && !blocked;
+  const current = garment === 'bodice' ? saved.bodice : saved.choices;
+  const title = garment === 'bodice' ? describeBodice(saved.bodice) : describe(saved.choices);
 
-  const isSaved = account.patterns.some((p) => sameChoices(p.choices, saved.choices));
+  const printable = useMemo((): Printable | undefined => {
+    const { skirt, bodice } = result;
+    if (skirt) {
+      return {
+        pieces: skirt.pieces,
+        notes: [
+          `Finished waist ${skirt.finishedWaist} cm, hip ${skirt.finishedHip} cm, length ${skirt.lengthCm} cm.`,
+          'Seam allowance 1.5 cm included, 4 cm at the hem. Dashed line = stitching line.',
+          `Waistband: mark a ${skirt.waistband.cutLength} x ${skirt.waistband.cutWidth} cm strip on the fabric. Sewing steps are on the last pages.`,
+        ],
+        guide: sewingGuide(skirt, saved.choices, fabricMetres(skirt)),
+      };
+    }
+    if (bodice) {
+      const below = bodice.finishedHem !== undefined;
+      return {
+        pieces: bodice.pieces,
+        notes: [
+          `Finished bust ${bodice.finishedBust} cm, waist ${bodice.finishedWaist} cm${below ? `, hem ${bodice.finishedHem} cm` : ''}, back length ${bodice.backLength} cm.`,
+          `Seam allowance 1.5 cm included, 1 cm at the neck and armholes${below ? ', 2.5 cm at the hem' : ''}. Dashed line = stitching line.`,
+          `Sleeveless, with a ${bodice.zipCm} cm centre back zip and bias-bound edges. Sewing steps are on the last pages.`,
+        ],
+        guide: bodiceGuide(bodice, saved.bodice, bodiceFabricMetres(bodice), bindingMetres(bodice)),
+      };
+    }
+    return undefined;
+  }, [result, saved.choices, saved.bodice]);
+
+  const isSaved = account.patterns.some((p) => sameChoices(p.choices, current));
   const saveState = isSaved ? 'saved' : account.patterns.length >= FREE_SAVED_LIMIT ? 'full' : 'can';
+
+  /** Switch garment, going back to measuring when the new one still needs measurements. */
+  const switchGarment = (g: Garment, next: Partial<Saved> = {}, to: View = step) => {
+    setSaved({ ...saved, ...next, garment: g });
+    const stays = to === 'style' || to === 'export';
+    setStep(stays && !ready(saved.values, saved.unit, g) ? 'measure' : to);
+  };
 
   const reset = () => {
     setSaved(INITIAL);
@@ -124,9 +176,10 @@ export default function App() {
           <WelcomeScreen
             name={account.name}
             unit={saved.unit}
-            onFinish={({ name, unit, start }) => {
+            garment={garment}
+            onFinish={({ name, unit, garment: g, start }) => {
               setAccount({ ...account, name, onboarded: true });
-              setSaved({ ...saved, unit, values: start === 'example' ? EXAMPLE_VALUES : saved.values });
+              setSaved({ ...saved, unit, garment: g, values: start === 'example' ? { ...EXAMPLE_VALUES, ...saved.values } : saved.values });
               setStep(start === 'example' ? 'style' : start);
             }}
           />
@@ -134,10 +187,7 @@ export default function App() {
         {step === 'photo' && (
           <PhotoScreen
             measured={canLeaveMeasure}
-            onApply={(choices) => {
-              setSaved({ ...saved, choices });
-              setStep(canLeaveMeasure ? 'style' : 'measure');
-            }}
+            onApply={(choices) => switchGarment('skirt', { choices }, 'style')}
             onCancel={() => setStep(canLeaveMeasure ? 'style' : 'measure')}
           />
         )}
@@ -149,10 +199,9 @@ export default function App() {
             onName={(name) => setAccount({ ...account, name })}
             onUnit={(unit) => setSaved({ ...saved, unit })}
             onEditMeasurements={() => setStep('measure')}
-            onOpen={(p) => {
-              setSaved({ ...saved, choices: p.choices });
-              setStep(canLeaveMeasure ? 'style' : 'measure');
-            }}
+            onOpen={(p) =>
+              isBodice(p.choices) ? switchGarment('bodice', { bodice: p.choices }, 'style') : switchGarment('skirt', { choices: p.choices }, 'style')
+            }
             onRename={(id, name) => setAccount(renamePattern(account, id, name))}
             onRemove={(id) => setAccount(removePattern(account, id))}
             onReset={reset}
@@ -176,33 +225,51 @@ export default function App() {
         {step === 'measure' && (
           <MeasureScreen
             profile={profile}
+            garment={garment}
+            onGarment={(g) => switchGarment(g)}
             unit={saved.unit}
             values={saved.values}
             checks={checks}
             onUnit={(unit) => setSaved({ ...saved, unit })}
             onValues={(values) => setSaved({ ...saved, values })}
-            onExample={() => setSaved({ ...saved, values: EXAMPLE_VALUES })}
+            onExample={() => setSaved({ ...saved, values: { ...EXAMPLE_VALUES, ...saved.values } })}
             canContinue={canLeaveMeasure}
             onNext={() => setStep('style')}
           />
         )}
-        {step === 'style' && (
+        {step === 'style' && garment === 'skirt' && (
           <StyleScreen
             choices={saved.choices}
             onChoices={(choices) => setSaved({ ...saved, choices })}
+            onGarment={(g) => switchGarment(g)}
             values={saved.values}
-            draft={result.draft}
+            draft={result.skirt}
             error={result.error}
             onEditMeasurements={() => setStep('measure')}
             onNext={() => setStep('export')}
             saveState={saveState}
-            onSave={() => setAccount(savePattern(account, saved.choices, describe(saved.choices)))}
+            onSave={() => setAccount(savePattern(account, current, describePattern(current)))}
             onAccount={() => setStep('account')}
             onPhoto={() => setStep('photo')}
           />
         )}
+        {step === 'style' && garment === 'bodice' && (
+          <BodiceStyleScreen
+            choices={saved.bodice}
+            onChoices={(bodice) => setSaved({ ...saved, bodice })}
+            onGarment={(g) => switchGarment(g)}
+            values={saved.values}
+            draft={result.bodice}
+            error={result.error}
+            onEditMeasurements={() => setStep('measure')}
+            onNext={() => setStep('export')}
+            saveState={saveState}
+            onSave={() => setAccount(savePattern(account, current, describePattern(current)))}
+            onAccount={() => setStep('account')}
+          />
+        )}
         {step === 'export' && (
-          <ExportScreen profile={profile} choices={saved.choices} draft={result.draft} error={result.error} onBack={() => setStep('style')} />
+          <ExportScreen profile={profile} title={title} fit={current.fit} made={printable} error={result.error} onBack={() => setStep('style')} />
         )}
       </main>
     </div>

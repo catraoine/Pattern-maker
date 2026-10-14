@@ -1,15 +1,21 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { Choices } from '../App';
 import { OVERLAP, PAGE_MARGIN, PAPER_CM, Paper, layout, tileGrid, toSvg } from '../engine/export';
-import { SkirtDraft } from '../engine/skirt';
+import type { Piece } from '../engine/piece';
+import type { SewingGuide } from '../engine/instructions';
 import { PatternPreview } from '../ui/Preview';
-import { describe, fabricMetres } from './StyleScreen';
-import { sewingGuide } from '../engine/instructions';
+
+/** What to print: the drafted pieces of either garment, with its notes and sewing steps. */
+export interface Printable {
+  pieces: Piece[];
+  notes: string[];
+  guide: SewingGuide;
+}
 
 interface Props {
   profile: string;
-  choices: Choices;
-  draft?: SkirtDraft;
+  title: string;
+  fit: string;
+  made?: Printable;
   error?: string;
   onBack: () => void;
 }
@@ -41,23 +47,12 @@ function download(data: BlobPart, type: string, name: string) {
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
-export function ExportScreen({ profile, choices, draft, error, onBack }: Props) {
+export function ExportScreen({ profile, title, fit, made, error, onBack }: Props) {
   const [paper, setPaper] = useState<Paper>('a4');
   const [pdf, setPdf] = useState<{ paper: Paper; bytes: Uint8Array } | null>(null);
   const [shareNote, setShareNote] = useState('');
-  const title = describe(choices);
-  const guide = useMemo(() => (draft ? sewingGuide(draft, choices, fabricMetres(draft)) : undefined), [draft, choices]);
-  const sheet = useMemo(
-    () =>
-      draft
-        ? layout(draft.pieces, `Pattern Maker: ${title}`, [
-            `Finished waist ${draft.finishedWaist} cm, hip ${draft.finishedHip} cm, length ${draft.lengthCm} cm.`,
-            'Seam allowance 1.5 cm included, 4 cm at the hem. Dashed line = stitching line.',
-            `Waistband: mark a ${draft.waistband.cutLength} x ${draft.waistband.cutWidth} cm strip on the fabric. Sewing steps are on the last pages.`,
-          ])
-        : undefined,
-    [draft, title],
-  );
+  const guide = made?.guide;
+  const sheet = useMemo(() => (made ? layout(made.pieces, `Pattern Maker: ${title}`, made.notes) : undefined), [made, title]);
 
   // Build the PDF ahead of time, so share and print run straight from the tap (phones require that).
   useEffect(() => {
@@ -72,7 +67,7 @@ export function ExportScreen({ profile, choices, draft, error, onBack }: Props) 
     };
   }, [sheet, paper, title, guide]);
 
-  if (!draft || !sheet || !guide) {
+  if (!made || !sheet || !guide) {
     return (
       <section className="card">
         <p className="msg error">{error ?? 'Add your measurements first.'}</p>
@@ -114,7 +109,7 @@ export function ExportScreen({ profile, choices, draft, error, onBack }: Props) 
           <div className="row between wrap">
             <h1 id="ptitle">{title[0].toUpperCase() + title.slice(1)}</h1>
             <p className="muted">
-              Profile: {profile} · {choices.fit[0].toUpperCase() + choices.fit.slice(1)} fit
+              Profile: {profile} · {fit[0].toUpperCase() + fit.slice(1)} fit
             </p>
           </div>
           <div className="preview tiles" style={{ ['--cols' as string]: grid.cols }}>

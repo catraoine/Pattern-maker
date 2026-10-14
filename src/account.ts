@@ -1,13 +1,13 @@
 // The guest's account, kept on this device until sign-in arrives: their name and saved patterns.
 // Patterns are stored as choices (not geometry), so they redraft whenever measurements or the engine change.
-import type { Choices } from './App';
+import { PatternChoices, isBodice } from './garments';
 
 export const FREE_SAVED_LIMIT = 3;
 
 export interface SavedPattern {
   id: string;
   name: string;
-  choices: Choices;
+  choices: PatternChoices;
   savedAt: string; // ISO date
 }
 
@@ -19,17 +19,23 @@ export interface Account {
 
 export const NEW_ACCOUNT: Account = { onboarded: false, name: '', patterns: [] };
 
-export const sameChoices = (a: Choices, b: Choices) =>
-  a.fit === b.fit &&
-  a.silhouette === b.silhouette &&
-  a.length === b.length &&
-  (a.look ?? '') === (b.look ?? '') &&
-  JSON.stringify(a.shape ?? null) === JSON.stringify(b.shape ?? null) &&
-  a.lengthCm === b.lengthCm &&
-  a.flareCm === b.flareCm &&
-  JSON.stringify(a.hem ?? null) === JSON.stringify(b.hem ?? null);
+export function sameChoices(a: PatternChoices, b: PatternChoices): boolean {
+  if (isBodice(a) || isBodice(b)) {
+    return isBodice(a) && isBodice(b) && a.fit === b.fit && a.neckline === b.neckline && a.length === b.length && a.darts === b.darts;
+  }
+  return (
+    a.fit === b.fit &&
+    a.silhouette === b.silhouette &&
+    a.length === b.length &&
+    (a.look ?? '') === (b.look ?? '') &&
+    JSON.stringify(a.shape ?? null) === JSON.stringify(b.shape ?? null) &&
+    a.lengthCm === b.lengthCm &&
+    a.flareCm === b.flareCm &&
+    JSON.stringify(a.hem ?? null) === JSON.stringify(b.hem ?? null)
+  );
+}
 
-export function savePattern(account: Account, choices: Choices, name: string): Account {
+export function savePattern(account: Account, choices: PatternChoices, name: string): Account {
   if (account.patterns.length >= FREE_SAVED_LIMIT || account.patterns.some((p) => sameChoices(p.choices, choices))) return account;
   const id = typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : String(Date.now());
   return { ...account, patterns: [{ id, name, choices, savedAt: new Date().toISOString() }, ...account.patterns] };
