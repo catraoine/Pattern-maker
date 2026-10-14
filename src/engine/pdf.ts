@@ -19,6 +19,7 @@ import { P } from './geometry';
 import { Face, OVERLAP, PAGE_MARGIN, Paper, STYLES, Sheet, pageName, pageSize, tileGrid, usedTiles } from './export';
 import type { SewingGuide } from './instructions';
 import type { Check, FinishedRow } from './qc';
+import type { DraftPoint } from './piece';
 
 const CM = 72 / 2.54; // PDF points per cm
 
@@ -123,6 +124,8 @@ export interface Summary {
   checks: Check[];
   madeFor?: string;
   date?: string;
+  /** The atelier view: each piece's numbered drafting points and how they were found. */
+  drafting?: { piece: string; points: DraftPoint[] }[];
 }
 
 /** Diamonds that meet across a taped join: one half on each page once the top sheet is trimmed. */
@@ -206,6 +209,7 @@ export async function toTiledPdf(sheet: Sheet, paper: Paper, extras?: PdfExtras)
     }
   }
   if (extras?.summary) addSummaryPage(doc, fonts, sheet, paper === 'a0' ? 'a4' : paper, used, total, extras.title, extras.summary, [stepX, stepY]);
+  if (extras?.summary?.drafting?.length) addDraftingPages(doc, fonts, paper === 'a0' ? 'a4' : paper, extras.title, extras.summary.drafting);
   if (extras?.guide) addSewingPages(doc, fonts, paper === 'a0' ? 'a4' : paper, extras.title, extras.guide);
   return doc.save();
 }
@@ -359,6 +363,30 @@ function addSummaryPage(
     }),
   );
   st.y -= sheet.height * k + 10;
+}
+
+/** The atelier view in print: how each piece was drafted, point by point, matching the numbers on the pattern. */
+function addDraftingPages(doc: PDFDocument, fonts: Fonts, paper: 'a4' | 'letter', title: string, drafting: NonNullable<Summary['drafting']>) {
+  const { write, label, st, room, left } = flow(doc, paper, fonts);
+  drawText(st.page, 'MAISON TRACÉ   ·   ATELIER VIEW', { x: 2 * CM, y: st.y, size: 7.5, font: fonts.label, tracking: 0.3, grey: 0.4 });
+  st.y -= 26;
+  write(`How your ${title} was drafted`, 20, fonts.bodyMedium, 0, 8);
+  write(
+    'Each piece is drafted flat from your own measurements, in a frame of rectangles, the way a pattern cutter drafts by hand. The numbers match the points on the pattern. Lengths include the ease for the fit you chose.',
+    9.5,
+    fonts.body,
+    0,
+    14,
+  );
+  for (const d of drafting) {
+    label(d.piece.toUpperCase());
+    for (const pt of d.points) {
+      room(14);
+      drawText(st.page, pt.n, { x: left, y: st.y, size: 9, font: fonts.label, tracking: 0.05 });
+      write(pt.note, 9.5, fonts.body, 24, 4);
+    }
+    st.y -= 10;
+  }
 }
 
 /** Sewing steps after the pattern pages, so the tiled pages keep their numbers. */

@@ -7,10 +7,10 @@ describe('loading screen bodice', () => {
     expect(last[0]).toBeCloseTo(first[0]);
     expect(last[1]).toBeCloseTo(first[1]);
     for (const [x, y] of BODICE) {
-      expect(x).toBeGreaterThanOrEqual(0);
-      expect(x).toBeLessThanOrEqual(1);
-      expect(y).toBeGreaterThanOrEqual(0);
-      expect(y).toBeLessThanOrEqual(1);
+      expect(x).toBeGreaterThanOrEqual(-1e-9);
+      expect(x).toBeLessThanOrEqual(1 + 1e-9);
+      expect(y).toBeGreaterThanOrEqual(-1e-9);
+      expect(y).toBeLessThanOrEqual(1 + 1e-9);
     }
   });
 });

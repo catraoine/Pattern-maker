@@ -2,7 +2,9 @@ import { useMemo, useState } from 'react';
 import type { HemShape } from './engine/hem';
 import { DraftError, Fit, Length, Silhouette, SkirtDraft, SkirtMeasurements, SkirtShape, draftSkirt } from './engine/skirt';
 import { BodiceDraft, BodiceMeasurements, draftBodice } from './engine/bodice';
-import { bodiceGuide, sewingGuide } from './engine/instructions';
+import { BodiceEdges, bodiceGuide, sewingGuide } from './engine/instructions';
+import { AllowanceStyle, SEAM_WIDTHS, withAllowances } from './engine/allowances';
+import { bodiceFacings, liningPieces, waistbandPiece } from './engine/finishing';
 import { bodiceSpec, skirtSpec } from './engine/spec';
 import { EXAMPLE_VALUES, Garment, MeasurementValues, Unit, checkMeasurements, isComplete } from './measurements';
 import { usePersistent } from './store';
@@ -66,7 +68,21 @@ interface Saved {
   choices: Choices;
   garment: Garment;
   bodice: BodiceChoices;
+  /** How the pattern is finished and printed, chosen on the print screen. Older saves have none. */
+  finish?: Finish;
 }
+
+/** Seam allowances, lining and facings, and whether the draft itself is shown. */
+export interface Finish {
+  allowances: AllowanceStyle;
+  skirtLined: boolean;
+  bodiceEdges: BodiceEdges;
+  atelier: boolean;
+}
+
+export const DEFAULT_FINISH: Finish = { allowances: 'home', skirtLined: false, bodiceEdges: 'binding', atelier: false };
+
+const fmtCm = (v: number) => `${v} cm`;
 
 const INITIAL: Saved = {
   unit: 'cm',
@@ -117,35 +133,66 @@ export default function App() {
   const current = garment === 'bodice' ? saved.bodice : saved.choices;
   const title = garment === 'bodice' ? describeBodice(saved.bodice) : describe(saved.choices);
 
+  const finish = { ...DEFAULT_FINISH, ...saved.finish };
   const printable = useMemo((): Printable | undefined => {
     const { skirt, bodice } = result;
+    const seams = SEAM_WIDTHS[finish.allowances];
+    const allow = (pieces: Printable['pieces']) => pieces.map((pc) => withAllowances(pc, finish.allowances));
+    const couture = finish.allowances === 'couture';
     if (skirt) {
+      // The lining is drafted 2.5 cm shorter than the skirt, from the same measurements and style.
+      let lining: SkirtDraft | undefined;
+      if (finish.skirtLined) {
+        try {
+          lining = draftSkirt(values as SkirtMeasurements, { ...saved.choices, lengthCm: skirt.lengthCm - 2.5 });
+        } catch {
+          lining = undefined;
+        }
+      }
+      const pieces = allow([...skirt.pieces, ...(lining ? liningPieces(lining) : []), waistbandPiece(skirt, 1.5)]);
+      const hem = pieces[0].allowances.hem;
       return {
-        pieces: skirt.pieces,
+        pieces,
         notes: [
           `Finished waist ${skirt.finishedWaist} cm, hip ${skirt.finishedHip} cm, length ${skirt.lengthCm} cm.`,
-          'Seam allowance 1.5 cm included, 4 cm at the hem. Dashed line = stitching line.',
-          `Waistband: mark a ${skirt.waistband.cutLength} x ${skirt.waistband.cutWidth} cm strip on the fabric. Sewing steps are on the last pages.`,
+          couture
+            ? `Couture allowances: ${fmtCm(seams.seam)} at the seams, ${fmtCm(seams.waist)} at the waist, ${fmtCm(hem)} at the hem. Thread-trace the solid stitching line.`
+            : `Seam allowance ${fmtCm(seams.seam)} included, ${fmtCm(hem)} at the hem. Dashed line = stitching line.`,
+          `Waistband${lining ? ' and lining' : ''} included. Sewing steps are on the last pages.`,
         ],
-        guide: sewingGuide(skirt, saved.choices, fabricMetres(skirt)),
+        guide: sewingGuide(skirt, saved.choices, fabricMetres(skirt), {
+          seams,
+          liningM: lining ? fabricMetres(lining) : undefined,
+          hem: skirt.pieces[0].allowances.hem >= 4 ? hem : undefined,
+        }),
         spec: skirtSpec(values as SkirtMeasurements, skirt),
       };
     }
     if (bodice) {
       const below = bodice.finishedHem !== undefined;
+      const edges = finish.bodiceEdges;
+      const main = edges === 'lined' ? bodice.pieces.map((pc) => ({ ...pc, fabric: 'Self fabric and lining' })) : bodice.pieces;
+      const pieces = allow([...main, ...(edges === 'facings' ? bodiceFacings(bodice.pieces[0], bodice.pieces[1]) : [])]);
+      const edgeWords = { binding: 'bias-bound edges', facings: 'faced neck and armholes', lined: 'a full lining' }[edges];
       return {
-        pieces: bodice.pieces,
+        pieces,
         notes: [
           `Finished bust ${bodice.finishedBust} cm, waist ${bodice.finishedWaist} cm${below ? `, hem ${bodice.finishedHem} cm` : ''}, back length ${bodice.backLength} cm.`,
-          `Seam allowance 1.5 cm included, 1 cm at the neck and armholes${below ? ', 2.5 cm at the hem' : ''}. Dashed line = stitching line.`,
-          `Sleeveless, with a ${bodice.zipCm} cm centre back zip and bias-bound edges. Sewing steps are on the last pages.`,
+          couture
+            ? `Couture allowances: ${fmtCm(seams.seam)} at the seams, ${fmtCm(seams.curve)} at the neck and armholes. Thread-trace the solid stitching line.`
+            : `Seam allowance ${fmtCm(seams.seam)} included, ${fmtCm(seams.curve)} at the neck and armholes${below ? ', 2.5 cm at the hem' : ''}. Dashed line = stitching line.`,
+          `Sleeveless, with a ${bodice.zipCm} cm centre back zip and ${edgeWords}. Sewing steps are on the last pages.`,
         ],
-        guide: bodiceGuide(bodice, saved.bodice, bodiceFabricMetres(bodice), bindingMetres(bodice)),
+        guide: bodiceGuide(bodice, saved.bodice, bodiceFabricMetres(bodice), bindingMetres(bodice), {
+          seams,
+          edges,
+          liningM: bodiceFabricMetres(bodice),
+        }),
         spec: bodiceSpec(values as BodiceMeasurements, bodice, saved.bodice.length),
       };
     }
     return undefined;
-  }, [result, saved.choices, saved.bodice, values]);
+  }, [result, saved.choices, saved.bodice, values, finish.allowances, finish.skirtLined, finish.bodiceEdges]);
 
   const isSaved = isSavedFor(account, current, person.id);
   const saveState = isSaved ? 'saved' : account.patterns.length >= FREE_SAVED_LIMIT ? 'full' : 'can';
@@ -335,7 +382,17 @@ export default function App() {
           />
         )}
         {step === 'export' && (
-          <ExportScreen profile={profile} title={title} fit={current.fit} made={printable} error={result.error} onBack={() => setStep('style')} />
+          <ExportScreen
+            profile={profile}
+            title={title}
+            fit={current.fit}
+            garment={garment}
+            finish={finish}
+            onFinish={(f) => setSaved({ ...saved, finish: f })}
+            made={printable}
+            error={result.error}
+            onBack={() => setStep('style')}
+          />
         )}
       </main>
     </div>
