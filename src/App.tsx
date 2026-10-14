@@ -3,6 +3,7 @@ import type { HemShape } from './engine/hem';
 import { DraftError, Fit, Length, Silhouette, SkirtDraft, SkirtMeasurements, SkirtShape, draftSkirt } from './engine/skirt';
 import { BodiceDraft, BodiceMeasurements, draftBodice } from './engine/bodice';
 import { bodiceGuide, sewingGuide } from './engine/instructions';
+import { bodiceSpec, skirtSpec } from './engine/spec';
 import { EXAMPLE_VALUES, Garment, MeasurementValues, Unit, checkMeasurements, isComplete } from './measurements';
 import { usePersistent } from './store';
 import { Account, NEW_ACCOUNT, makeBackup, readBackup, profileName, removePattern, renamePattern, sameChoices, savePattern, FREE_SAVED_LIMIT } from './account';
@@ -98,6 +99,7 @@ export default function App() {
           `Waistband: mark a ${skirt.waistband.cutLength} x ${skirt.waistband.cutWidth} cm strip on the fabric. Sewing steps are on the last pages.`,
         ],
         guide: sewingGuide(skirt, saved.choices, fabricMetres(skirt)),
+        spec: skirtSpec(saved.values as SkirtMeasurements, skirt),
       };
     }
     if (bodice) {
@@ -110,10 +112,11 @@ export default function App() {
           `Sleeveless, with a ${bodice.zipCm} cm centre back zip and bias-bound edges. Sewing steps are on the last pages.`,
         ],
         guide: bodiceGuide(bodice, saved.bodice, bodiceFabricMetres(bodice), bindingMetres(bodice)),
+        spec: bodiceSpec(saved.values as BodiceMeasurements, bodice, saved.bodice.length),
       };
     }
     return undefined;
-  }, [result, saved.choices, saved.bodice]);
+  }, [result, saved.choices, saved.bodice, saved.values]);
 
   const isSaved = account.patterns.some((p) => sameChoices(p.choices, current));
   const saveState = isSaved ? 'saved' : account.patterns.length >= FREE_SAVED_LIMIT ? 'full' : 'can';
