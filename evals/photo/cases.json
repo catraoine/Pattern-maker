@@ -4,20 +4,21 @@
     {
       "id": "01-pencil",
       "wanted": "Pencil skirt, worn, knee length, front view",
-      "photo": "",
-      "source": "",
-      "license": "",
-      "author": "",
+      "photo": "01-pencil.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Purple_Cardigan,_Black_Pencil_Skirt,_Checkered_Top,_and_Silver_Heels_(17632734246).jpg",
+      "license": "CC BY-SA 2.0",
+      "author": "Jamie",
       "truth": {
         "garment": "skirt",
         "silhouette": "pencil",
-        "length": "knee",
+        "length": "above_knee",
         "fit": "fitted",
-        "hemAt": 0.56,
+        "hemAt": 0.51,
         "hemFullness": 0.9,
         "hasDetails": false
       },
-      "truthChecked": false
+      "truthChecked": true,
+      "labelNote": "High-waisted pencil skirt; the hem sits just above the knee, so length is above_knee rather than the slot's knee."
     },
     {
       "id": "02-straight",
@@ -58,20 +59,21 @@
     {
       "id": "04-a-line-midi",
       "wanted": "A-line midi, worn",
-      "photo": "",
-      "source": "",
-      "license": "",
-      "author": "",
+      "photo": "04-a-line.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:A-line_skirts.jpg",
+      "license": "CC BY 2.0",
+      "author": "Flickr user \"queen puff puff\"",
       "truth": {
         "garment": "skirt",
         "silhouette": "a_line",
-        "length": "midi",
+        "length": "knee",
         "fit": "regular",
-        "hemAt": 0.76,
-        "hemFullness": 1.7,
+        "hemAt": 0.56,
+        "hemFullness": 1.5,
         "hasDetails": false
       },
-      "truthChecked": false
+      "truthChecked": true,
+      "labelNote": "Cropped from the top-middle panel of a 3x3 collage (318 px square, feet out of frame). No midi A-line was available today, so this is knee length."
     },
     {
       "id": "05-trumpet",
@@ -94,20 +96,21 @@
     {
       "id": "06-half-circle",
       "wanted": "Skater or half circle skirt, worn",
-      "photo": "",
-      "source": "",
-      "license": "",
-      "author": "",
+      "photo": "06-half-circle.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Black_Turtleneck_T-shirt,_Leopard_Print_Skater_Skirt,_and_Heart_Print_Tights_(16919126582).jpg",
+      "license": "CC BY-SA 2.0",
+      "author": "Jamie",
       "truth": {
         "garment": "skirt",
         "silhouette": "half_circle",
-        "length": "above_knee",
+        "length": "mini",
         "fit": "regular",
-        "hemAt": 0.48,
+        "hemAt": 0.41,
         "hemFullness": 3.0,
         "hasDetails": false
       },
-      "truthChecked": false
+      "truthChecked": true,
+      "labelNote": "Skater skirt; hem at mid-thigh (measured 0.41 of waist to floor in the photo)."
     },
     {
       "id": "07-full-circle",
@@ -148,38 +151,40 @@
     {
       "id": "09-gathered-maxi",
       "wanted": "Gathered or tiered maxi (not a circle skirt)",
-      "photo": "",
-      "source": "",
-      "license": "",
-      "author": "",
+      "photo": "09-maxi.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:1970s_maxi_skirt_in_Liberty_print,_with_tooled_leather_shoulder_bag_and_black_T-shirt.jpg",
+      "license": "CC BY-SA 4.0",
+      "author": "Peloponnesian Folklore Foundation",
       "truth": {
         "garment": "skirt",
         "silhouette": "a_line",
         "length": "maxi",
-        "fit": "relaxed",
-        "hemAt": 0.93,
-        "hemFullness": 2.2,
-        "hasDetails": true
+        "fit": "regular",
+        "hemAt": 0.94,
+        "hemFullness": 2.0,
+        "hasDetails": false
       },
-      "truthChecked": false
+      "truthChecked": true,
+      "labelNote": "Flared A-line maxi on a mannequin. No visible gathers or tiers, so details should be empty; a bag hangs over the front."
     },
     {
       "id": "10-flat-lay",
       "wanted": "Any skirt laid flat or on a hanger (no wearer)",
-      "photo": "",
-      "source": "",
-      "license": "",
-      "author": "",
+      "photo": "10-flat-lay.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Kristian_Leigh_pencil_skirt.jpg",
+      "license": "CC BY-SA 4.0",
+      "author": "Marek Koudelka",
       "truth": {
         "garment": "skirt",
-        "silhouette": "a_line",
+        "silhouette": "straight",
         "length": "knee",
         "fit": "regular",
         "hemAt": 0.56,
-        "hemFullness": 1.5,
+        "hemFullness": 1.0,
         "hasDetails": false
       },
-      "truthChecked": false
+      "truthChecked": true,
+      "labelNote": "Laid flat. Commons calls it a pencil skirt, but the hem does not taper in the photo, so labelled straight (pencil scores half). Length is a guess from proportions."
     }
   ]
 }

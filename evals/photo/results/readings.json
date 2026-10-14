@@ -1,0 +1,127 @@
+{
+  "01-pencil": {
+    "ok": true,
+    "reading": {
+      "garment": "skirt",
+      "silhouette": {
+        "value": "pencil",
+        "confidence": "high"
+      },
+      "length": {
+        "value": "above_knee",
+        "confidence": "high"
+      },
+      "fit": {
+        "value": "fitted",
+        "confidence": "high"
+      },
+      "shape": {
+        "hemAt": 0.5,
+        "hemFullness": 0.92,
+        "flareAt": null,
+        "confidence": "medium"
+      },
+      "details": "This high-waisted pencil skirt appears to have curved princess-style seams on the front, which you could add yourself if you like that look."
+    }
+  },
+  "04-a-line-midi": {
+    "ok": true,
+    "reading": {
+      "garment": "skirt",
+      "silhouette": {
+        "value": "a_line",
+        "confidence": "high"
+      },
+      "length": {
+        "value": "knee",
+        "confidence": "medium"
+      },
+      "fit": {
+        "value": "regular",
+        "confidence": "medium"
+      },
+      "shape": {
+        "hemAt": 0.53,
+        "hemFullness": 1.5,
+        "flareAt": null,
+        "confidence": "medium"
+      },
+      "details": ""
+    }
+  },
+  "06-half-circle": {
+    "ok": true,
+    "reading": {
+      "garment": "skirt",
+      "silhouette": {
+        "value": "half_circle",
+        "confidence": "medium"
+      },
+      "length": {
+        "value": "mini",
+        "confidence": "high"
+      },
+      "fit": {
+        "value": "fitted",
+        "confidence": "medium"
+      },
+      "shape": {
+        "hemAt": 0.33,
+        "hemFullness": 2.6,
+        "flareAt": null,
+        "confidence": "medium"
+      },
+      "details": "This leopard print skater skirt appears to have a wide elasticated or smocked waistband, which you may want to add yourself in place of the standard waistband."
+    }
+  },
+  "09-gathered-maxi": {
+    "ok": true,
+    "reading": {
+      "garment": "skirt",
+      "silhouette": {
+        "value": "a_line",
+        "confidence": "medium"
+      },
+      "length": {
+        "value": "maxi",
+        "confidence": "high"
+      },
+      "fit": {
+        "value": "regular",
+        "confidence": "medium"
+      },
+      "shape": {
+        "hemAt": 0.9,
+        "hemFullness": 1.8,
+        "flareAt": null,
+        "confidence": "medium"
+      },
+      "details": "This floral maxi looks gored, with panels flaring gently toward the hem, so you might like to split the A-line into gores yourself for that vintage look."
+    }
+  },
+  "10-flat-lay": {
+    "ok": true,
+    "reading": {
+      "garment": "skirt",
+      "silhouette": {
+        "value": "a_line",
+        "confidence": "medium"
+      },
+      "length": {
+        "value": "knee",
+        "confidence": "low"
+      },
+      "fit": {
+        "value": "regular",
+        "confidence": "low"
+      },
+      "shape": {
+        "hemAt": 0.56,
+        "hemFullness": 1.25,
+        "flareAt": null,
+        "confidence": "low"
+      },
+      "details": "This harlequin-print skirt looks like it has a slight wrap or overlap seam down the front that you may want to add yourself."
+    }
+  }
+}
