@@ -117,7 +117,15 @@ interface Props {
   onDone: (before: Choices, after: Choices) => void;
 }
 
-type Drag = { kind: 'hem' | 'side'; start: P; before: Choices; length: number; flare: number };
+type Drag = { kind: 'hem' | 'side'; start: P; before: Choices; base: Choices; length: number; flare: number };
+
+/** A shape matched from a photo is pinned to proportions; dragging lets go of it, keeping the length
+ * and flare it had so the skirt doesn't jump. */
+function unpin(c: Choices, draft: SkirtDraft): Choices {
+  if (!c.shape) return c;
+  const { shape: _shape, ...rest } = c;
+  return { ...rest, lengthCm: draft.lengthCm, ...(draft.flareCm !== undefined ? { flareCm: draft.flareCm } : {}) };
+}
 
 export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, onDone }: Props) {
   const svg = useRef<SVGSVGElement>(null);
@@ -158,7 +166,7 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
     if (drawing) return;
     e.stopPropagation();
     (e.target as Element).setPointerCapture(e.pointerId);
-    setDrag({ kind, start: toSvg(e), before: choices, length: draft.lengthCm, flare: draft.flareCm ?? 0 });
+    setDrag({ kind, start: toSvg(e), before: choices, base: unpin(choices, draft), length: draft.lengthCm, flare: draft.flareCm ?? 0 });
   };
 
   const move = (e: PointerEvent) => {
@@ -166,8 +174,8 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
       const at = toSvg(e);
       const next =
         drag.kind === 'hem'
-          ? dragLength(m, live.current, drag.length + at.y - drag.start.y)
-          : dragFlare(m, live.current, draft.lengthCm, drag.flare + (at.x - drag.start.x) * (drag.start.x >= cx ? 1 : -1));
+          ? dragLength(m, drag.base, drag.length + at.y - drag.start.y)
+          : dragFlare(m, drag.base, draft.lengthCm, drag.flare + (at.x - drag.start.x) * (drag.start.x >= cx ? 1 : -1));
       onLive(next);
     } else if (stroke) {
       setStroke([...stroke, toSvg(e)]);
@@ -236,7 +244,8 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
             const step = { ArrowUp: -1, ArrowDown: 1, ArrowLeft: -1, ArrowRight: 1 }[e.key];
             if (step === undefined) return;
             e.preventDefault();
-            const next = kind === 'hem' ? dragLength(m, choices, draft.lengthCm + step * 2) : dragFlare(m, choices, draft.lengthCm, (draft.flareCm ?? 0) + step);
+            const base = unpin(choices, draft);
+            const next = kind === 'hem' ? dragLength(m, base, draft.lengthCm + step * 2) : dragFlare(m, base, draft.lengthCm, (draft.flareCm ?? 0) + step);
             onDone(choices, next);
           }}
         />

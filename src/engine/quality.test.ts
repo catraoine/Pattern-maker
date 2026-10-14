@@ -142,3 +142,43 @@ describe('bodice block across random bodies', () => {
     report(failures);
   });
 });
+
+describe('skirts matched to a photo shape across random bodies', () => {
+  it(`hit the hem length and fullness for ${BODIES} bodies`, () => {
+    const failures: string[] = [];
+    const sils: Silhouette[] = ['pencil', 'straight', 'a_line', 'trumpet', 'half_circle', 'circle'];
+    for (let seed = 1; seed <= BODIES; seed++) {
+      const r = rng(seed + 50000);
+      const body = randomBody(r);
+      const silhouette = sils[seed % 6];
+      const hemAt = 0.3 + r() * 0.62;
+      const fullness =
+        silhouette === 'pencil' ? 0.9 + r() * 0.08 : silhouette === 'straight' ? 1 + r() * 0.05 : silhouette === 'trumpet' ? 1.3 + r() * 0.8 : 1.2 + r() * 4;
+      const shape = { hemAt, hemFullness: fullness, flareAt: silhouette === 'trumpet' ? 0.3 + r() * 0.15 : undefined };
+      const tag = `seed ${seed} ${silhouette} ${JSON.stringify(shape)}`;
+      let d;
+      try {
+        d = draftSkirt(body, { silhouette, shape, fit: 'regular' });
+      } catch (e) {
+        if (e instanceof DraftError && silhouette === 'trumpet') continue; // too short to flare
+        failures.push(`${tag}: ${(e as Error).message}`);
+        continue;
+      }
+      for (const pc of d.pieces) pieceProblems(pc).forEach((pr) => failures.push(`${tag} ${pc.name}: ${pr}`));
+      const waist = 2 * (taggedLength(d.pieces[0].outline, 'waist') + taggedLength(d.pieces[1].outline, 'waist'));
+      if (Math.abs(waist - d.finishedWaist) > 1) failures.push(`${tag}: waist ${waist.toFixed(1)} vs ${d.finishedWaist}`);
+      const length = Math.min(Math.max(hemAt * body.waist_to_floor, body.waist_to_hip + 8), body.waist_to_floor - 2);
+      if (Math.abs(d.lengthCm - length) > 0.1) failures.push(`${tag}: length ${d.lengthCm} vs ${length.toFixed(1)}`);
+      // The hem is what the photo showed, unless that's more than a full circle can give, or a
+      // trumpet whose short flare can't reach it.
+      const target = fullness * d.finishedHip;
+      const reachable = Math.min(target, d.finishedWaist + 2 * Math.PI * d.lengthCm);
+      // A pencil skirt tapers at most 3 cm a side, so a narrower hem than that comes out at the limit.
+      if (silhouette === 'pencil' && d.hemCm < reachable - 2) failures.push(`${tag}: pencil hem ${d.hemCm} under ${reachable.toFixed(0)}`);
+      if (silhouette !== 'trumpet' && silhouette !== 'pencil' && Math.abs(d.hemCm - reachable) > Math.max(2, 0.03 * reachable))
+        failures.push(`${tag}: hem ${d.hemCm} vs ${reachable.toFixed(0)}`);
+      if (silhouette === 'trumpet' && d.hemCm > target * 1.03) failures.push(`${tag}: trumpet hem ${d.hemCm} over ${target.toFixed(0)}`);
+    }
+    report(failures);
+  });
+});

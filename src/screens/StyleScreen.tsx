@@ -12,6 +12,7 @@ import { useShake } from '../ui/shake';
 import { FREE_SAVED_LIMIT } from '../account';
 import { BAND_ACROSS_MAX } from '../engine/instructions';
 import { ERAS, findLook } from '../engine/eras';
+import { shapeLine } from '../photo/shape';
 
 interface Props {
   choices: Choices;
@@ -55,6 +56,7 @@ export function currentLook(c: Choices) {
 export function describe(c: Choices) {
   const look = currentLook(c);
   if (look) return look.name;
+  if (c.shape) return `Skirt matched to a photo${isShaped(c.hem) ? ', with a shaped hem' : ''}`;
   const len = c.lengthCm !== undefined ? `${Math.round(c.lengthCm)} cm` : GROUPS[2].options.find((o) => o[0] === c.length)![1];
   const sil = GROUPS[1].options.find((o) => o[0] === c.silhouette)![1];
   return `${len} ${sil.toLowerCase()} skirt${isShaped(c.hem) ? ' with a shaped hem' : ''}`;
@@ -123,11 +125,14 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
   const [eraId, setEraId] = useState<string | undefined>(() => ERAS.find((e) => e.looks.includes(look!))?.id);
   const era = ERAS.find((e) => e.id === eraId);
   // Changing the shape or length by hand leaves the era look behind; changing the fit keeps it.
-  // Picking a named length or silhouette replaces a dragged one; a drawn hem stays.
+  // Picking a named length or silhouette replaces a dragged one; a drawn hem stays. A shape matched
+  // from a photo stays until the shape or length is changed by hand.
   const choose = (c: Choices, group: keyof Choices) => {
-    const { lengthCm, flareCm, look, ...rest } = c;
+    const { lengthCm, flareCm, look, shape: photo, ...rest } = c;
+    const shape = c.silhouette === choices.silhouette && c.length === choices.length ? photo : undefined;
     change({
       ...rest,
+      ...(shape ? { shape } : {}),
       ...(group !== 'length' && lengthCm !== undefined ? { lengthCm } : {}),
       ...(group !== 'silhouette' && flareCm !== undefined ? { flareCm } : {}),
       ...(currentLook(c) ? { look } : {}),
@@ -195,6 +200,14 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
             </div>
           </fieldset>
         ))}
+        {choices.shape && (
+          <div className="msg small">
+            <p>Matched to your photo. {shapeLine(choices.shape)}</p>
+            <button type="button" className="link inline-link" onClick={() => change({ ...choices, shape: undefined })}>
+              Use the standard shape instead
+            </button>
+          </div>
+        )}
         <p className="muted small">Every look is drafted to your measurements. Waist finishes and pockets are coming.</p>
       </section>
 

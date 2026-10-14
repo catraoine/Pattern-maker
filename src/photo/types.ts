@@ -13,6 +13,8 @@ export interface PhotoReading {
   silhouette: Pick<Silhouette>;
   length: Pick<Length>;
   fit: Pick<Fit>;
+  /** Exact proportions read from the photo; see SkirtShape. flareAt is null unless it's a trumpet skirt. */
+  shape: { hemAt: number; hemFullness: number; flareAt: number | null; confidence: Confidence };
   details: string; // one plain sentence on what we noticed but can't draft yet (pleats, pockets...), or ''
 }
 

@@ -7,6 +7,7 @@ const reading = {
   silhouette: { value: 'a_line', confidence: 'high' },
   length: { value: 'midi', confidence: 'medium' },
   fit: { value: 'regular', confidence: 'low' },
+  shape: { hemAt: 0.74, hemFullness: 1.6, flareAt: null, confidence: 'medium' },
   details: 'It has box pleats at the front.',
 };
 
@@ -39,6 +40,18 @@ describe('analyzePhoto', () => {
     expect(req.model).toBe('claude-opus-5-5');
     expect(req.fallbacks).toBe('default');
     expect(req.messages[0].content[0].type).toBe('image');
+  });
+
+  it('asks for every silhouette the drafter knows and the exact shape', async () => {
+    const { client, parse } = fakeClient({ stop_reason: 'end_turn', parsed_output: reading });
+    await analyzePhoto(photo, client);
+    const req = (parse.mock.calls[0] as unknown[])[0] as { output_config: unknown; system: string };
+    const schema = JSON.stringify(req.output_config);
+    for (const shape of ['pencil', 'straight', 'a_line', 'trumpet', 'half_circle', 'circle']) {
+      expect(schema).toContain(`\\"${shape}\\"`); // the enum is listed inside the schema's description
+      expect(req.system).toContain(`"${shape}"`);
+    }
+    for (const key of ['hemAt', 'hemFullness', 'flareAt']) expect(schema).toContain(`"${key}"`);
   });
 
   it('turns a refusal or a failure into a friendly error', async () => {

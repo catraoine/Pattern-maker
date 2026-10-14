@@ -15,6 +15,12 @@ describe('dragged length and flare', () => {
     expect(draftSkirt(m, { lengthCm: 300 }).lengthCm).toBe(lengthRange(m).max);
   });
 
+  it('lets a dragged length win over a photo-matched one', () => {
+    const shape = { hemAt: 0.5, hemFullness: 1.4 };
+    expect(draftSkirt(m, { shape }).lengthCm).toBe(52);
+    expect(draftSkirt(m, { shape, lengthCm: 70 }).lengthCm).toBe(70);
+  });
+
   it('uses a dragged flare, within range, with matching side seams', () => {
     for (const flareCm of [-4, -1, 0, 3, 12, 99]) {
       const d = draftSkirt(m, { silhouette: 'a_line', flareCm });

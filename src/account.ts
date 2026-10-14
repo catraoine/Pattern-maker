@@ -24,6 +24,7 @@ export const sameChoices = (a: Choices, b: Choices) =>
   a.silhouette === b.silhouette &&
   a.length === b.length &&
   (a.look ?? '') === (b.look ?? '') &&
+  JSON.stringify(a.shape ?? null) === JSON.stringify(b.shape ?? null) &&
   a.lengthCm === b.lengthCm &&
   a.flareCm === b.flareCm &&
   JSON.stringify(a.hem ?? null) === JSON.stringify(b.hem ?? null);
