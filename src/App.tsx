@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { DraftError, Fit, Length, Silhouette, SkirtDraft, draftSkirt } from './engine/skirt';
+import { DraftError, Fit, Length, Silhouette, SkirtDraft, SkirtShape, draftSkirt } from './engine/skirt';
 import { EXAMPLE_VALUES, MeasurementValues, Unit, checkMeasurements, isComplete } from './measurements';
 import { usePersistent } from './store';
 import { Account, NEW_ACCOUNT, makeBackup, readBackup, profileName, removePattern, renamePattern, sameChoices, savePattern, FREE_SAVED_LIMIT } from './account';
@@ -19,6 +19,8 @@ export interface Choices {
   length: Length;
   /** An era look the choices came from, kept while the shape and length still match it. */
   look?: string;
+  /** Exact proportions matched from a photo, kept while the shape and length chips are left alone. */
+  shape?: SkirtShape;
 }
 
 interface Saved {

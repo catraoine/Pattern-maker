@@ -20,7 +20,8 @@ export interface Account {
 export const NEW_ACCOUNT: Account = { onboarded: false, name: '', patterns: [] };
 
 export const sameChoices = (a: Choices, b: Choices) =>
-  a.fit === b.fit && a.silhouette === b.silhouette && a.length === b.length && (a.look ?? '') === (b.look ?? '');
+  a.fit === b.fit && a.silhouette === b.silhouette && a.length === b.length && (a.look ?? '') === (b.look ?? '') &&
+  JSON.stringify(a.shape ?? null) === JSON.stringify(b.shape ?? null);
 
 export function savePattern(account: Account, choices: Choices, name: string): Account {
   if (account.patterns.length >= FREE_SAVED_LIMIT || account.patterns.some((p) => sameChoices(p.choices, choices))) return account;

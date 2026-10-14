@@ -8,6 +8,7 @@ import { PatternPreview, SketchPreview } from '../ui/Preview';
 import { FREE_SAVED_LIMIT } from '../account';
 import { BAND_ACROSS_MAX } from '../engine/instructions';
 import { ERAS, findLook } from '../engine/eras';
+import { shapeLine } from '../photo/shape';
 
 interface Props {
   choices: Choices;
@@ -48,6 +49,7 @@ export function currentLook(c: Choices) {
 export function describe(c: Choices) {
   const look = currentLook(c);
   if (look) return look.name;
+  if (c.shape) return `Skirt matched to a photo`;
   const len = GROUPS[2].options.find((o) => o[0] === c.length)![1];
   const sil = GROUPS[1].options.find((o) => o[0] === c.silhouette)![1];
   return `${len} ${sil.toLowerCase()} skirt`;
@@ -87,7 +89,11 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
   const [eraId, setEraId] = useState<string | undefined>(() => ERAS.find((e) => e.looks.includes(look!))?.id);
   const era = ERAS.find((e) => e.id === eraId);
   // Changing the shape or length by hand leaves the era look behind; changing the fit keeps it.
-  const choose = (c: Choices) => onChoices(currentLook(c) ? c : { fit: c.fit, silhouette: c.silhouette, length: c.length });
+  const choose = (c: Choices) => {
+    // A shape matched from a photo stays until the shape or length is changed by hand.
+    const shape = c.silhouette === choices.silhouette && c.length === choices.length ? c.shape : undefined;
+    onChoices(currentLook(c) ? { ...c, shape } : { fit: c.fit, silhouette: c.silhouette, length: c.length, shape });
+  };
 
   return (
     <div className="split three">
@@ -150,6 +156,14 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
             </div>
           </fieldset>
         ))}
+        {choices.shape && (
+          <div className="msg small">
+            <p>Matched to your photo. {shapeLine(choices.shape)}</p>
+            <button type="button" className="link inline-link" onClick={() => onChoices({ ...choices, shape: undefined })}>
+              Use the standard shape instead
+            </button>
+          </div>
+        )}
         <p className="muted small">Every look is drafted to your measurements. Waist finishes and pockets are coming.</p>
       </section>
 
