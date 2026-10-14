@@ -12,8 +12,8 @@ export default defineConfig({
         name: 'Pattern Maker',
         short_name: 'Patterns',
         description: 'Sewing patterns drafted to your own measurements.',
-        theme_color: '#FAFAFA',
-        background_color: '#FAFAFA',
+        theme_color: '#000000',
+        background_color: '#000000',
         display: 'standalone',
         start_url: '/',
         icons: [
