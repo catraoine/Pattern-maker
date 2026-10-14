@@ -1,22 +1,25 @@
-/* Mono C "Graph Paper": black and white, Space Mono for headings and controls, IBM Plex Sans for reading. */
+/* Contour Line: true black, fine white lines, small tracked labels in Chakra Petch, Space Grotesk for reading. */
 :root {
-  --ink: #111111;
-  --muted: #555555;
-  --line: #e4e4e4;
-  --fill: #ededed;
-  --paper: #fafafa;
-  --white: #ffffff;
-  --mono: 'Space Mono', ui-monospace, Menlo, monospace;
-  --sans: 'IBM Plex Sans', system-ui, sans-serif;
-  --grid: var(--line);
-  --w-head: 700;
-  --w-strong: 700;
-  --w-semi: 600;
+  --ink: #ffffff;
+  --muted: #8c8c8c;
+  --line: #262626;
+  --line-strong: #444444;
+  --fill: #111111;
+  --paper: #000000;
+  --white: #000000; /* the "card" ground; text on --ink fills uses it too */
+  --mono: 'Chakra Petch', ui-monospace, Menlo, monospace;
+  --sans: 'Space Grotesk', system-ui, sans-serif;
+  --grid: transparent;
+  --w-head: 300;
+  --w-strong: 500;
+  --w-semi: 500;
   --w-body: 400;
-  --head-tracking: 0;
-  --bw: 1.5px;
-  --bw-on: 2px;
-  --pill: 999px;
+  --head-tracking: -0.01em;
+  --track: 0.2em;
+  --bw: 1px;
+  --bw-on: 1px;
+  --pill: 0px;
+  color-scheme: dark;
 }
 
 * {
@@ -35,8 +38,6 @@ body {
   -webkit-text-size-adjust: 100%;
 }
 
-h1,
-h2,
 legend,
 .eyebrow,
 button,
@@ -47,19 +48,35 @@ label {
 
 h1,
 h2 {
+  font-family: var(--sans);
+}
+
+button,
+label,
+legend,
+.eyebrow,
+.brand,
+.badge,
+.filebtn {
+  text-transform: uppercase;
+  letter-spacing: var(--track);
+}
+
+h1,
+h2 {
   font-weight: var(--w-head);
   letter-spacing: var(--head-tracking);
 }
 
 h1 {
   margin: 0;
-  font-size: 26px;
+  font-size: 30px;
   line-height: 1.2;
 }
 
 h2 {
   margin: 0;
-  font-size: 20px;
+  font-size: 22px;
 }
 
 p {
@@ -76,8 +93,7 @@ p {
 }
 
 .eyebrow {
-  font-size: 12px;
-  letter-spacing: 0.08em;
+  font-size: 11px;
   text-transform: uppercase;
   color: var(--muted);
   margin-bottom: 6px;
@@ -95,7 +111,7 @@ p {
   gap: 12px;
   padding: calc(12px + env(safe-area-inset-top)) 20px 12px;
   background: var(--white);
-  border-bottom: var(--bw) solid var(--ink);
+  border-bottom: var(--bw) solid var(--line);
 }
 
 .brand {
@@ -104,7 +120,7 @@ p {
   gap: 10px;
   font-family: var(--mono);
   font-weight: var(--w-strong);
-  font-size: 18px;
+  font-size: 12px;
 }
 
 .steps {
@@ -122,7 +138,8 @@ p {
   border-radius: var(--pill);
   background: none;
   color: var(--muted);
-  font-size: 14px;
+  font-size: 11px;
+  letter-spacing: 0.14em;
   cursor: pointer;
 }
 
@@ -171,7 +188,7 @@ p {
   flex: 1 1 280px;
   min-width: 0;
   background: var(--white);
-  border: var(--bw) solid var(--ink);
+  border: var(--bw) solid var(--line);
   padding: 22px;
   display: flex;
   flex-direction: column;
@@ -246,13 +263,13 @@ p {
 }
 
 .field.focus {
-  background: #f6f6f6;
+  background: var(--fill);
   border-color: var(--ink);
 }
 
 .field label {
   font-weight: var(--w-strong);
-  font-size: 14px;
+  font-size: 12px;
 }
 
 .field input {
@@ -302,28 +319,38 @@ p {
 
 button.primary,
 button.secondary {
-  min-height: 50px;
+  min-height: 52px;
   padding: 0 24px;
   border-radius: var(--pill);
   border: var(--bw) solid var(--ink);
-  font-size: 15px;
+  font-size: 12px;
   font-weight: var(--w-strong);
   cursor: pointer;
 }
 
 button.primary {
-  background: var(--ink);
-  color: var(--white);
-}
-
-button.secondary {
-  background: var(--white);
+  background: transparent;
   color: var(--ink);
 }
 
-button.primary:disabled {
-  background: #888;
-  border-color: #888;
+button.secondary {
+  background: transparent;
+  color: var(--muted);
+  border-color: var(--line-strong);
+}
+
+button.primary:hover,
+button.secondary:hover {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+
+button.primary:disabled,
+button.primary:disabled:hover {
+  background: transparent;
+  color: #555;
+  border-color: var(--line);
   cursor: not-allowed;
 }
 
@@ -354,7 +381,7 @@ button.link {
   padding: 0;
   margin-bottom: 10px;
   font-weight: var(--w-strong);
-  font-size: 14px;
+  font-size: 12px;
 }
 
 .chips {
@@ -386,7 +413,7 @@ button.link {
   justify-content: center;
   padding: 12px;
   border: 1px solid var(--line);
-  background: var(--white);
+  background: var(--paper);
   min-height: 300px;
 }
 
@@ -431,9 +458,9 @@ button.link {
 }
 
 .fabric .big {
-  font-family: var(--mono);
-  font-size: 26px;
-  font-weight: var(--w-strong);
+  font-family: var(--sans);
+  font-size: 30px;
+  font-weight: 300;
 }
 
 .radio {
@@ -477,6 +504,9 @@ button.link {
 }
 
 @media (max-width: 640px) {
+  .welcome-hero {
+    margin: 0 -18px;
+  }
   .topbar {
     padding-left: 16px;
     padding-right: 16px;
@@ -550,8 +580,8 @@ button.link {
 }
 
 .dot {
-  width: 10px;
-  height: 10px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   border: var(--bw) solid var(--ink);
 }
@@ -566,31 +596,59 @@ button.link {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 14px;
 }
 
 .how li {
-  display: flex;
-  gap: 14px;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: 34px 92px minmax(0, 1fr);
+  gap: 4px 8px;
+  align-items: baseline;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.how li:last-child {
+  border-bottom: 1px solid var(--line);
+}
+
+.how .num,
+.how strong {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
 }
 
 .how .num {
-  flex: none;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background: var(--ink);
-  color: var(--white);
-  font-family: var(--mono);
-  font-weight: var(--w-strong);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  color: var(--muted);
 }
 
-.how strong {
-  font-family: var(--mono);
+@media (max-width: 400px) {
+  .how li {
+    grid-template-columns: 34px minmax(0, 1fr);
+  }
+  .how li .muted {
+    grid-column: 2;
+  }
+}
+
+/* The contour dress form at the top of the welcome screen, bleeding to the card's edges */
+.welcome-card {
+  border: none;
+}
+
+.welcome-hero {
+  margin: 0 -22px;
+  height: clamp(300px, 52vh, 520px);
+  border-bottom: 1px solid var(--line);
+}
+
+.welcome-hero canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .checklist {
@@ -662,9 +720,9 @@ input.inline {
 
 .mlist dd {
   margin: 2px 0 0;
-  font-family: var(--mono);
-  font-size: 18px;
-  font-weight: var(--w-strong);
+  font-family: var(--sans);
+  font-size: 20px;
+  font-weight: 300;
 }
 
 .saved {
