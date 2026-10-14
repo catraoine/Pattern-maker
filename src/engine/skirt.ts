@@ -1,6 +1,6 @@
 // Straight skirt block, drafted flat from waist, hip and waist-to-hip depth (Aldrich-style).
 // Ported from the Python prototype in the drafting thread (pattern/skirt.py).
-import { P, Path, add, lerp, p, sub, unit } from './geometry';
+import { P, Path, add, lerp, mul, p, sub, taggedLength, unit } from './geometry';
 import { finishDart } from './darts';
 import { Piece } from './piece';
 
@@ -13,7 +13,10 @@ export interface SkirtMeasurements {
 }
 
 export type Fit = 'fitted' | 'regular' | 'relaxed';
-export type Silhouette = 'straight' | 'pencil' | 'a_line';
+export type Silhouette = 'straight' | 'pencil' | 'a_line' | 'trumpet' | 'half_circle' | 'circle';
+
+/** Circle skirts are cut as arcs from the waist rather than drafted from the block. */
+export const isCircle = (s: Silhouette) => s === 'half_circle' || s === 'circle';
 export type Length = 'mini' | 'above_knee' | 'knee' | 'midi' | 'maxi';
 
 export interface SkirtStyle {
@@ -67,6 +70,8 @@ interface HalfArgs {
   dartMax: number;
   dartLen: number;
   flare: number;
+  /** Trumpet skirts stay close to the body down to here, then flare. */
+  flareFrom?: number;
   isFront: boolean;
   sa: number;
   hemSa: number;
@@ -85,8 +90,32 @@ function half(a: HalfArgs): Piece {
   const cw = p(0, a.centreDrop); // centre waist
   const sw = p(a.hipQ - sideSupp, -sideRise); // side waist
   const sh = p(a.hipQ, a.hipDepth); // side hip
-  const hemSide = p(a.hipQ + a.flare, a.length - Math.max(0, a.flare) * 0.08); // lift flared hem so it meets the side seam square
   const ch = p(0, a.length); // centre hem
+  const flareStart = a.flareFrom !== undefined ? p(a.hipQ, a.flareFrom) : sh;
+  // A flared hem is an arc centred on the centre line that meets the side seam square, so front and
+  // back join in a smooth curve. Its centre is where the side seam, carried on upward, meets the centre,
+  // so a seam ending at angle a off vertical lifts the side hem by x tan(a/2). The angle is capped so
+  // the lift stays under a quarter of the flaring part of the seam, which keeps short skirts sensible.
+  let hemSide = p(a.hipQ + a.flare, a.length);
+  let hemArc: { R: number; t: P } | undefined;
+  if (a.flare > 0) {
+    const k = a.length - flareStart.y;
+    let lift = 0;
+    let angle = 0;
+    let flare = a.flare;
+    for (let i = 0; i < 40; i++) {
+      const cap = 2 * Math.atan((0.25 * k) / (a.hipQ + flare));
+      // A trumpet seam leaves the flare point straight down and swings out to its end angle; an
+      // A-line seam is straight, so its angle is set by the flare and the drop.
+      angle = Math.min(cap, a.flareFrom !== undefined ? Math.min((22 * Math.PI) / 180, Math.atan(a.flare / (0.5 * k))) : Math.atan(a.flare / (k - lift)));
+      if (a.flareFrom === undefined) flare = (k - lift) * Math.tan(angle);
+      else flare = Math.min(a.flare, 0.5 * (k - lift));
+      lift = 0.5 * lift + 0.5 * (a.hipQ + flare) * Math.tan(angle / 2);
+    }
+    const t = p(Math.sin(angle), Math.cos(angle));
+    hemSide = p(a.hipQ + flare, a.length - lift);
+    hemArc = { R: hemSide.x / t.x, t };
+  }
 
   const waistY = (x: number) => {
     const t = x / sw.x;
@@ -122,8 +151,22 @@ function half(a: HalfArgs): Piece {
   waistTo(x, sw.x);
   outline.line(sw, 'waist');
   outline.curve(p(sw.x + sideSupp * 0.55, sw.y + a.hipDepth * 0.15), p(a.hipQ, a.hipDepth * 0.55), sh, 'side');
-  outline.line(hemSide, 'side');
-  outline.curve(lerp(hemSide, ch, 0.35), lerp(hemSide, ch, 0.7), ch, 'hem');
+  if (hemArc && a.flareFrom !== undefined) {
+    const { t } = hemArc;
+    const k = hemSide.y - flareStart.y;
+    outline.line(flareStart, 'side');
+    outline.curve(p(a.hipQ, flareStart.y + k * 0.45), sub(hemSide, mul(t, k * 0.4)), hemSide, 'side');
+  } else {
+    outline.line(hemSide, 'side');
+  }
+  if (hemArc) {
+    const { R, t } = hemArc;
+    const angle = Math.acos(Math.min(1, t.y));
+    const kk = (4 / 3) * Math.tan(angle / 4) * R;
+    outline.curve(add(hemSide, mul(p(-t.y, t.x), kk)), p(kk, a.length), ch, 'hem');
+  } else {
+    outline.curve(lerp(hemSide, ch, 0.35), lerp(hemSide, ch, 0.7), ch, 'hem');
+  }
   outline.line(cw, a.isFront ? 'fold' : 'centre');
   outline.closed = true;
 
@@ -158,11 +201,87 @@ function half(a: HalfArgs): Piece {
   };
 }
 
+interface CircleArgs {
+  name: string;
+  r: number; // waist radius
+  angle: number; // radians of circle this piece covers
+  length: number;
+  isFront: boolean;
+  /** The front goes on the fold unless it is too wide for folded fabric, then it gets a centre seam. */
+  onFold: boolean;
+  sa: number;
+  hemSa: number;
+  zipCm: number;
+}
+
+/** Points on a circle centred at (0, -r) above the centre waist, measured from straight down. */
+const onCircle = (r: number, R: number, phi: number) => p(R * Math.sin(phi), -r + R * Math.cos(phi));
+
+/** Add an arc as cubic Beziers, at most 30 degrees each. */
+function arc(path: Path, r: number, R: number, from: number, to: number, tag: string) {
+  const n = Math.max(1, Math.ceil(Math.abs(to - from) / (Math.PI / 6)));
+  const step = (to - from) / n;
+  const k = (4 / 3) * Math.tan(step / 4) * R;
+  for (let i = 0; i < n; i++) {
+    const a0 = from + step * i;
+    const a1 = a0 + step;
+    const t0 = p(Math.cos(a0), -Math.sin(a0)); // tangent of increasing angle
+    const t1 = p(Math.cos(a1), -Math.sin(a1));
+    const e0 = onCircle(r, R, a0);
+    const e1 = onCircle(r, R, a1);
+    path.curve(add(e0, mul(t0, k)), sub(e1, mul(t1, k)), e1, tag);
+  }
+}
+
+/** One piece of a circle skirt: a wedge of a ring, centre line down the y axis, side seam on the radius. */
+function circlePiece(a: CircleArgs): Piece {
+  const R = a.r + a.length;
+  const outline = new Path(p(0, 0));
+  arc(outline, a.r, a.r, 0, a.angle, 'waist');
+  outline.line(onCircle(a.r, R, a.angle), 'side');
+  arc(outline, a.r, R, a.angle, 0, 'hem');
+  outline.line(p(0, 0), a.isFront && a.onFold ? 'fold' : 'centre');
+  outline.closed = true;
+
+  const cut = a.isFront && a.onFold ? 'Cut 1 on fold' : 'Cut 2 (1 pair)';
+  const mid = a.angle / 2;
+  const at = (f: number, phi = mid) => onCircle(a.r, a.r + a.length * f, phi);
+  const notches: [P, P][] = [[onCircle(a.r, a.r + Math.min(20, a.length / 3), a.angle), p(Math.cos(a.angle), -Math.sin(a.angle))]];
+  const zipEnd = p(0, a.zipCm);
+  if (!a.isFront) notches.push([zipEnd, p(-1, 0)]);
+  // Centre front and centre back on the straight grain, so the sides fall on the bias and drape evenly.
+  const gx = Math.min(8, at(0.5).x * 0.5);
+  return {
+    name: a.name,
+    outline,
+    lines: [],
+    grain: [p(gx, a.length * 0.3), p(gx, a.length * 0.8)],
+    fold: a.isFront && a.onFold ? [p(0, 2), p(0, a.length - 2)] : undefined,
+    notches,
+    labels: [
+      { at: at(0.35), text: a.name.toUpperCase(), size: 1.6 },
+      { at: add(at(0.35), p(0, 2.4)), text: cut, size: 1.0 },
+      ...(a.isFront ? [] : [{ at: add(zipEnd, p(3.2, 0.3)), text: 'ZIP ENDS', size: 0.7 }]),
+    ],
+    cut,
+    seamAllowance: a.sa,
+    allowances: { hem: a.hemSa, fold: 0 },
+    meta: { dartsCm: [], sideSuppressionCm: 0, angleDeg: Math.round((a.angle * 180) / Math.PI * 10) / 10 },
+  };
+}
+
+// Folded 140 cm fabric leaves about 68 cm for a piece placed on the fold.
+const FOLD_WIDTH_MAX = 68;
+
 export interface SkirtDraft {
   pieces: Piece[];
   lengthCm: number;
   finishedWaist: number;
   finishedHip: number;
+  /** For circle skirts, how much of a circle the skirt makes (1 is a full circle). */
+  circleShare?: number;
+  /** Hem circumference, to show how full the skirt is. */
+  hemCm: number;
   zipCm: number; // invisible zip in the centre back seam
   waistband: Waistband;
   dartsPerSide: { front: number; back: number };
@@ -191,6 +310,9 @@ function waistband(finishedWaist: number, backQ: number, sa: number): Waistband 
   return { cutLength: r(finishedWaist + 2 * sa), cutWidth: r(2 * WAISTBAND_CM + 2 * sa), sideMark: r(sa + backQ) };
 }
 
+/** Hem circumference: each piece is a quarter of the skirt (half of a pair, or half of a fold piece). */
+const hemCm = (front: Piece, back: Piece) => Math.round(2 * (taggedLength(front.outline, 'hem') + taggedLength(back.outline, 'hem')));
+
 export function draftSkirt(m: SkirtMeasurements, style: Partial<SkirtStyle> = {}): SkirtDraft {
   const s = { ...DEFAULT_STYLE, ...style };
   const ease = FIT_EASE[s.fit];
@@ -200,11 +322,55 @@ export function draftSkirt(m: SkirtMeasurements, style: Partial<SkirtStyle> = {}
 
   const hipQ = (m.full_hip + ease.hip) / 4;
   const waistQ = (m.waist + ease.waist) / 4;
-  if (waistQ > hipQ) {
-    throw new DraftError('Your waist is larger than your hip, which this skirt block can’t draft yet. An elastic-waist skirt is coming.');
+
+  const finishedWaist = m.waist + ease.waist;
+  const zipCm = zipLength(hipDepth);
+
+  if (isCircle(s.silhouette)) {
+    // A full circle skirt's waist is a whole circle, a half circle's half of one. The 0.5 cm front and
+    // back split is kept, so the waist seam matches a bodice drafted from the same measurements.
+    // A half circle has room over the hips for most bodies; where the hip is much bigger than the
+    // waist, the circle opens up a little more (never past a full circle) until it does.
+    const hipRoom = m.full_hip + ease.hip + 2;
+    const share = Math.min(1, Math.max(s.silhouette === 'circle' ? 1 : 0.5, (hipRoom - finishedWaist) / (2 * Math.PI * hipDepth)));
+    const r = finishedWaist / (2 * Math.PI * share);
+    if (2 * Math.PI * share * (r + hipDepth) < hipRoom - 0.01) {
+      throw new DraftError('Your hip is too much bigger than your waist for a circle skirt to fit over it.');
+    }
+    const hemSa = Math.min(s.hemAllowance, 1.5); // a narrow hem turns neatly on a curve
+    const common = { r, length, sa: s.seamAllowance, hemSa, zipCm };
+    const angleF = (finishedWaist / 4 + 0.5) / r;
+    const onFold = (r + length) * Math.sin(Math.min(angleF, Math.PI / 2)) + s.seamAllowance <= FOLD_WIDTH_MAX;
+    const front = circlePiece({ ...common, name: 'Skirt front', angle: angleF, isFront: true, onFold });
+    const back = circlePiece({ ...common, name: 'Skirt back', angle: (finishedWaist / 4 - 0.5) / r, isFront: false, onFold: false });
+    return {
+      pieces: [front, back],
+      lengthCm: Math.round(length * 10) / 10,
+      finishedWaist,
+      finishedHip: m.full_hip + ease.hip,
+      hemCm: hemCm(front, back),
+      circleShare: Math.round(share * 1000) / 1000,
+      zipCm,
+      waistband: waistband(finishedWaist, finishedWaist / 4 - 0.5, s.seamAllowance),
+      dartsPerSide: { front: 0, back: 0 },
+    };
   }
 
-  const flare = { straight: 0, pencil: -2, a_line: Math.max(6, (length - hipDepth) * 0.15) }[s.silhouette];
+  if (waistQ > hipQ) {
+    throw new DraftError('Your waist is larger than your hip, so this shape can’t be drafted for you yet. A circle skirt will work.');
+  }
+
+  // Trumpet skirts flare from a little above the knee; the hem is never shorter than the flare.
+  const flareFrom = s.silhouette === 'trumpet' ? Math.min(hipDepth + (m.waist_to_knee - hipDepth) * 0.6, length - 15) : undefined;
+  if (flareFrom !== undefined && flareFrom < hipDepth + 5) {
+    throw new DraftError('A trumpet skirt needs more length below the hip to flare into. Try a longer length.');
+  }
+  const flare = {
+    straight: 0,
+    pencil: -2,
+    a_line: Math.max(6, (length - hipDepth) * 0.15),
+    trumpet: Math.max(8, (length - (flareFrom ?? 0)) * 0.35),
+  }[s.silhouette as 'straight' | 'pencil' | 'a_line' | 'trumpet'];
   // Shift 0.5 cm of waist from back to front, take up to 3 cm at each side seam; darts take the rest,
   // at most two per piece. A big hip-to-waist difference puts the extra into the side seams (front
   // and back alike, so they still match) rather than making darts too wide to sew flat.
@@ -215,18 +381,17 @@ export function draftSkirt(m: SkirtMeasurements, style: Partial<SkirtStyle> = {}
     hipQ - (waistQ + 0.5) - 2 * FRONT_DART_MAX,
     hipQ - (waistQ - 0.5) - 2 * BACK_DART_MAX,
   );
-  const zipCm = zipLength(hipDepth);
-  const common = { hipQ, hipDepth, length, sideSupp, flare, sa: s.seamAllowance, hemSa: s.hemAllowance, zipCm };
+  const hemSa = s.silhouette === 'trumpet' ? Math.min(s.hemAllowance, 2) : s.hemAllowance;
+  const common = { hipQ, hipDepth, length, sideSupp, flare, flareFrom, sa: s.seamAllowance, hemSa, zipCm };
   const front = half({ ...common, name: 'Skirt front', waistQ: waistQ + 0.5, centreDrop: 0, dartMax: FRONT_DART_MAX, dartLen: 9, isFront: true });
   const back = half({ ...common, name: 'Skirt back', waistQ: waistQ - 0.5, centreDrop: 1, dartMax: BACK_DART_MAX, dartLen: 14, isFront: false });
-
-  const finishedWaist = m.waist + ease.waist;
 
   return {
     pieces: [front, back],
     lengthCm: Math.round(length * 10) / 10,
     finishedWaist,
     finishedHip: m.full_hip + ease.hip,
+    hemCm: hemCm(front, back),
     zipCm,
     waistband: waistband(finishedWaist, waistQ - 0.5, s.seamAllowance),
     dartsPerSide: { front: (front.meta.dartsCm as number[]).length, back: (back.meta.dartsCm as number[]).length },

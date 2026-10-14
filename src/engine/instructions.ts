@@ -1,5 +1,6 @@
 // Plain-language sewing steps for the drafted skirt, shown in the app and added to the end of the PDF.
 // Keep to plain ASCII punctuation: the PDF uses a standard font without curly quotes.
+import { isCircle } from './skirt';
 import type { Length, Silhouette, SkirtDraft } from './skirt';
 
 // Widest strip that fits across 140 cm fabric, leaving room for the selvedges.
@@ -21,6 +22,11 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
   const { front, back } = draft.dartsPerSide;
   const band = draft.waistband;
   const dartCount = 2 * front + 2 * back;
+  const circle = isCircle(style.silhouette);
+  const frontSeam = !draft.pieces[0].fold;
+  // A front too wide for the fold (big circle skirts) is cut as a pair with a centre front seam, and
+  // the back is then too wide for folded fabric as well.
+  const wide = frontSeam;
   const slit = style.silhouette === 'pencil' || (style.silhouette === 'straight' && (style.length === 'midi' || style.length === 'maxi'));
 
   const steps: SewStep[] = [
@@ -30,7 +36,9 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
     },
     {
       title: 'Cut out',
-      text: 'Fold the fabric in half with the selvedges together. Place the skirt front on the fold, and the skirt back on both layers so you get a pair. Keep each grain arrow parallel to the selvedge. Cut along the solid outer line, snip the small notches, and chalk-mark the dart lines.',
+      text: wide
+        ? `These pieces are too wide to cut from folded fabric, so open it out to a single layer. Cut each piece twice, turning the pattern over for the second one so you get a pair. Keep each grain arrow parallel to the selvedge. Cut along the solid outer line and snip the small notches.${circle ? ' To save fabric, turn every other piece upside down so the curves nest together.' : ''}`
+        : `Fold the fabric in half with the selvedges together. ${frontSeam ? 'Place the skirt front and the skirt back on both layers so you get a pair of each.' : 'Place the skirt front on the fold, and the skirt back on both layers so you get a pair.'} Keep each grain arrow parallel to the selvedge. Cut along the solid outer line, snip the small notches${dartCount ? ', and chalk-mark the dart lines' : ''}.`,
     },
     {
       title: 'Cut the waistband',
@@ -42,12 +50,24 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
     },
     {
       title: 'Neaten the edges',
-      text: 'Zigzag or overlock the side and centre back edges of the skirt pieces, so they will not fray inside.',
+      text: `Zigzag or overlock the side and centre ${frontSeam ? 'front and centre back' : 'back'} edges of the skirt pieces, so they will not fray inside.`,
     },
-    {
-      title: `Sew the ${plural(dartCount, 'dart', 'darts')}`,
-      text: 'Fold each dart with right sides together so the two dart lines meet. Stitch from the waist to the point, running off the fold, and knot the threads. Press front darts toward the centre front and back darts toward the centre back.',
-    },
+    ...(dartCount
+      ? [
+          {
+            title: `Sew the ${plural(dartCount, 'dart', 'darts')}`,
+            text: 'Fold each dart with right sides together so the two dart lines meet. Stitch from the waist to the point, running off the fold, and knot the threads. Press front darts toward the centre front and back darts toward the centre back.',
+          },
+        ]
+      : []),
+    ...(frontSeam
+      ? [
+          {
+            title: 'Sew the centre front',
+            text: 'Pin the two front pieces right sides together along the straight centre edge. Sew 1.5 cm from the edge and press the seam open.',
+          },
+        ]
+      : []),
     {
       title: 'Put in the zip',
       text: `Sew a ${draft.zipCm} cm invisible zip into the centre back edges, with the top of the teeth 1.5 cm below the waist edge, stopping at the ZIP ENDS notch.`,
@@ -70,10 +90,13 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
     },
     {
       title: 'Hem',
-      text:
-        style.silhouette === 'a_line'
-          ? 'Press up 1 cm, then 3 cm more. The hem is curved, so ease in the extra fullness with steam as you press. Stitch by hand or machine.'
-          : `Press up 1 cm, then 3 cm more, and stitch by hand or machine.${slit ? ' Turn the slit edges under and stitch them down.' : ''}`,
+      text: circle
+        ? 'Hang the skirt up for a day before hemming: the parts cut across the grain drop and stretch. Try it on, have someone mark an even hem with pins measured up from the floor, and trim to the marks. Press up 0.5 cm, then 1 cm more, easing the curve with steam, and stitch.'
+        : style.silhouette === 'trumpet'
+          ? 'The hem is curved and full, so keep it narrow. Press up 0.5 cm, then 1.5 cm more, easing in the fullness with steam, and stitch by hand or machine.'
+          : style.silhouette === 'a_line'
+            ? 'Press up 1 cm, then 3 cm more. The hem is curved, so ease in the extra fullness with steam as you press. Stitch by hand or machine.'
+            : `Press up 1 cm, then 3 cm more, and stitch by hand or machine.${slit ? ' Turn the slit edges under and stitch them down.' : ''}`,
     },
     {
       title: 'Finish',
