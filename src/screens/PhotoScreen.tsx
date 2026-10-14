@@ -19,6 +19,8 @@ const ERRORS: Record<PhotoError | 'network', string> = {
   bad_image: "We couldn't open that photo. Try a JPEG or PNG.",
   declined: "We couldn't read the style from that photo. Try a different one.",
   failed: 'Something went wrong reading the photo. Please try again.',
+  limit_reached: "You've used today's photo readings. You can still style your skirt by hand, or try again tomorrow.",
+  busy: 'Photo reading is resting until tomorrow. You can still style your skirt by hand.',
   network: "We couldn't reach the server. Check your connection and try again.",
 };
 

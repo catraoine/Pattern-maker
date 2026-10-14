@@ -3,7 +3,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { betaZodOutputFormat } from '@anthropic-ai/sdk/helpers/beta/zod';
 import { z } from 'zod';
-import { IMAGE_TYPES, MAX_IMAGE_BYTES, PhotoReading, PhotoResponse } from './types';
+import { IMAGE_TYPES, MAX_IMAGE_BYTES, PhotoError, PhotoReading, PhotoResponse } from './types';
 
 const confidence = z.enum(['low', 'medium', 'high']);
 
@@ -43,13 +43,18 @@ export interface AnalyzeInput {
   mediaType: string;
 }
 
+/** Cheap checks on the upload, done before anything that costs money. */
+export function checkPhoto(input: AnalyzeInput): PhotoError | null {
+  if (typeof input?.image !== 'string' || !(IMAGE_TYPES as readonly string[]).includes(input.mediaType)) return 'bad_image';
+  if (input.image.length > MAX_IMAGE_BYTES) return 'too_large';
+  return null;
+}
+
 /** Validate the upload, ask Claude, and turn every outcome into a PhotoResponse the app can show. */
 export async function analyzePhoto(input: AnalyzeInput, client: Anthropic | null): Promise<PhotoResponse> {
   if (!client) return { ok: false, error: 'not_configured' };
-  if (typeof input?.image !== 'string' || !(IMAGE_TYPES as readonly string[]).includes(input.mediaType)) {
-    return { ok: false, error: 'bad_image' };
-  }
-  if (input.image.length > MAX_IMAGE_BYTES) return { ok: false, error: 'too_large' };
+  const bad = checkPhoto(input);
+  if (bad) return { ok: false, error: bad };
 
   try {
     const response = await client.beta.messages.parse({
