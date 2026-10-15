@@ -23,38 +23,40 @@
     {
       "id": "02-straight",
       "wanted": "Straight skirt, worn, above the knee",
-      "photo": "",
-      "source": "",
-      "license": "",
-      "author": "",
+      "photo": "02-straight.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Falda_jean_clásica.jpg",
+      "license": "Public domain",
+      "author": "misatur",
       "truth": {
         "garment": "skirt",
         "silhouette": "straight",
-        "length": "above_knee",
+        "length": "knee",
         "fit": "regular",
-        "hemAt": 0.5,
+        "hemAt": 0.56,
         "hemFullness": 1.0,
-        "hasDetails": false
+        "hasDetails": true
       },
-      "truthChecked": false
+      "truthChecked": true,
+      "labelNote": "Denim straight skirt from the back, cut off just below the hem, so length is judged from the hem sitting at the knee. Has a back slit and jeans pockets, so details should mention them."
     },
     {
       "id": "03-a-line-mini",
       "wanted": "A-line mini, worn",
-      "photo": "",
-      "source": "",
-      "license": "",
-      "author": "",
+      "photo": "03-a-line-mini.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Minijean_skirt.jpg",
+      "license": "Public domain",
+      "author": "misatur",
       "truth": {
         "garment": "skirt",
         "silhouette": "a_line",
         "length": "mini",
         "fit": "regular",
-        "hemAt": 0.38,
-        "hemFullness": 1.4,
-        "hasDetails": false
+        "hemAt": 0.35,
+        "hemFullness": 1.2,
+        "hasDetails": true
       },
-      "truthChecked": false
+      "truthChecked": true,
+      "labelNote": "Slightly flared denim mini from the back. Lace pocket flaps and a raw hem, so details should mention them."
     },
     {
       "id": "04-a-line-midi",
@@ -78,20 +80,21 @@
     {
       "id": "05-trumpet",
       "wanted": "Trumpet or mermaid skirt, worn, long",
-      "photo": "",
-      "source": "",
-      "license": "",
-      "author": "",
+      "photo": "05-trumpet.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Cotton_patchwork_suit_by_Alexander_McQueen,_2004_01.jpg",
+      "license": "CC0",
+      "author": "Photographer commissioned by Rhode Island School of Design Museum of Art",
       "truth": {
         "garment": "skirt",
         "silhouette": "trumpet",
-        "length": "maxi",
+        "length": "midi",
         "fit": "fitted",
-        "hemAt": 0.93,
+        "hemAt": 0.76,
         "hemFullness": 2.0,
-        "hasDetails": false
+        "hasDetails": true
       },
-      "truthChecked": false
+      "truthChecked": true,
+      "labelNote": "Museum mannequin, back view, only 250 px wide (larger copies were refused). A jacket covers the waist and the skirt is mid-calf, not long. Patchwork panels and godets, so details should mention them."
     },
     {
       "id": "06-half-circle",
@@ -115,38 +118,40 @@
     {
       "id": "07-full-circle",
       "wanted": "1950s full circle skirt, worn",
-      "photo": "",
-      "source": "",
-      "license": "",
-      "author": "",
+      "photo": "07-full-circle.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:PoodleSkirtTwirl.jpg",
+      "license": "CC BY-SA 2.0",
+      "author": "Flickr user \"shortiestar3000\"",
       "truth": {
         "garment": "skirt",
         "silhouette": "circle",
         "length": "midi",
         "fit": "regular",
-        "hemAt": 0.7,
+        "hemAt": 0.65,
         "hemFullness": 5.0,
-        "hasDetails": false
+        "hasDetails": true
       },
-      "truthChecked": false
+      "truthChecked": true,
+      "labelNote": "Felt poodle skirt mid-twirl, at night. Hem between knee and mid-calf (about 0.65). The poodle appliqué counts as a detail."
     },
     {
       "id": "08-pleated",
       "wanted": "Pleated midi (tests the details sentence)",
-      "photo": "",
-      "source": "",
-      "license": "",
-      "author": "",
+      "photo": "08-pleated.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Black_Pleated_Skirt_and_Long_Sleeved_Floral_Print_Blouse_(18325514342).jpg",
+      "license": "CC BY-SA 2.0",
+      "author": "Jamie",
       "truth": {
         "garment": "skirt",
         "silhouette": "a_line",
-        "length": "midi",
+        "length": "above_knee",
         "fit": "regular",
-        "hemAt": 0.76,
-        "hemFullness": 2.0,
+        "hemAt": 0.5,
+        "hemFullness": 1.8,
         "hasDetails": true
       },
-      "truthChecked": false
+      "truthChecked": true,
+      "labelNote": "Knife-pleated skirt, three-quarter back view, hem just above the knee (no pleated midi was found). Details should mention the pleats."
     },
     {
       "id": "09-gathered-maxi",
