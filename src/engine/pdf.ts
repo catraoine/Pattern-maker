@@ -16,6 +16,7 @@ import {
 import fontkit from '@pdf-lib/fontkit';
 import * as fontData from './fontData';
 import { type Lay, layWords } from './layplan';
+import type { Flat } from './flat';
 import { P } from './geometry';
 import { Face, OVERLAP, PAGE_MARGIN, Paper, STYLES, Sheet, pageName, pageSize, tileGrid, usedTiles } from './export';
 import type { SewingGuide } from './instructions';
@@ -129,6 +130,8 @@ export interface Summary {
   drafting?: { piece: string; points: DraftPoint[] }[];
   /** Cutting layouts, one for each fabric. */
   lays?: Lay[];
+  /** The technical flat, front and back. */
+  flat?: Flat;
 }
 
 /** Diamonds that meet across a taped join: one half on each page once the top sheet is trimmed. */
@@ -305,6 +308,31 @@ function addSummaryPage(
   });
   st.y -= 26;
   write(title[0].toUpperCase() + title.slice(1), 20, fonts.bodyMedium, 0, 18);
+
+  if (s.flat) {
+    label('TECHNICAL FLAT');
+    const f = s.flat;
+    const k = Math.min(width / f.width, 200 / f.height);
+    room(f.height * k + 24);
+    // Centred across the page, front and back side by side.
+    const x0 = left + (width - f.width * k) / 2;
+    const y0 = st.y;
+    const path = (pts: P[], close = false) => pts.map((q, i) => `${i ? 'L' : 'M'}${(q.x * k).toFixed(2)} ${(q.y * k).toFixed(2)}`).join(' ') + (close ? ' Z' : '');
+    for (const v of f.views) {
+      for (const sh of v.shapes) st.page.drawSvgPath(path(sh, true), { x: x0, y: y0, borderColor: rgb(0, 0, 0), borderWidth: 0.8 });
+      for (const l of v.lines)
+        st.page.drawSvgPath(path(l.pts), {
+          x: x0,
+          y: y0,
+          borderColor: rgb(0, 0, 0),
+          borderWidth: l.kind === 'zip' ? 1 : l.kind === 'stitch' ? 0.35 : 0.5,
+          borderDashArray: l.kind === 'stitch' ? [1.4, 1] : undefined,
+        });
+      const xs = v.shapes[0].map((q) => q.x);
+      drawText(st.page, v.label, { x: x0 + ((Math.min(...xs) + Math.max(...xs)) / 2) * k, y: y0 - f.height * k - 14, size: 7, font: fonts.label, tracking: 0.2, grey: 0.4, centre: true });
+    }
+    st.y -= f.height * k + 34;
+  }
 
   label('FINISHED MEASUREMENTS');
   const colX = [0, 0.45, 0.63, 0.81].map((f) => left + f * width);

@@ -1435,3 +1435,39 @@ button.ghost:disabled {
 .lay p {
   margin: 0;
 }
+
+/* The technical flat: the garment drawn flat in fine champagne lines, front and back. */
+.techflat {
+  width: 100%;
+  height: auto;
+  max-height: 460px;
+}
+.techflat path {
+  fill: none;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.techflat .flat-shape {
+  fill: var(--paper);
+  stroke: var(--gild);
+  stroke-width: 0.3;
+}
+.techflat .flat-seam,
+.techflat .flat-dart {
+  stroke: var(--gild);
+  stroke-width: 0.18;
+}
+.techflat .flat-stitch {
+  stroke: var(--gild);
+  stroke-width: 0.14;
+  stroke-dasharray: 0.5 0.35;
+}
+.techflat .flat-zip {
+  stroke: var(--gild);
+  stroke-width: 0.4;
+}
+.techflat .flat-label {
+  fill: var(--muted);
+  font-family: var(--mono);
+  letter-spacing: 0.14em;
+}

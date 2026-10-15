@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react';
 import type { HemShape } from './engine/hem';
 import { DraftError, Fit, Length, Silhouette, SkirtDraft, SkirtMeasurements, SkirtShape, draftSkirt } from './engine/skirt';
 import { BodiceDraft, BodiceMeasurements, draftBodice } from './engine/bodice';
-import { BodiceEdges, bodiceGuide, sewingGuide } from './engine/instructions';
+import { BodiceEdges, bodiceGuide, hasSlit, sewingGuide } from './engine/instructions';
+import { bodiceFlat, skirtFlat } from './engine/flat';
 import { AllowanceStyle, SEAM_WIDTHS, withAllowances } from './engine/allowances';
 import { bodiceFacings, liningPieces, waistbandPiece } from './engine/finishing';
 import { bodiceSpec, skirtSpec } from './engine/spec';
@@ -215,6 +216,7 @@ export default function App() {
         }),
         spec: skirtSpec(values as SkirtMeasurements, skirt),
         lays,
+        flat: skirtFlat(skirt, { slit: hasSlit(saved.choices) }),
       };
     }
     if (bodice) {
@@ -243,6 +245,7 @@ export default function App() {
         }),
         spec: bodiceSpec(values as BodiceMeasurements, bodice, saved.bodice.length),
         lays,
+        flat: bodiceFlat(bodice, edges),
       };
     }
     return undefined;

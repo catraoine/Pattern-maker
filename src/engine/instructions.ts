@@ -43,6 +43,11 @@ export interface BodiceFinish {
   width?: number;
 }
 
+/** A pencil skirt, or a straight one below the knee, needs a walking slit at the centre back. */
+export function hasSlit(style: { silhouette: string; length: string }): boolean {
+  return style.silhouette === 'pencil' || (style.silhouette === 'straight' && (style.length === 'midi' || style.length === 'maxi'));
+}
+
 /** For a body that differs side to side: trim that side's pieces to their own line once cut. */
 function oneSide(pc: Piece, also: string): string {
   if (!pc.alternate) return '';
@@ -63,7 +68,7 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
   // A front too wide for the fold (big circle skirts) is cut as a pair with a centre front seam, and
   // the back is then too wide for folded fabric as well.
   const wide = frontSeam;
-  const slit = style.silhouette === 'pencil' || (style.silhouette === 'straight' && (style.length === 'midi' || style.length === 'maxi'));
+  const slit = hasSlit(style);
 
   const steps: SewStep[] = [
     {

@@ -12,6 +12,8 @@ import type { Garment } from '../measurements';
 import type { Fitting } from '../engine/fitting';
 import { FABRIC_WIDTHS, Lay, layWords } from '../engine/layplan';
 import { LayPlanView } from '../ui/LayPlanView';
+import type { Flat } from '../engine/flat';
+import { TechFlatView } from '../ui/TechFlatView';
 
 /** What to print: the drafted pieces of either garment, with its notes and sewing steps. */
 export interface Printable {
@@ -22,6 +24,8 @@ export interface Printable {
   spec: SpecRow[];
   /** Cutting layouts at the chosen fabric width, one for each fabric. */
   lays: Lay[];
+  /** The garment drawn flat, front and back. */
+  flat?: Flat;
 }
 
 interface Props {
@@ -108,7 +112,7 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
   const summary = useMemo(
     () =>
       made
-        ? { rows: made.spec.filter((r) => typeof r.finished === 'number'), checks, madeFor: profile, date, drafting: finish.atelier ? drafting : undefined, lays }
+        ? { rows: made.spec.filter((r) => typeof r.finished === 'number'), checks, madeFor: profile, date, drafting: finish.atelier ? drafting : undefined, lays, flat: made.flat }
         : undefined,
     [made, checks, profile, date, drafting, finish.atelier, lays],
   );
@@ -288,6 +292,18 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
           </button>
         </section>
       </div>
+
+      {made?.flat && (
+        <section className="card" aria-labelledby="flattitle">
+          <p className="eyebrow">Technical flat</p>
+          <h2 id="flattitle">{title}</h2>
+          <TechFlatView flat={made.flat} title={title} />
+          <p className="muted small">
+            Drawn to scale from your pattern, with the darts sewn. It goes on the first page of the PDF, for a dressmaker or anyone
+            checking the design.
+          </p>
+        </section>
+      )}
 
       <section className="card" aria-labelledby="laytitle">
         <div className="row between wrap">
