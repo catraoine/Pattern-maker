@@ -6,6 +6,7 @@ import { BodiceEdges, bodiceGuide, sewingGuide } from './engine/instructions';
 import { AllowanceStyle, SEAM_WIDTHS, withAllowances } from './engine/allowances';
 import { bodiceFacings, liningPieces, waistbandPiece } from './engine/finishing';
 import { bodiceSpec, skirtSpec } from './engine/spec';
+import { Fitting, describeFitting, toFitting } from './engine/fitting';
 import { EXAMPLE_VALUES, Garment, MeasurementValues, Unit, checkMeasurements, isComplete } from './measurements';
 import { usePersistent } from './store';
 import {
@@ -38,11 +39,13 @@ import { WelcomeScreen } from './screens/WelcomeScreen';
 import { AccountScreen } from './screens/AccountScreen';
 import { PhotoScreen } from './screens/PhotoScreen';
 import { WhoseScreen } from './screens/WhoseScreen';
+import { FittingScreen } from './screens/FittingScreen';
 import { LoadingScreen } from './ui/LoadingScreen';
 import type { FormStart } from './ui/ContourForm';
+import type { Piece } from './engine/piece';
 
 export type Step = 'measure' | 'style' | 'export';
-type View = Step | 'welcome' | 'account' | 'photo' | 'whose';
+type View = Step | 'welcome' | 'account' | 'photo' | 'whose' | 'fitting';
 
 export interface Choices {
   fit: Fit;
@@ -85,6 +88,20 @@ export const DEFAULT_FINISH: Finish = { allowances: 'home', skirtLined: false, b
 
 const fmtCm = (v: number) => `${v} cm`;
 
+/** The pattern's version and its toile corrections, for the title block, in lines that fit it. */
+function fittingLines(f: Fitting | undefined, garment: Garment): string[] {
+  const changes = describeFitting(f, garment);
+  if (!f || !changes.length) return [];
+  const date = f.date ? new Date(`${f.date}T12:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+  const lines = [`Version ${f.round + 1}, corrected after the toile${date ? ` on ${date}` : ''}:`];
+  for (const c of changes) {
+    const last = lines.length - 1;
+    if (last > 0 && lines[last].length + c.length < 96) lines[last] += `; ${c}`;
+    else lines.push(c[0].toUpperCase() + c.slice(1));
+  }
+  return lines.map((l, i) => (i && i === lines.length - 1 ? `${l}.` : l));
+}
+
 const INITIAL: Saved = {
   unit: 'cm',
   values: {},
@@ -123,15 +140,34 @@ export default function App() {
   const checks = checkMeasurements(values, saved.unit, garment);
   const canLeaveMeasure = ready(values, saved.unit, garment);
 
+  // Corrections from this person's toile fittings go into every pattern drafted for them.
+  const fitting = person.fittings?.[garment];
+  const skirtStyle = useMemo(() => ({ ...saved.choices, fitting: toFitting(fitting, 'skirt') }), [saved.choices, fitting]);
+  const bodiceStyle = useMemo(() => ({ ...saved.bodice, fitting: toFitting(fitting, 'bodice') }), [saved.bodice, fitting]);
+
   const result = useMemo((): { skirt?: SkirtDraft; bodice?: BodiceDraft; error?: string } => {
     if (!canLeaveMeasure) return {};
     try {
-      if (garment === 'bodice') return { bodice: draftBodice(values as BodiceMeasurements, saved.bodice) };
-      return { skirt: draftSkirt(values as SkirtMeasurements, saved.choices) };
+      if (garment === 'bodice') return { bodice: draftBodice(values as BodiceMeasurements, bodiceStyle) };
+      return { skirt: draftSkirt(values as SkirtMeasurements, skirtStyle) };
     } catch (e) {
       return { error: e instanceof DraftError ? e.message : 'Something went wrong drafting this pattern.' };
     }
-  }, [values, saved.choices, saved.bodice, garment, canLeaveMeasure]);
+  }, [values, skirtStyle, bodiceStyle, garment, canLeaveMeasure]);
+
+  /** The pattern's own pieces with a set of corrections, for the fitting screen's before and after. */
+  const draftWith = useMemo(
+    () =>
+      (f: Fitting): Piece[] | undefined => {
+        try {
+          if (garment === 'bodice') return draftBodice(values as BodiceMeasurements, { ...saved.bodice, fitting: toFitting(f, 'bodice') }).pieces;
+          return draftSkirt(values as SkirtMeasurements, { ...saved.choices, fitting: toFitting(f, 'skirt') }).pieces;
+        } catch {
+          return undefined;
+        }
+      },
+    [garment, values, saved.bodice, saved.choices],
+  );
 
   const current = garment === 'bodice' ? saved.bodice : saved.choices;
   const title = garment === 'bodice' ? describeBodice(saved.bodice) : describe(saved.choices);
@@ -142,12 +178,13 @@ export default function App() {
     const seams = SEAM_WIDTHS[finish.allowances];
     const allow = (pieces: Printable['pieces']) => pieces.map((pc) => withAllowances(pc, finish.allowances));
     const couture = finish.allowances === 'couture';
+    const fittingNotes = fittingLines(fitting, garment);
     if (skirt) {
       // The lining is drafted 2.5 cm shorter than the skirt, from the same measurements and style.
       let lining: SkirtDraft | undefined;
       if (finish.skirtLined) {
         try {
-          lining = draftSkirt(values as SkirtMeasurements, { ...saved.choices, lengthCm: skirt.lengthCm - 2.5 });
+          lining = draftSkirt(values as SkirtMeasurements, { ...skirtStyle, lengthCm: skirt.lengthCm - 2.5 });
         } catch {
           lining = undefined;
         }
@@ -162,6 +199,7 @@ export default function App() {
             ? `Couture allowances: ${fmtCm(seams.seam)} at the seams, ${fmtCm(seams.waist)} at the waist, ${fmtCm(hem)} at the hem. Thread-trace the solid stitching line.`
             : `Seam allowance ${fmtCm(seams.seam)} included, ${fmtCm(hem)} at the hem. Dashed line = stitching line.`,
           `Waistband${lining ? ' and lining' : ''} included. Sewing steps are on the last pages.`,
+          ...fittingNotes,
         ],
         guide: sewingGuide(skirt, saved.choices, fabricMetres(skirt), {
           seams,
@@ -185,6 +223,7 @@ export default function App() {
             ? `Couture allowances: ${fmtCm(seams.seam)} at the seams, ${fmtCm(seams.curve)} at the neck and armholes. Thread-trace the solid stitching line.`
             : `Seam allowance ${fmtCm(seams.seam)} included, ${fmtCm(seams.curve)} at the neck and armholes${below ? ', 2.5 cm at the hem' : ''}. Dashed line = stitching line.`,
           `Sleeveless, with a ${bodice.zipCm} cm centre back zip and ${edgeWords}. Sewing steps are on the last pages.`,
+          ...fittingNotes,
         ],
         guide: bodiceGuide(bodice, saved.bodice, bodiceFabricMetres(bodice), bindingMetres(bodice), {
           seams,
@@ -195,7 +234,7 @@ export default function App() {
       };
     }
     return undefined;
-  }, [result, saved.choices, saved.bodice, values, finish.allowances, finish.skirtLined, finish.bodiceEdges]);
+  }, [result, saved.choices, saved.bodice, skirtStyle, values, finish.allowances, finish.skirtLined, finish.bodiceEdges, fitting, garment]);
 
   const isSaved = isSavedFor(account, current, person.id);
   const saveState = isSaved ? 'saved' : account.patterns.length >= FREE_SAVED_LIMIT ? 'full' : 'can';
@@ -407,6 +446,23 @@ export default function App() {
               made={printable}
               error={result.error}
               onBack={() => setStep('style')}
+              fitting={fitting}
+              fittingNotes={describeFitting(fitting, garment)}
+              onFitting={() => setStep('fitting')}
+            />
+          )}
+          {step === 'fitting' && (
+            <FittingScreen
+              key={`${person.id}-${garment}`}
+              garment={garment}
+              fitting={fitting}
+              draftWith={draftWith}
+              hasBustDart={garment === 'skirt' || saved.bodice.darts !== 'none'}
+              onSave={(f) => {
+                setAccount(updatePerson(account, person.id, { fittings: { ...person.fittings, [garment]: f } }));
+                setStep('export');
+              }}
+              onCancel={() => setStep('export')}
             />
           )}
         </main>

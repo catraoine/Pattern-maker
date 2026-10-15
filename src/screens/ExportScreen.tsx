@@ -9,6 +9,7 @@ import { ALLOWANCE_LABELS, AllowanceStyle } from '../engine/allowances';
 import type { BodiceEdges } from '../engine/instructions';
 import type { Finish } from '../App';
 import type { Garment } from '../measurements';
+import type { Fitting } from '../engine/fitting';
 
 /** What to print: the drafted pieces of either garment, with its notes and sewing steps. */
 export interface Printable {
@@ -29,6 +30,10 @@ interface Props {
   made?: Printable;
   error?: string;
   onBack: () => void;
+  /** Corrections from toile fittings, and their notes, already in the pattern. */
+  fitting?: Fitting;
+  fittingNotes: string[];
+  onFitting: () => void;
 }
 
 type Output = Paper | 'projector' | 'projectorDark';
@@ -74,7 +79,7 @@ function download(data: BlobPart, type: string, name: string) {
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
-export function ExportScreen({ profile, title, fit, garment, finish, onFinish, made, error, onBack }: Props) {
+export function ExportScreen({ profile, title, fit, garment, finish, onFinish, made, error, onBack, fitting, fittingNotes, onFitting }: Props) {
   const [paper, setPaper] = useState<Output>('a4');
   const [pdf, setPdf] = useState<{ paper: Output; bytes: Uint8Array } | null>(null);
   const [shareNote, setShareNote] = useState('');
@@ -278,6 +283,28 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
           </button>
         </section>
       </div>
+
+      <section className="card" aria-labelledby="toiletitle">
+        <p className="eyebrow">Before your fabric{fittingNotes.length && fitting ? ` · version ${fitting.round + 1}` : ''}</p>
+        <h2 id="toiletitle">{fittingNotes.length ? 'Corrected after your toile' : 'Fit it in a toile first'}</h2>
+        {fittingNotes.length ? (
+          <ul className="fitlist">
+            {fittingNotes.map((n) => (
+              <li key={n}>{n[0].toUpperCase() + n.slice(1)}</li>
+            ))}
+          </ul>
+        ) : (
+          <p className="muted">
+            Make it up in calico first and try it on. Tell us what you see, such as pulling at the bust or a gaping neckline, and the
+            pattern is corrected the way a pattern cutter would, with a second line for one side if your shoulders or hips differ.
+          </p>
+        )}
+        <div className="row wrap">
+          <button type="button" className="secondary" onClick={onFitting}>
+            {fittingNotes.length ? 'Fit another toile' : 'I’ve tried on a toile'}
+          </button>
+        </div>
+      </section>
 
       <MakerPack profile={profile} title={title} fit={fit} made={made} fileBase={fileBase} />
 

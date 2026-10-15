@@ -78,6 +78,54 @@ function drill(at: P, r = 0.25): P[][] {
   return [ring, [add(at, p(-r * 1.6, 0)), add(at, p(r * 1.6, 0))], [add(at, p(0, -r * 1.6)), add(at, p(0, r * 1.6))]];
 }
 
+/** The point of a polyline nearest to q. */
+function nearest(q: P, pts: P[]): P {
+  let best = pts[0];
+  let bd = Infinity;
+  for (let i = 0; i < pts.length; i++) {
+    const a = pts[i];
+    const b = pts[(i + 1) % pts.length];
+    const ab = sub(b, a);
+    const l2 = ab.x * ab.x + ab.y * ab.y;
+    const k = l2 ? Math.max(0, Math.min(1, ((q.x - a.x) * ab.x + (q.y - a.y) * ab.y) / l2)) : 0;
+    const c = add(a, mul(ab, k));
+    const d = Math.hypot(c.x - q.x, c.y - q.y);
+    if (d < bd) {
+      bd = d;
+      best = c;
+    }
+  }
+  return best;
+}
+
+/** The runs of a closed polyline that leave another by more than half a millimetre (and somewhere
+ * by more than 2 mm), longest first, each with the points either side so it joins on. */
+export function leaving(pts: P[], from: P[]): P[][] {
+  const n = pts.length;
+  const gap = pts.map((q) => {
+    const c = nearest(q, from);
+    return Math.hypot(c.x - q.x, c.y - q.y);
+  });
+  const off = gap.map((g) => g > 0.05);
+  if (off.every(Boolean)) return [pts];
+  const runs: P[][] = [];
+  for (let i = 0; i < n; i++) {
+    if (!off[i] || off[(i - 1 + n) % n]) continue;
+    let j = i;
+    while (off[(j + 1) % n] && j - i < n) j++;
+    const run: P[] = [];
+    let most = 0;
+    for (let k = i - 1; k <= j + 1; k++) {
+      run.push(pts[((k % n) + n) % n]);
+      most = Math.max(most, gap[((k % n) + n) % n]);
+    }
+    // Under 2 mm apart (a curve meeting a new angle) is no line to cut.
+    if (most > 0.2) runs.push(run);
+  }
+  const length = (r: P[]) => r.reduce((t, q, k) => (k ? t + Math.hypot(q.x - r[k - 1].x, q.y - r[k - 1].y) : 0), 0);
+  return runs.sort((u, v) => length(v) - length(u));
+}
+
 const TITLE_W = 46; // cm, the title block beside the test square
 
 /** Turn a vector by `deg` degrees clockwise (the way SVG and the labels rotate). */
@@ -133,6 +181,24 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
     order = { piece, step: 'outline' };
     // A couture pattern is thread-traced along the stitching line, so it is drawn solid.
     poly(pc.outline.points().map(t), pc.meta.threadTrace ? 'stitchSolid' : 'stitch', true);
+    // A second line for one side of the body: drawn only where it leaves the main one, and named
+    // between the two lines.
+    if (pc.alternate) {
+      const stitch = leaving(pc.alternate.outline.points(), pc.outline.points());
+      stitch.forEach((run) => poly(run.map(t), pc.meta.threadTrace ? 'stitchSolid' : 'stitch'));
+      leaving(cutLine(pc, pc.alternate.outline), cutLine(pc)).forEach((run) => poly(run.map(t), 'cut'));
+      const run = stitch[0];
+      if (run && run.length > 1) {
+        const k = Math.floor(run.length / 2);
+        const at = run[k];
+        const near = nearest(at, pc.outline.points());
+        const u = unit(sub(run[Math.min(run.length - 1, k + 1)], run[Math.max(0, k - 1)]));
+        let rot = (Math.atan2(u.y, u.x) * 180) / Math.PI;
+        if (rot > 90) rot -= 180;
+        if (rot <= -90) rot += 180;
+        text(t(add(lerp(at, near, 0.5), p(0, 0.18))), `${pc.alternate.label} LINE`, 0.45, rot, 'middle', { face: 'label', tracking: 0.12 });
+      }
+    }
     if (opts.atelier && pc.draft) {
       pc.draft.frame.forEach((ln) => poly(ln.map(t), 'fine'));
       pc.draft.points.forEach((dp) => {
@@ -184,6 +250,7 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
         // Small finishing pieces carry just the first line.
         const lines = [
           `${pc.kind ? `PIECE ${piece + 1}/${pieces.length}` : `PIECE ${piece + 1} OF ${pieces.length}`} · ${pc.cut.toUpperCase()} · ${fabric}`,
+          ...(pc.alternate ? [`TRIM YOUR ${pc.alternate.label.split(' ')[0]} SIDE TO THE ${pc.alternate.label} LINE`] : []),
           ...(pc.kind
             ? []
             : [info.pattern.toUpperCase(), [info.madeFor && `MADE FOR ${info.madeFor}`, info.date].filter(Boolean).join(' · ').toUpperCase()]),

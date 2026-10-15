@@ -4,6 +4,7 @@ import { isCircle } from './skirt';
 import type { Length, Silhouette, SkirtDraft } from './skirt';
 import type { BodiceDraft, BodiceLength } from './bodice';
 import { SEAM_WIDTHS, SeamWidths } from './allowances';
+import type { Piece } from './piece';
 
 // Widest strip that fits across 140 cm fabric, leaving room for the selvedges.
 export const BAND_ACROSS_MAX = 135;
@@ -38,6 +39,13 @@ export interface BodiceFinish {
   liningM?: number;
 }
 
+/** For a body that differs side to side: trim that side's pieces to their own line once cut. */
+function oneSide(pc: Piece, also: string): string {
+  if (!pc.alternate) return '';
+  const side = /right/i.test(pc.alternate.label) ? 'right' : 'left';
+  return ` Then trim the pieces for your ${side} side (as you wear it) ${also ? `${also} ` : ''}along the line marked ${pc.alternate.label}, and chalk an R or L on the wrong side of each so the two sides don't get swapped.`;
+}
+
 export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; length: Length }, fabricM: number, finish: SkirtFinish = {}): SewingGuide {
   const { front, back } = draft.dartsPerSide;
   const sw = finish.seams ?? SEAM_WIDTHS.home;
@@ -60,9 +68,9 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
     },
     {
       title: 'Cut out',
-      text: wide
+      text: (wide
         ? `These pieces are too wide to cut from folded fabric, so open it out to a single layer. Cut each piece twice, turning the pattern over for the second one so you get a pair. Keep each grain arrow parallel to the selvedge. Cut along the solid outer line and snip the small notches.${dartCount ? ' Chalk-mark the dart lines.' : ''}${circle ? ' To save fabric, turn every other piece upside down so the curves nest together.' : ''}`
-        : `Fold the fabric in half with the selvedges together. ${frontSeam ? 'Place the skirt front and the skirt back on both layers so you get a pair of each.' : 'Place the skirt front on the fold, and the skirt back on both layers so you get a pair.'} Keep each grain arrow parallel to the selvedge. Cut along the solid outer line, snip the small notches${dartCount ? ', and chalk-mark the dart lines' : ''}.`,
+        : `Fold the fabric in half with the selvedges together. ${frontSeam ? 'Place the skirt front and the skirt back on both layers so you get a pair of each.' : 'Place the skirt front on the fold, and the skirt back on both layers so you get a pair.'} Keep each grain arrow parallel to the selvedge. Cut along the solid outer line, snip the small notches${dartCount ? ', and chalk-mark the dart lines' : ''}.`) + oneSide(draft.pieces[0], lined ? 'and the lining' : ''),
     },
     {
       title: 'Cut the waistband',
@@ -181,7 +189,7 @@ export function bodiceGuide(draft: BodiceDraft, style: { length: BodiceLength },
       title: 'Cut out',
       text: `Fold the fabric in half with the selvedges together. Place the bodice front on the fold, and the bodice back on both layers so you get a pair. Keep each grain arrow parallel to the selvedge. Cut along the solid outer line, snip the small notches${bust || waist ? ', and chalk-mark the dart lines and the bust point' : ''}.${
         edges === 'lined' ? ' Cut the front and back again from the lining the same way.' : edges === 'facings' ? ' Cut the four facing pieces from the fabric, and again from fusible interfacing.' : ''
-      }`,
+      }${oneSide(draft.pieces[0], edges === 'lined' ? 'and the lining' : edges === 'facings' ? 'and the armhole facings to match' : '')}`,
     },
     ...(edges === 'facings'
       ? [
