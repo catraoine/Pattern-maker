@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { MAX_POINTS, Truth, scoreReading } from './score';
+import { fitOf } from './shape';
 import type { PhotoReading } from './types';
 
 const truth: Truth = { garment: 'skirt', silhouette: 'a_line', length: 'midi', fit: 'regular', hemAt: 0.75, hemFullness: 1.6, hasDetails: false };
@@ -39,5 +40,13 @@ describe('scoreReading', () => {
     const s = scoreReading(reading({ silhouette: { value: 'straight', confidence: 'high' } }), { ...truth, hasDetails: true });
     expect(s.confidentlyWrong).toEqual(['silhouette']);
     expect(s.parts.details).toBe(0);
+  });
+});
+
+describe('fitOf', () => {
+  it('only starts from fitted when the photo clearly shows it', () => {
+    expect(fitOf(reading({ fit: { value: 'fitted', confidence: 'high' } }))).toBe('fitted');
+    expect(fitOf(reading({ fit: { value: 'fitted', confidence: 'medium' } }))).toBe('regular');
+    expect(fitOf(reading({ fit: { value: 'relaxed', confidence: 'low' } }))).toBe('relaxed');
   });
 });

@@ -3,7 +3,7 @@ import type { Choices } from '../App';
 import { photoToJpeg } from '../photo/image';
 import type { Confidence, PhotoError, PhotoReading, PhotoResponse } from '../photo/types';
 import { GROUPS } from './StyleScreen';
-import { shapeLine, shapeOf } from '../photo/shape';
+import { shapeLine, fitOf, shapeOf } from '../photo/shape';
 
 interface Props {
   measured: boolean;
@@ -99,7 +99,7 @@ export function PhotoScreen({ measured, onApply, onCancel }: Props) {
       } else {
         setReading(data.reading);
         const r = data.reading;
-        setChoices({ fit: r.fit.value, silhouette: r.silhouette.value, length: r.length.value, shape: shapeOf(r) });
+        setChoices({ fit: fitOf(r), silhouette: r.silhouette.value, length: r.length.value, shape: shapeOf(r) });
       }
     } catch {
       setError(ERRORS.network);

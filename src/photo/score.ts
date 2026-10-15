@@ -1,7 +1,7 @@
 // Scoring photo readings against hand labels, for the photo-to-pattern eval (scripts/eval-photo.ts).
 import { checkPattern } from '../engine/qc';
 import { DraftError, Fit, Length, Silhouette, SkirtMeasurements, draftSkirt } from '../engine/skirt';
-import { shapeOf } from './shape';
+import { fitOf, shapeOf } from './shape';
 import type { PhotoReading } from './types';
 
 /** What the skirt in a photo really is, labelled by a person. */
@@ -58,7 +58,7 @@ function fullnessPoints(got: number, want: number): number {
 
 function draftCheck(r: PhotoReading): { drafts: boolean; draftNote: string } {
   try {
-    const d = draftSkirt(REFERENCE_BODY, { fit: r.fit.value, silhouette: r.silhouette.value, length: r.length.value, shape: shapeOf(r) });
+    const d = draftSkirt(REFERENCE_BODY, { fit: fitOf(r), silhouette: r.silhouette.value, length: r.length.value, shape: shapeOf(r) });
     const failed = checkPattern(d.pieces, { finishedWaist: d.finishedWaist }).filter((c) => !c.ok);
     return failed.length ? { drafts: false, draftNote: failed.map((c) => c.label).join('; ') } : { drafts: true, draftNote: '' };
   } catch (e) {
@@ -72,7 +72,7 @@ export function scoreReading(r: PhotoReading, t: Truth): Score {
     garment: r.garment === t.garment ? 1 : 0,
     silhouette: silhouettePoints(r.silhouette.value, t.silhouette),
     length: lengthPoints(r.length.value, t.length),
-    fit: r.fit.value === t.fit ? 1 : 0,
+    fit: fitOf(r) === t.fit ? 1 : 0, // scores the fit the app starts from
     hemAt: hemAtPoints(r.shape.hemAt, t.hemAt),
     hemFullness: fullnessPoints(r.shape.hemFullness, t.hemFullness),
     details: (r.details.trim() !== '') === t.hasDetails ? 1 : 0,
