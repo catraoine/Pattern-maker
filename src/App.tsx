@@ -39,6 +39,7 @@ import { AccountScreen } from './screens/AccountScreen';
 import { PhotoScreen } from './screens/PhotoScreen';
 import { WhoseScreen } from './screens/WhoseScreen';
 import { LoadingScreen } from './ui/LoadingScreen';
+import type { FormStart } from './ui/ContourForm';
 
 export type Step = 'measure' | 'style' | 'export';
 type View = Step | 'welcome' | 'account' | 'photo' | 'whose';
@@ -114,6 +115,8 @@ export default function App() {
   const [step, setStep] = useState<View>(measuredBefore ? 'style' : account.onboarded ? 'measure' : 'welcome');
   // The loading screen plays once each time the app opens, before anything else is drawn.
   const [opening, setOpening] = useState(true);
+  // The welcome's dress form waits under the loading screen, which wraps its bodice into the form's outline.
+  const [formStart, setFormStart] = useState<FormStart>('wait');
   const profile = profileName(account);
   const owner = personName(account, account.people.find((p) => p.id === ME)!);
 
@@ -217,184 +220,197 @@ export default function App() {
     setStep('welcome');
   };
 
-  if (opening) return <LoadingScreen onDone={() => setOpening(false)} />;
+  const findForm = () => {
+    const r = document.querySelector('.welcome-hero canvas')?.getBoundingClientRect();
+    return r && r.width > 0 && r.height > 0 ? { x: r.left, y: r.top, w: r.width, h: r.height } : null;
+  };
 
   return (
-    <div className="app">
-      <header className="topbar">
-        <div className="brand">
-          <svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true">
-            <rect x="2.5" y="2.5" width="27" height="27" fill="none" style={{ stroke: 'var(--ink)' }} strokeWidth="1" />
-            <path d="M10 22 L16 10 L22 22 M12.5 17 H19.5" style={{ stroke: 'var(--ink)' }} strokeWidth="1" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          <span>Maison Tracé</span>
-        </div>
-        {step !== 'welcome' && (
-          <div className="row nav">
-        <nav aria-label="Steps" className="steps">
-          {STEPS.map((s, i) => (
-            <button
-              key={s.id}
-              type="button"
-              className={s.id === step ? 'step on' : 'step'}
-              aria-current={s.id === step ? 'step' : undefined}
-              disabled={s.id !== 'measure' && !canLeaveMeasure}
-              onClick={() => setStep(s.id)}
-            >
-              <span className="num">{i + 1}</span>
-              {s.label}
-            </button>
-          ))}
-        </nav>
-            <button
-              type="button"
-              className={step === 'account' ? 'avatar on' : 'avatar'}
-              aria-label={`Your account (${owner})`}
-              aria-current={step === 'account' ? 'page' : undefined}
-              onClick={() => setStep('account')}
-            >
-              {owner[0].toUpperCase()}
-            </button>
+    <>
+      {opening && (
+        <LoadingScreen
+          onDone={() => setOpening(false)}
+          findForm={step === 'welcome' ? findForm : undefined}
+          onHandoff={(drawn) => setFormStart(drawn ? 'drawn' : 'fresh')}
+        />
+      )}
+      <div className="app" {...{ inert: opening ? '' : undefined }}>
+        <header className="topbar">
+          <div className="brand">
+            <svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true">
+              <rect x="2.5" y="2.5" width="27" height="27" fill="none" style={{ stroke: 'var(--ink)' }} strokeWidth="1" />
+              <path d="M10 22 L16 10 L22 22 M12.5 17 H19.5" style={{ stroke: 'var(--ink)' }} strokeWidth="1" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <span>Maison Tracé</span>
           </div>
-        )}
-      </header>
+          {step !== 'welcome' && (
+            <div className="row nav">
+          <nav aria-label="Steps" className="steps">
+            {STEPS.map((s, i) => (
+              <button
+                key={s.id}
+                type="button"
+                className={s.id === step ? 'step on' : 'step'}
+                aria-current={s.id === step ? 'step' : undefined}
+                disabled={s.id !== 'measure' && !canLeaveMeasure}
+                onClick={() => setStep(s.id)}
+              >
+                <span className="num">{i + 1}</span>
+                {s.label}
+              </button>
+            ))}
+          </nav>
+              <button
+                type="button"
+                className={step === 'account' ? 'avatar on' : 'avatar'}
+                aria-label={`Your account (${owner})`}
+                aria-current={step === 'account' ? 'page' : undefined}
+                onClick={() => setStep('account')}
+              >
+                {owner[0].toUpperCase()}
+              </button>
+            </div>
+          )}
+        </header>
 
-      <main className="main">
-        {step === 'welcome' && (
-          <WelcomeScreen
-            unit={saved.unit}
-            garment={garment}
-            onFinish={({ unit, start }) => {
-              const onboarded = { ...account, onboarded: true };
-              setAccount(start === 'example' ? updatePerson(onboarded, person.id, { values: { ...EXAMPLE_VALUES, ...values } }) : onboarded);
-              setSaved({ ...saved, unit });
-              setStep(start === 'example' ? 'style' : start);
-            }}
-          />
-        )}
-        {step === 'whose' && (
-          <WhoseScreen
-            garment={garment}
-            unit={saved.unit}
-            values={values}
-            ownerName={account.name}
-            onDone={(whose, name) => {
-              setAccount(claimMeasurements(account, whose, name));
-              setStep('style');
-            }}
-          />
-        )}
-        {step === 'photo' && (
-          <PhotoScreen
-            measured={canLeaveMeasure}
-            onApply={(choices) => switchGarment('skirt', { choices }, 'style')}
-            onCancel={() => setStep(canLeaveMeasure ? 'style' : 'measure')}
-          />
-        )}
-        {step === 'account' && (
-          <AccountScreen
-            account={account}
-            unit={saved.unit}
-            onName={(name) => setAccount({ ...account, name })}
-            onUnit={(unit) => setSaved({ ...saved, unit })}
-            onEditMeasurements={() => setStep('measure')}
-            onSwitchPerson={(id) => setAccount({ ...account, active: id })}
-            onAddPerson={(name) => {
-              setAccount(addPerson(account, name));
-              setStep('measure');
-            }}
-            onRemovePerson={(id) => setAccount(removePerson(account, id))}
-            onOpen={(p) => {
-              // A pattern saved for someone opens with their measurements.
-              const who = account.people.find((x) => x.id === p.personId) ?? person;
-              setAccount({ ...account, active: who.id });
-              if (isBodice(p.choices)) switchGarment('bodice', { bodice: p.choices }, 'style', who.values);
-              else switchGarment('skirt', { choices: p.choices }, 'style', who.values);
-            }}
-            onRename={(id, name) => setAccount(renamePattern(account, id, name))}
-            onRemove={(id) => setAccount(removePattern(account, id))}
-            onReset={reset}
-            onBackup={() => {
-              const url = URL.createObjectURL(new Blob([JSON.stringify(makeBackup(saved, account), null, 2)], { type: 'application/json' }));
-              const a = document.createElement('a');
-              a.href = url;
-              a.download = `pattern-maker-backup-${new Date().toISOString().slice(0, 10)}.json`;
-              a.click();
-              setTimeout(() => URL.revokeObjectURL(url), 10_000);
-            }}
-            onRestore={async (file) => {
-              const b = readBackup<Saved>(await file.text());
-              if (!b) return false;
-              setSaved({ ...INITIAL, ...b.skirt });
-              setAccount({ ...NEW_ACCOUNT, ...b.account, onboarded: true });
-              return true;
-            }}
-          />
-        )}
-        {step === 'measure' && (
-          <MeasureScreen
-            key={person.id}
-            account={account}
-            onSwitchPerson={(id) => switchPerson(id)}
-            onAddPerson={(name) => setAccount(addPerson(account, name))}
-            profile={profile}
-            garment={garment}
-            onGarment={(g) => switchGarment(g)}
-            unit={saved.unit}
-            values={values}
-            checks={checks}
-            onUnit={(unit) => setSaved({ ...saved, unit })}
-            onValues={setValues}
-            onExample={() => setValues({ ...EXAMPLE_VALUES, ...values })}
-            canContinue={canLeaveMeasure}
-            onNext={() => setStep(person.id === ME && !person.named ? 'whose' : 'style')}
-          />
-        )}
-        {step === 'style' && garment === 'skirt' && (
-          <StyleScreen
-            choices={saved.choices}
-            onChoices={(choices) => setSaved({ ...saved, choices })}
-            onGarment={(g) => switchGarment(g)}
-            values={values}
-            draft={result.skirt}
-            error={result.error}
-            onEditMeasurements={() => setStep('measure')}
-            onNext={() => setStep('export')}
-            saveState={saveState}
-            onSave={() => setAccount(savePattern(account, current, describePattern(current), person.id))}
-            onAccount={() => setStep('account')}
-            onPhoto={() => setStep('photo')}
-          />
-        )}
-        {step === 'style' && garment === 'bodice' && (
-          <BodiceStyleScreen
-            choices={saved.bodice}
-            onChoices={(bodice) => setSaved({ ...saved, bodice })}
-            onGarment={(g) => switchGarment(g)}
-            values={values}
-            draft={result.bodice}
-            error={result.error}
-            onEditMeasurements={() => setStep('measure')}
-            onNext={() => setStep('export')}
-            saveState={saveState}
-            onSave={() => setAccount(savePattern(account, current, describePattern(current), person.id))}
-            onAccount={() => setStep('account')}
-          />
-        )}
-        {step === 'export' && (
-          <ExportScreen
-            profile={profile}
-            title={title}
-            fit={current.fit}
-            garment={garment}
-            finish={finish}
-            onFinish={(f) => setSaved({ ...saved, finish: f })}
-            made={printable}
-            error={result.error}
-            onBack={() => setStep('style')}
-          />
-        )}
-      </main>
-    </div>
+        <main className="main">
+          {step === 'welcome' && (
+            <WelcomeScreen
+              unit={saved.unit}
+              garment={garment}
+              formStart={formStart}
+              onFinish={({ unit, start }) => {
+                const onboarded = { ...account, onboarded: true };
+                setAccount(start === 'example' ? updatePerson(onboarded, person.id, { values: { ...EXAMPLE_VALUES, ...values } }) : onboarded);
+                setSaved({ ...saved, unit });
+                setStep(start === 'example' ? 'style' : start);
+              }}
+            />
+          )}
+          {step === 'whose' && (
+            <WhoseScreen
+              garment={garment}
+              unit={saved.unit}
+              values={values}
+              ownerName={account.name}
+              onDone={(whose, name) => {
+                setAccount(claimMeasurements(account, whose, name));
+                setStep('style');
+              }}
+            />
+          )}
+          {step === 'photo' && (
+            <PhotoScreen
+              measured={canLeaveMeasure}
+              onApply={(choices) => switchGarment('skirt', { choices }, 'style')}
+              onCancel={() => setStep(canLeaveMeasure ? 'style' : 'measure')}
+            />
+          )}
+          {step === 'account' && (
+            <AccountScreen
+              account={account}
+              unit={saved.unit}
+              onName={(name) => setAccount({ ...account, name })}
+              onUnit={(unit) => setSaved({ ...saved, unit })}
+              onEditMeasurements={() => setStep('measure')}
+              onSwitchPerson={(id) => setAccount({ ...account, active: id })}
+              onAddPerson={(name) => {
+                setAccount(addPerson(account, name));
+                setStep('measure');
+              }}
+              onRemovePerson={(id) => setAccount(removePerson(account, id))}
+              onOpen={(p) => {
+                // A pattern saved for someone opens with their measurements.
+                const who = account.people.find((x) => x.id === p.personId) ?? person;
+                setAccount({ ...account, active: who.id });
+                if (isBodice(p.choices)) switchGarment('bodice', { bodice: p.choices }, 'style', who.values);
+                else switchGarment('skirt', { choices: p.choices }, 'style', who.values);
+              }}
+              onRename={(id, name) => setAccount(renamePattern(account, id, name))}
+              onRemove={(id) => setAccount(removePattern(account, id))}
+              onReset={reset}
+              onBackup={() => {
+                const url = URL.createObjectURL(new Blob([JSON.stringify(makeBackup(saved, account), null, 2)], { type: 'application/json' }));
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `pattern-maker-backup-${new Date().toISOString().slice(0, 10)}.json`;
+                a.click();
+                setTimeout(() => URL.revokeObjectURL(url), 10_000);
+              }}
+              onRestore={async (file) => {
+                const b = readBackup<Saved>(await file.text());
+                if (!b) return false;
+                setSaved({ ...INITIAL, ...b.skirt });
+                setAccount({ ...NEW_ACCOUNT, ...b.account, onboarded: true });
+                return true;
+              }}
+            />
+          )}
+          {step === 'measure' && (
+            <MeasureScreen
+              key={person.id}
+              account={account}
+              onSwitchPerson={(id) => switchPerson(id)}
+              onAddPerson={(name) => setAccount(addPerson(account, name))}
+              profile={profile}
+              garment={garment}
+              onGarment={(g) => switchGarment(g)}
+              unit={saved.unit}
+              values={values}
+              checks={checks}
+              onUnit={(unit) => setSaved({ ...saved, unit })}
+              onValues={setValues}
+              onExample={() => setValues({ ...EXAMPLE_VALUES, ...values })}
+              canContinue={canLeaveMeasure}
+              onNext={() => setStep(person.id === ME && !person.named ? 'whose' : 'style')}
+            />
+          )}
+          {step === 'style' && garment === 'skirt' && (
+            <StyleScreen
+              choices={saved.choices}
+              onChoices={(choices) => setSaved({ ...saved, choices })}
+              onGarment={(g) => switchGarment(g)}
+              values={values}
+              draft={result.skirt}
+              error={result.error}
+              onEditMeasurements={() => setStep('measure')}
+              onNext={() => setStep('export')}
+              saveState={saveState}
+              onSave={() => setAccount(savePattern(account, current, describePattern(current), person.id))}
+              onAccount={() => setStep('account')}
+              onPhoto={() => setStep('photo')}
+            />
+          )}
+          {step === 'style' && garment === 'bodice' && (
+            <BodiceStyleScreen
+              choices={saved.bodice}
+              onChoices={(bodice) => setSaved({ ...saved, bodice })}
+              onGarment={(g) => switchGarment(g)}
+              values={values}
+              draft={result.bodice}
+              error={result.error}
+              onEditMeasurements={() => setStep('measure')}
+              onNext={() => setStep('export')}
+              saveState={saveState}
+              onSave={() => setAccount(savePattern(account, current, describePattern(current), person.id))}
+              onAccount={() => setStep('account')}
+            />
+          )}
+          {step === 'export' && (
+            <ExportScreen
+              profile={profile}
+              title={title}
+              fit={current.fit}
+              garment={garment}
+              finish={finish}
+              onFinish={(f) => setSaved({ ...saved, finish: f })}
+              made={printable}
+              error={result.error}
+              onBack={() => setStep('style')}
+            />
+          )}
+        </main>
+      </div>
+    </>
   );
 }
