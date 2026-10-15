@@ -13,6 +13,9 @@ export function skirtSpec(m: SkirtMeasurements, d: SkirtDraft): SpecRow[] {
     row('Waist', m.waist, d.finishedWaist),
     row('Hip', m.full_hip, d.finishedHip),
     { label: 'Waist to hip', body: r1(m.waist_to_hip), finished: '' },
+    // Posture, when measured: the centre waist is raised or lowered to match.
+    ...(m.front_waist_to_hip !== undefined ? [{ label: 'Waist to hip, centre front', body: r1(m.front_waist_to_hip), finished: '' }] : []),
+    ...(m.back_waist_to_hip !== undefined ? [{ label: 'Waist to hip, centre back', body: r1(m.back_waist_to_hip), finished: '' }] : []),
     row('Length, waist to hem', undefined, d.lengthCm),
     row('Hem circumference', undefined, d.hemCm),
     { label: 'Waistband (finished width 3)', finished: `cut ${d.waistband.cutLength} x ${d.waistband.cutWidth}` },
@@ -31,6 +34,7 @@ export function bodiceSpec(m: BodiceMeasurements, d: BodiceDraft, length: Bodice
     row('Centre back length', undefined, d.backLength),
     row('Armhole', m.armscye, d.armhole),
     row('Shoulder seam (back)', m.shoulder_length, d.shoulder.back),
+    { label: 'Shoulder angle, front / back', finished: `${d.shoulderSlope.front} / ${d.shoulderSlope.back} degrees` },
     { label: 'Invisible zip, centre back', finished: `${d.zipCm}` },
   );
   return rows;

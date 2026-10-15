@@ -25,6 +25,10 @@ export interface BodiceMeasurements {
   bust_depth: number;
   apex_separation: number;
   armscye?: number;
+  /** Shoulder slope, Armstrong's way: from the centre front (or back) waist diagonally up to the
+   * shoulder point. Sets the shoulder angle for square or sloping shoulders; standard angles without. */
+  front_shoulder_slope?: number;
+  back_shoulder_slope?: number;
   /** Only needed for tops that go below the waist. */
   full_hip?: number;
   waist_to_hip?: number;
@@ -91,6 +95,8 @@ export interface BodiceDraft {
   armhole: number;
   armholeTarget?: number;
   shoulder: { front: number; back: number };
+  /** Shoulder angles in degrees below level, measured or standard. */
+  shoulderSlope: { front: number; back: number };
   sideSeam: { frontLessDart: number; back: number };
   finishedBust: number;
   finishedWaist: number;
@@ -107,6 +113,26 @@ export interface BodiceDraft {
 
 const BACK_SLOPE = (18 * Math.PI) / 180;
 const FRONT_SLOPE = (22 * Math.PI) / 180;
+const deg = (a: number) => Math.round(((a * 180) / Math.PI) * 10) / 10;
+
+/**
+ * The shoulder angle that puts the shoulder point `reach` cm from the centre waist, for a shoulder of
+ * `length` from the neck point `from`. Kept between 8 and 32 degrees (very square to very sloping);
+ * undefined when the measurement can't be met inside that, so the standard angle is used.
+ */
+function slopeFor(from: P, length: number, waist: P, reach: number): number | undefined {
+  const dist = (a: number) => len(sub(add(from, p(length * Math.cos(a), length * Math.sin(a))), waist));
+  let lo = (8 * Math.PI) / 180;
+  let hi = (32 * Math.PI) / 180;
+  // The shoulder point swings down toward the waist as the angle grows, so the distance falls.
+  if (reach > dist(lo) + 0.5 || reach < dist(hi) - 0.5) return undefined;
+  for (let i = 0; i < 40; i++) {
+    const mid = (lo + hi) / 2;
+    if (dist(mid) > reach) lo = mid;
+    else hi = mid;
+  }
+  return (lo + hi) / 2;
+}
 const FRONT_DART_MAX = 6.5;
 const BACK_DART_MAX = 4.5;
 
@@ -257,7 +283,13 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number): BodiceDraft
   // shoulder width instead is badly conditioned: a 1 cm measuring error swings the slope by 10
   // degrees. Shoulder width is used as a cross-check.
   const blen = SL + 1; // 1 cm eased into the front shoulder
-  const spB = add(hpsB0, p(blen * Math.cos(BACK_SLOPE), blen * Math.sin(BACK_SLOPE)));
+  let backSlope = BACK_SLOPE;
+  if (m.back_shoulder_slope) {
+    const a = slopeFor(hpsB0, blen, p(0, NW), m.back_shoulder_slope);
+    if (a === undefined) warnings.push(`back shoulder slope ${m.back_shoulder_slope} cm doesn't fit the back length and shoulder; drafted at the standard ${deg(BACK_SLOPE)} degrees, please re-measure`);
+    else backSlope = a;
+  }
+  const spB = add(hpsB0, p(blen * Math.cos(backSlope), blen * Math.sin(backSlope)));
   if (Math.abs(spB.x - SW / 2) > 2.5) {
     warnings.push(
       `shoulder width ${SW} cm and shoulder length ${SL} cm don't agree (the pattern's shoulders are ${r(2 * spB.x, 1)} cm wide); please re-measure both`,
@@ -335,7 +367,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number): BodiceDraft
       { n: '1', at: p(0, scye), note: `0 to 1, armhole depth: ${cm(scye)}${m.armscye ? `, found so the armhole measures your armhole plus ease` : ''}. Square across for the underarm line.` },
       { n: '2', at: p(0, wb), note: `0 to 2, nape to waist: ${cm(NW)}. Square across for the waist line.${below ? ` The hem is ${cm(drop)} below.` : ''}` },
       { n: '3', at: hpsB0, note: `Back neck width: a fifth of the neck less 0.2 cm, ${cm(nw)} across and 2 cm up. ${widen ? `The neckline then widens ${cm(widen)} along the shoulder.` : ''}`.trim() },
-      { n: '4', at: spB, note: `Shoulder: your shoulder length plus 1 cm to ease into the front, ${cm(blen)}, at 18 degrees.` },
+      { n: '4', at: spB, note: `Shoulder: your shoulder length plus 1 cm to ease into the front, ${cm(blen)}, at ${deg(backSlope)} degrees${m.back_shoulder_slope && backSlope !== BACK_SLOPE ? `, so the shoulder point is your back shoulder slope, ${cm(m.back_shoulder_slope)}, from the centre back waist` : ''}.` },
       { n: '5', at: abPt, note: `Half the across back: ${cm(AB / 2)}, 1 cm below halfway down the armhole.` },
       { n: '6', at: sideB, note: `A quarter of the bust with ease, less ${cm(shift)} moved to the front for the bust: ${cm(backW)}.` },
       {
@@ -373,9 +405,6 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number): BodiceDraft
   const nwF = nw - 0.2;
   const hpsF0 = p(nwF, -2);
   const cfNeck0 = p(0, hpsF0.y + nw + 1);
-  const spF = add(hpsF0, p(SL * Math.cos(FRONT_SLOPE), SL * Math.sin(FRONT_SLOPE)));
-  const uF = unit(sub(spF, hpsF0));
-  const hpsF = add(hpsF0, mul(uF, widen));
 
   if (FL < NW + 1) {
     warnings.push(
@@ -386,6 +415,16 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number): BodiceDraft
   const dx = AS / 2 - nwF;
   const apex = p(AS / 2, hpsF0.y + Math.sqrt(Math.max(BD ** 2 - dx ** 2, 1)));
   const wf = apex.y + Math.max(FL - BD, 0);
+
+  let frontSlope = FRONT_SLOPE;
+  if (m.front_shoulder_slope) {
+    const a = slopeFor(hpsF0, SL, p(0, wf), m.front_shoulder_slope);
+    if (a === undefined) warnings.push(`front shoulder slope ${m.front_shoulder_slope} cm doesn't fit the front length and shoulder; drafted at the standard ${deg(FRONT_SLOPE)} degrees, please re-measure`);
+    else frontSlope = a;
+  }
+  const spF = add(hpsF0, p(SL * Math.cos(frontSlope), SL * Math.sin(frontSlope)));
+  const uF = unit(sub(spF, hpsF0));
+  const hpsF = add(hpsF0, mul(uF, widen));
   // Deep necklines stop 5 cm above the bust point.
   const cfNeck = p(0, Math.max(cfNeck0.y, Math.min(cfNeck0.y + nl.frontDepth, apex.y - 5)));
 
@@ -500,7 +539,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number): BodiceDraft
         at: cfNeck,
         note: `Centre front neck: ${cm(cfNeck0.y - hpsF0.y)} below the neck point${cfNeck.y > cfNeck0.y + 0.05 ? `, lowered ${cm(cfNeck.y - cfNeck0.y)} for the neckline` : ''}.`,
       },
-      { n: '2', at: spF, note: `Shoulder: your shoulder length, ${cm(SL)}, at 22 degrees.` },
+      { n: '2', at: spF, note: `Shoulder: your shoulder length, ${cm(SL)}, at ${deg(frontSlope)} degrees${m.front_shoulder_slope && frontSlope !== FRONT_SLOPE ? `, so the shoulder point is your front shoulder slope, ${cm(m.front_shoulder_slope)}, from the centre front waist` : ''}.` },
       { n: '3', at: apex, note: `Bust point: half the apex separation, ${cm(AS / 2)}, across, and the bust depth, ${cm(BD)}, from the neck point.` },
       { n: '4', at: afPt, note: `Half the across front: ${cm(AF / 2)}.` },
       { n: '5', at: sideF, note: `Underarm: sized from the high bust, so the armhole fits the frame of the body.` },
@@ -544,6 +583,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number): BodiceDraft
     armholeDepth: r(scye, 1),
     armhole: r(taggedLength(back, 'armhole') + taggedLength(front, 'armhole'), 1),
     shoulder: { front: r(len(sub(spF, hpsF))), back: r(len(sub(spB, hpsB))) },
+    shoulderSlope: { front: deg(frontSlope), back: deg(backSlope) },
     sideSeam: { frontLessDart: r(taggedLength(front, 'side')), back: r(taggedLength(back, 'side')) },
     finishedBust: r(2 * (backW + frontW), 1),
     // Round the body: the waist seam with darts closed (it slopes, so it is longer than the pieces are wide).

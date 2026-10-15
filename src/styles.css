@@ -1293,3 +1293,15 @@ button.ghost:disabled {
   width: 100%;
   height: 100%;
 }
+
+/* The posture measurements' heading spans the whole field grid. */
+.fields-head {
+  grid-column: 1 / -1;
+  margin-top: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.fields-head .muted {
+  margin: 4px 0 0;
+}
