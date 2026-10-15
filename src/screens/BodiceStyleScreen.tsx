@@ -6,9 +6,13 @@ import { BODICE_GROUPS, BodiceChoices, DARTS_FOR_FIT, describeBodice } from '../
 import { Garment, MeasurementValues, hasHip } from '../measurements';
 import { BodiceSketch, PatternPreview } from '../ui/Preview';
 import { GarmentSwitch } from '../ui/GarmentSwitch';
-import { FREE_SAVED_LIMIT } from '../account';
+import { SaveControl } from '../ui/SaveControl';
+import { FinishChoices } from '../ui/FinishChoices';
+import type { Finish } from '../App';
 
 interface Props {
+  finish: Finish;
+  onFinish: (f: Finish) => void;
   choices: BodiceChoices;
   onChoices: (c: BodiceChoices) => void;
   onGarment: (g: Garment) => void;
@@ -34,7 +38,7 @@ function friendly(w: string) {
   return 'Something in your measurements looks unusual. Please double-check them.';
 }
 
-export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount }: Props) {
+export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, finish, onFinish }: Props) {
   const [view, setView] = useState<'sketch' | 'pattern'>('sketch');
   const sheet = useMemo(() => (draft ? layout(draft.pieces, '', []) : undefined), [draft]);
   const ease = BODICE_FIT_EASE[choices.fit];
@@ -51,12 +55,13 @@ export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft
   };
 
   return (
+    <>
+    <div className="screen-head">
+      <h1 id="opts">Style your bodice</h1>
+      <GarmentSwitch garment="bodice" onGarment={onGarment} />
+    </div>
     <div className="split three">
       <section className="card" aria-labelledby="opts">
-        <div className="row between wrap">
-          <h1 id="opts">Style your bodice</h1>
-          <GarmentSwitch garment="bodice" onGarment={onGarment} />
-        </div>
         {BODICE_GROUPS.map((g) => (
           <fieldset key={g.id} className="group">
             <legend>{g.label}</legend>
@@ -87,7 +92,9 @@ export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft
             )}
           </fieldset>
         ))}
-        <p className="muted small">Sleeveless for now, with a centre back zip. The neckline and armholes are finished with bias binding. Sleeves are coming.</p>
+        <p className="eyebrow">Inside the bodice</p>
+        <FinishChoices garment="bodice" finish={finish} onFinish={onFinish} />
+        <p className="muted small">Sleeveless, with a zip at the centre back.</p>
       </section>
 
       <section className="card grow" aria-label="Preview">
@@ -97,7 +104,7 @@ export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft
               Sketch
             </button>
             <button type="button" aria-pressed={view === 'pattern'} className={view === 'pattern' ? 'on' : ''} onClick={() => setView('pattern')}>
-              Pattern pieces
+              Pieces
             </button>
           </div>
           <p className="muted small">Drafted to your measurements as you choose.</p>
@@ -118,7 +125,7 @@ export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft
         <h2 id="sum">Summary</h2>
         <div className="sumgrid">
           <span />
-          <span className="muted">Body</span>
+          <span className="muted">You</span>
           <span className="muted">Bodice</span>
           <span>Bust</span>
           <span>{values.full_bust} cm</span>
@@ -138,7 +145,7 @@ export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft
           <strong>{draft ? draft.backLength : '–'} cm</strong>
         </div>
         <p className="muted small">
-          Ease added: {ease.bust} cm at the bust, {ease.waist} cm at the waist.
+          The bodice is {ease.bust} cm bigger than you at the bust and {ease.waist} cm at the waist, so you can move and breathe.
         </p>
         <div>
           <p className="eyebrow">Pattern pieces</p>
@@ -160,26 +167,12 @@ export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft
         <button type="button" className="primary" disabled={!draft} onClick={onNext}>
           Print my pattern
         </button>
-        {saveState === 'can' && (
-          <button type="button" className="secondary" disabled={!draft} onClick={onSave}>
-            Save pattern
-          </button>
-        )}
-        {saveState === 'saved' && (
-          <p className="msg small" role="status">
-            Saved to <button type="button" className="link inline-link" onClick={onAccount}>your account</button>.
-          </p>
-        )}
-        {saveState === 'full' && (
-          <p className="muted small">
-            You've saved {FREE_SAVED_LIMIT} patterns, the free limit.{' '}
-            <button type="button" className="link inline-link" onClick={onAccount}>Manage saved patterns</button>
-          </p>
-        )}
+        <SaveControl state={saveState} disabled={!draft} onSave={onSave} onAccount={onAccount} />
         <button type="button" className="link" onClick={onEditMeasurements}>
           Edit measurements
         </button>
       </aside>
     </div>
+    </>
   );
 }

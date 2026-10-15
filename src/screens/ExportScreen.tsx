@@ -5,10 +5,8 @@ import type { Piece } from '../engine/piece';
 import type { SewingGuide } from '../engine/instructions';
 import type { SpecRow } from '../engine/techpack';
 import { PatternPreview } from '../ui/Preview';
-import { ALLOWANCE_LABELS, AllowanceStyle } from '../engine/allowances';
-import type { BodiceEdges } from '../engine/instructions';
 import type { Finish } from '../App';
-import type { Garment } from '../measurements';
+import { SaveControl } from '../ui/SaveControl';
 
 /** What to print: the drafted pieces of either garment, with its notes and sewing steps. */
 export interface Printable {
@@ -23,28 +21,24 @@ interface Props {
   profile: string;
   title: string;
   fit: string;
-  garment: Garment;
   finish: Finish;
   onFinish: (f: Finish) => void;
   made?: Printable;
   error?: string;
   onBack: () => void;
+  saveState: 'can' | 'saved' | 'full';
+  onSave: () => void;
+  onAccount: () => void;
 }
 
 type Output = Paper | 'projector' | 'projectorDark';
 
-const OUTPUTS: { id: Output; label: string }[] = [
-  { id: 'a4', label: 'A4 at home' },
-  { id: 'letter', label: 'US Letter at home' },
+// The dark projector file is the same page with white lines on black, offered as an option of the projector.
+const PAPERS: { id: Paper | 'projector'; label: string }[] = [
+  { id: 'a4', label: 'A4' },
+  { id: 'letter', label: 'US Letter' },
   { id: 'a0', label: 'A0 copy shop' },
   { id: 'projector', label: 'Projector' },
-  { id: 'projectorDark', label: 'Projector, dark' },
-];
-
-const EDGES: { id: BodiceEdges; label: string; detail: string }[] = [
-  { id: 'binding', label: 'Bias binding', detail: 'Quick and neat' },
-  { id: 'facings', label: 'Facings', detail: 'Clean edge, interfaced' },
-  { id: 'lined', label: 'Fully lined', detail: 'The couture finish' },
 ];
 
 const isProjector = (o: Output): o is 'projector' | 'projectorDark' => o === 'projector' || o === 'projectorDark';
@@ -74,7 +68,7 @@ function download(data: BlobPart, type: string, name: string) {
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
-export function ExportScreen({ profile, title, fit, garment, finish, onFinish, made, error, onBack }: Props) {
+export function ExportScreen({ profile, title, fit, finish, onFinish, made, error, onBack, saveState, onSave, onAccount }: Props) {
   const [paper, setPaper] = useState<Output>('a4');
   const [pdf, setPdf] = useState<{ paper: Output; bytes: Uint8Array } | null>(null);
   const [shareNote, setShareNote] = useState('');
@@ -155,131 +149,100 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
     setTimeout(() => URL.revokeObjectURL(url), 60_000);
   };
 
+  const download_ = () => ready && download(ready, 'application/pdf', fileName);
+  const paperChoice = projector ? 'projector' : paper;
+
   return (
     <>
       <div className="split">
         <section className="card grow" aria-labelledby="ptitle">
-          <div className="row between wrap">
+          <div>
             <h1 id="ptitle">{title[0].toUpperCase() + title.slice(1)}</h1>
             <p className="muted">
-              Profile: {profile} · {fit[0].toUpperCase() + fit.slice(1)} fit
+              For {profile === 'Me' ? 'you' : profile} · {fit[0].toUpperCase() + fit.slice(1)} fit
             </p>
           </div>
+          <fieldset className="group">
+            <legend>Print on</legend>
+            <div className="chips" role="group" aria-label="Paper">
+              {PAPERS.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  className={paperChoice === p.id ? 'chip on' : 'chip'}
+                  aria-pressed={paperChoice === p.id}
+                  onClick={() => setPaper(p.id === 'projector' ? (paper === 'projectorDark' ? 'projectorDark' : 'projector') : p.id)}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+            {projector && (
+              <label className="check">
+                <input type="checkbox" checked={paper === 'projectorDark'} onChange={(e) => setPaper(e.target.checked ? 'projectorDark' : 'projector')} />
+                <span>White lines on black, easier to see on dark fabric</span>
+              </label>
+            )}
+          </fieldset>
+          <div className="stack">
+            <button type="button" className="primary" onClick={download_} disabled={!ready}>
+              {ready ? `Download PDF (${pages} ${pages === 1 ? 'page' : 'pages'})` : 'Making your PDF…'}
+            </button>
+            {canShareFiles && (
+              <button type="button" className="secondary" onClick={share} disabled={!ready}>
+                Send to email or a printer
+              </button>
+            )}
+            <button type="button" className="secondary" onClick={openToPrint} disabled={!ready}>
+              Open PDF to print
+            </button>
+            {shareNote && <p className="msg small">{shareNote}</p>}
+          </div>
+          <p>
+            {projector
+              ? 'One page at true size, in fine lines for projecting onto fabric. Line your projector up with the 10 cm test square.'
+              : paper === 'a0'
+                ? 'Ask the copy shop to print at 100% (actual size). Measure the 10 cm test square before you cut.'
+                : 'Print at 100% (actual size). Measure the 10 cm test square on page 1 before you cut.'}
+          </p>
+          {!projector && paper !== 'a0' && (
+            <details className="small">
+              <summary>How the pages fit together</summary>
+              <p className="muted small">
+                Trim each page along its dashed line on the left and top, then lay it over the page before so the half diamonds make whole ones.
+                Tape them down and cut out your size line. On a phone, send the PDF to your email and print from a computer, or print straight from the
+                share menu.
+              </p>
+            </details>
+          )}
           <div className="preview tiles" style={{ ['--cols' as string]: grid.cols }}>
             <PatternPreview sheet={sheet} label={projector ? 'Pattern on one page for a projector' : `Pattern laid over ${pages} numbered print pages`} />
             {!projector && <TileOverlay sheet={sheet} paper={paper} />}
           </div>
-          <p className="muted">
-            {projector
-              ? 'One page at true size, in fine lines for projecting onto fabric. Calibrate your projector to the 10 cm test square.'
-              : paper === 'a0'
-                ? `${pages} ${pages === 1 ? 'sheet' : 'sheets'} of A0. Ask the copy shop to print at 100% (actual size), then measure the 10 cm test square before you cut.`
-                : `${pages} pages. Trim each page along its dashed line on the left and top and lay it over the one before, so the half diamonds make whole ones. Print at 100% (actual size) and measure the 10 cm test square before you cut.`}
-          </p>
-          {finish.atelier && (
-            <div className="atelier">
-              <p className="eyebrow">Atelier view: how it was drafted</p>
-              {drafting.map((d) => (
-                <div key={d.piece}>
-                  <h3>{d.piece}</h3>
-                  <ol className="draftpoints">
-                    {d.points.map((pt) => (
-                      <li key={pt.n}>
-                        <span className="num">{pt.n}</span>
-                        {pt.note}
-                      </li>
-                    ))}
-                  </ol>
-                </div>
-              ))}
-            </div>
-          )}
           <p className="muted small">
             {passed === checks.length
-              ? `Pattern check: all ${passed} checks pass. Seams walked to within 1 mm, curves blend across seams, darts trued.`
-              : `Pattern check: ${passed} of ${checks.length} checks pass. The details are in the PDF.`}
+              ? 'Checked: every seam meets its partner and every curve runs smoothly from piece to piece.'
+              : `${checks.length - passed} of ${checks.length} seam checks found something to look at. The details are on the last page of the PDF.`}
           </p>
-        </section>
-
-        <section className="card help" aria-labelledby="pset">
-          <h2 id="pset">Print settings</h2>
-          <fieldset className="group">
-            <legend>Paper</legend>
-            {OUTPUTS.map((p) => (
-              <label key={p.id} className={paper === p.id ? 'radio on' : 'radio'}>
-                <input type="radio" name="paper" checked={paper === p.id} onChange={() => setPaper(p.id)} />
-                <span>{p.label}</span>
-              </label>
-            ))}
-          </fieldset>
-          <fieldset className="group">
-            <legend>Seam allowances</legend>
-            {(Object.keys(ALLOWANCE_LABELS) as AllowanceStyle[]).map((a) => (
-              <label key={a} className={finish.allowances === a ? 'radio on' : 'radio'}>
-                <input type="radio" name="allowances" checked={finish.allowances === a} onChange={() => onFinish({ ...finish, allowances: a })} />
-                <span>
-                  {ALLOWANCE_LABELS[a].label} <span className="muted small">{ALLOWANCE_LABELS[a].detail}</span>
-                </span>
-              </label>
-            ))}
-          </fieldset>
-          {garment === 'skirt' ? (
-            <fieldset className="group">
-              <legend>Lining</legend>
-              {[false, true].map((on) => (
-                <label key={String(on)} className={finish.skirtLined === on ? 'radio on' : 'radio'}>
-                  <input type="radio" name="lining" checked={finish.skirtLined === on} onChange={() => onFinish({ ...finish, skirtLined: on })} />
-                  <span>
-                    {on ? 'Lined' : 'Unlined'} <span className="muted small">{on ? 'Hangs better, never clings' : 'Lighter, quicker'}</span>
-                  </span>
-                </label>
-              ))}
-            </fieldset>
-          ) : (
-            <fieldset className="group">
-              <legend>Neck and armholes</legend>
-              {EDGES.map((e) => (
-                <label key={e.id} className={finish.bodiceEdges === e.id ? 'radio on' : 'radio'}>
-                  <input type="radio" name="edges" checked={finish.bodiceEdges === e.id} onChange={() => onFinish({ ...finish, bodiceEdges: e.id })} />
-                  <span>
-                    {e.label} <span className="muted small">{e.detail}</span>
-                  </span>
-                </label>
-              ))}
-            </fieldset>
-          )}
-          <label className="check">
-            <input type="checkbox" checked={finish.atelier} onChange={(e) => onFinish({ ...finish, atelier: e.target.checked })} />
-            <span>
-              Atelier view <span className="muted small">show the draft: the frame, numbered points and how each was found</span>
-            </span>
-          </label>
-          <button type="button" className="primary" onClick={() => ready && download(ready, 'application/pdf', fileName)} disabled={!ready}>
-            {ready ? `Download PDF (${pages} ${pages === 1 ? 'page' : 'pages'})` : 'Making your PDF…'}
-          </button>
-          {canShareFiles && (
-            <button type="button" className="secondary" onClick={share} disabled={!ready}>
-              Send to email or a printer
-            </button>
-          )}
-          <button type="button" className="secondary" onClick={openToPrint} disabled={!ready}>
-            Open PDF to print
-          </button>
-          {shareNote && <p className="msg small">{shareNote}</p>}
-          <p className="muted small">
-            On a phone? Send the PDF to your email and print it from a computer, or print straight from the share menu. Always print at 100%
-            (actual size).
-          </p>
-          <button type="button" className="link" onClick={() => download(toSvg(sheet), 'image/svg+xml', `${fileBase}.svg`)}>
-            Download SVG (for pattern software)
-          </button>
+          <SaveControl state={saveState} onSave={onSave} onAccount={onAccount} />
+          <p className="muted small">Printed it? The sewing steps are just below, and on the last pages of the PDF.</p>
           <button type="button" className="link" onClick={onBack}>
             Back to style
           </button>
         </section>
       </div>
 
-      <MakerPack profile={profile} title={title} fit={fit} made={made} fileBase={fileBase} />
+      <MakerPack
+        profile={profile}
+        title={title}
+        fit={fit}
+        made={made}
+        fileBase={fileBase}
+        onSvg={() => download(toSvg(sheet), 'image/svg+xml', `${fileBase}.svg`)}
+        atelier={finish.atelier}
+        onAtelier={(on) => onFinish({ ...finish, atelier: on })}
+        drafting={drafting}
+      />
 
       <section className="card sew" aria-labelledby="sewtitle">
         <div>
@@ -313,7 +276,27 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
 const today = () => new Date().toISOString().slice(0, 10);
 
 /** Files for someone else to make the garment: a tech pack and the pattern as DXF for pattern software. */
-function MakerPack({ profile, title, fit, made, fileBase }: { profile: string; title: string; fit: string; made: Printable; fileBase: string }) {
+function MakerPack({
+  profile,
+  title,
+  fit,
+  made,
+  fileBase,
+  onSvg,
+  atelier,
+  onAtelier,
+  drafting,
+}: {
+  profile: string;
+  title: string;
+  fit: string;
+  made: Printable;
+  fileBase: string;
+  onSvg: () => void;
+  atelier: boolean;
+  onAtelier: (on: boolean) => void;
+  drafting: { piece: string; points: { n: string; note: string }[] }[];
+}) {
   const [busy, setBusy] = useState(false);
   const fitName = fit[0].toUpperCase() + fit.slice(1);
 
@@ -343,22 +326,50 @@ function MakerPack({ profile, title, fit, made, fileBase }: { profile: string; t
   };
 
   return (
-    <section className="card" aria-labelledby="makertitle">
-      <p className="eyebrow">Having it made</p>
-      <h2 id="makertitle">For a dressmaker or factory</h2>
+    <details className="card more">
+      <summary>
+        <span className="eyebrow">Having it made, or drafting by hand</span>
+        <h2>More files</h2>
+      </summary>
       <p className="muted">
-        Send both files to whoever is making it. The tech pack has your measurements, the ease, the piece list, fabric and the construction
-        steps. The DXF opens in pattern software such as Gerber, Lectra, Optitex and CLO 3D.
+        For a dressmaker or factory, send both files. The tech pack has the measurements, ease, piece list, fabric and sewing steps. The DXF opens
+        in pattern software such as Gerber, Lectra, Optitex and CLO 3D.
       </p>
       <div className="row wrap">
         <button type="button" className="secondary" onClick={techPack} disabled={busy}>
-          {busy ? 'Making the tech pack…' : 'Download tech pack (PDF)'}
+          {busy ? 'Making the tech pack…' : 'Tech pack (PDF)'}
         </button>
         <button type="button" className="secondary" onClick={dxf}>
-          Download pattern (DXF)
+          Pattern (DXF)
+        </button>
+        <button type="button" className="secondary" onClick={onSvg}>
+          Pattern (SVG)
         </button>
       </div>
-    </section>
+      <label className="check">
+        <input type="checkbox" checked={atelier} onChange={(e) => onAtelier(e.target.checked)} />
+        <span>
+          Show how it was drafted <span className="muted small">numbered points on the pattern, with a note on how each was found</span>
+        </span>
+      </label>
+      {atelier && (
+        <div className="atelier">
+          {drafting.map((d) => (
+            <div key={d.piece}>
+              <h3>{d.piece}</h3>
+              <ol className="draftpoints">
+                {d.points.map((pt) => (
+                  <li key={pt.n}>
+                    <span className="num">{pt.n}</span>
+                    {pt.note}
+                  </li>
+                ))}
+              </ol>
+            </div>
+          ))}
+        </div>
+      )}
+    </details>
   );
 }
 

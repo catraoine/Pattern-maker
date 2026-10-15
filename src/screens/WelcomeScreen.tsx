@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import type { Garment, Unit } from '../measurements';
-import { FIELDS } from '../measurements';
 import { ContourForm, type FormStart } from '../ui/ContourForm';
 
 interface Props {
@@ -18,7 +17,6 @@ export function WelcomeScreen({ unit: initialUnit, garment, onFinish, formStart 
   const [step, setStep] = useState(0);
   const [unit, setUnit] = useState<Unit>(initialUnit);
   const finish = (start: 'measure' | 'example' | 'photo') => onFinish({ unit, start });
-  const fields = FIELDS[garment].filter((f) => !f.optional);
 
   return (
     <div className="welcome">
@@ -59,15 +57,12 @@ export function WelcomeScreen({ unit: initialUnit, garment, onFinish, formStart 
         {step === 1 && (
           <>
             <h1 id="wtitle">Ready when you are</h1>
-            <p>Measuring takes about {garment === 'skirt' ? 'five' : 'fifteen'} minutes. You'll need:</p>
-            <ul className="checklist">
-              <li>A soft tape measure</li>
-              <li>Close-fitting clothes, or just underwear</li>
-              <li>A helper if you have one, as it makes the lengths easier</li>
-            </ul>
-            <p className="muted small">We'll ask for {fields.map((f) => f.label.toLowerCase()).join(', ')}.</p>
+            <p>
+              Measuring a {garment} takes about {garment === 'skirt' ? 'five' : 'fifteen'} minutes. You'll need a soft tape measure, close-fitting
+              clothes and, if you can, a helper for the lengths.
+            </p>
             <fieldset className="group">
-              <legend>Which units does your tape measure use?</legend>
+              <legend>Your tape measure</legend>
               <div className="seg" role="group" aria-label="Units">
                 {(['cm', 'in'] as Unit[]).map((u) => (
                   <button key={u} type="button" aria-pressed={unit === u} className={unit === u ? 'on' : ''} onClick={() => setUnit(u)}>
@@ -76,23 +71,26 @@ export function WelcomeScreen({ unit: initialUnit, garment, onFinish, formStart 
                 ))}
               </div>
             </fieldset>
-            <p className="muted small">Everything stays on this device. Nothing is sent anywhere.</p>
             <div className="stack">
               <button type="button" className="primary" onClick={() => finish('measure')}>
                 Start measuring
               </button>
               {garment === 'skirt' && (
                 <button type="button" className="secondary" onClick={() => finish('photo')}>
-                  Have a skirt you love? Start from a photo
+                  Start from a photo of a skirt
                 </button>
               )}
-              <button type="button" className="secondary" onClick={() => finish('example')}>
-                Just looking? Try example measurements
-              </button>
-              <button type="button" className="link" onClick={() => setStep(0)}>
-                Back
+              <button type="button" className="link" onClick={() => finish('example')}>
+                Just looking? Use example measurements
               </button>
             </div>
+            <p className="muted small">
+              {garment === 'skirt' ? 'You start with a skirt. A bodice is one tap away when you measure.' : 'You start with a bodice. A skirt is one tap away when you measure.'} Your
+              measurements stay on this device.
+            </p>
+            <button type="button" className="link" onClick={() => setStep(0)}>
+              Back
+            </button>
           </>
         )}
       </section>

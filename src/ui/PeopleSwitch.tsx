@@ -2,8 +2,18 @@ import { useState } from 'react';
 import { Account, Person, personName } from '../account';
 
 /** Whose measurements are in use: one button per person, plus a way to add someone new. */
-export function PeopleSwitch({ account, onSwitch, onAdd }: { account: Account & { people: Person[]; active: string }; onSwitch: (id: string) => void; onAdd: (name: string) => void }) {
-  const [adding, setAdding] = useState(false);
+export function PeopleSwitch({
+  account,
+  onSwitch,
+  onAdd,
+  startAdding = false,
+}: {
+  account: Account & { people: Person[]; active: string };
+  onSwitch: (id: string) => void;
+  onAdd: (name: string) => void;
+  startAdding?: boolean;
+}) {
+  const [adding, setAdding] = useState(startAdding);
   const [name, setName] = useState('');
   const add = () => {
     if (!name.trim()) return;
