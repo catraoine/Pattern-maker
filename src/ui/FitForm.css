@@ -1,0 +1,79 @@
+/* The fit feedback form under a saved pattern, in the Contour Line style: fine rules, square outline answers. */
+.fitform {
+  flex: 1 1 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-top: 4px;
+  padding: 16px 0 4px;
+  border-top: 1px solid var(--line);
+}
+
+.fitareas {
+  display: grid;
+  gap: 0;
+}
+
+.fitarea {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.fitarea-name {
+  flex: 0 0 110px;
+  font-family: var(--mono);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: var(--track);
+  color: var(--muted);
+}
+
+.fitarea-opts {
+  flex: 1 1 260px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.fitarea-opts button {
+  min-height: 40px;
+  padding: 0 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--pill);
+  background: transparent;
+  color: var(--muted);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.fitarea-opts button.on {
+  border-color: var(--gild);
+  color: var(--gild);
+}
+
+.fitform textarea {
+  width: 100%;
+  min-height: 88px;
+  padding: 10px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  font-size: 16px;
+  resize: vertical;
+}
+
+.fitform textarea:focus {
+  outline: 3px solid var(--focus);
+  outline-offset: 1px;
+}
+
+.fitnote {
+  margin: 4px 0 0;
+  color: var(--gild);
+}

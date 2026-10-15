@@ -2,6 +2,7 @@
 // Patterns are stored as choices (not geometry), so they redraft whenever measurements or the engine change.
 import { PatternChoices, isBodice } from './garments';
 import type { MeasurementValues } from './measurements';
+import type { FitFeedback } from './fit';
 
 export const FREE_SAVED_LIMIT = 3;
 
@@ -12,6 +13,8 @@ export interface SavedPattern {
   savedAt: string; // ISO date
   /** Whose measurements it was saved with; opening it switches to them. Older saves have none and stay with whoever is active. */
   personId?: string;
+  /** How it fitted once sewn, noted by the sewist. */
+  fit?: FitFeedback;
 }
 
 /** One body's measurements. The account owner is always the person with id ME; their name is the account name. */
@@ -111,6 +114,11 @@ export function removePattern(account: Account, id: string): Account {
 
 export function renamePattern(account: Account, id: string, name: string): Account {
   return { ...account, patterns: account.patterns.map((p) => (p.id === id ? { ...p, name } : p)) };
+}
+
+/** Save (or with undefined, clear) how a saved pattern fitted. */
+export function setPatternFit(account: Account, id: string, fit: FitFeedback | undefined): Account {
+  return { ...account, patterns: account.patterns.map((p) => (p.id === id ? { ...p, fit } : p)) };
 }
 
 /** The name of whoever's measurements are in use, shown on screens and printed on the pattern. */
