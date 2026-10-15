@@ -15,10 +15,10 @@
         "fit": "fitted",
         "hemAt": 0.51,
         "hemFullness": 0.9,
-        "hasDetails": false
+        "hasDetails": true
       },
       "truthChecked": true,
-      "labelNote": "High-waisted pencil skirt; the hem sits just above the knee, so length is above_knee rather than the slot's knee."
+      "labelNote": "High-waisted pencil skirt; the hem sits just above the knee, so length is above_knee rather than the slot's knee. Has curved princess seams on the front. Seam lines and waistbands count as details (Cat, 2026-10-15)."
     },
     {
       "id": "02-straight",
@@ -110,10 +110,10 @@
         "fit": "regular",
         "hemAt": 0.41,
         "hemFullness": 3.0,
-        "hasDetails": false
+        "hasDetails": true
       },
       "truthChecked": true,
-      "labelNote": "Skater skirt; hem at mid-thigh (measured 0.41 of waist to floor in the photo)."
+      "labelNote": "Skater skirt; hem at mid-thigh (measured 0.41 of waist to floor in the photo). Has a wide elasticated waistband. Seam lines and waistbands count as details (Cat, 2026-10-15)."
     },
     {
       "id": "07-full-circle",
@@ -167,10 +167,10 @@
         "fit": "regular",
         "hemAt": 0.94,
         "hemFullness": 2.0,
-        "hasDetails": false
+        "hasDetails": true
       },
       "truthChecked": true,
-      "labelNote": "Flared A-line maxi on a mannequin. No visible gathers or tiers, so details should be empty; a bag hangs over the front."
+      "labelNote": "Flared A-line maxi on a mannequin. No visible gathers or tiers, so a bag hangs over the front. Gored panels flare toward the hem. Seam lines and waistbands count as details (Cat, 2026-10-15)."
     },
     {
       "id": "10-flat-lay",
@@ -186,10 +186,10 @@
         "fit": "regular",
         "hemAt": 0.56,
         "hemFullness": 1.0,
-        "hasDetails": false
+        "hasDetails": true
       },
       "truthChecked": true,
-      "labelNote": "Laid flat. Commons calls it a pencil skirt, but the hem does not taper in the photo, so labelled straight (pencil scores half). Length is a guess from proportions."
+      "labelNote": "Laid flat. Commons calls it a pencil skirt, but the hem does not taper in the photo, so labelled straight (pencil scores half). Length is a guess from proportions. Has a seam down the front. Seam lines and waistbands count as details (Cat, 2026-10-15)."
     }
   ]
 }

@@ -12,7 +12,7 @@ export interface Truth {
   fit: Fit;
   hemAt: number;
   hemFullness: number;
-  /** True when it has features the app can't draft yet (pleats, gathers, a slit...), so details should say so. */
+  /** True when it has features the app can't draft yet (pleats, gathers, a slit, seam lines, a special waistband...), so details should say so. */
   hasDetails: boolean;
 }
 
