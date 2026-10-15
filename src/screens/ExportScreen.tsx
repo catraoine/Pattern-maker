@@ -10,6 +10,8 @@ import type { BodiceEdges } from '../engine/instructions';
 import type { Finish } from '../App';
 import type { Garment } from '../measurements';
 import type { Fitting } from '../engine/fitting';
+import { FABRIC_WIDTHS, Lay, layWords } from '../engine/layplan';
+import { LayPlanView } from '../ui/LayPlanView';
 
 /** What to print: the drafted pieces of either garment, with its notes and sewing steps. */
 export interface Printable {
@@ -18,6 +20,8 @@ export interface Printable {
   guide: SewingGuide;
   /** Body, ease and finished measurements, for the tech pack. */
   spec: SpecRow[];
+  /** Cutting layouts at the chosen fabric width, one for each fabric. */
+  lays: Lay[];
 }
 
 interface Props {
@@ -100,12 +104,13 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
     );
   }, [made]);
   const drafting = useMemo(() => (made ? made.pieces.filter((pc) => pc.draft).map((pc) => ({ piece: pc.name, points: pc.draft!.points })) : []), [made]);
+  const lays = useMemo(() => made?.lays ?? [], [made]);
   const summary = useMemo(
     () =>
       made
-        ? { rows: made.spec.filter((r) => typeof r.finished === 'number'), checks, madeFor: profile, date, drafting: finish.atelier ? drafting : undefined }
+        ? { rows: made.spec.filter((r) => typeof r.finished === 'number'), checks, madeFor: profile, date, drafting: finish.atelier ? drafting : undefined, lays }
         : undefined,
-    [made, checks, profile, date, drafting, finish.atelier],
+    [made, checks, profile, date, drafting, finish.atelier, lays],
   );
 
   // Build the PDF ahead of time, so share and print run straight from the tap (phones require that).
@@ -283,6 +288,41 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
           </button>
         </section>
       </div>
+
+      <section className="card" aria-labelledby="laytitle">
+        <div className="row between wrap">
+          <div>
+            <p className="eyebrow">Cutting layout</p>
+            <h2 id="laytitle">{lays.map((l) => `${l.metres.toFixed(1)} m${l.fabric === 'lining' ? ' of lining' : ''}`).join(' + ') || 'Too wide to lay out'}</h2>
+          </div>
+          <div className="row wrap">
+            <div className="seg" role="group" aria-label="Fabric width">
+              {FABRIC_WIDTHS.map((w) => (
+                <button key={w} type="button" className={finish.fabricWidth === w ? 'on' : ''} aria-pressed={finish.fabricWidth === w} onClick={() => onFinish({ ...finish, fabricWidth: w })}>
+                  {w} cm
+                </button>
+              ))}
+            </div>
+            <label className="check">
+              <input type="checkbox" checked={finish.nap} onChange={(e) => onFinish({ ...finish, nap: e.target.checked })} />
+              <span>
+                Nap or one-way print <span className="muted small">every piece the same way up</span>
+              </span>
+            </label>
+          </div>
+        </div>
+        {lays.length ? (
+          lays.map((lay) => (
+            <div key={lay.fabric} className="lay">
+              {lays.length > 1 && <p className="eyebrow">{lay.fabric === 'lining' ? 'Lining' : 'Fabric'}</p>}
+              <LayPlanView lay={lay} />
+              <p className="muted small">{layWords(lay)}</p>
+            </div>
+          ))
+        ) : (
+          <p className="muted">These pieces are wider than {finish.fabricWidth} cm fabric. Try a wider fabric.</p>
+        )}
+      </section>
 
       <section className="card" aria-labelledby="toiletitle">
         <p className="eyebrow">Before your fabric{fittingNotes.length && fitting ? ` · version ${fitting.round + 1}` : ''}</p>

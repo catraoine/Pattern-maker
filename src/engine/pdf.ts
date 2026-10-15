@@ -15,6 +15,7 @@ import {
 } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import * as fontData from './fontData';
+import { type Lay, layWords } from './layplan';
 import { P } from './geometry';
 import { Face, OVERLAP, PAGE_MARGIN, Paper, STYLES, Sheet, pageName, pageSize, tileGrid, usedTiles } from './export';
 import type { SewingGuide } from './instructions';
@@ -126,6 +127,8 @@ export interface Summary {
   date?: string;
   /** The atelier view: each piece's numbered drafting points and how they were found. */
   drafting?: { piece: string; points: DraftPoint[] }[];
+  /** Cutting layouts, one for each fabric. */
+  lays?: Lay[];
 }
 
 /** Diamonds that meet across a taped join: one half on each page once the top sheet is trimmed. */
@@ -209,6 +212,7 @@ export async function toTiledPdf(sheet: Sheet, paper: Paper, extras?: PdfExtras)
     }
   }
   if (extras?.summary) addSummaryPage(doc, fonts, sheet, paper === 'a0' ? 'a4' : paper, used, total, extras.title, extras.summary, [stepX, stepY]);
+  if (extras?.summary?.lays?.length) addLayPages(doc, fonts, paper === 'a0' ? 'a4' : paper, extras.summary.lays);
   if (extras?.summary?.drafting?.length) addDraftingPages(doc, fonts, paper === 'a0' ? 'a4' : paper, extras.title, extras.summary.drafting);
   if (extras?.guide) addSewingPages(doc, fonts, paper === 'a0' ? 'a4' : paper, extras.title, extras.guide);
   return doc.save();
@@ -363,6 +367,39 @@ function addSummaryPage(
     }),
   );
   st.y -= sheet.height * k + 10;
+}
+
+/** The cutting layouts: the fabric drawn lengthwise across the page, each piece where it is cut. */
+function addLayPages(doc: PDFDocument, fonts: Fonts, paper: 'a4' | 'letter', lays: Lay[]) {
+  const { write, label, st, room, left, width } = flow(doc, paper, fonts);
+  drawText(st.page, 'MAISON TRACÉ   ·   CUTTING LAYOUT', { x: left, y: st.y, size: 7.5, font: fonts.label, tracking: 0.3, grey: 0.4 });
+  st.y -= 26;
+  write('Cutting layout', 20, fonts.bodyMedium, 0, 8);
+  for (const lay of lays) {
+    const k = width / Math.max(lay.length, 60);
+    const h = lay.across * k;
+    // Keep the heading and words on the page with their drawing.
+    room(h + 90);
+    label(`${lay.fabric === 'lining' ? 'LINING' : 'FABRIC'}: ${lay.metres.toFixed(1)} M OF ${lay.width} CM WIDE`);
+    write(layWords(lay), 9.5, fonts.body, 0, 10);
+    room(h + 24);
+    const x0 = left;
+    const y0 = st.y;
+    // Fabric along the page: its length runs left to right, the fold (or a selvedge) along the top.
+    const at = (q: P) => `${(q.y * k).toFixed(2)} ${(q.x * k).toFixed(2)}`;
+    st.page.drawRectangle({ x: x0, y: y0 - h, width: lay.length * k, height: h, color: rgb(0.96, 0.96, 0.96) });
+    st.page.drawLine({ start: { x: x0, y: y0 }, end: { x: x0 + lay.length * k, y: y0 }, thickness: 0.8, dashArray: lay.folded ? [4, 2] : undefined });
+    for (const pl of lay.placements) {
+      const d = pl.pts.map((q, i) => `${i ? 'L' : 'M'}${at(q)}`).join(' ') + ' Z';
+      st.page.drawSvgPath(d, { x: x0, y: y0, borderColor: rgb(0, 0, 0), borderWidth: 0.7, color: rgb(1, 1, 1) });
+      const name = pl.name.toUpperCase() + (pl.single ? ' (1 LAYER)' : '');
+      const size = 6;
+      drawText(st.page, name, { x: x0 + pl.at.y * k, y: y0 - pl.at.x * k - size / 3, size, font: fonts.label, tracking: 0.1, centre: true });
+    }
+    drawText(st.page, lay.folded ? 'FOLD' : 'SELVEDGE', { x: x0, y: y0 + 4, size: 6.5, font: fonts.label, tracking: 0.2, grey: 0.4 });
+    drawText(st.page, lay.folded ? 'SELVEDGES' : 'SELVEDGE', { x: x0, y: y0 - h - 10, size: 6.5, font: fonts.label, tracking: 0.2, grey: 0.4 });
+    st.y -= h + 24;
+  }
 }
 
 /** The atelier view in print: how each piece was drafted, point by point, matching the numbers on the pattern. */

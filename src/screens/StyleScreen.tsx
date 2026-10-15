@@ -2,6 +2,8 @@ import { useMemo, useRef, useState } from 'react';
 import type { Choices } from '../App';
 import { layout } from '../engine/export';
 import { piecesLengthCm, toMetres } from '../engine/fabric';
+import { layPlan } from '../engine/layplan';
+import { waistbandPiece } from '../engine/finishing';
 import { FIT_EASE, SkirtDraft, SkirtMeasurements } from '../engine/skirt';
 import { isShaped } from '../engine/hem';
 import type { Garment, MeasurementValues } from '../measurements';
@@ -66,9 +68,11 @@ export function describe(c: Choices) {
 
 const UNDO_LIMIT = 40;
 
-/** Rough fabric need on 140 cm wide fabric: the pieces, plus a strip for the waistband, which is cut
- * across the fabric. */
+/** Fabric needed on 140 cm wide fabric, from the cutting layout of the pieces and the waistband. A
+ * rough estimate where the pieces are too wide to lay out. */
 export function fabricMetres(draft: SkirtDraft): number {
+  const lay = layPlan([...draft.pieces, waistbandPiece(draft, 1.5)], 140);
+  if (lay) return lay.metres;
   const { cutLength, cutWidth } = draft.waistband;
   const band = cutLength <= BAND_ACROSS_MAX ? cutWidth : cutLength;
   return toMetres(piecesLengthCm(draft.pieces) + band + 15);

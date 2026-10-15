@@ -27,6 +27,8 @@ export interface SkirtFinish {
   seams?: SeamWidths;
   /** Lining fabric needed, in metres, when the skirt is lined. */
   liningM?: number;
+  /** Fabric width in cm, when it isn't 140. */
+  width?: number;
   /** Hem allowance on a straight or A-line skirt, when it isn't the usual 4 cm. */
   hem?: number;
 }
@@ -37,6 +39,8 @@ export interface BodiceFinish {
   seams?: SeamWidths;
   edges?: BodiceEdges;
   liningM?: number;
+  /** Fabric width in cm, when it isn't 140. */
+  width?: number;
 }
 
 /** For a body that differs side to side: trim that side's pieces to their own line once cut. */
@@ -158,8 +162,8 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
 
   return {
     notions: [
-      `${fabricM.toFixed(1)} m of woven fabric, 140 cm wide`,
-      ...(lined ? [`${finish.liningM!.toFixed(1)} m of lining, 140 cm wide`] : []),
+      `${fabricM.toFixed(1)} m of woven fabric, ${finish.width ?? 140} cm wide`,
+      ...(lined ? [`${finish.liningM!.toFixed(1)} m of lining, ${finish.width ?? 140} cm wide`] : []),
       `${draft.zipCm} cm invisible zip`,
       'Hook and eye',
       '0.3 m lightweight fusible interfacing',
@@ -291,11 +295,11 @@ export function bodiceGuide(draft: BodiceDraft, style: { length: BodiceLength },
 
   return {
     notions: [
-      `${fabricM.toFixed(1)} m of woven fabric, 140 cm wide`,
+      `${fabricM.toFixed(1)} m of woven fabric, ${finish.width ?? 140} cm wide`,
       `${draft.zipCm} cm invisible zip`,
       ...(edges === 'binding' ? [`${bindingM.toFixed(1)} m of 2 cm wide bias binding`] : []),
       ...(edges === 'facings' ? ['0.5 m lightweight fusible interfacing'] : []),
-      ...(edges === 'lined' ? [`${(finish.liningM ?? fabricM).toFixed(1)} m of lining, 140 cm wide`] : []),
+      ...(edges === 'lined' ? [`${(finish.liningM ?? fabricM).toFixed(1)} m of lining, ${finish.width ?? 140} cm wide`] : []),
       'Hook and eye',
       'Matching thread',
     ],

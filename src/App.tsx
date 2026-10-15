@@ -7,6 +7,7 @@ import { AllowanceStyle, SEAM_WIDTHS, withAllowances } from './engine/allowances
 import { bodiceFacings, liningPieces, waistbandPiece } from './engine/finishing';
 import { bodiceSpec, skirtSpec } from './engine/spec';
 import { Fitting, describeFitting, toFitting } from './engine/fitting';
+import { FabricWidth, layPlans } from './engine/layplan';
 import { EXAMPLE_VALUES, Garment, MeasurementValues, Unit, checkMeasurements, isComplete } from './measurements';
 import { usePersistent } from './store';
 import {
@@ -82,9 +83,12 @@ export interface Finish {
   skirtLined: boolean;
   bodiceEdges: BodiceEdges;
   atelier: boolean;
+  /** For the cutting layout: the fabric's width, and whether it has a nap. */
+  fabricWidth: FabricWidth;
+  nap: boolean;
 }
 
-export const DEFAULT_FINISH: Finish = { allowances: 'home', skirtLined: false, bodiceEdges: 'binding', atelier: false };
+export const DEFAULT_FINISH: Finish = { allowances: 'home', skirtLined: false, bodiceEdges: 'binding', atelier: false, fabricWidth: 140, nap: false };
 
 const fmtCm = (v: number) => `${v} cm`;
 
@@ -191,6 +195,8 @@ export default function App() {
       }
       const pieces = allow([...skirt.pieces, ...(lining ? liningPieces(lining) : []), waistbandPiece(skirt, 1.5)]);
       const hem = pieces[0].allowances.hem;
+      const lays = layPlans(pieces, finish.fabricWidth, finish.nap);
+      const metres = (f: 'self' | 'lining', fallback: () => number) => lays.find((l) => l.fabric === f)?.metres ?? fallback();
       return {
         pieces,
         notes: [
@@ -201,12 +207,14 @@ export default function App() {
           `Waistband${lining ? ' and lining' : ''} included. Sewing steps are on the last pages.`,
           ...fittingNotes,
         ],
-        guide: sewingGuide(skirt, saved.choices, fabricMetres(skirt), {
+        guide: sewingGuide(skirt, saved.choices, metres('self', () => fabricMetres(skirt)), {
           seams,
-          liningM: lining ? fabricMetres(lining) : undefined,
+          width: finish.fabricWidth,
+          liningM: lining ? metres('lining', () => fabricMetres(lining!)) : undefined,
           hem: skirt.pieces[0].allowances.hem >= 4 ? hem : undefined,
         }),
         spec: skirtSpec(values as SkirtMeasurements, skirt),
+        lays,
       };
     }
     if (bodice) {
@@ -215,6 +223,8 @@ export default function App() {
       const main = edges === 'lined' ? bodice.pieces.map((pc) => ({ ...pc, fabric: 'Self fabric and lining' })) : bodice.pieces;
       const pieces = allow([...main, ...(edges === 'facings' ? bodiceFacings(bodice.pieces[0], bodice.pieces[1]) : [])]);
       const edgeWords = { binding: 'bias-bound edges', facings: 'faced neck and armholes', lined: 'a full lining' }[edges];
+      const lays = layPlans(pieces, finish.fabricWidth, finish.nap);
+      const metres = (f: 'self' | 'lining') => lays.find((l) => l.fabric === f)?.metres ?? bodiceFabricMetres(bodice);
       return {
         pieces,
         notes: [
@@ -225,16 +235,18 @@ export default function App() {
           `Sleeveless, with a ${bodice.zipCm} cm centre back zip and ${edgeWords}. Sewing steps are on the last pages.`,
           ...fittingNotes,
         ],
-        guide: bodiceGuide(bodice, saved.bodice, bodiceFabricMetres(bodice), bindingMetres(bodice), {
+        guide: bodiceGuide(bodice, saved.bodice, metres('self'), bindingMetres(bodice), {
           seams,
           edges,
-          liningM: bodiceFabricMetres(bodice),
+          width: finish.fabricWidth,
+          liningM: metres('lining'),
         }),
         spec: bodiceSpec(values as BodiceMeasurements, bodice, saved.bodice.length),
+        lays,
       };
     }
     return undefined;
-  }, [result, saved.choices, saved.bodice, skirtStyle, values, finish.allowances, finish.skirtLined, finish.bodiceEdges, fitting, garment]);
+  }, [result, saved.choices, saved.bodice, skirtStyle, values, finish.allowances, finish.skirtLined, finish.bodiceEdges, finish.fabricWidth, finish.nap, fitting, garment]);
 
   const isSaved = isSavedFor(account, current, person.id);
   const saveState = isSaved ? 'saved' : account.patterns.length >= FREE_SAVED_LIMIT ? 'full' : 'can';

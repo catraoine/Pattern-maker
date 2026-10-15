@@ -1393,3 +1393,45 @@ button.ghost:disabled {
     position: static;
   }
 }
+
+/* The cutting layout: the fabric lengthwise, pieces in fine champagne lines. */
+.layplan {
+  width: 100%;
+  height: auto;
+  max-height: 420px;
+}
+.layplan .lay-fabric {
+  fill: var(--fill);
+}
+.layplan .lay-fold {
+  stroke: var(--muted);
+  stroke-width: 0.3;
+  stroke-dasharray: 1.2 0.8;
+}
+.layplan .lay-edge {
+  stroke: var(--muted);
+  stroke-width: 0.3;
+}
+.layplan .lay-piece {
+  fill: var(--paper);
+  stroke: var(--gild);
+  stroke-width: 0.25;
+  stroke-linejoin: round;
+}
+.layplan text {
+  font-family: var(--mono);
+  letter-spacing: 0.12em;
+}
+.layplan .lay-name {
+  fill: var(--ink);
+}
+.layplan .lay-note {
+  fill: var(--muted);
+}
+.lay {
+  display: grid;
+  gap: 8px;
+}
+.lay p {
+  margin: 0;
+}
