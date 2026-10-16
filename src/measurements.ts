@@ -16,6 +16,8 @@ export interface MeasurementField {
   optional?: string;
   /** Easier with someone else holding the tape. */
   helper?: boolean;
+  /** Posture measurements for a closer fit, listed after the rest under their own heading. */
+  fit?: boolean;
 }
 
 const WAIST: MeasurementField = {
@@ -42,6 +44,29 @@ const WAIST_TO_HIP: MeasurementField = {
   tip: 'Down your side, from your waist to the fullest part of your hip.',
 };
 
+const CLOSER = 'For a closer fit.';
+
+const FRONT_WAIST_TO_HIP: MeasurementField = {
+  id: 'front_waist_to_hip',
+  label: 'Front waist to hip',
+  hard: [8, 38],
+  typical: [14, 28],
+  optional: CLOSER,
+  fit: true,
+  tip: 'Down the centre front, from your waist to the level of your full hip. Hold a ruler level across your front at hip height and measure to it. Longer than your side means a rounder tummy, and the skirt is raised at the front to hang level.',
+};
+
+const BACK_WAIST_TO_HIP: MeasurementField = {
+  id: 'back_waist_to_hip',
+  label: 'Back waist to hip',
+  hard: [8, 38],
+  typical: [13, 27],
+  optional: CLOSER,
+  fit: true,
+  helper: true,
+  tip: 'Down the centre back, from your waist to the level of your full hip. Shorter than your side means a sway back, longer means a full seat; the back waist is lowered or raised to match.',
+};
+
 export const SKIRT_FIELDS: MeasurementField[] = [
   WAIST,
   FULL_HIP,
@@ -60,6 +85,8 @@ export const SKIRT_FIELDS: MeasurementField[] = [
     typical: [90, 120],
     tip: 'Down your side, from your waist to the floor, standing barefoot.',
   },
+  FRONT_WAIST_TO_HIP,
+  BACK_WAIST_TO_HIP,
 ];
 
 const HIP_NOTE = 'Only needed for tops that reach below the waist.';
@@ -155,6 +182,25 @@ export const BODICE_FIELDS: MeasurementField[] = [
   },
   { ...FULL_HIP, optional: HIP_NOTE },
   { ...WAIST_TO_HIP, optional: HIP_NOTE },
+  {
+    id: 'front_shoulder_slope',
+    label: 'Front shoulder slope',
+    hard: [28, 70],
+    typical: [35, 58],
+    optional: CLOSER,
+    fit: true,
+    tip: 'From the middle of your waist at the front, diagonally up over your chest to your shoulder point. Square shoulders give a longer measurement, sloping shoulders a shorter one; the shoulder seam is angled to match.',
+  },
+  {
+    id: 'back_shoulder_slope',
+    label: 'Back shoulder slope',
+    hard: [28, 70],
+    typical: [35, 58],
+    optional: CLOSER,
+    fit: true,
+    helper: true,
+    tip: 'From the middle of your waist at the back, diagonally up across your back to your shoulder point.',
+  },
 ];
 
 export const FIELDS: Record<Garment, MeasurementField[]> = { skirt: SKIRT_FIELDS, bodice: BODICE_FIELDS };
@@ -224,6 +270,14 @@ export function checkMeasurements(v: MeasurementValues, unit: Unit, garment: Gar
     if (waist_to_hip && waist_to_knee && waist_to_hip >= waist_to_knee) {
       out.push({ id: 'waist_to_hip', level: 'error', message: 'Waist to hip should be shorter than waist to knee.' });
     }
+    // The centre measurements usually sit within a few cm of the side; beyond 4 cm the draft stops
+    // following them, so say so.
+    for (const id of ['front_waist_to_hip', 'back_waist_to_hip'] as const) {
+      const c = v[id];
+      if (c && waist_to_hip && Math.abs(c - waist_to_hip) > 4) {
+        out.push({ id, level: 'warning', message: `This is more than 4 cm from your waist to hip at the side. Please check both; the pattern adjusts by 4 cm at most.` });
+      }
+    }
     return out;
   }
   const { full_bust, high_bust, shoulder_width, across_back, front_hps_to_waist, bust_depth } = v;
@@ -234,6 +288,13 @@ export function checkMeasurements(v: MeasurementValues, unit: Unit, garment: Gar
   }
   if (bust_depth && front_hps_to_waist && bust_depth >= front_hps_to_waist) {
     out.push({ id: 'bust_depth', level: 'error', message: 'Bust depth should be shorter than front length, which carries on down to the waist.' });
+  }
+  const { nape_to_waist, front_shoulder_slope, back_shoulder_slope } = v;
+  if (back_shoulder_slope && nape_to_waist && back_shoulder_slope <= nape_to_waist) {
+    out.push({ id: 'back_shoulder_slope', level: 'warning', message: 'Back shoulder slope runs diagonally, so it is usually longer than your back length. Please check both.' });
+  }
+  if (front_shoulder_slope && front_hps_to_waist && front_shoulder_slope >= front_hps_to_waist + 4) {
+    out.push({ id: 'front_shoulder_slope', level: 'warning', message: 'Front shoulder slope is usually about the same as your front length or a little shorter. Please check both.' });
   }
   if (shoulder_width && across_back && across_back > shoulder_width) {
     out.push({ id: 'across_back', level: 'warning', message: 'Across back is usually narrower than shoulder width. Please check both.' });

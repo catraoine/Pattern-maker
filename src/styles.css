@@ -1293,3 +1293,237 @@ button.ghost:disabled {
   width: 100%;
   height: 100%;
 }
+
+/* The posture measurements' heading spans the whole field grid. */
+.fields-head {
+  grid-column: 1 / -1;
+  margin-top: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.fields-head .muted {
+  margin: 4px 0 0;
+}
+
+/* After the toile: the fit issues, how much to correct, and the pattern before and after. */
+.issue {
+  display: grid;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+}
+.issue.on {
+  border-color: var(--ink);
+}
+.issue strong {
+  font-weight: var(--w-strong);
+}
+.issue .check .muted {
+  text-transform: none;
+  letter-spacing: normal;
+}
+.issue-fix {
+  display: grid;
+  gap: 8px;
+  padding-left: 32px;
+}
+.issue-fix p {
+  margin: 0;
+}
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--ink);
+}
+.stepper button {
+  width: 44px;
+  min-height: 44px;
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  font-size: 18px;
+  cursor: pointer;
+}
+.stepper button:disabled {
+  color: var(--disabled);
+  cursor: default;
+}
+.stepper span {
+  min-width: 76px;
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 14px;
+}
+.fitlist {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+  font-size: 14px;
+}
+.preview-svg.fitprev {
+  width: 100%;
+  max-height: 420px;
+}
+.fitprev polygon {
+  fill: none;
+  vector-effect: non-scaling-stroke;
+}
+.fitprev .fit-now {
+  stroke: var(--muted);
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+}
+.fitprev .fit-next {
+  stroke: var(--gild);
+  stroke-width: 1.5;
+}
+.fitprev .fit-alt {
+  stroke: var(--gild);
+  stroke-width: 1;
+  stroke-dasharray: 1 2.5;
+}
+.fitside {
+  position: sticky;
+  top: 16px;
+}
+@media (max-width: 720px) {
+  .fitside {
+    position: static;
+  }
+}
+
+/* The cutting layout: the fabric lengthwise, pieces in fine champagne lines. */
+.layplan {
+  width: 100%;
+  height: auto;
+  max-height: 420px;
+}
+.layplan .lay-fabric {
+  fill: var(--fill);
+}
+.layplan .lay-fold {
+  stroke: var(--muted);
+  stroke-width: 0.3;
+  stroke-dasharray: 1.2 0.8;
+}
+.layplan .lay-edge {
+  stroke: var(--muted);
+  stroke-width: 0.3;
+}
+.layplan .lay-piece {
+  fill: var(--paper);
+  stroke: var(--gild);
+  stroke-width: 0.25;
+  stroke-linejoin: round;
+}
+.layplan text {
+  font-family: var(--mono);
+  letter-spacing: 0.12em;
+}
+.layplan .lay-name {
+  fill: var(--ink);
+}
+.layplan .lay-note {
+  fill: var(--muted);
+}
+.lay {
+  display: grid;
+  gap: 8px;
+}
+.lay p {
+  margin: 0;
+}
+
+/* The technical flat: the garment drawn flat in fine champagne lines, front and back. */
+.techflat {
+  width: 100%;
+  height: auto;
+  max-height: 460px;
+}
+.techflat path {
+  fill: none;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.techflat .flat-shape {
+  fill: var(--paper);
+  stroke: var(--gild);
+  stroke-width: 0.3;
+}
+.techflat .flat-seam,
+.techflat .flat-dart {
+  stroke: var(--gild);
+  stroke-width: 0.18;
+}
+.techflat .flat-stitch {
+  stroke: var(--gild);
+  stroke-width: 0.14;
+  stroke-dasharray: 0.5 0.35;
+}
+.techflat .flat-zip {
+  stroke: var(--gild);
+  stroke-width: 0.4;
+}
+.techflat .flat-label {
+  fill: var(--muted);
+  font-family: var(--mono);
+  letter-spacing: 0.14em;
+}
+
+/* Step diagrams in the sewing guide. */
+.stepdg {
+  grid-column: 2;
+  display: block;
+  width: 220px;
+  max-width: 100%;
+  height: auto;
+  margin-top: 8px;
+}
+.stepdg path {
+  fill: none;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.stepdg .dg-cloth {
+  fill: var(--fill);
+  stroke: var(--gild);
+  stroke-width: 0.25;
+}
+.stepdg .dg-fold {
+  fill: color-mix(in srgb, var(--gild) 16%, var(--paper));
+  stroke: var(--gild);
+  stroke-width: 0.25;
+}
+.stepdg .dg-edge {
+  stroke: var(--gild);
+  stroke-width: 0.3;
+}
+.stepdg .dg-machine {
+  stroke: var(--ink);
+  stroke-width: 0.2;
+  stroke-dasharray: 0.7 0.4;
+}
+.stepdg .dg-hand {
+  stroke: var(--ink);
+  stroke-width: 0.3;
+}
+.stepdg .dg-thread {
+  stroke: var(--ink);
+  stroke-width: 0.3;
+  stroke-dasharray: 2.4 1.2;
+}
+.stepdg .dg-under {
+  stroke: var(--muted);
+  stroke-width: 0.2;
+  stroke-dasharray: 0.5 0.5;
+}
+.cloth {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.cloth p {
+  margin: 0;
+}

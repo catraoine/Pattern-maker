@@ -2,13 +2,17 @@
 // Ported from the Python prototype in the drafting thread (pattern/skirt.py).
 import { P, Path, add, len, mul, p, sub, taggedLength, unit } from './geometry';
 import { finishDart } from './darts';
-import { Piece } from './piece';
+import { Piece, withAlternate } from './piece';
 import { HemShape, isShaped, matchSides, shapeHem } from './hem';
 
 export interface SkirtMeasurements {
   waist: number;
   full_hip: number;
   waist_to_hip: number;
+  /** Down the centre front and centre back from the waist to the hip line. Where they differ from the
+   * side (a tummy, a sway back, a full seat), the centre waist is raised or lowered to match. */
+  front_waist_to_hip?: number;
+  back_waist_to_hip?: number;
   waist_to_knee: number;
   waist_to_floor: number;
 }
@@ -34,7 +38,25 @@ export interface SkirtStyle {
   flareCm?: number;
   /** A hand-drawn hem shape. */
   hem?: HemShape;
+  /** Corrections from fitting a toile, on top of the measurements. */
+  fitting?: SkirtFitting;
 }
+
+/**
+ * Corrections made after trying on a toile, in cm. Ease is added to (or taken from) the fit's own; a
+ * centre drop lowers the centre waist (negative raises it); darts are lengthened or shortened.
+ */
+export interface SkirtFitting {
+  hipEase?: number;
+  waistEase?: number;
+  frontDrop?: number;
+  backDrop?: number;
+  dartLength?: number;
+  /** One hip higher than the other: that side's waist is raised at the side seam, tapering to the centre. */
+  highHip?: { side: Side; cm: number };
+}
+
+export type Side = 'left' | 'right';
 
 /**
  * A skirt's shape as proportions of the body, so a shape read from a photo of one person drafts to the
@@ -91,6 +113,12 @@ interface HalfArgs {
   hipDepth: number;
   length: number;
   centreDrop: number;
+  /** Waist length taken into the darts because a raised or lowered centre makes the waist curve longer. */
+  takeUp?: number;
+  /** True when the centre drop comes from a measurement rather than the standard 1 cm at the back. */
+  measuredCentre?: boolean;
+  /** Front and back centre drops averaged, so the waists of both meet the side seam at the same angle. */
+  meanDrop: number;
   sideSupp: number;
   dartMax: number;
   dartLen: number;
@@ -148,7 +176,7 @@ function half(a: HalfArgs): Piece {
   // turns to meet the side seam at a right angle, at the same angle on front and back (halfway
   // between their natural angles, the back being dropped 1 cm at the centre), so the waist runs on
   // smoothly across the side seam once it is sewn.
-  const endSlope = (2 * (sw.y - 0.5)) / sw.x;
+  const endSlope = (2 * (sw.y - a.meanDrop)) / sw.x;
   const ownSlope = (2 * (sw.y - cw.y)) / sw.x;
   const blend = Math.min(4, sw.x * 0.3);
   const waistY = (x: number) => {
@@ -232,7 +260,12 @@ function half(a: HalfArgs): Piece {
       {
         n: '0',
         at: cw,
-        note: a.isFront ? 'Centre waist. Square down for the centre front and across for the waist line.' : 'Centre waist, 1 cm below the waist line: the back waist sits lower.',
+        note:
+          Math.abs(a.centreDrop) < 0.05
+            ? 'Centre waist. Square down for the centre front and across for the waist line.'
+            : `Centre waist, ${cm(Math.abs(a.centreDrop))} ${a.centreDrop > 0 ? 'below' : 'above'} the waist line${
+                a.measuredCentre ? `, so the centre ${a.isFront ? 'front' : 'back'} is your ${cm(a.hipDepth - a.centreDrop)} from waist to hip` : ': the back waist sits lower'
+              }.`,
       },
       { n: '1', at: p(0, a.hipDepth), note: `0 to 1, waist to hip: ${cm(a.hipDepth)}. Square across for the hip line.` },
       { n: '2', at: ch, note: `0 to 2, skirt length: ${cm(a.length)}. Square across for the hem line.` },
@@ -240,7 +273,7 @@ function half(a: HalfArgs): Piece {
       {
         n: '4',
         at: sw,
-        note: `Side waist: a quarter of the waist with ease, ${a.isFront ? 'plus' : 'less'} 0.5 cm, is ${cm(a.waistQ)}; with ${cm(dartTotal)} of darts it sits ${cm(sideSupp)} in from the frame, raised ${cm(sideRise)}. The side seam curves from 4 to 3.`,
+        note: `Side waist: a quarter of the waist with ease, ${a.isFront ? 'plus' : 'less'} 0.5 cm, is ${cm(a.waistQ + (a.takeUp ?? 0))}${a.takeUp ? ` (${cm(a.takeUp)} more goes into the darts, for the longer curve of the waist)` : ''}; with ${cm(dartTotal)} of darts it sits ${cm(sideSupp)} in from the frame, raised ${cm(sideRise)}. The side seam curves from 4 to 3.`,
       },
       {
         n: '5',
@@ -457,6 +490,37 @@ const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v
 
 export function draftSkirt(m: SkirtMeasurements, style: Partial<SkirtStyle> = {}): SkirtDraft {
   const s = { ...DEFAULT_STYLE, ...style };
+  const draft = withHighHip(drafted(m, s), s.fitting?.highHip);
+  return draft;
+}
+
+/**
+ * One hip higher than the other: on that side the waist is raised at the side seam, tapering to
+ * nothing at the centre front and back, so the skirt hangs level. A second line, cut by trimming.
+ */
+function withHighHip(draft: SkirtDraft, high: SkirtFitting['highHip']): SkirtDraft {
+  if (!high || !(high.cm > 0)) return draft;
+  const label = `${high.side.toUpperCase()} HIP`;
+  return { ...draft, pieces: draft.pieces.map((pc) => withAlternate(pc, raisedWaist(pc, high.cm), label)) };
+}
+
+/** The outline with its waist raised `rise` cm at the side seam, easing in from nothing at the centre. */
+export function raisedWaist(pc: Piece, rise: number): Path {
+  const { pts, tags } = pc.outline.taggedPoints();
+  const side = tags.indexOf('side');
+  // Up, or for a circle skirt out from the waist circle's centre.
+  const r = pc.meta.waistRadius as number | undefined;
+  const up = (q: P) => (r ? unit(sub(q, p(0, -r))) : p(0, -1));
+  const along = [0];
+  for (let i = 1; i <= side; i++) along.push(along[i - 1] + len(sub(pts[i], pts[i - 1])));
+  const raised = pts.map((q, i) => (i <= side ? add(q, mul(up(q), rise * (along[i] / along[side]) ** 2)) : q));
+  const out = new Path(raised[0]);
+  for (let i = 1; i < raised.length; i++) out.line(raised[i], tags[i - 1]);
+  out.closed = true;
+  return out;
+}
+
+function drafted(m: SkirtMeasurements, s: SkirtStyle): SkirtDraft {
   const draft = draftShape(m, s);
   // A drawn hem never takes the skirt above 5 cm below the hip or below the floor, and turns up
   // narrowly so the curve lies flat.
@@ -473,7 +537,8 @@ export function draftSkirt(m: SkirtMeasurements, style: Partial<SkirtStyle> = {}
 }
 
 function draftShape(m: SkirtMeasurements, s: SkirtStyle): SkirtDraft {
-  const ease = FIT_EASE[s.fit];
+  const fit = s.fitting ?? {};
+  const ease = { waist: FIT_EASE[s.fit].waist + (fit.waistEase ?? 0), hip: FIT_EASE[s.fit].hip + (fit.hipEase ?? 0) };
   const hipDepth = m.waist_to_hip;
   const shape = s.shape;
   const length =
@@ -510,7 +575,7 @@ function draftShape(m: SkirtMeasurements, s: SkirtStyle): SkirtDraft {
     const common = { r, length, sa: s.seamAllowance, hemSa, zipCm, hipDepth };
     const angleF = (cutWaist / 4 + 0.5) / r;
     const onFold = (r + length) * Math.sin(Math.min(angleF, Math.PI / 2)) + s.seamAllowance <= FOLD_WIDTH_MAX;
-    const dartLen = Math.min(9, hipDepth - 3);
+    const dartLen = Math.max(4, Math.min(9 + (fit.dartLength ?? 0), hipDepth - 3));
     const front = circlePiece({ ...common, name: 'Skirt front', angle: angleF, isFront: true, onFold, darts: darts(2.5), dartLen });
     const back = circlePiece({ ...common, name: 'Skirt back', angle: (cutWaist / 4 - 0.5) / r, isFront: false, onFold: false, darts: darts(3.5), dartLen });
     return {
@@ -575,10 +640,27 @@ function draftShape(m: SkirtMeasurements, s: SkirtStyle): SkirtDraft {
     hipQ - (waistQ - 0.5) - 2 * BACK_DART_MAX,
   );
   const hemSa = s.silhouette === 'trumpet' ? Math.min(s.hemAllowance, 2) : s.hemAllowance;
+  const drops = centreDrops(m, fit);
+  const dartAdj = fit.dartLength ?? 0;
+  // A centre moved at the fitting is no longer simply the measurement, so its note says so.
+  const measured = { front: m.front_waist_to_hip !== undefined && !fit.frontDrop, back: m.back_waist_to_hip !== undefined && !fit.backDrop };
   const block = (flare: number): SkirtDraft => {
     const common = { hipQ, hipDepth, length, sideSupp, flare, flareFrom, sa: s.seamAllowance, hemSa, zipCm };
-    const front = half({ ...common, name: 'Skirt front', waistQ: waistQ + 0.5, centreDrop: 0, dartMax: FRONT_DART_MAX, dartLen: 9, isFront: true });
-    const back = half({ ...common, name: 'Skirt back', waistQ: waistQ - 0.5, centreDrop: 1, dartMax: BACK_DART_MAX, dartLen: 14, isFront: false });
+    const frontArgs = { ...common, name: 'Skirt front', waistQ: waistQ + 0.5, dartMax: FRONT_DART_MAX, dartLen: 9 + dartAdj, isFront: true };
+    const backArgs = { ...common, name: 'Skirt back', waistQ: waistQ - 0.5, dartMax: BACK_DART_MAX, dartLen: 14 + dartAdj, isFront: false };
+    const at = (d: { front: number; back: number }) => ({ meanDrop: (d.front + d.back) / 2 });
+    let front = half({ ...frontArgs, ...at(drops), centreDrop: drops.front, measuredCentre: measured.front });
+    let back = half({ ...backArgs, ...at(drops), centreDrop: drops.back, measuredCentre: measured.back });
+    // A centre raised or lowered makes the waist curve steeper, and so longer. Take the extra length
+    // into the darts, so the waist seam still fits the waistband as a standard draft's does.
+    const std = { front: 0, back: 1 };
+    if (drops.front !== std.front || drops.back !== std.back) {
+      const waistLen = (pc: Piece) => taggedLength(pc.outline, 'waist');
+      const extraF = waistLen(front) - waistLen(half({ ...frontArgs, ...at(std), centreDrop: std.front }));
+      const extraB = waistLen(back) - waistLen(half({ ...backArgs, ...at(std), centreDrop: std.back }));
+      if (extraF > 0.05) front = half({ ...frontArgs, ...at(drops), waistQ: frontArgs.waistQ - extraF, takeUp: extraF, centreDrop: drops.front, measuredCentre: measured.front });
+      if (extraB > 0.05) back = half({ ...backArgs, ...at(drops), waistQ: backArgs.waistQ - extraB, takeUp: extraB, centreDrop: drops.back, measuredCentre: measured.back });
+    }
     return {
       pieces: [front, back],
       lengthCm: Math.round(length * 10) / 10,
@@ -607,6 +689,21 @@ function draftShape(m: SkirtMeasurements, s: SkirtStyle): SkirtDraft {
     return matchedCircle(targetHem);
   }
   return draft;
+}
+
+/**
+ * How far below the waist line the centre front and back waist sit. Standard: level at the front and
+ * 1 cm lower at the back. Measured: the side's waist to hip less the centre's, so a tummy (longer at the
+ * front) raises the centre front and a sway back (shorter at the back) lowers the centre back. Kept
+ * within 4 cm either way; more than that is a toile fitting, not a measurement.
+ */
+export function centreDrops(m: SkirtMeasurements, fit: SkirtFitting = {}): { front: number; back: number } {
+  const drop = (centre: number | undefined, standard: number) => (centre === undefined ? standard : clamp(m.waist_to_hip - centre, -4, 4));
+  // A toile correction moves it further, up to 5 cm either way in all.
+  return {
+    front: clamp(drop(m.front_waist_to_hip, 0) + (fit.frontDrop ?? 0), -5, 5),
+    back: clamp(drop(m.back_waist_to_hip, 1) + (fit.backDrop ?? 0), -5, 5),
+  };
 }
 
 /** How long a skirt can be: from 6 cm below the hip line to 2 cm off the floor. */

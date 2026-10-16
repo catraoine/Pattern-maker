@@ -1,7 +1,8 @@
 // The guest's account, kept on this device until sign-in arrives: their name, the people they measure and saved patterns.
 // Patterns are stored as choices (not geometry), so they redraft whenever measurements or the engine change.
 import { PatternChoices, isBodice } from './garments';
-import type { MeasurementValues } from './measurements';
+import type { Garment, MeasurementValues } from './measurements';
+import type { Fitting } from './engine/fitting';
 
 export const FREE_SAVED_LIMIT = 3;
 
@@ -21,6 +22,8 @@ export interface Person {
   values: MeasurementValues;
   /** Set once we've asked whose measurements these are, so the question comes up only once per person. */
   named: boolean;
+  /** Corrections from fitting toiles, for each garment. They go into every pattern drafted for this person. */
+  fittings?: Partial<Record<Garment, Fitting>>;
 }
 
 export const ME = 'me';

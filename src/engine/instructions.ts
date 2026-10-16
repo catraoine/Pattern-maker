@@ -4,6 +4,8 @@ import { isCircle } from './skirt';
 import type { Length, Silhouette, SkirtDraft } from './skirt';
 import type { BodiceDraft, BodiceLength } from './bodice';
 import { SEAM_WIDTHS, SeamWidths } from './allowances';
+import type { Piece } from './piece';
+import type { DiagramId } from './diagrams';
 
 // Widest strip that fits across 140 cm fabric, leaving room for the selvedges.
 export const BAND_ACROSS_MAX = 135;
@@ -11,6 +13,8 @@ export const BAND_ACROSS_MAX = 135;
 export interface SewStep {
   title: string;
   text: string;
+  /** A small drawing of the technique. */
+  diagram?: DiagramId;
 }
 
 export interface SewingGuide {
@@ -26,6 +30,8 @@ export interface SkirtFinish {
   seams?: SeamWidths;
   /** Lining fabric needed, in metres, when the skirt is lined. */
   liningM?: number;
+  /** Fabric width in cm, when it isn't 140. */
+  width?: number;
   /** Hem allowance on a straight or A-line skirt, when it isn't the usual 4 cm. */
   hem?: number;
 }
@@ -36,6 +42,20 @@ export interface BodiceFinish {
   seams?: SeamWidths;
   edges?: BodiceEdges;
   liningM?: number;
+  /** Fabric width in cm, when it isn't 140. */
+  width?: number;
+}
+
+/** A pencil skirt, or a straight one below the knee, needs a walking slit at the centre back. */
+export function hasSlit(style: { silhouette: string; length: string }): boolean {
+  return style.silhouette === 'pencil' || (style.silhouette === 'straight' && (style.length === 'midi' || style.length === 'maxi'));
+}
+
+/** For a body that differs side to side: trim that side's pieces to their own line once cut. */
+function oneSide(pc: Piece, also: string): string {
+  if (!pc.alternate) return '';
+  const side = /right/i.test(pc.alternate.label) ? 'right' : 'left';
+  return ` Then trim the pieces for your ${side} side (as you wear it) ${also ? `${also} ` : ''}along the line marked ${pc.alternate.label}, and chalk an R or L on the wrong side of each so the two sides don't get swapped.`;
 }
 
 export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; length: Length }, fabricM: number, finish: SkirtFinish = {}): SewingGuide {
@@ -51,7 +71,7 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
   // A front too wide for the fold (big circle skirts) is cut as a pair with a centre front seam, and
   // the back is then too wide for folded fabric as well.
   const wide = frontSeam;
-  const slit = style.silhouette === 'pencil' || (style.silhouette === 'straight' && (style.length === 'midi' || style.length === 'maxi'));
+  const slit = hasSlit(style);
 
   const steps: SewStep[] = [
     {
@@ -60,9 +80,9 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
     },
     {
       title: 'Cut out',
-      text: wide
+      text: (wide
         ? `These pieces are too wide to cut from folded fabric, so open it out to a single layer. Cut each piece twice, turning the pattern over for the second one so you get a pair. Keep each grain arrow parallel to the selvedge. Cut along the solid outer line and snip the small notches.${dartCount ? ' Chalk-mark the dart lines.' : ''}${circle ? ' To save fabric, turn every other piece upside down so the curves nest together.' : ''}`
-        : `Fold the fabric in half with the selvedges together. ${frontSeam ? 'Place the skirt front and the skirt back on both layers so you get a pair of each.' : 'Place the skirt front on the fold, and the skirt back on both layers so you get a pair.'} Keep each grain arrow parallel to the selvedge. Cut along the solid outer line, snip the small notches${dartCount ? ', and chalk-mark the dart lines' : ''}.`,
+        : `Fold the fabric in half with the selvedges together. ${frontSeam ? 'Place the skirt front and the skirt back on both layers so you get a pair of each.' : 'Place the skirt front on the fold, and the skirt back on both layers so you get a pair.'} Keep each grain arrow parallel to the selvedge. Cut along the solid outer line, snip the small notches${dartCount ? ', and chalk-mark the dart lines' : ''}.`) + oneSide(draft.pieces[0], lined ? 'and the lining' : ''),
     },
     {
       title: 'Cut the waistband',
@@ -82,6 +102,7 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
     },
     {
       title: 'Neaten the edges',
+      diagram: 'overlock' as const,
       text: `Zigzag or overlock the side and centre ${frontSeam ? 'front and centre back' : 'back'} edges of the skirt pieces, so they will not fray inside.`,
     },
     ...(dartCount
@@ -150,8 +171,8 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
 
   return {
     notions: [
-      `${fabricM.toFixed(1)} m of woven fabric, 140 cm wide`,
-      ...(lined ? [`${finish.liningM!.toFixed(1)} m of lining, 140 cm wide`] : []),
+      `${fabricM.toFixed(1)} m of woven fabric, ${finish.width ?? 140} cm wide`,
+      ...(lined ? [`${finish.liningM!.toFixed(1)} m of lining, ${finish.width ?? 140} cm wide`] : []),
       `${draft.zipCm} cm invisible zip`,
       'Hook and eye',
       '0.3 m lightweight fusible interfacing',
@@ -181,7 +202,7 @@ export function bodiceGuide(draft: BodiceDraft, style: { length: BodiceLength },
       title: 'Cut out',
       text: `Fold the fabric in half with the selvedges together. Place the bodice front on the fold, and the bodice back on both layers so you get a pair. Keep each grain arrow parallel to the selvedge. Cut along the solid outer line, snip the small notches${bust || waist ? ', and chalk-mark the dart lines and the bust point' : ''}.${
         edges === 'lined' ? ' Cut the front and back again from the lining the same way.' : edges === 'facings' ? ' Cut the four facing pieces from the fabric, and again from fusible interfacing.' : ''
-      }`,
+      }${oneSide(draft.pieces[0], edges === 'lined' ? 'and the lining' : edges === 'facings' ? 'and the armhole facings to match' : '')}`,
     },
     ...(edges === 'facings'
       ? [
@@ -193,6 +214,7 @@ export function bodiceGuide(draft: BodiceDraft, style: { length: BodiceLength },
       : []),
     {
       title: 'Neaten the edges',
+      diagram: 'overlock' as const,
       text: 'Zigzag or overlock the shoulder, side and centre back edges, so they will not fray inside.',
     },
     ...(bust || waist
@@ -248,6 +270,7 @@ export function bodiceGuide(draft: BodiceDraft, style: { length: BodiceLength },
         ? [
             {
               title: 'Face the neckline',
+              diagram: 'understitch' as const,
               text: `Pin the neck facing to the neckline, right sides together, matching the shoulder seams, with its centre back ends folded back over the zip tape. Sew ${curve} from the edge, trim the seam to 0.5 cm and clip the curves. Understitch the facing to the seam allowance close to the seam, so it rolls to the inside, then press it in and hand-tack it to the shoulder seams.`,
             },
             {
@@ -283,11 +306,11 @@ export function bodiceGuide(draft: BodiceDraft, style: { length: BodiceLength },
 
   return {
     notions: [
-      `${fabricM.toFixed(1)} m of woven fabric, 140 cm wide`,
+      `${fabricM.toFixed(1)} m of woven fabric, ${finish.width ?? 140} cm wide`,
       `${draft.zipCm} cm invisible zip`,
       ...(edges === 'binding' ? [`${bindingM.toFixed(1)} m of 2 cm wide bias binding`] : []),
       ...(edges === 'facings' ? ['0.5 m lightweight fusible interfacing'] : []),
-      ...(edges === 'lined' ? [`${(finish.liningM ?? fabricM).toFixed(1)} m of lining, 140 cm wide`] : []),
+      ...(edges === 'lined' ? [`${(finish.liningM ?? fabricM).toFixed(1)} m of lining, ${finish.width ?? 140} cm wide`] : []),
       'Hook and eye',
       'Matching thread',
     ],

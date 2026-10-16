@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { layout } from '../engine/export';
 import { BODICE_FIT_EASE, BodiceDraft, needsHip } from '../engine/bodice';
 import { piecesLengthCm, toMetres } from '../engine/fabric';
+import { layPlan } from '../engine/layplan';
 import { BODICE_GROUPS, BodiceChoices, DARTS_FOR_FIT, describeBodice } from '../garments';
 import { Garment, MeasurementValues, hasHip } from '../measurements';
 import { BodiceSketch, PatternPreview } from '../ui/Preview';
@@ -22,7 +23,8 @@ interface Props {
   onAccount: () => void;
 }
 
-export const bodiceFabricMetres = (draft: BodiceDraft) => toMetres(piecesLengthCm(draft.pieces) + 10);
+/** Fabric needed on 140 cm wide fabric, from the cutting layout. */
+export const bodiceFabricMetres = (draft: BodiceDraft) => layPlan(draft.pieces, 140)?.metres ?? toMetres(piecesLengthCm(draft.pieces) + 10);
 
 /** Bias binding for the neckline and both armholes, with some to spare for joins. */
 export const bindingMetres = (draft: BodiceDraft) => toMetres(draft.neck + 2 * draft.armhole + 20);
