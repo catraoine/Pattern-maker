@@ -16,6 +16,9 @@ import type { EaseView } from '../engine/easeMap';
 import { FinishChoices } from '../ui/FinishChoices';
 import type { Finish } from '../App';
 
+import { MyFabric, fabricEase, trousersFabrics } from '../engine/fabrics';
+import { FabricCard } from '../ui/FabricCard';
+
 interface Props {
   choices: TrousersChoices;
   onChoices: (c: TrousersChoices) => void;
@@ -32,17 +35,20 @@ interface Props {
   easeMap?: EaseView[];
   finish: Finish;
   onFinish: (f: Finish) => void;
+  /** The fabric recorded on the print screen, if any. */
+  fabric?: MyFabric;
 }
 
 /** Fabric needed on 140 cm wide fabric, from the cutting layout. */
 export const trousersFabricMetres = (draft: TrousersDraft) => layPlan(draft.pieces, 140)?.metres ?? toMetres(piecesLengthCm(draft.pieces) + 10);
 
-export function TrousersStyleScreen({ choices, onChoices, onGarment, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, finish, onFinish }: Props) {
+export function TrousersStyleScreen({ choices, onChoices, onGarment, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, finish, onFinish, fabric }: Props) {
   const [view, setView] = useState<'sketch' | 'pattern' | 'ease'>('sketch');
   const pieces = useMemo(() => draft?.pieces ?? [], [draft]);
   const sheet = useMemo(() => (draft ? layout(pieces, '', []) : undefined), [draft, pieces]);
   const title = describeTrousers(choices);
   const ease = TROUSER_EASE[choices.fit];
+  const extra = fabricEase(fabric, 'trousers');
   const flat = useMemo(
     () => (draft && values.waist_to_hip && values.crotch_depth ? trousersFlat(draft, { waist_to_hip: values.waist_to_hip, crotch_depth: values.crotch_depth }) : undefined),
     [draft, values.waist_to_hip, values.crotch_depth],
@@ -140,7 +146,7 @@ export function TrousersStyleScreen({ choices, onChoices, onGarment, values, dra
           <strong>{draft ? draft.lengthCm : '–'} cm</strong>
         </div>
         <p className="muted small">
-          Ease added: {ease.waist} cm at the waist, {ease.hip} cm at the hip, {ease.depth} cm below the crotch and {ease.crotch} cm along it.
+          Ease added: {ease.waist + extra.waist} cm at the waist, {ease.hip + extra.hip} cm at the hip{extra.hip ? ` (${extra.waist} cm and ${extra.hip} cm of it for your heavy fabric)` : ''}, {ease.depth} cm below the crotch and {ease.crotch} cm along it.
         </p>
         <div>
           <p className="eyebrow">Pattern pieces</p>
@@ -154,11 +160,7 @@ export function TrousersStyleScreen({ choices, onChoices, onGarment, values, dra
           </ul>
         </div>
         {draft && (
-          <div className="fabric">
-            <p className="eyebrow">Fabric</p>
-            <p className="big">{trousersFabricMetres(draft).toFixed(1)} m</p>
-            <p className="muted small">of 140 cm wide woven fabric, rough estimate</p>
-          </div>
+          <FabricCard metres={trousersFabricMetres(draft)} advice={trousersFabrics(choices)} fabric={fabric} />
         )}
         <button type="button" className="primary" disabled={!draft} onClick={onNext}>
           Print my pattern

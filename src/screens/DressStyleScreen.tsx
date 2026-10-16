@@ -17,6 +17,8 @@ import { GROUPS } from './StyleScreen';
 import { describePattern } from './describe';
 
 import { EaseMapView } from '../ui/EaseMapView';
+import { MyFabric, dressFabrics, fabricEase } from '../engine/fabrics';
+import { FabricCard } from '../ui/FabricCard';
 import type { EaseView } from '../engine/easeMap';
 import { FinishChoices } from '../ui/FinishChoices';
 import type { Finish } from '../App';
@@ -38,6 +40,8 @@ interface Props {
   easeMap?: EaseView[];
   finish: Finish;
   onFinish: (f: Finish) => void;
+  /** The fabric recorded on the print screen, if any. */
+  fabric?: MyFabric;
 }
 
 type Option = { id: string; label: string; options: [string, string][] };
@@ -50,7 +54,7 @@ export const dressFabricMetres = (pieces: DressDraft['pieces']) => layPlan(piece
  * skirt's shape and length. The preview is the technical flat, so the skirt is seen hanging from the
  * bodice with its darts running on through the waist seam.
  */
-export function DressStyleScreen({ choices, onChoices, onGarment, values, draft, sleeve, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, finish, onFinish }: Props) {
+export function DressStyleScreen({ choices, onChoices, onGarment, values, draft, sleeve, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, finish, onFinish, fabric }: Props) {
   const [view, setView] = useState<'sketch' | 'pattern' | 'ease'>('sketch');
   const pieces = useMemo(() => (draft ? [...draft.pieces.filter((pc) => /^Bodice/.test(pc.name)), ...(sleeve?.pieces ?? []), ...draft.skirt.pieces] : []), [draft, sleeve]);
   const sheet = useMemo(() => (pieces.length ? layout(pieces, '', []) : undefined), [pieces]);
@@ -59,6 +63,7 @@ export function DressStyleScreen({ choices, onChoices, onGarment, values, draft,
   const arms = !needsArms(values);
   const chosen = sleeveOf(choices.bodice);
   const ease = BODICE_FIT_EASE[choices.fit];
+  const extra = fabricEase(fabric, 'dress');
 
   const groups: Option[] = [
     { id: 'fit', label: 'Fit', options: GROUPS[0].options },
@@ -217,7 +222,8 @@ export function DressStyleScreen({ choices, onChoices, onGarment, values, draft,
           )}
         </div>
         <p className="muted small">
-          Ease added: {ease.bust} cm at the bust, {ease.waist} cm at the waist.
+          Ease added: {ease.bust + extra.bust} cm at the bust, {ease.waist + extra.waist} cm at the waist
+          {extra.bust ? `, including ${extra.bust} cm and ${extra.waist} cm for your heavy fabric` : ''}.
         </p>
         <div>
           <p className="eyebrow">Pattern pieces</p>
@@ -230,11 +236,11 @@ export function DressStyleScreen({ choices, onChoices, onGarment, values, draft,
           </ul>
         </div>
         {draft && (
-          <div className="fabric">
-            <p className="eyebrow">Fabric</p>
-            <p className="big">{dressFabricMetres(pieces).toFixed(1)} m</p>
-            <p className="muted small">of 140 cm wide woven fabric, rough estimate</p>
-          </div>
+          <FabricCard
+            metres={dressFabricMetres(pieces)}
+            advice={dressFabrics({ fit: choices.fit, neckline: choices.bodice.neckline, silhouette: choices.skirt.silhouette, length: choices.skirt.length })}
+            fabric={fabric}
+          />
         )}
         <button type="button" className="primary" disabled={!draft} onClick={onNext}>
           Print my pattern

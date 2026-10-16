@@ -21,6 +21,8 @@ export interface SewStep {
 }
 
 export interface SewingGuide {
+  /** The maker's own fabric, line by line, when they have recorded it. */
+  fabric?: string[];
   notions: string[];
   steps: SewStep[];
 }

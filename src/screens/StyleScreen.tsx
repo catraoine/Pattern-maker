@@ -18,6 +18,8 @@ import type { Finish } from '../App';
 import { BAND_ACROSS_MAX } from '../engine/instructions';
 import { ERAS, findLook } from '../engine/eras';
 import { shapeLine } from '../photo/shape';
+import { MyFabric, fabricEase, skirtFabrics } from '../engine/fabrics';
+import { FabricCard } from '../ui/FabricCard';
 
 import { EaseMapView } from '../ui/EaseMapView';
 import type { EaseView } from '../engine/easeMap';
@@ -37,6 +39,8 @@ interface Props {
   onAccount: () => void;
   onPhoto: () => void;
   onGarment: (g: Garment) => void;
+  /** The fabric recorded on the print screen, if any. */
+  fabric?: MyFabric;
   /** Room over the body at every level, for the ease map. */
   easeMap?: EaseView[];
 }
@@ -87,7 +91,7 @@ export function fabricMetres(draft: SkirtDraft): number {
   return toMetres(piecesLengthCm(draft.pieces) + band + 15);
 }
 
-export function StyleScreen({ choices, onChoices, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, onPhoto, onGarment, finish, onFinish, easeMap }: Props) {
+export function StyleScreen({ choices, onChoices, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, onPhoto, onGarment, finish, onFinish, easeMap, fabric }: Props) {
   const [view, setView] = useState<'sketch' | 'figure' | 'pattern' | 'ease'>('sketch');
   const [side, setSide] = useState<Side>('front');
   const [drawing, setDrawing] = useState(false);
@@ -118,6 +122,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
   const shake = useShake(undo);
   const sheet = useMemo(() => (draft ? layout(draft.pieces, '', []) : undefined), [draft]);
   const ease = FIT_EASE[choices.fit];
+  const extra = fabricEase(fabric, 'skirt');
   const title = describe(choices);
   const look = currentLook(choices);
   const [eraId, setEraId] = useState<string | undefined>(() => ERAS.find((e) => e.looks.includes(look!))?.id);
@@ -337,7 +342,8 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
           <strong>{draft ? draft.hemCm : '–'} cm</strong>
         </div>
         <p className="muted small">
-          The skirt is {ease.waist} cm bigger than you at the waist and {ease.hip} cm at the hip, so you can move and sit.
+          The skirt is {ease.waist + extra.waist} cm bigger than you at the waist and {ease.hip + extra.hip} cm at the hip, so you can move and sit
+          {extra.hip ? `, including ${extra.waist} cm and ${extra.hip} cm for your heavy fabric` : ''}.
         </p>
         <div>
           <p className="eyebrow">Pattern pieces</p>
@@ -355,11 +361,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
           </ul>
         </div>
         {draft && (
-          <div className="fabric">
-            <p className="eyebrow">Fabric</p>
-            <p className="big">{fabricMetres(draft).toFixed(1)} m</p>
-            <p className="muted small">of 140 cm wide woven fabric, rough estimate</p>
-          </div>
+          <FabricCard metres={fabricMetres(draft)} advice={skirtFabrics(choices)} look={currentLook(choices)} fabric={fabric} />
         )}
         <button type="button" className="primary" disabled={!draft} onClick={onNext}>
           Print my pattern
