@@ -1,7 +1,8 @@
 // The guest's account, kept on this device until sign-in arrives: their name, the people they measure and saved patterns.
 // Patterns are stored as choices (not geometry), so they redraft whenever measurements or the engine change.
-import { PatternChoices, isBodice } from './garments';
-import type { MeasurementValues } from './measurements';
+import { PatternChoices, isBodice, isDress, isTrousers, sleeveOf } from './garments';
+import type { Garment, MeasurementValues } from './measurements';
+import type { Fitting } from './engine/fitting';
 import type { FitFeedback } from './fit';
 
 export const FREE_SAVED_LIMIT = 3;
@@ -24,7 +25,36 @@ export interface Person {
   values: MeasurementValues;
   /** Set once we've asked whose measurements these are, so the question comes up only once per person. */
   named: boolean;
+  /** Corrections from fitting toiles, for each garment. They go into every pattern drafted for this person. */
+  fittings?: Partial<Record<Garment, Fitting>>;
+  /** The client book: each set of measurements as it stood on a date, oldest first. */
+  history?: { date: string; values: MeasurementValues }[];
+  /** Fitting notes in the dressmaker's own words. */
+  notes?: { id: string; date: string; text: string }[];
+  /** Toile photos: the images themselves are kept in the device's photo store, by id. */
+  photos?: { id: string; date: string; caption: string }[];
 }
+
+/**
+ * Keep today's measurements in the person's history: a change on a new day adds an entry, a change on
+ * the same day replaces that day's. Nothing is added when they haven't changed.
+ */
+export function recordMeasurements(p: Person, date: string): Person {
+  const history = p.history ?? [];
+  const last = history[history.length - 1];
+  const same = (a: MeasurementValues, b: MeasurementValues) => {
+    const keys = new Set([...Object.keys(a), ...Object.keys(b)]) as Set<keyof MeasurementValues>;
+    return [...keys].every((k) => a[k] === b[k]);
+  };
+  if (!Object.keys(p.values).length || (last && same(last.values, p.values))) return p;
+  const entry = { date, values: { ...p.values } };
+  return { ...p, history: last?.date === date ? [...history.slice(0, -1), entry] : [...history, entry] };
+}
+
+export const addNote = (p: Person, text: string, date: string): Person => ({ ...p, notes: [...(p.notes ?? []), { id: newId(), date, text }] });
+export const removeNote = (p: Person, id: string): Person => ({ ...p, notes: (p.notes ?? []).filter((n) => n.id !== id) });
+export const addPhoto = (p: Person, id: string, caption: string, date: string): Person => ({ ...p, photos: [...(p.photos ?? []), { id, date, caption }] });
+export const removePhoto = (p: Person, id: string): Person => ({ ...p, photos: (p.photos ?? []).filter((x) => x.id !== id) });
 
 export const ME = 'me';
 
@@ -39,7 +69,7 @@ export interface Account {
 
 export const NEW_ACCOUNT: Account = { onboarded: false, name: '', patterns: [] };
 
-const newId = () => (typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : String(Date.now() + Math.random()));
+export const newId = () => (typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : String(Date.now() + Math.random()));
 
 /** Accounts from before people existed kept one set of measurements elsewhere; fold them in as the owner's. */
 export function withPeople(account: Account, legacyValues: MeasurementValues = {}): Account & { people: Person[]; active: string } {
@@ -84,8 +114,27 @@ export function claimMeasurements(account: Account, whose: 'mine' | 'other', nam
 }
 
 export function sameChoices(a: PatternChoices, b: PatternChoices): boolean {
+  if (isTrousers(a) || isTrousers(b)) {
+    return isTrousers(a) && isTrousers(b) && a.fit === b.fit && a.leg === b.leg && a.length === b.length && a.closure === b.closure;
+  }
+  if (isDress(a) || isDress(b)) {
+    return isDress(a) && isDress(b) && a.fit === b.fit && sameChoices(a.bodice, b.bodice) && sameChoices(a.skirt, b.skirt);
+  }
   if (isBodice(a) || isBodice(b)) {
-    return isBodice(a) && isBodice(b) && a.fit === b.fit && a.neckline === b.neckline && a.length === b.length && a.darts === b.darts;
+    return (
+      isBodice(a) &&
+      isBodice(b) &&
+      a.fit === b.fit &&
+      a.neckline === b.neckline &&
+      a.length === b.length &&
+      a.darts === b.darts &&
+      sleeveOf(a).length === sleeveOf(b).length &&
+      sleeveOf(a).shape === sleeveOf(b).shape &&
+      (a.bustDart ?? 'side') === (b.bustDart ?? 'side') &&
+      (a.princess ?? 'none') === (b.princess ?? 'none') &&
+      (a.closure ?? 'back_zip') === (b.closure ?? 'back_zip') &&
+      (a.collar ?? 'none') === (b.collar ?? 'none')
+    );
   }
   return (
     a.fit === b.fit &&

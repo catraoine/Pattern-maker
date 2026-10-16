@@ -1,7 +1,7 @@
 import { CSSProperties, useEffect, useMemo, useState } from 'react';
 import { P } from '../engine/geometry';
 import { DraftStep, Sheet } from '../engine/export';
-import type { BodiceDraft } from '../engine/bodice';
+import { BodiceDraft, blockOf } from '../engine/bodice';
 
 const STEPS: DraftStep[] = ['outline', 'darts', 'grain', 'allowance', 'labels'];
 const STEP_MS = 1100;
@@ -117,7 +117,7 @@ export function PatternPreview({ sheet, label, play = 0, names = [] }: { sheet: 
  */
 export function BodiceSketch({ draft, label }: { draft: BodiceDraft; label: string }) {
   const d = useMemo(() => {
-    const front = draft.pieces[0];
+    const front = blockOf(draft)[0];
     const { pts, tags } = front.outline.taggedPoints(16);
     const lastArm = tags.lastIndexOf('armhole');
     const top = pts.slice(0, lastArm + 2); // centre front neck round to the underarm

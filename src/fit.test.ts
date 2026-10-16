@@ -32,3 +32,14 @@ describe('fit feedback', () => {
     expect(setPatternFit(withFit, id, undefined).patterns[0].fit).toBeUndefined();
   });
 });
+
+describe('fit areas for newer garments', () => {
+  it('asks trousers about the rise and dresses about the bust', async () => {
+    const { garmentKind } = await import('./fit');
+    const trousers = { garment: 'trousers' } as unknown as Parameters<typeof garmentKind>[0];
+    expect(garmentKind(trousers)).toBe('trousers');
+    expect(fitAreas(trousers).map((a) => a.id)).toContain('rise');
+    const dress = { garment: 'dress' } as unknown as Parameters<typeof garmentKind>[0];
+    expect(fitAreas(dress).map((a) => a.id)).toContain('bust');
+  });
+});

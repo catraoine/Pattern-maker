@@ -1,6 +1,6 @@
 // Server side only: checks fit notes a sewist chose to send, before they're stored. Imported by the Netlify function.
 import { z } from 'zod';
-import { NOTES_MAX } from '../fit';
+import { FIT_AREAS, NOTES_MAX } from '../fit';
 
 export const MAX_REPORT_BYTES = 8_000;
 
@@ -8,12 +8,12 @@ const area = z.union([z.literal(-1), z.literal(0), z.literal(1)]);
 
 export const FitReportSchema = z
   .object({
-    garment: z.enum(['skirt', 'bodice']),
+    garment: z.enum(['skirt', 'bodice', 'dress', 'trousers']),
     // Style choices vary by garment and grow over time; keep them as sent, the size cap bounds them.
     choices: z.record(z.string(), z.unknown()),
     verdict: z.enum(['good', 'tweaks', 'off']),
     made: z.enum(['toile', 'garment']),
-    areas: z.partialRecord(z.enum(['waist', 'hip', 'length', 'flare', 'bust', 'shoulders', 'armholes', 'neckline', 'back']), area),
+    areas: z.partialRecord(z.enum(FIT_AREAS), area),
     notes: z.string().max(NOTES_MAX),
     measurements: z.record(z.string().max(40), z.number().min(0).max(400)),
   })

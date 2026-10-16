@@ -9,6 +9,15 @@ import { ALLOWANCE_LABELS, AllowanceStyle } from '../engine/allowances';
 import type { BodiceEdges } from '../engine/instructions';
 import type { Finish } from '../App';
 import type { Garment } from '../measurements';
+import type { Fitting } from '../engine/fitting';
+import { FABRIC_WIDTHS, Lay, layWords } from '../engine/layplan';
+import { LayPlanView } from '../ui/LayPlanView';
+import type { Flat } from '../engine/flat';
+import { TechFlatView } from '../ui/TechFlatView';
+import { StepDiagram } from '../ui/StepDiagram';
+import { CLOTHS, seamFinish } from '../engine/couture';
+import { SizeRun } from '../ui/SizeRun';
+import type { MeasurementValues } from '../measurements';
 
 /** What to print: the drafted pieces of either garment, with its notes and sewing steps. */
 export interface Printable {
@@ -17,6 +26,10 @@ export interface Printable {
   guide: SewingGuide;
   /** Body, ease and finished measurements, for the tech pack. */
   spec: SpecRow[];
+  /** Cutting layouts at the chosen fabric width, one for each fabric. */
+  lays: Lay[];
+  /** The garment drawn flat, front and back. */
+  flat?: Flat;
 }
 
 interface Props {
@@ -29,6 +42,15 @@ interface Props {
   made?: Printable;
   error?: string;
   onBack: () => void;
+  /** Corrections from toile fittings, and their notes, already in the pattern. */
+  fitting?: Fitting;
+  fittingNotes: string[];
+  onFitting: () => void;
+  /** Each piece on screen at its real size. */
+  onTrueScale?: () => void;
+  /** For grading: the measurements, and the pattern's pieces drafted to any set of them. */
+  values?: MeasurementValues;
+  draftAt?: (m: MeasurementValues) => Piece[];
 }
 
 type Output = Paper | 'projector' | 'projectorDark';
@@ -74,7 +96,7 @@ function download(data: BlobPart, type: string, name: string) {
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
-export function ExportScreen({ profile, title, fit, garment, finish, onFinish, made, error, onBack }: Props) {
+export function ExportScreen({ profile, title, fit, garment, finish, onFinish, made, error, onBack, fitting, fittingNotes, onFitting, onTrueScale, values, draftAt }: Props) {
   const [paper, setPaper] = useState<Output>('a4');
   const [pdf, setPdf] = useState<{ paper: Output; bytes: Uint8Array } | null>(null);
   const [shareNote, setShareNote] = useState('');
@@ -90,17 +112,28 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
     if (!made) return [];
     const waist = made.spec.find((r) => r.label === 'Waist')?.finished;
     return checkPattern(
-      made.pieces.filter((pc) => !pc.kind),
+      made.pieces.filter((pc) => !pc.kind || pc.kind === 'collar'),
       { finishedWaist: typeof waist === 'number' ? waist : undefined },
     );
   }, [made]);
   const drafting = useMemo(() => (made ? made.pieces.filter((pc) => pc.draft).map((pc) => ({ piece: pc.name, points: pc.draft!.points })) : []), [made]);
+  // The draft-it-by-hand guide: every garment piece that carries its draft (not the facings and lining).
+  const byHand = useMemo(
+    () =>
+      made && finish.byHand
+        ? made.pieces
+            .filter((pc) => pc.draft && pc.kind !== 'lining' && pc.kind !== 'facing')
+            .map((pc) => ({ piece: pc.name, frame: pc.draft!.frame, outline: pc.outline.points(12), lines: pc.lines.map((l) => l.points(8)), points: pc.draft!.points }))
+        : undefined,
+    [made, finish.byHand],
+  );
+  const lays = useMemo(() => made?.lays ?? [], [made]);
   const summary = useMemo(
     () =>
       made
-        ? { rows: made.spec.filter((r) => typeof r.finished === 'number'), checks, madeFor: profile, date, drafting: finish.atelier ? drafting : undefined }
+        ? { rows: made.spec.filter((r) => typeof r.finished === 'number'), checks, madeFor: profile, date, drafting: finish.atelier ? drafting : undefined, byHand, lays, flat: made.flat }
         : undefined,
-    [made, checks, profile, date, drafting, finish.atelier],
+    [made, checks, profile, date, drafting, finish.atelier, lays, byHand],
   );
 
   // Build the PDF ahead of time, so share and print run straight from the tap (phones require that).
@@ -235,7 +268,7 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
                 </label>
               ))}
             </fieldset>
-          ) : (
+          ) : garment === 'trousers' ? null : (
             <fieldset className="group">
               <legend>Neck and armholes</legend>
               {EDGES.map((e) => (
@@ -252,6 +285,12 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
             <input type="checkbox" checked={finish.atelier} onChange={(e) => onFinish({ ...finish, atelier: e.target.checked })} />
             <span>
               Atelier view <span className="muted small">show the draft: the frame, numbered points and how each was found</span>
+            </span>
+          </label>
+          <label className="check">
+            <input type="checkbox" checked={!!finish.byHand} onChange={(e) => onFinish({ ...finish, byHand: e.target.checked })} />
+            <span>
+              Draft it by hand <span className="muted small">add pages to draw the pattern yourself on pattern paper, point by point</span>
             </span>
           </label>
           <button type="button" className="primary" onClick={() => ready && download(ready, 'application/pdf', fileName)} disabled={!ready}>
@@ -279,13 +318,120 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
         </section>
       </div>
 
+      {made?.flat && (
+        <section className="card" aria-labelledby="flattitle">
+          <p className="eyebrow">Technical flat</p>
+          <h2 id="flattitle">{title}</h2>
+          <TechFlatView flat={made.flat} title={title} />
+          <p className="muted small">
+            Drawn to scale from your pattern, with the darts sewn. It goes on the first page of the PDF, for a dressmaker or anyone
+            checking the design.
+          </p>
+        </section>
+      )}
+
+      <section className="card" aria-labelledby="laytitle">
+        <div className="row between wrap">
+          <div>
+            <p className="eyebrow">Cutting layout</p>
+            <h2 id="laytitle">{lays.map((l) => `${l.metres.toFixed(1)} m${l.fabric === 'lining' ? ' of lining' : ''}`).join(' + ') || 'Too wide to lay out'}</h2>
+          </div>
+          <div className="row wrap">
+            <div className="seg" role="group" aria-label="Fabric width">
+              {FABRIC_WIDTHS.map((w) => (
+                <button key={w} type="button" className={finish.fabricWidth === w ? 'on' : ''} aria-pressed={finish.fabricWidth === w} onClick={() => onFinish({ ...finish, fabricWidth: w })}>
+                  {w} cm
+                </button>
+              ))}
+            </div>
+            <label className="check">
+              <input type="checkbox" checked={finish.nap} onChange={(e) => onFinish({ ...finish, nap: e.target.checked })} />
+              <span>
+                Nap or one-way print <span className="muted small">every piece the same way up</span>
+              </span>
+            </label>
+          </div>
+        </div>
+        {lays.length ? (
+          lays.map((lay) => (
+            <div key={lay.fabric} className="lay">
+              {lays.length > 1 && <p className="eyebrow">{lay.fabric === 'lining' ? 'Lining' : 'Fabric'}</p>}
+              <LayPlanView lay={lay} />
+              <p className="muted small">{layWords(lay)}</p>
+            </div>
+          ))
+        ) : (
+          <p className="muted">These pieces are wider than {finish.fabricWidth} cm fabric. Try a wider fabric.</p>
+        )}
+      </section>
+
+      <section className="card" aria-labelledby="toiletitle">
+        <p className="eyebrow">Before your fabric{fittingNotes.length && fitting ? ` · version ${fitting.round + 1}` : ''}</p>
+        <h2 id="toiletitle">{fittingNotes.length ? 'Corrected after your toile' : 'Fit it in a toile first'}</h2>
+        {fittingNotes.length ? (
+          <ul className="fitlist">
+            {fittingNotes.map((n) => (
+              <li key={n}>{n[0].toUpperCase() + n.slice(1)}</li>
+            ))}
+          </ul>
+        ) : (
+          <p className="muted">
+            Make it up in calico first and try it on. Tell us what you see, such as {garment === 'skirt' || garment === 'trousers' ? 'pulling across the hips or folds below the back waist' : 'pulling at the bust or a gaping neckline'}, and the
+            pattern is corrected the way a pattern cutter would, with a second line for one side if your shoulders or hips differ.
+          </p>
+        )}
+        <div className="row wrap">
+          <button type="button" className="secondary" onClick={onFitting}>
+            {fittingNotes.length ? 'Fit another toile' : 'I’ve tried on a toile'}
+          </button>
+          {onTrueScale && made && (
+            <button type="button" className="secondary" onClick={onTrueScale}>
+              See a piece at true size
+            </button>
+          )}
+        </div>
+      </section>
+
       <MakerPack profile={profile} title={title} fit={fit} made={made} fileBase={fileBase} />
 
+      {values && draftAt && (
+        <SizeRun garment={garment} values={values} draftAt={draftAt} title={title} fileBase={fileBase} width={finish.fabricWidth} nap={finish.nap} download={download} />
+      )}
+
       <section className="card sew" aria-labelledby="sewtitle">
-        <div>
-          <p className="eyebrow">After printing</p>
-          <h2 id="sewtitle">How to sew it</h2>
+        <div className="row between wrap">
+          <div>
+            <p className="eyebrow">After printing</p>
+            <h2 id="sewtitle">How to sew it</h2>
+          </div>
+          {garment !== 'trousers' && (
+          <div className="seg" role="group" aria-label="How to sew it">
+            {(['quick', 'couture'] as const).map((r) => (
+              <button key={r} type="button" className={finish.route === r ? 'on' : ''} aria-pressed={finish.route === r} onClick={() => onFinish({ ...finish, route: r })}>
+                {r === 'quick' ? 'Quick' : 'Couture'}
+              </button>
+            ))}
+          </div>
+          )}
         </div>
+        {finish.route === 'couture' && garment !== 'trousers' && (
+          <div className="cloth">
+            <p className="muted small">
+              Thread-traced lines, basting and a fitting before machining, a hand-picked zip and hand-finished edges. The seam finish and
+              pressing follow your cloth.
+            </p>
+            <div className="seg" role="group" aria-label="Your cloth">
+              {CLOTHS.map((c) => (
+                <button key={c.id} type="button" className={finish.cloth === c.id ? 'on' : ''} aria-pressed={finish.cloth === c.id} onClick={() => onFinish({ ...finish, cloth: c.id })} title={c.detail}>
+                  {c.label}
+                </button>
+              ))}
+            </div>
+            <p className="muted small">
+              Seams: {{ french: 'French seams', hongkong: 'Hong Kong bound', pinked: 'pinked', overcast: 'overcast by hand' }[seamFinish(finish.cloth, garment === 'skirt' ? finish.skirtLined : finish.bodiceEdges === 'lined')]}.
+            </p>
+          </div>
+        )}
         <div className="sewgrid">
           <div className="notions">
             <p className="eyebrow">You'll need</p>
@@ -301,6 +447,7 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
               <li key={st.title}>
                 <strong>{st.title}</strong>
                 <p>{st.text}</p>
+                {st.diagram && <StepDiagram id={st.diagram} />}
               </li>
             ))}
           </ol>

@@ -253,6 +253,16 @@ p {
   font-weight: var(--w-strong);
 }
 
+/* Three garments: the switch fills a narrow card's width rather than spilling out of it. */
+.seg.garments {
+  max-width: 100%;
+}
+
+.seg.garments button {
+  flex: 1 1 auto;
+  padding: 0 10px;
+}
+
 .fields {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -1292,4 +1302,497 @@ button.ghost:disabled {
   display: block;
   width: 100%;
   height: 100%;
+}
+
+/* The posture measurements' heading spans the whole field grid. */
+.fields-head {
+  grid-column: 1 / -1;
+  margin-top: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.fields-head .muted {
+  margin: 4px 0 0;
+}
+
+/* After the toile: the fit issues, how much to correct, and the pattern before and after. */
+.issue {
+  display: grid;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+}
+.issue.on {
+  border-color: var(--ink);
+}
+.issue strong {
+  font-weight: var(--w-strong);
+}
+.issue .check .muted {
+  text-transform: none;
+  letter-spacing: normal;
+}
+.issue-fix {
+  display: grid;
+  gap: 8px;
+  padding-left: 32px;
+}
+.issue-fix p {
+  margin: 0;
+}
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--ink);
+}
+.stepper button {
+  width: 44px;
+  min-height: 44px;
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  font-size: 18px;
+  cursor: pointer;
+}
+.stepper button:disabled {
+  color: var(--disabled);
+  cursor: default;
+}
+.stepper span {
+  min-width: 76px;
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 14px;
+}
+.fitlist {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+  font-size: 14px;
+}
+.preview-svg.fitprev {
+  width: 100%;
+  max-height: 420px;
+}
+.fitprev polygon {
+  fill: none;
+  vector-effect: non-scaling-stroke;
+}
+.fitprev .fit-now {
+  stroke: var(--muted);
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+}
+.fitprev .fit-next {
+  stroke: var(--gild);
+  stroke-width: 1.5;
+}
+.fitprev .fit-alt {
+  stroke: var(--gild);
+  stroke-width: 1;
+  stroke-dasharray: 1 2.5;
+}
+.fitprev .fit-mark circle {
+  fill: var(--gild);
+}
+.fitprev .fit-mark text {
+  fill: var(--ink);
+  font-family: var(--mono);
+  paint-order: stroke;
+  stroke: var(--white);
+  stroke-width: 0.25;
+}
+.fitlist.changes {
+  font-size: 13px;
+}
+.tag.carried {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 6px;
+  border: 1px solid var(--gild);
+  border-radius: 999px;
+  color: var(--gild);
+  font-size: 12px;
+}
+.fitside {
+  position: sticky;
+  top: 16px;
+}
+@media (max-width: 720px) {
+  .fitside {
+    position: static;
+  }
+}
+
+/* The cutting layout: the fabric lengthwise, pieces in fine champagne lines. */
+.layplan {
+  width: 100%;
+  height: auto;
+  max-height: 420px;
+}
+.layplan .lay-fabric {
+  fill: var(--fill);
+}
+.layplan .lay-fold {
+  stroke: var(--muted);
+  stroke-width: 0.3;
+  stroke-dasharray: 1.2 0.8;
+}
+.layplan .lay-edge {
+  stroke: var(--muted);
+  stroke-width: 0.3;
+}
+.layplan .lay-piece {
+  fill: var(--paper);
+  stroke: var(--gild);
+  stroke-width: 0.25;
+  stroke-linejoin: round;
+}
+.layplan text {
+  font-family: var(--mono);
+  letter-spacing: 0.12em;
+}
+.layplan .lay-name {
+  fill: var(--ink);
+}
+.layplan .lay-note {
+  fill: var(--muted);
+}
+.lay {
+  display: grid;
+  gap: 8px;
+}
+.lay p {
+  margin: 0;
+}
+
+/* The technical flat: the garment drawn flat in fine champagne lines, front and back. */
+.techflat {
+  width: 100%;
+  height: auto;
+  max-height: 460px;
+}
+.techflat path {
+  fill: none;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.techflat .flat-shape {
+  fill: var(--paper);
+  stroke: var(--gild);
+  stroke-width: 0.3;
+}
+.techflat .flat-seam,
+.techflat .flat-dart {
+  stroke: var(--gild);
+  stroke-width: 0.18;
+}
+.techflat .flat-stitch {
+  stroke: var(--gild);
+  stroke-width: 0.14;
+  stroke-dasharray: 0.5 0.35;
+}
+.techflat .flat-zip {
+  stroke: var(--gild);
+  stroke-width: 0.4;
+}
+.techflat .flat-label {
+  fill: var(--muted);
+  font-family: var(--mono);
+  letter-spacing: 0.14em;
+}
+
+/* Step diagrams in the sewing guide. */
+.stepdg {
+  grid-column: 2;
+  display: block;
+  width: 220px;
+  max-width: 100%;
+  height: auto;
+  margin-top: 8px;
+}
+.stepdg path {
+  fill: none;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.stepdg .dg-cloth {
+  fill: var(--fill);
+  stroke: var(--gild);
+  stroke-width: 0.25;
+}
+.stepdg .dg-fold {
+  fill: color-mix(in srgb, var(--gild) 16%, var(--paper));
+  stroke: var(--gild);
+  stroke-width: 0.25;
+}
+.stepdg .dg-edge {
+  stroke: var(--gild);
+  stroke-width: 0.3;
+}
+.stepdg .dg-machine {
+  stroke: var(--ink);
+  stroke-width: 0.2;
+  stroke-dasharray: 0.7 0.4;
+}
+.stepdg .dg-hand {
+  stroke: var(--ink);
+  stroke-width: 0.3;
+}
+.stepdg .dg-thread {
+  stroke: var(--ink);
+  stroke-width: 0.3;
+  stroke-dasharray: 2.4 1.2;
+}
+.stepdg .dg-under {
+  stroke: var(--muted);
+  stroke-width: 0.2;
+  stroke-dasharray: 0.5 0.5;
+}
+.cloth {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.cloth p {
+  margin: 0;
+}
+
+/* True size: a bank card to calibrate against, then a piece at 1:1 */
+.calcard-wrap {
+  overflow-x: auto;
+  padding: 8px 0;
+}
+.calcard {
+  display: grid;
+  place-items: end start;
+  padding: 8px 10px;
+  border: 1.5px solid var(--gild);
+  box-sizing: border-box;
+  color: var(--muted);
+}
+.truescale .reading {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 14px;
+}
+.truescale-pan {
+  overflow: auto;
+  max-height: 70vh;
+  border: 1px solid var(--line, var(--muted));
+  touch-action: pan-x pan-y;
+}
+.truescale-pan svg {
+  display: block;
+}
+.ts-grid line {
+  stroke: var(--muted);
+  opacity: 0.35;
+}
+.ts-cut {
+  fill: none;
+  stroke: var(--muted);
+}
+.ts-stitch {
+  fill: rgba(200, 170, 110, 0.06);
+  stroke: var(--ink);
+}
+.ts-line {
+  fill: none;
+  stroke: var(--ink);
+  opacity: 0.7;
+}
+.ts-edge {
+  fill: none;
+  stroke: var(--gild);
+  stroke-linecap: round;
+  opacity: 0.8;
+}
+.ts-tap {
+  fill: var(--gild);
+}
+.ts-tapline {
+  stroke: var(--gild);
+  stroke-dasharray: 0.4 0.25;
+}
+
+/* Size run: the graded nest */
+.nests {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.nest {
+  margin: 0;
+  width: 150px;
+}
+.nest svg {
+  width: 100%;
+  height: 170px;
+}
+.nest polygon {
+  fill: none;
+  vector-effect: non-scaling-stroke;
+}
+.nest .nest-base {
+  stroke: var(--gild);
+  stroke-width: 1.5;
+}
+.nest .nest-size {
+  stroke: var(--ink);
+  stroke-width: 0.8;
+}
+.sumgrid.rules {
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+}
+
+/* Client book */
+.stack.wide {
+  display: grid;
+  gap: 16px;
+}
+.tablewrap {
+  overflow-x: auto;
+}
+table.history {
+  border-collapse: collapse;
+  font-size: 13px;
+  font-family: var(--mono);
+}
+table.history th,
+table.history td {
+  padding: 4px 10px;
+  text-align: left;
+  border-bottom: 1px solid rgba(154, 142, 120, 0.25);
+  white-space: nowrap;
+}
+table.history td.moved {
+  color: var(--gild);
+}
+.notes {
+  display: grid;
+  gap: 6px;
+  padding-left: 18px;
+}
+.photos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+}
+.photo {
+  margin: 0;
+}
+.photo img,
+.photo-missing {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(154, 142, 120, 0.4);
+}
+.filebtn {
+  cursor: pointer;
+}
+
+/* Check any pattern */
+.filecheck {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.filecheck polyline {
+  fill: none;
+  vector-effect: non-scaling-stroke;
+  stroke-width: 2.5;
+}
+.filecheck .seam-ok polyline {
+  stroke: var(--gild);
+}
+.filecheck .seam-warn polyline {
+  stroke: #d9775b;
+}
+.filecheck text {
+  fill: var(--ink);
+  font-family: var(--mono);
+  paint-order: stroke;
+  stroke: var(--white);
+  stroke-width: 0.3;
+}
+.fitlist li.warn {
+  color: #e39a83;
+}
+.field textarea {
+  padding: 10px 12px;
+  border: var(--bw) solid var(--ink);
+  border-radius: 0;
+  background: var(--white);
+  color: var(--ink);
+  font: inherit;
+  font-size: 16px;
+  resize: vertical;
+}
+
+/* Ease map: room over the body, level by level */
+.easemap {
+  display: grid;
+  gap: 12px;
+}
+.easerows {
+  display: grid;
+  gap: 12px;
+}
+.easerow {
+  margin: 0;
+}
+.easerow svg {
+  width: 100%;
+  max-height: 360px;
+}
+.easebands {
+  opacity: 0.7;
+}
+.easeband {
+  cursor: pointer;
+  shape-rendering: crispEdges;
+}
+.easeline {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+.easename {
+  fill: var(--muted);
+  font-family: var(--mono);
+  font-size: 2.4px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.ease-tight { fill: #e0604f; background: #e0604f; }
+.ease-snug { fill: #e3a454; background: #e3a454; }
+.ease-fit { fill: #d9c49b; background: #d9c49b; }
+.ease-easy { fill: #86b0a5; background: #86b0a5; }
+.ease-loose { fill: #6f8cc4; background: #6f8cc4; }
+.easelegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+.easelegend li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.easelegend .swatch {
+  width: 14px;
+  height: 10px;
+  opacity: 0.8;
 }

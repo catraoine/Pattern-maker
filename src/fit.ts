@@ -1,6 +1,6 @@
 // How a sewn pattern fitted, noted by the sewist against a saved pattern. Kept on this device with the pattern,
 // so the next toile can start from what was learnt.
-import { PatternChoices, isBodice } from './garments';
+import { PatternChoices, isBodice, isDress, isTrousers } from './garments';
 import type { MeasurementValues } from './measurements';
 
 export type Verdict = 'good' | 'tweaks' | 'off';
@@ -18,7 +18,8 @@ export interface FitFeedback {
   sentAt?: string;
 }
 
-export type FitArea = 'waist' | 'hip' | 'length' | 'flare' | 'bust' | 'shoulders' | 'armholes' | 'neckline' | 'back';
+export type FitArea = 'waist' | 'hip' | 'length' | 'flare' | 'bust' | 'shoulders' | 'armholes' | 'neckline' | 'back' | 'rise' | 'thigh' | 'leg';
+export const FIT_AREAS: FitArea[] = ['waist', 'hip', 'length', 'flare', 'bust', 'shoulders', 'armholes', 'neckline', 'back', 'rise', 'thigh', 'leg'];
 
 interface AreaInfo {
   id: FitArea;
@@ -45,7 +46,31 @@ const BODICE_AREAS: AreaInfo[] = [
   { id: 'back', label: 'Back length', words: ['Too short', 'Too long'] },
 ];
 
-export const fitAreas = (choices: PatternChoices) => (isBodice(choices) ? BODICE_AREAS : SKIRT_AREAS);
+const DRESS_AREAS: AreaInfo[] = [
+  { id: 'bust', label: 'Bust', words: SNUG },
+  { id: 'waist', label: 'Waist', words: SNUG },
+  { id: 'hip', label: 'Hip', words: SNUG },
+  { id: 'shoulders', label: 'Shoulders', words: ['Too narrow', 'Too wide'] },
+  { id: 'armholes', label: 'Armholes', words: SNUG },
+  { id: 'neckline', label: 'Neckline', words: ['Too high', 'Gapes'] },
+  { id: 'length', label: 'Length', words: ['Too short', 'Too long'] },
+];
+
+const TROUSERS_AREAS: AreaInfo[] = [
+  { id: 'waist', label: 'Waist', words: SNUG },
+  { id: 'hip', label: 'Hip', words: SNUG },
+  { id: 'rise', label: 'Rise', words: ['Too short', 'Too long'] },
+  { id: 'thigh', label: 'Thigh', words: SNUG },
+  { id: 'leg', label: 'Leg width', words: ['Too narrow', 'Too wide'] },
+  { id: 'length', label: 'Length', words: ['Too short', 'Too long'] },
+];
+
+export type FitGarmentKind = 'skirt' | 'bodice' | 'dress' | 'trousers';
+export const garmentKind = (c: PatternChoices): FitGarmentKind =>
+  isBodice(c) ? 'bodice' : isDress(c) ? 'dress' : isTrousers(c) ? 'trousers' : 'skirt';
+
+const AREAS: Record<FitGarmentKind, AreaInfo[]> = { skirt: SKIRT_AREAS, bodice: BODICE_AREAS, dress: DRESS_AREAS, trousers: TROUSERS_AREAS };
+export const fitAreas = (choices: PatternChoices) => AREAS[garmentKind(choices)];
 
 export const VERDICTS: [Verdict, string][] = [
   ['good', 'Fits well'],
@@ -81,7 +106,7 @@ export function cleanFit(fit: FitFeedback, choices: PatternChoices): FitFeedback
  * measurements it was drafted from. No names, no pattern name, nothing that says who the person is.
  */
 export interface FitReport {
-  garment: 'skirt' | 'bodice';
+  garment: FitGarmentKind;
   choices: PatternChoices;
   verdict: Verdict;
   made: FitFeedback['made'];
@@ -91,7 +116,7 @@ export interface FitReport {
 }
 
 export const fitReport = (fit: FitFeedback, choices: PatternChoices, measurements: MeasurementValues): FitReport => ({
-  garment: isBodice(choices) ? 'bodice' : 'skirt',
+  garment: garmentKind(choices),
   choices,
   verdict: fit.verdict,
   made: fit.made,
