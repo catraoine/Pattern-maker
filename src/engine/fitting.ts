@@ -431,10 +431,11 @@ export function toFitting(f: Fitting | undefined, garment: FitGarment): SkirtFit
 const amount = (issue: FitIssue, v: number) => (issue.unit === 'cm' ? `${v} cm` : `${v} degrees`);
 
 /** What changed, in a few words each, for the pattern's notes. */
-export function describeFitting(f: Fitting | undefined, garment: FitGarment): string[] {
+export function describeFitting(f: Fitting | undefined, garment: FitGarment | 'dress'): string[] {
   return Object.entries(f?.issues ?? {})
     .map(([id, v]) => ({ issue: issueById(id), v }))
-    .filter((x): x is { issue: FitIssue; v: number } => !!x.issue && x.issue.garment === garment && x.v > 0)
+    // A dress is fitted as one toile: its bodice and its skirt corrections are kept together.
+    .filter((x): x is { issue: FitIssue; v: number } => !!x.issue && (garment === 'dress' || x.issue.garment === garment) && x.v > 0)
     .map(({ issue, v }) => issue.note.replace('{v}', amount(issue, Math.min(issue.max, v))).replace('{side}', f?.sides?.[issue.id] ?? 'right'));
 }
 

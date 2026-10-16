@@ -4,6 +4,7 @@ import type { SkirtDraft, SkirtMeasurements } from './skirt';
 import type { BodiceDraft, BodiceLength, BodiceMeasurements } from './bodice';
 import type { SpecRow } from './techpack';
 import type { SleeveDraft, SleeveMeasurements } from './sleeve';
+import type { DressDraft, DressMeasurements } from './dress';
 
 const r1 = (v: number) => Math.round(v * 10) / 10;
 const row = (label: string, body: number | undefined, finished: number): SpecRow =>
@@ -50,5 +51,17 @@ export function sleeveSpec(m: SleeveMeasurements, s: SleeveDraft): SpecRow[] {
     row('Crown height', undefined, s.capHeight),
     { label: 'Crown ease, front / back', finished: s.gathers?.crown !== undefined ? `${s.gathers.crown} gathered` : `${s.crownEase.front} / ${s.crownEase.back}` },
     ...(s.elbowDart ? [row('Elbow dart', undefined, s.elbowDart)] : []),
+  ];
+}
+
+/** The dress: the bodice's rows, then the skirt's below the waist seam, and the one long zip. */
+export function dressSpec(m: DressMeasurements, d: DressDraft, sleeve?: SleeveDraft): SpecRow[] {
+  const zip = /zip/i;
+  return [
+    ...bodiceSpec(m, d.bodice, 'waist').filter((r) => !zip.test(r.label)),
+    ...skirtSpec(m, d.skirt).filter((r) => r.label !== 'Waist' && !zip.test(r.label) && !/Waistband/.test(r.label)),
+    row('Length, nape to hem', undefined, d.lengthCm),
+    ...(sleeve ? sleeveSpec(m, sleeve) : []),
+    { label: 'Invisible zip, centre back', finished: `${d.zipCm}` },
   ];
 }

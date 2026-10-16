@@ -45,7 +45,7 @@ const FINISH_WORDS: Record<Exclude<SeamFinish, 'french'>, string> = {
 };
 
 export interface CoutureContext {
-  garment: 'skirt' | 'bodice';
+  garment: 'skirt' | 'bodice' | 'dress';
   cloth: Cloth;
   /** Lined: the inside is covered, so seam finishes only need to stay flat. */
   lined: boolean;
@@ -59,8 +59,9 @@ const step = (title: string, text: string, diagram?: DiagramId): SewStep => (dia
 /** The quick route's steps, rewritten for the couture route. */
 export function toCouture(guide: SewingGuide, c: CoutureContext): SewingGuide {
   const finish = seamFinish(c.cloth, c.lined);
-  const bodice = c.garment === 'bodice';
-  const seams = bodice ? 'side, shoulder and centre back' : 'side and centre back';
+  const bodice = c.garment !== 'skirt';
+  const dress = c.garment === 'dress';
+  const seams = dress ? 'side, shoulder, centre back and waist' : bodice ? 'side, shoulder and centre back' : 'side and centre back';
   const out: SewStep[] = [];
   let zip: SewStep | undefined;
   let fitted = false;
@@ -125,7 +126,7 @@ export function toCouture(guide: SewingGuide, c: CoutureContext): SewingGuide {
       out.push(
         step(
           t,
-          `Fold each dart right sides together, pinning through both traced lines so they meet, and baste along them. Machine from the wide end to the point, the last 2 cm a thread's width from the fold, and run off the fold. Leave long threads and tie them in a knot by hand rather than backstitching, so the point lies flat.${fishEye ? ' The waist darts are pointed at both ends: sew from the middle out to each point, then clip into the fold at the waist so they lie flat.' : ''} Press each dart flat as sewn, then over the ham, ${bodice ? 'bust darts downward and waist darts toward the centre' : 'front darts toward the centre front and back darts toward the centre back'}.${c.cloth === 'wool' ? ' In wool, slash a deep dart along its fold to 2 cm from the point and press it open, so it leaves no ridge.' : ''}`,
+          `Fold each dart right sides together, pinning through both traced lines so they meet, and baste along them. Machine from the wide end to the point, the last 2 cm a thread's width from the fold, and run off the fold. Leave long threads and tie them in a knot by hand rather than backstitching, so the point lies flat.${fishEye ? ' The waist darts are pointed at both ends: sew from the middle out to each point, then clip into the fold at the waist so they lie flat.' : ''} Press each dart flat as sewn, then over the ham, ${bodice && !/skirt/.test(t) ? 'bust darts downward and waist darts toward the centre' : 'front darts toward the centre front and back darts toward the centre back'}.${c.cloth === 'wool' ? ' In wool, slash a deep dart along its fold to 2 cm from the point and press it open, so it leaves no ridge.' : ''}`,
           'press',
         ),
       );
@@ -181,6 +182,18 @@ export function toCouture(guide: SewingGuide, c: CoutureContext): SewingGuide {
         text: s.text.replace('trim the seam to 0.5 cm', "grade the seam (the facing's allowance to 0.3 cm, the bodice's to 0.6 cm) so no ridge shows,").replace('Trim to 0.5 cm,', "Grade the seam (the lining's allowance to 0.3 cm, the bodice's to 0.6 cm),"),
         diagram: 'understitch',
       });
+    } else if (t === 'Join the bodice to the skirt') {
+      out.push(
+        step(
+          t,
+          'Baste the waist seam along the traced lines, matching the centre front, the side edges and the darts, so each bodice dart runs on into the skirt dart below it. Machine on the traced line, take out the basting and press the seam up toward the bodice over the ham.',
+          'baste',
+        ),
+        step(
+          'Stay the waist',
+          'Cut a length of 1.5 cm grosgrain ribbon to your waist measurement plus 3 cm. Pin it inside along the waist seam, centred at the front, and catch it by hand to the seam allowances at each dart and side seam, leaving 8 cm free each side of the zip. Finish the ends with a hook and bar. The stay carries the weight of the skirt, so the zip never strains and the waist sits exactly where it was fitted.',
+        ),
+      );
     } else if (t === 'Sew the sleeve seams') {
       out.push(
         finish === 'french'
@@ -227,7 +240,7 @@ export function toCouture(guide: SewingGuide, c: CoutureContext): SewingGuide {
       const words = hemWords(c, finish, s.text);
       out.push(step(t, words, /slip-stitch/.test(words) ? 'slipstitch' : 'catch'));
     } else if (t === 'Finish') {
-      out.push({ ...s, text: `${s.text.replace(' Give the skirt a final press.', '').replace(' Give the bodice a final press.', '')} Take out every tacking thread, and give it a last press through a press cloth.` });
+      out.push({ ...s, text: `${s.text.replace(/ Give the (skirt|bodice|dress) a final press\./, '')} Take out every tacking thread, and give it a last press through a press cloth.` });
     } else out.push(s);
   }
 
@@ -240,6 +253,7 @@ export function toCouture(guide: SewingGuide, c: CoutureContext): SewingGuide {
     'Contrasting tacking thread',
     "A tailor's ham and a press cloth",
     ...(finish === 'hongkong' ? ['1 m of lining or silk organza, for the bias strips that bind the seams'] : []),
+    ...(dress ? ['1 m of 1.5 cm grosgrain ribbon and a hook and bar, for the waist stay'] : []),
     ...(guide.steps.some((g) => g.title === 'Set in the sleeves')
       ? ['A sleeve board or sleeve roll', ...(c.cloth === 'wool' ? ['A pair of sleeve heads, or 0.2 m of lambswool for them'] : [])]
       : []),

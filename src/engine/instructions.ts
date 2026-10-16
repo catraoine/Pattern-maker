@@ -4,6 +4,7 @@ import { isCircle } from './skirt';
 import type { Length, Silhouette, SkirtDraft } from './skirt';
 import type { BodiceDraft, BodiceLength } from './bodice';
 import type { SleeveDraft } from './sleeve';
+import type { DressDraft } from './dress';
 import { SEAM_WIDTHS, SeamWidths } from './allowances';
 import type { Piece } from './piece';
 import type { DiagramId } from './diagrams';
@@ -197,11 +198,7 @@ export function bodiceGuide(draft: BodiceDraft, style: { length: BodiceLength },
   const waist = draft.waistDarts.front > 0.3 || draft.waistDarts.back > 0.3;
   const dartWords = bust && waist ? 'bust and waist darts' : bust ? 'bust darts' : 'waist darts';
   const sleeve = finish.sleeve;
-  const sleeveCut = sleeve
-    ? ` Place the sleeve on both layers too, so you get a pair, and snip its notches: one at the top of the crown, one on the front, two on the back.${
-        sleeve.pieces.length > 1 ? ' Cut the two sleeve bands.' : ''
-      }${sleeve.elbowDart ? ' Chalk-mark the elbow dart.' : ''}`
-    : '';
+  const sleeveCut = sleeveCutWords(sleeve);
   const facingCut = sleeve ? ' Cut the neck facings from the fabric, and again from fusible interfacing.' : ' Cut the four facing pieces from the fabric, and again from fusible interfacing.';
 
   const steps: SewStep[] = [
@@ -353,6 +350,90 @@ export function bodiceGuide(draft: BodiceDraft, style: { length: BodiceLength },
       'Hook and eye',
       'Matching thread',
     ],
+    steps,
+  };
+}
+
+/** Cutting the sleeves, added to the cutting step. */
+function sleeveCutWords(sleeve: SleeveDraft | undefined): string {
+  if (!sleeve) return '';
+  return ` Place the sleeve on both layers too, so you get a pair, and snip its notches: one at the top of the crown, one on the front, two on the back.${
+    sleeve.pieces.length > 1 ? ' Cut the two sleeve bands.' : ''
+  }${sleeve.elbowDart ? ' Chalk-mark the elbow dart.' : ''}`;
+}
+
+/**
+ * Sewing steps for the dress: the bodice's and the skirt's own steps, put in the order a dress is
+ * sewn. Darts first, then bodice and skirt joined at the waist while they are still flat, the zip
+ * across the waist seam, and the side seams sewn in one from the underarm to the hem.
+ */
+export function dressGuide(draft: DressDraft, style: { silhouette: Silhouette; length: Length }, fabricM: number, bindingM: number, finish: BodiceFinish = {}): SewingGuide {
+  const sw = finish.seams ?? SEAM_WIDTHS.home;
+  const seam = n1(sw.seam);
+  const waist = n1(sw.waist);
+  const curve = n1(sw.curve);
+  const edges = finish.edges ?? 'binding';
+  const top = bodiceGuide(draft.bodice, { length: 'waist' }, fabricM, bindingM, finish);
+  const skirt = sewingGuide(draft.skirt, style, fabricM, { seams: sw, width: finish.width });
+  const find = (g: SewingGuide, re: RegExp) => g.steps.filter((s) => re.test(s.title));
+  const at = (title: string) => top.steps.findIndex((s) => s.title === title);
+  const wide = !draft.skirt.pieces[0].fold;
+  const slit = hasSlit(style);
+  const lined = edges === 'lined';
+  const dartLines = draft.bodice.bustDart > 0.3 || draft.skirt.dartsPerSide.front + draft.skirt.dartsPerSide.back > 0;
+
+  // The bodice's own finishing, from the neck to the sleeves: everything after its side seams.
+  const finishing = top.steps.slice(at('Sew the side seams') + 1, at('Hem')).map((s) =>
+    s.title === 'Make the lining'
+      ? { ...s, text: s.text.replace(/, and its centre back seam below the ZIP ENDS notch,/, ',') }
+      : s.title === 'Finish the lining at the zip'
+        ? { ...s, text: `${s.text} Turn the lining's waist edge under and slip-stitch it over the waist seam inside.` }
+        : s,
+  );
+
+  const steps: SewStep[] = [
+    top.steps[0],
+    {
+      title: 'Cut out',
+      text: `Fold the fabric in half with the selvedges together. Place the bodice front${wide ? '' : ' and the skirt front'} on the fold, and the bodice back${wide ? '' : ' and the skirt back'} on both layers so you get a pair${wide ? '' : ' of each'}.${
+        wide ? ' The skirt pieces are too wide for folded fabric: cut them from a single layer, turning the pattern over for the second of each so you get pairs.' : ''
+      } Keep each grain arrow parallel to the selvedge. Cut along the solid outer line, snip the small notches${dartLines ? ', and chalk-mark the dart lines and the bust point' : ''}.${
+        lined ? ' Cut the bodice front and back again from the lining.' : edges === 'facings' ? (finish.sleeve ? ' Cut the neck facings from the fabric, and again from fusible interfacing.' : ' Cut the four facing pieces from the fabric, and again from fusible interfacing.') : ''
+      }${sleeveCutWords(finish.sleeve)}${oneSide(draft.bodice.pieces[0], lined ? 'and the lining' : '')}`,
+    },
+    ...find(top, /^Interface the facings$/),
+    {
+      title: 'Neaten the edges',
+      diagram: 'overlock',
+      text: `Zigzag or overlock the shoulder and side edges of the bodice, the side edges of the skirt, and the centre back edges of both${finish.sleeve ? ", and the sleeves' underarm seam edges" : ''}, so they will not fray inside.`,
+    },
+    ...find(top, /^Sew the .*darts?$/),
+    ...find(skirt, /^Sew the .*darts?$/).map((s) => ({ ...s, title: 'Sew the skirt darts' })),
+    ...find(skirt, /^Sew the centre front$/).map((s) => ({ ...s, title: 'Sew the skirt centre front' })),
+    {
+      title: 'Join the bodice to the skirt',
+      text: `Pin the bodice front to the skirt front at the waist, right sides together, matching the centre front, the side edges and the darts, so each bodice dart runs on into the skirt dart below it in one line. Pin each back half the same way. Sew ${waist} from the edge, press the seams up toward the bodice, and zigzag or overlock the two edges together.`,
+    },
+    {
+      title: 'Put in the zip',
+      text: `Sew a ${draft.zipCm} cm invisible zip into the centre back edges, with the top of the teeth ${curve} below the neck edge, across the waist seam, to the ZIP ENDS notch on the skirt. Sew one side, close the zip and mark where the waist seam crosses the other tape, so the waist meets exactly when you sew the second side.`,
+    },
+    {
+      title: 'Close the centre back',
+      text: `Sew the rest of the centre back seam, from the bottom of the zip to the hem, ${seam} from the edge.${slit ? ' Leave the bottom 15 cm open as a walking slit.' : ''} Press the seam open.`,
+    },
+    ...find(top, /^Sew the shoulders$/),
+    {
+      title: 'Sew the side seams',
+      text: `Pin the front to the back at the sides, right sides together, from the underarm to the hem, matching the waist seams and the hip notches. Sew ${seam} from the edge in one seam and press it open. Try the dress on now: this is the easiest moment to take it in or let it out at the sides.`,
+    },
+    ...finishing,
+    ...find(skirt, /^Hem$/),
+    { title: 'Finish', text: 'Sew a hook and eye at the top of the zip, inside the neckline. Give the dress a final press.' },
+  ];
+
+  return {
+    notions: top.notions.map((n) => (/invisible zip/.test(n) ? `${draft.zipCm} cm invisible zip` : n)),
     steps,
   };
 }

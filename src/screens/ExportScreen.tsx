@@ -394,7 +394,7 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
               ))}
             </div>
             <p className="muted small">
-              Seams: {{ french: 'French seams', hongkong: 'Hong Kong bound', pinked: 'pinked', overcast: 'overcast by hand' }[seamFinish(finish.cloth, garment === 'bodice' ? finish.bodiceEdges === 'lined' : finish.skirtLined)]}.
+              Seams: {{ french: 'French seams', hongkong: 'Hong Kong bound', pinked: 'pinked', overcast: 'overcast by hand' }[seamFinish(finish.cloth, garment === 'skirt' ? finish.skirtLined : finish.bodiceEdges === 'lined')]}.
             </p>
           </div>
         )}

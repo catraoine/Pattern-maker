@@ -69,13 +69,28 @@ const NAMES: Record<string, string> = {
 const isFront = (pc: Piece) => /front/i.test(pc.name);
 const isBack = (pc: Piece) => /back/i.test(pc.name);
 
-/** Run every check that applies to a set of pieces. Front and back pieces are paired by name. */
+/** Front and back pieces paired by the word before "front" or "back": the bodice's, the skirt's. */
+function pairs(pieces: Piece[]): { group: string; front: Piece; back: Piece }[] {
+  const groupOf = (pc: Piece) => pc.name.replace(/\s*(front|back)\b.*$/i, '');
+  const out: { group: string; front: Piece; back: Piece }[] = [];
+  for (const front of pieces.filter(isFront)) {
+    const back = pieces.find((pc) => isBack(pc) && groupOf(pc) === groupOf(front));
+    if (back) out.push({ group: groupOf(front), front, back });
+  }
+  return out;
+}
+
+/** Run every check that applies to a set of pieces. Front and back pieces are paired by name; a
+ * dress's bodice and skirt are each walked as a pair, and their waist seams against each other. */
 export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } = {}): Check[] {
   const checks: Check[] = [];
   const front = pieces.find(isFront);
   const back = pieces.find(isBack);
+  const all = pairs(pieces);
+  const named = all.length > 1;
 
-  if (front && back) {
+  for (const { group, front, back } of all) {
+    const which = (label: string) => (named ? `${group} ${label[0].toLowerCase()}${label.slice(1)}` : label);
     // Seams that sew together.
     for (const seam of ['side', 'shoulder']) {
       const f = taggedLength(front.outline, seam);
@@ -86,14 +101,14 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
         const ease = b - f;
         checks.push({
           group: 'Seams',
-          label: 'Shoulder seams',
+          label: which('Shoulder seams'),
           detail: `front ${cm(f)}, back ${cm(b)}: ${cm(ease)} of back shoulder ease, as drafted`,
           ok: Math.abs(ease - 1) <= SEAM_TOLERANCE,
         });
       } else {
         checks.push({
           group: 'Seams',
-          label: 'Side seams',
+          label: which('Side seams'),
           detail: `front ${cm(f)}, back ${cm(b)}, ${Math.abs(f - b) < 0.05 ? 'identical' : `${cm(Math.abs(f - b))} apart`}`,
           ok: Math.abs(f - b) <= SEAM_TOLERANCE,
         });
@@ -107,7 +122,7 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
         const sum = c.angle + bc.angle;
         checks.push({
           group: 'Corners',
-          label: `${cap(NAMES[other])} blends across the ${NAMES[seam]}`,
+          label: which(`${cap(NAMES[other])} blends across the ${NAMES[seam]}`),
           detail: `front ${deg(c.angle)} + back ${deg(bc.angle)} = ${deg(sum)}`,
           ok: Math.abs(sum - 180) <= BLEND_TOLERANCE,
         });
@@ -118,13 +133,43 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
       const seam = 2 * (taggedLength(front.outline, 'waist') + taggedLength(back.outline, 'waist'));
       checks.push({
         group: 'Seams',
-        label: 'Waist seam to finished waist',
+        label: which('Waist seam to finished waist'),
         detail: `${cm(seam)} with darts closed, finished ${cm(opts.finishedWaist)}`,
         // Up to 1.5 cm eases into a waistband or a matching seam without showing.
         ok: Math.abs(seam - opts.finishedWaist) <= 1.5,
       });
     }
   }
+
+  // A dress: the bodice's waist sewn to the skirt's, front to front and back to back.
+  const bodice = all.find((g) => /bodice/i.test(g.group));
+  const skirt = all.find((g) => /skirt/i.test(g.group));
+  if (bodice && skirt)
+    for (const side of ['front', 'back'] as const) {
+      const b = taggedLength(bodice[side].outline, 'waist');
+      const k = taggedLength(skirt[side].outline, 'waist');
+      checks.push({
+        group: 'Seams',
+        label: `Waist seam, bodice ${side} to skirt ${side}`,
+        detail: `bodice ${cm(b)}, skirt ${cm(k)}, darts closed, ${Math.abs(b - k) < 0.05 ? 'identical' : `${cm(Math.abs(b - k))} apart`}`,
+        ok: Math.abs(b - k) <= SEAM_TOLERANCE,
+      });
+      // The waist darts meet across the seam: the skirt's dart nearest the centre under the bodice's.
+      const waistDart = (pc: Piece) =>
+        dartsOf(pc)
+          .filter((d) => Math.abs(d.far.x - d.near.x) > Math.abs(d.far.y - d.near.y))
+          .map((d) => (d.near.x + d.far.x) / 2)
+          .sort((x, y) => x - y)[0];
+      const bd = waistDart(bodice[side]);
+      const kd = waistDart(skirt[side]);
+      if (bd !== undefined && kd !== undefined)
+        checks.push({
+          group: 'Darts',
+          label: `${cap(side)} darts meet at the waist seam`,
+          detail: `bodice ${cm(bd)}, skirt ${cm(kd)} from the centre`,
+          ok: Math.abs(bd - kd) <= 0.5,
+        });
+    }
 
   const sleeve = pieces.find((pc) => /^sleeve$/i.test(pc.name));
   if (sleeve && front && back) checks.push(...sleeveChecks(sleeve, front, back));

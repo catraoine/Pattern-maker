@@ -160,7 +160,7 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
             </span>
           </div>
           {account.patterns.length === 0 ? (
-            <p className="muted">Nothing saved yet. Style a skirt or bodice and tap "Save pattern" to keep it here.</p>
+            <p className="muted">Nothing saved yet. Style a skirt, bodice or dress and tap "Save pattern" to keep it here.</p>
           ) : (
             <ul className="saved">
               {account.patterns.map((p) => (

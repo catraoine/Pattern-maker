@@ -3,7 +3,7 @@ import type { SkirtMeasurements } from './engine/skirt';
 import type { BodiceMeasurements } from './engine/bodice';
 import type { SleeveMeasurements } from './engine/sleeve';
 
-export type Garment = 'skirt' | 'bodice';
+export type Garment = 'skirt' | 'bodice' | 'dress';
 
 export type MeasurementId = keyof SkirtMeasurements | keyof BodiceMeasurements | keyof SleeveMeasurements;
 
@@ -230,7 +230,13 @@ export const BODICE_FIELDS: MeasurementField[] = [
   },
 ];
 
-export const FIELDS: Record<Garment, MeasurementField[]> = { skirt: SKIRT_FIELDS, bodice: BODICE_FIELDS };
+/** A dress takes the bodice's measurements and the skirt's lengths. */
+const DRESS_FIELDS: MeasurementField[] = [...BODICE_FIELDS, ...SKIRT_FIELDS.filter((f) => !BODICE_FIELDS.some((b) => b.id === f.id))].map((f) =>
+  // The dress skirt needs the hip, which the bodice only asks for below the waist.
+  f.id === 'full_hip' || f.id === 'waist_to_hip' ? { ...f, optional: undefined } : f,
+);
+
+export const FIELDS: Record<Garment, MeasurementField[]> = { skirt: SKIRT_FIELDS, bodice: BODICE_FIELDS, dress: DRESS_FIELDS };
 
 export type Unit = 'cm' | 'in';
 export type MeasurementValues = Partial<Record<MeasurementId, number>>; // always stored in cm
@@ -286,7 +292,12 @@ export function checkMeasurements(v: MeasurementValues, unit: Unit, garment: Gar
     }
   }
   const { waist, full_hip, waist_to_hip, waist_to_knee, waist_to_floor } = v;
-  if (garment === 'skirt') {
+  const asked = new Set(FIELDS[garment].map((f) => f.id));
+  // Measurements checked against each other, after each has passed on its own.
+  const crossed = () => {
+    for (const c of crossChecks(v)) if (asked.has(c.id) && asked.has(c.with) && !out.some((o) => o.id === c.id)) out.push({ id: c.id, level: 'warning', message: c.message });
+  };
+  if (garment !== 'bodice') {
     if (waist && full_hip && waist > full_hip) {
       out.push({
         id: 'waist',
@@ -308,7 +319,10 @@ export function checkMeasurements(v: MeasurementValues, unit: Unit, garment: Gar
         out.push({ id, level: 'warning', message: `This is more than 4 cm from your waist to hip at the side. Please check both; the pattern adjusts by 4 cm at most.` });
       }
     }
-    return out;
+    if (garment === 'skirt') {
+      crossed();
+      return out;
+    }
   }
   const { full_bust, high_bust, shoulder_width, across_back, front_hps_to_waist, bust_depth } = v;
   if (full_bust && high_bust && high_bust > full_bust + 2) {
@@ -329,6 +343,71 @@ export function checkMeasurements(v: MeasurementValues, unit: Unit, garment: Gar
   if (shoulder_width && across_back && across_back > shoulder_width) {
     out.push({ id: 'across_back', level: 'warning', message: 'Across back is usually narrower than shoulder width. Please check both.' });
   }
+  crossed();
+  return out;
+}
+
+interface CrossCheck {
+  /** The measurement most likely to be off, and the one it was checked against. */
+  id: MeasurementId;
+  with: MeasurementId;
+  message: string;
+}
+
+/**
+ * Measurements checked against each other, the way a pattern cutter glances down a measurement
+ * sheet: bodies vary a lot, but some proportions hold for nearly everyone, and one far outside them
+ * is usually a slipped tape, a misread number or two measurements swapped. Each names the one most
+ * often taken wrong, with how to take it again. Warnings only: an unusual body is still drafted.
+ */
+export function crossChecks(v: MeasurementValues): CrossCheck[] {
+  const out: CrossCheck[] = [];
+  const ratio = (a: MeasurementId, b: MeasurementId, lo: number, hi: number, low: string, high: string) => {
+    const x = v[a];
+    const y = v[b];
+    if (!x || !y) return;
+    if (x / y < lo) out.push({ id: a, with: b, message: low });
+    else if (x / y > hi) out.push({ id: a, with: b, message: high });
+  };
+  ratio('armscye', 'full_bust', 0.34, 0.55,
+    'Your armhole looks small for your bust. Measure round the top of your arm through the armpit, with the tape snug but not tight.',
+    'Your armhole looks large for your bust. Keep the tape close up in the armpit and snug, not loose over the shoulder.');
+  ratio('neck', 'full_bust', 0.22, 0.45,
+    'Your neck looks small for your bust. Measure round the base of the neck, where a necklace sits, not round the throat.',
+    'Your neck looks large for your bust. Measure round the base of the neck with the tape flat, not over a collar.');
+  ratio('apex_separation', 'full_bust', 0.11, 0.26,
+    'Bust point to bust point looks narrow for your bust. Measure straight across between the fullest points, in the bra you will wear.',
+    'Bust point to bust point looks wide for your bust. Measure straight across between the fullest points, not round the curve.');
+  ratio('shoulder_length', 'shoulder_width', 0.2, 0.42,
+    'Your shoulder length looks short next to your shoulder width. It runs from the side of the neck to the shoulder point, on one side only.',
+    'Your shoulder length looks long next to your shoulder width. It is one shoulder only, from the side of the neck to the shoulder bone.');
+  ratio('bust_depth', 'front_hps_to_waist', 0.42, 0.78,
+    'Bust depth looks short next to your front length. Measure from the side of the neck down to the fullest point of the bust.',
+    'Bust depth looks long next to your front length. It stops at the bust point; front length carries on to the waist.');
+  ratio('waist_to_knee', 'waist_to_floor', 0.47, 0.65,
+    'Waist to knee looks short next to waist to floor. Measure down the side to the middle of the knee, standing straight.',
+    'Waist to knee looks long next to waist to floor. Measure to the middle of the knee, and to the floor in bare feet.');
+  ratio('full_hip', 'full_bust', 0.8, 1.4,
+    'Your hip looks small next to your bust. Measure round the fullest part of the seat, usually about 20 cm below the waist.',
+    'Your hip looks large next to your bust. Keep the tape level all the way round, at the fullest part of the seat.');
+  ratio('arm_length', 'nape_to_waist', 1.15, 1.75,
+    'Arm length looks short next to your back length. Measure from the shoulder bone over a slightly bent elbow to the wrist bone.',
+    'Arm length looks long next to your back length. It ends at the wrist bone, not the knuckles.');
+  ratio('upper_arm', 'armscye', 0.5, 0.95,
+    'Your upper arm looks small next to your armhole. Measure round the fullest part of the arm, between shoulder and elbow, arm relaxed.',
+    'Your upper arm looks as big as your armhole, which is rare. Measure round the arm, not round the shoulder.');
+  ratio('wrist', 'upper_arm', 0.3, 0.8,
+    'Your wrist looks small next to your upper arm. Measure round the wrist bone, the tape just touching.',
+    'Your wrist looks large next to your upper arm. Measure round the wrist bone, not the forearm.');
+  const { across_front, across_back, front_hps_to_waist, nape_to_waist, high_hip, waist, full_hip } = v;
+  if (across_front && across_back && across_front > across_back + 4)
+    out.push({ id: 'across_front', with: 'across_back', message: 'Across front is usually a little narrower than across back. Measure it higher, halfway between the shoulder and the underarm, crease to crease.' });
+  if (front_hps_to_waist && nape_to_waist && front_hps_to_waist < nape_to_waist - 1)
+    out.push({ id: 'front_hps_to_waist', with: 'nape_to_waist', message: 'Front length is usually longer than back length, since it goes over the bust. Measure from the side of the neck over the bust point to the waist.' });
+  else if (front_hps_to_waist && nape_to_waist && front_hps_to_waist > nape_to_waist + 14)
+    out.push({ id: 'front_hps_to_waist', with: 'nape_to_waist', message: 'Front length looks long next to your back length. Tie a ribbon round your waist and measure to its top edge on both.' });
+  if (high_hip && waist && full_hip && (high_hip < waist - 2 || high_hip > full_hip + 1))
+    out.push({ id: 'high_hip', with: 'full_hip', message: 'High hip usually comes between your waist and your full hip. Measure about 10 cm below the waist, round the top of the hip bones.' });
   return out;
 }
 

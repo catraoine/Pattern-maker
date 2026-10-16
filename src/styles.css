@@ -253,6 +253,16 @@ p {
   font-weight: var(--w-strong);
 }
 
+/* Three garments: the switch fills a narrow card's width rather than spilling out of it. */
+.seg.garments {
+  max-width: 100%;
+}
+
+.seg.garments button {
+  flex: 1 1 auto;
+  padding: 0 10px;
+}
+
 .fields {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));

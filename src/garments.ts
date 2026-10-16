@@ -14,10 +14,19 @@ export interface BodiceChoices {
   sleeveShape?: SleeveShape;
 }
 
+/** A dress: a waist-length bodice and a skirt, in one fit. */
+export interface DressChoices {
+  garment: 'dress';
+  fit: BodiceFit;
+  bodice: BodiceChoices;
+  skirt: Choices;
+}
+
 /** A saved pattern's choices. Skirt choices predate bodices, so they carry no garment field. */
-export type PatternChoices = Choices | BodiceChoices;
+export type PatternChoices = Choices | BodiceChoices | DressChoices;
 
 export const isBodice = (c: PatternChoices): c is BodiceChoices => (c as BodiceChoices).garment === 'bodice';
+export const isDress = (c: PatternChoices): c is DressChoices => (c as DressChoices).garment === 'dress';
 
 export const DEFAULT_BODICE: BodiceChoices = { garment: 'bodice', fit: 'regular', neckline: 'crew', length: 'waist', darts: 'bust_waist', sleeve: 'none', sleeveShape: 'straight' };
 
@@ -60,6 +69,13 @@ const NECK_WORDS: Record<Neckline, string> = { crew: 'crew neck', scoop: 'scoop 
 const LENGTH_WORDS: Record<BodiceLength, string> = { waist: 'waist-length', high_hip: 'high-hip-length', hip: 'hip-length' };
 
 const SLEEVE_WORDS: Record<SleeveLength, string> = { none: '', short: 'short', elbow: 'elbow-length', three_quarter: 'three-quarter', long: 'long' };
+
+/** The bodice's neckline and sleeves, for a dress's name: "a scoop neck and short puff sleeves". */
+export function bodiceDetails(c: BodiceChoices) {
+  const { length, shape } = sleeveOf(c);
+  const neck = `a ${NECK_WORDS[c.neckline]}`;
+  return length === 'none' ? neck : `${neck} and ${SLEEVE_WORDS[length]} ${shape === 'straight' ? '' : `${shape} `}sleeves`;
+}
 
 export function describeBodice(c: BodiceChoices) {
   const { length, shape } = sleeveOf(c);

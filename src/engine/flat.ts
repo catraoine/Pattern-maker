@@ -9,6 +9,7 @@ import { WAISTBAND_CM } from './skirt';
 import type { BodiceDraft } from './bodice';
 import type { BodiceEdges } from './instructions';
 import { BAND_CM, SleeveDraft } from './sleeve';
+import type { DressDraft } from './dress';
 
 export type FlatLineKind = 'seam' | 'dart' | 'stitch' | 'zip';
 
@@ -262,9 +263,19 @@ function circleHalf(d: SkirtDraft, back: boolean): { shapes: P[][]; lines: FlatV
   return { shapes: [whole(run)], lines, waist: [p(0, top), p(w, 0)] };
 }
 
+type RawView = Omit<FlatView, 'at'>;
+
 /** The skirt: waistband, darts, centre back seam and zip, and a walking slit when it has one. */
 export function skirtFlat(d: SkirtDraft, opts: { slit?: boolean } = {}): Flat {
-  const views = (['FRONT', 'BACK'] as const).map((label, i) => {
+  return arrange(skirtViews(d, { ...opts, band: true, zipCm: d.zipCm }));
+}
+
+/**
+ * The skirt's views, with their waist at the top. A dress's skirt has no waistband, and its zip is
+ * drawn with the bodice's, so the centre back seam starts at `seamFrom` above the waist.
+ */
+function skirtViews(d: SkirtDraft, opts: { slit?: boolean; band: boolean; zipCm?: number; seamFrom?: number }): (RawView & { waistY: number })[] {
+  return (['FRONT', 'BACK'] as const).map((label, i) => {
     const back = i === 1;
     let shapes: P[][];
     let lines: FlatView['lines'] = [];
@@ -282,21 +293,19 @@ export function skirtFlat(d: SkirtDraft, opts: { slit?: boolean } = {}): Flat {
       hemY = h.run[h.run.length - 1].y;
     }
     // The waistband sits above the waist, as wide as it.
-    const band = whole([...waist, ...[...waist].reverse().map((q) => p(q.x, q.y - WAISTBAND_CM))]);
-    shapes.push(band);
+    if (opts.band) shapes.push(whole([...waist, ...[...waist].reverse().map((q) => p(q.x, q.y - WAISTBAND_CM))]));
     const cbTop = waist[0].y;
     if (back) {
-      lines.push({ pts: [p(0, cbTop - WAISTBAND_CM), p(0, cbTop)], kind: 'seam' });
+      const from = cbTop - (opts.band ? WAISTBAND_CM : (opts.seamFrom ?? 0));
       if (opts.slit) {
         const top = hemY - 15;
-        lines.push({ pts: [p(0, cbTop), p(0, top)], kind: 'seam' });
+        lines.push({ pts: [p(0, from), p(0, top)], kind: 'seam' });
         lines.push({ pts: [p(0, top), p(-0.5, hemY)], kind: 'seam' }, { pts: [p(0, top), p(0.5, hemY)], kind: 'seam' });
-      } else lines.push({ pts: [p(0, cbTop), p(0, hemY)], kind: 'seam' });
-      lines.push(...zip(cbTop, d.zipCm));
+      } else lines.push({ pts: [p(0, from), p(0, hemY)], kind: 'seam' });
+      if (opts.zipCm) lines.push(...zip(cbTop, opts.zipCm));
     }
-    return { label, shapes, lines };
+    return { label, shapes, lines, waistY: cbTop };
   });
-  return arrange(views);
 }
 
 /** A quadratic curve from `a` to `b`, pulled toward `c`. */
@@ -386,11 +395,16 @@ function sleeveSide(h: Half, sl: SleeveDraft): { shape: P[]; band?: P[]; lines: 
  * them, and the stitching that shows: binding round the neck (and the armholes of a sleeveless one),
  * and the hem of a longer top. */
 export function bodiceFlat(d: BodiceDraft, edges: BodiceEdges = 'binding', sleeve?: SleeveDraft): Flat {
+  return arrange(bodiceViews(d, edges, sleeve, true));
+}
+
+/** The bodice's views, and where each meets its waist at the centre. */
+function bodiceViews(d: BodiceDraft, edges: BodiceEdges, sleeve: SleeveDraft | undefined, zipped: boolean): (RawView & { foot: number })[] {
   const back = sewn(d.pieces[1]);
   const backFoot = back.run[back.tags.lastIndexOf('side') + 1].y;
   const front = sewn(d.pieces[0], backFoot);
   const hps = (h: Half) => h.run[h.tags.indexOf('shoulder')];
-  const views = ([front, back] as const).map((h, i) => {
+  return ([front, back] as const).map((h, i) => {
     const shape = whole(h.run);
     const lines: FlatView['lines'] = h.darts.flatMap((dt) => both(dt).map((pts) => ({ pts, kind: 'dart' as const })));
     if (i === 0) {
@@ -405,7 +419,7 @@ export function bodiceFlat(d: BodiceDraft, edges: BodiceEdges = 'binding', sleev
     }
     if (d.finishedHem !== undefined)
       for (const run of along(h, 'hem')) for (const pts of [run, mirror(run)]) for (const r of inset(pts, 2, shape)) lines.push({ pts: r, kind: 'stitch' });
-    if (i === 1) {
+    if (i === 1 && zipped) {
       const top = h.run[0].y;
       lines.push({ pts: [p(0, top), p(0, h.run[h.run.length - 1].y)], kind: 'seam' }, ...zip(top, d.zipCm));
     }
@@ -419,7 +433,28 @@ export function bodiceFlat(d: BodiceDraft, edges: BodiceEdges = 'binding', sleev
         lines.push(...sl.lines.map((l) => ({ ...l, pts: f(l.pts) })));
       }
     }
-    return { label: i === 0 ? ('FRONT' as const) : ('BACK' as const), shapes, lines };
+    return { label: i === 0 ? ('FRONT' as const) : ('BACK' as const), shapes, lines, foot: h.run[h.run.length - 1].y };
   });
-  return arrange(views);
+}
+
+/**
+ * The dress: the bodice over its skirt, joined at the waist, the darts running on through the seam,
+ * and one zip down the centre back from the neck to below the waist.
+ */
+export function dressFlat(d: DressDraft, edges: BodiceEdges = 'binding', opts: { sleeve?: SleeveDraft; slit?: boolean } = {}): Flat {
+  const top = bodiceViews(d.bodice, edges, opts.sleeve, false);
+  const below = skirtViews(d.skirt, { slit: opts.slit, band: false });
+  return arrange(
+    top.map((b, i) => {
+      const k = below[i];
+      const dy = b.foot - k.waistY;
+      const move = (pts: P[]) => pts.map((q) => p(q.x, q.y + dy));
+      const lines = [...b.lines, ...k.lines.map((l) => ({ ...l, pts: move(l.pts) }))];
+      if (b.label === 'BACK') {
+        const neck = b.shapes[0].reduce((m, q) => (Math.abs(q.x) < 1e-6 && q.y < m ? q.y : m), Infinity);
+        lines.push({ pts: [p(0, neck), p(0, b.foot)], kind: 'seam' }, ...zip(neck, d.zipCm));
+      }
+      return { label: b.label, shapes: [b.shapes[0], ...k.shapes.map(move), ...b.shapes.slice(1)], lines };
+    }),
+  );
 }

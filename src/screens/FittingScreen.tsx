@@ -5,7 +5,8 @@ import type { Side } from '../engine/skirt';
 import { FIT_ISSUES, FitGarment, FitIssue, Fitting, NO_FITTING, describeFitting, setAmount, toggleIssue } from '../engine/fitting';
 
 interface Props {
-  garment: FitGarment;
+  /** A dress is fitted as one toile, with the bodice's and the skirt's corrections together. */
+  garment: FitGarment | 'dress';
   fitting?: Fitting;
   /** The pattern's own pieces drafted with a set of corrections, for the before and after drawing. */
   draftWith: (f: Fitting) => Piece[] | undefined;
@@ -22,8 +23,9 @@ interface Props {
 export function FittingScreen({ garment, fitting, draftWith, hasBustDart, onSave, onCancel }: Props) {
   const saved = fitting ?? NO_FITTING;
   const [f, setF] = useState<Fitting>(saved);
-  const issues = FIT_ISSUES.filter((i) => i.garment === garment && (hasBustDart || !i.needsBustDart));
-  const areas = [...new Set(issues.map((i) => i.area))];
+  const issues = FIT_ISSUES.filter((i) => (garment === 'dress' || i.garment === garment) && (hasBustDart || !i.needsBustDart));
+  const areaOf = (i: FitIssue) => (garment === 'dress' ? `${i.garment === 'skirt' ? 'Skirt' : 'Bodice'}: ${i.area.toLowerCase()}` : i.area);
+  const areas = [...new Set(issues.map(areaOf))];
   const before = useMemo(() => draftWith(saved), [draftWith, saved]);
   const after = useMemo(() => draftWith(f), [draftWith, f]);
   const changed = JSON.stringify(f.issues) !== JSON.stringify(saved.issues) || JSON.stringify(f.sides ?? {}) !== JSON.stringify(saved.sides ?? {});
@@ -45,7 +47,7 @@ export function FittingScreen({ garment, fitting, draftWith, hasBustDart, onSave
           <fieldset key={area} className="group">
             <legend>{area}</legend>
             {issues
-              .filter((i) => i.area === area)
+              .filter((i) => areaOf(i) === area)
               .map((i) => (
                 <IssueRow key={i.id} issue={i} f={f} onChange={setF} />
               ))}
