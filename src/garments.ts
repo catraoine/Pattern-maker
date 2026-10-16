@@ -1,6 +1,6 @@
 // The garments the app can make, and the style choices saved for each.
 import type { Choices } from './App';
-import type { BodiceDarts, BodiceFit, BodiceLength, Neckline } from './engine/bodice';
+import type { BodiceDarts, BodiceFit, BodiceLength, DrawnNeck, Neckline } from './engine/bodice';
 import { SHAPES_FOR_LENGTH, SleeveLength, SleeveShape } from './engine/sleeve';
 import type { DartPlace, PrincessLine } from './engine/manipulate';
 import type { Closure, Collar } from './engine/collar';
@@ -13,6 +13,11 @@ export interface BodiceChoices {
   neckline: Neckline;
   length: BodiceLength;
   darts: BodiceDarts;
+  /** Shaped by hand on the sketch: a dragged hem (cm below the waist), a dragged fit (bust ease in
+   * cm) and a drawn neckline. Each replaces its named choice until that choice is picked again. */
+  dropCm?: number;
+  bustEase?: number;
+  neck?: DrawnNeck;
   /** Older saves have no sleeves. */
   sleeve?: SleeveLength;
   sleeveShape?: SleeveShape;
@@ -143,8 +148,8 @@ const SLEEVE_WORDS: Record<SleeveLength, string> = { none: '', short: 'short', e
 export function bodiceDetails(c: BodiceChoices) {
   const { length, shape } = sleeveOf(c);
   const v = validDetails(c, 'dress');
-  const collarWords = v.collar && v.collar !== 'none' ? COLLAR_WORDS[v.collar] : '';
-  const neck = collarWords ? `a ${collarWords}` : `a ${NECK_WORDS[c.neckline]}`;
+  const collarWords = v.collar && v.collar !== 'none' && !c.neck ? COLLAR_WORDS[v.collar] : '';
+  const neck = collarWords ? `a ${collarWords}` : `a ${c.neck ? 'drawn neckline' : NECK_WORDS[c.neckline]}`;
   return length === 'none' ? neck : `${neck} and ${SLEEVE_WORDS[length]} ${shape === 'straight' ? '' : `${shape} `}sleeves`;
 }
 
@@ -153,8 +158,10 @@ export function describeBodice(c: BodiceChoices) {
   const sleeve = length === 'none' ? '' : ` with ${SLEEVE_WORDS[length]} ${shape === 'straight' ? '' : `${shape} `}sleeves`;
   const v = validDetails(c);
   const princess = v.princess && v.princess !== 'none' ? ' princess' : '';
-  const collar = v.collar && v.collar !== 'none' ? COLLAR_WORDS[v.collar] : '';
+  const collar = v.collar && v.collar !== 'none' && !c.neck ? COLLAR_WORDS[v.collar] : '';
   const front = v.closure === 'front_buttons' ? 'button-front ' : '';
-  const neck = collar ? `${front}${collar.replace(' collar', '')}-collar` : `${front}${NECK_WORDS[c.neckline]}`;
-  return `${LENGTH_WORDS[c.length]} ${neck}${princess} bodice${sleeve}`;
+  const neck = collar ? `${front}${collar.replace(' collar', '')}-collar` : `${front}${c.neck ? 'drawn-neckline' : NECK_WORDS[c.neckline]}`;
+  const dropped = c.dropCm !== undefined && c.dropCm >= 3;
+  const lengthWords = dropped ? '' : `${c.dropCm !== undefined ? 'waist-length' : LENGTH_WORDS[c.length]} `;
+  return `${lengthWords}${neck}${princess} bodice${sleeve}${dropped ? `, ${Math.round(c.dropCm!)} cm below the waist` : ''}`;
 }

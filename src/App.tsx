@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { HemShape } from './engine/hem';
 import { DraftError, Fit, Length, Silhouette, SkirtDraft, SkirtMeasurements, SkirtShape, draftSkirt } from './engine/skirt';
 import { BodiceDraft, BodiceMeasurements, blockOf, draftBodice } from './engine/bodice';
@@ -15,7 +15,7 @@ import { SleeveDraft, SleeveMeasurements, draftSleeve, needsArms } from './engin
 import { Fitting, carriedFitting, describeCarried, describeFitting, saveVersion, toFitting } from './engine/fitting';
 import { FabricWidth, layPlans } from './engine/layplan';
 import { MyFabric, clothFor, withFabric, withFabricEase } from './engine/fabrics';
-import { EXAMPLE_VALUES, Garment, MeasurementValues, Unit, checkMeasurements, isComplete } from './measurements';
+import { EXAMPLE_VALUES, FIELDS, Garment, MeasurementValues, Unit, checkMeasurements, isComplete } from './measurements';
 import { usePersistent } from './store';
 import {
   Account,
@@ -143,6 +143,9 @@ const INITIAL: Saved = {
   bodice: DEFAULT_BODICE,
 };
 
+/** Whether every measurement this garment needs is still the example value. */
+const isExample = (values: MeasurementValues, garment: Garment) =>
+  FIELDS[garment].filter((f) => !f.optional).every((f) => values[f.id] === EXAMPLE_VALUES[f.id]);
 /** The sleeve for a bodice, drafted to its armhole with its allowances, when one is chosen and the arms are measured. */
 function sleeveFor(bodice: BodiceDraft, choices: BodiceChoices, values: MeasurementValues): SleeveDraft | undefined {
   const { length, shape } = sleeveOf(choices);
@@ -183,10 +186,11 @@ export default function App() {
     if (step !== 'privacy' && step !== 'terms') setBeforeLegal(step);
     setStep(page);
   };
-  // The loading screen plays once each time the app opens, before anything else is drawn.
-  const [opening, setOpening] = useState(true);
+  // The loading screen plays when someone first opens the app, on the way into the welcome. People coming
+  // back to their work go straight to it.
+  const [opening, setOpening] = useState(step === 'welcome');
   // The welcome's dress form waits under the loading screen, which wraps its bodice into the form's outline.
-  const [formStart, setFormStart] = useState<FormStart>('wait');
+  const [formStart, setFormStart] = useState<FormStart>(opening ? 'wait' : 'fresh');
   const profile = profileName(account);
   const owner = personName(account, account.people.find((p) => p.id === ME)!);
 
@@ -437,7 +441,7 @@ export default function App() {
           }),
           { garment: 'bodice', lined: edges === 'lined', zipCm: bodice.zipCm },
         ),
-        spec: [...bodiceSpec(values as BodiceMeasurements, bodice, saved.bodice.length), ...(sleeve ? sleeveSpec(values as SleeveMeasurements, sleeve) : [])],
+        spec: [...bodiceSpec(values as BodiceMeasurements, bodice, saved.bodice.length, saved.bodice.dropCm), ...(sleeve ? sleeveSpec(values as SleeveMeasurements, sleeve) : [])],
         lays,
         flat: bodiceFlat(bodice, edges, sleeve),
       };
@@ -449,17 +453,31 @@ export default function App() {
   const saveState = isSaved ? 'saved' : account.patterns.length >= FREE_SAVED_LIMIT ? 'full' : 'can';
 
   /** Switch garment, going back to measuring when the new one still needs measurements. */
-  const switchGarment = (g: Garment, next: Partial<Saved> = {}, to: View = step, using: MeasurementValues = values) => {
+  const switchGarment = (g: Garment, next: Partial<Saved> = {}, to: View = step, using: MeasurementValues = values, who: string = profile) => {
     setSaved({ ...saved, ...next, garment: g });
     const stays = to === 'style' || to === 'export';
-    setStep(stays && !ready(using, saved.unit, g) ? 'measure' : to);
+    if (stays && !ready(using, saved.unit, g)) sendToMeasure(`The ${g} needs a few more of ${who === 'Me' ? 'your' : `${who}'s`} measurements first.`);
+    else setStep(to);
   };
+
+  // Why someone landed on Measure when they asked for another screen; cleared once they move on.
+  const [measureNote, setMeasureNote] = useState<string>();
+  const sendToMeasure = (note: string) => {
+    setMeasureNote(note);
+    setStep('measure');
+  };
+  useEffect(() => {
+    if (step !== 'measure') setMeasureNote(undefined);
+  }, [step]);
 
   /** Switch whose measurements are in use, going back to measuring when theirs aren't done for this garment. */
   const switchPerson = (id: string, to: View = step) => {
     const who = account.people.find((p) => p.id === id) ?? person;
     setAccount({ ...account, active: who.id });
-    setStep((to === 'style' || to === 'export') && !ready(who.values, saved.unit, garment) ? 'measure' : to);
+    const name = personName(account, who);
+    if ((to === 'style' || to === 'export') && !ready(who.values, saved.unit, garment))
+      sendToMeasure(`The ${garment} needs a few more of ${who.id === ME ? 'your' : `${name}'s`} measurements first.`);
+    else setStep(to);
   };
 
   /** Open a saved pattern: one saved for someone opens with their measurements. */
@@ -636,9 +654,11 @@ export default function App() {
               onValues={setValues}
               onExample={() => setValues({ ...EXAMPLE_VALUES, ...values })}
               canContinue={canLeaveMeasure}
+              notice={measureNote}
               onNext={() => {
                 setAccount(updatePerson(account, person.id, recordMeasurements(person, new Date().toISOString().slice(0, 10))));
-                setStep(person.id === ME && !person.named ? 'whose' : 'style');
+                // Example numbers aren't anyone's, so there's nobody to ask about yet.
+                setStep(person.id === ME && !person.named && !isExample(values, garment) ? 'whose' : 'style');
               }}
             />
           )}
@@ -657,11 +677,15 @@ export default function App() {
               saveState={saveState}
               onSave={() => setAccount(savePattern(account, current, describePattern(current), person.id))}
               onAccount={() => setStep('account')}
+              finish={finish}
+              onFinish={(f) => setSaved({ ...saved, finish: f })}
               onPhoto={() => setStep('photo')}
             />
           )}
           {step === 'style' && garment === 'bodice' && (
             <BodiceStyleScreen
+              finish={finish}
+              onFinish={(f) => setSaved({ ...saved, finish: f })}
               easeMap={ease}
               choices={saved.bodice}
               onChoices={(bodice) => setSaved({ ...saved, bodice })}
@@ -680,6 +704,8 @@ export default function App() {
           )}
           {step === 'style' && garment === 'dress' && (
             <DressStyleScreen
+              finish={finish}
+              onFinish={(f) => setSaved({ ...saved, finish: f })}
               easeMap={ease}
               choices={dress}
               onChoices={(d) => setSaved({ ...saved, dress: d })}
@@ -698,6 +724,8 @@ export default function App() {
           )}
           {step === 'style' && garment === 'trousers' && (
             <TrousersStyleScreen
+              finish={finish}
+              onFinish={(f) => setSaved({ ...saved, finish: f })}
               easeMap={ease}
               choices={trousersChoices}
               onChoices={(t) => setSaved({ ...saved, trousers: t })}
@@ -715,10 +743,10 @@ export default function App() {
           )}
           {step === 'export' && (
             <ExportScreen
+              garment={garment}
               profile={profile}
               title={title}
               fit={current.fit}
-              garment={garment}
               finish={finish}
               onFinish={(f) => setSaved({ ...saved, finish: f })}
               style={
@@ -733,6 +761,9 @@ export default function App() {
               made={printable}
               error={result.error}
               onBack={() => setStep('style')}
+              saveState={saveState}
+              onSave={() => setAccount(savePattern(account, current, describePattern(current), person.id))}
+              onAccount={() => setStep('account')}
               fitting={ownFitting}
               fittingNotes={[...describeFitting(ownFitting, garment), ...carriedNotes]}
               onFitting={() => setStep('fitting')}

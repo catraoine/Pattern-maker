@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { layout } from '../engine/export';
-import { BODICE_FIT_EASE, BodiceDraft, needsHip } from '../engine/bodice';
+import { BodiceDraft, BodiceMeasurements, bodiceEase, needsHip } from '../engine/bodice';
 import { piecesLengthCm, toMetres } from '../engine/fabric';
 import { layPlan } from '../engine/layplan';
 import { BODICE_GROUPS, BodiceChoices, DARTS_FOR_FIT, describeBodice, detailAllowed, sleeveOf, validDetails } from '../garments';
@@ -10,7 +10,13 @@ import { SHAPES_FOR_LENGTH, SleeveDraft, needsArms } from '../engine/sleeve';
 import { Garment, MeasurementValues, hasHip } from '../measurements';
 import { PatternPreview } from '../ui/Preview';
 import { GarmentSwitch } from '../ui/GarmentSwitch';
-import { FREE_SAVED_LIMIT } from '../account';
+import { SaveControl } from '../ui/SaveControl';
+import { FinishChoices } from '../ui/FinishChoices';
+import { BodiceShape } from '../ui/BodiceShape';
+import { BodiceFigure } from '../ui/BodiceFigure';
+import type { Side } from '../ui/ShapeSketch';
+import { useShake } from '../ui/shake';
+import type { Finish } from '../App';
 import { MyFabric, bodiceFabrics, fabricEase } from '../engine/fabrics';
 import { FabricCard } from '../ui/FabricCard';
 
@@ -18,6 +24,8 @@ import { EaseMapView } from '../ui/EaseMapView';
 import type { EaseView } from '../engine/easeMap';
 
 interface Props {
+  finish: Finish;
+  onFinish: (f: Finish) => void;
   choices: BodiceChoices;
   onChoices: (c: BodiceChoices) => void;
   onGarment: (g: Garment) => void;
@@ -55,11 +63,28 @@ function friendly(w: string) {
   return 'Something in your measurements looks unusual. Please double-check them.';
 }
 
-export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft, sleeve, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, fabric }: Props) {
-  const [view, setView] = useState<'sketch' | 'pattern' | 'ease'>('sketch');
+const NECK_NAMES: Record<BodiceChoices['neckline'], string> = { crew: 'crew neck', scoop: 'scoop neck', v: 'V-neck', square: 'square neck', boat: 'boat neck' };
+
+const UNDO_LIMIT = 40;
+
+/** Which hand-shaped value a chip group replaces: picking a named choice lets go of the dragged or drawn one. */
+const REPLACES = { fit: 'bustEase', length: 'dropCm', neckline: 'neck' } as const;
+const handShaped = (c: BodiceChoices, id: string) => id in REPLACES && c[REPLACES[id as keyof typeof REPLACES]] !== undefined;
+
+type View = 'sketch' | 'figure' | 'flat' | 'pattern' | 'ease';
+
+export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft, sleeve, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, finish, onFinish, fabric }: Props) {
+  const [view, setView] = useState<View>('sketch');
+  const [side, setSide] = useState<Side>('front');
+  const [drawing, setDrawing] = useState(false);
+  const [play, setPlay] = useState(0);
+  const [toast, setToast] = useState<string>();
+  const toastTimer = useRef<ReturnType<typeof setTimeout>>();
+  const [history, setHistory] = useState<BodiceChoices[]>([]);
+  const m = values as BodiceMeasurements;
   const pieces = useMemo(() => (draft ? [...draft.pieces, ...(sleeve?.pieces ?? [])] : []), [draft, sleeve]);
   const sheet = useMemo(() => (draft ? layout(pieces, '', []) : undefined), [draft, pieces]);
-  const ease = BODICE_FIT_EASE[choices.fit];
+  const ease = bodiceEase(choices);
   const extra = fabricEase(fabric, 'bodice');
   const title = describeBodice(choices);
   const hip = hasHip(values);
@@ -85,21 +110,53 @@ export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft
               ? detailAllowed(choices, id, opt)
               : true;
 
-  const choose = (c: BodiceChoices) => {
+  const say = (text: string) => {
+    setToast(text);
+    clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(undefined), 1800);
+  };
+  /** Every change goes through here, so it can be undone. */
+  const change = (next: BodiceChoices, before: BodiceChoices = choices) => {
+    if (JSON.stringify(next) === JSON.stringify(before)) return onChoices(next);
+    setHistory((h) => [...h.slice(-UNDO_LIMIT + 1), before]);
+    onChoices(next);
+  };
+  const undo = () => {
+    const prev = history[history.length - 1];
+    if (!prev) return say('Nothing to undo');
+    setHistory(history.slice(0, -1));
+    onChoices(prev);
+    say('Undone');
+  };
+  const shake = useShake(undo);
+
+  const choose = (c: BodiceChoices, group?: string) => {
     // A tighter fit needs more shaping, so moving to it brings the darts back.
     const darts = DARTS_FOR_FIT[c.fit].includes(c.darts) ? c.darts : 'bust_waist';
+    const next = { ...c, darts };
+    // Picking a named fit, length or neckline lets go of the dragged or drawn one.
+    if (group && group in REPLACES) delete next[REPLACES[group as keyof typeof REPLACES]];
     // Each sleeve length allows only some shapes; keep the chosen one when it still fits.
     // Details the other choices no longer allow (a collar on a V-neck, say) fall back to the plain ones.
-    onChoices(validDetails({ ...c, darts, sleeveShape: sleeveOf(c).shape }));
+    change(validDetails({ ...next, sleeveShape: sleeveOf(next).shape }));
   };
 
+  const views: [View, string][] = [
+    ['sketch', 'Sketch'],
+    ['figure', 'On you'],
+    ['flat', 'Flat'],
+    ['pattern', 'Pieces'],
+    ...(easeMap && easeMap.length > 0 ? ([['ease', 'Ease']] as [View, string][]) : []),
+  ];
+
   return (
+    <>
+    <div className="screen-head">
+      <h1 id="opts">Style your bodice</h1>
+      <GarmentSwitch garment="bodice" onGarment={onGarment} />
+    </div>
     <div className="split three">
       <section className="card" aria-labelledby="opts">
-        <div className="row between wrap">
-          <h1 id="opts">Style your bodice</h1>
-          <GarmentSwitch garment="bodice" onGarment={onGarment} />
-        </div>
         {BODICE_GROUPS.filter((g) => shown(g.id)).map((g) => (
           <fieldset key={g.id} className="group">
             <legend>{g.label}</legend>
@@ -108,15 +165,23 @@ export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft
                 <button
                   key={id}
                   type="button"
-                  className={valueOf(g.id) === id ? 'chip on' : 'chip'}
-                  aria-pressed={valueOf(g.id) === id}
+                  className={valueOf(g.id) === id && !handShaped(choices, g.id) ? 'chip on' : 'chip'}
+                  aria-pressed={valueOf(g.id) === id && !handShaped(choices, g.id)}
                   disabled={!allowed(g.id, id)}
-                  onClick={() => choose({ ...choices, [g.id]: id })}
+                  onClick={() => choose({ ...choices, [g.id]: id }, g.id)}
                 >
                   {label}
                 </button>
               ))}
             </div>
+            {g.id === 'neckline' && choices.neck && (
+              <p className="muted small">
+                Drawn by hand.{' '}
+                <button type="button" className="link inline-link" onClick={() => choose({ ...choices }, 'neckline')}>
+                  Use the {NECK_NAMES[choices.neckline]} instead
+                </button>
+              </p>
+            )}
             {g.id === 'length' && !hip && (
               <p className="muted small">
                 For hip lengths, add your full hip and waist to hip.{' '}
@@ -134,17 +199,20 @@ export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft
               </p>
             )}
             {g.id === 'princess' && choices.darts !== 'bust_waist' && <p className="muted small">Princess seams carry the bust and waist darts, so they need both.</p>}
-            {g.id === 'collar' && choices.neckline !== 'crew' && <p className="muted small">Collars sit on a crew neck (a Peter Pan on a scoop neck too).</p>}
-            {g.id === 'collar' && choices.neckline === 'crew' && detail.closure !== 'front_buttons' && <p className="muted small">A shirt collar needs the front buttons.</p>}
+            {g.id === 'collar' && choices.neck && <p className="muted small">Collars sit on the named necklines, not a drawn one.</p>}
+            {g.id === 'collar' && !choices.neck && choices.neckline !== 'crew' && <p className="muted small">Collars sit on a crew neck (a Peter Pan on a scoop neck too).</p>}
+            {g.id === 'collar' && !choices.neck && choices.neckline === 'crew' && detail.closure !== 'front_buttons' && <p className="muted small">A shirt collar needs the front buttons.</p>}
             {g.id === 'darts' && choices.fit !== 'relaxed' && (
               <p className="muted small">{choices.fit === 'fitted' ? 'A fitted bodice needs bust and waist darts.' : 'Choose a relaxed fit to go without darts.'}</p>
             )}
           </fieldset>
         ))}
+        <p className="eyebrow">Inside the bodice</p>
+        <FinishChoices garment="bodice" finish={finish} onFinish={onFinish} sleeved={chosen.length !== 'none'} />
         <p className="muted small">
           {detail.closure === 'front_buttons' ? `Buttons down the centre front${draft?.buttons ? ` (${draft.buttons.count})` : ''}, with front facings.` : 'With a centre back zip.'}{' '}
           {chosen.length === 'none'
-            ? 'The neckline and armholes are finished with bias binding.'
+            ? 'Sleeveless.'
             : 'The sleeves are drafted to fit your armholes, with their ease set where a tailor sets it.'}
           {detail.princess !== 'none' || detail.bustDart !== 'side' ? ' The shaping is moved the way a pattern cutter does it: the garment sews up to exactly the same fit.' : ''}
         </p>
@@ -152,27 +220,97 @@ export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft
 
       <section className="card grow" aria-label="Preview">
         <div className="row between wrap">
-          <div className="seg" role="group" aria-label="Preview view">
-            <button type="button" aria-pressed={view === 'sketch'} className={view === 'sketch' ? 'on' : ''} onClick={() => setView('sketch')}>
-              Sketch
-            </button>
-            <button type="button" aria-pressed={view === 'pattern'} className={view === 'pattern' ? 'on' : ''} onClick={() => setView('pattern')}>
-              Pattern pieces
-            </button>
-            {easeMap && easeMap.length > 0 && (
-              <button type="button" aria-pressed={view === 'ease'} className={view === 'ease' ? 'on' : ''} onClick={() => setView('ease')}>
-                Ease
+          <div className="seg views" role="group" aria-label="Preview view">
+            {views.map(([id, name]) => (
+              <button
+                key={id}
+                type="button"
+                aria-pressed={view === id}
+                className={view === id ? 'on' : ''}
+                onClick={() => {
+                  setView(id);
+                  setDrawing(false);
+                }}
+              >
+                {name}
+              </button>
+            ))}
+          </div>
+          <div className="row tools">
+            {shake.state === 'ask' && (
+              <button type="button" className="link small" onClick={shake.enable}>
+                Shake to undo
+              </button>
+            )}
+            {history.length > 0 && (
+              <button type="button" className="ghost" onClick={undo} aria-label="Undo the last change">
+                Undo
               </button>
             )}
           </div>
-          <p className="muted small">Drafted to your measurements as you choose.</p>
         </div>
-        <div className="preview">
+        {view === 'sketch' && draft && (
+          <div className="row between wrap">
+            <div className="seg" role="group" aria-label="Sketch side">
+              {(['front', 'back'] as const).map((s) => (
+                <button key={s} type="button" aria-pressed={side === s} className={side === s ? 'on' : ''} onClick={() => setSide(s)}>
+                  {s}
+                </button>
+              ))}
+            </div>
+            <button type="button" className={drawing ? 'ghost on' : 'ghost'} aria-pressed={drawing} onClick={() => setDrawing(!drawing)}>
+              {drawing ? 'Done' : 'Draw neck'}
+            </button>
+          </div>
+        )}
+        <div className={view === 'figure' ? 'preview flush' : 'preview'}>
           {error && <p className="msg error">{error}</p>}
-          {flat && view === 'sketch' && <TechFlatView flat={flat} title={title} />}
-          {draft && sheet && view === 'pattern' && <PatternPreview sheet={sheet} label={`Front and back pattern pieces for a ${title}`} />}
+          {draft && view === 'sketch' && (
+            <BodiceShape
+              draft={draft}
+              m={m}
+              choices={choices}
+              side={side}
+              drawing={drawing}
+              label={`${title}, ${side} view. Drag the hem to change the length, or the side to change the fit.`}
+              onLive={onChoices}
+              onDone={(before, after) => change(after, before)}
+            />
+          )}
+          {draft && view === 'figure' && <BodiceFigure draft={draft} m={m} label={`${title} on a dress form made from your measurements`} />}
+          {flat && view === 'flat' && <TechFlatView flat={flat} title={title} />}
+          {draft && sheet && view === 'pattern' && (
+            <PatternPreview sheet={sheet} play={play} names={pieces.map((pc) => pc.name)} label={`Front and back pattern pieces for a ${title}`} />
+          )}
           {view === 'ease' && easeMap && <EaseMapView views={easeMap} label={`Ease map of the ${title}`} />}
+          {toast && (
+            <p className="toast" role="status">
+              {toast}
+            </p>
+          )}
         </div>
+        {view === 'sketch' && (
+          <p className="muted small">
+            {drawing
+              ? side === 'front'
+                ? 'Draw the neckline across the front, from the shoulder down to where you want it. Both sides match, and it’s smoothed into a curve that sews.'
+                : 'Draw down the back to set how low the back neckline goes.'
+              : hip
+                ? 'Drag the hem up or down for length, or the side out and in for a looser or closer fit.'
+                : 'Drag the side out and in for a looser or closer fit.'}
+            {chosen.length !== 'none' ? ' Sleeves show on the flat.' : ''}
+            {shake.state === 'on' ? ' Shake your phone to undo.' : ''}
+          </p>
+        )}
+        {view === 'flat' && <p className="muted small">The technical flat, front and back, drawn to scale.</p>}
+        {view === 'pattern' && draft && (
+          <div className="row between wrap">
+            <button type="button" className="ghost" onClick={() => setPlay(play + 1)}>
+              Watch it draft
+            </button>
+            <p className="muted small">Drafted to your measurements as you choose.</p>
+          </div>
+        )}
         {draft?.warnings.map((w) => (
           <p key={w} className="msg small">
             {friendly(w)}
@@ -184,7 +322,7 @@ export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft
         <h2 id="sum">Summary</h2>
         <div className="sumgrid">
           <span />
-          <span className="muted">Body</span>
+          <span className="muted">You</span>
           <span className="muted">Bodice</span>
           <span>Bust</span>
           <span>{values.full_bust} cm</span>
@@ -214,7 +352,7 @@ export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft
           )}
         </div>
         <p className="muted small">
-          Ease added: {ease.bust + extra.bust} cm at the bust, {ease.waist + extra.waist} cm at the waist
+          The bodice is {ease.bust + extra.bust} cm bigger than you at the bust and {ease.waist + extra.waist} cm at the waist, so you can move and breathe
           {extra.bust ? `, including ${extra.bust} cm and ${extra.waist} cm for your heavy fabric` : ''}.
         </p>
         <div>
@@ -233,26 +371,12 @@ export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft
         <button type="button" className="primary" disabled={!draft} onClick={onNext}>
           Print my pattern
         </button>
-        {saveState === 'can' && (
-          <button type="button" className="secondary" disabled={!draft} onClick={onSave}>
-            Save pattern
-          </button>
-        )}
-        {saveState === 'saved' && (
-          <p className="msg small" role="status">
-            Saved to <button type="button" className="link inline-link" onClick={onAccount}>your account</button>.
-          </p>
-        )}
-        {saveState === 'full' && (
-          <p className="muted small">
-            You've saved {FREE_SAVED_LIMIT} patterns, the free limit.{' '}
-            <button type="button" className="link inline-link" onClick={onAccount}>Manage saved patterns</button>
-          </p>
-        )}
+        <SaveControl state={saveState} disabled={!draft} onSave={onSave} onAccount={onAccount} />
         <button type="button" className="link" onClick={onEditMeasurements}>
           Edit measurements
         </button>
       </aside>
     </div>
+    </>
   );
 }

@@ -20,6 +20,8 @@ import { EaseMapView } from '../ui/EaseMapView';
 import { MyFabric, dressFabrics, fabricEase } from '../engine/fabrics';
 import { FabricCard } from '../ui/FabricCard';
 import type { EaseView } from '../engine/easeMap';
+import { FinishChoices } from '../ui/FinishChoices';
+import type { Finish } from '../App';
 
 interface Props {
   choices: DressChoices;
@@ -36,6 +38,8 @@ interface Props {
   onAccount: () => void;
   /** Room over the body at every level, for the ease map. */
   easeMap?: EaseView[];
+  finish: Finish;
+  onFinish: (f: Finish) => void;
   /** The fabric recorded on the print screen, if any. */
   fabric?: MyFabric;
 }
@@ -50,7 +54,7 @@ export const dressFabricMetres = (pieces: DressDraft['pieces']) => layPlan(piece
  * skirt's shape and length. The preview is the technical flat, so the skirt is seen hanging from the
  * bodice with its darts running on through the waist seam.
  */
-export function DressStyleScreen({ choices, onChoices, onGarment, values, draft, sleeve, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, fabric }: Props) {
+export function DressStyleScreen({ choices, onChoices, onGarment, values, draft, sleeve, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, finish, onFinish, fabric }: Props) {
   const [view, setView] = useState<'sketch' | 'pattern' | 'ease'>('sketch');
   const pieces = useMemo(() => (draft ? [...draft.pieces.filter((pc) => /^Bodice/.test(pc.name)), ...(sleeve?.pieces ?? []), ...draft.skirt.pieces] : []), [draft, sleeve]);
   const sheet = useMemo(() => (pieces.length ? layout(pieces, '', []) : undefined), [pieces]);
@@ -159,6 +163,8 @@ export function DressStyleScreen({ choices, onChoices, onGarment, values, draft,
             )}
           </fieldset>
         ))}
+        <p className="eyebrow">Inside the dress</p>
+        <FinishChoices garment="dress" finish={finish} onFinish={onFinish} sleeved={sleeveOf(choices.bodice).length !== 'none'} />
         <p className="muted small">
           The skirt is drafted to the bodice: the waist seams are the same length, and the darts meet at the seam in one line. One zip opens the centre back from the neck to below the waist.
         </p>
