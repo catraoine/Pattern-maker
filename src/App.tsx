@@ -535,7 +535,7 @@ export default function App() {
               onUnit={(unit) => setSaved({ ...saved, unit })}
               onValues={setValues}
               onBack={() => setStep('welcome')}
-              onDone={() => setStep(person.id === ME && !person.named ? 'whose' : 'style')}
+              onDone={(g) => switchGarment(g, {}, person.id === ME && !person.named ? 'whose' : 'style')}
             />
           )}
           {step === 'whose' && (
