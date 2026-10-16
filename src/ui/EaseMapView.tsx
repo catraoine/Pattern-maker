@@ -6,7 +6,7 @@ interface Props {
   label: string;
 }
 
-const GAP = 4;
+const GAP = 7;
 
 /** One row of pieces side by side, each filled level by level with the colour of its ease. */
 function Row({ views, title, onPick }: { views: EaseView[]; title: string; onPick: (v: EaseView, i: number) => void }) {
