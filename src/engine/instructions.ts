@@ -5,6 +5,7 @@ import type { Length, Silhouette, SkirtDraft } from './skirt';
 import type { BodiceDraft, BodiceLength } from './bodice';
 import { SEAM_WIDTHS, SeamWidths } from './allowances';
 import type { Piece } from './piece';
+import type { DiagramId } from './diagrams';
 
 // Widest strip that fits across 140 cm fabric, leaving room for the selvedges.
 export const BAND_ACROSS_MAX = 135;
@@ -12,6 +13,8 @@ export const BAND_ACROSS_MAX = 135;
 export interface SewStep {
   title: string;
   text: string;
+  /** A small drawing of the technique. */
+  diagram?: DiagramId;
 }
 
 export interface SewingGuide {
@@ -99,6 +102,7 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
     },
     {
       title: 'Neaten the edges',
+      diagram: 'overlock' as const,
       text: `Zigzag or overlock the side and centre ${frontSeam ? 'front and centre back' : 'back'} edges of the skirt pieces, so they will not fray inside.`,
     },
     ...(dartCount
@@ -210,6 +214,7 @@ export function bodiceGuide(draft: BodiceDraft, style: { length: BodiceLength },
       : []),
     {
       title: 'Neaten the edges',
+      diagram: 'overlock' as const,
       text: 'Zigzag or overlock the shoulder, side and centre back edges, so they will not fray inside.',
     },
     ...(bust || waist
@@ -265,6 +270,7 @@ export function bodiceGuide(draft: BodiceDraft, style: { length: BodiceLength },
         ? [
             {
               title: 'Face the neckline',
+              diagram: 'understitch' as const,
               text: `Pin the neck facing to the neckline, right sides together, matching the shoulder seams, with its centre back ends folded back over the zip tape. Sew ${curve} from the edge, trim the seam to 0.5 cm and clip the curves. Understitch the facing to the seam allowance close to the seam, so it rolls to the inside, then press it in and hand-tack it to the shoulder seams.`,
             },
             {

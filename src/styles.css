@@ -1471,3 +1471,59 @@ button.ghost:disabled {
   font-family: var(--mono);
   letter-spacing: 0.14em;
 }
+
+/* Step diagrams in the sewing guide. */
+.stepdg {
+  grid-column: 2;
+  display: block;
+  width: 220px;
+  max-width: 100%;
+  height: auto;
+  margin-top: 8px;
+}
+.stepdg path {
+  fill: none;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.stepdg .dg-cloth {
+  fill: var(--fill);
+  stroke: var(--gild);
+  stroke-width: 0.25;
+}
+.stepdg .dg-fold {
+  fill: color-mix(in srgb, var(--gild) 16%, var(--paper));
+  stroke: var(--gild);
+  stroke-width: 0.25;
+}
+.stepdg .dg-edge {
+  stroke: var(--gild);
+  stroke-width: 0.3;
+}
+.stepdg .dg-machine {
+  stroke: var(--ink);
+  stroke-width: 0.2;
+  stroke-dasharray: 0.7 0.4;
+}
+.stepdg .dg-hand {
+  stroke: var(--ink);
+  stroke-width: 0.3;
+}
+.stepdg .dg-thread {
+  stroke: var(--ink);
+  stroke-width: 0.3;
+  stroke-dasharray: 2.4 1.2;
+}
+.stepdg .dg-under {
+  stroke: var(--muted);
+  stroke-width: 0.2;
+  stroke-dasharray: 0.5 0.5;
+}
+.cloth {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.cloth p {
+  margin: 0;
+}

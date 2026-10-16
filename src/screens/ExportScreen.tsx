@@ -14,6 +14,8 @@ import { FABRIC_WIDTHS, Lay, layWords } from '../engine/layplan';
 import { LayPlanView } from '../ui/LayPlanView';
 import type { Flat } from '../engine/flat';
 import { TechFlatView } from '../ui/TechFlatView';
+import { StepDiagram } from '../ui/StepDiagram';
+import { CLOTHS, seamFinish } from '../engine/couture';
 
 /** What to print: the drafted pieces of either garment, with its notes and sewing steps. */
 export interface Printable {
@@ -365,10 +367,37 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
       <MakerPack profile={profile} title={title} fit={fit} made={made} fileBase={fileBase} />
 
       <section className="card sew" aria-labelledby="sewtitle">
-        <div>
-          <p className="eyebrow">After printing</p>
-          <h2 id="sewtitle">How to sew it</h2>
+        <div className="row between wrap">
+          <div>
+            <p className="eyebrow">After printing</p>
+            <h2 id="sewtitle">How to sew it</h2>
+          </div>
+          <div className="seg" role="group" aria-label="How to sew it">
+            {(['quick', 'couture'] as const).map((r) => (
+              <button key={r} type="button" className={finish.route === r ? 'on' : ''} aria-pressed={finish.route === r} onClick={() => onFinish({ ...finish, route: r })}>
+                {r === 'quick' ? 'Quick' : 'Couture'}
+              </button>
+            ))}
+          </div>
         </div>
+        {finish.route === 'couture' && (
+          <div className="cloth">
+            <p className="muted small">
+              Thread-traced lines, basting and a fitting before machining, a hand-picked zip and hand-finished edges. The seam finish and
+              pressing follow your cloth.
+            </p>
+            <div className="seg" role="group" aria-label="Your cloth">
+              {CLOTHS.map((c) => (
+                <button key={c.id} type="button" className={finish.cloth === c.id ? 'on' : ''} aria-pressed={finish.cloth === c.id} onClick={() => onFinish({ ...finish, cloth: c.id })} title={c.detail}>
+                  {c.label}
+                </button>
+              ))}
+            </div>
+            <p className="muted small">
+              Seams: {{ french: 'French seams', hongkong: 'Hong Kong bound', pinked: 'pinked', overcast: 'overcast by hand' }[seamFinish(finish.cloth, garment === 'bodice' ? finish.bodiceEdges === 'lined' : finish.skirtLined)]}.
+            </p>
+          </div>
+        )}
         <div className="sewgrid">
           <div className="notions">
             <p className="eyebrow">You'll need</p>
@@ -384,6 +413,7 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
               <li key={st.title}>
                 <strong>{st.title}</strong>
                 <p>{st.text}</p>
+                {st.diagram && <StepDiagram id={st.diagram} />}
               </li>
             ))}
           </ol>

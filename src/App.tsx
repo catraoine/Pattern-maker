@@ -2,8 +2,9 @@ import { useMemo, useState } from 'react';
 import type { HemShape } from './engine/hem';
 import { DraftError, Fit, Length, Silhouette, SkirtDraft, SkirtMeasurements, SkirtShape, draftSkirt } from './engine/skirt';
 import { BodiceDraft, BodiceMeasurements, draftBodice } from './engine/bodice';
-import { BodiceEdges, bodiceGuide, hasSlit, sewingGuide } from './engine/instructions';
+import { BodiceEdges, SewingGuide, bodiceGuide, hasSlit, sewingGuide } from './engine/instructions';
 import { bodiceFlat, skirtFlat } from './engine/flat';
+import { Cloth, Route, toCouture } from './engine/couture';
 import { AllowanceStyle, SEAM_WIDTHS, withAllowances } from './engine/allowances';
 import { bodiceFacings, liningPieces, waistbandPiece } from './engine/finishing';
 import { bodiceSpec, skirtSpec } from './engine/spec';
@@ -87,9 +88,12 @@ export interface Finish {
   /** For the cutting layout: the fabric's width, and whether it has a nap. */
   fabricWidth: FabricWidth;
   nap: boolean;
+  /** How to sew it: the quick route, or the couture one with hand techniques chosen for the cloth. */
+  route: Route;
+  cloth: Cloth;
 }
 
-export const DEFAULT_FINISH: Finish = { allowances: 'home', skirtLined: false, bodiceEdges: 'binding', atelier: false, fabricWidth: 140, nap: false };
+export const DEFAULT_FINISH: Finish = { allowances: 'home', skirtLined: false, bodiceEdges: 'binding', atelier: false, fabricWidth: 140, nap: false, route: 'quick', cloth: 'wool' };
 
 const fmtCm = (v: number) => `${v} cm`;
 
@@ -184,6 +188,8 @@ export default function App() {
     const allow = (pieces: Printable['pieces']) => pieces.map((pc) => withAllowances(pc, finish.allowances));
     const couture = finish.allowances === 'couture';
     const fittingNotes = fittingLines(fitting, garment);
+    const route = (guide: SewingGuide, c: { garment: 'skirt' | 'bodice'; lined: boolean; zipCm: number }) =>
+      finish.route === 'couture' ? toCouture(guide, { ...c, cloth: finish.cloth, traced: couture }) : guide;
     if (skirt) {
       // The lining is drafted 2.5 cm shorter than the skirt, from the same measurements and style.
       let lining: SkirtDraft | undefined;
@@ -208,12 +214,15 @@ export default function App() {
           `Waistband${lining ? ' and lining' : ''} included. Sewing steps are on the last pages.`,
           ...fittingNotes,
         ],
-        guide: sewingGuide(skirt, saved.choices, metres('self', () => fabricMetres(skirt)), {
-          seams,
-          width: finish.fabricWidth,
-          liningM: lining ? metres('lining', () => fabricMetres(lining!)) : undefined,
-          hem: skirt.pieces[0].allowances.hem >= 4 ? hem : undefined,
-        }),
+        guide: route(
+          sewingGuide(skirt, saved.choices, metres('self', () => fabricMetres(skirt)), {
+            seams,
+            width: finish.fabricWidth,
+            liningM: lining ? metres('lining', () => fabricMetres(lining!)) : undefined,
+            hem: skirt.pieces[0].allowances.hem >= 4 ? hem : undefined,
+          }),
+          { garment: 'skirt', lined: !!lining, zipCm: skirt.zipCm },
+        ),
         spec: skirtSpec(values as SkirtMeasurements, skirt),
         lays,
         flat: skirtFlat(skirt, { slit: hasSlit(saved.choices) }),
@@ -237,19 +246,22 @@ export default function App() {
           `Sleeveless, with a ${bodice.zipCm} cm centre back zip and ${edgeWords}. Sewing steps are on the last pages.`,
           ...fittingNotes,
         ],
-        guide: bodiceGuide(bodice, saved.bodice, metres('self'), bindingMetres(bodice), {
-          seams,
-          edges,
-          width: finish.fabricWidth,
-          liningM: metres('lining'),
-        }),
+        guide: route(
+          bodiceGuide(bodice, saved.bodice, metres('self'), bindingMetres(bodice), {
+            seams,
+            edges,
+            width: finish.fabricWidth,
+            liningM: metres('lining'),
+          }),
+          { garment: 'bodice', lined: edges === 'lined', zipCm: bodice.zipCm },
+        ),
         spec: bodiceSpec(values as BodiceMeasurements, bodice, saved.bodice.length),
         lays,
         flat: bodiceFlat(bodice, edges),
       };
     }
     return undefined;
-  }, [result, saved.choices, saved.bodice, skirtStyle, values, finish.allowances, finish.skirtLined, finish.bodiceEdges, finish.fabricWidth, finish.nap, fitting, garment]);
+  }, [result, saved.choices, saved.bodice, skirtStyle, values, finish.allowances, finish.skirtLined, finish.bodiceEdges, finish.fabricWidth, finish.nap, finish.route, finish.cloth, fitting, garment]);
 
   const isSaved = isSavedFor(account, current, person.id);
   const saveState = isSaved ? 'saved' : account.patterns.length >= FREE_SAVED_LIMIT ? 'full' : 'can';

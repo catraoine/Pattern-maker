@@ -17,6 +17,7 @@ import fontkit from '@pdf-lib/fontkit';
 import * as fontData from './fontData';
 import { type Lay, layWords } from './layplan';
 import type { Flat } from './flat';
+import { DIAGRAMS, DiagramId } from './diagrams';
 import { P } from './geometry';
 import { Face, OVERLAP, PAGE_MARGIN, Paper, STYLES, Sheet, pageName, pageSize, tileGrid, usedTiles } from './export';
 import type { SewingGuide } from './instructions';
@@ -456,7 +457,7 @@ function addDraftingPages(doc: PDFDocument, fonts: Fonts, paper: 'a4' | 'letter'
 
 /** Sewing steps after the pattern pages, so the tiled pages keep their numbers. */
 function addSewingPages(doc: PDFDocument, fonts: Fonts, paper: 'a4' | 'letter', title: string, guide: SewingGuide) {
-  const { write, label, st } = flow(doc, paper, fonts);
+  const { write, label, st, room } = flow(doc, paper, fonts);
   drawText(st.page, 'MAISON TRACÉ', { x: 2 * CM, y: st.y, size: 7.5, font: fonts.label, tracking: 0.3, grey: 0.4 });
   st.y -= 26;
   write(`How to sew your ${title}`, 20, fonts.bodyMedium, 0, 18);
@@ -467,5 +468,30 @@ function addSewingPages(doc: PDFDocument, fonts: Fonts, paper: 'a4' | 'letter', 
   guide.steps.forEach((s, i) => {
     write(`${i + 1}. ${s.title}`, 11, fonts.bodyMedium, 0, 2);
     write(s.text, 10, fonts.body, 18, 8);
+    if (s.diagram) drawDiagram(s.diagram);
   });
+
+  /** A step's small drawing, under its words: black lines, the cloth in light grey. */
+  function drawDiagram(id: DiagramId) {
+    const dg = DIAGRAMS[id];
+    const k = 3.2; // points per unit: 40 units is about 4.5 cm
+    room(dg.h * k + 10);
+    const x = 2 * CM + 18;
+    const y = st.y;
+    for (const pt of dg.parts) {
+      const d = pt.pts.map((q, j) => `${j ? 'L' : 'M'}${(q.x * k).toFixed(2)} ${(q.y * k).toFixed(2)}`).join(' ') + (pt.closed ? ' Z' : '');
+      const fill = pt.kind === 'cloth' ? rgb(0.95, 0.95, 0.95) : pt.kind === 'fold' ? rgb(0.86, 0.86, 0.86) : undefined;
+      const dash = pt.kind === 'machine' ? [2, 1.2] : pt.kind === 'thread' ? [6, 3] : pt.kind === 'under' ? [1.5, 1.5] : undefined;
+      const grey = pt.kind === 'under' ? 0.55 : 0;
+      st.page.drawSvgPath(d, {
+        x,
+        y,
+        color: pt.closed ? fill : undefined,
+        borderColor: rgb(grey, grey, grey),
+        borderWidth: pt.kind === 'hand' || pt.kind === 'thread' ? 0.9 : pt.kind === 'cloth' || pt.kind === 'fold' ? 0.6 : 0.7,
+        borderDashArray: dash,
+      });
+    }
+    st.y -= dg.h * k + 12;
+  }
 }
