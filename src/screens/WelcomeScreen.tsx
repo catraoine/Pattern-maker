@@ -1,18 +1,20 @@
 import { useState } from 'react';
 import type { Garment, Unit } from '../measurements';
 import { FIELDS } from '../measurements';
-import { ContourForm } from '../ui/ContourForm';
+import { ContourForm, type FormStart } from '../ui/ContourForm';
 
 interface Props {
   unit: Unit;
   garment: Garment;
   onFinish: (r: { unit: Unit; start: 'measure' | 'example' | 'photo' }) => void;
+  /** How the dress form starts: it waits for the loading screen, which may hand it over already outlined. */
+  formStart?: FormStart;
 }
 
 const STEPS = 2;
 
 // The name is asked later, once there are measurements to put it on (see WhoseScreen).
-export function WelcomeScreen({ unit: initialUnit, garment, onFinish }: Props) {
+export function WelcomeScreen({ unit: initialUnit, garment, onFinish, formStart }: Props) {
   const [step, setStep] = useState(0);
   const [unit, setUnit] = useState<Unit>(initialUnit);
   const finish = (start: 'measure' | 'example' | 'photo') => onFinish({ unit, start });
@@ -30,7 +32,7 @@ export function WelcomeScreen({ unit: initialUnit, garment, onFinish }: Props) {
         {step === 0 && (
           <>
             <div className="welcome-hero">
-              <ContourForm />
+              <ContourForm start={formStart} />
             </div>
             <p className="eyebrow">Measured, not sized</p>
             <h1 id="wtitle">Sewing patterns drafted to your body.</h1>
@@ -57,7 +59,7 @@ export function WelcomeScreen({ unit: initialUnit, garment, onFinish }: Props) {
         {step === 1 && (
           <>
             <h1 id="wtitle">Ready when you are</h1>
-            <p>Measuring takes about {garment === 'skirt' ? 'five' : 'fifteen'} minutes. You'll need:</p>
+            <p>Measuring takes about {garment === 'skirt' ? 'five' : garment === 'trousers' ? 'ten' : 'fifteen'} minutes. You'll need:</p>
             <ul className="checklist">
               <li>A soft tape measure</li>
               <li>Close-fitting clothes, or just underwear</li>

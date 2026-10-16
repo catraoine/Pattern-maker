@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { Check, FIELDS, Garment, MeasurementId, MeasurementValues, Unit } from '../measurements';
 import { TapeFigure } from '../ui/TapeFigure';
 import { GarmentSwitch } from '../ui/GarmentSwitch';
@@ -70,7 +70,7 @@ export function MeasureScreen({ account, onSwitchPerson, onAddPerson, profile, g
       <section className="card grow" aria-labelledby="mtitle">
         <div className="row between wrap">
           <div>
-            <p className="muted small">{garment === 'skirt' ? 'Skirt' : 'Bodice'} measurements</p>
+            <p className="muted small">{{ skirt: 'Skirt', trousers: 'Trousers', bodice: 'Bodice', dress: 'Dress' }[garment]} measurements</p>
             <h1 id="mtitle">{account.active === ME ? 'Your measurements' : `${profile}'s measurements`}</h1>
           </div>
           <GarmentSwitch garment={garment} onGarment={onGarment} />
@@ -85,14 +85,25 @@ export function MeasureScreen({ account, onSwitchPerson, onAddPerson, profile, g
         <PeopleSwitch account={account} onSwitch={onSwitchPerson} onAdd={onAddPerson} />
 
         <div className="fields">
-          {fields.map((f) => {
+          {fields.map((f, i) => {
             const problems = checks.filter((c) => c.id === f.id && (touched[f.id] || values[f.id] !== undefined));
             const err = problems.find((c) => c.level === 'error');
+            // Posture measurements come last, under their own heading.
+            const firstFit = f.fit && !fields[i - 1]?.fit;
             return (
-              <div key={f.id} className={focus === f.id ? 'field focus' : 'field'}>
+              <Fragment key={f.id}>
+              {firstFit && (
+                <div className="fields-head">
+                  <p className="eyebrow">For a closer fit</p>
+                  <p className="muted small">
+                    Optional. These read your posture, the way a fitter would: the pattern is adjusted where you differ from the standard.
+                  </p>
+                </div>
+              )}
+              <div className={focus === f.id ? 'field focus' : 'field'}>
                 <label htmlFor={f.id}>
                   {f.label}
-                  {f.optional && <span className="muted"> (optional)</span>}
+                  {f.optional && !f.fit && <span className="muted"> (optional)</span>}
                 </label>
                 <div className="row">
                   <input
@@ -114,13 +125,15 @@ export function MeasureScreen({ account, onSwitchPerson, onAddPerson, profile, g
                   </p>
                 )}
               </div>
+              </Fragment>
             );
           })}
         </div>
 
         <div className="row between wrap footer">
           {/* Examples only fill gaps, so measurements already taken for the other garment are kept. */}
-          {fields.some((f) => values[f.id] === undefined) ? (
+          {/* Posture measurements have no example: they only help when they are your own. */}
+          {fields.some((f) => !f.fit && values[f.id] === undefined) ? (
             <button type="button" className="link" onClick={onExample}>
               {fields.some((f) => values[f.id] !== undefined) ? 'Fill the gaps with example measurements' : 'Fill in example measurements'}
             </button>

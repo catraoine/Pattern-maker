@@ -103,6 +103,7 @@ export function edgeLabels(pc: Piece): EdgeLabel[] {
     armhole: 'ARMHOLE',
     centre: front ? 'CENTRE FRONT SEAM' : 'CENTRE BACK SEAM',
     fold: front ? 'CENTRE FRONT' : 'CENTRE BACK',
+    facing: 'NEATEN THIS EDGE',
   };
   const { pts, tags } = pc.outline.taggedPoints(24);
   // Longest unbroken run of each tag.
@@ -139,7 +140,7 @@ export function edgeLabels(pc: Piece): EdgeLabel[] {
       let rotate = (Math.atan2(u.y, u.x) * 180) / Math.PI;
       if (rotate > 90) rotate -= 180;
       if (rotate <= -90) rotate += 180;
-      const sa = tag === 'fold' ? 0 : (pc.allowances[tag] ?? pc.seamAllowance);
+      const sa = tag === 'fold' || tag === 'facing' ? 0 : (pc.allowances[tag] ?? pc.seamAllowance);
       out.push({ at: add(mid, mul(n, 1.1)), text: sa ? `${names[tag]} · ${fmt(sa)} CM ALLOWANCE` : names[tag], rotate });
       break;
     }

@@ -4,6 +4,9 @@ import { useEffect, useRef } from 'react';
 // It draws on once, a band of light sweeps across it, and a tape settles at the waist.
 
 const DURATION = 2900;
+// Champagne lines (Cat's G4 pick), matching --gild and --gild-glow in styles.css.
+const CHAMPAGNE = '#d9c49b';
+const CHAMPAGNE_GLOW = '#f3e6c8';
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const seg = (t: number, a: number, b: number) => clamp((t - a) / (b - a), 0, 1);
@@ -53,27 +56,46 @@ function taper(g: CanvasRenderingContext2D, pts: Pt[], frac: number, width: (u: 
   }
 }
 
-function draw(g: CanvasRenderingContext2D, w: number, h: number, t: number) {
-  g.globalAlpha = 1;
-  g.fillStyle = '#000';
-  g.fillRect(0, 0, w, h);
-  g.strokeStyle = '#fff';
-  g.lineCap = 'round';
-  g.lineJoin = 'round';
-
+/** Where the form sits in a canvas of this size. */
+function layout(w: number, h: number) {
   const S = Math.min(w * 0.82, h * 0.46);
   const cx = w / 2;
   const wy = h * 0.5;
-  const lw = Math.max(0.7, S / 252) * 1.2;
-  const Y = (y: number) => wy + (y - 0.1) * S;
+  return { S, cx, wy, lw: Math.max(0.7, S / 252) * 1.2, Y: (y: number) => wy + (y - 0.1) * S };
+}
+
+/**
+ * The form's outline as one closed loop, clockwise from the top left (across the neck, down the right side,
+ * across the hem, up the left side), so the loading screen's bodice can be reshaped into it.
+ */
+export function formOutline(w: number, h: number): { pts: [number, number][]; lw: number } {
+  const { S, cx, Y, lw } = layout(w, h);
+  const left = YS.map((y): [number, number] => [cx - R(y) * S, Y(y)]);
+  const right = YS.map((y): [number, number] => [cx + R(y) * S, Y(y)]);
+  return { pts: [left[0], ...right, ...left.reverse()], lw };
+}
+
+/** The bottom of the form fades into the black from here (a fraction of the canvas height). */
+export const FADE_FROM = 0.78;
+
+// `tOutline` runs the outline's own clock, so the form can start with its outline already drawn.
+function draw(g: CanvasRenderingContext2D, w: number, h: number, t: number, tOutline = t) {
+  g.globalAlpha = 1;
+  g.fillStyle = '#000';
+  g.fillRect(0, 0, w, h);
+  g.strokeStyle = CHAMPAGNE;
+  g.lineCap = 'round';
+  g.lineJoin = 'round';
+
+  const { S, cx, lw, Y } = layout(w, h);
   const P = (y: number, th: number, grow = 0): Pt => {
     const r = R(y) + grow;
     return [cx + Math.cos(th) * r * S, Y(y) + Math.sin(th) * r * S * DEPTH, Math.cos(th)];
   };
 
   // Outline
-  taper(g, YS.map((y) => [cx - R(y) * S, Y(y)]), inOut(seg(t, 0, 900)), (u) => lw * (0.5 + Math.sin(Math.PI * u)));
-  taper(g, YS.map((y) => [cx + R(y) * S, Y(y)]), inOut(seg(t, 120, 1020)), (u) => lw * (0.5 + Math.sin(Math.PI * u)));
+  taper(g, YS.map((y) => [cx - R(y) * S, Y(y)]), inOut(seg(tOutline, 0, 900)), (u) => lw * (0.5 + Math.sin(Math.PI * u)));
+  taper(g, YS.map((y) => [cx + R(y) * S, Y(y)]), inOut(seg(tOutline, 120, 1020)), (u) => lw * (0.5 + Math.sin(Math.PI * u)));
 
   // Long vertical lines, brightened by the light as it sweeps across
   const on = t >= 1250;
@@ -98,7 +120,8 @@ function draw(g: CanvasRenderingContext2D, w: number, h: number, t: number) {
   if (n > 0) {
     g.save();
     g.globalAlpha = 1;
-    g.shadowColor = 'rgba(255,255,255,.9)';
+    g.shadowColor = 'rgba(243,230,200,.9)';
+    g.strokeStyle = CHAMPAGNE_GLOW;
     g.shadowBlur = 10;
     for (let i = 1; i <= n; i++) {
       g.lineWidth = lw * 2.5 * Math.sin((Math.PI * i) / 80) ** 0.8 + 0.3;
@@ -110,7 +133,7 @@ function draw(g: CanvasRenderingContext2D, w: number, h: number, t: number) {
   // Label: the measurement's name and units, never a number
   g.save();
   g.globalAlpha = out(seg(t, 2350, 2800));
-  g.fillStyle = '#fff';
+  g.fillStyle = CHAMPAGNE;
   g.font = "500 9px 'Chakra Petch', sans-serif";
   try {
     (g as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = '2px';
@@ -121,21 +144,30 @@ function draw(g: CanvasRenderingContext2D, w: number, h: number, t: number) {
   g.restore();
 
   // Fade the lower body into the black so the copy below sits cleanly
-  const fade = g.createLinearGradient(0, h * 0.78, 0, h);
+  const fade = g.createLinearGradient(0, h * FADE_FROM, 0, h);
   fade.addColorStop(0, 'rgba(0,0,0,0)');
   fade.addColorStop(1, 'rgba(0,0,0,1)');
   g.globalAlpha = 1;
   g.fillStyle = fade;
-  g.fillRect(0, h * 0.78, w, h * 0.22);
+  g.fillRect(0, h * FADE_FROM, w, h * (1 - FADE_FROM));
 }
 
-export function ContourForm() {
+// When the app opens on the welcome screen, the loading screen reshapes its bodice into this form's outline.
+// 'wait' draws nothing until then; 'drawn' starts with the outline already in place; 'fresh' plays it all.
+export type FormStart = 'wait' | 'drawn' | 'fresh';
+
+// With the outline already drawn, the lines start straight away instead of overlapping the outline's draw.
+const SKIP = 600;
+
+export function ContourForm({ start: from = 'fresh' }: { start?: FormStart }) {
   const ref = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     const canvas = ref.current;
     const g = canvas?.getContext('2d');
-    if (!canvas || !g) return;
+    if (!canvas || !g || from === 'wait') return;
+    const offset = from === 'drawn' ? SKIP : 0;
+    const end = DURATION - offset;
     const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
     let start = 0;
     let gone = false;
@@ -150,23 +182,23 @@ export function ContourForm() {
       canvas.height = Math.round(r.height * dpr);
       g.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
-    const paint = (t: number) => draw(g, size.w, size.h, t);
+    const paint = (t: number) => draw(g, size.w, size.h, t + offset, offset ? DURATION : t);
     const tick = (now: number) => {
       if (!start) start = now;
       const t = now - start;
-      paint(Math.min(t, DURATION));
-      if (t < DURATION) frame = requestAnimationFrame(tick);
+      paint(Math.min(t, end));
+      if (t < end) frame = requestAnimationFrame(tick);
     };
 
     fit();
     const ro = new ResizeObserver(() => {
       fit();
-      if (still || (start && performance.now() - start >= DURATION)) paint(DURATION);
+      if (still || (start && performance.now() - start >= end)) paint(end);
     });
     ro.observe(canvas);
     const go = () => {
       if (gone) return;
-      if (still) paint(DURATION);
+      if (still) paint(end);
       else frame = requestAnimationFrame(tick);
     };
     // Wait for the label font so the last frame isn't drawn in a fallback face.
@@ -178,7 +210,7 @@ export function ContourForm() {
       cancelAnimationFrame(frame);
       ro.disconnect();
     };
-  }, []);
+  }, [from]);
 
   return <canvas ref={ref} className="contour" aria-hidden="true" />;
 }

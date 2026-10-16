@@ -8,8 +8,11 @@
 // - waist suppression is shared between the side seams and one waist dart per piece.
 import { P, Path, add, len, lerp, mul, p, sub, taggedLength, unit } from './geometry';
 import { finishDart } from './darts';
-import { Piece } from './piece';
-import { DraftError } from './skirt';
+import { Piece, withAlternate } from './piece';
+import { DraftError, Side, cm } from './skirt';
+import type { DartPlace, PrincessLine } from './manipulate';
+import { moveFrontDart, princessPieces } from './shaping';
+import { Buttons, Closure, Collar, EXTENSION_CM, backNeckFacing, backOnFold, buttonPlaces, collarPieces, frontFacing, openFront } from './collar';
 
 export interface BodiceMeasurements {
   full_bust: number;
@@ -25,6 +28,10 @@ export interface BodiceMeasurements {
   bust_depth: number;
   apex_separation: number;
   armscye?: number;
+  /** Shoulder slope, Armstrong's way: from the centre front (or back) waist diagonally up to the
+   * shoulder point. Sets the shoulder angle for square or sloping shoulders; standard angles without. */
+  front_shoulder_slope?: number;
+  back_shoulder_slope?: number;
   /** Only needed for tops that go below the waist. */
   full_hip?: number;
   waist_to_hip?: number;
@@ -45,6 +52,33 @@ export interface BodiceStyle {
   seamAllowance: number;
   neckArmholeAllowance: number;
   hemAllowance: number;
+  /** Corrections from fitting a toile, on top of the measurements. */
+  fitting?: BodiceFitting;
+  /** Where the bust dart opens (the block's is in the side seam), or princess seams instead of darts. */
+  bustDart?: DartPlace;
+  princess?: PrincessLine;
+  /** A centre back zip (the default) or buttons down the centre front; and a collar. */
+  closure?: Closure;
+  collar?: Collar;
+}
+
+/**
+ * Corrections made after trying on a toile. Lengths in cm, shoulder angles in degrees (more is more
+ * sloping). Ease is added to the fit's own; the armhole is lowered (negative raises it); a neck gape
+ * pinned out at the neckline is pivoted into the bust dart.
+ */
+export interface BodiceFitting {
+  bustEase?: number;
+  waistEase?: number;
+  armhole?: number;
+  frontSlope?: number;
+  backSlope?: number;
+  neckGape?: number;
+  backLength?: number;
+  bustPoint?: number;
+  acrossBack?: number;
+  /** One shoulder lower than the other: a second shoulder and armhole line for that side. */
+  lowShoulder?: { side: Side; cm: number };
 }
 
 /** Defaults from styling/styling-options.json (top: neckline params, in cm): how far the front
@@ -91,6 +125,8 @@ export interface BodiceDraft {
   armhole: number;
   armholeTarget?: number;
   shoulder: { front: number; back: number };
+  /** Shoulder angles in degrees below level, measured or standard. */
+  shoulderSlope: { front: number; back: number };
   sideSeam: { frontLessDart: number; back: number };
   finishedBust: number;
   finishedWaist: number;
@@ -103,10 +139,78 @@ export interface BodiceDraft {
   front: { apex: P; waistSide: P; waistCentre: P; hemSide: P; hemCentre: P };
   neck: number;
   warnings: string[];
+  /** The lower shoulder's side and its pieces as drafted, for the seam check. */
+  lowShoulder?: { side: Side; cm: number; pieces: Piece[] };
+  /** The front and back as drafted, with the side bust dart, when the printed pieces are styled
+   * (a moved dart, princess seams). The garment sews up to this shape, so sleeves, facings and the
+   * flat drawing are worked from it. */
+  block?: Piece[];
+  /** Lines to draw on the sewn garment in place of the block's bust dart (a moved dart), or of all
+   * its darts (princess seams), in the block's coordinates. */
+  styleLines?: { skip: 'side' | 'all'; front: { pts: P[]; kind: 'dart' | 'seam' }[]; back: { pts: P[]; kind: 'dart' | 'seam' }[] };
+  closure: Closure;
+  collar: Collar;
+  /** Where the buttons go on a button front. */
+  buttons?: Buttons;
+}
+
+/** The front and back as drafted: the shape the bodice sews up to, whatever its seams. */
+export const blockOf = (d: BodiceDraft): [Piece, Piece] => {
+  const b = d.block ?? d.pieces;
+  return [b[0], b[1]];
+};
+
+/** Princess seams or a moved bust dart, made on the drafted block. */
+function shape(d: BodiceDraft, s: BodiceStyle): BodiceDraft {
+  const princess = s.princess && s.princess !== 'none' ? s.princess : undefined;
+  // A top longer than the waist has no waist seam to take the bust dart.
+  const to = s.bustDart && s.bustDart !== 'side' && !(s.bustDart === 'waist' && needsHip(s.length)) ? s.bustDart : undefined;
+  if ((!princess && !to) || s.darts === 'none' || d.bustDart <= 0.3) return d;
+  const [front, back] = d.pieces;
+  const upper = princess || to === 'shoulder' || to === 'neck' || to === 'armhole';
+  if (d.lowShoulder && upper) {
+    return { ...d, warnings: [...d.warnings, `with one shoulder lower, the ${princess ? 'princess seams are' : 'bust dart is'} left as drafted, from the side seam`] };
+  }
+  if (princess) {
+    if (s.darts !== 'bust_waist') return d;
+    const pp = princessPieces(front, back, d.front.apex, princess);
+    if (!pp) return d;
+    return {
+      ...d,
+      block: [front, back],
+      pieces: pp.pieces,
+      styleLines: { skip: 'all', front: [{ pts: pp.lines.front, kind: 'seam' }], back: [{ pts: pp.lines.back, kind: 'seam' }] },
+    };
+  }
+  const moved = moveFrontDart(front, d.front.apex, to!, d.front.waistSide);
+  const sewn = moved.meta.sewnDart as P[] | undefined;
+  return { ...d, block: [front, back], pieces: [moved, back], styleLines: { skip: 'side', front: sewn ? [{ pts: sewn, kind: 'dart' }] : [], back: [] } };
 }
 
 const BACK_SLOPE = (18 * Math.PI) / 180;
+const MIN_SLOPE = (6 * Math.PI) / 180;
+const MAX_SLOPE = (36 * Math.PI) / 180;
 const FRONT_SLOPE = (22 * Math.PI) / 180;
+const deg = (a: number) => Math.round(((a * 180) / Math.PI) * 10) / 10;
+
+/**
+ * The shoulder angle that puts the shoulder point `reach` cm from the centre waist, for a shoulder of
+ * `length` from the neck point `from`. Kept between 8 and 32 degrees (very square to very sloping);
+ * undefined when the measurement can't be met inside that, so the standard angle is used.
+ */
+function slopeFor(from: P, length: number, waist: P, reach: number): number | undefined {
+  const dist = (a: number) => len(sub(add(from, p(length * Math.cos(a), length * Math.sin(a))), waist));
+  let lo = (8 * Math.PI) / 180;
+  let hi = (32 * Math.PI) / 180;
+  // The shoulder point swings down toward the waist as the angle grows, so the distance falls.
+  if (reach > dist(lo) + 0.5 || reach < dist(hi) - 0.5) return undefined;
+  for (let i = 0; i < 40; i++) {
+    const mid = (lo + hi) / 2;
+    if (dist(mid) > reach) lo = mid;
+    else hi = mid;
+  }
+  return (lo + hi) / 2;
+}
 const FRONT_DART_MAX = 6.5;
 const BACK_DART_MAX = 4.5;
 
@@ -152,13 +256,62 @@ function waistRun(path: Path, y: (x: number) => number, toX: number) {
  * measurement plus ease (falls back to a size-table depth without it). */
 export function draftBodice(m: BodiceMeasurements, style: Partial<BodiceStyle> = {}): BodiceDraft {
   const s = { ...DEFAULT_BODICE_STYLE, ...style };
+  return finish(shape(draftBlock(m, s), s), s);
+}
+
+/** A button front (the back then on the fold) and a collar, both made on the bodice as sewn. */
+function finish(d: BodiceDraft, s: BodiceStyle): BodiceDraft {
+  const closure = s.closure ?? 'back_zip';
+  const collar = s.collar === 'shirt' && closure !== 'front_buttons' ? 'none' : s.collar && s.collar !== 'none' && s.neckline === 'crew' ? s.collar : s.collar === 'peter_pan' && s.neckline === 'scoop' ? 'peter_pan' : 'none';
+  const [bf, bb] = blockOf(d);
+  let pieces = d.pieces;
+  let buttons: Buttons | undefined;
+  let block = d.block;
+  if (closure === 'front_buttons') {
+    const cfNeck = bf.outline.start;
+    const foot = Math.max(...bf.outline.points(4).filter((q) => Math.abs(q.x) < 1e-6).map((q) => q.y));
+    buttons = buttonPlaces(cfNeck.y, foot, collar === 'mandarin' || collar === 'shirt', !needsHip(s.length), d.front.apex.y);
+    pieces = pieces.map((pc) => (pc.fold && /front/i.test(pc.name) ? openFront(pc, buttons) : /back/i.test(pc.name) ? backOnFold(pc) : pc));
+    const openBlock = openFront(bf);
+    const foldBlock = backOnFold(bb);
+    // The bodice as sewn is buttoned shut: the block itself, centre front to centre front.
+    block = [bf, bb];
+    pieces = [...pieces, frontFacing(openBlock), ...[backNeckFacing(foldBlock)].filter((pc): pc is Piece => !!pc)];
+  }
+  if (collar !== 'none') {
+    const ext = closure === 'front_buttons' && collar !== 'peter_pan' ? EXTENSION_CM : 0;
+    pieces = [...pieces, ...collarPieces(collar, bf, bb, { back: taggedLength(bb.outline, 'neck'), front: taggedLength(bf.outline, 'neck'), ext, closure, sa: s.seamAllowance })];
+  }
+  return { ...d, pieces, block, closure, collar, buttons };
+}
+
+function draftBlock(m: BodiceMeasurements, style: BodiceStyle): BodiceDraft {
+  const s = { ...DEFAULT_BODICE_STYLE, ...style };
   if (needsHip(s.length) && !(m.full_hip && m.waist_to_hip)) {
     throw new DraftError('Add your full hip and waist to hip measurements to make a top that goes below the waist.');
   }
   const ease = BODICE_FIT_EASE[s.fit];
   const hb = m.high_bust ?? m.full_bust - 4;
   const table = 21 + (hb - 82) * 0.1 + ease.bust / 10;
-  if (!m.armscye) return draft(m, s, table);
+  const fit = s.fitting ?? {};
+  // The armhole is found for the measurements as drafted, then lowered or raised as the toile asked.
+  const lower = fit.armhole ?? 0;
+  const withSides = (scye: number): BodiceDraft => {
+    const { inner, ...result } = draft(m, s, scye + lower);
+    const low = fit.lowShoulder;
+    if (!low || !(low.cm > 0)) return result;
+    // The lower shoulder: the same draft with both shoulder points dropped and the armhole lowered as
+    // much, so the armhole keeps its shape and size. Below the bust nothing changes (the same bust
+    // dart, the same side seam), and the back underarm sits where the side seams come out equal.
+    const keep = { bustDart: inner.bustDart, lower: inner.lower };
+    const first = draft(m, s, scye + lower + low.cm, { drop: low.cm, keep });
+    const alt = draft(m, s, scye + lower + low.cm, { drop: low.cm, keep, backSide: keep.lower - keep.bustDart + first.inner.upper });
+    const label = `${low.side.toUpperCase()} SHOULDER`;
+    result.pieces = result.pieces.map((pc, i) => withAlternate(pc, alt.pieces[i].outline, label));
+    result.lowShoulder = { ...low, pieces: alt.pieces };
+    return result;
+  };
+  if (!m.armscye) return withSides(table);
 
   const target = m.armscye + 4 + 0.5 * ease.bust;
   let lo = table - 5;
@@ -168,9 +321,9 @@ export function draftBodice(m: BodiceMeasurements, style: Partial<BodiceStyle> =
     if (draft(m, s, mid).armhole < target) lo = mid;
     else hi = mid;
   }
-  const result = draft(m, s, (lo + hi) / 2);
+  const result = withSides((lo + hi) / 2);
   // A slightly roomy armhole is harmless (it happens on big frames with a lot of ease); a tight one is not.
-  if (result.armhole < target - 1 || result.armhole > target + 3) {
+  if (!lower && (result.armhole < target - 1 || result.armhole > target + 3)) {
     result.warnings.push(`armhole ${result.armhole} cm could not reach ${target.toFixed(1)} cm within a sensible depth`);
   }
   result.armholeTarget = r(target, 1);
@@ -215,13 +368,32 @@ function frontNeck(path: Path, hps: P, uShoulder: P, shape: Neckline): Path {
   }
 }
 
-function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number): BodiceDraft {
+/** For the second line on a lower shoulder: how far both shoulder points drop (cm), the bust dart and
+ * the side seam below the bust to keep from the first line, and the back side seam length to match. */
+interface SideLine {
+  drop?: number;
+  keep?: { bustDart: number; lower: number };
+  backSide?: number;
+}
+
+/** Draft at armhole depth `scye`. */
+function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLine = {}): BodiceDraft & { inner: { bustDart: number; lower: number; upper: number } } {
+  const dropShoulder = side.drop ?? 0;
+  const fit = s.fitting ?? {};
   const { full_bust: B, waist: W, neck: N, shoulder_length: SL, shoulder_width: SW } = m;
-  const { across_back: AB, across_front: AF, nape_to_waist: NW, bust_depth: BD, apex_separation: AS } = m;
+  const { across_front: AF, apex_separation: AS } = m;
+  // Lengths the toile corrected.
+  const AB = m.across_back + (fit.acrossBack ?? 0);
+  const NW = m.nape_to_waist + (fit.backLength ?? 0);
+  const BD = m.bust_depth + (fit.bustPoint ?? 0);
   let FL = m.front_hps_to_waist;
   const HB = m.high_bust ?? B - 4;
-  const { bust: be, waist: we } = BODICE_FIT_EASE[s.fit];
+  const be = BODICE_FIT_EASE[s.fit].bust + (fit.bustEase ?? 0);
+  const we = BODICE_FIT_EASE[s.fit].waist + (fit.waistEase ?? 0);
   const warnings: string[] = [];
+  // Shoulder angles the toile corrected, and a shoulder point dropped `by` cm along a shoulder `length` long.
+  const corrected = (a: number, by: number | undefined) => Math.min(MAX_SLOPE, Math.max(MIN_SLOPE, a + ((by ?? 0) * Math.PI) / 180));
+  const dropped = (a: number, length: number) => (dropShoulder ? Math.asin(Math.min(0.95, Math.sin(a) + dropShoulder / length)) : a);
   const nl = NECKLINES[s.neckline];
   const waistDarts = s.darts === 'bust_waist';
   const bustDarts = s.darts !== 'none';
@@ -257,20 +429,29 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number): BodiceDraft
   // shoulder width instead is badly conditioned: a 1 cm measuring error swings the slope by 10
   // degrees. Shoulder width is used as a cross-check.
   const blen = SL + 1; // 1 cm eased into the front shoulder
-  const spB = add(hpsB0, p(blen * Math.cos(BACK_SLOPE), blen * Math.sin(BACK_SLOPE)));
+  let backSlope = BACK_SLOPE;
+  if (m.back_shoulder_slope) {
+    const a = slopeFor(hpsB0, blen, p(0, NW), m.back_shoulder_slope);
+    if (a === undefined) warnings.push(`back shoulder slope ${m.back_shoulder_slope} cm doesn't fit the back length and shoulder; drafted at the standard ${deg(BACK_SLOPE)} degrees, please re-measure`);
+    else backSlope = a;
+  }
+  backSlope = corrected(backSlope, fit.backSlope);
+  // A wider neckline moves the neck point out along both shoulders, leaving at least 5 cm of shoulder.
+  // It moves along the shoulder as fitted, and a lower shoulder drops from there, so its line keeps
+  // the same neck and the same shoulder length.
+  const widen = Math.max(0, Math.min(nl.width, SL - 5));
+  const hpsB = add(hpsB0, mul(p(Math.cos(backSlope), Math.sin(backSlope)), widen));
+  backSlope = dropped(backSlope, blen - widen);
+  const spB = add(hpsB, mul(p(Math.cos(backSlope), Math.sin(backSlope)), blen - widen));
   if (Math.abs(spB.x - SW / 2) > 2.5) {
     warnings.push(
       `shoulder width ${SW} cm and shoulder length ${SL} cm don't agree (the pattern's shoulders are ${r(2 * spB.x, 1)} cm wide); please re-measure both`,
     );
   }
-  const uB = unit(sub(spB, hpsB0));
-  // A wider neckline moves the neck point out along both shoulders, leaving at least 5 cm of shoulder.
-  const widen = Math.max(0, Math.min(nl.width, SL - 5));
-  const hpsB = add(hpsB0, mul(uB, widen));
+  const uB = unit(sub(spB, hpsB));
   const bd = nl.backDepth;
 
   const abPt = p(AB / 2, scye / 2 + 1);
-  const sideB = p(backW, scye);
   const wb = NW;
 
   const suppB = backW - backWq;
@@ -284,22 +465,26 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number): BodiceDraft
   const dartB = waistDarts ? Math.max(0, suppB - sideSupp) : 0;
   const dartF = waistDarts ? Math.max(0, suppF - sideSupp) : 0;
   const swB = p(backW - sideSupp, wb);
+  // A lower shoulder's back underarm moves along the first line's side seam, to where the side seams come out equal.
+  const sideB0 = p(backW, scye - dropShoulder);
+  const sideB = side.backSide ? add(swB, mul(unit(sub(sideB0, swB)), side.backSide)) : sideB0;
 
   const back = new Path(p(0, bd))
     .curve(p(hpsB.x * 0.6, bd), add(hpsB, mul(perp(uB), 1 + bd * 0.4)), hpsB, 'neck')
     .line(spB, 'shoulder')
     .curve(add(spB, mul(perp(uB), 2.5)), sub(abPt, p(0, 3)), abPt, 'armhole')
     // The armhole meets the side seam square, so the underarm curve runs on smoothly into the front's.
-    .curve(add(abPt, p(0, (scye - abPt.y) * 0.55)), sub(sideB, mul(squareTo(unit(sub(swB, sideB))), (sideB.x - abPt.x) * 0.6)), sideB, 'armhole')
+    .curve(add(abPt, p(0, (sideB.y - abPt.y) * 0.55)), sub(sideB, mul(squareTo(unit(sub(swB, sideB))), (sideB.x - abPt.x) * 0.6)), sideB, 'armhole')
     .line(swB, 'side');
   const backLines: Path[] = [];
   const dartXB = swB.x * 0.48;
+  const dartTipB = p(dartXB, scye - dropShoulder + 2.5);
   let hipB = swB;
   if (!below) {
     // Waist darts are pressed toward the centre, trued, and the waist seam is peaked over them.
     const waistB = squaredWaist(wb, swB.x, wb, unit(sub(swB, sideB)));
     if (dartB > 0.3) {
-      const d = finishDart(p(dartXB, scye + 2.5), p(dartXB - dartB / 2, waistB(dartXB - dartB / 2)), p(dartXB + dartB / 2, waistB(dartXB + dartB / 2)), p(-1, 0));
+      const d = finishDart(p(dartXB, scye - dropShoulder + 2.5), p(dartXB - dartB / 2, waistB(dartXB - dartB / 2)), p(dartXB + dartB / 2, waistB(dartXB + dartB / 2)), p(-1, 0));
       waistRun(back, waistB, d.far.x);
       back.line(d.peak, 'dart').line(d.near, 'dart');
       backLines.push(new Path(d.near).line(d.tip).line(d.far));
@@ -310,7 +495,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number): BodiceDraft
     hipCurve(back, swB, hipB, 'side');
     if (dartB > 0.3) {
       const depth = Math.max(2, Math.min(12, drop - 3));
-      backLines.push(fishEye(p(dartXB, scye + 2.5), p(dartXB - dartB / 2, wb), p(dartXB + dartB / 2, wb), p(dartXB, wb + depth)));
+      backLines.push(fishEye(p(dartXB, scye - dropShoulder + 2.5), p(dartXB - dartB / 2, wb), p(dartXB + dartB / 2, wb), p(dartXB, wb + depth)));
     }
     back.line(p(0, hipB.y), 'hem');
   }
@@ -323,12 +508,35 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number): BodiceDraft
   const zipCm = zipFor(wb - bd - (below ? 0 : 2));
   const zipEnd = p(0, bd + zipCm);
   const backCut = 'Cut 2 (1 pair)';
+  const backDraft = {
+    frame: [
+      [p(0, 0), p(backW, 0)],
+      [p(backW, 0), p(backW, backHem)],
+      [p(0, backHem), p(backW, backHem)],
+    ],
+    points: [
+      { n: '0', at: p(0, 0), note: 'Nape. Square down for the centre back and across for the top of the frame.' },
+      { n: '1', at: p(0, scye), note: `0 to 1, armhole depth: ${cm(scye)}${m.armscye ? `, found so the armhole measures your armhole plus ease` : ''}. Square across for the underarm line.` },
+      { n: '2', at: p(0, wb), note: `0 to 2, nape to waist: ${cm(NW)}. Square across for the waist line.${below ? ` The hem is ${cm(drop)} below.` : ''}` },
+      { n: '3', at: hpsB0, note: `Back neck width: a fifth of the neck less 0.2 cm, ${cm(nw)} across and 2 cm up. ${widen ? `The neckline then widens ${cm(widen)} along the shoulder.` : ''}`.trim() },
+      { n: '4', at: spB, note: `Shoulder: your shoulder length plus 1 cm to ease into the front, ${cm(blen)}, at ${deg(backSlope)} degrees${m.back_shoulder_slope && backSlope !== BACK_SLOPE && !fit.backSlope && !dropShoulder ? `, so the shoulder point is your back shoulder slope, ${cm(m.back_shoulder_slope)}, from the centre back waist` : ''}.` },
+      { n: '5', at: abPt, note: `Half the across back: ${cm(AB / 2)}, 1 cm below halfway down the armhole.` },
+      { n: '6', at: sideB, note: `A quarter of the bust with ease, less ${cm(shift)} moved to the front for the bust: ${cm(backW)}.` },
+      {
+        n: '7',
+        at: swB,
+        note: `Side waist: a quarter of the waist with ease less 0.5 cm is ${cm(backWq)}; the side seam comes in ${cm(sideSupp)}${dartB > 0.3 ? ` and the dart takes ${cm(dartB)}` : ''}.`,
+      },
+      ...(dartB > 0.3 ? [{ n: 'D', at: dartTipB, note: `Waist dart: ${cm(dartB)} wide, ending 2.5 cm below the underarm line.` }] : []),
+    ],
+  };
   const backPiece: Piece = {
     name: 'Bodice back',
+    draft: backDraft,
     outline: back,
     lines: backLines,
     grain: [p(backW * 0.2, scye - 4), p(backW * 0.2, backHem - 3)],
-    balance: [{ pts: [p(0, scye), sideB], label: 'UNDERARM LINE' }],
+    balance: [{ pts: [p(0, sideB.y), sideB], label: 'UNDERARM LINE' }],
     notches: [
       [add(abPt, p(0, -0.5)), p(1, 0)], // double notch = back
       [add(abPt, p(0, 0.5)), p(1, 0)],
@@ -349,9 +557,6 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number): BodiceDraft
   const nwF = nw - 0.2;
   const hpsF0 = p(nwF, -2);
   const cfNeck0 = p(0, hpsF0.y + nw + 1);
-  const spF = add(hpsF0, p(SL * Math.cos(FRONT_SLOPE), SL * Math.sin(FRONT_SLOPE)));
-  const uF = unit(sub(spF, hpsF0));
-  const hpsF = add(hpsF0, mul(uF, widen));
 
   if (FL < NW + 1) {
     warnings.push(
@@ -362,20 +567,50 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number): BodiceDraft
   const dx = AS / 2 - nwF;
   const apex = p(AS / 2, hpsF0.y + Math.sqrt(Math.max(BD ** 2 - dx ** 2, 1)));
   const wf = apex.y + Math.max(FL - BD, 0);
+
+  let frontSlope = FRONT_SLOPE;
+  if (m.front_shoulder_slope) {
+    const a = slopeFor(hpsF0, SL, p(0, wf), m.front_shoulder_slope);
+    if (a === undefined) warnings.push(`front shoulder slope ${m.front_shoulder_slope} cm doesn't fit the front length and shoulder; drafted at the standard ${deg(FRONT_SLOPE)} degrees, please re-measure`);
+    else frontSlope = a;
+  }
+  frontSlope = corrected(frontSlope, fit.frontSlope);
+  // The neck gape pivots about the shoulder as fitted; a lower shoulder then drops from there.
+  const fittedSlope = frontSlope;
+  frontSlope = dropped(frontSlope, SL - widen);
   // Deep necklines stop 5 cm above the bust point.
   const cfNeck = p(0, Math.max(cfNeck0.y, Math.min(cfNeck0.y + nl.frontDepth, apex.y - 5)));
 
-  const afPt = p(AF / 2, (spF.y + scye) / 2 + 1.5);
+  // A neck gape pinned out at the toile is closed the way a pattern cutter does it: slash from the
+  // middle of the neckline to the bust point, and pivot the shoulder, armhole and upper side seam
+  // about the bust point until the gape closes. The bust dart opens by as much. Without a bust dart
+  // there is nowhere for it to go, so it is left.
+  const neckMid = lerp(cfNeck, add(hpsF0, mul(p(Math.cos(fittedSlope), Math.sin(fittedSlope)), widen)), 0.5);
+  const gape = fit.neckGape && bustDarts ? fit.neckGape : 0;
+  const turnF = gape ? -gape / len(sub(neckMid, apex)) : 0;
+  const turnV = (v: P) => p(v.x * Math.cos(turnF) - v.y * Math.sin(turnF), v.x * Math.sin(turnF) + v.y * Math.cos(turnF));
+  const pivot = (q: P) => add(apex, turnV(sub(q, apex)));
+
+  const hpsF0t = pivot(hpsF0);
+  const hpsFit = add(hpsF0, mul(p(Math.cos(fittedSlope), Math.sin(fittedSlope)), widen));
+  const spF = pivot(add(hpsFit, mul(p(Math.cos(frontSlope), Math.sin(frontSlope)), SL - widen)));
+  const hpsF = pivot(hpsFit);
+  const uF = unit(sub(spF, hpsF));
+
+  const afPt = pivot(p(AF / 2, (hpsFit.y + (SL - widen) * Math.sin(frontSlope) + scye) / 2 + 1.5));
   // The armhole is sized from the high bust (the body's frame). Bust volume beyond that is added
   // below the armhole, with the side seam widening out to full width at bust level, the way a
   // full bust adjustment does it. Otherwise a full bust makes the armhole far too wide.
-  const sideF = p(Math.min(frontW, Math.max((HB + be) / 4 + 0.5, AF / 2 + 3)), scye);
-  const sideBust = p(frontW, Math.max(apex.y, scye + 3));
+  const sideF = pivot(p(Math.min(frontW, Math.max((HB + be) / 4 + 0.5, AF / 2 + 3)), scye));
+  // A lower shoulder's armhole is lowered with it, but the bust level stays where the body has it.
+  const sideBust0 = p(frontW, Math.max(apex.y, scye - dropShoulder + 3));
+  const sideBust = pivot(sideBust0);
+  const down = turnV(p(0, 1));
   // Below the underarm the side seam starts straight down, square to the armhole like the back's,
   // then swings out to full bust width, so the underarm curve blends across the side seam.
   const chord = len(sub(sideBust, sideF));
   const bustward = unit(sub(p(frontW - sideSupp, wf), sideBust));
-  const upperCurve = new Path(sideF).curve(add(sideF, p(0, chord * 0.45)), sub(sideBust, mul(bustward, chord * 0.35)), sideBust, 'side');
+  const upperCurve = new Path(sideF).curve(add(sideF, mul(down, chord * 0.45)), sub(sideBust, mul(bustward, chord * 0.35)), sideBust, 'side');
   const upper = chord > 0.05 ? upperCurve.length() : 0;
 
   // Side bust dart: the extra front length over the bust, but at least what the cup size
@@ -384,15 +619,17 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number): BodiceDraft
   // centre front, which hangs as ease over the bust.
   const backSide = len(sub(swB, sideB));
   const straightDown = upper + len(sub(p(frontW - sideSupp, wf), sideBust));
-  const bustDart = bustDarts ? Math.max(straightDown - backSide, (B - HB) / 2, 0) : 0;
-  const lower = backSide + bustDart - upper; // side seam left below bust level, dart included
+  // A pivoted neck gape raises the side at bust level; all of that goes into the dart.
+  const bustDart = side.keep ? side.keep.bustDart : !bustDarts ? 0 : Math.max(straightDown - backSide, (B - HB) / 2 + Math.max(0, sideBust0.y - sideBust.y), 0);
+  const lower = side.keep ? side.keep.lower : backSide + bustDart - upper; // side seam left below bust level, dart included
   if (bustDarts && lower < bustDart + 4) warnings.push('side seam too short below the bust for the bust dart');
-  let swF = p(frontW - sideSupp, sideBust.y + Math.sqrt(Math.max(lower ** 2 - sideSupp ** 2, 0)));
+  const across = frontW - sideSupp - sideBust.x;
+  let swF = p(frontW - sideSupp, sideBust.y + Math.sqrt(Math.max(lower ** 2 - across ** 2, 0)));
 
   const front = frontNeck(new Path(cfNeck), hpsF, uF, s.neckline)
     .line(spF, 'shoulder')
     .curve(add(spF, mul(perp(uF), 2.5)), sub(afPt, p(0, 3)), afPt, 'armhole')
-    .curve(add(afPt, p(0, (scye - afPt.y) * 0.5)), sub(sideF, mul(squareTo(upper ? p(0, 1) : unit(sub(swF, sideF))), (sideF.x - afPt.x) * 0.75)), sideF, 'armhole');
+    .curve(add(afPt, p(0, (scye - afPt.y) * 0.5)), sub(sideF, mul(squareTo(upper ? down : unit(sub(swF, sideF))), (sideF.x - afPt.x) * 0.75)), sideF, 'armhole');
 
   const frontLines: Path[] = [];
   const towardApex = (from: P, shortBy: number) => add(from, mul(unit(sub(apex, from)), len(sub(apex, from)) - shortBy));
@@ -401,6 +638,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number): BodiceDraft
     front.segs.push(...upperCurve.segs);
     front.tags.push(...upperCurve.tags);
   }
+  let bustTip = apex;
   if (bustDart > 0.3) {
     const uSide = unit(sub(swF, sideBust));
     const s1 = add(sideBust, mul(uSide, Math.min(2, Math.max(0.5, lower - bustDart - 5))));
@@ -408,6 +646,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number): BodiceDraft
     const d = finishDart(towardApex(lerp(s1, s2, 0.5), 2.5), s2, s1, unit(sub(swF, s2)));
     front.line(d.far, 'side').line(d.peak, 'dart').line(d.near, 'dart');
     frontLines.push(new Path(d.far).line(d.tip).line(d.near));
+    bustTip = d.tip;
     // Truing lengthens the legs slightly; finish the side seam at the back's length so they still match.
     swF = add(d.near, mul(unit(sub(swF, d.near)), backSide - upper - len(sub(d.far, sideBust))));
   }
@@ -461,8 +700,37 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number): BodiceDraft
   frontLines.push(new Path(sub(apex, p(0, 0.5))).line(add(apex, p(0, 0.5))));
 
   const frontCut = 'Cut 1 on fold';
+  const frontDraft = {
+    frame: [
+      [p(0, hpsF0.y), p(frontW, hpsF0.y)],
+      [p(frontW, hpsF0.y), p(frontW, cfHem)],
+      [p(0, wf), p(frontW, wf)],
+    ],
+    points: [
+      { n: '0', at: hpsF0t, note: `Front neck width: the back's less 0.2 cm, ${cm(nwF)}. Square down for the centre front.` },
+      {
+        n: '1',
+        at: cfNeck,
+        note: `Centre front neck: ${cm(cfNeck0.y - hpsF0.y)} below the neck point${cfNeck.y > cfNeck0.y + 0.05 ? `, lowered ${cm(cfNeck.y - cfNeck0.y)} for the neckline` : ''}.`,
+      },
+      { n: '2', at: spF, note: `Shoulder: your shoulder length, ${cm(SL)}, at ${deg(frontSlope + turnF)} degrees${m.front_shoulder_slope && frontSlope !== FRONT_SLOPE && !fit.frontSlope && !turnF && !dropShoulder ? `, so the shoulder point is your front shoulder slope, ${cm(m.front_shoulder_slope)}, from the centre front waist` : ''}.` },
+      { n: '3', at: apex, note: `Bust point: half the apex separation, ${cm(AS / 2)}, across, and the bust depth, ${cm(BD)}, from the neck point.` },
+      { n: '4', at: afPt, note: `Half the across front: ${cm(AF / 2)}.` },
+      { n: '5', at: sideF, note: `Underarm: sized from the high bust, so the armhole fits the frame of the body.` },
+      { n: '6', at: sideBust, note: `A quarter of the bust with ease, plus ${cm(shift)} for the bust: ${cm(frontW)}. The side seam swings out to here.` },
+      { n: '7', at: p(0, wf), note: `Centre front waist: your front shoulder to waist, ${cm(FL)}, measured down over the bust point.` },
+      {
+        n: '8',
+        at: swF,
+        note: `Side waist: a quarter of the waist with ease plus 0.5 cm is ${cm(frontWq)}; the side seam comes in ${cm(sideSupp)} and is made the back's length.`,
+      },
+      ...(bustDart > 0.3 ? [{ n: 'B', at: bustTip, note: `Bust dart: ${cm(bustDart)}, the extra length the front needs over the bust, pointing at the bust point and ending 2.5 cm short of it.` }] : []),
+      ...(dartF > 0.3 ? [{ n: 'D', at: p(apex.x, apex.y + 2.5), note: `Waist dart: ${cm(dartF)} wide, under the bust point and ending 2.5 cm below it.` }] : []),
+    ],
+  };
   const frontPiece: Piece = {
     name: 'Bodice front',
+    draft: frontDraft,
     outline: front,
     lines: frontLines,
     grain: [p(frontW * 0.62, scye + 1), p(frontW * 0.62, Math.min(cfHem, hipF.y) - 4)],
@@ -489,6 +757,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number): BodiceDraft
     armholeDepth: r(scye, 1),
     armhole: r(taggedLength(back, 'armhole') + taggedLength(front, 'armhole'), 1),
     shoulder: { front: r(len(sub(spF, hpsF))), back: r(len(sub(spB, hpsB))) },
+    shoulderSlope: { front: deg(frontSlope + turnF), back: deg(backSlope) },
     sideSeam: { frontLessDart: r(taggedLength(front, 'side')), back: r(taggedLength(back, 'side')) },
     finishedBust: r(2 * (backW + frontW), 1),
     // Round the body: the waist seam with darts closed (it slopes, so it is longer than the pieces are wide).
@@ -498,6 +767,9 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number): BodiceDraft
     zipCm,
     front: { apex, waistSide: swF, waistCentre: p(0, wf), hemSide: hipF, hemCentre: p(0, cfHem) },
     neck: r(2 * (taggedLength(back, 'neck') + taggedLength(front, 'neck')), 1),
+    closure: 'back_zip',
+    collar: 'none',
     warnings,
+    inner: { bustDart, lower, upper },
   };
 }

@@ -78,9 +78,68 @@ function drill(at: P, r = 0.25): P[][] {
   return [ring, [add(at, p(-r * 1.6, 0)), add(at, p(r * 1.6, 0))], [add(at, p(0, -r * 1.6)), add(at, p(0, r * 1.6))]];
 }
 
+/** The point of a polyline nearest to q. */
+function nearest(q: P, pts: P[]): P {
+  let best = pts[0];
+  let bd = Infinity;
+  for (let i = 0; i < pts.length; i++) {
+    const a = pts[i];
+    const b = pts[(i + 1) % pts.length];
+    const ab = sub(b, a);
+    const l2 = ab.x * ab.x + ab.y * ab.y;
+    const k = l2 ? Math.max(0, Math.min(1, ((q.x - a.x) * ab.x + (q.y - a.y) * ab.y) / l2)) : 0;
+    const c = add(a, mul(ab, k));
+    const d = Math.hypot(c.x - q.x, c.y - q.y);
+    if (d < bd) {
+      bd = d;
+      best = c;
+    }
+  }
+  return best;
+}
+
+/** The runs of a closed polyline that leave another by more than half a millimetre (and somewhere
+ * by more than 2 mm), longest first, each with the points either side so it joins on. */
+export function leaving(pts: P[], from: P[]): P[][] {
+  const n = pts.length;
+  const gap = pts.map((q) => {
+    const c = nearest(q, from);
+    return Math.hypot(c.x - q.x, c.y - q.y);
+  });
+  const off = gap.map((g) => g > 0.05);
+  if (off.every(Boolean)) return [pts];
+  const runs: P[][] = [];
+  for (let i = 0; i < n; i++) {
+    if (!off[i] || off[(i - 1 + n) % n]) continue;
+    let j = i;
+    while (off[(j + 1) % n] && j - i < n) j++;
+    const run: P[] = [];
+    let most = 0;
+    for (let k = i - 1; k <= j + 1; k++) {
+      run.push(pts[((k % n) + n) % n]);
+      most = Math.max(most, gap[((k % n) + n) % n]);
+    }
+    // Under 2 mm apart (a curve meeting a new angle) is no line to cut.
+    if (most > 0.2) runs.push(run);
+  }
+  const length = (r: P[]) => r.reduce((t, q, k) => (k ? t + Math.hypot(q.x - r[k - 1].x, q.y - r[k - 1].y) : 0), 0);
+  return runs.sort((u, v) => length(v) - length(u));
+}
+
 const TITLE_W = 46; // cm, the title block beside the test square
 
-export function layout(pieces: Piece[], title: string, notes: string[], info?: SheetInfo): Sheet {
+/** Turn a vector by `deg` degrees clockwise (the way SVG and the labels rotate). */
+const turn = (v: P, deg: number): P => {
+  const a = (deg * Math.PI) / 180;
+  return p(v.x * Math.cos(a) - v.y * Math.sin(a), v.x * Math.sin(a) + v.y * Math.cos(a));
+};
+
+export interface LayoutOptions {
+  /** Draw the draft itself: the frame and the numbered construction points. */
+  atelier?: boolean;
+}
+
+export function layout(pieces: Piece[], title: string, notes: string[], info?: SheetInfo, opts: LayoutOptions = {}): Sheet {
   const prims: Prim[] = [];
   let order: Order = {};
   const poly = (pts: P[], style: LineStyle, closed = false) => prims.push({ kind: 'poly', pts, style, closed, ...order });
@@ -93,18 +152,61 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
     opts: { face?: Face; tracking?: number; grey?: number } = {},
   ) => prims.push({ kind: 'text', at, text: t, size, rotate, anchor, ...opts, ...order });
 
-  let x = MARGIN;
   // Title block: the 10 cm test square at top left, title and notes beside it.
   const top = MARGIN + 10 + GAP;
+  // Pieces go left to right. A piece short enough to fit under the one before it, in the height the
+  // row already takes, stacks there instead (facings, a waistband), which keeps the sheet compact.
+  let x = MARGIN;
   let height = 0;
+  let col = { x: MARGIN, width: 0, used: 0 };
   pieces.forEach((pc, piece) => {
     const [x0, y0, x1, y1] = bounds(pc);
-    const off = p(x - x0, top - y0);
+    const w = x1 - x0;
+    const h = y1 - y0;
+    let at: P;
+    if (piece > 0 && col.used + GAP + h <= height) {
+      at = p(col.x, top + col.used + GAP);
+      col.used += GAP + h;
+      col.width = Math.max(col.width, w);
+    } else {
+      at = p(x, top);
+      col = { x, width: w, used: h };
+    }
+    x = col.x + col.width + GAP;
+    height = Math.max(height, h);
+    const off = sub(at, p(x0, y0));
     const t = (q: P) => add(q, off);
     order = { piece, step: 'allowance' };
     poly(cutLine(pc).map(t), 'cut', true);
     order = { piece, step: 'outline' };
-    poly(pc.outline.points().map(t), 'stitch', true);
+    // A couture pattern is thread-traced along the stitching line, so it is drawn solid.
+    poly(pc.outline.points().map(t), pc.meta.threadTrace ? 'stitchSolid' : 'stitch', true);
+    // A second line for one side of the body: drawn only where it leaves the main one, and named
+    // between the two lines.
+    if (pc.alternate) {
+      const stitch = leaving(pc.alternate.outline.points(), pc.outline.points());
+      stitch.forEach((run) => poly(run.map(t), pc.meta.threadTrace ? 'stitchSolid' : 'stitch'));
+      leaving(cutLine(pc, pc.alternate.outline), cutLine(pc)).forEach((run) => poly(run.map(t), 'cut'));
+      const run = stitch[0];
+      if (run && run.length > 1) {
+        const k = Math.floor(run.length / 2);
+        const at = run[k];
+        const near = nearest(at, pc.outline.points());
+        const u = unit(sub(run[Math.min(run.length - 1, k + 1)], run[Math.max(0, k - 1)]));
+        let rot = (Math.atan2(u.y, u.x) * 180) / Math.PI;
+        if (rot > 90) rot -= 180;
+        if (rot <= -90) rot += 180;
+        text(t(add(lerp(at, near, 0.5), p(0, 0.18))), `${pc.alternate.label} LINE`, 0.45, rot, 'middle', { face: 'label', tracking: 0.12 });
+      }
+    }
+    if (opts.atelier && pc.draft) {
+      pc.draft.frame.forEach((ln) => poly(ln.map(t), 'fine'));
+      pc.draft.points.forEach((dp) => {
+        const c = t(dp.at);
+        poly(Array.from({ length: 13 }, (_, i) => add(c, p(0.18 * Math.cos((i * Math.PI) / 6), 0.18 * Math.sin((i * Math.PI) / 6)))), 'mark', true);
+        text(add(c, p(0.35, -0.3)), dp.n, 0.65, 0, 'start', { face: 'label', tracking: 0.05 });
+      });
+    }
     order = { piece, step: 'darts' };
     pc.lines.forEach((ln) => poly(ln.points().map(t), 'mark'));
     drillHoles(pc).forEach((h) => drill(t(h)).forEach((ring) => poly(ring, 'mark')));
@@ -120,39 +222,56 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
       const [a, b] = pc.grain.map(t);
       poly([a, b], 'mark');
       arrowHeads(a, b).forEach((h) => poly(h, 'mark'));
-      text(t(p(pc.grain[0].x + 0.6, (pc.grain[0].y + pc.grain[1].y) / 2)), 'GRAIN', 0.7, 90, 'middle', { face: 'label', tracking: 0.2 });
+      const u = unit(sub(pc.grain[1], pc.grain[0]));
+      const rot = (Math.atan2(u.y, u.x) * 180) / Math.PI;
+      text(t(add(lerp(pc.grain[0], pc.grain[1], 0.5), mul(p(-u.y, u.x), -0.6))), 'GRAIN', 0.7, rot, 'middle', { face: 'label', tracking: 0.2 });
     }
     if (pc.fold) {
       const [a, b] = pc.fold.map(t);
       const inset = p(2, 0);
+      const long = b.y - a.y > 9;
       poly([a, add(a, inset), add(b, inset), b], 'mark');
-      arrowHeads(add(add(a, mul(inset, 0.5)), p(0, 1)), sub(add(b, mul(inset, 0.5)), p(0, 1)), 0.9).forEach((h) =>
-        poly(h, 'mark'),
-      );
-      text(t(p(pc.fold[0].x + 2.6, (pc.fold[0].y + pc.fold[1].y) / 2)), 'PLACE ON FOLD', 0.7, 90, 'middle', { face: 'label', tracking: 0.2 });
+      if (long) {
+        arrowHeads(add(add(a, mul(inset, 0.5)), p(0, 1)), sub(add(b, mul(inset, 0.5)), p(0, 1)), 0.9).forEach((h) => poly(h, 'mark'));
+      }
+      text(t(p(pc.fold[0].x + 2.6, (pc.fold[0].y + pc.fold[1].y) / 2)), long ? 'PLACE ON FOLD' : 'FOLD', 0.7, 90, 'middle', { face: 'label', tracking: 0.2 });
     }
     order = { piece, step: 'labels' };
     allNotches(pc).forEach(([pt, d]) => poly(notchSlit(pc, pt, d).map(t), 'notch'));
-    edgeLabels(pc).forEach((l) => text(t(l.at), l.text, 0.45, l.rotate, 'middle', { face: 'label', tracking: 0.12, grey: 0.3 }));
+    // Facings are too narrow for seam names; their notches and the garment's own labels say it.
+    if (pc.kind !== 'facing') edgeLabels(pc).forEach((l) => text(t(l.at), l.text, 0.45, l.rotate, 'middle', { face: 'label', tracking: 0.12, grey: 0.3 }));
     const name = pc.name.toUpperCase();
+    const fabric = (pc.fabric ?? 'Self fabric').toUpperCase();
     pc.labels.forEach((l) => {
+      const rot = l.rotate ?? 0;
       if (info && l.text === pc.cut) return; // part of the information block
       if (info && l.text === name) {
         // The piece's information block: name, piece number and cutting, the pattern and its owner.
+        // Small finishing pieces carry just the first line.
         const lines = [
-          `PIECE ${piece + 1} OF ${pieces.length} · ${pc.cut.toUpperCase()} · SELF FABRIC`,
-          info.pattern.toUpperCase(),
-          [info.madeFor && `MADE FOR ${info.madeFor}`, info.date].filter(Boolean).join(' · ').toUpperCase(),
+          `${pc.kind ? `PIECE ${piece + 1}/${pieces.length}` : `PIECE ${piece + 1} OF ${pieces.length}`} · ${pc.cut.toUpperCase()} · ${fabric}`,
+          ...(pc.alternate ? [`TRIM YOUR ${pc.alternate.label.split(' ')[0]} SIDE TO THE ${pc.alternate.label} LINE`] : []),
+          ...(pc.kind
+            ? []
+            : [info.pattern.toUpperCase(), [info.madeFor && `MADE FOR ${info.madeFor}`, info.date].filter(Boolean).join(' · ').toUpperCase()]),
         ].filter(Boolean);
-        text(t(l.at), name, l.size, 0, 'middle', { face: 'label', tracking: 0.12 });
-        lines.forEach((ln, i) => text(t(add(l.at, p(0, l.size * 0.45 + 0.72 * (i + 1)))), ln, 0.5, 0, 'middle', { face: 'label', tracking: 0.12, grey: i ? 0.35 : 0 }));
+        text(t(l.at), name, l.size, rot, 'middle', { face: 'label', tracking: 0.12 });
+        lines.forEach((ln, i) =>
+          text(t(add(l.at, turn(p(0, l.size * 0.45 + 0.72 * (i + 1)), rot))), ln, pc.kind ? 0.42 : 0.5, rot, 'middle', {
+            face: 'label',
+            tracking: 0.12,
+            grey: i ? 0.35 : 0,
+          }),
+        );
         return;
       }
-      text(t(l.at), l.text, l.size, 0, 'middle', { face: 'label', tracking: 0.1 });
+      text(t(l.at), l.text, l.size, rot, 'middle', { face: 'label', tracking: 0.1 });
     });
+    if (pc.meta.threadTrace) {
+      const l = pc.labels[0];
+      if (l) text(t(add(l.at, turn(p(0, -l.size * 1.2), l.rotate ?? 0))), 'THREAD-TRACE THE STITCHING LINE', 0.45, l.rotate ?? 0, 'middle', { face: 'label', tracking: 0.15, grey: 0.35 });
+    }
     order = {};
-    x += x1 - x0 + GAP;
-    height = Math.max(height, y1 - y0);
   });
 
   // 10 cm test square so a printed copy can be checked for scale. It sits in the title block
