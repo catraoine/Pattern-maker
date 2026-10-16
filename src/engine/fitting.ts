@@ -5,6 +5,8 @@ import type { Side, SkirtFitting } from './skirt';
 import type { BodiceFitting } from './bodice';
 
 export type FitGarment = 'skirt' | 'bodice';
+/** Every garment that can be fitted in a toile: a dress takes both kinds of correction, trousers the skirt's waist and hip. */
+export type FitTarget = FitGarment | 'dress' | 'trousers';
 
 export interface FitIssue {
   id: string;
@@ -398,6 +400,16 @@ export const FIT_ISSUES: FitIssue[] = [
 
 export const issueById = (id: string) => FIT_ISSUES.find((i) => i.id === id);
 
+/** The skirt corrections trousers take: the waist, the hip and the centre waists (not darts or one hip). */
+const TROUSER_KEYS = ['hipEase', 'waistEase', 'frontDrop', 'backDrop'];
+
+/** Whether a correction applies to a garment. */
+export function appliesTo(issue: FitIssue, garment: FitTarget): boolean {
+  if (garment === 'dress') return true;
+  if (garment === 'trousers') return issue.garment === 'skirt' && issue.keys.every((k) => TROUSER_KEYS.includes(k));
+  return issue.garment === garment;
+}
+
 /** One person's corrections for one garment: each issue seen, with how much, and which side. */
 export interface Fitting {
   issues: Record<string, number>;
@@ -406,6 +418,10 @@ export interface Fitting {
   round: number;
   /** When they were last saved, as YYYY-MM-DD. */
   date?: string;
+  /** Earlier saved versions, oldest first, for comparing. */
+  history?: Fitting[];
+  /** Issues this toile was checked for when saved (ticked or not), so one cleared here isn't carried in. */
+  checked?: string[];
 }
 
 export const NO_FITTING: Fitting = { issues: {}, round: 0 };
@@ -431,10 +447,11 @@ export function toFitting(f: Fitting | undefined, garment: FitGarment): SkirtFit
 const amount = (issue: FitIssue, v: number) => (issue.unit === 'cm' ? `${v} cm` : `${v} degrees`);
 
 /** What changed, in a few words each, for the pattern's notes. */
-export function describeFitting(f: Fitting | undefined, garment: FitGarment): string[] {
+export function describeFitting(f: Fitting | undefined, garment: FitTarget): string[] {
   return Object.entries(f?.issues ?? {})
     .map(([id, v]) => ({ issue: issueById(id), v }))
-    .filter((x): x is { issue: FitIssue; v: number } => !!x.issue && x.issue.garment === garment && x.v > 0)
+    // A dress is fitted as one toile: its bodice and its skirt corrections are kept together.
+    .filter((x): x is { issue: FitIssue; v: number } => !!x.issue && appliesTo(x.issue, garment) && x.v > 0)
     .map(({ issue, v }) => issue.note.replace('{v}', amount(issue, Math.min(issue.max, v))).replace('{side}', f?.sides?.[issue.id] ?? 'right'));
 }
 
@@ -456,4 +473,77 @@ export function setAmount(f: Fitting, id: string, v: number): Fitting {
   const issue = issueById(id);
   if (!issue) return f;
   return { ...f, issues: { ...f.issues, [id]: Math.round(Math.min(issue.max, Math.max(issue.step, v)) * 10) / 10 } };
+}
+
+export interface Carried {
+  /** The garment's own corrections, with those found on the person's other toiles filled in. */
+  fitting: Fitting;
+  /** Which corrections came from which other toile. */
+  from: { id: string; garment: FitTarget }[];
+}
+
+/**
+ * The person's fit as one record: a garment uses its own toile's corrections, and fills in what its
+ * own toile hasn't covered from the others. A sway back found on the skirt goes into the dress; the
+ * bodice's corrections go into the dress bodice; the dress's go back into a bodice or a skirt. Where two
+ * other toiles disagree, the more recent one wins. A correction (or its opposite) on the garment's own
+ * toile always wins.
+ */
+export function carriedFitting(fittings: Partial<Record<FitTarget, Fitting>> | undefined, garment: FitTarget): Carried {
+  const own = fittings?.[garment];
+  const issues = { ...(own?.issues ?? {}) };
+  const sides = { ...(own?.sides ?? {}) };
+  const from: Carried['from'] = [];
+  const others = (Object.keys(fittings ?? {}) as FitTarget[])
+    .filter((g) => g !== garment && fittings![g])
+    .sort((a, b) => (fittings![b]!.date ?? '').localeCompare(fittings![a]!.date ?? ''));
+  const covered = (id: string) => {
+    const issue = issueById(id);
+    return id in issues || (!!issue?.opposite && issue.opposite in issues);
+  };
+  for (const g of others) {
+    const f = fittings![g]!;
+    for (const [id, v] of Object.entries(f.issues)) {
+      const issue = issueById(id);
+      if (!issue || !(v > 0) || !appliesTo(issue, garment) || covered(id)) continue;
+      // An issue the own toile already looked at and cleared stays cleared: only fill what it never saw.
+      if (own?.checked?.includes(id)) continue;
+      issues[id] = v;
+      if (f.sides?.[id]) sides[id] = f.sides[id];
+      from.push({ id, garment: g });
+    }
+  }
+  return { fitting: { issues, sides, round: own?.round ?? 0, date: own?.date, history: own?.history }, from };
+}
+
+/** The corrections carried in from other toiles, in words, for the pattern's notes. */
+export function describeCarried(c: Carried): string[] {
+  const by = new Map<string, string[]>();
+  for (const { id, garment } of c.from) {
+    const issue = issueById(id)!;
+    const v = c.fitting.issues[id];
+    const words = issue.note.replace('{v}', amount(issue, Math.min(issue.max, v))).replace('{side}', c.fitting.sides?.[id] ?? 'right');
+    by.set(garment, [...(by.get(garment) ?? []), words]);
+  }
+  return [...by.entries()].map(([g, ws]) => `From your ${g} toile: ${ws.join('; ')}`);
+}
+
+/**
+ * Save a new version: the corrections as now, the previous version kept for comparing. `shown` lists the
+ * corrections the toile was looked at for (those carried in from other toiles included), so one cleared
+ * here stays cleared rather than being carried in again.
+ */
+export function saveVersion(prev: Fitting | undefined, next: Fitting, date: string, shown: string[] = []): Fitting {
+  const { history: _h, ...was } = prev ?? NO_FITTING;
+  void _h;
+  const history = prev && prev.round > 0 ? [...(prev.history ?? []), was] : prev?.history ?? [];
+  return { ...next, round: (prev?.round ?? 0) + 1, date, history, checked: [...new Set([...(prev?.checked ?? []), ...shown, ...Object.keys(next.issues)])] };
+}
+
+/** Every saved version of a fitting, oldest first: version 1 is the pattern before any toile. */
+export function versionsOf(f: Fitting | undefined): { version: number; fitting: Fitting }[] {
+  const out = [{ version: 1, fitting: NO_FITTING }];
+  for (const h of f?.history ?? []) out.push({ version: h.round + 1, fitting: h });
+  if (f && f.round > 0) out.push({ version: f.round + 1, fitting: f });
+  return out;
 }

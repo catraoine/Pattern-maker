@@ -6,6 +6,7 @@ import { bodiceGuide, sewingGuide } from './instructions';
 import { SEAM_WIDTHS } from './allowances';
 import { CLOTHS, Cloth, seamFinish, toCouture } from './couture';
 import { DIAGRAMS } from './diagrams';
+import { draftSleeve } from './sleeve';
 import type { SewingGuide } from './instructions';
 
 const m = { waist: 70, full_hip: 96, waist_to_hip: 20.5, waist_to_knee: 58, waist_to_floor: 104 };
@@ -87,5 +88,41 @@ describe('the couture route', () => {
         const shoulders = g.steps.find((s) => s.title === 'Sew the shoulders');
         if (shoulders && id === 'silk' && edges !== 'lined') expect(shoulders.diagram).toBe('french');
       }
+  });
+
+  it('sews set-in sleeves both ways, with every bodice finish and cloth', () => {
+    const d = draftBodice(randomBody(rng(9)), { length: 'waist' });
+    const arms = { arm_length: 59, upper_arm: 29, wrist: 16 };
+    const base = { fit: 'regular' as const, seamAllowance: 1.5, armholeAllowance: 1, hemAllowance: 2.5 };
+    for (const [length, shape] of [['long', 'fitted'], ['short', 'puff'], ['long', 'bishop'], ['elbow', 'straight']] as const) {
+      const sleeve = draftSleeve(d, arms, { ...base, length, shape });
+      for (const edges of ['binding', 'facings', 'lined'] as const) {
+        const quick = bodiceGuide(d, { length: 'waist' }, 1.6, 1, { edges, sleeve });
+        const qt = titles(quick);
+        expect(sound(quick), `${length} ${shape} ${edges}`).toEqual([]);
+        expect(qt).not.toContain('Bind the armholes');
+        expect(qt).not.toContain('Face the armholes');
+        expect(qt).not.toContain('Line the neck and armholes');
+        expect(qt).toContain('Set in the sleeves');
+        expect(qt).toContain(sleeve.gathers ? 'Attach the sleeve bands' : 'Hem the sleeves');
+        expect(qt).toContain(shape === 'puff' ? 'Gather the sleeve heads' : 'Ease the sleeve heads');
+        if (sleeve.elbowDart) expect(qt).toContain('Sew the elbow darts');
+        // The bodice is closed and its neck finished before the sleeves go in.
+        expect(qt.indexOf('Sew the shoulders')).toBeLessThan(qt.indexOf('Set in the sleeves'));
+        expect(qt.indexOf('Sew the side seams')).toBeLessThan(qt.indexOf('Set in the sleeves'));
+        if (edges === 'lined') expect(qt.indexOf('Baste the lining to the armholes')).toBeLessThan(qt.indexOf('Set in the sleeves'));
+        for (const { id } of CLOTHS) {
+          const g = toCouture(quick, { garment: 'bodice', cloth: id as Cloth, lined: edges === 'lined', traced: true, zipCm: d.zipCm });
+          expect(sound(g), `${length} ${shape} ${edges} ${id}`).toEqual([]);
+          const set = g.steps.find((s) => s.title === 'Set in the sleeves')!;
+          expect(set.diagram).toBe('setsleeve');
+          expect(set.text).toContain('Hand-baste the sleeve in');
+          expect(g.steps.find((s) => /sleeve heads$/.test(s.title))!.diagram).toBe('easehead');
+          expect(g.steps.find((s) => s.title === 'Finish the armhole seams')!.text).not.toMatch(/zigzag|overlock/);
+          if (edges !== 'binding') expect(text(g)).toMatch(/[Gg]rade the seam/);
+          expect(g.notions).toContain('A sleeve board or sleeve roll');
+        }
+      }
+    }
   });
 });
