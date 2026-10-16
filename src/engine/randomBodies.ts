@@ -53,3 +53,20 @@ export function randomBody(r: () => number): Body {
     waist_to_floor: h * 0.615 + u(-2, 2),
   };
 }
+
+/** Arms to go with a body: upper arm with the armhole, arm length with the back length. */
+export function randomArms(b: Body, r: () => number): { arm_length: number; upper_arm: number; wrist: number } {
+  const u = (lo: number, hi: number) => lo + (hi - lo) * r();
+  return {
+    arm_length: b.nape_to_waist * 1.4 + u(-3, 3),
+    upper_arm: (b.armscye ?? 40) * 0.7 + u(-2.5, 2.5),
+    wrist: 13.5 + (b.full_bust - 76) * 0.05 + u(-1, 1),
+  };
+}
+
+/** Crotch measurements to go with a body: depth with height and hip, length about twice the depth plus a sixth of the hip. */
+export function randomCrotch(b: Body, r: () => number): { crotch_depth: number; crotch_length: number } {
+  const u = (lo: number, hi: number) => lo + (hi - lo) * r();
+  const depth = Math.max(b.waist_to_hip + u(3, 8), (b.waist_to_floor / 0.615) * 0.155 + (b.full_hip - 90) * 0.05 + u(-1.5, 1.5));
+  return { crotch_depth: Math.min(depth, b.waist_to_knee - 14), crotch_length: 2 * Math.min(depth, b.waist_to_knee - 14) + b.full_hip * 0.17 + u(-3, 3) };
+}

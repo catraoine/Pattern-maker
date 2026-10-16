@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bodiceFabrics, checkFabric, describeFabric, fabricLines, skirtFabrics, withFabric, withFabricEase } from './fabrics';
+import { bodiceFabrics, checkFabric, dressFabrics, trousersFabrics, describeFabric, fabricLines, skirtFabrics, withFabric, withFabricEase } from './fabrics';
 import type { Length, Silhouette } from './skirt';
 import type { BodiceFit, Neckline } from './bodice';
 import { draftSkirt } from './skirt';
@@ -32,6 +32,33 @@ describe('fabric advice', () => {
         expect(a.avoid).toMatch(/woven/);
         expect(!!a.note).toBe(neckline === 'square' || neckline === 'v' || neckline === 'boat');
       }
+  });
+});
+
+describe('fabric advice for the dress and trousers', () => {
+  it('suggests three fabrics that suit both halves of a dress', () => {
+    for (const silhouette of SILHOUETTES)
+      for (const fit of FITS) {
+        const a = dressFabrics({ fit, neckline: 'crew', silhouette, length: 'midi' });
+        expect(a.picks).toHaveLength(3);
+        expect(new Set(a.picks.map((p) => p.name)).size).toBe(3);
+        expect(a.style).toMatch(/^a dress with a midi .* skirt$/);
+        expect(a.avoid.match(/stretch fabrics and knits/g)).toHaveLength(1);
+      }
+  });
+
+  it('suggests three fabrics for every leg', () => {
+    for (const leg of ['straight', 'wide', 'tapered', 'culotte'] as const) {
+      const a = trousersFabrics({ leg });
+      expect(a.picks).toHaveLength(3);
+      expect(a.avoid).toMatch(/woven/);
+    }
+  });
+
+  it('warns about light cloth for trousers and fluid cloth on a fitted dress', () => {
+    expect(checkFabric({ garment: 'trousers', fit: 'regular', leg: 'straight' }, { weight: 'light' })[0].level).toBe('warn');
+    expect(checkFabric({ garment: 'trousers', fit: 'regular', leg: 'wide' }, { weight: 'medium', drape: 'fluid' })[0].level).toBe('ok');
+    expect(checkFabric({ garment: 'dress', fit: 'fitted', neckline: 'crew', silhouette: 'a_line', length: 'knee' }, { drape: 'fluid' }).every((n) => n.level === 'warn')).toBe(true);
   });
 });
 

@@ -26,9 +26,9 @@ const MM = 10;
 const pt = (q: P): [number, number] => [q.x * MM, -q.y * MM];
 const num = (v: number) => (Math.abs(v) < 5e-5 ? '0' : v.toFixed(4).replace(/\.?0+$/, ''));
 // R12 text is single-byte; keep annotation plain ASCII.
-const ascii = (s: string) => s.replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, '-').replace(/[^\x20-\x7e]/g, '');
+export const ascii = (s: string) => s.replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, '-').replace(/[^\x20-\x7e]/g, '');
 
-class Writer {
+export class Writer {
   out: string[] = [];
   g(code: number, value: string | number) {
     this.out.push(String(code), typeof value === 'number' ? num(value) : value);
@@ -162,7 +162,7 @@ export function toDxf(pieces: Piece[], info: DxfInfo): string {
       `Quantity: ${quantity(pc.cut)}`,
       `Annotation: ${pc.cut}`,
       `Category: Self`,
-      `Size: ${info.size}`,
+      `Size: ${(pc.meta.size as string | undefined) ?? info.size}`,
       `Seam Allowance: ${pc.seamAllowance * MM} mm`,
     ].forEach((t, k) => w.text(at(k), t, LAYER.boundary, 4));
     w.g(0, 'ENDBLK');

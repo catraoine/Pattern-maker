@@ -4,11 +4,14 @@
 // Keep to plain ASCII punctuation: these words go into the PDF and the tech pack.
 import type { Fit, Length, Silhouette, SkirtFitting } from './skirt';
 import type { BodiceDarts, BodiceFit, BodiceFitting, BodiceLength, Neckline } from './bodice';
+import type { Leg } from './trousers';
 import type { Cloth } from './couture';
 import type { SewingGuide } from './instructions';
 
 export type Weight = 'light' | 'medium' | 'heavy';
 export type Drape = 'crisp' | 'soft' | 'fluid';
+/** Every garment the fabric advice covers. */
+export type FabricGarment = 'skirt' | 'bodice' | 'dress' | 'trousers';
 export type Fibre = 'cotton' | 'linen' | 'wool' | 'silk' | 'viscose' | 'polyester' | 'blend';
 
 /** The fabric the maker has bought, or means to buy. Every field is optional. */
@@ -244,6 +247,71 @@ export function bodiceFabrics(style: { fit: BodiceFit; neckline: Neckline; lengt
   };
 }
 
+const TROUSERS: Record<Leg, { picks: FabricPick[]; avoid: string }> = {
+  straight: {
+    picks: [
+      pick('Wool suiting or gabardine', ['medium'], 'crisp', 'Holds a crease and hangs cleanly.'),
+      pick('Cotton twill or drill', ['medium', 'heavy'], 'crisp', 'Hard-wearing and easy to sew.'),
+      pick('Linen or linen blend', ['medium'], 'soft', 'Cool for summer. It creases, which is part of its charm.'),
+    ],
+    avoid: 'Very light or sheer fabrics. The seat and knees bag and show through.',
+  },
+  wide: {
+    picks: [
+      pick('Wool crepe', ['medium'], 'soft', 'Swings as you walk.'),
+      pick('Viscose twill or crepe', ['medium'], 'fluid', 'Falls in long, soft lines.'),
+      pick('Linen', ['medium'], 'soft', 'Relaxed and breathable.'),
+    ],
+    avoid: 'Stiff, heavy fabrics like canvas. Wide legs stand out instead of falling.',
+  },
+  tapered: {
+    picks: [
+      pick('Cotton twill or chino drill', ['medium'], 'crisp', 'Keeps the narrow shape at the ankle.'),
+      pick('Wool suiting', ['medium'], 'crisp', 'Smart and resists seating.'),
+      pick('Corduroy, needlecord', ['medium'], 'soft', 'Warm. Cut every piece the same way up for the nap.'),
+    ],
+    avoid: 'Fluid fabrics. They cling at the seat and lose the taper.',
+  },
+  culotte: {
+    picks: [
+      pick('Linen or linen blend', ['medium'], 'crisp', 'Holds the wide, cropped shape.'),
+      pick('Cotton twill or chambray', ['medium'], 'crisp', 'Crisp and easy to sew.'),
+      pick('Wool crepe', ['medium'], 'soft', 'Softer and dressier.'),
+    ],
+    avoid: 'Very fluid fabrics. Culottes lose their shape and look like a skirt that clings.',
+  },
+};
+
+const LEG_WORDS: Record<Leg, string> = { straight: 'straight-leg trousers', wide: 'wide-leg trousers', tapered: 'tapered trousers', culotte: 'culottes' };
+
+/** Fabrics for trousers. */
+export function trousersFabrics(style: { leg: Leg }): FabricAdvice {
+  const base = TROUSERS[style.leg];
+  return {
+    style: LEG_WORDS[style.leg],
+    picks: base.picks,
+    avoid: `${base.avoid} ${STRETCH}`,
+    note: 'Trousers take hard wear at the seat and knees: a medium weight lasts best.',
+    lining: SKIRT_LINING,
+  };
+}
+
+/** Fabrics for a dress: the skirt's suggestions that also suit the bodice come first. */
+export function dressFabrics(style: { fit: BodiceFit; neckline: Neckline; silhouette: Silhouette; length: Length }): FabricAdvice {
+  const skirt = skirtFabrics(style);
+  const bodice = bodiceFabrics({ fit: style.fit, neckline: style.neckline });
+  const both = skirt.picks.filter((p) => bodice.picks.some((b) => b.drape === p.drape && b.weight[0] === p.weight[0]));
+  const rest = [...skirt.picks, ...bodice.picks].filter((p, i, all) => !both.includes(p) && all.findIndex((q) => q.name === p.name) === i);
+  return {
+    style: `a dress with ${skirt.style}${/skirt$/.test(skirt.style) ? '' : ' skirt'}`,
+    picks: [...both, ...rest].slice(0, 3),
+    // Both halves warn about fluid cloth for most styles; say it once.
+    avoid: /fluid/i.test(skirt.avoid) && /fluid/i.test(bodice.avoid) ? bodice.avoid : `${bodice.avoid.replace(` ${STRETCH}`, '')} ${skirt.avoid}`,
+    note: bodice.note ?? skirt.note,
+    lining: BODICE_LINING,
+  };
+}
+
 /** "Medium, crisp" or "Light to medium, fluid". */
 export function pickTag(p: Pick<FabricPick, 'weight' | 'drape'>): string {
   const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
@@ -255,32 +323,23 @@ export interface FabricNote {
   text: string;
 }
 
-type Style = { garment: 'skirt'; silhouette: Silhouette; length: Length } | { garment: 'bodice'; fit: BodiceFit; neckline: Neckline };
+export type FabricStyle =
+  | { garment: 'skirt'; silhouette: Silhouette; length: Length }
+  | { garment: 'bodice'; fit: BodiceFit; neckline: Neckline }
+  | { garment: 'dress'; fit: BodiceFit; neckline: Neckline; silhouette: Silhouette; length: Length }
+  | { garment: 'trousers'; fit: Fit; leg: Leg };
 
 const weightRank: Record<Weight, number> = { light: 0, medium: 1, heavy: 2 };
 
 /** How the fabric suits the style: a good match, or what to watch for. Empty until weight or drape is set. */
-export function checkFabric(style: Style, f: MyFabric): FabricNote[] {
+export function checkFabric(style: FabricStyle, f: MyFabric): FabricNote[] {
   const notes: FabricNote[] = [];
-  const advice = style.garment === 'skirt' ? skirtFabrics(style) : bodiceFabrics(style);
   const { weight, drape } = f;
   if (weight || drape) {
-    const warn = (text: string) => notes.push({ level: 'warn', text });
-    if (style.garment === 'skirt') {
-      const s = style.silhouette;
-      if (drape === 'fluid' && (s === 'pencil' || s === 'straight')) warn(`A fluid fabric on ${advice.style} will cling and show every line underneath. Lining it helps.`);
-      if (drape === 'fluid' && s === 'a_line') warn('A fluid fabric will soften the A shape so it hangs closer to the body.');
-      if (weight === 'light' && s === 'pencil') warn('A light fabric wrinkles and seats on a pencil skirt. Line it, or choose a medium weight.');
-      if (drape === 'crisp' && weight === 'heavy' && (s === 'trumpet' || s === 'half_circle' || s === 'circle')) warn('A heavy, crisp fabric makes the flare stand out stiffly. A softer one swings better.');
-      else if (weight === 'heavy' && (s === 'half_circle' || s === 'circle')) warn('Heavy fabric drags on the bias of a circle. Hang the skirt for two days before you hem it.');
-      else if (drape === 'crisp' && s === 'trumpet') warn('A crisp fabric makes the trumpet flare stand out. A soft or fluid one flutes better.');
-    } else {
-      if (drape === 'fluid' && style.fit !== 'relaxed') warn('A fluid fabric puckers at the darts and will not hold a fitted shape. Underline it with cotton batiste, or choose a relaxed fit.');
-      if (weight === 'heavy' && style.fit !== 'relaxed') warn('A heavy fabric makes thick darts and a bulky neckline. Face or line it with something light, and trim the seams well.');
-      if (drape === 'crisp' && weight === 'heavy' && style.fit === 'relaxed') warn('A heavy, crisp fabric stands away from the body without darts.');
-      if (style.neckline === 'boat' && drape === 'fluid') warn('A boat neck in a fluid fabric can slide off the shoulder. Stay the neckline with tape.');
-    }
-    if (!notes.length) {
+    const warns = styleWarnings(style, f);
+    const advice = adviceFor(style);
+    if (warns.length) notes.push(...warns.map((text) => ({ level: 'warn' as const, text })));
+    else {
       const close = advice.picks.some(
         (p) => (!drape || p.drape === drape) && (!weight || (weightRank[weight] >= weightRank[p.weight[0]] && weightRank[weight] <= weightRank[p.weight[p.weight.length - 1]])),
       );
@@ -295,18 +354,53 @@ export function checkFabric(style: Style, f: MyFabric): FabricNote[] {
   return notes;
 }
 
+/** The advice for any garment's style. */
+export function adviceFor(style: FabricStyle): FabricAdvice {
+  if (style.garment === 'skirt') return skirtFabrics(style);
+  if (style.garment === 'bodice') return bodiceFabrics(style);
+  if (style.garment === 'dress') return dressFabrics(style);
+  return trousersFabrics(style);
+}
+
+/** What to watch for with this fabric in this style. */
+function styleWarnings(style: FabricStyle, { weight, drape }: MyFabric): string[] {
+  const out: string[] = [];
+  const name = adviceFor(style).style;
+  if (style.garment === 'skirt' || style.garment === 'dress') {
+    const s = style.silhouette;
+    if (drape === 'fluid' && (s === 'pencil' || s === 'straight')) out.push(`A fluid fabric on ${name} will cling and show every line underneath. Lining it helps.`);
+    if (drape === 'fluid' && s === 'a_line') out.push('A fluid fabric will soften the A shape so it hangs closer to the body.');
+    if (weight === 'light' && s === 'pencil') out.push('A light fabric wrinkles and seats on a pencil skirt. Line it, or choose a medium weight.');
+    if (drape === 'crisp' && weight === 'heavy' && (s === 'trumpet' || s === 'half_circle' || s === 'circle')) out.push('A heavy, crisp fabric makes the flare stand out stiffly. A softer one swings better.');
+    else if (weight === 'heavy' && (s === 'half_circle' || s === 'circle')) out.push('Heavy fabric drags on the bias of a circle. Hang the skirt for two days before you hem it.');
+    else if (drape === 'crisp' && s === 'trumpet') out.push('A crisp fabric makes the trumpet flare stand out. A soft or fluid one flutes better.');
+  }
+  if (style.garment === 'bodice' || style.garment === 'dress') {
+    if (drape === 'fluid' && style.fit !== 'relaxed') out.push('A fluid fabric puckers at the darts and will not hold a fitted bodice. Underline it with cotton batiste, or choose a relaxed fit.');
+    if (weight === 'heavy' && style.fit !== 'relaxed') out.push('A heavy fabric makes thick darts and a bulky neckline. Face or line it with something light, and trim the seams well.');
+    if (drape === 'crisp' && weight === 'heavy' && style.fit === 'relaxed') out.push('A heavy, crisp fabric stands away from the body without darts.');
+    if (style.neckline === 'boat' && drape === 'fluid') out.push('A boat neck in a fluid fabric can slide off the shoulder. Stay the neckline with tape.');
+  }
+  if (style.garment === 'trousers') {
+    if (weight === 'light') out.push('Light fabric bags at the seat and knees in trousers, and can show through. Choose a medium weight, or line them.');
+    if (drape === 'fluid' && style.leg !== 'wide') out.push(`A fluid fabric clings at the seat on ${name}. It suits a wide leg better.`);
+    if (drape === 'crisp' && weight === 'heavy' && style.leg === 'wide') out.push('A heavy, crisp fabric makes wide legs stand out instead of falling.');
+  }
+  return out;
+}
+
 /** Extra ease (cm) for the fabric: heavy cloth takes up room with its own thickness. */
-export function fabricEase(f: MyFabric | undefined, garment: 'skirt' | 'bodice'): { waist: number; hip: number; bust: number } {
+export function fabricEase(f: MyFabric | undefined, garment: FabricGarment): { waist: number; hip: number; bust: number } {
   if (!f || f.matchEase === false || f.weight !== 'heavy') return { waist: 0, hip: 0, bust: 0 };
-  return garment === 'skirt' ? { waist: 0.5, hip: 1, bust: 0 } : { waist: 0.5, hip: 1, bust: 1 };
+  return garment === 'skirt' || garment === 'trousers' ? { waist: 0.5, hip: 1, bust: 0 } : { waist: 0.5, hip: 1, bust: 1 };
 }
 
 /** The fabric's extra ease in words: "0.5 cm more at the waist and 1 cm at the hip". */
-export function easeWords(f: MyFabric | undefined, garment: 'skirt' | 'bodice'): string {
+export function easeWords(f: MyFabric | undefined, garment: FabricGarment): string {
   const e = fabricEase({ ...f, matchEase: true }, garment);
-  return garment === 'skirt'
-    ? `${e.waist} cm more at the waist and ${e.hip} cm at the hip`
-    : `${e.bust} cm more at the bust (and at the hip on longer tops) and ${e.waist} cm at the waist`;
+  if (garment === 'skirt' || garment === 'trousers') return `${e.waist} cm more at the waist and ${e.hip} cm at the hip`;
+  if (garment === 'dress') return `${e.bust} cm more at the bust and hip, and ${e.waist} cm at the waist`;
+  return `${e.bust} cm more at the bust (and at the hip on longer tops) and ${e.waist} cm at the waist`;
 }
 
 /** The toile's corrections with the fabric's ease added on top. */
@@ -335,7 +429,7 @@ export function describeFabric(f: MyFabric | undefined): string | undefined {
 }
 
 /** Lines describing the fabric, for the PDF and the tech pack. Empty when nothing is recorded. */
-export function fabricLines(f: MyFabric | undefined, garment: 'skirt' | 'bodice'): string[] {
+export function fabricLines(f: MyFabric | undefined, garment: FabricGarment): string[] {
   if (!f || !describeFabric(f)) return [];
   const name = f.name?.trim();
   const lines: string[] = [];
@@ -365,7 +459,7 @@ export function prepareStep(f: MyFabric | undefined): { title: string; text: str
 }
 
 /** The sewing guide with the fabric named in the notions, its details listed, and the prepare step first. */
-export function withFabric(guide: SewingGuide, f: MyFabric | undefined, garment: 'skirt' | 'bodice'): SewingGuide {
+export function withFabric(guide: SewingGuide, f: MyFabric | undefined, garment: FabricGarment): SewingGuide {
   const name = describeFabric(f);
   return {
     ...guide,

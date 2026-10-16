@@ -19,6 +19,9 @@ import { shapeLine } from '../photo/shape';
 import { MyFabric, fabricEase, skirtFabrics } from '../engine/fabrics';
 import { FabricCard } from '../ui/FabricCard';
 
+import { EaseMapView } from '../ui/EaseMapView';
+import type { EaseView } from '../engine/easeMap';
+
 interface Props {
   choices: Choices;
   onChoices: (c: Choices) => void;
@@ -34,6 +37,8 @@ interface Props {
   onGarment: (g: Garment) => void;
   /** The fabric recorded on the print screen, if any. */
   fabric?: MyFabric;
+  /** Room over the body at every level, for the ease map. */
+  easeMap?: EaseView[];
 }
 
 type Group<K extends keyof Choices> = { id: K; label: string; options: [Choices[K], string][] };
@@ -82,8 +87,8 @@ export function fabricMetres(draft: SkirtDraft): number {
   return toMetres(piecesLengthCm(draft.pieces) + band + 15);
 }
 
-export function StyleScreen({ choices, onChoices, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, onPhoto, onGarment, fabric }: Props) {
-  const [view, setView] = useState<'sketch' | 'figure' | 'pattern'>('sketch');
+export function StyleScreen({ choices, onChoices, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, onPhoto, onGarment, easeMap, fabric }: Props) {
+  const [view, setView] = useState<'sketch' | 'figure' | 'pattern' | 'ease'>('sketch');
   const [side, setSide] = useState<Side>('front');
   const [drawing, setDrawing] = useState(false);
   const [play, setPlay] = useState(0);
@@ -216,6 +221,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
                 ['sketch', 'Sketch'],
                 ['figure', 'On you'],
                 ['pattern', 'Pieces'],
+                ['ease', 'Ease'],
               ] as const
             ).map(([id, name]) => (
               <button
@@ -282,6 +288,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
           {draft && sheet && view === 'pattern' && (
             <PatternPreview sheet={sheet} play={play} names={draft.pieces.map((pc) => pc.name)} label={`Front and back pattern pieces for a ${title}`} />
           )}
+          {view === 'ease' && easeMap && <EaseMapView views={easeMap} label={`Ease map of the ${title}`} />}
           {toast && (
             <p className="toast" role="status">
               {toast}

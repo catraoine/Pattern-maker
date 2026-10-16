@@ -122,6 +122,14 @@ export interface PdfExtras {
   summary?: Summary;
 }
 
+export interface HandPiece {
+  piece: string;
+  frame: P[][];
+  outline: P[];
+  lines: P[][];
+  points: DraftPoint[];
+}
+
 export interface Summary {
   rows: FinishedRow[];
   checks: Check[];
@@ -129,6 +137,8 @@ export interface Summary {
   date?: string;
   /** The atelier view: each piece's numbered drafting points and how they were found. */
   drafting?: { piece: string; points: DraftPoint[] }[];
+  /** The draft-it-by-hand guide: each piece's frame, outline and numbered points, to redraw it on paper. */
+  byHand?: HandPiece[];
   /** Cutting layouts, one for each fabric. */
   lays?: Lay[];
   /** The technical flat, front and back. */
@@ -219,6 +229,7 @@ export async function toTiledPdf(sheet: Sheet, paper: Paper, extras?: PdfExtras)
   }
   if (extras?.summary) addSummaryPage(doc, fonts, sheet, paper === 'a0' ? 'a4' : paper, used, total, extras.title, extras.summary, [stepX, stepY]);
   if (extras?.summary?.lays?.length) addLayPages(doc, fonts, paper === 'a0' ? 'a4' : paper, extras.summary.lays);
+  if (extras?.summary?.byHand?.length) addHandPages(doc, fonts, paper === 'a0' ? 'a4' : paper, extras.title, extras.summary.byHand);
   if (extras?.summary?.drafting?.length) addDraftingPages(doc, fonts, paper === 'a0' ? 'a4' : paper, extras.title, extras.summary.drafting);
   if (extras?.guide) addSewingPages(doc, fonts, paper === 'a0' ? 'a4' : paper, extras.title, extras.guide);
   return doc.save();
@@ -461,6 +472,99 @@ function addDraftingPages(doc: PDFDocument, fonts: Fonts, paper: 'a4' | 'letter'
     }
     st.y -= 10;
   }
+}
+
+/**
+ * The draft-it-by-hand guide: for each piece, a small drawing of its frame, outline and numbered points,
+ * with how each point is found, so it can be drafted again full size on pattern paper with a ruler.
+ */
+function addHandPages(doc: PDFDocument, fonts: Fonts, paper: 'a4' | 'letter', title: string, pieces: HandPiece[]) {
+  const { write, label, st, room, left, width } = flow(doc, paper, fonts);
+  drawText(st.page, 'MAISON TRACÉ   ·   DRAFT IT BY HAND', { x: 2 * CM, y: st.y, size: 7.5, font: fonts.label, tracking: 0.3, grey: 0.4 });
+  st.y -= 26;
+  write(`Draft your ${title} by hand`, 20, fonts.bodyMedium, 0, 8);
+  write(
+    'You can draw this pattern yourself, full size, instead of taping printed pages. You need pattern paper (or brown paper) a little bigger than each piece, a long ruler, a set square or anything with a true right angle, a French curve or a flexible curve for the neck and armholes, a pencil and a tape measure.',
+    9.5,
+    fonts.body,
+    0,
+    6,
+  );
+  write(
+    'Work each piece in order. Draw the frame first: the long lines that start square to each other. Then mark each numbered point in turn, measuring as the note says, and join them. Straight edges are drawn with the ruler; curves follow the drawing through the points. Lengths are in cm and already include the ease for your fit. Add the seam allowance last, the same width all round (wider at a hem), and copy the notches, grain line and dart lines.',
+    9.5,
+    fonts.body,
+    0,
+    14,
+  );
+  for (const hp of pieces) {
+    const all = [...hp.outline, ...hp.frame.flat()];
+    const xs = all.map((q) => q.x);
+    const ys = all.map((q) => q.y);
+    const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+    const maxH = 10 * CM;
+    const k = Math.min((width * 0.55) / Math.max(x1 - x0, 1), maxH / Math.max(y1 - y0, 1));
+    const h = (y1 - y0) * k;
+    // The piece's name stays with its drawing.
+    room(h + 50);
+    label(hp.piece.toUpperCase());
+    const top = st.y - 6;
+    const at = (q: P) => ({ x: left + (q.x - x0) * k, y: top - (q.y - y0) * k });
+    const poly = (pts: P[], opts: { closed?: boolean; grey?: number; dash?: number[]; w?: number }) => {
+      for (let i = 1; i < pts.length + (opts.closed ? 1 : 0); i++) {
+        const a = at(pts[i - 1]);
+        const b = at(pts[i % pts.length]);
+        st.page.drawLine({ start: a, end: b, thickness: opts.w ?? 0.6, color: rgb(opts.grey ?? 0, opts.grey ?? 0, opts.grey ?? 0), dashArray: opts.dash });
+      }
+    };
+    for (const f of hp.frame) poly(f, { grey: 0.6, dash: [3, 2], w: 0.5 });
+    poly(hp.outline, { closed: true, w: 0.8 });
+    for (const ln of hp.lines) poly(ln, { grey: 0.35, w: 0.5 });
+    for (const pt of hp.points) {
+      const a = at(pt.at);
+      st.page.drawCircle({ x: a.x, y: a.y, size: 1.6, color: rgb(0, 0, 0) });
+      drawText(st.page, pt.n, { x: a.x + 3, y: a.y + 2, size: 7.5, font: fonts.label });
+    }
+    // Notes beside the drawing where there is room, else below it.
+    const notesLeft = left + (x1 - x0) * k + 18;
+    const saved = st.y;
+    st.y = top;
+    const noteWidth = left + width - notesLeft;
+    if (noteWidth > 150) {
+      for (const pt of hp.points) {
+        const lines = wrapText(pt.note, 8.5, fonts.body, noteWidth - 16);
+        drawText(st.page, pt.n, { x: notesLeft, y: st.y, size: 8.5, font: fonts.label });
+        for (const l of lines) {
+          drawText(st.page, l, { x: notesLeft + 16, y: st.y, size: 8.5, font: fonts.body });
+          st.y -= 8.5 * 1.35;
+        }
+        st.y -= 3;
+      }
+      st.y = Math.min(st.y, top - h) - 14;
+    } else {
+      st.y = Math.min(saved, top - h) - 14;
+      for (const pt of hp.points) {
+        room(14);
+        drawText(st.page, pt.n, { x: left, y: st.y, size: 9, font: fonts.label, tracking: 0.05 });
+        write(pt.note, 9.5, fonts.body, 24, 4);
+      }
+    }
+    st.y -= 8;
+  }
+}
+
+function wrapText(text: string, size: number, f: PDFFont, w: number) {
+  const lines: string[] = [];
+  let line = '';
+  for (const word of text.split(' ')) {
+    const next = line ? `${line} ${word}` : word;
+    if (f.widthOfTextAtSize(next, size) > w && line) {
+      lines.push(line);
+      line = word;
+    } else line = next;
+  }
+  if (line) lines.push(line);
+  return lines;
 }
 
 /** Sewing steps after the pattern pages, so the tiled pages keep their numbers. */
