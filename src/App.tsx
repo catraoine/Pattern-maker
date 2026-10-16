@@ -237,7 +237,7 @@ export default function App() {
   /** Room over the body at every level of the drafted pieces, for the ease map. */
   const ease = useMemo(() => {
     const { skirt, bodice, dress: d, trousers } = result;
-    const lv = (b: BodiceDraft) => ({ bust: b.front.apex.y, waist: b.front.waistCentre.y });
+    const lv = (b: BodiceDraft) => ({ bust: b.front.apex.y, waist: b.front.waistCentre.y, block: b.block });
     if (bodice) return garmentEase(bodice.pieces, values, lv(bodice));
     if (d) return garmentEase(d.pieces, values, lv(d.bodice));
     if (trousers) return garmentEase(trousers.pieces, values);

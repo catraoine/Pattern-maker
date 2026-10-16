@@ -254,8 +254,28 @@ export function trousersGroup(pieces: Piece[], m: Parameters<typeof lowerBody>[0
   };
 }
 
-/** Every garment's ease map from its drafted pieces: a bodice by its bust and waist levels, a skirt, trousers. */
-export function garmentEase(pieces: Piece[], m: Parameters<typeof upperBody>[0], bodice?: { bust: number; waist: number }): EaseView[] {
-  const groups = [bodice && bodiceGroup(pieces, m, bodice), skirtGroup(pieces, m), trousersGroup(pieces, m)].filter((g): g is EaseGroup => !!g);
-  return easeMap(groups).filter((v) => v.bands.length);
+/**
+ * Every garment's ease map from its drafted pieces: a bodice by its bust and waist levels, a skirt,
+ * trousers. A styled bodice (princess seams, a moved dart) sews up to its block, so its room is read
+ * from the block, where every level lies straight across, and shown on the styled pieces level by level.
+ */
+export function garmentEase(pieces: Piece[], m: Parameters<typeof upperBody>[0], bodice?: { bust: number; waist: number; block?: Piece[] }): EaseView[] {
+  const groups = [bodice && !bodice.block && bodiceGroup(pieces, m, bodice), skirtGroup(pieces, m), trousersGroup(pieces, m)].filter((g): g is EaseGroup => !!g);
+  const views = easeMap(groups);
+  const g = bodice?.block && bodiceGroup(bodice.block, m, bodice);
+  if (g) {
+    const src = easeMap([g]);
+    const shown = own(pieces, 'Bodice').map((pc): EaseView => {
+      const from = g.pieces.findIndex((b) => /back/i.test(b.name) === /back/i.test(pc.name));
+      const s = src[Math.max(0, from)];
+      const dy = (waistY(pc) ?? 0) - (waistY(g.pieces[Math.max(0, from)]) ?? 0);
+      const pts = pc.outline.points();
+      const y0 = Math.min(...pts.map((q) => q.y));
+      const y1 = Math.max(...pts.map((q) => q.y));
+      const bands = s.bands.map((b) => ({ ...b, y0: b.y0 + dy, y1: b.y1 + dy })).filter((b) => b.y1 > y0 && b.y0 < y1);
+      return { name: pc.name, outline: pts, bands };
+    });
+    views.unshift(...shown);
+  }
+  return views.filter((v) => v.bands.length);
 }

@@ -334,23 +334,53 @@ export function roundCorner(poly: P[], k: number, r: number): P[] {
   return [...poly.slice(0, k), ...curve, ...poly.slice(k + 1)];
 }
 
-/** The two seams of a princess line, rounded over the bust (or blade) and walked to the same length. */
+/**
+ * A corner of a polyline rounded with a curve that still passes through it: it leaves the two sides
+ * r before and after the corner along their own lines and swells out to the corner point, the way a
+ * pattern cutter blends a princess seam over the bust point instead of cutting across it.
+ */
+export function roundThrough(poly: P[], k: number, r: number): P[] {
+  const a = poly[k - 1];
+  const c = poly[k];
+  const b = poly[k + 1];
+  const ra = Math.min(r, len(sub(a, c)) * 0.45);
+  const rb = Math.min(r, len(sub(b, c)) * 0.45);
+  if (ra < 0.05 || rb < 0.05) return poly;
+  const ua = unit(sub(c, a));
+  const ub = unit(sub(c, b));
+  const s = sub(c, mul(ua, ra));
+  const e = sub(c, mul(ub, rb));
+  // A cubic whose handles run on along each side: 4/3 of the way to the corner puts its middle on it.
+  const h1 = add(s, mul(ua, (4 * ra) / 3));
+  const h2 = add(e, mul(ub, (4 * rb) / 3));
+  const curve: P[] = [];
+  for (let i = 0; i <= 16; i++) {
+    const t = i / 16;
+    const m = 1 - t;
+    const w = [m * m * m, 3 * m * m * t, 3 * m * t * t, t * t * t];
+    curve.push(p(w[0] * s.x + w[1] * h1.x + w[2] * h2.x + w[3] * e.x, w[0] * s.y + w[1] * h1.y + w[2] * h2.y + w[3] * e.y));
+  }
+  return [...poly.slice(0, k), ...curve, ...poly.slice(k + 1)];
+}
+
+/** The two seams of a princess line, blended over the bust (or blade) and walked to the same length. */
 export function trueSeams(centre: P[], side: P[], at: number, extra: number[] = []): { centre: P[]; side: P[] } {
   const R = 4;
   const shape = (poly: P[], r: number) => {
     // Round the lower corners first (indices shift once the upper one is rounded).
     let out = poly;
     for (const k of [...extra].sort((x, y) => y - x)) out = roundCorner(out, k, 2);
-    return roundCorner(out, at, r);
+    return roundThrough(out, at, r);
   };
   const c = shape(centre, R);
   const target = polyLen(c);
   let lo = 0;
   let hi = 10;
+  // The blend shortens the seam a little as it widens: the side seam's is sized to match the centre's.
+  const longer = polyLen(shape(side, lo)) > polyLen(shape(side, hi));
   for (let i = 0; i < 40; i++) {
     const mid = (lo + hi) / 2;
-    // Rounding cuts the corner, so a bigger radius shortens the seam.
-    if (polyLen(shape(side, mid)) > target) lo = mid;
+    if (polyLen(shape(side, mid)) > target === longer) lo = mid;
     else hi = mid;
   }
   return { centre: c, side: shape(side, (lo + hi) / 2) };
