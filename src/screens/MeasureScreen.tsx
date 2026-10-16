@@ -70,7 +70,7 @@ export function MeasureScreen({ account, onSwitchPerson, onAddPerson, profile, g
       <section className="card grow" aria-labelledby="mtitle">
         <div className="row between wrap">
           <div>
-            <p className="muted small">{garment === 'skirt' ? 'Skirt' : 'Bodice'} measurements</p>
+            <p className="muted small">{{ skirt: 'Skirt', trousers: 'Trousers', bodice: 'Bodice', dress: 'Dress' }[garment]} measurements</p>
             <h1 id="mtitle">{account.active === ME ? 'Your measurements' : `${profile}'s measurements`}</h1>
           </div>
           <GarmentSwitch garment={garment} onGarment={onGarment} />

@@ -16,6 +16,8 @@ import type { Flat } from '../engine/flat';
 import { TechFlatView } from '../ui/TechFlatView';
 import { StepDiagram } from '../ui/StepDiagram';
 import { CLOTHS, seamFinish } from '../engine/couture';
+import { SizeRun } from '../ui/SizeRun';
+import type { MeasurementValues } from '../measurements';
 
 /** What to print: the drafted pieces of either garment, with its notes and sewing steps. */
 export interface Printable {
@@ -44,6 +46,11 @@ interface Props {
   fitting?: Fitting;
   fittingNotes: string[];
   onFitting: () => void;
+  /** Each piece on screen at its real size. */
+  onTrueScale?: () => void;
+  /** For grading: the measurements, and the pattern's pieces drafted to any set of them. */
+  values?: MeasurementValues;
+  draftAt?: (m: MeasurementValues) => Piece[];
 }
 
 type Output = Paper | 'projector' | 'projectorDark';
@@ -89,7 +96,7 @@ function download(data: BlobPart, type: string, name: string) {
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
-export function ExportScreen({ profile, title, fit, garment, finish, onFinish, made, error, onBack, fitting, fittingNotes, onFitting }: Props) {
+export function ExportScreen({ profile, title, fit, garment, finish, onFinish, made, error, onBack, fitting, fittingNotes, onFitting, onTrueScale, values, draftAt }: Props) {
   const [paper, setPaper] = useState<Output>('a4');
   const [pdf, setPdf] = useState<{ paper: Output; bytes: Uint8Array } | null>(null);
   const [shareNote, setShareNote] = useState('');
@@ -105,18 +112,28 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
     if (!made) return [];
     const waist = made.spec.find((r) => r.label === 'Waist')?.finished;
     return checkPattern(
-      made.pieces.filter((pc) => !pc.kind),
+      made.pieces.filter((pc) => !pc.kind || pc.kind === 'collar'),
       { finishedWaist: typeof waist === 'number' ? waist : undefined },
     );
   }, [made]);
   const drafting = useMemo(() => (made ? made.pieces.filter((pc) => pc.draft).map((pc) => ({ piece: pc.name, points: pc.draft!.points })) : []), [made]);
+  // The draft-it-by-hand guide: every garment piece that carries its draft (not the facings and lining).
+  const byHand = useMemo(
+    () =>
+      made && finish.byHand
+        ? made.pieces
+            .filter((pc) => pc.draft && pc.kind !== 'lining' && pc.kind !== 'facing')
+            .map((pc) => ({ piece: pc.name, frame: pc.draft!.frame, outline: pc.outline.points(12), lines: pc.lines.map((l) => l.points(8)), points: pc.draft!.points }))
+        : undefined,
+    [made, finish.byHand],
+  );
   const lays = useMemo(() => made?.lays ?? [], [made]);
   const summary = useMemo(
     () =>
       made
-        ? { rows: made.spec.filter((r) => typeof r.finished === 'number'), checks, madeFor: profile, date, drafting: finish.atelier ? drafting : undefined, lays, flat: made.flat }
+        ? { rows: made.spec.filter((r) => typeof r.finished === 'number'), checks, madeFor: profile, date, drafting: finish.atelier ? drafting : undefined, byHand, lays, flat: made.flat }
         : undefined,
-    [made, checks, profile, date, drafting, finish.atelier, lays],
+    [made, checks, profile, date, drafting, finish.atelier, lays, byHand],
   );
 
   // Build the PDF ahead of time, so share and print run straight from the tap (phones require that).
@@ -251,7 +268,7 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
                 </label>
               ))}
             </fieldset>
-          ) : (
+          ) : garment === 'trousers' ? null : (
             <fieldset className="group">
               <legend>Neck and armholes</legend>
               {EDGES.map((e) => (
@@ -268,6 +285,12 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
             <input type="checkbox" checked={finish.atelier} onChange={(e) => onFinish({ ...finish, atelier: e.target.checked })} />
             <span>
               Atelier view <span className="muted small">show the draft: the frame, numbered points and how each was found</span>
+            </span>
+          </label>
+          <label className="check">
+            <input type="checkbox" checked={!!finish.byHand} onChange={(e) => onFinish({ ...finish, byHand: e.target.checked })} />
+            <span>
+              Draft it by hand <span className="muted small">add pages to draw the pattern yourself on pattern paper, point by point</span>
             </span>
           </label>
           <button type="button" className="primary" onClick={() => ready && download(ready, 'application/pdf', fileName)} disabled={!ready}>
@@ -353,7 +376,7 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
           </ul>
         ) : (
           <p className="muted">
-            Make it up in calico first and try it on. Tell us what you see, such as pulling at the bust or a gaping neckline, and the
+            Make it up in calico first and try it on. Tell us what you see, such as {garment === 'skirt' || garment === 'trousers' ? 'pulling across the hips or folds below the back waist' : 'pulling at the bust or a gaping neckline'}, and the
             pattern is corrected the way a pattern cutter would, with a second line for one side if your shoulders or hips differ.
           </p>
         )}
@@ -361,10 +384,19 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
           <button type="button" className="secondary" onClick={onFitting}>
             {fittingNotes.length ? 'Fit another toile' : 'I’ve tried on a toile'}
           </button>
+          {onTrueScale && made && (
+            <button type="button" className="secondary" onClick={onTrueScale}>
+              See a piece at true size
+            </button>
+          )}
         </div>
       </section>
 
       <MakerPack profile={profile} title={title} fit={fit} made={made} fileBase={fileBase} />
+
+      {values && draftAt && (
+        <SizeRun garment={garment} values={values} draftAt={draftAt} title={title} fileBase={fileBase} width={finish.fabricWidth} nap={finish.nap} download={download} />
+      )}
 
       <section className="card sew" aria-labelledby="sewtitle">
         <div className="row between wrap">
@@ -372,6 +404,7 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
             <p className="eyebrow">After printing</p>
             <h2 id="sewtitle">How to sew it</h2>
           </div>
+          {garment !== 'trousers' && (
           <div className="seg" role="group" aria-label="How to sew it">
             {(['quick', 'couture'] as const).map((r) => (
               <button key={r} type="button" className={finish.route === r ? 'on' : ''} aria-pressed={finish.route === r} onClick={() => onFinish({ ...finish, route: r })}>
@@ -379,8 +412,9 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
               </button>
             ))}
           </div>
+          )}
         </div>
-        {finish.route === 'couture' && (
+        {finish.route === 'couture' && garment !== 'trousers' && (
           <div className="cloth">
             <p className="muted small">
               Thread-traced lines, basting and a fitting before machining, a hand-picked zip and hand-finished edges. The seam finish and
@@ -394,7 +428,7 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
               ))}
             </div>
             <p className="muted small">
-              Seams: {{ french: 'French seams', hongkong: 'Hong Kong bound', pinked: 'pinked', overcast: 'overcast by hand' }[seamFinish(finish.cloth, garment === 'bodice' ? finish.bodiceEdges === 'lined' : finish.skirtLined)]}.
+              Seams: {{ french: 'French seams', hongkong: 'Hong Kong bound', pinked: 'pinked', overcast: 'overcast by hand' }[seamFinish(finish.cloth, garment === 'skirt' ? finish.skirtLined : finish.bodiceEdges === 'lined')]}.
             </p>
           </div>
         )}

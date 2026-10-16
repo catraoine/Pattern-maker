@@ -40,6 +40,13 @@ export interface SkirtStyle {
   hem?: HemShape;
   /** Corrections from fitting a toile, on top of the measurements. */
   fitting?: SkirtFitting;
+  /**
+   * For a dress: the skirt is sewn to a bodice, so its waist is drafted to the bodice's waist seam
+   * rather than to the waistband. Front and back are a quarter of the waist seam each, darts closed,
+   * as finished; dartAt puts the dart nearest the centre under the bodice's dart, in cm from the
+   * centre; zipCm is how far the zip runs on below the waist.
+   */
+  joinTo?: { front: number; back: number; dartAt?: { front?: number; back?: number }; zipCm?: number };
 }
 
 /**
@@ -129,6 +136,19 @@ interface HalfArgs {
   sa: number;
   hemSa: number;
   zipCm: number;
+  /** Where the dart nearest the centre goes, in cm from the centre, to line up with a bodice's. */
+  dartAt?: number;
+}
+
+/** Dart centres: spread across the waist, or the first set where asked and the second clear of it. */
+function dartCentres(ds: number[], width: number, isFront: boolean, at?: number): number[] {
+  if (ds.length === 0) return [];
+  const spread = ds.length === 1 ? [width * 0.5] : (isFront ? [0.33, 0.62] : [0.3, 0.6]).map((f) => width * f);
+  if (at === undefined) return spread;
+  const first = Math.max(ds[0] / 2 + 2, Math.min(at, width - ds[0] / 2 - 2.5));
+  if (ds.length === 1) return [first];
+  const second = Math.max(spread[1], first + (ds[0] + ds[1]) / 2 + 2.5);
+  return second + ds[1] / 2 + 2 <= width ? [first, second] : spread;
 }
 
 /** Draft one quarter of the skirt. Centre at x=0, side seam at x≈hipQ. */
@@ -138,7 +158,8 @@ function half(a: HalfArgs): Piece {
   const sideSupp = supp - ds.reduce((s, d) => s + d, 0);
   // Keep dart tips at least 3 cm above the hip line, where the body is widest.
   const dartLen = Math.min(a.dartLen, a.hipDepth - 3);
-  const sideRise = sideSupp > 1 ? 1.25 : 0.6;
+  // Decided on the shared side shaping, so front and back rise alike even when only one has darts.
+  const sideRise = a.sideSupp > 1 ? 1.25 : 0.6;
 
   const cw = p(0, a.centreDrop); // centre waist
   const sw = p(a.hipQ - sideSupp, -sideRise); // side waist
@@ -187,8 +208,7 @@ function half(a: HalfArgs): Piece {
   const squareOff = unit(p(-endSlope, 1)); // down the side seam, square to the waist
 
   // Dart centres spread across the waist, back darts biased toward centre.
-  const centres =
-    ds.length === 0 ? [] : ds.length === 1 ? [sw.x * 0.5] : (a.isFront ? [0.33, 0.62] : [0.3, 0.6]).map((f) => sw.x * f);
+  const centres = dartCentres(ds, sw.x, a.isFront, a.dartAt);
 
   // Darts are pressed toward the centre, trued, and the waist seam is peaked over each one.
   const finished = centres.map((c, i) => {
@@ -550,11 +570,14 @@ function draftShape(m: SkirtMeasurements, s: SkirtStyle): SkirtDraft {
   if (!(length > hipDepth + 5)) throw new DraftError('The skirt length must reach well below the hip line.');
 
   const hipQ = (m.full_hip + ease.hip) / 4;
-  const waistQ = (m.waist + ease.waist) / 4;
+  // Joined to a bodice, the waist is the bodice's; otherwise 0.5 cm moves from the back to the front.
+  const join = s.joinTo;
+  const waistQ = join ? (join.front + join.back) / 2 : (m.waist + ease.waist) / 4;
+  const split = { front: join ? join.front - waistQ : 0.5, back: join ? join.back - waistQ : -0.5 };
 
-  const finishedWaist = m.waist + ease.waist;
+  const finishedWaist = join ? 4 * waistQ : m.waist + ease.waist;
   const finishedHip = m.full_hip + ease.hip;
-  const zipCm = zipLength(hipDepth);
+  const zipCm = join?.zipCm ?? zipLength(hipDepth);
   const targetHem = shape ? shape.hemFullness * finishedHip : undefined;
 
   // A circle skirt's waist is part of a circle: all of one for a full circle, half for a half circle.
@@ -573,11 +596,11 @@ function draftShape(m: SkirtMeasurements, s: SkirtStyle): SkirtDraft {
     const darts = (max: number) => (intake < 0.3 ? [] : intake <= max ? [intake] : [intake / 2, intake / 2]);
     const hemSa = Math.min(s.hemAllowance, 1.5); // a narrow hem turns neatly on a curve
     const common = { r, length, sa: s.seamAllowance, hemSa, zipCm, hipDepth };
-    const angleF = (cutWaist / 4 + 0.5) / r;
+    const angleF = (cutWaist / 4 + split.front) / r;
     const onFold = (r + length) * Math.sin(Math.min(angleF, Math.PI / 2)) + s.seamAllowance <= FOLD_WIDTH_MAX;
     const dartLen = Math.max(4, Math.min(9 + (fit.dartLength ?? 0), hipDepth - 3));
     const front = circlePiece({ ...common, name: 'Skirt front', angle: angleF, isFront: true, onFold, darts: darts(2.5), dartLen });
-    const back = circlePiece({ ...common, name: 'Skirt back', angle: (cutWaist / 4 - 0.5) / r, isFront: false, onFold: false, darts: darts(3.5), dartLen });
+    const back = circlePiece({ ...common, name: 'Skirt back', angle: (cutWaist / 4 + split.back) / r, isFront: false, onFold: false, darts: darts(3.5), dartLen });
     return {
       pieces: [front, back],
       lengthCm: Math.round(length * 10) / 10,
@@ -586,7 +609,7 @@ function draftShape(m: SkirtMeasurements, s: SkirtStyle): SkirtDraft {
       hemCm: hemCm(front, back),
       circleShare: Math.round(share * 1000) / 1000,
       zipCm,
-      waistband: waistband(finishedWaist, finishedWaist / 4 - 0.5, s.seamAllowance),
+      waistband: waistband(finishedWaist, finishedWaist / 4 + split.back, s.seamAllowance),
       dartsPerSide: { front: (front.meta.dartsCm as number[]).length, back: (back.meta.dartsCm as number[]).length },
     };
   };
@@ -636,8 +659,8 @@ function draftShape(m: SkirtMeasurements, s: SkirtStyle): SkirtDraft {
   const BACK_DART_MAX = 3.5;
   const sideSupp = Math.max(
     Math.min(3, (hipQ - waistQ) * 0.4),
-    hipQ - (waistQ + 0.5) - 2 * FRONT_DART_MAX,
-    hipQ - (waistQ - 0.5) - 2 * BACK_DART_MAX,
+    hipQ - (waistQ + split.front) - 2 * FRONT_DART_MAX,
+    hipQ - (waistQ + split.back) - 2 * BACK_DART_MAX,
   );
   const hemSa = s.silhouette === 'trumpet' ? Math.min(s.hemAllowance, 2) : s.hemAllowance;
   const drops = centreDrops(m, fit);
@@ -646,8 +669,8 @@ function draftShape(m: SkirtMeasurements, s: SkirtStyle): SkirtDraft {
   const measured = { front: m.front_waist_to_hip !== undefined && !fit.frontDrop, back: m.back_waist_to_hip !== undefined && !fit.backDrop };
   const block = (flare: number): SkirtDraft => {
     const common = { hipQ, hipDepth, length, sideSupp, flare, flareFrom, sa: s.seamAllowance, hemSa, zipCm };
-    const frontArgs = { ...common, name: 'Skirt front', waistQ: waistQ + 0.5, dartMax: FRONT_DART_MAX, dartLen: 9 + dartAdj, isFront: true };
-    const backArgs = { ...common, name: 'Skirt back', waistQ: waistQ - 0.5, dartMax: BACK_DART_MAX, dartLen: 14 + dartAdj, isFront: false };
+    const frontArgs = { ...common, name: 'Skirt front', waistQ: waistQ + split.front, dartMax: FRONT_DART_MAX, dartLen: 9 + dartAdj, isFront: true, dartAt: join?.dartAt?.front };
+    const backArgs = { ...common, name: 'Skirt back', waistQ: waistQ + split.back, dartMax: BACK_DART_MAX, dartLen: 14 + dartAdj, isFront: false, dartAt: join?.dartAt?.back };
     const at = (d: { front: number; back: number }) => ({ meanDrop: (d.front + d.back) / 2 });
     let front = half({ ...frontArgs, ...at(drops), centreDrop: drops.front, measuredCentre: measured.front });
     let back = half({ ...backArgs, ...at(drops), centreDrop: drops.back, measuredCentre: measured.back });
@@ -669,7 +692,7 @@ function draftShape(m: SkirtMeasurements, s: SkirtStyle): SkirtDraft {
       hemCm: hemCm(front, back),
       flareCm: Math.round(flare * 10) / 10,
       zipCm,
-      waistband: waistband(finishedWaist, waistQ - 0.5, s.seamAllowance),
+      waistband: waistband(finishedWaist, waistQ + split.back, s.seamAllowance),
       dartsPerSide: { front: (front.meta.dartsCm as number[]).length, back: (back.meta.dartsCm as number[]).length },
     };
   };

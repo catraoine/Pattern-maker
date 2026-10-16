@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import type { P } from './geometry';
 import { DraftError, draftSkirt } from './skirt';
 import { draftBodice } from './bodice';
-import { randomBody, rng } from './randomBodies';
+import { randomArms, randomBody, rng } from './randomBodies';
+import { SHAPES_FOR_LENGTH, draftSleeve } from './sleeve';
 import { Flat, FlatView, bodiceFlat, skirtFlat } from './flat';
 
 const xs = (pts: P[]) => pts.map((q) => q.x);
@@ -118,5 +119,30 @@ describe('technical flats', () => {
       if (Math.abs(foot(front) - foot(back)) > 2.5) failures.push(`seed ${seed} ${JSON.stringify(style)}: front ${foot(front).toFixed(1)} back ${foot(back).toFixed(1)}`);
     }
     expect(failures.slice(0, 10)).toEqual([]);
+  });
+
+  it('hangs sleeves from both armholes, front and back, for 40 bodies in every length and shape', () => {
+    const r = rng(31);
+    for (let i = 0; i < 40; i++) {
+      const b = randomBody(r);
+      const d = draftBodice(b, { length: 'waist' });
+      const arms = randomArms(b, r);
+      for (const length of ['short', 'elbow', 'three_quarter', 'long'] as const)
+        for (const shape of SHAPES_FOR_LENGTH[length]) {
+          const sl = draftSleeve(d, arms, { length, shape, fit: 'regular', seamAllowance: 1.5, armholeAllowance: 1, hemAllowance: 2.5 });
+          const f = bodiceFlat(d, 'binding', sl);
+          expect(problems(f), `${length} ${shape}`).toEqual([]);
+          for (const v of f.views) {
+            // Body, then a sleeve each side (and a band each side when gathered), mirrored.
+            expect(v.shapes.length).toBe(sl.gathers ? 5 : 3);
+            const body = width(v.shapes[0]);
+            const all = width(v.shapes.flat());
+            expect(all).toBeGreaterThan(body + 2);
+            const bottom = Math.max(...v.shapes.slice(1).flat().map((q) => q.y));
+            // Every sleeve reaches well below the shoulders.
+            expect(bottom).toBeGreaterThan(Math.min(...v.shapes[0].map((q) => q.y)) + 12);
+          }
+        }
+    }
   });
 });
