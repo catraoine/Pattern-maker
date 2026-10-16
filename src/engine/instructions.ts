@@ -162,8 +162,8 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
 }
 
 /** Sewing steps for the sleeveless bodice: centre back zip, and the neck and armholes bias-bound, faced or lined. */
-export function bodiceGuide(draft: BodiceDraft, style: { length: BodiceLength }, fabricM: number, bindingM: number, finish: BodiceFinish = {}): SewingGuide {
-  const below = style.length !== 'waist';
+export function bodiceGuide(draft: BodiceDraft, _style: { length: BodiceLength }, fabricM: number, bindingM: number, finish: BodiceFinish = {}): SewingGuide {
+  const below = draft.finishedHem !== undefined;
   const sw = finish.seams ?? SEAM_WIDTHS.home;
   const seam = n1(sw.seam);
   const curve = n1(sw.curve);

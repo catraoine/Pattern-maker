@@ -20,9 +20,11 @@ export function skirtSpec(m: SkirtMeasurements, d: SkirtDraft): SpecRow[] {
   ];
 }
 
-export function bodiceSpec(m: BodiceMeasurements, d: BodiceDraft, length: BodiceLength): SpecRow[] {
+export function bodiceSpec(m: BodiceMeasurements, d: BodiceDraft, length: BodiceLength, dropCm?: number): SpecRow[] {
   const rows: SpecRow[] = [row('Bust', m.full_bust, d.finishedBust), row('Waist', m.waist, d.finishedWaist)];
-  if (d.finishedHem !== undefined) {
+  if (d.finishedHem !== undefined && dropCm !== undefined) {
+    rows.push(row(`Hem, ${d.drop} cm below the waist`, undefined, d.finishedHem));
+  } else if (d.finishedHem !== undefined) {
     const body = length === 'hip' ? m.full_hip : (m.high_hip ?? m.full_hip);
     rows.push(row(length === 'hip' ? 'Hip (hem)' : 'High hip (hem)', body, d.finishedHem));
   }

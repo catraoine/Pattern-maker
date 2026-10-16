@@ -37,6 +37,16 @@ export type BodiceLength = 'waist' | 'high_hip' | 'hip';
 /** Shaping: bust and waist darts, bust darts only, or none (the bust dart left as ease at the hem). */
 export type BodiceDarts = 'bust_waist' | 'bust' | 'none';
 
+/** A neckline drawn by hand, in cm: how far it drops below the block's neck at the centre front and
+ * centre back, how far it widens along the shoulder, and how full its curve is (0 is a straight V,
+ * 1 nearly square). */
+export interface DrawnNeck {
+  frontDepth: number;
+  width: number;
+  backDepth: number;
+  fullness: number;
+}
+
 export interface BodiceStyle {
   fit: BodiceFit;
   neckline: Neckline;
@@ -45,6 +55,12 @@ export interface BodiceStyle {
   seamAllowance: number;
   neckArmholeAllowance: number;
   hemAllowance: number;
+  /** A dragged hem: cm below the waist (0 for the waist), in place of the named length. */
+  dropCm?: number;
+  /** A dragged fit: ease at the bust in cm, in place of the fit's own. The waist and hip follow. */
+  bustEase?: number;
+  /** A drawn neckline, in place of the named one. */
+  neck?: DrawnNeck;
 }
 
 /** Defaults from styling/styling-options.json (top: neckline params, in cm): how far the front
@@ -71,6 +87,33 @@ export const BODICE_FIT_EASE: Record<BodiceFit, { bust: number; waist: number }>
   regular: { bust: 9, waist: 6 },
   relaxed: { bust: 14, waist: 12 },
 };
+
+/** Drawn necklines flatter than this come to a point at the centre front, like a V. */
+export const POINTED_NECK = 0.2;
+
+/** How far a dragged fit can go: snug but wearable, to roomy without needing an oversized block. */
+export const BUST_EASE_RANGE = { min: 3, max: 22 };
+
+/** Ease at the bust and waist: the fit's own, or a dragged bust ease with the waist moving by as much. */
+export function bodiceEase(s: { fit: BodiceFit; bustEase?: number }) {
+  const base = BODICE_FIT_EASE[s.fit];
+  if (s.bustEase === undefined) return base;
+  const bust = Math.min(BUST_EASE_RANGE.max, Math.max(BUST_EASE_RANGE.min, s.bustEase));
+  return { bust, waist: Math.max(1, base.waist + bust - base.bust) };
+}
+
+/** A dragged hem sits on the waist or at least this far below it, so fish-eye darts fit above it. */
+export const DROP_MIN = 6;
+
+/** How low a dragged hem can go: a little past the full hip. */
+export const dropRange = (m: { waist_to_hip?: number }) => ({ min: DROP_MIN, max: (m.waist_to_hip ?? DROP_MIN) + 4 });
+
+/** How far below the waist the hem sits, in cm: a dragged drop, or the named length's. */
+export function hemDrop(m: { waist_to_hip?: number }, s: { length: BodiceLength; dropCm?: number }): number {
+  const WH = m.waist_to_hip ?? 0;
+  if (s.dropCm !== undefined) return s.dropCm < DROP_MIN / 2 ? 0 : Math.min(dropRange(m).max, Math.max(DROP_MIN, s.dropCm));
+  return s.length === 'hip' ? WH : s.length === 'high_hip' ? WH / 2 : 0;
+}
 
 export const DEFAULT_BODICE_STYLE: BodiceStyle = {
   fit: 'fitted',
@@ -101,6 +144,13 @@ export interface BodiceDraft {
   zipCm: number;
   /** Front landmarks for drawing the bodice as worn: waist and hem, at the side and centre front. */
   front: { apex: P; waistSide: P; waistCentre: P; hemSide: P; hemCentre: P };
+  /** The same for the back, plus the centre back neck and where the zip ends. */
+  back: { waistSide: P; waistCentre: P; hemSide: P; hemCentre: P; neckCentre: P; zipEnd: P };
+  /** Where the block's own neck sits before any neckline is cut, on each piece, so a drawn neckline
+   * can be measured from it: the centre neck height and the neck point's distance from the centre. */
+  block: { front: { neckY: number; neckX: number }; back: { neckY: number; neckX: number } };
+  /** How far the hem sits below the waist (0 at the waist). */
+  drop: number;
   neck: number;
   warnings: string[];
 }
@@ -152,10 +202,11 @@ function waistRun(path: Path, y: (x: number) => number, toX: number) {
  * measurement plus ease (falls back to a size-table depth without it). */
 export function draftBodice(m: BodiceMeasurements, style: Partial<BodiceStyle> = {}): BodiceDraft {
   const s = { ...DEFAULT_BODICE_STYLE, ...style };
-  if (needsHip(s.length) && !(m.full_hip && m.waist_to_hip)) {
+  const below = s.dropCm !== undefined ? s.dropCm >= DROP_MIN / 2 : needsHip(s.length);
+  if (below && !(m.full_hip && m.waist_to_hip)) {
     throw new DraftError('Add your full hip and waist to hip measurements to make a top that goes below the waist.');
   }
-  const ease = BODICE_FIT_EASE[s.fit];
+  const ease = bodiceEase(s);
   const hb = m.high_bust ?? m.full_bust - 4;
   const table = 21 + (hb - 82) * 0.1 + ease.bust / 10;
   if (!m.armscye) return draft(m, s, table);
@@ -192,12 +243,18 @@ const hipCurveLength = (from: P, to: P) => hipCurve(new Path(from), from, to, ''
 const fishEye = (top: P, left: P, right: P, bottom: P) => new Path(top).line(left).line(bottom).line(right).line(top);
 
 /** The front neckline from centre front up to the high point of the shoulder. */
-function frontNeck(path: Path, hps: P, uShoulder: P, shape: Neckline): Path {
+function frontNeck(path: Path, hps: P, uShoulder: P, shape: Neckline | 'drawn', fullness = 0.5): Path {
   const cf = path.start;
   const drop = cf.y - hps.y;
   const toward = (k: number) => add(hps, mul(perp(uShoulder), drop * k));
   // Every neckline arrives square to the shoulder, so it runs on smoothly into the back neck once the
   // shoulders are sewn. The V and the square stay straight until close to the shoulder.
+  // A drawn neckline keeps the fullness it was drawn with, trued square to the centre front and to
+  // the shoulder. One drawn to a point is drafted as a V.
+  if (shape === 'drawn') {
+    if (fullness >= POINTED_NECK) return path.curve(p(hps.x * (0.45 + 0.5 * fullness), cf.y), toward(0.2 + 0.5 * fullness), hps, 'neck');
+    shape = 'v';
+  }
   switch (shape) {
     case 'v':
       // Straight from the point (one edge, so the cutting line mitres onto the fold), curving at the top.
@@ -220,12 +277,15 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number): BodiceDraft
   const { across_back: AB, across_front: AF, nape_to_waist: NW, bust_depth: BD, apex_separation: AS } = m;
   let FL = m.front_hps_to_waist;
   const HB = m.high_bust ?? B - 4;
-  const { bust: be, waist: we } = BODICE_FIT_EASE[s.fit];
+  const { bust: be, waist: we } = bodiceEase(s);
   const warnings: string[] = [];
-  const nl = NECKLINES[s.neckline];
+  const nl = s.neck ?? NECKLINES[s.neckline];
+  const neckShape = s.neck ? 'drawn' : s.neckline;
+  const pointed = s.neck ? s.neck.fullness < POINTED_NECK : s.neckline === 'v';
   const waistDarts = s.darts === 'bust_waist';
   const bustDarts = s.darts !== 'none';
-  const below = needsHip(s.length);
+  const drop = hemDrop(m, s);
+  const below = drop > 0;
 
   // Bust projection (full minus high bust) goes to the front piece.
   const shift = Math.min(4, Math.max(0.5, (B - HB) / 4));
@@ -234,20 +294,16 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number): BodiceDraft
   const backWq = (W + we) / 4 - 0.5; // same front/back waist split as the skirt, so a dress waist matches
   const frontWq = (W + we) / 4 + 0.5;
 
-  // Below the waist the hem is cut to the hip (or high hip) plus ease, split front and back the same way.
-  let drop = 0;
+  // Below the waist the hem is cut to the body where it falls plus ease, split front and back the same
+  // way: the high hip halfway down to the hip, the full hip at the hip, in between along the way.
   let hemFull = 0;
   if (below) {
     const H = m.full_hip!;
     const WH = m.waist_to_hip!;
-    const he = BODICE_HIP_EASE[s.fit];
-    if (s.length === 'hip') {
-      drop = WH;
-      hemFull = H + he;
-    } else {
-      drop = WH / 2;
-      hemFull = (m.high_hip ?? W + 0.65 * (H - W)) + he;
-    }
+    const HH = m.high_hip ?? W + 0.65 * (H - W);
+    const he = Math.max(2, BODICE_HIP_EASE[s.fit] + be - BODICE_FIT_EASE[s.fit].bust);
+    const body = drop <= WH / 2 ? W + ((HH - W) * drop) / (WH / 2) : HH + (H - HH) * Math.min(1, (drop - WH / 2) / (WH / 2));
+    hemFull = body + he;
   }
 
   // ---- back ---------------------------------------------------------------
@@ -267,7 +323,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number): BodiceDraft
   // A wider neckline moves the neck point out along both shoulders, leaving at least 5 cm of shoulder.
   const widen = Math.max(0, Math.min(nl.width, SL - 5));
   const hpsB = add(hpsB0, mul(uB, widen));
-  const bd = nl.backDepth;
+  const bd = Math.min(12, Math.max(0, nl.backDepth)); // a deep back neck still leaves room for a zip
 
   const abPt = p(AB / 2, scye / 2 + 1);
   const sideB = p(backW, scye);
@@ -284,6 +340,8 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number): BodiceDraft
   const dartB = waistDarts ? Math.max(0, suppB - sideSupp) : 0;
   const dartF = waistDarts ? Math.max(0, suppF - sideSupp) : 0;
   const swB = p(backW - sideSupp, wb);
+  // A hem below the waist is never cut narrower than the bodice at the waist, so it doesn't pull in.
+  if (below) hemFull = Math.max(hemFull, 2 * (backW + frontW - 2 * sideSupp - dartB - dartF));
 
   const back = new Path(p(0, bd))
     .curve(p(hpsB.x * 0.6, bd), add(hpsB, mul(perp(uB), 1 + bd * 0.4)), hpsB, 'neck')
@@ -413,7 +471,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number): BodiceDraft
   if (bustDarts && lower < bustDart + 4) warnings.push('side seam too short below the bust for the bust dart');
   let swF = p(frontW - sideSupp, sideBust.y + Math.sqrt(Math.max(lower ** 2 - sideSupp ** 2, 0)));
 
-  const front = frontNeck(new Path(cfNeck), hpsF, uF, s.neckline)
+  const front = frontNeck(new Path(cfNeck), hpsF, uF, neckShape, s.neck?.fullness)
     .line(spF, 'shoulder')
     .curve(add(spF, mul(perp(uF), 2.5)), sub(afPt, p(0, 3)), afPt, 'armhole')
     .curve(add(afPt, p(0, (scye - afPt.y) * 0.5)), sub(sideF, mul(squareTo(upper ? p(0, 1) : unit(sub(swF, sideF))), (sideF.x - afPt.x) * 0.75)), sideF, 'armhole');
@@ -532,7 +590,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number): BodiceDraft
     seamAllowance: s.seamAllowance,
     allowances: { neck: s.neckArmholeAllowance, armhole: s.neckArmholeAllowance, fold: 0, hem: s.hemAllowance },
     // A V neck comes to a point at the centre front on purpose.
-    meta: s.neckline === 'v' ? { pointedAtCentre: ['neck'] } : {},
+    meta: pointed ? { pointedAtCentre: ['neck'] } : {},
   };
 
   // ---- checks -------------------------------------------------------------
@@ -552,6 +610,9 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number): BodiceDraft
     backLength: r(backHem - bd, 1),
     zipCm,
     front: { apex, waistSide: swF, waistCentre: p(0, wf), hemSide: hipF, hemCentre: p(0, cfHem) },
+    back: { waistSide: swB, waistCentre: p(0, wb), hemSide: hipB, hemCentre: p(0, backHem), neckCentre: p(0, bd), zipEnd },
+    block: { front: { neckY: cfNeck0.y, neckX: nwF }, back: { neckY: 0, neckX: nw } },
+    drop: r(drop, 1),
     neck: r(2 * (taggedLength(back, 'neck') + taggedLength(front, 'neck')), 1),
     warnings,
   };

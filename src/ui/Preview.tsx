@@ -1,7 +1,6 @@
 import { CSSProperties, useEffect, useMemo, useState } from 'react';
 import { P } from '../engine/geometry';
 import { DraftStep, Sheet } from '../engine/export';
-import type { BodiceDraft } from '../engine/bodice';
 
 const STEPS: DraftStep[] = ['outline', 'darts', 'grain', 'allowance', 'labels'];
 const STEP_MS = 1100;
@@ -108,59 +107,5 @@ export function PatternPreview({ sheet, label, play = 0, names = [] }: { sheet: 
         </p>
       )}
     </>
-  );
-}
-
-/**
- * The bodice front as worn: the neckline, shoulder and armhole from the front piece, mirrored about the
- * centre front, with the darts closed so the waist and hem sit level. Darts show as their stitching lines.
- */
-export function BodiceSketch({ draft, label }: { draft: BodiceDraft; label: string }) {
-  const d = useMemo(() => {
-    const front = draft.pieces[0];
-    const { pts, tags } = front.outline.taggedPoints(16);
-    const lastArm = tags.lastIndexOf('armhole');
-    const top = pts.slice(0, lastArm + 2); // centre front neck round to the underarm
-    const { waistSide, waistCentre, hemSide, hemCentre } = draft.front;
-    const waist = { x: waistSide.x, y: waistCentre.y };
-    const hem = { x: hemSide.x, y: hemCentre.y };
-    const below = hemCentre.y - waistCentre.y > 0.5;
-    const xs = [...top, waist, hem].map((q) => q.x);
-    const ys = [...top, hem].map((q) => q.y);
-    const w = Math.max(...xs);
-    const minY = Math.min(...ys);
-    const at = (q: P, side: 1 | -1) => ({ x: w + 6 + side * q.x, y: q.y - minY + 6 });
-    const f = (q: { x: number; y: number }) => `${q.x.toFixed(2)} ${q.y.toFixed(2)}`;
-    const half = (side: 1 | -1) => {
-      let s = top.map((q, i) => `${i ? 'L' : 'M'}${f(at(q, side))}`).join(' ') + ` L${f(at(waist, side))}`;
-      if (below) {
-        const dy = hem.y - waist.y;
-        s += ` C${f(at({ x: waist.x + (hem.x - waist.x) * 0.5, y: waist.y + dy * 0.3 }, side))} ${f(at({ x: hem.x, y: hem.y - dy * 0.4 }, side))} ${f(at(hem, side))}`;
-      }
-      return s + ` L${f(at(hemCentre, side))}`;
-    };
-    // Each dart as its fold line: tip to the middle of its mouth, or point to point for a fish-eye dart.
-    const darts = front.lines
-      .filter((ln) => ln.segs.length === 2 || ln.segs.length === 4)
-      .flatMap((ln) => {
-        const q = ln.points();
-        const [a, b] = ln.segs.length === 4 ? [q[0], q[2]] : [q[1], { x: (q[0].x + q[2].x) / 2, y: (q[0].y + q[2].y) / 2 }];
-        // Waist darts end on the level waist; a bust dart ends on the straight side seam drawn here.
-        const under = top[top.length - 1];
-        const sideX = (y: number) => under.x + ((waist.x - under.x) * (y - under.y)) / (waist.y - under.y);
-        const level = (r: P) =>
-          ln.segs.length !== 2 ? r : r.y > waistCentre.y - 0.5 ? { x: r.x, y: waistCentre.y } : { x: Math.min(r.x, sideX(r.y)), y: r.y };
-        return ([1, -1] as const).map((side) => `M${f(at(a, side))} L${f(at(level(b), side))}`);
-      })
-      .join(' ');
-    return { right: half(1), left: half(-1), darts, w: 2 * w + 12, h: Math.max(...ys) - minY + 12 };
-  }, [draft]);
-  return (
-    <svg viewBox={`0 0 ${d.w} ${d.h}`} role="img" aria-label={label} className="preview-svg sketch">
-      <path d={`${d.right} ${d.left.replace(/^M/, 'L')}`} style={{ fill: 'var(--fill)', stroke: 'none' }} />
-      <path d={d.right} style={{ fill: 'none', stroke: 'var(--ink)' }} strokeWidth={0.25} strokeLinejoin="round" />
-      <path d={d.left} style={{ fill: 'none', stroke: 'var(--ink)' }} strokeWidth={0.25} strokeLinejoin="round" />
-      <path d={d.darts} style={{ fill: 'none', stroke: 'var(--muted)' }} strokeWidth={0.15} />
-    </svg>
   );
 }

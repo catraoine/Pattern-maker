@@ -4,7 +4,7 @@
 import { describe, expect, it } from 'vitest';
 import { P, len, sub, taggedLength } from './geometry';
 import { Piece, bounds, cutLine } from './piece';
-import { BodiceDarts, BodiceLength, Neckline, draftBodice } from './bodice';
+import { BUST_EASE_RANGE, BodiceDarts, BodiceLength, Neckline, POINTED_NECK, draftBodice, dropRange } from './bodice';
 import { DraftError, FIT_EASE, Length, Silhouette, draftSkirt, isCircle } from './skirt';
 import { randomBody, rng } from './randomBodies';
 
@@ -159,6 +159,44 @@ describe('bodice block across random bodies', () => {
         // Without a bust dart the front hem slopes down to the centre, so it runs longer than its width.
         const hem = 2 * (taggedLength(front.outline, 'hem') + taggedLength(back.outline, 'hem'));
         if (style.darts !== 'none' && Math.abs(hem - d.finishedHem!) > 1.5) failures.push(`${tag}: hem ${hem.toFixed(1)} vs ${d.finishedHem}`);
+      }
+    }
+    report(failures);
+  });
+});
+
+describe('bodices shaped by hand across random bodies', () => {
+  it(`stay sound with a dragged hem and fit and a drawn neckline for ${BODIES} bodies`, () => {
+    const failures: string[] = [];
+    for (let seed = 1; seed <= BODIES; seed++) {
+      const r = rng(seed + 90000);
+      const body = randomBody(r);
+      const fit = (['fitted', 'regular', 'relaxed'] as const)[seed % 3];
+      const range = dropRange(body);
+      const dropCm = seed % 4 === 0 ? 0 : range.min + r() * (range.max - range.min);
+      const bustEase = BUST_EASE_RANGE.min + r() * (BUST_EASE_RANGE.max - BUST_EASE_RANGE.min);
+      const neck = { frontDepth: r() * 22, width: r() * 9, backDepth: r() * 14, fullness: r() };
+      const style = { fit, darts: fit === 'fitted' ? 'bust_waist' : (['bust_waist', 'bust', 'none'] as const)[seed % 3], dropCm, bustEase, neck } as const;
+      const tag = `seed ${seed} ${JSON.stringify(style)}`;
+      const d = draftBodice(body, style);
+      const [front, back] = d.pieces;
+      for (const pc of d.pieces) pieceProblems(pc).forEach((pr) => failures.push(`${tag} ${pc.name}: ${pr}`));
+      if (Math.abs(d.sideSeam.frontLessDart - d.sideSeam.back) > 0.05) failures.push(`${tag}: side seams differ`);
+      if (d.shoulder.front < 4.9) failures.push(`${tag}: shoulder ${d.shoulder.front} cm`);
+      if (d.zipCm > d.backLength) failures.push(`${tag}: ${d.zipCm} cm zip in a ${d.backLength} cm back`);
+      const apex = front.lines[front.lines.length - 1].points()[0];
+      if (!inside(apex, front.outline.points())) failures.push(`${tag}: bust point outside the front`);
+      if ((neck.fullness < POINTED_NECK) !== Boolean(front.meta.pointedAtCentre)) failures.push(`${tag}: pointed neck not marked`);
+      if (dropCm === 0) {
+        const waist = 2 * (taggedLength(front.outline, 'waist') + taggedLength(back.outline, 'waist'));
+        if (Math.abs(waist - d.finishedWaist) > 1.5) failures.push(`${tag}: waist ${waist.toFixed(1)} vs ${d.finishedWaist}`);
+      } else {
+        if (Math.abs(d.drop - dropCm) > 0.1) failures.push(`${tag}: drop ${d.drop}`);
+        for (const pc of d.pieces)
+          for (const ln of pc.lines.filter((l) => l.segs.length === 4))
+            if (!ln.points().every((q) => inside(q, pc.outline.points()) || pc.outline.points().some((o) => len(sub(o, q)) < 0.6)))
+              failures.push(`${tag} ${pc.name}: fish-eye dart outside the piece`);
+        if (d.finishedHem! < d.finishedWaist - 1) failures.push(`${tag}: hem ${d.finishedHem} narrower than the waist ${d.finishedWaist}`);
       }
     }
     report(failures);

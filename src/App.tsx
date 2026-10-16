@@ -196,7 +196,7 @@ export default function App() {
           edges,
           liningM: bodiceFabricMetres(bodice),
         }),
-        spec: bodiceSpec(values as BodiceMeasurements, bodice, saved.bodice.length),
+        spec: bodiceSpec(values as BodiceMeasurements, bodice, saved.bodice.length, saved.bodice.dropCm),
       };
     }
     return undefined;

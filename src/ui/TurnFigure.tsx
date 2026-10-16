@@ -6,12 +6,12 @@ import type { SkirtDraft, SkirtMeasurements } from '../engine/skirt';
 
 // An ellipse this deep (as a share of its width) has a perimeter of PERIM times its half-width.
 const SKIRT_DEPTH = 0.78;
-const BODY_DEPTH = 0.72;
-const perim = (k: number) => Math.PI * (3 * (1 + k) - Math.sqrt((3 + k) * (1 + 3 * k)));
-const TILT = 0.14; // how far above the figure we look from
+export const BODY_DEPTH = 0.72;
+export const perim = (k: number) => Math.PI * (3 * (1 + k) - Math.sqrt((3 + k) * (1 + 3 * k)));
+export const TILT = 0.14; // how far above the figure we look from
 
 /** Smooth curve through keypoints (Catmull-Rom), as in the welcome screen's dress form. */
-function spline(keys: [number, number][]) {
+export function spline(keys: [number, number][]) {
   return (y: number) => {
     const n = keys.length;
     if (y <= keys[0][0]) return keys[0][1];
@@ -257,8 +257,19 @@ const ANGLES: [string, number][] = [
 ];
 
 export function TurnFigure({ draft, m, label }: { draft: SkirtDraft; m: SkirtMeasurements; label: string }) {
+  const paint = useMemo(() => {
+    const model = buildModel(draft, m);
+    return (g: CanvasRenderingContext2D, w: number, h: number, theta: number, zoom: number, pan: number) => draw(g, w, h, model, theta, zoom, pan);
+  }, [draft, m]);
+  return <TurnCanvas paint={paint} label={label} />;
+}
+
+export type Paint = (g: CanvasRenderingContext2D, w: number, h: number, theta: number, zoom: number, pan: number) => void;
+
+/** A figure drawn by `paint` that turns with a swipe, zooms with a pinch and resets on a double-tap,
+ * with Front, Side and Back buttons. */
+export function TurnCanvas({ paint: draw, label }: { paint: Paint; label: string }) {
   const ref = useRef<HTMLCanvasElement>(null);
-  const model = useMemo(() => buildModel(draft, m), [draft, m]);
   const view = useRef({ theta: 0.6, zoom: 1, pan: 0 });
   const [angle, setAngle] = useState(0.6);
   const redraw = useRef<() => void>(() => {});
@@ -278,7 +289,7 @@ export function TurnFigure({ draft, m, label }: { draft: SkirtDraft; m: SkirtMea
       canvas.height = Math.round(r.height * dpr);
       g.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
-    const paint = () => draw(g, size.w, size.h, model, view.current.theta, view.current.zoom, view.current.pan);
+    const paint = () => draw(g, size.w, size.h, view.current.theta, view.current.zoom, view.current.pan);
     // Ease towards a goal angle (the opening turn, or a Front / Side / Back tap).
     const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
     const tick = () => {
@@ -310,7 +321,7 @@ export function TurnFigure({ draft, m, label }: { draft: SkirtDraft; m: SkirtMea
       cancelAnimationFrame(frame);
       ro.disconnect();
     };
-  }, [model]);
+  }, [draw]);
 
   // Gestures: one finger turns (and pans when zoomed in), two fingers pinch to zoom, double-tap resets.
   const pointers = useRef(new Map<number, { x: number; y: number }>());

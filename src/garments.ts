@@ -1,6 +1,6 @@
 // The garments the app can make, and the style choices saved for each.
 import type { Choices } from './App';
-import type { BodiceDarts, BodiceFit, BodiceLength, Neckline } from './engine/bodice';
+import type { BodiceDarts, BodiceFit, BodiceLength, DrawnNeck, Neckline } from './engine/bodice';
 
 export interface BodiceChoices {
   garment: 'bodice';
@@ -8,6 +8,11 @@ export interface BodiceChoices {
   neckline: Neckline;
   length: BodiceLength;
   darts: BodiceDarts;
+  /** Shaped by hand on the sketch: a dragged hem (cm below the waist), a dragged fit (bust ease in
+   * cm) and a drawn neckline. Each replaces its named choice until that choice is picked again. */
+  dropCm?: number;
+  bustEase?: number;
+  neck?: DrawnNeck;
 }
 
 /** A saved pattern's choices. Skirt choices predate bodices, so they carry no garment field. */
@@ -42,5 +47,7 @@ const NECK_WORDS: Record<Neckline, string> = { crew: 'crew neck', scoop: 'scoop 
 const LENGTH_WORDS: Record<BodiceLength, string> = { waist: 'waist-length', high_hip: 'high-hip-length', hip: 'hip-length' };
 
 export function describeBodice(c: BodiceChoices) {
-  return `${LENGTH_WORDS[c.length]} ${NECK_WORDS[c.neckline]} bodice`;
+  const length = c.dropCm === undefined ? LENGTH_WORDS[c.length] : c.dropCm < 3 ? 'waist-length' : `${Math.round(c.dropCm)} cm below the waist`;
+  const neck = c.neck ? 'drawn neckline' : NECK_WORDS[c.neckline];
+  return c.dropCm !== undefined && c.dropCm >= 3 ? `bodice with a ${neck}, ${length}` : `${length} ${neck} bodice`;
 }

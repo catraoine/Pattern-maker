@@ -1,10 +1,14 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { layout } from '../engine/export';
-import { BODICE_FIT_EASE, BodiceDraft, needsHip } from '../engine/bodice';
+import { BodiceDraft, BodiceMeasurements, bodiceEase, needsHip } from '../engine/bodice';
 import { piecesLengthCm, toMetres } from '../engine/fabric';
 import { BODICE_GROUPS, BodiceChoices, DARTS_FOR_FIT, describeBodice } from '../garments';
 import { Garment, MeasurementValues, hasHip } from '../measurements';
-import { BodiceSketch, PatternPreview } from '../ui/Preview';
+import { PatternPreview } from '../ui/Preview';
+import { BodiceShape } from '../ui/BodiceShape';
+import { BodiceFigure } from '../ui/BodiceFigure';
+import type { Side } from '../ui/ShapeSketch';
+import { useShake } from '../ui/shake';
 import { GarmentSwitch } from '../ui/GarmentSwitch';
 import { SaveControl } from '../ui/SaveControl';
 import { FinishChoices } from '../ui/FinishChoices';
@@ -31,6 +35,8 @@ export const bodiceFabricMetres = (draft: BodiceDraft) => toMetres(piecesLengthC
 /** Bias binding for the neckline and both armholes, with some to spare for joins. */
 export const bindingMetres = (draft: BodiceDraft) => toMetres(draft.neck + 2 * draft.armhole + 20);
 
+const NECK_NAMES: Record<BodiceChoices['neckline'], string> = { crew: 'crew neck', scoop: 'scoop neck', v: 'V-neck', square: 'square neck', boat: 'boat neck' };
+
 /** The engine's warnings are written for the pattern cutter; this turns the common ones into a nudge. */
 function friendly(w: string) {
   if (w.startsWith('shoulder width')) return 'Your shoulder width and shoulder length don’t quite agree. The pattern still drafts, but re-measuring both will make the shoulders fit better.';
@@ -38,20 +44,58 @@ function friendly(w: string) {
   return 'Something in your measurements looks unusual. Please double-check them.';
 }
 
+const UNDO_LIMIT = 40;
+
+/** Which hand-shaped value a chip group replaces: picking a named choice lets go of the dragged or drawn one. */
+const REPLACES = { fit: 'bustEase', length: 'dropCm', neckline: 'neck' } as const;
+
+/** True when a chip shows as picked: a dragged or drawn value stands in for its group's chips. */
+const picked = (c: BodiceChoices, id: keyof BodiceChoices, opt: string) =>
+  c[id] === opt && !(id in REPLACES && c[REPLACES[id as keyof typeof REPLACES]] !== undefined);
+
 export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, finish, onFinish }: Props) {
-  const [view, setView] = useState<'sketch' | 'pattern'>('sketch');
+  const [view, setView] = useState<'sketch' | 'figure' | 'pattern'>('sketch');
+  const [side, setSide] = useState<Side>('front');
+  const [drawing, setDrawing] = useState(false);
+  const [play, setPlay] = useState(0);
+  const [toast, setToast] = useState<string>();
+  const toastTimer = useRef<ReturnType<typeof setTimeout>>();
+  const [history, setHistory] = useState<BodiceChoices[]>([]);
   const sheet = useMemo(() => (draft ? layout(draft.pieces, '', []) : undefined), [draft]);
-  const ease = BODICE_FIT_EASE[choices.fit];
+  const ease = bodiceEase(choices);
   const title = describeBodice(choices);
   const hip = hasHip(values);
+  const m = values as BodiceMeasurements;
+
+  const say = (text: string) => {
+    setToast(text);
+    clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(undefined), 1800);
+  };
+  /** Every change goes through here, so it can be undone. */
+  const change = (next: BodiceChoices, before: BodiceChoices = choices) => {
+    if (JSON.stringify(next) === JSON.stringify(before)) return onChoices(next);
+    setHistory((h) => [...h.slice(-UNDO_LIMIT + 1), before]);
+    onChoices(next);
+  };
+  const undo = () => {
+    const prev = history[history.length - 1];
+    if (!prev) return say('Nothing to undo');
+    setHistory(history.slice(0, -1));
+    onChoices(prev);
+    say('Undone');
+  };
+  const shake = useShake(undo);
 
   const allowed = (id: string, opt: string) =>
     id === 'darts' ? DARTS_FOR_FIT[choices.fit].includes(opt as BodiceChoices['darts']) : id === 'length' ? hip || !needsHip(opt as BodiceChoices['length']) : true;
 
-  const choose = (c: BodiceChoices) => {
+  const choose = (c: BodiceChoices, group: keyof BodiceChoices) => {
     // A tighter fit needs more shaping, so moving to it brings the darts back.
     const darts = DARTS_FOR_FIT[c.fit].includes(c.darts) ? c.darts : 'bust_waist';
-    onChoices({ ...c, darts });
+    const next = { ...c, darts };
+    if (group in REPLACES) delete next[REPLACES[group as keyof typeof REPLACES]];
+    change(next);
   };
 
   return (
@@ -70,15 +114,23 @@ export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft
                 <button
                   key={id}
                   type="button"
-                  className={choices[g.id] === id ? 'chip on' : 'chip'}
-                  aria-pressed={choices[g.id] === id}
+                  className={picked(choices, g.id, id) ? 'chip on' : 'chip'}
+                  aria-pressed={picked(choices, g.id, id)}
                   disabled={!allowed(g.id, id)}
-                  onClick={() => choose({ ...choices, [g.id]: id })}
+                  onClick={() => choose({ ...choices, [g.id]: id }, g.id)}
                 >
                   {label}
                 </button>
               ))}
             </div>
+            {g.id === 'neckline' && choices.neck && (
+              <p className="muted small">
+                Drawn by hand.{' '}
+                <button type="button" className="link inline-link" onClick={() => choose({ ...choices }, 'neckline')}>
+                  Use the {NECK_NAMES[choices.neckline]} instead
+                </button>
+              </p>
+            )}
             {g.id === 'length' && !hip && (
               <p className="muted small">
                 For hip lengths, add your full hip and waist to hip.{' '}
@@ -100,20 +152,98 @@ export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft
       <section className="card grow" aria-label="Preview">
         <div className="row between wrap">
           <div className="seg" role="group" aria-label="Preview view">
-            <button type="button" aria-pressed={view === 'sketch'} className={view === 'sketch' ? 'on' : ''} onClick={() => setView('sketch')}>
-              Sketch
-            </button>
-            <button type="button" aria-pressed={view === 'pattern'} className={view === 'pattern' ? 'on' : ''} onClick={() => setView('pattern')}>
-              Pieces
+            {(
+              [
+                ['sketch', 'Sketch'],
+                ['figure', 'On you'],
+                ['pattern', 'Pieces'],
+              ] as const
+            ).map(([id, name]) => (
+              <button
+                key={id}
+                type="button"
+                aria-pressed={view === id}
+                className={view === id ? 'on' : ''}
+                onClick={() => {
+                  setView(id);
+                  setDrawing(false);
+                }}
+              >
+                {name}
+              </button>
+            ))}
+          </div>
+          <div className="row tools">
+            {shake.state === 'ask' && (
+              <button type="button" className="link small" onClick={shake.enable}>
+                Shake to undo
+              </button>
+            )}
+            {history.length > 0 && (
+              <button type="button" className="ghost" onClick={undo} aria-label="Undo the last change">
+                Undo
+              </button>
+            )}
+          </div>
+        </div>
+        {view === 'sketch' && draft && (
+          <div className="row between wrap">
+            <div className="seg" role="group" aria-label="Sketch side">
+              {(['front', 'back'] as const).map((s) => (
+                <button key={s} type="button" aria-pressed={side === s} className={side === s ? 'on' : ''} onClick={() => setSide(s)}>
+                  {s}
+                </button>
+              ))}
+            </div>
+            <button type="button" className={drawing ? 'ghost on' : 'ghost'} aria-pressed={drawing} onClick={() => setDrawing(!drawing)}>
+              {drawing ? 'Done' : 'Draw neck'}
             </button>
           </div>
-          <p className="muted small">Drafted to your measurements as you choose.</p>
-        </div>
-        <div className="preview">
+        )}
+        <div className={view === 'figure' ? 'preview flush' : 'preview'}>
           {error && <p className="msg error">{error}</p>}
-          {draft && view === 'sketch' && <BodiceSketch draft={draft} label={`${title}, front view`} />}
-          {draft && sheet && view === 'pattern' && <PatternPreview sheet={sheet} label={`Front and back pattern pieces for a ${title}`} />}
+          {draft && view === 'sketch' && (
+            <BodiceShape
+              draft={draft}
+              m={m}
+              choices={choices}
+              side={side}
+              drawing={drawing}
+              label={`${title}, ${side} view. Drag the hem to change the length, or the side to change the fit.`}
+              onLive={onChoices}
+              onDone={(before, after) => change(after, before)}
+            />
+          )}
+          {draft && view === 'figure' && <BodiceFigure draft={draft} m={m} label={`${title} on a dress form made from your measurements`} />}
+          {draft && sheet && view === 'pattern' && (
+            <PatternPreview sheet={sheet} play={play} names={draft.pieces.map((pc) => pc.name)} label={`Front and back pattern pieces for a ${title}`} />
+          )}
+          {toast && (
+            <p className="toast" role="status">
+              {toast}
+            </p>
+          )}
         </div>
+        {view === 'sketch' && (
+          <p className="muted small">
+            {drawing
+              ? side === 'front'
+                ? 'Draw the neckline across the front, from the shoulder down to where you want it. Both sides match, and it’s smoothed into a curve that sews.'
+                : 'Draw down the back to set how low the back neckline goes.'
+              : hip
+                ? 'Drag the hem up or down for length, or the side out and in for a looser or closer fit.'
+                : 'Drag the side out and in for a looser or closer fit.'}
+            {shake.state === 'on' ? ' Shake your phone to undo.' : ''}
+          </p>
+        )}
+        {view === 'pattern' && draft && (
+          <div className="row between wrap">
+            <button type="button" className="ghost" onClick={() => setPlay(play + 1)}>
+              Watch it draft
+            </button>
+            <p className="muted small">Drafted to your measurements as you choose.</p>
+          </div>
+        )}
         {draft?.warnings.map((w) => (
           <p key={w} className="msg small">
             {friendly(w)}
