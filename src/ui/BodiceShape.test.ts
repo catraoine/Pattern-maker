@@ -23,7 +23,7 @@ describe('shaping the bodice by hand', () => {
 
   it('reads a drawn front neckline: depth, width and fullness, from either half', () => {
     const d = draftBodice(m);
-    const { neckY, neckX } = d.block.front;
+    const { neckY, neckX } = d.neckBlock.front;
     // A straight line from 3 cm out along the shoulder to 12 cm below the block neck is a V.
     const v = Array.from({ length: 11 }, (_, i) => ({ x: -(neckX + 3) * (1 - i / 10), y: -2 + (neckY + 12 + 2) * (i / 10) }));
     const neck = strokeToNeck(v, 'front', d, currentNeck(DEFAULT_BODICE))!;

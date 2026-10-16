@@ -10,10 +10,10 @@ const EDGES: { id: BodiceEdges; label: string; detail: string }[] = [
 ];
 
 /** How the garment is finished inside. These change the pattern pieces, so they're chosen with the style. */
-export function FinishChoices({ garment, finish, onFinish }: { garment: Garment; finish: Finish; onFinish: (f: Finish) => void }) {
+export function FinishChoices({ garment, finish, onFinish, sleeved = false }: { garment: Garment; finish: Finish; onFinish: (f: Finish) => void; sleeved?: boolean }) {
   return (
     <>
-      {garment === 'skirt' ? (
+      {garment === 'trousers' ? null : garment === 'skirt' ? (
         <fieldset className="group">
           <legend>Lining</legend>
           {[false, true].map((on) => (
@@ -27,7 +27,7 @@ export function FinishChoices({ garment, finish, onFinish }: { garment: Garment;
         </fieldset>
       ) : (
         <fieldset className="group">
-          <legend>Neck and armholes</legend>
+          <legend>{sleeved ? 'Neckline' : 'Neck and armholes'}</legend>
           {EDGES.map((e) => (
             <label key={e.id} className={finish.bodiceEdges === e.id ? 'radio on' : 'radio'}>
               <input type="radio" name="edges" checked={finish.bodiceEdges === e.id} onChange={() => onFinish({ ...finish, bodiceEdges: e.id })} />

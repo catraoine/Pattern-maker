@@ -58,7 +58,7 @@ export function WelcomeScreen({ unit: initialUnit, garment, onFinish, formStart 
           <>
             <h1 id="wtitle">Ready when you are</h1>
             <p>
-              Measuring a {garment} takes about {garment === 'skirt' ? 'five' : 'fifteen'} minutes. You'll need a soft tape measure, close-fitting
+              Measuring a {garment} takes about {garment === 'skirt' ? 'five' : garment === 'trousers' ? 'ten' : 'fifteen'} minutes. You'll need a soft tape measure, close-fitting
               clothes and, if you can, a helper for the lengths.
             </p>
             <fieldset className="group">

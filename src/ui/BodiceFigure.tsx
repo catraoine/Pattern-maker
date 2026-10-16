@@ -1,7 +1,7 @@
 // The bodice on a dress form built from your measurements, drawn in contour lines like the skirt's
 // figure. Swipe to turn it, pinch to zoom in, double-tap to reset.
 import { useMemo } from 'react';
-import type { BodiceDraft, BodiceMeasurements } from '../engine/bodice';
+import { BodiceDraft, BodiceMeasurements, blockOf } from '../engine/bodice';
 import type { P } from '../engine/geometry';
 import { BODY_DEPTH, Paint, TILT, TurnCanvas, perim, spline } from './TurnFigure';
 
@@ -83,7 +83,7 @@ function buildModel(draft: BodiceDraft, m: BodiceMeasurements): Model {
   // far each point is from the centre, the shoulder and armhole spread evenly to the side.
   const gs = garment(sh);
   const side = (pc: number, map: (y: number) => number) => {
-    const { pts, tags } = draft.pieces[pc].outline.taggedPoints(12);
+    const { pts, tags } = blockOf(draft)[pc].outline.taggedPoints(12);
     const run = (tag: string) => pts.filter((_, i) => tags[i] === tag || tags[i - 1] === tag);
     const neck = run('neck');
     const shoulder = run('shoulder');
@@ -112,7 +112,7 @@ function buildModel(draft: BodiceDraft, m: BodiceMeasurements): Model {
 
   // Darts: each fold line, from its tip to its mouth, placed round the form by its distance from the centre.
   const fold = (pc: number, map: (y: number) => number, flip: boolean) =>
-    draft.pieces[pc].lines
+    blockOf(draft)[pc].lines
       .filter((ln) => ln.segs.length === 2 || ln.segs.length === 4)
       .map((ln) => {
         const q = ln.points();

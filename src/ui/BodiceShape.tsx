@@ -13,6 +13,7 @@ import {
   NECKLINES,
   Neckline,
   bodiceEase,
+  blockOf,
   dropRange,
 } from '../engine/bodice';
 import { BODICE_GROUPS, BodiceChoices, DARTS_FOR_FIT } from '../garments';
@@ -32,7 +33,7 @@ const f = (q: P) => `${q.x.toFixed(2)} ${q.y.toFixed(2)}`;
 
 /** One half of the bodice as worn: the piece's top edge, then a straight side down to a level waist. */
 function worn(draft: BodiceDraft, side: Side): Worn {
-  const pc = draft.pieces[side === 'front' ? 0 : 1];
+  const pc = blockOf(draft)[side === 'front' ? 0 : 1];
   const land = side === 'front' ? draft.front : draft.back;
   const { pts, tags } = pc.outline.taggedPoints(16);
   const lastArm = tags.lastIndexOf('armhole');
@@ -116,7 +117,7 @@ export const currentNeck = (c: BodiceChoices): DrawnNeck => c.neck ?? { ...NECKL
  */
 export function strokeToNeck(stroke: P[], side: Side, draft: BodiceDraft, current: DrawnNeck): DrawnNeck | undefined {
   const pts = stroke.map((q) => ({ x: Math.abs(q.x), y: q.y }));
-  const block = draft.block[side];
+  const block = draft.neckBlock[side];
   const low = pts.reduce((a, b) => (b.y > a.y ? b : a));
   const high = pts.reduce((a, b) => (b.y < a.y ? b : a));
   if (low.y - high.y < 1) return undefined;
