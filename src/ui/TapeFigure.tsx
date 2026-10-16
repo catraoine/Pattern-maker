@@ -29,7 +29,7 @@ const SPINE: Partial<Record<MeasurementId, [number, number]>> = { nape_to_waist:
 const SPOTS: { id: MeasurementId; at: [number, number]; label: string; hit: [number, number, number, number] }[] = [
   { id: 'waist', at: [100, 150], label: 'WAIST', hit: [30, 138, 140, 24] },
   { id: 'full_hip', at: [100, 208], label: 'HIP', hit: [30, 194, 140, 30] },
-  { id: 'waist_to_hip', at: [176, 179], label: 'DEPTH', hit: [158, 140, 42, 78] },
+  { id: 'waist_to_hip', at: [176, 179], label: 'TO HIP', hit: [158, 140, 42, 78] },
   { id: 'waist_to_knee', at: [150, 330], label: 'KNEE', hit: [0, 312, 200, 36] },
   { id: 'waist_to_floor', at: [150, 404], label: 'FLOOR', hit: [0, 386, 200, 34] },
   { id: 'neck', at: [100, 52], label: 'NECK', hit: [80, 38, 40, 22] },

@@ -20,17 +20,26 @@ interface Props {
   onExample: () => void;
   canContinue: boolean;
   onNext: () => void;
+  /** Why someone was sent back here, e.g. a bodice that still needs measurements. */
+  notice?: string;
 }
 
 const toDisplay = (cm: number | undefined, unit: Unit) =>
   cm === undefined ? '' : String(unit === 'cm' ? cm : Math.round((cm / 2.54) * 10) / 10);
 
-export function MeasureScreen({ account, onSwitchPerson, onAddPerson, profile, garment, onGarment, unit, values, checks, onUnit, onValues, onExample, canContinue, onNext }: Props) {
+export function MeasureScreen({ account, onSwitchPerson, onAddPerson, profile, garment, onGarment, unit, values, checks, onUnit, onValues, onExample, canContinue, onNext, notice }: Props) {
   const fields = FIELDS[garment];
   const [focusId, setFocus] = useState<MeasurementId>(fields[0].id);
   // Raw text per field while typing, so "72." doesn't get rewritten mid-entry.
   const [draftText, setDraftText] = useState<Partial<Record<MeasurementId, string>>>({});
   const [touched, setTouched] = useState<Partial<Record<MeasurementId, boolean>>>({});
+  // Set when Next is tapped too early: every problem shows, with a list of what's left.
+  const [tried, setTried] = useState(false);
+  const [addingPerson, setAddingPerson] = useState(false);
+  const required = fields.filter((f) => !f.optional);
+  const done = required.filter((f) => values[f.id] !== undefined).length;
+  const missing = required.filter((f) => values[f.id] === undefined);
+  const wrong = fields.filter((f) => checks.some((c) => c.id === f.id && c.level === 'error' && values[f.id] !== undefined));
   // Switching garment can leave the focused field behind; fall back to the first one.
   const current = fields.find((f) => f.id === focusId) ?? fields[0];
   const focus = current.id;
@@ -50,7 +59,7 @@ export function MeasureScreen({ account, onSwitchPerson, onAddPerson, profile, g
   };
 
   return (
-    <div className="split">
+    <div className="split measure">
       <section className="card help" aria-label="How to measure">
         <p className="eyebrow">How to measure</p>
         <h2>{current.label}</h2>
@@ -58,35 +67,39 @@ export function MeasureScreen({ account, onSwitchPerson, onAddPerson, profile, g
         <p key={focus} className="tip">
           {current.tip}
         </p>
-        <div className="row between wrap">
-          <p className="muted small">Tap the form to see how to measure each part.</p>
-          <button type="button" className="ghost" onClick={() => document.getElementById(focus)?.focus()}>
-            Enter {current.label.toLowerCase()}
-          </button>
-        </div>
-        <p className="muted small">Wear close-fitting clothes and keep the tape snug but not tight. A helper makes it easier.</p>
+        <p className="muted small">Tap the form to see how to measure each part. Keep the tape snug but not tight.</p>
       </section>
 
-      <section className="card grow" aria-labelledby="mtitle">
-        <div className="row between wrap">
-          <div>
-            <p className="muted small">{{ skirt: 'Skirt', trousers: 'Trousers', bodice: 'Bodice', dress: 'Dress' }[garment]} measurements</p>
-            <h1 id="mtitle">{account.active === ME ? 'Your measurements' : `${profile}'s measurements`}</h1>
-          </div>
+      <section className="card grow measure-card" aria-labelledby="mtitle">
+        {notice && (
+          <p className="msg" role="status">
+            {notice}
+          </p>
+        )}
+        <div>
+          <h1 id="mtitle">{account.active === ME ? 'Your measurements' : `${profile}'s measurements`}</h1>
+          <p className="muted small" aria-live="polite">
+            {done} of {required.length} measured for the {garment}
+          </p>
+        </div>
+        <div className="row wrap controls">
           <GarmentSwitch garment={garment} onGarment={onGarment} />
           <div className="seg" role="group" aria-label="Units">
             {(['cm', 'in'] as Unit[]).map((u) => (
               <button key={u} type="button" aria-pressed={unit === u} className={unit === u ? 'on' : ''} onClick={() => switchUnit(u)}>
-                {u === 'cm' ? 'cm' : 'inches'}
+                {u === 'cm' ? 'cm' : 'in'}
               </button>
             ))}
           </div>
         </div>
-        <PeopleSwitch account={account} onSwitch={onSwitchPerson} onAdd={onAddPerson} />
+        {(account.people.length > 1 || addingPerson) && (
+          <PeopleSwitch account={account} onSwitch={onSwitchPerson} onAdd={onAddPerson} startAdding={addingPerson} />
+        )}
 
         <div className="fields">
           {fields.map((f, i) => {
-            const problems = checks.filter((c) => c.id === f.id && (touched[f.id] || values[f.id] !== undefined));
+            const problems = checks.filter((c) => c.id === f.id && (touched[f.id] || tried || values[f.id] !== undefined));
+            const shown = touched[f.id] || tried;
             const err = problems.find((c) => c.level === 'error');
             // Posture measurements come last, under their own heading.
             const firstFit = f.fit && !fields[i - 1]?.fit;
@@ -111,7 +124,7 @@ export function MeasureScreen({ account, onSwitchPerson, onAddPerson, profile, g
                     inputMode="decimal"
                     autoComplete="off"
                     value={draftText[f.id] ?? toDisplay(values[f.id], unit)}
-                    aria-invalid={err && touched[f.id] ? true : undefined}
+                    aria-invalid={err && shown ? true : undefined}
                     aria-describedby={problems.length ? `${f.id}-msg` : undefined}
                     onFocus={() => setFocus(f.id)}
                     onBlur={() => setTouched({ ...touched, [f.id]: true })}
@@ -119,7 +132,8 @@ export function MeasureScreen({ account, onSwitchPerson, onAddPerson, profile, g
                   />
                   <span className="unit">{unit}</span>
                 </div>
-                {problems.length > 0 && touched[f.id] && (
+                {focus === f.id && <p className="tip inline-tip muted small">{f.tip}</p>}
+                {problems.length > 0 && shown && (
                   <p id={`${f.id}-msg`} className={err ? 'msg error' : 'msg'}>
                     {(err ?? problems[0]).message}
                   </p>
@@ -140,10 +154,35 @@ export function MeasureScreen({ account, onSwitchPerson, onAddPerson, profile, g
           ) : (
             <span />
           )}
-          <button type="button" className="primary" disabled={!canContinue} onClick={onNext}>
+          <button
+            type="button"
+            className="primary"
+            aria-describedby={tried && !canContinue ? 'still-to-do' : undefined}
+            onClick={() => {
+              if (canContinue) return onNext();
+              // Say what's left rather than greying the button out, and jump to the first gap.
+              setTried(true);
+              document.getElementById((missing[0] ?? wrong[0])?.id ?? '')?.focus();
+            }}
+          >
             Next: style your {garment}
           </button>
         </div>
+        {tried && !canContinue && (
+          <p id="still-to-do" className="msg error" role="alert">
+            {missing.length > 0 && `Still to measure: ${missing.map((f) => f.label.toLowerCase()).join(', ')}.`}
+            {missing.length > 0 && wrong.length > 0 && ' '}
+            {wrong.length > 0 && `Check ${wrong.map((f) => f.label.toLowerCase()).join(', ')}.`}
+          </p>
+        )}
+        {account.people.length === 1 && !addingPerson && (
+          <p className="muted small">
+            Measuring someone else?{' '}
+            <button type="button" className="link inline-link" onClick={() => setAddingPerson(true)}>
+              Add them
+            </button>
+          </p>
+        )}
       </section>
     </div>
   );

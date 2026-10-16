@@ -12,7 +12,9 @@ import { PatternPreview } from '../ui/Preview';
 import { ShapeSketch, Side } from '../ui/ShapeSketch';
 import { TurnFigure } from '../ui/TurnFigure';
 import { useShake } from '../ui/shake';
-import { FREE_SAVED_LIMIT } from '../account';
+import { SaveControl } from '../ui/SaveControl';
+import { FinishChoices } from '../ui/FinishChoices';
+import type { Finish } from '../App';
 import { BAND_ACROSS_MAX } from '../engine/instructions';
 import { ERAS, findLook } from '../engine/eras';
 import { shapeLine } from '../photo/shape';
@@ -23,6 +25,8 @@ import { EaseMapView } from '../ui/EaseMapView';
 import type { EaseView } from '../engine/easeMap';
 
 interface Props {
+  finish: Finish;
+  onFinish: (f: Finish) => void;
   choices: Choices;
   onChoices: (c: Choices) => void;
   values: MeasurementValues;
@@ -87,7 +91,7 @@ export function fabricMetres(draft: SkirtDraft): number {
   return toMetres(piecesLengthCm(draft.pieces) + band + 15);
 }
 
-export function StyleScreen({ choices, onChoices, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, onPhoto, onGarment, easeMap, fabric }: Props) {
+export function StyleScreen({ choices, onChoices, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, onPhoto, onGarment, finish, onFinish, easeMap, fabric }: Props) {
   const [view, setView] = useState<'sketch' | 'figure' | 'pattern' | 'ease'>('sketch');
   const [side, setSide] = useState<Side>('front');
   const [drawing, setDrawing] = useState(false);
@@ -139,17 +143,19 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
   };
 
   return (
+    <>
+    <div className="screen-head">
+      <h1 id="opts">Style your skirt</h1>
+      <GarmentSwitch garment="skirt" onGarment={onGarment} />
+    </div>
     <div className="split three">
       <section className="card" aria-labelledby="opts">
-        <div className="row between wrap">
-          <h1 id="opts">Style your skirt</h1>
-          <GarmentSwitch garment="skirt" onGarment={onGarment} />
-        </div>
         <button type="button" className="secondary" onClick={onPhoto}>
           Start from a photo
         </button>
         <fieldset className="group">
           <legend>Era</legend>
+          {!era && <p className="muted small">Pick an era to see its looks. A look sets the fit, shape and length, and you can change any of them after.</p>}
           <div className="chips">
             {ERAS.map((e) => (
               <button
@@ -210,7 +216,8 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
             </button>
           </div>
         )}
-        <p className="muted small">Every look is drafted to your measurements. Waist finishes and pockets are coming.</p>
+        <p className="eyebrow">Inside the skirt</p>
+        <FinishChoices garment="skirt" finish={finish} onFinish={onFinish} />
       </section>
 
       <section className="card grow" aria-label="Preview">
@@ -244,9 +251,11 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
                 Shake to undo
               </button>
             )}
-            <button type="button" className="ghost" onClick={undo} disabled={!history.length} aria-label="Undo the last change">
-              Undo
-            </button>
+            {history.length > 0 && (
+              <button type="button" className="ghost" onClick={undo} aria-label="Undo the last change">
+                Undo
+              </button>
+            )}
           </div>
         </div>
         {view === 'sketch' && draft && (
@@ -317,7 +326,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
         <h2 id="sum">Summary</h2>
         <div className="sumgrid">
           <span />
-          <span className="muted">Body</span>
+          <span className="muted">You</span>
           <span className="muted">Skirt</span>
           <span>Waist</span>
           <span>{values.waist} cm</span>
@@ -333,7 +342,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
           <strong>{draft ? draft.hemCm : '–'} cm</strong>
         </div>
         <p className="muted small">
-          Ease added: {ease.waist + extra.waist} cm at the waist, {ease.hip + extra.hip} cm at the hip
+          The skirt is {ease.waist + extra.waist} cm bigger than you at the waist and {ease.hip + extra.hip} cm at the hip, so you can move and sit
           {extra.hip ? `, including ${extra.waist} cm and ${extra.hip} cm for your heavy fabric` : ''}.
         </p>
         <div>
@@ -357,26 +366,12 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
         <button type="button" className="primary" disabled={!draft} onClick={onNext}>
           Print my pattern
         </button>
-        {saveState === 'can' && (
-          <button type="button" className="secondary" disabled={!draft} onClick={onSave}>
-            Save pattern
-          </button>
-        )}
-        {saveState === 'saved' && (
-          <p className="msg small" role="status">
-            Saved to <button type="button" className="link inline-link" onClick={onAccount}>your account</button>.
-          </p>
-        )}
-        {saveState === 'full' && (
-          <p className="muted small">
-            You've saved {FREE_SAVED_LIMIT} patterns, the free limit.{' '}
-            <button type="button" className="link inline-link" onClick={onAccount}>Manage saved patterns</button>
-          </p>
-        )}
+        <SaveControl state={saveState} disabled={!draft} onSave={onSave} onAccount={onAccount} />
         <button type="button" className="link" onClick={onEditMeasurements}>
           Edit measurements
         </button>
       </aside>
     </div>
+    </>
   );
 }

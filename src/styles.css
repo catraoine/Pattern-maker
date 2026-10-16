@@ -357,16 +357,19 @@ button.secondary {
   border-color: var(--line-strong);
 }
 
-button.primary:hover {
-  background: var(--gild);
-  color: var(--paper);
-  border-color: var(--gild);
-}
+/* Phones keep :hover stuck on whatever was last tapped, so hover fills only apply with a real pointer */
+@media (hover: hover) {
+  button.primary:hover {
+    background: var(--gild);
+    color: var(--paper);
+    border-color: var(--gild);
+  }
 
-button.secondary:hover {
-  background: var(--ink);
-  color: var(--paper);
-  border-color: var(--ink);
+  button.secondary:hover {
+    background: var(--ink);
+    color: var(--paper);
+    border-color: var(--ink);
+  }
 }
 
 button.primary:disabled,
@@ -567,9 +570,6 @@ button.link {
   .topbar {
     padding-left: 16px;
     padding-right: 16px;
-  }
-  .brand span {
-    display: none;
   }
   .main {
     padding: 16px 16px calc(28px + env(safe-area-inset-bottom));
@@ -955,10 +955,13 @@ button.link.inline-link {
   border-color: var(--line-strong);
 }
 
-.filebtn.big:hover {
-  background: var(--ink);
-  color: var(--paper);
-  border-color: var(--ink);
+/* Phones keep :hover stuck on whatever was last tapped, so hover fills only apply with a real pointer */
+@media (hover: hover) {
+  .filebtn.big:hover {
+    background: var(--ink);
+    color: var(--paper);
+    border-color: var(--ink);
+  }
 }
 
 .filebtn[aria-disabled] {
@@ -1001,7 +1004,6 @@ button.ghost {
   font-size: 12px;
   cursor: pointer;
 }
-button.ghost:hover:not(:disabled),
 button.ghost.on {
   border-color: var(--ink);
   box-shadow: inset 0 0 0 var(--bw-on) var(--ink);
@@ -1172,12 +1174,10 @@ button.ghost:disabled {
   font-family: var(--mono);
   letter-spacing: 0.2em;
 }
-.figure .spot.on .spot-dot,
-.figure .spot:hover .spot-dot {
+.figure .spot.on .spot-dot {
   fill: var(--ink);
 }
 .figure .spot.on text,
-.figure .spot:hover text,
 .figure .spot:focus-visible text {
   fill: var(--ink);
 }
@@ -1308,6 +1308,67 @@ button.ghost:disabled {
   display: block;
   width: 100%;
   height: 100%;
+}
+
+@media (hover: hover) {
+  button.ghost:hover:not(:disabled) {
+    border-color: var(--ink);
+    box-shadow: inset 0 0 0 var(--bw-on) var(--ink);
+  }
+  .figure .spot:hover .spot-dot {
+    fill: var(--ink);
+  }
+  .figure .spot:hover text {
+    fill: var(--ink);
+  }
+}
+
+/* Measure: the tip for the box being typed in shows under it on phones, where the dress form sits below the boxes */
+.inline-tip {
+  display: none;
+  margin: 2px 0 0;
+}
+
+.measure-card .controls {
+  gap: 8px;
+}
+
+@media (max-width: 640px) {
+  .measure > .card.help {
+    order: 2;
+  }
+  .inline-tip {
+    display: block;
+  }
+}
+
+/* Print: the extra files fold away under one heading */
+details.more > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+details.more > summary::-webkit-details-marker {
+  display: none;
+}
+details.more > summary h2::after {
+  content: ' +';
+  color: var(--muted);
+}
+details.more[open] > summary h2::after {
+  content: ' −';
+}
+
+/* Style: the screen's heading and garment switch sit above the sketch, so phones see what the screen is for first */
+.screen-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
 /* Privacy and Terms links under every screen */
@@ -2322,4 +2383,14 @@ table.history td.moved {
   width: 14px;
   height: 10px;
   opacity: 0.8;
+}
+
+/* Bodice preview views: each tab on one line, wrapping to a second row on a narrow phone */
+.seg.views {
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+.seg.views button {
+  white-space: nowrap;
+  padding: 0 10px;
 }

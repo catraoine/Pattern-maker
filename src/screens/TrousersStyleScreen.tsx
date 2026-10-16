@@ -13,6 +13,8 @@ import { FREE_SAVED_LIMIT } from '../account';
 
 import { EaseMapView } from '../ui/EaseMapView';
 import type { EaseView } from '../engine/easeMap';
+import { FinishChoices } from '../ui/FinishChoices';
+import type { Finish } from '../App';
 
 import { MyFabric, fabricEase, trousersFabrics } from '../engine/fabrics';
 import { FabricCard } from '../ui/FabricCard';
@@ -31,6 +33,8 @@ interface Props {
   onAccount: () => void;
   /** Room over the body at every level, for the ease map. */
   easeMap?: EaseView[];
+  finish: Finish;
+  onFinish: (f: Finish) => void;
   /** The fabric recorded on the print screen, if any. */
   fabric?: MyFabric;
 }
@@ -38,7 +42,7 @@ interface Props {
 /** Fabric needed on 140 cm wide fabric, from the cutting layout. */
 export const trousersFabricMetres = (draft: TrousersDraft) => layPlan(draft.pieces, 140)?.metres ?? toMetres(piecesLengthCm(draft.pieces) + 10);
 
-export function TrousersStyleScreen({ choices, onChoices, onGarment, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, fabric }: Props) {
+export function TrousersStyleScreen({ choices, onChoices, onGarment, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, finish, onFinish, fabric }: Props) {
   const [view, setView] = useState<'sketch' | 'pattern' | 'ease'>('sketch');
   const pieces = useMemo(() => draft?.pieces ?? [], [draft]);
   const sheet = useMemo(() => (draft ? layout(pieces, '', []) : undefined), [draft, pieces]);
@@ -77,6 +81,8 @@ export function TrousersStyleScreen({ choices, onChoices, onGarment, values, dra
             {g.id === 'leg' && choices.leg === 'culotte' && <p className="muted small">Culottes are cut to mid-calf, wide from the hip.</p>}
           </fieldset>
         ))}
+        <p className="eyebrow">Inside the trousers</p>
+        <FinishChoices garment="trousers" finish={finish} onFinish={onFinish} />
         <p className="muted small">
           The crotch is drafted to your own crotch depth and length, front and back curves together, so the trousers sit without pulling or
           bagging. {choices.closure === 'fly' ? 'A fly front with its facing and shield.' : 'An invisible zip in the left side seam.'}

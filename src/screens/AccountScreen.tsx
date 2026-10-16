@@ -43,6 +43,7 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
   const display = account.name.trim() || 'Me';
   const person = activePerson(account);
   const { values } = person;
+  const measured = ALL_FIELDS.filter((f) => values[f.id] !== undefined);
   // Sent fit notes carry the measurements of whoever the pattern was saved for.
   const valuesFor = (p: SavedPattern) => (account.people.find((x) => x.id === (p.personId ?? ME)) ?? person).values;
   const whoFor = (p: SavedPattern) => {
@@ -58,7 +59,7 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
             {display[0].toUpperCase()}
           </span>
           <div>
-            <p className="eyebrow">Your account</p>
+            <p className="eyebrow">Your details</p>
             <h1 id="ptitle">{display}</h1>
           </div>
         </div>
@@ -79,17 +80,10 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
           </div>
         </fieldset>
 
-        <div className="signin">
-          <p className="eyebrow">Sign in</p>
-          <p className="small">
-            Your account lives on this device for now. Signing in, so your patterns follow you to other devices, is coming soon.
-          </p>
-          <span className="badge">Coming soon</span>
-        </div>
 
         <div className="backup">
           <p className="eyebrow">Back up</p>
-          <p className="small">Keep a copy of your measurements and saved patterns, or move them to another phone or computer.</p>
+          <p className="small">Everything is kept on this device. Download a backup to keep a copy, or to move it to another phone or computer.</p>
           <div className="row wrap">
             <button type="button" className="secondary sm" onClick={onBackup}>
               Download a backup
@@ -157,8 +151,9 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
             </div>
           </div>
           <PeopleSwitch account={account} onSwitch={onSwitchPerson} onAdd={onAddPerson} />
+          {measured.length === 0 && <p className="muted">Nothing measured yet.</p>}
           <dl className="mlist">
-            {ALL_FIELDS.map((f) => (
+            {measured.map((f) => (
               <div key={f.id}>
                 <dt>{f.label}</dt>
                 <dd>{show(values[f.id], unit)}</dd>
@@ -180,9 +175,11 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
         <section className="card" aria-labelledby="stitle">
           <div className="row between wrap">
             <h2 id="stitle">Saved patterns</h2>
-            <span className="muted small">
-              {account.patterns.length} of {FREE_SAVED_LIMIT} free
-            </span>
+            {account.patterns.length >= FREE_SAVED_LIMIT - 1 && (
+              <span className="muted small">
+                {account.patterns.length} of {FREE_SAVED_LIMIT} saved
+              </span>
+            )}
           </div>
           {account.patterns.length === 0 ? (
             <p className="muted">Nothing saved yet. Style a skirt, bodice or dress and tap "Save pattern" to keep it here. Once you've sewn it, note how it fitted here.</p>
