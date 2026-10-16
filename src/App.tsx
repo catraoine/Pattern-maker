@@ -39,6 +39,7 @@ import { BodiceStyleScreen, bindingMetres, bodiceFabricMetres } from './screens/
 import { ExportScreen, Printable } from './screens/ExportScreen';
 import { describePattern } from './screens/describe';
 import { WelcomeScreen } from './screens/WelcomeScreen';
+import { MeasureStepsScreen } from './screens/MeasureStepsScreen';
 import { AccountScreen } from './screens/AccountScreen';
 import { PhotoScreen } from './screens/PhotoScreen';
 import { WhoseScreen } from './screens/WhoseScreen';
@@ -48,7 +49,7 @@ import type { FormStart } from './ui/ContourForm';
 import type { Piece } from './engine/piece';
 
 export type Step = 'measure' | 'style' | 'export';
-type View = Step | 'welcome' | 'account' | 'photo' | 'whose' | 'fitting';
+type View = Step | 'welcome' | 'steps' | 'account' | 'photo' | 'whose' | 'fitting';
 
 export interface Choices {
   fit: Fit;
@@ -309,7 +310,7 @@ export default function App() {
             </svg>
             <span>Maison Tracé</span>
           </div>
-          {step !== 'welcome' && (
+          {step !== 'welcome' && step !== 'steps' && (
             <div className="row nav">
           <nav aria-label="Steps" className="steps">
             {STEPS.map((s, i) => (
@@ -342,15 +343,23 @@ export default function App() {
         <main className="main">
           {step === 'welcome' && (
             <WelcomeScreen
-              unit={saved.unit}
-              garment={garment}
               formStart={formStart}
-              onFinish={({ unit, start }) => {
+              onFinish={({ start }) => {
                 const onboarded = { ...account, onboarded: true };
                 setAccount(start === 'example' ? updatePerson(onboarded, person.id, { values: { ...EXAMPLE_VALUES, ...values } }) : onboarded);
-                setSaved({ ...saved, unit });
-                setStep(start === 'example' ? 'style' : start);
+                setStep(start === 'example' ? 'style' : 'steps');
               }}
+            />
+          )}
+          {step === 'steps' && (
+            <MeasureStepsScreen
+              garment={garment}
+              unit={saved.unit}
+              values={values}
+              onUnit={(unit) => setSaved({ ...saved, unit })}
+              onValues={setValues}
+              onBack={() => setStep('welcome')}
+              onDone={() => setStep(person.id === ME && !person.named ? 'whose' : 'style')}
             />
           )}
           {step === 'whose' && (

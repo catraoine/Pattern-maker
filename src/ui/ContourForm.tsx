@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import type { MeasurementId } from '../measurements';
 
 // The welcome screen's dress form, drawn in fine contour lines on black.
 // It draws on once, a band of light sweeps across it, and a tape settles at the waist.
@@ -211,6 +212,258 @@ export function ContourForm({ start: from = 'fresh' }: { start?: FormStart }) {
       ro.disconnect();
     };
   }, [from]);
+
+  return <canvas ref={ref} className="contour" aria-hidden="true" />;
+}
+
+// The measuring pages keep the welcome's form and show, on a loop, where the tape goes for one
+// measurement: girths wrap round the form, lengths and widths draw along it. No numbers, as on the welcome.
+
+/** Points from the flat dress-form figure (200 x 420, see TapeFigure) mapped onto the contour form. */
+const FIG_Y: [number, number][] = [[40, -1.75], [56, -1.5], [76, -1.3], [88, -1.08], [104, -0.78], [150, 0.1], [208, 0.82], [232, 1.3]];
+function figY(y: number) {
+  if (y >= 232) return 1.3 + (y - 232) * 0.02;
+  let i = 0;
+  while (FIG_Y[i + 1][0] < y) i++;
+  const [a, b] = [FIG_Y[i], FIG_Y[i + 1]];
+  return a[1] + ((y - a[0]) / (b[0] - a[0])) * (b[1] - a[1]);
+}
+
+type Demo =
+  | { kind: 'girth'; y: number }
+  | { kind: 'path'; pts: [number, number][]; back?: boolean }
+  | { kind: 'down'; from: number; to: number; back?: boolean };
+
+const DEMOS: Partial<Record<MeasurementId, Demo>> = {
+  waist: { kind: 'girth', y: 0.1 },
+  full_hip: { kind: 'girth', y: 0.82 },
+  full_bust: { kind: 'girth', y: -0.78 },
+  high_bust: { kind: 'girth', y: -1.08 },
+  neck: { kind: 'girth', y: -1.5 },
+  // Round the arm where it joins the body: a narrow loop from the shoulder point down under the arm.
+  armscye: { kind: 'path', pts: Array.from({ length: 33 }, (_, i): [number, number] => [149 + 8 * Math.sin((i / 32) * 2 * Math.PI), 98 - 22 * Math.cos((i / 32) * 2 * Math.PI)]) },
+  shoulder_width: { kind: 'path', pts: [[46, 76], [154, 76]], back: true },
+  shoulder_length: { kind: 'path', pts: [[115, 60], [152, 73]] },
+  across_back: { kind: 'path', pts: [[54, 96], [146, 96]], back: true },
+  across_front: { kind: 'path', pts: [[56, 86], [144, 86]] },
+  front_hps_to_waist: { kind: 'path', pts: [[113, 59], [124, 104], [124, 150]] },
+  bust_depth: { kind: 'path', pts: [[113, 59], [124, 104]] },
+  apex_separation: { kind: 'path', pts: [[76, 104], [124, 104]] },
+  front_shoulder_slope: { kind: 'path', pts: [[100, 150], [152, 73]] },
+  back_shoulder_slope: { kind: 'path', pts: [[100, 150], [152, 73]], back: true },
+  nape_to_waist: { kind: 'down', from: 46, to: 150, back: true },
+  waist_to_hip: { kind: 'down', from: 150, to: 208 },
+  waist_to_knee: { kind: 'down', from: 150, to: 330 },
+  waist_to_floor: { kind: 'down', from: 150, to: 404 },
+  front_waist_to_hip: { kind: 'down', from: 150, to: 208 },
+  back_waist_to_hip: { kind: 'down', from: 150, to: 208, back: true },
+};
+
+export const DEMO_LOOP = 4800;
+
+function drawDemo(g: CanvasRenderingContext2D, w: number, h: number, t: number, id: MeasurementId, name: string) {
+  g.globalAlpha = 1;
+  g.fillStyle = '#000';
+  g.fillRect(0, 0, w, h);
+  g.lineCap = 'round';
+  g.lineJoin = 'round';
+  const demo = DEMOS[id] ?? { kind: 'girth', y: 0.1 };
+
+  // Frame the part of the body this measurement uses, as a close crop like the welcome's.
+  let top: number, bottom: number;
+  if (demo.kind === 'girth') [top, bottom] = [demo.y - 0.95, demo.y + 0.95];
+  // Knee and floor are far below the form: keep the form a good size and let the tape run on past its hem.
+  else if (demo.kind === 'down') [top, bottom] = [figY(demo.from) - 0.45, Math.min(figY(demo.to), 2.2) + 0.3];
+  else {
+    const ys = demo.pts.map((p) => figY(p[1]));
+    [top, bottom] = [Math.min(...ys) - 0.7, Math.max(...ys) + 0.7];
+  }
+  top = Math.max(top, -1.85);
+  const S = Math.min(h / (bottom - top), w * 0.62);
+  const cx = w / 2;
+  const Y = (y: number) => h / 2 + (y - (top + bottom) / 2) * S;
+  const X = (x: number) => cx + ((x - 100) / 56) * 0.58 * S;
+  const lw = Math.max(0.7, S / 252) * 1.2;
+  const P = (y: number, th: number, grow = 0): Pt => {
+    const r = R(y) + grow;
+    return [cx + Math.cos(th) * r * S, Y(y) + Math.sin(th) * r * S * DEPTH];
+  };
+  const formYs = YS.filter((y) => Y(y) > -20 && Y(y) < h + 20);
+
+  // The form, with the welcome's outline and long lines, settled as the light pass leaves it
+  g.strokeStyle = CHAMPAGNE;
+  taper(g, formYs.map((y) => [cx - R(y) * S, Y(y)]), 1, () => lw);
+  taper(g, formYs.map((y) => [cx + R(y) * S, Y(y)]), 1, () => lw);
+  for (let j = 0; j < LINES; j++) {
+    const th = (Math.PI * (j + 0.5)) / LINES;
+    const c = Math.cos(th);
+    g.globalAlpha = 0.5;
+    g.lineWidth = lw * 0.55 * (1 - 0.35 * Math.abs(c));
+    const pts = formYs.map((y) => P(y, th));
+    for (let i = 1; i < pts.length; i++) stroke(g, pts[i - 1], pts[i]);
+  }
+
+  const p = inOut(seg(t, 350, 2500));
+  const fadeOut = 1 - seg(t, DEMO_LOOP - 450, DEMO_LOOP);
+  const glow = (draw: () => void, alpha = 1) => {
+    g.save();
+    g.globalAlpha = alpha * fadeOut;
+    g.strokeStyle = CHAMPAGNE_GLOW;
+    g.shadowColor = 'rgba(243,230,200,.9)';
+    g.shadowBlur = 10;
+    draw();
+    g.restore();
+  };
+  let labelAt: Pt = [cx, h - 18];
+  let labelAlong = false;
+  let labelArrow = false;
+  let labelCentre = false;
+
+  if (demo.kind === 'girth') {
+    // Round the back first (faint, behind the form), then across the front, glowing.
+    const back = Math.min(1, p * 2);
+    const front = Math.max(0, p * 2 - 1);
+    const behind: Pt[] = Array.from({ length: 61 }, (_, i) => P(demo.y, Math.PI + (i / 60) * back * Math.PI, 0.014));
+    glow(() => {
+      g.shadowBlur = 0;
+      g.lineWidth = lw * 1.1;
+      for (let i = 1; i < behind.length; i++) stroke(g, behind[i - 1], behind[i]);
+    }, 0.35);
+    const n = Math.floor(80 * front);
+    const tape: Pt[] = Array.from({ length: 81 }, (_, i) => P(demo.y, 2 * Math.PI - (i / 80) * Math.PI, 0.014));
+    glow(() => {
+      for (let i = 1; i <= n; i++) {
+        g.lineWidth = lw * 2.5 * Math.sin((Math.PI * i) / 80) ** 0.8 + 0.3;
+        stroke(g, tape[i - 1], tape[i]);
+      }
+    });
+    labelAt = [cx + R(demo.y) * S * 0.35, Y(demo.y) + R(demo.y) * S * DEPTH + 22];
+  } else {
+    const pts: Pt[] =
+      demo.kind === 'down'
+        ? [
+            [demo.back ? cx : cx + R(figY(demo.from)) * S + 10, Y(figY(demo.from))],
+            [demo.back ? cx : cx + R(figY(demo.from)) * S + 10, Y(figY(demo.to))],
+          ]
+        : demo.pts.map(([x, y]) => [X(x), Y(figY(y))]);
+    const past = demo.kind === 'down' && figY(demo.to) > 1.3;
+    if (demo.kind === 'down' && !demo.back) {
+      // Lengths run down the side, just clear of the form, and on past the hem for the knee and floor.
+      for (const pt of pts) pt[0] = cx + 0.72 * S;
+      if (past) pts[1][1] = h - 6;
+    }
+    const lens = pts.slice(1).map((q, i) => Math.hypot(q[0] - pts[i][0], q[1] - pts[i][1]));
+    const total = lens.reduce((a, b) => a + b, 0);
+    let left = total * p;
+    glow(
+      () => {
+        g.lineWidth = lw * 1.6;
+        for (let i = 1; i < pts.length && left > 0; i++) {
+          const f = Math.min(1, left / lens[i - 1]);
+          stroke(g, pts[i - 1], [pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * f, pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * f]);
+          left -= lens[i - 1];
+        }
+        g.shadowBlur = 0;
+        g.fillStyle = CHAMPAGNE_GLOW;
+        const ends = demo.kind === 'path' && pts.length > 2 && pts[0][0] === pts[pts.length - 1][0] ? [pts[0]] : [pts[0], pts[pts.length - 1]];
+        ends.forEach((e, i) => {
+          if (i && p < 1) return;
+          g.beginPath();
+          g.arc(e[0], e[1], lw * 1.6, 0, Math.PI * 2);
+          g.fill();
+        });
+      },
+      demo.back ? 0.75 : 1,
+    );
+    const last = pts[pts.length - 1];
+    labelAt =
+      demo.kind === 'down'
+        ? [last[0] + 14, (pts[0][1] + (past ? Y(1.3) + 40 : last[1])) / 2]
+        : [(Math.min(...pts.map((q) => q[0])) + Math.max(...pts.map((q) => q[0]))) / 2, Math.max(...pts.map((q) => q[1])) + 22];
+    labelAlong = demo.kind === 'down';
+    labelCentre = demo.kind === 'path';
+    labelArrow = past;
+  }
+
+  // Label: the measurement's name, never a number; "at the back" when the form shows the front
+  g.save();
+  g.globalAlpha = out(seg(t, 2200, 2700)) * fadeOut;
+  g.fillStyle = CHAMPAGNE;
+  g.font = "500 9px 'Chakra Petch', sans-serif";
+  try {
+    (g as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = '2px';
+  } catch {
+    // Older browsers draw the label without tracking.
+  }
+  const back = 'back' in demo && demo.back;
+  const text = name.toUpperCase() + (back ? '  ·  AT THE BACK' : '') + (labelArrow ? '  ↓' : '');
+  if (labelAlong) {
+    // Lengths are labelled along the tape, reading downwards like the tape itself.
+    g.translate(labelAt[0], labelAt[1]);
+    g.rotate(Math.PI / 2);
+    g.textAlign = 'center';
+    g.fillText(text, 0, 0);
+  } else {
+    if (labelCentre) g.textAlign = 'center';
+    g.fillText(text, labelAt[0], labelAt[1]);
+  }
+  g.restore();
+
+  const fade = g.createLinearGradient(0, h * FADE_FROM, 0, h);
+  fade.addColorStop(0, 'rgba(0,0,0,0)');
+  fade.addColorStop(1, 'rgba(0,0,0,1)');
+  g.globalAlpha = 1;
+  g.fillStyle = fade;
+  g.fillRect(0, h * FADE_FROM, w, h * (1 - FADE_FROM));
+}
+
+/** One measurement's how-to: the contour form with the tape drawn on where it goes, looping. */
+export function TapeDemo({ id, name }: { id: MeasurementId; name: string }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = ref.current;
+    const g = canvas?.getContext('2d');
+    if (!canvas || !g) return;
+    const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let start = 0;
+    let gone = false;
+    let frame = 0;
+    let size = { w: 0, h: 0 };
+    const fit = () => {
+      const r = canvas.getBoundingClientRect();
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      size = { w: r.width, h: r.height };
+      canvas.width = Math.round(r.width * dpr);
+      canvas.height = Math.round(r.height * dpr);
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+    // Reduced motion shows the finished frame and holds it.
+    const paint = (t: number) => drawDemo(g, size.w, size.h, t, id, name);
+    const tick = (now: number) => {
+      if (!start) start = now;
+      paint((now - start) % DEMO_LOOP);
+      frame = requestAnimationFrame(tick);
+    };
+    fit();
+    const ro = new ResizeObserver(() => {
+      fit();
+      if (still) paint(3000);
+    });
+    ro.observe(canvas);
+    const go = () => {
+      if (gone) return;
+      if (still) paint(3000);
+      else frame = requestAnimationFrame(tick);
+    };
+    if (document.fonts?.ready) document.fonts.ready.then(go, go);
+    else go();
+    return () => {
+      gone = true;
+      cancelAnimationFrame(frame);
+      ro.disconnect();
+    };
+  }, [id, name]);
 
   return <canvas ref={ref} className="contour" aria-hidden="true" />;
 }
