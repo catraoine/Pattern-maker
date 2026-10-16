@@ -16,6 +16,9 @@ import { FREE_SAVED_LIMIT } from '../account';
 import { GROUPS } from './StyleScreen';
 import { describePattern } from './describe';
 
+import { EaseMapView } from '../ui/EaseMapView';
+import type { EaseView } from '../engine/easeMap';
+
 interface Props {
   choices: DressChoices;
   onChoices: (c: DressChoices) => void;
@@ -29,6 +32,8 @@ interface Props {
   saveState: 'can' | 'saved' | 'full';
   onSave: () => void;
   onAccount: () => void;
+  /** Room over the body at every level, for the ease map. */
+  easeMap?: EaseView[];
 }
 
 type Option = { id: string; label: string; options: [string, string][] };
@@ -41,8 +46,8 @@ export const dressFabricMetres = (pieces: DressDraft['pieces']) => layPlan(piece
  * skirt's shape and length. The preview is the technical flat, so the skirt is seen hanging from the
  * bodice with its darts running on through the waist seam.
  */
-export function DressStyleScreen({ choices, onChoices, onGarment, values, draft, sleeve, error, onEditMeasurements, onNext, saveState, onSave, onAccount }: Props) {
-  const [view, setView] = useState<'sketch' | 'pattern'>('sketch');
+export function DressStyleScreen({ choices, onChoices, onGarment, values, draft, sleeve, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap }: Props) {
+  const [view, setView] = useState<'sketch' | 'pattern' | 'ease'>('sketch');
   const pieces = useMemo(() => (draft ? [...draft.pieces.filter((pc) => /^Bodice/.test(pc.name)), ...(sleeve?.pieces ?? []), ...draft.skirt.pieces] : []), [draft, sleeve]);
   const sheet = useMemo(() => (pieces.length ? layout(pieces, '', []) : undefined), [pieces]);
   const flat = useMemo(() => (draft ? dressFlat(draft, 'binding', { sleeve, slit: hasSlit(choices.skirt) }) : undefined), [draft, sleeve, choices.skirt]);
@@ -163,6 +168,11 @@ export function DressStyleScreen({ choices, onChoices, onGarment, values, draft,
             <button type="button" aria-pressed={view === 'pattern'} className={view === 'pattern' ? 'on' : ''} onClick={() => setView('pattern')}>
               Pattern pieces
             </button>
+            {easeMap && easeMap.length > 0 && (
+              <button type="button" aria-pressed={view === 'ease'} className={view === 'ease' ? 'on' : ''} onClick={() => setView('ease')}>
+                Ease
+              </button>
+            )}
           </div>
           <p className="muted small">Drafted to your measurements as you choose.</p>
         </div>
@@ -170,6 +180,7 @@ export function DressStyleScreen({ choices, onChoices, onGarment, values, draft,
           {error && <p className="msg error">{error}</p>}
           {flat && view === 'sketch' && <TechFlatView flat={flat} title={title} />}
           {sheet && view === 'pattern' && <PatternPreview sheet={sheet} label={`Pattern pieces for a ${title}`} />}
+          {view === 'ease' && easeMap && <EaseMapView views={easeMap} label={`Ease map of the ${title}`} />}
         </div>
       </section>
 

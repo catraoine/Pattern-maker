@@ -56,6 +56,7 @@ import { CheckFileScreen } from './screens/CheckFileScreen';
 import { LoadingScreen } from './ui/LoadingScreen';
 import type { FormStart } from './ui/ContourForm';
 import type { Piece } from './engine/piece';
+import { garmentEase } from './engine/easeMap';
 
 export type Step = 'measure' | 'style' | 'export';
 type View = Step | 'welcome' | 'account' | 'photo' | 'whose' | 'fitting' | 'scale' | 'client' | 'check';
@@ -217,6 +218,17 @@ export default function App() {
       return { error: e instanceof DraftError ? e.message : 'Something went wrong drafting this pattern.' };
     }
   }, [values, skirtStyle, bodiceStyle, trousersStyle, dress, fitting, garment, canLeaveMeasure]);
+
+  /** Room over the body at every level of the drafted pieces, for the ease map. */
+  const ease = useMemo(() => {
+    const { skirt, bodice, dress: d, trousers } = result;
+    const lv = (b: BodiceDraft) => ({ bust: b.front.apex.y, waist: b.front.waistCentre.y });
+    if (bodice) return garmentEase(bodice.pieces, values, lv(bodice));
+    if (d) return garmentEase(d.pieces, values, lv(d.bodice));
+    if (trousers) return garmentEase(trousers.pieces, values);
+    if (skirt) return garmentEase(skirt.pieces, values);
+    return undefined;
+  }, [result, values]);
 
   /** The pattern's own pieces with a set of corrections, for the fitting screen's before and after. */
   const draftWith = useMemo(
@@ -599,6 +611,7 @@ export default function App() {
           )}
           {step === 'style' && garment === 'skirt' && (
             <StyleScreen
+              easeMap={ease}
               choices={saved.choices}
               onChoices={(choices) => setSaved({ ...saved, choices })}
               onGarment={(g) => switchGarment(g)}
@@ -615,6 +628,7 @@ export default function App() {
           )}
           {step === 'style' && garment === 'bodice' && (
             <BodiceStyleScreen
+              easeMap={ease}
               choices={saved.bodice}
               onChoices={(bodice) => setSaved({ ...saved, bodice })}
               onGarment={(g) => switchGarment(g)}
@@ -631,6 +645,7 @@ export default function App() {
           )}
           {step === 'style' && garment === 'dress' && (
             <DressStyleScreen
+              easeMap={ease}
               choices={dress}
               onChoices={(d) => setSaved({ ...saved, dress: d })}
               onGarment={(g) => switchGarment(g)}
@@ -647,6 +662,7 @@ export default function App() {
           )}
           {step === 'style' && garment === 'trousers' && (
             <TrousersStyleScreen
+              easeMap={ease}
               choices={trousersChoices}
               onChoices={(t) => setSaved({ ...saved, trousers: t })}
               onGarment={(g) => switchGarment(g)}

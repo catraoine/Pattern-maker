@@ -12,6 +12,9 @@ import { PatternPreview } from '../ui/Preview';
 import { GarmentSwitch } from '../ui/GarmentSwitch';
 import { FREE_SAVED_LIMIT } from '../account';
 
+import { EaseMapView } from '../ui/EaseMapView';
+import type { EaseView } from '../engine/easeMap';
+
 interface Props {
   choices: BodiceChoices;
   onChoices: (c: BodiceChoices) => void;
@@ -26,6 +29,8 @@ interface Props {
   saveState: 'can' | 'saved' | 'full';
   onSave: () => void;
   onAccount: () => void;
+  /** Room over the body at every level, for the ease map. */
+  easeMap?: EaseView[];
 }
 
 /** Fabric needed on 140 cm wide fabric, from the cutting layout. */
@@ -46,8 +51,8 @@ function friendly(w: string) {
   return 'Something in your measurements looks unusual. Please double-check them.';
 }
 
-export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft, sleeve, error, onEditMeasurements, onNext, saveState, onSave, onAccount }: Props) {
-  const [view, setView] = useState<'sketch' | 'pattern'>('sketch');
+export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft, sleeve, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap }: Props) {
+  const [view, setView] = useState<'sketch' | 'pattern' | 'ease'>('sketch');
   const pieces = useMemo(() => (draft ? [...draft.pieces, ...(sleeve?.pieces ?? [])] : []), [draft, sleeve]);
   const sheet = useMemo(() => (draft ? layout(pieces, '', []) : undefined), [draft, pieces]);
   const ease = BODICE_FIT_EASE[choices.fit];
@@ -149,6 +154,11 @@ export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft
             <button type="button" aria-pressed={view === 'pattern'} className={view === 'pattern' ? 'on' : ''} onClick={() => setView('pattern')}>
               Pattern pieces
             </button>
+            {easeMap && easeMap.length > 0 && (
+              <button type="button" aria-pressed={view === 'ease'} className={view === 'ease' ? 'on' : ''} onClick={() => setView('ease')}>
+                Ease
+              </button>
+            )}
           </div>
           <p className="muted small">Drafted to your measurements as you choose.</p>
         </div>
@@ -156,6 +166,7 @@ export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft
           {error && <p className="msg error">{error}</p>}
           {flat && view === 'sketch' && <TechFlatView flat={flat} title={title} />}
           {draft && sheet && view === 'pattern' && <PatternPreview sheet={sheet} label={`Front and back pattern pieces for a ${title}`} />}
+          {view === 'ease' && easeMap && <EaseMapView views={easeMap} label={`Ease map of the ${title}`} />}
         </div>
         {draft?.warnings.map((w) => (
           <p key={w} className="msg small">

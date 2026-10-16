@@ -1734,3 +1734,65 @@ table.history td.moved {
   font-size: 16px;
   resize: vertical;
 }
+
+/* Ease map: room over the body, level by level */
+.easemap {
+  display: grid;
+  gap: 12px;
+}
+.easerows {
+  display: grid;
+  gap: 12px;
+}
+.easerow {
+  margin: 0;
+}
+.easerow svg {
+  width: 100%;
+  max-height: 360px;
+}
+.easebands {
+  opacity: 0.7;
+}
+.easeband {
+  cursor: pointer;
+  shape-rendering: crispEdges;
+}
+.easeline {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+.easename {
+  fill: var(--muted);
+  font-family: var(--mono);
+  font-size: 2.4px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.ease-tight { fill: #e0604f; background: #e0604f; }
+.ease-snug { fill: #e3a454; background: #e3a454; }
+.ease-fit { fill: #d9c49b; background: #d9c49b; }
+.ease-easy { fill: #86b0a5; background: #86b0a5; }
+.ease-loose { fill: #6f8cc4; background: #6f8cc4; }
+.easelegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+.easelegend li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.easelegend .swatch {
+  width: 14px;
+  height: 10px;
+  opacity: 0.8;
+}
