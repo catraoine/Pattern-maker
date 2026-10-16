@@ -15,7 +15,9 @@ export type DiagramId =
   | 'overlock'
   | 'understitch'
   | 'slipstitch'
-  | 'catch';
+  | 'catch'
+  | 'easehead'
+  | 'setsleeve';
 
 /**
  * cloth: the fabric, filled. fold: a second layer or a turned-back edge, filled a little lighter.
@@ -177,6 +179,32 @@ export const DIAGRAMS: Record<DiagramId, Diagram> = {
       rect(2, 2, 38, 12.2, 'fold'),
       line('edge', p(2, 13.4), p(38, 13.4)),
       ...strokes(range(4, 36, 3).map((x) => p(x, 11.6)), range(4, 36, 3).map((x) => p(x + 0.4, 13.4))),
+    ],
+  },
+  easehead: {
+    w: W,
+    h: H,
+    caption: 'Easing the sleeve head: two rows of long stitches across the crown between the notches, drawn up so it cups without a tuck.',
+    parts: [
+      { pts: [p(2, 22), ...curve(p(2, 22), p(20, -8), p(38, 22)), p(38, 22)], kind: 'cloth', closed: true },
+      { pts: curve(p(6.5, 15.6), p(20, -4.6), p(33.5, 15.6)), kind: 'thread' },
+      { pts: curve(p(5.6, 17), p(20, -2.4), p(34.4, 17)), kind: 'thread' },
+      line('edge', p(7.6, 13.4), p(9.4, 14.6)),
+      line('edge', p(31.2, 13.2), p(33, 12)),
+      line('edge', p(32.4, 14.8), p(34.2, 13.6)),
+      line('edge', p(20, 7), p(20, 9.2)),
+    ],
+  },
+  setsleeve: {
+    w: W,
+    h: H,
+    caption: 'Setting in the sleeve: the sleeve inside the armhole, right sides together, the notches matched and the seam sewn with the sleeve on top.',
+    parts: [
+      { pts: range(0, 1, 1 / 32).map((t) => p(20 + 13 * Math.cos(t * 2 * Math.PI), 12 + 9 * Math.sin(t * 2 * Math.PI))), kind: 'fold', closed: true },
+      { pts: range(0, 1, 1 / 32).map((t) => p(20 + 11.6 * Math.cos(t * 2 * Math.PI), 12 + 7.8 * Math.sin(t * 2 * Math.PI))), kind: 'machine', closed: true },
+      line('edge', p(20, 1.6), p(20, 4.4)),
+      line('edge', p(20, 19.6), p(20, 22.4)),
+      ...arrow(curve(p(35.5, 18), p(37.5, 12), p(35.5, 6), 6)),
     ],
   },
   catch: {

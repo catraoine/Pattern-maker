@@ -3,6 +3,7 @@
 import type { SkirtDraft, SkirtMeasurements } from './skirt';
 import type { BodiceDraft, BodiceLength, BodiceMeasurements } from './bodice';
 import type { SpecRow } from './techpack';
+import type { SleeveDraft, SleeveMeasurements } from './sleeve';
 
 const r1 = (v: number) => Math.round(v * 10) / 10;
 const row = (label: string, body: number | undefined, finished: number): SpecRow =>
@@ -38,4 +39,16 @@ export function bodiceSpec(m: BodiceMeasurements, d: BodiceDraft, length: Bodice
     { label: 'Invisible zip, centre back', finished: `${d.zipCm}` },
   );
   return rows;
+}
+
+/** The sleeve's rows, added under the bodice's. */
+export function sleeveSpec(m: SleeveMeasurements, s: SleeveDraft): SpecRow[] {
+  return [
+    row('Upper arm (bicep)', m.upper_arm, s.bicep),
+    row('Sleeve length, crown to hem', undefined, s.lengthCm),
+    row(s.gathers ? 'Sleeve band, round' : 'Sleeve hem, round', undefined, s.hemCm),
+    row('Crown height', undefined, s.capHeight),
+    { label: 'Crown ease, front / back', finished: s.gathers?.crown !== undefined ? `${s.gathers.crown} gathered` : `${s.crownEase.front} / ${s.crownEase.back}` },
+    ...(s.elbowDart ? [row('Elbow dart', undefined, s.elbowDart)] : []),
+  ];
 }

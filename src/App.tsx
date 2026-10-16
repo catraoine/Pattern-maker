@@ -7,7 +7,8 @@ import { bodiceFlat, skirtFlat } from './engine/flat';
 import { Cloth, Route, toCouture } from './engine/couture';
 import { AllowanceStyle, SEAM_WIDTHS, withAllowances } from './engine/allowances';
 import { bodiceFacings, liningPieces, waistbandPiece } from './engine/finishing';
-import { bodiceSpec, skirtSpec } from './engine/spec';
+import { bodiceSpec, skirtSpec, sleeveSpec } from './engine/spec';
+import { SleeveDraft, SleeveMeasurements, draftSleeve, needsArms } from './engine/sleeve';
 import { Fitting, describeFitting, toFitting } from './engine/fitting';
 import { FabricWidth, layPlans } from './engine/layplan';
 import { EXAMPLE_VALUES, Garment, MeasurementValues, Unit, checkMeasurements, isComplete } from './measurements';
@@ -32,7 +33,7 @@ import {
   withPeople,
   FREE_SAVED_LIMIT,
 } from './account';
-import { BodiceChoices, DEFAULT_BODICE, describeBodice, isBodice } from './garments';
+import { BodiceChoices, DEFAULT_BODICE, describeBodice, isBodice, sleeveOf } from './garments';
 import { MeasureScreen } from './screens/MeasureScreen';
 import { StyleScreen, describe, fabricMetres } from './screens/StyleScreen';
 import { BodiceStyleScreen, bindingMetres, bodiceFabricMetres } from './screens/BodiceStyleScreen';
@@ -154,10 +155,26 @@ export default function App() {
   const skirtStyle = useMemo(() => ({ ...saved.choices, fitting: toFitting(fitting, 'skirt') }), [saved.choices, fitting]);
   const bodiceStyle = useMemo(() => ({ ...saved.bodice, fitting: toFitting(fitting, 'bodice') }), [saved.bodice, fitting]);
 
-  const result = useMemo((): { skirt?: SkirtDraft; bodice?: BodiceDraft; error?: string } => {
+  const result = useMemo((): { skirt?: SkirtDraft; bodice?: BodiceDraft; sleeve?: SleeveDraft; error?: string } => {
     if (!canLeaveMeasure) return {};
     try {
-      if (garment === 'bodice') return { bodice: draftBodice(values as BodiceMeasurements, bodiceStyle) };
+      if (garment === 'bodice') {
+        const bodice = draftBodice(values as BodiceMeasurements, bodiceStyle);
+        const { length, shape } = sleeveOf(bodiceStyle);
+        // The sleeve is drafted to this bodice's armhole, with the same allowances.
+        const sleeve =
+          length !== 'none' && !needsArms(values as SleeveMeasurements)
+            ? draftSleeve(bodice, values as SleeveMeasurements, {
+                length,
+                shape,
+                fit: bodiceStyle.fit,
+                seamAllowance: bodice.pieces[0].seamAllowance,
+                armholeAllowance: bodice.pieces[0].allowances.armhole ?? 1,
+                hemAllowance: 2.5,
+              })
+            : undefined;
+        return { bodice, sleeve };
+      }
       return { skirt: draftSkirt(values as SkirtMeasurements, skirtStyle) };
     } catch (e) {
       return { error: e instanceof DraftError ? e.message : 'Something went wrong drafting this pattern.' };
@@ -183,7 +200,7 @@ export default function App() {
 
   const finish = { ...DEFAULT_FINISH, ...saved.finish };
   const printable = useMemo((): Printable | undefined => {
-    const { skirt, bodice } = result;
+    const { skirt, bodice, sleeve } = result;
     const seams = SEAM_WIDTHS[finish.allowances];
     const allow = (pieces: Printable['pieces']) => pieces.map((pc) => withAllowances(pc, finish.allowances));
     const couture = finish.allowances === 'couture';
@@ -232,8 +249,12 @@ export default function App() {
       const below = bodice.finishedHem !== undefined;
       const edges = finish.bodiceEdges;
       const main = edges === 'lined' ? bodice.pieces.map((pc) => ({ ...pc, fabric: 'Self fabric and lining' })) : bodice.pieces;
-      const pieces = allow([...main, ...(edges === 'facings' ? bodiceFacings(bodice.pieces[0], bodice.pieces[1]) : [])]);
-      const edgeWords = { binding: 'bias-bound edges', facings: 'faced neck and armholes', lined: 'a full lining' }[edges];
+      const facings = edges === 'facings' ? bodiceFacings(bodice.pieces[0], bodice.pieces[1], !sleeve) : [];
+      const pieces = allow([...main, ...(sleeve?.pieces ?? []), ...facings]);
+      const edgeWords = sleeve
+        ? { binding: 'a bias-bound neckline', facings: 'a faced neckline', lined: 'a lined bodice' }[edges]
+        : { binding: 'bias-bound edges', facings: 'faced neck and armholes', lined: 'a full lining' }[edges];
+      const sleeveWords = sleeve ? `${describeBodice(saved.bodice).replace(/^.* with /, 'With ')}` : 'Sleeveless';
       const lays = layPlans(pieces, finish.fabricWidth, finish.nap);
       const metres = (f: 'self' | 'lining') => lays.find((l) => l.fabric === f)?.metres ?? bodiceFabricMetres(bodice);
       return {
@@ -243,21 +264,23 @@ export default function App() {
           couture
             ? `Couture allowances: ${fmtCm(seams.seam)} at the seams, ${fmtCm(seams.curve)} at the neck and armholes. Thread-trace the solid stitching line.`
             : `Seam allowance ${fmtCm(seams.seam)} included, ${fmtCm(seams.curve)} at the neck and armholes${below ? ', 2.5 cm at the hem' : ''}. Dashed line = stitching line.`,
-          `Sleeveless, with a ${bodice.zipCm} cm centre back zip and ${edgeWords}. Sewing steps are on the last pages.`,
+          `${sleeveWords}, a ${bodice.zipCm} cm centre back zip and ${edgeWords}. Sewing steps are on the last pages.`,
+          ...(sleeve ? [`Sleeve: bicep ${sleeve.bicep} cm, ${sleeve.gathers?.crown !== undefined ? `${sleeve.gathers.crown} cm gathered into the crown` : `crown ease ${sleeve.crownEase.front} cm front, ${sleeve.crownEase.back} cm back`}.`] : []),
           ...fittingNotes,
         ],
         guide: route(
-          bodiceGuide(bodice, saved.bodice, metres('self'), bindingMetres(bodice), {
+          bodiceGuide(bodice, saved.bodice, metres('self'), bindingMetres(bodice, { neck: !sleeve || edges === 'binding', armholes: !sleeve || edges === 'lined' }), {
             seams,
             edges,
             width: finish.fabricWidth,
             liningM: metres('lining'),
+            sleeve,
           }),
           { garment: 'bodice', lined: edges === 'lined', zipCm: bodice.zipCm },
         ),
-        spec: bodiceSpec(values as BodiceMeasurements, bodice, saved.bodice.length),
+        spec: [...bodiceSpec(values as BodiceMeasurements, bodice, saved.bodice.length), ...(sleeve ? sleeveSpec(values as SleeveMeasurements, sleeve) : [])],
         lays,
-        flat: bodiceFlat(bodice, edges),
+        flat: bodiceFlat(bodice, edges, sleeve),
       };
     }
     return undefined;
@@ -454,6 +477,7 @@ export default function App() {
               onGarment={(g) => switchGarment(g)}
               values={values}
               draft={result.bodice}
+              sleeve={result.sleeve}
               error={result.error}
               onEditMeasurements={() => setStep('measure')}
               onNext={() => setStep('export')}

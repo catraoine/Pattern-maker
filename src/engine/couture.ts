@@ -181,6 +181,46 @@ export function toCouture(guide: SewingGuide, c: CoutureContext): SewingGuide {
         text: s.text.replace('trim the seam to 0.5 cm', "grade the seam (the facing's allowance to 0.3 cm, the bodice's to 0.6 cm) so no ridge shows,").replace('Trim to 0.5 cm,', "Grade the seam (the lining's allowance to 0.3 cm, the bodice's to 0.6 cm),"),
         diagram: 'understitch',
       });
+    } else if (t === 'Sew the sleeve seams') {
+      out.push(
+        finish === 'french'
+          ? step(t, 'Sew the underarm seams as French seams: wrong sides together 0.6 cm outside the traced line, trimmed to 0.3 cm, then right sides together on the traced line. Press them toward the back over a sleeve board.', 'french')
+          : step(t, `Baste each underarm seam on the traced line, matching the notches and the bicep and elbow lines, then machine it and take the basting out. Press it open over a sleeve board, and finish the allowances as for the bodice. ${FINISH_WORDS[finish]}`, finish),
+      );
+    } else if (t === 'Ease the sleeve heads') {
+      out.push(
+        step(
+          t,
+          `${s.text.split(': draw')[0]}. Draw the threads up until the crown matches the traced armhole, then shrink the ease away over the end of the ham: steam it, pat it into a smooth cup and let it cool before you move it.${c.cloth === 'wool' ? ' Wool shrinks beautifully, so the crown can carry its full ease and still show not a single pucker.' : ' This cloth will not shrink like wool, so spread the ease with the point of a needle as you baste, a little at a time, rather than relying on the iron.'}`,
+          'easehead',
+        ),
+      );
+    } else if (t === 'Gather the sleeve heads') {
+      out.push(step(t, `${s.text} Draw the gathers up with the bodice on a stand or on you, so the puff sits where it flatters, and spread them evenly between the notches.`, 'easehead'));
+    } else if (t === 'Set in the sleeves') {
+      out.push(
+        step(
+          t,
+          `${s.text.split(' Sew with the sleeve on top')[0]} Hand-baste the sleeve in along the traced lines, with small stitches over the crown, and try the bodice on. The sleeve should hang straight from the shoulder, its grain plumb, with the crown smooth; if it twists, turn it a little in the armhole and re-baste. Then machine with the sleeve on top, on the traced line, and take out the basting.${c.cloth === 'wool' ? " Slip a sleeve head, a 4 cm bias strip of lambswool or wadding, into the crown's allowance and catch it to the seam: it holds the crown round and fills the hollow below the shoulder." : ''}`,
+          'setsleeve',
+        ),
+      );
+    } else if (t === 'Finish the armhole seams') {
+      out.push(
+        step(
+          t,
+          c.lined
+            ? 'Trim the armhole seam to 1 cm through all the layers and bind it in a bias strip of lining, folded over the raw edges and slip-stitched down by hand. Let it turn toward the sleeve.'
+            : 'Trim the armhole seam to 1 cm under the arm only, where it curves most, and leave it full over the crown so it supports the sleeve head. Overcast the two edges together by hand, or bind them in a bias strip of lining. Press only the crown edge, over the end of a sleeve roll, never flat across the armhole.',
+          c.lined ? 'slipstitch' : 'overcast',
+        ),
+      );
+    } else if (t === 'Hem the sleeves') {
+      out.push(step(t, 'Thread-trace the hem line at a fitting, with the arm bent a little. Turn the hem up on the line and baste it 1 cm from the fold, trim to an even depth and finish the raw edge, then catch-stitch it by hand so nothing shows on the outside. Press from the inside over a sleeve board.', 'catch'));
+    } else if (t === 'Attach the sleeve bands') {
+      out.push(step(t, s.text.replace('and stitch it down over the seam.', 'and slip-stitch it by hand to the line of machine stitching inside.'), 'slipstitch'));
+    } else if (t === 'Line the neckline' || t === 'Baste the lining to the armholes') {
+      out.push(t === 'Line the neckline' ? { ...s, text: s.text.replace('Trim to 0.5 cm,', "Grade the seam (the lining's allowance to 0.3 cm, the bodice's to 0.6 cm),"), diagram: 'understitch' } : s);
     } else if (t === 'Finish the waistband') {
       out.push(step(t, s.text.replace('then hand-stitch it over the seam inside, or stitch in the ditch from the outside.', 'then slip-stitch it by hand over the seam inside, the stitches just catching the machine line.'), 'slipstitch'));
     } else if (t === 'Hem') {
@@ -200,6 +240,9 @@ export function toCouture(guide: SewingGuide, c: CoutureContext): SewingGuide {
     'Contrasting tacking thread',
     "A tailor's ham and a press cloth",
     ...(finish === 'hongkong' ? ['1 m of lining or silk organza, for the bias strips that bind the seams'] : []),
+    ...(guide.steps.some((g) => g.title === 'Set in the sleeves')
+      ? ['A sleeve board or sleeve roll', ...(c.cloth === 'wool' ? ['A pair of sleeve heads, or 0.2 m of lambswool for them'] : [])]
+      : []),
     'Fine hand-sewing needles',
   );
   return { notions, steps: out };

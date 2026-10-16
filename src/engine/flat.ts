@@ -8,6 +8,7 @@ import type { SkirtDraft } from './skirt';
 import { WAISTBAND_CM } from './skirt';
 import type { BodiceDraft } from './bodice';
 import type { BodiceEdges } from './instructions';
+import { BAND_CM, SleeveDraft } from './sleeve';
 
 export type FlatLineKind = 'seam' | 'dart' | 'stitch' | 'zip';
 
@@ -298,9 +299,93 @@ export function skirtFlat(d: SkirtDraft, opts: { slit?: boolean } = {}): Flat {
   return arrange(views);
 }
 
-/** The sleeveless bodice: darts, the back neck seen over the front, centre back seam and zip, and the
- * stitching that shows: binding round the neck and armholes, and the hem of a longer top. */
-export function bodiceFlat(d: BodiceDraft, edges: BodiceEdges = 'binding'): Flat {
+/** A quadratic curve from `a` to `b`, pulled toward `c`. */
+function quad(a: P, c: P, b: P, n = 12): P[] {
+  return Array.from({ length: n + 1 }, (_, i) => {
+    const t = i / n;
+    return add(add(mul(a, (1 - t) * (1 - t)), mul(c, 2 * t * (1 - t))), mul(b, t * t));
+  });
+}
+
+/** How far a flat's sleeve is turned out from hanging straight down, in radians: 20 to 40 degrees. */
+const MIN_SLEEVE_TURN = 0.35;
+const MAX_SLEEVE_TURN = 0.72;
+
+/**
+ * A sleeve hanging from one half's armhole, drawn as it lies flat: the outer fold from the shoulder
+ * point, the underseam from the underarm, half the finished bicep apart. The sleeve is turned out
+ * until it is that wide, up to about 40 degrees; past that the crown rounds out a little over the
+ * shoulder, and the rest is drawn narrower to scale, as flats are. Gathered sleeves billow into their band.
+ */
+function sleeveSide(h: Half, sl: SleeveDraft): { shape: P[]; band?: P[]; lines: FlatView['lines'] } {
+  const arm = along(h, 'armhole')[0];
+  if (!arm) return { shape: [], lines: [] };
+  const hole = arm[0].y <= arm[arm.length - 1].y ? arm : [...arm].reverse();
+  const S = hole[0];
+  const U = hole[hole.length - 1];
+  const v = sub(U, S);
+  // Turn the sleeve out until the underarm is half the bicep from its outer fold.
+  const half = sl.bicep / 2;
+  let lo = 0.1;
+  let hi = 1.2;
+  for (let i = 0; i < 30; i++) {
+    const t = (lo + hi) / 2;
+    if (Math.sin(t) * v.y - Math.cos(t) * v.x < half) lo = t;
+    else hi = t;
+  }
+  const t = Math.max(MIN_SLEEVE_TURN, Math.min((lo + hi) / 2, MAX_SLEEVE_TURN));
+  const a = p(Math.sin(t), Math.cos(t));
+  const n = p(-Math.cos(t), Math.sin(t));
+  // Where the outer fold runs: half the bicep out from the underarm. The crown rounds out to meet it.
+  const O = add(U, mul(n, -half));
+  const Os = add(O, mul(a, (S.x - O.x) * a.x + (S.y - O.y) * a.y));
+  const reach = Math.sin(t) * v.y - Math.cos(t) * v.x;
+  const gap = Math.max(0, half - reach);
+  const out = Math.min(gap, 1.5);
+  const k = (Math.min(reach, half) + out) / half;
+  const Oh = add(S, mul(sub(Os, S), out / Math.max(gap, 1e-6)));
+  const head = out > 0.3 ? quad(S, add(Oh, mul(a, -out * 0.3)), add(Oh, mul(a, out * 2.5)), 8) : [S];
+  const top = head[head.length - 1];
+  const gathered = !!sl.gathers;
+  const band = gathered ? BAND_CM : 0;
+  const L = sl.lengthCm - band;
+  const Ho = add(S, add(sub(top, S), mul(a, L - len(sub(top, S)))));
+  const lines: FlatView['lines'] = [];
+  if (!gathered) {
+    const Hi = add(Ho, mul(n, (k * sl.hemCm) / 2));
+    const shape = [...head, Ho, Hi, U, ...[...hole].reverse().slice(1, -1)];
+    const lift = 2;
+    lines.push({ pts: [add(Ho, mul(a, -lift)), add(Hi, mul(a, -lift))], kind: 'stitch' });
+    return { shape, lines };
+  }
+  // A gathered sleeve: the band at the hem, the sleeve billowing above it.
+  const w = (k * sl.hemCm) / 2;
+  const mid = add(Ho, mul(n, w / 2));
+  const Bo = add(mid, mul(n, -w / 2));
+  const Bi = add(mid, mul(n, w / 2));
+  const puff = sl.gathers?.crown !== undefined;
+  const swell = puff ? 2.5 : 4;
+  const outer = [...head.slice(0, -1), ...quad(top, add(add(top, mul(a, L * (puff ? 0.45 : 0.7))), mul(n, -swell)), Bo)];
+  const inner = quad(Bi, add(add(U, mul(sub(Bi, U), puff ? 0.55 : 0.75)), mul(n, swell)), U);
+  const shape = [...outer, ...inner, ...[...hole].reverse().slice(1, -1)];
+  const bandShape = [Bo, Bi, add(Bi, mul(a, band)), add(Bo, mul(a, band))];
+  // Gathering: short strokes fanning into the band, and over the crown of a puff sleeve.
+  for (let i = 1; i < 6; i++) {
+    const q = add(Bo, mul(sub(Bi, Bo), i / 6));
+    lines.push({ pts: [q, add(q, add(mul(a, -2.2), mul(n, (i / 6 - 0.5) * 1.6)))], kind: 'seam' });
+  }
+  if (puff)
+    for (let i = 2; i < hole.length - 2; i += Math.max(1, Math.floor(hole.length / 6))) {
+      const q = hole[i];
+      lines.push({ pts: [q, add(q, mul(unit(sub(q, mul(add(S, U), 0.5))), -1.6))], kind: 'seam' });
+    }
+  return { shape, band: bandShape, lines };
+}
+
+/** The bodice: darts, the back neck seen over the front, centre back seam and zip, sleeves when it has
+ * them, and the stitching that shows: binding round the neck (and the armholes of a sleeveless one),
+ * and the hem of a longer top. */
+export function bodiceFlat(d: BodiceDraft, edges: BodiceEdges = 'binding', sleeve?: SleeveDraft): Flat {
   const back = sewn(d.pieces[1]);
   const backFoot = back.run[back.tags.lastIndexOf('side') + 1].y;
   const front = sewn(d.pieces[0], backFoot);
@@ -315,7 +400,7 @@ export function bodiceFlat(d: BodiceDraft, edges: BodiceEdges = 'binding'): Flat
       if (neck && front.run[0].y > neck[0].y + 1) lines.push(...both(neck).map((pts) => ({ pts, kind: 'seam' as const })));
     }
     if (edges === 'binding') {
-      for (const run of [...along(h, 'neck'), ...along(h, 'armhole')])
+      for (const run of [...along(h, 'neck'), ...(sleeve ? [] : along(h, 'armhole'))])
         for (const pts of [run, mirror(run)]) for (const r of inset(pts, 0.6, shape)) lines.push({ pts: r, kind: 'stitch' });
     }
     if (d.finishedHem !== undefined)
@@ -324,7 +409,17 @@ export function bodiceFlat(d: BodiceDraft, edges: BodiceEdges = 'binding'): Flat
       const top = h.run[0].y;
       lines.push({ pts: [p(0, top), p(0, h.run[h.run.length - 1].y)], kind: 'seam' }, ...zip(top, d.zipCm));
     }
-    return { label: i === 0 ? ('FRONT' as const) : ('BACK' as const), shapes: [shape], lines };
+    const shapes = [shape];
+    if (sleeve) {
+      const sl = sleeveSide(h, sleeve);
+      for (const flip of [false, true]) {
+        const f = (pts: P[]) => (flip ? mirror(pts) : pts);
+        if (sl.shape.length) shapes.push(f(sl.shape));
+        if (sl.band) shapes.push(f(sl.band));
+        lines.push(...sl.lines.map((l) => ({ ...l, pts: f(l.pts) })));
+      }
+    }
+    return { label: i === 0 ? ('FRONT' as const) : ('BACK' as const), shapes, lines };
   });
   return arrange(views);
 }

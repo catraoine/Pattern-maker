@@ -3,6 +3,7 @@
 import { isCircle } from './skirt';
 import type { Length, Silhouette, SkirtDraft } from './skirt';
 import type { BodiceDraft, BodiceLength } from './bodice';
+import type { SleeveDraft } from './sleeve';
 import { SEAM_WIDTHS, SeamWidths } from './allowances';
 import type { Piece } from './piece';
 import type { DiagramId } from './diagrams';
@@ -44,6 +45,8 @@ export interface BodiceFinish {
   liningM?: number;
   /** Fabric width in cm, when it isn't 140. */
   width?: number;
+  /** Set-in sleeves, when the bodice has them: the armholes are then sewn to the sleeves, not finished. */
+  sleeve?: SleeveDraft;
 }
 
 /** A pencil skirt, or a straight one below the knee, needs a walking slit at the centre back. */
@@ -182,7 +185,8 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
   };
 }
 
-/** Sewing steps for the sleeveless bodice: centre back zip, and the neck and armholes bias-bound, faced or lined. */
+/** Sewing steps for the bodice: centre back zip, the neck (and, sleeveless, the armholes) bias-bound, faced or
+ * lined, and set-in sleeves when it has them. */
 export function bodiceGuide(draft: BodiceDraft, style: { length: BodiceLength }, fabricM: number, bindingM: number, finish: BodiceFinish = {}): SewingGuide {
   const below = style.length !== 'waist';
   const sw = finish.seams ?? SEAM_WIDTHS.home;
@@ -192,6 +196,13 @@ export function bodiceGuide(draft: BodiceDraft, style: { length: BodiceLength },
   const bust = draft.bustDart > 0.3;
   const waist = draft.waistDarts.front > 0.3 || draft.waistDarts.back > 0.3;
   const dartWords = bust && waist ? 'bust and waist darts' : bust ? 'bust darts' : 'waist darts';
+  const sleeve = finish.sleeve;
+  const sleeveCut = sleeve
+    ? ` Place the sleeve on both layers too, so you get a pair, and snip its notches: one at the top of the crown, one on the front, two on the back.${
+        sleeve.pieces.length > 1 ? ' Cut the two sleeve bands.' : ''
+      }${sleeve.elbowDart ? ' Chalk-mark the elbow dart.' : ''}`
+    : '';
+  const facingCut = sleeve ? ' Cut the neck facings from the fabric, and again from fusible interfacing.' : ' Cut the four facing pieces from the fabric, and again from fusible interfacing.';
 
   const steps: SewStep[] = [
     {
@@ -201,21 +212,21 @@ export function bodiceGuide(draft: BodiceDraft, style: { length: BodiceLength },
     {
       title: 'Cut out',
       text: `Fold the fabric in half with the selvedges together. Place the bodice front on the fold, and the bodice back on both layers so you get a pair. Keep each grain arrow parallel to the selvedge. Cut along the solid outer line, snip the small notches${bust || waist ? ', and chalk-mark the dart lines and the bust point' : ''}.${
-        edges === 'lined' ? ' Cut the front and back again from the lining the same way.' : edges === 'facings' ? ' Cut the four facing pieces from the fabric, and again from fusible interfacing.' : ''
-      }${oneSide(draft.pieces[0], edges === 'lined' ? 'and the lining' : edges === 'facings' ? 'and the armhole facings to match' : '')}`,
+        edges === 'lined' ? ' Cut the front and back again from the lining the same way.' : edges === 'facings' ? facingCut : ''
+      }${sleeveCut}${oneSide(draft.pieces[0], edges === 'lined' ? 'and the lining' : edges === 'facings' && !sleeve ? 'and the armhole facings to match' : '')}`,
     },
     ...(edges === 'facings'
       ? [
           {
             title: 'Interface the facings',
-            text: 'Fuse the interfacing to the wrong side of each facing. Join the front and back neck facings at the shoulders, and the armhole facings at the shoulders and the sides, ' + seam + ' from the edge. Press the seams open and overlock or zigzag the outer edges marked NEATEN THIS EDGE.',
+            text: `Fuse the interfacing to the wrong side of each facing. Join the front and back neck facings at the shoulders${sleeve ? '' : ', and the armhole facings at the shoulders and the sides'}, ${seam} from the edge. Press the seams open and overlock or zigzag the outer edges marked NEATEN THIS EDGE.`,
           },
         ]
       : []),
     {
       title: 'Neaten the edges',
       diagram: 'overlock' as const,
-      text: 'Zigzag or overlock the shoulder, side and centre back edges, so they will not fray inside.',
+      text: `Zigzag or overlock the shoulder, side and centre back edges${sleeve ? ", and the sleeves' underarm seam edges" : ''}, so they will not fray inside.`,
     },
     ...(bust || waist
       ? [
@@ -243,7 +254,7 @@ export function bodiceGuide(draft: BodiceDraft, style: { length: BodiceLength },
       title: 'Close the centre back',
       text: `${below ? 'Sew the rest of the centre back seam, from the bottom of the zip to the hem, ' + seam + ' from the edge, and press it open.' : 'Sew the last few centimetres of the centre back seam below the zip, ' + seam + ' from the edge, and press it open.'}`,
     },
-    ...(edges === 'lined'
+    ...(edges === 'lined' && !sleeve
       ? []
       : [
         {
@@ -261,10 +272,14 @@ export function bodiceGuide(draft: BodiceDraft, style: { length: BodiceLength },
             title: 'Bind the neckline',
             text: `Open out one fold of the bias binding and pin it to the neckline, right sides together, with the crease ${curve} from the edge and 1 cm extra at each end. Sew along the crease, trim the seam to 0.5 cm and clip the curves. Fold the ends in, then turn the binding to the inside, press it flat, and stitch it down close to its folded edge.`,
           },
-          {
-            title: 'Bind the armholes',
-            text: 'Bind each armhole the same way, starting and ending at the side seam with the ends overlapped by 1 cm.',
-          },
+          ...(sleeve
+            ? []
+            : [
+                {
+                  title: 'Bind the armholes',
+                  text: 'Bind each armhole the same way, starting and ending at the side seam with the ends overlapped by 1 cm.',
+                },
+              ]),
         ]
       : edges === 'facings'
         ? [
@@ -273,12 +288,35 @@ export function bodiceGuide(draft: BodiceDraft, style: { length: BodiceLength },
               diagram: 'understitch' as const,
               text: `Pin the neck facing to the neckline, right sides together, matching the shoulder seams, with its centre back ends folded back over the zip tape. Sew ${curve} from the edge, trim the seam to 0.5 cm and clip the curves. Understitch the facing to the seam allowance close to the seam, so it rolls to the inside, then press it in and hand-tack it to the shoulder seams.`,
             },
-            {
-              title: 'Face the armholes',
-              text: `Pin each armhole facing into its armhole, right sides together, matching the shoulder and side seams and the notches. Sew ${curve} from the edge, trim, clip, understitch and press to the inside the same way. Tack the facing to the shoulder and side seams.`,
-            },
+            ...(sleeve
+              ? []
+              : [
+                  {
+                    title: 'Face the armholes',
+                    text: `Pin each armhole facing into its armhole, right sides together, matching the shoulder and side seams and the notches. Sew ${curve} from the edge, trim, clip, understitch and press to the inside the same way. Tack the facing to the shoulder and side seams.`,
+                  },
+                ]),
           ]
-        : [
+        : sleeve
+          ? [
+              {
+                title: 'Make the lining',
+                text: `Sew the lining's darts, shoulders and side seams the same way as the bodice, and its centre back seam below the ZIP ENDS notch, ${seam} from the edge. Press the lining darts the opposite way to the bodice's, so they don't stack.`,
+              },
+              {
+                title: 'Line the neckline',
+                text: `Pin the lining to the bodice round the neckline, right sides together, matching the shoulder seams. Sew ${curve} from the edge, from one centre back seam line to the other. Trim to 0.5 cm, clip the curves, understitch the lining to the seam allowance, and turn it inside. Press so the lining rolls just inside the edge.`,
+              },
+              {
+                title: 'Baste the lining to the armholes',
+                text: `Smooth the lining into place, matching the shoulder and side seams, and baste it to the bodice round each armhole, inside the ${curve} seam allowance. From here the two layers are sewn into the sleeve as one.`,
+              },
+              {
+                title: 'Finish the lining at the zip',
+                text: 'Turn the lining centre back edges under and slip-stitch them to the zip tape, clear of the teeth.',
+              },
+            ]
+          : [
             {
               title: 'Make the lining',
               text: `Sew the lining's darts and side seams the same way as the bodice, and its centre back seam below the ZIP ENDS notch, ${seam} from the edge. Leave the shoulders of both open for now. Press the lining darts the opposite way to the bodice's, so they don't stack.`,
@@ -292,6 +330,7 @@ export function bodiceGuide(draft: BodiceDraft, style: { length: BodiceLength },
               text: 'Turn the lining centre back edges under and slip-stitch them to the zip tape, clear of the teeth.',
             },
           ]),
+    ...(sleeve ? sleeveSteps(sleeve, seam, curve, edges === 'lined') : []),
     {
       title: 'Hem',
       text: below
@@ -308,7 +347,7 @@ export function bodiceGuide(draft: BodiceDraft, style: { length: BodiceLength },
     notions: [
       `${fabricM.toFixed(1)} m of woven fabric, ${finish.width ?? 140} cm wide`,
       `${draft.zipCm} cm invisible zip`,
-      ...(edges === 'binding' ? [`${bindingM.toFixed(1)} m of 2 cm wide bias binding`] : []),
+      ...(edges === 'binding' || (sleeve && edges === 'lined') ? [`${bindingM.toFixed(1)} m of 2 cm wide bias binding`] : []),
       ...(edges === 'facings' ? ['0.5 m lightweight fusible interfacing'] : []),
       ...(edges === 'lined' ? [`${(finish.liningM ?? fabricM).toFixed(1)} m of lining, ${finish.width ?? 140} cm wide`] : []),
       'Hook and eye',
@@ -316,4 +355,54 @@ export function bodiceGuide(draft: BodiceDraft, style: { length: BodiceLength },
     ],
     steps,
   };
+}
+
+/** The steps for set-in sleeves, after the bodice is closed and its neck finished. */
+function sleeveSteps(sl: SleeveDraft, seam: string, curve: string, lined: boolean): SewStep[] {
+  const puff = sl.gathers?.crown !== undefined;
+  const band = sl.pieces.length > 1;
+  const ease = Math.round((sl.crownEase.front + sl.crownEase.back) * 10) / 10;
+  const hemAllowance = sl.pieces[0].allowances.hem ?? 2.5;
+  return [
+    ...(sl.elbowDart
+      ? [
+          {
+            title: 'Sew the elbow darts',
+            text: 'Fold each elbow dart right sides together so its lines meet, stitch from the back edge to the point, run off the fold and knot the threads. Press the dart down toward the wrist.',
+          },
+        ]
+      : []),
+    {
+      title: 'Sew the sleeve seams',
+      text: `Fold each sleeve right sides together, matching the underarm corners, the notches and the hem. Sew the underarm seam ${seam} from the edge and press it open over a sleeve board or a rolled towel, so the crease doesn't press through to the top of the sleeve.`,
+    },
+    band
+      ? {
+          title: 'Attach the sleeve bands',
+          text: `Sew two rows of long gathering stitches round each sleeve hem, inside the seam allowance. Join each band's short ends into a ring, ${seam} from the edge, and press the seam open. Pin one edge of the band to the sleeve hem, right sides together, with its seam at the underarm and its notch at the middle of the sleeve, pull up the gathers to fit (${sl.gathers!.hem} cm is gathered into each band), and sew ${seam} from the edge. Fold the band in half to the inside along its fold line, turn its raw edge under ${seam}, and stitch it down over the seam.`,
+        }
+      : {
+          title: 'Hem the sleeves',
+          text: `Press up 1 cm, then ${Math.round((hemAllowance - 1) * 10) / 10} cm more, and stitch by hand or machine. It is far easier now than once the sleeves are in.`,
+        },
+    puff
+      ? {
+          title: 'Gather the sleeve heads',
+          text: `Sew two rows of long gathering stitches across each crown between the front and back notches, one just inside the seam line and one 0.5 cm further out. Leave long thread ends. The crown is ${sl.gathers!.crown} cm longer than the armhole: that is the puff.`,
+        }
+      : {
+          title: 'Ease the sleeve heads',
+          text: `Sew two rows of long machine stitches round each crown between the front and back notches, one just inside the seam line and one 0.5 cm further out. The crown is ${ease} cm longer than the armhole, a little more at the back: draw the threads up just enough to cup it to the armhole's shape, with no gathers or tucks. Steam it over a ham and let it cool.`,
+        },
+    {
+      title: 'Set in the sleeves',
+      text: `Turn the bodice inside out and the sleeve right side out, and slip the sleeve into its armhole, right sides together. Match the underarm seam to the side seam, the top notch to the shoulder seam, the single notch to the front and the double notches to the back. Pin there first, then ${puff ? 'pull up the gathers to fit and spread them evenly over the top of the shoulder' : 'spread the ease evenly between the notches'}. Sew with the sleeve on top, ${curve} from the edge, all the way round, easing as you go so no tucks form.`,
+    },
+    {
+      title: 'Finish the armhole seams',
+      text: lined
+        ? `Trim the armhole seam to 0.7 cm through all the layers. Bind it with bias binding, folded over the raw edges and stitched through, so the lining and the bodice are covered together. Let the seam turn toward the sleeve.`
+        : `Trim the armhole seam to 0.7 cm under the arm, where it has to curve, and zigzag or overlock the two edges together all the way round. Let the seam turn toward the sleeve, pressing only the edge of the crown so the sleeve keeps its round head.`,
+    },
+  ];
 }

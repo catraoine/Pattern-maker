@@ -53,3 +53,13 @@ export function randomBody(r: () => number): Body {
     waist_to_floor: h * 0.615 + u(-2, 2),
   };
 }
+
+/** Arms to go with a body: upper arm with the armhole, arm length with the back length. */
+export function randomArms(b: Body, r: () => number): { arm_length: number; upper_arm: number; wrist: number } {
+  const u = (lo: number, hi: number) => lo + (hi - lo) * r();
+  return {
+    arm_length: b.nape_to_waist * 1.4 + u(-3, 3),
+    upper_arm: (b.armscye ?? 40) * 0.7 + u(-2.5, 2.5),
+    wrist: 13.5 + (b.full_bust - 76) * 0.05 + u(-1, 1),
+  };
+}

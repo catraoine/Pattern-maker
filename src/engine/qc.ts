@@ -126,6 +126,9 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
     }
   }
 
+  const sleeve = pieces.find((pc) => /^sleeve$/i.test(pc.name));
+  if (sleeve && front && back) checks.push(...sleeveChecks(sleeve, front, back));
+
   // Centre lines are square to the edges that cross them, so the piece mirrors without a point or dip.
   for (const pc of pieces) {
     const where = isFront(pc) ? 'centre front' : 'centre back';
@@ -154,6 +157,66 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
 }
 
 const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
+
+/** Most crown ease a set-in sleeve can take without puckering, in cm per half. */
+const MAX_CROWN_EASE = 3.5;
+
+/**
+ * A set-in sleeve against the bodice: its underarm seam walked, its crown against the armhole it
+ * sews into (eased in, never shorter), and the underarm and hem curves blending once the sleeve is
+ * sewn into a tube.
+ */
+function sleeveChecks(sleeve: Piece, front: Piece, back: Piece): Check[] {
+  const out: Check[] = [];
+  const f = taggedLength(sleeve.outline, 'sleeve-front');
+  const b = taggedLength(sleeve.outline, 'sleeve-back');
+  out.push({
+    group: 'Seams',
+    label: 'Sleeve seam',
+    detail: `front ${cm(f)}, back ${cm(b)}${sleeve.lines.length ? ' with the elbow dart closed' : ''}, ${Math.abs(f - b) < 0.05 ? 'identical' : `${cm(Math.abs(f - b))} apart`}`,
+    ok: Math.abs(f - b) <= SEAM_TOLERANCE,
+  });
+  // The crown's halves: from the crown point to each underarm.
+  const { pts, tags } = sleeve.outline.taggedPoints(96);
+  let crownF = 0;
+  let crownB = 0;
+  let seenSeam = false;
+  tags.forEach((t, i) => {
+    if (t !== 'armhole') {
+      seenSeam = true;
+      return;
+    }
+    const d = len(sub(pts[i + 1], pts[i]));
+    if (seenSeam) crownB += d;
+    else crownF += d;
+  });
+  const easeF = crownF - taggedLength(front.outline, 'armhole');
+  const easeB = crownB - taggedLength(back.outline, 'armhole');
+  const gathered = !!sleeve.meta.gatheredCrown;
+  out.push({
+    group: 'Seams',
+    label: gathered ? 'Sleeve crown gathers' : 'Sleeve crown ease',
+    detail: `front ${cm(easeF)}, back ${cm(easeB)} ${gathered ? 'gathered' : 'eased'} into the armhole`,
+    ok: easeF >= 0 && easeB >= 0 && (gathered || (easeF <= MAX_CROWN_EASE && easeB <= MAX_CROWN_EASE)),
+  });
+  const cs = corners(sleeve);
+  for (const [edge, name] of [
+    ['armhole', 'Sleeve underarm'],
+    ['hem', 'Sleeve hem'],
+  ] as const) {
+    const cf = cs.find((c) => (c.a === edge && c.b === 'sleeve-front') || (c.b === edge && c.a === 'sleeve-front'));
+    const cb = cs.find((c) => (c.a === edge && c.b === 'sleeve-back') || (c.b === edge && c.a === 'sleeve-back'));
+    if (!cf || !cb) continue;
+    const sum = cf.angle + cb.angle;
+    out.push({
+      group: 'Corners',
+      label: `${name} blends across the sleeve seam`,
+      detail: `${deg(cf.angle)} + ${deg(cb.angle)} = ${deg(sum)}`,
+      ok: Math.abs(sum - 180) <= BLEND_TOLERANCE,
+    });
+  }
+  return out;
+}
 
 /** A row of the finished measurements table (the tech pack's SpecRow has the same shape). */
 export interface FinishedRow {

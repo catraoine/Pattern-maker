@@ -1,10 +1,11 @@
 // Body measurements for each garment, with ranges from the measurements spec (measurements/measurements.json).
 import type { SkirtMeasurements } from './engine/skirt';
 import type { BodiceMeasurements } from './engine/bodice';
+import type { SleeveMeasurements } from './engine/sleeve';
 
 export type Garment = 'skirt' | 'bodice';
 
-export type MeasurementId = keyof SkirtMeasurements | keyof BodiceMeasurements;
+export type MeasurementId = keyof SkirtMeasurements | keyof BodiceMeasurements | keyof SleeveMeasurements;
 
 export interface MeasurementField {
   id: MeasurementId;
@@ -90,6 +91,7 @@ export const SKIRT_FIELDS: MeasurementField[] = [
 ];
 
 const HIP_NOTE = 'Only needed for tops that reach below the waist.';
+const ARM_NOTE = 'Only needed for sleeves.';
 
 export const BODICE_FIELDS: MeasurementField[] = [
   {
@@ -183,6 +185,31 @@ export const BODICE_FIELDS: MeasurementField[] = [
   { ...FULL_HIP, optional: HIP_NOTE },
   { ...WAIST_TO_HIP, optional: HIP_NOTE },
   {
+    id: 'arm_length',
+    label: 'Arm length',
+    hard: [40, 80],
+    typical: [50, 68],
+    optional: ARM_NOTE,
+    helper: true,
+    tip: 'From your shoulder point, down the outside of your arm over a slightly bent elbow, to the bone at your wrist.',
+  },
+  {
+    id: 'upper_arm',
+    label: 'Upper arm',
+    hard: [18, 60],
+    typical: [22, 45],
+    optional: ARM_NOTE,
+    tip: 'Around the fullest part of your upper arm, with your arm relaxed by your side.',
+  },
+  {
+    id: 'wrist',
+    label: 'Wrist',
+    hard: [11, 26],
+    typical: [13, 20],
+    optional: ARM_NOTE,
+    tip: 'Around your wrist, over the wrist bone.',
+  },
+  {
     id: 'front_shoulder_slope',
     label: 'Front shoulder slope',
     hard: [28, 70],
@@ -227,6 +254,9 @@ export const EXAMPLE_VALUES: MeasurementValues = {
   bust_depth: 26,
   apex_separation: 18,
   armscye: 40,
+  arm_length: 59,
+  upper_arm: 29,
+  wrist: 16,
 };
 
 export interface Check {
