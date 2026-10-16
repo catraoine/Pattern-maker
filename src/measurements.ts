@@ -2,10 +2,11 @@
 import type { SkirtMeasurements } from './engine/skirt';
 import type { BodiceMeasurements } from './engine/bodice';
 import type { SleeveMeasurements } from './engine/sleeve';
+import type { TrousersMeasurements } from './engine/trousers';
 
-export type Garment = 'skirt' | 'bodice' | 'dress';
+export type Garment = 'skirt' | 'bodice' | 'dress' | 'trousers';
 
-export type MeasurementId = keyof SkirtMeasurements | keyof BodiceMeasurements | keyof SleeveMeasurements;
+export type MeasurementId = keyof SkirtMeasurements | keyof BodiceMeasurements | keyof SleeveMeasurements | keyof TrousersMeasurements;
 
 export interface MeasurementField {
   id: MeasurementId;
@@ -88,6 +89,27 @@ export const SKIRT_FIELDS: MeasurementField[] = [
   },
   FRONT_WAIST_TO_HIP,
   BACK_WAIST_TO_HIP,
+];
+
+/** Trousers take the skirt's measurements and two more for the crotch. */
+export const TROUSERS_FIELDS: MeasurementField[] = [
+  ...SKIRT_FIELDS.filter((f) => !f.fit),
+  {
+    id: 'crotch_depth',
+    label: 'Crotch depth',
+    hard: [15, 45],
+    typical: [21, 36],
+    tip: 'Sit up straight on a hard, flat chair. Measure down your side from your waist to the seat of the chair, holding a ruler upright against your hip.',
+  },
+  {
+    id: 'crotch_length',
+    label: 'Crotch length',
+    hard: [45, 115],
+    typical: [56, 95],
+    helper: true,
+    tip: 'From your centre front waist, down between your legs, and up to your centre back waist. Hold the tape snug but not tight, as you would want the seam to sit.',
+  },
+  ...SKIRT_FIELDS.filter((f) => f.fit),
 ];
 
 const HIP_NOTE = 'Only needed for tops that reach below the waist.';
@@ -236,7 +258,7 @@ const DRESS_FIELDS: MeasurementField[] = [...BODICE_FIELDS, ...SKIRT_FIELDS.filt
   f.id === 'full_hip' || f.id === 'waist_to_hip' ? { ...f, optional: undefined } : f,
 );
 
-export const FIELDS: Record<Garment, MeasurementField[]> = { skirt: SKIRT_FIELDS, bodice: BODICE_FIELDS, dress: DRESS_FIELDS };
+export const FIELDS: Record<Garment, MeasurementField[]> = { skirt: SKIRT_FIELDS, bodice: BODICE_FIELDS, dress: DRESS_FIELDS, trousers: TROUSERS_FIELDS };
 
 export type Unit = 'cm' | 'in';
 export type MeasurementValues = Partial<Record<MeasurementId, number>>; // always stored in cm
@@ -247,6 +269,8 @@ export const EXAMPLE_VALUES: MeasurementValues = {
   waist_to_hip: 20.5,
   waist_to_knee: 58,
   waist_to_floor: 104,
+  crotch_depth: 27,
+  crotch_length: 70,
   // Sample body A from the measurements thread, with the same waist.
   full_bust: 92,
   high_bust: 86,
@@ -319,7 +343,14 @@ export function checkMeasurements(v: MeasurementValues, unit: Unit, garment: Gar
         out.push({ id, level: 'warning', message: `This is more than 4 cm from your waist to hip at the side. Please check both; the pattern adjusts by 4 cm at most.` });
       }
     }
-    if (garment === 'skirt') {
+    const { crotch_depth } = v;
+    if (crotch_depth && waist_to_hip && crotch_depth <= waist_to_hip) {
+      out.push({ id: 'crotch_depth', level: 'warning', message: 'Crotch depth is usually a few cm longer than waist to hip. Measure it seated, from the waist down to the chair.' });
+    }
+    if (crotch_depth && waist_to_knee && crotch_depth >= waist_to_knee - 12) {
+      out.push({ id: 'crotch_depth', level: 'error', message: 'Crotch depth looks long next to waist to knee. Measure it seated, from the waist down to the chair.' });
+    }
+    if (garment === 'skirt' || garment === 'trousers') {
       crossed();
       return out;
     }
@@ -387,6 +418,9 @@ export function crossChecks(v: MeasurementValues): CrossCheck[] {
   ratio('waist_to_knee', 'waist_to_floor', 0.47, 0.65,
     'Waist to knee looks short next to waist to floor. Measure down the side to the middle of the knee, standing straight.',
     'Waist to knee looks long next to waist to floor. Measure to the middle of the knee, and to the floor in bare feet.');
+  ratio('crotch_length', 'crotch_depth', 2.1, 3.3,
+    'Crotch length looks short next to your crotch depth. Take the tape from the centre front waist right through between the legs to the centre back waist.',
+    'Crotch length looks long next to your crotch depth. Keep the tape snug between the legs, and stop at the waist front and back.');
   ratio('full_hip', 'full_bust', 0.8, 1.4,
     'Your hip looks small next to your bust. Measure round the fullest part of the seat, usually about 20 cm below the waist.',
     'Your hip looks large next to your bust. Keep the tape level all the way round, at the fullest part of the seat.');

@@ -5,6 +5,7 @@ import type { BodiceDraft, BodiceLength, BodiceMeasurements } from './bodice';
 import type { SpecRow } from './techpack';
 import type { SleeveDraft, SleeveMeasurements } from './sleeve';
 import type { DressDraft, DressMeasurements } from './dress';
+import { TROUSER_EASE, type TrousersDraft, type TrousersMeasurements } from './trousers';
 
 const r1 = (v: number) => Math.round(v * 10) / 10;
 const row = (label: string, body: number | undefined, finished: number): SpecRow =>
@@ -63,5 +64,22 @@ export function dressSpec(m: DressMeasurements, d: DressDraft, sleeve?: SleeveDr
     row('Length, nape to hem', undefined, d.lengthCm),
     ...(sleeve ? sleeveSpec(m, sleeve) : []),
     { label: 'Invisible zip, centre back', finished: `${d.zipCm}` },
+  ];
+}
+
+/** Trousers: waist and hip, the crotch as measured and as drafted, and the leg. */
+export function trousersSpec(m: TrousersMeasurements, d: TrousersDraft): SpecRow[] {
+  return [
+    row('Waist', m.waist, d.finishedWaist),
+    row('Hip', m.full_hip, d.finishedHip),
+    { label: 'Waist to hip', body: r1(m.waist_to_hip), finished: '' },
+    row('Crotch depth', m.crotch_depth, m.crotch_depth + TROUSER_EASE[d.fit].depth),
+    row('Crotch length', m.crotch_length, d.crotch.front + d.crotch.back),
+    { label: 'Crotch curve, front / back', finished: `${d.crotch.front} / ${d.crotch.back}` },
+    row('Outside leg, waist to hem', undefined, d.lengthCm),
+    row('Knee, round', undefined, d.kneeCm),
+    row('Hem, round', undefined, d.hemCm),
+    { label: 'Waistband (finished width 3)', finished: `cut ${d.waistband.cutLength} x ${d.waistband.cutWidth}` },
+    { label: d.closure === 'fly' ? 'Trouser zip, fly front' : 'Invisible zip, left side', finished: `${d.zipCm}` },
   ];
 }

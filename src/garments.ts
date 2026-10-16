@@ -4,6 +4,8 @@ import type { BodiceDarts, BodiceFit, BodiceLength, Neckline } from './engine/bo
 import { SHAPES_FOR_LENGTH, SleeveLength, SleeveShape } from './engine/sleeve';
 import type { DartPlace, PrincessLine } from './engine/manipulate';
 import type { Closure, Collar } from './engine/collar';
+import { LEG_WORDS, Leg, TrouserClosure, TrouserLength } from './engine/trousers';
+import type { Fit } from './engine/skirt';
 
 export interface BodiceChoices {
   garment: 'bodice';
@@ -29,11 +31,37 @@ export interface DressChoices {
   skirt: Choices;
 }
 
+/** Trousers: the leg's shape and length, and a fly or side zip. */
+export interface TrousersChoices {
+  garment: 'trousers';
+  fit: Fit;
+  leg: Leg;
+  length: TrouserLength;
+  closure: TrouserClosure;
+}
+
+export const DEFAULT_TROUSERS_CHOICES: TrousersChoices = { garment: 'trousers', fit: 'regular', leg: 'straight', length: 'full', closure: 'fly' };
+
+export const TROUSER_GROUPS: { id: 'fit' | 'leg' | 'length' | 'closure'; label: string; options: [string, string][] }[] = [
+  { id: 'fit', label: 'Fit', options: [['fitted', 'Fitted'], ['regular', 'Regular'], ['relaxed', 'Relaxed']] },
+  { id: 'leg', label: 'Leg', options: [['straight', 'Straight'], ['wide', 'Wide'], ['tapered', 'Tapered'], ['culotte', 'Culotte']] },
+  { id: 'length', label: 'Length', options: [['full', 'Full length'], ['ankle', 'Ankle']] },
+  { id: 'closure', label: 'Opening', options: [['fly', 'Fly zip'], ['side_zip', 'Side zip']] },
+];
+
+/** A plain name, such as "Ankle-length wide-leg trousers with a side zip". */
+export function describeTrousers(c: TrousersChoices) {
+  const length = c.leg === 'culotte' ? '' : c.length === 'ankle' ? 'Ankle-length ' : '';
+  const words = `${length}${LEG_WORDS[c.leg]} with a ${c.closure === 'fly' ? 'fly front' : 'side zip'}`;
+  return words[0].toUpperCase() + words.slice(1);
+}
+
 /** A saved pattern's choices. Skirt choices predate bodices, so they carry no garment field. */
-export type PatternChoices = Choices | BodiceChoices | DressChoices;
+export type PatternChoices = Choices | BodiceChoices | DressChoices | TrousersChoices;
 
 export const isBodice = (c: PatternChoices): c is BodiceChoices => (c as BodiceChoices).garment === 'bodice';
 export const isDress = (c: PatternChoices): c is DressChoices => (c as DressChoices).garment === 'dress';
+export const isTrousers = (c: PatternChoices): c is TrousersChoices => (c as TrousersChoices).garment === 'trousers';
 
 export const DEFAULT_BODICE: BodiceChoices = { garment: 'bodice', fit: 'regular', neckline: 'crew', length: 'waist', darts: 'bust_waist', sleeve: 'none', sleeveShape: 'straight' };
 

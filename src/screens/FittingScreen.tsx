@@ -2,12 +2,12 @@ import { useMemo, useState } from 'react';
 import type { P } from '../engine/geometry';
 import type { Piece } from '../engine/piece';
 import type { Side } from '../engine/skirt';
-import { Carried, FIT_ISSUES, FitGarment, FitIssue, Fitting, NO_FITTING, describeFitting, setAmount, toggleIssue, versionsOf } from '../engine/fitting';
+import { Carried, FIT_ISSUES, FitTarget, FitIssue, appliesTo, Fitting, NO_FITTING, describeFitting, setAmount, toggleIssue, versionsOf } from '../engine/fitting';
 import { PieceChange, changeLabel, changeWords, compareEdges } from '../engine/compare';
 
 interface Props {
   /** A dress is fitted as one toile, with the bodice's and the skirt's corrections together. */
-  garment: FitGarment | 'dress';
+  garment: FitTarget;
   /** The corrections the pattern is drafted with: this garment's own, with those carried in from the person's other toiles. */
   fitting?: Fitting;
   /** This garment's own saved fitting, with its earlier versions. */
@@ -30,7 +30,7 @@ interface Props {
 export function FittingScreen({ garment, fitting, own, carried = [], draftWith, hasBustDart, onSave, onCancel }: Props) {
   const saved = fitting ?? NO_FITTING;
   const [f, setF] = useState<Fitting>(saved);
-  const issues = FIT_ISSUES.filter((i) => (garment === 'dress' || i.garment === garment) && (hasBustDart || !i.needsBustDart));
+  const issues = FIT_ISSUES.filter((i) => appliesTo(i, garment) && (hasBustDart || !i.needsBustDart));
   const areaOf = (i: FitIssue) => (garment === 'dress' ? `${i.garment === 'skirt' ? 'Skirt' : 'Bodice'}: ${i.area.toLowerCase()}` : i.area);
   const areas = [...new Set(issues.map(areaOf))];
   const before = useMemo(() => draftWith(saved), [draftWith, saved]);

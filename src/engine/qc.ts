@@ -64,6 +64,7 @@ const NAMES: Record<string, string> = {
   shoulder: 'shoulder',
   neck: 'neckline',
   armhole: 'armhole',
+  crotch: 'crotch seam',
 };
 
 const isFront = (pc: Piece) => /front/i.test(pc.name);
@@ -95,7 +96,7 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
   for (const { group, front, back } of all) {
     const which = (label: string) => (named ? `${group}${/ (centre|side)$/i.test(group) ? ' panel' : ''} ${label[0].toLowerCase()}${label.slice(1)}` : label);
     // Seams that sew together.
-    for (const seam of ['side', 'shoulder']) {
+    for (const seam of ['side', 'shoulder', 'inseam']) {
       const f = taggedLength(front.outline, seam);
       const b = taggedLength(back.outline, seam);
       if (!f || !b) continue;
@@ -113,7 +114,7 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
       } else {
         checks.push({
           group: 'Seams',
-          label: which('Side seams'),
+          label: which(seam === 'inseam' ? 'Inside leg seams' : 'Side seams'),
           detail: `front ${cm(f)}, back ${cm(b)}, ${Math.abs(f - b) < 0.05 ? 'identical' : `${cm(Math.abs(f - b))} apart`}`,
           ok: Math.abs(f - b) <= SEAM_TOLERANCE,
         });
@@ -127,7 +128,7 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
         const sum = c.angle + bc.angle;
         checks.push({
           group: 'Corners',
-          label: which(`${cap(NAMES[other])} blends across the ${NAMES[seam]}`),
+          label: which(`${cap(NAMES[other])} blends across the ${seam === 'inseam' ? 'inside leg' : NAMES[seam]}`),
           detail: `front ${deg(c.angle)} + back ${deg(bc.angle)} = ${deg(sum)}`,
           ok: Math.abs(sum - 180) <= BLEND_TOLERANCE,
         });
@@ -153,6 +154,19 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
         ok: Math.abs(seam - opts.finishedWaist) <= 1.5,
       });
     }
+
+  // Trousers: the crotch seam, front curve and back, against the person's crotch length with ease.
+  for (const { front, back } of all) {
+    const target = front.meta.crotchTarget as number | undefined;
+    if (!target) continue;
+    const c = taggedLength(front.outline, 'crotch') + taggedLength(back.outline, 'crotch');
+    checks.push({
+      group: 'Seams',
+      label: 'Crotch seam to your crotch length',
+      detail: `front ${cm(taggedLength(front.outline, 'crotch'))} + back ${cm(taggedLength(back.outline, 'crotch'))} = ${cm(c)}, drafted to ${cm(target)} with ease`,
+      ok: Math.abs(c - target) <= 0.5,
+    });
+  }
 
   // Princess seams: each centre panel against its side panel.
   for (const c of pieces.filter((pc) => /centre (front|back)/i.test(pc.name) && taggedLength(pc.outline, 'princess') > 0)) {
@@ -236,7 +250,8 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
   for (const pc of pieces) {
     const where = (pc.meta.foldAt as string | undefined) ?? (isFront(pc) ? 'centre front' : 'centre back');
     for (const c of corners(pc)) {
-      const centre = ['fold', 'centre'].includes(c.a) ? c.b : ['fold', 'centre'].includes(c.b) ? c.a : '';
+      const centres = ['fold', 'centre', 'crotch'];
+      const centre = centres.includes(c.a) ? c.b : centres.includes(c.b) ? c.a : '';
       if (!centre || !NAMES[centre] || ((pc.meta.pointedAtCentre as string[] | undefined) ?? []).includes(centre)) continue;
       checks.push({
         group: 'Corners',

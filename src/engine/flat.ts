@@ -10,6 +10,7 @@ import { BodiceDraft, blockOf } from './bodice';
 import type { BodiceEdges } from './instructions';
 import { BAND_CM, SleeveDraft } from './sleeve';
 import type { DressDraft } from './dress';
+import type { TrousersDraft } from './trousers';
 
 export type FlatLineKind = 'seam' | 'dart' | 'stitch' | 'zip';
 
@@ -518,4 +519,56 @@ export function dressFlat(d: DressDraft, edges: BodiceEdges = 'binding', opts: {
       return { label: b.label, shapes: [b.shapes[0], ...k.shapes.map(move), ...b.shapes.slice(1)], lines };
     }),
   );
+}
+
+/** A quadratic run of points from a to b pulled toward c, as a list. */
+const bend = (a: P, c: P, b: P, n = 10) => quad(a, c, b, n);
+
+/**
+ * Trousers, drawn as they lie flat: the waistband, each leg hanging from the hip with its crease down
+ * the middle, at half its knee and hem round, and the fly or side zip with its stitching.
+ */
+export function trousersFlat(d: TrousersDraft, m: { waist_to_hip: number; crotch_depth: number }): Flat {
+  const W = d.finishedWaist / 4;
+  const hw = d.finishedHip / 4 + 0.5;
+  const hd = m.waist_to_hip;
+  const cd = m.crotch_depth + 1;
+  const L = d.lengthCm;
+  const kn = Math.min(cd + (L - cd) * 0.45, L - 4);
+  const xc = hw / 2;
+  const knee = Math.max(d.kneeCm / 4, 4);
+  const hem = Math.max(d.hemCm / 4, 4);
+  const views = (['FRONT', 'BACK'] as const).map((label, i) => {
+    const back = i === 1;
+    const top = back ? -0.8 : 0;
+    const run = [
+      p(0, top),
+      p(W, 0),
+      ...bend(p(W, 0), p(hw, hd * 0.45), p(hw, hd)).slice(1),
+      ...bend(p(hw, hd), p(hw, (hd + kn) / 2), p(xc + knee, kn)).slice(1),
+      p(xc + hem, L),
+      p(xc - hem, L),
+      p(xc - knee, kn),
+      ...bend(p(xc - knee, kn), p(0.4, cd + 2), p(0, cd)).slice(1),
+    ];
+    const shapes = [whole(run), whole([p(0, top), p(W, 0), p(W, -WAISTBAND_CM), p(0, top - WAISTBAND_CM)])];
+    const lines: FlatView['lines'] = [
+      { pts: [p(0, top), p(0, cd)], kind: 'seam' },
+      ...both([p(xc, hd + 2), p(xc, L)]).map((pts) => ({ pts, kind: 'stitch' as const })),
+    ];
+    const darts = back ? [0.36, 0.66].slice(0, d.dartsPerSide.back) : [0.5].slice(0, d.dartsPerSide.front);
+    for (const f of darts) lines.push(...both([p(W * f, 0), p(W * f + 0.2, back ? 12 : 8)]).map((pts) => ({ pts, kind: 'dart' as const })));
+    if (!back && d.closure === 'fly') {
+      const z = d.zipCm;
+      lines.push({ pts: [p(-3.5, 0), ...bend(p(-3.5, z - 2), p(-3.5, z + 0.5), p(0, z + 1.5))], kind: 'stitch' });
+    }
+    if (d.closure === 'side_zip') {
+      // The left side, as worn: the viewer's right on the back, left on the front.
+      const sx = back ? -1 : 1;
+      const pts = bend(p(W, 0), p(hw, hd * 0.45), p(hw, hd), 16).filter((q) => q.y <= d.zipCm).map((q) => p(q.x * sx, q.y));
+      lines.push({ pts, kind: 'zip' });
+    }
+    return { label, shapes, lines };
+  });
+  return arrange(views);
 }

@@ -5,6 +5,8 @@ import type { Side, SkirtFitting } from './skirt';
 import type { BodiceFitting } from './bodice';
 
 export type FitGarment = 'skirt' | 'bodice';
+/** Every garment that can be fitted in a toile: a dress takes both kinds of correction, trousers the skirt's waist and hip. */
+export type FitTarget = FitGarment | 'dress' | 'trousers';
 
 export interface FitIssue {
   id: string;
@@ -398,6 +400,16 @@ export const FIT_ISSUES: FitIssue[] = [
 
 export const issueById = (id: string) => FIT_ISSUES.find((i) => i.id === id);
 
+/** The skirt corrections trousers take: the waist, the hip and the centre waists (not darts or one hip). */
+const TROUSER_KEYS = ['hipEase', 'waistEase', 'frontDrop', 'backDrop'];
+
+/** Whether a correction applies to a garment. */
+export function appliesTo(issue: FitIssue, garment: FitTarget): boolean {
+  if (garment === 'dress') return true;
+  if (garment === 'trousers') return issue.garment === 'skirt' && issue.keys.every((k) => TROUSER_KEYS.includes(k));
+  return issue.garment === garment;
+}
+
 /** One person's corrections for one garment: each issue seen, with how much, and which side. */
 export interface Fitting {
   issues: Record<string, number>;
@@ -435,11 +447,11 @@ export function toFitting(f: Fitting | undefined, garment: FitGarment): SkirtFit
 const amount = (issue: FitIssue, v: number) => (issue.unit === 'cm' ? `${v} cm` : `${v} degrees`);
 
 /** What changed, in a few words each, for the pattern's notes. */
-export function describeFitting(f: Fitting | undefined, garment: FitGarment | 'dress'): string[] {
+export function describeFitting(f: Fitting | undefined, garment: FitTarget): string[] {
   return Object.entries(f?.issues ?? {})
     .map(([id, v]) => ({ issue: issueById(id), v }))
     // A dress is fitted as one toile: its bodice and its skirt corrections are kept together.
-    .filter((x): x is { issue: FitIssue; v: number } => !!x.issue && (garment === 'dress' || x.issue.garment === garment) && x.v > 0)
+    .filter((x): x is { issue: FitIssue; v: number } => !!x.issue && appliesTo(x.issue, garment) && x.v > 0)
     .map(({ issue, v }) => issue.note.replace('{v}', amount(issue, Math.min(issue.max, v))).replace('{side}', f?.sides?.[issue.id] ?? 'right'));
 }
 
@@ -463,14 +475,11 @@ export function setAmount(f: Fitting, id: string, v: number): Fitting {
   return { ...f, issues: { ...f.issues, [id]: Math.round(Math.min(issue.max, Math.max(issue.step, v)) * 10) / 10 } };
 }
 
-/** Which kinds of correction each garment takes: a dress takes both the bodice's and the skirt's. */
-const TAKES: Record<FitGarment | 'dress', FitGarment[]> = { skirt: ['skirt'], bodice: ['bodice'], dress: ['skirt', 'bodice'] };
-
 export interface Carried {
   /** The garment's own corrections, with those found on the person's other toiles filled in. */
   fitting: Fitting;
   /** Which corrections came from which other toile. */
-  from: { id: string; garment: FitGarment | 'dress' }[];
+  from: { id: string; garment: FitTarget }[];
 }
 
 /**
@@ -480,12 +489,12 @@ export interface Carried {
  * other toiles disagree, the more recent one wins. A correction (or its opposite) on the garment's own
  * toile always wins.
  */
-export function carriedFitting(fittings: Partial<Record<FitGarment | 'dress', Fitting>> | undefined, garment: FitGarment | 'dress'): Carried {
+export function carriedFitting(fittings: Partial<Record<FitTarget, Fitting>> | undefined, garment: FitTarget): Carried {
   const own = fittings?.[garment];
   const issues = { ...(own?.issues ?? {}) };
   const sides = { ...(own?.sides ?? {}) };
   const from: Carried['from'] = [];
-  const others = (Object.keys(fittings ?? {}) as (FitGarment | 'dress')[])
+  const others = (Object.keys(fittings ?? {}) as FitTarget[])
     .filter((g) => g !== garment && fittings![g])
     .sort((a, b) => (fittings![b]!.date ?? '').localeCompare(fittings![a]!.date ?? ''));
   const covered = (id: string) => {
@@ -496,7 +505,7 @@ export function carriedFitting(fittings: Partial<Record<FitGarment | 'dress', Fi
     const f = fittings![g]!;
     for (const [id, v] of Object.entries(f.issues)) {
       const issue = issueById(id);
-      if (!issue || !(v > 0) || !TAKES[garment].includes(issue.garment) || covered(id)) continue;
+      if (!issue || !(v > 0) || !appliesTo(issue, garment) || covered(id)) continue;
       // An issue the own toile already looked at and cleared stays cleared: only fill what it never saw.
       if (own?.checked?.includes(id)) continue;
       issues[id] = v;

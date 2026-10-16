@@ -263,7 +263,7 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
                 </label>
               ))}
             </fieldset>
-          ) : (
+          ) : garment === 'trousers' ? null : (
             <fieldset className="group">
               <legend>Neck and armholes</legend>
               {EDGES.map((e) => (
@@ -371,7 +371,7 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
           </ul>
         ) : (
           <p className="muted">
-            Make it up in calico first and try it on. Tell us what you see, such as pulling at the bust or a gaping neckline, and the
+            Make it up in calico first and try it on. Tell us what you see, such as {garment === 'skirt' || garment === 'trousers' ? 'pulling across the hips or folds below the back waist' : 'pulling at the bust or a gaping neckline'}, and the
             pattern is corrected the way a pattern cutter would, with a second line for one side if your shoulders or hips differ.
           </p>
         )}
@@ -395,6 +395,7 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
             <p className="eyebrow">After printing</p>
             <h2 id="sewtitle">How to sew it</h2>
           </div>
+          {garment !== 'trousers' && (
           <div className="seg" role="group" aria-label="How to sew it">
             {(['quick', 'couture'] as const).map((r) => (
               <button key={r} type="button" className={finish.route === r ? 'on' : ''} aria-pressed={finish.route === r} onClick={() => onFinish({ ...finish, route: r })}>
@@ -402,8 +403,9 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
               </button>
             ))}
           </div>
+          )}
         </div>
-        {finish.route === 'couture' && (
+        {finish.route === 'couture' && garment !== 'trousers' && (
           <div className="cloth">
             <p className="muted small">
               Thread-traced lines, basting and a fitting before machining, a hand-picked zip and hand-finished edges. The seam finish and
