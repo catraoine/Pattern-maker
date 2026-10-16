@@ -1,5 +1,5 @@
 // Turning a photo reading into exact skirt proportions, and describing them in plain words.
-import type { SkirtShape } from '../engine/skirt';
+import type { Fit, SkirtShape } from '../engine/skirt';
 import type { PhotoReading } from './types';
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
@@ -13,6 +13,11 @@ export function shapeOf(r: PhotoReading): SkirtShape | undefined {
     hemFullness: clamp(s.hemFullness, 0.8, 8),
     ...(r.silhouette.value === 'trumpet' && s.flareAt !== null && Number.isFinite(s.flareAt) ? { flareAt: clamp(s.flareAt, 0.25, 0.9) } : {}),
   };
+}
+
+/** The fit to start from. Too tight is worse than too roomy, so "fitted" is only used when the photo clearly shows it. */
+export function fitOf(r: PhotoReading): Fit {
+  return r.fit.value === 'fitted' && r.fit.confidence !== 'high' ? 'regular' : r.fit.value;
 }
 
 /** One plain sentence describing the matched shape. */
