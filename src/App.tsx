@@ -32,6 +32,7 @@ import {
   removePattern,
   removePerson,
   renamePattern,
+  setPatternFit,
   savePattern,
   updatePerson,
   recordMeasurements,
@@ -575,6 +576,7 @@ export default function App() {
               }}
               onRename={(id, name) => setAccount(renamePattern(account, id, name))}
               onRemove={(id) => setAccount(removePattern(account, id))}
+              onFit={(id, fit) => setAccount(setPatternFit(account, id, fit))}
               onReset={reset}
               onBackup={() => {
                 const url = URL.createObjectURL(new Blob([JSON.stringify(makeBackup(saved, account), null, 2)], { type: 'application/json' }));
