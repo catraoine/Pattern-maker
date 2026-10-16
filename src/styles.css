@@ -1796,3 +1796,27 @@ table.history td.moved {
   height: 10px;
   opacity: 0.8;
 }
+
+.makerform hr {
+  border: 0;
+  border-top: var(--bw) solid var(--line);
+  margin: 20px 0;
+}
+
+.makerform input {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 48px;
+  padding: 0 12px;
+  border: var(--bw) solid var(--ink);
+  border-radius: 0;
+  background: var(--white);
+  color: var(--ink);
+  font: inherit;
+  font-family: var(--mono);
+  font-size: 16px;
+}
+
+.makerform form {
+  margin-top: 12px;
+}

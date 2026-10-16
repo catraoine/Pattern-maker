@@ -17,6 +17,12 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- Lets Netlify Forms find the dressmaker sign-up; the app posts to it from the Print screen. -->
+    <form name="find-a-maker" data-netlify="true" netlify-honeypot="bot-field" hidden>
+      <input type="email" name="email" />
+      <input type="text" name="pattern" />
+      <input name="bot-field" />
+    </form>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
