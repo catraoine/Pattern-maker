@@ -10,7 +10,7 @@ import { AllowanceStyle, SEAM_WIDTHS, withAllowances } from './engine/allowances
 import { bodiceFacings, liningPieces, waistbandPiece } from './engine/finishing';
 import { bodiceSpec, dressSpec, skirtSpec, sleeveSpec } from './engine/spec';
 import { SleeveDraft, SleeveMeasurements, draftSleeve, needsArms } from './engine/sleeve';
-import { Fitting, describeFitting, toFitting } from './engine/fitting';
+import { Fitting, carriedFitting, describeCarried, describeFitting, saveVersion, toFitting } from './engine/fitting';
 import { FabricWidth, layPlans } from './engine/layplan';
 import { EXAMPLE_VALUES, Garment, MeasurementValues, Unit, checkMeasurements, isComplete } from './measurements';
 import { usePersistent } from './store';
@@ -46,12 +46,13 @@ import { AccountScreen } from './screens/AccountScreen';
 import { PhotoScreen } from './screens/PhotoScreen';
 import { WhoseScreen } from './screens/WhoseScreen';
 import { FittingScreen } from './screens/FittingScreen';
+import { TrueScaleScreen } from './screens/TrueScaleScreen';
 import { LoadingScreen } from './ui/LoadingScreen';
 import type { FormStart } from './ui/ContourForm';
 import type { Piece } from './engine/piece';
 
 export type Step = 'measure' | 'style' | 'export';
-type View = Step | 'welcome' | 'account' | 'photo' | 'whose' | 'fitting';
+type View = Step | 'welcome' | 'account' | 'photo' | 'whose' | 'fitting' | 'scale';
 
 export interface Choices {
   fit: Fit;
@@ -170,8 +171,12 @@ export default function App() {
   const checks = checkMeasurements(values, saved.unit, garment);
   const canLeaveMeasure = ready(values, saved.unit, garment);
 
-  // Corrections from this person's toile fittings go into every pattern drafted for them.
-  const fitting = person.fittings?.[garment];
+  // Corrections from this person's toile fittings go into every pattern drafted for them: the garment's
+  // own toile first, then what the person's other toiles found that this one hasn't looked at.
+  const ownFitting = person.fittings?.[garment];
+  const carried = useMemo(() => carriedFitting(person.fittings, garment), [person.fittings, garment]);
+  const fitting = carried.fitting;
+  const carriedNotes = useMemo(() => describeCarried(carried), [carried]);
   const skirtStyle = useMemo(() => ({ ...saved.choices, fitting: toFitting(fitting, 'skirt') }), [saved.choices, fitting]);
   const bodiceStyle = useMemo(() => ({ ...validDetails(saved.bodice), fitting: toFitting(fitting, 'bodice') }), [saved.bodice, fitting]);
   const dress = useMemo(
@@ -229,7 +234,7 @@ export default function App() {
     const seams = SEAM_WIDTHS[finish.allowances];
     const allow = (pieces: Printable['pieces']) => pieces.map((pc) => withAllowances(pc, finish.allowances));
     const couture = finish.allowances === 'couture';
-    const fittingNotes = fittingLines(fitting, garment);
+    const fittingNotes = [...fittingLines(ownFitting, garment), ...carriedNotes.map((l) => `${l}.`)];
     const route = (guide: SewingGuide, c: { garment: 'skirt' | 'bodice' | 'dress'; lined: boolean; zipCm: number }) =>
       finish.route === 'couture' ? toCouture(guide, { ...c, cloth: finish.cloth, traced: couture }) : guide;
     if (skirt) {
@@ -351,7 +356,7 @@ export default function App() {
       };
     }
     return undefined;
-  }, [result, saved.choices, saved.bodice, dress, skirtStyle, values, finish.allowances, finish.skirtLined, finish.bodiceEdges, finish.fabricWidth, finish.nap, finish.route, finish.cloth, fitting, garment]);
+  }, [result, saved.choices, saved.bodice, dress, skirtStyle, values, finish.allowances, finish.skirtLined, finish.bodiceEdges, finish.fabricWidth, finish.nap, finish.route, finish.cloth, fitting, ownFitting, carriedNotes, garment]);
 
   const isSaved = isSavedFor(account, current, person.id);
   const saveState = isSaved ? 'saved' : account.patterns.length >= FREE_SAVED_LIMIT ? 'full' : 'can';
@@ -581,20 +586,25 @@ export default function App() {
               made={printable}
               error={result.error}
               onBack={() => setStep('style')}
-              fitting={fitting}
-              fittingNotes={describeFitting(fitting, garment)}
+              fitting={ownFitting}
+              fittingNotes={[...describeFitting(ownFitting, garment), ...carriedNotes]}
               onFitting={() => setStep('fitting')}
+              onTrueScale={() => setStep('scale')}
             />
           )}
+          {step === 'scale' && printable && <TrueScaleScreen pieces={printable.pieces} onBack={() => setStep('export')} />}
           {step === 'fitting' && (
             <FittingScreen
               key={`${person.id}-${garment}`}
               garment={garment}
               fitting={fitting}
+              own={ownFitting}
+              carried={carried.from}
               draftWith={draftWith}
               hasBustDart={garment === 'skirt' || (garment === 'dress' ? dress.bodice : saved.bodice).darts !== 'none'}
-              onSave={(f) => {
-                setAccount(updatePerson(account, person.id, { fittings: { ...person.fittings, [garment]: f } }));
+              onSave={(f, shown) => {
+                const next = saveVersion(ownFitting, f, new Date().toISOString().slice(0, 10), shown);
+                setAccount(updatePerson(account, person.id, { fittings: { ...person.fittings, [garment]: next } }));
                 setStep('export');
               }}
               onCancel={() => setStep('export')}

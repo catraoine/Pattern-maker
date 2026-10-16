@@ -44,6 +44,8 @@ interface Props {
   fitting?: Fitting;
   fittingNotes: string[];
   onFitting: () => void;
+  /** Each piece on screen at its real size. */
+  onTrueScale?: () => void;
 }
 
 type Output = Paper | 'projector' | 'projectorDark';
@@ -89,7 +91,7 @@ function download(data: BlobPart, type: string, name: string) {
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
-export function ExportScreen({ profile, title, fit, garment, finish, onFinish, made, error, onBack, fitting, fittingNotes, onFitting }: Props) {
+export function ExportScreen({ profile, title, fit, garment, finish, onFinish, made, error, onBack, fitting, fittingNotes, onFitting, onTrueScale }: Props) {
   const [paper, setPaper] = useState<Output>('a4');
   const [pdf, setPdf] = useState<{ paper: Output; bytes: Uint8Array } | null>(null);
   const [shareNote, setShareNote] = useState('');
@@ -377,6 +379,11 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
           <button type="button" className="secondary" onClick={onFitting}>
             {fittingNotes.length ? 'Fit another toile' : 'I’ve tried on a toile'}
           </button>
+          {onTrueScale && made && (
+            <button type="button" className="secondary" onClick={onTrueScale}>
+              See a piece at true size
+            </button>
+          )}
         </div>
       </section>
 

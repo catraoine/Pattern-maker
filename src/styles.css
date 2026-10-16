@@ -1394,6 +1394,28 @@ button.ghost:disabled {
   stroke-width: 1;
   stroke-dasharray: 1 2.5;
 }
+.fitprev .fit-mark circle {
+  fill: var(--gild);
+}
+.fitprev .fit-mark text {
+  fill: var(--ink);
+  font-family: var(--mono);
+  paint-order: stroke;
+  stroke: var(--white);
+  stroke-width: 0.25;
+}
+.fitlist.changes {
+  font-size: 13px;
+}
+.tag.carried {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 6px;
+  border: 1px solid var(--gild);
+  border-radius: 999px;
+  color: var(--gild);
+  font-size: 12px;
+}
 .fitside {
   position: sticky;
   top: 16px;
@@ -1536,4 +1558,62 @@ button.ghost:disabled {
 }
 .cloth p {
   margin: 0;
+}
+
+/* True size: a bank card to calibrate against, then a piece at 1:1 */
+.calcard-wrap {
+  overflow-x: auto;
+  padding: 8px 0;
+}
+.calcard {
+  display: grid;
+  place-items: end start;
+  padding: 8px 10px;
+  border: 1.5px solid var(--gild);
+  box-sizing: border-box;
+  color: var(--muted);
+}
+.truescale .reading {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 14px;
+}
+.truescale-pan {
+  overflow: auto;
+  max-height: 70vh;
+  border: 1px solid var(--line, var(--muted));
+  touch-action: pan-x pan-y;
+}
+.truescale-pan svg {
+  display: block;
+}
+.ts-grid line {
+  stroke: var(--muted);
+  opacity: 0.35;
+}
+.ts-cut {
+  fill: none;
+  stroke: var(--muted);
+}
+.ts-stitch {
+  fill: rgba(200, 170, 110, 0.06);
+  stroke: var(--ink);
+}
+.ts-line {
+  fill: none;
+  stroke: var(--ink);
+  opacity: 0.7;
+}
+.ts-edge {
+  fill: none;
+  stroke: var(--gild);
+  stroke-linecap: round;
+  opacity: 0.8;
+}
+.ts-tap {
+  fill: var(--gild);
+}
+.ts-tapline {
+  stroke: var(--gild);
+  stroke-dasharray: 0.4 0.25;
 }

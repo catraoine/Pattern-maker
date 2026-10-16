@@ -270,7 +270,7 @@ function finish(d: BodiceDraft, s: BodiceStyle): BodiceDraft {
   if (closure === 'front_buttons') {
     const cfNeck = bf.outline.start;
     const foot = Math.max(...bf.outline.points(4).filter((q) => Math.abs(q.x) < 1e-6).map((q) => q.y));
-    buttons = buttonPlaces(cfNeck.y, foot, collar === 'mandarin' || collar === 'shirt', !needsHip(s.length));
+    buttons = buttonPlaces(cfNeck.y, foot, collar === 'mandarin' || collar === 'shirt', !needsHip(s.length), d.front.apex.y);
     pieces = pieces.map((pc) => (pc.fold && /front/i.test(pc.name) ? openFront(pc, buttons) : /back/i.test(pc.name) ? backOnFold(pc) : pc));
     const openBlock = openFront(bf);
     const foldBlock = backOnFold(bb);

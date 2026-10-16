@@ -35,14 +35,21 @@ export interface Buttons {
   sizeCm: number;
 }
 
-/** Where the buttons go: the first just below the neck (or below the collar band), the last a little
- * above the waist or hem, evenly spaced about 8 cm apart. */
-export function buttonPlaces(top: number, bottom: number, banded: boolean, waistLength: boolean): Buttons {
+/** Where the buttons go: the first just below the neck (or below the collar band), one level with the
+ * bust point, the last a little above the waist or hem, about 8 cm apart. */
+export function buttonPlaces(top: number, bottom: number, banded: boolean, waistLength: boolean, bust?: number): Buttons {
   const first = top + (banded ? 6 : 1.6);
   const last = bottom - (waistLength ? 2 : 8);
-  const count = Math.max(3, Math.round((last - first) / 8) + 1);
-  const at = Array.from({ length: count }, (_, i) => Math.round((first + ((last - first) * i) / (count - 1)) * 10) / 10);
-  return { count, at, sizeCm: BUTTON_CM };
+  const even = (a: number, b: number, n: number) => Array.from({ length: n + 1 }, (_, i) => a + ((b - a) * i) / n);
+  let at: number[];
+  if (bust !== undefined && bust > first + 4 && bust < last - 4) {
+    // One button sits level with the bust point, where a front gapes first; the rest space out from it.
+    at = [...even(first, bust, Math.max(1, Math.round((bust - first) / 8))), ...even(bust, last, Math.max(1, Math.round((last - bust) / 8))).slice(1)];
+  } else {
+    at = even(first, last, Math.max(2, Math.round((last - first) / 8)));
+  }
+  at = at.map((y) => Math.round(y * 10) / 10);
+  return { count: at.length, at, sizeCm: BUTTON_CM };
 }
 
 /** The front opened at the centre front: the fold becomes an extension, buttonholes on it. */
