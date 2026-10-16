@@ -9,6 +9,8 @@
   --fill: #14110c;
   --focus: #9a8e78;
   --disabled: #5c5446;
+  --warn: #e0b07a; /* fabric notes: heads up */
+  --ok: #a9c49b; /* fabric notes: good match */
   --paper: #000000;
   --white: #000000; /* the "card" ground; text on --ink fills uses it too */
   --mono: 'Chakra Petch', ui-monospace, Menlo, monospace;
@@ -1558,6 +1560,139 @@ button.ghost:disabled {
 }
 .cloth p {
   margin: 0;
+}
+
+/* Fabric guidance: the style screen's suggestions, the fabric guide and the print screen's "Your fabric". */
+.fabric {
+  display: grid;
+  gap: 8px;
+}
+.fabric p {
+  margin: 0;
+}
+.picks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+}
+.picks li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 10px;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+.picks li:first-child {
+  border-top: 0;
+}
+.picks strong {
+  font-weight: var(--w-strong);
+  font-size: 14px;
+}
+.picks .small {
+  grid-column: 1 / -1;
+}
+.picks .tag {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  color: var(--gild);
+  border: 1px solid var(--line-strong);
+  padding: 2px 5px;
+  align-self: start;
+  white-space: nowrap;
+}
+.avoid,
+.fabnote.warn {
+  border-left: 1px solid var(--warn);
+  padding-left: 10px;
+}
+.fabnote.ok {
+  border-left: 1px solid var(--ok);
+  padding-left: 10px;
+}
+.fabnote.info {
+  border-left: 1px solid var(--line-strong);
+  padding-left: 10px;
+}
+.avoid b,
+.fabnote.warn b {
+  color: var(--warn);
+  font-weight: var(--w-strong);
+}
+.fabnote.ok b {
+  color: var(--ok);
+  font-weight: var(--w-strong);
+}
+.fabric .link {
+  justify-self: start;
+}
+.yourfabric {
+  display: grid;
+  gap: 12px;
+}
+.yourfabric p {
+  margin: 0;
+}
+dialog.guide {
+  width: min(560px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  background: var(--paper);
+  color: var(--ink);
+}
+dialog.guide::backdrop {
+  background: rgba(0, 0, 0, 0.7);
+}
+.guide-body {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+}
+.guide-body p,
+.guide-body h2 {
+  margin: 0;
+}
+.guide-body .scale {
+  display: grid;
+  gap: 6px;
+}
+.scalebar {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border: 1px solid var(--line-strong);
+}
+.scalebar div {
+  padding: 8px;
+  font-size: 12.5px;
+  border-left: 1px solid var(--line);
+  min-width: 0;
+}
+.scalebar div:first-child {
+  border-left: 0;
+}
+.scalebar b {
+  display: block;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  color: var(--gild);
+  font-weight: 400;
+  margin-bottom: 2px;
+}
+.guide-body .tips {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+}
+.guide-body .tips li::marker {
+  color: var(--gild);
 }
 
 /* True size: a bank card to calibrate against, then a piece at 1:1 */

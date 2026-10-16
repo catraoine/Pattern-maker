@@ -151,6 +151,7 @@ export async function toTechPack(tp: TechPack): Promise<Uint8Array> {
   );
 
   heading('Fabric and notions');
+  (tp.guide.fabric ?? []).forEach((l) => write(l, 10, font, 0, 1));
   tp.guide.notions.forEach((n) => write(`-  ${n}`, 10, font, 0, 1));
 
   if (tp.notes.length) {
