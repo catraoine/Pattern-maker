@@ -29,7 +29,7 @@ const contact = `${OWNER.name}, ${OWNER.address}. Email ${OWNER.email}.`;
 export const PRIVACY: LegalDoc = {
   title: 'Privacy Policy',
   intro:
-    'Your measurements, the people you measure for and your saved patterns stay on your own device. We only receive something from you when you use photo-to-pattern, and we don’t keep that photo.',
+    'Your measurements, the people you measure for and your saved patterns stay on your own device. We only receive something from you when you use photo-to-pattern (we don’t keep that photo), or when you choose to send us fit notes.',
   sections: [
     {
       heading: 'Who we are',
@@ -45,17 +45,23 @@ export const PRIVACY: LegalDoc = {
           table: [
             ['What', 'Where it’s kept', 'Do we receive it?'],
             ['Your name and the names of people you measure for', 'Your device', 'No'],
-            ['Body measurements and units', 'Your device', 'No'],
+            ['Body measurements and units', 'Your device', 'No, unless you send fit notes'],
             ['Saved patterns and style choices', 'Your device', 'No'],
             ['Backup files you create', 'Wherever you save them', 'No'],
             ['PDFs, tech packs and DXF files you export or share', 'Your device, or the app you share them to', 'No'],
+            [
+              'Fit notes you choose to send (pattern style, fit answers, your notes and the measurements the pattern was drafted from, with no name)',
+              'Our server (Netlify)',
+              'Only if you tick “Send these notes to Maison Tracé”',
+            ],
             ['Photos you choose for photo-to-pattern', 'Sent for reading, then discarded', 'Yes, briefly'],
             ['Your IP address and basic request details', 'Our hosting provider’s logs', 'Yes, as part of serving the site'],
-            ['A scrambled code made from your IP address', 'Our photo counter, for one day', 'Yes'],
+            ['A scrambled code made from your IP address', 'Our photo and fit-note counters, for one day', 'Yes'],
           ],
         },
         'Your device.|The app saves your details in your browser’s storage so they’re there next time. They never leave your device unless you export, share or back them up yourself. Clearing your browser data, or uninstalling the app, deletes them.',
         'Measurements are personal.|Body measurements can be sensitive, which is one reason we keep them on your device. If you enter measurements for someone else, please make sure they’re happy for you to do so.',
+        'Fit notes.|When you note how a pattern fitted, you can choose to send those notes to us. We receive the pattern’s style, your answers, any notes you write and the measurements it was drafted from. We don’t receive your name or the name of the person it was made for, so please leave names out of your notes. We use fit notes only to improve how our patterns fit. We count how many you send each day under the same scrambled code as photo readings, so the service can’t be flooded, and we don’t store your IP address with the notes.',
         'What we don’t do.|We don’t use advertising, tracking cookies or analytics tools, and we don’t sell or share your information for marketing. The app’s typefaces are built in, so your browser doesn’t contact a font service.',
       ],
     },
@@ -69,7 +75,7 @@ export const PRIVACY: LegalDoc = {
           table: [
             ['Company', 'What it does', 'What it sees'],
             ['Anthropic', 'Reads the style from your photo', 'The photo'],
-            ['Netlify', 'Hosts the site and runs our server code, including the photo counter', 'Your IP address, request details, the photo in transit'],
+            ['Netlify', 'Hosts the site and runs our server code, including the daily counters and stored fit notes', 'Your IP address, request details, the photo in transit, and fit notes you send'],
           ],
         },
         'Anthropic handles photos under its commercial terms for businesses using its API, which say it doesn’t train its models on that data. These companies are based in the United States, so your photo and request details may be processed there.',
@@ -82,7 +88,8 @@ export const PRIVACY: LegalDoc = {
         [
           'On your device: until you delete it. You can remove people and patterns in Your account, or clear everything by clearing your browser data for this site.',
           'Photos: not kept by us once the style has been read.',
-          'Photo counter: one tally per day, keyed by the scrambled code.',
+          'Fit notes you send: kept while we use them to improve our patterns. Because they carry no name, we can’t match them to you later unless you tell us roughly when you sent one and what it said.',
+          'Daily counters: one tally per day, keyed by the scrambled code.',
           'Hosting logs: kept by Netlify for its standard period.',
         ],
         `Because almost everything stays on your device, we usually hold nothing we can look up about you. You can still contact us at ${OWNER.email} to ask what we hold, to correct it or to delete it. Depending on where you live (for example the UK, the EU, Canada or California), you may have further rights, including the right to complain to your local data protection authority.`,
