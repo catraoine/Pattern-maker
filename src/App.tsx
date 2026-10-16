@@ -173,9 +173,9 @@ export default function App() {
   const { values } = person;
   const setValues = (v: MeasurementValues) => setAccount(updatePerson(account, person.id, { values: v }));
   const { garment } = saved;
-  const measuredBefore = isComplete(values, garment);
-  // People who measured before onboarding existed have already met the app, so they skip the welcome.
-  const [step, setStep] = useState<View>(measuredBefore ? 'style' : account.onboarded ? 'measure' : 'welcome');
+  // Every visit opens on the welcome screen (Cat's pick, 2026-10-16). Saved measurements and
+  // patterns are kept, so a returning sewist taps through and carries on.
+  const [step, setStep] = useState<View>('welcome');
   // Where the legal pages go back to.
   const [beforeLegal, setBeforeLegal] = useState<View>('welcome');
   const openLegal = (page: 'privacy' | 'terms') => {
