@@ -1,0 +1,252 @@
+{
+  "01-pencil": {
+    "ok": true,
+    "reading": {
+      "garment": "skirt",
+      "silhouette": {
+        "value": "pencil",
+        "confidence": "high"
+      },
+      "length": {
+        "value": "above_knee",
+        "confidence": "high"
+      },
+      "fit": {
+        "value": "fitted",
+        "confidence": "high"
+      },
+      "shape": {
+        "hemAt": 0.5,
+        "hemFullness": 0.92,
+        "flareAt": null,
+        "confidence": "medium"
+      },
+      "details": "This high-waisted pencil skirt appears to have curved princess-style seams on the front, which you could add yourself if you like that look."
+    }
+  },
+  "04-a-line-midi": {
+    "ok": true,
+    "reading": {
+      "garment": "skirt",
+      "silhouette": {
+        "value": "a_line",
+        "confidence": "high"
+      },
+      "length": {
+        "value": "knee",
+        "confidence": "medium"
+      },
+      "fit": {
+        "value": "regular",
+        "confidence": "medium"
+      },
+      "shape": {
+        "hemAt": 0.53,
+        "hemFullness": 1.5,
+        "flareAt": null,
+        "confidence": "medium"
+      },
+      "details": ""
+    }
+  },
+  "06-half-circle": {
+    "ok": true,
+    "reading": {
+      "garment": "skirt",
+      "silhouette": {
+        "value": "half_circle",
+        "confidence": "medium"
+      },
+      "length": {
+        "value": "mini",
+        "confidence": "high"
+      },
+      "fit": {
+        "value": "fitted",
+        "confidence": "medium"
+      },
+      "shape": {
+        "hemAt": 0.33,
+        "hemFullness": 2.6,
+        "flareAt": null,
+        "confidence": "medium"
+      },
+      "details": "This leopard print skater skirt appears to have a wide elasticated or smocked waistband, which you may want to add yourself in place of the standard waistband."
+    }
+  },
+  "09-gathered-maxi": {
+    "ok": true,
+    "reading": {
+      "garment": "skirt",
+      "silhouette": {
+        "value": "a_line",
+        "confidence": "medium"
+      },
+      "length": {
+        "value": "maxi",
+        "confidence": "high"
+      },
+      "fit": {
+        "value": "regular",
+        "confidence": "medium"
+      },
+      "shape": {
+        "hemAt": 0.9,
+        "hemFullness": 1.8,
+        "flareAt": null,
+        "confidence": "medium"
+      },
+      "details": "This floral maxi looks gored, with panels flaring gently toward the hem, so you might like to split the A-line into gores yourself for that vintage look."
+    }
+  },
+  "10-flat-lay": {
+    "ok": true,
+    "reading": {
+      "garment": "skirt",
+      "silhouette": {
+        "value": "a_line",
+        "confidence": "medium"
+      },
+      "length": {
+        "value": "knee",
+        "confidence": "low"
+      },
+      "fit": {
+        "value": "regular",
+        "confidence": "low"
+      },
+      "shape": {
+        "hemAt": 0.56,
+        "hemFullness": 1.25,
+        "flareAt": null,
+        "confidence": "low"
+      },
+      "details": "This harlequin-print skirt looks like it has a slight wrap or overlap seam down the front that you may want to add yourself."
+    }
+  },
+  "02-straight": {
+    "ok": true,
+    "reading": {
+      "garment": "skirt",
+      "silhouette": {
+        "value": "pencil",
+        "confidence": "high"
+      },
+      "length": {
+        "value": "knee",
+        "confidence": "medium"
+      },
+      "fit": {
+        "value": "fitted",
+        "confidence": "high"
+      },
+      "shape": {
+        "hemAt": 0.54,
+        "hemFullness": 0.92,
+        "flareAt": null,
+        "confidence": "medium"
+      },
+      "details": "This denim pencil skirt has a centre back slit, a back yoke with a centre back seam, studded patch pockets and belt loops, which you may want to add yourself."
+    }
+  },
+  "03-a-line-mini": {
+    "ok": true,
+    "reading": {
+      "garment": "skirt",
+      "silhouette": {
+        "value": "straight",
+        "confidence": "medium"
+      },
+      "length": {
+        "value": "mini",
+        "confidence": "medium"
+      },
+      "fit": {
+        "value": "fitted",
+        "confidence": "high"
+      },
+      "shape": {
+        "hemAt": 0.33,
+        "hemFullness": 1.05,
+        "flareAt": null,
+        "confidence": "medium"
+      },
+      "details": "This denim mini has a back yoke, belt loops, back patch pockets with lace-trimmed flaps and a frayed raw hem, which you could add yourself."
+    }
+  },
+  "05-trumpet": {
+    "ok": true,
+    "reading": {
+      "garment": "skirt",
+      "silhouette": {
+        "value": "trumpet",
+        "confidence": "high"
+      },
+      "length": {
+        "value": "midi",
+        "confidence": "medium"
+      },
+      "fit": {
+        "value": "fitted",
+        "confidence": "high"
+      },
+      "shape": {
+        "hemAt": 0.74,
+        "hemFullness": 2.2,
+        "flareAt": 0.5,
+        "confidence": "medium"
+      },
+      "details": "This is a skirt suit shown from the back on a mannequin, and the skirt has pieced striped panels and inset godets for the flare, plus a matching peplum jacket, which you may want to add yourself."
+    }
+  },
+  "07-full-circle": {
+    "ok": true,
+    "reading": {
+      "garment": "skirt",
+      "silhouette": {
+        "value": "circle",
+        "confidence": "high"
+      },
+      "length": {
+        "value": "midi",
+        "confidence": "medium"
+      },
+      "fit": {
+        "value": "fitted",
+        "confidence": "medium"
+      },
+      "shape": {
+        "hemAt": 0.68,
+        "hemFullness": 5,
+        "flareAt": null,
+        "confidence": "medium"
+      },
+      "details": "A classic 1950s poodle skirt in felt; you may want to add the poodle appliqué (and leash detail) yourself after sewing."
+    }
+  },
+  "08-pleated": {
+    "ok": true,
+    "reading": {
+      "garment": "skirt",
+      "silhouette": {
+        "value": "a_line",
+        "confidence": "medium"
+      },
+      "length": {
+        "value": "above_knee",
+        "confidence": "high"
+      },
+      "fit": {
+        "value": "regular",
+        "confidence": "medium"
+      },
+      "shape": {
+        "hemAt": 0.44,
+        "hemFullness": 1.5,
+        "flareAt": null,
+        "confidence": "medium"
+      },
+      "details": "This black skirt has knife pleats all round from the hip down, so you may want to add pleats yourself for that swingy pleated look."
+    }
+  }
+}

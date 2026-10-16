@@ -3,7 +3,7 @@ import { draftSkirt, FIT_EASE } from './skirt';
 import { draftBodice, BODICE_FIT_EASE } from './bodice';
 import { draftTrousers, TROUSER_EASE } from './trousers';
 import { draftDress } from './dress';
-import { bodiceGroup, easeLevel, easeMap, skirtGroup, trousersGroup, widthAt } from './easeMap';
+import { bodiceGroup, easeLevel, easeMap, garmentEase, skirtGroup, trousersGroup, widthAt } from './easeMap';
 import { EXAMPLE_VALUES } from '../measurements';
 import { taggedLength } from './geometry';
 
@@ -12,6 +12,19 @@ const M = EXAMPLE_VALUES as Record<string, number>;
 const bustOf = (views: ReturnType<typeof easeMap>, name: string, apex: number) =>
   Math.max(...views.find((v) => v.name === name)!.bands.filter((b) => b.y0 >= apex - 1 && b.y1 <= apex + 5).map((b) => b.ease));
 const at = (views: ReturnType<typeof easeMap>, name: string, y: number) => views.find((v) => v.name === name)!.bands.find((b) => b.y0 <= y && b.y1 > y)?.ease;
+
+describe('princess seams', () => {
+  it('blends both seams through the bust point, so the panels meet there and keep the bust room', () => {
+    for (const princess of ['shoulder', 'armhole'] as const) {
+      const d = draftBodice(M as never, { fit: 'regular', neckline: 'crew', length: 'waist', darts: 'bust_waist', princess } as never);
+      const ax = d.front.apex;
+      for (const pc of d.pieces.slice(0, 2)) {
+        const near = Math.min(...pc.outline.points().map((q) => Math.hypot(q.x - ax.x, q.y - ax.y)));
+        expect(near).toBeLessThan(0.15);
+      }
+    }
+  });
+});
 
 describe('ease map', () => {
   it('reads the skirt’s own ease at the waist and the hip', () => {
@@ -42,9 +55,13 @@ describe('ease map', () => {
     const plain = draftBodice(M as never, base as never);
     const lv = { bust: plain.front.apex.y, waist: plain.front.waistCentre.y };
     const e0 = bustOf(easeMap([bodiceGroup(plain.pieces, M, lv)!]), 'Bodice front', lv.bust);
-    const pr = draftBodice(M as never, { ...base, princess: 'shoulder' } as never);
-    // Princess panels are rotated to close the dart, so their levels shift a little; the room is near the plain bodice's.
-    expect(Math.abs(bustOf(easeMap([bodiceGroup(pr.pieces, M, lv)!]), 'Bodice centre front', lv.bust) - e0)).toBeLessThan(5);
+    // Princess seams sew up to the same block, so they show the plain bodice's room, read from the block.
+    for (const princess of ['shoulder', 'armhole'] as const) {
+      const pr = draftBodice(M as never, { ...base, princess } as never);
+      const v = garmentEase(pr.pieces, M, { ...lv, block: pr.block });
+      expect(v.map((x) => x.name)).toEqual(expect.arrayContaining(['Bodice centre front', 'Bodice side front', 'Bodice side back']));
+      expect(bustOf(v, 'Bodice centre front', lv.bust)).toBeCloseTo(e0, 0);
+    }
     const bt = draftBodice(M as never, { ...base, closure: 'front_buttons' } as never);
     expect(bustOf(easeMap([bodiceGroup(bt.pieces, M, lv)!]), 'Bodice front', lv.bust)).toBeCloseTo(e0, 0);
   });

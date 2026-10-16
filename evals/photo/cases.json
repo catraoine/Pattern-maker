@@ -1,0 +1,195 @@
+{
+  "note": "Truth values are starting guesses for the style each slot asks for. Correct them by eye once the photo is chosen, then set truthChecked to true.",
+  "cases": [
+    {
+      "id": "01-pencil",
+      "wanted": "Pencil skirt, worn, knee length, front view",
+      "photo": "01-pencil.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Purple_Cardigan,_Black_Pencil_Skirt,_Checkered_Top,_and_Silver_Heels_(17632734246).jpg",
+      "license": "CC BY-SA 2.0",
+      "author": "Jamie",
+      "truth": {
+        "garment": "skirt",
+        "silhouette": "pencil",
+        "length": "above_knee",
+        "fit": "fitted",
+        "hemAt": 0.51,
+        "hemFullness": 0.9,
+        "hasDetails": true
+      },
+      "truthChecked": true,
+      "labelNote": "High-waisted pencil skirt; the hem sits just above the knee, so length is above_knee rather than the slot's knee. Has curved princess seams on the front. Seam lines and waistbands count as details (Cat, 2026-10-15)."
+    },
+    {
+      "id": "02-straight",
+      "wanted": "Straight skirt, worn, above the knee",
+      "photo": "02-straight.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Falda_jean_clásica.jpg",
+      "license": "Public domain",
+      "author": "misatur",
+      "truth": {
+        "garment": "skirt",
+        "silhouette": "straight",
+        "length": "knee",
+        "fit": "regular",
+        "hemAt": 0.56,
+        "hemFullness": 1.0,
+        "hasDetails": true
+      },
+      "truthChecked": true,
+      "labelNote": "Denim straight skirt from the back, cut off just below the hem, so length is judged from the hem sitting at the knee. Has a back slit and jeans pockets, so details should mention them."
+    },
+    {
+      "id": "03-a-line-mini",
+      "wanted": "A-line mini, worn",
+      "photo": "03-a-line-mini.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Minijean_skirt.jpg",
+      "license": "Public domain",
+      "author": "misatur",
+      "truth": {
+        "garment": "skirt",
+        "silhouette": "a_line",
+        "length": "mini",
+        "fit": "regular",
+        "hemAt": 0.35,
+        "hemFullness": 1.2,
+        "hasDetails": true
+      },
+      "truthChecked": true,
+      "labelNote": "Slightly flared denim mini from the back. Lace pocket flaps and a raw hem, so details should mention them."
+    },
+    {
+      "id": "04-a-line-midi",
+      "wanted": "A-line midi, worn",
+      "photo": "04-a-line.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:A-line_skirts.jpg",
+      "license": "CC BY 2.0",
+      "author": "Flickr user \"queen puff puff\"",
+      "truth": {
+        "garment": "skirt",
+        "silhouette": "a_line",
+        "length": "knee",
+        "fit": "regular",
+        "hemAt": 0.56,
+        "hemFullness": 1.5,
+        "hasDetails": false
+      },
+      "truthChecked": true,
+      "labelNote": "Cropped from the top-middle panel of a 3x3 collage (318 px square, feet out of frame). No midi A-line was available today, so this is knee length."
+    },
+    {
+      "id": "05-trumpet",
+      "wanted": "Trumpet or mermaid skirt, worn, long",
+      "photo": "05-trumpet.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Cotton_patchwork_suit_by_Alexander_McQueen,_2004_01.jpg",
+      "license": "CC0",
+      "author": "Photographer commissioned by Rhode Island School of Design Museum of Art",
+      "truth": {
+        "garment": "skirt",
+        "silhouette": "trumpet",
+        "length": "midi",
+        "fit": "fitted",
+        "hemAt": 0.76,
+        "hemFullness": 2.0,
+        "hasDetails": true
+      },
+      "truthChecked": true,
+      "labelNote": "Museum mannequin, back view, only 250 px wide (larger copies were refused). A jacket covers the waist and the skirt is mid-calf, not long. Patchwork panels and godets, so details should mention them."
+    },
+    {
+      "id": "06-half-circle",
+      "wanted": "Skater or half circle skirt, worn",
+      "photo": "06-half-circle.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Black_Turtleneck_T-shirt,_Leopard_Print_Skater_Skirt,_and_Heart_Print_Tights_(16919126582).jpg",
+      "license": "CC BY-SA 2.0",
+      "author": "Jamie",
+      "truth": {
+        "garment": "skirt",
+        "silhouette": "half_circle",
+        "length": "mini",
+        "fit": "regular",
+        "hemAt": 0.41,
+        "hemFullness": 3.0,
+        "hasDetails": true
+      },
+      "truthChecked": true,
+      "labelNote": "Skater skirt; hem at mid-thigh (measured 0.41 of waist to floor in the photo). Has a wide elasticated waistband. Seam lines and waistbands count as details (Cat, 2026-10-15)."
+    },
+    {
+      "id": "07-full-circle",
+      "wanted": "1950s full circle skirt, worn",
+      "photo": "07-full-circle.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:PoodleSkirtTwirl.jpg",
+      "license": "CC BY-SA 2.0",
+      "author": "Flickr user \"shortiestar3000\"",
+      "truth": {
+        "garment": "skirt",
+        "silhouette": "circle",
+        "length": "midi",
+        "fit": "regular",
+        "hemAt": 0.65,
+        "hemFullness": 5.0,
+        "hasDetails": true
+      },
+      "truthChecked": true,
+      "labelNote": "Felt poodle skirt mid-twirl, at night. Hem between knee and mid-calf (about 0.65). The poodle appliqué counts as a detail."
+    },
+    {
+      "id": "08-pleated",
+      "wanted": "Pleated midi (tests the details sentence)",
+      "photo": "08-pleated.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Black_Pleated_Skirt_and_Long_Sleeved_Floral_Print_Blouse_(18325514342).jpg",
+      "license": "CC BY-SA 2.0",
+      "author": "Jamie",
+      "truth": {
+        "garment": "skirt",
+        "silhouette": "a_line",
+        "length": "above_knee",
+        "fit": "regular",
+        "hemAt": 0.5,
+        "hemFullness": 1.8,
+        "hasDetails": true
+      },
+      "truthChecked": true,
+      "labelNote": "Knife-pleated skirt, three-quarter back view, hem just above the knee (no pleated midi was found). Details should mention the pleats."
+    },
+    {
+      "id": "09-gathered-maxi",
+      "wanted": "Gathered or tiered maxi (not a circle skirt)",
+      "photo": "09-maxi.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:1970s_maxi_skirt_in_Liberty_print,_with_tooled_leather_shoulder_bag_and_black_T-shirt.jpg",
+      "license": "CC BY-SA 4.0",
+      "author": "Peloponnesian Folklore Foundation",
+      "truth": {
+        "garment": "skirt",
+        "silhouette": "a_line",
+        "length": "maxi",
+        "fit": "regular",
+        "hemAt": 0.94,
+        "hemFullness": 2.0,
+        "hasDetails": true
+      },
+      "truthChecked": true,
+      "labelNote": "Flared A-line maxi on a mannequin. No visible gathers or tiers, so a bag hangs over the front. Gored panels flare toward the hem. Seam lines and waistbands count as details (Cat, 2026-10-15)."
+    },
+    {
+      "id": "10-flat-lay",
+      "wanted": "Any skirt laid flat or on a hanger (no wearer)",
+      "photo": "10-flat-lay.jpg",
+      "source": "https://commons.wikimedia.org/wiki/File:Kristian_Leigh_pencil_skirt.jpg",
+      "license": "CC BY-SA 4.0",
+      "author": "Marek Koudelka",
+      "truth": {
+        "garment": "skirt",
+        "silhouette": "straight",
+        "length": "knee",
+        "fit": "regular",
+        "hemAt": 0.56,
+        "hemFullness": 1.0,
+        "hasDetails": true
+      },
+      "truthChecked": true,
+      "labelNote": "Laid flat. Commons calls it a pencil skirt, but the hem does not taper in the photo, so labelled straight (pencil scores half). Length is a guess from proportions. Has a seam down the front. Seam lines and waistbands count as details (Cat, 2026-10-15)."
+    }
+  ]
+}
