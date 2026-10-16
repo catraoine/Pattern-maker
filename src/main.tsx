@@ -1,6 +1,12 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
+// The typefaces ship with the app, so no visitor's browser has to ask Google for them.
+import '@fontsource/chakra-petch/400.css';
+import '@fontsource/chakra-petch/500.css';
+import '@fontsource/space-grotesk/300.css';
+import '@fontsource/space-grotesk/400.css';
+import '@fontsource/space-grotesk/500.css';
 import './styles.css';
 
 // Review link: opening the site with ?fresh clears this browser's saved progress, so the app starts

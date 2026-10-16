@@ -16,6 +16,8 @@ import type { Flat } from '../engine/flat';
 import { TechFlatView } from '../ui/TechFlatView';
 import { StepDiagram } from '../ui/StepDiagram';
 import { CLOTHS, seamFinish } from '../engine/couture';
+import { DRAPES, FIBRES, FIBRE_IDS, MyFabric, WEIGHTS, FabricStyle, checkFabric, clothFor, easeWords } from '../engine/fabrics';
+import { FabricGuide } from '../ui/FabricGuide';
 import { SizeRun } from '../ui/SizeRun';
 import type { MeasurementValues } from '../measurements';
 
@@ -46,6 +48,8 @@ interface Props {
   fitting?: Fitting;
   fittingNotes: string[];
   onFitting: () => void;
+  /** The style the fabric is checked against. */
+  style: FabricStyle;
   /** Each piece on screen at its real size. */
   onTrueScale?: () => void;
   /** For grading: the measurements, and the pattern's pieces drafted to any set of them. */
@@ -96,7 +100,7 @@ function download(data: BlobPart, type: string, name: string) {
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
-export function ExportScreen({ profile, title, fit, garment, finish, onFinish, made, error, onBack, fitting, fittingNotes, onFitting, onTrueScale, values, draftAt }: Props) {
+export function ExportScreen({ profile, title, fit, garment, finish, onFinish, made, error, onBack, fitting, fittingNotes, onFitting, onTrueScale, values, draftAt, style }: Props) {
   const [paper, setPaper] = useState<Output>('a4');
   const [pdf, setPdf] = useState<{ paper: Output; bytes: Uint8Array } | null>(null);
   const [shareNote, setShareNote] = useState('');
@@ -131,7 +135,7 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
   const summary = useMemo(
     () =>
       made
-        ? { rows: made.spec.filter((r) => typeof r.finished === 'number'), checks, madeFor: profile, date, drafting: finish.atelier ? drafting : undefined, byHand, lays, flat: made.flat }
+        ? { rows: made.spec.filter((r) => typeof r.finished === 'number'), checks, madeFor: profile, date, drafting: finish.atelier ? drafting : undefined, byHand, lays, flat: made.flat, fabric: made.guide.fabric }
         : undefined,
     [made, checks, profile, date, drafting, finish.atelier, lays, byHand],
   );
@@ -330,6 +334,8 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
         </section>
       )}
 
+      <YourFabric fabric={finish.fabric ?? {}} onFabric={(fabric) => onFinish({ ...finish, fabric, cloth: clothFor(fabric, finish.cloth) })} style={style} />
+
       <section className="card" aria-labelledby="laytitle">
         <div className="row between wrap">
           <div>
@@ -420,20 +426,33 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
               Thread-traced lines, basting and a fitting before machining, a hand-picked zip and hand-finished edges. The seam finish and
               pressing follow your cloth.
             </p>
-            <div className="seg" role="group" aria-label="Your cloth">
-              {CLOTHS.map((c) => (
-                <button key={c.id} type="button" className={finish.cloth === c.id ? 'on' : ''} aria-pressed={finish.cloth === c.id} onClick={() => onFinish({ ...finish, cloth: c.id })} title={c.detail}>
-                  {c.label}
-                </button>
-              ))}
-            </div>
+            {finish.fabric?.fibre ? null : (
+              <div className="seg" role="group" aria-label="Your cloth">
+                {CLOTHS.map((c) => (
+                  <button key={c.id} type="button" className={finish.cloth === c.id ? 'on' : ''} aria-pressed={finish.cloth === c.id} onClick={() => onFinish({ ...finish, cloth: c.id })} title={c.detail}>
+                    {c.label}
+                  </button>
+                ))}
+              </div>
+            )}
             <p className="muted small">
-              Seams: {{ french: 'French seams', hongkong: 'Hong Kong bound', pinked: 'pinked', overcast: 'overcast by hand' }[seamFinish(finish.cloth, garment === 'skirt' ? finish.skirtLined : finish.bodiceEdges === 'lined')]}.
+              Seams: {{ french: 'French seams', hongkong: 'Hong Kong bound', pinked: 'pinked', overcast: 'overcast by hand' }[seamFinish(clothFor(finish.fabric, finish.cloth), garment === 'skirt' ? finish.skirtLined : finish.bodiceEdges === 'lined')]}
+              {finish.fabric?.fibre ? `, chosen for your ${FIBRES[finish.fabric.fibre].label.toLowerCase()}` : ''}.
             </p>
           </div>
         )}
         <div className="sewgrid">
           <div className="notions">
+            {guide.fabric?.length ? (
+              <>
+                <p className="eyebrow">Your fabric</p>
+                <ul>
+                  {guide.fabric.map((n) => (
+                    <li key={n}>{n}</li>
+                  ))}
+                </ul>
+              </>
+            ) : null}
             <p className="eyebrow">You'll need</p>
             <ul>
               {guide.notions.map((n) => (
@@ -466,6 +485,68 @@ export function makerNote(title: string, profile: string): string {
     `The pattern was drafted to my own measurements in Maison Tracé. The tech pack has my measurements, the ease, the piece list, fabric and construction steps. The pattern is attached as a PDF to print at 100% and as a DXF for pattern software.`,
     `Could you let me know your price and when you could fit it in? Thank you, ${profile}`,
   ].join('\n\n');
+}
+
+/** One row of chips for a fabric trait; tapping the chosen one again clears it. */
+function Chips<T extends string>({ label, options, value, onPick }: { label: string; options: { id: T; label: string }[]; value?: T; onPick: (v: T | undefined) => void }) {
+  return (
+    <fieldset className="group">
+      <legend>{label}</legend>
+      <div className="chips">
+        {options.map((o) => (
+          <button key={o.id} type="button" className={value === o.id ? 'chip on' : 'chip'} aria-pressed={value === o.id} onClick={() => onPick(value === o.id ? undefined : o.id)}>
+            {o.label}
+          </button>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
+/** The fabric the maker has bought: checked against the style, and carried into the ease, the PDF and the tech pack. */
+function YourFabric({ fabric, onFabric, style }: { fabric: MyFabric; onFabric: (f: MyFabric) => void; style: Props['style'] }) {
+  const set = (patch: Partial<MyFabric>) => onFabric({ ...fabric, ...patch });
+  const notes = checkFabric(style, fabric);
+  return (
+    <section className="card yourfabric" aria-labelledby="fabtitle">
+      <div className="row between wrap">
+        <div>
+          <p className="eyebrow">Your fabric</p>
+          <h2 id="fabtitle">What are you making it in?</h2>
+        </div>
+        <FabricGuide />
+      </div>
+      <p className="muted small">Optional. It goes on the PDF and the tech pack, sets the couture seam finish and pressing, and adjusts the ease for heavy cloth.</p>
+      <div className="fields">
+        <div className="field plain">
+          <label htmlFor="fabname">Name</label>
+          <input id="fabname" type="text" autoComplete="off" value={fabric.name ?? ''} placeholder="For example, olive washed linen" onChange={(e) => set({ name: e.target.value })} />
+        </div>
+        <div className="field plain">
+          <label htmlFor="fabcolour">Colour</label>
+          <input id="fabcolour" type="text" autoComplete="off" value={fabric.colour ?? ''} placeholder="For example, olive" onChange={(e) => set({ colour: e.target.value })} />
+        </div>
+      </div>
+      <Chips label="Fibre" options={FIBRE_IDS.map((id) => ({ id, label: FIBRES[id].label }))} value={fabric.fibre} onPick={(fibre) => set({ fibre })} />
+      <Chips label="Weight" options={WEIGHTS} value={fabric.weight} onPick={(weight) => set({ weight })} />
+      <Chips label="Drape" options={DRAPES} value={fabric.drape} onPick={(drape) => set({ drape })} />
+      {notes.map((n) => (
+        <p key={n.text} className={`small fabnote ${n.level}`}>
+          {n.level === 'ok' ? <b>Good match </b> : n.level === 'warn' ? <b>Heads up </b> : null}
+          {n.level === 'ok' ? n.text.replace(/^Good match /, '') : n.text}
+        </p>
+      ))}
+      {fabric.weight === 'heavy' && (
+        <label className="check">
+          <input type="checkbox" checked={fabric.matchEase !== false} onChange={(e) => set({ matchEase: e.target.checked })} />
+          <span>
+            Adjust ease to my fabric{' '}
+            <span className="muted small">{easeWords(fabric, style.garment)}, for the cloth's thickness</span>
+          </span>
+        </label>
+      )}
+    </section>
+  );
 }
 
 /** Files for someone else to make the garment: a tech pack and the pattern as DXF for pattern software. */
