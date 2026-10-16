@@ -4,7 +4,8 @@ import { PeopleSwitch } from '../ui/PeopleSwitch';
 import { BODICE_FIELDS, SKIRT_FIELDS, Unit } from '../measurements';
 import { describePattern } from './describe';
 import { FitForm } from '../ui/FitForm';
-import { FitFeedback, fitSummary } from '../fit';
+import { FitFeedback, fitReport, fitSummary, sendFitReport } from '../fit';
+import type { MeasurementValues } from '../measurements';
 
 // Skirt and bodice share a few measurements (waist, hip); list each once.
 const ALL_FIELDS = [...SKIRT_FIELDS, ...BODICE_FIELDS.filter((b) => !SKIRT_FIELDS.some((f) => f.id === b.id))];
@@ -38,6 +39,8 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
   const display = account.name.trim() || 'Me';
   const person = activePerson(account);
   const { values } = person;
+  // Sent fit notes carry the measurements of whoever the pattern was saved for.
+  const valuesFor = (p: SavedPattern) => (account.people.find((x) => x.id === (p.personId ?? ME)) ?? person).values;
   const whoFor = (p: SavedPattern) => {
     const who = p.personId && p.personId !== ME ? account.people.find((x) => x.id === p.personId) : undefined;
     return who ? personName(account, who) : undefined;
@@ -167,7 +170,7 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
           ) : (
             <ul className="saved">
               {account.patterns.map((p) => (
-                <PatternRow key={p.id} pattern={p} whoFor={whoFor(p)} onOpen={() => onOpen(p)} onRename={(n) => onRename(p.id, n)} onRemove={() => onRemove(p.id)} onFit={(f) => onFit(p.id, f)} />
+                <PatternRow key={p.id} pattern={p} values={valuesFor(p)} whoFor={whoFor(p)} onOpen={() => onOpen(p)} onRename={(n) => onRename(p.id, n)} onRemove={() => onRemove(p.id)} onFit={(f) => onFit(p.id, f)} />
               ))}
             </ul>
           )}
@@ -184,6 +187,7 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
 
 function PatternRow({
   pattern,
+  values,
   whoFor,
   onOpen,
   onRename,
@@ -191,6 +195,7 @@ function PatternRow({
   onFit,
 }: {
   pattern: SavedPattern;
+  values: MeasurementValues;
   whoFor?: string;
   onOpen: () => void;
   onRename: (n: string) => void;
@@ -199,6 +204,17 @@ function PatternRow({
 }) {
   const [editing, setEditing] = useState(false);
   const [fitting, setFitting] = useState(false);
+  const [sendMsg, setSendMsg] = useState('');
+  const saveFit = async (fit: FitFeedback, share: boolean) => {
+    setFitting(false);
+    const kept = { ...fit, sentAt: pattern.fit?.sentAt };
+    onFit(kept);
+    if (!share) return setSendMsg('');
+    setSendMsg('Sending…');
+    const sent = await sendFitReport(fitReport(fit, pattern.choices, values));
+    if (sent) onFit({ ...kept, sentAt: new Date().toISOString() });
+    setSendMsg(sent ? 'Sent to Maison Tracé. Thank you.' : "Couldn't send just now. Your notes are saved on this device; try again later.");
+  };
   const [name, setName] = useState(pattern.name);
   const commit = () => {
     onRename(name.trim() || pattern.name);
@@ -231,6 +247,12 @@ function PatternRow({
           <p className="small fitnote">
             {pattern.fit.made === 'toile' ? 'Toile' : 'Sewn'} {dateFmt.format(new Date(pattern.fit.at))}: {fitSummary(pattern.fit, pattern.choices)}
             {pattern.fit.notes ? ` · “${pattern.fit.notes}”` : ''}
+            {pattern.fit.sentAt ? ' · sent to Maison Tracé' : ''}
+          </p>
+        )}
+        {sendMsg && !fitting && (
+          <p className="msg small" role="status">
+            {sendMsg}
           </p>
         )}
       </div>
@@ -252,10 +274,7 @@ function PatternRow({
         <FitForm
           choices={pattern.choices}
           initial={pattern.fit}
-          onSave={(f) => {
-            onFit(f);
-            setFitting(false);
-          }}
+          onSave={saveFit}
           onCancel={() => setFitting(false)}
           onClear={
             pattern.fit

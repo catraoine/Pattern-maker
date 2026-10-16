@@ -73,6 +73,38 @@
   outline-offset: 1px;
 }
 
+.fitshare {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  font-family: var(--sans);
+  text-transform: none;
+  letter-spacing: normal;
+  cursor: pointer;
+}
+
+.fitshare input {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  margin: 2px 0 0;
+  accent-color: var(--gild);
+}
+
+.fitshare > span {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fitshare strong {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: var(--w-strong);
+  text-transform: uppercase;
+  letter-spacing: var(--track);
+}
+
 .fitnote {
   margin: 4px 0 0;
   color: var(--gild);

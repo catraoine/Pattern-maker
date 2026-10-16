@@ -6,7 +6,8 @@ import './FitForm.css';
 interface Props {
   choices: PatternChoices;
   initial?: FitFeedback;
-  onSave: (fit: FitFeedback) => void;
+  /** `share` is true when the sewist ticked the box to send these notes to Maison Tracé. */
+  onSave: (fit: FitFeedback, share: boolean) => void;
   onCancel: () => void;
   onClear?: () => void;
 }
@@ -14,6 +15,7 @@ interface Props {
 /** "How did it fit?" for one saved pattern: an overall verdict, each area tight / right / loose, and notes. */
 export function FitForm({ choices, initial, onSave, onCancel, onClear }: Props) {
   const [fit, setFit] = useState<FitFeedback>(() => initial ?? emptyFit());
+  const [share, setShare] = useState(false);
   const set = (change: Partial<FitFeedback>) => setFit({ ...fit, ...change });
   const setArea = (id: string, v: AreaFit) => {
     const areas = { ...fit.areas };
@@ -29,7 +31,7 @@ export function FitForm({ choices, initial, onSave, onCancel, onClear }: Props) 
       aria-label="How did it fit?"
       onSubmit={(e) => {
         e.preventDefault();
-        onSave(cleanFit({ ...fit, at: new Date().toISOString() }, choices));
+        onSave(cleanFit({ ...fit, at: new Date().toISOString() }, choices), share);
       }}
     >
       <p className="eyebrow">How did it fit?</p>
@@ -97,6 +99,17 @@ export function FitForm({ choices, initial, onSave, onCancel, onClear }: Props) 
           onChange={(e) => set({ notes: e.target.value })}
         />
       </div>
+
+      <label className="fitshare">
+        <input type="checkbox" checked={share} onChange={(e) => setShare(e.target.checked)} />
+        <span>
+          <strong>{initial?.sentAt ? 'Send these changes to Maison Tracé' : 'Send these notes to Maison Tracé'}</strong>
+          <span className="muted small">
+            Helps us improve the fit for everyone. We receive the pattern style, your answers and notes, and the measurements it was drafted from, with no
+            name attached. Please leave names out of your notes.
+          </span>
+        </span>
+      </label>
 
       <div className="row wrap">
         <button type="submit" className="primary">

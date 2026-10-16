@@ -1,6 +1,7 @@
 // How a sewn pattern fitted, noted by the sewist against a saved pattern. Kept on this device with the pattern,
 // so the next toile can start from what was learnt.
 import { PatternChoices, isBodice } from './garments';
+import type { MeasurementValues } from './measurements';
 
 export type Verdict = 'good' | 'tweaks' | 'off';
 /** -1 too tight (or short), 0 right, 1 too loose (or long). */
@@ -13,6 +14,8 @@ export interface FitFeedback {
   /** What was sewn: a toile (test garment) or the real thing. */
   made: 'toile' | 'garment';
   at: string; // ISO date
+  /** Set once these notes have been sent to Maison Tracé (only ever when the sewist ticks the box). */
+  sentAt?: string;
 }
 
 export type FitArea = 'waist' | 'hip' | 'length' | 'flare' | 'bust' | 'shoulders' | 'armholes' | 'neckline' | 'back';
@@ -71,4 +74,42 @@ export function cleanFit(fit: FitFeedback, choices: PatternChoices): FitFeedback
     if (v === -1 || v === 0 || v === 1) areas[a.id] = v;
   }
   return { ...fit, areas, notes: fit.notes.trim().slice(0, NOTES_MAX) };
+}
+
+/**
+ * What is sent when the sewist chooses to share fit notes: the pattern's style, the fit answers and notes, and the
+ * measurements it was drafted from. No names, no pattern name, nothing that says who the person is.
+ */
+export interface FitReport {
+  garment: 'skirt' | 'bodice';
+  choices: PatternChoices;
+  verdict: Verdict;
+  made: FitFeedback['made'];
+  areas: FitFeedback['areas'];
+  notes: string;
+  measurements: MeasurementValues; // cm
+}
+
+export const fitReport = (fit: FitFeedback, choices: PatternChoices, measurements: MeasurementValues): FitReport => ({
+  garment: isBodice(choices) ? 'bodice' : 'skirt',
+  choices,
+  verdict: fit.verdict,
+  made: fit.made,
+  areas: fit.areas,
+  notes: fit.notes,
+  measurements,
+});
+
+/** Send fit notes to Maison Tracé. Resolves true when they arrived. */
+export async function sendFitReport(report: FitReport): Promise<boolean> {
+  try {
+    const res = await fetch('/.netlify/functions/fit-feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(report),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
