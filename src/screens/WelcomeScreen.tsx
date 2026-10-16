@@ -59,7 +59,7 @@ export function WelcomeScreen({ unit: initialUnit, garment, onFinish, formStart 
         {step === 1 && (
           <>
             <h1 id="wtitle">Ready when you are</h1>
-            <p>Measuring takes about {garment === 'skirt' ? 'five' : 'fifteen'} minutes. You'll need:</p>
+            <p>Measuring takes about {garment === 'skirt' ? 'five' : garment === 'trousers' ? 'ten' : 'fifteen'} minutes. You'll need:</p>
             <ul className="checklist">
               <li>A soft tape measure</li>
               <li>Close-fitting clothes, or just underwear</li>

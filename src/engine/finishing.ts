@@ -212,12 +212,11 @@ function distToSeg(q: P, a: P, b: P): number {
   return len(sub(q, add(a, mul(ab, t))));
 }
 
-/** Neck and armhole facings for a sleeveless bodice: 5 cm at the neck, 4 cm at the armholes. */
-export function bodiceFacings(front: Piece, back: Piece): Piece[] {
+/** Neck and armhole facings: 5 cm at the neck, 4 cm at the armholes. With sleeves, the neck facings
+ * only; without the neck ones where a band collar or a button front's facings finish the neck. */
+export function bodiceFacings(front: Piece, back: Piece, armholes = true, neck = true): Piece[] {
   return [
-    facing(front, 'neck', 5, 'Front neck facing'),
-    facing(back, 'neck', 5, 'Back neck facing'),
-    facing(front, 'armhole', 4, 'Front armhole facing'),
-    facing(back, 'armhole', 4, 'Back armhole facing'),
+    ...(neck ? [facing(front, 'neck', 5, 'Front neck facing'), facing(back, 'neck', 5, 'Back neck facing')] : []),
+    ...(armholes ? [facing(front, 'armhole', 4, 'Front armhole facing'), facing(back, 'armhole', 4, 'Back armhole facing')] : []),
   ].filter((pc): pc is Piece => !!pc);
 }

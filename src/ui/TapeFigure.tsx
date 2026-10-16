@@ -12,15 +12,17 @@ const PATHS: Partial<Record<MeasurementId, [number, number][]>> = {
   front_hps_to_waist: [[113, 59], [124, 104], [124, 150]],
   bust_depth: [[113, 59], [124, 104]],
   apex_separation: [[76, 104], [124, 104]],
+  front_shoulder_slope: [[100, 150], [152, 73]],
+  back_shoulder_slope: [[100, 150], [152, 73]],
 };
 // Measured at the back of the body; the figure shows the front, so these are labelled.
-const FROM_BEHIND: MeasurementId[] = ['shoulder_width', 'across_back', 'nape_to_waist'];
+const FROM_BEHIND: MeasurementId[] = ['shoulder_width', 'across_back', 'nape_to_waist', 'back_shoulder_slope', 'back_waist_to_hip'];
 const VERTICAL: Partial<Record<MeasurementId, [number, number]>> = {
   waist_to_hip: [150, 208],
   waist_to_knee: [150, 330],
   waist_to_floor: [150, 404],
 };
-const SPINE: Partial<Record<MeasurementId, [number, number]>> = { nape_to_waist: [46, 150] };
+const SPINE: Partial<Record<MeasurementId, [number, number]>> = { nape_to_waist: [46, 150], front_waist_to_hip: [150, 208], back_waist_to_hip: [150, 208] };
 
 // Places to tap, each with a marker and a label: the waist and hip bands, the side from waist to hip,
 // and the knee and floor lines.
