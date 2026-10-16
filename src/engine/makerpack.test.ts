@@ -86,3 +86,12 @@ describe('tech pack', () => {
     expect(allowanceText(skirt.pieces[1])).toBe('1.5 cm, hem 4 cm');
   });
 });
+
+describe('note to the dressmaker', () => {
+  it('names the garment and who it is for', async () => {
+    const { makerNote } = await import('../screens/ExportScreen');
+    const note = makerNote('knee a-line skirt', 'Cat');
+    expect(note).toContain('make this knee a-line skirt');
+    expect(note).toContain('Thank you, Cat');
+  });
+});

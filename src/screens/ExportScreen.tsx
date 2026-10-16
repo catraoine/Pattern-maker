@@ -363,6 +363,7 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
         atelier={finish.atelier}
         onAtelier={(on) => onFinish({ ...finish, atelier: on })}
         drafting={drafting}
+        pattern={ready ? { bytes: ready, name: fileName } : undefined}
       />
 
       {values && draftAt && (
@@ -443,6 +444,15 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
 
 const today = () => new Date().toISOString().slice(0, 10);
 
+/** The note that goes with the files when they are sent to a dressmaker. */
+export function makerNote(title: string, profile: string): string {
+  return [
+    `Hello, could you make this ${title} for me?`,
+    `The pattern was drafted to my own measurements in Maison Tracé. The tech pack has my measurements, the ease, the piece list, fabric and construction steps. The pattern is attached as a PDF to print at 100% and as a DXF for pattern software.`,
+    `Could you let me know your price and when you could fit it in? Thank you, ${profile}`,
+  ].join('\n\n');
+}
+
 /** One row of chips for a fabric trait; tapping the chosen one again clears it. */
 function Chips<T extends string>({ label, options, value, onPick }: { label: string; options: { id: T; label: string }[]; value?: T; onPick: (v: T | undefined) => void }) {
   return (
@@ -512,6 +522,7 @@ function MakerPack({
   fit,
   made,
   fileBase,
+  pattern,
   onSvg,
   atelier,
   onAtelier,
@@ -526,80 +537,169 @@ function MakerPack({
   atelier: boolean;
   onAtelier: (on: boolean) => void;
   drafting: { piece: string; points: { n: string; note: string }[] }[];
+  /** The printable pattern PDF, once it is made. */
+  pattern?: { bytes: Uint8Array; name: string };
 }) {
-  const [busy, setBusy] = useState(false);
+  const [pack, setPack] = useState<Uint8Array | null>(null);
+  const [dxfText, setDxfText] = useState<string | null>(null);
+  const [note, setNote] = useState('');
   const fitName = fit[0].toUpperCase() + fit.slice(1);
+  const packName = `${fileBase}-tech-pack.pdf`;
+  const dxfName = `${fileBase}.dxf`;
 
-  const techPack = async () => {
-    setBusy(true);
-    try {
-      const { toTechPack } = await import('../engine/techpack');
-      const bytes = await toTechPack({
-        title,
-        profile,
-        fit: fitName,
-        date: today(),
-        pieces: made.pieces,
-        measurements: made.spec,
-        notes: made.notes,
-        guide: made.guide,
-      });
-      download(bytes, 'application/pdf', `${fileBase}-tech-pack.pdf`);
-    } finally {
-      setBusy(false);
+  // Make both files ahead of time, so sharing runs straight from the tap (phones require that).
+  useEffect(() => {
+    let live = true;
+    setPack(null);
+    setDxfText(null);
+    Promise.all([import('../engine/techpack'), import('../engine/dxf')]).then(async ([{ toTechPack }, { toDxf }]) => {
+      const text = toDxf(made.pieces, { style: title, size: profile, date: today() });
+      const bytes = await toTechPack({ title, profile, fit: fitName, date: today(), pieces: made.pieces, measurements: made.spec, notes: made.notes, guide: made.guide });
+      if (live) {
+        setDxfText(text);
+        setPack(bytes);
+      }
+    });
+    return () => {
+      live = false;
+    };
+  }, [made, title, profile, fitName]);
+
+  const ready = pack && dxfText;
+
+  const send = async () => {
+    if (!ready) return;
+    const pdfFile = (bytes: Uint8Array, name: string) => new File([bytes], name, { type: 'application/pdf' });
+    const withPattern = [pdfFile(pack, packName), ...(pattern ? [pdfFile(pattern.bytes, pattern.name)] : [])];
+    const all = [...withPattern, new File([dxfText], dxfName, { type: 'application/dxf' })];
+    const text = makerNote(title, profile);
+    // Some share targets won't take a DXF; send the PDFs alone then.
+    const files = [all, withPattern].find((fs) => {
+      try {
+        return navigator.canShare?.({ files: fs });
+      } catch {
+        return false;
+      }
+    });
+    if (files) {
+      try {
+        await navigator.share({ files, title: `Please make my ${title}`, text });
+        setNote(files === all ? '' : 'Sent the tech pack and pattern PDF. Download the DXF below if the maker uses pattern software.');
+      } catch (e) {
+        if ((e as Error).name !== 'AbortError') setNote("Sending didn't work on this device. Download the files below and attach them to an email.");
+      }
+      return;
     }
-  };
-
-  const dxf = async () => {
-    const { toDxf } = await import('../engine/dxf');
-    download(toDxf(made.pieces, { style: title, size: profile, date: today() }), 'application/dxf', `${fileBase}.dxf`);
+    // Most computers can't share files: download them and start an email with the note.
+    download(pack, 'application/pdf', packName);
+    download(dxfText, 'application/dxf', dxfName);
+    window.location.href = `mailto:?subject=${encodeURIComponent(`Please make my ${title}`)}&body=${encodeURIComponent(text)}`;
+    setNote('Both files are in your downloads. Attach them to the email that just opened.');
   };
 
   return (
-    <details className="card more">
-      <summary>
-        <span className="eyebrow">Having it made, or drafting by hand</span>
-        <h2>More files</h2>
-      </summary>
-      <p className="muted">
-        For a dressmaker or factory, send both files. The tech pack has the measurements, ease, piece list, fabric and sewing steps. The DXF opens
-        in pattern software such as Gerber, Lectra, Optitex and CLO 3D.
-      </p>
-      <div className="row wrap">
-        <button type="button" className="secondary" onClick={techPack} disabled={busy}>
-          {busy ? 'Making the tech pack…' : 'Tech pack (PDF)'}
+    <>
+      <section className="card" aria-labelledby="makertitle">
+        <p className="eyebrow">Having it made</p>
+        <h2 id="makertitle">Send it to a dressmaker</h2>
+        <p className="muted">
+          The dressmaker gets the tech pack (your measurements, the ease, the piece list, fabric and sewing steps), the pattern to print and a DXF for
+          pattern software.
+        </p>
+        <button type="button" className="primary" onClick={send} disabled={!ready}>
+          {ready ? 'Send to a dressmaker' : 'Making the files…'}
         </button>
-        <button type="button" className="secondary" onClick={dxf}>
-          Pattern (DXF)
-        </button>
-        <button type="button" className="secondary" onClick={onSvg}>
-          Pattern (SVG)
-        </button>
-      </div>
-      <label className="check">
-        <input type="checkbox" checked={atelier} onChange={(e) => onAtelier(e.target.checked)} />
-        <span>
-          Show how it was drafted <span className="muted small">numbered points on the pattern, with a note on how each was found</span>
-        </span>
-      </label>
-      {atelier && (
-        <div className="atelier">
-          {drafting.map((d) => (
-            <div key={d.piece}>
-              <h3>{d.piece}</h3>
-              <ol className="draftpoints">
-                {d.points.map((pt) => (
-                  <li key={pt.n}>
-                    <span className="num">{pt.n}</span>
-                    {pt.note}
-                  </li>
-                ))}
-              </ol>
-            </div>
-          ))}
+        <p className="muted small">Opens your share menu with the files and a short note for the maker.</p>
+        {note && <p className="msg small">{note}</p>}
+        <FindAMaker title={title} />
+      </section>
+
+      <details className="card more">
+        <summary>
+          <span className="eyebrow">Having it made, or drafting by hand</span>
+          <h2>More files</h2>
+        </summary>
+        <p className="muted">
+          For a dressmaker or factory, send both files. The tech pack has the measurements, ease, piece list, fabric and sewing steps. The DXF opens
+          in pattern software such as Gerber, Lectra, Optitex and CLO 3D.
+        </p>
+        <div className="row wrap">
+          <button type="button" className="secondary" onClick={() => pack && download(pack, 'application/pdf', packName)} disabled={!pack}>
+            Tech pack (PDF)
+          </button>
+          <button type="button" className="secondary" onClick={() => dxfText && download(dxfText, 'application/dxf', dxfName)} disabled={!dxfText}>
+            Pattern (DXF)
+          </button>
+          <button type="button" className="secondary" onClick={onSvg}>
+            Pattern (SVG)
+          </button>
         </div>
+        <label className="check">
+          <input type="checkbox" checked={atelier} onChange={(e) => onAtelier(e.target.checked)} />
+          <span>
+            Show how it was drafted <span className="muted small">numbered points on the pattern, with a note on how each was found</span>
+          </span>
+        </label>
+        {atelier && (
+          <div className="atelier">
+            {drafting.map((d) => (
+              <div key={d.piece}>
+                <h3>{d.piece}</h3>
+                <ol className="draftpoints">
+                  {d.points.map((pt) => (
+                    <li key={pt.n}>
+                      <span className="num">{pt.n}</span>
+                      {pt.note}
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            ))}
+          </div>
+        )}
+      </details>
+    </>
+  );
+}
+
+type Sent = 'idle' | 'sending' | 'sent' | 'failed';
+
+/** Sign-up for the dressmaker pilot: the email goes to Netlify Forms (the "find-a-maker" form in index.html). */
+function FindAMaker({ title }: { title: string }) {
+  const [email, setEmail] = useState('');
+  const [state, setState] = useState<Sent>('idle');
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setState('sending');
+    try {
+      const body = new URLSearchParams({ 'form-name': 'find-a-maker', email, pattern: title, 'bot-field': '' });
+      const res = await fetch('/', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body.toString() });
+      setState(res.ok ? 'sent' : 'failed');
+    } catch {
+      setState('failed');
+    }
+  };
+
+  return (
+    <div className="makerform">
+      <hr />
+      <p className="eyebrow">No dressmaker yet?</p>
+      {state === 'sent' ? (
+        <p className="msg">Thank you. We'll email you to introduce a dressmaker in Vancouver.</p>
+      ) : (
+        <>
+          <p className="muted">We're trying this with a few dressmakers in Vancouver. Leave your email and we'll introduce you to one.</p>
+          <form className="row" onSubmit={submit}>
+            <input type="email" required autoComplete="email" placeholder="Your email" aria-label="Your email" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <button type="submit" className="secondary" disabled={state === 'sending'}>
+              {state === 'sending' ? 'Sending…' : 'Find me a maker'}
+            </button>
+          </form>
+          {state === 'failed' && <p className="msg small">That didn't go through. Please try again in a moment.</p>}
+        </>
       )}
-    </details>
+    </div>
   );
 }
 
