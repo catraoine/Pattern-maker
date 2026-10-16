@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { Account, FREE_SAVED_LIMIT, ME, Person, SavedPattern, activePerson, personName } from '../account';
 import { PeopleSwitch } from '../ui/PeopleSwitch';
-import { BODICE_FIELDS, SKIRT_FIELDS, Unit } from '../measurements';
+import { BODICE_FIELDS, SKIRT_FIELDS, TROUSERS_FIELDS, Unit } from '../measurements';
 import { describePattern } from './describe';
 
 // Skirt and bodice share a few measurements (waist, hip); list each once.
-const ALL_FIELDS = [...SKIRT_FIELDS, ...BODICE_FIELDS.filter((b) => !SKIRT_FIELDS.some((f) => f.id === b.id))];
+const ALL_FIELDS = [...SKIRT_FIELDS, ...TROUSERS_FIELDS.filter((t) => !SKIRT_FIELDS.some((f) => f.id === t.id)), ...BODICE_FIELDS.filter((b) => !SKIRT_FIELDS.some((f) => f.id === b.id))];
 
 interface Props {
   account: Account & { people: Person[]; active: string };
@@ -14,6 +14,10 @@ interface Props {
   onUnit: (u: Unit) => void;
   onEditMeasurements: () => void;
   onSwitchPerson: (id: string) => void;
+  /** Open the person's client book: measurement history, fittings, notes, toile photos and patterns. */
+  onClientBook?: () => void;
+  /** Open a pattern file from elsewhere and walk its seams. */
+  onCheckFile?: () => void;
   onAddPerson: (name: string) => void;
   onRemovePerson: (id: string) => void;
   onOpen: (p: SavedPattern) => void;
@@ -29,7 +33,7 @@ const show = (cm: number | undefined, unit: Unit) =>
 
 const dateFmt = new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 
-export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurements, onSwitchPerson, onAddPerson, onRemovePerson, onOpen, onRename, onRemove, onReset, onBackup, onRestore }: Props) {
+export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurements, onSwitchPerson, onAddPerson, onRemovePerson, onClientBook, onCheckFile, onOpen, onRename, onRemove, onReset, onBackup, onRestore }: Props) {
   const [confirmReset, setConfirmReset] = useState(false);
   const [restoreMsg, setRestoreMsg] = useState('');
   const display = account.name.trim() || 'Me';
@@ -134,6 +138,11 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
               <button type="button" className="link" onClick={onEditMeasurements}>
                 Edit
               </button>
+              {onClientBook && (
+                <button type="button" className="link" onClick={onClientBook}>
+                  Client book
+                </button>
+              )}
               {person.id !== ME && (
                 <button type="button" className="link" onClick={() => onRemovePerson(person.id)}>
                   Delete
@@ -151,6 +160,16 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
             ))}
           </dl>
         </section>
+
+        {onCheckFile && (
+          <section className="card" aria-labelledby="cftitle2">
+            <h2 id="cftitle2">Check any pattern</h2>
+            <p className="muted small">Open a DXF or SVG from pattern software or a tracing, and its seams are walked to the millimetre.</p>
+            <button type="button" className="secondary" onClick={onCheckFile}>
+              Check a pattern file
+            </button>
+          </section>
+        )}
 
         <section className="card" aria-labelledby="stitle">
           <div className="row between wrap">

@@ -16,6 +16,8 @@ import type { Flat } from '../engine/flat';
 import { TechFlatView } from '../ui/TechFlatView';
 import { StepDiagram } from '../ui/StepDiagram';
 import { CLOTHS, seamFinish } from '../engine/couture';
+import { SizeRun } from '../ui/SizeRun';
+import type { MeasurementValues } from '../measurements';
 
 /** What to print: the drafted pieces of either garment, with its notes and sewing steps. */
 export interface Printable {
@@ -46,6 +48,9 @@ interface Props {
   onFitting: () => void;
   /** Each piece on screen at its real size. */
   onTrueScale?: () => void;
+  /** For grading: the measurements, and the pattern's pieces drafted to any set of them. */
+  values?: MeasurementValues;
+  draftAt?: (m: MeasurementValues) => Piece[];
 }
 
 type Output = Paper | 'projector' | 'projectorDark';
@@ -91,7 +96,7 @@ function download(data: BlobPart, type: string, name: string) {
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
-export function ExportScreen({ profile, title, fit, garment, finish, onFinish, made, error, onBack, fitting, fittingNotes, onFitting, onTrueScale }: Props) {
+export function ExportScreen({ profile, title, fit, garment, finish, onFinish, made, error, onBack, fitting, fittingNotes, onFitting, onTrueScale, values, draftAt }: Props) {
   const [paper, setPaper] = useState<Output>('a4');
   const [pdf, setPdf] = useState<{ paper: Output; bytes: Uint8Array } | null>(null);
   const [shareNote, setShareNote] = useState('');
@@ -388,6 +393,10 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
       </section>
 
       <MakerPack profile={profile} title={title} fit={fit} made={made} fileBase={fileBase} />
+
+      {values && draftAt && (
+        <SizeRun garment={garment} values={values} draftAt={draftAt} title={title} fileBase={fileBase} width={finish.fabricWidth} nap={finish.nap} download={download} />
+      )}
 
       <section className="card sew" aria-labelledby="sewtitle">
         <div className="row between wrap">

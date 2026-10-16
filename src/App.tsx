@@ -33,6 +33,7 @@ import {
   renamePattern,
   savePattern,
   updatePerson,
+  recordMeasurements,
   withPeople,
   FREE_SAVED_LIMIT,
 } from './account';
@@ -50,12 +51,14 @@ import { PhotoScreen } from './screens/PhotoScreen';
 import { WhoseScreen } from './screens/WhoseScreen';
 import { FittingScreen } from './screens/FittingScreen';
 import { TrueScaleScreen } from './screens/TrueScaleScreen';
+import { ClientBookScreen } from './screens/ClientBookScreen';
+import { CheckFileScreen } from './screens/CheckFileScreen';
 import { LoadingScreen } from './ui/LoadingScreen';
 import type { FormStart } from './ui/ContourForm';
 import type { Piece } from './engine/piece';
 
 export type Step = 'measure' | 'style' | 'export';
-type View = Step | 'welcome' | 'account' | 'photo' | 'whose' | 'fitting' | 'scale';
+type View = Step | 'welcome' | 'account' | 'photo' | 'whose' | 'fitting' | 'scale' | 'client' | 'check';
 
 export interface Choices {
   fit: Fit;
@@ -234,6 +237,32 @@ export default function App() {
     [garment, values, saved.bodice, saved.choices, trousersChoices, dress],
   );
 
+  /** The pattern's main pieces with allowances, drafted to any measurements: for grading a size run. */
+  const draftAt = useMemo(
+    () =>
+      (m: MeasurementValues): Piece[] => {
+        const allowance = (saved.finish ?? DEFAULT_FINISH).allowances;
+        const allow = (pcs: Piece[]) => pcs.map((pc) => withAllowances(pc, allowance));
+        if (garment === 'bodice') {
+          const b = draftBodice(m as BodiceMeasurements, bodiceStyle);
+          return allow([...b.pieces, ...(sleeveFor(b, bodiceStyle, m)?.pieces ?? [])]);
+        }
+        if (garment === 'trousers') {
+          const t = draftTrousers(m as TrousersMeasurements, trousersStyle);
+          return allow([...t.pieces, trousersWaistband(t, 1.5)]);
+        }
+        if (garment === 'dress') {
+          const st = dressStyles(fitting);
+          const d = draftDress(m as DressMeasurements, st.bodice, st.skirt);
+          return allow([...d.pieces, ...(sleeveFor(d.bodice, st.bodice, m)?.pieces ?? [])]);
+        }
+        const k = draftSkirt(m as SkirtMeasurements, skirtStyle);
+        return allow([...k.pieces, waistbandPiece(k, 1.5)]);
+      },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [garment, bodiceStyle, trousersStyle, skirtStyle, dress, fitting, saved.finish?.allowances],
+  );
+
   const current = garment === 'bodice' ? saved.bodice : garment === 'dress' ? dress : garment === 'trousers' ? trousersChoices : saved.choices;
   const title = garment === 'bodice' ? describeBodice(saved.bodice) : garment === 'dress' ? describePattern(dress) : garment === 'trousers' ? describeTrousers(trousersChoices) : describe(saved.choices);
 
@@ -405,6 +434,16 @@ export default function App() {
     setStep((to === 'style' || to === 'export') && !ready(who.values, saved.unit, garment) ? 'measure' : to);
   };
 
+  /** Open a saved pattern: one saved for someone opens with their measurements. */
+  const openPattern = (p: Account['patterns'][number]) => {
+    const who = account.people.find((x) => x.id === p.personId) ?? person;
+    setAccount({ ...account, active: who.id });
+    if (isTrousers(p.choices)) switchGarment('trousers', { trousers: p.choices }, 'style', who.values);
+    else if (isDress(p.choices)) switchGarment('dress', { dress: p.choices }, 'style', who.values);
+    else if (isBodice(p.choices)) switchGarment('bodice', { bodice: p.choices }, 'style', who.values);
+    else switchGarment('skirt', { choices: p.choices }, 'style', who.values);
+  };
+
   const reset = () => {
     setSaved(INITIAL);
     setAccount(NEW_ACCOUNT);
@@ -510,14 +549,11 @@ export default function App() {
                 setStep('measure');
               }}
               onRemovePerson={(id) => setAccount(removePerson(account, id))}
-              onOpen={(p) => {
-                // A pattern saved for someone opens with their measurements.
-                const who = account.people.find((x) => x.id === p.personId) ?? person;
-                setAccount({ ...account, active: who.id });
-                if (isTrousers(p.choices)) switchGarment('trousers', { trousers: p.choices }, 'style', who.values);
-                else if (isDress(p.choices)) switchGarment('dress', { dress: p.choices }, 'style', who.values);
-                else if (isBodice(p.choices)) switchGarment('bodice', { bodice: p.choices }, 'style', who.values);
-                else switchGarment('skirt', { choices: p.choices }, 'style', who.values);
+              onOpen={openPattern}
+              onCheckFile={() => setStep('check')}
+              onClientBook={() => {
+                setAccount(updatePerson(account, person.id, recordMeasurements(person, new Date().toISOString().slice(0, 10))));
+                setStep('client');
               }}
               onRename={(id, name) => setAccount(renamePattern(account, id, name))}
               onRemove={(id) => setAccount(removePattern(account, id))}
@@ -555,7 +591,10 @@ export default function App() {
               onValues={setValues}
               onExample={() => setValues({ ...EXAMPLE_VALUES, ...values })}
               canContinue={canLeaveMeasure}
-              onNext={() => setStep(person.id === ME && !person.named ? 'whose' : 'style')}
+              onNext={() => {
+                setAccount(updatePerson(account, person.id, recordMeasurements(person, new Date().toISOString().slice(0, 10))));
+                setStep(person.id === ME && !person.named ? 'whose' : 'style');
+              }}
             />
           )}
           {step === 'style' && garment === 'skirt' && (
@@ -636,6 +675,19 @@ export default function App() {
               fittingNotes={[...describeFitting(ownFitting, garment), ...carriedNotes]}
               onFitting={() => setStep('fitting')}
               onTrueScale={() => setStep('scale')}
+              values={values}
+              draftAt={draftAt}
+            />
+          )}
+          {step === 'check' && <CheckFileScreen onBack={() => setStep('account')} />}
+          {step === 'client' && (
+            <ClientBookScreen
+              account={account}
+              person={person}
+              unit={saved.unit}
+              onChange={(p) => setAccount(updatePerson(account, person.id, p))}
+              onOpen={openPattern}
+              onBack={() => setStep('account')}
             />
           )}
           {step === 'scale' && printable && <TrueScaleScreen pieces={printable.pieces} onBack={() => setStep('export')} />}

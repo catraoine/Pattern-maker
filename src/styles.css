@@ -1617,3 +1617,120 @@ button.ghost:disabled {
   stroke: var(--gild);
   stroke-dasharray: 0.4 0.25;
 }
+
+/* Size run: the graded nest */
+.nests {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.nest {
+  margin: 0;
+  width: 150px;
+}
+.nest svg {
+  width: 100%;
+  height: 170px;
+}
+.nest polygon {
+  fill: none;
+  vector-effect: non-scaling-stroke;
+}
+.nest .nest-base {
+  stroke: var(--gild);
+  stroke-width: 1.5;
+}
+.nest .nest-size {
+  stroke: var(--ink);
+  stroke-width: 0.8;
+}
+.sumgrid.rules {
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+}
+
+/* Client book */
+.stack.wide {
+  display: grid;
+  gap: 16px;
+}
+.tablewrap {
+  overflow-x: auto;
+}
+table.history {
+  border-collapse: collapse;
+  font-size: 13px;
+  font-family: var(--mono);
+}
+table.history th,
+table.history td {
+  padding: 4px 10px;
+  text-align: left;
+  border-bottom: 1px solid rgba(154, 142, 120, 0.25);
+  white-space: nowrap;
+}
+table.history td.moved {
+  color: var(--gild);
+}
+.notes {
+  display: grid;
+  gap: 6px;
+  padding-left: 18px;
+}
+.photos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+}
+.photo {
+  margin: 0;
+}
+.photo img,
+.photo-missing {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(154, 142, 120, 0.4);
+}
+.filebtn {
+  cursor: pointer;
+}
+
+/* Check any pattern */
+.filecheck {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.filecheck polyline {
+  fill: none;
+  vector-effect: non-scaling-stroke;
+  stroke-width: 2.5;
+}
+.filecheck .seam-ok polyline {
+  stroke: var(--gild);
+}
+.filecheck .seam-warn polyline {
+  stroke: #d9775b;
+}
+.filecheck text {
+  fill: var(--ink);
+  font-family: var(--mono);
+  paint-order: stroke;
+  stroke: var(--white);
+  stroke-width: 0.3;
+}
+.fitlist li.warn {
+  color: #e39a83;
+}
+.field textarea {
+  padding: 10px 12px;
+  border: var(--bw) solid var(--ink);
+  border-radius: 0;
+  background: var(--white);
+  color: var(--ink);
+  font: inherit;
+  font-size: 16px;
+  resize: vertical;
+}
