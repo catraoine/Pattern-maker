@@ -51,6 +51,8 @@ import { WelcomeScreen } from './screens/WelcomeScreen';
 import { AccountScreen } from './screens/AccountScreen';
 import { PhotoScreen } from './screens/PhotoScreen';
 import { WhoseScreen } from './screens/WhoseScreen';
+import { LegalScreen } from './screens/LegalScreen';
+import { PRIVACY, TERMS } from './legal';
 import { FittingScreen } from './screens/FittingScreen';
 import { TrueScaleScreen } from './screens/TrueScaleScreen';
 import { ClientBookScreen } from './screens/ClientBookScreen';
@@ -61,7 +63,7 @@ import type { Piece } from './engine/piece';
 import { garmentEase } from './engine/easeMap';
 
 export type Step = 'measure' | 'style' | 'export';
-type View = Step | 'welcome' | 'account' | 'photo' | 'whose' | 'fitting' | 'scale' | 'client' | 'check';
+type View = Step | 'welcome' | 'account' | 'photo' | 'whose' | 'fitting' | 'scale' | 'client' | 'check' | 'privacy' | 'terms';
 
 export interface Choices {
   fit: Fit;
@@ -174,6 +176,12 @@ export default function App() {
   const measuredBefore = isComplete(values, garment);
   // People who measured before onboarding existed have already met the app, so they skip the welcome.
   const [step, setStep] = useState<View>(measuredBefore ? 'style' : account.onboarded ? 'measure' : 'welcome');
+  // Where the legal pages go back to.
+  const [beforeLegal, setBeforeLegal] = useState<View>('welcome');
+  const openLegal = (page: 'privacy' | 'terms') => {
+    if (step !== 'privacy' && step !== 'terms') setBeforeLegal(step);
+    setStep(page);
+  };
   // The loading screen plays once each time the app opens, before anything else is drawn.
   const [opening, setOpening] = useState(true);
   // The welcome's dress form waits under the loading screen, which wraps its bodice into the form's outline.
@@ -492,7 +500,7 @@ export default function App() {
             </svg>
             <span>Maison Tracé</span>
           </div>
-          {step !== 'welcome' && (
+          {step !== 'welcome' && step !== 'privacy' && step !== 'terms' && (
             <div className="row nav">
           <nav aria-label="Steps" className="steps">
             {STEPS.map((s, i) => (
@@ -534,6 +542,14 @@ export default function App() {
                 setSaved({ ...saved, unit });
                 setStep(start === 'example' ? 'style' : start);
               }}
+            />
+          )}
+          {(step === 'privacy' || step === 'terms') && (
+            <LegalScreen
+              doc={step === 'privacy' ? PRIVACY : TERMS}
+              otherLabel={step === 'privacy' ? TERMS.title : PRIVACY.title}
+              onOther={() => openLegal(step === 'privacy' ? 'terms' : 'privacy')}
+              onBack={() => setStep(beforeLegal)}
             />
           )}
           {step === 'whose' && (
@@ -746,6 +762,14 @@ export default function App() {
             />
           )}
         </main>
+        <footer className="site-footer">
+          <button type="button" className="link" aria-current={step === 'privacy' ? 'page' : undefined} onClick={() => openLegal('privacy')}>
+            Privacy
+          </button>
+          <button type="button" className="link" aria-current={step === 'terms' ? 'page' : undefined} onClick={() => openLegal('terms')}>
+            Terms
+          </button>
+        </footer>
       </div>
     </>
   );

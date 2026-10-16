@@ -1306,6 +1306,70 @@ button.ghost:disabled {
   height: 100%;
 }
 
+/* Privacy and Terms links under every screen */
+.site-footer {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  padding: 0 20px calc(16px + env(safe-area-inset-bottom));
+}
+.site-footer button.link {
+  font-size: 12px;
+  font-weight: var(--w-body);
+  color: var(--muted);
+}
+.site-footer button.link[aria-current='page'] {
+  color: var(--ink);
+}
+
+/* The Privacy Policy and Terms of Use pages */
+.legal {
+  max-width: 720px;
+  margin: 0 auto;
+  gap: 14px;
+  line-height: 1.6;
+}
+.legal h2 {
+  margin: 18px 0 4px;
+}
+.legal p,
+.legal-list {
+  margin: 0 0 10px;
+}
+.legal .lead {
+  font-size: 18px;
+}
+.legal-list {
+  padding-left: 20px;
+}
+.legal-list li + li {
+  margin-top: 6px;
+}
+.legal-table {
+  overflow-x: auto;
+  margin-bottom: 10px;
+}
+.legal-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.legal-table th,
+.legal-table td {
+  text-align: left;
+  vertical-align: top;
+  padding: 8px 10px 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+.legal-table th {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: var(--w-body);
+}
+
 /* The posture measurements' heading spans the whole field grid. */
 .fields-head {
   grid-column: 1 / -1;
