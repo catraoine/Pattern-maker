@@ -10,6 +10,9 @@ import { P, Path, add, len, lerp, mul, p, sub, taggedLength, unit } from './geom
 import { finishDart } from './darts';
 import { Piece, withAlternate } from './piece';
 import { DraftError, Side, cm } from './skirt';
+import type { DartPlace, PrincessLine } from './manipulate';
+import { moveFrontDart, princessPieces } from './shaping';
+import { Buttons, Closure, Collar, EXTENSION_CM, backNeckFacing, backOnFold, buttonPlaces, collarPieces, frontFacing, openFront } from './collar';
 
 export interface BodiceMeasurements {
   full_bust: number;
@@ -51,6 +54,12 @@ export interface BodiceStyle {
   hemAllowance: number;
   /** Corrections from fitting a toile, on top of the measurements. */
   fitting?: BodiceFitting;
+  /** Where the bust dart opens (the block's is in the side seam), or princess seams instead of darts. */
+  bustDart?: DartPlace;
+  princess?: PrincessLine;
+  /** A centre back zip (the default) or buttons down the centre front; and a collar. */
+  closure?: Closure;
+  collar?: Collar;
 }
 
 /**
@@ -132,6 +141,50 @@ export interface BodiceDraft {
   warnings: string[];
   /** The lower shoulder's side and its pieces as drafted, for the seam check. */
   lowShoulder?: { side: Side; cm: number; pieces: Piece[] };
+  /** The front and back as drafted, with the side bust dart, when the printed pieces are styled
+   * (a moved dart, princess seams). The garment sews up to this shape, so sleeves, facings and the
+   * flat drawing are worked from it. */
+  block?: Piece[];
+  /** Lines to draw on the sewn garment in place of the block's bust dart (a moved dart), or of all
+   * its darts (princess seams), in the block's coordinates. */
+  styleLines?: { skip: 'side' | 'all'; front: { pts: P[]; kind: 'dart' | 'seam' }[]; back: { pts: P[]; kind: 'dart' | 'seam' }[] };
+  closure: Closure;
+  collar: Collar;
+  /** Where the buttons go on a button front. */
+  buttons?: Buttons;
+}
+
+/** The front and back as drafted: the shape the bodice sews up to, whatever its seams. */
+export const blockOf = (d: BodiceDraft): [Piece, Piece] => {
+  const b = d.block ?? d.pieces;
+  return [b[0], b[1]];
+};
+
+/** Princess seams or a moved bust dart, made on the drafted block. */
+function shape(d: BodiceDraft, s: BodiceStyle): BodiceDraft {
+  const princess = s.princess && s.princess !== 'none' ? s.princess : undefined;
+  // A top longer than the waist has no waist seam to take the bust dart.
+  const to = s.bustDart && s.bustDart !== 'side' && !(s.bustDart === 'waist' && needsHip(s.length)) ? s.bustDart : undefined;
+  if ((!princess && !to) || s.darts === 'none' || d.bustDart <= 0.3) return d;
+  const [front, back] = d.pieces;
+  const upper = princess || to === 'shoulder' || to === 'neck' || to === 'armhole';
+  if (d.lowShoulder && upper) {
+    return { ...d, warnings: [...d.warnings, `with one shoulder lower, the ${princess ? 'princess seams are' : 'bust dart is'} left as drafted, from the side seam`] };
+  }
+  if (princess) {
+    if (s.darts !== 'bust_waist') return d;
+    const pp = princessPieces(front, back, d.front.apex, princess);
+    if (!pp) return d;
+    return {
+      ...d,
+      block: [front, back],
+      pieces: pp.pieces,
+      styleLines: { skip: 'all', front: [{ pts: pp.lines.front, kind: 'seam' }], back: [{ pts: pp.lines.back, kind: 'seam' }] },
+    };
+  }
+  const moved = moveFrontDart(front, d.front.apex, to!, d.front.waistSide);
+  const sewn = moved.meta.sewnDart as P[] | undefined;
+  return { ...d, block: [front, back], pieces: [moved, back], styleLines: { skip: 'side', front: sewn ? [{ pts: sewn, kind: 'dart' }] : [], back: [] } };
 }
 
 const BACK_SLOPE = (18 * Math.PI) / 180;
@@ -202,6 +255,37 @@ function waistRun(path: Path, y: (x: number) => number, toX: number) {
 /** Draft the block, choosing the armhole depth that makes the armhole the person's armhole
  * measurement plus ease (falls back to a size-table depth without it). */
 export function draftBodice(m: BodiceMeasurements, style: Partial<BodiceStyle> = {}): BodiceDraft {
+  const s = { ...DEFAULT_BODICE_STYLE, ...style };
+  return finish(shape(draftBlock(m, s), s), s);
+}
+
+/** A button front (the back then on the fold) and a collar, both made on the bodice as sewn. */
+function finish(d: BodiceDraft, s: BodiceStyle): BodiceDraft {
+  const closure = s.closure ?? 'back_zip';
+  const collar = s.collar === 'shirt' && closure !== 'front_buttons' ? 'none' : s.collar && s.collar !== 'none' && s.neckline === 'crew' ? s.collar : s.collar === 'peter_pan' && s.neckline === 'scoop' ? 'peter_pan' : 'none';
+  const [bf, bb] = blockOf(d);
+  let pieces = d.pieces;
+  let buttons: Buttons | undefined;
+  let block = d.block;
+  if (closure === 'front_buttons') {
+    const cfNeck = bf.outline.start;
+    const foot = Math.max(...bf.outline.points(4).filter((q) => Math.abs(q.x) < 1e-6).map((q) => q.y));
+    buttons = buttonPlaces(cfNeck.y, foot, collar === 'mandarin' || collar === 'shirt', !needsHip(s.length));
+    pieces = pieces.map((pc) => (pc.fold && /front/i.test(pc.name) ? openFront(pc, buttons) : /back/i.test(pc.name) ? backOnFold(pc) : pc));
+    const openBlock = openFront(bf);
+    const foldBlock = backOnFold(bb);
+    // The bodice as sewn is buttoned shut: the block itself, centre front to centre front.
+    block = [bf, bb];
+    pieces = [...pieces, frontFacing(openBlock), ...[backNeckFacing(foldBlock)].filter((pc): pc is Piece => !!pc)];
+  }
+  if (collar !== 'none') {
+    const ext = closure === 'front_buttons' && collar !== 'peter_pan' ? EXTENSION_CM : 0;
+    pieces = [...pieces, ...collarPieces(collar, bf, bb, { back: taggedLength(bb.outline, 'neck'), front: taggedLength(bf.outline, 'neck'), ext, closure, sa: s.seamAllowance })];
+  }
+  return { ...d, pieces, block, closure, collar, buttons };
+}
+
+function draftBlock(m: BodiceMeasurements, style: BodiceStyle): BodiceDraft {
   const s = { ...DEFAULT_BODICE_STYLE, ...style };
   if (needsHip(s.length) && !(m.full_hip && m.waist_to_hip)) {
     throw new DraftError('Add your full hip and waist to hip measurements to make a top that goes below the waist.');
@@ -683,6 +767,8 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
     zipCm,
     front: { apex, waistSide: swF, waistCentre: p(0, wf), hemSide: hipF, hemCentre: p(0, cfHem) },
     neck: r(2 * (taggedLength(back, 'neck') + taggedLength(front, 'neck')), 1),
+    closure: 'back_zip',
+    collar: 'none',
     warnings,
     inner: { bustDart, lower, upper },
   };

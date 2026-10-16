@@ -3,10 +3,12 @@ import { layout } from '../engine/export';
 import { BODICE_FIT_EASE, BodiceDraft, needsHip } from '../engine/bodice';
 import { piecesLengthCm, toMetres } from '../engine/fabric';
 import { layPlan } from '../engine/layplan';
-import { BODICE_GROUPS, BodiceChoices, DARTS_FOR_FIT, describeBodice, sleeveOf } from '../garments';
+import { BODICE_GROUPS, BodiceChoices, DARTS_FOR_FIT, describeBodice, detailAllowed, sleeveOf, validDetails } from '../garments';
+import { bodiceFlat } from '../engine/flat';
+import { TechFlatView } from '../ui/TechFlatView';
 import { SHAPES_FOR_LENGTH, SleeveDraft, needsArms } from '../engine/sleeve';
 import { Garment, MeasurementValues, hasHip } from '../measurements';
-import { BodiceSketch, PatternPreview } from '../ui/Preview';
+import { PatternPreview } from '../ui/Preview';
 import { GarmentSwitch } from '../ui/GarmentSwitch';
 import { FREE_SAVED_LIMIT } from '../account';
 
@@ -53,6 +55,12 @@ export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft
   const hip = hasHip(values);
   const arms = !needsArms(values);
   const chosen = sleeveOf(choices);
+  const flat = useMemo(() => (draft ? bodiceFlat(draft, 'binding', sleeve) : undefined), [draft, sleeve]);
+  const detail = { bustDart: choices.bustDart ?? 'side', princess: choices.princess ?? 'none', closure: choices.closure ?? 'back_zip', collar: choices.collar ?? 'none' };
+  const valueOf = (id: (typeof BODICE_GROUPS)[number]['id']) =>
+    id === 'sleeveShape' ? chosen.shape : id === 'sleeve' ? chosen.length : id in detail ? detail[id as keyof typeof detail] : choices[id];
+  const shown = (id: string) =>
+    (id !== 'sleeveShape' || chosen.length !== 'none') && (id !== 'bustDart' || (choices.darts !== 'none' && detail.princess === 'none'));
 
   const allowed = (id: string, opt: string) =>
     id === 'darts'
@@ -63,13 +71,16 @@ export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft
           ? opt === 'none' || arms
           : id === 'sleeveShape'
             ? SHAPES_FOR_LENGTH[chosen.length].includes(opt as NonNullable<BodiceChoices['sleeveShape']>)
-            : true;
+            : id === 'princess' || id === 'bustDart' || id === 'closure' || id === 'collar'
+              ? detailAllowed(choices, id, opt)
+              : true;
 
   const choose = (c: BodiceChoices) => {
     // A tighter fit needs more shaping, so moving to it brings the darts back.
     const darts = DARTS_FOR_FIT[c.fit].includes(c.darts) ? c.darts : 'bust_waist';
     // Each sleeve length allows only some shapes; keep the chosen one when it still fits.
-    onChoices({ ...c, darts, sleeveShape: sleeveOf(c).shape });
+    // Details the other choices no longer allow (a collar on a V-neck, say) fall back to the plain ones.
+    onChoices(validDetails({ ...c, darts, sleeveShape: sleeveOf(c).shape }));
   };
 
   return (
@@ -79,7 +90,7 @@ export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft
           <h1 id="opts">Style your bodice</h1>
           <GarmentSwitch garment="bodice" onGarment={onGarment} />
         </div>
-        {BODICE_GROUPS.filter((g) => g.id !== 'sleeveShape' || chosen.length !== 'none').map((g) => (
+        {BODICE_GROUPS.filter((g) => shown(g.id)).map((g) => (
           <fieldset key={g.id} className="group">
             <legend>{g.label}</legend>
             <div className="chips">
@@ -87,8 +98,8 @@ export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft
                 <button
                   key={id}
                   type="button"
-                  className={(g.id === 'sleeveShape' ? chosen.shape : g.id === 'sleeve' ? chosen.length : choices[g.id]) === id ? 'chip on' : 'chip'}
-                  aria-pressed={(g.id === 'sleeveShape' ? chosen.shape : g.id === 'sleeve' ? chosen.length : choices[g.id]) === id}
+                  className={valueOf(g.id) === id ? 'chip on' : 'chip'}
+                  aria-pressed={valueOf(g.id) === id}
                   disabled={!allowed(g.id, id)}
                   onClick={() => choose({ ...choices, [g.id]: id })}
                 >
@@ -112,15 +123,20 @@ export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft
                 </button>
               </p>
             )}
+            {g.id === 'princess' && choices.darts !== 'bust_waist' && <p className="muted small">Princess seams carry the bust and waist darts, so they need both.</p>}
+            {g.id === 'collar' && choices.neckline !== 'crew' && <p className="muted small">Collars sit on a crew neck (a Peter Pan on a scoop neck too).</p>}
+            {g.id === 'collar' && choices.neckline === 'crew' && detail.closure !== 'front_buttons' && <p className="muted small">A shirt collar needs the front buttons.</p>}
             {g.id === 'darts' && choices.fit !== 'relaxed' && (
               <p className="muted small">{choices.fit === 'fitted' ? 'A fitted bodice needs bust and waist darts.' : 'Choose a relaxed fit to go without darts.'}</p>
             )}
           </fieldset>
         ))}
         <p className="muted small">
+          {detail.closure === 'front_buttons' ? `Buttons down the centre front${draft?.buttons ? ` (${draft.buttons.count})` : ''}, with front facings.` : 'With a centre back zip.'}{' '}
           {chosen.length === 'none'
-            ? 'With a centre back zip. The neckline and armholes are finished with bias binding.'
-            : 'With a centre back zip. The sleeves are drafted to fit your armholes, with their ease set where a tailor sets it.'}
+            ? 'The neckline and armholes are finished with bias binding.'
+            : 'The sleeves are drafted to fit your armholes, with their ease set where a tailor sets it.'}
+          {detail.princess !== 'none' || detail.bustDart !== 'side' ? ' The shaping is moved the way a pattern cutter does it: the garment sews up to exactly the same fit.' : ''}
         </p>
       </section>
 
@@ -138,7 +154,7 @@ export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft
         </div>
         <div className="preview">
           {error && <p className="msg error">{error}</p>}
-          {draft && view === 'sketch' && <BodiceSketch draft={draft} label={`${title}, front view`} />}
+          {flat && view === 'sketch' && <TechFlatView flat={flat} title={title} />}
           {draft && sheet && view === 'pattern' && <PatternPreview sheet={sheet} label={`Front and back pattern pieces for a ${title}`} />}
         </div>
         {draft?.warnings.map((w) => (

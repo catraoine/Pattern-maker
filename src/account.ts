@@ -96,7 +96,11 @@ export function sameChoices(a: PatternChoices, b: PatternChoices): boolean {
       a.length === b.length &&
       a.darts === b.darts &&
       sleeveOf(a).length === sleeveOf(b).length &&
-      sleeveOf(a).shape === sleeveOf(b).shape
+      sleeveOf(a).shape === sleeveOf(b).shape &&
+      (a.bustDart ?? 'side') === (b.bustDart ?? 'side') &&
+      (a.princess ?? 'none') === (b.princess ?? 'none') &&
+      (a.closure ?? 'back_zip') === (b.closure ?? 'back_zip') &&
+      (a.collar ?? 'none') === (b.collar ?? 'none')
     );
   }
   return (

@@ -8,6 +8,7 @@ import type { DressDraft } from './dress';
 import { SEAM_WIDTHS, SeamWidths } from './allowances';
 import type { Piece } from './piece';
 import type { DiagramId } from './diagrams';
+import { placeWords, styleBodiceSteps } from './styleSteps';
 
 // Widest strip that fits across 140 cm fabric, leaving room for the selvedges.
 export const BAND_ACROSS_MAX = 135;
@@ -340,7 +341,7 @@ export function bodiceGuide(draft: BodiceDraft, style: { length: BodiceLength },
     },
   ];
 
-  return {
+  const guide: SewingGuide = {
     notions: [
       `${fabricM.toFixed(1)} m of woven fabric, ${finish.width ?? 140} cm wide`,
       `${draft.zipCm} cm invisible zip`,
@@ -352,6 +353,7 @@ export function bodiceGuide(draft: BodiceDraft, style: { length: BodiceLength },
     ],
     steps,
   };
+  return styleBodiceSteps(guide, draft, { seam, curve, edges, sleeve: !!sleeve });
 }
 
 /** Cutting the sleeves, added to the cutting step. */
@@ -395,10 +397,10 @@ export function dressGuide(draft: DressDraft, style: { silhouette: Silhouette; l
     top.steps[0],
     {
       title: 'Cut out',
-      text: `Fold the fabric in half with the selvedges together. Place the bodice front${wide ? '' : ' and the skirt front'} on the fold, and the bodice back${wide ? '' : ' and the skirt back'} on both layers so you get a pair${wide ? '' : ' of each'}.${
+      text: `Fold the fabric in half with the selvedges together. ${placeWords(draft.bodice)}${wide ? '' : ' Place the skirt front on the fold and the skirt back on both layers.'}${
         wide ? ' The skirt pieces are too wide for folded fabric: cut them from a single layer, turning the pattern over for the second of each so you get pairs.' : ''
-      } Keep each grain arrow parallel to the selvedge. Cut along the solid outer line, snip the small notches${dartLines ? ', and chalk-mark the dart lines and the bust point' : ''}.${
-        lined ? ' Cut the bodice front and back again from the lining.' : edges === 'facings' ? (finish.sleeve ? ' Cut the neck facings from the fabric, and again from fusible interfacing.' : ' Cut the four facing pieces from the fabric, and again from fusible interfacing.') : ''
+      } Keep each grain arrow parallel to the selvedge. Cut along the solid outer line, snip the small notches${dartLines ? ', and chalk-mark the dart lines and the bust point' : ''}.${collarCut(draft.bodice)}${
+        lined ? ' Cut the bodice pieces again from the lining.' : edges === 'facings' ? (finish.sleeve ? ' Cut the neck facings from the fabric, and again from fusible interfacing.' : ' Cut the four facing pieces from the fabric, and again from fusible interfacing.') : ''
       }${sleeveCutWords(finish.sleeve)}${oneSide(draft.bodice.pieces[0], lined ? 'and the lining' : '')}`,
     },
     ...find(top, /^Interface the facings$/),
@@ -407,7 +409,7 @@ export function dressGuide(draft: DressDraft, style: { silhouette: Silhouette; l
       diagram: 'overlock',
       text: `Zigzag or overlock the shoulder and side edges of the bodice, the side edges of the skirt, and the centre back edges of both${finish.sleeve ? ", and the sleeves' underarm seam edges" : ''}, so they will not fray inside.`,
     },
-    ...find(top, /^Sew the .*darts?$/),
+    ...find(top, /^Sew the (.*darts?|princess seams)$/),
     ...find(skirt, /^Sew the .*darts?$/).map((s) => ({ ...s, title: 'Sew the skirt darts' })),
     ...find(skirt, /^Sew the centre front$/).map((s) => ({ ...s, title: 'Sew the skirt centre front' })),
     {
@@ -437,6 +439,10 @@ export function dressGuide(draft: DressDraft, style: { silhouette: Silhouette; l
     steps,
   };
 }
+
+/** Cutting a dress's collar. */
+const collarCut = (d: BodiceDraft) =>
+  d.collar === 'peter_pan' ? ' Cut four collar pieces (two pairs), and interface two of them.' : d.collar === 'mandarin' ? ' Cut the collar twice on the fold, and interface one.' : '';
 
 /** The steps for set-in sleeves, after the bodice is closed and its neck finished. */
 function sleeveSteps(sl: SleeveDraft, seam: string, curve: string, lined: boolean): SewStep[] {

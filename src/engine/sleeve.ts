@@ -6,7 +6,7 @@
 // front elbow, so the sleeve bends with the arm.
 import { P, Path, add, len, lerp, mul, p, sub, unit } from './geometry';
 import type { Piece } from './piece';
-import type { BodiceDraft, BodiceFit } from './bodice';
+import { BodiceDraft, BodiceFit, blockOf } from './bodice';
 import { DraftError } from './skirt';
 
 export type SleeveLength = 'none' | 'short' | 'elbow' | 'three_quarter' | 'long';
@@ -156,8 +156,10 @@ export function draftSleeve(bodice: BodiceDraft, m: SleeveMeasurements, s: Sleev
   if (!m.arm_length || !m.upper_arm) throw new DraftError('Add your arm length and upper arm measurements to add sleeves.');
   if (!SHAPES_FOR_LENGTH[s.length].includes(s.shape)) throw new DraftError(`A ${s.shape} sleeve can't be ${s.length.replace('_', ' ')} length.`);
   const warnings: string[] = [];
-  const front = armholeOf(bodice.pieces[0]);
-  const back = armholeOf(bodice.pieces[1]);
+  // The armhole as sewn: the block's, whatever seams the bodice is cut with.
+  const [bf, bb] = blockOf(bodice);
+  const front = armholeOf(bf);
+  const back = armholeOf(bb);
   const depth = (front.depth + back.depth) / 2;
   const ease = SLEEVE_EASE[s.fit];
   const arm = m.arm_length;

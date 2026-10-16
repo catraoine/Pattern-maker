@@ -6,7 +6,7 @@ import { P, add, len, mul, p, sub, unit } from './geometry';
 import type { Piece } from './piece';
 import type { SkirtDraft } from './skirt';
 import { WAISTBAND_CM } from './skirt';
-import type { BodiceDraft } from './bodice';
+import { BodiceDraft, blockOf } from './bodice';
 import type { BodiceEdges } from './instructions';
 import { BAND_CM, SleeveDraft } from './sleeve';
 import type { DressDraft } from './dress';
@@ -74,7 +74,7 @@ interface Half {
  * folded away, and the piece below it drawn up to `bottom`, so the front's side seam is as long as
  * the back's.
  */
-function sewn(pc: Piece, bottom?: number): Half {
+function sewn(pc: Piece, bottom?: number, skip?: 'side' | 'all'): Half {
   let { pts, tags } = pc.outline.taggedPoints(8);
   if (len(sub(pts[0], pts[pts.length - 1])) < 1e-6) pts = pts.slice(0, -1);
   tags = tags.slice(0, pts.length);
@@ -171,6 +171,8 @@ function sewn(pc: Piece, bottom?: number): Half {
   const darts: P[][] = [];
   for (const ps of linePts) {
     if (ps.length < 3) continue;
+    // A moved bust dart or princess seams are drawn instead of the block's own.
+    if (skip === 'all' || (skip === 'side' && ps.length === 3 && Math.abs(ps[2].y - ps[0].y) > Math.abs(ps[2].x - ps[0].x))) continue;
     const a = ps[0];
     const b = ps[ps.length - 1];
     let line: P[];
@@ -391,6 +393,46 @@ function sleeveSide(h: Half, sl: SleeveDraft): { shape: P[]; band?: P[]; lines: 
   return { shape, band: bandShape, lines };
 }
 
+/** A run offset by d, square to it, to the side away from `from`. */
+function offsetRun(run: P[], d: (i: number) => number, from: P): P[] {
+  return run.map((q, i) => {
+    const t = unit(sub(run[Math.min(i + 1, run.length - 1)], run[Math.max(i - 1, 0)]));
+    let n = p(-t.y, t.x);
+    if ((q.x - from.x) * n.x + (q.y - from.y) * n.y < 0) n = mul(n, -1);
+    return add(q, mul(n, d(i)));
+  });
+}
+
+/** The collar as seen on the flat, half of it from the centre: a band standing up from the neck, a
+ * Peter Pan lying on the body, or a shirt collar's points over its stand. */
+function collarHalf(neck: P[], kind: BodiceDraft['collar'], front: boolean): { a: P[]; b: P[] }[] {
+  if (kind === 'none' || neck.length < 2) return [];
+  const up = (h: number) => neck.map((q) => p(q.x, q.y - h));
+  if (kind === 'mandarin') return [{ a: neck, b: up(3.5) }];
+  if (kind === 'peter_pan') {
+    const L = neck.reduce((s2, q, i) => (i ? s2 + len(sub(q, neck[i - 1])) : 0), 0);
+    let acc = 0;
+    const w = neck.map((q, i) => {
+      if (i) acc += len(sub(q, neck[i - 1]));
+      return front ? 6 * Math.sqrt(Math.min(1, acc / Math.min(5, L))) : 6;
+    });
+    return [{ a: neck, b: offsetRun(neck, (i) => w[i], p(0, -100)) }];
+  }
+  // Shirt: the stand, and the collar falling from its top edge over it, to a point at the front.
+  const stand = up(2.6);
+  const fall = offsetRun(neck, () => (front ? 3.2 : 4.5), p(0, -100));
+  if (front) fall[0] = add(neck[0], p(2.2, 6));
+  return [{ a: neck, b: stand }, { a: stand, b: fall }];
+}
+
+/** Both halves of a collar part (each run starting at the centre line), as one outline when it is
+ * one piece across the centre, or as two meeting there. */
+function collarShapes(c: { a: P[]; b: P[] }, joined: boolean): P[][] {
+  const half = [...c.a, ...[...c.b].reverse()];
+  if (!joined) return [half, mirror(half)];
+  return [[...mirror(c.a).reverse(), ...c.a.slice(1), ...[...c.b].reverse(), ...mirror(c.b).slice(1)]];
+}
+
 /** The bodice: darts, the back neck seen over the front, centre back seam and zip, sleeves when it has
  * them, and the stitching that shows: binding round the neck (and the armholes of a sleeveless one),
  * and the hem of a longer top. */
@@ -400,30 +442,46 @@ export function bodiceFlat(d: BodiceDraft, edges: BodiceEdges = 'binding', sleev
 
 /** The bodice's views, and where each meets its waist at the centre. */
 function bodiceViews(d: BodiceDraft, edges: BodiceEdges, sleeve: SleeveDraft | undefined, zipped: boolean): (RawView & { foot: number })[] {
-  const back = sewn(d.pieces[1]);
+  const [bf, bb] = blockOf(d);
+  const style = d.styleLines;
+  const back = sewn(bb, undefined, style?.skip === 'all' ? 'all' : undefined);
   const backFoot = back.run[back.tags.lastIndexOf('side') + 1].y;
-  const front = sewn(d.pieces[0], backFoot);
+  const front = sewn(bf, backFoot, style?.skip);
   const hps = (h: Half) => h.run[h.tags.indexOf('shoulder')];
   return ([front, back] as const).map((h, i) => {
     const shape = whole(h.run);
     const lines: FlatView['lines'] = h.darts.flatMap((dt) => both(dt).map((pts) => ({ pts, kind: 'dart' as const })));
+    for (const sl of (i === 0 ? style?.front : style?.back) ?? []) lines.push(...both(sl.pts.map(h.move)).map((pts) => ({ pts, kind: sl.kind })));
     if (i === 0) {
       // The back neckline shows through a lower front neck.
       const shift = sub(hps(front), hps(back));
       const neck = along(back, 'neck')[0]?.map((q) => add(q, shift));
       if (neck && front.run[0].y > neck[0].y + 1) lines.push(...both(neck).map((pts) => ({ pts, kind: 'seam' as const })));
     }
+    const collared = d.collar !== 'none' || d.closure === 'front_buttons';
     if (edges === 'binding') {
-      for (const run of [...along(h, 'neck'), ...(sleeve ? [] : along(h, 'armhole'))])
+      for (const run of [...(collared ? [] : along(h, 'neck')), ...(sleeve ? [] : along(h, 'armhole'))])
         for (const pts of [run, mirror(run)]) for (const r of inset(pts, 0.6, shape)) lines.push({ pts: r, kind: 'stitch' });
     }
     if (d.finishedHem !== undefined)
       for (const run of along(h, 'hem')) for (const pts of [run, mirror(run)]) for (const r of inset(pts, 2, shape)) lines.push({ pts: r, kind: 'stitch' });
-    if (i === 1 && zipped) {
+    if (i === 0 && d.closure === 'front_buttons' && d.buttons) {
+      // The right front laps over the left: its edge, and the buttons on the centre front.
+      const top = h.run[0].y;
+      const foot = h.run[h.run.length - 1].y;
+      lines.push({ pts: [p(-1.5, top), p(-1.5, foot)], kind: 'seam' });
+      for (const y of d.buttons.at) {
+        const c = h.move(p(0, y));
+        lines.push({ pts: Array.from({ length: 13 }, (_, k) => add(p(0, c.y), p(0.65 * Math.cos((k / 12) * 2 * Math.PI), 0.65 * Math.sin((k / 12) * 2 * Math.PI)))), kind: 'seam' });
+      }
+    }
+    if (i === 1 && zipped && d.closure !== 'front_buttons') {
       const top = h.run[0].y;
       lines.push({ pts: [p(0, top), p(0, h.run[h.run.length - 1].y)], kind: 'seam' }, ...zip(top, d.zipCm));
     }
     const shapes = [shape];
+    const neckRun = along(h, 'neck')[0];
+    const collar = neckRun ? collarHalf(neckRun, d.collar, i === 0) : [];
     if (sleeve) {
       const sl = sleeveSide(h, sleeve);
       for (const flip of [false, true]) {
@@ -433,6 +491,9 @@ function bodiceViews(d: BodiceDraft, edges: BodiceEdges, sleeve: SleeveDraft | u
         lines.push(...sl.lines.map((l) => ({ ...l, pts: f(l.pts) })));
       }
     }
+    // The collar goes on last, over the sleeves' heads.
+    // In one piece across the centre back on a button front; meeting at the zip or the centre front otherwise.
+    for (const c of collar) shapes.push(...collarShapes(c, i === 1 && d.closure === 'front_buttons'));
     return { label: i === 0 ? ('FRONT' as const) : ('BACK' as const), shapes, lines, foot: h.run[h.run.length - 1].y };
   });
 }

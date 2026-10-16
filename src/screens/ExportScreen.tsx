@@ -105,18 +105,28 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
     if (!made) return [];
     const waist = made.spec.find((r) => r.label === 'Waist')?.finished;
     return checkPattern(
-      made.pieces.filter((pc) => !pc.kind),
+      made.pieces.filter((pc) => !pc.kind || pc.kind === 'collar'),
       { finishedWaist: typeof waist === 'number' ? waist : undefined },
     );
   }, [made]);
   const drafting = useMemo(() => (made ? made.pieces.filter((pc) => pc.draft).map((pc) => ({ piece: pc.name, points: pc.draft!.points })) : []), [made]);
+  // The draft-it-by-hand guide: every garment piece that carries its draft (not the facings and lining).
+  const byHand = useMemo(
+    () =>
+      made && finish.byHand
+        ? made.pieces
+            .filter((pc) => pc.draft && pc.kind !== 'lining' && pc.kind !== 'facing')
+            .map((pc) => ({ piece: pc.name, frame: pc.draft!.frame, outline: pc.outline.points(12), lines: pc.lines.map((l) => l.points(8)), points: pc.draft!.points }))
+        : undefined,
+    [made, finish.byHand],
+  );
   const lays = useMemo(() => made?.lays ?? [], [made]);
   const summary = useMemo(
     () =>
       made
-        ? { rows: made.spec.filter((r) => typeof r.finished === 'number'), checks, madeFor: profile, date, drafting: finish.atelier ? drafting : undefined, lays, flat: made.flat }
+        ? { rows: made.spec.filter((r) => typeof r.finished === 'number'), checks, madeFor: profile, date, drafting: finish.atelier ? drafting : undefined, byHand, lays, flat: made.flat }
         : undefined,
-    [made, checks, profile, date, drafting, finish.atelier, lays],
+    [made, checks, profile, date, drafting, finish.atelier, lays, byHand],
   );
 
   // Build the PDF ahead of time, so share and print run straight from the tap (phones require that).
@@ -268,6 +278,12 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
             <input type="checkbox" checked={finish.atelier} onChange={(e) => onFinish({ ...finish, atelier: e.target.checked })} />
             <span>
               Atelier view <span className="muted small">show the draft: the frame, numbered points and how each was found</span>
+            </span>
+          </label>
+          <label className="check">
+            <input type="checkbox" checked={!!finish.byHand} onChange={(e) => onFinish({ ...finish, byHand: e.target.checked })} />
+            <span>
+              Draft it by hand <span className="muted small">add pages to draw the pattern yourself on pattern paper, point by point</span>
             </span>
           </label>
           <button type="button" className="primary" onClick={() => ready && download(ready, 'application/pdf', fileName)} disabled={!ready}>

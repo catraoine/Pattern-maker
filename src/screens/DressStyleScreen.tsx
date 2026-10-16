@@ -7,7 +7,7 @@ import { piecesLengthCm, toMetres } from '../engine/fabric';
 import { layPlan } from '../engine/layplan';
 import { hasSlit } from '../engine/instructions';
 import { SHAPES_FOR_LENGTH, SleeveDraft, needsArms } from '../engine/sleeve';
-import { BODICE_GROUPS, BodiceChoices, DARTS_FOR_FIT, DressChoices, sleeveOf } from '../garments';
+import { BODICE_GROUPS, BodiceChoices, DARTS_FOR_FIT, DressChoices, detailAllowed, sleeveOf, validDetails } from '../garments';
 import type { Garment, MeasurementValues } from '../measurements';
 import { GarmentSwitch } from '../ui/GarmentSwitch';
 import { PatternPreview } from '../ui/Preview';
@@ -43,7 +43,7 @@ export const dressFabricMetres = (pieces: DressDraft['pieces']) => layPlan(piece
  */
 export function DressStyleScreen({ choices, onChoices, onGarment, values, draft, sleeve, error, onEditMeasurements, onNext, saveState, onSave, onAccount }: Props) {
   const [view, setView] = useState<'sketch' | 'pattern'>('sketch');
-  const pieces = useMemo(() => (draft ? [...draft.pieces.slice(0, 2), ...(sleeve?.pieces ?? []), ...draft.pieces.slice(2)] : []), [draft, sleeve]);
+  const pieces = useMemo(() => (draft ? [...draft.pieces.filter((pc) => /^Bodice/.test(pc.name)), ...(sleeve?.pieces ?? []), ...draft.skirt.pieces] : []), [draft, sleeve]);
   const sheet = useMemo(() => (pieces.length ? layout(pieces, '', []) : undefined), [pieces]);
   const flat = useMemo(() => (draft ? dressFlat(draft, 'binding', { sleeve, slit: hasSlit(choices.skirt) }) : undefined), [draft, sleeve, choices.skirt]);
   const title = describePattern(choices);
@@ -53,7 +53,16 @@ export function DressStyleScreen({ choices, onChoices, onGarment, values, draft,
 
   const groups: Option[] = [
     { id: 'fit', label: 'Fit', options: GROUPS[0].options },
-    ...BODICE_GROUPS.filter((g) => g.id === 'neckline' || g.id === 'darts' || g.id === 'sleeve' || (g.id === 'sleeveShape' && chosen.length !== 'none')).map((g) => ({
+    ...BODICE_GROUPS.filter(
+      (g) =>
+        g.id === 'neckline' ||
+        g.id === 'darts' ||
+        g.id === 'princess' ||
+        (g.id === 'bustDart' && choices.bodice.darts !== 'none' && (choices.bodice.princess ?? 'none') === 'none') ||
+        g.id === 'collar' ||
+        g.id === 'sleeve' ||
+        (g.id === 'sleeveShape' && chosen.length !== 'none'),
+    ).map((g) => ({
       id: g.id,
       label: g.label,
       options: g.options as [string, string][],
@@ -71,7 +80,13 @@ export function DressStyleScreen({ choices, onChoices, onGarment, values, draft,
           ? chosen.length
           : id === 'sleeveShape'
             ? chosen.shape
-            : choices.bodice[id as keyof BodiceChoices];
+            : id === 'bustDart'
+              ? choices.bodice.bustDart ?? 'side'
+              : id === 'princess'
+                ? choices.bodice.princess ?? 'none'
+                : id === 'collar'
+                  ? choices.bodice.collar ?? 'none'
+                  : choices.bodice[id as keyof BodiceChoices];
 
   const allowed = (id: string, opt: string) =>
     id === 'darts'
@@ -80,7 +95,9 @@ export function DressStyleScreen({ choices, onChoices, onGarment, values, draft,
         ? opt === 'none' || arms
         : id === 'sleeveShape'
           ? SHAPES_FOR_LENGTH[chosen.length].includes(opt as NonNullable<BodiceChoices['sleeveShape']>)
-          : true;
+          : id === 'princess' || id === 'bustDart' || id === 'collar'
+            ? detailAllowed({ ...choices.bodice, length: 'waist', closure: 'back_zip' }, id, opt, 'dress')
+            : true;
 
   const choose = (id: string, opt: string) => {
     if (id === 'silhouette' || id === 'length') {
@@ -92,7 +109,7 @@ export function DressStyleScreen({ choices, onChoices, onGarment, values, draft,
     const bodice = { ...choices.bodice, fit, ...(id === 'fit' ? {} : { [id]: opt }) } as BodiceChoices;
     // A tighter fit needs more shaping, and each sleeve length allows only some shapes.
     const darts = DARTS_FOR_FIT[fit].includes(bodice.darts) ? bodice.darts : 'bust_waist';
-    onChoices({ ...choices, fit, bodice: { ...bodice, darts, length: 'waist', sleeveShape: sleeveOf(bodice).shape }, skirt: { ...choices.skirt, fit } });
+    onChoices({ ...choices, fit, bodice: validDetails({ ...bodice, darts, length: 'waist', closure: 'back_zip', sleeveShape: sleeveOf(bodice).shape }, 'dress'), skirt: { ...choices.skirt, fit } });
   };
 
   return (

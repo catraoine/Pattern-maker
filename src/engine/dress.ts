@@ -44,10 +44,17 @@ export function waistDartAt(pc: Piece): number | undefined {
 }
 
 export function draftDress(m: DressMeasurements, bodiceStyle: Partial<BodiceStyle> = {}, skirtStyle: Partial<SkirtStyle> = {}): DressDraft {
-  const bodice = draftBodice(m, { ...bodiceStyle, length: 'waist' });
-  const [bf, bb] = bodice.pieces;
-  const waist = { front: taggedLength(bf.outline, 'waist'), back: taggedLength(bb.outline, 'waist') };
-  const dartAt = { front: waistDartAt(bf), back: waistDartAt(bb) };
+  const bodice = draftBodice(m, { ...bodiceStyle, length: 'waist', closure: 'back_zip' });
+  // Front and back may each be one piece or two panels (princess seams): their waists add up, and the
+  // skirt dart goes under the bodice dart or under the princess seam.
+  const side = (which: 'front' | 'back') => bodice.pieces.filter((pc) => new RegExp(which, 'i').test(pc.name));
+  const waistOf = (pcs: Piece[]) => pcs.reduce((t, pc) => t + taggedLength(pc.outline, 'waist'), 0);
+  const dartOf = (pcs: Piece[]) => {
+    const at = pcs.map((pc) => waistDartAt(pc) ?? (pc.meta.waistSeamAt as number | undefined)).filter((x): x is number => x !== undefined);
+    return at.length ? Math.min(...at) : undefined;
+  };
+  const waist = { front: waistOf(side('front')), back: waistOf(side('back')) };
+  const dartAt = { front: dartOf(side('front')), back: dartOf(side('back')) };
   const cb = bodice.backLength;
   const zipCm = DRESS_ZIPS.find((z) => z - cb >= ZIP_BELOW_WAIST) ?? DRESS_ZIPS[DRESS_ZIPS.length - 1];
   const below = Math.round((zipCm - cb) * 10) / 10;
@@ -66,15 +73,14 @@ export function draftDress(m: DressMeasurements, bodiceStyle: Partial<BodiceStyl
   }
 
   // The zip runs on through the waist, so the bodice back loses its zip mark.
-  const back: Piece = {
-    ...bb,
-    notches: bb.notches.filter(([q, d]) => !(Math.abs(q.x) < 1e-6 && d.x < 0)),
-    labels: bb.labels.filter((l) => l.text !== 'ZIP ENDS'),
-  };
+  const unzip = (pc: Piece): Piece =>
+    /back/i.test(pc.name)
+      ? { ...pc, notches: pc.notches.filter(([q, d]) => !(Math.abs(q.x) < 1e-6 && d.x < 0)), labels: pc.labels.filter((l) => l.text !== 'ZIP ENDS') }
+      : pc;
   return {
     bodice,
     skirt,
-    pieces: [bf, back, ...skirt.pieces],
+    pieces: [...bodice.pieces.map(unzip), ...skirt.pieces],
     zipCm,
     zipBelowWaist: below,
     lengthCm: Math.round((cb + skirt.lengthCm) * 10) / 10,
