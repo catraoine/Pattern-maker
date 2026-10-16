@@ -61,6 +61,8 @@ export interface BodiceStyle {
 export interface BodiceFitting {
   bustEase?: number;
   waistEase?: number;
+  /** Below the waist: more room at the hem, for a heavy fabric. */
+  hipEase?: number;
   armhole?: number;
   frontSlope?: number;
   backSlope?: number;
@@ -328,7 +330,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   if (below) {
     const H = m.full_hip!;
     const WH = m.waist_to_hip!;
-    const he = BODICE_HIP_EASE[s.fit];
+    const he = BODICE_HIP_EASE[s.fit] + (fit.hipEase ?? 0);
     if (s.length === 'hip') {
       drop = WH;
       hemFull = H + he;

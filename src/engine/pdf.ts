@@ -133,6 +133,8 @@ export interface Summary {
   lays?: Lay[];
   /** The technical flat, front and back. */
   flat?: Flat;
+  /** The maker's own fabric, line by line. */
+  fabric?: string[];
 }
 
 /** Diamonds that meet across a taped join: one half on each page once the top sheet is trimmed. */
@@ -347,6 +349,12 @@ function addSummaryPage(
   }
   st.y -= 14;
 
+  if (s.fabric?.length) {
+    label('FABRIC');
+    s.fabric.forEach((l) => write(l, 9.5, fonts.body, 0, 2));
+    st.y -= 12;
+  }
+
   const passed = s.checks.filter((c) => c.ok).length;
   label('SEAM CHECK');
   write(
@@ -461,6 +469,11 @@ function addSewingPages(doc: PDFDocument, fonts: Fonts, paper: 'a4' | 'letter', 
   drawText(st.page, 'MAISON TRACÉ', { x: 2 * CM, y: st.y, size: 7.5, font: fonts.label, tracking: 0.3, grey: 0.4 });
   st.y -= 26;
   write(`How to sew your ${title}`, 20, fonts.bodyMedium, 0, 18);
+  if (guide.fabric?.length) {
+    label('YOUR FABRIC');
+    guide.fabric.forEach((l) => write(l, 10, fonts.body, 0, 1));
+    st.y -= 14;
+  }
   label('YOU WILL NEED');
   guide.notions.forEach((n) => write(`-  ${n}`, 10, fonts.body, 0, 1));
   st.y -= 14;

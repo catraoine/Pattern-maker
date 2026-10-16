@@ -10,6 +10,7 @@ import { bodiceFacings, liningPieces, waistbandPiece } from './engine/finishing'
 import { bodiceSpec, skirtSpec } from './engine/spec';
 import { Fitting, describeFitting, toFitting } from './engine/fitting';
 import { FabricWidth, layPlans } from './engine/layplan';
+import { MyFabric, clothFor, withFabric, withFabricEase } from './engine/fabrics';
 import { EXAMPLE_VALUES, Garment, MeasurementValues, Unit, checkMeasurements, isComplete } from './measurements';
 import { usePersistent } from './store';
 import {
@@ -91,6 +92,8 @@ export interface Finish {
   /** How to sew it: the quick route, or the couture one with hand techniques chosen for the cloth. */
   route: Route;
   cloth: Cloth;
+  /** The fabric the maker has bought: named in the PDF and tech pack, checked against the style, and used to adjust the ease. */
+  fabric?: MyFabric;
 }
 
 export const DEFAULT_FINISH: Finish = { allowances: 'home', skirtLined: false, bodiceEdges: 'binding', atelier: false, fabricWidth: 140, nap: false, route: 'quick', cloth: 'wool' };
@@ -151,8 +154,11 @@ export default function App() {
 
   // Corrections from this person's toile fittings go into every pattern drafted for them.
   const fitting = person.fittings?.[garment];
-  const skirtStyle = useMemo(() => ({ ...saved.choices, fitting: toFitting(fitting, 'skirt') }), [saved.choices, fitting]);
-  const bodiceStyle = useMemo(() => ({ ...saved.bodice, fitting: toFitting(fitting, 'bodice') }), [saved.bodice, fitting]);
+  const finish = { ...DEFAULT_FINISH, ...saved.finish };
+  // Heavy cloth gets a little more ease, on top of the toile's corrections.
+  const fabric = finish.fabric;
+  const skirtStyle = useMemo(() => ({ ...saved.choices, fitting: withFabricEase(toFitting(fitting, 'skirt'), fabric, 'skirt') }), [saved.choices, fitting, fabric]);
+  const bodiceStyle = useMemo(() => ({ ...saved.bodice, fitting: withFabricEase(toFitting(fitting, 'bodice'), fabric, 'bodice') }), [saved.bodice, fitting, fabric]);
 
   const result = useMemo((): { skirt?: SkirtDraft; bodice?: BodiceDraft; error?: string } => {
     if (!canLeaveMeasure) return {};
@@ -169,27 +175,27 @@ export default function App() {
     () =>
       (f: Fitting): Piece[] | undefined => {
         try {
-          if (garment === 'bodice') return draftBodice(values as BodiceMeasurements, { ...saved.bodice, fitting: toFitting(f, 'bodice') }).pieces;
-          return draftSkirt(values as SkirtMeasurements, { ...saved.choices, fitting: toFitting(f, 'skirt') }).pieces;
+          if (garment === 'bodice') return draftBodice(values as BodiceMeasurements, { ...saved.bodice, fitting: withFabricEase(toFitting(f, 'bodice'), fabric, 'bodice') }).pieces;
+          return draftSkirt(values as SkirtMeasurements, { ...saved.choices, fitting: withFabricEase(toFitting(f, 'skirt'), fabric, 'skirt') }).pieces;
         } catch {
           return undefined;
         }
       },
-    [garment, values, saved.bodice, saved.choices],
+    [garment, values, saved.bodice, saved.choices, fabric],
   );
 
   const current = garment === 'bodice' ? saved.bodice : saved.choices;
   const title = garment === 'bodice' ? describeBodice(saved.bodice) : describe(saved.choices);
 
-  const finish = { ...DEFAULT_FINISH, ...saved.finish };
   const printable = useMemo((): Printable | undefined => {
     const { skirt, bodice } = result;
     const seams = SEAM_WIDTHS[finish.allowances];
     const allow = (pieces: Printable['pieces']) => pieces.map((pc) => withAllowances(pc, finish.allowances));
     const couture = finish.allowances === 'couture';
     const fittingNotes = fittingLines(fitting, garment);
+    // The couture route's cloth follows the recorded fibre; either route opens with preparing the fabric.
     const route = (guide: SewingGuide, c: { garment: 'skirt' | 'bodice'; lined: boolean; zipCm: number }) =>
-      finish.route === 'couture' ? toCouture(guide, { ...c, cloth: finish.cloth, traced: couture }) : guide;
+      withFabric(finish.route === 'couture' ? toCouture(guide, { ...c, cloth: clothFor(fabric, finish.cloth), traced: couture }) : guide, fabric, c.garment);
     if (skirt) {
       // The lining is drafted 2.5 cm shorter than the skirt, from the same measurements and style.
       let lining: SkirtDraft | undefined;
@@ -261,7 +267,7 @@ export default function App() {
       };
     }
     return undefined;
-  }, [result, saved.choices, saved.bodice, skirtStyle, values, finish.allowances, finish.skirtLined, finish.bodiceEdges, finish.fabricWidth, finish.nap, finish.route, finish.cloth, fitting, garment]);
+  }, [result, saved.choices, saved.bodice, skirtStyle, values, finish.allowances, finish.skirtLined, finish.bodiceEdges, finish.fabricWidth, finish.nap, finish.route, finish.cloth, fabric, fitting, garment]);
 
   const isSaved = isSavedFor(account, current, person.id);
   const saveState = isSaved ? 'saved' : account.patterns.length >= FREE_SAVED_LIMIT ? 'full' : 'can';
@@ -435,6 +441,7 @@ export default function App() {
             <StyleScreen
               choices={saved.choices}
               onChoices={(choices) => setSaved({ ...saved, choices })}
+              fabric={fabric}
               onGarment={(g) => switchGarment(g)}
               values={values}
               draft={result.skirt}
@@ -451,6 +458,7 @@ export default function App() {
             <BodiceStyleScreen
               choices={saved.bodice}
               onChoices={(bodice) => setSaved({ ...saved, bodice })}
+              fabric={fabric}
               onGarment={(g) => switchGarment(g)}
               values={values}
               draft={result.bodice}
@@ -470,6 +478,7 @@ export default function App() {
               garment={garment}
               finish={finish}
               onFinish={(f) => setSaved({ ...saved, finish: f })}
+              style={garment === 'bodice' ? { garment, fit: saved.bodice.fit, neckline: saved.bodice.neckline } : { garment, silhouette: saved.choices.silhouette, length: saved.choices.length }}
               made={printable}
               error={result.error}
               onBack={() => setStep('style')}

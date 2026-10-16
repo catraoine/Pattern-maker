@@ -8,6 +8,8 @@ import { Garment, MeasurementValues, hasHip } from '../measurements';
 import { BodiceSketch, PatternPreview } from '../ui/Preview';
 import { GarmentSwitch } from '../ui/GarmentSwitch';
 import { FREE_SAVED_LIMIT } from '../account';
+import { MyFabric, bodiceFabrics, fabricEase } from '../engine/fabrics';
+import { FabricCard } from '../ui/FabricCard';
 
 interface Props {
   choices: BodiceChoices;
@@ -21,6 +23,8 @@ interface Props {
   saveState: 'can' | 'saved' | 'full';
   onSave: () => void;
   onAccount: () => void;
+  /** The fabric recorded on the print screen, if any. */
+  fabric?: MyFabric;
 }
 
 /** Fabric needed on 140 cm wide fabric, from the cutting layout. */
@@ -36,10 +40,11 @@ function friendly(w: string) {
   return 'Something in your measurements looks unusual. Please double-check them.';
 }
 
-export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount }: Props) {
+export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, fabric }: Props) {
   const [view, setView] = useState<'sketch' | 'pattern'>('sketch');
   const sheet = useMemo(() => (draft ? layout(draft.pieces, '', []) : undefined), [draft]);
   const ease = BODICE_FIT_EASE[choices.fit];
+  const extra = fabricEase(fabric, 'bodice');
   const title = describeBodice(choices);
   const hip = hasHip(values);
 
@@ -140,7 +145,8 @@ export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft
           <strong>{draft ? draft.backLength : '–'} cm</strong>
         </div>
         <p className="muted small">
-          Ease added: {ease.bust} cm at the bust, {ease.waist} cm at the waist.
+          Ease added: {ease.bust + extra.bust} cm at the bust, {ease.waist + extra.waist} cm at the waist
+          {extra.bust ? `, including ${extra.bust} cm and ${extra.waist} cm for your heavy fabric` : ''}.
         </p>
         <div>
           <p className="eyebrow">Pattern pieces</p>
@@ -153,11 +159,7 @@ export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft
           </ul>
         </div>
         {draft && (
-          <div className="fabric">
-            <p className="eyebrow">Fabric</p>
-            <p className="big">{bodiceFabricMetres(draft).toFixed(1)} m</p>
-            <p className="muted small">of 140 cm wide woven fabric, rough estimate</p>
-          </div>
+          <FabricCard metres={bodiceFabricMetres(draft)} advice={bodiceFabrics(choices)} fabric={fabric} />
         )}
         <button type="button" className="primary" disabled={!draft} onClick={onNext}>
           Print my pattern
