@@ -67,8 +67,8 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
         </div>
 
         <div className="field plain">
-          <label htmlFor="aname">Your name</label>
-          <input id="aname" autoComplete="given-name" value={account.name} placeholder="Me" onChange={(e) => onName(e.target.value)} />
+          <label htmlFor="aname">Name</label>
+          <input id="aname" autoComplete="given-name" value={account.name} onChange={(e) => onName(e.target.value)} />
         </div>
 
         <fieldset className="group">

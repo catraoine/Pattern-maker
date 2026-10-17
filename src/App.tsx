@@ -18,7 +18,7 @@ import { SleeveDraft, SleeveMeasurements, draftSleeve, needsArms } from './engin
 import { Fitting, carriedFitting, describeCarried, describeFitting, saveVersion, toFitting } from './engine/fitting';
 import { FabricWidth, layPlans } from './engine/layplan';
 import { MyFabric, clothFor, withFabric, withFabricEase } from './engine/fabrics';
-import { EXAMPLE_VALUES, FIELDS, Garment, MeasurementValues, Unit, checkMeasurements, isComplete } from './measurements';
+import { EXAMPLE_VALUES, Garment, MeasurementValues, Unit, checkMeasurements, isComplete } from './measurements';
 import { usePersistent } from './store';
 import {
   Account,
@@ -26,7 +26,6 @@ import {
   NEW_ACCOUNT,
   activePerson,
   addPerson,
-  claimMeasurements,
   isSavedFor,
   makeBackup,
   personName,
@@ -52,10 +51,9 @@ import { OuterStyleScreen, outerFabricMetres } from './screens/OuterStyleScreen'
 import { ExportScreen, Printable } from './screens/ExportScreen';
 import { describePattern } from './screens/describe';
 import { WelcomeScreen } from './screens/WelcomeScreen';
-import { MeasureStepsScreen } from './screens/MeasureStepsScreen';
+import { MeasureStepsScreen, type StepsStart } from './screens/MeasureStepsScreen';
 import { AccountScreen } from './screens/AccountScreen';
 import { PhotoScreen } from './screens/PhotoScreen';
-import { WhoseScreen } from './screens/WhoseScreen';
 import { LegalScreen } from './screens/LegalScreen';
 import { PRIVACY, TERMS } from './legal';
 import { FittingScreen } from './screens/FittingScreen';
@@ -68,7 +66,7 @@ import type { Piece } from './engine/piece';
 import { garmentEase } from './engine/easeMap';
 
 export type Step = 'measure' | 'style' | 'export';
-type View = Step | 'welcome' | 'steps' | 'account' | 'photo' | 'whose' | 'fitting' | 'scale' | 'client' | 'check' | 'privacy' | 'terms';
+type View = Step | 'welcome' | 'steps' | 'account' | 'photo' | 'fitting' | 'scale' | 'client' | 'check' | 'privacy' | 'terms';
 
 export interface Choices {
   fit: Fit;
@@ -150,9 +148,6 @@ const INITIAL: Saved = {
   bodice: DEFAULT_BODICE,
 };
 
-/** Whether every measurement this garment needs is still the example value. */
-const isExample = (values: MeasurementValues, garment: Garment) =>
-  FIELDS[garment].filter((f) => !f.optional).every((f) => values[f.id] === EXAMPLE_VALUES[f.id]);
 /** The sleeve for a bodice, drafted to its armhole with its allowances, when one is chosen and the arms are measured. */
 function sleeveFor(bodice: BodiceDraft, choices: BodiceChoices, values: MeasurementValues): SleeveDraft | undefined {
   const { length, shape } = sleeveOf(choices);
@@ -177,7 +172,7 @@ const STEPS: { id: Step; label: string }[] = [
 ];
 
 /** Which of the three steps each screen belongs to, lit in the header. Account and the legal pages belong to none. */
-const STEP_OF: Partial<Record<View, Step>> = { steps: 'measure', measure: 'measure', whose: 'measure', style: 'style', photo: 'style', export: 'export', fitting: 'export', scale: 'export' };
+const STEP_OF: Partial<Record<View, Step>> = { steps: 'measure', measure: 'measure', style: 'style', photo: 'style', export: 'export', fitting: 'export', scale: 'export' };
 
 /** Side screens name where they hang off, under the header, so you can see where you are. */
 const SIDE: Partial<Record<View, [string, string]>> = {
@@ -192,7 +187,7 @@ const SIDE: Partial<Record<View, [string, string]>> = {
 const NEEDS_MEASUREMENTS: View[] = ['style', 'export', 'fitting', 'scale'];
 
 /** Where the header's back goes when there's nothing behind in history, such as after a reload. */
-const PARENT: Partial<Record<View, View>> = { measure: 'welcome', steps: 'welcome', whose: 'measure', style: 'measure', photo: 'style', export: 'style', fitting: 'export', scale: 'export', account: 'style', client: 'account', check: 'account', privacy: 'welcome', terms: 'welcome' };
+const PARENT: Partial<Record<View, View>> = { measure: 'welcome', steps: 'welcome', style: 'measure', photo: 'style', export: 'style', fitting: 'export', scale: 'export', account: 'style', client: 'account', check: 'account', privacy: 'welcome', terms: 'welcome' };
 
 export default function App() {
   const [saved, setSaved] = usePersistent<Saved>('skirt', INITIAL);
@@ -512,11 +507,20 @@ export default function App() {
   const isSaved = isSavedFor(account, current, person.id);
   const saveState = isSaved ? 'saved' : account.patterns.length >= FREE_SAVED_LIMIT ? 'full' : 'can';
 
-  /** Switch garment, going back to measuring when the new one still needs measurements. */
-  const switchGarment = (g: Garment, next: Partial<Saved> = {}, to: View = step, using: MeasurementValues = values, who: string = profile) => {
+  // Where the guided measuring opens: the list of what to make, the next measurement a garment needs, or one to redo.
+  const [stepsStart, setStepsStart] = useState<{ at: number; start?: StepsStart }>({ at: 0 });
+  const openSteps = (start?: StepsStart) => {
+    setStepsStart({ at: stepsStart.at + 1, start });
+    setStep('steps');
+  };
+  /** "Choose another garment": the same list as when measuring. */
+  const chooseGarment = () => openSteps({ kind: 'choose' });
+
+  /** Switch garment, going straight to the measurements the new one still needs, one page each. */
+  const switchGarment = (g: Garment, next: Partial<Saved> = {}, to: View = step, using: MeasurementValues = values) => {
     setSaved({ ...saved, ...next, garment: g });
     const stays = to === 'style' || to === 'export';
-    if (stays && !ready(using, saved.unit, g)) sendToMeasure(`The ${g} needs a few more of ${who === 'Me' ? 'your' : `${who}'s`} measurements first.`);
+    if (stays && !ready(using, saved.unit, g)) openSteps({ kind: 'for', garment: g });
     else setStep(to);
   };
 
@@ -534,9 +538,7 @@ export default function App() {
   const switchPerson = (id: string, to: View = step) => {
     const who = account.people.find((p) => p.id === id) ?? person;
     setAccount({ ...account, active: who.id });
-    const name = personName(account, who);
-    if ((to === 'style' || to === 'export') && !ready(who.values, saved.unit, garment))
-      sendToMeasure(`The ${garment} needs a few more of ${who.id === ME ? 'your' : `${name}'s`} measurements first.`);
+    if ((to === 'style' || to === 'export') && !ready(who.values, saved.unit, garment)) openSteps({ kind: 'for', garment });
     else setStep(to);
   };
 
@@ -659,12 +661,16 @@ export default function App() {
           )}
           {step === 'steps' && (
             <MeasureStepsScreen
+              key={stepsStart.at}
+              start={stepsStart.start}
+              onSomeoneElse={(name) => setAccount(addPerson(account, name))}
+              theirs={person.id !== ME}
               garment={garment}
               unit={saved.unit}
               values={values}
               onUnit={(unit) => setSaved({ ...saved, unit })}
               onValues={setValues}
-              onDone={(g) => switchGarment(g, {}, person.id === ME && !person.named ? 'whose' : 'style')}
+              onDone={(g) => switchGarment(g, {}, 'style')}
             />
           )}
           {(step === 'privacy' || step === 'terms') && (
@@ -672,18 +678,6 @@ export default function App() {
               doc={step === 'privacy' ? PRIVACY : TERMS}
               otherLabel={step === 'privacy' ? TERMS.title : PRIVACY.title}
               onOther={() => openLegal(step === 'privacy' ? 'terms' : 'privacy')}
-            />
-          )}
-          {step === 'whose' && (
-            <WhoseScreen
-              garment={garment}
-              unit={saved.unit}
-              values={values}
-              ownerName={account.name}
-              onDone={(whose, name) => {
-                setAccount(claimMeasurements(account, whose, name));
-                setStep('style');
-              }}
             />
           )}
           {step === 'photo' && (
@@ -741,19 +735,16 @@ export default function App() {
               onAddPerson={(name) => setAccount(addPerson(account, name))}
               profile={profile}
               garment={garment}
-              onGarment={(g) => switchGarment(g)}
+              onChooseGarment={chooseGarment}
               unit={saved.unit}
               values={values}
               checks={checks}
-              onUnit={(unit) => setSaved({ ...saved, unit })}
-              onValues={setValues}
-              onExample={() => setValues({ ...EXAMPLE_VALUES, ...values })}
               canContinue={canLeaveMeasure}
               notice={measureNote}
+              onMeasure={(ids) => openSteps({ kind: 'redo', garment, ids })}
               onNext={() => {
                 setAccount(updatePerson(account, person.id, recordMeasurements(person, new Date().toISOString().slice(0, 10))));
-                // Example numbers aren't anyone's, so there's nobody to ask about yet.
-                setStep(person.id === ME && !person.named && !isExample(values, garment) ? 'whose' : 'style');
+                setStep('style');
               }}
             />
           )}
@@ -763,7 +754,7 @@ export default function App() {
               choices={saved.choices}
               onChoices={(choices) => setSaved({ ...saved, choices })}
               fabric={fabric}
-              onGarment={(g) => switchGarment(g)}
+              onChooseGarment={chooseGarment}
               values={values}
               draft={result.skirt}
               error={result.error}
@@ -785,7 +776,7 @@ export default function App() {
               choices={saved.bodice}
               onChoices={(bodice) => setSaved({ ...saved, bodice })}
               fabric={fabric}
-              onGarment={(g) => switchGarment(g)}
+              onChooseGarment={chooseGarment}
               values={values}
               draft={result.bodice}
               sleeve={result.sleeve}
@@ -805,7 +796,7 @@ export default function App() {
               choices={dress}
               onChoices={(d) => setSaved({ ...saved, dress: d })}
               fabric={fabric}
-              onGarment={(g) => switchGarment(g)}
+              onChooseGarment={chooseGarment}
               values={values}
               draft={result.dress}
               sleeve={result.sleeve}
@@ -825,7 +816,7 @@ export default function App() {
               choices={trousersChoices}
               onChoices={(t) => setSaved({ ...saved, trousers: t })}
               fabric={fabric}
-              onGarment={(g) => switchGarment(g)}
+              onChooseGarment={chooseGarment}
               values={values}
               draft={result.trousers}
               error={result.error}
@@ -845,7 +836,7 @@ export default function App() {
               choices={outerChoices}
               onChoices={(c) => setSaved({ ...saved, [garment]: c })}
               fabric={fabric}
-              onGarment={(g) => switchGarment(g)}
+              onChooseGarment={chooseGarment}
               values={values}
               draft={result.outer}
               error={result.error}

@@ -6,7 +6,7 @@ import { layPlan } from '../engine/layplan';
 import { waistbandPiece } from '../engine/finishing';
 import { FIT_EASE, SkirtDraft, SkirtMeasurements } from '../engine/skirt';
 import { isShaped } from '../engine/hem';
-import type { Garment, MeasurementValues } from '../measurements';
+import type { MeasurementValues } from '../measurements';
 import { GarmentSwitch } from '../ui/GarmentSwitch';
 import { PatternPreview } from '../ui/Preview';
 import { ShapeSketch, Side } from '../ui/ShapeSketch';
@@ -38,7 +38,8 @@ interface Props {
   onSave: () => void;
   onAccount: () => void;
   onPhoto: () => void;
-  onGarment: (g: Garment) => void;
+  /** Open the list of what to make, to pick another garment. */
+  onChooseGarment: () => void;
   /** The fabric recorded on the print screen, if any. */
   fabric?: MyFabric;
   /** Room over the body at every level, for the ease map. */
@@ -91,7 +92,7 @@ export function fabricMetres(draft: SkirtDraft): number {
   return toMetres(piecesLengthCm(draft.pieces) + band + 15);
 }
 
-export function StyleScreen({ choices, onChoices, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, onPhoto, onGarment, finish, onFinish, easeMap, fabric }: Props) {
+export function StyleScreen({ choices, onChoices, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, onPhoto, onChooseGarment, finish, onFinish, easeMap, fabric }: Props) {
   const [view, setView] = useState<'sketch' | 'figure' | 'pattern' | 'ease'>('sketch');
   const [side, setSide] = useState<Side>('front');
   const [drawing, setDrawing] = useState(false);
@@ -146,7 +147,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
     <>
     <div className="screen-head">
       <h1 id="opts">Style your skirt</h1>
-      <GarmentSwitch garment="skirt" onGarment={onGarment} />
+      <GarmentSwitch onChoose={onChooseGarment} />
     </div>
     <div className="split three">
       <section className="card" aria-labelledby="opts">

@@ -128,7 +128,7 @@ export function ClientBookScreen({ account, person, unit, onChange, onOpen }: Pr
         </ul>
         <label className="field">
           <span className="small">New note</span>
-          <textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Prefers a lower neckline; left shoulder drops a little." />
+          <textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} />
         </label>
         <button
           type="button"
@@ -160,7 +160,8 @@ export function ClientBookScreen({ account, person, unit, onChange, onOpen }: Pr
           ))}
         </div>
         <div className="row wrap">
-          <input type="text" className="inline" style={{ width: 'auto', flex: '1 1 220px' }} value={caption} onChange={(e) => setCaption(e.target.value)} placeholder="Caption, such as First toile, back" aria-label="Photo caption" />
+          <label htmlFor="photo-caption" className="small">Caption</label>
+          <input id="photo-caption" type="text" className="inline" style={{ width: 'auto', flex: '1 1 220px' }} value={caption} onChange={(e) => setCaption(e.target.value)} />
           <label className="secondary filebtn">
             Add a photo
             <input type="file" accept="image/*" capture="environment" hidden onChange={(e) => void addPicture(e.target.files?.[0])} />
