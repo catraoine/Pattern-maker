@@ -123,5 +123,130 @@
       },
       "details": "This is a skirt suit on a mannequin; the skirt has pieced striped godet-style panels inset at the hem, and the matching jacket has a peplum with a back bow, so you may want to add the decorative panels yourself."
     }
+  },
+  "06-half-circle": {
+    "ok": true,
+    "reading": {
+      "garment": "skirt",
+      "silhouette": {
+        "value": "half_circle",
+        "confidence": "medium"
+      },
+      "length": {
+        "value": "mini",
+        "confidence": "high"
+      },
+      "fit": {
+        "value": "regular",
+        "confidence": "high"
+      },
+      "shape": {
+        "hemAt": 0.36,
+        "hemFullness": 2.6,
+        "flareAt": null,
+        "confidence": "medium"
+      },
+      "details": ""
+    }
+  },
+  "07-full-circle": {
+    "ok": true,
+    "reading": {
+      "garment": "skirt",
+      "silhouette": {
+        "value": "circle",
+        "confidence": "high"
+      },
+      "length": {
+        "value": "midi",
+        "confidence": "medium"
+      },
+      "fit": {
+        "value": "regular",
+        "confidence": "high"
+      },
+      "shape": {
+        "hemAt": 0.66,
+        "hemFullness": 5,
+        "flareAt": null,
+        "confidence": "medium"
+      },
+      "details": "A classic felt poodle skirt with an appliqué poodle on the side, which you can stitch on yourself after sewing the circle skirt."
+    }
+  },
+  "08-pleated": {
+    "ok": true,
+    "reading": {
+      "garment": "skirt",
+      "silhouette": {
+        "value": "a_line",
+        "confidence": "medium"
+      },
+      "length": {
+        "value": "above_knee",
+        "confidence": "high"
+      },
+      "fit": {
+        "value": "regular",
+        "confidence": "medium"
+      },
+      "shape": {
+        "hemAt": 0.46,
+        "hemFullness": 1.4,
+        "flareAt": null,
+        "confidence": "medium"
+      },
+      "details": "This black skirt has knife pleats stitched down over the hips and released below, so you may want to add pleats instead of darts for that look."
+    }
+  },
+  "09-gathered-maxi": {
+    "ok": true,
+    "reading": {
+      "garment": "skirt",
+      "silhouette": {
+        "value": "a_line",
+        "confidence": "medium"
+      },
+      "length": {
+        "value": "maxi",
+        "confidence": "high"
+      },
+      "fit": {
+        "value": "regular",
+        "confidence": "high"
+      },
+      "shape": {
+        "hemAt": 0.95,
+        "hemFullness": 1.7,
+        "flareAt": null,
+        "confidence": "medium"
+      },
+      "details": "This floral maxi skirt appears to be cut in flared panels, possibly with a seam partway down, and you could add those panel seams yourself if you like that look."
+    }
+  },
+  "10-flat-lay": {
+    "ok": true,
+    "reading": {
+      "garment": "skirt",
+      "silhouette": {
+        "value": "straight",
+        "confidence": "medium"
+      },
+      "length": {
+        "value": "knee",
+        "confidence": "low"
+      },
+      "fit": {
+        "value": "regular",
+        "confidence": "low"
+      },
+      "shape": {
+        "hemAt": 0.56,
+        "hemFullness": 1.05,
+        "flareAt": null,
+        "confidence": "low"
+      },
+      "details": "This skirt is laid flat, and it looks like it may have a side pocket or seam detail. You could add that yourself, along with matching the bold harlequin print with its patchwork motifs."
+    }
   }
 }
