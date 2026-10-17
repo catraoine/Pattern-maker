@@ -53,6 +53,8 @@ import { AccountScreen } from './screens/AccountScreen';
 import { PhotoScreen } from './screens/PhotoScreen';
 import { WhoseScreen } from './screens/WhoseScreen';
 import { LegalScreen } from './screens/LegalScreen';
+import { SignupScreen } from './screens/SignupScreen';
+import { countStep, setReportView } from './report/report';
 import { PRIVACY, TERMS } from './legal';
 import { FittingScreen } from './screens/FittingScreen';
 import { TrueScaleScreen } from './screens/TrueScaleScreen';
@@ -64,7 +66,10 @@ import type { Piece } from './engine/piece';
 import { garmentEase } from './engine/easeMap';
 
 export type Step = 'measure' | 'style' | 'export';
-type View = Step | 'welcome' | 'steps' | 'account' | 'photo' | 'whose' | 'fitting' | 'scale' | 'client' | 'check' | 'privacy' | 'terms';
+type View = Step | 'welcome' | 'steps' | 'account' | 'photo' | 'whose' | 'fitting' | 'scale' | 'client' | 'check' | 'privacy' | 'terms' | 'tester' | 'news';
+/** Pages opened from the footer, which go back to wherever they were opened from. */
+type Aside = 'privacy' | 'terms' | 'tester' | 'news';
+const isAside = (v: View): v is Aside => v === 'privacy' || v === 'terms' || v === 'tester' || v === 'news';
 
 export interface Choices {
   fit: Fit;
@@ -180,12 +185,17 @@ export default function App() {
   // Every visit opens on the welcome screen (Cat's pick, 2026-10-16). Saved measurements and
   // patterns are kept, so a returning sewist taps through and carries on.
   const [step, setStep] = useState<View>('welcome');
-  // Where the legal pages go back to.
+  // Where the legal and sign-up pages go back to.
   const [beforeLegal, setBeforeLegal] = useState<View>('welcome');
-  const openLegal = (page: 'privacy' | 'terms') => {
-    if (step !== 'privacy' && step !== 'terms') setBeforeLegal(step);
+  const openLegal = (page: Aside) => {
+    if (!isAside(step)) setBeforeLegal(step);
     setStep(page);
   };
+  // Crash reports name the screen; reaching the print screen counts (once a visit) as having styled a pattern.
+  useEffect(() => {
+    setReportView(step);
+    if (step === 'export') countStep('styled', garment);
+  }, [step, garment]);
   // The loading screen plays when someone first opens the app, on the way into the welcome. People coming
   // back to their work go straight to it.
   const [opening, setOpening] = useState(step === 'welcome');
@@ -519,7 +529,7 @@ export default function App() {
             </svg>
             <span>Maison Tracé</span>
           </div>
-          {step !== 'welcome' && step !== 'steps' && step !== 'privacy' && step !== 'terms' && (
+          {step !== 'welcome' && step !== 'steps' && !isAside(step) && (
             <div className="row nav">
           <nav aria-label="Steps" className="steps">
             {STEPS.map((s, i) => (
@@ -568,7 +578,10 @@ export default function App() {
               onUnit={(unit) => setSaved({ ...saved, unit })}
               onValues={setValues}
               onBack={() => setStep('welcome')}
-              onDone={(g) => switchGarment(g, {}, person.id === ME && !person.named ? 'whose' : 'style')}
+              onDone={(g) => {
+                countStep('measured', g);
+                switchGarment(g, {}, person.id === ME && !person.named ? 'whose' : 'style');
+              }}
             />
           )}
           {(step === 'privacy' || step === 'terms') && (
@@ -578,6 +591,9 @@ export default function App() {
               onOther={() => openLegal(step === 'privacy' ? 'terms' : 'privacy')}
               onBack={() => setStep(beforeLegal)}
             />
+          )}
+          {(step === 'tester' || step === 'news') && (
+            <SignupScreen kind={step} onOther={() => openLegal(step === 'tester' ? 'news' : 'tester')} onPrivacy={() => openLegal('privacy')} onBack={() => setStep(beforeLegal)} />
           )}
           {step === 'whose' && (
             <WhoseScreen
@@ -594,7 +610,10 @@ export default function App() {
           {step === 'photo' && (
             <PhotoScreen
               measured={canLeaveMeasure}
-              onApply={(choices) => switchGarment('skirt', { choices }, 'style')}
+              onApply={(choices) => {
+                countStep('photo', 'skirt');
+                switchGarment('skirt', { choices }, 'style');
+              }}
               onCancel={() => setStep(canLeaveMeasure ? 'style' : 'measure')}
             />
           )}
@@ -656,6 +675,7 @@ export default function App() {
               canContinue={canLeaveMeasure}
               notice={measureNote}
               onNext={() => {
+                countStep('measured', garment);
                 setAccount(updatePerson(account, person.id, recordMeasurements(person, new Date().toISOString().slice(0, 10))));
                 // Example numbers aren't anyone's, so there's nobody to ask about yet.
                 setStep(person.id === ME && !person.named && !isExample(values, garment) ? 'whose' : 'style');
@@ -808,6 +828,12 @@ export default function App() {
           </button>
           <button type="button" className="link" aria-current={step === 'terms' ? 'page' : undefined} onClick={() => openLegal('terms')}>
             Terms
+          </button>
+          <button type="button" className="link" aria-current={step === 'tester' ? 'page' : undefined} onClick={() => openLegal('tester')}>
+            Fit testers
+          </button>
+          <button type="button" className="link" aria-current={step === 'news' ? 'page' : undefined} onClick={() => openLegal('news')}>
+            News
           </button>
         </footer>
       </div>
