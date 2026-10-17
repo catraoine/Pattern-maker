@@ -16,6 +16,8 @@ import { FREE_SAVED_LIMIT } from '../account';
 import { GROUPS } from './StyleScreen';
 import { describePattern } from './describe';
 
+import { Mode, ProTool, shows } from '../mode';
+import { ModeLink } from '../ui/ModeLink';
 import { EaseMapView } from '../ui/EaseMapView';
 import { MyFabric, dressFabrics, fabricEase } from '../engine/fabrics';
 import { FabricCard } from '../ui/FabricCard';
@@ -42,6 +44,9 @@ interface Props {
   onFinish: (f: Finish) => void;
   /** The fabric recorded on the print screen, if any. */
   fabric?: MyFabric;
+  /** Simple or all tools; all when not given. */
+  mode?: Mode;
+  onMode?: (m: Mode) => void;
 }
 
 type Option = { id: string; label: string; options: [string, string][] };
@@ -54,8 +59,10 @@ export const dressFabricMetres = (pieces: DressDraft['pieces']) => layPlan(piece
  * skirt's shape and length. The preview is the technical flat, so the skirt is seen hanging from the
  * bodice with its darts running on through the waist seam.
  */
-export function DressStyleScreen({ choices, onChoices, onGarment, values, draft, sleeve, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, finish, onFinish, fabric }: Props) {
-  const [view, setView] = useState<'sketch' | 'pattern' | 'ease'>('sketch');
+export function DressStyleScreen({ choices, onChoices, onGarment, values, draft, sleeve, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, finish, onFinish, fabric, mode = 'all', onMode }: Props) {
+  const can = (t: ProTool) => shows(mode, t);
+  const [picked, setView] = useState<'sketch' | 'pattern' | 'ease'>('sketch');
+  const view = picked === 'ease' && !can('easeMap') ? 'sketch' : picked;
   const pieces = useMemo(() => (draft ? [...draft.pieces.filter((pc) => /^Bodice/.test(pc.name)), ...(sleeve?.pieces ?? []), ...draft.skirt.pieces] : []), [draft, sleeve]);
   const sheet = useMemo(() => (pieces.length ? layout(pieces, '', []) : undefined), [pieces]);
   const flat = useMemo(() => (draft ? dressFlat(draft, 'binding', { sleeve, slit: hasSlit(choices.skirt) }) : undefined), [draft, sleeve, choices.skirt]);
@@ -71,8 +78,11 @@ export function DressStyleScreen({ choices, onChoices, onGarment, values, draft,
       (g) =>
         g.id === 'neckline' ||
         g.id === 'darts' ||
-        g.id === 'princess' ||
-        (g.id === 'bustDart' && choices.bodice.darts !== 'none' && (choices.bodice.princess ?? 'none') === 'none') ||
+        (g.id === 'princess' && (can('dartMoves') || (choices.bodice.princess ?? 'none') !== 'none')) ||
+        (g.id === 'bustDart' &&
+          choices.bodice.darts !== 'none' &&
+          (choices.bodice.princess ?? 'none') === 'none' &&
+          (can('dartMoves') || (choices.bodice.bustDart ?? 'side') !== 'side')) ||
         g.id === 'collar' ||
         g.id === 'sleeve' ||
         (g.id === 'sleeveShape' && chosen.length !== 'none'),
@@ -163,11 +173,16 @@ export function DressStyleScreen({ choices, onChoices, onGarment, values, draft,
             )}
           </fieldset>
         ))}
-        <p className="eyebrow">Inside the dress</p>
-        <FinishChoices garment="dress" finish={finish} onFinish={onFinish} sleeved={sleeveOf(choices.bodice).length !== 'none'} />
+        {can('insideFinish') && (
+          <>
+            <p className="eyebrow">Inside the dress</p>
+            <FinishChoices garment="dress" finish={finish} onFinish={onFinish} sleeved={sleeveOf(choices.bodice).length !== 'none'} />
+          </>
+        )}
         <p className="muted small">
           The skirt is drafted to the bodice: the waist seams are the same length, and the darts meet at the seam in one line. One zip opens the centre back from the neck to below the waist.
         </p>
+        <ModeLink mode={mode} onMode={onMode} />
       </section>
 
       <section className="card grow" aria-label="Preview">
@@ -179,7 +194,7 @@ export function DressStyleScreen({ choices, onChoices, onGarment, values, draft,
             <button type="button" aria-pressed={view === 'pattern'} className={view === 'pattern' ? 'on' : ''} onClick={() => setView('pattern')}>
               Pattern pieces
             </button>
-            {easeMap && easeMap.length > 0 && (
+            {easeMap && easeMap.length > 0 && can('easeMap') && (
               <button type="button" aria-pressed={view === 'ease'} className={view === 'ease' ? 'on' : ''} onClick={() => setView('ease')}>
                 Ease
               </button>

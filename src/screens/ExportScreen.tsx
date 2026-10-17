@@ -19,6 +19,8 @@ import { DRAPES, FIBRES, FIBRE_IDS, MyFabric, WEIGHTS, FabricStyle, checkFabric,
 import { FabricGuide } from '../ui/FabricGuide';
 import { SizeRun } from '../ui/SizeRun';
 import type { MeasurementValues } from '../measurements';
+import { Mode, ProTool, shows } from '../mode';
+import { ModeLink } from '../ui/ModeLink';
 
 /** What to print: the drafted pieces of either garment, with its notes and sewing steps. */
 export interface Printable {
@@ -57,6 +59,9 @@ interface Props {
   /** For grading: the measurements, and the pattern's pieces drafted to any set of them. */
   values?: MeasurementValues;
   draftAt?: (m: MeasurementValues) => Piece[];
+  /** Simple or all tools; all when not given. */
+  mode?: Mode;
+  onMode?: (m: Mode) => void;
 }
 
 type Output = Paper | 'projector' | 'projectorDark';
@@ -96,8 +101,11 @@ function download(data: BlobPart, type: string, name: string) {
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
-export function ExportScreen({ profile, title, fit, garment, finish, onFinish, made, error, onBack, saveState, onSave, onAccount, fitting, fittingNotes, onFitting, onTrueScale, values, draftAt, style }: Props) {
-  const [paper, setPaper] = useState<Output>('a4');
+export function ExportScreen({ profile, title, fit, garment, finish, onFinish, made, error, onBack, saveState, onSave, onAccount, fitting, fittingNotes, onFitting, onTrueScale, values, draftAt, style, mode = 'all', onMode }: Props) {
+  const can = (t: ProTool) => shows(mode, t);
+  const [picked, setPaper] = useState<Output>('a4');
+  // The simple view prints at home, on A4 or Letter.
+  const paper: Output = can('bigPrint') || picked === 'a4' || picked === 'letter' ? picked : 'a4';
   const [pdf, setPdf] = useState<{ paper: Output; bytes: Uint8Array } | null>(null);
   const [shareNote, setShareNote] = useState('');
   const guide = made?.guide;
@@ -204,7 +212,7 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
           <fieldset className="group">
             <legend>Print on</legend>
             <div className="chips" role="group" aria-label="Paper">
-              {PAPERS.map((p) => (
+              {PAPERS.filter((p) => can('bigPrint') || p.id === 'a4' || p.id === 'letter').map((p) => (
                 <button
                   key={p.id}
                   type="button"
@@ -263,21 +271,24 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
               ? 'Checked: every seam meets its partner and every curve runs smoothly from piece to piece.'
               : `${checks.length - passed} of ${checks.length} seam checks found something to look at. The details are on the last page of the PDF.`}
           </p>
-          <label className="check">
-            <input type="checkbox" checked={!!finish.byHand} onChange={(e) => onFinish({ ...finish, byHand: e.target.checked })} />
-            <span>
-              Draft it by hand <span className="muted small">add pages to draw the pattern yourself on pattern paper, point by point</span>
-            </span>
-          </label>
+          {can('byHand') && (
+            <label className="check">
+              <input type="checkbox" checked={!!finish.byHand} onChange={(e) => onFinish({ ...finish, byHand: e.target.checked })} />
+              <span>
+                Draft it by hand <span className="muted small">add pages to draw the pattern yourself on pattern paper, point by point</span>
+              </span>
+            </label>
+          )}
           <SaveControl state={saveState} onSave={onSave} onAccount={onAccount} />
           <p className="muted small">Printed it? The sewing steps are just below, and on the last pages of the PDF.</p>
+          <ModeLink mode={mode} onMode={onMode} />
           <button type="button" className="link" onClick={onBack}>
             Back to style
           </button>
         </section>
       </div>
 
-      {made?.flat && (
+      {made?.flat && can('techFlat') && (
         <section className="card" aria-labelledby="flattitle">
           <p className="eyebrow">Technical flat</p>
           <h2 id="flattitle">{title}</h2>
@@ -289,7 +300,7 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
         </section>
       )}
 
-      <YourFabric fabric={finish.fabric ?? {}} onFabric={(fabric) => onFinish({ ...finish, fabric, cloth: clothFor(fabric, finish.cloth) })} style={style} />
+      <YourFabric fabric={finish.fabric ?? {}} onFabric={(fabric) => onFinish({ ...finish, fabric, cloth: clothFor(fabric, finish.cloth) })} style={style} simple={mode === 'simple'} />
 
       <section className="card" aria-labelledby="laytitle">
         <div className="row between wrap">
@@ -326,47 +337,51 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
         )}
       </section>
 
-      <section className="card" aria-labelledby="toiletitle">
-        <p className="eyebrow">Before your fabric{fittingNotes.length && fitting ? ` · version ${fitting.round + 1}` : ''}</p>
-        <h2 id="toiletitle">{fittingNotes.length ? 'Corrected after your toile' : 'Fit it in a toile first'}</h2>
-        {fittingNotes.length ? (
-          <ul className="fitlist">
-            {fittingNotes.map((n) => (
-              <li key={n}>{n[0].toUpperCase() + n.slice(1)}</li>
-            ))}
-          </ul>
-        ) : (
-          <p className="muted">
-            Make it up in calico first and try it on. Tell us what you see, such as {garment === 'skirt' || garment === 'trousers' ? 'pulling across the hips or folds below the back waist' : 'pulling at the bust or a gaping neckline'}, and the
-            pattern is corrected the way a pattern cutter would, with a second line for one side if your shoulders or hips differ.
-          </p>
-        )}
-        <div className="row wrap">
-          <button type="button" className="secondary" onClick={onFitting}>
-            {fittingNotes.length ? 'Fit another toile' : 'I’ve tried on a toile'}
-          </button>
-          {onTrueScale && made && (
-            <button type="button" className="secondary" onClick={onTrueScale}>
-              See a piece at true size
-            </button>
+      {can('toile') && (
+        <section className="card" aria-labelledby="toiletitle">
+          <p className="eyebrow">Before your fabric{fittingNotes.length && fitting ? ` · version ${fitting.round + 1}` : ''}</p>
+          <h2 id="toiletitle">{fittingNotes.length ? 'Corrected after your toile' : 'Fit it in a toile first'}</h2>
+          {fittingNotes.length ? (
+            <ul className="fitlist">
+              {fittingNotes.map((n) => (
+                <li key={n}>{n[0].toUpperCase() + n.slice(1)}</li>
+              ))}
+            </ul>
+          ) : (
+            <p className="muted">
+              Make it up in calico first and try it on. Tell us what you see, such as {garment === 'skirt' || garment === 'trousers' ? 'pulling across the hips or folds below the back waist' : 'pulling at the bust or a gaping neckline'}, and the
+              pattern is corrected the way a pattern cutter would, with a second line for one side if your shoulders or hips differ.
+            </p>
           )}
-        </div>
-      </section>
+          <div className="row wrap">
+            <button type="button" className="secondary" onClick={onFitting}>
+              {fittingNotes.length ? 'Fit another toile' : 'I’ve tried on a toile'}
+            </button>
+            {onTrueScale && made && (
+              <button type="button" className="secondary" onClick={onTrueScale}>
+                See a piece at true size
+              </button>
+            )}
+          </div>
+        </section>
+      )}
 
-      <MakerPack
-        profile={profile}
-        title={title}
-        fit={fit}
-        made={made}
-        fileBase={fileBase}
-        onSvg={() => download(toSvg(sheet), 'image/svg+xml', `${fileBase}.svg`)}
-        atelier={finish.atelier}
-        onAtelier={(on) => onFinish({ ...finish, atelier: on })}
-        drafting={drafting}
-        pattern={ready ? { bytes: ready, name: fileName } : undefined}
-      />
+      {can('makerPack') && (
+        <MakerPack
+          profile={profile}
+          title={title}
+          fit={fit}
+          made={made}
+          fileBase={fileBase}
+          onSvg={() => download(toSvg(sheet), 'image/svg+xml', `${fileBase}.svg`)}
+          atelier={finish.atelier}
+          onAtelier={(on) => onFinish({ ...finish, atelier: on })}
+          drafting={drafting}
+          pattern={ready ? { bytes: ready, name: fileName } : undefined}
+        />
+      )}
 
-      {values && draftAt && (
+      {values && draftAt && can('sizeRun') && (
         <SizeRun garment={garment} values={values} draftAt={draftAt} title={title} fileBase={fileBase} width={finish.fabricWidth} nap={finish.nap} download={download} />
       )}
 
@@ -376,7 +391,7 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
             <p className="eyebrow">After printing</p>
             <h2 id="sewtitle">How to sew it</h2>
           </div>
-          {garment !== 'trousers' && (
+          {garment !== 'trousers' && can('couture') && (
           <div className="seg" role="group" aria-label="How to sew it">
             {(['quick', 'couture'] as const).map((r) => (
               <button key={r} type="button" className={finish.route === r ? 'on' : ''} aria-pressed={finish.route === r} onClick={() => onFinish({ ...finish, route: r })}>
@@ -470,7 +485,7 @@ function Chips<T extends string>({ label, options, value, onPick }: { label: str
 }
 
 /** The fabric the maker has bought: checked against the style, and carried into the ease, the PDF and the tech pack. */
-function YourFabric({ fabric, onFabric, style }: { fabric: MyFabric; onFabric: (f: MyFabric) => void; style: Props['style'] }) {
+function YourFabric({ fabric, onFabric, style, simple }: { fabric: MyFabric; onFabric: (f: MyFabric) => void; style: Props['style']; simple?: boolean }) {
   const set = (patch: Partial<MyFabric>) => onFabric({ ...fabric, ...patch });
   const notes = checkFabric(style, fabric);
   return (
@@ -482,7 +497,11 @@ function YourFabric({ fabric, onFabric, style }: { fabric: MyFabric; onFabric: (
         </div>
         <FabricGuide />
       </div>
-      <p className="muted small">Optional. It goes on the PDF and the tech pack, sets the couture seam finish and pressing, and adjusts the ease for heavy cloth.</p>
+      <p className="muted small">
+        {simple
+          ? 'Optional. Tell us what you bought and we’ll say whether it suits the style. It goes on the PDF, and heavy cloth gets a little more room.'
+          : 'Optional. It goes on the PDF and the tech pack, sets the couture seam finish and pressing, and adjusts the ease for heavy cloth.'}
+      </p>
       <div className="fields">
         <div className="field plain">
           <label htmlFor="fabname">Name</label>

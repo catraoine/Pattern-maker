@@ -65,6 +65,8 @@ export interface Account {
   /** Missing on accounts from before there could be more than one person; see withPeople. */
   people?: Person[];
   active?: string;
+  /** Simple or all tools; see modeOf. Missing on accounts from before there was a choice. */
+  mode?: 'simple' | 'all';
 }
 
 export const NEW_ACCOUNT: Account = { onboarded: false, name: '', patterns: [] };

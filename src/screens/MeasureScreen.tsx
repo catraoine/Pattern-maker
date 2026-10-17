@@ -4,6 +4,7 @@ import { TapeFigure } from '../ui/TapeFigure';
 import { GarmentSwitch } from '../ui/GarmentSwitch';
 import { PeopleSwitch } from '../ui/PeopleSwitch';
 import { ME, type Account, type Person } from '../account';
+import { type Mode, shows } from '../mode';
 
 interface Props {
   account: Account & { people: Person[]; active: string };
@@ -22,13 +23,15 @@ interface Props {
   onNext: () => void;
   /** Why someone was sent back here, e.g. a bodice that still needs measurements. */
   notice?: string;
+  /** Simple or all tools; all when not given. The simple view leaves out the posture measurements nobody has taken. */
+  mode?: Mode;
 }
 
 const toDisplay = (cm: number | undefined, unit: Unit) =>
   cm === undefined ? '' : String(unit === 'cm' ? cm : Math.round((cm / 2.54) * 10) / 10);
 
-export function MeasureScreen({ account, onSwitchPerson, onAddPerson, profile, garment, onGarment, unit, values, checks, onUnit, onValues, onExample, canContinue, onNext, notice }: Props) {
-  const fields = FIELDS[garment];
+export function MeasureScreen({ account, onSwitchPerson, onAddPerson, profile, garment, onGarment, unit, values, checks, onUnit, onValues, onExample, canContinue, onNext, notice, mode = 'all' }: Props) {
+  const fields = FIELDS[garment].filter((f) => !f.fit || shows(mode, 'posture') || values[f.id] !== undefined);
   const [focusId, setFocus] = useState<MeasurementId>(fields[0].id);
   // Raw text per field while typing, so "72." doesn't get rewritten mid-entry.
   const [draftText, setDraftText] = useState<Partial<Record<MeasurementId, string>>>({});

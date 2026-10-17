@@ -6,6 +6,7 @@ import { describePattern } from './describe';
 import { FitForm } from '../ui/FitForm';
 import { FitFeedback, fitReport, fitSummary, sendFitReport } from '../fit';
 import type { MeasurementValues } from '../measurements';
+import { Mode, shows } from '../mode';
 
 // Skirt and bodice share a few measurements (waist, hip); list each once.
 const ALL_FIELDS = [...SKIRT_FIELDS, ...TROUSERS_FIELDS.filter((t) => !SKIRT_FIELDS.some((f) => f.id === t.id)), ...BODICE_FIELDS.filter((b) => !SKIRT_FIELDS.some((f) => f.id === b.id))];
@@ -30,6 +31,9 @@ interface Props {
   onReset: () => void;
   onBackup: () => void;
   onRestore: (file: File) => Promise<boolean>;
+  /** Simple or all tools; all when not given. */
+  mode?: Mode;
+  onMode?: (m: Mode) => void;
 }
 
 const show = (cm: number | undefined, unit: Unit) =>
@@ -37,7 +41,7 @@ const show = (cm: number | undefined, unit: Unit) =>
 
 const dateFmt = new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 
-export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurements, onSwitchPerson, onAddPerson, onRemovePerson, onClientBook, onCheckFile, onOpen, onRename, onRemove, onFit, onReset, onBackup, onRestore }: Props) {
+export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurements, onSwitchPerson, onAddPerson, onRemovePerson, onClientBook, onCheckFile, onOpen, onRename, onRemove, onFit, onReset, onBackup, onRestore, mode = 'all', onMode }: Props) {
   const [confirmReset, setConfirmReset] = useState(false);
   const [restoreMsg, setRestoreMsg] = useState('');
   const display = account.name.trim() || 'Me';
@@ -80,6 +84,23 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
           </div>
         </fieldset>
 
+        {onMode && (
+          <fieldset className="group">
+            <legend>Tools</legend>
+            <div className="seg" role="group" aria-label="Tools">
+              {(['simple', 'all'] as Mode[]).map((m) => (
+                <button key={m} type="button" aria-pressed={mode === m} className={mode === m ? 'on' : ''} onClick={() => onMode(m)}>
+                  {m === 'simple' ? 'Simple' : 'All tools'}
+                </button>
+              ))}
+            </div>
+            <p className="muted small">
+              {mode === 'simple'
+                ? 'Just what you need for a first pattern: style it, print it at home and sew it, step by step.'
+                : 'Everything, for dressmakers and pattern cutters: fitting toiles, couture finishes, size runs, client books and files for a maker.'}
+            </p>
+          </fieldset>
+        )}
 
         <div className="backup">
           <p className="eyebrow">Back up</p>
@@ -138,7 +159,7 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
               <button type="button" className="link" onClick={onEditMeasurements}>
                 Edit
               </button>
-              {onClientBook && (
+              {onClientBook && shows(mode, 'clientBook') && (
                 <button type="button" className="link" onClick={onClientBook}>
                   Client book
                 </button>
@@ -162,7 +183,7 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
           </dl>
         </section>
 
-        {onCheckFile && (
+        {onCheckFile && shows(mode, 'checkFile') && (
           <section className="card" aria-labelledby="cftitle2">
             <h2 id="cftitle2">Check any pattern</h2>
             <p className="muted small">Open a DXF or SVG from pattern software or a tracing, and its seams are walked to the millimetre.</p>

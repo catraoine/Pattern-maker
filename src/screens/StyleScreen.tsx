@@ -23,6 +23,8 @@ import { FabricCard } from '../ui/FabricCard';
 
 import { EaseMapView } from '../ui/EaseMapView';
 import type { EaseView } from '../engine/easeMap';
+import { Mode, ProTool, shows } from '../mode';
+import { ModeLink } from '../ui/ModeLink';
 
 interface Props {
   finish: Finish;
@@ -43,6 +45,9 @@ interface Props {
   fabric?: MyFabric;
   /** Room over the body at every level, for the ease map. */
   easeMap?: EaseView[];
+  /** Simple or all tools; all when not given. */
+  mode?: Mode;
+  onMode?: (m: Mode) => void;
 }
 
 type Group<K extends keyof Choices> = { id: K; label: string; options: [Choices[K], string][] };
@@ -91,8 +96,10 @@ export function fabricMetres(draft: SkirtDraft): number {
   return toMetres(piecesLengthCm(draft.pieces) + band + 15);
 }
 
-export function StyleScreen({ choices, onChoices, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, onPhoto, onGarment, finish, onFinish, easeMap, fabric }: Props) {
-  const [view, setView] = useState<'sketch' | 'figure' | 'pattern' | 'ease'>('sketch');
+export function StyleScreen({ choices, onChoices, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, onPhoto, onGarment, finish, onFinish, easeMap, fabric, mode = 'all', onMode }: Props) {
+  const can = (t: ProTool) => shows(mode, t);
+  const [picked, setView] = useState<'sketch' | 'figure' | 'pattern' | 'ease'>('sketch');
+  const view = picked === 'ease' && !can('easeMap') ? 'sketch' : picked;
   const [side, setSide] = useState<Side>('front');
   const [drawing, setDrawing] = useState(false);
   const [play, setPlay] = useState(0);
@@ -150,9 +157,11 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
     </div>
     <div className="split three">
       <section className="card" aria-labelledby="opts">
-        <button type="button" className="secondary" onClick={onPhoto}>
-          Start from a photo
-        </button>
+        {can('photo') && (
+          <button type="button" className="secondary" onClick={onPhoto}>
+            Start from a photo
+          </button>
+        )}
         <fieldset className="group">
           <legend>Era</legend>
           {!era && <p className="muted small">Pick an era to see its looks. A look sets the fit, shape and length, and you can change any of them after.</p>}
@@ -216,8 +225,13 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
             </button>
           </div>
         )}
-        <p className="eyebrow">Inside the skirt</p>
-        <FinishChoices garment="skirt" finish={finish} onFinish={onFinish} />
+        {can('insideFinish') && (
+          <>
+            <p className="eyebrow">Inside the skirt</p>
+            <FinishChoices garment="skirt" finish={finish} onFinish={onFinish} />
+          </>
+        )}
+        <ModeLink mode={mode} onMode={onMode} />
       </section>
 
       <section className="card grow" aria-label="Preview">
@@ -230,7 +244,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
                 ['pattern', 'Pieces'],
                 ['ease', 'Ease'],
               ] as const
-            ).map(([id, name]) => (
+            ).filter(([id]) => id !== 'ease' || can('easeMap')).map(([id, name]) => (
               <button
                 key={id}
                 type="button"

@@ -11,6 +11,8 @@ import { PatternPreview } from '../ui/Preview';
 import { GarmentSwitch } from '../ui/GarmentSwitch';
 import { FREE_SAVED_LIMIT } from '../account';
 
+import { Mode, ProTool, shows } from '../mode';
+import { ModeLink } from '../ui/ModeLink';
 import { EaseMapView } from '../ui/EaseMapView';
 import type { EaseView } from '../engine/easeMap';
 import { FinishChoices } from '../ui/FinishChoices';
@@ -37,13 +39,18 @@ interface Props {
   onFinish: (f: Finish) => void;
   /** The fabric recorded on the print screen, if any. */
   fabric?: MyFabric;
+  /** Simple or all tools; all when not given. */
+  mode?: Mode;
+  onMode?: (m: Mode) => void;
 }
 
 /** Fabric needed on 140 cm wide fabric, from the cutting layout. */
 export const trousersFabricMetres = (draft: TrousersDraft) => layPlan(draft.pieces, 140)?.metres ?? toMetres(piecesLengthCm(draft.pieces) + 10);
 
-export function TrousersStyleScreen({ choices, onChoices, onGarment, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, finish, onFinish, fabric }: Props) {
-  const [view, setView] = useState<'sketch' | 'pattern' | 'ease'>('sketch');
+export function TrousersStyleScreen({ choices, onChoices, onGarment, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, finish, onFinish, fabric, mode = 'all', onMode }: Props) {
+  const can = (t: ProTool) => shows(mode, t);
+  const [picked, setView] = useState<'sketch' | 'pattern' | 'ease'>('sketch');
+  const view = picked === 'ease' && !can('easeMap') ? 'sketch' : picked;
   const pieces = useMemo(() => draft?.pieces ?? [], [draft]);
   const sheet = useMemo(() => (draft ? layout(pieces, '', []) : undefined), [draft, pieces]);
   const title = describeTrousers(choices);
@@ -81,12 +88,17 @@ export function TrousersStyleScreen({ choices, onChoices, onGarment, values, dra
             {g.id === 'leg' && choices.leg === 'culotte' && <p className="muted small">Culottes are cut to mid-calf, wide from the hip.</p>}
           </fieldset>
         ))}
-        <p className="eyebrow">Inside the trousers</p>
-        <FinishChoices garment="trousers" finish={finish} onFinish={onFinish} />
+        {can('insideFinish') && (
+          <>
+            <p className="eyebrow">Inside the trousers</p>
+            <FinishChoices garment="trousers" finish={finish} onFinish={onFinish} />
+          </>
+        )}
         <p className="muted small">
           The crotch is drafted to your own crotch depth and length, front and back curves together, so the trousers sit without pulling or
           bagging. {choices.closure === 'fly' ? 'A fly front with its facing and shield.' : 'An invisible zip in the left side seam.'}
         </p>
+        <ModeLink mode={mode} onMode={onMode} />
       </section>
 
       <section className="card grow" aria-label="Preview">
@@ -98,7 +110,7 @@ export function TrousersStyleScreen({ choices, onChoices, onGarment, values, dra
             <button type="button" aria-pressed={view === 'pattern'} className={view === 'pattern' ? 'on' : ''} onClick={() => setView('pattern')}>
               Pattern pieces
             </button>
-            {easeMap && easeMap.length > 0 && (
+            {easeMap && easeMap.length > 0 && can('easeMap') && (
               <button type="button" aria-pressed={view === 'ease'} className={view === 'ease' ? 'on' : ''} onClick={() => setView('ease')}>
                 Ease
               </button>

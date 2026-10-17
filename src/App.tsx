@@ -62,6 +62,7 @@ import { LoadingScreen } from './ui/LoadingScreen';
 import type { FormStart } from './ui/ContourForm';
 import type { Piece } from './engine/piece';
 import { garmentEase } from './engine/easeMap';
+import { Mode, finishFor, keepFinish, modeOf } from './mode';
 
 export type Step = 'measure' | 'style' | 'export';
 type View = Step | 'welcome' | 'steps' | 'account' | 'photo' | 'whose' | 'fitting' | 'scale' | 'client' | 'check' | 'privacy' | 'terms';
@@ -203,7 +204,12 @@ export default function App() {
   const carried = useMemo(() => carriedFitting(person.fittings, garment), [person.fittings, garment]);
   const fitting = carried.fitting;
   const carriedNotes = useMemo(() => describeCarried(carried), [carried]);
-  const finish = { ...DEFAULT_FINISH, ...saved.finish };
+  // Simple or all tools: the simple view prints with home allowances and the quick route, and keeps the rest for later.
+  const mode = modeOf(account);
+  const setMode = (m: Mode) => setAccount({ ...account, mode: m });
+  const storedFinish = { ...DEFAULT_FINISH, ...saved.finish };
+  const finish = finishFor(storedFinish, mode);
+  const setFinish = (f: Finish) => setSaved({ ...saved, finish: keepFinish(storedFinish, f, mode) });
   // Heavy cloth gets a little more ease, on top of the toile's corrections.
   const fabric = finish.fabric;
   const skirtStyle = useMemo(() => ({ ...saved.choices, fitting: withFabricEase(toFitting(fitting, 'skirt'), fabric, 'skirt') }), [saved.choices, fitting, fabric]);
@@ -554,7 +560,7 @@ export default function App() {
             <WelcomeScreen
               formStart={formStart}
               onFinish={({ start }) => {
-                const onboarded = { ...account, onboarded: true };
+                const onboarded = { ...account, onboarded: true, mode };
                 setAccount(start === 'example' ? updatePerson(onboarded, person.id, { values: { ...EXAMPLE_VALUES, ...values } }) : onboarded);
                 setStep(start === 'example' ? 'style' : 'steps');
               }}
@@ -600,6 +606,8 @@ export default function App() {
           )}
           {step === 'account' && (
             <AccountScreen
+              mode={mode}
+              onMode={setMode}
               account={account}
               unit={saved.unit}
               onName={(name) => setAccount({ ...account, name })}
@@ -641,6 +649,7 @@ export default function App() {
           {step === 'measure' && (
             <MeasureScreen
               key={person.id}
+              mode={mode}
               account={account}
               onSwitchPerson={(id) => switchPerson(id)}
               onAddPerson={(name) => setAccount(addPerson(account, name))}
@@ -664,6 +673,8 @@ export default function App() {
           )}
           {step === 'style' && garment === 'skirt' && (
             <StyleScreen
+              mode={mode}
+              onMode={setMode}
               easeMap={ease}
               choices={saved.choices}
               onChoices={(choices) => setSaved({ ...saved, choices })}
@@ -678,14 +689,16 @@ export default function App() {
               onSave={() => setAccount(savePattern(account, current, describePattern(current), person.id))}
               onAccount={() => setStep('account')}
               finish={finish}
-              onFinish={(f) => setSaved({ ...saved, finish: f })}
+              onFinish={setFinish}
               onPhoto={() => setStep('photo')}
             />
           )}
           {step === 'style' && garment === 'bodice' && (
             <BodiceStyleScreen
+              mode={mode}
+              onMode={setMode}
               finish={finish}
-              onFinish={(f) => setSaved({ ...saved, finish: f })}
+              onFinish={setFinish}
               easeMap={ease}
               choices={saved.bodice}
               onChoices={(bodice) => setSaved({ ...saved, bodice })}
@@ -704,8 +717,10 @@ export default function App() {
           )}
           {step === 'style' && garment === 'dress' && (
             <DressStyleScreen
+              mode={mode}
+              onMode={setMode}
               finish={finish}
-              onFinish={(f) => setSaved({ ...saved, finish: f })}
+              onFinish={setFinish}
               easeMap={ease}
               choices={dress}
               onChoices={(d) => setSaved({ ...saved, dress: d })}
@@ -724,8 +739,10 @@ export default function App() {
           )}
           {step === 'style' && garment === 'trousers' && (
             <TrousersStyleScreen
+              mode={mode}
+              onMode={setMode}
               finish={finish}
-              onFinish={(f) => setSaved({ ...saved, finish: f })}
+              onFinish={setFinish}
               easeMap={ease}
               choices={trousersChoices}
               onChoices={(t) => setSaved({ ...saved, trousers: t })}
@@ -743,12 +760,14 @@ export default function App() {
           )}
           {step === 'export' && (
             <ExportScreen
+              mode={mode}
+              onMode={setMode}
               garment={garment}
               profile={profile}
               title={title}
               fit={current.fit}
               finish={finish}
-              onFinish={(f) => setSaved({ ...saved, finish: f })}
+              onFinish={setFinish}
               style={
                 garment === 'bodice'
                   ? { garment, fit: saved.bodice.fit, neckline: saved.bodice.neckline }
