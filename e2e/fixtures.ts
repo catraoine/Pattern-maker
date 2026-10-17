@@ -51,8 +51,13 @@ export const MEASUREMENTS: Record<string, string> = {
   Wrist: '16',
 };
 
-export type GarmentName = 'Skirt' | 'Trousers' | 'Bodice' | 'Dress';
-const lower = (g: GarmentName) => g.toLowerCase();
+/** Garments by their name on the garment switch. */
+export type GarmentName = 'Skirt' | 'Trousers' | 'Bodice' | 'Dress' | 'Tee' | 'Jacket' | 'Coat';
+/** What the rest of the app calls each one: "Style your T-shirt", "T-shirt" on the list of what to make. */
+const NOUN: Record<GarmentName, string> = { Skirt: 'skirt', Trousers: 'trousers', Bodice: 'bodice', Dress: 'dress', Tee: 'T-shirt', Jacket: 'jacket', Coat: 'coat' };
+export const lower = (g: GarmentName) => NOUN[g];
+/** The garment's name on "What would you like to make?". */
+export const pickName = (g: GarmentName) => NOUN[g][0].toUpperCase() + NOUN[g].slice(1);
 
 const main = (page: Page) => page.getByRole('main');
 const heading = (page: Page, name: string | RegExp) => main(page).getByRole('heading', { level: 1, name });
@@ -114,6 +119,15 @@ const isPosture = (input: Locator) =>
     for (let p = el.closest('.field')?.previousElementSibling; p; p = p.previousElementSibling) if (/closer fit/i.test(p.textContent ?? '')) return true;
     return false;
   });
+
+/** "What would you like to make?": pick a garment and carry on to the first measurement it still needs. */
+export async function pickToMake(page: Page, g: GarmentName) {
+  await expect(heading(page, 'What would you like to make?')).toBeVisible();
+  const choice = main(page).getByRole('radiogroup', { name: 'What would you like to make?' }).getByRole('radio', { name: new RegExp(`^${pickName(g)}\\b`) });
+  await choice.click();
+  await expect(choice).toHaveAttribute('aria-checked', 'true');
+  await main(page).getByRole('button', { name: 'Continue measuring' }).click();
+}
 
 /** After measuring: the one-time "Whose measurements are these?" page, when it shows. */
 export async function answerWhose(page: Page, name = 'Ada') {

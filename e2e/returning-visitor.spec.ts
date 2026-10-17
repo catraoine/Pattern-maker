@@ -1,4 +1,4 @@
-import { chooseChip, expect, expectStyle, skipLoading, startWithExample, test } from './fixtures';
+import { chooseChip, expect, expectStyle, pickToMake, skipLoading, startWithExample, test } from './fixtures';
 
 test('returning visitor: a reload keeps the measurements and the saved pattern', async ({ page }) => {
   await startWithExample(page);
@@ -22,8 +22,8 @@ test('returning visitor: a reload keeps the measurements and the saved pattern',
   await expect(main.getByRole('heading', { name: 'Do these look right?' })).toBeVisible();
   await expect(main.getByRole('button', { name: /^Waist [0-9]/ })).toContainText('74 cm');
   await main.getByRole('button', { name: 'Choose what to make' }).click();
-  await expect(main.getByRole('button', { name: /^Skirt/ })).toContainText('Ready');
-  await main.getByRole('button', { name: /^Skirt/ }).click();
+  // Nothing is missing for the skirt, so carrying on goes straight to styling it.
+  await pickToMake(page, 'Skirt');
   await expectStyle(page, 'Skirt');
 
   // The style chosen and the pattern saved are still there.
