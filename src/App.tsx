@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { HemShape } from './engine/hem';
+import type { AsymHem } from './engine/asymHem';
 import { DraftError, Fit, Length, Silhouette, SkirtDraft, SkirtMeasurements, SkirtShape, draftSkirt } from './engine/skirt';
 import { BodiceDraft, BodiceMeasurements, blockOf, draftBodice } from './engine/bodice';
 import { BodiceEdges, SewingGuide, bodiceGuide, dressGuide, hasSlit, sewingGuide } from './engine/instructions';
@@ -11,7 +12,7 @@ import { OuterDraft, OuterMeasurements, draftOuter } from './engine/outerwear';
 import { outerGuide } from './engine/outerGuide';
 import { Cloth, Route, toCouture } from './engine/couture';
 import { AllowanceStyle, SEAM_WIDTHS, withAllowances } from './engine/allowances';
-import { bodiceFacings, liningPieces, waistbandPiece } from './engine/finishing';
+import { bodiceFacings, liningPieces, waistPieces } from './engine/finishing';
 import { bodiceSpec, dressSpec, outerSpec, skirtSpec, sleeveSpec, trousersSpec } from './engine/spec';
 import { SleeveDraft, SleeveMeasurements, draftSleeve, needsArms } from './engine/sleeve';
 import { Fitting, carriedFitting, describeCarried, describeFitting, saveVersion, toFitting } from './engine/fitting';
@@ -83,6 +84,8 @@ export interface Choices {
   flareCm?: number;
   /** Drawn on the sketch: a shaped hem. */
   hem?: HemShape;
+  /** A high-low or diagonal hem, in place of a drawn one. Older saves have none. */
+  asymHem?: AsymHem;
 }
 
 // Saved under the original "skirt" key so measurements from before bodices still load; older saves
@@ -306,7 +309,7 @@ export default function App() {
           return allow([...d.pieces, ...(sleeveFor(d.bodice, st.bodice, m)?.pieces ?? [])]);
         }
         const k = draftSkirt(m as SkirtMeasurements, skirtStyle);
-        return allow([...k.pieces, waistbandPiece(k, 1.5)]);
+        return allow([...k.pieces, ...waistPieces(k, 1.5)]);
       },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [garment, bodiceStyle, trousersStyle, skirtStyle, dress, outerChoices, fitting, saved.finish?.allowances],
@@ -382,7 +385,7 @@ export default function App() {
           lining = undefined;
         }
       }
-      const pieces = allow([...skirt.pieces, ...(lining ? liningPieces(lining) : []), waistbandPiece(skirt, 1.5)]);
+      const pieces = allow([...skirt.pieces, ...(lining ? liningPieces(lining) : []), ...waistPieces(skirt, 1.5)]);
       const hem = pieces[0].allowances.hem;
       const lays = layPlans(pieces, finish.fabricWidth, finish.nap);
       const metres = (f: 'self' | 'lining', fallback: () => number) => lays.find((l) => l.fabric === f)?.metres ?? fallback();
@@ -393,7 +396,7 @@ export default function App() {
           couture
             ? `Couture allowances: ${fmtCm(seams.seam)} at the seams, ${fmtCm(seams.waist)} at the waist, ${fmtCm(hem)} at the hem. Thread-trace the solid stitching line.`
             : `Seam allowance ${fmtCm(seams.seam)} included, ${fmtCm(hem)} at the hem. Dashed line = stitching line.`,
-          `Waistband${lining ? ' and lining' : ''} included. Sewing steps are on the last pages.`,
+          `${skirt.faced ? 'Waist facings' : 'Waistband'}${lining ? ' and lining' : ''} included.${skirt.bias ? ' Cut on the bias: every piece single layer, grain at 45 degrees.' : ''} Sewing steps are on the last pages.`,
           ...fittingNotes,
         ],
         guide: route(
@@ -823,7 +826,7 @@ export default function App() {
                     ? { garment, fit: dress.fit, neckline: dress.bodice.neckline, silhouette: dress.skirt.silhouette, length: dress.skirt.length }
                     : garment === 'trousers'
                       ? { garment, fit: trousersChoices.fit, leg: trousersChoices.leg }
-                      : { garment: 'skirt', silhouette: saved.choices.silhouette, length: saved.choices.length }
+                      : { garment: 'skirt', silhouette: saved.choices.silhouette, length: saved.choices.length, asymHem: saved.choices.asymHem }
               }
               made={printable}
               error={result.error}

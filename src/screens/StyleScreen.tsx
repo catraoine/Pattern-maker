@@ -3,9 +3,10 @@ import type { Choices } from '../App';
 import { layout } from '../engine/export';
 import { piecesLengthCm, toMetres } from '../engine/fabric';
 import { layPlan } from '../engine/layplan';
-import { waistbandPiece } from '../engine/finishing';
+import { waistPieces } from '../engine/finishing';
 import { FIT_EASE, SkirtDraft, SkirtMeasurements } from '../engine/skirt';
 import { isShaped } from '../engine/hem';
+import { SLIP_FACING, SLIP_HIP_EASE_LESS, cutAllowed, validCut } from '../engine/slip';
 import type { Garment, MeasurementValues } from '../measurements';
 import { GarmentSwitch } from '../ui/GarmentSwitch';
 import { PatternPreview } from '../ui/Preview';
@@ -47,19 +48,23 @@ interface Props {
 
 type Group<K extends keyof Choices> = { id: K; label: string; options: [Choices[K], string][] };
 
-export const GROUPS: [Group<'fit'>, Group<'silhouette'>, Group<'length'>] = [
+export const GROUPS: [Group<'fit'>, Group<'silhouette'>, Group<'length'>, Group<'asymHem'>] = [
   { id: 'fit', label: 'Fit', options: [['fitted', 'Fitted'], ['regular', 'Regular'], ['relaxed', 'Relaxed']] },
   {
     id: 'silhouette',
     label: 'Silhouette',
-    options: [['pencil', 'Pencil'], ['straight', 'Straight'], ['a_line', 'A-line'], ['trumpet', 'Trumpet'], ['half_circle', 'Half circle'], ['circle', 'Full circle']],
+    options: [['pencil', 'Pencil'], ['straight', 'Straight'], ['a_line', 'A-line'], ['trumpet', 'Trumpet'], ['half_circle', 'Half circle'], ['circle', 'Full circle'], ['slip', 'Bias slip']],
   },
   {
     id: 'length',
     label: 'Length',
     options: [['mini', 'Mini'], ['above_knee', 'Above knee'], ['knee', 'Knee'], ['midi', 'Midi'], ['maxi', 'Maxi']],
   },
+  { id: 'asymHem', label: 'Hem', options: [['none', 'Level'], ['high_low', 'High-low'], ['diagonal', 'Diagonal']] },
 ];
+
+/** The chosen option in a group: older saves have no hem choice, which is a level hem. */
+export const chosen = (c: Choices, id: keyof Choices) => (id === 'asymHem' ? c.asymHem ?? 'none' : c[id]);
 
 /** True when the skirt has been shaped by hand: a dragged length or flare, or a drawn hem. */
 export const handShaped = (c: Choices) => c.lengthCm !== undefined || c.flareCm !== undefined || isShaped(c.hem);
@@ -73,10 +78,12 @@ export function currentLook(c: Choices) {
 export function describe(c: Choices) {
   const look = currentLook(c);
   if (look) return look.name;
-  if (c.shape) return `Skirt matched to a photo${isShaped(c.hem) ? ', with a shaped hem' : ''}`;
-  const len = c.lengthCm !== undefined ? `${Math.round(c.lengthCm)} cm` : GROUPS[2].options.find((o) => o[0] === c.length)![1];
-  const sil = GROUPS[1].options.find((o) => o[0] === c.silhouette)![1];
-  return `${len} ${sil.toLowerCase()} skirt${isShaped(c.hem) ? ' with a shaped hem' : ''}`;
+  const v = validCut(c);
+  const asym = v.asymHem === 'high_low' ? ' with a high-low hem' : v.asymHem === 'diagonal' ? ' with a diagonal hem' : isShaped(c.hem) ? ' with a shaped hem' : '';
+  if (c.shape) return `Skirt matched to a photo${asym.replace(' with', ', with')}`;
+  const len = c.lengthCm !== undefined ? `${Math.round(c.lengthCm)} cm` : GROUPS[2].options.find((o) => o[0] === v.length)![1];
+  const sil = v.silhouette === 'slip' ? 'Bias-cut slip' : GROUPS[1].options.find((o) => o[0] === v.silhouette)![1];
+  return `${len} ${sil.toLowerCase()} skirt${asym}`;
 }
 
 const UNDO_LIMIT = 40;
@@ -84,8 +91,18 @@ const UNDO_LIMIT = 40;
 /** Fabric needed on 140 cm wide fabric, from the cutting layout of the pieces and the waistband. A
  * rough estimate where the pieces are too wide to lay out. */
 export function fabricMetres(draft: SkirtDraft): number {
-  const lay = layPlan([...draft.pieces, waistbandPiece(draft, 1.5)], 140);
+  const all = [...draft.pieces, ...waistPieces(draft, 1.5)];
+  // Whole bias pieces too wide for 140 cm cloth are bought 150 cm wide (the fabric advice says so).
+  const lay = layPlan(all, 140) ?? (draft.bias ? layPlan(all, 150) : undefined);
   if (lay) return lay.metres;
+  if (draft.bias) {
+    // Too wide even then: each piece end to end, turned to 45 degrees.
+    const along = (pc: SkirtDraft['pieces'][number]) => {
+      const ys = pc.outline.taggedPoints(8).pts.map((q) => (q.x + q.y) / Math.SQRT2);
+      return (Math.max(...ys) - Math.min(...ys)) * (pc.meta.whole ? 1 : 2);
+    };
+    return toMetres(draft.pieces.reduce((t, pc) => t + along(pc), 0) + 25);
+  }
   const { cutLength, cutWidth } = draft.waistband;
   const band = cutLength <= BAND_ACROSS_MAX ? cutWidth : cutLength;
   return toMetres(piecesLengthCm(draft.pieces) + band + 15);
@@ -122,6 +139,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
   const shake = useShake(undo);
   const sheet = useMemo(() => (draft ? layout(draft.pieces, '', []) : undefined), [draft]);
   const ease = FIT_EASE[choices.fit];
+  const slipped = choices.silhouette === 'slip';
   const extra = fabricEase(fabric, 'skirt');
   const title = describe(choices);
   const look = currentLook(choices);
@@ -130,8 +148,10 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
   // Changing the shape or length by hand leaves the era look behind; changing the fit keeps it.
   // Picking a named length or silhouette replaces a dragged one; a drawn hem stays. A shape matched
   // from a photo stays until the shape or length is changed by hand.
+  // A high-low or diagonal hem replaces a drawn one.
   const choose = (c: Choices, group: keyof Choices) => {
-    const { lengthCm, flareCm, look, shape: photo, ...rest } = c;
+    const { lengthCm, flareCm, look, shape: photo, ...valid } = validCut(c);
+    const rest = group === 'asymHem' && valid.asymHem !== 'none' ? { ...valid, hem: undefined } : valid;
     const shape = c.silhouette === choices.silhouette && c.length === choices.length ? photo : undefined;
     change({
       ...rest,
@@ -198,8 +218,9 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
                 <button
                   key={id}
                   type="button"
-                  className={choices[g.id] === id && !(g.id === 'length' && choices.lengthCm !== undefined) ? 'chip on' : 'chip'}
-                  aria-pressed={choices[g.id] === id && !(g.id === 'length' && choices.lengthCm !== undefined)}
+                  className={chosen(choices, g.id) === id && !(g.id === 'length' && choices.lengthCm !== undefined) ? 'chip on' : 'chip'}
+                  aria-pressed={chosen(choices, g.id) === id && !(g.id === 'length' && choices.lengthCm !== undefined)}
+                  disabled={g.id !== 'fit' && !cutAllowed(choices, g.id, id ?? 'none')}
                   onClick={() => choose({ ...choices, [g.id]: id }, g.id)}
                 >
                   {label}
@@ -342,8 +363,9 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
           <strong>{draft ? draft.hemCm : '–'} cm</strong>
         </div>
         <p className="muted small">
-          The skirt is {ease.waist + extra.waist} cm bigger than you at the waist and {ease.hip + extra.hip} cm at the hip, so you can move and sit
+          The skirt is {ease.waist + extra.waist} cm bigger than you at the waist and {ease.hip + extra.hip - (slipped ? SLIP_HIP_EASE_LESS : 0)} cm at the hip, so you can move and sit
           {extra.hip ? `, including ${extra.waist} cm and ${extra.hip} cm for your heavy fabric` : ''}.
+          {slipped ? ` That is ${SLIP_HIP_EASE_LESS} cm less at the hip than on the straight grain: cut on the bias, the cloth gives and moulds to you.` : ''}
         </p>
         <div>
           <p className="eyebrow">Pattern pieces</p>
@@ -353,7 +375,8 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
                 {pc.name}: {pc.cut.replace(' (1 pair)', '').toLowerCase()}
               </li>
             ))}
-            {draft && (
+            {draft && draft.faced && <li>Waist facings: cut 1 front and 1 back, {SLIP_FACING} cm deep</li>}
+            {draft && !draft.faced && (
               <li>
                 Waistband: cut 1, {draft.waistband.cutLength} × {draft.waistband.cutWidth} cm
               </li>
