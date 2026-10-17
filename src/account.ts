@@ -67,6 +67,12 @@ export interface Account {
   active?: string;
   /** Simple or all tools; see modeOf. Missing on accounts from before there was a choice. */
   mode?: 'simple' | 'all';
+  /** Free, Premium or Maker; see src/plans.ts. Missing means free. Not used while billing is off. */
+  plan?: 'free' | 'premium' | 'maker';
+  /** Garments bought one at a time. */
+  packs?: Garment[];
+  /** Photo drafts made this month, for the free monthly allowance. */
+  photoDrafts?: { month: string; used: number };
 }
 
 export const NEW_ACCOUNT: Account = { onboarded: false, name: '', patterns: [] };
@@ -159,7 +165,8 @@ export const isSavedFor = (account: Account, choices: PatternChoices, personId?:
   account.patterns.some((p) => sameChoices(p.choices, choices) && (p.personId ?? ME) === (personId ?? ME));
 
 export function savePattern(account: Account, choices: PatternChoices, name: string, personId?: string): Account {
-  if (account.patterns.length >= FREE_SAVED_LIMIT || isSavedFor(account, choices, personId)) return account;
+  const limit = account.plan && account.plan !== 'free' ? Infinity : FREE_SAVED_LIMIT;
+  if (account.patterns.length >= limit || isSavedFor(account, choices, personId)) return account;
   return { ...account, patterns: [{ id: newId(), name, choices, savedAt: new Date().toISOString(), personId }, ...account.patterns] };
 }
 

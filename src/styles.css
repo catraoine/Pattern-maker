@@ -2447,13 +2447,15 @@ table.history td.moved {
   opacity: 0.8;
 }
 
-.makerform hr {
+.makerform hr,
+.offer.inset hr {
   border: 0;
   border-top: var(--bw) solid var(--line);
   margin: 20px 0;
 }
 
-.makerform input {
+.makerform input,
+.offer input[type='email'] {
   flex: 1 1 auto;
   min-width: 0;
   min-height: 48px;
@@ -2467,7 +2469,8 @@ table.history td.moved {
   font-size: 16px;
 }
 
-.makerform form {
+.makerform form,
+.offer form {
   margin-top: 12px;
 }
 
@@ -2505,7 +2508,8 @@ table.history td.moved {
   align-self: flex-start;
 }
 /* The box only bots see and fill in */
-.signup .hp {
+.signup .hp,
+.offer .hp {
   position: absolute;
   left: -10000px;
   width: 1px;
@@ -2571,5 +2575,34 @@ button.link.garment-change {
   font-size: 12px;
   letter-spacing: 0.2em;
   text-transform: uppercase;
+
+/* Paid extras that aren't open yet: an email sign-up with the planned price */
+.offerprices {
+  margin: 0.5rem 0 0.75rem;
+}
+.offerprices div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  border-top: var(--bw) solid var(--line);
+  padding: 0.5rem 0;
+}
+.offerprices dd {
+  margin: 0;
   color: var(--gild);
+}
+
+/* Plans: Free, Premium and Maker, and the prompts that open them (switched off until billing) */
+.plans {
+  display: grid;
+  gap: 16px;
+  max-width: 720px;
+  margin: 0 auto;
+}
+.plan .stack {
+  margin-top: 12px;
+}
+.photoallowance {
+  max-width: 720px;
+  margin: 0 auto 12px;
 }

@@ -19,6 +19,7 @@ import { DRAPES, FIBRES, FIBRE_IDS, Fibre, MyFabric, WEIGHTS, FabricStyle, check
 import { FabricGuide } from '../ui/FabricGuide';
 import { SPECIALS, SPECIAL_IDS, Special, checksLines, needsNap, specialLines } from '../engine/specialFabrics';
 import { SizeRun } from '../ui/SizeRun';
+import { InterestCard } from '../ui/InterestCard';
 import type { MeasurementValues } from '../measurements';
 import { Mode, ProTool, shows } from '../mode';
 import { ModeLink } from '../ui/ModeLink';
@@ -292,6 +293,11 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
         </section>
       </div>
 
+      <div className="split">
+        <InterestCard offer="printed" pattern={title} />
+        <InterestCard offer="kit" pattern={title} />
+      </div>
+
       {made?.flat && can('techFlat') && (
         <section className="card" aria-labelledby="flattitle">
           <p className="eyebrow">Technical flat</p>
@@ -404,6 +410,7 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
       {values && draftAt && can('sizeRun') && (
         <SizeRun garment={garment} values={values} draftAt={draftAt} title={title} fileBase={fileBase} width={finish.fabricWidth} nap={nap} download={download} />
       )}
+      {values && draftAt && can('sizeRun') && <InterestCard offer="sizerun" pattern={title} />}
 
       <section className="card sew" aria-labelledby="sewtitle">
         <div className="row between wrap">
@@ -461,6 +468,7 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
               ))}
             </ul>
             <p className="muted small">These steps are also on the last pages of the PDF.</p>
+            <InterestCard offer="tools" pattern={title} inset />
           </div>
           <ol className="sewsteps">
             {guide.steps.map((st) => (

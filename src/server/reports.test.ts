@@ -154,6 +154,13 @@ describe('sign-ups', () => {
     expect(checkSignup(JSON.stringify({ kind: 'news', email: 'a@b.co' }))).toEqual({ kind: 'news', email: 'a@b.co' });
   });
 
+  it('accepts an interest sign-up for a known offer only', () => {
+    expect(checkSignup(JSON.stringify({ kind: 'interest', offer: 'founding', email: 'A@b.co', website: '' }))).toEqual({ kind: 'interest', offer: 'founding', email: 'a@b.co' });
+    expect(checkSignup(JSON.stringify({ kind: 'interest', offer: 'printed', email: 'a@b.co', pattern: 'A-line skirt' }))).toMatchObject({ pattern: 'A-line skirt' });
+    expect(checkSignup(JSON.stringify({ kind: 'interest', offer: 'lottery', email: 'a@b.co' }))).toBeNull();
+    expect(checkSignup(JSON.stringify({ kind: 'interest', offer: 'kit', email: 'a@b.co', website: 'spam.example' }))).toBeNull();
+  });
+
   it('refuses one without consent, a bad email, extra fields, or a filled-in bot box', () => {
     expect(checkSignup(JSON.stringify({ ...tester, consent: false }))).toBeNull();
     expect(checkSignup(JSON.stringify({ ...tester, email: 'not-an-email' }))).toBeNull();

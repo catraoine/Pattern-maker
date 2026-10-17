@@ -1,6 +1,7 @@
 // Server side only: checks what the app's report beacon sends (crash reports and anonymous daily counts) and
 // sign-ups, before they're stored in Netlify Blobs. Imported by the report and signup functions.
 import { z } from 'zod';
+import { OFFER_IDS } from '../offers';
 
 export const MAX_BEACON_BYTES = 16_000;
 export const MAX_SIGNUP_BYTES = 4_000;
@@ -156,6 +157,8 @@ export const SignupSchema = z.discriminatedUnion('kind', [
     })
     .strict(),
   z.object({ kind: z.literal('news'), email, website: honeypot }).strict(),
+  // "Tell me when it opens" for a paid extra that isn't built yet (src/offers.ts).
+  z.object({ kind: z.literal('interest'), offer: z.enum(OFFER_IDS), email, pattern: z.string().trim().max(120).optional(), website: honeypot }).strict(),
 ]);
 
 export type Signup = z.infer<typeof SignupSchema>;
