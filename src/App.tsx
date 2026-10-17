@@ -3,14 +3,17 @@ import type { HemShape } from './engine/hem';
 import { DraftError, Fit, Length, Silhouette, SkirtDraft, SkirtMeasurements, SkirtShape, draftSkirt } from './engine/skirt';
 import { BodiceDraft, BodiceMeasurements, blockOf, draftBodice } from './engine/bodice';
 import { BodiceEdges, SewingGuide, bodiceGuide, dressGuide, hasSlit, sewingGuide } from './engine/instructions';
-import { bodiceFlat, dressFlat, skirtFlat, trousersFlat } from './engine/flat';
+import { bodiceFlat, dressFlat, skirtFlat, teeFlat, trousersFlat } from './engine/flat';
 import { DressDraft, DressMeasurements, draftDress } from './engine/dress';
 import { TrousersDraft, TrousersMeasurements, draftTrousers, trousersWaistband } from './engine/trousers';
 import { trousersGuide } from './engine/trousersGuide';
+import { TeeDraft, TeeMeasurements, draftTee } from './engine/tee';
+import { teeGuide } from './engine/teeGuide';
+import { withKnitFabric } from './engine/knits';
 import { Cloth, Route, toCouture } from './engine/couture';
 import { AllowanceStyle, SEAM_WIDTHS, withAllowances } from './engine/allowances';
 import { bodiceFacings, liningPieces, waistbandPiece } from './engine/finishing';
-import { bodiceSpec, dressSpec, skirtSpec, sleeveSpec, trousersSpec } from './engine/spec';
+import { bodiceSpec, dressSpec, skirtSpec, sleeveSpec, teeSpec, trousersSpec } from './engine/spec';
 import { SleeveDraft, SleeveMeasurements, draftSleeve, needsArms } from './engine/sleeve';
 import { Fitting, carriedFitting, describeCarried, describeFitting, saveVersion, toFitting } from './engine/fitting';
 import { FabricWidth, layPlans } from './engine/layplan';
@@ -39,12 +42,13 @@ import {
   withPeople,
   FREE_SAVED_LIMIT,
 } from './account';
-import { BodiceChoices, COLLAR_WORDS, DEFAULT_BODICE, DEFAULT_TROUSERS_CHOICES, TrousersChoices, validDetails, DressChoices, describeBodice, describeTrousers, isBodice, isDress, isTrousers, sleeveOf } from './garments';
+import { BodiceChoices, COLLAR_WORDS, DEFAULT_BODICE, DEFAULT_TEE_CHOICES, DEFAULT_TROUSERS_CHOICES, TeeChoices, TrousersChoices, validDetails, DressChoices, describeBodice, describeTee, describeTrousers, isBodice, isDress, isTee, isTrousers, sleeveOf } from './garments';
 import { MeasureScreen } from './screens/MeasureScreen';
 import { StyleScreen, describe, fabricMetres } from './screens/StyleScreen';
 import { BodiceStyleScreen, bindingMetres, bodiceFabricMetres } from './screens/BodiceStyleScreen';
 import { DressStyleScreen } from './screens/DressStyleScreen';
 import { TrousersStyleScreen, trousersFabricMetres } from './screens/TrousersStyleScreen';
+import { TeeStyleScreen, teeFabricMetres } from './screens/TeeStyleScreen';
 import { ExportScreen, Printable } from './screens/ExportScreen';
 import { describePattern } from './screens/describe';
 import { WelcomeScreen } from './screens/WelcomeScreen';
@@ -95,6 +99,8 @@ interface Saved {
   dress?: DressChoices;
   /** The trousers' choices. */
   trousers?: TrousersChoices;
+  /** The T-shirt's choices. Older saves have none. */
+  tee?: TeeChoices;
   /** How the pattern is finished and printed, chosen on the print screen. Older saves have none. */
   finish?: Finish;
 }
@@ -213,6 +219,7 @@ export default function App() {
     [saved.dress, saved.bodice, saved.choices],
   );
   const trousersChoices = saved.trousers ?? DEFAULT_TROUSERS_CHOICES;
+  const teeChoices = saved.tee ?? DEFAULT_TEE_CHOICES;
   const trousersStyle = useMemo(() => ({ ...trousersChoices, fitting: withFabricEase(toFitting(fitting, 'skirt'), fabric, 'skirt') }), [trousersChoices, fitting, fabric]);
   /** The dress in one fit: the bodice at the waist, the skirt below it, each with its toile corrections. */
   const dressStyles = (f: Fitting | undefined) => ({
@@ -220,7 +227,7 @@ export default function App() {
     skirt: { ...dress.skirt, fit: dress.fit, fitting: withFabricEase(toFitting(f, 'skirt'), fabric, 'skirt') },
   });
 
-  const result = useMemo((): { skirt?: SkirtDraft; bodice?: BodiceDraft; dress?: DressDraft; trousers?: TrousersDraft; sleeve?: SleeveDraft; error?: string } => {
+  const result = useMemo((): { skirt?: SkirtDraft; bodice?: BodiceDraft; dress?: DressDraft; trousers?: TrousersDraft; tee?: TeeDraft; sleeve?: SleeveDraft; error?: string } => {
     if (!canLeaveMeasure) return {};
     try {
       if (garment === 'bodice') {
@@ -228,6 +235,8 @@ export default function App() {
         return { bodice, sleeve: sleeveFor(bodice, bodiceStyle, values) };
       }
       if (garment === 'trousers') return { trousers: draftTrousers(values as TrousersMeasurements, trousersStyle) };
+      // A knit block fits by stretch, so no woven toile corrections or heavy-cloth ease go into it.
+      if (garment === 'tee') return { tee: draftTee(values as TeeMeasurements, teeChoices) };
       if (garment === 'dress') {
         const st = dressStyles(fitting);
         const d = draftDress(values as DressMeasurements, st.bodice, st.skirt);
@@ -237,7 +246,7 @@ export default function App() {
     } catch (e) {
       return { error: e instanceof DraftError ? e.message : 'Something went wrong drafting this pattern.' };
     }
-  }, [values, skirtStyle, bodiceStyle, trousersStyle, dress, fitting, garment, canLeaveMeasure]);
+  }, [values, skirtStyle, bodiceStyle, trousersStyle, teeChoices, dress, fitting, garment, canLeaveMeasure]);
 
   /** Room over the body at every level of the drafted pieces, for the ease map. */
   const ease = useMemo(() => {
@@ -257,6 +266,7 @@ export default function App() {
         try {
           if (garment === 'bodice') return draftBodice(values as BodiceMeasurements, { ...saved.bodice, fitting: withFabricEase(toFitting(f, 'bodice'), fabric, 'bodice') }).pieces;
           if (garment === 'trousers') return draftTrousers(values as TrousersMeasurements, { ...trousersChoices, fitting: withFabricEase(toFitting(f, 'skirt'), fabric, 'skirt') }).pieces;
+          if (garment === 'tee') return draftTee(values as TeeMeasurements, teeChoices).pieces;
           if (garment === 'dress') {
             const st = dressStyles(f);
             return draftDress(values as DressMeasurements, st.bodice, st.skirt).pieces;
@@ -266,7 +276,7 @@ export default function App() {
           return undefined;
         }
       },
-    [garment, values, saved.bodice, saved.choices, trousersChoices, dress, fabric],
+    [garment, values, saved.bodice, saved.choices, trousersChoices, teeChoices, dress, fabric],
   );
 
   /** The pattern's main pieces with allowances, drafted to any measurements: for grading a size run. */
@@ -279,6 +289,8 @@ export default function App() {
           const b = draftBodice(m as BodiceMeasurements, bodiceStyle);
           return allow([...b.pieces, ...(sleeveFor(b, bodiceStyle, m)?.pieces ?? [])]);
         }
+        // Knit pieces keep their 1 cm allowances whatever the style.
+        if (garment === 'tee') return draftTee(m as TeeMeasurements, teeChoices).pieces;
         if (garment === 'trousers') {
           const t = draftTrousers(m as TrousersMeasurements, trousersStyle);
           return allow([...t.pieces, trousersWaistband(t, 1.5)]);
@@ -292,14 +304,14 @@ export default function App() {
         return allow([...k.pieces, waistbandPiece(k, 1.5)]);
       },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [garment, bodiceStyle, trousersStyle, skirtStyle, dress, fitting, saved.finish?.allowances],
+    [garment, bodiceStyle, trousersStyle, teeChoices, skirtStyle, dress, fitting, saved.finish?.allowances],
   );
 
-  const current = garment === 'bodice' ? saved.bodice : garment === 'dress' ? dress : garment === 'trousers' ? trousersChoices : saved.choices;
-  const title = garment === 'bodice' ? describeBodice(saved.bodice) : garment === 'dress' ? describePattern(dress) : garment === 'trousers' ? describeTrousers(trousersChoices) : describe(saved.choices);
+  const current = garment === 'bodice' ? saved.bodice : garment === 'dress' ? dress : garment === 'trousers' ? trousersChoices : garment === 'tee' ? teeChoices : saved.choices;
+  const title = garment === 'bodice' ? describeBodice(saved.bodice) : garment === 'dress' ? describePattern(dress) : garment === 'trousers' ? describeTrousers(trousersChoices) : garment === 'tee' ? describeTee(teeChoices) : describe(saved.choices);
 
   const printable = useMemo((): Printable | undefined => {
-    const { skirt, bodice, sleeve, dress: dressDraft, trousers } = result;
+    const { skirt, bodice, sleeve, dress: dressDraft, trousers, tee } = result;
     const seams = SEAM_WIDTHS[finish.allowances];
     const allow = (pieces: Printable['pieces']) => pieces.map((pc) => withAllowances(pc, finish.allowances));
     const couture = finish.allowances === 'couture';
@@ -307,6 +319,23 @@ export default function App() {
     // The couture route's cloth follows the recorded fibre; either route opens with preparing the fabric.
     const route = (guide: SewingGuide, c: { garment: 'skirt' | 'bodice' | 'dress'; lined: boolean; zipCm: number }) =>
       withFabric(finish.route === 'couture' ? toCouture(guide, { ...c, cloth: clothFor(fabric, finish.cloth), traced: couture }) : guide, fabric, c.garment);
+    if (tee) {
+      // Knit allowances (1 cm, 2.5 cm at the hem) whatever the allowance style, and a knit lay.
+      const pieces = tee.pieces;
+      const lays = layPlans(pieces, finish.fabricWidth, finish.nap, true);
+      return {
+        pieces,
+        notes: [
+          `For knit fabric with ${tee.stretch} stretch. Finished bust ${tee.finishedBust} cm, ${tee.length === 'cropped' ? 'hem' : 'hem at the hip'} ${tee.finishedHem} cm, back length ${tee.backLength} cm.`,
+          `Seam allowance 1 cm included, 2.5 cm at the hem, 2 cm at the sleeve hem. Dashed line = stitching line. Grain lines run along the ribs.`,
+          `Neckband ${tee.neckband.length} cm long, ${Math.round(tee.neckband.ratio * 100)}% of the ${tee.necklineCm} cm neckline, cut with the stretch along it. Sleeve: bicep ${tee.sleeve.bicep} cm. Sewing steps are on the last pages.`,
+        ],
+        guide: withKnitFabric(teeGuide(tee, lays.find((l) => l.fabric === 'self')?.metres ?? teeFabricMetres(tee), { width: finish.fabricWidth }), fabric),
+        spec: teeSpec(values as TeeMeasurements, tee),
+        lays,
+        flat: teeFlat(tee),
+      };
+    }
     if (trousers) {
       const pieces = allow([...trousers.pieces, trousersWaistband(trousers, 1.5)]);
       const hem = pieces[0].allowances.hem;
@@ -485,6 +514,7 @@ export default function App() {
     const who = account.people.find((x) => x.id === p.personId) ?? person;
     setAccount({ ...account, active: who.id });
     if (isTrousers(p.choices)) switchGarment('trousers', { trousers: p.choices }, 'style', who.values);
+    else if (isTee(p.choices)) switchGarment('tee', { tee: p.choices }, 'style', who.values);
     else if (isDress(p.choices)) switchGarment('dress', { dress: p.choices }, 'style', who.values);
     else if (isBodice(p.choices)) switchGarment('bodice', { bodice: p.choices }, 'style', who.values);
     else switchGarment('skirt', { choices: p.choices }, 'style', who.values);
@@ -741,6 +771,22 @@ export default function App() {
               onAccount={() => setStep('account')}
             />
           )}
+          {step === 'style' && garment === 'tee' && (
+            <TeeStyleScreen
+              choices={teeChoices}
+              onChoices={(t) => setSaved({ ...saved, tee: t })}
+              fabric={fabric}
+              onGarment={(g) => switchGarment(g)}
+              values={values}
+              draft={result.tee}
+              error={result.error}
+              onEditMeasurements={() => setStep('measure')}
+              onNext={() => setStep('export')}
+              saveState={saveState}
+              onSave={() => setAccount(savePattern(account, current, describePattern(current), person.id))}
+              onAccount={() => setStep('account')}
+            />
+          )}
           {step === 'export' && (
             <ExportScreen
               garment={garment}
@@ -756,6 +802,8 @@ export default function App() {
                     ? { garment, fit: dress.fit, neckline: dress.bodice.neckline, silhouette: dress.skirt.silhouette, length: dress.skirt.length }
                     : garment === 'trousers'
                       ? { garment, fit: trousersChoices.fit, leg: trousersChoices.leg }
+                      : garment === 'tee'
+                        ? { garment, fit: teeChoices.fit, stretch: teeChoices.stretch, neckline: teeChoices.neckline }
                       : { garment: 'skirt', silhouette: saved.choices.silhouette, length: saved.choices.length }
               }
               made={printable}

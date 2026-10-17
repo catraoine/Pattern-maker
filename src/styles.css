@@ -255,14 +255,17 @@ p {
   font-weight: var(--w-strong);
 }
 
-/* Three garments: the switch fills a narrow card's width rather than spilling out of it. */
+/* The garments: the switch fills a narrow card's width rather than spilling out of it, wrapping to a
+   second row on a narrow phone. */
 .seg.garments {
   max-width: 100%;
+  flex-wrap: wrap;
 }
 
 .seg.garments button {
   flex: 1 1 auto;
   padding: 0 10px;
+  white-space: nowrap;
 }
 
 .fields {
