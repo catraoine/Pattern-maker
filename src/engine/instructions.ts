@@ -9,6 +9,7 @@ import { SEAM_WIDTHS, SeamWidths } from './allowances';
 import type { Piece } from './piece';
 import type { DiagramId } from './diagrams';
 import { placeWords, styleBodiceSteps } from './styleSteps';
+import { drapeBodiceSteps, drapeDressSteps } from './drapeSteps';
 
 // Widest strip that fits across 140 cm fabric, leaving room for the selvedges.
 export const BAND_ACROSS_MAX = 135;
@@ -355,7 +356,7 @@ export function bodiceGuide(draft: BodiceDraft, _style: { length: BodiceLength }
     ],
     steps,
   };
-  return styleBodiceSteps(guide, draft, { seam, curve, edges, sleeve: !!sleeve });
+  return drapeBodiceSteps(styleBodiceSteps(guide, draft, { seam, curve, edges, sleeve: !!sleeve }), draft, { seam, curve, edges, sleeve: !!sleeve });
 }
 
 /** Cutting the sleeves, added to the cutting step. */
@@ -436,10 +437,15 @@ export function dressGuide(draft: DressDraft, style: { silhouette: Silhouette; l
     { title: 'Finish', text: 'Sew a hook and eye at the top of the zip, inside the neckline. Give the dress a final press.' },
   ];
 
-  return {
-    notions: top.notions.map((n) => (/invisible zip/.test(n) ? `${draft.zipCm} cm invisible zip` : n)),
-    steps,
-  };
+  return drapeDressSteps(
+    {
+      notions: top.notions.map((n) => (/invisible zip/.test(n) ? `${draft.zipCm} cm invisible zip` : n)),
+      steps,
+    },
+    top,
+    draft,
+    { seam, waist, curve, edges, slit, sleeve: !!finish.sleeve },
+  );
 }
 
 /** Cutting a dress's collar. */

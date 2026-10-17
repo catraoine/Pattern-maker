@@ -17,6 +17,7 @@ import {
   dropRange,
 } from '../engine/bodice';
 import { BODICE_GROUPS, BodiceChoices, DARTS_FOR_FIT } from '../garments';
+import { COWL_DEPTH } from '../engine/drape';
 import type { Side } from './ShapeSketch';
 
 interface Worn {
@@ -27,12 +28,14 @@ interface Worn {
   hemCentre: P;
   /** Dart fold lines, already mirrored, as an SVG path given the centre x. */
   darts: (cx: number) => string;
+  /** How many points of `pts` are the top edge, from the centre neck to the underarm. */
+  top: number;
 }
 
 const f = (q: P) => `${q.x.toFixed(2)} ${q.y.toFixed(2)}`;
 
 /** One half of the bodice as worn: the piece's top edge, then a straight side down to a level waist. */
-function worn(draft: BodiceDraft, side: Side): Worn {
+export function worn(draft: BodiceDraft, side: Side): Worn {
   const pc = blockOf(draft)[side === 'front' ? 0 : 1];
   const land = side === 'front' ? draft.front : draft.back;
   const { pts, tags } = pc.outline.taggedPoints(16);
@@ -72,7 +75,42 @@ function worn(draft: BodiceDraft, side: Side): Worn {
     });
   const darts = (cx: number) =>
     folds.flatMap(([a, b]) => ([1, -1] as const).map((s) => `M${f({ x: cx + s * a.x, y: a.y })} L${f({ x: cx + s * b.x, y: b.y })}`)).join(' ');
-  return { pts: out, widest, hemCentre: land.hemCentre, darts };
+  return { pts: out, widest, hemCentre: land.hemCentre, darts, top: top.length };
+}
+
+/**
+ * A draped bodice as worn, as an SVG path given the centre x, or undefined for the block's own: the
+ * one-shoulder's covered half, its bare half from under the arm and the top edge as drafted between;
+ * the cowl front's neckline hanging in a soft curve between the neck points.
+ */
+export function drapedOutline(draft: BodiceDraft, side: Side, w: Worn, cx: number): string | undefined {
+  const path = (pts: P[]) => pts.map((q, i) => `${i ? 'L' : 'M'}${f(q)}`).join(' ') + ' Z';
+  const near = (q: P) => w.pts.slice(0, w.top).reduce((b, r, i) => (Math.hypot(r.x - q.x, r.y - q.y) < Math.hypot(w.pts[b].x - q.x, w.pts[b].y - q.y) ? i : b), 0);
+  if (draft.drape?.kind === 'one_shoulder') {
+    // As worn, the wearer's left is on the right of the front and the left of the back, as each piece lies.
+    const k = side === 'front' ? 1 : -1;
+    const pc = draft.pieces[side === 'front' ? 0 : 1];
+    const { pts, tags } = pc.outline.taggedPoints(16);
+    const N = pts[0];
+    const edge = [...pts.filter((_, i) => tags[i] === 'neck' || (i > 0 && tags[i - 1] === 'neck')), N].map((q) => ({ x: cx + q.x, y: q.y }));
+    const covered = w.pts.slice(near({ x: Math.abs(N.x), y: N.y })).map((q) => ({ x: cx + k * q.x, y: q.y }));
+    const bare = w.pts.slice(w.top, -1).map((q) => ({ x: cx - k * q.x, y: q.y })).reverse();
+    return path([...covered, ...bare, ...edge.slice(0, -1)]);
+  }
+  if (draft.drape?.kind === 'cowl' && side === 'front') {
+    const pc = blockOf(draft)[0];
+    const { pts, tags } = pc.outline.taggedPoints(16);
+    const N = pts[tags.indexOf('shoulder')];
+    const Y = draft.neckBlock.front.neckY + (draft.drape.depthCm ?? COWL_DEPTH);
+    const hang = Array.from({ length: 15 }, (_, i) => {
+      const t = i / 14;
+      const c = { x: N.x * 0.55, y: Y };
+      return { x: 2 * t * (1 - t) * c.x + t * t * N.x, y: (1 - t) ** 2 * Y + 2 * t * (1 - t) * c.y + t * t * N.y };
+    });
+    const half = [...hang, ...w.pts.slice(near(N) + 1)];
+    return path([...half.map((q) => ({ x: cx + q.x, y: q.y })), ...half.map((q) => ({ x: cx - q.x, y: q.y })).reverse()]);
+  }
+  return undefined;
 }
 
 const FITS = Object.keys(BODICE_FIT_EASE) as BodiceFit[];
@@ -105,7 +143,7 @@ export function dragEase(c: BodiceChoices, ease: number): BodiceChoices {
 }
 
 /** How full each named neckline's curve is, so drawing only the back keeps the front's shape. */
-const FULLNESS: Record<Neckline, number> = { crew: 0.75, scoop: 0.6, v: 0, square: 1, boat: 0.6 };
+const FULLNESS: Record<Neckline, number> = { crew: 0.75, scoop: 0.6, v: 0, square: 1, boat: 0.6, one_shoulder: 0.75, cowl: 0.6 };
 
 /** The neckline as it stands, as a drawn one, so a stroke can change part of it. */
 export const currentNeck = (c: BodiceChoices): DrawnNeck => c.neck ?? { ...NECKLINES[c.neckline], fullness: FULLNESS[c.neckline] };
@@ -173,7 +211,7 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, onLive, o
   const k = (frame.bottom - frame.top) / 80; // handle and label size, in proportion to the sketch
   const right = w.pts.map((q) => ({ x: cx + q.x, y: q.y }));
   const left = w.pts.map((q) => ({ x: cx - q.x, y: q.y })).reverse();
-  const outline = [...right, ...left].map((q, i) => `${i ? 'L' : 'M'}${f(q)}`).join(' ') + ' Z';
+  const outline = drapedOutline(draft, side, w, cx) ?? [...right, ...left].map((q, i) => `${i ? 'L' : 'M'}${f(q)}`).join(' ') + ' Z';
 
   const toSvg = (e: PointerEvent): P => {
     const ctm = svg.current!.getScreenCTM()!.inverse();
@@ -267,7 +305,7 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, onLive, o
     );
   };
 
-  const zip = side === 'back' ? `M${f({ x: cx, y: draft.back.neckCentre.y })} L${f({ x: cx, y: draft.back.zipEnd.y })}` : '';
+  const zip = side === 'back' && draft.drape?.kind !== 'one_shoulder' ? `M${f({ x: cx, y: draft.back.neckCentre.y })} L${f({ x: cx, y: draft.back.zipEnd.y })}` : '';
 
   return (
     <svg

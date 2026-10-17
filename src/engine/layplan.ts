@@ -102,6 +102,16 @@ function profile(pts: P[]) {
   return { pts: s, cols, top, bottom };
 }
 
+/** A piece drafted off the grain (cut on the bias) turned so its grain line runs along the fabric. */
+function byGrain(pc: Piece, pts: P[]): P[] {
+  if (!pc.meta.layByGrain || !pc.grain) return pts;
+  const [a, b] = pc.grain;
+  const t = Math.atan2(b.x - a.x, b.y - a.y);
+  const c = Math.cos(t);
+  const s = Math.sin(t);
+  return pts.map((q) => p(q.x * c - q.y * s, q.x * s + q.y * c));
+}
+
 const flipX = (pts: P[]) => pts.map((q) => p(-q.x, q.y));
 const turn = (pts: P[]) => pts.map((q) => p(-q.x, -q.y));
 
@@ -122,11 +132,12 @@ export function layPlan(pieces: Piece[], width: FabricWidth, fabric: LayFabric =
   const mine = pieces.filter((pc) => fabricsOf(pc).includes(fabric));
   if (!mine.length) return undefined;
   const usable = width - 2 * SELVEDGE;
-  const cut = mine.map((pc) => ({ pc, pts: cutLine(pc), kind: kindOf(pc) }));
+  const cut = mine.map((pc) => ({ pc, pts: byGrain(pc, cutLine(pc)), kind: kindOf(pc) }));
   const wide = (pts: P[]) => Math.max(...pts.map((q) => q.x)) - Math.min(...pts.map((q) => q.x));
   // Folded unless something won't fit across half the width; then a single layer, with pieces on the
   // fold opened out to their full width and each of a pair cut separately.
-  const folded = cut.every(({ pts }) => wide(pts) <= usable / 2);
+  // A piece off the fold also keeps its gap from it.
+  const folded = cut.every(({ pts, kind }) => wide(pts) <= usable / 2 - (kind === 'fold' ? 0 : 2 * RES));
   const items: Item[] = cut.flatMap(({ pc, pts, kind }): Item[] => {
     if (folded) return [{ name: pc.name, pts, kind, atFold: kind === 'fold', single: kind === 'single' }];
     if (kind === 'fold') {

@@ -22,6 +22,7 @@ import { FabricCard } from '../ui/FabricCard';
 import type { EaseView } from '../engine/easeMap';
 import { FinishChoices } from '../ui/FinishChoices';
 import type { Finish } from '../App';
+import { isDraped } from '../engine/drape';
 
 interface Props {
   choices: DressChoices;
@@ -64,6 +65,8 @@ export function DressStyleScreen({ choices, onChoices, onGarment, values, draft,
   const chosen = sleeveOf(choices.bodice);
   const ease = BODICE_FIT_EASE[choices.fit];
   const extra = fabricEase(fabric, 'dress');
+  // A draped neckline is its own shaping: no princess seams, moved dart or collar.
+  const draped = isDraped(choices.bodice);
 
   const groups: Option[] = [
     { id: 'fit', label: 'Fit', options: GROUPS[0].options },
@@ -71,9 +74,9 @@ export function DressStyleScreen({ choices, onChoices, onGarment, values, draft,
       (g) =>
         g.id === 'neckline' ||
         g.id === 'darts' ||
-        g.id === 'princess' ||
-        (g.id === 'bustDart' && choices.bodice.darts !== 'none' && (choices.bodice.princess ?? 'none') === 'none') ||
-        g.id === 'collar' ||
+        (g.id === 'princess' && !draped) ||
+        (g.id === 'bustDart' && !draped && choices.bodice.darts !== 'none' && (choices.bodice.princess ?? 'none') === 'none') ||
+        (g.id === 'collar' && !draped) ||
         g.id === 'sleeve' ||
         (g.id === 'sleeveShape' && chosen.length !== 'none'),
     ).map((g) => ({
@@ -106,7 +109,7 @@ export function DressStyleScreen({ choices, onChoices, onGarment, values, draft,
     id === 'darts'
       ? DARTS_FOR_FIT[choices.fit].includes(opt as BodiceChoices['darts'])
       : id === 'sleeve'
-        ? opt === 'none' || arms
+        ? (opt === 'none' || arms) && detailAllowed(choices.bodice, 'sleeve', opt, 'dress')
         : id === 'sleeveShape'
           ? SHAPES_FOR_LENGTH[chosen.length].includes(opt as NonNullable<BodiceChoices['sleeveShape']>)
           : id === 'princess' || id === 'bustDart' || id === 'collar'
@@ -158,6 +161,13 @@ export function DressStyleScreen({ choices, onChoices, onGarment, values, draft,
                 </button>
               </p>
             )}
+            {g.id === 'neckline' && draped && (
+              <p className="muted small">
+                {choices.bodice.neckline === 'cowl'
+                  ? 'The bodice front is cut on the bias and falls in soft folds. It needs a fluid fabric.'
+                  : 'The shoulder is on your left. The dress is sleeveless, with a zip in the right side seam.'}
+              </p>
+            )}
             {g.id === 'darts' && choices.fit !== 'relaxed' && (
               <p className="muted small">{choices.fit === 'fitted' ? 'A fitted dress needs bust and waist darts.' : 'Choose a relaxed fit to go without waist darts.'}</p>
             )}
@@ -166,7 +176,8 @@ export function DressStyleScreen({ choices, onChoices, onGarment, values, draft,
         <p className="eyebrow">Inside the dress</p>
         <FinishChoices garment="dress" finish={finish} onFinish={onFinish} sleeved={sleeveOf(choices.bodice).length !== 'none'} />
         <p className="muted small">
-          The skirt is drafted to the bodice: the waist seams are the same length, and the darts meet at the seam in one line. One zip opens the centre back from the neck to below the waist.
+          The skirt is drafted to the bodice: the waist seams are the same length, and the darts meet at the seam in one line.{' '}
+          {draft?.zipSide ? 'One zip opens the right side seam from under the arm to below the waist.' : 'One zip opens the centre back from the neck to below the waist.'}
         </p>
       </section>
 

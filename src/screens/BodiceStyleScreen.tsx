@@ -19,6 +19,7 @@ import { useShake } from '../ui/shake';
 import type { Finish } from '../App';
 import { MyFabric, bodiceFabrics, fabricEase } from '../engine/fabrics';
 import { FabricCard } from '../ui/FabricCard';
+import { isDraped } from '../engine/drape';
 
 import { EaseMapView } from '../ui/EaseMapView';
 import type { EaseView } from '../engine/easeMap';
@@ -54,7 +55,7 @@ export const bodiceFabricMetres = (draft: BodiceDraft, sleeve?: SleeveDraft) => 
 /** Bias binding for the neck and armholes; with sleeves, for the neck, or for the armhole seams of a lined bodice.
  * Some to spare for joins. */
 export const bindingMetres = (draft: BodiceDraft, binds: { neck: boolean; armholes: boolean } = { neck: true, armholes: true }) =>
-  toMetres((binds.neck ? draft.neck : 0) + (binds.armholes ? 2 * draft.armhole : 0) + 20);
+  toMetres((binds.neck ? draft.neck : 0) + (binds.armholes ? (draft.drape?.kind === 'one_shoulder' ? 1 : 2) * draft.armhole : 0) + 20);
 
 /** The engine's warnings are written for the pattern cutter; this turns the common ones into a nudge. */
 function friendly(w: string) {
@@ -63,7 +64,7 @@ function friendly(w: string) {
   return 'Something in your measurements looks unusual. Please double-check them.';
 }
 
-const NECK_NAMES: Record<BodiceChoices['neckline'], string> = { crew: 'crew neck', scoop: 'scoop neck', v: 'V-neck', square: 'square neck', boat: 'boat neck' };
+const NECK_NAMES: Record<BodiceChoices['neckline'], string> = { crew: 'crew neck', scoop: 'scoop neck', v: 'V-neck', square: 'square neck', boat: 'boat neck', one_shoulder: 'one-shoulder neckline', cowl: 'cowl neck' };
 
 const UNDO_LIMIT = 40;
 
@@ -91,11 +92,15 @@ export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft
   const arms = !needsArms(values);
   const chosen = sleeveOf(choices);
   const flat = useMemo(() => (draft ? bodiceFlat(draft, 'binding', sleeve) : undefined), [draft, sleeve]);
-  const detail = { bustDart: choices.bustDart ?? 'side', princess: choices.princess ?? 'none', closure: choices.closure ?? 'back_zip', collar: choices.collar ?? 'none' };
+  const detail = { bustDart: choices.bustDart ?? 'side', princess: choices.princess ?? 'none', closure: choices.closure ?? 'back_zip', collar: choices.collar ?? 'none', peplum: choices.peplum ?? 'none' };
+  // A draped neckline is its own shaping: the dart, seam, opening and collar choices step aside.
+  const draped = isDraped(choices);
   const valueOf = (id: (typeof BODICE_GROUPS)[number]['id']) =>
     id === 'sleeveShape' ? chosen.shape : id === 'sleeve' ? chosen.length : id in detail ? detail[id as keyof typeof detail] : choices[id];
   const shown = (id: string) =>
-    (id !== 'sleeveShape' || chosen.length !== 'none') && (id !== 'bustDart' || (choices.darts !== 'none' && detail.princess === 'none'));
+    (id !== 'sleeveShape' || chosen.length !== 'none') &&
+    (id !== 'bustDart' || (choices.darts !== 'none' && detail.princess === 'none')) &&
+    !(draped && (id === 'princess' || id === 'bustDart' || id === 'closure' || id === 'collar'));
 
   const allowed = (id: string, opt: string) =>
     id === 'darts'
@@ -103,10 +108,10 @@ export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft
       : id === 'length'
         ? hip || !needsHip(opt as BodiceChoices['length'])
         : id === 'sleeve'
-          ? opt === 'none' || arms
+          ? (opt === 'none' || arms) && detailAllowed(choices, 'sleeve', opt)
           : id === 'sleeveShape'
             ? SHAPES_FOR_LENGTH[chosen.length].includes(opt as NonNullable<BodiceChoices['sleeveShape']>)
-            : id === 'princess' || id === 'bustDart' || id === 'closure' || id === 'collar'
+            : id === 'princess' || id === 'bustDart' || id === 'closure' || id === 'collar' || id === 'peplum'
               ? detailAllowed(choices, id, opt)
               : true;
 
@@ -198,6 +203,15 @@ export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft
                 </button>
               </p>
             )}
+            {g.id === 'neckline' && draped && (
+              <p className="muted small">
+                {choices.neckline === 'cowl'
+                  ? 'The front is cut on the bias and falls in soft folds. It needs a fluid fabric. No collar or princess seams.'
+                  : 'The shoulder is on your left, and a zip goes in the right side seam. No collar or princess seams.'}
+              </p>
+            )}
+            {g.id === 'sleeve' && !choices.neck && choices.neckline === 'one_shoulder' && <p className="muted small">A one-shoulder bodice is sleeveless.</p>}
+            {g.id === 'peplum' && (choices.length !== 'waist' || (choices.dropCm !== undefined && choices.dropCm >= 3)) && <p className="muted small">A peplum sits on a waist-length bodice.</p>}
             {g.id === 'princess' && choices.darts !== 'bust_waist' && <p className="muted small">Princess seams carry the bust and waist darts, so they need both.</p>}
             {g.id === 'collar' && choices.neck && <p className="muted small">Collars sit on the named necklines, not a drawn one.</p>}
             {g.id === 'collar' && !choices.neck && choices.neckline !== 'crew' && <p className="muted small">Collars sit on a crew neck (a Peter Pan on a scoop neck too).</p>}
@@ -210,11 +224,16 @@ export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft
         <p className="eyebrow">Inside the bodice</p>
         <FinishChoices garment="bodice" finish={finish} onFinish={onFinish} sleeved={chosen.length !== 'none'} />
         <p className="muted small">
-          {detail.closure === 'front_buttons' ? `Buttons down the centre front${draft?.buttons ? ` (${draft.buttons.count})` : ''}, with front facings.` : 'With a centre back zip.'}{' '}
+          {detail.closure === 'front_buttons'
+            ? `Buttons down the centre front${draft?.buttons ? ` (${draft.buttons.count})` : ''}, with front facings.`
+            : draft?.drape?.kind === 'one_shoulder'
+              ? 'With a zip in the right side seam.'
+              : 'With a centre back zip.'}{' '}
           {chosen.length === 'none'
             ? 'Sleeveless.'
             : 'The sleeves are drafted to fit your armholes, with their ease set where a tailor sets it.'}
-          {detail.princess !== 'none' || detail.bustDart !== 'side' ? ' The shaping is moved the way a pattern cutter does it: the garment sews up to exactly the same fit.' : ''}
+          {draft?.peplum ? ` A ${draft.peplum.kind} peplum, ${draft.peplum.depthCm} cm deep.` : ''}
+          {!draped && (detail.princess !== 'none' || detail.bustDart !== 'side') ? ' The shaping is moved the way a pattern cutter does it: the garment sews up to exactly the same fit.' : ''}
         </p>
       </section>
 

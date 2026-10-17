@@ -7,6 +7,7 @@ import type { SpecRow } from './techpack';
 import type { SleeveDraft, SleeveMeasurements } from './sleeve';
 import type { DressDraft, DressMeasurements } from './dress';
 import { TROUSER_EASE, type TrousersDraft, type TrousersMeasurements } from './trousers';
+import { drapeSpec } from './drape';
 
 const r1 = (v: number) => Math.round(v * 10) / 10;
 const row = (label: string, body: number | undefined, finished: number): SpecRow =>
@@ -41,7 +42,8 @@ export function bodiceSpec(m: BodiceMeasurements, d: BodiceDraft, length: Bodice
     row('Armhole', m.armscye, d.armhole),
     row('Shoulder seam (back)', m.shoulder_length, d.shoulder.back),
     { label: 'Shoulder angle, front / back', finished: `${d.shoulderSlope.front} / ${d.shoulderSlope.back} degrees` },
-    { label: 'Invisible zip, centre back', finished: `${d.zipCm}` },
+    ...drapeSpec(d),
+    { label: d.drape?.kind === 'one_shoulder' ? 'Invisible zip, right side' : 'Invisible zip, centre back', finished: `${d.zipCm}` },
   );
   return rows;
 }
@@ -66,7 +68,7 @@ export function dressSpec(m: DressMeasurements, d: DressDraft, sleeve?: SleeveDr
     ...skirtSpec(m, d.skirt).filter((r) => r.label !== 'Waist' && !zip.test(r.label) && !/Waistband/.test(r.label)),
     row('Length, nape to hem', undefined, d.lengthCm),
     ...(sleeve ? sleeveSpec(m, sleeve) : []),
-    { label: 'Invisible zip, centre back', finished: `${d.zipCm}` },
+    { label: d.zipSide ? 'Invisible zip, right side' : 'Invisible zip, centre back', finished: `${d.zipCm}` },
   ];
 }
 

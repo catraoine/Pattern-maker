@@ -13,6 +13,7 @@ import { DraftError, Side, cm } from './skirt';
 import type { DartPlace, PrincessLine } from './manipulate';
 import { moveFrontDart, princessPieces } from './shaping';
 import { Buttons, Closure, Collar, EXTENSION_CM, backNeckFacing, backOnFold, buttonPlaces, collarPieces, frontFacing, openFront } from './collar';
+import { DrapeInfo, Peplum, PeplumInfo, drapeBodice, drapeStyle } from './drape';
 
 export interface BodiceMeasurements {
   full_bust: number;
@@ -39,7 +40,8 @@ export interface BodiceMeasurements {
 }
 
 export type BodiceFit = 'fitted' | 'regular' | 'relaxed';
-export type Neckline = 'crew' | 'scoop' | 'v' | 'square' | 'boat';
+/** The draped necklines (one-shoulder, cowl) are drafted as whole pieces in drape.ts. */
+export type Neckline = 'crew' | 'scoop' | 'v' | 'square' | 'boat' | 'one_shoulder' | 'cowl';
 export type BodiceLength = 'waist' | 'high_hip' | 'hip';
 /** Shaping: bust and waist darts, bust darts only, or none (the bust dart left as ease at the hem). */
 export type BodiceDarts = 'bust_waist' | 'bust' | 'none';
@@ -79,6 +81,8 @@ export interface BodiceStyle {
   /** Shoulder pads drafted in (a jacket or coat): each shoulder point raised by this many cm, the
    * underarm left where it is, so the armhole grows by about as much. */
   shoulderPad?: number;
+  /** A peplum sewn to the waist seam of a waist-length bodice. Older saves have none. */
+  peplum?: Peplum;
 }
 
 /**
@@ -111,6 +115,10 @@ export const NECKLINES: Record<Neckline, { frontDepth: number; width: number; ba
   v: { frontDepth: 14, width: 2, backDepth: 1 },
   square: { frontDepth: 10, width: 4, backDepth: 1.5 },
   boat: { frontDepth: 2, width: 7, backDepth: 1.5 },
+  // The draped necklines start from the block's neck point moved 3 cm along the shoulder: the
+  // one-shoulder's strap, and the cowl's top edge (see drape.ts). The front neck itself is replaced.
+  one_shoulder: { frontDepth: 1, width: 3, backDepth: 0 },
+  cowl: { frontDepth: 1, width: 3, backDepth: 1.5 },
 };
 
 /** Hip ease (cm) for tops that reach below the waist, from the same fit options. */
@@ -207,6 +215,10 @@ export interface BodiceDraft {
   collar: Collar;
   /** Where the buttons go on a button front. */
   buttons?: Buttons;
+  /** A one-shoulder or cowl neckline: the front (and a one-shoulder's back) cut as whole pieces. */
+  drape?: DrapeInfo;
+  /** A peplum at the waist seam, its pieces after the bodice's. */
+  peplum?: PeplumInfo;
 }
 
 /** The front and back as drafted: the shape the bodice sews up to, whatever its seams. */
@@ -310,8 +322,9 @@ function waistRun(path: Path, y: (x: number) => number, toX: number) {
 /** Draft the block, choosing the armhole depth that makes the armhole the person's armhole
  * measurement plus ease (falls back to a size-table depth without it). */
 export function draftBodice(m: BodiceMeasurements, style: Partial<BodiceStyle> = {}): BodiceDraft {
-  const s = { ...DEFAULT_BODICE_STYLE, ...style };
-  return finish(shape(draftBlock(m, s), s), s);
+  // A draped neckline allows no moved dart, princess seams, collar or button front (see drape.ts).
+  const s = drapeStyle({ ...DEFAULT_BODICE_STYLE, ...style });
+  return drapeBodice(finish(shape(draftBlock(m, s), s), s), s, m, (st) => draftBlock(m, st));
 }
 
 /** A button front (the back then on the fold) and a collar, both made on the bodice as sewn. */
