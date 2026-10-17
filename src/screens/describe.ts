@@ -5,7 +5,9 @@ import { describe as describeSkirt } from './StyleScreen';
 export function describePattern(c: PatternChoices) {
   if (isDress(c)) {
     const skirt = describeSkirt(c.skirt);
-    return `${/skirt/.test(skirt) ? skirt.replace('skirt', 'dress') : `${skirt} dress`} with ${bodiceDetails(c.bodice)}`;
+    const dress = /skirt/.test(skirt) ? skirt.replace('skirt', 'dress') : `${skirt} dress`;
+    // "Knee a-line dress with knife pleats, a scoop neck and short sleeves".
+    return `${dress}${/ with /.test(dress) ? ',' : ' with'} ${bodiceDetails(c.bodice)}`;
   }
   if (isTrousers(c)) return describeTrousers(c);
   if (isOuter(c)) return describeOuter(c);

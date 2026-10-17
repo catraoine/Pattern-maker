@@ -20,6 +20,7 @@ import { ERAS, findLook } from '../engine/eras';
 import { shapeLine } from '../photo/shape';
 import { MyFabric, fabricEase, skirtFabrics } from '../engine/fabrics';
 import { FabricCard } from '../ui/FabricCard';
+import { GODET_OPTIONS, VOLUME_OPTIONS, layoutExtras, setVolume, volumeAllowed, volumeOf, volumeWords } from '../engine/skirtVolume';
 
 import { EaseMapView } from '../ui/EaseMapView';
 import type { EaseView } from '../engine/easeMap';
@@ -72,11 +73,13 @@ export function currentLook(c: Choices) {
 
 export function describe(c: Choices) {
   const look = currentLook(c);
-  if (look) return look.name;
-  if (c.shape) return `Skirt matched to a photo${isShaped(c.hem) ? ', with a shaped hem' : ''}`;
+  // Pleats, godets, a flounce or tiers: "with knife pleats". A drawn hem gives way to them.
+  const words = volumeWords(c);
+  if (look) return `${look.name}${words ? ` ${words}` : ''}`;
+  if (c.shape) return `Skirt matched to a photo${words ? ` ${words}` : isShaped(c.hem) ? ', with a shaped hem' : ''}`;
   const len = c.lengthCm !== undefined ? `${Math.round(c.lengthCm)} cm` : GROUPS[2].options.find((o) => o[0] === c.length)![1];
   const sil = GROUPS[1].options.find((o) => o[0] === c.silhouette)![1];
-  return `${len} ${sil.toLowerCase()} skirt${isShaped(c.hem) ? ' with a shaped hem' : ''}`;
+  return `${len} ${sil.toLowerCase()} skirt${words ? ` ${words}` : isShaped(c.hem) ? ' with a shaped hem' : ''}`;
 }
 
 const UNDO_LIMIT = 40;
@@ -84,11 +87,11 @@ const UNDO_LIMIT = 40;
 /** Fabric needed on 140 cm wide fabric, from the cutting layout of the pieces and the waistband. A
  * rough estimate where the pieces are too wide to lay out. */
 export function fabricMetres(draft: SkirtDraft): number {
-  const lay = layPlan([...draft.pieces, waistbandPiece(draft, 1.5)], 140);
+  const lay = layPlan([...draft.pieces, ...layoutExtras(draft), waistbandPiece(draft, 1.5)], 140);
   if (lay) return lay.metres;
   const { cutLength, cutWidth } = draft.waistband;
   const band = cutLength <= BAND_ACROSS_MAX ? cutWidth : cutLength;
-  return toMetres(piecesLengthCm(draft.pieces) + band + 15);
+  return toMetres(piecesLengthCm([...draft.pieces, ...layoutExtras(draft)]) + band + 15);
 }
 
 export function StyleScreen({ choices, onChoices, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, onPhoto, onGarment, finish, onFinish, easeMap, fabric }: Props) {
@@ -208,6 +211,37 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
             </div>
           </fieldset>
         ))}
+        <fieldset className="group">
+          <legend>Details</legend>
+          <div className="chips">
+            {VOLUME_OPTIONS.map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                className={volumeOf(choices) === id ? 'chip on' : 'chip'}
+                aria-pressed={volumeOf(choices) === id}
+                disabled={!volumeAllowed(choices, id)}
+                onClick={() => change(setVolume(choices, id))}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {volumeOf(choices) === 'godets' && (
+            <div className="chips">
+              {GODET_OPTIONS.map(([n, label]) => (
+                <button key={n} type="button" className={choices.godets === n ? 'chip on' : 'chip'} aria-pressed={choices.godets === n} onClick={() => change(setVolume(choices, 'godets', n))}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+          {!volumeAllowed(choices, 'knife') ? (
+            <p className="muted small">Pleats, godets, flounces and tiers go on a pencil, straight or A-line skirt.</p>
+          ) : !volumeAllowed(choices, 'godets') ? (
+            <p className="muted small">Godets and tiers need a skirt to the knee or longer.</p>
+          ) : null}
+        </fieldset>
         {choices.shape && (
           <div className="msg small">
             <p>Matched to your photo. {shapeLine(choices.shape)}</p>
@@ -273,9 +307,12 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
                   Straighten hem
                 </button>
               )}
-              <button type="button" className={drawing ? 'ghost on' : 'ghost'} aria-pressed={drawing} onClick={() => setDrawing(!drawing)}>
-                {drawing ? 'Done' : 'Draw hem'}
-              </button>
+              {/* Pleats, godets and flounces are drafted on a level hem. */}
+              {volumeOf(choices) === 'none' && (
+                <button type="button" className={drawing ? 'ghost on' : 'ghost'} aria-pressed={drawing} onClick={() => setDrawing(!drawing)}>
+                  {drawing ? 'Done' : 'Draw hem'}
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -358,6 +395,11 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
                 Waistband: cut 1, {draft.waistband.cutLength} × {draft.waistband.cutWidth} cm
               </li>
             )}
+            {draft?.volume?.tiers?.bands.map((b) => (
+              <li key={b.name}>
+                {b.name}: cut {b.panels}, {b.cutLength} × {b.cutWidth} cm
+              </li>
+            ))}
           </ul>
         </div>
         {draft && (

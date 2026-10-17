@@ -286,16 +286,26 @@ function skirtViews(d: SkirtDraft, opts: { slit?: boolean; band: boolean; zipCm?
     let lines: FlatView['lines'] = [];
     let waist: P[];
     let hemY: number;
+    let seamY: number | undefined;
     if (d.circleShare) {
       const c = circleHalf(d, back);
       ({ shapes, lines, waist } = c);
       hemY = d.lengthCm;
     } else {
-      const h = sewn(d.pieces[i]);
+      // Pleats are drawn on the skirt as it hangs; knife and box pleats take the darts' place.
+      const pleated = !!(d.volume?.pleats || d.volume?.inverted) && !!d.block;
+      const h = sewn((pleated ? d.block! : d.pieces)[i]);
       shapes = [whole(h.run)];
       waist = along(h, ['waist', 'dart'])[0] ?? [h.run[0]];
-      lines = h.darts.flatMap((dt) => both(dt).map((pts) => ({ pts, kind: 'dart' as const })));
+      lines = d.volume?.pleats ? [] : h.darts.flatMap((dt) => both(dt).map((pts) => ({ pts, kind: 'dart' as const })));
       hemY = h.run[h.run.length - 1].y;
+      if (d.volume) {
+        const v = volumeFlat(d, i, h, hemY);
+        shapes.push(...v.shapes);
+        lines.push(...v.lines);
+        hemY = v.hemY;
+        seamY = v.seamTo ?? hemY;
+      }
     }
     // The waistband sits above the waist, as wide as it.
     if (opts.band) shapes.push(whole([...waist, ...[...waist].reverse().map((q) => p(q.x, q.y - WAISTBAND_CM))]));
@@ -306,11 +316,94 @@ function skirtViews(d: SkirtDraft, opts: { slit?: boolean; band: boolean; zipCm?
         const top = hemY - 15;
         lines.push({ pts: [p(0, from), p(0, top)], kind: 'seam' });
         lines.push({ pts: [p(0, top), p(-0.5, hemY)], kind: 'seam' }, { pts: [p(0, top), p(0.5, hemY)], kind: 'seam' });
-      } else lines.push({ pts: [p(0, from), p(0, hemY)], kind: 'seam' });
+      } else lines.push({ pts: [p(0, from), p(0, seamY ?? hemY)], kind: 'seam' });
       if (opts.zipCm) lines.push(...zip(cbTop, opts.zipCm));
     }
     return { label, shapes, lines, waistY: cbTop };
   });
+}
+
+/**
+ * The skirt's pleats, godets, flounce or tiers on its flat, over the half as sewn: pleat folds stitched
+ * down to the hip, godets opening out below their points, a flounce rippling out below its seam, and
+ * tiers widening down from the yoke with their gathers. Where the centre back seam stops, when it stops
+ * short of the hem (tiers are rings).
+ */
+function volumeFlat(d: SkirtDraft, i: number, h: Half, hemY: number): { shapes: P[][]; lines: FlatView['lines']; hemY: number; seamTo?: number } {
+  const v = d.volume!;
+  const shapes: P[][] = [];
+  const lines: FlatView['lines'] = [];
+  const add2 = (pts: P[], kind: FlatLineKind) => lines.push(...both(pts).map((q) => ({ pts: q, kind })));
+  if (v.pleats) {
+    for (const f of v.folds?.[i] ?? []) {
+      add2([h.move(f.top), h.move(f.hip)], 'stitch');
+      add2([h.move(f.hip), h.move(f.hem)], 'seam');
+    }
+    return { shapes, lines, hemY };
+  }
+  if (v.inverted) {
+    const hip = d.block![0].balance?.[0]?.pts[0].y ?? hemY / 3;
+    const top = i === 0 ? h.run[0].y : (v.inverted.backFrom ?? hemY) + h.run[0].y;
+    if (i === 0) {
+      lines.push({ pts: [p(0, hip), p(0, hemY)], kind: 'seam' });
+      add2([p(0.5, top), p(0.5, hip)], 'stitch');
+    } else if (v.inverted.backFrom !== undefined) add2([p(0, top), p(1.5, top - 0.8)], 'stitch');
+    return { shapes, lines, hemY };
+  }
+  if (v.godets) {
+    const w = v.godets.hemWidth * 0.3;
+    const slashes = v.slashes?.[i] ?? [];
+    slashes.forEach(([top, hem], k) => {
+      const a = h.move(top);
+      const b = h.move(hem);
+      // A godet in the side seam (the last, when there are side godets) swings the silhouette out; one
+      // in a slash opens a V below its point.
+      if (v.godets!.inSeams && k === slashes.length - 1) {
+        const out = [a, b, p(b.x + w, b.y - 0.3)];
+        shapes.push(out, mirror(out));
+      } else {
+        add2([a, p(b.x - w / 2, b.y)], 'seam');
+        add2([a, p(b.x + w / 2, b.y)], 'seam');
+      }
+    });
+    return { shapes, lines, hemY };
+  }
+  const tag = v.flounce ? 'flounce' : 'tier';
+  const join = along(h, tag)[0];
+  if (!join) return { shapes, lines, hemY };
+  const [side, centre] = [join[0], join[join.length - 1]];
+  if (v.flounce) {
+    const D = v.flounce.depth;
+    const out = D * 0.6;
+    const folds = 3;
+    const per = 8;
+    const W = side.x + out;
+    const hem: P[] = [];
+    for (let k = 0; k <= folds * per; k++) {
+      const t = k / (folds * per);
+      hem.push(p(W * (1 - t), lerp(p(0, side.y + D), p(0, centre.y + D), t).y + 1 * Math.cos(t * folds * 2 * Math.PI)));
+    }
+    shapes.push(whole([...[...join].reverse(), ...hem]));
+    for (let f = 0; f < folds; f++) {
+      const at = hem[f * per + per / 2];
+      add2([p((side.x * at.x) / W, lerp(centre, side, at.x / W).y + 1), p(at.x, at.y - 0.4)], 'seam');
+    }
+    return { shapes, lines, hemY: hem[hem.length - 1].y };
+  }
+  // Tiers: each a little wider than the one above, gathered into the seam.
+  let top = { left: centre.y, right: side };
+  for (const b of v.tiers?.bands ?? []) {
+    const right = p(top.right.x + b.depth * 0.22, top.right.y + b.depth);
+    const left = top.left + b.depth;
+    shapes.push(whole([p(0, top.left), top.right, right, p(0, left)]));
+    for (let k = 1; k <= 6; k++) {
+      const x = (top.right.x * k) / 7;
+      const y = top.left + (top.right.y - top.left) * (k / 7);
+      add2([p(x, y + 0.4), p(x + 0.1, y + 1.8)], 'seam');
+    }
+    top = { left, right };
+  }
+  return { shapes, lines, hemY: top.left, seamTo: centre.y };
 }
 
 /** A quadratic curve from `a` to `b`, pulled toward `c`. */

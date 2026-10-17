@@ -22,7 +22,8 @@ interface Worn {
  * fall into folds, so they get a drawn bell shape, with any drawn hem shape applied to it.
  */
 function worn(draft: SkirtDraft, side: Side): Worn {
-  const pc = draft.pieces[side === 'front' ? 0 : 1];
+  // Pleats, godets or a flounce: the skirt as it hangs, before they were drafted in.
+  const pc = (draft.block ?? draft.pieces)[side === 'front' ? 0 : 1];
   if (draft.circleShare) {
     const offs = draft.hem?.[side] ?? flatHem();
     const wh = draft.finishedWaist / 4;

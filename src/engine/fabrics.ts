@@ -7,6 +7,7 @@ import type { BodiceDarts, BodiceFit, BodiceFitting, BodiceLength, Neckline } fr
 import type { Leg } from './trousers';
 import type { Cloth } from './couture';
 import type { SewingGuide } from './instructions';
+import { VolumeStyle, volumeFabrics, volumeWarnings, volumeWords } from './skirtVolume';
 
 export type Weight = 'light' | 'medium' | 'heavy';
 export type Drape = 'crisp' | 'soft' | 'fluid';
@@ -180,7 +181,7 @@ const SKIRT_LINING = pick('Lining: Bemberg (cupro) or acetate', ['light'], 'flui
 const BODICE_LINING = pick('Lining: cotton lawn or Bemberg (cupro)', ['light'], 'soft', 'Breathes and slides on easily.');
 
 /** Fabrics for a skirt style. */
-export function skirtFabrics(style: { fit?: Fit; silhouette: Silhouette; length: Length }): FabricAdvice {
+export function skirtFabrics(style: { fit?: Fit; silhouette: Silhouette; length: Length } & Partial<VolumeStyle>): FabricAdvice {
   const base = SKIRT[style.silhouette];
   const full = style.silhouette === 'half_circle' || style.silhouette === 'circle';
   const note =
@@ -191,13 +192,14 @@ export function skirtFabrics(style: { fit?: Fit; silhouette: Silhouette; length:
         : style.length === 'maxi' && full
           ? 'A maxi circle takes a lot of fabric: choose the lightest weight you like.'
           : undefined;
-  return {
+  // Pleats, godets, a flounce or tiers ask for their own kind of cloth.
+  return volumeFabrics(style, {
     style: `a ${LENGTH_WORDS[style.length]} ${SILHOUETTE_WORDS[style.silhouette]}`.replace('a above', 'an above'),
     picks: base.picks,
     avoid: `${base.avoid} ${STRETCH}`,
     note,
     lining: SKIRT_LINING,
-  };
+  }, STRETCH);
 }
 
 const BODICE: Record<BodiceFit, { picks: FabricPick[]; avoid: string }> = {
@@ -323,13 +325,15 @@ export function outerFabrics(style: { garment: 'jacket' | 'coat'; fit: BodiceFit
 }
 
 /** Fabrics for a dress: the skirt's suggestions that also suit the bodice come first. */
-export function dressFabrics(style: { fit: BodiceFit; neckline: Neckline; silhouette: Silhouette; length: Length }): FabricAdvice {
+export function dressFabrics(style: { fit: BodiceFit; neckline: Neckline; silhouette: Silhouette; length: Length } & Partial<VolumeStyle>): FabricAdvice {
   const skirt = skirtFabrics(style);
   const bodice = bodiceFabrics({ fit: style.fit, neckline: style.neckline });
   const both = skirt.picks.filter((p) => bodice.picks.some((b) => b.drape === p.drape && b.weight[0] === p.weight[0]));
   const rest = [...skirt.picks, ...bodice.picks].filter((p, i, all) => !both.includes(p) && all.findIndex((q) => q.name === p.name) === i);
+  const words = volumeWords(style);
+  const plain = words ? skirt.style.replace(` ${words}`, '') : skirt.style;
   return {
-    style: `a dress with ${skirt.style}${/skirt$/.test(skirt.style) ? '' : ' skirt'}`,
+    style: `a dress with ${plain}${/skirt$/.test(plain) ? '' : ' skirt'}${words ? ` ${words}` : ''}`,
     picks: [...both, ...rest].slice(0, 3),
     // Both halves warn about fluid cloth for most styles; say it once.
     avoid: /fluid/i.test(skirt.avoid) && /fluid/i.test(bodice.avoid) ? bodice.avoid : `${bodice.avoid.replace(` ${STRETCH}`, '')} ${skirt.avoid}`,
@@ -350,9 +354,9 @@ export interface FabricNote {
 }
 
 export type FabricStyle =
-  | { garment: 'skirt'; silhouette: Silhouette; length: Length }
+  | ({ garment: 'skirt'; silhouette: Silhouette; length: Length } & Partial<VolumeStyle>)
   | { garment: 'bodice'; fit: BodiceFit; neckline: Neckline }
-  | { garment: 'dress'; fit: BodiceFit; neckline: Neckline; silhouette: Silhouette; length: Length }
+  | ({ garment: 'dress'; fit: BodiceFit; neckline: Neckline; silhouette: Silhouette; length: Length } & Partial<VolumeStyle>)
   | { garment: 'trousers'; fit: Fit; leg: Leg }
   | { garment: 'jacket' | 'coat'; fit: BodiceFit };
 
@@ -402,6 +406,7 @@ function styleWarnings(style: FabricStyle, { weight, drape }: MyFabric): string[
     if (drape === 'crisp' && weight === 'heavy' && (s === 'trumpet' || s === 'half_circle' || s === 'circle')) out.push('A heavy, crisp fabric makes the flare stand out stiffly. A softer one swings better.');
     else if (weight === 'heavy' && (s === 'half_circle' || s === 'circle')) out.push('Heavy fabric drags on the bias of a circle. Hang the skirt for two days before you hem it.');
     else if (drape === 'crisp' && s === 'trumpet') out.push('A crisp fabric makes the trumpet flare stand out. A soft or fluid one flutes better.');
+    out.push(...volumeWarnings(style, { weight, drape }));
   }
   if (style.garment === 'bodice' || style.garment === 'dress') {
     if (drape === 'fluid' && style.fit !== 'relaxed') out.push('A fluid fabric puckers at the darts and will not hold a fitted bodice. Underline it with cotton batiste, or choose a relaxed fit.');

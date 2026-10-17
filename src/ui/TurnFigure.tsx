@@ -76,7 +76,7 @@ function buildModel(draft: SkirtDraft, m: SkirtMeasurements): Model {
   } else {
     // Read the skirt's width from the pieces down to where the side seams end; below that a shaped
     // hem carries on at the same width.
-    const outlines = draft.pieces.map((pc) => pc.outline.taggedPoints(16));
+    const outlines = (draft.block ?? draft.pieces).slice(0, 2).map((pc) => pc.outline.taggedPoints(16));
     const sideEnd = Math.min(...outlines.map(({ pts, tags }) => pts[tags.indexOf('hem')].y)) - 0.2;
     const [front, back] = outlines.map((o) => o.pts);
     const table = Array.from({ length: Math.floor(sideEnd) + 1 }, (_, y) => (2 * (widthAt(front, y) + widthAt(back, y))) / perim(SKIRT_DEPTH));

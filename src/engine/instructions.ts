@@ -9,6 +9,7 @@ import { SEAM_WIDTHS, SeamWidths } from './allowances';
 import type { Piece } from './piece';
 import type { DiagramId } from './diagrams';
 import { placeWords, styleBodiceSteps } from './styleSteps';
+import { VolumeStyle, needsNoSlit, volumeSteps } from './skirtVolume';
 
 // Widest strip that fits across 140 cm fabric, leaving room for the selvedges.
 export const BAND_ACROSS_MAX = 135;
@@ -53,8 +54,10 @@ export interface BodiceFinish {
   sleeve?: SleeveDraft;
 }
 
-/** A pencil skirt, or a straight one below the knee, needs a walking slit at the centre back. */
-export function hasSlit(style: { silhouette: string; length: string }): boolean {
+/** A pencil skirt, or a straight one below the knee, needs a walking slit at the centre back, unless
+ * pleats, godets, a flounce or tiers give the room to walk. */
+export function hasSlit(style: { silhouette: string; length: string } & Partial<Pick<VolumeStyle, 'pleats' | 'godets' | 'flounce'>>): boolean {
+  if (needsNoSlit(style as VolumeStyle)) return false;
   return style.silhouette === 'pencil' || (style.silhouette === 'straight' && (style.length === 'midi' || style.length === 'maxi'));
 }
 
@@ -65,7 +68,7 @@ function oneSide(pc: Piece, also: string): string {
   return ` Then trim the pieces for your ${side} side (as you wear it) ${also ? `${also} ` : ''}along the line marked ${pc.alternate.label}, and chalk an R or L on the wrong side of each so the two sides don't get swapped.`;
 }
 
-export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; length: Length }, fabricM: number, finish: SkirtFinish = {}): SewingGuide {
+export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; length: Length } & Partial<VolumeStyle>, fabricM: number, finish: SkirtFinish = {}): SewingGuide {
   const { front, back } = draft.dartsPerSide;
   const sw = finish.seams ?? SEAM_WIDTHS.home;
   const seam = n1(sw.seam);
@@ -185,7 +188,8 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
       '0.3 m lightweight fusible interfacing',
       'Matching thread',
     ],
-    steps,
+    // Pleats, godets, a flounce or tiers, sewn in at the right moment.
+    steps: volumeSteps(steps, draft, { seam, waist, hem: finish.hem ?? 4 }),
   };
 }
 
@@ -371,14 +375,15 @@ function sleeveCutWords(sleeve: SleeveDraft | undefined): string {
  * sewn. Darts first, then bodice and skirt joined at the waist while they are still flat, the zip
  * across the waist seam, and the side seams sewn in one from the underarm to the hem.
  */
-export function dressGuide(draft: DressDraft, style: { silhouette: Silhouette; length: Length }, fabricM: number, bindingM: number, finish: BodiceFinish = {}): SewingGuide {
+export function dressGuide(draft: DressDraft, style: { silhouette: Silhouette; length: Length } & Partial<VolumeStyle>, fabricM: number, bindingM: number, finish: BodiceFinish = {}): SewingGuide {
   const sw = finish.seams ?? SEAM_WIDTHS.home;
   const seam = n1(sw.seam);
   const waist = n1(sw.waist);
   const curve = n1(sw.curve);
   const edges = finish.edges ?? 'binding';
   const top = bodiceGuide(draft.bodice, { length: 'waist' }, fabricM, bindingM, finish);
-  const skirt = sewingGuide(draft.skirt, style, fabricM, { seams: sw, width: finish.width });
+  // The skirt's pleats, godets or flounce are sewn in with the dress's own steps, below.
+  const skirt = sewingGuide({ ...draft.skirt, volume: undefined }, style, fabricM, { seams: sw, width: finish.width });
   const find = (g: SewingGuide, re: RegExp) => g.steps.filter((s) => re.test(s.title));
   const at = (title: string) => top.steps.findIndex((s) => s.title === title);
   const wide = !draft.skirt.pieces[0].fold;
@@ -438,7 +443,7 @@ export function dressGuide(draft: DressDraft, style: { silhouette: Silhouette; l
 
   return {
     notions: top.notions.map((n) => (/invisible zip/.test(n) ? `${draft.zipCm} cm invisible zip` : n)),
-    steps,
+    steps: volumeSteps(steps, draft.skirt, { seam, waist, hem: draft.skirt.pieces[0].allowances.hem ?? 4 }, 'dress'),
   };
 }
 

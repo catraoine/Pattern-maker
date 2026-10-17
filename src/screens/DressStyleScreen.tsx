@@ -22,6 +22,7 @@ import { FabricCard } from '../ui/FabricCard';
 import type { EaseView } from '../engine/easeMap';
 import { FinishChoices } from '../ui/FinishChoices';
 import type { Finish } from '../App';
+import { GODET_OPTIONS, VOLUME_OPTIONS, layoutExtras, setVolume, volumeAllowed, volumeOf } from '../engine/skirtVolume';
 
 interface Props {
   choices: DressChoices;
@@ -83,10 +84,13 @@ export function DressStyleScreen({ choices, onChoices, onGarment, values, draft,
     })),
     { id: 'silhouette', label: 'Skirt', options: GROUPS[1].options },
     { id: 'length', label: 'Length', options: GROUPS[2].options },
+    { id: 'volume', label: 'Skirt details', options: VOLUME_OPTIONS },
   ];
 
   const value = (id: string) =>
-    id === 'fit'
+    id === 'volume'
+      ? volumeOf(choices.skirt)
+      : id === 'fit'
       ? choices.fit
       : id === 'silhouette' || id === 'length'
         ? choices.skirt[id]
@@ -103,7 +107,9 @@ export function DressStyleScreen({ choices, onChoices, onGarment, values, draft,
                   : choices.bodice[id as keyof BodiceChoices];
 
   const allowed = (id: string, opt: string) =>
-    id === 'darts'
+    id === 'volume'
+      ? volumeAllowed(choices.skirt, opt as Parameters<typeof volumeAllowed>[1])
+      : id === 'darts'
       ? DARTS_FOR_FIT[choices.fit].includes(opt as BodiceChoices['darts'])
       : id === 'sleeve'
         ? opt === 'none' || arms
@@ -116,7 +122,12 @@ export function DressStyleScreen({ choices, onChoices, onGarment, values, draft,
   const choose = (id: string, opt: string) => {
     if (id === 'silhouette' || id === 'length') {
       // The dress skirt is styled by its chips: no era look, photo shape or hand-drawn changes.
-      onChoices({ ...choices, skirt: { fit: choices.fit, silhouette: choices.skirt.silhouette, length: choices.skirt.length, [id]: opt } });
+      const { pleats, godets, flounce } = choices.skirt;
+      onChoices({ ...choices, skirt: { fit: choices.fit, silhouette: choices.skirt.silhouette, length: choices.skirt.length, pleats, godets, flounce, [id]: opt } });
+      return;
+    }
+    if (id === 'volume') {
+      onChoices({ ...choices, skirt: setVolume(choices.skirt, opt as Parameters<typeof setVolume>[1]) });
       return;
     }
     const fit = id === 'fit' ? (opt as DressChoices['fit']) : choices.fit;
@@ -158,6 +169,16 @@ export function DressStyleScreen({ choices, onChoices, onGarment, values, draft,
                 </button>
               </p>
             )}
+            {g.id === 'volume' && volumeOf(choices.skirt) === 'godets' && (
+              <div className="chips">
+                {GODET_OPTIONS.map(([n, label]) => (
+                  <button key={n} type="button" className={choices.skirt.godets === n ? 'chip on' : 'chip'} aria-pressed={choices.skirt.godets === n} onClick={() => onChoices({ ...choices, skirt: setVolume(choices.skirt, 'godets', n) })}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+            {g.id === 'volume' && !volumeAllowed(choices.skirt, 'knife') && <p className="muted small">Pleats, godets, flounces and tiers go on a pencil, straight or A-line skirt.</p>}
             {g.id === 'darts' && choices.fit !== 'relaxed' && (
               <p className="muted small">{choices.fit === 'fitted' ? 'A fitted dress needs bust and waist darts.' : 'Choose a relaxed fit to go without waist darts.'}</p>
             )}
@@ -233,12 +254,17 @@ export function DressStyleScreen({ choices, onChoices, onGarment, values, draft,
                 {pc.name}: {pc.cut.replace(' (1 pair)', '').toLowerCase()}
               </li>
             ))}
+            {draft?.skirt.volume?.tiers?.bands.map((b) => (
+              <li key={b.name}>
+                {b.name}: cut {b.panels}, {b.cutLength} × {b.cutWidth} cm
+              </li>
+            ))}
           </ul>
         </div>
         {draft && (
           <FabricCard
-            metres={dressFabricMetres(pieces)}
-            advice={dressFabrics({ fit: choices.fit, neckline: choices.bodice.neckline, silhouette: choices.skirt.silhouette, length: choices.skirt.length })}
+            metres={dressFabricMetres([...pieces, ...(draft ? layoutExtras(draft.skirt) : [])])}
+            advice={dressFabrics({ fit: choices.fit, neckline: choices.bodice.neckline, silhouette: choices.skirt.silhouette, length: choices.skirt.length, pleats: choices.skirt.pleats, godets: choices.skirt.godets, flounce: choices.skirt.flounce })}
             fabric={fabric}
           />
         )}

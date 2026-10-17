@@ -65,6 +65,8 @@ const NAMES: Record<string, string> = {
   neck: 'neckline',
   armhole: 'armhole',
   crotch: 'crotch seam',
+  flounce: 'flounce seam',
+  tier: 'tier seam',
 };
 
 const isFront = (pc: Piece) => /front/i.test(pc.name);
@@ -240,6 +242,49 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
       label: 'Collar to stand',
       detail: `collar ${cm(a)}, stand ${cm(b)} to the centre front, ${Math.abs(a - b) < 0.05 ? 'identical' : `${cm(Math.abs(a - b))} apart`}`,
       ok: Math.abs(a - b) <= SEAM_TOLERANCE,
+    });
+  }
+
+  // A pleated skirt split to fit the fabric: each panel seam, hidden in a pleat, against its partner.
+  for (const a of pieces.filter((pc) => typeof pc.meta.panelSeam === 'string' && taggedLength(pc.outline, 'panel') > 0 && !/ side /i.test(pc.name))) {
+    const b = pieces.find((pc) => pc.name === a.meta.panelSeam);
+    if (!b) continue;
+    const x = taggedLength(a.outline, 'panel');
+    const y = taggedLength(b.outline, 'panel');
+    checks.push({
+      group: 'Seams',
+      label: `${a.name} panel seam`,
+      detail: `${cm(x)} and ${cm(y)}, ${Math.abs(x - y) < 0.05 ? 'identical' : `${cm(Math.abs(x - y))} apart`}`,
+      ok: Math.abs(x - y) <= SEAM_TOLERANCE,
+    });
+  }
+
+  // A hem flounce: its seam edge against the skirt's lower edge, front to front and back to back.
+  if (garments.includes('Flounce'))
+    for (const side of ['front', 'back'] as const) {
+      const k = sum(ofSide('Skirt', side), 'flounce');
+      const f = sum(ofSide('Flounce', side), 'flounce');
+      checks.push({
+        group: 'Seams',
+        label: `Flounce ${side} to skirt ${side}`,
+        detail: `skirt ${cm(k)}, flounce ${cm(f)}, ${Math.abs(k - f) < 0.05 ? 'identical' : `${cm(Math.abs(k - f))} apart`}`,
+        ok: Math.abs(k - f) <= SEAM_TOLERANCE,
+      });
+    }
+
+  // Godets: both edges of each against every slash and seam it is set into.
+  for (const g of pieces.filter((pc) => pc.meta.godet)) {
+    const { pts, tags } = g.outline.taggedPoints(2);
+    const edges = tags.flatMap((t, i) => (t === 'godet' ? [len(sub(pts[i + 1], pts[i]))] : []));
+    const slashes = pieces.flatMap((pc) => ((pc.meta.slashes as [P, P][] | undefined) ?? []).map(([a, b]) => len(sub(a, b))));
+    if (!edges.length || !slashes.length) continue;
+    const all = [...edges, ...slashes];
+    const spread = Math.max(...all) - Math.min(...all);
+    checks.push({
+      group: 'Seams',
+      label: 'Godets to their slashes',
+      detail: `godet edges ${edges.map(cm).join(' and ')}, ${slashes.length} slashes and seams ${cm(Math.min(...slashes))} to ${cm(Math.max(...slashes))}`,
+      ok: spread <= SEAM_TOLERANCE,
     });
   }
 

@@ -4,6 +4,7 @@ import { P, Path, add, len, mul, p, sub, taggedLength, unit } from './geometry';
 import { finishDart } from './darts';
 import { Piece, withAlternate } from './piece';
 import { HemShape, isShaped, matchSides, shapeHem } from './hem';
+import { Flounce, GodetCount, Pleats, VolumeDraft, addVolume, volumeOf } from './skirtVolume';
 
 export interface SkirtMeasurements {
   waist: number;
@@ -47,6 +48,11 @@ export interface SkirtStyle {
    * centre; zipCm is how far the zip runs on below the waist.
    */
   joinTo?: { front: number; back: number; dartAt?: { front?: number; back?: number }; zipCm?: number };
+  /** Fullness added to a straight, pencil or A-line skirt: pleats, godets, or a hem flounce or tiers.
+   * One at a time; older saves have none (see skirtVolume.ts). */
+  pleats?: Pleats;
+  godets?: GodetCount;
+  flounce?: Flounce;
 }
 
 /**
@@ -360,10 +366,10 @@ interface CircleArgs {
 }
 
 /** Points on a circle centred at (0, -r) above the centre waist, measured from straight down. */
-const onCircle = (r: number, R: number, phi: number) => p(R * Math.sin(phi), -r + R * Math.cos(phi));
+export const onCircle = (r: number, R: number, phi: number) => p(R * Math.sin(phi), -r + R * Math.cos(phi));
 
 /** Add an arc as cubic Beziers, at most 30 degrees each. */
-function arc(path: Path, r: number, R: number, from: number, to: number, tag: string) {
+export function arc(path: Path, r: number, R: number, from: number, to: number, tag: string) {
   const n = Math.max(1, Math.ceil(Math.abs(to - from) / (Math.PI / 6)));
   const step = (to - from) / n;
   const k = (4 / 3) * Math.tan(step / 4) * R;
@@ -478,6 +484,11 @@ export interface SkirtDraft {
   zipCm: number; // invisible zip in the centre back seam
   waistband: Waistband;
   dartsPerSide: { front: number; back: number };
+  /** With pleats, godets, a flounce or tiers: the plain skirt as it hangs, before the pleats were
+   * spread into it or the flounce or tiers cut from it, for the sketch, the figure and the ease map. */
+  block?: Piece[];
+  /** What gives the skirt its fullness, as drafted. */
+  volume?: VolumeDraft;
 }
 
 export const WAISTBAND_CM = 3; // finished width
@@ -510,7 +521,9 @@ const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v
 
 export function draftSkirt(m: SkirtMeasurements, style: Partial<SkirtStyle> = {}): SkirtDraft {
   const s = { ...DEFAULT_STYLE, ...style };
-  const draft = withHighHip(drafted(m, s), s.fitting?.highHip);
+  // Pleats, godets and flounces are drafted on the plain block, without a drawn hem.
+  const plain = volumeOf(s) !== 'none' ? { ...s, hem: undefined } : s;
+  const draft = withHighHip(addVolume(m, s, drafted(m, plain), (st) => drafted(m, st)), s.fitting?.highHip);
   return draft;
 }
 
@@ -521,7 +534,8 @@ export function draftSkirt(m: SkirtMeasurements, style: Partial<SkirtStyle> = {}
 function withHighHip(draft: SkirtDraft, high: SkirtFitting['highHip']): SkirtDraft {
   if (!high || !(high.cm > 0)) return draft;
   const label = `${high.side.toUpperCase()} HIP`;
-  return { ...draft, pieces: draft.pieces.map((pc) => withAlternate(pc, raisedWaist(pc, high.cm), label)) };
+  // Only the pieces with a waist: a flounce or a godet hangs from the skirt, not the hip.
+  return { ...draft, pieces: draft.pieces.map((pc) => (pc.outline.tags.includes('waist') ? withAlternate(pc, raisedWaist(pc, high.cm), label) : pc)) };
 }
 
 /** The outline with its waist raised `rise` cm at the side seam, easing in from nothing at the centre. */

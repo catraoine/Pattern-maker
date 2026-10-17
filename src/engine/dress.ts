@@ -62,10 +62,11 @@ export function draftDress(m: DressMeasurements, bodiceStyle: Partial<BodiceStyl
   // The skirt's waist curve is a little longer than its width, so walk it to the bodice's.
   const join = { front: waist.front, back: waist.back, dartAt, zipCm: below };
   let skirt = draftSkirt(m, { ...skirtStyle, joinTo: join });
+  // A pleated skirt split to fit the fabric has two pieces a side: their waists add up.
+  const skirtWaist = (d: SkirtDraft, which: 'front' | 'back') => waistOf(d.pieces.filter((pc) => /^Skirt/.test(pc.name) && new RegExp(which, 'i').test(pc.name)));
   for (let i = 0; i < 4; i++) {
-    const [sf, sb] = skirt.pieces;
-    const df = waist.front - taggedLength(sf.outline, 'waist');
-    const db = waist.back - taggedLength(sb.outline, 'waist');
+    const df = waist.front - skirtWaist(skirt, 'front');
+    const db = waist.back - skirtWaist(skirt, 'back');
     if (Math.abs(df) < 0.005 && Math.abs(db) < 0.005) break;
     join.front += df;
     join.back += db;
