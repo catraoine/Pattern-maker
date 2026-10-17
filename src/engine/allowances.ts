@@ -38,6 +38,8 @@ export function withAllowances(pc: Piece, style: AllowanceStyle): Piece {
   // The waist edge of a skirt is cut at the waist width, and so is the dart peak above it.
   allowances.waist = w.waist;
   allowances.dart = w.waist;
+  // A pleat's underlay at the waist is cut like the waist either side of it.
+  if ('pleat' in allowances) allowances.pleat = w.waist;
   // A pocket's top edge is caught in the waist seam with the garment's.
   allowances['pocket-waist'] = w.waist;
   if (style === 'couture' && allowances.hem >= 4) allowances.hem = 5;

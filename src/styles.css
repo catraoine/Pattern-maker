@@ -2483,6 +2483,78 @@ table.history td.moved {
   white-space: nowrap;
   padding: 0 10px;
 }
+
+/* Style: "Choose another garment" and the Maison collection, quiet links side by side under the title */
+.garment-pick {
+  display: flex;
+  flex-wrap: wrap;
+  flex-basis: 100%;
+  column-gap: 24px;
+}
+
+.garment-pick button.link.garment-change {
+  flex-basis: auto;
+}
+
+/* The Maison collection: a lookbook, one look at a time down the page, two across on wide screens */
+.collection {
+  max-width: 1080px;
+  margin: 0 auto;
+}
+
+.collection-head {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 560px;
+  margin: 8px 0 36px;
+}
+
+.collection-head h1 {
+  font-size: 40px;
+}
+
+.lookbook {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr));
+  gap: 56px 48px;
+}
+
+.house-look {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.house-look .eyebrow {
+  margin: 0;
+}
+
+.house-flat {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 340px;
+  padding: 12px 0 4px;
+}
+
+.house-flat .techflat {
+  height: 100%;
+  max-height: none;
+}
+
+.house-look h2 {
+  font-size: 30px;
+}
+
+.house-look button.secondary {
+  align-self: flex-start;
+  margin-top: 6px;
 .shape .body-outline {
   stroke: var(--muted);
   opacity: 0.5;

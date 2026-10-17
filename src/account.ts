@@ -156,7 +156,8 @@ export function sameChoices(a: PatternChoices, b: PatternChoices): boolean {
     JSON.stringify(a.shape ?? null) === JSON.stringify(b.shape ?? null) &&
     a.lengthCm === b.lengthCm &&
     a.flareCm === b.flareCm &&
-    JSON.stringify(a.hem ?? null) === JSON.stringify(b.hem ?? null)
+    JSON.stringify(a.hem ?? null) === JSON.stringify(b.hem ?? null) &&
+    (a.asymHem ?? 'none') === (b.asymHem ?? 'none')
   );
 }
 

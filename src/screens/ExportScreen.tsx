@@ -319,7 +319,7 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
             <h2 id="laytitle">
               {lays
                 .map((l, i) => {
-                  const amount = `${layAmount(l)}${l.fabric === 'lining' ? ' of lining' : ''}`;
+                  const amount = `${layAmount(l)}${l.fabric === 'lining' ? ' of lining' : l.fabric === 'interlining' ? ' of coutil' : ''}`;
                   return i === 0 ? amount[0].toUpperCase() + amount.slice(1) : amount;
                 })
                 .join(' + ') || 'Too wide to lay out'}
@@ -346,7 +346,7 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
         {lays.length ? (
           lays.map((lay) => (
             <div key={lay.fabric} className="lay">
-              {lays.length > 1 && <p className="eyebrow">{lay.fabric === 'lining' ? 'Lining' : 'Fabric'}</p>}
+              {lays.length > 1 && <p className="eyebrow">{lay.fabric === 'lining' ? 'Lining' : lay.fabric === 'interlining' ? 'Coutil' : 'Fabric'}</p>}
               <LayPlanView lay={lay} />
               <p className="muted small">{layWords(lay)}</p>
             </div>

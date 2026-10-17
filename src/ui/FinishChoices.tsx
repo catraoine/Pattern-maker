@@ -10,7 +10,24 @@ const EDGES: { id: BodiceEdges; label: string; detail: string }[] = [
 ];
 
 /** How the garment is finished inside. These change the pattern pieces, so they're chosen with the style. */
-export function FinishChoices({ garment, finish, onFinish, sleeved = false }: { garment: Garment; finish: Finish; onFinish: (f: Finish) => void; sleeved?: boolean }) {
+export function FinishChoices({
+  garment,
+  finish,
+  onFinish,
+  sleeved = false,
+  edgeIds,
+  edgeLegend,
+}: {
+  garment: Garment;
+  finish: Finish;
+  onFinish: (f: Finish) => void;
+  sleeved?: boolean;
+  /** The edge finishes this style allows (a boned bodice is always lined), when not all of them. */
+  edgeIds?: BodiceEdges[];
+  edgeLegend?: string;
+}) {
+  const edges = edgeIds ? EDGES.filter((e) => edgeIds.includes(e.id)) : EDGES;
+  const current = edges.some((e) => e.id === finish.bodiceEdges) ? finish.bodiceEdges : (edges.find((e) => e.id === 'lined') ?? edges[0]).id;
   return (
     <>
       {garment === 'trousers' || garment === 'jacket' || garment === 'coat' ? null : garment === 'skirt' ? (
@@ -27,10 +44,10 @@ export function FinishChoices({ garment, finish, onFinish, sleeved = false }: { 
         </fieldset>
       ) : (
         <fieldset className="group">
-          <legend>{sleeved ? 'Neckline' : 'Neck and armholes'}</legend>
-          {EDGES.map((e) => (
-            <label key={e.id} className={finish.bodiceEdges === e.id ? 'radio on' : 'radio'}>
-              <input type="radio" name="edges" checked={finish.bodiceEdges === e.id} onChange={() => onFinish({ ...finish, bodiceEdges: e.id })} />
+          <legend>{edgeLegend ?? (sleeved ? 'Neckline' : 'Neck and armholes')}</legend>
+          {edges.map((e) => (
+            <label key={e.id} className={current === e.id ? 'radio on' : 'radio'}>
+              <input type="radio" name="edges" checked={current === e.id} onChange={() => onFinish({ ...finish, bodiceEdges: e.id })} />
               <span>
                 {e.label} <span className="muted small">{e.detail}</span>
               </span>

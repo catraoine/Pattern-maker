@@ -15,6 +15,7 @@ import { NECKBAND_CM, TeeDraft } from './tee';
 import { INSEAM, SLANT } from './pockets';
 import type { OuterDraft } from './outerwear';
 import { lerp } from './geometry';
+import { COWL_DEPTH, UNDER_ARM, oneShoulderEdge } from './drape';
 
 export type FlatLineKind = 'seam' | 'dart' | 'stitch' | 'zip';
 
@@ -297,7 +298,32 @@ type RawView = Omit<FlatView, 'at'>;
 
 /** The skirt: waistband, darts, centre back seam and zip, and a walking slit when it has one. */
 export function skirtFlat(d: SkirtDraft, opts: { slit?: boolean } = {}): Flat {
-  return arrange(skirtViews(d, { ...opts, band: true, zipCm: d.zipCm }));
+  // A slip has a faced waist, so no band shows.
+  return arrange(skirtViews(d, { ...opts, band: !d.faced, zipCm: d.zipCm }));
+}
+
+/**
+ * A piece cut whole, as it hangs: its own outline (the two sides may differ), darts sewn, and for a
+ * front with the zip in its left side seam (the +x side), the zip down that seam from the waist.
+ */
+function wholeView(pc: Piece, zipCm?: number): { shapes: P[][]; lines: FlatView['lines']; waist: P[] } {
+  const h = sewn(pc);
+  const run = h.run.slice(0, -1);
+  const lines: FlatView['lines'] = h.darts.map((pts) => ({ pts, kind: 'dart' as const }));
+  // The waist from the -x side round to the +x side, for a band above it.
+  const stretches = along(h, ['waist', 'dart']);
+  const waist = stretches.length > 1 ? [...stretches[stretches.length - 1], ...stretches[0].slice(1)] : stretches[0] ?? [run[0]];
+  if (zipCm) {
+    const side = along(h, 'side')[0] ?? [];
+    const pts: P[] = [];
+    let acc = 0;
+    for (let i = 0; i < side.length && acc < zipCm; i++) {
+      if (i) acc += len(sub(side[i], side[i - 1]));
+      pts.push(add(side[i], p(-0.4, 0)));
+    }
+    if (pts.length > 1) lines.push({ pts, kind: 'zip' }, { pts: [add(pts[pts.length - 1], p(-0.6, 0)), add(pts[pts.length - 1], p(0.6, 0))], kind: 'seam' });
+  }
+  return { shapes: [run], lines, waist };
 }
 
 /**
@@ -311,16 +337,31 @@ function skirtViews(d: SkirtDraft, opts: { slit?: boolean; band: boolean; zipCm?
     let lines: FlatView['lines'] = [];
     let waist: P[];
     let hemY: number;
+    let seamY: number | undefined;
+    const wholePc = d.pieces[i].meta.whole;
     if (d.circleShare) {
       const c = circleHalf(d, back);
       ({ shapes, lines, waist } = c);
       hemY = d.lengthCm;
+    } else if (wholePc) {
+      // Cut whole: drawn from the whole piece, so a hem that differs side to side shows as it is.
+      ({ shapes, lines, waist } = wholeView(d.pieces[i], !back && d.opening === 'left_side' ? d.zipCm : undefined));
+      hemY = d.lengthCm;
     } else {
-      const h = sewn(d.pieces[i]);
+      // Pleats are drawn on the skirt as it hangs; knife and box pleats take the darts' place.
+      const pleated = !!(d.volume?.pleats || d.volume?.inverted) && !!d.block;
+      const h = sewn((pleated ? d.block! : d.pieces)[i]);
       shapes = [whole(h.run)];
       waist = along(h, ['waist', 'dart'])[0] ?? [h.run[0]];
-      lines = h.darts.flatMap((dt) => both(dt).map((pts) => ({ pts, kind: 'dart' as const })));
+      lines = d.volume?.pleats ? [] : h.darts.flatMap((dt) => both(dt).map((pts) => ({ pts, kind: 'dart' as const })));
       hemY = h.run[h.run.length - 1].y;
+      if (d.volume) {
+        const v = volumeFlat(d, i, h, hemY);
+        shapes.push(...v.shapes);
+        lines.push(...v.lines);
+        hemY = v.hemY;
+        seamY = v.seamTo ?? hemY;
+      }
       // The pocket bag, where it hangs behind the front.
       const bag = d.pieces.find((pc) => pc.kind === 'pocket');
       if (bag && !back) {
@@ -333,20 +374,105 @@ function skirtViews(d: SkirtDraft, opts: { slit?: boolean; band: boolean; zipCm?
       lines.push(...[1, -1].flatMap((s) => pocketBag(p(side[1].x * s, side[1].y), p(side[2].x * s, side[2].y), d.pocket!, -s)));
     }
     // The waistband sits above the waist, as wide as it, gathered on an elastic waist.
-    if (opts.band) shapes.push(whole([...waist, ...[...waist].reverse().map((q) => p(q.x, q.y - WAISTBAND_CM))]));
+    const band = [...waist, ...[...waist].reverse().map((q) => p(q.x, q.y - WAISTBAND_CM))];
+    if (opts.band) shapes.push(wholePc ? band : whole(band));
     if (opts.band && d.elastic) for (const run of [waist, mirror(waist)]) lines.push(...gathers(run[0], run[run.length - 1], WAISTBAND_CM));
-    const cbTop = waist[0].y;
-    if (back && !d.pieces[1].fold) {
+    const cbTop = wholePc ? waist[Math.floor(waist.length / 2)].y : waist[0].y;
+    // A back cut whole has no centre back seam: the zip is in the left side seam. A pull-on back is cut on the fold.
+    if (back && !wholePc && !d.pieces[1].fold) {
       const from = cbTop - (opts.band ? WAISTBAND_CM : (opts.seamFrom ?? 0));
       if (opts.slit) {
         const top = hemY - 15;
         lines.push({ pts: [p(0, from), p(0, top)], kind: 'seam' });
         lines.push({ pts: [p(0, top), p(-0.5, hemY)], kind: 'seam' }, { pts: [p(0, top), p(0.5, hemY)], kind: 'seam' });
-      } else lines.push({ pts: [p(0, from), p(0, hemY)], kind: 'seam' });
+      } else lines.push({ pts: [p(0, from), p(0, seamY ?? hemY)], kind: 'seam' });
       if (opts.zipCm) lines.push(...zip(cbTop, opts.zipCm));
     }
     return { label, shapes, lines, waistY: cbTop };
   });
+}
+
+/**
+ * The skirt's pleats, godets, flounce or tiers on its flat, over the half as sewn: pleat folds stitched
+ * down to the hip, godets opening out below their points, a flounce rippling out below its seam, and
+ * tiers widening down from the yoke with their gathers. Where the centre back seam stops, when it stops
+ * short of the hem (tiers are rings).
+ */
+function volumeFlat(d: SkirtDraft, i: number, h: Half, hemY: number): { shapes: P[][]; lines: FlatView['lines']; hemY: number; seamTo?: number } {
+  const v = d.volume!;
+  const shapes: P[][] = [];
+  const lines: FlatView['lines'] = [];
+  const add2 = (pts: P[], kind: FlatLineKind) => lines.push(...both(pts).map((q) => ({ pts: q, kind })));
+  if (v.pleats) {
+    for (const f of v.folds?.[i] ?? []) {
+      add2([h.move(f.top), h.move(f.hip)], 'stitch');
+      add2([h.move(f.hip), h.move(f.hem)], 'seam');
+    }
+    return { shapes, lines, hemY };
+  }
+  if (v.inverted) {
+    const hip = d.block![0].balance?.[0]?.pts[0].y ?? hemY / 3;
+    const top = i === 0 ? h.run[0].y : (v.inverted.backFrom ?? hemY) + h.run[0].y;
+    if (i === 0) {
+      lines.push({ pts: [p(0, hip), p(0, hemY)], kind: 'seam' });
+      add2([p(0.5, top), p(0.5, hip)], 'stitch');
+    } else if (v.inverted.backFrom !== undefined) add2([p(0, top), p(1.5, top - 0.8)], 'stitch');
+    return { shapes, lines, hemY };
+  }
+  if (v.godets) {
+    const w = v.godets.hemWidth * 0.3;
+    const slashes = v.slashes?.[i] ?? [];
+    slashes.forEach(([top, hem], k) => {
+      const a = h.move(top);
+      const b = h.move(hem);
+      // A godet in the side seam (the last, when there are side godets) swings the silhouette out; one
+      // in a slash opens a V below its point.
+      if (v.godets!.inSeams && k === slashes.length - 1) {
+        const out = [a, b, p(b.x + w, b.y - 0.3)];
+        shapes.push(out, mirror(out));
+      } else {
+        add2([a, p(b.x - w / 2, b.y)], 'seam');
+        add2([a, p(b.x + w / 2, b.y)], 'seam');
+      }
+    });
+    return { shapes, lines, hemY };
+  }
+  const tag = v.flounce ? 'flounce' : 'tier';
+  const join = along(h, tag)[0];
+  if (!join) return { shapes, lines, hemY };
+  const [side, centre] = [join[0], join[join.length - 1]];
+  if (v.flounce) {
+    const D = v.flounce.depth;
+    const out = D * 0.6;
+    const folds = 3;
+    const per = 8;
+    const W = side.x + out;
+    const hem: P[] = [];
+    for (let k = 0; k <= folds * per; k++) {
+      const t = k / (folds * per);
+      hem.push(p(W * (1 - t), lerp(p(0, side.y + D), p(0, centre.y + D), t).y + 1 * Math.cos(t * folds * 2 * Math.PI)));
+    }
+    shapes.push(whole([...[...join].reverse(), ...hem]));
+    for (let f = 0; f < folds; f++) {
+      const at = hem[f * per + per / 2];
+      add2([p((side.x * at.x) / W, lerp(centre, side, at.x / W).y + 1), p(at.x, at.y - 0.4)], 'seam');
+    }
+    return { shapes, lines, hemY: hem[hem.length - 1].y };
+  }
+  // Tiers: each a little wider than the one above, gathered into the seam.
+  let top = { left: centre.y, right: side };
+  for (const b of v.tiers?.bands ?? []) {
+    const right = p(top.right.x + b.depth * 0.22, top.right.y + b.depth);
+    const left = top.left + b.depth;
+    shapes.push(whole([p(0, top.left), top.right, right, p(0, left)]));
+    for (let k = 1; k <= 6; k++) {
+      const x = (top.right.x * k) / 7;
+      const y = top.left + (top.right.y - top.left) * (k / 7);
+      add2([p(x, y + 0.4), p(x + 0.1, y + 1.8)], 'seam');
+    }
+    top = { left, right };
+  }
+  return { shapes, lines, hemY: top.left, seamTo: centre.y };
 }
 
 /** A quadratic curve from `a` to `b`, pulled toward `c`. */
@@ -483,6 +609,137 @@ function collarShapes(c: { a: P[]; b: P[] }, joined: boolean): P[][] {
   return [[...mirror(c.a).reverse(), ...c.a.slice(1), ...[...c.b].reverse(), ...mirror(c.b).slice(1)]];
 }
 
+/**
+ * The one-shoulder bodice's view, drawn from the sewn half: the covered half on the wearer's left (the
+ * right of a front view, the left of a back view), the bare half from under the arm, and the top edge
+ * between them, as drafted.
+ */
+function oneShoulderView(d: BodiceDraft, h: Half, i: number, edges: BodiceEdges): RawView & { foot: number } {
+  const k = i === 0 ? 1 : -1;
+  const iSh = h.tags.indexOf('shoulder');
+  const iS = h.tags.indexOf('side');
+  let j = iS;
+  let acc = 0;
+  while (h.tags[j + 1] === 'side' && acc + len(sub(h.run[j + 1], h.run[j])) < UNDER_ARM) {
+    acc += len(sub(h.run[j + 1], h.run[j]));
+    j++;
+  }
+  const seg = len(sub(h.run[j + 1], h.run[j]));
+  const U = lerp(h.run[j], h.run[j + 1], seg ? Math.min(1, (UNDER_ARM - acc) / seg) : 0);
+  const down = unit(sub(h.run[j + 1], h.run[j]));
+  const cov = h.run.slice(iSh).map((q) => p(q.x * k, q.y));
+  const bare = [U, ...h.run.slice(j + 1)].map((q) => p(-q.x * k, q.y));
+  const N = cov[0];
+  const toward = (a: P, t: P) => {
+    const n = p(-a.y, a.x);
+    return n.x * t.x + n.y * t.y >= 0 ? n : mul(n, -1);
+  };
+  // The edge's point over the bust (or clear of the back dart), from the drafted piece.
+  const drafted = d.pieces[i].draft?.points.find((pt) => pt.n === 'V')?.at;
+  const mv = (q: P) => {
+    const m = h.move(p(Math.abs(q.x), q.y));
+    return p(Math.sign(q.x) * m.x, m.y);
+  };
+  const V = drafted ? mv(drafted) : p(bare[0].x * 0.5, bare[0].y - 5);
+  const edge = oneShoulderEdge(bare[0], toward(p(-down.x * k, down.y), p(k, 0)), V, N, toward(unit(sub(cov[1], N)), p(0, 1)));
+  const shape = [...cov, ...[...bare].reverse().slice(1), ...edge.slice(1, -1)];
+  const lines: FlatView['lines'] = h.darts
+    .flatMap((dt) => both(dt))
+    // Darts above the edge on the bare side go; one end of each sits on the outline, so test just in from it.
+    .filter((dt) => [0.1, 0.9].every((t) => inside(lerp(dt[0], dt[dt.length - 1], t), shape)))
+    .map((pts) => ({ pts, kind: 'dart' as const }));
+  if (edges === 'binding')
+    for (const run of [edge, ...along(h, 'armhole').map((r) => r.map((q) => p(q.x * k, q.y)))]) for (const r of inset(run, 0.6, shape)) lines.push({ pts: r, kind: 'stitch' });
+  if (d.finishedHem !== undefined)
+    for (const run of along(h, 'hem')) for (const pts of [run, mirror(run)]) for (const r of inset(pts, 2, shape)) lines.push({ pts: r, kind: 'stitch' });
+  return { label: i === 0 ? 'FRONT' : 'BACK', shapes: [shape], lines, foot: h.run[h.run.length - 1].y };
+}
+
+/** The cowl front's neckline as it hangs: a soft curve from neck point to neck point, `depthCm` below the
+ * block's neck at the centre, with the folds of the drape falling inside it. */
+function cowlFront(d: BodiceDraft, h: Half, v: RawView & { foot: number }): RawView & { foot: number } {
+  const iSh = h.tags.indexOf('shoulder');
+  const N = h.run[iSh];
+  const Y = h.move(p(0, d.neckBlock.front.neckY + (d.drape?.depthCm ?? COWL_DEPTH))).y;
+  const hang = (a: P, y: number) => quad(p(0, y), p(a.x * 0.55, y), a, 14);
+  const run = [...hang(N, Y), ...h.run.slice(iSh + 1)];
+  const shape = whole(run);
+  // The bust dart is closed into the drape, and the waist dart too when the drape took all of it.
+  const waistDart = d.pieces[0].lines.some((ln) => ln.points().length >= 3);
+  const lines = v.lines.filter((l) => {
+    if (l.kind !== 'dart') return true;
+    const [a, b] = [l.pts[0], l.pts[l.pts.length - 1]];
+    return waistDart && Math.abs(b.y - a.y) > Math.abs(b.x - a.x);
+  });
+  // The folds: each from a little along the shoulder down to the centre below the edge.
+  const sh = unit(sub(h.run[iSh + 1], N));
+  for (let f = 1; f <= 3; f++) {
+    const from = add(N, mul(sh, 1.4 * f));
+    const pts = hang(from, Y + 2.4 * f).filter((q) => inside(q, shape));
+    if (pts.length > 2) lines.push(...both(pts).map((q) => ({ pts: q, kind: 'seam' as const })));
+  }
+  return { ...v, shapes: [shape, ...v.shapes.slice(1)], lines };
+}
+
+/** The peplum below the waist seam: a flared one rippling to a wide hem, a gathered one hanging
+ * straighter from its gathers; each with its narrow hem stitched. */
+function withPeplumView(d: BodiceDraft, h: Half, v: RawView & { foot: number }): RawView & { foot: number } {
+  if (!d.peplum) return v;
+  const lastSide = h.tags.lastIndexOf('side');
+  const waist = h.run.slice(lastSide + 1).reverse();
+  const ws = waist[waist.length - 1];
+  const D = d.peplum.depthCm;
+  const flared = d.peplum.kind === 'flared';
+  const H = ws.x + D * (flared ? 0.55 : 0.18);
+  const folds = flared ? 3 : 5;
+  const per = 8;
+  const amp = flared ? 1.2 : 0.4;
+  const hem: P[] = [];
+  for (let s = 0; s <= folds * per; s++) {
+    const t = s / (folds * per);
+    hem.push(p(H * (1 - t), ws.y + D + amp * Math.cos(t * folds * 2 * Math.PI)));
+  }
+  const shape = whole([...waist, ...hem]);
+  const lines: FlatView['lines'] = [...v.lines];
+  lines.push(...both(hem.map((q) => p(q.x, q.y - 0.6)).filter((q) => q.x < H - 0.4)).map((pts) => ({ pts, kind: 'stitch' as const })));
+  if (flared)
+    for (let f = 0; f < folds; f++) {
+      const at = hem[f * per + per / 2];
+      lines.push(...both([p(ws.x * (at.x / H) * 0.85, ws.y + D * 0.15), p(at.x, at.y - 0.4)]).map((pts) => ({ pts, kind: 'seam' as const })));
+    }
+  else
+    for (let s = 1; s < 8; s++) {
+      const x = (ws.x * s) / 8;
+      const y = ws.y + ((waist[0].y - ws.y) * (ws.x - x)) / Math.max(ws.x, 1);
+      lines.push(...both([p(x, y + 0.3), p(x + (H - ws.x) * (x / ws.x), y + 2.6)]).map((pts) => ({ pts, kind: 'seam' as const })));
+    }
+  return { ...v, shapes: [v.shapes[0], shape, ...v.shapes.slice(1)], lines };
+}
+
+/** A boned bodice's side seam channel: just inside the seam, stopping short of the top edge and the waist. */
+function sideChannel(h: Half, shape: P[]): FlatView['lines'] {
+  const run = along(h, 'side').sort((a, b) => b.length - a.length)[0];
+  if (!run) return [];
+  const out: FlatView['lines'] = [];
+  for (const r of inset(run, 0.6, shape)) {
+    const L = r.reduce((t, q, k) => (k ? t + len(sub(q, r[k - 1])) : 0), 0);
+    let acc = 0;
+    const keep = r.filter((q, k) => {
+      if (k) acc += len(sub(q, r[k - 1]));
+      return acc >= 2 && acc <= L - 1.5;
+    });
+    if (keep.length > 1) for (const pts of both(keep)) out.push({ pts, kind: 'stitch' });
+  }
+  return out;
+}
+
+/** A spaghetti strap from the top edge up to the shoulder, about 6 mm wide as drawn. */
+function strap([a, b]: [P, P]): P[] {
+  const u = unit(sub(b, a));
+  const n = mul(p(-u.y, u.x), 0.35);
+  return [add(a, n), add(b, n), sub(b, n), sub(a, n)];
+}
+
 /** The bodice: darts, the back neck seen over the front, centre back seam and zip, sleeves when it has
  * them, and the stitching that shows: binding round the neck (and the armholes of a sleeveless one),
  * and the hem of a longer top. */
@@ -499,17 +756,21 @@ function bodiceViews(d: BodiceDraft, edges: BodiceEdges, sleeve: SleeveDraft | u
   const front = sewn(bf, backFoot, style?.skip);
   const hps = (h: Half) => h.run[h.tags.indexOf('shoulder')];
   return ([front, back] as const).map((h, i) => {
+    if (d.drape?.kind === 'one_shoulder') return withPeplumView(d, h, oneShoulderView(d, h, i, edges));
     const shape = whole(h.run);
     const lines: FlatView['lines'] = h.darts.flatMap((dt) => both(dt).map((pts) => ({ pts, kind: 'dart' as const })));
     for (const sl of (i === 0 ? style?.front : style?.back) ?? []) lines.push(...both(sl.pts.map(h.move)).map((pts) => ({ pts, kind: sl.kind })));
-    if (i === 0) {
+    if (i === 0 && h.tags.includes('shoulder')) {
       // The back neckline shows through a lower front neck.
       const shift = sub(hps(front), hps(back));
       const neck = along(back, 'neck')[0]?.map((q) => add(q, shift));
       if (neck && front.run[0].y > neck[0].y + 1) lines.push(...both(neck).map((pts) => ({ pts, kind: 'seam' as const })));
     }
-    const collared = d.collar !== 'none' || d.closure === 'front_buttons';
-    if (edges === 'binding') {
+    // A cowl front's neck is finished by its own facing.
+    const collared = d.collar !== 'none' || d.closure === 'front_buttons' || (i === 0 && d.drape?.kind === 'cowl');
+    // A boned bodice's top edge is lined and understitched, so no stitching shows; its boning is drawn instead.
+    if (d.top?.boned) lines.push(...sideChannel(h, shape));
+    if (edges === 'binding' && !d.top?.boned) {
       for (const run of [...(collared ? [] : along(h, 'neck')), ...(sleeve ? [] : along(h, 'armhole'))])
         for (const pts of [run, mirror(run)]) for (const r of inset(pts, 0.6, shape)) lines.push({ pts: r, kind: 'stitch' });
     }
@@ -530,6 +791,9 @@ function bodiceViews(d: BodiceDraft, edges: BodiceEdges, sleeve: SleeveDraft | u
       lines.push({ pts: [p(0, top), p(0, h.run[h.run.length - 1].y)], kind: 'seam' }, ...zip(top, d.zipCm));
     }
     const shapes = [shape];
+    // Spaghetti straps, from the top edge up over the shoulder.
+    const st = d.top?.strapAt && (i === 0 ? d.top.strapAt.front : d.top.strapAt.back);
+    if (st) shapes.push(...both(strap([h.move(st[0]), h.move(st[1])])));
     const neckRun = along(h, 'neck')[0];
     const collar = neckRun ? collarHalf(neckRun, d.collar, i === 0) : [];
     if (sleeve) {
@@ -544,7 +808,8 @@ function bodiceViews(d: BodiceDraft, edges: BodiceEdges, sleeve: SleeveDraft | u
     // The collar goes on last, over the sleeves' heads.
     // In one piece across the centre back on a button front; meeting at the zip or the centre front otherwise.
     for (const c of collar) shapes.push(...collarShapes(c, i === 1 && d.closure === 'front_buttons'));
-    return { label: i === 0 ? ('FRONT' as const) : ('BACK' as const), shapes, lines, foot: h.run[h.run.length - 1].y };
+    const view = { label: i === 0 ? ('FRONT' as const) : ('BACK' as const), shapes, lines, foot: h.run[h.run.length - 1].y };
+    return withPeplumView(d, h, i === 0 && d.drape?.kind === 'cowl' ? cowlFront(d, h, view) : view);
   });
 }
 
@@ -561,7 +826,8 @@ export function dressFlat(d: DressDraft, edges: BodiceEdges = 'binding', opts: {
       const dy = b.foot - k.waistY;
       const move = (pts: P[]) => pts.map((q) => p(q.x, q.y + dy));
       const lines = [...b.lines, ...k.lines.map((l) => ({ ...l, pts: move(l.pts) }))];
-      if (b.label === 'BACK') {
+      // A one-shoulder dress zips in the side seam, out of sight.
+      if (b.label === 'BACK' && !d.zipSide) {
         const neck = b.shapes[0].reduce((m, q) => (Math.abs(q.x) < 1e-6 && q.y < m ? q.y : m), Infinity);
         lines.push({ pts: [p(0, neck), p(0, b.foot)], kind: 'seam' }, ...zip(neck, d.zipCm));
       }
