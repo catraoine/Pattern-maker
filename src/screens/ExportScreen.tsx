@@ -107,12 +107,12 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
       made ? layout(made.pieces, `Maison Tracé: ${title}`, made.notes, { pattern: title, madeFor: profile, date }, { atelier: finish.atelier }) : undefined,
     [made, title, profile, date, finish.atelier],
   );
-  // The seam check walks the garment's own pieces; its lining and facings follow them.
+  // The seam check walks the garment's own pieces and its pockets; its lining and facings follow them.
   const checks = useMemo(() => {
     if (!made) return [];
     const waist = made.spec.find((r) => r.label === 'Waist')?.finished;
     return checkPattern(
-      made.pieces.filter((pc) => !pc.kind || pc.kind === 'collar'),
+      made.pieces.filter((pc) => !pc.kind || pc.kind === 'collar' || pc.kind === 'pocket'),
       { finishedWaist: typeof waist === 'number' ? waist : undefined },
     );
   }, [made]);

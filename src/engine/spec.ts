@@ -1,11 +1,12 @@
 // Measurement tables for the tech pack: each body measurement the draft used, the ease added and the
 // finished garment measurement.
-import type { SkirtDraft, SkirtMeasurements } from './skirt';
+import type { Elastic, SkirtDraft, SkirtMeasurements } from './skirt';
 import type { BodiceDraft, BodiceLength, BodiceMeasurements } from './bodice';
 import type { SpecRow } from './techpack';
 import type { SleeveDraft, SleeveMeasurements } from './sleeve';
 import type { DressDraft, DressMeasurements } from './dress';
 import { TROUSER_EASE, type TrousersDraft, type TrousersMeasurements } from './trousers';
+import { INSEAM, SLANT } from './pockets';
 
 const r1 = (v: number) => Math.round(v * 10) / 10;
 const row = (label: string, body: number | undefined, finished: number): SpecRow =>
@@ -21,9 +22,22 @@ export function skirtSpec(m: SkirtMeasurements, d: SkirtDraft): SpecRow[] {
     ...(m.back_waist_to_hip !== undefined ? [{ label: 'Waist to hip, centre back', body: r1(m.back_waist_to_hip), finished: '' }] : []),
     row('Length, waist to hem', undefined, d.lengthCm),
     row('Hem circumference', undefined, d.hemCm),
-    { label: 'Waistband (finished width 3)', finished: `cut ${d.waistband.cutLength} x ${d.waistband.cutWidth}` },
-    { label: 'Invisible zip, centre back', finished: `${d.zipCm}` },
+    ...(d.pocket ? [row('In-seam pocket opening', undefined, d.pocket[1] - d.pocket[0])] : []),
+    ...waistRows(d),
   ];
+}
+
+/** The waistband, and the zip or the elastic that closes it. */
+function waistRows(d: { waistband: { cutLength: number; cutWidth: number }; elastic?: Elastic; zipCm: number }, zip = 'Invisible zip, centre back'): SpecRow[] {
+  return d.elastic
+    ? [
+        { label: 'Waistband, elastic casing (finished width 3)', finished: `cut ${d.waistband.cutLength} x ${d.waistband.cutWidth}` },
+        { label: `Elastic, ${d.elastic.widthCm} cm wide`, finished: `cut ${d.elastic.cutCm} (${d.elastic.finishedCm} joined)` },
+      ]
+    : [
+        { label: 'Waistband (finished width 3)', finished: `cut ${d.waistband.cutLength} x ${d.waistband.cutWidth}` },
+        { label: zip, finished: `${d.zipCm}` },
+      ];
 }
 
 export function bodiceSpec(m: BodiceMeasurements, d: BodiceDraft, length: BodiceLength, dropCm?: number): SpecRow[] {
@@ -81,7 +95,7 @@ export function trousersSpec(m: TrousersMeasurements, d: TrousersDraft): SpecRow
     row('Outside leg, waist to hem', undefined, d.lengthCm),
     row('Knee, round', undefined, d.kneeCm),
     row('Hem, round', undefined, d.hemCm),
-    { label: 'Waistband (finished width 3)', finished: `cut ${d.waistband.cutLength} x ${d.waistband.cutWidth}` },
-    { label: d.closure === 'fly' ? 'Trouser zip, fly front' : 'Invisible zip, left side', finished: `${d.zipCm}` },
+    ...(d.pockets !== 'none' ? [{ label: d.pockets === 'slant' ? 'Slant pockets' : d.pocketSides === 'right' ? 'In-seam pocket, right side' : 'In-seam pockets', finished: d.pockets === 'slant' ? `opening ${SLANT.in} in, ${SLANT.down} down` : `opening ${INSEAM.opening}` }] : []),
+    ...waistRows(d, d.closure === 'fly' ? 'Trouser zip, fly front' : 'Invisible zip, left side'),
   ];
 }

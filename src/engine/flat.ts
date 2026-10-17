@@ -11,6 +11,7 @@ import type { BodiceEdges } from './instructions';
 import { BAND_CM, SleeveDraft } from './sleeve';
 import type { DressDraft } from './dress';
 import type { TrousersDraft } from './trousers';
+import { INSEAM, SLANT } from './pockets';
 
 export type FlatLineKind = 'seam' | 'dart' | 'stitch' | 'zip';
 
@@ -208,6 +209,29 @@ function along(h: Half, tag: string | string[]): P[][] {
 
 const both = (pts: P[]) => [pts, mirror(pts)];
 
+/** An elastic waist's gathers: short strokes across the band and just below it. */
+function gathers(a: P, b: P, band: number): FlatView['lines'] {
+  const n = Math.max(3, Math.round(len(sub(b, a)) / 1.6));
+  return Array.from({ length: n }, (_, i) => {
+    const q = add(a, mul(sub(b, a), (i + 0.5) / n));
+    return { pts: [p(q.x, q.y - band + 0.4), p(q.x + 0.1, q.y + 1.2)], kind: 'seam' as const };
+  });
+}
+
+/**
+ * An in-seam pocket seen through the front: its bag drawn hidden (dashed) beside the side seam, from
+ * `top` down to `bottom` on a side line that runs from `a` to `b`, with bar tacks at the opening's ends.
+ */
+function pocketBag(a: P, b: P, opening: [number, number], inwardX: number): FlatView['lines'] {
+  const along = unit(sub(b, a));
+  const at = (d: number, inX: number) => add(add(a, mul(along, d)), p(inX * inwardX, 0));
+  const top = opening[0] - 2;
+  const foot = opening[1] + 3;
+  const bag = [at(foot, 0), at(foot + 6, 3), at(foot + 8, 8), at(foot + 5, 13), at(top + 3, 13), at(top, 10), at(top, 0)];
+  const tack = (d: number) => ({ pts: [at(d, -0.5), at(d, 0.9)], kind: 'seam' as const });
+  return [{ pts: bag, kind: 'stitch' }, tack(opening[0]), tack(opening[1])];
+}
+
 /** A centre back zip: the seam down from `top`, the pull at the top and a stop at the bottom. */
 function zip(top: number, cm: number): FlatView['lines'] {
   return [
@@ -294,11 +318,22 @@ function skirtViews(d: SkirtDraft, opts: { slit?: boolean; band: boolean; zipCm?
       waist = along(h, ['waist', 'dart'])[0] ?? [h.run[0]];
       lines = h.darts.flatMap((dt) => both(dt).map((pts) => ({ pts, kind: 'dart' as const })));
       hemY = h.run[h.run.length - 1].y;
+      // The pocket bag, where it hangs behind the front.
+      const bag = d.pieces.find((pc) => pc.kind === 'pocket');
+      if (bag && !back) {
+        const pts = bag.outline.points(8).map(h.move);
+        lines.push(...both(pts).map((q) => ({ pts: q, kind: 'stitch' as const })));
+      }
     }
-    // The waistband sits above the waist, as wide as it.
+    if (d.pocket && !back && d.circleShare) {
+      const side = shapes[0].slice(0, 3);
+      lines.push(...[1, -1].flatMap((s) => pocketBag(p(side[1].x * s, side[1].y), p(side[2].x * s, side[2].y), d.pocket!, -s)));
+    }
+    // The waistband sits above the waist, as wide as it, gathered on an elastic waist.
     if (opts.band) shapes.push(whole([...waist, ...[...waist].reverse().map((q) => p(q.x, q.y - WAISTBAND_CM))]));
+    if (opts.band && d.elastic) for (const run of [waist, mirror(waist)]) lines.push(...gathers(run[0], run[run.length - 1], WAISTBAND_CM));
     const cbTop = waist[0].y;
-    if (back) {
+    if (back && !d.pieces[1].fold) {
       const from = cbTop - (opts.band ? WAISTBAND_CM : (opts.seamFrom ?? 0));
       if (opts.slit) {
         const top = hemY - 15;
@@ -558,6 +593,19 @@ export function trousersFlat(d: TrousersDraft, m: { waist_to_hip: number; crotch
     ];
     const darts = back ? [0.36, 0.66].slice(0, d.dartsPerSide.back) : [0.5].slice(0, d.dartsPerSide.front);
     for (const f of darts) lines.push(...both([p(W * f, 0), p(W * f + 0.2, back ? 12 : 8)]).map((pts) => ({ pts, kind: 'dart' as const })));
+    if (d.elastic) for (const s of [1, -1]) lines.push(...gathers(p(0, top), p(W * s, 0), WAISTBAND_CM));
+    // Pockets, on the front: the slant opening and its topstitching, or an in-seam bag behind the side seam.
+    const sideAt = (y: number) => (y >= hd ? hw : W + (hw - W) * Math.sin((Math.min(y, hd) / hd) * (Math.PI / 2)));
+    if (!back && d.pockets === 'slant') {
+      const B = p(sideAt(SLANT.down), SLANT.down);
+      const A = p(W - SLANT.in, 0);
+      lines.push(...both([A, B]).map((pts) => ({ pts, kind: 'seam' as const })), ...both([add(A, p(-0.7, 0)), add(B, p(-0.7, 0.6))]).map((pts) => ({ pts, kind: 'stitch' as const })));
+    }
+    if (!back && d.pockets === 'inseam') {
+      const o: [number, number] = [INSEAM.top, INSEAM.top + INSEAM.opening];
+      // The right side as worn is the viewer's left on the front.
+      for (const s of d.pocketSides === 'right' ? [-1] : [1, -1]) lines.push(...pocketBag(p(W * s, 0), p(hw * s, hd + 12), o, -s));
+    }
     if (!back && d.closure === 'fly') {
       const z = d.zipCm;
       lines.push({ pts: [p(-3.5, 0), ...bend(p(-3.5, z - 2), p(-3.5, z + 0.5), p(0, z + 1.5))], kind: 'stitch' });

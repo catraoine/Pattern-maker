@@ -38,6 +38,8 @@ export function withAllowances(pc: Piece, style: AllowanceStyle): Piece {
   // The waist edge of a skirt is cut at the waist width, and so is the dart peak above it.
   allowances.waist = w.waist;
   allowances.dart = w.waist;
+  // A pocket's top edge is caught in the waist seam with the garment's.
+  allowances['pocket-waist'] = w.waist;
   if (style === 'couture' && allowances.hem >= 4) allowances.hem = 5;
   // A facing's free edge is neatened, not seamed, and a fold has no allowance whatever the style.
   for (const tag of ['facing', 'fold']) if (tag in pc.allowances) allowances[tag] = pc.allowances[tag];

@@ -5,7 +5,8 @@ import { SHAPES_FOR_LENGTH, SleeveLength, SleeveShape } from './engine/sleeve';
 import type { DartPlace, PrincessLine } from './engine/manipulate';
 import type { Closure, Collar } from './engine/collar';
 import { LEG_WORDS, Leg, TrouserClosure, TrouserLength } from './engine/trousers';
-import type { Fit } from './engine/skirt';
+import type { Fit, WaistStyle } from './engine/skirt';
+import type { PocketStyle } from './engine/pockets';
 
 export interface BodiceChoices {
   garment: 'bodice';
@@ -36,28 +37,55 @@ export interface DressChoices {
   skirt: Choices;
 }
 
-/** Trousers: the leg's shape and length, and a fly or side zip. */
+/** Trousers: the leg's shape and length, a fly or side zip (or a pull-on elastic waist), and pockets. */
 export interface TrousersChoices {
   garment: 'trousers';
   fit: Fit;
   leg: Leg;
   length: TrouserLength;
   closure: TrouserClosure;
+  /** Older saves have no pockets and a waistband with a zip. */
+  pockets?: PocketStyle;
+  waist?: WaistStyle;
 }
 
 export const DEFAULT_TROUSERS_CHOICES: TrousersChoices = { garment: 'trousers', fit: 'regular', leg: 'straight', length: 'full', closure: 'fly' };
 
-export const TROUSER_GROUPS: { id: 'fit' | 'leg' | 'length' | 'closure'; label: string; options: [string, string][] }[] = [
+export type TrouserGroupId = 'fit' | 'leg' | 'length' | 'waist' | 'closure' | 'pockets';
+
+export const TROUSER_GROUPS: { id: TrouserGroupId; label: string; options: [string, string][] }[] = [
   { id: 'fit', label: 'Fit', options: [['fitted', 'Fitted'], ['regular', 'Regular'], ['relaxed', 'Relaxed']] },
   { id: 'leg', label: 'Leg', options: [['straight', 'Straight'], ['wide', 'Wide'], ['tapered', 'Tapered'], ['culotte', 'Culotte']] },
   { id: 'length', label: 'Length', options: [['full', 'Full length'], ['ankle', 'Ankle']] },
+  { id: 'waist', label: 'Waist', options: [['band', 'Waistband with zip'], ['elastic', 'Elastic, pull-on']] },
   { id: 'closure', label: 'Opening', options: [['fly', 'Fly zip'], ['side_zip', 'Side zip']] },
+  { id: 'pockets', label: 'Pockets', options: [['none', 'None'], ['inseam', 'In-seam'], ['slant', 'Slant front']] },
 ];
 
-/** A plain name, such as "Ankle-length wide-leg trousers with a side zip". */
+/** A trouser choice as saved, older saves falling back to no pockets and a zipped waistband. */
+export const trouserChoice = (c: TrousersChoices, id: TrouserGroupId): string => (id === 'pockets' ? (c.pockets ?? 'none') : id === 'waist' ? (c.waist ?? 'band') : c[id]);
+
+/**
+ * Whether a trouser choice can be picked with the rest, and why not: a pull-on waist has no opening
+ * to choose, and slant pockets sit where a side zip would go.
+ */
+export function trouserAllowed(c: TrousersChoices, id: TrouserGroupId, opt: string): boolean {
+  if (id === 'closure') return c.waist !== 'elastic';
+  if (id === 'pockets' && opt === 'slant') return c.waist === 'elastic' || c.closure === 'fly';
+  return true;
+}
+
+/** The choices made valid: slant pockets beside a side zip fall back to in-seam ones. */
+export function validTrousers(c: TrousersChoices): TrousersChoices {
+  return c.pockets === 'slant' && !trouserAllowed(c, 'pockets', 'slant') ? { ...c, pockets: 'inseam' } : c;
+}
+
+/** A plain name, such as "Ankle-length wide-leg trousers with a side zip and in-seam pockets". */
 export function describeTrousers(c: TrousersChoices) {
   const length = c.leg === 'culotte' ? '' : c.length === 'ankle' ? 'Ankle-length ' : '';
-  const words = `${length}${LEG_WORDS[c.leg]} with a ${c.closure === 'fly' ? 'fly front' : 'side zip'}`;
+  const pockets = c.pockets === 'slant' ? 'slant pockets' : c.pockets === 'inseam' ? 'in-seam pockets' : '';
+  const opening = c.waist === 'elastic' ? 'an elastic waist' : `a ${c.closure === 'fly' ? 'fly front' : 'side zip'}`;
+  const words = `${length}${LEG_WORDS[c.leg]} with ${opening}${pockets ? ` and ${pockets}` : ''}`;
   return words[0].toUpperCase() + words.slice(1);
 }
 

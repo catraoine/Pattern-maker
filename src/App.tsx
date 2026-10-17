@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { HemShape } from './engine/hem';
-import { DraftError, Fit, Length, Silhouette, SkirtDraft, SkirtMeasurements, SkirtShape, draftSkirt } from './engine/skirt';
+import { DraftError, Fit, Length, Silhouette, SkirtDraft, SkirtMeasurements, SkirtShape, WaistStyle, draftSkirt } from './engine/skirt';
 import { BodiceDraft, BodiceMeasurements, blockOf, draftBodice } from './engine/bodice';
 import { BodiceEdges, SewingGuide, bodiceGuide, dressGuide, hasSlit, sewingGuide } from './engine/instructions';
 import { bodiceFlat, dressFlat, skirtFlat, trousersFlat } from './engine/flat';
@@ -61,6 +61,7 @@ import { CheckFileScreen } from './screens/CheckFileScreen';
 import { LoadingScreen } from './ui/LoadingScreen';
 import type { FormStart } from './ui/ContourForm';
 import type { Piece } from './engine/piece';
+import type { PocketStyle } from './engine/pockets';
 import { garmentEase } from './engine/easeMap';
 
 export type Step = 'measure' | 'style' | 'export';
@@ -80,6 +81,10 @@ export interface Choices {
   flareCm?: number;
   /** Drawn on the sketch: a shaped hem. */
   hem?: HemShape;
+  /** In-seam pockets. Older saves have none. */
+  pockets?: 'none' | 'inseam';
+  /** A waistband with a zip (older saves), or a pull-on elastic waist. */
+  waist?: WaistStyle;
 }
 
 // Saved under the original "skirt" key so measurements from before bodices still load; older saves
@@ -120,6 +125,10 @@ export interface Finish {
 export const DEFAULT_FINISH: Finish = { allowances: 'home', skirtLined: false, bodiceEdges: 'binding', atelier: false, fabricWidth: 140, nap: false, route: 'quick', cloth: 'wool' };
 
 const fmtCm = (v: number) => `${v} cm`;
+
+/** Pockets, for the notes on the pattern's first page. */
+const pocketWords = (style: PocketStyle, sides?: 'both' | 'right') =>
+  style === 'slant' ? ', with slant pockets' : style === 'inseam' ? (sides === 'right' ? ', with an in-seam pocket on the right' : ', with in-seam pockets') : '';
 
 /** The pattern's version and its toile corrections, for the title block, in lines that fit it. */
 function fittingLines(f: Fitting | undefined, garment: Garment): string[] {
@@ -245,7 +254,8 @@ export default function App() {
     const lv = (b: BodiceDraft) => ({ bust: b.front.apex.y, waist: b.front.waistCentre.y, block: b.block });
     if (bodice) return garmentEase(bodice.pieces, values, lv(bodice));
     if (d) return garmentEase(d.pieces, values, lv(d.bodice));
-    if (trousers) return garmentEase(trousers.pieces, values);
+    // Read before a slant pocket is cut from the front, which would look like a gap at the waist.
+    if (trousers) return garmentEase(trousers.block, values);
     if (skirt) return garmentEase(skirt.pieces, values);
     return undefined;
   }, [result, values]);
@@ -256,12 +266,14 @@ export default function App() {
       (f: Fitting): Piece[] | undefined => {
         try {
           if (garment === 'bodice') return draftBodice(values as BodiceMeasurements, { ...saved.bodice, fitting: withFabricEase(toFitting(f, 'bodice'), fabric, 'bodice') }).pieces;
-          if (garment === 'trousers') return draftTrousers(values as TrousersMeasurements, { ...trousersChoices, fitting: withFabricEase(toFitting(f, 'skirt'), fabric, 'skirt') }).pieces;
+          // The garment's own pieces: pocket bags don't change with a fitting.
+          const own = (pcs: Piece[]) => pcs.filter((pc) => pc.kind !== 'pocket');
+          if (garment === 'trousers') return draftTrousers(values as TrousersMeasurements, { ...trousersChoices, fitting: withFabricEase(toFitting(f, 'skirt'), fabric, 'skirt') }).block;
           if (garment === 'dress') {
             const st = dressStyles(f);
-            return draftDress(values as DressMeasurements, st.bodice, st.skirt).pieces;
+            return own(draftDress(values as DressMeasurements, st.bodice, st.skirt).pieces);
           }
-          return draftSkirt(values as SkirtMeasurements, { ...saved.choices, fitting: withFabricEase(toFitting(f, 'skirt'), fabric, 'skirt') }).pieces;
+          return own(draftSkirt(values as SkirtMeasurements, { ...saved.choices, fitting: withFabricEase(toFitting(f, 'skirt'), fabric, 'skirt') }).pieces);
         } catch {
           return undefined;
         }
@@ -319,7 +331,13 @@ export default function App() {
           couture
             ? `Couture allowances: ${fmtCm(seams.seam)} at the seams, ${fmtCm(seams.waist)} at the waist, 1 cm on the crotch curve, ${fmtCm(hem)} at the hem. Thread-trace the solid stitching line.`
             : `Seam allowance ${fmtCm(seams.seam)} included, 1 cm on the crotch curve, ${fmtCm(hem)} at the hem. Dashed line = stitching line.`,
-          `${trousers.closure === 'fly' ? `A ${trousers.zipCm} cm fly zip with its facing and shield` : `A ${trousers.zipCm} cm invisible zip in the left side seam`}, and the waistband. The crease line is the grain line. Sewing steps are on the last pages.`,
+          `${
+            trousers.elastic
+              ? `A pull-on elastic waist, with no zip: ${trousers.elastic.cutCm} cm of ${trousers.elastic.widthCm} cm elastic in the waistband casing`
+              : trousers.closure === 'fly'
+                ? `A ${trousers.zipCm} cm fly zip with its facing and shield, and the waistband`
+                : `A ${trousers.zipCm} cm invisible zip in the left side seam, and the waistband`
+          }${pocketWords(trousers.pockets, trousers.pocketSides)}. The crease line is the grain line. Sewing steps are on the last pages.`,
           ...fittingNotes,
         ],
         guide: withFabric(trousersGuide(trousers, lays.find((l) => l.fabric === 'self')?.metres ?? trousersFabricMetres(trousers), { seams, width: finish.fabricWidth }), fabric, 'trousers'),
@@ -333,7 +351,7 @@ export default function App() {
       let lining: SkirtDraft | undefined;
       if (finish.skirtLined) {
         try {
-          lining = draftSkirt(values as SkirtMeasurements, { ...skirtStyle, lengthCm: skirt.lengthCm - 2.5 });
+          lining = draftSkirt(values as SkirtMeasurements, { ...skirtStyle, lengthCm: skirt.lengthCm - 2.5, pockets: 'none' });
         } catch {
           lining = undefined;
         }
@@ -345,11 +363,11 @@ export default function App() {
       return {
         pieces,
         notes: [
-          `Finished waist ${skirt.finishedWaist} cm, hip ${skirt.finishedHip} cm, length ${skirt.lengthCm} cm.`,
+          `Finished waist ${skirt.finishedWaist} cm${skirt.elastic ? `, gathered onto ${skirt.elastic.finishedCm} cm of elastic` : ''}, hip ${skirt.finishedHip} cm, length ${skirt.lengthCm} cm.`,
           couture
             ? `Couture allowances: ${fmtCm(seams.seam)} at the seams, ${fmtCm(seams.waist)} at the waist, ${fmtCm(hem)} at the hem. Thread-trace the solid stitching line.`
             : `Seam allowance ${fmtCm(seams.seam)} included, ${fmtCm(hem)} at the hem. Dashed line = stitching line.`,
-          `Waistband${lining ? ' and lining' : ''} included. Sewing steps are on the last pages.`,
+          `${skirt.elastic ? `A pull-on elastic waist, with no zip: ${skirt.elastic.cutCm} cm of ${skirt.elastic.widthCm} cm elastic in the waistband casing` : 'Waistband'}${lining ? ' and lining' : ''}${pocketWords(skirt.pocket ? 'inseam' : 'none')} included. Sewing steps are on the last pages.`,
           ...fittingNotes,
         ],
         guide: route(
@@ -387,7 +405,7 @@ export default function App() {
           couture
             ? `Couture allowances: ${fmtCm(seams.seam)} at the seams, ${fmtCm(seams.waist)} at the waist, ${fmtCm(seams.curve)} at the neck and armholes. Thread-trace the solid stitching line.`
             : `Seam allowance ${fmtCm(seams.seam)} included, ${fmtCm(seams.curve)} at the neck and armholes, ${fmtCm(pieces.find((pc) => pc.name === 'Skirt front')?.allowances.hem ?? 4)} at the hem. Dashed line = stitching line.`,
-          `The skirt is drafted to the bodice: waist seams the same length and darts in one line. A ${d.zipCm} cm centre back zip and ${edgeWords}. Sewing steps are on the last pages.`,
+          `The skirt is drafted to the bodice: waist seams the same length and darts in one line. A ${d.zipCm} cm centre back zip and ${edgeWords}${pocketWords(d.skirt.pocket ? 'inseam' : 'none')}. Sewing steps are on the last pages.`,
           ...(sleeve ? [`Sleeve: bicep ${sleeve.bicep} cm, ${sleeve.gathers?.crown !== undefined ? `${sleeve.gathers.crown} cm gathered into the crown` : `crown ease ${sleeve.crownEase.front} cm front, ${sleeve.crownEase.back} cm back`}.`] : []),
           ...fittingNotes,
         ],

@@ -104,6 +104,8 @@ export function edgeLabels(pc: Piece): EdgeLabel[] {
     centre: front ? 'CENTRE FRONT SEAM' : 'CENTRE BACK SEAM',
     fold: front ? 'CENTRE FRONT' : 'CENTRE BACK',
     facing: 'NEATEN THIS EDGE',
+    'pocket-side': 'SIDE SEAM',
+    'pocket-edge': 'POCKET OPENING',
   };
   const { pts, tags } = pc.outline.taggedPoints(24);
   // Longest unbroken run of each tag.
