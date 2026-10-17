@@ -7,6 +7,7 @@ import '@fontsource/chakra-petch/500.css';
 import '@fontsource/space-grotesk/300.css';
 import '@fontsource/space-grotesk/400.css';
 import '@fontsource/space-grotesk/500.css';
+import '@fontsource/bodoni-moda/latin-400-italic.css';
 import './styles.css';
 
 // Review link: opening the site with ?fresh clears this browser's saved progress, so the app starts

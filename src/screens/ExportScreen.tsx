@@ -480,6 +480,41 @@ const FABRIC_OPTIONS: { id: Fibre | Special; label: string }[] = [
   ...SPECIAL_IDS.map((id) => ({ id, label: SPECIALS[id].label })),
 ];
 
+const fabricPhoto = (id?: Fibre | Special) => `${import.meta.env.BASE_URL}fabrics/${id ?? 'default'}.jpg`;
+
+/** A close-up of the chosen cloth, with its name and how it handles. */
+function FabricStage({ fabric }: { fabric: MyFabric }) {
+  const id = fabric.special ?? fabric.fibre;
+  const label = fabric.special ? SPECIALS[fabric.special].label : fabric.fibre ? FIBRES[fabric.fibre].label : undefined;
+  const handle = [fabric.weight && `${fabric.weight} weight`, fabric.drape && `${fabric.drape} drape`].filter(Boolean).join(', ');
+  return (
+    <figure className="fabstage">
+      <img src={fabricPhoto(id)} alt={label ? `${label} close up` : ''} />
+      <figcaption>
+        <span className="fabname">{label ?? 'No fabric chosen'}</span>
+        <span className="muted small">{label ? (handle ? handle[0].toUpperCase() + handle.slice(1) : 'Set the weight and drape below.') : 'Tap a swatch to choose.'}</span>
+      </figcaption>
+    </figure>
+  );
+}
+
+/** Every fabric as a photo swatch; tapping the chosen one again clears it. */
+function Swatches({ value, onPick }: { value?: Fibre | Special; onPick: (v: Fibre | Special | undefined) => void }) {
+  return (
+    <fieldset className="group">
+      <legend>Fabric</legend>
+      <div className="swatches">
+        {FABRIC_OPTIONS.map((o) => (
+          <button key={o.id} type="button" className={value === o.id ? 'swatch on' : 'swatch'} aria-pressed={value === o.id} onClick={() => onPick(value === o.id ? undefined : o.id)}>
+            <img src={fabricPhoto(o.id)} alt="" loading="lazy" />
+            <span>{o.label}</span>
+          </button>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
 /** The fabric the maker has bought: checked against the style, and carried into the ease, the PDF and the tech pack. */
 function YourFabric({ fabric, onFabric, style }: { fabric: MyFabric; onFabric: (f: MyFabric) => void; style: Props['style'] }) {
   const set = (patch: Partial<MyFabric>) => onFabric({ ...fabric, ...patch });
@@ -499,10 +534,11 @@ function YourFabric({ fabric, onFabric, style }: { fabric: MyFabric; onFabric: (
       <div className="row between wrap">
         <div>
           <p className="eyebrow">Your fabric</p>
-          <h2 id="fabtitle">What are you making it in?</h2>
+          <h2 id="fabtitle" className="fabhead">Choose your fabric</h2>
         </div>
         <FabricGuide />
       </div>
+      <FabricStage fabric={fabric} />
       <p className="muted small">Optional. It goes on the PDF and the tech pack, sets the couture seam finish and pressing, and adjusts the ease for heavy cloth.</p>
       <div className="fields">
         <div className="field plain">
@@ -514,7 +550,7 @@ function YourFabric({ fabric, onFabric, style }: { fabric: MyFabric; onFabric: (
           <input id="fabcolour" type="text" autoComplete="off" value={fabric.colour ?? ''} onChange={(e) => set({ colour: e.target.value })} />
         </div>
       </div>
-      <Chips label="Fabric" options={FABRIC_OPTIONS} value={fabric.special ?? fabric.fibre} onPick={pickFabric} />
+      <Swatches value={fabric.special ?? fabric.fibre} onPick={pickFabric} />
       <label className="check">
         <input type="checkbox" checked={!!fabric.checks} onChange={(e) => set({ checks: e.target.checked ? {} : undefined })} />
         <span>
