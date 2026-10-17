@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { canGoBack, goBack, useViewHistory } from './nav';
 import type { HemShape } from './engine/hem';
 import { DraftError, Fit, Length, Silhouette, SkirtDraft, SkirtMeasurements, SkirtShape, draftSkirt } from './engine/skirt';
 import { BodiceDraft, BodiceMeasurements, blockOf, draftBodice } from './engine/bodice';
@@ -17,7 +18,7 @@ import { SleeveDraft, SleeveMeasurements, draftSleeve, needsArms } from './engin
 import { Fitting, carriedFitting, describeCarried, describeFitting, saveVersion, toFitting } from './engine/fitting';
 import { FabricWidth, layPlans } from './engine/layplan';
 import { MyFabric, clothFor, withFabric, withFabricEase } from './engine/fabrics';
-import { EXAMPLE_VALUES, FIELDS, Garment, MeasurementValues, Unit, checkMeasurements, isComplete } from './measurements';
+import { EXAMPLE_VALUES, Garment, MeasurementValues, Unit, checkMeasurements, isComplete } from './measurements';
 import { usePersistent } from './store';
 import {
   Account,
@@ -25,7 +26,6 @@ import {
   NEW_ACCOUNT,
   activePerson,
   addPerson,
-  claimMeasurements,
   isSavedFor,
   makeBackup,
   personName,
@@ -51,10 +51,9 @@ import { OuterStyleScreen, outerFabricMetres } from './screens/OuterStyleScreen'
 import { ExportScreen, Printable } from './screens/ExportScreen';
 import { describePattern } from './screens/describe';
 import { WelcomeScreen } from './screens/WelcomeScreen';
-import { MeasureStepsScreen } from './screens/MeasureStepsScreen';
+import { MeasureStepsScreen, type StepsStart } from './screens/MeasureStepsScreen';
 import { AccountScreen } from './screens/AccountScreen';
 import { PhotoScreen } from './screens/PhotoScreen';
-import { WhoseScreen } from './screens/WhoseScreen';
 import { LegalScreen } from './screens/LegalScreen';
 import { PRIVACY, TERMS } from './legal';
 import { FittingScreen } from './screens/FittingScreen';
@@ -67,7 +66,7 @@ import type { Piece } from './engine/piece';
 import { garmentEase } from './engine/easeMap';
 
 export type Step = 'measure' | 'style' | 'export';
-type View = Step | 'welcome' | 'steps' | 'account' | 'photo' | 'whose' | 'fitting' | 'scale' | 'client' | 'check' | 'privacy' | 'terms';
+type View = Step | 'welcome' | 'steps' | 'account' | 'photo' | 'fitting' | 'scale' | 'client' | 'check' | 'privacy' | 'terms';
 
 export interface Choices {
   fit: Fit;
@@ -149,9 +148,6 @@ const INITIAL: Saved = {
   bodice: DEFAULT_BODICE,
 };
 
-/** Whether every measurement this garment needs is still the example value. */
-const isExample = (values: MeasurementValues, garment: Garment) =>
-  FIELDS[garment].filter((f) => !f.optional).every((f) => values[f.id] === EXAMPLE_VALUES[f.id]);
 /** The sleeve for a bodice, drafted to its armhole with its allowances, when one is chosen and the arms are measured. */
 function sleeveFor(bodice: BodiceDraft, choices: BodiceChoices, values: MeasurementValues): SleeveDraft | undefined {
   const { length, shape } = sleeveOf(choices);
@@ -175,6 +171,24 @@ const STEPS: { id: Step; label: string }[] = [
   { id: 'export', label: 'Print' },
 ];
 
+/** Which of the three steps each screen belongs to, lit in the header. Account and the legal pages belong to none. */
+const STEP_OF: Partial<Record<View, Step>> = { steps: 'measure', measure: 'measure', style: 'style', photo: 'style', export: 'export', fitting: 'export', scale: 'export' };
+
+/** Side screens name where they hang off, under the header, so you can see where you are. */
+const SIDE: Partial<Record<View, [string, string]>> = {
+  photo: ['Style', 'From a photo'],
+  fitting: ['Print', 'Fitting'],
+  scale: ['Print', 'True size'],
+  client: ['Account', 'Client book'],
+  check: ['Account', 'Check a file'],
+};
+
+/** Screens that draw a pattern, so they need the measurements first. */
+const NEEDS_MEASUREMENTS: View[] = ['style', 'export', 'fitting', 'scale'];
+
+/** Where the header's back goes when there's nothing behind in history, such as after a reload. */
+const PARENT: Partial<Record<View, View>> = { measure: 'welcome', steps: 'welcome', style: 'measure', photo: 'style', export: 'style', fitting: 'export', scale: 'export', account: 'style', client: 'account', check: 'account', privacy: 'welcome', terms: 'welcome' };
+
 export default function App() {
   const [saved, setSaved] = usePersistent<Saved>('skirt', INITIAL);
   const [storedAccount, setAccount] = usePersistent<Account>('account', NEW_ACCOUNT);
@@ -185,13 +199,10 @@ export default function App() {
   const { garment } = saved;
   // Every visit opens on the welcome screen (Cat's pick, 2026-10-16). Saved measurements and
   // patterns are kept, so a returning sewist taps through and carries on.
-  const [step, setStep] = useState<View>('welcome');
-  // Where the legal pages go back to.
-  const [beforeLegal, setBeforeLegal] = useState<View>('welcome');
-  const openLegal = (page: 'privacy' | 'terms') => {
-    if (step !== 'privacy' && step !== 'terms') setBeforeLegal(step);
-    setStep(page);
-  };
+  // Screens live in the browser's history, so phone and browser back step back through the app. Landing back
+  // on a pattern screen whose measurements have since gone sends you to Measure instead.
+  const [step, setStep] = useViewHistory<View>('welcome', (to) => (NEEDS_MEASUREMENTS.includes(to) && !canLeaveMeasure ? 'measure' : to));
+  const openLegal = (page: 'privacy' | 'terms') => setStep(page);
   // The loading screen plays when someone first opens the app, on the way into the welcome. People coming
   // back to their work go straight to it.
   const [opening, setOpening] = useState(step === 'welcome');
@@ -496,11 +507,20 @@ export default function App() {
   const isSaved = isSavedFor(account, current, person.id);
   const saveState = isSaved ? 'saved' : account.patterns.length >= FREE_SAVED_LIMIT ? 'full' : 'can';
 
-  /** Switch garment, going back to measuring when the new one still needs measurements. */
-  const switchGarment = (g: Garment, next: Partial<Saved> = {}, to: View = step, using: MeasurementValues = values, who: string = profile) => {
+  // Where the guided measuring opens: the list of what to make, the next measurement a garment needs, or one to redo.
+  const [stepsStart, setStepsStart] = useState<{ at: number; start?: StepsStart }>({ at: 0 });
+  const openSteps = (start?: StepsStart) => {
+    setStepsStart({ at: stepsStart.at + 1, start });
+    setStep('steps');
+  };
+  /** "Choose another garment": the same list as when measuring. */
+  const chooseGarment = () => openSteps({ kind: 'choose' });
+
+  /** Switch garment, going straight to the measurements the new one still needs, one page each. */
+  const switchGarment = (g: Garment, next: Partial<Saved> = {}, to: View = step, using: MeasurementValues = values) => {
     setSaved({ ...saved, ...next, garment: g });
     const stays = to === 'style' || to === 'export';
-    if (stays && !ready(using, saved.unit, g)) sendToMeasure(`The ${g} needs a few more of ${who === 'Me' ? 'your' : `${who}'s`} measurements first.`);
+    if (stays && !ready(using, saved.unit, g)) openSteps({ kind: 'for', garment: g });
     else setStep(to);
   };
 
@@ -518,9 +538,7 @@ export default function App() {
   const switchPerson = (id: string, to: View = step) => {
     const who = account.people.find((p) => p.id === id) ?? person;
     setAccount({ ...account, active: who.id });
-    const name = personName(account, who);
-    if ((to === 'style' || to === 'export') && !ready(who.values, saved.unit, garment))
-      sendToMeasure(`The ${garment} needs a few more of ${who.id === ME ? 'your' : `${name}'s`} measurements first.`);
+    if ((to === 'style' || to === 'export') && !ready(who.values, saved.unit, garment)) openSteps({ kind: 'for', garment });
     else setStep(to);
   };
 
@@ -541,6 +559,19 @@ export default function App() {
     setStep('welcome');
   };
 
+  /** The header's ←: one step back through history, like the phone's back. */
+  const back = () => (canGoBack() ? goBack() : setStep(PARENT[step] ?? 'welcome'));
+
+  /** A step in the header. Style and Print wait for the measurements, and say so. */
+  const openStep = (to: Step) => {
+    if (STEP_OF[step] === to && step !== 'photo' && step !== 'fitting' && step !== 'scale') return;
+    if (to !== 'measure' && !canLeaveMeasure) {
+      if (step !== 'steps') sendToMeasure(`Measure first: the ${garment} needs a few more measurements before it can be styled.`);
+      return;
+    }
+    setStep(to);
+  };
+
   const findForm = () => {
     const r = document.querySelector('.welcome-hero canvas')?.getBoundingClientRect();
     return r && r.width > 0 && r.height > 0 ? { x: r.left, y: r.top, w: r.width, h: r.height } : null;
@@ -556,41 +587,63 @@ export default function App() {
         />
       )}
       <div className="app" {...{ inert: opening ? '' : undefined }}>
-        <header className="topbar">
-          <div className="brand">
-            <svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true">
-              <rect x="2.5" y="2.5" width="27" height="27" fill="none" style={{ stroke: 'var(--ink)' }} strokeWidth="1" />
-              <path d="M10 22 L16 10 L22 22 M12.5 17 H19.5" style={{ stroke: 'var(--ink)' }} strokeWidth="1" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            <span>Maison Tracé</span>
-          </div>
-          {step !== 'welcome' && step !== 'steps' && step !== 'privacy' && step !== 'terms' && (
-            <div className="row nav">
-          <nav aria-label="Steps" className="steps">
-            {STEPS.map((s, i) => (
-              <button
-                key={s.id}
-                type="button"
-                className={s.id === step ? 'step on' : 'step'}
-                aria-current={s.id === step ? 'step' : undefined}
-                disabled={s.id !== 'measure' && !canLeaveMeasure}
-                onClick={() => setStep(s.id)}
-              >
-                <span className="num">{i + 1}</span>
-                {s.label}
-              </button>
-            ))}
-          </nav>
-              <button
-                type="button"
-                className={step === 'account' ? 'avatar on' : 'avatar'}
-                aria-label={`Your account (${owner})`}
-                aria-current={step === 'account' ? 'page' : undefined}
-                onClick={() => setStep('account')}
-              >
-                {owner[0].toUpperCase()}
-              </button>
+        <header className={step === 'welcome' ? 'topbar' : 'topbar steady'}>
+          {step === 'welcome' ? (
+            <div className="brand">
+              <svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true">
+                <rect x="2.5" y="2.5" width="27" height="27" fill="none" style={{ stroke: 'var(--ink)' }} strokeWidth="1" />
+                <path d="M10 22 L16 10 L22 22 M12.5 17 H19.5" style={{ stroke: 'var(--ink)' }} strokeWidth="1" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <span>Maison Tracé</span>
             </div>
+          ) : (
+            <>
+              <div className="steady-row">
+                <button type="button" className="steady-back" aria-label="Back" onClick={back}>
+                  ←
+                </button>
+                <nav aria-label="Steps" className="steps">
+                  {STEPS.map((s) => {
+                    const on = STEP_OF[step] === s.id;
+                    const locked = s.id !== 'measure' && !canLeaveMeasure;
+                    return (
+                      <button
+                        key={s.id}
+                        type="button"
+                        className={on ? 'step on' : locked ? 'step locked' : 'step'}
+                        aria-current={on ? 'step' : undefined}
+                        title={locked ? 'Measure first' : undefined}
+                        onClick={() => openStep(s.id)}
+                      >
+                        {s.label}
+                      </button>
+                    );
+                  })}
+                </nav>
+                <button
+                  type="button"
+                  className={step === 'account' ? 'avatar on' : 'avatar'}
+                  aria-label={`Your account (${owner})`}
+                  aria-current={step === 'account' ? 'page' : undefined}
+                  onClick={() => setStep('account')}
+                >
+                  {/* Until you give your name, a figure rather than the "M" of "Me", which reads as someone else's initial. */}
+                  {account.name.trim() ? (
+                    owner[0].toUpperCase()
+                  ) : (
+                    <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1">
+                      <circle cx="9" cy="6" r="3.2" />
+                      <path d="M2.5 16.5 C3.5 12.5 6 11 9 11 C12 11 14.5 12.5 15.5 16.5" strokeLinecap="round" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+              {SIDE[step] && (
+                <p className="crumb">
+                  {SIDE[step]![0]} › <span>{SIDE[step]![1]}</span>
+                </p>
+              )}
+            </>
           )}
         </header>
 
@@ -598,6 +651,7 @@ export default function App() {
           {step === 'welcome' && (
             <WelcomeScreen
               formStart={formStart}
+              onLegal={openLegal}
               onFinish={({ start }) => {
                 const onboarded = { ...account, onboarded: true };
                 setAccount(start === 'example' ? updatePerson(onboarded, person.id, { values: { ...EXAMPLE_VALUES, ...values } }) : onboarded);
@@ -607,13 +661,16 @@ export default function App() {
           )}
           {step === 'steps' && (
             <MeasureStepsScreen
+              key={stepsStart.at}
+              start={stepsStart.start}
+              onSomeoneElse={(name) => setAccount(addPerson(account, name))}
+              theirs={person.id !== ME}
               garment={garment}
               unit={saved.unit}
               values={values}
               onUnit={(unit) => setSaved({ ...saved, unit })}
               onValues={setValues}
-              onBack={() => setStep('welcome')}
-              onDone={(g) => switchGarment(g, {}, person.id === ME && !person.named ? 'whose' : 'style')}
+              onDone={(g) => switchGarment(g, {}, 'style')}
             />
           )}
           {(step === 'privacy' || step === 'terms') && (
@@ -621,31 +678,18 @@ export default function App() {
               doc={step === 'privacy' ? PRIVACY : TERMS}
               otherLabel={step === 'privacy' ? TERMS.title : PRIVACY.title}
               onOther={() => openLegal(step === 'privacy' ? 'terms' : 'privacy')}
-              onBack={() => setStep(beforeLegal)}
-            />
-          )}
-          {step === 'whose' && (
-            <WhoseScreen
-              garment={garment}
-              unit={saved.unit}
-              values={values}
-              ownerName={account.name}
-              onDone={(whose, name) => {
-                setAccount(claimMeasurements(account, whose, name));
-                setStep('style');
-              }}
             />
           )}
           {step === 'photo' && (
             <PhotoScreen
               measured={canLeaveMeasure}
               onApply={(choices) => switchGarment('skirt', { choices }, 'style')}
-              onCancel={() => setStep(canLeaveMeasure ? 'style' : 'measure')}
             />
           )}
           {step === 'account' && (
             <AccountScreen
               account={account}
+              onLegal={openLegal}
               unit={saved.unit}
               onName={(name) => setAccount({ ...account, name })}
               onUnit={(unit) => setSaved({ ...saved, unit })}
@@ -691,19 +735,16 @@ export default function App() {
               onAddPerson={(name) => setAccount(addPerson(account, name))}
               profile={profile}
               garment={garment}
-              onGarment={(g) => switchGarment(g)}
+              onChooseGarment={chooseGarment}
               unit={saved.unit}
               values={values}
               checks={checks}
-              onUnit={(unit) => setSaved({ ...saved, unit })}
-              onValues={setValues}
-              onExample={() => setValues({ ...EXAMPLE_VALUES, ...values })}
               canContinue={canLeaveMeasure}
               notice={measureNote}
+              onMeasure={(ids) => openSteps({ kind: 'redo', garment, ids })}
               onNext={() => {
                 setAccount(updatePerson(account, person.id, recordMeasurements(person, new Date().toISOString().slice(0, 10))));
-                // Example numbers aren't anyone's, so there's nobody to ask about yet.
-                setStep(person.id === ME && !person.named && !isExample(values, garment) ? 'whose' : 'style');
+                setStep('style');
               }}
             />
           )}
@@ -713,7 +754,7 @@ export default function App() {
               choices={saved.choices}
               onChoices={(choices) => setSaved({ ...saved, choices })}
               fabric={fabric}
-              onGarment={(g) => switchGarment(g)}
+              onChooseGarment={chooseGarment}
               values={values}
               draft={result.skirt}
               error={result.error}
@@ -735,7 +776,7 @@ export default function App() {
               choices={saved.bodice}
               onChoices={(bodice) => setSaved({ ...saved, bodice })}
               fabric={fabric}
-              onGarment={(g) => switchGarment(g)}
+              onChooseGarment={chooseGarment}
               values={values}
               draft={result.bodice}
               sleeve={result.sleeve}
@@ -755,7 +796,7 @@ export default function App() {
               choices={dress}
               onChoices={(d) => setSaved({ ...saved, dress: d })}
               fabric={fabric}
-              onGarment={(g) => switchGarment(g)}
+              onChooseGarment={chooseGarment}
               values={values}
               draft={result.dress}
               sleeve={result.sleeve}
@@ -775,7 +816,7 @@ export default function App() {
               choices={trousersChoices}
               onChoices={(t) => setSaved({ ...saved, trousers: t })}
               fabric={fabric}
-              onGarment={(g) => switchGarment(g)}
+              onChooseGarment={chooseGarment}
               values={values}
               draft={result.trousers}
               error={result.error}
@@ -795,7 +836,7 @@ export default function App() {
               choices={outerChoices}
               onChoices={(c) => setSaved({ ...saved, [garment]: c })}
               fabric={fabric}
-              onGarment={(g) => switchGarment(g)}
+              onChooseGarment={chooseGarment}
               values={values}
               draft={result.outer}
               error={result.error}
@@ -827,7 +868,6 @@ export default function App() {
               }
               made={printable}
               error={result.error}
-              onBack={() => setStep('style')}
               saveState={saveState}
               onSave={() => setAccount(savePattern(account, current, describePattern(current), person.id))}
               onAccount={() => setStep('account')}
@@ -839,7 +879,7 @@ export default function App() {
               draftAt={draftAt}
             />
           )}
-          {step === 'check' && <CheckFileScreen onBack={() => setStep('account')} />}
+          {step === 'check' && <CheckFileScreen />}
           {step === 'client' && (
             <ClientBookScreen
               account={account}
@@ -847,10 +887,9 @@ export default function App() {
               unit={saved.unit}
               onChange={(p) => setAccount(updatePerson(account, person.id, p))}
               onOpen={openPattern}
-              onBack={() => setStep('account')}
             />
           )}
-          {step === 'scale' && printable && <TrueScaleScreen pieces={printable.pieces} onBack={() => setStep('export')} />}
+          {step === 'scale' && printable && <TrueScaleScreen pieces={printable.pieces} />}
           {step === 'fitting' && (
             <FittingScreen
               key={`${person.id}-${garment}`}
@@ -863,20 +902,13 @@ export default function App() {
               onSave={(f, shown) => {
                 const next = saveVersion(ownFitting, f, new Date().toISOString().slice(0, 10), shown);
                 setAccount(updatePerson(account, person.id, { fittings: { ...person.fittings, [garment]: next } }));
-                setStep('export');
+                // Saved: back to the pattern it was opened from.
+                if (canGoBack()) goBack();
+                else setStep('export');
               }}
-              onCancel={() => setStep('export')}
             />
           )}
         </main>
-        <footer className="site-footer">
-          <button type="button" className="link" aria-current={step === 'privacy' ? 'page' : undefined} onClick={() => openLegal('privacy')}>
-            Privacy
-          </button>
-          <button type="button" className="link" aria-current={step === 'terms' ? 'page' : undefined} onClick={() => openLegal('terms')}>
-            Terms
-          </button>
-        </footer>
       </div>
     </>
   );
