@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { checkMeasurements, type Garment, type MeasurementId, type MeasurementValues, type Unit } from '../measurements';
 import { BASE, baseDone, fieldOf, fullSetMissing, GARMENT_NAME, GARMENTS, missingFor, stepsOf, tipOf, titleOf } from '../measureFlow';
 import { TapeDemo } from '../ui/ContourForm';
+import { canGoBack, goBack, usePageHistory } from '../nav';
 
 interface Props {
   garment: Garment;
@@ -9,8 +10,6 @@ interface Props {
   values: MeasurementValues;
   onUnit: (u: Unit) => void;
   onValues: (v: MeasurementValues) => void;
-  /** Back from the first page. */
-  onBack: () => void;
   /** Measured for this garment: on to styling it. */
   onDone: (garment: Garment) => void;
 }
@@ -35,8 +34,9 @@ const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
 // measurement per page, a check of those four, then what to make: pick one and Continue measuring goes
 // straight to the first extra that garment still needs. "Something else" takes every measurement.
 // "Measuring someone else?" words every page for the person holding the tape.
-export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onValues, onBack, onDone }: Props) {
-  const [page, setPage] = useState<Page>(() => (baseDone(values) ? { kind: 'check' } : { kind: 'intro' }));
+export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onValues, onDone }: Props) {
+  // Each page is a history entry, so the header's back and the phone's back go one page back.
+  const [page, setPage] = usePageHistory<Page>(() => (baseDone(values) ? { kind: 'check' } : { kind: 'intro' }));
   const [helper, setHelper] = useState(false);
   const [picked, setPicked] = useState<Pick | null>(null);
 
@@ -49,7 +49,7 @@ export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onV
 
   if (page.kind === 'intro')
     return (
-      <Shell onBack={onBack} title="First, let's take your measurements." eyebrow="About 4 minutes" helperTitle="First, let's take their measurements." helper={helper} hero={<TapeDemo id="waist" name="" mode="still" />}>
+      <Shell title="First, let's take your measurements." eyebrow="About 4 minutes" helperTitle="First, let's take their measurements." helper={helper} hero={<TapeDemo id="waist" name="" mode="still" />}>
         <dl className="need">
           <div>
             <dt>You'll need</dt>
@@ -73,7 +73,7 @@ export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onV
 
   if (page.kind === 'check')
     return (
-      <Shell onBack={() => setPage({ kind: 'base', at: BASE.length - 1 })} eyebrow={helper ? 'Their base measurements' : 'Your base measurements'} title="Do these look right?" hero={<TapeDemo id="waist" name="" mode="all" />}>
+      <Shell eyebrow={helper ? 'Their base measurements' : 'Your base measurements'} title="Do these look right?" hero={<TapeDemo id="waist" name="" mode="all" />}>
         <ul className="check-list" aria-label="Tap one to change it">
           {BASE.map((id, at) => (
             <li key={id}>
@@ -92,7 +92,7 @@ export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onV
 
   if (page.kind === 'choose')
     return (
-      <Shell onBack={() => setPage({ kind: 'check' })} eyebrow="Made to measure" title="What would you like to make?" hero={<TapeDemo id="waist" name="" mode="still" />} short>
+      <Shell eyebrow="Made to measure" title="What would you like to make?" hero={<TapeDemo id="waist" name="" mode="still" />} short>
         <div className="pick-list" role="radiogroup" aria-labelledby="stitle">
           {[...GARMENTS, 'other' as const].map((g) => (
             <button key={g} type="button" role="radio" aria-checked={picked === g} className={picked === g ? 'on' : ''} onClick={() => setPicked(g)}>
@@ -109,7 +109,7 @@ export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onV
 
   if (page.kind === 'saved')
     return (
-      <Shell onBack={() => setPage({ kind: 'choose' })} eyebrow="Full set" title="Every measurement is saved." hero={<TapeDemo id="waist" name="" mode="all" />}>
+      <Shell eyebrow="Full set" title="Every measurement is saved." hero={<TapeDemo id="waist" name="" mode="all" />}>
         <p className="muted step-tip">Pick something to make whenever you're ready. A dressmaker can work from these too.</p>
         <button type="button" className="primary" onClick={() => setPage({ kind: 'choose' })}>
           Choose what to make
@@ -126,12 +126,10 @@ export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onV
   const eyebrow = page.kind === 'base' ? `${at + 1} of ${ids.length}` : g === 'other' ? 'Full set' : cap(GARMENT_NAME[g!]);
   const label =
     page.kind === 'base' && page.back === 'check' ? 'Save' : page.kind === 'base' || g === 'other' ? (last ? 'Done' : 'Next') : last ? `Next: style your ${GARMENT_NAME[g!]}` : 'Next';
-  const back = () => {
-    if (page.kind === 'base') setPage(page.back === 'check' ? { kind: 'check' } : at ? { ...page, at: at - 1 } : { kind: 'intro' });
-    else setPage(at ? { ...page, at: at - 1 } : { kind: 'choose' });
-  };
   const next = () => {
-    if (page.kind === 'base') setPage(page.back === 'check' || last ? { kind: 'check' } : { ...page, at: at + 1 });
+    // A redo from the check returns to it, the same as going back.
+    if (page.kind === 'base' && page.back === 'check' && canGoBack()) goBack();
+    else if (page.kind === 'base') setPage(last ? { kind: 'check' } : { ...page, at: at + 1 });
     else if (last) {
       if (page.garment === 'other') setPage({ kind: 'saved' });
       else onDone(page.garment);
@@ -151,7 +149,6 @@ export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onV
       garment={g && g !== 'other' ? g : current}
       onUnit={onUnit}
       onValues={onValues}
-      onBack={back}
       onNext={next}
       label={label}
     />
@@ -159,7 +156,6 @@ export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onV
 }
 
 function Shell({
-  onBack,
   eyebrow,
   title,
   helperTitle,
@@ -169,7 +165,6 @@ function Shell({
   short,
   children,
 }: {
-  onBack: () => void;
   eyebrow: string;
   title: string;
   helperTitle?: string;
@@ -186,9 +181,6 @@ function Shell({
         <div className="welcome-hero">
           {hero}
           <div className="welcome-top">
-            <button type="button" className="back-arrow" aria-label="Back" onClick={onBack}>
-              ←
-            </button>
             {dots && (
               <div className="dots" aria-hidden="true">
                 {Array.from({ length: dots[0] }, (_, i) => (
@@ -216,7 +208,6 @@ function MeasurePage({
   garment,
   onUnit,
   onValues,
-  onBack,
   onNext,
   label,
 }: {
@@ -229,7 +220,6 @@ function MeasurePage({
   garment: Garment;
   onUnit: (u: Unit) => void;
   onValues: (v: MeasurementValues) => void;
-  onBack: () => void;
   onNext: () => void;
   label: string;
 }) {
@@ -253,7 +243,7 @@ function MeasurePage({
   };
 
   return (
-    <Shell onBack={onBack} eyebrow={eyebrow} title={titleOf(id, helper)} dots={dots} hero={<TapeDemo id={id} name={titleOf(id, false).replace(/^Your /, '')} />}>
+    <Shell eyebrow={eyebrow} title={titleOf(id, helper)} dots={dots} hero={<TapeDemo id={id} name={titleOf(id, false).replace(/^Your /, '')} />}>
       <p className="muted step-tip">{tipOf(id, helper)}</p>
       <button type="button" className="link quiet how-link" aria-expanded={how} onClick={() => setHow(true)}>
         How to do it
