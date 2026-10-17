@@ -7,7 +7,6 @@ import { CARD_MM, Calibration, distanceCm, edgeAt, loadCalibration, pxPerMmOf, s
 
 interface Props {
   pieces: Piece[];
-  onBack: () => void;
 }
 
 type Tool = 'measure' | 'seam';
@@ -18,7 +17,7 @@ const thisScreen = () => screenKey(window.screen?.width ?? window.innerWidth, wi
  * A piece on screen at its real size, to check against the body or a tape measure, or to hold a piece of
  * fabric up to. The screen is calibrated once against a bank card.
  */
-export function TrueScaleScreen({ pieces, onBack }: Props) {
+export function TrueScaleScreen({ pieces }: Props) {
   const screen = useMemo(thisScreen, []);
   const [cal, setCal] = useState<Calibration | undefined>(() => loadCalibration(screen));
   const [calibrating, setCalibrating] = useState(!cal);
@@ -32,13 +31,13 @@ export function TrueScaleScreen({ pieces, onBack }: Props) {
           setCal(c);
           setCalibrating(false);
         }}
-        onCancel={cal ? () => setCalibrating(false) : onBack}
+        onCancel={cal ? () => setCalibrating(false) : undefined}
       />
     );
-  return <PieceAtScale pieces={pieces} pxPerMm={cal.pxPerMm} onRecalibrate={() => setCalibrating(true)} onBack={onBack} />;
+  return <PieceAtScale pieces={pieces} pxPerMm={cal.pxPerMm} onRecalibrate={() => setCalibrating(true)} />;
 }
 
-function CardCalibration({ start, onDone, onCancel }: { start?: number; onDone: (pxPerMm: number) => void; onCancel: () => void }) {
+function CardCalibration({ start, onDone, onCancel }: { start?: number; onDone: (pxPerMm: number) => void; onCancel?: () => void }) {
   // A CSS inch is 96 px, so 3.78 px to the mm is where most screens start.
   const [px, setPx] = useState(() => Math.round((start ?? 96 / 25.4) * CARD_MM.w));
   const nudge = (d: number) => setPx((v) => Math.min(800, Math.max(120, v + d)));
@@ -71,15 +70,17 @@ function CardCalibration({ start, onDone, onCancel }: { start?: number; onDone: 
         <button type="button" className="primary" onClick={() => onDone(pxPerMmOf(px))}>
           It matches the card
         </button>
-        <button type="button" className="secondary" onClick={onCancel}>
-          Back
-        </button>
+        {onCancel && (
+          <button type="button" className="secondary" onClick={onCancel}>
+            Keep the old match
+          </button>
+        )}
       </div>
     </section>
   );
 }
 
-function PieceAtScale({ pieces, pxPerMm, onRecalibrate, onBack }: { pieces: Piece[]; pxPerMm: number; onRecalibrate: () => void; onBack: () => void }) {
+function PieceAtScale({ pieces, pxPerMm, onRecalibrate }: { pieces: Piece[]; pxPerMm: number; onRecalibrate: () => void }) {
   const [which, setWhich] = useState(0);
   const [tool, setTool] = useState<Tool>('measure');
   const [taps, setTaps] = useState<P[]>([]);
@@ -189,9 +190,6 @@ function PieceAtScale({ pieces, pxPerMm, onRecalibrate, onBack }: { pieces: Piec
       </div>
       <p className="muted small">Grid squares are 1 cm, with a heavier line every 5 cm: lay a ruler on the screen to check it.</p>
       <div className="row wrap">
-        <button type="button" className="secondary" onClick={onBack}>
-          Back to the pattern
-        </button>
         <button type="button" className="link" onClick={onRecalibrate}>
           Match the card again
         </button>

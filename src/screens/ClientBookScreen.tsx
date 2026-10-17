@@ -11,7 +11,6 @@ interface Props {
   unit: Unit;
   onChange: (p: Person) => void;
   onOpen: (p: SavedPattern) => void;
-  onBack: () => void;
 }
 
 const FIELDS = [...SKIRT_FIELDS, ...TROUSERS_FIELDS, ...BODICE_FIELDS].filter((f, i, all) => all.findIndex((g) => g.id === f.id) === i);
@@ -23,7 +22,7 @@ const show = (v: number | undefined, unit: Unit) => (v === undefined ? '–' : u
  * One client's record, the way a dressmaker keeps a client book: their measurements over time, every
  * toile fitting and what it changed, fitting notes, toile photos and the patterns made for them.
  */
-export function ClientBookScreen({ account, person, unit, onChange, onOpen, onBack }: Props) {
+export function ClientBookScreen({ account, person, unit, onChange, onOpen }: Props) {
   const name = personName(account, person);
   const history = person.history ?? [];
   const recent = history.slice(-4);
@@ -50,9 +49,6 @@ export function ClientBookScreen({ account, person, unit, onChange, onOpen, onBa
             <p className="eyebrow">Client book</p>
             <h1 id="cbtitle">{name}</h1>
           </div>
-          <button type="button" className="secondary" onClick={onBack}>
-            Back to account
-          </button>
         </div>
         <p className="muted small">Kept on this device only, with the photos. Nothing is sent anywhere.</p>
       </section>

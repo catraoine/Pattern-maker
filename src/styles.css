@@ -132,50 +132,89 @@ p {
 
 .steps {
   display: flex;
+  flex: 1;
+  justify-content: center;
   gap: 4px;
+  min-width: 0;
 }
 
+/* The three steps in the header: words only, the one you're on lit in champagne with a line under it. */
 .step {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  flex: 1;
+  max-width: 140px;
   min-height: 44px;
-  padding: 0 12px;
+  padding: 0 6px;
   border: none;
-  border-radius: var(--pill);
+  border-bottom: var(--bw) solid var(--line-strong);
+  border-radius: 0;
   background: none;
   color: var(--muted);
   font-size: 11px;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
   cursor: pointer;
 }
 
 .step.on {
-  background: var(--fill);
-  color: var(--ink);
-  font-weight: var(--w-strong);
+  color: var(--gild);
+  border-bottom-color: var(--gild);
 }
 
-.step:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
+.step.locked {
+  color: var(--disabled);
 }
 
-.step .num {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  border: var(--bw) solid currentColor;
+/* A Steady Header (Cat's pick, 2026-10-17): back on the left, the steps in the middle, the account on the right,
+   the same on every screen after the welcome. */
+.topbar.steady {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.steady-row {
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: 12px;
+  gap: 10px;
+  max-width: 1280px;
+  width: 100%;
+  margin: 0 auto;
 }
 
-.step.on .num {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: var(--white);
+.steady-back {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border: var(--bw) solid var(--line-strong);
+  border-radius: 0;
+  background: none;
+  color: var(--ink);
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.steady-back:hover,
+.steady-back:focus-visible {
+  border-color: var(--gild);
+  color: var(--gild);
+}
+
+.crumb {
+  margin: 0 auto;
+  max-width: 1280px;
+  width: 100%;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.crumb span {
+  color: var(--ink);
 }
 
 .main {
@@ -586,11 +625,6 @@ button.link {
   }
 }
 
-/* Top bar: steps plus the account button */
-.nav {
-  gap: 8px;
-}
-
 .avatar {
   width: 44px;
   height: 44px;
@@ -834,13 +868,6 @@ button.link.inline-link {
   min-height: 0;
   display: inline;
   font-size: inherit;
-}
-
-@media (max-width: 640px) {
-  .step {
-    padding: 0 8px;
-    gap: 6px;
-  }
 }
 
 /* Sewing steps on the print screen */
@@ -1715,25 +1742,9 @@ button.link.quiet-link {
   left: 22px;
   right: 22px;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   min-height: 24px;
-}
-
-button.back-arrow {
-  min-height: 44px;
-  min-width: 44px;
-  margin: -10px 0 -10px -12px;
-  padding: 0 12px;
-  border: none;
-  background: none;
-  color: var(--muted);
-  font-size: 18px;
-  cursor: pointer;
-}
-
-button.back-arrow:hover {
-  color: var(--ink);
 }
 
 .measure-step {
