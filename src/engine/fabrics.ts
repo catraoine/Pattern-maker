@@ -7,6 +7,7 @@ import type { BodiceDarts, BodiceFit, BodiceFitting, BodiceLength, Neckline } fr
 import type { Leg } from './trousers';
 import type { Cloth } from './couture';
 import type { SewingGuide } from './instructions';
+import { Checks, SPECIALS, Special, checksLines, specialLines, specialWarnings } from './specialFabrics';
 
 export type Weight = 'light' | 'medium' | 'heavy';
 export type Drape = 'crisp' | 'soft' | 'fluid';
@@ -21,6 +22,10 @@ export interface MyFabric {
   fibre?: Fibre;
   weight?: Weight;
   drape?: Drape;
+  /** A cloth that changes the cutting and sewing (denim, leather, velvet...). */
+  special?: Special;
+  /** Checks or stripes to match at the seams. */
+  checks?: Checks;
   /** Adjust the ease for this fabric. On unless turned off. */
   matchEase?: boolean;
 }
@@ -350,7 +355,10 @@ export function checkFabric(style: FabricStyle, f: MyFabric): FabricNote[] {
       );
     }
   }
-  if (f.fibre) notes.push({ level: 'info', text: FIBRES[f.fibre].prewash });
+  if (f.special) {
+    notes.push(...specialWarnings(f.special, style).map((text) => ({ level: 'warn' as const, text })));
+    notes.push({ level: 'info', text: SPECIALS[f.special].prewash });
+  } else if (f.fibre) notes.push({ level: 'info', text: FIBRES[f.fibre].prewash });
   return notes;
 }
 
@@ -391,7 +399,7 @@ function styleWarnings(style: FabricStyle, { weight, drape }: MyFabric): string[
 
 /** Extra ease (cm) for the fabric: heavy cloth takes up room with its own thickness. */
 export function fabricEase(f: MyFabric | undefined, garment: FabricGarment): { waist: number; hip: number; bust: number } {
-  if (!f || f.matchEase === false || f.weight !== 'heavy') return { waist: 0, hip: 0, bust: 0 };
+  if (!f || f.matchEase === false || (f.weight !== 'heavy' && !(f.special && SPECIALS[f.special].thick))) return { waist: 0, hip: 0, bust: 0 };
   return garment === 'skirt' || garment === 'trousers' ? { waist: 0.5, hip: 1, bust: 0 } : { waist: 0.5, hip: 1, bust: 1 };
 }
 
@@ -424,24 +432,30 @@ export function describeFabric(f: MyFabric | undefined): string | undefined {
   const name = f.name?.trim();
   if (name) return name;
   const traits = [f.weight, f.drape].filter(Boolean).join(', ');
-  const fibre = f.fibre ? FIBRES[f.fibre].label.toLowerCase() : '';
+  const fibre = f.special ? SPECIALS[f.special].label.toLowerCase() : f.fibre ? FIBRES[f.fibre].label.toLowerCase() : '';
   return [traits, fibre].filter(Boolean).join(' ') || undefined;
 }
 
 /** Lines describing the fabric, for the PDF and the tech pack. Empty when nothing is recorded. */
 export function fabricLines(f: MyFabric | undefined, garment: FabricGarment): string[] {
-  if (!f || !describeFabric(f)) return [];
+  if (!f || (!describeFabric(f) && !f.checks)) return [];
   const name = f.name?.trim();
   const lines: string[] = [];
   if (name) lines.push(`Fabric: ${name}${f.colour?.trim() ? `, ${f.colour.trim()}` : ''}`);
   else if (f.colour?.trim()) lines.push(`Colour: ${f.colour.trim()}`);
+  if (f.special) lines.push(`Cloth: ${SPECIALS[f.special].label.toLowerCase()}`);
   if (f.fibre) lines.push(`Fibre: ${FIBRES[f.fibre].label.toLowerCase()}`);
   if (f.weight || f.drape) lines.push(`Weight and drape: ${[f.weight, f.drape].filter(Boolean).join(', ')}`);
-  if (f.fibre) {
+  if (f.special) {
+    lines.push(`Before cutting: ${SPECIALS[f.special].prewash}`);
+    lines.push(`Press: ${SPECIALS[f.special].press}`);
+    lines.push(...specialLines(f.special).map((l) => `${l.label}: ${l.text}`));
+  } else if (f.fibre) {
     lines.push(`Before cutting: ${FIBRES[f.fibre].prewash}`);
     lines.push(`Press: ${FIBRES[f.fibre].press}`);
   }
-  if (fabricEase(f, garment).hip) lines.push(`Ease: ${easeWords(f, garment)}, for the heavy cloth.`);
+  if (fabricEase(f, garment).hip) lines.push(`Ease: ${easeWords(f, garment)}, for the ${f.special ? SPECIALS[f.special].label.toLowerCase() : 'heavy cloth'}.`);
+  lines.push(...checksLines(f.checks, garment));
   return lines;
 }
 
@@ -449,13 +463,27 @@ const PREPARE_TITLE = 'Prepare your fabric';
 
 /** The first sewing step: shrink, press and square the fabric before any pattern goes on it. */
 export function prepareStep(f: MyFabric | undefined): { title: string; text: string } {
-  const wash = f?.fibre
+  const wash = f?.special
+    ? SPECIALS[f.special].prewash
+    : f?.fibre
     ? FIBRES[f.fibre].prewash
     : 'Wash and dry your fabric the way you will wash the finished piece, so it shrinks now and not after you sew it. For wool, steam it all over instead; for silk, test a small square first.';
+  if (f?.special === 'leather')
+    return { title: PREPARE_TITLE, text: `${wash} Look the hide over from the right side, and chalk a ring on the wrong side around any scar, hole or thin patch, so no piece sits on one.` };
   return {
     title: PREPARE_TITLE,
     text: `${wash} Press it, then straighten the grain: snip into the selvedge, pull a thread across, or tear across, and trim the end along that line. Fold it with the selvedges together and check the cut end sits square. If it doesn't, pull gently on the bias, from the short corners, until it does.`,
   };
+}
+
+/** A cutting step for a special cloth or checks, after preparing it. */
+function cutStep(f: MyFabric | undefined): { title: string; text: string }[] {
+  if (!f?.special && !f?.checks) return [];
+  const s = f.special && SPECIALS[f.special];
+  const text = [s?.cut, f.checks && 'Put every piece on the same check line, and line the checks up at the side seams, centre back and the waist, matching at the notches.', s?.sew]
+    .filter(Boolean)
+    .join(' ');
+  return [{ title: s ? `Cut the ${s.label.toLowerCase()}` : 'Match the checks', text }];
 }
 
 /** The sewing guide with the fabric named in the notions, its details listed, and the prepare step first. */
@@ -465,9 +493,9 @@ export function withFabric(guide: SewingGuide, f: MyFabric | undefined, garment:
     ...guide,
     fabric: fabricLines(f, garment),
     notions: name ? guide.notions.map((n, i) => (i === 0 ? n.replace('woven fabric', name) : n)) : guide.notions,
-    steps: guide.steps[0]?.title === PREPARE_TITLE ? guide.steps : [prepareStep(f), ...guide.steps],
+    steps: guide.steps[0]?.title === PREPARE_TITLE ? guide.steps : [prepareStep(f), ...cutStep(f), ...guide.steps],
   };
 }
 
 /** The couture route's cloth: from the recorded fibre when there is one. */
-export const clothFor = (f: MyFabric | undefined, fallback: Cloth): Cloth => (f?.fibre ? FIBRES[f.fibre].cloth : fallback);
+export const clothFor = (f: MyFabric | undefined, fallback: Cloth): Cloth => (f?.special ? SPECIALS[f.special].cloth : f?.fibre ? FIBRES[f.fibre].cloth : fallback);
