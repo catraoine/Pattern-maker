@@ -6,7 +6,7 @@ import type { BodiceFitting } from './bodice';
 
 export type FitGarment = 'skirt' | 'bodice';
 /** Every garment that can be fitted in a toile: a dress takes both kinds of correction, trousers the skirt's waist and hip. */
-export type FitTarget = FitGarment | 'dress' | 'trousers';
+export type FitTarget = FitGarment | 'dress' | 'trousers' | 'jacket' | 'coat';
 
 export interface FitIssue {
   id: string;
@@ -406,6 +406,8 @@ const TROUSER_KEYS = ['hipEase', 'waistEase', 'frontDrop', 'backDrop'];
 /** Whether a correction applies to a garment. */
 export function appliesTo(issue: FitIssue, garment: FitTarget): boolean {
   if (garment === 'dress') return true;
+  // Jackets and coats are drafted on the bodice block, so they take the bodice's corrections.
+  if (garment === 'jacket' || garment === 'coat') return issue.garment === 'bodice';
   if (garment === 'trousers') return issue.garment === 'skirt' && issue.keys.every((k) => TROUSER_KEYS.includes(k));
   return issue.garment === garment;
 }

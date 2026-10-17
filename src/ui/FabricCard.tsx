@@ -7,10 +7,12 @@ interface Props {
   /** The era look's own suggestion, while the style is still that look. */
   look?: { name: string; fabric: string };
   fabric?: MyFabric;
+  /** Always lined (a jacket or coat), so the lining isn't optional. */
+  lined?: boolean;
 }
 
 /** The style screen's fabric box: how much to buy, what suits this style, and what to avoid. */
-export function FabricCard({ metres, advice, look, fabric }: Props) {
+export function FabricCard({ metres, advice, look, fabric, lined }: Props) {
   const mine = describeFabric(fabric);
   return (
     <div className="fabric">
@@ -36,7 +38,7 @@ export function FabricCard({ metres, advice, look, fabric }: Props) {
         <li>
           <strong>{advice.lining.name}</strong>
           <span className="tag">{pickTag(advice.lining)}</span>
-          <span className="muted small">If you line it. {advice.lining.why}</span>
+          <span className="muted small">{lined ? 'For the lining.' : 'If you line it.'} {advice.lining.why}</span>
         </li>
       </ul>
       {advice.note && <p className="small">{advice.note}</p>}

@@ -76,6 +76,9 @@ export interface BodiceStyle {
   bustEase?: number;
   /** A drawn neckline, in place of the named one. */
   neck?: DrawnNeck;
+  /** Shoulder pads drafted in (a jacket or coat): each shoulder point raised by this many cm, the
+   * underarm left where it is, so the armhole grows by about as much. */
+  shoulderPad?: number;
 }
 
 /**
@@ -370,7 +373,8 @@ function draftBlock(m: BodiceMeasurements, style: BodiceStyle): BodiceDraft {
   let hi = table + 3;
   for (let i = 0; i < 30; i++) {
     const mid = (lo + hi) / 2;
-    if (draft(m, s, mid).armhole < target) lo = mid;
+    // Found without any shoulder pad: a pad raises the shoulder, not the underarm.
+    if (draft(m, { ...s, shoulderPad: 0 }, mid).armhole < target) lo = mid;
     else hi = mid;
   }
   const result = withSides((lo + hi) / 2);
@@ -451,7 +455,10 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   const warnings: string[] = [];
   // Shoulder angles the toile corrected, and a shoulder point dropped `by` cm along a shoulder `length` long.
   const corrected = (a: number, by: number | undefined) => Math.min(MAX_SLOPE, Math.max(MIN_SLOPE, a + ((by ?? 0) * Math.PI) / 180));
-  const dropped = (a: number, length: number) => (dropShoulder ? Math.asin(Math.min(0.95, Math.sin(a) + dropShoulder / length)) : a);
+  const dropped = (a: number, length: number) => {
+    const by = dropShoulder - (s.shoulderPad ?? 0);
+    return by ? Math.asin(Math.max(0.03, Math.min(0.95, Math.sin(a) + by / length))) : a;
+  };
   const nl = s.neck ?? NECKLINES[s.neckline];
   const neckShape = s.neck ? 'drawn' : s.neckline;
   const pointed = s.neck ? s.neck.fullness < POINTED_NECK : s.neckline === 'v';
