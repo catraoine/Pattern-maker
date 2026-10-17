@@ -1,4 +1,4 @@
-import { PatternChoices, bodiceDetails, describeBodice, describeTee, describeTrousers, isBodice, isDress, isTee, isTrousers } from '../garments';
+import { PatternChoices, bodiceDetails, describeBodice, describeOuter, describeTee, describeTrousers, isBodice, isDress, isOuter, isTee, isTrousers } from '../garments';
 import { describe as describeSkirt } from './StyleScreen';
 
 /** A plain name for a saved pattern's style, such as "Knee a-line skirt". */
@@ -10,5 +10,6 @@ export function describePattern(c: PatternChoices) {
   }
   if (isTrousers(c)) return describeTrousers(c);
   if (isTee(c)) return describeTee(c);
+  if (isOuter(c)) return describeOuter(c);
   return isBodice(c) ? describeBodice(c) : describeSkirt(c);
 }

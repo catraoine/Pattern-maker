@@ -8,6 +8,7 @@ import { LEG_WORDS, Leg, TrouserClosure, TrouserLength } from './engine/trousers
 import type { Fit, WaistStyle } from './engine/skirt';
 import type { PocketStyle } from './engine/pockets';
 import type { Stretch, TeeFit, TeeLength, TeeNeck, TeeSleeve } from './engine/tee';
+import type { OuterCollar, OuterFit, OuterFlare, OuterFront, OuterKind, OuterLength, OuterPads, OuterPockets, OuterShaping, OuterSleeve, OuterVent } from './engine/outerwear';
 
 export interface BodiceChoices {
   garment: 'bodice';
@@ -121,13 +122,71 @@ export function describeTee(c: TeeChoices) {
   return words[0].toUpperCase() + words.slice(1);
 }
 
+/** A jacket or a coat: drafted on the bodice block, with a button front, a collar and a lining. */
+export interface OuterChoices {
+  garment: OuterKind;
+  fit: OuterFit;
+  length: OuterLength;
+  shaping: OuterShaping;
+  front: OuterFront;
+  collar: OuterCollar;
+  pockets: OuterPockets;
+  sleeve: OuterSleeve;
+  flare: OuterFlare;
+  pads: OuterPads;
+  vent: OuterVent;
+}
+
+export const DEFAULT_JACKET_CHOICES: OuterChoices = { garment: 'jacket', fit: 'regular', length: 'hip', shaping: 'darts', front: 'single', collar: 'notched', pockets: 'patch', sleeve: 'tailored', flare: 'straight', pads: 'soft', vent: 'centre' };
+export const DEFAULT_COAT_CHOICES: OuterChoices = { garment: 'coat', fit: 'regular', length: 'knee', shaping: 'princess', front: 'single', collar: 'notched', pockets: 'welt', sleeve: 'tailored', flare: 'straight', pads: 'soft', vent: 'centre' };
+
+type OuterGroupId = 'fit' | 'length' | 'shaping' | 'front' | 'collar' | 'sleeve' | 'pads' | 'pockets' | 'vent' | 'flare';
+
+/** The style groups for a jacket or a coat: a coat has its own lengths and a flare below the hip. */
+export function outerGroups(kind: OuterKind): { id: OuterGroupId; label: string; options: [string, string][] }[] {
+  return [
+    { id: 'fit', label: 'Fit', options: [['fitted', 'Fitted'], ['regular', 'Regular'], ['relaxed', 'Relaxed']] },
+    {
+      id: 'length',
+      label: 'Length',
+      options: kind === 'jacket' ? [['cropped', 'Cropped'], ['hip', 'Hip'], ['long', 'Long']] : [['thigh', 'Mid-thigh'], ['knee', 'Knee'], ['midi', 'Midi']],
+    },
+    { id: 'shaping', label: 'Shaping', options: [['darts', 'Darts'], ['princess', 'Princess seams'], ['boxy', 'Boxy']] },
+    { id: 'front', label: 'Front', options: [['single', 'Single-breasted'], ['double', 'Double-breasted']] },
+    { id: 'collar', label: 'Collar', options: [['notched', 'Notched lapel'], ['stand', 'Stand collar'], ['collarless', 'Collarless']] },
+    { id: 'sleeve', label: 'Sleeves', options: [['tailored', 'Two-piece, tailored'], ['fitted', 'One-piece, elbow dart'], ['straight', 'Straight']] },
+    { id: 'pads', label: 'Shoulder pads', options: [['soft', kind === 'coat' ? 'Soft, 8 mm' : 'Soft, 6 mm'], ['structured', kind === 'coat' ? 'Structured, 1.5 cm' : 'Structured, 1.2 cm'], ['none', 'None']] },
+    { id: 'pockets', label: 'Pockets', options: [['patch', 'Patch pockets'], ['welt', 'Welt pockets'], ['none', 'None']] },
+    { id: 'vent', label: 'Back vent', options: [['centre', 'Centre vent'], ['none', 'None']] },
+    ...(kind === 'coat' ? [{ id: 'flare' as const, label: 'Below the hip', options: [['straight', 'Straight'], ['a_line', 'A-line']] as [string, string][] }] : []),
+  ];
+}
+
+/** Whether a choice is allowed with the rest: boxy shaping needs room, so not with a fitted cut; a cropped jacket is too short for a vent. */
+export const outerAllowed = (c: OuterChoices, id: OuterGroupId, opt: string) =>
+  !(id === 'shaping' && opt === 'boxy' && c.fit === 'fitted') && !(id === 'vent' && opt === 'centre' && c.length === 'cropped');
+
+const OUTER_LENGTH_WORDS: Record<OuterLength, string> = { cropped: 'Cropped', hip: 'Hip-length', long: 'Long', thigh: 'Mid-thigh', knee: 'Knee-length', midi: 'Midi' };
+const OUTER_COLLAR_WORDS: Record<OuterCollar, string> = { notched: 'with notched lapels', stand: 'with a stand collar', collarless: 'collarless' };
+
+/** A plain name, such as "Hip-length single-breasted jacket with notched lapels". */
+export function describeOuter(c: OuterChoices) {
+  const front = c.front === 'double' ? 'double-breasted' : 'single-breasted';
+  const collar = OUTER_COLLAR_WORDS[c.collar];
+  const shape = c.garment === 'coat' && c.flare === 'a_line' ? ' A-line' : '';
+  return c.collar === 'collarless'
+    ? `${OUTER_LENGTH_WORDS[c.length]} collarless ${front}${shape} ${c.garment}`
+    : `${OUTER_LENGTH_WORDS[c.length]} ${front}${shape} ${c.garment} ${collar}`;
+}
+
 /** A saved pattern's choices. Skirt choices predate bodices, so they carry no garment field. */
-export type PatternChoices = Choices | BodiceChoices | DressChoices | TrousersChoices | TeeChoices;
+export type PatternChoices = Choices | BodiceChoices | DressChoices | TrousersChoices | TeeChoices | OuterChoices;
 
 export const isBodice = (c: PatternChoices): c is BodiceChoices => (c as BodiceChoices).garment === 'bodice';
 export const isDress = (c: PatternChoices): c is DressChoices => (c as DressChoices).garment === 'dress';
 export const isTrousers = (c: PatternChoices): c is TrousersChoices => (c as TrousersChoices).garment === 'trousers';
 export const isTee = (c: PatternChoices): c is TeeChoices => (c as TeeChoices).garment === 'tee';
+export const isOuter = (c: PatternChoices): c is OuterChoices => (c as OuterChoices).garment === 'jacket' || (c as OuterChoices).garment === 'coat';
 
 export const DEFAULT_BODICE: BodiceChoices = { garment: 'bodice', fit: 'regular', neckline: 'crew', length: 'waist', darts: 'bust_waist', sleeve: 'none', sleeveShape: 'straight' };
 

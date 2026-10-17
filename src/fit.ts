@@ -1,6 +1,6 @@
 // How a sewn pattern fitted, noted by the sewist against a saved pattern. Kept on this device with the pattern,
 // so the next toile can start from what was learnt.
-import { PatternChoices, isBodice, isDress, isTee, isTrousers } from './garments';
+import { PatternChoices, isBodice, isDress, isOuter, isTee, isTrousers } from './garments';
 import type { MeasurementValues } from './measurements';
 
 export type Verdict = 'good' | 'tweaks' | 'off';
@@ -75,8 +75,9 @@ const TEE_AREAS: AreaInfo[] = [
 ];
 
 export type FitGarmentKind = 'skirt' | 'bodice' | 'dress' | 'trousers' | 'tee';
+// Jackets and coats are felt where a bodice is, so they share its areas.
 export const garmentKind = (c: PatternChoices): FitGarmentKind =>
-  isBodice(c) ? 'bodice' : isDress(c) ? 'dress' : isTrousers(c) ? 'trousers' : isTee(c) ? 'tee' : 'skirt';
+  isBodice(c) || isOuter(c) ? 'bodice' : isDress(c) ? 'dress' : isTrousers(c) ? 'trousers' : isTee(c) ? 'tee' : 'skirt';
 
 const AREAS: Record<FitGarmentKind, AreaInfo[]> = { skirt: SKIRT_AREAS, bodice: BODICE_AREAS, dress: DRESS_AREAS, trousers: TROUSERS_AREAS, tee: TEE_AREAS };
 export const fitAreas = (choices: PatternChoices) => AREAS[garmentKind(choices)];

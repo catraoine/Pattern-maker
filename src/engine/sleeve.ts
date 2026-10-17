@@ -10,7 +10,8 @@ import { BodiceDraft, BodiceFit, blockOf } from './bodice';
 import { DraftError } from './skirt';
 
 export type SleeveLength = 'none' | 'short' | 'elbow' | 'three_quarter' | 'long';
-export type SleeveShape = 'fitted' | 'straight' | 'puff' | 'bishop';
+/** 'tailored' is the two-piece sleeve of a jacket or coat: long only, and not offered on a bodice. */
+export type SleeveShape = 'fitted' | 'straight' | 'puff' | 'bishop' | 'tailored';
 
 /** Which shapes each length allows: puff sleeves are short, bishop sleeves long. */
 export const SHAPES_FOR_LENGTH: Record<SleeveLength, SleeveShape[]> = {
@@ -38,7 +39,16 @@ export interface SleeveStyle {
   hemAllowance: number;
   /** Ease in place of the fit's own: a knit sleeve takes less, or none, round the arm. */
   ease?: { bicep: number; crown: number };
+  /** A jacket or coat sleeve, worn over other clothes: more room at the bicep and the hem, a little
+   * longer, and the crown ease a tailor works into a wool armhole. */
+  outer?: 'jacket' | 'coat';
 }
+
+/** Bicep and crown ease for jacket and coat sleeves, by fit. */
+export const OUTER_SLEEVE_EASE: Record<'jacket' | 'coat', Record<BodiceFit, { bicep: number; crown: number }>> = {
+  jacket: { fitted: { bicep: 8, crown: 3.5 }, regular: { bicep: 10, crown: 3 }, relaxed: { bicep: 13, crown: 2.5 } },
+  coat: { fitted: { bicep: 10, crown: 3.5 }, regular: { bicep: 13, crown: 3 }, relaxed: { bicep: 16, crown: 2.5 } },
+};
 
 /** Ease round the upper arm, and the crown ease eased into the armhole, by fit. */
 export const SLEEVE_EASE: Record<BodiceFit, { bicep: number; crown: number }> = {
@@ -162,25 +172,28 @@ export function draftSleeve(bodice: BodiceDraft, m: SleeveMeasurements, s: Sleev
 /** Draft the sleeve to a front and back's armholes (tagged 'armhole', with their notches). */
 export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: SleeveStyle): SleeveDraft {
   if (!m.arm_length || !m.upper_arm) throw new DraftError('Add your arm length and upper arm measurements to add sleeves.');
-  if (!SHAPES_FOR_LENGTH[s.length].includes(s.shape)) throw new DraftError(`A ${s.shape} sleeve can't be ${s.length.replace('_', ' ')} length.`);
+  const tailored = s.shape === 'tailored';
+  if (tailored ? s.length !== 'long' : !SHAPES_FOR_LENGTH[s.length].includes(s.shape)) throw new DraftError(`A ${s.shape} sleeve can't be ${s.length.replace('_', ' ')} length.`);
+  // A two-piece sleeve is the fitted sleeve's crown and widths, cut in two rather than darted.
+  const shape: SleeveShape = tailored ? 'fitted' : s.shape;
   const warnings: string[] = [];
   const front = armholeOf(bf);
   const back = armholeOf(bb);
   const depth = (front.depth + back.depth) / 2;
-  const ease = s.ease ?? SLEEVE_EASE[s.fit];
+  const ease = s.ease ?? (s.outer ? OUTER_SLEEVE_EASE[s.outer][s.fit] : SLEEVE_EASE[s.fit]);
   const arm = m.arm_length;
   const wrist = m.wrist ?? Math.max(13, m.upper_arm * 0.55);
   // A hand closed as to go through a sleeve is about 1.3 times the wrist.
   const hand = Math.max(19, wrist * 1.3);
   const elbowY = arm * 0.58;
-  const gathered = s.shape === 'puff' || s.shape === 'bishop';
+  const gathered = shape === 'puff' || shape === 'bishop';
 
   // Length from the crown point, and the hem width before any shaping.
-  const lengthCm = { short: 0, elbow: elbowY + 2, three_quarter: arm * 0.8, long: arm + 1 }[s.length];
+  const lengthCm = { short: 0, elbow: elbowY + 2, three_quarter: arm * 0.8, long: arm + 1 + (s.outer === 'coat' ? 2.5 : s.outer ? 1.5 : 0) }[s.length];
 
   let w = m.upper_arm + ease.bicep;
-  if (s.shape === 'puff') w *= 1.3;
-  const target = front.length + back.length + (s.shape === 'puff' ? 0 : ease.crown);
+  if (shape === 'puff') w *= 1.3;
+  const target = front.length + back.length + (shape === 'puff' ? 0 : ease.crown);
 
   // Find the crown height for the length, and the crown point for the split; widen or narrow the
   // sleeve when no sensible height fits.
@@ -215,7 +228,7 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
   };
 
   const fitCrown = () => {
-    if (s.shape === 'puff') {
+    if (shape === 'puff') {
       // A puff sleeve's crown is raised for the fullness and gathered in.
       const base = solve(m.upper_arm! + ease.bicep);
       return solve(w, Math.min(depth * 1.05, base.h + 4));
@@ -235,9 +248,10 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
   const lengthFor = (h: number) => (s.length === 'short' ? h + 6 : Math.max(lengthCm, h + 6) + (gathered ? 2.5 : 0));
   // Hem width, as cut.
   const hemWidth = () => {
-    if (s.shape === 'puff') return w;
-    if (s.shape === 'bishop') return w * 1.5;
-    if (s.shape === 'fitted') {
+    if (shape === 'puff') return w;
+    if (shape === 'bishop') return w * 1.5;
+    if (s.outer && s.length === 'long') return shape === 'fitted' ? Math.max(wrist + (s.outer === 'coat' ? 14 : 11), hand + 5) : Math.max(w * 0.85, hand + 8);
+    if (shape === 'fitted') {
       if (s.length === 'long') return Math.max(wrist + 6, hand + 1);
       if (s.length === 'three_quarter') return Math.max(w + (wrist + 6 - w) * 0.6, hand + 2);
       return w * 0.86;
@@ -254,7 +268,7 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
     dirs = [unit(sub(p(hw / 2, L0), p(w / 2, h))), unit(sub(p(-hw / 2, L0), p(-w / 2, h)))];
     ({ h, cx } = fitCrown());
   }
-  if (s.shape !== 'puff') {
+  if (shape !== 'puff') {
     // A block sleeve is often roomier than the arm plus ease; only say so when it is a lot roomier.
     if (w > m.upper_arm + ease.bicep + 8) warnings.push(`sleeve widened to ${r1(w)} cm so the crown reaches the armhole: the armhole is large for the arm`);
     if (w < m.upper_arm + ease.bicep - 0.5) warnings.push(`sleeve narrowed to ${r1(w)} cm so the crown is not longer than the armhole needs`);
@@ -272,7 +286,7 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
   const c = cap(w, h, cx, uf, ub);
 
   // Elbow dart: the forearm turned forward about the front elbow, opening a dart at the back seam.
-  const dartW = s.shape === 'fitted' && (s.length === 'long' || s.length === 'three_quarter') ? (s.length === 'long' ? 2 : 1.5) : 0;
+  const dartW = !tailored && shape === 'fitted' && (s.length === 'long' || s.length === 'three_quarter') ? (s.length === 'long' ? 2 : 1.5) : 0;
   let Ef: P | undefined;
   let Eb: P | undefined;
   let Eb2: P | undefined;
@@ -339,16 +353,29 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
       { at: p(0, h + 6), text: cut, size: 0.9 },
       { at: add(notchF, p(-2.6, 1.6)), text: 'FRONT', size: 0.6 },
       { at: add(notchB, p(2.6, 1.6)), text: 'BACK', size: 0.6 },
-      ...(s.shape === 'puff' ? [{ at: p(cx, h * 0.45), text: 'GATHER BETWEEN NOTCHES', size: 0.55 }] : []),
+      ...(shape === 'puff' ? [{ at: p(cx, h * 0.45), text: 'GATHER BETWEEN NOTCHES', size: 0.55 }] : []),
       ...(gathered ? [{ at: p(0, L - 3), text: 'GATHER TO FIT THE BAND', size: 0.55 }] : []),
     ],
     cut,
     seamAllowance: s.seamAllowance,
     allowances: { armhole: s.armholeAllowance, hem: gathered ? s.seamAllowance : s.hemAllowance },
-    meta: { capHeight: r1(h), ...(s.shape === 'puff' ? { gatheredCrown: true } : {}) },
+    meta: { capHeight: r1(h), ...(shape === 'puff' ? { gatheredCrown: true } : {}) },
   };
 
-  const band = gathered ? bandPiece(s.shape === 'puff' ? m.upper_arm + 4 : hand + 1, s.seamAllowance) : undefined;
+  if (tailored) {
+    const pieces = twoPiece({ crown: c.crown, frontCap, backCap, Uf, Ub, Wf, Wb, hem: cubicPts(Wf, hemC1, hemC2, Wb, 60), notchB, backDir, elbowY, h, L, hemW, cx, s });
+    return {
+      pieces,
+      capHeight: r1(h),
+      bicep: r1(w),
+      crownEase: { front: r1(easeF), back: r1(easeB) },
+      armhole: { front: r1(front.length), back: r1(back.length) },
+      lengthCm: r1(L),
+      hemCm: r1(polyLen(cubicPts(Wf, hemC1, hemC2, Wb))),
+      warnings,
+    };
+  }
+  const band = gathered ? bandPiece(shape === 'puff' ? m.upper_arm + 4 : hand + 1, s.seamAllowance) : undefined;
   const crownLen = c.lenF + c.lenB;
   return {
     pieces: band ? [sleeve, band] : [sleeve],
@@ -360,13 +387,192 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
     hemCm: r1(band ? (band.meta.lengthCm as number) : polyLen(cubicPts(Wf, hemC1, hemC2, Wb))),
     gathers: gathered
       ? {
-          crown: s.shape === 'puff' ? r1(crownLen - front.length - back.length) : undefined,
+          crown: shape === 'puff' ? r1(crownLen - front.length - back.length) : undefined,
           hem: r1(polyLen(cubicPts(Wf, hemC1, hemC2, Wb)) - (band!.meta.lengthCm as number)),
         }
       : undefined,
     elbowDart: dartW || undefined,
     warnings,
   };
+}
+
+/** Splits a polyline at distance `d` along it: the part before (ending at the split) and after (starting there). */
+function splitAt(pts: P[], d: number): [P[], P[]] {
+  let left = d;
+  for (let i = 1; i < pts.length; i++) {
+    const seg = len(sub(pts[i], pts[i - 1]));
+    if (left <= seg) {
+      const q = lerp(pts[i - 1], pts[i], seg ? left / seg : 0);
+      return [[...pts.slice(0, i), q], [q, ...pts.slice(i)]];
+    }
+    left -= seg;
+  }
+  return [pts, [pts[pts.length - 1]]];
+}
+
+const signedArea = (pts: P[]) => pts.reduce((a, q, i) => {
+  const r = pts[(i + 1) % pts.length];
+  return a + q.x * r.y - r.x * q.y;
+}, 0);
+
+/** A closed run of points as a path, each edge tagged, wound the same way as the one-piece sleeve. */
+function ringPath(pts: P[], tags: string[]): Path {
+  let P2 = pts;
+  let T2 = tags;
+  if (signedArea(pts) < 0) {
+    // Reverse: edge i (pts[i] to pts[i+1]) becomes the edge from pts[i+1] back to pts[i].
+    const n = pts.length;
+    P2 = [...pts].reverse();
+    T2 = P2.map((_, i) => tags[(n - 2 - i + n) % n]);
+  }
+  const path = new Path(P2[0]);
+  for (let i = 1; i < P2.length; i++) path.line(P2[i], T2[i - 1]);
+  path.line(P2[0], T2[P2.length - 1]);
+  path.closed = true;
+  return path;
+}
+
+/**
+ * The two-piece tailored sleeve, cut from the one-piece sleeve without its elbow dart. The front seam
+ * runs down the inside of the arm, about 6 cm in from the underarm and 3.5 cm at the hem, so it is hidden;
+ * the back seam from a fifth of the way round the back down to the back of the wrist. Both edges of the
+ * front seam are hollowed at the elbow, so the sewn sleeve bends forward with the arm. The under
+ * sleeve's two parts are joined along the old underseam, which then disappears.
+ */
+function twoPiece(o: {
+  crown: P;
+  frontCap: P[];
+  backCap: P[];
+  Uf: P;
+  Ub: P;
+  Wf: P;
+  Wb: P;
+  hem: P[];
+  notchB: P;
+  backDir: P;
+  elbowY: number;
+  h: number;
+  L: number;
+  hemW: number;
+  cx: number;
+  s: SleeveStyle;
+}): Piece[] {
+  const { crown, Uf, Ub, Wf, Wb, s } = o;
+  // Where each seam leaves the crown: the front seam 6.5 cm in from the front underarm, the back seam
+  // a fifth of the bicep in from the back, so the top sleeve is about three fifths of the sleeve.
+  const w = Uf.x - Ub.x;
+  const upTo = (pts: P[], done: (q: P) => boolean) => {
+    const i = Math.max(1, pts.findIndex(done));
+    return polyLen(pts.slice(0, i + 1));
+  };
+  const fUp = [...o.frontCap].reverse();
+  const [fUnder, fTop] = splitAt(fUp, upTo(fUp, (q) => q.x <= Uf.x - 6.5));
+  const bSplit = upTo(o.backCap, (q) => q.x >= Ub.x + w * 0.2);
+  const [bUnder, bTop] = splitAt(o.backCap, bSplit);
+  // The back armhole's double notch, on whichever piece it falls.
+  const bn = o.backCap.reduce((bi, r, i) => (len(sub(r, o.notchB)) < len(sub(o.backCap[bi], o.notchB)) ? i : bi), 0);
+  const bd = o.backDir;
+  const backNotches: [P, P][] = [
+    [add(o.notchB, mul(p(-bd.y, bd.x), 0.5)), bd],
+    [add(o.notchB, mul(p(-bd.y, bd.x), -0.5)), bd],
+  ];
+  const notchOnUnder = polyLen(o.backCap.slice(0, bn + 1)) < bSplit;
+  const Ft = fTop[0];
+  const Bt = bTop[0];
+  // The hem split 3.5 cm in from the front underseam and 30% of the way in from the back.
+  const hemLen = polyLen(o.hem);
+  const [hFront, hMid0] = splitAt(o.hem, 3.5);
+  const [hMid, hBack] = splitAt(hMid0, hemLen - 3.5 - o.hemW * 0.3);
+  const Fh = hMid[0];
+  const Bh = hBack[0];
+
+  // The front seam, hollowed at the elbow on both pieces: mirror curves about the chord, so the same length.
+  const chord = sub(Fh, Ft);
+  const nrm = unit(p(-chord.y, chord.x)); // toward the back
+  const te = Math.min(0.8, Math.max(0.2, (o.elbowY - Ft.y) / (Fh.y - Ft.y)));
+  const bow = 0.8;
+  const bump = (t: number) => bow * Math.sin(Math.PI * (t < te ? (0.5 * t) / te : 0.5 + (0.5 * (t - te)) / (1 - te)));
+  const N = 24;
+  const seam = (side: number) => Array.from({ length: N + 1 }, (_, i) => add(add(Ft, mul(chord, i / N)), mul(nrm, side * bump(i / N))));
+  const topFront = seam(1);
+  const underFront = seam(-1);
+  const elbowAt = Math.round(te * N);
+
+  // The under sleeve's front part turned about the underarm so its underseam lies along the back's.
+  const a = Math.atan2(Wb.y - Ub.y, Wb.x - Ub.x) - Math.atan2(Wf.y - Uf.y, Wf.x - Uf.x);
+  const T = (q: P) => add(Ub, rotateAbout(sub(q, Uf), p(0, 0), a));
+
+  const topPts = [...[...fTop].reverse().slice(0, -1), ...topFront.slice(0, -1), ...hMid.slice(0, -1), Bh, ...bTop.slice(0, -1)];
+  const topTags = [
+    ...fTop.slice(1).map(() => 'armhole'),
+    ...topFront.slice(1).map(() => 'front-seam'),
+    ...hMid.slice(1).map(() => 'hem'),
+    'back-seam',
+    ...bTop.slice(1).map(() => 'armhole'),
+  ];
+  const underPts = [
+    ...[...bUnder].reverse().slice(0, -1),
+    ...fUnder.map(T).slice(0, -1),
+    ...underFront.map(T).slice(0, -1),
+    ...[...hFront].reverse().map(T).slice(0, -1),
+    ...[...hBack].reverse(),
+  ];
+  const underTags = [
+    ...bUnder.slice(1).map(() => 'armhole'),
+    ...fUnder.slice(1).map(() => 'armhole'),
+    ...underFront.slice(1).map(() => 'front-seam'),
+    ...hFront.slice(1).map(() => 'hem'),
+    ...hBack.slice(1).map(() => 'hem'),
+    'back-seam',
+  ];
+  // The back seam's elbow, where the two pieces' back edges are matched.
+  const backElbow = lerp(Bh, Bt, Math.min(0.9, Math.max(0.1, (Bh.y - o.elbowY) / (Bh.y - Bt.y))));
+  const toBack = p(-1, 0);
+  const cut = 'Cut 2 (1 pair)';
+  const allowances = { armhole: s.armholeAllowance, hem: s.hemAllowance, 'front-seam': s.seamAllowance, 'back-seam': s.seamAllowance };
+  const top: Piece = {
+    name: 'Top sleeve',
+    outline: ringPath(topPts, topTags),
+    lines: [],
+    grain: [p(o.cx * 0.3, o.h * 0.55), p(0, o.L - 4)],
+    notches: [
+      [crown, p(0, -1)],
+      [topFront[elbowAt], mul(nrm, -1)],
+      [backElbow, toBack],
+      ...(notchOnUnder ? [] : backNotches),
+    ],
+    balance: [],
+    labels: [
+      { at: p(0, o.h + 4), text: 'TOP SLEEVE', size: 1.2 },
+      { at: p(0, o.h + 6), text: cut, size: 0.9 },
+    ],
+    cut,
+    seamAllowance: s.seamAllowance,
+    allowances,
+    meta: { capHeight: r1(o.h), tailored: 'top' },
+  };
+  const underMid = lerp(Ub, T(Ft), 0.5);
+  const under: Piece = {
+    name: 'Under sleeve',
+    outline: ringPath(underPts, underTags),
+    lines: [],
+    grain: [p(Ub.x, o.h + 3), p(Ub.x, o.L - 4)],
+    notches: [
+      [T(underFront[elbowAt]), unit(sub(T(add(underFront[elbowAt], nrm)), T(underFront[elbowAt])))],
+      [backElbow, mul(toBack, -1)],
+      ...(notchOnUnder ? backNotches : []),
+    ],
+    balance: [],
+    labels: [
+      { at: p(underMid.x + 1, o.h + 8), text: 'UNDER SLEEVE', size: 0.9 },
+      { at: p(underMid.x + 1, o.h + 9.6), text: cut, size: 0.7 },
+    ],
+    cut,
+    seamAllowance: s.seamAllowance,
+    allowances,
+    meta: { tailored: 'under' },
+  };
+  return [top, under];
 }
 
 /** A straight band, folded in half lengthwise, that a gathered sleeve's hem is sewn into. */

@@ -4,7 +4,7 @@ import type { BodiceMeasurements } from './engine/bodice';
 import type { SleeveMeasurements } from './engine/sleeve';
 import type { TrousersMeasurements } from './engine/trousers';
 
-export type Garment = 'skirt' | 'bodice' | 'dress' | 'trousers' | 'tee';
+export type Garment = 'skirt' | 'bodice' | 'dress' | 'trousers' | 'tee' | 'jacket' | 'coat';
 
 export type MeasurementId = keyof SkirtMeasurements | keyof BodiceMeasurements | keyof SleeveMeasurements | keyof TrousersMeasurements;
 
@@ -278,7 +278,17 @@ export const TEE_FIELDS: MeasurementField[] = TEE_IDS.map(([id, needed]) => {
   return { ...f, optional: needed ? undefined : id === 'wrist' ? 'For long sleeves.' : 'For a closer armhole.' };
 });
 
-export const FIELDS: Record<Garment, MeasurementField[]> = { skirt: SKIRT_FIELDS, bodice: BODICE_FIELDS, dress: DRESS_FIELDS, trousers: TROUSERS_FIELDS, tee: TEE_FIELDS };
+/** A jacket takes the bodice's measurements with the hip (it reaches below the waist) and the arms (it
+ * always has sleeves); a coat also the knee, for its length. */
+const OUTER_NEEDS: MeasurementId[] = ['full_hip', 'waist_to_hip', 'arm_length', 'upper_arm'];
+const JACKET_FIELDS: MeasurementField[] = BODICE_FIELDS.map((f) => (OUTER_NEEDS.includes(f.id) ? { ...f, optional: undefined } : f));
+const COAT_FIELDS: MeasurementField[] = [
+  ...JACKET_FIELDS.filter((f) => !f.fit),
+  ...SKIRT_FIELDS.filter((f) => f.id === 'waist_to_knee'),
+  ...JACKET_FIELDS.filter((f) => f.fit),
+];
+
+export const FIELDS: Record<Garment, MeasurementField[]> = { skirt: SKIRT_FIELDS, bodice: BODICE_FIELDS, dress: DRESS_FIELDS, trousers: TROUSERS_FIELDS, tee: TEE_FIELDS, jacket: JACKET_FIELDS, coat: COAT_FIELDS };
 
 export type Unit = 'cm' | 'in';
 export type MeasurementValues = Partial<Record<MeasurementId, number>>; // always stored in cm

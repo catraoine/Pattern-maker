@@ -6,8 +6,8 @@ import { FIELDS, type Garment, type MeasurementField, type MeasurementId, type M
 /** Taken by everyone first. Waist to floor is the length every garment can work from, and easier alone than height. */
 export const BASE: MeasurementId[] = ['full_bust', 'waist', 'full_hip', 'waist_to_floor'];
 
-export const GARMENTS: Garment[] = ['skirt', 'dress', 'bodice', 'trousers', 'tee'];
-export const GARMENT_NAME: Record<Garment, string> = { skirt: 'skirt', dress: 'dress', bodice: 'bodice', trousers: 'trousers', tee: 'T-shirt' };
+export const GARMENTS: Garment[] = ['skirt', 'dress', 'bodice', 'trousers', 'tee', 'jacket', 'coat'];
+export const GARMENT_NAME: Record<Garment, string> = { skirt: 'skirt', dress: 'dress', bodice: 'bodice', trousers: 'trousers', tee: 'T-shirt', jacket: 'jacket', coat: 'coat' };
 
 const ALL = new Map<MeasurementId, MeasurementField>();
 for (const list of Object.values(FIELDS)) for (const f of list) if (!ALL.has(f.id)) ALL.set(f.id, f);
@@ -22,9 +22,8 @@ export const extrasFor = (garment: Garment) => FIELDS[garment].filter((f) => !f.
 export const missingFor = (garment: Garment, v: MeasurementValues) => extrasFor(garment).filter((f) => !has(v, f.id));
 export const baseDone = (v: MeasurementValues) => BASE.every((id) => has(v, id));
 
-const WORDS = ['No', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve'];
-/** "Two more for a skirt." */
-export const moreFor = (n: number, garment: Garment) => `${WORDS[n] ?? n} more for ${garment === 'trousers' ? 'trousers' : `a ${GARMENT_NAME[garment]}`}.`;
+/** Every measurement the app uses, for "Something else": the ones still to take, after the base set. */
+export const fullSetMissing = (v: MeasurementValues) => [...ALL.values()].filter((f) => !BASE.includes(f.id) && !has(v, f.id));
 
 /** Girths read as a body part: "Your bust", "Their waist". Lengths keep their name. */
 const PART: Partial<Record<MeasurementId, string>> = {

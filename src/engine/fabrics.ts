@@ -13,7 +13,7 @@ import { TeeFabricStyle, teeFabrics, teeWarnings } from './knits';
 export type Weight = 'light' | 'medium' | 'heavy';
 export type Drape = 'crisp' | 'soft' | 'fluid';
 /** Every garment the fabric advice covers. */
-export type FabricGarment = 'skirt' | 'bodice' | 'dress' | 'trousers' | 'tee';
+export type FabricGarment = 'skirt' | 'bodice' | 'dress' | 'trousers' | 'tee' | 'jacket' | 'coat';
 export type Fibre = 'cotton' | 'linen' | 'wool' | 'silk' | 'viscose' | 'polyester' | 'blend';
 
 /** The fabric the maker has bought, or means to buy. Every field is optional. */
@@ -298,6 +298,32 @@ export function trousersFabrics(style: { leg: Leg }): FabricAdvice {
   };
 }
 
+const OUTER_LINING = pick('Lining: Bemberg (cupro) or acetate twill', ['light'], 'fluid', 'Slippery, so it slides on over other clothes, and it breathes.');
+
+const OUTER: Record<'jacket' | 'coat', FabricPick[]> = {
+  jacket: [
+    pick('Wool suiting, flannel or crepe', ['medium'], 'soft', 'Shapes with steam round the shoulders and collar, and tailors beautifully.'),
+    pick('Linen or cotton drill', ['medium'], 'crisp', 'A crisp summer jacket that presses sharply.'),
+    pick('Tweed or boucle', ['medium', 'heavy'], 'soft', 'Warm and textured. Interface the fronts so they keep their shape.'),
+  ],
+  coat: [
+    pick('Wool melton or coating', ['heavy'], 'crisp', 'Dense and warm. Cut edges barely fray, and it presses to a sharp edge.'),
+    pick('Wool and cashmere coating', ['heavy'], 'soft', 'Soft and luxurious, with a little drape.'),
+    pick('Cotton gabardine or twill', ['medium', 'heavy'], 'crisp', 'A trench-weight coat for spring and autumn.'),
+  ],
+};
+
+/** Fabrics for a jacket or a coat. */
+export function outerFabrics(style: { garment: 'jacket' | 'coat'; fit: BodiceFit }): FabricAdvice {
+  return {
+    style: `a ${FIT_WORDS[style.fit]} ${style.garment}`,
+    picks: OUTER[style.garment],
+    avoid: `Light or fluid fabrics like lawn, chiffon or crepe de chine. They will not hold the collar, lapels and shoulders. ${STRETCH}`,
+    note: 'Interface the front facings, collar and hems with a fusible weft interfacing.',
+    lining: OUTER_LINING,
+  };
+}
+
 /** Fabrics for a dress: the skirt's suggestions that also suit the bodice come first. */
 export function dressFabrics(style: { fit: BodiceFit; neckline: Neckline; silhouette: Silhouette; length: Length }): FabricAdvice {
   const skirt = skirtFabrics(style);
@@ -330,7 +356,8 @@ export type FabricStyle =
   | { garment: 'bodice'; fit: BodiceFit; neckline: Neckline }
   | { garment: 'dress'; fit: BodiceFit; neckline: Neckline; silhouette: Silhouette; length: Length }
   | { garment: 'trousers'; fit: Fit; leg: Leg }
-  | TeeFabricStyle;
+  | TeeFabricStyle
+  | { garment: 'jacket' | 'coat'; fit: BodiceFit };
 
 const weightRank: Record<Weight, number> = { light: 0, medium: 1, heavy: 2 };
 
@@ -363,7 +390,8 @@ export function adviceFor(style: FabricStyle): FabricAdvice {
   if (style.garment === 'bodice') return bodiceFabrics(style);
   if (style.garment === 'dress') return dressFabrics(style);
   if (style.garment === 'tee') return teeFabrics(style);
-  return trousersFabrics(style);
+  if (style.garment === 'trousers') return trousersFabrics(style);
+  return outerFabrics(style);
 }
 
 /** What to watch for with this fabric in this style. */
@@ -385,6 +413,10 @@ function styleWarnings(style: FabricStyle, { weight, drape }: MyFabric): string[
     if (weight === 'heavy' && style.fit !== 'relaxed') out.push('A heavy fabric makes thick darts and a bulky neckline. Face or line it with something light, and trim the seams well.');
     if (drape === 'crisp' && weight === 'heavy' && style.fit === 'relaxed') out.push('A heavy, crisp fabric stands away from the body without darts.');
     if (style.neckline === 'boat' && drape === 'fluid') out.push('A boat neck in a fluid fabric can slide off the shoulder. Stay the neckline with tape.');
+  }
+  if (style.garment === 'jacket' || style.garment === 'coat') {
+    if (weight === 'light') out.push(`A light fabric will not hold the collar and shoulders of ${name}. Interface it throughout, or choose a medium or heavy weight.`);
+    if (drape === 'fluid') out.push(`A fluid fabric collapses at the lapels and hem of ${name}. Choose a crisper cloth.`);
   }
   if (style.garment === 'trousers') {
     if (weight === 'light') out.push('Light fabric bags at the seat and knees in trousers, and can show through. Choose a medium weight, or line them.');

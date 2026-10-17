@@ -1,6 +1,7 @@
 // Measurement tables for the tech pack: each body measurement the draft used, the ease added and the
 // finished garment measurement.
 import type { Elastic, SkirtDraft, SkirtMeasurements } from './skirt';
+import type { OuterDraft, OuterMeasurements } from './outerwear';
 import type { BodiceDraft, BodiceLength, BodiceMeasurements } from './bodice';
 import type { SpecRow } from './techpack';
 import type { SleeveDraft, SleeveMeasurements } from './sleeve';
@@ -119,5 +120,23 @@ export function teeSpec(m: TeeMeasurements, d: TeeDraft): SpecRow[] {
     row('Upper arm (bicep)', m.upper_arm, d.sleeve.bicep),
     row('Sleeve length, crown to hem', undefined, d.sleeve.lengthCm),
     row('Sleeve hem, round', undefined, d.sleeve.hemCm),
+  ];
+}
+
+/** A jacket or a coat: the block's girths with outerwear ease, the length, the sleeve and the buttons. */
+export function outerSpec(m: OuterMeasurements, d: OuterDraft): SpecRow[] {
+  return [
+    row('Bust', m.full_bust, d.finishedBust),
+    row('Waist', m.waist, d.finishedWaist),
+    row(`Hem, ${d.drop} cm below the waist`, undefined, d.finishedHem),
+    { label: 'Nape to waist', body: r1(m.nape_to_waist), finished: '' },
+    row('Centre back length', undefined, d.lengthCm),
+    row('Armhole', m.armscye, d.base.armhole),
+    row('Shoulder seam (back)', m.shoulder_length, d.base.shoulder.back),
+    ...sleeveSpec(m, d.sleeve),
+    { label: `Buttons, ${d.buttons.columns.length > 1 ? 'double-breasted' : 'single-breasted'}`, finished: `${d.buttons.at.length * d.buttons.columns.length} x ${d.buttons.sizeCm}` },
+    row('Extension beyond the centre front', undefined, d.ext),
+    ...(d.pads ? [row('Shoulder pad, drafted in', undefined, d.pads)] : []),
+    ...(d.vent ? [row('Centre back vent', undefined, d.vent.length)] : []),
   ];
 }

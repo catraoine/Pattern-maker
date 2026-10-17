@@ -1,6 +1,6 @@
 // The guest's account, kept on this device until sign-in arrives: their name, the people they measure and saved patterns.
 // Patterns are stored as choices (not geometry), so they redraft whenever measurements or the engine change.
-import { PatternChoices, isBodice, isDress, isTee, isTrousers, sleeveOf } from './garments';
+import { PatternChoices, isBodice, isDress, isOuter, isTee, isTrousers, sleeveOf } from './garments';
 import type { Garment, MeasurementValues } from './measurements';
 import type { Fitting } from './engine/fitting';
 import type { FitFeedback } from './fit';
@@ -125,6 +125,7 @@ export function sameChoices(a: PatternChoices, b: PatternChoices): boolean {
   if (isDress(a) || isDress(b)) {
     return isDress(a) && isDress(b) && a.fit === b.fit && sameChoices(a.bodice, b.bodice) && sameChoices(a.skirt, b.skirt);
   }
+  if (isOuter(a) || isOuter(b)) return isOuter(a) && isOuter(b) && JSON.stringify(a) === JSON.stringify(b);
   if (isBodice(a) || isBodice(b)) {
     return (
       isBodice(a) &&
