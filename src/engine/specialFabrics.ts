@@ -10,7 +10,7 @@ export type Special = 'denim' | 'leather' | 'velvet' | 'corduroy' | 'sheer' | 's
 type Weight = 'light' | 'medium' | 'heavy';
 type Drape = 'crisp' | 'soft' | 'fluid';
 type Fibre = 'cotton' | 'linen' | 'wool' | 'silk' | 'viscose' | 'polyester' | 'blend';
-type Garment = 'skirt' | 'bodice' | 'dress' | 'trousers';
+type Garment = 'skirt' | 'bodice' | 'dress' | 'trousers' | 'jacket' | 'coat';
 
 export interface SpecialInfo {
   label: string;
@@ -173,7 +173,7 @@ export interface Checks {
   repeat?: number;
 }
 
-const MAIN_PIECES: Record<Garment, number> = { skirt: 2, bodice: 2, dress: 4, trousers: 2 };
+const MAIN_PIECES: Record<Garment, number> = { skirt: 2, bodice: 2, dress: 4, trousers: 2, jacket: 4, coat: 4 };
 const DEFAULT_REPEAT = 10;
 
 /** Extra fabric for matching checks: about one repeat for each main piece. In metres, to 0.1. */

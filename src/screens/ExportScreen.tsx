@@ -43,7 +43,6 @@ interface Props {
   onFinish: (f: Finish) => void;
   made?: Printable;
   error?: string;
-  onBack: () => void;
   saveState: 'can' | 'saved' | 'full';
   onSave: () => void;
   onAccount: () => void;
@@ -97,7 +96,7 @@ function download(data: BlobPart, type: string, name: string) {
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
-export function ExportScreen({ profile, title, fit, garment, finish, onFinish, made, error, onBack, saveState, onSave, onAccount, fitting, fittingNotes, onFitting, onTrueScale, values, draftAt, style }: Props) {
+export function ExportScreen({ profile, title, fit, garment, finish, onFinish, made, error, saveState, onSave, onAccount, fitting, fittingNotes, onFitting, onTrueScale, values, draftAt, style }: Props) {
   const [paper, setPaper] = useState<Output>('a4');
   const [pdf, setPdf] = useState<{ paper: Output; bytes: Uint8Array } | null>(null);
   const [shareNote, setShareNote] = useState('');
@@ -159,9 +158,6 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
     return (
       <section className="card">
         <p className="msg error">{error ?? 'Add your measurements first.'}</p>
-        <button type="button" className="link" onClick={onBack}>
-          Back
-        </button>
       </section>
     );
   }
@@ -275,9 +271,6 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
           </label>
           <SaveControl state={saveState} onSave={onSave} onAccount={onAccount} />
           <p className="muted small">Printed it? The sewing steps are just below, and on the last pages of the PDF.</p>
-          <button type="button" className="link" onClick={onBack}>
-            Back to style
-          </button>
         </section>
       </div>
 

@@ -20,14 +20,13 @@ interface Props {
   hasBustDart: boolean;
   /** Save the corrections; `shown` lists those carried in, so one unticked here is cleared for good. */
   onSave: (f: Fitting, shown: string[]) => void;
-  onCancel: () => void;
 }
 
 /**
  * After the toile: the person ticks what they see when they try it on, and each correction goes into
  * the pattern the way a pattern cutter would make it. The drawing shows the pattern before and after.
  */
-export function FittingScreen({ garment, fitting, own, carried = [], draftWith, hasBustDart, onSave, onCancel }: Props) {
+export function FittingScreen({ garment, fitting, own, carried = [], draftWith, hasBustDart, onSave }: Props) {
   const saved = fitting ?? NO_FITTING;
   const [f, setF] = useState<Fitting>(saved);
   const issues = FIT_ISSUES.filter((i) => appliesTo(i, garment) && (hasBustDart || !i.needsBustDart));
@@ -92,9 +91,6 @@ export function FittingScreen({ garment, fitting, own, carried = [], draftWith, 
           onClick={() => onSave(f, carried.map((c) => c.id))}
         >
           {changed ? `Save as version ${version + 1}` : 'No changes yet'}
-        </button>
-        <button type="button" className="secondary" onClick={onCancel}>
-          Back to the pattern
         </button>
         {Object.keys(f.issues).length > 0 && (
           <button type="button" className="link" onClick={() => setF({ ...f, issues: {}, sides: {} })}>
