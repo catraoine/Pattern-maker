@@ -13,7 +13,7 @@ const EDGES: { id: BodiceEdges; label: string; detail: string }[] = [
 export function FinishChoices({ garment, finish, onFinish, sleeved = false }: { garment: Garment; finish: Finish; onFinish: (f: Finish) => void; sleeved?: boolean }) {
   return (
     <>
-      {garment === 'trousers' ? null : garment === 'skirt' ? (
+      {garment === 'trousers' || garment === 'jacket' || garment === 'coat' ? null : garment === 'skirt' ? (
         <fieldset className="group">
           <legend>Lining</legend>
           {[false, true].map((on) => (

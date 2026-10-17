@@ -36,7 +36,16 @@ export interface SleeveStyle {
   seamAllowance: number;
   armholeAllowance: number;
   hemAllowance: number;
+  /** A jacket or coat sleeve, worn over other clothes: more room at the bicep and the hem, a little
+   * longer, and the crown ease a tailor works into a wool armhole. */
+  outer?: 'jacket' | 'coat';
 }
+
+/** Bicep and crown ease for jacket and coat sleeves, by fit. */
+export const OUTER_SLEEVE_EASE: Record<'jacket' | 'coat', Record<BodiceFit, { bicep: number; crown: number }>> = {
+  jacket: { fitted: { bicep: 8, crown: 3.5 }, regular: { bicep: 10, crown: 3 }, relaxed: { bicep: 13, crown: 2.5 } },
+  coat: { fitted: { bicep: 10, crown: 3.5 }, regular: { bicep: 13, crown: 3 }, relaxed: { bicep: 16, crown: 2.5 } },
+};
 
 /** Ease round the upper arm, and the crown ease eased into the armhole, by fit. */
 export const SLEEVE_EASE: Record<BodiceFit, { bicep: number; crown: number }> = {
@@ -161,7 +170,7 @@ export function draftSleeve(bodice: BodiceDraft, m: SleeveMeasurements, s: Sleev
   const front = armholeOf(bf);
   const back = armholeOf(bb);
   const depth = (front.depth + back.depth) / 2;
-  const ease = SLEEVE_EASE[s.fit];
+  const ease = s.outer ? OUTER_SLEEVE_EASE[s.outer][s.fit] : SLEEVE_EASE[s.fit];
   const arm = m.arm_length;
   const wrist = m.wrist ?? Math.max(13, m.upper_arm * 0.55);
   // A hand closed as to go through a sleeve is about 1.3 times the wrist.
@@ -170,7 +179,7 @@ export function draftSleeve(bodice: BodiceDraft, m: SleeveMeasurements, s: Sleev
   const gathered = s.shape === 'puff' || s.shape === 'bishop';
 
   // Length from the crown point, and the hem width before any shaping.
-  const lengthCm = { short: 0, elbow: elbowY + 2, three_quarter: arm * 0.8, long: arm + 1 }[s.length];
+  const lengthCm = { short: 0, elbow: elbowY + 2, three_quarter: arm * 0.8, long: arm + 1 + (s.outer === 'coat' ? 2.5 : s.outer ? 1.5 : 0) }[s.length];
 
   let w = m.upper_arm + ease.bicep;
   if (s.shape === 'puff') w *= 1.3;
@@ -231,6 +240,7 @@ export function draftSleeve(bodice: BodiceDraft, m: SleeveMeasurements, s: Sleev
   const hemWidth = () => {
     if (s.shape === 'puff') return w;
     if (s.shape === 'bishop') return w * 1.5;
+    if (s.outer && s.length === 'long') return s.shape === 'fitted' ? Math.max(wrist + (s.outer === 'coat' ? 14 : 11), hand + 5) : Math.max(w * 0.85, hand + 8);
     if (s.shape === 'fitted') {
       if (s.length === 'long') return Math.max(wrist + 6, hand + 1);
       if (s.length === 'three_quarter') return Math.max(w + (wrist + 6 - w) * 0.6, hand + 2);

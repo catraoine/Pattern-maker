@@ -11,6 +11,8 @@ import type { BodiceEdges } from './instructions';
 import { BAND_CM, SleeveDraft } from './sleeve';
 import type { DressDraft } from './dress';
 import type { TrousersDraft } from './trousers';
+import type { OuterDraft } from './outerwear';
+import { lerp } from './geometry';
 
 export type FlatLineKind = 'seam' | 'dart' | 'stitch' | 'zip';
 
@@ -569,6 +571,89 @@ export function trousersFlat(d: TrousersDraft, m: { waist_to_hip: number; crotch
       lines.push({ pts, kind: 'zip' });
     }
     return { label, shapes, lines };
+  });
+  return arrange(views);
+}
+
+/**
+ * A jacket or a coat, buttoned: the right front lapping over the left to the extension's edge, the
+ * lapels rolled back from the break point with the collar over them (or a stand collar, or a plain
+ * edge), set-in sleeves, patch pockets, and the buttons. The back shows the collar lying over the neck.
+ */
+export function outerFlat(d: OuterDraft): Flat {
+  const [bf, bb] = d.block;
+  const style = d.base.styleLines;
+  const extra = d.drop - d.base.drop;
+  const oldHem = d.base.front.hemCentre.y;
+  // Princess lines carried on down to the new hem.
+  const longer = (pts: P[]) => (extra > 0.05 && Math.abs(Math.max(...pts.map((q) => q.y)) - Math.max(oldHem, d.base.back.hemCentre.y)) < 2 ? [...pts, add(pts[pts.length - 1], p(0, extra))] : pts);
+  const back = sewn(bb, undefined, style?.skip === 'all' ? 'all' : undefined);
+  const backFoot = back.run[back.tags.lastIndexOf('side') + 1].y;
+  const front = sewn(bf, backFoot, style?.skip);
+  const hpsOf = (h: Half) => h.run[h.tags.indexOf('shoulder')];
+  const footY = front.run[front.run.length - 1].y;
+  const ext = d.ext;
+  const circle = (c: P, r: number) => Array.from({ length: 13 }, (_, k) => add(c, p(r * Math.cos((k / 12) * 2 * Math.PI), r * Math.sin((k / 12) * 2 * Math.PI))));
+
+  const views = ([front, back] as const).map((h, i) => {
+    const isFront = i === 0;
+    const lines: FlatView['lines'] = h.darts.flatMap((dt) => both(dt).map((pts) => ({ pts, kind: 'dart' as const })));
+    for (const sl of (isFront ? style?.front : style?.back) ?? []) lines.push(...both(longer(sl.pts).map(h.move)).map((pts) => ({ pts, kind: sl.kind })));
+    for (const run of along(h, 'hem')) for (const pts of [run, mirror(run)]) for (const r of inset(pts, 2.5, whole(h.run))) lines.push({ pts: r, kind: 'stitch' });
+    const shapes: P[][] = [];
+    const over: P[][] = [];
+    const hps = hpsOf(h);
+    const shoulder = along(h, 'shoulder')[0] ?? [hps, hps];
+    const uSh = unit(sub(shoulder[shoulder.length - 1], shoulder[0]));
+    if (isFront) {
+      const run = h.run.slice(h.tags.indexOf('shoulder'));
+      const neckRun = h.run.slice(0, h.tags.indexOf('shoulder') + 1);
+      let half: P[];
+      if (d.lapel) {
+        const L = d.lapel;
+        const top = lerp(L.roll[0], L.roll[1], 0.94);
+        half = [...run, p(-ext, footY), L.breakPt, top];
+        // The lapel rolled back over the front, and the collar from the notch round behind the neck.
+        over.push([...L.worn]);
+        const out = add(hps, mul(uSh, d.kind === 'coat' ? 4.5 : 3.8));
+        const behind = p(0, hps.y - 1.6);
+        over.push([L.notch, L.collarPoint, out, add(hps, p(-hps.x * 0.5, -1.4)), behind, p(0, top.y + 0.2), top, L.gorge]);
+      } else {
+        half = [...run, p(-ext, footY), p(-ext, neckRun[0].y), ...neckRun];
+        if (d.pieces.some((pc) => pc.name === 'Collar')) {
+          const neck = [p(-ext, neckRun[0].y), ...neckRun];
+          over.push([...neck, ...neck.map((q) => p(q.x, q.y - 3.5)).reverse()]);
+        }
+      }
+      // The left front under the right, then the right front over it.
+      shapes.push(mirror(half), half);
+      lines.push({ pts: [p(-ext, footY), p(-ext, d.lapel ? d.lapel.breakPt.y : neckRun[0].y)], kind: 'seam' });
+      for (const y of d.buttons.at) for (const x of d.buttons.columns) lines.push({ pts: circle(h.move(p(x, y)), d.buttons.sizeCm / 2), kind: 'seam' });
+      if (d.pocket) {
+        const { x, y, w, h: ph } = d.pocket;
+        const box = [p(x, y), p(x, y + ph), p(x + w, y + ph), p(x + w, y)].map(h.move);
+        for (const pts of both(box)) lines.push({ pts, kind: 'stitch' });
+        for (const pts of both([h.move(p(x, y + 3)), h.move(p(x + w, y + 3))])) lines.push({ pts, kind: 'stitch' });
+      }
+    } else {
+      shapes.push(whole(h.run));
+      const neckRun = along(h, 'neck')[0];
+      if (neckRun && d.pieces.some((pc) => pc.name === 'Collar')) {
+        // A stand collar stands up from the neck; a notched collar's fall lies over the neck seam from its roll.
+        const up = neckRun.map((q) => p(q.x, q.y - (d.lapel ? 2.6 : 3.5)));
+        const down = d.lapel ? offsetRun(neckRun, () => (d.kind === 'coat' ? 2.4 : 1.8), p(0, -100)) : neckRun;
+        const half = [...down, ...[...up].reverse()];
+        over.push([...mirror(half).reverse(), ...half]);
+      }
+    }
+    const sl = sleeveSide(h, d.sleeve);
+    for (const flip of [false, true]) {
+      const f = (pts: P[]) => (flip ? mirror(pts) : pts);
+      if (sl.shape.length) shapes.push(f(sl.shape));
+      lines.push(...sl.lines.map((l) => ({ ...l, pts: f(l.pts) })));
+    }
+    for (const o of over) shapes.push(isFront ? mirror(o) : o, ...(isFront ? [o] : []));
+    return { label: isFront ? ('FRONT' as const) : ('BACK' as const), shapes, lines };
   });
   return arrange(views);
 }
