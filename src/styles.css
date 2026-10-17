@@ -2013,41 +2013,42 @@ button.link.how-link {
   color: var(--disabled);
 }
 
-.entry-unit {
-  font-family: var(--mono);
-  font-size: 13px;
-  letter-spacing: var(--track);
-  color: var(--muted);
-}
-
 .measure-entry .msg {
   margin: 0;
 }
 
-/* cm / in, quietly under the box */
+/* cm | in, inside the box where the unit sits (Cat's pick U1): the chosen one is lit champagne */
+.entry-row {
+  align-items: center;
+}
+
 .unit-switch {
   display: flex;
-  gap: 18px;
+  flex: none;
 }
 
 .unit-switch button {
-  min-height: 44px;
-  padding: 0;
-  border: none;
+  min-width: 44px;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--line-strong);
   background: none;
   color: var(--muted);
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: var(--track);
   text-transform: uppercase;
   cursor: pointer;
 }
 
+.unit-switch button + button {
+  border-left: none;
+}
+
 .unit-switch button.on {
-  color: var(--ink);
-  text-decoration: underline;
-  text-decoration-color: var(--gild);
-  text-underline-offset: 6px;
+  border-color: var(--gild);
+  background: var(--gild);
+  color: #000;
 }
 
 /* Next sits well apart from the box, so the two never read as one control */
@@ -2555,6 +2556,8 @@ table.history td.moved {
 .house-look button.secondary {
   align-self: flex-start;
   margin-top: 6px;
+}
+
 .shape .body-outline {
   stroke: var(--muted);
   opacity: 0.5;
@@ -2647,6 +2650,8 @@ button.link.garment-change {
   font-size: 12px;
   letter-spacing: 0.2em;
   text-transform: uppercase;
+  color: var(--gild);
+}
 
 /* Paid extras that aren't open yet: an email sign-up with the planned price */
 .offerprices {
