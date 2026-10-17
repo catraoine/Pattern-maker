@@ -1371,20 +1371,28 @@ details.more[open] > summary h2::after {
   margin-bottom: 16px;
 }
 
-/* Privacy and Terms links under every screen */
-.site-footer {
-  display: flex;
-  justify-content: center;
-  gap: 24px;
-  padding: 0 20px calc(16px + env(safe-area-inset-bottom));
-}
-.site-footer button.link {
+/* Privacy and Terms, as quiet fine print on the welcome and in Your account */
+.fineprint {
+  margin: 0;
   font-size: 12px;
-  font-weight: var(--w-body);
+  line-height: 1.5;
   color: var(--muted);
 }
-.site-footer button.link[aria-current='page'] {
-  color: var(--ink);
+.welcome .fineprint {
+  text-align: center;
+}
+.fineprint button.inline-link {
+  min-height: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  letter-spacing: normal;
+  text-transform: none;
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
 }
 
 /* The Privacy Policy and Terms of Use pages */

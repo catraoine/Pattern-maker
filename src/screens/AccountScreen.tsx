@@ -28,6 +28,8 @@ interface Props {
   onRemove: (id: string) => void;
   onFit: (id: string, fit: FitFeedback | undefined) => void;
   onReset: () => void;
+  /** Opens the Privacy Policy or the Terms of Use. */
+  onLegal: (page: 'privacy' | 'terms') => void;
   onBackup: () => void;
   onRestore: (file: File) => Promise<boolean>;
 }
@@ -37,7 +39,7 @@ const show = (cm: number | undefined, unit: Unit) =>
 
 const dateFmt = new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 
-export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurements, onSwitchPerson, onAddPerson, onRemovePerson, onClientBook, onCheckFile, onOpen, onRename, onRemove, onFit, onReset, onBackup, onRestore }: Props) {
+export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurements, onSwitchPerson, onAddPerson, onRemovePerson, onClientBook, onCheckFile, onOpen, onRename, onRemove, onFit, onReset, onLegal, onBackup, onRestore }: Props) {
   const [confirmReset, setConfirmReset] = useState(false);
   const [restoreMsg, setRestoreMsg] = useState('');
   const display = account.name.trim() || 'Me';
@@ -127,6 +129,15 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
               Delete my data and start over
             </button>
           )}
+          <p className="fineprint">
+            <button type="button" className="inline-link" onClick={() => onLegal('privacy')}>
+              Privacy Policy
+            </button>
+            {' · '}
+            <button type="button" className="inline-link" onClick={() => onLegal('terms')}>
+              Terms of Use
+            </button>
+          </p>
         </div>
       </section>
 
