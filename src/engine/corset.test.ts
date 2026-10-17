@@ -55,6 +55,16 @@ describe('boned and strapless tops', () => {
             expect(cf.lengthCm).toBeLessThan(d.front.waistCentre.y - Math.min(...d.pieces[0].outline.points().map((q) => q.y)) - BONE_STOP.top - BONE_STOP.waist + 0.3);
             expect(d.top!.grip).toBe(neckline === 'cami' ? 0 : GRIP_CM);
           }
+          // The top edge falls smoothly to the side seam on the front, and rises to it on the back:
+          // no dip below the side and flick back up at the underarm.
+          for (const pc of d.pieces) {
+            const { pts, tags } = pc.outline.taggedPoints(4);
+            const top = pts.filter((_, i) => tags[i] === 'neck');
+            const front = !/back/i.test(pc.name);
+            const from = front ? top.reduce((k, q, i) => (q.y < top[k].y ? i : k), 0) : 0;
+            for (let i = from + 1; i < top.length; i++)
+              if (front ? top[i].y < top[i - 1].y - 0.05 : top[i].y > top[i - 1].y + 0.05) failures.push(`${seed} ${neckline} ${structure}: ${pc.name} top edge turns back at x ${top[i].x.toFixed(1)}`);
+          }
           if (neckline === 'cami') {
             expect(d.top!.straps!.lengthCm).toBeGreaterThan(10);
             expect(d.top!.straps!.cutLengthCm).toBeGreaterThan(d.top!.straps!.lengthCm);

@@ -211,13 +211,16 @@ interface Cut {
  * line meets the old neck) round to a point `drop` cm down the side seam. `edge` draws the top edge
  * from the side point given the side seam's direction there. Everything above it goes.
  */
-function cutPiece(pc: Piece, drop: number, edge: (side: P, out: P) => P[]): Cut {
+function cutPiece(pc: Piece, drop: number, edge: (side: P, out: P) => P[], turn = 0): Cut {
   const r = ringOf(pc.outline);
   const run = firstRun(r, 'side')!;
   const iS = insertAlong(r, run, drop);
   const S = r.pts[iS];
   const down = unit(sub(r.pts[iS + 1], S));
-  const out = squareTo(down);
+  // The edge meets the side seam square, or turned by `turn` toward the waist (the front) and away
+  // from it by as much (the back), so the two corners still add up to a straight line when sewn.
+  const sq = squareTo(down);
+  const out = add(mul(sq, Math.cos(turn)), mul(down, Math.sin(turn)));
   const top = edge(S, out);
   const pts = [...top.slice(0, -1), ...r.pts.slice(iS)];
   const tags = [...top.slice(0, -1).map(() => 'neck'), ...r.tags.slice(iS)];
@@ -236,6 +239,36 @@ function cutPiece(pc: Piece, drop: number, edge: (side: P, out: P) => P[]): Cut 
       draft: pc.draft ? { frame: pc.draft.frame, points: pc.draft.points.filter((pt) => keep(pt.at)) } : undefined,
     },
   };
+}
+
+const dot = (a: P, b: P) => a.x * b.x + a.y * b.y;
+
+/** Where the top edge meets the side seam, `drop` below the underarm, and the seam's direction there. */
+function sideAt(pc: Piece, drop: number): { S: P; down: P } {
+  const r = ringOf(pc.outline);
+  const iS = insertAlong(r, firstRun(r, 'side')!, drop);
+  return { S: r.pts[iS], down: unit(sub(r.pts[iS + 1], r.pts[iS])) };
+}
+
+/**
+ * How far the top edge turns off square at the side seam. Above the side bust dart the front's side
+ * seam leans out, so an edge square to it would have to dip below the side and rise again to meet it.
+ * The edge is turned until the front falls all the way to the side (never rising at the end), and
+ * toward the average of the front's fall and the back's rise, so the line runs on round the body.
+ */
+function sideTurn(front: Piece, back: Piece, drop: number, frontFrom: P, backFrom: P): number {
+  const f = sideAt(front, drop);
+  const b = sideAt(back, drop);
+  const of = squareTo(f.down);
+  const ob = squareTo(b.down);
+  const vf = unit(sub(f.S, frontFrom));
+  const vb = unit(sub(b.S, backFrom));
+  // The front's chord, below square; the back's, falling from the side toward the centre back.
+  const fall = Math.atan2(dot(vf, f.down), dot(vf, of));
+  const rise = -Math.atan2(dot(vb, b.down), dot(vb, ob));
+  // Turned at least this far, the front arrives level or falling, in its own frame.
+  const level = f.down.y > 1e-6 ? Math.atan2(-of.y, f.down.y) : 0;
+  return Math.max(0, level, Math.min((fall + rise) / 2, fall));
 }
 
 /** The shoulder run's middle on the block as drafted: where a strap goes over. */
@@ -297,15 +330,23 @@ export function cutTop(d: BodiceDraft, s: BodiceStyle & { neckline: TopNeckline 
     }
     return frontEdge(S, out);
   };
-  const fc = cutPiece(front, drop, tryFront);
+  const backFrom = (() => {
+    const b = sideAt(back, drop);
+    return p(0, b.S.y + 1);
+  })();
+  const turn = sideTurn(front, back, drop, p(apex.x, apex.y - ABOVE_BUST[kind]), backFrom);
+  const fc = cutPiece(front, drop, tryFront, turn);
 
   // ---- back: level across the centre back, 1 cm below the side, square to both -------------------
   const backEdge = (S: P, out: P): P[] => {
     const C = p(0, S.y + 1);
     const k = len(sub(S, C)) * 0.35;
-    return squared([C, ...cubic(C, add(C, p(k, 0)), sub(S, mul(out, k)), S, Math.max(12, Math.ceil(S.x / 0.4)))], p(1, 0), out);
+    // Rising to the side more steeply than square (see sideTurn), the last handle is kept short enough
+    // that the edge never sags below its centre back level on the way.
+    const k2 = out.y < -1e-6 ? Math.min(k, (0.9 * (C.y - S.y)) / -out.y) : k;
+    return squared([C, ...cubic(C, add(C, p(k, 0)), sub(S, mul(out, k2)), S, Math.max(12, Math.ceil(S.x / 0.4)))], p(1, 0), out);
   };
-  const bc = cutPiece(back, drop, backEdge);
+  const bc = cutPiece(back, drop, backEdge, -turn);
 
   // A back waist dart that would run up past the top edge is shortened to 3 cm below it and trued again.
   let backPiece = bc.piece;
