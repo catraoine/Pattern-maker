@@ -40,21 +40,30 @@ test('fresh visitor: welcome, measure, style every garment, print the A4 PDF', a
   await openFresh(page);
   const main = page.getByRole('main');
 
-  // Welcome, then the base measurements one page at a time.
+  // Welcome: one button, and the tour plays from the dress form.
+  await expect(main.getByRole('button', { name: /Try an example/ })).toHaveCount(0);
+  await main.getByRole('button', { name: /^Watch how it works/ }).click();
+  const tour = page.getByRole('dialog', { name: 'How it works' });
+  await expect(tour).toBeVisible();
+  await tour.getByRole('button', { name: /Skip tour/ }).click();
+  await expect(tour).toHaveCount(0);
+
+  // Begin, then the base measurements one page at a time.
   await main.getByRole('button', { name: 'Begin' }).click();
   await expect(main.getByRole('heading', { name: /take your measurements/i })).toBeVisible();
 
-  // Measuring someone else asks their name up front, before any measurement; this visitor measures herself.
-  await main.getByRole('button', { name: 'Measuring someone else?' }).click();
+  // Who's being measured comes first: someone else asks their name before any measurement; this visitor measures herself.
+  await main.getByRole('button', { name: 'Someone else' }).click();
   await expect(main.getByRole('heading', { name: /take their measurements/i })).toBeVisible();
   const who = main.getByRole('textbox', { name: 'Name' });
   await expect(who).toBeVisible();
   await expect(who).not.toHaveAttribute('placeholder');
   await expect(main.getByRole('button', { name: 'Start measuring' })).toBeDisabled();
-  await main.getByRole('button', { name: 'Measuring yourself?' }).click();
+  await main.getByRole('button', { name: 'Me', exact: true }).click();
   await expect(who).toHaveCount(0);
+  await expect(main.getByRole('heading', { name: /take your measurements/i })).toBeVisible();
 
-  await main.getByRole('button', { name: 'Start measuring' }).click();
+  await main.getByRole('button', { name: 'Me', exact: true }).click();
   await fillStepPages(page);
 
   await expect(main.getByRole('heading', { name: 'Do these look right?' })).toBeVisible();

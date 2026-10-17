@@ -1,21 +1,51 @@
+import { useEffect, useRef, useState } from 'react';
 import { ContourForm, type FormStart } from '../ui/ContourForm';
+import { TapeBand } from '../ui/TapeBand';
+import { TOUR_LABEL, TourPlayer } from '../ui/TourPlayer';
 
 interface Props {
-  onFinish: (r: { start: 'measure' | 'example' }) => void;
+  onFinish: () => void;
   /** How the dress form starts: it waits for the loading screen, which may hand it over already outlined. */
   formStart?: FormStart;
   /** Opens the Terms of Use or the Privacy Policy. */
   onLegal: (page: 'terms' | 'privacy') => void;
 }
 
+/** How long Begin's tape takes to unroll, clear the form and rise to the top of the measuring page. */
+const LEAVE_MS = 1700;
+
+// The welcome has one button (Cat, 2026-10-17): Begin. The tour plays from the dress form; trying an example
+// is the Skip on the measuring pages' tape. Begin unrolls a tape across the form at the waist, the form fades,
+// and the tape rises to where the measuring page's tape sits, so the next page carries straight on from it.
 // The name is asked only when measuring someone else, on the first measuring page.
-// Units are chosen on the measuring pages, by the box you type into.
 export function WelcomeScreen({ onFinish, formStart, onLegal }: Props) {
+  const [touring, setTouring] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+  const done = useRef(onFinish);
+  done.current = onFinish;
+
+  useEffect(() => {
+    if (!leaving) return;
+    const t = window.setTimeout(() => done.current(), LEAVE_MS);
+    return () => window.clearTimeout(t);
+  }, [leaving]);
+
+  const begin = () => {
+    if (leaving) return;
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) onFinish();
+    else setLeaving(true);
+  };
+
   return (
-    <div className="welcome">
+    <div className={leaving ? 'welcome leaving' : 'welcome'}>
       <section className="card welcome-card" aria-labelledby="wtitle">
         <div className="welcome-hero">
           <ContourForm start={formStart} />
+          <button type="button" className="tour-play" onClick={() => setTouring(true)} aria-label={`Watch how it works, ${TOUR_LABEL}`}>
+            <span className="tour-play-ring" aria-hidden="true" />
+            <span className="tour-play-label">How it works · {TOUR_LABEL}</span>
+          </button>
+          {leaving && <TapeBand className="unrolling" />}
         </div>
         <p className="eyebrow">Measured, not sized</p>
         <h1 id="wtitle">Sewing patterns drafted to your body.</h1>
@@ -34,11 +64,8 @@ export function WelcomeScreen({ onFinish, formStart, onLegal }: Props) {
           </li>
         </ol>
         <div className="stack">
-          <button type="button" className="primary" onClick={() => onFinish({ start: 'measure' })}>
+          <button type="button" className="primary" onClick={begin}>
             Begin
-          </button>
-          <button type="button" className="link quiet-link" onClick={() => onFinish({ start: 'example' })}>
-            Just looking? Try an example
           </button>
         </div>
         <p className="fineprint">
@@ -53,6 +80,7 @@ export function WelcomeScreen({ onFinish, formStart, onLegal }: Props) {
           .
         </p>
       </section>
+      {touring && <TourPlayer onClose={() => setTouring(false)} />}
     </div>
   );
 }
