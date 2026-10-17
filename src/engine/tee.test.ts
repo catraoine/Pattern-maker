@@ -98,7 +98,7 @@ describe('knit T-shirt', () => {
   it('makes a guide, flat, spec, knit lay and tech pack, and advises knits only', async () => {
     for (const neckline of NECKS) {
       const d = draftTee(EX, { neckline, sleeve: 'long' });
-      const lays = layPlans(d.pieces, 150, false, true);
+      const lays = layPlans(d.pieces, 150, false, false, true);
       expect(lays).toHaveLength(1);
       expect(lays[0].metres).toBeGreaterThan(0.9);
       expect(lays[0].metres).toBeLessThan(2.2);
