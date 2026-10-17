@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BASE, extrasFor, forHelper, missingFor, moreFor, stepsOf, tipOf, titleOf } from './measureFlow';
+import { BASE, extrasFor, forHelper, fullSetMissing, missingFor, stepsOf, tipOf, titleOf } from './measureFlow';
 
 describe('measuring flow', () => {
   it('takes the same base set for every garment', () => {
@@ -32,8 +32,13 @@ describe('measuring flow', () => {
     for (const f of extrasFor('dress')) expect(stepsOf(f.id, false).length).toBeGreaterThan(1);
   });
 
-  it('counts in words', () => {
-    expect(moreFor(2, 'skirt')).toBe('Two more for a skirt.');
-    expect(moreFor(4, 'trousers')).toBe('Four more for trousers.');
+  it('takes every measurement for something else, skipping what is already in', () => {
+    const v = { full_bust: 92, waist: 76, full_hip: 102, waist_to_floor: 104, waist_to_knee: 58 };
+    const ids = fullSetMissing(v).map((f) => f.id);
+    expect(ids).toContain('nape_to_waist');
+    expect(ids).toContain('crotch_depth');
+    expect(ids).not.toContain('waist');
+    expect(ids).not.toContain('waist_to_knee');
+    expect(new Set(ids).size).toBe(ids.length);
   });
 });
