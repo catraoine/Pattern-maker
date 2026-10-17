@@ -7,16 +7,18 @@ interface Props {
   /** The era look's own suggestion, while the style is still that look. */
   look?: { name: string; fabric: string };
   fabric?: MyFabric;
+  /** A knit garment: knit fabric to buy, and the neckband's fabric in place of a lining. */
+  knit?: boolean;
 }
 
 /** The style screen's fabric box: how much to buy, what suits this style, and what to avoid. */
-export function FabricCard({ metres, advice, look, fabric }: Props) {
+export function FabricCard({ metres, advice, look, fabric, knit }: Props) {
   const mine = describeFabric(fabric);
   return (
     <div className="fabric">
       <p className="eyebrow">Fabric</p>
       <p className="big">{metres.toFixed(1)} m</p>
-      <p className="muted small">of 140 cm wide woven fabric, rough estimate</p>
+      <p className="muted small">{knit ? 'of 150 cm wide knit fabric, rough estimate' : 'of 140 cm wide woven fabric, rough estimate'}</p>
       {mine && <p className="small">Your fabric: {mine}. Check it on the print screen.</p>}
       <p className="eyebrow">Good fabrics for {advice.style}</p>
       <ul className="picks">
@@ -36,7 +38,7 @@ export function FabricCard({ metres, advice, look, fabric }: Props) {
         <li>
           <strong>{advice.lining.name}</strong>
           <span className="tag">{pickTag(advice.lining)}</span>
-          <span className="muted small">If you line it. {advice.lining.why}</span>
+          <span className="muted small">{knit ? advice.lining.why : `If you line it. ${advice.lining.why}`}</span>
         </li>
       </ul>
       {advice.note && <p className="small">{advice.note}</p>}

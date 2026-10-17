@@ -2,6 +2,7 @@ import { Fragment, useState } from 'react';
 import { Check, FIELDS, Garment, MeasurementId, MeasurementValues, Unit } from '../measurements';
 import { TapeFigure } from '../ui/TapeFigure';
 import { GarmentSwitch } from '../ui/GarmentSwitch';
+import { GARMENT_NAME } from '../measureFlow';
 import { PeopleSwitch } from '../ui/PeopleSwitch';
 import { ME, type Account, type Person } from '../account';
 import { type Mode, shows } from '../mode';
@@ -82,7 +83,7 @@ export function MeasureScreen({ account, onSwitchPerson, onAddPerson, profile, g
         <div>
           <h1 id="mtitle">{account.active === ME ? 'Your measurements' : `${profile}'s measurements`}</h1>
           <p className="muted small" aria-live="polite">
-            {done} of {required.length} measured for the {garment}
+            {done} of {required.length} measured for the {GARMENT_NAME[garment]}
           </p>
         </div>
         <div className="row wrap controls">
@@ -168,7 +169,7 @@ export function MeasureScreen({ account, onSwitchPerson, onAddPerson, profile, g
               document.getElementById((missing[0] ?? wrong[0])?.id ?? '')?.focus();
             }}
           >
-            Next: style your {garment}
+            Next: style your {GARMENT_NAME[garment]}
           </button>
         </div>
         {tried && !canContinue && (

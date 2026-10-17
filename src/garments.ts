@@ -6,6 +6,7 @@ import type { DartPlace, PrincessLine } from './engine/manipulate';
 import type { Closure, Collar } from './engine/collar';
 import { LEG_WORDS, Leg, TrouserClosure, TrouserLength } from './engine/trousers';
 import type { Fit } from './engine/skirt';
+import type { Stretch, TeeFit, TeeLength, TeeNeck, TeeSleeve } from './engine/tee';
 
 export interface BodiceChoices {
   garment: 'bodice';
@@ -61,12 +62,44 @@ export function describeTrousers(c: TrousersChoices) {
   return words[0].toUpperCase() + words.slice(1);
 }
 
+/** A knit T-shirt: the fit, the fabric's stretch, and the neckline, sleeves and length. */
+export interface TeeChoices {
+  garment: 'tee';
+  fit: TeeFit;
+  stretch: Stretch;
+  neckline: TeeNeck;
+  sleeve: TeeSleeve;
+  length: TeeLength;
+}
+
+export const DEFAULT_TEE_CHOICES: TeeChoices = { garment: 'tee', fit: 'regular', stretch: 'medium', neckline: 'crew', sleeve: 'short', length: 'hip' };
+
+export const TEE_GROUPS: { id: 'stretch' | 'fit' | 'neckline' | 'sleeve' | 'length'; label: string; options: [string, string][] }[] = [
+  { id: 'stretch', label: 'Your knit’s stretch', options: [['low', 'Low 20–30%'], ['medium', 'Medium 30–50%'], ['high', 'High 50%+']] },
+  { id: 'fit', label: 'Fit', options: [['fitted', 'Fitted'], ['regular', 'Regular'], ['relaxed', 'Relaxed']] },
+  { id: 'neckline', label: 'Neckline', options: [['crew', 'Crew'], ['scoop', 'Scoop'], ['v', 'V-neck']] },
+  { id: 'sleeve', label: 'Sleeves', options: [['short', 'Short'], ['elbow', 'Elbow'], ['long', 'Long']] },
+  { id: 'length', label: 'Length', options: [['cropped', 'Cropped'], ['hip', 'Hip'], ['tunic', 'Tunic']] },
+];
+
+const TEE_NECK_WORDS: Record<TeeNeck, string> = { crew: 'crew-neck', scoop: 'scoop-neck', v: 'V-neck' };
+const TEE_SLEEVE_WORDS: Record<TeeSleeve, string> = { short: 'short sleeves', elbow: 'elbow-length sleeves', long: 'long sleeves' };
+const TEE_LENGTH_WORDS: Record<TeeLength, string> = { cropped: 'Cropped ', hip: '', tunic: 'Tunic-length ' };
+
+/** A plain name, such as "Fitted scoop-neck T-shirt with long sleeves". */
+export function describeTee(c: TeeChoices) {
+  const fit = c.fit === 'regular' ? '' : `${c.fit} `;
+  const words = `${TEE_LENGTH_WORDS[c.length]}${fit}${TEE_NECK_WORDS[c.neckline]} T-shirt with ${TEE_SLEEVE_WORDS[c.sleeve]}`;
+  return words[0].toUpperCase() + words.slice(1);
+}
+
 /** A saved pattern's choices. Skirt choices predate bodices, so they carry no garment field. */
-export type PatternChoices = Choices | BodiceChoices | DressChoices | TrousersChoices;
+export type PatternChoices = Choices | BodiceChoices | DressChoices | TrousersChoices | TeeChoices;
 
 export const isBodice = (c: PatternChoices): c is BodiceChoices => (c as BodiceChoices).garment === 'bodice';
 export const isDress = (c: PatternChoices): c is DressChoices => (c as DressChoices).garment === 'dress';
 export const isTrousers = (c: PatternChoices): c is TrousersChoices => (c as TrousersChoices).garment === 'trousers';
+export const isTee = (c: PatternChoices): c is TeeChoices => (c as TeeChoices).garment === 'tee';
 
 export const DEFAULT_BODICE: BodiceChoices = { garment: 'bodice', fit: 'regular', neckline: 'crew', length: 'waist', darts: 'bust_waist', sleeve: 'none', sleeveShape: 'straight' };
 

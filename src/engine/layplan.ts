@@ -38,6 +38,8 @@ export interface Lay {
   /** How much of the fabric the pieces use, 0 to 1. */
   efficiency: number;
   placements: Placement[];
+  /** A knit: the grain runs along the ribs, so the stretch goes across the fabric and round the body. */
+  knit?: boolean;
 }
 
 const RES = 0.5; // cm per grid column
@@ -227,8 +229,11 @@ function place(order: Item[], cols: number, nap: boolean, folded: boolean): Plac
 }
 
 /** The lays for every fabric the pieces are cut from, at one width. */
-export function layPlans(pieces: Piece[], width: FabricWidth, nap = false): Lay[] {
-  return (['self', 'lining'] as const).map((f) => layPlan(pieces, width, f, nap)).filter((l): l is Lay => !!l);
+export function layPlans(pieces: Piece[], width: FabricWidth, nap = false, knit = false): Lay[] {
+  return (['self', 'lining'] as const)
+    .map((f) => layPlan(pieces, width, f, nap))
+    .filter((l): l is Lay => !!l)
+    .map((l) => (knit ? { ...l, knit } : l));
 }
 
 /** How to lay the fabric out and cut, in a sentence or two. */
@@ -237,5 +242,8 @@ export function layWords(lay: Lay): string {
     ? 'Fold the fabric in half lengthwise, right sides together, selvedges matching. Place the pieces marked on the fold against the fold.'
     : 'Open the fabric out to a single layer, right side up. Pieces on the fold are drawn opened out; cut a pair as one piece face up and one face down.';
   const single = lay.placements.some((pl) => pl.single && lay.folded) ? ' Cut the pieces marked 1 LAYER through the top layer only.' : '';
-  return `${way}${single} Keep every grain line parallel to the selvedge. The pieces use ${Math.round(lay.efficiency * 100)}% of the fabric.`;
+  const grain = lay.knit
+    ? ' Keep every grain line along the ribs, parallel to the fold, so the most stretch runs across the fabric and round the body. Keep the knit flat on the table so it does not stretch as you cut.'
+    : ' Keep every grain line parallel to the selvedge.';
+  return `${way}${single}${grain} The pieces use ${Math.round(lay.efficiency * 100)}% of the fabric.`;
 }

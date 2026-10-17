@@ -36,6 +36,8 @@ export interface SleeveStyle {
   seamAllowance: number;
   armholeAllowance: number;
   hemAllowance: number;
+  /** Ease in place of the fit's own: a knit sleeve takes less, or none, round the arm. */
+  ease?: { bicep: number; crown: number };
 }
 
 /** Ease round the upper arm, and the crown ease eased into the armhole, by fit. */
@@ -153,15 +155,19 @@ export function needsArms(m: SleeveMeasurements): boolean {
 
 /** Draft the sleeve for a bodice. */
 export function draftSleeve(bodice: BodiceDraft, m: SleeveMeasurements, s: SleeveStyle): SleeveDraft {
+  // The armhole as sewn: the block's, whatever seams the bodice is cut with.
+  return draftSleeveTo(...blockOf(bodice), m, s);
+}
+
+/** Draft the sleeve to a front and back's armholes (tagged 'armhole', with their notches). */
+export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: SleeveStyle): SleeveDraft {
   if (!m.arm_length || !m.upper_arm) throw new DraftError('Add your arm length and upper arm measurements to add sleeves.');
   if (!SHAPES_FOR_LENGTH[s.length].includes(s.shape)) throw new DraftError(`A ${s.shape} sleeve can't be ${s.length.replace('_', ' ')} length.`);
   const warnings: string[] = [];
-  // The armhole as sewn: the block's, whatever seams the bodice is cut with.
-  const [bf, bb] = blockOf(bodice);
   const front = armholeOf(bf);
   const back = armholeOf(bb);
   const depth = (front.depth + back.depth) / 2;
-  const ease = SLEEVE_EASE[s.fit];
+  const ease = s.ease ?? SLEEVE_EASE[s.fit];
   const arm = m.arm_length;
   const wrist = m.wrist ?? Math.max(13, m.upper_arm * 0.55);
   // A hand closed as to go through a sleeve is about 1.3 times the wrist.
@@ -220,7 +226,7 @@ export function draftSleeve(bodice: BodiceDraft, m: SleeveMeasurements, s: Sleev
     // No sensible crown height reaches: a bigger armhole than the arm needs widens the sleeve (the
     // way a block sleeve is found from its armhole); a small one narrows it, to no less than 3 cm ease.
     const h = total < target ? hMax : hMin;
-    const lo = total < target ? w : m.upper_arm! + 3;
+    const lo = total < target ? w : m.upper_arm! + Math.min(3, ease.bicep);
     const hi = total < target ? w + 40 : w;
     w = bisect(lo, hi, (v) => totalOf(cap(v, h, fit.cx, ...dirs)) < target);
     return solve(w, h);

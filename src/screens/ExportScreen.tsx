@@ -301,7 +301,7 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
           <h2 id="flattitle">{title}</h2>
           <TechFlatView flat={made.flat} title={title} />
           <p className="muted small">
-            Drawn to scale from your pattern, with the darts sewn. It goes on the first page of the PDF, for a dressmaker or anyone
+            Drawn to scale from your pattern{garment === 'tee' ? '' : ', with the darts sewn'}. It goes on the first page of the PDF, for a dressmaker or anyone
             checking the design.
           </p>
         </section>
@@ -347,8 +347,13 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
       {can('toile') && (
         <section className="card" aria-labelledby="toiletitle">
           <p className="eyebrow">Before your fabric{fittingNotes.length && fitting ? ` · version ${fitting.round + 1}` : ''}</p>
-          <h2 id="toiletitle">{fittingNotes.length ? 'Corrected after your toile' : 'Fit it in a toile first'}</h2>
-          {fittingNotes.length ? (
+          <h2 id="toiletitle">{garment === 'tee' ? 'Try it in a spare knit first' : fittingNotes.length ? 'Corrected after your toile' : 'Fit it in a toile first'}</h2>
+          {garment === 'tee' ? (
+            <p className="muted">
+              A knit fits by its stretch, so test it in a cheap knit with the same stretch as yours, not calico. If it is too snug or too
+              loose, change the stretch or the fit on the style screen.
+            </p>
+          ) : fittingNotes.length ? (
             <ul className="fitlist">
               {fittingNotes.map((n) => (
                 <li key={n}>{n[0].toUpperCase() + n.slice(1)}</li>
@@ -361,9 +366,11 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
             </p>
           )}
           <div className="row wrap">
-            <button type="button" className="secondary" onClick={onFitting}>
-              {fittingNotes.length ? 'Fit another toile' : 'I’ve tried on a toile'}
-            </button>
+            {garment !== 'tee' && (
+              <button type="button" className="secondary" onClick={onFitting}>
+                {fittingNotes.length ? 'Fit another toile' : 'I’ve tried on a toile'}
+              </button>
+            )}
             {onTrueScale && made && (
               <button type="button" className="secondary" onClick={onTrueScale}>
                 See a piece at true size
@@ -398,7 +405,7 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
             <p className="eyebrow">After printing</p>
             <h2 id="sewtitle">How to sew it</h2>
           </div>
-          {garment !== 'trousers' && can('couture') && (
+          {garment !== 'trousers' && garment !== 'tee' && can('couture') && (
           <div className="seg" role="group" aria-label="How to sew it">
             {(['quick', 'couture'] as const).map((r) => (
               <button key={r} type="button" className={finish.route === r ? 'on' : ''} aria-pressed={finish.route === r} onClick={() => onFinish({ ...finish, route: r })}>
@@ -408,7 +415,7 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
           </div>
           )}
         </div>
-        {finish.route === 'couture' && garment !== 'trousers' && (
+        {finish.route === 'couture' && garment !== 'trousers' && garment !== 'tee' && (
           <div className="cloth">
             <p className="muted small">
               Thread-traced lines, basting and a fitting before machining, a hand-picked zip and hand-finished edges. The seam finish and
@@ -528,7 +535,7 @@ function YourFabric({ fabric, onFabric, style, simple }: { fabric: MyFabric; onF
           {n.level === 'ok' ? n.text.replace(/^Good match /, '') : n.text}
         </p>
       ))}
-      {fabric.weight === 'heavy' && (
+      {fabric.weight === 'heavy' && style.garment !== 'tee' && (
         <label className="check">
           <input type="checkbox" checked={fabric.matchEase !== false} onChange={(e) => set({ matchEase: e.target.checked })} />
           <span>

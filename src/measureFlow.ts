@@ -6,8 +6,8 @@ import { FIELDS, type Garment, type MeasurementField, type MeasurementId, type M
 /** Taken by everyone first. Waist to floor is the length every garment can work from, and easier alone than height. */
 export const BASE: MeasurementId[] = ['full_bust', 'waist', 'full_hip', 'waist_to_floor'];
 
-export const GARMENTS: Garment[] = ['skirt', 'dress', 'bodice', 'trousers'];
-export const GARMENT_NAME: Record<Garment, string> = { skirt: 'skirt', dress: 'dress', bodice: 'bodice', trousers: 'trousers' };
+export const GARMENTS: Garment[] = ['skirt', 'dress', 'bodice', 'trousers', 'tee'];
+export const GARMENT_NAME: Record<Garment, string> = { skirt: 'skirt', dress: 'dress', bodice: 'bodice', trousers: 'trousers', tee: 'T-shirt' };
 
 const ALL = new Map<MeasurementId, MeasurementField>();
 for (const list of Object.values(FIELDS)) for (const f of list) if (!ALL.has(f.id)) ALL.set(f.id, f);

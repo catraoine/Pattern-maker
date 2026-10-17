@@ -11,6 +11,7 @@ import type { BodiceEdges } from './instructions';
 import { BAND_CM, SleeveDraft } from './sleeve';
 import type { DressDraft } from './dress';
 import type { TrousersDraft } from './trousers';
+import { NECKBAND_CM, TeeDraft } from './tee';
 
 export type FlatLineKind = 'seam' | 'dart' | 'stitch' | 'zip';
 
@@ -569,6 +570,48 @@ export function trousersFlat(d: TrousersDraft, m: { waist_to_hip: number; crotch
       lines.push({ pts, kind: 'zip' });
     }
     return { label, shapes, lines };
+  });
+  return arrange(views);
+}
+
+/**
+ * The T-shirt: no darts and no opening. The neckband stands up from the neckline with stitching below
+ * it, the back neck shows through a lower front, and the sleeves and hem carry twin-needle stitching.
+ */
+export function teeFlat(d: TeeDraft): Flat {
+  const [front, back] = [sewn(d.pieces[0]), sewn(d.pieces[1])];
+  const hps = (h: Half) => h.run[h.tags.indexOf('shoulder')];
+  const views = ([front, back] as const).map((h, i): RawView => {
+    const shape = whole(h.run);
+    const lines: FlatView['lines'] = [];
+    const neck = along(h, 'neck')[0] ?? [];
+    if (i === 0) {
+      // The back neckband shows through a lower front neck.
+      const shift = sub(hps(front), hps(back));
+      const backNeck = along(back, 'neck')[0]?.map((q) => add(q, shift));
+      if (backNeck && front.run[0].y > backNeck[0].y + 1) {
+        const band = offsetRun(backNeck, () => NECKBAND_CM, p(0, 1000));
+        for (const pts of [...both(backNeck), ...both(band)]) lines.push({ pts, kind: 'seam' });
+      }
+    }
+    for (const run of along(h, 'hem'))
+      for (const pts of [run, mirror(run)])
+        for (const at of [1.5, 2.1]) for (const r of inset(pts, at, shape)) lines.push({ pts: r, kind: 'stitch' });
+    for (const pts of both(neck)) for (const r of inset(pts, 0.6, shape)) lines.push({ pts: r, kind: 'stitch' });
+    const shapes = [shape];
+    const sl = sleeveSide(h, d.sleeve);
+    for (const flip of [false, true]) {
+      const f = (pts: P[]) => (flip ? mirror(pts) : pts);
+      if (sl.shape.length) shapes.push(f(sl.shape));
+      lines.push(...sl.lines.map((l) => ({ ...l, pts: f(l.pts) })));
+    }
+    // The band on top, standing up from the neckline into the opening.
+    if (neck.length > 1) {
+      const band = offsetRun(neck, () => NECKBAND_CM, p(0, 1000));
+      const half = [...neck, ...[...band].reverse()];
+      shapes.push(half, mirror(half));
+    }
+    return { label: i === 0 ? 'FRONT' : 'BACK', shapes, lines };
   });
   return arrange(views);
 }

@@ -8,7 +8,7 @@ const area = z.union([z.literal(-1), z.literal(0), z.literal(1)]);
 
 export const FitReportSchema = z
   .object({
-    garment: z.enum(['skirt', 'bodice', 'dress', 'trousers']),
+    garment: z.enum(['skirt', 'bodice', 'dress', 'trousers', 'tee']),
     // Style choices vary by garment and grow over time; keep them as sent, the size cap bounds them.
     choices: z.record(z.string(), z.unknown()),
     verdict: z.enum(['good', 'tweaks', 'off']),

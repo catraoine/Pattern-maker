@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { FIELDS, Garment, MeasurementValues, Unit } from '../measurements';
+import { GARMENT_NAME } from '../measureFlow';
 
 interface Props {
   garment: Garment;
@@ -52,7 +53,7 @@ export function WhoseScreen({ garment, unit, values, ownerName, onDone }: Props)
         )}
         <p className="muted small">It goes on the pattern. You can keep measurements for more than one person and switch between them.</p>
         <button type="button" className="primary" disabled={whose === 'other' && !theirs.trim()} onClick={() => onDone(whose, whose === 'mine' ? mine : theirs)}>
-          Save and style the {garment}
+          Save and style the {GARMENT_NAME[garment]}
         </button>
       </section>
     </div>
