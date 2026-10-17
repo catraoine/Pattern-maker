@@ -18,6 +18,7 @@ import {
 } from '../engine/bodice';
 import { BODICE_GROUPS, BodiceChoices, DARTS_FOR_FIT } from '../garments';
 import type { Side } from './ShapeSketch';
+import { bodiceBodyOutline } from './bodyOutline';
 
 interface Worn {
   /** One half from the centre neck round the shoulder and armhole, down the side to the centre hem. */
@@ -27,6 +28,8 @@ interface Worn {
   hemCentre: P;
   /** Dart fold lines, already mirrored, as an SVG path given the centre x. */
   darts: (cx: number) => string;
+  /** The piece's own outline, for placing the body round it. */
+  top: { pts: P[]; tags: (string | undefined)[] };
 }
 
 const f = (q: P) => `${q.x.toFixed(2)} ${q.y.toFixed(2)}`;
@@ -72,7 +75,7 @@ function worn(draft: BodiceDraft, side: Side): Worn {
     });
   const darts = (cx: number) =>
     folds.flatMap(([a, b]) => ([1, -1] as const).map((s) => `M${f({ x: cx + s * a.x, y: a.y })} L${f({ x: cx + s * b.x, y: b.y })}`)).join(' ');
-  return { pts: out, widest, hemCentre: land.hemCentre, darts };
+  return { pts: out, widest, hemCentre: land.hemCentre, darts, top: { pts, tags } };
 }
 
 const FITS = Object.keys(BODICE_FIT_EASE) as BodiceFit[];
@@ -164,7 +167,8 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, onLive, o
   // The frame stays put while dragging, sized for the roomiest fit and the longest hem, so the handle
   // stays under the finger.
   const frame = useMemo(() => {
-    const half = (m.full_bust + BUST_EASE_RANGE.max) / 4 + 6;
+    // Room at the sides for the arms.
+    const half = (m.full_bust + BUST_EASE_RANGE.max) / 4 + 6 + 0.2 * (m.armscye ?? 0.43 * m.full_bust);
     const deepest = Math.max(draft.front.waistCentre.y, draft.back.waistCentre.y) + (hip ? dropRange(m).max : 0);
     return { half, top: -8, bottom: deepest + 7 };
   }, [m, hip, draft.front.waistCentre.y, draft.back.waistCentre.y]);
@@ -285,6 +289,7 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, onLive, o
       onPointerUp={end}
       onPointerCancel={end}
     >
+      <path d={bodiceBodyOutline(m, w.top, waistY, frame.bottom, cx)} className="body-outline" fill="none" strokeWidth={0.2} strokeLinecap="round" />
       {guide(waistY, 'WAIST')}
       {hip && guide(waistY + m.waist_to_hip!, 'HIP')}
       <path d={outline} style={{ fill: 'var(--fill)', stroke: 'var(--ink)' }} strokeWidth={0.25} strokeLinejoin="round" />
