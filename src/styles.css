@@ -2418,3 +2418,7 @@ table.history td.moved {
   white-space: nowrap;
   padding: 0 10px;
 }
+.shape .body-outline {
+  stroke: var(--muted);
+  opacity: 0.5;
+}
