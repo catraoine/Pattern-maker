@@ -16,6 +16,7 @@ export function waistbandPiece(draft: SkirtDraft, sa: number): Piece {
   const W = 2 * WAISTBAND_CM;
   const L = draft.finishedWaist;
   const backQ = draft.waistband.sideMark - sa;
+  if (draft.elastic) return casingPiece(L, [[backQ, 'SIDE SEAM'], [L / 2, 'CENTRE FRONT'], [L - backQ, 'SIDE SEAM']], sa);
   const outline = new Path(p(0, 0)).line(p(W, 0), 'end').line(p(W, L), 'waist').line(p(0, L), 'end').line(p(0, 0), 'band');
   outline.closed = true;
   const marks = [backQ, L / 2, L - backQ];
@@ -111,10 +112,49 @@ function waistFacings(draft: SkirtDraft): Piece[] {
   });
 }
 
+/**
+ * The waistband of a pull-on elastic waist: a casing as long as the garment's waist, so it pulls on
+ * over the hips, joined into a loop at the centre back and folded over the elastic. No interfacing:
+ * it has to gather. `marks` are cm from the centre back end, with what each marks.
+ */
+export function casingPiece(length: number, marks: [number, string][], sa: number): Piece {
+  const W = 2 * WAISTBAND_CM;
+  const L = length;
+  const outline = new Path(p(0, 0)).line(p(W, 0), 'end').line(p(W, L), 'waist').line(p(0, L), 'end').line(p(0, 0), 'band');
+  outline.closed = true;
+  const notches: [P, P][] = marks.flatMap(([y]): [P, P][] => [
+    [p(W, y), p(1, 0)],
+    [p(0, y), p(-1, 0)],
+  ]);
+  const tag = (at: P, text: string) => ({ at, text, size: 0.55, rotate: 90 });
+  const cut = 'Cut 1';
+  const mid = (marks[0][0] + marks[1][0]) / 2;
+  return {
+    name: 'Waistband',
+    kind: 'waistband',
+    outline,
+    lines: [],
+    grain: [p(W * 0.25, 5.5), p(W * 0.25, Math.max(10, marks[0][0] - 4))],
+    notches,
+    balance: [{ pts: [p(W / 2, 0), p(W / 2, L)], label: 'FOLD LINE' }],
+    labels: [
+      { at: p(W * 0.62, mid), text: 'WAISTBAND', size: 1.0, rotate: 90 },
+      { at: p(W * 0.5, mid), text: cut, size: 0.6, rotate: 90 },
+      ...marks.map(([y, t]) => tag(p(W * 0.2, y + 2.6), t)),
+      tag(p(W * 0.75, 3.2), 'CENTRE BACK'),
+      tag(p(W * 0.2, Math.min(mid + 9, L - 4)), 'ELASTIC CASING'),
+    ],
+    cut,
+    seamAllowance: sa,
+    allowances: {},
+    meta: { finishedWidth: WAISTBAND_CM, lengthCm: r1(L), casing: true },
+  };
+}
+
 /** Lining for a skirt, drafted 2.5 cm shorter so it never shows below the hem, with a narrow hem.
  * The darts are sewn as tucks, which gives the lining the ease to move over the skirt. */
 export function liningPieces(lining: SkirtDraft): Piece[] {
-  return lining.pieces.map((pc) => {
+  return lining.pieces.filter((pc) => !pc.kind).map((pc) => {
     const name = pc.name.replace(/^Skirt/, 'Lining');
     return {
       ...pc,

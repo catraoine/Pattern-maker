@@ -7,6 +7,7 @@ import { HemShape, isShaped, matchSides, shapeHem } from './hem';
 import { Flounce, GodetCount, Pleats, VolumeDraft, addVolume, volumeOf } from './skirtVolume';
 import { AsymHem, AsymPlan, quarterAsym } from './asymHem';
 import { SLIP_HEM, SLIP_HIP_EASE_LESS, closeToHem, cutsWhole, cutWhole, slipSideSupp, validCut } from './slip';
+import { inseamPocket, markSeam } from './pockets';
 
 export interface SkirtMeasurements {
   waist: number;
@@ -58,7 +59,13 @@ export interface SkirtStyle {
   flounce?: Flounce;
   /** A high-low or diagonal hem, drafted in place of a drawn one. Older saves have none. */
   asymHem?: AsymHem;
+  /** In-seam pockets in the side seams. Older saves have none. */
+  pockets?: 'none' | 'inseam';
+  /** A waistband with a zip, or an elastic casing that pulls on over the hips. Ignored on a dress. */
+  waist?: WaistStyle;
 }
+
+export type WaistStyle = 'band' | 'elastic';
 
 /**
  * Corrections made after trying on a toile, in cm. Ease is added to (or taken from) the fit's own; a
@@ -149,6 +156,8 @@ interface HalfArgs {
   zipCm: number;
   /** Where the dart nearest the centre goes, in cm from the centre, to line up with a bodice's. */
   dartAt?: number;
+  /** Cut on the fold: the front always, the back too when there is no zip in it. */
+  onFold?: boolean;
 }
 
 /** Dart centres: spread across the waist, or the first set where asked and the second clear of it. */
@@ -273,12 +282,13 @@ function half(a: HalfArgs): Piece {
     const k = hemSide.x * 0.35;
     outline.curve(add(hemSide, mul(p(-down.y, down.x), k)), add(ch, p(k, 0)), ch, 'hem');
   }
-  outline.line(cw, a.isFront ? 'fold' : 'centre');
+  const onFold = a.onFold ?? a.isFront;
+  outline.line(cw, onFold ? 'fold' : 'centre');
   outline.closed = true;
 
   const lines = finished.map((d) => new Path(d.near).line(d.tip).line(d.far));
 
-  const cut = a.isFront ? 'Cut 1 on fold' : 'Cut 2 (1 pair)';
+  const cut = onFold ? 'Cut 1 on fold' : 'Cut 2 (1 pair)';
   const gx = a.hipQ * 0.45;
   const dartTotal = ds.reduce((t, d) => t + d, 0);
   const draft = {
@@ -327,20 +337,21 @@ function half(a: HalfArgs): Piece {
   const notches: [P, P][] = a.isFront ? [[sh, p(1, 0)]] : [[add(sh, p(0, -0.5)), p(1, 0)], [add(sh, p(0, 0.5)), p(1, 0)]];
   // The back centre seam holds the zip; its notch marks where the zip ends and the seam starts.
   const zipEnd = p(0, a.centreDrop + a.zipCm);
-  if (!a.isFront) notches.push([zipEnd, p(-1, 0)]);
+  const zipped = !a.isFront && a.zipCm > 0;
+  if (zipped) notches.push([zipEnd, p(-1, 0)]);
 
   return {
     name: a.name,
     outline,
     lines,
     grain: [p(gx, a.hipDepth + 4), p(gx, a.length - 8)],
-    fold: a.isFront ? [p(0, cw.y + 2), p(0, a.length - 2)] : undefined,
+    fold: onFold ? [p(0, cw.y + 2), p(0, a.length - 2)] : undefined,
     notches,
     balance: [{ pts: [p(0, a.hipDepth), sh], label: 'HIP LINE' }],
     labels: [
       { at: p(a.hipQ * 0.5, a.hipDepth - 4), text: a.name.toUpperCase(), size: 1.6 },
       { at: add(p(a.hipQ * 0.5, a.hipDepth), p(0, 1)), text: cut, size: 1.0 },
-      ...(a.isFront ? [] : [{ at: add(zipEnd, p(3.2, 0.3)), text: 'ZIP ENDS', size: 0.7 }]),
+      ...(zipped ? [{ at: add(zipEnd, p(3.2, 0.3)), text: 'ZIP ENDS', size: 0.7 }] : []),
     ],
     cut,
     draft,
@@ -363,7 +374,8 @@ export interface CircleArgs {
   length: number;
   isFront: boolean;
   hipDepth: number;
-  /** The front goes on the fold unless it is too wide for folded fabric, then it gets a centre seam. */
+  /** The front goes on the fold unless it is too wide for folded fabric, then it gets a centre seam.
+   * The back has the zip in its centre seam, unless the waist is elastic. */
   onFold: boolean;
   sa: number;
   hemSa: number;
@@ -411,10 +423,10 @@ export function circlePiece(a: CircleArgs): Piece {
   arc(outline, a.r, a.r, from, a.angle, 'waist');
   outline.line(onCircle(a.r, R, a.angle), 'side');
   arc(outline, a.r, R, a.angle, 0, 'hem');
-  outline.line(p(0, 0), a.isFront && a.onFold ? 'fold' : 'centre');
+  outline.line(p(0, 0), a.onFold ? 'fold' : 'centre');
   outline.closed = true;
 
-  const cut = a.isFront && a.onFold ? 'Cut 1 on fold' : 'Cut 2 (1 pair)';
+  const cut = a.onFold ? 'Cut 1 on fold' : 'Cut 2 (1 pair)';
   const mid = a.angle / 2;
   const at = (f: number, phi = mid) => onCircle(a.r, a.r + a.length * f, phi);
   const sideNotch = onCircle(a.r, a.r + Math.min(20, a.length / 3), a.angle);
@@ -423,7 +435,8 @@ export function circlePiece(a: CircleArgs): Piece {
   const notches: [P, P][] = a.isFront ? [[sideNotch, out]] : [[sub(sideNotch, mul(along, 0.5)), out], [add(sideNotch, mul(along, 0.5)), out]];
   const hipLine = Array.from({ length: 17 }, (_, i) => onCircle(a.r, a.r + a.hipDepth, (a.angle * i) / 16));
   const zipEnd = p(0, a.zipCm);
-  if (!a.isFront) notches.push([zipEnd, p(-1, 0)]);
+  const zipped = !a.isFront && a.zipCm > 0;
+  if (zipped) notches.push([zipEnd, p(-1, 0)]);
   // Centre front and centre back on the straight grain, so the sides fall on the bias and drape evenly.
   const gx = Math.min(8, at(0.5).x * 0.5);
   const waistSide = onCircle(a.r, a.r, a.angle);
@@ -450,13 +463,13 @@ export function circlePiece(a: CircleArgs): Piece {
     outline,
     lines: finished.map((f) => new Path(f.d.near).line(f.d.tip).line(f.d.far)),
     grain: [p(gx, a.length * 0.3), p(gx, a.length * 0.8)],
-    fold: a.isFront && a.onFold ? [p(0, 2), p(0, a.length - 2)] : undefined,
+    fold: a.onFold ? [p(0, 2), p(0, a.length - 2)] : undefined,
     notches,
     balance: a.hipDepth < a.length ? [{ pts: hipLine, label: 'HIP LINE' }] : [],
     labels: [
       { at: at(0.35), text: a.name.toUpperCase(), size: 1.6 },
       { at: add(at(0.35), p(0, 2.4)), text: cut, size: 1.0 },
-      ...(a.isFront ? [] : [{ at: add(zipEnd, p(3.2, 0.3)), text: 'ZIP ENDS', size: 0.7 }]),
+      ...(zipped ? [{ at: add(zipEnd, p(3.2, 0.3)), text: 'ZIP ENDS', size: 0.7 }] : []),
     ],
     cut,
     seamAllowance: a.sa,
@@ -486,7 +499,7 @@ export interface SkirtDraft {
   flareCm?: number;
   /** The hem shape as drafted, after front and back were matched at the sides and kept to a wearable length. */
   hem?: HemShape;
-  zipCm: number; // invisible zip in the centre back seam
+  zipCm: number; // invisible zip in the centre back seam; 0 for an elastic waist
   waistband: Waistband;
   dartsPerSide: { front: number; back: number };
   /** With pleats, godets, a flounce or tiers: the plain skirt as it hangs, before the pleats were
@@ -505,9 +518,42 @@ export interface SkirtDraft {
   faced?: boolean;
   /** A high-low or diagonal hem as drafted (see asymHem.ts). */
   asym?: AsymPlan;
+  /** A pull-on elastic waist: the waist is cut to pass the hips and gathered up by the elastic. */
+  elastic?: Elastic;
+  /** In-seam pockets: where the opening is, in cm down the side seam from the waist. */
+  pocket?: [number, number];
 }
 
 export const WAISTBAND_CM = 3; // finished width
+
+/**
+ * A pull-on waist is cut at least 6 cm bigger than the hip, so it slips over the hips without a zip,
+ * and gathered onto elastic. The elastic is the waist less 6 cm, snug enough to hold the garment up,
+ * plus 2 cm to overlap the ends; but never so short it must stretch more than 1.8 times its length to
+ * pass the hips, which is about as far as ordinary 2.5 cm woven elastic goes and still recovers.
+ */
+export const PULL_ON_EASE = 6;
+export const ELASTIC_WIDTH = 2.5;
+const ELASTIC_LESS = 6;
+const ELASTIC_OVERLAP = 2;
+const ELASTIC_STRETCH = 1.8;
+
+export interface Elastic {
+  widthCm: number;
+  /** Round the body once joined. */
+  finishedCm: number;
+  /** To cut, with the overlap. */
+  cutCm: number;
+  /** True when the hips needed it longer than the waist less 6 cm, so it sits a little looser at the waist. */
+  forHips: boolean;
+}
+
+export function elasticFor(waist: number, cutWaist: number): Elastic {
+  const snug = waist - ELASTIC_LESS;
+  const least = cutWaist / ELASTIC_STRETCH;
+  const finishedCm = Math.round(Math.max(snug, least) * 2) / 2;
+  return { widthCm: ELASTIC_WIDTH, finishedCm, cutCm: finishedCm + ELASTIC_OVERLAP, forHips: least > snug };
+}
 
 /** Pick a standard zip length that opens far enough to get over the hips. */
 export function zipLength(hipDepth: number): number {
@@ -538,12 +584,26 @@ const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v
 export function draftSkirt(m: SkirtMeasurements, style: Partial<SkirtStyle> = {}): SkirtDraft {
   const s = validCut({ ...DEFAULT_STYLE, ...style });
   // Cut whole (a bias slip, or a hem that differs side to side): the halves are mirrored into whole
-  // pieces, then hemmed and fitted to one side as whole pieces. Neither takes pleats, godets or a flounce.
+  // pieces, then hemmed and fitted to one side as whole pieces. Neither takes pleats, godets or a flounce,
+  // nor in-seam pockets.
   if (cutsWhole(s)) return cutWhole(drafted(m, s), m, s);
-  // Pleats, godets and flounces are drafted on the plain block, without a drawn hem.
+  // Pleats, godets and flounces are drafted on the plain block, without a drawn hem. In-seam pockets
+  // go in a plain side seam, so not where pleats, godets or a flounce change the skirt's pieces.
   const plain = volumeOf(s) !== 'none' ? { ...s, hem: undefined } : s;
   const draft = withHighHip(addVolume(m, s, drafted(m, plain), (st) => drafted(m, st)), s.fitting?.highHip);
-  return draft;
+  return s.pockets === 'inseam' && !draft.volume ? withPockets(draft) : draft;
+}
+
+/**
+ * In-seam pockets: a bag drafted on the front's side seam, cut four times, and the opening notched on
+ * the front and the back alike. The side seams match, so the bag fits the back's seam too.
+ */
+function withPockets(draft: SkirtDraft): SkirtDraft {
+  const [front, back, ...rest] = draft.pieces;
+  const pocket = inseamPocket(front, { hemRoom: front.allowances.hem + 3 });
+  if (!pocket) return draft;
+  const mark = (pc: Piece) => markSeam(pc, 'side', pocket.opening, 'POCKET');
+  return { ...draft, pieces: [mark(front), mark(back), ...rest, pocket.bag], pocket: pocket.opening };
 }
 
 /**
@@ -598,6 +658,11 @@ function draftShape(m: SkirtMeasurements, s: SkirtStyle): SkirtDraft {
   const slip = s.silhouette === 'slip';
   const ease = { waist: FIT_EASE[s.fit].waist + (fit.waistEase ?? 0), hip: FIT_EASE[s.fit].hip + (fit.hipEase ?? 0) - (slip ? SLIP_HIP_EASE_LESS : 0) };
   const hipDepth = m.waist_to_hip;
+  // A pull-on elastic waist has no zip, so the waist is cut to the hip (at least 6 cm over it) with no
+  // darts, and the elastic gathers it in. A pencil skirt's shape is all in its darts, so it keeps its zip.
+  const elastic = s.waist === 'elastic' && !s.joinTo;
+  if (elastic && s.silhouette === 'pencil') throw new DraftError('A pencil skirt is shaped by its darts, so it needs a waistband and zip. Choose a straighter or fuller shape for an elastic waist.');
+  const pullOn = Math.max(m.full_hip + ease.hip, m.full_hip + PULL_ON_EASE);
   const shape = s.shape;
   const length =
     s.lengthCm !== undefined
@@ -607,15 +672,16 @@ function draftShape(m: SkirtMeasurements, s: SkirtStyle): SkirtDraft {
         : LENGTHS[s.length](m);
   if (!(length > hipDepth + 5)) throw new DraftError('The skirt length must reach well below the hip line.');
 
-  const hipQ = (m.full_hip + ease.hip) / 4;
+  const finishedHip = elastic ? pullOn : m.full_hip + ease.hip;
+  const hipQ = finishedHip / 4;
   // Joined to a bodice, the waist is the bodice's; otherwise 0.5 cm moves from the back to the front.
   const join = s.joinTo;
-  const waistQ = join ? (join.front + join.back) / 2 : (m.waist + ease.waist) / 4;
-  const split = { front: join ? join.front - waistQ : 0.5, back: join ? join.back - waistQ : -0.5 };
+  const waistQ = join ? (join.front + join.back) / 2 : elastic ? pullOn / 4 : (m.waist + ease.waist) / 4;
+  const split = elastic ? { front: 0, back: 0 } : { front: join ? join.front - waistQ : 0.5, back: join ? join.back - waistQ : -0.5 };
 
-  const finishedWaist = join ? 4 * waistQ : m.waist + ease.waist;
-  const finishedHip = m.full_hip + ease.hip;
-  const zipCm = join?.zipCm ?? zipLength(hipDepth);
+  const finishedWaist = join ? 4 * waistQ : elastic ? pullOn : m.waist + ease.waist;
+  const zipCm = elastic ? 0 : (join?.zipCm ?? zipLength(hipDepth));
+  const band = elastic ? { elastic: elasticFor(m.waist, finishedWaist) } : {};
   const targetHem = shape ? shape.hemFullness * finishedHip : undefined;
 
   // A circle skirt's waist is part of a circle: all of one for a full circle, half for a half circle.
@@ -635,10 +701,12 @@ function draftShape(m: SkirtMeasurements, s: SkirtStyle): SkirtDraft {
     const hemSa = Math.min(s.hemAllowance, 1.5); // a narrow hem turns neatly on a curve
     const common = { r, length, sa: s.seamAllowance, hemSa, zipCm, hipDepth };
     const angleF = (cutWaist / 4 + split.front) / r;
-    const onFold = (r + length) * Math.sin(Math.min(angleF, Math.PI / 2)) + s.seamAllowance <= FOLD_WIDTH_MAX;
+    const angleB = (cutWaist / 4 + split.back) / r;
+    const fits = (angle: number) => (r + length) * Math.sin(Math.min(angle, Math.PI / 2)) + s.seamAllowance <= FOLD_WIDTH_MAX;
+    const onFold = fits(angleF);
     const dartLen = Math.max(4, Math.min(9 + (fit.dartLength ?? 0), hipDepth - 3));
     const front = circlePiece({ ...common, name: 'Skirt front', angle: angleF, isFront: true, onFold, darts: darts(2.5), dartLen });
-    const back = circlePiece({ ...common, name: 'Skirt back', angle: (cutWaist / 4 + split.back) / r, isFront: false, onFold: false, darts: darts(3.5), dartLen });
+    const back = circlePiece({ ...common, name: 'Skirt back', angle: angleB, isFront: false, onFold: elastic && onFold && fits(angleB), darts: darts(3.5), dartLen });
     return {
       pieces: [front, back],
       lengthCm: Math.round(length * 10) / 10,
@@ -649,6 +717,7 @@ function draftShape(m: SkirtMeasurements, s: SkirtStyle): SkirtDraft {
       zipCm,
       waistband: waistband(finishedWaist, finishedWaist / 4 + split.back, s.seamAllowance),
       dartsPerSide: { front: (front.meta.dartsCm as number[]).length, back: (back.meta.dartsCm as number[]).length },
+      ...band,
     };
   };
   // A circle skirt's waist is part of a circle: all of one for a full circle, half for a half circle.
@@ -712,7 +781,7 @@ function draftShape(m: SkirtMeasurements, s: SkirtStyle): SkirtDraft {
   const block = (flare: number): SkirtDraft => {
     const common = { hipQ, hipDepth, length, sideSupp, flare, flareFrom, sa: s.seamAllowance, hemSa, zipCm };
     const frontArgs = { ...common, name: 'Skirt front', waistQ: waistQ + split.front, dartMax: FRONT_DART_MAX, dartLen: 9 + dartAdj, isFront: true, dartAt: join?.dartAt?.front };
-    const backArgs = { ...common, name: 'Skirt back', waistQ: waistQ + split.back, dartMax: BACK_DART_MAX, dartLen: 14 + dartAdj, isFront: false, dartAt: join?.dartAt?.back };
+    const backArgs = { ...common, name: 'Skirt back', waistQ: waistQ + split.back, dartMax: BACK_DART_MAX, dartLen: 14 + dartAdj, isFront: false, dartAt: join?.dartAt?.back, onFold: elastic };
     const at = (d: { front: number; back: number }) => ({ meanDrop: (d.front + d.back) / 2 });
     let front = half({ ...frontArgs, ...at(drops), centreDrop: drops.front, measuredCentre: measured.front });
     let back = half({ ...backArgs, ...at(drops), centreDrop: drops.back, measuredCentre: measured.back });
@@ -740,6 +809,7 @@ function draftShape(m: SkirtMeasurements, s: SkirtStyle): SkirtDraft {
       zipCm,
       waistband: waistband(finishedWaist, waistQ + split.back, s.seamAllowance),
       dartsPerSide: { front: (front.meta.dartsCm as number[]).length, back: (back.meta.dartsCm as number[]).length },
+      ...band,
     };
   };
   // A slip takes its flare from the darts it closes, so a photo sets only its length.

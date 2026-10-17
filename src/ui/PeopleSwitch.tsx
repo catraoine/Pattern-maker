@@ -39,7 +39,8 @@ export function PeopleSwitch({
             add();
           }}
         >
-          <input aria-label="Their name" className="inline" value={name} placeholder="Their name" autoFocus onChange={(e) => setName(e.target.value)} />
+          <label htmlFor="person-name" className="small">Name</label>
+          <input id="person-name" className="inline" autoComplete="off" value={name} autoFocus onChange={(e) => setName(e.target.value)} />
           <button type="submit" className="secondary sm" disabled={!name.trim()}>
             Add
           </button>

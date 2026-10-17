@@ -6,7 +6,7 @@ import { FileCheck, checkFile, readPatternFile } from '../engine/checkFile';
  * Check any pattern: open a DXF or SVG from pattern software or a tracing, and the seams are walked:
  * edges that sew together are paired by length, each pair passing within a millimetre.
  */
-export function CheckFileScreen({ onBack }: { onBack: () => void }) {
+export function CheckFileScreen() {
   const [res, setRes] = useState<FileCheck>();
   const [name, setName] = useState('');
   const [error, setError] = useState('');
@@ -42,9 +42,6 @@ export function CheckFileScreen({ onBack }: { onBack: () => void }) {
             <p className="eyebrow">Check any pattern</p>
             <h1 id="cftitle">Walk the seams of a pattern file</h1>
           </div>
-          <button type="button" className="secondary" onClick={onBack}>
-            Back
-          </button>
         </div>
         <p className="muted">
           Open a pattern from Gerber, Lectra, Optitex or CLO 3D as a DXF, or a traced pattern as an SVG. Each piece is found, split into

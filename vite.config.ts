@@ -1,8 +1,19 @@
+/// <reference types="vitest/config" />
 import { defineConfig } from 'vite';
+import { configDefaults } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
+import { version } from './package.json';
 
 export default defineConfig({
+  // Crash reports carry the app version and build, so a fix can be matched to the build it went out in.
+  define: {
+    __APP_VERSION__: JSON.stringify(`${version}+${(process.env.COMMIT_REF ?? 'dev').slice(0, 7)}`),
+  },
+  // Unit tests only: the Playwright click-throughs in e2e/ run with `npm run test:e2e`.
+  test: {
+    exclude: [...configDefaults.exclude, '.claude/**', 'e2e/**', 'playwright-report/**', 'test-results/**'],
+  },
   plugins: [
     react(),
     VitePWA({

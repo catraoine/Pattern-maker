@@ -3,7 +3,6 @@ import { Block, LegalDoc, OWNER } from '../legal';
 
 interface Props {
   doc: LegalDoc;
-  onBack: () => void;
   onOther: () => void;
   otherLabel: string;
 }
@@ -53,14 +52,11 @@ function Part({ block }: { block: Block }) {
   );
 }
 
-/** The Privacy Policy or the Terms of Use, readable from the footer on every screen. */
-export function LegalScreen({ doc, onBack, onOther, otherLabel }: Props) {
+/** The Privacy Policy or the Terms of Use, opened from the welcome's fine print and from Your account. */
+export function LegalScreen({ doc, onOther, otherLabel }: Props) {
   useEffect(() => window.scrollTo(0, 0), [doc]);
   return (
     <article className="card legal" aria-labelledby="ltitle">
-      <button type="button" className="link back" onClick={onBack}>
-        Back
-      </button>
       <p className="eyebrow">Maison Tracé</p>
       <h1 id="ltitle">{doc.title}</h1>
       <p className="lead">{doc.intro}</p>
@@ -76,9 +72,6 @@ export function LegalScreen({ doc, onBack, onOther, otherLabel }: Props) {
       ))}
       <p className="muted small">Effective date: {OWNER.effective}</p>
       <div className="row wrap">
-        <button type="button" className="secondary" onClick={onBack}>
-          Back
-        </button>
         <button type="button" className="link" onClick={onOther}>
           Read the {otherLabel}
         </button>

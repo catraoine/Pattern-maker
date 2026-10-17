@@ -110,6 +110,8 @@ export function edgeLabels(pc: Piece): EdgeLabel[] {
     tier: 'TIER SEAM',
     panel: 'PANEL SEAM',
     godet: 'GODET SEAM',
+    'pocket-side': 'SIDE SEAM',
+    'pocket-edge': 'POCKET OPENING',
   };
   const { pts, tags } = pc.outline.taggedPoints(24);
   // Longest unbroken run of each tag.

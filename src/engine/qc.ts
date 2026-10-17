@@ -3,6 +3,7 @@
 import { P, len, sub, taggedLength, unit } from './geometry';
 import { dartsOf } from './marks';
 import { Piece } from './piece';
+import { pocketChecks, withParts } from './pockets';
 
 export interface Check {
   group: 'Seams' | 'Corners' | 'Darts';
@@ -74,14 +75,15 @@ const NAMES: Record<string, string> = {
 const isFront = (pc: Piece) => /front/i.test(pc.name);
 /** The garment a piece belongs to, from its first word: Bodice, Skirt. */
 const garmentOf = (pc: Piece) => pc.name.split(' ')[0];
-/** A seam's length on one side of the body. A piece cut whole (single layer, both halves in one: see
- * drape.ts and the bias skirt) has each seam twice, unless meta.seams says it has it once (a
- * one-shoulder's one shoulder). */
-const halfLength = (pc: Piece, tag: string) =>
-  taggedLength(pc.outline, tag) / (pc.meta.whole ? ((pc.meta.seams as Record<string, number> | undefined)?.[tag] ?? 2) : 1);
-const sum = (pcs: Piece[], tag: string) => pcs.reduce((t, pc) => t + halfLength(pc, tag), 0);
+/** A seam's length on one side of the body, with any part cut from the piece and sewn back (a slant
+ * pocket's facing). A piece cut whole (single layer, both halves in one: see drape.ts and the bias
+ * skirt) has each seam twice, unless meta.seams says it has it once (a one-shoulder's one shoulder). */
+const halfLength = (pc: Piece, tag: string, all: Piece[] = []) =>
+  withParts(all, pc, tag) / (pc.meta.whole ? ((pc.meta.seams as Record<string, number> | undefined)?.[tag] ?? 2) : 1);
+/** A seam's length over a set of pieces, on one side of the body. */
+const sumIn = (all: Piece[]) => (pcs: Piece[], tag: string) => pcs.reduce((t, pc) => t + halfLength(pc, tag, all), 0);
+const sum = sumIn([]);
 const bothWhole = (a: Piece, b: Piece) => !!a.meta.whole && !!b.meta.whole;
-
 /** A whole piece's edges carrying `tag` on the wearer's left and right: right side up, the wearer's left
  * is x > 0 on a front and x < 0 on a back. A seam broken by a dart still counts as one. */
 function bySide(pc: Piece, tag: string): { left: number; right: number } {
@@ -114,13 +116,15 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
   const back = pieces.find(isBack);
   const all = pairs(pieces);
   const named = all.length > 1;
+  const sum = sumIn(pieces);
+  const partsOf = (pc: Piece) => pieces.filter((x) => x.meta.partOf === pc.name);
 
   for (const { group, front, back } of all) {
     const which = (label: string) => (named ? `${group}${/ (centre|side)$/i.test(group) ? ' panel' : ''} ${label[0].toLowerCase()}${label.slice(1)}` : label);
     // Seams that sew together.
     for (const seam of ['side', 'shoulder', 'inseam']) {
-      const f = halfLength(front, seam);
-      const b = halfLength(back, seam);
+      const f = halfLength(front, seam, pieces);
+      const b = halfLength(back, seam, pieces);
       if (!f || !b) continue;
       if (seam === 'shoulder') {
         // The back shoulder is drafted 1 cm longer and eased in over the shoulder blade (half of it
@@ -156,7 +160,7 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
       // Curves meeting across the seam must blend: the two corners add up to a straight line. On pieces
       // cut whole, each corner meets the one on the same side of the body.
       const whole = bothWhole(front, back);
-      const fc = corners(front).filter((c) => (c.a === seam || c.b === seam) && c.a !== 'dart' && c.b !== 'dart');
+      const fc = [front, ...partsOf(front)].flatMap(corners).filter((c) => (c.a === seam || c.b === seam) && c.a !== 'dart' && c.b !== 'dart');
       for (const c of fc) {
         const other = c.a === seam ? c.b : c.a;
         const bc = corners(back).find((k) => ((k.a === seam && k.b === other) || (k.b === seam && k.a === other)) && (!whole || Math.sign(k.at!.x) === -Math.sign(c.at!.x)));
@@ -340,6 +344,7 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
       ok: spread <= SEAM_TOLERANCE,
     });
   }
+  for (const c of pocketChecks(pieces)) checks.push({ group: 'Seams', ...c });
 
   const sleeve = pieces.find((pc) => /^sleeve$/i.test(pc.name));
   if (sleeve && front && back) checks.push(...sleeveChecks(sleeve, pieces.filter(isFront), pieces.filter(isBack)));

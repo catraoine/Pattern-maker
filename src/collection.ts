@@ -4,12 +4,13 @@
 import type { Choices } from './App';
 import { draftBodice } from './engine/bodice';
 import { draftDress } from './engine/dress';
-import { Flat, bodiceFlat, dressFlat, outerFlat, skirtFlat, trousersFlat } from './engine/flat';
+import { Flat, bodiceFlat, dressFlat, outerFlat, skirtFlat, teeFlat, trousersFlat } from './engine/flat';
 import { hasSlit } from './engine/instructions';
 import { draftOuter } from './engine/outerwear';
 import { draftSkirt } from './engine/skirt';
 import { SleeveDraft, draftSleeve, needsArms } from './engine/sleeve';
 import { draftTrousers } from './engine/trousers';
+import { draftTee } from './engine/tee';
 import type { BodiceDraft } from './engine/bodice';
 import {
   BodiceChoices,
@@ -23,6 +24,7 @@ import {
   isBodice,
   isDress,
   isOuter,
+  isTee,
   isTrousers,
   sleeveOf,
   validDetails,
@@ -176,6 +178,7 @@ export function lookPatch(look: HouseLook): { garment: Garment } & Record<string
   if (isDress(choices)) return { garment, dress: choices };
   if (isBodice(choices)) return { garment, bodice: choices };
   if (isTrousers(choices)) return { garment, trousers: choices };
+  if (isTee(choices)) return { garment, tee: choices };
   if (isOuter(choices)) return { garment, [garment]: choices };
   return { garment, choices };
 }
@@ -197,6 +200,7 @@ export function lookFlat(look: HouseLook, m: MeasurementValues): Flat | undefine
   try {
     if (isOuter(c)) return outerFlat(draftOuter(m as never, { ...c, kind: c.garment }));
     if (isTrousers(c)) return trousersFlat(draftTrousers(m as never, c), m as never);
+    if (isTee(c)) return teeFlat(draftTee(m as never, c));
     if (isDress(c)) {
       const b = { ...validDetails(c.bodice, 'dress'), fit: c.fit, length: 'waist' as const };
       const d = draftDress(m as never, b, { ...c.skirt, fit: c.fit });

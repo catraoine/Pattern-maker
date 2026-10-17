@@ -3,6 +3,9 @@
 // nested by its real cutting line (not its bounding box), dropped as low as it will go.
 import { P, p } from './geometry';
 import { Piece, cutLine } from './piece';
+import { LEATHER_LAY, hideSqFt } from './specialFabrics';
+
+export { hideSqFt };
 
 export const FABRIC_WIDTHS = [115, 140, 150] as const;
 export type FabricWidth = (typeof FABRIC_WIDTHS)[number];
@@ -30,6 +33,8 @@ export interface Lay {
   width: FabricWidth;
   /** Folded in half lengthwise, selvedges together; otherwise opened out to a single layer. */
   folded: boolean;
+  /** Cut from a leather hide: always one open layer, bought in square feet. */
+  hide?: boolean;
   /** The width the pieces are laid across: half the usable width when folded. */
   across: number;
   /** Length of fabric the pieces take, in cm. */
@@ -43,6 +48,8 @@ export interface Lay {
   bias?: boolean;
   /** Some pieces differ side to side, so they are cut right side up only. */
   rightSideUp?: boolean;
+  /** A knit: the grain runs along the ribs, so the stretch goes across the fabric and round the body. */
+  knit?: boolean;
 }
 
 const RES = 0.5; // cm per grid column
@@ -54,6 +61,12 @@ function kindOf(pc: Piece): Kind {
   if (/fold/i.test(pc.cut)) return 'fold';
   if (/2|pair/i.test(pc.cut)) return 'pair';
   return 'single';
+}
+
+/** How many times a pair is laid: twice for "Cut 4 (2 pairs)", like pocket bags. */
+function sets(pc: Piece): number {
+  const n = Number(pc.cut.match(/cut\s+(\d+)/i)?.[1] ?? 2);
+  return Math.max(1, Math.floor(n / 2));
 }
 
 /** Which lays a piece is cut in. */
@@ -141,18 +154,22 @@ interface Item {
  * Lay the pieces cut from one fabric on fabric `width` cm wide. `nap` keeps every piece the same way
  * up (velvet, corduroy, one-way prints); without it pieces can turn end to end to nest closer.
  */
-export function layPlan(pieces: Piece[], width: FabricWidth, fabric: LayFabric = 'self', nap = false): Lay | undefined {
+export function layPlan(pieces: Piece[], width: FabricWidth, fabric: LayFabric = 'self', nap = false, hide = false): Lay | undefined {
   const mine = pieces.filter((pc) => fabricsOf(pc).includes(fabric));
   if (!mine.length) return undefined;
   const usable = width - 2 * SELVEDGE;
   const cut = mine.map((pc) => ({ pc, pts: onGrain(pc, cutLine(pc)), kind: kindOf(pc) }));
   const wide = (pts: P[]) => Math.max(...pts.map((q) => q.x)) - Math.min(...pts.map((q) => q.x));
   // Folded unless something won't fit across half the width, or a piece must be cut from a single
-  // layer (bias pieces, which shift on a folded layer, and pieces that differ side to side); then a
-  // single layer, with pieces on the fold opened out to their full width and each of a pair cut separately.
-  // A piece off the fold also keeps its gap from it.
-  const folded = cut.every(({ pc, pts, kind }) => wide(pts) <= usable / 2 - (kind === 'fold' ? 0 : 2 * RES) && !pc.meta.singleLayer);
+  // layer (bias pieces, which shift on a folded layer, and pieces that differ side to side), or it is
+  // a hide; then a single layer, with pieces on the fold opened out to their full width and each of a
+  // pair cut separately. A piece off the fold also keeps its gap from it.
+  const folded = !hide && cut.every(({ pc, pts, kind }) => wide(pts) <= usable / 2 - (kind === 'fold' ? 0 : 2 * RES) && !pc.meta.singleLayer);
   const items: Item[] = cut.flatMap(({ pc, pts, kind }): Item[] => {
+    const times = kind === 'pair' ? sets(pc) : 1;
+    return Array.from({ length: times }, () => one(pc, pts, kind)).flat();
+  });
+  function one(pc: Piece, pts: P[], kind: Kind): Item[] {
     if (folded) return [{ name: pc.name, pts, kind, atFold: kind === 'fold', single: kind === 'single' }];
     if (kind === 'fold') {
       // Open out: the cutting line and its mirror, joined at the fold.
@@ -163,9 +180,9 @@ export function layPlan(pieces: Piece[], width: FabricWidth, fabric: LayFabric =
       const full = [...run, ...[...run].reverse().map((q) => p(-q.x, q.y))];
       return [{ name: pc.name, pts: full, kind, atFold: false, single: true }];
     }
-    const one = { name: pc.name, pts, kind, atFold: false, single: true, rightSideUp: !!pc.meta.rightSideUp };
-    return kind === 'pair' ? [one, { ...one, pts: flipX(pts) }] : [one];
-  });
+    const it = { name: pc.name, pts, kind, atFold: false, single: true, rightSideUp: !!pc.meta.rightSideUp };
+    return kind === 'pair' ? [it, { ...it, pts: flipX(pts) }] : [it];
+  }
   if (!folded && items.some((it) => wide(it.pts) > usable)) return undefined;
 
   const across = folded ? usable / 2 : usable;
@@ -189,6 +206,7 @@ export function layPlan(pieces: Piece[], width: FabricWidth, fabric: LayFabric =
     fabric,
     width,
     folded,
+    ...(hide ? { hide } : {}),
     across,
     length: Math.round(length * 10) / 10,
     metres: Math.ceil((length + 10) / 10) / 10,
@@ -255,17 +273,28 @@ function place(order: Item[], cols: number, nap: boolean, folded: boolean): Plac
 }
 
 /** The lays for every fabric the pieces are cut from, at one width. */
-export function layPlans(pieces: Piece[], width: FabricWidth, nap = false): Lay[] {
-  return (['self', 'lining', 'interlining'] as const).map((f) => layPlan(pieces, width, f, nap)).filter((l): l is Lay => !!l);
+export function layPlans(pieces: Piece[], width: FabricWidth, nap = false, hide = false, knit = false): Lay[] {
+  // Only the leather itself comes from a hide; the lining and the coutil are ordinary cloth.
+  return (['self', 'lining', 'interlining'] as const)
+    .map((f) => layPlan(pieces, width, f, nap, hide && f === 'self'))
+    .filter((l): l is Lay => !!l)
+    .map((l) => (knit ? { ...l, knit } : l));
 }
+
+/** What to buy for a lay: "1.4 m" of cloth, or "about 14 sq ft of hide" for leather. */
+export const layAmount = (lay: Lay): string => (lay.hide ? `about ${hideSqFt(lay)} sq ft of hide` : `${lay.metres.toFixed(1)} m`);
 
 /** How to lay the fabric out and cut, in a sentence or two. */
 export function layWords(lay: Lay): string {
+  if (lay.hide) return LEATHER_LAY;
   const way = lay.folded
     ? 'Fold the fabric in half lengthwise, right sides together, selvedges matching. Place the pieces marked on the fold against the fold.'
     : 'Open the fabric out to a single layer, right side up. Pieces on the fold are drawn opened out; cut a pair as one piece face up and one face down.';
   const single = lay.placements.some((pl) => pl.single && lay.folded) ? ' Cut the pieces marked 1 LAYER through the top layer only.' : '';
+  const grain = lay.knit
+    ? ' Keep every grain line along the ribs, parallel to the fold, so the most stretch runs across the fabric and round the body. Keep the knit flat on the table so it does not stretch as you cut.'
+    : ' Keep every grain line parallel to the selvedge.';
   const bias = lay.bias ? ' The bias pieces lie at 45 degrees across the cloth, so their grain lines run along it: that puts them on the true bias. Cut them through one layer, without stretching the edges.' : '';
   const up = lay.rightSideUp ? ' The pieces marked right side up differ side to side: lay them printed side up on the right side of the fabric, never turned over.' : '';
-  return `${way}${single} Keep every grain line parallel to the selvedge.${bias}${up} The pieces use ${Math.round(lay.efficiency * 100)}% of the fabric.`;
+  return `${way}${single}${grain}${bias}${up} The pieces use ${Math.round(lay.efficiency * 100)}% of the fabric.`;
 }

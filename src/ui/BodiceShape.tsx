@@ -19,6 +19,7 @@ import {
 import { BODICE_GROUPS, BodiceChoices, DARTS_FOR_FIT } from '../garments';
 import { COWL_DEPTH } from '../engine/drape';
 import type { Side } from './ShapeSketch';
+import { bodiceBodyOutline } from './bodyOutline';
 
 interface Worn {
   /** One half from the centre neck round the shoulder and armhole, down the side to the centre hem. */
@@ -28,8 +29,10 @@ interface Worn {
   hemCentre: P;
   /** Dart fold lines, already mirrored, as an SVG path given the centre x. */
   darts: (cx: number) => string;
+  /** The piece's own outline, for placing the body round it. */
+  top: { pts: P[]; tags: (string | undefined)[] };
   /** How many points of `pts` are the top edge, from the centre neck to the underarm. */
-  top: number;
+  topCount: number;
 }
 
 const f = (q: P) => `${q.x.toFixed(2)} ${q.y.toFixed(2)}`;
@@ -76,7 +79,7 @@ export function worn(draft: BodiceDraft, side: Side): Worn {
     });
   const darts = (cx: number) =>
     folds.flatMap(([a, b]) => ([1, -1] as const).map((s) => `M${f({ x: cx + s * a.x, y: a.y })} L${f({ x: cx + s * b.x, y: b.y })}`)).join(' ');
-  return { pts: out, widest, hemCentre: land.hemCentre, darts, top: top.length };
+  return { pts: out, widest, hemCentre: land.hemCentre, darts, top: { pts, tags }, topCount: top.length };
 }
 
 /**
@@ -86,7 +89,7 @@ export function worn(draft: BodiceDraft, side: Side): Worn {
  */
 export function drapedOutline(draft: BodiceDraft, side: Side, w: Worn, cx: number): string | undefined {
   const path = (pts: P[]) => pts.map((q, i) => `${i ? 'L' : 'M'}${f(q)}`).join(' ') + ' Z';
-  const near = (q: P) => w.pts.slice(0, w.top).reduce((b, r, i) => (Math.hypot(r.x - q.x, r.y - q.y) < Math.hypot(w.pts[b].x - q.x, w.pts[b].y - q.y) ? i : b), 0);
+  const near = (q: P) => w.pts.slice(0, w.topCount).reduce((b, r, i) => (Math.hypot(r.x - q.x, r.y - q.y) < Math.hypot(w.pts[b].x - q.x, w.pts[b].y - q.y) ? i : b), 0);
   if (draft.drape?.kind === 'one_shoulder') {
     // As worn, the wearer's left is on the right of the front and the left of the back, as each piece lies.
     const k = side === 'front' ? 1 : -1;
@@ -95,7 +98,7 @@ export function drapedOutline(draft: BodiceDraft, side: Side, w: Worn, cx: numbe
     const N = pts[0];
     const edge = [...pts.filter((_, i) => tags[i] === 'neck' || (i > 0 && tags[i - 1] === 'neck')), N].map((q) => ({ x: cx + q.x, y: q.y }));
     const covered = w.pts.slice(near({ x: Math.abs(N.x), y: N.y })).map((q) => ({ x: cx + k * q.x, y: q.y }));
-    const bare = w.pts.slice(w.top, -1).map((q) => ({ x: cx - k * q.x, y: q.y })).reverse();
+    const bare = w.pts.slice(w.topCount, -1).map((q) => ({ x: cx - k * q.x, y: q.y })).reverse();
     return path([...covered, ...bare, ...edge.slice(0, -1)]);
   }
   if (draft.drape?.kind === 'cowl' && side === 'front') {
@@ -203,7 +206,8 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, onLive, o
   // The frame stays put while dragging, sized for the roomiest fit and the longest hem, so the handle
   // stays under the finger.
   const frame = useMemo(() => {
-    const half = (m.full_bust + BUST_EASE_RANGE.max) / 4 + 6;
+    // Room at the sides for the arms.
+    const half = (m.full_bust + BUST_EASE_RANGE.max) / 4 + 6 + 0.2 * (m.armscye ?? 0.43 * m.full_bust);
     const deepest = Math.max(draft.front.waistCentre.y, draft.back.waistCentre.y) + (hip ? dropRange(m).max : 0);
     return { half, top: -8, bottom: deepest + 7 };
   }, [m, hip, draft.front.waistCentre.y, draft.back.waistCentre.y]);
@@ -324,6 +328,7 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, onLive, o
       onPointerUp={end}
       onPointerCancel={end}
     >
+      <path d={bodiceBodyOutline(m, w.top, waistY, frame.bottom, cx)} className="body-outline" fill="none" strokeWidth={0.2} strokeLinecap="round" />
       {guide(waistY, 'WAIST')}
       {hip && guide(waistY + m.waist_to_hip!, 'HIP')}
       <path d={outline} style={{ fill: 'var(--fill)', stroke: 'var(--ink)' }} strokeWidth={0.25} strokeLinejoin="round" />

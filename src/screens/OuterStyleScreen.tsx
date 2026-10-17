@@ -6,13 +6,15 @@ import { OUTER_EASE, OuterDraft } from '../engine/outerwear';
 import { outerFlat } from '../engine/flat';
 import { OuterChoices, describeOuter, outerAllowed, outerGroups } from '../garments';
 import { TechFlatView } from '../ui/TechFlatView';
-import { Garment, MeasurementValues } from '../measurements';
+import { MeasurementValues } from '../measurements';
 import { PatternPreview } from '../ui/Preview';
 import { GarmentSwitch } from '../ui/GarmentSwitch';
 import { FREE_SAVED_LIMIT } from '../account';
 import { EaseMapView } from '../ui/EaseMapView';
 import type { EaseView } from '../engine/easeMap';
 import { FinishChoices } from '../ui/FinishChoices';
+import { Mode, ProTool, shows } from '../mode';
+import { ModeLink } from '../ui/ModeLink';
 import type { Finish } from '../App';
 import { MyFabric, fabricEase, outerFabrics } from '../engine/fabrics';
 import { FabricCard } from '../ui/FabricCard';
@@ -20,7 +22,8 @@ import { FabricCard } from '../ui/FabricCard';
 interface Props {
   choices: OuterChoices;
   onChoices: (c: OuterChoices) => void;
-  onGarment: (g: Garment) => void;
+  /** Open the list of what to make, to pick another garment. */
+  onChooseGarment: () => void;
   values: MeasurementValues;
   draft?: OuterDraft;
   error?: string;
@@ -33,6 +36,9 @@ interface Props {
   finish: Finish;
   onFinish: (f: Finish) => void;
   fabric?: MyFabric;
+  /** Simple or all tools; all when not given. */
+  mode?: Mode;
+  onMode?: (m: Mode) => void;
 }
 
 /** Self fabric needed on 140 cm wide fabric, from the cutting layout of the shell pieces. */
@@ -41,8 +47,10 @@ export const outerFabricMetres = (draft: OuterDraft) => {
   return layPlan(self, 140)?.metres ?? toMetres(piecesLengthCm(self) + 10);
 };
 
-export function OuterStyleScreen({ choices, onChoices, onGarment, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, finish, onFinish, fabric }: Props) {
-  const [view, setView] = useState<'sketch' | 'pattern' | 'ease'>('sketch');
+export function OuterStyleScreen({ choices, onChoices, onChooseGarment, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, finish, onFinish, fabric, mode = 'all', onMode }: Props) {
+  const can = (t: ProTool) => shows(mode, t);
+  const [picked, setView] = useState<'sketch' | 'pattern' | 'ease'>('sketch');
+  const view = picked === 'ease' && !can('easeMap') ? 'sketch' : picked;
   const kind = choices.garment;
   const pieces = useMemo(() => draft?.pieces ?? [], [draft]);
   const sheet = useMemo(() => (draft ? layout(pieces, '', []) : undefined), [draft, pieces]);
@@ -55,7 +63,7 @@ export function OuterStyleScreen({ choices, onChoices, onGarment, values, draft,
       <section className="card" aria-labelledby="opts">
         <div className="row between wrap">
           <h1 id="opts">Style your {kind}</h1>
-          <GarmentSwitch garment={kind} onGarment={onGarment} />
+          <GarmentSwitch onChoose={onChooseGarment} />
         </div>
         {outerGroups(kind).map((g) => (
           <fieldset key={g.id} className="group">
@@ -87,12 +95,17 @@ export function OuterStyleScreen({ choices, onChoices, onGarment, values, draft,
             {g.id === 'shaping' && choices.fit === 'fitted' && <p className="muted small">A fitted {kind} keeps its waist shaping, so boxy needs a regular or relaxed fit.</p>}
           </fieldset>
         ))}
-        <p className="eyebrow">Inside the {kind}</p>
-        <FinishChoices garment={kind} finish={finish} onFinish={onFinish} />
+        {can('insideFinish') && (
+          <>
+            <p className="eyebrow">Inside the {kind}</p>
+            <FinishChoices garment={kind} finish={finish} onFinish={onFinish} />
+          </>
+        )}
         <p className="muted small">
           Fully lined, with interfaced front facings{choices.collar === 'notched' ? ' and an upper and under collar rolled at the lapel' : ''}. The sleeves are drafted to
           your own armhole with room for what you wear underneath{choices.pads !== 'none' ? ', and the shoulders and sleeve heads are raised to take the shoulder pads' : ''}.
         </p>
+        <ModeLink mode={mode} onMode={onMode} />
       </section>
 
       <section className="card grow" aria-label="Preview">
@@ -104,7 +117,7 @@ export function OuterStyleScreen({ choices, onChoices, onGarment, values, draft,
             <button type="button" aria-pressed={view === 'pattern'} className={view === 'pattern' ? 'on' : ''} onClick={() => setView('pattern')}>
               Pattern pieces
             </button>
-            {easeMap && easeMap.length > 0 && (
+            {easeMap && easeMap.length > 0 && can('easeMap') && (
               <button type="button" aria-pressed={view === 'ease'} className={view === 'ease' ? 'on' : ''} onClick={() => setView('ease')}>
                 Ease
               </button>

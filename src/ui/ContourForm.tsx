@@ -554,7 +554,22 @@ function lengthOn(g: CanvasRenderingContext2D, w: number, h: number, z: number, 
   label(g, 'STOP · ' + stop, x + 10, y1 + 3, out(seg(t, 1250, 1650)), 'left');
 }
 
-const ON_FORM: Partial<Record<MeasurementId, number>> = { full_bust: -0.58, waist: 0.1, full_hip: 0.82 };
+export const ON_FORM: Partial<Record<MeasurementId, number>> = { full_bust: -0.58, waist: 0.1, full_hip: 0.82 };
+
+/** Where each girth belongs on the form, read off its outline: bust is the widest point above the waist,
+ *  waist the narrowest, hip the widest below. The tapes are tested against these so a drawing can't drift. */
+export function formLandmarks(): Record<'full_bust' | 'waist' | 'full_hip', number> {
+  const find = (a: number, b: number, better: (r: number, best: number) => boolean) => {
+    let at = a;
+    for (let y = a; y <= b; y += 0.001) if (better(R(y), R(at))) at = y;
+    return at;
+  };
+  return {
+    full_bust: find(-1.1, -0.2, (r, b) => r > b),
+    waist: find(-0.3, 0.5, (r, b) => r < b),
+    full_hip: find(0.4, 1.3, (r, b) => r > b),
+  };
+}
 const KNEE = 3.2;
 /** Lengths from the waist: where they stop, how far the view pulls back, and the STOP name. */
 const LENGTHS: Partial<Record<MeasurementId, { to: number; zoom: number; stop: string }>> = {

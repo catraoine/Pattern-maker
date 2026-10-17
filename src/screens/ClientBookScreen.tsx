@@ -11,7 +11,6 @@ interface Props {
   unit: Unit;
   onChange: (p: Person) => void;
   onOpen: (p: SavedPattern) => void;
-  onBack: () => void;
 }
 
 const FIELDS = [...SKIRT_FIELDS, ...TROUSERS_FIELDS, ...BODICE_FIELDS].filter((f, i, all) => all.findIndex((g) => g.id === f.id) === i);
@@ -23,7 +22,7 @@ const show = (v: number | undefined, unit: Unit) => (v === undefined ? '–' : u
  * One client's record, the way a dressmaker keeps a client book: their measurements over time, every
  * toile fitting and what it changed, fitting notes, toile photos and the patterns made for them.
  */
-export function ClientBookScreen({ account, person, unit, onChange, onOpen, onBack }: Props) {
+export function ClientBookScreen({ account, person, unit, onChange, onOpen }: Props) {
   const name = personName(account, person);
   const history = person.history ?? [];
   const recent = history.slice(-4);
@@ -50,9 +49,6 @@ export function ClientBookScreen({ account, person, unit, onChange, onOpen, onBa
             <p className="eyebrow">Client book</p>
             <h1 id="cbtitle">{name}</h1>
           </div>
-          <button type="button" className="secondary" onClick={onBack}>
-            Back to account
-          </button>
         </div>
         <p className="muted small">Kept on this device only, with the photos. Nothing is sent anywhere.</p>
       </section>
@@ -132,7 +128,7 @@ export function ClientBookScreen({ account, person, unit, onChange, onOpen, onBa
         </ul>
         <label className="field">
           <span className="small">New note</span>
-          <textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Prefers a lower neckline; left shoulder drops a little." />
+          <textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} />
         </label>
         <button
           type="button"
@@ -164,7 +160,8 @@ export function ClientBookScreen({ account, person, unit, onChange, onOpen, onBa
           ))}
         </div>
         <div className="row wrap">
-          <input type="text" className="inline" style={{ width: 'auto', flex: '1 1 220px' }} value={caption} onChange={(e) => setCaption(e.target.value)} placeholder="Caption, such as First toile, back" aria-label="Photo caption" />
+          <label htmlFor="photo-caption" className="small">Caption</label>
+          <input id="photo-caption" type="text" className="inline" style={{ width: 'auto', flex: '1 1 220px' }} value={caption} onChange={(e) => setCaption(e.target.value)} />
           <label className="secondary filebtn">
             Add a photo
             <input type="file" accept="image/*" capture="environment" hidden onChange={(e) => void addPicture(e.target.files?.[0])} />

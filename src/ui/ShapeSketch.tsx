@@ -6,6 +6,7 @@ import type { P } from '../engine/geometry';
 import { HEM_SAMPLES, HemShape, flatHem, isShaped, offsetAt } from '../engine/hem';
 import { LENGTHS, Length, Silhouette, SkirtDraft, SkirtMeasurements, flareRange, isCircle, lengthRange, presetFlare } from '../engine/skirt';
 import { GROUPS } from '../screens/StyleScreen';
+import { bodyOutline } from './bodyOutline';
 
 export type Side = 'front' | 'back';
 
@@ -277,6 +278,7 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
       onPointerUp={end}
       onPointerCancel={end}
     >
+      <path d={bodyOutline(m, cx)} className="body-outline" fill="none" strokeWidth={0.2} strokeLinecap="round" />
       {guide(m.waist_to_knee, 'KNEE')}
       {guide(m.waist_to_floor, 'FLOOR')}
       <path d={path} style={{ fill: 'var(--fill)', stroke: 'var(--ink)' }} strokeWidth={0.25} strokeLinejoin="round" />

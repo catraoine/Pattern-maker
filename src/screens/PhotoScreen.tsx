@@ -8,7 +8,6 @@ import { shapeLine, fitOf, shapeOf } from '../photo/shape';
 interface Props {
   measured: boolean;
   onApply: (c: Choices) => void;
-  onCancel: () => void;
 }
 
 const SURE: Record<Confidence, string> = { high: 'Clear in the photo', medium: 'Fairly sure', low: 'Best guess, please check' };
@@ -59,7 +58,7 @@ const OTHER: Partial<Record<PhotoReading['garment'], string>> = {
   other: "This doesn't look like a skirt. Photos can only be read as skirts so far, so these are just starting points.",
 };
 
-export function PhotoScreen({ measured, onApply, onCancel }: Props) {
+export function PhotoScreen({ measured, onApply }: Props) {
   const [preview, setPreview] = useState<string>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
@@ -137,9 +136,6 @@ export function PhotoScreen({ measured, onApply, onCancel }: Props) {
           </details>
         )}
         <p className="muted small">Your photo is sent to Claude to read the style. Maison Tracé doesn't keep it.</p>
-        <button type="button" className="link" onClick={onCancel}>
-          Back to styling by hand
-        </button>
       </section>
 
       <section ref={results} className="card grow" aria-labelledby="seetitle" aria-busy={busy}>

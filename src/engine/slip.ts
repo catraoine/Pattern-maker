@@ -55,12 +55,19 @@ export function cutAllowed(c: { silhouette: string; length: string }, id: 'silho
 }
 
 /** The choices made valid: a slip at least knee length, a diagonal hem only where it can be cut. */
-export function validCut<T extends { silhouette: SkirtStyle['silhouette']; length: SkirtStyle['length']; asymHem?: SkirtStyle['asymHem']; joinTo?: unknown }>(c: T): T {
+export function validCut<T extends { silhouette: SkirtStyle['silhouette']; length: SkirtStyle['length']; asymHem?: SkirtStyle['asymHem']; joinTo?: unknown; waist?: SkirtStyle['waist']; pleats?: SkirtStyle['pleats'] }>(c: T): T {
   let out = c;
   if (out.silhouette === 'slip' && !(SLIP_LENGTHS as readonly string[]).includes(out.length)) out = { ...out, length: 'knee' };
   if (out.asymHem === 'diagonal' && !cutAllowed(out, 'asymHem', 'diagonal', out.joinTo ? 'dress' : 'skirt')) out = { ...out, asymHem: 'none' };
+  if (out.waist === 'elastic' && !elasticCutAllowed(out)) out = { ...out, waist: 'band' };
   return out;
 }
+
+/** A pull-on elastic waist gathers a waist cut to the hip, so it needs a skirt cut in halves with its
+ * waist free: not a bias slip (faced and zipped at the side), a diagonal hem (zipped at the side), or
+ * pleats (which take the waist in themselves). */
+export const elasticCutAllowed = (c: { silhouette: SkirtStyle['silhouette']; asymHem?: SkirtStyle['asymHem']; pleats?: SkirtStyle['pleats'] }) =>
+  c.silhouette !== 'slip' && c.asymHem !== 'diagonal' && (c.pleats ?? 'none') === 'none';
 
 /** Cut whole, single layer: a slip on the bias, or a diagonal hem that differs side to side. */
 export const cutsWhole = (s: SkirtStyle) => s.silhouette === 'slip' || s.asymHem === 'diagonal';

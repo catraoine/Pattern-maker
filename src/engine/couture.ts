@@ -66,9 +66,10 @@ export function toCouture(guide: SewingGuide, c: CoutureContext): SewingGuide {
   const topEdge = guide.steps.some((g) => /top edge/.test(g.title));
   const shoulders = bodice && !topEdge;
   const ownStay = guide.steps.some((g) => g.title === 'Attach the waist stay');
-  // A skirt cut whole has no centre back seam: its zip is in the left side seam.
+  // A skirt cut whole has no centre back seam: its zip is in the left side seam. A pull-on skirt has
+  // no zip, and its back is cut on the fold.
   const sideZip = guide.steps.some((s) => s.title === 'Put in the side zip');
-  const seams = (dress ? 'side, shoulder, centre back and waist' : bodice ? 'side, shoulder and centre back' : sideZip ? 'side' : 'side and centre back').replace('shoulder', topEdge ? 'princess' : 'shoulder');
+  const seams = (dress ? 'side, shoulder, centre back and waist' : bodice ? 'side, shoulder and centre back' : sideZip || !(c.zipCm > 0) ? 'side' : 'side and centre back').replace('shoulder', topEdge ? 'princess' : 'shoulder');
   const out: SewStep[] = [];
   let zip: SewStep | undefined;
   // A one-shoulder bodice zips in the right side seam, so its zip goes in after the side seams.
@@ -80,7 +81,7 @@ export function toCouture(guide: SewingGuide, c: CoutureContext): SewingGuide {
       'Baste and fit',
       sideZip
         ? 'Hand-baste the right side seam, and the left one below the ZIP ENDS marks, along the traced lines, pin the opening closed and try it on, right side out. The side seams should hang straight down and the hem should fall where the pattern draws it. Re-trace any line you change, on both pieces, then take the basting out of each seam as you come to sew it.'
-        : `Hand-baste the side seams${shoulders ? ' and shoulders' : ''} along the traced lines, pin the centre back closed and try it on, right side out. The side seams should hang straight down and each dart point toward the fullest part of the body. Re-trace any line you change, on both pieces, then take the basting out of each seam as you come to sew it.`,
+        : `Hand-baste the side seams${shoulders ? ' and shoulders' : ''} along the traced lines, ${c.zipCm > 0 ? 'pin the centre back closed and ' : ''}try it on, right side out. The side seams should hang straight down and each dart point toward the fullest part of the body. Re-trace any line you change, on both pieces, then take the basting out of each seam as you come to sew it.`,
       'baste',
     );
 
@@ -194,22 +195,33 @@ export function toCouture(guide: SewingGuide, c: CoutureContext): SewingGuide {
         fitted = true;
       }
       const which = t === 'Sew the shoulders' ? 'shoulders' : 'side seams';
+      // A French seam cannot turn the corner round an in-seam pocket: those side seams are pressed
+      // open and overcast instead, the pocket bags with them.
+      const pocketed = /POCKET notch/.test(s.text);
       out.push(
-        finish === 'french'
+        finish === 'french' && !pocketed
           ? step(
               t,
               `Sew the ${which} as French seams. Pin the pieces wrong sides together and sew 0.6 cm outside the traced line, in the allowance. Trim to 0.3 cm and press, then fold right sides together along the seam, press again and sew on the traced line, enclosing the raw edges. Press the seam toward the back.${which === 'shoulders' ? ' Ease in the back shoulder\'s extra 1 cm as you pin.' : ''}`,
               'french',
             )
-          : step(t, `${s.text.split('. Try')[0].replace(/\.$/, '').replace(/Sew [\d.]+ cm from the edge/, 'Machine on the traced line, taking out the basting as you go,')}.`),
+          : step(
+              t,
+              `${s.text.split('. Try')[0].replace(/\.$/, '').replace(/Sew [\d.]+ cm from the edge/, 'Machine on the traced line, taking out the basting as you go,')}.${
+                pocketed && finish === 'french' ? ` A French seam cannot turn the corner round a pocket, so press these seams open and overcast the allowances by hand, the pocket bags with them. ${FINISH_WORDS.overcast}` : ''
+              }`,
+              pocketed && finish === 'french' ? 'overcast' : undefined,
+            ),
       );
       if (t === 'Sew the side seams')
         out.push(
-          finish === 'french'
+          ...(finish === 'french'
             ? rightZip
-              ? step('Finish the zip opening', 'A French seam cannot go round a zip, so sew the right side seam below the zip as a plain seam and overcast its allowances by hand: slanted stitches 0.5 cm deep and 0.5 cm apart.', 'overcast')
-              : step('Finish the centre back', 'A French seam cannot go round a zip, so overcast the centre back allowances by hand below the zip: slanted stitches 0.5 cm deep and 0.5 cm apart.', 'overcast')
-            : step('Finish the seams', `Finish the ${seams} allowances, pressed open. ${FINISH_WORDS[finish]}`, finish),
+              ? [step('Finish the zip opening', 'A French seam cannot go round a zip, so sew the right side seam below the zip as a plain seam and overcast its allowances by hand: slanted stitches 0.5 cm deep and 0.5 cm apart.', 'overcast')]
+              : c.zipCm > 0 && !sideZip
+                ? [step('Finish the centre back', 'A French seam cannot go round a zip, so overcast the centre back allowances by hand below the zip: slanted stitches 0.5 cm deep and 0.5 cm apart.', 'overcast')]
+                : []
+            : [step('Finish the seams', `Finish the ${seams} allowances, pressed open. ${FINISH_WORDS[finish]}`, finish)]),
         );
       if (t === 'Sew the side seams' && zip) {
         out.push(zip);

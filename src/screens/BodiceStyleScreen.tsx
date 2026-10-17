@@ -8,13 +8,12 @@ import { isTop } from '../engine/corset';
 import { bodiceFlat } from '../engine/flat';
 import { TechFlatView } from '../ui/TechFlatView';
 import { SHAPES_FOR_LENGTH, SleeveDraft, needsArms } from '../engine/sleeve';
-import { Garment, MeasurementValues, hasHip } from '../measurements';
+import { MeasurementValues, hasHip } from '../measurements';
 import { PatternPreview } from '../ui/Preview';
 import { GarmentSwitch } from '../ui/GarmentSwitch';
 import { SaveControl } from '../ui/SaveControl';
 import { FinishChoices } from '../ui/FinishChoices';
 import { BodiceShape } from '../ui/BodiceShape';
-import { BodiceFigure } from '../ui/BodiceFigure';
 import type { Side } from '../ui/ShapeSketch';
 import { useShake } from '../ui/shake';
 import type { Finish } from '../App';
@@ -22,6 +21,8 @@ import { MyFabric, bodiceFabrics, fabricEase } from '../engine/fabrics';
 import { FabricCard } from '../ui/FabricCard';
 import { isDraped } from '../engine/drape';
 
+import { Mode, ProTool, shows } from '../mode';
+import { ModeLink } from '../ui/ModeLink';
 import { EaseMapView } from '../ui/EaseMapView';
 import type { EaseView } from '../engine/easeMap';
 
@@ -30,7 +31,8 @@ interface Props {
   onFinish: (f: Finish) => void;
   choices: BodiceChoices;
   onChoices: (c: BodiceChoices) => void;
-  onGarment: (g: Garment) => void;
+  /** Open the list of what to make, to pick another garment. */
+  onChooseGarment: () => void;
   values: MeasurementValues;
   draft?: BodiceDraft;
   /** The set-in sleeve, drafted to the bodice's armhole, when one is chosen. */
@@ -45,6 +47,9 @@ interface Props {
   fabric?: MyFabric;
   /** Room over the body at every level, for the ease map. */
   easeMap?: EaseView[];
+  /** Simple or all tools; all when not given. */
+  mode?: Mode;
+  onMode?: (m: Mode) => void;
 }
 
 /** Fabric needed on 140 cm wide fabric, from the cutting layout. */
@@ -84,10 +89,12 @@ const UNDO_LIMIT = 40;
 const REPLACES = { fit: 'bustEase', length: 'dropCm', neckline: 'neck' } as const;
 const handShaped = (c: BodiceChoices, id: string) => id in REPLACES && c[REPLACES[id as keyof typeof REPLACES]] !== undefined;
 
-type View = 'sketch' | 'figure' | 'flat' | 'pattern' | 'ease';
+type View = 'sketch' | 'flat' | 'pattern' | 'ease';
 
-export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft, sleeve, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, finish, onFinish, fabric }: Props) {
-  const [view, setView] = useState<View>('sketch');
+export function BodiceStyleScreen({ choices, onChoices, onChooseGarment, values, draft, sleeve, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, finish, onFinish, fabric, mode = 'all', onMode }: Props) {
+  const can = (t: ProTool) => shows(mode, t);
+  const [picked, setView] = useState<View>('sketch');
+  const view = picked === 'ease' && !can('easeMap') ? 'sketch' : picked;
   const [side, setSide] = useState<Side>('front');
   const [drawing, setDrawing] = useState(false);
   const [play, setPlay] = useState(0);
@@ -112,9 +119,12 @@ export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft
   const draped = isDraped(choices);
   const valueOf = (id: (typeof BODICE_GROUPS)[number]['id']) =>
     id === 'sleeveShape' ? chosen.shape : id === 'sleeve' ? chosen.length : id in detail ? detail[id as keyof typeof detail] : choices[id];
+  // The simple view leaves moving the shaping to the pattern cutter's tools, unless it has been moved already.
+  const moved = (id: string) => (id === 'bustDart' && detail.bustDart !== 'side') || (id === 'princess' && detail.princess !== 'none');
   const shown = (id: string) =>
     (id !== 'sleeveShape' || chosen.length !== 'none') &&
     (id !== 'bustDart' || (choices.darts !== 'none' && detail.princess === 'none' && !boned)) &&
+    ((id !== 'bustDart' && id !== 'princess') || can('dartMoves') || moved(id)) &&
     // A top below the shoulders always opens at the back and has no collar; a boned one is cut in panels.
     !(top && (id === 'closure' || id === 'collar')) &&
     !(boned && id === 'princess') &&
@@ -167,17 +177,16 @@ export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft
 
   const views: [View, string][] = [
     ['sketch', 'Sketch'],
-    ['figure', 'On you'],
     ['flat', 'Flat'],
     ['pattern', 'Pieces'],
-    ...(easeMap && easeMap.length > 0 ? ([['ease', 'Ease']] as [View, string][]) : []),
+    ...(easeMap && easeMap.length > 0 && can('easeMap') ? ([['ease', 'Ease']] as [View, string][]) : []),
   ];
 
   return (
     <>
     <div className="screen-head">
       <h1 id="opts">Style your bodice</h1>
-      <GarmentSwitch garment="bodice" onGarment={onGarment} />
+      <GarmentSwitch onChoose={onChooseGarment} />
     </div>
     <div className="split three">
       <section className="card" aria-labelledby="opts">
@@ -244,15 +253,19 @@ export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft
             )}
           </fieldset>
         ))}
-        <p className="eyebrow">Inside the bodice</p>
-        <FinishChoices
-          garment="bodice"
-          finish={finish}
-          onFinish={onFinish}
-          sleeved={chosen.length !== 'none'}
-          edgeIds={boned ? ['lined'] : top ? ['binding', 'lined'] : undefined}
-          edgeLegend={top ? 'Top edge' : undefined}
-        />
+        {can('insideFinish') && (
+          <>
+            <p className="eyebrow">Inside the bodice</p>
+            <FinishChoices
+              garment="bodice"
+              finish={finish}
+              onFinish={onFinish}
+              sleeved={chosen.length !== 'none'}
+              edgeIds={boned ? ['lined'] : top ? ['binding', 'lined'] : undefined}
+              edgeLegend={top ? 'Top edge' : undefined}
+            />
+          </>
+        )}
         <p className="muted small">
           {detail.closure === 'front_buttons'
             ? `Buttons down the centre front${draft?.buttons ? ` (${draft.buttons.count})` : ''}, with front facings.`
@@ -267,6 +280,7 @@ export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft
           {choices.neckline === 'cami' ? ' The rouleau straps are given as measurements on the pattern.' : ''}
           {!boned && !draped && (detail.princess !== 'none' || detail.bustDart !== 'side') ? ' The shaping is moved the way a pattern cutter does it: the garment sews up to exactly the same fit.' : ''}
         </p>
+        <ModeLink mode={mode} onMode={onMode} />
       </section>
 
       <section className="card grow" aria-label="Preview">
@@ -316,7 +330,7 @@ export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft
             )}
           </div>
         )}
-        <div className={view === 'figure' ? 'preview flush' : 'preview'}>
+        <div className="preview">
           {error && <p className="msg error">{error}</p>}
           {draft && view === 'sketch' && (
             <BodiceShape
@@ -330,7 +344,6 @@ export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft
               onDone={(before, after) => change(after, before)}
             />
           )}
-          {draft && view === 'figure' && <BodiceFigure draft={draft} m={m} label={`${title} on a dress form made from your measurements`} />}
           {flat && view === 'flat' && <TechFlatView flat={flat} title={title} />}
           {draft && sheet && view === 'pattern' && (
             <PatternPreview sheet={sheet} play={play} names={pieces.map((pc) => pc.name)} label={`Front and back pattern pieces for a ${title}`} />

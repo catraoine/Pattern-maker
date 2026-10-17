@@ -15,7 +15,7 @@ import {
 } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import * as fontData from './fontData';
-import { type Lay, layWords } from './layplan';
+import { type Lay, hideSqFt, layWords } from './layplan';
 import type { Flat } from './flat';
 import { DIAGRAMS, DiagramId } from './diagrams';
 import { P } from './geometry';
@@ -428,7 +428,7 @@ function addLayPages(doc: PDFDocument, fonts: Fonts, paper: 'a4' | 'letter', lay
     const h = lay.across * k;
     // Keep the heading and words on the page with their drawing.
     room(h + 90);
-    label(`${lay.fabric === 'lining' ? 'LINING' : lay.fabric === 'interlining' ? 'COUTIL' : 'FABRIC'}: ${lay.metres.toFixed(1)} M OF ${lay.width} CM WIDE`);
+    label(lay.hide ? `LEATHER: ABOUT ${hideSqFt(lay)} SQ FT OF HIDE` : `${lay.fabric === 'lining' ? 'LINING' : lay.fabric === 'interlining' ? 'COUTIL' : 'FABRIC'}: ${lay.metres.toFixed(1)} M OF ${lay.width} CM WIDE`);
     write(layWords(lay), 9.5, fonts.body, 0, 10);
     room(h + 24);
     const x0 = left;

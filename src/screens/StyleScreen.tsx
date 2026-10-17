@@ -4,14 +4,13 @@ import { layout } from '../engine/export';
 import { piecesLengthCm, toMetres } from '../engine/fabric';
 import { layPlan } from '../engine/layplan';
 import { waistPieces } from '../engine/finishing';
-import { FIT_EASE, SkirtDraft, SkirtMeasurements } from '../engine/skirt';
+import { FIT_EASE, PULL_ON_EASE, Silhouette, SkirtDraft, SkirtMeasurements } from '../engine/skirt';
 import { isShaped } from '../engine/hem';
-import { SLIP_FACING, SLIP_HIP_EASE_LESS, cutAllowed, validCut } from '../engine/slip';
-import type { Garment, MeasurementValues } from '../measurements';
+import { SLIP_FACING, SLIP_HIP_EASE_LESS, cutAllowed, elasticCutAllowed, validCut } from '../engine/slip';
+import type { MeasurementValues } from '../measurements';
 import { GarmentSwitch } from '../ui/GarmentSwitch';
 import { PatternPreview } from '../ui/Preview';
 import { ShapeSketch, Side } from '../ui/ShapeSketch';
-import { TurnFigure } from '../ui/TurnFigure';
 import { useShake } from '../ui/shake';
 import { SaveControl } from '../ui/SaveControl';
 import { FinishChoices } from '../ui/FinishChoices';
@@ -25,6 +24,8 @@ import { GODET_OPTIONS, VOLUME_OPTIONS, layoutExtras, setVolume, volumeAllowed, 
 
 import { EaseMapView } from '../ui/EaseMapView';
 import type { EaseView } from '../engine/easeMap';
+import { Mode, ProTool, shows } from '../mode';
+import { ModeLink } from '../ui/ModeLink';
 
 interface Props {
   finish: Finish;
@@ -40,14 +41,18 @@ interface Props {
   onSave: () => void;
   onAccount: () => void;
   onPhoto: () => void;
-  onGarment: (g: Garment) => void;
+  /** Open the list of what to make, to pick another garment. */
+  onChooseGarment: () => void;
   /** The fabric recorded on the print screen, if any. */
   fabric?: MyFabric;
   /** Room over the body at every level, for the ease map. */
   easeMap?: EaseView[];
+  /** Simple or all tools; all when not given. */
+  mode?: Mode;
+  onMode?: (m: Mode) => void;
 }
 
-type Group<K extends keyof Choices> = { id: K; label: string; options: [Choices[K], string][] };
+type Group<K extends keyof Choices> = { id: K; label: string; options: [NonNullable<Choices[K]>, string][] };
 
 export const GROUPS: [Group<'fit'>, Group<'silhouette'>, Group<'length'>, Group<'asymHem'>] = [
   { id: 'fit', label: 'Fit', options: [['fitted', 'Fitted'], ['regular', 'Regular'], ['relaxed', 'Relaxed']] },
@@ -66,6 +71,33 @@ export const GROUPS: [Group<'fit'>, Group<'silhouette'>, Group<'length'>, Group<
 
 /** The chosen option in a group: older saves have no hem choice, which is a level hem. */
 export const chosen = (c: Choices, id: keyof Choices) => (id === 'asymHem' ? c.asymHem ?? 'none' : c[id]);
+/** The skirt's details: in-seam pockets, and a zipped waistband or a pull-on elastic waist. */
+export const DETAIL_GROUPS: [Group<'waist'>, Group<'pockets'>] = [
+  { id: 'waist', label: 'Waist', options: [['band', 'Waistband with zip'], ['elastic', 'Elastic, pull-on']] },
+  { id: 'pockets', label: 'Pockets', options: [['none', 'None'], ['inseam', 'In-seam']] },
+];
+
+/** A detail as saved: older saves have no pockets and a zipped waistband. */
+const detailOf = (c: Choices, id: 'waist' | 'pockets') => (id === 'waist' ? (c.waist ?? 'band') : (c.pockets ?? 'none'));
+
+/** A pencil skirt is shaped by its darts, so it can't be gathered onto elastic; nor can a bias slip, a
+ * diagonal hem or pleats (see elasticCutAllowed). */
+export const elasticAllowed = (c: Pick<Choices, 'silhouette' | 'asymHem' | 'pleats'> & { silhouette: Silhouette }) => c.silhouette !== 'pencil' && elasticCutAllowed(c);
+
+/** In-seam pockets go in a plain side seam: not where pleats, godets, a flounce or tiers change the
+ * skirt's pieces, nor on a skirt cut whole. */
+export const pocketsAllowed = (c: Choices) => volumeWords(c) === '' && c.silhouette !== 'slip' && c.asymHem !== 'diagonal';
+
+/** The choices with the zipped waistband back where an elastic waist isn't allowed. */
+const keepWaist = (c: Choices): Choices => (elasticAllowed(c) ? c : { ...c, waist: undefined });
+
+/** "a, b and c". */
+const andList = (xs: string[]) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
+
+/** What the skirt has besides its shape, for its name: " with a shaped hem, an elastic waist and pockets". */
+function detailWords(c: Choices): string[] {
+  return [c.waist === 'elastic' && elasticAllowed(c) ? 'an elastic waist' : '', c.pockets === 'inseam' && pocketsAllowed(c) ? 'pockets' : ''].filter(Boolean);
+}
 
 /** True when the skirt has been shaped by hand: a dragged length or flare, or a drawn hem. */
 export const handShaped = (c: Choices) => c.lengthCm !== undefined || c.flareCm !== undefined || isShaped(c.hem);
@@ -80,12 +112,12 @@ export function describe(c: Choices) {
   const look = currentLook(c);
   const v = validCut(c);
   // Pleats, godets, a flounce or tiers: "with knife pleats". A drawn hem gives way to them; a high-low
-  // or diagonal hem goes last: "with 6 godets and a high-low hem".
+  // or diagonal hem, an elastic waist and pockets go last: "with 6 godets and a high-low hem".
   const words = volumeWords(v);
-  if (look) return `${look.name}${words ? ` ${words}` : ''}`;
-  const hem = v.asymHem === 'high_low' ? 'a high-low hem' : v.asymHem === 'diagonal' ? 'a diagonal hem' : !words && isShaped(c.hem) ? 'a shaped hem' : '';
-  const tail = [words.replace(/^with /, ''), hem].filter(Boolean).join(' and ');
-  const withTail = tail ? ` with ${tail}` : '';
+  const hem = v.asymHem === 'high_low' ? 'a high-low hem' : v.asymHem === 'diagonal' ? 'a diagonal hem' : !words && isShaped(c.hem) && !look ? 'a shaped hem' : '';
+  const parts = [words.replace(/^with /, ''), hem, ...detailWords(v)].filter(Boolean);
+  const withTail = parts.length ? ` with ${andList(parts)}` : '';
+  if (look) return `${look.name}${withTail}`;
   if (c.shape) return `Skirt matched to a photo${withTail.replace(' with', ', with')}`;
   const len = c.lengthCm !== undefined ? `${Math.round(c.lengthCm)} cm` : GROUPS[2].options.find((o) => o[0] === v.length)![1];
   const sil = v.silhouette === 'slip' ? 'Bias-cut slip' : GROUPS[1].options.find((o) => o[0] === v.silhouette)![1];
@@ -114,8 +146,10 @@ export function fabricMetres(draft: SkirtDraft): number {
   return toMetres(piecesLengthCm([...draft.pieces, ...layoutExtras(draft)]) + band + 15);
 }
 
-export function StyleScreen({ choices, onChoices, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, onPhoto, onGarment, finish, onFinish, easeMap, fabric }: Props) {
-  const [view, setView] = useState<'sketch' | 'figure' | 'pattern' | 'ease'>('sketch');
+export function StyleScreen({ choices, onChoices, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, onPhoto, onChooseGarment, finish, onFinish, easeMap, fabric, mode = 'all', onMode }: Props) {
+  const can = (t: ProTool) => shows(mode, t);
+  const [picked, setView] = useState<'sketch' | 'pattern' | 'ease'>('sketch');
+  const view = picked === 'ease' && !can('easeMap') ? 'sketch' : picked;
   const [side, setSide] = useState<Side>('front');
   const [drawing, setDrawing] = useState(false);
   const [play, setPlay] = useState(0);
@@ -154,8 +188,10 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
   // Changing the shape or length by hand leaves the era look behind; changing the fit keeps it.
   // Picking a named length or silhouette replaces a dragged one; a drawn hem stays. A shape matched
   // from a photo stays until the shape or length is changed by hand.
-  // A high-low or diagonal hem replaces a drawn one.
-  const choose = (c: Choices, group: keyof Choices) => {
+  // A high-low or diagonal hem replaces a drawn one; picking a pencil skirt, a slip, a diagonal hem or
+  // pleats goes back to the zipped waistband.
+  const choose = (picked: Choices, group: keyof Choices) => {
+    const c = elasticAllowed(picked) ? picked : { ...picked, waist: undefined };
     const { lengthCm, flareCm, look, shape: photo, ...valid } = validCut(c);
     const rest = group === 'asymHem' && valid.asymHem !== 'none' ? { ...valid, hem: undefined } : valid;
     const shape = c.silhouette === choices.silhouette && c.length === choices.length ? photo : undefined;
@@ -172,13 +208,15 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
     <>
     <div className="screen-head">
       <h1 id="opts">Style your skirt</h1>
-      <GarmentSwitch garment="skirt" onGarment={onGarment} />
+      <GarmentSwitch onChoose={onChooseGarment} />
     </div>
     <div className="split three">
       <section className="card" aria-labelledby="opts">
-        <button type="button" className="secondary" onClick={onPhoto}>
-          Start from a photo
-        </button>
+        {can('photo') && (
+          <button type="button" className="secondary" onClick={onPhoto}>
+            Start from a photo
+          </button>
+        )}
         <fieldset className="group">
           <legend>Era</legend>
           {!era && <p className="muted small">Pick an era to see its looks. A look sets the fit, shape and length, and you can change any of them after.</p>}
@@ -245,7 +283,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
                 className={volumeOf(choices) === id ? 'chip on' : 'chip'}
                 aria-pressed={volumeOf(choices) === id}
                 disabled={!volumeAllowed(choices, id)}
-                onClick={() => change(setVolume(choices, id))}
+                onClick={() => change(keepWaist(setVolume(choices, id)))}
               >
                 {label}
               </button>
@@ -274,6 +312,52 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
             <p className="muted small">Godets and tiers need a skirt to the knee or longer.</p>
           ) : null}
         </fieldset>
+        {DETAIL_GROUPS.map((g) => (
+          <fieldset key={g.id} className="group">
+            <legend>{g.label}</legend>
+            <div className="chips">
+              {g.options.map(([id, label]) => {
+                const allowed = g.id === 'waist' ? id !== 'elastic' || elasticAllowed(choices) : id !== 'inseam' || pocketsAllowed(choices);
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    className={detailOf(choices, g.id) === id ? 'chip on' : 'chip'}
+                    aria-pressed={detailOf(choices, g.id) === id}
+                    disabled={!allowed}
+                    onClick={() => change({ ...choices, [g.id]: id })}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+            {g.id === 'waist' && !elasticAllowed(choices) && (
+              <p className="muted small">
+                {choices.silhouette === 'pencil'
+                  ? 'A pencil skirt is shaped close by its darts, so it keeps its zip. Choose another shape for an elastic waist.'
+                  : choices.silhouette === 'slip'
+                    ? 'A bias slip has a narrow faced waist and a side zip, so it takes no elastic.'
+                    : choices.asymHem === 'diagonal'
+                      ? 'A diagonal hem is cut in whole pieces with a side zip, so it keeps its waistband.'
+                      : 'Pleats take the waist in themselves, so a pleated skirt keeps its waistband and zip.'}
+              </p>
+            )}
+            {g.id === 'waist' && choices.waist === 'elastic' && (
+              <p className="muted small">
+                Pulls on over your hips, so there is no zip and no darts: the waist is cut {draft ? `${draft.finishedWaist} cm round` : 'as wide as your hips'}, at least{' '}
+                {PULL_ON_EASE} cm over them, and gathered onto {draft?.elastic ? `${draft.elastic.finishedCm} cm of elastic` : 'elastic'}
+                {draft?.elastic?.forHips ? ', cut a little long so it stretches over your hips.' : ', your waist less 6 cm.'}
+              </p>
+            )}
+            {g.id === 'pockets' && !pocketsAllowed(choices) && (
+              <p className="muted small">In-seam pockets go in a plain side seam, so not with pleats, godets, a flounce, tiers, a bias slip or a diagonal hem.</p>
+            )}
+            {g.id === 'pockets' && pocketsAllowed(choices) && choices.pockets === 'inseam' && draft && !draft.pocket && (
+              <p className="muted small">This skirt is too short for a pocket a hand fits in, so it is left off.</p>
+            )}
+          </fieldset>
+        ))}
         {choices.shape && (
           <div className="msg small">
             <p>Matched to your photo. {shapeLine(choices.shape)}</p>
@@ -282,8 +366,13 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
             </button>
           </div>
         )}
-        <p className="eyebrow">Inside the skirt</p>
-        <FinishChoices garment="skirt" finish={finish} onFinish={onFinish} />
+        {can('insideFinish') && (
+          <>
+            <p className="eyebrow">Inside the skirt</p>
+            <FinishChoices garment="skirt" finish={finish} onFinish={onFinish} />
+          </>
+        )}
+        <ModeLink mode={mode} onMode={onMode} />
       </section>
 
       <section className="card grow" aria-label="Preview">
@@ -292,11 +381,10 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
             {(
               [
                 ['sketch', 'Sketch'],
-                ['figure', 'On you'],
                 ['pattern', 'Pieces'],
                 ['ease', 'Ease'],
               ] as const
-            ).map(([id, name]) => (
+            ).filter(([id]) => id !== 'ease' || can('easeMap')).map(([id, name]) => (
               <button
                 key={id}
                 type="button"
@@ -348,7 +436,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
             </div>
           </div>
         )}
-        <div className={view === 'figure' ? 'preview flush' : 'preview'}>
+        <div className="preview">
           {error && <p className="msg error">{error}</p>}
           {draft && sheet && view === 'sketch' && (
             <ShapeSketch
@@ -362,7 +450,6 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
               onDone={(before, after) => change(after, before)}
             />
           )}
-          {draft && view === 'figure' && <TurnFigure draft={draft} m={m} label={`${title} on a figure made from your measurements`} />}
           {draft && sheet && view === 'pattern' && (
             <PatternPreview sheet={sheet} play={play} names={draft.pieces.map((pc) => pc.name)} label={`Front and back pattern pieces for a ${title}`} />
           )}
@@ -410,11 +497,18 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
           <span />
           <strong>{draft ? draft.hemCm : '–'} cm</strong>
         </div>
-        <p className="muted small">
-          The skirt is {ease.waist + extra.waist} cm bigger than you at the waist and {ease.hip + extra.hip - (slipped ? SLIP_HIP_EASE_LESS : 0)} cm at the hip, so you can move and sit
-          {extra.hip ? `, including ${extra.waist} cm and ${extra.hip} cm for your heavy fabric` : ''}.
-          {slipped ? ` That is ${SLIP_HIP_EASE_LESS} cm less at the hip than on the straight grain: cut on the bias, the cloth gives and moulds to you.` : ''}
-        </p>
+        {draft?.elastic ? (
+          <p className="muted small">
+            The waist is cut to pass over your hips and gathered onto {draft.elastic.finishedCm} cm of elastic. The skirt is{' '}
+            {Math.round((draft.finishedHip - (values.full_hip ?? 0)) * 10) / 10} cm bigger than you at the hip, so you can move and sit.
+          </p>
+        ) : (
+          <p className="muted small">
+            The skirt is {ease.waist + extra.waist} cm bigger than you at the waist and {ease.hip + extra.hip - (slipped ? SLIP_HIP_EASE_LESS : 0)} cm at the hip, so you can move and sit
+            {extra.hip ? `, including ${extra.waist} cm and ${extra.hip} cm for your heavy fabric` : ''}.
+            {slipped ? ` That is ${SLIP_HIP_EASE_LESS} cm less at the hip than on the straight grain: cut on the bias, the cloth gives and moulds to you.` : ''}
+          </p>
+        )}
         <div>
           <p className="eyebrow">Pattern pieces</p>
           <ul className="pieces">
@@ -426,7 +520,12 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
             {draft && draft.faced && <li>Waist facings: cut 1 front and 1 back, {SLIP_FACING} cm deep</li>}
             {draft && !draft.faced && (
               <li>
-                Waistband: cut 1, {draft.waistband.cutLength} × {draft.waistband.cutWidth} cm
+                Waistband{draft.elastic ? ' (elastic casing)' : ''}: cut 1, {draft.waistband.cutLength} × {draft.waistband.cutWidth} cm
+              </li>
+            )}
+            {draft?.elastic && (
+              <li>
+                Elastic, {draft.elastic.widthCm} cm wide: cut {draft.elastic.cutCm} cm
               </li>
             )}
             {draft?.volume?.tiers?.bands.map((b) => (

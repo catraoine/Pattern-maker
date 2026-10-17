@@ -9,15 +9,17 @@ import { layPlan } from '../engine/layplan';
 import { hasSlit } from '../engine/instructions';
 import { SHAPES_FOR_LENGTH, SleeveDraft, needsArms } from '../engine/sleeve';
 import { BODICE_GROUPS, BodiceChoices, DARTS_FOR_FIT, DressChoices, detailAllowed, sleeveOf, topAllowed, validDetails } from '../garments';
-import type { Garment, MeasurementValues } from '../measurements';
+import type { MeasurementValues } from '../measurements';
 import { GarmentSwitch } from '../ui/GarmentSwitch';
 import { PatternPreview } from '../ui/Preview';
 import { TechFlatView } from '../ui/TechFlatView';
 import { FREE_SAVED_LIMIT } from '../account';
-import { GROUPS } from './StyleScreen';
+import { DETAIL_GROUPS, GROUPS } from './StyleScreen';
 import { cutAllowed, validCut } from '../engine/slip';
 import { describePattern } from './describe';
 
+import { Mode, ProTool, shows } from '../mode';
+import { ModeLink } from '../ui/ModeLink';
 import { EaseMapView } from '../ui/EaseMapView';
 import { MyFabric, dressFabrics, fabricEase } from '../engine/fabrics';
 import { FabricCard } from '../ui/FabricCard';
@@ -30,7 +32,8 @@ import { isDraped } from '../engine/drape';
 interface Props {
   choices: DressChoices;
   onChoices: (c: DressChoices) => void;
-  onGarment: (g: Garment) => void;
+  /** Open the list of what to make, to pick another garment. */
+  onChooseGarment: () => void;
   values: MeasurementValues;
   draft?: DressDraft;
   sleeve?: SleeveDraft;
@@ -46,6 +49,9 @@ interface Props {
   onFinish: (f: Finish) => void;
   /** The fabric recorded on the print screen, if any. */
   fabric?: MyFabric;
+  /** Simple or all tools; all when not given. */
+  mode?: Mode;
+  onMode?: (m: Mode) => void;
 }
 
 type Option = { id: string; label: string; options: [string, string][] };
@@ -60,8 +66,10 @@ export const dressFabricMetres = (pieces: DressDraft['pieces']) =>
  * skirt's shape and length. The preview is the technical flat, so the skirt is seen hanging from the
  * bodice with its darts running on through the waist seam.
  */
-export function DressStyleScreen({ choices, onChoices, onGarment, values, draft, sleeve, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, finish, onFinish, fabric }: Props) {
-  const [view, setView] = useState<'sketch' | 'pattern' | 'ease'>('sketch');
+export function DressStyleScreen({ choices, onChoices, onChooseGarment, values, draft, sleeve, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, finish, onFinish, fabric, mode = 'all', onMode }: Props) {
+  const can = (t: ProTool) => shows(mode, t);
+  const [picked, setView] = useState<'sketch' | 'pattern' | 'ease'>('sketch');
+  const view = picked === 'ease' && !can('easeMap') ? 'sketch' : picked;
   const pieces = useMemo(() => (draft ? [...draft.pieces.filter((pc) => /^Bodice/.test(pc.name)), ...(sleeve?.pieces ?? []), ...draft.skirt.pieces] : []), [draft, sleeve]);
   const sheet = useMemo(() => (pieces.length ? layout(pieces, '', []) : undefined), [pieces]);
   const flat = useMemo(() => (draft ? dressFlat(draft, 'binding', { sleeve, slit: hasSlit(choices.skirt) }) : undefined), [draft, sleeve, choices.skirt]);
@@ -82,8 +90,13 @@ export function DressStyleScreen({ choices, onChoices, onGarment, values, draft,
       (g) =>
         g.id === 'neckline' ||
         g.id === 'darts' ||
-        (g.id === 'princess' && !boned && !draped) ||
-        (g.id === 'bustDart' && choices.bodice.darts !== 'none' && (choices.bodice.princess ?? 'none') === 'none' && !boned && !draped) ||
+        (g.id === 'princess' && !boned && !draped && (can('dartMoves') || (choices.bodice.princess ?? 'none') !== 'none')) ||
+        (g.id === 'bustDart' &&
+          choices.bodice.darts !== 'none' &&
+          (choices.bodice.princess ?? 'none') === 'none' &&
+          !boned &&
+          !draped &&
+          (can('dartMoves') || (choices.bodice.bustDart ?? 'side') !== 'side')) ||
         (g.id === 'collar' && !top && !draped) ||
         (g.id === 'structure' && !draped) ||
         g.id === 'sleeve' ||
@@ -98,6 +111,7 @@ export function DressStyleScreen({ choices, onChoices, onGarment, values, draft,
     // The dress's zip runs down the centre back, so its skirt can't be cut whole for a diagonal hem.
     { id: 'asymHem', label: 'Hem', options: GROUPS[3].options.filter(([id]) => id !== 'diagonal') as [string, string][] },
     { id: 'volume', label: 'Skirt details', options: VOLUME_OPTIONS },
+    { id: 'pockets', label: 'Pockets', options: DETAIL_GROUPS[1].options },
   ];
 
   const value = (id: string) =>
@@ -109,19 +123,21 @@ export function DressStyleScreen({ choices, onChoices, onGarment, values, draft,
         ? choices.skirt.asymHem ?? 'none'
       : id === 'silhouette' || id === 'length'
         ? choices.skirt[id]
-        : id === 'sleeve'
-          ? chosen.length
-          : id === 'sleeveShape'
-            ? chosen.shape
-            : id === 'bustDart'
-              ? choices.bodice.bustDart ?? 'side'
-              : id === 'princess'
-                ? choices.bodice.princess ?? 'none'
-                : id === 'collar'
-                  ? choices.bodice.collar ?? 'none'
-                  : id === 'structure'
-                  ? valid.structure ?? 'none'
-                  : choices.bodice[id as keyof BodiceChoices];
+        : id === 'pockets'
+          ? (choices.skirt.pockets ?? 'none')
+          : id === 'sleeve'
+            ? chosen.length
+            : id === 'sleeveShape'
+              ? chosen.shape
+              : id === 'bustDart'
+                ? choices.bodice.bustDart ?? 'side'
+                : id === 'princess'
+                  ? choices.bodice.princess ?? 'none'
+                  : id === 'collar'
+                    ? choices.bodice.collar ?? 'none'
+                    : id === 'structure'
+                      ? valid.structure ?? 'none'
+                      : choices.bodice[id as keyof BodiceChoices];
 
   // The dress's fit also sets the skirt's ease, so it stays free; a boned bodice keeps its own close fit.
   const allowed = (id: string, opt: string) => (id === 'fit' || topAllowed(choices.bodice, id, opt)) && baseAllowed(id, opt);
@@ -141,11 +157,11 @@ export function DressStyleScreen({ choices, onChoices, onGarment, values, draft,
               : true;
 
   const choose = (id: string, opt: string) => {
-    if (id === 'silhouette' || id === 'length' || id === 'asymHem') {
+    if (id === 'silhouette' || id === 'length' || id === 'asymHem' || id === 'pockets') {
       // The dress skirt is styled by its chips: no era look, photo shape or hand-drawn changes.
       // Pleats, godets or a flounce stay; one the new shape, length or hem doesn't take falls back to none.
-      const { fit, silhouette, length, asymHem, pleats, godets, flounce } = choices.skirt;
-      onChoices({ ...choices, skirt: validCut({ fit, silhouette, length, ...(asymHem ? { asymHem } : {}), pleats, godets, flounce, [id]: opt }) });
+      const { fit, silhouette, length, asymHem, pleats, godets, flounce, pockets } = choices.skirt;
+      onChoices({ ...choices, skirt: validCut({ fit, silhouette, length, ...(asymHem ? { asymHem } : {}), ...(pockets ? { pockets } : {}), pleats, godets, flounce, [id]: opt }) });
       return;
     }
     if (id === 'volume') {
@@ -164,7 +180,7 @@ export function DressStyleScreen({ choices, onChoices, onGarment, values, draft,
       <section className="card" aria-labelledby="opts">
         <div className="row between wrap">
           <h1 id="opts">Style your dress</h1>
-          <GarmentSwitch garment="dress" onGarment={onGarment} />
+          <GarmentSwitch onChoose={onChooseGarment} />
         </div>
         {groups.map((g) => (
           <fieldset key={g.id} className="group">
@@ -222,15 +238,19 @@ export function DressStyleScreen({ choices, onChoices, onGarment, values, draft,
             )}
           </fieldset>
         ))}
-        <p className="eyebrow">Inside the dress</p>
-        <FinishChoices
-          garment="dress"
-          finish={finish}
-          onFinish={onFinish}
-          sleeved={sleeveOf(choices.bodice).length !== 'none'}
-          edgeIds={boned ? ['lined'] : top ? ['binding', 'lined'] : undefined}
-          edgeLegend={top ? 'Top edge' : undefined}
-        />
+        {can('insideFinish') && (
+          <>
+            <p className="eyebrow">Inside the dress</p>
+            <FinishChoices
+              garment="dress"
+              finish={finish}
+              onFinish={onFinish}
+              sleeved={sleeveOf(choices.bodice).length !== 'none'}
+              edgeIds={boned ? ['lined'] : top ? ['binding', 'lined'] : undefined}
+              edgeLegend={top ? 'Top edge' : undefined}
+            />
+          </>
+        )}
         <p className="muted small">
           {choices.skirt.silhouette === 'slip'
             ? 'The skirt is cut on the bias, for a slip dress: it has no darts, its waist seam is drafted to the bodice, and the cloth moulds to the hip.'
@@ -238,6 +258,7 @@ export function DressStyleScreen({ choices, onChoices, onGarment, values, draft,
           {draft?.zipSide ? 'One zip opens the right side seam from under the arm to below the waist.' : `One zip opens the centre back from the ${top ? 'top edge' : 'neck'} to below the waist.`}
           {boned ? ' The bodice is boned like a corset, cut again from coutil and lining, with a grosgrain waist stay that carries the skirt.' : ''}
         </p>
+        <ModeLink mode={mode} onMode={onMode} />
       </section>
 
       <section className="card grow" aria-label="Preview">
@@ -249,7 +270,7 @@ export function DressStyleScreen({ choices, onChoices, onGarment, values, draft,
             <button type="button" aria-pressed={view === 'pattern'} className={view === 'pattern' ? 'on' : ''} onClick={() => setView('pattern')}>
               Pattern pieces
             </button>
-            {easeMap && easeMap.length > 0 && (
+            {easeMap && easeMap.length > 0 && can('easeMap') && (
               <button type="button" aria-pressed={view === 'ease'} className={view === 'ease' ? 'on' : ''} onClick={() => setView('ease')}>
                 Ease
               </button>
