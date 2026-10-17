@@ -21,6 +21,7 @@ import { SizeRun } from '../ui/SizeRun';
 import type { MeasurementValues } from '../measurements';
 import { Mode, ProTool, shows } from '../mode';
 import { ModeLink } from '../ui/ModeLink';
+import { countStep } from '../report/report';
 
 /** What to print: the drafted pieces of either garment, with its notes and sewing steps. */
 export interface Printable {
@@ -183,6 +184,7 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
     if (!ready) return;
     try {
       await navigator.share({ files: [new File([ready], fileName, { type: 'application/pdf' })], title: `Maison Tracé: ${title}` });
+      countStep('printed', garment);
       setShareNote('');
     } catch (e) {
       if ((e as Error).name !== 'AbortError') setShareNote("Sharing didn't work on this device. Download the PDF instead.");
@@ -191,12 +193,17 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
 
   const openToPrint = () => {
     if (!ready) return;
+    countStep('printed', garment);
     const url = URL.createObjectURL(new Blob([ready], { type: 'application/pdf' }));
     window.open(url, '_blank');
     setTimeout(() => URL.revokeObjectURL(url), 60_000);
   };
 
-  const download_ = () => ready && download(ready, 'application/pdf', fileName);
+  const download_ = () => {
+    if (!ready) return;
+    countStep('printed', garment);
+    download(ready, 'application/pdf', fileName);
+  };
   const paperChoice = projector ? 'projector' : paper;
 
   return (
