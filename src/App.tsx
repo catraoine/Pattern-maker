@@ -21,6 +21,8 @@ import { SleeveDraft, SleeveMeasurements, draftSleeve, needsArms } from './engin
 import { Fitting, carriedFitting, describeCarried, describeFitting, saveVersion, toFitting } from './engine/fitting';
 import { FabricWidth, layPlans } from './engine/layplan';
 import { MyFabric, clothFor, withFabric, withFabricEase } from './engine/fabrics';
+import { SPECIALS, needsNap, withCheckMarks, withSpecialAllowances } from './engine/specialFabrics';
+import { layAmount } from './engine/layplan';
 import { EXAMPLE_VALUES, Garment, MeasurementValues, Unit, checkMeasurements, isComplete } from './measurements';
 import { usePersistent } from './store';
 import {
@@ -336,7 +338,8 @@ export default function App() {
     () =>
       (m: MeasurementValues): Piece[] => {
         const allowance = (saved.finish ?? DEFAULT_FINISH).allowances;
-        const allow = (pcs: Piece[]) => pcs.map((pc) => withAllowances(pc, allowance));
+        const special = (saved.finish ?? DEFAULT_FINISH).fabric?.special;
+        const allow = (pcs: Piece[]) => pcs.map((pc) => withSpecialAllowances(withAllowances(pc, allowance), special));
         if (garment === 'bodice') {
           const b = draftBodice(m as BodiceMeasurements, bodiceStyle);
           return allow([...b.pieces, ...(sleeveFor(b, bodiceStyle, m)?.pieces ?? [])]);
@@ -357,16 +360,26 @@ export default function App() {
         return allow([...k.pieces, waistbandPiece(k, 1.5)]);
       },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [garment, bodiceStyle, trousersStyle, teeChoices, skirtStyle, dress, outerChoices, fitting, saved.finish?.allowances],
+    [garment, bodiceStyle, trousersStyle, teeChoices, skirtStyle, dress, outerChoices, fitting, saved.finish?.allowances, saved.finish?.fabric?.special],
   );
 
   const current = isOuterGarment ? outerChoices : garment === 'bodice' ? saved.bodice : garment === 'dress' ? dress : garment === 'trousers' ? trousersChoices : garment === 'tee' ? teeChoices : saved.choices;
   const title = isOuterGarment ? describeOuter(outerChoices) : garment === 'bodice' ? describeBodice(saved.bodice) : garment === 'dress' ? describePattern(dress) : garment === 'trousers' ? describeTrousers(trousersChoices) : garment === 'tee' ? describeTee(teeChoices) : describe(saved.choices);
 
-  const printable = useMemo((): Printable | undefined => {
+  const drafted = useMemo((): Printable | undefined => {
     const { skirt, bodice, sleeve, dress: dressDraft, trousers, tee, outer } = result;
-    const seams = SEAM_WIDTHS[finish.allowances];
-    const allow = (pieces: Printable['pieces']) => pieces.map((pc) => withAllowances(pc, finish.allowances));
+    // A special cloth (leather) can need its own seam allowances, whatever the style.
+    const special = fabric?.special;
+    const own = special && SPECIALS[special].seam;
+    const seams = own ? { seam: own, waist: own, curve: own } : SEAM_WIDTHS[finish.allowances];
+    const checks = !!fabric?.checks;
+    const allow = (pieces: Printable['pieces']) =>
+      pieces.map((pc) => {
+        const cut = withSpecialAllowances(withAllowances(pc, finish.allowances), special);
+        return checks ? withCheckMarks(cut) : cut;
+      });
+    const nap = finish.nap || needsNap(special);
+    const hide = special === 'leather';
     const couture = finish.allowances === 'couture';
     const fittingNotes = [...fittingLines(ownFitting, garment), ...carriedNotes.map((l) => `${l}.`)];
     // The couture route's cloth follows the recorded fibre; either route opens with preparing the fabric.
@@ -375,7 +388,7 @@ export default function App() {
     if (tee) {
       // Knit allowances (1 cm, 2.5 cm at the hem) whatever the allowance style, and a knit lay.
       const pieces = tee.pieces;
-      const lays = layPlans(pieces, finish.fabricWidth, finish.nap, true);
+      const lays = layPlans(pieces, finish.fabricWidth, nap, false, true);
       return {
         pieces,
         notes: [
@@ -391,7 +404,7 @@ export default function App() {
     }
     if (outer) {
       const pieces = allow(outer.pieces);
-      const lays = layPlans(pieces, finish.fabricWidth, finish.nap);
+      const lays = layPlans(pieces, finish.fabricWidth, nap, hide);
       const metres = (f: 'self' | 'lining') => lays.find((l) => l.fabric === f)?.metres;
       const hem = outer.pieces[0].allowances['opening-hem'] ?? 4;
       const kind = outer.kind;
@@ -419,7 +432,7 @@ export default function App() {
     if (trousers) {
       const pieces = allow([...trousers.pieces, trousersWaistband(trousers, 1.5)]);
       const hem = pieces[0].allowances.hem;
-      const lays = layPlans(pieces, finish.fabricWidth, finish.nap);
+      const lays = layPlans(pieces, finish.fabricWidth, nap, hide);
       const m = values as TrousersMeasurements;
       return {
         pieces,
@@ -455,7 +468,7 @@ export default function App() {
       }
       const pieces = allow([...skirt.pieces, ...(lining ? liningPieces(lining) : []), waistbandPiece(skirt, 1.5)]);
       const hem = pieces[0].allowances.hem;
-      const lays = layPlans(pieces, finish.fabricWidth, finish.nap);
+      const lays = layPlans(pieces, finish.fabricWidth, nap, hide);
       const metres = (f: 'self' | 'lining', fallback: () => number) => lays.find((l) => l.fabric === f)?.metres ?? fallback();
       return {
         pieces,
@@ -490,7 +503,7 @@ export default function App() {
       const [bf, bb] = blockOf(d.bodice);
       const facings = edges === 'facings' ? bodiceFacings(bf, bb, !sleeve, d.bodice.collar !== 'mandarin') : [];
       const pieces = allow([...top, ...(sleeve?.pieces ?? []), ...d.skirt.pieces, ...facings]);
-      const lays = layPlans(pieces, finish.fabricWidth, finish.nap);
+      const lays = layPlans(pieces, finish.fabricWidth, nap, hide);
       const metres = (f: 'self' | 'lining') => lays.find((l) => l.fabric === f)?.metres ?? bodiceFabricMetres(d.bodice, sleeve) + fabricMetres(d.skirt);
       const edgeWords = sleeve
         ? { binding: 'a bias-bound neckline', facings: 'a faced neckline', lined: 'a lined bodice' }[edges]
@@ -533,7 +546,7 @@ export default function App() {
         ? { binding: 'a bias-bound neckline', facings: 'a faced neckline', lined: 'a lined bodice' }[edges]
         : { binding: 'bias-bound edges', facings: 'faced neck and armholes', lined: 'a full lining' }[edges];
       const sleeveWords = sleeve ? `${describeBodice(saved.bodice).replace(/^.* with /, 'With ')}` : 'Sleeveless';
-      const lays = layPlans(pieces, finish.fabricWidth, finish.nap);
+      const lays = layPlans(pieces, finish.fabricWidth, nap, hide);
       const metres = (f: 'self' | 'lining') => lays.find((l) => l.fabric === f)?.metres ?? bodiceFabricMetres(bodice);
       return {
         pieces,
@@ -563,6 +576,11 @@ export default function App() {
     }
     return undefined;
   }, [result, saved.choices, saved.bodice, dress, skirtStyle, values, finish.allowances, finish.skirtLined, finish.bodiceEdges, finish.fabricWidth, finish.nap, finish.route, finish.cloth, fabric, fitting, ownFitting, carriedNotes, garment]);
+  // Leather is bought by the hide: say how much on the pattern and in the tech pack.
+  const printable = useMemo((): Printable | undefined => {
+    const hideLay = drafted?.lays.find((l) => l.hide);
+    return drafted && hideLay ? { ...drafted, guide: { ...drafted.guide, fabric: [...(drafted.guide.fabric ?? []), `Leather to buy: ${layAmount(hideLay)}.`] } } : drafted;
+  }, [drafted]);
 
   const isSaved = isSavedFor(account, current, person.id);
   const saveState = isSaved ? 'saved' : account.patterns.length >= FREE_SAVED_LIMIT ? 'full' : 'can';

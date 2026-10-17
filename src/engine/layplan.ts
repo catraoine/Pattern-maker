@@ -3,6 +3,9 @@
 // nested by its real cutting line (not its bounding box), dropped as low as it will go.
 import { P, p } from './geometry';
 import { Piece, cutLine } from './piece';
+import { LEATHER_LAY, hideSqFt } from './specialFabrics';
+
+export { hideSqFt };
 
 export const FABRIC_WIDTHS = [115, 140, 150] as const;
 export type FabricWidth = (typeof FABRIC_WIDTHS)[number];
@@ -29,6 +32,8 @@ export interface Lay {
   width: FabricWidth;
   /** Folded in half lengthwise, selvedges together; otherwise opened out to a single layer. */
   folded: boolean;
+  /** Cut from a leather hide: always one open layer, bought in square feet. */
+  hide?: boolean;
   /** The width the pieces are laid across: half the usable width when folded. */
   across: number;
   /** Length of fabric the pieces take, in cm. */
@@ -126,7 +131,7 @@ interface Item {
  * Lay the pieces cut from one fabric on fabric `width` cm wide. `nap` keeps every piece the same way
  * up (velvet, corduroy, one-way prints); without it pieces can turn end to end to nest closer.
  */
-export function layPlan(pieces: Piece[], width: FabricWidth, fabric: LayFabric = 'self', nap = false): Lay | undefined {
+export function layPlan(pieces: Piece[], width: FabricWidth, fabric: LayFabric = 'self', nap = false, hide = false): Lay | undefined {
   const mine = pieces.filter((pc) => fabricsOf(pc).includes(fabric));
   if (!mine.length) return undefined;
   const usable = width - 2 * SELVEDGE;
@@ -134,7 +139,7 @@ export function layPlan(pieces: Piece[], width: FabricWidth, fabric: LayFabric =
   const wide = (pts: P[]) => Math.max(...pts.map((q) => q.x)) - Math.min(...pts.map((q) => q.x));
   // Folded unless something won't fit across half the width; then a single layer, with pieces on the
   // fold opened out to their full width and each of a pair cut separately.
-  const folded = cut.every(({ pts }) => wide(pts) <= usable / 2);
+  const folded = !hide && cut.every(({ pts }) => wide(pts) <= usable / 2);
   const items: Item[] = cut.flatMap(({ pc, pts, kind }): Item[] => {
     const times = kind === 'pair' ? sets(pc) : 1;
     return Array.from({ length: times }, () => one(pc, pts, kind)).flat();
@@ -176,6 +181,7 @@ export function layPlan(pieces: Piece[], width: FabricWidth, fabric: LayFabric =
     fabric,
     width,
     folded,
+    ...(hide ? { hide } : {}),
     across,
     length: Math.round(length * 10) / 10,
     metres: Math.ceil((length + 10) / 10) / 10,
@@ -239,15 +245,20 @@ function place(order: Item[], cols: number, nap: boolean, folded: boolean): Plac
 }
 
 /** The lays for every fabric the pieces are cut from, at one width. */
-export function layPlans(pieces: Piece[], width: FabricWidth, nap = false, knit = false): Lay[] {
+export function layPlans(pieces: Piece[], width: FabricWidth, nap = false, hide = false, knit = false): Lay[] {
+  // Only the leather itself comes from a hide; the lining is ordinary cloth.
   return (['self', 'lining'] as const)
-    .map((f) => layPlan(pieces, width, f, nap))
+    .map((f) => layPlan(pieces, width, f, nap, hide && f === 'self'))
     .filter((l): l is Lay => !!l)
     .map((l) => (knit ? { ...l, knit } : l));
 }
 
+/** What to buy for a lay: "1.4 m" of cloth, or "about 14 sq ft of hide" for leather. */
+export const layAmount = (lay: Lay): string => (lay.hide ? `about ${hideSqFt(lay)} sq ft of hide` : `${lay.metres.toFixed(1)} m`);
+
 /** How to lay the fabric out and cut, in a sentence or two. */
 export function layWords(lay: Lay): string {
+  if (lay.hide) return LEATHER_LAY;
   const way = lay.folded
     ? 'Fold the fabric in half lengthwise, right sides together, selvedges matching. Place the pieces marked on the fold against the fold.'
     : 'Open the fabric out to a single layer, right side up. Pieces on the fold are drawn opened out; cut a pair as one piece face up and one face down.';

@@ -1104,37 +1104,6 @@ button.ghost:disabled {
   filter: drop-shadow(0 0 0.6px rgba(243, 230, 200, 0.9));
 }
 
-.preview.flush {
-  padding: 0;
-}
-.turn {
-  position: relative;
-  width: 100%;
-  display: grid;
-  gap: 8px;
-}
-.turn-canvas {
-  width: 100%;
-  height: min(64vh, 560px);
-  min-height: 360px;
-  display: block;
-  touch-action: none;
-  cursor: grab;
-}
-.turn-read {
-  position: absolute;
-  top: 10px;
-  left: 12px;
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: var(--track);
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.turn-bar {
-  padding: 0 12px 12px;
-}
-
 .toast,
 .draft-caption {
   position: absolute;
@@ -2169,6 +2138,19 @@ button.step-next {
 .yourfabric p {
   margin: 0;
 }
+.yourfabric .special {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.yourfabric .special dt {
+  font-weight: var(--w-strong);
+}
+.yourfabric .special dd {
+  margin: 0;
+}
 dialog.guide {
   width: min(560px, calc(100vw - 24px));
   max-height: calc(100dvh - 24px);
@@ -2497,6 +2479,10 @@ table.history td.moved {
 .seg.views button {
   white-space: nowrap;
   padding: 0 10px;
+}
+.shape .body-outline {
+  stroke: var(--muted);
+  opacity: 0.5;
 }
 
 /* Fit tester and news sign-ups, from Your account */

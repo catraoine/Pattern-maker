@@ -10,7 +10,6 @@ import type { MeasurementValues } from '../measurements';
 import { GarmentSwitch } from '../ui/GarmentSwitch';
 import { PatternPreview } from '../ui/Preview';
 import { ShapeSketch, Side } from '../ui/ShapeSketch';
-import { TurnFigure } from '../ui/TurnFigure';
 import { useShake } from '../ui/shake';
 import { SaveControl } from '../ui/SaveControl';
 import { FinishChoices } from '../ui/FinishChoices';
@@ -120,7 +119,7 @@ export function fabricMetres(draft: SkirtDraft): number {
 
 export function StyleScreen({ choices, onChoices, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, onPhoto, onChooseGarment, finish, onFinish, easeMap, fabric, mode = 'all', onMode }: Props) {
   const can = (t: ProTool) => shows(mode, t);
-  const [picked, setView] = useState<'sketch' | 'figure' | 'pattern' | 'ease'>('sketch');
+  const [picked, setView] = useState<'sketch' | 'pattern' | 'ease'>('sketch');
   const view = picked === 'ease' && !can('easeMap') ? 'sketch' : picked;
   const [side, setSide] = useState<Side>('front');
   const [drawing, setDrawing] = useState(false);
@@ -299,7 +298,6 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
             {(
               [
                 ['sketch', 'Sketch'],
-                ['figure', 'On you'],
                 ['pattern', 'Pieces'],
                 ['ease', 'Ease'],
               ] as const
@@ -352,7 +350,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
             </div>
           </div>
         )}
-        <div className={view === 'figure' ? 'preview flush' : 'preview'}>
+        <div className="preview">
           {error && <p className="msg error">{error}</p>}
           {draft && sheet && view === 'sketch' && (
             <ShapeSketch
@@ -366,7 +364,6 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
               onDone={(before, after) => change(after, before)}
             />
           )}
-          {draft && view === 'figure' && <TurnFigure draft={draft} m={m} label={`${title} on a figure made from your measurements`} />}
           {draft && sheet && view === 'pattern' && (
             <PatternPreview sheet={sheet} play={play} names={draft.pieces.map((pc) => pc.name)} label={`Front and back pattern pieces for a ${title}`} />
           )}
