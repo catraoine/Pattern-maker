@@ -61,7 +61,7 @@ export function SignupScreen({ kind, onBack, onOther, onPrivacy }: Props) {
           <form className="stack" onSubmit={submit}>
             {tester && (
               <div className="field plain">
-                <label htmlFor="sname">Your name</label>
+                <label htmlFor="sname">Name</label>
                 <input id="sname" required maxLength={80} autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} />
               </div>
             )}
@@ -73,13 +73,13 @@ export function SignupScreen({ kind, onBack, onOther, onPrivacy }: Props) {
               <>
                 <div className="field plain">
                   <label htmlFor="ssews">What would you sew?</label>
-                  <textarea id="ssews" required rows={3} maxLength={500} placeholder="e.g. a fitted bodice and a wide-leg trouser" value={sews} onChange={(e) => setSews(e.target.value)} />
+                  <textarea id="ssews" required rows={3} maxLength={500} value={sews} onChange={(e) => setSews(e.target.value)} />
                 </div>
                 <div className="field plain">
                   <label htmlFor="ssize">
                     Rough size range <span className="muted">(optional)</span>
                   </label>
-                  <input id="ssize" maxLength={80} placeholder="e.g. UK 12 to 16" value={size} onChange={(e) => setSize(e.target.value)} />
+                  <input id="ssize" maxLength={80} value={size} onChange={(e) => setSize(e.target.value)} />
                 </div>
               </>
             )}
