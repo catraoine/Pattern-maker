@@ -9,14 +9,15 @@ import type { Finish } from '../App';
 import { SaveControl } from '../ui/SaveControl';
 import type { Garment } from '../measurements';
 import type { Fitting } from '../engine/fitting';
-import { FABRIC_WIDTHS, Lay, layWords } from '../engine/layplan';
+import { FABRIC_WIDTHS, Lay, layAmount, layWords } from '../engine/layplan';
 import { LayPlanView } from '../ui/LayPlanView';
 import type { Flat } from '../engine/flat';
 import { TechFlatView } from '../ui/TechFlatView';
 import { StepDiagram } from '../ui/StepDiagram';
 import { CLOTHS, seamFinish } from '../engine/couture';
-import { DRAPES, FIBRES, FIBRE_IDS, MyFabric, WEIGHTS, FabricStyle, checkFabric, clothFor, easeWords } from '../engine/fabrics';
+import { DRAPES, FIBRES, FIBRE_IDS, Fibre, MyFabric, WEIGHTS, FabricStyle, checkFabric, clothFor, easeWords } from '../engine/fabrics';
 import { FabricGuide } from '../ui/FabricGuide';
+import { SPECIALS, SPECIAL_IDS, Special, checksLines, needsNap, specialLines } from '../engine/specialFabrics';
 import { SizeRun } from '../ui/SizeRun';
 import type { MeasurementValues } from '../measurements';
 
@@ -99,6 +100,9 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
   const [paper, setPaper] = useState<Output>('a4');
   const [pdf, setPdf] = useState<{ paper: Output; bytes: Uint8Array } | null>(null);
   const [shareNote, setShareNote] = useState('');
+  const special = finish.fabric?.special;
+  const napFixed = needsNap(special);
+  const nap = finish.nap || napFixed;
   const guide = made?.guide;
   const date = useMemo(printedDate, []);
   const sheet = useMemo(
@@ -288,7 +292,15 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
         <div className="row between wrap">
           <div>
             <p className="eyebrow">Cutting layout</p>
-            <h2 id="laytitle">{lays.map((l) => `${l.metres.toFixed(1)} m${l.fabric === 'lining' ? ' of lining' : ''}`).join(' + ') || 'Too wide to lay out'}</h2>
+            <h2 id="laytitle">
+              {lays
+                .map((l, i) => {
+                  const amount = `${layAmount(l)}${l.fabric === 'lining' ? ' of lining' : ''}`;
+                  return i === 0 ? amount[0].toUpperCase() + amount.slice(1) : amount;
+                })
+                .join(' + ') || 'Too wide to lay out'}
+            </h2>
+            {lays.some((l) => l.hide) && <p className="muted small">Leather is sold by the hide, in square feet. This includes a third extra for the hide's shape and flaws.</p>}
           </div>
           <div className="row wrap">
             <div className="seg" role="group" aria-label="Fabric width">
@@ -299,9 +311,10 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
               ))}
             </div>
             <label className="check">
-              <input type="checkbox" checked={finish.nap} onChange={(e) => onFinish({ ...finish, nap: e.target.checked })} />
+              <input type="checkbox" checked={nap} disabled={napFixed} onChange={(e) => onFinish({ ...finish, nap: e.target.checked })} />
               <span>
-                Nap or one-way print <span className="muted small">every piece the same way up</span>
+                Nap or one-way print{' '}
+                <span className="muted small">{napFixed ? `always on for ${SPECIALS[special!].label.toLowerCase()}` : 'every piece the same way up'}</span>
               </span>
             </label>
           </div>
@@ -360,7 +373,7 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
       />
 
       {values && draftAt && (
-        <SizeRun garment={garment} values={values} draftAt={draftAt} title={title} fileBase={fileBase} width={finish.fabricWidth} nap={finish.nap} download={download} />
+        <SizeRun garment={garment} values={values} draftAt={draftAt} title={title} fileBase={fileBase} width={finish.fabricWidth} nap={nap} download={download} />
       )}
 
       <section className="card sew" aria-labelledby="sewtitle">
@@ -462,10 +475,25 @@ function Chips<T extends string>({ label, options, value, onPick }: { label: str
   );
 }
 
+const FABRIC_OPTIONS: { id: Fibre | Special; label: string }[] = [
+  ...FIBRE_IDS.map((id) => ({ id, label: FIBRES[id].label })),
+  ...SPECIAL_IDS.map((id) => ({ id, label: SPECIALS[id].label })),
+];
+
 /** The fabric the maker has bought: checked against the style, and carried into the ease, the PDF and the tech pack. */
 function YourFabric({ fabric, onFabric, style }: { fabric: MyFabric; onFabric: (f: MyFabric) => void; style: Props['style'] }) {
   const set = (patch: Partial<MyFabric>) => onFabric({ ...fabric, ...patch });
   const notes = checkFabric(style, fabric);
+  // One row for every fabric: a special cloth brings its usual fibre, weight and drape unless already chosen.
+  const pickFabric = (id: Fibre | Special | undefined) => {
+    if (!id) return set({ fibre: undefined, special: undefined });
+    if (id in SPECIALS) {
+      const sp = SPECIALS[id as Special];
+      return set({ special: id as Special, fibre: sp.fibre, weight: fabric.weight ?? sp.weight, drape: fabric.drape ?? sp.drape });
+    }
+    set({ fibre: id as Fibre, special: undefined });
+  };
+  const details = [...specialLines(fabric.special), ...checksLines(fabric.checks, style.garment).map((text) => ({ label: '', text }))];
   return (
     <section className="card yourfabric" aria-labelledby="fabtitle">
       <div className="row between wrap">
@@ -486,7 +514,27 @@ function YourFabric({ fabric, onFabric, style }: { fabric: MyFabric; onFabric: (
           <input id="fabcolour" type="text" autoComplete="off" value={fabric.colour ?? ''} onChange={(e) => set({ colour: e.target.value })} />
         </div>
       </div>
-      <Chips label="Fibre" options={FIBRE_IDS.map((id) => ({ id, label: FIBRES[id].label }))} value={fabric.fibre} onPick={(fibre) => set({ fibre })} />
+      <Chips label="Fabric" options={FABRIC_OPTIONS} value={fabric.special ?? fabric.fibre} onPick={pickFabric} />
+      <label className="check">
+        <input type="checkbox" checked={!!fabric.checks} onChange={(e) => set({ checks: e.target.checked ? {} : undefined })} />
+        <span>
+          Checks or stripes <span className="muted small">match them at the seams</span>
+        </span>
+      </label>
+      {fabric.checks && (
+        <div className="field plain">
+          <label htmlFor="fabrepeat">Repeat, cm</label>
+          <input
+            id="fabrepeat"
+            type="number"
+            inputMode="decimal"
+            min={0}
+            value={fabric.checks.repeat ?? ''}
+            placeholder="10"
+            onChange={(e) => set({ checks: { repeat: e.target.value ? Number(e.target.value) : undefined } })}
+          />
+        </div>
+      )}
       <Chips label="Weight" options={WEIGHTS} value={fabric.weight} onPick={(weight) => set({ weight })} />
       <Chips label="Drape" options={DRAPES} value={fabric.drape} onPick={(drape) => set({ drape })} />
       {notes.map((n) => (
@@ -495,7 +543,17 @@ function YourFabric({ fabric, onFabric, style }: { fabric: MyFabric; onFabric: (
           {n.level === 'ok' ? n.text.replace(/^Good match /, '') : n.text}
         </p>
       ))}
-      {fabric.weight === 'heavy' && (
+      {details.length > 0 && (
+        <dl className="special small">
+          {details.map((d) => (
+            <div key={d.text}>
+              {d.label && <dt>{d.label}</dt>}
+              <dd className="muted">{d.text}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+      {(fabric.weight === 'heavy' || (fabric.special && SPECIALS[fabric.special].thick)) && (
         <label className="check">
           <input type="checkbox" checked={fabric.matchEase !== false} onChange={(e) => set({ matchEase: e.target.checked })} />
           <span>

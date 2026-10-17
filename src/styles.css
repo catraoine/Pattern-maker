@@ -2128,6 +2128,19 @@ button.step-next {
 .yourfabric p {
   margin: 0;
 }
+.yourfabric .special {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.yourfabric .special dt {
+  font-weight: var(--w-strong);
+}
+.yourfabric .special dd {
+  margin: 0;
+}
 dialog.guide {
   width: min(560px, calc(100vw - 24px));
   max-height: calc(100dvh - 24px);
