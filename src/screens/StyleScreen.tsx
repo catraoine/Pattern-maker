@@ -212,11 +212,9 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
     </div>
     <div className="split three">
       <section className="card" aria-labelledby="opts">
-        {can('photo') && (
-          <button type="button" className="secondary" onClick={onPhoto}>
-            Start from a photo
-          </button>
-        )}
+        <button type="button" className="secondary" onClick={onPhoto}>
+          Start from a photo
+        </button>
         <fieldset className="group">
           <legend>Era</legend>
           {!era && <p className="muted small">Pick an era to see its looks. A look sets the fit, shape and length, and you can change any of them after.</p>}

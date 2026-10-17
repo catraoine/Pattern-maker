@@ -11,9 +11,10 @@ import { SHAPES_FOR_LENGTH, SleeveDraft, needsArms } from '../engine/sleeve';
 import { BODICE_GROUPS, BodiceChoices, DARTS_FOR_FIT, DressChoices, detailAllowed, sleeveOf, topAllowed, validDetails } from '../garments';
 import type { MeasurementValues } from '../measurements';
 import { GarmentSwitch } from '../ui/GarmentSwitch';
+import { SaveControl } from '../ui/SaveControl';
+import { UndoToast, UndoTools, useUndo } from '../ui/useUndo';
 import { PatternPreview } from '../ui/Preview';
 import { TechFlatView } from '../ui/TechFlatView';
-import { FREE_SAVED_LIMIT } from '../account';
 import { DETAIL_GROUPS, GROUPS } from './StyleScreen';
 import { cutAllowed, validCut } from '../engine/slip';
 import { describePattern } from './describe';
@@ -66,7 +67,9 @@ export const dressFabricMetres = (pieces: DressDraft['pieces']) =>
  * skirt's shape and length. The preview is the technical flat, so the skirt is seen hanging from the
  * bodice with its darts running on through the waist seam.
  */
-export function DressStyleScreen({ choices, onChoices, onChooseGarment, values, draft, sleeve, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, finish, onFinish, fabric, mode = 'all', onMode }: Props) {
+export function DressStyleScreen({ choices, onChoices: setChoices, onChooseGarment, values, draft, sleeve, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, finish, onFinish, fabric, mode = 'all', onMode }: Props) {
+  const undo = useUndo(choices, setChoices);
+  const onChoices = undo.change;
   const can = (t: ProTool) => shows(mode, t);
   const [picked, setView] = useState<'sketch' | 'pattern' | 'ease'>('sketch');
   const view = picked === 'ease' && !can('easeMap') ? 'sketch' : picked;
@@ -268,7 +271,7 @@ export function DressStyleScreen({ choices, onChoices, onChooseGarment, values, 
               Sketch
             </button>
             <button type="button" aria-pressed={view === 'pattern'} className={view === 'pattern' ? 'on' : ''} onClick={() => setView('pattern')}>
-              Pattern pieces
+              Pieces
             </button>
             {easeMap && easeMap.length > 0 && can('easeMap') && (
               <button type="button" aria-pressed={view === 'ease'} className={view === 'ease' ? 'on' : ''} onClick={() => setView('ease')}>
@@ -276,14 +279,18 @@ export function DressStyleScreen({ choices, onChoices, onChooseGarment, values, 
               </button>
             )}
           </div>
-          <p className="muted small">Drafted to your measurements as you choose.</p>
+          <UndoTools undo={undo} />
         </div>
         <div className="preview">
           {error && <p className="msg error">{error}</p>}
           {flat && view === 'sketch' && <TechFlatView flat={flat} title={title} />}
           {sheet && view === 'pattern' && <PatternPreview sheet={sheet} label={`Pattern pieces for a ${title}`} />}
           {view === 'ease' && easeMap && <EaseMapView views={easeMap} label={`Ease map of the ${title}`} />}
+          <UndoToast undo={undo} />
         </div>
+        <p className="muted small">
+          Drafted to your measurements as you choose.{undo.shake.state === 'on' ? ' Shake your phone to undo.' : ''}
+        </p>
       </section>
 
       <aside className="card" aria-labelledby="sum">
@@ -341,22 +348,7 @@ export function DressStyleScreen({ choices, onChoices, onChooseGarment, values, 
         <button type="button" className="primary" disabled={!draft} onClick={onNext}>
           Print my pattern
         </button>
-        {saveState === 'can' && (
-          <button type="button" className="secondary" disabled={!draft} onClick={onSave}>
-            Save pattern
-          </button>
-        )}
-        {saveState === 'saved' && (
-          <p className="msg small" role="status">
-            Saved to <button type="button" className="link inline-link" onClick={onAccount}>your account</button>.
-          </p>
-        )}
-        {saveState === 'full' && (
-          <p className="muted small">
-            You've saved {FREE_SAVED_LIMIT} patterns, the free limit.{' '}
-            <button type="button" className="link inline-link" onClick={onAccount}>Manage saved patterns</button>
-          </p>
-        )}
+        <SaveControl state={saveState} disabled={!draft} onSave={onSave} onAccount={onAccount} />
         <button type="button" className="link" onClick={onEditMeasurements}>
           Edit measurements
         </button>

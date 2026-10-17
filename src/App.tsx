@@ -986,6 +986,8 @@ export default function App() {
           )}
           {step === 'style' && garment === 'tee' && (
             <TeeStyleScreen
+              mode={mode}
+              onMode={setMode}
               choices={teeChoices}
               onChoices={(t) => setSaved({ ...saved, tee: t })}
               fabric={fabric}
