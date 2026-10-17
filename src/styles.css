@@ -2591,3 +2591,18 @@ button.link.garment-change {
   margin: 0;
   color: var(--gild);
 }
+
+/* Plans: Free, Premium and Maker, and the prompts that open them (switched off until billing) */
+.plans {
+  display: grid;
+  gap: 16px;
+  max-width: 720px;
+  margin: 0 auto;
+}
+.plan .stack {
+  margin-top: 12px;
+}
+.photoallowance {
+  max-width: 720px;
+  margin: 0 auto 12px;
+}

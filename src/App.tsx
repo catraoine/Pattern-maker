@@ -44,7 +44,6 @@ import {
   updatePerson,
   recordMeasurements,
   withPeople,
-  FREE_SAVED_LIMIT,
 } from './account';
 import { BodiceChoices, COLLAR_WORDS, DEFAULT_BODICE, DEFAULT_COAT_CHOICES, DEFAULT_JACKET_CHOICES, DEFAULT_TEE_CHOICES, DEFAULT_TROUSERS_CHOICES, OuterChoices, TeeChoices, TrousersChoices, validDetails, DressChoices, describeBodice, describeOuter, describeTee, describeTrousers, isBodice, isDress, isOuter, isTee, isTrousers, sleeveOf } from './garments';
 import { MeasureScreen } from './screens/MeasureScreen';
@@ -62,6 +61,9 @@ import { AccountScreen } from './screens/AccountScreen';
 import { PhotoScreen } from './screens/PhotoScreen';
 import { LegalScreen } from './screens/LegalScreen';
 import { SignupScreen } from './screens/SignupScreen';
+import { PlansScreen } from './screens/PlansScreen';
+import { PhotoAllowance, UnlockGarment } from './ui/PlanPrompts';
+import { BILLING_ON, canPhotoDraft, countPhotoDraft, hasGarment, plansShown, savedLimit } from './plans';
 import { countStep, setReportView } from './report/report';
 import { PRIVACY, TERMS } from './legal';
 import { FittingScreen } from './screens/FittingScreen';
@@ -76,7 +78,7 @@ import { garmentEase } from './engine/easeMap';
 import { Mode, finishFor, keepFinish, modeOf } from './mode';
 
 export type Step = 'measure' | 'style' | 'export';
-type View = Step | 'welcome' | 'steps' | 'account' | 'photo' | 'fitting' | 'scale' | 'client' | 'check' | 'privacy' | 'terms' | 'tester' | 'news';
+type View = Step | 'plans' | 'welcome' | 'steps' | 'account' | 'photo' | 'fitting' | 'scale' | 'client' | 'check' | 'privacy' | 'terms' | 'tester' | 'news';
 
 export interface Choices {
   fit: Fit;
@@ -223,6 +225,12 @@ export default function App() {
   // on a pattern screen whose measurements have since gone sends you to Measure instead.
   const [step, setStep] = useViewHistory<View>('welcome', (to) => (NEEDS_MEASUREMENTS.includes(to) && !canLeaveMeasure ? 'measure' : to));
   const openLegal = (page: 'privacy' | 'terms' | 'tester' | 'news') => setStep(page);
+  // Where Plans goes back to: the screen it was opened from.
+  const [beforePlans, setBeforePlans] = useState<View>('account');
+  const openPlans = () => {
+    if (step !== 'plans') setBeforePlans(step);
+    setStep('plans');
+  };
   // Crash reports name the screen; reaching the print screen counts (once a visit) as having styled a pattern.
   useEffect(() => {
     setReportView(step);
@@ -583,7 +591,7 @@ export default function App() {
   }, [drafted]);
 
   const isSaved = isSavedFor(account, current, person.id);
-  const saveState = isSaved ? 'saved' : account.patterns.length >= FREE_SAVED_LIMIT ? 'full' : 'can';
+  const saveState = isSaved ? 'saved' : account.patterns.length >= savedLimit(account) ? 'full' : 'can';
 
   // Where the guided measuring opens: the list of what to make, the next measurement a garment needs, or one to redo.
   const [stepsStart, setStepsStart] = useState<{ at: number; start?: StepsStart }>({ at: 0 });
@@ -765,17 +773,21 @@ export default function App() {
           {(step === 'tester' || step === 'news') && (
             <SignupScreen kind={step} onOther={() => openLegal(step === 'tester' ? 'news' : 'tester')} onPrivacy={() => openLegal('privacy')} />
           )}
-          {step === 'photo' && (
+          {step === 'photo' && plansShown() && <PhotoAllowance account={account} onPlans={openPlans} />}
+          {step === 'photo' && canPhotoDraft(account) && (
             <PhotoScreen
               measured={canLeaveMeasure}
               onApply={(choices) => {
+                if (BILLING_ON) setAccount(countPhotoDraft(account));
                 countStep('photo', 'skirt');
                 switchGarment('skirt', { choices }, 'style');
               }}
             />
           )}
+          {step === 'plans' && <PlansScreen account={account} onBack={() => setStep(beforePlans)} />}
           {step === 'account' && (
             <AccountScreen
+              onPlans={plansShown() ? openPlans : undefined}
               mode={mode}
               onMode={setMode}
               account={account}
@@ -964,7 +976,8 @@ export default function App() {
               onAccount={() => setStep('account')}
             />
           )}
-          {step === 'export' && (
+          {step === 'export' && !hasGarment(account, garment) && <UnlockGarment garment={garment} onPlans={openPlans} onBack={() => setStep('style')} />}
+          {step === 'export' && hasGarment(account, garment) && (
             <ExportScreen
               mode={mode}
               onMode={setMode}
