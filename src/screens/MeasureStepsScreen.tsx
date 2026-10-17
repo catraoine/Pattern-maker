@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { checkMeasurements, type Garment, type MeasurementId, type MeasurementValues, type Unit } from '../measurements';
 import { BASE, baseDone, fieldOf, fullSetMissing, GARMENT_NAME, GARMENTS, missingFor, stepsOf, tipOf, titleOf } from '../measureFlow';
 import { TapeDemo } from '../ui/ContourForm';
+import { FIRST_PROJECT } from '../mode';
 import { canGoBack, goBack, usePageHistory } from '../nav';
 
 interface Props {
@@ -66,7 +67,7 @@ export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onV
 
   if (page.kind === 'intro')
     return (
-      <Shell title="First, let's take your measurements." eyebrow="Made to measure" helperTitle="First, let's take their measurements." helper={helper} hero={<TapeDemo id="waist" name="" mode="still" />}>
+      <Shell title="First, let's take your measurements." helperTitle="First, let's take their measurements." helper={helper} hero={<TapeDemo id="waist" name="" mode="still" />}>
         <dl className="need">
           <div>
             <dt>You'll need</dt>
@@ -129,17 +130,19 @@ export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onV
 
   if (page.kind === 'choose')
     return (
-      <Shell eyebrow={start?.kind === 'choose' ? 'Choose another garment' : 'Made to measure'} title="What would you like to make?" hero={<TapeDemo id="waist" name="" mode="still" />} short>
+      <Shell title="What would you like to make?" hero={<TapeDemo id="waist" name="" mode="still" />} short>
         <div className="pick-list" role="radiogroup" aria-labelledby="stitle">
           {[...GARMENTS, 'other' as const].map((g) => (
             <button key={g} type="button" role="radio" aria-checked={picked === g} className={picked === g ? 'on' : ''} onClick={() => setPicked(g)}>
               <span className="dot-pick" aria-hidden="true" />
               {g === 'other' ? 'Something else' : cap(GARMENT_NAME[g])}
+              {g === FIRST_PROJECT.garment && <small className="badge first-project">First project</small>}
             </button>
           ))}
         </div>
+        <p className="muted small">{FIRST_PROJECT.why}</p>
         <button type="button" className="primary" disabled={!picked} onClick={() => picked && go(picked)}>
-          Continue measuring
+          Start measurements
         </button>
       </Shell>
     );
@@ -204,7 +207,8 @@ function Shell({
   short,
   children,
 }: {
-  eyebrow: string;
+  /** A small line above the title, only where it tells you something (which step, which garment). */
+  eyebrow?: string;
   title: string;
   helperTitle?: string;
   helper?: boolean;
@@ -229,7 +233,7 @@ function Shell({
             )}
           </div>
         </div>
-        <p className="eyebrow">{eyebrow}</p>
+        {eyebrow && <p className="eyebrow">{eyebrow}</p>}
         <h1 id="stitle">{helper && helperTitle ? helperTitle : title}</h1>
         {children}
       </section>
@@ -308,7 +312,23 @@ function MeasurePage({
               aria-describedby={note ? 'step-msg' : undefined}
               onChange={(e) => type(e.target.value)}
             />
-            <span className="entry-unit">{unit}</span>
+            <span className="unit-switch" role="group" aria-label="Units">
+              {(['cm', 'in'] as Unit[]).map((u) => (
+                <button
+                  key={u}
+                  type="button"
+                  aria-pressed={unit === u}
+                  aria-label={u === 'cm' ? 'Centimetres' : 'Inches'}
+                  className={unit === u ? 'on' : ''}
+                  onClick={() => {
+                    setText(null);
+                    onUnit(u);
+                  }}
+                >
+                  {u}
+                </button>
+              ))}
+            </span>
           </div>
         </div>
         {note && (
@@ -316,22 +336,6 @@ function MeasurePage({
             {note.message}
           </p>
         )}
-        <div className="unit-switch" role="group" aria-label="Units">
-          {(['cm', 'in'] as Unit[]).map((u) => (
-            <button
-              key={u}
-              type="button"
-              aria-pressed={unit === u}
-              className={unit === u ? 'on' : ''}
-              onClick={() => {
-                setText(null);
-                onUnit(u);
-              }}
-            >
-              {u === 'cm' ? 'Centimetres' : 'Inches'}
-            </button>
-          ))}
-        </div>
         <button type="submit" className="primary step-next">
           {label}
         </button>

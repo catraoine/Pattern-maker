@@ -23,7 +23,9 @@ interface Worn {
  * fall into folds, so they get a drawn bell shape, with any drawn hem shape applied to it.
  */
 function worn(draft: SkirtDraft, side: Side): Worn {
-  const pc = draft.pieces[side === 'front' ? 0 : 1];
+  // Pleats, godets or a flounce: the skirt as it hangs, before they were drafted in. Pieces cut whole
+  // are sketched from the halves they were drafted from.
+  const pc = (draft.block ?? draft.halves ?? draft.pieces)[side === 'front' ? 0 : 1];
   if (draft.circleShare) {
     const offs = draft.hem?.[side] ?? flatHem();
     const wh = draft.finishedWaist / 4;
@@ -80,11 +82,13 @@ export function dragFlare(m: SkirtMeasurements, c: Choices, length: number, cm: 
   const { look: _look, flareCm: _f, ...rest } = c;
   const range = flareRange(m, length, c.silhouette);
   const v = Math.min(range.max, Math.max(range.min, cm));
-  const options: Silhouette[] = c.silhouette === 'trumpet' ? ['trumpet'] : ['pencil', 'straight', 'a_line'];
+  // A trumpet or a slip keeps its own shape, flaring more or less.
+  const own = c.silhouette === 'trumpet' || c.silhouette === 'slip';
+  const options: Silhouette[] = own ? [c.silhouette] : ['pencil', 'straight', 'a_line'];
   for (const s of options) {
     if (Math.abs(presetFlare(m, length, s) - v) < 0.8) return { ...rest, silhouette: s };
   }
-  const silhouette = c.silhouette === 'trumpet' ? 'trumpet' : v < -0.75 ? 'pencil' : v <= 0.75 ? 'straight' : 'a_line';
+  const silhouette = own ? c.silhouette : v < -0.75 ? 'pencil' : v <= 0.75 ? 'straight' : 'a_line';
   return { ...rest, silhouette, flareCm: Math.round(v * 2) / 2 };
 }
 
@@ -153,7 +157,10 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
   const k = (frame.bottom - frame.top) / 110; // handle and label size, in proportion to the sketch
   const right = w.pts.map((q) => ({ x: cx + q.x, y: q.y }));
   const left = w.pts.map((q) => ({ x: cx - q.x, y: q.y })).reverse();
-  const path = [...right, ...left].map((q, i) => `${i ? 'L' : 'M'}${q.x.toFixed(2)} ${q.y.toFixed(2)}`).join(' ') + ' Z';
+  // A diagonal hem differs side to side, so it is sketched from the whole piece as cut.
+  const wholePc = draft.asym?.kind === 'diagonal' ? draft.pieces[side === 'front' ? 0 : 1] : undefined;
+  const outline = wholePc ? wholePc.outline.points(16).map((q) => ({ x: cx + q.x, y: q.y })) : [...right, ...left];
+  const path = outline.map((q, i) => `${i ? 'L' : 'M'}${q.x.toFixed(2)} ${q.y.toFixed(2)}`).join(' ') + ' Z';
   const hemCentre = w.hem[w.hem.length - 1];
   const hemSide = w.hem[0];
 
@@ -192,7 +199,8 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
         const current: HemShape = draft.hem ?? { front: flatHem(), back: flatHem() };
         const pts = stroke.map((q) => ({ x: q.x - cx, y: q.y }));
         const hem = { ...current, [side]: strokeToHem(pts, w.hem, current[side]) };
-        const { look: _look, ...rest } = choices;
+        // A drawn hem replaces a high-low or diagonal one.
+        const { look: _look, asymHem: _asym, ...rest } = choices;
         onDone(choices, isShaped(hem) ? { ...rest, hem } : { ...rest, hem: undefined });
       }
       setStroke(undefined);

@@ -1,8 +1,9 @@
 // Pattern quality checks, the way a pattern cutter walks a pattern before it is cut: seams that join
 // are the same length, curves blend across seams, centre lines are square and dart legs are trued.
-import { P, len, sub, taggedLength } from './geometry';
+import { P, len, sub, taggedLength, unit } from './geometry';
 import { dartsOf } from './marks';
 import { Piece } from './piece';
+import { pocketChecks, withParts } from './pockets';
 
 export interface Check {
   group: 'Seams' | 'Corners' | 'Darts';
@@ -23,6 +24,8 @@ interface Corner {
   a: string;
   b: string;
   angle: number; // interior angle in degrees
+  /** Where it is, so the two sides of a piece cut whole can be told apart. */
+  at?: P;
 }
 
 /** Interior angle at every point where one edge tag gives way to another. */
@@ -52,7 +55,7 @@ export function corners(pc: Piece): Corner[] {
   for (let i = 0; i < n; i++) {
     const a = T2[(i - 1 + n) % n];
     const b = T2[i];
-    if (a !== b) out.push({ a, b, angle: 180 - (sgn * turn(i) * 180) / Math.PI });
+    if (a !== b) out.push({ a, b, angle: 180 - (sgn * turn(i) * 180) / Math.PI, at: P2[i] });
   }
   return out;
 }
@@ -65,12 +68,33 @@ const NAMES: Record<string, string> = {
   neck: 'neckline',
   armhole: 'armhole',
   crotch: 'crotch seam',
+  flounce: 'flounce seam',
+  tier: 'tier seam',
 };
 
 const isFront = (pc: Piece) => /front/i.test(pc.name);
 /** The garment a piece belongs to, from its first word: Bodice, Skirt. */
 const garmentOf = (pc: Piece) => pc.name.split(' ')[0];
-const sum = (pcs: Piece[], tag: string) => pcs.reduce((t, pc) => t + taggedLength(pc.outline, tag), 0);
+/** A seam's length on one side of the body, with any part cut from the piece and sewn back (a slant
+ * pocket's facing). A piece cut whole (single layer, both halves in one: see drape.ts and the bias
+ * skirt) has each seam twice, unless meta.seams says it has it once (a one-shoulder's one shoulder). */
+const halfLength = (pc: Piece, tag: string, all: Piece[] = []) =>
+  withParts(all, pc, tag) / (pc.meta.whole ? ((pc.meta.seams as Record<string, number> | undefined)?.[tag] ?? 2) : 1);
+/** A seam's length over a set of pieces, on one side of the body. */
+const sumIn = (all: Piece[]) => (pcs: Piece[], tag: string) => pcs.reduce((t, pc) => t + halfLength(pc, tag, all), 0);
+const sum = sumIn([]);
+const bothWhole = (a: Piece, b: Piece) => !!a.meta.whole && !!b.meta.whole;
+/** A whole piece's edges carrying `tag` on the wearer's left and right: right side up, the wearer's left
+ * is x > 0 on a front and x < 0 on a back. A seam broken by a dart still counts as one. */
+function bySide(pc: Piece, tag: string): { left: number; right: number } {
+  const { pts, tags } = pc.outline.taggedPoints(48);
+  const k = isFront(pc) ? 1 : -1;
+  const out = { left: 0, right: 0 };
+  tags.forEach((t, i) => {
+    if (t === tag && pts[i + 1]) out[(pts[i].x + pts[i + 1].x) * k > 0 ? 'left' : 'right'] += len(sub(pts[i + 1], pts[i]));
+  });
+  return out;
+}
 const isBack = (pc: Piece) => /back/i.test(pc.name);
 
 /** Front and back pieces paired by the word before "front" or "back": the bodice's, the skirt's. */
@@ -92,13 +116,15 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
   const back = pieces.find(isBack);
   const all = pairs(pieces);
   const named = all.length > 1;
+  const sum = sumIn(pieces);
+  const partsOf = (pc: Piece) => pieces.filter((x) => x.meta.partOf === pc.name);
 
   for (const { group, front, back } of all) {
     const which = (label: string) => (named ? `${group}${/ (centre|side)$/i.test(group) ? ' panel' : ''} ${label[0].toLowerCase()}${label.slice(1)}` : label);
     // Seams that sew together.
     for (const seam of ['side', 'shoulder', 'inseam']) {
-      const f = taggedLength(front.outline, seam);
-      const b = taggedLength(back.outline, seam);
+      const f = halfLength(front, seam, pieces);
+      const b = halfLength(back, seam, pieces);
       if (!f || !b) continue;
       if (seam === 'shoulder') {
         // The back shoulder is drafted 1 cm longer and eased in over the shoulder blade (half of it
@@ -111,6 +137,18 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
           detail: `front ${cm(f)}, back ${cm(b)}: ${cm(ease)} of back shoulder ease, as drafted`,
           ok: Math.abs(ease - want) <= SEAM_TOLERANCE,
         });
+      } else if (bothWhole(front, back)) {
+        // Cut whole, the two sides can differ (a diagonal hem, a one-shoulder): each side seam is walked
+        // on its own, the wearer's left on the front against the wearer's left on the back.
+        const fs = bySide(front, seam);
+        const bs = bySide(back, seam);
+        for (const [side, a, b2] of [['Left', fs.left, bs.left], ['Right', fs.right, bs.right]] as const)
+          checks.push({
+            group: 'Seams',
+            label: which(`${side} side seams`),
+            detail: `front ${cm(a)}, back ${cm(b2)}, ${Math.abs(a - b2) < 0.05 ? 'identical' : `${cm(Math.abs(a - b2))} apart`}`,
+            ok: Math.abs(a - b2) <= SEAM_TOLERANCE,
+          });
       } else {
         checks.push({
           group: 'Seams',
@@ -119,16 +157,19 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
           ok: Math.abs(f - b) <= SEAM_TOLERANCE,
         });
       }
-      // Curves meeting across the seam must blend: the two corners add up to a straight line.
-      const fc = corners(front).filter((c) => (c.a === seam || c.b === seam) && c.a !== 'dart' && c.b !== 'dart');
+      // Curves meeting across the seam must blend: the two corners add up to a straight line. On pieces
+      // cut whole, each corner meets the one on the same side of the body.
+      const whole = bothWhole(front, back);
+      const fc = [front, ...partsOf(front)].flatMap(corners).filter((c) => (c.a === seam || c.b === seam) && c.a !== 'dart' && c.b !== 'dart');
       for (const c of fc) {
         const other = c.a === seam ? c.b : c.a;
-        const bc = corners(back).find((k) => (k.a === seam && k.b === other) || (k.b === seam && k.a === other));
+        const bc = corners(back).find((k) => ((k.a === seam && k.b === other) || (k.b === seam && k.a === other)) && (!whole || Math.sign(k.at!.x) === -Math.sign(c.at!.x)));
         if (!bc || !NAMES[other]) continue;
         const sum = c.angle + bc.angle;
+        const sideWord = whole ? `${c.at!.x > 0 ? 'left' : 'right'} ` : '';
         checks.push({
           group: 'Corners',
-          label: which(`${cap(NAMES[other])} blends across the ${seam === 'inseam' ? 'inside leg' : NAMES[seam]}`),
+          label: which(`${cap(NAMES[other])} blends across the ${sideWord}${seam === 'inseam' ? 'inside leg' : NAMES[seam]}`),
           detail: `front ${deg(c.angle)} + back ${deg(bc.angle)} = ${deg(sum)}`,
           ok: Math.abs(sum - 180) <= BLEND_TOLERANCE,
         });
@@ -142,14 +183,16 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
     for (const g of garments) {
       const fronts = pieces.filter((pc) => isFront(pc) && garmentOf(pc) === g);
       const backs = pieces.filter((pc) => isBack(pc) && garmentOf(pc) === g);
-      const f = sum(fronts, 'waist');
+      // A gathered piece (a peplum) is cut longer and gathered to the seam.
+      const gather = (fronts[0]?.meta.gathered as number | undefined) ?? 1;
+      const f = sum(fronts, 'waist') / gather;
       if (!(f > 0)) continue;
       // Two of each piece (a pair, or a piece cut on the fold that is half the front).
-      const seam = 2 * (f + sum(backs, 'waist'));
+      const seam = 2 * (f + sum(backs, 'waist') / gather);
       checks.push({
         group: 'Seams',
         label: garments.length > 1 || all.length > 1 ? `${g} waist seam to finished waist` : 'Waist seam to finished waist',
-        detail: `${cm(seam)} with darts closed, finished ${cm(opts.finishedWaist)}`,
+        detail: `${cm(seam)}${gather > 1 ? ` once gathered (cut ${gather} times as long)` : ' with darts closed'}, finished ${cm(opts.finishedWaist)}`,
         // Up to 1.5 cm eases into a waistband or a matching seam without showing.
         ok: Math.abs(seam - opts.finishedWaist) <= 1.5,
       });
@@ -202,7 +245,8 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
           .flatMap((pc) => [
             ...dartsOf(pc)
               .filter((d) => Math.abs(d.far.x - d.near.x) > Math.abs(d.far.y - d.near.y))
-              .map((d) => (d.near.x + d.far.x) / 2),
+              // A whole piece has the dart on both sides of the centre.
+              .map((d) => Math.abs((d.near.x + d.far.x) / 2)),
             ...(typeof pc.meta.waistSeamAt === 'number' ? [pc.meta.waistSeamAt] : []),
           ])
           .sort((x, y) => x - y)[0];
@@ -215,6 +259,21 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
           detail: `bodice ${cm(bd)}, skirt ${cm(kd)} from the centre`,
           ok: Math.abs(bd - kd) <= 0.5,
         });
+    }
+
+  // A peplum: its waist edge sewn to the bodice's, front to front and back to back (gathered to it).
+  if (garments.includes('Bodice') && garments.includes('Peplum'))
+    for (const side of ['front', 'back'] as const) {
+      const b = sum(ofSide('Bodice', side), 'waist');
+      const pp = ofSide('Peplum', side);
+      const gather = (pp[0]?.meta.gathered as number | undefined) ?? 1;
+      const k = sum(pp, 'waist') / gather;
+      checks.push({
+        group: 'Seams',
+        label: `Waist seam, bodice ${side} to peplum ${side}`,
+        detail: `bodice ${cm(b)}, peplum ${cm(k)}${gather > 1 ? ' once gathered' : ''}, ${Math.abs(b - k) < 0.05 ? 'identical' : `${cm(Math.abs(b - k))} apart`}`,
+        ok: Math.abs(b - k) <= SEAM_TOLERANCE,
+      });
     }
 
   // A collar's neck edge against the neckline it sews to (half of it, centre back to centre front, or
@@ -243,6 +302,50 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
     });
   }
 
+  // A pleated skirt split to fit the fabric: each panel seam, hidden in a pleat, against its partner.
+  for (const a of pieces.filter((pc) => typeof pc.meta.panelSeam === 'string' && taggedLength(pc.outline, 'panel') > 0 && !/ side /i.test(pc.name))) {
+    const b = pieces.find((pc) => pc.name === a.meta.panelSeam);
+    if (!b) continue;
+    const x = taggedLength(a.outline, 'panel');
+    const y = taggedLength(b.outline, 'panel');
+    checks.push({
+      group: 'Seams',
+      label: `${a.name} panel seam`,
+      detail: `${cm(x)} and ${cm(y)}, ${Math.abs(x - y) < 0.05 ? 'identical' : `${cm(Math.abs(x - y))} apart`}`,
+      ok: Math.abs(x - y) <= SEAM_TOLERANCE,
+    });
+  }
+
+  // A hem flounce: its seam edge against the skirt's lower edge, front to front and back to back.
+  if (garments.includes('Flounce'))
+    for (const side of ['front', 'back'] as const) {
+      const k = sum(ofSide('Skirt', side), 'flounce');
+      const f = sum(ofSide('Flounce', side), 'flounce');
+      checks.push({
+        group: 'Seams',
+        label: `Flounce ${side} to skirt ${side}`,
+        detail: `skirt ${cm(k)}, flounce ${cm(f)}, ${Math.abs(k - f) < 0.05 ? 'identical' : `${cm(Math.abs(k - f))} apart`}`,
+        ok: Math.abs(k - f) <= SEAM_TOLERANCE,
+      });
+    }
+
+  // Godets: both edges of each against every slash and seam it is set into.
+  for (const g of pieces.filter((pc) => pc.meta.godet)) {
+    const { pts, tags } = g.outline.taggedPoints(2);
+    const edges = tags.flatMap((t, i) => (t === 'godet' ? [len(sub(pts[i + 1], pts[i]))] : []));
+    const slashes = pieces.flatMap((pc) => ((pc.meta.slashes as [P, P][] | undefined) ?? []).map(([a, b]) => len(sub(a, b))));
+    if (!edges.length || !slashes.length) continue;
+    const all = [...edges, ...slashes];
+    const spread = Math.max(...all) - Math.min(...all);
+    checks.push({
+      group: 'Seams',
+      label: 'Godets to their slashes',
+      detail: `godet edges ${edges.map(cm).join(' and ')}, ${slashes.length} slashes and seams ${cm(Math.min(...slashes))} to ${cm(Math.max(...slashes))}`,
+      ok: spread <= SEAM_TOLERANCE,
+    });
+  }
+  for (const c of pocketChecks(pieces)) checks.push({ group: 'Seams', ...c });
+
   const sleeve = pieces.find((pc) => /^sleeve$/i.test(pc.name));
   if (sleeve && front && back) checks.push(...sleeveChecks(sleeve, pieces.filter(isFront), pieces.filter(isBack)));
 
@@ -260,6 +363,9 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
         ok: Math.abs(c.angle - 90) <= SQUARE_TOLERANCE,
       });
     }
+    // A whole piece has no centre edge: its edges must run straight across the centre line instead,
+    // as two halves cut on the fold would once opened out.
+    if (pc.meta.whole) checks.push(...acrossCentre(pc));
     dartsOf(pc).forEach((d, i, all) => {
       const l1 = len(sub(d.near, d.tip));
       const l2 = len(sub(d.far, d.tip));
@@ -275,6 +381,33 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
 }
 
 const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
+
+/** Where a whole piece's edges cross its centre line (x = 0): the angle through it, 180 if straight. */
+function acrossCentre(pc: Piece): Check[] {
+  let { pts, tags } = pc.outline.taggedPoints(256);
+  if (len(sub(pts[0], pts[pts.length - 1])) < 1e-6) pts = pts.slice(0, -1);
+  const n = pts.length;
+  const out: Check[] = [];
+  const where = isFront(pc) ? 'centre front' : 'centre back';
+  for (let i = 0; i < n; i++) {
+    const a = pts[(i - 1 + n) % n];
+    const q = pts[i];
+    const b = pts[(i + 1) % n];
+    const tag = tags[i] ?? tags[tags.length - 1];
+    // A vertex on the centre line, between edges of one kind (a waist, a hem, a facing's edge).
+    if (Math.abs(q.x) > 1e-6 || tag !== tags[(i - 1 + n) % n] || !(a.x * b.x < 0)) continue;
+    const u = unit(sub(q, a));
+    const v = unit(sub(b, q));
+    const angle = 180 - (Math.abs(Math.atan2(u.x * v.y - u.y * v.x, u.x * v.x + u.y * v.y)) * 180) / Math.PI;
+    out.push({
+      group: 'Corners',
+      label: `${cap(NAMES[tag] ?? (tag === 'facing' ? 'facing edge' : tag))} runs straight across the ${where}`,
+      detail: deg(angle),
+      ok: Math.abs(angle - 180) <= SQUARE_TOLERANCE * 2,
+    });
+  }
+  return out;
+}
 
 /** Most crown ease a set-in sleeve can take without puckering, in cm per half. */
 const MAX_CROWN_EASE = 3.5;

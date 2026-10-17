@@ -32,7 +32,9 @@ export function drillHoles(pc: Piece): P[] {
       const u = unit(sub(bottom, top));
       return [add(top, mul(u, DRILL_INSET)), sub(bottom, mul(u, DRILL_INSET))];
     });
-  return [...darts, ...fishEyes];
+  // Points marked on the piece itself, such as the point of a godet's slash.
+  const marked = (pc.meta.drills as P[] | undefined) ?? [];
+  return [...darts, ...fishEyes, ...marked];
 }
 
 /** Every notch on the piece: its own balance notches plus one at each dart leg, pointing out of the piece. */
@@ -104,6 +106,12 @@ export function edgeLabels(pc: Piece): EdgeLabel[] {
     centre: front ? 'CENTRE FRONT SEAM' : 'CENTRE BACK SEAM',
     fold: front ? 'CENTRE FRONT' : 'CENTRE BACK',
     facing: 'NEATEN THIS EDGE',
+    flounce: 'FLOUNCE SEAM',
+    tier: 'TIER SEAM',
+    panel: 'PANEL SEAM',
+    godet: 'GODET SEAM',
+    'pocket-side': 'SIDE SEAM',
+    'pocket-edge': 'POCKET OPENING',
   };
   const { pts, tags } = pc.outline.taggedPoints(24);
   // Longest unbroken run of each tag.

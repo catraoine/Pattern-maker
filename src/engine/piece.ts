@@ -29,8 +29,8 @@ export interface Piece {
   cut: string;
   /** What it is cut from, when not just the garment fabric (lining, interfacing). */
   fabric?: string;
-  /** Pieces beyond the garment's own block: its lining, facings and waistband. */
-  kind?: 'lining' | 'facing' | 'waistband' | 'band' | 'collar';
+  /** Pieces beyond the garment's own block: its lining, facings, waistband and pockets. */
+  kind?: 'lining' | 'facing' | 'waistband' | 'band' | 'collar' | 'pocket';
   /** How the piece was drafted: the frame and the numbered points, shown in the atelier view. */
   draft?: { frame: P[][]; points: DraftPoint[] };
   /** A second stitching line for one side of the body where it differs from the other (a lower

@@ -1,19 +1,25 @@
 import { useEffect, useMemo, useState } from 'react';
 import { canGoBack, goBack, useViewHistory } from './nav';
 import type { HemShape } from './engine/hem';
-import { DraftError, Fit, Length, Silhouette, SkirtDraft, SkirtMeasurements, SkirtShape, draftSkirt } from './engine/skirt';
+import type { AsymHem } from './engine/asymHem';
+import { DraftError, Fit, Length, Silhouette, SkirtDraft, SkirtMeasurements, SkirtShape, WaistStyle, draftSkirt } from './engine/skirt';
 import { BodiceDraft, BodiceMeasurements, blockOf, draftBodice } from './engine/bodice';
 import { BodiceEdges, SewingGuide, bodiceGuide, dressGuide, hasSlit, sewingGuide } from './engine/instructions';
-import { bodiceFlat, dressFlat, outerFlat, skirtFlat, trousersFlat } from './engine/flat';
+import { bodiceFlat, dressFlat, outerFlat, skirtFlat, teeFlat, trousersFlat } from './engine/flat';
 import { DressDraft, DressMeasurements, draftDress } from './engine/dress';
 import { TrousersDraft, TrousersMeasurements, draftTrousers, trousersWaistband } from './engine/trousers';
 import { trousersGuide } from './engine/trousersGuide';
+import { TeeDraft, TeeMeasurements, draftTee } from './engine/tee';
+import { teeGuide } from './engine/teeGuide';
+import { withKnitFabric } from './engine/knits';
 import { OuterDraft, OuterMeasurements, draftOuter } from './engine/outerwear';
 import { outerGuide } from './engine/outerGuide';
 import { Cloth, Route, toCouture } from './engine/couture';
 import { AllowanceStyle, SEAM_WIDTHS, withAllowances } from './engine/allowances';
-import { bodiceFacings, liningPieces, waistbandPiece } from './engine/finishing';
-import { bodiceSpec, dressSpec, outerSpec, skirtSpec, sleeveSpec, trousersSpec } from './engine/spec';
+import { bodiceFacings, liningPieces, waistPieces } from './engine/finishing';
+import { edgesFor, topNotes } from './engine/corsetGuide';
+import { drapeFacings, drapeLined, drapeNote } from './engine/drape';
+import { bodiceSpec, dressSpec, outerSpec, skirtSpec, sleeveSpec, teeSpec, trousersSpec } from './engine/spec';
 import { SleeveDraft, SleeveMeasurements, draftSleeve, needsArms } from './engine/sleeve';
 import { Fitting, carriedFitting, describeCarried, describeFitting, saveVersion, toFitting } from './engine/fitting';
 import { FabricWidth, layPlans } from './engine/layplan';
@@ -41,14 +47,14 @@ import {
   updatePerson,
   recordMeasurements,
   withPeople,
-  FREE_SAVED_LIMIT,
 } from './account';
-import { BodiceChoices, COLLAR_WORDS, DEFAULT_BODICE, DEFAULT_COAT_CHOICES, DEFAULT_JACKET_CHOICES, DEFAULT_TROUSERS_CHOICES, OuterChoices, TrousersChoices, validDetails, DressChoices, describeBodice, describeOuter, describeTrousers, isBodice, isDress, isOuter, isTrousers, sleeveOf } from './garments';
+import { BodiceChoices, COLLAR_WORDS, DEFAULT_BODICE, DEFAULT_COAT_CHOICES, DEFAULT_JACKET_CHOICES, DEFAULT_TEE_CHOICES, DEFAULT_TROUSERS_CHOICES, OuterChoices, TeeChoices, TrousersChoices, validDetails, DressChoices, describeBodice, describeOuter, describeTee, describeTrousers, isBodice, isDress, isOuter, isTee, isTrousers, sleeveOf } from './garments';
 import { MeasureScreen } from './screens/MeasureScreen';
 import { StyleScreen, describe, fabricMetres } from './screens/StyleScreen';
 import { BodiceStyleScreen, bindingMetres, bodiceFabricMetres } from './screens/BodiceStyleScreen';
 import { DressStyleScreen } from './screens/DressStyleScreen';
 import { TrousersStyleScreen, trousersFabricMetres } from './screens/TrousersStyleScreen';
+import { TeeStyleScreen, teeFabricMetres } from './screens/TeeStyleScreen';
 import { OuterStyleScreen, outerFabricMetres } from './screens/OuterStyleScreen';
 import { ExportScreen, Printable } from './screens/ExportScreen';
 import { describePattern } from './screens/describe';
@@ -57,18 +63,29 @@ import { MeasureStepsScreen, type StepsStart } from './screens/MeasureStepsScree
 import { AccountScreen } from './screens/AccountScreen';
 import { PhotoScreen } from './screens/PhotoScreen';
 import { LegalScreen } from './screens/LegalScreen';
+import { SignupScreen } from './screens/SignupScreen';
+import { PlansScreen } from './screens/PlansScreen';
+import { PhotoAllowance, UnlockGarment } from './ui/PlanPrompts';
+import { BILLING_ON, canPhotoDraft, countPhotoDraft, hasGarment, plansShown, savedLimit } from './plans';
+import { countStep, setReportView } from './report/report';
 import { PRIVACY, TERMS } from './legal';
 import { FittingScreen } from './screens/FittingScreen';
 import { TrueScaleScreen } from './screens/TrueScaleScreen';
 import { ClientBookScreen } from './screens/ClientBookScreen';
 import { CheckFileScreen } from './screens/CheckFileScreen';
+import { CollectionScreen } from './screens/CollectionScreen';
+import { lookPatch } from './collection';
+import { CollectionLink } from './ui/GarmentSwitch';
 import { LoadingScreen } from './ui/LoadingScreen';
 import type { FormStart } from './ui/ContourForm';
 import type { Piece } from './engine/piece';
+import type { PocketStyle } from './engine/pockets';
 import { garmentEase } from './engine/easeMap';
+import { Flounce, GodetCount, Pleats, layoutExtras } from './engine/skirtVolume';
+import { Mode, finishFor, keepFinish, modeOf } from './mode';
 
 export type Step = 'measure' | 'style' | 'export';
-type View = Step | 'welcome' | 'steps' | 'account' | 'photo' | 'fitting' | 'scale' | 'client' | 'check' | 'privacy' | 'terms';
+type View = Step | 'plans' | 'welcome' | 'steps' | 'account' | 'photo' | 'fitting' | 'scale' | 'client' | 'check' | 'privacy' | 'terms' | 'tester' | 'news' | 'collection';
 
 export interface Choices {
   fit: Fit;
@@ -84,6 +101,16 @@ export interface Choices {
   flareCm?: number;
   /** Drawn on the sketch: a shaped hem. */
   hem?: HemShape;
+  /** Pleats, godets, or a hem flounce or tiers, one at a time. Older saves have none. */
+  pleats?: Pleats;
+  godets?: GodetCount;
+  flounce?: Flounce;
+  /** A high-low or diagonal hem, in place of a drawn one. Older saves have none. */
+  asymHem?: AsymHem;
+  /** In-seam pockets. Older saves have none. */
+  pockets?: 'none' | 'inseam';
+  /** A waistband with a zip (older saves), or a pull-on elastic waist. */
+  waist?: WaistStyle;
 }
 
 // Saved under the original "skirt" key so measurements from before bodices still load; older saves
@@ -99,6 +126,8 @@ interface Saved {
   dress?: DressChoices;
   /** The trousers' choices. */
   trousers?: TrousersChoices;
+  /** The T-shirt's choices. Older saves have none. */
+  tee?: TeeChoices;
   /** The jacket's and the coat's choices. */
   jacket?: OuterChoices;
   coat?: OuterChoices;
@@ -127,6 +156,10 @@ export interface Finish {
 export const DEFAULT_FINISH: Finish = { allowances: 'home', skirtLined: false, bodiceEdges: 'binding', atelier: false, fabricWidth: 140, nap: false, route: 'quick', cloth: 'wool' };
 
 const fmtCm = (v: number) => `${v} cm`;
+
+/** Pockets, for the notes on the pattern's first page. */
+const pocketWords = (style: PocketStyle, sides?: 'both' | 'right') =>
+  style === 'slant' ? ', with slant pockets' : style === 'inseam' ? (sides === 'right' ? ', with an in-seam pocket on the right' : ', with in-seam pockets') : '';
 
 /** The pattern's version and its toile corrections, for the title block, in lines that fit it. */
 function fittingLines(f: Fitting | undefined, garment: Garment): string[] {
@@ -189,7 +222,7 @@ const SIDE: Partial<Record<View, [string, string]>> = {
 const NEEDS_MEASUREMENTS: View[] = ['style', 'export', 'fitting', 'scale'];
 
 /** Where the header's back goes when there's nothing behind in history, such as after a reload. */
-const PARENT: Partial<Record<View, View>> = { measure: 'welcome', steps: 'welcome', style: 'measure', photo: 'style', export: 'style', fitting: 'export', scale: 'export', account: 'style', client: 'account', check: 'account', privacy: 'welcome', terms: 'welcome' };
+const PARENT: Partial<Record<View, View>> = { measure: 'welcome', steps: 'welcome', style: 'measure', photo: 'style', export: 'style', fitting: 'export', scale: 'export', account: 'style', client: 'account', check: 'account', privacy: 'welcome', terms: 'welcome', tester: 'account', news: 'account' };
 
 export default function App() {
   const [saved, setSaved] = usePersistent<Saved>('skirt', INITIAL);
@@ -204,7 +237,18 @@ export default function App() {
   // Screens live in the browser's history, so phone and browser back step back through the app. Landing back
   // on a pattern screen whose measurements have since gone sends you to Measure instead.
   const [step, setStep] = useViewHistory<View>('welcome', (to) => (NEEDS_MEASUREMENTS.includes(to) && !canLeaveMeasure ? 'measure' : to));
-  const openLegal = (page: 'privacy' | 'terms') => setStep(page);
+  const openLegal = (page: 'privacy' | 'terms' | 'tester' | 'news') => setStep(page);
+  // Where Plans goes back to: the screen it was opened from.
+  const [beforePlans, setBeforePlans] = useState<View>('account');
+  const openPlans = () => {
+    if (step !== 'plans') setBeforePlans(step);
+    setStep('plans');
+  };
+  // Crash reports name the screen; reaching the print screen counts (once a visit) as having styled a pattern.
+  useEffect(() => {
+    setReportView(step);
+    if (step === 'export') countStep('styled', garment);
+  }, [step, garment]);
   // The loading screen plays when someone first opens the app, on the way into the welcome. People coming
   // back to their work go straight to it.
   const [opening, setOpening] = useState(step === 'welcome');
@@ -222,7 +266,12 @@ export default function App() {
   const carried = useMemo(() => carriedFitting(person.fittings, garment), [person.fittings, garment]);
   const fitting = carried.fitting;
   const carriedNotes = useMemo(() => describeCarried(carried), [carried]);
-  const finish = { ...DEFAULT_FINISH, ...saved.finish };
+  // Simple or all tools: the simple view prints with home allowances and the quick route, and keeps the rest for later.
+  const mode = modeOf(account);
+  const setMode = (m: Mode) => setAccount({ ...account, mode: m });
+  const storedFinish = { ...DEFAULT_FINISH, ...saved.finish };
+  const finish = finishFor(storedFinish, mode);
+  const setFinish = (f: Finish) => setSaved({ ...saved, finish: keepFinish(storedFinish, f, mode) });
   // Heavy cloth gets a little more ease, on top of the toile's corrections.
   const fabric = finish.fabric;
   const skirtStyle = useMemo(() => ({ ...saved.choices, fitting: withFabricEase(toFitting(fitting, 'skirt'), fabric, 'skirt') }), [saved.choices, fitting, fabric]);
@@ -232,6 +281,7 @@ export default function App() {
     [saved.dress, saved.bodice, saved.choices],
   );
   const trousersChoices = saved.trousers ?? DEFAULT_TROUSERS_CHOICES;
+  const teeChoices = saved.tee ?? DEFAULT_TEE_CHOICES;
   const isOuterGarment = garment === 'jacket' || garment === 'coat';
   const outerChoices: OuterChoices = useMemo(() => (garment === 'coat' ? { ...DEFAULT_COAT_CHOICES, ...saved.coat } : { ...DEFAULT_JACKET_CHOICES, ...saved.jacket }), [garment, saved.coat, saved.jacket]);
   // Jackets and coats are drafted on the bodice block, so they take the bodice's toile corrections.
@@ -239,11 +289,11 @@ export default function App() {
   const trousersStyle = useMemo(() => ({ ...trousersChoices, fitting: withFabricEase(toFitting(fitting, 'skirt'), fabric, 'skirt') }), [trousersChoices, fitting, fabric]);
   /** The dress in one fit: the bodice at the waist, the skirt below it, each with its toile corrections. */
   const dressStyles = (f: Fitting | undefined) => ({
-    bodice: { ...dress.bodice, fit: dress.fit, length: 'waist' as const, fitting: withFabricEase(toFitting(f, 'bodice'), fabric, 'bodice') },
+    bodice: { ...validDetails({ ...dress.bodice, length: 'waist' }, 'dress'), fit: dress.fit, length: 'waist' as const, fitting: withFabricEase(toFitting(f, 'bodice'), fabric, 'bodice') },
     skirt: { ...dress.skirt, fit: dress.fit, fitting: withFabricEase(toFitting(f, 'skirt'), fabric, 'skirt') },
   });
 
-  const result = useMemo((): { skirt?: SkirtDraft; bodice?: BodiceDraft; dress?: DressDraft; trousers?: TrousersDraft; outer?: OuterDraft; sleeve?: SleeveDraft; error?: string } => {
+  const result = useMemo((): { skirt?: SkirtDraft; bodice?: BodiceDraft; dress?: DressDraft; trousers?: TrousersDraft; tee?: TeeDraft; outer?: OuterDraft; sleeve?: SleeveDraft; error?: string } => {
     if (!canLeaveMeasure) return {};
     try {
       if (isOuterGarment) return { outer: draftOuter(values as OuterMeasurements, outerStyleFor(outerChoices, fitting)) };
@@ -252,6 +302,8 @@ export default function App() {
         return { bodice, sleeve: sleeveFor(bodice, bodiceStyle, values) };
       }
       if (garment === 'trousers') return { trousers: draftTrousers(values as TrousersMeasurements, trousersStyle) };
+      // A knit block fits by stretch, so no woven toile corrections or heavy-cloth ease go into it.
+      if (garment === 'tee') return { tee: draftTee(values as TeeMeasurements, teeChoices) };
       if (garment === 'dress') {
         const st = dressStyles(fitting);
         const d = draftDress(values as DressMeasurements, st.bodice, st.skirt);
@@ -262,7 +314,7 @@ export default function App() {
       return { error: e instanceof DraftError ? e.message : 'Something went wrong drafting this pattern.' };
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [values, skirtStyle, bodiceStyle, trousersStyle, dress, outerChoices, fabric, fitting, garment, canLeaveMeasure]);
+  }, [values, skirtStyle, bodiceStyle, trousersStyle, teeChoices, dress, outerChoices, fabric, fitting, garment, canLeaveMeasure]);
 
   /** Room over the body at every level of the drafted pieces, for the ease map. */
   const ease = useMemo(() => {
@@ -271,9 +323,11 @@ export default function App() {
     // The jacket's front and back as sewn, read as a long bodice.
     if (outer) return garmentEase(outer.block.map((pc) => ({ ...pc, name: pc.name.replace(/^(Jacket|Coat)/, 'Bodice') })), values, { bust: outer.base.front.apex.y, waist: outer.base.front.waistCentre.y });
     if (bodice) return garmentEase(bodice.pieces, values, lv(bodice));
-    if (d) return garmentEase(d.pieces, values, lv(d.bodice));
-    if (trousers) return garmentEase(trousers.pieces, values);
-    if (skirt) return garmentEase(skirt.pieces, values);
+    // Pleats spread flat, or a flounce cut away, read from the skirt as it hangs.
+    if (d) return garmentEase(d.skirt.block ? [...d.pieces.filter((pc) => /^Bodice/.test(pc.name)), ...d.skirt.block] : d.pieces, values, lv(d.bodice));
+    // Read before a slant pocket is cut from the front, which would look like a gap at the waist.
+    if (trousers) return garmentEase(trousers.block, values);
+    if (skirt) return garmentEase(skirt.block ?? skirt.pieces, values);
     return undefined;
   }, [result, values]);
 
@@ -283,19 +337,22 @@ export default function App() {
       (f: Fitting): Piece[] | undefined => {
         try {
           if (garment === 'bodice') return draftBodice(values as BodiceMeasurements, { ...saved.bodice, fitting: withFabricEase(toFitting(f, 'bodice'), fabric, 'bodice') }).pieces;
+          // The garment's own pieces: pocket bags don't change with a fitting.
+          const own = (pcs: Piece[]) => pcs.filter((pc) => pc.kind !== 'pocket');
           if (isOuterGarment) return draftOuter(values as OuterMeasurements, outerStyleFor(outerChoices, f)).pieces.filter((pc) => !pc.kind);
-          if (garment === 'trousers') return draftTrousers(values as TrousersMeasurements, { ...trousersChoices, fitting: withFabricEase(toFitting(f, 'skirt'), fabric, 'skirt') }).pieces;
+          if (garment === 'trousers') return draftTrousers(values as TrousersMeasurements, { ...trousersChoices, fitting: withFabricEase(toFitting(f, 'skirt'), fabric, 'skirt') }).block;
+          if (garment === 'tee') return draftTee(values as TeeMeasurements, teeChoices).pieces;
           if (garment === 'dress') {
             const st = dressStyles(f);
-            return draftDress(values as DressMeasurements, st.bodice, st.skirt).pieces;
+            return own(draftDress(values as DressMeasurements, st.bodice, st.skirt).pieces);
           }
-          return draftSkirt(values as SkirtMeasurements, { ...saved.choices, fitting: withFabricEase(toFitting(f, 'skirt'), fabric, 'skirt') }).pieces;
+          return own(draftSkirt(values as SkirtMeasurements, { ...saved.choices, fitting: withFabricEase(toFitting(f, 'skirt'), fabric, 'skirt') }).pieces);
         } catch {
           return undefined;
         }
       },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [garment, values, saved.bodice, saved.choices, trousersChoices, dress, outerChoices, fabric],
+    [garment, values, saved.bodice, saved.choices, trousersChoices, teeChoices, dress, outerChoices, fabric],
   );
 
   /** The pattern's main pieces with allowances, drafted to any measurements: for grading a size run. */
@@ -309,6 +366,8 @@ export default function App() {
           const b = draftBodice(m as BodiceMeasurements, bodiceStyle);
           return allow([...b.pieces, ...(sleeveFor(b, bodiceStyle, m)?.pieces ?? [])]);
         }
+        // Knit pieces keep their 1 cm allowances whatever the style.
+        if (garment === 'tee') return draftTee(m as TeeMeasurements, teeChoices).pieces;
         if (isOuterGarment) return allow(draftOuter(m as OuterMeasurements, outerStyleFor(outerChoices, fitting)).pieces);
         if (garment === 'trousers') {
           const t = draftTrousers(m as TrousersMeasurements, trousersStyle);
@@ -320,17 +379,17 @@ export default function App() {
           return allow([...d.pieces, ...(sleeveFor(d.bodice, st.bodice, m)?.pieces ?? [])]);
         }
         const k = draftSkirt(m as SkirtMeasurements, skirtStyle);
-        return allow([...k.pieces, waistbandPiece(k, 1.5)]);
+        return allow([...k.pieces, ...waistPieces(k, 1.5)]);
       },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [garment, bodiceStyle, trousersStyle, skirtStyle, dress, outerChoices, fitting, saved.finish?.allowances, saved.finish?.fabric?.special],
+    [garment, bodiceStyle, trousersStyle, teeChoices, skirtStyle, dress, outerChoices, fitting, saved.finish?.allowances, saved.finish?.fabric?.special],
   );
 
-  const current = isOuterGarment ? outerChoices : garment === 'bodice' ? saved.bodice : garment === 'dress' ? dress : garment === 'trousers' ? trousersChoices : saved.choices;
-  const title = isOuterGarment ? describeOuter(outerChoices) : garment === 'bodice' ? describeBodice(saved.bodice) : garment === 'dress' ? describePattern(dress) : garment === 'trousers' ? describeTrousers(trousersChoices) : describe(saved.choices);
+  const current = isOuterGarment ? outerChoices : garment === 'bodice' ? saved.bodice : garment === 'dress' ? dress : garment === 'trousers' ? trousersChoices : garment === 'tee' ? teeChoices : saved.choices;
+  const title = isOuterGarment ? describeOuter(outerChoices) : garment === 'bodice' ? describeBodice(saved.bodice) : garment === 'dress' ? describePattern(dress) : garment === 'trousers' ? describeTrousers(trousersChoices) : garment === 'tee' ? describeTee(teeChoices) : describe(saved.choices);
 
   const drafted = useMemo((): Printable | undefined => {
-    const { skirt, bodice, sleeve, dress: dressDraft, trousers, outer } = result;
+    const { skirt, bodice, sleeve, dress: dressDraft, trousers, tee, outer } = result;
     // A special cloth (leather) can need its own seam allowances, whatever the style.
     const special = fabric?.special;
     const own = special && SPECIALS[special].seam;
@@ -348,6 +407,23 @@ export default function App() {
     // The couture route's cloth follows the recorded fibre; either route opens with preparing the fabric.
     const route = (guide: SewingGuide, c: { garment: 'skirt' | 'bodice' | 'dress'; lined: boolean; zipCm: number }) =>
       withFabric(finish.route === 'couture' ? toCouture(guide, { ...c, cloth: clothFor(fabric, finish.cloth), traced: couture }) : guide, fabric, c.garment);
+    if (tee) {
+      // Knit allowances (1 cm, 2.5 cm at the hem) whatever the allowance style, and a knit lay.
+      const pieces = tee.pieces;
+      const lays = layPlans(pieces, finish.fabricWidth, nap, false, true);
+      return {
+        pieces,
+        notes: [
+          `For knit fabric with ${tee.stretch} stretch. Finished bust ${tee.finishedBust} cm, ${tee.length === 'cropped' ? 'hem' : 'hem at the hip'} ${tee.finishedHem} cm, back length ${tee.backLength} cm.`,
+          `Seam allowance 1 cm included, 2.5 cm at the hem, 2 cm at the sleeve hem. Dashed line = stitching line. Grain lines run along the ribs.`,
+          `Neckband ${tee.neckband.length} cm long, ${Math.round(tee.neckband.ratio * 100)}% of the ${tee.necklineCm} cm neckline, cut with the stretch along it. Sleeve: bicep ${tee.sleeve.bicep} cm. Sewing steps are on the last pages.`,
+        ],
+        guide: withKnitFabric(teeGuide(tee, lays.find((l) => l.fabric === 'self')?.metres ?? teeFabricMetres(tee), { width: finish.fabricWidth }), fabric),
+        spec: teeSpec(values as TeeMeasurements, tee),
+        lays,
+        flat: teeFlat(tee),
+      };
+    }
     if (outer) {
       const pieces = allow(outer.pieces);
       const lays = layPlans(pieces, finish.fabricWidth, nap, hide);
@@ -387,7 +463,13 @@ export default function App() {
           couture
             ? `Couture allowances: ${fmtCm(seams.seam)} at the seams, ${fmtCm(seams.waist)} at the waist, 1 cm on the crotch curve, ${fmtCm(hem)} at the hem. Thread-trace the solid stitching line.`
             : `Seam allowance ${fmtCm(seams.seam)} included, 1 cm on the crotch curve, ${fmtCm(hem)} at the hem. Dashed line = stitching line.`,
-          `${trousers.closure === 'fly' ? `A ${trousers.zipCm} cm fly zip with its facing and shield` : `A ${trousers.zipCm} cm invisible zip in the left side seam`}, and the waistband. The crease line is the grain line. Sewing steps are on the last pages.`,
+          `${
+            trousers.elastic
+              ? `A pull-on elastic waist, with no zip: ${trousers.elastic.cutCm} cm of ${trousers.elastic.widthCm} cm elastic in the waistband casing`
+              : trousers.closure === 'fly'
+                ? `A ${trousers.zipCm} cm fly zip with its facing and shield, and the waistband`
+                : `A ${trousers.zipCm} cm invisible zip in the left side seam, and the waistband`
+          }${pocketWords(trousers.pockets, trousers.pocketSides)}. The crease line is the grain line. Sewing steps are on the last pages.`,
           ...fittingNotes,
         ],
         guide: withFabric(trousersGuide(trousers, lays.find((l) => l.fabric === 'self')?.metres ?? trousersFabricMetres(trousers), { seams, width: finish.fabricWidth }), fabric, 'trousers'),
@@ -401,23 +483,26 @@ export default function App() {
       let lining: SkirtDraft | undefined;
       if (finish.skirtLined) {
         try {
-          lining = draftSkirt(values as SkirtMeasurements, { ...skirtStyle, lengthCm: skirt.lengthCm - 2.5 });
+          // A plain lining under pleats, godets or a flounce: they need no second layer. Nor pockets.
+          lining = draftSkirt(values as SkirtMeasurements, { ...skirtStyle, pleats: undefined, godets: undefined, flounce: undefined, lengthCm: skirt.lengthCm - 2.5, pockets: 'none' });
         } catch {
           lining = undefined;
         }
       }
-      const pieces = allow([...skirt.pieces, ...(lining ? liningPieces(lining) : []), waistbandPiece(skirt, 1.5)]);
-      const hem = pieces[0].allowances.hem;
-      const lays = layPlans(pieces, finish.fabricWidth, nap, hide);
+      const pieces = allow([...skirt.pieces, ...(lining ? liningPieces(lining) : []), ...waistPieces(skirt, 1.5)]);
+      // The hem is on the flounce below a flounced skirt, and on the bottom tier (2 cm) of a tiered one.
+      const hem = pieces.find((pc) => !pc.kind && pc.allowances.hem !== undefined)?.allowances.hem ?? 2;
+      // Tiers and the extra godets are cut but not printed.
+      const lays = layPlans([...pieces, ...allow(layoutExtras(skirt))], finish.fabricWidth, nap, hide);
       const metres = (f: 'self' | 'lining', fallback: () => number) => lays.find((l) => l.fabric === f)?.metres ?? fallback();
       return {
         pieces,
         notes: [
-          `Finished waist ${skirt.finishedWaist} cm, hip ${skirt.finishedHip} cm, length ${skirt.lengthCm} cm.`,
+          `Finished waist ${skirt.finishedWaist} cm${skirt.elastic ? `, gathered onto ${skirt.elastic.finishedCm} cm of elastic` : ''}, hip ${skirt.finishedHip} cm, length ${skirt.lengthCm} cm.`,
           couture
             ? `Couture allowances: ${fmtCm(seams.seam)} at the seams, ${fmtCm(seams.waist)} at the waist, ${fmtCm(hem)} at the hem. Thread-trace the solid stitching line.`
             : `Seam allowance ${fmtCm(seams.seam)} included, ${fmtCm(hem)} at the hem. Dashed line = stitching line.`,
-          `Waistband${lining ? ' and lining' : ''} included. Sewing steps are on the last pages.`,
+          `${skirt.elastic ? `A pull-on elastic waist, with no zip: ${skirt.elastic.cutCm} cm of ${skirt.elastic.widthCm} cm elastic in the waistband casing` : skirt.faced ? 'Waist facings' : 'Waistband'}${lining ? ' and lining' : ''}${pocketWords(skirt.pocket ? 'inseam' : 'none')} included.${skirt.bias ? ' Cut on the bias: every piece single layer, grain at 45 degrees.' : ''}${skirt.volume?.tiers ? ' The tiers are rectangles: their measurements are in the sewing steps.' : ''} Sewing steps are on the last pages.`,
           ...fittingNotes,
         ],
         guide: route(
@@ -436,15 +521,20 @@ export default function App() {
     }
     if (dressDraft) {
       const d = dressDraft;
-      const edges = finish.bodiceEdges;
+      const edges = edgesFor(d.bodice, finish.bodiceEdges);
       const bodicePcs = d.pieces.filter((pc) => /^Bodice/.test(pc.name));
-      const top = edges === 'lined' ? bodicePcs.map((pc) => ({ ...pc, fabric: 'Self fabric and lining' })) : bodicePcs;
+      const top =
+        edges === 'lined'
+          ? d.bodice.drape
+            ? drapeLined(bodicePcs, d.bodice)
+            : bodicePcs.map((pc) => (/coutil/.test(pc.fabric ?? '') ? pc : { ...pc, fabric: 'Self fabric and lining' }))
+          : bodicePcs;
       // Facings are cut from the bodice as sewn, with any moved dart or princess seam closed.
       const [bf, bb] = blockOf(d.bodice);
-      const facings = edges === 'facings' ? bodiceFacings(bf, bb, !sleeve, d.bodice.collar !== 'mandarin') : [];
+      const facings = edges === 'facings' ? (d.bodice.drape ? drapeFacings(d.bodice, !sleeve) : bodiceFacings(bf, bb, !sleeve, d.bodice.collar !== 'mandarin')) : [];
       const pieces = allow([...top, ...(sleeve?.pieces ?? []), ...d.skirt.pieces, ...facings]);
-      const lays = layPlans(pieces, finish.fabricWidth, nap, hide);
-      const metres = (f: 'self' | 'lining') => lays.find((l) => l.fabric === f)?.metres ?? bodiceFabricMetres(d.bodice, sleeve) + fabricMetres(d.skirt);
+      const lays = layPlans([...pieces, ...allow(layoutExtras(d.skirt))], finish.fabricWidth, nap, hide);
+      const metres = (f: 'self' | 'lining' | 'interlining') => lays.find((l) => l.fabric === f)?.metres ?? bodiceFabricMetres(d.bodice, sleeve) + fabricMetres(d.skirt);
       const edgeWords = sleeve
         ? { binding: 'a bias-bound neckline', facings: 'a faced neckline', lined: 'a lined bodice' }[edges]
         : { binding: 'bias-bound neck and armholes', facings: 'a faced neck and armholes', lined: 'a lined bodice' }[edges];
@@ -454,9 +544,11 @@ export default function App() {
           `Finished bust ${d.finishedBust} cm, waist ${d.finishedWaist} cm, hip ${d.finishedHip} cm, nape to hem ${d.lengthCm} cm.`,
           couture
             ? `Couture allowances: ${fmtCm(seams.seam)} at the seams, ${fmtCm(seams.waist)} at the waist, ${fmtCm(seams.curve)} at the neck and armholes. Thread-trace the solid stitching line.`
-            : `Seam allowance ${fmtCm(seams.seam)} included, ${fmtCm(seams.curve)} at the neck and armholes, ${fmtCm(pieces.find((pc) => pc.name === 'Skirt front')?.allowances.hem ?? 4)} at the hem. Dashed line = stitching line.`,
-          `The skirt is drafted to the bodice: waist seams the same length and darts in one line. A ${d.zipCm} cm centre back zip and ${edgeWords}. Sewing steps are on the last pages.`,
+            : `Seam allowance ${fmtCm(seams.seam)} included, ${fmtCm(seams.curve)} at the neck and armholes, ${fmtCm(pieces.find((pc) => /^(Skirt|Flounce) front/.test(pc.name) && pc.allowances.hem !== undefined)?.allowances.hem ?? (d.skirt.volume?.tiers ? 2 : 4))} at the hem. Dashed line = stitching line.`,
+          `The skirt is drafted to the bodice: waist seams the same length and darts in one line. A ${d.zipCm} cm ${d.zipSide ? 'zip in the right side seam' : 'centre back zip'} and ${edgeWords}${pocketWords(d.skirt.pocket ? 'inseam' : 'none')}. Sewing steps are on the last pages.`,
+          ...(drapeNote(d.bodice) ? [drapeNote(d.bodice)!] : []),
           ...(sleeve ? [`Sleeve: bicep ${sleeve.bicep} cm, ${sleeve.gathers?.crown !== undefined ? `${sleeve.gathers.crown} cm gathered into the crown` : `crown ease ${sleeve.crownEase.front} cm front, ${sleeve.crownEase.back} cm back`}.`] : []),
+          ...topNotes(d.bodice),
           ...fittingNotes,
         ],
         guide: route(
@@ -465,6 +557,7 @@ export default function App() {
             edges,
             width: finish.fabricWidth,
             liningM: metres('lining'),
+            coutilM: d.bodice.top?.boned ? metres('interlining') : undefined,
             sleeve,
           }),
           { garment: 'dress', lined: edges === 'lined', zipCm: d.zipCm },
@@ -476,18 +569,23 @@ export default function App() {
     }
     if (bodice) {
       const below = bodice.finishedHem !== undefined;
-      const edges = finish.bodiceEdges;
-      const main = edges === 'lined' ? bodice.pieces.map((pc) => (pc.kind ? pc : { ...pc, fabric: 'Self fabric and lining' })) : bodice.pieces;
+      const edges = edgesFor(bodice, finish.bodiceEdges);
+      const main =
+        edges === 'lined'
+          ? bodice.drape || bodice.peplum
+            ? drapeLined(bodice.pieces, bodice)
+            : bodice.pieces.map((pc) => (pc.kind || /coutil/.test(pc.fabric ?? '') ? pc : { ...pc, fabric: 'Self fabric and lining' }))
+          : bodice.pieces;
       // A button front's facings, or a band collar, finish the neck.
       const neckDone = bodice.closure === 'front_buttons' || bodice.collar === 'mandarin' || bodice.collar === 'shirt';
-      const facings = edges === 'facings' ? bodiceFacings(...blockOf(bodice), !sleeve, !neckDone) : [];
+      const facings = edges === 'facings' ? (bodice.drape ? drapeFacings(bodice, !sleeve, !neckDone) : bodiceFacings(...blockOf(bodice), !sleeve, !neckDone)) : [];
       const pieces = allow([...main, ...(sleeve?.pieces ?? []), ...facings]);
       const edgeWords = sleeve
         ? { binding: 'a bias-bound neckline', facings: 'a faced neckline', lined: 'a lined bodice' }[edges]
         : { binding: 'bias-bound edges', facings: 'faced neck and armholes', lined: 'a full lining' }[edges];
       const sleeveWords = sleeve ? `${describeBodice(saved.bodice).replace(/^.* with /, 'With ')}` : 'Sleeveless';
       const lays = layPlans(pieces, finish.fabricWidth, nap, hide);
-      const metres = (f: 'self' | 'lining') => lays.find((l) => l.fabric === f)?.metres ?? bodiceFabricMetres(bodice);
+      const metres = (f: 'self' | 'lining' | 'interlining') => lays.find((l) => l.fabric === f)?.metres ?? bodiceFabricMetres(bodice);
       return {
         pieces,
         notes: [
@@ -495,8 +593,11 @@ export default function App() {
           couture
             ? `Couture allowances: ${fmtCm(seams.seam)} at the seams, ${fmtCm(seams.curve)} at the neck and armholes. Thread-trace the solid stitching line.`
             : `Seam allowance ${fmtCm(seams.seam)} included, ${fmtCm(seams.curve)} at the neck and armholes${below ? ', 2.5 cm at the hem' : ''}. Dashed line = stitching line.`,
-          `${sleeveWords}, ${bodice.closure === 'front_buttons' ? `${bodice.buttons?.count ?? 5} buttons down the centre front` : `a ${bodice.zipCm} cm centre back zip`}${bodice.collar !== 'none' ? `, a ${COLLAR_WORDS[bodice.collar]}` : ''} and ${edgeWords}. Sewing steps are on the last pages.`,
+          `${sleeveWords}, ${bodice.closure === 'front_buttons' ? `${bodice.buttons?.count ?? 5} buttons down the centre front` : `a ${bodice.zipCm} cm ${bodice.drape?.kind === 'one_shoulder' ? 'zip in the right side seam' : 'centre back zip'}`}${bodice.collar !== 'none' ? `, a ${COLLAR_WORDS[bodice.collar]}` : ''} and ${edgeWords}. Sewing steps are on the last pages.`,
+          ...(drapeNote(bodice) ? [drapeNote(bodice)!] : []),
+          ...(bodice.peplum ? [`A ${bodice.peplum.kind} peplum, ${bodice.peplum.depthCm} cm deep, ${bodice.peplum.hemCm} cm round the hem.`] : []),
           ...(sleeve ? [`Sleeve: bicep ${sleeve.bicep} cm, ${sleeve.gathers?.crown !== undefined ? `${sleeve.gathers.crown} cm gathered into the crown` : `crown ease ${sleeve.crownEase.front} cm front, ${sleeve.crownEase.back} cm back`}.`] : []),
+          ...topNotes(bodice),
           ...fittingNotes,
         ],
         guide: route(
@@ -505,6 +606,7 @@ export default function App() {
             edges,
             width: finish.fabricWidth,
             liningM: metres('lining'),
+            coutilM: bodice.top?.boned ? metres('interlining') : undefined,
             sleeve,
           }),
           { garment: 'bodice', lined: edges === 'lined', zipCm: bodice.zipCm },
@@ -523,7 +625,7 @@ export default function App() {
   }, [drafted]);
 
   const isSaved = isSavedFor(account, current, person.id);
-  const saveState = isSaved ? 'saved' : account.patterns.length >= FREE_SAVED_LIMIT ? 'full' : 'can';
+  const saveState = isSaved ? 'saved' : account.patterns.length >= savedLimit(account) ? 'full' : 'can';
 
   // Where the guided measuring opens: the list of what to make, the next measurement a garment needs, or one to redo.
   const [stepsStart, setStepsStart] = useState<{ at: number; start?: StepsStart }>({ at: 0 });
@@ -566,6 +668,7 @@ export default function App() {
     setAccount({ ...account, active: who.id });
     if (isOuter(p.choices)) switchGarment(p.choices.garment, { [p.choices.garment]: p.choices }, 'style', who.values);
     else if (isTrousers(p.choices)) switchGarment('trousers', { trousers: p.choices }, 'style', who.values);
+    else if (isTee(p.choices)) switchGarment('tee', { tee: p.choices }, 'style', who.values);
     else if (isDress(p.choices)) switchGarment('dress', { dress: p.choices }, 'style', who.values);
     else if (isBodice(p.choices)) switchGarment('bodice', { bodice: p.choices }, 'style', who.values);
     else switchGarment('skirt', { choices: p.choices }, 'style', who.values);
@@ -671,7 +774,7 @@ export default function App() {
               formStart={formStart}
               onLegal={openLegal}
               onFinish={({ start }) => {
-                const onboarded = { ...account, onboarded: true };
+                const onboarded = { ...account, onboarded: true, mode };
                 setAccount(start === 'example' ? updatePerson(onboarded, person.id, { values: { ...EXAMPLE_VALUES, ...values } }) : onboarded);
                 setStep(start === 'example' ? 'style' : 'steps');
               }}
@@ -688,7 +791,10 @@ export default function App() {
               values={values}
               onUnit={(unit) => setSaved({ ...saved, unit })}
               onValues={setValues}
-              onDone={(g) => switchGarment(g, {}, 'style')}
+              onDone={(g) => {
+                countStep('measured', g);
+                switchGarment(g, {}, 'style');
+              }}
             />
           )}
           {(step === 'privacy' || step === 'terms') && (
@@ -698,14 +804,26 @@ export default function App() {
               onOther={() => openLegal(step === 'privacy' ? 'terms' : 'privacy')}
             />
           )}
-          {step === 'photo' && (
+          {(step === 'tester' || step === 'news') && (
+            <SignupScreen kind={step} onOther={() => openLegal(step === 'tester' ? 'news' : 'tester')} onPrivacy={() => openLegal('privacy')} />
+          )}
+          {step === 'photo' && plansShown() && <PhotoAllowance account={account} onPlans={openPlans} />}
+          {step === 'photo' && canPhotoDraft(account) && (
             <PhotoScreen
               measured={canLeaveMeasure}
-              onApply={(choices) => switchGarment('skirt', { choices }, 'style')}
+              onApply={(choices) => {
+                if (BILLING_ON) setAccount(countPhotoDraft(account));
+                countStep('photo', 'skirt');
+                switchGarment('skirt', { choices }, 'style');
+              }}
             />
           )}
+          {step === 'plans' && <PlansScreen account={account} onBack={() => setStep(beforePlans)} />}
           {step === 'account' && (
             <AccountScreen
+              onPlans={plansShown() ? openPlans : undefined}
+              mode={mode}
+              onMode={setMode}
               account={account}
               onLegal={openLegal}
               unit={saved.unit}
@@ -761,13 +879,28 @@ export default function App() {
               notice={measureNote}
               onMeasure={(ids) => openSteps({ kind: 'redo', garment, ids })}
               onNext={() => {
+                countStep('measured', garment);
                 setAccount(updatePerson(account, person.id, recordMeasurements(person, new Date().toISOString().slice(0, 10))));
                 setStep('style');
               }}
             />
           )}
+          {step === 'collection' && (
+            <CollectionScreen
+              values={values}
+              onBack={() => setStep('style')}
+              onMake={(look) => {
+                const { garment: g, ...next } = lookPatch(look);
+                switchGarment(g, next as Partial<Saved>, 'style');
+                window.scrollTo(0, 0);
+              }}
+            />
+          )}
+          <CollectionLink.Provider value={step === 'style' ? () => { setStep('collection'); window.scrollTo(0, 0); } : undefined}>
           {step === 'style' && garment === 'skirt' && (
             <StyleScreen
+              mode={mode}
+              onMode={setMode}
               easeMap={ease}
               choices={saved.choices}
               onChoices={(choices) => setSaved({ ...saved, choices })}
@@ -782,14 +915,16 @@ export default function App() {
               onSave={() => setAccount(savePattern(account, current, describePattern(current), person.id))}
               onAccount={() => setStep('account')}
               finish={finish}
-              onFinish={(f) => setSaved({ ...saved, finish: f })}
+              onFinish={setFinish}
               onPhoto={() => setStep('photo')}
             />
           )}
           {step === 'style' && garment === 'bodice' && (
             <BodiceStyleScreen
+              mode={mode}
+              onMode={setMode}
               finish={finish}
-              onFinish={(f) => setSaved({ ...saved, finish: f })}
+              onFinish={setFinish}
               easeMap={ease}
               choices={saved.bodice}
               onChoices={(bodice) => setSaved({ ...saved, bodice })}
@@ -808,8 +943,10 @@ export default function App() {
           )}
           {step === 'style' && garment === 'dress' && (
             <DressStyleScreen
+              mode={mode}
+              onMode={setMode}
               finish={finish}
-              onFinish={(f) => setSaved({ ...saved, finish: f })}
+              onFinish={setFinish}
               easeMap={ease}
               choices={dress}
               onChoices={(d) => setSaved({ ...saved, dress: d })}
@@ -828,8 +965,10 @@ export default function App() {
           )}
           {step === 'style' && garment === 'trousers' && (
             <TrousersStyleScreen
+              mode={mode}
+              onMode={setMode}
               finish={finish}
-              onFinish={(f) => setSaved({ ...saved, finish: f })}
+              onFinish={setFinish}
               easeMap={ease}
               choices={trousersChoices}
               onChoices={(t) => setSaved({ ...saved, trousers: t })}
@@ -845,9 +984,27 @@ export default function App() {
               onAccount={() => setStep('account')}
             />
           )}
+          {step === 'style' && garment === 'tee' && (
+            <TeeStyleScreen
+              choices={teeChoices}
+              onChoices={(t) => setSaved({ ...saved, tee: t })}
+              fabric={fabric}
+              onChooseGarment={chooseGarment}
+              values={values}
+              draft={result.tee}
+              error={result.error}
+              onEditMeasurements={() => setStep('measure')}
+              onNext={() => setStep('export')}
+              saveState={saveState}
+              onSave={() => setAccount(savePattern(account, current, describePattern(current), person.id))}
+              onAccount={() => setStep('account')}
+            />
+          )}
           {step === 'style' && isOuterGarment && (
             <OuterStyleScreen
               key={garment}
+              mode={mode}
+              onMode={setMode}
               finish={finish}
               onFinish={(f) => setSaved({ ...saved, finish: f })}
               easeMap={ease}
@@ -865,24 +1022,30 @@ export default function App() {
               onAccount={() => setStep('account')}
             />
           )}
-          {step === 'export' && (
+          </CollectionLink.Provider>
+          {step === 'export' && !hasGarment(account, garment) && <UnlockGarment garment={garment} onPlans={openPlans} onBack={() => setStep('style')} />}
+          {step === 'export' && hasGarment(account, garment) && (
             <ExportScreen
+              mode={mode}
+              onMode={setMode}
               garment={garment}
               profile={profile}
               title={title}
               fit={current.fit}
               finish={finish}
-              onFinish={(f) => setSaved({ ...saved, finish: f })}
+              onFinish={setFinish}
               style={
                 garment === 'jacket' || garment === 'coat'
                   ? { garment, fit: outerChoices.fit }
                   : garment === 'bodice'
-                  ? { garment, fit: saved.bodice.fit, neckline: saved.bodice.neckline }
+                  ? { garment, fit: saved.bodice.fit, neckline: saved.bodice.neckline, structure: validDetails(saved.bodice).structure }
                   : garment === 'dress'
-                    ? { garment, fit: dress.fit, neckline: dress.bodice.neckline, silhouette: dress.skirt.silhouette, length: dress.skirt.length }
+                    ? { garment, fit: dress.fit, neckline: dress.bodice.neckline, silhouette: dress.skirt.silhouette, length: dress.skirt.length, structure: validDetails(dress.bodice).structure, asymHem: dress.skirt.asymHem, pleats: dress.skirt.pleats, godets: dress.skirt.godets, flounce: dress.skirt.flounce }
                     : garment === 'trousers'
                       ? { garment, fit: trousersChoices.fit, leg: trousersChoices.leg }
-                      : { garment: 'skirt', silhouette: saved.choices.silhouette, length: saved.choices.length }
+                      : garment === 'tee'
+                        ? { garment, fit: teeChoices.fit, stretch: teeChoices.stretch, neckline: teeChoices.neckline }
+                      : { garment: 'skirt', silhouette: saved.choices.silhouette, length: saved.choices.length, asymHem: saved.choices.asymHem, pleats: saved.choices.pleats, godets: saved.choices.godets, flounce: saved.choices.flounce }
               }
               made={printable}
               error={result.error}

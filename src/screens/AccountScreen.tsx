@@ -1,11 +1,15 @@
 import { useState } from 'react';
-import { Account, FREE_SAVED_LIMIT, ME, Person, SavedPattern, activePerson, personName } from '../account';
+import { Account, ME, Person, SavedPattern, activePerson, personName } from '../account';
 import { PeopleSwitch } from '../ui/PeopleSwitch';
 import { BODICE_FIELDS, SKIRT_FIELDS, TROUSERS_FIELDS, Unit } from '../measurements';
 import { describePattern } from './describe';
 import { FitForm } from '../ui/FitForm';
 import { FitFeedback, fitReport, fitSummary, sendFitReport } from '../fit';
 import type { MeasurementValues } from '../measurements';
+import { Mode, shows } from '../mode';
+import { InterestCard } from '../ui/InterestCard';
+import { YourPlan } from '../ui/PlanPrompts';
+import { savedLimit } from '../plans';
 
 // Skirt and bodice share a few measurements (waist, hip); list each once.
 const ALL_FIELDS = [...SKIRT_FIELDS, ...TROUSERS_FIELDS.filter((t) => !SKIRT_FIELDS.some((f) => f.id === t.id)), ...BODICE_FIELDS.filter((b) => !SKIRT_FIELDS.some((f) => f.id === b.id))];
@@ -29,9 +33,14 @@ interface Props {
   onFit: (id: string, fit: FitFeedback | undefined) => void;
   onReset: () => void;
   /** Opens the Privacy Policy or the Terms of Use. */
-  onLegal: (page: 'privacy' | 'terms') => void;
+  onLegal: (page: 'privacy' | 'terms' | 'tester' | 'news') => void;
   onBackup: () => void;
   onRestore: (file: File) => Promise<boolean>;
+  /** Simple or all tools; all when not given. */
+  mode?: Mode;
+  onMode?: (m: Mode) => void;
+  /** Opens the plans; only given while the plan screens are shown (see plansShown). */
+  onPlans?: () => void;
 }
 
 const show = (cm: number | undefined, unit: Unit) =>
@@ -39,7 +48,8 @@ const show = (cm: number | undefined, unit: Unit) =>
 
 const dateFmt = new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 
-export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurements, onSwitchPerson, onAddPerson, onRemovePerson, onClientBook, onCheckFile, onOpen, onRename, onRemove, onFit, onReset, onLegal, onBackup, onRestore }: Props) {
+export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurements, onSwitchPerson, onAddPerson, onRemovePerson, onClientBook, onCheckFile, onOpen, onRename, onRemove, onFit, onReset, onLegal, onBackup, onRestore, mode = 'all', onMode, onPlans }: Props) {
+  const limit = savedLimit(account);
   const [confirmReset, setConfirmReset] = useState(false);
   const [restoreMsg, setRestoreMsg] = useState('');
   const display = account.name.trim() || 'Me';
@@ -82,6 +92,23 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
           </div>
         </fieldset>
 
+        {onMode && (
+          <fieldset className="group">
+            <legend>Tools</legend>
+            <div className="seg" role="group" aria-label="Tools">
+              {(['simple', 'all'] as Mode[]).map((m) => (
+                <button key={m} type="button" aria-pressed={mode === m} className={mode === m ? 'on' : ''} onClick={() => onMode(m)}>
+                  {m === 'simple' ? 'Simple' : 'All tools'}
+                </button>
+              ))}
+            </div>
+            <p className="muted small">
+              {mode === 'simple'
+                ? 'Just what you need for a first pattern: style it, print it at home and sew it, step by step.'
+                : 'Everything, for dressmakers and pattern cutters: fitting toiles, couture finishes, size runs, client books and files for a maker.'}
+            </p>
+          </fieldset>
+        )}
 
         <div className="backup">
           <p className="eyebrow">Back up</p>
@@ -137,6 +164,14 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
             <button type="button" className="inline-link" onClick={() => onLegal('terms')}>
               Terms of Use
             </button>
+            {' · '}
+            <button type="button" className="inline-link" onClick={() => onLegal('tester')}>
+              Be a fit tester
+            </button>
+            {' · '}
+            <button type="button" className="inline-link" onClick={() => onLegal('news')}>
+              News
+            </button>
           </p>
         </div>
       </section>
@@ -149,7 +184,7 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
               <button type="button" className="link" onClick={onEditMeasurements}>
                 Edit
               </button>
-              {onClientBook && (
+              {onClientBook && shows(mode, 'clientBook') && (
                 <button type="button" className="link" onClick={onClientBook}>
                   Client book
                 </button>
@@ -173,7 +208,7 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
           </dl>
         </section>
 
-        {onCheckFile && (
+        {onCheckFile && shows(mode, 'checkFile') && (
           <section className="card" aria-labelledby="cftitle2">
             <h2 id="cftitle2">Check any pattern</h2>
             <p className="muted small">Open a DXF or SVG from pattern software or a tracing, and its seams are walked to the millimetre.</p>
@@ -183,12 +218,14 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
           </section>
         )}
 
+        {onPlans && <YourPlan account={account} onPlans={onPlans} />}
+
         <section className="card" aria-labelledby="stitle">
           <div className="row between wrap">
             <h2 id="stitle">Saved patterns</h2>
-            {account.patterns.length >= FREE_SAVED_LIMIT - 1 && (
+            {account.patterns.length >= limit - 1 && limit !== Infinity && (
               <span className="muted small">
-                {account.patterns.length} of {FREE_SAVED_LIMIT} saved
+                {account.patterns.length} of {limit} saved
               </span>
             )}
           </div>
@@ -201,12 +238,36 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
               ))}
             </ul>
           )}
-          {account.patterns.length >= FREE_SAVED_LIMIT && (
+          {account.patterns.length >= limit && (
             <p className="muted small">
               That's the free limit. Delete one to save another. <span className="badge">Premium</span> will save as many as you like.
+              {onPlans && (
+                <>
+                  {' '}
+                  <button type="button" className="link" onClick={onPlans}>
+                    See plans
+                  </button>
+                </>
+              )}
             </p>
           )}
         </section>
+
+        <InterestCard offer="founding" />
+
+        <details className="card more">
+          <summary>
+            <span className="eyebrow">Coming to Maison Tracé</span>
+            <h2>Sew-alongs, designers and gifts</h2>
+          </summary>
+          <p className="muted small">None of these are open yet. Leave your email on any you'd like and we'll tell you when it opens.</p>
+          <InterestCard offer="sewalong" inset />
+          <InterestCard offer="designers" inset />
+          <InterestCard offer="gift" inset />
+          <InterestCard offer="classroom" inset />
+          <InterestCard offer="designer-partner" inset />
+          <InterestCard offer="sponsor" inset />
+        </details>
       </div>
     </div>
   );
@@ -298,6 +359,7 @@ function PatternRow({
         </button>
       </div>
       {fitting && (
+        <>
         <FitForm
           choices={pattern.choices}
           initial={pattern.fit}
@@ -312,6 +374,8 @@ function PatternRow({
               : undefined
           }
         />
+        <InterestCard offer="fitcheck" inset pattern={pattern.name} />
+        </>
       )}
     </li>
   );

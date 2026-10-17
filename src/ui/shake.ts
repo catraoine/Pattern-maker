@@ -9,7 +9,11 @@ const touch = () => typeof window !== 'undefined' && matchMedia('(pointer: coars
 
 export type ShakeState = 'unavailable' | 'ask' | 'on' | 'denied';
 
-/** Three hard jolts within 800 ms count as a shake; then it rests for a second. */
+/**
+ * Three hard jolts within a second count as a shake; then it rests for a second. A jolt is the phone
+ * moving hard (gravity taken out) at least 100 ms after the last one, so a single knock, like putting
+ * the phone down, counts once however many readings it rattles through.
+ */
 export function useShake(onShake: () => void): { state: ShakeState; enable: () => void } {
   const m = motion();
   const [state, setState] = useState<ShakeState>(() => (!m || !touch() ? 'unavailable' : m.requestPermission ? 'ask' : 'on'));
@@ -20,24 +24,25 @@ export function useShake(onShake: () => void): { state: ShakeState; enable: () =
     if (state !== 'on') return;
     let jolts: number[] = [];
     let restUntil = 0;
-    let last: { x: number; y: number; z: number } | undefined;
+    let gravity: { x: number; y: number; z: number } | undefined;
     const listen = (e: DeviceMotionEvent) => {
-      const a = e.accelerationIncludingGravity;
-      if (!a || a.x === null || a.y === null || a.z === null) return;
       const now = performance.now();
-      const cur = { x: a.x, y: a.y, z: a.z };
-      if (last && now > restUntil) {
-        const change = Math.hypot(cur.x - last.x, cur.y - last.y, cur.z - last.z);
-        if (change > 18) {
-          jolts = [...jolts.filter((t) => now - t < 800), now];
-          if (jolts.length >= 3) {
-            jolts = [];
-            restUntil = now + 1000;
-            handler.current();
-          }
-        }
+      // Most phones give the movement with gravity already taken out; otherwise follow gravity slowly and take it out here.
+      let move = e.acceleration;
+      if (move?.x == null || move.y == null || move.z == null) {
+        const a = e.accelerationIncludingGravity;
+        if (a?.x == null || a.y == null || a.z == null) return;
+        gravity = gravity ? { x: 0.9 * gravity.x + 0.1 * a.x, y: 0.9 * gravity.y + 0.1 * a.y, z: 0.9 * gravity.z + 0.1 * a.z } : { x: a.x, y: a.y, z: a.z };
+        move = { x: a.x - gravity.x, y: a.y - gravity.y, z: a.z - gravity.z };
       }
-      last = cur;
+      if (now < restUntil || Math.hypot(move.x!, move.y!, move.z!) < 12) return;
+      if (jolts.length && now - jolts[jolts.length - 1] < 100) return;
+      jolts = [...jolts.filter((t) => now - t < 1000), now];
+      if (jolts.length >= 3) {
+        jolts = [];
+        restUntil = now + 1000;
+        handler.current();
+      }
     };
     window.addEventListener('devicemotion', listen);
     return () => window.removeEventListener('devicemotion', listen);

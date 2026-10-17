@@ -1,12 +1,18 @@
 // Measurement tables for the tech pack: each body measurement the draft used, the ease added and the
 // finished garment measurement.
-import type { SkirtDraft, SkirtMeasurements } from './skirt';
+import type { Elastic, SkirtDraft, SkirtMeasurements } from './skirt';
 import type { OuterDraft, OuterMeasurements } from './outerwear';
 import type { BodiceDraft, BodiceLength, BodiceMeasurements } from './bodice';
 import type { SpecRow } from './techpack';
 import type { SleeveDraft, SleeveMeasurements } from './sleeve';
 import type { DressDraft, DressMeasurements } from './dress';
 import { TROUSER_EASE, type TrousersDraft, type TrousersMeasurements } from './trousers';
+import { volumeSpec } from './skirtVolume';
+import { drapeSpec } from './drape';
+import { SLIP_FACING } from './slip';
+import { STRETCH_WORDS } from './knits';
+import type { TeeDraft, TeeMeasurements } from './tee';
+import { INSEAM, SLANT } from './pockets';
 
 const r1 = (v: number) => Math.round(v * 10) / 10;
 const row = (label: string, body: number | undefined, finished: number): SpecRow =>
@@ -22,9 +28,30 @@ export function skirtSpec(m: SkirtMeasurements, d: SkirtDraft): SpecRow[] {
     ...(m.back_waist_to_hip !== undefined ? [{ label: 'Waist to hip, centre back', body: r1(m.back_waist_to_hip), finished: '' }] : []),
     row('Length, waist to hem', undefined, d.lengthCm),
     row('Hem circumference', undefined, d.hemCm),
-    { label: 'Waistband (finished width 3)', finished: `cut ${d.waistband.cutLength} x ${d.waistband.cutWidth}` },
-    { label: 'Invisible zip, centre back', finished: `${d.zipCm}` },
+    ...(d.asym ? [{ label: `Hem ${d.asym.kind === 'diagonal' ? 'left to right' : 'front to back'}, shortest to longest`, finished: `${r1(d.lengthCm + d.asym.shift - d.asym.amp)} to ${r1(d.lengthCm + d.asym.shift + d.asym.amp)}` }] : []),
+    // Pleats, godets, a flounce or tiers: how they are made.
+    ...volumeSpec(d),
+    ...(d.pocket ? [row('In-seam pocket opening', undefined, d.pocket[1] - d.pocket[0])] : []),
+    ...(d.faced
+      ? [
+          { label: `Waist facing, ${SLIP_FACING} deep`, finished: 'cut 1 front, 1 back' },
+          { label: 'Invisible zip, left side seam', finished: `${d.zipCm}` },
+        ]
+      : waistRows(d, d.opening === 'left_side' ? 'Invisible zip, left side seam' : 'Invisible zip, centre back')),
   ];
+}
+
+/** The waistband, and the zip or the elastic that closes it. */
+function waistRows(d: { waistband: { cutLength: number; cutWidth: number }; elastic?: Elastic; zipCm: number }, zip = 'Invisible zip, centre back'): SpecRow[] {
+  return d.elastic
+    ? [
+        { label: 'Waistband, elastic casing (finished width 3)', finished: `cut ${d.waistband.cutLength} x ${d.waistband.cutWidth}` },
+        { label: `Elastic, ${d.elastic.widthCm} cm wide`, finished: `cut ${d.elastic.cutCm} (${d.elastic.finishedCm} joined)` },
+      ]
+    : [
+        { label: 'Waistband (finished width 3)', finished: `cut ${d.waistband.cutLength} x ${d.waistband.cutWidth}` },
+        { label: zip, finished: `${d.zipCm}` },
+      ];
 }
 
 export function bodiceSpec(m: BodiceMeasurements, d: BodiceDraft, length: BodiceLength, dropCm?: number): SpecRow[] {
@@ -35,13 +62,28 @@ export function bodiceSpec(m: BodiceMeasurements, d: BodiceDraft, length: Bodice
     const body = length === 'hip' ? m.full_hip : (m.high_hip ?? m.full_hip);
     rows.push(row(length === 'hip' ? 'Hip (hem)' : 'High hip (hem)', body, d.finishedHem));
   }
+  const t = d.top;
+  if (t) {
+    // A top cut below the shoulders: no armhole or shoulder seam, but a top edge, its bones and straps.
+    rows.push(
+      row('Centre back, top edge to waist', undefined, d.backLength),
+      row('Top edge, round', undefined, t.topEdge),
+      ...(t.grip ? [row('Top edge, taken in to grip', undefined, t.grip)] : []),
+      ...t.bones.map((b) => ({ label: `Bone, ${b.where.toLowerCase()} (${b.count})`, finished: r1(b.lengthCm) })),
+      ...(t.waistStay ? [{ label: `Waist stay, ${t.waistStay.widthCm} grosgrain`, finished: r1(t.waistStay.lengthCm) }] : []),
+      ...(t.straps ? [row('Strap, finished (each)', undefined, t.straps.lengthCm), { label: 'Strap, cut on the bias', finished: `${t.straps.cutLengthCm} x ${t.straps.cutWidthCm}` }] : []),
+      { label: 'Invisible zip, centre back', finished: `${d.zipCm}` },
+    );
+    return rows;
+  }
   rows.push(
     { label: 'Nape to waist', body: r1(m.nape_to_waist), finished: '' },
     row('Centre back length', undefined, d.backLength),
     row('Armhole', m.armscye, d.armhole),
     row('Shoulder seam (back)', m.shoulder_length, d.shoulder.back),
     { label: 'Shoulder angle, front / back', finished: `${d.shoulderSlope.front} / ${d.shoulderSlope.back} degrees` },
-    { label: 'Invisible zip, centre back', finished: `${d.zipCm}` },
+    ...drapeSpec(d),
+    { label: d.drape?.kind === 'one_shoulder' ? 'Invisible zip, right side' : 'Invisible zip, centre back', finished: `${d.zipCm}` },
   );
   return rows;
 }
@@ -66,7 +108,7 @@ export function dressSpec(m: DressMeasurements, d: DressDraft, sleeve?: SleeveDr
     ...skirtSpec(m, d.skirt).filter((r) => r.label !== 'Waist' && !zip.test(r.label) && !/Waistband/.test(r.label)),
     row('Length, nape to hem', undefined, d.lengthCm),
     ...(sleeve ? sleeveSpec(m, sleeve) : []),
-    { label: 'Invisible zip, centre back', finished: `${d.zipCm}` },
+    { label: d.zipSide ? 'Invisible zip, right side' : 'Invisible zip, centre back', finished: `${d.zipCm}` },
   ];
 }
 
@@ -82,8 +124,28 @@ export function trousersSpec(m: TrousersMeasurements, d: TrousersDraft): SpecRow
     row('Outside leg, waist to hem', undefined, d.lengthCm),
     row('Knee, round', undefined, d.kneeCm),
     row('Hem, round', undefined, d.hemCm),
-    { label: 'Waistband (finished width 3)', finished: `cut ${d.waistband.cutLength} x ${d.waistband.cutWidth}` },
-    { label: d.closure === 'fly' ? 'Trouser zip, fly front' : 'Invisible zip, left side', finished: `${d.zipCm}` },
+    ...(d.pockets !== 'none' ? [{ label: d.pockets === 'slant' ? 'Slant pockets' : d.pocketSides === 'right' ? 'In-seam pocket, right side' : 'In-seam pockets', finished: d.pockets === 'slant' ? `opening ${SLANT.in} in, ${SLANT.down} down` : `opening ${INSEAM.opening}` }] : []),
+    ...waistRows(d, d.closure === 'fly' ? 'Trouser zip, fly front' : 'Invisible zip, left side'),
+  ];
+}
+
+/** The T-shirt: bust, waist and hem against the body (negative ease is the knit stretching on), the
+ * neckline and its band, and the sleeve. */
+export function teeSpec(m: TeeMeasurements, d: TeeDraft): SpecRow[] {
+  const hemBody = d.length === 'cropped' ? m.waist : m.full_hip;
+  return [
+    { label: 'Knit stretch', finished: STRETCH_WORDS[d.stretch] },
+    row('Bust', m.full_bust, d.finishedBust),
+    row('Waist', m.waist, d.finishedWaist),
+    row(d.length === 'cropped' ? 'Hem (at the waist)' : d.length === 'hip' ? 'Hip (hem)' : 'Hem, below the hip', hemBody, d.finishedHem),
+    { label: 'Nape to waist', body: r1(m.nape_to_waist), finished: '' },
+    row('Centre back length', undefined, d.backLength),
+    row('Armhole', m.armscye, d.armhole),
+    row('Neckline, round', undefined, d.necklineCm),
+    { label: `Neckband (${Math.round(d.neckband.ratio * 100)}% of the neckline)`, finished: `${d.neckband.length} x ${d.neckband.width} finished` },
+    row('Upper arm (bicep)', m.upper_arm, d.sleeve.bicep),
+    row('Sleeve length, crown to hem', undefined, d.sleeve.lengthCm),
+    row('Sleeve hem, round', undefined, d.sleeve.hemCm),
   ];
 }
 

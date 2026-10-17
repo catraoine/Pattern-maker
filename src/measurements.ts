@@ -4,7 +4,7 @@ import type { BodiceMeasurements } from './engine/bodice';
 import type { SleeveMeasurements } from './engine/sleeve';
 import type { TrousersMeasurements } from './engine/trousers';
 
-export type Garment = 'skirt' | 'bodice' | 'dress' | 'trousers' | 'jacket' | 'coat';
+export type Garment = 'skirt' | 'bodice' | 'dress' | 'trousers' | 'tee' | 'jacket' | 'coat';
 
 export type MeasurementId = keyof SkirtMeasurements | keyof BodiceMeasurements | keyof SleeveMeasurements | keyof TrousersMeasurements;
 
@@ -258,6 +258,26 @@ const DRESS_FIELDS: MeasurementField[] = [...BODICE_FIELDS, ...SKIRT_FIELDS.filt
   f.id === 'full_hip' || f.id === 'waist_to_hip' ? { ...f, optional: undefined } : f,
 );
 
+/** The T-shirt takes the bodice's girths and lengths it needs, the hip for the hem, and the arms for its
+ * sleeves. The armhole and wrist are used when they've been measured. */
+const TEE_IDS: [MeasurementId, boolean][] = [
+  ['full_bust', true],
+  ['waist', true],
+  ['full_hip', true],
+  ['waist_to_hip', true],
+  ['neck', true],
+  ['shoulder_width', true],
+  ['nape_to_waist', true],
+  ['arm_length', true],
+  ['upper_arm', true],
+  ['armscye', false],
+  ['wrist', false],
+];
+export const TEE_FIELDS: MeasurementField[] = TEE_IDS.map(([id, needed]) => {
+  const f = BODICE_FIELDS.find((b) => b.id === id)!;
+  return { ...f, optional: needed ? undefined : id === 'wrist' ? 'For long sleeves.' : 'For a closer armhole.' };
+});
+
 /** A jacket takes the bodice's measurements with the hip (it reaches below the waist) and the arms (it
  * always has sleeves); a coat also the knee, for its length. */
 const OUTER_NEEDS: MeasurementId[] = ['full_hip', 'waist_to_hip', 'arm_length', 'upper_arm'];
@@ -268,7 +288,7 @@ const COAT_FIELDS: MeasurementField[] = [
   ...JACKET_FIELDS.filter((f) => f.fit),
 ];
 
-export const FIELDS: Record<Garment, MeasurementField[]> = { skirt: SKIRT_FIELDS, bodice: BODICE_FIELDS, dress: DRESS_FIELDS, trousers: TROUSERS_FIELDS, jacket: JACKET_FIELDS, coat: COAT_FIELDS };
+export const FIELDS: Record<Garment, MeasurementField[]> = { skirt: SKIRT_FIELDS, bodice: BODICE_FIELDS, dress: DRESS_FIELDS, trousers: TROUSERS_FIELDS, tee: TEE_FIELDS, jacket: JACKET_FIELDS, coat: COAT_FIELDS };
 
 export type Unit = 'cm' | 'in';
 export type MeasurementValues = Partial<Record<MeasurementId, number>>; // always stored in cm
@@ -331,7 +351,8 @@ export function checkMeasurements(v: MeasurementValues, unit: Unit, garment: Gar
   const crossed = () => {
     for (const c of crossChecks(v)) if (asked.has(c.id) && asked.has(c.with) && !out.some((o) => o.id === c.id)) out.push({ id: c.id, level: 'warning', message: c.message });
   };
-  if (garment !== 'bodice') {
+  // A T-shirt hangs from the shoulders and is cut from the bust down, so only the top's checks apply.
+  if (garment !== 'bodice' && garment !== 'tee') {
     if (waist && full_hip && waist > full_hip) {
       out.push({
         id: 'waist',

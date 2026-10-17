@@ -3,6 +3,7 @@ import { P, Path, add, intersect, len, lerp, mul, p, sub, unit } from './geometr
 import { Piece } from './piece';
 import { WAISTBAND_CM } from './skirt';
 import type { SkirtDraft } from './skirt';
+import { SLIP_FACING } from './slip';
 
 const r1 = (v: number) => Math.round(v * 10) / 10;
 
@@ -15,6 +16,7 @@ export function waistbandPiece(draft: SkirtDraft, sa: number): Piece {
   const W = 2 * WAISTBAND_CM;
   const L = draft.finishedWaist;
   const backQ = draft.waistband.sideMark - sa;
+  if (draft.elastic) return casingPiece(L, [[backQ, 'SIDE SEAM'], [L / 2, 'CENTRE FRONT'], [L - backQ, 'SIDE SEAM']], sa);
   const outline = new Path(p(0, 0)).line(p(W, 0), 'end').line(p(W, L), 'waist').line(p(0, L), 'end').line(p(0, 0), 'band');
   outline.closed = true;
   const marks = [backQ, L / 2, L - backQ];
@@ -54,10 +56,105 @@ export function waistbandPiece(draft: SkirtDraft, sa: number): Piece {
   };
 }
 
+/**
+ * How a skirt's waist is finished: its waistband, ending at the zip in the centre back or, on a skirt
+ * cut whole, in the left side seam; or for a bias slip, a narrow facing in place of a band.
+ */
+export function waistPieces(draft: SkirtDraft, sa: number): Piece[] {
+  if (draft.faced) return waistFacings(draft);
+  const band = waistbandPiece(draft, sa);
+  if (draft.opening !== 'left_side') return [band];
+  // From the left side seam round by the front: centre front, right side seam, centre back.
+  const W = 2 * WAISTBAND_CM;
+  const L = draft.finishedWaist;
+  const backQ = draft.waistband.sideMark - sa;
+  const frontQ = L / 2 - backQ;
+  const marks = [frontQ, 2 * frontQ, 2 * frontQ + backQ];
+  const tag = (y: number, text: string) => ({ at: p(W * 0.2, y), text, size: 0.55, rotate: 90 });
+  return [
+    {
+      ...band,
+      notches: marks.flatMap((y): [P, P][] => [
+        [p(W, y), p(1, 0)],
+        [p(0, y), p(-1, 0)],
+      ]),
+      labels: [
+        ...band.labels.filter((l) => !['CENTRE FRONT', 'SIDE SEAM'].includes(l.text)),
+        tag(frontQ - 3, 'CENTRE FRONT'),
+        tag(2 * frontQ - 2.6, 'SIDE SEAM'),
+        tag(2 * frontQ + backQ - 3, 'CENTRE BACK'),
+      ],
+      meta: { ...band.meta, opening: 'left_side' },
+    },
+  ];
+}
+
+/**
+ * The slip's waist facings, front and back, each cut whole like the skirt and 5 cm deep. They are cut
+ * on the straight grain and interfaced, so they hold the bias waist to its size.
+ */
+function waistFacings(draft: SkirtDraft): Piece[] {
+  return draft.pieces.flatMap((pc) => {
+    const name = /back/i.test(pc.name) ? 'Back waist facing' : 'Front waist facing';
+    const f = facing(pc, 'waist', SLIP_FACING, name);
+    if (!f) return [];
+    const cut = 'Cut 1, straight grain';
+    const mid = f.grain ? lerp(f.grain[0], f.grain[1], 0.5) : f.labels[0].at;
+    return [
+      {
+        ...f,
+        cut,
+        grain: [add(mid, p(0, -1.6)), add(mid, p(0, 1.6))] as [P, P],
+        labels: f.labels.map((l, i) => (i === 1 ? { ...l, text: cut } : l)),
+        meta: { ...f.meta, straightGrain: true },
+      },
+    ];
+  });
+}
+
+/**
+ * The waistband of a pull-on elastic waist: a casing as long as the garment's waist, so it pulls on
+ * over the hips, joined into a loop at the centre back and folded over the elastic. No interfacing:
+ * it has to gather. `marks` are cm from the centre back end, with what each marks.
+ */
+export function casingPiece(length: number, marks: [number, string][], sa: number): Piece {
+  const W = 2 * WAISTBAND_CM;
+  const L = length;
+  const outline = new Path(p(0, 0)).line(p(W, 0), 'end').line(p(W, L), 'waist').line(p(0, L), 'end').line(p(0, 0), 'band');
+  outline.closed = true;
+  const notches: [P, P][] = marks.flatMap(([y]): [P, P][] => [
+    [p(W, y), p(1, 0)],
+    [p(0, y), p(-1, 0)],
+  ]);
+  const tag = (at: P, text: string) => ({ at, text, size: 0.55, rotate: 90 });
+  const cut = 'Cut 1';
+  const mid = (marks[0][0] + marks[1][0]) / 2;
+  return {
+    name: 'Waistband',
+    kind: 'waistband',
+    outline,
+    lines: [],
+    grain: [p(W * 0.25, 5.5), p(W * 0.25, Math.max(10, marks[0][0] - 4))],
+    notches,
+    balance: [{ pts: [p(W / 2, 0), p(W / 2, L)], label: 'FOLD LINE' }],
+    labels: [
+      { at: p(W * 0.62, mid), text: 'WAISTBAND', size: 1.0, rotate: 90 },
+      { at: p(W * 0.5, mid), text: cut, size: 0.6, rotate: 90 },
+      ...marks.map(([y, t]) => tag(p(W * 0.2, y + 2.6), t)),
+      tag(p(W * 0.75, 3.2), 'CENTRE BACK'),
+      tag(p(W * 0.2, Math.min(mid + 9, L - 4)), 'ELASTIC CASING'),
+    ],
+    cut,
+    seamAllowance: sa,
+    allowances: {},
+    meta: { finishedWidth: WAISTBAND_CM, lengthCm: r1(L), casing: true },
+  };
+}
+
 /** Lining for a skirt, drafted 2.5 cm shorter so it never shows below the hem, with a narrow hem.
  * The darts are sewn as tucks, which gives the lining the ease to move over the skirt. */
 export function liningPieces(lining: SkirtDraft): Piece[] {
-  return lining.pieces.map((pc) => {
+  return lining.pieces.filter((pc) => !pc.kind).map((pc) => {
     const name = pc.name.replace(/^Skirt/, 'Lining');
     return {
       ...pc,

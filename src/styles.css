@@ -294,7 +294,7 @@ p {
   font-weight: var(--w-strong);
 }
 
-/* Six garments: the switch fills a narrow card's width, wrapping onto a second row rather than spilling out of it. */
+/* The garments: the switch fills a narrow card's width, wrapping onto a second row rather than spilling out of it. */
 .seg.garments {
   max-width: 100%;
   flex-wrap: wrap;
@@ -303,6 +303,7 @@ p {
 .seg.garments button {
   flex: 1 1 auto;
   padding: 0 10px;
+  white-space: nowrap;
 }
 
 .fields {
@@ -1841,6 +1842,15 @@ button.link.how-link {
   text-underline-offset: 5px;
 }
 
+/* The easiest garment, marked as a good first project */
+.first-project {
+  display: inline-block;
+  margin-left: 10px;
+  padding: 1px 8px;
+  font-size: 11px;
+  vertical-align: 2px;
+}
+
 /* What to make: one choice, then Continue measuring */
 .pick-list {
   display: flex;
@@ -2003,41 +2013,42 @@ button.link.how-link {
   color: var(--disabled);
 }
 
-.entry-unit {
-  font-family: var(--mono);
-  font-size: 13px;
-  letter-spacing: var(--track);
-  color: var(--muted);
-}
-
 .measure-entry .msg {
   margin: 0;
 }
 
-/* cm / in, quietly under the box */
+/* cm | in, inside the box where the unit sits (Cat's pick U1): the chosen one is lit champagne */
+.entry-row {
+  align-items: center;
+}
+
 .unit-switch {
   display: flex;
-  gap: 18px;
+  flex: none;
 }
 
 .unit-switch button {
-  min-height: 44px;
-  padding: 0;
-  border: none;
+  min-width: 44px;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--line-strong);
   background: none;
   color: var(--muted);
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: var(--track);
   text-transform: uppercase;
   cursor: pointer;
 }
 
+.unit-switch button + button {
+  border-left: none;
+}
+
 .unit-switch button.on {
-  color: var(--ink);
-  text-decoration: underline;
-  text-decoration-color: var(--gild);
-  text-underline-offset: 6px;
+  border-color: var(--gild);
+  background: var(--gild);
+  color: #000;
 }
 
 /* Next sits well apart from the box, so the two never read as one control */
@@ -2516,13 +2527,15 @@ table.history td.moved {
   opacity: 0.8;
 }
 
-.makerform hr {
+.makerform hr,
+.offer.inset hr {
   border: 0;
   border-top: var(--bw) solid var(--line);
   margin: 20px 0;
 }
 
-.makerform input {
+.makerform input,
+.offer input[type='email'] {
   flex: 1 1 auto;
   min-width: 0;
   min-height: 48px;
@@ -2536,7 +2549,8 @@ table.history td.moved {
   font-size: 16px;
 }
 
-.makerform form {
+.makerform form,
+.offer form {
   margin-top: 12px;
 }
 
@@ -2549,9 +2563,123 @@ table.history td.moved {
   white-space: nowrap;
   padding: 0 10px;
 }
+
+/* Style: "Choose another garment" and the Maison collection, quiet links side by side under the title */
+.garment-pick {
+  display: flex;
+  flex-wrap: wrap;
+  flex-basis: 100%;
+  column-gap: 24px;
+}
+
+.garment-pick button.link.garment-change {
+  flex-basis: auto;
+}
+
+/* The Maison collection: a lookbook, one look at a time down the page, two across on wide screens */
+.collection {
+  max-width: 1080px;
+  margin: 0 auto;
+}
+
+.collection-head {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 560px;
+  margin: 8px 0 36px;
+}
+
+.collection-head h1 {
+  font-size: 40px;
+}
+
+.lookbook {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr));
+  gap: 56px 48px;
+}
+
+.house-look {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.house-look .eyebrow {
+  margin: 0;
+}
+
+.house-flat {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 340px;
+  padding: 12px 0 4px;
+}
+
+.house-flat .techflat {
+  height: 100%;
+  max-height: none;
+}
+
+.house-look h2 {
+  font-size: 30px;
+}
+
+.house-look button.secondary {
+  align-self: flex-start;
+  margin-top: 6px;
+}
+
 .shape .body-outline {
   stroke: var(--muted);
   opacity: 0.5;
+}
+
+/* Fit tester and news sign-ups, from Your account */
+.signup .check {
+  font-size: 15px;
+  line-height: 1.5;
+  text-transform: none;
+  letter-spacing: normal;
+}
+.signup .field label .muted {
+  font-weight: var(--w-body);
+}
+.signup hr {
+  width: 100%;
+  border: 0;
+  border-top: var(--bw) solid var(--line);
+  margin: 12px 0 0;
+}
+.signup .link {
+  align-self: flex-start;
+}
+/* The box only bots see and fill in */
+.signup .hp,
+.offer .hp {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+/* The calm screen shown when something fails to draw */
+.crash {
+  max-width: 560px;
+  margin: 10vh auto 0;
+  gap: 14px;
+  line-height: 1.6;
+}
+.crash .lead {
+  font-size: 18px;
 }
 
 /* Text boxes start empty, with no sample text (Cat's pick E1): a champagne outline and cursor show the box
@@ -2602,4 +2730,35 @@ button.link.garment-change {
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--gild);
+}
+
+/* Paid extras that aren't open yet: an email sign-up with the planned price */
+.offerprices {
+  margin: 0.5rem 0 0.75rem;
+}
+.offerprices div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  border-top: var(--bw) solid var(--line);
+  padding: 0.5rem 0;
+}
+.offerprices dd {
+  margin: 0;
+  color: var(--gild);
+}
+
+/* Plans: Free, Premium and Maker, and the prompts that open them (switched off until billing) */
+.plans {
+  display: grid;
+  gap: 16px;
+  max-width: 720px;
+  margin: 0 auto;
+}
+.plan .stack {
+  margin-top: 12px;
+}
+.photoallowance {
+  max-width: 720px;
+  margin: 0 auto 12px;
 }
