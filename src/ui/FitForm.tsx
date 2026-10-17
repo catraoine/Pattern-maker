@@ -95,7 +95,6 @@ export function FitForm({ choices, initial, onSave, onCancel, onClear }: Props) 
           rows={3}
           maxLength={NOTES_MAX}
           value={fit.notes}
-          placeholder="e.g. pinned out 1 cm at the back waist; dropped the hem 2 cm"
           onChange={(e) => set({ notes: e.target.value })}
         />
       </div>

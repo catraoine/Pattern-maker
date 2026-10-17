@@ -6,7 +6,7 @@ import { OUTER_EASE, OuterDraft } from '../engine/outerwear';
 import { outerFlat } from '../engine/flat';
 import { OuterChoices, describeOuter, outerAllowed, outerGroups } from '../garments';
 import { TechFlatView } from '../ui/TechFlatView';
-import { Garment, MeasurementValues } from '../measurements';
+import { MeasurementValues } from '../measurements';
 import { PatternPreview } from '../ui/Preview';
 import { GarmentSwitch } from '../ui/GarmentSwitch';
 import { FREE_SAVED_LIMIT } from '../account';
@@ -20,7 +20,8 @@ import { FabricCard } from '../ui/FabricCard';
 interface Props {
   choices: OuterChoices;
   onChoices: (c: OuterChoices) => void;
-  onGarment: (g: Garment) => void;
+  /** Open the list of what to make, to pick another garment. */
+  onChooseGarment: () => void;
   values: MeasurementValues;
   draft?: OuterDraft;
   error?: string;
@@ -41,7 +42,7 @@ export const outerFabricMetres = (draft: OuterDraft) => {
   return layPlan(self, 140)?.metres ?? toMetres(piecesLengthCm(self) + 10);
 };
 
-export function OuterStyleScreen({ choices, onChoices, onGarment, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, finish, onFinish, fabric }: Props) {
+export function OuterStyleScreen({ choices, onChoices, onChooseGarment, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, finish, onFinish, fabric }: Props) {
   const [view, setView] = useState<'sketch' | 'pattern' | 'ease'>('sketch');
   const kind = choices.garment;
   const pieces = useMemo(() => draft?.pieces ?? [], [draft]);
@@ -55,7 +56,7 @@ export function OuterStyleScreen({ choices, onChoices, onGarment, values, draft,
       <section className="card" aria-labelledby="opts">
         <div className="row between wrap">
           <h1 id="opts">Style your {kind}</h1>
-          <GarmentSwitch garment={kind} onGarment={onGarment} />
+          <GarmentSwitch onChoose={onChooseGarment} />
         </div>
         {outerGroups(kind).map((g) => (
           <fieldset key={g.id} className="group">

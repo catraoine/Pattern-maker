@@ -12,14 +12,23 @@ interface Props {
   onValues: (v: MeasurementValues) => void;
   /** Measured for this garment: on to styling it. */
   onDone: (garment: Garment) => void;
+  /** Where to open. By default the start (or the check, once the base set is in). "choose" opens the list of what
+   * to make; a garment opens on the first measurement it still needs; "redo" opens one measurement and comes back. */
+  start?: StepsStart;
+  /** Measuring someone else: their name, given on the first page, before any measurement is taken. */
+  onSomeoneElse?: (name: string) => void;
+  /** The measurements in use are someone else's, so every page is worded for the person holding the tape. */
+  theirs?: boolean;
 }
+
+export type StepsStart = { kind: 'choose' } | { kind: 'for'; garment: Garment } | { kind: 'redo'; garment: Garment; ids: MeasurementId[] };
 
 type Page =
   | { kind: 'intro' }
   | { kind: 'base'; at: number; back?: 'check' }
   | { kind: 'check' }
   | { kind: 'choose' }
-  | { kind: 'extra'; garment: Garment | 'other'; ids: MeasurementId[]; at: number }
+  | { kind: 'extra'; garment: Garment | 'other'; ids: MeasurementId[]; at: number; redo?: boolean }
   | { kind: 'saved' };
 
 /** On the list of what to make: the garments, then "Something else", which takes the full set. */
@@ -34,11 +43,19 @@ const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
 // measurement per page, a check of those four, then what to make: pick one and Continue measuring goes
 // straight to the first extra that garment still needs. "Something else" takes every measurement.
 // "Measuring someone else?" words every page for the person holding the tape.
-export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onValues, onDone }: Props) {
+export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onValues, onDone, start, onSomeoneElse, theirs }: Props) {
+  const aimed = start?.kind === 'for' ? start.garment : undefined;
   // Each page is a history entry, so the header's back and the phone's back go one page back.
-  const [page, setPage] = usePageHistory<Page>(() => (baseDone(values) ? { kind: 'check' } : { kind: 'intro' }));
-  const [helper, setHelper] = useState(false);
-  const [picked, setPicked] = useState<Pick | null>(null);
+  const [page, setPage] = usePageHistory<Page>(() => {
+    if (start?.kind === 'redo') return { kind: 'extra', garment: start.garment, ids: start.ids, at: 0, redo: true };
+    if (!baseDone(values)) return { kind: 'intro' };
+    if (start?.kind === 'choose') return { kind: 'choose' };
+    const ids = aimed ? missingFor(aimed, values).map((f) => f.id) : [];
+    return ids.length ? { kind: 'extra', garment: aimed!, ids, at: 0 } : { kind: 'check' };
+  });
+  const [helper, setHelper] = useState(!!theirs);
+  const [name, setName] = useState('');
+  const [picked, setPicked] = useState<Pick | null>(start?.kind === 'choose' ? current : null);
 
   const go = (g: Pick) => {
     const ids = (g === 'other' ? fullSetMissing(values) : missingFor(g, values)).map((f) => f.id);
@@ -49,7 +66,7 @@ export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onV
 
   if (page.kind === 'intro')
     return (
-      <Shell title="First, let's take your measurements." eyebrow="About 4 minutes" helperTitle="First, let's take their measurements." helper={helper} hero={<TapeDemo id="waist" name="" mode="still" />}>
+      <Shell title="First, let's take your measurements." eyebrow="Made to measure" helperTitle="First, let's take their measurements." helper={helper} hero={<TapeDemo id="waist" name="" mode="still" />}>
         <dl className="need">
           <div>
             <dt>You'll need</dt>
@@ -60,8 +77,22 @@ export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onV
             <dd>Close-fitting clothes</dd>
           </div>
         </dl>
+        {helper && (
+          <div className="field plain ready">
+            <label htmlFor="who-name">Name</label>
+            <input id="who-name" autoComplete="off" autoFocus value={name} onChange={(e) => setName(e.target.value)} />
+          </div>
+        )}
         <div className="stack">
-          <button type="button" className="primary" onClick={() => setPage({ kind: 'base', at: 0 })}>
+          <button
+            type="button"
+            className="primary"
+            disabled={helper && !name.trim()}
+            onClick={() => {
+              if (helper) onSomeoneElse?.(name.trim());
+              setPage({ kind: 'base', at: 0 });
+            }}
+          >
             Start measuring
           </button>
           <button type="button" className="link quiet" aria-pressed={helper} onClick={() => setHelper(!helper)}>
@@ -84,15 +115,21 @@ export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onV
             </li>
           ))}
         </ul>
-        <button type="button" className="primary" onClick={() => setPage({ kind: 'choose' })}>
-          Choose what to make
-        </button>
+        {aimed ? (
+          <button type="button" className="primary" onClick={() => go(aimed)}>
+            Continue measuring
+          </button>
+        ) : (
+          <button type="button" className="primary" onClick={() => setPage({ kind: 'choose' })}>
+            Choose what to make
+          </button>
+        )}
       </Shell>
     );
 
   if (page.kind === 'choose')
     return (
-      <Shell eyebrow="Made to measure" title="What would you like to make?" hero={<TapeDemo id="waist" name="" mode="still" />} short>
+      <Shell eyebrow={start?.kind === 'choose' ? 'Choose another garment' : 'Made to measure'} title="What would you like to make?" hero={<TapeDemo id="waist" name="" mode="still" />} short>
         <div className="pick-list" role="radiogroup" aria-labelledby="stitle">
           {[...GARMENTS, 'other' as const].map((g) => (
             <button key={g} type="button" role="radio" aria-checked={picked === g} className={picked === g ? 'on' : ''} onClick={() => setPicked(g)}>
@@ -125,10 +162,12 @@ export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onV
   const g = page.kind === 'extra' ? page.garment : null;
   const eyebrow = page.kind === 'base' ? `${at + 1} of ${ids.length}` : g === 'other' ? 'Full set' : cap(GARMENT_NAME[g!]);
   const label =
-    page.kind === 'base' && page.back === 'check' ? 'Save' : page.kind === 'base' || g === 'other' ? (last ? 'Done' : 'Next') : last ? `Next: style your ${GARMENT_NAME[g!]}` : 'Next';
+    (page.kind === 'base' && page.back === 'check') || (page.kind === 'extra' && page.redo && last) ? 'Save' : page.kind === 'extra' && page.redo ? 'Next' : page.kind === 'base' || g === 'other' ? (last ? 'Done' : 'Next') : last ? `Next: style your ${GARMENT_NAME[g!]}` : 'Next';
   const next = () => {
     // A redo from the check returns to it, the same as going back.
     if (page.kind === 'base' && page.back === 'check' && canGoBack()) goBack();
+    // A redo from the measurements list goes back to the list, past every page it took.
+    else if (page.kind === 'extra' && page.redo && last && canGoBack()) window.history.go(-(at + 1));
     else if (page.kind === 'base') setPage(last ? { kind: 'check' } : { ...page, at: at + 1 });
     else if (last) {
       if (page.garment === 'other') setPage({ kind: 'saved' });
