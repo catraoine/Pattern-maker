@@ -61,13 +61,16 @@ import { FittingScreen } from './screens/FittingScreen';
 import { TrueScaleScreen } from './screens/TrueScaleScreen';
 import { ClientBookScreen } from './screens/ClientBookScreen';
 import { CheckFileScreen } from './screens/CheckFileScreen';
+import { CollectionScreen } from './screens/CollectionScreen';
+import { lookPatch } from './collection';
+import { CollectionLink } from './ui/GarmentSwitch';
 import { LoadingScreen } from './ui/LoadingScreen';
 import type { FormStart } from './ui/ContourForm';
 import type { Piece } from './engine/piece';
 import { garmentEase } from './engine/easeMap';
 
 export type Step = 'measure' | 'style' | 'export';
-type View = Step | 'welcome' | 'steps' | 'account' | 'photo' | 'whose' | 'fitting' | 'scale' | 'client' | 'check' | 'privacy' | 'terms';
+type View = Step | 'welcome' | 'steps' | 'account' | 'photo' | 'whose' | 'fitting' | 'scale' | 'client' | 'check' | 'privacy' | 'terms' | 'collection';
 
 export interface Choices {
   fit: Fit;
@@ -707,6 +710,18 @@ export default function App() {
               }}
             />
           )}
+          {step === 'collection' && (
+            <CollectionScreen
+              values={values}
+              onBack={() => setStep('style')}
+              onMake={(look) => {
+                const { garment: g, ...next } = lookPatch(look);
+                switchGarment(g, next as Partial<Saved>, 'style');
+                window.scrollTo(0, 0);
+              }}
+            />
+          )}
+          <CollectionLink.Provider value={step === 'style' ? () => { setStep('collection'); window.scrollTo(0, 0); } : undefined}>
           {step === 'style' && garment === 'skirt' && (
             <StyleScreen
               easeMap={ease}
@@ -806,6 +821,7 @@ export default function App() {
               onAccount={() => setStep('account')}
             />
           )}
+          </CollectionLink.Provider>
           {step === 'export' && (
             <ExportScreen
               garment={garment}
