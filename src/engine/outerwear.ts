@@ -18,8 +18,11 @@ export type OuterLength = 'cropped' | 'hip' | 'long' | 'thigh' | 'knee' | 'midi'
 export type OuterShaping = 'darts' | 'princess' | 'boxy';
 export type OuterFront = 'single' | 'double';
 export type OuterCollar = 'notched' | 'stand' | 'collarless';
-export type OuterPockets = 'none' | 'patch';
-export type OuterSleeve = 'fitted' | 'straight';
+export type OuterPockets = 'none' | 'patch' | 'welt';
+/** 'tailored' is the two-piece sleeve, top and under sleeve; 'fitted' the one-piece with an elbow dart. */
+export type OuterSleeve = 'tailored' | 'fitted' | 'straight';
+export type OuterPads = 'none' | 'soft' | 'structured';
+export type OuterVent = 'none' | 'centre';
 export type OuterFlare = 'straight' | 'a_line';
 
 export type OuterMeasurements = BodiceMeasurements & SleeveMeasurements & { waist_to_knee?: number; waist_to_floor?: number };
@@ -35,6 +38,10 @@ export interface OuterStyle {
   sleeve: OuterSleeve;
   /** Below the hip: straight, or flaring out to the hem. */
   flare: OuterFlare;
+  /** Shoulder pads, drafted in: the shoulders raised by the pad and the sleeve crown with them. */
+  pads: OuterPads;
+  /** A vent at the centre back hem. Not on a cropped jacket. */
+  vent: OuterVent;
   seamAllowance: number;
   hemAllowance: number;
   fitting?: BodiceFitting;
@@ -56,12 +63,17 @@ const OUTER_NECK = { frontDepth: 2, width: 1, backDepth: 0.5, fullness: 0.45 };
 export const OUTER_EXTENSION: Record<OuterKind, Record<OuterFront, number>> = { jacket: { single: 2, double: 6.5 }, coat: { single: 2.5, double: 8 } };
 export const OUTER_BUTTON: Record<OuterKind, number> = { jacket: 2, coat: 2.5 };
 
+/** How thick each pad is at the shoulder point, in cm. */
+export const PAD_CM: Record<OuterKind, Record<OuterPads, number>> = { jacket: { none: 0, soft: 0.6, structured: 1.2 }, coat: { none: 0, soft: 0.8, structured: 1.5 } };
+/** How far the vent's underlap reaches past the centre back, in cm. */
+export const VENT_WIDTH: Record<OuterKind, number> = { jacket: 4, coat: 5 };
+
 /** Flare added to each seam at the hem, per 40 cm below the hip. */
 const FLARE_PER_40: Record<OuterFlare, number> = { straight: 1.2, a_line: 4 };
 
 export const DEFAULT_OUTER: Record<OuterKind, OuterStyle> = {
-  jacket: { kind: 'jacket', fit: 'regular', length: 'hip', shaping: 'darts', front: 'single', collar: 'notched', pockets: 'patch', sleeve: 'fitted', flare: 'straight', seamAllowance: 1.5, hemAllowance: 4 },
-  coat: { kind: 'coat', fit: 'regular', length: 'knee', shaping: 'princess', front: 'single', collar: 'notched', pockets: 'patch', sleeve: 'fitted', flare: 'straight', seamAllowance: 1.5, hemAllowance: 5 },
+  jacket: { kind: 'jacket', fit: 'regular', length: 'hip', shaping: 'darts', front: 'single', collar: 'notched', pockets: 'patch', sleeve: 'tailored', flare: 'straight', pads: 'soft', vent: 'centre', seamAllowance: 1.5, hemAllowance: 4 },
+  coat: { kind: 'coat', fit: 'regular', length: 'knee', shaping: 'princess', front: 'single', collar: 'notched', pockets: 'welt', sleeve: 'tailored', flare: 'straight', pads: 'soft', vent: 'centre', seamAllowance: 1.5, hemAllowance: 5 },
 };
 
 /** The lapel as worn, for the flat: the break point, the roll line and the lapel and collar outlines. */
@@ -89,7 +101,12 @@ export interface OuterDraft {
   ext: number;
   buttons: { at: number[]; sizeCm: number; columns: number[] };
   lapel?: Lapel;
-  pocket?: { x: number; y: number; w: number; h: number };
+  /** Where the pockets sit on the front, as drafted: a patch pocket's outline, or a welt's opening. */
+  pocket?: { x: number; y: number; w: number; h: number; kind: 'patch' | 'welt' };
+  /** The pad thickness drafted into the shoulders, in cm (0 for none). */
+  pads: number;
+  /** The centre back vent: where it starts below the neck and how far the underlap reaches. */
+  vent?: { top: number; width: number; length: number };
   finishedBust: number;
   finishedWaist: number;
   finishedHem: number;
@@ -381,7 +398,9 @@ function openFront(pc: Piece, s: OuterStyle, ext: number, buttons: OuterDraft['b
     // into the back neck once the shoulders are sewn.
     let up = p(uSh.y, -uSh.x);
     if (up.y > 0) up = mul(up, -1);
-    const neckSeam = Array.from({ length: 13 }, (_, i) => quad(Q, sub(hps, mul(up, len(sub(hps, Q)) * 0.45)), hps, i / 12)).slice(0, -1);
+    // Close steps at the neck point, so the direction it arrives in is the curve's own.
+    const neckC = sub(hps, mul(up, len(sub(hps, Q)) * 0.45));
+    const neckSeam = [...Array.from({ length: 12 }, (_, i) => i / 12), 0.96, 0.99, 0.998].map((t) => quad(Q, neckC, hps, t));
     pts = [...r.pts.slice(sh[0], fi + 1), p(-ext, foot.y), ...lapelEdge, K, ...neckSeam];
     tags = [...r.tags.slice(sh[0], fi), 'opening-hem', 'opening', ...lapelEdge.slice(1).map(() => 'lapel'), 'lapel', 'gorge', ...neckSeam.map(() => 'neck')];
     lines.push(new Path(B).line(lerp(B, R, 0.93)));
@@ -557,6 +576,155 @@ function backLining(pc: Piece, pleat: number): Piece {
   });
 }
 
+/**
+ * The back with a centre back vent: no longer on the fold, but a centre back seam down to the vent,
+ * and below it an underlap `w` wide past the centre back, its top cut at 45 degrees. Both backs are cut
+ * alike: on the left back the underlap lies under the vent, on the right it folds back along the
+ * centre back as the vent's facing.
+ */
+export function ventBack(pc: Piece, top: number, w: number): Piece {
+  const r = ringOf(pc.outline, 24);
+  const n = r.pts.length;
+  const fi = r.tags.indexOf('fold');
+  if (fi < 0) return pc;
+  const a = r.pts[fi];
+  const b = r.pts[(fi + 1) % n];
+  const foot = Math.max(a.y, b.y);
+  // Down the centre back: the seam to the vent, the underlap's slant and its edge, then the hem across it.
+  const down = [p(0, top), p(-w, top + w), p(-w, foot)];
+  const downTags = ['centre', 'vent', 'vent', 'hem'];
+  const fromTop = a.y < b.y;
+  const pts = [...r.pts.slice(0, fi + 1)];
+  const tags = [...r.tags.slice(0, fi)];
+  if (fromTop) {
+    pts.push(...down);
+    tags.push(...downTags);
+  } else {
+    pts.push(...[...down].reverse());
+    tags.push(...[...downTags].reverse());
+  }
+  pts.push(...r.pts.slice(fi + 1));
+  tags.push(...r.tags.slice(fi + 1));
+  const cut = 'Cut 2 (1 pair)';
+  return {
+    ...pc,
+    outline: pathOf({ pts, tags }),
+    fold: undefined,
+    cut,
+    lines: [...pc.lines, new Path(p(0, top)).line(p(0, foot - 0.3))],
+    labels: [
+      ...pc.labels.map((l) => (l.text === pc.cut ? { ...l, text: cut } : l)),
+      { at: p(-w / 2, top + w + 6), text: 'VENT', size: 0.55, rotate: 90 },
+      { at: p(0.7, top + w + 6), text: 'RIGHT BACK: FOLD BACK', size: 0.42, rotate: 90 },
+    ],
+    notches: [...pc.notches, [p(0, top), p(-1, 0)]],
+    allowances: { ...pc.allowances, centre: pc.seamAllowance, vent: 1 },
+    meta: { ...pc.meta, vent: { top, width: w } },
+  };
+}
+
+/**
+ * The back lining for a vented back: a centre back seam with the pleat above the vent; the left back
+ * lining follows the underlap, and the right one (the second cutting line) is cut away to the vent
+ * facing's edge.
+ */
+function ventLining(pc: Piece, top: number, w: number, pleat: number): Piece {
+  const r = ringOf(pc.outline, 24);
+  const moved = r.pts.map((q) => (Math.abs(q.x) < 1e-6 && q.y < top - 0.05 ? p(-pleat, q.y) : q));
+  // Bring the pleat back in to nothing just above the vent.
+  const iTop = moved.findIndex((q) => Math.abs(q.x) < 1e-6 && Math.abs(q.y - top) < 1e-6);
+  const pts = [...moved];
+  const tags = [...r.tags];
+  if (iTop >= 0) {
+    const prev = pts[(iTop - 1 + pts.length) % pts.length];
+    const above = p(-pleat, top - 4);
+    if (prev.x < 0 && prev.y < top) {
+      pts.splice(iTop, 0, above);
+      tags.splice(iTop, 0, 'centre');
+    } else {
+      pts.splice(iTop + 1, 0, above);
+      tags.splice(iTop + 1, 0, 'centre');
+    }
+  }
+  const foot = Math.max(...r.pts.map((q) => q.y));
+  const ring = { pts, tags };
+  const cut = 'Cut 2 (1 pair)';
+  const lining = cutFrom(pc, ring, 'Back lining', {
+    kind: 'lining',
+    fabric: 'Lining',
+    cut,
+    lines: [new Path(p(0, Math.min(...pts.map((q) => q.y)) + 0.5)).line(p(0, top - 4))],
+    grain: [p(5, top * 0.35), p(5, top - 3)],
+    labels: [
+      { at: p(9, top - 20), text: 'BACK LINING', size: 1.1 },
+      { at: p(9, top - 18.4), text: cut, size: 0.7 },
+      { at: p(0.9, top - 30), text: 'PLEAT LINE', size: 0.45, rotate: 90 },
+      { at: p(w + 1.2, top + w + 4), text: 'CUT AWAY FOR THE RIGHT BACK', size: 0.42, rotate: 90 },
+    ],
+    allowances: { ...pc.allowances, centre: pc.seamAllowance, vent: 1, hem: 1.5 },
+  });
+  // The right back lining stops at the vent facing's edge, w in from the centre back.
+  const alt = pts.map((q) => q);
+  const vi = alt.findIndex((q) => Math.abs(q.x + w) < 1e-6 && Math.abs(q.y - (top + w)) < 1e-6);
+  const fi2 = alt.findIndex((q) => Math.abs(q.x + w) < 1e-6 && Math.abs(q.y - foot) < 1e-6);
+  if (vi >= 0 && fi2 >= 0) {
+    alt[vi] = p(w, top + w);
+    alt[fi2] = p(w, foot);
+  }
+  return { ...lining, alternate: { outline: pathOf({ pts: alt, tags }), label: 'RIGHT BACK LINING' } };
+}
+
+/** A single welt pocket: the welt, folded in half, the pocket facing and the two pocket bags. */
+function weltPieces(w: number, depth: number, bag: number, sa: number): Piece[] {
+  const rect = (W: number, H: number, name: string, tag: string, over: Partial<Piece>): Piece => {
+    const outline = pathOf({ pts: [p(0, 0), p(W, 0), p(W, H), p(0, H)], tags: [tag, `${tag}-end`, tag, `${tag}-end`] });
+    const cut = over.cut ?? 'Cut 2';
+    return {
+      name,
+      kind: 'facing',
+      outline,
+      lines: [],
+      grain: [p(W * 0.2, H * 0.2), p(W * 0.2, Math.max(H * 0.8, H * 0.2 + 2))],
+      notches: [],
+      labels: [
+        { at: p(W / 2, H / 2 - 0.2), text: name.toUpperCase(), size: H < 6 ? 0.55 : 0.8 },
+        { at: p(W / 2, H / 2 + (H < 6 ? 0.8 : 1.2)), text: cut, size: H < 6 ? 0.45 : 0.55 },
+      ],
+      cut,
+      seamAllowance: sa,
+      allowances: { [tag]: 1, [`${tag}-end`]: 1 },
+      meta: {},
+      ...over,
+    };
+  };
+  const welt = rect(w, 2 * depth, 'Welt', 'welt', { fabric: 'Self + interfacing', balance: [{ pts: [p(0, depth), p(w, depth)], label: 'FOLD' }] });
+  const facing = rect(w + 3, 7, 'Pocket facing', 'pocket', { grain: [p(2, 1.5), p(2, 5.5)] });
+  // The bag: rounded at the bottom so lint does not collect in its corners.
+  const W = w + 3;
+  const R = 3;
+  const arc = (c: P, from: number) => Array.from({ length: 7 }, (_, i) => add(c, mul(p(Math.cos(from - (i / 6) * (Math.PI / 2)), Math.sin(from - (i / 6) * (Math.PI / 2))), R)));
+  const bagPts = [p(0, 0), ...arc(p(R, bag - R), Math.PI), ...arc(p(W - R, bag - R), Math.PI / 2), p(W, 0)];
+  const bagCut = 'Cut 4 (2 pairs)';
+  const bagPiece: Piece = {
+    name: 'Pocket bag',
+    kind: 'lining',
+    fabric: 'Lining or pocketing',
+    outline: pathOf({ pts: bagPts, tags: [...bagPts.slice(1).map(() => 'bag'), 'bag-top'] }),
+    lines: [],
+    grain: [p(W * 0.2, 3), p(W * 0.2, bag - 4)],
+    notches: [],
+    labels: [
+      { at: p(W / 2, bag * 0.45), text: 'POCKET BAG', size: 0.8 },
+      { at: p(W / 2, bag * 0.45 + 1.2), text: bagCut, size: 0.55 },
+    ],
+    cut: bagCut,
+    seamAllowance: sa,
+    allowances: { bag: 1, 'bag-top': 1 },
+    meta: {},
+  };
+  return [welt, facing, bagPiece];
+}
+
 /** Buttons down the front: from the break point (or just below the neck) to above the hem, about 10 cm apart. */
 function buttonsFor(s: OuterStyle, ext: number, first: number, last: number): OuterDraft['buttons'] {
   const size = OUTER_BUTTON[s.kind];
@@ -577,6 +745,9 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
   const length = OUTER_LENGTHS[s.kind].includes(s.length) ? s.length : DEFAULT_OUTER[s.kind].length;
   // A fitted jacket needs its waist darts; only a roomier one can go boxy.
   const shaping = s.shaping === 'boxy' && s.fit === 'fitted' ? 'darts' : s.shaping;
+  // Shoulder pads drafted in: each shoulder squared up so its point rises by the pad, which lengthens
+  // the armhole; the sleeve is drafted to that armhole, so its crown rises with it.
+  const pad = PAD_CM[s.kind][s.pads] ?? 0;
   const bodiceStyle: Partial<BodiceStyle> = {
     fit: s.fit,
     neckline: 'crew',
@@ -589,6 +760,7 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
     neckArmholeAllowance: 1,
     hemAllowance: s.hemAllowance,
     fitting: s.fitting,
+    shoulderPad: pad,
     closure: 'back_zip',
     collar: 'none',
   };
@@ -628,7 +800,7 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
     } else fronts.push(pc);
   }
   if (!opening) throw new DraftError('The front could not be opened for buttons.');
-  const backs = shell.filter((pc) => /back/i.test(pc.name));
+  let backs = shell.filter((pc) => /back/i.test(pc.name));
 
   // The front facing, and the front lining: the opened front either side of the facing line.
   const fr = ringOf(opening.piece.outline, 12);
@@ -642,6 +814,18 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
   facings.push(facingPiece);
   const backNeck = taggedLength(backs.find((pc) => pc.fold)?.outline ?? backs[0].outline, 'neck');
   const sa = s.seamAllowance;
+  // The centre back vent, longer on a longer garment: from 12 cm on a hip jacket to 45 cm on a long coat.
+  let vent: OuterDraft['vent'];
+  if (s.vent === 'centre' && length !== 'cropped') {
+    const width = VENT_WIDTH[s.kind];
+    backs = backs.map((pc) => {
+      if (!pc.fold) return pc;
+      const backFoot = Math.max(...pc.outline.points(4).map((q) => q.y));
+      const top = r1(backFoot - Math.min(45, Math.max(12, (backFoot - waistY) * 0.6)));
+      vent = { top, width, length: r1(backFoot - top) };
+      return ventBack(pc, top, width);
+    });
+  }
   const collar =
     s.collar === 'notched'
       ? [notchedCollar(opening.piece, backNeck, opening.frontNeck, s)]
@@ -656,7 +840,8 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
     } else linings.push(cutFrom(pc, ringOf(pc.outline, 12), `${pc.name.replace(KIND, '').trim()} lining`.replace(/^./, (c) => c.toUpperCase()), { kind: 'lining', fabric: 'Lining', allowances: { ...pc.allowances, hem: 1.5 } }));
   }
   for (const pc of backs) {
-    if (pc.fold) linings.push(backLining(pc, 1.5));
+    if (pc.meta.vent && vent) linings.push(ventLining(pc, vent.top, vent.width, 1.5));
+    else if (pc.fold) linings.push(backLining(pc, 1.5));
     else linings.push(cutFrom(pc, ringOf(pc.outline, 12), `${pc.name.replace(KIND, '').trim()} lining`.replace(/^./, (c) => c.toUpperCase()), { kind: 'lining', fabric: 'Lining', allowances: { ...pc.allowances, hem: 1.5 } }));
   }
 
@@ -672,23 +857,25 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
   const sleevePieces = sleeve.pieces.map((pc) => ({ ...pc, labels: pc.labels }));
   const sleeveLining = sleeve.pieces.map((pc) => ({
     ...pc,
-    name: 'Sleeve lining',
+    name: `${pc.name} lining`,
     kind: 'lining' as const,
     fabric: 'Lining',
-    labels: pc.labels.map((l) => (l.text === 'SLEEVE' ? { ...l, text: 'SLEEVE LINING' } : l)),
+    labels: pc.labels.map((l) => (/SLEEVE$/.test(l.text) ? { ...l, text: `${l.text} LINING` } : l)),
     allowances: { ...pc.allowances, hem: 1.5 },
     meta: { ...pc.meta },
   }));
 
-  // Patch pockets just below the waist, centred on the front.
+  // Pockets just below the waist, on the widest front piece at that level (the side front, with
+  // princess seams), clear of the buttons and the seams.
   let pocketPieces: Piece[] = [];
   let pocket: OuterDraft['pocket'];
-  if (s.pockets === 'patch') {
-    const w = s.kind === 'coat' ? 18 : 15;
-    const h = s.kind === 'coat' ? 19 : length === 'cropped' ? 12 : 16;
-    const y = Math.min(waistY + (m.waist_to_hip ?? 20) * 0.35, foot - h - 4);
-    // On the widest front piece at that level (the side front, with princess seams), clear of the
-    // buttons and the seams.
+  if (s.pockets !== 'none') {
+    const welt = s.pockets === 'welt';
+    const w = welt ? (s.kind === 'coat' ? 16 : 14) : s.kind === 'coat' ? 18 : 15;
+    const h = welt ? (s.kind === 'coat' ? 3 : 2.5) : s.kind === 'coat' ? 19 : length === 'cropped' ? 12 : 16;
+    const y = welt
+      ? Math.min(waistY + (m.waist_to_hip ?? 20) * (s.kind === 'coat' ? 0.5 : 0.4), foot - 8)
+      : Math.min(waistY + (m.waist_to_hip ?? 20) * 0.35, foot - h - 4);
     const carrier = fronts.reduce((best, pc) => {
       const [lo, hi] = spanAt(pc, y + h / 2);
       const [blo, bhi] = spanAt(best, y + h / 2);
@@ -697,16 +884,14 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
     const [lo, hi] = spanAt(carrier, y + h / 2);
     const from = Math.max(lo + 1.5, ext + 2);
     const x = Math.max(from, Math.min(hi - w - 2, (from + hi) / 2 - w / 2));
-    pocket = { x, y, w, h };
-    pocketPieces = [patchPocket(w, h, sa)];
-    if (carrier) {
-      const i = fronts.indexOf(carrier);
-      fronts[i] = {
-        ...carrier,
-        lines: [...carrier.lines, new Path(p(x, y)).line(p(x, y + h)).line(p(x + w, y + h)).line(p(x + w, y))],
-        labels: [...carrier.labels, { at: p(x + w / 2, y + 1.2), text: 'POCKET', size: 0.5 }],
-      };
-    }
+    pocket = { x, y, w, h, kind: welt ? 'welt' : 'patch' };
+    pocketPieces = welt ? weltPieces(w, h, s.kind === 'coat' ? 22 : 17, sa) : [patchPocket(w, h, sa)];
+    const i = fronts.indexOf(carrier);
+    fronts[i] = {
+      ...carrier,
+      lines: [...carrier.lines, new Path(p(x, y)).line(p(x, y + h)).line(p(x + w, y + h)).line(p(x + w, y)).line(p(x, y))],
+      labels: [...carrier.labels, { at: p(x + w / 2, welt ? y - 0.8 : y + 1.2), text: welt ? 'WELT POCKET' : 'POCKET', size: 0.5 }],
+    };
   }
 
   const backPiece = backs.find((pc) => pc.fold) ?? backs[0];
@@ -726,6 +911,8 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
     buttons,
     lapel: opening.lapel,
     pocket,
+    pads: pad,
+    vent,
     finishedBust: base.finishedBust,
     finishedWaist: base.finishedWaist,
     finishedHem,

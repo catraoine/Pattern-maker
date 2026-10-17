@@ -331,7 +331,7 @@ const MAX_SLEEVE_TURN = 0.72;
  * until it is that wide, up to about 40 degrees; past that the crown rounds out a little over the
  * shoulder, and the rest is drawn narrower to scale, as flats are. Gathered sleeves billow into their band.
  */
-function sleeveSide(h: Half, sl: SleeveDraft): { shape: P[]; band?: P[]; lines: FlatView['lines'] } {
+function sleeveSide(h: Half, sl: SleeveDraft): { shape: P[]; band?: P[]; lines: FlatView['lines']; seam?: P[] } {
   const arm = along(h, 'armhole')[0];
   if (!arm) return { shape: [], lines: [] };
   const hole = arm[0].y <= arm[arm.length - 1].y ? arm : [...arm].reverse();
@@ -370,7 +370,18 @@ function sleeveSide(h: Half, sl: SleeveDraft): { shape: P[]; band?: P[]; lines: 
     const shape = [...head, Ho, Hi, U, ...[...hole].reverse().slice(1, -1)];
     const lift = 2;
     lines.push({ pts: [add(Ho, mul(a, -lift)), add(Hi, mul(a, -lift))], kind: 'stitch' });
-    return { shape, lines };
+    // A two-piece sleeve's back seam, seen from the back: from above the back notch down to the wrist.
+    let seam: P[] | undefined;
+    if (sl.pieces.some((pc) => pc.meta.tailored)) {
+      // Parallel to the sleeve, 45% of the way in from its outer fold, up to where it meets the armhole.
+      const end = lerp(Ho, Hi, 0.45);
+      const mid = lerp(top, U, 0.45);
+      const dir = unit(sub(mid, end));
+      const off = (q: P) => Math.abs((q.x - end.x) * dir.y - (q.y - end.y) * dir.x);
+      const start = hole.reduce((best, q) => (off(q) < off(best) ? q : best), hole[0]);
+      seam = [start, end];
+    }
+    return { shape, lines, seam };
   }
   // A gathered sleeve: the band at the hem, the sleeve billowing above it.
   const w = (k * sl.hemCm) / 2;
@@ -631,12 +642,24 @@ export function outerFlat(d: OuterDraft): Flat {
       for (const y of d.buttons.at) for (const x of d.buttons.columns) lines.push({ pts: circle(h.move(p(x, y)), d.buttons.sizeCm / 2), kind: 'seam' });
       if (d.pocket) {
         const { x, y, w, h: ph } = d.pocket;
-        const box = [p(x, y), p(x, y + ph), p(x + w, y + ph), p(x + w, y)].map(h.move);
-        for (const pts of both(box)) lines.push({ pts, kind: 'stitch' });
-        for (const pts of both([h.move(p(x, y + 3)), h.move(p(x + w, y + 3))])) lines.push({ pts, kind: 'stitch' });
+        const box = [p(x, y), p(x, y + ph), p(x + w, y + ph), p(x + w, y), p(x, y)].map(h.move);
+        if (d.pocket.kind === 'welt') for (const pts of both(box)) lines.push({ pts, kind: 'seam' });
+        else {
+          for (const pts of both(box.slice(0, 4))) lines.push({ pts, kind: 'stitch' });
+          for (const pts of both([h.move(p(x, y + 3)), h.move(p(x + w, y + 3))])) lines.push({ pts, kind: 'stitch' });
+        }
       }
     } else {
       shapes.push(whole(h.run));
+      if (d.vent) {
+        // The centre back seam down to the vent, the vent's edge on to the hem, and its top stitched across.
+        const top = h.move(p(0, d.vent.top));
+        const cb = h.run.filter((q) => Math.abs(q.x - top.x) < 1e-6);
+        const neckY = Math.min(...cb.map((q) => q.y), top.y);
+        const hemY = Math.max(...cb.map((q) => q.y), top.y);
+        lines.push({ pts: [p(top.x, neckY), p(top.x, hemY)], kind: 'seam' });
+        lines.push({ pts: [top, add(top, p(d.vent.width, d.vent.width))], kind: 'seam' });
+      }
       const neckRun = along(h, 'neck')[0];
       if (neckRun && d.pieces.some((pc) => pc.name === 'Collar')) {
         // A stand collar stands up from the neck; a notched collar's fall lies over the neck seam from its roll.
@@ -651,6 +674,7 @@ export function outerFlat(d: OuterDraft): Flat {
       const f = (pts: P[]) => (flip ? mirror(pts) : pts);
       if (sl.shape.length) shapes.push(f(sl.shape));
       lines.push(...sl.lines.map((l) => ({ ...l, pts: f(l.pts) })));
+      if (sl.seam && !isFront) lines.push({ pts: f(sl.seam), kind: 'seam' });
     }
     for (const o of over) shapes.push(isFront ? mirror(o) : o, ...(isFront ? [o] : []));
     return { label: isFront ? ('FRONT' as const) : ('BACK' as const), shapes, lines };

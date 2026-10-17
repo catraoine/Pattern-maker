@@ -74,6 +74,8 @@ export function OuterStyleScreen({ choices, onChoices, onGarment, values, draft,
                       const next = { ...choices, [g.id]: id } as OuterChoices;
                       // A fitted cut keeps its waist darts.
                       if (next.fit === 'fitted' && next.shaping === 'boxy') next.shaping = 'darts';
+                      // A cropped jacket is too short for a vent.
+                      if (next.length === 'cropped') next.vent = 'none';
                       onChoices(next);
                     }}
                   >
@@ -89,7 +91,7 @@ export function OuterStyleScreen({ choices, onChoices, onGarment, values, draft,
         <FinishChoices garment={kind} finish={finish} onFinish={onFinish} />
         <p className="muted small">
           Fully lined, with interfaced front facings{choices.collar === 'notched' ? ' and an upper and under collar rolled at the lapel' : ''}. The sleeves are drafted to
-          your own armhole with room for what you wear underneath.
+          your own armhole with room for what you wear underneath{choices.pads !== 'none' ? ', and the shoulders and sleeve heads are raised to take the shoulder pads' : ''}.
         </p>
       </section>
 

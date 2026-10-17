@@ -6,7 +6,7 @@ import type { DartPlace, PrincessLine } from './engine/manipulate';
 import type { Closure, Collar } from './engine/collar';
 import { LEG_WORDS, Leg, TrouserClosure, TrouserLength } from './engine/trousers';
 import type { Fit } from './engine/skirt';
-import type { OuterCollar, OuterFit, OuterFlare, OuterFront, OuterKind, OuterLength, OuterPockets, OuterShaping, OuterSleeve } from './engine/outerwear';
+import type { OuterCollar, OuterFit, OuterFlare, OuterFront, OuterKind, OuterLength, OuterPads, OuterPockets, OuterShaping, OuterSleeve, OuterVent } from './engine/outerwear';
 
 export interface BodiceChoices {
   garment: 'bodice';
@@ -73,12 +73,14 @@ export interface OuterChoices {
   pockets: OuterPockets;
   sleeve: OuterSleeve;
   flare: OuterFlare;
+  pads: OuterPads;
+  vent: OuterVent;
 }
 
-export const DEFAULT_JACKET_CHOICES: OuterChoices = { garment: 'jacket', fit: 'regular', length: 'hip', shaping: 'darts', front: 'single', collar: 'notched', pockets: 'patch', sleeve: 'fitted', flare: 'straight' };
-export const DEFAULT_COAT_CHOICES: OuterChoices = { garment: 'coat', fit: 'regular', length: 'knee', shaping: 'princess', front: 'single', collar: 'notched', pockets: 'patch', sleeve: 'fitted', flare: 'straight' };
+export const DEFAULT_JACKET_CHOICES: OuterChoices = { garment: 'jacket', fit: 'regular', length: 'hip', shaping: 'darts', front: 'single', collar: 'notched', pockets: 'patch', sleeve: 'tailored', flare: 'straight', pads: 'soft', vent: 'centre' };
+export const DEFAULT_COAT_CHOICES: OuterChoices = { garment: 'coat', fit: 'regular', length: 'knee', shaping: 'princess', front: 'single', collar: 'notched', pockets: 'welt', sleeve: 'tailored', flare: 'straight', pads: 'soft', vent: 'centre' };
 
-type OuterGroupId = 'fit' | 'length' | 'shaping' | 'front' | 'collar' | 'sleeve' | 'pockets' | 'flare';
+type OuterGroupId = 'fit' | 'length' | 'shaping' | 'front' | 'collar' | 'sleeve' | 'pads' | 'pockets' | 'vent' | 'flare';
 
 /** The style groups for a jacket or a coat: a coat has its own lengths and a flare below the hip. */
 export function outerGroups(kind: OuterKind): { id: OuterGroupId; label: string; options: [string, string][] }[] {
@@ -92,14 +94,17 @@ export function outerGroups(kind: OuterKind): { id: OuterGroupId; label: string;
     { id: 'shaping', label: 'Shaping', options: [['darts', 'Darts'], ['princess', 'Princess seams'], ['boxy', 'Boxy']] },
     { id: 'front', label: 'Front', options: [['single', 'Single-breasted'], ['double', 'Double-breasted']] },
     { id: 'collar', label: 'Collar', options: [['notched', 'Notched lapel'], ['stand', 'Stand collar'], ['collarless', 'Collarless']] },
-    { id: 'sleeve', label: 'Sleeves', options: [['fitted', 'Fitted, with an elbow dart'], ['straight', 'Straight']] },
-    { id: 'pockets', label: 'Pockets', options: [['patch', 'Patch pockets'], ['none', 'None']] },
+    { id: 'sleeve', label: 'Sleeves', options: [['tailored', 'Two-piece, tailored'], ['fitted', 'One-piece, elbow dart'], ['straight', 'Straight']] },
+    { id: 'pads', label: 'Shoulder pads', options: [['soft', kind === 'coat' ? 'Soft, 8 mm' : 'Soft, 6 mm'], ['structured', kind === 'coat' ? 'Structured, 1.5 cm' : 'Structured, 1.2 cm'], ['none', 'None']] },
+    { id: 'pockets', label: 'Pockets', options: [['patch', 'Patch pockets'], ['welt', 'Welt pockets'], ['none', 'None']] },
+    { id: 'vent', label: 'Back vent', options: [['centre', 'Centre vent'], ['none', 'None']] },
     ...(kind === 'coat' ? [{ id: 'flare' as const, label: 'Below the hip', options: [['straight', 'Straight'], ['a_line', 'A-line']] as [string, string][] }] : []),
   ];
 }
 
-/** Whether a choice is allowed with the rest: boxy shaping needs room, so not with a fitted cut. */
-export const outerAllowed = (c: OuterChoices, id: OuterGroupId, opt: string) => !(id === 'shaping' && opt === 'boxy' && c.fit === 'fitted');
+/** Whether a choice is allowed with the rest: boxy shaping needs room, so not with a fitted cut; a cropped jacket is too short for a vent. */
+export const outerAllowed = (c: OuterChoices, id: OuterGroupId, opt: string) =>
+  !(id === 'shaping' && opt === 'boxy' && c.fit === 'fitted') && !(id === 'vent' && opt === 'centre' && c.length === 'cropped');
 
 const OUTER_LENGTH_WORDS: Record<OuterLength, string> = { cropped: 'Cropped', hip: 'Hip-length', long: 'Long', thigh: 'Mid-thigh', knee: 'Knee-length', midi: 'Midi' };
 const OUTER_COLLAR_WORDS: Record<OuterCollar, string> = { notched: 'with notched lapels', stand: 'with a stand collar', collarless: 'collarless' };

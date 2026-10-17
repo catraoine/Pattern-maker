@@ -220,7 +220,7 @@ export default function App() {
   );
   const trousersChoices = saved.trousers ?? DEFAULT_TROUSERS_CHOICES;
   const isOuterGarment = garment === 'jacket' || garment === 'coat';
-  const outerChoices = garment === 'coat' ? (saved.coat ?? DEFAULT_COAT_CHOICES) : (saved.jacket ?? DEFAULT_JACKET_CHOICES);
+  const outerChoices: OuterChoices = useMemo(() => (garment === 'coat' ? { ...DEFAULT_COAT_CHOICES, ...saved.coat } : { ...DEFAULT_JACKET_CHOICES, ...saved.jacket }), [garment, saved.coat, saved.jacket]);
   // Jackets and coats are drafted on the bodice block, so they take the bodice's toile corrections.
   const outerStyleFor = (c: OuterChoices, f: Fitting | undefined) => ({ ...c, kind: c.garment, fitting: withFabricEase(toFitting(f, 'bodice'), fabric, 'bodice') });
   const trousersStyle = useMemo(() => ({ ...trousersChoices, fitting: withFabricEase(toFitting(fitting, 'skirt'), fabric, 'skirt') }), [trousersChoices, fitting, fabric]);

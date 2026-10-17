@@ -100,5 +100,7 @@ export function outerSpec(m: OuterMeasurements, d: OuterDraft): SpecRow[] {
     ...sleeveSpec(m, d.sleeve),
     { label: `Buttons, ${d.buttons.columns.length > 1 ? 'double-breasted' : 'single-breasted'}`, finished: `${d.buttons.at.length * d.buttons.columns.length} x ${d.buttons.sizeCm}` },
     row('Extension beyond the centre front', undefined, d.ext),
+    ...(d.pads ? [row('Shoulder pad, drafted in', undefined, d.pads)] : []),
+    ...(d.vent ? [row('Centre back vent', undefined, d.vent.length)] : []),
   ];
 }
