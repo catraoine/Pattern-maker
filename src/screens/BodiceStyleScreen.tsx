@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
 import { layout } from '../engine/export';
-import { BodiceDraft, BodiceMeasurements, bodiceEase, needsHip } from '../engine/bodice';
+import { BodiceDraft, BodiceMeasurements, bodiceEase, dropRange, needsHip } from '../engine/bodice';
 import { piecesLengthCm, toMetres } from '../engine/fabric';
 import { layPlan } from '../engine/layplan';
 import { BODICE_GROUPS, BodiceChoices, DARTS_FOR_FIT, describeBodice, detailAllowed, sleeveOf, topAllowed, validDetails } from '../garments';
@@ -20,6 +20,8 @@ import type { Finish } from '../App';
 import { MyFabric, bodiceFabrics, fabricEase } from '../engine/fabrics';
 import { FabricCard } from '../ui/FabricCard';
 import { isDraped } from '../engine/drape';
+import { DrawOnForm } from '../ui/DrawOnForm';
+import { readBodiceHem, readNeckline, readSeam } from '../ui/drawOnForm';
 
 import { Mode, ProTool, shows } from '../mode';
 import { ModeLink } from '../ui/ModeLink';
@@ -101,6 +103,8 @@ export function BodiceStyleScreen({ choices, onChoices, onChooseGarment, values,
   const [toast, setToast] = useState<string>();
   const toastTimer = useRef<ReturnType<typeof setTimeout>>();
   const [history, setHistory] = useState<BodiceChoices[]>([]);
+  /** Drawing on the form: the choices from before, to keep or go back to. */
+  const [onForm, setOnForm] = useState<BodiceChoices>();
   const m = values as BodiceMeasurements;
   const pieces = useMemo(() => (draft ? [...draft.pieces, ...(sleeve?.pieces ?? [])] : []), [draft, sleeve]);
   const sheet = useMemo(() => (draft ? layout(pieces, '', []) : undefined), [draft, pieces]);
@@ -181,6 +185,32 @@ export function BodiceStyleScreen({ choices, onChoices, onChooseGarment, values,
     ['pattern', 'Pieces'],
     ...(easeMap && easeMap.length > 0 && can('easeMap') ? ([['ease', 'Ease']] as [View, string][]) : []),
   ];
+
+  if (onForm && draft) {
+    return (
+      <DrawOnForm
+        draft={draft}
+        m={m}
+        garment="bodice"
+        hem={draft.drop}
+        hemMax={hip ? dropRange(m).max : 0}
+        onLine={(kind, stroke) => {
+          const read = kind === 'neckline' ? readNeckline(stroke, draft, choices) : kind === 'seam' ? readSeam(stroke, draft, choices) : readBodiceHem(stroke, draft, m, choices);
+          if (read.choices) onChoices(read.choices);
+          return read.said;
+        }}
+        onDone={() => {
+          change(choices, onForm);
+          setOnForm(undefined);
+          setView('pattern');
+        }}
+        onCancel={() => {
+          onChoices(onForm);
+          setOnForm(undefined);
+        }}
+      />
+    );
+  }
 
   return (
     <>
@@ -323,11 +353,16 @@ export function BodiceStyleScreen({ choices, onChoices, onChooseGarment, values,
                 </button>
               ))}
             </div>
-            {!top && (
-              <button type="button" className={drawing ? 'ghost on' : 'ghost'} aria-pressed={drawing} onClick={() => setDrawing(!drawing)}>
-                {drawing ? 'Done' : 'Draw neck'}
+            <div className="row tools">
+              <button type="button" className="link small" onClick={() => setOnForm(choices)}>
+                Draw on your form
               </button>
-            )}
+              {!top && (
+                <button type="button" className={drawing ? 'ghost on' : 'ghost'} aria-pressed={drawing} onClick={() => setDrawing(!drawing)}>
+                  {drawing ? 'Done' : 'Draw neck'}
+                </button>
+              )}
+            </div>
           </div>
         )}
         <div className="preview">

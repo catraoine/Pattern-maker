@@ -28,6 +28,11 @@ import { FinishChoices } from '../ui/FinishChoices';
 import type { Finish } from '../App';
 import { GODET_OPTIONS, VOLUME_OPTIONS, layoutExtras, setVolume, volumeAllowed, volumeOf } from '../engine/skirtVolume';
 import { isDraped } from '../engine/drape';
+import { lengthRange } from '../engine/skirt';
+import type { BodiceMeasurements } from '../engine/bodice';
+import type { SkirtMeasurements } from '../engine/skirt';
+import { DrawOnForm } from '../ui/DrawOnForm';
+import { readNeckline, readSeam, readSkirtHem } from '../ui/drawOnForm';
 
 interface Props {
   choices: DressChoices;
@@ -69,6 +74,8 @@ export const dressFabricMetres = (pieces: DressDraft['pieces']) =>
 export function DressStyleScreen({ choices, onChoices, onChooseGarment, values, draft, sleeve, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, finish, onFinish, fabric, mode = 'all', onMode }: Props) {
   const can = (t: ProTool) => shows(mode, t);
   const [picked, setView] = useState<'sketch' | 'pattern' | 'ease'>('sketch');
+  /** Drawing on the form: the choices from before, to keep or go back to. */
+  const [onForm, setOnForm] = useState<DressChoices>();
   const view = picked === 'ease' && !can('easeMap') ? 'sketch' : picked;
   const pieces = useMemo(() => (draft ? [...draft.pieces.filter((pc) => /^Bodice/.test(pc.name)), ...(sleeve?.pieces ?? []), ...draft.skirt.pieces] : []), [draft, sleeve]);
   const sheet = useMemo(() => (pieces.length ? layout(pieces, '', []) : undefined), [pieces]);
@@ -175,6 +182,38 @@ export function DressStyleScreen({ choices, onChoices, onChooseGarment, values, 
     onChoices({ ...choices, fit, bodice: validDetails({ ...bodice, darts, length: 'waist', closure: 'back_zip', sleeveShape: sleeveOf(bodice).shape }, 'dress'), skirt: { ...choices.skirt, fit } });
   };
 
+  if (onForm && draft) {
+    // The bodice's lines are read at the dress's own fit and length; the hem is the skirt's.
+    const asBodice: BodiceChoices = { ...choices.bodice, fit: choices.fit, length: 'waist', closure: 'back_zip' };
+    return (
+      <DrawOnForm
+        draft={draft.bodice}
+        m={values as BodiceMeasurements & SkirtMeasurements}
+        garment="dress"
+        hem={draft.skirt.lengthCm}
+        hemMax={lengthRange(values as SkirtMeasurements).max}
+        onLine={(kind, stroke) => {
+          if (kind === 'hem') {
+            const read = readSkirtHem(stroke, draft.bodice, values as SkirtMeasurements, choices.skirt);
+            if (read.choices) onChoices({ ...choices, skirt: read.choices });
+            return read.said;
+          }
+          const read = kind === 'neckline' ? readNeckline(stroke, draft.bodice, asBodice, 'dress') : readSeam(stroke, draft.bodice, asBodice, 'dress');
+          if (read.choices) onChoices({ ...choices, bodice: read.choices });
+          return read.said;
+        }}
+        onDone={() => {
+          setOnForm(undefined);
+          setView('pattern');
+        }}
+        onCancel={() => {
+          onChoices(onForm);
+          setOnForm(undefined);
+        }}
+      />
+    );
+  }
+
   return (
     <div className="split three">
       <section className="card" aria-labelledby="opts">
@@ -276,7 +315,11 @@ export function DressStyleScreen({ choices, onChoices, onChooseGarment, values, 
               </button>
             )}
           </div>
-          <p className="muted small">Drafted to your measurements as you choose.</p>
+          <div className="row tools">
+            <button type="button" className="link small" onClick={() => setOnForm(choices)}>
+              Draw on your form
+            </button>
+          </div>
         </div>
         <div className="preview">
           {error && <p className="msg error">{error}</p>}

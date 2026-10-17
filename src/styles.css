@@ -2555,6 +2555,8 @@ table.history td.moved {
 .house-look button.secondary {
   align-self: flex-start;
   margin-top: 6px;
+}
+
 .shape .body-outline {
   stroke: var(--muted);
   opacity: 0.5;
@@ -2647,6 +2649,7 @@ button.link.garment-change {
   font-size: 12px;
   letter-spacing: 0.2em;
   text-transform: uppercase;
+}
 
 /* Paid extras that aren't open yet: an email sign-up with the planned price */
 .offerprices {
@@ -2677,4 +2680,39 @@ button.link.garment-change {
 .photoallowance {
   max-width: 720px;
   margin: 0 auto 12px;
+}
+
+/* Draw on your form: one job, the form and its lines, with the line chips and one button under it */
+.form-draw {
+  max-width: 520px;
+  margin: 0 auto;
+}
+.form-draw .card {
+  display: grid;
+  gap: 14px;
+}
+.form-draw .chips {
+  justify-content: center;
+}
+.form-draw .form-said {
+  text-align: center;
+  min-height: 2.9em;
+  margin: 0;
+}
+.form-svg {
+  max-height: 62vh;
+}
+.form-svg .form-line {
+  stroke: var(--gild);
+}
+.form-svg .form-legs,
+.form-svg .form-stand {
+  stroke: var(--line-strong);
+}
+.form-svg .tape {
+  stroke: var(--muted);
+}
+.form-svg .tape.on {
+  stroke: var(--gild-glow);
+  filter: drop-shadow(0 0 0.5px rgba(243, 230, 200, 0.8));
 }
