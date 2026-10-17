@@ -370,6 +370,21 @@ p {
   font-weight: var(--w-semi);
 }
 
+/* Why Style or Print waits, over the guided measuring pages without moving them. */
+.msg.steps-note {
+  position: fixed;
+  top: calc(84px + env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  width: min(92vw, 440px);
+  margin: 0;
+  padding: 12px 14px;
+  background: var(--fill);
+  border: var(--bw) solid var(--line-strong);
+  border-left: 3px solid var(--gild);
+}
+
 .footer {
   border-top: 1px solid var(--line);
   padding-top: 18px;
@@ -1909,7 +1924,7 @@ button.link.how-link {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.88);
 }
 
 .how-panel {

@@ -54,6 +54,8 @@ export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onV
     const ids = aimed ? missingFor(aimed, values).map((f) => f.id) : [];
     return ids.length ? { kind: 'extra', garment: aimed!, ids, at: 0 } : { kind: 'check' };
   });
+  // Opened on the check because the measurements were taken on an earlier visit: say so.
+  const [returning] = useState(() => !start && baseDone(values));
   const [helper, setHelper] = useState(!!theirs);
   const [name, setName] = useState('');
   const [picked, setPicked] = useState<Pick | null>(start?.kind === 'choose' ? current : null);
@@ -105,7 +107,8 @@ export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onV
 
   if (page.kind === 'check')
     return (
-      <Shell eyebrow={helper ? 'Their base measurements' : 'Your base measurements'} title="Do these look right?" hero={<TapeDemo id="waist" name="" mode="all" />}>
+      <Shell eyebrow={returning ? 'Welcome back' : helper ? 'Their base measurements' : 'Your base measurements'} title="Do these look right?" hero={<TapeDemo id="waist" name="" mode="all" />}>
+        {returning && <p className="muted step-tip">{helper ? 'Their' : 'Your'} measurements are saved on this device. Check they still look right, then carry on.</p>}
         <ul className="check-list" aria-label="Tap one to change it">
           {BASE.map((id, at) => (
             <li key={id}>

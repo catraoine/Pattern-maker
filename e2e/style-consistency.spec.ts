@@ -1,4 +1,4 @@
-import { chooseChip, expect, expectStyle, fillStepPages, openFresh, pickToMake, startWithExample, switchGarment, test } from './fixtures';
+import { chooseChip, expect, expectStyle, fillStepPages, openFresh, pickToMake, startWithExample, stepButton, switchGarment, test } from './fixtures';
 
 // Every garment's style screen works the same way: Undo after a change, and the same save wording.
 test('undo and save read the same on the trousers as on the skirt', async ({ page }) => {
@@ -42,6 +42,9 @@ test('a wrong measurement is explained, not looped', async ({ page }) => {
   await main.getByRole('button', { name: 'Start measuring' }).click();
   const box = main.getByRole('textbox');
   const next = () => main.getByRole('button', { name: /^(Next|Done)\b/ }).click();
+  // Print in the header waits for the measurements, and says so.
+  await stepButton(page, 'Print').click();
+  await expect(page.getByRole('status').filter({ hasText: /Measure first: the skirt needs a few more measurements before it can be printed/ })).toBeVisible();
   await box.fill('9');
   await next();
   await expect(main.getByText(/Full bust should be between/)).toBeVisible();
@@ -57,4 +60,21 @@ test('a wrong measurement is explained, not looped', async ({ page }) => {
   }
   await expect(main.getByRole('heading', { level: 1, name: 'Your skirt measurements' })).toBeVisible();
   await expect(main.getByRole('status').filter({ hasText: /Waist to knee should be shorter than waist to floor/ })).toBeVisible();
+});
+
+// A first dress asks only the essentials; the harder upper-body measurements wait for "a closer fit".
+test('a first dress asks five more measurements, not thirteen', async ({ page }) => {
+  await openFresh(page);
+  const main = page.getByRole('main');
+  await main.getByRole('button', { name: 'Begin' }).click();
+  await main.getByRole('button', { name: 'Start measuring' }).click();
+  await fillStepPages(page);
+  await main.getByRole('button', { name: 'Choose what to make' }).click();
+  await pickToMake(page, 'Dress');
+  await expect(main.getByRole('heading', { level: 1, name: 'Your high bust' })).toBeVisible();
+  await expect(main.locator('.dots .dot')).toHaveCount(5);
+  await fillStepPages(page);
+  await expectStyle(page, 'Dress');
+  await main.getByRole('button', { name: 'Edit measurements' }).click();
+  await expect(main.getByRole('button', { name: 'Add measurements for a closer fit' })).toBeVisible();
 });

@@ -28,6 +28,7 @@ test('returning visitor: a reload keeps the measurements and the saved pattern',
   // Every visit opens on the welcome; carrying on finds the measurements already taken.
   await main.getByRole('button', { name: 'Begin' }).click();
   await expect(main.getByRole('heading', { name: 'Do these look right?' })).toBeVisible();
+  await expect(main.getByText('Welcome back')).toBeVisible();
   await expect(main.getByRole('button', { name: /^Waist [0-9]/ })).toContainText('74 cm');
   await main.getByRole('button', { name: 'Choose what to make' }).click();
   // Nothing is missing for the skirt, so carrying on goes straight to styling it.
