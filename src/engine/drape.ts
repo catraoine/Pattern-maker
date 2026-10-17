@@ -282,7 +282,7 @@ function oneShoulder(d: BodiceDraft): BodiceDraft {
   const openingCm = r1(len(sub(d.back.waistSide, bareRB.at)));
   const zipCm = SIDE_ZIPS.find((z) => z >= openingCm - 0.5) ?? SIDE_ZIPS[SIDE_ZIPS.length - 1];
   const below = d.drop > 0;
-  const whole = { whole: true, seams: { shoulder: 1, armhole: 1 } };
+  const whole = { whole: true, singleLayer: true, rightSideUp: true, seams: { shoulder: 1, armhole: 1 } };
   const centreY = (ring: Ring) => {
     const ys = ring.pts.filter((q, i) => Math.abs(q.x) < 0.5 || (ring.pts[i + 1] && q.x * ring.pts[(i + 1) % ring.pts.length].x < 0)).map((q) => q.y);
     return [Math.min(...ys), Math.max(...ys)];
@@ -635,7 +635,7 @@ function cowl(d: BodiceDraft, s: BodiceStyle, redraft: (s: BodiceStyle) => Bodic
     cut,
     allowances: { neck: s.neckArmholeAllowance, armhole: s.neckArmholeAllowance, facing: 0, hem: s.hemAllowance },
     draft: front.draft ? { frame: front.draft.frame, points } : undefined,
-    meta: { ...front.meta, whole: true, layByGrain: true, unlined: true },
+    meta: { ...front.meta, whole: true, bias: true, singleLayer: true, unlined: true },
   };
 
   // Lined, the front lining sits under the drape with a lower neckline of its own.
@@ -762,7 +762,7 @@ export function drapeFacings(d: BodiceDraft, armholes = true, neck = true): Piec
   const fa = facing(cf, 'armhole', 4, 'Front armhole facing');
   return [
     ...(neck ? [facing(bb, 'neck', 5, 'Back neck facing')] : []),
-    ...(armholes ? [fa && { ...fa, meta: { ...fa.meta, layByGrain: true } }, facing(bb, 'armhole', 4, 'Back armhole facing')] : []),
+    ...(armholes ? [fa && { ...fa, meta: { ...fa.meta, bias: true } }, facing(bb, 'armhole', 4, 'Back armhole facing')] : []),
   ].filter((pc): pc is Piece => !!pc);
 }
 
@@ -782,7 +782,7 @@ export function drapeSpec(d: BodiceDraft): { label: string; finished: number | s
  */
 export function drapeLined(pieces: Piece[], d: BodiceDraft): Piece[] {
   const out = pieces.flatMap((pc): Piece[] => {
-    if (pc.kind || pc.meta.unlined) return [pc];
+    if (pc.kind || pc.meta.unlined || /coutil/.test(pc.fabric ?? '')) return [pc];
     if (pc.meta.covered) {
       const cut = 'Cut 1, right side down';
       const lining: Piece = {
@@ -792,6 +792,8 @@ export function drapeLined(pieces: Piece[], d: BodiceDraft): Piece[] {
         fabric: 'Lining',
         cut,
         notches: pc.notches,
+        // Cut printed side down, so it is laid turned over.
+        meta: { ...pc.meta, rightSideUp: false },
         labels: pc.labels
           .filter((l) => l.text !== 'ZIP ENDS')
           .map((l) => (l.text === pc.cut ? { ...l, text: cut } : l.text.startsWith('BODICE') ? { ...l, text: `${l.text} LINING` } : l)),

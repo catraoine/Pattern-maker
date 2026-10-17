@@ -4,6 +4,8 @@ import { P, Path, add, len, mul, p, sub, taggedLength, unit } from './geometry';
 import { finishDart } from './darts';
 import { Piece, withAlternate } from './piece';
 import { HemShape, isShaped, matchSides, shapeHem } from './hem';
+import { AsymHem, AsymPlan, quarterAsym } from './asymHem';
+import { SLIP_HEM, SLIP_HIP_EASE_LESS, closeToHem, cutsWhole, cutWhole, slipSideSupp, validCut } from './slip';
 
 export interface SkirtMeasurements {
   waist: number;
@@ -18,7 +20,8 @@ export interface SkirtMeasurements {
 }
 
 export type Fit = 'fitted' | 'regular' | 'relaxed';
-export type Silhouette = 'straight' | 'pencil' | 'a_line' | 'trumpet' | 'half_circle' | 'circle';
+/** 'slip' is the bias-cut slip skirt: dartless, cut whole on the bias (see slip.ts). */
+export type Silhouette = 'straight' | 'pencil' | 'a_line' | 'trumpet' | 'half_circle' | 'circle' | 'slip';
 
 /** Circle skirts are cut as arcs from the waist rather than drafted from the block. */
 export const isCircle = (s: Silhouette) => s === 'half_circle' || s === 'circle';
@@ -47,6 +50,8 @@ export interface SkirtStyle {
    * centre; zipCm is how far the zip runs on below the waist.
    */
   joinTo?: { front: number; back: number; dartAt?: { front?: number; back?: number }; zipCm?: number };
+  /** A high-low or diagonal hem, drafted in place of a drawn one. Older saves have none. */
+  asymHem?: AsymHem;
 }
 
 /**
@@ -478,6 +483,17 @@ export interface SkirtDraft {
   zipCm: number; // invisible zip in the centre back seam
   waistband: Waistband;
   dartsPerSide: { front: number; back: number };
+  /** Cut on the bias: the slip skirt. */
+  bias?: boolean;
+  /** Pieces cut whole, single layer (a bias slip, or a hem that differs side to side): the half
+   * pieces they were mirrored from, front and back, for the sketches. */
+  halves?: [Piece, Piece];
+  /** Where the invisible zip goes: the centre back seam unless the back is cut whole. */
+  opening?: 'centre_back' | 'left_side';
+  /** A narrow faced waist in place of the waistband: the bias slip (see waistPieces in finishing.ts). */
+  faced?: boolean;
+  /** A high-low or diagonal hem as drafted (see asymHem.ts). */
+  asym?: AsymPlan;
 }
 
 export const WAISTBAND_CM = 3; // finished width
@@ -509,7 +525,10 @@ const hemCm = (front: Piece, back: Piece) => Math.round(2 * (taggedLength(front.
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
 export function draftSkirt(m: SkirtMeasurements, style: Partial<SkirtStyle> = {}): SkirtDraft {
-  const s = { ...DEFAULT_STYLE, ...style };
+  const s = validCut({ ...DEFAULT_STYLE, ...style });
+  // Cut whole (a bias slip, or a hem that differs side to side): the halves are mirrored into whole
+  // pieces, then hemmed and fitted to one side as whole pieces.
+  if (cutsWhole(s)) return cutWhole(drafted(m, s), m, s);
   const draft = withHighHip(drafted(m, s), s.fitting?.highHip);
   return draft;
 }
@@ -542,6 +561,8 @@ export function raisedWaist(pc: Piece, rise: number): Path {
 
 function drafted(m: SkirtMeasurements, s: SkirtStyle): SkirtDraft {
   const draft = draftShape(m, s);
+  // A high-low or diagonal hem takes the place of a drawn one. Pieces cut whole are hemmed once whole.
+  if (s.asymHem && s.asymHem !== 'none') return cutsWhole(s) ? draft : quarterAsym(draft, m, s);
   // A drawn hem never takes the skirt above 5 cm below the hip or below the floor, and turns up
   // narrowly so the curve lies flat.
   if (!s.hem || !isShaped(s.hem)) return draft;
@@ -552,13 +573,16 @@ function drafted(m: SkirtMeasurements, s: SkirtStyle): SkirtDraft {
   const origin = (pc: Piece) => (draft.circleShare ? p(0, -(pc.meta.waistRadius as number)) : undefined);
   shapeHem(front, hem.front, origin(front));
   shapeHem(back, hem.back, origin(back));
-  for (const pc of [front, back]) pc.allowances.hem = Math.min(pc.allowances.hem, 1.5);
+  // A bias hem keeps its spare for levelling: it is trimmed to a narrow roll once the skirt has hung.
+  for (const pc of [front, back]) pc.allowances.hem = Math.min(pc.allowances.hem, s.silhouette === 'slip' ? SLIP_HEM : 1.5);
   return { ...draft, hem, hemCm: hemCm(front, back) };
 }
 
 function draftShape(m: SkirtMeasurements, s: SkirtStyle): SkirtDraft {
   const fit = s.fitting ?? {};
-  const ease = { waist: FIT_EASE[s.fit].waist + (fit.waistEase ?? 0), hip: FIT_EASE[s.fit].hip + (fit.hipEase ?? 0) };
+  // Cut on the bias, the cloth gives round the body, so a slip takes less hip ease.
+  const slip = s.silhouette === 'slip';
+  const ease = { waist: FIT_EASE[s.fit].waist + (fit.waistEase ?? 0), hip: FIT_EASE[s.fit].hip + (fit.hipEase ?? 0) - (slip ? SLIP_HIP_EASE_LESS : 0) };
   const hipDepth = m.waist_to_hip;
   const shape = s.shape;
   const length =
@@ -655,14 +679,18 @@ function draftShape(m: SkirtMeasurements, s: SkirtStyle): SkirtDraft {
   // Shift 0.5 cm of waist from back to front, take up to 3 cm at each side seam; darts take the rest,
   // at most two per piece. A big hip-to-waist difference puts the extra into the side seams (front
   // and back alike, so they still match) rather than making darts too wide to sew flat.
-  const FRONT_DART_MAX = 2.5;
-  const BACK_DART_MAX = 3.5;
-  const sideSupp = Math.max(
-    Math.min(3, (hipQ - waistQ) * 0.4),
-    hipQ - (waistQ + split.front) - 2 * FRONT_DART_MAX,
-    hipQ - (waistQ + split.back) - 2 * BACK_DART_MAX,
-  );
-  const hemSa = s.silhouette === 'trumpet' ? Math.min(s.hemAllowance, 2) : s.hemAllowance;
+  // A slip has no darts: its side seams take the most they can, and the rest goes into one dart a
+  // piece that is then closed into the hem (closeToHem).
+  const FRONT_DART_MAX = slip ? Infinity : 2.5;
+  const BACK_DART_MAX = slip ? Infinity : 3.5;
+  const sideSupp = slip
+    ? slipSideSupp(hipQ - (waistQ + split.front), hipQ - (waistQ + split.back))
+    : Math.max(
+        Math.min(3, (hipQ - waistQ) * 0.4),
+        hipQ - (waistQ + split.front) - 2 * FRONT_DART_MAX,
+        hipQ - (waistQ + split.back) - 2 * BACK_DART_MAX,
+      );
+  const hemSa = slip ? SLIP_HEM : s.silhouette === 'trumpet' ? Math.min(s.hemAllowance, 2) : s.hemAllowance;
   const drops = centreDrops(m, fit);
   const dartAdj = fit.dartLength ?? 0;
   // A centre moved at the fitting is no longer simply the measurement, so its note says so.
@@ -684,6 +712,10 @@ function draftShape(m: SkirtMeasurements, s: SkirtStyle): SkirtDraft {
       if (extraF > 0.05) front = half({ ...frontArgs, ...at(drops), waistQ: frontArgs.waistQ - extraF, takeUp: extraF, centreDrop: drops.front, measuredCentre: measured.front });
       if (extraB > 0.05) back = half({ ...backArgs, ...at(drops), waistQ: backArgs.waistQ - extraB, takeUp: extraB, centreDrop: drops.back, measuredCentre: measured.back });
     }
+    if (slip) {
+      front = closeToHem(front, hipDepth);
+      back = closeToHem(back, hipDepth);
+    }
     return {
       pieces: [front, back],
       lengthCm: Math.round(length * 10) / 10,
@@ -696,7 +728,8 @@ function draftShape(m: SkirtMeasurements, s: SkirtStyle): SkirtDraft {
       dartsPerSide: { front: (front.meta.dartsCm as number[]).length, back: (back.meta.dartsCm as number[]).length },
     };
   };
-  if (!targetHem) return block(standardFlare);
+  // A slip takes its flare from the darts it closes, so a photo sets only its length.
+  if (!targetHem || slip) return block(standardFlare);
 
   // Match the hem to the photo: start from the flare that would give it, then correct for the curve
   // of the hem until the drafted hem comes out right.
@@ -747,6 +780,7 @@ function defaultFlare(sil: Silhouette, length: number, hipDepth: number, flareFr
     trumpet: Math.max(8, (length - (flareFrom ?? 0)) * 0.35),
     half_circle: 0,
     circle: 0,
+    slip: 0,
   }[sil];
 }
 
@@ -759,5 +793,7 @@ export function presetFlare(m: SkirtMeasurements, length: number, sil: Silhouett
  * past about 45% of the drop below the hip a skirt is better cut as a circle. */
 export function flareRange(m: SkirtMeasurements, length: number, sil: Silhouette) {
   if (sil === 'trumpet') return { min: 4, max: Math.max(5, (length - trumpetFrom(m, length)) * 0.5) };
+  // A slip flares from the darts it closes; dragging adds a little more from the hip, never less.
+  if (sil === 'slip') return { min: 0, max: Math.max(1, (length - m.waist_to_hip) * 0.2) };
   return { min: -4, max: Math.max(1, (length - m.waist_to_hip) * 0.45) };
 }

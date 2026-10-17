@@ -165,7 +165,7 @@ describe('the draped dress', () => {
           expect(g.steps.some((st) => st.title === 'Put in the zip')).toBe(true);
           if (neckline === 'one_shoulder') {
             expect(g.steps.some((st) => st.title === 'Close the centre back')).toBe(false);
-            expect(g.steps.some((st) => st.title === 'Stay-tape the top edge')).toBe(true);
+            expect(g.steps.some((st) => st.title === 'Stay-tape the one-shoulder edge')).toBe(true);
           } else expect(g.steps.some((st) => st.title === 'Fold the cowl facing')).toBe(true);
         }
     expect(bad.slice(0, 6)).toEqual([]);
@@ -205,7 +205,7 @@ describe('sewing a draped bodice', () => {
       const os = draftBodice(body, { neckline: 'one_shoulder', fit: 'regular', peplum: 'flared' });
       const g = bodiceGuide(os, { length: 'waist' }, 1.5, 1, { edges });
       const titles = g.steps.map((s) => s.title);
-      expect(titles).toContain('Stay-tape the top edge');
+      expect(titles).toContain('Stay-tape the one-shoulder edge');
       expect(titles).toContain('Make the peplum');
       expect(titles).toContain('Attach the peplum');
       expect(titles).not.toContain('Close the centre back');
@@ -241,5 +241,74 @@ describe('sewing a draped bodice', () => {
     const spec = bodiceSpec(body as never, d, 'waist');
     expect(spec.some((r) => r.label === 'Invisible zip, right side')).toBe(true);
     expect(spec.some((r) => r.label === 'Top edge, front and back')).toBe(true);
+  });
+});
+
+describe('with the corsetry and the slip skirt', () => {
+  it('puts a flared or gathered peplum on a boned or cami top, and it all walks and lays out', () => {
+    const bad: string[] = [];
+    let n = 0;
+    const tops = [
+      ['strapless', 'boned'],
+      ['sweetheart', 'boned'],
+      ['cami', 'boned'],
+      ['cami', 'none'],
+    ] as const;
+    for (const [neckline, structure] of tops)
+      for (const peplum of ['flared', 'gathered'] as const)
+        for (let s = 1; s <= 6; s++) {
+          const fit = structure === 'boned' ? 'fitted' : 'regular';
+          const d = draftBodice(randomBody(rng(s)), { neckline, structure, fit, darts: 'bust_waist', length: 'waist', peplum });
+          n++;
+          expect(d.peplum?.kind).toBe(peplum);
+          expect(!!d.top?.boned).toBe(structure === 'boned');
+          bad.push(...problems(d, `${neckline} ${structure} ${peplum} ${s}`));
+          // The coutil panels keep their coutil when the bodice is lined; the peplum is never lined.
+          const lined = drapeLined(d.pieces, d);
+          if (structure === 'boned') expect(lined.filter((pc) => /coutil/.test(pc.fabric ?? '')).length).toBe(4);
+          expect(lined.some((pc) => /^Peplum.*lining/.test(pc.name))).toBe(false);
+        }
+    expect(n).toBe(48);
+    expect(bad.slice(0, 8)).toEqual([]);
+  });
+
+  it('writes the peplum steps for a boned top', () => {
+    const d = draftBodice(randomBody(rng(4)), { neckline: 'strapless', fit: 'fitted', peplum: 'flared' });
+    const titles = bodiceGuide(d, { length: 'waist' }, 1.5, 1, { edges: 'lined' }).steps.map((s) => s.title);
+    expect(titles).toContain('Make the peplum');
+    expect(titles).toContain('Attach the peplum');
+  });
+
+  it('joins a one-shoulder or cowl bodice to the bias slip skirt', () => {
+    const bad: string[] = [];
+    for (const neckline of NECKS)
+      for (let s = 1; s <= 4; s++) {
+        const d = draftDress(randomBody(rng(s)), { neckline, fit: 'regular' }, { silhouette: 'slip', length: 'midi' });
+        for (const c of checkPattern(garment(d.pieces), { finishedWaist: d.finishedWaist })) if (!c.ok) bad.push(`${neckline} slip ${s} ${c.label}: ${c.detail}`);
+        if (neckline === 'one_shoulder') expect(d.zipSide).toBe(true);
+        // Both bias pieces, the cowl front and the slip skirt, lay out on their grain, single layer.
+        if (!layPlan(d.pieces, 150)) bad.push(`${neckline} slip ${s} does not lay out on 150 cm`);
+        expect(d.pieces.filter((pc) => pc.meta.bias).length).toBeGreaterThanOrEqual(neckline === 'cowl' ? 2 : 1);
+        expect(dressGuide(d, { silhouette: 'slip', length: 'midi' }, 2, 1).steps.some((st) => st.title === 'Put in the zip')).toBe(true);
+      }
+    expect(bad.slice(0, 6)).toEqual([]);
+  });
+
+  it('marks the cowl front for the bias on one flag, cut single layer', () => {
+    const d = draftBodice(randomBody(rng(5)), { neckline: 'cowl', fit: 'regular' });
+    expect(d.pieces[0].meta).toMatchObject({ whole: true, bias: true, singleLayer: true });
+    expect(layPlan(d.pieces, 150)?.folded).toBe(false);
+  });
+
+  it('falls back consistently between the draped and the top necklines', () => {
+    // Boning needs a top below the shoulders: a one-shoulder or cowl falls back to unboned.
+    expect(validDetails({ ...DEFAULT_BODICE, neckline: 'one_shoulder', structure: 'boned' }).structure).toBe('none');
+    expect(validDetails({ ...DEFAULT_BODICE, neckline: 'cowl', structure: 'boned' }).structure).toBe('none');
+    // A strapless top is always boned, and takes a peplum on a bodice but not on a dress.
+    expect(validDetails({ ...DEFAULT_BODICE, neckline: 'strapless', peplum: 'flared' })).toMatchObject({ structure: 'boned', peplum: 'flared' });
+    expect(validDetails({ ...DEFAULT_BODICE, neckline: 'strapless', peplum: 'flared' }, 'dress').peplum).toBe('none');
+    expect(validDetails({ ...DEFAULT_BODICE, neckline: 'cami', peplum: 'gathered' }).peplum).toBe('gathered');
+    expect(describeBodice({ ...DEFAULT_BODICE, neckline: 'strapless', peplum: 'flared' })).toBe('boned strapless bodice with a flared peplum');
+    expect(describeBodice({ ...DEFAULT_BODICE, neckline: 'cami', peplum: 'gathered' })).toBe('waist-length cami bodice with spaghetti straps and a gathered peplum');
   });
 });

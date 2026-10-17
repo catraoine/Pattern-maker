@@ -121,7 +121,7 @@ function dartAfter(r: Ring, after: string): [number, number, number] | undefined
   return undefined;
 }
 
-interface Split {
+export interface Split {
   ring: Ring;
   /** Where the line leaves the top edge: one point, or the two ends of a closed dart (front). */
   i1: number;
@@ -134,7 +134,7 @@ interface Split {
 }
 
 /** Cut a piece along a princess line into its centre and side panels. */
-function panels(pc: Piece, s: Split, names: [string, string], cuts: [string, string], meta: Record<string, unknown>): { centre: Piece; side: Piece; line: P[] } {
+export function panels(pc: Piece, s: Split, names: [string, string], cuts: [string, string], meta: Record<string, unknown>): { centre: Piece; side: Piece; line: P[] } {
   const r = s.ring;
   let iNear: number;
   let iFar: number;

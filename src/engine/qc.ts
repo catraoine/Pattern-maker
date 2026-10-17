@@ -23,6 +23,8 @@ interface Corner {
   a: string;
   b: string;
   angle: number; // interior angle in degrees
+  /** Where it is, so the two sides of a piece cut whole can be told apart. */
+  at?: P;
 }
 
 /** Interior angle at every point where one edge tag gives way to another. */
@@ -52,7 +54,7 @@ export function corners(pc: Piece): Corner[] {
   for (let i = 0; i < n; i++) {
     const a = T2[(i - 1 + n) % n];
     const b = T2[i];
-    if (a !== b) out.push({ a, b, angle: 180 - (sgn * turn(i) * 180) / Math.PI });
+    if (a !== b) out.push({ a, b, angle: 180 - (sgn * turn(i) * 180) / Math.PI, at: P2[i] });
   }
   return out;
 }
@@ -70,11 +72,25 @@ const NAMES: Record<string, string> = {
 const isFront = (pc: Piece) => /front/i.test(pc.name);
 /** The garment a piece belongs to, from its first word: Bodice, Skirt. */
 const garmentOf = (pc: Piece) => pc.name.split(' ')[0];
-/** A seam's length on half the body. A whole piece (cut once, both sides in one, see drape.ts) has
- * each seam twice unless meta.seams says it has it once (a one-shoulder's one shoulder). */
-const half = (pc: Piece, tag: string) =>
+/** A seam's length on one side of the body. A piece cut whole (single layer, both halves in one: see
+ * drape.ts and the bias skirt) has each seam twice, unless meta.seams says it has it once (a
+ * one-shoulder's one shoulder). */
+const halfLength = (pc: Piece, tag: string) =>
   taggedLength(pc.outline, tag) / (pc.meta.whole ? ((pc.meta.seams as Record<string, number> | undefined)?.[tag] ?? 2) : 1);
-const sum = (pcs: Piece[], tag: string) => pcs.reduce((t, pc) => t + half(pc, tag), 0);
+const sum = (pcs: Piece[], tag: string) => pcs.reduce((t, pc) => t + halfLength(pc, tag), 0);
+const bothWhole = (a: Piece, b: Piece) => !!a.meta.whole && !!b.meta.whole;
+
+/** A whole piece's edges carrying `tag` on the wearer's left and right: right side up, the wearer's left
+ * is x > 0 on a front and x < 0 on a back. A seam broken by a dart still counts as one. */
+function bySide(pc: Piece, tag: string): { left: number; right: number } {
+  const { pts, tags } = pc.outline.taggedPoints(48);
+  const k = isFront(pc) ? 1 : -1;
+  const out = { left: 0, right: 0 };
+  tags.forEach((t, i) => {
+    if (t === tag && pts[i + 1]) out[(pts[i].x + pts[i + 1].x) * k > 0 ? 'left' : 'right'] += len(sub(pts[i + 1], pts[i]));
+  });
+  return out;
+}
 const isBack = (pc: Piece) => /back/i.test(pc.name);
 
 /** Front and back pieces paired by the word before "front" or "back": the bodice's, the skirt's. */
@@ -101,8 +117,8 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
     const which = (label: string) => (named ? `${group}${/ (centre|side)$/i.test(group) ? ' panel' : ''} ${label[0].toLowerCase()}${label.slice(1)}` : label);
     // Seams that sew together.
     for (const seam of ['side', 'shoulder', 'inseam']) {
-      const f = half(front, seam);
-      const b = half(back, seam);
+      const f = halfLength(front, seam);
+      const b = halfLength(back, seam);
       if (!f || !b) continue;
       if (seam === 'shoulder') {
         // The back shoulder is drafted 1 cm longer and eased in over the shoulder blade (half of it
@@ -115,6 +131,18 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
           detail: `front ${cm(f)}, back ${cm(b)}: ${cm(ease)} of back shoulder ease, as drafted`,
           ok: Math.abs(ease - want) <= SEAM_TOLERANCE,
         });
+      } else if (bothWhole(front, back)) {
+        // Cut whole, the two sides can differ (a diagonal hem, a one-shoulder): each side seam is walked
+        // on its own, the wearer's left on the front against the wearer's left on the back.
+        const fs = bySide(front, seam);
+        const bs = bySide(back, seam);
+        for (const [side, a, b2] of [['Left', fs.left, bs.left], ['Right', fs.right, bs.right]] as const)
+          checks.push({
+            group: 'Seams',
+            label: which(`${side} side seams`),
+            detail: `front ${cm(a)}, back ${cm(b2)}, ${Math.abs(a - b2) < 0.05 ? 'identical' : `${cm(Math.abs(a - b2))} apart`}`,
+            ok: Math.abs(a - b2) <= SEAM_TOLERANCE,
+          });
       } else {
         checks.push({
           group: 'Seams',
@@ -123,42 +151,23 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
           ok: Math.abs(f - b) <= SEAM_TOLERANCE,
         });
       }
-      // Curves meeting across the seam must blend: the two corners add up to a straight line.
+      // Curves meeting across the seam must blend: the two corners add up to a straight line. On pieces
+      // cut whole, each corner meets the one on the same side of the body.
+      const whole = bothWhole(front, back);
       const fc = corners(front).filter((c) => (c.a === seam || c.b === seam) && c.a !== 'dart' && c.b !== 'dart');
       for (const c of fc) {
         const other = c.a === seam ? c.b : c.a;
-        const bc = corners(back).find((k) => (k.a === seam && k.b === other) || (k.b === seam && k.a === other));
+        const bc = corners(back).find((k) => ((k.a === seam && k.b === other) || (k.b === seam && k.a === other)) && (!whole || Math.sign(k.at!.x) === -Math.sign(c.at!.x)));
         if (!bc || !NAMES[other]) continue;
         const sum = c.angle + bc.angle;
+        const sideWord = whole ? `${c.at!.x > 0 ? 'left' : 'right'} ` : '';
         checks.push({
           group: 'Corners',
-          label: which(`${cap(NAMES[other])} blends across the ${seam === 'inseam' ? 'inside leg' : NAMES[seam]}`),
+          label: which(`${cap(NAMES[other])} blends across the ${sideWord}${seam === 'inseam' ? 'inside leg' : NAMES[seam]}`),
           detail: `front ${deg(c.angle)} + back ${deg(bc.angle)} = ${deg(sum)}`,
           ok: Math.abs(sum - 180) <= BLEND_TOLERANCE,
         });
       }
-    }
-    // Whole pieces that differ side to side (a one-shoulder): each side seam against its own.
-    const cf = front.meta.covered as number | undefined;
-    const cb = back.meta.covered as number | undefined;
-    if (cf && cb) {
-      const bySide = (pc: Piece, k: number) => {
-        const { pts, tags } = pc.outline.taggedPoints(48);
-        const out = { covered: 0, bare: 0 };
-        tags.forEach((t, i) => {
-          if (t === 'side') out[(pts[i].x + pts[i + 1].x) * k > 0 ? 'covered' : 'bare'] += len(sub(pts[i + 1], pts[i]));
-        });
-        return out;
-      };
-      const fs = bySide(front, cf);
-      const bs = bySide(back, cb);
-      for (const s of ['covered', 'bare'] as const)
-        checks.push({
-          group: 'Seams',
-          label: which(`Side seams, ${s === 'covered' ? 'shoulder' : 'bare'} side`),
-          detail: `front ${cm(fs[s])}, back ${cm(bs[s])}, ${Math.abs(fs[s] - bs[s]) < 0.05 ? 'identical' : `${cm(Math.abs(fs[s] - bs[s]))} apart`}`,
-          ok: Math.abs(fs[s] - bs[s]) <= SEAM_TOLERANCE,
-        });
     }
   }
 

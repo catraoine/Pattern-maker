@@ -61,7 +61,7 @@ const edgeLengths = (d: BodiceDraft) => d.pieces.slice(0, 2).map((pc) => r1(tagg
 const staySteps = (d: BodiceDraft): SewStep => {
   const [f, b] = edgeLengths(d);
   return {
-    title: 'Stay-tape the top edge',
+    title: 'Stay-tape the one-shoulder edge',
     diagram: 'staystitch',
     text: `Cut two lengths of 1 cm wide stay tape (or strips of selvedge from a light, firm fabric), as long as the top edge's stitching line: ${f} cm for the front and ${b} cm for the back. Pin each to the wrong side, its edge along the stitching line inside the seam allowance, from the side seam to the shoulder, easing the fabric onto it over the bust. Machine it in place within the seam allowance. The edge is drafted a little tight, and the tape holds it there, so it lies against the body without gaping.`,
   };
@@ -251,7 +251,7 @@ export function drapeDressSteps(g: SewingGuide, top: SewingGuide, d: DressDraft,
           .replace(' Cut the four facing pieces from the fabric, and again from fusible interfacing.', ' Cut the top edge facings and the armhole facings once each, printed side down, from the fabric and again from fusible interfacing.'),
       );
     e.set('Neaten the edges', 'Zigzag or overlock the shoulder and side edges of the bodice, and the side and centre back edges of the skirt, so they will not fray inside.');
-    const stay = top.steps.find((s) => s.title === 'Stay-tape the top edge');
+    const stay = top.steps.find((s) => s.title === 'Stay-tape the one-shoulder edge');
     if (stay) e.before('Join the bodice to the skirt', stay);
     e.set(
       'Join the bodice to the skirt',

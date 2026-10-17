@@ -8,7 +8,8 @@ export const FABRIC_WIDTHS = [115, 140, 150] as const;
 export type FabricWidth = (typeof FABRIC_WIDTHS)[number];
 
 /** Which fabric a lay is cut from. */
-export type LayFabric = 'self' | 'lining';
+/** Which fabric a lay is cut from: the garment's own, its lining, or a coutil interlining (a boned bodice). */
+export type LayFabric = 'self' | 'lining' | 'interlining';
 
 export interface Placement {
   name: string;
@@ -38,6 +39,10 @@ export interface Lay {
   /** How much of the fabric the pieces use, 0 to 1. */
   efficiency: number;
   placements: Placement[];
+  /** Some pieces are cut on the bias, lying at 45 degrees across the cloth. */
+  bias?: boolean;
+  /** Some pieces differ side to side, so they are cut right side up only. */
+  rightSideUp?: boolean;
 }
 
 const RES = 0.5; // cm per grid column
@@ -55,6 +60,7 @@ function kindOf(pc: Piece): Kind {
 function fabricsOf(pc: Piece): LayFabric[] {
   const f = (pc.fabric ?? '').toLowerCase();
   if (f === 'lining') return ['lining'];
+  if (f.includes('coutil')) return f.includes('lining') ? ['self', 'lining', 'interlining'] : ['self', 'interlining'];
   if (f.includes('lining')) return ['self', 'lining'];
   return ['self'];
 }
@@ -102,11 +108,16 @@ function profile(pts: P[]) {
   return { pts: s, cols, top, bottom };
 }
 
-/** A piece drafted off the grain (cut on the bias) turned so its grain line runs along the fabric. */
-function byGrain(pc: Piece, pts: P[]): P[] {
-  if (!pc.meta.layByGrain || !pc.grain) return pts;
+/**
+ * A bias piece turned so its grain line runs along the fabric's length: its grain is drawn at 45
+ * degrees to its centre line, so it lies on the cloth at 45 degrees. Other pieces lie as drawn.
+ */
+function onGrain(pc: Piece, pts: P[]): P[] {
+  if (!pc.meta.bias || !pc.grain) return pts;
   const [a, b] = pc.grain;
-  const t = Math.atan2(b.x - a.x, b.y - a.y);
+  const g = { x: b.x - a.x, y: b.y - a.y };
+  // The turn that takes the grain onto the y axis, down the length of the fabric.
+  const t = Math.atan2(g.x, g.y);
   const c = Math.cos(t);
   const s = Math.sin(t);
   return pts.map((q) => p(q.x * c - q.y * s, q.x * s + q.y * c));
@@ -122,6 +133,8 @@ interface Item {
   /** Piece placed against the fold (x = 0). */
   atFold: boolean;
   single: boolean;
+  /** Laid right side up only: a piece that differs side to side would come out mirrored face down. */
+  rightSideUp?: boolean;
 }
 
 /**
@@ -132,12 +145,13 @@ export function layPlan(pieces: Piece[], width: FabricWidth, fabric: LayFabric =
   const mine = pieces.filter((pc) => fabricsOf(pc).includes(fabric));
   if (!mine.length) return undefined;
   const usable = width - 2 * SELVEDGE;
-  const cut = mine.map((pc) => ({ pc, pts: byGrain(pc, cutLine(pc)), kind: kindOf(pc) }));
+  const cut = mine.map((pc) => ({ pc, pts: onGrain(pc, cutLine(pc)), kind: kindOf(pc) }));
   const wide = (pts: P[]) => Math.max(...pts.map((q) => q.x)) - Math.min(...pts.map((q) => q.x));
-  // Folded unless something won't fit across half the width; then a single layer, with pieces on the
-  // fold opened out to their full width and each of a pair cut separately.
+  // Folded unless something won't fit across half the width, or a piece must be cut from a single
+  // layer (bias pieces, which shift on a folded layer, and pieces that differ side to side); then a
+  // single layer, with pieces on the fold opened out to their full width and each of a pair cut separately.
   // A piece off the fold also keeps its gap from it.
-  const folded = cut.every(({ pts, kind }) => wide(pts) <= usable / 2 - (kind === 'fold' ? 0 : 2 * RES));
+  const folded = cut.every(({ pc, pts, kind }) => wide(pts) <= usable / 2 - (kind === 'fold' ? 0 : 2 * RES) && !pc.meta.singleLayer);
   const items: Item[] = cut.flatMap(({ pc, pts, kind }): Item[] => {
     if (folded) return [{ name: pc.name, pts, kind, atFold: kind === 'fold', single: kind === 'single' }];
     if (kind === 'fold') {
@@ -149,7 +163,7 @@ export function layPlan(pieces: Piece[], width: FabricWidth, fabric: LayFabric =
       const full = [...run, ...[...run].reverse().map((q) => p(-q.x, q.y))];
       return [{ name: pc.name, pts: full, kind, atFold: false, single: true }];
     }
-    const one = { name: pc.name, pts, kind, atFold: false, single: true };
+    const one = { name: pc.name, pts, kind, atFold: false, single: true, rightSideUp: !!pc.meta.rightSideUp };
     return kind === 'pair' ? [one, { ...one, pts: flipX(pts) }] : [one];
   });
   if (!folded && items.some((it) => wide(it.pts) > usable)) return undefined;
@@ -180,6 +194,8 @@ export function layPlan(pieces: Piece[], width: FabricWidth, fabric: LayFabric =
     metres: Math.ceil((length + 10) / 10) / 10,
     efficiency: used / (usable * length),
     placements,
+    ...(mine.some((pc) => pc.meta.bias) ? { bias: true } : {}),
+    ...(mine.some((pc) => pc.meta.rightSideUp) ? { rightSideUp: true } : {}),
   };
 }
 
@@ -197,11 +213,12 @@ function orientations(it: Item, nap: boolean): Orientation[] {
   const hit = cache.get(it);
   if (hit) return hit;
   const o: { pts: P[]; flipped: boolean; turned: boolean }[] = [{ pts: it.pts, flipped: false, turned: false }];
-  if (!it.atFold) o.push({ pts: flipX(it.pts), flipped: true, turned: false });
+  const canFlip = !it.atFold && !it.rightSideUp;
+  if (canFlip) o.push({ pts: flipX(it.pts), flipped: true, turned: false });
   if (!nap) {
     // Turned end to end; a fold piece is then also turned over, to keep its fold edge on the fold.
     o.push({ pts: it.atFold ? flipX(turn(it.pts)) : turn(it.pts), flipped: it.atFold, turned: true });
-    if (!it.atFold) o.push({ pts: flipX(turn(it.pts)), flipped: true, turned: true });
+    if (canFlip) o.push({ pts: flipX(turn(it.pts)), flipped: true, turned: true });
   }
   const out = o.map(({ pts, flipped, turned }) => ({ prof: profile(pts), flipped, turned }));
   cache.set(it, out);
@@ -239,7 +256,7 @@ function place(order: Item[], cols: number, nap: boolean, folded: boolean): Plac
 
 /** The lays for every fabric the pieces are cut from, at one width. */
 export function layPlans(pieces: Piece[], width: FabricWidth, nap = false): Lay[] {
-  return (['self', 'lining'] as const).map((f) => layPlan(pieces, width, f, nap)).filter((l): l is Lay => !!l);
+  return (['self', 'lining', 'interlining'] as const).map((f) => layPlan(pieces, width, f, nap)).filter((l): l is Lay => !!l);
 }
 
 /** How to lay the fabric out and cut, in a sentence or two. */
@@ -248,5 +265,7 @@ export function layWords(lay: Lay): string {
     ? 'Fold the fabric in half lengthwise, right sides together, selvedges matching. Place the pieces marked on the fold against the fold.'
     : 'Open the fabric out to a single layer, right side up. Pieces on the fold are drawn opened out; cut a pair as one piece face up and one face down.';
   const single = lay.placements.some((pl) => pl.single && lay.folded) ? ' Cut the pieces marked 1 LAYER through the top layer only.' : '';
-  return `${way}${single} Keep every grain line parallel to the selvedge. The pieces use ${Math.round(lay.efficiency * 100)}% of the fabric.`;
+  const bias = lay.bias ? ' The bias pieces lie at 45 degrees across the cloth, so their grain lines run along it: that puts them on the true bias. Cut them through one layer, without stretching the edges.' : '';
+  const up = lay.rightSideUp ? ' The pieces marked right side up differ side to side: lay them printed side up on the right side of the fabric, never turned over.' : '';
+  return `${way}${single} Keep every grain line parallel to the selvedge.${bias}${up} The pieces use ${Math.round(lay.efficiency * 100)}% of the fabric.`;
 }

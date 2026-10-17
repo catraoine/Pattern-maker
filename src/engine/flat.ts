@@ -273,7 +273,32 @@ type RawView = Omit<FlatView, 'at'>;
 
 /** The skirt: waistband, darts, centre back seam and zip, and a walking slit when it has one. */
 export function skirtFlat(d: SkirtDraft, opts: { slit?: boolean } = {}): Flat {
-  return arrange(skirtViews(d, { ...opts, band: true, zipCm: d.zipCm }));
+  // A slip has a faced waist, so no band shows.
+  return arrange(skirtViews(d, { ...opts, band: !d.faced, zipCm: d.zipCm }));
+}
+
+/**
+ * A piece cut whole, as it hangs: its own outline (the two sides may differ), darts sewn, and for a
+ * front with the zip in its left side seam (the +x side), the zip down that seam from the waist.
+ */
+function wholeView(pc: Piece, zipCm?: number): { shapes: P[][]; lines: FlatView['lines']; waist: P[] } {
+  const h = sewn(pc);
+  const run = h.run.slice(0, -1);
+  const lines: FlatView['lines'] = h.darts.map((pts) => ({ pts, kind: 'dart' as const }));
+  // The waist from the -x side round to the +x side, for a band above it.
+  const stretches = along(h, ['waist', 'dart']);
+  const waist = stretches.length > 1 ? [...stretches[stretches.length - 1], ...stretches[0].slice(1)] : stretches[0] ?? [run[0]];
+  if (zipCm) {
+    const side = along(h, 'side')[0] ?? [];
+    const pts: P[] = [];
+    let acc = 0;
+    for (let i = 0; i < side.length && acc < zipCm; i++) {
+      if (i) acc += len(sub(side[i], side[i - 1]));
+      pts.push(add(side[i], p(-0.4, 0)));
+    }
+    if (pts.length > 1) lines.push({ pts, kind: 'zip' }, { pts: [add(pts[pts.length - 1], p(-0.6, 0)), add(pts[pts.length - 1], p(0.6, 0))], kind: 'seam' });
+  }
+  return { shapes: [run], lines, waist };
 }
 
 /**
@@ -287,9 +312,14 @@ function skirtViews(d: SkirtDraft, opts: { slit?: boolean; band: boolean; zipCm?
     let lines: FlatView['lines'] = [];
     let waist: P[];
     let hemY: number;
+    const wholePc = d.pieces[i].meta.whole;
     if (d.circleShare) {
       const c = circleHalf(d, back);
       ({ shapes, lines, waist } = c);
+      hemY = d.lengthCm;
+    } else if (wholePc) {
+      // Cut whole: drawn from the whole piece, so a hem that differs side to side shows as it is.
+      ({ shapes, lines, waist } = wholeView(d.pieces[i], !back && d.opening === 'left_side' ? d.zipCm : undefined));
       hemY = d.lengthCm;
     } else {
       const h = sewn(d.pieces[i]);
@@ -299,9 +329,11 @@ function skirtViews(d: SkirtDraft, opts: { slit?: boolean; band: boolean; zipCm?
       hemY = h.run[h.run.length - 1].y;
     }
     // The waistband sits above the waist, as wide as it.
-    if (opts.band) shapes.push(whole([...waist, ...[...waist].reverse().map((q) => p(q.x, q.y - WAISTBAND_CM))]));
-    const cbTop = waist[0].y;
-    if (back) {
+    const band = [...waist, ...[...waist].reverse().map((q) => p(q.x, q.y - WAISTBAND_CM))];
+    if (opts.band) shapes.push(wholePc ? band : whole(band));
+    const cbTop = wholePc ? waist[Math.floor(waist.length / 2)].y : waist[0].y;
+    // A back cut whole has no centre back seam: the zip is in the left side seam.
+    if (back && !wholePc) {
       const from = cbTop - (opts.band ? WAISTBAND_CM : (opts.seamFrom ?? 0));
       if (opts.slit) {
         const top = hemY - 15;
@@ -555,6 +587,30 @@ function withPeplumView(d: BodiceDraft, h: Half, v: RawView & { foot: number }):
   return { ...v, shapes: [v.shapes[0], shape, ...v.shapes.slice(1)], lines };
 }
 
+/** A boned bodice's side seam channel: just inside the seam, stopping short of the top edge and the waist. */
+function sideChannel(h: Half, shape: P[]): FlatView['lines'] {
+  const run = along(h, 'side').sort((a, b) => b.length - a.length)[0];
+  if (!run) return [];
+  const out: FlatView['lines'] = [];
+  for (const r of inset(run, 0.6, shape)) {
+    const L = r.reduce((t, q, k) => (k ? t + len(sub(q, r[k - 1])) : 0), 0);
+    let acc = 0;
+    const keep = r.filter((q, k) => {
+      if (k) acc += len(sub(q, r[k - 1]));
+      return acc >= 2 && acc <= L - 1.5;
+    });
+    if (keep.length > 1) for (const pts of both(keep)) out.push({ pts, kind: 'stitch' });
+  }
+  return out;
+}
+
+/** A spaghetti strap from the top edge up to the shoulder, about 6 mm wide as drawn. */
+function strap([a, b]: [P, P]): P[] {
+  const u = unit(sub(b, a));
+  const n = mul(p(-u.y, u.x), 0.35);
+  return [add(a, n), add(b, n), sub(b, n), sub(a, n)];
+}
+
 /** The bodice: darts, the back neck seen over the front, centre back seam and zip, sleeves when it has
  * them, and the stitching that shows: binding round the neck (and the armholes of a sleeveless one),
  * and the hem of a longer top. */
@@ -575,7 +631,7 @@ function bodiceViews(d: BodiceDraft, edges: BodiceEdges, sleeve: SleeveDraft | u
     const shape = whole(h.run);
     const lines: FlatView['lines'] = h.darts.flatMap((dt) => both(dt).map((pts) => ({ pts, kind: 'dart' as const })));
     for (const sl of (i === 0 ? style?.front : style?.back) ?? []) lines.push(...both(sl.pts.map(h.move)).map((pts) => ({ pts, kind: sl.kind })));
-    if (i === 0) {
+    if (i === 0 && h.tags.includes('shoulder')) {
       // The back neckline shows through a lower front neck.
       const shift = sub(hps(front), hps(back));
       const neck = along(back, 'neck')[0]?.map((q) => add(q, shift));
@@ -583,7 +639,9 @@ function bodiceViews(d: BodiceDraft, edges: BodiceEdges, sleeve: SleeveDraft | u
     }
     // A cowl front's neck is finished by its own facing.
     const collared = d.collar !== 'none' || d.closure === 'front_buttons' || (i === 0 && d.drape?.kind === 'cowl');
-    if (edges === 'binding') {
+    // A boned bodice's top edge is lined and understitched, so no stitching shows; its boning is drawn instead.
+    if (d.top?.boned) lines.push(...sideChannel(h, shape));
+    if (edges === 'binding' && !d.top?.boned) {
       for (const run of [...(collared ? [] : along(h, 'neck')), ...(sleeve ? [] : along(h, 'armhole'))])
         for (const pts of [run, mirror(run)]) for (const r of inset(pts, 0.6, shape)) lines.push({ pts: r, kind: 'stitch' });
     }
@@ -604,6 +662,9 @@ function bodiceViews(d: BodiceDraft, edges: BodiceEdges, sleeve: SleeveDraft | u
       lines.push({ pts: [p(0, top), p(0, h.run[h.run.length - 1].y)], kind: 'seam' }, ...zip(top, d.zipCm));
     }
     const shapes = [shape];
+    // Spaghetti straps, from the top edge up over the shoulder.
+    const st = d.top?.strapAt && (i === 0 ? d.top.strapAt.front : d.top.strapAt.back);
+    if (st) shapes.push(...both(strap([h.move(st[0]), h.move(st[1])])));
     const neckRun = along(h, 'neck')[0];
     const collar = neckRun ? collarHalf(neckRun, d.collar, i === 0) : [];
     if (sleeve) {

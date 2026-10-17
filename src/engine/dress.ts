@@ -100,10 +100,12 @@ export function draftDress(m: DressMeasurements, bodiceStyle: Partial<BodiceStyl
   // The skirt's waist curve is a little longer than its width, so walk it to the bodice's.
   const join = { front: waist.front, back: waist.back, dartAt, zipCm: below };
   let skirt = draftSkirt(m, { ...skirtStyle, joinTo: join });
+  // A skirt front cut whole (a bias slip) has both halves of the waist.
+  const halfWaist = (pc: Piece) => taggedLength(pc.outline, 'waist') / (pc.meta.whole ? 2 : 1);
   for (let i = 0; i < 4; i++) {
     const [sf, sb] = skirt.pieces;
-    const df = waist.front - taggedLength(sf.outline, 'waist');
-    const db = waist.back - taggedLength(sb.outline, 'waist');
+    const df = waist.front - halfWaist(sf);
+    const db = waist.back - halfWaist(sb);
     if (Math.abs(df) < 0.005 && Math.abs(db) < 0.005) break;
     join.front += df;
     join.back += db;
