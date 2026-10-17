@@ -10,6 +10,10 @@ import type { Piece } from './piece';
 import type { DiagramId } from './diagrams';
 import { placeWords, styleBodiceSteps } from './styleSteps';
 import { VolumeStyle, needsNoSlit, volumeSteps } from './skirtVolume';
+import { bonedDressSteps, strapCut, topSteps } from './corsetGuide';
+import { isShaped } from './hem';
+import { SLIP_LEVEL } from './slip';
+import { wholeGuide } from './wholeGuide';
 
 // Widest strip that fits across 140 cm fabric, leaving room for the selvedges.
 export const BAND_ACROSS_MAX = 135;
@@ -48,6 +52,8 @@ export interface BodiceFinish {
   seams?: SeamWidths;
   edges?: BodiceEdges;
   liningM?: number;
+  /** Coutil interlining for a boned bodice, in metres. */
+  coutilM?: number;
   /** Fabric width in cm, when it isn't 140. */
   width?: number;
   /** Set-in sleeves, when the bodice has them: the armholes are then sewn to the sleeves, not finished. */
@@ -69,6 +75,8 @@ function oneSide(pc: Piece, also: string): string {
 }
 
 export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; length: Length } & Partial<VolumeStyle>, fabricM: number, finish: SkirtFinish = {}): SewingGuide {
+  // Cut whole, with the zip in the left side seam: the slip, or a hem that differs side to side.
+  if (draft.opening === 'left_side') return wholeGuide(draft, fabricM, finish);
   const { front, back } = draft.dartsPerSide;
   const sw = finish.seams ?? SEAM_WIDTHS.home;
   const seam = n1(sw.seam);
@@ -165,8 +173,12 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
     },
     {
       title: 'Hem',
-      text: circle
+      text: draft.bias
+        ? `Hang the skirt up for a day before hemming: cut on the bias, it drops as it hangs, unevenly and often by 2 cm or more. The hem allowance has ${n1(SLIP_LEVEL)} spare for this. Try it on, have someone mark the hem with pins measured up from the floor${draft.asym ? ', following the high-low line of the pattern' : ''}, and trim 1 cm below the marks. Finish with a narrow rolled hem: press up 0.5 cm, then 0.5 cm more, and stitch close to the fold.`
+        : circle
         ? 'Hang the skirt up for a day before hemming: the parts cut across the grain drop and stretch. Try it on, have someone mark an even hem with pins measured up from the floor, and trim to the marks. Press up 0.5 cm, then 1 cm more, easing the curve with steam, and stitch.'
+        : isShaped(draft.hem)
+          ? `The hem ${draft.asym ? 'curves from short at the front to long at the back' : 'is shaped'}, so keep it narrow. Press up 0.5 cm, then 1 cm more, easing the curve with steam, and stitch by hand or machine.`
         : style.silhouette === 'trumpet'
           ? 'The hem is curved and full, so keep it narrow. Press up 0.5 cm, then 1.5 cm more, easing in the fullness with steam, and stitch by hand or machine.'
           : style.silhouette === 'a_line'
@@ -359,7 +371,7 @@ export function bodiceGuide(draft: BodiceDraft, _style: { length: BodiceLength }
     ],
     steps,
   };
-  return styleBodiceSteps(guide, draft, { seam, curve, edges, sleeve: !!sleeve });
+  return topSteps(styleBodiceSteps(guide, draft, { seam, curve, edges, sleeve: !!sleeve }), draft, { seam, curve, fabricM, liningM: finish.liningM, coutilM: finish.coutilM, width: finish.width });
 }
 
 /** Cutting the sleeves, added to the cutting step. */
@@ -390,6 +402,7 @@ export function dressGuide(draft: DressDraft, style: { silhouette: Silhouette; l
   const slit = hasSlit(style);
   const lined = edges === 'lined';
   const dartLines = draft.bodice.bustDart > 0.3 || draft.skirt.dartsPerSide.front + draft.skirt.dartsPerSide.back > 0;
+  if (draft.bodice.top?.boned) return bonedDressSteps(draft, top, skirt, { seam, curve, fabricM, liningM: finish.liningM, coutilM: finish.coutilM, width: finish.width, waist, slit, wide });
 
   // The bodice's own finishing, from the neck to the sleeves: everything after its side seams.
   const finishing = top.steps.slice(at('Sew the side seams') + 1, at('Hem')).map((s) =>
@@ -405,10 +418,12 @@ export function dressGuide(draft: DressDraft, style: { silhouette: Silhouette; l
     {
       title: 'Cut out',
       text: `Fold the fabric in half with the selvedges together. ${placeWords(draft.bodice)}${wide ? '' : ' Place the skirt front on the fold and the skirt back on both layers.'}${
-        wide ? ' The skirt pieces are too wide for folded fabric: cut them from a single layer, turning the pattern over for the second of each so you get pairs.' : ''
+        draft.skirt.bias
+          ? ' The skirt is cut on the bias, from a single layer opened out flat on a big table: the front once, whole, and the back twice, turning the pattern over for the second. Lay each with its grain arrow parallel to the selvedge, so it sits at 45 degrees across the cloth. As soon as the skirt pieces are cut, stay-stitch their waist edges 1 cm in, so the bias waist cannot stretch before it is joined to the bodice.'
+          : wide ? ' The skirt pieces are too wide for folded fabric: cut them from a single layer, turning the pattern over for the second of each so you get pairs.' : ''
       } Keep each grain arrow parallel to the selvedge. Cut along the solid outer line, snip the small notches${dartLines ? ', and chalk-mark the dart lines and the bust point' : ''}.${collarCut(draft.bodice)}${
         lined ? ' Cut the bodice pieces again from the lining.' : edges === 'facings' ? (finish.sleeve ? ' Cut the neck facings from the fabric, and again from fusible interfacing.' : ' Cut the four facing pieces from the fabric, and again from fusible interfacing.') : ''
-      }${sleeveCutWords(finish.sleeve)}${oneSide(draft.bodice.pieces[0], lined ? 'and the lining' : '')}`,
+      }${sleeveCutWords(finish.sleeve)}${strapCut(draft.bodice)}${oneSide(draft.bodice.pieces[0], lined ? 'and the lining' : '')}`,
     },
     ...find(top, /^Interface the facings$/),
     {
@@ -438,7 +453,7 @@ export function dressGuide(draft: DressDraft, style: { silhouette: Silhouette; l
     },
     ...finishing,
     ...find(skirt, /^Hem$/),
-    { title: 'Finish', text: 'Sew a hook and eye at the top of the zip, inside the neckline. Give the dress a final press.' },
+    { title: 'Finish', text: `Sew a hook and eye at the top of the zip, inside the ${draft.bodice.top ? 'top edge' : 'neckline'}. Give the dress a final press.` },
   ];
 
   return {

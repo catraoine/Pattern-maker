@@ -19,6 +19,7 @@ import { layPlan } from './layplan';
 import { arc, cm, onCircle } from './skirt';
 import type { Length, Silhouette, SkirtDraft, SkirtMeasurements, SkirtStyle } from './skirt';
 import type { SewStep } from './instructions';
+import type { AsymHem } from './asymHem';
 import type { FabricAdvice, FabricPick, MyFabric } from './fabrics';
 
 export type Pleats = 'none' | 'knife' | 'box' | 'inverted';
@@ -34,6 +35,8 @@ export interface VolumeStyle {
   pleats?: Pleats;
   godets?: GodetCount;
   flounce?: Flounce;
+  /** A high-low or diagonal hem (asymHem.ts): only godets go with one. */
+  asymHem?: AsymHem;
 }
 
 const BLOCK: Silhouette[] = ['straight', 'pencil', 'a_line'];
@@ -56,11 +59,16 @@ export const GODET_OPTIONS: [GodetCount, string][] = [
   [8, '8 godets'],
 ];
 
-/** Whether a detail suits the shape and length: all of them need a block skirt (a circle or trumpet is
- * already full at the hem), and godets and tiers need a skirt to the knee or longer. */
-export function volumeAllowed(s: { silhouette: Silhouette; length: Length }, kind: VolumeKind): boolean {
+/** Whether a detail suits the shape, length and hem: all of them need a block skirt (a circle or
+ * trumpet is already full at the hem, and a bias slip is cut whole and moulds to the body), and godets
+ * and tiers need a skirt to the knee or longer. A diagonal hem is cut whole, single layer, so it takes
+ * none of them; a high-low hem takes godets, which follow the hem, but not pleats (the folds would
+ * twist round the curve), a flounce or tiers (they would need the curve drafted into them too). */
+export function volumeAllowed(s: { silhouette: Silhouette; length: Length; asymHem?: AsymHem }, kind: VolumeKind): boolean {
   if (kind === 'none') return true;
   if (!BLOCK.includes(s.silhouette)) return false;
+  if (s.asymHem === 'diagonal') return false;
+  if (s.asymHem === 'high_low' && kind !== 'godets') return false;
   if (kind === 'godets' || kind === 'tiers') return LONG.includes(s.length);
   if (kind === 'hem_flounce') return s.length !== 'mini';
   return true;
@@ -784,7 +792,10 @@ function withGodets(m: SkirtMeasurements, s: SkirtStyle, draft: SkirtDraft, coun
   const knee = m.waist_to_knee;
   // From just above the knee on a midi or maxi; from mid-thigh on a knee-length skirt.
   const from = Lc >= knee + 5 ? knee - 8 : hipY + 0.5 * (knee - hipY);
-  const Lg = Lc - from;
+  // Under a high-low hem every godet is as long as the shortest slash allows, its point kept 6 cm
+  // below the hip line where the hem is shortest; the points then follow the hem round.
+  const shortest = draft.asym ? Lc + draft.asym.shift - draft.asym.amp : Lc;
+  const Lg = Math.min(Lc - from, shortest - hipY - 6);
   if (Lg < 12 || from < hipY + 6) return draft;
   const shares = count === 4 ? [0.5] : count === 6 ? [1 / 3] : [0.25, 0.75];
   const inSeams = count === 6;

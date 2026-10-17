@@ -8,6 +8,7 @@ import type { SleeveDraft, SleeveMeasurements } from './sleeve';
 import type { DressDraft, DressMeasurements } from './dress';
 import { TROUSER_EASE, type TrousersDraft, type TrousersMeasurements } from './trousers';
 import { volumeSpec } from './skirtVolume';
+import { SLIP_FACING } from './slip';
 
 const r1 = (v: number) => Math.round(v * 10) / 10;
 const row = (label: string, body: number | undefined, finished: number): SpecRow =>
@@ -23,10 +24,13 @@ export function skirtSpec(m: SkirtMeasurements, d: SkirtDraft): SpecRow[] {
     ...(m.back_waist_to_hip !== undefined ? [{ label: 'Waist to hip, centre back', body: r1(m.back_waist_to_hip), finished: '' }] : []),
     row('Length, waist to hem', undefined, d.lengthCm),
     row('Hem circumference', undefined, d.hemCm),
+    ...(d.asym ? [{ label: `Hem ${d.asym.kind === 'diagonal' ? 'left to right' : 'front to back'}, shortest to longest`, finished: `${r1(d.lengthCm + d.asym.shift - d.asym.amp)} to ${r1(d.lengthCm + d.asym.shift + d.asym.amp)}` }] : []),
     // Pleats, godets, a flounce or tiers: how they are made.
     ...volumeSpec(d),
-    { label: 'Waistband (finished width 3)', finished: `cut ${d.waistband.cutLength} x ${d.waistband.cutWidth}` },
-    { label: 'Invisible zip, centre back', finished: `${d.zipCm}` },
+    d.faced
+      ? { label: `Waist facing, ${SLIP_FACING} deep`, finished: 'cut 1 front, 1 back' }
+      : { label: 'Waistband (finished width 3)', finished: `cut ${d.waistband.cutLength} x ${d.waistband.cutWidth}` },
+    { label: d.opening === 'left_side' ? 'Invisible zip, left side seam' : 'Invisible zip, centre back', finished: `${d.zipCm}` },
   ];
 }
 
@@ -37,6 +41,20 @@ export function bodiceSpec(m: BodiceMeasurements, d: BodiceDraft, length: Bodice
   } else if (d.finishedHem !== undefined) {
     const body = length === 'hip' ? m.full_hip : (m.high_hip ?? m.full_hip);
     rows.push(row(length === 'hip' ? 'Hip (hem)' : 'High hip (hem)', body, d.finishedHem));
+  }
+  const t = d.top;
+  if (t) {
+    // A top cut below the shoulders: no armhole or shoulder seam, but a top edge, its bones and straps.
+    rows.push(
+      row('Centre back, top edge to waist', undefined, d.backLength),
+      row('Top edge, round', undefined, t.topEdge),
+      ...(t.grip ? [row('Top edge, taken in to grip', undefined, t.grip)] : []),
+      ...t.bones.map((b) => ({ label: `Bone, ${b.where.toLowerCase()} (${b.count})`, finished: r1(b.lengthCm) })),
+      ...(t.waistStay ? [{ label: `Waist stay, ${t.waistStay.widthCm} grosgrain`, finished: r1(t.waistStay.lengthCm) }] : []),
+      ...(t.straps ? [row('Strap, finished (each)', undefined, t.straps.lengthCm), { label: 'Strap, cut on the bias', finished: `${t.straps.cutLengthCm} x ${t.straps.cutWidthCm}` }] : []),
+      { label: 'Invisible zip, centre back', finished: `${d.zipCm}` },
+    );
+    return rows;
   }
   rows.push(
     { label: 'Nape to waist', body: r1(m.nape_to_waist), finished: '' },

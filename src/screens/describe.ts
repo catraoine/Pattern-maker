@@ -4,10 +4,14 @@ import { describe as describeSkirt } from './StyleScreen';
 /** A plain name for a saved pattern's style, such as "Knee a-line skirt". */
 export function describePattern(c: PatternChoices) {
   if (isDress(c)) {
-    const skirt = describeSkirt(c.skirt);
+    // "Knee a-line dress with knife pleats, a scoop neck and short sleeves". A hem named on the skirt
+    // ("with a high-low hem") goes last: "... dress with a crew neck, and a high-low hem".
+    const [skirt, tail = ''] = describeSkirt(c.skirt).split(/ with (.*)/);
+    const parts = tail ? tail.split(' and ') : [];
+    const hem = parts.find((t) => / hem$/.test(t));
+    const details = parts.filter((t) => t !== hem);
     const dress = /skirt/.test(skirt) ? skirt.replace('skirt', 'dress') : `${skirt} dress`;
-    // "Knee a-line dress with knife pleats, a scoop neck and short sleeves".
-    return `${dress}${/ with /.test(dress) ? ',' : ' with'} ${bodiceDetails(c.bodice)}`;
+    return `${dress} with ${details.length ? `${details.join(' and ')}, ` : ''}${bodiceDetails(c.bodice)}${hem ? `, and ${hem}` : ''}`;
   }
   if (isTrousers(c)) return describeTrousers(c);
   if (isOuter(c)) return describeOuter(c);

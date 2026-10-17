@@ -3,8 +3,10 @@
 // Woven fabrics only: every draft is for woven cloth, so stretch fabrics and knits are always ruled out.
 // Keep to plain ASCII punctuation: these words go into the PDF and the tech pack.
 import type { Fit, Length, Silhouette, SkirtFitting } from './skirt';
+import type { AsymHem } from './asymHem';
 import type { BodiceDarts, BodiceFit, BodiceFitting, BodiceLength, Neckline } from './bodice';
 import type { Leg } from './trousers';
+import type { Structure } from './corset';
 import type { Cloth } from './couture';
 import type { SewingGuide } from './instructions';
 import { VolumeStyle, volumeFabrics, volumeWarnings, volumeWords } from './skirtVolume';
@@ -164,6 +166,14 @@ const SKIRT: Record<Silhouette, { picks: FabricPick[]; avoid: string }> = {
     ],
     avoid: 'Heavy fabrics. A full circle uses a lot of cloth, and heavy cloth drags on the bias and stretches the hem.',
   },
+  slip: {
+    picks: [
+      pick('Silk satin or charmeuse', ['light'], 'fluid', 'The classic 1930s slip: it pours over the hip and catches the light as it moves.'),
+      pick('Silk crepe de chine', ['light'], 'fluid', 'Matte, soft and forgiving. Easier to sew than satin.'),
+      pick('Viscose or rayon crepe', ['light'], 'fluid', 'Drapes like silk on the bias, at a fraction of the price.'),
+    ],
+    avoid: 'Crisp or stiff fabrics like cotton poplin, linen, taffeta or denim. On the bias they twist and stand away from the body instead of moulding to it. Loosely woven cloth drops too much as it hangs.',
+  },
 };
 
 const SILHOUETTE_WORDS: Record<Silhouette, string> = {
@@ -173,6 +183,7 @@ const SILHOUETTE_WORDS: Record<Silhouette, string> = {
   trumpet: 'trumpet skirt',
   half_circle: 'half circle skirt',
   circle: 'full circle skirt',
+  slip: 'bias-cut slip skirt',
 };
 
 const LENGTH_WORDS: Record<Length, string> = { mini: 'mini', above_knee: 'above-knee', knee: 'knee-length', midi: 'midi', maxi: 'maxi' };
@@ -181,11 +192,15 @@ const SKIRT_LINING = pick('Lining: Bemberg (cupro) or acetate', ['light'], 'flui
 const BODICE_LINING = pick('Lining: cotton lawn or Bemberg (cupro)', ['light'], 'soft', 'Breathes and slides on easily.');
 
 /** Fabrics for a skirt style. */
-export function skirtFabrics(style: { fit?: Fit; silhouette: Silhouette; length: Length } & Partial<VolumeStyle>): FabricAdvice {
+export function skirtFabrics(style: { fit?: Fit; silhouette: Silhouette; length: Length; asymHem?: AsymHem } & Partial<VolumeStyle>): FabricAdvice {
   const base = SKIRT[style.silhouette];
   const full = style.silhouette === 'half_circle' || style.silhouette === 'circle';
   const note =
-    style.length === 'maxi' && !full
+    style.silhouette === 'slip'
+      ? `Cut on the bias, a slip takes about a fifth to a third more fabric than a skirt on the straight grain, and every piece is cut from a single layer.${style.length === 'maxi' ? ' At maxi length, or for hips much over 110 cm, buy 150 cm wide fabric: turned to the bias, the whole pieces may not fit across narrower.' : ''}`
+      : style.asymHem && style.asymHem !== 'none'
+        ? `A ${style.asymHem === 'diagonal' ? 'diagonal' : 'high-low'} hem shows the inside of the skirt as it moves: choose a fabric that looks good on both sides.`
+        : style.length === 'maxi' && !full
       ? 'At maxi length a lighter weight keeps it from feeling heavy.'
       : style.length === 'mini' && full
         ? 'At mini length a crisper fabric keeps the hem from flipping up.'
@@ -229,7 +244,29 @@ const BODICE: Record<BodiceFit, { picks: FabricPick[]; avoid: string }> = {
   },
 };
 
+// A boned bodice wants a firm, closely woven cloth that takes the strain over the coutil and hides
+// the bones; a cami wants a light, soft one that hangs from its straps.
+const BONED = {
+  picks: [
+    pick('Silk duchess satin', ['medium', 'heavy'], 'crisp', 'Firm and lustrous: the classic for a boned bodice. It hides the channels and presses sharply.'),
+    pick('Brocade or jacquard', ['medium', 'heavy'], 'crisp', 'Woven-in pattern and body. Match the motif at the centre front.'),
+    pick('Silk taffeta', ['medium'], 'crisp', 'Crisp and light. It rustles and holds the shape well over the coutil.'),
+  ],
+  avoid: 'Stretch fabrics, knits and anything fluid or loosely woven (chiffon, charmeuse, jersey). A boned bodice is drafted smaller than you at the waist, and stretch would let it slide down.',
+  note: 'The panels are flat-lined to cotton coutil, a firm herringbone cloth that does not stretch, and the boning sits in channels on the coutil. Buy coutil and lining as well as the fabric.',
+};
+const CAMI = {
+  picks: [
+    pick('Silk crepe de chine', ['light'], 'soft', 'Light and soft, it hangs from the straps and feels lovely.'),
+    pick('Cotton lawn or voile', ['light'], 'soft', 'Cool and easy to sew. Line it if it is sheer.'),
+    pick('Viscose challis', ['light'], 'fluid', 'Drapes softly and washes well.'),
+  ],
+  avoid: 'Heavy or stiff fabrics: the straps cannot carry them and the top edge stands away from you.',
+};
+
 const NECK_NOTES: Partial<Record<Neckline, string>> = {
+  sweetheart: 'For a sweetheart neckline, choose a fabric that presses sharply so the centre dip stays crisp.',
+  cami: 'Rouleau straps are cut on the bias from the same fabric, so a light, soft one turns through most easily.',
   square: 'For a square neck, choose a fabric that presses sharply so the corners stay crisp.',
   v: 'For a V-neck, a fabric that presses well keeps the point sharp.',
   boat: 'A boat neck sits best in a firmer fabric that will not slip off the shoulder.',
@@ -238,7 +275,11 @@ const NECK_NOTES: Partial<Record<Neckline, string>> = {
 const FIT_WORDS: Record<BodiceFit, string> = { fitted: 'fitted', regular: 'regular fit', relaxed: 'relaxed' };
 
 /** Fabrics for a bodice style. */
-export function bodiceFabrics(style: { fit: BodiceFit; neckline: Neckline; length?: BodiceLength; darts?: BodiceDarts }): FabricAdvice {
+export function bodiceFabrics(style: { fit: BodiceFit; neckline: Neckline; length?: BodiceLength; darts?: BodiceDarts; structure?: Structure }): FabricAdvice {
+  if (style.structure === 'boned')
+    return { style: 'a boned bodice', picks: BONED.picks, avoid: BONED.avoid, note: BONED.note, lining: BODICE_LINING };
+  if (style.neckline === 'cami')
+    return { style: 'a cami top', picks: CAMI.picks, avoid: `${CAMI.avoid} ${STRETCH}`, note: NECK_NOTES.cami, lining: BODICE_LINING };
   const base = BODICE[style.fit];
   return {
     style: `a ${FIT_WORDS[style.fit]} bodice`,
@@ -325,9 +366,11 @@ export function outerFabrics(style: { garment: 'jacket' | 'coat'; fit: BodiceFit
 }
 
 /** Fabrics for a dress: the skirt's suggestions that also suit the bodice come first. */
-export function dressFabrics(style: { fit: BodiceFit; neckline: Neckline; silhouette: Silhouette; length: Length } & Partial<VolumeStyle>): FabricAdvice {
+export function dressFabrics(style: { fit: BodiceFit; neckline: Neckline; silhouette: Silhouette; length: Length; structure?: Structure } & Partial<VolumeStyle>): FabricAdvice {
   const skirt = skirtFabrics(style);
-  const bodice = bodiceFabrics({ fit: style.fit, neckline: style.neckline });
+  const bodice = bodiceFabrics({ fit: style.fit, neckline: style.neckline, structure: style.structure });
+  // The boned bodice sets the cloth: the skirt is cut from the same firm fabric.
+  if (style.structure === 'boned') return { ...bodice, style: `a boned dress with ${skirt.style}${/skirt$/.test(skirt.style) ? '' : ' skirt'}` };
   const both = skirt.picks.filter((p) => bodice.picks.some((b) => b.drape === p.drape && b.weight[0] === p.weight[0]));
   const rest = [...skirt.picks, ...bodice.picks].filter((p, i, all) => !both.includes(p) && all.findIndex((q) => q.name === p.name) === i);
   const words = volumeWords(style);
@@ -354,9 +397,9 @@ export interface FabricNote {
 }
 
 export type FabricStyle =
-  | ({ garment: 'skirt'; silhouette: Silhouette; length: Length } & Partial<VolumeStyle>)
-  | { garment: 'bodice'; fit: BodiceFit; neckline: Neckline }
-  | ({ garment: 'dress'; fit: BodiceFit; neckline: Neckline; silhouette: Silhouette; length: Length } & Partial<VolumeStyle>)
+  | ({ garment: 'skirt'; silhouette: Silhouette; length: Length; asymHem?: AsymHem } & Partial<VolumeStyle>)
+  | { garment: 'bodice'; fit: BodiceFit; neckline: Neckline; structure?: Structure }
+  | ({ garment: 'dress'; fit: BodiceFit; neckline: Neckline; silhouette: Silhouette; length: Length; structure?: Structure } & Partial<VolumeStyle>)
   | { garment: 'trousers'; fit: Fit; leg: Leg }
   | { garment: 'jacket' | 'coat'; fit: BodiceFit };
 
@@ -407,11 +450,16 @@ function styleWarnings(style: FabricStyle, { weight, drape }: MyFabric): string[
     else if (weight === 'heavy' && (s === 'half_circle' || s === 'circle')) out.push('Heavy fabric drags on the bias of a circle. Hang the skirt for two days before you hem it.');
     else if (drape === 'crisp' && s === 'trumpet') out.push('A crisp fabric makes the trumpet flare stand out. A soft or fluid one flutes better.');
     out.push(...volumeWarnings(style, { weight, drape }));
+    if (s === 'slip' && drape === 'crisp') out.push('A crisp fabric will not mould to the body on the bias: it twists at the seams and stands away. Choose a fluid one, like silk satin, crepe de chine or viscose crepe.');
+    if (s === 'slip' && weight === 'heavy') out.push('A heavy fabric drops and grows on the bias under its own weight. Choose a light one, and hang the skirt for a day before you level the hem.');
   }
   if (style.garment === 'bodice' || style.garment === 'dress') {
-    if (drape === 'fluid' && style.fit !== 'relaxed') out.push('A fluid fabric puckers at the darts and will not hold a fitted bodice. Underline it with cotton batiste, or choose a relaxed fit.');
+    if (drape === 'fluid' && style.fit !== 'relaxed' && style.structure !== 'boned') out.push('A fluid fabric puckers at the darts and will not hold a fitted bodice. Underline it with cotton batiste, or choose a relaxed fit.');
     if (weight === 'heavy' && style.fit !== 'relaxed') out.push('A heavy fabric makes thick darts and a bulky neckline. Face or line it with something light, and trim the seams well.');
     if (drape === 'crisp' && weight === 'heavy' && style.fit === 'relaxed') out.push('A heavy, crisp fabric stands away from the body without darts.');
+    if (style.structure === 'boned' && (drape === 'fluid' || weight === 'light'))
+      out.push('A boned bodice needs a firm fabric. A fluid or light one wrinkles over the coutil and shows the boning channels. Choose a medium weight, crisp cloth such as duchess satin or taffeta.');
+    if (style.neckline === 'cami' && style.structure !== 'boned' && weight === 'heavy') out.push('A heavy fabric drags on rouleau straps. Choose a light one.');
     if (style.neckline === 'boat' && drape === 'fluid') out.push('A boat neck in a fluid fabric can slide off the shoulder. Stay the neckline with tape.');
   }
   if (style.garment === 'jacket' || style.garment === 'coat') {

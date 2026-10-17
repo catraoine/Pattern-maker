@@ -2,6 +2,7 @@
 // pinch to zoom in, double-tap to reset.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { offsetAt } from '../engine/hem';
+import { asymOffset } from '../engine/asymHem';
 import type { SkirtDraft, SkirtMeasurements } from '../engine/skirt';
 
 // An ellipse this deep (as a share of its width) has a perimeter of PERIM times its half-width.
@@ -76,7 +77,7 @@ function buildModel(draft: SkirtDraft, m: SkirtMeasurements): Model {
   } else {
     // Read the skirt's width from the pieces down to where the side seams end; below that a shaped
     // hem carries on at the same width.
-    const outlines = (draft.block ?? draft.pieces).slice(0, 2).map((pc) => pc.outline.taggedPoints(16));
+    const outlines = (draft.block ?? draft.halves ?? draft.pieces).slice(0, 2).map((pc) => pc.outline.taggedPoints(16));
     const sideEnd = Math.min(...outlines.map(({ pts, tags }) => pts[tags.indexOf('hem')].y)) - 0.2;
     const [front, back] = outlines.map((o) => o.pts);
     const table = Array.from({ length: Math.floor(sideEnd) + 1 }, (_, y) => (2 * (widthAt(front, y) + widthAt(back, y))) / perim(SKIRT_DEPTH));
@@ -90,6 +91,8 @@ function buildModel(draft: SkirtDraft, m: SkirtMeasurements): Model {
     };
   }
   const hem = (phi: number) => {
+    // A high-low or diagonal hem, as drafted round the body (a diagonal differs side to side).
+    if (draft.asym) return L + asymOffset(draft.asym, phi);
     const a = Math.abs(Math.atan2(Math.sin(phi), Math.cos(phi)));
     const offs = draft.hem;
     if (!offs) return L;

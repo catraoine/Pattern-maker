@@ -295,7 +295,7 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
         <div className="row between wrap">
           <div>
             <p className="eyebrow">Cutting layout</p>
-            <h2 id="laytitle">{lays.map((l) => `${l.metres.toFixed(1)} m${l.fabric === 'lining' ? ' of lining' : ''}`).join(' + ') || 'Too wide to lay out'}</h2>
+            <h2 id="laytitle">{lays.map((l) => `${l.metres.toFixed(1)} m${l.fabric === 'lining' ? ' of lining' : l.fabric === 'interlining' ? ' of coutil' : ''}`).join(' + ') || 'Too wide to lay out'}</h2>
           </div>
           <div className="row wrap">
             <div className="seg" role="group" aria-label="Fabric width">
@@ -316,7 +316,7 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
         {lays.length ? (
           lays.map((lay) => (
             <div key={lay.fabric} className="lay">
-              {lays.length > 1 && <p className="eyebrow">{lay.fabric === 'lining' ? 'Lining' : 'Fabric'}</p>}
+              {lays.length > 1 && <p className="eyebrow">{lay.fabric === 'lining' ? 'Lining' : lay.fabric === 'interlining' ? 'Coutil' : 'Fabric'}</p>}
               <LayPlanView lay={lay} />
               <p className="muted small">{layWords(lay)}</p>
             </div>

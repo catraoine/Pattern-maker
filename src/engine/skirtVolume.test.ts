@@ -9,7 +9,8 @@ import { toCouture } from './couture';
 import { dressFlat, skirtFlat } from './flat';
 import { skirtSpec } from './spec';
 import { layPlan } from './layplan';
-import { waistbandPiece } from './finishing';
+import { validCut } from './slip';
+import { waistPieces, waistbandPiece } from './finishing';
 import { drillHoles, dartsOf } from './marks';
 import { skirtFabrics, checkFabric } from './fabrics';
 import { GodetCount, VolumeKind, layoutExtras, setVolume, volumeAllowed, volumeOf } from './skirtVolume';
@@ -130,6 +131,70 @@ describe('skirt volume', () => {
     expect(setVolume({ pleats: 'knife' as const, godets: 6 as const }, 'hem_flounce')).toEqual({ flounce: 'hem_flounce' });
   });
 
+  it('keeps a bias slip and a diagonal hem plain, and allows only godets under a high-low hem', () => {
+    for (const kind of KINDS) {
+      expect(volumeAllowed({ silhouette: 'slip', length: 'midi' }, kind)).toBe(false);
+      expect(volumeAllowed({ silhouette: 'a_line', length: 'midi', asymHem: 'diagonal' }, kind)).toBe(false);
+      expect(volumeAllowed({ silhouette: 'a_line', length: 'midi', asymHem: 'high_low' }, kind)).toBe(kind === 'godets');
+    }
+    const slip = draftSkirt(m, { silhouette: 'slip', length: 'midi', pleats: 'knife' });
+    expect(slip.volume).toBeUndefined();
+    expect(slip.bias).toBe(true);
+    const diagonal = draftSkirt(m, { silhouette: 'a_line', length: 'midi', asymHem: 'diagonal', flounce: 'tiers' });
+    expect(diagonal.volume).toBeUndefined();
+    expect(diagonal.asym?.kind).toBe('diagonal');
+    const pleatedHighLow = draftSkirt(m, { silhouette: 'straight', length: 'midi', asymHem: 'high_low', pleats: 'box' });
+    expect(pleatedHighLow.volume).toBeUndefined();
+    expect(pleatedHighLow.asym?.kind).toBe('high_low');
+    // Godets follow a high-low hem: every slash is the same length, its point clear of the hip line.
+    const g = draftSkirt(m, { silhouette: 'a_line', length: 'midi', asymHem: 'high_low', godets: 8 });
+    expect(g.volume?.kind).toBe('godets');
+    expect(g.asym?.kind).toBe('high_low');
+    const slashes = g.volume!.slashes!.flat();
+    expect(slashes).toHaveLength(4);
+    const lengths = slashes.map(([top, hem]) => Math.hypot(hem.x - top.x, hem.y - top.y));
+    for (const l of lengths) expect(l).toBeCloseTo(lengths[0], 1);
+    for (const [top] of slashes) expect(top.y).toBeGreaterThan(m.waist_to_hip + 5.9);
+    expect(checkPattern(g.pieces, { finishedWaist: g.finishedWaist }).filter((c) => !c.ok)).toEqual([]);
+    expect(describeSkirt({ fit: 'regular', silhouette: 'a_line', length: 'midi', asymHem: 'high_low', godets: 8 })).toBe('Midi a-line skirt with 8 godets and a high-low hem');
+    expect(describeSkirt({ fit: 'regular', silhouette: 'a_line', length: 'midi', asymHem: 'high_low', pleats: 'knife' })).toBe('Midi a-line skirt with a high-low hem');
+    const dress = describePattern({ garment: 'dress', fit: 'regular', bodice: { garment: 'bodice', fit: 'regular', neckline: 'scoop', length: 'waist', darts: 'bust_waist' }, skirt: { fit: 'regular', silhouette: 'a_line', length: 'midi', asymHem: 'high_low', godets: 6 } });
+    expect(dress).toBe('Midi a-line dress with 6 godets, a scoop neck, and a high-low hem');
+  });
+
+  it('passes every check for 12 random bodies with every detail on a slip, a high-low and a diagonal hem', () => {
+    const failures: string[] = [];
+    for (let seed = 1; seed <= 12; seed++) {
+      const body = randomBody(rng(seed + 9400));
+      for (const fit of FITS)
+        for (const silhouette of [...BLOCKS, 'slip'] as Silhouette[])
+          for (const asymHem of ['none', 'high_low', 'diagonal'] as const)
+            for (const kind of KINDS) {
+              if (silhouette !== 'slip' && asymHem === 'none') continue; // covered above
+              const length = (['knee', 'midi', 'maxi', 'above_knee'] as const)[(seed + KINDS.indexOf(kind)) % 4];
+              const st = { fit, silhouette, length, asymHem, ...style(kind, ([4, 6, 8] as const)[seed % 3]) };
+              let d;
+              try {
+                d = draftSkirt(body, st);
+              } catch (e) {
+                if (e instanceof DraftError) continue;
+                throw e;
+              }
+              const tag = `seed ${seed} ${fit} ${silhouette} ${length} ${asymHem} ${kind}`;
+              // A diagonal hem falls back to level where it can't be cut (a pencil, or a walking slit).
+              const ok = volumeAllowed(validCut(st), kind);
+              const wanted = ok && kind !== 'godets';
+              if (d.volume && !ok) failures.push(`${tag}: drafted a detail it should not take`);
+              if (wanted && !d.volume) failures.push(`${tag}: no ${kind}`);
+              for (const c of checkPattern(d.pieces, { finishedWaist: d.finishedWaist })) if (!c.ok) failures.push(`${tag}: ${c.label} (${c.detail})`);
+              // The plain slips and diagonal hems are laid out in their own tests.
+              const all = [...d.pieces, ...layoutExtras(d), ...waistPieces(d, 1.5)];
+              if (d.volume && !layPlan(all, 140)) failures.push(`${tag}: does not lay out`);
+            }
+    }
+    expect(failures.slice(0, 10)).toEqual([]);
+  });
+
   it('names each style, and advises fabric for it', () => {
     expect(describeSkirt({ fit: 'regular', silhouette: 'a_line', length: 'knee', pleats: 'knife' })).toBe('Knee a-line skirt with knife pleats');
     expect(describeSkirt({ fit: 'regular', silhouette: 'straight', length: 'midi', godets: 8 })).toBe('Midi straight skirt with 8 godets');
@@ -218,12 +283,14 @@ describe('skirt volume', () => {
           const length = (['knee', 'midi', 'maxi'] as const)[seed % 3];
           let d;
           try {
-            d = draftDress(body, { fit }, { fit, silhouette, length, ...style(kind) });
+            d = draftDress(body, { fit }, { fit, silhouette, length, ...(seed % 4 === 0 ? { asymHem: 'high_low' as const } : {}), ...style(kind) });
           } catch (e) {
             if (e instanceof DraftError) continue;
             throw e;
           }
-          if (!d.skirt.volume) failures.push(`${seed} ${silhouette} ${kind}: no detail`);
+          const want = seed % 4 !== 0 || kind === 'godets';
+          if (want && !d.skirt.volume) failures.push(`${seed} ${silhouette} ${kind}: no detail`);
+          if (!want && d.skirt.volume) failures.push(`${seed} ${silhouette} ${kind}: a detail under a high-low hem`);
           for (const c of checkPattern(d.pieces, { finishedWaist: d.finishedWaist })) if (!c.ok) failures.push(`${seed} ${fit} ${silhouette} ${length} ${kind}: ${c.label} ${c.detail}`);
         }
     }

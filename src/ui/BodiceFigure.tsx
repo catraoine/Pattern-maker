@@ -89,6 +89,13 @@ function buildModel(draft: BodiceDraft, m: BodiceMeasurements): Model {
     const shoulder = run('shoulder');
     const arm = run('armhole');
     const asinOf = (x: number) => Math.asin(Math.min(0.97, Math.abs(x) / gs));
+    if (!shoulder.length) {
+      // A top cut below the shoulders: its top edge spread round from the centre to the side seam.
+      const steps = neck.map((_, i) => (i ? Math.hypot(neck[i].x - neck[i - 1].x, neck[i].y - neck[i - 1].y) : 0));
+      let sum = 0;
+      const at = steps.map((d) => (sum += d));
+      return neck.map((q, i) => [(Math.PI / 2) * (at[i] / (sum || 1)), map(q.y)] as [number, number]);
+    }
     const nx = Math.max(...neck.map((q) => q.x));
     const aN = asinOf(nx);
     const aS = Math.min(1.2, Math.max(aN + 0.2, asinOf(shoulder[shoulder.length - 1].x)));
