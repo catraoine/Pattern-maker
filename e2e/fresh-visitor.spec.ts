@@ -1,0 +1,61 @@
+import { chooseChip, expect, fillStepPages, openFresh, printA4, stepButton, switchGarment, test, type GarmentName } from './fixtures';
+
+// Two chips to change on each garment's style screen: [group legend, chip].
+const STYLE_CHANGES: Record<GarmentName, [string, string][]> = {
+  Skirt: [
+    ['Silhouette', 'Pencil'],
+    ['Length', 'Midi'],
+  ],
+  Trousers: [
+    ['Leg', 'Wide'],
+    ['Fit', 'Fitted'],
+  ],
+  Bodice: [
+    ['Neckline', 'V-neck'],
+    ['Sleeves', 'Short'],
+  ],
+  Dress: [
+    ['Neckline', 'Scoop'],
+    ['Skirt', 'Full circle'],
+  ],
+};
+
+test('fresh visitor: welcome, measure, style every garment, print the A4 PDF', async ({ page }, info) => {
+  test.setTimeout(240_000);
+  await openFresh(page);
+  const main = page.getByRole('main');
+
+  // Welcome, then the base measurements one page at a time.
+  await main.getByRole('button', { name: 'Begin' }).click();
+  await expect(main.getByRole('heading', { name: /take your measurements/i })).toBeVisible();
+  await main.getByRole('button', { name: 'Start measuring' }).click();
+  await fillStepPages(page);
+
+  await expect(main.getByRole('heading', { name: 'Do these look right?' })).toBeVisible();
+  await expect(main.getByRole('list')).toContainText('92 cm');
+  await main.getByRole('button', { name: 'Choose what to make' }).click();
+
+  // The skirt first: its extra measurements, then whose they are.
+  await expect(main.getByRole('heading', { name: /What would you like to make/ })).toBeVisible();
+  await main.getByRole('button', { name: /^Skirt/ }).click();
+  await main.getByRole('button', { name: 'Measure these' }).click();
+  await fillStepPages(page);
+  await expect(main.getByRole('heading', { name: /^Whose measurements/ })).toBeVisible();
+  await page.getByRole('textbox', { name: 'Your name' }).fill('Ada');
+  await main.getByRole('button', { name: 'Save and style the skirt' }).click();
+
+  // Then each garment in turn: style it, print it.
+  const order: GarmentName[] = ['Skirt', 'Trousers', 'Bodice', 'Dress'];
+  for (const g of order) {
+    await test.step(g, async () => {
+      if (g !== 'Skirt') {
+        await stepButton(page, 'Style').click();
+        await switchGarment(page, g);
+      }
+      await expect(main.getByRole('heading', { name: `Style your ${g.toLowerCase()}` })).toBeVisible();
+      for (const [group, chip] of STYLE_CHANGES[g]) await chooseChip(page, group, chip);
+      await printA4(page, info);
+    });
+  }
+  await expect(page.getByRole('button', { name: /Your account \(Ada\)/ })).toBeVisible();
+});

@@ -1,0 +1,38 @@
+import { chooseChip, expect, expectStyle, skipLoading, startWithExample, test } from './fixtures';
+
+test('returning visitor: a reload keeps the measurements and the saved pattern', async ({ page }) => {
+  await startWithExample(page);
+  const main = page.getByRole('main');
+
+  // Make the measurements this visitor's own: change the waist from the example's.
+  await main.getByRole('button', { name: 'Edit measurements' }).click();
+  await page.getByRole('textbox', { name: 'Waist', exact: true }).fill('74');
+  await main.getByRole('button', { name: 'Next: style your skirt' }).click();
+  await expectStyle(page, 'Skirt');
+
+  await chooseChip(page, 'Length', 'Midi');
+  await main.getByRole('button', { name: 'Save pattern' }).click();
+  await expect(main.getByRole('status').filter({ hasText: 'Saved to' })).toBeVisible();
+
+  await page.reload();
+  await skipLoading(page);
+
+  // Every visit opens on the welcome; carrying on finds the measurements already taken.
+  await main.getByRole('button', { name: 'Begin' }).click();
+  await expect(main.getByRole('heading', { name: 'Do these look right?' })).toBeVisible();
+  await expect(main.getByRole('button', { name: /^Waist [0-9]/ })).toContainText('74 cm');
+  await main.getByRole('button', { name: 'Choose what to make' }).click();
+  await expect(main.getByRole('button', { name: /^Skirt/ })).toContainText('Ready');
+  await main.getByRole('button', { name: /^Skirt/ }).click();
+  await expectStyle(page, 'Skirt');
+
+  // The style chosen and the pattern saved are still there.
+  await expect(main.getByRole('group', { name: 'Length', exact: true }).getByRole('button', { name: 'Midi' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(main.getByRole('status').filter({ hasText: 'Saved to' })).toBeVisible();
+
+  await page.getByRole('button', { name: /^Your account/ }).click();
+  const saved = main.getByRole('region', { name: 'Saved patterns' });
+  await expect(saved.getByRole('listitem')).toHaveCount(1);
+  await expect(saved).toContainText(/midi/i);
+  await expect(main.getByRole('region', { name: /measurements$/ })).toContainText('74 cm');
+});

@@ -1,8 +1,14 @@
+/// <reference types="vitest/config" />
 import { defineConfig } from 'vite';
+import { configDefaults } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
+  // Unit tests only: the Playwright click-throughs in e2e/ run with `npm run test:e2e`.
+  test: {
+    exclude: [...configDefaults.exclude, 'e2e/**', 'playwright-report/**', 'test-results/**'],
+  },
   plugins: [
     react(),
     VitePWA({
