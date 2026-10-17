@@ -32,3 +32,29 @@ test('a new sewist sees Start from a photo', async ({ page }) => {
   await expect(main.getByRole('button', { name: 'Show all tools' })).toBeVisible();
   await expect(main.getByRole('button', { name: 'Start from a photo' })).toBeVisible();
 });
+
+// A measurement that fails a check is caught: a bust in the wrong unit on its own page, and two that
+// disagree (waist to knee longer than waist to floor) on the measurements list, never a loop back through the guided pages.
+test('a wrong measurement is explained, not looped', async ({ page }) => {
+  await openFresh(page);
+  const main = page.getByRole('main');
+  await main.getByRole('button', { name: 'Begin' }).click();
+  await main.getByRole('button', { name: 'Start measuring' }).click();
+  const box = main.getByRole('textbox');
+  const next = () => main.getByRole('button', { name: /^(Next|Done)\b/ }).click();
+  await box.fill('9');
+  await next();
+  await expect(main.getByText(/Full bust should be between/)).toBeVisible();
+  for (const v of ['92', '76', '102', '72']) {
+    await box.fill(v);
+    await next();
+  }
+  await main.getByRole('button', { name: 'Choose what to make' }).click();
+  await pickToMake(page, 'Skirt');
+  for (const v of ['20.5', '74']) {
+    await box.fill(v);
+    await main.getByRole('button', { name: /^Next/ }).click();
+  }
+  await expect(main.getByRole('heading', { level: 1, name: 'Your skirt measurements' })).toBeVisible();
+  await expect(main.getByRole('status').filter({ hasText: /Waist to knee should be shorter than waist to floor/ })).toBeVisible();
+});

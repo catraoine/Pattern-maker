@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { checkMeasurements, type Garment, type MeasurementId, type MeasurementValues, type Unit } from '../measurements';
+import { FIELDS, checkMeasurements, type Garment, type MeasurementId, type MeasurementValues, type Unit } from '../measurements';
 import { BASE, baseDone, fieldOf, fullSetMissing, GARMENT_NAME, GARMENTS, missingFor, stepsOf, tipOf, titleOf } from '../measureFlow';
 import { TapeDemo } from '../ui/ContourForm';
 import { FIRST_PROJECT } from '../mode';
@@ -271,7 +271,9 @@ function MeasurePage({
   const [how, setHow] = useState(false);
   const value = values[id];
   // Range checks for this one measurement only; the cross-checks wait for the full measurements screen.
-  const problems = checkMeasurements({ [id]: value } as MeasurementValues, unit, garment).filter((c) => c.id === id && c.level === 'error' && value !== undefined);
+  // Checked as a garment that uses it, so a base measurement the skirt doesn't need (the bust) still is.
+  const checkAs = FIELDS[garment].some((f) => f.id === id) ? garment : GARMENTS.find((g) => FIELDS[g].some((f) => f.id === id)) ?? garment;
+  const problems = checkMeasurements({ [id]: value } as MeasurementValues, unit, checkAs).filter((c) => c.id === id && c.level === 'error' && value !== undefined);
   const error = problems[0];
   const note = error ?? (tried && value === undefined ? { level: 'error', message: `Enter ${helper ? 'their' : 'your'} ${field.label.toLowerCase()} to carry on.` } : undefined);
 

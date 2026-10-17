@@ -640,8 +640,18 @@ export default function App() {
   const switchGarment = (g: Garment, next: Partial<Saved> = {}, to: View = step, using: MeasurementValues = values) => {
     setSaved({ ...saved, ...next, garment: g });
     const stays = to === 'style' || to === 'export';
-    if (stays && !ready(using, saved.unit, g)) openSteps({ kind: 'for', garment: g });
+    if (stays && !ready(using, saved.unit, g)) measureFor(g, using);
     else setStep(to);
+  };
+
+  /**
+   * Not ready for this garment: take the measurements it still needs, one page each. When none are missing,
+   * one of them fails a check, so open the list with the reason rather than going round the guided pages again.
+   */
+  const measureFor = (g: Garment, using: MeasurementValues) => {
+    const wrong = isComplete(using, g) && checkMeasurements(using, saved.unit, g).find((c) => c.level === 'error');
+    if (wrong) sendToMeasure(`Check your ${g === 'tee' ? 'T-shirt' : g} measurements: ${wrong.message}`);
+    else openSteps({ kind: 'for', garment: g });
   };
 
   // Why someone landed on Measure when they asked for another screen; cleared once they move on.
@@ -658,7 +668,7 @@ export default function App() {
   const switchPerson = (id: string, to: View = step) => {
     const who = account.people.find((p) => p.id === id) ?? person;
     setAccount({ ...account, active: who.id });
-    if ((to === 'style' || to === 'export') && !ready(who.values, saved.unit, garment)) openSteps({ kind: 'for', garment });
+    if ((to === 'style' || to === 'export') && !ready(who.values, saved.unit, garment)) measureFor(garment, who.values);
     else setStep(to);
   };
 
