@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { draftBodice } from '../engine/bodice';
 import { DEFAULT_BODICE } from '../garments';
 import type { P } from '../engine/geometry';
-import { edgeAt, landmarks, readBodiceHem, readNeckline, readSeam, readSkirtHem } from './drawOnForm';
+import { edgeAt, landmarks, readBodiceHem, readNeckline, readSeam, readSkirtHem } from './formLines';
 
 const m = { full_bust: 92, high_bust: 86, waist: 74, neck: 35, shoulder_width: 38, shoulder_length: 12, across_back: 35, across_front: 32, nape_to_waist: 41, front_hps_to_waist: 44, bust_depth: 26, apex_separation: 18, armscye: 40, full_hip: 98, waist_to_hip: 20 };
 const d = draftBodice(m);

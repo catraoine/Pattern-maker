@@ -21,7 +21,7 @@ import { MyFabric, bodiceFabrics, fabricEase } from '../engine/fabrics';
 import { FabricCard } from '../ui/FabricCard';
 import { isDraped } from '../engine/drape';
 import { DrawOnForm } from '../ui/DrawOnForm';
-import { readBodiceHem, readNeckline, readSeam } from '../ui/drawOnForm';
+import { readBodiceHem, readNeckline, readSeam } from '../ui/formLines';
 
 import { Mode, ProTool, shows } from '../mode';
 import { ModeLink } from '../ui/ModeLink';

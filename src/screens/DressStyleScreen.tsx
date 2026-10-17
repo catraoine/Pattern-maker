@@ -32,7 +32,7 @@ import { lengthRange } from '../engine/skirt';
 import type { BodiceMeasurements } from '../engine/bodice';
 import type { SkirtMeasurements } from '../engine/skirt';
 import { DrawOnForm } from '../ui/DrawOnForm';
-import { readNeckline, readSeam, readSkirtHem } from '../ui/drawOnForm';
+import { readNeckline, readSeam, readSkirtHem } from '../ui/formLines';
 
 interface Props {
   choices: DressChoices;

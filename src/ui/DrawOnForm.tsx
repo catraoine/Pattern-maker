@@ -1,12 +1,12 @@
 // Draw on your form: a dress form built from your measurements, in fine contour lines, with the
 // bodice's neckline, seams and hem drawn on it like a draper's style tape. Draw a new line with a
-// finger and the pattern follows it (see drawOnForm.ts for how each line is read).
+// finger and the pattern follows it (see formLines.ts for how each line is read).
 import { PointerEvent, useMemo, useRef, useState } from 'react';
 import type { P } from '../engine/geometry';
 import type { BodiceDraft } from '../engine/bodice';
 import { bodyOutline, spline } from './bodyOutline';
 import { worn } from './BodiceShape';
-import { FormLine, landmarks } from './drawOnForm';
+import { FormLine, landmarks } from './formLines';
 import type { SkirtMeasurements } from '../engine/skirt';
 
 interface Props {
