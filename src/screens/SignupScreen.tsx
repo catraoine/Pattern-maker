@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 
 interface Props {
   kind: 'tester' | 'news';
-  onBack: () => void;
   /** Opens the other sign-up. */
   onOther: () => void;
   onPrivacy: () => void;
@@ -21,7 +20,7 @@ async function send(body: object): Promise<Sent> {
 }
 
 /** "Be a fit tester" and "Get news" sign-ups, opened from Your account. */
-export function SignupScreen({ kind, onBack, onOther, onPrivacy }: Props) {
+export function SignupScreen({ kind, onOther, onPrivacy }: Props) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [sews, setSews] = useState('');
@@ -44,9 +43,6 @@ export function SignupScreen({ kind, onBack, onOther, onPrivacy }: Props) {
 
   return (
     <article className="card legal signup" aria-labelledby="stitle">
-      <button type="button" className="link back" onClick={onBack}>
-        Back
-      </button>
       <p className="eyebrow">Maison Tracé</p>
       <h1 id="stitle">{tester ? 'Be a fit tester' : 'Get news'}</h1>
       {state === 'sent' ? (
