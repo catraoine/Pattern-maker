@@ -3,6 +3,7 @@
 import { P, len, sub, taggedLength } from './geometry';
 import { dartsOf } from './marks';
 import { Piece } from './piece';
+import { pocketChecks, withParts } from './pockets';
 
 export interface Check {
   group: 'Seams' | 'Corners' | 'Darts';
@@ -70,7 +71,9 @@ const NAMES: Record<string, string> = {
 const isFront = (pc: Piece) => /front/i.test(pc.name);
 /** The garment a piece belongs to, from its first word: Bodice, Skirt. */
 const garmentOf = (pc: Piece) => pc.name.split(' ')[0];
-const sum = (pcs: Piece[], tag: string) => pcs.reduce((t, pc) => t + taggedLength(pc.outline, tag), 0);
+/** A seam's length over a set of pieces, with any part cut from one and sewn back (a slant pocket's facing). */
+const sumIn = (all: Piece[]) => (pcs: Piece[], tag: string) => pcs.reduce((t, pc) => t + withParts(all, pc, tag), 0);
+const sum = sumIn([]);
 const isBack = (pc: Piece) => /back/i.test(pc.name);
 
 /** Front and back pieces paired by the word before "front" or "back": the bodice's, the skirt's. */
@@ -92,13 +95,15 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
   const back = pieces.find(isBack);
   const all = pairs(pieces);
   const named = all.length > 1;
+  const sum = sumIn(pieces);
+  const partsOf = (pc: Piece) => pieces.filter((x) => x.meta.partOf === pc.name);
 
   for (const { group, front, back } of all) {
     const which = (label: string) => (named ? `${group}${/ (centre|side)$/i.test(group) ? ' panel' : ''} ${label[0].toLowerCase()}${label.slice(1)}` : label);
     // Seams that sew together.
     for (const seam of ['side', 'shoulder', 'inseam']) {
-      const f = taggedLength(front.outline, seam);
-      const b = taggedLength(back.outline, seam);
+      const f = withParts(pieces, front, seam);
+      const b = withParts(pieces, back, seam);
       if (!f || !b) continue;
       if (seam === 'shoulder') {
         // The back shoulder is drafted 1 cm longer and eased in over the shoulder blade (half of it
@@ -120,7 +125,7 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
         });
       }
       // Curves meeting across the seam must blend: the two corners add up to a straight line.
-      const fc = corners(front).filter((c) => (c.a === seam || c.b === seam) && c.a !== 'dart' && c.b !== 'dart');
+      const fc = [front, ...partsOf(front)].flatMap(corners).filter((c) => (c.a === seam || c.b === seam) && c.a !== 'dart' && c.b !== 'dart');
       for (const c of fc) {
         const other = c.a === seam ? c.b : c.a;
         const bc = corners(back).find((k) => (k.a === seam && k.b === other) || (k.b === seam && k.a === other));
@@ -242,6 +247,8 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
       ok: Math.abs(a - b) <= SEAM_TOLERANCE,
     });
   }
+
+  for (const c of pocketChecks(pieces)) checks.push({ group: 'Seams', ...c });
 
   const sleeve = pieces.find((pc) => /^sleeve$/i.test(pc.name));
   if (sleeve && front && back) checks.push(...sleeveChecks(sleeve, pieces.filter(isFront), pieces.filter(isBack)));

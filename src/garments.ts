@@ -5,7 +5,9 @@ import { SHAPES_FOR_LENGTH, SleeveLength, SleeveShape } from './engine/sleeve';
 import type { DartPlace, PrincessLine } from './engine/manipulate';
 import type { Closure, Collar } from './engine/collar';
 import { LEG_WORDS, Leg, TrouserClosure, TrouserLength } from './engine/trousers';
-import type { Fit } from './engine/skirt';
+import type { Fit, WaistStyle } from './engine/skirt';
+import type { PocketStyle } from './engine/pockets';
+import type { Stretch, TeeFit, TeeLength, TeeNeck, TeeSleeve } from './engine/tee';
 import type { OuterCollar, OuterFit, OuterFlare, OuterFront, OuterKind, OuterLength, OuterPads, OuterPockets, OuterShaping, OuterSleeve, OuterVent } from './engine/outerwear';
 
 export interface BodiceChoices {
@@ -37,28 +39,86 @@ export interface DressChoices {
   skirt: Choices;
 }
 
-/** Trousers: the leg's shape and length, and a fly or side zip. */
+/** Trousers: the leg's shape and length, a fly or side zip (or a pull-on elastic waist), and pockets. */
 export interface TrousersChoices {
   garment: 'trousers';
   fit: Fit;
   leg: Leg;
   length: TrouserLength;
   closure: TrouserClosure;
+  /** Older saves have no pockets and a waistband with a zip. */
+  pockets?: PocketStyle;
+  waist?: WaistStyle;
 }
 
 export const DEFAULT_TROUSERS_CHOICES: TrousersChoices = { garment: 'trousers', fit: 'regular', leg: 'straight', length: 'full', closure: 'fly' };
 
-export const TROUSER_GROUPS: { id: 'fit' | 'leg' | 'length' | 'closure'; label: string; options: [string, string][] }[] = [
+export type TrouserGroupId = 'fit' | 'leg' | 'length' | 'waist' | 'closure' | 'pockets';
+
+export const TROUSER_GROUPS: { id: TrouserGroupId; label: string; options: [string, string][] }[] = [
   { id: 'fit', label: 'Fit', options: [['fitted', 'Fitted'], ['regular', 'Regular'], ['relaxed', 'Relaxed']] },
   { id: 'leg', label: 'Leg', options: [['straight', 'Straight'], ['wide', 'Wide'], ['tapered', 'Tapered'], ['culotte', 'Culotte']] },
   { id: 'length', label: 'Length', options: [['full', 'Full length'], ['ankle', 'Ankle']] },
+  { id: 'waist', label: 'Waist', options: [['band', 'Waistband with zip'], ['elastic', 'Elastic, pull-on']] },
   { id: 'closure', label: 'Opening', options: [['fly', 'Fly zip'], ['side_zip', 'Side zip']] },
+  { id: 'pockets', label: 'Pockets', options: [['none', 'None'], ['inseam', 'In-seam'], ['slant', 'Slant front']] },
 ];
 
-/** A plain name, such as "Ankle-length wide-leg trousers with a side zip". */
+/** A trouser choice as saved, older saves falling back to no pockets and a zipped waistband. */
+export const trouserChoice = (c: TrousersChoices, id: TrouserGroupId): string => (id === 'pockets' ? (c.pockets ?? 'none') : id === 'waist' ? (c.waist ?? 'band') : c[id]);
+
+/**
+ * Whether a trouser choice can be picked with the rest, and why not: a pull-on waist has no opening
+ * to choose, and slant pockets sit where a side zip would go.
+ */
+export function trouserAllowed(c: TrousersChoices, id: TrouserGroupId, opt: string): boolean {
+  if (id === 'closure') return c.waist !== 'elastic';
+  if (id === 'pockets' && opt === 'slant') return c.waist === 'elastic' || c.closure === 'fly';
+  return true;
+}
+
+/** The choices made valid: slant pockets beside a side zip fall back to in-seam ones. */
+export function validTrousers(c: TrousersChoices): TrousersChoices {
+  return c.pockets === 'slant' && !trouserAllowed(c, 'pockets', 'slant') ? { ...c, pockets: 'inseam' } : c;
+}
+
+/** A plain name, such as "Ankle-length wide-leg trousers with a side zip and in-seam pockets". */
 export function describeTrousers(c: TrousersChoices) {
   const length = c.leg === 'culotte' ? '' : c.length === 'ankle' ? 'Ankle-length ' : '';
-  const words = `${length}${LEG_WORDS[c.leg]} with a ${c.closure === 'fly' ? 'fly front' : 'side zip'}`;
+  const pockets = c.pockets === 'slant' ? 'slant pockets' : c.pockets === 'inseam' ? 'in-seam pockets' : '';
+  const opening = c.waist === 'elastic' ? 'an elastic waist' : `a ${c.closure === 'fly' ? 'fly front' : 'side zip'}`;
+  const words = `${length}${LEG_WORDS[c.leg]} with ${opening}${pockets ? ` and ${pockets}` : ''}`;
+  return words[0].toUpperCase() + words.slice(1);
+}
+
+/** A knit T-shirt: the fit, the fabric's stretch, and the neckline, sleeves and length. */
+export interface TeeChoices {
+  garment: 'tee';
+  fit: TeeFit;
+  stretch: Stretch;
+  neckline: TeeNeck;
+  sleeve: TeeSleeve;
+  length: TeeLength;
+}
+
+export const DEFAULT_TEE_CHOICES: TeeChoices = { garment: 'tee', fit: 'regular', stretch: 'medium', neckline: 'crew', sleeve: 'short', length: 'hip' };
+
+export const TEE_GROUPS: { id: 'stretch' | 'fit' | 'neckline' | 'sleeve' | 'length'; label: string; options: [string, string][] }[] = [
+  { id: 'stretch', label: 'Your knit’s stretch', options: [['low', 'Low 20–30%'], ['medium', 'Medium 30–50%'], ['high', 'High 50%+']] },
+  { id: 'fit', label: 'Fit', options: [['fitted', 'Fitted'], ['regular', 'Regular'], ['relaxed', 'Relaxed']] },
+  { id: 'neckline', label: 'Neckline', options: [['crew', 'Crew'], ['scoop', 'Scoop'], ['v', 'V-neck']] },
+  { id: 'sleeve', label: 'Sleeves', options: [['short', 'Short'], ['elbow', 'Elbow'], ['long', 'Long']] },
+  { id: 'length', label: 'Length', options: [['cropped', 'Cropped'], ['hip', 'Hip'], ['tunic', 'Tunic']] },
+];
+
+const TEE_NECK_WORDS: Record<TeeNeck, string> = { crew: 'crew-neck', scoop: 'scoop-neck', v: 'V-neck' };
+const TEE_SLEEVE_WORDS: Record<TeeSleeve, string> = { short: 'short sleeves', elbow: 'elbow-length sleeves', long: 'long sleeves' };
+const TEE_LENGTH_WORDS: Record<TeeLength, string> = { cropped: 'Cropped ', hip: '', tunic: 'Tunic-length ' };
+
+/** A plain name, such as "Fitted scoop-neck T-shirt with long sleeves". */
+export function describeTee(c: TeeChoices) {
+  const fit = c.fit === 'regular' ? '' : `${c.fit} `;
+  const words = `${TEE_LENGTH_WORDS[c.length]}${fit}${TEE_NECK_WORDS[c.neckline]} T-shirt with ${TEE_SLEEVE_WORDS[c.sleeve]}`;
   return words[0].toUpperCase() + words.slice(1);
 }
 
@@ -120,11 +180,12 @@ export function describeOuter(c: OuterChoices) {
 }
 
 /** A saved pattern's choices. Skirt choices predate bodices, so they carry no garment field. */
-export type PatternChoices = Choices | BodiceChoices | DressChoices | TrousersChoices | OuterChoices;
+export type PatternChoices = Choices | BodiceChoices | DressChoices | TrousersChoices | TeeChoices | OuterChoices;
 
 export const isBodice = (c: PatternChoices): c is BodiceChoices => (c as BodiceChoices).garment === 'bodice';
 export const isDress = (c: PatternChoices): c is DressChoices => (c as DressChoices).garment === 'dress';
 export const isTrousers = (c: PatternChoices): c is TrousersChoices => (c as TrousersChoices).garment === 'trousers';
+export const isTee = (c: PatternChoices): c is TeeChoices => (c as TeeChoices).garment === 'tee';
 export const isOuter = (c: PatternChoices): c is OuterChoices => (c as OuterChoices).garment === 'jacket' || (c as OuterChoices).garment === 'coat';
 
 export const DEFAULT_BODICE: BodiceChoices = { garment: 'bodice', fit: 'regular', neckline: 'crew', length: 'waist', darts: 'bust_waist', sleeve: 'none', sleeveShape: 'straight' };

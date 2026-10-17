@@ -1,6 +1,6 @@
 // The guest's account, kept on this device until sign-in arrives: their name, the people they measure and saved patterns.
 // Patterns are stored as choices (not geometry), so they redraft whenever measurements or the engine change.
-import { PatternChoices, isBodice, isDress, isOuter, isTrousers, sleeveOf } from './garments';
+import { PatternChoices, isBodice, isDress, isOuter, isTee, isTrousers, sleeveOf } from './garments';
 import type { Garment, MeasurementValues } from './measurements';
 import type { Fitting } from './engine/fitting';
 import type { FitFeedback } from './fit';
@@ -65,6 +65,8 @@ export interface Account {
   /** Missing on accounts from before there could be more than one person; see withPeople. */
   people?: Person[];
   active?: string;
+  /** Simple or all tools; see modeOf. Missing on accounts from before there was a choice. */
+  mode?: 'simple' | 'all';
 }
 
 export const NEW_ACCOUNT: Account = { onboarded: false, name: '', patterns: [] };
@@ -114,6 +116,9 @@ export function claimMeasurements(account: Account, whose: 'mine' | 'other', nam
 }
 
 export function sameChoices(a: PatternChoices, b: PatternChoices): boolean {
+  if (isTee(a) || isTee(b)) {
+    return isTee(a) && isTee(b) && a.fit === b.fit && a.stretch === b.stretch && a.neckline === b.neckline && a.sleeve === b.sleeve && a.length === b.length;
+  }
   if (isTrousers(a) || isTrousers(b)) {
     return isTrousers(a) && isTrousers(b) && a.fit === b.fit && a.leg === b.leg && a.length === b.length && a.closure === b.closure;
   }

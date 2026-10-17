@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { checkMeasurements, type Garment, type MeasurementId, type MeasurementValues, type Unit } from '../measurements';
 import { BASE, baseDone, fieldOf, fullSetMissing, GARMENT_NAME, GARMENTS, missingFor, stepsOf, tipOf, titleOf } from '../measureFlow';
 import { TapeDemo } from '../ui/ContourForm';
+import { FIRST_PROJECT } from '../mode';
 import { canGoBack, goBack, usePageHistory } from '../nav';
 
 interface Props {
@@ -135,9 +136,11 @@ export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onV
             <button key={g} type="button" role="radio" aria-checked={picked === g} className={picked === g ? 'on' : ''} onClick={() => setPicked(g)}>
               <span className="dot-pick" aria-hidden="true" />
               {g === 'other' ? 'Something else' : cap(GARMENT_NAME[g])}
+              {g === FIRST_PROJECT.garment && <small className="badge first-project">First project</small>}
             </button>
           ))}
         </div>
+        <p className="muted small">{FIRST_PROJECT.why}</p>
         <button type="button" className="primary" disabled={!picked} onClick={() => picked && go(picked)}>
           Continue measuring
         </button>

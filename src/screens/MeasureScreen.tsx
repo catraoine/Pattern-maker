@@ -1,5 +1,6 @@
 import { Check, FIELDS, Garment, MeasurementId, MeasurementValues, Unit } from '../measurements';
 import { GarmentSwitch } from '../ui/GarmentSwitch';
+import { GARMENT_NAME } from '../measureFlow';
 import { PeopleSwitch } from '../ui/PeopleSwitch';
 import { ME, type Account, type Person } from '../account';
 
@@ -42,7 +43,7 @@ export function MeasureScreen({ account, onSwitchPerson, onAddPerson, profile, g
           </p>
         )}
         <h1 id="mtitle">
-          {account.active === ME ? 'Your' : `${profile}'s`} {garment} measurements
+          {account.active === ME ? 'Your' : `${profile}'s`} {GARMENT_NAME[garment]} measurements
         </h1>
         <GarmentSwitch onChoose={onChooseGarment} />
         {account.people.length > 1 && <PeopleSwitch account={account} onSwitch={onSwitchPerson} onAdd={onAddPerson} />}
@@ -71,7 +72,7 @@ export function MeasureScreen({ account, onSwitchPerson, onAddPerson, profile, g
           </button>
         ) : (
           <button type="button" className="primary" disabled={!canContinue} onClick={onNext}>
-            Style your {garment}
+            Style your {GARMENT_NAME[garment]}
           </button>
         )}
       </section>

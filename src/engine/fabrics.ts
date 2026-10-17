@@ -1,18 +1,20 @@
 // Fabric guidance: which cloth suits each style, what to avoid, the fabric the maker actually bought,
 // a check of that fabric against the style, ease for heavy cloth, and getting the fabric ready to cut.
-// Woven fabrics only: every draft is for woven cloth, so stretch fabrics and knits are always ruled out.
+// Woven fabrics only: every draft is for woven cloth, so stretch fabrics and knits are ruled out. The T-shirt is the
+// one knit garment: its advice is in knits.ts, hooked in below.
 // Keep to plain ASCII punctuation: these words go into the PDF and the tech pack.
 import type { Fit, Length, Silhouette, SkirtFitting } from './skirt';
 import type { BodiceDarts, BodiceFit, BodiceFitting, BodiceLength, Neckline } from './bodice';
 import type { Leg } from './trousers';
 import type { Cloth } from './couture';
 import type { SewingGuide } from './instructions';
+import { TeeFabricStyle, teeFabrics, teeWarnings } from './knits';
 import { Checks, SPECIALS, Special, checksLines, specialLines, specialWarnings } from './specialFabrics';
 
 export type Weight = 'light' | 'medium' | 'heavy';
 export type Drape = 'crisp' | 'soft' | 'fluid';
 /** Every garment the fabric advice covers. */
-export type FabricGarment = 'skirt' | 'bodice' | 'dress' | 'trousers' | 'jacket' | 'coat';
+export type FabricGarment = 'skirt' | 'bodice' | 'dress' | 'trousers' | 'tee' | 'jacket' | 'coat';
 export type Fibre = 'cotton' | 'linen' | 'wool' | 'silk' | 'viscose' | 'polyester' | 'blend';
 
 /** The fabric the maker has bought, or means to buy. Every field is optional. */
@@ -359,6 +361,7 @@ export type FabricStyle =
   | { garment: 'bodice'; fit: BodiceFit; neckline: Neckline }
   | { garment: 'dress'; fit: BodiceFit; neckline: Neckline; silhouette: Silhouette; length: Length }
   | { garment: 'trousers'; fit: Fit; leg: Leg }
+  | TeeFabricStyle
   | { garment: 'jacket' | 'coat'; fit: BodiceFit };
 
 const weightRank: Record<Weight, number> = { light: 0, medium: 1, heavy: 2 };
@@ -394,12 +397,14 @@ export function adviceFor(style: FabricStyle): FabricAdvice {
   if (style.garment === 'skirt') return skirtFabrics(style);
   if (style.garment === 'bodice') return bodiceFabrics(style);
   if (style.garment === 'dress') return dressFabrics(style);
+  if (style.garment === 'tee') return teeFabrics(style);
   if (style.garment === 'trousers') return trousersFabrics(style);
   return outerFabrics(style);
 }
 
 /** What to watch for with this fabric in this style. */
 function styleWarnings(style: FabricStyle, { weight, drape }: MyFabric): string[] {
+  if (style.garment === 'tee') return teeWarnings(style, { weight, drape });
   const out: string[] = [];
   const name = adviceFor(style).style;
   if (style.garment === 'skirt' || style.garment === 'dress') {
