@@ -627,7 +627,15 @@ export default function App() {
                   aria-current={step === 'account' ? 'page' : undefined}
                   onClick={() => setStep('account')}
                 >
-                  {owner[0].toUpperCase()}
+                  {/* Until you give your name, a figure rather than the "M" of "Me", which reads as someone else's initial. */}
+                  {account.name.trim() ? (
+                    owner[0].toUpperCase()
+                  ) : (
+                    <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1">
+                      <circle cx="9" cy="6" r="3.2" />
+                      <path d="M2.5 16.5 C3.5 12.5 6 11 9 11 C12 11 14.5 12.5 15.5 16.5" strokeLinecap="round" />
+                    </svg>
+                  )}
                 </button>
               </div>
               {SIDE[step] && (
