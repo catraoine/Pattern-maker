@@ -1103,37 +1103,6 @@ button.ghost:disabled {
   filter: drop-shadow(0 0 0.6px rgba(243, 230, 200, 0.9));
 }
 
-.preview.flush {
-  padding: 0;
-}
-.turn {
-  position: relative;
-  width: 100%;
-  display: grid;
-  gap: 8px;
-}
-.turn-canvas {
-  width: 100%;
-  height: min(64vh, 560px);
-  min-height: 360px;
-  display: block;
-  touch-action: none;
-  cursor: grab;
-}
-.turn-read {
-  position: absolute;
-  top: 10px;
-  left: 12px;
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: var(--track);
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.turn-bar {
-  padding: 0 12px 12px;
-}
-
 .toast,
 .draft-caption {
   position: absolute;
@@ -2487,6 +2456,10 @@ table.history td.moved {
 .seg.views button {
   white-space: nowrap;
   padding: 0 10px;
+}
+.shape .body-outline {
+  stroke: var(--muted);
+  opacity: 0.5;
 }
 
 /* Text boxes start empty, with no sample text (Cat's pick E1): a champagne outline and cursor show the box

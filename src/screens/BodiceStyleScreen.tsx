@@ -13,7 +13,6 @@ import { GarmentSwitch } from '../ui/GarmentSwitch';
 import { SaveControl } from '../ui/SaveControl';
 import { FinishChoices } from '../ui/FinishChoices';
 import { BodiceShape } from '../ui/BodiceShape';
-import { BodiceFigure } from '../ui/BodiceFigure';
 import type { Side } from '../ui/ShapeSketch';
 import { useShake } from '../ui/shake';
 import type { Finish } from '../App';
@@ -72,7 +71,7 @@ const UNDO_LIMIT = 40;
 const REPLACES = { fit: 'bustEase', length: 'dropCm', neckline: 'neck' } as const;
 const handShaped = (c: BodiceChoices, id: string) => id in REPLACES && c[REPLACES[id as keyof typeof REPLACES]] !== undefined;
 
-type View = 'sketch' | 'figure' | 'flat' | 'pattern' | 'ease';
+type View = 'sketch' | 'flat' | 'pattern' | 'ease';
 
 export function BodiceStyleScreen({ choices, onChoices, onChooseGarment, values, draft, sleeve, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, finish, onFinish, fabric }: Props) {
   const [view, setView] = useState<View>('sketch');
@@ -144,7 +143,6 @@ export function BodiceStyleScreen({ choices, onChoices, onChooseGarment, values,
 
   const views: [View, string][] = [
     ['sketch', 'Sketch'],
-    ['figure', 'On you'],
     ['flat', 'Flat'],
     ['pattern', 'Pieces'],
     ...(easeMap && easeMap.length > 0 ? ([['ease', 'Ease']] as [View, string][]) : []),
@@ -264,7 +262,7 @@ export function BodiceStyleScreen({ choices, onChoices, onChooseGarment, values,
             </button>
           </div>
         )}
-        <div className={view === 'figure' ? 'preview flush' : 'preview'}>
+        <div className="preview">
           {error && <p className="msg error">{error}</p>}
           {draft && view === 'sketch' && (
             <BodiceShape
@@ -278,7 +276,6 @@ export function BodiceStyleScreen({ choices, onChoices, onChooseGarment, values,
               onDone={(before, after) => change(after, before)}
             />
           )}
-          {draft && view === 'figure' && <BodiceFigure draft={draft} m={m} label={`${title} on a dress form made from your measurements`} />}
           {flat && view === 'flat' && <TechFlatView flat={flat} title={title} />}
           {draft && sheet && view === 'pattern' && (
             <PatternPreview sheet={sheet} play={play} names={pieces.map((pc) => pc.name)} label={`Front and back pattern pieces for a ${title}`} />
