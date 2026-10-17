@@ -33,12 +33,15 @@ function spline(keys: [number, number][]) {
   };
 }
 
-// Half-width of the form from neck (top) to hip (bottom); the waist sits at y = 0.1.
+// Half-width of the form from neck (top) to hip (bottom); the waist sits at y = 0.1. A dressmaker's form
+// (Cat's pick N1): a short, full neck and broad, nearly level shoulders that round off at the arm.
 const R = spline([
-  [-1.75, 0.12], [-1.5, 0.13], [-1.36, 0.17], [-1.24, 0.42], [-1.08, 0.55], [-0.8, 0.58], [-0.55, 0.61],
+  [-1.75, 0.15], [-1.55, 0.155], [-1.47, 0.17], [-1.43, 0.25], [-1.38, 0.42], [-1.32, 0.52], [-1.22, 0.57],
+  [-1.05, 0.58], [-0.8, 0.59], [-0.55, 0.61],
   [-0.3, 0.53], [-0.05, 0.45], [0.1, 0.43], [0.3, 0.49], [0.55, 0.61], [0.8, 0.65], [1.05, 0.63], [1.3, 0.58],
 ]);
-const YS = Array.from({ length: 221 }, (_, i) => -1.75 + (3.05 * i) / 220);
+// The neck starts at -1.66: short and full, like a dressmaker's form.
+const YS = Array.from({ length: 221 }, (_, i) => -1.66 + (2.96 * i) / 220);
 const LINES = 23;
 const DEPTH = 0.16;
 
