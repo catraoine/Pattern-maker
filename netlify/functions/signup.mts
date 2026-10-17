@@ -1,5 +1,5 @@
 // POST a "Be a fit tester" or "Get news" sign-up. Kept in the "signups" Netlify Blobs store, one entry per email
-// (signing up again replaces it): tester/<id> and news/<id>. Read them through the report function's read-out.
+// (signing up again replaces it): tester/<id>, news/<id> and interest/<offer>/<id>. Read them through the report function's read-out.
 import { createHash } from 'node:crypto';
 import { getStore } from '@netlify/blobs';
 import { checkSignup } from '../../src/server/reports';
@@ -27,7 +27,7 @@ export default async (req: Request, context: { ip?: string }) => {
     if ((await takeAllowance(blobCounts(), hash(context.ip ?? 'unknown', 24), new Date(), CAPS)) !== 'ok') {
       return Response.json({ ok: false, error: 'limit_reached' }, { status: 429 });
     }
-    await getStore({ name: 'signups', consistency: 'strong' }).setJSON(`${signup.kind}/${hash(signup.email, 16)}`, {
+    await getStore({ name: 'signups', consistency: 'strong' }).setJSON(`${signup.kind === 'interest' ? `interest/${signup.offer}` : signup.kind}/${hash(signup.email, 16)}`, {
       ...signup,
       receivedAt: new Date().toISOString(),
     });

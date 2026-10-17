@@ -7,6 +7,7 @@ import { FitForm } from '../ui/FitForm';
 import { FitFeedback, fitReport, fitSummary, sendFitReport } from '../fit';
 import type { MeasurementValues } from '../measurements';
 import { Mode, shows } from '../mode';
+import { InterestCard } from '../ui/InterestCard';
 
 // Skirt and bodice share a few measurements (waist, hip); list each once.
 const ALL_FIELDS = [...SKIRT_FIELDS, ...TROUSERS_FIELDS.filter((t) => !SKIRT_FIELDS.some((f) => f.id === t.id)), ...BODICE_FIELDS.filter((b) => !SKIRT_FIELDS.some((f) => f.id === b.id))];
@@ -236,6 +237,22 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
             </p>
           )}
         </section>
+
+        <InterestCard offer="founding" />
+
+        <details className="card more">
+          <summary>
+            <span className="eyebrow">Coming to Maison Tracé</span>
+            <h2>Sew-alongs, designers and gifts</h2>
+          </summary>
+          <p className="muted small">None of these are open yet. Leave your email on any you'd like and we'll tell you when it opens.</p>
+          <InterestCard offer="sewalong" inset />
+          <InterestCard offer="designers" inset />
+          <InterestCard offer="gift" inset />
+          <InterestCard offer="classroom" inset />
+          <InterestCard offer="designer-partner" inset />
+          <InterestCard offer="sponsor" inset />
+        </details>
       </div>
     </div>
   );
@@ -327,6 +344,7 @@ function PatternRow({
         </button>
       </div>
       {fitting && (
+        <>
         <FitForm
           choices={pattern.choices}
           initial={pattern.fit}
@@ -341,6 +359,8 @@ function PatternRow({
               : undefined
           }
         />
+        <InterestCard offer="fitcheck" inset pattern={pattern.name} />
+        </>
       )}
     </li>
   );

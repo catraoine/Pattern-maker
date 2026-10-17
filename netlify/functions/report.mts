@@ -61,14 +61,14 @@ async function readOut(url: URL) {
     .slice(0, 100);
   const crashes = (await Promise.all(crashKeys.map((k) => store.get(k, { type: 'json' })))) as StoredCrash[];
   const signups = async (prefix: string) => Promise.all((await signupStore.list({ prefix })).blobs.map((b) => signupStore.get(b.key, { type: 'json' })));
-  const [testers, news] = await Promise.all([signups('tester/'), signups('news/')]);
+  const [testers, news, interest] = await Promise.all([signups('tester/'), signups('news/'), signups('interest/')]);
 
   return Response.json(
     {
       ok: true,
       days: totals.flatMap(({ day, totals: t }) => (t ? [{ day, ...t }] : [])),
       crashes,
-      signups: { testers, news },
+      signups: { testers, news, interest },
     },
     { headers: { 'Cache-Control': 'no-store' } },
   );

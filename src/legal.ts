@@ -29,7 +29,7 @@ const contact = `${OWNER.name}, ${OWNER.address}. Email ${OWNER.email}.`;
 export const PRIVACY: LegalDoc = {
   title: 'Privacy Policy',
   intro:
-    'Your measurements, the people you measure for and your saved patterns stay on your own device. We receive something from you only when you use photo-to-pattern (we don’t keep that photo), choose to send us fit notes, or sign up as a fit tester or for news. The app also sends us a short report if it crashes, and anonymous counts of visits, with nothing that identifies you.',
+    'Your measurements, the people you measure for and your saved patterns stay on your own device. We receive something from you only when you use photo-to-pattern (we don’t keep that photo), choose to send us fit notes, or sign up as a fit tester, for news, or to hear when something new opens. The app also sends us a short report if it crashes, and anonymous counts of visits, with nothing that identifies you.',
   sections: [
     {
       heading: 'Who we are',
@@ -68,6 +68,7 @@ export const PRIVACY: LegalDoc = {
             ],
             ['Your name, email, what you’d like to sew and a rough size range, if you sign up as a fit tester', 'Our server (Netlify)', 'Only if you sign up'],
             ['Your email, if you sign up for news', 'Our server (Netlify)', 'Only if you sign up'],
+            ['Your email, what you asked to hear about and the pattern on screen, if you ask to hear when something opens (such as printing by post or a founding place)', 'Our server (Netlify)', 'Only if you sign up'],
             ['A scrambled code made from your IP address', 'Our photo, fit-note and sign-up counters, for one day', 'Yes'],
           ],
         },
@@ -76,7 +77,7 @@ export const PRIVACY: LegalDoc = {
         'Fit notes.|When you note how a pattern fitted, you can choose to send those notes to us. We receive the pattern’s style, your answers, any notes you write and the measurements it was drafted from. We don’t receive your name or the name of the person it was made for, so please leave names out of your notes. We use fit notes only to improve how our patterns fit. We count how many you send each day under the same scrambled code as photo readings, so the service can’t be flooded, and we don’t store your IP address with the notes.',
         'Crash reports.|If the app hits an error, it sends us a short report so we can fix it: the error message and where in the app’s code it happened, the screen you were on, the app version, your browser’s name and version (such as “Safari 17 on iOS”), and the time. Before it’s stored, we remove numbers from the error message, and email addresses, file data and web address details from the whole report. It never includes your measurements, names, patterns or photos, and we don’t store your IP address with it. The same error is reported once, and no more than five a visit.',
         'Visit counts.|To see whether the app is working for people, we count visits and how many visits reached each step (measuring, choosing a style, printing or saving the PDF, and using photo-to-pattern), for each garment. Each count is added straight into a total for the day. There’s no cookie, no ID and no IP address stored, so the totals can’t be traced back to you or linked between visits. The counts are sent once, when you leave or switch away from the app. If your browser sends a “Do Not Track” or “Global Privacy Control” signal, we don’t count your visit at all.',
-        'Fit testers and news.|If you sign up as a fit tester, we keep your name, email, what you’d like to sew and the size range you give (if any), and use them only to invite you to test new patterns. If you sign up for news, we keep only your email and use it only to send Maison Tracé news. We count sign-ups under the same scrambled code as photo readings, so the form can’t be flooded.',
+        'Fit testers and news.|If you sign up as a fit tester, we keep your name, email, what you’d like to sew and the size range you give (if any), and use them only to invite you to test new patterns. If you sign up for news, we keep only your email and use it only to send Maison Tracé news. If you ask to hear when something opens, we keep your email, what you asked about and the pattern you were looking at, and use them only to tell you when it opens. We count sign-ups under the same scrambled code as photo readings, so the form can’t be flooded.',
         'What we don’t do.|We don’t use cookies, advertising, tracking or outside analytics tools, and we don’t sell or share your information for marketing. Crash reports, counts and sign-ups go only to our own server. The app’s typefaces are built in, so your browser doesn’t contact a font service.',
       ],
     },
@@ -111,7 +112,7 @@ export const PRIVACY: LegalDoc = {
           'Daily counters: one tally per day, keyed by the scrambled code.',
           'Crash reports: kept while we work on the problems they show, then deleted.',
           'Daily visit totals: kept as totals. They hold nothing about any one person.',
-          'Fit tester and news sign-ups: until you ask us to remove you, or we stop fit testing or sending news. Every news email will say how to stop them.',
+          'Fit tester, news and “tell me when it opens” sign-ups: until you ask us to remove you, or we stop fit testing, sending news, or plan not to open what you asked about. Every news email will say how to stop them.',
           'Hosting logs: kept by Netlify for its standard period.',
         ],
         `Because almost everything stays on your device, we usually hold nothing we can look up about you, unless you signed up as a fit tester or for news. You can still contact us at ${OWNER.email} to ask what we hold, to correct it or to delete it. Depending on where you live (for example the UK, the EU, Canada or California), you may have further rights, including the right to complain to your local data protection authority.`,
