@@ -12,7 +12,7 @@ export default defineConfig({
   },
   // Unit tests only: the Playwright click-throughs in e2e/ run with `npm run test:e2e`.
   test: {
-    exclude: [...configDefaults.exclude, 'e2e/**', 'playwright-report/**', 'test-results/**'],
+    exclude: [...configDefaults.exclude, '.claude/**', 'e2e/**', 'playwright-report/**', 'test-results/**'],
   },
   plugins: [
     react(),
