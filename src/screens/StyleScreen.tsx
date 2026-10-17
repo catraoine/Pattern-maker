@@ -4,7 +4,7 @@ import { layout } from '../engine/export';
 import { piecesLengthCm, toMetres } from '../engine/fabric';
 import { layPlan } from '../engine/layplan';
 import { waistbandPiece } from '../engine/finishing';
-import { FIT_EASE, SkirtDraft, SkirtMeasurements } from '../engine/skirt';
+import { FIT_EASE, PULL_ON_EASE, Silhouette, SkirtDraft, SkirtMeasurements } from '../engine/skirt';
 import { isShaped } from '../engine/hem';
 import type { Garment, MeasurementValues } from '../measurements';
 import { GarmentSwitch } from '../ui/GarmentSwitch';
@@ -50,7 +50,7 @@ interface Props {
   onMode?: (m: Mode) => void;
 }
 
-type Group<K extends keyof Choices> = { id: K; label: string; options: [Choices[K], string][] };
+type Group<K extends keyof Choices> = { id: K; label: string; options: [NonNullable<Choices[K]>, string][] };
 
 export const GROUPS: [Group<'fit'>, Group<'silhouette'>, Group<'length'>] = [
   { id: 'fit', label: 'Fit', options: [['fitted', 'Fitted'], ['regular', 'Regular'], ['relaxed', 'Relaxed']] },
@@ -66,6 +66,27 @@ export const GROUPS: [Group<'fit'>, Group<'silhouette'>, Group<'length'>] = [
   },
 ];
 
+/** The skirt's details: in-seam pockets, and a zipped waistband or a pull-on elastic waist. */
+export const DETAIL_GROUPS: [Group<'waist'>, Group<'pockets'>] = [
+  { id: 'waist', label: 'Waist', options: [['band', 'Waistband with zip'], ['elastic', 'Elastic, pull-on']] },
+  { id: 'pockets', label: 'Pockets', options: [['none', 'None'], ['inseam', 'In-seam']] },
+];
+
+/** A detail as saved: older saves have no pockets and a zipped waistband. */
+const detailOf = (c: Choices, id: 'waist' | 'pockets') => (id === 'waist' ? (c.waist ?? 'band') : (c.pockets ?? 'none'));
+
+/** A pencil skirt is shaped by its darts, so it can't be gathered onto elastic. */
+export const elasticAllowed = (c: { silhouette: Silhouette }) => c.silhouette !== 'pencil';
+
+/** "a, b and c". */
+const andList = (xs: string[]) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
+
+/** What the skirt has besides its shape, for its name: " with a shaped hem, an elastic waist and pockets". */
+function detailWords(c: Choices): string {
+  const parts = [isShaped(c.hem) ? 'a shaped hem' : '', c.waist === 'elastic' ? 'an elastic waist' : '', c.pockets === 'inseam' ? 'pockets' : ''].filter(Boolean);
+  return parts.length ? ` with ${andList(parts)}` : '';
+}
+
 /** True when the skirt has been shaped by hand: a dragged length or flare, or a drawn hem. */
 export const handShaped = (c: Choices) => c.lengthCm !== undefined || c.flareCm !== undefined || isShaped(c.hem);
 
@@ -77,11 +98,11 @@ export function currentLook(c: Choices) {
 
 export function describe(c: Choices) {
   const look = currentLook(c);
-  if (look) return look.name;
-  if (c.shape) return `Skirt matched to a photo${isShaped(c.hem) ? ', with a shaped hem' : ''}`;
+  if (look) return `${look.name}${detailWords({ ...c, hem: undefined })}`;
+  if (c.shape) return `Skirt matched to a photo${detailWords(c).replace(' with', ', with')}`;
   const len = c.lengthCm !== undefined ? `${Math.round(c.lengthCm)} cm` : GROUPS[2].options.find((o) => o[0] === c.length)![1];
   const sil = GROUPS[1].options.find((o) => o[0] === c.silhouette)![1];
-  return `${len} ${sil.toLowerCase()} skirt${isShaped(c.hem) ? ' with a shaped hem' : ''}`;
+  return `${len} ${sil.toLowerCase()} skirt${detailWords(c)}`;
 }
 
 const UNDO_LIMIT = 40;
@@ -137,7 +158,9 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
   // Changing the shape or length by hand leaves the era look behind; changing the fit keeps it.
   // Picking a named length or silhouette replaces a dragged one; a drawn hem stays. A shape matched
   // from a photo stays until the shape or length is changed by hand.
-  const choose = (c: Choices, group: keyof Choices) => {
+  const choose = (picked: Choices, group: keyof Choices) => {
+    // Picking a pencil skirt goes back to the zipped waistband.
+    const c = elasticAllowed(picked) ? picked : { ...picked, waist: undefined };
     const { lengthCm, flareCm, look, shape: photo, ...rest } = c;
     const shape = c.silhouette === choices.silhouette && c.length === choices.length ? photo : undefined;
     change({
@@ -215,6 +238,41 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
                 </button>
               ))}
             </div>
+          </fieldset>
+        ))}
+        {DETAIL_GROUPS.map((g) => (
+          <fieldset key={g.id} className="group">
+            <legend>{g.label}</legend>
+            <div className="chips">
+              {g.options.map(([id, label]) => {
+                const allowed = g.id !== 'waist' || id !== 'elastic' || elasticAllowed(choices);
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    className={detailOf(choices, g.id) === id ? 'chip on' : 'chip'}
+                    aria-pressed={detailOf(choices, g.id) === id}
+                    disabled={!allowed}
+                    onClick={() => change({ ...choices, [g.id]: id })}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+            {g.id === 'waist' && !elasticAllowed(choices) && (
+              <p className="muted small">A pencil skirt is shaped close by its darts, so it keeps its zip. Choose another shape for an elastic waist.</p>
+            )}
+            {g.id === 'waist' && choices.waist === 'elastic' && (
+              <p className="muted small">
+                Pulls on over your hips, so there is no zip and no darts: the waist is cut {draft ? `${draft.finishedWaist} cm round` : 'as wide as your hips'}, at least{' '}
+                {PULL_ON_EASE} cm over them, and gathered onto {draft?.elastic ? `${draft.elastic.finishedCm} cm of elastic` : 'elastic'}
+                {draft?.elastic?.forHips ? ', cut a little long so it stretches over your hips.' : ', your waist less 6 cm.'}
+              </p>
+            )}
+            {g.id === 'pockets' && choices.pockets === 'inseam' && draft && !draft.pocket && (
+              <p className="muted small">This skirt is too short for a pocket a hand fits in, so it is left off.</p>
+            )}
           </fieldset>
         ))}
         {choices.shape && (
@@ -355,10 +413,17 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
           <span />
           <strong>{draft ? draft.hemCm : '–'} cm</strong>
         </div>
-        <p className="muted small">
-          The skirt is {ease.waist + extra.waist} cm bigger than you at the waist and {ease.hip + extra.hip} cm at the hip, so you can move and sit
-          {extra.hip ? `, including ${extra.waist} cm and ${extra.hip} cm for your heavy fabric` : ''}.
-        </p>
+        {draft?.elastic ? (
+          <p className="muted small">
+            The waist is cut to pass over your hips and gathered onto {draft.elastic.finishedCm} cm of elastic. The skirt is{' '}
+            {Math.round((draft.finishedHip - (values.full_hip ?? 0)) * 10) / 10} cm bigger than you at the hip, so you can move and sit.
+          </p>
+        ) : (
+          <p className="muted small">
+            The skirt is {ease.waist + extra.waist} cm bigger than you at the waist and {ease.hip + extra.hip} cm at the hip, so you can move and sit
+            {extra.hip ? `, including ${extra.waist} cm and ${extra.hip} cm for your heavy fabric` : ''}.
+          </p>
+        )}
         <div>
           <p className="eyebrow">Pattern pieces</p>
           <ul className="pieces">
@@ -369,7 +434,12 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
             ))}
             {draft && (
               <li>
-                Waistband: cut 1, {draft.waistband.cutLength} × {draft.waistband.cutWidth} cm
+                Waistband{draft.elastic ? ' (elastic casing)' : ''}: cut 1, {draft.waistband.cutLength} × {draft.waistband.cutWidth} cm
+              </li>
+            )}
+            {draft?.elastic && (
+              <li>
+                Elastic, {draft.elastic.widthCm} cm wide: cut {draft.elastic.cutCm} cm
               </li>
             )}
           </ul>

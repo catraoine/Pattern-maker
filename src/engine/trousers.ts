@@ -6,7 +6,9 @@
 import { P, Path, add, len, mul, p, sub, taggedLength, unit } from './geometry';
 import { finishDart } from './darts';
 import type { Piece } from './piece';
-import { DraftError, Fit, SkirtFitting, Waistband, WAISTBAND_CM, cm } from './skirt';
+import { DraftError, Elastic, Fit, PULL_ON_EASE, SkirtFitting, WaistStyle, Waistband, WAISTBAND_CM, cm, elasticFor } from './skirt';
+import { PocketStyle, inseamPocket, markSeam, slantPocket } from './pockets';
+import { casingPiece } from './finishing';
 
 export interface TrousersMeasurements {
   waist: number;
@@ -36,6 +38,10 @@ export interface TrousersStyle {
   hemAllowance: number;
   /** Corrections from a skirt or trouser toile: the waist, the hip and the centre waists. */
   fitting?: SkirtFitting;
+  /** In-seam or slant pockets. Older saves have none. */
+  pockets?: PocketStyle;
+  /** A waistband with the fly or side zip, or a pull-on elastic waist with no opening. */
+  waist?: WaistStyle;
 }
 
 export const DEFAULT_TROUSERS: TrousersStyle = { fit: 'regular', leg: 'straight', length: 'full', closure: 'fly', seamAllowance: 1.5, hemAllowance: 4 };
@@ -67,7 +73,8 @@ export interface TrousersDraft {
   pieces: Piece[];
   fit: Fit;
   leg: Leg;
-  closure: TrouserClosure;
+  /** No opening at all on a pull-on elastic waist. */
+  closure: TrouserClosure | 'none';
   lengthCm: number;
   finishedWaist: number;
   finishedHip: number;
@@ -80,6 +87,12 @@ export interface TrousersDraft {
   zipCm: number;
   waistband: Waistband & { underlap: number };
   dartsPerSide: { front: number; back: number };
+  elastic?: Elastic;
+  /** The pockets as drafted: a side zip leaves room for an in-seam pocket on the right only. */
+  pockets: PocketStyle;
+  pocketSides?: 'both' | 'right';
+  /** The front and back before a slant pocket is cut from the front, for reading the ease. */
+  block: Piece[];
 }
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
@@ -303,7 +316,9 @@ export function draftTrousers(m: TrousersMeasurements, style: Partial<TrousersSt
   const ease = TROUSER_EASE[s.fit];
   const fit = s.fitting ?? {};
   const H = m.full_hip + ease.hip + (fit.hipEase ?? 0);
-  const W = m.waist + ease.waist + (fit.waistEase ?? 0);
+  // A pull-on waist is cut to pass the hips, with no darts, and gathered onto elastic.
+  const elastic = s.waist === 'elastic';
+  const W = elastic ? Math.max(H, m.full_hip + PULL_ON_EASE) : m.waist + ease.waist + (fit.waistEase ?? 0);
   if (W > H + 4) throw new DraftError('Your waist is larger than your hip, so trousers can’t be drafted from this block yet.');
   const cd = m.crotch_depth + ease.depth;
   const hd = Math.min(m.waist_to_hip, cd - 5);
@@ -315,18 +330,22 @@ export function draftTrousers(m: TrousersMeasurements, style: Partial<TrousersSt
   const kneeW = Math.max(widths.knee * H, s.leg === 'tapered' ? hemW + 3 : 0);
   const f: Frame = { m, s, H, W, hd, cd, L, kn, kneeW, hemW };
   const target = m.crotch_length + ease.crotch;
-  const fly = s.closure === 'fly';
-  const zipCm = fly ? Math.min(FLY_ZIP, cd - 6) : Math.min(20, Math.max(18, hd));
+  const closure = elastic ? 'none' : s.closure;
+  const fly = closure === 'fly';
+  const zipCm = elastic ? 0 : fly ? Math.min(FLY_ZIP, cd - 6) : Math.min(20, Math.max(18, hd));
 
   // Centre waists: the front 1 cm in from the hip line, the back raised and in for the seat. A tummy or
   // a sway back measured (or found on a toile) raises or lowers them.
   const frontUp = clamp((m.front_waist_to_hip ?? m.waist_to_hip) - m.waist_to_hip, -3, 3) - (fit.frontDrop ?? 0);
   const backUp = clamp(2.5 + (m.back_waist_to_hip !== undefined ? m.back_waist_to_hip - m.waist_to_hip : 0) - (fit.backDrop ?? 0), 0, 6);
-  const backIn = clamp(0.035 * H, 3, 5);
+  // Pull-on trousers take less in at the centre back (and none past 0.5 cm at the front), so the
+  // waist stays wide enough to pass the hips without the side seams swinging far out above them.
+  const backIn = elastic ? 2 : clamp(0.035 * H, 3, 5);
+  const frontIn = elastic ? 0.5 : 1;
   const fork0 = { front: 0.05 * H, back: 0.12 * H };
 
   const build = (k: number) => {
-    const front = half(f, { isFront: true, hipQ: H / 4 - 1, waistQ: W / 4 - 0.5, centreIn: 1, centreUp: frontUp, fork: fork0.front * k, legShift: 0, forkDrop: 0, dartMax: 2.5, dartLens: [9], zipCm: fly ? zipCm : 0 });
+    const front = half(f, { isFront: true, hipQ: H / 4 - 1, waistQ: W / 4 - 0.5, centreIn: frontIn, centreUp: frontUp, fork: fork0.front * k, legShift: 0, forkDrop: 0, dartMax: 2.5, dartLens: [9], zipCm: fly ? zipCm : 0 });
     const base = { isFront: false, hipQ: H / 4 + 1, waistQ: W / 4 + 0.5, centreIn: backIn, centreUp: backUp, fork: fork0.back * k, legShift: 0, forkDrop: 0.75, dartMax: 3, dartLens: [13, 11], zipCm: 0 };
     // A wide back fork pulls the inside leg long: set the back crease so it runs as the front's does,
     // then true the side seams by moving the back leg up or down, then the inside legs by dropping the
@@ -354,9 +373,12 @@ export function draftTrousers(m: TrousersMeasurements, style: Partial<TrousersSt
   const crotch = front.crotch + back.crotch;
 
   front.piece.meta.crotchTarget = target;
-  const pieces: Piece[] = [front.piece, back.piece];
+  const block = [front.piece, back.piece];
+  let pieces: Piece[] = [front.piece, back.piece];
   if (fly) pieces.push(...flyPieces(front.piece, zipCm, s.seamAllowance));
-  else markSideZip(front.piece, back.piece, zipCm);
+  else if (closure === 'side_zip') markSideZip(front.piece, back.piece, zipCm);
+  const pocketed = withPockets(pieces, s.pockets ?? 'none', closure, s.hemAllowance);
+  pieces = pocketed.pieces;
 
   const r = (v: number) => Math.round(v * 10) / 10;
   const finishedWaist = 2 * (taggedLength(front.piece.outline, 'waist') + taggedLength(back.piece.outline, 'waist'));
@@ -364,7 +386,7 @@ export function draftTrousers(m: TrousersMeasurements, style: Partial<TrousersSt
     pieces,
     fit: s.fit,
     leg: s.leg,
-    closure: s.closure,
+    closure,
     lengthCm: r(L),
     finishedWaist: r(W),
     finishedHip: r(H),
@@ -380,7 +402,33 @@ export function draftTrousers(m: TrousersMeasurements, style: Partial<TrousersSt
       underlap: fly ? UNDERLAP : 0,
     },
     dartsPerSide: { front: (front.piece.meta.dartsCm as number[]).length, back: (back.piece.meta.dartsCm as number[]).length },
+    ...(elastic ? { elastic: elasticFor(m.waist, r(finishedWaist)) } : {}),
+    pockets: pocketed.style,
+    ...(pocketed.sides ? { pocketSides: pocketed.sides } : {}),
+    block,
   };
+}
+
+/**
+ * Pockets on the trousers' own pieces. In-seam pockets hang in both side seams, or in the right one
+ * only beside a left side zip. Slant pockets are cut into the front; a side zip runs where the left
+ * one would be, so they go with a fly or an elastic waist.
+ */
+function withPockets(pieces: Piece[], style: PocketStyle, closure: TrousersDraft['closure'], hem: number): { pieces: Piece[]; style: PocketStyle; sides?: 'both' | 'right' } {
+  const [front, back, ...rest] = pieces;
+  if (style === 'inseam') {
+    const right = closure === 'side_zip';
+    const pocket = inseamPocket(front, { hemRoom: hem + 3, cut: right ? 'Cut 2 (1 pair)' : 'Cut 4 (2 pairs)' });
+    if (!pocket) return { pieces, style: 'none' };
+    const mark = (pc: Piece) => markSeam(pc, 'side', pocket.opening, right ? 'RIGHT POCKET' : 'POCKET');
+    return { pieces: [mark(front), mark(back), ...rest, pocket.bag], style, sides: right ? 'right' : 'both' };
+  }
+  if (style === 'slant' && closure !== 'side_zip') {
+    const slant = slantPocket(front);
+    if (!slant) return { pieces, style: 'none' };
+    return { pieces: [slant.front, back, ...rest, slant.lining, slant.facing], style, sides: 'both' };
+  }
+  return { pieces, style: 'none' };
 }
 
 /** Where along a tagged edge, by length from its start, a point falls. */
@@ -477,9 +525,12 @@ function flyPieces(front: Piece, zipCm: number, sa: number): Piece[] {
  */
 export function trousersWaistband(d: TrousersDraft, sa: number): Piece {
   const W = 2 * WAISTBAND_CM;
-  const front = taggedLength(d.pieces[0].outline, 'waist');
-  const back = taggedLength(d.pieces[1].outline, 'waist');
+  // A slant pocket's facing carries the side end of the front's waist.
+  const front = taggedLength(d.block[0].outline, 'waist');
+  const back = taggedLength(d.block[1].outline, 'waist');
   const total = 2 * (front + back);
+  // Pull-on: a loop from the centre back round to the centre back again.
+  if (d.closure === 'none') return casingPiece(total, [[back, 'SIDE SEAM'], [back + front, 'CENTRE FRONT'], [back + 2 * front, 'SIDE SEAM']], sa);
   const L = total + d.waistband.underlap;
   const outline = new Path(p(0, 0)).line(p(W, 0), 'end').line(p(W, L), 'waist').line(p(0, L), 'end').line(p(0, 0), 'band');
   outline.closed = true;

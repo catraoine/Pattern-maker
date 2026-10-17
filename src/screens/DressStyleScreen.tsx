@@ -13,7 +13,7 @@ import { GarmentSwitch } from '../ui/GarmentSwitch';
 import { PatternPreview } from '../ui/Preview';
 import { TechFlatView } from '../ui/TechFlatView';
 import { FREE_SAVED_LIMIT } from '../account';
-import { GROUPS } from './StyleScreen';
+import { DETAIL_GROUPS, GROUPS } from './StyleScreen';
 import { describePattern } from './describe';
 
 import { Mode, ProTool, shows } from '../mode';
@@ -93,6 +93,7 @@ export function DressStyleScreen({ choices, onChoices, onGarment, values, draft,
     })),
     { id: 'silhouette', label: 'Skirt', options: GROUPS[1].options },
     { id: 'length', label: 'Length', options: GROUPS[2].options },
+    { id: 'pockets', label: 'Pockets', options: DETAIL_GROUPS[1].options },
   ];
 
   const value = (id: string) =>
@@ -100,17 +101,19 @@ export function DressStyleScreen({ choices, onChoices, onGarment, values, draft,
       ? choices.fit
       : id === 'silhouette' || id === 'length'
         ? choices.skirt[id]
-        : id === 'sleeve'
-          ? chosen.length
-          : id === 'sleeveShape'
-            ? chosen.shape
-            : id === 'bustDart'
-              ? choices.bodice.bustDart ?? 'side'
-              : id === 'princess'
-                ? choices.bodice.princess ?? 'none'
-                : id === 'collar'
-                  ? choices.bodice.collar ?? 'none'
-                  : choices.bodice[id as keyof BodiceChoices];
+        : id === 'pockets'
+          ? (choices.skirt.pockets ?? 'none')
+          : id === 'sleeve'
+            ? chosen.length
+            : id === 'sleeveShape'
+              ? chosen.shape
+              : id === 'bustDart'
+                ? choices.bodice.bustDart ?? 'side'
+                : id === 'princess'
+                  ? choices.bodice.princess ?? 'none'
+                  : id === 'collar'
+                    ? choices.bodice.collar ?? 'none'
+                    : choices.bodice[id as keyof BodiceChoices];
 
   const allowed = (id: string, opt: string) =>
     id === 'darts'
@@ -124,9 +127,10 @@ export function DressStyleScreen({ choices, onChoices, onGarment, values, draft,
             : true;
 
   const choose = (id: string, opt: string) => {
-    if (id === 'silhouette' || id === 'length') {
+    if (id === 'silhouette' || id === 'length' || id === 'pockets') {
       // The dress skirt is styled by its chips: no era look, photo shape or hand-drawn changes.
-      onChoices({ ...choices, skirt: { fit: choices.fit, silhouette: choices.skirt.silhouette, length: choices.skirt.length, [id]: opt } });
+      const { silhouette, length, pockets } = choices.skirt;
+      onChoices({ ...choices, skirt: { fit: choices.fit, silhouette, length, ...(pockets ? { pockets } : {}), [id]: opt } });
       return;
     }
     const fit = id === 'fit' ? (opt as DressChoices['fit']) : choices.fit;

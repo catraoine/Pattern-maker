@@ -53,6 +53,12 @@ function kindOf(pc: Piece): Kind {
   return 'single';
 }
 
+/** How many times a pair is laid: twice for "Cut 4 (2 pairs)", like pocket bags. */
+function sets(pc: Piece): number {
+  const n = Number(pc.cut.match(/cut\s+(\d+)/i)?.[1] ?? 2);
+  return Math.max(1, Math.floor(n / 2));
+}
+
 /** Which lays a piece is cut in. */
 function fabricsOf(pc: Piece): LayFabric[] {
   const f = (pc.fabric ?? '').toLowerCase();
@@ -130,6 +136,10 @@ export function layPlan(pieces: Piece[], width: FabricWidth, fabric: LayFabric =
   // fold opened out to their full width and each of a pair cut separately.
   const folded = cut.every(({ pts }) => wide(pts) <= usable / 2);
   const items: Item[] = cut.flatMap(({ pc, pts, kind }): Item[] => {
+    const times = kind === 'pair' ? sets(pc) : 1;
+    return Array.from({ length: times }, () => one(pc, pts, kind)).flat();
+  });
+  function one(pc: Piece, pts: P[], kind: Kind): Item[] {
     if (folded) return [{ name: pc.name, pts, kind, atFold: kind === 'fold', single: kind === 'single' }];
     if (kind === 'fold') {
       // Open out: the cutting line and its mirror, joined at the fold.
@@ -140,9 +150,9 @@ export function layPlan(pieces: Piece[], width: FabricWidth, fabric: LayFabric =
       const full = [...run, ...[...run].reverse().map((q) => p(-q.x, q.y))];
       return [{ name: pc.name, pts: full, kind, atFold: false, single: true }];
     }
-    const one = { name: pc.name, pts, kind, atFold: false, single: true };
-    return kind === 'pair' ? [one, { ...one, pts: flipX(pts) }] : [one];
-  });
+    const it = { name: pc.name, pts, kind, atFold: false, single: true };
+    return kind === 'pair' ? [it, { ...it, pts: flipX(pts) }] : [it];
+  }
   if (!folded && items.some((it) => wide(it.pts) > usable)) return undefined;
 
   const across = folded ? usable / 2 : usable;

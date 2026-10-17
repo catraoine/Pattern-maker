@@ -60,5 +60,5 @@ export function keepFinish(stored: Finish, next: Finish, mode: Mode): Finish {
 /** The easiest garment to start with, and why, marked on the garment choice. */
 export const FIRST_PROJECT: { garment: Garment; why: string } = {
   garment: 'skirt',
-  why: 'Good first project: an A-line skirt is a few straight seams, one zip and a waistband.',
+  why: 'Good first project: an A-line skirt is a few straight seams and a waistband. Choose the elastic waist and there is no zip at all.',
 };
