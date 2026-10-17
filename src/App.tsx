@@ -14,6 +14,7 @@ import { Cloth, Route, toCouture } from './engine/couture';
 import { AllowanceStyle, SEAM_WIDTHS, withAllowances } from './engine/allowances';
 import { bodiceFacings, liningPieces, waistPieces } from './engine/finishing';
 import { edgesFor, topNotes } from './engine/corsetGuide';
+import { drapeFacings, drapeLined, drapeNote } from './engine/drape';
 import { bodiceSpec, dressSpec, outerSpec, skirtSpec, sleeveSpec, trousersSpec } from './engine/spec';
 import { SleeveDraft, SleeveMeasurements, draftSleeve, needsArms } from './engine/sleeve';
 import { Fitting, carriedFitting, describeCarried, describeFitting, saveVersion, toFitting } from './engine/fitting';
@@ -238,7 +239,7 @@ export default function App() {
   const trousersStyle = useMemo(() => ({ ...trousersChoices, fitting: withFabricEase(toFitting(fitting, 'skirt'), fabric, 'skirt') }), [trousersChoices, fitting, fabric]);
   /** The dress in one fit: the bodice at the waist, the skirt below it, each with its toile corrections. */
   const dressStyles = (f: Fitting | undefined) => ({
-    bodice: { ...dress.bodice, fit: dress.fit, length: 'waist' as const, fitting: withFabricEase(toFitting(f, 'bodice'), fabric, 'bodice') },
+    bodice: { ...validDetails({ ...dress.bodice, length: 'waist' }, 'dress'), fit: dress.fit, length: 'waist' as const, fitting: withFabricEase(toFitting(f, 'bodice'), fabric, 'bodice') },
     skirt: { ...dress.skirt, fit: dress.fit, fitting: withFabricEase(toFitting(f, 'skirt'), fabric, 'skirt') },
   });
 
@@ -430,10 +431,15 @@ export default function App() {
       const d = dressDraft;
       const edges = edgesFor(d.bodice, finish.bodiceEdges);
       const bodicePcs = d.pieces.filter((pc) => /^Bodice/.test(pc.name));
-      const top = edges === 'lined' ? bodicePcs.map((pc) => (/coutil/.test(pc.fabric ?? '') ? pc : { ...pc, fabric: 'Self fabric and lining' })) : bodicePcs;
+      const top =
+        edges === 'lined'
+          ? d.bodice.drape
+            ? drapeLined(bodicePcs, d.bodice)
+            : bodicePcs.map((pc) => (/coutil/.test(pc.fabric ?? '') ? pc : { ...pc, fabric: 'Self fabric and lining' }))
+          : bodicePcs;
       // Facings are cut from the bodice as sewn, with any moved dart or princess seam closed.
       const [bf, bb] = blockOf(d.bodice);
-      const facings = edges === 'facings' ? bodiceFacings(bf, bb, !sleeve, d.bodice.collar !== 'mandarin') : [];
+      const facings = edges === 'facings' ? (d.bodice.drape ? drapeFacings(d.bodice, !sleeve) : bodiceFacings(bf, bb, !sleeve, d.bodice.collar !== 'mandarin')) : [];
       const pieces = allow([...top, ...(sleeve?.pieces ?? []), ...d.skirt.pieces, ...facings]);
       const lays = layPlans([...pieces, ...allow(layoutExtras(d.skirt))], finish.fabricWidth, finish.nap);
       const metres = (f: 'self' | 'lining' | 'interlining') => lays.find((l) => l.fabric === f)?.metres ?? bodiceFabricMetres(d.bodice, sleeve) + fabricMetres(d.skirt);
@@ -447,7 +453,8 @@ export default function App() {
           couture
             ? `Couture allowances: ${fmtCm(seams.seam)} at the seams, ${fmtCm(seams.waist)} at the waist, ${fmtCm(seams.curve)} at the neck and armholes. Thread-trace the solid stitching line.`
             : `Seam allowance ${fmtCm(seams.seam)} included, ${fmtCm(seams.curve)} at the neck and armholes, ${fmtCm(pieces.find((pc) => /^(Skirt|Flounce) front/.test(pc.name) && pc.allowances.hem !== undefined)?.allowances.hem ?? (d.skirt.volume?.tiers ? 2 : 4))} at the hem. Dashed line = stitching line.`,
-          `The skirt is drafted to the bodice: waist seams the same length and darts in one line. A ${d.zipCm} cm centre back zip and ${edgeWords}. Sewing steps are on the last pages.`,
+          `The skirt is drafted to the bodice: waist seams the same length and darts in one line. A ${d.zipCm} cm ${d.zipSide ? 'zip in the right side seam' : 'centre back zip'} and ${edgeWords}. Sewing steps are on the last pages.`,
+          ...(drapeNote(d.bodice) ? [drapeNote(d.bodice)!] : []),
           ...(sleeve ? [`Sleeve: bicep ${sleeve.bicep} cm, ${sleeve.gathers?.crown !== undefined ? `${sleeve.gathers.crown} cm gathered into the crown` : `crown ease ${sleeve.crownEase.front} cm front, ${sleeve.crownEase.back} cm back`}.`] : []),
           ...topNotes(d.bodice),
           ...fittingNotes,
@@ -471,10 +478,15 @@ export default function App() {
     if (bodice) {
       const below = bodice.finishedHem !== undefined;
       const edges = edgesFor(bodice, finish.bodiceEdges);
-      const main = edges === 'lined' ? bodice.pieces.map((pc) => (pc.kind || /coutil/.test(pc.fabric ?? '') ? pc : { ...pc, fabric: 'Self fabric and lining' })) : bodice.pieces;
+      const main =
+        edges === 'lined'
+          ? bodice.drape || bodice.peplum
+            ? drapeLined(bodice.pieces, bodice)
+            : bodice.pieces.map((pc) => (pc.kind || /coutil/.test(pc.fabric ?? '') ? pc : { ...pc, fabric: 'Self fabric and lining' }))
+          : bodice.pieces;
       // A button front's facings, or a band collar, finish the neck.
       const neckDone = bodice.closure === 'front_buttons' || bodice.collar === 'mandarin' || bodice.collar === 'shirt';
-      const facings = edges === 'facings' ? bodiceFacings(...blockOf(bodice), !sleeve, !neckDone) : [];
+      const facings = edges === 'facings' ? (bodice.drape ? drapeFacings(bodice, !sleeve, !neckDone) : bodiceFacings(...blockOf(bodice), !sleeve, !neckDone)) : [];
       const pieces = allow([...main, ...(sleeve?.pieces ?? []), ...facings]);
       const edgeWords = sleeve
         ? { binding: 'a bias-bound neckline', facings: 'a faced neckline', lined: 'a lined bodice' }[edges]
@@ -489,7 +501,9 @@ export default function App() {
           couture
             ? `Couture allowances: ${fmtCm(seams.seam)} at the seams, ${fmtCm(seams.curve)} at the neck and armholes. Thread-trace the solid stitching line.`
             : `Seam allowance ${fmtCm(seams.seam)} included, ${fmtCm(seams.curve)} at the neck and armholes${below ? ', 2.5 cm at the hem' : ''}. Dashed line = stitching line.`,
-          `${sleeveWords}, ${bodice.closure === 'front_buttons' ? `${bodice.buttons?.count ?? 5} buttons down the centre front` : `a ${bodice.zipCm} cm centre back zip`}${bodice.collar !== 'none' ? `, a ${COLLAR_WORDS[bodice.collar]}` : ''} and ${edgeWords}. Sewing steps are on the last pages.`,
+          `${sleeveWords}, ${bodice.closure === 'front_buttons' ? `${bodice.buttons?.count ?? 5} buttons down the centre front` : `a ${bodice.zipCm} cm ${bodice.drape?.kind === 'one_shoulder' ? 'zip in the right side seam' : 'centre back zip'}`}${bodice.collar !== 'none' ? `, a ${COLLAR_WORDS[bodice.collar]}` : ''} and ${edgeWords}. Sewing steps are on the last pages.`,
+          ...(drapeNote(bodice) ? [drapeNote(bodice)!] : []),
+          ...(bodice.peplum ? [`A ${bodice.peplum.kind} peplum, ${bodice.peplum.depthCm} cm deep, ${bodice.peplum.hemCm} cm round the hem.`] : []),
           ...(sleeve ? [`Sleeve: bicep ${sleeve.bicep} cm, ${sleeve.gathers?.crown !== undefined ? `${sleeve.gathers.crown} cm gathered into the crown` : `crown ease ${sleeve.crownEase.front} cm front, ${sleeve.crownEase.back} cm back`}.`] : []),
           ...topNotes(bodice),
           ...fittingNotes,

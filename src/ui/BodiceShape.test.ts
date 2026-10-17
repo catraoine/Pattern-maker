@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { draftBodice } from '../engine/bodice';
 import { DEFAULT_BODICE } from '../garments';
-import { currentNeck, dragDrop, dragEase, strokeToNeck } from './BodiceShape';
+import { currentNeck, dragDrop, dragEase, drapedOutline, strokeToNeck, worn } from './BodiceShape';
 
 const m = { full_bust: 92, high_bust: 86, waist: 74, neck: 35, shoulder_width: 38, shoulder_length: 12, across_back: 35, across_front: 32, nape_to_waist: 41, front_hps_to_waist: 44, bust_depth: 26, apex_separation: 18, armscye: 40, full_hip: 98, waist_to_hip: 20 };
 
@@ -41,5 +41,24 @@ describe('shaping the bodice by hand', () => {
     expect(back).toEqual({ ...neck, backDepth: 8 });
     // The drawn neckline drafts, pointed for the V and round for the curve.
     expect(draftBodice(m, { neck }).pieces[0].meta.pointedAtCentre).toEqual(['neck']);
+  });
+});
+
+describe('sketching a draped bodice', () => {
+  it('draws the one-shoulder with its shoulder on the left as worn, and the cowl hanging low at the front', () => {
+    const os = draftBodice(m, { neckline: 'one_shoulder' });
+    const tops = (path: string) => {
+      const pts = path.replace(' Z', '').split(/[ML]/).filter(Boolean).map((q) => q.trim().split(' ').map(Number));
+      const high = (right: boolean) => Math.min(...pts.filter(([x]) => (x > 40) === right).map(([, y]) => y));
+      return { left: high(false), right: high(true) };
+    };
+    const front = tops(drapedOutline(os, 'front', worn(os, 'front'), 40)!);
+    const back = tops(drapedOutline(os, 'back', worn(os, 'back'), 40)!);
+    expect(front.right).toBeLessThan(front.left - 8);
+    expect(back.left).toBeLessThan(back.right - 8);
+    const cowl = draftBodice(m, { neckline: 'cowl' });
+    expect(drapedOutline(cowl, 'front', worn(cowl, 'front'), 40)).toMatch(/^M/);
+    expect(drapedOutline(cowl, 'back', worn(cowl, 'back'), 40)).toBeUndefined();
+    expect(drapedOutline(draftBodice(m), 'front', worn(draftBodice(m), 'front'), 40)).toBeUndefined();
   });
 });

@@ -10,6 +10,7 @@ import type { Piece } from './piece';
 import type { DiagramId } from './diagrams';
 import { placeWords, styleBodiceSteps } from './styleSteps';
 import { VolumeStyle, needsNoSlit, volumeSteps } from './skirtVolume';
+import { drapeBodiceSteps, drapeDressSteps } from './drapeSteps';
 import { bonedDressSteps, strapCut, topSteps } from './corsetGuide';
 import { isShaped } from './hem';
 import { SLIP_LEVEL } from './slip';
@@ -371,7 +372,12 @@ export function bodiceGuide(draft: BodiceDraft, _style: { length: BodiceLength }
     ],
     steps,
   };
-  return topSteps(styleBodiceSteps(guide, draft, { seam, curve, edges, sleeve: !!sleeve }), draft, { seam, curve, fabricM, liningM: finish.liningM, coutilM: finish.coutilM, width: finish.width });
+  // The top neckline's steps (corsetGuide.ts), then a draped neckline's and a peplum's (drapeSteps.ts).
+  return drapeBodiceSteps(
+    topSteps(styleBodiceSteps(guide, draft, { seam, curve, edges, sleeve: !!sleeve }), draft, { seam, curve, fabricM, liningM: finish.liningM, coutilM: finish.coutilM, width: finish.width }),
+    draft,
+    { seam, curve, edges, sleeve: !!sleeve },
+  );
 }
 
 /** Cutting the sleeves, added to the cutting step. */
@@ -456,10 +462,15 @@ export function dressGuide(draft: DressDraft, style: { silhouette: Silhouette; l
     { title: 'Finish', text: `Sew a hook and eye at the top of the zip, inside the ${draft.bodice.top ? 'top edge' : 'neckline'}. Give the dress a final press.` },
   ];
 
-  return {
-    notions: top.notions.map((n) => (/invisible zip/.test(n) ? `${draft.zipCm} cm invisible zip` : n)),
-    steps: volumeSteps(steps, draft.skirt, { seam, waist, hem: draft.skirt.pieces[0].allowances.hem ?? 4 }, 'dress'),
-  };
+  return drapeDressSteps(
+    {
+      notions: top.notions.map((n) => (/invisible zip/.test(n) ? `${draft.zipCm} cm invisible zip` : n)),
+      steps: volumeSteps(steps, draft.skirt, { seam, waist, hem: draft.skirt.pieces[0].allowances.hem ?? 4 }, 'dress'),
+    },
+    top,
+    draft,
+    { seam, waist, curve, edges, slit, sleeve: !!finish.sleeve },
+  );
 }
 
 /** Cutting a dress's collar. */

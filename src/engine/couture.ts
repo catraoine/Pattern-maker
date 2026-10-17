@@ -71,6 +71,8 @@ export function toCouture(guide: SewingGuide, c: CoutureContext): SewingGuide {
   const seams = (dress ? 'side, shoulder, centre back and waist' : bodice ? 'side, shoulder and centre back' : sideZip ? 'side' : 'side and centre back').replace('shoulder', topEdge ? 'princess' : 'shoulder');
   const out: SewStep[] = [];
   let zip: SewStep | undefined;
+  // A one-shoulder bodice zips in the right side seam, so its zip goes in after the side seams.
+  let rightZip = false;
   let fitted = false;
 
   const fitStep = () =>
@@ -146,9 +148,10 @@ export function toCouture(guide: SewingGuide, c: CoutureContext): SewingGuide {
         out.push(fitStep());
         fitted = true;
       }
+      rightZip = /right side/.test(s.text);
       zip = step(
         'Hand-pick the zip',
-        `Press both centre back allowances under along the traced line, down to the ZIP ENDS mark. Baste the ${c.zipCm} cm zip behind the opening, its teeth centred, with the folded edges just meeting over them. From the right side, sew each side with a prick stitch: a tiny backstitch every 6 mm, 6 mm from the fold, catching only a thread or two of the surface. It is how couture houses still set a zip: barely seen from outside, soft, and easy to adjust at a fitting.`,
+        `Press both ${/right side/.test(s.text) ? 'right side seam' : 'centre back'} allowances under along the traced line, down to the ZIP ENDS mark. Baste the ${c.zipCm} cm zip behind the opening, its teeth centred, with the folded edges just meeting over them. From the right side, sew each side with a prick stitch: a tiny backstitch every 6 mm, 6 mm from the fold, catching only a thread or two of the surface. It is how couture houses still set a zip: barely seen from outside, soft, and easy to adjust at a fitting.`,
         'pickzip',
       );
     } else if (t === 'Stay-stitch the waist') {
@@ -203,9 +206,15 @@ export function toCouture(guide: SewingGuide, c: CoutureContext): SewingGuide {
       if (t === 'Sew the side seams')
         out.push(
           finish === 'french'
-            ? step('Finish the centre back', 'A French seam cannot go round a zip, so overcast the centre back allowances by hand below the zip: slanted stitches 0.5 cm deep and 0.5 cm apart.', 'overcast')
+            ? rightZip
+              ? step('Finish the zip opening', 'A French seam cannot go round a zip, so sew the right side seam below the zip as a plain seam and overcast its allowances by hand: slanted stitches 0.5 cm deep and 0.5 cm apart.', 'overcast')
+              : step('Finish the centre back', 'A French seam cannot go round a zip, so overcast the centre back allowances by hand below the zip: slanted stitches 0.5 cm deep and 0.5 cm apart.', 'overcast')
             : step('Finish the seams', `Finish the ${seams} allowances, pressed open. ${FINISH_WORDS[finish]}`, finish),
         );
+      if (t === 'Sew the side seams' && zip) {
+        out.push(zip);
+        zip = undefined;
+      }
     } else if (t === 'Bind the neckline' || t === 'Bind the armholes') {
       out.push(
         step(

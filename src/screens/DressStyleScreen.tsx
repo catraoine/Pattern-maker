@@ -25,6 +25,7 @@ import type { EaseView } from '../engine/easeMap';
 import { FinishChoices } from '../ui/FinishChoices';
 import type { Finish } from '../App';
 import { GODET_OPTIONS, VOLUME_OPTIONS, layoutExtras, setVolume, volumeAllowed, volumeOf } from '../engine/skirtVolume';
+import { isDraped } from '../engine/drape';
 
 interface Props {
   choices: DressChoices;
@@ -72,6 +73,8 @@ export function DressStyleScreen({ choices, onChoices, onGarment, values, draft,
   const top = isTop(choices.bodice.neckline);
   const ease = bodiceEase(valid);
   const extra = fabricEase(fabric, 'dress');
+  // A draped neckline is its own shaping: no princess seams, moved dart or collar.
+  const draped = isDraped(choices.bodice);
 
   const groups: Option[] = [
     { id: 'fit', label: 'Fit', options: GROUPS[0].options },
@@ -79,10 +82,10 @@ export function DressStyleScreen({ choices, onChoices, onGarment, values, draft,
       (g) =>
         g.id === 'neckline' ||
         g.id === 'darts' ||
-        (g.id === 'princess' && !boned) ||
-        (g.id === 'bustDart' && choices.bodice.darts !== 'none' && (choices.bodice.princess ?? 'none') === 'none' && !boned) ||
-        (g.id === 'collar' && !top) ||
-        g.id === 'structure' ||
+        (g.id === 'princess' && !boned && !draped) ||
+        (g.id === 'bustDart' && choices.bodice.darts !== 'none' && (choices.bodice.princess ?? 'none') === 'none' && !boned && !draped) ||
+        (g.id === 'collar' && !top && !draped) ||
+        (g.id === 'structure' && !draped) ||
         g.id === 'sleeve' ||
         (g.id === 'sleeveShape' && chosen.length !== 'none'),
     ).map((g) => ({
@@ -128,7 +131,7 @@ export function DressStyleScreen({ choices, onChoices, onGarment, values, draft,
       : id === 'darts'
       ? DARTS_FOR_FIT[choices.fit].includes(opt as BodiceChoices['darts'])
       : id === 'sleeve'
-        ? opt === 'none' || arms
+        ? (opt === 'none' || arms) && detailAllowed(choices.bodice, 'sleeve', opt, 'dress')
         : id === 'sleeveShape'
           ? SHAPES_FOR_LENGTH[chosen.length].includes(opt as NonNullable<BodiceChoices['sleeveShape']>)
           : id === 'princess' || id === 'bustDart' || id === 'collar' || id === 'structure'
@@ -205,6 +208,13 @@ export function DressStyleScreen({ choices, onChoices, onGarment, values, draft,
               ) : choices.skirt.asymHem === 'high_low' ? (
                 <p className="muted small">A high-low hem takes godets. Pleats, flounces and tiers need a level hem.</p>
               ) : null)}
+            {g.id === 'neckline' && draped && (
+              <p className="muted small">
+                {choices.bodice.neckline === 'cowl'
+                  ? 'The bodice front is cut on the bias and falls in soft folds. It needs a fluid fabric.'
+                  : 'The shoulder is on your left. The dress is sleeveless, with a zip in the right side seam.'}
+              </p>
+            )}
             {g.id === 'structure' && !top && <p className="muted small">Boning needs a strapless, sweetheart or cami top.</p>}
             {g.id === 'structure' && choices.bodice.neckline === 'strapless' && <p className="muted small">A strapless dress is always boned: the boning holds it up.</p>}
             {g.id === 'darts' && !boned && choices.fit !== 'relaxed' && (
@@ -223,8 +233,9 @@ export function DressStyleScreen({ choices, onChoices, onGarment, values, draft,
         />
         <p className="muted small">
           {choices.skirt.silhouette === 'slip'
-            ? `The skirt is cut on the bias, for a slip dress: it has no darts, its waist seam is drafted to the bodice, and the cloth moulds to the hip. One zip opens the centre back from the ${top ? 'top edge' : 'neck'} to below the waist.`
-            : `The skirt is drafted to the bodice: the waist seams are the same length, and the darts meet at the seam in one line. One zip opens the centre back from the ${top ? 'top edge' : 'neck'} to below the waist.`}
+            ? 'The skirt is cut on the bias, for a slip dress: it has no darts, its waist seam is drafted to the bodice, and the cloth moulds to the hip.'
+            : 'The skirt is drafted to the bodice: the waist seams are the same length, and the darts meet at the seam in one line.'}{' '}
+          {draft?.zipSide ? 'One zip opens the right side seam from under the arm to below the waist.' : `One zip opens the centre back from the ${top ? 'top edge' : 'neck'} to below the waist.`}
           {boned ? ' The bodice is boned like a corset, cut again from coutil and lining, with a grosgrain waist stay that carries the skirt.' : ''}
         </p>
       </section>

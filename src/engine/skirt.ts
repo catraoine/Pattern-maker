@@ -353,7 +353,7 @@ function half(a: HalfArgs): Piece {
   };
 }
 
-interface CircleArgs {
+export interface CircleArgs {
   name: string;
   r: number; // waist radius
   /** Waist darts, in cm of intake each, for a circle cut bigger than the waist so it clears the hips. */
@@ -390,7 +390,7 @@ export function arc(path: Path, r: number, R: number, from: number, to: number, 
 }
 
 /** One piece of a circle skirt: a wedge of a ring, centre line down the y axis, side seam on the radius. */
-function circlePiece(a: CircleArgs): Piece {
+export function circlePiece(a: CircleArgs): Piece {
   const R = a.r + a.length;
   const outline = new Path(p(0, 0));
   // Darts point straight out from the circle's centre, spread evenly along the waist, pressed toward

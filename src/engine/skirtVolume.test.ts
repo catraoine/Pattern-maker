@@ -273,8 +273,10 @@ describe('skirt volume', () => {
     expect(drafted).toBeGreaterThan(5000);
   });
 
-  it('passes every check on the dress for 50 random bodies with every detail', () => {
+  it('passes every check on the dress for 50 random bodies with every detail, under every kind of bodice', () => {
     const failures: string[] = [];
+    // The bodice turns through the plain, draped and strapless tops, so each detail meets each of them.
+    const NECKS = ['crew', 'one_shoulder', 'cowl', 'strapless', 'sweetheart', 'cami'] as const;
     for (let seed = 1; seed <= 50; seed++) {
       const body = randomBody(rng(seed + 9700));
       for (const silhouette of BLOCKS)
@@ -283,7 +285,7 @@ describe('skirt volume', () => {
           const length = (['knee', 'midi', 'maxi'] as const)[seed % 3];
           let d;
           try {
-            d = draftDress(body, { fit }, { fit, silhouette, length, ...(seed % 4 === 0 ? { asymHem: 'high_low' as const } : {}), ...style(kind) });
+            d = draftDress(body, { fit, neckline: NECKS[(seed + KINDS.indexOf(kind)) % NECKS.length] }, { fit, silhouette, length, ...(seed % 4 === 0 ? { asymHem: 'high_low' as const } : {}), ...style(kind) });
           } catch (e) {
             if (e instanceof DraftError) continue;
             throw e;
@@ -291,7 +293,7 @@ describe('skirt volume', () => {
           const want = seed % 4 !== 0 || kind === 'godets';
           if (want && !d.skirt.volume) failures.push(`${seed} ${silhouette} ${kind}: no detail`);
           if (!want && d.skirt.volume) failures.push(`${seed} ${silhouette} ${kind}: a detail under a high-low hem`);
-          for (const c of checkPattern(d.pieces, { finishedWaist: d.finishedWaist })) if (!c.ok) failures.push(`${seed} ${fit} ${silhouette} ${length} ${kind}: ${c.label} ${c.detail}`);
+          for (const c of checkPattern(d.pieces, { finishedWaist: d.finishedWaist })) if (!c.ok) failures.push(`${seed} ${fit} ${silhouette} ${length} ${kind} ${d.bodice.pieces[0].name}: ${c.label} ${c.detail}`);
         }
     }
     expect(failures.slice(0, 10)).toEqual([]);

@@ -13,6 +13,7 @@ import { DraftError, Side, cm } from './skirt';
 import type { DartPlace, PrincessLine } from './manipulate';
 import { moveFrontDart, princessPieces } from './shaping';
 import { Buttons, Closure, Collar, EXTENSION_CM, backNeckFacing, backOnFold, buttonPlaces, collarPieces, frontFacing, openFront } from './collar';
+import { DrapeInfo, Peplum, PeplumInfo, drapeBodice, drapeStyle } from './drape';
 import { BONED_EASE, Structure, TopDetails, bonedPanels, cutTop, isBoned, isTop, topStyle } from './corset';
 
 export interface BodiceMeasurements {
@@ -40,7 +41,9 @@ export interface BodiceMeasurements {
 }
 
 export type BodiceFit = 'fitted' | 'regular' | 'relaxed';
-export type Neckline = 'crew' | 'scoop' | 'v' | 'square' | 'boat' | 'strapless' | 'sweetheart' | 'cami';
+/** The draped necklines (one-shoulder, cowl) are drafted as whole pieces in drape.ts; the top necklines
+ * (strapless, sweetheart, cami) are cut below the shoulders in corset.ts. */
+export type Neckline = 'crew' | 'scoop' | 'v' | 'square' | 'boat' | 'one_shoulder' | 'cowl' | 'strapless' | 'sweetheart' | 'cami';
 export type BodiceLength = 'waist' | 'high_hip' | 'hip';
 /** Shaping: bust and waist darts, bust darts only, or none (the bust dart left as ease at the hem). */
 export type BodiceDarts = 'bust_waist' | 'bust' | 'none';
@@ -80,6 +83,8 @@ export interface BodiceStyle {
   /** Shoulder pads drafted in (a jacket or coat): each shoulder point raised by this many cm, the
    * underarm left where it is, so the armhole grows by about as much. */
   shoulderPad?: number;
+  /** A peplum sewn to the waist seam of a waist-length bodice. Older saves have none. */
+  peplum?: Peplum;
   /** Boned like a corset (always with a strapless neckline, by choice with a cami); soft otherwise. */
   structure?: Structure;
 }
@@ -114,6 +119,10 @@ export const NECKLINES: Record<Neckline, { frontDepth: number; width: number; ba
   v: { frontDepth: 14, width: 2, backDepth: 1 },
   square: { frontDepth: 10, width: 4, backDepth: 1.5 },
   boat: { frontDepth: 2, width: 7, backDepth: 1.5 },
+  // The draped necklines start from the block's neck point moved 3 cm along the shoulder: the
+  // one-shoulder's strap, and the cowl's top edge (see drape.ts). The front neck itself is replaced.
+  one_shoulder: { frontDepth: 1, width: 3, backDepth: 0 },
+  cowl: { frontDepth: 1, width: 3, backDepth: 1.5 },
   // Cut below the shoulders, along their own top edge (see corset.ts): the block's neck stays as drafted.
   strapless: { frontDepth: 0, width: 0, backDepth: 0 },
   sweetheart: { frontDepth: 0, width: 0, backDepth: 0 },
@@ -216,6 +225,10 @@ export interface BodiceDraft {
   collar: Collar;
   /** Where the buttons go on a button front. */
   buttons?: Buttons;
+  /** A one-shoulder or cowl neckline: the front (and a one-shoulder's back) cut as whole pieces. */
+  drape?: DrapeInfo;
+  /** A peplum at the waist seam, its pieces after the bodice's. */
+  peplum?: PeplumInfo;
   /** A strapless, sweetheart or cami top edge, its straps, and a boned bodice's bones and waist stay. */
   top?: TopDetails;
 }
@@ -321,14 +334,17 @@ function waistRun(path: Path, y: (x: number) => number, toX: number) {
 /** Draft the block, choosing the armhole depth that makes the armhole the person's armhole
  * measurement plus ease (falls back to a size-table depth without it). */
 export function draftBodice(m: BodiceMeasurements, style: Partial<BodiceStyle> = {}): BodiceDraft {
-  const s = { ...DEFAULT_BODICE_STYLE, ...style };
+  // A draped neckline allows no moved dart, princess seams, collar or button front (see drape.ts).
+  const s = drapeStyle({ ...DEFAULT_BODICE_STYLE, ...style });
+  // A peplum (drape.ts) goes on any waist-length bodice, a boned one too.
+  const redraft = (st: BodiceStyle) => draftBlock(m, st);
   if (isTop(s.neckline)) {
     // Cut below the shoulders: the block drafted as usual, then cut along the top edge and shaped.
     const t = topStyle(s);
     const cut = cutTop(draftBlock(m, t), t, s.fitting?.lowShoulder);
-    return isBoned(t) ? bonedPanels(cut, t) : shape(cut, t);
+    return drapeBodice(isBoned(t) ? bonedPanels(cut, t) : shape(cut, t), t, m, redraft);
   }
-  return finish(shape(draftBlock(m, s), s), s);
+  return drapeBodice(finish(shape(draftBlock(m, s), s), s), s, m, redraft);
 }
 
 /** A button front (the back then on the fold) and a collar, both made on the bodice as sewn. */

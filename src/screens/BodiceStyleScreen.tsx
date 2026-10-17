@@ -20,6 +20,7 @@ import { useShake } from '../ui/shake';
 import type { Finish } from '../App';
 import { MyFabric, bodiceFabrics, fabricEase } from '../engine/fabrics';
 import { FabricCard } from '../ui/FabricCard';
+import { isDraped } from '../engine/drape';
 
 import { EaseMapView } from '../ui/EaseMapView';
 import type { EaseView } from '../engine/easeMap';
@@ -55,7 +56,7 @@ export const bodiceFabricMetres = (draft: BodiceDraft, sleeve?: SleeveDraft) => 
 /** Bias binding for the neck and armholes; with sleeves, for the neck, or for the armhole seams of a lined bodice.
  * Some to spare for joins. */
 export const bindingMetres = (draft: BodiceDraft, binds: { neck: boolean; armholes: boolean } = { neck: true, armholes: true }) =>
-  toMetres((binds.neck ? draft.neck : 0) + (binds.armholes ? 2 * draft.armhole : 0) + 20);
+  toMetres((binds.neck ? draft.neck : 0) + (binds.armholes ? (draft.drape?.kind === 'one_shoulder' ? 1 : 2) * draft.armhole : 0) + 20);
 
 /** The engine's warnings are written for the pattern cutter; this turns the common ones into a nudge. */
 function friendly(w: string) {
@@ -64,7 +65,18 @@ function friendly(w: string) {
   return 'Something in your measurements looks unusual. Please double-check them.';
 }
 
-const NECK_NAMES: Record<BodiceChoices['neckline'], string> = { crew: 'crew neck', scoop: 'scoop neck', v: 'V-neck', square: 'square neck', boat: 'boat neck', strapless: 'strapless top', sweetheart: 'sweetheart top', cami: 'cami top' };
+const NECK_NAMES: Record<BodiceChoices['neckline'], string> = {
+  crew: 'crew neck',
+  scoop: 'scoop neck',
+  v: 'V-neck',
+  square: 'square neck',
+  boat: 'boat neck',
+  one_shoulder: 'one-shoulder neckline',
+  cowl: 'cowl neck',
+  strapless: 'strapless top',
+  sweetheart: 'sweetheart top',
+  cami: 'cami top',
+};
 
 const UNDO_LIMIT = 40;
 
@@ -95,7 +107,9 @@ export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft
   const arms = !needsArms(values);
   const chosen = sleeveOf(choices);
   const flat = useMemo(() => (draft ? bodiceFlat(draft, 'binding', sleeve) : undefined), [draft, sleeve]);
-  const detail = { bustDart: choices.bustDart ?? 'side', princess: choices.princess ?? 'none', closure: choices.closure ?? 'back_zip', collar: choices.collar ?? 'none', structure: valid.structure ?? 'none' };
+  const detail = { bustDart: choices.bustDart ?? 'side', princess: choices.princess ?? 'none', closure: choices.closure ?? 'back_zip', collar: choices.collar ?? 'none', structure: valid.structure ?? 'none', peplum: choices.peplum ?? 'none' };
+  // A draped neckline is its own shaping: the dart, seam, opening, collar and boning choices step aside.
+  const draped = isDraped(choices);
   const valueOf = (id: (typeof BODICE_GROUPS)[number]['id']) =>
     id === 'sleeveShape' ? chosen.shape : id === 'sleeve' ? chosen.length : id in detail ? detail[id as keyof typeof detail] : choices[id];
   const shown = (id: string) =>
@@ -103,7 +117,8 @@ export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft
     (id !== 'bustDart' || (choices.darts !== 'none' && detail.princess === 'none' && !boned)) &&
     // A top below the shoulders always opens at the back and has no collar; a boned one is cut in panels.
     !(top && (id === 'closure' || id === 'collar')) &&
-    !(boned && id === 'princess');
+    !(boned && id === 'princess') &&
+    !(draped && (id === 'princess' || id === 'bustDart' || id === 'closure' || id === 'collar' || id === 'structure'));
 
   const allowed = (id: string, opt: string) => topAllowed(choices, id, opt) && baseAllowed(id, opt);
   const baseAllowed = (id: string, opt: string) =>
@@ -112,10 +127,10 @@ export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft
       : id === 'length'
         ? hip || !needsHip(opt as BodiceChoices['length'])
         : id === 'sleeve'
-          ? opt === 'none' || arms
+          ? (opt === 'none' || arms) && detailAllowed(choices, 'sleeve', opt)
           : id === 'sleeveShape'
             ? SHAPES_FOR_LENGTH[chosen.length].includes(opt as NonNullable<BodiceChoices['sleeveShape']>)
-            : id === 'princess' || id === 'bustDart' || id === 'closure' || id === 'collar' || id === 'structure'
+            : id === 'princess' || id === 'bustDart' || id === 'closure' || id === 'collar' || id === 'structure' || id === 'peplum'
               ? detailAllowed(choices, id, opt)
               : true;
 
@@ -207,6 +222,15 @@ export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft
                 </button>
               </p>
             )}
+            {g.id === 'neckline' && draped && (
+              <p className="muted small">
+                {choices.neckline === 'cowl'
+                  ? 'The front is cut on the bias and falls in soft folds. It needs a fluid fabric. No collar or princess seams.'
+                  : 'The shoulder is on your left, and a zip goes in the right side seam. No collar or princess seams.'}
+              </p>
+            )}
+            {g.id === 'sleeve' && !choices.neck && choices.neckline === 'one_shoulder' && <p className="muted small">A one-shoulder bodice is sleeveless.</p>}
+            {g.id === 'peplum' && (choices.length !== 'waist' || (choices.dropCm !== undefined && choices.dropCm >= 3)) && <p className="muted small">A peplum sits on a waist-length bodice.</p>}
             {g.id === 'structure' && !top && <p className="muted small">Boning needs a strapless, sweetheart or cami top.</p>}
             {g.id === 'structure' && choices.neckline === 'strapless' && <p className="muted small">A strapless bodice is always boned: the boning holds it up.</p>}
             {g.id === 'structure' && boned && <p className="muted small">Boned bodices are fitted and waist length, with the shaping in princess panels.</p>}
@@ -230,13 +254,18 @@ export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft
           edgeLegend={top ? 'Top edge' : undefined}
         />
         <p className="muted small">
-          {detail.closure === 'front_buttons' ? `Buttons down the centre front${draft?.buttons ? ` (${draft.buttons.count})` : ''}, with front facings.` : 'With a centre back zip.'}{' '}
+          {detail.closure === 'front_buttons'
+            ? `Buttons down the centre front${draft?.buttons ? ` (${draft.buttons.count})` : ''}, with front facings.`
+            : draft?.drape?.kind === 'one_shoulder'
+              ? 'With a zip in the right side seam.'
+              : 'With a centre back zip.'}{' '}
           {chosen.length === 'none'
             ? 'Sleeveless.'
             : 'The sleeves are drafted to fit your armholes, with their ease set where a tailor sets it.'}
+          {draft?.peplum ? ` A ${draft.peplum.kind} peplum, ${draft.peplum.depthCm} cm deep.` : ''}
           {boned ? ' Boned like a corset: each panel is cut again from coutil and from lining, with boning over every seam and a grosgrain waist stay inside.' : ''}
           {choices.neckline === 'cami' ? ' The rouleau straps are given as measurements on the pattern.' : ''}
-          {!boned && (detail.princess !== 'none' || detail.bustDart !== 'side') ? ' The shaping is moved the way a pattern cutter does it: the garment sews up to exactly the same fit.' : ''}
+          {!boned && !draped && (detail.princess !== 'none' || detail.bustDart !== 'side') ? ' The shaping is moved the way a pattern cutter does it: the garment sews up to exactly the same fit.' : ''}
         </p>
       </section>
 

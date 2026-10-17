@@ -270,22 +270,43 @@ const NECK_NOTES: Partial<Record<Neckline, string>> = {
   square: 'For a square neck, choose a fabric that presses sharply so the corners stay crisp.',
   v: 'For a V-neck, a fabric that presses well keeps the point sharp.',
   boat: 'A boat neck sits best in a firmer fabric that will not slip off the shoulder.',
+  one_shoulder: 'For a one-shoulder bodice, choose a stable fabric with body. The top edge runs across the grain, so it is stay-taped to keep it from stretching.',
+  cowl: 'A cowl needs a fluid fabric to fall into soft folds. The front is cut on the bias, so allow extra fabric.',
+};
+
+/** A cowl front falls in folds only in a fluid cloth, whatever the fit. */
+const COWL: { picks: FabricPick[]; avoid: string } = {
+  picks: [
+    pick('Silk crepe de chine', ['light'], 'fluid', 'Falls into soft, even folds on the bias.'),
+    pick('Silk or viscose satin (charmeuse)', ['light'], 'fluid', 'Catches the light in the folds of the drape.'),
+    pick('Viscose crepe or georgette', ['light'], 'fluid', 'Drapes well and costs less than silk.'),
+  ],
+  avoid: 'Crisp or firm fabrics like poplin, linen or taffeta. They stand away in stiff ridges instead of falling into folds.',
+};
+
+const PEPLUM_NOTES = {
+  flared: 'A flared peplum swings best in a soft fabric of the same weight as the bodice.',
+  gathered: 'A gathered peplum sits neatest in a light fabric, so the gathers stay soft at the waist.',
 };
 
 const FIT_WORDS: Record<BodiceFit, string> = { fitted: 'fitted', regular: 'regular fit', relaxed: 'relaxed' };
 
 /** Fabrics for a bodice style. */
-export function bodiceFabrics(style: { fit: BodiceFit; neckline: Neckline; length?: BodiceLength; darts?: BodiceDarts; structure?: Structure }): FabricAdvice {
+export function bodiceFabrics(style: { fit: BodiceFit; neckline: Neckline; length?: BodiceLength; darts?: BodiceDarts; structure?: Structure; neck?: unknown; peplum?: 'none' | 'flared' | 'gathered' }): FabricAdvice {
   if (style.structure === 'boned')
     return { style: 'a boned bodice', picks: BONED.picks, avoid: BONED.avoid, note: BONED.note, lining: BODICE_LINING };
   if (style.neckline === 'cami')
     return { style: 'a cami top', picks: CAMI.picks, avoid: `${CAMI.avoid} ${STRETCH}`, note: NECK_NOTES.cami, lining: BODICE_LINING };
-  const base = BODICE[style.fit];
+  const cowl = style.neckline === 'cowl' && !style.neck;
+  const base = cowl ? COWL : BODICE[style.fit];
+  // A drawn neckline replaces a draped one.
+  const drawnOver = (style.neckline === 'cowl' || style.neckline === 'one_shoulder') && !!style.neck;
+  const peplum = style.peplum && style.peplum !== 'none' ? PEPLUM_NOTES[style.peplum] : undefined;
   return {
-    style: `a ${FIT_WORDS[style.fit]} bodice`,
+    style: cowl ? `a ${FIT_WORDS[style.fit]} cowl-neck bodice` : `a ${FIT_WORDS[style.fit]} bodice`,
     picks: base.picks,
     avoid: `${base.avoid} ${STRETCH}`,
-    note: NECK_NOTES[style.neckline],
+    note: (drawnOver ? undefined : NECK_NOTES[style.neckline]) ?? peplum,
     lining: BODICE_LINING,
   };
 }
@@ -454,7 +475,9 @@ function styleWarnings(style: FabricStyle, { weight, drape }: MyFabric): string[
     if (s === 'slip' && weight === 'heavy') out.push('A heavy fabric drops and grows on the bias under its own weight. Choose a light one, and hang the skirt for a day before you level the hem.');
   }
   if (style.garment === 'bodice' || style.garment === 'dress') {
-    if (drape === 'fluid' && style.fit !== 'relaxed' && style.structure !== 'boned') out.push('A fluid fabric puckers at the darts and will not hold a fitted bodice. Underline it with cotton batiste, or choose a relaxed fit.');
+    if (style.neckline === 'cowl' && drape && drape !== 'fluid') out.push('A cowl needs a fluid fabric. A crisp or soft one stands away in ridges instead of falling into folds.');
+    if (style.neckline === 'one_shoulder' && drape === 'fluid') out.push('A fluid fabric pulls at a one-shoulder edge. Stay-tape the edge firmly, and underline the bodice if it is very slippery.');
+    if (drape === 'fluid' && style.fit !== 'relaxed' && style.structure !== 'boned' && style.neckline !== 'cowl') out.push('A fluid fabric puckers at the darts and will not hold a fitted bodice. Underline it with cotton batiste, or choose a relaxed fit.');
     if (weight === 'heavy' && style.fit !== 'relaxed') out.push('A heavy fabric makes thick darts and a bulky neckline. Face or line it with something light, and trim the seams well.');
     if (drape === 'crisp' && weight === 'heavy' && style.fit === 'relaxed') out.push('A heavy, crisp fabric stands away from the body without darts.');
     if (style.structure === 'boned' && (drape === 'fluid' || weight === 'light'))

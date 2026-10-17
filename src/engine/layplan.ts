@@ -150,7 +150,8 @@ export function layPlan(pieces: Piece[], width: FabricWidth, fabric: LayFabric =
   // Folded unless something won't fit across half the width, or a piece must be cut from a single
   // layer (bias pieces, which shift on a folded layer, and pieces that differ side to side); then a
   // single layer, with pieces on the fold opened out to their full width and each of a pair cut separately.
-  const folded = cut.every(({ pc, pts }) => wide(pts) <= usable / 2 && !pc.meta.singleLayer);
+  // A piece off the fold also keeps its gap from it.
+  const folded = cut.every(({ pc, pts, kind }) => wide(pts) <= usable / 2 - (kind === 'fold' ? 0 : 2 * RES) && !pc.meta.singleLayer);
   const items: Item[] = cut.flatMap(({ pc, pts, kind }): Item[] => {
     if (folded) return [{ name: pc.name, pts, kind, atFold: kind === 'fold', single: kind === 'single' }];
     if (kind === 'fold') {
