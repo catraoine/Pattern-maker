@@ -170,7 +170,7 @@ export interface Moved {
  * Close the side bust dart about the bust point and open it at `to`. With `short` 0 the dart is left
  * open to the bust point with no peak, ready to become a princess seam.
  */
-export function moveBustDart(path: Path, apex: P, to: DartPlace, opts: { armholeNotch?: P; short?: number; princess?: boolean; belowNotch?: number; waistSide?: P } = {}): Moved | undefined {
+export function moveBustDart(path: Path, apex: P, to: DartPlace, opts: { armholeNotch?: P; short?: number; princess?: boolean; belowNotch?: number; waistSide?: P; along?: number } = {}): Moved | undefined {
   const r = ringOf(path);
   const side = dartAfter(r, 'side');
   if (!side || to === 'side') return undefined;
@@ -191,7 +191,8 @@ export function moveBustDart(path: Path, apex: P, to: DartPlace, opts: { armhole
   let merge = false;
   if (to === 'shoulder' || to === 'neck') {
     const run = runOf(r, to)!;
-    iQ = insertAlong(r, run, runLength(r, run) / 2);
+    // Halfway along, or `along` cm from the start of the edge (a strapless top edge, over the bust point).
+    iQ = insertAlong(r, run, opts.along ?? runLength(r, run) / 2);
   } else if (to === 'armhole') {
     const run = runOf(r, 'armhole')!;
     const toNotch = opts.armholeNotch ? along(r, run, opts.armholeNotch) : runLength(r, run) * 0.5;

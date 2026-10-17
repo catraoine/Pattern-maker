@@ -9,6 +9,7 @@ import { SEAM_WIDTHS, SeamWidths } from './allowances';
 import type { Piece } from './piece';
 import type { DiagramId } from './diagrams';
 import { placeWords, styleBodiceSteps } from './styleSteps';
+import { bonedDressSteps, strapCut, topSteps } from './corsetGuide';
 
 // Widest strip that fits across 140 cm fabric, leaving room for the selvedges.
 export const BAND_ACROSS_MAX = 135;
@@ -47,6 +48,8 @@ export interface BodiceFinish {
   seams?: SeamWidths;
   edges?: BodiceEdges;
   liningM?: number;
+  /** Coutil interlining for a boned bodice, in metres. */
+  coutilM?: number;
   /** Fabric width in cm, when it isn't 140. */
   width?: number;
   /** Set-in sleeves, when the bodice has them: the armholes are then sewn to the sleeves, not finished. */
@@ -355,7 +358,7 @@ export function bodiceGuide(draft: BodiceDraft, _style: { length: BodiceLength }
     ],
     steps,
   };
-  return styleBodiceSteps(guide, draft, { seam, curve, edges, sleeve: !!sleeve });
+  return topSteps(styleBodiceSteps(guide, draft, { seam, curve, edges, sleeve: !!sleeve }), draft, { seam, curve, fabricM, liningM: finish.liningM, coutilM: finish.coutilM, width: finish.width });
 }
 
 /** Cutting the sleeves, added to the cutting step. */
@@ -385,6 +388,7 @@ export function dressGuide(draft: DressDraft, style: { silhouette: Silhouette; l
   const slit = hasSlit(style);
   const lined = edges === 'lined';
   const dartLines = draft.bodice.bustDart > 0.3 || draft.skirt.dartsPerSide.front + draft.skirt.dartsPerSide.back > 0;
+  if (draft.bodice.top?.boned) return bonedDressSteps(draft, top, skirt, { seam, curve, fabricM, liningM: finish.liningM, coutilM: finish.coutilM, width: finish.width, waist, slit, wide });
 
   // The bodice's own finishing, from the neck to the sleeves: everything after its side seams.
   const finishing = top.steps.slice(at('Sew the side seams') + 1, at('Hem')).map((s) =>
@@ -403,7 +407,7 @@ export function dressGuide(draft: DressDraft, style: { silhouette: Silhouette; l
         wide ? ' The skirt pieces are too wide for folded fabric: cut them from a single layer, turning the pattern over for the second of each so you get pairs.' : ''
       } Keep each grain arrow parallel to the selvedge. Cut along the solid outer line, snip the small notches${dartLines ? ', and chalk-mark the dart lines and the bust point' : ''}.${collarCut(draft.bodice)}${
         lined ? ' Cut the bodice pieces again from the lining.' : edges === 'facings' ? (finish.sleeve ? ' Cut the neck facings from the fabric, and again from fusible interfacing.' : ' Cut the four facing pieces from the fabric, and again from fusible interfacing.') : ''
-      }${sleeveCutWords(finish.sleeve)}${oneSide(draft.bodice.pieces[0], lined ? 'and the lining' : '')}`,
+      }${sleeveCutWords(finish.sleeve)}${strapCut(draft.bodice)}${oneSide(draft.bodice.pieces[0], lined ? 'and the lining' : '')}`,
     },
     ...find(top, /^Interface the facings$/),
     {
@@ -433,7 +437,7 @@ export function dressGuide(draft: DressDraft, style: { silhouette: Silhouette; l
     },
     ...finishing,
     ...find(skirt, /^Hem$/),
-    { title: 'Finish', text: 'Sew a hook and eye at the top of the zip, inside the neckline. Give the dress a final press.' },
+    { title: 'Finish', text: `Sew a hook and eye at the top of the zip, inside the ${draft.bodice.top ? 'top edge' : 'neckline'}. Give the dress a final press.` },
   ];
 
   return {

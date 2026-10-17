@@ -36,7 +36,8 @@ function worn(draft: BodiceDraft, side: Side): Worn {
   const pc = blockOf(draft)[side === 'front' ? 0 : 1];
   const land = side === 'front' ? draft.front : draft.back;
   const { pts, tags } = pc.outline.taggedPoints(16);
-  const lastArm = tags.lastIndexOf('armhole');
+  // The top edge runs to the end of the armhole, or on a top cut below the shoulders, to the side seam.
+  const lastArm = tags.includes('armhole') ? tags.lastIndexOf('armhole') : tags.lastIndexOf('neck');
   const top = pts.slice(0, lastArm + 2);
   const waist = { x: land.waistSide.x, y: land.waistCentre.y };
   const hem = { x: land.hemSide.x, y: land.hemCentre.y };
@@ -105,7 +106,7 @@ export function dragEase(c: BodiceChoices, ease: number): BodiceChoices {
 }
 
 /** How full each named neckline's curve is, so drawing only the back keeps the front's shape. */
-const FULLNESS: Record<Neckline, number> = { crew: 0.75, scoop: 0.6, v: 0, square: 1, boat: 0.6 };
+const FULLNESS: Record<Neckline, number> = { crew: 0.75, scoop: 0.6, v: 0, square: 1, boat: 0.6, strapless: 1, sweetheart: 0.6, cami: 0 };
 
 /** The neckline as it stands, as a drawn one, so a stroke can change part of it. */
 export const currentNeck = (c: BodiceChoices): DrawnNeck => c.neck ?? { ...NECKLINES[c.neckline], fullness: FULLNESS[c.neckline] };

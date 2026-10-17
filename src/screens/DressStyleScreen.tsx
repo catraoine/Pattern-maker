@@ -1,13 +1,14 @@
 import { useMemo, useState } from 'react';
 import { layout } from '../engine/export';
-import { BODICE_FIT_EASE } from '../engine/bodice';
+import { bodiceEase } from '../engine/bodice';
+import { isTop } from '../engine/corset';
 import type { DressDraft } from '../engine/dress';
 import { dressFlat } from '../engine/flat';
 import { piecesLengthCm, toMetres } from '../engine/fabric';
 import { layPlan } from '../engine/layplan';
 import { hasSlit } from '../engine/instructions';
 import { SHAPES_FOR_LENGTH, SleeveDraft, needsArms } from '../engine/sleeve';
-import { BODICE_GROUPS, BodiceChoices, DARTS_FOR_FIT, DressChoices, detailAllowed, sleeveOf, validDetails } from '../garments';
+import { BODICE_GROUPS, BodiceChoices, DARTS_FOR_FIT, DressChoices, detailAllowed, sleeveOf, topAllowed, validDetails } from '../garments';
 import type { Garment, MeasurementValues } from '../measurements';
 import { GarmentSwitch } from '../ui/GarmentSwitch';
 import { PatternPreview } from '../ui/Preview';
@@ -62,7 +63,10 @@ export function DressStyleScreen({ choices, onChoices, onGarment, values, draft,
   const title = describePattern(choices);
   const arms = !needsArms(values);
   const chosen = sleeveOf(choices.bodice);
-  const ease = BODICE_FIT_EASE[choices.fit];
+  const valid = validDetails({ ...choices.bodice, fit: choices.fit, length: 'waist', closure: 'back_zip' }, 'dress');
+  const boned = valid.structure === 'boned';
+  const top = isTop(choices.bodice.neckline);
+  const ease = bodiceEase(valid);
   const extra = fabricEase(fabric, 'dress');
 
   const groups: Option[] = [
@@ -71,9 +75,10 @@ export function DressStyleScreen({ choices, onChoices, onGarment, values, draft,
       (g) =>
         g.id === 'neckline' ||
         g.id === 'darts' ||
-        g.id === 'princess' ||
-        (g.id === 'bustDart' && choices.bodice.darts !== 'none' && (choices.bodice.princess ?? 'none') === 'none') ||
-        g.id === 'collar' ||
+        (g.id === 'princess' && !boned) ||
+        (g.id === 'bustDart' && choices.bodice.darts !== 'none' && (choices.bodice.princess ?? 'none') === 'none' && !boned) ||
+        (g.id === 'collar' && !top) ||
+        g.id === 'structure' ||
         g.id === 'sleeve' ||
         (g.id === 'sleeveShape' && chosen.length !== 'none'),
     ).map((g) => ({
@@ -100,16 +105,20 @@ export function DressStyleScreen({ choices, onChoices, onGarment, values, draft,
                 ? choices.bodice.princess ?? 'none'
                 : id === 'collar'
                   ? choices.bodice.collar ?? 'none'
+                  : id === 'structure'
+                  ? valid.structure ?? 'none'
                   : choices.bodice[id as keyof BodiceChoices];
 
-  const allowed = (id: string, opt: string) =>
+  // The dress's fit also sets the skirt's ease, so it stays free; a boned bodice keeps its own close fit.
+  const allowed = (id: string, opt: string) => (id === 'fit' || topAllowed(choices.bodice, id, opt)) && baseAllowed(id, opt);
+  const baseAllowed = (id: string, opt: string) =>
     id === 'darts'
       ? DARTS_FOR_FIT[choices.fit].includes(opt as BodiceChoices['darts'])
       : id === 'sleeve'
         ? opt === 'none' || arms
         : id === 'sleeveShape'
           ? SHAPES_FOR_LENGTH[chosen.length].includes(opt as NonNullable<BodiceChoices['sleeveShape']>)
-          : id === 'princess' || id === 'bustDart' || id === 'collar'
+          : id === 'princess' || id === 'bustDart' || id === 'collar' || id === 'structure'
             ? detailAllowed({ ...choices.bodice, length: 'waist', closure: 'back_zip' }, id, opt, 'dress')
             : true;
 
@@ -158,15 +167,25 @@ export function DressStyleScreen({ choices, onChoices, onGarment, values, draft,
                 </button>
               </p>
             )}
-            {g.id === 'darts' && choices.fit !== 'relaxed' && (
+            {g.id === 'structure' && !top && <p className="muted small">Boning needs a strapless, sweetheart or cami top.</p>}
+            {g.id === 'structure' && choices.bodice.neckline === 'strapless' && <p className="muted small">A strapless dress is always boned: the boning holds it up.</p>}
+            {g.id === 'darts' && !boned && choices.fit !== 'relaxed' && (
               <p className="muted small">{choices.fit === 'fitted' ? 'A fitted dress needs bust and waist darts.' : 'Choose a relaxed fit to go without waist darts.'}</p>
             )}
           </fieldset>
         ))}
         <p className="eyebrow">Inside the dress</p>
-        <FinishChoices garment="dress" finish={finish} onFinish={onFinish} sleeved={sleeveOf(choices.bodice).length !== 'none'} />
+        <FinishChoices
+          garment="dress"
+          finish={finish}
+          onFinish={onFinish}
+          sleeved={sleeveOf(choices.bodice).length !== 'none'}
+          edgeIds={boned ? ['lined'] : top ? ['binding', 'lined'] : undefined}
+          edgeLegend={top ? 'Top edge' : undefined}
+        />
         <p className="muted small">
-          The skirt is drafted to the bodice: the waist seams are the same length, and the darts meet at the seam in one line. One zip opens the centre back from the neck to below the waist.
+          The skirt is drafted to the bodice: the waist seams are the same length, and the darts meet at the seam in one line. One zip opens the centre back from the {top ? 'top edge' : 'neck'} to below the waist.
+          {boned ? ' The bodice is boned like a corset, cut again from coutil and lining, with a grosgrain waist stay that carries the skirt.' : ''}
         </p>
       </section>
 
@@ -222,7 +241,7 @@ export function DressStyleScreen({ choices, onChoices, onGarment, values, draft,
           )}
         </div>
         <p className="muted small">
-          Ease added: {ease.bust + extra.bust} cm at the bust, {ease.waist + extra.waist} cm at the waist
+          Ease added: {ease.bust + extra.bust} cm at the bust, {ease.waist + extra.waist} cm at the waist{boned ? ' (negative ease, so the boned bodice holds you)' : ''}
           {extra.bust ? `, including ${extra.bust} cm and ${extra.waist} cm for your heavy fabric` : ''}.
         </p>
         <div>
@@ -238,7 +257,7 @@ export function DressStyleScreen({ choices, onChoices, onGarment, values, draft,
         {draft && (
           <FabricCard
             metres={dressFabricMetres(pieces)}
-            advice={dressFabrics({ fit: choices.fit, neckline: choices.bodice.neckline, silhouette: choices.skirt.silhouette, length: choices.skirt.length })}
+            advice={dressFabrics({ fit: choices.fit, neckline: choices.bodice.neckline, silhouette: choices.skirt.silhouette, length: choices.skirt.length, structure: valid.structure })}
             fabric={fabric}
           />
         )}
