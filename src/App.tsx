@@ -472,7 +472,7 @@ export default function App() {
   const switchGarment = (g: Garment, next: Partial<Saved> = {}, to: View = step, using: MeasurementValues = values, who: string = profile) => {
     setSaved({ ...saved, ...next, garment: g });
     const stays = to === 'style' || to === 'export';
-    if (stays && !ready(using, saved.unit, g)) sendToMeasure(`The ${g} needs a few more of ${who === 'Me' ? 'your' : `${who}'s`} measurements first.`);
+    if (stays && !ready(using, saved.unit, g)) sendToMeasure(`The ${g} ${g === 'trousers' ? 'need' : 'needs'} a few more of ${who === 'Me' ? 'your' : `${who}'s`} measurements first.`);
     else setStep(to);
   };
 
@@ -492,7 +492,7 @@ export default function App() {
     setAccount({ ...account, active: who.id });
     const name = personName(account, who);
     if ((to === 'style' || to === 'export') && !ready(who.values, saved.unit, garment))
-      sendToMeasure(`The ${garment} needs a few more of ${who.id === ME ? 'your' : `${name}'s`} measurements first.`);
+      sendToMeasure(`The ${garment} ${garment === 'trousers' ? 'need' : 'needs'} a few more of ${who.id === ME ? 'your' : `${name}'s`} measurements first.`);
     else setStep(to);
   };
 
