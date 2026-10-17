@@ -26,6 +26,7 @@ import { FabricWidth, layPlans } from './engine/layplan';
 import { MyFabric, clothFor, withFabric, withFabricEase } from './engine/fabrics';
 import { SPECIALS, needsNap, withCheckMarks, withSpecialAllowances } from './engine/specialFabrics';
 import { layAmount } from './engine/layplan';
+import { withEstimates } from './estimate';
 import { EXAMPLE_VALUES, Garment, MeasurementValues, Unit, checkMeasurements, isComplete } from './measurements';
 import { usePersistent } from './store';
 import {
@@ -229,7 +230,12 @@ export default function App() {
   const [storedAccount, setAccount] = usePersistent<Account>('account', NEW_ACCOUNT);
   const account = withPeople(storedAccount, saved.values);
   const person = activePerson(account);
-  const { values } = person;
+  // What was measured, for the measuring screens and the checks; patterns are drafted from `values`, which
+  // fills in any upper-body measurement not taken yet with an estimate (see estimate.ts).
+  const measured = person.values;
+  const measuredKey = JSON.stringify(measured);
+  // Keyed on the numbers, as the account (and so the person) is rebuilt on every render.
+  const values = useMemo(() => withEstimates(measured), [measuredKey]);
   const setValues = (v: MeasurementValues) => setAccount(updatePerson(account, person.id, { values: v }));
   const { garment } = saved;
   // Every visit opens on the welcome screen (Cat's pick, 2026-10-16). Saved measurements and
@@ -257,8 +263,8 @@ export default function App() {
   const profile = profileName(account);
   const owner = personName(account, account.people.find((p) => p.id === ME)!);
 
-  const checks = checkMeasurements(values, saved.unit, garment);
-  const canLeaveMeasure = ready(values, saved.unit, garment);
+  const checks = checkMeasurements(measured, saved.unit, garment);
+  const canLeaveMeasure = ready(measured, saved.unit, garment);
 
   // Corrections from this person's toile fittings go into every pattern drafted for them: the garment's
   // own toile first, then what the person's other toiles found that this one hasn't looked at.
@@ -637,12 +643,30 @@ export default function App() {
   const chooseGarment = () => openSteps({ kind: 'choose' });
 
   /** Switch garment, going straight to the measurements the new one still needs, one page each. */
-  const switchGarment = (g: Garment, next: Partial<Saved> = {}, to: View = step, using: MeasurementValues = values) => {
+  const switchGarment = (g: Garment, next: Partial<Saved> = {}, to: View = step, using: MeasurementValues = measured) => {
     setSaved({ ...saved, ...next, garment: g });
     const stays = to === 'style' || to === 'export';
-    if (stays && !ready(using, saved.unit, g)) openSteps({ kind: 'for', garment: g });
+    if (stays && !ready(using, saved.unit, g)) measureFor(g, using);
     else setStep(to);
   };
+
+  /**
+   * Not ready for this garment: take the measurements it still needs, one page each. When none are missing,
+   * one of them fails a check, so open the list with the reason rather than going round the guided pages again.
+   */
+  const measureFor = (g: Garment, using: MeasurementValues) => {
+    const wrong = isComplete(using, g) && checkMeasurements(using, saved.unit, g).find((c) => c.level === 'error');
+    if (wrong) sendToMeasure(`Check your ${g === 'tee' ? 'T-shirt' : g} measurements: ${wrong.message}`);
+    else openSteps({ kind: 'for', garment: g });
+  };
+
+  // Why Style or Print didn't open while measuring, shown over the guided pages for a moment.
+  const [stepsNote, setStepsNote] = useState<string>();
+  useEffect(() => {
+    if (!stepsNote) return;
+    const t = setTimeout(() => setStepsNote(undefined), 4000);
+    return () => clearTimeout(t);
+  }, [stepsNote]);
 
   // Why someone landed on Measure when they asked for another screen; cleared once they move on.
   const [measureNote, setMeasureNote] = useState<string>();
@@ -652,13 +676,14 @@ export default function App() {
   };
   useEffect(() => {
     if (step !== 'measure') setMeasureNote(undefined);
+    if (step !== 'steps') setStepsNote(undefined);
   }, [step]);
 
   /** Switch whose measurements are in use, going back to measuring when theirs aren't done for this garment. */
   const switchPerson = (id: string, to: View = step) => {
     const who = account.people.find((p) => p.id === id) ?? person;
     setAccount({ ...account, active: who.id });
-    if ((to === 'style' || to === 'export') && !ready(who.values, saved.unit, garment)) openSteps({ kind: 'for', garment });
+    if ((to === 'style' || to === 'export') && !ready(who.values, saved.unit, garment)) measureFor(garment, who.values);
     else setStep(to);
   };
 
@@ -687,7 +712,9 @@ export default function App() {
   const openStep = (to: Step) => {
     if (STEP_OF[step] === to && step !== 'photo' && step !== 'fitting' && step !== 'scale') return;
     if (to !== 'measure' && !canLeaveMeasure) {
-      if (step !== 'steps') sendToMeasure(`Measure first: the ${garment} needs a few more measurements before it can be styled.`);
+      const why = `Measure first: the ${garment === 'tee' ? 'T-shirt' : garment} needs a few more measurements before it can be ${to === 'style' ? 'styled' : 'printed'}.`;
+      if (step !== 'steps') sendToMeasure(why);
+      else setStepsNote(why);
       return;
     }
     setStep(to);
@@ -775,10 +802,15 @@ export default function App() {
               onLegal={openLegal}
               onFinish={({ start }) => {
                 const onboarded = { ...account, onboarded: true, mode };
-                setAccount(start === 'example' ? updatePerson(onboarded, person.id, { values: { ...EXAMPLE_VALUES, ...values } }) : onboarded);
+                setAccount(start === 'example' ? updatePerson(onboarded, person.id, { values: { ...EXAMPLE_VALUES, ...measured } }) : onboarded);
                 setStep(start === 'example' ? 'style' : 'steps');
               }}
             />
+          )}
+          {step === 'steps' && stepsNote && (
+            <p className="msg steps-note" role="status">
+              {stepsNote}
+            </p>
           )}
           {step === 'steps' && (
             <MeasureStepsScreen
@@ -788,7 +820,7 @@ export default function App() {
               theirs={person.id !== ME}
               garment={garment}
               unit={saved.unit}
-              values={values}
+              values={measured}
               onUnit={(unit) => setSaved({ ...saved, unit })}
               onValues={setValues}
               onDone={(g) => {
@@ -873,7 +905,7 @@ export default function App() {
               garment={garment}
               onChooseGarment={chooseGarment}
               unit={saved.unit}
-              values={values}
+              values={measured}
               checks={checks}
               canContinue={canLeaveMeasure}
               notice={measureNote}
@@ -986,6 +1018,8 @@ export default function App() {
           )}
           {step === 'style' && garment === 'tee' && (
             <TeeStyleScreen
+              mode={mode}
+              onMode={setMode}
               choices={teeChoices}
               onChoices={(t) => setSaved({ ...saved, tee: t })}
               fabric={fabric}

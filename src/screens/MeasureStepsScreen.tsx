@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { checkMeasurements, type Garment, type MeasurementId, type MeasurementValues, type Unit } from '../measurements';
+import { FIELDS, checkMeasurements, type Garment, type MeasurementId, type MeasurementValues, type Unit } from '../measurements';
 import { BASE, baseDone, fieldOf, fullSetMissing, GARMENT_NAME, GARMENTS, missingFor, stepsOf, tipOf, titleOf } from '../measureFlow';
 import { TapeDemo } from '../ui/ContourForm';
 import { FIRST_PROJECT } from '../mode';
@@ -54,6 +54,8 @@ export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onV
     const ids = aimed ? missingFor(aimed, values).map((f) => f.id) : [];
     return ids.length ? { kind: 'extra', garment: aimed!, ids, at: 0 } : { kind: 'check' };
   });
+  // Opened on the check because the measurements were taken on an earlier visit: say so.
+  const [returning] = useState(() => !start && baseDone(values));
   const [helper, setHelper] = useState(!!theirs);
   const [name, setName] = useState('');
   const [picked, setPicked] = useState<Pick | null>(start?.kind === 'choose' ? current : null);
@@ -105,7 +107,8 @@ export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onV
 
   if (page.kind === 'check')
     return (
-      <Shell eyebrow={helper ? 'Their base measurements' : 'Your base measurements'} title="Do these look right?" hero={<TapeDemo id="waist" name="" mode="all" />}>
+      <Shell eyebrow={returning ? 'Welcome back' : helper ? 'Their base measurements' : 'Your base measurements'} title="Do these look right?" hero={<TapeDemo id="waist" name="" mode="all" />}>
+        {returning && <p className="muted step-tip">{helper ? 'Their' : 'Your'} measurements are saved on this device. Check they still look right, then carry on.</p>}
         <ul className="check-list" aria-label="Tap one to change it">
           {BASE.map((id, at) => (
             <li key={id}>
@@ -272,7 +275,9 @@ function MeasurePage({
   const [how, setHow] = useState(false);
   const value = values[id];
   // Range checks for this one measurement only; the cross-checks wait for the full measurements screen.
-  const problems = checkMeasurements({ [id]: value } as MeasurementValues, unit, garment).filter((c) => c.id === id && c.level === 'error' && value !== undefined);
+  // Checked as a garment that uses it, so a base measurement the skirt doesn't need (the bust) still is.
+  const checkAs = FIELDS[garment].some((f) => f.id === id) ? garment : GARMENTS.find((g) => FIELDS[g].some((f) => f.id === id)) ?? garment;
+  const problems = checkMeasurements({ [id]: value } as MeasurementValues, unit, checkAs).filter((c) => c.id === id && c.level === 'error' && value !== undefined);
   const error = problems[0];
   const note = error ?? (tried && value === undefined ? { level: 'error', message: `Enter ${helper ? 'their' : 'your'} ${field.label.toLowerCase()} to carry on.` } : undefined);
 

@@ -14,8 +14,7 @@ export const modeOf = (account: Account): Mode => account.mode ?? (account.onboa
 
 /** Tools tucked away in the simple view. Anything not listed here shows in both. */
 export const PRO_TOOLS = [
-  // Style screens
-  'photo', // start a skirt from a photo
+  // Style screens. Starting a skirt from a photo shows in both: it is a beginner's way in, not a pro tool.
   'easeMap', // the ease map preview
   'dartMoves', // moving the bust dart, princess seams
   'insideFinish', // lining, neck and armhole finish, seam allowance styles
