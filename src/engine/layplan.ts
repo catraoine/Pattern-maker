@@ -8,7 +8,8 @@ export const FABRIC_WIDTHS = [115, 140, 150] as const;
 export type FabricWidth = (typeof FABRIC_WIDTHS)[number];
 
 /** Which fabric a lay is cut from. */
-export type LayFabric = 'self' | 'lining';
+/** Which fabric a lay is cut from: the garment's own, its lining, or a coutil interlining (a boned bodice). */
+export type LayFabric = 'self' | 'lining' | 'interlining';
 
 export interface Placement {
   name: string;
@@ -55,6 +56,7 @@ function kindOf(pc: Piece): Kind {
 function fabricsOf(pc: Piece): LayFabric[] {
   const f = (pc.fabric ?? '').toLowerCase();
   if (f === 'lining') return ['lining'];
+  if (f.includes('coutil')) return f.includes('lining') ? ['self', 'lining', 'interlining'] : ['self', 'interlining'];
   if (f.includes('lining')) return ['self', 'lining'];
   return ['self'];
 }
@@ -228,7 +230,7 @@ function place(order: Item[], cols: number, nap: boolean, folded: boolean): Plac
 
 /** The lays for every fabric the pieces are cut from, at one width. */
 export function layPlans(pieces: Piece[], width: FabricWidth, nap = false): Lay[] {
-  return (['self', 'lining'] as const).map((f) => layPlan(pieces, width, f, nap)).filter((l): l is Lay => !!l);
+  return (['self', 'lining', 'interlining'] as const).map((f) => layPlan(pieces, width, f, nap)).filter((l): l is Lay => !!l);
 }
 
 /** How to lay the fabric out and cut, in a sentence or two. */

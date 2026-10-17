@@ -13,6 +13,7 @@ import { DraftError, Side, cm } from './skirt';
 import type { DartPlace, PrincessLine } from './manipulate';
 import { moveFrontDart, princessPieces } from './shaping';
 import { Buttons, Closure, Collar, EXTENSION_CM, backNeckFacing, backOnFold, buttonPlaces, collarPieces, frontFacing, openFront } from './collar';
+import { BONED_EASE, Structure, TopDetails, bonedPanels, cutTop, isBoned, isTop, topStyle } from './corset';
 
 export interface BodiceMeasurements {
   full_bust: number;
@@ -39,7 +40,7 @@ export interface BodiceMeasurements {
 }
 
 export type BodiceFit = 'fitted' | 'regular' | 'relaxed';
-export type Neckline = 'crew' | 'scoop' | 'v' | 'square' | 'boat';
+export type Neckline = 'crew' | 'scoop' | 'v' | 'square' | 'boat' | 'strapless' | 'sweetheart' | 'cami';
 export type BodiceLength = 'waist' | 'high_hip' | 'hip';
 /** Shaping: bust and waist darts, bust darts only, or none (the bust dart left as ease at the hem). */
 export type BodiceDarts = 'bust_waist' | 'bust' | 'none';
@@ -79,6 +80,8 @@ export interface BodiceStyle {
   /** Shoulder pads drafted in (a jacket or coat): each shoulder point raised by this many cm, the
    * underarm left where it is, so the armhole grows by about as much. */
   shoulderPad?: number;
+  /** Boned like a corset (always with a strapless neckline, by choice with a cami); soft otherwise. */
+  structure?: Structure;
 }
 
 /**
@@ -111,6 +114,10 @@ export const NECKLINES: Record<Neckline, { frontDepth: number; width: number; ba
   v: { frontDepth: 14, width: 2, backDepth: 1 },
   square: { frontDepth: 10, width: 4, backDepth: 1.5 },
   boat: { frontDepth: 2, width: 7, backDepth: 1.5 },
+  // Cut below the shoulders, along their own top edge (see corset.ts): the block's neck stays as drafted.
+  strapless: { frontDepth: 0, width: 0, backDepth: 0 },
+  sweetheart: { frontDepth: 0, width: 0, backDepth: 0 },
+  cami: { frontDepth: 0, width: 0, backDepth: 0 },
 };
 
 /** Hip ease (cm) for tops that reach below the waist, from the same fit options. */
@@ -133,8 +140,10 @@ export const POINTED_NECK = 0.2;
 /** How far a dragged fit can go: snug but wearable, to roomy without needing an oversized block. */
 export const BUST_EASE_RANGE = { min: 3, max: 22 };
 
-/** Ease at the bust and waist: the fit's own, or a dragged bust ease with the waist moving by as much. */
-export function bodiceEase(s: { fit: BodiceFit; bustEase?: number }) {
+/** Ease at the bust and waist: the fit's own, or a dragged bust ease with the waist moving by as much.
+ * A boned bodice has its own: close at the bust and smaller than the body at the waist. */
+export function bodiceEase(s: { fit: BodiceFit; bustEase?: number; neckline?: Neckline; structure?: Structure }) {
+  if (isBoned(s)) return BONED_EASE;
   const base = BODICE_FIT_EASE[s.fit];
   if (s.bustEase === undefined) return base;
   const bust = Math.min(BUST_EASE_RANGE.max, Math.max(BUST_EASE_RANGE.min, s.bustEase));
@@ -202,11 +211,13 @@ export interface BodiceDraft {
   block?: Piece[];
   /** Lines to draw on the sewn garment in place of the block's bust dart (a moved dart), or of all
    * its darts (princess seams), in the block's coordinates. */
-  styleLines?: { skip: 'side' | 'all'; front: { pts: P[]; kind: 'dart' | 'seam' }[]; back: { pts: P[]; kind: 'dart' | 'seam' }[] };
+  styleLines?: { skip: 'side' | 'all'; front: { pts: P[]; kind: 'dart' | 'seam' | 'stitch' }[]; back: { pts: P[]; kind: 'dart' | 'seam' | 'stitch' }[] };
   closure: Closure;
   collar: Collar;
   /** Where the buttons go on a button front. */
   buttons?: Buttons;
+  /** A strapless, sweetheart or cami top edge, its straps, and a boned bodice's bones and waist stay. */
+  top?: TopDetails;
 }
 
 /** The front and back as drafted: the shape the bodice sews up to, whatever its seams. */
@@ -311,6 +322,12 @@ function waistRun(path: Path, y: (x: number) => number, toX: number) {
  * measurement plus ease (falls back to a size-table depth without it). */
 export function draftBodice(m: BodiceMeasurements, style: Partial<BodiceStyle> = {}): BodiceDraft {
   const s = { ...DEFAULT_BODICE_STYLE, ...style };
+  if (isTop(s.neckline)) {
+    // Cut below the shoulders: the block drafted as usual, then cut along the top edge and shaped.
+    const t = topStyle(s);
+    const cut = cutTop(draftBlock(m, t), t, s.fitting?.lowShoulder);
+    return isBoned(t) ? bonedPanels(cut, t) : shape(cut, t);
+  }
   return finish(shape(draftBlock(m, s), s), s);
 }
 

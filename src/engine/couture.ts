@@ -61,7 +61,12 @@ export function toCouture(guide: SewingGuide, c: CoutureContext): SewingGuide {
   const finish = seamFinish(c.cloth, c.lined);
   const bodice = c.garment !== 'skirt';
   const dress = c.garment === 'dress';
-  const seams = dress ? 'side, shoulder, centre back and waist' : bodice ? 'side, shoulder and centre back' : 'side and centre back';
+  // A top cut below the shoulders (strapless, sweetheart, cami) has a top edge in place of the neck,
+  // and a boned one brings its own waist stay.
+  const topEdge = guide.steps.some((g) => /top edge/.test(g.title));
+  const shoulders = bodice && !topEdge;
+  const ownStay = guide.steps.some((g) => g.title === 'Attach the waist stay');
+  const seams = (dress ? 'side, shoulder, centre back and waist' : bodice ? 'side, shoulder and centre back' : 'side and centre back').replace('shoulder', topEdge ? 'princess' : 'shoulder');
   const out: SewStep[] = [];
   let zip: SewStep | undefined;
   let fitted = false;
@@ -69,7 +74,7 @@ export function toCouture(guide: SewingGuide, c: CoutureContext): SewingGuide {
   const fitStep = () =>
     step(
       'Baste and fit',
-      `Hand-baste the side seams${bodice ? ' and shoulders' : ''} along the traced lines, pin the centre back closed and try it on, right side out. The side seams should hang straight down and each dart point toward the fullest part of the body. Re-trace any line you change, on both pieces, then take the basting out of each seam as you come to sew it.`,
+      `Hand-baste the side seams${shoulders ? ' and shoulders' : ''} along the traced lines, pin the centre back closed and try it on, right side out. The side seams should hang straight down and each dart point toward the fullest part of the body. Re-trace any line you change, on both pieces, then take the basting out of each seam as you come to sew it.`,
       'baste',
     );
 
@@ -94,7 +99,9 @@ export function toCouture(guide: SewingGuide, c: CoutureContext): SewingGuide {
         ),
         step(
           'Staystitch the curves',
-          bodice
+          topEdge
+            ? 'Machine a line of stitching 3 mm outside the traced top edge line, in the seam allowance, sewing from each side seam toward the centre, so the curve cannot stretch as you handle it.'
+            : bodice
             ? 'Machine a line of stitching 3 mm outside the traced neck and armhole lines, in the seam allowance. Sew from each shoulder toward the centre, and from the shoulder down to the underarm, so the bias curves cannot stretch as you handle them.'
             : 'Machine a line of stitching 3 mm above the traced waist line, in the seam allowance, sewing from each side seam toward the centre. The waist curve is partly on the bias and stretches as it is handled; the stitching holds it to the pattern.',
           'staystitch',
@@ -183,7 +190,8 @@ export function toCouture(guide: SewingGuide, c: CoutureContext): SewingGuide {
         diagram: 'understitch',
       });
     } else if (t === 'Join the bodice to the skirt') {
-      out.push(
+      if (ownStay) out.push(step(t, `${s.text.replace(/ Sew [\d.]+ cm from the edge and/, ' Baste along the traced lines, machine on them, take out the basting and')}`, 'baste'));
+      else out.push(
         step(
           t,
           'Baste the waist seam along the traced lines, matching the centre front, the side edges and the darts, so each bodice dart runs on into the skirt dart below it. Machine on the traced line, take out the basting and press the seam up toward the bodice over the ham.',
@@ -253,7 +261,7 @@ export function toCouture(guide: SewingGuide, c: CoutureContext): SewingGuide {
     'Contrasting tacking thread',
     "A tailor's ham and a press cloth",
     ...(finish === 'hongkong' ? ['1 m of lining or silk organza, for the bias strips that bind the seams'] : []),
-    ...(dress ? ['1 m of 1.5 cm grosgrain ribbon and a hook and bar, for the waist stay'] : []),
+    ...(dress && !ownStay ? ['1 m of 1.5 cm grosgrain ribbon and a hook and bar, for the waist stay'] : []),
     ...(guide.steps.some((g) => g.title === 'Set in the sleeves')
       ? ['A sleeve board or sleeve roll', ...(c.cloth === 'wool' ? ['A pair of sleeve heads, or 0.2 m of lambswool for them'] : [])]
       : []),

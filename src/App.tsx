@@ -12,6 +12,7 @@ import { outerGuide } from './engine/outerGuide';
 import { Cloth, Route, toCouture } from './engine/couture';
 import { AllowanceStyle, SEAM_WIDTHS, withAllowances } from './engine/allowances';
 import { bodiceFacings, liningPieces, waistbandPiece } from './engine/finishing';
+import { edgesFor, topNotes } from './engine/corsetGuide';
 import { bodiceSpec, dressSpec, outerSpec, skirtSpec, sleeveSpec, trousersSpec } from './engine/spec';
 import { SleeveDraft, SleeveMeasurements, draftSleeve, needsArms } from './engine/sleeve';
 import { Fitting, carriedFitting, describeCarried, describeFitting, saveVersion, toFitting } from './engine/fitting';
@@ -412,15 +413,15 @@ export default function App() {
     }
     if (dressDraft) {
       const d = dressDraft;
-      const edges = finish.bodiceEdges;
+      const edges = edgesFor(d.bodice, finish.bodiceEdges);
       const bodicePcs = d.pieces.filter((pc) => /^Bodice/.test(pc.name));
-      const top = edges === 'lined' ? bodicePcs.map((pc) => ({ ...pc, fabric: 'Self fabric and lining' })) : bodicePcs;
+      const top = edges === 'lined' ? bodicePcs.map((pc) => (/coutil/.test(pc.fabric ?? '') ? pc : { ...pc, fabric: 'Self fabric and lining' })) : bodicePcs;
       // Facings are cut from the bodice as sewn, with any moved dart or princess seam closed.
       const [bf, bb] = blockOf(d.bodice);
       const facings = edges === 'facings' ? bodiceFacings(bf, bb, !sleeve, d.bodice.collar !== 'mandarin') : [];
       const pieces = allow([...top, ...(sleeve?.pieces ?? []), ...d.skirt.pieces, ...facings]);
       const lays = layPlans(pieces, finish.fabricWidth, finish.nap);
-      const metres = (f: 'self' | 'lining') => lays.find((l) => l.fabric === f)?.metres ?? bodiceFabricMetres(d.bodice, sleeve) + fabricMetres(d.skirt);
+      const metres = (f: 'self' | 'lining' | 'interlining') => lays.find((l) => l.fabric === f)?.metres ?? bodiceFabricMetres(d.bodice, sleeve) + fabricMetres(d.skirt);
       const edgeWords = sleeve
         ? { binding: 'a bias-bound neckline', facings: 'a faced neckline', lined: 'a lined bodice' }[edges]
         : { binding: 'bias-bound neck and armholes', facings: 'a faced neck and armholes', lined: 'a lined bodice' }[edges];
@@ -433,6 +434,7 @@ export default function App() {
             : `Seam allowance ${fmtCm(seams.seam)} included, ${fmtCm(seams.curve)} at the neck and armholes, ${fmtCm(pieces.find((pc) => pc.name === 'Skirt front')?.allowances.hem ?? 4)} at the hem. Dashed line = stitching line.`,
           `The skirt is drafted to the bodice: waist seams the same length and darts in one line. A ${d.zipCm} cm centre back zip and ${edgeWords}. Sewing steps are on the last pages.`,
           ...(sleeve ? [`Sleeve: bicep ${sleeve.bicep} cm, ${sleeve.gathers?.crown !== undefined ? `${sleeve.gathers.crown} cm gathered into the crown` : `crown ease ${sleeve.crownEase.front} cm front, ${sleeve.crownEase.back} cm back`}.`] : []),
+          ...topNotes(d.bodice),
           ...fittingNotes,
         ],
         guide: route(
@@ -441,6 +443,7 @@ export default function App() {
             edges,
             width: finish.fabricWidth,
             liningM: metres('lining'),
+            coutilM: d.bodice.top?.boned ? metres('interlining') : undefined,
             sleeve,
           }),
           { garment: 'dress', lined: edges === 'lined', zipCm: d.zipCm },
@@ -452,8 +455,8 @@ export default function App() {
     }
     if (bodice) {
       const below = bodice.finishedHem !== undefined;
-      const edges = finish.bodiceEdges;
-      const main = edges === 'lined' ? bodice.pieces.map((pc) => (pc.kind ? pc : { ...pc, fabric: 'Self fabric and lining' })) : bodice.pieces;
+      const edges = edgesFor(bodice, finish.bodiceEdges);
+      const main = edges === 'lined' ? bodice.pieces.map((pc) => (pc.kind || /coutil/.test(pc.fabric ?? '') ? pc : { ...pc, fabric: 'Self fabric and lining' })) : bodice.pieces;
       // A button front's facings, or a band collar, finish the neck.
       const neckDone = bodice.closure === 'front_buttons' || bodice.collar === 'mandarin' || bodice.collar === 'shirt';
       const facings = edges === 'facings' ? bodiceFacings(...blockOf(bodice), !sleeve, !neckDone) : [];
@@ -463,7 +466,7 @@ export default function App() {
         : { binding: 'bias-bound edges', facings: 'faced neck and armholes', lined: 'a full lining' }[edges];
       const sleeveWords = sleeve ? `${describeBodice(saved.bodice).replace(/^.* with /, 'With ')}` : 'Sleeveless';
       const lays = layPlans(pieces, finish.fabricWidth, finish.nap);
-      const metres = (f: 'self' | 'lining') => lays.find((l) => l.fabric === f)?.metres ?? bodiceFabricMetres(bodice);
+      const metres = (f: 'self' | 'lining' | 'interlining') => lays.find((l) => l.fabric === f)?.metres ?? bodiceFabricMetres(bodice);
       return {
         pieces,
         notes: [
@@ -473,6 +476,7 @@ export default function App() {
             : `Seam allowance ${fmtCm(seams.seam)} included, ${fmtCm(seams.curve)} at the neck and armholes${below ? ', 2.5 cm at the hem' : ''}. Dashed line = stitching line.`,
           `${sleeveWords}, ${bodice.closure === 'front_buttons' ? `${bodice.buttons?.count ?? 5} buttons down the centre front` : `a ${bodice.zipCm} cm centre back zip`}${bodice.collar !== 'none' ? `, a ${COLLAR_WORDS[bodice.collar]}` : ''} and ${edgeWords}. Sewing steps are on the last pages.`,
           ...(sleeve ? [`Sleeve: bicep ${sleeve.bicep} cm, ${sleeve.gathers?.crown !== undefined ? `${sleeve.gathers.crown} cm gathered into the crown` : `crown ease ${sleeve.crownEase.front} cm front, ${sleeve.crownEase.back} cm back`}.`] : []),
+          ...topNotes(bodice),
           ...fittingNotes,
         ],
         guide: route(
@@ -481,6 +485,7 @@ export default function App() {
             edges,
             width: finish.fabricWidth,
             liningM: metres('lining'),
+            coutilM: bodice.top?.boned ? metres('interlining') : undefined,
             sleeve,
           }),
           { garment: 'bodice', lined: edges === 'lined', zipCm: bodice.zipCm },
@@ -818,9 +823,9 @@ export default function App() {
                 garment === 'jacket' || garment === 'coat'
                   ? { garment, fit: outerChoices.fit }
                   : garment === 'bodice'
-                  ? { garment, fit: saved.bodice.fit, neckline: saved.bodice.neckline }
+                  ? { garment, fit: saved.bodice.fit, neckline: saved.bodice.neckline, structure: validDetails(saved.bodice).structure }
                   : garment === 'dress'
-                    ? { garment, fit: dress.fit, neckline: dress.bodice.neckline, silhouette: dress.skirt.silhouette, length: dress.skirt.length }
+                    ? { garment, fit: dress.fit, neckline: dress.bodice.neckline, silhouette: dress.skirt.silhouette, length: dress.skirt.length, structure: validDetails(dress.bodice).structure }
                     : garment === 'trousers'
                       ? { garment, fit: trousersChoices.fit, leg: trousersChoices.leg }
                       : { garment: 'skirt', silhouette: saved.choices.silhouette, length: saved.choices.length }

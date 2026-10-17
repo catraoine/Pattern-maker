@@ -3,7 +3,8 @@ import { layout } from '../engine/export';
 import { BodiceDraft, BodiceMeasurements, bodiceEase, needsHip } from '../engine/bodice';
 import { piecesLengthCm, toMetres } from '../engine/fabric';
 import { layPlan } from '../engine/layplan';
-import { BODICE_GROUPS, BodiceChoices, DARTS_FOR_FIT, describeBodice, detailAllowed, sleeveOf, validDetails } from '../garments';
+import { BODICE_GROUPS, BodiceChoices, DARTS_FOR_FIT, describeBodice, detailAllowed, sleeveOf, topAllowed, validDetails } from '../garments';
+import { isTop } from '../engine/corset';
 import { bodiceFlat } from '../engine/flat';
 import { TechFlatView } from '../ui/TechFlatView';
 import { SHAPES_FOR_LENGTH, SleeveDraft, needsArms } from '../engine/sleeve';
@@ -63,7 +64,7 @@ function friendly(w: string) {
   return 'Something in your measurements looks unusual. Please double-check them.';
 }
 
-const NECK_NAMES: Record<BodiceChoices['neckline'], string> = { crew: 'crew neck', scoop: 'scoop neck', v: 'V-neck', square: 'square neck', boat: 'boat neck' };
+const NECK_NAMES: Record<BodiceChoices['neckline'], string> = { crew: 'crew neck', scoop: 'scoop neck', v: 'V-neck', square: 'square neck', boat: 'boat neck', strapless: 'strapless top', sweetheart: 'sweetheart top', cami: 'cami top' };
 
 const UNDO_LIMIT = 40;
 
@@ -84,20 +85,28 @@ export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft
   const m = values as BodiceMeasurements;
   const pieces = useMemo(() => (draft ? [...draft.pieces, ...(sleeve?.pieces ?? [])] : []), [draft, sleeve]);
   const sheet = useMemo(() => (draft ? layout(pieces, '', []) : undefined), [draft, pieces]);
-  const ease = bodiceEase(choices);
+  const valid = validDetails(choices);
+  const ease = bodiceEase(valid);
+  const top = isTop(choices.neckline);
+  const boned = valid.structure === 'boned';
   const extra = fabricEase(fabric, 'bodice');
   const title = describeBodice(choices);
   const hip = hasHip(values);
   const arms = !needsArms(values);
   const chosen = sleeveOf(choices);
   const flat = useMemo(() => (draft ? bodiceFlat(draft, 'binding', sleeve) : undefined), [draft, sleeve]);
-  const detail = { bustDart: choices.bustDart ?? 'side', princess: choices.princess ?? 'none', closure: choices.closure ?? 'back_zip', collar: choices.collar ?? 'none' };
+  const detail = { bustDart: choices.bustDart ?? 'side', princess: choices.princess ?? 'none', closure: choices.closure ?? 'back_zip', collar: choices.collar ?? 'none', structure: valid.structure ?? 'none' };
   const valueOf = (id: (typeof BODICE_GROUPS)[number]['id']) =>
     id === 'sleeveShape' ? chosen.shape : id === 'sleeve' ? chosen.length : id in detail ? detail[id as keyof typeof detail] : choices[id];
   const shown = (id: string) =>
-    (id !== 'sleeveShape' || chosen.length !== 'none') && (id !== 'bustDart' || (choices.darts !== 'none' && detail.princess === 'none'));
+    (id !== 'sleeveShape' || chosen.length !== 'none') &&
+    (id !== 'bustDart' || (choices.darts !== 'none' && detail.princess === 'none' && !boned)) &&
+    // A top below the shoulders always opens at the back and has no collar; a boned one is cut in panels.
+    !(top && (id === 'closure' || id === 'collar')) &&
+    !(boned && id === 'princess');
 
-  const allowed = (id: string, opt: string) =>
+  const allowed = (id: string, opt: string) => topAllowed(choices, id, opt) && baseAllowed(id, opt);
+  const baseAllowed = (id: string, opt: string) =>
     id === 'darts'
       ? DARTS_FOR_FIT[choices.fit].includes(opt as BodiceChoices['darts'])
       : id === 'length'
@@ -106,7 +115,7 @@ export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft
           ? opt === 'none' || arms
           : id === 'sleeveShape'
             ? SHAPES_FOR_LENGTH[chosen.length].includes(opt as NonNullable<BodiceChoices['sleeveShape']>)
-            : id === 'princess' || id === 'bustDart' || id === 'closure' || id === 'collar'
+            : id === 'princess' || id === 'bustDart' || id === 'closure' || id === 'collar' || id === 'structure'
               ? detailAllowed(choices, id, opt)
               : true;
 
@@ -198,6 +207,10 @@ export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft
                 </button>
               </p>
             )}
+            {g.id === 'structure' && !top && <p className="muted small">Boning needs a strapless, sweetheart or cami top.</p>}
+            {g.id === 'structure' && choices.neckline === 'strapless' && <p className="muted small">A strapless bodice is always boned: the boning holds it up.</p>}
+            {g.id === 'structure' && boned && <p className="muted small">Boned bodices are fitted and waist length, with the shaping in princess panels.</p>}
+            {g.id === 'sleeve' && top && <p className="muted small">Sleeves need shoulders, so they go with the higher necklines.</p>}
             {g.id === 'princess' && choices.darts !== 'bust_waist' && <p className="muted small">Princess seams carry the bust and waist darts, so they need both.</p>}
             {g.id === 'collar' && choices.neck && <p className="muted small">Collars sit on the named necklines, not a drawn one.</p>}
             {g.id === 'collar' && !choices.neck && choices.neckline !== 'crew' && <p className="muted small">Collars sit on a crew neck (a Peter Pan on a scoop neck too).</p>}
@@ -208,13 +221,22 @@ export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft
           </fieldset>
         ))}
         <p className="eyebrow">Inside the bodice</p>
-        <FinishChoices garment="bodice" finish={finish} onFinish={onFinish} sleeved={chosen.length !== 'none'} />
+        <FinishChoices
+          garment="bodice"
+          finish={finish}
+          onFinish={onFinish}
+          sleeved={chosen.length !== 'none'}
+          edgeIds={boned ? ['lined'] : top ? ['binding', 'lined'] : undefined}
+          edgeLegend={top ? 'Top edge' : undefined}
+        />
         <p className="muted small">
           {detail.closure === 'front_buttons' ? `Buttons down the centre front${draft?.buttons ? ` (${draft.buttons.count})` : ''}, with front facings.` : 'With a centre back zip.'}{' '}
           {chosen.length === 'none'
             ? 'Sleeveless.'
             : 'The sleeves are drafted to fit your armholes, with their ease set where a tailor sets it.'}
-          {detail.princess !== 'none' || detail.bustDart !== 'side' ? ' The shaping is moved the way a pattern cutter does it: the garment sews up to exactly the same fit.' : ''}
+          {boned ? ' Boned like a corset: each panel is cut again from coutil and from lining, with boning over every seam and a grosgrain waist stay inside.' : ''}
+          {choices.neckline === 'cami' ? ' The rouleau straps are given as measurements on the pattern.' : ''}
+          {!boned && (detail.princess !== 'none' || detail.bustDart !== 'side') ? ' The shaping is moved the way a pattern cutter does it: the garment sews up to exactly the same fit.' : ''}
         </p>
       </section>
 
@@ -258,9 +280,11 @@ export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft
                 </button>
               ))}
             </div>
-            <button type="button" className={drawing ? 'ghost on' : 'ghost'} aria-pressed={drawing} onClick={() => setDrawing(!drawing)}>
-              {drawing ? 'Done' : 'Draw neck'}
-            </button>
+            {!top && (
+              <button type="button" className={drawing ? 'ghost on' : 'ghost'} aria-pressed={drawing} onClick={() => setDrawing(!drawing)}>
+                {drawing ? 'Done' : 'Draw neck'}
+              </button>
+            )}
           </div>
         )}
         <div className={view === 'figure' ? 'preview flush' : 'preview'}>
@@ -352,8 +376,9 @@ export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft
           )}
         </div>
         <p className="muted small">
-          The bodice is {ease.bust + extra.bust} cm bigger than you at the bust and {ease.waist + extra.waist} cm at the waist, so you can move and breathe
-          {extra.bust ? `, including ${extra.bust} cm and ${extra.waist} cm for your heavy fabric` : ''}.
+          {ease.waist + extra.waist < 0
+            ? `The bodice is ${ease.bust + extra.bust} cm bigger than you at the bust and ${-(ease.waist + extra.waist)} cm smaller at the waist, so it holds you like a corset${extra.bust ? `, including ${extra.bust} cm and ${extra.waist} cm for your heavy fabric` : ''}.`
+            : `The bodice is ${ease.bust + extra.bust} cm bigger than you at the bust and ${ease.waist + extra.waist} cm at the waist, so you can move and breathe${extra.bust ? `, including ${extra.bust} cm and ${extra.waist} cm for your heavy fabric` : ''}.`}
         </p>
         <div>
           <p className="eyebrow">Pattern pieces</p>
@@ -366,7 +391,7 @@ export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft
           </ul>
         </div>
         {draft && (
-          <FabricCard metres={bodiceFabricMetres(draft, sleeve)} advice={bodiceFabrics(choices)} fabric={fabric} />
+          <FabricCard metres={bodiceFabricMetres(draft, sleeve)} advice={bodiceFabrics(valid)} fabric={fabric} />
         )}
         <button type="button" className="primary" disabled={!draft} onClick={onNext}>
           Print my pattern

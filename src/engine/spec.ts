@@ -35,6 +35,20 @@ export function bodiceSpec(m: BodiceMeasurements, d: BodiceDraft, length: Bodice
     const body = length === 'hip' ? m.full_hip : (m.high_hip ?? m.full_hip);
     rows.push(row(length === 'hip' ? 'Hip (hem)' : 'High hip (hem)', body, d.finishedHem));
   }
+  const t = d.top;
+  if (t) {
+    // A top cut below the shoulders: no armhole or shoulder seam, but a top edge, its bones and straps.
+    rows.push(
+      row('Centre back, top edge to waist', undefined, d.backLength),
+      row('Top edge, round', undefined, t.topEdge),
+      ...(t.grip ? [row('Top edge, taken in to grip', undefined, t.grip)] : []),
+      ...t.bones.map((b) => ({ label: `Bone, ${b.where.toLowerCase()} (${b.count})`, finished: r1(b.lengthCm) })),
+      ...(t.waistStay ? [{ label: `Waist stay, ${t.waistStay.widthCm} grosgrain`, finished: r1(t.waistStay.lengthCm) }] : []),
+      ...(t.straps ? [row('Strap, finished (each)', undefined, t.straps.lengthCm), { label: 'Strap, cut on the bias', finished: `${t.straps.cutLengthCm} x ${t.straps.cutWidthCm}` }] : []),
+      { label: 'Invisible zip, centre back', finished: `${d.zipCm}` },
+    );
+    return rows;
+  }
   rows.push(
     { label: 'Nape to waist', body: r1(m.nape_to_waist), finished: '' },
     row('Centre back length', undefined, d.backLength),
