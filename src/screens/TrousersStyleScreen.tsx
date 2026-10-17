@@ -6,7 +6,7 @@ import { TROUSER_EASE, TrousersDraft } from '../engine/trousers';
 import { trousersFlat } from '../engine/flat';
 import { TROUSER_GROUPS, TrousersChoices, describeTrousers } from '../garments';
 import { TechFlatView } from '../ui/TechFlatView';
-import { Garment, MeasurementValues } from '../measurements';
+import { MeasurementValues } from '../measurements';
 import { PatternPreview } from '../ui/Preview';
 import { GarmentSwitch } from '../ui/GarmentSwitch';
 import { FREE_SAVED_LIMIT } from '../account';
@@ -22,7 +22,8 @@ import { FabricCard } from '../ui/FabricCard';
 interface Props {
   choices: TrousersChoices;
   onChoices: (c: TrousersChoices) => void;
-  onGarment: (g: Garment) => void;
+  /** Open the list of what to make, to pick another garment. */
+  onChooseGarment: () => void;
   values: MeasurementValues;
   draft?: TrousersDraft;
   error?: string;
@@ -42,7 +43,7 @@ interface Props {
 /** Fabric needed on 140 cm wide fabric, from the cutting layout. */
 export const trousersFabricMetres = (draft: TrousersDraft) => layPlan(draft.pieces, 140)?.metres ?? toMetres(piecesLengthCm(draft.pieces) + 10);
 
-export function TrousersStyleScreen({ choices, onChoices, onGarment, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, finish, onFinish, fabric }: Props) {
+export function TrousersStyleScreen({ choices, onChoices, onChooseGarment, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, finish, onFinish, fabric }: Props) {
   const [view, setView] = useState<'sketch' | 'pattern' | 'ease'>('sketch');
   const pieces = useMemo(() => draft?.pieces ?? [], [draft]);
   const sheet = useMemo(() => (draft ? layout(pieces, '', []) : undefined), [draft, pieces]);
@@ -60,7 +61,7 @@ export function TrousersStyleScreen({ choices, onChoices, onGarment, values, dra
       <section className="card" aria-labelledby="opts">
         <div className="row between wrap">
           <h1 id="opts">Style your trousers</h1>
-          <GarmentSwitch garment="trousers" onGarment={onGarment} />
+          <GarmentSwitch onChoose={onChooseGarment} />
         </div>
         {TROUSER_GROUPS.filter((g) => shown(g.id)).map((g) => (
           <fieldset key={g.id} className="group">

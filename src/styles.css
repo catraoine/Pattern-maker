@@ -2480,3 +2480,53 @@ table.history td.moved {
   white-space: nowrap;
   padding: 0 10px;
 }
+
+/* Text boxes start empty, with no sample text (Cat's pick E1): a champagne outline and cursor show the box
+   is ready to type in. The name box on the first measuring page opens already tapped. */
+input,
+textarea {
+  caret-color: var(--gild);
+}
+
+.field input:focus,
+input.inline:focus,
+textarea:focus,
+.field.ready input {
+  border-color: var(--gild);
+  background: var(--fill);
+  outline: 1px solid var(--gild);
+  outline-offset: 0;
+}
+
+/* "Choose another garment": a quiet link on its own line under the title */
+button.link.garment-change {
+  flex-basis: 100%;
+  align-self: flex-start;
+  padding: 0;
+  text-align: left;
+  font-size: 14px;
+  text-decoration-color: var(--gild);
+  text-underline-offset: 5px;
+}
+
+/* The Measure step: this garment's measurements as a short list, tap one to redo it */
+.measure-list {
+  gap: 16px;
+}
+
+.measure-list h1 {
+  margin: 0;
+}
+
+.measure-list button.link.garment-change {
+  margin-top: -10px;
+}
+
+.check-list em.add {
+  font-style: normal;
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--gild);
+}

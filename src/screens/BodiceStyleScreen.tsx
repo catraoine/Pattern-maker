@@ -7,7 +7,7 @@ import { BODICE_GROUPS, BodiceChoices, DARTS_FOR_FIT, describeBodice, detailAllo
 import { bodiceFlat } from '../engine/flat';
 import { TechFlatView } from '../ui/TechFlatView';
 import { SHAPES_FOR_LENGTH, SleeveDraft, needsArms } from '../engine/sleeve';
-import { Garment, MeasurementValues, hasHip } from '../measurements';
+import { MeasurementValues, hasHip } from '../measurements';
 import { PatternPreview } from '../ui/Preview';
 import { GarmentSwitch } from '../ui/GarmentSwitch';
 import { SaveControl } from '../ui/SaveControl';
@@ -28,7 +28,8 @@ interface Props {
   onFinish: (f: Finish) => void;
   choices: BodiceChoices;
   onChoices: (c: BodiceChoices) => void;
-  onGarment: (g: Garment) => void;
+  /** Open the list of what to make, to pick another garment. */
+  onChooseGarment: () => void;
   values: MeasurementValues;
   draft?: BodiceDraft;
   /** The set-in sleeve, drafted to the bodice's armhole, when one is chosen. */
@@ -73,7 +74,7 @@ const handShaped = (c: BodiceChoices, id: string) => id in REPLACES && c[REPLACE
 
 type View = 'sketch' | 'figure' | 'flat' | 'pattern' | 'ease';
 
-export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft, sleeve, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, finish, onFinish, fabric }: Props) {
+export function BodiceStyleScreen({ choices, onChoices, onChooseGarment, values, draft, sleeve, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, finish, onFinish, fabric }: Props) {
   const [view, setView] = useState<View>('sketch');
   const [side, setSide] = useState<Side>('front');
   const [drawing, setDrawing] = useState(false);
@@ -153,7 +154,7 @@ export function BodiceStyleScreen({ choices, onChoices, onGarment, values, draft
     <>
     <div className="screen-head">
       <h1 id="opts">Style your bodice</h1>
-      <GarmentSwitch garment="bodice" onGarment={onGarment} />
+      <GarmentSwitch onChoose={onChooseGarment} />
     </div>
     <div className="split three">
       <section className="card" aria-labelledby="opts">

@@ -8,7 +8,7 @@ import { layPlan } from '../engine/layplan';
 import { hasSlit } from '../engine/instructions';
 import { SHAPES_FOR_LENGTH, SleeveDraft, needsArms } from '../engine/sleeve';
 import { BODICE_GROUPS, BodiceChoices, DARTS_FOR_FIT, DressChoices, detailAllowed, sleeveOf, validDetails } from '../garments';
-import type { Garment, MeasurementValues } from '../measurements';
+import type { MeasurementValues } from '../measurements';
 import { GarmentSwitch } from '../ui/GarmentSwitch';
 import { PatternPreview } from '../ui/Preview';
 import { TechFlatView } from '../ui/TechFlatView';
@@ -26,7 +26,8 @@ import type { Finish } from '../App';
 interface Props {
   choices: DressChoices;
   onChoices: (c: DressChoices) => void;
-  onGarment: (g: Garment) => void;
+  /** Open the list of what to make, to pick another garment. */
+  onChooseGarment: () => void;
   values: MeasurementValues;
   draft?: DressDraft;
   sleeve?: SleeveDraft;
@@ -54,7 +55,7 @@ export const dressFabricMetres = (pieces: DressDraft['pieces']) => layPlan(piece
  * skirt's shape and length. The preview is the technical flat, so the skirt is seen hanging from the
  * bodice with its darts running on through the waist seam.
  */
-export function DressStyleScreen({ choices, onChoices, onGarment, values, draft, sleeve, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, finish, onFinish, fabric }: Props) {
+export function DressStyleScreen({ choices, onChoices, onChooseGarment, values, draft, sleeve, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, finish, onFinish, fabric }: Props) {
   const [view, setView] = useState<'sketch' | 'pattern' | 'ease'>('sketch');
   const pieces = useMemo(() => (draft ? [...draft.pieces.filter((pc) => /^Bodice/.test(pc.name)), ...(sleeve?.pieces ?? []), ...draft.skirt.pieces] : []), [draft, sleeve]);
   const sheet = useMemo(() => (pieces.length ? layout(pieces, '', []) : undefined), [pieces]);
@@ -131,7 +132,7 @@ export function DressStyleScreen({ choices, onChoices, onGarment, values, draft,
       <section className="card" aria-labelledby="opts">
         <div className="row between wrap">
           <h1 id="opts">Style your dress</h1>
-          <GarmentSwitch garment="dress" onGarment={onGarment} />
+          <GarmentSwitch onChoose={onChooseGarment} />
         </div>
         {groups.map((g) => (
           <fieldset key={g.id} className="group">

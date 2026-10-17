@@ -479,11 +479,11 @@ function YourFabric({ fabric, onFabric, style }: { fabric: MyFabric; onFabric: (
       <div className="fields">
         <div className="field plain">
           <label htmlFor="fabname">Name</label>
-          <input id="fabname" type="text" autoComplete="off" value={fabric.name ?? ''} placeholder="For example, olive washed linen" onChange={(e) => set({ name: e.target.value })} />
+          <input id="fabname" type="text" autoComplete="off" value={fabric.name ?? ''} onChange={(e) => set({ name: e.target.value })} />
         </div>
         <div className="field plain">
           <label htmlFor="fabcolour">Colour</label>
-          <input id="fabcolour" type="text" autoComplete="off" value={fabric.colour ?? ''} placeholder="For example, olive" onChange={(e) => set({ colour: e.target.value })} />
+          <input id="fabcolour" type="text" autoComplete="off" value={fabric.colour ?? ''} onChange={(e) => set({ colour: e.target.value })} />
         </div>
       </div>
       <Chips label="Fibre" options={FIBRE_IDS.map((id) => ({ id, label: FIBRES[id].label }))} value={fabric.fibre} onPick={(fibre) => set({ fibre })} />
@@ -684,7 +684,8 @@ function FindAMaker({ title }: { title: string }) {
         <>
           <p className="muted">We're trying this with a few dressmakers in Vancouver. Leave your email and we'll introduce you to one.</p>
           <form className="row" onSubmit={submit}>
-            <input type="email" required autoComplete="email" placeholder="Your email" aria-label="Your email" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <label htmlFor="maker-email" className="small">Email</label>
+            <input id="maker-email" type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
             <button type="submit" className="secondary" disabled={state === 'sending'}>
               {state === 'sending' ? 'Sending…' : 'Find me a maker'}
             </button>

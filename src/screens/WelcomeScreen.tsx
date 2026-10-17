@@ -6,7 +6,7 @@ interface Props {
   formStart?: FormStart;
 }
 
-// The name is asked later, once there are measurements to put it on (see WhoseScreen).
+// The name is asked only when measuring someone else, on the first measuring page.
 // Units are chosen on the measuring pages, by the box you type into.
 export function WelcomeScreen({ onFinish, formStart }: Props) {
   return (
