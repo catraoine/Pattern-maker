@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { SPECIALS, SPECIAL_IDS, checksExtra, checksLines, hideSqFt, needsNap, specialLines, specialWarnings, withSpecialAllowances } from './specialFabrics';
+import { SPECIALS, SPECIAL_IDS, withCheckMarks, checksExtra, checksLines, hideSqFt, needsNap, specialLines, specialWarnings, withSpecialAllowances } from './specialFabrics';
 import { checkFabric, clothFor, describeFabric, fabricEase, fabricLines, withFabric } from './fabrics';
 import { draftSkirt } from './skirt';
 import { withAllowances } from './allowances';
+import { layAmount, layPlans, layWords } from './layplan';
 import { EXAMPLE_VALUES } from '../measurements';
 
 const ascii = (s: string) => /^[\x20-\x7e]*$/.test(s);
@@ -72,5 +73,23 @@ describe('special fabrics', () => {
     expect(withFabric(guide, { checks: {} }, 'skirt').steps[1].title).toBe('Match the checks');
     expect(withFabric(guide, { fibre: 'linen' }, 'skirt').steps).toHaveLength(2);
     expect(clothFor({ special: 'sheer' }, 'wool')).toBe('silk');
+  });
+
+  it('lays leather out as one open layer and says how much hide to buy', () => {
+    const pieces = draftSkirt(EXAMPLE_VALUES as never, { silhouette: 'straight', length: 'knee' }).pieces;
+    const [cloth] = layPlans(pieces, 140);
+    const [hide] = layPlans(pieces, 140, false, true);
+    expect(cloth.folded).toBe(true);
+    expect(hide.folded).toBe(false);
+    expect(hide.hide).toBe(true);
+    expect(layWords(hide)).toMatch(/single layer from the right side of the hide/);
+    expect(layAmount(hide)).toMatch(/^about \d+ sq ft of hide$/);
+    expect(layAmount(cloth)).toMatch(/^\d\.\d m$/);
+  });
+
+  it('marks the balance lines for matching checks, but not a fold line', () => {
+    const [front] = draftSkirt(EXAMPLE_VALUES as never, { silhouette: 'straight', length: 'knee' }).pieces;
+    expect(withCheckMarks(front).balance?.[0].label).toBe('HIP LINE: MATCH CHECKS');
+    expect(withCheckMarks({ ...front, balance: [{ pts: [], label: 'FOLD LINE' }] }).balance?.[0].label).toBe('FOLD LINE');
   });
 });

@@ -9,7 +9,7 @@ import type { Finish } from '../App';
 import { SaveControl } from '../ui/SaveControl';
 import type { Garment } from '../measurements';
 import type { Fitting } from '../engine/fitting';
-import { FABRIC_WIDTHS, Lay, layWords } from '../engine/layplan';
+import { FABRIC_WIDTHS, Lay, layAmount, layWords } from '../engine/layplan';
 import { LayPlanView } from '../ui/LayPlanView';
 import type { Flat } from '../engine/flat';
 import { TechFlatView } from '../ui/TechFlatView';
@@ -17,7 +17,7 @@ import { StepDiagram } from '../ui/StepDiagram';
 import { CLOTHS, seamFinish } from '../engine/couture';
 import { DRAPES, FIBRES, FIBRE_IDS, Fibre, MyFabric, WEIGHTS, FabricStyle, checkFabric, clothFor, easeWords } from '../engine/fabrics';
 import { FabricGuide } from '../ui/FabricGuide';
-import { LEATHER_LAY, SPECIALS, SPECIAL_IDS, Special, checksLines, hideSqFt, needsNap, specialLines } from '../engine/specialFabrics';
+import { SPECIALS, SPECIAL_IDS, Special, checksLines, needsNap, specialLines } from '../engine/specialFabrics';
 import { SizeRun } from '../ui/SizeRun';
 import type { MeasurementValues } from '../measurements';
 
@@ -102,7 +102,6 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
   const [pdf, setPdf] = useState<{ paper: Output; bytes: Uint8Array } | null>(null);
   const [shareNote, setShareNote] = useState('');
   const special = finish.fabric?.special;
-  const leather = special === 'leather';
   const napFixed = needsNap(special);
   const nap = finish.nap || napFixed;
   const guide = made?.guide;
@@ -302,10 +301,13 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
             <p className="eyebrow">Cutting layout</p>
             <h2 id="laytitle">
               {lays
-                .map((l) => (l.fabric === 'self' && leather ? `About ${hideSqFt(l)} sq ft of hide` : `${l.metres.toFixed(1)} m${l.fabric === 'lining' ? ' of lining' : ''}`))
+                .map((l, i) => {
+                  const amount = `${layAmount(l)}${l.fabric === 'lining' ? ' of lining' : ''}`;
+                  return i === 0 ? amount[0].toUpperCase() + amount.slice(1) : amount;
+                })
                 .join(' + ') || 'Too wide to lay out'}
             </h2>
-            {leather && <p className="muted small">Leather is sold by the hide, in square feet. This includes a third extra for the hide's shape and flaws.</p>}
+            {lays.some((l) => l.hide) && <p className="muted small">Leather is sold by the hide, in square feet. This includes a third extra for the hide's shape and flaws.</p>}
           </div>
           <div className="row wrap">
             <div className="seg" role="group" aria-label="Fabric width">
@@ -329,7 +331,7 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
             <div key={lay.fabric} className="lay">
               {lays.length > 1 && <p className="eyebrow">{lay.fabric === 'lining' ? 'Lining' : 'Fabric'}</p>}
               <LayPlanView lay={lay} />
-              <p className="muted small">{leather && lay.fabric === 'self' ? LEATHER_LAY : layWords(lay)}</p>
+              <p className="muted small">{layWords(lay)}</p>
             </div>
           ))
         ) : (

@@ -226,5 +226,12 @@ export function withSpecialAllowances(pc: Piece, special: Special | undefined): 
   return { ...pc, seamAllowance: s.seam ?? pc.seamAllowance, allowances };
 }
 
+/** The piece's balance lines marked for matching checks: the same check line sits on each at that level. */
+export function withCheckMarks(pc: Piece): Piece {
+  if (!pc.balance?.length) return pc;
+  // A fold line on a waistband is where it folds, not a level to match.
+  return { ...pc, balance: pc.balance.map((b) => (b.label === 'FOLD LINE' ? b : { ...b, label: `${b.label}: MATCH CHECKS` })) };
+}
+
 /** Every piece the same way up: for pile, sheen and one-way motifs. */
 export const needsNap = (special: Special | undefined) => !!special && !!SPECIALS[special].nap;
