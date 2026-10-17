@@ -29,6 +29,8 @@ interface Props {
   onRemove: (id: string) => void;
   onFit: (id: string, fit: FitFeedback | undefined) => void;
   onReset: () => void;
+  /** Opens the Privacy Policy or the Terms of Use. */
+  onLegal: (page: 'privacy' | 'terms' | 'tester' | 'news') => void;
   onBackup: () => void;
   onRestore: (file: File) => Promise<boolean>;
   /** Simple or all tools; all when not given. */
@@ -41,7 +43,7 @@ const show = (cm: number | undefined, unit: Unit) =>
 
 const dateFmt = new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 
-export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurements, onSwitchPerson, onAddPerson, onRemovePerson, onClientBook, onCheckFile, onOpen, onRename, onRemove, onFit, onReset, onBackup, onRestore, mode = 'all', onMode }: Props) {
+export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurements, onSwitchPerson, onAddPerson, onRemovePerson, onClientBook, onCheckFile, onOpen, onRename, onRemove, onFit, onReset, onLegal, onBackup, onRestore, mode = 'all', onMode }: Props) {
   const [confirmReset, setConfirmReset] = useState(false);
   const [restoreMsg, setRestoreMsg] = useState('');
   const display = account.name.trim() || 'Me';
@@ -69,8 +71,8 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
         </div>
 
         <div className="field plain">
-          <label htmlFor="aname">Your name</label>
-          <input id="aname" autoComplete="given-name" value={account.name} placeholder="Me" onChange={(e) => onName(e.target.value)} />
+          <label htmlFor="aname">Name</label>
+          <input id="aname" autoComplete="given-name" value={account.name} onChange={(e) => onName(e.target.value)} />
         </div>
 
         <fieldset className="group">
@@ -148,6 +150,23 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
               Delete my data and start over
             </button>
           )}
+          <p className="fineprint">
+            <button type="button" className="inline-link" onClick={() => onLegal('privacy')}>
+              Privacy Policy
+            </button>
+            {' · '}
+            <button type="button" className="inline-link" onClick={() => onLegal('terms')}>
+              Terms of Use
+            </button>
+            {' · '}
+            <button type="button" className="inline-link" onClick={() => onLegal('tester')}>
+              Be a fit tester
+            </button>
+            {' · '}
+            <button type="button" className="inline-link" onClick={() => onLegal('news')}>
+              News
+            </button>
+          </p>
         </div>
       </section>
 

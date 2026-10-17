@@ -45,7 +45,6 @@ interface Props {
   onFinish: (f: Finish) => void;
   made?: Printable;
   error?: string;
-  onBack: () => void;
   saveState: 'can' | 'saved' | 'full';
   onSave: () => void;
   onAccount: () => void;
@@ -102,7 +101,7 @@ function download(data: BlobPart, type: string, name: string) {
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
-export function ExportScreen({ profile, title, fit, garment, finish, onFinish, made, error, onBack, saveState, onSave, onAccount, fitting, fittingNotes, onFitting, onTrueScale, values, draftAt, style, mode = 'all', onMode }: Props) {
+export function ExportScreen({ profile, title, fit, garment, finish, onFinish, made, error, saveState, onSave, onAccount, fitting, fittingNotes, onFitting, onTrueScale, values, draftAt, style, mode = 'all', onMode }: Props) {
   const can = (t: ProTool) => shows(mode, t);
   const [picked, setPaper] = useState<Output>('a4');
   // The simple view prints at home, on A4 or Letter.
@@ -164,9 +163,6 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
     return (
       <section className="card">
         <p className="msg error">{error ?? 'Add your measurements first.'}</p>
-        <button type="button" className="link" onClick={onBack}>
-          Back
-        </button>
       </section>
     );
   }
@@ -289,9 +285,6 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
           <SaveControl state={saveState} onSave={onSave} onAccount={onAccount} />
           <p className="muted small">Printed it? The sewing steps are just below, and on the last pages of the PDF.</p>
           <ModeLink mode={mode} onMode={onMode} />
-          <button type="button" className="link" onClick={onBack}>
-            Back to style
-          </button>
         </section>
       </div>
 
@@ -519,11 +512,11 @@ function YourFabric({ fabric, onFabric, style, simple }: { fabric: MyFabric; onF
       <div className="fields">
         <div className="field plain">
           <label htmlFor="fabname">Name</label>
-          <input id="fabname" type="text" autoComplete="off" value={fabric.name ?? ''} placeholder="For example, olive washed linen" onChange={(e) => set({ name: e.target.value })} />
+          <input id="fabname" type="text" autoComplete="off" value={fabric.name ?? ''} onChange={(e) => set({ name: e.target.value })} />
         </div>
         <div className="field plain">
           <label htmlFor="fabcolour">Colour</label>
-          <input id="fabcolour" type="text" autoComplete="off" value={fabric.colour ?? ''} placeholder="For example, olive" onChange={(e) => set({ colour: e.target.value })} />
+          <input id="fabcolour" type="text" autoComplete="off" value={fabric.colour ?? ''} onChange={(e) => set({ colour: e.target.value })} />
         </div>
       </div>
       <Chips label="Fibre" options={FIBRE_IDS.map((id) => ({ id, label: FIBRES[id].label }))} value={fabric.fibre} onPick={(fibre) => set({ fibre })} />
@@ -724,7 +717,8 @@ function FindAMaker({ title }: { title: string }) {
         <>
           <p className="muted">We're trying this with a few dressmakers in Vancouver. Leave your email and we'll introduce you to one.</p>
           <form className="row" onSubmit={submit}>
-            <input type="email" required autoComplete="email" placeholder="Your email" aria-label="Your email" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <label htmlFor="maker-email" className="small">Email</label>
+            <input id="maker-email" type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
             <button type="submit" className="secondary" disabled={state === 'sending'}>
               {state === 'sending' ? 'Sending…' : 'Find me a maker'}
             </button>

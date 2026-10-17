@@ -6,7 +6,7 @@ import { NECKBAND_CM, STRETCH_TEST, TeeDraft, pctWords } from '../engine/tee';
 import { teeFlat } from '../engine/flat';
 import { TEE_GROUPS, TeeChoices, describeTee } from '../garments';
 import { TechFlatView } from '../ui/TechFlatView';
-import { Garment, MeasurementValues } from '../measurements';
+import { MeasurementValues } from '../measurements';
 import { PatternPreview } from '../ui/Preview';
 import { GarmentSwitch } from '../ui/GarmentSwitch';
 import { FREE_SAVED_LIMIT } from '../account';
@@ -17,7 +17,7 @@ import { FabricCard } from '../ui/FabricCard';
 interface Props {
   choices: TeeChoices;
   onChoices: (c: TeeChoices) => void;
-  onGarment: (g: Garment) => void;
+  onChooseGarment: () => void;
   values: MeasurementValues;
   draft?: TeeDraft;
   error?: string;
@@ -47,7 +47,7 @@ function friendly(w: string) {
   return 'Something in your measurements looks unusual. Please double-check them.';
 }
 
-export function TeeStyleScreen({ choices, onChoices, onGarment, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, fabric }: Props) {
+export function TeeStyleScreen({ choices, onChoices, onChooseGarment, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, fabric }: Props) {
   const [view, setView] = useState<'sketch' | 'pattern'>('sketch');
   const pieces = useMemo(() => draft?.pieces ?? [], [draft]);
   const sheet = useMemo(() => (draft ? layout(pieces, '', []) : undefined), [draft, pieces]);
@@ -61,7 +61,7 @@ export function TeeStyleScreen({ choices, onChoices, onGarment, values, draft, e
       <section className="card" aria-labelledby="opts">
         <div className="row between wrap">
           <h1 id="opts">Style your T-shirt</h1>
-          <GarmentSwitch garment="tee" onGarment={onGarment} />
+          <GarmentSwitch onChoose={onChooseGarment} />
         </div>
         <p className="muted small">Drafted for knit fabric: no darts, the stretch shapes it to you.</p>
         {TEE_GROUPS.map((g) => (
