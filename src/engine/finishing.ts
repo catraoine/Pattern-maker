@@ -3,6 +3,7 @@ import { P, Path, add, intersect, len, lerp, mul, p, sub, unit } from './geometr
 import { Piece } from './piece';
 import { WAISTBAND_CM } from './skirt';
 import type { SkirtDraft } from './skirt';
+import { SLIP_FACING } from './slip';
 
 const r1 = (v: number) => Math.round(v * 10) / 10;
 
@@ -52,6 +53,62 @@ export function waistbandPiece(draft: SkirtDraft, sa: number): Piece {
     allowances: {},
     meta: { finishedWidth: WAISTBAND_CM, lengthCm: r1(L) },
   };
+}
+
+/**
+ * How a skirt's waist is finished: its waistband, ending at the zip in the centre back or, on a skirt
+ * cut whole, in the left side seam; or for a bias slip, a narrow facing in place of a band.
+ */
+export function waistPieces(draft: SkirtDraft, sa: number): Piece[] {
+  if (draft.faced) return waistFacings(draft);
+  const band = waistbandPiece(draft, sa);
+  if (draft.opening !== 'left_side') return [band];
+  // From the left side seam round by the front: centre front, right side seam, centre back.
+  const W = 2 * WAISTBAND_CM;
+  const L = draft.finishedWaist;
+  const backQ = draft.waistband.sideMark - sa;
+  const frontQ = L / 2 - backQ;
+  const marks = [frontQ, 2 * frontQ, 2 * frontQ + backQ];
+  const tag = (y: number, text: string) => ({ at: p(W * 0.2, y), text, size: 0.55, rotate: 90 });
+  return [
+    {
+      ...band,
+      notches: marks.flatMap((y): [P, P][] => [
+        [p(W, y), p(1, 0)],
+        [p(0, y), p(-1, 0)],
+      ]),
+      labels: [
+        ...band.labels.filter((l) => !['CENTRE FRONT', 'SIDE SEAM'].includes(l.text)),
+        tag(frontQ - 3, 'CENTRE FRONT'),
+        tag(2 * frontQ - 2.6, 'SIDE SEAM'),
+        tag(2 * frontQ + backQ - 3, 'CENTRE BACK'),
+      ],
+      meta: { ...band.meta, opening: 'left_side' },
+    },
+  ];
+}
+
+/**
+ * The slip's waist facings, front and back, each cut whole like the skirt and 5 cm deep. They are cut
+ * on the straight grain and interfaced, so they hold the bias waist to its size.
+ */
+function waistFacings(draft: SkirtDraft): Piece[] {
+  return draft.pieces.flatMap((pc) => {
+    const name = /back/i.test(pc.name) ? 'Back waist facing' : 'Front waist facing';
+    const f = facing(pc, 'waist', SLIP_FACING, name);
+    if (!f) return [];
+    const cut = 'Cut 1, straight grain';
+    const mid = f.grain ? lerp(f.grain[0], f.grain[1], 0.5) : f.labels[0].at;
+    return [
+      {
+        ...f,
+        cut,
+        grain: [add(mid, p(0, -1.6)), add(mid, p(0, 1.6))] as [P, P],
+        labels: f.labels.map((l, i) => (i === 1 ? { ...l, text: cut } : l)),
+        meta: { ...f.meta, straightGrain: true },
+      },
+    ];
+  });
 }
 
 /** Lining for a skirt, drafted 2.5 cm shorter so it never shows below the hem, with a narrow hem.

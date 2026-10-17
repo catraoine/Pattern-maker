@@ -3,6 +3,7 @@
 // Woven fabrics only: every draft is for woven cloth, so stretch fabrics and knits are always ruled out.
 // Keep to plain ASCII punctuation: these words go into the PDF and the tech pack.
 import type { Fit, Length, Silhouette, SkirtFitting } from './skirt';
+import type { AsymHem } from './asymHem';
 import type { BodiceDarts, BodiceFit, BodiceFitting, BodiceLength, Neckline } from './bodice';
 import type { Leg } from './trousers';
 import type { Structure } from './corset';
@@ -164,6 +165,14 @@ const SKIRT: Record<Silhouette, { picks: FabricPick[]; avoid: string }> = {
     ],
     avoid: 'Heavy fabrics. A full circle uses a lot of cloth, and heavy cloth drags on the bias and stretches the hem.',
   },
+  slip: {
+    picks: [
+      pick('Silk satin or charmeuse', ['light'], 'fluid', 'The classic 1930s slip: it pours over the hip and catches the light as it moves.'),
+      pick('Silk crepe de chine', ['light'], 'fluid', 'Matte, soft and forgiving. Easier to sew than satin.'),
+      pick('Viscose or rayon crepe', ['light'], 'fluid', 'Drapes like silk on the bias, at a fraction of the price.'),
+    ],
+    avoid: 'Crisp or stiff fabrics like cotton poplin, linen, taffeta or denim. On the bias they twist and stand away from the body instead of moulding to it. Loosely woven cloth drops too much as it hangs.',
+  },
 };
 
 const SILHOUETTE_WORDS: Record<Silhouette, string> = {
@@ -173,6 +182,7 @@ const SILHOUETTE_WORDS: Record<Silhouette, string> = {
   trumpet: 'trumpet skirt',
   half_circle: 'half circle skirt',
   circle: 'full circle skirt',
+  slip: 'bias-cut slip skirt',
 };
 
 const LENGTH_WORDS: Record<Length, string> = { mini: 'mini', above_knee: 'above-knee', knee: 'knee-length', midi: 'midi', maxi: 'maxi' };
@@ -181,11 +191,15 @@ const SKIRT_LINING = pick('Lining: Bemberg (cupro) or acetate', ['light'], 'flui
 const BODICE_LINING = pick('Lining: cotton lawn or Bemberg (cupro)', ['light'], 'soft', 'Breathes and slides on easily.');
 
 /** Fabrics for a skirt style. */
-export function skirtFabrics(style: { fit?: Fit; silhouette: Silhouette; length: Length }): FabricAdvice {
+export function skirtFabrics(style: { fit?: Fit; silhouette: Silhouette; length: Length; asymHem?: AsymHem }): FabricAdvice {
   const base = SKIRT[style.silhouette];
   const full = style.silhouette === 'half_circle' || style.silhouette === 'circle';
   const note =
-    style.length === 'maxi' && !full
+    style.silhouette === 'slip'
+      ? `Cut on the bias, a slip takes about a fifth to a third more fabric than a skirt on the straight grain, and every piece is cut from a single layer.${style.length === 'maxi' ? ' At maxi length, or for hips much over 110 cm, buy 150 cm wide fabric: turned to the bias, the whole pieces may not fit across narrower.' : ''}`
+      : style.asymHem && style.asymHem !== 'none'
+        ? `A ${style.asymHem === 'diagonal' ? 'diagonal' : 'high-low'} hem shows the inside of the skirt as it moves: choose a fabric that looks good on both sides.`
+        : style.length === 'maxi' && !full
       ? 'At maxi length a lighter weight keeps it from feeling heavy.'
       : style.length === 'mini' && full
         ? 'At mini length a crisper fabric keeps the hem from flipping up.'
@@ -379,7 +393,7 @@ export interface FabricNote {
 }
 
 export type FabricStyle =
-  | { garment: 'skirt'; silhouette: Silhouette; length: Length }
+  | { garment: 'skirt'; silhouette: Silhouette; length: Length; asymHem?: AsymHem }
   | { garment: 'bodice'; fit: BodiceFit; neckline: Neckline; structure?: Structure }
   | { garment: 'dress'; fit: BodiceFit; neckline: Neckline; silhouette: Silhouette; length: Length; structure?: Structure }
   | { garment: 'trousers'; fit: Fit; leg: Leg }
@@ -431,6 +445,8 @@ function styleWarnings(style: FabricStyle, { weight, drape }: MyFabric): string[
     if (drape === 'crisp' && weight === 'heavy' && (s === 'trumpet' || s === 'half_circle' || s === 'circle')) out.push('A heavy, crisp fabric makes the flare stand out stiffly. A softer one swings better.');
     else if (weight === 'heavy' && (s === 'half_circle' || s === 'circle')) out.push('Heavy fabric drags on the bias of a circle. Hang the skirt for two days before you hem it.');
     else if (drape === 'crisp' && s === 'trumpet') out.push('A crisp fabric makes the trumpet flare stand out. A soft or fluid one flutes better.');
+    if (s === 'slip' && drape === 'crisp') out.push('A crisp fabric will not mould to the body on the bias: it twists at the seams and stands away. Choose a fluid one, like silk satin, crepe de chine or viscose crepe.');
+    if (s === 'slip' && weight === 'heavy') out.push('A heavy fabric drops and grows on the bias under its own weight. Choose a light one, and hang the skirt for a day before you level the hem.');
   }
   if (style.garment === 'bodice' || style.garment === 'dress') {
     if (drape === 'fluid' && style.fit !== 'relaxed' && style.structure !== 'boned') out.push('A fluid fabric puckers at the darts and will not hold a fitted bodice. Underline it with cotton batiste, or choose a relaxed fit.');

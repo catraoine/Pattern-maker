@@ -66,7 +66,9 @@ export function toCouture(guide: SewingGuide, c: CoutureContext): SewingGuide {
   const topEdge = guide.steps.some((g) => /top edge/.test(g.title));
   const shoulders = bodice && !topEdge;
   const ownStay = guide.steps.some((g) => g.title === 'Attach the waist stay');
-  const seams = (dress ? 'side, shoulder, centre back and waist' : bodice ? 'side, shoulder and centre back' : 'side and centre back').replace('shoulder', topEdge ? 'princess' : 'shoulder');
+  // A skirt cut whole has no centre back seam: its zip is in the left side seam.
+  const sideZip = guide.steps.some((s) => s.title === 'Put in the side zip');
+  const seams = (dress ? 'side, shoulder, centre back and waist' : bodice ? 'side, shoulder and centre back' : sideZip ? 'side' : 'side and centre back').replace('shoulder', topEdge ? 'princess' : 'shoulder');
   const out: SewStep[] = [];
   let zip: SewStep | undefined;
   let fitted = false;
@@ -74,7 +76,9 @@ export function toCouture(guide: SewingGuide, c: CoutureContext): SewingGuide {
   const fitStep = () =>
     step(
       'Baste and fit',
-      `Hand-baste the side seams${shoulders ? ' and shoulders' : ''} along the traced lines, pin the centre back closed and try it on, right side out. The side seams should hang straight down and each dart point toward the fullest part of the body. Re-trace any line you change, on both pieces, then take the basting out of each seam as you come to sew it.`,
+      sideZip
+        ? 'Hand-baste the right side seam, and the left one below the ZIP ENDS marks, along the traced lines, pin the opening closed and try it on, right side out. The side seams should hang straight down and the hem should fall where the pattern draws it. Re-trace any line you change, on both pieces, then take the basting out of each seam as you come to sew it.'
+        : `Hand-baste the side seams${shoulders ? ' and shoulders' : ''} along the traced lines, pin the centre back closed and try it on, right side out. The side seams should hang straight down and each dart point toward the fullest part of the body. Re-trace any line you change, on both pieces, then take the basting out of each seam as you come to sew it.`,
       'baste',
     );
 
@@ -147,6 +151,35 @@ export function toCouture(guide: SewingGuide, c: CoutureContext): SewingGuide {
         `Press both centre back allowances under along the traced line, down to the ZIP ENDS mark. Baste the ${c.zipCm} cm zip behind the opening, its teeth centred, with the folded edges just meeting over them. From the right side, sew each side with a prick stitch: a tiny backstitch every 6 mm, 6 mm from the fold, catching only a thread or two of the surface. It is how couture houses still set a zip: barely seen from outside, soft, and easy to adjust at a fitting.`,
         'pickzip',
       );
+    } else if (t === 'Stay-stitch the waist') {
+      // Every curve is staystitched once the lines are traced (above).
+    } else if (t === 'Sew the right side seam' || t === 'Sew the left side seam') {
+      if (!fitted) {
+        out.push(fitStep());
+        fitted = true;
+      }
+      const left = t === 'Sew the left side seam';
+      out.push(
+        finish === 'french' && !left
+          ? step(t, `Sew the right side seam (as you wear it) as a French seam. Pin the pieces wrong sides together and sew 0.6 cm outside the traced line, in the allowance. Trim to 0.3 cm and press, then fold right sides together along the seam, press again and sew on the traced line, enclosing the raw edges.${/bias/.test(s.text) ? ' Let the cloth feed itself: a bias seam that is pulled ripples.' : ''} Press the seam toward the back.`, 'french')
+          : step(t, left ? 'Machine the left side seam on the traced line, from the ZIP ENDS mark to the hem, taking out the basting as you go. Press it open.' : 'Machine the right side seam (as you wear it) on the traced line, taking out the basting as you go. Press it open.'),
+      );
+      if (left) {
+        if (zip) out.push(zip);
+        zip = undefined;
+        out.push(
+          finish === 'french'
+            ? step('Finish the left side seam', 'A French seam cannot go round a zip, so overcast the left side allowances by hand: slanted stitches 0.5 cm deep and 0.5 cm apart.', 'overcast')
+            : step('Finish the seams', `Finish the ${seams} allowances, pressed open. ${FINISH_WORDS[finish]}`, finish),
+        );
+      }
+    } else if (t === 'Put in the side zip') {
+      // A hand-picked zip goes in after the seam below it is sewn.
+      zip = step(
+        'Hand-pick the zip',
+        `Press both left side allowances under along the traced line, down to the ZIP ENDS marks${/interfacing/.test(s.text) ? ', with a strip of silk organza basted inside each so the bias cannot stretch' : ''}. Baste the ${c.zipCm} cm zip behind the opening, its teeth centred, with the folded edges just meeting over them. From the right side, sew each side with a prick stitch: a tiny backstitch every 6 mm, 6 mm from the fold, catching only a thread or two of the surface.`,
+        'pickzip',
+      );
     } else if (t === 'Close the centre back') {
       // A hand-picked zip goes in after the seam below it is sewn.
       out.push({ ...s, text: s.text.replace('from the bottom of the zip', 'from the ZIP ENDS mark').replace('below the zip', 'below the ZIP ENDS mark') });
@@ -183,7 +216,7 @@ export function toCouture(guide: SewingGuide, c: CoutureContext): SewingGuide {
           'slipstitch',
         ),
       );
-    } else if (t === 'Face the neckline' || t === 'Face the armholes' || t === 'Line the neck and armholes') {
+    } else if (t === 'Face the neckline' || t === 'Face the armholes' || t === 'Line the neck and armholes' || t === 'Face the waist') {
       out.push({
         ...s,
         text: s.text.replace('trim the seam to 0.5 cm', "grade the seam (the facing's allowance to 0.3 cm, the bodice's to 0.6 cm) so no ridge shows,").replace('Trim to 0.5 cm,', "Grade the seam (the lining's allowance to 0.3 cm, the bodice's to 0.6 cm),"),

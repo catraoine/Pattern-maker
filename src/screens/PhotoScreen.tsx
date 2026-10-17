@@ -158,7 +158,7 @@ export function PhotoScreen({ measured, onApply, onCancel }: Props) {
         {reading && choices && (
           <>
             {OTHER[reading.garment] && <p className="msg">{OTHER[reading.garment]}</p>}
-            {GROUPS.map((g) => {
+            {([GROUPS[0], GROUPS[1], GROUPS[2]] as const).map((g) => {
               const conf = reading[g.id].confidence;
               return (
                 <fieldset key={g.id} className="group">

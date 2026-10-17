@@ -272,7 +272,32 @@ type RawView = Omit<FlatView, 'at'>;
 
 /** The skirt: waistband, darts, centre back seam and zip, and a walking slit when it has one. */
 export function skirtFlat(d: SkirtDraft, opts: { slit?: boolean } = {}): Flat {
-  return arrange(skirtViews(d, { ...opts, band: true, zipCm: d.zipCm }));
+  // A slip has a faced waist, so no band shows.
+  return arrange(skirtViews(d, { ...opts, band: !d.faced, zipCm: d.zipCm }));
+}
+
+/**
+ * A piece cut whole, as it hangs: its own outline (the two sides may differ), darts sewn, and for a
+ * front with the zip in its left side seam (the +x side), the zip down that seam from the waist.
+ */
+function wholeView(pc: Piece, zipCm?: number): { shapes: P[][]; lines: FlatView['lines']; waist: P[] } {
+  const h = sewn(pc);
+  const run = h.run.slice(0, -1);
+  const lines: FlatView['lines'] = h.darts.map((pts) => ({ pts, kind: 'dart' as const }));
+  // The waist from the -x side round to the +x side, for a band above it.
+  const stretches = along(h, ['waist', 'dart']);
+  const waist = stretches.length > 1 ? [...stretches[stretches.length - 1], ...stretches[0].slice(1)] : stretches[0] ?? [run[0]];
+  if (zipCm) {
+    const side = along(h, 'side')[0] ?? [];
+    const pts: P[] = [];
+    let acc = 0;
+    for (let i = 0; i < side.length && acc < zipCm; i++) {
+      if (i) acc += len(sub(side[i], side[i - 1]));
+      pts.push(add(side[i], p(-0.4, 0)));
+    }
+    if (pts.length > 1) lines.push({ pts, kind: 'zip' }, { pts: [add(pts[pts.length - 1], p(-0.6, 0)), add(pts[pts.length - 1], p(0.6, 0))], kind: 'seam' });
+  }
+  return { shapes: [run], lines, waist };
 }
 
 /**
@@ -286,9 +311,14 @@ function skirtViews(d: SkirtDraft, opts: { slit?: boolean; band: boolean; zipCm?
     let lines: FlatView['lines'] = [];
     let waist: P[];
     let hemY: number;
+    const wholePc = d.pieces[i].meta.whole;
     if (d.circleShare) {
       const c = circleHalf(d, back);
       ({ shapes, lines, waist } = c);
+      hemY = d.lengthCm;
+    } else if (wholePc) {
+      // Cut whole: drawn from the whole piece, so a hem that differs side to side shows as it is.
+      ({ shapes, lines, waist } = wholeView(d.pieces[i], !back && d.opening === 'left_side' ? d.zipCm : undefined));
       hemY = d.lengthCm;
     } else {
       const h = sewn(d.pieces[i]);
@@ -298,9 +328,11 @@ function skirtViews(d: SkirtDraft, opts: { slit?: boolean; band: boolean; zipCm?
       hemY = h.run[h.run.length - 1].y;
     }
     // The waistband sits above the waist, as wide as it.
-    if (opts.band) shapes.push(whole([...waist, ...[...waist].reverse().map((q) => p(q.x, q.y - WAISTBAND_CM))]));
-    const cbTop = waist[0].y;
-    if (back) {
+    const band = [...waist, ...[...waist].reverse().map((q) => p(q.x, q.y - WAISTBAND_CM))];
+    if (opts.band) shapes.push(wholePc ? band : whole(band));
+    const cbTop = wholePc ? waist[Math.floor(waist.length / 2)].y : waist[0].y;
+    // A back cut whole has no centre back seam: the zip is in the left side seam.
+    if (back && !wholePc) {
       const from = cbTop - (opts.band ? WAISTBAND_CM : (opts.seamFrom ?? 0));
       if (opts.slit) {
         const top = hemY - 15;

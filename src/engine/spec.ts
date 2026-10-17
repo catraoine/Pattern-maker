@@ -7,6 +7,7 @@ import type { SpecRow } from './techpack';
 import type { SleeveDraft, SleeveMeasurements } from './sleeve';
 import type { DressDraft, DressMeasurements } from './dress';
 import { TROUSER_EASE, type TrousersDraft, type TrousersMeasurements } from './trousers';
+import { SLIP_FACING } from './slip';
 
 const r1 = (v: number) => Math.round(v * 10) / 10;
 const row = (label: string, body: number | undefined, finished: number): SpecRow =>
@@ -22,8 +23,11 @@ export function skirtSpec(m: SkirtMeasurements, d: SkirtDraft): SpecRow[] {
     ...(m.back_waist_to_hip !== undefined ? [{ label: 'Waist to hip, centre back', body: r1(m.back_waist_to_hip), finished: '' }] : []),
     row('Length, waist to hem', undefined, d.lengthCm),
     row('Hem circumference', undefined, d.hemCm),
-    { label: 'Waistband (finished width 3)', finished: `cut ${d.waistband.cutLength} x ${d.waistband.cutWidth}` },
-    { label: 'Invisible zip, centre back', finished: `${d.zipCm}` },
+    ...(d.asym ? [{ label: `Hem ${d.asym.kind === 'diagonal' ? 'left to right' : 'front to back'}, shortest to longest`, finished: `${r1(d.lengthCm + d.asym.shift - d.asym.amp)} to ${r1(d.lengthCm + d.asym.shift + d.asym.amp)}` }] : []),
+    d.faced
+      ? { label: `Waist facing, ${SLIP_FACING} deep`, finished: 'cut 1 front, 1 back' }
+      : { label: 'Waistband (finished width 3)', finished: `cut ${d.waistband.cutLength} x ${d.waistband.cutWidth}` },
+    { label: d.opening === 'left_side' ? 'Invisible zip, left side seam' : 'Invisible zip, centre back', finished: `${d.zipCm}` },
   ];
 }
 

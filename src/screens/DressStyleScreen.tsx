@@ -15,6 +15,7 @@ import { PatternPreview } from '../ui/Preview';
 import { TechFlatView } from '../ui/TechFlatView';
 import { FREE_SAVED_LIMIT } from '../account';
 import { GROUPS } from './StyleScreen';
+import { cutAllowed, validCut } from '../engine/slip';
 import { describePattern } from './describe';
 
 import { EaseMapView } from '../ui/EaseMapView';
@@ -48,7 +49,9 @@ interface Props {
 type Option = { id: string; label: string; options: [string, string][] };
 
 /** Fabric for the dress on 140 cm wide fabric, from the cutting layout, or a rough estimate. */
-export const dressFabricMetres = (pieces: DressDraft['pieces']) => layPlan(pieces, 140)?.metres ?? toMetres(piecesLengthCm(pieces) + 10);
+// Whole bias pieces too wide for 140 cm cloth are bought 150 cm wide.
+export const dressFabricMetres = (pieces: DressDraft['pieces']) =>
+  (layPlan(pieces, 140) ?? (pieces.some((pc) => pc.meta.bias) ? layPlan(pieces, 150) : undefined))?.metres ?? toMetres(piecesLengthCm(pieces) + 10);
 
 /**
  * Style the dress: one fit for the whole dress, the bodice's neckline, darts and sleeves, and the
@@ -88,11 +91,15 @@ export function DressStyleScreen({ choices, onChoices, onGarment, values, draft,
     })),
     { id: 'silhouette', label: 'Skirt', options: GROUPS[1].options },
     { id: 'length', label: 'Length', options: GROUPS[2].options },
+    // The dress's zip runs down the centre back, so its skirt can't be cut whole for a diagonal hem.
+    { id: 'asymHem', label: 'Hem', options: GROUPS[3].options.filter(([id]) => id !== 'diagonal') as [string, string][] },
   ];
 
   const value = (id: string) =>
     id === 'fit'
       ? choices.fit
+      : id === 'asymHem'
+        ? choices.skirt.asymHem ?? 'none'
       : id === 'silhouette' || id === 'length'
         ? choices.skirt[id]
         : id === 'sleeve'
@@ -120,12 +127,15 @@ export function DressStyleScreen({ choices, onChoices, onGarment, values, draft,
           ? SHAPES_FOR_LENGTH[chosen.length].includes(opt as NonNullable<BodiceChoices['sleeveShape']>)
           : id === 'princess' || id === 'bustDart' || id === 'collar' || id === 'structure'
             ? detailAllowed({ ...choices.bodice, length: 'waist', closure: 'back_zip' }, id, opt, 'dress')
-            : true;
+            : id === 'silhouette' || id === 'length' || id === 'asymHem'
+              ? cutAllowed(choices.skirt, id, opt, 'dress')
+              : true;
 
   const choose = (id: string, opt: string) => {
-    if (id === 'silhouette' || id === 'length') {
+    if (id === 'silhouette' || id === 'length' || id === 'asymHem') {
       // The dress skirt is styled by its chips: no era look, photo shape or hand-drawn changes.
-      onChoices({ ...choices, skirt: { fit: choices.fit, silhouette: choices.skirt.silhouette, length: choices.skirt.length, [id]: opt } });
+      const { fit, silhouette, length, asymHem } = choices.skirt;
+      onChoices({ ...choices, skirt: validCut({ fit, silhouette, length, ...(asymHem ? { asymHem } : {}), [id]: opt }) });
       return;
     }
     const fit = id === 'fit' ? (opt as DressChoices['fit']) : choices.fit;
@@ -184,7 +194,9 @@ export function DressStyleScreen({ choices, onChoices, onGarment, values, draft,
           edgeLegend={top ? 'Top edge' : undefined}
         />
         <p className="muted small">
-          The skirt is drafted to the bodice: the waist seams are the same length, and the darts meet at the seam in one line. One zip opens the centre back from the {top ? 'top edge' : 'neck'} to below the waist.
+          {choices.skirt.silhouette === 'slip'
+            ? `The skirt is cut on the bias, for a slip dress: it has no darts, its waist seam is drafted to the bodice, and the cloth moulds to the hip. One zip opens the centre back from the ${top ? 'top edge' : 'neck'} to below the waist.`
+            : `The skirt is drafted to the bodice: the waist seams are the same length, and the darts meet at the seam in one line. One zip opens the centre back from the ${top ? 'top edge' : 'neck'} to below the waist.`}
           {boned ? ' The bodice is boned like a corset, cut again from coutil and lining, with a grosgrain waist stay that carries the skirt.' : ''}
         </p>
       </section>
