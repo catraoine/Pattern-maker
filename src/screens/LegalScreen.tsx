@@ -52,7 +52,7 @@ function Part({ block }: { block: Block }) {
   );
 }
 
-/** The Privacy Policy or the Terms of Use, readable from the footer on every screen. */
+/** The Privacy Policy or the Terms of Use, opened from the welcome's fine print and from Your account. */
 export function LegalScreen({ doc, onOther, otherLabel }: Props) {
   useEffect(() => window.scrollTo(0, 0), [doc]);
   return (

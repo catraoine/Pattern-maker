@@ -49,9 +49,14 @@ export const MEASUREMENTS: Record<string, string> = {
   'Arm length': '59',
   'Upper arm': '29',
   Wrist: '16',
+  // "For a closer fit", asked with the arms when adding them: a level body, slopes in line with the lengths.
+  'Front shoulder slope': '43',
+  'Back shoulder slope': '45',
+  'Front waist to hip': '20.5',
+  'Back waist to hip': '20.5',
 };
 
-/** Garments by their name on the garment switch. */
+/** Garments by a short name. */
 export type GarmentName = 'Skirt' | 'Trousers' | 'Bodice' | 'Dress' | 'Tee' | 'Jacket' | 'Coat';
 /** What the rest of the app calls each one: "Style your T-shirt", "T-shirt" on the list of what to make. */
 const NOUN: Record<GarmentName, string> = { Skirt: 'skirt', Trousers: 'trousers', Bodice: 'bodice', Dress: 'dress', Tee: 'T-shirt', Jacket: 'jacket', Coat: 'coat' };
@@ -91,6 +96,8 @@ export async function fillStepPages(page: Page) {
     const label = await labelOf(input);
     const value = MEASUREMENTS[label];
     expect(value, `a test value for "${label}" (add it to MEASUREMENTS in e2e/fixtures.ts)`).toBeDefined();
+    // No placeholder text in the boxes (the owner's rule): the label says what goes in.
+    await expect(input).not.toHaveAttribute('placeholder');
     await input.fill(value);
     const next = main(page).getByRole('button', { name: /^(Next|Done|Save)\b/ });
     const name = (await next.textContent())?.trim() ?? '';
@@ -101,25 +108,6 @@ export async function fillStepPages(page: Page) {
   throw new Error('Too many measurement pages');
 }
 
-/** The full measurements form: fill every empty box we have a number for. */
-export async function fillMeasureForm(page: Page) {
-  await expect(heading(page, /measurements$/)).toBeVisible();
-  const inputs = main(page).getByRole('textbox');
-  for (const input of await inputs.all()) {
-    if (await input.inputValue()) continue;
-    const label = await labelOf(input);
-    const optional = /\(optional\)/i.test((await input.evaluate((el) => (el as HTMLInputElement).labels?.[0]?.textContent)) ?? '');
-    if (MEASUREMENTS[label]) await input.fill(MEASUREMENTS[label]);
-    else if (!optional && !(await isPosture(input))) throw new Error(`No test value for required measurement "${label}" (add it to MEASUREMENTS in e2e/fixtures.ts)`);
-  }
-}
-/** "For a closer fit" posture measurements are optional without saying so on the label. */
-const isPosture = (input: Locator) =>
-  input.evaluate((el) => {
-    for (let p = el.closest('.field')?.previousElementSibling; p; p = p.previousElementSibling) if (/closer fit/i.test(p.textContent ?? '')) return true;
-    return false;
-  });
-
 /** "What would you like to make?": pick a garment and carry on to the first measurement it still needs. */
 export async function pickToMake(page: Page, g: GarmentName) {
   await expect(heading(page, 'What would you like to make?')).toBeVisible();
@@ -129,33 +117,30 @@ export async function pickToMake(page: Page, g: GarmentName) {
   await main(page).getByRole('button', { name: 'Continue measuring' }).click();
 }
 
-/** After measuring: the one-time "Whose measurements are these?" page, when it shows. */
-export async function answerWhose(page: Page, name = 'Ada') {
-  await page.getByRole('textbox', { name: 'Your name' }).fill(name);
-  await main(page).getByRole('button', { name: /^Save and style the / }).click();
-}
-
-/** Wait for the style screen of a garment, answering "Whose measurements" on the way if asked. */
+/** Wait for the style screen of a garment. */
 export async function expectStyle(page: Page, g: GarmentName) {
-  const style = heading(page, `Style your ${lower(g)}`);
-  const whose = heading(page, /^Whose measurements/);
-  await expect(style.or(whose)).toBeVisible();
-  if (await whose.isVisible()) {
-    await answerWhose(page);
-    await expect(style).toBeVisible();
-  }
+  await expect(heading(page, `Style your ${lower(g)}`)).toBeVisible();
 }
 
-/** Pick a garment on the style or measure screen, measuring for it first when the app asks. */
+/** "Choose another garment" on the style screen: pick it from the list, measuring for it first when it needs more. */
 export async function switchGarment(page: Page, g: GarmentName) {
-  await page.getByRole('group', { name: 'What are you making?' }).getByRole('button', { name: g, exact: true }).click();
+  await main(page).getByRole('button', { name: 'Choose another garment' }).click();
+  await pickToMake(page, g);
   const style = heading(page, `Style your ${lower(g)}`);
-  const measure = main(page).getByRole('button', { name: `Next: style your ${lower(g)}` });
-  await expect(style.or(measure)).toBeVisible();
-  if (await measure.isVisible()) {
-    await fillMeasureForm(page);
-    await measure.click();
-  }
+  const measuring = main(page).getByRole('textbox');
+  await expect(style.or(measuring).first()).toBeVisible();
+  if (!(await style.isVisible())) await fillStepPages(page);
+  await expectStyle(page, g);
+}
+
+/** On a style screen, "Add them" (e.g. the arms, for sleeves): the Measure list, then each measurement for a
+ * closer fit on its own page, back to the list, and on to styling again. */
+export async function addCloserFit(page: Page, g: GarmentName) {
+  await main(page).getByRole('button', { name: 'Add them' }).first().click();
+  await expect(heading(page, new RegExp(`${g === 'Tee' ? 'tee' : lower(g)} measurements$`))).toBeVisible();
+  await main(page).getByRole('button', { name: 'Add measurements for a closer fit' }).click();
+  await fillStepPages(page);
+  await main(page).getByRole('button', { name: /^Style your / }).click();
   await expectStyle(page, g);
 }
 
@@ -164,6 +149,15 @@ export async function chooseChip(page: Page, group: string, chip: string) {
   const button = main(page).getByRole('group', { name: group, exact: true }).getByRole('button', { name: chip, exact: true });
   await button.click();
   await expect(button).toHaveAttribute('aria-pressed', 'true');
+}
+
+/** The steady header's back arrow, which steps back through history like the browser's back. */
+export const headerBack = (page: Page) => page.getByRole('banner').getByRole('button', { name: 'Back', exact: true });
+
+/** The header's "Your account" button, then wait for the account screen. */
+export async function openAccount(page: Page) {
+  await page.getByRole('banner').getByRole('button', { name: /^Your account/ }).click();
+  await expect(main(page).getByRole('heading', { name: 'Saved patterns' })).toBeVisible();
 }
 
 /** A step in the top bar: Measure, Style or Print. */

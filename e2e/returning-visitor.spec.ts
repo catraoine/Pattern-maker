@@ -1,13 +1,21 @@
-import { chooseChip, expect, expectStyle, pickToMake, skipLoading, startWithExample, test } from './fixtures';
+import { chooseChip, expect, expectStyle, openAccount, pickToMake, skipLoading, startWithExample, test } from './fixtures';
 
 test('returning visitor: a reload keeps the measurements and the saved pattern', async ({ page }) => {
   await startWithExample(page);
   const main = page.getByRole('main');
 
   // Make the measurements this visitor's own: change the waist from the example's.
+  // Measure is a short list of the skirt's measurements; tapping one opens its own page to redo it.
   await main.getByRole('button', { name: 'Edit measurements' }).click();
-  await page.getByRole('textbox', { name: 'Waist', exact: true }).fill('74');
-  await main.getByRole('button', { name: 'Next: style your skirt' }).click();
+  await expect(main.getByRole('heading', { level: 1, name: 'Your skirt measurements' })).toBeVisible();
+  await main.getByRole('list', { name: 'Tap one to measure it again' }).getByRole('button', { name: /^Waist [0-9]/ }).click();
+  const waist = main.getByRole('textbox', { name: 'Waist', exact: true });
+  await expect(waist).not.toHaveAttribute('placeholder');
+  await waist.fill('74');
+  await main.getByRole('button', { name: 'Save' }).click();
+  // Saving comes back to the list, with the new waist on it.
+  await expect(main.getByRole('list', { name: 'Tap one to measure it again' }).getByRole('button', { name: /^Waist [0-9]/ })).toContainText('74 cm');
+  await main.getByRole('button', { name: 'Style your skirt' }).click();
   await expectStyle(page, 'Skirt');
 
   await chooseChip(page, 'Length', 'Midi');
@@ -30,7 +38,7 @@ test('returning visitor: a reload keeps the measurements and the saved pattern',
   await expect(main.getByRole('group', { name: 'Length', exact: true }).getByRole('button', { name: 'Midi' })).toHaveAttribute('aria-pressed', 'true');
   await expect(main.getByRole('status').filter({ hasText: 'Saved to' })).toBeVisible();
 
-  await page.getByRole('button', { name: /^Your account/ }).click();
+  await openAccount(page);
   const saved = main.getByRole('region', { name: 'Saved patterns' });
   await expect(saved.getByRole('listitem')).toHaveCount(1);
   await expect(saved).toContainText(/midi/i);

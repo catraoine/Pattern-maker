@@ -20,7 +20,7 @@ async function send(body: object): Promise<Sent> {
   }
 }
 
-/** "Be a fit tester" and "Get news" sign-ups, opened from the footer on every screen. */
+/** "Be a fit tester" and "Get news" sign-ups, opened from Your account. */
 export function SignupScreen({ kind, onBack, onOther, onPrivacy }: Props) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
