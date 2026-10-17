@@ -4,11 +4,13 @@ interface Props {
   onFinish: (r: { start: 'measure' | 'example' }) => void;
   /** How the dress form starts: it waits for the loading screen, which may hand it over already outlined. */
   formStart?: FormStart;
+  /** Opens the Terms of Use or the Privacy Policy. */
+  onLegal: (page: 'terms' | 'privacy') => void;
 }
 
 // The name is asked later, once there are measurements to put it on (see WhoseScreen).
 // Units are chosen on the measuring pages, by the box you type into.
-export function WelcomeScreen({ onFinish, formStart }: Props) {
+export function WelcomeScreen({ onFinish, formStart, onLegal }: Props) {
   return (
     <div className="welcome">
       <section className="card welcome-card" aria-labelledby="wtitle">
@@ -39,6 +41,17 @@ export function WelcomeScreen({ onFinish, formStart }: Props) {
             Just looking? Try an example
           </button>
         </div>
+        <p className="fineprint">
+          By continuing you agree to our{' '}
+          <button type="button" className="inline-link" onClick={() => onLegal('terms')}>
+            Terms
+          </button>{' '}
+          and{' '}
+          <button type="button" className="inline-link" onClick={() => onLegal('privacy')}>
+            Privacy Policy
+          </button>
+          .
+        </p>
       </section>
     </div>
   );

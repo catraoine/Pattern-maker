@@ -649,6 +649,7 @@ export default function App() {
           {step === 'welcome' && (
             <WelcomeScreen
               formStart={formStart}
+              onLegal={openLegal}
               onFinish={({ start }) => {
                 const onboarded = { ...account, onboarded: true };
                 setAccount(start === 'example' ? updatePerson(onboarded, person.id, { values: { ...EXAMPLE_VALUES, ...values } }) : onboarded);
@@ -694,6 +695,7 @@ export default function App() {
           {step === 'account' && (
             <AccountScreen
               account={account}
+              onLegal={openLegal}
               unit={saved.unit}
               onName={(name) => setAccount({ ...account, name })}
               onUnit={(unit) => setSaved({ ...saved, unit })}
@@ -916,14 +918,6 @@ export default function App() {
             />
           )}
         </main>
-        <footer className="site-footer">
-          <button type="button" className="link" aria-current={step === 'privacy' ? 'page' : undefined} onClick={() => openLegal('privacy')}>
-            Privacy
-          </button>
-          <button type="button" className="link" aria-current={step === 'terms' ? 'page' : undefined} onClick={() => openLegal('terms')}>
-            Terms
-          </button>
-        </footer>
       </div>
     </>
   );
