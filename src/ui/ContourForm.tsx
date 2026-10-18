@@ -1,11 +1,12 @@
 import { useEffect, useRef } from 'react';
 import type { MeasurementId } from '../measurements';
 
-// The welcome screen's dress form, drawn in contour lines on black (Cat's M1, 2026-10-18): seven lines, the
-// outline and five between it, all one weight and one brightness. The outline is drawn first (or handed over by
-// the loading screen, already drawn), then the five lines peel off it and settle into place. No tape, no thin lines.
+// The welcome screen's dress form, drawn in contour lines on black. It is the same form as the measuring pages
+// (Cat, 2026-10-18: the body must stay the same everywhere). The outline is drawn first, or handed over already
+// drawn by the loading screen, then all the long lines are drawn down together from the shoulders (Cat's T5
+// Drawn Down). No tape on the welcome.
 
-const PEEL = 1200; // the lines peel in from the outline over this long
+const DOWN = 1300; // the long lines are drawn down over this long
 // Champagne lines (Cat's G4 pick), matching --gild and --gild-glow in styles.css.
 const CHAMPAGNE = '#d9c49b';
 const CHAMPAGNE_GLOW = '#f3e6c8';
@@ -45,9 +46,6 @@ const R = spline([
 const YS = Array.from({ length: 221 }, (_, i) => -1.66 + (2.96 * i) / 220);
 const DEPTH = 0.16;
 
-/** Where the form's lines run across it: -1 and 1 are the outline, the rest are evenly spaced between. */
-export const FORM_US = [-1, -2 / 3, -1 / 3, 0, 1 / 3, 2 / 3, 1];
-
 function stroke(g: CanvasRenderingContext2D, a: Pt, b: Pt) {
   g.beginPath();
   g.moveTo(a[0], a[1]);
@@ -63,8 +61,6 @@ function taper(g: CanvasRenderingContext2D, pts: Pt[], frac: number, width: (u: 
   }
 }
 
-// The measuring pages keep their own finer form: Cat prefers it there (2026-10-18), so only the welcome uses
-// the seven even lines.
 const LINES = 23;
 
 /** One line through the points, drawn as far as `frac` of the way along. */
@@ -105,46 +101,14 @@ export function formOutline(w: number, h: number): { pts: [number, number][]; lw
 /** The bottom of the form fades into the black from here (a fraction of the canvas height). */
 export const FADE_FROM = 0.78;
 
-// `drawn`: the loading screen handed the outline over already drawn, so the lines peel in straight away.
+// `drawn`: the loading screen handed the outline over already drawn, so the lines are drawn down straight away.
 function draw(g: CanvasRenderingContext2D, w: number, h: number, t: number, drawn: boolean, text = 'CM  /  IN') {
-  g.globalAlpha = 1;
-  g.fillStyle = '#000';
-  g.fillRect(0, 0, w, h);
-  g.strokeStyle = CHAMPAGNE;
-  g.lineCap = 'round';
-  g.lineJoin = 'round';
-  g.lineWidth = layout(w, h).lw;
-
-  const { S, cx, Y } = layout(w, h);
-  const at = (y: number, u: number) => onForm(cx, S, Y, y, u);
-
-  // The outline, both sides together
   const t0 = drawn ? 0 : OUTLINE;
-  const o = drawn ? 1 : inOut(seg(t, 0, OUTLINE - 100));
-  path(g, YS.map((y) => at(y, -1)), o);
-  path(g, YS.map((y) => at(y, 1)), o);
-
-  // The five lines between peel off the outline and settle inward; the centre line is drafted down the middle
-  const k = inOut(seg(t, t0, t0 + PEEL));
-  if (k > 0) {
-    for (const u of FORM_US) {
-      if (Math.abs(u) === 1) continue;
-      if (u === 0) path(g, YS.map((y) => at(y, 0)), k);
-      else path(g, YS.map((y) => at(y, Math.sign(u) * (1 + (Math.abs(u) - 1) * k))));
-    }
-  }
-
-  // Fade the lower body into the black so the copy below sits cleanly
-  const fade = g.createLinearGradient(0, h * FADE_FROM, 0, h);
-  fade.addColorStop(0, 'rgba(0,0,0,0)');
-  fade.addColorStop(1, 'rgba(0,0,0,1)');
-  g.globalAlpha = 1;
-  g.fillStyle = fade;
-  g.fillRect(0, h * FADE_FROM, w, h * (1 - FADE_FROM));
+  settledForm(g, w, h, drawn ? 1 : inOut(seg(t, 0, OUTLINE - 100)), inOut(seg(t, t0, t0 + DOWN)), true);
 
   // The units, small in the corner: never a number
   g.save();
-  g.globalAlpha = out(seg(t, t0 + PEEL - 200, t0 + PEEL + 300));
+  g.globalAlpha = out(seg(t, t0 + DOWN - 200, t0 + DOWN + 300));
   g.fillStyle = CHAMPAGNE;
   g.font = "500 9px 'Chakra Petch', sans-serif";
   try {
@@ -157,8 +121,11 @@ function draw(g: CanvasRenderingContext2D, w: number, h: number, t: number, draw
   g.restore();
 }
 
-/** The measuring pages' form at rest: today's finer lines, which Cat keeps there. */
-function settledForm(g: CanvasRenderingContext2D, w: number, h: number) {
+/**
+ * The form at rest: the outline and the long lines, each drawn as far as given. `even` uses the weights of the
+ * measuring pages' close-up form (an even outline, lines at half brightness), which the welcome ends on.
+ */
+function settledForm(g: CanvasRenderingContext2D, w: number, h: number, outline = 1, lines = 1, even = false) {
   g.globalAlpha = 1;
   g.fillStyle = '#000';
   g.fillRect(0, 0, w, h);
@@ -166,14 +133,15 @@ function settledForm(g: CanvasRenderingContext2D, w: number, h: number) {
   g.lineCap = 'round';
   g.lineJoin = 'round';
   const { S, cx, lw, Y } = layout(w, h);
-  taper(g, YS.map((y) => [cx - R(y) * S, Y(y)]), 1, (u) => lw * (0.5 + Math.sin(Math.PI * u)));
-  taper(g, YS.map((y) => [cx + R(y) * S, Y(y)]), 1, (u) => lw * (0.5 + Math.sin(Math.PI * u)));
-  for (let j = 0; j < LINES; j++) {
+  const edge = (u: number) => (even ? lw : lw * (0.5 + Math.sin(Math.PI * u)));
+  taper(g, YS.map((y) => [cx - R(y) * S, Y(y)]), outline, edge);
+  taper(g, YS.map((y) => [cx + R(y) * S, Y(y)]), outline, edge);
+  for (let j = 0; j < LINES && lines > 0; j++) {
     const th = (Math.PI * (j + 0.5)) / LINES;
     const c = Math.cos(th);
-    g.globalAlpha = 0.7;
-    g.lineWidth = lw * 0.6 * (1 - 0.35 * Math.abs(c));
-    path(g, YS.map((y) => onForm(cx, S, Y, y, c)));
+    g.globalAlpha = even ? 0.5 : 0.7;
+    g.lineWidth = lw * (even ? 0.55 : 0.6) * (1 - 0.35 * Math.abs(c));
+    path(g, YS.map((y) => onForm(cx, S, Y, y, c)), lines);
   }
   const fade = g.createLinearGradient(0, h * FADE_FROM, 0, h);
   fade.addColorStop(0, 'rgba(0,0,0,0)');
@@ -199,7 +167,7 @@ export function ContourForm({ start: from = 'fresh' }: { start?: FormStart }) {
     const g = canvas?.getContext('2d');
     if (!canvas || !g || from === 'wait') return;
     const drawn = from === 'drawn';
-    const end = (drawn ? 0 : OUTLINE) + PEEL + 300;
+    const end = (drawn ? 0 : OUTLINE) + DOWN + 300;
     const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
     let start = 0;
     let gone = false;
