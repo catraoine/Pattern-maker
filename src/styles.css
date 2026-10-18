@@ -4,9 +4,12 @@
   --gild: #d9c49b; /* champagne: drawings, the name, the main button */
   --gild-glow: #f3e6c8;
   --muted: #9a8e78;
-  --line: #2e2a22;
-  --line-strong: #4a4338;
-  --fill: #14110c;
+  /* M1 across the app (Cat's K1, 2026-10-18): no thin rules and no tinted panels, and every outline is the one
+     bright line. --line and --fill are kept so the rules they drew simply disappear. */
+  --line: transparent;
+  --line-strong: var(--gild);
+  --guide: #4a4338; /* faint guides inside drawings: knee and floor marks, the cloth under a lay plan */
+  --fill: transparent;
   --focus: #9a8e78;
   --disabled: #5c5446;
   --warn: #e0b07a; /* fabric notes: heads up */
@@ -24,8 +27,8 @@
   --w-body: 400;
   --head-tracking: -0.01em;
   --track: 0.2em;
-  --bw: 1px;
-  --bw-on: 1px;
+  --bw: 1.3px;
+  --bw-on: 1.3px;
   --pill: 0px;
   color-scheme: dark;
 }
@@ -165,7 +168,7 @@ p {
   min-height: 44px;
   padding: 0 6px;
   border: none;
-  border-bottom: var(--bw) solid var(--line-strong);
+  border-bottom: var(--bw) solid transparent;
   border-radius: 0;
   background: none;
   color: var(--muted);
@@ -452,7 +455,7 @@ button.primary:disabled,
 button.primary:disabled:hover {
   background: transparent;
   color: var(--disabled);
-  border-color: var(--line);
+  border-color: var(--disabled);
   cursor: not-allowed;
 }
 
@@ -1204,7 +1207,7 @@ button.ghost.on {
 }
 button.ghost:disabled {
   color: var(--disabled);
-  border-color: var(--line);
+  border-color: var(--disabled);
   cursor: default;
 }
 .tools {
@@ -1221,7 +1224,7 @@ button.ghost:disabled {
   cursor: crosshair;
 }
 .shape .guide line {
-  stroke: var(--line-strong);
+  stroke: var(--guide);
 }
 .shape .guide text,
 .shape .hint {
@@ -1735,7 +1738,7 @@ details.more[open] > summary h2::after {
   max-height: 420px;
 }
 .layplan .lay-fabric {
-  stroke: var(--line-strong);
+  stroke: var(--guide);
   stroke-width: 0.2;
 }
 .layplan .lay-fold {
@@ -2096,7 +2099,7 @@ button.link.how-link {
   gap: 14px;
   padding: 22px 22px calc(22px + env(safe-area-inset-bottom));
   background: var(--fill);
-  border-top: 1px solid var(--line-strong);
+  border-top: var(--bw) solid var(--line-strong);
 }
 
 .how-panel .eyebrow {
@@ -2146,7 +2149,7 @@ button.link.how-link {
   gap: 2px;
   padding: 10px 14px 6px;
   background: var(--fill);
-  border: 1px solid var(--line-strong);
+  border: var(--bw) solid var(--line-strong);
 }
 
 .entry-box:focus-within {
@@ -2207,7 +2210,7 @@ button.link.how-link {
   min-width: 44px;
   min-height: 36px;
   padding: 0 10px;
-  border: 1px solid var(--line-strong);
+  border: var(--bw) solid var(--line-strong);
   background: none;
   color: var(--muted);
   font-family: var(--mono);
@@ -2270,7 +2273,7 @@ button.step-next {
   letter-spacing: var(--track);
   text-transform: uppercase;
   color: var(--gild);
-  border: 1px solid var(--line-strong);
+  border: var(--bw) solid var(--line-strong);
   padding: 2px 5px;
   align-self: start;
   white-space: nowrap;
@@ -2285,7 +2288,7 @@ button.step-next {
   padding-left: 10px;
 }
 .fabnote.info {
-  border-left: 1px solid var(--line-strong);
+  border-left: 1px solid var(--guide);
   padding-left: 10px;
 }
 .avoid b,
@@ -2388,7 +2391,7 @@ button.step-next {
   width: 76px;
   height: 76px;
   object-fit: cover;
-  border: 1px solid var(--line-strong);
+  border: var(--bw) solid var(--line-strong);
 }
 .swatch.on {
   color: var(--gild);
@@ -2403,7 +2406,7 @@ dialog.guide {
   width: min(560px, calc(100vw - 24px));
   max-height: calc(100dvh - 24px);
   padding: 0;
-  border: 1px solid var(--line-strong);
+  border: var(--bw) solid var(--line-strong);
   background: var(--paper);
   color: var(--ink);
 }
@@ -2426,12 +2429,12 @@ dialog.guide::backdrop {
 .scalebar {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  border: 1px solid var(--line-strong);
+  border: var(--bw) solid var(--line-strong);
 }
 .scalebar div {
   padding: 8px;
   font-size: 12.5px;
-  border-left: 1px solid var(--line);
+  border-left: 1px solid var(--guide);
   min-width: 0;
 }
 .scalebar div:first-child {
@@ -2959,7 +2962,7 @@ button.link.garment-change {
 }
 .form-svg .form-legs,
 .form-svg .form-stand {
-  stroke: var(--line-strong);
+  stroke: var(--guide);
 }
 .form-svg .tape {
   stroke: var(--muted);
@@ -3013,7 +3016,7 @@ button.link.garment-change {
   min-height: 0;
   padding: 0;
   border-radius: 50%;
-  border: 1px solid var(--line-strong);
+  border: var(--bw) solid var(--line-strong);
   background-size: 64px 64px;
   background-position: center;
 }
@@ -3329,7 +3332,7 @@ button.link.garment-change {
 .tour-track {
   display: block;
   height: 2px;
-  background: var(--line-strong);
+  background: var(--guide);
   overflow: hidden;
 }
 
@@ -3483,7 +3486,7 @@ button.link.garment-change {
   font-size: 11px;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: var(--line-strong);
+  color: var(--guide);
 }
 .photoread .stages .on {
   color: var(--ink);
