@@ -31,4 +31,4 @@ Both run on every pull request (`.github/workflows/e2e.yml`).
 
 ## The tour video
 
-The play button on the welcome's dress form plays `public/tour/walkthrough.mp4`, a captioned walkthrough recorded from the app itself. **Whenever the welcome or the first measuring pages change, re-record it in the same pull request** (Cat's rule): start `npx vite --port 5173`, run `npm run record:tour` (needs ffmpeg), then copy the part start times and length it prints into `PARTS`, `TOUR_LENGTH` and `TOUR_LABEL` in `src/ui/TourPlayer.tsx`. The steps and captions it records are in `scripts/record-demo.mjs`.
+The play button on the welcome's dress form plays `public/tour/walkthrough.mp4`, a captioned walkthrough recorded from the app itself. **Re-record it once, at the very end, when all the changes are in and the app is finalized** (Cat's rule, 2026-10-18). Until then it can lag behind the app. To re-record: start `npx vite --port 5173`, run `npm run record:tour` (needs ffmpeg), then copy the part start times and length it prints into `PARTS`, `TOUR_LENGTH` and `TOUR_LABEL` in `src/ui/TourPlayer.tsx`. The steps and captions it records are in `scripts/record-demo.mjs`.
