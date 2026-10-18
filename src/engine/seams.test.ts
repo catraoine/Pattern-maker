@@ -199,6 +199,11 @@ describe('style seams with the other new shapes', () => {
     expect(d.styleSeams?.every((sm) => sm.side === 'back')).toBe(true);
     expect(draftBodice(m, { fit: 'regular', unevenNeck: uneven, empire: 8 }).styleSeams ?? []).toEqual([]);
     expect(seamBlocked({ ...DEFAULT_BODICE, unevenNeck: uneven }, 'empire')).toMatch(/uneven/);
+    // With a shaped hem too, the flat still draws, the back yoke seam on it.
+    const hem = { front: [6, 6, 5, 4, 3, 2, 1, 0.5, 0], back: [0, 0, 0, 0, 0, 0, 0, 0, 0] };
+    const all = draftBodice(m, { fit: 'regular', unevenNeck: uneven, length: 'hip', dropCm: 14, hem, yoke: { back: 14 } });
+    expect(problems(all, 'uneven + back yoke + shaped hem')).toEqual([]);
+    expect(bodiceFlat(all).views[1].lines.some((l) => l.kind === 'seam')).toBe(true);
   });
 
   it('takes a yoke and a shaped hem on a hip-length bodice', () => {

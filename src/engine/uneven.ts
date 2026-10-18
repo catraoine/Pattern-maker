@@ -67,7 +67,9 @@ export function clampUneven(u: UnevenNeck, d: BodiceDraft): UnevenNeck {
 export function unevenFront(d: BodiceDraft, s: BodiceStyle): BodiceDraft {
   if (!s.unevenNeck) return d;
   const u = clampUneven(s.unevenNeck, d);
-  const [front, back] = d.pieces;
+  const front = d.pieces[0];
+  // A back yoke splits the back: the block's back keeps its neck and shoulder for the flat and the neck.
+  const back = d.block?.[1] ?? d.pieces[1];
   const B = p(u.x, d.neckBlock.front.neckY + u.depth);
   /** The whole front from two halves, the left on x > 0, and the neckline from the right neck point
    * down to its lowest point and up to the left one. */
@@ -125,8 +127,9 @@ export function unevenFront(d: BodiceDraft, s: BodiceStyle): BodiceDraft {
   return {
     ...d,
     pieces: [newFront, ...d.pieces.slice(1)],
-    block: [front, back],
-    styleLines: undefined,
+    block: [d.block?.[0] ?? front, back],
+    // A back yoke's seam stays; the whole front takes no style lines.
+    styleLines: d.styleLines?.back.length ? { ...d.styleLines, front: [] } : undefined,
     neck: r1(2 * taggedLength(back.outline, 'neck') + taggedLength(outline, 'neck')),
     drape: { kind: 'uneven', uneven: u },
   };

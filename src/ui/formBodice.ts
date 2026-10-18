@@ -164,6 +164,9 @@ export function readUnevenNeckline(stroke: P[], draft: BodiceDraft, c: BodiceCho
     c.collar && c.collar !== 'none' ? 'the collar' : '',
     c.closure === 'front_buttons' ? 'the front buttons (it zips at the back)' : '',
     c.bustDart && c.bustDart !== 'side' ? 'the moved bust dart' : '',
+    c.yoke?.front !== undefined ? 'the front yoke' : '',
+    c.empire !== undefined ? 'the empire seam' : '',
+    c.panel ? 'the side panels' : '',
   ].filter(Boolean);
   const across = Math.round(Math.abs(u.x));
   const where = across === 0 ? 'at the centre front' : `${across} cm toward your ${u.x > 0 ? 'left' : 'right'}`;
