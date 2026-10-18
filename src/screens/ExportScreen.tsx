@@ -663,6 +663,12 @@ async function saveMeasurements(values: MeasurementValues, profile: string, file
   else download(toMeasurementsCsv(values), 'text/csv', `${fileBase}-measurements.csv`);
 }
 
+/** The dress form built from these measurements, as an OBJ in millimetres for CLO 3D and Browzwear. */
+async function saveBody(values: MeasurementValues, profile: string, fileBase: string) {
+  const { toObj } = await import('../engine/body3d');
+  download(toObj(values, profile), 'model/obj', `${fileBase}-body.obj`);
+}
+
 async function saveAlterations(alterations: Alteration[], fileBase: string) {
   const { toAlterationsCsv } = await import('../measureExport');
   download(toAlterationsCsv(alterations), 'text/csv', `${fileBase}-alterations.csv`);
@@ -814,6 +820,15 @@ function MakerPack({
                   Alterations (CSV)
                 </button>
               )}
+            </div>
+            <p className="muted">
+              Your body in 3D: a dress form made from your measurements, the same form as in the app. CLO 3D and Browzwear open it as an avatar,
+              so you can try the pattern on before you cut.
+            </p>
+            <div className="row wrap">
+              <button type="button" className="secondary" onClick={() => saveBody(values, profile, fileBase)}>
+                3D body (OBJ)
+              </button>
             </div>
           </>
         )}
