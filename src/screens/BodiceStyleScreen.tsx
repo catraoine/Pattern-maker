@@ -22,7 +22,8 @@ import { MyFabric, bodiceFabrics, fabricEase } from '../engine/fabrics';
 import { FabricCard } from '../ui/FabricCard';
 import { isDraped, zipSide } from '../engine/drape';
 import { DrawOnForm, formWidth } from '../ui/DrawOnForm';
-import { bodiceLines, landmarks, readBodiceHem, readDrape, readFit, readNeckline, readSeam } from '../ui/formLines';
+import { bodiceHemLine, orNeckline, readBodiceHemShape, readUnevenNeckline, unevenNecklineLines } from '../ui/formBodice';
+import { bodiceLines, landmarks, readDrape, readFit, readNeckline, readSeam } from '../ui/formLines';
 
 import { Mode, ProTool, shows } from '../mode';
 import { ModeLink } from '../ui/ModeLink';
@@ -207,19 +208,22 @@ export function BodiceStyleScreen({ choices, onChoices, onChooseGarment, values,
           ['fit', 'Side'],
           ['hem', 'Hem'],
         ]}
-        lines={(side) => bodiceLines(draft, side)}
+        lines={(side) => {
+          const uneven = side === 'front' ? unevenNecklineLines(draft) : [];
+          return { ...bodiceLines(draft, side), hem: [bodiceHemLine(draft, side)], ...(uneven.length ? { neckline: uneven } : {}) };
+        }}
         choices={choices}
         onChoices={onChoices}
         read={(kind, side, stroke) =>
           kind === 'neckline'
-            ? readNeckline(stroke, draft, choices, 'bodice', side)
+            ? orNeckline(readUnevenNeckline(stroke, draft, choices, 'bodice', side), () => readNeckline(stroke, draft, choices, 'bodice', side))
             : kind === 'seam'
               ? readSeam(stroke, draft, choices, 'bodice', side)
               : kind === 'drape'
                 ? readDrape(stroke, draft, choices, 'bodice')
                 : kind === 'fit'
                   ? readFit(stroke, draft, m, choices)
-                  : readBodiceHem(stroke, draft, m, choices)
+                  : readBodiceHemShape(stroke, draft, m, choices, side)
         }
         onDone={() => {
           change(choices, onForm);

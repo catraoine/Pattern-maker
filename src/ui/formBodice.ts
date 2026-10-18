@@ -179,3 +179,6 @@ export function unevenNecklineLines(draft: BodiceDraft): P[][] {
   const edge = unevenEdge(draft);
   return edge.length ? [edge] : [];
 }
+
+/** An uneven neckline when the line clearly is one, otherwise the even neckline reader's reading. */
+export const orNeckline = (uneven: Reading<BodiceChoices>, even: () => Reading<BodiceChoices>): Reading<BodiceChoices> => (uneven.choices ? uneven : even());
