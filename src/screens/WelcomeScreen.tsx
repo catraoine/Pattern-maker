@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ContourForm, type FormStart } from '../ui/ContourForm';
 import { TapeBand } from '../ui/TapeBand';
 import { TOUR_LABEL, TourPlayer } from '../ui/TourPlayer';
@@ -23,6 +23,17 @@ export function WelcomeScreen({ onFinish, formStart, onLegal }: Props) {
   const [leaving, setLeaving] = useState(false);
   const done = useRef(onFinish);
   done.current = onFinish;
+  // The form grows into the room Begin leaves; the measuring pages draw it at this same height, so it stays put.
+  const hero = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const el = hero.current;
+    if (!el) return;
+    const keep = () => el.clientHeight && document.documentElement.style.setProperty('--welcome-hero-h', `${el.clientHeight}px`);
+    keep();
+    const ro = new ResizeObserver(keep);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   useEffect(() => {
     if (!leaving) return;
@@ -39,7 +50,7 @@ export function WelcomeScreen({ onFinish, formStart, onLegal }: Props) {
   return (
     <div className={leaving ? 'welcome leaving' : 'welcome'}>
       <section className="card welcome-card" aria-labelledby="wtitle">
-        <div className="welcome-hero">
+        <div className="welcome-hero" ref={hero}>
           <ContourForm start={formStart} />
           <button type="button" className="tour-play" onClick={() => setTouring(true)} aria-label={`Watch how it works, ${TOUR_LABEL}`}>
             <span className="tour-play-ring" aria-hidden="true" />

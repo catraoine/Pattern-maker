@@ -673,13 +673,37 @@ button.link {
 /* Welcome */
 .welcome {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
 }
 
 .welcome-card {
   max-width: 560px;
   width: 100%;
   flex: none;
+}
+
+/* The welcome and the measuring pages fill the screen and no more, so their button is always on it without
+   scrolling (Cat, 2026-10-18): the page is the height of the screen with the browser's bars showing (svh), and
+   the dress form takes whatever height the words and the button leave. Only when even a small form can't fit
+   (a tiny phone with the name box open, say) does the page scroll. */
+.app:has(.welcome) {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100svh;
+}
+
+.main:has(.welcome) {
+  display: flex;
+  flex-direction: column;
+  flex: 1 0 auto;
+  width: 100%;
+}
+
+.main:has(.welcome) > .welcome,
+.main:has(.welcome) .welcome-card {
+  flex: 1 0 auto;
 }
 
 .dots {
@@ -736,8 +760,10 @@ button.link {
 
 .welcome-hero {
   margin: 0 -22px;
-  /* Sized so the headline, steps and Begin all fit below it without scrolling */
-  height: clamp(160px, calc(100svh - 440px), 520px);
+  /* Grows into the room the headline, steps and Begin leave, so they always fit below it */
+  flex: 1 1 0;
+  min-height: 110px;
+  max-height: 520px;
   border-bottom: 1px solid var(--line);
 }
 
@@ -750,12 +776,13 @@ button.link {
 @media (max-height: 620px) {
   .main:has(.welcome) {
     padding-top: 8px;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
   }
   .welcome-card {
     gap: 12px;
   }
   .welcome-hero {
-    height: clamp(120px, calc(100svh - 380px), 520px);
+    min-height: 64px;
   }
 }
 
@@ -1744,16 +1771,16 @@ button.link.quiet-link {
   gap: 14px;
 }
 
-/* The welcome's form at the welcome's size and place: the canvas is the welcome hero's height and the page
-   shows its top part, so going from the welcome to measuring only adds the tape. */
+/* The welcome's form at the welcome's size and place: the canvas is the welcome hero's height (measured on the
+   welcome) and the page shows its top part, so going from the welcome to measuring only adds the tape. */
 .measure-step .welcome-hero {
   position: relative;
   overflow: hidden;
-  height: clamp(130px, calc(100svh - 548px), 372px);
+  max-height: 372px;
 }
 
 .measure-step .welcome-hero canvas {
-  height: clamp(160px, calc(100svh - 440px), 520px);
+  height: max(100%, var(--welcome-hero-h, 100%));
 }
 
 .measure-step .eyebrow {
@@ -1913,7 +1940,7 @@ button.link.how-link {
 }
 
 .measure-step.short .welcome-hero {
-  height: clamp(110px, calc(100svh - 600px), 300px);
+  max-height: 300px;
 }
 
 /* How to do it: a short list of steps over the page, only when asked for */
@@ -2071,14 +2098,6 @@ button.step-next {
   margin-top: 18px;
 }
 
-@media (max-height: 620px) {
-  .measure-step .welcome-hero {
-    height: clamp(110px, calc(100svh - 470px), 420px);
-  }
-  .measure-step .welcome-hero canvas {
-    height: clamp(120px, calc(100svh - 380px), 520px);
-  }
-}
 
 /* Fabric guidance: the style screen's suggestions, the fabric guide and the print screen's "Your fabric". */
 .fabric {
@@ -3190,5 +3209,32 @@ button.link.garment-change {
 @media (prefers-reduced-motion: reduce) {
   .tape-band.unrolling {
     animation: none;
+  }
+}
+
+/* Short screens: the measuring pages carry the tape too, so they tighten a little more to keep Next on screen */
+@media (max-height: 620px) {
+  .measure-step {
+    gap: 10px;
+  }
+  .measure-step .welcome-hero {
+    min-height: 44px;
+  }
+  button.step-next {
+    margin-top: 8px;
+  }
+}
+
+/* The smallest screens (an old 4-inch phone with the browser's bars showing): too little room for the form
+   to read as one, so it steps aside and the words and the button fit. */
+@media (max-height: 480px) {
+  .welcome-hero {
+    display: none;
+  }
+  .need div {
+    padding: 8px 0;
+  }
+  .measure-step {
+    gap: 6px;
   }
 }
