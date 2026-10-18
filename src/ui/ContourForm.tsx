@@ -104,7 +104,7 @@ export const FADE_FROM = 0.78;
 // `drawn`: the loading screen handed the outline over already drawn, so the lines are drawn down straight away.
 function draw(g: CanvasRenderingContext2D, w: number, h: number, t: number, drawn: boolean, text = 'CM  /  IN') {
   const t0 = drawn ? 0 : OUTLINE;
-  settledForm(g, w, h, drawn ? 1 : inOut(seg(t, 0, OUTLINE - 100)), inOut(seg(t, t0, t0 + DOWN)), true);
+  settledForm(g, w, h, drawn ? 1 : inOut(seg(t, 0, OUTLINE - 100)), inOut(seg(t, t0, t0 + DOWN)));
 
   // The units, small in the corner: never a number
   g.save();
@@ -122,10 +122,11 @@ function draw(g: CanvasRenderingContext2D, w: number, h: number, t: number, draw
 }
 
 /**
- * The form at rest: the outline and the long lines, each drawn as far as given. `even` uses the weights of the
- * measuring pages' close-up form (an even outline, lines at half brightness), which the welcome ends on.
+ * The form at rest, drawn by this one function on the welcome and on the bust, waist and hip pages that follow
+ * it at the same size and place, so the lines are identical: the outline and the long lines, each drawn as far
+ * as given.
  */
-function settledForm(g: CanvasRenderingContext2D, w: number, h: number, outline = 1, lines = 1, even = false) {
+function settledForm(g: CanvasRenderingContext2D, w: number, h: number, outline = 1, lines = 1) {
   g.globalAlpha = 1;
   g.fillStyle = '#000';
   g.fillRect(0, 0, w, h);
@@ -133,14 +134,14 @@ function settledForm(g: CanvasRenderingContext2D, w: number, h: number, outline 
   g.lineCap = 'round';
   g.lineJoin = 'round';
   const { S, cx, lw, Y } = layout(w, h);
-  const edge = (u: number) => (even ? lw : lw * (0.5 + Math.sin(Math.PI * u)));
+  const edge = (u: number) => lw * (0.5 + Math.sin(Math.PI * u));
   taper(g, YS.map((y) => [cx - R(y) * S, Y(y)]), outline, edge);
   taper(g, YS.map((y) => [cx + R(y) * S, Y(y)]), outline, edge);
   for (let j = 0; j < LINES && lines > 0; j++) {
     const th = (Math.PI * (j + 0.5)) / LINES;
     const c = Math.cos(th);
-    g.globalAlpha = even ? 0.5 : 0.7;
-    g.lineWidth = lw * (even ? 0.55 : 0.6) * (1 - 0.35 * Math.abs(c));
+    g.globalAlpha = 0.7;
+    g.lineWidth = lw * 0.6 * (1 - 0.35 * Math.abs(c));
     path(g, YS.map((y) => onForm(cx, S, Y, y, c)), lines);
   }
   const fade = g.createLinearGradient(0, h * FADE_FROM, 0, h);
