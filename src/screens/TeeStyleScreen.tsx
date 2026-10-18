@@ -16,6 +16,8 @@ import { teeFabrics } from '../engine/knits';
 import { FabricCard } from '../ui/FabricCard';
 import { ModeLink } from '../ui/ModeLink';
 import type { Mode } from '../mode';
+import { Title } from '../ui/Title';
+import { ChoicePic, chipsClass } from '../ui/ChoicePic';
 
 interface Props {
   choices: TeeChoices;
@@ -66,16 +68,16 @@ export function TeeStyleScreen({ choices, onChoices: setChoices, onChooseGarment
 
   return (
     <div className="split three">
-      <section className="card" aria-labelledby="opts">
+      <section className="card numbered" aria-labelledby="opts">
         <div className="row between wrap">
-          <h1 id="opts">Style your T-shirt</h1>
+          <Title id="opts" big="Style" label="your T-shirt" />
           <GarmentSwitch onChoose={onChooseGarment} />
         </div>
         <p className="muted small">Drafted for knit fabric: no darts, the stretch shapes it to you.</p>
         {TEE_GROUPS.map((g) => (
           <fieldset key={g.id} className="group">
             <legend>{g.label}</legend>
-            <div className="chips">
+            <div className={chipsClass('tee', g.id)}>
               {g.options.map(([id, label]) => (
                 <button
                   key={id}
@@ -84,6 +86,7 @@ export function TeeStyleScreen({ choices, onChoices: setChoices, onChooseGarment
                   aria-pressed={choices[g.id] === id}
                   onClick={() => onChoices({ ...choices, [g.id]: id })}
                 >
+                  <ChoicePic set="tee" group={g.id} id={id} />
                   {label}
                 </button>
               ))}

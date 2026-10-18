@@ -36,6 +36,8 @@ import type { SkirtMeasurements } from '../engine/skirt';
 import { DrawOnForm, formWidth } from '../ui/DrawOnForm';
 import { REPLACES } from './BodiceStyleScreen';
 import { bodiceLines, landmarks, readDrape, readFit, readNeckline, readSeam, readSkirtHem, skirtLines } from '../ui/formLines';
+import { Title } from '../ui/Title';
+import { ChoicePic, chipsClass } from '../ui/ChoicePic';
 
 interface Props {
   choices: DressChoices;
@@ -242,15 +244,15 @@ export function DressStyleScreen({ choices, onChoices: setChoices, onChooseGarme
 
   return (
     <div className="split three">
-      <section className="card" aria-labelledby="opts">
+      <section className="card numbered" aria-labelledby="opts">
         <div className="row between wrap">
-          <h1 id="opts">Style your dress</h1>
+          <Title id="opts" big="Style" label="your dress" />
           <GarmentSwitch onChoose={onChooseGarment} />
         </div>
         {groups.map((g) => (
           <fieldset key={g.id} className="group">
             <legend>{g.label}</legend>
-            <div className="chips">
+            <div className={chipsClass((['silhouette', 'length', 'asymHem'].includes(g.id) ? 'skirt' : 'bodice'), g.id)}>
               {g.options.map(([id, label]) => (
                 <button
                   key={id}
@@ -260,6 +262,7 @@ export function DressStyleScreen({ choices, onChoices: setChoices, onChooseGarme
                   disabled={!allowed(g.id, id)}
                   onClick={() => choose(g.id, id)}
                 >
+                  <ChoicePic set={(['silhouette', 'length', 'asymHem'].includes(g.id) ? 'skirt' : 'bodice')} group={g.id} id={id} />
                   {label}
                 </button>
               ))}

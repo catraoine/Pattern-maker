@@ -15,6 +15,8 @@
   --white: #000000; /* the "card" ground; text on --ink fills uses it too */
   --mono: 'Chakra Petch', ui-monospace, Menlo, monospace;
   --sans: 'Space Grotesk', system-ui, sans-serif;
+  /* Headings (Cat's N1 Narrow Stack): narrow Archivo capitals, a spaced Chakra label under them. */
+  --display: 'Archivo Variable', 'Archivo Narrow', 'Arial Narrow', sans-serif;
   --grid: transparent;
   --w-head: 300;
   --w-strong: 500;
@@ -54,7 +56,9 @@ label {
 
 h1,
 h2 {
-  font-family: var(--sans);
+  font-family: var(--display);
+  font-stretch: 75%;
+  text-transform: uppercase;
 }
 
 button,
@@ -70,19 +74,35 @@ legend,
 
 h1,
 h2 {
-  font-weight: var(--w-head);
+  font-weight: 600;
   letter-spacing: var(--head-tracking);
 }
 
 h1 {
   margin: 0;
-  font-size: 30px;
-  line-height: 1.2;
+  font-size: 36px;
+  line-height: 0.98;
 }
 
 h2 {
   margin: 0;
   font-size: 22px;
+  line-height: 1.05;
+}
+
+/* A two-part title: the key words big, the rest as a spaced label under them. */
+h1 .t-big {
+  display: block;
+}
+h1 .t-label {
+  display: block;
+  margin-top: 8px;
+  font-family: var(--mono);
+  font-stretch: normal;
+  font-weight: 400;
+  font-size: 11px;
+  line-height: 1.4;
+  letter-spacing: 0.3em;
 }
 
 p {
@@ -743,7 +763,7 @@ button.link {
 
 /* Keep the headline to two lines on narrow phones */
 .welcome-card h1 {
-  font-size: clamp(24px, 7vw, 30px);
+  font-size: clamp(30px, 10vw, 40px);
 }
 
 /* Short screens: tighten the spacing so Begin still fits without scrolling */
@@ -1035,6 +1055,73 @@ b {
 .chip:disabled {
   opacity: 0.35;
   cursor: not-allowed;
+}
+
+/* Style choices, numbered (Cat's S2): each section a narrow capital heading with its number before it. */
+.numbered {
+  counter-reset: sec;
+}
+.numbered > fieldset.group > legend {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-family: var(--display);
+  font-stretch: 75%;
+  font-weight: 600;
+  font-size: 19px;
+  letter-spacing: 0;
+}
+.numbered > fieldset.group > legend::before {
+  counter-increment: sec;
+  content: counter(sec, decimal-leading-zero);
+  font-family: var(--mono);
+  font-stretch: normal;
+  font-weight: 400;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+
+/* Shape choices as little drawings (Cat's S1): a tile per choice, its words under the drawing. */
+.chips.pics {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+  gap: 8px;
+}
+.chips.pics .chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  min-height: 0;
+  padding: 10px 4px 7px;
+  border-color: var(--line-strong);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  line-height: 1.3;
+}
+.chips.pics .chip .pic {
+  width: 36px;
+  height: 44px;
+  fill: none;
+  stroke: var(--gild);
+  stroke-width: 1.1;
+  stroke-linejoin: round;
+}
+.chips.pics .chip .pic .pic-faint {
+  stroke: var(--muted);
+  stroke-dasharray: 2 2;
+  stroke-width: 0.8;
+}
+.chips.pics .chip.on {
+  background: var(--white);
+  color: var(--ink);
+  border-color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--ink);
+}
+.chips.pics .chip.on .pic {
+  stroke: var(--ink);
 }
 
 /* Hands-on shaping: drag handles, drawn hems, the turning figure, the drafting replay and undo. */
@@ -1585,7 +1672,8 @@ details.more[open] > summary h2::after {
   max-height: 420px;
 }
 .layplan .lay-fabric {
-  fill: var(--fill);
+  stroke: var(--line-strong);
+  stroke-width: 0.2;
 }
 .layplan .lay-fold {
   stroke: var(--muted);
@@ -1596,18 +1684,28 @@ details.more[open] > summary h2::after {
   stroke: var(--muted);
   stroke-width: 0.3;
 }
+/* The pieces as pattern paper: pale, dotted, in dark ink, lying on the cloth. */
 .layplan .lay-piece {
-  fill: var(--paper);
-  stroke: var(--gild);
-  stroke-width: 0.25;
+  fill: #ece3cf;
+  stroke: #1a1712;
+  stroke-width: 0.2;
   stroke-linejoin: round;
+}
+.layplan .lay-paper-dots {
+  pointer-events: none;
+}
+.layplan .lay-dot {
+  fill: #b9ab8e;
 }
 .layplan text {
   font-family: var(--mono);
   letter-spacing: 0.12em;
 }
 .layplan .lay-name {
-  fill: var(--ink);
+  fill: #1a1712;
+}
+.layplan .lay-sub {
+  fill: #6b6152;
 }
 .layplan .lay-note {
   fill: var(--muted);
@@ -2167,15 +2265,15 @@ button.step-next {
 .yourfabric .special dd {
   margin: 0;
 }
-/* The fabric page: a headline in a magazine serif, a close-up of the cloth and photo swatches. */
+/* The fabric page: a headline in the narrow heading capitals, a close-up of the cloth and photo swatches. */
 .yourfabric .fabhead {
-  font-family: 'Bodoni Moda', Didot, Georgia, serif;
-  font-style: italic;
-  font-weight: 400;
+  font-family: var(--display);
+  font-stretch: 75%;
+  font-weight: 600;
   font-size: 30px;
-  line-height: 1.1;
-  letter-spacing: 0;
-  text-transform: none;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
 }
 .yourfabric > *,
 .yourfabric fieldset {
@@ -2832,9 +2930,12 @@ button.link.garment-change {
   min-height: 28px;
 }
 .fabric-now em {
-  font-family: 'Bodoni Moda', Didot, Georgia, serif;
-  font-style: italic;
-  font-size: 22px;
+  font-family: var(--display);
+  font-stretch: 75%;
+  font-weight: 600;
+  font-style: normal;
+  text-transform: uppercase;
+  font-size: 20px;
   color: var(--ink);
 }
 .swatches {
