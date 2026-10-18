@@ -519,14 +519,10 @@ function arms(g: CanvasRenderingContext2D, S: number, cx: number, lw: number, Y:
   g.globalAlpha = 1;
 }
 
-function figure(g: CanvasRenderingContext2D, w: number, h: number, z: number, seen = h, withArms = false) {
-  g.globalAlpha = 1;
-  g.fillStyle = '#000';
-  g.fillRect(0, 0, w, h);
-  g.strokeStyle = CHAMPAGNE;
-  g.lineCap = 'round';
-  g.lineJoin = 'round';
-  const { S, cx, lw, Y, k } = frame(w, h, z, seen);
+/** The form with its legs and floor line, at any scale: `legs` fades the legs in (0 to 1). The same
+ * body as every other screen, for views that need the whole figure (the turning shape preview). */
+export function paintFigure(g: CanvasRenderingContext2D, S: number, cx: number, Y: (y: number) => number, lw: number, legs = 1, withArms = false) {
+  const k = legs;
   const P = (y: number, th: number): Pt => [cx + Math.cos(th) * R(y) * S, Y(y) + Math.sin(th) * R(y) * S * DEPTH, Math.cos(th)];
   taper(g, YS.map((y) => [cx - R(y) * S, Y(y)]), 1, (u) => lw * (0.5 + Math.sin(Math.PI * u)));
   taper(g, YS.map((y) => [cx + R(y) * S, Y(y)]), 1, (u) => lw * (0.5 + Math.sin(Math.PI * u)));
@@ -562,6 +558,16 @@ function figure(g: CanvasRenderingContext2D, w: number, h: number, z: number, se
     g.strokeStyle = '#9a8e78';
     stroke(g, [cx - 0.9 * S, Y(FLOOR)], [cx + 0.9 * S, Y(FLOOR)]);
   }
+}
+function figure(g: CanvasRenderingContext2D, w: number, h: number, z: number, seen = h, withArms = false) {
+  g.globalAlpha = 1;
+  g.fillStyle = '#000';
+  g.fillRect(0, 0, w, h);
+  g.strokeStyle = CHAMPAGNE;
+  g.lineCap = 'round';
+  g.lineJoin = 'round';
+  const { S, cx, lw, Y, k } = frame(w, h, z, seen);
+  paintFigure(g, S, cx, Y, lw, k, withArms);
   // The welcome's fade, which lifts as the legs come into view
   g.globalAlpha = 1 - k;
   const fade = g.createLinearGradient(0, h * FADE_FROM, 0, h);
@@ -847,3 +853,9 @@ export function FormPicture({ kind }: { kind: FormKind }) {
   }, [kind]);
   return <canvas ref={ref} className="form-picture" aria-hidden="true" />;
 }
+
+/** Where the hip and floor sit on the form, and how deep its rings look, for drawing a garment round
+ * the same body (its half-width is R in engine/form.ts). */
+export const FORM_HIP = 0.82;
+export const FORM_FLOOR = FLOOR;
+export const FORM_DEPTH = DEPTH;

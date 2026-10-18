@@ -33,6 +33,8 @@ import { readSkirtHem, readSkirtSide, skirtLines } from '../ui/formLines';
 import { Title } from '../ui/Title';
 import { ChoicePic, chipsClass } from '../ui/ChoicePic';
 import { Explain } from '../ui/Explain';
+import { AllRound } from '../ui/AllRound';
+import { roundSkirt } from '../engine/allRound';
 
 interface Props {
   finish: Finish;
@@ -155,7 +157,7 @@ export function fabricMetres(draft: SkirtDraft): number {
 
 export function StyleScreen({ choices, onChoices, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, onPhoto, photo, onChooseGarment, finish, onFinish, easeMap, fabric, mode = 'all', onMode }: Props) {
   const can = (t: ProTool) => shows(mode, t);
-  const [picked, setView] = useState<'sketch' | 'pattern' | 'ease'>('sketch');
+  const [picked, setView] = useState<'sketch' | 'round' | 'pattern' | 'ease'>('sketch');
   const view = picked === 'ease' && !can('easeMap') ? 'sketch' : picked;
   const [side, setSide] = useState<Side>('front');
   const [drawing, setDrawing] = useState(false);
@@ -167,6 +169,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
   const [onForm, setOnForm] = useState<Choices>();
 
   const sheet = useMemo(() => (draft ? layout(draft.pieces, '', []) : undefined), [draft]);
+  const round = useMemo(() => (draft ? roundSkirt(draft) : undefined), [draft]);
   const ease = FIT_EASE[choices.fit];
   const slipped = choices.silhouette === 'slip';
   const extra = fabricEase(fabric, 'skirt');
@@ -405,6 +408,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
             {(
               [
                 ['sketch', 'Sketch'],
+                ['round', 'All round'],
                 ['pattern', 'Pieces'],
                 ['ease', 'Ease'],
               ] as const
@@ -469,6 +473,16 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
               onDone={(before, after) => change(after, before)}
             />
             </GarmentFabric>
+          )}
+          {draft && round && view === 'round' && (
+            <AllRound
+              round={round}
+              m={m}
+              striped={!!fabric?.checks}
+              elastic={!!draft.elastic}
+              faced={!!draft.faced}
+              label={`The ${title} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`}
+            />
           )}
           {draft && sheet && view === 'pattern' && (
             <PatternPane><PatternPreview paper sheet={sheet} play={play} names={draft.pieces.map((pc) => pc.name)} label={`Front and back pattern pieces for a ${title}`} /></PatternPane>
