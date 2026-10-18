@@ -1,4 +1,4 @@
-import { test, expect, startWithExample, switchGarment } from './fixtures';
+import { expect, openGroup, openReview, startWithExample, switchGarment, test } from './fixtures';
 import type { Page } from '@playwright/test';
 
 // Draw on your form: draw a princess seam and a neckline on the dress form, and the pattern follows.
@@ -38,6 +38,7 @@ test('draws princess seams and a neckline on the form', async ({ page }) => {
 
   await main.getByRole('button', { name: 'Make the pattern' }).click();
   await expect(main.getByRole('heading', { name: 'Style your bodice' })).toBeVisible();
+  await openReview(page);
   await expect(main.getByText(/Bodice side front/).first()).toBeVisible();
 });
 
@@ -51,6 +52,8 @@ test('cancel leaves the bodice as it was', async ({ page }) => {
   await expect(main.getByRole('status')).toHaveText(/Princess seams/);
   await main.getByRole('button', { name: 'Cancel' }).click();
   await expect(main.getByRole('heading', { name: 'Style your bodice' })).toBeVisible();
+  await openReview(page);
+  await expect(main.getByText('Bodice front', { exact: false }).first()).toBeVisible();
   await expect(main.getByText(/Bodice side front/)).toHaveCount(0);
 });
 
@@ -111,7 +114,7 @@ test('draws the sleeve length on the T-shirt form', async ({ page }) => {
   await expect(main.getByRole('status')).toHaveText(/Elbow-length sleeves, \d+ cm from the shoulder/);
   await main.getByRole('button', { name: 'Make the pattern' }).click();
   await expect(main.getByRole('heading', { name: 'Style your T-shirt' })).toBeVisible();
-  await expect(main.getByRole('button', { name: 'Elbow', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect((await openGroup(page, 'Sleeves')).getByRole('button', { name: 'Elbow', exact: true })).toHaveAttribute('aria-pressed', 'true');
 });
 
 test('draws a double-breasted front on the jacket form', async ({ page }) => {
@@ -126,7 +129,7 @@ test('draws a double-breasted front on the jacket form', async ({ page }) => {
   await expect(main.getByRole('status')).toHaveText(/Double-breasted: the edge 6.5 cm past the centre front/);
   await main.getByRole('button', { name: 'Make the pattern' }).click();
   await expect(main.getByRole('heading', { name: 'Style your jacket' })).toBeVisible();
-  await expect(main.getByRole('button', { name: 'Double-breasted', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await expect((await openGroup(page, 'Front')).getByRole('button', { name: 'Double-breasted', exact: true })).toHaveAttribute('aria-pressed', 'true');
 });
 
 test('draws a yoke, an uneven neckline and a shaped hem on the bodice', async ({ page }) => {

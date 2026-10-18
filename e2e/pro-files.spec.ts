@@ -1,10 +1,10 @@
-import { download, expect, startWithExample, test } from './fixtures';
+import { download, expect, goPrint, startWithExample, test } from './fixtures';
 
 // Files for other pattern software, under More files on the print screen.
 test('pro files: pattern DXF and measurements for Seamly2D and CLO', async ({ page }, info) => {
   await startWithExample(page);
   const main = page.getByRole('main');
-  await main.getByRole('button', { name: 'Print my pattern' }).click();
+  await goPrint(page);
   const all = main.getByRole('button', { name: 'Show all tools' });
   if (await all.count()) await all.click();
   await main.getByText('More files').click();
@@ -26,14 +26,13 @@ test('pro files: pattern DXF and measurements for Seamly2D and CLO', async ({ pa
 test('pro files: toile alterations for a pattern cutter', async ({ page }, info) => {
   await startWithExample(page);
   const main = page.getByRole('main');
-  await main.getByRole('button', { name: 'Print my pattern' }).click();
+  await goPrint(page);
   const all = main.getByRole('button', { name: 'Show all tools' });
   if (await all.count()) await all.click();
   await main.getByRole('button', { name: 'I’ve tried on a toile' }).click();
   await main.getByText('Pulls across the hips').click();
   await main.getByRole('button', { name: /^Save as version 2$/ }).click();
-  const print = main.getByRole('button', { name: 'Print my pattern' });
-  if (await print.count()) await print.click();
+  if (!(await main.getByText('More files').isVisible())) await goPrint(page);
   await main.getByText('More files').click();
   const csv = await download(page, main.getByRole('button', { name: 'Alterations (CSV)' }), info);
   const rows = csv.bytes.toString('utf8').split('\r\n');

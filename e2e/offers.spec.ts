@@ -1,4 +1,4 @@
-import { expect, startWithExample, test } from './fixtures';
+import { expect, goPrint, headerBack, startWithExample, test } from './fixtures';
 
 // Paid extras that aren't open yet show as email sign-ups. The signup function isn't served by Vite,
 // so it's stubbed here and the test checks what the app sends.
@@ -11,7 +11,7 @@ test('offers: sign up for printing by post and a founding place', async ({ page 
   await startWithExample(page);
   const main = page.getByRole('main');
 
-  await main.getByRole('button', { name: 'Print my pattern' }).click();
+  await goPrint(page);
   const printed = main.getByRole('region', { name: 'Have it printed and posted' });
   await expect(printed).toContainText('$12');
   await printed.getByRole('textbox', { name: 'Your email' }).fill('ada@example.com');
@@ -20,6 +20,7 @@ test('offers: sign up for printing by post and a founding place', async ({ page 
   await printed.screenshot({ path: info.outputPath('printed.png') });
   expect(sent[0]).toMatchObject({ kind: 'interest', offer: 'printed', email: 'ada@example.com', website: '' });
 
+  await headerBack(page);
   await main.getByRole('button', { name: 'Save pattern' }).click();
   await main.getByRole('button', { name: 'your patterns' }).click();
   const founding = main.getByRole('region', { name: 'Be one of the first 500' });

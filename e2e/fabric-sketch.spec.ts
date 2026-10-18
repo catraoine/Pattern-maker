@@ -1,9 +1,10 @@
-import { expect, startWithExample, switchGarment, test, type GarmentName } from './fixtures';
+import { expect, goPrint, openGroup, startWithExample, switchGarment, test, type GarmentName } from './fixtures';
 
 // The sketch is drawn in the fabric tapped under it, and the print screen keeps that fabric.
 test('a swatch dresses the skirt sketch and carries to the print screen', async ({ page }) => {
   await startWithExample(page);
   const main = page.getByRole('main');
+  await main.getByRole('tab', { name: 'Fabric' }).click();
   const swatches = main.getByRole('radiogroup', { name: 'Fabric for the sketch' });
   const corduroy = swatches.getByRole('radio', { name: 'Corduroy' });
   await corduroy.click();
@@ -14,17 +15,17 @@ test('a swatch dresses the skirt sketch and carries to the print screen', async 
   await expect(corduroy).toHaveAttribute('aria-checked', 'false');
   await expect(main.locator('.garment-fabric')).toHaveCount(0);
   await swatches.getByRole('radio', { name: 'Linen' }).click();
-  await main.getByRole('button', { name: 'Print my pattern' }).click();
+  await goPrint(page);
   await expect(main.getByText('Linen', { exact: true }).first()).toBeVisible();
   // The cutting layout lays the paper pieces on that same cloth.
   await expect(main.locator('.layplan pattern image').first()).toHaveAttribute('href', /fabrics\/flat\/linen\.jpg$/);
 });
 
-// Shape choices are drawn, numbered sections head them, and the chip keeps its name.
-test('the skirt silhouettes are little drawings under numbered sections', async ({ page }) => {
+// Shape choices are drawn, each group on its own tab, and the chip keeps its name.
+test('the skirt silhouettes are little drawings on their own tab', async ({ page }) => {
   await startWithExample(page);
   const main = page.getByRole('main');
-  const silhouette = main.getByRole('group', { name: 'Silhouette' });
+  const silhouette = await openGroup(page, 'Silhouette');
   await expect(silhouette.locator('.chips.pics')).toBeVisible();
   const trumpet = silhouette.getByRole('button', { name: 'Trumpet' });
   await expect(trumpet.locator('svg.pic')).toBeVisible();
@@ -38,6 +39,7 @@ for (const g of ['Dress', 'Trousers'] as GarmentName[]) {
     await startWithExample(page);
     await switchGarment(page, g);
     const main = page.getByRole('main');
+    await main.getByRole('tab', { name: 'Fabric' }).click();
     await main.getByRole('radiogroup', { name: 'Fabric for the sketch' }).getByRole('radio', { name: 'Denim' }).click();
     await expect(main.locator('.garment-fabric .techflat')).toBeVisible();
   });

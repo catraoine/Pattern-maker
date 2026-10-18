@@ -142,7 +142,13 @@ export async function switchGarment(page: Page, g: GarmentName) {
 /** On a style screen, "Add them" (e.g. the arms, for sleeves): the Measure list, then each measurement for a
  * closer fit on its own page, back to the list, and on to styling again. */
 export async function addCloserFit(page: Page, g: GarmentName) {
-  await main(page).getByRole('button', { name: 'Add them' }).first().click();
+  const add = main(page).getByRole('button', { name: 'Add them' }).first();
+  // The link sits under the choice that needs them (Sleeves, Length): look through the tabs for it.
+  for (const tab of await main(page).getByRole('tablist', { name: 'Style choices' }).getByRole('tab').all()) {
+    if (await add.isVisible()) break;
+    await tab.click();
+  }
+  await add.click();
   await expect(heading(page, new RegExp(`${g === 'Tee' ? 'tee' : lower(g)} measurements$`))).toBeVisible();
   await main(page).getByRole('button', { name: 'Add measurements for a closer fit' }).click();
   await fillStepPages(page);
@@ -177,6 +183,13 @@ export async function openReview(page: Page) {
   await expect(heading(page, /^Review /)).toBeVisible();
 }
 
+/** From a style screen (or its Review page) to Print. */
+export async function goPrint(page: Page) {
+  const print = main(page).getByRole('button', { name: 'Print my pattern' });
+  if (!(await print.isVisible())) await openReview(page);
+  await print.click();
+}
+
 /** Tap a style chip in a named group (Fit, Length, ...), and check it took. */
 export async function chooseChip(page: Page, group: string, chip: string) {
   const button = (await openGroup(page, group)).getByRole('button', { name: chip, exact: true });
@@ -207,8 +220,7 @@ export async function download(page: Page, button: Locator, info: TestInfo): Pro
 
 /** From a style screen to Print, then download the A4 PDF and check it's a real one. */
 export async function printA4(page: Page, info: TestInfo) {
-  await openReview(page);
-  await main(page).getByRole('button', { name: 'Print my pattern' }).click();
+  await goPrint(page);
   await expect(main(page).getByRole('group', { name: 'Paper' })).toBeVisible();
   await chooseChip(page, 'Paper', 'A4');
   const button = main(page).getByRole('button', { name: /^Download PDF \(\d+ pages?\)$/ });
