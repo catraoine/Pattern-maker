@@ -1,4 +1,4 @@
-import { expect, startWithExample, test } from './fixtures';
+import { expect, openFold, startWithExample, test } from './fixtures';
 
 // Paid extras that aren't open yet show as email sign-ups. The signup function isn't served by Vite,
 // so it's stubbed here and the test checks what the app sends.
@@ -22,14 +22,15 @@ test('offers: sign up for printing by post and a founding place', async ({ page 
 
   await main.getByRole('button', { name: 'Save pattern' }).click();
   await main.getByRole('button', { name: 'your patterns' }).click();
-  const founding = main.getByRole('region', { name: 'Be one of the first 500' });
+  const founding = await openFold(page, 'Membership');
+  await expect(founding).toContainText('Be one of the first 500');
   await founding.screenshot({ path: info.outputPath('founding.png') });
   await founding.getByRole('textbox', { name: 'Your email' }).fill('ada@example.com');
   await founding.getByRole('button', { name: 'Save my place' }).click();
   await expect(founding).toContainText('Your place is saved');
   expect(sent[1]).toMatchObject({ kind: 'interest', offer: 'founding' });
 
-  await main.getByText('Sew-alongs, designers and gifts').click();
+  await openFold(page, 'Coming soon');
   await expect(main.getByRole('heading', { name: 'Sew a garment with us' })).toBeVisible();
   await page.screenshot({ path: info.outputPath('account.png'), fullPage: true });
 });

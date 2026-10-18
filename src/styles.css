@@ -3784,3 +3784,107 @@ button.link.garment-change {
 .pe-sheet button {
   white-space: nowrap;
 }
+
+/* Your account: name on top, then one folded row per topic with a short summary on the right */
+.account {
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.account-who {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.account-who .grow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.account-who .link {
+  min-height: 32px;
+}
+.account-name {
+  align-items: center;
+  gap: 10px;
+}
+.folds > .fold {
+  border-top: 1px solid var(--guide);
+}
+.folds > .fold:last-child {
+  border-bottom: 1px solid var(--guide);
+}
+.fold > details > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 8px 0;
+}
+.fold > details > summary::-webkit-details-marker {
+  display: none;
+}
+.fold > details > summary h2 {
+  font-size: 20px;
+}
+.fold-sum {
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--muted);
+  text-align: right;
+}
+.fold > details > summary::after {
+  content: '+';
+  font-family: var(--mono);
+  color: var(--gild);
+  width: 16px;
+  text-align: center;
+  flex: none;
+}
+.fold > details > summary h2:last-child {
+  margin-right: auto;
+}
+.fold > details[open] > summary::after {
+  content: '−';
+}
+.fold > details > summary:focus-visible {
+  outline: 1px solid var(--focus);
+  outline-offset: 2px;
+}
+.fold-in {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 4px 0 22px;
+}
+.fold-in > .card {
+  padding: 0;
+  flex: none;
+}
+.fold-extra {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+  padding-top: 8px;
+  border-top: 1px solid var(--guide);
+}
+.fold-actions {
+  align-items: center;
+  gap: 16px;
+}
+.saved li .more-btn {
+  letter-spacing: 0.1em;
+  text-decoration: none;
+  padding: 0 6px;
+}
+.saved li .more-menu {
+  flex-basis: 100%;
+  justify-content: flex-end;
+  gap: 16px;
+}

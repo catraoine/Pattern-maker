@@ -1,4 +1,4 @@
-import { expect, openFresh, skipToExample, startWithExample, test } from './fixtures';
+import { expect, openFold, openFresh, skipToExample, startWithExample, test } from './fixtures';
 
 // Billing is off, so nothing locks and the plan screens stay hidden. ?plans=preview shows them for review.
 test('plans: hidden by default, shown in preview without locking anything', async ({ page }, info) => {
@@ -12,6 +12,7 @@ test('plans: hidden by default, shown in preview without locking anything', asyn
   await openFresh(page);
   await skipToExample(page);
   await page.getByRole('button', { name: /account/i }).first().click();
+  await openFold(page, 'Membership');
   const plan = main.getByRole('region', { name: 'Free' });
   await expect(plan).toContainText('Skirt and bodice');
   await plan.getByRole('button', { name: 'See plans' }).click();
