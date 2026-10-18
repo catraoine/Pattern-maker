@@ -19,6 +19,29 @@ export interface FormBody {
   waistY: number;
 }
 
+/** An arm hanging beside the form, as on the bodice sketch: from the shoulder tip, rounding over to
+ * hang just clear of the underarm, `width` across at the top and `wristWidth` at the wrist. */
+export interface FormArm {
+  tip: P;
+  under: P;
+  wristY: number;
+  width: number;
+  wristWidth: number;
+}
+
+/** Where the arm's inner and outer edges sit at the height y (the right arm; the left mirrors it). */
+export function armAt(arm: FormArm, y: number): { inner: number; outer: number } {
+  const { tip, under, wristY, width, wristWidth } = arm;
+  const inner = under.x + 0.6 + 0.04 * Math.max(0, y - under.y);
+  if (y < under.y) {
+    // Rounded over the top of the arm, like a shoulder cap, then straight down.
+    const t = Math.min(1, Math.max(0, (y - tip.y) / Math.max(1, Math.min(8, under.y - tip.y))));
+    return { inner, outer: tip.x + (inner + width - tip.x) * Math.sqrt(1 - (1 - t) ** 2) };
+  }
+  const k = Math.min(1, (y - under.y) / Math.max(1, wristY - under.y));
+  return { inner, outer: inner + width + (wristWidth - width) * k };
+}
+
 interface Props<C> {
   body: FormBody;
   m: Measures;
@@ -35,6 +58,12 @@ interface Props<C> {
   onChoices: (c: C) => void;
   /** Reads a line: what it would become, and in words. */
   read: (kind: FormLine, side: FormSide, stroke: P[]) => Reading<C>;
+  /** What to draw for each kind, where this garment reads a line its own way. */
+  help?: Partial<Record<FormLine, string>>;
+  /** Whether any line goes on the back; without, the form shows its front only. */
+  backs?: boolean;
+  /** Arms beside the form, for a sleeve line. */
+  arms?: FormArm;
   onDone: () => void;
   onCancel: () => void;
 }
@@ -45,6 +74,9 @@ const HELP: Record<FormLine, string> = {
   drape: 'Draw how the cloth hangs: dipping across the neck from shoulder to shoulder for a cowl, or flaring out from the waist for a peplum (wavy for gathers).',
   fit: 'Draw down the side, closer to the body for a closer fit or further out for more room.',
   hem: 'Draw across where you want the hem. Curve it to shape it, or turn to the back and draw it lower for a high-low hem.',
+  sleeve: 'Draw across the arm where you want the sleeve to end.',
+  front: 'Draw down the front where its edge should sit: just past the centre for one row of buttons, further across for two.',
+  collar: 'Draw from the shoulder down the front: down to the bust for lapels, round to the centre for a collarless neck.',
 };
 const BACK_HELP: Partial<Record<FormLine, string>> = {
   neckline: 'Draw down the back to set how low the back neckline goes.',
@@ -59,7 +91,11 @@ const path = (pts: P[]) => pts.map((q, i) => `${i ? 'L' : 'M'}${f(q.x)} ${f(q.y)
 
 /** The bodice form: the neck, a rounded shoulder, then bust, waist and hip, from the drafted block. */
 export function formWidth(draft: BodiceDraft, m: Measures & { full_bust: number }): FormBody {
-  const { neckPoint, shoulderTip, apex, waistY } = landmarks(draft);
+  return torsoForm(landmarks(draft), m);
+}
+
+/** A torso form through the body's own landmarks: the neck point, the shoulder tip, the bust's height and the waist's. */
+export function torsoForm({ neckPoint, shoulderTip, apex, waistY }: { neckPoint: P; shoulderTip: P; apex: P; waistY: number }, m: Measures & { full_bust: number }): FormBody {
   const neck = neckPoint.x * 0.85;
   const bust = m.full_bust / 4;
   const hip = m.full_hip && m.waist_to_hip ? { at: waistY + m.waist_to_hip, half: m.full_hip / 4 } : undefined;
@@ -98,7 +134,7 @@ export function skirtForm(m: { waist: number; full_hip: number; waist_to_hip: nu
   return { width: body, top: -12, bottom: m.waist_to_hip + 8, waistY: 0 };
 }
 
-export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, onChoices, read, onDone, onCancel }: Props<C>) {
+export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, onChoices, read, help: helpFor, backs = true, arms, onDone, onCancel }: Props<C>) {
   const svg = useRef<SVGSVGElement>(null);
   const [kind, setKind] = useState<FormLine>(kinds[0][0]);
   const [side, setSide] = useState<FormSide>('front');
@@ -110,9 +146,9 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
   const onBack = side === 'back' && FRONT_ONLY.includes(kind) ? false : side === 'back';
 
   const frame = useMemo(() => {
-    const half = Math.max(m.full_bust ?? 0, m.full_hip ?? 0, m.waist) / 4 + 7;
+    const half = Math.max(Math.max(m.full_bust ?? 0, m.full_hip ?? 0, m.waist) / 4 + 7, arms ? armAt(arms, arms.wristY).outer + 2 : 0);
     return { half, top: body.top - 2, bottom: Math.max(body.bottom + 12, bottom) };
-  }, [m, body, bottom]);
+  }, [m, body, bottom, arms]);
   const cx = frame.half;
 
   // The form in contour lines, as on the welcome screen: each line a fixed fraction of the way round.
@@ -124,6 +160,23 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
       return { d: path(ys.map((y) => ({ x: cx + u * body.width(y), y }))), edge: Math.abs(u) > 0.98, u };
     });
   }, [body, cx]);
+
+  // The arms, each its outline round from the shoulder to the wrist and three lines down it.
+  const armLines = useMemo(() => {
+    if (!arms) return [];
+    const ys = (a: number, b: number) => Array.from({ length: 41 }, (_, i) => a + ((b - a) * i) / 40);
+    const outer = ys(arms.tip.y, arms.wristY).map((y) => ({ x: armAt(arms, y).outer, y }));
+    const inner = ys(arms.under.y, arms.wristY).map((y) => ({ x: armAt(arms, y).inner, y }));
+    const down = [0.25, 0.5, 0.75].map((k) =>
+      ys(arms.under.y + 2, arms.wristY).map((y) => {
+        const a = armAt(arms, y);
+        return { x: a.inner + (a.outer - a.inner) * k, y };
+      }),
+    );
+    // Up the inside from the wrist, over the shoulder and down the outside, closed across the wrist.
+    const outline = [...[...inner].reverse(), ...outer, inner[inner.length - 1]];
+    return [1, -1].flatMap((s) => [outline, ...down].map((pts, i) => ({ d: path(pts.map((q) => ({ x: cx + s * q.x, y: q.y }))), edge: i === 0 })));
+  }, [arms, cx]);
 
   const current = lines(side);
   const at = (pts: P[]) => path(pts.map((q) => ({ x: cx + q.x, y: q.y })));
@@ -165,7 +218,7 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
     setSaid(undefined);
     if (FRONT_ONLY.includes(k)) setSide('front');
   };
-  const help = (onBack && BACK_HELP[kind]) || HELP[kind];
+  const help = helpFor?.[kind] ?? ((onBack && BACK_HELP[kind]) || HELP[kind]);
 
   return (
     <div className="form-draw">
@@ -179,7 +232,8 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
         </button>
       </div>
       <section className="card" aria-label="Your dress form">
-        <div className="row between wrap">
+        <div className={backs ? 'row between wrap' : 'row end wrap'}>
+          {backs && (
           <div className="seg" role="group" aria-label="Side of the form">
             {(['front', 'back'] as const).map((s) => (
               <button
@@ -197,6 +251,7 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
               </button>
             ))}
           </div>
+          )}
           <button type="button" className="ghost" onClick={undoLine} disabled={!steps.length} aria-label="Undo the last line">
             Undo line
           </button>
@@ -232,6 +287,9 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
                 strokeWidth={0.2}
               />
             )}
+            {armLines.map((a, i) => (
+              <path key={`arm${i}`} d={a.d} className="form-line" fill="none" strokeWidth={a.edge ? 0.22 : 0.12} opacity={a.edge ? 0.9 : 0.35} />
+            ))}
             {contours.map((c, i) => (
               <path key={i} d={c.d} className="form-line" fill="none" strokeWidth={c.edge ? 0.22 : 0.12} opacity={c.edge ? 0.9 : 0.25 + 0.2 * (1 - Math.abs(c.u))} />
             ))}

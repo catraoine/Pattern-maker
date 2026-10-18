@@ -16,6 +16,21 @@ test('a swatch dresses the skirt sketch and carries to the print screen', async 
   await swatches.getByRole('radio', { name: 'Linen' }).click();
   await main.getByRole('button', { name: 'Print my pattern' }).click();
   await expect(main.getByText('Linen', { exact: true }).first()).toBeVisible();
+  // The cutting layout lays the paper pieces on that same cloth.
+  await expect(main.locator('.layplan pattern image').first()).toHaveAttribute('href', /fabrics\/flat\/linen\.jpg$/);
+});
+
+// Shape choices are drawn, numbered sections head them, and the chip keeps its name.
+test('the skirt silhouettes are little drawings under numbered sections', async ({ page }) => {
+  await startWithExample(page);
+  const main = page.getByRole('main');
+  const silhouette = main.getByRole('group', { name: 'Silhouette' });
+  await expect(silhouette.locator('.chips.pics')).toBeVisible();
+  const trumpet = silhouette.getByRole('button', { name: 'Trumpet' });
+  await expect(trumpet.locator('svg.pic')).toBeVisible();
+  await trumpet.click();
+  await expect(trumpet).toHaveAttribute('aria-pressed', 'true');
+  await expect(main.getByRole('heading', { name: 'Style your skirt' })).toBeVisible();
 });
 
 for (const g of ['Dress', 'Trousers'] as GarmentName[]) {

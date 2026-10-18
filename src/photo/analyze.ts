@@ -13,6 +13,7 @@ const Reading = z.object({
   length: z.object({ value: z.enum(['mini', 'above_knee', 'knee', 'midi', 'maxi']), confidence }),
   fit: z.object({ value: z.enum(['fitted', 'regular', 'relaxed']), confidence }),
   shape: z.object({ hemAt: z.number(), hemFullness: z.number(), flareAt: z.number().nullable(), confidence }),
+  worn: z.boolean(),
   details: z.string(),
 });
 
@@ -33,6 +34,8 @@ Pick the closest option in each group:
   - hemAt: where the hem falls, as a fraction of the distance from the natural waist (0) down to the floor (1). On a typical body the hip line is about 0.2, mid-thigh 0.38, just above the knee 0.5, the knee 0.56, mid-calf 0.76 and the ankle 0.93. For a skirt that sits below the natural waist, still measure from the natural waist.
   - hemFullness: the hem's circumference divided by the circumference round the hips. Judge it from how far the hem stands out from the hips and how deep and many the folds are. A pencil skirt is about 0.85 to 0.95, a straight skirt 1, an A-line 1.2 to 1.8, a half circle skirt about 2.5 to 3.5 and a full circle skirt 4 to 6 (more for a long one). Use any number in between that fits what you see.
   - flareAt: for a trumpet skirt, where the flare starts, as a fraction of waist to floor like hemAt (around the knee is 0.5 to 0.56). null for every other silhouette.
+
+worn: true when a person or a full-length mannequin is wearing the skirt, so the hem can be measured against the legs; false when it is laid flat, on a hanger or on a dress form without legs.
 
 Confidence (for each group, and for the shape as a whole): "high" when the photo clearly shows it, "medium" when it is a reasonable reading, "low" when you are guessing (cropped, folded, odd angle, or not a skirt).
 

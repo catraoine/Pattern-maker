@@ -5,6 +5,7 @@ import { TapeDemo } from '../ui/ContourForm';
 import { FIRST_PROJECT } from '../mode';
 import { canGoBack, goBack, usePageHistory } from '../nav';
 import { TapeBand } from '../ui/TapeBand';
+import { Title } from '../ui/Title';
 
 interface Props {
   garment: Garment;
@@ -257,11 +258,17 @@ function Shell({
           </div>
         )}
         {eyebrow && <p className="eyebrow">{eyebrow}</p>}
-        <h1 id="stitle">{helper && helperTitle ? helperTitle : title}</h1>
+        <ShellTitle text={helper && helperTitle ? helperTitle : title} />
         {children}
       </section>
     </div>
   );
+}
+
+/** "First, let's take your measurements." reads as FIRST, with the rest as the label under it. */
+function ShellTitle({ text }: { text: string }) {
+  const cut = text.indexOf(', ');
+  return cut > 0 && cut < 12 ? <Title id="stitle" big={text.slice(0, cut + 1)} label={text.slice(cut + 2)} /> : <h1 id="stitle">{text}</h1>;
 }
 
 function MeasurePage({

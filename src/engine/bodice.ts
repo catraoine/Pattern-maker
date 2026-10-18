@@ -15,6 +15,10 @@ import { moveFrontDart, princessPieces } from './shaping';
 import { Buttons, Closure, Collar, EXTENSION_CM, backNeckFacing, backOnFold, buttonPlaces, collarPieces, frontFacing, openFront } from './collar';
 import { DrapeInfo, Peplum, PeplumInfo, drapeBodice, drapeStyle } from './drape';
 import { BONED_EASE, Structure, TopDetails, bonedPanels, cutTop, isBoned, isTop, topStyle } from './corset';
+import type { HemShape } from './hem';
+import { bodiceHemShape, shapeBodiceHems } from './bodiceHem';
+import { unevenFront, unevenStyle } from './uneven';
+import { Panel, StyleSeam, Yoke, seamStyle, styleSeams } from './seams';
 
 export interface BodiceMeasurements {
   full_bust: number;
@@ -58,6 +62,17 @@ export interface DrawnNeck {
   fullness: number;
 }
 
+/** A front neckline drawn differently on the two sides (see uneven.ts), cut across a whole front: its
+ * lowest point, `depth` cm below the block's centre front neck and `x` cm across from the centre front
+ * (positive toward the wearer's left), and how full each side's curve is, from 0 (straight, like a V)
+ * to 1 (nearly square). The width along the shoulder and the back neck are the neckline's own. */
+export interface UnevenNeck {
+  depth: number;
+  x: number;
+  left: number;
+  right: number;
+}
+
 export interface BodiceStyle {
   fit: BodiceFit;
   neckline: Neckline;
@@ -76,15 +91,22 @@ export interface BodiceStyle {
   lineAt?: number;
   /** A cowl's drape, in cm below the block's centre front neck, drawn on the form. */
   cowlDepth?: number;
+  /** One-shoulder: which shoulder is covered, as worn; the wearer's left unless given. */
+  shoulder?: 'left' | 'right';
   /** A centre back zip (the default) or buttons down the centre front; and a collar. */
   closure?: Closure;
   collar?: Collar;
   /** A dragged hem: cm below the waist (0 for the waist), in place of the named length. */
   dropCm?: number;
+  /** A hem drawn curved, dipped or longer at the back (see bodiceHem.ts), on a bodice below the waist.
+   * A waist-length bodice keeps a level waist. */
+  hem?: HemShape;
   /** A dragged fit: ease at the bust in cm, in place of the fit's own. The waist and hip follow. */
   bustEase?: number;
   /** A drawn neckline, in place of the named one. */
   neck?: DrawnNeck;
+  /** A front neckline drawn differently on the two sides: the front is then cut whole. */
+  unevenNeck?: UnevenNeck;
   /** Shoulder pads drafted in (a jacket or coat): each shoulder point raised by this many cm, the
    * underarm left where it is, so the armhole grows by about as much. */
   shoulderPad?: number;
@@ -92,6 +114,12 @@ export interface BodiceStyle {
   peplum?: Peplum;
   /** Boned like a corset (always with a strapless neckline, by choice with a cami); soft otherwise. */
   structure?: Structure;
+  /** Style seams drawn on the form (see seams.ts), one kind at a time: a front and/or back yoke (cm
+   * below the neck point at the centre), an empire seam (cm below the bust point), or side panels
+   * (where the seam leaves the armhole, 0 to 1). */
+  yoke?: Yoke;
+  empire?: number;
+  panel?: Panel;
 }
 
 /**
@@ -215,6 +243,8 @@ export interface BodiceDraft {
   neckBlock: { front: { neckY: number; neckX: number }; back: { neckY: number; neckX: number } };
   /** How far the hem sits below the waist (0 at the waist). */
   drop: number;
+  /** A shaped hem as drafted, its sides matched and kept in range: offsets from the level hem. */
+  hem?: HemShape;
   neck: number;
   warnings: string[];
   /** The lower shoulder's side and its pieces as drafted, for the seam check. */
@@ -225,12 +255,14 @@ export interface BodiceDraft {
   block?: Piece[];
   /** Lines to draw on the sewn garment in place of the block's bust dart (a moved dart), or of all
    * its darts (princess seams), in the block's coordinates. */
-  styleLines?: { skip: 'side' | 'all'; front: { pts: P[]; kind: 'dart' | 'seam' | 'stitch' }[]; back: { pts: P[]; kind: 'dart' | 'seam' | 'stitch' }[] };
+  styleLines?: { skip: 'side' | 'all' | 'none'; front: { pts: P[]; kind: 'dart' | 'seam' | 'stitch' }[]; back: { pts: P[]; kind: 'dart' | 'seam' | 'stitch' }[] };
+  /** A yoke, an empire seam or side panels, as sewn, in the block's coordinates. */
+  styleSeams?: StyleSeam[];
   closure: Closure;
   collar: Collar;
   /** Where the buttons go on a button front. */
   buttons?: Buttons;
-  /** A one-shoulder or cowl neckline: the front (and a one-shoulder's back) cut as whole pieces. */
+  /** A one-shoulder, cowl or uneven neckline: the front (and a one-shoulder's back) cut as whole pieces. */
   drape?: DrapeInfo;
   /** A peplum at the waist seam, its pieces after the bodice's. */
   peplum?: PeplumInfo;
@@ -311,7 +343,7 @@ const squareTo = (d: P): P => unit(p(d.y, -d.x));
  * and square to the side seam (running down `side`) so it carries on smoothly across the seam once
  * sewn. The corrections fade out within a few cm of each end, so darts in between are not moved.
  */
-function squaredWaist(y0: number, xs: number, ys: number, side: P) {
+export function squaredWaist(y0: number, xs: number, ys: number, side: P) {
   const k = (ys - y0) / xs;
   const sideSlope = -side.x / side.y;
   const L = Math.min(4, xs * 0.25);
@@ -339,8 +371,10 @@ function waistRun(path: Path, y: (x: number) => number, toX: number) {
 /** Draft the block, choosing the armhole depth that makes the armhole the person's armhole
  * measurement plus ease (falls back to a size-table depth without it). */
 export function draftBodice(m: BodiceMeasurements, style: Partial<BodiceStyle> = {}): BodiceDraft {
-  // A draped neckline allows no moved dart, princess seams, collar or button front (see drape.ts).
-  const s = drapeStyle({ ...DEFAULT_BODICE_STYLE, ...style });
+  // A draped or uneven neckline allows no moved dart, princess seams, collar or button front (see
+  // drape.ts and uneven.ts). A yoke, an empire seam or side panels take the bust dart from the side
+  // seam (see seams.ts).
+  const s = unevenStyle(seamStyle(drapeStyle({ ...DEFAULT_BODICE_STYLE, ...style })));
   // A peplum (drape.ts) goes on any waist-length bodice, a boned one too.
   const redraft = (st: BodiceStyle) => draftBlock(m, st);
   if (isTop(s.neckline)) {
@@ -349,7 +383,7 @@ export function draftBodice(m: BodiceMeasurements, style: Partial<BodiceStyle> =
     const cut = cutTop(draftBlock(m, t), t, s.fitting?.lowShoulder);
     return drapeBodice(isBoned(t) ? bonedPanels(cut, t) : shape(cut, t), t, m, redraft);
   }
-  return drapeBodice(finish(shape(draftBlock(m, s), s), s), s, m, redraft);
+  return drapeBodice(unevenFront(finish(styleSeams(shape(draftBlock(m, s), s), s), s), s), s, m, redraft);
 }
 
 /** A button front (the back then on the fold) and a collar, both made on the bodice as sewn. */
@@ -504,6 +538,9 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   const bustDarts = s.darts !== 'none';
   const drop = hemDrop(m, s);
   const below = drop > 0;
+  // A shaped hem, and how high it comes: the fish-eye darts end clear of it.
+  const hemShape = bodiceHemShape(s.hem, m, drop);
+  const shallowest = drop + Math.min(0, ...(hemShape ? [...hemShape.front, ...hemShape.back] : []));
 
   // Bust projection (full minus high bust) goes to the front piece.
   const shift = Math.min(4, Math.max(0.5, (B - HB) / 4));
@@ -598,7 +635,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
     hipB = p(hemFull / 4 - 0.5, wb + drop);
     hipCurve(back, swB, hipB, 'side');
     if (dartB > 0.3) {
-      const depth = Math.max(2, Math.min(12, drop - 3));
+      const depth = Math.max(2, Math.min(12, shallowest - 3));
       backLines.push(fishEye(p(dartXB, scye - dropShoulder + 2.5), p(dartXB - dartB / 2, wb), p(dartXB + dartB / 2, wb), p(dartXB, wb + depth)));
     }
     back.line(p(0, hipB.y), 'hem');
@@ -786,7 +823,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
     hipF = p(hx, swF.y + dy);
     hipCurve(front, swF, hipF, 'side');
     if (dartF > 0.3) {
-      const depth = Math.max(2, Math.min(12, drop - 3));
+      const depth = Math.max(2, Math.min(12, shallowest - 3));
       frontLines.push(
         fishEye(p(apex.x, apex.y + 2.5), p(nearX, waistY(nearX)), p(farX, waistY(farX)), p(apex.x, waistY(apex.x) + depth)),
       );
@@ -852,6 +889,21 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
     meta: pointed ? { pointedAtCentre: ['neck'] } : {},
   };
 
+  // ---- shaped hem ---------------------------------------------------------
+  // Drawn on the form: the hem reshaped round the body, its ends moved along the side seams and the
+  // centre lines, so front and back still meet at the side at the same height.
+  const last = (offs?: number[]) => (offs ? offs[offs.length - 1] : 0);
+  const hemAt = { front: hemShape?.front[0] ?? 0, back: hemShape?.back[0] ?? 0, side: last(hemShape?.front) };
+  if (hemShape) {
+    shapeBodiceHems(frontPiece, backPiece, hemShape);
+    const note = (side: 'front' | 'back') => {
+      const rise = hemAt[side] - hemAt.side;
+      return `Hem shaped as drawn: ${Math.abs(rise) < 0.5 ? 'level with the side seam' : `${cm(Math.abs(rise))} ${rise > 0 ? 'lower' : 'higher'}`} at the centre ${side} than at the side seam, curving smoothly between and square across the centre. Its ends move along the seams, so the side seams still match.`;
+    };
+    frontDraft.points.push({ n: 'H', at: p(0, cfHem + hemAt.front), note: note('front') });
+    backDraft.points.push({ n: 'H', at: p(0, backHem + hemAt.back), note: note('back') });
+  }
+
   // ---- checks -------------------------------------------------------------
   return {
     pieces: [frontPiece, backPiece],
@@ -867,12 +919,13 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
     // Round the body: the waist seam with darts closed (it slopes, so it is longer than the pieces are wide).
     finishedWaist: r(below ? 2 * (swB.x - dartB + swF.x - dartF) : 2 * (taggedLength(front, 'waist') + taggedLength(back, 'waist')), 1),
     finishedHem: below ? r(2 * (hipB.x + hipF.x), 1) : undefined,
-    backLength: r(backHem - bd, 1),
+    backLength: r(backHem + hemAt.back - bd, 1),
     zipCm,
-    front: { apex, waistSide: swF, waistCentre: p(0, wf), hemSide: hipF, hemCentre: p(0, cfHem) },
-    back: { waistSide: swB, waistCentre: p(0, wb), hemSide: hipB, hemCentre: p(0, backHem), neckCentre: p(0, bd), zipEnd },
+    front: { apex, waistSide: swF, waistCentre: p(0, wf), hemSide: add(hipF, p(0, hemAt.side)), hemCentre: p(0, cfHem + hemAt.front) },
+    back: { waistSide: swB, waistCentre: p(0, wb), hemSide: add(hipB, p(0, hemAt.side)), hemCentre: p(0, backHem + hemAt.back), neckCentre: p(0, bd), zipEnd },
     neckBlock: { front: { neckY: cfNeck0.y, neckX: nwF }, back: { neckY: 0, neckX: nw } },
     drop: r(drop, 1),
+    hem: hemShape,
     neck: r(2 * (taggedLength(back, 'neck') + taggedLength(front, 'neck')), 1),
     closure: 'back_zip',
     collar: 'none',

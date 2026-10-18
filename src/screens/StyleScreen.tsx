@@ -29,6 +29,8 @@ import { Mode, ProTool, shows } from '../mode';
 import { ModeLink } from '../ui/ModeLink';
 import { DrawOnForm, skirtForm } from '../ui/DrawOnForm';
 import { readSkirtHem, readSkirtSide, skirtLines } from '../ui/formLines';
+import { Title } from '../ui/Title';
+import { ChoicePic, chipsClass } from '../ui/ChoicePic';
 
 interface Props {
   finish: Finish;
@@ -44,6 +46,8 @@ interface Props {
   onSave: () => void;
   onAccount: () => void;
   onPhoto: () => void;
+  /** The photo the skirt was matched to, while the app is open. */
+  photo?: string;
   /** Open the list of what to make, to pick another garment. */
   onChooseGarment: () => void;
   /** The fabric recorded on the print screen, if any. */
@@ -149,7 +153,7 @@ export function fabricMetres(draft: SkirtDraft): number {
   return toMetres(piecesLengthCm([...draft.pieces, ...layoutExtras(draft)]) + band + 15);
 }
 
-export function StyleScreen({ choices, onChoices, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, onPhoto, onChooseGarment, finish, onFinish, easeMap, fabric, mode = 'all', onMode }: Props) {
+export function StyleScreen({ choices, onChoices, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, onPhoto, photo, onChooseGarment, finish, onFinish, easeMap, fabric, mode = 'all', onMode }: Props) {
   const can = (t: ProTool) => shows(mode, t);
   const [picked, setView] = useState<'sketch' | 'pattern' | 'ease'>('sketch');
   const view = picked === 'ease' && !can('easeMap') ? 'sketch' : picked;
@@ -240,14 +244,27 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
   return (
     <>
     <div className="screen-head">
-      <h1 id="opts">Style your skirt</h1>
+      <Title id="opts" big="Style" label="your skirt" />
       <GarmentSwitch onChoose={onChooseGarment} />
     </div>
-    <div className="split three">
-      <section className="card" aria-labelledby="opts">
-        <button type="button" className="secondary" onClick={onPhoto}>
-          Start from a photo
+    {choices.shape ? (
+      <div className="photo-matched">
+        {photo && <img src={photo} alt="Your photo" />}
+        <div>
+          <p>Matched to your photo</p>
+          <p className="muted small">{shapeLine(choices.shape)}</p>
+        </div>
+        <button type="button" className="link" onClick={() => change({ ...choices, shape: undefined })}>
+          Undo
         </button>
+      </div>
+    ) : (
+      <button type="button" className="secondary photo-entry" onClick={onPhoto}>
+        Start from a photo
+      </button>
+    )}
+    <div className="split three">
+      <section className="card numbered" aria-labelledby="opts">
         <fieldset className="group">
           <legend>Era</legend>
           {!era && <p className="muted small">Pick an era to see its looks. A look sets the fit, shape and length, and you can change any of them after.</p>}
@@ -288,7 +305,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
         {GROUPS.map((g) => (
           <fieldset key={g.id} className="group">
             <legend>{g.label}</legend>
-            <div className="chips">
+            <div className={chipsClass('skirt', g.id)}>
               {g.options.map(([id, label]) => (
                 <button
                   key={id}
@@ -298,6 +315,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
                   disabled={g.id !== 'fit' && !cutAllowed(choices, g.id, id ?? 'none')}
                   onClick={() => choose({ ...choices, [g.id]: id }, g.id)}
                 >
+                  <ChoicePic set="skirt" group={g.id} id={id} />
                   {label}
                 </button>
               ))}
@@ -389,14 +407,6 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
             )}
           </fieldset>
         ))}
-        {choices.shape && (
-          <div className="msg small">
-            <p>Matched to your photo. {shapeLine(choices.shape)}</p>
-            <button type="button" className="link inline-link" onClick={() => change({ ...choices, shape: undefined })}>
-              Use the standard shape instead
-            </button>
-          </div>
-        )}
         {can('insideFinish') && (
           <>
             <p className="eyebrow">Inside the skirt</p>
