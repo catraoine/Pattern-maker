@@ -91,6 +91,21 @@ export function shapeBodiceHems(front: Piece, back: Piece, h: HemShape): void {
   const ends = [front, back].map(hemEnds);
   shapeHemBy(front, (t) => at(lf * (1 - t)), { alongSeams: true });
   shapeHemBy(back, (t) => at(lf + lb * t), { alongSeams: true });
+  // On a curved side seam, moving its end along the seam's direction changes its length only roughly,
+  // and differently front and back: carry the back's end on along its seam until the two match.
+  for (let n = 0; n < 4; n++) {
+    const gap = taggedLength(front.outline, 'side') - taggedLength(back.outline, 'side');
+    if (Math.abs(gap) < 0.01) break;
+    const path = back.outline;
+    const i = path.tags.indexOf('hem');
+    const sideEnd = path.segs[i - 1];
+    const prev = i >= 2 ? path.segs[i - 2].to : path.start;
+    const shift = mul(unit(sub(sideEnd.to, sideEnd.kind === 'C' ? sideEnd.c2 : prev)), gap);
+    sideEnd.to = add(sideEnd.to, shift);
+    if (sideEnd.kind === 'C') sideEnd.c2 = add(sideEnd.c2, shift);
+    const s0 = path.segs[i];
+    if (s0.kind === 'C') s0.c1 = add(s0.c1, shift);
+  }
   // The shape is level at both ends, so the hem leaves the side seam and meets the centre in the
   // directions it was drafted in: set them exactly, so the corners stay square.
   [front, back].forEach((pc, k) => {

@@ -124,3 +124,19 @@ describe('shaped bodice hems', () => {
     expect(hem.text).toMatch(/shaped/);
   });
 });
+
+describe('a shaped hem rising at the side seam', () => {
+  it('keeps the curved side seams the same length front and back', () => {
+    const bad: string[] = [];
+    const curve = (centre: number, side: number) => Array.from({ length: HEM_SAMPLES }, (_, i) => centre + (side - centre) * (i / (HEM_SAMPLES - 1)) ** 2);
+    for (let s = 1; s <= 3; s++) {
+      const m = randomBody(rng(40 + s));
+      for (const princess of ['none', 'shoulder', 'armhole'] as const)
+        for (const hem of [{ front: curve(-4.3, -2.3), back: curve(0, -2.3) }, { front: curve(4, -3.5), back: curve(-2, -3.5) }]) {
+          const style: Partial<BodiceStyle> = { fit: 'fitted', length: 'high_hip', princess, hem };
+          bad.push(...problems(draftBodice(m, style), `body ${s} ${princess}`));
+        }
+    }
+    expect(bad).toEqual([]);
+  });
+});

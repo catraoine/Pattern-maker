@@ -196,13 +196,18 @@ export function strokeToNeck(stroke: P[], side: Side, draft: BodiceDraft, curren
   const round1 = (v: number) => Math.round(v * 10) / 10;
   if (side === 'back') return { ...current, backDepth: round1(Math.min(12, Math.max(0, low.y - block.neckY))) };
   const neckX = Math.max(high.x, block.neckX);
+  // However far it was drawn, the neckline stays 8 cm above the waist and leaves 3 cm of shoulder.
+  const top = worn(draft, 'front').top;
+  const sh = top.pts.filter((_, i) => top.tags[i] === 'shoulder' || (i > 0 && top.tags[i - 1] === 'shoulder'));
+  const shoulderLen = sh.length > 1 ? Math.hypot(sh[sh.length - 1].x - sh[0].x, sh[sh.length - 1].y - sh[0].y) : 12;
+  const maxDepth = draft.front.waistCentre.y - 8 - block.neckY;
   const mid = (low.y + high.y) / 2;
   const near = pts.filter((q) => Math.abs(q.y - mid) < (low.y - high.y) * 0.12);
   const u = near.length ? near.reduce((s, q) => s + q.x, 0) / near.length / neckX : 0.75;
   return {
     ...current,
-    frontDepth: round1(Math.max(0, low.y - block.neckY)),
-    width: round1(Math.max(0, high.x - block.neckX)),
+    frontDepth: round1(Math.min(maxDepth, Math.max(0, low.y - block.neckY))),
+    width: round1(Math.min(Math.max(0, shoulderLen - 3), Math.max(0, high.x - block.neckX))),
     fullness: Math.round(Math.min(1, Math.max(0, (u - 0.5) / 0.45)) * 100) / 100,
   };
 }
