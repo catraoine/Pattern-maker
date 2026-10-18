@@ -18,12 +18,13 @@ import { P, Path, add, len, lerp, mul, p, sub, taggedLength, unit } from './geom
 import { finishDart } from './darts';
 import { Ring, pathOf, ringOf } from './manipulate';
 import type { DraftPoint, Piece } from './piece';
-import type { BodiceDraft, BodiceMeasurements, BodiceStyle } from './bodice';
+import type { BodiceDraft, BodiceMeasurements, BodiceStyle, UnevenNeck } from './bodice';
 import { circlePiece, cm } from './skirt';
 import { facing } from './finishing';
 
 export type Peplum = 'none' | 'flared' | 'gathered';
-export type DrapeKind = 'one_shoulder' | 'cowl';
+/** An uneven neckline (uneven.ts) isn't draped, but its front is a whole piece like these. */
+export type DrapeKind = 'one_shoulder' | 'cowl' | 'uneven';
 
 /** The cowl's drape at the centre front, in cm below the block's centre front neck: a medium cowl. */
 export const COWL_DEPTH = 10;
@@ -55,6 +56,8 @@ export interface DrapeInfo {
   facingCm?: number;
   /** Cowl: a lining front with a lower neckline, hidden under the drape, for a lined bodice. */
   lining?: Piece;
+  /** Uneven: the neckline as drafted, inside its limits. */
+  uneven?: UnevenNeck;
 }
 
 export interface PeplumInfo {
@@ -78,8 +81,8 @@ const angleFrom = (c: P, a: P, b: P) => {
   return Math.atan2(u.x * v.y - u.y * v.x, u.x * v.x + u.y * v.y);
 };
 
-/** Whether a style has a draped neckline (a drawn neckline replaces it). */
-export const isDraped = (s: { neckline: string; neck?: unknown }) => !s.neck && (s.neckline === 'one_shoulder' || s.neckline === 'cowl');
+/** Whether a style has a draped neckline (a drawn neckline, even or uneven, replaces it). */
+export const isDraped = (s: { neckline: string; neck?: unknown; unevenNeck?: unknown }) => !s.neck && !s.unevenNeck && (s.neckline === 'one_shoulder' || s.neckline === 'cowl');
 
 /**
  * A draped neckline allows none of the bodice's other neck and shaping details: no moved dart or
@@ -100,7 +103,7 @@ function dartAfter(r: Ring, after: string): [number, number, number] | undefined
 
 /** Points along a cubic from a to b, finer close to each end so the directions it leaves and arrives in
  * survive (the corner checks read them). Without a. */
-function cubic(a: P, c1: P, c2: P, b: P, steps = 24): P[] {
+export function cubic(a: P, c1: P, c2: P, b: P, steps = 24): P[] {
   const ts = [0.0008, 0.006, ...Array.from({ length: steps - 1 }, (_, i) => (i + 1) / steps), 0.994, 0.9992, 1];
   return ts.map((t) => {
     const m = 1 - t;
@@ -115,7 +118,7 @@ const squareToward = (d: P, toward: P) => {
 };
 
 /** A run of points, tags[i] naming the edge pts[i] -> pts[i + 1]. */
-interface Run {
+export interface Run {
   pts: P[];
   tags: string[];
 }
@@ -124,7 +127,7 @@ interface Run {
 const centreAt = (r: Ring) => r.tags.findIndex((t) => t === 'fold' || t === 'centre');
 
 /** The half from its neck point round the shoulder, armhole, side and waist (or hem) to the centre. */
-function coveredRun(r: Ring): Run {
+export function coveredRun(r: Ring): Run {
   const i0 = r.tags.indexOf('shoulder');
   const iC = centreAt(r);
   return { pts: r.pts.slice(i0, iC + 1), tags: r.tags.slice(i0, iC) };
@@ -194,7 +197,7 @@ const tipOf = (pc: Piece) => {
   return undefined;
 };
 
-const moveLine = (f: (q: P) => P) => (ln: Path) => {
+export const moveLine = (f: (q: P) => P) => (ln: Path) => {
   const q = ln.points().map(f);
   const out = new Path(q[0]);
   q.slice(1).forEach((x) => out.line(x));
@@ -776,13 +779,21 @@ export function drapeBodice(d: BodiceDraft, s: BodiceStyle, m: BodiceMeasurement
 
 /** Facings for a draped neckline: a one-shoulder's top edge and its one armhole, cut from the whole
  * pieces (each cut once, the fabric right side down, so it lies the right way inside); a cowl's back
- * neck and its armholes, its front faced by the cowl's own facing. */
+ * neck and its armholes, its front faced by the cowl's own facing; an uneven neckline's front facing
+ * cut once from the whole front the same way, the rest in pairs from the block. */
 export function drapeFacings(d: BodiceDraft, armholes = true, neck = true): Piece[] {
   if (!d.drape) return [];
+  const once = (pc: Piece | undefined): Piece | undefined =>
+    pc && { ...pc, cut: 'Cut 1, right side down', fold: undefined, labels: pc.labels.map((l, i) => (i === 1 ? { ...l, text: 'Cut 1, right side down' } : l)) };
+  if (d.drape.kind === 'uneven') {
+    const [bf, bb] = d.block ?? d.pieces;
+    return [
+      ...(neck ? [once(facing(d.pieces[0], 'neck', 5, 'Front neck facing')), facing(bb, 'neck', 5, 'Back neck facing')] : []),
+      ...(armholes ? [facing(bf, 'armhole', 4, 'Front armhole facing'), facing(bb, 'armhole', 4, 'Back armhole facing')] : []),
+    ].filter((pc): pc is Piece => !!pc);
+  }
   if (d.drape.kind === 'one_shoulder') {
     const [front, back] = d.pieces;
-    const once = (pc: Piece | undefined): Piece | undefined =>
-      pc && { ...pc, cut: 'Cut 1, right side down', fold: undefined, labels: pc.labels.map((l, i) => (i === 1 ? { ...l, text: 'Cut 1, right side down' } : l)) };
     const faced = [
       ...(neck ? [once(facing(front, 'neck', 5, 'Front facing')), once(facing(back, 'neck', 5, 'Back facing'))] : []),
       ...(armholes ? [once(facing(front, 'armhole', 4, 'Front armhole facing')), once(facing(back, 'armhole', 4, 'Back armhole facing'))] : []),
@@ -810,13 +821,15 @@ export function drapeSpec(d: BodiceDraft): { label: string; finished: number | s
 
 /**
  * A draped bodice's pieces for a lined bodice. Most are cut in both fabrics; a one-shoulder's whole
- * pieces have a lining of their own, cut right side down so it turns in the right way round; the cowl
- * front and the peplum are not lined, and the cowl has its own lower lining front.
+ * pieces (and an uneven neckline's whole front) have a lining of their own, cut right side down so it
+ * turns in the right way round; the cowl front and the peplum are not lined, and the cowl has its own
+ * lower lining front.
  */
 export function drapeLined(pieces: Piece[], d: BodiceDraft): Piece[] {
   const out = pieces.flatMap((pc): Piece[] => {
     if (pc.kind || pc.meta.unlined || /coutil/.test(pc.fabric ?? '')) return [pc];
-    if (pc.meta.covered) {
+    // A whole piece cut right side up (a one-shoulder's, an uneven neckline's front).
+    if (pc.meta.rightSideUp) {
       const cut = pc.meta.faceDown ? 'Cut 1, right side up' : 'Cut 1, right side down';
       const lining: Piece = {
         ...pc,
@@ -843,6 +856,8 @@ export function drapeLined(pieces: Piece[], d: BodiceDraft): Piece[] {
 export function drapeNote(d: BodiceDraft): string | undefined {
   if (d.drape?.kind === 'one_shoulder')
     return `One shoulder, on the ${d.drape.side ?? 'left'}. The front and back are cut whole, each in a single layer with the fabric right side ${d.drape.side === 'right' ? 'down' : 'up'}. The top edge, ${cm(d.drape.edgeCm ?? 0)} round, is drafted a little tight and stay-taped.`;
+  if (d.drape?.kind === 'uneven')
+    return 'An uneven neckline, different on each side. The front is cut whole, in a single layer with the fabric right side up; the back is cut as a pair.';
   if (d.drape?.kind === 'cowl')
     return `Cowl neck, about ${cm(d.drape.depthCm ?? COWL_DEPTH)} deep. The front is cut whole on the true bias, in a single layer, with its facing cut in one with it. Use a fluid fabric.`;
   return undefined;

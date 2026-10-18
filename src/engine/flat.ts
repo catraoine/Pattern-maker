@@ -16,6 +16,7 @@ import { INSEAM, SLANT } from './pockets';
 import type { OuterDraft } from './outerwear';
 import { lerp } from './geometry';
 import { COWL_DEPTH, UNDER_ARM, oneShoulderEdge } from './drape';
+import { unevenEdge } from './uneven';
 
 export type FlatLineKind = 'seam' | 'dart' | 'stitch' | 'zip';
 
@@ -80,7 +81,7 @@ interface Half {
  * folded away, and the piece below it drawn up to `bottom`, so the front's side seam is as long as
  * the back's.
  */
-function sewn(pc: Piece, bottom?: number, skip?: 'side' | 'all'): Half {
+function sewn(pc: Piece, bottom?: number, skip?: 'side' | 'all', centreDrop = 0): Half {
   let { pts, tags } = pc.outline.taggedPoints(8);
   if (len(sub(pts[0], pts[pts.length - 1])) < 1e-6) pts = pts.slice(0, -1);
   tags = tags.slice(0, pts.length);
@@ -143,10 +144,10 @@ function sewn(pc: Piece, bottom?: number, skip?: 'side' | 'all'): Half {
   const centreFoot = pts.find((q) => Math.abs(q.x) < 1e-6 && q.y > footPt.y - 20 && q.y >= Math.max(...pts.filter((r) => Math.abs(r.x) < 1e-6).map((r) => r.y))) ?? footPt;
   const from = side ? Math.min(side.a.y, side.b.y) : lastSide >= 0 ? pts[tags.indexOf('side')].y : 0;
   // Drawn up by its own amount at the side and at the centre, so a front with its bust shaping left
-  // in the hem (no darts) hangs level with the back.
-  const scale = (foot: number) => (bottom !== undefined && foot - from > 1 ? (bottom - from) / (foot - from) : 1);
+  // in the hem (no darts) hangs level with the back. A shaped hem's centre hangs `centreDrop` below.
+  const scale = (foot: number, to = bottom) => (to !== undefined && foot - from > 1 ? (to - from) / (foot - from) : 1);
   const kSide = scale(footPt.y);
-  const kCentre = scale(centreFoot.y);
+  const kCentre = scale(centreFoot.y, bottom !== undefined ? bottom + centreDrop : undefined);
 
   const move = (q: P): P => {
     let x = q.x;
@@ -193,6 +194,12 @@ function sewn(pc: Piece, bottom?: number, skip?: 'side' | 'all'): Half {
     if (len(sub(line[1], line[0])) >= 2) darts.push(line.map(move));
   }
   return { run, tags: runTags, darts, move };
+}
+
+/** The height where a line across the centre crosses it. */
+function centreCrossing(pts: P[]): number {
+  for (let i = 1; i < pts.length; i++) if (pts[i - 1].x * pts[i].x <= 0 && pts[i - 1].x !== pts[i].x) return lerp(pts[i - 1], pts[i], pts[i - 1].x / (pts[i - 1].x - pts[i].x)).y;
+  return Math.max(...pts.map((q) => q.y));
 }
 
 /** The half run and its mirror, as one closed outline. */
@@ -755,26 +762,32 @@ function bodiceViews(d: BodiceDraft, edges: BodiceEdges, sleeve: SleeveDraft | u
   const style = d.styleLines;
   const back = sewn(bb, undefined, style?.skip === 'all' ? 'all' : undefined);
   const backFoot = back.run[back.tags.lastIndexOf('side') + 1].y;
-  const front = sewn(bf, backFoot, style?.skip);
+  // A shaped hem hangs as drafted, the front's centre as far from its side seams as its shape says.
+  const front = sewn(bf, backFoot, style?.skip, d.hem ? d.hem.front[0] - d.hem.front[d.hem.front.length - 1] : 0);
   const hps = (h: Half) => h.run[h.tags.indexOf('shoulder')];
   return ([front, back] as const).map((h, i) => {
     if (d.drape?.kind === 'one_shoulder') return withPeplumView(d, h, oneShoulderView(d, h, i, edges));
-    const shape = whole(h.run);
+    // An uneven front: both halves to the neck points, and the neckline as drafted across them.
+    const uneven = i === 0 && d.drape?.kind === 'uneven' ? unevenEdge(d) : undefined;
+    const fromNeck = uneven ? h.run.slice(h.tags.indexOf('shoulder')) : [];
+    const shape = uneven ? [...fromNeck, ...mirror([...fromNeck].reverse()).slice(1), ...uneven.slice(1, -1)] : whole(h.run);
+    const frontNeckY = uneven ? centreCrossing(uneven) : front.run[0].y;
     const lines: FlatView['lines'] = h.darts.flatMap((dt) => both(dt).map((pts) => ({ pts, kind: 'dart' as const })));
     for (const sl of (i === 0 ? style?.front : style?.back) ?? []) lines.push(...both(sl.pts.map(h.move)).map((pts) => ({ pts, kind: sl.kind })));
     if (i === 0 && h.tags.includes('shoulder')) {
       // The back neckline shows through a lower front neck.
       const shift = sub(hps(front), hps(back));
       const neck = along(back, 'neck')[0]?.map((q) => add(q, shift));
-      if (neck && front.run[0].y > neck[0].y + 1) lines.push(...both(neck).map((pts) => ({ pts, kind: 'seam' as const })));
+      if (neck && frontNeckY > neck[0].y + 1) lines.push(...both(neck).map((pts) => ({ pts, kind: 'seam' as const })));
     }
     // A cowl front's neck is finished by its own facing.
     const collared = d.collar !== 'none' || d.closure === 'front_buttons' || (i === 0 && d.drape?.kind === 'cowl');
     // A boned bodice's top edge is lined and understitched, so no stitching shows; its boning is drawn instead.
     if (d.top?.boned) lines.push(...sideChannel(h, shape));
     if (edges === 'binding' && !d.top?.boned) {
-      for (const run of [...(collared ? [] : along(h, 'neck')), ...(sleeve ? [] : along(h, 'armhole'))])
+      for (const run of [...(collared || uneven ? [] : along(h, 'neck')), ...(sleeve ? [] : along(h, 'armhole'))])
         for (const pts of [run, mirror(run)]) for (const r of inset(pts, 0.6, shape)) lines.push({ pts: r, kind: 'stitch' });
+      if (uneven) for (const r of inset(uneven, 0.6, shape)) lines.push({ pts: r, kind: 'stitch' });
     }
     if (d.finishedHem !== undefined)
       for (const run of along(h, 'hem')) for (const pts of [run, mirror(run)]) for (const r of inset(pts, 2, shape)) lines.push({ pts: r, kind: 'stitch' });
@@ -796,7 +809,7 @@ function bodiceViews(d: BodiceDraft, edges: BodiceEdges, sleeve: SleeveDraft | u
     // Spaghetti straps, from the top edge up over the shoulder.
     const st = d.top?.strapAt && (i === 0 ? d.top.strapAt.front : d.top.strapAt.back);
     if (st) shapes.push(...both(strap([h.move(st[0]), h.move(st[1])])));
-    const neckRun = along(h, 'neck')[0];
+    const neckRun = uneven ? undefined : along(h, 'neck')[0];
     const collar = neckRun ? collarHalf(neckRun, d.collar, i === 0) : [];
     if (sleeve) {
       const sl = sleeveSide(h, sleeve);

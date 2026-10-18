@@ -425,9 +425,11 @@ export function bodiceGuide(draft: BodiceDraft, _style: { length: BodiceLength }
     ...(sleeve ? sleeveSteps(sleeve, seam, curve, edges === 'lined') : []),
     {
       title: 'Hem',
-      text: below
-        ? 'Press up 1 cm, then 1.5 cm more, and stitch by hand or machine.'
-        : 'Press up 0.5 cm, then 1 cm more, and stitch close to the fold.',
+      text: isShaped(draft.hem)
+        ? 'The hem is shaped, so keep it narrow. Press up 0.5 cm, then 1 cm more, easing the curve with steam, and stitch by hand or machine.'
+        : below
+          ? 'Press up 1 cm, then 1.5 cm more, and stitch by hand or machine.'
+          : 'Press up 0.5 cm, then 1 cm more, and stitch close to the fold.',
     },
     {
       title: 'Finish',

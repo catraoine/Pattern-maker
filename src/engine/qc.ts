@@ -396,6 +396,8 @@ function acrossCentre(pc: Piece): Check[] {
     const tag = tags[i] ?? tags[tags.length - 1];
     // A vertex on the centre line, between edges of one kind (a waist, a hem, a facing's edge).
     if (Math.abs(q.x) > 1e-6 || tag !== tags[(i - 1 + n) % n] || !(a.x * b.x < 0)) continue;
+    // A V neckline comes to a point at the centre on purpose.
+    if (((pc.meta.pointedAtCentre as string[] | undefined) ?? []).includes(tag)) continue;
     const u = unit(sub(q, a));
     const v = unit(sub(b, q));
     const angle = 180 - (Math.abs(Math.atan2(u.x * v.y - u.y * v.x, u.x * v.x + u.y * v.y)) * 180) / Math.PI;

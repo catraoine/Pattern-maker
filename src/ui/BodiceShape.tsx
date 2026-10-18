@@ -18,6 +18,8 @@ import {
 } from '../engine/bodice';
 import { BODICE_GROUPS, BodiceChoices, DARTS_FOR_FIT } from '../garments';
 import { COWL_DEPTH } from '../engine/drape';
+import { hemOffsetAt } from '../engine/bodiceHem';
+import { unevenEdge } from '../engine/uneven';
 import type { Side } from './ShapeSketch';
 import { bodiceBodyOutline } from './bodyOutline';
 
@@ -37,7 +39,18 @@ interface Worn {
 
 const f = (q: P) => `${q.x.toFixed(2)} ${q.y.toFixed(2)}`;
 
-/** One half of the bodice as worn: the piece's top edge, then a straight side down to a level waist. */
+/** The hem as worn, `u` from 0 at the centre to 1 at the side seam: level, or shaped as drafted, its
+ * offsets measured from where the level hem would hang. */
+export function wornHem(draft: BodiceDraft, side: Side): (u: number) => P {
+  const land = side === 'front' ? draft.front : draft.back;
+  const shaped = draft.hem;
+  const offset = (u: number) => (shaped ? hemOffsetAt(shaped, side, u, draft.front.hemSide.x, draft.back.hemSide.x) : 0);
+  const level = land.hemCentre.y - offset(0);
+  return (u: number) => ({ x: land.hemSide.x * u, y: level + offset(u) });
+}
+
+/** One half of the bodice as worn: the piece's top edge, then a straight side down to a level waist,
+ * and below the waist the hem, level or shaped as drafted. */
 export function worn(draft: BodiceDraft, side: Side): Worn {
   const pc = blockOf(draft)[side === 'front' ? 0 : 1];
   const land = side === 'front' ? draft.front : draft.back;
@@ -46,7 +59,8 @@ export function worn(draft: BodiceDraft, side: Side): Worn {
   const lastArm = tags.includes('armhole') ? tags.lastIndexOf('armhole') : tags.lastIndexOf('neck');
   const top = pts.slice(0, lastArm + 2);
   const waist = { x: land.waistSide.x, y: land.waistCentre.y };
-  const hem = { x: land.hemSide.x, y: land.hemCentre.y };
+  const hemAt = wornHem(draft, side);
+  const hem = hemAt(1);
   const below = land.hemCentre.y - land.waistCentre.y > 0.5;
   const out = [...top, waist];
   if (below) {
@@ -63,6 +77,7 @@ export function worn(draft: BodiceDraft, side: Side): Worn {
       });
     }
   }
+  if (draft.hem) for (let i = 15; i > 0; i--) out.push(hemAt(i / 16));
   out.push(land.hemCentre);
   const under = top[top.length - 1];
   const widest = top.reduce((a, b) => (b.x > a.x ? b : a));
@@ -85,7 +100,8 @@ export function worn(draft: BodiceDraft, side: Side): Worn {
 /**
  * A draped bodice as worn, as an SVG path given the centre x, or undefined for the block's own: the
  * one-shoulder's covered half, its bare half from under the arm and the top edge as drafted between;
- * the cowl front's neckline hanging in a soft curve between the neck points.
+ * the cowl front's neckline hanging in a soft curve between the neck points; an uneven front's
+ * neckline as drafted, across both halves.
  */
 export function drapedOutline(draft: BodiceDraft, side: Side, w: Worn, cx: number): string | undefined {
   const path = (pts: P[]) => pts.map((q, i) => `${i ? 'L' : 'M'}${f(q)}`).join(' ') + ' Z';
@@ -102,6 +118,14 @@ export function drapedOutline(draft: BodiceDraft, side: Side, w: Worn, cx: numbe
     const covered = w.pts.slice(near({ x: Math.abs(N.x), y: N.y })).map((q) => ({ x: cx + k * q.x, y: q.y }));
     const bare = w.pts.slice(w.topCount, -1).map((q) => ({ x: cx - k * q.x, y: q.y })).reverse();
     return path([...covered, ...bare, ...edge.slice(0, -1)]);
+  }
+  if (draft.drape?.kind === 'uneven' && side === 'front') {
+    // Seen from the front, the wearer's left is on the right, as the whole front lies right side up.
+    const edge = unevenEdge(draft);
+    const N = edge[edge.length - 1];
+    const half = w.pts.slice(near(N));
+    const pts = [...half.map((q) => ({ x: cx + q.x, y: q.y })), ...half.map((q) => ({ x: cx - q.x, y: q.y })).reverse().slice(1), ...edge.slice(1, -1).map((q) => ({ x: cx + q.x, y: q.y }))];
+    return path(pts);
   }
   if (draft.drape?.kind === 'cowl' && side === 'front') {
     const pc = blockOf(draft)[0];

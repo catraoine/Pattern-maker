@@ -116,8 +116,8 @@ export function readNeckline(stroke: P[], draft: BodiceDraft, c: BodiceChoices, 
   }
   const neck = strokeToNeck(half(stroke), side, draft, currentNeck(c));
   if (!neck) return { said: 'Draw down from the shoulder to where you want the neckline to sit.' };
-  const { cowlDepth: _c, ...rest } = c;
-  // A drawn neckline replaces a draped one: the bodice goes back to its round neck, reshaped.
+  const { cowlDepth: _c, unevenNeck: _u, ...rest } = c;
+  // A drawn neckline replaces a draped or uneven one: the bodice goes back to its round neck, reshaped.
   const base = c.neckline === 'one_shoulder' || c.neckline === 'cowl' ? { ...rest, neckline: 'scoop' as const } : rest;
   return {
     choices: validDetails({ ...base, neck }, garment),
@@ -126,7 +126,7 @@ export function readNeckline(stroke: P[], draft: BodiceDraft, c: BodiceChoices, 
 }
 
 function oneShoulder(high: P, c: BodiceChoices, garment: Garment): Reading<BodiceChoices> {
-  const { neck: _n, cowlDepth: _c, shoulder: _s, ...rest } = c;
+  const { neck: _n, cowlDepth: _c, shoulder: _s, unevenNeck: _u, ...rest } = c;
   // Facing the form, the wearer's left is on your right.
   const shoulder = high.x < 0 ? ('right' as const) : ('left' as const);
   const next = validDetails({ ...rest, neckline: 'one_shoulder', ...(shoulder === 'right' ? { shoulder } : {}) }, garment);
@@ -213,7 +213,7 @@ export function readDrape(stroke: P[], draft: BodiceDraft, c: BodiceChoices, gar
     if (isTop(c.neckline) || c.structure === 'boned') return { said: 'A cowl hangs from the shoulders. Pick a neckline with shoulders first.' };
     const centre = stroke.reduce((m, q) => (Math.abs(q.x) < Math.abs(m.x) ? q : m));
     const depth = Math.min(COWL_DEPTH_RANGE.max, Math.max(COWL_DEPTH_RANGE.min, round(centre.y - draft.neckBlock.front.neckY, 0.5)));
-    const { neck: _n, ...rest } = c;
+    const { neck: _n, unevenNeck: _u, ...rest } = c;
     const next = validDetails({ ...rest, neckline: 'cowl', cowlDepth: depth }, garment);
     return { choices: next, said: `A cowl, falling ${depth} cm below your neck in soft folds. It is cut on the bias, so it needs a fluid fabric.` };
   }

@@ -92,7 +92,7 @@ const UNDO_LIMIT = 40;
 export const REPLACES: Record<string, (keyof BodiceChoices)[]> = {
   fit: ['bustEase'],
   length: ['dropCm'],
-  neckline: ['neck', 'cowlDepth'],
+  neckline: ['neck', 'cowlDepth', 'unevenNeck'],
   princess: ['lineAt'],
   bustDart: ['lineAt'],
 };

@@ -1,6 +1,6 @@
 // The garments the app can make, and the style choices saved for each.
 import type { Choices } from './App';
-import type { BodiceDarts, BodiceFit, BodiceLength, DrawnNeck, Neckline } from './engine/bodice';
+import type { BodiceDarts, BodiceFit, BodiceLength, DrawnNeck, Neckline, UnevenNeck } from './engine/bodice';
 import { SHAPES_FOR_LENGTH, SleeveLength, SleeveShape } from './engine/sleeve';
 import type { DartPlace, PrincessLine } from './engine/manipulate';
 import type { Closure, Collar } from './engine/collar';
@@ -9,6 +9,8 @@ import type { Fit, WaistStyle } from './engine/skirt';
 import type { PocketStyle } from './engine/pockets';
 import type { Stretch, TeeFit, TeeLength, TeeNeck, TeeSleeve } from './engine/tee';
 import { Peplum, isDraped } from './engine/drape';
+import { isShaped } from './engine/hem';
+import type { HemShape } from './engine/hem';
 import { Structure, isBoned, isStrapless, isTop } from './engine/corset';
 import type { OuterCollar, OuterFit, OuterFlare, OuterFront, OuterKind, OuterLength, OuterPads, OuterPockets, OuterShaping, OuterSleeve, OuterVent } from './engine/outerwear';
 
@@ -23,6 +25,10 @@ export interface BodiceChoices {
   dropCm?: number;
   bustEase?: number;
   neck?: DrawnNeck;
+  /** Drawn on the form: a curved, dipped or back-longer hem, on a bodice below the waist; and a front
+   * neckline drawn differently on each side, cut across a whole front. */
+  hem?: HemShape;
+  unevenNeck?: UnevenNeck;
   /** Older saves have no sleeves. */
   sleeve?: SleeveLength;
   sleeveShape?: SleeveShape;
@@ -246,7 +252,8 @@ export function detailAllowed(c: BodiceChoices, id: 'princess' | 'bustDart' | 'c
   if (id === 'sleeve') return opt === 'none' || (c.neckline !== 'one_shoulder' && !isTop(c.neckline)) || !!c.neck;
   // Boning needs a top edge below the shoulders, and a strapless one needs the boning to stay up.
   if (id === 'structure') return opt === 'boned' ? isTop(c.neckline) : !isStrapless(c.neckline);
-  if (isDraped(c) && opt !== 'none') return id === 'bustDart' ? opt === 'side' : id === 'closure' && opt === 'back_zip';
+  // So does an uneven neckline, its front cut whole across the centre.
+  if ((isDraped(c) || (c.unevenNeck && !isTop(c.neckline))) && opt !== 'none') return id === 'bustDart' ? opt === 'side' : id === 'closure' && opt === 'back_zip';
   // A top below the shoulders has no shoulder or armhole for a dart or princess line, and opens at the back.
   const top = isTop(c.neckline);
   if (id === 'princess') return opt === 'none' || (c.darts === 'bust_waist' && !top);
@@ -265,6 +272,7 @@ export function validDetails(c: BodiceChoices, garment: 'bodice' | 'dress' = 'bo
   // waist darts carried into the princess seams. Boning goes again when the neckline goes back up.
   if (isTop(out.neckline)) {
     delete out.neck;
+    delete out.unevenNeck;
     if (isStrapless(out.neckline)) out.structure = 'boned';
     if (out.sleeve && out.sleeve !== 'none') out.sleeve = 'none';
     if (isBoned(out)) {
@@ -334,7 +342,7 @@ export function bodiceDetails(c: BodiceChoices) {
   if (isTop(v.neckline)) return `a ${withPeplum(topWords(v, ''), v)}`;
   const { length, shape } = sleeveOf(v);
   const collarWords = v.collar && v.collar !== 'none' && !c.neck ? COLLAR_WORDS[v.collar] : '';
-  const neck = collarWords ? `a ${collarWords}` : `a ${c.neck ? 'drawn neckline' : NECK_WORDS[c.neckline]}`;
+  const neck = collarWords ? `a ${collarWords}` : v.unevenNeck ? 'an uneven neckline' : `a ${c.neck ? 'drawn neckline' : NECK_WORDS[c.neckline]}`;
   return length === 'none' ? neck : `${neck} and ${SLEEVE_WORDS[length]} ${shape === 'straight' ? '' : `${shape} `}sleeves`;
 }
 
@@ -349,8 +357,9 @@ export function describeBodice(c: BodiceChoices) {
   const collar = v.collar && v.collar !== 'none' && !c.neck ? COLLAR_WORDS[v.collar] : '';
   const front = v.closure === 'front_buttons' ? 'button-front ' : '';
   const draped = isDraped(c) ? (c.neckline === 'cowl' ? 'cowl-neck' : 'one-shoulder') : '';
-  const neck = collar ? `${front}${collar.replace(' collar', '')}-collar` : draped || `${front}${c.neck ? 'drawn-neckline' : NECK_WORDS[c.neckline]}`;
+  const neck = collar ? `${front}${collar.replace(' collar', '')}-collar` : draped || (v.unevenNeck ? 'uneven-neckline' : `${front}${c.neck ? 'drawn-neckline' : NECK_WORDS[c.neckline]}`);
   const dropped = c.dropCm !== undefined && c.dropCm >= 3;
   const lengthWords = dropped ? '' : `${c.dropCm !== undefined ? 'waist-length' : LENGTH_WORDS[c.length]} `;
-  return `${lengthWords}${neck}${princess} bodice${sleeve}${dropped ? `, ${Math.round(c.dropCm!)} cm below the waist` : ''}`;
+  const shapedHem = isShaped(c.hem) && (c.length !== 'waist' || dropped) ? ', with a shaped hem' : '';
+  return `${lengthWords}${neck}${princess} bodice${sleeve}${dropped ? `, ${Math.round(c.dropCm!)} cm below the waist` : ''}${shapedHem}`;
 }

@@ -16,9 +16,10 @@ const PRESS: Record<DartPlace, string> = {
 const lower = (s: string) => s.replace(/^Bodice /, 'bodice ').toLowerCase();
 const list = (xs: string[]) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
 
-/** Which pieces go on the fold and which on both layers, from the pieces themselves. */
+/** Which pieces go on the fold and which on both layers, from the pieces themselves. A piece cut
+ * whole from a single layer is cut on its own, before the fabric is folded. */
 export function placeWords(draft: BodiceDraft): string {
-  const main = draft.pieces.filter((pc) => !pc.kind);
+  const main = draft.pieces.filter((pc) => !pc.kind && !pc.meta.singleLayer);
   const fold = main.filter((pc) => /on fold/i.test(pc.cut)).map((pc) => `the ${lower(pc.name)}`);
   const pair = main.filter((pc) => !/on fold/i.test(pc.cut)).map((pc) => `the ${lower(pc.name)}`);
   const f = fold.length ? `Place ${list(fold)} on the fold` : '';
