@@ -1,4 +1,4 @@
-import { chooseChip, expect, expectStyle, fillStepPages, openFresh, pickToMake, startWithExample, stepButton, switchGarment, test } from './fixtures';
+import { chooseChip, expect, expectStyle, fillStepPages, measureMe, openFresh, pickToMake, startWithExample, stepButton, switchGarment, test } from './fixtures';
 
 // Every garment's style screen works the same way: Undo and Redo always in place, and the same save wording.
 test('undo, redo and save read the same on the trousers as on the skirt', async ({ page }) => {
@@ -30,7 +30,7 @@ test('a new sewist sees Start from a photo', async ({ page }) => {
   await openFresh(page);
   const main = page.getByRole('main');
   await main.getByRole('button', { name: 'Begin' }).click();
-  await main.getByRole('button', { name: 'Me', exact: true }).click();
+  await measureMe(page);
   await fillStepPages(page);
   await main.getByRole('button', { name: 'Choose what to make' }).click();
   await pickToMake(page, 'Skirt');
@@ -46,7 +46,7 @@ test('a wrong measurement is explained, not looped', async ({ page }) => {
   await openFresh(page);
   const main = page.getByRole('main');
   await main.getByRole('button', { name: 'Begin' }).click();
-  await main.getByRole('button', { name: 'Me', exact: true }).click();
+  await measureMe(page);
   const box = main.getByRole('textbox');
   const next = () => main.getByRole('button', { name: /^(Next|Done)\b/ }).click();
   // Print in the header waits for the measurements, and says so.
@@ -74,7 +74,7 @@ test('a first dress asks five more measurements, not thirteen', async ({ page })
   await openFresh(page);
   const main = page.getByRole('main');
   await main.getByRole('button', { name: 'Begin' }).click();
-  await main.getByRole('button', { name: 'Me', exact: true }).click();
+  await measureMe(page);
   await fillStepPages(page);
   await main.getByRole('button', { name: 'Choose what to make' }).click();
   await pickToMake(page, 'Dress');

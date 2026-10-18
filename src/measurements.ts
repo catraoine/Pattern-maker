@@ -303,6 +303,17 @@ export const FIELDS: Record<Garment, MeasurementField[]> = { skirt: SKIRT_FIELDS
 export type Unit = 'cm' | 'in';
 export type MeasurementValues = Partial<Record<MeasurementId, number>>; // always stored in cm
 
+/** The dress form a person's patterns are drafted on (Cat's B2 Two Forms, 2026-10-18). Missing means womenswear. */
+export type FormKind = 'womenswear' | 'menswear';
+/** The menswear form has no bust shaping, so these are never asked: the chest stands in for the high bust. */
+export const MENSWEAR_SKIPS: MeasurementId[] = ['high_bust', 'bust_depth', 'apex_separation'];
+/** A garment's measurements on this form. */
+export const fieldsFor = (garment: Garment, form: FormKind = 'womenswear') =>
+  form === 'menswear' ? FIELDS[garment].filter((f) => !MENSWEAR_SKIPS.includes(f.id)) : FIELDS[garment];
+/** Copy about the bust, said of the chest for the menswear form. */
+export const worded = (s: string, form: FormKind = 'womenswear') =>
+  form === 'menswear' ? s.replace(/\b([Ff])ull bust\b/g, (_, f: string) => (f === 'F' ? 'Chest' : 'chest')).replace(/\bbust\b/g, 'chest').replace(/\bBust\b/g, 'Chest') : s;
+
 export const EXAMPLE_VALUES: MeasurementValues = {
   waist: 76,
   full_hip: 102,
@@ -339,7 +350,8 @@ const fmt = (cm: number, unit: Unit) => (unit === 'cm' ? `${cm} cm` : `${Math.ro
 
 const has = (v: MeasurementValues, id: MeasurementId) => typeof v[id] === 'number' && !Number.isNaN(v[id]);
 
-export function checkMeasurements(v: MeasurementValues, unit: Unit, garment: Garment = 'skirt'): Check[] {
+export function checkMeasurements(v: MeasurementValues, unit: Unit, garment: Garment = 'skirt', form: FormKind = 'womenswear'): Check[] {
+  if (form === 'menswear') return checkMeasurements(v, unit, garment).filter((c) => !MENSWEAR_SKIPS.includes(c.id)).map((c) => ({ ...c, message: worded(c.message, form) }));
   const out: Check[] = [];
   for (const f of FIELDS[garment]) {
     const x = v[f.id];
@@ -487,8 +499,8 @@ export function crossChecks(v: MeasurementValues): CrossCheck[] {
 }
 
 /** True when every measurement the garment always needs is filled in. */
-export function isComplete(v: MeasurementValues, garment: Garment = 'skirt'): boolean {
-  return FIELDS[garment].every((f) => f.optional || has(v, f.id));
+export function isComplete(v: MeasurementValues, garment: Garment = 'skirt', form: FormKind = 'womenswear'): boolean {
+  return fieldsFor(garment, form).every((f) => f.optional || has(v, f.id));
 }
 
 export const hasHip = (v: MeasurementValues) => has(v, 'full_hip') && has(v, 'waist_to_hip');

@@ -3354,6 +3354,49 @@ button.link.garment-change {
   color: var(--paper);
 }
 
+/* Which form to draft on (Cat's B2 Two Forms): the two forms side by side, the picked one in the bright line */
+.form-pick {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  /* Takes the room the title and Continue leave, like the welcome's form, so Continue is never a scroll away */
+  flex: 1 1 0;
+  min-height: 120px;
+  max-height: 420px;
+}
+
+.form-pick button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 6px 12px;
+  border: var(--bw) solid var(--disabled);
+  background: none;
+  color: var(--muted);
+  font: var(--w-body) 11px/1.2 var(--mono);
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  cursor: pointer;
+  min-height: 0;
+}
+
+.form-pick button.on {
+  border-color: var(--gild);
+  color: var(--gild);
+}
+
+.form-pick button:not(.on) .form-picture {
+  opacity: 0.45;
+}
+
+.form-picture {
+  display: block;
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+}
+
 /* The tour, full screen */
 .tour {
   position: fixed;
