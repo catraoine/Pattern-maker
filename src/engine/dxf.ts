@@ -1,8 +1,9 @@
 // DXF export laid out the AAMA/ASTM D6673 way, so a pattern maker can open the pieces in Gerber,
 // Lectra, Optitex or CLO 3D. Each piece is a block on the standard layers; the file is plain R12
 // (AC1009), which every apparel CAD package reads. Units are millimetres, y up.
-import { P, add, len, mul, sub, unit } from './geometry';
+import { P, add, len, mul, sub } from './geometry';
 import { Piece, cutLine } from './piece';
+import { allNotches, drillHoles, notchSlit } from './marks';
 
 // AAMA layer numbers.
 export const LAYER = {
@@ -11,6 +12,7 @@ export const LAYER = {
   mirror: '6', // place-on-fold line: the piece is half and opens out along it
   grain: '7',
   internal: '8', // darts and other internal lines
+  drill: '13', // drill holes
   sew: '14', // stitching line
 } as const;
 
@@ -95,6 +97,25 @@ export function quantity(cut: string): number {
   return m ? Number(m[1]) : 1;
 }
 
+/** The nearest point to q on a closed polygon. */
+export function nearestOn(poly: P[], q: P): P {
+  let best = poly[0];
+  let bestD = Infinity;
+  for (let i = 0; i < poly.length; i++) {
+    const a = poly[i];
+    const ab = sub(poly[(i + 1) % poly.length], a);
+    const l2 = ab.x * ab.x + ab.y * ab.y;
+    const t = l2 ? Math.max(0, Math.min(1, ((q.x - a.x) * ab.x + (q.y - a.y) * ab.y) / l2)) : 0;
+    const c = add(a, mul(ab, t));
+    const d = len(sub(q, c));
+    if (d < bestD) {
+      bestD = d;
+      best = c;
+    }
+  }
+  return best;
+}
+
 const blockName = (pc: Piece, i: number) => `P${i + 1}_${ascii(pc.name).toUpperCase().replace(/[^A-Z0-9]+/g, '_')}`;
 
 export function toDxf(pieces: Piece[], info: DxfInfo): string {
@@ -149,11 +170,11 @@ export function toDxf(pieces: Piece[], info: DxfInfo): string {
     pc.lines.forEach((ln) => w.polyline(ln.points(), LAYER.internal, false));
     if (pc.grain) w.line(pc.grain[0], pc.grain[1], LAYER.grain);
     if (pc.fold) w.line(pc.fold[0], pc.fold[1], LAYER.mirror);
-    // AAMA notches are points on the cut line.
-    pc.notches.forEach(([q, d]) => {
-      const edge = add(q, mul(unit(d), pc.seamAllowance));
-      w.point(edge, LAYER.notch);
-    });
+    // AAMA notches are points on the cut line: the seam and dart notches the PDF cuts, each pushed out
+    // by its own edge's allowance, then snapped onto the cut line where edges with different
+    // allowances meet.
+    allNotches(pc).forEach(([q, d]) => w.point(nearestOn(cuts[i], notchSlit(pc, q, d)[0]), LAYER.notch));
+    drillHoles(pc).forEach((q) => w.point(q, LAYER.drill));
 
     const [x0, y0, x1, y1] = extents[i];
     const at = (k: number) => ({ x: x0 + (x1 - x0) * 0.55, y: y0 + (y1 - y0) * 0.35 + k * 1.2 });
