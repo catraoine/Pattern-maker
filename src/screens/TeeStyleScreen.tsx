@@ -20,6 +20,7 @@ import { ModeLink } from '../ui/ModeLink';
 import type { Mode } from '../mode';
 import { Title } from '../ui/Title';
 import { ChoicePic, chipsClass } from '../ui/ChoicePic';
+import { Explain } from '../ui/Explain';
 import { DrawOnForm } from '../ui/DrawOnForm';
 import { TeeFormMeasurements, readTeeFit, readTeeHem, readTeeNeckline, readTeeSleeve, teeForm, teeLines } from '../ui/formTops';
 
@@ -147,6 +148,7 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
                 </button>
               ))}
             </div>
+            <Explain set="tee" group={g.id} options={g.options} pick={choices[g.id]} />
             {g.id === 'stretch' && <p className="muted small">How to test: {STRETCH_TEST}</p>}
             {g.id === 'fit' && <p className="muted small">{FIT_NOTES[choices.fit]}</p>}
           </fieldset>

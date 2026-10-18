@@ -34,6 +34,7 @@ import { EaseMapView } from '../ui/EaseMapView';
 import type { EaseView } from '../engine/easeMap';
 import { Title } from '../ui/Title';
 import { ChoicePic, chipsClass } from '../ui/ChoicePic';
+import { Explain } from '../ui/Explain';
 
 interface Props {
   /** Start from a photo, and the photo this garment was matched to while the app is open. */
@@ -273,6 +274,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
                 </button>
               ))}
             </div>
+            <Explain set="bodice" group={g.id} options={g.options} pick={handShaped(choices, g.id) ? undefined : valueOf(g.id)} />
             {g.id === 'neckline' && choices.neck && (
               <p className="muted small">
                 Drawn by hand.{' '}
