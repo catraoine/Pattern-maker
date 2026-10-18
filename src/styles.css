@@ -3669,6 +3669,10 @@ button.link.garment-change {
   cursor: grab;
 }
 
+.all-round-canvas.all-round-tall {
+  aspect-ratio: 4 / 6.6;
+}
+
 .all-round-canvas:active {
   cursor: grabbing;
 }

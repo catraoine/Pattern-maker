@@ -628,3 +628,9 @@ export function TapeDemo({ id, name, mode = 'loop' }: { id: MeasurementId; name:
 export const FORM_HIP = 0.82;
 export const FORM_FLOOR = FLOOR;
 export const FORM_DEPTH = DEPTH;
+/** The legs' half-width down from the crotch, how far apart they stand, and the knee, for views that
+ * turn the legs (the shape preview of trousers). */
+export const FORM_LEG = LEG;
+export const FORM_LEG_X = 0.27;
+export const FORM_CROTCH = 1.2;
+export const FORM_KNEE = KNEE;

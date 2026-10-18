@@ -6,6 +6,8 @@ import { TROUSER_EASE, TrousersDraft } from '../engine/trousers';
 import { trousersFlat } from '../engine/flat';
 import { TROUSER_GROUPS, TrousersChoices, describeTrousers, trouserAllowed, trouserChoice, validTrousers } from '../garments';
 import { TechFlatView } from '../ui/TechFlatView';
+import { AllRound } from '../ui/AllRound';
+import { roundTrousers } from '../engine/allRound';
 import { FabricSwatches, GarmentFabric } from '../ui/FabricFill';
 import { MeasurementValues } from '../measurements';
 import { PatternPreview } from '../ui/Preview';
@@ -60,11 +62,12 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
   const undo = useUndo(choices, setChoices);
   const onChoices = undo.change;
   const can = (t: ProTool) => shows(mode, t);
-  const [picked, setView] = useState<'sketch' | 'pattern' | 'ease'>('sketch');
+  const [picked, setView] = useState<'sketch' | 'round' | 'pattern' | 'ease'>('sketch');
   const view = picked === 'ease' && !can('easeMap') ? 'sketch' : picked;
   const pieces = useMemo(() => draft?.pieces ?? [], [draft]);
   const sheet = useMemo(() => (draft ? layout(pieces, '', []) : undefined), [draft, pieces]);
   const title = describeTrousers(choices);
+  const round = useMemo(() => (draft ? roundTrousers(draft, values) : undefined), [draft, values]);
   const ease = TROUSER_EASE[choices.fit];
   const extra = fabricEase(fabric, 'trousers');
   const flat = useMemo(
@@ -137,6 +140,9 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
             <button type="button" aria-pressed={view === 'sketch'} className={view === 'sketch' ? 'on' : ''} onClick={() => setView('sketch')}>
               Sketch
             </button>
+            <button type="button" aria-pressed={view === 'round'} className={view === 'round' ? 'on' : ''} onClick={() => setView('round')}>
+              All round
+            </button>
             <button type="button" aria-pressed={view === 'pattern'} className={view === 'pattern' ? 'on' : ''} onClick={() => setView('pattern')}>
               Pieces
             </button>
@@ -155,6 +161,7 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
               <TechFlatView flat={flat} title={title} />
             </GarmentFabric>
           )}
+          {round && view === 'round' && <AllRound round={round} m={values} label={`The ${title.toLowerCase()} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`} />}
           {draft && sheet && view === 'pattern' && <PatternPreview paper sheet={sheet} label={`Pattern pieces for ${title.toLowerCase()}`} />}
           {view === 'ease' && easeMap && <EaseMapView views={easeMap} label={`Ease map of the ${title.toLowerCase()}`} />}
           <UndoToast undo={undo} />

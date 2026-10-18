@@ -6,6 +6,8 @@ import { NECKBAND_CM, STRETCH_TEST, TeeDraft, pctWords } from '../engine/tee';
 import { teeFlat } from '../engine/flat';
 import { TEE_GROUPS, TeeChoices, describeTee } from '../garments';
 import { TechFlatView } from '../ui/TechFlatView';
+import { AllRound } from '../ui/AllRound';
+import { roundTee } from '../engine/allRound';
 import { MeasurementValues } from '../measurements';
 import { PatternPreview } from '../ui/Preview';
 import { GarmentSwitch } from '../ui/GarmentSwitch';
@@ -64,7 +66,7 @@ function friendly(w: string) {
 export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices, onChooseGarment, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, fabric, mode = 'all', onMode }: Props) {
   const undo = useUndo(choices, setChoices);
   const onChoices = undo.change;
-  const [view, setView] = useState<'sketch' | 'pattern'>('sketch');
+  const [view, setView] = useState<'sketch' | 'round' | 'pattern'>('sketch');
   /** Drawing on the form: the choices from before, to keep or go back to. */
   const [onForm, setOnForm] = useState<TeeChoices>();
   const m = values as TeeFormMeasurements;
@@ -73,6 +75,7 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
   const sheet = useMemo(() => (draft ? layout(pieces, '', []) : undefined), [draft, pieces]);
   const flat = useMemo(() => (draft ? teeFlat(draft) : undefined), [draft]);
   const title = describeTee(choices);
+  const round = useMemo(() => (draft ? roundTee(draft, values) : undefined), [draft, values]);
   const hemLabel = choices.length === 'cropped' ? 'Hem' : 'Hip';
   const hemBody = choices.length === 'cropped' ? values.waist : values.full_hip;
 
@@ -163,6 +166,9 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
             <button type="button" aria-pressed={view === 'sketch'} className={view === 'sketch' ? 'on' : ''} onClick={() => setView('sketch')}>
               Sketch
             </button>
+            <button type="button" aria-pressed={view === 'round'} className={view === 'round' ? 'on' : ''} onClick={() => setView('round')}>
+              All round
+            </button>
             <button type="button" aria-pressed={view === 'pattern'} className={view === 'pattern' ? 'on' : ''} onClick={() => setView('pattern')}>
               Pieces
             </button>
@@ -179,6 +185,7 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
         <div className="preview">
           {error && <p className="msg error">{error}</p>}
           {flat && view === 'sketch' && <TechFlatView flat={flat} title={title} />}
+          {round && view === 'round' && <AllRound round={round} m={values} striped={!!fabric?.checks} label={`The ${title.toLowerCase()} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`} />}
           {draft && sheet && view === 'pattern' && <PatternPreview paper sheet={sheet} label={`Pattern pieces for ${title.toLowerCase()}`} />}
           <UndoToast undo={undo} />
         </div>
