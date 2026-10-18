@@ -184,7 +184,7 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
           <UndoToast undo={undo} />
         </div>
         <p className="muted small">
-          Drafted to your measurements as you choose.{undo.shake.state === 'on' ? ' Shake your phone to undo.' : ''}
+          Drafted to your measurements as you choose.
         </p>
         {draft?.warnings.map((w) => (
           <p key={w} className="msg small">
