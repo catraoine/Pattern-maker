@@ -147,7 +147,7 @@ export function TrousersStyleScreen({ choices, onChoices: setChoices, onChooseGa
               <TechFlatView flat={flat} title={title} />
             </GarmentFabric>
           )}
-          {draft && sheet && view === 'pattern' && <PatternPreview sheet={sheet} label={`Pattern pieces for ${title.toLowerCase()}`} />}
+          {draft && sheet && view === 'pattern' && <PatternPreview paper sheet={sheet} label={`Pattern pieces for ${title.toLowerCase()}`} />}
           {view === 'ease' && easeMap && <EaseMapView views={easeMap} label={`Ease map of the ${title.toLowerCase()}`} />}
           <UndoToast undo={undo} />
         </div>

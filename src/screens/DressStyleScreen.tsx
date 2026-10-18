@@ -289,7 +289,7 @@ export function DressStyleScreen({ choices, onChoices: setChoices, onChooseGarme
               <TechFlatView flat={flat} title={title} />
             </GarmentFabric>
           )}
-          {sheet && view === 'pattern' && <PatternPreview sheet={sheet} label={`Pattern pieces for a ${title}`} />}
+          {sheet && view === 'pattern' && <PatternPreview paper sheet={sheet} label={`Pattern pieces for a ${title}`} />}
           {view === 'ease' && easeMap && <EaseMapView views={easeMap} label={`Ease map of the ${title}`} />}
           <UndoToast undo={undo} />
         </div>

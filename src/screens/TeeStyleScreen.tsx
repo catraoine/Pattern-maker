@@ -114,7 +114,7 @@ export function TeeStyleScreen({ choices, onChoices: setChoices, onChooseGarment
         <div className="preview">
           {error && <p className="msg error">{error}</p>}
           {flat && view === 'sketch' && <TechFlatView flat={flat} title={title} />}
-          {draft && sheet && view === 'pattern' && <PatternPreview sheet={sheet} label={`Pattern pieces for ${title.toLowerCase()}`} />}
+          {draft && sheet && view === 'pattern' && <PatternPreview paper sheet={sheet} label={`Pattern pieces for ${title.toLowerCase()}`} />}
           <UndoToast undo={undo} />
         </div>
         <p className="muted small">

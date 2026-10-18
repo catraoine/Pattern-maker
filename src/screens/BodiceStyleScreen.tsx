@@ -353,7 +353,7 @@ export function BodiceStyleScreen({ choices, onChoices, onChooseGarment, values,
             </GarmentFabric>
           )}
           {draft && sheet && view === 'pattern' && (
-            <PatternPreview sheet={sheet} play={play} names={pieces.map((pc) => pc.name)} label={`Front and back pattern pieces for a ${title}`} />
+            <PatternPreview paper sheet={sheet} play={play} names={pieces.map((pc) => pc.name)} label={`Front and back pattern pieces for a ${title}`} />
           )}
           {view === 'ease' && easeMap && <EaseMapView views={easeMap} label={`Ease map of the ${title}`} />}
           {toast && (
