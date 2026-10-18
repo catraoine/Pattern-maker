@@ -5093,16 +5093,15 @@ button.link.garment-change {
   border: var(--bw) solid var(--gild);
 }
 
-.record-flat {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 200px;
+.archive-record > .envelope {
+  padding: 10px;
+  align-self: start;
 }
-
-.record-flat .techflat {
-  height: 100%;
-  max-height: none;
+.archive-record .env-art .techflat {
+  max-height: 140px;
+}
+.archive-record .env-name {
+  font-size: 20px;
 }
 
 .record-body {
@@ -5483,4 +5482,235 @@ input.inline:focus,
 }
 .easerows.paper-sheet .easebands {
   opacity: 0.92;
+}
+
+/* Cat's D1 Drafting Table on a computer (2026-10-18): the style tabs run down the left, the sketch fills the
+   middle between fine rules, and the choices sit on the right above the summary, Print and Save, so the
+   Review page is only for phones. The print screen uses the same three columns. Phones and tablets below
+   1100px keep their own layout. */
+@media (min-width: 1100px) {
+  .style-edit {
+    grid-template-columns: 160px minmax(0, 1fr) minmax(320px, 380px);
+    grid-template-areas: 'tabs preview panel' 'tabs preview side';
+    grid-template-rows: auto 1fr;
+    column-gap: 0;
+  }
+  .style-tabs {
+    position: sticky;
+    top: calc(var(--pin-top, 0px) + 12px);
+    align-self: start;
+    flex-direction: column;
+    gap: 2px;
+    overflow: visible;
+    border-bottom: none;
+    padding: 0;
+  }
+  .style-tabs button {
+    min-height: 40px;
+    padding: 0 0 0 14px;
+    border-bottom: none;
+    border-left: 1.5px solid transparent;
+    margin: 0;
+    text-align: left;
+    font-size: 12px;
+    letter-spacing: 0.2em;
+  }
+  .style-tabs button.on {
+    border-left-color: var(--gild);
+  }
+  .style-pin > section {
+    align-self: stretch;
+    min-height: calc(100vh - var(--pin-top, 0px) - 160px);
+    padding: 0 28px;
+    border-left: 1px solid var(--guide);
+    border-right: 1px solid var(--guide);
+  }
+  .style-panel,
+  .style-side {
+    padding-left: 32px;
+  }
+  .style-panel {
+    min-height: 0;
+  }
+  .style-panel > .tab-part:not([hidden]),
+  .style-panel > .card {
+    padding-top: 0;
+  }
+  .style-side {
+    grid-area: side;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 28px;
+    padding-top: 18px;
+    border-top: 1px solid var(--guide);
+  }
+  .style-side > .eyebrow {
+    margin: 0;
+  }
+  .style-side > aside.card {
+    padding: 0;
+  }
+  .style-side > aside > h2:first-child {
+    display: none;
+  }
+  /* Print and Save come first under the name, so they're in reach without scrolling past the summary. */
+  .style-side > aside > .primary,
+  .style-side > aside > button.secondary {
+    order: -1;
+  }
+  .style-pin .preview-svg {
+    max-height: calc(100vh - var(--pin-top, 0px) - 280px);
+  }
+  .style-pin .preview-svg.sketch {
+    max-width: 480px;
+  }
+}
+
+/* The pattern envelope's front: house name and mark along the top, the flat in the middle, the name set
+   large at the foot, inside one champagne frame. */
+.envelope {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border: var(--bw) solid var(--gild);
+  background: var(--paper);
+  min-width: 0;
+}
+.env-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--muted);
+}
+.env-top span:first-child {
+  color: var(--ink);
+}
+.env-art {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+}
+.env-art .techflat {
+  max-height: 220px;
+}
+.envelope figcaption {
+  display: grid;
+  gap: 4px;
+}
+.env-name {
+  font-family: var(--display);
+  font-stretch: 75%;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 28px;
+  line-height: 0.95;
+  letter-spacing: var(--head-tracking);
+  color: var(--ink);
+  text-wrap: balance;
+}
+.env-foot {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.envelope.small {
+  gap: 6px;
+  padding: 8px;
+}
+.envelope.small .env-top,
+.envelope.small .env-foot {
+  font-size: 7px;
+  letter-spacing: 0.14em;
+}
+.envelope.small .env-top span:last-child {
+  display: none;
+}
+.envelope.small .env-art .techflat {
+  max-height: 64px;
+}
+.envelope.small .env-name {
+  font-size: 13px;
+}
+
+/* The print screen's three columns (D1). Below 1100px the parts sit in one column as before, and the cover
+   is left out. */
+.print-head,
+.print-controls,
+.print-sheet,
+.print-more {
+  display: contents;
+}
+.print-cover {
+  display: none;
+}
+@media (min-width: 1100px) {
+  .card.print-top {
+    display: grid;
+    grid-template-columns: 250px minmax(0, 1fr) 340px;
+    grid-template-areas: 'head sheet controls' 'cover sheet controls' 'cover sheet more';
+    grid-template-rows: auto auto 1fr;
+    gap: 0;
+    padding: 0 22px;
+    align-items: start;
+  }
+  .print-head,
+  .print-cover,
+  .print-controls,
+  .print-sheet,
+  .print-more {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+  }
+  .print-head {
+    grid-area: head;
+    gap: 6px;
+    padding-bottom: 20px;
+  }
+  .print-cover {
+    grid-area: cover;
+    gap: 10px;
+  }
+  .print-cover .eyebrow {
+    margin: 12px 0 0;
+  }
+  .print-cover .pieces {
+    margin: 0;
+    font-size: 14px;
+  }
+  .print-sheet {
+    grid-area: sheet;
+    align-self: stretch;
+    margin: 0 32px;
+    padding: 0 28px;
+    border-left: 1px solid var(--guide);
+    border-right: 1px solid var(--guide);
+  }
+  .print-sheet .preview.tiles {
+    max-height: calc(100vh - 220px);
+  }
+  .print-controls {
+    grid-area: controls;
+  }
+  .print-more {
+    grid-area: more;
+    padding-top: 18px;
+  }
+}
+
+.saved li > .envelope.small {
+  flex: none;
+  width: 112px;
 }

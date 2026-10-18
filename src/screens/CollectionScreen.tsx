@@ -4,6 +4,7 @@ import { COLLECTION, HouseLook, lookFlat, lookValues } from '../collection';
 import { NEXT_DROP, clock, dropLook, dropNo, dropState, editionLabel } from '../drops';
 import type { MeasurementValues } from '../measurements';
 import { describePattern } from './describe';
+import { Envelope } from '../ui/Envelope';
 import { InterestCard } from '../ui/InterestCard';
 import { TechFlatView } from '../ui/TechFlatView';
 
@@ -105,11 +106,10 @@ function DropSlot({ values, onMake }: Pick<Props, 'values' | 'onMake'>) {
 /** An Archive cut as a catalogue record: number, year, where it's from and who it's credited to. */
 function Record({ cut, values, onMake }: { cut: ArchiveCut; values: MeasurementValues; onMake: Props['onMake'] }) {
   const open = canMake(cut);
+  const flat = useMemo(() => lookFlat(cut, lookValues(cut, values).values), [cut, values]);
   return (
     <li className="archive-record">
-      <div className="record-flat">
-        <Flat look={cut} values={values} />
-      </div>
+      <Envelope name={cut.name} flat={flat} foot={String(cut.year)} />
       <div className="record-body">
         <p className="accession">{accession(cut)}</p>
         <h2>{cut.name}</h2>
