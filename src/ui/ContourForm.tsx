@@ -468,14 +468,10 @@ function frame(w: number, h: number, z: number, seen = h) {
   const wy = a.wy + (wy1 - a.wy) * k;
   return { S, cx: a.cx, wy, lw: Math.max(0.7, S / 252) * 1.2, Y: (y: number) => wy + (y - 0.1) * S, k };
 }
-function figure(g: CanvasRenderingContext2D, w: number, h: number, z: number, seen = h) {
-  g.globalAlpha = 1;
-  g.fillStyle = '#000';
-  g.fillRect(0, 0, w, h);
-  g.strokeStyle = CHAMPAGNE;
-  g.lineCap = 'round';
-  g.lineJoin = 'round';
-  const { S, cx, lw, Y, k } = frame(w, h, z, seen);
+/** The form with its legs and floor line, at any scale: `legs` fades the legs in (0 to 1). The same
+ * body as every other screen, for views that need the whole figure (the turning shape preview). */
+export function paintFigure(g: CanvasRenderingContext2D, S: number, cx: number, Y: (y: number) => number, lw: number, legs = 1) {
+  const k = legs;
   const P = (y: number, th: number): Pt => [cx + Math.cos(th) * R(y) * S, Y(y) + Math.sin(th) * R(y) * S * DEPTH, Math.cos(th)];
   taper(g, YS.map((y) => [cx - R(y) * S, Y(y)]), 1, (u) => lw * (0.5 + Math.sin(Math.PI * u)));
   taper(g, YS.map((y) => [cx + R(y) * S, Y(y)]), 1, (u) => lw * (0.5 + Math.sin(Math.PI * u)));
@@ -510,6 +506,16 @@ function figure(g: CanvasRenderingContext2D, w: number, h: number, z: number, se
     g.strokeStyle = '#9a8e78';
     stroke(g, [cx - 0.9 * S, Y(FLOOR)], [cx + 0.9 * S, Y(FLOOR)]);
   }
+}
+function figure(g: CanvasRenderingContext2D, w: number, h: number, z: number, seen = h) {
+  g.globalAlpha = 1;
+  g.fillStyle = '#000';
+  g.fillRect(0, 0, w, h);
+  g.strokeStyle = CHAMPAGNE;
+  g.lineCap = 'round';
+  g.lineJoin = 'round';
+  const { S, cx, lw, Y, k } = frame(w, h, z, seen);
+  paintFigure(g, S, cx, Y, lw, k);
   // The welcome's fade, which lifts as the legs come into view
   g.globalAlpha = 1 - k;
   const fade = g.createLinearGradient(0, h * FADE_FROM, 0, h);
@@ -652,3 +658,10 @@ export function TapeDemo({ id, name, mode = 'loop' }: { id: MeasurementId; name:
 
   return <canvas ref={ref} className="contour" aria-hidden="true" />;
 }
+
+/** The form's half-width at height y (waist at 0.1), and where the hip and floor sit, for drawing a
+ * garment round the same body. */
+export const formHalfWidth = (y: number) => R(y);
+export const FORM_HIP = 0.82;
+export const FORM_FLOOR = FLOOR;
+export const FORM_DEPTH = DEPTH;
