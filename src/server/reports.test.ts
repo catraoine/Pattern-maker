@@ -158,6 +158,8 @@ describe('sign-ups', () => {
     expect(checkSignup(JSON.stringify({ kind: 'interest', offer: 'founding', email: 'A@b.co', website: '' }))).toEqual({ kind: 'interest', offer: 'founding', email: 'a@b.co' });
     expect(checkSignup(JSON.stringify({ kind: 'interest', offer: 'printed', email: 'a@b.co', pattern: 'A-line skirt' }))).toMatchObject({ pattern: 'A-line skirt' });
     expect(checkSignup(JSON.stringify({ kind: 'interest', offer: 'lottery', email: 'a@b.co' }))).toBeNull();
+    expect(checkSignup(JSON.stringify({ kind: 'interest', offer: 'deadstock', email: 'a@b.co', cut: true }))).toMatchObject({ offer: 'deadstock', cut: true });
+    expect(checkSignup(JSON.stringify({ kind: 'interest', offer: 'deadstock', email: 'a@b.co', cut: 'yes' }))).toBeNull();
     expect(checkSignup(JSON.stringify({ kind: 'interest', offer: 'kit', email: 'a@b.co', website: 'spam.example' }))).toBeNull();
   });
 

@@ -158,7 +158,15 @@ export const SignupSchema = z.discriminatedUnion('kind', [
     .strict(),
   z.object({ kind: z.literal('news'), email, website: honeypot }).strict(),
   // "Tell me when it opens" for a paid extra that isn't built yet (src/offers.ts).
-  z.object({ kind: z.literal('interest'), offer: z.enum(OFFER_IDS), email, pattern: z.string().trim().max(120).optional(), website: honeypot }).strict(),
+  z.object({
+    kind: z.literal('interest'),
+    offer: z.enum(OFFER_IDS),
+    email,
+    pattern: z.string().trim().max(120).optional(),
+    // Deadstock: they'd like the length cut into their pattern pieces too.
+    cut: z.boolean().optional(),
+    website: honeypot,
+  }).strict(),
 ]);
 
 export type Signup = z.infer<typeof SignupSchema>;
