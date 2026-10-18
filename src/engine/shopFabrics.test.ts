@@ -1,21 +1,21 @@
 import { describe, expect, it } from 'vitest';
-import { COLOURS, SHOP_FABRICS, cartLink, colourHex, coloursFor, shopFabricsFor, withShopFabric } from './shopFabrics';
+import { COLOURS, SHOP_FABRICS, buyAmount, buyLink, colourHex, coloursFor, shopFabricsFor, withShopFabric } from './shopFabrics';
 import { pickColour, pickFabric, pickShopFabric, flatId, fabricLabel } from '../ui/FabricFill';
 import type { Finish } from '../App';
 
-const denim = SHOP_FABRICS.find((f) => f.id === 'ex-denim-12oz')!;
+const denim = SHOP_FABRICS.find((f) => f.id === 'mood-denim')!;
 const start = {} as Finish;
 
 describe('shop fabrics', () => {
   it('fills in the fabric from a shop fabric and keeps the checks', () => {
     const f = withShopFabric({ checks: { repeat: 4 }, fibre: 'silk' }, denim);
-    expect(f).toMatchObject({ shop: denim.id, name: denim.name, fibre: 'cotton', special: 'denim', weight: 'heavy', colour: 'Indigo', checks: { repeat: 4 } });
+    expect(f).toMatchObject({ shop: denim.id, name: denim.name, fibre: 'cotton', special: 'denim', weight: 'heavy', colour: 'Night sky', checks: { repeat: 4 } });
   });
 
   it('offers a shop fabric its own colourways, any other fabric the general set', () => {
     expect(coloursFor({ shop: denim.id })).toBe(denim.colours);
     expect(coloursFor({ fibre: 'linen' })).toBe(COLOURS);
-    expect(colourHex({ shop: denim.id, colour: 'Indigo' })).toBe('#24324f');
+    expect(colourHex({ shop: denim.id, colour: 'Indigo twill' })).toBe('#24324f');
     expect(colourHex({ fibre: 'linen', colour: 'navy' })).toBe('#24304d');
     expect(colourHex({ fibre: 'linen', colour: 'teal with flecks' })).toBeUndefined();
   });
@@ -25,9 +25,21 @@ describe('shop fabrics', () => {
     expect(shopFabricsFor('tee')).toHaveLength(0);
   });
 
-  it('has no checkout until a shop has joined, then rounds the metres up', () => {
-    expect(cartLink(denim, 2.4)).toBeUndefined();
-    expect(cartLink({ ...denim, cart: 'https://shop.example/cart?q={qty}' }, 2.41)).toBe('https://shop.example/cart?q=2.5');
+  it('buys whole yards from a shop that sells by the yard, tenths of a metre otherwise', () => {
+    expect(buyAmount(denim, 2.4)).toEqual({ qty: 3, unit: 'yd' });
+    expect(buyAmount(denim, 1.8288)).toEqual({ qty: 2, unit: 'yd' });
+    expect(buyAmount({ ...denim, yards: false }, 2.41)).toEqual({ qty: 2.5, unit: 'm' });
+  });
+
+  it("opens the colour's own page, or the cart with the amount when the shop has cart links", () => {
+    expect(buyLink(denim, 'Indigo twill', 2.4)).toEqual({ href: denim.colours[1].url, inCart: false });
+    expect(buyLink(denim, undefined, 2.4)?.href).toBe(denim.colours[0].url);
+    expect(buyLink({ ...denim, cart: 'https://shop.example/cart?q={qty}' }, 'Black', 2.4)).toEqual({ href: 'https://shop.example/cart?q=3', inCart: true });
+    expect(buyLink({ ...denim, colours: [{ name: 'Black', hex: '#000' }] }, 'Black', 2.4)).toBeUndefined();
+  });
+
+  it('every shop fabric has a page to buy each colour from', () => {
+    for (const f of SHOP_FABRICS) for (const c of f.colours) expect(c.url ?? f.cart, `${f.id} ${c.name}`).toMatch(/^https:\/\//);
   });
 });
 

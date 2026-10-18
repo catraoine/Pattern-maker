@@ -62,11 +62,12 @@ test('None, a colour and a shop fabric on the skirt sketch', async ({ page }) =>
   await none.click();
   await expect(main.locator('.garment-fabric')).toHaveCount(0);
   await main.getByRole('tab', { name: 'Shop' }).click();
-  await main.getByRole('radiogroup', { name: 'Fabric from partner shops' }).getByRole('radio', { name: /12 oz organic denim/ }).click();
+  await main.getByRole('radiogroup', { name: 'Fabric from partner shops' }).getByRole('radio', { name: /Cotton denim/ }).click();
   await expect(main.locator('.garment-fabric pattern image').first()).toHaveAttribute('href', /fabrics\/flat\/denim\.jpg$/);
-  await main.getByRole('radiogroup', { name: 'Colour' }).getByRole('radio', { name: 'Black' }).click();
+  await main.getByRole('radiogroup', { name: 'Colour' }).getByRole('radio', { name: 'Indigo twill' }).click();
   await main.getByRole('button', { name: 'Print my pattern' }).click();
-  await expect(main.locator('#fabname')).toHaveValue('12 oz organic denim');
-  await expect(main.locator('#fabcolour')).toHaveValue('Black');
-  await expect(main.locator('.shopbuy')).toContainText('Example shop');
+  await expect(main.locator('#fabname')).toHaveValue('Cotton denim, 10.5 oz');
+  await expect(main.locator('#fabcolour')).toHaveValue('Indigo twill');
+  await expect(main.locator('.shopbuy')).toContainText('Mood Fabrics');
+  await expect(main.locator('.shopbuy a')).toHaveAttribute('href', /indigo-cotton-denim-twill-420606$/);
 });

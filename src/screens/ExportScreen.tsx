@@ -25,7 +25,7 @@ import { Mode, ProTool, shows } from '../mode';
 import { ModeLink } from '../ui/ModeLink';
 import { countStep } from '../report/report';
 import { flatId } from '../ui/FabricFill';
-import { cartLink, shopFabric } from '../engine/shopFabrics';
+import { buyAmount, buyLink, shopFabric, shopPrice, type ShopFabric } from '../engine/shopFabrics';
 import { canShareFiles, download } from '../ui/download';
 import { LabelCard } from '../ui/LabelCard';
 
@@ -566,6 +566,27 @@ function Swatches({ value, onPick }: { value?: Fibre | Special; onPick: (v: Fibr
   );
 }
 
+/** Buy the shop fabric: opens the shop's own site with the amount from the cutting layout. */
+function BuyShopFabric({ shop, colour, metres }: { shop: ShopFabric; colour?: string; metres: number }) {
+  const { qty, unit } = buyAmount(shop, metres);
+  const link = buyLink(shop, colour, metres);
+  const words = unit === 'yd' ? (qty === 1 ? 'yard' : 'yards') : 'm';
+  const amount = unit === 'yd' ? `${qty} ${words}` : `${qty} m`;
+  const cost = Math.ceil(qty * shopPrice(shop, colour));
+  if (!link) return <p className="muted small">You need {amount}, about ${cost}.</p>;
+  return (
+    <>
+      <a className="buylink" href={link.href} target="_blank" rel="noopener noreferrer">
+        Buy {unit === 'yd' ? `${qty} yd` : `${qty} m`} at {shop.shop}
+      </a>
+      <p className="muted small">
+        {link.inCart ? `${amount} goes straight into the cart` : `Add ${amount} on ${shop.shop}'s page`}, about ${cost} {shop.currency}. We may earn a
+        commission when you buy.
+      </p>
+    </>
+  );
+}
+
 /** The fabric the maker has bought: checked against the style, and carried into the ease, the PDF and the tech pack. */
 function YourFabric({
   fabric,
@@ -615,19 +636,12 @@ function YourFabric({
         <div className="shopbuy">
           <p className="small">
             <b>{shop.name}</b>
-            {fabric.colour ? `, ${fabric.colour}` : ''} <span className="muted">from {shop.shop}, ${shop.price}/m</span>
+            {fabric.colour ? `, ${fabric.colour}` : ''}{' '}
+            <span className="muted">
+              from {shop.shop}, ${shopPrice(shop, fabric.colour)}/{shop.yards ? 'yd' : 'm'}
+            </span>
           </p>
-          {metres !== undefined &&
-            (cartLink(shop, metres) ? (
-              <a className="button" href={cartLink(shop, metres)} target="_blank" rel="noopener noreferrer">
-                Buy {metres} m
-              </a>
-            ) : (
-              <p className="muted small">
-                You need {metres} m, about ${Math.ceil(metres * shop.price)}. Buying straight from partner shops opens soon; leave your email on the fabric kit card
-                and we&rsquo;ll tell you.
-              </p>
-            ))}
+          {metres !== undefined && <BuyShopFabric shop={shop} colour={fabric.colour} metres={metres} />}
         </div>
       )}
       <p className="muted small">

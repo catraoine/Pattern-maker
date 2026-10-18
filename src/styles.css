@@ -4361,6 +4361,23 @@ button.link.garment-change {
   display: grid;
   gap: 6px;
 }
+/* Buy at the shop: a link that opens the shop's site, drawn like the outlined buttons. */
+.shopbuy .buylink {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  min-height: 52px;
+  padding: 0 24px;
+  border-radius: var(--pill);
+  border: var(--bw) solid var(--gild);
+  color: var(--gild);
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: var(--w-strong);
+  text-transform: uppercase;
+  letter-spacing: var(--track);
+  text-decoration: none;
+}
 .shopbuy p {
   margin: 0;
 
