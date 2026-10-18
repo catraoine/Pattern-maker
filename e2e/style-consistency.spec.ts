@@ -20,7 +20,7 @@ test('undo, redo and save read the same on the trousers as on the skirt', async 
   await expect(wide).toHaveAttribute('aria-pressed', 'true');
   await expect(redo).toBeDisabled();
 
-  await expect(main.getByRole('group', { name: 'Preview view' }).getByRole('button', { name: 'Pieces', exact: true })).toBeVisible();
+  await expect(main.getByRole('group', { name: 'Preview view' }).getByRole('button', { name: /^Pattern/ })).toBeVisible();
   await openReview(page);
   await main.getByRole('button', { name: 'Save pattern' }).click();
   await expect(main.getByRole('status').filter({ hasText: 'Saved to your patterns' })).toBeVisible();

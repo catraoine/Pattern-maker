@@ -2866,6 +2866,7 @@ table.history td.moved {
 .easerow svg {
   width: 100%;
   max-height: 360px;
+  overflow: visible;
 }
 .easebands {
   opacity: 0.7;
@@ -2883,15 +2884,15 @@ table.history td.moved {
 .easename {
   fill: var(--muted);
   font-family: var(--mono);
-  font-size: 2.4px;
+  font-size: 1.8px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
-.ease-tight { fill: #e0604f; background: #e0604f; }
-.ease-snug { fill: #e3a454; background: #e3a454; }
-.ease-fit { fill: #d9c49b; background: #d9c49b; }
-.ease-easy { fill: #86b0a5; background: #86b0a5; }
-.ease-loose { fill: #6f8cc4; background: #6f8cc4; }
+/* Champagne shades, darker where it's closer (Cat's E3 + G1). */
+.ease-held { fill: #5a3a1e; background: #5a3a1e; }
+.ease-close { fill: #8a6d3b; background: #8a6d3b; }
+.ease-comfy { fill: #c4a774; background: #c4a774; }
+.ease-roomy { fill: #eadcb8; background: #eadcb8; }
 .easelegend {
   display: flex;
   flex-wrap: wrap;
@@ -5162,4 +5163,83 @@ input.inline:focus,
   align-items: baseline;
   flex-wrap: wrap;
   gap: 4px 10px;
+}
+
+/* Preview switch (Cat's D1): Garment / Pattern as two boxes, a short hint under each name. */
+.lookboxes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  width: 100%;
+}
+.lookboxes button {
+  display: grid;
+  gap: 2px;
+  justify-items: start;
+  min-height: 48px;
+  padding: 9px 12px;
+  border: var(--bw) solid var(--muted);
+  border-radius: var(--pill);
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+.lookboxes button.on {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--white);
+}
+.lookname {
+  font-size: 13px;
+  font-weight: var(--w-strong);
+}
+.lookhint {
+  font-family: var(--sans);
+  font-size: 12px;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--muted);
+}
+.lookboxes button.on .lookhint {
+  color: var(--white);
+  opacity: 0.75;
+}
+.fitswitch {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 12px;
+  cursor: pointer;
+}
+.fitswitch .knob {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  border: var(--bw) solid var(--gild);
+}
+.fitswitch .knob::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 12px;
+  height: 12px;
+  background: var(--muted);
+  transition: left 0.15s ease;
+}
+.fitswitch.on .knob::after {
+  left: 19px;
+  background: var(--gild);
+}
+.easerows.paper-sheet .easename {
+  fill: var(--muted);
+}
+.easerows.paper-sheet .easebands {
+  opacity: 0.92;
 }

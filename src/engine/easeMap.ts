@@ -1,7 +1,7 @@
 // The ease map: how much room the garment has over the body, level by level, drawn as colour on the
 // flat pieces, front and back. At each level the pieces' widths are added up as sewn (darts closed,
 // every piece counted as many times as it is cut) and the body's own measurement at that level is taken
-// away: red where it would strain, through snug and fitted, to blue where it falls loose.
+// away: held in, close, comfy or roomy.
 import type { P } from './geometry';
 import type { Piece } from './piece';
 
@@ -18,12 +18,13 @@ export interface EaseView {
   bands: EaseBand[];
 }
 
+// Four plain words, shaded darker where it's closer (Cat's E3 and G1, 2026-10-18). Under 0 is only ever
+// on purpose: a boned bodice is cut smaller than the body so the boning holds it.
 export const EASE_LEVELS: { max: number; label: string; cls: string }[] = [
-  { max: 0, label: 'Strains', cls: 'ease-tight' },
-  { max: 2, label: 'Snug', cls: 'ease-snug' },
-  { max: 6, label: 'Fitted', cls: 'ease-fit' },
-  { max: 12, label: 'Easy', cls: 'ease-easy' },
-  { max: Infinity, label: 'Loose', cls: 'ease-loose' },
+  { max: 0, label: 'Held in', cls: 'ease-held' },
+  { max: 6, label: 'Close', cls: 'ease-close' },
+  { max: 12, label: 'Comfy', cls: 'ease-comfy' },
+  { max: Infinity, label: 'Roomy', cls: 'ease-roomy' },
 ];
 
 export const easeLevel = (ease: number) => EASE_LEVELS.find((l) => ease < l.max) ?? EASE_LEVELS[EASE_LEVELS.length - 1];

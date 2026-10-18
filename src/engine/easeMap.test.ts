@@ -85,9 +85,10 @@ describe('ease map', () => {
   });
 
   it('names the levels', () => {
-    expect(easeLevel(-1).label).toBe('Strains');
-    expect(easeLevel(1).label).toBe('Snug');
-    expect(easeLevel(4).label).toBe('Fitted');
-    expect(easeLevel(30).label).toBe('Loose');
+    expect(easeLevel(-1).label).toBe('Held in');
+    expect(easeLevel(1).label).toBe('Close');
+    expect(easeLevel(4).label).toBe('Close');
+    expect(easeLevel(8).label).toBe('Comfy');
+    expect(easeLevel(30).label).toBe('Roomy');
   });
 });

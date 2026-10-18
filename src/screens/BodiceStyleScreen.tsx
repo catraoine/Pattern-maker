@@ -31,6 +31,7 @@ import { FABRIC, Group, PRO, StyleLayout, TabPanel } from '../ui/StyleLayout';
 
 import { Mode, ProTool, shows } from '../mode';
 import { EaseMapView } from '../ui/EaseMapView';
+import { FitSwitch, GarmentViews, PreviewSwitch } from '../ui/PreviewSwitch';
 import type { EaseView } from '../engine/easeMap';
 import { ChoicePic, chipsClass } from '../ui/ChoicePic';
 import { Explain } from '../ui/Explain';
@@ -108,12 +109,13 @@ export const REPLACES: Record<string, (keyof BodiceChoices)[]> = {
 };
 const handShaped = (c: BodiceChoices, id: string) => (REPLACES[id] ?? []).some((k) => c[k] !== undefined);
 
-type View = 'sketch' | 'round' | 'flat' | 'pattern' | 'ease';
+type View = 'sketch' | 'round' | 'flat' | 'pattern';
 
 export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChooseGarment, values, draft, sleeve, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, finish, onFinish, fabric, mode = 'all', onMode }: Props) {
   const can = (t: ProTool) => shows(mode, t);
-  const [picked, setView] = useState<View>('sketch');
-  const view = picked === 'ease' && !can('easeMap') ? 'sketch' : picked;
+  const [view, setView] = useState<View>('sketch');
+  const [fit, setFit] = useState(false);
+  const canFit = !!easeMap?.length && can('easeMap');
   const [side, setSide] = useState<Side>('front');
   const [drawing, setDrawing] = useState(false);
   const [play, setPlay] = useState(0);
@@ -177,12 +179,12 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
     change(validDetails({ ...next, sleeveShape: sleeveOf(next).shape }));
   };
 
-  const views: [View, string][] = [
-    ['sketch', 'Sketch'],
+  // The garment's own views: the sketch's two sides, the flat drawing, all round on the form.
+  const garmentViews: [Side | 'flat' | 'round', string][] = [
+    ['front', 'Front'],
+    ['back', 'Back'],
+    ['flat', 'Drawing'],
     ['round', 'All round'],
-    ['flat', 'Flat'],
-    ['pattern', 'Pieces'],
-    ...(easeMap && easeMap.length > 0 && can('easeMap') ? ([['ease', 'Ease']] as [View, string][]) : []),
   ];
 
   if (onForm && draft) {
@@ -340,44 +342,44 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
       </section>
 
       <section className="card grow" aria-label="Preview">
+        <PreviewSwitch
+          look={view === 'pattern' ? 'pattern' : 'garment'}
+          onLook={(l) => {
+            setView(l === 'pattern' ? 'pattern' : 'sketch');
+            setDrawing(false);
+          }}
+        />
         <div className="row between wrap">
-          <div className="seg views" role="group" aria-label="Preview view">
-            {views.map(([id, name]) => (
-              <button
-                key={id}
-                type="button"
-                aria-pressed={view === id}
-                className={view === id ? 'on' : ''}
-                onClick={() => {
-                  setView(id);
-                  setDrawing(false);
-                }}
-              >
-                {name}
-              </button>
-            ))}
-          </div>
+          {view !== 'pattern' && draft ? (
+            <GarmentViews
+              views={garmentViews.filter(([id]) => (id === 'round' ? !!round : id === 'flat' ? !!flat : true))}
+              view={view === 'sketch' ? side : view}
+              onView={(v) => {
+                if (v === 'round' || v === 'flat') setView(v);
+                else {
+                  setSide(v);
+                  setView('sketch');
+                }
+                setDrawing(false);
+              }}
+            />
+          ) : canFit ? (
+            <FitSwitch on={fit} onChange={setFit} />
+          ) : (
+            <span />
+          )}
           <UndoTools undo={undoer} />
         </div>
         {view === 'sketch' && draft && (
-          <div className="row between wrap">
-            <div className="seg" role="group" aria-label="Sketch side">
-              {(['front', 'back'] as const).map((s) => (
-                <button key={s} type="button" aria-pressed={side === s} className={side === s ? 'on' : ''} onClick={() => setSide(s)}>
-                  {s}
-                </button>
-              ))}
-            </div>
-            <div className="row tools">
-              <button type="button" className="link small" onClick={() => setOnForm(choices)}>
-                Draw on your form
+          <div className="row tools">
+            <button type="button" className="link small" onClick={() => setOnForm(choices)}>
+              Draw on your form
+            </button>
+            {!top && (
+              <button type="button" className={drawing ? 'ghost on' : 'ghost'} aria-pressed={drawing} onClick={() => setDrawing(!drawing)}>
+                {drawing ? 'Done' : 'Draw neck'}
               </button>
-              {!top && (
-                <button type="button" className={drawing ? 'ghost on' : 'ghost'} aria-pressed={drawing} onClick={() => setDrawing(!drawing)}>
-                  {drawing ? 'Done' : 'Draw neck'}
-                </button>
-              )}
-            </div>
+            )}
           </div>
         )}
         <div className="preview">
@@ -402,10 +404,10 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
               <TechFlatView flat={flat} title={title} />
             </GarmentFabric>
           )}
-          {draft && sheet && view === 'pattern' && (
+          {draft && sheet && view === 'pattern' && !(fit && canFit) && (
             <PatternPane><PatternPreview paper sheet={sheet} play={play} names={pieces.map((pc) => pc.name)} label={`Front and back pattern pieces for a ${title}`} /></PatternPane>
           )}
-          {view === 'ease' && easeMap && <EaseMapView views={easeMap} label={`Ease map of the ${title}`} />}
+          {view === 'pattern' && fit && canFit && <EaseMapView views={easeMap!} label={`The fit of the ${title}, on its pattern pieces`} />}
           <UndoToast undo={undoer} />
         </div>
         {view === 'sketch' && (
@@ -423,10 +425,11 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
         {view === 'flat' && <p className="muted small">The technical flat, front and back, drawn to scale.</p>}
         {view === 'pattern' && draft && (
           <div className="row between wrap">
-            <button type="button" className="ghost" onClick={() => setPlay(play + 1)}>
-              Watch it draft
-            </button>
-            <p className="muted small">Drafted to your measurements as you choose.</p>
+            {!(fit && canFit) && (
+              <button type="button" className="ghost" onClick={() => setPlay(play + 1)}>
+                Watch it draft
+              </button>
+            )}
           </div>
         )}
         {draft?.warnings.map((w) => (
