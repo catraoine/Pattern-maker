@@ -7,7 +7,8 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { RoundSkirt, stripesMeet } from '../engine/allRound';
 import type { SkirtMeasurements } from '../engine/skirt';
-import { FORM_DEPTH, FORM_FLOOR, FORM_HIP, formHalfWidth, paintFigure } from './ContourForm';
+import { R as formHalfWidth } from '../engine/form';
+import { FORM_DEPTH, FORM_FLOOR, FORM_HIP, paintFigure } from './ContourForm';
 
 // Matching --gild, --gild-glow, --guide, --muted and --ok in styles.css.
 const GILD = '#d9c49b';

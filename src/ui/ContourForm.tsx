@@ -623,9 +623,8 @@ export function TapeDemo({ id, name, mode = 'loop' }: { id: MeasurementId; name:
   return <canvas ref={ref} className="contour" aria-hidden="true" />;
 }
 
-/** The form's half-width at height y (waist at 0.1), and where the hip and floor sit, for drawing a
- * garment round the same body. */
-export const formHalfWidth = (y: number) => R(y);
+/** Where the hip and floor sit on the form, and how deep its rings look, for drawing a garment round
+ * the same body (its half-width is R in engine/form.ts). */
 export const FORM_HIP = 0.82;
 export const FORM_FLOOR = FLOOR;
 export const FORM_DEPTH = DEPTH;
