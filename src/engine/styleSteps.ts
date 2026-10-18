@@ -1,8 +1,10 @@
 // The bodice's sewing steps for its styled details, laid over the block's steps: a moved bust dart,
-// princess seams, a button front and a collar. Plain ASCII punctuation (see instructions.ts).
+// princess seams, a yoke, an empire seam or side panels, a button front and a collar. Plain ASCII
+// punctuation (see instructions.ts).
 import type { BodiceDraft } from './bodice';
 import type { SewStep, SewingGuide } from './instructions';
 import type { DartPlace } from './manipulate';
+import { dartsOf } from './marks';
 
 const PRESS: Record<DartPlace, string> = {
   side: 'from the side seam to the point, and press it down',
@@ -27,13 +29,72 @@ export function placeWords(draft: BodiceDraft): string {
   return `${f}${pr}.`;
 }
 
+/**
+ * A style seam's steps: the darts it carries, sewn from the seam, and the seam itself. The bust dart of
+ * a front yoke opens on the yoke seam of the lower front; an empire seam takes the bust and waist darts
+ * into one dart on the upper bodice, with the midriff's darts below it; side panels carry the bust dart
+ * in the centre front's waist dart.
+ */
+function seamSteps(draft: BodiceDraft, seam: string): { darts?: SewStep; join: SewStep } {
+  const named = (re: RegExp) => draft.pieces.filter((pc) => !pc.kind && re.test(pc.name));
+  const darted = (re: RegExp) => named(re).some((pc) => dartsOf(pc).length > 0);
+  const kind = draft.styleSeams![0].kind;
+  if (kind === 'yoke') {
+    const front = named(/front yoke/).length > 0;
+    const back = named(/back yoke/).length > 0;
+    const which = front && back ? 'yokes' : front ? 'front yoke' : 'back yokes';
+    const backText = front
+      ? 'Join each back yoke to its back the same way, matching the double notches.'
+      : `Pin each back yoke to the top edge of its back, right sides together, matching the centre back and the double notches. Sew ${seam} from the edge, and press the seam up toward the yoke.`;
+    const text = [front ? `Pin the front yoke to the top edge of the bodice front, right sides together, matching the centre front and the notch. Sew ${seam} from the edge, and press the seam up toward the yoke.` : '', back ? backText : ''];
+    return { join: { title: `Join the ${which}`, text: text.filter(Boolean).join(' ') } };
+  }
+  if (kind === 'empire') {
+    const upper = darted(/^Bodice (front|back)$/);
+    const band = darted(/midriff/);
+    const darts: SewStep | undefined =
+      upper || band
+        ? {
+            title: 'Sew the darts',
+            text: [
+              upper ? 'Fold each dart of the bodice front and back with right sides together so the dart lines meet, stitch from the empire seam edge to the point, and press it toward the centre.' : '',
+              band ? `Fold each midriff dart ${upper ? 'the same way' : 'with right sides together so the dart lines meet'}, stitch from the waist edge to the point, and press toward the centre.` : '',
+              'Run each line of stitching off the fold at the point and knot the threads.',
+            ]
+              .filter(Boolean)
+              .join(' '),
+          }
+        : undefined;
+    return {
+      darts,
+      join: {
+        title: 'Join the midriff band',
+        text: `Pin the bodice front to the midriff front along the empire seam, right sides together, matching the centre front, the notches${upper && band ? ', the side edges and the darts, so each dart runs on into the one below it' : ' and the side edges'}. Sew ${seam} from the edge, and press the seam down toward the midriff. Join each back to its midriff back the same way, matching the centre back.`,
+      },
+    };
+  }
+  return {
+    darts: darted(/centre (front|back)/)
+      ? {
+          title: 'Sew the darts',
+          text: `Fold each dart of the centre front and centre backs with right sides together so the dart lines meet, stitch from the waist edge to the point, and press it toward the centre.${draft.bustDart > 0.3 ? ' The front dart takes the bust shaping too, so it runs up close to the bust point.' : ''} Run each line of stitching off the fold at the point and knot the threads.`,
+        }
+      : undefined,
+    join: {
+      title: 'Sew the panel seams',
+      text: `Pin each side front to the centre front, right sides together, from the armhole to the waist, matching the notches. Sew ${seam} from the edge, and press the seam toward the centre front. Sew the back panel seams the same way, matching their notches, and press them toward the centre back.`,
+    },
+  };
+}
+
 /** Steps for the styled bodice, given the block's steps. */
 export function styleBodiceSteps(g: SewingGuide, draft: BodiceDraft, o: { seam: string; curve: string; edges: string; sleeve: boolean }): SewingGuide {
   const at = (title: string) => g.steps.findIndex((s) => s.title === title);
   let steps = [...g.steps];
   const buttons = draft.closure === 'front_buttons';
   const collar = draft.collar;
-  const princess = draft.pieces.some((pc) => /centre front/i.test(pc.name));
+  const seamKind = draft.styleSeams?.[0]?.kind;
+  const princess = !seamKind && draft.pieces.some((pc) => /centre front/i.test(pc.name));
   const moved = draft.pieces[0].meta.bustDart as DartPlace | undefined;
 
   // Cutting: the pieces as cut, and the collar and facings.
@@ -62,6 +123,14 @@ export function styleBodiceSteps(g: SewingGuide, draft: BodiceDraft, o: { seam: 
     };
   } else if (darts >= 0 && moved) {
     steps[darts] = { ...steps[darts], text: steps[darts].text.replace('from the side seam to the point, and press it down', PRESS[moved]) };
+  }
+  if (seamKind) {
+    const added = seamSteps(draft, o.seam);
+    if (seamKind === 'yoke' && darts >= 0 && draft.pieces.some((pc) => pc.meta.yoke && /front/.test(pc.name)))
+      steps[darts] = { ...steps[darts], text: steps[darts].text.replace('from the side seam to the point, and press it down', 'from the yoke edge to the point, and press it toward the centre front') };
+    if (seamKind !== 'yoke' && darts >= 0) steps[darts] = added.darts ?? steps[darts];
+    const after = darts >= 0 ? darts + 1 : steps.findIndex((s) => s.title === 'Neaten the edges') + 1;
+    steps.splice(after, 0, added.join);
   }
 
   if (collar === 'mandarin' && !buttons && o.edges === 'facings') {

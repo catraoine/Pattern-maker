@@ -18,6 +18,7 @@ import { BONED_EASE, Structure, TopDetails, bonedPanels, cutTop, isBoned, isTop,
 import type { HemShape } from './hem';
 import { bodiceHemShape, shapeBodiceHems } from './bodiceHem';
 import { unevenFront, unevenStyle } from './uneven';
+import { Panel, StyleSeam, Yoke, seamStyle, styleSeams } from './seams';
 
 export interface BodiceMeasurements {
   full_bust: number;
@@ -113,6 +114,12 @@ export interface BodiceStyle {
   peplum?: Peplum;
   /** Boned like a corset (always with a strapless neckline, by choice with a cami); soft otherwise. */
   structure?: Structure;
+  /** Style seams drawn on the form (see seams.ts), one kind at a time: a front and/or back yoke (cm
+   * below the neck point at the centre), an empire seam (cm below the bust point), or side panels
+   * (where the seam leaves the armhole, 0 to 1). */
+  yoke?: Yoke;
+  empire?: number;
+  panel?: Panel;
 }
 
 /**
@@ -248,7 +255,9 @@ export interface BodiceDraft {
   block?: Piece[];
   /** Lines to draw on the sewn garment in place of the block's bust dart (a moved dart), or of all
    * its darts (princess seams), in the block's coordinates. */
-  styleLines?: { skip: 'side' | 'all'; front: { pts: P[]; kind: 'dart' | 'seam' | 'stitch' }[]; back: { pts: P[]; kind: 'dart' | 'seam' | 'stitch' }[] };
+  styleLines?: { skip: 'side' | 'all' | 'none'; front: { pts: P[]; kind: 'dart' | 'seam' | 'stitch' }[]; back: { pts: P[]; kind: 'dart' | 'seam' | 'stitch' }[] };
+  /** A yoke, an empire seam or side panels, as sewn, in the block's coordinates. */
+  styleSeams?: StyleSeam[];
   closure: Closure;
   collar: Collar;
   /** Where the buttons go on a button front. */
@@ -334,7 +343,7 @@ const squareTo = (d: P): P => unit(p(d.y, -d.x));
  * and square to the side seam (running down `side`) so it carries on smoothly across the seam once
  * sewn. The corrections fade out within a few cm of each end, so darts in between are not moved.
  */
-function squaredWaist(y0: number, xs: number, ys: number, side: P) {
+export function squaredWaist(y0: number, xs: number, ys: number, side: P) {
   const k = (ys - y0) / xs;
   const sideSlope = -side.x / side.y;
   const L = Math.min(4, xs * 0.25);
@@ -363,8 +372,9 @@ function waistRun(path: Path, y: (x: number) => number, toX: number) {
  * measurement plus ease (falls back to a size-table depth without it). */
 export function draftBodice(m: BodiceMeasurements, style: Partial<BodiceStyle> = {}): BodiceDraft {
   // A draped or uneven neckline allows no moved dart, princess seams, collar or button front (see
-  // drape.ts and uneven.ts).
-  const s = unevenStyle(drapeStyle({ ...DEFAULT_BODICE_STYLE, ...style }));
+  // drape.ts and uneven.ts). A yoke, an empire seam or side panels take the bust dart from the side
+  // seam (see seams.ts).
+  const s = unevenStyle(seamStyle(drapeStyle({ ...DEFAULT_BODICE_STYLE, ...style })));
   // A peplum (drape.ts) goes on any waist-length bodice, a boned one too.
   const redraft = (st: BodiceStyle) => draftBlock(m, st);
   if (isTop(s.neckline)) {
@@ -373,7 +383,7 @@ export function draftBodice(m: BodiceMeasurements, style: Partial<BodiceStyle> =
     const cut = cutTop(draftBlock(m, t), t, s.fitting?.lowShoulder);
     return drapeBodice(isBoned(t) ? bonedPanels(cut, t) : shape(cut, t), t, m, redraft);
   }
-  return drapeBodice(unevenFront(finish(shape(draftBlock(m, s), s), s), s), s, m, redraft);
+  return drapeBodice(unevenFront(finish(styleSeams(shape(draftBlock(m, s), s), s), s), s), s, m, redraft);
 }
 
 /** A button front (the back then on the fold) and a collar, both made on the bodice as sewn. */

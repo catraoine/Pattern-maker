@@ -70,6 +70,8 @@ const NAMES: Record<string, string> = {
   crotch: 'crotch seam',
   flounce: 'flounce seam',
   tier: 'tier seam',
+  yoke: 'yoke seam',
+  empire: 'empire seam',
 };
 
 const isFront = (pc: Piece) => /front/i.test(pc.name);
@@ -97,13 +99,19 @@ function bySide(pc: Piece, tag: string): { left: number; right: number } {
 }
 const isBack = (pc: Piece) => /back/i.test(pc.name);
 
-/** Front and back pieces paired by the word before "front" or "back": the bodice's, the skirt's. */
+/** Front and back pieces paired by the word before "front" or "back": the bodice's, the skirt's. A
+ * yoke pairs with the other yoke, or with the piece it sews to when only one side has a yoke. */
 function pairs(pieces: Piece[]): { group: string; front: Piece; back: Piece }[] {
-  const groupOf = (pc: Piece) => pc.name.replace(/\s*(front|back)\b.*$/i, '');
+  const groupOf = (pc: Piece) => pc.name.replace(/\s*(front|back)\b.*$/i, '') + (pc.meta.yoke ? ' yoke' : '');
   const out: { group: string; front: Piece; back: Piece }[] = [];
   for (const front of pieces.filter(isFront)) {
     const back = pieces.find((pc) => isBack(pc) && groupOf(pc) === groupOf(front));
     if (back) out.push({ group: groupOf(front), front, back });
+  }
+  for (const yoke of pieces.filter((pc) => pc.meta.yoke && !out.some((g) => g.front === pc || g.back === pc))) {
+    const base = groupOf(yoke).replace(/ yoke$/, '');
+    const other = pieces.find((pc) => !pc.meta.yoke && (isFront(yoke) ? isBack(pc) : isFront(pc)) && groupOf(pc) === base);
+    if (other) out.push({ group: groupOf(yoke), front: isFront(yoke) ? yoke : other, back: isFront(yoke) ? other : yoke });
   }
   return out;
 }
@@ -225,6 +233,20 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
     });
   }
 
+  // A yoke or an empire seam: the piece above against the piece below, darts closed.
+  for (const [tag, word] of [['yoke', 'yoke seam'], ['empire', 'empire seam']] as const)
+    for (const side of ['front', 'back'] as const) {
+      const on = pieces.filter((pc) => (side === 'front' ? isFront(pc) : isBack(pc)) && taggedLength(pc.outline, tag) > 0);
+      if (on.length !== 2) continue;
+      const [a, b] = on.map((pc) => taggedLength(pc.outline, tag));
+      checks.push({
+        group: 'Seams',
+        label: `${cap(side)} ${word}`,
+        detail: `${on[0].name.replace(/^Bodice /, '').toLowerCase()} ${cm(a)}, ${on[1].name.replace(/^Bodice /, '').toLowerCase()} ${cm(b)}${tag === 'yoke' ? '' : ', darts closed'}, ${Math.abs(a - b) < 0.05 ? 'identical' : `${cm(Math.abs(a - b))} apart`}`,
+        ok: Math.abs(a - b) <= SEAM_TOLERANCE,
+      });
+    }
+
   // A dress: the bodice's waist sewn to the skirt's, front to front and back to back.
   const ofSide = (g: string, side: 'front' | 'back') => pieces.filter((pc) => garmentOf(pc) === g && (side === 'front' ? isFront(pc) : isBack(pc)));
   const bodice = garments.includes('Bodice') && garments.includes('Skirt');
@@ -244,7 +266,8 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
         pcs
           .flatMap((pc) => [
             ...dartsOf(pc)
-              .filter((d) => Math.abs(d.far.x - d.near.x) > Math.abs(d.far.y - d.near.y))
+              // Opening down onto the waist (not a dart from a yoke seam above).
+              .filter((d) => Math.abs(d.far.x - d.near.x) > Math.abs(d.far.y - d.near.y) && d.near.y > d.tip.y)
               // A whole piece has the dart on both sides of the centre.
               .map((d) => Math.abs((d.near.x + d.far.x) / 2)),
             ...(typeof pc.meta.waistSeamAt === 'number' ? [pc.meta.waistSeamAt] : []),

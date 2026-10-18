@@ -81,7 +81,7 @@ interface Half {
  * folded away, and the piece below it drawn up to `bottom`, so the front's side seam is as long as
  * the back's.
  */
-function sewn(pc: Piece, bottom?: number, skip?: 'side' | 'all', centreDrop = 0): Half {
+function sewn(pc: Piece, bottom?: number, skip?: 'side' | 'all' | 'none', centreDrop = 0): Half {
   let { pts, tags } = pc.outline.taggedPoints(8);
   if (len(sub(pts[0], pts[pts.length - 1])) < 1e-6) pts = pts.slice(0, -1);
   tags = tags.slice(0, pts.length);

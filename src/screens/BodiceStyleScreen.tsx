@@ -22,6 +22,7 @@ import { MyFabric, bodiceFabrics, fabricEase } from '../engine/fabrics';
 import { FabricCard } from '../ui/FabricCard';
 import { isDraped, zipSide } from '../engine/drape';
 import { DrawOnForm, formWidth } from '../ui/DrawOnForm';
+import { orSeam, readSeamLine } from '../ui/formSeams';
 import { bodiceHemLine, orNeckline, readBodiceHemShape, readUnevenNeckline, unevenNecklineLines } from '../ui/formBodice';
 import { bodiceLines, landmarks, readDrape, readFit, readNeckline, readSeam } from '../ui/formLines';
 
@@ -218,7 +219,7 @@ export function BodiceStyleScreen({ choices, onChoices, onChooseGarment, values,
           kind === 'neckline'
             ? orNeckline(readUnevenNeckline(stroke, draft, choices, 'bodice', side), () => readNeckline(stroke, draft, choices, 'bodice', side))
             : kind === 'seam'
-              ? readSeam(stroke, draft, choices, 'bodice', side)
+              ? orSeam(readSeamLine(stroke, draft, choices, 'bodice', side), () => readSeam(stroke, draft, choices, 'bodice', side))
               : kind === 'drape'
                 ? readDrape(stroke, draft, choices, 'bodice')
                 : kind === 'fit'

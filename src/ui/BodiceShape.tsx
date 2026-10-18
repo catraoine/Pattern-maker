@@ -31,6 +31,8 @@ interface Worn {
   hemCentre: P;
   /** Dart fold lines, already mirrored, as an SVG path given the centre x. */
   darts: (cx: number) => string;
+  /** The style seams (yoke, empire, panels) on this side, mirrored, as an SVG path given the centre x. */
+  seams: (cx: number) => string;
   /** The piece's own outline, for placing the body round it. */
   top: { pts: P[]; tags: (string | undefined)[] };
   /** How many points of `pts` are the top edge, from the centre neck to the underarm. */
@@ -94,7 +96,9 @@ export function worn(draft: BodiceDraft, side: Side): Worn {
     });
   const darts = (cx: number) =>
     folds.flatMap(([a, b]) => ([1, -1] as const).map((s) => `M${f({ x: cx + s * a.x, y: a.y })} L${f({ x: cx + s * b.x, y: b.y })}`)).join(' ');
-  return { pts: out, widest, hemCentre: land.hemCentre, darts, top: { pts, tags }, topCount: top.length };
+  const lines = (draft.styleSeams ?? []).filter((sm) => sm.side === side).map((sm) => sm.pts);
+  const seams = (cx: number) => lines.flatMap((q) => ([1, -1] as const).map((s) => q.map((r, i) => `${i ? 'L' : 'M'}${f({ x: cx + s * r.x, y: r.y })}`).join(' '))).join(' ');
+  return { pts: out, widest, hemCentre: land.hemCentre, darts, seams, top: { pts, tags }, topCount: top.length };
 }
 
 /**
@@ -359,6 +363,7 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, onLive, o
       {hip && guide(waistY + m.waist_to_hip!, 'HIP')}
       <path d={outline} style={{ fill: 'var(--garment, var(--fill))', stroke: 'var(--ink)' }} strokeWidth={0.25} strokeLinejoin="round" />
       <path d={w.darts(cx)} style={{ fill: 'none', stroke: 'var(--muted)' }} strokeWidth={0.15} />
+      <path d={w.seams(cx)} style={{ fill: 'none', stroke: 'var(--ink)' }} strokeWidth={0.18} strokeLinejoin="round" />
       {zip && <path d={zip} style={{ fill: 'none', stroke: 'var(--muted)' }} strokeWidth={0.2} strokeDasharray="0.8 0.6" />}
       {zip && (
         <text x={cx + 1.2 * k} y={(draft.back.neckCentre.y + draft.back.zipEnd.y) / 2} fontSize={2 * k} className="hint" textAnchor="start">

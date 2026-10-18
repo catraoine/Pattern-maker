@@ -34,6 +34,7 @@ import { lengthRange } from '../engine/skirt';
 import type { BodiceMeasurements } from '../engine/bodice';
 import type { SkirtMeasurements } from '../engine/skirt';
 import { DrawOnForm, formWidth } from '../ui/DrawOnForm';
+import { orSeam, readSeamLine } from '../ui/formSeams';
 import { orNeckline, readUnevenNeckline, unevenNecklineLines } from '../ui/formBodice';
 import { REPLACES } from './BodiceStyleScreen';
 import { bodiceLines, landmarks, readDrape, readFit, readNeckline, readSeam, readSkirtHem, skirtLines } from '../ui/formLines';
@@ -227,7 +228,7 @@ export function DressStyleScreen({ choices, onChoices: setChoices, onChooseGarme
             kind === 'neckline'
               ? orNeckline(readUnevenNeckline(stroke, draft.bodice, asBodice, 'dress', side), () => readNeckline(stroke, draft.bodice, asBodice, 'dress', side))
               : kind === 'seam'
-                ? readSeam(stroke, draft.bodice, asBodice, 'dress', side)
+                ? orSeam(readSeamLine(stroke, draft.bodice, asBodice, 'dress', side), () => readSeam(stroke, draft.bodice, asBodice, 'dress', side))
                 : readDrape(stroke, draft.bodice, asBodice, 'dress');
           return { said: r.said, choices: r.choices && { ...choices, bodice: r.choices } };
         }}

@@ -12,6 +12,7 @@ import { Peplum, isDraped } from './engine/drape';
 import { isShaped } from './engine/hem';
 import type { HemShape } from './engine/hem';
 import { Structure, isBoned, isStrapless, isTop } from './engine/corset';
+import type { Panel, SeamKind, Yoke } from './engine/seams';
 import type { OuterCollar, OuterFit, OuterFlare, OuterFront, OuterKind, OuterLength, OuterPads, OuterPockets, OuterShaping, OuterSleeve, OuterVent } from './engine/outerwear';
 
 export interface BodiceChoices {
@@ -46,6 +47,12 @@ export interface BodiceChoices {
   peplum?: Peplum;
   /** Boned like a corset. Older saves are soft; a strapless neckline is always boned. */
   structure?: Structure;
+  /** Seams drawn on the form, one kind at a time: a front and/or back yoke (cm below the neck point at
+   * the centre), an empire seam (cm below the bust point), or side panels (where the seam leaves the
+   * armhole, 0 at the shoulder to 1 at the underarm). Older saves have none. */
+  yoke?: Yoke;
+  empire?: number;
+  panel?: Panel;
 }
 
 /** A dress: a waist-length bodice and a skirt, in one fit. */
@@ -244,9 +251,11 @@ export const COLLAR_WORDS: Record<Collar, string> = { none: '', peter_pan: 'Pete
  * darts to carry; a top below the waist has no waist seam for the bust dart; collars sit on a high
  * round neck (a Peter Pan on a scoop too); a shirt collar needs the button front. A draped neckline
  * (one-shoulder, cowl) takes only the side bust dart, the back zip and no collar or princess seams, and
- * the one-shoulder is sleeveless. A peplum goes on a waist-length bodice, not on a dress.
+ * the one-shoulder is sleeveless. A peplum goes on a waist-length bodice, not on a dress. A drawn style
+ * seam (yoke, empire, panel) is allowed when seamBlocked finds no reason against it.
  */
-export function detailAllowed(c: BodiceChoices, id: 'princess' | 'bustDart' | 'closure' | 'collar' | 'structure' | 'sleeve' | 'peplum', opt: string, garment: 'bodice' | 'dress' = 'bodice'): boolean {
+export function detailAllowed(c: BodiceChoices, id: 'princess' | 'bustDart' | 'closure' | 'collar' | 'structure' | 'sleeve' | 'peplum' | SeamKind, opt: string, garment: 'bodice' | 'dress' = 'bodice'): boolean {
+  if (id === 'yoke' || id === 'empire' || id === 'panel') return opt === 'none' || !seamBlocked(c, id, garment, opt === 'back' ? 'back' : 'front');
   // A peplum (flared or gathered) goes on a waist-length bodice, boned or soft, never on a dress.
   if (id === 'peplum') return opt === 'none' || (garment === 'bodice' && c.length === 'waist' && !(c.dropCm !== undefined && c.dropCm >= 3));
   if (id === 'sleeve') return opt === 'none' || (c.neckline !== 'one_shoulder' && !isTop(c.neckline)) || !!c.neck;
@@ -262,6 +271,45 @@ export function detailAllowed(c: BodiceChoices, id: 'princess' | 'bustDart' | 'c
   if (opt === 'none') return true;
   if (opt === 'shirt') return c.closure === 'front_buttons' && c.neckline === 'crew';
   return c.neckline === 'crew' || (opt === 'peter_pan' && c.neckline === 'scoop');
+}
+
+const SEAM_WORDS: Record<SeamKind, string> = { yoke: 'A yoke', empire: 'An empire seam', panel: 'Side panels' };
+
+/**
+ * Why a style seam drawn on the form can't go with the rest of the choices, or undefined when it can.
+ * A top cut below the shoulders, a boned bodice and a draped neckline are their own shaping, and so are
+ * princess seams; the seam takes the bust dart, so it can't be moved anywhere else as well. A front
+ * yoke needs a high neckline above it, and a yoke or an empire seam would cross a button front. An
+ * empire seam and side panels run to the waist, so they need a waist-length bodice with no peplum.
+ */
+export function seamBlocked(c: BodiceChoices, kind: SeamKind, garment: 'bodice' | 'dress' = 'bodice', side: 'front' | 'back' = 'front'): string | undefined {
+  const words = SEAM_WORDS[kind];
+  if (isTop(c.neckline) || c.structure === 'boned') return `${words} needs a bodice with shoulders: a strapless or cami top keeps its own panels.`;
+  if (isDraped(c)) return `This neckline is draped, so it takes no ${kind === 'panel' ? 'panel seams' : `${kind === 'yoke' ? 'yoke' : 'empire seam'}`}.`;
+  if (c.unevenNeck && (kind !== 'yoke' || side === 'front')) return `An uneven neckline is cut as one whole front, so it takes no ${kind === 'panel' ? 'panel seams' : kind === 'yoke' ? 'front yoke' : 'empire seam'}.`;
+  if (c.princess && c.princess !== 'none') return `${words} can't go with princess seams. Pick no princess seams first.`;
+  const front = kind !== 'yoke' || side === 'front';
+  if (front && c.bustDart && c.bustDart !== 'side') return `${words} takes the bust dart, so it can't be moved as well. Put the bust dart back in the side seam first.`;
+  if (kind !== 'panel' && c.closure === 'front_buttons') return `${words} would cross the button front. Choose the back zip first.`;
+  if (kind === 'yoke' && side === 'front') {
+    const depth = c.neck ? c.neck.frontDepth : NECKLINE_DEPTH[c.neckline];
+    if (depth > 4) return 'A front yoke needs a high neckline: this one cuts through where the yoke goes.';
+  }
+  if (kind === 'yoke' && side === 'back' && c.neck && c.neck.backDepth > 4) return 'A back yoke needs a high back neckline: this one cuts through where the yoke goes.';
+  if (kind !== 'yoke' && garment === 'bodice' && (c.length !== 'waist' || (c.dropCm !== undefined && c.dropCm >= 3))) return `${words} ${kind === 'panel' ? 'run' : 'runs'} to the waist, so ${kind === 'panel' ? 'they need' : 'it needs'} a waist-length bodice.`;
+  if (kind !== 'yoke' && c.peplum && c.peplum !== 'none') return `${words} ${kind === 'panel' ? 'run' : 'runs'} to the waist, where the peplum goes. Take the peplum off first.`;
+  return undefined;
+}
+
+/** How far each named neckline drops at the centre front, in cm (NECKLINES in bodice.ts). */
+const NECKLINE_DEPTH: Record<Neckline, number> = { crew: 1, scoop: 10, v: 14, square: 10, boat: 2, one_shoulder: 1, cowl: 1, strapless: 0, sweetheart: 0, cami: 0 };
+
+/** The style seam a bodice has, one kind at a time: an empire seam, then side panels, then a yoke. */
+export function seamOf(c: BodiceChoices): SeamKind | undefined {
+  if (c.empire !== undefined) return 'empire';
+  if (c.panel) return 'panel';
+  if (c.yoke && (c.yoke.front !== undefined || c.yoke.back !== undefined)) return 'yoke';
+  return undefined;
 }
 
 /** The choices made valid: details the rest of the choices don't allow fall back to the plain ones. */
@@ -287,6 +335,16 @@ export function validDetails(c: BodiceChoices, garment: 'bodice' | 'dress' = 'bo
   if (out.collar && !detailAllowed(out, 'collar', out.collar, garment)) out.collar = 'none';
   if (out.sleeve && !detailAllowed(out, 'sleeve', out.sleeve, garment)) out.sleeve = 'none';
   if (out.peplum && !detailAllowed(out, 'peplum', out.peplum, garment)) out.peplum = 'none';
+  // A drawn seam the rest no longer allows is let go of, and only one kind is kept.
+  const kind = seamOf(out);
+  for (const k of ['empire', 'panel', 'yoke'] as const) if (k !== kind) delete out[k];
+  if (kind === 'yoke' && out.yoke) {
+    const yoke = { ...out.yoke };
+    if (yoke.front !== undefined && seamBlocked(out, 'yoke', garment, 'front')) delete yoke.front;
+    if (yoke.back !== undefined && seamBlocked(out, 'yoke', garment, 'back')) delete yoke.back;
+    if (yoke.front === undefined && yoke.back === undefined) delete out.yoke;
+    else out.yoke = yoke;
+  } else if (kind && seamBlocked(out, kind, garment)) delete out[kind];
   return out;
 }
 
@@ -334,6 +392,29 @@ function withPeplum(name: string, v: BodiceChoices) {
 }
 const LENGTH_WORDS: Record<BodiceLength, string> = { waist: 'waist-length', high_hip: 'high-hip-length', hip: 'hip-length' };
 
+/** The style seam as a word before "bodice": "empire-waist", "side-panel", "yoked", "front-yoke". */
+function seamAdjective(v: BodiceChoices) {
+  const kind = seamOf(v);
+  if (kind === 'empire') return 'empire-waist';
+  if (kind === 'panel') return 'side-panel';
+  if (kind !== 'yoke') return '';
+  if (v.yoke!.front !== undefined && v.yoke!.back !== undefined) return 'yoked';
+  return v.yoke!.front !== undefined ? 'front-yoke' : 'back-yoke';
+}
+
+/** The style seam for a dress's name: "an empire waist", "side panels", "a back yoke". */
+function seamNoun(v: BodiceChoices) {
+  const kind = seamOf(v);
+  if (kind === 'empire') return 'an empire waist';
+  if (kind === 'panel') return 'side panels';
+  if (kind !== 'yoke') return '';
+  if (v.yoke!.front !== undefined && v.yoke!.back !== undefined) return 'a yoke';
+  return v.yoke!.front !== undefined ? 'a front yoke' : 'a back yoke';
+}
+
+/** Words joined as a list: "a, b and c". */
+const listed = (words: string[]) => (words.length < 2 ? words.join('') : `${words.slice(0, -1).join(', ')} and ${words[words.length - 1]}`);
+
 const SLEEVE_WORDS: Record<SleeveLength, string> = { none: '', short: 'short', elbow: 'elbow-length', three_quarter: 'three-quarter', long: 'long' };
 
 /** The bodice's neckline and sleeves, for a dress's name: "a scoop neck and short puff sleeves". */
@@ -343,7 +424,8 @@ export function bodiceDetails(c: BodiceChoices) {
   const { length, shape } = sleeveOf(v);
   const collarWords = v.collar && v.collar !== 'none' && !c.neck ? COLLAR_WORDS[v.collar] : '';
   const neck = collarWords ? `a ${collarWords}` : v.unevenNeck ? 'an uneven neckline' : `a ${c.neck ? 'drawn neckline' : NECK_WORDS[c.neckline]}`;
-  return length === 'none' ? neck : `${neck} and ${SLEEVE_WORDS[length]} ${shape === 'straight' ? '' : `${shape} `}sleeves`;
+  const sleeves = length === 'none' ? '' : `${SLEEVE_WORDS[length]} ${shape === 'straight' ? '' : `${shape} `}sleeves`;
+  return listed([neck, seamNoun(v), sleeves].filter(Boolean));
 }
 
 export function describeBodice(c: BodiceChoices) {
@@ -354,6 +436,7 @@ export function describeBodice(c: BodiceChoices) {
   const sleeveWords = length === 'none' ? '' : `${SLEEVE_WORDS[length]} ${shape === 'straight' ? '' : `${shape} `}sleeves`;
   const sleeve = sleeveWords || peplum ? ` with ${[sleeveWords, peplum].filter(Boolean).join(' and ')}` : '';
   const princess = v.princess && v.princess !== 'none' ? ' princess' : '';
+  const seam = seamAdjective(v) ? ` ${seamAdjective(v)}` : '';
   const collar = v.collar && v.collar !== 'none' && !c.neck ? COLLAR_WORDS[v.collar] : '';
   const front = v.closure === 'front_buttons' ? 'button-front ' : '';
   const draped = isDraped(c) ? (c.neckline === 'cowl' ? 'cowl-neck' : 'one-shoulder') : '';
@@ -361,5 +444,5 @@ export function describeBodice(c: BodiceChoices) {
   const dropped = c.dropCm !== undefined && c.dropCm >= 3;
   const lengthWords = dropped ? '' : `${c.dropCm !== undefined ? 'waist-length' : LENGTH_WORDS[c.length]} `;
   const shapedHem = isShaped(c.hem) && (c.length !== 'waist' || dropped) ? ', with a shaped hem' : '';
-  return `${lengthWords}${neck}${princess} bodice${sleeve}${dropped ? `, ${Math.round(c.dropCm!)} cm below the waist` : ''}${shapedHem}`;
+  return `${lengthWords}${neck}${princess}${seam} bodice${sleeve}${dropped ? `, ${Math.round(c.dropCm!)} cm below the waist` : ''}${shapedHem}`;
 }
