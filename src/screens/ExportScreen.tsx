@@ -70,6 +70,9 @@ interface Props {
   /** Simple or all tools; all when not given. */
   mode?: Mode;
   onMode?: (m: Mode) => void;
+  /** A numbered drop's copy and an Archive cut's credit, printed in the title block. */
+  edition?: string;
+  credit?: string;
 }
 
 const NONE: Alteration[] = [];
@@ -111,7 +114,7 @@ function download(data: BlobPart, type: string, name: string) {
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
-export function ExportScreen({ profile, title, fit, garment, finish, onFinish, made, error, saveState, onSave, onAccount, fitting, fittingNotes, alterations = NONE, onFitting, onTrueScale, values, draftAt, style, imported, mode = 'all', onMode }: Props) {
+export function ExportScreen({ profile, title, fit, garment, finish, onFinish, made, error, saveState, onSave, onAccount, fitting, fittingNotes, alterations = NONE, onFitting, onTrueScale, values, draftAt, style, imported, mode = 'all', onMode, edition, credit }: Props) {
   const can = (t: ProTool) => shows(mode, t);
   const [picked, setPaper] = useState<Output>('a4');
   // The simple view prints at home, on A4 or Letter.
@@ -125,8 +128,8 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
   const date = useMemo(printedDate, []);
   const sheet = useMemo(
     () =>
-      made ? layout(made.pieces, `Maison Tracé: ${title}`, made.notes, { pattern: title, madeFor: profile, date }, { atelier: finish.atelier }) : undefined,
-    [made, title, profile, date, finish.atelier],
+      made ? layout(made.pieces, `Maison Tracé: ${title}`, made.notes, { pattern: title, madeFor: profile, date, edition, credit }, { atelier: finish.atelier }) : undefined,
+    [made, title, profile, date, finish.atelier, edition, credit],
   );
   // The seam check walks the garment's own pieces and its pockets; its lining and facings follow them.
   const checks = useMemo(() => {
@@ -152,9 +155,9 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
   const summary = useMemo(
     () =>
       made
-        ? { rows: made.spec.filter((r) => typeof r.finished === 'number'), checks, madeFor: profile, date, drafting: finish.atelier ? drafting : undefined, byHand, lays, flat: made.flat, fabric: made.guide.fabric }
+        ? { rows: made.spec.filter((r) => typeof r.finished === 'number'), checks, madeFor: profile, date, edition, credit, drafting: finish.atelier ? drafting : undefined, byHand, lays, flat: made.flat, fabric: made.guide.fabric }
         : undefined,
-    [made, checks, profile, date, drafting, finish.atelier, lays, byHand],
+    [made, checks, profile, date, edition, credit, drafting, finish.atelier, lays, byHand],
   );
 
   // Build the PDF ahead of time, so share and print run straight from the tap (phones require that).

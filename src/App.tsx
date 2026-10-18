@@ -81,6 +81,7 @@ import { CheckFileScreen } from './screens/CheckFileScreen';
 import { ImportedPattern, importedGuide } from './engine/importDxf';
 import { CollectionScreen } from './screens/CollectionScreen';
 import { lookPatch } from './collection';
+import { archiveCut } from './archive';
 import { CollectionLink } from './ui/GarmentSwitch';
 import { LoadingScreen, BODICE } from './ui/LoadingScreen';
 import type { FormStart } from './ui/ContourForm';
@@ -144,6 +145,8 @@ interface Saved {
   coat?: OuterChoices;
   /** How the pattern is finished and printed, chosen on the print screen. Older saves have none. */
   finish?: Finish;
+  /** The Archive cut this pattern was made from, for its credit line while the garment is unchanged. */
+  archive?: string;
 }
 
 /** A pattern's choices, saved under their garment's key. Skirt choices predate the others and carry no garment. */
@@ -683,6 +686,8 @@ export default function App() {
     }
     return undefined;
   }, [result, saved.choices, saved.bodice, dress, skirtStyle, values, finish.allowances, finish.skirtLined, finish.bodiceEdges, finish.fabricWidth, finish.nap, finish.route, finish.cloth, fabric, fitting, ownFitting, carriedNotes, garment]);
+  // An Archive cut keeps its credit while it's the same garment; its details can still be changed.
+  const fromArchive = [archiveCut(saved.archive)].find((c) => c?.garment === garment);
   // Leather is bought by the hide: say how much on the pattern and in the tech pack.
   const printable = useMemo((): Printable | undefined => {
     const hideLay = drafted?.lays.find((l) => l.hide);
@@ -1042,7 +1047,7 @@ export default function App() {
               onBack={() => setStep('style')}
               onMake={(look) => {
                 const { garment: g, ...next } = lookPatch(look);
-                switchGarment(g, next as Partial<Saved>, 'style');
+                switchGarment(g, { ...next, archive: archiveCut(look.id)?.id } as Partial<Saved>, 'style');
                 window.scrollTo(0, 0);
               }}
             />
@@ -1223,6 +1228,7 @@ export default function App() {
               onTrueScale={() => setStep('scale')}
               values={values}
               draftAt={draftAt}
+              credit={fromArchive?.credit}
             />
           )}
           {step === 'check' && (

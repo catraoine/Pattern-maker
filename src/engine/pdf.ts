@@ -135,6 +135,9 @@ export interface Summary {
   checks: Check[];
   madeFor?: string;
   date?: string;
+  /** A numbered drop's copy, and an Archive cut's credit line (see SheetInfo). */
+  edition?: string;
+  credit?: string;
   /** The atelier view: each piece's numbered drafting points and how they were found. */
   drafting?: { piece: string; points: DraftPoint[] }[];
   /** The draft-it-by-hand guide: each piece's frame, outline and numbered points, to redraw it on paper. */
@@ -312,7 +315,7 @@ function addSummaryPage(
   [stepX, stepY]: [number, number],
 ) {
   const { st, write, label, room, left, width } = flow(doc, paper, fonts);
-  drawText(st.page, ['MAISON TRACÉ', s.madeFor && `MADE FOR ${s.madeFor}`, s.date].filter(Boolean).join('   ·   ').toUpperCase(), {
+  drawText(st.page, ['MAISON TRACÉ', s.madeFor && `MADE FOR ${s.madeFor}`, s.date, s.edition].filter(Boolean).join('   ·   ').toUpperCase(), {
     x: left,
     y: st.y,
     size: 7.5,
@@ -321,7 +324,8 @@ function addSummaryPage(
     grey: 0.4,
   });
   st.y -= 26;
-  write(title[0].toUpperCase() + title.slice(1), 20, fonts.bodyMedium, 0, 18);
+  write(title[0].toUpperCase() + title.slice(1), 20, fonts.bodyMedium, 0, s.credit ? 6 : 18);
+  if (s.credit) write(s.credit, 9.5, fonts.body, 0, 18, 0.35);
 
   if (s.flat) {
     label('TECHNICAL FLAT');

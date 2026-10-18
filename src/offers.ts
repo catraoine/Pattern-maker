@@ -1,7 +1,7 @@
 // Paid extras that aren't built yet. Each one is shown as a sign-up so we can see who wants it before building
 // the paid part. Prices are the business plan's planned prices; nothing is charged until paid plans open.
 
-export const OFFER_IDS = ['founding', 'printed', 'tools', 'sewalong', 'designers', 'designer-partner', 'kit', 'gift', 'fitcheck', 'sizerun', 'classroom', 'sponsor', 'deadstock', 'cutforme'] as const;
+export const OFFER_IDS = ['founding', 'printed', 'tools', 'sewalong', 'designers', 'designer-partner', 'kit', 'gift', 'fitcheck', 'sizerun', 'classroom', 'sponsor', 'deadstock', 'cutforme', 'drops', 'archive'] as const;
 export type OfferId = (typeof OFFER_IDS)[number];
 
 export interface Offer {
@@ -142,5 +142,23 @@ export const OFFERS: Record<OfferId, Offer> = {
     button: 'Tell me when it opens',
     thanks: "Thank you. We'll email you when cutting opens.",
     fine: 'When it opens, your pattern file and posting address go only to the cutting studio, and we’ll ask you before anything is sent.',
+  },
+  drops: {
+    id: 'drops',
+    eyebrow: 'Numbered drops',
+    title: 'Get the drop alert',
+    text: 'Limited patterns from independent designers, open for 72 hours. Each copy is drafted to you and numbered on every pattern piece.',
+    prices: [['Each drop pattern', 'from $28']],
+    button: 'Alert me',
+    thanks: "You're on the list. We'll email you before Drop 01 opens.",
+  },
+  archive: {
+    id: 'archive',
+    eyebrow: 'The Archive',
+    title: 'Tell me when the Archive opens',
+    text: 'Cuts from fashion history, licensed from museums, vintage dealers and pattern cutters, credited to them and drafted to you.',
+    prices: [['Each Archive pattern', 'from $16']],
+    button: 'Tell me',
+    thanks: "Thank you. We'll email you when the first Archive cuts open.",
   },
 };
