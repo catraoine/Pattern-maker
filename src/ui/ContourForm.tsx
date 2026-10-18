@@ -10,6 +10,8 @@ const DOWN = 1300; // the long lines are drawn down over this long
 // Champagne lines (Cat's G4 pick), matching --gild and --gild-glow in styles.css.
 const CHAMPAGNE = '#d9c49b';
 const CHAMPAGNE_GLOW = '#f3e6c8';
+// The tape (Cat's G2 Ivory Line, 2026-10-18): a crisp ivory line this many times the outline's weight, no glow.
+const TAPE_W = 1.5;
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const seg = (t: number, a: number, b: number) => clamp((t - a) / (b - a), 0, 1);
@@ -292,13 +294,14 @@ function drawDemo(g: CanvasRenderingContext2D, w: number, h: number, t: number, 
 
   // The form, with its outline and long lines, settled as the light pass leaves it
   g.strokeStyle = CHAMPAGNE;
-  taper(g, formYs.map((y) => [cx - R(y) * S, Y(y)]), 1, () => lw);
-  taper(g, formYs.map((y) => [cx + R(y) * S, Y(y)]), 1, () => lw);
+  const edge = (u: number) => lw * (0.5 + Math.sin(Math.PI * u));
+  taper(g, formYs.map((y) => [cx - R(y) * S, Y(y)]), 1, edge);
+  taper(g, formYs.map((y) => [cx + R(y) * S, Y(y)]), 1, edge);
   for (let j = 0; j < LINES; j++) {
     const th = (Math.PI * (j + 0.5)) / LINES;
     const c = Math.cos(th);
-    g.globalAlpha = 0.5;
-    g.lineWidth = lw * 0.55 * (1 - 0.35 * Math.abs(c));
+    g.globalAlpha = 0.7;
+    g.lineWidth = lw * 0.6 * (1 - 0.35 * Math.abs(c));
     const pts = formYs.map((y) => P(y, th));
     for (let i = 1; i < pts.length; i++) stroke(g, pts[i - 1], pts[i]);
   }
@@ -309,8 +312,6 @@ function drawDemo(g: CanvasRenderingContext2D, w: number, h: number, t: number, 
     g.save();
     g.globalAlpha = alpha * fadeOut;
     g.strokeStyle = CHAMPAGNE_GLOW;
-    g.shadowColor = 'rgba(243,230,200,.9)';
-    g.shadowBlur = 10;
     draw();
     g.restore();
   };
@@ -332,10 +333,8 @@ function drawDemo(g: CanvasRenderingContext2D, w: number, h: number, t: number, 
     const n = Math.floor(80 * front);
     const tape: Pt[] = Array.from({ length: 81 }, (_, i) => P(demo.y, 2 * Math.PI - (i / 80) * Math.PI, 0.014));
     glow(() => {
-      for (let i = 1; i <= n; i++) {
-        g.lineWidth = lw * 2.5 * Math.sin((Math.PI * i) / 80) ** 0.8 + 0.3;
-        stroke(g, tape[i - 1], tape[i]);
-      }
+      g.lineWidth = TAPE_W * lw;
+      for (let i = 1; i <= n; i++) stroke(g, tape[i - 1], tape[i]);
     });
     labelAt = [cx + R(demo.y) * S * 0.35, Y(demo.y) + R(demo.y) * S * DEPTH + 22];
   } else {
@@ -357,7 +356,7 @@ function drawDemo(g: CanvasRenderingContext2D, w: number, h: number, t: number, 
     let left = total * p;
     glow(
       () => {
-        g.lineWidth = lw * 1.6;
+        g.lineWidth = TAPE_W * lw;
         for (let i = 1; i < pts.length && left > 0; i++) {
           const f = Math.min(1, left / lens[i - 1]);
           stroke(g, pts[i - 1], [pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * f, pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * f]);
@@ -446,13 +445,9 @@ function tapeAt(g: CanvasRenderingContext2D, w: number, h: number, y: number, t:
   const n = Math.floor(80 * out(seg(t, 1900, 2600)));
   if (n > 0) {
     g.save();
-    g.shadowColor = 'rgba(243,230,200,.9)';
     g.strokeStyle = CHAMPAGNE_GLOW;
-    g.shadowBlur = 10;
-    for (let i = 1; i <= n; i++) {
-      g.lineWidth = lw * 2.5 * Math.sin((Math.PI * i) / 80) ** 0.8 + 0.3;
-      stroke(g, tape[i - 1], tape[i]);
-    }
+    g.lineWidth = TAPE_W * lw;
+    for (let i = 1; i <= n; i++) stroke(g, tape[i - 1], tape[i]);
     g.restore();
   }
   const below = Y(y) + R(y) * S * DEPTH + 22;
@@ -528,8 +523,6 @@ function dot(g: CanvasRenderingContext2D, x: number, y: number, a: number) {
   g.save();
   g.globalAlpha = a;
   g.fillStyle = CHAMPAGNE_GLOW;
-  g.shadowColor = 'rgba(243,230,200,.9)';
-  g.shadowBlur = 8;
   g.beginPath();
   g.arc(x, y, 3.2, 0, Math.PI * 2);
   g.fill();
@@ -544,10 +537,8 @@ function lengthOn(g: CanvasRenderingContext2D, w: number, h: number, z: number, 
   dot(g, x, y0, out(seg(t, -300, 0)));
   label(g, 'START · ' + start, x + 10, y0 + 3, out(seg(t, -300, 0)), 'left');
   g.save();
-  g.shadowColor = 'rgba(243,230,200,.9)';
   g.strokeStyle = CHAMPAGNE_GLOW;
-  g.shadowBlur = 10;
-  g.lineWidth = lw * 1.6;
+  g.lineWidth = TAPE_W * lw;
   stroke(g, [x, y0], [x, y0 + (y1 - y0) * p]);
   g.restore();
   dot(g, x, y1, out(seg(t, 1200, 1500)));
