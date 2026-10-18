@@ -132,7 +132,7 @@ export async function pickToMake(page: Page, g: GarmentName) {
   const choice = main(page).getByRole('radiogroup', { name: 'What would you like to make?' }).getByRole('radio', { name: new RegExp(`^${pickName(g)}\\b`) });
   await choice.click();
   await expect(choice).toHaveAttribute('aria-checked', 'true');
-  await main(page).getByRole('button', { name: 'Start measurements' }).click();
+  await main(page).getByRole('button', { name: 'Continue measurements' }).click();
 }
 
 /** Wait for the style screen of a garment. */

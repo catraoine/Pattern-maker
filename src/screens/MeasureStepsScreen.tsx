@@ -2,7 +2,6 @@ import { useState, type ReactNode } from 'react';
 import { FIELDS, checkMeasurements, type FormKind, type Garment, type MeasurementId, type MeasurementValues, type Unit } from '../measurements';
 import { BASE, baseDone, fullSetMissing, GARMENT_NAME, GARMENTS, labelOf, missingFor, stepsOf, tipOf, titleOf } from '../measureFlow';
 import { FormPicture, TapeDemo } from '../ui/ContourForm';
-import { FIRST_PROJECT } from '../mode';
 import { canGoBack, goBack, usePageHistory } from '../nav';
 import { TapeBand } from '../ui/TapeBand';
 import { Title } from '../ui/Title';
@@ -181,18 +180,15 @@ export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onV
   if (page.kind === 'choose')
     return (
       <Shell title="What would you like to make?" hero={<TapeDemo id="waist" name="" mode="still" kind={form} />} short>
-        <div className="pick-list" role="radiogroup" aria-labelledby="stitle">
+        <div className="make-grid" role="radiogroup" aria-labelledby="stitle">
           {[...GARMENTS, 'other' as const].map((g) => (
             <button key={g} type="button" role="radio" aria-checked={picked === g} className={picked === g ? 'on' : ''} onClick={() => setPicked(g)}>
-              <span className="dot-pick" aria-hidden="true" />
               {g === 'other' ? 'Something else' : cap(GARMENT_NAME[g])}
-              {g === FIRST_PROJECT.garment && <small className="badge first-project">First project</small>}
             </button>
           ))}
         </div>
-        <p className="muted small">{FIRST_PROJECT.why}</p>
         <button type="button" className="primary" disabled={!picked} onClick={() => picked && go(picked)}>
-          Start measurements
+          Continue measurements
         </button>
       </Shell>
     );
