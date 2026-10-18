@@ -792,10 +792,11 @@ function bodiceViews(d: BodiceDraft, edges: BodiceEdges, sleeve: SleeveDraft | u
     if (d.finishedHem !== undefined)
       for (const run of along(h, 'hem')) for (const pts of [run, mirror(run)]) for (const r of inset(pts, 2, shape)) lines.push({ pts: r, kind: 'stitch' });
     if (i === 0 && d.closure === 'front_buttons' && d.buttons) {
-      // The right front laps over the left: its edge, and the buttons on the centre front.
+      // The right front laps over the left (the left over the right for menswear): its edge, and the buttons on the centre front.
       const top = h.run[0].y;
       const foot = h.run[h.run.length - 1].y;
-      lines.push({ pts: [p(-1.5, top), p(-1.5, foot)], kind: 'seam' });
+      const edge = d.lapsLeft ? 1.5 : -1.5;
+      lines.push({ pts: [p(edge, top), p(edge, foot)], kind: 'seam' });
       for (const y of d.buttons.at) {
         const c = h.move(p(0, y));
         lines.push({ pts: Array.from({ length: 13 }, (_, k) => add(p(0, c.y), p(0.65 * Math.cos((k / 12) * 2 * Math.PI), 0.65 * Math.sin((k / 12) * 2 * Math.PI)))), kind: 'seam' });
@@ -1049,6 +1050,8 @@ export function outerFlat(d: OuterDraft): Flat {
       if (sl.seam && !isFront) lines.push({ pts: f(sl.seam), kind: 'seam' });
     }
     for (const o of over) shapes.push(isFront ? mirror(o) : o, ...(isFront ? [o] : []));
+    // Menswear buttons left over right: the same front seen in a mirror.
+    if (isFront && d.lapsLeft) return { label: 'FRONT' as const, shapes: shapes.map(mirror), lines: lines.map((l) => ({ ...l, pts: mirror(l.pts) })) };
     return { label: isFront ? ('FRONT' as const) : ('BACK' as const), shapes, lines };
   });
   return arrange(views);

@@ -265,6 +265,8 @@ export interface BodiceDraft {
   collar: Collar;
   /** Where the buttons go on a button front. */
   buttons?: Buttons;
+  /** Buttoned left over right, as menswear is; right over left when missing. */
+  lapsLeft?: boolean;
   /** A one-shoulder, cowl or uneven neckline: the front (and a one-shoulder's back) cut as whole pieces. */
   drape?: DrapeInfo;
   /** A peplum at the waist seam, its pieces after the bodice's. */
@@ -284,7 +286,10 @@ function shape(d: BodiceDraft, s: BodiceStyle): BodiceDraft {
   const princess = s.princess && s.princess !== 'none' ? s.princess : undefined;
   // A top longer than the waist has no waist seam to take the bust dart.
   const to = s.bustDart && s.bustDart !== 'side' && !(s.bustDart === 'waist' && needsHip(s.length)) ? s.bustDart : undefined;
-  if ((!princess && !to) || s.darts === 'none' || d.bustDart <= 0.3) return d;
+  // A flat front (the menswear form) has no bust dart to move, but its princess seams are cut all the same,
+  // as style lines through the waist darts.
+  const flat = !!s.fitting?.flatFront && !!princess;
+  if ((!princess && !to) || s.darts === 'none' || (d.bustDart <= 0.3 && !flat)) return d;
   const [front, back] = d.pieces;
   const upper = princess || to === 'shoulder' || to === 'neck' || to === 'armhole';
   if (d.lowShoulder && upper) {
@@ -292,7 +297,7 @@ function shape(d: BodiceDraft, s: BodiceStyle): BodiceDraft {
   }
   if (princess) {
     if (s.darts !== 'bust_waist') return d;
-    const pp = princessPieces(front, back, d.front.apex, princess, s.lineAt);
+    const pp = princessPieces(front, back, d.front.apex, princess, s.lineAt, flat);
     if (!pp) return d;
     return {
       ...d,
@@ -412,7 +417,8 @@ function finish(d: BodiceDraft, s: BodiceStyle): BodiceDraft {
     const ext = closure === 'front_buttons' && collar !== 'peter_pan' ? EXTENSION_CM : 0;
     pieces = [...pieces, ...collarPieces(collar, bf, bb, { back: taggedLength(bb.outline, 'neck'), front: taggedLength(bf.outline, 'neck'), ext, closure, sa: s.seamAllowance })];
   }
-  return { ...d, pieces, block, closure, collar, buttons };
+  // Menswear buttons the other way: the left front laps over the right.
+  return { ...d, pieces, block, closure, collar, buttons, ...(buttons && s.fitting?.flatFront ? { lapsLeft: true } : {}) };
 }
 
 function draftBlock(m: BodiceMeasurements, style: BodiceStyle): BodiceDraft {

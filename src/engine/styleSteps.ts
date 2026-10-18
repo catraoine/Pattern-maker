@@ -229,13 +229,14 @@ export function styleBodiceSteps(g: SewingGuide, draft: BodiceDraft, o: { seam: 
   }
 
   if (buttons && draft.buttons) {
+    const [over, under] = draft.lapsLeft ? ['left', 'right'] : ['right', 'left'];
     const fin = steps.findIndex((s) => s.title === 'Finish');
     steps.splice(fin, 0, {
       title: 'Make the buttonholes',
-      text: `Work ${draft.buttons.count} buttonholes on the right front (as you wear it) at the BUTTONHOLE marks, each ${(draft.buttons.sizeCm + 0.3).toFixed(1)} cm long, starting 0.3 cm beyond the centre front line toward the edge${collar === 'mandarin' || collar === 'shirt' ? ', and one across the stand' : ''}. Cut them open with a seam ripper, a pin across the end so you don't cut too far.`,
+      text: `Work ${draft.buttons.count} buttonholes on the ${over} front (as you wear it) at the BUTTONHOLE marks, each ${(draft.buttons.sizeCm + 0.3).toFixed(1)} cm long, starting 0.3 cm beyond the centre front line toward the edge${collar === 'mandarin' || collar === 'shirt' ? ', and one across the stand' : ''}. Cut them open with a seam ripper, a pin across the end so you don't cut too far.`,
     }, {
       title: 'Sew on the buttons',
-      text: 'Lap the right front over the left, centre front lines together, and push a pin through each buttonhole close to its outer end to mark the button. Sew each button on the left front centre line, over a pin to make a thread shank.',
+      text: `Lap the ${over} front over the ${under}, centre front lines together, and push a pin through each buttonhole close to its outer end to mark the button. Sew each button on the ${under} front centre line, over a pin to make a thread shank.`,
     });
     steps[steps.findIndex((s) => s.title === 'Finish')] = { title: 'Finish', text: 'Give the bodice a final press, over a ham at the bust.' };
   }
