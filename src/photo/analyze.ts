@@ -8,7 +8,7 @@ import { IMAGE_TYPES, MAX_IMAGE_BYTES, PhotoError, PhotoReading, PhotoResponse }
 const confidence = z.enum(['low', 'medium', 'high']);
 
 const fit = z.object({ value: z.enum(['fitted', 'regular', 'relaxed']), confidence });
-const piece = z.enum(['skirt', 'dress', 'top', 'tee', 'trousers', 'jacket', 'coat']);
+export const piece = z.enum(['skirt', 'dress', 'top', 'tee', 'trousers', 'jacket', 'coat']);
 
 const Top = z.object({
   fit,
@@ -45,7 +45,7 @@ const Outer = z.object({
   flare: z.enum(['straight', 'a_line']),
 });
 
-const Reading = z.object({
+export const Reading = z.object({
   garment: z.enum(['skirt', 'dress', 'top', 'tee', 'trousers', 'jacket', 'coat', 'other', 'none']),
   pieces: z.array(z.object({ garment: piece, x: z.number(), y: z.number() })),
   silhouette: z.object({ value: z.enum(['pencil', 'straight', 'a_line', 'trumpet', 'half_circle', 'circle']), confidence }),
@@ -65,7 +65,7 @@ const Reading = z.object({
   details: z.string(),
 });
 
-const SYSTEM = `You help home sewists turn a photo of a garment into a sewing pattern. The garment may be worn, on a hanger, or laid flat, and in any size: the app drafts it to the sewist's own measurements, so your job is only to read the style. The app drafts skirts, dresses (a bodice joined to a skirt at the waist, with a back zip), woven tops, knit T-shirts, trousers, jackets and coats.
+export const SYSTEM = `You help home sewists turn a photo of a garment into a sewing pattern. The garment may be worn, on a hanger, or laid flat, and in any size: the app drafts it to the sewist's own measurements, so your job is only to read the style. The app drafts skirts, dresses (a bodice joined to a skirt at the waist, with a back zip), woven tops, knit T-shirts, trousers, jackets and coats.
 
 - garment: the main item in the photo: "skirt", "dress", "top" (a woven top or blouse), "tee" (a T-shirt or other knit jersey top), "trousers" (including shorts and culottes), "jacket", "coat", "other" (clothing the app doesn't draft, such as a jumpsuit, knitwear or a bag) or "none" if there is no clothing. A jacket ends at or above the upper thigh; a coat is longer.
 - pieces: every separate garment the app drafts that is clearly shown, the main one first, each with x and y, the middle of that garment as fractions of the photo's width and height (0 to 1 from the top left). A dress is one piece. A top tucked into a skirt is two pieces. Leave out partly hidden layers and accessories.

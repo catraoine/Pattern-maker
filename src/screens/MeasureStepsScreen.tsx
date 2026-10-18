@@ -5,6 +5,11 @@ import { FormPicture, TapeDemo } from '../ui/ContourForm';
 import { canGoBack, goBack, usePageHistory } from '../nav';
 import { TapeBand } from '../ui/TapeBand';
 import { Title } from '../ui/Title';
+import type { PatternChoices } from '../garments';
+import { ideaChoices, ideaRows, pieceGarment } from '../photo/idea';
+import { isSwimIntimates } from '../photo/swim';
+import { InterestCard } from '../ui/InterestCard';
+import { MAX_IDEA_CHARS, type IdeaReading, type IdeaResponse, type PhotoError } from '../photo/types';
 
 interface Props {
   garment: Garment;
@@ -26,6 +31,12 @@ interface Props {
   /** The dress form this person's patterns are drafted on, and choosing it before the first measurement. */
   form?: FormKind;
   onForm?: (form: FormKind) => void;
+  /** "Something else", described and matched to a garment: style it from these choices, measuring for it first. */
+  onIdea?: (choices: PatternChoices) => void;
+  /** "Or start from a photo" on the describe page. */
+  onPhoto?: () => void;
+  /** "Tell me when it's ready", for something the app can't make yet. */
+  onNews?: () => void;
 }
 
 export type StepsStart = { kind: 'choose' } | { kind: 'form' } | { kind: 'for'; garment: Garment } | { kind: 'redo'; garment: Garment; ids: MeasurementId[] };
@@ -37,23 +48,36 @@ type Page =
   | { kind: 'check' }
   | { kind: 'choose' }
   | { kind: 'extra'; garment: Garment | 'other'; ids: MeasurementId[]; at: number; redo?: boolean }
-  | { kind: 'saved' };
+  | { kind: 'saved' }
+  | { kind: 'describe' }
+  | { kind: 'idea'; idea: IdeaReading };
 
-/** On the list of what to make: the garments, then "Something else", which takes the full set. */
+/** Why a described idea couldn't be read, with the way forward. */
+const IDEA_ERROR: Partial<Record<PhotoError, string>> = {
+  limit_reached: "You've described five ideas today. Pick from the list for now, or try again tomorrow.",
+  busy: 'Lots of people are describing ideas today. Pick from the list for now, or try again tomorrow.',
+  declined: "We couldn't read that as something to wear. Try naming the garment you'd like to make.",
+};
+
+/** On the list of what to make: the garments, then "Something else", which is described in words. */
 type Pick = Garment | 'other';
 
 const toDisplay = (cm: number | undefined, unit: Unit) =>
   cm === undefined ? '' : String(unit === 'cm' ? cm : Math.round((cm / 2.54) * 10) / 10);
 const shown = (cm: number | undefined, unit: Unit) => (cm === undefined ? '' : `${toDisplay(cm, unit)} ${unit}`);
 const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
+/** "a slip dress", "an evening coat"; plurals ("wide-leg trousers", "shorts") take no article. */
+const aOrAn = (name: string) => (/(s|wear|lingerie)$/i.test(name) && !/dress$/i.test(name) ? name : `${/^[aeiou]/i.test(name) ? 'an' : 'a'} ${name}`);
 
 // First-time measuring, laid out like the welcome. A short "before you start", then the base set one
 // measurement per page, a check of those four, then what to make: pick one and Continue measuring goes
-// straight to the first extra that garment still needs. "Something else" takes every measurement.
+// straight to the first extra that garment still needs. "Something else" asks what they have in mind and
+// answers "We can make that", "The closest we can do" or "Not yet" (Cat's pick, 2026-10-18); only "Not yet"
+// offers the full set of measurements, for a dressmaker.
 // The first page asks who you are designing for, since "Someone else" words every page for the person holding the
 // tape and asks their name first (Cat's pick V2, 2026-10-17). A tape runs across the top of every page, with
 // Skip at its end wherever measuring can be skipped.
-export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onValues, onDone, start, onSomeoneElse, theirs, onSkip, form = 'womenswear', onForm }: Props) {
+export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onValues, onDone, start, onSomeoneElse, theirs, onSkip, form = 'womenswear', onForm, onIdea, onPhoto, onNews }: Props) {
   const aimed = start?.kind === 'for' ? start.garment : undefined;
   // Each page is a history entry, so the header's back and the phone's back go one page back.
   const [page, setPage] = usePageHistory<Page>(() => {
@@ -71,11 +95,34 @@ export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onV
   const [picked, setPicked] = useState<Pick | null>(start?.kind === 'choose' ? current : null);
   const [chosen, setChosen] = useState<FormKind>(form);
 
+  const [idea, setIdea] = useState('');
+  const [asking, setAsking] = useState(false);
+  const [ideaError, setIdeaError] = useState<PhotoError>();
+
+  /** Every measurement still to take, for a dressmaker. */
+  const fullSet = () => {
+    const ids = fullSetMissing(values, form).map((f) => f.id);
+    setPage(ids.length ? { kind: 'extra', garment: 'other', ids, at: 0 } : { kind: 'saved' });
+  };
   const go = (g: Pick) => {
-    const ids = (g === 'other' ? fullSetMissing(values, form) : missingFor(g, values, form)).map((f) => f.id);
+    if (g === 'other') return setPage({ kind: 'describe' });
+    const ids = missingFor(g, values, form).map((f) => f.id);
     if (ids.length) setPage({ kind: 'extra', garment: g, ids, at: 0 });
-    else if (g === 'other') setPage({ kind: 'saved' });
     else onDone(g);
+  };
+  const ask = async () => {
+    setAsking(true);
+    setIdeaError(undefined);
+    try {
+      const res = await fetch('/.netlify/functions/describe-idea', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: idea.trim() }) });
+      const data = (await res.json()) as IdeaResponse;
+      if (data.ok) setPage({ kind: 'idea', idea: data.idea });
+      else setIdeaError(data.error);
+    } catch {
+      setIdeaError('failed');
+    } finally {
+      setAsking(false);
+    }
   };
 
   // The first page (Cat's F1 Form Joins In, 2026-10-18): who you're designing for and the dress form to draft on,
@@ -202,6 +249,100 @@ export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onV
         </button>
       </Shell>
     );
+
+  if (page.kind === 'describe')
+    return (
+      <Shell eyebrow="Something else" title="Tell us what you have in mind." hero={<TapeDemo id="waist" name="" mode="still" kind={form} />} short>
+        <div className="field plain ready">
+          <label htmlFor="idea">Describe it</label>
+          <textarea id="idea" rows={3} maxLength={MAX_IDEA_CHARS} value={idea} onChange={(e) => setIdea(e.target.value)} />
+        </div>
+        <p className="muted step-tip">A few words is enough. Name the garment and anything you love about it.</p>
+        {ideaError && (
+          <p className="msg small" role="alert">
+            {IDEA_ERROR[ideaError] ?? "We couldn't read that just now. Try again, or pick from the list."}
+          </p>
+        )}
+        <div className="idea-actions">
+          {onPhoto && (
+            <button type="button" className="secondary" onClick={onPhoto}>
+              Or start from a photo
+            </button>
+          )}
+          <button type="button" className="primary" disabled={!idea.trim() || asking} onClick={ask}>
+            {asking ? 'Reading your idea…' : 'See what we can make'}
+          </button>
+        </div>
+      </Shell>
+    );
+
+  if (page.kind === 'idea') {
+    const { idea: read } = page;
+    const choices = ideaChoices(read);
+    const back = () => (canGoBack() ? goBack() : setPage({ kind: 'describe' }));
+    const choose = () => setPage({ kind: 'choose' });
+    if ((!choices || !read.start) && isSwimIntimates(read.name))
+      return (
+        <Shell eyebrow="Coming next" title={`${cap(aOrAn(read.name))} ${/s$/i.test(read.name) && !/dress$/i.test(read.name) ? 'are' : 'is'} in our next drop.`} hero={<TapeDemo id="waist" name="" mode="still" kind={form} />} short>
+          <InterestCard offer="swim" pattern={read.name} />
+          <button type="button" className="secondary" onClick={fullSet}>
+            Take my full measurements for a dressmaker
+          </button>
+          <p className="idea-again">
+            <button type="button" className="link quiet" onClick={choose}>
+              Choose something else
+            </button>
+          </p>
+        </Shell>
+      );
+    if (!choices || !read.start)
+      return (
+        <Shell eyebrow="Not yet" title={`We can't draft ${aOrAn(read.name)} yet.`} hero={<TapeDemo id="waist" name="" mode="still" kind={form} />} short>
+          {read.note && <p className="muted step-tip">{read.note}</p>}
+          <p className="muted step-tip">We've noted that you asked for it.</p>
+          <div className="idea-actions">
+            <button type="button" className="secondary" onClick={fullSet}>
+              Take my full measurements for a dressmaker
+            </button>
+            {onNews && (
+              <button type="button" className="primary" onClick={onNews}>
+                Tell me when it's ready
+              </button>
+            )}
+          </div>
+          <p className="idea-again">
+            <button type="button" className="link quiet" onClick={choose}>
+              Choose something else
+            </button>
+          </p>
+        </Shell>
+      );
+    const g = pieceGarment(read.start);
+    const more = missingFor(g, values, form).length;
+    const closest = read.verdict === 'closest';
+    return (
+      <Shell eyebrow={closest ? 'The closest we can do' : 'We can make that'} title={`${cap(closest ? read.name : `${aOrAn(read.name)}`)}.`} hero={<TapeDemo id="waist" name="" mode="still" kind={form} />} short>
+        {read.note && <p className="muted step-tip">{read.note}</p>}
+        <ul className="check-list idea-picks" aria-label={`Your ${GARMENT_NAME[g]}`}>
+          {ideaRows(choices).map(([label, value]) => (
+            <li key={label}>
+              <span>{label}</span>
+              <span>{value}</span>
+            </li>
+          ))}
+        </ul>
+        <p className="muted step-tip">{more ? `It needs ${more} more measurement${more === 1 ? '' : 's'}.` : 'You can change any of it when you style it.'}</p>
+        <button type="button" className="primary" onClick={() => onIdea?.(choices)}>
+          {more ? 'Continue measurements' : `Style your ${GARMENT_NAME[g]}`}
+        </button>
+        <p className="idea-again">
+          <button type="button" className="link quiet" onClick={closest ? choose : back}>
+            {closest ? 'Choose something else' : 'Not quite it? Describe it again'}
+          </button>
+        </p>
+      </Shell>
+    );
+  }
 
   if (page.kind === 'saved')
     return (

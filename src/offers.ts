@@ -1,7 +1,7 @@
 // Paid extras that aren't built yet. Each one is shown as a sign-up so we can see who wants it before building
 // the paid part. Prices are the business plan's planned prices; nothing is charged until paid plans open.
 
-export const OFFER_IDS = ['founding', 'printed', 'tools', 'sewalong', 'designers', 'designer-partner', 'kit', 'gift', 'fitcheck', 'sizerun', 'classroom', 'sponsor', 'deadstock', 'cutforme', 'drops', 'archive', 'labels', 'engine', 'nights'] as const;
+export const OFFER_IDS = ['founding', 'printed', 'tools', 'sewalong', 'designers', 'designer-partner', 'kit', 'gift', 'fitcheck', 'sizerun', 'classroom', 'sponsor', 'deadstock', 'cutforme', 'drops', 'archive', 'labels', 'engine', 'nights', 'swim'] as const;
 
 /** Where Atelier Nights could run, first one first. Night sign-ups are counted per city. */
 export const NIGHT_CITIES = ['vancouver', 'berlin', 'london', 'copenhagen'] as const;
@@ -191,5 +191,13 @@ export const OFFERS: Record<OfferId, Offer> = {
     prices: [['A ticket', '$90 to $140']],
     button: 'Send',
     thanks: "You're counted in. We'll email you when tickets open in this city.",
+  },
+  swim: {
+    id: 'swim',
+    eyebrow: 'The next drop',
+    title: 'Swim and Intimates',
+    text: "Bralettes, bodysuits, briefs and swimwear, drafted to you for stretch fabric, with wired bras to follow. We'll tell you the day it opens.",
+    button: "Tell me when it's ready",
+    thanks: "You're on the list. We'll email you the day Swim and Intimates opens.",
   },
 };
