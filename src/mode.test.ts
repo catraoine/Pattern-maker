@@ -29,9 +29,13 @@ describe('shows', () => {
     for (const t of PRO_TOOLS) expect(shows('simple', t)).toBe(false);
   });
 
+  it('keeps starting from a photo in the simple view', () => {
+    expect((PRO_TOOLS as readonly string[]).includes('photo')).toBe(false);
+  });
+
   it('counts these as professional tools', () => {
     expect([...PRO_TOOLS].sort()).toEqual(
-      ['bigPrint', 'byHand', 'checkFile', 'clientBook', 'couture', 'dartMoves', 'easeMap', 'insideFinish', 'makerPack', 'photo', 'posture', 'sizeRun', 'techFlat', 'toile'].sort(),
+      ['bigPrint', 'byHand', 'checkFile', 'clientBook', 'couture', 'dartMoves', 'easeMap', 'insideFinish', 'makerPack', 'posture', 'sizeRun', 'techFlat', 'toile'].sort(),
     );
   });
 });

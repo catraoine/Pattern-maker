@@ -9,7 +9,8 @@ import { TechFlatView } from '../ui/TechFlatView';
 import { MeasurementValues } from '../measurements';
 import { PatternPreview } from '../ui/Preview';
 import { GarmentSwitch } from '../ui/GarmentSwitch';
-import { FREE_SAVED_LIMIT } from '../account';
+import { SaveControl } from '../ui/SaveControl';
+import { UndoToast, UndoTools, useUndo } from '../ui/useUndo';
 import { EaseMapView } from '../ui/EaseMapView';
 import type { EaseView } from '../engine/easeMap';
 import { FinishChoices } from '../ui/FinishChoices';
@@ -47,7 +48,9 @@ export const outerFabricMetres = (draft: OuterDraft) => {
   return layPlan(self, 140)?.metres ?? toMetres(piecesLengthCm(self) + 10);
 };
 
-export function OuterStyleScreen({ choices, onChoices, onChooseGarment, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, finish, onFinish, fabric, mode = 'all', onMode }: Props) {
+export function OuterStyleScreen({ choices, onChoices: setChoices, onChooseGarment, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, finish, onFinish, fabric, mode = 'all', onMode }: Props) {
+  const undo = useUndo(choices, setChoices);
+  const onChoices = undo.change;
   const can = (t: ProTool) => shows(mode, t);
   const [picked, setView] = useState<'sketch' | 'pattern' | 'ease'>('sketch');
   const view = picked === 'ease' && !can('easeMap') ? 'sketch' : picked;
@@ -115,7 +118,7 @@ export function OuterStyleScreen({ choices, onChoices, onChooseGarment, values, 
               Sketch
             </button>
             <button type="button" aria-pressed={view === 'pattern'} className={view === 'pattern' ? 'on' : ''} onClick={() => setView('pattern')}>
-              Pattern pieces
+              Pieces
             </button>
             {easeMap && easeMap.length > 0 && can('easeMap') && (
               <button type="button" aria-pressed={view === 'ease'} className={view === 'ease' ? 'on' : ''} onClick={() => setView('ease')}>
@@ -123,14 +126,18 @@ export function OuterStyleScreen({ choices, onChoices, onChooseGarment, values, 
               </button>
             )}
           </div>
-          <p className="muted small">Drafted to your measurements as you choose.</p>
+          <UndoTools undo={undo} />
         </div>
         <div className="preview">
           {error && <p className="msg error">{error}</p>}
           {flat && view === 'sketch' && <TechFlatView flat={flat} title={title} />}
           {draft && sheet && view === 'pattern' && <PatternPreview sheet={sheet} label={`Pattern pieces for ${title.toLowerCase()}`} />}
           {view === 'ease' && easeMap && <EaseMapView views={easeMap} label={`Ease map of the ${title.toLowerCase()}`} />}
+          <UndoToast undo={undo} />
         </div>
+        <p className="muted small">
+          Drafted to your measurements as you choose.{undo.shake.state === 'on' ? ' Shake your phone to undo.' : ''}
+        </p>
       </section>
 
       <aside className="card" aria-labelledby="sum">
@@ -175,22 +182,7 @@ export function OuterStyleScreen({ choices, onChoices, onChooseGarment, values, 
         <button type="button" className="primary" disabled={!draft} onClick={onNext}>
           Print my pattern
         </button>
-        {saveState === 'can' && (
-          <button type="button" className="secondary" disabled={!draft} onClick={onSave}>
-            Save pattern
-          </button>
-        )}
-        {saveState === 'saved' && (
-          <p className="msg small" role="status">
-            Saved to <button type="button" className="link inline-link" onClick={onAccount}>your account</button>.
-          </p>
-        )}
-        {saveState === 'full' && (
-          <p className="muted small">
-            You've saved {FREE_SAVED_LIMIT} patterns, the free limit.{' '}
-            <button type="button" className="link inline-link" onClick={onAccount}>Manage saved patterns</button>
-          </p>
-        )}
+        <SaveControl state={saveState} disabled={!draft} onSave={onSave} onAccount={onAccount} />
         <button type="button" className="link" onClick={onEditMeasurements}>
           Edit measurements
         </button>

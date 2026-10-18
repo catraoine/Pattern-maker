@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { checkMeasurements, type Garment, type MeasurementId, type MeasurementValues, type Unit } from '../measurements';
+import { FIELDS, checkMeasurements, type Garment, type MeasurementId, type MeasurementValues, type Unit } from '../measurements';
 import { BASE, baseDone, fieldOf, fullSetMissing, GARMENT_NAME, GARMENTS, missingFor, stepsOf, tipOf, titleOf } from '../measureFlow';
 import { TapeDemo } from '../ui/ContourForm';
 import { FIRST_PROJECT } from '../mode';
@@ -54,6 +54,8 @@ export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onV
     const ids = aimed ? missingFor(aimed, values).map((f) => f.id) : [];
     return ids.length ? { kind: 'extra', garment: aimed!, ids, at: 0 } : { kind: 'check' };
   });
+  // Opened on the check because the measurements were taken on an earlier visit: say so.
+  const [returning] = useState(() => !start && baseDone(values));
   const [helper, setHelper] = useState(!!theirs);
   const [name, setName] = useState('');
   const [picked, setPicked] = useState<Pick | null>(start?.kind === 'choose' ? current : null);
@@ -67,7 +69,7 @@ export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onV
 
   if (page.kind === 'intro')
     return (
-      <Shell title="First, let's take your measurements." eyebrow="Made to measure" helperTitle="First, let's take their measurements." helper={helper} hero={<TapeDemo id="waist" name="" mode="still" />}>
+      <Shell title="First, let's take your measurements." helperTitle="First, let's take their measurements." helper={helper} hero={<TapeDemo id="waist" name="" mode="still" />}>
         <dl className="need">
           <div>
             <dt>You'll need</dt>
@@ -105,7 +107,8 @@ export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onV
 
   if (page.kind === 'check')
     return (
-      <Shell eyebrow={helper ? 'Their base measurements' : 'Your base measurements'} title="Do these look right?" hero={<TapeDemo id="waist" name="" mode="all" />}>
+      <Shell eyebrow={returning ? 'Welcome back' : helper ? 'Their base measurements' : 'Your base measurements'} title="Do these look right?" hero={<TapeDemo id="waist" name="" mode="all" />}>
+        {returning && <p className="muted step-tip">{helper ? 'Their' : 'Your'} measurements are saved on this device. Check they still look right, then carry on.</p>}
         <ul className="check-list" aria-label="Tap one to change it">
           {BASE.map((id, at) => (
             <li key={id}>
@@ -130,7 +133,7 @@ export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onV
 
   if (page.kind === 'choose')
     return (
-      <Shell eyebrow={start?.kind === 'choose' ? 'Choose another garment' : 'Made to measure'} title="What would you like to make?" hero={<TapeDemo id="waist" name="" mode="still" />} short>
+      <Shell title="What would you like to make?" hero={<TapeDemo id="waist" name="" mode="still" />} short>
         <div className="pick-list" role="radiogroup" aria-labelledby="stitle">
           {[...GARMENTS, 'other' as const].map((g) => (
             <button key={g} type="button" role="radio" aria-checked={picked === g} className={picked === g ? 'on' : ''} onClick={() => setPicked(g)}>
@@ -142,7 +145,7 @@ export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onV
         </div>
         <p className="muted small">{FIRST_PROJECT.why}</p>
         <button type="button" className="primary" disabled={!picked} onClick={() => picked && go(picked)}>
-          Continue measuring
+          Start measurements
         </button>
       </Shell>
     );
@@ -207,7 +210,8 @@ function Shell({
   short,
   children,
 }: {
-  eyebrow: string;
+  /** A small line above the title, only where it tells you something (which step, which garment). */
+  eyebrow?: string;
   title: string;
   helperTitle?: string;
   helper?: boolean;
@@ -232,7 +236,7 @@ function Shell({
             )}
           </div>
         </div>
-        <p className="eyebrow">{eyebrow}</p>
+        {eyebrow && <p className="eyebrow">{eyebrow}</p>}
         <h1 id="stitle">{helper && helperTitle ? helperTitle : title}</h1>
         {children}
       </section>
@@ -271,7 +275,9 @@ function MeasurePage({
   const [how, setHow] = useState(false);
   const value = values[id];
   // Range checks for this one measurement only; the cross-checks wait for the full measurements screen.
-  const problems = checkMeasurements({ [id]: value } as MeasurementValues, unit, garment).filter((c) => c.id === id && c.level === 'error' && value !== undefined);
+  // Checked as a garment that uses it, so a base measurement the skirt doesn't need (the bust) still is.
+  const checkAs = FIELDS[garment].some((f) => f.id === id) ? garment : GARMENTS.find((g) => FIELDS[g].some((f) => f.id === id)) ?? garment;
+  const problems = checkMeasurements({ [id]: value } as MeasurementValues, unit, checkAs).filter((c) => c.id === id && c.level === 'error' && value !== undefined);
   const error = problems[0];
   const note = error ?? (tried && value === undefined ? { level: 'error', message: `Enter ${helper ? 'their' : 'your'} ${field.label.toLowerCase()} to carry on.` } : undefined);
 
@@ -311,7 +317,23 @@ function MeasurePage({
               aria-describedby={note ? 'step-msg' : undefined}
               onChange={(e) => type(e.target.value)}
             />
-            <span className="entry-unit">{unit}</span>
+            <span className="unit-switch" role="group" aria-label="Units">
+              {(['cm', 'in'] as Unit[]).map((u) => (
+                <button
+                  key={u}
+                  type="button"
+                  aria-pressed={unit === u}
+                  aria-label={u === 'cm' ? 'Centimetres' : 'Inches'}
+                  className={unit === u ? 'on' : ''}
+                  onClick={() => {
+                    setText(null);
+                    onUnit(u);
+                  }}
+                >
+                  {u}
+                </button>
+              ))}
+            </span>
           </div>
         </div>
         {note && (
@@ -319,22 +341,6 @@ function MeasurePage({
             {note.message}
           </p>
         )}
-        <div className="unit-switch" role="group" aria-label="Units">
-          {(['cm', 'in'] as Unit[]).map((u) => (
-            <button
-              key={u}
-              type="button"
-              aria-pressed={unit === u}
-              className={unit === u ? 'on' : ''}
-              onClick={() => {
-                setText(null);
-                onUnit(u);
-              }}
-            >
-              {u === 'cm' ? 'Centimetres' : 'Inches'}
-            </button>
-          ))}
-        </div>
         <button type="submit" className="primary step-next">
           {label}
         </button>

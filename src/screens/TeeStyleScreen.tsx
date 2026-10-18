@@ -9,10 +9,13 @@ import { TechFlatView } from '../ui/TechFlatView';
 import { MeasurementValues } from '../measurements';
 import { PatternPreview } from '../ui/Preview';
 import { GarmentSwitch } from '../ui/GarmentSwitch';
-import { FREE_SAVED_LIMIT } from '../account';
+import { SaveControl } from '../ui/SaveControl';
+import { UndoToast, UndoTools, useUndo } from '../ui/useUndo';
 import type { MyFabric } from '../engine/fabrics';
 import { teeFabrics } from '../engine/knits';
 import { FabricCard } from '../ui/FabricCard';
+import { ModeLink } from '../ui/ModeLink';
+import type { Mode } from '../mode';
 
 interface Props {
   choices: TeeChoices;
@@ -28,6 +31,9 @@ interface Props {
   onAccount: () => void;
   /** The fabric recorded on the print screen, if any. */
   fabric?: MyFabric;
+  /** The T-shirt has no tucked-away choices of its own, but the link is here like every other garment, for the print screen's tools. */
+  mode?: Mode;
+  onMode?: (m: Mode) => void;
 }
 
 /** Knit on 150 cm wide fabric, from the cutting layout. */
@@ -47,7 +53,9 @@ function friendly(w: string) {
   return 'Something in your measurements looks unusual. Please double-check them.';
 }
 
-export function TeeStyleScreen({ choices, onChoices, onChooseGarment, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, fabric }: Props) {
+export function TeeStyleScreen({ choices, onChoices: setChoices, onChooseGarment, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, fabric, mode = 'all', onMode }: Props) {
+  const undo = useUndo(choices, setChoices);
+  const onChoices = undo.change;
   const [view, setView] = useState<'sketch' | 'pattern'>('sketch');
   const pieces = useMemo(() => draft?.pieces ?? [], [draft]);
   const sheet = useMemo(() => (draft ? layout(pieces, '', []) : undefined), [draft, pieces]);
@@ -88,6 +96,7 @@ export function TeeStyleScreen({ choices, onChoices, onChooseGarment, values, dr
           Seam allowances are 1 cm, the usual for knits, with 2.5 cm at the hem. The neckband is cut shorter than the neckline so it
           lies flat.
         </p>
+        <ModeLink mode={mode} onMode={onMode} />
       </section>
 
       <section className="card grow" aria-label="Preview">
@@ -97,16 +106,20 @@ export function TeeStyleScreen({ choices, onChoices, onChooseGarment, values, dr
               Sketch
             </button>
             <button type="button" aria-pressed={view === 'pattern'} className={view === 'pattern' ? 'on' : ''} onClick={() => setView('pattern')}>
-              Pattern pieces
+              Pieces
             </button>
           </div>
-          <p className="muted small">Drafted to your measurements as you choose.</p>
+          <UndoTools undo={undo} />
         </div>
         <div className="preview">
           {error && <p className="msg error">{error}</p>}
           {flat && view === 'sketch' && <TechFlatView flat={flat} title={title} />}
           {draft && sheet && view === 'pattern' && <PatternPreview sheet={sheet} label={`Pattern pieces for ${title.toLowerCase()}`} />}
+          <UndoToast undo={undo} />
         </div>
+        <p className="muted small">
+          Drafted to your measurements as you choose.{undo.shake.state === 'on' ? ' Shake your phone to undo.' : ''}
+        </p>
         {draft?.warnings.map((w) => (
           <p key={w} className="msg small">
             {friendly(w)}
@@ -157,22 +170,7 @@ export function TeeStyleScreen({ choices, onChoices, onChooseGarment, values, dr
         <button type="button" className="primary" disabled={!draft} onClick={onNext}>
           Print my pattern
         </button>
-        {saveState === 'can' && (
-          <button type="button" className="secondary" disabled={!draft} onClick={onSave}>
-            Save pattern
-          </button>
-        )}
-        {saveState === 'saved' && (
-          <p className="msg small" role="status">
-            Saved to <button type="button" className="link inline-link" onClick={onAccount}>your account</button>.
-          </p>
-        )}
-        {saveState === 'full' && (
-          <p className="muted small">
-            You've saved {FREE_SAVED_LIMIT} patterns, the free limit.{' '}
-            <button type="button" className="link inline-link" onClick={onAccount}>Manage saved patterns</button>
-          </p>
-        )}
+        <SaveControl state={saveState} disabled={!draft} onSave={onSave} onAccount={onAccount} />
         <button type="button" className="link" onClick={onEditMeasurements}>
           Edit measurements
         </button>

@@ -115,7 +115,7 @@ export const TROUSERS_FIELDS: MeasurementField[] = [
 const HIP_NOTE = 'Only needed for tops that reach below the waist.';
 const ARM_NOTE = 'Only needed for sleeves.';
 
-export const BODICE_FIELDS: MeasurementField[] = [
+const BODICE_ALL: MeasurementField[] = [
   {
     id: 'full_bust',
     label: 'Full bust',
@@ -251,6 +251,16 @@ export const BODICE_FIELDS: MeasurementField[] = [
     tip: 'From the middle of your waist at the back, diagonally up across your back to your shoulder point.',
   },
 ];
+/**
+ * Upper-body measurements a first top or dress can do without (Cat, 2026-10-17: ask for the complex ones
+ * later, when needed). Until they're taken the draft estimates them (see estimate.ts); taking them gives a
+ * closer fit, and they're offered under "Add measurements for a closer fit".
+ */
+export const ESTIMATED: MeasurementId[] = ['neck', 'shoulder_length', 'across_back', 'across_front', 'front_hps_to_waist', 'bust_depth', 'apex_separation', 'armscye'];
+export const ESTIMATE_NOTE = 'Estimated from your other measurements until you take it. Take it for a closer fit.';
+
+export const BODICE_FIELDS: MeasurementField[] = BODICE_ALL.map((f) => (ESTIMATED.includes(f.id) && !f.optional ? { ...f, optional: ESTIMATE_NOTE } : f));
+
 
 /** A dress takes the bodice's measurements and the skirt's lengths. */
 const DRESS_FIELDS: MeasurementField[] = [...BODICE_FIELDS, ...SKIRT_FIELDS.filter((f) => !BODICE_FIELDS.some((b) => b.id === f.id))].map((f) =>
