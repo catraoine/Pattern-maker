@@ -2142,7 +2142,7 @@ button.link.how-link {
   gap: 10px;
 }
 
-/* The box you type into: filled and bordered so it reads as a field, not a button */
+/* The box you type into (B1 below turns it into one line to write on, so it never reads as a button) */
 .entry-box {
   display: flex;
   flex-direction: column;
@@ -3783,4 +3783,45 @@ button.link.garment-change {
 .pe-value,
 .pe-sheet button {
   white-space: nowrap;
+}
+
+/* B1 Line to Write On (Cat's pick, 2026-10-18): a place you type is one champagne line to write on, never a box,
+   so anything with a box around it is a button. Typing thickens the line. */
+.field input,
+.field.plain input,
+input.inline,
+.makerform input,
+.offer input[type='email'],
+.tapeline input,
+.field textarea,
+.fitform textarea,
+.entry-box {
+  border: 0;
+  border-bottom: var(--bw) solid var(--gild);
+  background: transparent;
+  padding-left: 2px;
+  padding-right: 2px;
+}
+
+.field input:focus,
+input.inline:focus,
+.makerform input:focus,
+.offer input[type='email']:focus,
+.tapeline input:focus,
+.field textarea:focus,
+.fitform textarea:focus,
+.field.ready input,
+.entry-box:focus-within {
+  border-color: var(--gild);
+  background: transparent;
+  outline: none;
+  box-shadow: 0 1.5px 0 var(--gild);
+}
+
+.field input[aria-invalid] {
+  border-width: 0 0 3px;
+}
+
+.entry-box.error {
+  border-bottom-color: var(--muted);
 }
