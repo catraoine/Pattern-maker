@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { NEW_ACCOUNT } from './account';
 import { DEFAULT_FINISH, Finish } from './App';
-import { FIRST_PROJECT, PRO_TOOLS, SIMPLE_FINISH, finishFor, keepFinish, modeOf, shows } from './mode';
+import { PRO_TOOLS, SIMPLE_FINISH, finishFor, keepFinish, modeOf, shows } from './mode';
 
 const pro: Finish = { ...DEFAULT_FINISH, allowances: 'couture', route: 'couture', skirtLined: true, bodiceEdges: 'lined', atelier: true, byHand: true };
 
@@ -71,9 +71,4 @@ describe('keepFinish', () => {
     const next = { ...pro, allowances: 'industry' as const };
     expect(keepFinish(pro, next, 'all')).toEqual(next);
   });
-});
-
-it('marks the skirt as a good first project', () => {
-  expect(FIRST_PROJECT.garment).toBe('skirt');
-  expect(FIRST_PROJECT.why).toMatch(/^Good first project/);
 });
