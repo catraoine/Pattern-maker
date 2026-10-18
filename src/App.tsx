@@ -78,6 +78,9 @@ import { MeasureLinkScreen } from './screens/MeasureLinkScreen';
 import { MeasureArrivalScreen } from './screens/MeasureArrivalScreen';
 import { readLink, type MeasureReply } from './measureLink';
 import { CheckFileScreen } from './screens/CheckFileScreen';
+import { FormScreen } from './screens/FormScreen';
+import { coverGuide, coverMissing, coverPieces, padMap } from './engine/formCover';
+import { labelCode, savedCopy } from './labels';
 import { ImportedPattern, importedGuide } from './engine/importDxf';
 import { CollectionScreen } from './screens/CollectionScreen';
 import { lookPatch } from './collection';
@@ -97,7 +100,7 @@ const BRAND_BLOCK = 'M' + BODICE.map(([x, y]) => `${(9 + x * 14).toFixed(2)} ${(
 import { Mode, finishFor, keepFinish, modeOf } from './mode';
 
 export type Step = 'measure' | 'style' | 'export';
-type View = Step | 'plans' | 'welcome' | 'steps' | 'account' | 'photo' | 'fitting' | 'scale' | 'client' | 'check' | 'imported' | 'privacy' | 'terms' | 'tester' | 'news' | 'collection' | 'link' | 'arrive';
+type View = Step | 'plans' | 'welcome' | 'steps' | 'account' | 'photo' | 'fitting' | 'scale' | 'client' | 'check' | 'imported' | 'privacy' | 'terms' | 'tester' | 'news' | 'collection' | 'link' | 'arrive' | 'form' | 'formprint';
 
 export interface Choices {
   fit: Fit;
@@ -241,13 +244,15 @@ const SIDE: Partial<Record<View, [string, string]>> = {
   client: ['Account', 'Client book'],
   arrive: ['Account', 'Client book'],
   check: ['Account', 'Check a file'],
+  form: ['Account', 'Body Double'],
+  formprint: ['Body Double', 'Cover pattern'],
 };
 
 /** Screens that draw a pattern, so they need the measurements first. */
 const NEEDS_MEASUREMENTS: View[] = ['style', 'export', 'fitting', 'scale'];
 
 /** Where the header's back goes when there's nothing behind in history, such as after a reload. */
-const PARENT: Partial<Record<View, View>> = { measure: 'welcome', steps: 'welcome', style: 'measure', photo: 'style', export: 'style', fitting: 'export', scale: 'export', account: 'style', client: 'account', arrive: 'client', link: 'welcome', check: 'account', imported: 'check', privacy: 'welcome', terms: 'welcome', tester: 'account', news: 'account' };
+const PARENT: Partial<Record<View, View>> = { measure: 'welcome', steps: 'welcome', style: 'measure', photo: 'style', export: 'style', fitting: 'export', scale: 'export', account: 'style', client: 'account', arrive: 'client', link: 'welcome', check: 'account', imported: 'check', form: 'account', formprint: 'form', privacy: 'welcome', terms: 'welcome', tester: 'account', news: 'account' };
 
 export default function App() {
   const [saved, setSaved] = usePersistent<Saved>('skirt', INITIAL);
@@ -708,9 +713,25 @@ export default function App() {
       lays: layPlans(pieces, finish.fabricWidth, finish.nap || needsNap(finish.fabric?.special)),
     };
   }, [imported, finish.fabricWidth, finish.nap, finish.fabric?.special]);
+  // Body Double: the padded form cover, drafted from the same 3D body as every form in the app.
+  const coverPrintable = useMemo((): Printable | undefined => {
+    if ((step !== 'form' && step !== 'formprint') || coverMissing(measured).length) return undefined;
+    const pieces = coverPieces(values);
+    const lays = layPlans(pieces, finish.fabricWidth, false);
+    return {
+      pieces,
+      notes: ['Form cover: zero ease, so the cover is the shape. 1 cm seams, 2.5 cm hem channel.'],
+      guide: coverGuide(padMap(values), lays[0] && layAmount(lays[0])),
+      spec: [],
+      lays,
+    };
+  }, [step, values, measuredKey, finish.fabricWidth]);
   const importedTitle = imported ? imported.pattern.style || imported.fileName.replace(/\.dxf$/i, '') : '';
 
   const isSaved = isSavedFor(account, current, person.id);
+  // The saved copy's label code, printed on signature labels; typing it on Account opens the pattern again.
+  const savedNow = savedCopy(account, current, person.id);
+  const labelFor = savedNow && labelCode(savedNow.id);
   const saveState = isSaved ? 'saved' : account.patterns.length >= savedLimit(account) ? 'full' : 'can';
 
   // Where the guided measuring opens: the list of what to make, the next measurement a garment needs, or one to redo.
@@ -994,6 +1015,7 @@ export default function App() {
               onRemovePerson={(id) => setAccount(removePerson(account, id))}
               onOpen={openPattern}
               onCheckFile={() => setStep('check')}
+              onBodyDouble={() => setStep('form')}
               onClientBook={() => {
                 setAccount(updatePerson(account, person.id, recordMeasurements(person, new Date().toISOString().slice(0, 10))));
                 setStep('client');
@@ -1229,6 +1251,7 @@ export default function App() {
               values={values}
               draftAt={draftAt}
               credit={fromArchive?.credit}
+              label={{ name: profile === 'Me' ? account.name : profile, code: labelFor }}
             />
           )}
           {step === 'check' && (
@@ -1259,6 +1282,40 @@ export default function App() {
               onFitting={() => undefined}
               imported={{ source: imported.pattern.source, fileName: imported.fileName }}
             />
+          )}
+          {step === 'form' && (
+            <FormScreen
+              values={values}
+              measured={measured}
+              unit={saved.unit}
+              profile={profile}
+              onPrint={() => setStep('formprint')}
+              onMeasure={() => openSteps({ kind: 'for', garment: 'dress' })}
+            />
+          )}
+          {step === 'formprint' && coverPrintable && (
+            // Printed like a pattern read from a file: no style, fabric check or toile of its own.
+            <ExportScreen
+              mode={mode}
+              onMode={setMode}
+              garment={garment}
+              profile={profile}
+              title="Form cover"
+              fit="zero ease"
+              finish={finish}
+              onFinish={setFinish}
+              style={{ garment: 'skirt', silhouette: saved.choices.silhouette, length: saved.choices.length }}
+              made={coverPrintable}
+              saveState="can"
+              onSave={() => undefined}
+              onAccount={() => setStep('account')}
+              fittingNotes={[]}
+              onFitting={() => undefined}
+              imported={{ fileName: `Drafted to ${profile === 'Me' ? 'you' : profile}` }}
+            />
+          )}
+          {step === 'formprint' && !coverPrintable && (
+            <FormScreen values={values} measured={measured} unit={saved.unit} profile={profile} onPrint={() => undefined} onMeasure={() => openSteps({ kind: 'for', garment: 'dress' })} />
           )}
           {step === 'client' && (
             <ClientBookScreen

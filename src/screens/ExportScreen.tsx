@@ -26,6 +26,8 @@ import { ModeLink } from '../ui/ModeLink';
 import { countStep } from '../report/report';
 import { flatId } from '../ui/FabricFill';
 import { cartLink, shopFabric } from '../engine/shopFabrics';
+import { canShareFiles, download } from '../ui/download';
+import { LabelCard } from '../ui/LabelCard';
 
 /** What to print: the drafted pieces of either garment, with its notes and sewing steps. */
 export interface Printable {
@@ -67,6 +69,8 @@ interface Props {
   draftAt?: (m: MeasurementValues) => Piece[];
   /** A pattern read from another program's file: no style, fabric check or toile of its own. */
   imported?: { source?: string; fileName: string };
+  /** The signature label: whose name it carries and the saved pattern's code. */
+  label?: { name: string; code?: string };
   /** Simple or all tools; all when not given. */
   mode?: Mode;
   onMode?: (m: Mode) => void;
@@ -92,29 +96,9 @@ const isProjector = (o: Output): o is 'projector' | 'projectorDark' => o === 'pr
 /** The date as printed on the pattern, such as 14 Oct 2026. */
 const printedDate = () => new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
-// Phones can hand a file to the share sheet (email, Files, AirDrop, a printer app); most desktops can't.
-const canShareFiles = (() => {
-  try {
-    return (
-      typeof navigator.canShare === 'function' && navigator.canShare({ files: [new File([''], 'x.pdf', { type: 'application/pdf' })] })
-    );
-  } catch {
-    return false;
-  }
-})();
 
-function download(data: BlobPart, type: string, name: string) {
-  const url = URL.createObjectURL(new Blob([data], { type }));
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = name;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 10_000);
-}
 
-export function ExportScreen({ profile, title, fit, garment, finish, onFinish, made, error, saveState, onSave, onAccount, fitting, fittingNotes, alterations = NONE, onFitting, onTrueScale, values, draftAt, style, imported, mode = 'all', onMode, edition, credit }: Props) {
+export function ExportScreen({ profile, title, fit, garment, finish, onFinish, made, error, saveState, onSave, onAccount, fitting, fittingNotes, alterations = NONE, onFitting, onTrueScale, values, draftAt, style, imported, mode = 'all', onMode, edition, credit, label }: Props) {
   const can = (t: ProTool) => shows(mode, t);
   const [picked, setPaper] = useState<Output>('a4');
   // The simple view prints at home, on A4 or Letter.
@@ -310,6 +294,8 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
         <InterestCard offer="printed" pattern={title} />
         <InterestCard offer="kit" pattern={title} />
       </div>}
+
+      {!imported && label && <LabelCard name={label.name} code={label.code} pattern={title} />}
 
       {made?.flat && can('techFlat') && (
         <section className="card" aria-labelledby="flattitle">
