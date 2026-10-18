@@ -4,7 +4,7 @@ import { GarmentName, chooseChip, expect, startWithExample, switchGarment, test 
 test('all round shows the skirt on the form, with its seams and hem all the way round', async ({ page }) => {
   await startWithExample(page);
   const main = page.getByRole('main');
-  await main.getByRole('group', { name: 'Preview view' }).getByRole('button', { name: 'All round', exact: true }).click();
+  await main.getByRole('group', { name: 'Garment view' }).getByRole('button', { name: 'All round', exact: true }).click();
   await expect(main.getByRole('img', { name: /on your form, turning/ })).toBeVisible();
   await expect(main.getByText(/All 3 seams and \d+ darts meet at the waist and the hem/)).toBeVisible();
   await expect(main.getByText('Shape preview, not a cloth simulation')).toBeVisible();
@@ -32,7 +32,7 @@ test('all round works for every garment', async ({ page }) => {
   ];
   for (const [g, seams] of reads) {
     await switchGarment(page, g);
-    await main.getByRole('group', { name: 'Preview view' }).getByRole('button', { name: 'All round', exact: true }).click();
+    await main.getByRole('group', { name: 'Garment view' }).getByRole('button', { name: 'All round', exact: true }).click();
     await expect(main.getByRole('img', { name: /on your form, turning/ })).toBeVisible();
     await expect(main.getByText(seams)).toBeVisible();
     await expect(main.getByText('Shape preview, not a cloth simulation')).toBeVisible();

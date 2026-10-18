@@ -85,6 +85,26 @@ export interface PhotoReading {
 
 export type PhotoResponse = { ok: true; reading: PhotoReading } | { ok: false; error: PhotoError };
 
+/**
+ * "Something else", described in words: whether the app can make it, the closest it can do, or not yet;
+ * what to call it; one plain line on what will differ or why not; and the garment to start from, read
+ * the same way as a photo.
+ */
+export interface IdeaReading {
+  verdict: 'make' | 'closest' | 'not_yet';
+  /** What they asked for, in a few words: "slip dress". */
+  name: string;
+  note: string;
+  start: PieceKind | null;
+  /** A skirt or dress cut on the bias, which a photo reading doesn't name. */
+  bias: boolean;
+  reading: PhotoReading;
+}
+
+export type IdeaResponse = { ok: true; idea: IdeaReading } | { ok: false; error: PhotoError };
+
+export const MAX_IDEA_CHARS = 400;
+
 export type PhotoError = 'not_configured' | 'too_large' | 'bad_image' | 'declined' | 'failed' | 'limit_reached' | 'busy';
 
 export const MAX_IMAGE_BYTES = 4_000_000; // base64 text, well under Netlify's 6 MB request limit

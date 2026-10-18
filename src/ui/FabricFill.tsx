@@ -175,13 +175,12 @@ export function FabricSwatches({ finish, onFinish, garment }: { finish: Finish; 
                 <b>{f.name}</b>
                 <span className="muted small">{f.shop}</span>
                 <span className="muted small">
-                  ${f.price}/m · {f.colours.length} colours
+                  ${f.price}/{f.yards ? 'yd' : 'm'} · {f.colours.length === 1 ? '1 colour' : `${f.colours.length} colours`}
                 </span>
               </span>
             </button>
           ))}
         </div>
-          {shopItems.some((f) => f.example) && <p className="muted small">Examples until our partner shops join.</p>}
         </div>
       )}
       {chosen && (

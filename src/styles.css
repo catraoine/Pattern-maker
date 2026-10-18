@@ -2291,6 +2291,46 @@ button.link.how-link {
   max-height: 300px;
 }
 
+/* "Something else", described: the picks it starts from, read-only, laid out like the check list */
+.idea-picks {
+  margin: 4px 0 20px;
+}
+
+.idea-picks li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  min-height: 46px;
+  padding-top: 12px;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+  font-size: 16px;
+}
+
+.idea-picks li span:last-child {
+  font-family: var(--mono);
+  font-size: 13px;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  text-align: right;
+}
+
+.idea-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.idea-actions button {
+  width: 100%;
+}
+
+.idea-again {
+  margin: 16px 0 0;
+  text-align: center;
+}
+
 /* How to do it: a short list of steps over the page, only when asked for */
 .how-sheet {
   position: fixed;
@@ -2866,6 +2906,7 @@ table.history td.moved {
 .easerow svg {
   width: 100%;
   max-height: 360px;
+  overflow: visible;
 }
 .easebands {
   opacity: 0.7;
@@ -2883,15 +2924,15 @@ table.history td.moved {
 .easename {
   fill: var(--muted);
   font-family: var(--mono);
-  font-size: 2.4px;
+  font-size: 1.8px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
-.ease-tight { fill: #e0604f; background: #e0604f; }
-.ease-snug { fill: #e3a454; background: #e3a454; }
-.ease-fit { fill: #d9c49b; background: #d9c49b; }
-.ease-easy { fill: #86b0a5; background: #86b0a5; }
-.ease-loose { fill: #6f8cc4; background: #6f8cc4; }
+/* Champagne shades, darker where it's closer (Cat's E3 + G1). */
+.ease-held { fill: #5a3a1e; background: #5a3a1e; }
+.ease-close { fill: #8a6d3b; background: #8a6d3b; }
+.ease-comfy { fill: #c4a774; background: #c4a774; }
+.ease-roomy { fill: #eadcb8; background: #eadcb8; }
 .easelegend {
   display: flex;
   flex-wrap: wrap;
@@ -3624,6 +3665,82 @@ button.link.garment-change {
   }
   to {
     clip-path: inset(0 0 0 0);
+  }
+}
+
+/* The Style and Print chapters' top edges (Cat's S2c Raw Fringe and P4e Ivory Mat, 2026-10-18): they sit
+   under the header where the tape sits on the measuring pages, and unroll the same way when the chapter opens. */
+.chapter-band {
+  position: relative;
+  overflow: hidden;
+  animation: tape-unroll 0.8s cubic-bezier(0.3, 0.6, 0.3, 1) both;
+}
+
+/* The selvedge: a woven cloth edge with its row of pin holes, the house name printed along it, and the raw
+   edge frayed into loose threads underneath. */
+.selvedge-band {
+  --cloth: #d6cab0;
+  height: 40px;
+}
+
+.selvedge-cloth {
+  height: 32px;
+  display: flex;
+  align-items: center;
+  padding: 6px 20px 0;
+  background-color: var(--cloth);
+  background-image: radial-gradient(circle, var(--tape-ink) 0 1.1px, transparent 1.6px),
+    repeating-linear-gradient(45deg, rgba(43, 36, 24, 0.12) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(-45deg, rgba(43, 36, 24, 0.08) 0 1px, transparent 1px 3px);
+  background-size: 11px 8px, auto, auto;
+  background-position: 0 2px, 0 0, 0 0;
+  background-repeat: repeat-x, repeat, repeat;
+}
+
+.selvedge-cloth span {
+  font: var(--w-strong) 9px/1 var(--mono);
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  color: var(--tape-ink);
+}
+
+.selvedge-fringe {
+  height: 8px;
+  margin-top: -1px;
+  background: repeating-linear-gradient(90deg, var(--cloth) 0 1px, transparent 1px 2.6px);
+  -webkit-mask: linear-gradient(#000, #000 35%, transparent);
+  mask: linear-gradient(#000, #000 35%, transparent);
+}
+
+/* The mat: the tape's ivory with a cutting grid, a 45 degree line every square, and the centimetres. */
+.mat-band {
+  height: 34px;
+  background-color: var(--tape);
+  background-image: repeating-linear-gradient(90deg, rgba(43, 36, 24, 0.55) 0 1px, transparent 1px 39px),
+    repeating-linear-gradient(0deg, rgba(43, 36, 24, 0.25) 0 1px, transparent 1px 9.75px),
+    repeating-linear-gradient(90deg, rgba(43, 36, 24, 0.18) 0 1px, transparent 1px 9.75px),
+    linear-gradient(135deg, transparent 49.6%, rgba(43, 36, 24, 0.5) 50%, transparent 50.4%);
+  background-size: 100% 100%, 100% 100%, 100% 100%, 34px 34px;
+  background-position: 19.5px 0, 0 0, 19.5px 0, 0 0;
+}
+
+.mat-marks {
+  display: flex;
+  height: 100%;
+}
+
+.mat-marks span {
+  flex: none;
+  width: 39px;
+  padding-top: 5px;
+  text-align: center;
+  font: var(--w-strong) 9px/1 var(--mono);
+  color: var(--tape-ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chapter-band {
+    animation: none;
   }
 }
 
@@ -4885,6 +5002,23 @@ button.link.garment-change {
   display: grid;
   gap: 6px;
 }
+/* Buy at the shop: a link that opens the shop's site, drawn like the outlined buttons. */
+.shopbuy .buylink {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  min-height: 52px;
+  padding: 0 24px;
+  border-radius: var(--pill);
+  border: var(--bw) solid var(--gild);
+  color: var(--gild);
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: var(--w-strong);
+  text-transform: uppercase;
+  letter-spacing: var(--track);
+  text-decoration: none;
+}
 .shopbuy p {
   margin: 0;
 
@@ -4959,16 +5093,15 @@ button.link.garment-change {
   border: var(--bw) solid var(--gild);
 }
 
-.record-flat {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 200px;
+.archive-record > .envelope {
+  padding: 10px;
+  align-self: start;
 }
-
-.record-flat .techflat {
-  height: 100%;
-  max-height: none;
+.archive-record .env-art .techflat {
+  max-height: 140px;
+}
+.archive-record .env-name {
+  font-size: 20px;
 }
 
 .record-body {
@@ -5156,10 +5289,428 @@ input.inline:focus,
   margin: 0 auto;
 }
 
+/* Skipped measuring (Cat's K1 Example Tag): a dashed strip on Style and Print, Measure me at its end */
+.example-tag {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  margin: 0 0 14px;
+  padding: 0 14px;
+  border: var(--bw) dashed var(--gild);
+  background: none;
+  color: var(--muted);
+  font: var(--w-body) 10.5px/1.2 var(--mono);
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  text-align: left;
+  cursor: pointer;
+}
+
+.example-tag-go {
+  color: var(--gild);
+  white-space: nowrap;
+}
+
+/* Drawing on the form is a screen of its own: the strip waits until you're back on Style */
+.main:has(.form-draw) .example-tag {
+  display: none;
+}
+
+/* On the first measuring page the forms share the room with who you're designing for, so on the smallest
+   phones they shrink further rather than push Begin measuring off the screen */
+.form-pick.on-intro {
+  min-height: 64px;
+}
+
+/* The smallest screens: as the welcome's form steps aside there, these forms do too, leaving their names to pick */
+@media (max-height: 480px) {
+  .form-pick.on-intro {
+    flex: none;
+    min-height: 0;
+  }
+  .form-pick.on-intro .form-picture {
+    display: none;
+  }
+  .form-pick.on-intro button {
+    padding: 10px 6px;
+  }
+  .measure-step .who-pick .primary,
+  .measure-step > button.primary {
+    min-height: 44px;
+    padding-block: 8px;
+  }
+}
+
 /* The Fabric tab's amount: the metres and what they're of, on one line. */
 .fabric-amount {
   display: flex;
   align-items: baseline;
   flex-wrap: wrap;
   gap: 4px 10px;
+}
+
+/* Measure list (H2 + W1): the garment as a small label above the title, with "Make something else" beside it;
+   each row carries an arrow instead of a "tap one" hint, and a closer fit is the list's last row */
+.measure-list .garment-eyebrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 14px;
+  margin: 0 0 -8px;
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.measure-list .garment-eyebrow button.link.garment-change {
+  flex-basis: auto;
+  margin: 0;
+  min-height: 32px;
+  color: var(--gild);
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+}
+
+/* drawn with borders, not a character, so the row's name stays just its label and number */
+.measure-list .check-list button > :last-child::after {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin: 0 2px 1px 12px;
+  border-top: 1.3px solid var(--gild);
+  border-right: 1.3px solid var(--gild);
+  transform: rotate(45deg);
+}
+
+.measure-list .check-list .closer button span {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--gild);
+  font-family: var(--sans);
+  font-size: 15px;
+  letter-spacing: normal;
+}
+
+.measure-list button.primary {
+  margin-top: 8px;
+}
+
+/* Preview switch (Cat's D1): Garment / Pattern as two boxes, a short hint under each name. */
+.lookboxes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  width: 100%;
+}
+.lookboxes button {
+  display: grid;
+  gap: 2px;
+  justify-items: start;
+  min-height: 48px;
+  padding: 9px 12px;
+  border: var(--bw) solid var(--muted);
+  border-radius: var(--pill);
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+.lookboxes button.on {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--white);
+}
+.lookname {
+  font-size: 13px;
+  font-weight: var(--w-strong);
+}
+.lookhint {
+  font-family: var(--sans);
+  font-size: 12px;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--muted);
+}
+.lookboxes button.on .lookhint {
+  color: var(--white);
+  opacity: 0.75;
+}
+.fitswitch {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 12px;
+  cursor: pointer;
+}
+.fitswitch .knob {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  border: var(--bw) solid var(--gild);
+}
+.fitswitch .knob::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 12px;
+  height: 12px;
+  background: var(--muted);
+  transition: left 0.15s ease;
+}
+.fitswitch.on .knob::after {
+  left: 19px;
+  background: var(--gild);
+}
+.easerows.paper-sheet .easename {
+  fill: var(--muted);
+}
+.easerows.paper-sheet .easebands {
+  opacity: 0.92;
+}
+
+/* Cat's D1 Drafting Table on a computer (2026-10-18): the style tabs run down the left, the sketch fills the
+   middle between fine rules, and the choices sit on the right above the summary, Print and Save, so the
+   Review page is only for phones. The print screen uses the same three columns. Phones and tablets below
+   1100px keep their own layout. */
+@media (min-width: 1100px) {
+  .style-edit {
+    grid-template-columns: 160px minmax(0, 1fr) minmax(320px, 380px);
+    grid-template-areas: 'tabs preview panel' 'tabs preview side';
+    grid-template-rows: auto 1fr;
+    column-gap: 0;
+  }
+  .style-tabs {
+    position: sticky;
+    top: calc(var(--pin-top, 0px) + 12px);
+    align-self: start;
+    flex-direction: column;
+    gap: 2px;
+    overflow: visible;
+    border-bottom: none;
+    padding: 0;
+  }
+  .style-tabs button {
+    min-height: 40px;
+    padding: 0 0 0 14px;
+    border-bottom: none;
+    border-left: 1.5px solid transparent;
+    margin: 0;
+    text-align: left;
+    font-size: 12px;
+    letter-spacing: 0.2em;
+  }
+  .style-tabs button.on {
+    border-left-color: var(--gild);
+  }
+  .style-pin > section {
+    align-self: stretch;
+    min-height: calc(100vh - var(--pin-top, 0px) - 160px);
+    padding: 0 28px;
+    border-left: 1px solid var(--guide);
+    border-right: 1px solid var(--guide);
+  }
+  .style-panel,
+  .style-side {
+    padding-left: 32px;
+  }
+  .style-panel {
+    min-height: 0;
+  }
+  .style-panel > .tab-part:not([hidden]),
+  .style-panel > .card {
+    padding-top: 0;
+  }
+  .style-side {
+    grid-area: side;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 28px;
+    padding-top: 18px;
+    border-top: 1px solid var(--guide);
+  }
+  .style-side > .eyebrow {
+    margin: 0;
+  }
+  .style-side > aside.card {
+    padding: 0;
+  }
+  .style-side > aside > h2:first-child {
+    display: none;
+  }
+  /* Print and Save come first under the name, so they're in reach without scrolling past the summary. */
+  .style-side > aside > .primary,
+  .style-side > aside > button.secondary {
+    order: -1;
+  }
+  .style-pin .preview-svg {
+    max-height: calc(100vh - var(--pin-top, 0px) - 280px);
+  }
+  .style-pin .preview-svg.sketch {
+    max-width: 480px;
+  }
+}
+
+/* The pattern envelope's front: house name and mark along the top, the flat in the middle, the name set
+   large at the foot, inside one champagne frame. */
+.envelope {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border: var(--bw) solid var(--gild);
+  background: var(--paper);
+  min-width: 0;
+}
+.env-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--muted);
+}
+.env-top span:first-child {
+  color: var(--ink);
+}
+.env-art {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+}
+.env-art .techflat {
+  max-height: 220px;
+}
+.envelope figcaption {
+  display: grid;
+  gap: 4px;
+}
+.env-name {
+  font-family: var(--display);
+  font-stretch: 75%;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 28px;
+  line-height: 0.95;
+  letter-spacing: var(--head-tracking);
+  color: var(--ink);
+  text-wrap: balance;
+}
+.env-foot {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.envelope.small {
+  gap: 6px;
+  padding: 8px;
+}
+.envelope.small .env-top,
+.envelope.small .env-foot {
+  font-size: 7px;
+  letter-spacing: 0.14em;
+}
+.envelope.small .env-top span:last-child {
+  display: none;
+}
+.envelope.small .env-art .techflat {
+  max-height: 64px;
+}
+.envelope.small .env-name {
+  font-size: 13px;
+}
+
+/* The print screen's three columns (D1). Below 1100px the parts sit in one column as before, and the cover
+   is left out. */
+.print-head,
+.print-controls,
+.print-sheet,
+.print-more {
+  display: contents;
+}
+.print-cover {
+  display: none;
+}
+@media (min-width: 1100px) {
+  .card.print-top {
+    display: grid;
+    grid-template-columns: 250px minmax(0, 1fr) 340px;
+    grid-template-areas: 'head sheet controls' 'cover sheet controls' 'cover sheet more';
+    grid-template-rows: auto auto 1fr;
+    gap: 0;
+    padding: 0 22px;
+    align-items: start;
+  }
+  .print-head,
+  .print-cover,
+  .print-controls,
+  .print-sheet,
+  .print-more {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+  }
+  .print-head {
+    grid-area: head;
+    gap: 6px;
+    padding-bottom: 20px;
+  }
+  .print-cover {
+    grid-area: cover;
+    gap: 10px;
+  }
+  .print-cover .eyebrow {
+    margin: 12px 0 0;
+  }
+  .print-cover .pieces {
+    margin: 0;
+    font-size: 14px;
+  }
+  .print-sheet {
+    grid-area: sheet;
+    align-self: stretch;
+    margin: 0 32px;
+    padding: 0 28px;
+    border-left: 1px solid var(--guide);
+    border-right: 1px solid var(--guide);
+  }
+  .print-sheet .preview.tiles {
+    max-height: calc(100vh - 220px);
+  }
+  .print-controls {
+    grid-area: controls;
+  }
+  .print-more {
+    grid-area: more;
+    padding-top: 18px;
+  }
+}
+
+.saved li > .envelope.small {
+  flex: none;
+  width: 112px;
 }

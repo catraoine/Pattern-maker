@@ -4,10 +4,10 @@ import { createContext, useContext } from 'react';
 export const CollectionLink = createContext<(() => void) | undefined>(undefined);
 
 /** You stay in what you picked to make; this quiet link opens the list to pick something else. */
-export function GarmentSwitch({ onChoose }: { onChoose: () => void }) {
+export function GarmentSwitch({ onChoose, label = 'Choose another garment' }: { onChoose: () => void; label?: string }) {
   return (
     <button type="button" className="link quiet garment-change" onClick={onChoose}>
-      Choose another garment
+      {label}
     </button>
   );
 }

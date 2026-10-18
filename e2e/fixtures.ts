@@ -95,14 +95,13 @@ export async function skipToExample(page: Page) {
   await main(page).getByRole('button', { name: 'Skip measuring and try an example' }).click();
 }
 
-/** "Me" on the first measuring page, then the form to draft on (Cat's B2 Two Forms): womenswear unless given. */
+/** "Me" on the first measuring page, with the form to draft on beside it (Cat's F1 Form Joins In): womenswear unless given. */
 export async function measureMe(page: Page, form: 'Womenswear' | 'Menswear' = 'Womenswear') {
   await main(page).getByRole('button', { name: 'Me', exact: true }).click();
-  await expect(heading(page, 'Your form')).toBeVisible();
-  const pick = main(page).getByRole('radiogroup', { name: 'Which form should we draft on?' }).getByRole('radio', { name: form, exact: true });
+  const pick = main(page).getByRole('radiogroup', { name: 'Which form to draft on?' }).getByRole('radio', { name: form, exact: true });
   await pick.click();
   await expect(pick).toHaveAttribute('aria-checked', 'true');
-  await main(page).getByRole('button', { name: 'Continue', exact: true }).click();
+  await main(page).getByRole('button', { name: 'Begin measuring', exact: true }).click();
 }
 
 /** The one-measurement-per-page flow: fill each page until the button that ends it. */
@@ -161,8 +160,9 @@ export async function addCloserFit(page: Page, g: GarmentName) {
     await tab.click();
   }
   await add.click();
-  await expect(heading(page, new RegExp(`${g === 'Tee' ? 'tee' : lower(g)} measurements$`))).toBeVisible();
-  await main(page).getByRole('button', { name: 'Add measurements for a closer fit' }).click();
+  await expect(heading(page, /measurements$/)).toBeVisible();
+  await expect(main(page).locator('.garment-eyebrow')).toContainText(new RegExp(g === 'Tee' ? 't-shirt' : lower(g), 'i'));
+  await main(page).getByRole('button', { name: /more for a closer fit$/ }).click();
   await fillStepPages(page);
   await main(page).getByRole('button', { name: /^Style your / }).click();
   await expectStyle(page, g);
@@ -189,10 +189,18 @@ export async function openGroup(page: Page, name: string) {
   return group;
 }
 
-/** On a style screen, the Review page with the summary, Print, Save and Edit measurements. */
-export async function openReview(page: Page) {
-  await main(page).getByRole('button', { name: 'Review', exact: true }).click();
+/**
+ * On a style screen, the Review page with the summary, Print, Save and Edit measurements. On a computer
+ * (Cat's D1 Drafting Table) the summary is already beside the choices, so there's no page to open.
+ */
+export async function openReview(page: Page): Promise<boolean> {
+  const review = main(page).getByRole('button', { name: 'Review', exact: true });
+  const print = main(page).getByRole('button', { name: 'Print my pattern' });
+  await expect(review.or(print).first()).toBeVisible();
+  if (!(await review.isVisible())) return false;
+  await review.click();
   await expect(heading(page, /^Review /)).toBeVisible();
+  return true;
 }
 
 /** From a style screen (or its Review page) to Print. */

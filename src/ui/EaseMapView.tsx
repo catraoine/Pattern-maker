@@ -59,8 +59,8 @@ function Row({ views, title, onPick }: { views: EaseView[]; title: string; onPic
 }
 
 /**
- * The ease map: how much room the pattern leaves over the body at every level, red where it would
- * strain through to blue where it hangs loose. Tap a level to read it.
+ * The fit shown on the pattern pieces: each level shaded by the room it leaves over the body, darker
+ * where it's closer. Tap a level to read it in cm.
  */
 export function EaseMapView({ views, label }: Props) {
   const [pick, setPick] = useState<{ name: string; i: number }>();
@@ -70,25 +70,39 @@ export function EaseMapView({ views, label }: Props) {
   const band = picked?.bands[pick!.i];
   const top = picked ? Math.min(...picked.outline.map((q) => q.y)) : 0;
   const onPick = (v: EaseView, i: number) => setPick({ name: v.name, i });
+  // The key names only the levels this garment has: "Held in" shows on boned styles alone.
+  const shown = EASE_LEVELS.filter((l) => views.some((v) => v.bands.some((b) => easeLevel(b.ease) === l)));
+  const held = shown.includes(EASE_LEVELS[0]);
   return (
     <div className="easemap" aria-label={label}>
-      <div className="easerows">
-        {front.length > 0 && <Row views={front} title="Front" onPick={onPick} />}
-        {back.length > 0 && <Row views={back} title="Back" onPick={onPick} />}
+      <div className="easerows paper-sheet">
+        {/* A front and a back alone sit side by side, so the fit fits on a phone screen. */}
+        {front.length === 1 && back.length === 1 ? (
+          <Row views={[...front, ...back]} title="Front and back" onPick={onPick} />
+        ) : (
+          <>
+            {front.length > 0 && <Row views={front} title="Front" onPick={onPick} />}
+            {back.length > 0 && <Row views={back} title="Back" onPick={onPick} />}
+          </>
+        )}
       </div>
       <ul className="easelegend" aria-label="Key">
-        {EASE_LEVELS.map((l, i) => (
+        {shown.map((l) => (
           <li key={l.label}>
             <span className={`swatch ${l.cls}`} />
             {l.label}
-            <span className="muted">{i === 0 ? ' under 0' : l.max === Infinity ? ` ${EASE_LEVELS[i - 1].max}+` : ` ${EASE_LEVELS[i - 1].max} to ${l.max}`}</span>
           </li>
         ))}
       </ul>
+      {held && (
+        <p className="muted small">
+          <strong>Held in:</strong> cut smaller than you on purpose, so the boning holds you.
+        </p>
+      )}
       <p className="muted small" role="status">
         {band && picked
           ? `${picked.name}, ${Math.round(band.y0 - top)} cm down: ${band.ease} cm of room, ${easeLevel(band.ease).label.toLowerCase()}.`
-          : 'Room over your body at each level, in cm round the whole garment (round one leg below the crotch). Tap a level to read it.'}
+          : 'Darker where it fits closer. Tap any level for the room in cm.'}
       </p>
     </div>
   );
