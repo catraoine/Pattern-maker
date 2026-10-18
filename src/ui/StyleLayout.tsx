@@ -108,6 +108,18 @@ export function StyleLayout({ children, label, name, metres, width = 140, ready,
     root.current?.style.setProperty('--pin-top', `${bar?.offsetHeight ?? 0}px`);
   });
 
+  // A preview too tall to leave room for the choices (the turning form with its notes) scrolls with the page instead.
+  const pin = useRef<HTMLDivElement>(null);
+  const [tall, setTall] = useState(false);
+  useEffect(() => {
+    const el = pin.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const check = () => setTall(el.offsetHeight > window.innerHeight * 0.66);
+    const watch = new ResizeObserver(check);
+    watch.observe(el);
+    return () => watch.disconnect();
+  }, [page]);
+
   // Bring the open tab into the row's view, without scrolling the page.
   useEffect(() => {
     const tab = active && document.getElementById(`tab-${active}`);
@@ -143,7 +155,7 @@ export function StyleLayout({ children, label, name, metres, width = 140, ready,
         <GarmentSwitch onChoose={onChooseGarment} />
       </div>
       <div className="style-edit">
-        <div className="style-pin">
+        <div className={tall ? 'style-pin tall' : 'style-pin'} ref={pin}>
           {preview}
           <div className="style-tabs" role="tablist" aria-label="Style choices">
             {tabs.map((t) => (

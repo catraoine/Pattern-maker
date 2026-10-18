@@ -1,7 +1,12 @@
 // Paid extras that aren't built yet. Each one is shown as a sign-up so we can see who wants it before building
 // the paid part. Prices are the business plan's planned prices; nothing is charged until paid plans open.
 
-export const OFFER_IDS = ['founding', 'printed', 'tools', 'sewalong', 'designers', 'designer-partner', 'kit', 'gift', 'fitcheck', 'sizerun', 'classroom', 'sponsor'] as const;
+export const OFFER_IDS = ['founding', 'printed', 'tools', 'sewalong', 'designers', 'designer-partner', 'kit', 'gift', 'fitcheck', 'sizerun', 'classroom', 'sponsor', 'deadstock', 'cutforme', 'drops', 'archive', 'labels', 'engine', 'nights'] as const;
+
+/** Where Atelier Nights could run, first one first. Night sign-ups are counted per city. */
+export const NIGHT_CITIES = ['vancouver', 'berlin', 'london', 'copenhagen'] as const;
+export type NightCity = (typeof NIGHT_CITIES)[number];
+export const CITY_NAMES: Record<NightCity, string> = { vancouver: 'Vancouver', berlin: 'Berlin', london: 'London', copenhagen: 'Copenhagen' };
 export type OfferId = (typeof OFFER_IDS)[number];
 
 export interface Offer {
@@ -11,6 +16,8 @@ export interface Offer {
   text: string;
   /** Planned prices, label then price. */
   prices?: [string, string][];
+  /** Fine print under the form: what happens to your data, or what the terms will say, once it opens. */
+  fine?: string;
   button: string;
   thanks: string;
 }
@@ -122,5 +129,67 @@ export const OFFERS: Record<OfferId, Offer> = {
     text: 'A clearly labelled sponsored page in our seasonal edit, showing your fabrics with the patterns they suit.',
     button: 'Get in touch',
     thanks: "Thank you. We'll be in touch.",
+  },
+  deadstock: {
+    id: 'deadstock',
+    eyebrow: 'Deadstock · limited lengths',
+    title: 'Deadstock cloth for this pattern',
+    text: 'End-of-roll fabric from fashion houses and mills, chosen to suit this style and cut to the length your layout needs. Each drop is small, and once a cloth is gone it is gone.',
+    button: 'Hold one for me',
+    thanks: "Thank you. We'll email you when the first deadstock drop opens. Nothing is charged today.",
+    fine: 'Lengths are cut to order, so cut cloth can’t be returned. Colours can look different on screen.',
+  },
+  cutforme: {
+    id: 'cutforme',
+    eyebrow: 'Or have it cut for you',
+    title: 'Cut for me',
+    text: 'A cutting studio cuts every piece from your fabric, marks and labels them, and posts them back ready to sew.',
+    button: 'Tell me when it opens',
+    thanks: "Thank you. We'll email you when cutting opens.",
+    fine: 'When it opens, your pattern file and posting address go only to the cutting studio, and we’ll ask you before anything is sent.',
+  },
+  drops: {
+    id: 'drops',
+    eyebrow: 'Numbered drops',
+    title: 'Get the drop alert',
+    text: 'Limited patterns from independent designers, open for 72 hours. Each copy is drafted to you and numbered on every pattern piece.',
+    prices: [['Each drop pattern', 'from $28']],
+    button: 'Alert me',
+    thanks: "You're on the list. We'll email you before Drop 01 opens.",
+  },
+  archive: {
+    id: 'archive',
+    eyebrow: 'The Archive',
+    title: 'Tell me when the Archive opens',
+    text: 'Cuts from fashion history, licensed from museums, vintage dealers and pattern cutters, credited to them and drafted to you.',
+    prices: [['Each Archive pattern', 'from $16']],
+    button: 'Tell me',
+    thanks: "Thank you. We'll email you when the first Archive cuts open.",
+  },
+  labels: {
+    id: 'labels',
+    eyebrow: 'Woven labels · posted',
+    title: 'Have your labels woven',
+    text: 'Twelve woven labels in black and champagne, with your name and this pattern\'s code, posted to you.',
+    prices: [['Pack of 12', '$18']],
+    button: 'Tell me when it opens',
+    thanks: "Thank you. We'll email you when woven labels open.",
+  },
+  engine: {
+    id: 'engine',
+    eyebrow: 'Early access',
+    title: 'Try it in your shop first',
+    text: 'Leave your work email and we will be in touch when the first brands can try it.',
+    button: 'Send',
+    thanks: "Thank you. We'll be in touch when the first brands can try it.",
+  },
+  nights: {
+    id: 'nights',
+    eyebrow: 'Atelier Nights',
+    title: 'Tell me when tickets open',
+    text: "We'll email you when tickets for a night in this city open.",
+    prices: [['A ticket', '$90 to $140']],
+    button: 'Send',
+    thanks: "You're counted in. We'll email you when tickets open in this city.",
   },
 };

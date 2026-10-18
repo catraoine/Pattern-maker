@@ -1,8 +1,7 @@
 import { useState, type ReactNode } from 'react';
-import { FIELDS, checkMeasurements, type Garment, type MeasurementId, type MeasurementValues, type Unit } from '../measurements';
-import { BASE, baseDone, fieldOf, fullSetMissing, GARMENT_NAME, GARMENTS, missingFor, stepsOf, tipOf, titleOf } from '../measureFlow';
-import { TapeDemo } from '../ui/ContourForm';
-import { FIRST_PROJECT } from '../mode';
+import { FIELDS, checkMeasurements, type FormKind, type Garment, type MeasurementId, type MeasurementValues, type Unit } from '../measurements';
+import { BASE, baseDone, fullSetMissing, GARMENT_NAME, GARMENTS, labelOf, missingFor, stepsOf, tipOf, titleOf } from '../measureFlow';
+import { FormPicture, TapeDemo } from '../ui/ContourForm';
 import { canGoBack, goBack, usePageHistory } from '../nav';
 import { TapeBand } from '../ui/TapeBand';
 import { Title } from '../ui/Title';
@@ -24,12 +23,16 @@ interface Props {
   theirs?: boolean;
   /** Skip, at the end of the tape: try the app with example measurements (for the garment being measured). */
   onSkip?: (garment?: Garment) => void;
+  /** The dress form this person's patterns are drafted on, and choosing it before the first measurement. */
+  form?: FormKind;
+  onForm?: (form: FormKind) => void;
 }
 
 export type StepsStart = { kind: 'choose' } | { kind: 'for'; garment: Garment } | { kind: 'redo'; garment: Garment; ids: MeasurementId[] };
 
 type Page =
   | { kind: 'intro' }
+  | { kind: 'form' }
   | { kind: 'base'; at: number; back?: 'check' }
   | { kind: 'check' }
   | { kind: 'choose' }
@@ -50,14 +53,14 @@ const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
 // The first page asks who is being measured, since "Someone else" words every page for the person holding the
 // tape and asks their name first (Cat's pick V2, 2026-10-17). A tape runs across the top of every page, with
 // Skip at its end wherever measuring can be skipped.
-export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onValues, onDone, start, onSomeoneElse, theirs, onSkip }: Props) {
+export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onValues, onDone, start, onSomeoneElse, theirs, onSkip, form = 'womenswear', onForm }: Props) {
   const aimed = start?.kind === 'for' ? start.garment : undefined;
   // Each page is a history entry, so the header's back and the phone's back go one page back.
   const [page, setPage] = usePageHistory<Page>(() => {
     if (start?.kind === 'redo') return { kind: 'extra', garment: start.garment, ids: start.ids, at: 0, redo: true };
     if (!baseDone(values)) return { kind: 'intro' };
     if (start?.kind === 'choose') return { kind: 'choose' };
-    const ids = aimed ? missingFor(aimed, values).map((f) => f.id) : [];
+    const ids = aimed ? missingFor(aimed, values, form).map((f) => f.id) : [];
     return ids.length ? { kind: 'extra', garment: aimed!, ids, at: 0 } : { kind: 'check' };
   });
   // Opened on the check because the measurements were taken on an earlier visit: say so.
@@ -65,9 +68,10 @@ export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onV
   const [helper, setHelper] = useState(!!theirs);
   const [name, setName] = useState('');
   const [picked, setPicked] = useState<Pick | null>(start?.kind === 'choose' ? current : null);
+  const [chosen, setChosen] = useState<FormKind>(form);
 
   const go = (g: Pick) => {
-    const ids = (g === 'other' ? fullSetMissing(values) : missingFor(g, values)).map((f) => f.id);
+    const ids = (g === 'other' ? fullSetMissing(values, form) : missingFor(g, values, form)).map((f) => f.id);
     if (ids.length) setPage({ kind: 'extra', garment: g, ids, at: 0 });
     else if (g === 'other') setPage({ kind: 'saved' });
     else onDone(g);
@@ -76,7 +80,7 @@ export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onV
   if (page.kind === 'intro') {
     const begin = () => {
       if (helper) onSomeoneElse?.(name.trim());
-      setPage({ kind: 'base', at: 0 });
+      setPage(onForm ? { kind: 'form' } : { kind: 'base', at: 0 });
     };
     return (
       <Shell title="First, let's take your measurements." helperTitle="First, let's take their measurements." helper={helper} skip={onSkip && (() => onSkip())}>
@@ -118,15 +122,44 @@ export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onV
     );
   }
 
+  // Which dress form to draft on (Cat's B2 Two Forms): the two forms side by side. The one picked is drawn on
+  // every page for this person, and the menswear form asks for the chest and none of the bust measurements.
+  if (page.kind === 'form')
+    return (
+      <Shell title={helper ? 'Their form' : 'Your form'} skip={onSkip && (() => onSkip())}>
+        <p className="who-q" id="form-q">
+          Which form should we draft on?
+        </p>
+        <div className="form-pick" role="radiogroup" aria-labelledby="form-q">
+          {(['womenswear', 'menswear'] as const).map((k) => (
+            <button key={k} type="button" role="radio" aria-checked={chosen === k} className={chosen === k ? 'on' : ''} onClick={() => setChosen(k)}>
+              <FormPicture kind={k} />
+              <span>{k === 'womenswear' ? 'Womenswear' : 'Menswear'}</span>
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          className="primary"
+          onClick={() => {
+            onForm?.(chosen);
+            setPage({ kind: 'base', at: 0 });
+          }}
+        >
+          Continue
+        </button>
+      </Shell>
+    );
+
   if (page.kind === 'check')
     return (
-      <Shell eyebrow={returning ? 'Welcome back' : helper ? 'Their base measurements' : 'Your base measurements'} title="Do these look right?" hero={<TapeDemo id="waist" name="" mode="all" />}>
+      <Shell eyebrow={returning ? 'Welcome back' : helper ? 'Their base measurements' : 'Your base measurements'} title="Do these look right?" hero={<TapeDemo id="waist" name="" mode="all" kind={form} />}>
         {returning && <p className="muted step-tip">{helper ? 'Their' : 'Your'} measurements are saved on this device. Check they still look right, then carry on.</p>}
         <ul className="check-list" aria-label="Tap one to change it">
           {BASE.map((id, at) => (
             <li key={id}>
               <button type="button" onClick={() => setPage({ kind: 'base', at, back: 'check' })}>
-                <span>{cap(titleOf(id, false).replace(/^Your /, ''))}</span>
+                <span>{cap(titleOf(id, false, form).replace(/^Your /, ''))}</span>
                 <span>{shown(values[id], unit)}</span>
               </button>
             </li>
@@ -146,26 +179,23 @@ export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onV
 
   if (page.kind === 'choose')
     return (
-      <Shell title="What would you like to make?" hero={<TapeDemo id="waist" name="" mode="still" />} short>
-        <div className="pick-list" role="radiogroup" aria-labelledby="stitle">
+      <Shell title="What would you like to make?" hero={<TapeDemo id="waist" name="" mode="still" kind={form} />} short>
+        <div className="make-grid" role="radiogroup" aria-labelledby="stitle">
           {[...GARMENTS, 'other' as const].map((g) => (
             <button key={g} type="button" role="radio" aria-checked={picked === g} className={picked === g ? 'on' : ''} onClick={() => setPicked(g)}>
-              <span className="dot-pick" aria-hidden="true" />
               {g === 'other' ? 'Something else' : cap(GARMENT_NAME[g])}
-              {g === FIRST_PROJECT.garment && <small className="badge first-project">First project</small>}
             </button>
           ))}
         </div>
-        <p className="muted small">{FIRST_PROJECT.why}</p>
         <button type="button" className="primary" disabled={!picked} onClick={() => picked && go(picked)}>
-          Start measurements
+          Continue measurements
         </button>
       </Shell>
     );
 
   if (page.kind === 'saved')
     return (
-      <Shell eyebrow="Full set" title="Every measurement is saved." hero={<TapeDemo id="waist" name="" mode="all" />}>
+      <Shell eyebrow="Full set" title="Every measurement is saved." hero={<TapeDemo id="waist" name="" mode="all" kind={form} />}>
         <p className="muted step-tip">Pick something to make whenever you're ready. A dressmaker can work from these too.</p>
         <button type="button" className="primary" onClick={() => setPage({ kind: 'choose' })}>
           Choose what to make
@@ -202,6 +232,7 @@ export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onV
       eyebrow={eyebrow}
       dots={[ids.length, at]}
       helper={helper}
+      form={form}
       unit={unit}
       values={values}
       garment={g && g !== 'other' ? g : current}
@@ -214,7 +245,7 @@ export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onV
   );
 }
 
-function Shell({
+export function Shell({
   eyebrow,
   title,
   helperTitle,
@@ -271,11 +302,12 @@ function ShellTitle({ text }: { text: string }) {
   return cut > 0 && cut < 12 ? <Title id="stitle" big={text.slice(0, cut + 1)} label={text.slice(cut + 2)} /> : <h1 id="stitle">{text}</h1>;
 }
 
-function MeasurePage({
+export function MeasurePage({
   id,
   eyebrow,
   dots,
   helper,
+  form,
   unit,
   values,
   garment,
@@ -289,6 +321,7 @@ function MeasurePage({
   eyebrow: string;
   dots: [number, number];
   helper: boolean;
+  form: FormKind;
   unit: Unit;
   values: MeasurementValues;
   garment: Garment;
@@ -298,7 +331,7 @@ function MeasurePage({
   label: string;
   skip?: () => void;
 }) {
-  const field = fieldOf(id);
+  const fieldLabel = labelOf(id, form);
   const [text, setText] = useState<string | null>(null);
   const [tried, setTried] = useState(false);
   const [how, setHow] = useState(false);
@@ -306,9 +339,9 @@ function MeasurePage({
   // Range checks for this one measurement only; the cross-checks wait for the full measurements screen.
   // Checked as a garment that uses it, so a base measurement the skirt doesn't need (the bust) still is.
   const checkAs = FIELDS[garment].some((f) => f.id === id) ? garment : GARMENTS.find((g) => FIELDS[g].some((f) => f.id === id)) ?? garment;
-  const problems = checkMeasurements({ [id]: value } as MeasurementValues, unit, checkAs).filter((c) => c.id === id && c.level === 'error' && value !== undefined);
+  const problems = checkMeasurements({ [id]: value } as MeasurementValues, unit, checkAs, form).filter((c) => c.id === id && c.level === 'error' && value !== undefined);
   const error = problems[0];
-  const note = error ?? (tried && value === undefined ? { level: 'error', message: `Enter ${helper ? 'their' : 'your'} ${field.label.toLowerCase()} to carry on.` } : undefined);
+  const note = error ?? (tried && value === undefined ? { level: 'error', message: `Enter ${helper ? 'their' : 'your'} ${fieldLabel.toLowerCase()} to carry on.` } : undefined);
 
   const type = (t: string) => {
     setText(t);
@@ -320,8 +353,8 @@ function MeasurePage({
   };
 
   return (
-    <Shell eyebrow={eyebrow} title={titleOf(id, helper)} dots={dots} skip={skip} hero={<TapeDemo id={id} name={titleOf(id, false).replace(/^Your /, '')} />}>
-      <p className="muted step-tip">{tipOf(id, helper)}</p>
+    <Shell eyebrow={eyebrow} title={titleOf(id, helper, form)} dots={dots} skip={skip} hero={<TapeDemo id={id} name={titleOf(id, false, form).replace(/^Your /, '')} kind={form} />}>
+      <p className="muted step-tip">{tipOf(id, helper, form)}</p>
       <button type="button" className="link quiet how-link" aria-expanded={how} onClick={() => setHow(true)}>
         How to do it
       </button>
@@ -334,7 +367,7 @@ function MeasurePage({
         }}
       >
         <div className={note ? 'entry-box error' : 'entry-box'}>
-          <label htmlFor="step-value">{field.label}</label>
+          <label htmlFor="step-value">{fieldLabel}</label>
           <div className="entry-row">
             <input
               id="step-value"
@@ -378,10 +411,10 @@ function MeasurePage({
         <div className="how-sheet" role="dialog" aria-modal="true" aria-labelledby="how-title" onClick={() => setHow(false)}>
           <div className="how-panel" onClick={(e) => e.stopPropagation()}>
             <p id="how-title" className="eyebrow">
-              How to measure {helper ? 'their' : 'your'} {(titleOf(id, false).replace(/^Your /, '') || field.label).toLowerCase()}
+              How to measure {helper ? 'their' : 'your'} {(titleOf(id, false, form).replace(/^Your /, '') || fieldLabel).toLowerCase()}
             </p>
             <ol>
-              {stepsOf(id, helper).map((s) => (
+              {stepsOf(id, helper, form).map((s) => (
                 <li key={s}>{s}</li>
               ))}
             </ol>

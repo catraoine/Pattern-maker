@@ -16,6 +16,7 @@ import { teeFabrics } from '../engine/knits';
 import { FabricCard } from '../ui/FabricCard';
 import type { Mode } from '../mode';
 import { ChoicePic, chipsClass } from '../ui/ChoicePic';
+import { Explain } from '../ui/Explain';
 import { DrawOnForm } from '../ui/DrawOnForm';
 import { TeeFormMeasurements, readTeeFit, readTeeHem, readTeeNeckline, readTeeSleeve, teeForm, teeLines } from '../ui/formTops';
 import { Group, LOOKS, StyleLayout, TabPanel } from '../ui/StyleLayout';
@@ -150,6 +151,7 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
                 </button>
               ))}
             </div>
+            <Explain set="tee" group={g.id} options={g.options} pick={choices[g.id]} />
             {g.id === 'stretch' && <p className="muted small">How to test: {STRETCH_TEST}</p>}
             {g.id === 'fit' && <p className="muted small">{FIT_NOTES[choices.fit]}</p>}
           </Group>
@@ -182,7 +184,7 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
           <UndoToast undo={undo} />
         </div>
         <p className="muted small">
-          Drafted to your measurements as you choose.{undo.shake.state === 'on' ? ' Shake your phone to undo.' : ''}
+          Drafted to your measurements as you choose.
         </p>
         {draft?.warnings.map((w) => (
           <p key={w} className="msg small">

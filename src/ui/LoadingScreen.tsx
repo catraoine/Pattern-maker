@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { FADE_FROM, formOutline } from './ContourForm';
+import type { FormKind } from '../measurements';
 
 // The loading screen shown when the app opens, one thing at a time (Cat's M1, 2026-10-18): MAISON TRACÉ
 // appears and rises into the header, then a pen drafts the bodice block, as big as the form it is about to
@@ -67,7 +68,8 @@ export function resample(pts: Pt[], n: number): Pt[] {
 }
 
 /** Where the welcome's form is on screen, so the bodice can land on it. */
-export type FormBox = { x: number; y: number; w: number; h: number };
+/** Where the welcome's form is, and which form it draws. */
+export type FormBox = { x: number; y: number; w: number; h: number; kind?: FormKind };
 
 function polyTo(g: CanvasRenderingContext2D, pts: Pt[], frac: number): Pt {
   const n = Math.floor((pts.length - 1) * clamp(frac, 0, 1));
@@ -118,7 +120,7 @@ function draw(g: CanvasRenderingContext2D, w: number, h: number, t: number, box:
     bh = bw * 1.15;
     x0 = box.x + (box.w - bw) / 2;
     y0 = box.y + (box.h - bh) * 0.45;
-    lw = formOutline(box.w, box.h).lw;
+    lw = formOutline(box.w, box.h, box.kind).lw;
   } else {
     bw = Math.min(w * 0.7, (h * 0.55) / 1.15);
     bh = bw * 1.15;
@@ -162,7 +164,7 @@ function draw(g: CanvasRenderingContext2D, w: number, h: number, t: number, box:
 
 /** The flat bodice part way (m, 0 to 1) to the form's outline, cropped and faded the way the welcome draws the form. */
 function morph(g: CanvasRenderingContext2D, bodice: Pt[], box: FormBox, m: number) {
-  const form = formOutline(box.w, box.h);
+  const form = formOutline(box.w, box.h, box.kind);
   const from = resample(bodice, LOOP);
   const to = resample(form.pts.map(([x, y]) => [box.x + x, box.y + y]), LOOP);
   g.save();
