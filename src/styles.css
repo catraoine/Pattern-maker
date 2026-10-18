@@ -4004,6 +4004,13 @@ button.link.garment-change {
     align-items: flex-end;
     margin-bottom: 8px;
   }
+  .style-layout .screen-head h1 {
+    flex: none;
+  }
+  .style-layout .screen-head .garment-change {
+    min-width: 0;
+    text-align: right;
+  }
   .style-bar {
     margin: 0 -16px;
     padding-left: 16px;

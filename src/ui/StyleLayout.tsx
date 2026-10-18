@@ -1,4 +1,4 @@
-import { Children, createContext, ReactNode, useContext, useLayoutEffect, useRef, useState } from 'react';
+import { Children, createContext, ReactNode, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { Mode } from '../mode';
 import { canGoBack, goBack, usePageHistory } from '../nav';
 import { CollectionEntry, GarmentSwitch } from './GarmentSwitch';
@@ -108,13 +108,14 @@ export function StyleLayout({ children, label, name, metres, width = 140, ready,
     root.current?.style.setProperty('--pin-top', `${bar?.offsetHeight ?? 0}px`);
   });
 
-  const choose = (t: string) => {
-    setActive(t);
-    // Bring the tab into the row's view without scrolling the page.
-    const tab = document.getElementById(`tab-${t}`);
-    const row = tab?.parentElement;
+  // Bring the open tab into the row's view, without scrolling the page.
+  useEffect(() => {
+    const tab = active && document.getElementById(`tab-${active}`);
+    const row = tab && tab.parentElement;
     if (tab && row) row.scrollTo({ left: tab.offsetLeft - row.offsetLeft - row.clientWidth / 2 + tab.offsetWidth / 2, behavior: 'smooth' });
-  };
+  }, [active, tabs]);
+
+  const choose = (t: string) => setActive(t);
   const step = (by: number) => {
     const i = tabs.indexOf(active ?? '');
     const to = tabs[i + by];
