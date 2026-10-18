@@ -28,10 +28,11 @@ interface Props {
   onForm?: (form: FormKind) => void;
 }
 
-export type StepsStart = { kind: 'choose' } | { kind: 'for'; garment: Garment } | { kind: 'redo'; garment: Garment; ids: MeasurementId[] };
+export type StepsStart = { kind: 'choose' } | { kind: 'form' } | { kind: 'for'; garment: Garment } | { kind: 'redo'; garment: Garment; ids: MeasurementId[] };
 
 type Page =
   | { kind: 'intro' }
+  | { kind: 'form' }
   | { kind: 'base'; at: number; back?: 'check' }
   | { kind: 'check' }
   | { kind: 'choose' }
@@ -57,6 +58,7 @@ export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onV
   // Each page is a history entry, so the header's back and the phone's back go one page back.
   const [page, setPage] = usePageHistory<Page>(() => {
     if (start?.kind === 'redo') return { kind: 'extra', garment: start.garment, ids: start.ids, at: 0, redo: true };
+    if (start?.kind === 'form') return { kind: 'form' };
     if (!baseDone(values)) return { kind: 'intro' };
     if (start?.kind === 'choose') return { kind: 'choose' };
     const ids = aimed ? missingFor(aimed, values, form).map((f) => f.id) : [];
@@ -127,6 +129,37 @@ export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onV
       </Shell>
     );
   }
+
+  // Changing the dress form later, from the measurements list (Cat's B2 Two Forms; the first pick is on the
+  // intro page). The menswear form asks for the chest and none of the bust measurements.
+  if (page.kind === 'form')
+    return (
+      <Shell title={helper ? 'Their form' : 'Your form'} skip={start?.kind !== 'form' && onSkip ? () => onSkip() : undefined}>
+        <p className="who-q" id="form-q">
+          Which form should we draft on?
+        </p>
+        <div className="form-pick" role="radiogroup" aria-labelledby="form-q">
+          {(['womenswear', 'menswear'] as const).map((k) => (
+            <button key={k} type="button" role="radio" aria-checked={chosen === k} className={chosen === k ? 'on' : ''} onClick={() => setChosen(k)}>
+              <FormPicture kind={k} />
+              <span>{k === 'womenswear' ? 'Womenswear' : 'Menswear'}</span>
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          className="primary"
+          onClick={() => {
+            onForm?.(chosen);
+            // Changed from the measurements list: back to it, where anything the new form needs shows as Add.
+            if (start?.kind === 'form' && canGoBack()) goBack();
+            else setPage({ kind: 'base', at: 0 });
+          }}
+        >
+          Continue
+        </button>
+      </Shell>
+    );
 
   if (page.kind === 'check')
     return (

@@ -1,9 +1,10 @@
-import { download, expect, expectStyle, openFold, startWithExample, test } from './fixtures';
+import { download, expect, expectStyle, openFold, openReview, startWithExample, test } from './fixtures';
 
 test('account: save a pattern, rename it, back up, delete it, restore', async ({ page }, info) => {
   await startWithExample(page);
   const main = page.getByRole('main');
 
+  await openReview(page);
   await main.getByRole('button', { name: 'Save pattern' }).click();
   await main.getByRole('button', { name: 'your patterns' }).click();
   await expect(main.getByRole('heading', { name: 'Saved patterns' })).toBeVisible();

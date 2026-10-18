@@ -231,12 +231,32 @@ export function panels(pc: Piece, s: Split, names: [string, string], cuts: [stri
 }
 
 /** Princess seams: the front and back each cut into a centre and a side panel. */
-export function princessPieces(front: Piece, back: Piece, apex: P, line: Exclude<PrincessLine, 'none'>, at?: number): { pieces: Piece[]; lines: { front: P[]; back: P[] } } | undefined {
+export function princessPieces(
+  front: Piece,
+  back: Piece,
+  apex: P,
+  line: Exclude<PrincessLine, 'none'>,
+  at?: number,
+  flat = false,
+): { pieces: Piece[]; lines: { front: P[]; back: P[] } } | undefined {
   // Front: the bust dart moved into the line, opened right to the bust point; `at` is where along the
-  // shoulder or armhole it was drawn, and the back's line starts the same way along its own edge.
-  const m = moveBustDart(front.outline, apex, line, { princess: true, armholeNotch: front.notches[0]?.[0], belowNotch: 2, at });
-  if (!m) return undefined;
-  const f = panels(front, { ring: m.ring, i1: m.i1, i2: m.i1 + 1, pivot: apex, move: m.move, top: m.closedAt }, ['Bodice centre front', 'Bodice side front'], ['Cut 1 on fold', 'Cut 2 (1 pair)'], line === 'shoulder' ? {} : {});
+  // shoulder or armhole it was drawn, and the back's line starts the same way along its own edge. A flat
+  // front (the menswear form) has no bust dart, so its line is cut like the back's, through the waist dart.
+  let f: ReturnType<typeof panels>;
+  if (flat) {
+    const r = ringOf(front.outline);
+    const run = runOf(r, line)!;
+    const total = runLen(r, run);
+    // The shoulder from the neck end, the armhole from the shoulder down, as on the back.
+    const neckFirst = line === 'shoulder' && Math.abs(r.pts[run[0]].x) < Math.abs(r.pts[(run[1] + 1) % r.pts.length].x);
+    const d = line === 'shoulder' ? total * (at ?? 0.5) : total * clampAt(at ?? 0.45, ARMHOLE_AT.min, ARMHOLE_AT.max);
+    const iQ = insertAlong(r, run, neckFirst || line !== 'shoulder' ? d : total - d);
+    f = panels(front, { ring: r, i1: iQ, i2: iQ, pivot: dartTipOf(front, r), move: (q) => q, top: r.pts[iQ] }, ['Bodice centre front', 'Bodice side front'], ['Cut 1 on fold', 'Cut 2 (1 pair)'], {});
+  } else {
+    const m = moveBustDart(front.outline, apex, line, { princess: true, armholeNotch: front.notches[0]?.[0], belowNotch: 2, at });
+    if (!m) return undefined;
+    f = panels(front, { ring: m.ring, i1: m.i1, i2: m.i1 + 1, pivot: apex, move: m.move, top: m.closedAt }, ['Bodice centre front', 'Bodice side front'], ['Cut 1 on fold', 'Cut 2 (1 pair)'], {});
+  }
 
   // Back: the line runs from the shoulder or armhole through the waist dart's point.
   const r = ringOf(back.outline);
@@ -244,7 +264,7 @@ export function princessPieces(front: Piece, back: Piece, apex: P, line: Exclude
   if (line === 'shoulder') {
     const run = runOf(r, 'shoulder')!;
     const total = runLen(r, run);
-    if (at === undefined) iQ = insertAlong(r, run, total * 0.5);
+    if (at === undefined && !flat) iQ = insertAlong(r, run, total * 0.5);
     else {
       // Drawn off the middle: each back panel's shoulder is its front panel's and half the back's ease,
       // so the two shoulder seams still sew together, measured from the neck end of the shoulder.
@@ -269,18 +289,19 @@ export function princessPieces(front: Piece, back: Piece, apex: P, line: Exclude
     }
     iQ = insertAlong(r, run, at !== undefined ? runLen(r, run) * clampAt(at, ARMHOLE_AT.min, ARMHOLE_AT.max) : Math.min(atS + 2, runLen(r, run) * 0.6));
   }
-  const dl = back.lines.map((l) => l.points()).find((q) => q.length === 3);
-  const eye = fishEyeOf(back);
-  let tip: P;
-  if (dl) tip = dl[1];
-  else if (eye) tip = eye[0];
-  else {
-    const sideRun = runOf(r, 'side')!;
-    const waistSide = r.pts[(sideRun[1] + 1) % r.pts.length];
-    tip = p(waistSide.x * 0.48, r.pts[sideRun[0]].y + 2.5);
-  }
-  const b = panels(back, { ring: r, i1: iQ, i2: iQ, pivot: tip, move: (q) => q, top: r.pts[iQ] }, ['Bodice centre back', 'Bodice side back'], ['Cut 2 (1 pair)', 'Cut 2 (1 pair)'], line === 'shoulder' ? { shoulderEase: 0.5 } : {});
+  const b = panels(back, { ring: r, i1: iQ, i2: iQ, pivot: dartTipOf(back, r), move: (q) => q, top: r.pts[iQ] }, ['Bodice centre back', 'Bodice side back'], ['Cut 2 (1 pair)', 'Cut 2 (1 pair)'], line === 'shoulder' ? { shoulderEase: 0.5 } : {});
   return { pieces: [f.centre, f.side, b.centre, b.side], lines: { front: f.line, back: b.line } };
+}
+
+/** Where a princess line without a bust dart turns down: the waist dart's point, or where it would be. */
+function dartTipOf(pc: Piece, r: Ring): P {
+  const dl = pc.lines.map((l) => l.points()).find((q) => q.length === 3);
+  if (dl) return dl[1];
+  const eye = fishEyeOf(pc);
+  if (eye) return eye[0];
+  const sideRun = runOf(r, 'side')!;
+  const waistSide = r.pts[(sideRun[1] + 1) % r.pts.length];
+  return p(waistSide.x * 0.48, r.pts[sideRun[0]].y + 2.5);
 }
 
 /** The front's bust point: the cross drawn on the block. */

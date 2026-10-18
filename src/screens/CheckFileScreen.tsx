@@ -54,7 +54,7 @@ export function CheckFileScreen({ onUse }: { onUse?: (pattern: ImportedPattern, 
         </div>
         <p className="muted">
           Open a pattern from Gerber, Lectra, Optitex or CLO 3D as a DXF, or a traced pattern as an SVG. Each piece is found, split into
-          edges at its corners, and the edges are paired by length the way you would walk them with a tape. A DXF can then be printed, sewn and sent to a dressmaker like any pattern made here. The file stays on this device.
+          edges at its corners, and the edges are paired by length the way you would walk them with a tape. A DXF can then be printed, sewn and sent to a dressmaker like any pattern made here.
         </p>
         <label className="primary filebtn">
           Open a DXF or SVG

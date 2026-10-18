@@ -6,25 +6,24 @@ import { TROUSER_EASE, TrousersDraft } from '../engine/trousers';
 import { trousersFlat } from '../engine/flat';
 import { TROUSER_GROUPS, TrousersChoices, describeTrousers, trouserAllowed, trouserChoice, validTrousers } from '../garments';
 import { TechFlatView } from '../ui/TechFlatView';
+import { AllRound } from '../ui/AllRound';
+import { roundTrousers } from '../engine/allRound';
 import { FabricSwatches, GarmentFabric } from '../ui/FabricFill';
 import { MeasurementValues } from '../measurements';
 import { PatternPreview } from '../ui/Preview';
 import { PatternPane } from '../ui/PointEditor';
-import { GarmentSwitch } from '../ui/GarmentSwitch';
-import { PhotoEntry } from '../ui/PhotoEntry';
 import { SaveControl } from '../ui/SaveControl';
 import { UndoToast, UndoTools, useUndo } from '../ui/useUndo';
+import { FABRIC, Group, PRO, StyleLayout, TabPanel } from '../ui/StyleLayout';
 
 import { Mode, ProTool, shows } from '../mode';
-import { ModeLink } from '../ui/ModeLink';
 import { EaseMapView } from '../ui/EaseMapView';
 import type { EaseView } from '../engine/easeMap';
 import { FinishChoices } from '../ui/FinishChoices';
 import type { Finish } from '../App';
 
 import { MyFabric, fabricEase, trousersFabrics } from '../engine/fabrics';
-import { FabricCard } from '../ui/FabricCard';
-import { Title } from '../ui/Title';
+import { FabricCard, FabricSummary } from '../ui/FabricCard';
 import { ChoicePic, chipsClass } from '../ui/ChoicePic';
 import { Explain } from '../ui/Explain';
 
@@ -62,11 +61,12 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
   const undo = useUndo(choices, setChoices);
   const onChoices = undo.change;
   const can = (t: ProTool) => shows(mode, t);
-  const [picked, setView] = useState<'sketch' | 'pattern' | 'ease'>('sketch');
+  const [picked, setView] = useState<'sketch' | 'round' | 'pattern' | 'ease'>('sketch');
   const view = picked === 'ease' && !can('easeMap') ? 'sketch' : picked;
   const pieces = useMemo(() => draft?.pieces ?? [], [draft]);
   const sheet = useMemo(() => (draft ? layout(pieces, '', []) : undefined), [draft, pieces]);
   const title = describeTrousers(choices);
+  const round = useMemo(() => (draft ? roundTrousers(draft, values) : undefined), [draft, values]);
   const ease = TROUSER_EASE[choices.fit];
   const extra = fabricEase(fabric, 'trousers');
   const flat = useMemo(
@@ -78,16 +78,20 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
   const pockets = choices.pockets ?? 'none';
 
   return (
-    <div className="split three">
+    <StyleLayout
+      label="your trousers"
+      name={title}
+      metres={draft ? trousersFabricMetres(draft) : undefined}
+      ready={!!draft}
+      onChooseGarment={onChooseGarment}
+      onPhoto={onPhoto}
+      photo={photo}
+      mode={mode}
+      onMode={onMode}
+    >
       <section className="card numbered" aria-labelledby="opts">
-        <div className="row between wrap">
-          <Title id="opts" big="Style" label="your trousers" />
-          <GarmentSwitch onChoose={onChooseGarment} />
-        </div>
-        <PhotoEntry onPhoto={onPhoto} photo={photo} />
         {TROUSER_GROUPS.filter((g) => shown(g.id)).map((g) => (
-          <fieldset key={g.id} className="group">
-            <legend>{g.label}</legend>
+          <Group key={g.id} label={g.label}>
             <div className={chipsClass('trousers', g.id)}>
               {g.options.map(([id, label]) => (
                 <button
@@ -119,19 +123,25 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
                 {pockets === 'inseam' ? ' With the side zip, the in-seam pocket goes in the right side only.' : ''}
               </p>
             )}
-          </fieldset>
+          </Group>
         ))}
         {can('insideFinish') && (
-          <>
+          <TabPanel tab={PRO}>
             <p className="eyebrow">Inside the trousers</p>
             <FinishChoices garment="trousers" finish={finish} onFinish={onFinish} />
-          </>
+          </TabPanel>
         )}
-        <p className="muted small">
-          The crotch is drafted to your own crotch depth and length, front and back curves together, so the trousers sit without pulling or
-          bagging. {elastic ? 'A pull-on elastic waist, with no zip.' : choices.closure === 'fly' ? 'A fly front with its facing and shield.' : 'An invisible zip in the left side seam.'}
-        </p>
-        <ModeLink mode={mode} onMode={onMode} />
+        {(flat || draft) && (
+          <TabPanel tab={FABRIC}>
+            {draft ? (
+              <FabricCard metres={trousersFabricMetres(draft)} advice={trousersFabrics(choices)} fabric={fabric}>
+                {flat && <FabricSwatches finish={finish} onFinish={onFinish} garment="trousers" />}
+              </FabricCard>
+            ) : (
+              <FabricSwatches finish={finish} onFinish={onFinish} garment="trousers" />
+            )}
+          </TabPanel>
+        )}
       </section>
 
       <section className="card grow" aria-label="Preview">
@@ -139,6 +149,9 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
           <div className="seg" role="group" aria-label="Preview view">
             <button type="button" aria-pressed={view === 'sketch'} className={view === 'sketch' ? 'on' : ''} onClick={() => setView('sketch')}>
               Sketch
+            </button>
+            <button type="button" aria-pressed={view === 'round'} className={view === 'round' ? 'on' : ''} onClick={() => setView('round')}>
+              All round
             </button>
             <button type="button" aria-pressed={view === 'pattern'} className={view === 'pattern' ? 'on' : ''} onClick={() => setView('pattern')}>
               Pieces
@@ -158,11 +171,11 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
               <TechFlatView flat={flat} title={title} />
             </GarmentFabric>
           )}
+          {round && view === 'round' && <AllRound round={round} m={values} label={`The ${title.toLowerCase()} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`} />}
           {draft && sheet && view === 'pattern' && <PatternPane><PatternPreview paper sheet={sheet} label={`Pattern pieces for ${title.toLowerCase()}`} /></PatternPane>}
           {view === 'ease' && easeMap && <EaseMapView views={easeMap} label={`Ease map of the ${title.toLowerCase()}`} />}
           <UndoToast undo={undo} />
         </div>
-        {flat && view === 'sketch' && <FabricSwatches finish={finish} onFinish={onFinish} garment="trousers" />}
         <p className="muted small">
           Drafted to your measurements as you choose.
         </p>
@@ -221,9 +234,11 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
             )}
           </ul>
         </div>
-        {draft && (
-          <FabricCard metres={trousersFabricMetres(draft)} advice={trousersFabrics(choices)} fabric={fabric} />
-        )}
+        {draft && <FabricSummary metres={trousersFabricMetres(draft)} fabric={fabric} />}
+        <p className="muted small">
+          The crotch is drafted to your own crotch depth and length, front and back curves together, so the trousers sit without pulling or
+          bagging. {elastic ? 'A pull-on elastic waist, with no zip.' : choices.closure === 'fly' ? 'A fly front with its facing and shield.' : 'An invisible zip in the left side seam.'}
+        </p>
         <button type="button" className="primary" disabled={!draft} onClick={onNext}>
           Print my pattern
         </button>
@@ -232,6 +247,6 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
           Edit measurements
         </button>
       </aside>
-    </div>
+    </StyleLayout>
   );
 }

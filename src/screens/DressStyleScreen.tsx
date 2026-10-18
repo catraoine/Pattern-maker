@@ -10,23 +10,23 @@ import { hasSlit } from '../engine/instructions';
 import { SHAPES_FOR_LENGTH, SleeveDraft, needsArms } from '../engine/sleeve';
 import { BODICE_GROUPS, BodiceChoices, DARTS_FOR_FIT, DressChoices, detailAllowed, sleeveOf, topAllowed, validDetails } from '../garments';
 import type { MeasurementValues } from '../measurements';
-import { GarmentSwitch } from '../ui/GarmentSwitch';
-import { PhotoEntry } from '../ui/PhotoEntry';
 import { SaveControl } from '../ui/SaveControl';
 import { UndoToast, UndoTools, useUndo } from '../ui/useUndo';
 import { PatternPreview } from '../ui/Preview';
 import { PatternPane } from '../ui/PointEditor';
 import { TechFlatView } from '../ui/TechFlatView';
+import { AllRound } from '../ui/AllRound';
+import { roundDress } from '../engine/allRound';
 import { FabricSwatches, GarmentFabric } from '../ui/FabricFill';
 import { DETAIL_GROUPS, GROUPS } from './StyleScreen';
 import { cutAllowed, validCut } from '../engine/slip';
 import { describePattern } from './describe';
+import { FABRIC, Group, PRO, StyleLayout, TabPanel } from '../ui/StyleLayout';
 
 import { Mode, ProTool, shows } from '../mode';
-import { ModeLink } from '../ui/ModeLink';
 import { EaseMapView } from '../ui/EaseMapView';
 import { MyFabric, dressFabrics, fabricEase } from '../engine/fabrics';
-import { FabricCard } from '../ui/FabricCard';
+import { FabricCard, FabricSummary } from '../ui/FabricCard';
 import type { EaseView } from '../engine/easeMap';
 import { FinishChoices } from '../ui/FinishChoices';
 import type { Finish } from '../App';
@@ -40,9 +40,11 @@ import { orSeam, readSeamLine } from '../ui/formSeams';
 import { orNeckline, readUnevenNeckline, unevenNecklineLines } from '../ui/formBodice';
 import { REPLACES } from './BodiceStyleScreen';
 import { bodiceLines, landmarks, readDrape, readFit, readNeckline, readSeam, readSkirtHem, skirtLines } from '../ui/formLines';
-import { Title } from '../ui/Title';
 import { ChoicePic, chipsClass } from '../ui/ChoicePic';
 import { Explain } from '../ui/Explain';
+
+/** Moving the shaping is a pro tool, so these groups sit on the Pro tab. */
+const PRO_GROUPS: string[] = ['princess', 'bustDart'];
 
 interface Props {
   /** Start from a photo, and the photo this garment was matched to while the app is open. */
@@ -88,7 +90,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
   const undo = useUndo(choices, setChoices);
   const onChoices = undo.change;
   const can = (t: ProTool) => shows(mode, t);
-  const [picked, setView] = useState<'sketch' | 'pattern' | 'ease'>('sketch');
+  const [picked, setView] = useState<'sketch' | 'round' | 'pattern' | 'ease'>('sketch');
   /** Drawing on the form: the choices from before, to keep or go back to. */
   const [onForm, setOnForm] = useState<DressChoices>();
   const view = picked === 'ease' && !can('easeMap') ? 'sketch' : picked;
@@ -96,6 +98,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
   const sheet = useMemo(() => (pieces.length ? layout(pieces, '', []) : undefined), [pieces]);
   const flat = useMemo(() => (draft ? dressFlat(draft, 'binding', { sleeve, slit: hasSlit(choices.skirt) }) : undefined), [draft, sleeve, choices.skirt]);
   const title = describePattern(choices);
+  const round = useMemo(() => (draft ? roundDress(draft, values, sleeve) : undefined), [draft, values, sleeve]);
   const arms = !needsArms(values);
   const chosen = sleeveOf(choices.bodice);
   const valid = validDetails({ ...choices.bodice, fit: choices.fit, length: 'waist', closure: 'back_zip' }, 'dress');
@@ -254,16 +257,20 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
   }
 
   return (
-    <div className="split three">
+    <StyleLayout
+      label="your dress"
+      name={title}
+      metres={draft ? dressFabricMetres([...pieces, ...layoutExtras(draft.skirt)]) : undefined}
+      ready={!!draft}
+      onChooseGarment={onChooseGarment}
+      onPhoto={onPhoto}
+      photo={photo}
+      mode={mode}
+      onMode={onMode}
+    >
       <section className="card numbered" aria-labelledby="opts">
-        <div className="row between wrap">
-          <Title id="opts" big="Style" label="your dress" />
-          <GarmentSwitch onChoose={onChooseGarment} />
-        </div>
-        <PhotoEntry onPhoto={onPhoto} photo={photo} />
         {groups.map((g) => (
-          <fieldset key={g.id} className="group">
-            <legend>{g.label}</legend>
+          <Group key={g.id} label={g.label} tab={PRO_GROUPS.includes(g.id) ? PRO : undefined}>
             <div className={chipsClass((['silhouette', 'length', 'asymHem'].includes(g.id) ? 'skirt' : 'bodice'), g.id)}>
               {g.options.map(([id, label]) => (
                 <button
@@ -328,10 +335,10 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
             {g.id === 'darts' && !boned && choices.fit !== 'relaxed' && (
               <p className="muted small">{choices.fit === 'fitted' ? 'A fitted dress needs bust and waist darts.' : 'Choose a relaxed fit to go without waist darts.'}</p>
             )}
-          </fieldset>
+          </Group>
         ))}
         {can('insideFinish') && (
-          <>
+          <TabPanel tab={PRO}>
             <p className="eyebrow">Inside the dress</p>
             <FinishChoices
               garment="dress"
@@ -341,16 +348,22 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
               edgeIds={boned ? ['lined'] : top ? ['binding', 'lined'] : undefined}
               edgeLegend={top ? 'Top edge' : undefined}
             />
-          </>
+          </TabPanel>
         )}
-        <p className="muted small">
-          {choices.skirt.silhouette === 'slip'
-            ? 'The skirt is cut on the bias, for a slip dress: it has no darts, its waist seam is drafted to the bodice, and the cloth moulds to the hip.'
-            : 'The skirt is drafted to the bodice: the waist seams are the same length, and the darts meet at the seam in one line.'}{' '}
-          {draft?.zipSide ? `One zip opens the ${zipSide(draft.bodice)} side seam from under the arm to below the waist.` : `One zip opens the centre back from the ${top ? 'top edge' : 'neck'} to below the waist.`}
-          {boned ? ' The bodice is boned like a corset, cut again from coutil and lining, with a grosgrain waist stay that carries the skirt.' : ''}
-        </p>
-        <ModeLink mode={mode} onMode={onMode} />
+        {(flat || draft) && (
+          <TabPanel tab={FABRIC}>
+            {draft ? (
+              <FabricCard
+            metres={dressFabricMetres([...pieces, ...(draft ? layoutExtras(draft.skirt) : [])])}
+            advice={dressFabrics({ fit: choices.fit, neckline: choices.bodice.neckline, silhouette: choices.skirt.silhouette, length: choices.skirt.length, structure: valid.structure, asymHem: choices.skirt.asymHem, pleats: choices.skirt.pleats, godets: choices.skirt.godets, flounce: choices.skirt.flounce })}
+            fabric={fabric}>
+                {flat && <FabricSwatches finish={finish} onFinish={onFinish} garment="dress" />}
+              </FabricCard>
+            ) : (
+              <FabricSwatches finish={finish} onFinish={onFinish} garment="dress" />
+            )}
+          </TabPanel>
+        )}
       </section>
 
       <section className="card grow" aria-label="Preview">
@@ -358,6 +371,9 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           <div className="seg" role="group" aria-label="Preview view">
             <button type="button" aria-pressed={view === 'sketch'} className={view === 'sketch' ? 'on' : ''} onClick={() => setView('sketch')}>
               Sketch
+            </button>
+            <button type="button" aria-pressed={view === 'round'} className={view === 'round' ? 'on' : ''} onClick={() => setView('round')}>
+              All round
             </button>
             <button type="button" aria-pressed={view === 'pattern'} className={view === 'pattern' ? 'on' : ''} onClick={() => setView('pattern')}>
               Pieces
@@ -382,11 +398,11 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
               <TechFlatView flat={flat} title={title} />
             </GarmentFabric>
           )}
+          {round && view === 'round' && <AllRound round={round} m={values} striped={!!fabric?.checks} label={`The ${title} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`} />}
           {sheet && view === 'pattern' && <PatternPane><PatternPreview paper sheet={sheet} label={`Pattern pieces for a ${title}`} /></PatternPane>}
           {view === 'ease' && easeMap && <EaseMapView views={easeMap} label={`Ease map of the ${title}`} />}
           <UndoToast undo={undo} />
         </div>
-        {flat && view === 'sketch' && <FabricSwatches finish={finish} onFinish={onFinish} garment="dress" />}
         <p className="muted small">
           Drafted to your measurements as you choose.
         </p>
@@ -437,13 +453,14 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
             ))}
           </ul>
         </div>
-        {draft && (
-          <FabricCard
-            metres={dressFabricMetres([...pieces, ...(draft ? layoutExtras(draft.skirt) : [])])}
-            advice={dressFabrics({ fit: choices.fit, neckline: choices.bodice.neckline, silhouette: choices.skirt.silhouette, length: choices.skirt.length, structure: valid.structure, asymHem: choices.skirt.asymHem, pleats: choices.skirt.pleats, godets: choices.skirt.godets, flounce: choices.skirt.flounce })}
-            fabric={fabric}
-          />
-        )}
+        {draft && <FabricSummary metres={dressFabricMetres([...pieces, ...(draft ? layoutExtras(draft.skirt) : [])])} fabric={fabric} />}
+        <p className="muted small">
+          {choices.skirt.silhouette === 'slip'
+            ? 'The skirt is cut on the bias, for a slip dress: it has no darts, its waist seam is drafted to the bodice, and the cloth moulds to the hip.'
+            : 'The skirt is drafted to the bodice: the waist seams are the same length, and the darts meet at the seam in one line.'}{' '}
+          {draft?.zipSide ? `One zip opens the ${zipSide(draft.bodice)} side seam from under the arm to below the waist.` : `One zip opens the centre back from the ${top ? 'top edge' : 'neck'} to below the waist.`}
+          {boned ? ' The bodice is boned like a corset, cut again from coutil and lining, with a grosgrain waist stay that carries the skirt.' : ''}
+        </p>
         <button type="button" className="primary" disabled={!draft} onClick={onNext}>
           Print my pattern
         </button>
@@ -452,6 +469,6 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           Edit measurements
         </button>
       </aside>
-    </div>
+    </StyleLayout>
   );
 }

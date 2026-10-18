@@ -118,23 +118,10 @@ export function formOutline(w: number, h: number, kind?: FormKind): { pts: [numb
 export const FADE_FROM = 0.78;
 
 // `drawn`: the loading screen handed the outline over already drawn, so the lines are drawn down straight away.
-function draw(g: CanvasRenderingContext2D, w: number, h: number, t: number, drawn: boolean, text = 'CM  /  IN') {
+// No label in the corner (Cat dropped CM / IN, 2026-10-18): the welcome's tape tip sits there instead.
+function draw(g: CanvasRenderingContext2D, w: number, h: number, t: number, drawn: boolean) {
   const t0 = drawn ? 0 : OUTLINE;
   settledForm(g, w, h, drawn ? 1 : inOut(seg(t, 0, OUTLINE - 100)), inOut(seg(t, t0, t0 + DOWN)));
-
-  // The units, small in the corner: never a number
-  g.save();
-  g.globalAlpha = out(seg(t, t0 + DOWN - 200, t0 + DOWN + 300));
-  g.fillStyle = CHAMPAGNE;
-  g.font = "500 9px 'Chakra Petch', sans-serif";
-  try {
-    (g as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = '2px';
-  } catch {
-    // Older browsers draw the label without tracking.
-  }
-  g.textAlign = 'right';
-  g.fillText(text, w - 14, h - 12);
-  g.restore();
 }
 
 /**
@@ -859,3 +846,9 @@ export function FormPicture({ kind }: { kind: FormKind }) {
 export const FORM_HIP = 0.82;
 export const FORM_FLOOR = FLOOR;
 export const FORM_DEPTH = DEPTH;
+/** The legs' half-width down from the crotch, how far apart they stand, and the knee, for views that
+ * turn the legs (the shape preview of trousers). */
+export const FORM_LEG = LEG;
+export const FORM_LEG_X = 0.27;
+export const FORM_CROTCH = 1.2;
+export const FORM_KNEE = KNEE;

@@ -3,6 +3,8 @@ import { BODICE_GROUPS, TEE_GROUPS, TROUSER_GROUPS, outerGroups } from './garmen
 import { DETAIL_GROUPS, GROUPS } from './screens/StyleScreen';
 import { VOLUME_OPTIONS } from './engine/skirtVolume';
 import { ExplainSet, explainGroups, explainLine } from './explain';
+import { detailGroups, detailPic } from './ui/detailPics';
+import { hasPics } from './ui/ChoicePic';
 
 const sets: [ExplainSet, { id: string; options: readonly (readonly [unknown, string])[] }[]][] = [
   ['skirt', [...GROUPS, ...DETAIL_GROUPS, { id: 'volume', options: VOLUME_OPTIONS }]],
@@ -31,5 +33,18 @@ describe('a line for every Style choice', () => {
           expect(text.length).toBeLessThanOrEqual(120);
           expect(text).toMatch(/\.$/);
         }
+  });
+
+  it('draws every choice: a picture tile, or a moving drawing beside its line', () => {
+    for (const [set, groups] of sets) {
+      const picSet = set === 'outer' ? 'jacket' : set;
+      for (const g of groups) {
+        if (hasPics(picSet, g.id)) {
+          expect(detailGroups(set)[g.id], `${set} ${g.id} has tiles, so no second drawing`).toBeUndefined();
+          continue;
+        }
+        for (const [id, label] of g.options) expect(detailPic(set, g.id, String(id)), `${set} ${g.id} ${label}`).toBeDefined();
+      }
+    }
   });
 });
