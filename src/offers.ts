@@ -1,7 +1,12 @@
 // Paid extras that aren't built yet. Each one is shown as a sign-up so we can see who wants it before building
 // the paid part. Prices are the business plan's planned prices; nothing is charged until paid plans open.
 
-export const OFFER_IDS = ['founding', 'printed', 'tools', 'sewalong', 'designers', 'designer-partner', 'kit', 'gift', 'fitcheck', 'sizerun', 'classroom', 'sponsor', 'deadstock', 'cutforme', 'drops', 'archive', 'labels'] as const;
+export const OFFER_IDS = ['founding', 'printed', 'tools', 'sewalong', 'designers', 'designer-partner', 'kit', 'gift', 'fitcheck', 'sizerun', 'classroom', 'sponsor', 'deadstock', 'cutforme', 'drops', 'archive', 'labels', 'engine', 'nights'] as const;
+
+/** Where Atelier Nights could run, first one first. Night sign-ups are counted per city. */
+export const NIGHT_CITIES = ['vancouver', 'berlin', 'london', 'copenhagen'] as const;
+export type NightCity = (typeof NIGHT_CITIES)[number];
+export const CITY_NAMES: Record<NightCity, string> = { vancouver: 'Vancouver', berlin: 'Berlin', london: 'London', copenhagen: 'Copenhagen' };
 export type OfferId = (typeof OFFER_IDS)[number];
 
 export interface Offer {
@@ -169,5 +174,22 @@ export const OFFERS: Record<OfferId, Offer> = {
     prices: [['Pack of 12', '$18']],
     button: 'Tell me when it opens',
     thanks: "Thank you. We'll email you when woven labels open.",
+  },
+  engine: {
+    id: 'engine',
+    eyebrow: 'Early access',
+    title: 'Try it in your shop first',
+    text: 'Leave your work email and we will be in touch when the first brands can try it.',
+    button: 'Send',
+    thanks: "Thank you. We'll be in touch when the first brands can try it.",
+  },
+  nights: {
+    id: 'nights',
+    eyebrow: 'Atelier Nights',
+    title: 'Tell me when tickets open',
+    text: "We'll email you when tickets for a night in this city open.",
+    prices: [['A ticket', '$90 to $140']],
+    button: 'Send',
+    thanks: "You're counted in. We'll email you when tickets open in this city.",
   },
 };

@@ -161,6 +161,9 @@ describe('sign-ups', () => {
     expect(checkSignup(JSON.stringify({ kind: 'interest', offer: 'deadstock', email: 'a@b.co', cut: true }))).toMatchObject({ offer: 'deadstock', cut: true });
     expect(checkSignup(JSON.stringify({ kind: 'interest', offer: 'deadstock', email: 'a@b.co', cut: 'yes' }))).toBeNull();
     expect(checkSignup(JSON.stringify({ kind: 'interest', offer: 'kit', email: 'a@b.co', website: 'spam.example' }))).toBeNull();
+    expect(checkSignup(JSON.stringify({ kind: 'interest', offer: 'nights', email: 'a@b.co', city: 'berlin' }))).toMatchObject({ offer: 'nights', city: 'berlin' });
+    expect(checkSignup(JSON.stringify({ kind: 'interest', offer: 'nights', email: 'a@b.co', city: 'atlantis' }))).toBeNull();
+    expect(checkSignup(JSON.stringify({ kind: 'interest', offer: 'engine', email: 'a@b.co' }))).toMatchObject({ offer: 'engine' });
   });
 
   it('refuses one without consent, a bad email, extra fields, or a filled-in bot box', () => {

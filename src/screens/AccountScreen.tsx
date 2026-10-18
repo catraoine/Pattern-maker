@@ -36,7 +36,7 @@ interface Props {
   onFit: (id: string, fit: FitFeedback | undefined) => void;
   onReset: () => void;
   /** Opens the Privacy Policy or the Terms of Use. */
-  onLegal: (page: 'privacy' | 'terms' | 'tester' | 'news') => void;
+  onLegal: (page: 'privacy' | 'terms' | 'tester' | 'news' | 'brands' | 'nights') => void;
   onBackup: () => void;
   onRestore: (file: File) => Promise<boolean>;
   /** Simple or all tools; all when not given. */
@@ -310,6 +310,14 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
         {' · '}
         <button type="button" className="inline-link" onClick={() => onLegal('news')}>
           News
+        </button>
+        {' · '}
+        <button type="button" className="inline-link" onClick={() => onLegal('nights')}>
+          Atelier Nights
+        </button>
+        {' · '}
+        <button type="button" className="inline-link" onClick={() => onLegal('brands')}>
+          For brands
         </button>
       </p>
     </div>
