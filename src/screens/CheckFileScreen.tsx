@@ -1,13 +1,16 @@
 import { useState } from 'react';
 import type { P } from '../engine/geometry';
 import { FileCheck, checkFile, readPatternFile } from '../engine/checkFile';
+import { ImportedPattern, importDxf } from '../engine/importDxf';
 
 /**
  * Check any pattern: open a DXF or SVG from pattern software or a tracing, and the seams are walked:
  * edges that sew together are paired by length, each pair passing within a millimetre.
  */
-export function CheckFileScreen() {
+export function CheckFileScreen({ onUse }: { onUse?: (pattern: ImportedPattern, fileName: string) => void }) {
   const [res, setRes] = useState<FileCheck>();
+  // A DXF is also read into the app's own pieces, so once its seams are walked it can be printed and sent like any pattern.
+  const [imported, setImported] = useState<ImportedPattern>();
   const [name, setName] = useState('');
   const [error, setError] = useState('');
 
@@ -15,14 +18,20 @@ export function CheckFileScreen() {
     if (!file) return;
     setError('');
     setName(file.name);
+    setImported(undefined);
     try {
-      const pieces = readPatternFile(file.name, await file.text());
+      const text = await file.text();
+      const pieces = readPatternFile(file.name, text);
       if (!pieces.length) {
         setRes(undefined);
         setError('No closed pattern pieces found in this file. Each piece needs a closed cutting line (a closed polyline in a DXF, a closed path in an SVG).');
         return;
       }
       setRes(checkFile(pieces));
+      if (!/\.svg$/i.test(file.name) && !/^\s*(<\?xml|<svg)/i.test(text)) {
+        const pattern = importDxf(text);
+        if (pattern.pieces.length) setImported(pattern);
+      }
     } catch {
       setRes(undefined);
       setError('This file could not be read. Try saving it as an AAMA DXF, or as a plain SVG.');
@@ -45,7 +54,7 @@ export function CheckFileScreen() {
         </div>
         <p className="muted">
           Open a pattern from Gerber, Lectra, Optitex or CLO 3D as a DXF, or a traced pattern as an SVG. Each piece is found, split into
-          edges at its corners, and the edges are paired by length the way you would walk them with a tape. The file stays on this device.
+          edges at its corners, and the edges are paired by length the way you would walk them with a tape. A DXF can then be printed, sewn and sent to a dressmaker like any pattern made here. The file stays on this device.
         </p>
         <label className="primary filebtn">
           Open a DXF or SVG
@@ -57,6 +66,7 @@ export function CheckFileScreen() {
       {res && (
         <section className="card" aria-labelledby="cfres">
           <h2 id="cfres">{name}</h2>
+          {imported?.source && <p className="muted small">Read from {imported.source}</p>}
           <p>
             {res.pieces.length} {res.pieces.length === 1 ? 'piece' : 'pieces'}. {ok} {ok === 1 ? 'seam pairs' : 'seams pair'} within 1 mm
             {close.length ? `, ${close.length} within 3 mm` : ''}
@@ -81,6 +91,14 @@ export function CheckFileScreen() {
               </li>
             ))}
           </ul>
+          {imported && onUse && (
+            <div className="stack">
+              <button type="button" className="primary" onClick={() => onUse(imported, name)}>
+                Use this pattern
+              </button>
+              <p className="muted small">Print it at home or at a copy shop, see the sewing steps, and send it to a dressmaker with a tech pack.</p>
+            </div>
+          )}
         </section>
       )}
     </div>

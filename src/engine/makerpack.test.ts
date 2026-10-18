@@ -3,6 +3,7 @@ import { PDFDocument } from 'pdf-lib';
 import { draftSkirt } from './skirt';
 import { draftBodice } from './bodice';
 import { draftTrousers } from './trousers';
+import { FIT_ISSUES, alterationSheet } from './fitting';
 import { sewingGuide, bodiceGuide } from './instructions';
 import { LAYER, quantity, toDxf } from './dxf';
 import { allowanceText, toTechPack } from './techpack';
@@ -97,7 +98,9 @@ describe('tech pack', () => {
       { pieces: bodice.pieces, measurements: bodiceSpec(bm, bodice, 'waist'), guide: bodiceGuide(bodice, { length: 'waist' }, 1, 2) },
     ];
     for (const p of packs) {
-      const bytes = await toTechPack({ title: 'test pattern', profile: 'Cat', fit: 'Regular', date: '2026-10-14', notes: ['A note.'], ...p });
+      // Every alteration a pattern cutter could be handed, so each one's words go through the PDF's font.
+      const alterations = alterationSheet({ issues: Object.fromEntries(FIT_ISSUES.map((i) => [i.id, i.start])), round: 1 }, 'dress');
+      const bytes = await toTechPack({ title: 'test pattern', profile: 'Cat', fit: 'Regular', date: '2026-10-14', notes: ['A note.'], alterations, ...p });
       const doc = await PDFDocument.load(bytes);
       expect(doc.getPageCount()).toBeGreaterThanOrEqual(2);
     }

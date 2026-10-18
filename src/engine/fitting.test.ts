@@ -4,7 +4,7 @@ import { DraftError, draftSkirt } from './skirt';
 import { draftBodice } from './bodice';
 import { checkPattern } from './qc';
 import { randomBody, rng } from './randomBodies';
-import { FIT_ISSUES, Fitting, describeFitting, setAmount, toFitting, toggleIssue } from './fitting';
+import { FIT_ISSUES, Fitting, alterationSheet, describeFitting, setAmount, toFitting, toggleIssue } from './fitting';
 import { layout, leaving } from './export';
 
 const fitting = (issues: Record<string, number>, sides: Fitting['sides'] = {}): Fitting => ({ issues, sides, round: 1 });
@@ -157,5 +157,30 @@ describe('bodice corrections', () => {
       }
     }
     expect(failures.slice(0, 10)).toEqual([]);
+  });
+});
+
+describe('alteration sheet', () => {
+  it('gives each correction in a pattern cutter’s words, with the amounts worked out', () => {
+    const f = { issues: { 'skirt-hip-tight': 2, 'skirt-sway-back': 1.5, 'skirt-high-hip': 1 }, sides: { 'skirt-high-hip': 'left' as const }, round: 1 };
+    const sheet = alterationSheet(f, 'skirt');
+    expect(sheet).toHaveLength(3);
+    expect(sheet[0].change).toBe('Let out the hip by 2 cm in all: add 0.5 cm at each side seam at the hip line, front and back, blending to the waist and hem.');
+    expect(sheet[1].change).toContain('lower the centre back waist by 1.5 cm');
+    expect(sheet[2].change).toContain('raise the left side seam at the waist by 1 cm');
+  });
+
+  it('keeps to the garment, and uses degrees for the shoulder slope', () => {
+    const f = { issues: { 'skirt-hip-tight': 2, 'bodice-sloping': 3, 'bodice-back-tight': 2 }, round: 1 };
+    expect(alterationSheet(f, 'skirt')).toHaveLength(1);
+    const bodice = alterationSheet(f, 'bodice');
+    expect(bodice.map((a) => a.change).join(' ')).toContain('slopes 3 degrees more');
+    expect(bodice.map((a) => a.change).join(' ')).toContain('add 1 cm to the back half');
+    expect(alterationSheet(f, 'dress')).toHaveLength(3);
+    expect(alterationSheet(undefined, 'dress')).toEqual([]);
+  });
+
+  it('has a pattern cutter’s alteration for every issue', () => {
+    for (const i of FIT_ISSUES) expect(i.pro).toMatch(/\{v\}/);
   });
 });

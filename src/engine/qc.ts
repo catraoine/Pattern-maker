@@ -101,7 +101,7 @@ const isBack = (pc: Piece) => /back/i.test(pc.name);
 
 /** Front and back pieces paired by the word before "front" or "back": the bodice's, the skirt's. A
  * yoke pairs with the other yoke, or with the piece it sews to when only one side has a yoke. */
-function pairs(pieces: Piece[]): { group: string; front: Piece; back: Piece }[] {
+export function pairs(pieces: Piece[]): { group: string; front: Piece; back: Piece }[] {
   const groupOf = (pc: Piece) => pc.name.replace(/\s*(front|back)\b.*$/i, '') + (pc.meta.yoke ? ' yoke' : '');
   const out: { group: string; front: Piece; back: Piece }[] = [];
   for (const front of pieces.filter(isFront)) {

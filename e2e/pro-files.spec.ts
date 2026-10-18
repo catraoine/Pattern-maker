@@ -21,3 +21,22 @@ test('pro files: pattern DXF and measurements for Seamly2D and CLO', async ({ pa
   await main.getByText('More files').scrollIntoViewIfNeeded();
   await page.screenshot({ path: info.outputPath('more-files.png'), fullPage: false });
 });
+
+// After a toile, the corrections go to a pattern cutter as alterations to make on their own block.
+test('pro files: toile alterations for a pattern cutter', async ({ page }, info) => {
+  await startWithExample(page);
+  const main = page.getByRole('main');
+  await main.getByRole('button', { name: 'Print my pattern' }).click();
+  const all = main.getByRole('button', { name: 'Show all tools' });
+  if (await all.count()) await all.click();
+  await main.getByRole('button', { name: 'I’ve tried on a toile' }).click();
+  await main.getByText('Pulls across the hips').click();
+  await main.getByRole('button', { name: /^Save as version 2$/ }).click();
+  const print = main.getByRole('button', { name: 'Print my pattern' });
+  if (await print.count()) await print.click();
+  await main.getByText('More files').click();
+  const csv = await download(page, main.getByRole('button', { name: 'Alterations (CSV)' }), info);
+  const rows = csv.bytes.toString('utf8').split('\r\n');
+  expect(rows[0]).toBe('Area,What the toile showed,Alteration');
+  expect(rows[1]).toContain('Let out the hip by 2 cm in all: add 0.5 cm at each side seam');
+});

@@ -21,7 +21,7 @@ import { edgesFor, topNotes } from './engine/corsetGuide';
 import { drapeFacings, drapeLined, drapeNote, zipSide } from './engine/drape';
 import { bodiceSpec, dressSpec, outerSpec, skirtSpec, sleeveSpec, teeSpec, trousersSpec } from './engine/spec';
 import { SleeveDraft, SleeveMeasurements, draftSleeve, needsArms } from './engine/sleeve';
-import { Fitting, carriedFitting, describeCarried, describeFitting, saveVersion, toFitting } from './engine/fitting';
+import { Fitting, carriedFitting, describeCarried, describeFitting, saveVersion, toFitting, alterationSheet } from './engine/fitting';
 import { FabricWidth, layPlans } from './engine/layplan';
 import { MyFabric, clothFor, withFabric, withFabricEase } from './engine/fabrics';
 import { SPECIALS, needsNap, withCheckMarks, withSpecialAllowances } from './engine/specialFabrics';
@@ -74,6 +74,7 @@ import { FittingScreen } from './screens/FittingScreen';
 import { TrueScaleScreen } from './screens/TrueScaleScreen';
 import { ClientBookScreen } from './screens/ClientBookScreen';
 import { CheckFileScreen } from './screens/CheckFileScreen';
+import { ImportedPattern, importedGuide } from './engine/importDxf';
 import { CollectionScreen } from './screens/CollectionScreen';
 import { lookPatch } from './collection';
 import { CollectionLink } from './ui/GarmentSwitch';
@@ -82,6 +83,8 @@ import type { FormStart } from './ui/ContourForm';
 import type { Piece } from './engine/piece';
 import type { PocketStyle } from './engine/pockets';
 import { garmentEase } from './engine/easeMap';
+import { PointEdit, applyPointEdits } from './engine/pointEdit';
+import { PointEditContext } from './ui/PointEditor';
 import { Flounce, GodetCount, Pleats, layoutExtras } from './engine/skirtVolume';
 
 // The logo (Cat's pick F1 Loading Block): the loading screen's bodice block, drawn inside the header's square.
@@ -89,7 +92,7 @@ const BRAND_BLOCK = 'M' + BODICE.map(([x, y]) => `${(9 + x * 14).toFixed(2)} ${(
 import { Mode, finishFor, keepFinish, modeOf } from './mode';
 
 export type Step = 'measure' | 'style' | 'export';
-type View = Step | 'plans' | 'welcome' | 'steps' | 'account' | 'photo' | 'fitting' | 'scale' | 'client' | 'check' | 'privacy' | 'terms' | 'tester' | 'news' | 'collection';
+type View = Step | 'plans' | 'welcome' | 'steps' | 'account' | 'photo' | 'fitting' | 'scale' | 'client' | 'check' | 'imported' | 'privacy' | 'terms' | 'tester' | 'news' | 'collection';
 
 export interface Choices {
   fit: Fit;
@@ -236,11 +239,13 @@ const SIDE: Partial<Record<View, [string, string]>> = {
 const NEEDS_MEASUREMENTS: View[] = ['style', 'export', 'fitting', 'scale'];
 
 /** Where the header's back goes when there's nothing behind in history, such as after a reload. */
-const PARENT: Partial<Record<View, View>> = { measure: 'welcome', steps: 'welcome', style: 'measure', photo: 'style', export: 'style', fitting: 'export', scale: 'export', account: 'style', client: 'account', check: 'account', privacy: 'welcome', terms: 'welcome', tester: 'account', news: 'account' };
+const PARENT: Partial<Record<View, View>> = { measure: 'welcome', steps: 'welcome', style: 'measure', photo: 'style', export: 'style', fitting: 'export', scale: 'export', account: 'style', client: 'account', check: 'account', imported: 'check', privacy: 'welcome', terms: 'welcome', tester: 'account', news: 'account' };
 
 export default function App() {
   const [saved, setSaved] = usePersistent<Saved>('skirt', INITIAL);
   const [storedAccount, setAccount] = usePersistent<Account>('account', NEW_ACCOUNT);
+  // Points moved on the flat pattern, per garment (see engine/pointEdit.ts).
+  const [pointEdits, setPointEdits] = usePersistent<Record<string, PointEdit[]>>('point-edits', {});
   const account = withPeople(storedAccount, saved.values);
   const person = activePerson(account);
   // What was measured, for the measuring screens and the checks; patterns are drafted from `values`, which
@@ -289,6 +294,7 @@ export default function App() {
   const carried = useMemo(() => carriedFitting(person.fittings, garment), [person.fittings, garment]);
   const fitting = carried.fitting;
   const carriedNotes = useMemo(() => describeCarried(carried), [carried]);
+  const alterations = useMemo(() => alterationSheet(carried.fitting, garment), [carried, garment]);
   // Simple or all tools: the simple view prints with home allowances and the quick route, and keeps the rest for later.
   const mode = modeOf(account);
   const setMode = (m: Mode) => setAccount({ ...account, mode: m });
@@ -316,7 +322,7 @@ export default function App() {
     skirt: { ...dress.skirt, fit: dress.fit, fitting: withFabricEase(toFitting(f, 'skirt'), fabric, 'skirt') },
   });
 
-  const result = useMemo((): { skirt?: SkirtDraft; bodice?: BodiceDraft; dress?: DressDraft; trousers?: TrousersDraft; tee?: TeeDraft; outer?: OuterDraft; sleeve?: SleeveDraft; error?: string } => {
+  const drafts = useMemo((): { skirt?: SkirtDraft; bodice?: BodiceDraft; dress?: DressDraft; trousers?: TrousersDraft; tee?: TeeDraft; outer?: OuterDraft; sleeve?: SleeveDraft; error?: string } => {
     if (!canLeaveMeasure) return {};
     try {
       if (isOuterGarment) return { outer: draftOuter(values as OuterMeasurements, outerStyleFor(outerChoices, fitting)) };
@@ -338,6 +344,21 @@ export default function App() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [values, skirtStyle, bodiceStyle, trousersStyle, teeChoices, dress, outerChoices, fabric, fitting, garment, canLeaveMeasure]);
+
+  // The drafts with any points moved on the flat pattern, so the preview, print and files all follow.
+  const moved = pointEdits[garment];
+  const result = useMemo(() => {
+    if (!moved?.length) return drafts;
+    const edit = <T extends { pieces: Piece[] }>(d: T | undefined): T | undefined => d && { ...d, pieces: applyPointEdits(d.pieces, moved) };
+    const { dress: d } = drafts;
+    return { ...drafts, skirt: edit(drafts.skirt), bodice: edit(drafts.bodice), trousers: edit(drafts.trousers), tee: edit(drafts.tee), outer: edit(drafts.outer), dress: d && { ...edit(d)!, skirt: edit(d.skirt)! } };
+  }, [drafts, moved]);
+  const pointEditing = useMemo(() => {
+    const { skirt, bodice, dress: d, trousers, tee, outer } = drafts;
+    const base = (bodice ?? d ?? trousers ?? tee ?? outer ?? skirt)?.pieces.filter((pc) => !pc.kind) ?? [];
+    return { base, edits: moved ?? [], setEdits: (e: PointEdit[]) => setPointEdits({ ...pointEdits, [garment]: e }) };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drafts, moved, garment, pointEdits]);
 
   /** Room over the body at every level of the drafted pieces, for the ease map. */
   const ease = useMemo(() => {
@@ -647,6 +668,22 @@ export default function App() {
     return drafted && hideLay ? { ...drafted, guide: { ...drafted.guide, fabric: [...(drafted.guide.fabric ?? []), `Leather to buy: ${layAmount(hideLay)}.`] } } : drafted;
   }, [drafted]);
 
+  // A pattern read from another program's DXF on Check any pattern, printed and sent like one drafted here.
+  // Kept for this visit only: the file stays on the device it was opened on.
+  const [imported, setImported] = useState<{ pattern: ImportedPattern; fileName: string }>();
+  const importedPrintable = useMemo((): Printable | undefined => {
+    if (!imported) return undefined;
+    const { pieces, source, notes } = imported.pattern;
+    return {
+      pieces,
+      notes: [`Read from ${imported.fileName}${source ? `, made in ${source}` : ''}.`, ...notes],
+      guide: importedGuide(pieces),
+      spec: [],
+      lays: layPlans(pieces, finish.fabricWidth, finish.nap || needsNap(finish.fabric?.special)),
+    };
+  }, [imported, finish.fabricWidth, finish.nap, finish.fabric?.special]);
+  const importedTitle = imported ? imported.pattern.style || imported.fileName.replace(/\.dxf$/i, '') : '';
+
   const isSaved = isSavedFor(account, current, person.id);
   const saveState = isSaved ? 'saved' : account.patterns.length >= savedLimit(account) ? 'full' : 'can';
 
@@ -753,6 +790,7 @@ export default function App() {
           onHandoff={(drawn) => setFormStart(drawn ? 'drawn' : 'fresh')}
         />
       )}
+      <PointEditContext.Provider value={pointEditing}>
       <div className="app" {...{ inert: opening ? '' : undefined }}>
         <header className={step === 'welcome' ? 'topbar' : 'topbar steady'}>
           {step === 'welcome' ? (
@@ -1129,13 +1167,42 @@ export default function App() {
               onAccount={() => setStep('account')}
               fitting={ownFitting}
               fittingNotes={[...describeFitting(ownFitting, garment), ...carriedNotes]}
+              alterations={alterations}
               onFitting={() => setStep('fitting')}
               onTrueScale={() => setStep('scale')}
               values={values}
               draftAt={draftAt}
             />
           )}
-          {step === 'check' && <CheckFileScreen />}
+          {step === 'check' && (
+            <CheckFileScreen
+              onUse={(pattern, fileName) => {
+                setImported({ pattern, fileName });
+                setStep('imported');
+              }}
+            />
+          )}
+          {step === 'imported' && !importedPrintable && <CheckFileScreen onUse={(pattern, fileName) => setImported({ pattern, fileName })} />}
+          {step === 'imported' && importedPrintable && imported && (
+            <ExportScreen
+              mode={mode}
+              onMode={setMode}
+              garment={garment}
+              profile={profile}
+              title={importedTitle}
+              fit="as drafted"
+              finish={finish}
+              onFinish={setFinish}
+              style={{ garment: 'skirt', silhouette: saved.choices.silhouette, length: saved.choices.length }}
+              made={importedPrintable}
+              saveState="can"
+              onSave={() => undefined}
+              onAccount={() => setStep('account')}
+              fittingNotes={[]}
+              onFitting={() => undefined}
+              imported={{ source: imported.pattern.source, fileName: imported.fileName }}
+            />
+          )}
           {step === 'client' && (
             <ClientBookScreen
               account={account}
@@ -1166,6 +1233,7 @@ export default function App() {
           )}
         </main>
       </div>
+      </PointEditContext.Provider>
     </>
   );
 }
