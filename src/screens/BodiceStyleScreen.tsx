@@ -404,7 +404,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
           <UndoToast undo={undoer} />
         </div>
         {view === 'sketch' && (
-          <p className="muted small">
+          <p className={drawing ? 'muted small keep' : 'muted small'}>
             {drawing
               ? side === 'front'
                 ? 'Draw the neckline across the front, from the shoulder down to where you want it. Both sides match, and it’s smoothed into a curve that sews.'
