@@ -5163,3 +5163,56 @@ input.inline:focus,
   flex-wrap: wrap;
   gap: 4px 10px;
 }
+
+/* Measure list (H2 + W1): the garment as a small label above the title, with "Make something else" beside it;
+   each row carries an arrow instead of a "tap one" hint, and a closer fit is the list's last row */
+.measure-list .garment-eyebrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 14px;
+  margin: 0 0 -8px;
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.measure-list .garment-eyebrow button.link.garment-change {
+  flex-basis: auto;
+  margin: 0;
+  min-height: 32px;
+  color: var(--gild);
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+}
+
+/* drawn with borders, not a character, so the row's name stays just its label and number */
+.measure-list .check-list button > :last-child::after {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin: 0 2px 1px 12px;
+  border-top: 1.3px solid var(--gild);
+  border-right: 1.3px solid var(--gild);
+  transform: rotate(45deg);
+}
+
+.measure-list .check-list .closer button span {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--gild);
+  font-family: var(--sans);
+  font-size: 15px;
+  letter-spacing: normal;
+}
+
+.measure-list button.primary {
+  margin-top: 8px;
+}

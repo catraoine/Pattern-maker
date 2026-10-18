@@ -8,7 +8,7 @@ test('returning visitor: a reload keeps the measurements and the saved pattern',
   // Measure is a short list of the skirt's measurements; tapping one opens its own page to redo it.
   await openReview(page);
   await main.getByRole('button', { name: 'Edit measurements' }).click();
-  await expect(main.getByRole('heading', { level: 1, name: 'Your skirt measurements' })).toBeVisible();
+  await expect(main.getByRole('heading', { level: 1, name: 'Your measurements' })).toBeVisible();
   await main.getByRole('list', { name: 'Tap one to measure it again' }).getByRole('button', { name: /^Waist [0-9]/ }).click();
   const waist = main.getByRole('textbox', { name: 'Waist', exact: true });
   await expect(waist).not.toHaveAttribute('placeholder');
