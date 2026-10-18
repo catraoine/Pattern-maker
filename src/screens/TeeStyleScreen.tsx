@@ -17,6 +17,10 @@ import { teeFabrics } from '../engine/knits';
 import { FabricCard } from '../ui/FabricCard';
 import { ModeLink } from '../ui/ModeLink';
 import type { Mode } from '../mode';
+import { Title } from '../ui/Title';
+import { ChoicePic, chipsClass } from '../ui/ChoicePic';
+import { DrawOnForm } from '../ui/DrawOnForm';
+import { TeeFormMeasurements, readTeeFit, readTeeHem, readTeeNeckline, readTeeSleeve, teeForm, teeLines } from '../ui/formTops';
 
 interface Props {
   /** Start from a photo, and the photo this garment was matched to while the app is open. */
@@ -61,6 +65,10 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
   const undo = useUndo(choices, setChoices);
   const onChoices = undo.change;
   const [view, setView] = useState<'sketch' | 'pattern'>('sketch');
+  /** Drawing on the form: the choices from before, to keep or go back to. */
+  const [onForm, setOnForm] = useState<TeeChoices>();
+  const m = values as TeeFormMeasurements;
+  const form = useMemo(() => (onForm && draft ? teeForm(m, choices, draft) : undefined), [onForm, draft, m, choices]);
   const pieces = useMemo(() => draft?.pieces ?? [], [draft]);
   const sheet = useMemo(() => (draft ? layout(pieces, '', []) : undefined), [draft, pieces]);
   const flat = useMemo(() => (draft ? teeFlat(draft) : undefined), [draft]);
@@ -68,11 +76,55 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
   const hemLabel = choices.length === 'cropped' ? 'Hem' : 'Hip';
   const hemBody = choices.length === 'cropped' ? values.waist : values.full_hip;
 
+  if (onForm && draft && form) {
+    return (
+      <DrawOnForm<TeeChoices>
+        body={form.body}
+        m={m}
+        legs={false}
+        bottom={form.hems.tunic + 6}
+        arms={form.arm}
+        backs={false}
+        kinds={[
+          ['neckline', 'Neckline'],
+          ['fit', 'Side'],
+          ['hem', 'Hem'],
+          ['sleeve', 'Sleeve'],
+        ]}
+        help={{
+          neckline: 'Draw the neckline from the shoulder down to the centre front: close to the neck for a crew, lower and round for a scoop, straight down to a point for a V.',
+          hem: 'Draw across where you want the hem: just below the waist, at the hip, or lower for a tunic. A T-shirt hem is cut level.',
+        }}
+        lines={() => teeLines(draft, form)}
+        choices={choices}
+        onChoices={setChoices}
+        read={(kind, _side, stroke) =>
+          kind === 'neckline'
+            ? readTeeNeckline(stroke, form, choices)
+            : kind === 'fit'
+              ? readTeeFit(stroke, form, m, choices)
+              : kind === 'sleeve'
+                ? readTeeSleeve(stroke, form, choices)
+                : readTeeHem(stroke, form, choices)
+        }
+        onDone={() => {
+          undo.change(choices, onForm);
+          setOnForm(undefined);
+          setView('pattern');
+        }}
+        onCancel={() => {
+          setChoices(onForm);
+          setOnForm(undefined);
+        }}
+      />
+    );
+  }
+
   return (
     <div className="split three">
-      <section className="card" aria-labelledby="opts">
+      <section className="card numbered" aria-labelledby="opts">
         <div className="row between wrap">
-          <h1 id="opts">Style your T-shirt</h1>
+          <Title id="opts" big="Style" label="your T-shirt" />
           <GarmentSwitch onChoose={onChooseGarment} />
         </div>
         <PhotoEntry onPhoto={onPhoto} photo={photo} />
@@ -80,7 +132,7 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
         {TEE_GROUPS.map((g) => (
           <fieldset key={g.id} className="group">
             <legend>{g.label}</legend>
-            <div className="chips">
+            <div className={chipsClass('tee', g.id)}>
               {g.options.map(([id, label]) => (
                 <button
                   key={id}
@@ -89,6 +141,7 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
                   aria-pressed={choices[g.id] === id}
                   onClick={() => onChoices({ ...choices, [g.id]: id })}
                 >
+                  <ChoicePic set="tee" group={g.id} id={id} />
                   {label}
                 </button>
               ))}
@@ -114,7 +167,14 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
               Pieces
             </button>
           </div>
-          <UndoTools undo={undo} />
+          <div className="row tools">
+            {draft && (
+              <button type="button" className="link small" onClick={() => setOnForm(choices)}>
+                Draw on your form
+              </button>
+            )}
+            <UndoTools undo={undo} />
+          </div>
         </div>
         <div className="preview">
           {error && <p className="msg error">{error}</p>}

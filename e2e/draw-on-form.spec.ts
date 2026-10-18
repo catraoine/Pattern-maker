@@ -98,3 +98,51 @@ test('draws the hem and side of a skirt on the form', async ({ page }) => {
   await main.getByRole('button', { name: 'Make the pattern' }).click();
   await expect(main.getByRole('heading', { name: 'Style your skirt' })).toBeVisible();
 });
+
+test('draws the sleeve length on the T-shirt form', async ({ page }) => {
+  await startWithExample(page);
+  await switchGarment(page, 'Tee');
+  const main = page.getByRole('main');
+  await main.getByRole('button', { name: 'Draw on your form' }).click();
+  await expect(main.getByRole('heading', { name: 'Draw your lines' })).toBeVisible();
+  await main.getByRole('button', { name: 'Sleeve', exact: true }).click();
+  // Across the right arm, a little below the elbow.
+  await draw(page, [{ x: 21, y: 38 }, { x: 28, y: 38 }, { x: 35, y: 38.5 }]);
+  await expect(main.getByRole('status')).toHaveText(/Elbow-length sleeves, \d+ cm from the shoulder/);
+  await main.getByRole('button', { name: 'Make the pattern' }).click();
+  await expect(main.getByRole('heading', { name: 'Style your T-shirt' })).toBeVisible();
+  await expect(main.getByRole('button', { name: 'Elbow', exact: true })).toHaveAttribute('aria-pressed', 'true');
+});
+
+test('draws a double-breasted front on the jacket form', async ({ page }) => {
+  await startWithExample(page);
+  await switchGarment(page, 'Jacket');
+  const main = page.getByRole('main');
+  await main.getByRole('button', { name: 'Draw on your form' }).click();
+  await expect(main.getByRole('heading', { name: 'Draw your lines' })).toBeVisible();
+  await main.getByRole('button', { name: 'Front edge', exact: true }).click();
+  // Straight down the front, well past the centre.
+  await draw(page, [{ x: 7, y: 20 }, { x: 7, y: 40 }, { x: 7, y: 58 }]);
+  await expect(main.getByRole('status')).toHaveText(/Double-breasted: the edge 6.5 cm past the centre front/);
+  await main.getByRole('button', { name: 'Make the pattern' }).click();
+  await expect(main.getByRole('heading', { name: 'Style your jacket' })).toBeVisible();
+  await expect(main.getByRole('button', { name: 'Double-breasted', exact: true })).toHaveAttribute('aria-pressed', 'true');
+});
+
+test('draws a yoke, an uneven neckline and a shaped hem on the bodice', async ({ page }) => {
+  await startWithExample(page);
+  await switchGarment(page, 'Bodice');
+  const main = page.getByRole('main');
+  await main.getByRole('button', { name: 'Draw on your form' }).click();
+  await main.getByRole('button', { name: 'Seam', exact: true }).click();
+  await draw(page, [{ x: -16, y: 12 }, { x: 0, y: 12.3 }, { x: 16, y: 12 }]);
+  await expect(main.getByRole('status')).toHaveText(/yoke/i);
+  await main.getByRole('button', { name: 'Neckline', exact: true }).click();
+  await draw(page, [{ x: 8, y: -0.5 }, { x: 4, y: 5 }, { x: -2, y: 15 }, { x: -6, y: 8 }, { x: -8, y: -0.5 }]);
+  await expect(main.getByRole('status')).toHaveText(/uneven neckline|asymmetric V-neck/i);
+  await main.getByRole('button', { name: 'Hem', exact: true }).click();
+  await draw(page, [{ x: -22, y: 56 }, { x: 0, y: 62 }, { x: 22, y: 56 }]);
+  await expect(main.getByRole('status')).toHaveText(/hem|hip/i);
+  await main.getByRole('button', { name: 'Make the pattern' }).click();
+  await expect(main.getByRole('heading', { name: 'Style your bodice' })).toBeVisible();
+});

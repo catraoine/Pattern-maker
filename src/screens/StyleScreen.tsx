@@ -29,6 +29,8 @@ import { Mode, ProTool, shows } from '../mode';
 import { ModeLink } from '../ui/ModeLink';
 import { DrawOnForm, skirtForm } from '../ui/DrawOnForm';
 import { readSkirtHem, readSkirtSide, skirtLines } from '../ui/formLines';
+import { Title } from '../ui/Title';
+import { ChoicePic, chipsClass } from '../ui/ChoicePic';
 
 interface Props {
   finish: Finish;
@@ -242,7 +244,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
   return (
     <>
     <div className="screen-head">
-      <h1 id="opts">Style your skirt</h1>
+      <Title id="opts" big="Style" label="your skirt" />
       <GarmentSwitch onChoose={onChooseGarment} />
     </div>
     {choices.shape ? (
@@ -262,7 +264,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
       </button>
     )}
     <div className="split three">
-      <section className="card" aria-labelledby="opts">
+      <section className="card numbered" aria-labelledby="opts">
         <fieldset className="group">
           <legend>Era</legend>
           {!era && <p className="muted small">Pick an era to see its looks. A look sets the fit, shape and length, and you can change any of them after.</p>}
@@ -303,7 +305,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
         {GROUPS.map((g) => (
           <fieldset key={g.id} className="group">
             <legend>{g.label}</legend>
-            <div className="chips">
+            <div className={chipsClass('skirt', g.id)}>
               {g.options.map(([id, label]) => (
                 <button
                   key={id}
@@ -313,6 +315,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
                   disabled={g.id !== 'fit' && !cutAllowed(choices, g.id, id ?? 'none')}
                   onClick={() => choose({ ...choices, [g.id]: id }, g.id)}
                 >
+                  <ChoicePic set="skirt" group={g.id} id={id} />
                   {label}
                 </button>
               ))}

@@ -15,6 +15,8 @@
   --white: #000000; /* the "card" ground; text on --ink fills uses it too */
   --mono: 'Chakra Petch', ui-monospace, Menlo, monospace;
   --sans: 'Space Grotesk', system-ui, sans-serif;
+  /* Headings (Cat's N1 Narrow Stack): narrow Archivo capitals, a spaced Chakra label under them. */
+  --display: 'Archivo Variable', 'Archivo Narrow', 'Arial Narrow', sans-serif;
   --grid: transparent;
   --w-head: 300;
   --w-strong: 500;
@@ -54,7 +56,9 @@ label {
 
 h1,
 h2 {
-  font-family: var(--sans);
+  font-family: var(--display);
+  font-stretch: 75%;
+  text-transform: uppercase;
 }
 
 button,
@@ -70,19 +74,35 @@ legend,
 
 h1,
 h2 {
-  font-weight: var(--w-head);
+  font-weight: 600;
   letter-spacing: var(--head-tracking);
 }
 
 h1 {
   margin: 0;
-  font-size: 30px;
-  line-height: 1.2;
+  font-size: 36px;
+  line-height: 0.98;
 }
 
 h2 {
   margin: 0;
   font-size: 22px;
+  line-height: 1.05;
+}
+
+/* A two-part title: the key words big, the rest as a spaced label under them. */
+h1 .t-big {
+  display: block;
+}
+h1 .t-label {
+  display: block;
+  margin-top: 8px;
+  font-family: var(--mono);
+  font-stretch: normal;
+  font-weight: 400;
+  font-size: 11px;
+  line-height: 1.4;
+  letter-spacing: 0.3em;
 }
 
 p {
@@ -673,13 +693,37 @@ button.link {
 /* Welcome */
 .welcome {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
 }
 
 .welcome-card {
   max-width: 560px;
   width: 100%;
   flex: none;
+}
+
+/* The welcome and the measuring pages fill the screen and no more, so their button is always on it without
+   scrolling (Cat, 2026-10-18): the page is the height of the screen with the browser's bars showing (svh), and
+   the dress form takes whatever height the words and the button leave. Only when even a small form can't fit
+   (a tiny phone with the name box open, say) does the page scroll. */
+.app:has(.welcome) {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100svh;
+}
+
+.main:has(.welcome) {
+  display: flex;
+  flex-direction: column;
+  flex: 1 0 auto;
+  width: 100%;
+}
+
+.main:has(.welcome) > .welcome,
+.main:has(.welcome) .welcome-card {
+  flex: 1 0 auto;
 }
 
 .dots {
@@ -736,26 +780,29 @@ button.link {
 
 .welcome-hero {
   margin: 0 -22px;
-  /* Sized so the headline, steps and Begin all fit below it without scrolling */
-  height: clamp(160px, calc(100svh - 440px), 520px);
+  /* Grows into the room the headline, steps and Begin leave, so they always fit below it */
+  flex: 1 1 0;
+  min-height: 110px;
+  max-height: 520px;
   border-bottom: 1px solid var(--line);
 }
 
 /* Keep the headline to two lines on narrow phones */
 .welcome-card h1 {
-  font-size: clamp(24px, 7vw, 30px);
+  font-size: clamp(30px, 10vw, 40px);
 }
 
 /* Short screens: tighten the spacing so Begin still fits without scrolling */
 @media (max-height: 620px) {
   .main:has(.welcome) {
     padding-top: 8px;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
   }
   .welcome-card {
     gap: 12px;
   }
   .welcome-hero {
-    height: clamp(120px, calc(100svh - 380px), 520px);
+    min-height: 64px;
   }
 }
 
@@ -1035,6 +1082,73 @@ b {
 .chip:disabled {
   opacity: 0.35;
   cursor: not-allowed;
+}
+
+/* Style choices, numbered (Cat's S2): each section a narrow capital heading with its number before it. */
+.numbered {
+  counter-reset: sec;
+}
+.numbered > fieldset.group > legend {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-family: var(--display);
+  font-stretch: 75%;
+  font-weight: 600;
+  font-size: 19px;
+  letter-spacing: 0;
+}
+.numbered > fieldset.group > legend::before {
+  counter-increment: sec;
+  content: counter(sec, decimal-leading-zero);
+  font-family: var(--mono);
+  font-stretch: normal;
+  font-weight: 400;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+
+/* Shape choices as little drawings (Cat's S1): a tile per choice, its words under the drawing. */
+.chips.pics {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+  gap: 8px;
+}
+.chips.pics .chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  min-height: 0;
+  padding: 10px 4px 7px;
+  border-color: var(--line-strong);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  line-height: 1.3;
+}
+.chips.pics .chip .pic {
+  width: 36px;
+  height: 44px;
+  fill: none;
+  stroke: var(--gild);
+  stroke-width: 1.1;
+  stroke-linejoin: round;
+}
+.chips.pics .chip .pic .pic-faint {
+  stroke: var(--muted);
+  stroke-dasharray: 2 2;
+  stroke-width: 0.8;
+}
+.chips.pics .chip.on {
+  background: var(--white);
+  color: var(--ink);
+  border-color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--ink);
+}
+.chips.pics .chip.on .pic {
+  stroke: var(--ink);
 }
 
 /* Hands-on shaping: drag handles, drawn hems, the turning figure, the drafting replay and undo. */
@@ -1585,7 +1699,8 @@ details.more[open] > summary h2::after {
   max-height: 420px;
 }
 .layplan .lay-fabric {
-  fill: var(--fill);
+  stroke: var(--line-strong);
+  stroke-width: 0.2;
 }
 .layplan .lay-fold {
   stroke: var(--muted);
@@ -1596,18 +1711,28 @@ details.more[open] > summary h2::after {
   stroke: var(--muted);
   stroke-width: 0.3;
 }
+/* The pieces as pattern paper: pale, dotted, in dark ink, lying on the cloth. */
 .layplan .lay-piece {
-  fill: var(--paper);
-  stroke: var(--gild);
-  stroke-width: 0.25;
+  fill: #ece3cf;
+  stroke: #1a1712;
+  stroke-width: 0.2;
   stroke-linejoin: round;
+}
+.layplan .lay-paper-dots {
+  pointer-events: none;
+}
+.layplan .lay-dot {
+  fill: #b9ab8e;
 }
 .layplan text {
   font-family: var(--mono);
   letter-spacing: 0.12em;
 }
 .layplan .lay-name {
-  fill: var(--ink);
+  fill: #1a1712;
+}
+.layplan .lay-sub {
+  fill: #6b6152;
 }
 .layplan .lay-note {
   fill: var(--muted);
@@ -1744,16 +1869,16 @@ button.link.quiet-link {
   gap: 14px;
 }
 
-/* The welcome's form at the welcome's size and place: the canvas is the welcome hero's height and the page
-   shows its top part, so going from the welcome to measuring only adds the tape. */
+/* The welcome's form at the welcome's size and place: the canvas is the welcome hero's height (measured on the
+   welcome) and the page shows its top part, so going from the welcome to measuring only adds the tape. */
 .measure-step .welcome-hero {
   position: relative;
   overflow: hidden;
-  height: clamp(130px, calc(100svh - 548px), 372px);
+  max-height: 372px;
 }
 
 .measure-step .welcome-hero canvas {
-  height: clamp(160px, calc(100svh - 440px), 520px);
+  height: max(100%, var(--welcome-hero-h, 100%));
 }
 
 .measure-step .eyebrow {
@@ -1913,7 +2038,7 @@ button.link.how-link {
 }
 
 .measure-step.short .welcome-hero {
-  height: clamp(110px, calc(100svh - 600px), 300px);
+  max-height: 300px;
 }
 
 /* How to do it: a short list of steps over the page, only when asked for */
@@ -2071,14 +2196,6 @@ button.step-next {
   margin-top: 18px;
 }
 
-@media (max-height: 620px) {
-  .measure-step .welcome-hero {
-    height: clamp(110px, calc(100svh - 470px), 420px);
-  }
-  .measure-step .welcome-hero canvas {
-    height: clamp(120px, calc(100svh - 380px), 520px);
-  }
-}
 
 /* Fabric guidance: the style screen's suggestions, the fabric guide and the print screen's "Your fabric". */
 .fabric {
@@ -2167,15 +2284,15 @@ button.step-next {
 .yourfabric .special dd {
   margin: 0;
 }
-/* The fabric page: a headline in a magazine serif, a close-up of the cloth and photo swatches. */
+/* The fabric page: a headline in the narrow heading capitals, a close-up of the cloth and photo swatches. */
 .yourfabric .fabhead {
-  font-family: 'Bodoni Moda', Didot, Georgia, serif;
-  font-style: italic;
-  font-weight: 400;
+  font-family: var(--display);
+  font-stretch: 75%;
+  font-weight: 600;
   font-size: 30px;
-  line-height: 1.1;
-  letter-spacing: 0;
-  text-transform: none;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
 }
 .yourfabric > *,
 .yourfabric fieldset {
@@ -2790,6 +2907,9 @@ button.link.garment-change {
 .form-draw .chips {
   justify-content: center;
 }
+.form-draw .row.end {
+  justify-content: flex-end;
+}
 .form-draw .form-said {
   text-align: center;
   min-height: 2.9em;
@@ -2832,9 +2952,12 @@ button.link.garment-change {
   min-height: 28px;
 }
 .fabric-now em {
-  font-family: 'Bodoni Moda', Didot, Georgia, serif;
-  font-style: italic;
-  font-size: 22px;
+  font-family: var(--display);
+  font-stretch: 75%;
+  font-weight: 600;
+  font-style: normal;
+  text-transform: uppercase;
+  font-size: 20px;
   color: var(--ink);
 }
 .swatches {
@@ -3193,6 +3316,32 @@ button.link.garment-change {
   }
 }
 
+/* Short screens: the measuring pages carry the tape too, so they tighten a little more to keep Next on screen */
+@media (max-height: 620px) {
+  .measure-step {
+    gap: 10px;
+  }
+  .measure-step .welcome-hero {
+    min-height: 44px;
+  }
+  button.step-next {
+    margin-top: 8px;
+  }
+}
+
+/* The smallest screens (an old 4-inch phone with the browser's bars showing): too little room for the form
+   to read as one, so it steps aside and the words and the button fit. */
+@media (max-height: 480px) {
+  .welcome-hero {
+    display: none;
+  }
+  .need div {
+    padding: 8px 0;
+  }
+  .measure-step {
+    gap: 6px;
+  }
+}
 /* Photo to pattern: one card that moves through start, reading, result and, for a skirt laid flat, its length */
 .visually-hidden {
   position: absolute;

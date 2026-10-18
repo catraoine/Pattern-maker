@@ -31,9 +31,10 @@ const moveNotch = (move: (q: P) => P) => ([q, d]: [P, P]): [P, P] => {
   return [a, sub(move(add(q, d)), a)];
 };
 
-/** The front with its bust dart moved from the side seam to `to`. */
-export function moveFrontDart(front: Piece, apex: P, to: DartPlace, waistSide?: P, at?: number): Piece {
-  const m = moveBustDart(front.outline, apex, to, { armholeNotch: front.notches[0]?.[0], waistSide, at });
+/** The front with its bust dart moved from the side seam to `to`. `seam` opens it on a style seam
+ * instead (a yoke), `along` cm from the seam's start, the way a shoulder dart opens on the shoulder. */
+export function moveFrontDart(front: Piece, apex: P, to: DartPlace, waistSide?: P, at?: number, seam?: { tag: string; along: number; words: string }): Piece {
+  const m = moveBustDart(front.outline, apex, to, { armholeNotch: front.notches[0]?.[0], waistSide, at, ...(seam ? { edge: seam.tag, along: seam.along } : {}) });
   if (!m || !m.dart) return front;
   const merged = to === 'waist' && !!front.lines.find(isWaistDart);
   const lines = front.lines.filter((ln) => !isSideDart(ln) && !(merged && isWaistDart(ln)));
@@ -46,7 +47,7 @@ export function moveFrontDart(front: Piece, apex: P, to: DartPlace, waistSide?: 
   points.push({
     n: 'M',
     at: m.dart.tip,
-    note: `Bust dart moved to the ${WORDS[to]}: slash from the ${WORDS[to]} to the bust point, close the side dart, and the new dart opens ${width.toFixed(1)} cm.${merged ? ' It joins the waist dart into one.' : ''} It ends ${len(sub(m.dart.tip, apex)).toFixed(1)} cm short of the bust point.`,
+    note: `Bust dart moved to the ${seam?.words ?? WORDS[to]}: slash from the ${seam?.words ?? WORDS[to]} to the bust point, close the side dart, and the new dart opens ${width.toFixed(1)} cm.${merged ? ' It joins the waist dart into one.' : ''} It ends ${len(sub(m.dart.tip, apex)).toFixed(1)} cm short of the bust point.`,
   });
   const alternate = front.alternate && !upward ? moveBustDart(front.alternate.outline, apex, to, { waistSide }) : undefined;
   return {

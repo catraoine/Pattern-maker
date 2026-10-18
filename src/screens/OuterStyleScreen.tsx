@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { layout } from '../engine/export';
 import { piecesLengthCm, toMetres } from '../engine/fabric';
 import { layPlan } from '../engine/layplan';
-import { OUTER_EASE, OuterDraft } from '../engine/outerwear';
+import { OUTER_EASE, OuterDraft, OuterMeasurements, outerDrop } from '../engine/outerwear';
 import { outerFlat } from '../engine/flat';
 import { OuterChoices, describeOuter, outerAllowed, outerGroups } from '../garments';
 import { TechFlatView } from '../ui/TechFlatView';
@@ -21,6 +21,11 @@ import { ModeLink } from '../ui/ModeLink';
 import type { Finish } from '../App';
 import { MyFabric, fabricEase, outerFabrics } from '../engine/fabrics';
 import { FabricCard } from '../ui/FabricCard';
+import { Title } from '../ui/Title';
+import { ChoicePic, chipsClass } from '../ui/ChoicePic';
+import { DrawOnForm, formWidth } from '../ui/DrawOnForm';
+import { landmarks } from '../ui/formLines';
+import { outerLines, readOuterCollar, readOuterFit, readOuterFront, readOuterHem, readOuterShaping } from '../ui/formTops';
 
 interface Props {
   /** Start from a photo, and the photo this garment was matched to while the app is open. */
@@ -58,6 +63,8 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
   const onChoices = undo.change;
   const can = (t: ProTool) => shows(mode, t);
   const [picked, setView] = useState<'sketch' | 'pattern' | 'ease'>('sketch');
+  /** Drawing on the form: the choices from before, to keep or go back to. */
+  const [onForm, setOnForm] = useState<OuterChoices>();
   const view = picked === 'ease' && !can('easeMap') ? 'sketch' : picked;
   const kind = choices.garment;
   const pieces = useMemo(() => draft?.pieces ?? [], [draft]);
@@ -66,18 +73,67 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
   const title = describeOuter(choices);
   const extra = fabricEase(fabric, kind);
 
+  if (onForm && draft) {
+    const m = values as OuterMeasurements;
+    const waistY = landmarks(draft.base).waistY;
+    const longest = kind === 'coat' ? 'midi' : 'long';
+    return (
+      <DrawOnForm<OuterChoices>
+        body={formWidth(draft.base, m)}
+        m={m}
+        legs={kind === 'coat'}
+        bottom={waistY + outerDrop(m, longest) + 6}
+        backs={false}
+        kinds={[
+          ['hem', 'Hem'],
+          ['fit', 'Side'],
+          ['front', 'Front edge'],
+          ['collar', 'Collar'],
+          ['seam', 'Shaping'],
+        ]}
+        help={{
+          hem: `Draw across where you want the hem. It takes the nearest of the ${kind}’s lengths, cut level.`,
+          seam: 'Draw from the armhole through the bust down to the waist for princess seams. Any other line keeps the darts.',
+        }}
+        lines={() => outerLines(draft)}
+        choices={choices}
+        onChoices={setChoices}
+        read={(line, _side, stroke) =>
+          line === 'hem'
+            ? readOuterHem(stroke, draft, m, choices)
+            : line === 'fit'
+              ? readOuterFit(stroke, draft, m, choices)
+              : line === 'front'
+                ? readOuterFront(stroke, draft, choices)
+                : line === 'collar'
+                  ? readOuterCollar(stroke, draft, choices)
+                  : readOuterShaping(stroke, draft, choices)
+        }
+        onDone={() => {
+          undo.change(choices, onForm);
+          setOnForm(undefined);
+          setView('pattern');
+        }}
+        onCancel={() => {
+          setChoices(onForm);
+          setOnForm(undefined);
+        }}
+      />
+    );
+  }
+
   return (
     <div className="split three">
-      <section className="card" aria-labelledby="opts">
+      <section className="card numbered" aria-labelledby="opts">
         <div className="row between wrap">
-          <h1 id="opts">Style your {kind}</h1>
+          <Title id="opts" big="Style" label={`your ${kind}`} />
           <GarmentSwitch onChoose={onChooseGarment} />
         </div>
         <PhotoEntry onPhoto={onPhoto} photo={photo} />
         {outerGroups(kind).map((g) => (
           <fieldset key={g.id} className="group">
             <legend>{g.label}</legend>
-            <div className="chips">
+            <div className={chipsClass(kind, g.id)}>
               {g.options.map(([id, label]) => {
                 const allowed = outerAllowed(choices, g.id, id);
                 return (
@@ -96,6 +152,7 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
                       onChoices(next);
                     }}
                   >
+                    <ChoicePic set={kind} group={g.id} id={id} />
                     {label}
                   </button>
                 );
@@ -132,7 +189,14 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
               </button>
             )}
           </div>
-          <UndoTools undo={undo} />
+          <div className="row tools">
+            {draft && (
+              <button type="button" className="link small" onClick={() => setOnForm(choices)}>
+                Draw on your form
+              </button>
+            )}
+            <UndoTools undo={undo} />
+          </div>
         </div>
         <div className="preview">
           {error && <p className="msg error">{error}</p>}

@@ -11,6 +11,7 @@ import type { DiagramId } from './diagrams';
 import { placeWords, styleBodiceSteps } from './styleSteps';
 import { VolumeStyle, needsNoSlit, volumeSteps } from './skirtVolume';
 import { drapeBodiceSteps, drapeDressSteps } from './drapeSteps';
+import { mirrorWords } from './drape';
 import { bonedDressSteps, strapCut, topSteps } from './corsetGuide';
 import { isShaped } from './hem';
 import { SLIP_LEVEL } from './slip';
@@ -424,9 +425,11 @@ export function bodiceGuide(draft: BodiceDraft, _style: { length: BodiceLength }
     ...(sleeve ? sleeveSteps(sleeve, seam, curve, edges === 'lined') : []),
     {
       title: 'Hem',
-      text: below
-        ? 'Press up 1 cm, then 1.5 cm more, and stitch by hand or machine.'
-        : 'Press up 0.5 cm, then 1 cm more, and stitch close to the fold.',
+      text: isShaped(draft.hem)
+        ? 'The hem is shaped, so keep it narrow. Press up 0.5 cm, then 1 cm more, easing the curve with steam, and stitch by hand or machine.'
+        : below
+          ? 'Press up 1 cm, then 1.5 cm more, and stitch by hand or machine.'
+          : 'Press up 0.5 cm, then 1 cm more, and stitch close to the fold.',
     },
     {
       title: 'Finish',
@@ -447,11 +450,17 @@ export function bodiceGuide(draft: BodiceDraft, _style: { length: BodiceLength }
     steps,
   };
   // The top neckline's steps (corsetGuide.ts), then a draped neckline's and a peplum's (drapeSteps.ts).
-  return drapeBodiceSteps(
+  return mirroredGuide(draft, drapeBodiceSteps(
     topSteps(styleBodiceSteps(guide, draft, { seam, curve, edges, sleeve: !!sleeve }), draft, { seam, curve, fabricM, liningM: finish.liningM, coutilM: finish.coutilM, width: finish.width }),
     draft,
     { seam, curve, edges, sleeve: !!sleeve },
-  );
+  ));
+}
+
+/** A one-shoulder cut for the right shoulder: every step with left and right, and the fabric's face, turned over. */
+function mirroredGuide(d: BodiceDraft, g: SewingGuide): SewingGuide {
+  if (d.drape?.side !== 'right') return g;
+  return { ...g, steps: g.steps.map((st) => ({ ...st, text: mirrorWords(st.text) })) };
 }
 
 /** Cutting the sleeves, added to the cutting step. */
@@ -512,7 +521,7 @@ export function dressGuide(draft: DressDraft, style: { silhouette: Silhouette; l
       diagram: 'overlock',
       text: `Zigzag or overlock the shoulder and side edges of the bodice, the side edges of the skirt, and the centre back edges of both${finish.sleeve ? ", and the sleeves' underarm seam edges" : ''}, so they will not fray inside.`,
     },
-    ...find(top, /^Sew the (.*darts?|princess seams)$/),
+    ...find(top, /^(Sew the (.*darts?|princess seams|panel seams)|Join the (.*yokes?|midriff band))$/),
     ...find(skirt, /^Sew the .*darts?$/).map((s) => ({ ...s, title: 'Sew the skirt darts' })),
     ...find(skirt, /^Sew the centre front$/).map((s) => ({ ...s, title: 'Sew the skirt centre front' })),
     ...find(skirt, /^Sew on the pocket bags$/),
@@ -540,7 +549,7 @@ export function dressGuide(draft: DressDraft, style: { silhouette: Silhouette; l
     { title: 'Finish', text: `Sew a hook and eye at the top of the zip, inside the ${draft.bodice.top ? 'top edge' : 'neckline'}. Give the dress a final press.` },
   ];
 
-  return drapeDressSteps(
+  return mirroredGuide(draft.bodice, drapeDressSteps(
     {
       notions: top.notions.map((n) => (/invisible zip/.test(n) ? `${draft.zipCm} cm invisible zip` : n)),
       steps: volumeSteps(steps, draft.skirt, { seam, waist, hem: draft.skirt.pieces[0].allowances.hem ?? 4 }, 'dress'),
@@ -548,7 +557,7 @@ export function dressGuide(draft: DressDraft, style: { silhouette: Silhouette; l
     top,
     draft,
     { seam, waist, curve, edges, slit, sleeve: !!finish.sleeve },
-  );
+  ));
 }
 
 /** Cutting a dress's collar. */

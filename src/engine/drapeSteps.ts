@@ -67,6 +67,10 @@ const staySteps = (d: BodiceDraft): SewStep => {
   };
 };
 
+/** Cutting an uneven neckline's whole front, on its own before the fabric is folded. */
+const UNEVEN_CUT =
+  'Cut the bodice front first, from a single layer of fabric opened out right side up. It is a whole piece and its two sides differ: lay it printed side up, the side marked LEFT SIDE on your left as you wear it, and cut it once.';
+
 const COWL_STAY: SewStep = {
   title: 'Stay-stitch the cowl front',
   diagram: 'staystitch',
@@ -143,6 +147,18 @@ export function drapeBodiceSteps(g: SewingGuide, d: BodiceDraft, o: Opts): Sewin
     e.set('Finish', 'Sew a hook and eye at the top of the zip, inside the top edge. Give the bodice a final press.');
     const [f, b] = edgeLengths(d);
     notions.splice(notions.findIndex((n) => /invisible zip/.test(n)) + 1, 0, `${(Math.ceil((f + b + 20) / 10) / 10).toFixed(1)} m of 1 cm wide stay tape`);
+  }
+
+  if (d.drape?.kind === 'uneven' && cut) {
+    // The front is cut whole and on its own; the back is cut as a pair as usual.
+    e.set(
+      'Cut out',
+      `${UNEVEN_CUT} Then fold the rest of the fabric in half with the selvedges together. ${cut.text.replace(/^Fold the fabric in half with the selvedges together\. /, '')}`
+        .replace('and the bust point.', 'and the bust points.')
+        .replace(' Cut the front and back again from the lining the same way.', ' Cut the front again from the lining, this time printed side down, so the lining turns in the right way round, and the back as a pair.')
+        .replace(' Cut the neck facings from the fabric,', ' Cut the front neck facing once, printed side down, and the back neck facings as a pair, from the fabric,')
+        .replace(' Cut the four facing pieces from the fabric,', ' Cut the front neck facing once, printed side down, and the other facings as pairs, from the fabric,'),
+    );
   }
 
   if (d.drape?.kind === 'cowl') {
@@ -271,6 +287,14 @@ export function drapeDressSteps(g: SewingGuide, top: SewingGuide, d: DressDraft,
     const shoulder = top.steps.find((s) => s.title === 'Sew the shoulders');
     if (shoulder && !e.get('Sew the shoulders')) e.before('Sew the side seams', shoulder);
   }
+  if (kind === 'uneven' && cut)
+    e.set(
+      'Cut out',
+      cut.text
+        .replace(fold, `${UNEVEN_CUT} Then fold the rest of the fabric in half with the selvedges together. ${placeWords(d.bodice)}`)
+        .replace('and the bust point.', 'and the bust points.')
+        .replace(' Cut the bodice pieces again from the lining.', ' Cut the bodice front again from the lining, printed side down, so the lining turns in the right way round, and the back as a pair.'),
+    );
   if (kind === 'cowl') {
     if (cut)
       e.set(

@@ -48,6 +48,8 @@ export interface Lay {
   bias?: boolean;
   /** Some pieces differ side to side, so they are cut right side up only. */
   rightSideUp?: boolean;
+  /** Those pieces are cut from the fabric face down, for their mirror image (a right-shoulder top). */
+  faceDown?: boolean;
   /** A knit: the grain runs along the ribs, so the stretch goes across the fabric and round the body. */
   knit?: boolean;
 }
@@ -214,6 +216,7 @@ export function layPlan(pieces: Piece[], width: FabricWidth, fabric: LayFabric =
     placements,
     ...(mine.some((pc) => pc.meta.bias) ? { bias: true } : {}),
     ...(mine.some((pc) => pc.meta.rightSideUp) ? { rightSideUp: true } : {}),
+    ...(mine.some((pc) => pc.meta.rightSideUp && pc.meta.faceDown) ? { faceDown: true } : {}),
   };
 }
 
@@ -295,6 +298,8 @@ export function layWords(lay: Lay): string {
     ? ' Keep every grain line along the ribs, parallel to the fold, so the most stretch runs across the fabric and round the body. Keep the knit flat on the table so it does not stretch as you cut.'
     : ' Keep every grain line parallel to the selvedge.';
   const bias = lay.bias ? ' The bias pieces lie at 45 degrees across the cloth, so their grain lines run along it: that puts them on the true bias. Cut them through one layer, without stretching the edges.' : '';
-  const up = lay.rightSideUp ? ' The pieces marked right side up differ side to side: lay them printed side up on the right side of the fabric, never turned over.' : '';
+  const up = lay.faceDown
+    ? ' The pieces marked right side down differ side to side and are cut as the mirror of their pattern: lay them printed side up on the wrong side of the fabric, never turned over.'
+    : lay.rightSideUp ? ' The pieces marked right side up differ side to side: lay them printed side up on the right side of the fabric, never turned over.' : '';
   return `${way}${single}${grain}${bias}${up} The pieces use ${Math.round(lay.efficiency * 100)}% of the fabric.`;
 }

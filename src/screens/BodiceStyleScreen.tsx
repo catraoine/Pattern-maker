@@ -21,14 +21,18 @@ import { useShake } from '../ui/shake';
 import type { Finish } from '../App';
 import { MyFabric, bodiceFabrics, fabricEase } from '../engine/fabrics';
 import { FabricCard } from '../ui/FabricCard';
-import { isDraped } from '../engine/drape';
+import { isDraped, zipSide } from '../engine/drape';
 import { DrawOnForm, formWidth } from '../ui/DrawOnForm';
-import { bodiceLines, landmarks, readBodiceHem, readDrape, readFit, readNeckline, readSeam } from '../ui/formLines';
+import { orSeam, readSeamLine } from '../ui/formSeams';
+import { bodiceHemLine, orNeckline, readBodiceHemShape, readUnevenNeckline, unevenNecklineLines } from '../ui/formBodice';
+import { bodiceLines, landmarks, readDrape, readFit, readNeckline, readSeam } from '../ui/formLines';
 
 import { Mode, ProTool, shows } from '../mode';
 import { ModeLink } from '../ui/ModeLink';
 import { EaseMapView } from '../ui/EaseMapView';
 import type { EaseView } from '../engine/easeMap';
+import { Title } from '../ui/Title';
+import { ChoicePic, chipsClass } from '../ui/ChoicePic';
 
 interface Props {
   /** Start from a photo, and the photo this garment was matched to while the app is open. */
@@ -96,7 +100,7 @@ const UNDO_LIMIT = 40;
 export const REPLACES: Record<string, (keyof BodiceChoices)[]> = {
   fit: ['bustEase'],
   length: ['dropCm'],
-  neckline: ['neck', 'cowlDepth'],
+  neckline: ['neck', 'cowlDepth', 'unevenNeck'],
   princess: ['lineAt'],
   bustDart: ['lineAt'],
 };
@@ -211,19 +215,22 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
           ['fit', 'Side'],
           ['hem', 'Hem'],
         ]}
-        lines={(side) => bodiceLines(draft, side)}
+        lines={(side) => {
+          const uneven = side === 'front' ? unevenNecklineLines(draft) : [];
+          return { ...bodiceLines(draft, side), hem: [bodiceHemLine(draft, side)], ...(uneven.length ? { neckline: uneven } : {}) };
+        }}
         choices={choices}
         onChoices={onChoices}
         read={(kind, side, stroke) =>
           kind === 'neckline'
-            ? readNeckline(stroke, draft, choices, 'bodice', side)
+            ? orNeckline(readUnevenNeckline(stroke, draft, choices, 'bodice', side), () => readNeckline(stroke, draft, choices, 'bodice', side))
             : kind === 'seam'
-              ? readSeam(stroke, draft, choices, 'bodice', side)
+              ? orSeam(readSeamLine(stroke, draft, choices, 'bodice', side), () => readSeam(stroke, draft, choices, 'bodice', side))
               : kind === 'drape'
                 ? readDrape(stroke, draft, choices, 'bodice')
                 : kind === 'fit'
                   ? readFit(stroke, draft, m, choices)
-                  : readBodiceHem(stroke, draft, m, choices)
+                  : readBodiceHemShape(stroke, draft, m, choices, side)
         }
         onDone={() => {
           change(choices, onForm);
@@ -241,16 +248,16 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
   return (
     <>
     <div className="screen-head">
-      <h1 id="opts">Style your bodice</h1>
+      <Title id="opts" big="Style" label="your bodice" />
       <GarmentSwitch onChoose={onChooseGarment} />
     </div>
     <PhotoEntry onPhoto={onPhoto} photo={photo} />
     <div className="split three">
-      <section className="card" aria-labelledby="opts">
+      <section className="card numbered" aria-labelledby="opts">
         {BODICE_GROUPS.filter((g) => shown(g.id)).map((g) => (
           <fieldset key={g.id} className="group">
             <legend>{g.label}</legend>
-            <div className="chips">
+            <div className={chipsClass('bodice', g.id)}>
               {g.options.map(([id, label]) => (
                 <button
                   key={id}
@@ -260,6 +267,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
                   disabled={!allowed(g.id, id)}
                   onClick={() => choose({ ...choices, [g.id]: id }, g.id)}
                 >
+                  <ChoicePic set="bodice" group={g.id} id={id} />
                   {label}
                 </button>
               ))}
@@ -292,7 +300,18 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
               <p className="muted small">
                 {choices.neckline === 'cowl'
                   ? 'The front is cut on the bias and falls in soft folds. It needs a fluid fabric. No collar or princess seams.'
-                  : 'The shoulder is on your left, and a zip goes in the right side seam. No collar or princess seams.'}
+                  : (
+                    <>
+                    <span className="seg" role="group" aria-label="Which shoulder">
+                      {(['left', 'right'] as const).map((sh) => (
+                        <button key={sh} type="button" aria-pressed={(choices.shoulder ?? 'left') === sh} className={(choices.shoulder ?? 'left') === sh ? 'on' : ''} onClick={() => change(sh === 'right' ? { ...choices, shoulder: sh } : (({ shoulder: _s, ...rest }) => rest)(choices))}>
+                          {sh}
+                        </button>
+                      ))}
+                    </span>{' '}
+                      Over your {choices.shoulder ?? 'left'} shoulder, with a zip in the {choices.shoulder === 'right' ? 'left' : 'right'} side seam. No collar or princess seams.
+                    </>
+                  )}
               </p>
             )}
             {g.id === 'sleeve' && !choices.neck && choices.neckline === 'one_shoulder' && <p className="muted small">A one-shoulder bodice is sleeveless.</p>}
@@ -327,7 +346,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
           {detail.closure === 'front_buttons'
             ? `Buttons down the centre front${draft?.buttons ? ` (${draft.buttons.count})` : ''}, with front facings.`
             : draft?.drape?.kind === 'one_shoulder'
-              ? 'With a zip in the right side seam.'
+              ? `With a zip in the ${zipSide(draft)} side seam.`
               : 'With a centre back zip.'}{' '}
           {chosen.length === 'none'
             ? 'Sleeveless.'
