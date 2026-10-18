@@ -30,7 +30,7 @@ export function Explain({ set, group, options, pick }: { set: ExplainSet; group:
     );
   return (
     <div className="explain with-pic" aria-live="polite">
-      <button type="button" className="explain-pic" aria-label={`See ${option[1]} full size`} onClick={() => setBig(true)}>
+      <button type="button" className="explain-pic" aria-label="See the drawing full size" onClick={() => setBig(true)}>
         <Drawing pic={pic} />
       </button>
       <p>{words}</p>

@@ -165,7 +165,8 @@ export async function addCloserFit(page: Page, g: GarmentName) {
 /** Tap a style chip in a named group (Fit, Length, ...), and check it took. */
 export async function chooseChip(page: Page, group: string, chip: string) {
   const button = main(page).getByRole('group', { name: group, exact: true }).getByRole('button', { name: chip, exact: true });
-  await button.click();
+  // By its corner: tapping the drawing on a tile that is already picked opens it full size instead.
+  await button.click({ position: { x: 4, y: 4 } });
   await expect(button).toHaveAttribute('aria-pressed', 'true');
 }
 
