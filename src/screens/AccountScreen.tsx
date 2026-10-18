@@ -10,6 +10,7 @@ import { Mode, shows } from '../mode';
 import { InterestCard } from '../ui/InterestCard';
 import { YourPlan } from '../ui/PlanPrompts';
 import { savedLimit } from '../plans';
+import { findByCode, readCode } from '../labels';
 
 // Skirt and bodice share a few measurements (waist, hip); list each once.
 const ALL_FIELDS = [...SKIRT_FIELDS, ...TROUSERS_FIELDS.filter((t) => !SKIRT_FIELDS.some((f) => f.id === t.id)), ...BODICE_FIELDS.filter((b) => !SKIRT_FIELDS.some((f) => f.id === b.id))];
@@ -25,6 +26,8 @@ interface Props {
   onClientBook?: () => void;
   /** Open a pattern file from elsewhere and walk its seams. */
   onCheckFile?: () => void;
+  /** Open Body Double: a store form padded to the person, with a cover drafted to them. */
+  onBodyDouble?: () => void;
   onAddPerson: (name: string) => void;
   onRemovePerson: (id: string) => void;
   onOpen: (p: SavedPattern) => void;
@@ -48,7 +51,7 @@ const show = (cm: number | undefined, unit: Unit) =>
 
 const dateFmt = new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 
-export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurements, onSwitchPerson, onAddPerson, onRemovePerson, onClientBook, onCheckFile, onOpen, onRename, onRemove, onFit, onReset, onLegal, onBackup, onRestore, mode = 'all', onMode, onPlans }: Props) {
+export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurements, onSwitchPerson, onAddPerson, onRemovePerson, onClientBook, onCheckFile, onBodyDouble, onOpen, onRename, onRemove, onFit, onReset, onLegal, onBackup, onRestore, mode = 'all', onMode, onPlans }: Props) {
   const limit = savedLimit(account);
   const [confirmReset, setConfirmReset] = useState(false);
   const [restoreMsg, setRestoreMsg] = useState('');
@@ -218,6 +221,19 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
           </section>
         )}
 
+        {onBodyDouble && (
+          <section className="card" aria-labelledby="bdtitle">
+            <p className="eyebrow">Body Double</p>
+            <h2 id="bdtitle">A dress form in your shape</h2>
+            <p className="muted small">Pad a store form to your measurements and cover it with a pattern drafted to your body, so you can fit on yourself.</p>
+            <button type="button" className="secondary" onClick={onBodyDouble}>
+              Make my form
+            </button>
+          </section>
+        )}
+
+        <OpenByCode account={account} onOpen={onOpen} />
+
         {onPlans && <YourPlan account={account} onPlans={onPlans} />}
 
         <section className="card" aria-labelledby="stitle">
@@ -378,5 +394,43 @@ function PatternRow({
         </>
       )}
     </li>
+  );
+}
+
+/** Type the code from a signature label to open the pattern it was made from. */
+function OpenByCode({ account, onOpen }: { account: Account; onOpen: (p: SavedPattern) => void }) {
+  const [code, setCode] = useState('');
+  const [msg, setMsg] = useState('');
+  if (!account.patterns.length) return null;
+  const open = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!readCode(code)) return setMsg('A label code is MT and four letters or numbers, like MT-7K3Q.');
+    const found = findByCode(account, code);
+    if (found) onOpen(found);
+    else setMsg('No saved pattern on this phone has that code. Patterns are kept on the phone they were saved on.');
+  };
+  return (
+    <section className="card" aria-labelledby="codetitle">
+      <h2 id="codetitle">Open from a label</h2>
+      <p className="muted small">Type the code woven or printed on a label to open the pattern it was made from.</p>
+      <form className="row" onSubmit={open}>
+        <input
+          id="label-code"
+          aria-label="Label code"
+          placeholder="MT-7K3Q"
+          autoCapitalize="characters"
+          autoComplete="off"
+          value={code}
+          onChange={(e) => {
+            setCode(e.target.value);
+            setMsg('');
+          }}
+        />
+        <button type="submit" className="secondary">
+          Open
+        </button>
+      </form>
+      {msg && <p className="msg small">{msg}</p>}
+    </section>
   );
 }

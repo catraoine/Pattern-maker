@@ -1,7 +1,7 @@
 // Paid extras that aren't built yet. Each one is shown as a sign-up so we can see who wants it before building
 // the paid part. Prices are the business plan's planned prices; nothing is charged until paid plans open.
 
-export const OFFER_IDS = ['founding', 'printed', 'tools', 'sewalong', 'designers', 'designer-partner', 'kit', 'gift', 'fitcheck', 'sizerun', 'classroom', 'sponsor'] as const;
+export const OFFER_IDS = ['founding', 'printed', 'tools', 'sewalong', 'designers', 'designer-partner', 'kit', 'gift', 'fitcheck', 'sizerun', 'classroom', 'sponsor', 'labels'] as const;
 export type OfferId = (typeof OFFER_IDS)[number];
 
 export interface Offer {
@@ -122,5 +122,14 @@ export const OFFERS: Record<OfferId, Offer> = {
     text: 'A clearly labelled sponsored page in our seasonal edit, showing your fabrics with the patterns they suit.',
     button: 'Get in touch',
     thanks: "Thank you. We'll be in touch.",
+  },
+  labels: {
+    id: 'labels',
+    eyebrow: 'Woven labels · posted',
+    title: 'Have your labels woven',
+    text: 'Twelve woven labels in black and champagne, with your name and this pattern\'s code, posted to you.',
+    prices: [['Pack of 12', '$18']],
+    button: 'Tell me when it opens',
+    thanks: "Thank you. We'll email you when woven labels open.",
   },
 };
