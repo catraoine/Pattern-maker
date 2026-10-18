@@ -214,7 +214,7 @@ export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onV
   );
 }
 
-function Shell({
+export function Shell({
   eyebrow,
   title,
   helperTitle,
@@ -271,7 +271,7 @@ function ShellTitle({ text }: { text: string }) {
   return cut > 0 && cut < 12 ? <Title id="stitle" big={text.slice(0, cut + 1)} label={text.slice(cut + 2)} /> : <h1 id="stitle">{text}</h1>;
 }
 
-function MeasurePage({
+export function MeasurePage({
   id,
   eyebrow,
   dots,
