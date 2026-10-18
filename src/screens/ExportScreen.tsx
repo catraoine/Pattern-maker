@@ -24,6 +24,7 @@ import type { MeasurementValues } from '../measurements';
 import { Mode, ProTool, shows } from '../mode';
 import { ModeLink } from '../ui/ModeLink';
 import { countStep } from '../report/report';
+import { flatId } from '../ui/FabricFill';
 
 /** What to print: the drafted pieces of either garment, with its notes and sewing steps. */
 export interface Printable {
@@ -347,7 +348,7 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
           lays.map((lay) => (
             <div key={lay.fabric} className="lay">
               {lays.length > 1 && <p className="eyebrow">{lay.fabric === 'lining' ? 'Lining' : lay.fabric === 'interlining' ? 'Coutil' : 'Fabric'}</p>}
-              <LayPlanView lay={lay} />
+              <LayPlanView lay={lay} cloth={lay.fabric === 'self' ? (flatId(finish.fabric) ?? 'default') : lay.fabric === 'lining' ? 'silk' : 'cotton'} />
               <p className="muted small">{layWords(lay)}</p>
             </div>
           ))

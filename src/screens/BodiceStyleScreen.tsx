@@ -28,6 +28,8 @@ import { Mode, ProTool, shows } from '../mode';
 import { ModeLink } from '../ui/ModeLink';
 import { EaseMapView } from '../ui/EaseMapView';
 import type { EaseView } from '../engine/easeMap';
+import { Title } from '../ui/Title';
+import { ChoicePic, chipsClass } from '../ui/ChoicePic';
 
 interface Props {
   finish: Finish;
@@ -237,15 +239,15 @@ export function BodiceStyleScreen({ choices, onChoices, onChooseGarment, values,
   return (
     <>
     <div className="screen-head">
-      <h1 id="opts">Style your bodice</h1>
+      <Title id="opts" big="Style" label="your bodice" />
       <GarmentSwitch onChoose={onChooseGarment} />
     </div>
     <div className="split three">
-      <section className="card" aria-labelledby="opts">
+      <section className="card numbered" aria-labelledby="opts">
         {BODICE_GROUPS.filter((g) => shown(g.id)).map((g) => (
           <fieldset key={g.id} className="group">
             <legend>{g.label}</legend>
-            <div className="chips">
+            <div className={chipsClass('bodice', g.id)}>
               {g.options.map(([id, label]) => (
                 <button
                   key={id}
@@ -255,6 +257,7 @@ export function BodiceStyleScreen({ choices, onChoices, onChooseGarment, values,
                   disabled={!allowed(g.id, id)}
                   onClick={() => choose({ ...choices, [g.id]: id }, g.id)}
                 >
+                  <ChoicePic set="bodice" group={g.id} id={id} />
                   {label}
                 </button>
               ))}

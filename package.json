@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.133.0",
-    "@fontsource/bodoni-moda": "^5.3.0",
+    "@fontsource-variable/archivo": "^5.3.0",
     "@fontsource/chakra-petch": "^5.3.0",
     "@fontsource/space-grotesk": "^5.3.0",
     "@netlify/blobs": "11.1.3",

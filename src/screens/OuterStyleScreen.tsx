@@ -20,6 +20,8 @@ import { ModeLink } from '../ui/ModeLink';
 import type { Finish } from '../App';
 import { MyFabric, fabricEase, outerFabrics } from '../engine/fabrics';
 import { FabricCard } from '../ui/FabricCard';
+import { Title } from '../ui/Title';
+import { ChoicePic, chipsClass } from '../ui/ChoicePic';
 
 interface Props {
   choices: OuterChoices;
@@ -64,15 +66,15 @@ export function OuterStyleScreen({ choices, onChoices: setChoices, onChooseGarme
 
   return (
     <div className="split three">
-      <section className="card" aria-labelledby="opts">
+      <section className="card numbered" aria-labelledby="opts">
         <div className="row between wrap">
-          <h1 id="opts">Style your {kind}</h1>
+          <Title id="opts" big="Style" label={`your ${kind}`} />
           <GarmentSwitch onChoose={onChooseGarment} />
         </div>
         {outerGroups(kind).map((g) => (
           <fieldset key={g.id} className="group">
             <legend>{g.label}</legend>
-            <div className="chips">
+            <div className={chipsClass(kind, g.id)}>
               {g.options.map(([id, label]) => {
                 const allowed = outerAllowed(choices, g.id, id);
                 return (
@@ -91,6 +93,7 @@ export function OuterStyleScreen({ choices, onChoices: setChoices, onChooseGarme
                       onChoices(next);
                     }}
                   >
+                    <ChoicePic set={kind} group={g.id} id={id} />
                     {label}
                   </button>
                 );

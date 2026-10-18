@@ -22,6 +22,8 @@ import type { Finish } from '../App';
 
 import { MyFabric, fabricEase, trousersFabrics } from '../engine/fabrics';
 import { FabricCard } from '../ui/FabricCard';
+import { Title } from '../ui/Title';
+import { ChoicePic, chipsClass } from '../ui/ChoicePic';
 
 interface Props {
   choices: TrousersChoices;
@@ -71,15 +73,15 @@ export function TrousersStyleScreen({ choices, onChoices: setChoices, onChooseGa
 
   return (
     <div className="split three">
-      <section className="card" aria-labelledby="opts">
+      <section className="card numbered" aria-labelledby="opts">
         <div className="row between wrap">
-          <h1 id="opts">Style your trousers</h1>
+          <Title id="opts" big="Style" label="your trousers" />
           <GarmentSwitch onChoose={onChooseGarment} />
         </div>
         {TROUSER_GROUPS.filter((g) => shown(g.id)).map((g) => (
           <fieldset key={g.id} className="group">
             <legend>{g.label}</legend>
-            <div className="chips">
+            <div className={chipsClass('trousers', g.id)}>
               {g.options.map(([id, label]) => (
                 <button
                   key={id}
@@ -89,6 +91,7 @@ export function TrousersStyleScreen({ choices, onChoices: setChoices, onChooseGa
                   disabled={!trouserAllowed(choices, g.id, id)}
                   onClick={() => onChoices(validTrousers({ ...choices, [g.id]: id }))}
                 >
+                  <ChoicePic set="trousers" group={g.id} id={id} />
                   {label}
                 </button>
               ))}
