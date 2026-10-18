@@ -211,7 +211,7 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
         {onCheckFile && shows(mode, 'checkFile') && (
           <section className="card" aria-labelledby="cftitle2">
             <h2 id="cftitle2">Check any pattern</h2>
-            <p className="muted small">Open a DXF or SVG from pattern software or a tracing, and its seams are walked to the millimetre.</p>
+            <p className="muted small">Open a DXF or SVG from pattern software or a tracing, and its seams are walked to the millimetre. A DXF from CLO, Gerber, Lectra, Optitex or Seamly2D can then be printed and sent like your own patterns.</p>
             <button type="button" className="secondary" onClick={onCheckFile}>
               Check a pattern file
             </button>

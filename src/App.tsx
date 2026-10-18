@@ -74,6 +74,7 @@ import { FittingScreen } from './screens/FittingScreen';
 import { TrueScaleScreen } from './screens/TrueScaleScreen';
 import { ClientBookScreen } from './screens/ClientBookScreen';
 import { CheckFileScreen } from './screens/CheckFileScreen';
+import { ImportedPattern, importedGuide } from './engine/importDxf';
 import { CollectionScreen } from './screens/CollectionScreen';
 import { lookPatch } from './collection';
 import { CollectionLink } from './ui/GarmentSwitch';
@@ -89,7 +90,7 @@ const BRAND_BLOCK = 'M' + BODICE.map(([x, y]) => `${(9 + x * 14).toFixed(2)} ${(
 import { Mode, finishFor, keepFinish, modeOf } from './mode';
 
 export type Step = 'measure' | 'style' | 'export';
-type View = Step | 'plans' | 'welcome' | 'steps' | 'account' | 'photo' | 'fitting' | 'scale' | 'client' | 'check' | 'privacy' | 'terms' | 'tester' | 'news' | 'collection';
+type View = Step | 'plans' | 'welcome' | 'steps' | 'account' | 'photo' | 'fitting' | 'scale' | 'client' | 'check' | 'imported' | 'privacy' | 'terms' | 'tester' | 'news' | 'collection';
 
 export interface Choices {
   fit: Fit;
@@ -236,7 +237,7 @@ const SIDE: Partial<Record<View, [string, string]>> = {
 const NEEDS_MEASUREMENTS: View[] = ['style', 'export', 'fitting', 'scale'];
 
 /** Where the header's back goes when there's nothing behind in history, such as after a reload. */
-const PARENT: Partial<Record<View, View>> = { measure: 'welcome', steps: 'welcome', style: 'measure', photo: 'style', export: 'style', fitting: 'export', scale: 'export', account: 'style', client: 'account', check: 'account', privacy: 'welcome', terms: 'welcome', tester: 'account', news: 'account' };
+const PARENT: Partial<Record<View, View>> = { measure: 'welcome', steps: 'welcome', style: 'measure', photo: 'style', export: 'style', fitting: 'export', scale: 'export', account: 'style', client: 'account', check: 'account', imported: 'check', privacy: 'welcome', terms: 'welcome', tester: 'account', news: 'account' };
 
 export default function App() {
   const [saved, setSaved] = usePersistent<Saved>('skirt', INITIAL);
@@ -646,6 +647,22 @@ export default function App() {
     const hideLay = drafted?.lays.find((l) => l.hide);
     return drafted && hideLay ? { ...drafted, guide: { ...drafted.guide, fabric: [...(drafted.guide.fabric ?? []), `Leather to buy: ${layAmount(hideLay)}.`] } } : drafted;
   }, [drafted]);
+
+  // A pattern read from another program's DXF on Check any pattern, printed and sent like one drafted here.
+  // Kept for this visit only: the file stays on the device it was opened on.
+  const [imported, setImported] = useState<{ pattern: ImportedPattern; fileName: string }>();
+  const importedPrintable = useMemo((): Printable | undefined => {
+    if (!imported) return undefined;
+    const { pieces, source, notes } = imported.pattern;
+    return {
+      pieces,
+      notes: [`Read from ${imported.fileName}${source ? `, made in ${source}` : ''}.`, ...notes],
+      guide: importedGuide(pieces),
+      spec: [],
+      lays: layPlans(pieces, finish.fabricWidth, finish.nap || needsNap(finish.fabric?.special)),
+    };
+  }, [imported, finish.fabricWidth, finish.nap, finish.fabric?.special]);
+  const importedTitle = imported ? imported.pattern.style || imported.fileName.replace(/\.dxf$/i, '') : '';
 
   const isSaved = isSavedFor(account, current, person.id);
   const saveState = isSaved ? 'saved' : account.patterns.length >= savedLimit(account) ? 'full' : 'can';
@@ -1135,7 +1152,35 @@ export default function App() {
               draftAt={draftAt}
             />
           )}
-          {step === 'check' && <CheckFileScreen />}
+          {step === 'check' && (
+            <CheckFileScreen
+              onUse={(pattern, fileName) => {
+                setImported({ pattern, fileName });
+                setStep('imported');
+              }}
+            />
+          )}
+          {step === 'imported' && !importedPrintable && <CheckFileScreen onUse={(pattern, fileName) => setImported({ pattern, fileName })} />}
+          {step === 'imported' && importedPrintable && imported && (
+            <ExportScreen
+              mode={mode}
+              onMode={setMode}
+              garment={garment}
+              profile={profile}
+              title={importedTitle}
+              fit="as drafted"
+              finish={finish}
+              onFinish={setFinish}
+              style={{ garment: 'skirt', silhouette: saved.choices.silhouette, length: saved.choices.length }}
+              made={importedPrintable}
+              saveState="can"
+              onSave={() => undefined}
+              onAccount={() => setStep('account')}
+              fittingNotes={[]}
+              onFitting={() => undefined}
+              imported={{ source: imported.pattern.source, fileName: imported.fileName }}
+            />
+          )}
           {step === 'client' && (
             <ClientBookScreen
               account={account}
