@@ -49,7 +49,7 @@ export function WelcomeScreen({ onFinish, formStart, onLegal }: Props) {
   };
 
   return (
-    <div className={leaving ? 'welcome leaving' : 'welcome'}>
+    <div className={['welcome', formStart !== 'wait' && 'go', leaving && 'leaving'].filter(Boolean).join(' ')}>
       <section className="card welcome-card" aria-labelledby="wtitle">
         <div className="welcome-hero" ref={hero}>
           <ContourForm start={formStart} />
