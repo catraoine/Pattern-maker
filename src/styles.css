@@ -1561,6 +1561,49 @@ details.more[open] > summary h2::after {
   cursor: pointer;
 }
 
+/* For brands and Atelier Nights: a legal-width page with a few numbered steps or a list of cities */
+.promo-steps {
+  list-style: none;
+  padding: 0;
+  margin: 4px 0 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.promo-steps li {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+}
+.promo-steps .num {
+  font-family: var(--mono);
+  color: var(--gild);
+}
+.cities {
+  list-style: none;
+  padding: 0;
+  margin: 4px 0 10px;
+}
+.cities > li {
+  border-bottom: 1px solid var(--guide);
+  padding: 10px 0;
+}
+.city-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.city-row strong {
+  display: block;
+  font-family: var(--display);
+  font-size: 22px;
+  font-weight: var(--w-head);
+  text-transform: uppercase;
+}
+.city-row .eyebrow {
+  margin: 0;
+}
+
 /* The Privacy Policy and Terms of Use pages */
 .legal {
   max-width: 720px;

@@ -65,6 +65,8 @@ import { AccountScreen } from './screens/AccountScreen';
 import { PhotoScreen } from './screens/PhotoScreen';
 import { LegalScreen } from './screens/LegalScreen';
 import { SignupScreen } from './screens/SignupScreen';
+import { BrandsScreen } from './screens/BrandsScreen';
+import { NightsScreen } from './screens/NightsScreen';
 import { PlansScreen } from './screens/PlansScreen';
 import { PhotoAllowance, UnlockGarment } from './ui/PlanPrompts';
 import { BILLING_ON, canPhotoDraft, countPhotoDraft, hasGarment, plansShown, savedLimit } from './plans';
@@ -92,7 +94,7 @@ const BRAND_BLOCK = 'M' + BODICE.map(([x, y]) => `${(9 + x * 14).toFixed(2)} ${(
 import { Mode, finishFor, keepFinish, modeOf } from './mode';
 
 export type Step = 'measure' | 'style' | 'export';
-type View = Step | 'plans' | 'welcome' | 'steps' | 'account' | 'photo' | 'fitting' | 'scale' | 'client' | 'check' | 'imported' | 'privacy' | 'terms' | 'tester' | 'news' | 'collection';
+type View = Step | 'plans' | 'welcome' | 'steps' | 'account' | 'photo' | 'fitting' | 'scale' | 'client' | 'check' | 'imported' | 'privacy' | 'terms' | 'tester' | 'news' | 'collection' | 'brands' | 'nights';
 
 export interface Choices {
   fit: Fit;
@@ -233,13 +235,15 @@ const SIDE: Partial<Record<View, [string, string]>> = {
   scale: ['Print', 'True size'],
   client: ['Account', 'Client book'],
   check: ['Account', 'Check a file'],
+  brands: ['Account', 'For brands'],
+  nights: ['Account', 'Atelier Nights'],
 };
 
 /** Screens that draw a pattern, so they need the measurements first. */
 const NEEDS_MEASUREMENTS: View[] = ['style', 'export', 'fitting', 'scale'];
 
 /** Where the header's back goes when there's nothing behind in history, such as after a reload. */
-const PARENT: Partial<Record<View, View>> = { measure: 'welcome', steps: 'welcome', style: 'measure', photo: 'style', export: 'style', fitting: 'export', scale: 'export', account: 'style', client: 'account', check: 'account', imported: 'check', privacy: 'welcome', terms: 'welcome', tester: 'account', news: 'account' };
+const PARENT: Partial<Record<View, View>> = { measure: 'welcome', steps: 'welcome', style: 'measure', photo: 'style', export: 'style', fitting: 'export', scale: 'export', account: 'style', client: 'account', check: 'account', imported: 'check', privacy: 'welcome', terms: 'welcome', tester: 'account', news: 'account', brands: 'account', nights: 'account' };
 
 export default function App() {
   const [saved, setSaved] = usePersistent<Saved>('skirt', INITIAL);
@@ -265,7 +269,7 @@ export default function App() {
   // Screens live in the browser's history, so phone and browser back step back through the app. Landing back
   // on a pattern screen whose measurements have since gone sends you to Measure instead.
   const [step, setStep] = useViewHistory<View>('welcome', (to) => (NEEDS_MEASUREMENTS.includes(to) && !canLeaveMeasure ? 'measure' : to));
-  const openLegal = (page: 'privacy' | 'terms' | 'tester' | 'news') => setStep(page);
+  const openLegal = (page: 'privacy' | 'terms' | 'tester' | 'news' | 'brands' | 'nights') => setStep(page);
   // Where Plans goes back to: the screen it was opened from.
   const [beforePlans, setBeforePlans] = useState<View>('account');
   const openPlans = () => {
@@ -901,6 +905,8 @@ export default function App() {
           {(step === 'tester' || step === 'news') && (
             <SignupScreen kind={step} onOther={() => openLegal(step === 'tester' ? 'news' : 'tester')} onPrivacy={() => openLegal('privacy')} />
           )}
+          {step === 'brands' && <BrandsScreen onPrivacy={() => openLegal('privacy')} />}
+          {step === 'nights' && <NightsScreen onPrivacy={() => openLegal('privacy')} />}
           {step === 'photo' && plansShown() && <PhotoAllowance account={account} onPlans={openPlans} />}
           {step === 'photo' && canPhotoDraft(account) && (
             <PhotoScreen

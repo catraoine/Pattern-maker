@@ -64,3 +64,24 @@ test('"Be a fit tester" in Your account opens the sign-up form', async ({ page }
   await headerBack(page).click();
   await expect(main.getByRole('heading', { name: 'Saved patterns' })).toBeVisible();
 });
+
+test('Atelier Nights and For brands open from Your account; a city opens its own sign-up', async ({ page }) => {
+  await startWithExample(page);
+  const main = page.getByRole('main');
+  await openAccount(page);
+
+  await main.getByRole('button', { name: 'Atelier Nights' }).click();
+  await expect(h1(page, 'Cut it tonight')).toBeVisible();
+  await expect(main.getByRole('textbox', { name: 'Your email' })).toHaveCount(0);
+  await main.getByRole('button', { name: 'Count me in' }).nth(1).click();
+  await expect(main.getByRole('textbox', { name: 'Your email' })).toHaveCount(1);
+  await expect(main.getByText('Nothing is charged today.')).toBeVisible();
+  await headerBack(page).click();
+  await expect(main.getByRole('heading', { name: 'Saved patterns' })).toBeVisible();
+
+  await main.getByRole('button', { name: 'For brands' }).click();
+  await expect(h1(page, 'Every order cut to the person')).toBeVisible();
+  await expect(main.getByRole('heading', { name: 'Try it in your shop first' })).toBeVisible();
+  await page.goBack();
+  await expect(main.getByRole('heading', { name: 'Saved patterns' })).toBeVisible();
+});

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { OFFERS, OfferId } from '../offers';
+import { NightCity, OFFERS, OfferId } from '../offers';
 
 type Sent = 'idle' | 'sending' | 'sent' | 'failed' | 'busy';
 
@@ -17,23 +17,25 @@ interface Props {
   offer: OfferId;
   /** The pattern on screen, if any, so we know which garment people asked about. */
   pattern?: string;
+  /** The city an Atelier Nights sign-up is for. */
+  city?: NightCity;
   /** No card of its own: sits inside another card under a rule. */
   inset?: boolean;
 }
 
 /** A paid extra that isn't open yet, with an email sign-up to hear when it opens. */
-export function InterestCard({ offer, pattern, inset }: Props) {
+export function InterestCard({ offer, pattern, city, inset }: Props) {
   const o = OFFERS[offer];
   const [email, setEmail] = useState('');
   // Left empty by people; bots fill in every box.
   const [website, setWebsite] = useState('');
   const [state, setState] = useState<Sent>('idle');
-  const id = `offer-${offer}`;
+  const id = `offer-${offer}${city ? `-${city}` : ''}`;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setState('sending');
-    setState(await send({ kind: 'interest', offer, email, pattern: pattern || undefined, website }));
+    setState(await send({ kind: 'interest', offer, email, pattern: pattern || undefined, city, website }));
   };
 
   const body = (
