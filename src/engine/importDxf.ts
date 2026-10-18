@@ -592,7 +592,12 @@ export function importedGuide(pieces: Piece[]): SewingGuide {
     });
   }
   const walked = checkFile(pieces.map((pc) => ({ name: pc.name, pts: cutLine(pc), stitch: pc.seamAllowance ? pc.outline.points() : undefined })));
-  const seams = walked.pairs.filter((pr) => pr.a.piece !== pr.b.piece && pr.a.length >= 10);
+  // Front and back waists or hems can match by chance, so only the longest match between two pieces
+  // (usually the side seam) is named.
+  const seams = walked.pairs
+    .filter((pr) => pr.a.piece !== pr.b.piece && pr.a.length >= 10)
+    .sort((x, y) => y.a.length - x.a.length)
+    .filter((pr, i, all) => all.findIndex((o) => Math.min(o.a.piece, o.b.piece) === Math.min(pr.a.piece, pr.b.piece) && Math.max(o.a.piece, o.b.piece) === Math.max(pr.a.piece, pr.b.piece)) === i);
   if (seams.length) {
     const cm = (v: number) => `${Math.round(v * 10) / 10} cm`;
     steps.push({
