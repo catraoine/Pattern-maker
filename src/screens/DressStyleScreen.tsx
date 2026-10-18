@@ -15,6 +15,7 @@ import { PhotoEntry } from '../ui/PhotoEntry';
 import { SaveControl } from '../ui/SaveControl';
 import { UndoToast, UndoTools, useUndo } from '../ui/useUndo';
 import { PatternPreview } from '../ui/Preview';
+import { PatternPane } from '../ui/PointEditor';
 import { TechFlatView } from '../ui/TechFlatView';
 import { FabricSwatches, GarmentFabric } from '../ui/FabricFill';
 import { DETAIL_GROUPS, GROUPS } from './StyleScreen';
@@ -379,7 +380,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
               <TechFlatView flat={flat} title={title} />
             </GarmentFabric>
           )}
-          {sheet && view === 'pattern' && <PatternPreview paper sheet={sheet} label={`Pattern pieces for a ${title}`} />}
+          {sheet && view === 'pattern' && <PatternPane><PatternPreview paper sheet={sheet} label={`Pattern pieces for a ${title}`} /></PatternPane>}
           {view === 'ease' && easeMap && <EaseMapView views={easeMap} label={`Ease map of the ${title}`} />}
           <UndoToast undo={undo} />
         </div>

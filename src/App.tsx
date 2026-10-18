@@ -82,6 +82,8 @@ import type { FormStart } from './ui/ContourForm';
 import type { Piece } from './engine/piece';
 import type { PocketStyle } from './engine/pockets';
 import { garmentEase } from './engine/easeMap';
+import { PointEdit, applyPointEdits } from './engine/pointEdit';
+import { PointEditContext } from './ui/PointEditor';
 import { Flounce, GodetCount, Pleats, layoutExtras } from './engine/skirtVolume';
 
 // The logo (Cat's pick F1 Loading Block): the loading screen's bodice block, drawn inside the header's square.
@@ -241,6 +243,8 @@ const PARENT: Partial<Record<View, View>> = { measure: 'welcome', steps: 'welcom
 export default function App() {
   const [saved, setSaved] = usePersistent<Saved>('skirt', INITIAL);
   const [storedAccount, setAccount] = usePersistent<Account>('account', NEW_ACCOUNT);
+  // Points moved on the flat pattern, per garment (see engine/pointEdit.ts).
+  const [pointEdits, setPointEdits] = usePersistent<Record<string, PointEdit[]>>('point-edits', {});
   const account = withPeople(storedAccount, saved.values);
   const person = activePerson(account);
   // What was measured, for the measuring screens and the checks; patterns are drafted from `values`, which
@@ -316,7 +320,7 @@ export default function App() {
     skirt: { ...dress.skirt, fit: dress.fit, fitting: withFabricEase(toFitting(f, 'skirt'), fabric, 'skirt') },
   });
 
-  const result = useMemo((): { skirt?: SkirtDraft; bodice?: BodiceDraft; dress?: DressDraft; trousers?: TrousersDraft; tee?: TeeDraft; outer?: OuterDraft; sleeve?: SleeveDraft; error?: string } => {
+  const drafts = useMemo((): { skirt?: SkirtDraft; bodice?: BodiceDraft; dress?: DressDraft; trousers?: TrousersDraft; tee?: TeeDraft; outer?: OuterDraft; sleeve?: SleeveDraft; error?: string } => {
     if (!canLeaveMeasure) return {};
     try {
       if (isOuterGarment) return { outer: draftOuter(values as OuterMeasurements, outerStyleFor(outerChoices, fitting)) };
@@ -338,6 +342,21 @@ export default function App() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [values, skirtStyle, bodiceStyle, trousersStyle, teeChoices, dress, outerChoices, fabric, fitting, garment, canLeaveMeasure]);
+
+  // The drafts with any points moved on the flat pattern, so the preview, print and files all follow.
+  const moved = pointEdits[garment];
+  const result = useMemo(() => {
+    if (!moved?.length) return drafts;
+    const edit = <T extends { pieces: Piece[] }>(d: T | undefined): T | undefined => d && { ...d, pieces: applyPointEdits(d.pieces, moved) };
+    const { dress: d } = drafts;
+    return { ...drafts, skirt: edit(drafts.skirt), bodice: edit(drafts.bodice), trousers: edit(drafts.trousers), tee: edit(drafts.tee), outer: edit(drafts.outer), dress: d && { ...edit(d)!, skirt: edit(d.skirt)! } };
+  }, [drafts, moved]);
+  const pointEditing = useMemo(() => {
+    const { skirt, bodice, dress: d, trousers, tee, outer } = drafts;
+    const base = (bodice ?? d ?? trousers ?? tee ?? outer ?? skirt)?.pieces.filter((pc) => !pc.kind) ?? [];
+    return { base, edits: moved ?? [], setEdits: (e: PointEdit[]) => setPointEdits({ ...pointEdits, [garment]: e }) };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drafts, moved, garment, pointEdits]);
 
   /** Room over the body at every level of the drafted pieces, for the ease map. */
   const ease = useMemo(() => {
@@ -753,6 +772,7 @@ export default function App() {
           onHandoff={(drawn) => setFormStart(drawn ? 'drawn' : 'fresh')}
         />
       )}
+      <PointEditContext.Provider value={pointEditing}>
       <div className="app" {...{ inert: opening ? '' : undefined }}>
         <header className={step === 'welcome' ? 'topbar' : 'topbar steady'}>
           {step === 'welcome' ? (
@@ -1166,6 +1186,7 @@ export default function App() {
           )}
         </main>
       </div>
+      </PointEditContext.Provider>
     </>
   );
 }
