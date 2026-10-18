@@ -80,11 +80,14 @@ test('Done keeps the lines, and the back button then leaves the style screen', a
   await draw(page, [{ x: 12, y: 0.3 }, { x: 9, y: 24 }, { x: 9, y: 41.5 }]);
   await main.getByRole('button', { name: 'Done', exact: true }).click();
   await expect(main.getByRole('heading', { name: 'Style your bodice' })).toBeVisible();
-  await openReview(page);
+  const opened = await openReview(page);
   await expect(main.getByText(/Bodice side front/).first()).toBeVisible();
   // The drawing left nothing behind in the history: ← goes from Review to the style screen, then straight on.
-  await page.locator('.steady-back').click();
-  await expect(main.getByRole('heading', { name: 'Style your bodice' })).toBeVisible();
+  // On a computer the summary is beside the choices, so there's no Review page to step back from.
+  if (opened) {
+    await page.locator('.steady-back').click();
+    await expect(main.getByRole('heading', { name: 'Style your bodice' })).toBeVisible();
+  }
   await page.locator('.steady-back').click();
   await expect(main.getByRole('heading', { name: 'Style your bodice' })).toHaveCount(0);
 });

@@ -189,10 +189,18 @@ export async function openGroup(page: Page, name: string) {
   return group;
 }
 
-/** On a style screen, the Review page with the summary, Print, Save and Edit measurements. */
-export async function openReview(page: Page) {
-  await main(page).getByRole('button', { name: 'Review', exact: true }).click();
+/**
+ * On a style screen, the Review page with the summary, Print, Save and Edit measurements. On a computer
+ * (Cat's D1 Drafting Table) the summary is already beside the choices, so there's no page to open.
+ */
+export async function openReview(page: Page): Promise<boolean> {
+  const review = main(page).getByRole('button', { name: 'Review', exact: true });
+  const print = main(page).getByRole('button', { name: 'Print my pattern' });
+  await expect(review.or(print).first()).toBeVisible();
+  if (!(await review.isVisible())) return false;
+  await review.click();
   await expect(heading(page, /^Review /)).toBeVisible();
+  return true;
 }
 
 /** From a style screen (or its Review page) to Print. */

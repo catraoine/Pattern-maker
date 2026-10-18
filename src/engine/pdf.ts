@@ -116,6 +116,81 @@ function drawSheet(
   }
 }
 
+/** A technical flat at scale `k` (points per cm), its top left at (x0, y0), with FRONT and BACK under each view. */
+function drawFlat(page: PDFPage, f: Flat, x0: number, y0: number, k: number, fonts: Fonts, line = 1) {
+  const path = (pts: P[], close = false) => pts.map((q, i) => `${i ? 'L' : 'M'}${(q.x * k).toFixed(2)} ${(q.y * k).toFixed(2)}`).join(' ') + (close ? ' Z' : '');
+  for (const v of f.views) {
+    for (const sh of v.shapes) page.drawSvgPath(path(sh, true), { x: x0, y: y0, borderColor: rgb(0, 0, 0), borderWidth: 0.8 * line });
+    for (const l of v.lines)
+      page.drawSvgPath(path(l.pts), {
+        x: x0,
+        y: y0,
+        borderColor: rgb(0, 0, 0),
+        borderWidth: (l.kind === 'zip' ? 1 : l.kind === 'stitch' ? 0.35 : 0.5) * line,
+        borderDashArray: l.kind === 'stitch' ? [1.4, 1] : undefined,
+      });
+    const xs = v.shapes[0].map((q) => q.x);
+    drawText(page, v.label, { x: x0 + ((Math.min(...xs) + Math.max(...xs)) / 2) * k, y: y0 - f.height * k - 14, size: 7, font: fonts.label, tracking: 0.2, grey: 0.4, centre: true });
+  }
+}
+
+/**
+ * The envelope cover, page 1 (Cat's pick with D1, 2026-10-18): the house name, the flat large, and the
+ * garment's name set big at the foot, framed like the front of a designer's pattern envelope.
+ */
+function addCoverPage(doc: PDFDocument, fonts: Fonts, paper: 'a4' | 'letter', title: string, s: Summary & { flat: Flat }) {
+  const [pw, ph] = (paper === 'a4' ? [21.0, 29.7] : [21.59, 27.94]).map((v) => v * CM);
+  const page = doc.insertPage(0, [pw, ph]);
+  const m = 1.5 * CM;
+  const pad = 1.2 * CM;
+  page.drawRectangle({ x: m, y: m, width: pw - 2 * m, height: ph - 2 * m, borderColor: rgb(0, 0, 0), borderWidth: 0.8 });
+  const left = m + pad;
+  const right = pw - m - pad;
+  const width = right - left;
+  const top = ph - m - pad;
+  drawText(page, 'MAISON TRACÉ', { x: left, y: top - 8, size: 9, font: fonts.label, tracking: 0.3 });
+  const mark = (s.edition ?? s.date ?? '').toUpperCase();
+  if (mark) {
+    const w = fonts.label.widthOfTextAtSize(mark, 8) + 0.3 * 8 * (mark.length - 1);
+    drawText(page, mark, { x: right - w, y: top - 8, size: 8, font: fonts.label, tracking: 0.3, grey: 0.4 });
+  }
+
+  // The name at the foot, as large as fits the frame, on up to two lines.
+  const name = title.toUpperCase();
+  const words = name.split(' ');
+  let size = 54;
+  let lines = [name];
+  const fits = (ls: string[], sz: number) => ls.every((l) => fonts.bodyMedium.widthOfTextAtSize(l, sz) <= width);
+  for (; size > 20; size -= 2) {
+    if (fits([name], size)) break;
+    const cut = words.findIndex((_, i) => i > 0 && fits([words.slice(0, i).join(' '), words.slice(i).join(' ')], size));
+    if (cut > 0) {
+      lines = [words.slice(0, cut).join(' '), words.slice(cut).join(' ')];
+      break;
+    }
+  }
+  const foot = m + pad + 8;
+  const who = [s.madeFor && `DRAFTED TO ${s.madeFor === 'Me' ? 'YOU' : s.madeFor.toUpperCase()}`, s.lays?.[0] && !s.lays[0].hide ? `${s.lays[0].metres} M OF ${s.lays[0].width} CM FABRIC` : undefined]
+    .filter(Boolean)
+    .join('   ·   ');
+  if (who) drawText(page, who, { x: left, y: foot, size: 8, font: fonts.label, tracking: 0.3, grey: 0.4 });
+  let y = foot + 22;
+  for (const l of [...lines].reverse()) {
+    drawText(page, l, { x: left, y, size, font: fonts.bodyMedium, tracking: -0.01 });
+    y += size * 0.98;
+  }
+  if (s.credit) drawText(page, s.credit, { x: left, y: y + 4, size: 9, font: fonts.body, grey: 0.35 });
+
+  // The flat fills the space between, centred.
+  const f = s.flat;
+  const roomTop = top - 40;
+  const roomBottom = y + 40;
+  const k = Math.min(width / f.width, (roomTop - roomBottom - 24) / f.height);
+  const x0 = left + (width - f.width * k) / 2;
+  const y0 = roomTop - (roomTop - roomBottom - 24 - f.height * k) / 2;
+  drawFlat(page, f, x0, y0, k, fonts, 1.3);
+}
+
 /** Everything printed after the pattern pages. */
 export interface PdfExtras {
   title: string;
@@ -236,6 +311,8 @@ export async function toTiledPdf(sheet: Sheet, paper: Paper, extras?: PdfExtras)
   if (extras?.summary?.byHand?.length) addHandPages(doc, fonts, paper === 'a0' ? 'a4' : paper, extras.title, extras.summary.byHand);
   if (extras?.summary?.drafting?.length) addDraftingPages(doc, fonts, paper === 'a0' ? 'a4' : paper, extras.title, extras.summary.drafting);
   if (extras?.guide) addSewingPages(doc, fonts, paper === 'a0' ? 'a4' : paper, extras.title, extras.guide);
+  const cover = extras?.summary;
+  if (cover?.flat) addCoverPage(doc, fonts, paper === 'a0' ? 'a4' : paper, extras!.title, { ...cover, flat: cover.flat });
   return doc.save();
 }
 
@@ -371,20 +448,7 @@ function addSummaryPage(
     // Centred across the page, front and back side by side.
     const x0 = left + (width - f.width * k) / 2;
     const y0 = st.y;
-    const path = (pts: P[], close = false) => pts.map((q, i) => `${i ? 'L' : 'M'}${(q.x * k).toFixed(2)} ${(q.y * k).toFixed(2)}`).join(' ') + (close ? ' Z' : '');
-    for (const v of f.views) {
-      for (const sh of v.shapes) st.page.drawSvgPath(path(sh, true), { x: x0, y: y0, borderColor: rgb(0, 0, 0), borderWidth: 0.8 });
-      for (const l of v.lines)
-        st.page.drawSvgPath(path(l.pts), {
-          x: x0,
-          y: y0,
-          borderColor: rgb(0, 0, 0),
-          borderWidth: l.kind === 'zip' ? 1 : l.kind === 'stitch' ? 0.35 : 0.5,
-          borderDashArray: l.kind === 'stitch' ? [1.4, 1] : undefined,
-        });
-      const xs = v.shapes[0].map((q) => q.x);
-      drawText(st.page, v.label, { x: x0 + ((Math.min(...xs) + Math.max(...xs)) / 2) * k, y: y0 - f.height * k - 14, size: 7, font: fonts.label, tracking: 0.2, grey: 0.4, centre: true });
-    }
+    drawFlat(st.page, f, x0, y0, k, fonts);
     st.y -= f.height * k + 34;
   }
 
@@ -428,7 +492,7 @@ function addSummaryPage(
 
   label('PAGE LAYOUT');
   write(
-    `Print pages 1 to ${total} at 100% (actual size) and measure the 10 cm test square. Trim each page along its dashed line on the left and top, then lay it over the page before it so the half diamonds make whole ones, and tape.`,
+    `Print the ${total} pattern pages (page A1 onward) at 100% (actual size) and measure the 10 cm test square on page A1. Trim each page along its dashed line on the left and top, then lay it over the page before it so the half diamonds make whole ones, and tape.`,
     9.5,
     fonts.body,
     0,
