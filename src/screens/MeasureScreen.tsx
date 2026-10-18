@@ -20,13 +20,15 @@ interface Props {
   onMeasure: (ids: MeasurementId[]) => void;
   /** Why someone was sent back here, e.g. a bodice that still needs measurements. */
   notice?: string;
+  /** Opens the choice of form to draft on (womenswear or menswear). */
+  onChangeForm?: () => void;
 }
 
 const show = (cm: number, unit: Unit) => (unit === 'cm' ? `${cm} cm` : `${Math.round((cm / 2.54) * 10) / 10} in`);
 
 // The Measure step once measuring is done: just this garment's measurements, like the check page, and a
 // tap on one opens its own page with the drawing and how-to. Picking another garment is a quiet link.
-export function MeasureScreen({ account, onSwitchPerson, onAddPerson, profile, garment, onChooseGarment, unit, values, checks, canContinue, onNext, onMeasure, notice }: Props) {
+export function MeasureScreen({ account, onSwitchPerson, onAddPerson, profile, garment, onChooseGarment, unit, values, checks, canContinue, onNext, onMeasure, notice, onChangeForm }: Props) {
   const form = formOf(account.people.find((p) => p.id === account.active)!);
   const fields = fieldsFor(garment, form);
   const rows = fields.filter((f) => !f.optional || values[f.id] !== undefined);
@@ -49,6 +51,14 @@ export function MeasureScreen({ account, onSwitchPerson, onAddPerson, profile, g
         <GarmentSwitch onChoose={onChooseGarment} />
         {account.people.length > 1 && <PeopleSwitch account={account} onSwitch={onSwitchPerson} onAdd={onAddPerson} />}
         <ul className="check-list" aria-label="Tap one to measure it again">
+          {onChangeForm && (
+            <li>
+              <button type="button" onClick={onChangeForm}>
+                <span>Form</span>
+                <span>{form === 'menswear' ? 'Menswear' : 'Womenswear'}</span>
+              </button>
+            </li>
+          )}
           {rows.map((f) => {
             const v = values[f.id];
             return (
