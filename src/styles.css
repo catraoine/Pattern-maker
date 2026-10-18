@@ -4030,6 +4030,7 @@ button.link.garment-change {
   flex-basis: 100%;
   justify-content: flex-end;
   gap: 16px;
+}
 
 /* Measure-me links (Cat's pick L1 + L5 + L4, 2026-10-18). The client's first page puts the dressmaker's
    studio in big narrow capitals, with Maison Tracé small at the foot. */

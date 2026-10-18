@@ -132,6 +132,7 @@ export function MeasureLinkScreen({ ask, unit, onUnit, onKeep }: Props) {
       eyebrow={`${at + 1} of ${ids.length}`}
       dots={[ids.length, at]}
       helper={false}
+      form="womenswear"
       unit={unit}
       values={values}
       garment={ask.garment}
