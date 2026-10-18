@@ -166,6 +166,14 @@ export async function openAccount(page: Page) {
   await expect(main(page).getByRole('heading', { name: 'Saved patterns' })).toBeVisible();
 }
 
+/** Opens a folded row on the account screen (Saved patterns starts open), by its heading. */
+export async function openFold(page: Page, title: string | RegExp) {
+  const fold = main(page).getByRole('region', { name: title });
+  const details = fold.locator('details').first();
+  if (!(await details.evaluate((d) => (d as HTMLDetailsElement).open))) await fold.locator('summary').first().click();
+  return fold;
+}
+
 /** A step in the top bar: Measure, Style or Print. */
 export const stepButton = (page: Page, name: 'Measure' | 'Style' | 'Print') =>
   page.getByRole('navigation', { name: 'Steps' }).getByRole('button', { name: new RegExp(`${name}$`) });

@@ -1,4 +1,4 @@
-import { chooseChip, expect, expectStyle, openAccount, pickToMake, skipLoading, startWithExample, test } from './fixtures';
+import { chooseChip, expect, expectStyle, openAccount, openFold, pickToMake, skipLoading, startWithExample, test } from './fixtures';
 
 test('returning visitor: a reload keeps the measurements and the saved pattern', async ({ page }) => {
   await startWithExample(page);
@@ -43,5 +43,5 @@ test('returning visitor: a reload keeps the measurements and the saved pattern',
   const saved = main.getByRole('region', { name: 'Saved patterns' });
   await expect(saved.getByRole('listitem')).toHaveCount(1);
   await expect(saved).toContainText(/midi/i);
-  await expect(main.getByRole('region', { name: /measurements$/ })).toContainText('74 cm');
+  await expect(await openFold(page, /measurements$/)).toContainText('74 cm');
 });

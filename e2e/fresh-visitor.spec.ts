@@ -93,6 +93,7 @@ test('fresh visitor: welcome, measure, style every garment, print the A4 PDF', a
 
   // Her name, given in Your account, shows on the header's account button.
   await openAccount(page);
+  await main.getByRole('button', { name: 'Add your name' }).click();
   const name = main.getByRole('textbox', { name: 'Name', exact: true });
   await expect(name).not.toHaveAttribute('placeholder');
   await name.fill('Ada');
