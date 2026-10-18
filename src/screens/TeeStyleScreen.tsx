@@ -9,19 +9,16 @@ import { TechFlatView } from '../ui/TechFlatView';
 import { MeasurementValues } from '../measurements';
 import { PatternPreview } from '../ui/Preview';
 import { PatternPane } from '../ui/PointEditor';
-import { GarmentSwitch } from '../ui/GarmentSwitch';
-import { PhotoEntry } from '../ui/PhotoEntry';
 import { SaveControl } from '../ui/SaveControl';
 import { UndoToast, UndoTools, useUndo } from '../ui/useUndo';
 import type { MyFabric } from '../engine/fabrics';
 import { teeFabrics } from '../engine/knits';
 import { FabricCard } from '../ui/FabricCard';
-import { ModeLink } from '../ui/ModeLink';
 import type { Mode } from '../mode';
-import { Title } from '../ui/Title';
 import { ChoicePic, chipsClass } from '../ui/ChoicePic';
 import { DrawOnForm } from '../ui/DrawOnForm';
 import { TeeFormMeasurements, readTeeFit, readTeeHem, readTeeNeckline, readTeeSleeve, teeForm, teeLines } from '../ui/formTops';
+import { Group, LOOKS, StyleLayout, TabPanel } from '../ui/StyleLayout';
 
 interface Props {
   /** Start from a photo, and the photo this garment was matched to while the app is open. */
@@ -122,17 +119,23 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
   }
 
   return (
-    <div className="split three">
+    <StyleLayout
+      label="your T-shirt"
+      name={title}
+      metres={draft ? teeFabricMetres(draft) : undefined}
+      ready={!!draft}
+      onChooseGarment={onChooseGarment}
+      onPhoto={onPhoto}
+      photo={photo}
+      mode={mode}
+      onMode={onMode}
+    >
       <section className="card numbered" aria-labelledby="opts">
-        <div className="row between wrap">
-          <Title id="opts" big="Style" label="your T-shirt" />
-          <GarmentSwitch onChoose={onChooseGarment} />
-        </div>
-        <PhotoEntry onPhoto={onPhoto} photo={photo} />
-        <p className="muted small">Drafted for knit fabric: no darts, the stretch shapes it to you.</p>
+        <TabPanel tab={LOOKS}>
+          <p className="muted small">Drafted for knit fabric: no darts, the stretch shapes it to you.</p>
+        </TabPanel>
         {TEE_GROUPS.map((g) => (
-          <fieldset key={g.id} className="group">
-            <legend>{g.label}</legend>
+          <Group key={g.id} label={g.label}>
             <div className={chipsClass('tee', g.id)}>
               {g.options.map(([id, label]) => (
                 <button
@@ -149,13 +152,8 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
             </div>
             {g.id === 'stretch' && <p className="muted small">How to test: {STRETCH_TEST}</p>}
             {g.id === 'fit' && <p className="muted small">{FIT_NOTES[choices.fit]}</p>}
-          </fieldset>
+          </Group>
         ))}
-        <p className="muted small">
-          Seam allowances are 1 cm, the usual for knits, with 2.5 cm at the hem. The neckband is cut shorter than the neckline so it
-          lies flat.
-        </p>
-        <ModeLink mode={mode} onMode={onMode} />
       </section>
 
       <section className="card grow" aria-label="Preview">
@@ -233,6 +231,10 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
           </ul>
         </div>
         {draft && <FabricCard metres={teeFabricMetres(draft)} advice={teeFabrics(choices)} fabric={fabric} knit />}
+        <p className="muted small">
+          Seam allowances are 1 cm, the usual for knits, with 2.5 cm at the hem. The neckband is cut shorter than the neckline so it
+          lies flat.
+        </p>
         <button type="button" className="primary" disabled={!draft} onClick={onNext}>
           Print my pattern
         </button>
@@ -241,6 +243,6 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
           Edit measurements
         </button>
       </aside>
-    </div>
+    </StyleLayout>
   );
 }

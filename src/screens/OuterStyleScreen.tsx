@@ -10,23 +10,20 @@ import { FabricSwatches, GarmentFabric } from '../ui/FabricFill';
 import { MeasurementValues } from '../measurements';
 import { PatternPreview } from '../ui/Preview';
 import { PatternPane } from '../ui/PointEditor';
-import { GarmentSwitch } from '../ui/GarmentSwitch';
-import { PhotoEntry } from '../ui/PhotoEntry';
 import { SaveControl } from '../ui/SaveControl';
 import { UndoToast, UndoTools, useUndo } from '../ui/useUndo';
 import { EaseMapView } from '../ui/EaseMapView';
 import type { EaseView } from '../engine/easeMap';
 import { FinishChoices } from '../ui/FinishChoices';
 import { Mode, ProTool, shows } from '../mode';
-import { ModeLink } from '../ui/ModeLink';
 import type { Finish } from '../App';
 import { MyFabric, fabricEase, outerFabrics } from '../engine/fabrics';
 import { FabricCard } from '../ui/FabricCard';
-import { Title } from '../ui/Title';
 import { ChoicePic, chipsClass } from '../ui/ChoicePic';
 import { DrawOnForm, formWidth } from '../ui/DrawOnForm';
 import { landmarks } from '../ui/formLines';
 import { outerLines, readOuterCollar, readOuterFit, readOuterFront, readOuterHem, readOuterShaping } from '../ui/formTops';
+import { FABRIC, Group, PRO, StyleLayout, TabPanel } from '../ui/StyleLayout';
 
 interface Props {
   /** Start from a photo, and the photo this garment was matched to while the app is open. */
@@ -124,16 +121,20 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
   }
 
   return (
-    <div className="split three">
+    <StyleLayout
+      label={`your ${kind}`}
+      name={title}
+      metres={draft ? outerFabricMetres(draft) : undefined}
+      ready={!!draft}
+      onChooseGarment={onChooseGarment}
+      onPhoto={onPhoto}
+      photo={photo}
+      mode={mode}
+      onMode={onMode}
+    >
       <section className="card numbered" aria-labelledby="opts">
-        <div className="row between wrap">
-          <Title id="opts" big="Style" label={`your ${kind}`} />
-          <GarmentSwitch onChoose={onChooseGarment} />
-        </div>
-        <PhotoEntry onPhoto={onPhoto} photo={photo} />
         {outerGroups(kind).map((g) => (
-          <fieldset key={g.id} className="group">
-            <legend>{g.label}</legend>
+          <Group key={g.id} label={g.label}>
             <div className={chipsClass(kind, g.id)}>
               {g.options.map(([id, label]) => {
                 const allowed = outerAllowed(choices, g.id, id);
@@ -160,19 +161,19 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
               })}
             </div>
             {g.id === 'shaping' && choices.fit === 'fitted' && <p className="muted small">A fitted {kind} keeps its waist shaping, so boxy needs a regular or relaxed fit.</p>}
-          </fieldset>
+          </Group>
         ))}
         {can('insideFinish') && (
-          <>
+          <TabPanel tab={PRO}>
             <p className="eyebrow">Inside the {kind}</p>
             <FinishChoices garment={kind} finish={finish} onFinish={onFinish} />
-          </>
+          </TabPanel>
         )}
-        <p className="muted small">
-          Fully lined, with interfaced front facings{choices.collar === 'notched' ? ' and an upper and under collar rolled at the lapel' : ''}. The sleeves are drafted to
-          your own armhole with room for what you wear underneath{choices.pads !== 'none' ? ', and the shoulders and sleeve heads are raised to take the shoulder pads' : ''}.
-        </p>
-        <ModeLink mode={mode} onMode={onMode} />
+        {flat && (
+          <TabPanel tab={FABRIC}>
+            <FabricSwatches finish={finish} onFinish={onFinish} />
+          </TabPanel>
+        )}
       </section>
 
       <section className="card grow" aria-label="Preview">
@@ -210,7 +211,6 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           {view === 'ease' && easeMap && <EaseMapView views={easeMap} label={`Ease map of the ${title.toLowerCase()}`} />}
           <UndoToast undo={undo} />
         </div>
-        {flat && view === 'sketch' && <FabricSwatches finish={finish} onFinish={onFinish} />}
         <p className="muted small">
           Drafted to your measurements as you choose.{undo.shake.state === 'on' ? ' Shake your phone to undo.' : ''}
         </p>
@@ -255,6 +255,10 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           </ul>
         </div>
         {draft && <FabricCard metres={outerFabricMetres(draft)} advice={outerFabrics({ garment: kind, fit: choices.fit })} fabric={fabric} lined />}
+        <p className="muted small">
+          Fully lined, with interfaced front facings{choices.collar === 'notched' ? ' and an upper and under collar rolled at the lapel' : ''}. The sleeves are drafted to
+          your own armhole with room for what you wear underneath{choices.pads !== 'none' ? ', and the shoulders and sleeve heads are raised to take the shoulder pads' : ''}.
+        </p>
         <button type="button" className="primary" disabled={!draft} onClick={onNext}>
           Print my pattern
         </button>
@@ -263,6 +267,6 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           Edit measurements
         </button>
       </aside>
-    </div>
+    </StyleLayout>
   );
 }

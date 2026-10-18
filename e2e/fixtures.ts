@@ -150,9 +150,36 @@ export async function addCloserFit(page: Page, g: GarmentName) {
   await expectStyle(page, g);
 }
 
+/**
+ * On a style screen, open the tab a group of choices is on: its own tab, or the Looks, Fabric or Pro tab it
+ * shares. Elsewhere, and when the group already shows, it just returns the group.
+ */
+export async function openGroup(page: Page, name: string) {
+  const group = main(page).getByRole('group', { name, exact: true });
+  const tabs = main(page).getByRole('tablist', { name: 'Style choices' });
+  if ((await group.isVisible()) || !(await tabs.isVisible())) return group;
+  const own = tabs.getByRole('tab', { name, exact: true });
+  if (await own.count()) await own.click();
+  else
+    for (const shared of ['Pro', 'Looks', 'Fabric']) {
+      const tab = tabs.getByRole('tab', { name: shared, exact: true });
+      if (!(await tab.count())) continue;
+      await tab.click();
+      if (await group.isVisible()) break;
+    }
+  await expect(group).toBeVisible();
+  return group;
+}
+
+/** On a style screen, the Review page with the summary, Print, Save and Edit measurements. */
+export async function openReview(page: Page) {
+  await main(page).getByRole('button', { name: 'Review', exact: true }).click();
+  await expect(heading(page, /^Review /)).toBeVisible();
+}
+
 /** Tap a style chip in a named group (Fit, Length, ...), and check it took. */
 export async function chooseChip(page: Page, group: string, chip: string) {
-  const button = main(page).getByRole('group', { name: group, exact: true }).getByRole('button', { name: chip, exact: true });
+  const button = (await openGroup(page, group)).getByRole('button', { name: chip, exact: true });
   await button.click();
   await expect(button).toHaveAttribute('aria-pressed', 'true');
 }
@@ -180,6 +207,7 @@ export async function download(page: Page, button: Locator, info: TestInfo): Pro
 
 /** From a style screen to Print, then download the A4 PDF and check it's a real one. */
 export async function printA4(page: Page, info: TestInfo) {
+  await openReview(page);
   await main(page).getByRole('button', { name: 'Print my pattern' }).click();
   await expect(main(page).getByRole('group', { name: 'Paper' })).toBeVisible();
   await chooseChip(page, 'Paper', 'A4');

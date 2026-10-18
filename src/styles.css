@@ -3784,3 +3784,235 @@ button.link.garment-change {
 .pe-sheet button {
   white-space: nowrap;
 }
+
+/* Style screens as Cat's B Pinned Sketch (2026-10-18): the sketch and the tab row stay pinned, one tab of choices
+   shows at a time, and a bar with the fabric and Review stays in reach. On wide screens the sketch sits on the
+   left and the tabs on the right. */
+.style-edit {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  grid-template-areas: 'preview tabs' 'preview panel' 'preview bar';
+  grid-template-rows: auto 1fr auto;
+  column-gap: 28px;
+  align-items: start;
+}
+.style-edit > * {
+  min-width: 0;
+  max-width: 100%;
+}
+.style-pin {
+  display: contents;
+}
+.style-pin > section {
+  grid-area: preview;
+  position: sticky;
+  top: calc(var(--pin-top, 0px) + 12px);
+}
+.style-tabs {
+  grid-area: tabs;
+  display: flex;
+  gap: 18px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  border-bottom: 1px solid var(--guide);
+  padding: 8px 0 0;
+}
+.style-tabs::-webkit-scrollbar {
+  display: none;
+}
+.style-tabs button {
+  flex: none;
+  min-height: 40px;
+  padding: 0 0 2px;
+  border: none;
+  border-bottom: 1.5px solid transparent;
+  margin-bottom: -1px;
+  background: none;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.style-tabs button.on {
+  color: var(--ink);
+  border-bottom-color: var(--gild);
+}
+.style-tabs button.pro {
+  color: var(--gild);
+}
+.style-panel {
+  grid-area: panel;
+  min-width: 0;
+  min-height: 220px;
+  touch-action: pan-y;
+}
+.style-panel > .card {
+  padding: 16px 0 8px;
+  gap: 16px;
+}
+.style-panel > .tab-part,
+.style-panel > .card > .tab-part {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.style-panel [hidden] {
+  display: none !important;
+}
+.style-panel > .tab-part:not([hidden]) {
+  padding-top: 16px;
+}
+.style-panel > p.muted {
+  margin: 4px 0 12px;
+}
+/* On its own tab a group's name is the tab's name, so its legend is only read out, and nothing is numbered. */
+.style-panel fieldset.group.solo > legend {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.style-panel .numbered > fieldset.group > legend::before {
+  content: none;
+}
+.style-bar {
+  grid-area: bar;
+  position: sticky;
+  bottom: 0;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0 calc(12px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--guide);
+  background: var(--paper);
+}
+.style-bar-meta {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  display: grid;
+  gap: 2px;
+  font-size: 13px;
+  line-height: 1.35;
+}
+.style-bar-meta strong {
+  font-weight: var(--w-strong);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.style-bar-meta .muted {
+  font-size: 12px;
+}
+.style-bar .primary {
+  flex: none;
+  min-width: 120px;
+}
+.collection-entry {
+  width: 100%;
+}
+.style-review {
+  max-width: 640px;
+  margin: 0 auto;
+}
+.style-review .review-name {
+  margin: -6px 0 12px;
+  color: var(--muted);
+}
+.style-review > aside.card {
+  padding: 0;
+}
+.style-review > aside > h2:first-child {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  .style-edit {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  /* The sketch and the tabs pin under the header as one block; the choices scroll under them if a tab is long. */
+  .style-edit > .style-pin,
+  .style-edit > .style-bar {
+    max-width: none;
+  }
+  .style-pin {
+    display: block;
+    position: sticky;
+    top: var(--pin-top, 0px);
+    z-index: 5;
+    margin: 0 -16px;
+    padding: 0 16px;
+    background: var(--paper);
+  }
+  /* The sketch's view, side and drawing controls share as few rows as fit, so the sketch keeps its room. */
+  .style-pin > section {
+    position: static;
+    padding: 0;
+    gap: 6px 8px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .style-pin > section > * {
+    flex: 1 1 100%;
+  }
+  .style-pin > section > .row.between.wrap {
+    display: contents;
+  }
+  .style-pin > section > .row.between.wrap > * {
+    flex: none;
+  }
+  .style-pin .seg {
+    padding: 0;
+  }
+  .style-pin .seg button {
+    min-height: 32px;
+    padding: 0 10px;
+    font-size: 10px;
+  }
+  .style-pin .row.tools .ghost,
+  .style-pin .row.tools .link.small {
+    min-height: 32px;
+    padding: 0 10px;
+    font-size: 10px;
+  }
+  .style-pin .preview {
+    min-height: 0;
+    padding: 2px;
+  }
+  .style-pin .preview-svg {
+    max-height: 28vh;
+    max-height: 28dvh;
+  }
+  .style-pin > section > .muted.small,
+  .style-pin > section > .row > .muted.small {
+    font-size: 11px;
+    margin: 0;
+  }
+  .style-pin .row.between.wrap {
+    row-gap: 4px;
+  }
+  .style-layout .screen-head {
+    flex-wrap: nowrap;
+    align-items: flex-end;
+    margin-bottom: 8px;
+  }
+  .style-bar {
+    margin: 0 -16px;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}
+@media (max-width: 760px) and (max-height: 700px) {
+  .style-pin .preview-svg {
+    max-height: 24vh;
+    max-height: 24dvh;
+  }
+}
