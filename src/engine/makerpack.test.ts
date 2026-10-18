@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { PDFDocument } from 'pdf-lib';
 import { draftSkirt } from './skirt';
 import { draftBodice } from './bodice';
+import { draftTrousers } from './trousers';
 import { sewingGuide, bodiceGuide } from './instructions';
 import { LAYER, quantity, toDxf } from './dxf';
 import { allowanceText, toTechPack } from './techpack';
@@ -20,6 +21,14 @@ function pairs(dxf: string): [string, string][] {
   const out: [string, string][] = [];
   for (let i = 0; i + 1 < lines.length; i += 2) out.push([lines[i].trim(), lines[i + 1]]);
   return out;
+}
+
+function segDist(q: { x: number; y: number }, a: { x: number; y: number }, b: { x: number; y: number }) {
+  const abx = b.x - a.x;
+  const aby = b.y - a.y;
+  const l2 = abx * abx + aby * aby;
+  const t = l2 ? Math.max(0, Math.min(1, ((q.x - a.x) * abx + (q.y - a.y) * aby) / l2)) : 0;
+  return Math.hypot(q.x - a.x - abx * t, q.y - a.y - aby * t);
 }
 
 describe('DXF export', () => {
@@ -48,6 +57,25 @@ describe('DXF export', () => {
     const end = g.findIndex(([c, v], i) => i > start && c === '0' && v === 'SEQEND');
     const vx = g.slice(start, end).filter(([c]) => c === '10').slice(1).map(([, v]) => Number(v));
     expect(Math.max(...vx) - Math.min(...vx)).toBeCloseTo(widthMm, 1);
+  });
+
+  it('puts every notch on the cut line, whatever the edge allowance, and drill holes on layer 13', () => {
+    const tr = draftTrousers({ ...sm, crotch_depth: 27, crotch_length: 70 } as never);
+    const bd = draftBodice(EXAMPLE_VALUES as unknown as BodiceMeasurements);
+    for (const pieces of [skirt.pieces, tr.pieces, bd.pieces]) {
+      const gg = pairs(toDxf(pieces, info));
+      let block = -1;
+      gg.forEach(([c, v], i) => {
+        if (c === '0' && v === 'BLOCK') block++;
+        if (c !== '0' || v !== 'POINT' || gg[i + 1][1] !== LAYER.notch) return;
+        const at = { x: Number(gg[i + 2][1]) / 10, y: -Number(gg[i + 3][1]) / 10 };
+        const cut = cutLine(pieces[block]);
+        const near = cut.reduce((m, q, k) => Math.min(m, segDist(at, q, cut[(k + 1) % cut.length])), Infinity);
+        expect(near).toBeLessThan(0.01);
+      });
+    }
+    const bodiceDxf = pairs(toDxf(bd.pieces, info));
+    expect(bodiceDxf.some(([c, v], i) => c === '0' && v === 'POINT' && bodiceDxf[i + 1][1] === LAYER.drill)).toBe(true);
   });
 
   it('labels each piece with name and quantity', () => {
