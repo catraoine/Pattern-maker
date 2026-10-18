@@ -46,6 +46,8 @@ interface Props {
   onSave: () => void;
   onAccount: () => void;
   onPhoto: () => void;
+  /** The photo the skirt was matched to, while the app is open. */
+  photo?: string;
   /** Open the list of what to make, to pick another garment. */
   onChooseGarment: () => void;
   /** The fabric recorded on the print screen, if any. */
@@ -151,7 +153,7 @@ export function fabricMetres(draft: SkirtDraft): number {
   return toMetres(piecesLengthCm([...draft.pieces, ...layoutExtras(draft)]) + band + 15);
 }
 
-export function StyleScreen({ choices, onChoices, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, onPhoto, onChooseGarment, finish, onFinish, easeMap, fabric, mode = 'all', onMode }: Props) {
+export function StyleScreen({ choices, onChoices, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, onPhoto, photo, onChooseGarment, finish, onFinish, easeMap, fabric, mode = 'all', onMode }: Props) {
   const can = (t: ProTool) => shows(mode, t);
   const [picked, setView] = useState<'sketch' | 'pattern' | 'ease'>('sketch');
   const view = picked === 'ease' && !can('easeMap') ? 'sketch' : picked;
@@ -245,11 +247,24 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
       <Title id="opts" big="Style" label="your skirt" />
       <GarmentSwitch onChoose={onChooseGarment} />
     </div>
+    {choices.shape ? (
+      <div className="photo-matched">
+        {photo && <img src={photo} alt="Your photo" />}
+        <div>
+          <p>Matched to your photo</p>
+          <p className="muted small">{shapeLine(choices.shape)}</p>
+        </div>
+        <button type="button" className="link" onClick={() => change({ ...choices, shape: undefined })}>
+          Undo
+        </button>
+      </div>
+    ) : (
+      <button type="button" className="secondary photo-entry" onClick={onPhoto}>
+        Start from a photo
+      </button>
+    )}
     <div className="split three">
       <section className="card numbered" aria-labelledby="opts">
-        <button type="button" className="secondary" onClick={onPhoto}>
-          Start from a photo
-        </button>
         <fieldset className="group">
           <legend>Era</legend>
           {!era && <p className="muted small">Pick an era to see its looks. A look sets the fit, shape and length, and you can change any of them after.</p>}
@@ -392,14 +407,6 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
             )}
           </fieldset>
         ))}
-        {choices.shape && (
-          <div className="msg small">
-            <p>Matched to your photo. {shapeLine(choices.shape)}</p>
-            <button type="button" className="link inline-link" onClick={() => change({ ...choices, shape: undefined })}>
-              Use the standard shape instead
-            </button>
-          </div>
-        )}
         {can('insideFinish') && (
           <>
             <p className="eyebrow">Inside the skirt</p>

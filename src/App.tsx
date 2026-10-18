@@ -239,6 +239,8 @@ export default function App() {
   const measuredKey = JSON.stringify(measured);
   // Keyed on the numbers, as the account (and so the person) is rebuilt on every render.
   const values = useMemo(() => withEstimates(measured), [measuredKey]);
+  // The last photo matched to a skirt, shown beside "Matched to your photo" while the app is open. Never saved.
+  const [photoPreview, setPhotoPreview] = useState<string>();
   const setValues = (v: MeasurementValues) => setAccount(updatePerson(account, person.id, { values: v }));
   const { garment } = saved;
   // Every visit opens on the welcome screen (Cat's pick, 2026-10-16). Saved measurements and
@@ -851,9 +853,13 @@ export default function App() {
           {step === 'photo' && canPhotoDraft(account) && (
             <PhotoScreen
               measured={canLeaveMeasure}
-              onApply={(choices) => {
+              body={canLeaveMeasure ? (values as SkirtMeasurements) : undefined}
+              unit={saved.unit}
+              onByHand={() => switchGarment('skirt', {}, 'style')}
+              onApply={(choices, preview) => {
                 if (BILLING_ON) setAccount(countPhotoDraft(account));
                 countStep('photo', 'skirt');
+                setPhotoPreview(preview);
                 switchGarment('skirt', { choices }, 'style');
               }}
             />
@@ -957,6 +963,7 @@ export default function App() {
               finish={finish}
               onFinish={setFinish}
               onPhoto={() => setStep('photo')}
+              photo={photoPreview}
             />
           )}
           {step === 'style' && garment === 'bodice' && (
