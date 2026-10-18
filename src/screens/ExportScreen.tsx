@@ -8,7 +8,7 @@ import { PatternPreview } from '../ui/Preview';
 import type { Finish } from '../App';
 import { SaveControl } from '../ui/SaveControl';
 import type { Garment } from '../measurements';
-import type { Fitting } from '../engine/fitting';
+import type { Alteration, Fitting } from '../engine/fitting';
 import { FABRIC_WIDTHS, Lay, layAmount, layWords } from '../engine/layplan';
 import { LayPlanView } from '../ui/LayPlanView';
 import type { Flat } from '../engine/flat';
@@ -54,6 +54,8 @@ interface Props {
   /** Corrections from toile fittings, and their notes, already in the pattern. */
   fitting?: Fitting;
   fittingNotes: string[];
+  /** The toile corrections as alterations a pattern cutter makes on their own block. */
+  alterations?: Alteration[];
   onFitting: () => void;
   /** The style the fabric is checked against. */
   style: FabricStyle;
@@ -66,6 +68,8 @@ interface Props {
   mode?: Mode;
   onMode?: (m: Mode) => void;
 }
+
+const NONE: Alteration[] = [];
 
 type Output = Paper | 'projector' | 'projectorDark';
 
@@ -104,7 +108,7 @@ function download(data: BlobPart, type: string, name: string) {
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
-export function ExportScreen({ profile, title, fit, garment, finish, onFinish, made, error, saveState, onSave, onAccount, fitting, fittingNotes, onFitting, onTrueScale, values, draftAt, style, mode = 'all', onMode }: Props) {
+export function ExportScreen({ profile, title, fit, garment, finish, onFinish, made, error, saveState, onSave, onAccount, fitting, fittingNotes, alterations = NONE, onFitting, onTrueScale, values, draftAt, style, mode = 'all', onMode }: Props) {
   const can = (t: ProTool) => shows(mode, t);
   const [picked, setPaper] = useState<Output>('a4');
   // The simple view prints at home, on A4 or Letter.
@@ -406,6 +410,7 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
           drafting={drafting}
           pattern={ready ? { bytes: ready, name: fileName } : undefined}
           values={values}
+          alterations={alterations}
         />
       )}
 
@@ -651,6 +656,11 @@ async function saveMeasurements(values: MeasurementValues, profile: string, file
   else download(toMeasurementsCsv(values), 'text/csv', `${fileBase}-measurements.csv`);
 }
 
+async function saveAlterations(alterations: Alteration[], fileBase: string) {
+  const { toAlterationsCsv } = await import('../measureExport');
+  download(toAlterationsCsv(alterations), 'text/csv', `${fileBase}-alterations.csv`);
+}
+
 /** Files for someone else to make the garment: a tech pack and the pattern as DXF for pattern software. */
 function MakerPack({
   profile,
@@ -664,6 +674,7 @@ function MakerPack({
   onAtelier,
   drafting,
   values,
+  alterations,
 }: {
   profile: string;
   title: string;
@@ -678,6 +689,7 @@ function MakerPack({
   pattern?: { bytes: Uint8Array; name: string };
   /** The person's measurements, for pattern software of the maker's own. */
   values?: MeasurementValues;
+  alterations: Alteration[];
 }) {
   const [pack, setPack] = useState<Uint8Array | null>(null);
   const [dxfText, setDxfText] = useState<string | null>(null);
@@ -693,7 +705,7 @@ function MakerPack({
     setDxfText(null);
     Promise.all([import('../engine/techpack'), import('../engine/dxf')]).then(async ([{ toTechPack }, { toDxf }]) => {
       const text = toDxf(made.pieces, { style: title, size: profile, date: today() });
-      const bytes = await toTechPack({ title, profile, fit: fitName, date: today(), pieces: made.pieces, measurements: made.spec, notes: made.notes, guide: made.guide });
+      const bytes = await toTechPack({ title, profile, fit: fitName, date: today(), pieces: made.pieces, measurements: made.spec, notes: made.notes, guide: made.guide, alterations });
       if (live) {
         setDxfText(text);
         setPack(bytes);
@@ -702,7 +714,7 @@ function MakerPack({
     return () => {
       live = false;
     };
-  }, [made, title, profile, fitName]);
+  }, [made, title, profile, fitName, alterations]);
 
   const ready = pack && dxfText;
 
@@ -777,7 +789,7 @@ function MakerPack({
           <>
             <p className="muted">
               Your measurements, for drafting in other software: a file Seamly2D and Valentina open, and a table in cm and inches to enter into CLO 3D
-              or Browzwear.
+              or Browzwear.{alterations.length > 0 && ' The alterations from your toile, for a pattern cutter to make on their own block, are in the tech pack and as a table.'}
             </p>
             <div className="row wrap">
               <button type="button" className="secondary" onClick={() => saveMeasurements(values, profile, fileBase, 'vit')}>
@@ -786,6 +798,11 @@ function MakerPack({
               <button type="button" className="secondary" onClick={() => saveMeasurements(values, profile, fileBase, 'csv')}>
                 Measurements (CSV)
               </button>
+              {alterations.length > 0 && (
+                <button type="button" className="secondary" onClick={() => saveAlterations(alterations, fileBase)}>
+                  Alterations (CSV)
+                </button>
+              )}
             </div>
           </>
         )}
