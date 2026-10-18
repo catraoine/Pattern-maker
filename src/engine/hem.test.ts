@@ -3,6 +3,7 @@ import { taggedLength } from './geometry';
 import { HEM_SAMPLES, flatHem, matchSides } from './hem';
 import { bounds } from './piece';
 import { draftSkirt, flareRange, lengthRange } from './skirt';
+import { checkPattern } from './qc';
 import { layout, toSvg } from './export';
 
 const m = { waist: 70, full_hip: 96, waist_to_hip: 20.5, waist_to_knee: 58, waist_to_floor: 104 };
@@ -59,6 +60,14 @@ describe('drawn hems', () => {
     // A curved hem turns up narrowly, and the pattern still exports.
     expect(front.allowances.hem).toBeLessThanOrEqual(1.5);
     expect(toSvg(layout(d.pieces, 't', []))).toContain('<polygon');
+  });
+
+  it.each(['straight', 'a_line', 'circle'] as const)('keeps a drawn hem square at the centres and smooth over the side seam (%s)', (silhouette) => {
+    for (const hem of [{ front: ramp(-8, 0), back: ramp(12, 0) }, { front: ramp(6, -3), back: ramp(-4, -3) }]) {
+      const d = draftSkirt(m, { silhouette, length: 'knee', hem });
+      const bad = checkPattern(d.pieces.filter((pc) => !pc.kind), { finishedWaist: d.finishedWaist }).filter((c) => !c.ok);
+      expect(bad.map((c) => `${c.label}: ${c.detail}`)).toEqual([]);
+    }
   });
 
   it('never takes the hem above the hip or below the floor', () => {

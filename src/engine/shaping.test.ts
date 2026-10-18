@@ -69,6 +69,11 @@ describe('princess seams', () => {
       expect(d.pieces.every((pc) => dartsOf(pc).length === 0)).toBe(true);
     });
 
+  for (const line of ['shoulder', 'armhole'] as const)
+    it(`from the ${line}, drawn anywhere along it: the seams still walk`, () => {
+      for (const lineAt of [0.1, 0.25, 0.4, 0.75, 0.95]) expect(fails({ princess: line, lineAt }, 8, ['waist'])).toEqual([]);
+    });
+
   it('carries on into the dress, the skirt darts under the seams', () => {
     for (let s = 1; s <= 20; s++) {
       const d = draftDress(randomBody(rng(s)), { fit: 'regular', princess: 'shoulder', collar: 'mandarin' }, { silhouette: 'a_line', length: 'knee' });
