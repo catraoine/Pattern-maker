@@ -6,6 +6,7 @@ import { OUTER_EASE, OuterDraft } from '../engine/outerwear';
 import { outerFlat } from '../engine/flat';
 import { OuterChoices, describeOuter, outerAllowed, outerGroups } from '../garments';
 import { TechFlatView } from '../ui/TechFlatView';
+import { FabricSwatches, GarmentFabric } from '../ui/FabricFill';
 import { MeasurementValues } from '../measurements';
 import { PatternPreview } from '../ui/Preview';
 import { GarmentSwitch } from '../ui/GarmentSwitch';
@@ -130,11 +131,16 @@ export function OuterStyleScreen({ choices, onChoices: setChoices, onChooseGarme
         </div>
         <div className="preview">
           {error && <p className="msg error">{error}</p>}
-          {flat && view === 'sketch' && <TechFlatView flat={flat} title={title} />}
+          {flat && view === 'sketch' && (
+            <GarmentFabric fabric={fabric}>
+              <TechFlatView flat={flat} title={title} />
+            </GarmentFabric>
+          )}
           {draft && sheet && view === 'pattern' && <PatternPreview sheet={sheet} label={`Pattern pieces for ${title.toLowerCase()}`} />}
           {view === 'ease' && easeMap && <EaseMapView views={easeMap} label={`Ease map of the ${title.toLowerCase()}`} />}
           <UndoToast undo={undo} />
         </div>
+        {flat && view === 'sketch' && <FabricSwatches finish={finish} onFinish={onFinish} />}
         <p className="muted small">
           Drafted to your measurements as you choose.{undo.shake.state === 'on' ? ' Shake your phone to undo.' : ''}
         </p>

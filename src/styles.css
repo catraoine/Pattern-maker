@@ -1632,7 +1632,7 @@ details.more[open] > summary h2::after {
   stroke-linecap: round;
 }
 .techflat .flat-shape {
-  fill: var(--paper);
+  fill: var(--garment, var(--paper));
   stroke: var(--gild);
   stroke-width: 0.3;
 }
@@ -2776,4 +2776,62 @@ button.link.garment-change {
 .photoallowance {
   max-width: 720px;
   margin: 0 auto 12px;
+}
+
+/* The sketch in the maker's fabric, and the swatches to choose it. */
+.garment-fabric {
+  display: contents;
+}
+.fabric-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+.swatch-row {
+  display: grid;
+  gap: 10px;
+}
+.fabric-now {
+  margin: 0;
+  min-height: 28px;
+}
+.fabric-now em {
+  font-family: 'Bodoni Moda', Didot, Georgia, serif;
+  font-style: italic;
+  font-size: 22px;
+  color: var(--ink);
+}
+.swatches {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 6px 5px;
+  scrollbar-width: none;
+}
+.swatches::-webkit-scrollbar {
+  display: none;
+}
+.swatch {
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  min-height: 0;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--line-strong);
+  background-size: 64px 64px;
+  background-position: center;
+}
+.swatch.on {
+  outline: 1px solid var(--ink);
+  outline-offset: 3px;
+}
+/* Handle labels stay readable over a pale fabric. */
+.garment-fabric .handle text,
+.garment-fabric .hint {
+  paint-order: stroke;
+  stroke: var(--paper);
+  stroke-width: 0.5;
+  stroke-linejoin: round;
 }

@@ -15,6 +15,7 @@ import { SaveControl } from '../ui/SaveControl';
 import { UndoToast, UndoTools, useUndo } from '../ui/useUndo';
 import { PatternPreview } from '../ui/Preview';
 import { TechFlatView } from '../ui/TechFlatView';
+import { FabricSwatches, GarmentFabric } from '../ui/FabricFill';
 import { DETAIL_GROUPS, GROUPS } from './StyleScreen';
 import { cutAllowed, validCut } from '../engine/slip';
 import { describePattern } from './describe';
@@ -283,11 +284,16 @@ export function DressStyleScreen({ choices, onChoices: setChoices, onChooseGarme
         </div>
         <div className="preview">
           {error && <p className="msg error">{error}</p>}
-          {flat && view === 'sketch' && <TechFlatView flat={flat} title={title} />}
+          {flat && view === 'sketch' && (
+            <GarmentFabric fabric={fabric}>
+              <TechFlatView flat={flat} title={title} />
+            </GarmentFabric>
+          )}
           {sheet && view === 'pattern' && <PatternPreview sheet={sheet} label={`Pattern pieces for a ${title}`} />}
           {view === 'ease' && easeMap && <EaseMapView views={easeMap} label={`Ease map of the ${title}`} />}
           <UndoToast undo={undo} />
         </div>
+        {flat && view === 'sketch' && <FabricSwatches finish={finish} onFinish={onFinish} />}
         <p className="muted small">
           Drafted to your measurements as you choose.{undo.shake.state === 'on' ? ' Shake your phone to undo.' : ''}
         </p>
