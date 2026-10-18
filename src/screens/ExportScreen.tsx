@@ -545,7 +545,7 @@ function FabricStage({ fabric }: { fabric: MyFabric }) {
       <img src={fabricPhoto(id)} alt={label ? `${label} close up` : ''} />
       <figcaption>
         <span className="fabname">{label ?? 'No fabric chosen'}</span>
-        <span className="muted small">{label ? (handle ? handle[0].toUpperCase() + handle.slice(1) : 'Set the weight and drape below.') : 'Tap a swatch to choose.'}</span>
+        <span className="muted small">{label ? (handle ? handle[0].toUpperCase() + handle.slice(1) : 'Set the weight and drape on the Fabric tab.') : 'Choose one on the Fabric tab.'}</span>
       </figcaption>
     </figure>
   );
