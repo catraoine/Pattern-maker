@@ -61,6 +61,7 @@ const Reading = z.object({
   top: Top.nullable(),
   trousers: Trousers.nullable(),
   outer: Outer.nullable(),
+  worn: z.boolean(),
   details: z.string(),
 });
 
@@ -115,6 +116,8 @@ outer: fill this in for a jacket or a coat; otherwise null.
 - front: "single" or "double" (two rows of buttons, overlapping fronts). collar: "notched" (a lapel with a notch), "stand" or "collarless".
 - pockets: "patch" (sewn on top), "welt" (set-in slits or flaps) or "none". shaping: "princess" (long seams down the front), "darts" or "boxy" (straight and unshaped).
 - pads: "structured" for sharp, built-up shoulders, "soft" for a natural shoulder line, "none" for a soft, unstructured jacket. flare: "a_line" for a coat that widens below the hip, otherwise "straight".
+
+worn: true when a person or a full-length mannequin is wearing the main garment, so where it ends can be measured against the body; false when it is laid flat, on a hanger or on a dress form without legs.
 
 Confidence (for each group, and for the shape as a whole): "high" when the photo clearly shows it, "medium" when it is a reasonable reading, "low" when you are guessing (cropped, folded, odd angle, or not that garment).
 

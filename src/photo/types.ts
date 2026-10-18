@@ -72,6 +72,8 @@ export interface PhotoReading {
   fit: Pick<Fit>;
   /** Exact proportions read from the photo; see SkirtShape. flareAt is null unless it's a trumpet skirt. */
   shape: { hemAt: number; hemFullness: number; flareAt: number | null; confidence: Confidence };
+  /** False when the garment is laid flat or on a hanger, so where the hem falls on a body can't be seen. Older readings leave it out. */
+  worn?: boolean;
   details: string; // one plain sentence on what we noticed but can't draft yet (gathers, a yoke...), or ''
   /** Readings from before other garments have none of these: they read skirts only. */
   pieces?: PhotoPiece[];
