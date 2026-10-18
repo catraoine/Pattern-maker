@@ -3063,8 +3063,87 @@ button.link.garment-change {
   display: grid;
   gap: 14px;
 }
-.form-draw .chips {
-  justify-content: center;
+.form-draw .screen-head {
+  align-items: flex-end;
+}
+.form-draw .card > .row {
+  flex-wrap: nowrap;
+}
+.form-draw .seg button {
+  padding: 0 14px;
+}
+/* Done: the one way on, filled so it reads apart from everything else on the screen. */
+.form-draw button.primary.done,
+.form-leave button.primary.done {
+  background: var(--gild);
+  color: #000;
+  border-color: var(--gild);
+}
+.form-draw .screen-head button.done {
+  min-height: 42px;
+  padding: 0 18px;
+}
+/* Line kinds in one row under the form, sliding sideways when they don't fit. */
+.form-draw .form-kinds {
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin: 0 -2px;
+  padding: 0 2px 2px;
+}
+.form-draw .form-kinds::-webkit-scrollbar {
+  display: none;
+}
+.form-draw .form-kinds .chip {
+  flex: 0 0 auto;
+}
+/* Undo and Redo as plain words, so they don't read as a third side of the form. */
+.form-undo {
+  display: flex;
+  gap: 2px;
+}
+.form-undo button {
+  min-height: 40px;
+  padding: 0 10px;
+  background: none;
+  border: none;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink);
+  cursor: pointer;
+}
+.form-undo button:disabled {
+  color: var(--disabled);
+  cursor: default;
+}
+/* "Leave your lines?", from the bottom of the screen. */
+.form-leave {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: flex-end;
+  background: rgba(0, 0, 0, 0.72);
+}
+.form-leave-box {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 22px 16px calc(26px + env(safe-area-inset-bottom, 0px));
+  background: var(--paper);
+  border-top: var(--bw) solid var(--gild);
+}
+.form-leave-box h2 {
+  margin: 0;
+}
+.form-leave-box p {
+  margin: 0 0 6px;
+  color: var(--muted);
 }
 .form-draw .row.end {
   justify-content: flex-end;
@@ -3074,8 +3153,9 @@ button.link.garment-change {
   min-height: 2.9em;
   margin: 0;
 }
+/* Small enough that Done, the form, the hint and the line kinds all fit on a phone without scrolling. */
 .form-svg {
-  max-height: 62vh;
+  max-height: min(62vh, calc(100svh - 480px));
 }
 .form-svg .form-line {
   stroke: var(--gild);

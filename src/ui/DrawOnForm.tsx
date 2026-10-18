@@ -1,8 +1,10 @@
 // Draw on your form: a dress form built from your measurements, in fine contour lines, with the
 // garment's neckline, seams, drape, side and hem drawn on it like a draper's style tape. Turn it to
 // the back, draw a new line with a finger, and the pattern follows it (see formLines.ts for how each
-// line is read). What a line will become shows while it is drawn; each line can be undone.
-import { PointerEvent, useMemo, useRef, useState } from 'react';
+// line is read). What a line will become shows while it is drawn; each line can be undone and redone.
+// One way out each way (Cat's pick D1 Steady Top, 2026-10-18): Done keeps the lines, and the header's ←
+// (or the phone's back) leaves without them, asking first once any line is drawn.
+import { PointerEvent, useEffect, useMemo, useRef, useState } from 'react';
 import type { P } from '../engine/geometry';
 import type { BodiceDraft } from '../engine/bodice';
 import { bodyOutline, spline } from './bodyOutline';
@@ -86,6 +88,9 @@ const BACK_HELP: Partial<Record<FormLine, string>> = {
 /** Kinds that are drawn on the front only. */
 const FRONT_ONLY: FormLine[] = ['drape', 'fit'];
 
+/** Marks the drawing's own entry in the browser's history. */
+const DRAWING = 'drawing';
+
 const f = (n: number) => n.toFixed(2);
 const path = (pts: P[]) => pts.map((q, i) => `${i ? 'L' : 'M'}${f(q.x)} ${f(q.y)}`).join(' ');
 
@@ -141,8 +146,45 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
   const [stroke, setStroke] = useState<P[]>();
   const [said, setSaid] = useState<string>();
   const [live, setLive] = useState<string>();
-  /** The choices before each line, newest last, for undoing one line at a time. */
+  /** The choices before each line, newest last, for undoing one line at a time; and the lines undone, to redo. */
   const [steps, setSteps] = useState<C[]>([]);
+  const [undone, setUndone] = useState<C[]>([]);
+  /** Asking whether to leave without the lines, after ← or the phone's back. */
+  const [asking, setAsking] = useState(false);
+  const drawn = useRef(0);
+  drawn.current = steps.length;
+  const cancel = useRef(onCancel);
+  cancel.current = onCancel;
+  const leaving = useRef(false);
+
+  // Drawing is its own entry in the history, so ← and the phone's back come here first instead of
+  // leaving the style screen with the lines still on it.
+  useEffect(() => {
+    const entry = () => {
+      const now = (window.history.state ?? {}) as { sub?: unknown; depth?: number };
+      return { ...now, sub: DRAWING, depth: (now.depth ?? 0) + 1 };
+    };
+    if ((window.history.state as { sub?: unknown } | null)?.sub !== DRAWING) window.history.pushState(entry(), '');
+    const on = () => {
+      if (leaving.current) return;
+      if (drawn.current > 0) {
+        // Stay, and ask: the lines go only when you say so.
+        window.history.pushState(entry(), '');
+        setAsking(true);
+      } else {
+        leaving.current = true;
+        cancel.current();
+      }
+    };
+    window.addEventListener('popstate', on);
+    return () => window.removeEventListener('popstate', on);
+  }, []);
+  /** Leave by Done or "Leave without them": take the drawing's entry off the history, then go. */
+  const leave = (then: () => void) => {
+    leaving.current = true;
+    if ((window.history.state as { sub?: unknown } | null)?.sub === DRAWING) window.history.back();
+    then();
+  };
   const onBack = side === 'back' && FRONT_ONLY.includes(kind) ? false : side === 'back';
 
   const frame = useMemo(() => {
@@ -199,6 +241,7 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
       const r = read(kind, side, centred(stroke));
       if (r.choices) {
         setSteps([...steps, choices]);
+        setUndone([]);
         onChoices(r.choices);
       }
       setSaid(r.said);
@@ -210,8 +253,17 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
     const prev = steps[steps.length - 1];
     if (prev === undefined) return;
     setSteps(steps.slice(0, -1));
+    setUndone([...undone, choices]);
     onChoices(prev);
     setSaid('Last line undone.');
+  };
+  const redoLine = () => {
+    const next = undone[undone.length - 1];
+    if (next === undefined) return;
+    setUndone(undone.slice(0, -1));
+    setSteps([...steps, choices]);
+    onChoices(next);
+    setSaid('Line put back.');
   };
   const pick = (k: FormLine) => {
     setKind(k);
@@ -227,8 +279,8 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
           <p className="eyebrow">Drape · Your form</p>
           <h1>Draw your lines</h1>
         </div>
-        <button type="button" className="link" onClick={onCancel}>
-          Cancel
+        <button type="button" className="primary done" onClick={() => leave(onDone)}>
+          Done
         </button>
       </div>
       <section className="card" aria-label="Your dress form">
@@ -252,9 +304,14 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
             ))}
           </div>
           )}
-          <button type="button" className="ghost" onClick={undoLine} disabled={!steps.length} aria-label="Undo the last line">
-            Undo line
-          </button>
+          <div className="form-undo">
+            <button type="button" onClick={undoLine} disabled={!steps.length} aria-label="Undo the last line">
+              ↶ Undo
+            </button>
+            <button type="button" onClick={redoLine} disabled={!undone.length} aria-label="Redo the line you undid">
+              ↷ Redo
+            </button>
+          </div>
         </div>
         <div className="preview">
           <svg
@@ -307,20 +364,31 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
             {stroke && <polyline points={stroke.map((q) => `${f(q.x)},${f(q.y)}`).join(' ')} className="stroke" strokeWidth={0.5} fill="none" strokeLinecap="round" strokeLinejoin="round" />}
           </svg>
         </div>
-        <div className="chips" role="group" aria-label="What you are drawing">
+        <p className="muted small form-said" role="status">
+          {live ?? said ?? help}
+        </p>
+        <div className="chips form-kinds" role="group" aria-label="What you are drawing">
           {kinds.map(([id, label]) => (
             <button key={id} type="button" className={kind === id ? 'chip on' : 'chip'} aria-pressed={kind === id} onClick={() => pick(id)}>
               {label}
             </button>
           ))}
         </div>
-        <p className="muted small form-said" role="status">
-          {live ?? said ?? help}
-        </p>
-        <button type="button" className="primary" onClick={onDone}>
-          Make the pattern
-        </button>
       </section>
+      {asking && (
+        <div className="form-leave" role="dialog" aria-modal="true" aria-labelledby="form-leave-title">
+          <div className="form-leave-box">
+            <h2 id="form-leave-title">Leave your lines?</h2>
+            <p>You drew {steps.length === 1 ? '1 line' : `${steps.length} lines`}. Leaving now keeps your pattern as it was.</p>
+            <button type="button" className="primary done" onClick={() => setAsking(false)} autoFocus>
+              Keep drawing
+            </button>
+            <button type="button" className="secondary" onClick={() => leave(onCancel)}>
+              Leave without them
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
