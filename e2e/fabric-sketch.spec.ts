@@ -19,12 +19,11 @@ test('a swatch dresses the skirt sketch and carries to the print screen', async 
   await expect(main.getByText('Linen', { exact: true }).first()).toBeVisible();
   // The cutting layout lays the paper pieces on that same cloth.
   await expect(main.locator('.layplan pattern image').first()).toHaveAttribute('href', /fabrics\/flat\/linen\.jpg$/);
-  // The print screen's photo swatches keep their own size: the sketch's round swatches once squeezed them
-  // into overlapping circles that jumped about when the row was dragged.
-  const photo = main.locator('.yourfabric .swatch').first();
-  expect((await photo.boundingBox())!.width).toBeGreaterThan(60);
-  await expect(photo).toHaveCSS('border-radius', '0px');
-  await expect(photo.locator('img')).toHaveAttribute('draggable', 'false');
+  // Print sums the fabric up, and its button goes back to the Fabric tab, the one place to choose it.
+  await expect(main.locator('.yourfabric h2')).toContainText('Linen');
+  await main.getByRole('button', { name: 'Change fabric' }).click();
+  await expect(main.getByRole('tab', { name: 'Fabric', exact: true })).toHaveAttribute('aria-selected', 'true');
+  await expect(swatches.getByRole('radio', { name: 'Linen' })).toHaveAttribute('aria-checked', 'true');
 });
 
 // Shape choices are drawn, each group on its own tab, and the chip keeps its name.
@@ -68,9 +67,11 @@ test('None, a colour and a shop fabric on the skirt sketch', async ({ page }) =>
   await main.getByRole('radiogroup', { name: 'Fabric from partner shops' }).getByRole('radio', { name: /Cotton denim/ }).click();
   await expect(main.locator('.garment-fabric pattern image').first()).toHaveAttribute('href', /fabrics\/flat\/denim\.jpg$/);
   await main.getByRole('radiogroup', { name: 'Colour' }).getByRole('radio', { name: 'Indigo twill' }).click();
-  await goPrint(page);
+  await main.locator('.fabric-more > summary').click();
   await expect(main.locator('#fabname')).toHaveValue('Cotton denim, 10.5 oz');
   await expect(main.locator('#fabcolour')).toHaveValue('Indigo twill');
+  await goPrint(page);
+  await expect(main.locator('.yourfabric h2')).toContainText('Cotton denim, 10.5 oz');
   await expect(main.locator('.shopbuy')).toContainText('Mood Fabrics');
   await expect(main.locator('.shopbuy a')).toHaveAttribute('href', /indigo-cotton-denim-twill-420606$/);
 });

@@ -37,8 +37,8 @@ test('a new sewist sees Start from a photo', async ({ page }) => {
   await pickToMake(page, 'Skirt');
   await fillStepPages(page);
   await expectStyle(page, 'Skirt');
-  await expect(await showAllTools(page)).toBeVisible();
   await expect(main.getByRole('button', { name: 'Start from a photo' })).toBeVisible();
+  await expect(await showAllTools(page)).toBeVisible();
 });
 
 // A measurement that fails a check is caught: a bust in the wrong unit on its own page, and two that

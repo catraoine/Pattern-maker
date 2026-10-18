@@ -151,11 +151,11 @@ const NO_SECTIONS: Record<string, string> = {};
 export function StyleLayout({ children, label, name, metres, width = 140, ready, onChooseGarment, onPhoto, photo, looks, mode, onMode, onEditMeasurements, sections = NO_SECTIONS, undo }: Props) {
   const [options, preview, summary] = Children.toArray(children);
   const [page, setPage] = usePageHistory<'edit' | 'review'>(() => 'edit');
-  const [active, setActive] = useState<string | undefined>(() => {
-    const t = nextTab;
+  // Read here and cleared once mounted: React may run this twice, and the second run must see it too.
+  const [active, setActive] = useState<string | undefined>(() => nextTab);
+  useEffect(() => {
     nextTab = undefined;
-    return t;
-  });
+  }, []);
   const [tabs, setTabs] = useState<string[]>([]);
   const root = useRef<HTMLDivElement>(null);
   const panel = useRef<HTMLDivElement>(null);

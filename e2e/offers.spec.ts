@@ -21,7 +21,7 @@ test('offers: sign up for printing by post and a founding place', async ({ page 
   await printed.screenshot({ path: info.outputPath('printed.png') });
   expect(sent[0]).toMatchObject({ kind: 'interest', offer: 'printed', email: 'ada@example.com', website: '' });
 
-  await headerBack(page);
+  await headerBack(page).click();
   await main.getByRole('button', { name: 'Keep in my patterns' }).click();
   await main.getByRole('button', { name: 'your patterns' }).click();
   const founding = await openFold(page, 'Membership');
