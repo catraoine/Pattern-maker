@@ -62,6 +62,9 @@ import { ExportScreen, Printable } from './screens/ExportScreen';
 import { ChapterBand } from './ui/ChapterBand';
 import { describePattern } from './screens/describe';
 import { WelcomeScreen } from './screens/WelcomeScreen';
+import { FABRIC, openTabNext } from './ui/StyleLayout';
+import { KeptCount } from './ui/SaveControl';
+import { GARMENT_NAME } from './measureFlow';
 import { MeasureStepsScreen, type StepsStart } from './screens/MeasureStepsScreen';
 import { AccountScreen } from './screens/AccountScreen';
 import { PhotoScreen } from './screens/PhotoScreen';
@@ -282,7 +285,7 @@ export default function App() {
   const setValues = (v: MeasurementValues) => setAccount(updatePerson(account, person.id, { values: v, example: person.example?.filter((id) => v[id] === measured[id]) }));
   const { garment } = saved;
   // Every visit opens on the welcome screen (Cat's pick, 2026-10-16). Saved measurements and
-  // patterns are kept, so a returning sewist taps through and carries on.
+  // patterns are kept, and once measured the welcome's button carries straight on with the garment.
   // Screens live in the browser's history, so phone and browser back step back through the app. Landing back
   // on a pattern screen whose measurements have since gone sends you to Measure instead.
   // A measure-me link opened here: a client's ask to measure, or a client's numbers coming back to their dressmaker.
@@ -909,6 +912,7 @@ export default function App() {
         {(step === 'export' || step === 'imported' || step === 'formprint') && <ChapterBand key="print" kind="mat" />}
 
         <main className="main">
+          <KeptCount.Provider value={{ kept: account.patterns.length, limit: savedLimit(account) }}>
           {incoming?.kind === 'broken' && step === 'welcome' && (
             <p className="msg error" role="status">
               That measure link is incomplete. Ask for it to be sent again.
@@ -945,6 +949,11 @@ export default function App() {
                 setAccount({ ...account, onboarded: true, mode });
                 setStep('steps');
               }}
+              resume={
+                account.onboarded && canLeaveMeasure
+                  ? { garment: GARMENT_NAME[garment], onResume: () => setStep('style'), onSaved: () => setStep('account'), onNew: chooseGarment }
+                  : undefined
+              }
             />
           )}
           {step === 'steps' && stepsNote && (
@@ -1210,6 +1219,7 @@ export default function App() {
               choices={teeChoices}
               onChoices={(t) => setSaved({ ...saved, tee: t })}
               fabric={fabric}
+              onFabric={(f) => setFinish({ ...finish, fabric: f, cloth: clothFor(f, finish.cloth) })}
               onChooseGarment={chooseGarment}
               values={values}
               draft={result.tee}
@@ -1251,6 +1261,11 @@ export default function App() {
             <ExportScreen
               mode={mode}
               onMode={setMode}
+              onEditFabric={() => {
+                openTabNext(FABRIC);
+                setStep('style');
+              }}
+              onKeep={saveState === 'can' ? () => setAccount(savePattern(account, current, describePattern(current), person.id)) : undefined}
               garment={garment}
               profile={profile}
               title={title}
@@ -1272,9 +1287,6 @@ export default function App() {
               }
               made={printable}
               error={result.error}
-              saveState={saveState}
-              onSave={() => setAccount(savePattern(account, current, describePattern(current), person.id))}
-              onAccount={() => setStep('account')}
               fitting={ownFitting}
               fittingNotes={[...describeFitting(ownFitting, garment), ...carriedNotes]}
               alterations={alterations}
@@ -1307,9 +1319,6 @@ export default function App() {
               onFinish={setFinish}
               style={{ garment: 'skirt', silhouette: saved.choices.silhouette, length: saved.choices.length }}
               made={importedPrintable}
-              saveState="can"
-              onSave={() => undefined}
-              onAccount={() => setStep('account')}
               fittingNotes={[]}
               onFitting={() => undefined}
               imported={{ source: imported.pattern.source, fileName: imported.fileName }}
@@ -1338,9 +1347,6 @@ export default function App() {
               onFinish={setFinish}
               style={{ garment: 'skirt', silhouette: saved.choices.silhouette, length: saved.choices.length }}
               made={coverPrintable}
-              saveState="can"
-              onSave={() => undefined}
-              onAccount={() => setStep('account')}
               fittingNotes={[]}
               onFitting={() => undefined}
               imported={{ fileName: `Drafted to ${profile === 'Me' ? 'you' : profile}` }}
@@ -1383,6 +1389,7 @@ export default function App() {
               }}
             />
           )}
+        </KeptCount.Provider>
         </main>
       </div>
       </PointEditContext.Provider>

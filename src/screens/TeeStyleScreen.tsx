@@ -13,7 +13,7 @@ import { MeasurementValues } from '../measurements';
 import { PatternPreview } from '../ui/Preview';
 import { PatternPane } from '../ui/PointEditor';
 import { SaveControl } from '../ui/SaveControl';
-import { UndoToast, UndoTools, useUndo } from '../ui/useUndo';
+import { UndoToast, useUndo } from '../ui/useUndo';
 import type { MyFabric } from '../engine/fabrics';
 import { teeFabrics } from '../engine/knits';
 import { FabricCard, FabricSummary } from '../ui/FabricCard';
@@ -23,6 +23,7 @@ import { Explain } from '../ui/Explain';
 import { DrawOnForm } from '../ui/DrawOnForm';
 import { TeeFormMeasurements, readTeeFit, readTeeHem, readTeeNeckline, readTeeSleeve, teeForm, teeLines } from '../ui/formTops';
 import { FABRIC, Group, LOOKS, StyleLayout, TabPanel } from '../ui/StyleLayout';
+import { FabricDetails } from '../ui/FabricDetails';
 
 interface Props {
   /** Start from a photo, and the photo this garment was matched to while the app is open. */
@@ -39,8 +40,9 @@ interface Props {
   saveState: 'can' | 'saved' | 'full';
   onSave: () => void;
   onAccount: () => void;
-  /** The fabric recorded on the print screen, if any. */
+  /** The fabric, told on the Fabric tab. */
   fabric?: MyFabric;
+  onFabric?: (f: MyFabric) => void;
   /** The T-shirt has no tucked-away choices of its own, but the link is here like every other garment, for the print screen's tools. */
   mode?: Mode;
   onMode?: (m: Mode) => void;
@@ -63,7 +65,7 @@ function friendly(w: string) {
   return 'Something in your measurements looks unusual. Please double-check them.';
 }
 
-export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices, onChooseGarment, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, fabric, mode = 'all', onMode }: Props) {
+export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices, onChooseGarment, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, fabric, onFabric, mode = 'all', onMode }: Props) {
   const undo = useUndo(choices, setChoices);
   const onChoices = undo.change;
   const [view, setView] = useState<'sketch' | 'round' | 'pattern'>('sketch');
@@ -125,6 +127,8 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
 
   return (
     <StyleLayout
+      onEditMeasurements={onEditMeasurements}
+      undo={undo}
       label="your T-shirt"
       name={title}
       metres={draft ? teeFabricMetres(draft) : undefined}
@@ -162,7 +166,9 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
         ))}
         {draft && (
           <TabPanel tab={FABRIC}>
-            <FabricCard metres={teeFabricMetres(draft)} advice={teeFabrics(choices)} fabric={fabric} knit />
+            <FabricCard metres={teeFabricMetres(draft)} advice={teeFabrics(choices)} fabric={fabric} knit>
+              {onFabric && <FabricDetails fabric={fabric} garment="tee" onFabric={onFabric} />}
+            </FabricCard>
           </TabPanel>
         )}
       </section>
@@ -185,7 +191,6 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
                 Draw on your form
               </button>
             )}
-            <UndoTools undo={undo} />
           </div>
         </div>
         <div className="preview">
@@ -253,7 +258,7 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
           Print my pattern
         </button>
         <SaveControl state={saveState} disabled={!draft} onSave={onSave} onAccount={onAccount} />
-        <button type="button" className="link" onClick={onEditMeasurements}>
+        <button type="button" className="link edit-measure" onClick={onEditMeasurements}>
           Edit measurements
         </button>
       </aside>

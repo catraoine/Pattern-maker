@@ -1,11 +1,11 @@
-import { download, expect, goPrint, startWithExample, test } from './fixtures';
+import { download, expect, goPrint, startWithExample, test, showAllTools } from './fixtures';
 
 // Files for other pattern software, under More files on the print screen.
 test('pro files: pattern DXF, measurements for Seamly2D and CLO, and the 3D body', async ({ page }, info) => {
   await startWithExample(page);
   const main = page.getByRole('main');
   await goPrint(page);
-  const all = main.getByRole('button', { name: 'Show all tools' });
+  const all = await showAllTools(page);
   if (await all.count()) await all.click();
   await main.getByText('More files').click();
 
@@ -33,7 +33,7 @@ test('pro files: toile alterations for a pattern cutter', async ({ page }, info)
   await startWithExample(page);
   const main = page.getByRole('main');
   await goPrint(page);
-  const all = main.getByRole('button', { name: 'Show all tools' });
+  const all = await showAllTools(page);
   if (await all.count()) await all.click();
   await main.getByRole('button', { name: 'I’ve tried on a toile' }).click();
   await main.getByText('Pulls across the hips').click();

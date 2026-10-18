@@ -127,7 +127,7 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
       <div className="folds">
         <Fold id="stitle" title="Saved patterns" summary={limit === Infinity ? `${saved} saved` : `${saved} of ${limit}`} open>
           {saved === 0 ? (
-            <p className="muted">Nothing saved yet. Style a garment and tap "Save pattern" to keep it here. Once you've sewn it, note how it fitted here.</p>
+            <p className="muted">Nothing saved yet. Style a garment and tap "Keep in my patterns" on Review to keep it here. Once you've sewn it, note how it fitted here.</p>
           ) : (
             <ul className="saved">
               {account.patterns.map((p) => (

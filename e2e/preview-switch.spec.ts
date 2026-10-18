@@ -1,4 +1,4 @@
-import { chooseChip, expect, startWithExample, switchGarment, test } from './fixtures';
+import { chooseChip, expect, startWithExample, switchGarment, test, showAllTools } from './fixtures';
 
 // Two boxes say what each view shows; the fit is a switch on the pattern pieces, in plain words.
 test('garment or pattern, and Show fit shades the pieces', async ({ page }) => {
@@ -9,7 +9,7 @@ test('garment or pattern, and Show fit shades the pieces', async ({ page }) => {
   await expect(main.getByRole('group', { name: 'Garment view' }).getByRole('button', { name: 'Back', exact: true })).toBeVisible();
 
   // The fit is one of the tools tucked away for a first pattern.
-  await main.getByRole('button', { name: 'Show all tools' }).click();
+  await (await showAllTools(page)).click();
   await look.getByRole('button', { name: /^Pattern Pieces to cut/ }).click();
   const fit = main.getByRole('switch', { name: 'Show fit' });
   await fit.click();

@@ -13,7 +13,7 @@ import { MeasurementValues } from '../measurements';
 import { PatternPreview } from '../ui/Preview';
 import { PatternPane } from '../ui/PointEditor';
 import { SaveControl } from '../ui/SaveControl';
-import { UndoToast, UndoTools, useUndo } from '../ui/useUndo';
+import { UndoToast, useUndo } from '../ui/useUndo';
 import { FABRIC, Group, PRO, StyleLayout, TabPanel } from '../ui/StyleLayout';
 
 import { Mode, ProTool, shows } from '../mode';
@@ -81,6 +81,8 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
 
   return (
     <StyleLayout
+      onEditMeasurements={onEditMeasurements}
+      undo={undo}
       label="your trousers"
       name={title}
       metres={draft ? trousersFabricMetres(draft) : undefined}
@@ -137,10 +139,10 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
           <TabPanel tab={FABRIC}>
             {draft ? (
               <FabricCard metres={trousersFabricMetres(draft)} advice={trousersFabrics(choices)} fabric={fabric}>
-                {flat && <FabricSwatches finish={finish} onFinish={onFinish} garment="trousers" />}
+                {flat && <FabricSwatches finish={finish} onFinish={onFinish} garment="trousers" details />}
               </FabricCard>
             ) : (
-              <FabricSwatches finish={finish} onFinish={onFinish} garment="trousers" />
+              <FabricSwatches finish={finish} onFinish={onFinish} garment="trousers" details />
             )}
           </TabPanel>
         )}
@@ -160,7 +162,6 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
           ) : (
             <span />
           )}
-          <UndoTools undo={undo} />
         </div>
         <div className="preview">
           {error && <p className="msg error">{error}</p>}
@@ -241,7 +242,7 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
           Print my pattern
         </button>
         <SaveControl state={saveState} disabled={!draft} onSave={onSave} onAccount={onAccount} />
-        <button type="button" className="link" onClick={onEditMeasurements}>
+        <button type="button" className="link edit-measure" onClick={onEditMeasurements}>
           Edit measurements
         </button>
       </aside>

@@ -5,6 +5,7 @@ import { CollectionEntry, GarmentSwitch } from './GarmentSwitch';
 import { ModeLink } from './ModeLink';
 import { PhotoEntry } from './PhotoEntry';
 import { Title } from './Title';
+import { UndoTools, type Undo } from './useUndo';
 
 // Every style screen, laid out as Cat's B Pinned Sketch with a Looks tab (2026-10-18): the sketch stays
 // pinned at the top, a row of tabs sits under it, and only one tab's choices show at a time, so choosing
@@ -23,17 +24,61 @@ export const FABRIC = 'Fabric';
 /** The tools the simple view tucks away: always the last tab. */
 export const PRO = 'Pro';
 
+/** A tab to open the next time a style screen opens, such as Fabric from the print screen's "Change fabric". */
+let nextTab: string | undefined;
+export const openTabNext = (tab: string) => {
+  nextTab = tab;
+};
+
 const rank = (t: string) => (t === LOOKS ? 0 : t === PRO ? 3 : t === FABRIC ? 2 : 1);
 
+// The choices sit on a few tabs (Cat, 2026-10-18), so the whole row fits on a phone and the tailor's words
+// (darts, structure) sit beside the plain ones they belong to. A group not listed keeps a tab of its own.
+const SHAPE = 'Shape';
+const NECK = 'Neck & sleeves';
+const LENGTH = 'Length & hem';
+const DETAILS = 'Details';
+const SECTIONS: Record<string, string> = {
+  Fit: SHAPE,
+  Silhouette: SHAPE,
+  Darts: SHAPE,
+  'Bust dart from': SHAPE,
+  Shaping: SHAPE,
+  'Princess seams': SHAPE,
+  Structure: SHAPE,
+  Leg: SHAPE,
+  'Your knit’s stretch': SHAPE,
+  Neckline: NECK,
+  Neck: NECK,
+  Collar: NECK,
+  Sleeves: NECK,
+  'Sleeve shape': NECK,
+  'Shoulder pads': NECK,
+  Length: LENGTH,
+  Hem: LENGTH,
+  Peplum: LENGTH,
+  'Below the hip': LENGTH,
+  Waist: DETAILS,
+  Pockets: DETAILS,
+  Details: DETAILS,
+  Opening: DETAILS,
+  Front: DETAILS,
+  'Back vent': DETAILS,
+};
+/** A garment's own grouping on top of the usual one, such as the dress's skirt choices on one Skirt tab. */
+const Sections = createContext<Record<string, string>>({});
+
 /**
- * A group of choices, shown on its own tab named after it, or on `tab` with others (the Pro tab). On its own
- * tab the legend repeats the tab's name, so it is only read out, not shown.
+ * A group of choices, shown on its section's tab with the others there, or on `tab` (the Pro tab). Alone on a
+ * tab of its own, the legend repeats the tab's name, so it is only read out, not shown.
  */
 export function Group({ label, tab, children, className }: { label: string; tab?: string; children: ReactNode; className?: string }) {
   const active = useContext(ActiveTab);
-  const t = tab ?? label;
+  const own = useContext(Sections);
+  const section = own[label] ?? SECTIONS[label];
+  const t = tab ?? section ?? label;
   return (
-    <fieldset className={['group', tab ? '' : 'solo', className].filter(Boolean).join(' ')} data-tab={t} hidden={active !== t}>
+    <fieldset className={['group', tab || section ? '' : 'solo', className].filter(Boolean).join(' ')} data-tab={t} hidden={active !== t}>
       <legend>{label}</legend>
       {children}
     </fieldset>
@@ -93,12 +138,24 @@ interface Props {
   looks?: ReactNode;
   mode: Mode;
   onMode?: (m: Mode) => void;
+  /** Edit measurements, next to Edit style at the top of the Review page. */
+  onEditMeasurements?: () => void;
+  /** Which tab a choice goes on, where this garment groups them its own way. */
+  sections?: Record<string, string>;
+  /** Undo and Redo, in the bar at the bottom beside Review. */
+  undo?: Undo;
 }
 
-export function StyleLayout({ children, label, name, metres, width = 140, ready, onChooseGarment, onPhoto, photo, looks, mode, onMode }: Props) {
+const NO_SECTIONS: Record<string, string> = {};
+
+export function StyleLayout({ children, label, name, metres, width = 140, ready, onChooseGarment, onPhoto, photo, looks, mode, onMode, onEditMeasurements, sections = NO_SECTIONS, undo }: Props) {
   const [options, preview, summary] = Children.toArray(children);
   const [page, setPage] = usePageHistory<'edit' | 'review'>(() => 'edit');
-  const [active, setActive] = useState<string>();
+  const [active, setActive] = useState<string | undefined>(() => {
+    const t = nextTab;
+    nextTab = undefined;
+    return t;
+  });
   const [tabs, setTabs] = useState<string[]>([]);
   const root = useRef<HTMLDivElement>(null);
   const panel = useRef<HTMLDivElement>(null);
@@ -160,11 +217,19 @@ export function StyleLayout({ children, label, name, metres, width = 140, ready,
       <div className="style-review">
         <div className="screen-head">
           <Title big="Review" label={label} />
-          <button type="button" className="link quiet" onClick={() => (canGoBack() ? goBack() : setPage('edit'))}>
-            Edit style
-          </button>
         </div>
         <p className="review-name">{name}</p>
+        {/* Both ways to change it, together under the name; the summary's own Edit measurements is for the computer layout. */}
+        <p className="review-edits">
+          <button type="button" className="link" onClick={() => (canGoBack() ? goBack() : setPage('edit'))}>
+            Edit style
+          </button>
+          {onEditMeasurements && (
+            <button type="button" className="link" onClick={onEditMeasurements}>
+              Edit measurements
+            </button>
+          )}
+        </p>
         {summary}
       </div>
     );
@@ -213,6 +278,7 @@ export function StyleLayout({ children, label, name, metres, width = 140, ready,
           }}
         >
           <ActiveTab.Provider value={active}>
+            <Sections.Provider value={sections}>
             <TabPanel tab={LOOKS}>
               {looks ?? <PhotoEntry onPhoto={onPhoto} photo={photo} />}
               <CollectionEntry />
@@ -224,13 +290,18 @@ export function StyleLayout({ children, label, name, metres, width = 140, ready,
                 <ModeLink mode={mode} onMode={onMode} />
               </TabPanel>
             ) : (
-              <ModeLink mode={mode} onMode={onMode} />
+              // Once, on the last tab, so it isn't repeated under every choice.
+              (wide || active === tabs[tabs.length - 1]) && <ModeLink mode={mode} onMode={onMode} />
             )}
+            </Sections.Provider>
           </ActiveTab.Provider>
         </div>
         {wide ? (
           <div className="style-side">
-            <p className="eyebrow">{name}</p>
+            <div className="row between">
+              <p className="eyebrow">{name}</p>
+              {undo && <UndoTools undo={undo} />}
+            </div>
             {summary}
           </div>
         ) : (
@@ -243,6 +314,7 @@ export function StyleLayout({ children, label, name, metres, width = 140, ready,
                 </span>
               )}
             </p>
+            {undo && <UndoTools undo={undo} />}
             <button type="button" className="primary" disabled={!ready} onClick={() => setPage('review')}>
               Review
             </button>

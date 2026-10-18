@@ -1,4 +1,4 @@
-import { expect, goPrint, headerBack, openFold, startWithExample, test } from './fixtures';
+import { expect, goPrint, headerBack, openFold, startWithExample, test, showAllTools, openExtras } from './fixtures';
 
 // Paid extras that aren't open yet show as email sign-ups. The signup function isn't served by Vite,
 // so it's stubbed here and the test checks what the app sends.
@@ -12,6 +12,7 @@ test('offers: sign up for printing by post and a founding place', async ({ page 
   const main = page.getByRole('main');
 
   await goPrint(page);
+  await openExtras(page);
   const printed = main.getByRole('region', { name: 'Have it printed and posted' });
   await expect(printed).toContainText('$12');
   await printed.getByRole('textbox', { name: 'Your email' }).fill('ada@example.com');
@@ -21,7 +22,7 @@ test('offers: sign up for printing by post and a founding place', async ({ page 
   expect(sent[0]).toMatchObject({ kind: 'interest', offer: 'printed', email: 'ada@example.com', website: '' });
 
   await headerBack(page);
-  await main.getByRole('button', { name: 'Save pattern' }).click();
+  await main.getByRole('button', { name: 'Keep in my patterns' }).click();
   await main.getByRole('button', { name: 'your patterns' }).click();
   const founding = await openFold(page, 'Membership');
   await expect(founding).toContainText('Be one of the first 500');
@@ -45,6 +46,7 @@ test('offers: hold a deadstock length, cut too, and ask for cutting', async ({ p
   await startWithExample(page);
   const main = page.getByRole('main');
   await goPrint(page);
+  await openExtras(page);
 
   // D3: a cloth that suits the style, and the length from the cutting layout.
   const deadstock = main.getByRole('region', { name: 'Deadstock cloth for this pattern' });
@@ -58,7 +60,7 @@ test('offers: hold a deadstock length, cut too, and ask for cutting', async ({ p
   expect(sent[0]).toMatchObject({ kind: 'interest', offer: 'deadstock', cut: true });
 
   // C1: on the dressmaker card (all tools), for people who already have their fabric.
-  const all = main.getByRole('button', { name: 'Show all tools' });
+  const all = await showAllTools(page);
   if (await all.count()) await all.click();
   const cut = main.locator('.offer.inset', { has: page.getByRole('heading', { name: 'Cut for me' }) });
   await expect(cut).toContainText('Post your fabric to the studio');
@@ -69,7 +71,10 @@ test('offers: hold a deadstock length, cut too, and ask for cutting', async ({ p
   await expect(cut).toContainText('when cutting opens');
   expect(sent[1]).toMatchObject({ kind: 'interest', offer: 'cutforme' });
 
-  // Once the fabric is chosen, the deadstock card steps aside.
-  await main.getByLabel('Name', { exact: true }).fill('Wool from the market');
+  // Once the fabric is chosen (on the Fabric tab, the one place for it), the deadstock card steps aside.
+  await main.getByRole('button', { name: 'Choose fabric' }).click();
+  await main.getByRole('radiogroup', { name: 'Fabric for the sketch' }).getByRole('radio', { name: 'Wool' }).click();
+  await goPrint(page);
+  await openExtras(page);
   await expect(deadstock).toHaveCount(0);
 });
