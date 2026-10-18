@@ -1,7 +1,7 @@
 // The guest's account, kept on this device until sign-in arrives: their name, the people they measure and saved patterns.
 // Patterns are stored as choices (not geometry), so they redraft whenever measurements or the engine change.
 import { PatternChoices, isBodice, isDress, isOuter, isTee, isTrousers, sleeveOf } from './garments';
-import type { Garment, MeasurementValues } from './measurements';
+import type { FormKind, Garment, MeasurementId, MeasurementValues } from './measurements';
 import type { Fitting } from './engine/fitting';
 import type { FitFeedback } from './fit';
 
@@ -25,6 +25,8 @@ export interface Person {
   values: MeasurementValues;
   /** Set once we've asked whose measurements these are, so the question comes up only once per person. */
   named: boolean;
+  /** The dress form their patterns are drafted on, picked before measuring. Missing means womenswear. */
+  form?: FormKind;
   /** Corrections from fitting toiles, for each garment. They go into every pattern drafted for this person. */
   fittings?: Partial<Record<Garment, Fitting>>;
   /** The client book: each set of measurements as it stood on a date, oldest first. */
@@ -33,6 +35,8 @@ export interface Person {
   notes?: { id: string; date: string; text: string }[];
   /** Toile photos: the images themselves are kept in the device's photo store, by id. */
   photos?: { id: string; date: string; caption: string }[];
+  /** Measure-me links sent to them and not answered yet, so the reply finds them (see measureLink.ts). */
+  asks?: { id: string; garment: Garment; date: string; redo?: MeasurementId[] }[];
 }
 
 /**
@@ -73,6 +77,8 @@ export interface Account {
   packs?: Garment[];
   /** Photo drafts made this month, for the free monthly allowance. */
   photoDrafts?: { month: string; used: number };
+  /** How a dressmaker's measure-me links introduce them to clients. */
+  studio?: { name: string; note: string };
 }
 
 export const NEW_ACCOUNT: Account = { onboarded: false, name: '', patterns: [] };
@@ -216,3 +222,5 @@ export function readBackup<S extends object>(text: string): Backup<S> | null {
     return null;
   }
 }
+
+export const formOf = (p: Person): FormKind => p.form ?? 'womenswear';

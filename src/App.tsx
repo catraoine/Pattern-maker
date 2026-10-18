@@ -27,13 +27,14 @@ import { MyFabric, clothFor, withFabric, withFabricEase } from './engine/fabrics
 import { SPECIALS, needsNap, withCheckMarks, withSpecialAllowances } from './engine/specialFabrics';
 import { layAmount } from './engine/layplan';
 import { withEstimates } from './estimate';
-import { EXAMPLE_VALUES, Garment, MeasurementValues, Unit, checkMeasurements, isComplete } from './measurements';
+import { EXAMPLE_VALUES, FormKind, Garment, MeasurementValues, Unit, checkMeasurements, isComplete } from './measurements';
 import { usePersistent } from './store';
 import {
   Account,
   ME,
   NEW_ACCOUNT,
   activePerson,
+  formOf,
   addPerson,
   isSavedFor,
   makeBackup,
@@ -65,6 +66,8 @@ import { AccountScreen } from './screens/AccountScreen';
 import { PhotoScreen } from './screens/PhotoScreen';
 import { LegalScreen } from './screens/LegalScreen';
 import { SignupScreen } from './screens/SignupScreen';
+import { BrandsScreen } from './screens/BrandsScreen';
+import { NightsScreen } from './screens/NightsScreen';
 import { PlansScreen } from './screens/PlansScreen';
 import { PhotoAllowance, UnlockGarment } from './ui/PlanPrompts';
 import { BILLING_ON, canPhotoDraft, countPhotoDraft, hasGarment, plansShown, savedLimit } from './plans';
@@ -73,10 +76,17 @@ import { PRIVACY, TERMS } from './legal';
 import { FittingScreen } from './screens/FittingScreen';
 import { TrueScaleScreen } from './screens/TrueScaleScreen';
 import { ClientBookScreen } from './screens/ClientBookScreen';
+import { MeasureLinkScreen } from './screens/MeasureLinkScreen';
+import { MeasureArrivalScreen } from './screens/MeasureArrivalScreen';
+import { readLink, type MeasureReply } from './measureLink';
 import { CheckFileScreen } from './screens/CheckFileScreen';
+import { FormScreen } from './screens/FormScreen';
+import { coverGuide, coverMissing, coverPieces, padMap } from './engine/formCover';
+import { labelCode, savedCopy } from './labels';
 import { ImportedPattern, importedGuide } from './engine/importDxf';
 import { CollectionScreen } from './screens/CollectionScreen';
 import { lookPatch } from './collection';
+import { archiveCut } from './archive';
 import { CollectionLink } from './ui/GarmentSwitch';
 import { LoadingScreen, BODICE } from './ui/LoadingScreen';
 import type { FormStart } from './ui/ContourForm';
@@ -92,7 +102,7 @@ const BRAND_BLOCK = 'M' + BODICE.map(([x, y]) => `${(9 + x * 14).toFixed(2)} ${(
 import { Mode, finishFor, keepFinish, modeOf } from './mode';
 
 export type Step = 'measure' | 'style' | 'export';
-type View = Step | 'plans' | 'welcome' | 'steps' | 'account' | 'photo' | 'fitting' | 'scale' | 'client' | 'check' | 'imported' | 'privacy' | 'terms' | 'tester' | 'news' | 'collection';
+type View = Step | 'plans' | 'welcome' | 'steps' | 'account' | 'photo' | 'fitting' | 'scale' | 'client' | 'check' | 'imported' | 'privacy' | 'terms' | 'tester' | 'news' | 'collection' | 'link' | 'arrive' | 'form' | 'formprint' | 'brands' | 'nights';
 
 export interface Choices {
   fit: Fit;
@@ -140,6 +150,8 @@ interface Saved {
   coat?: OuterChoices;
   /** How the pattern is finished and printed, chosen on the print screen. Older saves have none. */
   finish?: Finish;
+  /** The Archive cut this pattern was made from, for its credit line while the garment is unchanged. */
+  archive?: string;
 }
 
 /** A pattern's choices, saved under their garment's key. Skirt choices predate the others and carry no garment. */
@@ -214,8 +226,8 @@ function sleeveFor(bodice: BodiceDraft, choices: BodiceChoices, values: Measurem
   });
 }
 
-const ready = (values: MeasurementValues, unit: Unit, garment: Garment) =>
-  isComplete(values, garment) && !checkMeasurements(values, unit, garment).some((c) => c.level === 'error');
+const ready = (values: MeasurementValues, unit: Unit, garment: Garment, form?: FormKind) =>
+  isComplete(values, garment, form) && !checkMeasurements(values, unit, garment, form).some((c) => c.level === 'error');
 
 const STEPS: { id: Step; label: string }[] = [
   { id: 'measure', label: 'Measure' },
@@ -232,14 +244,19 @@ const SIDE: Partial<Record<View, [string, string]>> = {
   fitting: ['Print', 'Fitting'],
   scale: ['Print', 'True size'],
   client: ['Account', 'Client book'],
+  arrive: ['Account', 'Client book'],
   check: ['Account', 'Check a file'],
+  form: ['Account', 'Body Double'],
+  formprint: ['Body Double', 'Cover pattern'],
+  brands: ['Account', 'For brands'],
+  nights: ['Account', 'Atelier Nights'],
 };
 
 /** Screens that draw a pattern, so they need the measurements first. */
 const NEEDS_MEASUREMENTS: View[] = ['style', 'export', 'fitting', 'scale'];
 
 /** Where the header's back goes when there's nothing behind in history, such as after a reload. */
-const PARENT: Partial<Record<View, View>> = { measure: 'welcome', steps: 'welcome', style: 'measure', photo: 'style', export: 'style', fitting: 'export', scale: 'export', account: 'style', client: 'account', check: 'account', imported: 'check', privacy: 'welcome', terms: 'welcome', tester: 'account', news: 'account' };
+const PARENT: Partial<Record<View, View>> = { measure: 'welcome', steps: 'welcome', style: 'measure', photo: 'style', export: 'style', fitting: 'export', scale: 'export', account: 'style', client: 'account', arrive: 'client', link: 'welcome', check: 'account', imported: 'check', form: 'account', formprint: 'form', privacy: 'welcome', terms: 'welcome', tester: 'account', news: 'account', brands: 'account', nights: 'account' };
 
 export default function App() {
   const [saved, setSaved] = usePersistent<Saved>('skirt', INITIAL);
@@ -252,8 +269,10 @@ export default function App() {
   // fills in any upper-body measurement not taken yet with an estimate (see estimate.ts).
   const measured = person.values;
   const measuredKey = JSON.stringify(measured);
+  // The dress form their patterns are drafted on: the menswear form drafts with no bust shaping.
+  const form = formOf(person);
   // Keyed on the numbers, as the account (and so the person) is rebuilt on every render.
-  const values = useMemo(() => withEstimates(measured), [measuredKey]);
+  const values = useMemo(() => withEstimates(measured, form), [measuredKey, form]);
   // The last photo matched to a skirt, shown beside "Matched to your photo" while the app is open. Never saved.
   const [photoPreview, setPhotoPreview] = useState<string>();
   // The garment the photo was drafted as, so only that garment's style screen shows it.
@@ -264,8 +283,20 @@ export default function App() {
   // patterns are kept, so a returning sewist taps through and carries on.
   // Screens live in the browser's history, so phone and browser back step back through the app. Landing back
   // on a pattern screen whose measurements have since gone sends you to Measure instead.
-  const [step, setStep] = useViewHistory<View>('welcome', (to) => (NEEDS_MEASUREMENTS.includes(to) && !canLeaveMeasure ? 'measure' : to));
-  const openLegal = (page: 'privacy' | 'terms' | 'tester' | 'news') => setStep(page);
+  // A measure-me link opened here: a client's ask to measure, or a client's numbers coming back to their dressmaker.
+  const [incoming] = useState(() => readLink(window.location.hash));
+  const [arriving, setArriving] = useState<MeasureReply | undefined>(incoming?.kind === 'reply' ? incoming.reply : undefined);
+  // A link opened while the app is already showing (a pasted address, a second tap) starts over from it.
+  useEffect(() => {
+    const on = () => {
+      if (readLink(window.location.hash)) window.location.reload();
+    };
+    window.addEventListener('hashchange', on);
+    return () => window.removeEventListener('hashchange', on);
+  }, []);
+  const [startView] = useState<View>(incoming?.kind === 'ask' ? 'link' : incoming?.kind === 'reply' ? 'arrive' : 'welcome');
+  const [step, setStep] = useViewHistory<View>(startView, (to) => (NEEDS_MEASUREMENTS.includes(to) && !canLeaveMeasure ? 'measure' : to));
+  const openLegal = (page: 'privacy' | 'terms' | 'tester' | 'news' | 'brands' | 'nights') => setStep(page);
   // Where Plans goes back to: the screen it was opened from.
   const [beforePlans, setBeforePlans] = useState<View>('account');
   const openPlans = () => {
@@ -285,8 +316,8 @@ export default function App() {
   const profile = profileName(account);
   const owner = personName(account, account.people.find((p) => p.id === ME)!);
 
-  const checks = checkMeasurements(measured, saved.unit, garment);
-  const canLeaveMeasure = ready(measured, saved.unit, garment);
+  const checks = checkMeasurements(measured, saved.unit, garment, form);
+  const canLeaveMeasure = ready(measured, saved.unit, garment, form);
 
   // Corrections from this person's toile fittings go into every pattern drafted for them: the garment's
   // own toile first, then what the person's other toiles found that this one hasn't looked at.
@@ -303,8 +334,10 @@ export default function App() {
   const setFinish = (f: Finish) => setSaved({ ...saved, finish: keepFinish(storedFinish, f, mode) });
   // Heavy cloth gets a little more ease, on top of the toile's corrections.
   const fabric = finish.fabric;
+  /** The bodice block's corrections: the toile's, a little ease for heavy cloth, and the menswear form's flat front. */
+  const bodiceFitting = (f: Fitting | undefined) => ({ ...withFabricEase(toFitting(f, 'bodice'), fabric, 'bodice'), ...(form === 'menswear' ? { flatFront: true } : {}) });
   const skirtStyle = useMemo(() => ({ ...saved.choices, fitting: withFabricEase(toFitting(fitting, 'skirt'), fabric, 'skirt') }), [saved.choices, fitting, fabric]);
-  const bodiceStyle = useMemo(() => ({ ...validDetails(saved.bodice), fitting: withFabricEase(toFitting(fitting, 'bodice'), fabric, 'bodice') }), [saved.bodice, fitting, fabric]);
+  const bodiceStyle = useMemo(() => ({ ...validDetails(saved.bodice), fitting: bodiceFitting(fitting) }), [saved.bodice, fitting, fabric, form]);
   const dress = useMemo(
     (): DressChoices => saved.dress ?? { garment: 'dress', fit: saved.bodice.fit, bodice: { ...saved.bodice, length: 'waist' }, skirt: saved.choices },
     [saved.dress, saved.bodice, saved.choices],
@@ -314,11 +347,11 @@ export default function App() {
   const isOuterGarment = garment === 'jacket' || garment === 'coat';
   const outerChoices: OuterChoices = useMemo(() => (garment === 'coat' ? { ...DEFAULT_COAT_CHOICES, ...saved.coat } : { ...DEFAULT_JACKET_CHOICES, ...saved.jacket }), [garment, saved.coat, saved.jacket]);
   // Jackets and coats are drafted on the bodice block, so they take the bodice's toile corrections.
-  const outerStyleFor = (c: OuterChoices, f: Fitting | undefined) => ({ ...c, kind: c.garment, fitting: withFabricEase(toFitting(f, 'bodice'), fabric, 'bodice') });
+  const outerStyleFor = (c: OuterChoices, f: Fitting | undefined) => ({ ...c, kind: c.garment, fitting: bodiceFitting(f) });
   const trousersStyle = useMemo(() => ({ ...trousersChoices, fitting: withFabricEase(toFitting(fitting, 'skirt'), fabric, 'skirt') }), [trousersChoices, fitting, fabric]);
   /** The dress in one fit: the bodice at the waist, the skirt below it, each with its toile corrections. */
   const dressStyles = (f: Fitting | undefined) => ({
-    bodice: { ...validDetails({ ...dress.bodice, length: 'waist' }, 'dress'), fit: dress.fit, length: 'waist' as const, fitting: withFabricEase(toFitting(f, 'bodice'), fabric, 'bodice') },
+    bodice: { ...validDetails({ ...dress.bodice, length: 'waist' }, 'dress'), fit: dress.fit, length: 'waist' as const, fitting: bodiceFitting(f) },
     skirt: { ...dress.skirt, fit: dress.fit, fitting: withFabricEase(toFitting(f, 'skirt'), fabric, 'skirt') },
   });
 
@@ -380,7 +413,7 @@ export default function App() {
     () =>
       (f: Fitting): Piece[] | undefined => {
         try {
-          if (garment === 'bodice') return draftBodice(values as BodiceMeasurements, { ...saved.bodice, fitting: withFabricEase(toFitting(f, 'bodice'), fabric, 'bodice') }).pieces;
+          if (garment === 'bodice') return draftBodice(values as BodiceMeasurements, { ...saved.bodice, fitting: bodiceFitting(f) }).pieces;
           // The garment's own pieces: pocket bags don't change with a fitting.
           const own = (pcs: Piece[]) => pcs.filter((pc) => pc.kind !== 'pocket');
           if (isOuterGarment) return draftOuter(values as OuterMeasurements, outerStyleFor(outerChoices, f)).pieces.filter((pc) => !pc.kind);
@@ -662,6 +695,8 @@ export default function App() {
     }
     return undefined;
   }, [result, saved.choices, saved.bodice, dress, skirtStyle, values, finish.allowances, finish.skirtLined, finish.bodiceEdges, finish.fabricWidth, finish.nap, finish.route, finish.cloth, fabric, fitting, ownFitting, carriedNotes, garment]);
+  // An Archive cut keeps its credit while it's the same garment; its details can still be changed.
+  const fromArchive = [archiveCut(saved.archive)].find((c) => c?.garment === garment);
   // Leather is bought by the hide: say how much on the pattern and in the tech pack.
   const printable = useMemo((): Printable | undefined => {
     const hideLay = drafted?.lays.find((l) => l.hide);
@@ -682,9 +717,25 @@ export default function App() {
       lays: layPlans(pieces, finish.fabricWidth, finish.nap || needsNap(finish.fabric?.special)),
     };
   }, [imported, finish.fabricWidth, finish.nap, finish.fabric?.special]);
+  // Body Double: the padded form cover, drafted from the same 3D body as every form in the app.
+  const coverPrintable = useMemo((): Printable | undefined => {
+    if ((step !== 'form' && step !== 'formprint') || coverMissing(measured).length) return undefined;
+    const pieces = coverPieces(values);
+    const lays = layPlans(pieces, finish.fabricWidth, false);
+    return {
+      pieces,
+      notes: ['Form cover: zero ease, so the cover is the shape. 1 cm seams, 2.5 cm hem channel.'],
+      guide: coverGuide(padMap(values), lays[0] && layAmount(lays[0])),
+      spec: [],
+      lays,
+    };
+  }, [step, values, measuredKey, finish.fabricWidth]);
   const importedTitle = imported ? imported.pattern.style || imported.fileName.replace(/\.dxf$/i, '') : '';
 
   const isSaved = isSavedFor(account, current, person.id);
+  // The saved copy's label code, printed on signature labels; typing it on Account opens the pattern again.
+  const savedNow = savedCopy(account, current, person.id);
+  const labelFor = savedNow && labelCode(savedNow.id);
   const saveState = isSaved ? 'saved' : account.patterns.length >= savedLimit(account) ? 'full' : 'can';
 
   // Where the guided measuring opens: the list of what to make, the next measurement a garment needs, or one to redo.
@@ -700,7 +751,7 @@ export default function App() {
   const switchGarment = (g: Garment, next: Partial<Saved> = {}, to: View = step, using: MeasurementValues = measured) => {
     setSaved({ ...saved, ...next, garment: g });
     const stays = to === 'style' || to === 'export';
-    if (stays && !ready(using, saved.unit, g)) measureFor(g, using);
+    if (stays && !ready(using, saved.unit, g, form)) measureFor(g, using, form);
     else setStep(to);
   };
 
@@ -708,8 +759,8 @@ export default function App() {
    * Not ready for this garment: take the measurements it still needs, one page each. When none are missing,
    * one of them fails a check, so open the list with the reason rather than going round the guided pages again.
    */
-  const measureFor = (g: Garment, using: MeasurementValues) => {
-    const wrong = isComplete(using, g) && checkMeasurements(using, saved.unit, g).find((c) => c.level === 'error');
+  const measureFor = (g: Garment, using: MeasurementValues, on: FormKind = form) => {
+    const wrong = isComplete(using, g, on) && checkMeasurements(using, saved.unit, g, on).find((c) => c.level === 'error');
     if (wrong) sendToMeasure(`Check your ${g === 'tee' ? 'T-shirt' : g} measurements: ${wrong.message}`);
     else openSteps({ kind: 'for', garment: g });
   };
@@ -737,7 +788,7 @@ export default function App() {
   const switchPerson = (id: string, to: View = step) => {
     const who = account.people.find((p) => p.id === id) ?? person;
     setAccount({ ...account, active: who.id });
-    if ((to === 'style' || to === 'export') && !ready(who.values, saved.unit, garment)) measureFor(garment, who.values);
+    if ((to === 'style' || to === 'export') && !ready(who.values, saved.unit, garment, formOf(who))) measureFor(garment, who.values, formOf(who));
     else setStep(to);
   };
 
@@ -778,7 +829,7 @@ export default function App() {
 
   const findForm = () => {
     const r = document.querySelector('.welcome-hero canvas')?.getBoundingClientRect();
-    return r && r.width > 0 && r.height > 0 ? { x: r.left, y: r.top, w: r.width, h: r.height } : null;
+    return r && r.width > 0 && r.height > 0 ? { x: r.left, y: r.top, w: r.width, h: r.height, kind: form } : null;
   };
 
   return (
@@ -792,8 +843,8 @@ export default function App() {
       )}
       <PointEditContext.Provider value={pointEditing}>
       <div className="app" {...{ inert: opening ? '' : undefined }}>
-        <header className={step === 'welcome' ? 'topbar' : 'topbar steady'}>
-          {step === 'welcome' ? (
+        <header className={step === 'welcome' || step === 'link' ? 'topbar' : 'topbar steady'}>
+          {step === 'welcome' || step === 'link' ? (
             <div className="brand">
               <svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true">
                 <rect x="2.5" y="2.5" width="27" height="27" fill="none" style={{ stroke: 'var(--gild)' }} strokeWidth="1" />
@@ -853,9 +904,37 @@ export default function App() {
         </header>
 
         <main className="main">
+          {incoming?.kind === 'broken' && step === 'welcome' && (
+            <p className="msg error" role="status">
+              That measure link is incomplete. Ask for it to be sent again.
+            </p>
+          )}
+          {step === 'link' && incoming?.kind === 'ask' && (
+            <MeasureLinkScreen
+              ask={incoming.ask}
+              unit={saved.unit}
+              onUnit={(unit) => setSaved({ ...saved, unit })}
+              onKeep={(v) => setAccount(updatePerson(account, ME, { values: { ...account.people.find((p) => p.id === ME)!.values, ...v } }))}
+            />
+          )}
+          {step === 'arrive' && arriving && (
+            <MeasureArrivalScreen
+              reply={arriving}
+              account={account}
+              unit={saved.unit}
+              onName={(name) => setAccount({ ...account, name })}
+              onSave={(a, id, open) => {
+                // The numbers are in the book now, so a reload shouldn't offer them again.
+                if (window.location.hash) window.history.replaceState(window.history.state, '', window.location.pathname + window.location.search);
+                setAccount(open ? { ...a, active: id } : a);
+                if (open) setStep('client');
+              }}
+            />
+          )}
           {step === 'welcome' && (
             <WelcomeScreen
               formStart={formStart}
+              form={form}
               onLegal={openLegal}
               onFinish={() => {
                 setAccount({ ...account, onboarded: true, mode });
@@ -874,6 +953,8 @@ export default function App() {
               start={stepsStart.start}
               onSomeoneElse={(name) => setAccount(addPerson(account, name))}
               theirs={person.id !== ME}
+              form={form}
+              onForm={(f) => setAccount(updatePerson(account, person.id, { form: f }))}
               garment={garment}
               unit={saved.unit}
               values={measured}
@@ -901,6 +982,8 @@ export default function App() {
           {(step === 'tester' || step === 'news') && (
             <SignupScreen kind={step} onOther={() => openLegal(step === 'tester' ? 'news' : 'tester')} onPrivacy={() => openLegal('privacy')} />
           )}
+          {step === 'brands' && <BrandsScreen onPrivacy={() => openLegal('privacy')} />}
+          {step === 'nights' && <NightsScreen onPrivacy={() => openLegal('privacy')} />}
           {step === 'photo' && plansShown() && <PhotoAllowance account={account} onPlans={openPlans} />}
           {step === 'photo' && canPhotoDraft(account) && (
             <PhotoScreen
@@ -938,6 +1021,7 @@ export default function App() {
               onRemovePerson={(id) => setAccount(removePerson(account, id))}
               onOpen={openPattern}
               onCheckFile={() => setStep('check')}
+              onBodyDouble={() => setStep('form')}
               onClientBook={() => {
                 setAccount(updatePerson(account, person.id, recordMeasurements(person, new Date().toISOString().slice(0, 10))));
                 setStep('client');
@@ -991,7 +1075,7 @@ export default function App() {
               onBack={() => setStep('style')}
               onMake={(look) => {
                 const { garment: g, ...next } = lookPatch(look);
-                switchGarment(g, next as Partial<Saved>, 'style');
+                switchGarment(g, { ...next, archive: archiveCut(look.id)?.id } as Partial<Saved>, 'style');
                 window.scrollTo(0, 0);
               }}
             />
@@ -1172,6 +1256,8 @@ export default function App() {
               onTrueScale={() => setStep('scale')}
               values={values}
               draftAt={draftAt}
+              credit={fromArchive?.credit}
+              label={{ name: profile === 'Me' ? account.name : profile, code: labelFor }}
             />
           )}
           {step === 'check' && (
@@ -1203,6 +1289,40 @@ export default function App() {
               imported={{ source: imported.pattern.source, fileName: imported.fileName }}
             />
           )}
+          {step === 'form' && (
+            <FormScreen
+              values={values}
+              measured={measured}
+              unit={saved.unit}
+              profile={profile}
+              onPrint={() => setStep('formprint')}
+              onMeasure={() => openSteps({ kind: 'for', garment: 'dress' })}
+            />
+          )}
+          {step === 'formprint' && coverPrintable && (
+            // Printed like a pattern read from a file: no style, fabric check or toile of its own.
+            <ExportScreen
+              mode={mode}
+              onMode={setMode}
+              garment={garment}
+              profile={profile}
+              title="Form cover"
+              fit="zero ease"
+              finish={finish}
+              onFinish={setFinish}
+              style={{ garment: 'skirt', silhouette: saved.choices.silhouette, length: saved.choices.length }}
+              made={coverPrintable}
+              saveState="can"
+              onSave={() => undefined}
+              onAccount={() => setStep('account')}
+              fittingNotes={[]}
+              onFitting={() => undefined}
+              imported={{ fileName: `Drafted to ${profile === 'Me' ? 'you' : profile}` }}
+            />
+          )}
+          {step === 'formprint' && !coverPrintable && (
+            <FormScreen values={values} measured={measured} unit={saved.unit} profile={profile} onPrint={() => undefined} onMeasure={() => openSteps({ kind: 'for', garment: 'dress' })} />
+          )}
           {step === 'client' && (
             <ClientBookScreen
               account={account}
@@ -1210,6 +1330,12 @@ export default function App() {
               unit={saved.unit}
               onChange={(p) => setAccount(updatePerson(account, person.id, p))}
               onOpen={openPattern}
+              garment={garment}
+              onAccount={setAccount}
+              onReply={(r) => {
+                setArriving(r);
+                setStep('arrive');
+              }}
             />
           )}
           {step === 'scale' && printable && <TrueScaleScreen pieces={printable.pieces} />}

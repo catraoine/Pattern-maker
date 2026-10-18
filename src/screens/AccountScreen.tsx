@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Account, ME, Person, SavedPattern, activePerson, personName } from '../account';
 import { PeopleSwitch } from '../ui/PeopleSwitch';
 import { BODICE_FIELDS, SKIRT_FIELDS, TROUSERS_FIELDS, Unit } from '../measurements';
@@ -10,6 +10,7 @@ import { Mode, shows } from '../mode';
 import { InterestCard } from '../ui/InterestCard';
 import { YourPlan } from '../ui/PlanPrompts';
 import { savedLimit } from '../plans';
+import { findByCode, readCode } from '../labels';
 
 // Skirt and bodice share a few measurements (waist, hip); list each once.
 const ALL_FIELDS = [...SKIRT_FIELDS, ...TROUSERS_FIELDS.filter((t) => !SKIRT_FIELDS.some((f) => f.id === t.id)), ...BODICE_FIELDS.filter((b) => !SKIRT_FIELDS.some((f) => f.id === b.id))];
@@ -25,6 +26,8 @@ interface Props {
   onClientBook?: () => void;
   /** Open a pattern file from elsewhere and walk its seams. */
   onCheckFile?: () => void;
+  /** Open Body Double: a store form padded to the person, with a cover drafted to them. */
+  onBodyDouble?: () => void;
   onAddPerson: (name: string) => void;
   onRemovePerson: (id: string) => void;
   onOpen: (p: SavedPattern) => void;
@@ -33,7 +36,7 @@ interface Props {
   onFit: (id: string, fit: FitFeedback | undefined) => void;
   onReset: () => void;
   /** Opens the Privacy Policy or the Terms of Use. */
-  onLegal: (page: 'privacy' | 'terms' | 'tester' | 'news') => void;
+  onLegal: (page: 'privacy' | 'terms' | 'tester' | 'news' | 'brands' | 'nights') => void;
   onBackup: () => void;
   onRestore: (file: File) => Promise<boolean>;
   /** Simple or all tools; all when not given. */
@@ -48,14 +51,37 @@ const show = (cm: number | undefined, unit: Unit) =>
 
 const dateFmt = new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 
-export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurements, onSwitchPerson, onAddPerson, onRemovePerson, onClientBook, onCheckFile, onOpen, onRename, onRemove, onFit, onReset, onLegal, onBackup, onRestore, mode = 'all', onMode, onPlans }: Props) {
+// The six most asked-for measurements show first; the rest wait behind "See all".
+const KEY_FIELDS = ['waist', 'full_hip', 'full_bust', 'high_bust', 'waist_to_knee', 'arm_length'];
+
+/** One folded row: a heading with a short summary on the right, and its contents underneath. */
+function Fold({ id, title, summary, open, children }: { id: string; title: string; summary?: string; open?: boolean; children: ReactNode }) {
+  return (
+    <section className="fold" aria-labelledby={id}>
+      <details open={open}>
+        <summary>
+          <h2 id={id}>{title}</h2>
+          {summary && <span className="fold-sum">{summary}</span>}
+        </summary>
+        <div className="fold-in">{children}</div>
+      </details>
+    </section>
+  );
+}
+
+export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurements, onSwitchPerson, onAddPerson, onRemovePerson, onClientBook, onCheckFile, onBodyDouble, onOpen, onRename, onRemove, onFit, onReset, onLegal, onBackup, onRestore, mode = 'all', onMode, onPlans }: Props) {
   const limit = savedLimit(account);
   const [confirmReset, setConfirmReset] = useState(false);
   const [restoreMsg, setRestoreMsg] = useState('');
+  const [naming, setNaming] = useState(false);
+  const [allMeasured, setAllMeasured] = useState(false);
   const display = account.name.trim() || 'Me';
   const person = activePerson(account);
   const { values } = person;
   const measured = ALL_FIELDS.filter((f) => values[f.id] !== undefined);
+  const key = measured.filter((f) => KEY_FIELDS.includes(f.id));
+  const shown = allMeasured ? measured : key.length ? key : measured.slice(0, KEY_FIELDS.length);
+  const saved = account.patterns.length;
   // Sent fit notes carry the measurements of whoever the pattern was saved for.
   const valuesFor = (p: SavedPattern) => (account.people.find((x) => x.id === (p.personId ?? ME)) ?? person).values;
   const whoFor = (p: SavedPattern) => {
@@ -64,54 +90,143 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
   };
 
   return (
-    <div className="split">
-      <section className="card help" aria-labelledby="ptitle">
-        <div className="row">
-          <span className="avatar big" aria-hidden="true">
-            {display[0].toUpperCase()}
-          </span>
-          <div>
-            <p className="eyebrow">Your details</p>
-            <h1 id="ptitle">{display}</h1>
-          </div>
-        </div>
-
-        <div className="field plain">
-          <label htmlFor="aname">Name</label>
-          <input id="aname" autoComplete="given-name" value={account.name} onChange={(e) => onName(e.target.value)} />
-        </div>
-
-        <fieldset className="group">
-          <legend>Units</legend>
-          <div className="seg" role="group" aria-label="Units">
-            {(['cm', 'in'] as Unit[]).map((u) => (
-              <button key={u} type="button" aria-pressed={unit === u} className={unit === u ? 'on' : ''} onClick={() => onUnit(u)}>
-                {u === 'cm' ? 'Centimetres' : 'Inches'}
+    <div className="account">
+      <div className="account-who">
+        <span className="avatar big" aria-hidden="true">
+          {display[0].toUpperCase()}
+        </span>
+        <div className="grow">
+          <p className="eyebrow">Your account</p>
+          <h1 id="ptitle">{display}</h1>
+          {naming ? (
+            <form
+              className="row account-name"
+              onSubmit={(e) => {
+                e.preventDefault();
+                setNaming(false);
+              }}
+            >
+              <label htmlFor="aname" className="small">
+                Name
+              </label>
+              <input id="aname" className="inline" autoComplete="given-name" value={account.name} autoFocus onChange={(e) => onName(e.target.value)} />
+              <button type="submit" className="secondary sm">
+                Done
               </button>
-            ))}
-          </div>
-        </fieldset>
+            </form>
+          ) : (
+            <button type="button" className="link" onClick={() => setNaming(true)}>
+              {account.name.trim() ? 'Change name' : 'Add your name'}
+            </button>
+          )}
+        </div>
+      </div>
 
-        {onMode && (
+      <div className="folds">
+        <Fold id="stitle" title="Saved patterns" summary={limit === Infinity ? `${saved} saved` : `${saved} of ${limit}`} open>
+          {saved === 0 ? (
+            <p className="muted">Nothing saved yet. Style a garment and tap "Save pattern" to keep it here. Once you've sewn it, note how it fitted here.</p>
+          ) : (
+            <ul className="saved">
+              {account.patterns.map((p) => (
+                <PatternRow key={p.id} pattern={p} values={valuesFor(p)} whoFor={whoFor(p)} onOpen={() => onOpen(p)} onRename={(n) => onRename(p.id, n)} onRemove={() => onRemove(p.id)} onFit={(f) => onFit(p.id, f)} />
+              ))}
+            </ul>
+          )}
+          {saved >= limit && (
+            <p className="muted small">
+              That's the free limit. Delete one to save another. <span className="badge">Premium</span> will save as many as you like.
+              {onPlans && (
+                <>
+                  {' '}
+                  <button type="button" className="link" onClick={onPlans}>
+                    See plans
+                  </button>
+                </>
+              )}
+            </p>
+          )}
+          {onCheckFile && shows(mode, 'checkFile') && (
+            <div className="fold-extra">
+              <p className="muted small">Have a DXF or SVG from pattern software or a tracing? Its seams are walked to the millimetre.</p>
+              <button type="button" className="secondary sm" onClick={onCheckFile}>
+                Check a pattern file
+              </button>
+            </div>
+          )}
+        </Fold>
+
+        <OpenByCode account={account} onOpen={onOpen} />
+
+        <Fold id="mtitle" title={person.id === ME ? 'My measurements' : `${personName(account, person)}'s measurements`} summary={measured.length ? `${measured.length} taken` : 'None yet'}>
+          <PeopleSwitch account={account} onSwitch={onSwitchPerson} onAdd={onAddPerson} />
+          {measured.length === 0 && <p className="muted">Nothing measured yet.</p>}
+          <dl className="mlist">
+            {shown.map((f) => (
+              <div key={f.id}>
+                <dt>{f.label}</dt>
+                <dd>{show(values[f.id], unit)}</dd>
+              </div>
+            ))}
+          </dl>
+          <div className="row wrap fold-actions">
+            {measured.length > shown.length && (
+              <button type="button" className="link" onClick={() => setAllMeasured(true)}>
+                See all {measured.length}
+              </button>
+            )}
+            {allMeasured && measured.length > KEY_FIELDS.length && (
+              <button type="button" className="link" onClick={() => setAllMeasured(false)}>
+                Show fewer
+              </button>
+            )}
+            <button type="button" className="secondary sm" onClick={onEditMeasurements}>
+              Edit measurements
+            </button>
+            {onClientBook && shows(mode, 'clientBook') && (
+              <button type="button" className="link" onClick={onClientBook}>
+                Client book
+              </button>
+            )}
+            {person.id !== ME && (
+              <button type="button" className="link" onClick={() => onRemovePerson(person.id)}>
+                Delete {personName(account, person)}
+              </button>
+            )}
+          </div>
+        </Fold>
+
+        <Fold id="settitle" title="Settings" summary={[unit, onMode ? (mode === 'simple' ? 'Simple' : 'All tools') : ''].filter(Boolean).join(' · ')}>
           <fieldset className="group">
-            <legend>Tools</legend>
-            <div className="seg" role="group" aria-label="Tools">
-              {(['simple', 'all'] as Mode[]).map((m) => (
-                <button key={m} type="button" aria-pressed={mode === m} className={mode === m ? 'on' : ''} onClick={() => onMode(m)}>
-                  {m === 'simple' ? 'Simple' : 'All tools'}
+            <legend>Units</legend>
+            <div className="seg" role="group" aria-label="Units">
+              {(['cm', 'in'] as Unit[]).map((u) => (
+                <button key={u} type="button" aria-pressed={unit === u} className={unit === u ? 'on' : ''} onClick={() => onUnit(u)}>
+                  {u === 'cm' ? 'Centimetres' : 'Inches'}
                 </button>
               ))}
             </div>
-            <p className="muted small">
-              {mode === 'simple'
-                ? 'Just what you need for a first pattern: style it, print it at home and sew it, step by step.'
-                : 'Everything, for dressmakers and pattern cutters: fitting toiles, couture finishes, size runs, client books and files for a maker.'}
-            </p>
           </fieldset>
-        )}
+          {onMode && (
+            <fieldset className="group">
+              <legend>Tools</legend>
+              <div className="seg" role="group" aria-label="Tools">
+                {(['simple', 'all'] as Mode[]).map((m) => (
+                  <button key={m} type="button" aria-pressed={mode === m} className={mode === m ? 'on' : ''} onClick={() => onMode(m)}>
+                    {m === 'simple' ? 'Simple' : 'All tools'}
+                  </button>
+                ))}
+              </div>
+              <p className="muted small">
+                {mode === 'simple'
+                  ? 'Just what you need for a first pattern: style it, print it at home and sew it, step by step.'
+                  : 'Everything, for dressmakers and pattern cutters: fitting toiles, couture finishes, size runs, client books and files for a maker.'}
+              </p>
+            </fieldset>
+          )}
+        </Fold>
 
-        <div className="backup">
-          <p className="eyebrow">Back up</p>
+        <Fold id="datatitle" title="Your data" summary="On this device">
           <p className="small">Everything is kept on this device. Download a backup to keep a copy, or to move it to another phone or computer.</p>
           <div className="row wrap">
             <button type="button" className="secondary sm" onClick={onBackup}>
@@ -136,9 +251,6 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
               {restoreMsg}
             </p>
           )}
-        </div>
-
-        <div className="footer">
           {confirmReset ? (
             <div className="stack">
               <p className="small">This deletes your name, everyone's measurements and saved patterns from this device. It can't be undone.</p>
@@ -156,110 +268,23 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
               Delete my data and start over
             </button>
           )}
-          <p className="fineprint">
-            <button type="button" className="inline-link" onClick={() => onLegal('privacy')}>
-              Privacy Policy
-            </button>
-            {' · '}
-            <button type="button" className="inline-link" onClick={() => onLegal('terms')}>
-              Terms of Use
-            </button>
-            {' · '}
-            <button type="button" className="inline-link" onClick={() => onLegal('tester')}>
-              Be a fit tester
-            </button>
-            {' · '}
-            <button type="button" className="inline-link" onClick={() => onLegal('news')}>
-              News
-            </button>
-          </p>
-        </div>
-      </section>
+        </Fold>
 
-      <div className="col grow">
-        <section className="card" aria-labelledby="mtitle">
-          <div className="row between wrap">
-            <h2 id="mtitle">{person.id === ME ? 'My measurements' : `${personName(account, person)}'s measurements`}</h2>
-            <div className="row wrap">
-              <button type="button" className="link" onClick={onEditMeasurements}>
-                Edit
-              </button>
-              {onClientBook && shows(mode, 'clientBook') && (
-                <button type="button" className="link" onClick={onClientBook}>
-                  Client book
-                </button>
-              )}
-              {person.id !== ME && (
-                <button type="button" className="link" onClick={() => onRemovePerson(person.id)}>
-                  Delete
-                </button>
-              )}
-            </div>
-          </div>
-          <PeopleSwitch account={account} onSwitch={onSwitchPerson} onAdd={onAddPerson} />
-          {measured.length === 0 && <p className="muted">Nothing measured yet.</p>}
-          <dl className="mlist">
-            {measured.map((f) => (
-              <div key={f.id}>
-                <dt>{f.label}</dt>
-                <dd>{show(values[f.id], unit)}</dd>
-              </div>
-            ))}
-          </dl>
-        </section>
+        <Fold id="memtitle" title="Membership" summary={onPlans ? undefined : 'Founding places'}>
+          {onPlans && <YourPlan account={account} onPlans={onPlans} />}
+          <InterestCard offer="founding" inset />
+        </Fold>
 
-        {onCheckFile && shows(mode, 'checkFile') && (
-          <section className="card" aria-labelledby="cftitle2">
-            <h2 id="cftitle2">Check any pattern</h2>
-            <p className="muted small">Open a DXF or SVG from pattern software or a tracing, and its seams are walked to the millimetre. A DXF from CLO, Gerber, Lectra, Optitex or Seamly2D can then be printed and sent like your own patterns.</p>
-            <button type="button" className="secondary" onClick={onCheckFile}>
-              Check a pattern file
+        {onBodyDouble && (
+          <Fold id="bdtitle" title="Body Double" summary="A dress form in your shape">
+            <p className="muted small">Pad a store form to your measurements and cover it with a pattern drafted to your body, so you can fit on yourself.</p>
+            <button type="button" className="secondary" onClick={onBodyDouble}>
+              Make my form
             </button>
-          </section>
+          </Fold>
         )}
 
-        {onPlans && <YourPlan account={account} onPlans={onPlans} />}
-
-        <section className="card" aria-labelledby="stitle">
-          <div className="row between wrap">
-            <h2 id="stitle">Saved patterns</h2>
-            {account.patterns.length >= limit - 1 && limit !== Infinity && (
-              <span className="muted small">
-                {account.patterns.length} of {limit} saved
-              </span>
-            )}
-          </div>
-          {account.patterns.length === 0 ? (
-            <p className="muted">Nothing saved yet. Style a skirt, bodice or dress and tap "Save pattern" to keep it here. Once you've sewn it, note how it fitted here.</p>
-          ) : (
-            <ul className="saved">
-              {account.patterns.map((p) => (
-                <PatternRow key={p.id} pattern={p} values={valuesFor(p)} whoFor={whoFor(p)} onOpen={() => onOpen(p)} onRename={(n) => onRename(p.id, n)} onRemove={() => onRemove(p.id)} onFit={(f) => onFit(p.id, f)} />
-              ))}
-            </ul>
-          )}
-          {account.patterns.length >= limit && (
-            <p className="muted small">
-              That's the free limit. Delete one to save another. <span className="badge">Premium</span> will save as many as you like.
-              {onPlans && (
-                <>
-                  {' '}
-                  <button type="button" className="link" onClick={onPlans}>
-                    See plans
-                  </button>
-                </>
-              )}
-            </p>
-          )}
-        </section>
-
-        <InterestCard offer="founding" />
-
-        <details className="card more">
-          <summary>
-            <span className="eyebrow">Coming to Maison Tracé</span>
-            <h2>Sew-alongs, designers and gifts</h2>
-          </summary>
+        <Fold id="soontitle" title="Coming soon" summary="Sew-alongs, designers, gifts">
           <p className="muted small">None of these are open yet. Leave your email on any you'd like and we'll tell you when it opens.</p>
           <InterestCard offer="sewalong" inset />
           <InterestCard offer="designers" inset />
@@ -267,8 +292,34 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
           <InterestCard offer="classroom" inset />
           <InterestCard offer="designer-partner" inset />
           <InterestCard offer="sponsor" inset />
-        </details>
+        </Fold>
       </div>
+
+      <p className="fineprint">
+        <button type="button" className="inline-link" onClick={() => onLegal('privacy')}>
+          Privacy Policy
+        </button>
+        {' · '}
+        <button type="button" className="inline-link" onClick={() => onLegal('terms')}>
+          Terms of Use
+        </button>
+        {' · '}
+        <button type="button" className="inline-link" onClick={() => onLegal('tester')}>
+          Be a fit tester
+        </button>
+        {' · '}
+        <button type="button" className="inline-link" onClick={() => onLegal('news')}>
+          News
+        </button>
+        {' · '}
+        <button type="button" className="inline-link" onClick={() => onLegal('nights')}>
+          Atelier Nights
+        </button>
+        {' · '}
+        <button type="button" className="inline-link" onClick={() => onLegal('brands')}>
+          For brands
+        </button>
+      </p>
     </div>
   );
 }
@@ -292,6 +343,7 @@ function PatternRow({
 }) {
   const [editing, setEditing] = useState(false);
   const [fitting, setFitting] = useState(false);
+  const [more, setMore] = useState(false);
   const [sendMsg, setSendMsg] = useState('');
   const saveFit = async (fit: FitFeedback, share: boolean) => {
     setFitting(false);
@@ -348,16 +400,30 @@ function PatternRow({
         <button type="button" className="secondary sm" onClick={onOpen}>
           Open
         </button>
-        <button type="button" className="link" onClick={() => setEditing(true)}>
-          Rename
-        </button>
         <button type="button" className="link" aria-expanded={fitting} onClick={() => setFitting(!fitting)}>
           {pattern.fit ? 'Fit notes' : 'How did it fit?'}
         </button>
-        <button type="button" className="link" onClick={onRemove}>
-          Delete
+        <button type="button" className="link more-btn" aria-label={`More for ${pattern.name}`} aria-expanded={more} onClick={() => setMore(!more)}>
+          ···
         </button>
       </div>
+      {more && (
+        <div className="row wrap more-menu">
+          <button
+            type="button"
+            className="link"
+            onClick={() => {
+              setMore(false);
+              setEditing(true);
+            }}
+          >
+            Rename
+          </button>
+          <button type="button" className="link" onClick={onRemove}>
+            Delete
+          </button>
+        </div>
+      )}
       {fitting && (
         <>
         <FitForm
@@ -378,5 +444,43 @@ function PatternRow({
         </>
       )}
     </li>
+  );
+}
+
+/** Type the code from a signature label to open the pattern it was made from. */
+function OpenByCode({ account, onOpen }: { account: Account; onOpen: (p: SavedPattern) => void }) {
+  const [code, setCode] = useState('');
+  const [msg, setMsg] = useState('');
+  if (!account.patterns.length) return null;
+  const open = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!readCode(code)) return setMsg('A label code is MT and four letters or numbers, like MT-7K3Q.');
+    const found = findByCode(account, code);
+    if (found) onOpen(found);
+    else setMsg('No saved pattern on this phone has that code. Patterns are kept on the phone they were saved on.');
+  };
+  return (
+    <section className="card" aria-labelledby="codetitle">
+      <h2 id="codetitle">Open from a label</h2>
+      <p className="muted small">Type the code woven or printed on a label to open the pattern it was made from.</p>
+      <form className="row" onSubmit={open}>
+        <input
+          id="label-code"
+          aria-label="Label code"
+          placeholder="MT-7K3Q"
+          autoCapitalize="characters"
+          autoComplete="off"
+          value={code}
+          onChange={(e) => {
+            setCode(e.target.value);
+            setMsg('');
+          }}
+        />
+        <button type="submit" className="secondary">
+          Open
+        </button>
+      </form>
+      {msg && <p className="msg small">{msg}</p>}
+    </section>
   );
 }

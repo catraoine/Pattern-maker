@@ -15,7 +15,7 @@ import type { Flat } from '../engine/flat';
 import { TechFlatView } from '../ui/TechFlatView';
 import { StepDiagram } from '../ui/StepDiagram';
 import { CLOTHS, seamFinish } from '../engine/couture';
-import { DRAPES, FIBRES, FIBRE_IDS, Fibre, MyFabric, WEIGHTS, FabricStyle, checkFabric, clothFor, easeWords } from '../engine/fabrics';
+import { DRAPES, FIBRES, FIBRE_IDS, Fibre, MyFabric, WEIGHTS, FabricStyle, adviceFor, checkFabric, clothFor, easeWords, pickTag } from '../engine/fabrics';
 import { FabricGuide } from '../ui/FabricGuide';
 import { SPECIALS, SPECIAL_IDS, Special, checksLines, needsNap, specialLines } from '../engine/specialFabrics';
 import { SizeRun } from '../ui/SizeRun';
@@ -25,6 +25,9 @@ import { Mode, ProTool, shows } from '../mode';
 import { ModeLink } from '../ui/ModeLink';
 import { countStep } from '../report/report';
 import { flatId } from '../ui/FabricFill';
+import { cartLink, shopFabric } from '../engine/shopFabrics';
+import { canShareFiles, download } from '../ui/download';
+import { LabelCard } from '../ui/LabelCard';
 
 /** What to print: the drafted pieces of either garment, with its notes and sewing steps. */
 export interface Printable {
@@ -66,9 +69,14 @@ interface Props {
   draftAt?: (m: MeasurementValues) => Piece[];
   /** A pattern read from another program's file: no style, fabric check or toile of its own. */
   imported?: { source?: string; fileName: string };
+  /** The signature label: whose name it carries and the saved pattern's code. */
+  label?: { name: string; code?: string };
   /** Simple or all tools; all when not given. */
   mode?: Mode;
   onMode?: (m: Mode) => void;
+  /** A numbered drop's copy and an Archive cut's credit, printed in the title block. */
+  edition?: string;
+  credit?: string;
 }
 
 const NONE: Alteration[] = [];
@@ -88,29 +96,9 @@ const isProjector = (o: Output): o is 'projector' | 'projectorDark' => o === 'pr
 /** The date as printed on the pattern, such as 14 Oct 2026. */
 const printedDate = () => new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
-// Phones can hand a file to the share sheet (email, Files, AirDrop, a printer app); most desktops can't.
-const canShareFiles = (() => {
-  try {
-    return (
-      typeof navigator.canShare === 'function' && navigator.canShare({ files: [new File([''], 'x.pdf', { type: 'application/pdf' })] })
-    );
-  } catch {
-    return false;
-  }
-})();
 
-function download(data: BlobPart, type: string, name: string) {
-  const url = URL.createObjectURL(new Blob([data], { type }));
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = name;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 10_000);
-}
 
-export function ExportScreen({ profile, title, fit, garment, finish, onFinish, made, error, saveState, onSave, onAccount, fitting, fittingNotes, alterations = NONE, onFitting, onTrueScale, values, draftAt, style, imported, mode = 'all', onMode }: Props) {
+export function ExportScreen({ profile, title, fit, garment, finish, onFinish, made, error, saveState, onSave, onAccount, fitting, fittingNotes, alterations = NONE, onFitting, onTrueScale, values, draftAt, style, imported, mode = 'all', onMode, edition, credit, label }: Props) {
   const can = (t: ProTool) => shows(mode, t);
   const [picked, setPaper] = useState<Output>('a4');
   // The simple view prints at home, on A4 or Letter.
@@ -124,8 +112,8 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
   const date = useMemo(printedDate, []);
   const sheet = useMemo(
     () =>
-      made ? layout(made.pieces, `Maison Tracé: ${title}`, made.notes, { pattern: title, madeFor: profile, date }, { atelier: finish.atelier }) : undefined,
-    [made, title, profile, date, finish.atelier],
+      made ? layout(made.pieces, `Maison Tracé: ${title}`, made.notes, { pattern: title, madeFor: profile, date, edition, credit }, { atelier: finish.atelier }) : undefined,
+    [made, title, profile, date, finish.atelier, edition, credit],
   );
   // The seam check walks the garment's own pieces and its pockets; its lining and facings follow them.
   const checks = useMemo(() => {
@@ -151,9 +139,9 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
   const summary = useMemo(
     () =>
       made
-        ? { rows: made.spec.filter((r) => typeof r.finished === 'number'), checks, madeFor: profile, date, drafting: finish.atelier ? drafting : undefined, byHand, lays, flat: made.flat, fabric: made.guide.fabric }
+        ? { rows: made.spec.filter((r) => typeof r.finished === 'number'), checks, madeFor: profile, date, edition, credit, drafting: finish.atelier ? drafting : undefined, byHand, lays, flat: made.flat, fabric: made.guide.fabric }
         : undefined,
-    [made, checks, profile, date, drafting, finish.atelier, lays, byHand],
+    [made, checks, profile, date, edition, credit, drafting, finish.atelier, lays, byHand],
   );
 
   // Build the PDF ahead of time, so share and print run straight from the tap (phones require that).
@@ -307,6 +295,8 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
         <InterestCard offer="kit" pattern={title} />
       </div>}
 
+      {!imported && label && <LabelCard name={label.name} code={label.code} pattern={title} />}
+
       {made?.flat && can('techFlat') && (
         <section className="card" aria-labelledby="flattitle">
           <p className="eyebrow">Technical flat</p>
@@ -319,7 +309,17 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
         </section>
       )}
 
-      {!imported && <YourFabric fabric={finish.fabric ?? {}} onFabric={(fabric) => onFinish({ ...finish, fabric, cloth: clothFor(fabric, finish.cloth) })} style={style} simple={mode === 'simple'} />}
+      {!imported && (
+        <YourFabric
+          fabric={finish.fabric ?? {}}
+          onFabric={(fabric) => onFinish({ ...finish, fabric, cloth: clothFor(fabric, finish.cloth) })}
+          style={style}
+          simple={mode === 'simple'}
+          metres={lays.find((l) => l.fabric !== 'lining' && l.fabric !== 'interlining' && !l.hide)?.metres}
+        />
+      )}
+
+      {!imported && !hasFabric(finish.fabric) && <Deadstock style={style} lays={lays} title={title} />}
 
       <section className="card" aria-labelledby="laytitle">
         <div className="row between wrap">
@@ -557,7 +557,7 @@ function Swatches({ value, onPick }: { value?: Fibre | Special; onPick: (v: Fibr
       <div className="swatches">
         {FABRIC_OPTIONS.map((o) => (
           <button key={o.id} type="button" className={value === o.id ? 'swatch on' : 'swatch'} aria-pressed={value === o.id} onClick={() => onPick(value === o.id ? undefined : o.id)}>
-            <img src={fabricPhoto(o.id)} alt="" loading="lazy" />
+            <img src={fabricPhoto(o.id)} alt="" loading="lazy" draggable={false} />
             <span>{o.label}</span>
           </button>
         ))}
@@ -567,11 +567,27 @@ function Swatches({ value, onPick }: { value?: Fibre | Special; onPick: (v: Fibr
 }
 
 /** The fabric the maker has bought: checked against the style, and carried into the ease, the PDF and the tech pack. */
-function YourFabric({ fabric, onFabric, style, simple }: { fabric: MyFabric; onFabric: (f: MyFabric) => void; style: Props['style']; simple?: boolean }) {
+function YourFabric({
+  fabric,
+  onFabric,
+  style,
+  simple,
+  metres,
+}: {
+  fabric: MyFabric;
+  onFabric: (f: MyFabric) => void;
+  style: Props['style'];
+  simple?: boolean;
+  /** Main fabric to buy, from the cutting layout. */
+  metres?: number;
+}) {
   const set = (patch: Partial<MyFabric>) => onFabric({ ...fabric, ...patch });
+  const shop = shopFabric(fabric.shop);
   const notes = checkFabric(style, fabric);
   // One row for every fabric: a special cloth brings its usual fibre, weight and drape unless already chosen.
+  // A different cloth is no longer the shop fabric.
   const pickFabric = (id: Fibre | Special | undefined) => {
+    if (shop) return onFabric({ ...fabric, shop: undefined, name: undefined, ...pickedCloth(id) });
     if (!id) return set({ fibre: undefined, special: undefined });
     if (id in SPECIALS) {
       const sp = SPECIALS[id as Special];
@@ -579,6 +595,11 @@ function YourFabric({ fabric, onFabric, style, simple }: { fabric: MyFabric; onF
     }
     set({ fibre: id as Fibre, special: undefined });
   };
+  function pickedCloth(id: Fibre | Special | undefined): Partial<MyFabric> {
+    if (!id) return { fibre: undefined, special: undefined };
+    if (id in SPECIALS) return { special: id as Special, fibre: SPECIALS[id as Special].fibre };
+    return { fibre: id as Fibre, special: undefined };
+  }
   const details = [...specialLines(fabric.special), ...checksLines(fabric.checks, style.garment).map((text) => ({ label: '', text }))];
   return (
     <section className="card yourfabric" aria-labelledby="fabtitle">
@@ -590,6 +611,25 @@ function YourFabric({ fabric, onFabric, style, simple }: { fabric: MyFabric; onF
         <FabricGuide />
       </div>
       <FabricStage fabric={fabric} />
+      {shop && (
+        <div className="shopbuy">
+          <p className="small">
+            <b>{shop.name}</b>
+            {fabric.colour ? `, ${fabric.colour}` : ''} <span className="muted">from {shop.shop}, ${shop.price}/m</span>
+          </p>
+          {metres !== undefined &&
+            (cartLink(shop, metres) ? (
+              <a className="button" href={cartLink(shop, metres)} target="_blank" rel="noopener noreferrer">
+                Buy {metres} m
+              </a>
+            ) : (
+              <p className="muted small">
+                You need {metres} m, about ${Math.ceil(metres * shop.price)}. Buying straight from partner shops opens soon; leave your email on the fabric kit card
+                and we&rsquo;ll tell you.
+              </p>
+            ))}
+        </div>
+      )}
       <p className="muted small">
         {simple
           ? 'Optional. Tell us what you bought and we’ll say whether it suits the style. It goes on the PDF, and heavy cloth gets a little more room.'
@@ -657,10 +697,47 @@ function YourFabric({ fabric, onFabric, style, simple }: { fabric: MyFabric; onF
   );
 }
 
+const hasFabric = (f: MyFabric | undefined) => !!(f && (f.name || f.fibre || f.special));
+
+/** Deadstock matched to the style, measured to the cutting layout: a sign-up until the first drop opens. */
+function Deadstock({ style, lays, title }: { style: FabricStyle; lays: Lay[]; title: string }) {
+  const cloth = adviceFor(style).picks[0];
+  const lay = lays.find((l) => l.fabric === 'self');
+  return (
+    <InterestCard offer="deadstock" pattern={title} choice={{ label: 'Cut it for me too', hint: 'it arrives as your pattern pieces, ready to sew' }}>
+      <dl className="offerprices deadstock small">
+        {cloth && (
+          <div>
+            <dt>Suits this style</dt>
+            <dd>
+              {cloth.name} <span className="muted">· {pickTag(cloth).toLowerCase()}</span>
+            </dd>
+          </div>
+        )}
+        {lay && (
+          <div>
+            <dt>Your cutting layout</dt>
+            <dd>
+              {layAmount(lay)}
+              {lay.hide ? '' : <span className="muted"> at {lay.width} cm wide</span>}
+            </dd>
+          </div>
+        )}
+      </dl>
+    </InterestCard>
+  );
+}
+
 async function saveMeasurements(values: MeasurementValues, profile: string, fileBase: string, kind: 'vit' | 'csv') {
   const { toVit, toMeasurementsCsv } = await import('../measureExport');
   if (kind === 'vit') download(toVit(values, profile), 'application/xml', `${fileBase}-measurements.vit`);
   else download(toMeasurementsCsv(values), 'text/csv', `${fileBase}-measurements.csv`);
+}
+
+/** The dress form built from these measurements, as an OBJ in millimetres for CLO 3D and Browzwear. */
+async function saveBody(values: MeasurementValues, profile: string, fileBase: string) {
+  const { toObj } = await import('../engine/body3d');
+  download(toObj(values, profile), 'model/obj', `${fileBase}-body.obj`);
 }
 
 async function saveAlterations(alterations: Alteration[], fileBase: string) {
@@ -774,6 +851,13 @@ function MakerPack({
         <p className="muted small">Opens your share menu with the files and a short note for the maker.</p>
         {note && <p className="msg small">{note}</p>}
         <FindAMaker title={title} />
+        <InterestCard offer="cutforme" pattern={title} inset>
+          <ol className="cutsteps small">
+            <li>Post your fabric to the studio.</li>
+            <li>They cut every piece from your pattern.</li>
+            <li>The pieces come back marked and labelled.</li>
+          </ol>
+        </InterestCard>
       </section>
 
       <details className="card more">
@@ -814,6 +898,15 @@ function MakerPack({
                   Alterations (CSV)
                 </button>
               )}
+            </div>
+            <p className="muted">
+              Your body in 3D: a dress form made from your measurements, the same form as in the app. CLO 3D and Browzwear open it as an avatar,
+              so you can try the pattern on before you cut.
+            </p>
+            <div className="row wrap">
+              <button type="button" className="secondary" onClick={() => saveBody(values, profile, fileBase)}>
+                3D body (OBJ)
+              </button>
             </div>
           </>
         )}

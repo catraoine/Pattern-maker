@@ -1,4 +1,4 @@
-import { ESTIMATED, FIELDS, type MeasurementId, type MeasurementValues } from './measurements';
+import { ESTIMATED, FIELDS, type FormKind, type MeasurementId, type MeasurementValues } from './measurements';
 
 // Fills in the upper-body measurements a first pattern can do without (ESTIMATED in measurements.ts),
 // from the bust, high bust, shoulder width, back length and height, with the body proportions the engine
@@ -11,7 +11,8 @@ const round = (id: MeasurementId, x: number) => {
 };
 
 /** The measurements with any missing estimable ones filled in. Measured values are never changed. */
-export function withEstimates(v: MeasurementValues): MeasurementValues {
+export function withEstimates(v: MeasurementValues, form: FormKind = 'womenswear'): MeasurementValues {
+  if (form === 'menswear') return menswearEstimates(v);
   const bust = v.full_bust;
   if (bust === undefined || ESTIMATED.every((id) => v[id] !== undefined)) return v;
   const h = v.waist_to_floor ? v.waist_to_floor / 0.615 : v.nape_to_waist ? v.nape_to_waist / 0.25 : 165;
@@ -32,6 +33,33 @@ export function withEstimates(v: MeasurementValues): MeasurementValues {
     armscye: 35 + (bust - 76) * 0.3,
   };
   const out = { ...v };
+  for (const id of ESTIMATED) if (out[id] === undefined) out[id] = round(id, guess[id]!);
+  return out;
+}
+
+/**
+ * The menswear form: no bust shaping, so the high bust is the chest (the bust dart comes out at nothing) and
+ * the other upper-body measurements follow menswear proportions (after Aldrich's menswear size tables).
+ */
+function menswearEstimates(v: MeasurementValues): MeasurementValues {
+  const chest = v.full_bust;
+  if (chest === undefined) return v;
+  const h = v.waist_to_floor ? v.waist_to_floor / 0.615 : v.nape_to_waist ? v.nape_to_waist / 0.255 : 176;
+  const nw = v.nape_to_waist ?? h * 0.255;
+  const ab = v.across_back ?? 34 + (chest - 88) * 0.2 + (h - 170) * 0.08;
+  const sw = v.shoulder_width ?? ab + 4.5;
+  const neck = v.neck ?? 37 + (chest - 96) * 0.12;
+  const guess: Partial<Record<MeasurementId, number>> = {
+    neck,
+    shoulder_length: (sw / 2 - neck / 5 + 0.2) / Math.cos((20 * Math.PI) / 180),
+    across_back: ab,
+    across_front: ab - 1.5,
+    front_hps_to_waist: nw + 1.5,
+    bust_depth: h * 0.15,
+    apex_separation: 17 + (chest - 96) * 0.1,
+    armscye: 42 + (chest - 96) * 0.3,
+  };
+  const out = { ...v, high_bust: chest };
   for (const id of ESTIMATED) if (out[id] === undefined) out[id] = round(id, guess[id]!);
   return out;
 }

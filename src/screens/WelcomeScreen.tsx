@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ContourForm, type FormStart } from '../ui/ContourForm';
+import type { FormKind } from '../measurements';
 import { TapeBand } from '../ui/TapeBand';
 import { TOUR_LABEL, TourPlayer } from '../ui/TourPlayer';
 import { Title } from '../ui/Title';
@@ -8,6 +9,8 @@ interface Props {
   onFinish: () => void;
   /** How the dress form starts: it waits for the loading screen, which may hand it over already outlined. */
   formStart?: FormStart;
+  /** The form the person's patterns are drafted on, so the welcome shows the same body as measuring. */
+  form?: FormKind;
   /** Opens the Terms of Use or the Privacy Policy. */
   onLegal: (page: 'terms' | 'privacy') => void;
 }
@@ -19,7 +22,7 @@ const LEAVE_MS = 1700;
 // is the Skip on the measuring pages' tape. Begin unrolls a tape across the form at the waist, the form fades,
 // and the tape rises to where the measuring page's tape sits, so the next page carries straight on from it.
 // The name is asked only when measuring someone else, on the first measuring page.
-export function WelcomeScreen({ onFinish, formStart, onLegal }: Props) {
+export function WelcomeScreen({ onFinish, formStart, form, onLegal }: Props) {
   const [touring, setTouring] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const done = useRef(onFinish);
@@ -52,7 +55,7 @@ export function WelcomeScreen({ onFinish, formStart, onLegal }: Props) {
     <div className={['welcome', formStart !== 'wait' && 'go', leaving && 'leaving'].filter(Boolean).join(' ')}>
       <section className="card welcome-card" aria-labelledby="wtitle">
         <div className="welcome-hero" ref={hero}>
-          <ContourForm start={formStart} />
+          <ContourForm start={formStart} kind={form} />
           <button type="button" className="tour-play" onClick={() => setTouring(true)} aria-label={`Watch how it works, ${TOUR_LABEL}`}>
             <span className="tour-play-ring" aria-hidden="true" />
             <span className="tour-play-label">How it works · {TOUR_LABEL}</span>

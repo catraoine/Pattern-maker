@@ -35,6 +35,8 @@ for (const [width, height] of PHONES) {
     await expect(main.getByRole('heading', { name: /take your measurements/i })).toBeVisible();
     await onScreen(page, 'Someone else', 'first measuring page');
     await main.getByRole('button', { name: 'Me', exact: true }).click();
+    await onScreen(page, 'Continue', 'the form to draft on');
+    await main.getByRole('button', { name: 'Continue', exact: true }).click();
     await onScreen(page, /^Next/, 'a measurement page');
   });
 }

@@ -1,4 +1,4 @@
-import { FIELDS, type Garment, type MeasurementField, type MeasurementId, type MeasurementValues } from './measurements';
+import { FIELDS, MENSWEAR_SKIPS, fieldsFor, worded, type FormKind, type Garment, type MeasurementField, type MeasurementId, type MeasurementValues } from './measurements';
 
 // First-time measuring: one base set that every garment uses, then only the extras a garment still needs.
 // Every measurement is kept with the person, so a later garment asks only for what is missing.
@@ -16,14 +16,18 @@ export const fieldOf = (id: MeasurementId) => ALL.get(id)!;
 
 const has = (v: MeasurementValues, id: MeasurementId) => typeof v[id] === 'number' && !Number.isNaN(v[id]);
 
-/** The measurements a garment needs beyond the base set. */
-export const extrasFor = (garment: Garment) => FIELDS[garment].filter((f) => !f.optional && !BASE.includes(f.id));
+/** The measurements a garment needs beyond the base set, on this form. */
+export const extrasFor = (garment: Garment, form?: FormKind) => fieldsFor(garment, form).filter((f) => !f.optional && !BASE.includes(f.id));
 /** The extras still to take. */
-export const missingFor = (garment: Garment, v: MeasurementValues) => extrasFor(garment).filter((f) => !has(v, f.id));
+export const missingFor = (garment: Garment, v: MeasurementValues, form?: FormKind) => extrasFor(garment, form).filter((f) => !has(v, f.id));
 export const baseDone = (v: MeasurementValues) => BASE.every((id) => has(v, id));
 
 /** Every measurement the app uses, for "Something else": the ones still to take, after the base set. */
-export const fullSetMissing = (v: MeasurementValues) => [...ALL.values()].filter((f) => !BASE.includes(f.id) && !has(v, f.id));
+export const fullSetMissing = (v: MeasurementValues, form?: FormKind) =>
+  [...ALL.values()].filter((f) => !BASE.includes(f.id) && !has(v, f.id) && !(form === 'menswear' && MENSWEAR_SKIPS.includes(f.id)));
+
+/** A measurement's name on the form: the menswear form's full bust is the chest. */
+export const labelOf = (id: MeasurementId, form?: FormKind) => worded(fieldOf(id).label, form);
 
 /** Girths read as a body part: "Your bust", "Their waist". Lengths keep their name. */
 const PART: Partial<Record<MeasurementId, string>> = {
@@ -39,9 +43,9 @@ const PART: Partial<Record<MeasurementId, string>> = {
 };
 export const GIRTHS = new Set(Object.keys(PART) as MeasurementId[]);
 
-export function titleOf(id: MeasurementId, helper: boolean) {
+export function titleOf(id: MeasurementId, helper: boolean, form?: FormKind) {
   const part = PART[id];
-  return part ? `${helper ? 'Their' : 'Your'} ${part}` : fieldOf(id).label;
+  return worded(part ? `${helper ? 'Their' : 'Your'} ${part}` : fieldOf(id).label, form);
 }
 
 /** Turn copy written to the wearer into copy for the person holding the tape. */
@@ -62,11 +66,11 @@ const TIP: Partial<Record<MeasurementId, [string, string]>> = {
   waist_to_hip: ['Down your side to the fullest part of your hip.', 'Hold the tape at their waist and measure down their side to the fullest part of their hip.'],
   waist_to_knee: ['Down your side to the middle of your knee.', 'Hold the tape at their waist and measure down their side to the middle of their knee.'],
 };
-export function tipOf(id: MeasurementId, helper: boolean) {
+export function tipOf(id: MeasurementId, helper: boolean, form?: FormKind) {
   const t = TIP[id];
-  if (t) return t[helper ? 1 : 0];
+  if (t) return worded(t[helper ? 1 : 0], form);
   const tip = fieldOf(id).tip;
-  return helper ? forHelper(tip) : tip;
+  return worded(helper ? forHelper(tip) : tip, form);
 }
 
 /** The "How to do it" steps. [for the wearer, for a helper] */
@@ -96,7 +100,8 @@ const STEPS: Partial<Record<MeasurementId, [string[], string[]]>> = {
     ['Ask them to stand straight with their knees relaxed.', 'Hold the tape at their waist, at their side.', 'Run it straight down to the middle of their knee.', 'Read the number there.'],
   ],
 };
-export function stepsOf(id: MeasurementId, helper: boolean): string[] {
+export function stepsOf(id: MeasurementId, helper: boolean, form?: FormKind): string[] {
+  if (form === 'menswear') return stepsOf(id, helper).map((l) => worded(l, form));
   const s = STEPS[id];
   if (s) return s[helper ? 1 : 0];
   const tip = helper ? forHelper(fieldOf(id).tip) : fieldOf(id).tip;

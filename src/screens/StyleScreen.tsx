@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { Choices } from '../App';
 import { layout } from '../engine/export';
 import { piecesLengthCm, toMetres } from '../engine/fabric';
@@ -13,7 +13,7 @@ import { PatternPreview } from '../ui/Preview';
 import { PatternPane } from '../ui/PointEditor';
 import { ShapeSketch, Side } from '../ui/ShapeSketch';
 import { FabricSwatches, GarmentFabric } from '../ui/FabricFill';
-import { useShake } from '../ui/shake';
+import { UndoToast, UndoTools, useUndo } from '../ui/useUndo';
 import { SaveControl } from '../ui/SaveControl';
 import { FinishChoices } from '../ui/FinishChoices';
 import type { Finish } from '../App';
@@ -32,6 +32,9 @@ import { DrawOnForm, skirtForm } from '../ui/DrawOnForm';
 import { readSkirtHem, readSkirtSide, skirtLines } from '../ui/formLines';
 import { Title } from '../ui/Title';
 import { ChoicePic, chipsClass } from '../ui/ChoicePic';
+import { Explain } from '../ui/Explain';
+import { AllRound } from '../ui/AllRound';
+import { roundSkirt } from '../engine/allRound';
 
 interface Props {
   finish: Finish;
@@ -132,8 +135,6 @@ export function describe(c: Choices) {
   return `${len} ${sil.toLowerCase()} skirt${withTail}`;
 }
 
-const UNDO_LIMIT = 40;
-
 /** Fabric needed on 140 cm wide fabric, from the cutting layout of the pieces and the waistband. A
  * rough estimate where the pieces are too wide to lay out. */
 export function fabricMetres(draft: SkirtDraft): number {
@@ -156,38 +157,19 @@ export function fabricMetres(draft: SkirtDraft): number {
 
 export function StyleScreen({ choices, onChoices, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, onPhoto, photo, onChooseGarment, finish, onFinish, easeMap, fabric, mode = 'all', onMode }: Props) {
   const can = (t: ProTool) => shows(mode, t);
-  const [picked, setView] = useState<'sketch' | 'pattern' | 'ease'>('sketch');
+  const [picked, setView] = useState<'sketch' | 'round' | 'pattern' | 'ease'>('sketch');
   const view = picked === 'ease' && !can('easeMap') ? 'sketch' : picked;
   const [side, setSide] = useState<Side>('front');
   const [drawing, setDrawing] = useState(false);
   const [play, setPlay] = useState(0);
-  const [toast, setToast] = useState<string>();
-  const toastTimer = useRef<ReturnType<typeof setTimeout>>();
-  const [history, setHistory] = useState<Choices[]>([]);
+  const undoer = useUndo(choices, onChoices);
+  const change = undoer.change;
   const m = values as SkirtMeasurements;
   /** The choices before drawing on the form, while it is open. */
   const [onForm, setOnForm] = useState<Choices>();
 
-  const say = (text: string) => {
-    setToast(text);
-    clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setToast(undefined), 1800);
-  };
-  /** Every change goes through here, so it can be undone. */
-  const change = (next: Choices, before: Choices = choices) => {
-    if (JSON.stringify(next) === JSON.stringify(before)) return onChoices(next);
-    setHistory((h) => [...h.slice(-UNDO_LIMIT + 1), before]);
-    onChoices(next);
-  };
-  const undo = () => {
-    const prev = history[history.length - 1];
-    if (!prev) return say('Nothing to undo');
-    setHistory(history.slice(0, -1));
-    onChoices(prev);
-    say('Undone');
-  };
-  const shake = useShake(undo);
   const sheet = useMemo(() => (draft ? layout(draft.pieces, '', []) : undefined), [draft]);
+  const round = useMemo(() => (draft ? roundSkirt(draft) : undefined), [draft]);
   const ease = FIT_EASE[choices.fit];
   const slipped = choices.silhouette === 'slip';
   const extra = fabricEase(fabric, 'skirt');
@@ -321,6 +303,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
                 </button>
               ))}
             </div>
+            <Explain set="skirt" group={g.id} options={g.options} pick={g.id === 'length' && choices.lengthCm !== undefined ? undefined : chosen(choices, g.id)} />
           </fieldset>
         ))}
         <fieldset className="group">
@@ -339,6 +322,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
               </button>
             ))}
           </div>
+          <Explain set="skirt" group="volume" options={VOLUME_OPTIONS} pick={volumeOf(choices)} />
           {volumeOf(choices) === 'godets' && (
             <div className="chips">
               {GODET_OPTIONS.map(([n, label]) => (
@@ -382,6 +366,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
                 );
               })}
             </div>
+            <Explain set="skirt" group={g.id} options={g.options} pick={detailOf(choices, g.id)} />
             {g.id === 'waist' && !elasticAllowed(choices) && (
               <p className="muted small">
                 {choices.silhouette === 'pencil'
@@ -423,6 +408,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
             {(
               [
                 ['sketch', 'Sketch'],
+                ['round', 'All round'],
                 ['pattern', 'Pieces'],
                 ['ease', 'Ease'],
               ] as const
@@ -441,18 +427,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
               </button>
             ))}
           </div>
-          <div className="row tools">
-            {shake.state === 'ask' && (
-              <button type="button" className="link small" onClick={shake.enable}>
-                Shake to undo
-              </button>
-            )}
-            {history.length > 0 && (
-              <button type="button" className="ghost" onClick={undo} aria-label="Undo the last change">
-                Undo
-              </button>
-            )}
-          </div>
+          <UndoTools undo={undoer} />
         </div>
         {view === 'sketch' && draft && (
           <div className="row between wrap">
@@ -499,23 +474,28 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
             />
             </GarmentFabric>
           )}
+          {draft && round && view === 'round' && (
+            <AllRound
+              round={round}
+              m={m}
+              striped={!!fabric?.checks}
+              elastic={!!draft.elastic}
+              faced={!!draft.faced}
+              label={`The ${title} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`}
+            />
+          )}
           {draft && sheet && view === 'pattern' && (
             <PatternPane><PatternPreview paper sheet={sheet} play={play} names={draft.pieces.map((pc) => pc.name)} label={`Front and back pattern pieces for a ${title}`} /></PatternPane>
           )}
           {view === 'ease' && easeMap && <EaseMapView views={easeMap} label={`Ease map of the ${title}`} />}
-          {toast && (
-            <p className="toast" role="status">
-              {toast}
-            </p>
-          )}
+          <UndoToast undo={undoer} />
         </div>
-        {view === 'sketch' && draft && <FabricSwatches finish={finish} onFinish={onFinish} />}
+        {view === 'sketch' && draft && <FabricSwatches finish={finish} onFinish={onFinish} garment="skirt" />}
         {view === 'sketch' && (
           <p className="muted small">
             {drawing
               ? `Draw across the ${side} of the skirt where you want the hem. Switch to the back to make a high-low hem.`
               : 'Drag the hem up or down for length, or the side out and in for flare.'}
-            {shake.state === 'on' ? ' Shake your phone to undo.' : ''}
           </p>
         )}
         {view === 'pattern' && draft && (
