@@ -29,11 +29,13 @@ import type { EaseView } from '../engine/easeMap';
 import { FinishChoices } from '../ui/FinishChoices';
 import type { Finish } from '../App';
 import { GODET_OPTIONS, VOLUME_OPTIONS, layoutExtras, setVolume, volumeAllowed, volumeOf } from '../engine/skirtVolume';
-import { isDraped } from '../engine/drape';
+import { isDraped, zipSide } from '../engine/drape';
 import { lengthRange } from '../engine/skirt';
 import type { BodiceMeasurements } from '../engine/bodice';
 import type { SkirtMeasurements } from '../engine/skirt';
 import { DrawOnForm, formWidth } from '../ui/DrawOnForm';
+import { orSeam, readSeamLine } from '../ui/formSeams';
+import { orNeckline, readUnevenNeckline, unevenNecklineLines } from '../ui/formBodice';
 import { REPLACES } from './BodiceStyleScreen';
 import { bodiceLines, landmarks, readDrape, readFit, readNeckline, readSeam, readSkirtHem, skirtLines } from '../ui/formLines';
 import { Title } from '../ui/Title';
@@ -209,7 +211,10 @@ export function DressStyleScreen({ choices, onChoices: setChoices, onChooseGarme
           ['fit', 'Side'],
           ['hem', 'Hem'],
         ]}
-        lines={(side) => ({ ...bodiceLines(draft.bodice, side), hem: skirtLines(draft.skirt, choices.skirt, mv, side, waistY).hem })}
+        lines={(side) => {
+          const uneven = side === 'front' ? unevenNecklineLines(draft.bodice) : [];
+          return { ...bodiceLines(draft.bodice, side), hem: skirtLines(draft.skirt, choices.skirt, mv, side, waistY).hem, ...(uneven.length ? { neckline: uneven } : {}) };
+        }}
         choices={choices}
         onChoices={setChoices}
         read={(kind, side, stroke) => {
@@ -223,9 +228,9 @@ export function DressStyleScreen({ choices, onChoices: setChoices, onChooseGarme
           }
           const r =
             kind === 'neckline'
-              ? readNeckline(stroke, draft.bodice, asBodice, 'dress', side)
+              ? orNeckline(readUnevenNeckline(stroke, draft.bodice, asBodice, 'dress', side), () => readNeckline(stroke, draft.bodice, asBodice, 'dress', side))
               : kind === 'seam'
-                ? readSeam(stroke, draft.bodice, asBodice, 'dress', side)
+                ? orSeam(readSeamLine(stroke, draft.bodice, asBodice, 'dress', side), () => readSeam(stroke, draft.bodice, asBodice, 'dress', side))
                 : readDrape(stroke, draft.bodice, asBodice, 'dress');
           return { said: r.said, choices: r.choices && { ...choices, bodice: r.choices } };
         }}
@@ -296,7 +301,18 @@ export function DressStyleScreen({ choices, onChoices: setChoices, onChooseGarme
               <p className="muted small">
                 {choices.bodice.neckline === 'cowl'
                   ? 'The bodice front is cut on the bias and falls in soft folds. It needs a fluid fabric.'
-                  : 'The shoulder is on your left. The dress is sleeveless, with a zip in the right side seam.'}
+                  : (
+                    <>
+                    <span className="seg" role="group" aria-label="Which shoulder">
+                      {(['left', 'right'] as const).map((sh) => (
+                        <button key={sh} type="button" aria-pressed={(choices.bodice.shoulder ?? 'left') === sh} className={(choices.bodice.shoulder ?? 'left') === sh ? 'on' : ''} onClick={() => onChoices({ ...choices, bodice: sh === 'right' ? { ...choices.bodice, shoulder: sh } : (({ shoulder: _s, ...rest }) => rest)(choices.bodice) })}>
+                          {sh}
+                        </button>
+                      ))}
+                    </span>{' '}
+                      Over your {choices.bodice.shoulder ?? 'left'} shoulder. The dress is sleeveless, with a zip in the {choices.bodice.shoulder === 'right' ? 'left' : 'right'} side seam.
+                    </>
+                  )}
               </p>
             )}
             {g.id === 'structure' && !top && <p className="muted small">Boning needs a strapless, sweetheart or cami top.</p>}
@@ -323,7 +339,7 @@ export function DressStyleScreen({ choices, onChoices: setChoices, onChooseGarme
           {choices.skirt.silhouette === 'slip'
             ? 'The skirt is cut on the bias, for a slip dress: it has no darts, its waist seam is drafted to the bodice, and the cloth moulds to the hip.'
             : 'The skirt is drafted to the bodice: the waist seams are the same length, and the darts meet at the seam in one line.'}{' '}
-          {draft?.zipSide ? 'One zip opens the right side seam from under the arm to below the waist.' : `One zip opens the centre back from the ${top ? 'top edge' : 'neck'} to below the waist.`}
+          {draft?.zipSide ? `One zip opens the ${zipSide(draft.bodice)} side seam from under the arm to below the waist.` : `One zip opens the centre back from the ${top ? 'top edge' : 'neck'} to below the waist.`}
           {boned ? ' The bodice is boned like a corset, cut again from coutil and lining, with a grosgrain waist stay that carries the skirt.' : ''}
         </p>
         <ModeLink mode={mode} onMode={onMode} />

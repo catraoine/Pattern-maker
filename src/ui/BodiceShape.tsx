@@ -18,6 +18,8 @@ import {
 } from '../engine/bodice';
 import { BODICE_GROUPS, BodiceChoices, DARTS_FOR_FIT } from '../garments';
 import { COWL_DEPTH } from '../engine/drape';
+import { hemOffsetAt } from '../engine/bodiceHem';
+import { unevenEdge } from '../engine/uneven';
 import type { Side } from './ShapeSketch';
 import { bodiceBodyOutline } from './bodyOutline';
 
@@ -29,6 +31,8 @@ interface Worn {
   hemCentre: P;
   /** Dart fold lines, already mirrored, as an SVG path given the centre x. */
   darts: (cx: number) => string;
+  /** The style seams (yoke, empire, panels) on this side, mirrored, as an SVG path given the centre x. */
+  seams: (cx: number) => string;
   /** The piece's own outline, for placing the body round it. */
   top: { pts: P[]; tags: (string | undefined)[] };
   /** How many points of `pts` are the top edge, from the centre neck to the underarm. */
@@ -37,7 +41,18 @@ interface Worn {
 
 const f = (q: P) => `${q.x.toFixed(2)} ${q.y.toFixed(2)}`;
 
-/** One half of the bodice as worn: the piece's top edge, then a straight side down to a level waist. */
+/** The hem as worn, `u` from 0 at the centre to 1 at the side seam: level, or shaped as drafted, its
+ * offsets measured from where the level hem would hang. */
+export function wornHem(draft: BodiceDraft, side: Side): (u: number) => P {
+  const land = side === 'front' ? draft.front : draft.back;
+  const shaped = draft.hem;
+  const offset = (u: number) => (shaped ? hemOffsetAt(shaped, side, u, draft.front.hemSide.x, draft.back.hemSide.x) : 0);
+  const level = land.hemCentre.y - offset(0);
+  return (u: number) => ({ x: land.hemSide.x * u, y: level + offset(u) });
+}
+
+/** One half of the bodice as worn: the piece's top edge, then a straight side down to a level waist,
+ * and below the waist the hem, level or shaped as drafted. */
 export function worn(draft: BodiceDraft, side: Side): Worn {
   const pc = blockOf(draft)[side === 'front' ? 0 : 1];
   const land = side === 'front' ? draft.front : draft.back;
@@ -46,7 +61,8 @@ export function worn(draft: BodiceDraft, side: Side): Worn {
   const lastArm = tags.includes('armhole') ? tags.lastIndexOf('armhole') : tags.lastIndexOf('neck');
   const top = pts.slice(0, lastArm + 2);
   const waist = { x: land.waistSide.x, y: land.waistCentre.y };
-  const hem = { x: land.hemSide.x, y: land.hemCentre.y };
+  const hemAt = wornHem(draft, side);
+  const hem = hemAt(1);
   const below = land.hemCentre.y - land.waistCentre.y > 0.5;
   const out = [...top, waist];
   if (below) {
@@ -63,6 +79,7 @@ export function worn(draft: BodiceDraft, side: Side): Worn {
       });
     }
   }
+  if (draft.hem) for (let i = 15; i > 0; i--) out.push(hemAt(i / 16));
   out.push(land.hemCentre);
   const under = top[top.length - 1];
   const widest = top.reduce((a, b) => (b.x > a.x ? b : a));
@@ -79,27 +96,40 @@ export function worn(draft: BodiceDraft, side: Side): Worn {
     });
   const darts = (cx: number) =>
     folds.flatMap(([a, b]) => ([1, -1] as const).map((s) => `M${f({ x: cx + s * a.x, y: a.y })} L${f({ x: cx + s * b.x, y: b.y })}`)).join(' ');
-  return { pts: out, widest, hemCentre: land.hemCentre, darts, top: { pts, tags }, topCount: top.length };
+  const lines = (draft.styleSeams ?? []).filter((sm) => sm.side === side).map((sm) => sm.pts);
+  const seams = (cx: number) => lines.flatMap((q) => ([1, -1] as const).map((s) => q.map((r, i) => `${i ? 'L' : 'M'}${f({ x: cx + s * r.x, y: r.y })}`).join(' '))).join(' ');
+  return { pts: out, widest, hemCentre: land.hemCentre, darts, seams, top: { pts, tags }, topCount: top.length };
 }
 
 /**
  * A draped bodice as worn, as an SVG path given the centre x, or undefined for the block's own: the
  * one-shoulder's covered half, its bare half from under the arm and the top edge as drafted between;
- * the cowl front's neckline hanging in a soft curve between the neck points.
+ * the cowl front's neckline hanging in a soft curve between the neck points; an uneven front's
+ * neckline as drafted, across both halves.
  */
 export function drapedOutline(draft: BodiceDraft, side: Side, w: Worn, cx: number): string | undefined {
   const path = (pts: P[]) => pts.map((q, i) => `${i ? 'L' : 'M'}${f(q)}`).join(' ') + ' Z';
   const near = (q: P) => w.pts.slice(0, w.topCount).reduce((b, r, i) => (Math.hypot(r.x - q.x, r.y - q.y) < Math.hypot(w.pts[b].x - q.x, w.pts[b].y - q.y) ? i : b), 0);
   if (draft.drape?.kind === 'one_shoulder') {
     // As worn, the wearer's left is on the right of the front and the left of the back, as each piece lies.
-    const k = side === 'front' ? 1 : -1;
+    // Cut for the right shoulder, it is all turned over.
+    const turn = draft.drape.side === 'right' ? -1 : 1;
+    const k = (side === 'front' ? 1 : -1) * turn;
     const pc = draft.pieces[side === 'front' ? 0 : 1];
     const { pts, tags } = pc.outline.taggedPoints(16);
     const N = pts[0];
-    const edge = [...pts.filter((_, i) => tags[i] === 'neck' || (i > 0 && tags[i - 1] === 'neck')), N].map((q) => ({ x: cx + q.x, y: q.y }));
+    const edge = [...pts.filter((_, i) => tags[i] === 'neck' || (i > 0 && tags[i - 1] === 'neck')), N].map((q) => ({ x: cx + turn * q.x, y: q.y }));
     const covered = w.pts.slice(near({ x: Math.abs(N.x), y: N.y })).map((q) => ({ x: cx + k * q.x, y: q.y }));
     const bare = w.pts.slice(w.topCount, -1).map((q) => ({ x: cx - k * q.x, y: q.y })).reverse();
     return path([...covered, ...bare, ...edge.slice(0, -1)]);
+  }
+  if (draft.drape?.kind === 'uneven' && side === 'front') {
+    // Seen from the front, the wearer's left is on the right, as the whole front lies right side up.
+    const edge = unevenEdge(draft);
+    const N = edge[edge.length - 1];
+    const half = w.pts.slice(near(N));
+    const pts = [...half.map((q) => ({ x: cx + q.x, y: q.y })), ...half.map((q) => ({ x: cx - q.x, y: q.y })).reverse().slice(1), ...edge.slice(1, -1).map((q) => ({ x: cx + q.x, y: q.y }))];
+    return path(pts);
   }
   if (draft.drape?.kind === 'cowl' && side === 'front') {
     const pc = blockOf(draft)[0];
@@ -333,6 +363,7 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, onLive, o
       {hip && guide(waistY + m.waist_to_hip!, 'HIP')}
       <path d={outline} style={{ fill: 'var(--garment, var(--fill))', stroke: 'var(--ink)' }} strokeWidth={0.25} strokeLinejoin="round" />
       <path d={w.darts(cx)} style={{ fill: 'none', stroke: 'var(--muted)' }} strokeWidth={0.15} />
+      <path d={w.seams(cx)} style={{ fill: 'none', stroke: 'var(--ink)' }} strokeWidth={0.18} strokeLinejoin="round" />
       {zip && <path d={zip} style={{ fill: 'none', stroke: 'var(--muted)' }} strokeWidth={0.2} strokeDasharray="0.8 0.6" />}
       {zip && (
         <text x={cx + 1.2 * k} y={(draft.back.neckCentre.y + draft.back.zipEnd.y) / 2} fontSize={2 * k} className="hint" textAnchor="start">

@@ -2907,6 +2907,9 @@ button.link.garment-change {
 .form-draw .chips {
   justify-content: center;
 }
+.form-draw .row.end {
+  justify-content: flex-end;
+}
 .form-draw .form-said {
   text-align: center;
   min-height: 2.9em;
