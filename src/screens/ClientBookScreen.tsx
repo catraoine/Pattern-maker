@@ -57,7 +57,7 @@ export function ClientBookScreen({ account, person, unit, onChange, onOpen, garm
             <h1 id="cbtitle">{name}</h1>
           </div>
         </div>
-        <p className="muted small">Kept on this device only, with the photos. Nothing is sent anywhere unless you send it.</p>
+        <p className="muted small">Kept on this device only, with the photos.</p>
       </section>
 
       <AskToMeasure account={account} person={person} garment={garment} onAccount={onAccount} onReply={onReply} />
