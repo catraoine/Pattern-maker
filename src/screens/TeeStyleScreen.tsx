@@ -16,6 +16,8 @@ import { teeFabrics } from '../engine/knits';
 import { FabricCard } from '../ui/FabricCard';
 import { ModeLink } from '../ui/ModeLink';
 import type { Mode } from '../mode';
+import { DrawOnForm } from '../ui/DrawOnForm';
+import { TeeFormMeasurements, readTeeFit, readTeeHem, readTeeNeckline, readTeeSleeve, teeForm, teeLines } from '../ui/formTops';
 
 interface Props {
   choices: TeeChoices;
@@ -57,12 +59,60 @@ export function TeeStyleScreen({ choices, onChoices: setChoices, onChooseGarment
   const undo = useUndo(choices, setChoices);
   const onChoices = undo.change;
   const [view, setView] = useState<'sketch' | 'pattern'>('sketch');
+  /** Drawing on the form: the choices from before, to keep or go back to. */
+  const [onForm, setOnForm] = useState<TeeChoices>();
+  const m = values as TeeFormMeasurements;
+  const form = useMemo(() => (onForm && draft ? teeForm(m, choices, draft) : undefined), [onForm, draft, m, choices]);
   const pieces = useMemo(() => draft?.pieces ?? [], [draft]);
   const sheet = useMemo(() => (draft ? layout(pieces, '', []) : undefined), [draft, pieces]);
   const flat = useMemo(() => (draft ? teeFlat(draft) : undefined), [draft]);
   const title = describeTee(choices);
   const hemLabel = choices.length === 'cropped' ? 'Hem' : 'Hip';
   const hemBody = choices.length === 'cropped' ? values.waist : values.full_hip;
+
+  if (onForm && draft && form) {
+    return (
+      <DrawOnForm<TeeChoices>
+        body={form.body}
+        m={m}
+        legs={false}
+        bottom={form.hems.tunic + 6}
+        arms={form.arm}
+        backs={false}
+        kinds={[
+          ['neckline', 'Neckline'],
+          ['fit', 'Side'],
+          ['hem', 'Hem'],
+          ['sleeve', 'Sleeve'],
+        ]}
+        help={{
+          neckline: 'Draw the neckline from the shoulder down to the centre front: close to the neck for a crew, lower and round for a scoop, straight down to a point for a V.',
+          hem: 'Draw across where you want the hem: just below the waist, at the hip, or lower for a tunic. A T-shirt hem is cut level.',
+        }}
+        lines={() => teeLines(draft, form)}
+        choices={choices}
+        onChoices={setChoices}
+        read={(kind, _side, stroke) =>
+          kind === 'neckline'
+            ? readTeeNeckline(stroke, form, choices)
+            : kind === 'fit'
+              ? readTeeFit(stroke, form, m, choices)
+              : kind === 'sleeve'
+                ? readTeeSleeve(stroke, form, choices)
+                : readTeeHem(stroke, form, choices)
+        }
+        onDone={() => {
+          undo.change(choices, onForm);
+          setOnForm(undefined);
+          setView('pattern');
+        }}
+        onCancel={() => {
+          setChoices(onForm);
+          setOnForm(undefined);
+        }}
+      />
+    );
+  }
 
   return (
     <div className="split three">
@@ -109,7 +159,14 @@ export function TeeStyleScreen({ choices, onChoices: setChoices, onChooseGarment
               Pieces
             </button>
           </div>
-          <UndoTools undo={undo} />
+          <div className="row tools">
+            {draft && (
+              <button type="button" className="link small" onClick={() => setOnForm(choices)}>
+                Draw on your form
+              </button>
+            )}
+            <UndoTools undo={undo} />
+          </div>
         </div>
         <div className="preview">
           {error && <p className="msg error">{error}</p>}

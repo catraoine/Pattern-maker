@@ -10,6 +10,7 @@
 //   waist is a peplum (gathered when the line is wavy);
 // - fit: the side line pinned in or let out, for the ease;
 // - a hem: level, curved, or longer at the back (high-low), for the bodice, the dress or the skirt.
+// The T-shirt's and the jacket's lines (sleeve, front edge, collar among them) are read in formTops.ts.
 // Everything is in the pieces' own coordinates: cm, the centre at x = 0, y running down.
 import type { P } from '../engine/geometry';
 import { BodiceDraft, BodiceMeasurements } from '../engine/bodice';
@@ -26,7 +27,7 @@ import { blockOf } from '../engine/bodice';
 import { currentNeck, dragDrop, dragEase, strokeToNeck, worn } from './BodiceShape';
 import { dragFlare, dragLength, strokeToHem } from './ShapeSketch';
 
-export type FormLine = 'neckline' | 'seam' | 'drape' | 'fit' | 'hem';
+export type FormLine = 'neckline' | 'seam' | 'drape' | 'fit' | 'hem' | 'sleeve' | 'front' | 'collar';
 export type FormSide = 'front' | 'back';
 
 /** What a drawn line was read as: the new choices, or none when it couldn't be used, and why, in words. */
@@ -46,9 +47,9 @@ export const APEX_REACH = 6;
 export const WAIST_REACH = 4;
 
 const dist = (a: P, b: P) => Math.hypot(a.x - b.x, a.y - b.y);
-const half = (stroke: P[]) => stroke.map((q) => ({ x: Math.abs(q.x), y: q.y }));
+export const half = (stroke: P[]) => stroke.map((q) => ({ x: Math.abs(q.x), y: q.y }));
 const round = (v: number, step: number) => Math.round(v / step) * step;
-const median = (vs: number[]) => {
+export const median = (vs: number[]) => {
   const s = [...vs].sort((a, b) => a - b);
   return s[Math.floor(s.length / 2)];
 };
@@ -346,7 +347,7 @@ export function readSkirtSide(stroke: P[], waistY: number, draft: Pick<SkirtDraf
 // The lines already on the garment, drawn on the form as tape: polylines in the same coordinates.
 
 /** Both halves of a half line. */
-const mirror = (pts: P[]): P[][] => [pts, pts.map((q) => ({ x: -q.x, y: q.y }))];
+export const mirror = (pts: P[]): P[][] => [pts, pts.map((q) => ({ x: -q.x, y: q.y }))];
 
 /** Dart fold lines from the sketch's own path, as polylines. */
 const darts = (draft: BodiceDraft, side: FormSide): P[][] =>
@@ -359,7 +360,7 @@ const darts = (draft: BodiceDraft, side: FormSide): P[][] =>
   });
 
 /** The bodice's lines as they stand, front or back, for each kind of line. */
-export function bodiceLines(draft: BodiceDraft, side: FormSide): Record<FormLine, P[][]> {
+export function bodiceLines(draft: BodiceDraft, side: FormSide): Record<Exclude<FormLine, 'sleeve' | 'front' | 'collar'>, P[][]> {
   const w = worn(draft, side);
   const land = side === 'front' ? draft.front : draft.back;
   const { neckPoint, underarm, apex } = landmarks(draft, side);

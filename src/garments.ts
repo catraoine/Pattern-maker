@@ -177,7 +177,7 @@ export function outerGroups(kind: OuterKind): { id: OuterGroupId; label: string;
 export const outerAllowed = (c: OuterChoices, id: OuterGroupId, opt: string) =>
   !(id === 'shaping' && opt === 'boxy' && c.fit === 'fitted') && !(id === 'vent' && opt === 'centre' && c.length === 'cropped');
 
-const OUTER_LENGTH_WORDS: Record<OuterLength, string> = { cropped: 'Cropped', hip: 'Hip-length', long: 'Long', thigh: 'Mid-thigh', knee: 'Knee-length', midi: 'Midi' };
+export const OUTER_LENGTH_WORDS: Record<OuterLength, string> = { cropped: 'Cropped', hip: 'Hip-length', long: 'Long', thigh: 'Mid-thigh', knee: 'Knee-length', midi: 'Midi' };
 const OUTER_COLLAR_WORDS: Record<OuterCollar, string> = { notched: 'with notched lapels', stand: 'with a stand collar', collarless: 'collarless' };
 
 /** A plain name, such as "Hip-length single-breasted jacket with notched lapels". */
