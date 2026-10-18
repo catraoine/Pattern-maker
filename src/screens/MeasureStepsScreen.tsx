@@ -37,7 +37,7 @@ interface Props {
   onNews?: () => void;
 }
 
-export type StepsStart = { kind: 'choose' } | { kind: 'for'; garment: Garment } | { kind: 'redo'; garment: Garment; ids: MeasurementId[] };
+export type StepsStart = { kind: 'choose' } | { kind: 'form' } | { kind: 'for'; garment: Garment } | { kind: 'redo'; garment: Garment; ids: MeasurementId[] };
 
 type Page =
   | { kind: 'intro' }
@@ -80,6 +80,7 @@ export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onV
   // Each page is a history entry, so the header's back and the phone's back go one page back.
   const [page, setPage] = usePageHistory<Page>(() => {
     if (start?.kind === 'redo') return { kind: 'extra', garment: start.garment, ids: start.ids, at: 0, redo: true };
+    if (start?.kind === 'form') return { kind: 'form' };
     if (!baseDone(values)) return { kind: 'intro' };
     if (start?.kind === 'choose') return { kind: 'choose' };
     const ids = aimed ? missingFor(aimed, values, form).map((f) => f.id) : [];
@@ -171,7 +172,7 @@ export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onV
   // every page for this person, and the menswear form asks for the chest and none of the bust measurements.
   if (page.kind === 'form')
     return (
-      <Shell title={helper ? 'Their form' : 'Your form'} skip={onSkip && (() => onSkip())}>
+      <Shell title={helper ? 'Their form' : 'Your form'} skip={start?.kind !== 'form' && onSkip ? () => onSkip() : undefined}>
         <p className="who-q" id="form-q">
           Which form should we draft on?
         </p>
@@ -188,7 +189,9 @@ export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onV
           className="primary"
           onClick={() => {
             onForm?.(chosen);
-            setPage({ kind: 'base', at: 0 });
+            // Changed from the measurements list: back to it, where anything the new form needs shows as Add.
+            if (start?.kind === 'form' && canGoBack()) goBack();
+            else setPage({ kind: 'base', at: 0 });
           }}
         >
           Continue

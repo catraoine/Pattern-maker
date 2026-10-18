@@ -55,7 +55,7 @@ export function AskToMeasure({ account, person, garment: start, onAccount, onRep
   return (
     <section className="card ask-measure" aria-labelledby="askt">
       <h2 id="askt">{own ? 'Ask a client to measure' : `Ask ${firstName(person.name) || 'them'} to measure`}</h2>
-      <p className="muted small">They measure at home with the how-to guides and send the numbers back in a link. Nothing is stored online.</p>
+      <p className="muted small">They measure at home with the how-to guides and send the numbers back in a link.</p>
       {own && (
         <div className="field plain ready">
           <label htmlFor="ask-client">Client's name</label>

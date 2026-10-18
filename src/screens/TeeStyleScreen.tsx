@@ -6,23 +6,22 @@ import { NECKBAND_CM, STRETCH_TEST, TeeDraft, pctWords } from '../engine/tee';
 import { teeFlat } from '../engine/flat';
 import { TEE_GROUPS, TeeChoices, describeTee } from '../garments';
 import { TechFlatView } from '../ui/TechFlatView';
+import { AllRound } from '../ui/AllRound';
+import { roundTee } from '../engine/allRound';
 import { MeasurementValues } from '../measurements';
 import { PatternPreview } from '../ui/Preview';
 import { PatternPane } from '../ui/PointEditor';
-import { GarmentSwitch } from '../ui/GarmentSwitch';
-import { PhotoEntry } from '../ui/PhotoEntry';
 import { SaveControl } from '../ui/SaveControl';
 import { UndoToast, UndoTools, useUndo } from '../ui/useUndo';
 import type { MyFabric } from '../engine/fabrics';
 import { teeFabrics } from '../engine/knits';
-import { FabricCard } from '../ui/FabricCard';
-import { ModeLink } from '../ui/ModeLink';
+import { FabricCard, FabricSummary } from '../ui/FabricCard';
 import type { Mode } from '../mode';
-import { Title } from '../ui/Title';
 import { ChoicePic, chipsClass } from '../ui/ChoicePic';
 import { Explain } from '../ui/Explain';
 import { DrawOnForm } from '../ui/DrawOnForm';
 import { TeeFormMeasurements, readTeeFit, readTeeHem, readTeeNeckline, readTeeSleeve, teeForm, teeLines } from '../ui/formTops';
+import { FABRIC, Group, LOOKS, StyleLayout, TabPanel } from '../ui/StyleLayout';
 
 interface Props {
   /** Start from a photo, and the photo this garment was matched to while the app is open. */
@@ -66,7 +65,7 @@ function friendly(w: string) {
 export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices, onChooseGarment, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, fabric, mode = 'all', onMode }: Props) {
   const undo = useUndo(choices, setChoices);
   const onChoices = undo.change;
-  const [view, setView] = useState<'sketch' | 'pattern'>('sketch');
+  const [view, setView] = useState<'sketch' | 'round' | 'pattern'>('sketch');
   /** Drawing on the form: the choices from before, to keep or go back to. */
   const [onForm, setOnForm] = useState<TeeChoices>();
   const m = values as TeeFormMeasurements;
@@ -75,6 +74,7 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
   const sheet = useMemo(() => (draft ? layout(pieces, '', []) : undefined), [draft, pieces]);
   const flat = useMemo(() => (draft ? teeFlat(draft) : undefined), [draft]);
   const title = describeTee(choices);
+  const round = useMemo(() => (draft ? roundTee(draft, values) : undefined), [draft, values]);
   const hemLabel = choices.length === 'cropped' ? 'Hem' : 'Hip';
   const hemBody = choices.length === 'cropped' ? values.waist : values.full_hip;
 
@@ -123,17 +123,23 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
   }
 
   return (
-    <div className="split three">
+    <StyleLayout
+      label="your T-shirt"
+      name={title}
+      metres={draft ? teeFabricMetres(draft) : undefined}
+      ready={!!draft}
+      onChooseGarment={onChooseGarment}
+      onPhoto={onPhoto}
+      photo={photo}
+      mode={mode}
+      onMode={onMode}
+    >
       <section className="card numbered" aria-labelledby="opts">
-        <div className="row between wrap">
-          <Title id="opts" big="Style" label="your T-shirt" />
-          <GarmentSwitch onChoose={onChooseGarment} />
-        </div>
-        <PhotoEntry onPhoto={onPhoto} photo={photo} />
-        <p className="muted small">Drafted for knit fabric: no darts, the stretch shapes it to you.</p>
+        <TabPanel tab={LOOKS}>
+          <p className="muted small">Drafted for knit fabric: no darts, the stretch shapes it to you.</p>
+        </TabPanel>
         {TEE_GROUPS.map((g) => (
-          <fieldset key={g.id} className="group">
-            <legend>{g.label}</legend>
+          <Group key={g.id} label={g.label}>
             <div className={chipsClass('tee', g.id)}>
               {g.options.map(([id, label]) => (
                 <button
@@ -151,13 +157,13 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
             <Explain set="tee" group={g.id} options={g.options} pick={choices[g.id]} />
             {g.id === 'stretch' && <p className="muted small">How to test: {STRETCH_TEST}</p>}
             {g.id === 'fit' && <p className="muted small">{FIT_NOTES[choices.fit]}</p>}
-          </fieldset>
+          </Group>
         ))}
-        <p className="muted small">
-          Seam allowances are 1 cm, the usual for knits, with 2.5 cm at the hem. The neckband is cut shorter than the neckline so it
-          lies flat.
-        </p>
-        <ModeLink mode={mode} onMode={onMode} />
+        {draft && (
+          <TabPanel tab={FABRIC}>
+            <FabricCard metres={teeFabricMetres(draft)} advice={teeFabrics(choices)} fabric={fabric} knit />
+          </TabPanel>
+        )}
       </section>
 
       <section className="card grow" aria-label="Preview">
@@ -165,6 +171,9 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
           <div className="seg" role="group" aria-label="Preview view">
             <button type="button" aria-pressed={view === 'sketch'} className={view === 'sketch' ? 'on' : ''} onClick={() => setView('sketch')}>
               Sketch
+            </button>
+            <button type="button" aria-pressed={view === 'round'} className={view === 'round' ? 'on' : ''} onClick={() => setView('round')}>
+              All round
             </button>
             <button type="button" aria-pressed={view === 'pattern'} className={view === 'pattern' ? 'on' : ''} onClick={() => setView('pattern')}>
               Pieces
@@ -182,6 +191,7 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
         <div className="preview">
           {error && <p className="msg error">{error}</p>}
           {flat && view === 'sketch' && <TechFlatView flat={flat} title={title} />}
+          {round && view === 'round' && <AllRound round={round} m={values} striped={!!fabric?.checks} label={`The ${title.toLowerCase()} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`} />}
           {draft && sheet && view === 'pattern' && <PatternPane><PatternPreview paper sheet={sheet} label={`Pattern pieces for ${title.toLowerCase()}`} /></PatternPane>}
           <UndoToast undo={undo} />
         </div>
@@ -234,7 +244,11 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
             ))}
           </ul>
         </div>
-        {draft && <FabricCard metres={teeFabricMetres(draft)} advice={teeFabrics(choices)} fabric={fabric} knit />}
+        {draft && <FabricSummary metres={teeFabricMetres(draft)} fabric={fabric} />}
+        <p className="muted small">
+          Seam allowances are 1 cm, the usual for knits, with 2.5 cm at the hem. The neckband is cut shorter than the neckline so it
+          lies flat.
+        </p>
         <button type="button" className="primary" disabled={!draft} onClick={onNext}>
           Print my pattern
         </button>
@@ -243,6 +257,6 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
           Edit measurements
         </button>
       </aside>
-    </div>
+    </StyleLayout>
   );
 }
