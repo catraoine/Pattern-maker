@@ -54,6 +54,15 @@ describe('analyzePhoto', () => {
     for (const key of ['hemAt', 'hemFullness', 'flareAt']) expect(schema).toContain(`"${key}"`);
   });
 
+  it('reads every garment the app drafts, and each piece in an outfit', async () => {
+    const { client, parse } = fakeClient({ stop_reason: 'end_turn', parsed_output: reading });
+    await analyzePhoto(photo, client);
+    const req = (parse.mock.calls[0] as unknown[])[0] as { output_config: unknown; system: string };
+    const schema = JSON.stringify(req.output_config);
+    for (const g of ['skirt', 'dress', 'top', 'tee', 'trousers', 'jacket', 'coat']) expect(req.system).toContain(`"${g}"`);
+    for (const key of ['pieces', 'extras', 'top', 'trousers', 'outer', 'waistSeam', 'knit']) expect(schema).toContain(`"${key}"`);
+  });
+
   it('turns a refusal or a failure into a friendly error', async () => {
     expect(await analyzePhoto(photo, fakeClient({ stop_reason: 'refusal', parsed_output: null }).client)).toEqual({ ok: false, error: 'declined' });
     vi.spyOn(console, 'error').mockImplementation(() => {});

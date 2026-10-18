@@ -11,6 +11,7 @@ import { SHAPES_FOR_LENGTH, SleeveDraft, needsArms } from '../engine/sleeve';
 import { MeasurementValues, hasHip } from '../measurements';
 import { PatternPreview } from '../ui/Preview';
 import { GarmentSwitch } from '../ui/GarmentSwitch';
+import { PhotoEntry } from '../ui/PhotoEntry';
 import { SaveControl } from '../ui/SaveControl';
 import { FinishChoices } from '../ui/FinishChoices';
 import { BodiceShape } from '../ui/BodiceShape';
@@ -34,6 +35,9 @@ import { Title } from '../ui/Title';
 import { ChoicePic, chipsClass } from '../ui/ChoicePic';
 
 interface Props {
+  /** Start from a photo, and the photo this garment was matched to while the app is open. */
+  onPhoto?: () => void;
+  photo?: string;
   finish: Finish;
   onFinish: (f: Finish) => void;
   choices: BodiceChoices;
@@ -104,7 +108,7 @@ const handShaped = (c: BodiceChoices, id: string) => (REPLACES[id] ?? []).some((
 
 type View = 'sketch' | 'flat' | 'pattern' | 'ease';
 
-export function BodiceStyleScreen({ choices, onChoices, onChooseGarment, values, draft, sleeve, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, finish, onFinish, fabric, mode = 'all', onMode }: Props) {
+export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChooseGarment, values, draft, sleeve, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, finish, onFinish, fabric, mode = 'all', onMode }: Props) {
   const can = (t: ProTool) => shows(mode, t);
   const [picked, setView] = useState<View>('sketch');
   const view = picked === 'ease' && !can('easeMap') ? 'sketch' : picked;
@@ -247,6 +251,7 @@ export function BodiceStyleScreen({ choices, onChoices, onChooseGarment, values,
       <Title id="opts" big="Style" label="your bodice" />
       <GarmentSwitch onChoose={onChooseGarment} />
     </div>
+    <PhotoEntry onPhoto={onPhoto} photo={photo} />
     <div className="split three">
       <section className="card numbered" aria-labelledby="opts">
         {BODICE_GROUPS.filter((g) => shown(g.id)).map((g) => (

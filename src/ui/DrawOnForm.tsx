@@ -299,7 +299,8 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
               )),
             )}
             {side === 'back' && (
-              <text x={cx} y={frame.top + 3} fontSize={1.8} textAnchor="middle" className="hint">
+              // In the corner, clear of the neck.
+              <text x={2} y={frame.top + 3} fontSize={1.8} textAnchor="start" className="hint">
                 BACK
               </text>
             )}

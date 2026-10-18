@@ -1,8 +1,8 @@
 // The bodice's shaping as styled: the bust dart moved from the side seam, or princess seams from the
 // shoulder or the armhole. Works on the drafted block's pieces (see manipulate.ts).
-import { P, Path, add, len, lerp, mul, p, sub, unit } from './geometry';
+import { P, Path, add, len, lerp, mul, p, sub, taggedLength, unit } from './geometry';
 import { insidePolygon } from './marks';
-import { DartPlace, PrincessLine, Ring, clampAt, marksAlong, moveBustDart, pathOf, polyLen, ringOf, trueSeams } from './manipulate';
+import { ARMHOLE_AT, DartPlace, PrincessLine, Ring, clampAt, marksAlong, moveBustDart, pathOf, polyLen, ringOf, trueSeams } from './manipulate';
 import { DraftPoint, Piece } from './piece';
 
 const WORDS: Record<DartPlace, string> = {
@@ -243,7 +243,17 @@ export function princessPieces(front: Piece, back: Piece, apex: P, line: Exclude
   let iQ: number;
   if (line === 'shoulder') {
     const run = runOf(r, 'shoulder')!;
-    iQ = insertAlong(r, run, runLen(r, run) * (at !== undefined ? clampAt(at, 0.2, 0.8) : 0.5));
+    const total = runLen(r, run);
+    if (at === undefined) iQ = insertAlong(r, run, total * 0.5);
+    else {
+      // Drawn off the middle: each back panel's shoulder is its front panel's and half the back's ease,
+      // so the two shoulder seams still sew together, measured from the neck end of the shoulder.
+      const fc = taggedLength(f.centre.outline, 'shoulder');
+      const fs = taggedLength(f.side.outline, 'shoulder');
+      const d = Math.min(total - 1, Math.max(1, fc + (total - fc - fs) / 2));
+      const neckFirst = Math.abs(r.pts[run[0]].x) < Math.abs(r.pts[(run[1] + 1) % r.pts.length].x);
+      iQ = insertAlong(r, run, neckFirst ? d : total - d);
+    }
   } else {
     const run = runOf(r, 'armhole')!;
     const notch = back.notches.length >= 2 ? lerp(back.notches[0][0], back.notches[1][0], 0.5) : r.pts[run[0] + 2];
@@ -257,7 +267,7 @@ export function princessPieces(front: Piece, back: Piece, apex: P, line: Exclude
         atS = s;
       }
     }
-    iQ = insertAlong(r, run, at !== undefined ? runLen(r, run) * clampAt(at, 0.15, 0.6) : Math.min(atS + 2, runLen(r, run) * 0.6));
+    iQ = insertAlong(r, run, at !== undefined ? runLen(r, run) * clampAt(at, ARMHOLE_AT.min, ARMHOLE_AT.max) : Math.min(atS + 2, runLen(r, run) * 0.6));
   }
   const dl = back.lines.map((l) => l.points()).find((q) => q.length === 3);
   const eye = fishEyeOf(back);

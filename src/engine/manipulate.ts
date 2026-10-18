@@ -71,6 +71,10 @@ const angleFrom = (c: P, a: P, b: P) => {
   return Math.atan2(u.x * v.y - u.y * v.x, u.x * v.x + u.y * v.y);
 };
 /** A drawn position along an edge, kept within the part of it a seam or dart can start from. */
+/** How far down the armhole a drawn princess seam or dart can start: higher up, the panel above it would
+ * be too small to sew. */
+export const ARMHOLE_AT = { min: 0.32, max: 0.6 };
+
 export const clampAt = (at: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, at));
 const polyLen = (pts: P[]) => pts.slice(1).reduce((s, q, i) => s + len(sub(q, pts[i])), 0);
 
@@ -205,7 +209,7 @@ export function moveBustDart(path: Path, apex: P, to: DartPlace, opts: { armhole
       r,
       run,
       opts.at !== undefined
-        ? runLength(r, run) * clampAt(opts.at, 0.15, 0.6)
+        ? runLength(r, run) * clampAt(opts.at, ARMHOLE_AT.min, ARMHOLE_AT.max)
         : opts.belowNotch !== undefined
           ? Math.min(toNotch + opts.belowNotch, runLength(r, run) * 0.6)
           : toNotch * 0.8,

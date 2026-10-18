@@ -10,6 +10,7 @@ import { FabricSwatches, GarmentFabric } from '../ui/FabricFill';
 import { MeasurementValues } from '../measurements';
 import { PatternPreview } from '../ui/Preview';
 import { GarmentSwitch } from '../ui/GarmentSwitch';
+import { PhotoEntry } from '../ui/PhotoEntry';
 import { SaveControl } from '../ui/SaveControl';
 import { UndoToast, UndoTools, useUndo } from '../ui/useUndo';
 
@@ -26,6 +27,9 @@ import { Title } from '../ui/Title';
 import { ChoicePic, chipsClass } from '../ui/ChoicePic';
 
 interface Props {
+  /** Start from a photo, and the photo this garment was matched to while the app is open. */
+  onPhoto?: () => void;
+  photo?: string;
   choices: TrousersChoices;
   onChoices: (c: TrousersChoices) => void;
   /** Open the list of what to make, to pick another garment. */
@@ -52,7 +56,7 @@ interface Props {
 /** Fabric needed on 140 cm wide fabric, from the cutting layout. */
 export const trousersFabricMetres = (draft: TrousersDraft) => layPlan(draft.pieces, 140)?.metres ?? toMetres(piecesLengthCm(draft.pieces) + 10);
 
-export function TrousersStyleScreen({ choices, onChoices: setChoices, onChooseGarment, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, finish, onFinish, fabric, mode = 'all', onMode }: Props) {
+export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setChoices, onChooseGarment, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, finish, onFinish, fabric, mode = 'all', onMode }: Props) {
   const undo = useUndo(choices, setChoices);
   const onChoices = undo.change;
   const can = (t: ProTool) => shows(mode, t);
@@ -78,6 +82,7 @@ export function TrousersStyleScreen({ choices, onChoices: setChoices, onChooseGa
           <Title id="opts" big="Style" label="your trousers" />
           <GarmentSwitch onChoose={onChooseGarment} />
         </div>
+        <PhotoEntry onPhoto={onPhoto} photo={photo} />
         {TROUSER_GROUPS.filter((g) => shown(g.id)).map((g) => (
           <fieldset key={g.id} className="group">
             <legend>{g.label}</legend>

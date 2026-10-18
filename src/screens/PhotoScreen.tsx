@@ -3,9 +3,11 @@ import type { Choices } from '../App';
 import type { Length, SkirtMeasurements } from '../engine/skirt';
 import type { Unit } from '../measurements';
 import { photoToJpeg } from '../photo/image';
-import type { Confidence, PhotoError, PhotoReading, PhotoResponse } from '../photo/types';
+import type { Confidence, PhotoError, PhotoReading, PhotoResponse, PieceKind } from '../photo/types';
 import { GROUPS } from './StyleScreen';
-import { fitOf, shapeOf } from '../photo/shape';
+import { PIECE_KINDS, PIECE_WORDS, aPiece, choicesFor, pieceName, mainPiece, pieceNote, piecesToPick, skirtChoices } from '../photo/garments';
+import { isDress, type PatternChoices } from '../garments';
+import { describePattern } from './describe';
 import { bodyOutline } from '../ui/bodyOutline';
 
 interface Props {
@@ -16,31 +18,31 @@ interface Props {
   /** Leave for the style screen without a photo. */
   onByHand: () => void;
   /** The photo's preview goes along, so the style screen can show it while the app is open. */
-  onApply: (c: Choices, preview: string) => void;
+  onApply: (c: PatternChoices, preview: string) => void;
 }
 
-type Phase = 'start' | 'reading' | 'result' | 'length' | 'error';
+type Phase = 'start' | 'reading' | 'pick' | 'result' | 'length' | 'error';
 type Problem = PhotoError | 'network' | 'no_garment';
 
 // Each problem says what happened, and whether another photo can help or the way on is styling by hand.
 const PROBLEMS: Record<Problem, { title: string; text: string; byHand?: boolean }> = {
-  not_configured: { title: "Photo reading isn't on yet", text: 'You can still style your skirt by hand.', byHand: true },
+  not_configured: { title: "Photo reading isn't on yet", text: 'You can still style it by hand.', byHand: true },
   too_large: { title: 'That photo is too large', text: 'Try another one, or a screenshot of it.' },
   bad_image: { title: "We couldn't open that photo", text: 'Try a JPEG or PNG.' },
   declined: { title: "We couldn't read that photo", text: 'Try a different one.' },
   failed: { title: 'Something went wrong', text: 'Please try again.' },
-  limit_reached: { title: "That's today's photo readings", text: 'They come back tomorrow. You can style this skirt by hand now.', byHand: true },
-  busy: { title: 'Photo reading is resting', text: 'It comes back tomorrow. You can style this skirt by hand now.', byHand: true },
+  limit_reached: { title: "That's today's photo readings", text: 'They come back tomorrow. You can style it by hand now.', byHand: true },
+  busy: { title: 'Photo reading is resting', text: 'It comes back tomorrow. You can style it by hand now.', byHand: true },
   network: { title: "We couldn't reach the server", text: 'Check your connection and try again.' },
-  no_garment: { title: "We couldn't find a skirt", text: 'Try a photo with the whole skirt in view.' },
+  no_garment: { title: "We couldn't find a garment", text: 'Try a photo with the whole garment in view.' },
 };
 
 // What makes a photo easy to match: the hem and fullness are read against the wearer's body, or,
-// laid flat, from the skirt's own outline.
+// laid flat, from the garment's own outline.
 const TIPS: { title: string; tips: string[] }[] = [
   { title: 'Worn', tips: ['Show it from the waist to the feet.', 'Stand straight on, with the camera at hip height.', 'Stand still: twirling makes a skirt look fuller.'] },
-  { title: 'Laid flat', tips: ['Smooth it out flat, or hang it straight.', 'Shoot from straight above.', "You'll choose where it ends on you."] },
-  { title: 'Either way', tips: ['Keep the whole skirt in the frame.', 'Good light and a plain background help.', 'One skirt per photo. Shop photos and screenshots work too.'] },
+  { title: 'Laid flat', tips: ['Smooth it out flat, or hang it straight.', 'Shoot from straight above.', "For a skirt or dress, you'll choose where it ends on you."] },
+  { title: 'Either way', tips: ['Keep the whole garment in the frame.', 'Good light and a plain background help.', 'A whole outfit works: tap the piece you want. Shop photos and screenshots work too.'] },
 ];
 
 const SIL_NAME: Record<PhotoReading['silhouette']['value'], string> = {
@@ -60,17 +62,13 @@ const STAGES = ['Shape', 'Length', 'Fit'];
 const SAMPLE_BODY: SkirtMeasurements = { waist: 76, full_hip: 102, waist_to_hip: 20.5, waist_to_knee: 58, waist_to_floor: 104 } as SkirtMeasurements;
 const IN = 2.54;
 
-const OTHER: Partial<Record<PhotoReading['garment'], string>> = {
-  dress: 'This looks like a dress. Photos can only be read as skirts so far, so here is the closest skirt to its lower half.',
-  trousers: 'This looks like trousers. Photos can only be read as skirts so far, so here is our best skirt match.',
-  top: 'This looks like a top. Photos can only be read as skirts so far, so these are just starting points.',
-  other: "This doesn't look like a skirt. Photos can only be read as skirts so far, so these are just starting points.",
-};
+/** Skirts and dresses show the shape, length and fit to change here; the rest change on their style screen. */
+const hasSkirt = (g: PieceKind) => g === 'skirt' || g === 'dress';
 
 /** The one thing that would make an unsure reading exact, or nothing when the photo was clear. */
 function tipFor(r: PhotoReading): string | undefined {
   if (r.worn === false) return undefined; // laid flat: the length is asked next, and the shape reads from the outline
-  if (r.length.confidence === 'low' || r.shape?.confidence === 'low') return 'The hem is hard to see in this photo. For an exact length, show the whole skirt from the waist to the feet.';
+  if (r.length.confidence === 'low' || r.shape?.confidence === 'low') return 'The hem is hard to see in this photo. For an exact length, show the whole garment down to the feet.';
   if (r.silhouette.confidence === 'low') return 'The shape is hard to see in this photo. For a closer match, stand straight on and keep still.';
   return undefined;
 }
@@ -122,6 +120,9 @@ export function PhotoScreen({ measured, body, unit, onByHand, onApply }: Props) 
   const [problem, setProblem] = useState<Problem>();
   const [reading, setReading] = useState<PhotoReading>();
   const [choices, setChoices] = useState<Choices>();
+  // The garment to draft (G1): the one the photo shows, or another picked from the list, or a piece tapped on an outfit photo (G3).
+  const [piece, setPiece] = useState<PieceKind>('skirt');
+  const [choosing, setChoosing] = useState(false);
   const [open, setOpen] = useState<'fit' | 'silhouette' | 'length'>();
   const [stage, setStage] = useState(0);
   const [tape, setTape] = useState('');
@@ -152,6 +153,7 @@ export function PhotoScreen({ measured, body, unit, onByHand, onApply }: Props) 
     if (!file) return;
     setReading(undefined);
     setOpen(undefined);
+    setChoosing(false);
     setTape('');
     let img;
     try {
@@ -177,8 +179,10 @@ export function PhotoScreen({ measured, body, unit, onByHand, onApply }: Props) 
       const r = data.reading;
       if (r.garment === 'none') return fail('no_garment');
       setReading(r);
-      setChoices({ fit: fitOf(r), silhouette: r.silhouette.value, length: r.length.value, shape: shapeOf(r) });
-      setPhase('result');
+      const g = mainPiece(r) ?? 'skirt';
+      setPiece(g);
+      setChoices(skirtChoices(r, g === 'dress' ? 'dress' : 'skirt'));
+      setPhase(piecesToPick(r).length > 1 ? 'pick' : 'result');
     } catch {
       if (!ctrl.signal.aborted) fail('network');
     } finally {
@@ -205,7 +209,7 @@ export function PhotoScreen({ measured, body, unit, onByHand, onApply }: Props) 
   if (phase === 'start')
     return (
       <section ref={top} className="card photostart" aria-labelledby="phtitle">
-        <h1 id="phtitle">Snap a skirt you love.</h1>
+        <h1 id="phtitle">Snap something you love.</h1>
         <p className="muted">
           Worn or laid flat, any size.
           <br />
@@ -278,6 +282,47 @@ export function PhotoScreen({ measured, body, unit, onByHand, onApply }: Props) 
 
   if (!reading || !choices || !preview) return null;
   const flat = reading.worn === false;
+  const word = PIECE_WORDS[piece];
+
+  /** Switch garment: the skirt part is read again for a dress (no waistband) or a skirt. */
+  const choose = (g: PieceKind) => {
+    setPiece(g);
+    setChoosing(false);
+    setOpen(undefined);
+    setChoices(skirtChoices(reading, g === 'dress' ? 'dress' : 'skirt'));
+    setPhase('result');
+  };
+
+  /** The whole garment's choices: a skirt as changed here, a dress with its skirt as changed here, the rest as read. */
+  const final = (skirt: Choices = choices): PatternChoices => {
+    if (piece === 'skirt') return skirt;
+    const c = choicesFor(reading, piece);
+    return isDress(c) ? { ...c, skirt: { ...skirt, fit: c.fit } } : c;
+  };
+
+  if (phase === 'pick') {
+    const pieces = piecesToPick(reading);
+    return (
+      <section ref={top} className="card photopick" aria-labelledby="picktitle">
+        <h1 id="picktitle">Which piece shall we draft?</h1>
+        <div className="photoframe">
+          <img src={preview} alt="Your photo" />
+          {pieces.map((p) => (
+            <button
+              key={p.garment}
+              type="button"
+              className={p.garment === piece ? 'piecetag on' : 'piecetag'}
+              style={{ left: `${p.x * 100}%`, top: `${p.y * 100}%` }}
+              onClick={() => choose(p.garment)}
+            >
+              {pieceName(p.garment)}
+            </button>
+          ))}
+        </div>
+        <p className="muted small">Tap a piece. You can draft the others from this photo after.</p>
+      </section>
+    );
+  }
 
   if (phase === 'length') {
     const b = body ?? SAMPLE_BODY;
@@ -288,7 +333,7 @@ export function PhotoScreen({ measured, body, unit, onByHand, onApply }: Props) 
       setTape('');
       setChoices({ ...choices, length, lengthCm: undefined, shape: choices.shape && { ...choices.shape, hemAt: HEM_AT[length] } });
     };
-    const done = () => onApply(tapeCm ? { ...choices, lengthCm: Math.round(tapeCm * 10) / 10 } : choices, preview);
+    const done = () => onApply(final(tapeCm ? { ...choices, lengthCm: Math.round(tapeCm * 10) / 10 } : choices), preview);
     return (
       <section ref={top} className="card photolength" aria-labelledby="lentitle">
         <p className="eyebrow">One more thing</p>
@@ -310,30 +355,40 @@ export function PhotoScreen({ measured, body, unit, onByHand, onApply }: Props) 
           <span className="muted">{unit}</span>
         </label>
         <button type="button" className="primary" onClick={done}>
-          {measured ? 'Draft my skirt' : 'Next: add my measurements'}
+          {measured ? `Draft my ${word}` : 'Next: add my measurements'}
         </button>
       </section>
     );
   }
 
-  const tip = tipFor(reading);
-  const groups = flat ? ([GROUPS[1], GROUPS[0]] as const) : ([GROUPS[1], GROUPS[2], GROUPS[0]] as const);
+  const tip = hasSkirt(piece) || piece === 'trousers' ? tipFor(reading) : undefined;
+  // A dress takes its fit from the bodice, so only the skirt's shape and length change here.
+  const groups = piece === 'dress' ? (flat ? [GROUPS[1]] : [GROUPS[1], GROUPS[2]]) : flat ? [GROUPS[1], GROUPS[0]] : [GROUPS[1], GROUPS[2], GROUPS[0]];
   const conf = { silhouette: reading.silhouette.confidence, length: reading.length.confidence, fit: reading.fit.confidence };
   const label = (id: 'fit' | 'silhouette' | 'length') => GROUPS.find((g) => g.id === id)!.options.find(([v]) => v === choices[id])?.[1] ?? '';
   const sil = SIL_NAME[choices.silhouette];
+  const others = piecesToPick(reading).length > 1;
+  const note = reading.garment === 'other' ? `This isn't something we draft yet, so here it is as ${aPiece(piece)}.` : pieceNote(reading, piece);
+  const needsLength = flat && hasSkirt(piece);
+  // The name, without the dress skirt's "matched to a photo".
+  const named = final();
+  const title =
+    piece !== 'skirt' ? describePattern(isDress(named) ? { ...named, skirt: { ...named.skirt, shape: undefined } } : named) : flat ? `A ${sil.toLowerCase()} skirt` : `${sil}, ${WHERE[choices.length]}`;
+  const sub = piece !== 'skirt' ? (needsLength ? 'The length is up to you' : '') : flat ? `${label('fit')} fit · the length is up to you` : `${label('fit')} fit · ${SURE[reading.shape?.confidence ?? reading.length.confidence]}`;
 
   return (
     <section ref={top} className="card photoresult" aria-labelledby="seetitle">
       <div className="photohead">
         {thumb}
         <div>
-          <p className="eyebrow">{flat ? 'We see · laid flat' : 'We see'}</p>
-          <h1 id="seetitle">{flat ? `A ${sil.toLowerCase()} skirt` : `${sil}, ${WHERE[choices.length]}`}</h1>
-          <p className="muted small">{flat ? `${label('fit')} fit · the length is up to you` : `${label('fit')} fit · ${SURE[reading.shape?.confidence ?? reading.length.confidence]}`}</p>
+          <p className="eyebrow">{`We see ${aPiece(piece)}${flat ? ' · laid flat' : ''}`}</p>
+          <h1 id="seetitle">{title}</h1>
+          {sub && <p className="muted small">{sub}</p>}
         </div>
       </div>
-      {OTHER[reading.garment] && <p className="msg small">{OTHER[reading.garment]}</p>}
+      {note && <p className="msg small">{note}</p>}
       {tip && <p className="msg small">{tip}</p>}
+      {hasSkirt(piece) && (
       <div className="photorows">
         {groups.map((g) => (
           <div key={g.id} className="photorow">
@@ -368,17 +423,39 @@ export function PhotoScreen({ measured, body, unit, onByHand, onApply }: Props) 
           </div>
         ))}
       </div>
+      )}
       {reading.details && <p className="muted small">{reading.details}</p>}
-      {choices.shape && !flat && <p className="muted small">Your pattern copies these proportions, drafted to your measurements.</p>}
+      {piece === 'skirt' && choices.shape && !flat && <p className="muted small">Your pattern copies these proportions, drafted to your measurements.</p>}
+      {!hasSkirt(piece) && <p className="muted small">Drafted to your measurements. You can change any detail on the next screen.</p>}
       <div className="stack">
-        {flat ? (
+        {needsLength ? (
           <button type="button" className="primary" onClick={() => setPhase('length')}>
             Next: where it ends
           </button>
         ) : (
-          <button type="button" className="primary" onClick={() => onApply(choices, preview)}>
-            {measured ? 'Draft my skirt' : 'Next: add my measurements'}
+          <button type="button" className="primary" onClick={() => onApply(final(), preview)}>
+            {measured ? `Draft my ${word}` : 'Next: add my measurements'}
           </button>
+        )}
+        {others && (
+          <button type="button" className="link small" onClick={() => setPhase('pick')}>
+            Draft another piece from this photo
+          </button>
+        )}
+        <button type="button" className="link small" aria-expanded={choosing} onClick={() => setChoosing(!choosing)}>
+          {`Not ${aPiece(piece)}? Choose the garment`}
+        </button>
+        {choosing && (
+          <fieldset className="group">
+            <legend className="visually-hidden">Garment</legend>
+            <div className="chips">
+              {PIECE_KINDS.map((g) => (
+                <button key={g} type="button" className={g === piece ? 'chip on' : 'chip'} aria-pressed={g === piece} onClick={() => choose(g)}>
+                  {pieceName(g)}
+                </button>
+              ))}
+            </div>
+          </fieldset>
         )}
         {chooser('Try another photo', 'link')}
       </div>
