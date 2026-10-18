@@ -3378,6 +3378,82 @@ button.link.garment-change {
   }
 }
 
+/* The Style and Print chapters' top edges (Cat's S2c Raw Fringe and P4e Ivory Mat, 2026-10-18): they sit
+   under the header where the tape sits on the measuring pages, and unroll the same way when the chapter opens. */
+.chapter-band {
+  position: relative;
+  overflow: hidden;
+  animation: tape-unroll 0.8s cubic-bezier(0.3, 0.6, 0.3, 1) both;
+}
+
+/* The selvedge: a woven cloth edge with its row of pin holes, the house name printed along it, and the raw
+   edge frayed into loose threads underneath. */
+.selvedge-band {
+  --cloth: #d6cab0;
+  height: 40px;
+}
+
+.selvedge-cloth {
+  height: 32px;
+  display: flex;
+  align-items: center;
+  padding: 6px 20px 0;
+  background-color: var(--cloth);
+  background-image: radial-gradient(circle, var(--tape-ink) 0 1.1px, transparent 1.6px),
+    repeating-linear-gradient(45deg, rgba(43, 36, 24, 0.12) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(-45deg, rgba(43, 36, 24, 0.08) 0 1px, transparent 1px 3px);
+  background-size: 11px 8px, auto, auto;
+  background-position: 0 2px, 0 0, 0 0;
+  background-repeat: repeat-x, repeat, repeat;
+}
+
+.selvedge-cloth span {
+  font: var(--w-strong) 9px/1 var(--mono);
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  color: var(--tape-ink);
+}
+
+.selvedge-fringe {
+  height: 8px;
+  margin-top: -1px;
+  background: repeating-linear-gradient(90deg, var(--cloth) 0 1px, transparent 1px 2.6px);
+  -webkit-mask: linear-gradient(#000, #000 35%, transparent);
+  mask: linear-gradient(#000, #000 35%, transparent);
+}
+
+/* The mat: the tape's ivory with a cutting grid, a 45 degree line every square, and the centimetres. */
+.mat-band {
+  height: 34px;
+  background-color: var(--tape);
+  background-image: repeating-linear-gradient(90deg, rgba(43, 36, 24, 0.55) 0 1px, transparent 1px 39px),
+    repeating-linear-gradient(0deg, rgba(43, 36, 24, 0.25) 0 1px, transparent 1px 9.75px),
+    repeating-linear-gradient(90deg, rgba(43, 36, 24, 0.18) 0 1px, transparent 1px 9.75px),
+    linear-gradient(135deg, transparent 49.6%, rgba(43, 36, 24, 0.5) 50%, transparent 50.4%);
+  background-size: 100% 100%, 100% 100%, 100% 100%, 34px 34px;
+  background-position: 19.5px 0, 0 0, 19.5px 0, 0 0;
+}
+
+.mat-marks {
+  display: flex;
+  height: 100%;
+}
+
+.mat-marks span {
+  flex: none;
+  width: 39px;
+  padding-top: 5px;
+  text-align: center;
+  font: var(--w-strong) 9px/1 var(--mono);
+  color: var(--tape-ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chapter-band {
+    animation: none;
+  }
+}
+
 @keyframes tape-rise {
   from {
     top: calc(50% - 17px);

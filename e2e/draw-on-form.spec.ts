@@ -7,6 +7,8 @@ import type { Page } from '@playwright/test';
 async function draw(page: Page, at: { x: number; y: number }[]) {
   const screen = await page.evaluate((pts) => {
     const svg = document.querySelector<SVGSVGElement>('svg.form-svg')!;
+    // The whole form in view, so every point lands on screen whatever sits above it.
+    svg.scrollIntoView({ block: 'center' });
     const cx = svg.viewBox.baseVal.width / 2;
     const ctm = svg.getScreenCTM()!;
     return pts.map((q) => {
