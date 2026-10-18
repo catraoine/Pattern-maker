@@ -23,7 +23,7 @@ test('a new sewist sees Start from a photo', async ({ page }) => {
   await openFresh(page);
   const main = page.getByRole('main');
   await main.getByRole('button', { name: 'Begin' }).click();
-  await main.getByRole('button', { name: 'Start measuring' }).click();
+  await main.getByRole('button', { name: 'Me', exact: true }).click();
   await fillStepPages(page);
   await main.getByRole('button', { name: 'Choose what to make' }).click();
   await pickToMake(page, 'Skirt');
@@ -39,7 +39,7 @@ test('a wrong measurement is explained, not looped', async ({ page }) => {
   await openFresh(page);
   const main = page.getByRole('main');
   await main.getByRole('button', { name: 'Begin' }).click();
-  await main.getByRole('button', { name: 'Start measuring' }).click();
+  await main.getByRole('button', { name: 'Me', exact: true }).click();
   const box = main.getByRole('textbox');
   const next = () => main.getByRole('button', { name: /^(Next|Done)\b/ }).click();
   // Print in the header waits for the measurements, and says so.
@@ -67,7 +67,7 @@ test('a first dress asks five more measurements, not thirteen', async ({ page })
   await openFresh(page);
   const main = page.getByRole('main');
   await main.getByRole('button', { name: 'Begin' }).click();
-  await main.getByRole('button', { name: 'Start measuring' }).click();
+  await main.getByRole('button', { name: 'Me', exact: true }).click();
   await fillStepPages(page);
   await main.getByRole('button', { name: 'Choose what to make' }).click();
   await pickToMake(page, 'Dress');

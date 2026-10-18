@@ -77,12 +77,15 @@ import { CheckFileScreen } from './screens/CheckFileScreen';
 import { CollectionScreen } from './screens/CollectionScreen';
 import { lookPatch } from './collection';
 import { CollectionLink } from './ui/GarmentSwitch';
-import { LoadingScreen } from './ui/LoadingScreen';
+import { LoadingScreen, BODICE } from './ui/LoadingScreen';
 import type { FormStart } from './ui/ContourForm';
 import type { Piece } from './engine/piece';
 import type { PocketStyle } from './engine/pockets';
 import { garmentEase } from './engine/easeMap';
 import { Flounce, GodetCount, Pleats, layoutExtras } from './engine/skirtVolume';
+
+// The logo (Cat's pick F1 Loading Block): the loading screen's bodice block, drawn inside the header's square.
+const BRAND_BLOCK = 'M' + BODICE.map(([x, y]) => `${(9 + x * 14).toFixed(2)} ${(8 + y * 16).toFixed(2)}`).join(' L') + ' Z';
 import { Mode, finishFor, keepFinish, modeOf } from './mode';
 
 export type Step = 'measure' | 'style' | 'export';
@@ -739,8 +742,8 @@ export default function App() {
           {step === 'welcome' ? (
             <div className="brand">
               <svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true">
-                <rect x="2.5" y="2.5" width="27" height="27" fill="none" style={{ stroke: 'var(--ink)' }} strokeWidth="1" />
-                <path d="M10 22 L16 10 L22 22 M12.5 17 H19.5" style={{ stroke: 'var(--ink)' }} strokeWidth="1" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                <rect x="2.5" y="2.5" width="27" height="27" fill="none" style={{ stroke: 'var(--gild)' }} strokeWidth="1" />
+                <path d={BRAND_BLOCK} style={{ stroke: 'var(--gild)' }} strokeWidth="1" fill="none" strokeLinejoin="round" />
               </svg>
               <span>Maison Tracé</span>
             </div>
@@ -800,10 +803,9 @@ export default function App() {
             <WelcomeScreen
               formStart={formStart}
               onLegal={openLegal}
-              onFinish={({ start }) => {
-                const onboarded = { ...account, onboarded: true, mode };
-                setAccount(start === 'example' ? updatePerson(onboarded, person.id, { values: { ...EXAMPLE_VALUES, ...measured } }) : onboarded);
-                setStep(start === 'example' ? 'style' : 'steps');
+              onFinish={() => {
+                setAccount({ ...account, onboarded: true, mode });
+                setStep('steps');
               }}
             />
           )}
@@ -826,6 +828,12 @@ export default function App() {
               onDone={(g) => {
                 countStep('measured', g);
                 switchGarment(g, {}, 'style');
+              }}
+              onSkip={(g?: Garment) => {
+                // Skip on the tape: try the app with the example measurements, under any already taken.
+                setAccount(updatePerson({ ...account, onboarded: true, mode }, person.id, { values: { ...EXAMPLE_VALUES, ...values } }));
+                if (g && g !== garment) setSaved({ ...saved, garment: g });
+                setStep('style');
               }}
             />
           )}

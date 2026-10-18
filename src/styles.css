@@ -1632,7 +1632,7 @@ details.more[open] > summary h2::after {
   stroke-linecap: round;
 }
 .techflat .flat-shape {
-  fill: var(--paper);
+  fill: var(--garment, var(--paper));
   stroke: var(--gild);
   stroke-width: 0.3;
 }
@@ -1749,7 +1749,7 @@ button.link.quiet-link {
 .measure-step .welcome-hero {
   position: relative;
   overflow: hidden;
-  height: clamp(150px, calc(100svh - 500px), 420px);
+  height: clamp(130px, calc(100svh - 548px), 372px);
 }
 
 .measure-step .welcome-hero canvas {
@@ -2776,4 +2776,419 @@ button.link.garment-change {
 .photoallowance {
   max-width: 720px;
   margin: 0 auto 12px;
+}
+
+/* Draw on your form: one job, the form and its lines, with the line chips and one button under it */
+.form-draw {
+  max-width: 520px;
+  margin: 0 auto;
+}
+.form-draw .card {
+  display: grid;
+  gap: 14px;
+}
+.form-draw .chips {
+  justify-content: center;
+}
+.form-draw .form-said {
+  text-align: center;
+  min-height: 2.9em;
+  margin: 0;
+}
+.form-svg {
+  max-height: 62vh;
+}
+.form-svg .form-line {
+  stroke: var(--gild);
+}
+.form-svg .form-legs,
+.form-svg .form-stand {
+  stroke: var(--line-strong);
+}
+.form-svg .tape {
+  stroke: var(--muted);
+}
+.form-svg .tape.on {
+  stroke: var(--gild-glow);
+  filter: drop-shadow(0 0 0.5px rgba(243, 230, 200, 0.8));
+}
+
+/* The sketch in the maker's fabric, and the swatches to choose it. */
+.garment-fabric {
+  display: contents;
+}
+.fabric-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+.swatch-row {
+  display: grid;
+  gap: 10px;
+}
+.fabric-now {
+  margin: 0;
+  min-height: 28px;
+}
+.fabric-now em {
+  font-family: 'Bodoni Moda', Didot, Georgia, serif;
+  font-style: italic;
+  font-size: 22px;
+  color: var(--ink);
+}
+.swatches {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 6px 5px;
+  scrollbar-width: none;
+}
+.swatches::-webkit-scrollbar {
+  display: none;
+}
+.swatch {
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  min-height: 0;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--line-strong);
+  background-size: 64px 64px;
+  background-position: center;
+}
+.swatch.on {
+  outline: 1px solid var(--ink);
+  outline-offset: 3px;
+}
+/* Handle labels stay readable over a pale fabric. */
+.garment-fabric .handle text,
+.garment-fabric .hint {
+  paint-order: stroke;
+  stroke: var(--paper);
+  stroke-width: 0.5;
+  stroke-linejoin: round;
+}
+
+/* Pieces on pattern paper: the garment is shown in fabric, the pattern on paper. */
+.paper-sheet {
+  --ink: #1a1712;
+  --paper: #ece3cf;
+  --muted: #6b6152;
+  width: 100%;
+  padding: 14px;
+  background-color: #ece3cf;
+  background-image: radial-gradient(rgba(60, 50, 30, 0.1) 1px, transparent 1.2px), linear-gradient(#ece3cf, #e4d9c1);
+  background-size: 7px 7px, 100% 100%;
+}
+.paper-sheet .preview-svg {
+  display: block;
+}
+.pencil-body {
+  fill: #1a1712;
+}
+.pencil-wood {
+  fill: #d9c49b;
+}
+.pencil-lead {
+  fill: #3a352c;
+}
+/* Pencil lines on paper read heavier than chalk-light lines on black. */
+.paper-sheet .preview-svg polygon {
+  stroke-width: 0.18;
+}
+.paper-sheet .preview-svg polyline {
+  stroke-width: 0.12;
+}
+
+/* The tape (Cat's pick U3 Real Tape, 2026-10-17): unrolls across the welcome's form on Begin, then runs along
+   the top of every measuring page, bleeding to the card's edges like the form above it. */
+:root {
+  --tape: #e3d3ad;
+  --tape-ink: #2b2418;
+}
+
+.welcome-hero {
+  position: relative;
+}
+
+.tape-band {
+  position: relative;
+  flex: none;
+  height: 34px;
+  margin: 0 -22px;
+  overflow: hidden;
+  background-color: var(--tape);
+  /* Centimetres every 39px, centred on each number, and millimetres between */
+  background-image: repeating-linear-gradient(90deg, var(--tape-ink) 0 1px, transparent 1px 39px),
+    repeating-linear-gradient(90deg, rgba(43, 36, 24, 0.7) 0 1px, transparent 1px 3.9px);
+  background-size: 100% 13px, 100% 7px;
+  background-position: 19.5px 0, 19.5px 0;
+  background-repeat: no-repeat;
+}
+
+.tape-marks {
+  display: flex;
+  height: 100%;
+}
+
+.tape-marks span {
+  flex: none;
+  width: 39px;
+  padding-top: 15px;
+  text-align: center;
+  font: var(--w-strong) 10px/1 var(--mono);
+  color: var(--tape-ink);
+}
+
+.tape-skip {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  border: 1px solid var(--tape);
+  border-radius: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: var(--w-body) 10px/1 var(--mono);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.tape-skip:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -4px;
+}
+
+/* Begin: the tape unrolls across the form at the waist, the welcome fades, and the tape rises to the top */
+.tape-band.unrolling {
+  position: absolute;
+  left: 0;
+  right: 0;
+  margin: 0;
+  top: calc(50% - 17px);
+  z-index: 3;
+  animation: tape-unroll 0.8s cubic-bezier(0.3, 0.6, 0.3, 1) both, tape-rise 0.65s cubic-bezier(0.2, 0.7, 0.2, 1) 1.05s both;
+}
+
+@keyframes tape-unroll {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes tape-rise {
+  from {
+    top: calc(50% - 17px);
+  }
+  to {
+    top: 0;
+  }
+}
+
+.welcome.leaving {
+  pointer-events: none;
+}
+
+.welcome.leaving .welcome-hero canvas,
+.welcome.leaving .tour-play,
+.welcome.leaving .welcome-card > :not(.welcome-hero) {
+  opacity: 0;
+  transition: opacity 0.45s ease 0.5s;
+}
+
+.welcome.leaving .welcome-hero {
+  border-bottom-color: transparent;
+  transition: border-color 0.45s ease 0.5s;
+}
+
+/* The tour's play button, on the welcome's dress form above the waist */
+.tour-play {
+  position: absolute;
+  left: 50%;
+  top: 30%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.tour-play-ring {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  border: 1px solid var(--ink);
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.tour-play-ring::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-35%, -50%);
+  border-left: 16px solid var(--ink);
+  border-top: 10px solid transparent;
+  border-bottom: 10px solid transparent;
+}
+
+.tour-play-label {
+  padding: 6px 8px;
+  background: rgba(0, 0, 0, 0.7);
+  font: var(--w-body) 10px/1 var(--mono);
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+}
+
+.tour-play:focus-visible .tour-play-ring {
+  outline: 2px solid var(--focus);
+  outline-offset: 4px;
+}
+
+/* Who are we measuring: Me or Someone else, either one starts */
+.who {
+  display: grid;
+  gap: 10px;
+}
+
+.who-q {
+  margin: 0;
+  color: var(--muted);
+  font: var(--w-body) 11px/1.2 var(--mono);
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+}
+
+.who-pick {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.who-pick .primary {
+  width: 100%;
+  white-space: nowrap;
+  letter-spacing: 0.14em;
+}
+
+.who-pick .primary[aria-pressed='true'] {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+/* The tour, full screen */
+.tour {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+  color: var(--ink);
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+.tour-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+}
+
+.tour-tag {
+  color: var(--muted);
+  font: var(--w-body) 10px/1 var(--mono);
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+}
+
+.tour-skip {
+  padding: 9px 12px;
+  border: 1px solid var(--ink);
+  border-radius: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: var(--w-body) 10px/1 var(--mono);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.tour-video {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  object-fit: contain;
+  background: var(--paper);
+}
+
+.tour-parts {
+  list-style: none;
+  margin: 0;
+  padding: 14px 16px 22px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.tour-parts button {
+  width: 100%;
+  display: grid;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: var(--w-body) 10px/1 var(--mono);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tour-parts li.on button {
+  color: var(--ink);
+}
+
+.tour-track {
+  display: block;
+  height: 2px;
+  background: var(--line-strong);
+  overflow: hidden;
+}
+
+.tour-track span {
+  display: block;
+  height: 100%;
+  background: var(--ink);
+  transform-origin: left;
+}
+
+@media (max-width: 640px) {
+  .tape-band {
+    margin: 0 -18px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tape-band.unrolling {
+    animation: none;
+  }
 }

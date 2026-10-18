@@ -15,6 +15,7 @@ import { SaveControl } from '../ui/SaveControl';
 import { UndoToast, UndoTools, useUndo } from '../ui/useUndo';
 import { PatternPreview } from '../ui/Preview';
 import { TechFlatView } from '../ui/TechFlatView';
+import { FabricSwatches, GarmentFabric } from '../ui/FabricFill';
 import { DETAIL_GROUPS, GROUPS } from './StyleScreen';
 import { cutAllowed, validCut } from '../engine/slip';
 import { describePattern } from './describe';
@@ -29,6 +30,12 @@ import { FinishChoices } from '../ui/FinishChoices';
 import type { Finish } from '../App';
 import { GODET_OPTIONS, VOLUME_OPTIONS, layoutExtras, setVolume, volumeAllowed, volumeOf } from '../engine/skirtVolume';
 import { isDraped } from '../engine/drape';
+import { lengthRange } from '../engine/skirt';
+import type { BodiceMeasurements } from '../engine/bodice';
+import type { SkirtMeasurements } from '../engine/skirt';
+import { DrawOnForm, formWidth } from '../ui/DrawOnForm';
+import { REPLACES } from './BodiceStyleScreen';
+import { bodiceLines, landmarks, readDrape, readFit, readNeckline, readSeam, readSkirtHem, skirtLines } from '../ui/formLines';
 
 interface Props {
   choices: DressChoices;
@@ -72,6 +79,8 @@ export function DressStyleScreen({ choices, onChoices: setChoices, onChooseGarme
   const onChoices = undo.change;
   const can = (t: ProTool) => shows(mode, t);
   const [picked, setView] = useState<'sketch' | 'pattern' | 'ease'>('sketch');
+  /** Drawing on the form: the choices from before, to keep or go back to. */
+  const [onForm, setOnForm] = useState<DressChoices>();
   const view = picked === 'ease' && !can('easeMap') ? 'sketch' : picked;
   const pieces = useMemo(() => (draft ? [...draft.pieces.filter((pc) => /^Bodice/.test(pc.name)), ...(sleeve?.pieces ?? []), ...draft.skirt.pieces] : []), [draft, sleeve]);
   const sheet = useMemo(() => (pieces.length ? layout(pieces, '', []) : undefined), [pieces]);
@@ -173,10 +182,63 @@ export function DressStyleScreen({ choices, onChoices: setChoices, onChooseGarme
     }
     const fit = id === 'fit' ? (opt as DressChoices['fit']) : choices.fit;
     const bodice = { ...choices.bodice, fit, ...(id === 'fit' ? {} : { [id]: opt }) } as BodiceChoices;
+    // A chip lets go of what was drawn on the form for it.
+    for (const k of REPLACES[id] ?? []) delete bodice[k];
     // A tighter fit needs more shaping, and each sleeve length allows only some shapes.
     const darts = DARTS_FOR_FIT[fit].includes(bodice.darts) ? bodice.darts : 'bust_waist';
     onChoices({ ...choices, fit, bodice: validDetails({ ...bodice, darts, length: 'waist', closure: 'back_zip', sleeveShape: sleeveOf(bodice).shape }, 'dress'), skirt: { ...choices.skirt, fit } });
   };
+
+  if (onForm && draft) {
+    // The bodice's lines are read at the dress's own fit and length; the hem is the skirt's.
+    const asBodice: BodiceChoices = { ...choices.bodice, fit: choices.fit, length: 'waist', closure: 'back_zip' };
+    const mv = values as BodiceMeasurements & SkirtMeasurements;
+    const waistY = landmarks(draft.bodice).waistY;
+    return (
+      <DrawOnForm<DressChoices>
+        body={formWidth(draft.bodice, mv)}
+        m={mv}
+        legs
+        bottom={waistY + lengthRange(mv).max + 4}
+        kinds={[
+          ['neckline', 'Neckline'],
+          ['seam', 'Seam'],
+          ['drape', 'Drape'],
+          ['fit', 'Side'],
+          ['hem', 'Hem'],
+        ]}
+        lines={(side) => ({ ...bodiceLines(draft.bodice, side), hem: skirtLines(draft.skirt, choices.skirt, mv, side, waistY).hem })}
+        choices={choices}
+        onChoices={setChoices}
+        read={(kind, side, stroke) => {
+          if (kind === 'hem') {
+            const r = readSkirtHem(stroke, waistY, draft.skirt, mv, choices.skirt, side, 'dress');
+            return { said: r.said, choices: r.choices && { ...choices, skirt: r.choices } };
+          }
+          if (kind === 'fit') {
+            const r = readFit(stroke, draft.bodice, mv, asBodice);
+            return { said: r.said, choices: r.choices && { ...choices, fit: r.choices.fit, bodice: r.choices, skirt: { ...choices.skirt, fit: r.choices.fit } } };
+          }
+          const r =
+            kind === 'neckline'
+              ? readNeckline(stroke, draft.bodice, asBodice, 'dress', side)
+              : kind === 'seam'
+                ? readSeam(stroke, draft.bodice, asBodice, 'dress', side)
+                : readDrape(stroke, draft.bodice, asBodice, 'dress');
+          return { said: r.said, choices: r.choices && { ...choices, bodice: r.choices } };
+        }}
+        onDone={() => {
+          undo.change(choices, onForm);
+          setOnForm(undefined);
+          setView('pattern');
+        }}
+        onCancel={() => {
+          setChoices(onForm);
+          setOnForm(undefined);
+        }}
+      />
+    );
+  }
 
   return (
     <div className="split three">
@@ -279,15 +341,25 @@ export function DressStyleScreen({ choices, onChoices: setChoices, onChooseGarme
               </button>
             )}
           </div>
-          <UndoTools undo={undo} />
+          <div className="row tools">
+            <button type="button" className="link small" onClick={() => setOnForm(choices)}>
+              Draw on your form
+            </button>
+            <UndoTools undo={undo} />
+          </div>
         </div>
         <div className="preview">
           {error && <p className="msg error">{error}</p>}
-          {flat && view === 'sketch' && <TechFlatView flat={flat} title={title} />}
-          {sheet && view === 'pattern' && <PatternPreview sheet={sheet} label={`Pattern pieces for a ${title}`} />}
+          {flat && view === 'sketch' && (
+            <GarmentFabric fabric={fabric}>
+              <TechFlatView flat={flat} title={title} />
+            </GarmentFabric>
+          )}
+          {sheet && view === 'pattern' && <PatternPreview paper sheet={sheet} label={`Pattern pieces for a ${title}`} />}
           {view === 'ease' && easeMap && <EaseMapView views={easeMap} label={`Ease map of the ${title}`} />}
           <UndoToast undo={undo} />
         </div>
+        {flat && view === 'sketch' && <FabricSwatches finish={finish} onFinish={onFinish} />}
         <p className="muted small">
           Drafted to your measurements as you choose.{undo.shake.state === 'on' ? ' Shake your phone to undo.' : ''}
         </p>

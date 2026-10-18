@@ -70,6 +70,8 @@ const angleFrom = (c: P, a: P, b: P) => {
   const v = sub(b, c);
   return Math.atan2(u.x * v.y - u.y * v.x, u.x * v.x + u.y * v.y);
 };
+/** A drawn position along an edge, kept within the part of it a seam or dart can start from. */
+export const clampAt = (at: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, at));
 const polyLen = (pts: P[]) => pts.slice(1).reduce((s, q, i) => s + len(sub(q, pts[i])), 0);
 
 /** The first and last edge of the longest run of edges tagged `tag`. */
@@ -170,7 +172,7 @@ export interface Moved {
  * Close the side bust dart about the bust point and open it at `to`. With `short` 0 the dart is left
  * open to the bust point with no peak, ready to become a princess seam.
  */
-export function moveBustDart(path: Path, apex: P, to: DartPlace, opts: { armholeNotch?: P; short?: number; princess?: boolean; belowNotch?: number; waistSide?: P; along?: number } = {}): Moved | undefined {
+export function moveBustDart(path: Path, apex: P, to: DartPlace, opts: { armholeNotch?: P; short?: number; princess?: boolean; belowNotch?: number; waistSide?: P; along?: number; at?: number } = {}): Moved | undefined {
   const r = ringOf(path);
   const side = dartAfter(r, 'side');
   if (!side || to === 'side') return undefined;
@@ -191,12 +193,21 @@ export function moveBustDart(path: Path, apex: P, to: DartPlace, opts: { armhole
   let merge = false;
   if (to === 'shoulder' || to === 'neck') {
     const run = runOf(r, to)!;
-    // Halfway along, or `along` cm from the start of the edge (a strapless top edge, over the bust point).
-    iQ = insertAlong(r, run, opts.along ?? runLength(r, run) / 2);
+    // Halfway along, `along` cm from the start of the edge (a strapless top edge, over the bust point),
+    // or where it was drawn: `at` of the way along, kept clear of both ends.
+    iQ = insertAlong(r, run, opts.along ?? runLength(r, run) * (opts.at !== undefined ? clampAt(opts.at, 0.2, 0.8) : 0.5));
   } else if (to === 'armhole') {
     const run = runOf(r, 'armhole')!;
     const toNotch = opts.armholeNotch ? along(r, run, opts.armholeNotch) : runLength(r, run) * 0.5;
-    iQ = insertAlong(r, run, opts.belowNotch !== undefined ? Math.min(toNotch + opts.belowNotch, runLength(r, run) * 0.6) : toNotch * 0.8);
+    iQ = insertAlong(
+      r,
+      run,
+      opts.at !== undefined
+        ? runLength(r, run) * clampAt(opts.at, 0.15, 0.6)
+        : opts.belowNotch !== undefined
+          ? Math.min(toNotch + opts.belowNotch, runLength(r, run) * 0.6)
+          : toNotch * 0.8,
+    );
   } else if (to === 'french') {
     let a = iN;
     let b = iN;

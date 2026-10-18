@@ -14,9 +14,9 @@ export function useUndo<T>(choices: T, onChoices: (c: T) => void) {
     clearTimeout(timer.current);
     timer.current = setTimeout(() => setToast(undefined), 1800);
   };
-  /** Every change goes through here, so it can be undone. */
-  const change = (next: T) => {
-    if (JSON.stringify(next) !== JSON.stringify(choices)) setHistory((h) => [...h.slice(-UNDO_LIMIT + 1), choices]);
+  /** Every change goes through here, so it can be undone; `before` for one made of several live steps. */
+  const change = (next: T, before: T = choices) => {
+    if (JSON.stringify(next) !== JSON.stringify(before)) setHistory((h) => [...h.slice(-UNDO_LIMIT + 1), before]);
     onChoices(next);
   };
   const undo = () => {

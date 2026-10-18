@@ -29,6 +29,10 @@ export interface BodiceChoices {
   /** Older saves have the block's side bust dart, no princess seams, a back zip and no collar. */
   bustDart?: DartPlace;
   princess?: PrincessLine;
+  /** Drawn on the form: where the princess seam or moved bust dart starts along its edge (0 to 1), and
+   * how deep a cowl hangs (cm). Picking a seam, dart or neckline chip lets go of them. */
+  lineAt?: number;
+  cowlDepth?: number;
   closure?: Closure;
   collar?: Collar;
   /** A peplum at the waist seam, on a waist-length bodice. */

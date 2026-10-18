@@ -2,7 +2,7 @@
 // shoulder or the armhole. Works on the drafted block's pieces (see manipulate.ts).
 import { P, Path, add, len, lerp, mul, p, sub, unit } from './geometry';
 import { insidePolygon } from './marks';
-import { DartPlace, PrincessLine, Ring, marksAlong, moveBustDart, pathOf, polyLen, ringOf, trueSeams } from './manipulate';
+import { DartPlace, PrincessLine, Ring, clampAt, marksAlong, moveBustDart, pathOf, polyLen, ringOf, trueSeams } from './manipulate';
 import { DraftPoint, Piece } from './piece';
 
 const WORDS: Record<DartPlace, string> = {
@@ -32,8 +32,8 @@ const moveNotch = (move: (q: P) => P) => ([q, d]: [P, P]): [P, P] => {
 };
 
 /** The front with its bust dart moved from the side seam to `to`. */
-export function moveFrontDart(front: Piece, apex: P, to: DartPlace, waistSide?: P): Piece {
-  const m = moveBustDart(front.outline, apex, to, { armholeNotch: front.notches[0]?.[0], waistSide });
+export function moveFrontDart(front: Piece, apex: P, to: DartPlace, waistSide?: P, at?: number): Piece {
+  const m = moveBustDart(front.outline, apex, to, { armholeNotch: front.notches[0]?.[0], waistSide, at });
   if (!m || !m.dart) return front;
   const merged = to === 'waist' && !!front.lines.find(isWaistDart);
   const lines = front.lines.filter((ln) => !isSideDart(ln) && !(merged && isWaistDart(ln)));
@@ -230,9 +230,10 @@ export function panels(pc: Piece, s: Split, names: [string, string], cuts: [stri
 }
 
 /** Princess seams: the front and back each cut into a centre and a side panel. */
-export function princessPieces(front: Piece, back: Piece, apex: P, line: Exclude<PrincessLine, 'none'>): { pieces: Piece[]; lines: { front: P[]; back: P[] } } | undefined {
-  // Front: the bust dart moved into the line, opened right to the bust point.
-  const m = moveBustDart(front.outline, apex, line, { princess: true, armholeNotch: front.notches[0]?.[0], belowNotch: 2 });
+export function princessPieces(front: Piece, back: Piece, apex: P, line: Exclude<PrincessLine, 'none'>, at?: number): { pieces: Piece[]; lines: { front: P[]; back: P[] } } | undefined {
+  // Front: the bust dart moved into the line, opened right to the bust point; `at` is where along the
+  // shoulder or armhole it was drawn, and the back's line starts the same way along its own edge.
+  const m = moveBustDart(front.outline, apex, line, { princess: true, armholeNotch: front.notches[0]?.[0], belowNotch: 2, at });
   if (!m) return undefined;
   const f = panels(front, { ring: m.ring, i1: m.i1, i2: m.i1 + 1, pivot: apex, move: m.move, top: m.closedAt }, ['Bodice centre front', 'Bodice side front'], ['Cut 1 on fold', 'Cut 2 (1 pair)'], line === 'shoulder' ? {} : {});
 
@@ -241,7 +242,7 @@ export function princessPieces(front: Piece, back: Piece, apex: P, line: Exclude
   let iQ: number;
   if (line === 'shoulder') {
     const run = runOf(r, 'shoulder')!;
-    iQ = insertAlong(r, run, runLen(r, run) / 2);
+    iQ = insertAlong(r, run, runLen(r, run) * (at !== undefined ? clampAt(at, 0.2, 0.8) : 0.5));
   } else {
     const run = runOf(r, 'armhole')!;
     const notch = back.notches.length >= 2 ? lerp(back.notches[0][0], back.notches[1][0], 0.5) : r.pts[run[0] + 2];
@@ -255,7 +256,7 @@ export function princessPieces(front: Piece, back: Piece, apex: P, line: Exclude
         atS = s;
       }
     }
-    iQ = insertAlong(r, run, Math.min(atS + 2, runLen(r, run) * 0.6));
+    iQ = insertAlong(r, run, at !== undefined ? runLen(r, run) * clampAt(at, 0.15, 0.6) : Math.min(atS + 2, runLen(r, run) * 0.6));
   }
   const dl = back.lines.map((l) => l.points()).find((q) => q.length === 3);
   const eye = fishEyeOf(back);

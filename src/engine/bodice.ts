@@ -71,6 +71,11 @@ export interface BodiceStyle {
   /** Where the bust dart opens (the block's is in the side seam), or princess seams instead of darts. */
   bustDart?: DartPlace;
   princess?: PrincessLine;
+  /** Where a princess seam or moved bust dart starts along its edge (shoulder, neck or armhole), drawn
+   * on the form: 0 at the neck end of the shoulder (the top of the armhole) to 1 at the other end. */
+  lineAt?: number;
+  /** A cowl's drape, in cm below the block's centre front neck, drawn on the form. */
+  cowlDepth?: number;
   /** A centre back zip (the default) or buttons down the centre front; and a collar. */
   closure?: Closure;
   collar?: Collar;
@@ -252,7 +257,7 @@ function shape(d: BodiceDraft, s: BodiceStyle): BodiceDraft {
   }
   if (princess) {
     if (s.darts !== 'bust_waist') return d;
-    const pp = princessPieces(front, back, d.front.apex, princess);
+    const pp = princessPieces(front, back, d.front.apex, princess, s.lineAt);
     if (!pp) return d;
     return {
       ...d,
@@ -261,7 +266,7 @@ function shape(d: BodiceDraft, s: BodiceStyle): BodiceDraft {
       styleLines: { skip: 'all', front: [{ pts: pp.lines.front, kind: 'seam' }], back: [{ pts: pp.lines.back, kind: 'seam' }] },
     };
   }
-  const moved = moveFrontDart(front, d.front.apex, to!, d.front.waistSide);
+  const moved = moveFrontDart(front, d.front.apex, to!, d.front.waistSide, s.lineAt);
   const sewn = moved.meta.sewnDart as P[] | undefined;
   return { ...d, block: [front, back], pieces: [moved, back], styleLines: { skip: 'side', front: sewn ? [{ pts: sewn, kind: 'dart' }] : [], back: [] } };
 }

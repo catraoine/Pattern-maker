@@ -281,13 +281,13 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
       <path d={bodyOutline(m, cx)} className="body-outline" fill="none" strokeWidth={0.2} strokeLinecap="round" />
       {guide(m.waist_to_knee, 'KNEE')}
       {guide(m.waist_to_floor, 'FLOOR')}
-      <path d={path} style={{ fill: 'var(--fill)', stroke: 'var(--ink)' }} strokeWidth={0.25} strokeLinejoin="round" />
+      <path d={path} style={{ fill: 'var(--garment, var(--fill))', stroke: 'var(--ink)' }} strokeWidth={0.25} strokeLinejoin="round" />
       <rect
         x={cx - w.sideWaist.x}
         y={w.sideWaist.y - 3}
         width={2 * w.sideWaist.x}
         height={3.5}
-        style={{ fill: 'var(--paper)', stroke: 'var(--ink)' }}
+        style={{ fill: 'var(--garment-band, var(--paper))', stroke: 'var(--ink)' }}
         strokeWidth={0.25}
       />
       {!drawing && handle({ x: cx, y: hemCentre.y }, 'hem', lengthLabel)}

@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
 import { layout } from '../engine/export';
-import { BodiceDraft, BodiceMeasurements, bodiceEase, needsHip } from '../engine/bodice';
+import { BodiceDraft, BodiceMeasurements, bodiceEase, dropRange, needsHip } from '../engine/bodice';
 import { piecesLengthCm, toMetres } from '../engine/fabric';
 import { layPlan } from '../engine/layplan';
 import { BODICE_GROUPS, BodiceChoices, DARTS_FOR_FIT, describeBodice, detailAllowed, sleeveOf, topAllowed, validDetails } from '../garments';
@@ -14,12 +14,15 @@ import { GarmentSwitch } from '../ui/GarmentSwitch';
 import { SaveControl } from '../ui/SaveControl';
 import { FinishChoices } from '../ui/FinishChoices';
 import { BodiceShape } from '../ui/BodiceShape';
+import { FabricSwatches, GarmentFabric } from '../ui/FabricFill';
 import type { Side } from '../ui/ShapeSketch';
 import { useShake } from '../ui/shake';
 import type { Finish } from '../App';
 import { MyFabric, bodiceFabrics, fabricEase } from '../engine/fabrics';
 import { FabricCard } from '../ui/FabricCard';
 import { isDraped } from '../engine/drape';
+import { DrawOnForm, formWidth } from '../ui/DrawOnForm';
+import { bodiceLines, landmarks, readBodiceHem, readDrape, readFit, readNeckline, readSeam } from '../ui/formLines';
 
 import { Mode, ProTool, shows } from '../mode';
 import { ModeLink } from '../ui/ModeLink';
@@ -86,8 +89,14 @@ const NECK_NAMES: Record<BodiceChoices['neckline'], string> = {
 const UNDO_LIMIT = 40;
 
 /** Which hand-shaped value a chip group replaces: picking a named choice lets go of the dragged or drawn one. */
-const REPLACES = { fit: 'bustEase', length: 'dropCm', neckline: 'neck' } as const;
-const handShaped = (c: BodiceChoices, id: string) => id in REPLACES && c[REPLACES[id as keyof typeof REPLACES]] !== undefined;
+export const REPLACES: Record<string, (keyof BodiceChoices)[]> = {
+  fit: ['bustEase'],
+  length: ['dropCm'],
+  neckline: ['neck', 'cowlDepth'],
+  princess: ['lineAt'],
+  bustDart: ['lineAt'],
+};
+const handShaped = (c: BodiceChoices, id: string) => (REPLACES[id] ?? []).some((k) => c[k] !== undefined);
 
 type View = 'sketch' | 'flat' | 'pattern' | 'ease';
 
@@ -101,6 +110,8 @@ export function BodiceStyleScreen({ choices, onChoices, onChooseGarment, values,
   const [toast, setToast] = useState<string>();
   const toastTimer = useRef<ReturnType<typeof setTimeout>>();
   const [history, setHistory] = useState<BodiceChoices[]>([]);
+  /** Drawing on the form: the choices from before, to keep or go back to. */
+  const [onForm, setOnForm] = useState<BodiceChoices>();
   const m = values as BodiceMeasurements;
   const pieces = useMemo(() => (draft ? [...draft.pieces, ...(sleeve?.pieces ?? [])] : []), [draft, sleeve]);
   const sheet = useMemo(() => (draft ? layout(pieces, '', []) : undefined), [draft, pieces]);
@@ -169,7 +180,7 @@ export function BodiceStyleScreen({ choices, onChoices, onChooseGarment, values,
     const darts = DARTS_FOR_FIT[c.fit].includes(c.darts) ? c.darts : 'bust_waist';
     const next = { ...c, darts };
     // Picking a named fit, length or neckline lets go of the dragged or drawn one.
-    if (group && group in REPLACES) delete next[REPLACES[group as keyof typeof REPLACES]];
+    for (const k of (group && REPLACES[group]) || []) delete next[k];
     // Each sleeve length allows only some shapes; keep the chosen one when it still fits.
     // Details the other choices no longer allow (a collar on a V-neck, say) fall back to the plain ones.
     change(validDetails({ ...next, sleeveShape: sleeveOf(next).shape }));
@@ -181,6 +192,47 @@ export function BodiceStyleScreen({ choices, onChoices, onChooseGarment, values,
     ['pattern', 'Pieces'],
     ...(easeMap && easeMap.length > 0 && can('easeMap') ? ([['ease', 'Ease']] as [View, string][]) : []),
   ];
+
+  if (onForm && draft) {
+    return (
+      <DrawOnForm<BodiceChoices>
+        body={formWidth(draft, m)}
+        m={m}
+        legs={false}
+        bottom={landmarks(draft).waistY + (hip ? dropRange(m).max : 0) + 6}
+        kinds={[
+          ['neckline', 'Neckline'],
+          ['seam', 'Seam'],
+          ['drape', 'Drape'],
+          ['fit', 'Side'],
+          ['hem', 'Hem'],
+        ]}
+        lines={(side) => bodiceLines(draft, side)}
+        choices={choices}
+        onChoices={onChoices}
+        read={(kind, side, stroke) =>
+          kind === 'neckline'
+            ? readNeckline(stroke, draft, choices, 'bodice', side)
+            : kind === 'seam'
+              ? readSeam(stroke, draft, choices, 'bodice', side)
+              : kind === 'drape'
+                ? readDrape(stroke, draft, choices, 'bodice')
+                : kind === 'fit'
+                  ? readFit(stroke, draft, m, choices)
+                  : readBodiceHem(stroke, draft, m, choices)
+        }
+        onDone={() => {
+          change(choices, onForm);
+          setOnForm(undefined);
+          setView('pattern');
+        }}
+        onCancel={() => {
+          onChoices(onForm);
+          setOnForm(undefined);
+        }}
+      />
+    );
+  }
 
   return (
     <>
@@ -323,16 +375,22 @@ export function BodiceStyleScreen({ choices, onChoices, onChooseGarment, values,
                 </button>
               ))}
             </div>
-            {!top && (
-              <button type="button" className={drawing ? 'ghost on' : 'ghost'} aria-pressed={drawing} onClick={() => setDrawing(!drawing)}>
-                {drawing ? 'Done' : 'Draw neck'}
+            <div className="row tools">
+              <button type="button" className="link small" onClick={() => setOnForm(choices)}>
+                Draw on your form
               </button>
-            )}
+              {!top && (
+                <button type="button" className={drawing ? 'ghost on' : 'ghost'} aria-pressed={drawing} onClick={() => setDrawing(!drawing)}>
+                  {drawing ? 'Done' : 'Draw neck'}
+                </button>
+              )}
+            </div>
           </div>
         )}
         <div className="preview">
           {error && <p className="msg error">{error}</p>}
           {draft && view === 'sketch' && (
+            <GarmentFabric fabric={fabric}>
             <BodiceShape
               draft={draft}
               m={m}
@@ -343,10 +401,15 @@ export function BodiceStyleScreen({ choices, onChoices, onChooseGarment, values,
               onLive={onChoices}
               onDone={(before, after) => change(after, before)}
             />
+            </GarmentFabric>
           )}
-          {flat && view === 'flat' && <TechFlatView flat={flat} title={title} />}
+          {flat && view === 'flat' && (
+            <GarmentFabric fabric={fabric}>
+              <TechFlatView flat={flat} title={title} />
+            </GarmentFabric>
+          )}
           {draft && sheet && view === 'pattern' && (
-            <PatternPreview sheet={sheet} play={play} names={pieces.map((pc) => pc.name)} label={`Front and back pattern pieces for a ${title}`} />
+            <PatternPreview paper sheet={sheet} play={play} names={pieces.map((pc) => pc.name)} label={`Front and back pattern pieces for a ${title}`} />
           )}
           {view === 'ease' && easeMap && <EaseMapView views={easeMap} label={`Ease map of the ${title}`} />}
           {toast && (
@@ -355,6 +418,7 @@ export function BodiceStyleScreen({ choices, onChoices, onChooseGarment, values,
             </p>
           )}
         </div>
+        {(view === 'sketch' || view === 'flat') && draft && <FabricSwatches finish={finish} onFinish={onFinish} />}
         {view === 'sketch' && (
           <p className="muted small">
             {drawing
