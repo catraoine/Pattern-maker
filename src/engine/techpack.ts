@@ -6,6 +6,7 @@ import { PDFDocument, PDFFont, PDFPage, StandardFonts, rgb } from 'pdf-lib';
 import { P, len, sub } from './geometry';
 import { Piece, bounds, cutLine } from './piece';
 import type { SewingGuide } from './instructions';
+import type { Alteration } from './fitting';
 
 /** One line of the measurement table, in cm. Body and ease are left out where they don't apply. */
 export interface SpecRow {
@@ -24,6 +25,8 @@ export interface TechPack {
   measurements: SpecRow[];
   notes: string[];
   guide: SewingGuide;
+  /** The person's toile corrections as alterations to make on one's own block. */
+  alterations?: Alteration[];
 }
 
 const CM = 72 / 2.54;
@@ -159,6 +162,15 @@ export async function toTechPack(tp: TechPack): Promise<Uint8Array> {
     tp.notes.forEach((n) => write(n, 10, font, 0, 3));
   }
 
+  if (tp.alterations?.length) {
+    heading('Alterations from the toile');
+    write('These are already in this pattern. To fit this person from your own block, make the same alterations to it.', 9.5, font, 0, 4, GREY);
+    tp.alterations.forEach((a) => {
+      write(`${a.area}: ${a.seen}`, 10, bold, 0, 1);
+      write(a.change, 9.5, font, 14, 5);
+    });
+  }
+
   heading('Construction');
   tp.guide.steps.forEach((st, i) => {
     write(`${i + 1}. ${st.title}`, 10, bold, 0, 1);
@@ -167,7 +179,7 @@ export async function toTechPack(tp: TechPack): Promise<Uint8Array> {
 
   heading('Files');
   write(
-    'The full-size pattern comes with this tech pack as a DXF file (AAMA layout, millimetres) for Gerber, Lectra, Optitex or CLO 3D, and as a tiled PDF for printing. Cut line on layer 1, stitching line on layer 14, darts on layer 8, grain on layer 7, fold on layer 6, notches on layer 4.',
+    'The full-size pattern comes with this tech pack as a DXF file (AAMA layout, millimetres) for Gerber, Lectra, Optitex or CLO 3D, and as a tiled PDF for printing. Cut line on layer 1, stitching line on layer 14, darts on layer 8, grain on layer 7, fold on layer 6, notches on layer 4, drill holes on layer 13. The measurements can come as a Seamly2D file or a table for CLO 3D or Browzwear.',
     9.5,
   );
   footer();

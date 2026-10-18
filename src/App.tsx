@@ -21,7 +21,7 @@ import { edgesFor, topNotes } from './engine/corsetGuide';
 import { drapeFacings, drapeLined, drapeNote, zipSide } from './engine/drape';
 import { bodiceSpec, dressSpec, outerSpec, skirtSpec, sleeveSpec, teeSpec, trousersSpec } from './engine/spec';
 import { SleeveDraft, SleeveMeasurements, draftSleeve, needsArms } from './engine/sleeve';
-import { Fitting, carriedFitting, describeCarried, describeFitting, saveVersion, toFitting } from './engine/fitting';
+import { Fitting, carriedFitting, describeCarried, describeFitting, saveVersion, toFitting, alterationSheet } from './engine/fitting';
 import { FabricWidth, layPlans } from './engine/layplan';
 import { MyFabric, clothFor, withFabric, withFabricEase } from './engine/fabrics';
 import { SPECIALS, needsNap, withCheckMarks, withSpecialAllowances } from './engine/specialFabrics';
@@ -294,6 +294,7 @@ export default function App() {
   const carried = useMemo(() => carriedFitting(person.fittings, garment), [person.fittings, garment]);
   const fitting = carried.fitting;
   const carriedNotes = useMemo(() => describeCarried(carried), [carried]);
+  const alterations = useMemo(() => alterationSheet(carried.fitting, garment), [carried, garment]);
   // Simple or all tools: the simple view prints with home allowances and the quick route, and keeps the rest for later.
   const mode = modeOf(account);
   const setMode = (m: Mode) => setAccount({ ...account, mode: m });
@@ -1166,6 +1167,7 @@ export default function App() {
               onAccount={() => setStep('account')}
               fitting={ownFitting}
               fittingNotes={[...describeFitting(ownFitting, garment), ...carriedNotes]}
+              alterations={alterations}
               onFitting={() => setStep('fitting')}
               onTrueScale={() => setStep('scale')}
               values={values}
