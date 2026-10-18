@@ -49,7 +49,7 @@ import {
   recordMeasurements,
   withPeople,
 } from './account';
-import { BodiceChoices, COLLAR_WORDS, DEFAULT_BODICE, DEFAULT_COAT_CHOICES, DEFAULT_JACKET_CHOICES, DEFAULT_TEE_CHOICES, DEFAULT_TROUSERS_CHOICES, OuterChoices, TeeChoices, TrousersChoices, validDetails, DressChoices, describeBodice, describeOuter, describeTee, describeTrousers, isBodice, isDress, isOuter, isTee, isTrousers, sleeveOf } from './garments';
+import { BodiceChoices, COLLAR_WORDS, DEFAULT_BODICE, DEFAULT_COAT_CHOICES, DEFAULT_JACKET_CHOICES, DEFAULT_TEE_CHOICES, DEFAULT_TROUSERS_CHOICES, OuterChoices, TeeChoices, TrousersChoices, validDetails, DressChoices, PatternChoices, describeBodice, describeOuter, describeTee, describeTrousers, isBodice, isDress, isOuter, isTee, isTrousers, sleeveOf } from './garments';
 import { MeasureScreen } from './screens/MeasureScreen';
 import { StyleScreen, describe, fabricMetres } from './screens/StyleScreen';
 import { BodiceStyleScreen, bindingMetres, bodiceFabricMetres } from './screens/BodiceStyleScreen';
@@ -137,6 +137,16 @@ interface Saved {
   coat?: OuterChoices;
   /** How the pattern is finished and printed, chosen on the print screen. Older saves have none. */
   finish?: Finish;
+}
+
+/** A pattern's choices, saved under their garment's key. Skirt choices predate the others and carry no garment. */
+function choicesPatch(c: PatternChoices): [Garment, Partial<Saved>] {
+  if (isOuter(c)) return [c.garment, { [c.garment]: c }];
+  if (isTrousers(c)) return ['trousers', { trousers: c }];
+  if (isTee(c)) return ['tee', { tee: c }];
+  if (isDress(c)) return ['dress', { dress: c }];
+  if (isBodice(c)) return ['bodice', { bodice: c }];
+  return ['skirt', { choices: c }];
 }
 
 /** Seam allowances, lining and facings, and whether the draft itself is shown. */
@@ -241,6 +251,8 @@ export default function App() {
   const values = useMemo(() => withEstimates(measured), [measuredKey]);
   // The last photo matched to a skirt, shown beside "Matched to your photo" while the app is open. Never saved.
   const [photoPreview, setPhotoPreview] = useState<string>();
+  // The garment the photo was drafted as, so only that garment's style screen shows it.
+  const [photoFor, setPhotoFor] = useState<Garment>();
   const setValues = (v: MeasurementValues) => setAccount(updatePerson(account, person.id, { values: v }));
   const { garment } = saved;
   // Every visit opens on the welcome screen (Cat's pick, 2026-10-16). Saved measurements and
@@ -696,12 +708,14 @@ export default function App() {
   const openPattern = (p: Account['patterns'][number]) => {
     const who = account.people.find((x) => x.id === p.personId) ?? person;
     setAccount({ ...account, active: who.id });
-    if (isOuter(p.choices)) switchGarment(p.choices.garment, { [p.choices.garment]: p.choices }, 'style', who.values);
-    else if (isTrousers(p.choices)) switchGarment('trousers', { trousers: p.choices }, 'style', who.values);
-    else if (isTee(p.choices)) switchGarment('tee', { tee: p.choices }, 'style', who.values);
-    else if (isDress(p.choices)) switchGarment('dress', { dress: p.choices }, 'style', who.values);
-    else if (isBodice(p.choices)) switchGarment('bodice', { bodice: p.choices }, 'style', who.values);
-    else switchGarment('skirt', { choices: p.choices }, 'style', who.values);
+    setPhotoFor(undefined);
+    styleChoices(p.choices, who.values);
+  };
+
+  /** Open the style screen with these choices, saved under their garment. */
+  const styleChoices = (c: PatternChoices, using: MeasurementValues = measured) => {
+    const [g, patch] = choicesPatch(c);
+    switchGarment(g, patch, 'style', using);
   };
 
   const reset = () => {
@@ -858,9 +872,11 @@ export default function App() {
               onByHand={() => switchGarment('skirt', {}, 'style')}
               onApply={(choices, preview) => {
                 if (BILLING_ON) setAccount(countPhotoDraft(account));
-                countStep('photo', 'skirt');
+                const g = choicesPatch(choices)[0];
+                countStep('photo', g);
                 setPhotoPreview(preview);
-                switchGarment('skirt', { choices }, 'style');
+                setPhotoFor(g);
+                styleChoices(choices);
               }}
             />
           )}
@@ -968,6 +984,8 @@ export default function App() {
           )}
           {step === 'style' && garment === 'bodice' && (
             <BodiceStyleScreen
+              onPhoto={() => setStep('photo')}
+              photo={photoFor === garment ? photoPreview : undefined}
               mode={mode}
               onMode={setMode}
               finish={finish}
@@ -990,6 +1008,8 @@ export default function App() {
           )}
           {step === 'style' && garment === 'dress' && (
             <DressStyleScreen
+              onPhoto={() => setStep('photo')}
+              photo={photoFor === garment ? photoPreview : undefined}
               mode={mode}
               onMode={setMode}
               finish={finish}
@@ -1012,6 +1032,8 @@ export default function App() {
           )}
           {step === 'style' && garment === 'trousers' && (
             <TrousersStyleScreen
+              onPhoto={() => setStep('photo')}
+              photo={photoFor === garment ? photoPreview : undefined}
               mode={mode}
               onMode={setMode}
               finish={finish}
@@ -1033,6 +1055,8 @@ export default function App() {
           )}
           {step === 'style' && garment === 'tee' && (
             <TeeStyleScreen
+              onPhoto={() => setStep('photo')}
+              photo={photoFor === garment ? photoPreview : undefined}
               mode={mode}
               onMode={setMode}
               choices={teeChoices}
@@ -1051,6 +1075,8 @@ export default function App() {
           )}
           {step === 'style' && isOuterGarment && (
             <OuterStyleScreen
+              onPhoto={() => setStep('photo')}
+              photo={photoFor === garment ? photoPreview : undefined}
               key={garment}
               mode={mode}
               onMode={setMode}

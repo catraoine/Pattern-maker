@@ -11,6 +11,7 @@ import { SHAPES_FOR_LENGTH, SleeveDraft, needsArms } from '../engine/sleeve';
 import { BODICE_GROUPS, BodiceChoices, DARTS_FOR_FIT, DressChoices, detailAllowed, sleeveOf, topAllowed, validDetails } from '../garments';
 import type { MeasurementValues } from '../measurements';
 import { GarmentSwitch } from '../ui/GarmentSwitch';
+import { PhotoEntry } from '../ui/PhotoEntry';
 import { SaveControl } from '../ui/SaveControl';
 import { UndoToast, UndoTools, useUndo } from '../ui/useUndo';
 import { PatternPreview } from '../ui/Preview';
@@ -38,6 +39,9 @@ import { REPLACES } from './BodiceStyleScreen';
 import { bodiceLines, landmarks, readDrape, readFit, readNeckline, readSeam, readSkirtHem, skirtLines } from '../ui/formLines';
 
 interface Props {
+  /** Start from a photo, and the photo this garment was matched to while the app is open. */
+  onPhoto?: () => void;
+  photo?: string;
   choices: DressChoices;
   onChoices: (c: DressChoices) => void;
   /** Open the list of what to make, to pick another garment. */
@@ -74,7 +78,7 @@ export const dressFabricMetres = (pieces: DressDraft['pieces']) =>
  * skirt's shape and length. The preview is the technical flat, so the skirt is seen hanging from the
  * bodice with its darts running on through the waist seam.
  */
-export function DressStyleScreen({ choices, onChoices: setChoices, onChooseGarment, values, draft, sleeve, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, finish, onFinish, fabric, mode = 'all', onMode }: Props) {
+export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoices, onChooseGarment, values, draft, sleeve, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, finish, onFinish, fabric, mode = 'all', onMode }: Props) {
   const undo = useUndo(choices, setChoices);
   const onChoices = undo.change;
   const can = (t: ProTool) => shows(mode, t);
@@ -247,6 +251,7 @@ export function DressStyleScreen({ choices, onChoices: setChoices, onChooseGarme
           <h1 id="opts">Style your dress</h1>
           <GarmentSwitch onChoose={onChooseGarment} />
         </div>
+        <PhotoEntry onPhoto={onPhoto} photo={photo} />
         {groups.map((g) => (
           <fieldset key={g.id} className="group">
             <legend>{g.label}</legend>

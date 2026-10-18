@@ -10,6 +10,7 @@ import { FabricSwatches, GarmentFabric } from '../ui/FabricFill';
 import { MeasurementValues } from '../measurements';
 import { PatternPreview } from '../ui/Preview';
 import { GarmentSwitch } from '../ui/GarmentSwitch';
+import { PhotoEntry } from '../ui/PhotoEntry';
 import { SaveControl } from '../ui/SaveControl';
 import { UndoToast, UndoTools, useUndo } from '../ui/useUndo';
 import { EaseMapView } from '../ui/EaseMapView';
@@ -22,6 +23,9 @@ import { MyFabric, fabricEase, outerFabrics } from '../engine/fabrics';
 import { FabricCard } from '../ui/FabricCard';
 
 interface Props {
+  /** Start from a photo, and the photo this garment was matched to while the app is open. */
+  onPhoto?: () => void;
+  photo?: string;
   choices: OuterChoices;
   onChoices: (c: OuterChoices) => void;
   /** Open the list of what to make, to pick another garment. */
@@ -49,7 +53,7 @@ export const outerFabricMetres = (draft: OuterDraft) => {
   return layPlan(self, 140)?.metres ?? toMetres(piecesLengthCm(self) + 10);
 };
 
-export function OuterStyleScreen({ choices, onChoices: setChoices, onChooseGarment, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, finish, onFinish, fabric, mode = 'all', onMode }: Props) {
+export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoices, onChooseGarment, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, finish, onFinish, fabric, mode = 'all', onMode }: Props) {
   const undo = useUndo(choices, setChoices);
   const onChoices = undo.change;
   const can = (t: ProTool) => shows(mode, t);
@@ -69,6 +73,7 @@ export function OuterStyleScreen({ choices, onChoices: setChoices, onChooseGarme
           <h1 id="opts">Style your {kind}</h1>
           <GarmentSwitch onChoose={onChooseGarment} />
         </div>
+        <PhotoEntry onPhoto={onPhoto} photo={photo} />
         {outerGroups(kind).map((g) => (
           <fieldset key={g.id} className="group">
             <legend>{g.label}</legend>

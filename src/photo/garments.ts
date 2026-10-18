@@ -39,6 +39,12 @@ export const PIECE_WORDS: Record<PieceKind, string> = {
   coat: 'coat',
 };
 
+/** "a dress", "trousers". */
+export const aPiece = (g: PieceKind) => (g === 'trousers' ? 'trousers' : `a ${PIECE_WORDS[g]}`);
+
+/** "Dress", "T-shirt", for labels and chips. */
+export const pieceName = (g: PieceKind) => PIECE_WORDS[g][0].toUpperCase() + PIECE_WORDS[g].slice(1);
+
 /** Every garment the photo can be drafted as, in the order the garment list shows them. */
 export const PIECE_KINDS: PieceKind[] = ['skirt', 'dress', 'top', 'tee', 'trousers', 'jacket', 'coat'];
 
