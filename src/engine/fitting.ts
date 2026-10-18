@@ -19,6 +19,9 @@ export interface FitIssue {
   detail: string;
   /** What changes on the pattern, in a pattern cutter's words. */
   fix: string;
+  /** The alteration as a pattern cutter makes it on their own block, with {v} for the amount, {h} half and
+   * {q} a quarter of it, and {side} for the side. */
+  pro: string;
   /** The change in a few words for the pattern's notes, with {v} for the amount and {side} for the side. */
   note: string;
   /** The correction it makes, and which way. */
@@ -42,6 +45,7 @@ export const FIT_ISSUES: FitIssue[] = [
   // ---- skirt ----
   cmIssue({
     id: 'skirt-hip-tight',
+    pro: 'Let out the hip by {v} in all: add {q} at each side seam at the hip line, front and back, blending to the waist and hem.',
     note: 'hip ease +{v}',
     garment: 'skirt',
     area: 'Hips',
@@ -56,6 +60,7 @@ export const FIT_ISSUES: FitIssue[] = [
   }),
   cmIssue({
     id: 'skirt-hip-loose',
+    pro: 'Take in the hip by {v} in all: remove {q} at each side seam at the hip line, front and back, blending to the waist and hem.',
     note: 'hip ease -{v}',
     garment: 'skirt',
     area: 'Hips',
@@ -70,6 +75,7 @@ export const FIT_ISSUES: FitIssue[] = [
   }),
   cmIssue({
     id: 'skirt-waist-tight',
+    pro: 'Let out the waist by {v} in all: take {q} less into the darts of each front and back quarter, and lengthen the waistband by {v}.',
     note: 'waist ease +{v}',
     garment: 'skirt',
     area: 'Waist',
@@ -84,6 +90,7 @@ export const FIT_ISSUES: FitIssue[] = [
   }),
   cmIssue({
     id: 'skirt-waist-loose',
+    pro: 'Take in the waist by {v} in all: take {q} more into the darts of each front and back quarter, and shorten the waistband by {v}.',
     note: 'waist ease -{v}',
     garment: 'skirt',
     area: 'Waist',
@@ -98,6 +105,7 @@ export const FIT_ISSUES: FitIssue[] = [
   }),
   cmIssue({
     id: 'skirt-sway-back',
+    pro: 'Sway back: lower the centre back waist by {v}, tapering to nothing at the side seams. Re-true the back darts.',
     note: 'centre back waist lowered {v}',
     garment: 'skirt',
     area: 'Back',
@@ -112,6 +120,7 @@ export const FIT_ISSUES: FitIssue[] = [
   }),
   cmIssue({
     id: 'skirt-seat',
+    pro: 'Full seat: raise the centre back waist by {v}, tapering to nothing at the side seams. Re-true the back darts.',
     note: 'centre back waist raised {v}',
     garment: 'skirt',
     area: 'Back',
@@ -126,6 +135,7 @@ export const FIT_ISSUES: FitIssue[] = [
   }),
   cmIssue({
     id: 'skirt-tummy',
+    pro: 'Full tummy: raise the centre front waist by {v}, tapering to nothing at the side seams. Re-true the front darts.',
     note: 'centre front waist raised {v}',
     garment: 'skirt',
     area: 'Front',
@@ -140,6 +150,7 @@ export const FIT_ISSUES: FitIssue[] = [
   }),
   cmIssue({
     id: 'skirt-front-folds',
+    pro: 'Lower the centre front waist by {v}, tapering to nothing at the side seams. Re-true the front darts.',
     note: 'centre front waist lowered {v}',
     garment: 'skirt',
     area: 'Front',
@@ -154,6 +165,7 @@ export const FIT_ISSUES: FitIssue[] = [
   }),
   cmIssue({
     id: 'skirt-dart-bubble',
+    pro: 'Shorten the waist darts by {v}, redrawing the legs to the new point.',
     note: 'darts shortened {v}',
     garment: 'skirt',
     area: 'Darts',
@@ -168,6 +180,7 @@ export const FIT_ISSUES: FitIssue[] = [
   }),
   cmIssue({
     id: 'skirt-dart-short',
+    pro: 'Lengthen the waist darts by {v}, keeping each point at least 3 cm above the hip line.',
     note: 'darts lengthened {v}',
     garment: 'skirt',
     area: 'Darts',
@@ -182,6 +195,7 @@ export const FIT_ISSUES: FitIssue[] = [
   }),
   cmIssue({
     id: 'skirt-high-hip',
+    pro: 'High {side} hip: raise the {side} side seam at the waist by {v}, tapering to nothing at centre front and back. Cut the {side} side on the raised line.',
     note: '{side} hip {v} higher',
     garment: 'skirt',
     area: 'One side',
@@ -198,6 +212,7 @@ export const FIT_ISSUES: FitIssue[] = [
   // ---- bodice ----
   cmIssue({
     id: 'bodice-bust-tight',
+    pro: 'Let out the bust by {v} in all: add {q} at each side seam at the underarm, front and back, blending to the waist.',
     note: 'bust ease +{v}',
     garment: 'bodice',
     area: 'Bust',
@@ -212,6 +227,7 @@ export const FIT_ISSUES: FitIssue[] = [
   }),
   cmIssue({
     id: 'bodice-bust-loose',
+    pro: 'Take in the bust by {v} in all: remove {q} at each side seam at the underarm, front and back, blending to the waist.',
     note: 'bust ease -{v}',
     garment: 'bodice',
     area: 'Bust',
@@ -226,6 +242,7 @@ export const FIT_ISSUES: FitIssue[] = [
   }),
   cmIssue({
     id: 'bodice-dart-high',
+    pro: 'Lower the bust point by {v}. Move the dart points down with it and re-true the darts.',
     note: 'bust point lowered {v}',
     garment: 'bodice',
     area: 'Bust',
@@ -241,6 +258,7 @@ export const FIT_ISSUES: FitIssue[] = [
   }),
   cmIssue({
     id: 'bodice-dart-low',
+    pro: 'Raise the bust point by {v}. Move the dart points up with it and re-true the darts.',
     note: 'bust point raised {v}',
     garment: 'bodice',
     area: 'Bust',
@@ -256,6 +274,7 @@ export const FIT_ISSUES: FitIssue[] = [
   }),
   cmIssue({
     id: 'bodice-waist-tight',
+    pro: 'Let out the waist by {v} in all: take {q} less into the waist dart of each front and back half.',
     note: 'waist ease +{v}',
     garment: 'bodice',
     area: 'Waist',
@@ -270,6 +289,7 @@ export const FIT_ISSUES: FitIssue[] = [
   }),
   cmIssue({
     id: 'bodice-waist-loose',
+    pro: 'Take in the waist by {v} in all: take {q} more into the waist dart of each front and back half.',
     note: 'waist ease -{v}',
     garment: 'bodice',
     area: 'Waist',
@@ -284,6 +304,7 @@ export const FIT_ISSUES: FitIssue[] = [
   }),
   cmIssue({
     id: 'bodice-neck-gape',
+    pro: 'Gaping neckline: pinch out {v} at the front neck edge and pivot it into the bust dart. Re-true the neckline and the dart.',
     note: 'neck gape of {v} pivoted into the bust dart',
     garment: 'bodice',
     area: 'Neck',
@@ -298,6 +319,7 @@ export const FIT_ISSUES: FitIssue[] = [
   }),
   {
     id: 'bodice-sloping',
+    pro: 'Sloping shoulders: lower the shoulder point so each shoulder seam slopes {v} more, front and back, from the neck point. Re-blend the armhole.',
     note: 'shoulders {v} more sloping',
     garment: 'bodice',
     area: 'Shoulders',
@@ -314,6 +336,7 @@ export const FIT_ISSUES: FitIssue[] = [
   },
   {
     id: 'bodice-square',
+    pro: 'Square shoulders: raise the shoulder point so each shoulder seam slopes {v} less, front and back, from the neck point. Re-blend the armhole.',
     note: 'shoulders {v} squarer',
     garment: 'bodice',
     area: 'Shoulders',
@@ -330,6 +353,7 @@ export const FIT_ISSUES: FitIssue[] = [
   },
   cmIssue({
     id: 'bodice-armhole-tight',
+    pro: "Lower the armhole by {v} at the underarm, front and back. Lower the sleeve's underarm to match.",
     note: 'armhole lowered {v}',
     garment: 'bodice',
     area: 'Armholes',
@@ -344,6 +368,7 @@ export const FIT_ISSUES: FitIssue[] = [
   }),
   cmIssue({
     id: 'bodice-armhole-low',
+    pro: "Raise the armhole by {v} at the underarm, front and back. Raise the sleeve's underarm to match.",
     note: 'armhole raised {v}',
     garment: 'bodice',
     area: 'Armholes',
@@ -358,6 +383,7 @@ export const FIT_ISSUES: FitIssue[] = [
   }),
   cmIssue({
     id: 'bodice-back-long',
+    pro: 'Shorten the back by {v} between the underarm and the waist: fold out a level tuck, then re-blend the centre back and side seam.',
     note: 'back shortened {v}',
     garment: 'bodice',
     area: 'Back',
@@ -371,6 +397,7 @@ export const FIT_ISSUES: FitIssue[] = [
   }),
   cmIssue({
     id: 'bodice-back-tight',
+    pro: 'Widen the across back by {v} in all: add {h} to the back half at the across-back line, moving the back armhole out.',
     note: 'across back +{v}',
     garment: 'bodice',
     area: 'Back',
@@ -384,6 +411,7 @@ export const FIT_ISSUES: FitIssue[] = [
   }),
   cmIssue({
     id: 'bodice-low-shoulder',
+    pro: 'Low {side} shoulder: lower the {side} shoulder point and the {side} armhole by {v}. Cut the {side} side on the lower line.',
     note: '{side} shoulder {v} lower',
     garment: 'bodice',
     area: 'One side',
@@ -550,4 +578,36 @@ export function versionsOf(f: Fitting | undefined): { version: number; fitting: 
   for (const h of f?.history ?? []) out.push({ version: h.round + 1, fitting: h });
   if (f && f.round > 0) out.push({ version: f.round + 1, fitting: f });
   return out;
+}
+
+export interface Alteration {
+  area: string;
+  /** What the toile showed. */
+  seen: string;
+  /** The alteration, in a pattern cutter's words, with the amounts worked out. */
+  change: string;
+}
+
+const half = (issue: FitIssue, v: number, part: number) => amount(issue, Math.round((v / part) * 100) / 100);
+
+/**
+ * The person's toile corrections as an alteration sheet: the alterations a pattern cutter would make to
+ * their own block in their own software (CLO, Gerber, Lectra, Seamly2D) to fit this person.
+ */
+export function alterationSheet(f: Fitting | undefined, garment: FitTarget): Alteration[] {
+  return Object.entries(f?.issues ?? {})
+    .map(([id, v]) => ({ issue: issueById(id), v }))
+    .filter((x): x is { issue: FitIssue; v: number } => !!x.issue && appliesTo(x.issue, garment) && x.v > 0)
+    .map(({ issue, v }) => {
+      const n = Math.min(issue.max, v);
+      return {
+        area: issue.area,
+        seen: issue.title,
+        change: issue.pro
+          .replace(/\{v\}/g, amount(issue, n))
+          .replace(/\{h\}/g, half(issue, n, 2))
+          .replace(/\{q\}/g, half(issue, n, 4))
+          .replace(/\{side\}/g, f?.sides?.[issue.id] ?? 'right'),
+      };
+    });
 }

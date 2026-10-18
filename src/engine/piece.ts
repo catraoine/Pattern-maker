@@ -37,11 +37,15 @@ export interface Piece {
    * shoulder, a higher hip), cut by trimming that side. Drawn only where it leaves the main line. */
   alternate?: { outline: Path; label: string };
   seamAllowance: number;
+  /** The cutting line exactly as a pattern file gave it, for a piece read from other software: its
+   * allowances are whatever that file drew, so they are kept rather than worked out again. */
+  cutOutline?: P[];
   allowances: Record<string, number>; // per edge tag, e.g. { hem: 4, fold: 0 }
   meta: Record<string, unknown>;
 }
 
 export function cutLine(pc: Piece, outline: Path = pc.outline): P[] {
+  if (pc.cutOutline && outline === pc.outline) return [...pc.cutOutline];
   let { pts, tags } = outline.taggedPoints();
   if (len(sub(pts[0], pts[pts.length - 1])) < 1e-6) pts = pts.slice(0, -1);
   return offsetPolygon(

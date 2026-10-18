@@ -3728,3 +3728,136 @@ button.link.garment-change {
   font-size: 0.6rem;
   color: var(--muted);
 }
+
+/* Move points on the flat pattern (PointEditor.tsx, Cat's pick D7 Walk + Ghost + Tape). */
+.point-switch {
+  align-items: center;
+  gap: 8px;
+}
+.point-switch p {
+  margin: 0;
+}
+.point-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.point-svg {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: crosshair;
+}
+.point-svg .pe-piece {
+  fill: var(--fill);
+  stroke: var(--gild);
+  stroke-width: 1.3px;
+  stroke-linejoin: round;
+}
+.point-svg .pe-line {
+  fill: none;
+  stroke: var(--gild);
+  stroke-width: 1px;
+}
+.point-svg .pe-ghost {
+  fill: none;
+  stroke: var(--gild-glow);
+  stroke-width: 1.2px;
+  stroke-dasharray: 3 3;
+  opacity: 0.8;
+  pointer-events: none;
+}
+.point-svg .pe-name {
+  font-family: var(--mono);
+  fill: var(--muted);
+  letter-spacing: 0.1em;
+  pointer-events: none;
+}
+.point-svg .pe-point {
+  fill: var(--paper);
+  stroke: var(--gild);
+  stroke-width: 1px;
+}
+.point-svg .pe-point.dart {
+  stroke-dasharray: 1.5 1.5;
+}
+.point-svg .pe-point.partner {
+  fill: var(--gild);
+}
+.point-svg .pe-point.on {
+  fill: var(--gild-glow);
+}
+.pe-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: var(--bw) solid var(--line-strong);
+  padding-top: 8px;
+}
+.pe-sheet .row {
+  gap: 6px;
+  align-items: baseline;
+}
+.pe-label {
+  font: 11px/1.2 var(--mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.pe-value {
+  font-family: var(--display);
+  font-weight: var(--w-strong);
+  font-size: 24px;
+  color: var(--gild-glow);
+  font-variant-numeric: tabular-nums;
+}
+.pe-done {
+  margin-left: auto;
+}
+.pe-tape {
+  position: relative;
+  height: 34px;
+  overflow: hidden;
+  background-color: var(--tape);
+  cursor: ew-resize;
+  touch-action: none;
+}
+.pe-tape-marks {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+}
+.pe-tape-marks span {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 39px;
+  padding: 15px 0 0 3px;
+  font: var(--w-strong) 10px/1 var(--mono);
+  color: var(--tape-ink);
+  border-left: 1px solid var(--tape-ink);
+  background-image: repeating-linear-gradient(90deg, rgba(43, 36, 24, 0.7) 0 1px, transparent 1px 3.9px);
+  background-size: 100% 7px;
+  background-repeat: no-repeat;
+}
+.pe-needle {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: #b2402a;
+}
+.pattern-pane {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.pe-value,
+.pe-sheet button {
+  white-space: nowrap;
+}

@@ -15,6 +15,7 @@ import { PhotoEntry } from '../ui/PhotoEntry';
 import { SaveControl } from '../ui/SaveControl';
 import { UndoToast, UndoTools, useUndo } from '../ui/useUndo';
 import { PatternPreview } from '../ui/Preview';
+import { PatternPane } from '../ui/PointEditor';
 import { TechFlatView } from '../ui/TechFlatView';
 import { AllRound } from '../ui/AllRound';
 import { roundDress } from '../engine/allRound';
@@ -386,7 +387,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
             </GarmentFabric>
           )}
           {round && view === 'round' && <AllRound round={round} m={values} striped={!!fabric?.checks} label={`The ${title} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`} />}
-          {sheet && view === 'pattern' && <PatternPreview paper sheet={sheet} label={`Pattern pieces for a ${title}`} />}
+          {sheet && view === 'pattern' && <PatternPane><PatternPreview paper sheet={sheet} label={`Pattern pieces for a ${title}`} /></PatternPane>}
           {view === 'ease' && easeMap && <EaseMapView views={easeMap} label={`Ease map of the ${title}`} />}
           <UndoToast undo={undo} />
         </div>

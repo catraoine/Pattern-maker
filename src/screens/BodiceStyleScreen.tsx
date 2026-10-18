@@ -12,6 +12,7 @@ import { roundBodice } from '../engine/allRound';
 import { SHAPES_FOR_LENGTH, SleeveDraft, needsArms } from '../engine/sleeve';
 import { MeasurementValues, hasHip } from '../measurements';
 import { PatternPreview } from '../ui/Preview';
+import { PatternPane } from '../ui/PointEditor';
 import { GarmentSwitch } from '../ui/GarmentSwitch';
 import { PhotoEntry } from '../ui/PhotoEntry';
 import { SaveControl } from '../ui/SaveControl';
@@ -438,7 +439,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
             </GarmentFabric>
           )}
           {draft && sheet && view === 'pattern' && (
-            <PatternPreview paper sheet={sheet} play={play} names={pieces.map((pc) => pc.name)} label={`Front and back pattern pieces for a ${title}`} />
+            <PatternPane><PatternPreview paper sheet={sheet} play={play} names={pieces.map((pc) => pc.name)} label={`Front and back pattern pieces for a ${title}`} /></PatternPane>
           )}
           {view === 'ease' && easeMap && <EaseMapView views={easeMap} label={`Ease map of the ${title}`} />}
           {toast && (

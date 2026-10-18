@@ -10,6 +10,7 @@ import { AllRound } from '../ui/AllRound';
 import { roundTee } from '../engine/allRound';
 import { MeasurementValues } from '../measurements';
 import { PatternPreview } from '../ui/Preview';
+import { PatternPane } from '../ui/PointEditor';
 import { GarmentSwitch } from '../ui/GarmentSwitch';
 import { PhotoEntry } from '../ui/PhotoEntry';
 import { SaveControl } from '../ui/SaveControl';
@@ -186,7 +187,7 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
           {error && <p className="msg error">{error}</p>}
           {flat && view === 'sketch' && <TechFlatView flat={flat} title={title} />}
           {round && view === 'round' && <AllRound round={round} m={values} striped={!!fabric?.checks} label={`The ${title.toLowerCase()} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`} />}
-          {draft && sheet && view === 'pattern' && <PatternPreview paper sheet={sheet} label={`Pattern pieces for ${title.toLowerCase()}`} />}
+          {draft && sheet && view === 'pattern' && <PatternPane><PatternPreview paper sheet={sheet} label={`Pattern pieces for ${title.toLowerCase()}`} /></PatternPane>}
           <UndoToast undo={undo} />
         </div>
         <p className="muted small">

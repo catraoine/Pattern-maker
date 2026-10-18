@@ -11,6 +11,7 @@ import { roundTrousers } from '../engine/allRound';
 import { FabricSwatches, GarmentFabric } from '../ui/FabricFill';
 import { MeasurementValues } from '../measurements';
 import { PatternPreview } from '../ui/Preview';
+import { PatternPane } from '../ui/PointEditor';
 import { GarmentSwitch } from '../ui/GarmentSwitch';
 import { PhotoEntry } from '../ui/PhotoEntry';
 import { SaveControl } from '../ui/SaveControl';
@@ -162,7 +163,7 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
             </GarmentFabric>
           )}
           {round && view === 'round' && <AllRound round={round} m={values} label={`The ${title.toLowerCase()} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`} />}
-          {draft && sheet && view === 'pattern' && <PatternPreview paper sheet={sheet} label={`Pattern pieces for ${title.toLowerCase()}`} />}
+          {draft && sheet && view === 'pattern' && <PatternPane><PatternPreview paper sheet={sheet} label={`Pattern pieces for ${title.toLowerCase()}`} /></PatternPane>}
           {view === 'ease' && easeMap && <EaseMapView views={easeMap} label={`Ease map of the ${title.toLowerCase()}`} />}
           <UndoToast undo={undo} />
         </div>
