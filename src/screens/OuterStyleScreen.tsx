@@ -20,6 +20,7 @@ import type { Finish } from '../App';
 import { MyFabric, fabricEase, outerFabrics } from '../engine/fabrics';
 import { FabricCard, FabricSummary } from '../ui/FabricCard';
 import { ChoicePic, chipsClass } from '../ui/ChoicePic';
+import { Explain } from '../ui/Explain';
 import { DrawOnForm, formWidth } from '../ui/DrawOnForm';
 import { landmarks } from '../ui/formLines';
 import { outerLines, readOuterCollar, readOuterFit, readOuterFront, readOuterHem, readOuterShaping } from '../ui/formTops';
@@ -160,6 +161,7 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
                 );
               })}
             </div>
+            <Explain set="outer" group={g.id} options={g.options} pick={choices[g.id]} />
             {g.id === 'shaping' && choices.fit === 'fitted' && <p className="muted small">A fitted {kind} keeps its waist shaping, so boxy needs a regular or relaxed fit.</p>}
           </Group>
         ))}
@@ -173,10 +175,10 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           <TabPanel tab={FABRIC}>
             {draft ? (
               <FabricCard metres={outerFabricMetres(draft)} advice={outerFabrics({ garment: kind, fit: choices.fit })} fabric={fabric} lined>
-                {flat && <FabricSwatches finish={finish} onFinish={onFinish} />}
+                {flat && <FabricSwatches finish={finish} onFinish={onFinish} garment={kind} />}
               </FabricCard>
             ) : (
-              <FabricSwatches finish={finish} onFinish={onFinish} />
+              <FabricSwatches finish={finish} onFinish={onFinish} garment={kind} />
             )}
           </TabPanel>
         )}
@@ -218,7 +220,7 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           <UndoToast undo={undo} />
         </div>
         <p className="muted small">
-          Drafted to your measurements as you choose.{undo.shake.state === 'on' ? ' Shake your phone to undo.' : ''}
+          Drafted to your measurements as you choose.
         </p>
       </section>
 

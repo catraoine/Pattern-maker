@@ -23,35 +23,39 @@ export function FabricCard({ metres, advice, look, fabric, knit, lined, children
   return (
     <div className="fabric">
       {children}
-      <p className="eyebrow">Fabric</p>
-      <p className="big">{metres.toFixed(1)} m</p>
-      <p className="muted small">{knit ? 'of 150 cm wide knit fabric, rough estimate' : 'of 140 cm wide woven fabric, rough estimate'}</p>
-      {mine && <p className="small">Your fabric: {mine}.</p>}
-      <p className="eyebrow">Good fabrics for {advice.style}</p>
-      <ul className="picks">
-        {look && (
-          <li>
-            <strong>{look.fabric}</strong>
-            <span className="muted small">The {look.name} look</span>
-          </li>
-        )}
-        {advice.picks.map((p) => (
-          <li key={p.name}>
-            <strong>{p.name}</strong>
-            <span className="tag">{pickTag(p)}</span>
-            <span className="muted small">{p.why}</span>
-          </li>
-        ))}
-        <li>
-          <strong>{advice.lining.name}</strong>
-          <span className="tag">{pickTag(advice.lining)}</span>
-          <span className="muted small">{knit ? advice.lining.why : `${lined ? 'For the lining.' : 'If you line it.'} ${advice.lining.why}`}</span>
-        </li>
-      </ul>
-      {advice.note && <p className="small">{advice.note}</p>}
-      <p className="avoid small">
-        <b>Avoid</b> {advice.avoid}
+      <p className="fabric-amount">
+        <span className="big">{metres.toFixed(1)} m</span>{' '}
+        <span className="muted small">{knit ? 'of 150 cm wide knit fabric, rough estimate' : 'of 140 cm wide woven fabric, rough estimate'}</span>
       </p>
+      {mine && <p className="small">Your fabric: {mine}.</p>}
+      {/* Folded, so the tab stays short on a phone, under the pinned sketch. */}
+      <details className="small">
+        <summary>Good fabrics for {advice.style}</summary>
+        <ul className="picks">
+          {look && (
+            <li>
+              <strong>{look.fabric}</strong>
+              <span className="muted small">The {look.name} look</span>
+            </li>
+          )}
+          {advice.picks.map((p) => (
+            <li key={p.name}>
+              <strong>{p.name}</strong>
+              <span className="tag">{pickTag(p)}</span>
+              <span className="muted small">{p.why}</span>
+            </li>
+          ))}
+          <li>
+            <strong>{advice.lining.name}</strong>
+            <span className="tag">{pickTag(advice.lining)}</span>
+            <span className="muted small">{knit ? advice.lining.why : `${lined ? 'For the lining.' : 'If you line it.'} ${advice.lining.why}`}</span>
+          </li>
+        </ul>
+        {advice.note && <p className="small">{advice.note}</p>}
+        <p className="avoid small">
+          <b>Avoid</b> {advice.avoid}
+        </p>
+      </details>
       <FabricGuide />
     </div>
   );

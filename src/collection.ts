@@ -216,3 +216,6 @@ export function lookFlat(look: HouseLook, m: MeasurementValues): Flat | undefine
     return undefined;
   }
 }
+
+/** For the Archive's cuts, set out the same way as the house's. */
+export { dress as dressChoices };

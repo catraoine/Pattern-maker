@@ -150,7 +150,7 @@ await wait(2500);
 await scrollBy(300); await wait(800); await scrollBy(-300);
 const skirt = main.getByRole('radiogroup', { name: 'What would you like to make?' }).getByRole('radio', { name: /^Skirt\b/ });
 await tap(skirt, 700);
-await tap(main.getByRole('button', { name: /^(Continue measuring|Start measurements)$/ }), 600);
+await tap(main.getByRole('button', { name: /^(Continue measuring|Continue measurements)$/ }), 600);
 await cap('01 · Measure', 'Each garment asks only for the few extra measurements it needs.');
 await fillPages(1);
 

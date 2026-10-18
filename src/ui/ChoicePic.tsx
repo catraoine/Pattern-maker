@@ -1,7 +1,7 @@
 // Little line drawings for the Style choices that are about shape (Cat's S1 Picture Choices): a skirt's
 // silhouette, length and hem, a trouser leg, a neckline, a sleeve, how long a top or coat is. The chip
 // keeps its words under the drawing, so its name (and every test that finds it) stays the same.
-import type { ReactNode } from 'react';
+import { useLayoutEffect, useRef, type ReactNode } from 'react';
 
 export type PicSet = 'skirt' | 'bodice' | 'tee' | 'trousers' | 'jacket' | 'coat';
 
@@ -144,10 +144,18 @@ export const chipsClass = (set: PicSet, group: string) => (hasPics(set, group) ?
 /** The drawing for one choice, or nothing where the choice has none. */
 export function ChoicePic({ set, group, id }: { set: PicSet; group: string; id: string }) {
   const pic = PICS[set][group]?.[id];
+  const trace = useRef<SVGGElement>(null);
+  // The picked tile's drawing moves (Cat's E3 Moving Drawings): a brighter pen runs round the outline, over
+  // a second copy of it that only shows on the picked chip. Each path is measured as length 1 so the pen
+  // runs at the same pace on every drawing.
+  useLayoutEffect(() => trace.current?.querySelectorAll('path').forEach((p) => p.setAttribute('pathLength', '1')), [pic]);
   if (!pic) return null;
   return (
-    <svg className="pic" viewBox="0 0 40 48" aria-hidden="true" focusable="false">
-      {pic}
+    <svg className={`pic pic-${set}-${group}-${id}`} viewBox="0 0 40 48" aria-hidden="true" focusable="false">
+      <g className="pic-base">{pic}</g>
+      <g className="pic-trace" ref={trace}>
+        {pic}
+      </g>
     </svg>
   );
 }

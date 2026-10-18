@@ -39,6 +39,7 @@ import { orNeckline, readUnevenNeckline, unevenNecklineLines } from '../ui/formB
 import { REPLACES } from './BodiceStyleScreen';
 import { bodiceLines, landmarks, readDrape, readFit, readNeckline, readSeam, readSkirtHem, skirtLines } from '../ui/formLines';
 import { ChoicePic, chipsClass } from '../ui/ChoicePic';
+import { Explain } from '../ui/Explain';
 
 /** Moving the shaping is a pro tool, so these groups sit on the Pro tab. */
 const PRO_GROUPS: string[] = ['princess', 'bustDart'];
@@ -282,6 +283,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
                 </button>
               ))}
             </div>
+            <Explain set={['silhouette', 'length', 'asymHem', 'volume', 'pockets'].includes(g.id) ? 'skirt' : 'bodice'} group={g.id} options={g.options} pick={value(g.id)} />
             {g.id === 'sleeve' && !arms && (
               <p className="muted small">
                 For sleeves, add your arm length, upper arm and wrist.{' '}
@@ -352,10 +354,10 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
             metres={dressFabricMetres([...pieces, ...(draft ? layoutExtras(draft.skirt) : [])])}
             advice={dressFabrics({ fit: choices.fit, neckline: choices.bodice.neckline, silhouette: choices.skirt.silhouette, length: choices.skirt.length, structure: valid.structure, asymHem: choices.skirt.asymHem, pleats: choices.skirt.pleats, godets: choices.skirt.godets, flounce: choices.skirt.flounce })}
             fabric={fabric}>
-                {flat && <FabricSwatches finish={finish} onFinish={onFinish} />}
+                {flat && <FabricSwatches finish={finish} onFinish={onFinish} garment="dress" />}
               </FabricCard>
             ) : (
-              <FabricSwatches finish={finish} onFinish={onFinish} />
+              <FabricSwatches finish={finish} onFinish={onFinish} garment="dress" />
             )}
           </TabPanel>
         )}
@@ -395,7 +397,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           <UndoToast undo={undo} />
         </div>
         <p className="muted small">
-          Drafted to your measurements as you choose.{undo.shake.state === 'on' ? ' Shake your phone to undo.' : ''}
+          Drafted to your measurements as you choose.
         </p>
       </section>
 

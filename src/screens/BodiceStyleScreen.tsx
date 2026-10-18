@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { layout } from '../engine/export';
 import { BodiceDraft, BodiceMeasurements, bodiceEase, dropRange, needsHip } from '../engine/bodice';
 import { piecesLengthCm, toMetres } from '../engine/fabric';
@@ -16,7 +16,7 @@ import { FinishChoices } from '../ui/FinishChoices';
 import { BodiceShape } from '../ui/BodiceShape';
 import { FabricSwatches, GarmentFabric } from '../ui/FabricFill';
 import type { Side } from '../ui/ShapeSketch';
-import { useShake } from '../ui/shake';
+import { UndoToast, UndoTools, useUndo } from '../ui/useUndo';
 import type { Finish } from '../App';
 import { MyFabric, bodiceFabrics, fabricEase } from '../engine/fabrics';
 import { FabricCard, FabricSummary } from '../ui/FabricCard';
@@ -31,6 +31,7 @@ import { Mode, ProTool, shows } from '../mode';
 import { EaseMapView } from '../ui/EaseMapView';
 import type { EaseView } from '../engine/easeMap';
 import { ChoicePic, chipsClass } from '../ui/ChoicePic';
+import { Explain } from '../ui/Explain';
 
 /** Moving the shaping is a pro tool, so these groups sit on the Pro tab. */
 const PRO_GROUPS: string[] = ['princess', 'bustDart'];
@@ -95,8 +96,6 @@ const NECK_NAMES: Record<BodiceChoices['neckline'], string> = {
   cami: 'cami top',
 };
 
-const UNDO_LIMIT = 40;
-
 /** Which hand-shaped value a chip group replaces: picking a named choice lets go of the dragged or drawn one. */
 export const REPLACES: Record<string, (keyof BodiceChoices)[]> = {
   fit: ['bustEase'],
@@ -116,9 +115,8 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
   const [side, setSide] = useState<Side>('front');
   const [drawing, setDrawing] = useState(false);
   const [play, setPlay] = useState(0);
-  const [toast, setToast] = useState<string>();
-  const toastTimer = useRef<ReturnType<typeof setTimeout>>();
-  const [history, setHistory] = useState<BodiceChoices[]>([]);
+  const undoer = useUndo(choices, onChoices);
+  const change = undoer.change;
   /** Drawing on the form: the choices from before, to keep or go back to. */
   const [onForm, setOnForm] = useState<BodiceChoices>();
   const m = values as BodiceMeasurements;
@@ -164,25 +162,6 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
               ? detailAllowed(choices, id, opt)
               : true;
 
-  const say = (text: string) => {
-    setToast(text);
-    clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setToast(undefined), 1800);
-  };
-  /** Every change goes through here, so it can be undone. */
-  const change = (next: BodiceChoices, before: BodiceChoices = choices) => {
-    if (JSON.stringify(next) === JSON.stringify(before)) return onChoices(next);
-    setHistory((h) => [...h.slice(-UNDO_LIMIT + 1), before]);
-    onChoices(next);
-  };
-  const undo = () => {
-    const prev = history[history.length - 1];
-    if (!prev) return say('Nothing to undo');
-    setHistory(history.slice(0, -1));
-    onChoices(prev);
-    say('Undone');
-  };
-  const shake = useShake(undo);
 
   const choose = (c: BodiceChoices, group?: string) => {
     // A tighter fit needs more shaping, so moving to it brings the darts back.
@@ -276,6 +255,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
                 </button>
               ))}
             </div>
+            <Explain set="bodice" group={g.id} options={g.options} pick={handShaped(choices, g.id) ? undefined : valueOf(g.id)} />
             {g.id === 'neckline' && choices.neck && (
               <p className="muted small">
                 Drawn by hand.{' '}
@@ -349,7 +329,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
         {draft && (
           <TabPanel tab={FABRIC}>
             <FabricCard metres={bodiceFabricMetres(draft, sleeve)} advice={bodiceFabrics(valid)} fabric={fabric}>
-              <FabricSwatches finish={finish} onFinish={onFinish} />
+              <FabricSwatches finish={finish} onFinish={onFinish} garment="bodice" />
             </FabricCard>
           </TabPanel>
         )}
@@ -373,18 +353,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
               </button>
             ))}
           </div>
-          <div className="row tools">
-            {shake.state === 'ask' && (
-              <button type="button" className="link small" onClick={shake.enable}>
-                Shake to undo
-              </button>
-            )}
-            {history.length > 0 && (
-              <button type="button" className="ghost" onClick={undo} aria-label="Undo the last change">
-                Undo
-              </button>
-            )}
-          </div>
+          <UndoTools undo={undoer} />
         </div>
         {view === 'sketch' && draft && (
           <div className="row between wrap">
@@ -432,11 +401,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
             <PatternPane><PatternPreview paper sheet={sheet} play={play} names={pieces.map((pc) => pc.name)} label={`Front and back pattern pieces for a ${title}`} /></PatternPane>
           )}
           {view === 'ease' && easeMap && <EaseMapView views={easeMap} label={`Ease map of the ${title}`} />}
-          {toast && (
-            <p className="toast" role="status">
-              {toast}
-            </p>
-          )}
+          <UndoToast undo={undoer} />
         </div>
         {view === 'sketch' && (
           <p className="muted small">
@@ -448,7 +413,6 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
                 ? 'Drag the hem up or down for length, or the side out and in for a looser or closer fit.'
                 : 'Drag the side out and in for a looser or closer fit.'}
             {chosen.length !== 'none' ? ' Sleeves show on the flat.' : ''}
-            {shake.state === 'on' ? ' Shake your phone to undo.' : ''}
           </p>
         )}
         {view === 'flat' && <p className="muted small">The technical flat, front and back, drawn to scale.</p>}

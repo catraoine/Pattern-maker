@@ -2,7 +2,6 @@
 // tools wait behind one quiet link. Nothing is removed; the setting is kept with the account.
 import type { Account } from './account';
 import type { Finish } from './App';
-import type { Garment } from './measurements';
 
 export type Mode = NonNullable<Account['mode']>;
 
@@ -55,9 +54,3 @@ export function keepFinish(stored: Finish, next: Finish, mode: Mode): Finish {
   for (const k of HIDDEN) (kept as Record<string, unknown>)[k] = stored[k];
   return kept;
 }
-
-/** The easiest garment to start with, and why, marked on the garment choice. */
-export const FIRST_PROJECT: { garment: Garment; why: string } = {
-  garment: 'skirt',
-  why: 'Good first project: an A-line skirt is a few straight seams and a waistband. Choose the elastic waist and there is no zip at all.',
-};

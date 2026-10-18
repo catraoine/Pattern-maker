@@ -23,6 +23,7 @@ import type { Finish } from '../App';
 import { MyFabric, fabricEase, trousersFabrics } from '../engine/fabrics';
 import { FabricCard, FabricSummary } from '../ui/FabricCard';
 import { ChoicePic, chipsClass } from '../ui/ChoicePic';
+import { Explain } from '../ui/Explain';
 
 interface Props {
   /** Start from a photo, and the photo this garment was matched to while the app is open. */
@@ -103,6 +104,7 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
                 </button>
               ))}
             </div>
+            <Explain set="trousers" group={g.id} options={g.options} pick={trouserAllowed(choices, g.id, trouserChoice(choices, g.id)) ? trouserChoice(choices, g.id) : undefined} />
             {g.id === 'leg' && choices.leg === 'culotte' && <p className="muted small">Culottes are cut to mid-calf, wide from the hip.</p>}
             {g.id === 'waist' && elastic && (
               <p className="muted small">
@@ -130,10 +132,10 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
           <TabPanel tab={FABRIC}>
             {draft ? (
               <FabricCard metres={trousersFabricMetres(draft)} advice={trousersFabrics(choices)} fabric={fabric}>
-                {flat && <FabricSwatches finish={finish} onFinish={onFinish} />}
+                {flat && <FabricSwatches finish={finish} onFinish={onFinish} garment="trousers" />}
               </FabricCard>
             ) : (
-              <FabricSwatches finish={finish} onFinish={onFinish} />
+              <FabricSwatches finish={finish} onFinish={onFinish} garment="trousers" />
             )}
           </TabPanel>
         )}
@@ -168,7 +170,7 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
           <UndoToast undo={undo} />
         </div>
         <p className="muted small">
-          Drafted to your measurements as you choose.{undo.shake.state === 'on' ? ' Shake your phone to undo.' : ''}
+          Drafted to your measurements as you choose.
         </p>
         {draft?.crotchCapped && (
           <p className="msg small">
