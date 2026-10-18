@@ -3353,6 +3353,7 @@ button.link.garment-change {
 }
 .photostart,
 .photoread,
+.photopick,
 .photoerror,
 .photoresult,
 .photolength {
@@ -3563,6 +3564,27 @@ button.link.garment-change {
   outline-offset: 0;
 }
 /* The photo button and the matched photo sit under the style screen's heading */
+.photopick h1 {
+  margin: 0;
+}
+/* The outfit photo's pieces, labelled where each sits; tap one to draft it. */
+.piecetag {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  padding: 6px 10px;
+  border: var(--bw) solid var(--gild);
+  background: var(--paper);
+  color: var(--ink);
+  font: 500 11px/1 var(--mono);
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.piecetag.on,
+.piecetag:hover {
+  background: var(--gild);
+  color: var(--paper);
+}
 .photo-entry {
   width: 100%;
   max-width: 420px;
