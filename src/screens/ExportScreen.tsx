@@ -405,6 +405,7 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
           onAtelier={(on) => onFinish({ ...finish, atelier: on })}
           drafting={drafting}
           pattern={ready ? { bytes: ready, name: fileName } : undefined}
+          values={values}
         />
       )}
 
@@ -644,6 +645,12 @@ function YourFabric({ fabric, onFabric, style, simple }: { fabric: MyFabric; onF
   );
 }
 
+async function saveMeasurements(values: MeasurementValues, profile: string, fileBase: string, kind: 'vit' | 'csv') {
+  const { toVit, toMeasurementsCsv } = await import('../measureExport');
+  if (kind === 'vit') download(toVit(values, profile), 'application/xml', `${fileBase}-measurements.vit`);
+  else download(toMeasurementsCsv(values), 'text/csv', `${fileBase}-measurements.csv`);
+}
+
 /** Files for someone else to make the garment: a tech pack and the pattern as DXF for pattern software. */
 function MakerPack({
   profile,
@@ -656,6 +663,7 @@ function MakerPack({
   atelier,
   onAtelier,
   drafting,
+  values,
 }: {
   profile: string;
   title: string;
@@ -668,6 +676,8 @@ function MakerPack({
   drafting: { piece: string; points: { n: string; note: string }[] }[];
   /** The printable pattern PDF, once it is made. */
   pattern?: { bytes: Uint8Array; name: string };
+  /** The person's measurements, for pattern software of the maker's own. */
+  values?: MeasurementValues;
 }) {
   const [pack, setPack] = useState<Uint8Array | null>(null);
   const [dxfText, setDxfText] = useState<string | null>(null);
@@ -763,6 +773,22 @@ function MakerPack({
             Pattern (SVG)
           </button>
         </div>
+        {values && (
+          <>
+            <p className="muted">
+              Your measurements, for drafting in other software: a file Seamly2D and Valentina open, and a table in cm and inches to enter into CLO 3D
+              or Browzwear.
+            </p>
+            <div className="row wrap">
+              <button type="button" className="secondary" onClick={() => saveMeasurements(values, profile, fileBase, 'vit')}>
+                Measurements (Seamly2D)
+              </button>
+              <button type="button" className="secondary" onClick={() => saveMeasurements(values, profile, fileBase, 'csv')}>
+                Measurements (CSV)
+              </button>
+            </div>
+          </>
+        )}
         <label className="check">
           <input type="checkbox" checked={atelier} onChange={(e) => onAtelier(e.target.checked)} />
           <span>
