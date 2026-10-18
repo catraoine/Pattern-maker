@@ -1,7 +1,7 @@
 import { download, expect, startWithExample, test } from './fixtures';
 
 // Files for other pattern software, under More files on the print screen.
-test('pro files: pattern DXF and measurements for Seamly2D and CLO', async ({ page }, info) => {
+test('pro files: pattern DXF, measurements for Seamly2D and CLO, and the 3D body', async ({ page }, info) => {
   await startWithExample(page);
   const main = page.getByRole('main');
   await main.getByRole('button', { name: 'Print my pattern' }).click();
@@ -18,6 +18,12 @@ test('pro files: pattern DXF and measurements for Seamly2D and CLO', async ({ pa
 
   const csv = await download(page, main.getByRole('button', { name: 'Measurements (CSV)' }), info);
   expect(csv.bytes.toString('utf8').split('\r\n')[0]).toBe('Measurement,cm,in,Seamly2D name,How it was taken');
+  const obj = await download(page, main.getByRole('button', { name: '3D body (OBJ)' }), info);
+  expect(obj.download.suggestedFilename()).toMatch(/-body\.obj$/);
+  const text = obj.bytes.toString('utf8');
+  expect(text).toContain('Units: millimetres');
+  expect(text).toMatch(/#\s+Bust: 92\.0 at/);
+  expect(text.split('\n').filter((l) => l.startsWith('f ')).length).toBeGreaterThan(20000);
   await main.getByText('More files').scrollIntoViewIfNeeded();
   await page.screenshot({ path: info.outputPath('more-files.png'), fullPage: false });
 });

@@ -5,6 +5,7 @@ import {
   PDFFont,
   PDFPage,
   clip,
+  concatTransformationMatrix,
   degrees,
   endPath,
   popGraphicsState,
@@ -135,6 +136,9 @@ export interface Summary {
   checks: Check[];
   madeFor?: string;
   date?: string;
+  /** A numbered drop's copy, and an Archive cut's credit line (see SheetInfo). */
+  edition?: string;
+  credit?: string;
   /** The atelier view: each piece's numbered drafting points and how they were found. */
   drafting?: { piece: string; points: DraftPoint[] }[];
   /** The draft-it-by-hand guide: each piece's frame, outline and numbered points, to redraw it on paper. */
@@ -253,6 +257,41 @@ export async function toProjectorPdf(sheet: Sheet, opts: { dark?: boolean; title
   return doc.save();
 }
 
+/** Size of one printed label, in cm: about what a woven label measures. */
+export const LABEL_SIZE = { w: 6, h: 2 };
+
+/**
+ * A sheet of twelve sew-in labels to print at home (Cat's pick L4): the name, the house, and the pattern's
+ * code. For iron-on transfer paper that asks for a mirrored print, the page is flipped.
+ */
+export async function toLabelSheetPdf(name: string, code: string, opts: { paper?: 'a4' | 'letter'; mirror?: boolean } = {}): Promise<Uint8Array> {
+  const doc = await PDFDocument.create();
+  const fonts = await embedFonts(doc);
+  doc.setTitle(`Maison Tracé labels: ${code}`);
+  const [pw, ph] = opts.paper === 'letter' ? [21.59, 27.94] : [21.0, 29.7];
+  const page = doc.addPage([pw * CM, ph * CM]);
+  const cols = 2, rows = 6, gap = 1;
+  const gridW = cols * LABEL_SIZE.w + (cols - 1) * gap;
+  const left = (pw - gridW) / 2, top = 4;
+  // The heading reads the right way round even on a mirrored page, so it sits outside the flip.
+  drawText(page, 'MAISON TRACÉ   ·   LABELS', { x: (pw / 2) * CM, y: (ph - 2) * CM, size: 7.5, font: fonts.label, tracking: 0.3, grey: 0.4, centre: true });
+  drawText(page, opts.mirror ? 'Mirrored for iron-on transfer paper. Cut along the grey lines.' : 'Print at 100%. Cut along the grey lines, then sew on or iron on.', {
+    x: (pw / 2) * CM, y: (ph - 2.6) * CM, size: 8, font: fonts.body, grey: 0.4, centre: true,
+  });
+  if (opts.mirror) page.pushOperators(pushGraphicsState(), concatTransformationMatrix(-1, 0, 0, 1, pw * CM, 0));
+  for (let r = 0; r < rows; r++)
+    for (let c = 0; c < cols; c++) {
+      const x = (left + c * (LABEL_SIZE.w + gap)) * CM;
+      const yTop = (ph - top - r * (LABEL_SIZE.h + gap)) * CM;
+      page.drawRectangle({ x, y: yTop - LABEL_SIZE.h * CM, width: LABEL_SIZE.w * CM, height: LABEL_SIZE.h * CM, borderColor: rgb(0.7, 0.7, 0.7), borderWidth: 0.4 });
+      const cx = x + (LABEL_SIZE.w / 2) * CM;
+      drawText(page, `DRAFTED FOR ${name}`, { x: cx, y: yTop - 0.85 * CM, size: name.length > 12 ? 7 : 8.5, font: fonts.bodyMedium, tracking: 0.12, centre: true });
+      drawText(page, `MAISON TRACÉ   ·   ${code}`, { x: cx, y: yTop - 1.45 * CM, size: 5.5, font: fonts.label, tracking: 0.25, grey: 0.25, centre: true });
+    }
+  if (opts.mirror) page.pushOperators(popGraphicsState());
+  return doc.save();
+}
+
 /** A text flow over A4 or Letter pages, breaking to a new page when one fills. */
 function flow(doc: PDFDocument, paper: 'a4' | 'letter', fonts: Fonts) {
   const [pw, ph] = paper === 'a4' ? [21.0, 29.7] : [21.59, 27.94];
@@ -312,7 +351,7 @@ function addSummaryPage(
   [stepX, stepY]: [number, number],
 ) {
   const { st, write, label, room, left, width } = flow(doc, paper, fonts);
-  drawText(st.page, ['MAISON TRACÉ', s.madeFor && `MADE FOR ${s.madeFor}`, s.date].filter(Boolean).join('   ·   ').toUpperCase(), {
+  drawText(st.page, ['MAISON TRACÉ', s.madeFor && `MADE FOR ${s.madeFor}`, s.date, s.edition].filter(Boolean).join('   ·   ').toUpperCase(), {
     x: left,
     y: st.y,
     size: 7.5,
@@ -321,7 +360,8 @@ function addSummaryPage(
     grey: 0.4,
   });
   st.y -= 26;
-  write(title[0].toUpperCase() + title.slice(1), 20, fonts.bodyMedium, 0, 18);
+  write(title[0].toUpperCase() + title.slice(1), 20, fonts.bodyMedium, 0, s.credit ? 6 : 18);
+  if (s.credit) write(s.credit, 9.5, fonts.body, 0, 18, 0.35);
 
   if (s.flat) {
     label('TECHNICAL FLAT');

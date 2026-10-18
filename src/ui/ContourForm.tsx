@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react';
-import type { MeasurementId } from '../measurements';
-import { R, spline } from '../engine/form';
+import type { FormKind, MeasurementId } from '../measurements';
 
 // The welcome screen's dress form, drawn in contour lines on black. It is the same form as the measuring pages
 // (Cat, 2026-10-18: the body must stay the same everywhere). The outline is drawn first, or handed over already
@@ -21,6 +20,43 @@ const out = (t: number) => 1 - Math.pow(1 - t, 3);
 
 type Pt = [number, number, number?];
 
+/** Smooth curve through keypoints (Catmull-Rom). */
+function spline(keys: [number, number][]) {
+  return (y: number) => {
+    const n = keys.length;
+    if (y <= keys[0][0]) return keys[0][1];
+    if (y >= keys[n - 1][0]) return keys[n - 1][1];
+    let i = 0;
+    while (keys[i + 1][0] < y) i++;
+    const p0 = keys[Math.max(i - 1, 0)], p1 = keys[i], p2 = keys[i + 1], p3 = keys[Math.min(i + 2, n - 1)];
+    const d = p2[0] - p1[0], u = (y - p1[0]) / d;
+    const m1 = ((p2[1] - p0[1]) / (p2[0] - p0[0] || 1)) * d;
+    const m2 = ((p3[1] - p1[1]) / (p3[0] - p1[0] || 1)) * d;
+    const u2 = u * u, u3 = u2 * u;
+    return (2 * u3 - 3 * u2 + 1) * p1[1] + (u3 - 2 * u2 + u) * m1 + (-2 * u3 + 3 * u2) * p2[1] + (u3 - u2) * m2;
+  };
+}
+
+// Half-width of the form from neck (top) to hip (bottom); the waist sits at y = 0.1. A dressmaker's form
+// (Cat's pick N1): a short, full neck and broad, nearly level shoulders that round off at the arm.
+const R_WOMENSWEAR = spline([
+  [-1.75, 0.15], [-1.55, 0.155], [-1.47, 0.17], [-1.43, 0.25], [-1.38, 0.42], [-1.32, 0.52], [-1.22, 0.57],
+  [-1.05, 0.58], [-0.8, 0.59], [-0.55, 0.61],
+  [-0.3, 0.53], [-0.05, 0.45], [0.1, 0.43], [0.3, 0.49], [0.55, 0.61], [0.8, 0.65], [1.05, 0.63], [1.3, 0.58],
+]);
+// The menswear form (Cat's B2 Two Forms, 2026-10-18): a fuller neck, broader and squarer shoulders, a straighter
+// torso tapering gently to the waist, and narrower hips.
+const R_MENSWEAR = spline([
+  [-1.75, 0.17], [-1.55, 0.175], [-1.47, 0.19], [-1.43, 0.3], [-1.39, 0.52], [-1.33, 0.63], [-1.22, 0.67],
+  [-1.05, 0.665], [-0.8, 0.64], [-0.55, 0.61],
+  [-0.3, 0.57], [-0.05, 0.535], [0.1, 0.525], [0.3, 0.535], [0.55, 0.56], [0.8, 0.575], [1.05, 0.565], [1.3, 0.54],
+]);
+// Every drawing below reads the form through R. Each paint picks the person's form first (JS paints one canvas
+// at a time, so two forms on one screen each draw their own).
+let R = R_WOMENSWEAR;
+const pickForm = (kind: FormKind = 'womenswear') => {
+  R = kind === 'menswear' ? R_MENSWEAR : R_WOMENSWEAR;
+};
 // The neck starts at -1.66: short and full, like a dressmaker's form.
 const YS = Array.from({ length: 221 }, (_, i) => -1.66 + (2.96 * i) / 220);
 const DEPTH = 0.16;
@@ -70,7 +106,8 @@ function layout(w: number, h: number) {
  * The form's outline as one closed loop, clockwise from the top left (across the neck, down the right side,
  * across the hem, up the left side), so the loading screen's bodice can be reshaped into it.
  */
-export function formOutline(w: number, h: number): { pts: [number, number][]; lw: number } {
+export function formOutline(w: number, h: number, kind?: FormKind): { pts: [number, number][]; lw: number } {
+  pickForm(kind);
   const { S, cx, Y, lw } = layout(w, h);
   const left = YS.map((y): [number, number] => [cx - R(y) * S, Y(y)]);
   const right = YS.map((y): [number, number] => [cx + R(y) * S, Y(y)]);
@@ -139,7 +176,7 @@ const OUTLINE = 1000;
 export type FormStart = 'wait' | 'drawn' | 'fresh';
 
 
-export function ContourForm({ start: from = 'fresh' }: { start?: FormStart }) {
+export function ContourForm({ start: from = 'fresh', kind }: { start?: FormStart; kind?: FormKind }) {
   const ref = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -162,7 +199,10 @@ export function ContourForm({ start: from = 'fresh' }: { start?: FormStart }) {
       canvas.height = Math.round(r.height * dpr);
       g.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
-    const paint = (t: number) => draw(g, size.w, size.h, t, drawn);
+    const paint = (t: number) => {
+      pickForm(kind);
+      draw(g, size.w, size.h, t, drawn);
+    };
     const tick = (now: number) => {
       if (!start) start = now;
       const t = now - start;
@@ -190,7 +230,7 @@ export function ContourForm({ start: from = 'fresh' }: { start?: FormStart }) {
       cancelAnimationFrame(frame);
       ro.disconnect();
     };
-  }, [from]);
+  }, [from, kind]);
 
   return <canvas ref={ref} className="contour" aria-hidden="true" />;
 }
@@ -246,7 +286,7 @@ function drawDemo(g: CanvasRenderingContext2D, w: number, h: number, t: number, 
   g.fillRect(0, 0, w, h);
   g.lineCap = 'round';
   g.lineJoin = 'round';
-  const demo = DEMOS[id] ?? { kind: 'girth', y: 0.1 };
+  const demo = DEMOS[id]!;
 
   // Frame the part of the body this measurement uses, as a close crop like the welcome's.
   let top: number, bottom: number;
@@ -445,9 +485,43 @@ function frame(w: number, h: number, z: number, seen = h) {
   const wy = a.wy + (wy1 - a.wy) * k;
   return { S, cx: a.cx, wy, lw: Math.max(0.7, S / 252) * 1.2, Y: (y: number) => wy + (y - 0.1) * S, k };
 }
+// The arms, for the arm measurements: they hang beside the form and fade in with the legs, drawn the same way.
+// Each edge is a distance from the centre at a height; the outer edge starts on the form's shoulder, the inner
+// one at the underarm, where the form's own side takes over above it.
+const ARM_OUT = spline([[-1.4, 0.42], [-1.3, 0.62], [-1.15, 0.74], [-0.95, 0.79], [-0.6, 0.795], [-0.1, 0.775], [0.3, 0.79], [0.9, 0.785], [1.15, 0.77], [1.3, 0.79], [1.5, 0.78], [1.62, 0.74]]);
+const ARM_IN = spline([[-0.9, 0.6], [-0.6, 0.605], [-0.1, 0.635], [0.3, 0.645], [0.9, 0.675], [1.15, 0.69], [1.3, 0.67], [1.5, 0.68], [1.62, 0.72]]);
+const ARM_YS = Array.from({ length: 121 }, (_, i) => -1.4 + (3.02 * i) / 120);
+const UNDERARM = -0.9;
+/** Where the shoulder point sits on the arm's outer edge, and the wrist bone. */
+const SHOULDER_POINT = -1.25;
+const WRIST = 1.15;
+
+function arms(g: CanvasRenderingContext2D, S: number, cx: number, lw: number, Y: (y: number) => number, k: number) {
+  const inner = ARM_YS.filter((y) => y >= UNDERARM);
+  for (const side of [-1, 1]) {
+    const X = (r: number) => cx + side * r * S;
+    // Black out the form's lines behind the arm, up to the form's own side.
+    g.globalAlpha = k;
+    g.fillStyle = '#000';
+    g.beginPath();
+    ARM_YS.forEach((y, i) => (i ? g.lineTo(X(ARM_OUT(y)), Y(y)) : g.moveTo(X(ARM_OUT(y)), Y(y))));
+    [...inner].reverse().forEach((y) => g.lineTo(X(ARM_IN(y)), Y(y)));
+    ARM_YS.filter((y) => y < UNDERARM).reverse().forEach((y) => g.lineTo(X(R(y)), Y(y)));
+    g.fill();
+    g.strokeStyle = CHAMPAGNE;
+    g.lineWidth = lw;
+    path(g, ARM_YS.map((y): Pt => [X(ARM_OUT(y)), Y(y)]));
+    path(g, inner.map((y): Pt => [X(ARM_IN(y)), Y(y)]));
+    g.globalAlpha = k * 0.45;
+    g.lineWidth = lw * 0.45;
+    for (let j = 1; j < 4; j++) path(g, inner.map((y): Pt => [X(ARM_IN(y) + ((ARM_OUT(y) - ARM_IN(y)) * j) / 4), Y(y)]));
+  }
+  g.globalAlpha = 1;
+}
+
 /** The form with its legs and floor line, at any scale: `legs` fades the legs in (0 to 1). The same
  * body as every other screen, for views that need the whole figure (the turning shape preview). */
-export function paintFigure(g: CanvasRenderingContext2D, S: number, cx: number, Y: (y: number) => number, lw: number, legs = 1) {
+export function paintFigure(g: CanvasRenderingContext2D, S: number, cx: number, Y: (y: number) => number, lw: number, legs = 1, withArms = false) {
   const k = legs;
   const P = (y: number, th: number): Pt => [cx + Math.cos(th) * R(y) * S, Y(y) + Math.sin(th) * R(y) * S * DEPTH, Math.cos(th)];
   taper(g, YS.map((y) => [cx - R(y) * S, Y(y)]), 1, (u) => lw * (0.5 + Math.sin(Math.PI * u)));
@@ -460,6 +534,7 @@ export function paintFigure(g: CanvasRenderingContext2D, S: number, cx: number, 
     const pts = YS.map((y) => P(y, th));
     for (let i = 1; i < pts.length; i++) stroke(g, pts[i - 1], pts[i]);
   }
+  if (withArms && k > 0) arms(g, S, cx, lw, Y, k);
   // Legs fade in as the view pulls back
   if (k > 0) {
     for (const side of [-1, 1]) {
@@ -484,7 +559,7 @@ export function paintFigure(g: CanvasRenderingContext2D, S: number, cx: number, 
     stroke(g, [cx - 0.9 * S, Y(FLOOR)], [cx + 0.9 * S, Y(FLOOR)]);
   }
 }
-function figure(g: CanvasRenderingContext2D, w: number, h: number, z: number, seen = h) {
+function figure(g: CanvasRenderingContext2D, w: number, h: number, z: number, seen = h, withArms = false) {
   g.globalAlpha = 1;
   g.fillStyle = '#000';
   g.fillRect(0, 0, w, h);
@@ -492,7 +567,7 @@ function figure(g: CanvasRenderingContext2D, w: number, h: number, z: number, se
   g.lineCap = 'round';
   g.lineJoin = 'round';
   const { S, cx, lw, Y, k } = frame(w, h, z, seen);
-  paintFigure(g, S, cx, Y, lw, k);
+  paintFigure(g, S, cx, Y, lw, k, withArms);
   // The welcome's fade, which lifts as the legs come into view
   g.globalAlpha = 1 - k;
   const fade = g.createLinearGradient(0, h * FADE_FROM, 0, h);
@@ -528,9 +603,117 @@ function lengthOn(g: CanvasRenderingContext2D, w: number, h: number, z: number, 
   label(g, 'STOP · ' + stop, x + 10, y1 + 3, out(seg(t, 1250, 1650)), 'left');
 }
 
-export const ON_FORM: Partial<Record<MeasurementId, number>> = { full_bust: -0.58, waist: 0.1, full_hip: 0.82 };
+/** The x a left-aligned label can start at and still end inside the canvas. */
+function fitX(g: CanvasRenderingContext2D, text: string, x: number, w: number) {
+  g.save();
+  g.font = "500 9px 'Chakra Petch', sans-serif";
+  const width = g.measureText(text).width + 2 * text.length;
+  g.restore();
+  return Math.min(x, w - 8 - width);
+}
 
-export { formLandmarks } from '../engine/form';
+/** The arm measurements on the figure with its arms, on the right arm: arm length runs from the shoulder point
+ *  down the outside of the arm to the wrist bone; the upper arm and wrist go round it, the back faint. */
+function armOn(g: CanvasRenderingContext2D, w: number, h: number, z: number, at: number | 'length', t: number, name: string, seen = h) {
+  const { S, cx, lw, Y } = frame(w, h, z, seen);
+  const X = (r: number) => cx + r * S;
+  const p = out(seg(t, 0, 1300));
+  g.save();
+  g.strokeStyle = CHAMPAGNE_GLOW;
+  g.lineWidth = TAPE_W * lw;
+  if (at === 'length') {
+    const ys = Array.from({ length: 61 }, (_, i) => SHOULDER_POINT + ((WRIST - SHOULDER_POINT) * i) / 60);
+    const pts = ys.map((y): Pt => [X(ARM_OUT(y)) + 4, Y(y)]);
+    path(g, pts, p);
+    g.restore();
+    const [a, b] = [pts[0], pts[pts.length - 1]];
+    const start = 'START · SHOULDER';
+    const sx = fitX(g, start, a[0] + 10, w);
+    dot(g, a[0], a[1], out(seg(t, -300, 0)));
+    // Just under the shoulder point, clear of the page dots level with it.
+    label(g, start, sx, a[1] + 16, out(seg(t, -300, 0)), 'left');
+    dot(g, b[0], b[1], out(seg(t, 1200, 1500)));
+    label(g, 'STOP · WRIST', fitX(g, 'STOP · WRIST', b[0] + 10, w), b[1] + 3, out(seg(t, 1250, 1650)), 'left');
+    return;
+  }
+  const mid = X((ARM_IN(at) + ARM_OUT(at)) / 2);
+  const r = ((ARM_OUT(at) - ARM_IN(at)) / 2) * S + 1.5;
+  const P = (th: number): Pt => [mid + Math.cos(th) * r, Y(at) + Math.sin(th) * r * DEPTH * 2];
+  const back = Array.from({ length: 41 }, (_, i) => P(Math.PI + (i / 40) * Math.PI));
+  const front = Array.from({ length: 41 }, (_, i) => P(-(i / 40) * Math.PI));
+  g.globalAlpha = 0.35;
+  path(g, back, Math.min(1, p * 2));
+  g.globalAlpha = 1;
+  path(g, front, Math.max(0, p * 2 - 1));
+  g.restore();
+  const text = name.toUpperCase();
+  label(g, text, fitX(g, text, mid + r + 10, w), Y(at) + 3, out(seg(t, 1250, 1650)), 'left');
+}
+
+/** Crotch length: from the centre front waist down the front, under between the legs, and up the back to the
+ *  centre back waist. The front is bright; the back, behind the figure, is faint and just to one side. */
+function crotchOn(g: CanvasRenderingContext2D, w: number, h: number, z: number, t: number, seen = h) {
+  const { S, cx, lw, Y } = frame(w, h, z, seen);
+  const bottom = 1.3;
+  const fy = (y: number) => Y(y) + R(y) * S * DEPTH;
+  const by = (y: number) => Y(y) - R(y) * S * DEPTH;
+  const ys = Array.from({ length: 41 }, (_, i) => 0.1 + ((bottom - 0.1) * i) / 40);
+  const dip = Y(bottom) + R(bottom) * S * DEPTH + 6;
+  const side = 5;
+  const under: Pt[] = Array.from({ length: 13 }, (_, i) => {
+    const u = i / 12;
+    return [cx + side * u, fy(bottom) + (dip - fy(bottom)) * Math.sin(Math.PI * u) - (fy(bottom) - by(bottom)) * u];
+  });
+  const front = ys.map((y): Pt => [cx, fy(y)]);
+  const up = [...ys].reverse().map((y): Pt => [cx + side, by(y)]);
+  const all = [...front, ...under, ...up];
+  const p = out(seg(t, 0, 1600));
+  const n = Math.floor((all.length - 1) * p);
+  g.save();
+  g.strokeStyle = CHAMPAGNE_GLOW;
+  g.lineWidth = TAPE_W * lw;
+  for (let i = 1; i <= n; i++) {
+    g.globalAlpha = i > front.length + under.length / 2 ? 0.4 : 1;
+    stroke(g, all[i - 1], all[i]);
+  }
+  g.restore();
+  // The ends are in the middle of the figure, so their names sit out to the side, each with a fine leader.
+  const [a, b] = [front[0], up[up.length - 1]];
+  const lx = cx + R(0.1) * S + 0.3 * S;
+  const named = (pt: Pt, y: number, text: string, alpha: number) => {
+    g.save();
+    g.globalAlpha = alpha * 0.6;
+    g.strokeStyle = CHAMPAGNE;
+    g.lineWidth = 0.6;
+    stroke(g, [pt[0] + 4, pt[1]], [lx - 6, y]);
+    g.restore();
+    label(g, text, fitX(g, text, lx, w), y + 3, alpha, 'left');
+  };
+  dot(g, a[0], a[1], out(seg(t, -300, 0)));
+  named(a, a[1] + 8, 'START · FRONT WAIST', out(seg(t, -300, 0)));
+  dot(g, b[0], b[1], 0.6 * out(seg(t, 1500, 1800)));
+  named(b, b[1] - 12, 'STOP · BACK WAIST', out(seg(t, 1550, 1950)));
+}
+
+export const ON_FORM: Partial<Record<MeasurementId, number>> = { full_bust: -0.58, waist: 0.1, full_hip: 0.82 };
+/** The menswear form's tapes: the chest across the fullest part of the ribcage, under the shoulders. */
+const ON_MENSWEAR_FORM: Partial<Record<MeasurementId, number>> = { full_bust: -0.62, waist: 0.1, full_hip: 0.8 };
+const onFormFor = (kind?: FormKind) => (kind === 'menswear' ? ON_MENSWEAR_FORM : ON_FORM);
+
+/** Where each girth belongs on the form, read off its outline: bust is the widest point above the waist,
+ *  waist the narrowest, hip the widest below. The tapes are tested against these so a drawing can't drift. */
+export function formLandmarks(): Record<'full_bust' | 'waist' | 'full_hip', number> {
+  const find = (a: number, b: number, better: (r: number, best: number) => boolean) => {
+    let at = a;
+    for (let y = a; y <= b; y += 0.001) if (better(R(y), R(at))) at = y;
+    return at;
+  };
+  return {
+    full_bust: find(-1.1, -0.2, (r, b) => r > b),
+    waist: find(-0.3, 0.5, (r, b) => r < b),
+    full_hip: find(0.4, 1.3, (r, b) => r > b),
+  };
+}
 const KNEE = 3.2;
 /** Lengths from the waist: where they stop, how far the view pulls back, and the STOP name. */
 const LENGTHS: Partial<Record<MeasurementId, { to: number; zoom: number; stop: string }>> = {
@@ -539,17 +722,34 @@ const LENGTHS: Partial<Record<MeasurementId, { to: number; zoom: number; stop: s
   back_waist_to_hip: { to: 0.82, zoom: 0.6, stop: 'HIP' },
   waist_to_knee: { to: KNEE, zoom: 1, stop: 'KNEE' },
   waist_to_floor: { to: FLOOR, zoom: 1, stop: 'FLOOR' },
+  // Seated, down the side to the chair: the seat is level with the figure's crotch, where the form ends.
+  crotch_depth: { to: 1.3, zoom: 0.6, stop: 'CHAIR SEAT' },
 };
+/** The arm measurements, drawn on the figure with its arms: round the arm at a height, or down its length. */
+const ARMS: Partial<Record<MeasurementId, number | 'length'>> = { arm_length: 'length', upper_arm: -0.55, wrist: WRIST };
+/** The measurements drawn on the pulled-back figure, which loop on its longer timing. */
+const zoomed = (id: MeasurementId) => !!LENGTHS[id] || ARMS[id] !== undefined || id === 'crotch_length';
+/** True when a measuring page has a drawing of its own; the rest would show the form with no tape. */
+export const hasDemo = (id: MeasurementId) => zoomed(id) || ON_FORM[id] !== undefined || !!DEMOS[id];
 export const TAPE_LOOP = 3800;
 export const ZOOM_LOOP = 6400;
-export const loopFor = (id: MeasurementId) => (LENGTHS[id] ? ZOOM_LOOP : ON_FORM[id] !== undefined ? TAPE_LOOP : DEMO_LOOP);
+export const loopFor = (id: MeasurementId) => (zoomed(id) ? ZOOM_LOOP : ON_FORM[id] !== undefined ? TAPE_LOOP : DEMO_LOOP);
 /** The frame held for reduced motion: the tape or line fully drawn and named. */
-const stillFor = (id: MeasurementId) => (LENGTHS[id] ? 4000 : ON_FORM[id] !== undefined ? TAPE_LOOP - 100 : 3000);
+const stillFor = (id: MeasurementId) => (zoomed(id) ? 4000 : ON_FORM[id] !== undefined ? TAPE_LOOP - 100 : 3000);
 
-function paintDemo(g: CanvasRenderingContext2D, w: number, h: number, t: number, id: MeasurementId, name: string, seen: number) {
-  const y = ON_FORM[id];
+function paintDemo(g: CanvasRenderingContext2D, w: number, h: number, t: number, id: MeasurementId, name: string, seen: number, kind?: FormKind) {
+  const y = onFormFor(kind)[id];
   const len = LENGTHS[id];
-  if (len) {
+  const arm = ARMS[id];
+  if (arm !== undefined || id === 'crotch_length') {
+    // The arms pull back a little further than the hip, so the shoulder point is in view.
+    const z = (seg(t, 300, 1400) - seg(t, 5300, 6200)) * (arm !== undefined ? 0.7 : 0.6);
+    figure(g, w, h, z, seen, arm !== undefined);
+    if (t > 1300 && t < 5300) {
+      if (arm !== undefined) armOn(g, w, h, z, arm, t - 1700, name, seen);
+      else crotchOn(g, w, h, z, t - 1700, seen);
+    }
+  } else if (len) {
     const z = (seg(t, 300, 1400) - seg(t, 5300, 6200)) * len.zoom;
     figure(g, w, h, z, seen);
     if (t > 1300 && t < 5300) lengthOn(g, w, h, z, 0.1, len.to, t - 1700, 'WAIST', len.stop, seen);
@@ -558,14 +758,20 @@ function paintDemo(g: CanvasRenderingContext2D, w: number, h: number, t: number,
     g.lineJoin = 'round';
     settledForm(g, w, h);
     tapeAt(g, w, h, y, 1500 + t * 0.42, name.toUpperCase(), seen);
-  } else drawDemo(g, w, h, t, id, name);
+  } else if (DEMOS[id]) drawDemo(g, w, h, t, id, name);
+  else {
+    // A page without a drawing of its own shows the form at rest, never another measurement's tape.
+    g.lineCap = 'round';
+    g.lineJoin = 'round';
+    settledForm(g, w, h);
+  }
 }
 
 /** One measurement's how-to: the contour form with the tape drawn on where it goes, looping. */
 /** 'still' is the welcome's form at rest with no tape; 'all' has the base girths' tapes on it, for the check page. */
 export type DemoMode = 'loop' | 'still' | 'all';
 
-export function TapeDemo({ id, name, mode = 'loop' }: { id: MeasurementId; name: string; mode?: DemoMode }) {
+export function TapeDemo({ id, name, mode = 'loop', kind }: { id: MeasurementId; name: string; mode?: DemoMode; kind?: FormKind }) {
   const ref = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -588,11 +794,12 @@ export function TapeDemo({ id, name, mode = 'loop' }: { id: MeasurementId; name:
     // Reduced motion shows the finished frame and holds it.
     // The canvas is the welcome's height; the page may show only its top part.
     const paint = (t: number) => {
-      if (mode === 'loop') return paintDemo(g, size.w, size.h, t, id, name, canvas.parentElement?.clientHeight ?? size.h);
+      pickForm(kind);
+      if (mode === 'loop') return paintDemo(g, size.w, size.h, t, id, name, canvas.parentElement?.clientHeight ?? size.h, kind);
       g.lineCap = 'round';
       g.lineJoin = 'round';
       settledForm(g, size.w, size.h);
-      if (mode === 'all') for (const y of Object.values(ON_FORM)) tapeAt(g, size.w, size.h, y!, 3000, '');
+      if (mode === 'all') for (const y of Object.values(onFormFor(kind))) tapeAt(g, size.w, size.h, y!, 3000, '');
     };
     const loop = loopFor(id);
     const tick = (now: number) => {
@@ -618,9 +825,33 @@ export function TapeDemo({ id, name, mode = 'loop' }: { id: MeasurementId; name:
       cancelAnimationFrame(frame);
       ro.disconnect();
     };
-  }, [id, name, mode]);
+  }, [id, name, mode, kind]);
 
   return <canvas ref={ref} className="contour" aria-hidden="true" />;
+}
+
+/** One form at rest, small, for choosing which form to draft on. */
+export function FormPicture({ kind }: { kind: FormKind }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const canvas = ref.current;
+    const g = canvas?.getContext('2d');
+    if (!canvas || !g) return;
+    const paint = () => {
+      const r = canvas.getBoundingClientRect();
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      canvas.width = Math.round(r.width * dpr);
+      canvas.height = Math.round(r.height * dpr);
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      pickForm(kind);
+      settledForm(g, r.width, r.height);
+    };
+    const ro = new ResizeObserver(paint);
+    ro.observe(canvas);
+    paint();
+    return () => ro.disconnect();
+  }, [kind]);
+  return <canvas ref={ref} className="form-picture" aria-hidden="true" />;
 }
 
 /** Where the hip and floor sit on the form, and how deep its rings look, for drawing a garment round

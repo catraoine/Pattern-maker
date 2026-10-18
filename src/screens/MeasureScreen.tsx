@@ -1,8 +1,8 @@
-import { Check, FIELDS, Garment, MeasurementId, MeasurementValues, Unit } from '../measurements';
+import { Check, Garment, MeasurementId, MeasurementValues, Unit, fieldsFor, worded } from '../measurements';
 import { GarmentSwitch } from '../ui/GarmentSwitch';
 import { GARMENT_NAME } from '../measureFlow';
 import { PeopleSwitch } from '../ui/PeopleSwitch';
-import { ME, type Account, type Person } from '../account';
+import { ME, formOf, type Account, type Person } from '../account';
 
 interface Props {
   account: Account & { people: Person[]; active: string };
@@ -27,7 +27,8 @@ const show = (cm: number, unit: Unit) => (unit === 'cm' ? `${cm} cm` : `${Math.r
 // The Measure step once measuring is done: just this garment's measurements, like the check page, and a
 // tap on one opens its own page with the drawing and how-to. Picking another garment is a quiet link.
 export function MeasureScreen({ account, onSwitchPerson, onAddPerson, profile, garment, onChooseGarment, unit, values, checks, canContinue, onNext, onMeasure, notice }: Props) {
-  const fields = FIELDS[garment];
+  const form = formOf(account.people.find((p) => p.id === account.active)!);
+  const fields = fieldsFor(garment, form);
   const rows = fields.filter((f) => !f.optional || values[f.id] !== undefined);
   const extra = fields.filter((f) => f.optional && values[f.id] === undefined);
   const missing = rows.filter((f) => values[f.id] === undefined);
@@ -53,7 +54,7 @@ export function MeasureScreen({ account, onSwitchPerson, onAddPerson, profile, g
             return (
               <li key={f.id}>
                 <button type="button" onClick={() => onMeasure([f.id])}>
-                  <span>{f.label}</span>
+                  <span>{worded(f.label, form)}</span>
                   {v === undefined ? <em className="add">Add</em> : wrong(f.id) ? <em className="add">Check</em> : <span>{show(v, unit)}</span>}
                 </button>
               </li>

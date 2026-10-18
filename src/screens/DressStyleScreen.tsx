@@ -44,6 +44,7 @@ import { REPLACES } from './BodiceStyleScreen';
 import { bodiceLines, landmarks, readDrape, readFit, readNeckline, readSeam, readSkirtHem, skirtLines } from '../ui/formLines';
 import { Title } from '../ui/Title';
 import { ChoicePic, chipsClass } from '../ui/ChoicePic';
+import { Explain } from '../ui/Explain';
 
 interface Props {
   /** Start from a photo, and the photo this garment was matched to while the app is open. */
@@ -281,6 +282,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
                 </button>
               ))}
             </div>
+            <Explain set={['silhouette', 'length', 'asymHem', 'volume', 'pockets'].includes(g.id) ? 'skirt' : 'bodice'} group={g.id} options={g.options} pick={value(g.id)} />
             {g.id === 'sleeve' && !arms && (
               <p className="muted small">
                 For sleeves, add your arm length, upper arm and wrist.{' '}
@@ -391,9 +393,9 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           {view === 'ease' && easeMap && <EaseMapView views={easeMap} label={`Ease map of the ${title}`} />}
           <UndoToast undo={undo} />
         </div>
-        {flat && view === 'sketch' && <FabricSwatches finish={finish} onFinish={onFinish} />}
+        {flat && view === 'sketch' && <FabricSwatches finish={finish} onFinish={onFinish} garment="dress" />}
         <p className="muted small">
-          Drafted to your measurements as you choose.{undo.shake.state === 'on' ? ' Shake your phone to undo.' : ''}
+          Drafted to your measurements as you choose.
         </p>
       </section>
 

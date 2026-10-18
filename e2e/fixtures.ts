@@ -35,6 +35,8 @@ export const MEASUREMENTS: Record<string, string> = {
   'Crotch depth': '27',
   'Crotch length': '70',
   'Full bust': '92',
+  // The menswear form's bust.
+  Chest: '100',
   'High bust': '86',
   Neck: '35',
   'Shoulder width': '38',
@@ -93,6 +95,16 @@ export async function skipToExample(page: Page) {
   await main(page).getByRole('button', { name: 'Skip measuring and try an example' }).click();
 }
 
+/** "Me" on the first measuring page, then the form to draft on (Cat's B2 Two Forms): womenswear unless given. */
+export async function measureMe(page: Page, form: 'Womenswear' | 'Menswear' = 'Womenswear') {
+  await main(page).getByRole('button', { name: 'Me', exact: true }).click();
+  await expect(heading(page, 'Your form')).toBeVisible();
+  const pick = main(page).getByRole('radiogroup', { name: 'Which form should we draft on?' }).getByRole('radio', { name: form, exact: true });
+  await pick.click();
+  await expect(pick).toHaveAttribute('aria-checked', 'true');
+  await main(page).getByRole('button', { name: 'Continue', exact: true }).click();
+}
+
 /** The one-measurement-per-page flow: fill each page until the button that ends it. */
 export async function fillStepPages(page: Page) {
   let last = '';
@@ -120,7 +132,7 @@ export async function pickToMake(page: Page, g: GarmentName) {
   const choice = main(page).getByRole('radiogroup', { name: 'What would you like to make?' }).getByRole('radio', { name: new RegExp(`^${pickName(g)}\\b`) });
   await choice.click();
   await expect(choice).toHaveAttribute('aria-checked', 'true');
-  await main(page).getByRole('button', { name: 'Start measurements' }).click();
+  await main(page).getByRole('button', { name: 'Continue measurements' }).click();
 }
 
 /** Wait for the style screen of a garment. */
@@ -164,6 +176,14 @@ export const headerBack = (page: Page) => page.getByRole('banner').getByRole('bu
 export async function openAccount(page: Page) {
   await page.getByRole('banner').getByRole('button', { name: /^Your account/ }).click();
   await expect(main(page).getByRole('heading', { name: 'Saved patterns' })).toBeVisible();
+}
+
+/** Opens a folded row on the account screen (Saved patterns starts open), by its heading. */
+export async function openFold(page: Page, title: string | RegExp) {
+  const fold = main(page).getByRole('region', { name: title });
+  const details = fold.locator('details').first();
+  if (!(await details.evaluate((d) => (d as HTMLDetailsElement).open))) await fold.locator('summary').first().click();
+  return fold;
 }
 
 /** A step in the top bar: Measure, Style or Print. */
