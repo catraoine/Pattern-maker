@@ -557,7 +557,7 @@ function Swatches({ value, onPick }: { value?: Fibre | Special; onPick: (v: Fibr
       <div className="swatches">
         {FABRIC_OPTIONS.map((o) => (
           <button key={o.id} type="button" className={value === o.id ? 'swatch on' : 'swatch'} aria-pressed={value === o.id} onClick={() => onPick(value === o.id ? undefined : o.id)}>
-            <img src={fabricPhoto(o.id)} alt="" loading="lazy" />
+            <img src={fabricPhoto(o.id)} alt="" loading="lazy" draggable={false} />
             <span>{o.label}</span>
           </button>
         ))}
