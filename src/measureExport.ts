@@ -1,6 +1,7 @@
 // A person's measurements as files for other pattern software: an individual measurements file for
 // Seamly2D and Valentina (.vit), and a plain table (CSV) to type into CLO 3D, Browzwear or any CAD.
 import { FIELDS, type MeasurementId, type MeasurementValues } from './measurements';
+import type { Alteration } from './engine/fitting';
 
 /** Our measurements by their Seamly2D/Valentina known names. Ones they have no name for are written
  * as custom measurements (a leading @), which both programs accept in an individual file. */
@@ -89,4 +90,10 @@ export function toMeasurementsCsv(values: MeasurementValues): string {
     return [f.label, cm(v), String(Math.round((v / 2.54) * 10) / 10), SEAMLY_NAMES[f.id] ?? '', f.tip].map(csvCell).join(',');
   });
   return ['Measurement,cm,in,Seamly2D name,How it was taken', ...rows, ''].join('\r\n');
+}
+
+/** The toile alterations as a table, for a pattern cutter to apply to their own block. */
+export function toAlterationsCsv(alterations: Alteration[]): string {
+  const rows = alterations.map((a) => [a.area, a.seen, a.change].map(csvCell).join(','));
+  return ['Area,What the toile showed,Alteration', ...rows, ''].join('\r\n');
 }
