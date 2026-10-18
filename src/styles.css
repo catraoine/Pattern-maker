@@ -1199,14 +1199,6 @@ b {
 .chips.pics .chip .pic-trace {
   display: none;
 }
-.chips.pics .chip.on .pic-trace {
-  display: inline;
-  stroke: var(--gild-glow);
-  stroke-width: 1.6;
-  stroke-linecap: round;
-  stroke-dasharray: 0.16 0.84;
-  animation: pic-pen 2.8s linear infinite;
-}
 .chips.pics .chip.on .pic-trace .pic-faint {
   display: none;
 }
@@ -1217,7 +1209,7 @@ b {
 }
 @keyframes pic-pen {
   from {
-    stroke-dashoffset: 1;
+    stroke-dashoffset: var(--len, 100);
   }
   to {
     stroke-dashoffset: 0;
@@ -1232,11 +1224,127 @@ b {
     transform: rotate(3deg);
   }
 }
+/* Sections without picture tiles show the picked choice as a small moving drawing beside its line; any
+   picked drawing opens full size when tapped (Cat's extras to E3). */
+.explain-pic .pic,
+.big-drawing .pic {
+  fill: none;
+  stroke: var(--gild);
+  stroke-width: 1.1;
+  stroke-linejoin: round;
+}
+:is(.explain-pic, .big-drawing, .chips.pics .chip) .pic .pic-faint-solid {
+  stroke: var(--muted);
+  stroke-width: 0.8;
+}
+:is(.explain-pic, .big-drawing) .pic-trace,
+.chips.pics .chip.on .pic-trace {
+  display: inline;
+  stroke: var(--gild-glow);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+/* On a picked tile the outline is already bright, so the pen is drawn wider to stand out. */
+.chips.pics .chip.on .pic-trace {
+  stroke-width: 2.4;
+}
+/* Each path carries its own length in --len, so the dash and its run are set on the path itself. */
+.pic-trace path {
+  stroke-dasharray: calc(var(--len, 100) * 0.16) calc(var(--len, 100) * 0.84);
+  animation: pic-pen 2.8s linear infinite;
+}
+:is(.explain-pic, .big-drawing) .pic-trace :is(.pic-faint, .pic-faint-solid) {
+  display: none;
+}
+.big-drawing :is(.pic-skirt-silhouette-circle, .pic-skirt-silhouette-half_circle, .pic-skirt-silhouette-slip) {
+  transform-origin: 50% 10%;
+  animation: pic-sway 2.8s ease-in-out infinite;
+}
+.big-drawing .pic .pic-faint {
+  stroke: var(--muted);
+  stroke-dasharray: 2 2;
+  stroke-width: 0.8;
+}
+/* Full size keeps the fine line: strokes stay their screen width however big the drawing is. */
+.big-drawing .pic path {
+  vector-effect: non-scaling-stroke;
+  stroke-width: 1.5px;
+}
+.big-drawing .pic .pic-trace path {
+  /* The pen scales with the drawing so its dash, measured along the path, stays one short stroke. */
+  vector-effect: none;
+  stroke-width: 0.4;
+}
+.big-drawing .pic :is(.pic-faint, .pic-faint-solid) {
+  stroke-width: 1px;
+}
+.explain.with-pic {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  gap: 12px;
+  align-items: center;
+}
+.explain.with-pic p {
+  margin: 0;
+  min-width: 0;
+}
+.explain-pic {
+  width: 52px;
+  height: 62px;
+  padding: 4px;
+  border: var(--bw) solid var(--line-strong);
+  border-radius: 0;
+  background: transparent;
+  cursor: zoom-in;
+}
+.explain-pic .pic {
+  width: 100%;
+  height: 100%;
+}
+.chips.pics .chip.on .pic {
+  cursor: zoom-in;
+}
+.big-drawing {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: max(24px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom));
+  background: var(--paper);
+  text-align: center;
+}
+.big-drawing .pic {
+  width: min(64vw, 300px);
+  height: auto;
+  aspect-ratio: 40 / 48;
+}
+.big-drawing-name {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 28px;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.big-drawing-line {
+  margin: 0;
+  max-width: 34ch;
+  color: var(--ink);
+  line-height: 1.45;
+}
 @media (prefers-reduced-motion: reduce) {
+  :is(.explain-pic, .big-drawing) .pic-trace,
   .chips.pics .chip.on .pic-trace {
     display: none;
   }
-  .chips.pics .chip.on .pic {
+  .pic-trace path {
+    animation: none;
+  }
+  .chips.pics .chip.on .pic,
+  .big-drawing .pic {
     animation: none;
   }
 }
