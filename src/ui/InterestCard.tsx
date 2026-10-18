@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { ReactNode, useState } from 'react';
 import { OFFERS, OfferId } from '../offers';
 
 type Sent = 'idle' | 'sending' | 'sent' | 'failed' | 'busy';
@@ -19,21 +19,26 @@ interface Props {
   pattern?: string;
   /** No card of its own: sits inside another card under a rule. */
   inset?: boolean;
+  /** Shown under the offer's text, such as the cloth and length for this pattern. */
+  children?: ReactNode;
+  /** A tick box sent with the sign-up as `cut`, such as "Cut it for me too". */
+  choice?: { label: string; hint: string };
 }
 
 /** A paid extra that isn't open yet, with an email sign-up to hear when it opens. */
-export function InterestCard({ offer, pattern, inset }: Props) {
+export function InterestCard({ offer, pattern, inset, children, choice }: Props) {
   const o = OFFERS[offer];
   const [email, setEmail] = useState('');
   // Left empty by people; bots fill in every box.
   const [website, setWebsite] = useState('');
   const [state, setState] = useState<Sent>('idle');
+  const [picked, setPicked] = useState(false);
   const id = `offer-${offer}`;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setState('sending');
-    setState(await send({ kind: 'interest', offer, email, pattern: pattern || undefined, website }));
+    setState(await send({ kind: 'interest', offer, email, pattern: pattern || undefined, cut: choice ? picked : undefined, website }));
   };
 
   const body = (
@@ -41,6 +46,7 @@ export function InterestCard({ offer, pattern, inset }: Props) {
       <p className="eyebrow">{o.eyebrow}</p>
       <h2 id={id}>{o.title}</h2>
       <p className="muted">{o.text}</p>
+      {children}
       {o.prices && (
         <dl className="offerprices">
           {o.prices.map(([label, price]) => (
@@ -55,6 +61,14 @@ export function InterestCard({ offer, pattern, inset }: Props) {
         <p className="msg">{o.thanks}</p>
       ) : (
         <>
+          {choice && (
+            <label className="check">
+              <input type="checkbox" checked={picked} onChange={(e) => setPicked(e.target.checked)} />
+              <span>
+                {choice.label} <span className="muted small">{choice.hint}</span>
+              </span>
+            </label>
+          )}
           <form className="row" onSubmit={submit}>
             <input type="email" required autoComplete="email" aria-label="Your email" value={email} onChange={(e) => setEmail(e.target.value)} />
             <input className="hp" tabIndex={-1} autoComplete="off" aria-hidden="true" value={website} onChange={(e) => setWebsite(e.target.value)} />
@@ -63,6 +77,7 @@ export function InterestCard({ offer, pattern, inset }: Props) {
             </button>
           </form>
           {o.prices && <p className="muted small">Planned price. Nothing is charged today.</p>}
+          {o.fine && <p className="muted small">{o.fine}</p>}
           {state === 'failed' && <p className="msg small">That didn't go through. Please try again in a moment.</p>}
           {state === 'busy' && <p className="msg small">Too many sign-ups right now. Please try again tomorrow.</p>}
         </>

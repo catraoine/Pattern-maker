@@ -15,7 +15,7 @@ import type { Flat } from '../engine/flat';
 import { TechFlatView } from '../ui/TechFlatView';
 import { StepDiagram } from '../ui/StepDiagram';
 import { CLOTHS, seamFinish } from '../engine/couture';
-import { DRAPES, FIBRES, FIBRE_IDS, Fibre, MyFabric, WEIGHTS, FabricStyle, checkFabric, clothFor, easeWords } from '../engine/fabrics';
+import { DRAPES, FIBRES, FIBRE_IDS, Fibre, MyFabric, WEIGHTS, FabricStyle, adviceFor, checkFabric, clothFor, easeWords, pickTag } from '../engine/fabrics';
 import { FabricGuide } from '../ui/FabricGuide';
 import { SPECIALS, SPECIAL_IDS, Special, checksLines, needsNap, specialLines } from '../engine/specialFabrics';
 import { SizeRun } from '../ui/SizeRun';
@@ -320,6 +320,8 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
       )}
 
       {!imported && <YourFabric fabric={finish.fabric ?? {}} onFabric={(fabric) => onFinish({ ...finish, fabric, cloth: clothFor(fabric, finish.cloth) })} style={style} simple={mode === 'simple'} />}
+
+      {!imported && !hasFabric(finish.fabric) && <Deadstock style={style} lays={lays} title={title} />}
 
       <section className="card" aria-labelledby="laytitle">
         <div className="row between wrap">
@@ -657,6 +659,37 @@ function YourFabric({ fabric, onFabric, style, simple }: { fabric: MyFabric; onF
   );
 }
 
+const hasFabric = (f: MyFabric | undefined) => !!(f && (f.name || f.fibre || f.special));
+
+/** Deadstock matched to the style, measured to the cutting layout: a sign-up until the first drop opens. */
+function Deadstock({ style, lays, title }: { style: FabricStyle; lays: Lay[]; title: string }) {
+  const cloth = adviceFor(style).picks[0];
+  const lay = lays.find((l) => l.fabric === 'self');
+  return (
+    <InterestCard offer="deadstock" pattern={title} choice={{ label: 'Cut it for me too', hint: 'it arrives as your pattern pieces, ready to sew' }}>
+      <dl className="offerprices deadstock small">
+        {cloth && (
+          <div>
+            <dt>Suits this style</dt>
+            <dd>
+              {cloth.name} <span className="muted">· {pickTag(cloth).toLowerCase()}</span>
+            </dd>
+          </div>
+        )}
+        {lay && (
+          <div>
+            <dt>Your cutting layout</dt>
+            <dd>
+              {layAmount(lay)}
+              {lay.hide ? '' : <span className="muted"> at {lay.width} cm wide</span>}
+            </dd>
+          </div>
+        )}
+      </dl>
+    </InterestCard>
+  );
+}
+
 async function saveMeasurements(values: MeasurementValues, profile: string, fileBase: string, kind: 'vit' | 'csv') {
   const { toVit, toMeasurementsCsv } = await import('../measureExport');
   if (kind === 'vit') download(toVit(values, profile), 'application/xml', `${fileBase}-measurements.vit`);
@@ -774,6 +807,13 @@ function MakerPack({
         <p className="muted small">Opens your share menu with the files and a short note for the maker.</p>
         {note && <p className="msg small">{note}</p>}
         <FindAMaker title={title} />
+        <InterestCard offer="cutforme" pattern={title} inset>
+          <ol className="cutsteps small">
+            <li>Post your fabric to the studio.</li>
+            <li>They cut every piece from your pattern.</li>
+            <li>The pieces come back marked and labelled.</li>
+          </ol>
+        </InterestCard>
       </section>
 
       <details className="card more">

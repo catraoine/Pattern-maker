@@ -2918,6 +2918,19 @@ button.link.garment-change {
   margin: 0;
   color: var(--gild);
 }
+/* Deadstock: the cloth that suits the style and the length to buy, the value on the right */
+.offerprices.deadstock dd {
+  text-align: right;
+  min-width: 0;
+}
+/* Cut for me: the three steps, numbered */
+.cutsteps {
+  margin: 0.5rem 0 0;
+  padding-left: 1.25rem;
+  color: var(--muted);
+  display: grid;
+  gap: 4px;
+}
 
 /* Plans: Free, Premium and Maker, and the prompts that open them (switched off until billing) */
 .plans {

@@ -1,7 +1,7 @@
 // Paid extras that aren't built yet. Each one is shown as a sign-up so we can see who wants it before building
 // the paid part. Prices are the business plan's planned prices; nothing is charged until paid plans open.
 
-export const OFFER_IDS = ['founding', 'printed', 'tools', 'sewalong', 'designers', 'designer-partner', 'kit', 'gift', 'fitcheck', 'sizerun', 'classroom', 'sponsor'] as const;
+export const OFFER_IDS = ['founding', 'printed', 'tools', 'sewalong', 'designers', 'designer-partner', 'kit', 'gift', 'fitcheck', 'sizerun', 'classroom', 'sponsor', 'deadstock', 'cutforme'] as const;
 export type OfferId = (typeof OFFER_IDS)[number];
 
 export interface Offer {
@@ -11,6 +11,8 @@ export interface Offer {
   text: string;
   /** Planned prices, label then price. */
   prices?: [string, string][];
+  /** Fine print under the form: what happens to your data, or what the terms will say, once it opens. */
+  fine?: string;
   button: string;
   thanks: string;
 }
@@ -122,5 +124,23 @@ export const OFFERS: Record<OfferId, Offer> = {
     text: 'A clearly labelled sponsored page in our seasonal edit, showing your fabrics with the patterns they suit.',
     button: 'Get in touch',
     thanks: "Thank you. We'll be in touch.",
+  },
+  deadstock: {
+    id: 'deadstock',
+    eyebrow: 'Deadstock · limited lengths',
+    title: 'Deadstock cloth for this pattern',
+    text: 'End-of-roll fabric from fashion houses and mills, chosen to suit this style and cut to the length your layout needs. Each drop is small, and once a cloth is gone it is gone.',
+    button: 'Hold one for me',
+    thanks: "Thank you. We'll email you when the first deadstock drop opens. Nothing is charged today.",
+    fine: 'Lengths are cut to order, so cut cloth can’t be returned. Colours can look different on screen.',
+  },
+  cutforme: {
+    id: 'cutforme',
+    eyebrow: 'Or have it cut for you',
+    title: 'Cut for me',
+    text: 'A cutting studio cuts every piece from your fabric, marks and labels them, and posts them back ready to sew.',
+    button: 'Tell me when it opens',
+    thanks: "Thank you. We'll email you when cutting opens.",
+    fine: 'When it opens, your pattern file and posting address go only to the cutting studio, and we’ll ask you before anything is sent.',
   },
 };
