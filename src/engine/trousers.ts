@@ -42,6 +42,8 @@ export interface TrousersStyle {
   pockets?: PocketStyle;
   /** A waistband with the fly or side zip, or a pull-on elastic waist with no opening. */
   waist?: WaistStyle;
+  /** Cut on the menswear form: more room at the front of the crotch and a higher, deeper seat at the back. */
+  cut?: 'menswear';
 }
 
 export const DEFAULT_TROUSERS: TrousersStyle = { fit: 'regular', leg: 'straight', length: 'full', closure: 'fly', seamAllowance: 1.5, hemAllowance: 4 };
@@ -337,12 +339,15 @@ export function draftTrousers(m: TrousersMeasurements, style: Partial<TrousersSt
   // Centre waists: the front 1 cm in from the hip line, the back raised and in for the seat. A tummy or
   // a sway back measured (or found on a toile) raises or lowers them.
   const frontUp = clamp((m.front_waist_to_hip ?? m.waist_to_hip) - m.waist_to_hip, -3, 3) - (fit.frontDrop ?? 0);
-  const backUp = clamp(2.5 + (m.back_waist_to_hip !== undefined ? m.back_waist_to_hip - m.waist_to_hip : 0) - (fit.backDrop ?? 0), 0, 6);
+  const men = s.cut === 'menswear';
+  const backUp = clamp((men ? 3 : 2.5) + (m.back_waist_to_hip !== undefined ? m.back_waist_to_hip - m.waist_to_hip : 0) - (fit.backDrop ?? 0), 0, 6);
   // Pull-on trousers take less in at the centre back (and none past 0.5 cm at the front), so the
   // waist stays wide enough to pass the hips without the side seams swinging far out above them.
   const backIn = elastic ? 2 : clamp(0.035 * H, 3, 5);
   const frontIn = elastic ? 0.5 : 1;
-  const fork0 = { front: 0.05 * H, back: 0.12 * H };
+  // Menswear (after Aldrich's menswear trouser block) shares the crotch more evenly: a longer front fork
+  // for room at the front, a shorter back one, which with the higher back waist gives a steeper seat seam.
+  const fork0 = men ? { front: 0.065 * H, back: 0.105 * H } : { front: 0.05 * H, back: 0.12 * H };
 
   const build = (k: number) => {
     const front = half(f, { isFront: true, hipQ: H / 4 - 1, waistQ: W / 4 - 0.5, centreIn: frontIn, centreUp: frontUp, fork: fork0.front * k, legShift: 0, forkDrop: 0, dartMax: 2.5, dartLens: [9], zipCm: fly ? zipCm : 0 });

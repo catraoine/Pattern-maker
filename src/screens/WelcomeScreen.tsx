@@ -19,8 +19,10 @@ interface Props {
 const LEAVE_MS = 1700;
 
 // The welcome has one button (Cat, 2026-10-17): Begin. The tour plays from the dress form; trying an example
-// is the Skip on the measuring pages' tape. Begin unrolls a tape across the form at the waist, the form fades,
-// and the tape rises to where the measuring page's tape sits, so the next page carries straight on from it.
+// is the Skip on the measuring pages' tape. The end of a tape measure peeks in at the form's bottom corner
+// (Cat's U2 Tape Tip, 2026-10-18); Begin pulls the tape out of that corner across the form (E5 Out of the
+// Corner), the form fades, and the tape rises to where the measuring page's tape sits, so the next page
+// carries straight on from it.
 // The name is asked only when measuring someone else, on the first measuring page.
 export function WelcomeScreen({ onFinish, formStart, form, onLegal }: Props) {
   const [touring, setTouring] = useState(false);
@@ -60,23 +62,10 @@ export function WelcomeScreen({ onFinish, formStart, form, onLegal }: Props) {
             <span className="tour-play-ring" aria-hidden="true" />
             <span className="tour-play-label">How it works · {TOUR_LABEL}</span>
           </button>
+          <span className="tape-tip" aria-hidden="true" />
           {leaving && <TapeBand className="unrolling" />}
         </div>
         <Title id="wtitle" big="Sewing patterns" label="drafted to your body" />
-        <ol className="how" aria-label="How it works">
-          <li>
-            <span className="num">01</span>
-            <strong>Measure</strong>
-          </li>
-          <li>
-            <span className="num">02</span>
-            <strong>Style</strong>
-          </li>
-          <li>
-            <span className="num">03</span>
-            <strong>Print</strong>
-          </li>
-        </ol>
         <div className="stack">
           <button type="button" className="primary" onClick={begin}>
             Begin

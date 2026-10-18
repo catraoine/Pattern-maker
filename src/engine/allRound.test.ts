@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { roundSkirt, stripesMeet } from './allRound';
+import { roundBodice, roundDress, roundOuter, roundSkirt, roundTee, roundTrousers, stripesMeet } from './allRound';
+import { draftBodice } from './bodice';
+import { draftDress } from './dress';
+import { draftOuter } from './outerwear';
+import { draftTee } from './tee';
+import { draftTrousers } from './trousers';
+import { draftSleeve } from './sleeve';
+import { EXAMPLE_VALUES } from '../measurements';
 import { draftSkirt } from './skirt';
 import { roundRows } from '../ui/AllRound';
 
@@ -11,7 +18,8 @@ describe('all round', () => {
     const r = roundSkirt(draftSkirt(m, { silhouette: 'a_line', length: 'knee' }));
     expect(r.readings).toEqual({ front: 58, back: 58, left: 58, right: 58 });
     expect(r.seams.map((s) => s.kind)).toEqual(['side', 'side', 'centre_back']);
-    expect(r.seams[2].zipCm).toBeGreaterThan(15);
+    expect(r.zip?.phi).toBe(Math.PI);
+    expect(r.zip!.toCm).toBeGreaterThan(15);
     expect(r.darts).toHaveLength(8);
     expect(r.seamsMeet).toBe(true);
     expect(r.flare).toBeGreaterThan(1);
@@ -38,7 +46,7 @@ describe('all round', () => {
   it('has no darts or zip on an elastic waist, and no centre back seam when the back is on the fold', () => {
     const r = roundSkirt(draftSkirt(m, { silhouette: 'a_line', length: 'knee', waist: 'elastic' }));
     expect(r.darts).toHaveLength(0);
-    expect(r.seams.every((s) => !s.zipCm)).toBe(true);
+    expect(r.zip).toBeUndefined();
     expect(r.seams.some((s) => s.kind === 'centre_back')).toBe(false);
   });
 
@@ -49,5 +57,72 @@ describe('all round', () => {
     expect(roundRows(r, true).map((x) => x.id)).toEqual(['seams', 'hem', 'stripes']);
     const rows = roundRows(r, true).map((x) => x.text).join(' ');
     expect(rows).not.toMatch(/problem|fix|wrong|longer than/i);
+  });
+
+  // Every garment, not only skirts: tops, dresses, jackets, coats and trousers.
+  const full = EXAMPLE_VALUES as never;
+  const kinds = (r: { seams: { kind: string; cont?: boolean }[] }) => r.seams.filter((s) => !s.cont).map((s) => s.kind);
+
+  it('wraps a bodice round the form from the neck to the waist, with its zip at the centre back', () => {
+    const r = roundBodice(draftBodice(full), full);
+    expect(r.kind).toBe('top');
+    expect(kinds(r).sort()).toEqual(['centre_back', 'shoulder', 'shoulder', 'side', 'side']);
+    expect(r.topAt(Math.PI)).toBeCloseTo(-41, 0);
+    expect(r.topAt(0)).toBeGreaterThan(r.topAt(Math.PI));
+    expect(Math.abs(r.lengthAt(0))).toBeLessThan(2);
+    expect(r.armhole!.underarmCm).toBeGreaterThan(r.armhole!.shoulderCm);
+    expect(r.zip?.phi).toBe(Math.PI);
+    expect(r.darts.length).toBeGreaterThan(0);
+    expect(r.seamsMeet).toBe(true);
+  });
+
+  it('turns princess darts into princess seams, and carries a set-in sleeve', () => {
+    const d = draftBodice(full, { princess: 'armhole' });
+    const r = roundBodice(d, full, draftSleeve(d, full, { seamAllowance: 1.5, armholeAllowance: 1, hemAllowance: 2.5, length: 'long', shape: 'straight', fit: 'regular' }));
+    expect(kinds(r).filter((k) => k === 'princess')).toHaveLength(4);
+    expect(r.darts).toHaveLength(0);
+    expect(r.sleeve!.lengthCm).toBeGreaterThan(40);
+    expect(roundRows(r, false).map((x) => x.id)).toContain('sleeves');
+  });
+
+  it('runs a dress from the neck to the hem with a waist seam all the way round', () => {
+    const r = roundDress(draftDress(full), full);
+    expect(r.kind).toBe('dress');
+    expect(r.rings).toHaveLength(1);
+    expect(r.readings.front).toBeGreaterThan(30);
+    const side = r.seams.find((s) => s.kind === 'side')!;
+    expect(side.pts[side.pts.length - 1].cm).toBe(r.lengthAt(Math.PI / 2));
+    expect(r.zip!.toCm).toBeGreaterThan(0);
+  });
+
+  it('has no centre seams on a tee cut on the fold, and gives it sleeves', () => {
+    const r = roundTee(draftTee(full), full);
+    expect(kinds(r).filter((k) => k.startsWith('centre'))).toHaveLength(0);
+    expect(r.sleeve).toBeDefined();
+    expect(r.readings.front).toBeGreaterThan(0);
+  });
+
+  it('opens a jacket at the centre front, with its buttons and back vent', () => {
+    const r = roundOuter(draftOuter(full, { kind: 'jacket' }), full);
+    expect(kinds(r)).toContain('centre_front');
+    expect(r.opening!.buttons.length).toBeGreaterThan(2);
+    expect(r.vent).toBeDefined();
+    const coat = roundOuter(draftOuter(full, { kind: 'coat' }), full);
+    expect(kinds(coat).filter((k) => k === 'princess')).toHaveLength(4);
+    expect(coat.readings.back).toBeGreaterThan(r.readings.back + 20);
+    expect(coat.flare).toBeGreaterThanOrEqual(1);
+  });
+
+  it('gives trousers two legs, each with an outside seam and an inseam, and a fly at the centre front', () => {
+    const r = roundTrousers(draftTrousers(full), full);
+    expect(r.legs!.lengthCm).toBe(r.readings.front);
+    expect(r.seams.filter((s) => s.kind === 'inseam')).toHaveLength(2);
+    expect(r.seams.filter((s) => s.leg)).toHaveLength(4);
+    expect(r.zip?.phi).toBe(0);
+    expect(stripesMeet(r)).toBe(false);
+    const rows = roundRows(r, true);
+    expect(rows.map((x) => x.id)).toEqual(['seams', 'hem']);
+    expect(rows[0].text).toMatch(/^All 6 seams and \d+ darts meet from the waist to the hems\.$/);
+    expect(rows.map((x) => x.text).join(' ')).not.toMatch(/problem|fix|wrong/i);
   });
 });

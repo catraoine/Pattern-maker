@@ -100,6 +100,8 @@ export interface OuterDraft {
   block: [Piece, Piece];
   ext: number;
   buttons: { at: number[]; sizeCm: number; columns: number[] };
+  /** Buttoned left over right, as menswear is; right over left when missing. */
+  lapsLeft?: boolean;
   lapel?: Lapel;
   /** Where the pockets sit on the front, as drafted: a patch pocket's outline, or a welt's opening. */
   pocket?: { x: number; y: number; w: number; h: number; kind: 'patch' | 'welt' };
@@ -909,6 +911,7 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
     block,
     ext,
     buttons,
+    ...(s.fitting?.flatFront ? { lapsLeft: true } : {}),
     lapel: opening.lapel,
     pocket,
     pads: pad,

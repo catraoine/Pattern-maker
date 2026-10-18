@@ -348,7 +348,8 @@ export default function App() {
   const outerChoices: OuterChoices = useMemo(() => (garment === 'coat' ? { ...DEFAULT_COAT_CHOICES, ...saved.coat } : { ...DEFAULT_JACKET_CHOICES, ...saved.jacket }), [garment, saved.coat, saved.jacket]);
   // Jackets and coats are drafted on the bodice block, so they take the bodice's toile corrections.
   const outerStyleFor = (c: OuterChoices, f: Fitting | undefined) => ({ ...c, kind: c.garment, fitting: bodiceFitting(f) });
-  const trousersStyle = useMemo(() => ({ ...trousersChoices, fitting: withFabricEase(toFitting(fitting, 'skirt'), fabric, 'skirt') }), [trousersChoices, fitting, fabric]);
+  const trousersCut = form === 'menswear' ? { cut: 'menswear' as const } : {};
+  const trousersStyle = useMemo(() => ({ ...trousersChoices, ...trousersCut, fitting: withFabricEase(toFitting(fitting, 'skirt'), fabric, 'skirt') }), [trousersChoices, fitting, fabric, form]);
   /** The dress in one fit: the bodice at the waist, the skirt below it, each with its toile corrections. */
   const dressStyles = (f: Fitting | undefined) => ({
     bodice: { ...validDetails({ ...dress.bodice, length: 'waist' }, 'dress'), fit: dress.fit, length: 'waist' as const, fitting: bodiceFitting(f) },
@@ -417,7 +418,7 @@ export default function App() {
           // The garment's own pieces: pocket bags don't change with a fitting.
           const own = (pcs: Piece[]) => pcs.filter((pc) => pc.kind !== 'pocket');
           if (isOuterGarment) return draftOuter(values as OuterMeasurements, outerStyleFor(outerChoices, f)).pieces.filter((pc) => !pc.kind);
-          if (garment === 'trousers') return draftTrousers(values as TrousersMeasurements, { ...trousersChoices, fitting: withFabricEase(toFitting(f, 'skirt'), fabric, 'skirt') }).block;
+          if (garment === 'trousers') return draftTrousers(values as TrousersMeasurements, { ...trousersChoices, ...trousersCut, fitting: withFabricEase(toFitting(f, 'skirt'), fabric, 'skirt') }).block;
           if (garment === 'tee') return draftTee(values as TeeMeasurements, teeChoices).pieces;
           if (garment === 'dress') {
             const st = dressStyles(f);
@@ -1065,6 +1066,7 @@ export default function App() {
               canContinue={canLeaveMeasure}
               notice={measureNote}
               onMeasure={(ids) => openSteps({ kind: 'redo', garment, ids })}
+              onChangeForm={() => openSteps({ kind: 'form' })}
               onNext={() => {
                 countStep('measured', garment);
                 setAccount(updatePerson(account, person.id, recordMeasurements(person, new Date().toISOString().slice(0, 10))));
