@@ -53,7 +53,8 @@ test('a described slip dress measures for the dress and opens it cut on the bias
   await main.getByRole('button', { name: 'Continue measurements' }).click();
   await fillStepPages(page);
   await expectStyle(page, 'Dress');
-  await expect(main.getByRole('button', { name: 'Bias slip', exact: true }).first()).toHaveAttribute('aria-pressed', 'true');
+  // The flat's name says what is drawn: cut on the bias, with the described neckline.
+  await expect(main.getByRole('img', { name: /bias-cut slip dress with a cowl neck/i })).toBeVisible();
 });
 
 test('something the app can not make yet offers the full set of measurements', async ({ page }) => {
