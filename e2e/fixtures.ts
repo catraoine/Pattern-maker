@@ -160,8 +160,9 @@ export async function addCloserFit(page: Page, g: GarmentName) {
     await tab.click();
   }
   await add.click();
-  await expect(heading(page, new RegExp(`${g === 'Tee' ? 'tee' : lower(g)} measurements$`))).toBeVisible();
-  await main(page).getByRole('button', { name: 'Add measurements for a closer fit' }).click();
+  await expect(heading(page, /measurements$/)).toBeVisible();
+  await expect(main(page).locator('.garment-eyebrow')).toContainText(new RegExp(g === 'Tee' ? 't-shirt' : lower(g), 'i'));
+  await main(page).getByRole('button', { name: /more for a closer fit$/ }).click();
   await fillStepPages(page);
   await main(page).getByRole('button', { name: /^Style your / }).click();
   await expectStyle(page, g);
