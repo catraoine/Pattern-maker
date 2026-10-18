@@ -55,6 +55,18 @@ function stroke(g: CanvasRenderingContext2D, a: Pt, b: Pt) {
   g.stroke();
 }
 
+function taper(g: CanvasRenderingContext2D, pts: Pt[], frac: number, width: (u: number) => number) {
+  const n = Math.floor((pts.length - 1) * clamp(frac, 0, 1));
+  for (let i = 1; i <= n; i++) {
+    g.lineWidth = width(i / (pts.length - 1));
+    stroke(g, pts[i - 1], pts[i]);
+  }
+}
+
+// The measuring pages keep their own finer form: Cat prefers it there (2026-10-18), so only the welcome uses
+// the seven even lines.
+const LINES = 23;
+
 /** One line through the points, drawn as far as `frac` of the way along. */
 function path(g: CanvasRenderingContext2D, pts: Pt[], frac = 1) {
   const n = Math.floor((pts.length - 1) * clamp(frac, 0, 1));
@@ -70,12 +82,6 @@ function onForm(cx: number, S: number, Y: (y: number) => number, y: number, u: n
   return [cx + u * R(y) * S, Y(y) + Math.sqrt(Math.max(0, 1 - u * u)) * R(y) * S * DEPTH, u];
 }
 
-/** The settled form: all seven lines, one weight, one brightness. */
-function bodyLines(g: CanvasRenderingContext2D, ys: number[], at: (y: number, u: number) => Pt, lw: number) {
-  g.globalAlpha = 1;
-  g.lineWidth = lw;
-  for (const u of FORM_US) path(g, ys.map((y) => at(y, u)));
-}
 
 /** Where the form sits in a canvas of this size. */
 function layout(w: number, h: number) {
@@ -149,6 +155,32 @@ function draw(g: CanvasRenderingContext2D, w: number, h: number, t: number, draw
   g.textAlign = 'right';
   g.fillText(text, w - 14, h - 12);
   g.restore();
+}
+
+/** The measuring pages' form at rest: today's finer lines, which Cat keeps there. */
+function settledForm(g: CanvasRenderingContext2D, w: number, h: number) {
+  g.globalAlpha = 1;
+  g.fillStyle = '#000';
+  g.fillRect(0, 0, w, h);
+  g.strokeStyle = CHAMPAGNE;
+  g.lineCap = 'round';
+  g.lineJoin = 'round';
+  const { S, cx, lw, Y } = layout(w, h);
+  taper(g, YS.map((y) => [cx - R(y) * S, Y(y)]), 1, (u) => lw * (0.5 + Math.sin(Math.PI * u)));
+  taper(g, YS.map((y) => [cx + R(y) * S, Y(y)]), 1, (u) => lw * (0.5 + Math.sin(Math.PI * u)));
+  for (let j = 0; j < LINES; j++) {
+    const th = (Math.PI * (j + 0.5)) / LINES;
+    const c = Math.cos(th);
+    g.globalAlpha = 0.7;
+    g.lineWidth = lw * 0.6 * (1 - 0.35 * Math.abs(c));
+    path(g, YS.map((y) => onForm(cx, S, Y, y, c)));
+  }
+  const fade = g.createLinearGradient(0, h * FADE_FROM, 0, h);
+  fade.addColorStop(0, 'rgba(0,0,0,0)');
+  fade.addColorStop(1, 'rgba(0,0,0,1)');
+  g.globalAlpha = 1;
+  g.fillStyle = fade;
+  g.fillRect(0, h * FADE_FROM, w, h * (1 - FADE_FROM));
 }
 
 /** How long the outline takes to draw when the welcome draws it itself. */
@@ -289,9 +321,18 @@ function drawDemo(g: CanvasRenderingContext2D, w: number, h: number, t: number, 
   };
   const formYs = YS.filter((y) => Y(y) > -20 && Y(y) < h + 20);
 
-  // The form, as the welcome leaves it
+  // The form, with its outline and long lines, settled as the light pass leaves it
   g.strokeStyle = CHAMPAGNE;
-  bodyLines(g, formYs, (y, u) => onForm(cx, S, Y, y, u), lw);
+  taper(g, formYs.map((y) => [cx - R(y) * S, Y(y)]), 1, () => lw);
+  taper(g, formYs.map((y) => [cx + R(y) * S, Y(y)]), 1, () => lw);
+  for (let j = 0; j < LINES; j++) {
+    const th = (Math.PI * (j + 0.5)) / LINES;
+    const c = Math.cos(th);
+    g.globalAlpha = 0.5;
+    g.lineWidth = lw * 0.55 * (1 - 0.35 * Math.abs(c));
+    const pts = formYs.map((y) => P(y, th));
+    for (let i = 1; i < pts.length; i++) stroke(g, pts[i - 1], pts[i]);
+  }
 
   const p = inOut(seg(t, 350, 2500));
   const fadeOut = 1 - seg(t, DEMO_LOOP - 450, DEMO_LOOP);
@@ -471,7 +512,17 @@ function figure(g: CanvasRenderingContext2D, w: number, h: number, z: number, se
   g.lineCap = 'round';
   g.lineJoin = 'round';
   const { S, cx, lw, Y, k } = frame(w, h, z, seen);
-  bodyLines(g, YS, (y, u) => onForm(cx, S, Y, y, u), lw);
+  const P = (y: number, th: number): Pt => [cx + Math.cos(th) * R(y) * S, Y(y) + Math.sin(th) * R(y) * S * DEPTH, Math.cos(th)];
+  taper(g, YS.map((y) => [cx - R(y) * S, Y(y)]), 1, (u) => lw * (0.5 + Math.sin(Math.PI * u)));
+  taper(g, YS.map((y) => [cx + R(y) * S, Y(y)]), 1, (u) => lw * (0.5 + Math.sin(Math.PI * u)));
+  for (let j = 0; j < LINES; j++) {
+    const th = (Math.PI * (j + 0.5)) / LINES;
+    const c = Math.cos(th);
+    g.globalAlpha = 0.7;
+    g.lineWidth = lw * 0.6 * (1 - 0.35 * Math.abs(c));
+    const pts = YS.map((y) => P(y, th));
+    for (let i = 1; i < pts.length; i++) stroke(g, pts[i - 1], pts[i]);
+  }
   // Legs fade in as the view pulls back
   if (k > 0) {
     for (const side of [-1, 1]) {
@@ -482,15 +533,17 @@ function figure(g: CanvasRenderingContext2D, w: number, h: number, z: number, se
         const pts = LEG_YS.map((y): Pt => [lx + e * LEG(y) * S, Y(y)]);
         for (let i = 1; i < pts.length; i++) stroke(g, pts[i - 1], pts[i]);
       }
-      for (const f of [-1 / 3, 1 / 3]) {
-        g.globalAlpha = k;
-        g.lineWidth = lw;
+      for (let j = 1; j < 6; j++) {
+        const f = -1 + (2 * j) / 6;
+        g.globalAlpha = k * 0.45;
+        g.lineWidth = lw * 0.45;
         const pts = LEG_YS.map((y): Pt => [lx + f * LEG(y) * S, Y(y)]);
         for (let i = 1; i < pts.length; i++) stroke(g, pts[i - 1], pts[i]);
       }
     }
-    g.globalAlpha = k;
-    g.lineWidth = lw;
+    g.globalAlpha = k * 0.6;
+    g.lineWidth = 0.6;
+    g.strokeStyle = '#9a8e78';
     stroke(g, [cx - 0.9 * S, Y(FLOOR)], [cx + 0.9 * S, Y(FLOOR)]);
   }
   // The welcome's fade, which lifts as the legs come into view
@@ -573,7 +626,7 @@ function paintDemo(g: CanvasRenderingContext2D, w: number, h: number, t: number,
   } else if (y !== undefined) {
     g.lineCap = 'round';
     g.lineJoin = 'round';
-    draw(g, w, h, PEEL * 2, true, '');
+    settledForm(g, w, h);
     tapeAt(g, w, h, y, 1500 + t * 0.42, name.toUpperCase(), seen);
   } else drawDemo(g, w, h, t, id, name);
 }
@@ -608,7 +661,7 @@ export function TapeDemo({ id, name, mode = 'loop' }: { id: MeasurementId; name:
       if (mode === 'loop') return paintDemo(g, size.w, size.h, t, id, name, canvas.parentElement?.clientHeight ?? size.h);
       g.lineCap = 'round';
       g.lineJoin = 'round';
-      draw(g, size.w, size.h, PEEL * 2, true, '');
+      settledForm(g, size.w, size.h);
       if (mode === 'all') for (const y of Object.values(ON_FORM)) tapeAt(g, size.w, size.h, y!, 3000, '');
     };
     const loop = loopFor(id);
