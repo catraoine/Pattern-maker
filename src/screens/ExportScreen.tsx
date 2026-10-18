@@ -100,6 +100,8 @@ const printedDate = () => new Date().toLocaleDateString('en-GB', { day: 'numeric
 
 export function ExportScreen({ profile, title, fit, garment, finish, onFinish, made, error, saveState, onSave, onAccount, fitting, fittingNotes, alterations = NONE, onFitting, onTrueScale, values, draftAt, style, imported, mode = 'all', onMode, edition, credit, label }: Props) {
   const can = (t: ProTool) => shows(mode, t);
+  /** Knits fit by their stretch: tested in a spare knit, not a calico toile. */
+  const knit = garment === 'tee' || garment === 'lingerie';
   const [picked, setPaper] = useState<Output>('a4');
   // The simple view prints at home, on A4 or Letter.
   const paper: Output = can('bigPrint') || picked === 'a4' || picked === 'letter' ? picked : 'a4';
@@ -368,8 +370,8 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
       {can('toile') && !imported && (
         <section className="card" aria-labelledby="toiletitle">
           <p className="eyebrow">Before your fabric{fittingNotes.length && fitting ? ` · version ${fitting.round + 1}` : ''}</p>
-          <h2 id="toiletitle">{garment === 'tee' ? 'Try it in a spare knit first' : fittingNotes.length ? 'Corrected after your toile' : 'Fit it in a toile first'}</h2>
-          {garment === 'tee' ? (
+          <h2 id="toiletitle">{knit ? 'Try it in a spare knit first' : fittingNotes.length ? 'Corrected after your toile' : 'Fit it in a toile first'}</h2>
+          {knit ? (
             <p className="muted">
               A knit fits by its stretch, so test it in a cheap knit with the same stretch as yours, not calico. If it is too snug or too
               loose, change the stretch or the fit on the style screen.
@@ -387,7 +389,7 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
             </p>
           )}
           <div className="row wrap">
-            {garment !== 'tee' && (
+            {!knit && (
               <button type="button" className="secondary" onClick={onFitting}>
                 {fittingNotes.length ? 'Fit another toile' : 'I’ve tried on a toile'}
               </button>
@@ -430,7 +432,7 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
             <p className="eyebrow">After printing</p>
             <h2 id="sewtitle">How to sew it</h2>
           </div>
-          {garment !== 'trousers' && garment !== 'tee' && can('couture') && !imported && (
+          {garment !== 'trousers' && !knit && can('couture') && !imported && (
           <div className="seg" role="group" aria-label="How to sew it">
             {(['quick', 'couture'] as const).map((r) => (
               <button key={r} type="button" className={finish.route === r ? 'on' : ''} aria-pressed={finish.route === r} onClick={() => onFinish({ ...finish, route: r })}>
@@ -440,7 +442,7 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
           </div>
           )}
         </div>
-        {finish.route === 'couture' && garment !== 'trousers' && garment !== 'tee' && !imported && (
+        {finish.route === 'couture' && garment !== 'trousers' && !knit && !imported && (
           <div className="cloth">
             <p className="muted small">
               Thread-traced lines, basting and a fitting before machining, a hand-picked zip and hand-finished edges. The seam finish and
@@ -684,7 +686,7 @@ function YourFabric({
           ))}
         </dl>
       )}
-      {(fabric.weight === 'heavy' || (fabric.special && SPECIALS[fabric.special].thick)) && style.garment !== 'tee' && (
+      {(fabric.weight === 'heavy' || (fabric.special && SPECIALS[fabric.special].thick)) && style.garment !== 'tee' && style.garment !== 'lingerie' && (
         <label className="check">
           <input type="checkbox" checked={fabric.matchEase !== false} onChange={(e) => set({ matchEase: e.target.checked })} />
           <span>

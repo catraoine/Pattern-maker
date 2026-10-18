@@ -381,7 +381,7 @@ function PatternRow({
         <p className="muted small">
           {whoFor ? `For ${whoFor} · ` : ''}
           {pattern.name.toLowerCase() === detail.toLowerCase() ? '' : `${detail[0].toUpperCase()}${detail.slice(1)} · `}
-          {pattern.choices.fit[0].toUpperCase() + pattern.choices.fit.slice(1)} fit · saved {dateFmt.format(new Date(pattern.savedAt))}
+          {'fit' in pattern.choices ? `${pattern.choices.fit[0].toUpperCase() + pattern.choices.fit.slice(1)} fit · ` : ''}saved {dateFmt.format(new Date(pattern.savedAt))}
         </p>
         {pattern.fit && !fitting && (
           <p className="small fitnote">

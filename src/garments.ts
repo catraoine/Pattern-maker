@@ -8,6 +8,7 @@ import { LEG_WORDS, Leg, TrouserClosure, TrouserLength } from './engine/trousers
 import type { Fit, WaistStyle } from './engine/skirt';
 import type { PocketStyle } from './engine/pockets';
 import type { Stretch, TeeFit, TeeLength, TeeNeck, TeeSleeve } from './engine/tee';
+import { isSwim, type CupStyle, type LegCut, type LingeriePiece, type LingerieStretch, type Rise } from './engine/lingerie';
 import { Peplum, isDraped } from './engine/drape';
 import { isShaped } from './engine/hem';
 import type { HemShape } from './engine/hem';
@@ -146,6 +147,49 @@ export function describeTee(c: TeeChoices) {
   return words[0].toUpperCase() + words.slice(1);
 }
 
+/** Lingerie and swimwear: which piece, the knit's stretch, and the leg, rise and cup. */
+export interface LingerieChoices {
+  garment: 'lingerie';
+  piece: LingeriePiece;
+  stretch: LingerieStretch;
+  leg: LegCut;
+  rise: Rise;
+  cup: CupStyle;
+}
+
+export const DEFAULT_LINGERIE_CHOICES: LingerieChoices = { garment: 'lingerie', piece: 'brief', stretch: 'medium', leg: 'classic', rise: 'high', cup: 'triangle' };
+
+export type LingerieGroupId = 'piece' | 'stretch' | 'leg' | 'rise' | 'cup';
+
+export const LINGERIE_GROUPS: { id: LingerieGroupId; label: string; options: [string, string][] }[] = [
+  { id: 'piece', label: 'Piece', options: [['brief', 'Brief'], ['bralette', 'Bralette'], ['bodysuit', 'Bodysuit'], ['swimsuit', 'Swimsuit'], ['bikini', 'Bikini']] },
+  { id: 'stretch', label: 'Your knit’s stretch', options: [['medium', 'Medium: jersey, stretch lace'], ['high', 'High: power mesh, Lycra']] },
+  { id: 'leg', label: 'Leg', options: [['classic', 'Classic'], ['high', 'High cut']] },
+  { id: 'rise', label: 'Rise', options: [['high', 'High waist'], ['mid', 'Mid rise']] },
+  { id: 'cup', label: 'Cup', options: [['triangle', 'Triangle'], ['longline', 'Longline']] },
+];
+
+/** Whether a group applies to the piece: swimwear is always cut for Lycra, only briefs have a rise, only tops a cup. */
+export function lingerieGroupShown(c: LingerieChoices, id: LingerieGroupId): boolean {
+  if (id === 'stretch') return !isSwim(c.piece);
+  if (id === 'leg') return c.piece !== 'bralette';
+  if (id === 'rise') return c.piece === 'brief' || c.piece === 'bikini';
+  if (id === 'cup') return c.piece === 'bralette' || c.piece === 'bikini';
+  return true;
+}
+
+const LINGERIE_PIECE_WORDS: Record<LingeriePiece, string> = { brief: 'brief', bralette: 'bralette', bodysuit: 'bodysuit', swimsuit: 'swimsuit', bikini: 'bikini' };
+
+/** A plain name, such as "High-waist high-cut brief" or "Longline bralette". */
+export function describeLingerie(c: LingerieChoices) {
+  const bits: string[] = [];
+  if (lingerieGroupShown(c, 'cup')) bits.push(c.cup === 'longline' ? 'longline' : 'triangle');
+  if (lingerieGroupShown(c, 'rise')) bits.push(c.rise === 'high' ? 'high-waist' : 'mid-rise');
+  if (lingerieGroupShown(c, 'leg') && c.leg === 'high') bits.push('high-cut');
+  const words = `${bits.join(' ')}${bits.length ? ' ' : ''}${LINGERIE_PIECE_WORDS[c.piece]}`;
+  return words[0].toUpperCase() + words.slice(1);
+}
+
 /** A jacket or a coat: drafted on the bodice block, with a button front, a collar and a lining. */
 export interface OuterChoices {
   garment: OuterKind;
@@ -204,12 +248,13 @@ export function describeOuter(c: OuterChoices) {
 }
 
 /** A saved pattern's choices. Skirt choices predate bodices, so they carry no garment field. */
-export type PatternChoices = Choices | BodiceChoices | DressChoices | TrousersChoices | TeeChoices | OuterChoices;
+export type PatternChoices = Choices | BodiceChoices | DressChoices | TrousersChoices | TeeChoices | OuterChoices | LingerieChoices;
 
 export const isBodice = (c: PatternChoices): c is BodiceChoices => (c as BodiceChoices).garment === 'bodice';
 export const isDress = (c: PatternChoices): c is DressChoices => (c as DressChoices).garment === 'dress';
 export const isTrousers = (c: PatternChoices): c is TrousersChoices => (c as TrousersChoices).garment === 'trousers';
 export const isTee = (c: PatternChoices): c is TeeChoices => (c as TeeChoices).garment === 'tee';
+export const isLingerie = (c: PatternChoices): c is LingerieChoices => (c as LingerieChoices).garment === 'lingerie';
 export const isOuter = (c: PatternChoices): c is OuterChoices => (c as OuterChoices).garment === 'jacket' || (c as OuterChoices).garment === 'coat';
 
 export const DEFAULT_BODICE: BodiceChoices = { garment: 'bodice', fit: 'regular', neckline: 'crew', length: 'waist', darts: 'bust_waist', sleeve: 'none', sleeveShape: 'straight' };

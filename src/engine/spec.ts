@@ -12,6 +12,7 @@ import { drapeSpec, zipSide } from './drape';
 import { SLIP_FACING } from './slip';
 import { STRETCH_WORDS } from './knits';
 import type { TeeDraft, TeeMeasurements } from './tee';
+import type { LingerieDraft, LingerieMeasurements } from './lingerie';
 import { INSEAM, SLANT } from './pockets';
 
 const r1 = (v: number) => Math.round(v * 10) / 10;
@@ -146,6 +147,20 @@ export function teeSpec(m: TeeMeasurements, d: TeeDraft): SpecRow[] {
     row('Upper arm (bicep)', m.upper_arm, d.sleeve.bicep),
     row('Sleeve length, crown to hem', undefined, d.sleeve.lengthCm),
     row('Sleeve hem, round', undefined, d.sleeve.hemCm),
+  ];
+}
+
+/** Soft lingerie and swimwear: cut smaller than the body, with the elastic for every edge. */
+export function lingerieSpec(m: LingerieMeasurements, d: LingerieDraft): SpecRow[] {
+  return [
+    { label: 'Knit stretch', finished: d.style.stretch === 'high' ? 'high stretch (50% or more)' : 'medium stretch (30 to 50%)' },
+    ...(d.finishedBust !== undefined ? [row('Bust', m.full_bust, d.finishedBust)] : []),
+    ...(d.finishedBand !== undefined ? [row('Underbust (band)', m.underbust, d.finishedBand)] : []),
+    ...(d.finishedWaist !== undefined ? [row('Waist edge', m.waist, d.finishedWaist)] : []),
+    ...(d.style.piece !== 'bralette' ? [row('Hip', m.full_hip, d.finishedHip)] : []),
+    ...(m.crotch_length !== undefined && d.style.piece !== 'bralette' ? [{ label: 'Crotch length', body: r1(m.crotch_length), finished: '' }] : []),
+    { label: 'Length reduction for stretch', finished: `${Math.round(d.lengthReduction * 100)}%` },
+    ...d.elastic.map((e) => ({ label: `Elastic, ${e.edge.toLowerCase()}`, finished: `${r1(e.length)} x ${e.width}` })),
   ];
 }
 

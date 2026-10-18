@@ -1,3 +1,4 @@
+import { lingerieShown } from './lingerieFlag';
 import { FIELDS, MENSWEAR_SKIPS, fieldsFor, worded, type FormKind, type Garment, type MeasurementField, type MeasurementId, type MeasurementValues } from './measurements';
 
 // First-time measuring: one base set that every garment uses, then only the extras a garment still needs.
@@ -6,8 +7,9 @@ import { FIELDS, MENSWEAR_SKIPS, fieldsFor, worded, type FormKind, type Garment,
 /** Taken by everyone first. Waist to floor is the length every garment can work from, and easier alone than height. */
 export const BASE: MeasurementId[] = ['full_bust', 'waist', 'full_hip', 'waist_to_floor'];
 
-export const GARMENTS: Garment[] = ['skirt', 'dress', 'bodice', 'trousers', 'tee', 'jacket', 'coat'];
-export const GARMENT_NAME: Record<Garment, string> = { skirt: 'skirt', dress: 'dress', bodice: 'bodice', trousers: 'trousers', tee: 'T-shirt', jacket: 'jacket', coat: 'coat' };
+/** Lingerie is in the list only while previewing, until the fit test passes (lingerieFlag.ts). */
+export const GARMENTS: Garment[] = ['skirt', 'dress', 'bodice', 'trousers', 'tee', 'jacket', 'coat', ...(lingerieShown ? (['lingerie'] as const) : [])];
+export const GARMENT_NAME: Record<Garment, string> = { skirt: 'skirt', dress: 'dress', bodice: 'bodice', trousers: 'trousers', tee: 'T-shirt', jacket: 'jacket', coat: 'coat', lingerie: 'lingerie' };
 
 const ALL = new Map<MeasurementId, MeasurementField>();
 for (const list of Object.values(FIELDS)) for (const f of list) if (!ALL.has(f.id)) ALL.set(f.id, f);

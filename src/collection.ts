@@ -24,6 +24,7 @@ import {
   isBodice,
   isDress,
   isOuter,
+  isLingerie,
   isTee,
   isTrousers,
   sleeveOf,
@@ -211,6 +212,7 @@ export function lookFlat(look: HouseLook, m: MeasurementValues): Flat | undefine
       const d = draftBodice(m as never, b);
       return bodiceFlat(d, 'binding', sleeveFor(d, b, m));
     }
+    if (isLingerie(c)) return undefined;
     return skirtFlat(draftSkirt(m as never, c), { slit: hasSlit(c) });
   } catch {
     return undefined;
