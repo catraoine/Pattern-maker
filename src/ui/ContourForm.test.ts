@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { formLandmarks, ON_FORM } from './ContourForm';
+import { FIELDS } from '../measurements';
+import { formLandmarks, hasDemo, ON_FORM } from './ContourForm';
 
 // The measuring pages draw each tape where that measurement is taken. These pin every tape to the form's own
 // shape, so a later change to the drawing or the tape heights fails here instead of showing the wrong place.
@@ -16,4 +17,11 @@ describe('measuring tapes on the dress form', () => {
     expect(marks.full_bust).toBeLessThan(marks.waist);
     expect(marks.waist).toBeLessThan(marks.full_hip);
   });
+});
+
+// Every measuring page shows its own measurement: a page without a drawing used to fall back to the waist tape
+// (the arm and crotch pages did), so each garment's pages are checked here.
+describe('a drawing for every measuring page', () => {
+  const ids = [...new Set(Object.values(FIELDS).flatMap((fields) => fields.map((f) => f.id)))];
+  for (const id of ids) it(`draws ${id}`, () => expect(hasDemo(id)).toBe(true));
 });
