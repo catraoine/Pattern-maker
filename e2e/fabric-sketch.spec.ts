@@ -18,6 +18,12 @@ test('a swatch dresses the skirt sketch and carries to the print screen', async 
   await expect(main.getByText('Linen', { exact: true }).first()).toBeVisible();
   // The cutting layout lays the paper pieces on that same cloth.
   await expect(main.locator('.layplan pattern image').first()).toHaveAttribute('href', /fabrics\/flat\/linen\.jpg$/);
+  // The print screen's photo swatches keep their own size: the sketch's round swatches once squeezed them
+  // into overlapping circles that jumped about when the row was dragged.
+  const photo = main.locator('.yourfabric .swatch').first();
+  expect((await photo.boundingBox())!.width).toBeGreaterThan(60);
+  await expect(photo).toHaveCSS('border-radius', '0px');
+  await expect(photo.locator('img')).toHaveAttribute('draggable', 'false');
 });
 
 // Shape choices are drawn, numbered sections head them, and the chip keeps its name.
