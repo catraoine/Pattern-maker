@@ -6,6 +6,8 @@ import { OUTER_EASE, OuterDraft, OuterMeasurements, outerDrop } from '../engine/
 import { outerFlat } from '../engine/flat';
 import { OuterChoices, describeOuter, outerAllowed, outerGroups } from '../garments';
 import { TechFlatView } from '../ui/TechFlatView';
+import { AllRound } from '../ui/AllRound';
+import { roundOuter } from '../engine/allRound';
 import { FabricSwatches, GarmentFabric } from '../ui/FabricFill';
 import { MeasurementValues } from '../measurements';
 import { PatternPreview } from '../ui/Preview';
@@ -61,7 +63,7 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
   const undo = useUndo(choices, setChoices);
   const onChoices = undo.change;
   const can = (t: ProTool) => shows(mode, t);
-  const [picked, setView] = useState<'sketch' | 'pattern' | 'ease'>('sketch');
+  const [picked, setView] = useState<'sketch' | 'round' | 'pattern' | 'ease'>('sketch');
   /** Drawing on the form: the choices from before, to keep or go back to. */
   const [onForm, setOnForm] = useState<OuterChoices>();
   const view = picked === 'ease' && !can('easeMap') ? 'sketch' : picked;
@@ -70,6 +72,7 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
   const sheet = useMemo(() => (draft ? layout(pieces, '', []) : undefined), [draft, pieces]);
   const flat = useMemo(() => (draft ? outerFlat(draft) : undefined), [draft]);
   const title = describeOuter(choices);
+  const round = useMemo(() => (draft ? roundOuter(draft, values) : undefined), [draft, values]);
   const extra = fabricEase(fabric, kind);
 
   if (onForm && draft) {
@@ -190,6 +193,9 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
             <button type="button" aria-pressed={view === 'sketch'} className={view === 'sketch' ? 'on' : ''} onClick={() => setView('sketch')}>
               Sketch
             </button>
+            <button type="button" aria-pressed={view === 'round'} className={view === 'round' ? 'on' : ''} onClick={() => setView('round')}>
+              All round
+            </button>
             <button type="button" aria-pressed={view === 'pattern'} className={view === 'pattern' ? 'on' : ''} onClick={() => setView('pattern')}>
               Pieces
             </button>
@@ -215,6 +221,7 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
               <TechFlatView flat={flat} title={title} />
             </GarmentFabric>
           )}
+          {round && view === 'round' && <AllRound round={round} m={values} striped={!!fabric?.checks} label={`The ${title.toLowerCase()} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`} />}
           {draft && sheet && view === 'pattern' && <PatternPane><PatternPreview paper sheet={sheet} label={`Pattern pieces for ${title.toLowerCase()}`} /></PatternPane>}
           {view === 'ease' && easeMap && <EaseMapView views={easeMap} label={`Ease map of the ${title.toLowerCase()}`} />}
           <UndoToast undo={undo} />

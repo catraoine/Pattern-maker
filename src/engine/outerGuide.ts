@@ -12,6 +12,7 @@ export function outerGuide(d: OuterDraft, fabricM: number, finish: { seams?: Sea
   const seam = n1(sw.seam);
   const curve = n1(sw.curve);
   const kind = d.kind;
+  const [over, under] = d.lapsLeft ? ['left', 'right'] : ['right', 'left'];
   const names = d.pieces.map((pc) => pc.name);
   const princess = names.some((n) => /side front/i.test(n));
   const collar = names.includes('Collar') ? (d.lapel ? 'notched' : 'stand') : 'none';
@@ -142,7 +143,7 @@ export function outerGuide(d: OuterDraft, fabricM: number, finish: { seams?: Sea
     },
     {
       title: 'Buttonholes and buttons',
-      text: `Mark ${holes} buttonholes on the right front (as you wear it) where the pattern shows them, ${n1(d.buttons.sizeCm + 0.3)} long. Sew them by machine or by hand with buttonhole twist, and cut them open. Sew the buttons to the left front to match${d.buttons.columns.length > 1 ? ', and the second column on the right front as the pattern shows; sew the small button inside the left front to hold the underlap' : ''}, on a thread shank as long as the cloth is thick.`,
+      text: `Mark ${holes} buttonholes on the ${over} front (as you wear it) where the pattern shows them, ${n1(d.buttons.sizeCm + 0.3)} long. Sew them by machine or by hand with buttonhole twist, and cut them open. Sew the buttons to the ${under} front to match${d.buttons.columns.length > 1 ? `, and the second column on the ${over} front as the pattern shows; sew the small button inside the ${under} front to hold the underlap` : ''}, on a thread shank as long as the cloth is thick.`,
     },
     {
       title: 'Final press',

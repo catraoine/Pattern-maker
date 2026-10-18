@@ -7,6 +7,8 @@ import { BODICE_GROUPS, BodiceChoices, DARTS_FOR_FIT, describeBodice, detailAllo
 import { isTop } from '../engine/corset';
 import { bodiceFlat } from '../engine/flat';
 import { TechFlatView } from '../ui/TechFlatView';
+import { AllRound } from '../ui/AllRound';
+import { roundBodice } from '../engine/allRound';
 import { SHAPES_FOR_LENGTH, SleeveDraft, needsArms } from '../engine/sleeve';
 import { MeasurementValues, hasHip } from '../measurements';
 import { PatternPreview } from '../ui/Preview';
@@ -106,7 +108,7 @@ export const REPLACES: Record<string, (keyof BodiceChoices)[]> = {
 };
 const handShaped = (c: BodiceChoices, id: string) => (REPLACES[id] ?? []).some((k) => c[k] !== undefined);
 
-type View = 'sketch' | 'flat' | 'pattern' | 'ease';
+type View = 'sketch' | 'round' | 'flat' | 'pattern' | 'ease';
 
 export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChooseGarment, values, draft, sleeve, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, finish, onFinish, fabric, mode = 'all', onMode }: Props) {
   const can = (t: ProTool) => shows(mode, t);
@@ -132,6 +134,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
   const arms = !needsArms(values);
   const chosen = sleeveOf(choices);
   const flat = useMemo(() => (draft ? bodiceFlat(draft, 'binding', sleeve) : undefined), [draft, sleeve]);
+  const round = useMemo(() => (draft ? roundBodice(draft, values, sleeve) : undefined), [draft, values, sleeve]);
   const detail = { bustDart: choices.bustDart ?? 'side', princess: choices.princess ?? 'none', closure: choices.closure ?? 'back_zip', collar: choices.collar ?? 'none', structure: valid.structure ?? 'none', peplum: choices.peplum ?? 'none' };
   // A draped neckline is its own shaping: the dart, seam, opening, collar and boning choices step aside.
   const draped = isDraped(choices);
@@ -176,6 +179,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
 
   const views: [View, string][] = [
     ['sketch', 'Sketch'],
+    ['round', 'All round'],
     ['flat', 'Flat'],
     ['pattern', 'Pieces'],
     ...(easeMap && easeMap.length > 0 && can('easeMap') ? ([['ease', 'Ease']] as [View, string][]) : []),
@@ -392,6 +396,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
             />
             </GarmentFabric>
           )}
+          {round && view === 'round' && <AllRound round={round} m={values} striped={!!fabric?.checks} label={`The ${title} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`} />}
           {flat && view === 'flat' && (
             <GarmentFabric fabric={fabric}>
               <TechFlatView flat={flat} title={title} />

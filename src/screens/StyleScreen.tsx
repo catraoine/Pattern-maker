@@ -487,10 +487,8 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
           {draft && round && view === 'round' && (
             <AllRound
               round={round}
-              m={m}
+              m={values}
               striped={!!fabric?.checks}
-              elastic={!!draft.elastic}
-              faced={!!draft.faced}
               label={`The ${title} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`}
             />
           )}

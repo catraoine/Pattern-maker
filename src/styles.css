@@ -1199,14 +1199,6 @@ b {
 .chips.pics .chip .pic-trace {
   display: none;
 }
-.chips.pics .chip.on .pic-trace {
-  display: inline;
-  stroke: var(--gild-glow);
-  stroke-width: 1.6;
-  stroke-linecap: round;
-  stroke-dasharray: 0.16 0.84;
-  animation: pic-pen 2.8s linear infinite;
-}
 .chips.pics .chip.on .pic-trace .pic-faint {
   display: none;
 }
@@ -1217,7 +1209,7 @@ b {
 }
 @keyframes pic-pen {
   from {
-    stroke-dashoffset: 1;
+    stroke-dashoffset: var(--len, 100);
   }
   to {
     stroke-dashoffset: 0;
@@ -1232,11 +1224,127 @@ b {
     transform: rotate(3deg);
   }
 }
+/* Sections without picture tiles show the picked choice as a small moving drawing beside its line; any
+   picked drawing opens full size when tapped (Cat's extras to E3). */
+.explain-pic .pic,
+.big-drawing .pic {
+  fill: none;
+  stroke: var(--gild);
+  stroke-width: 1.1;
+  stroke-linejoin: round;
+}
+:is(.explain-pic, .big-drawing, .chips.pics .chip) .pic .pic-faint-solid {
+  stroke: var(--muted);
+  stroke-width: 0.8;
+}
+:is(.explain-pic, .big-drawing) .pic-trace,
+.chips.pics .chip.on .pic-trace {
+  display: inline;
+  stroke: var(--gild-glow);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+/* On a picked tile the outline is already bright, so the pen is drawn wider to stand out. */
+.chips.pics .chip.on .pic-trace {
+  stroke-width: 2.4;
+}
+/* Each path carries its own length in --len, so the dash and its run are set on the path itself. */
+.pic-trace path {
+  stroke-dasharray: calc(var(--len, 100) * 0.16) calc(var(--len, 100) * 0.84);
+  animation: pic-pen 2.8s linear infinite;
+}
+:is(.explain-pic, .big-drawing) .pic-trace :is(.pic-faint, .pic-faint-solid) {
+  display: none;
+}
+.big-drawing :is(.pic-skirt-silhouette-circle, .pic-skirt-silhouette-half_circle, .pic-skirt-silhouette-slip) {
+  transform-origin: 50% 10%;
+  animation: pic-sway 2.8s ease-in-out infinite;
+}
+.big-drawing .pic .pic-faint {
+  stroke: var(--muted);
+  stroke-dasharray: 2 2;
+  stroke-width: 0.8;
+}
+/* Full size keeps the fine line: strokes stay their screen width however big the drawing is. */
+.big-drawing .pic path {
+  vector-effect: non-scaling-stroke;
+  stroke-width: 1.5px;
+}
+.big-drawing .pic .pic-trace path {
+  /* The pen scales with the drawing so its dash, measured along the path, stays one short stroke. */
+  vector-effect: none;
+  stroke-width: 0.4;
+}
+.big-drawing .pic :is(.pic-faint, .pic-faint-solid) {
+  stroke-width: 1px;
+}
+.explain.with-pic {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  gap: 12px;
+  align-items: center;
+}
+.explain.with-pic p {
+  margin: 0;
+  min-width: 0;
+}
+.explain-pic {
+  width: 52px;
+  height: 62px;
+  padding: 4px;
+  border: var(--bw) solid var(--line-strong);
+  border-radius: 0;
+  background: transparent;
+  cursor: zoom-in;
+}
+.explain-pic .pic {
+  width: 100%;
+  height: 100%;
+}
+.chips.pics .chip.on .pic {
+  cursor: zoom-in;
+}
+.big-drawing {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: max(24px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom));
+  background: var(--paper);
+  text-align: center;
+}
+.big-drawing .pic {
+  width: min(64vw, 300px);
+  height: auto;
+  aspect-ratio: 40 / 48;
+}
+.big-drawing-name {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 28px;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.big-drawing-line {
+  margin: 0;
+  max-width: 34ch;
+  color: var(--ink);
+  line-height: 1.45;
+}
 @media (prefers-reduced-motion: reduce) {
+  :is(.explain-pic, .big-drawing) .pic-trace,
   .chips.pics .chip.on .pic-trace {
     display: none;
   }
-  .chips.pics .chip.on .pic {
+  .pic-trace path {
+    animation: none;
+  }
+  .chips.pics .chip.on .pic,
+  .big-drawing .pic {
     animation: none;
   }
 }
@@ -3063,8 +3171,87 @@ button.link.garment-change {
   display: grid;
   gap: 14px;
 }
-.form-draw .chips {
-  justify-content: center;
+.form-draw .screen-head {
+  align-items: flex-end;
+}
+.form-draw .card > .row {
+  flex-wrap: nowrap;
+}
+.form-draw .seg button {
+  padding: 0 14px;
+}
+/* Done: the one way on, filled so it reads apart from everything else on the screen. */
+.form-draw button.primary.done,
+.form-leave button.primary.done {
+  background: var(--gild);
+  color: #000;
+  border-color: var(--gild);
+}
+.form-draw .screen-head button.done {
+  min-height: 42px;
+  padding: 0 18px;
+}
+/* Line kinds in one row under the form, sliding sideways when they don't fit. */
+.form-draw .form-kinds {
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin: 0 -2px;
+  padding: 0 2px 2px;
+}
+.form-draw .form-kinds::-webkit-scrollbar {
+  display: none;
+}
+.form-draw .form-kinds .chip {
+  flex: 0 0 auto;
+}
+/* Undo and Redo as plain words, so they don't read as a third side of the form. */
+.form-undo {
+  display: flex;
+  gap: 2px;
+}
+.form-undo button {
+  min-height: 40px;
+  padding: 0 10px;
+  background: none;
+  border: none;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink);
+  cursor: pointer;
+}
+.form-undo button:disabled {
+  color: var(--disabled);
+  cursor: default;
+}
+/* "Leave your lines?", from the bottom of the screen. */
+.form-leave {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: flex-end;
+  background: rgba(0, 0, 0, 0.72);
+}
+.form-leave-box {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 22px 16px calc(26px + env(safe-area-inset-bottom, 0px));
+  background: var(--paper);
+  border-top: var(--bw) solid var(--gild);
+}
+.form-leave-box h2 {
+  margin: 0;
+}
+.form-leave-box p {
+  margin: 0 0 6px;
+  color: var(--muted);
 }
 .form-draw .row.end {
   justify-content: flex-end;
@@ -3074,8 +3261,9 @@ button.link.garment-change {
   min-height: 2.9em;
   margin: 0;
 }
+/* Small enough that Done, the form, the hint and the line kinds all fit on a phone without scrolling. */
 .form-svg {
-  max-height: 62vh;
+  max-height: min(62vh, calc(100svh - 480px));
 }
 .form-svg .form-line {
   stroke: var(--gild);
@@ -3358,20 +3546,81 @@ button.link.garment-change {
   outline-offset: -4px;
 }
 
-/* Begin: the tape unrolls across the form at the waist, the welcome fades, and the tape rises to the top */
+/* The end of a tape measure peeking in at the form's bottom corner, where Begin pulls the tape out from
+   (Cat's U2 Tape Tip + E5 Out of the Corner, 2026-10-18): a short stub of tape and its metal hook */
+.tape-tip {
+  position: absolute;
+  right: -18px;
+  bottom: 14px;
+  z-index: 2;
+  width: 64px;
+  height: 18px;
+  background-color: var(--tape);
+  background-image: repeating-linear-gradient(90deg, var(--tape-ink) 0 1px, transparent 1px 19.5px),
+    repeating-linear-gradient(90deg, rgba(43, 36, 24, 0.6) 0 1px, transparent 1px 3.9px);
+  background-size: 100% 8px, 100% 4px;
+  background-position: 6px 0, 6px 0;
+  background-repeat: no-repeat;
+  opacity: 0;
+}
+
+.tape-tip::before {
+  content: '';
+  position: absolute;
+  left: -3px;
+  top: -4px;
+  bottom: -4px;
+  width: 4px;
+  border-radius: 1px;
+  background: #b8a274;
+}
+
+.tape-tip::after {
+  content: '1';
+  position: absolute;
+  left: 22px;
+  top: 6px;
+  font: 600 8px/1 var(--mono);
+  color: var(--tape-ink);
+}
+
+/* It slides in from the edge once the form has drawn */
+.welcome.go .tape-tip {
+  animation: tape-tip-in 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) 1.9s both;
+}
+
+@keyframes tape-tip-in {
+  from {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Begin takes the tip with it: the tape pulled out from here replaces it */
+.welcome.leaving .tape-tip {
+  animation: none;
+  opacity: 0;
+}
+
+/* Begin: the tape pulls out of the tip's corner, right to left across the foot of the form, the welcome fades,
+   and the tape rises to the top */
 .tape-band.unrolling {
   position: absolute;
   left: 0;
   right: 0;
   margin: 0;
-  top: calc(50% - 17px);
+  top: calc(100% - 40px);
   z-index: 3;
-  animation: tape-unroll 0.8s cubic-bezier(0.3, 0.6, 0.3, 1) both, tape-rise 0.65s cubic-bezier(0.2, 0.7, 0.2, 1) 1.05s both;
+  animation: tape-pull 0.75s cubic-bezier(0.3, 0.6, 0.3, 1) both, tape-rise 0.75s cubic-bezier(0.2, 0.7, 0.2, 1) 0.9s both;
 }
 
-@keyframes tape-unroll {
+@keyframes tape-pull {
   from {
-    clip-path: inset(0 100% 0 0);
+    clip-path: inset(0 0 0 100%);
   }
   to {
     clip-path: inset(0 0 0 0);
@@ -3456,7 +3705,7 @@ button.link.garment-change {
 
 @keyframes tape-rise {
   from {
-    top: calc(50% - 17px);
+    top: calc(100% - 40px);
   }
   to {
     top: 0;
@@ -3702,6 +3951,10 @@ button.link.garment-change {
 @media (prefers-reduced-motion: reduce) {
   .tape-band.unrolling {
     animation: none;
+  }
+  .welcome.go .tape-tip {
+    animation: none;
+    opacity: 1;
   }
 }
 
@@ -4906,6 +5159,10 @@ input.inline:focus,
   aspect-ratio: 4 / 5.4;
   touch-action: pan-y;
   cursor: grab;
+}
+
+.all-round-canvas.all-round-tall {
+  aspect-ratio: 4 / 6.6;
 }
 
 .all-round-canvas:active {
