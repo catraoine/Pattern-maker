@@ -388,7 +388,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
         </div>
         {flat && view === 'sketch' && <FabricSwatches finish={finish} onFinish={onFinish} />}
         <p className="muted small">
-          Drafted to your measurements as you choose.{undo.shake.state === 'on' ? ' Shake your phone to undo.' : ''}
+          Drafted to your measurements as you choose.
         </p>
       </section>
 

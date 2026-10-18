@@ -1,17 +1,24 @@
 import { chooseChip, expect, expectStyle, fillStepPages, openFresh, pickToMake, startWithExample, stepButton, switchGarment, test } from './fixtures';
 
-// Every garment's style screen works the same way: Undo after a change, and the same save wording.
-test('undo and save read the same on the trousers as on the skirt', async ({ page }) => {
+// Every garment's style screen works the same way: Undo and Redo always in place, and the same save wording.
+test('undo, redo and save read the same on the trousers as on the skirt', async ({ page }) => {
   await startWithExample(page);
   const main = page.getByRole('main');
   await switchGarment(page, 'Trousers');
 
   const wide = main.getByRole('group', { name: 'Leg', exact: true }).getByRole('button', { name: 'Wide', exact: true });
-  await expect(main.getByRole('button', { name: 'Undo the last change' })).toHaveCount(0);
+  const undo = main.getByRole('button', { name: 'Undo the last change' });
+  const redo = main.getByRole('button', { name: 'Redo the change you undid' });
+  await expect(undo).toBeDisabled();
+  await expect(redo).toBeDisabled();
   await chooseChip(page, 'Leg', 'Wide');
-  await main.getByRole('button', { name: 'Undo the last change' }).click();
+  await undo.click();
   await expect(main.getByRole('status').filter({ hasText: 'Undone' })).toBeVisible();
   await expect(wide).toHaveAttribute('aria-pressed', 'false');
+  await redo.click();
+  await expect(main.getByRole('status').filter({ hasText: 'Redone' })).toBeVisible();
+  await expect(wide).toHaveAttribute('aria-pressed', 'true');
+  await expect(redo).toBeDisabled();
 
   await expect(main.getByRole('group', { name: 'Preview view' }).getByRole('button', { name: 'Pieces', exact: true })).toBeVisible();
   await main.getByRole('button', { name: 'Save pattern' }).click();
@@ -77,4 +84,19 @@ test('a first dress asks five more measurements, not thirteen', async ({ page })
   await expectStyle(page, 'Dress');
   await main.getByRole('button', { name: 'Edit measurements' }).click();
   await expect(main.getByRole('button', { name: 'Add measurements for a closer fit' })).toBeVisible();
+});
+
+// The skirt uses the same Undo and Redo, and a new change clears what could be redone.
+test('a new change on the skirt clears redo', async ({ page }) => {
+  await startWithExample(page);
+  const main = page.getByRole('main');
+  const undo = main.getByRole('button', { name: 'Undo the last change' });
+  const redo = main.getByRole('button', { name: 'Redo the change you undid' });
+  await expect(undo).toBeDisabled();
+  await chooseChip(page, 'Fit', 'Relaxed');
+  await undo.click();
+  await expect(redo).toBeEnabled();
+  await chooseChip(page, 'Fit', 'Relaxed');
+  await expect(redo).toBeDisabled();
+  await expect(undo).toBeEnabled();
 });
