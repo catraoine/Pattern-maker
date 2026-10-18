@@ -4902,3 +4902,11 @@ input.inline:focus,
   display: block;
   margin: 0 auto;
 }
+
+/* The Fabric tab's amount: the metres and what they're of, on one line. */
+.fabric-amount {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}

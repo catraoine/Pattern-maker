@@ -20,7 +20,7 @@ import { BAND_ACROSS_MAX } from '../engine/instructions';
 import { ERAS, findLook } from '../engine/eras';
 import { shapeLine } from '../photo/shape';
 import { MyFabric, fabricEase, skirtFabrics } from '../engine/fabrics';
-import { FabricCard } from '../ui/FabricCard';
+import { FabricCard, FabricSummary } from '../ui/FabricCard';
 import { GODET_OPTIONS, VOLUME_OPTIONS, layoutExtras, setVolume, volumeAllowed, volumeOf, volumeWords } from '../engine/skirtVolume';
 
 import { EaseMapView } from '../ui/EaseMapView';
@@ -399,7 +399,9 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
         ))}
         {draft && (
           <TabPanel tab={FABRIC}>
-            <FabricSwatches finish={finish} onFinish={onFinish} garment="skirt" />
+            <FabricCard metres={fabricMetres(draft)} advice={skirtFabrics(choices)} look={currentLook(choices)} fabric={fabric}>
+              <FabricSwatches finish={finish} onFinish={onFinish} garment="skirt" />
+            </FabricCard>
           </TabPanel>
         )}
         {can('insideFinish') && (
@@ -570,9 +572,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
             ))}
           </ul>
         </div>
-        {draft && (
-          <FabricCard metres={fabricMetres(draft)} advice={skirtFabrics(choices)} look={currentLook(choices)} fabric={fabric} />
-        )}
+        {draft && <FabricSummary metres={fabricMetres(draft)} fabric={fabric} />}
         <button type="button" className="primary" disabled={!draft} onClick={onNext}>
           Print my pattern
         </button>

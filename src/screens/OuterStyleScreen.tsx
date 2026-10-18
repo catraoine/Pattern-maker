@@ -20,7 +20,7 @@ import { FinishChoices } from '../ui/FinishChoices';
 import { Mode, ProTool, shows } from '../mode';
 import type { Finish } from '../App';
 import { MyFabric, fabricEase, outerFabrics } from '../engine/fabrics';
-import { FabricCard } from '../ui/FabricCard';
+import { FabricCard, FabricSummary } from '../ui/FabricCard';
 import { ChoicePic, chipsClass } from '../ui/ChoicePic';
 import { Explain } from '../ui/Explain';
 import { DrawOnForm, formWidth } from '../ui/DrawOnForm';
@@ -174,9 +174,15 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
             <FinishChoices garment={kind} finish={finish} onFinish={onFinish} />
           </TabPanel>
         )}
-        {flat && (
+        {(flat || draft) && (
           <TabPanel tab={FABRIC}>
-            <FabricSwatches finish={finish} onFinish={onFinish} garment={kind} />
+            {draft ? (
+              <FabricCard metres={outerFabricMetres(draft)} advice={outerFabrics({ garment: kind, fit: choices.fit })} fabric={fabric} lined>
+                {flat && <FabricSwatches finish={finish} onFinish={onFinish} garment={kind} />}
+              </FabricCard>
+            ) : (
+              <FabricSwatches finish={finish} onFinish={onFinish} garment={kind} />
+            )}
           </TabPanel>
         )}
       </section>
@@ -263,7 +269,7 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
             ))}
           </ul>
         </div>
-        {draft && <FabricCard metres={outerFabricMetres(draft)} advice={outerFabrics({ garment: kind, fit: choices.fit })} fabric={fabric} lined />}
+        {draft && <FabricSummary metres={outerFabricMetres(draft)} fabric={fabric} />}
         <p className="muted small">
           Fully lined, with interfaced front facings{choices.collar === 'notched' ? ' and an upper and under collar rolled at the lapel' : ''}. The sleeves are drafted to
           your own armhole with room for what you wear underneath{choices.pads !== 'none' ? ', and the shoulders and sleeve heads are raised to take the shoulder pads' : ''}.
