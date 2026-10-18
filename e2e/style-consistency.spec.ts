@@ -1,4 +1,4 @@
-import { chooseChip, expect, expectStyle, fillStepPages, measureMe, openFresh, pickToMake, startWithExample, stepButton, switchGarment, test } from './fixtures';
+import { chooseChip, expect, expectStyle, fillStepPages, measureMe, openFresh, openReview, pickToMake, startWithExample, stepButton, switchGarment, test } from './fixtures';
 
 // Every garment's style screen works the same way: Undo and Redo always in place, and the same save wording.
 test('undo, redo and save read the same on the trousers as on the skirt', async ({ page }) => {
@@ -21,6 +21,7 @@ test('undo, redo and save read the same on the trousers as on the skirt', async 
   await expect(redo).toBeDisabled();
 
   await expect(main.getByRole('group', { name: 'Preview view' }).getByRole('button', { name: 'Pieces', exact: true })).toBeVisible();
+  await openReview(page);
   await main.getByRole('button', { name: 'Save pattern' }).click();
   await expect(main.getByRole('status').filter({ hasText: 'Saved to your patterns' })).toBeVisible();
 });
@@ -82,6 +83,7 @@ test('a first dress asks five more measurements, not thirteen', async ({ page })
   await expect(main.locator('.dots .dot')).toHaveCount(5);
   await fillStepPages(page);
   await expectStyle(page, 'Dress');
+  await openReview(page);
   await main.getByRole('button', { name: 'Edit measurements' }).click();
   await expect(main.getByRole('button', { name: 'Add measurements for a closer fit' })).toBeVisible();
 });

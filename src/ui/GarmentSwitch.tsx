@@ -1,23 +1,24 @@
 import { createContext, useContext } from 'react';
 
-/** Opens the Maison collection; given on the style screens, so they can offer it next to the garment link. */
+/** Opens the Maison collection; given on the style screens, so their Looks tab can offer it. */
 export const CollectionLink = createContext<(() => void) | undefined>(undefined);
 
 /** You stay in what you picked to make; this quiet link opens the list to pick something else. */
 export function GarmentSwitch({ onChoose }: { onChoose: () => void }) {
-  const openCollection = useContext(CollectionLink);
-  const change = (
+  return (
     <button type="button" className="link quiet garment-change" onClick={onChoose}>
       Choose another garment
     </button>
   );
-  if (!openCollection) return change;
+}
+
+/** The Looks tab's way into the Maison collection, where it is offered. */
+export function CollectionEntry() {
+  const openCollection = useContext(CollectionLink);
+  if (!openCollection) return null;
   return (
-    <div className="garment-pick">
-      {change}
-      <button type="button" className="link quiet garment-change" onClick={openCollection}>
-        Or start from the Maison collection
-      </button>
-    </div>
+    <button type="button" className="secondary collection-entry" onClick={openCollection}>
+      Start from the Maison collection
+    </button>
   );
 }

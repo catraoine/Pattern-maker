@@ -8,7 +8,6 @@ import { FIT_EASE, PULL_ON_EASE, lengthRange, Silhouette, SkirtDraft, SkirtMeasu
 import { isShaped } from '../engine/hem';
 import { SLIP_FACING, SLIP_HIP_EASE_LESS, cutAllowed, elasticCutAllowed, validCut } from '../engine/slip';
 import type { MeasurementValues } from '../measurements';
-import { GarmentSwitch } from '../ui/GarmentSwitch';
 import { PatternPreview } from '../ui/Preview';
 import { PatternPane } from '../ui/PointEditor';
 import { ShapeSketch, Side } from '../ui/ShapeSketch';
@@ -27,10 +26,9 @@ import { GODET_OPTIONS, VOLUME_OPTIONS, layoutExtras, setVolume, volumeAllowed, 
 import { EaseMapView } from '../ui/EaseMapView';
 import type { EaseView } from '../engine/easeMap';
 import { Mode, ProTool, shows } from '../mode';
-import { ModeLink } from '../ui/ModeLink';
+import { FABRIC, Group, PRO, StyleLayout, TabPanel } from '../ui/StyleLayout';
 import { DrawOnForm, skirtForm } from '../ui/DrawOnForm';
 import { readSkirtHem, readSkirtSide, skirtLines } from '../ui/formLines';
-import { Title } from '../ui/Title';
 import { ChoicePic, chipsClass } from '../ui/ChoicePic';
 import { Explain } from '../ui/Explain';
 import { AllRound } from '../ui/AllRound';
@@ -196,59 +194,25 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
     });
   };
 
-  if (onForm && draft) {
-    return (
-      <DrawOnForm<Choices>
-        body={skirtForm(m)}
-        m={m}
-        legs
-        bottom={lengthRange(m).max + 4}
-        kinds={[
-          ['hem', 'Hem'],
-          ['fit', 'Side'],
-        ]}
-        lines={(s) => skirtLines(draft, choices, m, s, 0)}
-        choices={choices}
-        onChoices={onChoices}
-        read={(kind, s, stroke) => (kind === 'hem' ? readSkirtHem(stroke, 0, draft, m, choices, s, 'skirt') : readSkirtSide(stroke, 0, draft, m, choices))}
-        onDone={() => {
-          change(choices, onForm);
-          setOnForm(undefined);
-          setView('pattern');
-        }}
-        onCancel={() => {
-          onChoices(onForm);
-          setOnForm(undefined);
-        }}
-      />
-    );
-  }
-
-  return (
+  const looks = (
     <>
-    <div className="screen-head">
-      <Title id="opts" big="Style" label="your skirt" />
-      <GarmentSwitch onChoose={onChooseGarment} />
-    </div>
-    {choices.shape ? (
-      <div className="photo-matched">
-        {photo && <img src={photo} alt="Your photo" />}
-        <div>
-          <p>Matched to your photo</p>
-          <p className="muted small">{shapeLine(choices.shape)}</p>
+      {choices.shape ? (
+        <div className="photo-matched">
+          {photo && <img src={photo} alt="Your photo" />}
+          <div>
+            <p>Matched to your photo</p>
+            <p className="muted small">{shapeLine(choices.shape)}</p>
+          </div>
+          <button type="button" className="link" onClick={() => change({ ...choices, shape: undefined })}>
+            Undo
+          </button>
         </div>
-        <button type="button" className="link" onClick={() => change({ ...choices, shape: undefined })}>
-          Undo
+      ) : (
+        <button type="button" className="secondary photo-entry" onClick={onPhoto}>
+          Start from a photo
         </button>
-      </div>
-    ) : (
-      <button type="button" className="secondary photo-entry" onClick={onPhoto}>
-        Start from a photo
-      </button>
-    )}
-    <div className="split three">
-      <section className="card numbered" aria-labelledby="opts">
-        <fieldset className="group">
+      )}
+        <fieldset className="group era">
           <legend>Era</legend>
           {!era && <p className="muted small">Pick an era to see its looks. A look sets the fit, shape and length, and you can change any of them after.</p>}
           <div className="chips">
@@ -285,9 +249,51 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
             </div>
           )}
         </fieldset>
+    </>
+  );
+
+  if (onForm && draft) {
+    return (
+      <DrawOnForm<Choices>
+        body={skirtForm(m)}
+        m={m}
+        legs
+        bottom={lengthRange(m).max + 4}
+        kinds={[
+          ['hem', 'Hem'],
+          ['fit', 'Side'],
+        ]}
+        lines={(s) => skirtLines(draft, choices, m, s, 0)}
+        choices={choices}
+        onChoices={onChoices}
+        read={(kind, s, stroke) => (kind === 'hem' ? readSkirtHem(stroke, 0, draft, m, choices, s, 'skirt') : readSkirtSide(stroke, 0, draft, m, choices))}
+        onDone={() => {
+          change(choices, onForm);
+          setOnForm(undefined);
+          setView('pattern');
+        }}
+        onCancel={() => {
+          onChoices(onForm);
+          setOnForm(undefined);
+        }}
+      />
+    );
+  }
+
+  return (
+    <StyleLayout
+      label="your skirt"
+      name={title}
+      metres={draft ? fabricMetres(draft) : undefined}
+      ready={!!draft}
+      onChooseGarment={onChooseGarment}
+      looks={looks}
+      mode={mode}
+      onMode={onMode}
+    >
+      <section className="card numbered" aria-labelledby="opts">
         {GROUPS.map((g) => (
-          <fieldset key={g.id} className="group">
-            <legend>{g.label}</legend>
+          <Group key={g.id} label={g.label}>
             <div className={chipsClass('skirt', g.id)}>
               {g.options.map(([id, label]) => (
                 <button
@@ -304,10 +310,9 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
               ))}
             </div>
             <Explain set="skirt" group={g.id} options={g.options} pick={g.id === 'length' && choices.lengthCm !== undefined ? undefined : chosen(choices, g.id)} />
-          </fieldset>
+          </Group>
         ))}
-        <fieldset className="group">
-          <legend>Details</legend>
+        <Group label="Details">
           <div className="chips">
             {VOLUME_OPTIONS.map(([id, label]) => (
               <button
@@ -345,10 +350,9 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
           ) : !volumeAllowed(choices, 'godets') ? (
             <p className="muted small">Godets and tiers need a skirt to the knee or longer.</p>
           ) : null}
-        </fieldset>
+        </Group>
         {DETAIL_GROUPS.map((g) => (
-          <fieldset key={g.id} className="group">
-            <legend>{g.label}</legend>
+          <Group key={g.id} label={g.label}>
             <div className="chips">
               {g.options.map(([id, label]) => {
                 const allowed = g.id === 'waist' ? id !== 'elastic' || elasticAllowed(choices) : id !== 'inseam' || pocketsAllowed(choices);
@@ -391,15 +395,19 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
             {g.id === 'pockets' && pocketsAllowed(choices) && choices.pockets === 'inseam' && draft && !draft.pocket && (
               <p className="muted small">This skirt is too short for a pocket a hand fits in, so it is left off.</p>
             )}
-          </fieldset>
+          </Group>
         ))}
+        {draft && (
+          <TabPanel tab={FABRIC}>
+            <FabricSwatches finish={finish} onFinish={onFinish} garment="skirt" />
+          </TabPanel>
+        )}
         {can('insideFinish') && (
-          <>
+          <TabPanel tab={PRO}>
             <p className="eyebrow">Inside the skirt</p>
             <FinishChoices garment="skirt" finish={finish} onFinish={onFinish} />
-          </>
+          </TabPanel>
         )}
-        <ModeLink mode={mode} onMode={onMode} />
       </section>
 
       <section className="card grow" aria-label="Preview">
@@ -488,9 +496,8 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
           {view === 'ease' && easeMap && <EaseMapView views={easeMap} label={`Ease map of the ${title}`} />}
           <UndoToast undo={undoer} />
         </div>
-        {view === 'sketch' && draft && <FabricSwatches finish={finish} onFinish={onFinish} garment="skirt" />}
         {view === 'sketch' && (
-          <p className="muted small">
+          <p className={drawing ? 'muted small keep' : 'muted small'}>
             {drawing
               ? `Draw across the ${side} of the skirt where you want the hem. Switch to the back to make a high-low hem.`
               : 'Drag the hem up or down for length, or the side out and in for flare.'}
@@ -574,7 +581,6 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
           Edit measurements
         </button>
       </aside>
-    </div>
-    </>
+    </StyleLayout>
   );
 }

@@ -1,4 +1,4 @@
-import { chooseChip, expect, expectStyle, openAccount, openFold, pickToMake, skipLoading, startWithExample, test } from './fixtures';
+import { chooseChip, expect, expectStyle, openAccount, openFold, openGroup, openReview, pickToMake, skipLoading, startWithExample, test } from './fixtures';
 
 test('returning visitor: a reload keeps the measurements and the saved pattern', async ({ page }) => {
   await startWithExample(page);
@@ -6,6 +6,7 @@ test('returning visitor: a reload keeps the measurements and the saved pattern',
 
   // Make the measurements this visitor's own: change the waist from the example's.
   // Measure is a short list of the skirt's measurements; tapping one opens its own page to redo it.
+  await openReview(page);
   await main.getByRole('button', { name: 'Edit measurements' }).click();
   await expect(main.getByRole('heading', { level: 1, name: 'Your skirt measurements' })).toBeVisible();
   await main.getByRole('list', { name: 'Tap one to measure it again' }).getByRole('button', { name: /^Waist [0-9]/ }).click();
@@ -19,6 +20,7 @@ test('returning visitor: a reload keeps the measurements and the saved pattern',
   await expectStyle(page, 'Skirt');
 
   await chooseChip(page, 'Length', 'Midi');
+  await openReview(page);
   await main.getByRole('button', { name: 'Save pattern' }).click();
   await expect(main.getByRole('status').filter({ hasText: 'Saved to' })).toBeVisible();
 
@@ -36,7 +38,8 @@ test('returning visitor: a reload keeps the measurements and the saved pattern',
   await expectStyle(page, 'Skirt');
 
   // The style chosen and the pattern saved are still there.
-  await expect(main.getByRole('group', { name: 'Length', exact: true }).getByRole('button', { name: 'Midi' })).toHaveAttribute('aria-pressed', 'true');
+  await expect((await openGroup(page, 'Length')).getByRole('button', { name: 'Midi' })).toHaveAttribute('aria-pressed', 'true');
+  await openReview(page);
   await expect(main.getByRole('status').filter({ hasText: 'Saved to' })).toBeVisible();
 
   await openAccount(page);
