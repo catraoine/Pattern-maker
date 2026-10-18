@@ -9,6 +9,7 @@ import { TechFlatView } from '../ui/TechFlatView';
 import { MeasurementValues } from '../measurements';
 import { PatternPreview } from '../ui/Preview';
 import { GarmentSwitch } from '../ui/GarmentSwitch';
+import { PhotoEntry } from '../ui/PhotoEntry';
 import { SaveControl } from '../ui/SaveControl';
 import { UndoToast, UndoTools, useUndo } from '../ui/useUndo';
 import type { MyFabric } from '../engine/fabrics';
@@ -22,6 +23,9 @@ import { DrawOnForm } from '../ui/DrawOnForm';
 import { TeeFormMeasurements, readTeeFit, readTeeHem, readTeeNeckline, readTeeSleeve, teeForm, teeLines } from '../ui/formTops';
 
 interface Props {
+  /** Start from a photo, and the photo this garment was matched to while the app is open. */
+  onPhoto?: () => void;
+  photo?: string;
   choices: TeeChoices;
   onChoices: (c: TeeChoices) => void;
   onChooseGarment: () => void;
@@ -57,7 +61,7 @@ function friendly(w: string) {
   return 'Something in your measurements looks unusual. Please double-check them.';
 }
 
-export function TeeStyleScreen({ choices, onChoices: setChoices, onChooseGarment, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, fabric, mode = 'all', onMode }: Props) {
+export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices, onChooseGarment, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, fabric, mode = 'all', onMode }: Props) {
   const undo = useUndo(choices, setChoices);
   const onChoices = undo.change;
   const [view, setView] = useState<'sketch' | 'pattern'>('sketch');
@@ -123,6 +127,7 @@ export function TeeStyleScreen({ choices, onChoices: setChoices, onChooseGarment
           <Title id="opts" big="Style" label="your T-shirt" />
           <GarmentSwitch onChoose={onChooseGarment} />
         </div>
+        <PhotoEntry onPhoto={onPhoto} photo={photo} />
         <p className="muted small">Drafted for knit fabric: no darts, the stretch shapes it to you.</p>
         {TEE_GROUPS.map((g) => (
           <fieldset key={g.id} className="group">

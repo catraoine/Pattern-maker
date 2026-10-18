@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import App from './App';
 import { ErrorBoundary } from './ui/ErrorBoundary';
 import { startReports } from './report/report';
+import { keepUpToDate } from './swUpdate';
 // The typefaces ship with the app, so no visitor's browser has to ask Google for them.
 import '@fontsource/chakra-petch/400.css';
 import '@fontsource/chakra-petch/500.css';
@@ -29,6 +30,7 @@ if (url.searchParams.has('fresh')) {
 }
 
 startReports(__APP_VERSION__);
+keepUpToDate();
 
 // Dev only: ?crash-test shows the error screen.
 function CrashTest(): never {

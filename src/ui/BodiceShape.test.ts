@@ -42,6 +42,15 @@ describe('shaping the bodice by hand', () => {
     // The drawn neckline drafts, pointed for the V and round for the curve.
     expect(draftBodice(m, { neck }).pieces[0].meta.pointedAtCentre).toEqual(['neck']);
   });
+
+  it('keeps a neckline drawn far too low or wide on the bodice', () => {
+    const d = draftBodice(m);
+    const wild = [{ x: -40, y: -2 }, { x: -20, y: 60 }, { x: 0, y: 140 }];
+    const neck = strokeToNeck(wild, 'front', d, currentNeck(DEFAULT_BODICE))!;
+    expect(neck.frontDepth).toBeLessThanOrEqual(d.front.waistCentre.y - 8 - d.neckBlock.front.neckY + 0.05);
+    expect(neck.width).toBeLessThan(12);
+    expect(() => draftBodice(m, { neck })).not.toThrow();
+  });
 });
 
 describe('sketching a draped bodice', () => {

@@ -62,7 +62,10 @@ function through(path: Path, pts: P[], tag: string, exactEnds = false) {
  * for a circle skirt (whose hem is an arc around `origin`).
  */
 export function shapeHem(pc: Piece, offsets: number[], origin?: P): void {
-  shapeHemBy(pc, (t) => offsetAt(offsets, 1 - t), { origin });
+  // Eased at both ends, so however it was drawn the hem leaves the centre square and meets the side
+  // seam at the angle it was drafted to, and front and back blend across it.
+  const ease = (u: number) => u * u * (3 - 2 * u);
+  shapeHemBy(pc, (t) => offsetAt(offsets, ease(1 - t)), { origin, alongSeams: true });
 }
 
 /**
