@@ -64,6 +64,8 @@ interface Props {
   /** For grading: the measurements, and the pattern's pieces drafted to any set of them. */
   values?: MeasurementValues;
   draftAt?: (m: MeasurementValues) => Piece[];
+  /** A pattern read from another program's file: no style, fabric check or toile of its own. */
+  imported?: { source?: string; fileName: string };
   /** Simple or all tools; all when not given. */
   mode?: Mode;
   onMode?: (m: Mode) => void;
@@ -108,7 +110,7 @@ function download(data: BlobPart, type: string, name: string) {
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
-export function ExportScreen({ profile, title, fit, garment, finish, onFinish, made, error, saveState, onSave, onAccount, fitting, fittingNotes, alterations = NONE, onFitting, onTrueScale, values, draftAt, style, mode = 'all', onMode }: Props) {
+export function ExportScreen({ profile, title, fit, garment, finish, onFinish, made, error, saveState, onSave, onAccount, fitting, fittingNotes, alterations = NONE, onFitting, onTrueScale, values, draftAt, style, imported, mode = 'all', onMode }: Props) {
   const can = (t: ProTool) => shows(mode, t);
   const [picked, setPaper] = useState<Output>('a4');
   // The simple view prints at home, on A4 or Letter.
@@ -219,7 +221,9 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
           <div>
             <h1 id="ptitle">{title[0].toUpperCase() + title.slice(1)}</h1>
             <p className="muted">
-              For {profile === 'Me' ? 'you' : profile} · {fit[0].toUpperCase() + fit.slice(1)} fit
+              {imported
+                ? `${imported.fileName} · ${made.pieces.length} ${made.pieces.length === 1 ? 'piece' : 'pieces'}${imported.source ? ` from ${imported.source}` : ''}`
+                : `For ${profile === 'Me' ? 'you' : profile} · ${fit[0].toUpperCase() + fit.slice(1)} fit`}
             </p>
           </div>
           <fieldset className="group">
@@ -279,12 +283,12 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
             <PatternPreview sheet={sheet} label={projector ? 'Pattern on one page for a projector' : `Pattern laid over ${pages} numbered print pages`} />
             {!projector && <TileOverlay sheet={sheet} paper={paper} />}
           </div>
-          <p className="muted small">
+          {!imported && <p className="muted small">
             {passed === checks.length
               ? 'Checked: every seam meets its partner and every curve runs smoothly from piece to piece.'
               : `${checks.length - passed} of ${checks.length} seam checks found something to look at. The details are on the last page of the PDF.`}
-          </p>
-          {can('byHand') && (
+          </p>}
+          {can('byHand') && !imported && (
             <label className="check">
               <input type="checkbox" checked={!!finish.byHand} onChange={(e) => onFinish({ ...finish, byHand: e.target.checked })} />
               <span>
@@ -292,16 +296,16 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
               </span>
             </label>
           )}
-          <SaveControl state={saveState} onSave={onSave} onAccount={onAccount} />
+          {!imported && <SaveControl state={saveState} onSave={onSave} onAccount={onAccount} />}
           <p className="muted small">Printed it? The sewing steps are just below, and on the last pages of the PDF.</p>
           <ModeLink mode={mode} onMode={onMode} />
         </section>
       </div>
 
-      <div className="split">
+      {!imported && <div className="split">
         <InterestCard offer="printed" pattern={title} />
         <InterestCard offer="kit" pattern={title} />
-      </div>
+      </div>}
 
       {made?.flat && can('techFlat') && (
         <section className="card" aria-labelledby="flattitle">
@@ -315,7 +319,7 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
         </section>
       )}
 
-      <YourFabric fabric={finish.fabric ?? {}} onFabric={(fabric) => onFinish({ ...finish, fabric, cloth: clothFor(fabric, finish.cloth) })} style={style} simple={mode === 'simple'} />
+      {!imported && <YourFabric fabric={finish.fabric ?? {}} onFabric={(fabric) => onFinish({ ...finish, fabric, cloth: clothFor(fabric, finish.cloth) })} style={style} simple={mode === 'simple'} />}
 
       <section className="card" aria-labelledby="laytitle">
         <div className="row between wrap">
@@ -361,7 +365,7 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
         )}
       </section>
 
-      {can('toile') && (
+      {can('toile') && !imported && (
         <section className="card" aria-labelledby="toiletitle">
           <p className="eyebrow">Before your fabric{fittingNotes.length && fitting ? ` · version ${fitting.round + 1}` : ''}</p>
           <h2 id="toiletitle">{garment === 'tee' ? 'Try it in a spare knit first' : fittingNotes.length ? 'Corrected after your toile' : 'Fit it in a toile first'}</h2>
@@ -409,8 +413,9 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
           onAtelier={(on) => onFinish({ ...finish, atelier: on })}
           drafting={drafting}
           pattern={ready ? { bytes: ready, name: fileName } : undefined}
-          values={values}
-          alterations={alterations}
+          values={imported ? undefined : values}
+          imported={!!imported}
+          alterations={imported ? NONE : alterations}
         />
       )}
 
@@ -425,7 +430,7 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
             <p className="eyebrow">After printing</p>
             <h2 id="sewtitle">How to sew it</h2>
           </div>
-          {garment !== 'trousers' && garment !== 'tee' && can('couture') && (
+          {garment !== 'trousers' && garment !== 'tee' && can('couture') && !imported && (
           <div className="seg" role="group" aria-label="How to sew it">
             {(['quick', 'couture'] as const).map((r) => (
               <button key={r} type="button" className={finish.route === r ? 'on' : ''} aria-pressed={finish.route === r} onClick={() => onFinish({ ...finish, route: r })}>
@@ -435,7 +440,7 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
           </div>
           )}
         </div>
-        {finish.route === 'couture' && garment !== 'trousers' && garment !== 'tee' && (
+        {finish.route === 'couture' && garment !== 'trousers' && garment !== 'tee' && !imported && (
           <div className="cloth">
             <p className="muted small">
               Thread-traced lines, basting and a fitting before machining, a hand-picked zip and hand-finished edges. The seam finish and
@@ -495,10 +500,12 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
 const today = () => new Date().toISOString().slice(0, 10);
 
 /** The note that goes with the files when they are sent to a dressmaker. */
-export function makerNote(title: string, profile: string): string {
+export function makerNote(title: string, profile: string, imported = false): string {
   return [
     `Hello, could you make this ${title} for me?`,
-    `The pattern was drafted to my own measurements in Maison Tracé. The tech pack has my measurements, the ease, the piece list, fabric and construction steps. The pattern is attached as a PDF to print at 100% and as a DXF for pattern software.`,
+    imported
+      ? `The tech pack has the piece list and construction steps. The pattern is attached as a PDF to print at 100% and as a DXF for pattern software.`
+      : `The pattern was drafted to my own measurements in Maison Tracé. The tech pack has my measurements, the ease, the piece list, fabric and construction steps. The pattern is attached as a PDF to print at 100% and as a DXF for pattern software.`,
     `Could you let me know your price and when you could fit it in? Thank you, ${profile}`,
   ].join('\n\n');
 }
@@ -674,6 +681,7 @@ function MakerPack({
   onAtelier,
   drafting,
   values,
+  imported,
   alterations,
 }: {
   profile: string;
@@ -689,6 +697,8 @@ function MakerPack({
   pattern?: { bytes: Uint8Array; name: string };
   /** The person's measurements, for pattern software of the maker's own. */
   values?: MeasurementValues;
+  /** Read from another program's file rather than drafted here. */
+  imported?: boolean;
   alterations: Alteration[];
 }) {
   const [pack, setPack] = useState<Uint8Array | null>(null);
@@ -723,7 +733,7 @@ function MakerPack({
     const pdfFile = (bytes: Uint8Array, name: string) => new File([bytes], name, { type: 'application/pdf' });
     const withPattern = [pdfFile(pack, packName), ...(pattern ? [pdfFile(pattern.bytes, pattern.name)] : [])];
     const all = [...withPattern, new File([dxfText], dxfName, { type: 'application/dxf' })];
-    const text = makerNote(title, profile);
+    const text = makerNote(title, profile, imported);
     // Some share targets won't take a DXF; send the PDFs alone then.
     const files = [all, withPattern].find((fs) => {
       try {
@@ -754,8 +764,9 @@ function MakerPack({
         <p className="eyebrow">Having it made</p>
         <h2 id="makertitle">Send it to a dressmaker</h2>
         <p className="muted">
-          The dressmaker gets the tech pack (your measurements, the ease, the piece list, fabric and sewing steps), the pattern to print and a DXF for
-          pattern software.
+          {imported
+            ? 'The dressmaker gets the tech pack (the piece list and sewing steps), the pattern to print and a DXF for pattern software.'
+            : 'The dressmaker gets the tech pack (your measurements, the ease, the piece list, fabric and sewing steps), the pattern to print and a DXF for pattern software.'}
         </p>
         <button type="button" className="primary" onClick={send} disabled={!ready}>
           {ready ? 'Send to a dressmaker' : 'Making the files…'}
@@ -806,13 +817,13 @@ function MakerPack({
             </div>
           </>
         )}
-        <label className="check">
+        {!imported && <label className="check">
           <input type="checkbox" checked={atelier} onChange={(e) => onAtelier(e.target.checked)} />
           <span>
             Show how it was drafted <span className="muted small">numbered points on the pattern, with a note on how each was found</span>
           </span>
-        </label>
-        {atelier && (
+        </label>}
+        {atelier && !imported && (
           <div className="atelier">
             {drafting.map((d) => (
               <div key={d.piece}>

@@ -10,6 +10,7 @@ import { SLIP_FACING, SLIP_HIP_EASE_LESS, cutAllowed, elasticCutAllowed, validCu
 import type { MeasurementValues } from '../measurements';
 import { GarmentSwitch } from '../ui/GarmentSwitch';
 import { PatternPreview } from '../ui/Preview';
+import { PatternPane } from '../ui/PointEditor';
 import { ShapeSketch, Side } from '../ui/ShapeSketch';
 import { FabricSwatches, GarmentFabric } from '../ui/FabricFill';
 import { useShake } from '../ui/shake';
@@ -499,7 +500,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
             </GarmentFabric>
           )}
           {draft && sheet && view === 'pattern' && (
-            <PatternPreview paper sheet={sheet} play={play} names={draft.pieces.map((pc) => pc.name)} label={`Front and back pattern pieces for a ${title}`} />
+            <PatternPane><PatternPreview paper sheet={sheet} play={play} names={draft.pieces.map((pc) => pc.name)} label={`Front and back pattern pieces for a ${title}`} /></PatternPane>
           )}
           {view === 'ease' && easeMap && <EaseMapView views={easeMap} label={`Ease map of the ${title}`} />}
           {toast && (
