@@ -1,14 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
 import { FADE_FROM, formOutline } from './ContourForm';
 
-// The loading screen shown when the app opens ("A3 Name Drawn"): a pen line drafts a bodice block
-// in champagne on black, then rules the line the name sits on. A tap or key skips it.
-// When the app opens on the welcome screen ("B Flat to Round"), the flat bodice then lifts and wraps
-// into the welcome's dress form, exactly where it sits, and the welcome takes over from there.
+// The loading screen shown when the app opens, one thing at a time (Cat's M1, 2026-10-18): MAISON TRACÉ
+// appears and rises into the header, then a pen drafts the bodice block, as big as the form it is about to
+// become. When the app opens on the welcome screen, the flat block then wraps into the welcome's dress form,
+// exactly where it sits, and the welcome takes over: the form's lines peel in from that outline.
+// Every line is one weight. A tap or key skips it.
 
-const DRAW = 3100; // the drawing is complete by here
-const HOLD = 3500; // then the whole screen fades away, or the bodice starts to wrap into the form
-const MORPH = 4700; // the bodice has become the form's outline
+const NAME_IN = 400; // the name has faded in
+const RISE: [number, number] = [700, 1300]; // the name rises into the header
+const PEN: [number, number] = [1400, 3200]; // the pen drafts the block
+const DRAW = 3200; // the drawing is complete by here
+const HOLD = 3500; // then the whole screen fades away, or the block starts to wrap into the form
+const MORPH = 4600; // the block has become the form's outline
 const FADE = 400;
 const LOOP = 420; // points on each outline while one becomes the other
 
@@ -87,7 +91,18 @@ function pen(g: CanvasRenderingContext2D, p: Pt, r: number) {
   g.restore();
 }
 
-function draw(g: CanvasRenderingContext2D, w: number, h: number, t: number, box: FormBox | null) {
+/** Where the header's name sits, so the name can rise into it. */
+export type NameSpot = { x: number; y: number; w: number; h: number; font: string; tracking: string };
+
+function findName(): NameSpot | null {
+  const el = document.querySelector<HTMLElement>('.topbar .brand span');
+  const r = el?.getBoundingClientRect();
+  if (!el || !r || !r.width) return null;
+  const cs = getComputedStyle(el);
+  return { x: r.left, y: r.top, w: r.width, h: r.height, font: `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`, tracking: cs.letterSpacing };
+}
+
+function draw(g: CanvasRenderingContext2D, w: number, h: number, t: number, box: FormBox | null, spot: NameSpot | null) {
   g.globalAlpha = 1;
   g.fillStyle = '#000';
   g.fillRect(0, 0, w, h);
@@ -95,54 +110,58 @@ function draw(g: CanvasRenderingContext2D, w: number, h: number, t: number, box:
   g.lineCap = 'round';
   g.lineJoin = 'round';
 
-  const bw = Math.min(w * 0.5, h * 0.3), bh = bw * 1.15;
-  const x0 = (w - bw) / 2, y0 = h * 0.4 - bh / 2;
-  const lw = Math.max(0.8, bw / 150);
+  // The block fills about the space the form will, so nothing jumps in size when one becomes the other
+  let bw: number, bh: number, x0: number, y0: number, lw: number;
+  if (box) {
+    bh = box.h * 0.78;
+    bw = Math.min(bh / 1.15, box.w * 0.8);
+    bh = bw * 1.15;
+    x0 = box.x + (box.w - bw) / 2;
+    y0 = box.y + (box.h - bh) * 0.45;
+    lw = formOutline(box.w, box.h).lw;
+  } else {
+    bw = Math.min(w * 0.7, (h * 0.55) / 1.15);
+    bh = bw * 1.15;
+    x0 = (w - bw) / 2;
+    y0 = (h - bh) / 2 + 20;
+    lw = Math.max(1, bw / 200);
+  }
 
   const bodice: Pt[] = BODICE.map(([x, y]) => [x0 + x * bw, y0 + y * bh]);
   const m = box ? inOut(seg(t, HOLD, MORPH)) : 0;
+  g.lineWidth = lw;
   if (box && m > 0) {
-    morph(g, bodice, box, m, lw);
+    morph(g, bodice, box, m);
   } else {
-    // The bodice, drawn in one stroke
-    g.lineWidth = lw;
-    const f = inOut(seg(t, 100, 2100));
+    // The block, drawn in one stroke
+    const f = inOut(seg(t, PEN[0], PEN[1]));
     const tip = polyTo(g, bodice, f);
     if (f > 0 && f < 1) pen(g, tip, lw * 1.6);
   }
-  // The name and its line step aside while the bodice becomes the form
-  const away = box ? 1 - seg(t, HOLD, HOLD + 400) : 1;
-  if (away <= 0) return;
 
-  // The same pen then rules the line the name sits on
-  const rw = bw * 1.12, rx = (w - rw) / 2, ry = y0 + bh + Math.max(48, bh * 0.45);
-  const rf = inOut(seg(t, 2100, 2800));
-  if (rf > 0) {
-    g.globalAlpha = 0.7 * away;
-    g.lineWidth = lw * 0.8;
-    g.beginPath();
-    g.moveTo(rx, ry);
-    g.lineTo(rx + rw * rf, ry);
-    g.stroke();
-    if (rf < 1) pen(g, [rx + rw * rf, ry], lw * 1.4);
-  }
-
+  // The name: it appears in the middle, then rises to its place in the header
+  const r = inOut(seg(t, RISE[0], RISE[1]));
+  const to = spot ? { x: spot.x + spot.w / 2, y: spot.y + spot.h / 2 } : { x: w / 2, y: 40 };
   g.save();
-  g.globalAlpha = seg(t, 2500, 3000) * away;
-  g.fillStyle = TEXT;
-  g.font = "500 11px 'Chakra Petch', sans-serif";
+  g.globalAlpha = seg(t, 0, NAME_IN);
+  g.fillStyle = spot ? LINE : TEXT;
+  g.font = spot?.font ?? "500 12px 'Chakra Petch', sans-serif";
   try {
-    (g as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = '4px';
+    (g as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = spot?.tracking ?? '4px';
   } catch {
     // Older browsers draw the name without tracking.
   }
   g.textAlign = 'center';
-  g.fillText('MAISON TRACÉ', w / 2 + 2, ry - 14);
+  g.textBaseline = 'middle';
+  const x = w / 2 + (to.x - w / 2) * r, y = h * 0.45 + (to.y - h * 0.45) * r, k = 1.5 - 0.5 * r;
+  g.translate(x, y);
+  g.scale(k, k);
+  g.fillText('MAISON TRACÉ', 0, 0);
   g.restore();
 }
 
 /** The flat bodice part way (m, 0 to 1) to the form's outline, cropped and faded the way the welcome draws the form. */
-function morph(g: CanvasRenderingContext2D, bodice: Pt[], box: FormBox, m: number, lw: number) {
+function morph(g: CanvasRenderingContext2D, bodice: Pt[], box: FormBox, m: number) {
   const form = formOutline(box.w, box.h);
   const from = resample(bodice, LOOP);
   const to = resample(form.pts.map(([x, y]) => [box.x + x, box.y + y]), LOOP);
@@ -153,7 +172,6 @@ function morph(g: CanvasRenderingContext2D, bodice: Pt[], box: FormBox, m: numbe
   g.rect(box.x * m, top, g.canvas.clientWidth + (box.w - g.canvas.clientWidth) * m, bottom - top);
   g.clip();
   g.globalAlpha = 1;
-  g.lineWidth = lw + (form.lw * 1.3 - lw) * m;
   g.beginPath();
   from.forEach(([x, y], i) => {
     const px = x + (to[i][0] - x) * m, py = y + (to[i][1] - y) * m;
@@ -198,6 +216,7 @@ export function LoadingScreen({ onDone, findForm, onHandoff }: Props) {
     let started = false;
     let size = { w: 0, h: 0 };
     let box: FormBox | null = null;
+    let spot: NameSpot | null = null;
     let end = DRAW;
     const timers: number[] = [];
 
@@ -212,7 +231,7 @@ export function LoadingScreen({ onDone, findForm, onHandoff }: Props) {
     const paint = (t: number) => {
       // Find the form again as the wrap begins, in case the screen has changed size
       if (box && t >= HOLD) box = find.current?.() ?? box;
-      draw(g, size.w, size.h, t, box);
+      draw(g, size.w, size.h, t, box, spot);
     };
     let handed = false;
     const handOver = (drawn: boolean) => {
@@ -243,11 +262,13 @@ export function LoadingScreen({ onDone, findForm, onHandoff }: Props) {
       if (started) return;
       started = true;
       if (still) {
+        spot = findName();
         paint(DRAW);
         leave(1200, false);
         return;
       }
       box = find.current?.() ?? null;
+      spot = findName();
       if (box) end = MORPH;
       frame = requestAnimationFrame(tick);
       leave(box ? MORPH : HOLD, !!box);
