@@ -57,10 +57,26 @@ test('a described slip dress measures for the dress and opens it cut on the bias
 });
 
 test('something the app can not make yet offers the full set of measurements', async ({ page }) => {
-  await toDescribe(page, { verdict: 'not_yet', name: 'swimsuit', note: 'Swimwear needs patterns drafted for stretch fabric, which we don’t do yet.', start: null, bias: false, reading: { ...reading, garment: 'other' } });
+  await toDescribe(page, { verdict: 'not_yet', name: 'bucket hat', note: 'Hats need their own blocks, which we don’t draft yet.', start: null, bias: false, reading: { ...reading, garment: 'other' } });
   const main = page.getByRole('main');
-  await expect(main.getByRole('heading', { name: "We can't draft a swimsuit yet." })).toBeVisible();
+  await expect(main.getByRole('heading', { name: "We can't draft a bucket hat yet." })).toBeVisible();
   await main.getByRole('button', { name: 'Take my full measurements for a dressmaker' }).click();
   await fillStepPages(page);
   await expect(main.getByRole('heading', { name: 'Every measurement is saved.' })).toBeVisible();
+});
+
+test('a swimsuit offers the Swim and Intimates sign-up', async ({ page }) => {
+  const signups: object[] = [];
+  await page.route('**/.netlify/functions/signup', (route) => {
+    signups.push(route.request().postDataJSON() as object);
+    return route.fulfill({ json: { ok: true } });
+  });
+  await toDescribe(page, { verdict: 'not_yet', name: 'high-cut swimsuit', note: 'Swimwear needs patterns drafted for stretch fabric, which we don’t do yet.', start: null, bias: false, reading: { ...reading, garment: 'other' } });
+  const main = page.getByRole('main');
+  await expect(main.getByRole('heading', { name: 'A high-cut swimsuit is in our next drop.' })).toBeVisible();
+  await main.getByLabel('Your email').fill('sew@example.com');
+  await main.getByRole('button', { name: "Tell me when it's ready" }).click();
+  await expect(main).toContainText("You're on the list. We'll email you the day Swim and Intimates opens.");
+  expect(signups).toEqual([expect.objectContaining({ kind: 'interest', offer: 'swim', email: 'sew@example.com', pattern: 'high-cut swimsuit' })]);
+  await expect(main.getByRole('button', { name: 'Take my full measurements for a dressmaker' })).toBeVisible();
 });

@@ -7,6 +7,8 @@ import { TapeBand } from '../ui/TapeBand';
 import { Title } from '../ui/Title';
 import type { PatternChoices } from '../garments';
 import { ideaChoices, ideaRows, pieceGarment } from '../photo/idea';
+import { isSwimIntimates } from '../photo/swim';
+import { InterestCard } from '../ui/InterestCard';
 import { MAX_IDEA_CHARS, type IdeaReading, type IdeaResponse, type PhotoError } from '../photo/types';
 
 interface Props {
@@ -269,6 +271,20 @@ export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onV
     const choices = ideaChoices(read);
     const back = () => (canGoBack() ? goBack() : setPage({ kind: 'describe' }));
     const choose = () => setPage({ kind: 'choose' });
+    if ((!choices || !read.start) && isSwimIntimates(read.name))
+      return (
+        <Shell eyebrow="Coming next" title={`${cap(aOrAn(read.name))} ${/s$/i.test(read.name) && !/dress$/i.test(read.name) ? 'are' : 'is'} in our next drop.`} hero={<TapeDemo id="waist" name="" mode="still" kind={form} />} short>
+          <InterestCard offer="swim" pattern={read.name} />
+          <button type="button" className="secondary" onClick={fullSet}>
+            Take my full measurements for a dressmaker
+          </button>
+          <p className="idea-again">
+            <button type="button" className="link quiet" onClick={choose}>
+              Choose something else
+            </button>
+          </p>
+        </Shell>
+      );
     if (!choices || !read.start)
       return (
         <Shell eyebrow="Not yet" title={`We can't draft ${aOrAn(read.name)} yet.`} hero={<TapeDemo id="waist" name="" mode="still" kind={form} />} short>
