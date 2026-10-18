@@ -4627,3 +4627,53 @@ input.inline:focus,
   display: block;
   margin: 0 auto;
 }
+
+/* Skipped measuring (Cat's K1 Example Tag): a dashed strip on Style and Print, Measure me at its end */
+.example-tag {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  margin: 0 0 14px;
+  padding: 0 14px;
+  border: var(--bw) dashed var(--gild);
+  background: none;
+  color: var(--muted);
+  font: var(--w-body) 10.5px/1.2 var(--mono);
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  text-align: left;
+  cursor: pointer;
+}
+
+.example-tag-go {
+  color: var(--gild);
+  white-space: nowrap;
+}
+
+/* On the first measuring page the forms share the room with who you're designing for, so on the smallest
+   phones they shrink further rather than push Begin measuring off the screen */
+.form-pick.on-intro {
+  min-height: 64px;
+}
+
+/* The smallest screens: as the welcome's form steps aside there, these forms do too, leaving their names to pick */
+@media (max-height: 480px) {
+  .form-pick.on-intro {
+    flex: none;
+    min-height: 0;
+  }
+  .form-pick.on-intro .form-picture {
+    display: none;
+  }
+  .form-pick.on-intro button {
+    padding: 10px 6px;
+  }
+  .measure-step .who-pick .primary,
+  .measure-step > button.primary {
+    min-height: 44px;
+    padding-block: 8px;
+  }
+}

@@ -95,14 +95,13 @@ export async function skipToExample(page: Page) {
   await main(page).getByRole('button', { name: 'Skip measuring and try an example' }).click();
 }
 
-/** "Me" on the first measuring page, then the form to draft on (Cat's B2 Two Forms): womenswear unless given. */
+/** "Me" on the first measuring page, with the form to draft on beside it (Cat's F1 Form Joins In): womenswear unless given. */
 export async function measureMe(page: Page, form: 'Womenswear' | 'Menswear' = 'Womenswear') {
   await main(page).getByRole('button', { name: 'Me', exact: true }).click();
-  await expect(heading(page, 'Your form')).toBeVisible();
-  const pick = main(page).getByRole('radiogroup', { name: 'Which form should we draft on?' }).getByRole('radio', { name: form, exact: true });
+  const pick = main(page).getByRole('radiogroup', { name: 'Which form to draft on?' }).getByRole('radio', { name: form, exact: true });
   await pick.click();
   await expect(pick).toHaveAttribute('aria-checked', 'true');
-  await main(page).getByRole('button', { name: 'Continue', exact: true }).click();
+  await main(page).getByRole('button', { name: 'Begin measuring', exact: true }).click();
 }
 
 /** The one-measurement-per-page flow: fill each page until the button that ends it. */

@@ -50,18 +50,18 @@ test('fresh visitor: welcome, measure, style every garment, print the A4 PDF', a
 
   // Begin, then the base measurements one page at a time.
   await main.getByRole('button', { name: 'Begin' }).click();
-  await expect(main.getByRole('heading', { name: /take your measurements/i })).toBeVisible();
+  await expect(main.getByRole('heading', { name: /take some measurements/i })).toBeVisible();
 
-  // Who's being measured comes first: someone else asks their name before any measurement; this visitor measures herself.
+  // Who you're designing for, and the form, come first: someone else asks their name before any measurement;
+  // this visitor measures herself.
   await main.getByRole('button', { name: 'Someone else' }).click();
-  await expect(main.getByRole('heading', { name: /take their measurements/i })).toBeVisible();
   const who = main.getByRole('textbox', { name: 'Name' });
   await expect(who).toBeVisible();
   await expect(who).not.toHaveAttribute('placeholder');
-  await expect(main.getByRole('button', { name: 'Start measuring' })).toBeDisabled();
+  await expect(main.getByRole('button', { name: 'Begin measuring' })).toBeDisabled();
   await main.getByRole('button', { name: 'Me', exact: true }).click();
   await expect(who).toHaveCount(0);
-  await expect(main.getByRole('heading', { name: /take your measurements/i })).toBeVisible();
+  await expect(main.getByRole('button', { name: 'Begin measuring' })).toBeEnabled();
 
   await measureMe(page);
   await fillStepPages(page);

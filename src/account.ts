@@ -25,6 +25,8 @@ export interface Person {
   values: MeasurementValues;
   /** Set once we've asked whose measurements these are, so the question comes up only once per person. */
   named: boolean;
+  /** Measurements filled in from the example body when measuring was skipped. Each goes as it is taken. */
+  example?: MeasurementId[];
   /** The dress form their patterns are drafted on, picked before measuring. Missing means womenswear. */
   form?: FormKind;
   /** Corrections from fitting toiles, for each garment. They go into every pattern drafted for this person. */
