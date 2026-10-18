@@ -308,7 +308,9 @@ function MeasurePage({
   const checkAs = FIELDS[garment].some((f) => f.id === id) ? garment : GARMENTS.find((g) => FIELDS[g].some((f) => f.id === id)) ?? garment;
   const problems = checkMeasurements({ [id]: value } as MeasurementValues, unit, checkAs).filter((c) => c.id === id && c.level === 'error' && value !== undefined);
   const error = problems[0];
-  const note = error ?? (tried && value === undefined ? { level: 'error', message: `Enter ${helper ? 'their' : 'your'} ${field.label.toLowerCase()} to carry on.` } : undefined);
+  // An empty box only turns red on Next, with no "enter your ... to carry on" line under it.
+  const empty = tried && value === undefined;
+  const note = error;
 
   const type = (t: string) => {
     setText(t);
@@ -329,11 +331,13 @@ function MeasurePage({
         className="measure-entry"
         onSubmit={(e) => {
           e.preventDefault();
-          if (value === undefined || error) setTried(true);
-          else onNext();
+          if (value === undefined || error) {
+            setTried(true);
+            document.getElementById('step-value')?.focus();
+          } else onNext();
         }}
       >
-        <div className={note ? 'entry-box error' : 'entry-box'}>
+        <div className={note || empty ? 'entry-box error' : 'entry-box'}>
           <label htmlFor="step-value">{field.label}</label>
           <div className="entry-row">
             <input
@@ -342,7 +346,7 @@ function MeasurePage({
               autoComplete="off"
               enterKeyHint="next"
               value={text ?? toDisplay(value, unit)}
-              aria-invalid={note ? true : undefined}
+              aria-invalid={note || empty ? true : undefined}
               aria-describedby={note ? 'step-msg' : undefined}
               onChange={(e) => type(e.target.value)}
             />
