@@ -11,6 +11,7 @@ import type { MeasurementValues } from '../measurements';
 import { GarmentSwitch } from '../ui/GarmentSwitch';
 import { PatternPreview } from '../ui/Preview';
 import { ShapeSketch, Side } from '../ui/ShapeSketch';
+import { FabricSwatches, GarmentFabric } from '../ui/FabricFill';
 import { useShake } from '../ui/shake';
 import { SaveControl } from '../ui/SaveControl';
 import { FinishChoices } from '../ui/FinishChoices';
@@ -437,6 +438,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
         <div className="preview">
           {error && <p className="msg error">{error}</p>}
           {draft && sheet && view === 'sketch' && (
+            <GarmentFabric fabric={fabric}>
             <ShapeSketch
               draft={draft}
               m={m}
@@ -447,9 +449,10 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
               onLive={onChoices}
               onDone={(before, after) => change(after, before)}
             />
+            </GarmentFabric>
           )}
           {draft && sheet && view === 'pattern' && (
-            <PatternPreview sheet={sheet} play={play} names={draft.pieces.map((pc) => pc.name)} label={`Front and back pattern pieces for a ${title}`} />
+            <PatternPreview paper sheet={sheet} play={play} names={draft.pieces.map((pc) => pc.name)} label={`Front and back pattern pieces for a ${title}`} />
           )}
           {view === 'ease' && easeMap && <EaseMapView views={easeMap} label={`Ease map of the ${title}`} />}
           {toast && (
@@ -458,6 +461,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
             </p>
           )}
         </div>
+        {view === 'sketch' && draft && <FabricSwatches finish={finish} onFinish={onFinish} />}
         {view === 'sketch' && (
           <p className="muted small">
             {drawing

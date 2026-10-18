@@ -331,7 +331,7 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, onLive, o
       <path d={bodiceBodyOutline(m, w.top, waistY, frame.bottom, cx)} className="body-outline" fill="none" strokeWidth={0.2} strokeLinecap="round" />
       {guide(waistY, 'WAIST')}
       {hip && guide(waistY + m.waist_to_hip!, 'HIP')}
-      <path d={outline} style={{ fill: 'var(--fill)', stroke: 'var(--ink)' }} strokeWidth={0.25} strokeLinejoin="round" />
+      <path d={outline} style={{ fill: 'var(--garment, var(--fill))', stroke: 'var(--ink)' }} strokeWidth={0.25} strokeLinejoin="round" />
       <path d={w.darts(cx)} style={{ fill: 'none', stroke: 'var(--muted)' }} strokeWidth={0.15} />
       {zip && <path d={zip} style={{ fill: 'none', stroke: 'var(--muted)' }} strokeWidth={0.2} strokeDasharray="0.8 0.6" />}
       {zip && (

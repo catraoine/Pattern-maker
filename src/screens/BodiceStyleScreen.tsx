@@ -14,6 +14,7 @@ import { GarmentSwitch } from '../ui/GarmentSwitch';
 import { SaveControl } from '../ui/SaveControl';
 import { FinishChoices } from '../ui/FinishChoices';
 import { BodiceShape } from '../ui/BodiceShape';
+import { FabricSwatches, GarmentFabric } from '../ui/FabricFill';
 import type { Side } from '../ui/ShapeSketch';
 import { useShake } from '../ui/shake';
 import type { Finish } from '../App';
@@ -368,6 +369,7 @@ export function BodiceStyleScreen({ choices, onChoices, onChooseGarment, values,
         <div className="preview">
           {error && <p className="msg error">{error}</p>}
           {draft && view === 'sketch' && (
+            <GarmentFabric fabric={fabric}>
             <BodiceShape
               draft={draft}
               m={m}
@@ -378,10 +380,15 @@ export function BodiceStyleScreen({ choices, onChoices, onChooseGarment, values,
               onLive={onChoices}
               onDone={(before, after) => change(after, before)}
             />
+            </GarmentFabric>
           )}
-          {flat && view === 'flat' && <TechFlatView flat={flat} title={title} />}
+          {flat && view === 'flat' && (
+            <GarmentFabric fabric={fabric}>
+              <TechFlatView flat={flat} title={title} />
+            </GarmentFabric>
+          )}
           {draft && sheet && view === 'pattern' && (
-            <PatternPreview sheet={sheet} play={play} names={pieces.map((pc) => pc.name)} label={`Front and back pattern pieces for a ${title}`} />
+            <PatternPreview paper sheet={sheet} play={play} names={pieces.map((pc) => pc.name)} label={`Front and back pattern pieces for a ${title}`} />
           )}
           {view === 'ease' && easeMap && <EaseMapView views={easeMap} label={`Ease map of the ${title}`} />}
           {toast && (
@@ -390,6 +397,7 @@ export function BodiceStyleScreen({ choices, onChoices, onChooseGarment, values,
             </p>
           )}
         </div>
+        {(view === 'sketch' || view === 'flat') && draft && <FabricSwatches finish={finish} onFinish={onFinish} />}
         {view === 'sketch' && (
           <p className="muted small">
             {drawing

@@ -1632,7 +1632,7 @@ details.more[open] > summary h2::after {
   stroke-linecap: round;
 }
 .techflat .flat-shape {
-  fill: var(--paper);
+  fill: var(--garment, var(--paper));
   stroke: var(--gild);
   stroke-width: 0.3;
 }
@@ -2811,4 +2811,93 @@ button.link.garment-change {
 .form-svg .tape.on {
   stroke: var(--gild-glow);
   filter: drop-shadow(0 0 0.5px rgba(243, 230, 200, 0.8));
+}
+
+/* The sketch in the maker's fabric, and the swatches to choose it. */
+.garment-fabric {
+  display: contents;
+}
+.fabric-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+.swatch-row {
+  display: grid;
+  gap: 10px;
+}
+.fabric-now {
+  margin: 0;
+  min-height: 28px;
+}
+.fabric-now em {
+  font-family: 'Bodoni Moda', Didot, Georgia, serif;
+  font-style: italic;
+  font-size: 22px;
+  color: var(--ink);
+}
+.swatches {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 6px 5px;
+  scrollbar-width: none;
+}
+.swatches::-webkit-scrollbar {
+  display: none;
+}
+.swatch {
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  min-height: 0;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--line-strong);
+  background-size: 64px 64px;
+  background-position: center;
+}
+.swatch.on {
+  outline: 1px solid var(--ink);
+  outline-offset: 3px;
+}
+/* Handle labels stay readable over a pale fabric. */
+.garment-fabric .handle text,
+.garment-fabric .hint {
+  paint-order: stroke;
+  stroke: var(--paper);
+  stroke-width: 0.5;
+  stroke-linejoin: round;
+}
+
+/* Pieces on pattern paper: the garment is shown in fabric, the pattern on paper. */
+.paper-sheet {
+  --ink: #1a1712;
+  --paper: #ece3cf;
+  --muted: #6b6152;
+  width: 100%;
+  padding: 14px;
+  background-color: #ece3cf;
+  background-image: radial-gradient(rgba(60, 50, 30, 0.1) 1px, transparent 1.2px), linear-gradient(#ece3cf, #e4d9c1);
+  background-size: 7px 7px, 100% 100%;
+}
+.paper-sheet .preview-svg {
+  display: block;
+}
+.pencil-body {
+  fill: #1a1712;
+}
+.pencil-wood {
+  fill: #d9c49b;
+}
+.pencil-lead {
+  fill: #3a352c;
+}
+/* Pencil lines on paper read heavier than chalk-light lines on black. */
+.paper-sheet .preview-svg polygon {
+  stroke-width: 0.18;
+}
+.paper-sheet .preview-svg polyline {
+  stroke-width: 0.12;
 }
