@@ -1,7 +1,9 @@
 // Little line drawings for the Style choices that are about shape (Cat's S1 Picture Choices): a skirt's
 // silhouette, length and hem, a trouser leg, a neckline, a sleeve, how long a top or coat is. The chip
 // keeps its words under the drawing, so its name (and every test that finds it) stays the same.
-import { useLayoutEffect, useRef, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
+import { explainLine } from '../explain';
+import { BigDrawing, Drawing } from './Drawing';
 
 export type PicSet = 'skirt' | 'bodice' | 'tee' | 'trousers' | 'jacket' | 'coat';
 
@@ -141,21 +143,28 @@ export const hasPics = (set: PicSet, group: string) => !!PICS[set][group];
 /** The chips' class: picture tiles where the group has drawings. */
 export const chipsClass = (set: PicSet, group: string) => (hasPics(set, group) ? 'chips pics' : 'chips');
 
-/** The drawing for one choice, or nothing where the choice has none. */
+/** The drawing for one choice, or nothing where the choice has none. Tapping the picked tile's drawing opens
+ * it full size (Cat's extra to E3); tapping any other tile picks it as before. */
 export function ChoicePic({ set, group, id }: { set: PicSet; group: string; id: string }) {
   const pic = PICS[set][group]?.[id];
-  const trace = useRef<SVGGElement>(null);
-  // The picked tile's drawing moves (Cat's E3 Moving Drawings): a brighter pen runs round the outline, over
-  // a second copy of it that only shows on the picked chip. Each path is measured as length 1 so the pen
-  // runs at the same pace on every drawing.
-  useLayoutEffect(() => trace.current?.querySelectorAll('path').forEach((p) => p.setAttribute('pathLength', '1')), [pic]);
+  const [big, setBig] = useState<string>();
   if (!pic) return null;
+  const cls = `pic-${set}-${group}-${id}`;
   return (
-    <svg className={`pic pic-${set}-${group}-${id}`} viewBox="0 0 40 48" aria-hidden="true" focusable="false">
-      <g className="pic-base">{pic}</g>
-      <g className="pic-trace" ref={trace}>
-        {pic}
-      </g>
-    </svg>
+    <>
+      <Drawing
+        pic={pic}
+        className={cls}
+        onClick={(e) => {
+          const chip = e.currentTarget.closest('.chip');
+          if (!chip?.classList.contains('on')) return;
+          e.stopPropagation();
+          setBig(chip.textContent?.trim() ?? '');
+        }}
+      />
+      {big !== undefined && (
+        <BigDrawing pic={pic} className={cls} name={big} line={explainLine(set === 'jacket' || set === 'coat' ? 'outer' : set, group, id)} onClose={() => setBig(undefined)} />
+      )}
+    </>
   );
 }

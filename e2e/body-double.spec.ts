@@ -1,4 +1,4 @@
-import { download, expect, openAccount, openFold, startWithExample, test } from './fixtures';
+import { download, expect, goPrint, openAccount, openFold, startWithExample, test } from './fixtures';
 
 // Body Double (B1, B2, B5): a store form padded to you, a cover drafted to the same body, and a check once padded.
 test('body double: pad map, cover pattern and form check', async ({ page }, info) => {
@@ -35,7 +35,7 @@ test('body double: pad map, cover pattern and form check', async ({ page }, info
 test('signature labels: code, label sheet and open from a label', async ({ page }, info) => {
   await startWithExample(page);
   const main = page.getByRole('main');
-  await main.getByRole('button', { name: 'Print my pattern' }).click();
+  await goPrint(page);
   const card = main.getByRole('region', { name: 'Sign what you made' });
   await expect(card).toContainText('Save this pattern to give it its code');
   await main.getByRole('button', { name: 'Save pattern' }).first().click();
@@ -53,5 +53,5 @@ test('signature labels: code, label sheet and open from a label', async ({ page 
   const byCode = main.getByRole('region', { name: 'Open from a label' });
   await byCode.getByRole('textbox', { name: 'Label code' }).fill(code.toLowerCase().replace('-', ' '));
   await byCode.getByRole('button', { name: 'Open', exact: true }).click();
-  await expect(main.getByRole('button', { name: 'Print my pattern' })).toBeVisible();
+  await expect(main.getByRole('button', { name: 'Review', exact: true })).toBeVisible();
 });
