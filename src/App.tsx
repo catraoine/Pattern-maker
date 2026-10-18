@@ -74,6 +74,9 @@ import { PRIVACY, TERMS } from './legal';
 import { FittingScreen } from './screens/FittingScreen';
 import { TrueScaleScreen } from './screens/TrueScaleScreen';
 import { ClientBookScreen } from './screens/ClientBookScreen';
+import { MeasureLinkScreen } from './screens/MeasureLinkScreen';
+import { MeasureArrivalScreen } from './screens/MeasureArrivalScreen';
+import { readLink, type MeasureReply } from './measureLink';
 import { CheckFileScreen } from './screens/CheckFileScreen';
 import { ImportedPattern, importedGuide } from './engine/importDxf';
 import { CollectionScreen } from './screens/CollectionScreen';
@@ -93,7 +96,7 @@ const BRAND_BLOCK = 'M' + BODICE.map(([x, y]) => `${(9 + x * 14).toFixed(2)} ${(
 import { Mode, finishFor, keepFinish, modeOf } from './mode';
 
 export type Step = 'measure' | 'style' | 'export';
-type View = Step | 'plans' | 'welcome' | 'steps' | 'account' | 'photo' | 'fitting' | 'scale' | 'client' | 'check' | 'imported' | 'privacy' | 'terms' | 'tester' | 'news' | 'collection';
+type View = Step | 'plans' | 'welcome' | 'steps' | 'account' | 'photo' | 'fitting' | 'scale' | 'client' | 'check' | 'imported' | 'privacy' | 'terms' | 'tester' | 'news' | 'collection' | 'link' | 'arrive';
 
 export interface Choices {
   fit: Fit;
@@ -233,6 +236,7 @@ const SIDE: Partial<Record<View, [string, string]>> = {
   fitting: ['Print', 'Fitting'],
   scale: ['Print', 'True size'],
   client: ['Account', 'Client book'],
+  arrive: ['Account', 'Client book'],
   check: ['Account', 'Check a file'],
 };
 
@@ -240,7 +244,7 @@ const SIDE: Partial<Record<View, [string, string]>> = {
 const NEEDS_MEASUREMENTS: View[] = ['style', 'export', 'fitting', 'scale'];
 
 /** Where the header's back goes when there's nothing behind in history, such as after a reload. */
-const PARENT: Partial<Record<View, View>> = { measure: 'welcome', steps: 'welcome', style: 'measure', photo: 'style', export: 'style', fitting: 'export', scale: 'export', account: 'style', client: 'account', check: 'account', imported: 'check', privacy: 'welcome', terms: 'welcome', tester: 'account', news: 'account' };
+const PARENT: Partial<Record<View, View>> = { measure: 'welcome', steps: 'welcome', style: 'measure', photo: 'style', export: 'style', fitting: 'export', scale: 'export', account: 'style', client: 'account', arrive: 'client', link: 'welcome', check: 'account', imported: 'check', privacy: 'welcome', terms: 'welcome', tester: 'account', news: 'account' };
 
 export default function App() {
   const [saved, setSaved] = usePersistent<Saved>('skirt', INITIAL);
@@ -267,7 +271,19 @@ export default function App() {
   // patterns are kept, so a returning sewist taps through and carries on.
   // Screens live in the browser's history, so phone and browser back step back through the app. Landing back
   // on a pattern screen whose measurements have since gone sends you to Measure instead.
-  const [step, setStep] = useViewHistory<View>('welcome', (to) => (NEEDS_MEASUREMENTS.includes(to) && !canLeaveMeasure ? 'measure' : to));
+  // A measure-me link opened here: a client's ask to measure, or a client's numbers coming back to their dressmaker.
+  const [incoming] = useState(() => readLink(window.location.hash));
+  const [arriving, setArriving] = useState<MeasureReply | undefined>(incoming?.kind === 'reply' ? incoming.reply : undefined);
+  // A link opened while the app is already showing (a pasted address, a second tap) starts over from it.
+  useEffect(() => {
+    const on = () => {
+      if (readLink(window.location.hash)) window.location.reload();
+    };
+    window.addEventListener('hashchange', on);
+    return () => window.removeEventListener('hashchange', on);
+  }, []);
+  const [startView] = useState<View>(incoming?.kind === 'ask' ? 'link' : incoming?.kind === 'reply' ? 'arrive' : 'welcome');
+  const [step, setStep] = useViewHistory<View>(startView, (to) => (NEEDS_MEASUREMENTS.includes(to) && !canLeaveMeasure ? 'measure' : to));
   const openLegal = (page: 'privacy' | 'terms' | 'tester' | 'news') => setStep(page);
   // Where Plans goes back to: the screen it was opened from.
   const [beforePlans, setBeforePlans] = useState<View>('account');
@@ -797,8 +813,8 @@ export default function App() {
       )}
       <PointEditContext.Provider value={pointEditing}>
       <div className="app" {...{ inert: opening ? '' : undefined }}>
-        <header className={step === 'welcome' ? 'topbar' : 'topbar steady'}>
-          {step === 'welcome' ? (
+        <header className={step === 'welcome' || step === 'link' ? 'topbar' : 'topbar steady'}>
+          {step === 'welcome' || step === 'link' ? (
             <div className="brand">
               <svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true">
                 <rect x="2.5" y="2.5" width="27" height="27" fill="none" style={{ stroke: 'var(--gild)' }} strokeWidth="1" />
@@ -858,6 +874,33 @@ export default function App() {
         </header>
 
         <main className="main">
+          {incoming?.kind === 'broken' && step === 'welcome' && (
+            <p className="msg error" role="status">
+              That measure link is incomplete. Ask for it to be sent again.
+            </p>
+          )}
+          {step === 'link' && incoming?.kind === 'ask' && (
+            <MeasureLinkScreen
+              ask={incoming.ask}
+              unit={saved.unit}
+              onUnit={(unit) => setSaved({ ...saved, unit })}
+              onKeep={(v) => setAccount(updatePerson(account, ME, { values: { ...account.people.find((p) => p.id === ME)!.values, ...v } }))}
+            />
+          )}
+          {step === 'arrive' && arriving && (
+            <MeasureArrivalScreen
+              reply={arriving}
+              account={account}
+              unit={saved.unit}
+              onName={(name) => setAccount({ ...account, name })}
+              onSave={(a, id, open) => {
+                // The numbers are in the book now, so a reload shouldn't offer them again.
+                if (window.location.hash) window.history.replaceState(window.history.state, '', window.location.pathname + window.location.search);
+                setAccount(open ? { ...a, active: id } : a);
+                if (open) setStep('client');
+              }}
+            />
+          )}
           {step === 'welcome' && (
             <WelcomeScreen
               formStart={formStart}
@@ -1218,6 +1261,12 @@ export default function App() {
               unit={saved.unit}
               onChange={(p) => setAccount(updatePerson(account, person.id, p))}
               onOpen={openPattern}
+              garment={garment}
+              onAccount={setAccount}
+              onReply={(r) => {
+                setArriving(r);
+                setStep('arrive');
+              }}
             />
           )}
           {step === 'scale' && printable && <TrueScaleScreen pieces={printable.pieces} />}

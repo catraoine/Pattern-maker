@@ -4030,4 +4030,108 @@ button.link.garment-change {
   flex-basis: 100%;
   justify-content: flex-end;
   gap: 16px;
+
+/* Measure-me links (Cat's pick L1 + L5 + L4, 2026-10-18). The client's first page puts the dressmaker's
+   studio in big narrow capitals, with Maison Tracé small at the foot. */
+.link-measure .studio-name {
+  font-family: var(--display);
+  font-size: clamp(44px, 14vw, 64px);
+  line-height: 0.92;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.studio-note {
+  margin: 0;
+  padding: 12px 14px;
+  border-left: var(--bw) solid var(--gild);
+  background: var(--fill);
+}
+
+.studio-note p {
+  margin: 0;
+}
+
+.studio-note footer {
+  margin-top: 6px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.link-by {
+  text-align: center;
+  font-family: var(--mono);
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  font-size: 10px;
+}
+
+.ask-measure .chips {
+  margin: 4px 0;
+}
+
+.studio-setup {
+  gap: 10px;
+}
+
+.paste-reply {
+  display: grid;
+  gap: 10px;
+  margin-top: 8px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.arrival-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--line);
+}
+
+.arrival-list li {
+  border-bottom: 1px solid var(--line);
+  padding: 8px 0;
+}
+
+.arrival-list label {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px;
+  align-items: center;
+  min-height: 30px;
+  cursor: pointer;
+}
+
+.arrival-list input {
+  accent-color: var(--gild);
+  width: 16px;
+  height: 16px;
+  margin: 0;
+}
+
+.arrival-list .ar-value {
+  font-family: var(--mono);
+  font-size: 13px;
+  letter-spacing: 0.05em;
+  font-variant-numeric: tabular-nums;
+}
+
+.arrival-list .ar-value small {
+  color: var(--muted);
+}
+
+.arrival-list .ar-flag {
+  margin: 4px 0 0 26px;
+  color: var(--warn);
+}
+
+.arrival-list .flagged .ar-name {
+  color: var(--warn);
 }

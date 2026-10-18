@@ -4,6 +4,9 @@ import { BODICE_FIELDS, SKIRT_FIELDS, TROUSERS_FIELDS, Unit } from '../measureme
 import { describeFitting, versionsOf } from '../engine/fitting';
 import { describePattern } from './describe';
 import { deletePhoto, getPhoto, putPhoto, shrink } from '../photoStore';
+import type { Garment } from '../measurements';
+import type { MeasureReply } from '../measureLink';
+import { AskToMeasure } from '../ui/AskToMeasure';
 
 interface Props {
   account: Account & { people: Person[] };
@@ -11,6 +14,10 @@ interface Props {
   unit: Unit;
   onChange: (p: Person) => void;
   onOpen: (p: SavedPattern) => void;
+  /** The garment in hand, picked first when asking a client to measure. */
+  garment: Garment;
+  onAccount: (a: Account) => void;
+  onReply: (reply: MeasureReply) => void;
 }
 
 const FIELDS = [...SKIRT_FIELDS, ...TROUSERS_FIELDS, ...BODICE_FIELDS].filter((f, i, all) => all.findIndex((g) => g.id === f.id) === i);
@@ -22,7 +29,7 @@ const show = (v: number | undefined, unit: Unit) => (v === undefined ? '–' : u
  * One client's record, the way a dressmaker keeps a client book: their measurements over time, every
  * toile fitting and what it changed, fitting notes, toile photos and the patterns made for them.
  */
-export function ClientBookScreen({ account, person, unit, onChange, onOpen }: Props) {
+export function ClientBookScreen({ account, person, unit, onChange, onOpen, garment, onAccount, onReply }: Props) {
   const name = personName(account, person);
   const history = person.history ?? [];
   const recent = history.slice(-4);
@@ -50,8 +57,10 @@ export function ClientBookScreen({ account, person, unit, onChange, onOpen }: Pr
             <h1 id="cbtitle">{name}</h1>
           </div>
         </div>
-        <p className="muted small">Kept on this device only, with the photos. Nothing is sent anywhere.</p>
+        <p className="muted small">Kept on this device only, with the photos. Nothing is sent anywhere unless you send it.</p>
       </section>
+
+      <AskToMeasure account={account} person={person} garment={garment} onAccount={onAccount} onReply={onReply} />
 
       <section className="card" aria-labelledby="cbm">
         <h2 id="cbm">Measurements over time</h2>
@@ -89,6 +98,17 @@ export function ClientBookScreen({ account, person, unit, onChange, onOpen }: Pr
         ) : (
           <p className="muted">Each time the measurements are taken again, they're kept here with the date.</p>
         )}
+        {Object.keys(person.values).length > 0 && (
+          <div className="row wrap">
+            <button type="button" className="secondary" onClick={() => void saveMeasurements('vit', person.values, name)}>
+              Seamly2D (.vit)
+            </button>
+            <button type="button" className="secondary" onClick={() => void saveMeasurements('csv', person.values, name)}>
+              Spreadsheet (.csv)
+            </button>
+          </div>
+        )}
+        {Object.keys(person.values).length > 0 && <p className="muted small">The DXF and tech pack are on the Print screen, once a style is picked.</p>}
       </section>
 
       <section className="card" aria-labelledby="cbf">
@@ -190,6 +210,18 @@ export function ClientBookScreen({ account, person, unit, onChange, onOpen }: Pr
       </section>
     </div>
   );
+}
+
+async function saveMeasurements(kind: 'vit' | 'csv', values: Person['values'], name: string) {
+  const { toVit, toMeasurementsCsv } = await import('../measureExport');
+  const base = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'client';
+  const blob = kind === 'vit' ? new Blob([toVit(values, name)], { type: 'application/xml' }) : new Blob([toMeasurementsCsv(values)], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${base}-measurements.${kind}`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
 function Photo({ id, caption, date, onRemove }: { id: string; caption: string; date: string; onRemove: () => void }) {
