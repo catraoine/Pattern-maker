@@ -1195,6 +1195,83 @@ b {
   stroke: var(--ink);
 }
 
+/* The picked tile's drawing moves (Cat's E3): a brighter pen runs round the outline of the picked choice. */
+.chips.pics .chip .pic-trace {
+  display: none;
+}
+.chips.pics .chip.on .pic-trace {
+  display: inline;
+  stroke: var(--gild-glow);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-dasharray: 0.16 0.84;
+  animation: pic-pen 2.8s linear infinite;
+}
+.chips.pics .chip.on .pic-trace .pic-faint {
+  display: none;
+}
+/* The skirts that swing do: a circle, a half circle and a bias slip sway from the waist. */
+.chips.pics .chip.on :is(.pic-skirt-silhouette-circle, .pic-skirt-silhouette-half_circle, .pic-skirt-silhouette-slip) {
+  transform-origin: 50% 10%;
+  animation: pic-sway 2.8s ease-in-out infinite;
+}
+@keyframes pic-pen {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes pic-sway {
+  0%,
+  100% {
+    transform: rotate(-3deg);
+  }
+  50% {
+    transform: rotate(3deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chips.pics .chip.on .pic-trace {
+    display: none;
+  }
+  .chips.pics .chip.on .pic {
+    animation: none;
+  }
+}
+
+/* The line under each Style section saying what its picked choice does (Cat's E2), with an Easy or More skill tag. */
+.explain {
+  margin: 10px 0 0;
+  padding-left: 10px;
+  border-left: var(--bw) solid var(--gild);
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ink);
+  max-width: 60ch;
+}
+.explain-name {
+  color: var(--gild);
+  font-weight: var(--w-strong);
+}
+.skill-tag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 6px;
+  border: 1px solid var(--muted);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  vertical-align: 1px;
+}
+.skill-tag.easy {
+  border-color: var(--ok);
+  color: var(--ok);
+}
+
 /* Hands-on shaping: drag handles, drawn hems, the turning figure, the drafting replay and undo. */
 button.ghost {
   min-height: 40px;

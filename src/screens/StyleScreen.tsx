@@ -32,6 +32,7 @@ import { DrawOnForm, skirtForm } from '../ui/DrawOnForm';
 import { readSkirtHem, readSkirtSide, skirtLines } from '../ui/formLines';
 import { Title } from '../ui/Title';
 import { ChoicePic, chipsClass } from '../ui/ChoicePic';
+import { Explain } from '../ui/Explain';
 
 interface Props {
   finish: Finish;
@@ -321,6 +322,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
                 </button>
               ))}
             </div>
+            <Explain set="skirt" group={g.id} options={g.options} pick={g.id === 'length' && choices.lengthCm !== undefined ? undefined : chosen(choices, g.id)} />
           </fieldset>
         ))}
         <fieldset className="group">
@@ -339,6 +341,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
               </button>
             ))}
           </div>
+          <Explain set="skirt" group="volume" options={VOLUME_OPTIONS} pick={volumeOf(choices)} />
           {volumeOf(choices) === 'godets' && (
             <div className="chips">
               {GODET_OPTIONS.map(([n, label]) => (
@@ -382,6 +385,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
                 );
               })}
             </div>
+            <Explain set="skirt" group={g.id} options={g.options} pick={detailOf(choices, g.id)} />
             {g.id === 'waist' && !elasticAllowed(choices) && (
               <p className="muted small">
                 {choices.silhouette === 'pencil'

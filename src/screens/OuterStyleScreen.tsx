@@ -24,6 +24,7 @@ import { MyFabric, fabricEase, outerFabrics } from '../engine/fabrics';
 import { FabricCard } from '../ui/FabricCard';
 import { Title } from '../ui/Title';
 import { ChoicePic, chipsClass } from '../ui/ChoicePic';
+import { Explain } from '../ui/Explain';
 import { DrawOnForm, formWidth } from '../ui/DrawOnForm';
 import { landmarks } from '../ui/formLines';
 import { outerLines, readOuterCollar, readOuterFit, readOuterFront, readOuterHem, readOuterShaping } from '../ui/formTops';
@@ -159,6 +160,7 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
                 );
               })}
             </div>
+            <Explain set="outer" group={g.id} options={g.options} pick={choices[g.id]} />
             {g.id === 'shaping' && choices.fit === 'fitted' && <p className="muted small">A fitted {kind} keeps its waist shaping, so boxy needs a regular or relaxed fit.</p>}
           </fieldset>
         ))}
