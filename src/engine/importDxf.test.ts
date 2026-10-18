@@ -8,7 +8,7 @@ import { withAllowances } from './allowances';
 import { quantity, toDxf } from './dxf';
 import { importDxf, importedGuide } from './importDxf';
 import { Piece, cutLine } from './piece';
-import { P, add, len, mul, sub, unit } from './geometry';
+import { P, len, sub } from './geometry';
 import { layout } from './export';
 import { toTiledPdf } from './pdf';
 import { toTechPack } from './techpack';
@@ -29,10 +29,36 @@ function same(a: P[], b: P[], shift: P = { x: 0, y: 0 }) {
   a.forEach((q, i) => expect(len(sub(sub(q, shift), b[i]))).toBeLessThan(0.001));
 }
 
+/** The POINT entities on one layer of each block, in mm. */
+function blockPoints(dxf: string, layer: string): P[][] {
+  const l = dxf.split('\r\n');
+  const out: P[][] = [];
+  for (let i = 0; i + 1 < l.length; i += 2) {
+    if (l[i] === '0' && l[i + 1] === 'BLOCK') out.push([]);
+    if (l[i] === '0' && l[i + 1] === 'POINT' && l[i + 3] === layer) out[out.length - 1].push({ x: Number(l[i + 5]), y: Number(l[i + 7]) });
+  }
+  return out;
+}
+
 /** Read our own export back and check every mark lands where it was drawn. */
 function roundTrip(pieces: Piece[]) {
-  const back = importDxf(toDxf(pieces, info));
-  expect(back.pieces.map((pc) => pc.name)).toEqual(pieces.map((pc) => pc.name));
+  const dxf = toDxf(pieces, info);
+  const back = importDxf(dxf);
+  // Writing the imported pieces out again puts every notch and drill hole where the first file had
+  // it, to half a millimetre (a notch at a corner can snap to the other edge's allowance).
+  const again = toDxf(back.pieces, info);
+  for (const layer of ['4', '13']) {
+    const a = blockPoints(dxf, layer);
+    const b = blockPoints(again, layer);
+    pieces.forEach((pc, i) => {
+      const o = origin(pc);
+      expect(b[i]).toHaveLength(a[i].length);
+      for (const q of a[i]) {
+        const want = { x: q.x - o.x * 10, y: q.y + o.y * 10 };
+        expect(Math.min(...b[i].map((r) => len(sub(r, want))))).toBeLessThan(0.5);
+      }
+    });
+  }
   back.pieces.forEach((got, i) => {
     const want = pieces[i];
     const o = origin(want);
@@ -45,13 +71,6 @@ function roundTrip(pieces: Piece[]) {
     if (want.grain) same(want.grain, got.grain!, o);
     else expect(got.grain).toBeUndefined();
     if (want.fold) same(want.fold, got.fold!, o);
-    // A notch is exported as the point where it meets the cutting line; that point comes back.
-    const edge = (pc: Piece, [q, d]: [P, P]) => add(q, mul(unit(d), pc.seamAllowance));
-    same(
-      want.notches.map((n) => edge(want, n)),
-      got.notches.map((n) => edge(got, n)),
-      o,
-    );
   });
   return back;
 }
@@ -66,6 +85,8 @@ describe('import a pattern from pro software', () => {
     expect(back.source).toBe('Maison Tracé');
     expect(back.pieces[0].seamAllowance).toBe(d.pieces[0].seamAllowance);
     expect(back.pieces[0].meta.imported).toBe(true);
+    // The hem's deeper allowance comes back as its own edge, as the tech pack lists it.
+    expect(back.pieces[1].allowances.hem).toBe(4);
   });
 
   it('reads home allowances, a bodice, trousers and a lined jacket', () => {
