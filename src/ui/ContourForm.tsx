@@ -83,7 +83,7 @@ export function formOutline(w: number, h: number): { pts: [number, number][]; lw
 export const FADE_FROM = 0.78;
 
 // `tOutline` runs the outline's own clock, so the form can start with its outline already drawn.
-function draw(g: CanvasRenderingContext2D, w: number, h: number, t: number, tOutline = t, tapeT = t, text = 'WAIST  ·  CM / IN') {
+function draw(g: CanvasRenderingContext2D, w: number, h: number, t: number, tOutline = t, tapeT = t, text = 'CM  /  IN') {
   g.globalAlpha = 1;
   g.fillStyle = '#000';
   g.fillRect(0, 0, w, h);

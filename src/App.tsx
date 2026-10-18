@@ -803,10 +803,9 @@ export default function App() {
             <WelcomeScreen
               formStart={formStart}
               onLegal={openLegal}
-              onFinish={({ start }) => {
-                const onboarded = { ...account, onboarded: true, mode };
-                setAccount(start === 'example' ? updatePerson(onboarded, person.id, { values: { ...EXAMPLE_VALUES, ...measured } }) : onboarded);
-                setStep(start === 'example' ? 'style' : 'steps');
+              onFinish={() => {
+                setAccount({ ...account, onboarded: true, mode });
+                setStep('steps');
               }}
             />
           )}
@@ -829,6 +828,12 @@ export default function App() {
               onDone={(g) => {
                 countStep('measured', g);
                 switchGarment(g, {}, 'style');
+              }}
+              onSkip={(g?: Garment) => {
+                // Skip on the tape: try the app with the example measurements, under any already taken.
+                setAccount(updatePerson({ ...account, onboarded: true, mode }, person.id, { values: { ...EXAMPLE_VALUES, ...values } }));
+                if (g && g !== garment) setSaved({ ...saved, garment: g });
+                setStep('style');
               }}
             />
           )}

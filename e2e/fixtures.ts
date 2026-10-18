@@ -87,6 +87,12 @@ export async function openFresh(page: Page) {
   await expect(heading(page, /drafted to your body/i)).toBeVisible();
 }
 
+/** Begin, then Skip on the tape across the top of the first measuring page. */
+export async function skipToExample(page: Page) {
+  await main(page).getByRole('button', { name: 'Begin' }).click();
+  await main(page).getByRole('button', { name: 'Skip measuring and try an example' }).click();
+}
+
 /** The one-measurement-per-page flow: fill each page until the button that ends it. */
 export async function fillStepPages(page: Page) {
   let last = '';
@@ -186,9 +192,9 @@ export async function printA4(page: Page, info: TestInfo) {
   return d.suggestedFilename();
 }
 
-/** "Just looking? Try an example": straight to styling a skirt with the example measurements. */
+/** Begin, then Skip at the end of the tape: straight to styling a skirt with the example measurements. */
 export async function startWithExample(page: Page) {
   await openFresh(page);
-  await main(page).getByRole('button', { name: /Try an example/ }).click();
+  await skipToExample(page);
   await expectStyle(page, 'Skirt');
 }

@@ -4,6 +4,7 @@ import { BASE, baseDone, fieldOf, fullSetMissing, GARMENT_NAME, GARMENTS, missin
 import { TapeDemo } from '../ui/ContourForm';
 import { FIRST_PROJECT } from '../mode';
 import { canGoBack, goBack, usePageHistory } from '../nav';
+import { TapeBand } from '../ui/TapeBand';
 
 interface Props {
   garment: Garment;
@@ -20,6 +21,8 @@ interface Props {
   onSomeoneElse?: (name: string) => void;
   /** The measurements in use are someone else's, so every page is worded for the person holding the tape. */
   theirs?: boolean;
+  /** Skip, at the end of the tape: try the app with example measurements (for the garment being measured). */
+  onSkip?: (garment?: Garment) => void;
 }
 
 export type StepsStart = { kind: 'choose' } | { kind: 'for'; garment: Garment } | { kind: 'redo'; garment: Garment; ids: MeasurementId[] };
@@ -43,8 +46,10 @@ const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
 // First-time measuring, laid out like the welcome. A short "before you start", then the base set one
 // measurement per page, a check of those four, then what to make: pick one and Continue measuring goes
 // straight to the first extra that garment still needs. "Something else" takes every measurement.
-// "Measuring someone else?" words every page for the person holding the tape.
-export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onValues, onDone, start, onSomeoneElse, theirs }: Props) {
+// The first page asks who is being measured, since "Someone else" words every page for the person holding the
+// tape and asks their name first (Cat's pick V2, 2026-10-17). A tape runs across the top of every page, with
+// Skip at its end wherever measuring can be skipped.
+export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onValues, onDone, start, onSomeoneElse, theirs, onSkip }: Props) {
   const aimed = start?.kind === 'for' ? start.garment : undefined;
   // Each page is a history entry, so the header's back and the phone's back go one page back.
   const [page, setPage] = usePageHistory<Page>(() => {
@@ -67,9 +72,13 @@ export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onV
     else onDone(g);
   };
 
-  if (page.kind === 'intro')
+  if (page.kind === 'intro') {
+    const begin = () => {
+      if (helper) onSomeoneElse?.(name.trim());
+      setPage({ kind: 'base', at: 0 });
+    };
     return (
-      <Shell title="First, let's take your measurements." helperTitle="First, let's take their measurements." helper={helper} hero={<TapeDemo id="waist" name="" mode="still" />}>
+      <Shell title="First, let's take your measurements." helperTitle="First, let's take their measurements." helper={helper} skip={onSkip && (() => onSkip())}>
         <dl className="need">
           <div>
             <dt>You'll need</dt>
@@ -80,30 +89,33 @@ export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onV
             <dd>Close-fitting clothes</dd>
           </div>
         </dl>
-        {helper && (
-          <div className="field plain ready">
-            <label htmlFor="who-name">Name</label>
-            <input id="who-name" autoComplete="off" autoFocus value={name} onChange={(e) => setName(e.target.value)} />
+        <div className="who" role="group" aria-labelledby="who-q">
+          <p id="who-q" className="who-q">
+            Who are we measuring?
+          </p>
+          <div className="who-pick">
+            <button type="button" className="primary" onClick={() => (helper ? setHelper(false) : begin())}>
+              Me
+            </button>
+            <button type="button" className="primary" aria-pressed={helper} onClick={() => setHelper(true)}>
+              Someone else
+            </button>
           </div>
-        )}
-        <div className="stack">
-          <button
-            type="button"
-            className="primary"
-            disabled={helper && !name.trim()}
-            onClick={() => {
-              if (helper) onSomeoneElse?.(name.trim());
-              setPage({ kind: 'base', at: 0 });
-            }}
-          >
-            Start measuring
-          </button>
-          <button type="button" className="link quiet" aria-pressed={helper} onClick={() => setHelper(!helper)}>
-            {helper ? 'Measuring yourself?' : 'Measuring someone else?'}
-          </button>
         </div>
+        {helper && (
+          <>
+            <div className="field plain ready">
+              <label htmlFor="who-name">Name</label>
+              <input id="who-name" autoComplete="off" autoFocus value={name} onChange={(e) => setName(e.target.value)} />
+            </div>
+            <button type="button" className="primary" disabled={!name.trim()} onClick={begin}>
+              Start measuring
+            </button>
+          </>
+        )}
       </Shell>
     );
+  }
 
   if (page.kind === 'check')
     return (
@@ -196,6 +208,7 @@ export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onV
       onValues={onValues}
       onNext={next}
       label={label}
+      skip={onSkip && !(page.kind === 'base' && page.back) && !(page.kind === 'extra' && page.redo) ? () => onSkip(g && g !== 'other' ? g : undefined) : undefined}
     />
   );
 }
@@ -208,6 +221,7 @@ function Shell({
   hero,
   dots,
   short,
+  skip,
   children,
 }: {
   /** A small line above the title, only where it tells you something (which step, which garment). */
@@ -215,7 +229,10 @@ function Shell({
   title: string;
   helperTitle?: string;
   helper?: boolean;
-  hero: ReactNode;
+  /** The picture under the tape; the first page has none, so it opens on the words. */
+  hero?: ReactNode;
+  /** Skip at the end of the tape. */
+  skip?: () => void;
   dots?: [number, number];
   /** A shorter form on top, so a longer list fits above its button. */
   short?: boolean;
@@ -224,18 +241,21 @@ function Shell({
   return (
     <div className="welcome">
       <section className={short ? 'card welcome-card measure-step short' : 'card welcome-card measure-step'} aria-labelledby="stitle">
-        <div className="welcome-hero">
-          {hero}
-          <div className="welcome-top">
-            {dots && (
-              <div className="dots" aria-hidden="true">
-                {Array.from({ length: dots[0] }, (_, i) => (
-                  <span key={i} className={i <= dots[1] ? 'dot on' : 'dot'} />
-                ))}
-              </div>
-            )}
+        <TapeBand onSkip={skip} />
+        {hero && (
+          <div className="welcome-hero">
+            {hero}
+            <div className="welcome-top">
+              {dots && (
+                <div className="dots" aria-hidden="true">
+                  {Array.from({ length: dots[0] }, (_, i) => (
+                    <span key={i} className={i <= dots[1] ? 'dot on' : 'dot'} />
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
         {eyebrow && <p className="eyebrow">{eyebrow}</p>}
         <h1 id="stitle">{helper && helperTitle ? helperTitle : title}</h1>
         {children}
@@ -256,6 +276,7 @@ function MeasurePage({
   onValues,
   onNext,
   label,
+  skip,
 }: {
   id: MeasurementId;
   eyebrow: string;
@@ -268,6 +289,7 @@ function MeasurePage({
   onValues: (v: MeasurementValues) => void;
   onNext: () => void;
   label: string;
+  skip?: () => void;
 }) {
   const field = fieldOf(id);
   const [text, setText] = useState<string | null>(null);
@@ -291,7 +313,7 @@ function MeasurePage({
   };
 
   return (
-    <Shell eyebrow={eyebrow} title={titleOf(id, helper)} dots={dots} hero={<TapeDemo id={id} name={titleOf(id, false).replace(/^Your /, '')} />}>
+    <Shell eyebrow={eyebrow} title={titleOf(id, helper)} dots={dots} skip={skip} hero={<TapeDemo id={id} name={titleOf(id, false).replace(/^Your /, '')} />}>
       <p className="muted step-tip">{tipOf(id, helper)}</p>
       <button type="button" className="link quiet how-link" aria-expanded={how} onClick={() => setHow(true)}>
         How to do it
