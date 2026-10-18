@@ -33,6 +33,8 @@ export interface MyFabric {
   checks?: Checks;
   /** Adjust the ease for this fabric. On unless turned off. */
   matchEase?: boolean;
+  /** The partner shop fabric it was picked from (shopFabrics.ts). */
+  shop?: string;
 }
 
 export interface FabricPick {

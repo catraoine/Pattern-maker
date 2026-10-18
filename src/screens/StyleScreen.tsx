@@ -476,7 +476,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
           {view === 'ease' && easeMap && <EaseMapView views={easeMap} label={`Ease map of the ${title}`} />}
           <UndoToast undo={undoer} />
         </div>
-        {view === 'sketch' && draft && <FabricSwatches finish={finish} onFinish={onFinish} />}
+        {view === 'sketch' && draft && <FabricSwatches finish={finish} onFinish={onFinish} garment="skirt" />}
         {view === 'sketch' && (
           <p className="muted small">
             {drawing

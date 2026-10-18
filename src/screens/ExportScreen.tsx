@@ -25,6 +25,7 @@ import { Mode, ProTool, shows } from '../mode';
 import { ModeLink } from '../ui/ModeLink';
 import { countStep } from '../report/report';
 import { flatId } from '../ui/FabricFill';
+import { cartLink, shopFabric } from '../engine/shopFabrics';
 
 /** What to print: the drafted pieces of either garment, with its notes and sewing steps. */
 export interface Printable {
@@ -319,7 +320,15 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
         </section>
       )}
 
-      {!imported && <YourFabric fabric={finish.fabric ?? {}} onFabric={(fabric) => onFinish({ ...finish, fabric, cloth: clothFor(fabric, finish.cloth) })} style={style} simple={mode === 'simple'} />}
+      {!imported && (
+        <YourFabric
+          fabric={finish.fabric ?? {}}
+          onFabric={(fabric) => onFinish({ ...finish, fabric, cloth: clothFor(fabric, finish.cloth) })}
+          style={style}
+          simple={mode === 'simple'}
+          metres={lays.find((l) => l.fabric !== 'lining' && l.fabric !== 'interlining' && !l.hide)?.metres}
+        />
+      )}
 
       {!imported && !hasFabric(finish.fabric) && <Deadstock style={style} lays={lays} title={title} />}
 
@@ -569,11 +578,27 @@ function Swatches({ value, onPick }: { value?: Fibre | Special; onPick: (v: Fibr
 }
 
 /** The fabric the maker has bought: checked against the style, and carried into the ease, the PDF and the tech pack. */
-function YourFabric({ fabric, onFabric, style, simple }: { fabric: MyFabric; onFabric: (f: MyFabric) => void; style: Props['style']; simple?: boolean }) {
+function YourFabric({
+  fabric,
+  onFabric,
+  style,
+  simple,
+  metres,
+}: {
+  fabric: MyFabric;
+  onFabric: (f: MyFabric) => void;
+  style: Props['style'];
+  simple?: boolean;
+  /** Main fabric to buy, from the cutting layout. */
+  metres?: number;
+}) {
   const set = (patch: Partial<MyFabric>) => onFabric({ ...fabric, ...patch });
+  const shop = shopFabric(fabric.shop);
   const notes = checkFabric(style, fabric);
   // One row for every fabric: a special cloth brings its usual fibre, weight and drape unless already chosen.
+  // A different cloth is no longer the shop fabric.
   const pickFabric = (id: Fibre | Special | undefined) => {
+    if (shop) return onFabric({ ...fabric, shop: undefined, name: undefined, ...pickedCloth(id) });
     if (!id) return set({ fibre: undefined, special: undefined });
     if (id in SPECIALS) {
       const sp = SPECIALS[id as Special];
@@ -581,6 +606,11 @@ function YourFabric({ fabric, onFabric, style, simple }: { fabric: MyFabric; onF
     }
     set({ fibre: id as Fibre, special: undefined });
   };
+  function pickedCloth(id: Fibre | Special | undefined): Partial<MyFabric> {
+    if (!id) return { fibre: undefined, special: undefined };
+    if (id in SPECIALS) return { special: id as Special, fibre: SPECIALS[id as Special].fibre };
+    return { fibre: id as Fibre, special: undefined };
+  }
   const details = [...specialLines(fabric.special), ...checksLines(fabric.checks, style.garment).map((text) => ({ label: '', text }))];
   return (
     <section className="card yourfabric" aria-labelledby="fabtitle">
@@ -592,6 +622,25 @@ function YourFabric({ fabric, onFabric, style, simple }: { fabric: MyFabric; onF
         <FabricGuide />
       </div>
       <FabricStage fabric={fabric} />
+      {shop && (
+        <div className="shopbuy">
+          <p className="small">
+            <b>{shop.name}</b>
+            {fabric.colour ? `, ${fabric.colour}` : ''} <span className="muted">from {shop.shop}, ${shop.price}/m</span>
+          </p>
+          {metres !== undefined &&
+            (cartLink(shop, metres) ? (
+              <a className="button" href={cartLink(shop, metres)} target="_blank" rel="noopener noreferrer">
+                Buy {metres} m
+              </a>
+            ) : (
+              <p className="muted small">
+                You need {metres} m, about ${Math.ceil(metres * shop.price)}. Buying straight from partner shops opens soon; leave your email on the fabric kit card
+                and we&rsquo;ll tell you.
+              </p>
+            ))}
+        </div>
+      )}
       <p className="muted small">
         {simple
           ? 'Optional. Tell us what you bought and we’ll say whether it suits the style. It goes on the PDF, and heavy cloth gets a little more room.'

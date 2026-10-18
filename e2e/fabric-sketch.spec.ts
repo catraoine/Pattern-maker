@@ -48,3 +48,25 @@ for (const g of ['Dress', 'Trousers'] as GarmentName[]) {
     await expect(main.locator('.garment-fabric .techflat')).toBeVisible();
   });
 }
+
+// None takes the fabric off, a colour dot tints the swatch, and a shop fabric fills in the print screen's fabric card.
+test('None, a colour and a shop fabric on the skirt sketch', async ({ page }) => {
+  await startWithExample(page);
+  const main = page.getByRole('main');
+  const swatches = main.getByRole('radiogroup', { name: 'Fabric for the sketch' });
+  const none = swatches.getByRole('radio', { name: 'None' });
+  await expect(none).toHaveAttribute('aria-checked', 'true');
+  await swatches.getByRole('radio', { name: 'Wool' }).click();
+  await main.getByRole('radiogroup', { name: 'Colour' }).getByRole('radio', { name: 'Camel' }).click();
+  await expect(main.locator('.garment-fabric filter')).toHaveCount(1);
+  await none.click();
+  await expect(main.locator('.garment-fabric')).toHaveCount(0);
+  await main.getByRole('tab', { name: 'Shop' }).click();
+  await main.getByRole('radiogroup', { name: 'Fabric from partner shops' }).getByRole('radio', { name: /12 oz organic denim/ }).click();
+  await expect(main.locator('.garment-fabric pattern image').first()).toHaveAttribute('href', /fabrics\/flat\/denim\.jpg$/);
+  await main.getByRole('radiogroup', { name: 'Colour' }).getByRole('radio', { name: 'Black' }).click();
+  await main.getByRole('button', { name: 'Print my pattern' }).click();
+  await expect(main.locator('#fabname')).toHaveValue('12 oz organic denim');
+  await expect(main.locator('#fabcolour')).toHaveValue('Black');
+  await expect(main.locator('.shopbuy')).toContainText('Example shop');
+});

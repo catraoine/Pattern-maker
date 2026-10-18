@@ -3124,6 +3124,116 @@ button.link.garment-change {
   outline: 1px solid var(--ink);
   outline-offset: 3px;
 }
+/* None: the sketch in lines only, no fabric. */
+.swatch.none {
+  display: grid;
+  place-items: center;
+  background: var(--paper);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.swatch.none.on {
+  color: var(--gild);
+}
+/* Fabrics or Shop: two small tabs above the swatches. */
+.fabtabs {
+  display: flex;
+  border: var(--bw) solid var(--line-strong);
+  max-width: 240px;
+}
+.fabtabs button {
+  flex: 1;
+  min-height: 32px;
+  padding: 4px 8px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+}
+.fabtabs button.on {
+  background: var(--gild);
+  color: var(--paper);
+}
+/* Partner shop fabrics, side by side: swatch, name, shop and price. */
+.shopwrap {
+  display: grid;
+  gap: 6px;
+}
+.shopwrap p {
+  margin: 0;
+}
+.shopfabs {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 2px 2px 4px;
+  scrollbar-width: none;
+}
+.shopfabs::-webkit-scrollbar {
+  display: none;
+}
+.shopfab {
+  flex: 0 0 132px;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  padding: 8px;
+  border: var(--bw) solid var(--guide);
+  background: none;
+  color: var(--ink);
+  text-align: left;
+  font-family: var(--sans);
+  text-transform: none;
+  letter-spacing: 0;
+}
+.shopfab.on {
+  border-color: var(--gild);
+}
+.shopfab-tile {
+  display: block;
+  height: 56px;
+  background-size: 80px 80px;
+  background-position: center;
+}
+.shopfab-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.shopfab-text b {
+  font-weight: var(--w-strong);
+  font-size: 13px;
+  line-height: 1.25;
+}
+/* The colours for the fabric chosen: the sketch takes the one tapped. */
+.colourdots {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 5px;
+  scrollbar-width: none;
+}
+.colourdots::-webkit-scrollbar {
+  display: none;
+}
+.colourdot {
+  flex: 0 0 26px;
+  width: 26px;
+  height: 26px;
+  min-height: 0;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--guide);
+}
+.colourdot.on {
+  outline: var(--bw) solid var(--gild);
+  outline-offset: 3px;
+}
 /* Handle labels stay readable over a pale fabric. */
 .garment-fabric .handle text,
 .garment-fabric .hint {
@@ -4135,4 +4245,13 @@ button.link.garment-change {
 
 .arrival-list .flagged .ar-name {
   color: var(--warn);
+}
+
+/* The shop fabric on the print screen, with what it costs for this layout. */
+.shopbuy {
+  display: grid;
+  gap: 6px;
+}
+.shopbuy p {
+  margin: 0;
 }
