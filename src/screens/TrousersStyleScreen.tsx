@@ -159,7 +159,7 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
           {view === 'ease' && easeMap && <EaseMapView views={easeMap} label={`Ease map of the ${title.toLowerCase()}`} />}
           <UndoToast undo={undo} />
         </div>
-        {flat && view === 'sketch' && <FabricSwatches finish={finish} onFinish={onFinish} />}
+        {flat && view === 'sketch' && <FabricSwatches finish={finish} onFinish={onFinish} garment="trousers" />}
         <p className="muted small">
           Drafted to your measurements as you choose.{undo.shake.state === 'on' ? ' Shake your phone to undo.' : ''}
         </p>

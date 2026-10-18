@@ -508,7 +508,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
             </p>
           )}
         </div>
-        {view === 'sketch' && draft && <FabricSwatches finish={finish} onFinish={onFinish} />}
+        {view === 'sketch' && draft && <FabricSwatches finish={finish} onFinish={onFinish} garment="skirt" />}
         {view === 'sketch' && (
           <p className="muted small">
             {drawing

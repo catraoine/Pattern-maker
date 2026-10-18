@@ -442,7 +442,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
             </p>
           )}
         </div>
-        {(view === 'sketch' || view === 'flat') && draft && <FabricSwatches finish={finish} onFinish={onFinish} />}
+        {(view === 'sketch' || view === 'flat') && draft && <FabricSwatches finish={finish} onFinish={onFinish} garment="bodice" />}
         {view === 'sketch' && (
           <p className="muted small">
             {drawing
