@@ -19,7 +19,7 @@ import type { Side } from '../ui/ShapeSketch';
 import { useShake } from '../ui/shake';
 import type { Finish } from '../App';
 import { MyFabric, bodiceFabrics, fabricEase } from '../engine/fabrics';
-import { FabricCard } from '../ui/FabricCard';
+import { FabricCard, FabricSummary } from '../ui/FabricCard';
 import { isDraped, zipSide } from '../engine/drape';
 import { DrawOnForm, formWidth } from '../ui/DrawOnForm';
 import { orSeam, readSeamLine } from '../ui/formSeams';
@@ -348,7 +348,9 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
         )}
         {draft && (
           <TabPanel tab={FABRIC}>
-            <FabricSwatches finish={finish} onFinish={onFinish} />
+            <FabricCard metres={bodiceFabricMetres(draft, sleeve)} advice={bodiceFabrics(valid)} fabric={fabric}>
+              <FabricSwatches finish={finish} onFinish={onFinish} />
+            </FabricCard>
           </TabPanel>
         )}
       </section>
@@ -513,9 +515,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
             ))}
           </ul>
         </div>
-        {draft && (
-          <FabricCard metres={bodiceFabricMetres(draft, sleeve)} advice={bodiceFabrics(valid)} fabric={fabric} />
-        )}
+        {draft && <FabricSummary metres={bodiceFabricMetres(draft, sleeve)} fabric={fabric} />}
         <p className="muted small">
           {detail.closure === 'front_buttons'
             ? `Buttons down the centre front${draft?.buttons ? ` (${draft.buttons.count})` : ''}, with front facings.`

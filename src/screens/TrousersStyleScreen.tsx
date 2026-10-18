@@ -21,7 +21,7 @@ import { FinishChoices } from '../ui/FinishChoices';
 import type { Finish } from '../App';
 
 import { MyFabric, fabricEase, trousersFabrics } from '../engine/fabrics';
-import { FabricCard } from '../ui/FabricCard';
+import { FabricCard, FabricSummary } from '../ui/FabricCard';
 import { ChoicePic, chipsClass } from '../ui/ChoicePic';
 
 interface Props {
@@ -126,9 +126,15 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
             <FinishChoices garment="trousers" finish={finish} onFinish={onFinish} />
           </TabPanel>
         )}
-        {flat && (
+        {(flat || draft) && (
           <TabPanel tab={FABRIC}>
-            <FabricSwatches finish={finish} onFinish={onFinish} />
+            {draft ? (
+              <FabricCard metres={trousersFabricMetres(draft)} advice={trousersFabrics(choices)} fabric={fabric}>
+                {flat && <FabricSwatches finish={finish} onFinish={onFinish} />}
+              </FabricCard>
+            ) : (
+              <FabricSwatches finish={finish} onFinish={onFinish} />
+            )}
           </TabPanel>
         )}
       </section>
@@ -219,9 +225,7 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
             )}
           </ul>
         </div>
-        {draft && (
-          <FabricCard metres={trousersFabricMetres(draft)} advice={trousersFabrics(choices)} fabric={fabric} />
-        )}
+        {draft && <FabricSummary metres={trousersFabricMetres(draft)} fabric={fabric} />}
         <p className="muted small">
           The crotch is drafted to your own crotch depth and length, front and back curves together, so the trousers sit without pulling or
           bagging. {elastic ? 'A pull-on elastic waist, with no zip.' : choices.closure === 'fly' ? 'A fly front with its facing and shield.' : 'An invisible zip in the left side seam.'}

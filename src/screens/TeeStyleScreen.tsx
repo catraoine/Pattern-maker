@@ -13,12 +13,12 @@ import { SaveControl } from '../ui/SaveControl';
 import { UndoToast, UndoTools, useUndo } from '../ui/useUndo';
 import type { MyFabric } from '../engine/fabrics';
 import { teeFabrics } from '../engine/knits';
-import { FabricCard } from '../ui/FabricCard';
+import { FabricCard, FabricSummary } from '../ui/FabricCard';
 import type { Mode } from '../mode';
 import { ChoicePic, chipsClass } from '../ui/ChoicePic';
 import { DrawOnForm } from '../ui/DrawOnForm';
 import { TeeFormMeasurements, readTeeFit, readTeeHem, readTeeNeckline, readTeeSleeve, teeForm, teeLines } from '../ui/formTops';
-import { Group, LOOKS, StyleLayout, TabPanel } from '../ui/StyleLayout';
+import { FABRIC, Group, LOOKS, StyleLayout, TabPanel } from '../ui/StyleLayout';
 
 interface Props {
   /** Start from a photo, and the photo this garment was matched to while the app is open. */
@@ -154,6 +154,11 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
             {g.id === 'fit' && <p className="muted small">{FIT_NOTES[choices.fit]}</p>}
           </Group>
         ))}
+        {draft && (
+          <TabPanel tab={FABRIC}>
+            <FabricCard metres={teeFabricMetres(draft)} advice={teeFabrics(choices)} fabric={fabric} knit />
+          </TabPanel>
+        )}
       </section>
 
       <section className="card grow" aria-label="Preview">
@@ -230,7 +235,7 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
             ))}
           </ul>
         </div>
-        {draft && <FabricCard metres={teeFabricMetres(draft)} advice={teeFabrics(choices)} fabric={fabric} knit />}
+        {draft && <FabricSummary metres={teeFabricMetres(draft)} fabric={fabric} />}
         <p className="muted small">
           Seam allowances are 1 cm, the usual for knits, with 2.5 cm at the hem. The neckband is cut shorter than the neckline so it
           lies flat.

@@ -24,7 +24,7 @@ import { FABRIC, Group, PRO, StyleLayout, TabPanel } from '../ui/StyleLayout';
 import { Mode, ProTool, shows } from '../mode';
 import { EaseMapView } from '../ui/EaseMapView';
 import { MyFabric, dressFabrics, fabricEase } from '../engine/fabrics';
-import { FabricCard } from '../ui/FabricCard';
+import { FabricCard, FabricSummary } from '../ui/FabricCard';
 import type { EaseView } from '../engine/easeMap';
 import { FinishChoices } from '../ui/FinishChoices';
 import type { Finish } from '../App';
@@ -345,9 +345,18 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
             />
           </TabPanel>
         )}
-        {flat && (
+        {(flat || draft) && (
           <TabPanel tab={FABRIC}>
-            <FabricSwatches finish={finish} onFinish={onFinish} />
+            {draft ? (
+              <FabricCard
+            metres={dressFabricMetres([...pieces, ...(draft ? layoutExtras(draft.skirt) : [])])}
+            advice={dressFabrics({ fit: choices.fit, neckline: choices.bodice.neckline, silhouette: choices.skirt.silhouette, length: choices.skirt.length, structure: valid.structure, asymHem: choices.skirt.asymHem, pleats: choices.skirt.pleats, godets: choices.skirt.godets, flounce: choices.skirt.flounce })}
+            fabric={fabric}>
+                {flat && <FabricSwatches finish={finish} onFinish={onFinish} />}
+              </FabricCard>
+            ) : (
+              <FabricSwatches finish={finish} onFinish={onFinish} />
+            )}
           </TabPanel>
         )}
       </section>
@@ -435,13 +444,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
             ))}
           </ul>
         </div>
-        {draft && (
-          <FabricCard
-            metres={dressFabricMetres([...pieces, ...(draft ? layoutExtras(draft.skirt) : [])])}
-            advice={dressFabrics({ fit: choices.fit, neckline: choices.bodice.neckline, silhouette: choices.skirt.silhouette, length: choices.skirt.length, structure: valid.structure, asymHem: choices.skirt.asymHem, pleats: choices.skirt.pleats, godets: choices.skirt.godets, flounce: choices.skirt.flounce })}
-            fabric={fabric}
-          />
-        )}
+        {draft && <FabricSummary metres={dressFabricMetres([...pieces, ...(draft ? layoutExtras(draft.skirt) : [])])} fabric={fabric} />}
         <p className="muted small">
           {choices.skirt.silhouette === 'slip'
             ? 'The skirt is cut on the bias, for a slip dress: it has no darts, its waist seam is drafted to the bodice, and the cloth moulds to the hip.'
