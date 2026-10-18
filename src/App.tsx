@@ -964,6 +964,9 @@ export default function App() {
                 countStep('measured', g);
                 switchGarment(g, {}, 'style');
               }}
+              onIdea={(c) => styleChoices(c)}
+              onPhoto={() => setStep('photo')}
+              onNews={() => openLegal('news')}
               onSkip={(g?: Garment) => {
                 // Skip on the tape: try the app with the example measurements, under any already taken.
                 setAccount(updatePerson({ ...account, onboarded: true, mode }, person.id, { values: { ...EXAMPLE_VALUES, ...values } }));

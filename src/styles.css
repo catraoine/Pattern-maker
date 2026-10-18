@@ -2183,6 +2183,46 @@ button.link.how-link {
   max-height: 300px;
 }
 
+/* "Something else", described: the picks it starts from, read-only, laid out like the check list */
+.idea-picks {
+  margin: 4px 0 20px;
+}
+
+.idea-picks li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  min-height: 46px;
+  padding-top: 12px;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+  font-size: 16px;
+}
+
+.idea-picks li span:last-child {
+  font-family: var(--mono);
+  font-size: 13px;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  text-align: right;
+}
+
+.idea-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.idea-actions button {
+  width: 100%;
+}
+
+.idea-again {
+  margin: 16px 0 0;
+  text-align: center;
+}
+
 /* How to do it: a short list of steps over the page, only when asked for */
 .how-sheet {
   position: fixed;
