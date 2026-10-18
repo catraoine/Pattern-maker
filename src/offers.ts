@@ -196,7 +196,7 @@ export const OFFERS: Record<OfferId, Offer> = {
     id: 'swim',
     eyebrow: 'The next drop',
     title: 'Swim and Intimates',
-    text: "Swimsuits, bikinis, bodysuits and soft bras, drafted to you for stretch fabric. We'll tell you the day it opens.",
+    text: "Bralettes, bodysuits, briefs and swimwear, drafted to you for stretch fabric, with wired bras to follow. We'll tell you the day it opens.",
     button: "Tell me when it's ready",
     thanks: "You're on the list. We'll email you the day Swim and Intimates opens.",
   },
