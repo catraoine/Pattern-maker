@@ -1,10 +1,11 @@
-import { download, expect, openAccount, startWithExample, test } from './fixtures';
+import { download, expect, openAccount, openFold, startWithExample, test } from './fixtures';
 
 // Body Double (B1, B2, B5): a store form padded to you, a cover drafted to the same body, and a check once padded.
 test('body double: pad map, cover pattern and form check', async ({ page }, info) => {
   await startWithExample(page);
   const main = page.getByRole('main');
   await openAccount(page);
+  await openFold(page, 'Body Double');
   await main.getByRole('button', { name: 'Make my form' }).click();
   await expect(main.getByRole('heading', { name: 'A dress form in your shape' })).toBeVisible();
   await expect(main.getByRole('heading', { name: /^Buy a size \d+ form$/ })).toBeVisible();
