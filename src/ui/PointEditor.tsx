@@ -2,12 +2,13 @@
 // point where curves join, or a dart point; tap an edge to add a point there and pull it into a curve.
 // The seam it sews to on the other piece walks with it and darts stay trued (engine/pointEdit.ts). A
 // dashed ghost shows the pattern as drafted once anything has moved, and pressing and holding a point
-// brings up a tape measure to set what it measures exactly.
+// brings up a tape measure to set what it measures exactly. Anything a move would put out of true is
+// trued by the engine, so the editor shows no warnings (Cat's rule, 2026-10-18).
 import { PointerEvent, ReactNode, createContext, useContext, useMemo, useRef, useState } from 'react';
 import { P, add, mul } from '../engine/geometry';
 import type { Piece } from '../engine/piece';
 import { Handle, PointEdit, applyPointEdits, handlesOf, measureAt, pointOnEdge } from '../engine/pointEdit';
-import { checkPattern, pairs } from '../engine/qc';
+import { pairs } from '../engine/qc';
 
 export interface PointEditing {
   /** The garment's own pieces as drafted, before any point is moved. */
@@ -190,14 +191,6 @@ export function PointEditor({ base, edits, setEdits }: PointEditing) {
     setEdits(next);
   };
 
-  // Checks that pass on the pattern as drafted but not after the moves.
-  const problems = useMemo(() => {
-    if (!edits.length) return [];
-    const was = new Map(checkPattern(base).map((c) => [c.label, c.ok]));
-    return checkPattern(pieces).filter((c) => !c.ok && was.get(c.label) !== false);
-  }, [base, pieces, edits.length]);
-  const seams = checkPattern(pieces).filter((c) => c.group === 'Seams' && /side|shoulder|inside leg/i.test(c.label));
-
   const changed = edits.some((e) => e.at.startsWith('+') || Math.hypot(e.by.x, e.by.y) > 0.01);
   const offset = measure && measure.value * TAPE_PX;
 
@@ -286,23 +279,6 @@ export function PointEditor({ base, edits, setEdits }: PointEditing) {
         </div>
       )}
 
-      <dl className="pe-checks">
-        {seams.map((c) => (
-          <div key={c.label} className={c.ok ? '' : 'warn'}>
-            <dt>{c.label}</dt>
-            <dd>{c.ok ? 'matched' : c.detail}</dd>
-          </div>
-        ))}
-        {problems
-          .filter((c) => !seams.includes(c))
-          .slice(0, 3)
-          .map((c) => (
-            <div key={c.label} className="warn">
-              <dt>{c.label}</dt>
-              <dd>{c.detail}</dd>
-            </div>
-          ))}
-      </dl>
       {changed && (
         <button
           type="button"

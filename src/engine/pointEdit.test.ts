@@ -82,11 +82,7 @@ describe('dragging points on the flat pattern', () => {
     for (const d of [bodice, skirt]) {
       const was = new Map(checkPattern(d.pieces).map((c) => [c.label, c.ok]));
       for (const pc of d.pieces.slice(0, 2)) {
-        const other = d.pieces.slice(0, 2).find((x) => x !== pc)!;
-        // A point only one piece has (where a curve joins a line on that piece) can't always be matched
-        // from the other piece's seam alone; the editor shows it if it is out.
-        const theirs = new Set(handlesOf([other]).map((h) => h.at));
-        for (const h of handlesOf([pc]).filter((x) => x.kind !== 'corner' || x.tags[0] !== x.tags[1] || theirs.has(x.at)))
+        for (const h of handlesOf([pc]))
           for (const by of [{ x: 1.5, y: 0.6 }, { x: -1, y: -1 }]) {
             const moved = applyPointEdits(d.pieces, [{ piece: pc.name, at: h.at, by }]);
             const broken = checkPattern(moved).filter((c) => !c.ok && was.get(c.label) !== false);

@@ -3735,28 +3735,6 @@ button.link.garment-change {
   margin-left: -1px;
   background: #b2402a;
 }
-.pe-checks {
-  display: grid;
-  gap: 2px;
-  margin: 0;
-  font: 11px/1.4 var(--mono);
-}
-.pe-checks div {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-}
-.pe-checks dt {
-  color: var(--muted);
-}
-.pe-checks dd {
-  margin: 0;
-  color: var(--ink);
-  text-align: right;
-}
-.pe-checks .warn dd {
-  color: var(--warn);
-}
 .pattern-pane {
   width: 100%;
   display: flex;

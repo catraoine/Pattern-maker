@@ -364,9 +364,9 @@ export function applyPointEdits(pieces: Piece[], edits: PointEdit[] | undefined)
     movePoint(om, j, dd);
     // ...then is nudged until each seam it is on changes length by the same amount on both pieces.
     // Nudged along the drag or along the seam, whichever changes its length more.
-    const rateAlong = (t: string, u: P) => {
+    const rateAlong = (t: string, u: P, at = j) => {
       const probe = clone(om);
-      movePoint(probe, j, mul(u, 0.1));
+      movePoint(probe, at, mul(u, 0.1));
       return (tagLength(probe, t) - tagLength(om, t)) / 0.1;
     };
     linked.forEach((t, k) => {
@@ -380,6 +380,21 @@ export function applyPointEdits(pieces: Piece[], edits: PointEdit[] | undefined)
         const [u, rate] = ways.map((w) => [w, rateAlong(t, w)] as const).sort((x, y) => Math.abs(y[1]) - Math.abs(x[1]))[0];
         if (Math.abs(rate) < 0.02) break;
         movePoint(om, j, onFold(other, om.pts[j], mul(u, Math.max(-2, Math.min(2, err / rate)))));
+      }
+      // A point partway along a seam can't always make up the difference (it can only lengthen a
+      // straight seam): the seam's lower end is walked along it instead, as a cutter trues a hem.
+      const run = runs(om, t).find((x) => x.includes(j) || x.includes(before(om, j)));
+      if (!run) return;
+      const ends = [run[0], after(om, run[run.length - 1])];
+      const [low, high] = om.pts[ends[0]].y >= om.pts[ends[1]].y ? ends : [ends[1], ends[0]];
+      if (low === j) return;
+      for (let step = 0; step < 6; step++) {
+        const err = was[k][1] + (tagLength(m, t) - was[k][0]) - tagLength(om, t);
+        if (Math.abs(err) < 0.002) break;
+        const u = unit(sub(om.pts[low], om.pts[high]));
+        const rate = rateAlong(t, u, low);
+        if (Math.abs(rate) < 0.2) break;
+        movePoint(om, low, onFold(other, om.pts[low], mul(u, Math.max(-1, Math.min(1, err / rate)))));
       }
     });
   }
