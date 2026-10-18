@@ -244,6 +244,8 @@ const DEMOS: Partial<Record<MeasurementId, Demo>> = {
   waist: { kind: 'girth', y: 0.1 },
   full_hip: { kind: 'girth', y: 0.82 },
   full_bust: { kind: 'girth', y: -0.58 },
+  // Snug round the ribcage, just under the bust where a bra band sits.
+  underbust: { kind: 'girth', y: -0.4 },
   high_bust: { kind: 'girth', y: -1.08 },
   neck: { kind: 'girth', y: -1.5 },
   // Round the arm where it joins the body: a narrow loop from the shoulder point down under the arm.

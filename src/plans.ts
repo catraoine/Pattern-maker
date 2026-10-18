@@ -84,4 +84,5 @@ export const GARMENT_NAMES: Record<Garment, string> = {
   tee: 'T-shirt',
   jacket: 'jacket',
   coat: 'coat',
+  lingerie: 'lingerie',
 };

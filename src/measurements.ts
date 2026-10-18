@@ -3,10 +3,11 @@ import type { SkirtMeasurements } from './engine/skirt';
 import type { BodiceMeasurements } from './engine/bodice';
 import type { SleeveMeasurements } from './engine/sleeve';
 import type { TrousersMeasurements } from './engine/trousers';
+import type { LingerieMeasurements } from './engine/lingerie';
 
-export type Garment = 'skirt' | 'bodice' | 'dress' | 'trousers' | 'tee' | 'jacket' | 'coat';
+export type Garment = 'skirt' | 'bodice' | 'dress' | 'trousers' | 'tee' | 'jacket' | 'coat' | 'lingerie';
 
-export type MeasurementId = keyof SkirtMeasurements | keyof BodiceMeasurements | keyof SleeveMeasurements | keyof TrousersMeasurements;
+export type MeasurementId = keyof SkirtMeasurements | keyof BodiceMeasurements | keyof SleeveMeasurements | keyof TrousersMeasurements | keyof LingerieMeasurements;
 
 export interface MeasurementField {
   id: MeasurementId;
@@ -288,6 +289,22 @@ export const TEE_FIELDS: MeasurementField[] = TEE_IDS.map(([id, needed]) => {
   return { ...f, optional: needed ? undefined : id === 'wrist' ? 'For long sleeves.' : 'For a closer armhole.' };
 });
 
+/** Lingerie and swimwear take the snug underbust, the crotch length for briefs and one-pieces, and the
+ * back length and shoulders for straps. The neck and bust points are estimated until they're taken. */
+const UNDERBUST: MeasurementField = {
+  id: 'underbust',
+  label: 'Underbust',
+  hard: [55, 170],
+  typical: [62, 130],
+  tip: 'Snug round your ribcage, just under your bust, keeping the tape level all the way round. Breathe out and hold it firm, the way a bra band sits.',
+};
+const LINGERIE_IDS: MeasurementId[] = ['full_bust', 'underbust', 'waist', 'full_hip', 'waist_to_hip', 'crotch_length', 'nape_to_waist', 'shoulder_width', 'neck', 'bust_depth', 'apex_separation'];
+const LINGERIE_FIELDS: MeasurementField[] = LINGERIE_IDS.map((id) => {
+  if (id === 'underbust') return UNDERBUST;
+  const f = [...BODICE_FIELDS, ...TROUSERS_FIELDS].find((b) => b.id === id)!;
+  return ESTIMATED.includes(id) ? f : { ...f, optional: undefined };
+});
+
 /** A jacket takes the bodice's measurements with the hip (it reaches below the waist) and the arms (it
  * always has sleeves); a coat also the knee, for its length. */
 const OUTER_NEEDS: MeasurementId[] = ['full_hip', 'waist_to_hip', 'arm_length', 'upper_arm'];
@@ -298,7 +315,7 @@ const COAT_FIELDS: MeasurementField[] = [
   ...JACKET_FIELDS.filter((f) => f.fit),
 ];
 
-export const FIELDS: Record<Garment, MeasurementField[]> = { skirt: SKIRT_FIELDS, bodice: BODICE_FIELDS, dress: DRESS_FIELDS, trousers: TROUSERS_FIELDS, tee: TEE_FIELDS, jacket: JACKET_FIELDS, coat: COAT_FIELDS };
+export const FIELDS: Record<Garment, MeasurementField[]> = { skirt: SKIRT_FIELDS, bodice: BODICE_FIELDS, dress: DRESS_FIELDS, trousers: TROUSERS_FIELDS, tee: TEE_FIELDS, jacket: JACKET_FIELDS, coat: COAT_FIELDS, lingerie: LINGERIE_FIELDS };
 
 export type Unit = 'cm' | 'in';
 export type MeasurementValues = Partial<Record<MeasurementId, number>>; // always stored in cm
@@ -334,6 +351,7 @@ export const EXAMPLE_VALUES: MeasurementValues = {
   front_hps_to_waist: 44,
   bust_depth: 26,
   apex_separation: 18,
+  underbust: 76,
   armscye: 40,
   arm_length: 59,
   upper_arm: 29,
@@ -409,6 +427,12 @@ export function checkMeasurements(v: MeasurementValues, unit: Unit, garment: Gar
     }
   }
   const { full_bust, high_bust, shoulder_width, across_back, front_hps_to_waist, bust_depth } = v;
+  const { underbust } = v;
+  if (full_bust && underbust && underbust >= full_bust) {
+    out.push({ id: 'underbust', level: 'error', message: 'Underbust should be smaller than full bust. Are they swapped?' });
+  } else if (full_bust && underbust && full_bust - underbust > 40) {
+    out.push({ id: 'underbust', level: 'warning', message: 'Full bust is a lot bigger than underbust. Please check both.' });
+  }
   if (full_bust && high_bust && high_bust > full_bust + 2) {
     out.push({ id: 'high_bust', level: 'warning', message: 'High bust is usually the same as or smaller than full bust. Are they swapped?' });
   } else if (full_bust && high_bust && full_bust - high_bust > 20) {
