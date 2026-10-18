@@ -92,7 +92,7 @@ export function MeasureLinkScreen({ ask, unit, onUnit, onKeep }: Props) {
             </li>
           ))}
         </ul>
-        <p className="muted small">Your numbers travel inside the reply link, straight to {from}. Nothing is saved online.</p>
+        <p className="muted small">Your numbers travel inside the reply link, straight to {from}.</p>
         <button type="button" className="primary" disabled={done < ids.length} onClick={send}>
           Send to {from}
         </button>

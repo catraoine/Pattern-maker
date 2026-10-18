@@ -218,7 +218,6 @@ export function PhotoScreen({ measured, body, unit, onByHand, onApply }: Props) 
         <div className="photostart-actions">
           {chooser('Take or choose a photo', 'primary')}
           <Tips />
-          <p className="muted small">Sent to Claude to read the style. We never keep it.</p>
         </div>
       </section>
     );
