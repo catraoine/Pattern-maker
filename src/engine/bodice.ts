@@ -76,6 +76,8 @@ export interface BodiceStyle {
   lineAt?: number;
   /** A cowl's drape, in cm below the block's centre front neck, drawn on the form. */
   cowlDepth?: number;
+  /** One-shoulder: which shoulder is covered, as worn; the wearer's left unless given. */
+  shoulder?: 'left' | 'right';
   /** A centre back zip (the default) or buttons down the centre front; and a collar. */
   closure?: Closure;
   collar?: Collar;

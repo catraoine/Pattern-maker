@@ -20,7 +20,7 @@ import { useShake } from '../ui/shake';
 import type { Finish } from '../App';
 import { MyFabric, bodiceFabrics, fabricEase } from '../engine/fabrics';
 import { FabricCard } from '../ui/FabricCard';
-import { isDraped } from '../engine/drape';
+import { isDraped, zipSide } from '../engine/drape';
 import { DrawOnForm, formWidth } from '../ui/DrawOnForm';
 import { bodiceLines, landmarks, readBodiceHem, readDrape, readFit, readNeckline, readSeam } from '../ui/formLines';
 
@@ -287,7 +287,18 @@ export function BodiceStyleScreen({ choices, onChoices, onChooseGarment, values,
               <p className="muted small">
                 {choices.neckline === 'cowl'
                   ? 'The front is cut on the bias and falls in soft folds. It needs a fluid fabric. No collar or princess seams.'
-                  : 'The shoulder is on your left, and a zip goes in the right side seam. No collar or princess seams.'}
+                  : (
+                    <>
+                    <span className="seg" role="group" aria-label="Which shoulder">
+                      {(['left', 'right'] as const).map((sh) => (
+                        <button key={sh} type="button" aria-pressed={(choices.shoulder ?? 'left') === sh} className={(choices.shoulder ?? 'left') === sh ? 'on' : ''} onClick={() => change(sh === 'right' ? { ...choices, shoulder: sh } : (({ shoulder: _s, ...rest }) => rest)(choices))}>
+                          {sh}
+                        </button>
+                      ))}
+                    </span>{' '}
+                      Over your {choices.shoulder ?? 'left'} shoulder, with a zip in the {choices.shoulder === 'right' ? 'left' : 'right'} side seam. No collar or princess seams.
+                    </>
+                  )}
               </p>
             )}
             {g.id === 'sleeve' && !choices.neck && choices.neckline === 'one_shoulder' && <p className="muted small">A one-shoulder bodice is sleeveless.</p>}
@@ -322,7 +333,7 @@ export function BodiceStyleScreen({ choices, onChoices, onChooseGarment, values,
           {detail.closure === 'front_buttons'
             ? `Buttons down the centre front${draft?.buttons ? ` (${draft.buttons.count})` : ''}, with front facings.`
             : draft?.drape?.kind === 'one_shoulder'
-              ? 'With a zip in the right side seam.'
+              ? `With a zip in the ${zipSide(draft)} side seam.`
               : 'With a centre back zip.'}{' '}
           {chosen.length === 'none'
             ? 'Sleeveless.'

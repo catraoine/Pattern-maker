@@ -33,6 +33,7 @@ export interface BodiceChoices {
    * how deep a cowl hangs (cm). Picking a seam, dart or neckline chip lets go of them. */
   lineAt?: number;
   cowlDepth?: number;
+  shoulder?: 'left' | 'right';
   closure?: Closure;
   collar?: Collar;
   /** A peplum at the waist seam, on a waist-length bodice. */

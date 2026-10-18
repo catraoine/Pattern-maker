@@ -312,3 +312,38 @@ describe('with the corsetry and the slip skirt', () => {
     expect(describeBodice({ ...DEFAULT_BODICE, neckline: 'cami', peplum: 'gathered' })).toBe('waist-length cami bodice with spaghetti straps and a gathered peplum');
   });
 });
+
+describe('a one-shoulder over the right shoulder', () => {
+  const m = randomBody(rng(3));
+  const left = draftBodice(m, { neckline: 'one_shoulder', fit: 'regular' });
+  const right = draftBodice(m, { neckline: 'one_shoulder', fit: 'regular', shoulder: 'right' });
+
+  it('is the same pattern, cut with the fabric face down', () => {
+    expect(right.drape?.side).toBe('right');
+    expect(right.pieces[0].outline.points()).toEqual(left.pieces[0].outline.points());
+    expect(right.pieces[0].cut).toBe('Cut 1, right side down');
+    expect(right.pieces[0].labels.map((l) => l.text)).toContain('RIGHT SHOULDER');
+    expect(drapeFacings(right)[0].cut).toBe('Cut 1, right side up');
+    const lay = layPlan(right.pieces.slice(0, 2), 140)!;
+    expect(lay.faceDown).toBe(true);
+  });
+
+  it('turns left and right over in the steps, but not the sewing terms', () => {
+    const text = bodiceGuide(right, { length: right.length ?? 'waist' } as never, 1.5, 1).steps.map((s) => s.text).join(' ');
+    expect(text).toMatch(/zip into the left side seam/);
+    expect(text).toMatch(/right sides together/);
+    expect(text).not.toMatch(/zip into the right side seam/);
+    expect(bodiceSpec(m as never, right, 'waist').some((r) => r.label === 'Invisible zip, left side')).toBe(true);
+  });
+
+  it('draws the flat turned over', () => {
+    // The shoulder, the highest point of the front, is on the other side of its centre.
+    const shoulderSide = (d: typeof left) => {
+      const pts = bodiceFlat(d).views[0].shapes[0];
+      const xs = pts.map((q) => q.x);
+      const top = pts.reduce((a, b) => (b.y < a.y ? b : a));
+      return Math.sign(top.x - (Math.max(...xs) + Math.min(...xs)) / 2);
+    };
+    expect(shoulderSide(right)).toBe(-shoulderSide(left));
+  });
+});

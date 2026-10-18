@@ -18,7 +18,7 @@ import { isTop } from '../engine/corset';
 import { COWL_DEPTH_RANGE } from '../engine/drape';
 import { BodiceChoices, DARTS_FOR_FIT, detailAllowed, validDetails } from '../garments';
 import { FIT_EASE, Fit, Length, SkirtDraft, SkirtMeasurements, lengthRange } from '../engine/skirt';
-import { HEM_SAMPLES, offsetAt } from '../engine/hem';
+import { HEM_SAMPLES, matchSides, offsetAt } from '../engine/hem';
 import { asymOffset, planFor } from '../engine/asymHem';
 import { volumeOf } from '../engine/skirtVolume';
 import type { Choices } from '../App';
@@ -125,11 +125,11 @@ export function readNeckline(stroke: P[], draft: BodiceDraft, c: BodiceChoices, 
 }
 
 function oneShoulder(high: P, c: BodiceChoices, garment: Garment): Reading<BodiceChoices> {
-  const { neck: _n, cowlDepth: _c, ...rest } = c;
-  const next = validDetails({ ...rest, neckline: 'one_shoulder' }, garment);
-  // The pattern puts the shoulder on the wearer's left, which is on the right as you face the form.
-  const mirrored = high.x < 0 ? ' The shoulder goes on your left, so cut it with the fabric face down for your right.' : '';
-  return { choices: next, said: `One-shoulder neckline, sleeveless, with a zip in the side seam.${mirrored}` };
+  const { neck: _n, cowlDepth: _c, shoulder: _s, ...rest } = c;
+  // Facing the form, the wearer's left is on your right.
+  const shoulder = high.x < 0 ? ('right' as const) : ('left' as const);
+  const next = validDetails({ ...rest, neckline: 'one_shoulder', ...(shoulder === 'right' ? { shoulder } : {}) }, garment);
+  return { choices: next, said: `One-shoulder neckline over your ${shoulder} shoulder, sleeveless, with a zip in the ${shoulder === 'right' ? 'left' : 'right'} side seam.` };
 }
 
 const DART_WORDS: Record<DartPlace, string> = {
@@ -300,14 +300,20 @@ export function readSkirtHem(stroke: P[], waistY: number, draft: Pick<SkirtDraft
   const line = skirtHem({ ...draft, hem: skirt.hem ?? draft.hem }, rest as Choices, m, side);
   const current = skirt.hem?.[side] ?? new Array(HEM_SAMPLES).fill(0);
   const range = lengthRange(m);
-  const offsets = strokeToHem(pts, line, current).map((v) => Math.max(range.min - draft.lengthCm, Math.min(range.max - draft.lengthCm, v)));
-  const hem = { front: skirt.hem?.front ?? new Array(HEM_SAMPLES).fill(0), back: skirt.hem?.back ?? new Array(HEM_SAMPLES).fill(0), [side]: offsets };
+  const clamp = (v: number) => Math.round(Math.max(range.min - draft.lengthCm, Math.min(range.max - draft.lengthCm, v)) * 10) / 10;
+  const drawn = strokeToHem(pts, line, current);
+  // Past the end of the line, the hem carries on at the height it was drawn, rather than snapping back.
+  const half = line[line.length - 1].x || 1;
+  const reach = Math.round((Math.min(half, Math.max(...pts.map((q) => Math.abs(q.x)))) / half) * (HEM_SAMPLES - 1));
+  const offsets = drawn.map((v, k) => (k > reach ? drawn[reach] : v));
+  // Front and back meet at the side seams, eased in so the hem curves into them.
+  const hem = matchSides({ front: skirt.hem?.front ?? new Array(HEM_SAMPLES).fill(0), back: skirt.hem?.back ?? new Array(HEM_SAMPLES).fill(0), [side]: offsets }, clamp);
   const flat = [...hem.front, ...hem.back].every((v) => Math.abs(v) < 0.5);
   const { hem: _h, ...plain } = rest;
-  const backLonger = side === 'back' && median(offsets) > 2;
+  const backLonger = side === 'back' && median(hem.back) - median(hem.front) > 2;
   return {
     choices: flat ? (plain as Choices) : { ...(plain as Choices), hem },
-    said: flat ? 'A level hem.' : backLonger ? `Longer at the back by about ${Math.round(median(offsets))} cm: a high-low hem.` : side === 'back' ? 'The back hem follows your line.' : 'The hem follows your line.',
+    said: flat ? 'A level hem.' : backLonger ? `Longer at the back by about ${Math.round(median(hem.back) - median(hem.front))} cm: a high-low hem.` : side === 'back' ? 'The back hem follows your line.' : 'The hem follows your line.',
   };
 }
 
@@ -379,14 +385,15 @@ export function bodiceLines(draft: BodiceDraft, side: FormSide): Record<FormLine
     );
     neckline = [];
   } else if (kind === 'one_shoulder' && side === 'front') {
-    // From the neck point on the wearer's left, curving over the bust, to under the right arm.
+    // From the neck point on the covered shoulder, curving over the bust, to under the other arm.
+    const turn = draft.drape?.side === 'right' ? -1 : 1;
     drape = [
       Array.from({ length: 21 }, (_, i) => {
         const t = i / 20;
         const a = { x: neckPoint.x, y: neckPoint.y };
         const c = { x: -apex.x * 0.4, y: apex.y - 8 };
         const b = { x: -underarm.x, y: underarm.y + 1.5 };
-        return { x: (1 - t) ** 2 * a.x + 2 * (1 - t) * t * c.x + t * t * b.x, y: (1 - t) ** 2 * a.y + 2 * (1 - t) * t * c.y + t * t * b.y };
+        return { x: turn * ((1 - t) ** 2 * a.x + 2 * (1 - t) * t * c.x + t * t * b.x), y: (1 - t) ** 2 * a.y + 2 * (1 - t) * t * c.y + t * t * b.y };
       }),
     ];
     neckline = [];

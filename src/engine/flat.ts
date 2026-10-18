@@ -615,7 +615,9 @@ function collarShapes(c: { a: P[]; b: P[] }, joined: boolean): P[][] {
  * between them, as drafted.
  */
 function oneShoulderView(d: BodiceDraft, h: Half, i: number, edges: BodiceEdges): RawView & { foot: number } {
-  const k = i === 0 ? 1 : -1;
+  // Cut for the right shoulder, the whole view turns over.
+  const turn = d.drape?.side === 'right' ? -1 : 1;
+  const k = (i === 0 ? 1 : -1) * turn;
   const iSh = h.tags.indexOf('shoulder');
   const iS = h.tags.indexOf('side');
   let j = iS;
@@ -640,7 +642,7 @@ function oneShoulderView(d: BodiceDraft, h: Half, i: number, edges: BodiceEdges)
     const m = h.move(p(Math.abs(q.x), q.y));
     return p(Math.sign(q.x) * m.x, m.y);
   };
-  const V = drafted ? mv(drafted) : p(bare[0].x * 0.5, bare[0].y - 5);
+  const V = drafted ? ((q) => p(q.x * turn, q.y))(mv(drafted)) : p(bare[0].x * 0.5, bare[0].y - 5);
   const edge = oneShoulderEdge(bare[0], toward(p(-down.x * k, down.y), p(k, 0)), V, N, toward(unit(sub(cov[1], N)), p(0, 1)));
   const shape = [...cov, ...[...bare].reverse().slice(1), ...edge.slice(1, -1)];
   const lines: FlatView['lines'] = h.darts

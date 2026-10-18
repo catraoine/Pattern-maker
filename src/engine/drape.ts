@@ -48,6 +48,8 @@ export interface DrapeInfo {
    * 1 cm tightening the bust dart took (the rest is eased onto the stay tape). */
   edgeCm?: number;
   tightenCm?: number;
+  /** One-shoulder on the wearer's right: the pattern is the left one, cut with the fabric face down. */
+  side?: 'right';
   /** Cowl: how deep the drape hangs, below the block's centre front neck, and its facing. */
   depthCm?: number;
   facingCm?: number;
@@ -200,9 +202,10 @@ const moveLine = (f: (q: P) => P) => (ln: Path) => {
 };
 
 /** The one-shoulder bodice: a whole front and a whole back, the shoulder on the wearer's left. */
-function oneShoulder(d: BodiceDraft): BodiceDraft {
+function oneShoulder(d: BodiceDraft, mirrored = false): BodiceDraft {
   const [front, back] = d.pieces;
-  const low = d.lowShoulder;
+  // Cut face down for the right shoulder, the pattern's left half is the wearer's right.
+  const low = d.lowShoulder && (mirrored ? { ...d.lowShoulder, side: d.lowShoulder.side === 'left' ? ('right' as const) : ('left' as const) } : d.lowShoulder);
   // The covered shoulder is the left; a lower shoulder on either side is drafted on that side's half.
   const covF = low?.side === 'left' ? low.pieces[0] : front;
   const covB = low?.side === 'left' ? low.pieces[1] : back;
@@ -371,6 +374,33 @@ function oneShoulder(d: BodiceDraft): BodiceDraft {
     zipCm,
     drape: { kind: 'one_shoulder', zip: { openingCm, zipCm }, edgeCm, tightenCm },
   };
+}
+
+/**
+ * Words for the other side: left for right, and the fabric's face turned over (right side up for right
+ * side down, printed side up for printed side down), leaving sewing terms like "right sides together".
+ */
+export function mirrorWords(text: string): string {
+  return text
+    .replace(/\b(right|printed) side (up|down)\b/gi, (_, w: string, ud: string) => `${w} side ${/up/i.test(ud) ? (ud === 'UP' ? 'DOWN' : 'down') : ud === 'DOWN' ? 'UP' : 'up'}`)
+    .replace(/\b(left|right|LEFT|RIGHT|Left|Right)\b(?! sides? (?:up|down|out|together|in|of)\b)(?! side (?:edges? )?(?:turned|facing))(?! way)/g, (w) =>
+      ({ left: 'right', right: 'left', LEFT: 'RIGHT', RIGHT: 'LEFT', Left: 'Right', Right: 'Left' })[w as 'left']!,
+    );
+}
+
+/** The side seam a one-shoulder's zip goes in, as worn: the bare side. */
+export const zipSide = (d: { drape?: DrapeInfo }) => (d.drape?.side === 'right' ? 'left' : 'right');
+
+/** A one-shoulder's pieces cut for the wearer's right: the same pattern, cut with the fabric face down. */
+function toRight(d: BodiceDraft): BodiceDraft {
+  const flip = (pc: Piece): Piece => ({
+    ...pc,
+    cut: mirrorWords(pc.cut),
+    labels: pc.labels.map((l) => ({ ...l, text: mirrorWords(l.text) })),
+    ...(pc.draft ? { draft: { ...pc.draft, points: pc.draft.points.map((q) => ({ ...q, note: q.note && mirrorWords(q.note) })) } } : {}),
+    meta: { ...pc.meta, faceDown: true },
+  });
+  return { ...d, pieces: d.pieces.map((pc, i) => (i < 2 ? flip(pc) : pc)), drape: { ...d.drape!, side: 'right' } };
 }
 
 /** Invisible zips for a side opening, shortened to fit from the bottom. */
@@ -739,7 +769,7 @@ function withPeplum(d: BodiceDraft, kind: 'flared' | 'gathered', s: BodiceStyle,
 /** The draped neckline and the peplum, made on the drafted bodice. */
 export function drapeBodice(d: BodiceDraft, s: BodiceStyle, m: BodiceMeasurements, redraft: (s: BodiceStyle) => BodiceDraft): BodiceDraft {
   let out = d;
-  if (isDraped(s)) out = s.neckline === 'cowl' ? cowl(d, s, redraft) : oneShoulder(d);
+  if (isDraped(s)) out = s.neckline === 'cowl' ? cowl(d, s, redraft) : s.shoulder === 'right' ? toRight(oneShoulder(d, true)) : oneShoulder(d);
   if (s.peplum && s.peplum !== 'none' && d.drop === 0) out = withPeplum(out, s.peplum, s, m);
   return out;
 }
@@ -753,10 +783,11 @@ export function drapeFacings(d: BodiceDraft, armholes = true, neck = true): Piec
     const [front, back] = d.pieces;
     const once = (pc: Piece | undefined): Piece | undefined =>
       pc && { ...pc, cut: 'Cut 1, right side down', fold: undefined, labels: pc.labels.map((l, i) => (i === 1 ? { ...l, text: 'Cut 1, right side down' } : l)) };
-    return [
+    const faced = [
       ...(neck ? [once(facing(front, 'neck', 5, 'Front facing')), once(facing(back, 'neck', 5, 'Back facing'))] : []),
       ...(armholes ? [once(facing(front, 'armhole', 4, 'Front armhole facing')), once(facing(back, 'armhole', 4, 'Back armhole facing'))] : []),
     ].filter((pc): pc is Piece => !!pc);
+    return d.drape.side === 'right' ? faced.map((pc) => ({ ...pc, cut: mirrorWords(pc.cut), labels: pc.labels.map((l) => ({ ...l, text: mirrorWords(l.text) })) })) : faced;
   }
   // The front armhole facing follows the cowl's own (spread) armhole, on the bias like the front.
   const [cf] = d.pieces;
@@ -786,7 +817,7 @@ export function drapeLined(pieces: Piece[], d: BodiceDraft): Piece[] {
   const out = pieces.flatMap((pc): Piece[] => {
     if (pc.kind || pc.meta.unlined || /coutil/.test(pc.fabric ?? '')) return [pc];
     if (pc.meta.covered) {
-      const cut = 'Cut 1, right side down';
+      const cut = pc.meta.faceDown ? 'Cut 1, right side up' : 'Cut 1, right side down';
       const lining: Piece = {
         ...pc,
         name: `${pc.name} lining`,
@@ -795,7 +826,7 @@ export function drapeLined(pieces: Piece[], d: BodiceDraft): Piece[] {
         cut,
         notches: pc.notches,
         // Cut printed side down, so it is laid turned over.
-        meta: { ...pc.meta, rightSideUp: false },
+        meta: { ...pc.meta, rightSideUp: false, faceDown: !pc.meta.faceDown },
         labels: pc.labels
           .filter((l) => l.text !== 'ZIP ENDS')
           .map((l) => (l.text === pc.cut ? { ...l, text: cut } : l.text.startsWith('BODICE') ? { ...l, text: `${l.text} LINING` } : l)),
@@ -811,7 +842,7 @@ export function drapeLined(pieces: Piece[], d: BodiceDraft): Piece[] {
 /** A line for the printed notes on how a draped bodice is cut. */
 export function drapeNote(d: BodiceDraft): string | undefined {
   if (d.drape?.kind === 'one_shoulder')
-    return `One shoulder, on the left. The front and back are cut whole, each in a single layer with the fabric right side up. The top edge, ${cm(d.drape.edgeCm ?? 0)} round, is drafted a little tight and stay-taped.`;
+    return `One shoulder, on the ${d.drape.side ?? 'left'}. The front and back are cut whole, each in a single layer with the fabric right side ${d.drape.side === 'right' ? 'down' : 'up'}. The top edge, ${cm(d.drape.edgeCm ?? 0)} round, is drafted a little tight and stay-taped.`;
   if (d.drape?.kind === 'cowl')
     return `Cowl neck, about ${cm(d.drape.depthCm ?? COWL_DEPTH)} deep. The front is cut whole on the true bias, in a single layer, with its facing cut in one with it. Use a fluid fabric.`;
   return undefined;

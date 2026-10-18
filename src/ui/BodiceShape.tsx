@@ -92,11 +92,13 @@ export function drapedOutline(draft: BodiceDraft, side: Side, w: Worn, cx: numbe
   const near = (q: P) => w.pts.slice(0, w.topCount).reduce((b, r, i) => (Math.hypot(r.x - q.x, r.y - q.y) < Math.hypot(w.pts[b].x - q.x, w.pts[b].y - q.y) ? i : b), 0);
   if (draft.drape?.kind === 'one_shoulder') {
     // As worn, the wearer's left is on the right of the front and the left of the back, as each piece lies.
-    const k = side === 'front' ? 1 : -1;
+    // Cut for the right shoulder, it is all turned over.
+    const turn = draft.drape.side === 'right' ? -1 : 1;
+    const k = (side === 'front' ? 1 : -1) * turn;
     const pc = draft.pieces[side === 'front' ? 0 : 1];
     const { pts, tags } = pc.outline.taggedPoints(16);
     const N = pts[0];
-    const edge = [...pts.filter((_, i) => tags[i] === 'neck' || (i > 0 && tags[i - 1] === 'neck')), N].map((q) => ({ x: cx + q.x, y: q.y }));
+    const edge = [...pts.filter((_, i) => tags[i] === 'neck' || (i > 0 && tags[i - 1] === 'neck')), N].map((q) => ({ x: cx + turn * q.x, y: q.y }));
     const covered = w.pts.slice(near({ x: Math.abs(N.x), y: N.y })).map((q) => ({ x: cx + k * q.x, y: q.y }));
     const bare = w.pts.slice(w.topCount, -1).map((q) => ({ x: cx - k * q.x, y: q.y })).reverse();
     return path([...covered, ...bare, ...edge.slice(0, -1)]);
