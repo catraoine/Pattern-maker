@@ -21,8 +21,8 @@ import type { Finish } from '../App';
 import { MyFabric, bodiceFabrics, fabricEase } from '../engine/fabrics';
 import { FabricCard } from '../ui/FabricCard';
 import { isDraped } from '../engine/drape';
-import { DrawOnForm } from '../ui/DrawOnForm';
-import { readBodiceHem, readNeckline, readSeam } from '../ui/formLines';
+import { DrawOnForm, formWidth } from '../ui/DrawOnForm';
+import { bodiceLines, landmarks, readBodiceHem, readDrape, readFit, readNeckline, readSeam } from '../ui/formLines';
 
 import { Mode, ProTool, shows } from '../mode';
 import { ModeLink } from '../ui/ModeLink';
@@ -89,8 +89,14 @@ const NECK_NAMES: Record<BodiceChoices['neckline'], string> = {
 const UNDO_LIMIT = 40;
 
 /** Which hand-shaped value a chip group replaces: picking a named choice lets go of the dragged or drawn one. */
-const REPLACES = { fit: 'bustEase', length: 'dropCm', neckline: 'neck' } as const;
-const handShaped = (c: BodiceChoices, id: string) => id in REPLACES && c[REPLACES[id as keyof typeof REPLACES]] !== undefined;
+export const REPLACES: Record<string, (keyof BodiceChoices)[]> = {
+  fit: ['bustEase'],
+  length: ['dropCm'],
+  neckline: ['neck', 'cowlDepth'],
+  princess: ['lineAt'],
+  bustDart: ['lineAt'],
+};
+const handShaped = (c: BodiceChoices, id: string) => (REPLACES[id] ?? []).some((k) => c[k] !== undefined);
 
 type View = 'sketch' | 'flat' | 'pattern' | 'ease';
 
@@ -174,7 +180,7 @@ export function BodiceStyleScreen({ choices, onChoices, onChooseGarment, values,
     const darts = DARTS_FOR_FIT[c.fit].includes(c.darts) ? c.darts : 'bust_waist';
     const next = { ...c, darts };
     // Picking a named fit, length or neckline lets go of the dragged or drawn one.
-    if (group && group in REPLACES) delete next[REPLACES[group as keyof typeof REPLACES]];
+    for (const k of (group && REPLACES[group]) || []) delete next[k];
     // Each sleeve length allows only some shapes; keep the chosen one when it still fits.
     // Details the other choices no longer allow (a collar on a V-neck, say) fall back to the plain ones.
     change(validDetails({ ...next, sleeveShape: sleeveOf(next).shape }));
@@ -189,17 +195,32 @@ export function BodiceStyleScreen({ choices, onChoices, onChooseGarment, values,
 
   if (onForm && draft) {
     return (
-      <DrawOnForm
-        draft={draft}
+      <DrawOnForm<BodiceChoices>
+        body={formWidth(draft, m)}
         m={m}
-        garment="bodice"
-        hem={draft.drop}
-        hemMax={hip ? dropRange(m).max : 0}
-        onLine={(kind, stroke) => {
-          const read = kind === 'neckline' ? readNeckline(stroke, draft, choices) : kind === 'seam' ? readSeam(stroke, draft, choices) : readBodiceHem(stroke, draft, m, choices);
-          if (read.choices) onChoices(read.choices);
-          return read.said;
-        }}
+        legs={false}
+        bottom={landmarks(draft).waistY + (hip ? dropRange(m).max : 0) + 6}
+        kinds={[
+          ['neckline', 'Neckline'],
+          ['seam', 'Seam'],
+          ['drape', 'Drape'],
+          ['fit', 'Side'],
+          ['hem', 'Hem'],
+        ]}
+        lines={(side) => bodiceLines(draft, side)}
+        choices={choices}
+        onChoices={onChoices}
+        read={(kind, side, stroke) =>
+          kind === 'neckline'
+            ? readNeckline(stroke, draft, choices, 'bodice', side)
+            : kind === 'seam'
+              ? readSeam(stroke, draft, choices, 'bodice', side)
+              : kind === 'drape'
+                ? readDrape(stroke, draft, choices, 'bodice')
+                : kind === 'fit'
+                  ? readFit(stroke, draft, m, choices)
+                  : readBodiceHem(stroke, draft, m, choices)
+        }
         onDone={() => {
           change(choices, onForm);
           setOnForm(undefined);

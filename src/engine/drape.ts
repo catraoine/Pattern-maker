@@ -27,6 +27,8 @@ export type DrapeKind = 'one_shoulder' | 'cowl';
 
 /** The cowl's drape at the centre front, in cm below the block's centre front neck: a medium cowl. */
 export const COWL_DEPTH = 10;
+/** How shallow and how deep a drawn cowl can hang, in cm. */
+export const COWL_DEPTH_RANGE = { min: 6, max: 16 };
 /** The cowl's grown-on facing, at the centre front, in cm below the fold. */
 export const COWL_FACING = 8;
 /** The one-shoulder edge: how far below the underarm it meets the right side seam, how far above the
@@ -560,7 +562,7 @@ function cowl(d: BodiceDraft, s: BodiceStyle, redraft: (s: BodiceStyle) => Bodic
   const N0 = f.r.pts[f.iSh];
   // The top edge hangs between the two neck points: to fall `COWL_DEPTH` below the block's neck at the
   // centre front, half of it must be as long as from the neck point to there.
-  const fall = d.neckBlock.front.neckY + COWL_DEPTH - N0.y;
+  const fall = d.neckBlock.front.neckY + Math.min(COWL_DEPTH_RANGE.max, Math.max(COWL_DEPTH_RANGE.min, s.cowlDepth ?? COWL_DEPTH)) - N0.y;
   const target = Math.hypot(N0.x, fall);
   const sp = cowlSpread(f, N0, target);
   const half = cowlHalf(f, sp, s);

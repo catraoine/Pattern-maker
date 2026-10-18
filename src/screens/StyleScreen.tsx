@@ -4,7 +4,7 @@ import { layout } from '../engine/export';
 import { piecesLengthCm, toMetres } from '../engine/fabric';
 import { layPlan } from '../engine/layplan';
 import { waistPieces } from '../engine/finishing';
-import { FIT_EASE, PULL_ON_EASE, Silhouette, SkirtDraft, SkirtMeasurements } from '../engine/skirt';
+import { FIT_EASE, PULL_ON_EASE, lengthRange, Silhouette, SkirtDraft, SkirtMeasurements } from '../engine/skirt';
 import { isShaped } from '../engine/hem';
 import { SLIP_FACING, SLIP_HIP_EASE_LESS, cutAllowed, elasticCutAllowed, validCut } from '../engine/slip';
 import type { MeasurementValues } from '../measurements';
@@ -27,6 +27,8 @@ import { EaseMapView } from '../ui/EaseMapView';
 import type { EaseView } from '../engine/easeMap';
 import { Mode, ProTool, shows } from '../mode';
 import { ModeLink } from '../ui/ModeLink';
+import { DrawOnForm, skirtForm } from '../ui/DrawOnForm';
+import { readSkirtHem, readSkirtSide, skirtLines } from '../ui/formLines';
 
 interface Props {
   finish: Finish;
@@ -158,6 +160,8 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
   const toastTimer = useRef<ReturnType<typeof setTimeout>>();
   const [history, setHistory] = useState<Choices[]>([]);
   const m = values as SkirtMeasurements;
+  /** The choices before drawing on the form, while it is open. */
+  const [onForm, setOnForm] = useState<Choices>();
 
   const say = (text: string) => {
     setToast(text);
@@ -204,6 +208,34 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
       ...(currentLook(c) ? { look } : {}),
     });
   };
+
+  if (onForm && draft) {
+    return (
+      <DrawOnForm<Choices>
+        body={skirtForm(m)}
+        m={m}
+        legs
+        bottom={lengthRange(m).max + 4}
+        kinds={[
+          ['hem', 'Hem'],
+          ['fit', 'Side'],
+        ]}
+        lines={(s) => skirtLines(draft, choices, m, s, 0)}
+        choices={choices}
+        onChoices={onChoices}
+        read={(kind, s, stroke) => (kind === 'hem' ? readSkirtHem(stroke, 0, draft, m, choices, s, 'skirt') : readSkirtSide(stroke, 0, draft, m, choices))}
+        onDone={() => {
+          change(choices, onForm);
+          setOnForm(undefined);
+          setView('pattern');
+        }}
+        onCancel={() => {
+          onChoices(onForm);
+          setOnForm(undefined);
+        }}
+      />
+    );
+  }
 
   return (
     <>
@@ -421,6 +453,11 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
               ))}
             </div>
             <div className="row tools">
+              {!drawing && (
+                <button type="button" className="link small" onClick={() => setOnForm(choices)}>
+                  Draw on your form
+                </button>
+              )}
               {isShaped(choices.hem) && !drawing && (
                 <button type="button" className="link small" onClick={() => change({ ...choices, hem: undefined })}>
                   Straighten hem

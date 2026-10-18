@@ -33,8 +33,9 @@ import { isDraped } from '../engine/drape';
 import { lengthRange } from '../engine/skirt';
 import type { BodiceMeasurements } from '../engine/bodice';
 import type { SkirtMeasurements } from '../engine/skirt';
-import { DrawOnForm } from '../ui/DrawOnForm';
-import { readNeckline, readSeam, readSkirtHem } from '../ui/formLines';
+import { DrawOnForm, formWidth } from '../ui/DrawOnForm';
+import { REPLACES } from './BodiceStyleScreen';
+import { bodiceLines, landmarks, readDrape, readFit, readNeckline, readSeam, readSkirtHem, skirtLines } from '../ui/formLines';
 
 interface Props {
   choices: DressChoices;
@@ -181,6 +182,8 @@ export function DressStyleScreen({ choices, onChoices: setChoices, onChooseGarme
     }
     const fit = id === 'fit' ? (opt as DressChoices['fit']) : choices.fit;
     const bodice = { ...choices.bodice, fit, ...(id === 'fit' ? {} : { [id]: opt }) } as BodiceChoices;
+    // A chip lets go of what was drawn on the form for it.
+    for (const k of REPLACES[id] ?? []) delete bodice[k];
     // A tighter fit needs more shaping, and each sleeve length allows only some shapes.
     const darts = DARTS_FOR_FIT[fit].includes(bodice.darts) ? bodice.darts : 'bust_waist';
     onChoices({ ...choices, fit, bodice: validDetails({ ...bodice, darts, length: 'waist', closure: 'back_zip', sleeveShape: sleeveOf(bodice).shape }, 'dress'), skirt: { ...choices.skirt, fit } });
@@ -189,22 +192,40 @@ export function DressStyleScreen({ choices, onChoices: setChoices, onChooseGarme
   if (onForm && draft) {
     // The bodice's lines are read at the dress's own fit and length; the hem is the skirt's.
     const asBodice: BodiceChoices = { ...choices.bodice, fit: choices.fit, length: 'waist', closure: 'back_zip' };
+    const mv = values as BodiceMeasurements & SkirtMeasurements;
+    const waistY = landmarks(draft.bodice).waistY;
     return (
-      <DrawOnForm
-        draft={draft.bodice}
-        m={values as BodiceMeasurements & SkirtMeasurements}
-        garment="dress"
-        hem={draft.skirt.lengthCm}
-        hemMax={lengthRange(values as SkirtMeasurements).max}
-        onLine={(kind, stroke) => {
+      <DrawOnForm<DressChoices>
+        body={formWidth(draft.bodice, mv)}
+        m={mv}
+        legs
+        bottom={waistY + lengthRange(mv).max + 4}
+        kinds={[
+          ['neckline', 'Neckline'],
+          ['seam', 'Seam'],
+          ['drape', 'Drape'],
+          ['fit', 'Side'],
+          ['hem', 'Hem'],
+        ]}
+        lines={(side) => ({ ...bodiceLines(draft.bodice, side), hem: skirtLines(draft.skirt, choices.skirt, mv, side, waistY).hem })}
+        choices={choices}
+        onChoices={setChoices}
+        read={(kind, side, stroke) => {
           if (kind === 'hem') {
-            const read = readSkirtHem(stroke, draft.bodice, values as SkirtMeasurements, choices.skirt);
-            if (read.choices) setChoices({ ...choices, skirt: read.choices });
-            return read.said;
+            const r = readSkirtHem(stroke, waistY, draft.skirt, mv, choices.skirt, side, 'dress');
+            return { said: r.said, choices: r.choices && { ...choices, skirt: r.choices } };
           }
-          const read = kind === 'neckline' ? readNeckline(stroke, draft.bodice, asBodice, 'dress') : readSeam(stroke, draft.bodice, asBodice, 'dress');
-          if (read.choices) setChoices({ ...choices, bodice: read.choices });
-          return read.said;
+          if (kind === 'fit') {
+            const r = readFit(stroke, draft.bodice, mv, asBodice);
+            return { said: r.said, choices: r.choices && { ...choices, fit: r.choices.fit, bodice: r.choices, skirt: { ...choices.skirt, fit: r.choices.fit } } };
+          }
+          const r =
+            kind === 'neckline'
+              ? readNeckline(stroke, draft.bodice, asBodice, 'dress', side)
+              : kind === 'seam'
+                ? readSeam(stroke, draft.bodice, asBodice, 'dress', side)
+                : readDrape(stroke, draft.bodice, asBodice, 'dress');
+          return { said: r.said, choices: r.choices && { ...choices, bodice: r.choices } };
         }}
         onDone={() => {
           undo.change(choices, onForm);
