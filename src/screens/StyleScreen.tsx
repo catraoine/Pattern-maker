@@ -499,7 +499,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
           <UndoToast undo={undoer} />
         </div>
         {view === 'sketch' && (
-          <p className="muted small">
+          <p className={drawing ? 'muted small keep' : 'muted small'}>
             {drawing
               ? `Draw across the ${side} of the skirt where you want the hem. Switch to the back to make a high-low hem.`
               : 'Drag the hem up or down for length, or the side out and in for flare.'}
