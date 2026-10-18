@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import type { MeasurementId } from '../measurements';
+import type { FormKind, MeasurementId } from '../measurements';
 
 // The welcome screen's dress form, drawn in contour lines on black. It is the same form as the measuring pages
 // (Cat, 2026-10-18: the body must stay the same everywhere). The outline is drawn first, or handed over already
@@ -39,11 +39,24 @@ function spline(keys: [number, number][]) {
 
 // Half-width of the form from neck (top) to hip (bottom); the waist sits at y = 0.1. A dressmaker's form
 // (Cat's pick N1): a short, full neck and broad, nearly level shoulders that round off at the arm.
-const R = spline([
+const R_WOMENSWEAR = spline([
   [-1.75, 0.15], [-1.55, 0.155], [-1.47, 0.17], [-1.43, 0.25], [-1.38, 0.42], [-1.32, 0.52], [-1.22, 0.57],
   [-1.05, 0.58], [-0.8, 0.59], [-0.55, 0.61],
   [-0.3, 0.53], [-0.05, 0.45], [0.1, 0.43], [0.3, 0.49], [0.55, 0.61], [0.8, 0.65], [1.05, 0.63], [1.3, 0.58],
 ]);
+// The menswear form (Cat's B2 Two Forms, 2026-10-18): a fuller neck, broader and squarer shoulders, a straighter
+// torso tapering gently to the waist, and narrower hips.
+const R_MENSWEAR = spline([
+  [-1.75, 0.17], [-1.55, 0.175], [-1.47, 0.19], [-1.43, 0.3], [-1.39, 0.52], [-1.33, 0.63], [-1.22, 0.67],
+  [-1.05, 0.665], [-0.8, 0.64], [-0.55, 0.61],
+  [-0.3, 0.57], [-0.05, 0.535], [0.1, 0.525], [0.3, 0.535], [0.55, 0.56], [0.8, 0.575], [1.05, 0.565], [1.3, 0.54],
+]);
+// Every drawing below reads the form through R. Each paint picks the person's form first (JS paints one canvas
+// at a time, so two forms on one screen each draw their own).
+let R = R_WOMENSWEAR;
+const pickForm = (kind: FormKind = 'womenswear') => {
+  R = kind === 'menswear' ? R_MENSWEAR : R_WOMENSWEAR;
+};
 // The neck starts at -1.66: short and full, like a dressmaker's form.
 const YS = Array.from({ length: 221 }, (_, i) => -1.66 + (2.96 * i) / 220);
 const DEPTH = 0.16;
@@ -93,7 +106,8 @@ function layout(w: number, h: number) {
  * The form's outline as one closed loop, clockwise from the top left (across the neck, down the right side,
  * across the hem, up the left side), so the loading screen's bodice can be reshaped into it.
  */
-export function formOutline(w: number, h: number): { pts: [number, number][]; lw: number } {
+export function formOutline(w: number, h: number, kind?: FormKind): { pts: [number, number][]; lw: number } {
+  pickForm(kind);
   const { S, cx, Y, lw } = layout(w, h);
   const left = YS.map((y): [number, number] => [cx - R(y) * S, Y(y)]);
   const right = YS.map((y): [number, number] => [cx + R(y) * S, Y(y)]);
@@ -162,7 +176,7 @@ const OUTLINE = 1000;
 export type FormStart = 'wait' | 'drawn' | 'fresh';
 
 
-export function ContourForm({ start: from = 'fresh' }: { start?: FormStart }) {
+export function ContourForm({ start: from = 'fresh', kind }: { start?: FormStart; kind?: FormKind }) {
   const ref = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -185,7 +199,10 @@ export function ContourForm({ start: from = 'fresh' }: { start?: FormStart }) {
       canvas.height = Math.round(r.height * dpr);
       g.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
-    const paint = (t: number) => draw(g, size.w, size.h, t, drawn);
+    const paint = (t: number) => {
+      pickForm(kind);
+      draw(g, size.w, size.h, t, drawn);
+    };
     const tick = (now: number) => {
       if (!start) start = now;
       const t = now - start;
@@ -213,7 +230,7 @@ export function ContourForm({ start: from = 'fresh' }: { start?: FormStart }) {
       cancelAnimationFrame(frame);
       ro.disconnect();
     };
-  }, [from]);
+  }, [from, kind]);
 
   return <canvas ref={ref} className="contour" aria-hidden="true" />;
 }
@@ -546,6 +563,9 @@ function lengthOn(g: CanvasRenderingContext2D, w: number, h: number, z: number, 
 }
 
 export const ON_FORM: Partial<Record<MeasurementId, number>> = { full_bust: -0.58, waist: 0.1, full_hip: 0.82 };
+/** The menswear form's tapes: the chest across the fullest part of the ribcage, under the shoulders. */
+const ON_MENSWEAR_FORM: Partial<Record<MeasurementId, number>> = { full_bust: -0.62, waist: 0.1, full_hip: 0.8 };
+const onFormFor = (kind?: FormKind) => (kind === 'menswear' ? ON_MENSWEAR_FORM : ON_FORM);
 
 /** Where each girth belongs on the form, read off its outline: bust is the widest point above the waist,
  *  waist the narrowest, hip the widest below. The tapes are tested against these so a drawing can't drift. */
@@ -576,8 +596,8 @@ export const loopFor = (id: MeasurementId) => (LENGTHS[id] ? ZOOM_LOOP : ON_FORM
 /** The frame held for reduced motion: the tape or line fully drawn and named. */
 const stillFor = (id: MeasurementId) => (LENGTHS[id] ? 4000 : ON_FORM[id] !== undefined ? TAPE_LOOP - 100 : 3000);
 
-function paintDemo(g: CanvasRenderingContext2D, w: number, h: number, t: number, id: MeasurementId, name: string, seen: number) {
-  const y = ON_FORM[id];
+function paintDemo(g: CanvasRenderingContext2D, w: number, h: number, t: number, id: MeasurementId, name: string, seen: number, kind?: FormKind) {
+  const y = onFormFor(kind)[id];
   const len = LENGTHS[id];
   if (len) {
     const z = (seg(t, 300, 1400) - seg(t, 5300, 6200)) * len.zoom;
@@ -595,7 +615,7 @@ function paintDemo(g: CanvasRenderingContext2D, w: number, h: number, t: number,
 /** 'still' is the welcome's form at rest with no tape; 'all' has the base girths' tapes on it, for the check page. */
 export type DemoMode = 'loop' | 'still' | 'all';
 
-export function TapeDemo({ id, name, mode = 'loop' }: { id: MeasurementId; name: string; mode?: DemoMode }) {
+export function TapeDemo({ id, name, mode = 'loop', kind }: { id: MeasurementId; name: string; mode?: DemoMode; kind?: FormKind }) {
   const ref = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -618,11 +638,12 @@ export function TapeDemo({ id, name, mode = 'loop' }: { id: MeasurementId; name:
     // Reduced motion shows the finished frame and holds it.
     // The canvas is the welcome's height; the page may show only its top part.
     const paint = (t: number) => {
-      if (mode === 'loop') return paintDemo(g, size.w, size.h, t, id, name, canvas.parentElement?.clientHeight ?? size.h);
+      pickForm(kind);
+      if (mode === 'loop') return paintDemo(g, size.w, size.h, t, id, name, canvas.parentElement?.clientHeight ?? size.h, kind);
       g.lineCap = 'round';
       g.lineJoin = 'round';
       settledForm(g, size.w, size.h);
-      if (mode === 'all') for (const y of Object.values(ON_FORM)) tapeAt(g, size.w, size.h, y!, 3000, '');
+      if (mode === 'all') for (const y of Object.values(onFormFor(kind))) tapeAt(g, size.w, size.h, y!, 3000, '');
     };
     const loop = loopFor(id);
     const tick = (now: number) => {
@@ -648,7 +669,31 @@ export function TapeDemo({ id, name, mode = 'loop' }: { id: MeasurementId; name:
       cancelAnimationFrame(frame);
       ro.disconnect();
     };
-  }, [id, name, mode]);
+  }, [id, name, mode, kind]);
 
   return <canvas ref={ref} className="contour" aria-hidden="true" />;
+}
+
+/** One form at rest, small, for choosing which form to draft on. */
+export function FormPicture({ kind }: { kind: FormKind }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const canvas = ref.current;
+    const g = canvas?.getContext('2d');
+    if (!canvas || !g) return;
+    const paint = () => {
+      const r = canvas.getBoundingClientRect();
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      canvas.width = Math.round(r.width * dpr);
+      canvas.height = Math.round(r.height * dpr);
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      pickForm(kind);
+      settledForm(g, r.width, r.height);
+    };
+    const ro = new ResizeObserver(paint);
+    ro.observe(canvas);
+    paint();
+    return () => ro.disconnect();
+  }, [kind]);
+  return <canvas ref={ref} className="form-picture" aria-hidden="true" />;
 }

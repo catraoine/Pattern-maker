@@ -27,13 +27,14 @@ import { MyFabric, clothFor, withFabric, withFabricEase } from './engine/fabrics
 import { SPECIALS, needsNap, withCheckMarks, withSpecialAllowances } from './engine/specialFabrics';
 import { layAmount } from './engine/layplan';
 import { withEstimates } from './estimate';
-import { EXAMPLE_VALUES, Garment, MeasurementValues, Unit, checkMeasurements, isComplete } from './measurements';
+import { EXAMPLE_VALUES, FormKind, Garment, MeasurementValues, Unit, checkMeasurements, isComplete } from './measurements';
 import { usePersistent } from './store';
 import {
   Account,
   ME,
   NEW_ACCOUNT,
   activePerson,
+  formOf,
   addPerson,
   isSavedFor,
   makeBackup,
@@ -214,8 +215,8 @@ function sleeveFor(bodice: BodiceDraft, choices: BodiceChoices, values: Measurem
   });
 }
 
-const ready = (values: MeasurementValues, unit: Unit, garment: Garment) =>
-  isComplete(values, garment) && !checkMeasurements(values, unit, garment).some((c) => c.level === 'error');
+const ready = (values: MeasurementValues, unit: Unit, garment: Garment, form?: FormKind) =>
+  isComplete(values, garment, form) && !checkMeasurements(values, unit, garment, form).some((c) => c.level === 'error');
 
 const STEPS: { id: Step; label: string }[] = [
   { id: 'measure', label: 'Measure' },
@@ -252,8 +253,10 @@ export default function App() {
   // fills in any upper-body measurement not taken yet with an estimate (see estimate.ts).
   const measured = person.values;
   const measuredKey = JSON.stringify(measured);
+  // The dress form their patterns are drafted on: the menswear form drafts with no bust shaping.
+  const form = formOf(person);
   // Keyed on the numbers, as the account (and so the person) is rebuilt on every render.
-  const values = useMemo(() => withEstimates(measured), [measuredKey]);
+  const values = useMemo(() => withEstimates(measured, form), [measuredKey, form]);
   // The last photo matched to a skirt, shown beside "Matched to your photo" while the app is open. Never saved.
   const [photoPreview, setPhotoPreview] = useState<string>();
   // The garment the photo was drafted as, so only that garment's style screen shows it.
@@ -285,8 +288,8 @@ export default function App() {
   const profile = profileName(account);
   const owner = personName(account, account.people.find((p) => p.id === ME)!);
 
-  const checks = checkMeasurements(measured, saved.unit, garment);
-  const canLeaveMeasure = ready(measured, saved.unit, garment);
+  const checks = checkMeasurements(measured, saved.unit, garment, form);
+  const canLeaveMeasure = ready(measured, saved.unit, garment, form);
 
   // Corrections from this person's toile fittings go into every pattern drafted for them: the garment's
   // own toile first, then what the person's other toiles found that this one hasn't looked at.
@@ -303,8 +306,10 @@ export default function App() {
   const setFinish = (f: Finish) => setSaved({ ...saved, finish: keepFinish(storedFinish, f, mode) });
   // Heavy cloth gets a little more ease, on top of the toile's corrections.
   const fabric = finish.fabric;
+  /** The bodice block's corrections: the toile's, a little ease for heavy cloth, and the menswear form's flat front. */
+  const bodiceFitting = (f: Fitting | undefined) => ({ ...withFabricEase(toFitting(f, 'bodice'), fabric, 'bodice'), ...(form === 'menswear' ? { flatFront: true } : {}) });
   const skirtStyle = useMemo(() => ({ ...saved.choices, fitting: withFabricEase(toFitting(fitting, 'skirt'), fabric, 'skirt') }), [saved.choices, fitting, fabric]);
-  const bodiceStyle = useMemo(() => ({ ...validDetails(saved.bodice), fitting: withFabricEase(toFitting(fitting, 'bodice'), fabric, 'bodice') }), [saved.bodice, fitting, fabric]);
+  const bodiceStyle = useMemo(() => ({ ...validDetails(saved.bodice), fitting: bodiceFitting(fitting) }), [saved.bodice, fitting, fabric, form]);
   const dress = useMemo(
     (): DressChoices => saved.dress ?? { garment: 'dress', fit: saved.bodice.fit, bodice: { ...saved.bodice, length: 'waist' }, skirt: saved.choices },
     [saved.dress, saved.bodice, saved.choices],
@@ -314,11 +319,11 @@ export default function App() {
   const isOuterGarment = garment === 'jacket' || garment === 'coat';
   const outerChoices: OuterChoices = useMemo(() => (garment === 'coat' ? { ...DEFAULT_COAT_CHOICES, ...saved.coat } : { ...DEFAULT_JACKET_CHOICES, ...saved.jacket }), [garment, saved.coat, saved.jacket]);
   // Jackets and coats are drafted on the bodice block, so they take the bodice's toile corrections.
-  const outerStyleFor = (c: OuterChoices, f: Fitting | undefined) => ({ ...c, kind: c.garment, fitting: withFabricEase(toFitting(f, 'bodice'), fabric, 'bodice') });
+  const outerStyleFor = (c: OuterChoices, f: Fitting | undefined) => ({ ...c, kind: c.garment, fitting: bodiceFitting(f) });
   const trousersStyle = useMemo(() => ({ ...trousersChoices, fitting: withFabricEase(toFitting(fitting, 'skirt'), fabric, 'skirt') }), [trousersChoices, fitting, fabric]);
   /** The dress in one fit: the bodice at the waist, the skirt below it, each with its toile corrections. */
   const dressStyles = (f: Fitting | undefined) => ({
-    bodice: { ...validDetails({ ...dress.bodice, length: 'waist' }, 'dress'), fit: dress.fit, length: 'waist' as const, fitting: withFabricEase(toFitting(f, 'bodice'), fabric, 'bodice') },
+    bodice: { ...validDetails({ ...dress.bodice, length: 'waist' }, 'dress'), fit: dress.fit, length: 'waist' as const, fitting: bodiceFitting(f) },
     skirt: { ...dress.skirt, fit: dress.fit, fitting: withFabricEase(toFitting(f, 'skirt'), fabric, 'skirt') },
   });
 
@@ -380,7 +385,7 @@ export default function App() {
     () =>
       (f: Fitting): Piece[] | undefined => {
         try {
-          if (garment === 'bodice') return draftBodice(values as BodiceMeasurements, { ...saved.bodice, fitting: withFabricEase(toFitting(f, 'bodice'), fabric, 'bodice') }).pieces;
+          if (garment === 'bodice') return draftBodice(values as BodiceMeasurements, { ...saved.bodice, fitting: bodiceFitting(f) }).pieces;
           // The garment's own pieces: pocket bags don't change with a fitting.
           const own = (pcs: Piece[]) => pcs.filter((pc) => pc.kind !== 'pocket');
           if (isOuterGarment) return draftOuter(values as OuterMeasurements, outerStyleFor(outerChoices, f)).pieces.filter((pc) => !pc.kind);
@@ -700,7 +705,7 @@ export default function App() {
   const switchGarment = (g: Garment, next: Partial<Saved> = {}, to: View = step, using: MeasurementValues = measured) => {
     setSaved({ ...saved, ...next, garment: g });
     const stays = to === 'style' || to === 'export';
-    if (stays && !ready(using, saved.unit, g)) measureFor(g, using);
+    if (stays && !ready(using, saved.unit, g, form)) measureFor(g, using, form);
     else setStep(to);
   };
 
@@ -708,8 +713,8 @@ export default function App() {
    * Not ready for this garment: take the measurements it still needs, one page each. When none are missing,
    * one of them fails a check, so open the list with the reason rather than going round the guided pages again.
    */
-  const measureFor = (g: Garment, using: MeasurementValues) => {
-    const wrong = isComplete(using, g) && checkMeasurements(using, saved.unit, g).find((c) => c.level === 'error');
+  const measureFor = (g: Garment, using: MeasurementValues, on: FormKind = form) => {
+    const wrong = isComplete(using, g, on) && checkMeasurements(using, saved.unit, g, on).find((c) => c.level === 'error');
     if (wrong) sendToMeasure(`Check your ${g === 'tee' ? 'T-shirt' : g} measurements: ${wrong.message}`);
     else openSteps({ kind: 'for', garment: g });
   };
@@ -737,7 +742,7 @@ export default function App() {
   const switchPerson = (id: string, to: View = step) => {
     const who = account.people.find((p) => p.id === id) ?? person;
     setAccount({ ...account, active: who.id });
-    if ((to === 'style' || to === 'export') && !ready(who.values, saved.unit, garment)) measureFor(garment, who.values);
+    if ((to === 'style' || to === 'export') && !ready(who.values, saved.unit, garment, formOf(who))) measureFor(garment, who.values, formOf(who));
     else setStep(to);
   };
 
@@ -778,7 +783,7 @@ export default function App() {
 
   const findForm = () => {
     const r = document.querySelector('.welcome-hero canvas')?.getBoundingClientRect();
-    return r && r.width > 0 && r.height > 0 ? { x: r.left, y: r.top, w: r.width, h: r.height } : null;
+    return r && r.width > 0 && r.height > 0 ? { x: r.left, y: r.top, w: r.width, h: r.height, kind: form } : null;
   };
 
   return (
@@ -856,6 +861,7 @@ export default function App() {
           {step === 'welcome' && (
             <WelcomeScreen
               formStart={formStart}
+              form={form}
               onLegal={openLegal}
               onFinish={() => {
                 setAccount({ ...account, onboarded: true, mode });
@@ -874,6 +880,8 @@ export default function App() {
               start={stepsStart.start}
               onSomeoneElse={(name) => setAccount(addPerson(account, name))}
               theirs={person.id !== ME}
+              form={form}
+              onForm={(f) => setAccount(updatePerson(account, person.id, { form: f }))}
               garment={garment}
               unit={saved.unit}
               values={measured}

@@ -141,6 +141,9 @@ export interface BodiceFitting {
   acrossBack?: number;
   /** One shoulder lower than the other: a second shoulder and armhole line for that side. */
   lowShoulder?: { side: Side; cm: number };
+  /** Drafted on the menswear form: no bust dart, whatever the style asks, and the little extra front length
+   * a flat chest takes is left at the centre front. Waist darts stay with the style. */
+  flatFront?: boolean;
 }
 
 /** Defaults from styling/styling-options.json (top: neckline params, in cm): how far the front
@@ -535,7 +538,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   const neckShape = s.neck ? 'drawn' : s.neckline;
   const pointed = s.neck ? s.neck.fullness < POINTED_NECK : s.neckline === 'v';
   const waistDarts = s.darts === 'bust_waist';
-  const bustDarts = s.darts !== 'none';
+  const bustDarts = s.darts !== 'none' && !fit.flatFront;
   const drop = hemDrop(m, s);
   const below = drop > 0;
   // A shaped hem, and how high it comes: the fish-eye darts end clear of it.
