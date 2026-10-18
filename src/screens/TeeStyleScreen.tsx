@@ -6,6 +6,7 @@ import { NECKBAND_CM, STRETCH_TEST, TeeDraft, pctWords } from '../engine/tee';
 import { teeFlat } from '../engine/flat';
 import { TEE_GROUPS, TeeChoices, describeTee } from '../garments';
 import { TechFlatView } from '../ui/TechFlatView';
+import { GarmentViews, PreviewSwitch } from '../ui/PreviewSwitch';
 import { AllRound } from '../ui/AllRound';
 import { roundTee } from '../engine/allRound';
 import { MeasurementValues } from '../measurements';
@@ -167,18 +168,17 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
       </section>
 
       <section className="card grow" aria-label="Preview">
+        <PreviewSwitch look={view === 'pattern' ? 'pattern' : 'garment'} onLook={(l) => setView(l === 'pattern' ? 'pattern' : 'sketch')} />
         <div className="row between wrap">
-          <div className="seg" role="group" aria-label="Preview view">
-            <button type="button" aria-pressed={view === 'sketch'} className={view === 'sketch' ? 'on' : ''} onClick={() => setView('sketch')}>
-              Sketch
-            </button>
-            <button type="button" aria-pressed={view === 'round'} className={view === 'round' ? 'on' : ''} onClick={() => setView('round')}>
-              All round
-            </button>
-            <button type="button" aria-pressed={view === 'pattern'} className={view === 'pattern' ? 'on' : ''} onClick={() => setView('pattern')}>
-              Pieces
-            </button>
-          </div>
+          {view !== 'pattern' ? (
+            <GarmentViews<'sketch' | 'round'>
+              views={[['sketch', 'Drawing'], ...(round ? ([['round', 'All round']] as ['round', string][]) : [])]}
+              view={view}
+              onView={setView}
+            />
+          ) : (
+            <span />
+          )}
           <div className="row tools">
             {draft && (
               <button type="button" className="link small" onClick={() => setOnForm(choices)}>

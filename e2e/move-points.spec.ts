@@ -13,7 +13,7 @@ test('drags a point on the flat pattern, measures one on the tape, and goes back
   await startWithExample(page);
   await switchGarment(page, 'Bodice');
   const main = page.getByRole('main');
-  await main.getByRole('group', { name: 'Preview view' }).getByRole('button', { name: 'Pieces' }).click();
+  await main.getByRole('group', { name: 'Preview view' }).getByRole('button', { name: /^Pattern/ }).click();
   await main.getByRole('button', { name: 'Move points' }).click();
   await expect(page.locator('.point-svg')).toBeVisible();
   await expect(page.locator('.pe-ghost')).toHaveCount(0);

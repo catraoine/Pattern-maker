@@ -18,6 +18,7 @@ import { FABRIC, Group, PRO, StyleLayout, TabPanel } from '../ui/StyleLayout';
 
 import { Mode, ProTool, shows } from '../mode';
 import { EaseMapView } from '../ui/EaseMapView';
+import { FitSwitch, GarmentViews, PreviewSwitch } from '../ui/PreviewSwitch';
 import type { EaseView } from '../engine/easeMap';
 import { FinishChoices } from '../ui/FinishChoices';
 import type { Finish } from '../App';
@@ -61,8 +62,9 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
   const undo = useUndo(choices, setChoices);
   const onChoices = undo.change;
   const can = (t: ProTool) => shows(mode, t);
-  const [picked, setView] = useState<'sketch' | 'round' | 'pattern' | 'ease'>('sketch');
-  const view = picked === 'ease' && !can('easeMap') ? 'sketch' : picked;
+  const [view, setView] = useState<'sketch' | 'round' | 'pattern'>('sketch');
+  const [fit, setFit] = useState(false);
+  const canFit = !!easeMap?.length && can('easeMap');
   const pieces = useMemo(() => draft?.pieces ?? [], [draft]);
   const sheet = useMemo(() => (draft ? layout(pieces, '', []) : undefined), [draft, pieces]);
   const title = describeTrousers(choices);
@@ -145,23 +147,19 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
       </section>
 
       <section className="card grow" aria-label="Preview">
+        <PreviewSwitch look={view === 'pattern' ? 'pattern' : 'garment'} onLook={(l) => setView(l === 'pattern' ? 'pattern' : 'sketch')} />
         <div className="row between wrap">
-          <div className="seg" role="group" aria-label="Preview view">
-            <button type="button" aria-pressed={view === 'sketch'} className={view === 'sketch' ? 'on' : ''} onClick={() => setView('sketch')}>
-              Sketch
-            </button>
-            <button type="button" aria-pressed={view === 'round'} className={view === 'round' ? 'on' : ''} onClick={() => setView('round')}>
-              All round
-            </button>
-            <button type="button" aria-pressed={view === 'pattern'} className={view === 'pattern' ? 'on' : ''} onClick={() => setView('pattern')}>
-              Pieces
-            </button>
-            {easeMap && easeMap.length > 0 && can('easeMap') && (
-              <button type="button" aria-pressed={view === 'ease'} className={view === 'ease' ? 'on' : ''} onClick={() => setView('ease')}>
-                Ease
-              </button>
-            )}
-          </div>
+          {view !== 'pattern' ? (
+            <GarmentViews<'sketch' | 'round'>
+              views={[['sketch', 'Drawing'], ...(round ? ([['round', 'All round']] as ['round', string][]) : [])]}
+              view={view}
+              onView={setView}
+            />
+          ) : canFit ? (
+            <FitSwitch on={fit} onChange={setFit} />
+          ) : (
+            <span />
+          )}
           <UndoTools undo={undo} />
         </div>
         <div className="preview">
@@ -172,8 +170,8 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
             </GarmentFabric>
           )}
           {round && view === 'round' && <AllRound round={round} m={values} label={`The ${title.toLowerCase()} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`} />}
-          {draft && sheet && view === 'pattern' && <PatternPane><PatternPreview paper sheet={sheet} label={`Pattern pieces for ${title.toLowerCase()}`} /></PatternPane>}
-          {view === 'ease' && easeMap && <EaseMapView views={easeMap} label={`Ease map of the ${title.toLowerCase()}`} />}
+          {draft && sheet && view === 'pattern' && !(fit && canFit) && <PatternPane><PatternPreview paper sheet={sheet} label={`Pattern pieces for ${title.toLowerCase()}`} /></PatternPane>}
+          {view === 'pattern' && fit && canFit && <EaseMapView views={easeMap!} label={`The fit of the ${title.toLowerCase()}, on its pattern pieces`} />}
           <UndoToast undo={undo} />
         </div>
         <p className="muted small">
