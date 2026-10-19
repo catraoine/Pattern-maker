@@ -50,8 +50,8 @@ export function outerGuide(d: OuterDraft, fabricM: number, finish: { seams?: Sea
     {
       title: 'Cut the lining',
       text: vent
-        ? `Cut the front linings, two back linings and the ${tailored ? 'top and under sleeve linings' : 'sleeve linings'} from the lining fabric${welts ? ', and four pocket bags' : ''}. Cut the left back lining on the main line and the right one on the second line, which stops short at the vent. Each back lining is wider at the centre back for a pleat that gives you room to reach forward.`
-        : `Cut the front linings, the back lining on the fold and the ${tailored ? 'top and under sleeve linings' : 'sleeve linings'} from the lining fabric${welts ? ', and four pocket bags' : ''}. The back lining is wider at the centre back for a pleat that gives you room to reach forward.`,
+        ? `Cut the front linings, ${princess ? 'side front linings, ' : ''}two back linings${princess ? ', side back linings' : ''} and the ${tailored ? 'top and under sleeve linings' : 'sleeve linings'} from the lining fabric${welts ? ', and four pocket bags' : ''}. Cut the left back lining on the main line and the right one on the second line, which stops short at the vent. Each back lining is wider at the centre back for a pleat that gives you room to reach forward.`
+        : `Cut the front linings, ${princess ? 'side front linings, ' : ''}the back lining on the fold${princess ? ', side back linings' : ''} and the ${tailored ? 'top and under sleeve linings' : 'sleeve linings'} from the lining fabric${welts ? ', and four pocket bags' : ''}. The back lining is wider at the centre back for a pleat that gives you room to reach forward.`,
     },
     {
       title: 'Interface',
@@ -121,8 +121,8 @@ export function outerGuide(d: OuterDraft, fabricM: number, finish: { seams?: Sea
             title: collar === 'stand' ? 'Sew the stand collar' : 'Face the neck and front',
             text:
               collar === 'stand'
-                ? `Sew one collar piece to the neck of the ${kind}, matching the centre back and the ends to the front edges. Sew the other to the facings' neck. Pin the facings to the fronts right sides together and sew up each front edge, round the collar and down the other front. Trim, clip the curves and turn.`
-                : `Pin the front facings to the fronts right sides together, and sew up each front edge and round the neck, ${curve} from the edge. Trim and clip the curve, then understitch the facing and press it to the inside.`,
+                ? `Sew one collar piece to the neck of the ${kind}, matching the centre back and the ends to the front edges. Sew the other to the neck edge of each front facing, from the front edge to the shoulder end of the facing; its middle stays free for now and is sewn to the lining's back neck later. Pin the facings to the fronts right sides together and sew up each front edge, round the collar and down the other front. Trim, clip the curves and turn.`
+                : `Pin the front facings to the fronts right sides together, and sew up each front edge and round the neck as far as the shoulder seam, ${curve} from the edge. Trim and clip the curve, then understitch the facing and press it to the inside. The back neck is finished by the lining.`,
           },
         ]),
     {
@@ -135,7 +135,11 @@ export function outerGuide(d: OuterDraft, fabricM: number, finish: { seams?: Sea
     },
     {
       title: 'Make the lining',
-      text: `${vent ? 'Sew the back linings together down the centre back to just above the vent, then tack the pleat' : 'Tack the back lining pleat'} along its line, 8 cm down from the neck. Sew the lining's shoulders, side seams and sleeve seams, and set the sleeve linings into the armholes, leaving a 25 cm gap in one sleeve lining seam for turning. Sew the lining to the inner edges of the front facings${collar === 'notched' ? ' and the upper collar to the lining\'s back neck' : ''}, matching the notches.`,
+      text: `${
+        princess ? `Sew each side front lining to its front lining and each side back lining to its back lining along the princess seams, ${seam} from the edge, and press the seams open. ` : ''
+      }${vent ? 'Sew the back linings together down the centre back to just above the vent, then tack the pleat' : 'Tack the back lining pleat'} along its line, 8 cm down from the neck. Sew the lining's shoulders, side seams and sleeve seams, and set the sleeve linings into the armholes, leaving a 25 cm gap in one sleeve lining seam for turning. Sew the lining to the inner edges of the front facings${
+        collar === 'notched' ? " and the upper collar to the lining's back neck" : collar === 'stand' ? " and the inner collar to the lining's back neck" : `, and its back neck to the ${kind}'s back neck between the shoulder seams, right sides together`
+      }, matching the notches.`,
     },
     {
       title: 'Bag the lining',

@@ -96,6 +96,10 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
   const elastic = draft.elastic;
   const backSeam = !draft.pieces[1].fold;
   const pockets = !!draft.pocket;
+  // The lining is the same skirt without its pleats, godets or flounce, 2.5 cm shorter: it has darts
+  // where the plain skirt does (none on a circle), and the same centre seams.
+  const liningDarts = !circle && (dartCount > 0 || !!draft.volume?.pleats || !!draft.volume?.inverted);
+  const liningSeams = (also: string) => `Sew the lining ${frontSeam ? 'centre front seam, ' : ''}side seams${also}, ${seam} from the edge.`;
 
   const steps: SewStep[] = [
     {
@@ -183,9 +187,9 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
       ? [
           {
             title: 'Make the lining',
-            text: elastic
-              ? `Sew the lining side seams${backSeam ? ' and centre back seam' : ''}, ${seam} from the edge. Press up 1 cm at the hem, then 1 cm more, and stitch.`
-              : `Sew the lining darts as tucks: stitch each one only 3 cm down from the waist, so the lining has room to move. Sew the lining side seams, and the centre back seam from the ZIP ENDS notch down, ${seam} from the edge. Press up 1 cm at the hem, then 1 cm more, and stitch.`,
+            text: `${liningDarts ? 'Sew the lining darts as tucks: stitch each one only 3 cm down from the waist, so the lining has room to move. ' : ''}${
+              elastic ? liningSeams(backSeam ? ' and centre back seam' : '') : liningSeams(' and the centre back seam from the ZIP ENDS notch down')
+            } Press up 1 cm at the hem, then 1 cm more, and stitch.`,
           },
           {
             title: 'Put the lining in',
