@@ -165,13 +165,16 @@ export function readTeeSleeve(stroke: P[], tf: TeeForm, c: TeeChoices): Reading<
 
 /** The T-shirt's lines as they stand: the neckline, the side, the hem and where the sleeves end. */
 export function teeLines(draft: TeeDraft, tf: TeeForm): Partial<Record<FormLine, P[][]>> {
-  const [front] = draft.pieces;
+  const [front, back] = draft.pieces;
   const y = tf.arm.tip.y + draft.sleeve.lengthCm;
   const a = armAt(tf.arm, y);
+  // A front shaped for the bust is cut longer at the centre, and the bust takes that up: worn, the hem
+  // hangs level with the back's, so it's drawn there.
+  const level = edgeRun(back, 'hem')[0].y;
   return {
     neckline: mirror(edgeRun(front, 'neck')),
     fit: mirror(edgeRun(front, 'side')),
-    hem: mirror(edgeRun(front, 'hem')),
+    hem: mirror(edgeRun(front, 'hem').map((q) => ({ x: q.x, y: level }))),
     sleeve: mirror([{ x: a.inner, y }, { x: a.outer, y }]),
   };
 }

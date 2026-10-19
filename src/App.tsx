@@ -359,6 +359,8 @@ export default function App() {
   );
   const trousersChoices = saved.trousers ?? DEFAULT_TROUSERS_CHOICES;
   const teeChoices = saved.tee ?? DEFAULT_TEE_CHOICES;
+  // The menswear form's tee has no bust shaping: front and back cut alike.
+  const teeStyle = useMemo(() => ({ ...teeChoices, ...(form === 'menswear' ? { flatFront: true } : {}) }), [teeChoices, form]);
   const isOuterGarment = garment === 'jacket' || garment === 'coat';
   const outerChoices: OuterChoices = useMemo(() => (garment === 'coat' ? { ...DEFAULT_COAT_CHOICES, ...saved.coat } : { ...DEFAULT_JACKET_CHOICES, ...saved.jacket }), [garment, saved.coat, saved.jacket]);
   // Jackets and coats are drafted on the bodice block, so they take the bodice's toile corrections.
@@ -381,7 +383,7 @@ export default function App() {
       }
       if (garment === 'trousers') return { trousers: draftTrousers(values as TrousersMeasurements, trousersStyle) };
       // A knit block fits by stretch, so no woven toile corrections or heavy-cloth ease go into it.
-      if (garment === 'tee') return { tee: draftTee(values as TeeMeasurements, teeChoices) };
+      if (garment === 'tee') return { tee: draftTee(values as TeeMeasurements, teeStyle) };
       if (garment === 'dress') {
         const st = dressStyles(fitting);
         const d = draftDress(values as DressMeasurements, st.bodice, st.skirt);
@@ -392,7 +394,7 @@ export default function App() {
       return { error: e instanceof DraftError ? e.message : 'Something went wrong drafting this pattern.' };
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [values, skirtStyle, bodiceStyle, trousersStyle, teeChoices, dress, outerChoices, fabric, fitting, garment, canLeaveMeasure]);
+  }, [values, skirtStyle, bodiceStyle, trousersStyle, teeStyle, dress, outerChoices, fabric, fitting, garment, canLeaveMeasure]);
 
   // The drafts with any points moved on the flat pattern, so the preview, print and files all follow.
   const moved = pointEdits[garment];
@@ -434,7 +436,7 @@ export default function App() {
           const own = (pcs: Piece[]) => pcs.filter((pc) => pc.kind !== 'pocket');
           if (isOuterGarment) return draftOuter(values as OuterMeasurements, outerStyleFor(outerChoices, f)).pieces.filter((pc) => !pc.kind);
           if (garment === 'trousers') return draftTrousers(values as TrousersMeasurements, { ...trousersChoices, ...trousersCut, fitting: withFabricEase(toFitting(f, 'skirt'), fabric, 'skirt') }).block;
-          if (garment === 'tee') return draftTee(values as TeeMeasurements, teeChoices).pieces;
+          if (garment === 'tee') return draftTee(values as TeeMeasurements, teeStyle).pieces;
           if (garment === 'dress') {
             const st = dressStyles(f);
             return own(draftDress(values as DressMeasurements, st.bodice, st.skirt).pieces);
@@ -445,7 +447,7 @@ export default function App() {
         }
       },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [garment, values, saved.bodice, saved.choices, trousersChoices, teeChoices, dress, outerChoices, fabric],
+    [garment, values, saved.bodice, saved.choices, trousersChoices, teeStyle, dress, outerChoices, fabric],
   );
 
   /** The pattern's main pieces with allowances, drafted to any measurements: for grading a size run. */
@@ -460,7 +462,7 @@ export default function App() {
           return allow([...b.pieces, ...(sleeveFor(b, bodiceStyle, m)?.pieces ?? [])]);
         }
         // Knit pieces keep their 1 cm allowances whatever the style.
-        if (garment === 'tee') return draftTee(m as TeeMeasurements, teeChoices).pieces;
+        if (garment === 'tee') return draftTee(m as TeeMeasurements, teeStyle).pieces;
         if (isOuterGarment) return allow(draftOuter(m as OuterMeasurements, outerStyleFor(outerChoices, fitting)).pieces);
         if (garment === 'trousers') {
           const t = draftTrousers(m as TrousersMeasurements, trousersStyle);
@@ -475,7 +477,7 @@ export default function App() {
         return allow([...k.pieces, ...waistPieces(k, 1.5)]);
       },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [garment, bodiceStyle, trousersStyle, teeChoices, skirtStyle, dress, outerChoices, fitting, saved.finish?.allowances, saved.finish?.fabric?.special],
+    [garment, bodiceStyle, trousersStyle, teeStyle, skirtStyle, dress, outerChoices, fitting, saved.finish?.allowances, saved.finish?.fabric?.special],
   );
 
   const current = isOuterGarment ? outerChoices : garment === 'bodice' ? saved.bodice : garment === 'dress' ? dress : garment === 'trousers' ? trousersChoices : garment === 'tee' ? teeChoices : saved.choices;

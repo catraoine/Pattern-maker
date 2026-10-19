@@ -10,6 +10,11 @@ export function teeGuide(d: TeeDraft, fabricM: number, finish: { width?: number 
   const seam = n1(KNIT_SEAM);
   const v = d.neckline === 'v';
   const pct = Math.round(d.neckband.ratio * 100);
+  // The front cut longer at the centre for the bust: it looks uneven flat, and hangs level when worn.
+  const bustHem =
+    d.frontExtra >= 0.5
+      ? `The front hem curves down ${n1(d.frontExtra)} lower at the centre than at the sides: that is the length the bust takes up, so the tee hangs level when worn. Press it up the same depth all along. `
+      : '';
   const steps: SewStep[] = [
     {
       title: 'Print and check the size',
@@ -53,7 +58,7 @@ export function teeGuide(d: TeeDraft, fabricM: number, finish: { width?: number 
     },
     {
       title: 'Hem',
-      text: `Press up ${n1(KNIT_SLEEVE_HEM)} at each sleeve hem and ${n1(KNIT_HEM)} at the body hem. A strip of fusible knit hem tape inside the fold stops the stitching rippling. From the right side, stitch ${n1(KNIT_SLEEVE_HEM - 0.5)} from the fold with a stretch twin needle, or a long narrow zigzag. Let the machine feed the knit: pulling it makes the hem wavy.`,
+      text: `${bustHem}Press up ${n1(KNIT_SLEEVE_HEM)} at each sleeve hem and ${n1(KNIT_HEM)} at the body hem. A strip of fusible knit hem tape inside the fold stops the stitching rippling. From the right side, stitch ${n1(KNIT_SLEEVE_HEM - 0.5)} from the fold with a stretch twin needle, or a long narrow zigzag. Let the machine feed the knit: pulling it makes the hem wavy.`,
     },
     {
       title: 'Finish',
