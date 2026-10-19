@@ -1974,6 +1974,9 @@ details.more[open] > summary h2::after {
   stroke: var(--guide);
   stroke-width: 0.2;
 }
+.layplan .lay-border-ground {
+  fill: #ece6da;
+}
 .layplan .lay-fold {
   stroke: var(--muted);
   stroke-width: 0.3;
@@ -1989,6 +1992,10 @@ details.more[open] > summary h2::after {
   stroke: #1a1712;
   stroke-width: 0.2;
   stroke-linejoin: round;
+}
+/* With a print chosen the paper is tracing paper, so the motifs show through where the pieces sit. */
+.layplan.lay-printed .lay-piece {
+  fill-opacity: 0.38;
 }
 .layplan .lay-paper-dots {
   pointer-events: none;
@@ -5713,4 +5720,57 @@ input.inline:focus,
 .saved li > .envelope.small {
   flex: none;
   width: 112px;
+}
+
+/* The print picker (P1): a picture for each kind of print, in place of the checks switch. */
+.printpick {
+  display: grid;
+  gap: 10px;
+  margin: 6px 0 4px;
+}
+.printpick-q {
+  font-family: var(--display);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin: 0;
+}
+.printtiles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.printtile {
+  display: grid;
+  gap: 6px;
+  padding: 0;
+  background: none;
+  border: 0;
+  color: var(--muted);
+  font: inherit;
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: center;
+  cursor: pointer;
+}
+.printtile img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  display: block;
+  outline: 1px solid transparent;
+  outline-offset: 2px;
+}
+.printtile.on {
+  color: var(--ink);
+}
+.printtile.on img {
+  outline-color: var(--gild);
+}
+.printtile:focus-visible img {
+  outline-color: var(--ink);
+}
+.printpick-hint {
+  margin: 0;
 }

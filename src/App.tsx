@@ -25,6 +25,7 @@ import { Fitting, carriedFitting, describeCarried, describeFitting, saveVersion,
 import { FabricWidth, layPlans } from './engine/layplan';
 import { MyFabric, clothFor, withFabric, withFabricEase } from './engine/fabrics';
 import { SPECIALS, needsNap, withCheckMarks, withSpecialAllowances } from './engine/specialFabrics';
+import { printNap, printOf } from './engine/prints';
 import { layAmount } from './engine/layplan';
 import { withEstimates } from './estimate';
 import { EXAMPLE_VALUES, FormKind, Garment, MeasurementId, MeasurementValues, Unit, checkMeasurements, isComplete } from './measurements';
@@ -480,7 +481,7 @@ export default function App() {
         const cut = withSpecialAllowances(withAllowances(pc, finish.allowances), special);
         return checks ? withCheckMarks(cut) : cut;
       });
-    const nap = finish.nap || needsNap(special);
+    const nap = finish.nap || needsNap(special) || printNap(printOf(fabric));
     const hide = special === 'leather';
     const couture = finish.allowances === 'couture';
     const fittingNotes = [...fittingLines(ownFitting, garment), ...carriedNotes.map((l) => `${l}.`)];
@@ -717,9 +718,9 @@ export default function App() {
       notes: [`Read from ${imported.fileName}${source ? `, made in ${source}` : ''}.`, ...notes],
       guide: importedGuide(pieces),
       spec: [],
-      lays: layPlans(pieces, finish.fabricWidth, finish.nap || needsNap(finish.fabric?.special)),
+      lays: layPlans(pieces, finish.fabricWidth, finish.nap || needsNap(finish.fabric?.special) || printNap(printOf(finish.fabric))),
     };
-  }, [imported, finish.fabricWidth, finish.nap, finish.fabric?.special]);
+  }, [imported, finish.fabricWidth, finish.nap, finish.fabric]);
   // Body Double: the padded form cover, drafted from the same 3D body as every form in the app.
   const coverPrintable = useMemo((): Printable | undefined => {
     if ((step !== 'form' && step !== 'formprint') || coverMissing(measured).length) return undefined;
