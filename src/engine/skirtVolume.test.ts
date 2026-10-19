@@ -156,10 +156,10 @@ describe('skirt volume', () => {
     for (const l of lengths) expect(l).toBeCloseTo(lengths[0], 1);
     for (const [top] of slashes) expect(top.y).toBeGreaterThan(m.waist_to_hip + 5.9);
     expect(checkPattern(g.pieces, { finishedWaist: g.finishedWaist }).filter((c) => !c.ok)).toEqual([]);
-    expect(describeSkirt({ fit: 'regular', silhouette: 'a_line', length: 'midi', asymHem: 'high_low', godets: 8 })).toBe('Midi a-line skirt with 8 godets and a high-low hem');
-    expect(describeSkirt({ fit: 'regular', silhouette: 'a_line', length: 'midi', asymHem: 'high_low', pleats: 'knife' })).toBe('Midi a-line skirt with a high-low hem');
+    expect(describeSkirt({ fit: 'regular', silhouette: 'a_line', length: 'midi', asymHem: 'high_low', godets: 8 })).toBe('Midi A-line skirt with 8 godets and a high-low hem');
+    expect(describeSkirt({ fit: 'regular', silhouette: 'a_line', length: 'midi', asymHem: 'high_low', pleats: 'knife' })).toBe('Midi A-line skirt with a high-low hem');
     const dress = describePattern({ garment: 'dress', fit: 'regular', bodice: { garment: 'bodice', fit: 'regular', neckline: 'scoop', length: 'waist', darts: 'bust_waist' }, skirt: { fit: 'regular', silhouette: 'a_line', length: 'midi', asymHem: 'high_low', godets: 6 } });
-    expect(dress).toBe('Midi a-line dress with 6 godets, a scoop neck, and a high-low hem');
+    expect(dress).toBe('Midi A-line dress with 6 godets, a scoop neck, and a high-low hem');
   });
 
   it('passes every check for 12 random bodies with every detail on a slip, a high-low and a diagonal hem', () => {
@@ -196,11 +196,11 @@ describe('skirt volume', () => {
   });
 
   it('names each style, and advises fabric for it', () => {
-    expect(describeSkirt({ fit: 'regular', silhouette: 'a_line', length: 'knee', pleats: 'knife' })).toBe('Knee a-line skirt with knife pleats');
+    expect(describeSkirt({ fit: 'regular', silhouette: 'a_line', length: 'knee', pleats: 'knife' })).toBe('Knee A-line skirt with knife pleats');
     expect(describeSkirt({ fit: 'regular', silhouette: 'straight', length: 'midi', godets: 8 })).toBe('Midi straight skirt with 8 godets');
     expect(describeSkirt({ fit: 'regular', silhouette: 'circle', length: 'midi', pleats: 'box' })).toBe('Midi full circle skirt');
     const dress = describePattern({ garment: 'dress', fit: 'regular', bodice: { garment: 'bodice', fit: 'regular', neckline: 'scoop', length: 'waist', darts: 'bust_waist' }, skirt: { fit: 'regular', silhouette: 'a_line', length: 'knee', flounce: 'hem_flounce' } });
-    expect(dress).toBe('Knee a-line dress with a hem flounce, a scoop neck');
+    expect(dress).toBe('Knee A-line dress with a hem flounce, a scoop neck');
     const pleats = skirtFabrics({ silhouette: 'straight', length: 'knee', pleats: 'knife' });
     expect(pleats.style).toBe('a knee-length straight skirt with knife pleats');
     expect(pleats.picks.every((p) => p.drape === 'crisp')).toBe(true);
