@@ -52,6 +52,9 @@ export interface Lay {
   faceDown?: boolean;
   /** A knit: the grain runs along the ribs, so the stretch goes across the fabric and round the body. */
   knit?: boolean;
+  /** A border print: the hemmed pieces are turned crosswise with their hems on the far selvedge, where
+   * the border runs, or 'too-long' when a piece is longer than the fabric is wide and is laid as usual. */
+  border?: 'crosswise' | 'too-long';
 }
 
 const RES = 0.5; // cm per grid column
@@ -150,16 +153,47 @@ interface Item {
   single: boolean;
   /** Laid right side up only: a piece that differs side to side would come out mirrored face down. */
   rightSideUp?: boolean;
+  /** Turned crosswise with its hem on the far selvedge, for a border print: it only slides along. */
+  onBorder?: boolean;
+}
+
+/** Where a piece's hem lies from its middle, or undefined when it has no hem edge. */
+function hemDirection(pc: Piece): P | undefined {
+  const { pts, tags } = pc.outline.taggedPoints(8);
+  const hem = pts.filter((_, i) => tags[i] === 'hem' || tags[i - 1] === 'hem');
+  if (!hem.length) return undefined;
+  const mid = (qs: P[]) => p(qs.reduce((s, q) => s + q.x, 0) / qs.length, qs.reduce((s, q) => s + q.y, 0) / qs.length);
+  const h = mid(hem);
+  const c = mid(pts);
+  // Down the grain line, towards the hem; straight down the piece without one.
+  const g = pc.grain ? p(pc.grain[1].x - pc.grain[0].x, pc.grain[1].y - pc.grain[0].y) : p(0, 1);
+  const dot = g.x * (h.x - c.x) + g.y * (h.y - c.y);
+  return dot < 0 ? p(-g.x, -g.y) : g;
+}
+
+/** The piece turned so `down` points across the fabric, to the far selvedge. */
+function crosswise(pts: P[], down: P): P[] {
+  const t = -Math.atan2(down.y, down.x);
+  const c = Math.cos(t);
+  const s = Math.sin(t);
+  return pts.map((q) => p(q.x * c - q.y * s, q.x * s + q.y * c));
 }
 
 /**
  * Lay the pieces cut from one fabric on fabric `width` cm wide. `nap` keeps every piece the same way
  * up (velvet, corduroy, one-way prints); without it pieces can turn end to end to nest closer.
+ * `border` turns the hemmed pieces crosswise so every hem sits on a border along the far selvedge.
  */
-export function layPlan(pieces: Piece[], width: FabricWidth, fabric: LayFabric = 'self', nap = false, hide = false): Lay | undefined {
+export function layPlan(pieces: Piece[], width: FabricWidth, fabric: LayFabric = 'self', nap = false, hide = false, border = false): Lay | undefined {
   const mine = pieces.filter((pc) => fabricsOf(pc).includes(fabric));
   if (!mine.length) return undefined;
   const usable = width - 2 * SELVEDGE;
+  if (border && !hide) {
+    const lay = borderLay(mine, width, fabric, nap);
+    if (lay) return lay;
+    const plain = layPlan(pieces, width, fabric, nap, hide);
+    return plain && { ...plain, border: 'too-long' };
+  }
   const cut = mine.map((pc) => ({ pc, pts: onGrain(pc, cutLine(pc)), kind: kindOf(pc) }));
   const wide = (pts: P[]) => Math.max(...pts.map((q) => q.x)) - Math.min(...pts.map((q) => q.x));
   // Folded unless something won't fit across half the width, or a piece must be cut from a single
@@ -220,6 +254,56 @@ export function layPlan(pieces: Piece[], width: FabricWidth, fabric: LayFabric =
   };
 }
 
+/**
+ * A border print laid open in one layer: each hemmed piece turned crosswise, its hem on the far
+ * selvedge where the border runs; pieces on the fold opened out, and each of a pair cut separately.
+ * Pieces without a hem (waistbands, pockets) lie on the grain as usual. Undefined when a hemmed piece
+ * is longer than the fabric is wide.
+ */
+function borderLay(mine: Piece[], width: FabricWidth, fabric: LayFabric, nap: boolean): Lay | undefined {
+  const usable = width - 2 * SELVEDGE;
+  const items: Item[] = mine.flatMap((pc) => {
+    const kind = kindOf(pc);
+    let pts = onGrain(pc, cutLine(pc));
+    if (kind === 'fold') {
+      const fx = Math.min(...pts.map((q) => q.x));
+      const half = pts.map((q) => p(q.x - fx, q.y));
+      const start = half.findIndex((q, i) => q.x < 0.01 && half[(i + 1) % half.length].x > 0.01);
+      const run = [...half.slice(start), ...half.slice(0, start)];
+      pts = [...run, ...[...run].reverse().map((q) => p(-q.x, q.y))];
+    }
+    const down = pc.meta.bias ? undefined : hemDirection(pc);
+    const lay = (q: P[], mirrored: boolean): Item => {
+      const d = down && (mirrored ? p(-down.x, down.y) : down);
+      return { name: pc.name, pts: d ? crosswise(q, d) : q, kind, atFold: false, single: true, rightSideUp: !!pc.meta.rightSideUp, onBorder: !!d };
+    };
+    const times = kind === 'pair' ? sets(pc) : 1;
+    return Array.from({ length: times }, () => (kind === 'pair' ? [lay(pts, false), lay(flipX(pts), true)] : [lay(pts, false)])).flat();
+  });
+  if (!items.some((it) => it.onBorder)) return undefined;
+  const wide = (pts: P[]) => Math.max(...pts.map((q) => q.x)) - Math.min(...pts.map((q) => q.x));
+  if (items.some((it) => wide(it.pts) > usable)) return undefined;
+  const cols = Math.floor(usable / RES);
+  const placements = place([...items].sort((a, b) => Number(b.onBorder) - Number(a.onBorder) || area(b.pts) - area(a.pts)), cols, nap, false);
+  if (!placements) return undefined;
+  const length = Math.max(...placements.flatMap((pl) => pl.pts.map((q) => q.y)));
+  const used = placements.reduce((s, pl) => s + area(pl.pts), 0);
+  return {
+    fabric,
+    width,
+    folded: false,
+    across: usable,
+    length: Math.round(length * 10) / 10,
+    metres: Math.ceil((length + 10) / 10) / 10,
+    efficiency: used / (usable * length),
+    placements,
+    border: 'crosswise',
+    ...(mine.some((pc) => pc.meta.bias) ? { bias: true } : {}),
+    ...(mine.some((pc) => pc.meta.rightSideUp) ? { rightSideUp: true } : {}),
+    ...(mine.some((pc) => pc.meta.rightSideUp && pc.meta.faceDown) ? { faceDown: true } : {}),
+  };
+}
+
 type Profile = ReturnType<typeof profile>;
 interface Orientation {
   prof: Profile;
@@ -234,6 +318,13 @@ function orientations(it: Item, nap: boolean): Orientation[] {
   const hit = cache.get(it);
   if (hit) return hit;
   const o: { pts: P[]; flipped: boolean; turned: boolean }[] = [{ pts: it.pts, flipped: false, turned: false }];
+  // A piece on the border keeps its hem on the far selvedge: it can only be turned over end to end.
+  if (it.onBorder) {
+    if (!nap && !it.rightSideUp) o.push({ pts: it.pts.map((q) => p(q.x, -q.y)), flipped: true, turned: true });
+    const out = o.map(({ pts, flipped, turned }) => ({ prof: profile(pts), flipped, turned }));
+    cache.set(it, out);
+    return out;
+  }
   const canFlip = !it.atFold && !it.rightSideUp;
   if (canFlip) o.push({ pts: flipX(it.pts), flipped: true, turned: false });
   if (!nap) {
@@ -256,8 +347,9 @@ function place(order: Item[], cols: number, nap: boolean, folded: boolean): Plac
     for (const o of options) {
       const { prof } = o;
       const last = it.atFold ? 0 : cols - prof.cols;
-      // Anything not cut on the fold stays a little off it, or the two layers would stay joined there.
-      const first = folded && !it.atFold ? 1 : 0;
+      // Anything not cut on the fold stays a little off it, or the two layers would stay joined there;
+      // a piece on the border lies against the far selvedge.
+      const first = it.onBorder ? last : folded && !it.atFold ? 1 : 0;
       for (let x = first; x <= last; x++) {
         let y = 0;
         for (let c = 0; c < prof.cols; c++) y = Math.max(y, sky[x + c] - prof.top[c]);
@@ -276,10 +368,11 @@ function place(order: Item[], cols: number, nap: boolean, folded: boolean): Plac
 }
 
 /** The lays for every fabric the pieces are cut from, at one width. */
-export function layPlans(pieces: Piece[], width: FabricWidth, nap = false, hide = false, knit = false): Lay[] {
-  // Only the leather itself comes from a hide; the lining and the coutil are ordinary cloth.
+export function layPlans(pieces: Piece[], width: FabricWidth, nap = false, hide = false, knit = false, border = false): Lay[] {
+  // Only the leather itself comes from a hide; the lining and the coutil are ordinary cloth. Only the
+  // garment fabric carries the border, and never a knit, whose stretch must go round the body.
   return (['self', 'lining', 'interlining'] as const)
-    .map((f) => layPlan(pieces, width, f, nap, hide && f === 'self'))
+    .map((f) => layPlan(pieces, width, f, nap, hide && f === 'self', border && !knit && f === 'self'))
     .filter((l): l is Lay => !!l)
     .map((l) => (knit ? { ...l, knit } : l));
 }
@@ -296,10 +389,18 @@ export function layWords(lay: Lay): string {
   const single = lay.placements.some((pl) => pl.single && lay.folded) ? ' Cut the pieces marked 1 LAYER through the top layer only.' : '';
   const grain = lay.knit
     ? ' Keep every grain line along the ribs, parallel to the fold, so the most stretch runs across the fabric and round the body. Keep the knit flat on the table so it does not stretch as you cut.'
-    : ' Keep every grain line parallel to the selvedge.';
+    : lay.border === 'crosswise'
+      ? ' Keep the grain lines of the pieces without a hem parallel to the selvedge.'
+      : ' Keep every grain line parallel to the selvedge.';
   const bias = lay.bias ? ' The bias pieces lie at 45 degrees across the cloth, so their grain lines run along it: that puts them on the true bias. Cut them through one layer, without stretching the edges.' : '';
   const up = lay.faceDown
     ? ' The pieces marked right side down differ side to side and are cut as the mirror of their pattern: lay them printed side up on the wrong side of the fabric, never turned over.'
     : lay.rightSideUp ? ' The pieces marked right side up differ side to side: lay them printed side up on the right side of the fabric, never turned over.' : '';
-  return `${way}${single}${grain}${bias}${up} The pieces use ${Math.round(lay.efficiency * 100)}% of the fabric.`;
+  const edge =
+    lay.border === 'crosswise'
+      ? ' Border print: the hemmed pieces are turned crosswise, their grain lines across the fabric, with every hem on the border along the far selvedge. Line the border up at the side seams.'
+      : lay.border === 'too-long'
+        ? ` Border print: a piece is longer than the fabric is wide, so it can't be turned to put its hem on the border. It is laid on the straight grain; let the border fall where it lands, or choose a shorter length or a wider fabric.`
+        : '';
+  return `${way}${single}${grain}${bias}${up}${edge} The pieces use ${Math.round(lay.efficiency * 100)}% of the fabric.`;
 }

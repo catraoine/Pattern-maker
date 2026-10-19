@@ -25,6 +25,7 @@ import { Fitting, carriedFitting, describeCarried, describeFitting, saveVersion,
 import { FabricWidth, layPlans } from './engine/layplan';
 import { MyFabric, clothFor, withFabric, withFabricEase } from './engine/fabrics';
 import { SPECIALS, needsNap, withCheckMarks, withSpecialAllowances } from './engine/specialFabrics';
+import { printNap, printOf } from './engine/prints';
 import { layAmount } from './engine/layplan';
 import { withEstimates } from './estimate';
 import { EXAMPLE_VALUES, FormKind, Garment, MeasurementId, MeasurementValues, Unit, checkMeasurements, isComplete } from './measurements';
@@ -498,8 +499,9 @@ export default function App() {
         const cut = withSpecialAllowances(withAllowances(pc, finish.allowances), special);
         return checks ? withCheckMarks(cut) : cut;
       });
-    const nap = finish.nap || needsNap(special);
+    const nap = finish.nap || needsNap(special) || printNap(printOf(fabric));
     const hide = special === 'leather';
+    const border = printOf(fabric) === 'border';
     const couture = finish.allowances === 'couture';
     const fittingNotes = [...fittingLines(ownFitting, garment), ...carriedNotes.map((l) => `${l}.`)];
     // The couture route's cloth follows the recorded fibre; either route opens with preparing the fabric.
@@ -508,7 +510,7 @@ export default function App() {
     if (tee) {
       // Knit allowances (1 cm, 2.5 cm at the hem) whatever the allowance style, and a knit lay.
       const pieces = tee.pieces;
-      const lays = layPlans(pieces, finish.fabricWidth, nap, false, true);
+      const lays = layPlans(pieces, finish.fabricWidth, nap, false, true, border);
       return {
         pieces,
         notes: [
@@ -524,7 +526,7 @@ export default function App() {
     }
     if (outer) {
       const pieces = allow(outer.pieces);
-      const lays = layPlans(pieces, finish.fabricWidth, nap, hide);
+      const lays = layPlans(pieces, finish.fabricWidth, nap, hide, false, border);
       const metres = (f: 'self' | 'lining') => lays.find((l) => l.fabric === f)?.metres;
       const hem = outer.pieces[0].allowances['opening-hem'] ?? 4;
       const kind = outer.kind;
@@ -552,7 +554,7 @@ export default function App() {
     if (trousers) {
       const pieces = allow([...trousers.pieces, trousersWaistband(trousers, 1.5)]);
       const hem = pieces[0].allowances.hem;
-      const lays = layPlans(pieces, finish.fabricWidth, nap, hide);
+      const lays = layPlans(pieces, finish.fabricWidth, nap, hide, false, border);
       const m = values as TrousersMeasurements;
       return {
         pieces,
@@ -591,7 +593,7 @@ export default function App() {
       // The hem is on the flounce below a flounced skirt, and on the bottom tier (2 cm) of a tiered one.
       const hem = pieces.find((pc) => !pc.kind && pc.allowances.hem !== undefined)?.allowances.hem ?? 2;
       // Tiers and the extra godets are cut but not printed.
-      const lays = layPlans([...pieces, ...allow(layoutExtras(skirt))], finish.fabricWidth, nap, hide);
+      const lays = layPlans([...pieces, ...allow(layoutExtras(skirt))], finish.fabricWidth, nap, hide, false, border);
       const metres = (f: 'self' | 'lining', fallback: () => number) => lays.find((l) => l.fabric === f)?.metres ?? fallback();
       return {
         pieces,
@@ -631,7 +633,7 @@ export default function App() {
       const [bf, bb] = blockOf(d.bodice);
       const facings = edges === 'facings' ? (d.bodice.drape ? drapeFacings(d.bodice, !sleeve) : bodiceFacings(bf, bb, !sleeve, d.bodice.collar !== 'mandarin')) : [];
       const pieces = allow([...top, ...(sleeve?.pieces ?? []), ...d.skirt.pieces, ...facings]);
-      const lays = layPlans([...pieces, ...allow(layoutExtras(d.skirt))], finish.fabricWidth, nap, hide);
+      const lays = layPlans([...pieces, ...allow(layoutExtras(d.skirt))], finish.fabricWidth, nap, hide, false, border);
       const metres = (f: 'self' | 'lining' | 'interlining') => lays.find((l) => l.fabric === f)?.metres ?? bodiceFabricMetres(d.bodice, sleeve) + fabricMetres(d.skirt);
       const edgeWords = sleeve
         ? { binding: 'a bias-bound neckline', facings: 'a faced neckline', lined: 'a lined bodice' }[edges]
@@ -682,7 +684,7 @@ export default function App() {
         ? { binding: 'a bias-bound neckline', facings: 'a faced neckline', lined: 'a lined bodice' }[edges]
         : { binding: 'bias-bound edges', facings: 'faced neck and armholes', lined: 'a full lining' }[edges];
       const sleeveWords = sleeve ? `${describeBodice(saved.bodice).replace(/^.* with /, 'With ')}` : 'Sleeveless';
-      const lays = layPlans(pieces, finish.fabricWidth, nap, hide);
+      const lays = layPlans(pieces, finish.fabricWidth, nap, hide, false, border);
       const metres = (f: 'self' | 'lining' | 'interlining') => lays.find((l) => l.fabric === f)?.metres ?? bodiceFabricMetres(bodice);
       return {
         pieces,
@@ -735,9 +737,9 @@ export default function App() {
       notes: [`Read from ${imported.fileName}${source ? `, made in ${source}` : ''}.`, ...notes],
       guide: importedGuide(pieces),
       spec: [],
-      lays: layPlans(pieces, finish.fabricWidth, finish.nap || needsNap(finish.fabric?.special)),
+      lays: layPlans(pieces, finish.fabricWidth, finish.nap || needsNap(finish.fabric?.special) || printNap(printOf(finish.fabric)), false, false, printOf(finish.fabric) === 'border'),
     };
-  }, [imported, finish.fabricWidth, finish.nap, finish.fabric?.special]);
+  }, [imported, finish.fabricWidth, finish.nap, finish.fabric]);
   // Body Double: the padded form cover, drafted from the same 3D body as every form in the app.
   const coverPrintable = useMemo((): Printable | undefined => {
     if ((step !== 'form' && step !== 'formprint') || coverMissing(measured).length) return undefined;
