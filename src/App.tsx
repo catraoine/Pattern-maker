@@ -987,6 +987,7 @@ export default function App() {
           {step === 'steps' && (
             <MeasureStepsScreen
               key={stepsStart.at}
+              testerCode={account.testerCode}
               start={stepsStart.start}
               onSomeoneElse={(name) => setAccount(addPerson(account, name))}
               theirs={person.id !== ME}
@@ -1028,6 +1029,7 @@ export default function App() {
           {step === 'photo' && plansShown() && <PhotoAllowance account={account} onPlans={openPlans} />}
           {step === 'photo' && canPhotoDraft(account) && (
             <PhotoScreen
+              testerCode={account.testerCode}
               measured={canLeaveMeasure}
               body={canLeaveMeasure ? (values as SkirtMeasurements) : undefined}
               unit={saved.unit}
@@ -1072,6 +1074,7 @@ export default function App() {
               onFit={(id, fit) => setAccount(setPatternFit(account, id, fit))}
               onReset={reset}
               sendLink={sendLink}
+              onTesterCode={(testerCode) => setAccount({ ...account, testerCode })}
               onBackup={() => {
                 const url = URL.createObjectURL(new Blob([JSON.stringify(makeBackup(saved, account, pointEdits), null, 2)], { type: 'application/json' }));
                 const a = document.createElement('a');

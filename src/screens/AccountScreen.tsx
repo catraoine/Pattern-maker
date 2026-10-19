@@ -1,4 +1,5 @@
 import { SendToDevice } from '../ui/SendToDevice';
+import { TesterCode } from '../ui/TesterCode';
 import { useMemo, useState, type ReactNode } from 'react';
 import { Account, ME, Person, SavedPattern, activePerson, personName } from '../account';
 import { choicesFlat } from '../collection';
@@ -43,6 +44,8 @@ interface Props {
   onBackup: () => void;
   /** The link that carries everything on this device to another one; see moveLink.ts. */
   sendLink: () => Promise<string>;
+  /** Keep or clear a fit tester's code. */
+  onTesterCode: (code: string | undefined) => void;
   onRestore: (file: File) => Promise<boolean>;
   /** Simple or all tools; all when not given. */
   mode?: Mode;
@@ -74,7 +77,7 @@ function Fold({ id, title, summary, open, children }: { id: string; title: strin
   );
 }
 
-export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurements, onSwitchPerson, onAddPerson, onRemovePerson, onClientBook, onCheckFile, onBodyDouble, onOpen, onRename, onRemove, onFit, onReset, onLegal, onBackup, sendLink, onRestore, mode = 'all', onMode, onPlans }: Props) {
+export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurements, onSwitchPerson, onAddPerson, onRemovePerson, onClientBook, onCheckFile, onBodyDouble, onOpen, onRename, onRemove, onFit, onReset, onLegal, onBackup, sendLink, onTesterCode, onRestore, mode = 'all', onMode, onPlans }: Props) {
   const limit = savedLimit(account);
   const [confirmReset, setConfirmReset] = useState(false);
   const [restoreMsg, setRestoreMsg] = useState('');
@@ -274,6 +277,10 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
               Delete my data and start over
             </button>
           )}
+        </Fold>
+
+        <Fold id="testtitle" title="Fit testing" summary={account.testerCode ? 'Tester code on' : 'For testers'}>
+          <TesterCode code={account.testerCode} onCode={onTesterCode} />
         </Fold>
 
         <Fold id="memtitle" title="Membership" summary={onPlans ? undefined : 'Founding places'}>

@@ -10,8 +10,11 @@ import { ideaChoices, ideaRows, pieceGarment } from '../photo/idea';
 import { isSwimIntimates } from '../photo/swim';
 import { InterestCard } from '../ui/InterestCard';
 import { MAX_IDEA_CHARS, type IdeaReading, type IdeaResponse, type PhotoError } from '../photo/types';
+import { testerHeaders } from '../ui/TesterCode';
 
 interface Props {
+  /** Sent with an idea to read, for a fit tester's larger daily allowance. */
+  testerCode?: string;
   garment: Garment;
   unit: Unit;
   values: MeasurementValues;
@@ -77,7 +80,7 @@ const aOrAn = (name: string) => (/(s|wear|lingerie)$/i.test(name) && !/dress$/i.
 // The first page asks who you are designing for, since "Someone else" words every page for the person holding the
 // tape and asks their name first (Cat's pick V2, 2026-10-17). A tape runs across the top of every page, with
 // Skip at its end wherever measuring can be skipped.
-export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onValues, onDone, start, onSomeoneElse, theirs, onSkip, form = 'womenswear', onForm, onIdea, onPhoto, onNews }: Props) {
+export function MeasureStepsScreen({ testerCode, garment: current, unit, values, onUnit, onValues, onDone, start, onSomeoneElse, theirs, onSkip, form = 'womenswear', onForm, onIdea, onPhoto, onNews }: Props) {
   const aimed = start?.kind === 'for' ? start.garment : undefined;
   // Each page is a history entry, so the header's back and the phone's back go one page back.
   const [page, setPage] = usePageHistory<Page>(() => {
@@ -114,7 +117,7 @@ export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onV
     setAsking(true);
     setIdeaError(undefined);
     try {
-      const res = await fetch('/.netlify/functions/describe-idea', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: idea.trim() }) });
+      const res = await fetch('/.netlify/functions/describe-idea', { method: 'POST', headers: { 'Content-Type': 'application/json', ...testerHeaders(testerCode) }, body: JSON.stringify({ text: idea.trim() }) });
       const data = (await res.json()) as IdeaResponse;
       if (data.ok) setPage({ kind: 'idea', idea: data.idea });
       else setIdeaError(data.error);

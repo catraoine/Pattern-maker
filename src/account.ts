@@ -81,6 +81,8 @@ export interface Account {
   photoDrafts?: { month: string; used: number };
   /** How a dressmaker's measure-me links introduce them to clients. */
   studio?: { name: string; note: string };
+  /** A fit tester's code, checked once and sent with photo readings for the testers' larger allowance. */
+  testerCode?: string;
 }
 
 export const NEW_ACCOUNT: Account = { onboarded: false, name: '', patterns: [] };
