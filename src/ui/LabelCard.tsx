@@ -10,13 +10,15 @@ interface Props {
   code?: string;
   /** The pattern on screen, for the sign-up. */
   pattern: string;
+  /** Keeps the pattern in your patterns, which gives it its code; undefined when it can't be kept (the limit). */
+  onKeep?: () => void;
 }
 
 /**
  * Signature labels (Cat's picks L1 Woven Signature and L4 Print at Home): how the label reads, a free sheet
  * to print at home, and a sign-up for woven labels by post, which aren't open yet.
  */
-export function LabelCard({ name, code, pattern }: Props) {
+export function LabelCard({ name, code, pattern, onKeep }: Props) {
   const who = labelName(name) || 'YOU';
   const [mirror, setMirror] = useState(false);
   const [pdf, setPdf] = useState<{ key: string; bytes: Uint8Array } | null>(null);
@@ -71,7 +73,14 @@ export function LabelCard({ name, code, pattern }: Props) {
           </button>
         </>
       ) : (
-        <p className="muted small">Save this pattern to give it its code, then print labels at home.</p>
+        <>
+          <p className="muted small">Keep this pattern in your patterns to give it its code, then print labels at home.</p>
+          {onKeep && (
+            <button type="button" className="secondary" onClick={onKeep}>
+              Keep in my patterns
+            </button>
+          )}
+        </>
       )}
       <InterestCard offer="labels" pattern={pattern} inset />
     </section>

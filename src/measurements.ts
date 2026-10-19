@@ -270,7 +270,8 @@ const DRESS_FIELDS: MeasurementField[] = [...BODICE_FIELDS, ...SKIRT_FIELDS.filt
 );
 
 /** The T-shirt takes the bodice's girths and lengths it needs, the hip for the hem, and the arms for its
- * sleeves. The armhole and wrist are used when they've been measured. */
+ * sleeves. The armhole, wrist and high bust are used when they've been measured; until the high bust is
+ * taken, the bust shaping is estimated from the full bust (engine/tee.ts, bustShaping). */
 const TEE_IDS: [MeasurementId, boolean][] = [
   ['full_bust', true],
   ['waist', true],
@@ -283,10 +284,12 @@ const TEE_IDS: [MeasurementId, boolean][] = [
   ['upper_arm', true],
   ['armscye', false],
   ['wrist', false],
+  ['high_bust', false],
 ];
+const TEE_OPTIONAL: Partial<Record<MeasurementId, string>> = { wrist: 'For long sleeves.', armscye: 'For a closer armhole.', high_bust: 'For shaping over a fuller bust.' };
 export const TEE_FIELDS: MeasurementField[] = TEE_IDS.map(([id, needed]) => {
   const f = BODICE_FIELDS.find((b) => b.id === id)!;
-  return { ...f, optional: needed ? undefined : id === 'wrist' ? 'For long sleeves.' : 'For a closer armhole.' };
+  return { ...f, optional: needed ? undefined : TEE_OPTIONAL[id] };
 });
 
 /** Lingerie and swimwear take the snug underbust, the crotch length for briefs and one-pieces, and the

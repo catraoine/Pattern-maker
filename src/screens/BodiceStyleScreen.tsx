@@ -18,7 +18,8 @@ import { FinishChoices } from '../ui/FinishChoices';
 import { BodiceShape } from '../ui/BodiceShape';
 import { FabricSwatches, GarmentFabric } from '../ui/FabricFill';
 import type { Side } from '../ui/ShapeSketch';
-import { UndoToast, UndoTools, useUndo } from '../ui/useUndo';
+import { UndoToast, useUndo } from '../ui/useUndo';
+import { DrawMenu } from '../ui/DrawMenu';
 import type { Finish } from '../App';
 import { MyFabric, bodiceFabrics, fabricEase } from '../engine/fabrics';
 import { FabricCard, FabricSummary } from '../ui/FabricCard';
@@ -233,6 +234,8 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
 
   return (
     <StyleLayout
+      onEditMeasurements={onEditMeasurements}
+      undo={undoer}
       label="your bodice"
       name={title}
       metres={draft ? bodiceFabricMetres(draft, sleeve) : undefined}
@@ -335,7 +338,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
         {draft && (
           <TabPanel tab={FABRIC}>
             <FabricCard metres={bodiceFabricMetres(draft, sleeve)} advice={bodiceFabrics(valid)} fabric={fabric}>
-              <FabricSwatches finish={finish} onFinish={onFinish} garment="bodice" />
+              <FabricSwatches finish={finish} onFinish={onFinish} garment="bodice" details />
             </FabricCard>
           </TabPanel>
         )}
@@ -368,20 +371,26 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
           ) : (
             <span />
           )}
-          <UndoTools undo={undoer} />
-        </div>
-        {view === 'sketch' && draft && (
-          <div className="row tools">
-            <button type="button" className="link small" onClick={() => setOnForm(choices)}>
-              Draw on your form
-            </button>
-            {!top && (
-              <button type="button" className={drawing ? 'ghost on' : 'ghost'} aria-pressed={drawing} onClick={() => setDrawing(!drawing)}>
-                {drawing ? 'Done' : 'Draw neck'}
+          {view === 'sketch' && draft &&
+            (drawing ? (
+              <button type="button" className="ghost on" aria-pressed="true" onClick={() => setDrawing(false)}>
+                Done
               </button>
-            )}
-          </div>
-        )}
+            ) : top ? (
+              <button type="button" className="link small" onClick={() => setOnForm(choices)}>
+                Draw on your form
+              </button>
+            ) : (
+              <DrawMenu>
+                <button type="button" onClick={() => setOnForm(choices)}>
+                  Draw on your form
+                </button>
+                <button type="button" onClick={() => setDrawing(true)}>
+                  Draw neck
+                </button>
+              </DrawMenu>
+            ))}
+        </div>
         <div className="preview">
           {error && <p className="msg error">{error}</p>}
           {draft && view === 'sketch' && (
@@ -506,7 +515,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
           Print my pattern
         </button>
         <SaveControl state={saveState} disabled={!draft} onSave={onSave} onAccount={onAccount} />
-        <button type="button" className="link" onClick={onEditMeasurements}>
+        <button type="button" className="link edit-measure" onClick={onEditMeasurements}>
           Edit measurements
         </button>
       </aside>

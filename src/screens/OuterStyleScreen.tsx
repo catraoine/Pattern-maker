@@ -13,7 +13,7 @@ import { MeasurementValues } from '../measurements';
 import { PatternPreview } from '../ui/Preview';
 import { PatternPane } from '../ui/PointEditor';
 import { SaveControl } from '../ui/SaveControl';
-import { UndoToast, UndoTools, useUndo } from '../ui/useUndo';
+import { UndoToast, useUndo } from '../ui/useUndo';
 import { EaseMapView } from '../ui/EaseMapView';
 import { FitSwitch, GarmentViews, PreviewSwitch } from '../ui/PreviewSwitch';
 import type { EaseView } from '../engine/easeMap';
@@ -128,6 +128,8 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
 
   return (
     <StyleLayout
+      onEditMeasurements={onEditMeasurements}
+      undo={undo}
       label={`your ${kind}`}
       name={title}
       metres={draft ? outerFabricMetres(draft) : undefined}
@@ -180,10 +182,10 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           <TabPanel tab={FABRIC}>
             {draft ? (
               <FabricCard metres={outerFabricMetres(draft)} advice={outerFabrics({ garment: kind, fit: choices.fit })} fabric={fabric} lined>
-                {flat && <FabricSwatches finish={finish} onFinish={onFinish} garment={kind} />}
+                {flat && <FabricSwatches finish={finish} onFinish={onFinish} garment={kind} details />}
               </FabricCard>
             ) : (
-              <FabricSwatches finish={finish} onFinish={onFinish} garment={kind} />
+              <FabricSwatches finish={finish} onFinish={onFinish} garment={kind} details />
             )}
           </TabPanel>
         )}
@@ -209,7 +211,6 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
                 Draw on your form
               </button>
             )}
-            <UndoTools undo={undo} />
           </div>
         </div>
         <div className="preview">
@@ -276,7 +277,7 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           Print my pattern
         </button>
         <SaveControl state={saveState} disabled={!draft} onSave={onSave} onAccount={onAccount} />
-        <button type="button" className="link" onClick={onEditMeasurements}>
+        <button type="button" className="link edit-measure" onClick={onEditMeasurements}>
           Edit measurements
         </button>
       </aside>

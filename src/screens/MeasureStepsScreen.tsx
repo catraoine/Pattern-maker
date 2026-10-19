@@ -4,14 +4,18 @@ import { BASE, baseDone, fullSetMissing, GARMENT_NAME, GARMENTS, labelOf, missin
 import { FormPicture, TapeDemo } from '../ui/ContourForm';
 import { canGoBack, goBack, usePageHistory } from '../nav';
 import { TapeBand } from '../ui/TapeBand';
+import { estimateOne } from '../estimate';
 import { Title } from '../ui/Title';
 import type { PatternChoices } from '../garments';
 import { ideaChoices, ideaRows, pieceGarment } from '../photo/idea';
 import { isSwimIntimates } from '../photo/swim';
 import { InterestCard } from '../ui/InterestCard';
 import { MAX_IDEA_CHARS, type IdeaReading, type IdeaResponse, type PhotoError } from '../photo/types';
+import { testerHeaders } from '../ui/TesterCode';
 
 interface Props {
+  /** Sent with an idea to read, for a fit tester's larger daily allowance. */
+  testerCode?: string;
   garment: Garment;
   unit: Unit;
   values: MeasurementValues;
@@ -77,7 +81,7 @@ const aOrAn = (name: string) => (/(s|wear|lingerie)$/i.test(name) && !/dress$/i.
 // The first page asks who you are designing for, since "Someone else" words every page for the person holding the
 // tape and asks their name first (Cat's pick V2, 2026-10-17). A tape runs across the top of every page, with
 // Skip at its end wherever measuring can be skipped.
-export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onValues, onDone, start, onSomeoneElse, theirs, onSkip, form = 'womenswear', onForm, onIdea, onPhoto, onNews }: Props) {
+export function MeasureStepsScreen({ testerCode, garment: current, unit, values, onUnit, onValues, onDone, start, onSomeoneElse, theirs, onSkip, form = 'womenswear', onForm, onIdea, onPhoto, onNews }: Props) {
   const aimed = start?.kind === 'for' ? start.garment : undefined;
   // Each page is a history entry, so the header's back and the phone's back go one page back.
   const [page, setPage] = usePageHistory<Page>(() => {
@@ -114,7 +118,7 @@ export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onV
     setAsking(true);
     setIdeaError(undefined);
     try {
-      const res = await fetch('/.netlify/functions/describe-idea', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: idea.trim() }) });
+      const res = await fetch('/.netlify/functions/describe-idea', { method: 'POST', headers: { 'Content-Type': 'application/json', ...testerHeaders(testerCode) }, body: JSON.stringify({ text: idea.trim() }) });
       const data = (await res.json()) as IdeaResponse;
       if (data.ok) setPage({ kind: 'idea', idea: data.idea });
       else setIdeaError(data.error);
@@ -211,7 +215,9 @@ export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onV
   if (page.kind === 'check')
     return (
       <Shell eyebrow={returning ? 'Welcome back' : helper ? 'Their base measurements' : 'Your base measurements'} title="Do these look right?" hero={<TapeDemo id="waist" name="" mode="all" kind={form} />}>
-        {returning && <p className="muted step-tip">{helper ? 'Their' : 'Your'} measurements are saved on this device. Check they still look right, then carry on.</p>}
+        <p className="muted step-tip">
+          {returning ? `${helper ? 'Their' : 'Your'} measurements are saved on this device. Check they still look right, then carry on. ` : ''}Tap a number to change it.
+        </p>
         <ul className="check-list" aria-label="Tap one to change it">
           {BASE.map((id, at) => (
             <li key={id}>
@@ -245,7 +251,7 @@ export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onV
           ))}
         </div>
         <button type="button" className="primary" disabled={!picked} onClick={() => picked && go(picked)}>
-          Continue measurements
+          {chooseLabel(picked, values, form)}
         </button>
       </Shell>
     );
@@ -333,7 +339,7 @@ export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onV
         </ul>
         <p className="muted step-tip">{more ? `It needs ${more} more measurement${more === 1 ? '' : 's'}.` : 'You can change any of it when you style it.'}</p>
         <button type="button" className="primary" onClick={() => onIdea?.(choices)}>
-          {more ? 'Continue measurements' : `Style your ${GARMENT_NAME[g]}`}
+          {more ? `Next: ${more} ${GARMENT_NAME[g]} measurement${more === 1 ? '' : 's'}` : `Style your ${GARMENT_NAME[g]}`}
         </button>
         <p className="idea-again">
           <button type="button" className="link quiet" onClick={closest ? choose : back}>
@@ -360,7 +366,7 @@ export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onV
   const id = ids[at];
   const last = at === ids.length - 1;
   const g = page.kind === 'extra' ? page.garment : null;
-  const eyebrow = page.kind === 'base' ? `${at + 1} of ${ids.length}` : g === 'other' ? 'Full set' : cap(GARMENT_NAME[g!]);
+  const eyebrow = `${page.kind === 'base' ? '' : g === 'other' ? 'Full set · ' : `${cap(GARMENT_NAME[g!])} · `}${at + 1} of ${ids.length}`;
   const label =
     (page.kind === 'base' && page.back === 'check') || (page.kind === 'extra' && page.redo && last) ? 'Save' : page.kind === 'extra' && page.redo ? 'Next' : page.kind === 'base' || g === 'other' ? (last ? 'Done' : 'Next') : last ? `Next: style your ${GARMENT_NAME[g!]}` : 'Next';
   const next = () => {
@@ -392,8 +398,18 @@ export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onV
       onNext={next}
       label={label}
       skip={onSkip && !(page.kind === 'base' && page.back) && !(page.kind === 'extra' && page.redo) ? () => onSkip(g && g !== 'other' ? g : undefined) : undefined}
+      skipRest={!(page.kind === 'base' && at === 0)}
+      canEstimate={page.kind === 'extra'}
     />
   );
+}
+
+/** What the button on "What would you like to make?" leads to, so it reads as the next step. */
+function chooseLabel(picked: Pick | null, values: MeasurementValues, form: FormKind): string {
+  if (!picked) return 'Choose a garment';
+  if (picked === 'other') return 'Next: describe it';
+  const n = missingFor(picked, values, form).length;
+  return n ? `Next: ${n} ${GARMENT_NAME[picked]} measurement${n === 1 ? '' : 's'}` : `Style my ${GARMENT_NAME[picked]}`;
 }
 
 export function Shell({
@@ -403,6 +419,7 @@ export function Shell({
   dots,
   short,
   skip,
+  skipRest,
   children,
 }: {
   /** A small line above the title, only where it tells you something (which step, which garment). */
@@ -412,6 +429,8 @@ export function Shell({
   hero?: ReactNode;
   /** Skip at the end of the tape. */
   skip?: () => void;
+  /** Some measurements are taken already, so Skip fills in only the rest. */
+  skipRest?: boolean;
   dots?: [number, number];
   /** A shorter form on top, so a longer list fits above its button. */
   short?: boolean;
@@ -420,7 +439,7 @@ export function Shell({
   return (
     <div className="welcome">
       <section className={short ? 'card welcome-card measure-step short' : 'card welcome-card measure-step'} aria-labelledby="stitle">
-        <TapeBand onSkip={skip} />
+        <TapeBand onSkip={skip} rest={skipRest} />
         {hero && (
           <div className="welcome-hero">
             {hero}
@@ -463,6 +482,8 @@ export function MeasurePage({
   onNext,
   label,
   skip,
+  skipRest,
+  canEstimate,
 }: {
   id: MeasurementId;
   eyebrow: string;
@@ -477,8 +498,13 @@ export function MeasurePage({
   onNext: () => void;
   label: string;
   skip?: () => void;
+  skipRest?: boolean;
+  /** A garment's own measurement, which can be estimated from the base ones when you're not sure. */
+  canEstimate?: boolean;
 }) {
   const fieldLabel = labelOf(id, form);
+  const guess = canEstimate ? estimateOne(id, values, form) : undefined;
+  const [estimated, setEstimated] = useState(false);
   const [text, setText] = useState<string | null>(null);
   const [tried, setTried] = useState(false);
   const [how, setHow] = useState(false);
@@ -492,6 +518,7 @@ export function MeasurePage({
 
   const type = (t: string) => {
     setText(t);
+    setEstimated(false);
     const n = parseFloat(t.replace(',', '.'));
     const v = { ...values };
     if (Number.isNaN(n)) delete v[id];
@@ -500,7 +527,7 @@ export function MeasurePage({
   };
 
   return (
-    <Shell eyebrow={eyebrow} title={titleOf(id, helper, form)} dots={dots} skip={skip} hero={<TapeDemo id={id} name={titleOf(id, false, form).replace(/^Your /, '')} kind={form} />}>
+    <Shell eyebrow={eyebrow} title={titleOf(id, helper, form)} dots={dots} skip={skip} skipRest={skipRest} hero={<TapeDemo id={id} name={titleOf(id, false, form).replace(/^Your /, '')} kind={form} />}>
       <p className="muted step-tip">{tipOf(id, helper, form)}</p>
       <button type="button" className="link quiet how-link" aria-expanded={how} onClick={() => setHow(true)}>
         How to do it
@@ -549,6 +576,25 @@ export function MeasurePage({
           <p id="step-msg" className="msg error">
             {note.message}
           </p>
+        )}
+        {estimated && value !== undefined ? (
+          <p className="muted small estimate-note">Estimated from your other measurements. Swap in your own when you can, for a closer fit.</p>
+        ) : (
+          guess !== undefined &&
+          value === undefined && (
+            <button
+              type="button"
+              className="link quiet estimate-link"
+              onClick={() => {
+                setText(null);
+                setTried(false);
+                setEstimated(true);
+                onValues({ ...values, [id]: guess });
+              }}
+            >
+              Not sure? Estimate it for me
+            </button>
+          )
         )}
         <button type="submit" className="primary step-next">
           {label}

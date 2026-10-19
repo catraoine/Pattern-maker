@@ -3,7 +3,8 @@
 // along it. The tiles are drawn by scripts/fabric-textures.py.
 import { CSSProperties, ReactNode, useId, useState } from 'react';
 import type { Finish } from '../App';
-import { FIBRES, FIBRE_IDS, MyFabric, clothFor } from '../engine/fabrics';
+import { FIBRES, FIBRE_IDS, FabricGarment, MyFabric, clothFor } from '../engine/fabrics';
+import { FabricDetails } from './FabricDetails';
 import { SPECIALS, Special } from '../engine/specialFabrics';
 import { colourHex, coloursFor, shopFabric, shopFabricsFor, withShopFabric } from '../engine/shopFabrics';
 
@@ -97,7 +98,8 @@ export function GarmentFabric({ fabric, children }: { fabric: MyFabric | undefin
 }
 
 /** Under the sketch: None, then the fabric types or the partner shops' fabrics, then the colours for the one chosen. */
-export function FabricSwatches({ finish, onFinish, garment }: { finish: Finish; onFinish: (f: Finish) => void; garment: string }) {
+/** The Fabric tab's swatches; `details` adds the folded "About your fabric" under them, the one place it's asked. */
+export function FabricSwatches({ finish, onFinish, garment, details }: { finish: Finish; onFinish: (f: Finish) => void; garment: FabricGarment; details?: boolean }) {
   const fabric = finish.fabric;
   const chosen = flatId(fabric);
   const label = fabricLabel(fabric);
@@ -203,6 +205,7 @@ export function FabricSwatches({ finish, onFinish, garment }: { finish: Finish; 
           })}
         </div>
       )}
+      {details && <FabricDetails fabric={fabric} garment={garment} onFabric={(f) => onFinish({ ...finish, fabric: f, cloth: clothFor(f, finish.cloth) })} />}
     </div>
   );
 }

@@ -81,6 +81,8 @@ export interface Account {
   photoDrafts?: { month: string; used: number };
   /** How a dressmaker's measure-me links introduce them to clients. */
   studio?: { name: string; note: string };
+  /** A fit tester's code, checked once and sent with photo readings for the testers' larger allowance. */
+  testerCode?: string;
 }
 
 export const NEW_ACCOUNT: Account = { onboarded: false, name: '', patterns: [] };
@@ -203,10 +205,12 @@ export interface Backup<S> {
   savedAt: string;
   skirt: S;
   account: Account;
+  /** Points moved on the flat pattern, per garment. Missing from backups made before they were kept. */
+  pointEdits?: Record<string, unknown[]>;
 }
 
-export function makeBackup<S>(skirt: S, account: Account): Backup<S> {
-  return { app: 'pattern-maker', version: 1, savedAt: new Date().toISOString(), skirt, account };
+export function makeBackup<S>(skirt: S, account: Account, pointEdits?: Record<string, unknown[]>): Backup<S> {
+  return { app: 'pattern-maker', version: 1, savedAt: new Date().toISOString(), skirt, account, ...(pointEdits && Object.keys(pointEdits).length ? { pointEdits } : {}) };
 }
 
 /** Read a backup file's text; returns null when it isn't a Maison Tracé backup. */

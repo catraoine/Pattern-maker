@@ -16,6 +16,7 @@ import { lingerieFabrics } from '../engine/knits';
 import { FabricCard, FabricSummary } from '../ui/FabricCard';
 import type { Mode } from '../mode';
 import { FABRIC, Group, LOOKS, StyleLayout, TabPanel } from '../ui/StyleLayout';
+import { FabricDetails } from '../ui/FabricDetails';
 
 interface Props {
   onPhoto?: () => void;
@@ -32,6 +33,7 @@ interface Props {
   onSave: () => void;
   onAccount: () => void;
   fabric?: MyFabric;
+  onFabric?: (f: MyFabric) => void;
   mode?: Mode;
   onMode?: (m: Mode) => void;
 }
@@ -63,7 +65,7 @@ const WARNINGS: Record<string, string> = {
   'torso loop': 'Your torso loop is far from what your other measurements suggest, so the body is only partly lengthened to match it. Please measure it again with someone holding the tape.',
 };
 
-export function LingerieStyleScreen({ onPhoto, photo, choices, onChoices: setChoices, onChooseGarment, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, fabric, mode = 'all', onMode }: Props) {
+export function LingerieStyleScreen({ onPhoto, photo, choices, onChoices: setChoices, onChooseGarment, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, fabric, onFabric, mode = 'all', onMode }: Props) {
   const undo = useUndo(choices, setChoices);
   const onChoices = undo.change;
   const pieces = useMemo(() => draft?.pieces ?? [], [draft]);
@@ -144,7 +146,9 @@ export function LingerieStyleScreen({ onPhoto, photo, choices, onChoices: setCho
         </Group>
         {draft && (
           <TabPanel tab={FABRIC}>
-            <FabricCard metres={lingerieFabricMetres(draft)} advice={lingerieFabrics(draft.style)} fabric={fabric} knit />
+            <FabricCard metres={lingerieFabricMetres(draft)} advice={lingerieFabrics(draft.style)} fabric={fabric} knit>
+              {onFabric && <FabricDetails fabric={fabric} garment="lingerie" onFabric={onFabric} />}
+            </FabricCard>
           </TabPanel>
         )}
       </section>

@@ -12,7 +12,8 @@ import { PatternPreview } from '../ui/Preview';
 import { PatternPane } from '../ui/PointEditor';
 import { ShapeSketch, Side } from '../ui/ShapeSketch';
 import { FabricSwatches, GarmentFabric } from '../ui/FabricFill';
-import { UndoToast, UndoTools, useUndo } from '../ui/useUndo';
+import { UndoToast, useUndo } from '../ui/useUndo';
+import { DrawMenu } from '../ui/DrawMenu';
 import { SaveControl } from '../ui/SaveControl';
 import { FinishChoices } from '../ui/FinishChoices';
 import type { Finish } from '../App';
@@ -284,6 +285,8 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
 
   return (
     <StyleLayout
+      onEditMeasurements={onEditMeasurements}
+      undo={undoer}
       label="your skirt"
       name={title}
       metres={draft ? fabricMetres(draft) : undefined}
@@ -402,7 +405,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
         {draft && (
           <TabPanel tab={FABRIC}>
             <FabricCard metres={fabricMetres(draft)} advice={skirtFabrics(choices)} look={currentLook(choices)} fabric={fabric}>
-              <FabricSwatches finish={finish} onFinish={onFinish} garment="skirt" />
+              <FabricSwatches finish={finish} onFinish={onFinish} garment="skirt" details />
             </FabricCard>
           </TabPanel>
         )}
@@ -441,28 +444,30 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
           ) : (
             <span />
           )}
-          <UndoTools undo={undoer} />
+          {view === 'sketch' && draft &&
+            (drawing ? (
+              <button type="button" className="ghost on" aria-pressed="true" onClick={() => setDrawing(false)}>
+                Done
+              </button>
+            ) : (
+              <DrawMenu>
+                <button type="button" onClick={() => setOnForm(choices)}>
+                  Draw on your form
+                </button>
+                {/* Pleats, godets and flounces are drafted on a level hem. */}
+                {volumeOf(choices) === 'none' && (
+                  <button type="button" onClick={() => setDrawing(true)}>
+                    Draw hem
+                  </button>
+                )}
+                {isShaped(choices.hem) && (
+                  <button type="button" onClick={() => change({ ...choices, hem: undefined })}>
+                    Straighten hem
+                  </button>
+                )}
+              </DrawMenu>
+            ))}
         </div>
-        {view === 'sketch' && draft && (
-          <div className="row tools">
-            {!drawing && (
-              <button type="button" className="link small" onClick={() => setOnForm(choices)}>
-                Draw on your form
-              </button>
-            )}
-            {isShaped(choices.hem) && !drawing && (
-              <button type="button" className="link small" onClick={() => change({ ...choices, hem: undefined })}>
-                Straighten hem
-              </button>
-            )}
-            {/* Pleats, godets and flounces are drafted on a level hem. */}
-            {volumeOf(choices) === 'none' && (
-              <button type="button" className={drawing ? 'ghost on' : 'ghost'} aria-pressed={drawing} onClick={() => setDrawing(!drawing)}>
-                {drawing ? 'Done' : 'Draw hem'}
-              </button>
-            )}
-          </div>
-        )}
         <div className="preview">
           {error && <p className="msg error">{error}</p>}
           {draft && sheet && view === 'sketch' && (
@@ -573,7 +578,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
           Print my pattern
         </button>
         <SaveControl state={saveState} disabled={!draft} onSave={onSave} onAccount={onAccount} />
-        <button type="button" className="link" onClick={onEditMeasurements}>
+        <button type="button" className="link edit-measure" onClick={onEditMeasurements}>
           Edit measurements
         </button>
       </aside>

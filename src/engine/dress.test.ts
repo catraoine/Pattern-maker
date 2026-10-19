@@ -105,4 +105,14 @@ describe('the dress', () => {
       }
     }
   });
+
+  it('hems an A-line dress skirt narrowly, and a pencil one deep, and says so in the steps', () => {
+    const body = randomBody(rng(7));
+    for (const [silhouette, depth, more] of [['a_line', 2, 1], ['pencil', 4, 3]] as const) {
+      const d = draftDress(body, {}, { silhouette, length: 'knee' });
+      expect(d.skirt.pieces[0].allowances.hem).toBe(depth);
+      const hem = dressGuide(d, { silhouette, length: 'knee' }, 2, 0.5).steps.find((s) => s.title === 'Hem')!;
+      expect(hem.text).toMatch(new RegExp(`^Press up 1 cm, then ${more} cm more`));
+    }
+  });
 });

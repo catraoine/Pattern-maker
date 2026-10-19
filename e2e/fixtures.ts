@@ -133,7 +133,8 @@ export async function pickToMake(page: Page, g: GarmentName) {
   const choice = main(page).getByRole('radiogroup', { name: 'What would you like to make?' }).getByRole('radio', { name: new RegExp(`^${pickName(g)}\\b`) });
   await choice.click();
   await expect(choice).toHaveAttribute('aria-checked', 'true');
-  await main(page).getByRole('button', { name: 'Continue measurements' }).click();
+  // The button says what comes next: the measurements it still needs, or straight to styling it.
+  await main(page).getByRole('button', { name: /^(Next: \d+ .+ measurements?|Style my .+)$/ }).click();
 }
 
 /** Wait for the style screen of a garment. */
@@ -171,8 +172,9 @@ export async function addCloserFit(page: Page, g: GarmentName) {
 }
 
 /**
- * On a style screen, open the tab a group of choices is on: its own tab, or the Looks, Fabric or Pro tab it
- * shares. Elsewhere, and when the group already shows, it just returns the group.
+ * On a style screen, open the tab a group of choices is on: its own tab, or the tab it shares (Shape, Neck &
+ * sleeves, Length & hem, Details, Looks, Fabric, Pro). Elsewhere, and when the group already shows, it just
+ * returns the group.
  */
 export async function openGroup(page: Page, name: string) {
   const group = main(page).getByRole('group', { name, exact: true });
@@ -181,14 +183,34 @@ export async function openGroup(page: Page, name: string) {
   const own = tabs.getByRole('tab', { name, exact: true });
   if (await own.count()) await own.click();
   else
-    for (const shared of ['Pro', 'Looks', 'Fabric']) {
-      const tab = tabs.getByRole('tab', { name: shared, exact: true });
-      if (!(await tab.count())) continue;
+    for (const tab of await tabs.getByRole('tab').all()) {
       await tab.click();
       if (await group.isVisible()) break;
     }
   await expect(group).toBeVisible();
   return group;
+}
+
+/** "Show all tools": on a style screen it sits under the last tab only, so open that tab first. */
+export async function showAllTools(page: Page) {
+  const all = main(page).getByRole('button', { name: 'Show all tools' });
+  const tabs = main(page).getByRole('tablist', { name: 'Style choices' });
+  if (!(await all.isVisible()) && (await tabs.isVisible())) await tabs.getByRole('tab').last().click();
+  return all;
+}
+
+/** "Draw on your form" (or another way to draw): on the skirt and bodice it sits in the Draw list. */
+export async function drawTool(page: Page, name = 'Draw on your form') {
+  const tool = main(page).getByRole('button', { name, exact: true });
+  if (!(await tool.isVisible())) await main(page).locator('.drawmenu > summary').click();
+  return tool;
+}
+
+/** On the print screen, open "Extras for this pattern", where the offers and the label card are folded. */
+export async function openExtras(page: Page) {
+  const extras = main(page).locator('details.extras');
+  if (!(await extras.evaluate((d) => (d as HTMLDetailsElement).open))) await extras.locator('summary').click();
+  return extras;
 }
 
 /**

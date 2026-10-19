@@ -13,6 +13,8 @@ interface Props {
   form?: FormKind;
   /** Opens the Terms of Use or the Privacy Policy. */
   onLegal: (page: 'terms' | 'privacy') => void;
+  /** Someone coming back with their measurements taken: the garment they were on, and the ways back in. */
+  resume?: { garment: string; onResume: () => void; onSaved: () => void; onNew: () => void };
 }
 
 /** How long Begin's tape takes to unroll, clear the form and rise to the top of the measuring page. */
@@ -24,7 +26,9 @@ const LEAVE_MS = 1700;
 // Corner), the form fades, and the tape rises to where the measuring page's tape sits, so the next page
 // carries straight on from it.
 // The name is asked only when measuring someone else, on the first measuring page.
-export function WelcomeScreen({ onFinish, formStart, form, onLegal }: Props) {
+// Coming back with measurements already taken, the button carries on with the garment you were on, straight
+// to its style screen, with a quiet way to your saved patterns or something new under it.
+export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume }: Props) {
   const [touring, setTouring] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const done = useRef(onFinish);
@@ -65,12 +69,29 @@ export function WelcomeScreen({ onFinish, formStart, form, onLegal }: Props) {
           <span className="tape-tip" aria-hidden="true" />
           {leaving && <TapeBand className="unrolling" />}
         </div>
-        <Title id="wtitle" big="Sewing patterns" label="drafted to your body" />
-        <div className="stack">
-          <button type="button" className="primary" onClick={begin}>
-            Begin
-          </button>
-        </div>
+        <Title id="wtitle" big="Sewing patterns" label={resume ? 'Welcome back' : 'drafted to your body'} />
+        {resume ? (
+          <div className="stack">
+            <button type="button" className="primary" onClick={resume.onResume}>
+              Carry on with your {resume.garment}
+            </button>
+            <p className="resume-more">
+              <button type="button" className="link quiet" onClick={resume.onSaved}>
+                Saved patterns
+              </button>
+              <span aria-hidden="true">·</span>
+              <button type="button" className="link quiet" onClick={resume.onNew}>
+                Start something new
+              </button>
+            </p>
+          </div>
+        ) : (
+          <div className="stack">
+            <button type="button" className="primary" onClick={begin}>
+              Begin
+            </button>
+          </div>
+        )}
         <p className="fineprint">
           By continuing you agree to our{' '}
           <button type="button" className="inline-link" onClick={() => onLegal('terms')}>

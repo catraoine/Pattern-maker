@@ -12,7 +12,8 @@ import type { Cloth } from './couture';
 import type { SewingGuide } from './instructions';
 import { VolumeStyle, volumeFabrics, volumeWarnings, volumeWords } from './skirtVolume';
 import { LingerieFabricStyle, TeeFabricStyle, lingerieFabrics, teeFabrics, teeWarnings } from './knits';
-import { Checks, SPECIALS, Special, checksLines, specialLines, specialWarnings } from './specialFabrics';
+import { PrintKind, printCut, printLines, printOf } from './prints';
+import { Checks, SPECIALS, Special, specialLines, specialWarnings } from './specialFabrics';
 
 export type Weight = 'light' | 'medium' | 'heavy';
 export type Drape = 'crisp' | 'soft' | 'fluid';
@@ -31,6 +32,10 @@ export interface MyFabric {
   special?: Special;
   /** Checks or stripes to match at the seams. */
   checks?: Checks;
+  /** What is printed on it, from the print picker. Checks also set `checks`. */
+  print?: PrintKind;
+  /** Big motifs: the repeat in cm, from one motif to the same point on the next. */
+  motif?: { repeat?: number };
   /** Adjust the ease for this fabric. On unless turned off. */
   matchEase?: boolean;
   /** The partner shop fabric it was picked from (shopFabrics.ts). */
@@ -554,9 +559,12 @@ export function describeFabric(f: MyFabric | undefined): string | undefined {
   return [traits, fibre].filter(Boolean).join(' ') || undefined;
 }
 
+/** The print's repeat in cm, when the maker entered one. */
+export const printRepeat = (f: MyFabric | undefined) => (printOf(f) === 'checks' ? f?.checks?.repeat : f?.motif?.repeat);
+
 /** Lines describing the fabric, for the PDF and the tech pack. Empty when nothing is recorded. */
 export function fabricLines(f: MyFabric | undefined, garment: FabricGarment): string[] {
-  if (!f || (!describeFabric(f) && !f.checks)) return [];
+  if (!f || (!describeFabric(f) && !printOf(f))) return [];
   const name = f.name?.trim();
   const lines: string[] = [];
   if (name) lines.push(`Fabric: ${name}${f.colour?.trim() ? `, ${f.colour.trim()}` : ''}`);
@@ -573,7 +581,7 @@ export function fabricLines(f: MyFabric | undefined, garment: FabricGarment): st
     lines.push(`Press: ${FIBRES[f.fibre].press}`);
   }
   if (fabricEase(f, garment).hip) lines.push(`Ease: ${easeWords(f, garment)}, for the ${f.special ? SPECIALS[f.special].label.toLowerCase() : 'heavy cloth'}.`);
-  lines.push(...checksLines(f.checks, garment));
+  lines.push(...printLines(printOf(f), printRepeat(f), garment));
   return lines;
 }
 
@@ -594,14 +602,17 @@ export function prepareStep(f: MyFabric | undefined): { title: string; text: str
   };
 }
 
+const CUT_TITLES: Partial<Record<PrintKind, string>> = { checks: 'Match the checks', motif: 'Place the motifs', border: 'Lay the border', oneway: 'Lay the one-way print' };
+
 /** A cutting step for a special cloth or checks, after preparing it. */
 function cutStep(f: MyFabric | undefined): { title: string; text: string }[] {
-  if (!f?.special && !f?.checks) return [];
-  const s = f.special && SPECIALS[f.special];
-  const text = [s?.cut, f.checks && 'Put every piece on the same check line, and line the checks up at the side seams, centre back and the waist, matching at the notches.', s?.sew]
-    .filter(Boolean)
-    .join(' ');
-  return [{ title: s ? `Cut the ${s.label.toLowerCase()}` : 'Match the checks', text }];
+  const kind = printOf(f);
+  const print = printCut(kind);
+  if (!f?.special && !print) return [];
+  const s = f?.special && SPECIALS[f.special];
+  const text = [s?.cut, print, s?.sew].filter(Boolean).join(' ');
+  const title = s ? `Cut the ${s.label.toLowerCase()}` : CUT_TITLES[kind!] ?? 'Lay the print';
+  return [{ title, text }];
 }
 
 /** The sewing guide with the fabric named in the notions, its details listed, and the prepare step first. */

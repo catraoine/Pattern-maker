@@ -71,8 +71,12 @@ export function InterestCard({ offer, pattern, city, inset, children, choice }: 
               </span>
             </label>
           )}
+          {/* Labelled like the measurement boxes, so the line reads as a place to write. */}
+          <label className="email-label" htmlFor={`${id}-email`}>
+            Your email
+          </label>
           <form className="row" onSubmit={submit}>
-            <input type="email" required autoComplete="email" aria-label="Your email" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <input id={`${id}-email`} type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
             <input className="hp" tabIndex={-1} autoComplete="off" aria-hidden="true" value={website} onChange={(e) => setWebsite(e.target.value)} />
             <button type="submit" className="secondary" disabled={state === 'sending'}>
               {state === 'sending' ? 'Sending…' : o.button}

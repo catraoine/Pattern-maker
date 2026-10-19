@@ -5,7 +5,7 @@ import { createHash } from 'node:crypto';
 import Anthropic from '@anthropic-ai/sdk';
 import { getStore } from '@netlify/blobs';
 import { checkIdea, describeIdea, wishKey } from '../../src/photo/describe';
-import { takeAllowance, type Allowance, type CountStore } from '../../src/photo/limit';
+import { TESTER_CAPS, TESTER_POOL, isTesterCode, takeAllowance, type Allowance, type CountStore } from '../../src/photo/limit';
 
 // Provided by the Netlify runtime.
 declare const Netlify: { env: { get(name: string): string | undefined } };
@@ -35,7 +35,11 @@ export default async (req: Request, context: { ip?: string }) => {
   if (key) {
     let allowance: Allowance = 'ok';
     try {
-      allowance = await takeAllowance(counts('describe-limits'), visitorId(context.ip));
+      // A fit tester's code (sent from Your account) counts them in the testers' own, larger allowance.
+      const tester = isTesterCode(req.headers.get('x-tester-code'), Netlify.env.get('TESTER_CODES'));
+      allowance = tester
+        ? await takeAllowance(counts('describe-limits'), visitorId(context.ip), new Date(), TESTER_CAPS, TESTER_POOL)
+        : await takeAllowance(counts('describe-limits'), visitorId(context.ip));
     } catch (e) {
       // If the counter can't be reached, still read it; the prepaid credit stays the hard cap.
       console.error('describe limit check failed', e);

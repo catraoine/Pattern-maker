@@ -44,15 +44,16 @@ export function useUndo<T>(choices: T, onChoices: (c: T) => void) {
 /** What the Undo and Redo buttons and toast need, whatever the choices are. */
 export type Undo = Omit<ReturnType<typeof useUndo<unknown>>, 'change'>;
 
-/** Undo and Redo beside the preview tabs, always there so nothing moves; greyed out when there's nothing to do. */
+/** Undo and Redo in the bar at the bottom of the style screen, beside Review, where the thumb already is; always
+ * there so nothing moves, greyed out when there's nothing to do. */
 export function UndoTools({ undo }: { undo: Undo }) {
   return (
-    <div className="row tools">
-      <button type="button" className="ghost" onClick={undo.undo} disabled={!undo.canUndo} aria-label="Undo the last change">
-        Undo
+    <div className="row tools undotools">
+      <button type="button" className="ghost" onClick={undo.undo} disabled={!undo.canUndo} aria-label="Undo the last change" title="Undo">
+        ↶
       </button>
-      <button type="button" className="ghost" onClick={undo.redo} disabled={!undo.canRedo} aria-label="Redo the change you undid">
-        Redo
+      <button type="button" className="ghost" onClick={undo.redo} disabled={!undo.canRedo} aria-label="Redo the change you undid" title="Redo">
+        ↷
       </button>
     </div>
   );

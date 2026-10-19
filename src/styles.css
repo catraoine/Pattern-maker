@@ -1974,6 +1974,9 @@ details.more[open] > summary h2::after {
   stroke: var(--guide);
   stroke-width: 0.2;
 }
+.layplan .lay-border-ground {
+  fill: #ece6da;
+}
 .layplan .lay-fold {
   stroke: var(--muted);
   stroke-width: 0.3;
@@ -1989,6 +1992,10 @@ details.more[open] > summary h2::after {
   stroke: #1a1712;
   stroke-width: 0.2;
   stroke-linejoin: round;
+}
+/* With a print chosen the paper is tracing paper, so the motifs show through where the pieces sit. */
+.layplan.lay-printed .lay-piece {
+  fill-opacity: 0.38;
 }
 .layplan .lay-paper-dots {
   pointer-events: none;
@@ -2254,7 +2261,7 @@ button.link.how-link {
   text-underline-offset: 5px;
 }
 
-/* What to make: boxes two across, one choice, then Continue measurements */
+/* What to make: boxes two across, one choice, then the next step */
 .make-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -2561,17 +2568,20 @@ button.step-next {
 .yourfabric p {
   margin: 0;
 }
-.yourfabric .special {
+.yourfabric .special,
+.fabric-more .special {
   display: grid;
   gap: 8px;
   margin: 0;
   padding-top: 12px;
   border-top: 1px solid var(--line);
 }
-.yourfabric .special dt {
+.yourfabric .special dt,
+.fabric-more .special dt {
   font-weight: var(--w-strong);
 }
-.yourfabric .special dd {
+.yourfabric .special dd,
+.fabric-more .special dd {
   margin: 0;
 }
 /* The fabric page: a headline in the narrow heading capitals, a close-up of the cloth and photo swatches. */
@@ -2612,50 +2622,6 @@ button.step-next {
   letter-spacing: var(--track);
   font-size: 12px;
   color: var(--gild);
-}
-.yourfabric .swatches {
-  display: flex;
-  gap: 10px;
-  overflow-x: auto;
-  scroll-snap-type: x proximity;
-  padding-bottom: 4px;
-  scrollbar-width: thin;
-  overscroll-behavior-x: contain; /* a swipe along the row never turns into the browser's back gesture */
-}
-.yourfabric .swatch {
-  flex: 0 0 76px;
-  display: grid;
-  gap: 6px;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--muted);
-  font-family: var(--mono);
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  text-align: center;
-  cursor: pointer;
-  scroll-snap-align: start;
-  -webkit-user-select: none;
-  user-select: none;
-  -webkit-touch-callout: none;
-}
-.yourfabric .swatch img {
-  display: block;
-  width: 76px;
-  height: 76px;
-  object-fit: cover;
-  border: var(--bw) solid var(--line-strong);
-}
-.yourfabric .swatch.on {
-  color: var(--gild);
-}
-.yourfabric .swatch.on img {
-  border-color: var(--gild);
-  box-shadow: inset 0 0 0 1px var(--gild);
-  outline: 1px solid var(--gild);
-  outline-offset: 2px;
 }
 dialog.guide {
   width: min(560px, calc(100vw - 24px));
@@ -5379,7 +5345,8 @@ input.inline:focus,
 }
 
 /* drawn with borders, not a character, so the row's name stays just its label and number */
-.measure-list .check-list button > :last-child::after {
+.measure-list .check-list button > :last-child::after,
+.measure-step .check-list button > :last-child::after {
   content: '';
   display: inline-block;
   width: 6px;
@@ -5721,4 +5688,220 @@ input.inline:focus,
 }
 .fitq > p {
   margin: 0 0 0.3rem;
+}
+
+/* Intuitiveness fixes (Cat, 2026-10-18). */
+/* 1. Coming back: the quiet ways in under "Carry on with your …". */
+.resume-more {
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  gap: 10px;
+  margin: 2px 0 0;
+  color: var(--muted);
+}
+/* 2. Print: everything to buy or sign up for, folded at the end, under one row. */
+.extras > summary {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 12px;
+  cursor: pointer;
+  list-style: none;
+}
+.extras > summary::-webkit-details-marker {
+  display: none;
+}
+.extras > summary::after {
+  content: '+';
+  grid-row: 1;
+  grid-column: 2;
+  color: var(--muted);
+  font-family: var(--mono);
+}
+.extras[open] > summary::after {
+  content: '−';
+}
+.extras > summary .muted {
+  grid-column: 1 / -1;
+}
+.extras-title {
+  font-family: var(--display);
+  font-stretch: 75%;
+  font-weight: 600;
+  font-size: 24px;
+  line-height: 1.05;
+  text-transform: uppercase;
+}
+.extras[open] {
+  display: grid;
+  gap: 24px;
+}
+
+/* 3. The rest of what you can say about your fabric, folded on the Fabric tab. */
+.fabric-more {
+  display: grid;
+  gap: 12px;
+  margin-top: 4px;
+}
+.fabric-more > summary {
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.fabric-more[open] > summary {
+  margin-bottom: 4px;
+}
+.fabric-more p {
+  margin: 0;
+}
+
+/* 4. Skip says it fills in only the rest; and "Estimate it for me" under the box. */
+.tape-skip.rest {
+  white-space: nowrap;
+}
+.estimate-link {
+  justify-self: start;
+  margin-top: 4px;
+}
+.estimate-note {
+  margin: 4px 0 0;
+}
+
+/* 6. Draw: one button above the sketch that opens its list. */
+.drawmenu {
+  position: relative;
+}
+.drawmenu > summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 6px 12px;
+  border: var(--bw, 1px) solid var(--line-strong);
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  color: var(--gild);
+}
+.drawmenu > summary::-webkit-details-marker {
+  display: none;
+}
+.drawmenu > summary::after {
+  content: ' ▾';
+}
+.drawmenu-list {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 8;
+  display: grid;
+  min-width: 190px;
+  border: 1px solid var(--line-strong);
+  background: var(--paper);
+}
+.drawmenu-list button {
+  padding: 12px 14px;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.drawmenu-list button + button {
+  border-top: 1px solid var(--guide);
+}
+/* Undo and Redo in the bar beside Review: two small square arrows. */
+.undotools {
+  flex: none;
+  gap: 6px;
+}
+.undotools button {
+  min-width: 40px;
+  padding: 8px 0;
+  font-size: 16px;
+  line-height: 1;
+}
+
+/* 8. Sign-up boxes are labelled like the measurement boxes. */
+.email-label {
+  display: block;
+  margin: 8px 0 -4px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* 9. Where kept patterns go. */
+.keep-note {
+  margin: 0;
+}
+
+/* 12. Edit style and Edit measurements together under the name on Review; the summary's own is for the
+   computer layout, which has no Review page. */
+.review-edits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  margin: 0 0 8px;
+}
+.style-review .edit-measure {
+  display: none;
+}
+
+/* The print picker (P1): a picture for each kind of print, in place of the checks switch. */
+.printpick {
+  display: grid;
+  gap: 10px;
+  margin: 6px 0 4px;
+}
+.printpick-q {
+  font-family: var(--display);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin: 0;
+}
+.printtiles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.printtile {
+  display: grid;
+  gap: 6px;
+  padding: 0;
+  background: none;
+  border: 0;
+  color: var(--muted);
+  font: inherit;
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: center;
+  cursor: pointer;
+}
+.printtile img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  display: block;
+  outline: 1px solid transparent;
+  outline-offset: 2px;
+}
+.printtile.on {
+  color: var(--ink);
+}
+.printtile.on img {
+  outline-color: var(--gild);
+}
+.printtile:focus-visible img {
+  outline-color: var(--ink);
+}
+.printpick-hint {
+  margin: 0;
 }

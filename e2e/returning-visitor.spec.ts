@@ -1,4 +1,4 @@
-import { chooseChip, expect, expectStyle, openAccount, openFold, openGroup, openReview, pickToMake, skipLoading, startWithExample, test } from './fixtures';
+import { chooseChip, expect, expectStyle, openAccount, openFold, openGroup, openReview, skipLoading, startWithExample, test } from './fixtures';
 
 test('returning visitor: a reload keeps the measurements and the saved pattern', async ({ page }) => {
   await startWithExample(page);
@@ -21,26 +21,22 @@ test('returning visitor: a reload keeps the measurements and the saved pattern',
 
   await chooseChip(page, 'Length', 'Midi');
   await openReview(page);
-  await main.getByRole('button', { name: 'Save pattern' }).click();
-  await expect(main.getByRole('status').filter({ hasText: 'Saved to' })).toBeVisible();
+  await main.getByRole('button', { name: 'Keep in my patterns' }).click();
+  await expect(main.getByRole('status').filter({ hasText: 'Kept in' })).toBeVisible();
 
   await page.reload();
   await skipLoading(page);
 
-  // Every visit opens on the welcome; carrying on finds the measurements already taken.
-  await main.getByRole('button', { name: 'Begin' }).click();
-  await expect(main.getByRole('heading', { name: 'Do these look right?' })).toBeVisible();
+  // Every visit opens on the welcome, which carries straight on with the garment you were styling.
   await expect(main.getByText('Welcome back')).toBeVisible();
-  await expect(main.getByRole('button', { name: /^Waist [0-9]/ })).toContainText('74 cm');
-  await main.getByRole('button', { name: 'Choose what to make' }).click();
-  // Nothing is missing for the skirt, so carrying on goes straight to styling it.
-  await pickToMake(page, 'Skirt');
+  await expect(main.getByRole('button', { name: 'Begin' })).toHaveCount(0);
+  await main.getByRole('button', { name: 'Carry on with your skirt' }).click();
   await expectStyle(page, 'Skirt');
 
   // The style chosen and the pattern saved are still there.
   await expect((await openGroup(page, 'Length')).getByRole('button', { name: 'Midi' })).toHaveAttribute('aria-pressed', 'true');
   await openReview(page);
-  await expect(main.getByRole('status').filter({ hasText: 'Saved to' })).toBeVisible();
+  await expect(main.getByRole('status').filter({ hasText: 'Kept in' })).toBeVisible();
 
   await openAccount(page);
   const saved = main.getByRole('region', { name: 'Saved patterns' });

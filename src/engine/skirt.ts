@@ -773,13 +773,17 @@ function draftShape(m: SkirtMeasurements, s: SkirtStyle): SkirtDraft {
         hipQ - (waistQ + split.front) - 2 * FRONT_DART_MAX,
         hipQ - (waistQ + split.back) - 2 * BACK_DART_MAX,
       );
-  const hemSa = slip ? SLIP_HEM : s.silhouette === 'trumpet' ? Math.min(s.hemAllowance, 2) : s.hemAllowance;
+  // A flared hem is wider round its edge than the skirt a few cm up, so a deep turn-up has too much
+  // cloth to lie flat and ripples: an A-line or trumpet hem, or a straight one flared out to a photo,
+  // turns up no more than 2 cm. Straight and pencil skirts keep the deep hem that weights them.
+  const FLARED_HEM = 2;
+  const hemFor = (flare: number) => (slip ? SLIP_HEM : s.silhouette === 'a_line' || s.silhouette === 'trumpet' || flare >= 4 ? Math.min(s.hemAllowance, FLARED_HEM) : s.hemAllowance);
   const drops = centreDrops(m, fit);
   const dartAdj = fit.dartLength ?? 0;
   // A centre moved at the fitting is no longer simply the measurement, so its note says so.
   const measured = { front: m.front_waist_to_hip !== undefined && !fit.frontDrop, back: m.back_waist_to_hip !== undefined && !fit.backDrop };
   const block = (flare: number): SkirtDraft => {
-    const common = { hipQ, hipDepth, length, sideSupp, flare, flareFrom, sa: s.seamAllowance, hemSa, zipCm };
+    const common = { hipQ, hipDepth, length, sideSupp, flare, flareFrom, sa: s.seamAllowance, hemSa: hemFor(flare), zipCm };
     const frontArgs = { ...common, name: 'Skirt front', waistQ: waistQ + split.front, dartMax: FRONT_DART_MAX, dartLen: 9 + dartAdj, isFront: true, dartAt: join?.dartAt?.front };
     const backArgs = { ...common, name: 'Skirt back', waistQ: waistQ + split.back, dartMax: BACK_DART_MAX, dartLen: 14 + dartAdj, isFront: false, dartAt: join?.dartAt?.back, onFold: elastic };
     const at = (d: { front: number; back: number }) => ({ meanDrop: (d.front + d.back) / 2 });

@@ -32,7 +32,7 @@ async function toDescribe(page: Page, idea: object) {
   await fillStepPages(page);
   await main.getByRole('button', { name: 'Choose what to make' }).click();
   await main.getByRole('radio', { name: 'Something else' }).click();
-  await main.getByRole('button', { name: 'Continue measurements' }).click();
+  await main.getByRole('button', { name: 'Next: describe it' }).click();
   await expect(main.getByRole('heading', { name: 'Tell us what you have in mind.' })).toBeVisible();
   const ask = main.getByRole('button', { name: 'See what we can make' });
   await expect(ask).toBeDisabled();
@@ -50,7 +50,7 @@ test('a described slip dress measures for the dress and opens it cut on the bias
   await expect(picks).toContainText('Cowl');
   await expect(picks).toContainText('Bias slip');
   await expect(main).toContainText(/It needs \d+ more measurements?\./);
-  await main.getByRole('button', { name: 'Continue measurements' }).click();
+  await main.getByRole('button', { name: /^Next: \d+ dress measurements?$/ }).click();
   await fillStepPages(page);
   await expectStyle(page, 'Dress');
   // The flat's name says what is drawn: cut on the bias, with the described neckline.

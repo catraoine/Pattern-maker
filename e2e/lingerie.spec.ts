@@ -22,7 +22,7 @@ test('measures the underbust, drafts a bralette and a swimsuit, and prints', asy
   await main(page).getByRole('button', { name: 'Choose another garment' }).click();
   const pick = makeList(page).getByRole('radio', { name: /^Lingerie\b/ });
   await pick.click();
-  await main(page).getByRole('button', { name: 'Continue measurements' }).click();
+  await main(page).getByRole('button', { name: /^(Continue measurements|Style my lingerie)$/i }).click();
   // The example already has an underbust; a body without one is asked for it first.
   const style = main(page).getByRole('heading', { level: 1, name: 'Style your brief' });
   await expect(style.or(main(page).getByRole('textbox')).first()).toBeVisible();

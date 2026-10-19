@@ -1,4 +1,4 @@
-import { chooseChip, expect, expectStyle, fillStepPages, measureMe, openFresh, openReview, pickToMake, startWithExample, stepButton, switchGarment, test } from './fixtures';
+import { chooseChip, expect, expectStyle, fillStepPages, measureMe, openFresh, openReview, pickToMake, startWithExample, stepButton, switchGarment, test, showAllTools } from './fixtures';
 
 // Every garment's style screen works the same way: Undo and Redo always in place, and the same save wording.
 test('undo, redo and save read the same on the trousers as on the skirt', async ({ page }) => {
@@ -22,8 +22,8 @@ test('undo, redo and save read the same on the trousers as on the skirt', async 
 
   await expect(main.getByRole('group', { name: 'Preview view' }).getByRole('button', { name: /^Pattern/ })).toBeVisible();
   await openReview(page);
-  await main.getByRole('button', { name: 'Save pattern' }).click();
-  await expect(main.getByRole('status').filter({ hasText: 'Saved to your patterns' })).toBeVisible();
+  await main.getByRole('button', { name: 'Keep in my patterns' }).click();
+  await expect(main.getByRole('status').filter({ hasText: 'Kept in your patterns' })).toBeVisible();
 });
 
 // A first-timer is in the simple view, and can still start a skirt from a photo.
@@ -37,8 +37,8 @@ test('a new sewist sees Start from a photo', async ({ page }) => {
   await pickToMake(page, 'Skirt');
   await fillStepPages(page);
   await expectStyle(page, 'Skirt');
-  await expect(main.getByRole('button', { name: 'Show all tools' })).toBeVisible();
   await expect(main.getByRole('button', { name: 'Start from a photo' })).toBeVisible();
+  await expect(await showAllTools(page)).toBeVisible();
 });
 
 // A measurement that fails a check is caught: a bust in the wrong unit on its own page, and two that

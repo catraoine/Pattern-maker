@@ -1,4 +1,4 @@
-import { download, expect, goPrint, openAccount, startWithExample, test } from './fixtures';
+import { download, expect, goPrint, openAccount, startWithExample, test, showAllTools } from './fixtures';
 
 // A DXF from pattern software, opened on Check any pattern: seams walked, then printed and sent like a pattern drafted here.
 test('import a pattern: check a DXF, then use it to print and send', async ({ page }, info) => {
@@ -6,7 +6,7 @@ test('import a pattern: check a DXF, then use it to print and send', async ({ pa
   const main = page.getByRole('main');
   // The app's own DXF stands in for one from CLO or Gerber: it is written the same AAMA way.
   await goPrint(page);
-  const all = main.getByRole('button', { name: 'Show all tools' });
+  const all = await showAllTools(page);
   if (await all.count()) await all.click();
   await main.getByText('More files').click();
   const dxf = await download(page, main.getByRole('button', { name: 'Pattern (DXF)', exact: true }), info);
