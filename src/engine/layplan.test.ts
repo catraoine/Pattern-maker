@@ -5,6 +5,9 @@ import { draftBodice } from './bodice';
 import { bodiceFacings, liningPieces, waistbandPiece } from './finishing';
 import { FABRIC_WIDTHS, Lay, layPlan, layPlans } from './layplan';
 import { randomBody, rng } from './randomBodies';
+import { draftOuter } from './outerwear';
+import { withAllowances } from './allowances';
+import { EXAMPLE_VALUES } from '../measurements';
 
 const inside = (q: P, pts: P[]) => {
   let c = false;
@@ -94,5 +97,43 @@ describe('cutting layouts', () => {
       const lay = layPlan([...b.pieces, ...bodiceFacings(b.pieces[0], b.pieces[1])], (FABRIC_WIDTHS as readonly (115 | 140 | 150)[])[seed % 3])!;
       expect(problems(lay), `seed ${seed}`).toEqual([]);
     }
+  });
+
+  it('places a piece marked "Cut 2 on fold" twice, so the lay and the metres cover both', () => {
+    const d = draftOuter(EXAMPLE_VALUES as Parameters<typeof draftOuter>[0], { kind: 'jacket' });
+    const pieces = d.pieces.map((pc) => withAllowances(pc, 'home'));
+    const collar = pieces.find((pc) => pc.name === 'Collar')!;
+    expect(collar.cut).toBe('Cut 2 on fold');
+    const lay = layPlan(pieces, 140)!;
+    expect(lay.folded).toBe(true);
+    expect(lay.placements.filter((pl) => pl.name === 'Collar')).toHaveLength(2);
+    for (const pl of lay.placements.filter((pl) => pl.name === 'Collar')) expect(Math.min(...pl.pts.map((q) => q.x))).toBeCloseTo(0, 6);
+    expect(problems(lay)).toEqual([]);
+    // One collar alone takes less cloth than two.
+    const once = layPlan(pieces.map((pc) => (pc.name === 'Collar' ? { ...pc, cut: 'Cut 1 on fold' } : pc)), 140)!;
+    expect(once.placements.filter((pl) => pl.name === 'Collar')).toHaveLength(1);
+    expect(lay.length).toBeGreaterThanOrEqual(once.length);
+    // Opened out on a single layer, each placing is still one whole collar.
+    const open = layPlan(pieces, 140, 'self', false, true)!;
+    expect(open.folded).toBe(false);
+    expect(open.placements.filter((pl) => pl.name === 'Collar')).toHaveLength(2);
+  });
+
+  it('cuts "Lining or pocketing" pocket bags from the lining once, not from the self fabric as well', () => {
+    const d = draftOuter(EXAMPLE_VALUES as Parameters<typeof draftOuter>[0], { kind: 'coat', pockets: 'welt' });
+    const pieces = d.pieces.map((pc) => withAllowances(pc, 'home'));
+    const bag = pieces.find((pc) => pc.name === 'Pocket bag')!;
+    expect(bag.fabric).toBe('Lining or pocketing');
+    expect(bag.cut).toBe('Cut 4 (2 pairs)');
+    const lays = layPlans(pieces, 140);
+    const self = lays.find((l) => l.fabric === 'self')!;
+    const lining = lays.find((l) => l.fabric === 'lining')!;
+    expect(self.placements.filter((pl) => pl.name === 'Pocket bag')).toHaveLength(0);
+    expect(lining.placements.filter((pl) => pl.name === 'Pocket bag')).toHaveLength(2);
+    // Without a lining, the bags come out of the self fabric.
+    const unlined = pieces.filter((pc) => pc.kind !== 'lining' || pc.name === 'Pocket bag');
+    const only = layPlans(unlined, 140);
+    expect(only.map((l) => l.fabric)).toEqual(['self']);
+    expect(only[0].placements.filter((pl) => pl.name === 'Pocket bag')).toHaveLength(2);
   });
 });

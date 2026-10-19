@@ -65,15 +65,27 @@ function kindOf(pc: Piece): Kind {
   return 'single';
 }
 
+/** The number in "Cut 2 (1 pair)" or "Cut 2 on fold"; 2 when there is none. */
+const cutCount = (pc: Piece) => Number(pc.cut.match(/cut\s+(\d+)/i)?.[1] ?? 2);
+
 /** How many times a pair is laid: twice for "Cut 4 (2 pairs)", like pocket bags. */
 function sets(pc: Piece): number {
-  const n = Number(pc.cut.match(/cut\s+(\d+)/i)?.[1] ?? 2);
-  return Math.max(1, Math.floor(n / 2));
+  return Math.max(1, Math.floor(cutCount(pc) / 2));
 }
 
-/** Which lays a piece is cut in. */
-function fabricsOf(pc: Piece): LayFabric[] {
+/** How many times a piece on the fold is laid: twice for "Cut 2 on fold" (a collar and its under
+ * collar, a collar stand), since each placing on folded fabric cuts one whole piece. */
+function foldTimes(pc: Piece): number {
+  return Math.max(1, cutCount(pc));
+}
+
+/** A pocket bag cut from "Lining or pocketing": it comes out of the lining when there is one. */
+const pocketing = (pc: Piece) => /pocketing/i.test(pc.fabric ?? '');
+
+/** Which lays a piece is cut in. `lined` says the garment has a lining lay of its own. */
+function fabricsOf(pc: Piece, lined = false): LayFabric[] {
   const f = (pc.fabric ?? '').toLowerCase();
+  if (pocketing(pc)) return lined ? ['lining'] : ['self'];
   if (f === 'lining') return ['lining'];
   if (f.includes('coutil')) return f.includes('lining') ? ['self', 'lining', 'interlining'] : ['self', 'interlining'];
   if (f.includes('lining')) return ['self', 'lining'];
@@ -157,7 +169,8 @@ interface Item {
  * up (velvet, corduroy, one-way prints); without it pieces can turn end to end to nest closer.
  */
 export function layPlan(pieces: Piece[], width: FabricWidth, fabric: LayFabric = 'self', nap = false, hide = false): Lay | undefined {
-  const mine = pieces.filter((pc) => fabricsOf(pc).includes(fabric));
+  const lined = pieces.some((pc) => !pocketing(pc) && fabricsOf(pc).includes('lining'));
+  const mine = pieces.filter((pc) => fabricsOf(pc, lined).includes(fabric));
   if (!mine.length) return undefined;
   const usable = width - 2 * SELVEDGE;
   const cut = mine.map((pc) => ({ pc, pts: onGrain(pc, cutLine(pc)), kind: kindOf(pc) }));
@@ -168,7 +181,9 @@ export function layPlan(pieces: Piece[], width: FabricWidth, fabric: LayFabric =
   // pair cut separately. A piece off the fold also keeps its gap from it.
   const folded = !hide && cut.every(({ pc, pts, kind }) => wide(pts) <= usable / 2 - (kind === 'fold' ? 0 : 2 * RES) && !pc.meta.singleLayer);
   const items: Item[] = cut.flatMap(({ pc, pts, kind }): Item[] => {
-    const times = kind === 'pair' ? sets(pc) : 1;
+    // A pair is cut through both layers at once; a piece on the fold comes out whole each time it is
+    // placed, so "Cut 2 on fold" is placed twice.
+    const times = kind === 'pair' ? sets(pc) : kind === 'fold' ? foldTimes(pc) : 1;
     return Array.from({ length: times }, () => one(pc, pts, kind)).flat();
   });
   function one(pc: Piece, pts: P[], kind: Kind): Item[] {
