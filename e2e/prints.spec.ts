@@ -30,6 +30,7 @@ test('picking a print sets the lay and draws it under the pieces', async ({ page
 
   await prints.getByRole('radio', { name: 'Border' }).click();
   await expect(main.locator('#fabrepeat')).toHaveCount(0);
+  await expect(main.locator('.lay').first()).toContainText('turned crosswise');
   await main.locator('.lay').first().screenshot({ path: test.info().outputPath('lay-border.png') });
 
   // Tapping the chosen print again clears it.

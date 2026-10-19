@@ -383,7 +383,6 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
                 print={lay.fabric === 'self' && print ? { kind: print, repeat: printRepeat(finish.fabric) } : undefined}
               />
               {lay.fabric === 'self' && print === 'motif' && <p className="muted small">The front is centred on a motif. Move the pattern so no motif sits on the bust points or the seat.</p>}
-              {lay.fabric === 'self' && print === 'border' && <p className="muted small">The border runs along the selvedge. Turn the pieces crosswise so every hem sits on it.</p>}
               <p className="muted small">{layWords(lay)}</p>
             </div>
           ))

@@ -68,10 +68,10 @@ export function printLines(kind: PrintKind | undefined, repeat: number | undefin
     }
     case 'border':
       return [
-        'Border print: turn the pieces crosswise, so the grain runs across the fabric and every hem sits on the border, level all round.',
+        'Border print: the cutting layout turns the hemmed pieces crosswise, so the grain runs across the fabric and every hem sits on the border, level all round.',
         ROUND_HEMS.includes(style.silhouette ?? '')
           ? 'A half or full circle hem curves away from a straight border. Choose a straighter shape, or let the border fall where it lands.'
-          : 'The fabric width must be longer than each piece, from waist to hem. Cut single layer and match the border at the side seams.',
+          : 'The fabric must be wider than each piece is long, waist to hem. Cut single layer and match the border at the side seams.',
       ];
     case 'checks':
       return checksLines({ repeat }, garment);
