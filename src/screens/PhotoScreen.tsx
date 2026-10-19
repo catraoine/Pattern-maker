@@ -9,8 +9,11 @@ import { PIECE_KINDS, PIECE_WORDS, aPiece, choicesFor, pieceName, mainPiece, pie
 import { isDress, type PatternChoices } from '../garments';
 import { describePattern } from './describe';
 import { bodyOutline } from '../ui/bodyOutline';
+import { testerHeaders } from '../ui/TesterCode';
 
 interface Props {
+  /** Sent with the photo, for a fit tester's larger daily allowance. */
+  testerCode?: string;
   measured: boolean;
   /** The wearer's measurements in cm, when taken: the laid-flat length question draws on them. */
   body?: SkirtMeasurements;
@@ -114,7 +117,7 @@ function WhereItEnds({ body, lengthCm, fullness }: { body: SkirtMeasurements; le
   );
 }
 
-export function PhotoScreen({ measured, body, unit, onByHand, onApply }: Props) {
+export function PhotoScreen({ testerCode, measured, body, unit, onByHand, onApply }: Props) {
   const [phase, setPhase] = useState<Phase>('start');
   const [preview, setPreview] = useState<string>();
   const [problem, setProblem] = useState<Problem>();
@@ -169,7 +172,7 @@ export function PhotoScreen({ measured, body, unit, onByHand, onApply }: Props) 
     try {
       const res = await fetch('/.netlify/functions/analyze-photo', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...testerHeaders(testerCode) },
         body: JSON.stringify({ image: img.image, mediaType: img.mediaType }),
         signal: ctrl.signal,
       });
