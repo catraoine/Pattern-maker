@@ -1,4 +1,4 @@
-import { expect, openGroup, openReview, startWithExample, switchGarment, test } from './fixtures';
+import { expect, openGroup, openReview, startWithExample, switchGarment, test, drawTool } from './fixtures';
 import type { Page } from '@playwright/test';
 
 // Draw on your form: draw a princess seam and a neckline on the dress form, and the pattern follows.
@@ -24,7 +24,7 @@ test('draws princess seams and a neckline on the form', async ({ page }) => {
   await startWithExample(page);
   await switchGarment(page, 'Bodice');
   const main = page.getByRole('main');
-  await main.getByRole('button', { name: 'Draw on your form' }).click();
+  await (await drawTool(page)).click();
   await expect(main.getByRole('heading', { name: 'Draw your lines' })).toBeVisible();
 
   await main.getByRole('button', { name: 'Seam', exact: true }).click();
@@ -47,7 +47,7 @@ test('back asks first, then leaves the bodice as it was', async ({ page }) => {
   await switchGarment(page, 'Bodice');
   const main = page.getByRole('main');
   const back = page.locator('.steady-back');
-  await main.getByRole('button', { name: 'Draw on your form' }).click();
+  await (await drawTool(page)).click();
   await main.getByRole('button', { name: 'Seam', exact: true }).click();
   await draw(page, [{ x: 12, y: 0.3 }, { x: 9, y: 24 }, { x: 9, y: 41.5 }]);
   await expect(main.getByRole('status')).toHaveText(/Princess seams/);
@@ -64,7 +64,7 @@ test('back asks first, then leaves the bodice as it was', async ({ page }) => {
   await expect(main.getByRole('heading', { name: 'Style your bodice' })).toBeVisible();
   await expect(main.getByText(/Bodice side front/)).toHaveCount(0);
   // With nothing drawn, ← just goes back to the style screen, and the next ← carries on from there.
-  await main.getByRole('button', { name: 'Draw on your form' }).click();
+  await (await drawTool(page)).click();
   await back.click();
   await expect(main.getByRole('heading', { name: 'Style your bodice' })).toBeVisible();
   await back.click();
@@ -75,7 +75,7 @@ test('Done keeps the lines, and the back button then leaves the style screen', a
   await startWithExample(page);
   await switchGarment(page, 'Bodice');
   const main = page.getByRole('main');
-  await main.getByRole('button', { name: 'Draw on your form' }).click();
+  await (await drawTool(page)).click();
   await main.getByRole('button', { name: 'Seam', exact: true }).click();
   await draw(page, [{ x: 12, y: 0.3 }, { x: 9, y: 24 }, { x: 9, y: 41.5 }]);
   await main.getByRole('button', { name: 'Done', exact: true }).click();
@@ -96,7 +96,7 @@ test('draws on the back, and undoes one line at a time', async ({ page }) => {
   await startWithExample(page);
   await switchGarment(page, 'Bodice');
   const main = page.getByRole('main');
-  await main.getByRole('button', { name: 'Draw on your form' }).click();
+  await (await drawTool(page)).click();
   await main.getByRole('button', { name: 'back', exact: true }).click();
   await main.getByRole('button', { name: 'Neckline', exact: true }).click();
   await draw(page, [{ x: 8, y: -1 }, { x: 4, y: 10 }, { x: 0, y: 16 }]);
@@ -116,7 +116,7 @@ test('draws a high-low hem on the dress', async ({ page }) => {
   await startWithExample(page);
   await switchGarment(page, 'Dress');
   const main = page.getByRole('main');
-  await main.getByRole('button', { name: 'Draw on your form' }).click();
+  await (await drawTool(page)).click();
   await main.getByRole('button', { name: 'Hem', exact: true }).click();
   await main.getByRole('button', { name: 'back', exact: true }).click();
   await draw(page, [{ x: -28, y: 112 }, { x: 0, y: 113 }, { x: 28, y: 112 }]);
@@ -129,7 +129,7 @@ test('draws the hem and side of a skirt on the form', async ({ page }) => {
   await startWithExample(page);
   await switchGarment(page, 'Skirt');
   const main = page.getByRole('main');
-  await main.getByRole('button', { name: 'Draw on your form' }).click();
+  await (await drawTool(page)).click();
   await expect(main.getByRole('heading', { name: 'Draw your lines' })).toBeVisible();
   await draw(page, [{ x: -30, y: 70 }, { x: 0, y: 70 }, { x: 30, y: 70 }]);
   await expect(main.getByRole('status')).toHaveText(/Skirt 70 cm long|Midi skirt/);
@@ -144,7 +144,7 @@ test('draws the sleeve length on the T-shirt form', async ({ page }) => {
   await startWithExample(page);
   await switchGarment(page, 'Tee');
   const main = page.getByRole('main');
-  await main.getByRole('button', { name: 'Draw on your form' }).click();
+  await (await drawTool(page)).click();
   await expect(main.getByRole('heading', { name: 'Draw your lines' })).toBeVisible();
   await main.getByRole('button', { name: 'Sleeve', exact: true }).click();
   // Across the right arm, a little below the elbow.
@@ -159,7 +159,7 @@ test('draws a double-breasted front on the jacket form', async ({ page }) => {
   await startWithExample(page);
   await switchGarment(page, 'Jacket');
   const main = page.getByRole('main');
-  await main.getByRole('button', { name: 'Draw on your form' }).click();
+  await (await drawTool(page)).click();
   await expect(main.getByRole('heading', { name: 'Draw your lines' })).toBeVisible();
   await main.getByRole('button', { name: 'Front edge', exact: true }).click();
   // Straight down the front, well past the centre.
@@ -174,7 +174,7 @@ test('draws a yoke, an uneven neckline and a shaped hem on the bodice', async ({
   await startWithExample(page);
   await switchGarment(page, 'Bodice');
   const main = page.getByRole('main');
-  await main.getByRole('button', { name: 'Draw on your form' }).click();
+  await (await drawTool(page)).click();
   await main.getByRole('button', { name: 'Seam', exact: true }).click();
   await draw(page, [{ x: -16, y: 12 }, { x: 0, y: 12.3 }, { x: 16, y: 12 }]);
   await expect(main.getByRole('status')).toHaveText(/yoke/i);

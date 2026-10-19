@@ -11,7 +11,7 @@ import { SHAPES_FOR_LENGTH, SleeveDraft, needsArms } from '../engine/sleeve';
 import { BODICE_GROUPS, BodiceChoices, DARTS_FOR_FIT, DressChoices, detailAllowed, sleeveOf, topAllowed, validDetails } from '../garments';
 import type { MeasurementValues } from '../measurements';
 import { SaveControl } from '../ui/SaveControl';
-import { UndoToast, UndoTools, useUndo } from '../ui/useUndo';
+import { UndoToast, useUndo } from '../ui/useUndo';
 import { PatternPreview } from '../ui/Preview';
 import { PatternPane } from '../ui/PointEditor';
 import { TechFlatView } from '../ui/TechFlatView';
@@ -87,6 +87,9 @@ export const dressFabricMetres = (pieces: DressDraft['pieces']) =>
  * skirt's shape and length. The preview is the technical flat, so the skirt is seen hanging from the
  * bodice with its darts running on through the waist seam.
  */
+/** The dress's skirt choices on one tab of their own. */
+const DRESS_SECTIONS: Record<string, string> = { Skirt: 'Skirt & length', Length: 'Skirt & length', Hem: 'Skirt & length', 'Skirt details': 'Skirt & length', Pockets: 'Skirt & length' };
+
 export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoices, onChooseGarment, values, draft, sleeve, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, finish, onFinish, fabric, mode = 'all', onMode }: Props) {
   const undo = useUndo(choices, setChoices);
   const onChoices = undo.change;
@@ -260,6 +263,9 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
 
   return (
     <StyleLayout
+      onEditMeasurements={onEditMeasurements}
+      undo={undo}
+      sections={DRESS_SECTIONS}
       label="your dress"
       name={title}
       metres={draft ? dressFabricMetres([...pieces, ...layoutExtras(draft.skirt)]) : undefined}
@@ -359,10 +365,10 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
             metres={dressFabricMetres([...pieces, ...(draft ? layoutExtras(draft.skirt) : [])])}
             advice={dressFabrics({ fit: choices.fit, neckline: choices.bodice.neckline, silhouette: choices.skirt.silhouette, length: choices.skirt.length, structure: valid.structure, asymHem: choices.skirt.asymHem, pleats: choices.skirt.pleats, godets: choices.skirt.godets, flounce: choices.skirt.flounce })}
             fabric={fabric}>
-                {flat && <FabricSwatches finish={finish} onFinish={onFinish} garment="dress" />}
+                {flat && <FabricSwatches finish={finish} onFinish={onFinish} garment="dress" details />}
               </FabricCard>
             ) : (
-              <FabricSwatches finish={finish} onFinish={onFinish} garment="dress" />
+              <FabricSwatches finish={finish} onFinish={onFinish} garment="dress" details />
             )}
           </TabPanel>
         )}
@@ -386,7 +392,6 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
             <button type="button" className="link small" onClick={() => setOnForm(choices)}>
               Draw on your form
             </button>
-            <UndoTools undo={undo} />
           </div>
         </div>
         <div className="preview">
@@ -463,7 +468,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           Print my pattern
         </button>
         <SaveControl state={saveState} disabled={!draft} onSave={onSave} onAccount={onAccount} />
-        <button type="button" className="link" onClick={onEditMeasurements}>
+        <button type="button" className="link edit-measure" onClick={onEditMeasurements}>
           Edit measurements
         </button>
       </aside>

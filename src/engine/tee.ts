@@ -3,8 +3,10 @@
 //
 // - Ease at the bust is a share of the bust (negative for a fitted tee, about none for a regular one),
 //   set from the fabric's stretch: the stretchier the knit, the less room it needs.
-// - Front and back are cut the same width with the same side seam and shoulder, so they sew edge to
-//   edge with nothing eased in; only the necklines and the armholes' front scoop differ.
+// - Front and back share the bust's width, the same side seam length and shoulder, so they sew edge to
+//   edge with nothing eased in. A fuller bust (full bust well over high bust) moves width from the back
+//   to the front and lets the front's centre hang longer (see bustShaping); a small cup and the menswear
+//   form are cut the same front and back, the necklines and the armholes' front scoop apart.
 // - The armhole is found so it measures the person's armhole plus a little, when it is measured.
 // - The sleeve is drafted to the armhole the way the woven sleeve is (sleeve.ts), with knit ease.
 // - The neckband is cut shorter than the neckline, so it pulls the edge in to lie flat.
@@ -30,6 +32,8 @@ export interface TeeMeasurements extends SleeveMeasurements {
   nape_to_waist: number;
   /** Used when measured, to size the armhole. */
   armscye?: number;
+  /** Used for the bust shaping; estimated from the bust until it's taken. */
+  high_bust?: number;
 }
 
 export interface TeeStyle {
@@ -38,6 +42,8 @@ export interface TeeStyle {
   neckline: TeeNeck;
   sleeve: TeeSleeve;
   length: TeeLength;
+  /** The menswear form: no bust shaping, front and back cut alike. */
+  flatFront?: boolean;
 }
 
 export const DEFAULT_TEE: TeeStyle = { fit: 'regular', stretch: 'medium', neckline: 'crew', sleeve: 'short', length: 'hip' };
@@ -104,6 +110,11 @@ export interface TeeDraft {
   finishedBust: number;
   finishedWaist: number;
   finishedHem: number;
+  /** One front and one back at the bust, side seam to fold: the front is the wider for a fuller bust. */
+  frontBust: number;
+  backBust: number;
+  /** How much longer the front hangs at the centre than at the side seam, for the bust. */
+  frontExtra: number;
   /** Centre back, neck edge to hem. */
   backLength: number;
   armholeDepth: number;
@@ -170,9 +181,12 @@ export function draftTee(m: TeeMeasurements, style: Partial<TeeStyle> = {}): Tee
     length: s.length,
     sleeveLength: s.sleeve,
     easePct: pct,
-    finishedBust: r1(4 * shape.bustQ),
-    finishedWaist: r1(4 * shape.waistQ),
-    finishedHem: r1(4 * shape.hemQ),
+    finishedBust: r1(shape.bust),
+    finishedWaist: r1(shape.waist),
+    finishedHem: r1(shape.hem),
+    frontBust: r1(shape.frontBustQ),
+    backBust: r1(shape.backBustQ),
+    frontExtra: r1(shape.frontExtra),
     backLength: r1(shape.hemY - shape.bd),
     armholeDepth: r1(scye),
     armhole: r1(shape.armhole),
@@ -180,6 +194,38 @@ export function draftTee(m: TeeMeasurements, style: Partial<TeeStyle> = {}): Tee
     neckband: { length: r1(neckline * ratio), ratio, width: NECKBAND_CM },
     warnings,
   };
+}
+
+/** The cup a knit takes up with no shaping, as full bust minus high bust: about an A cup. Below it the
+ * front and back are cut alike, as they always were. */
+const KNIT_CUP = 2.5;
+/** At most this much moves from back to front at each side seam, as on the woven bodice. */
+const MAX_SHIFT = 4;
+/** At most this much extra length at the centre front: past it the hem would curve too sharply to turn. */
+const MAX_FRONT_EXTRA = 5;
+
+/**
+ * Bust shaping for a knit with no darts, the way a knit full-bust adjustment is made.
+ *
+ * - Width: the back is cut from the high bust (it has no bust to go round) and the front takes the rest,
+ *   so the side seam sits under the arm instead of being dragged forward. The total round the bust is
+ *   unchanged. The knit stretches over a small cup by itself, so the back is cut from the high bust
+ *   plus KNIT_CUP, and only the cup past that moves to the front: a B cup barely changes.
+ * - Length: the bust takes up length on the front, which lifts the hem at the centre front. The front
+ *   is cut longer at its centre, curving up to the side seam, which stays the back's length so the
+ *   sides still match. A side bust dart would do the same job, but a dart is bulky in jersey, puckers in
+ *   a stretch fabric and is one more step to sew; a curved front hem takes the same few cm with nothing
+ *   to sew. 0.4 cm of length for each cm of cup, as the bodice estimates its front length (estimate.ts).
+ * - The menswear form, and a high bust as big as the full bust, get none.
+ */
+export function bustShaping(m: Pick<TeeMeasurements, 'full_bust' | 'high_bust'>, s: Pick<TeeStyle, 'flatFront' | 'fit' | 'stretch'>) {
+  if (s.flatFront) return { cup: 0, shift: 0, length: 0 };
+  const B = m.full_bust;
+  // Until the high bust is taken, the cup the measurement estimates use for the same bust (estimate.ts).
+  const cup = Math.max(0, B - (m.high_bust ?? B - (2.5 + Math.max(0, B - 85) * 0.075)));
+  const over = Math.max(0, cup - KNIT_CUP);
+  const pct = TEE_EASE[s.fit][s.stretch];
+  return { cup, shift: Math.min(MAX_SHIFT, (over * (1 + pct)) / 4), length: Math.min(MAX_FRONT_EXTRA, over * 0.4) };
 }
 
 /** The front and back at armhole depth `scye` (from the nape, down). */
@@ -211,28 +257,32 @@ function build(m: TeeMeasurements, s: TeeStyle, scye: number, warnings: string[]
   const acrossX = Math.min(SW / 2 - 1.2, spX - 1);
   const bustQ = Math.max(bustQ0, acrossX + 2);
   if (bustQ > bustQ0 + 0.05) warnings.push(`bust widened to ${r1(4 * bustQ)} cm so the armhole fits the shoulders`);
-  let hemQ: number;
-  let waistQ: number;
+  // The bust split between front and back, and the front's extra length (see bustShaping). The total
+  // round the bust stays the same, so the ease is still what the fit and stretch set.
+  const shaping = bustShaping(m, s);
+  const backBustQ = Math.max(bustQ - shaping.shift, acrossX + 2);
+  const frontBustQ = 2 * bustQ - backBustQ;
   const withWaist = hemY - NW >= 6;
-  if (!withWaist) {
-    hemQ = Math.max(bustQ - share * Math.max(0, bustQ - waistQ0), waistQ0);
-    waistQ = hemQ;
-  } else {
-    hemQ = Math.max(s.length === 'tunic' ? hipQ + 1.5 : hipQ, relaxed ? bustQ + (s.length === 'tunic' ? 1 : 0) : 0);
-    const straight = bustQ + (hemQ - bustQ) * ((NW - scye) / (hemY - scye));
-    waistQ = straight - share * Math.max(0, straight - waistQ0);
-  }
 
-  const U = p(bustQ, scye);
-  const Wt = p(waistQ, NW);
-  const Hm = p(hemQ, hemY);
-
-  /** Shoulder to underarm, through the across point, then down the side and across the hem. */
-  const body = (path: Path, A: P, kUnder: number) => {
-    path
-      .line(sp, 'shoulder')
-      .curve(add(sp, mul(perp(u), 2.5)), sub(A, p(0, 3)), A, 'armhole')
-      .curve(add(A, p(0, (scye - A.y) * 0.55)), sub(U, p((U.x - A.x) * kUnder, 0)), U, 'armhole');
+  /** One piece's side seam points from its bust width: the underarm, the waist and the hem's width. */
+  const sideOf = (bq: number) => {
+    let hemQ: number;
+    let waistQ: number;
+    if (!withWaist) {
+      hemQ = Math.max(bq - share * Math.max(0, bq - waistQ0), waistQ0);
+      waistQ = hemQ;
+    } else {
+      hemQ = Math.max(s.length === 'tunic' ? hipQ + 1.5 : hipQ, relaxed ? bq + (s.length === 'tunic' ? 1 : 0) : 0);
+      const straight = bq + (hemQ - bq) * ((NW - scye) / (hemY - scye));
+      waistQ = straight - share * Math.max(0, straight - waistQ0);
+    }
+    return { U: p(bq, scye), Wt: p(waistQ, NW), waistQ, hemQ };
+  };
+  type Side = ReturnType<typeof sideOf>;
+  /** The side seam, underarm to hem, ending `rise` cm above the hem line. Returns the hem corner. */
+  const sideSeam = (path: Path, side: Side, rise: number) => {
+    const { U, Wt } = side;
+    const Hm = p(side.hemQ, hemY - rise);
     if (withWaist) {
       const d1 = Wt.y - U.y;
       const d2 = Hm.y - Wt.y;
@@ -241,14 +291,50 @@ function build(m: TeeMeasurements, s: TeeStyle, scye: number, warnings: string[]
       const d = Hm.y - U.y;
       path.curve(add(U, p(0, d * 0.35)), sub(Hm, p(0, d * 0.35)), Hm, 'side');
     }
-    return path.line(p(0, hemY), 'hem');
+    return Hm;
+  };
+  const sideLength = (side: Side, rise: number) => {
+    const path = new Path(side.U);
+    sideSeam(path, side, rise);
+    return taggedLength(path, 'side');
+  };
+  const backSide = sideOf(backBustQ);
+  const frontSide = sideOf(frontBustQ);
+  // A wider front slants its side seam differently from the back's, so the two would come out a little
+  // different in length. The front's hem corner moves up or down (under a cm) until its side seam
+  // is exactly the back's, so the sides sew edge to edge from underarm to hem with nothing eased.
+  const backSideCm = sideLength(backSide, 0);
+  let rise = 0;
+  if (Math.abs(sideLength(frontSide, 0) - backSideCm) > 1e-4) {
+    let lo = -3;
+    let hi = 3;
+    for (let i = 0; i < 40; i++) {
+      const mid = (lo + hi) / 2;
+      if (sideLength(frontSide, mid) > backSideCm) lo = mid;
+      else hi = mid;
+    }
+    rise = (lo + hi) / 2;
+  }
+
+  /** Shoulder to underarm, through the across point, then down the side and across the hem to the
+   * centre at `hemCf`. A front shaped for the bust dips lower at the centre, curving into it from the side. */
+  const body = (path: Path, A: P, kUnder: number, side: Side, sideRise: number, hemCf: number) => {
+    const U = side.U;
+    path
+      .line(sp, 'shoulder')
+      .curve(add(sp, mul(perp(u), 2.5)), sub(A, p(0, 3)), A, 'armhole')
+      .curve(add(A, p(0, (scye - A.y) * 0.55)), sub(U, p((U.x - A.x) * kUnder, 0)), U, 'armhole');
+    const Hm = sideSeam(path, side, sideRise);
+    if (Math.abs(hemCf - Hm.y) < 1e-6) return path.line(p(0, hemCf), 'hem');
+    // The curve leaves the side and meets the fold square, so the hem runs smooth across both when sewn.
+    return path.curve(p(Hm.x * 0.6, Hm.y), p(Hm.x * 0.45, hemCf), p(0, hemCf), 'hem');
   };
 
   // ---- back ---------------------------------------------------------------
   const bd = nl.backDepth;
   const Ab = p(acrossX, (sp.y + scye) / 2 + 1);
   const backPath = new Path(p(0, bd)).curve(p(hps.x * 0.6, bd), add(hps, mul(perp(u), 1 + bd * 0.4)), hps, 'neck');
-  body(backPath, Ab, 0.6).line(p(0, bd), 'fold');
+  body(backPath, Ab, 0.6, backSide, 0, hemY).line(p(0, bd), 'fold');
   backPath.closed = true;
 
   // ---- front --------------------------------------------------------------
@@ -260,20 +346,21 @@ function build(m: TeeMeasurements, s: TeeStyle, scye: number, warnings: string[]
   if (s.neckline === 'v') frontPath.line(lerp(cf, hps, 0.5), 'neck').curve(lerp(cf, hps, 0.75), toward(0.15), hps, 'neck');
   else if (s.neckline === 'scoop') frontPath.curve(p(hps.x * 0.7, cfY), toward(0.6), hps, 'neck');
   else frontPath.curve(p(hps.x * 0.55, cfY), toward(0.45), hps, 'neck');
-  const Af = p(Math.min(SW / 2 - 2, spX - 1.5, U.x - 1.5), (sp.y + scye) / 2 + 1.5);
-  body(frontPath, Af, 0.75).line(cf, 'fold');
+  const Af = p(Math.min(SW / 2 - 2, spX - 1.5, frontBustQ - 1.5), (sp.y + scye) / 2 + 1.5);
+  body(frontPath, Af, 0.75, frontSide, rise, hemY + shaping.length).line(cf, 'fold');
   frontPath.closed = true;
 
   const allowances = { neck: KNIT_SEAM, armhole: KNIT_SEAM, fold: 0, hem: KNIT_HEM };
   const cut = 'Cut 1 on fold';
-  const grainX = Math.min(bustQ, hemQ) * 0.55;
+  const grainOf = (side: Side) => Math.min(side.U.x, side.hemQ) * 0.55;
+  const [gf, gb] = [grainOf(frontSide), grainOf(backSide)];
   const front: Piece = {
     name: 'Tee front',
     outline: frontPath,
     lines: [],
-    grain: [p(grainX, scye + 1), p(grainX, hemY - 4)],
+    grain: [p(gf, scye + 1), p(gf, hemY - 4)],
     fold: [p(0, cfY + 2), p(0, hemY - 2)],
-    balance: [{ pts: [p(0, scye), U], label: 'UNDERARM LINE' }],
+    balance: [{ pts: [p(0, scye), frontSide.U], label: 'UNDERARM LINE' }],
     notches: [[Af, p(1, 0)]],
     labels: [
       { at: p(bustQ * 0.4, scye - 4.5), text: 'TEE FRONT', size: 1.4 },
@@ -289,9 +376,9 @@ function build(m: TeeMeasurements, s: TeeStyle, scye: number, warnings: string[]
     name: 'Tee back',
     outline: backPath,
     lines: [],
-    grain: [p(grainX, scye + 1), p(grainX, hemY - 4)],
+    grain: [p(gb, scye + 1), p(gb, hemY - 4)],
     fold: [p(0, bd + 2), p(0, hemY - 2)],
-    balance: [{ pts: [p(0, scye), U], label: 'UNDERARM LINE' }],
+    balance: [{ pts: [p(0, scye), backSide.U], label: 'UNDERARM LINE' }],
     notches: [
       [add(Ab, p(0, -0.5)), p(1, 0)], // double notch = back
       [add(Ab, p(0, 0.5)), p(1, 0)],
@@ -307,7 +394,22 @@ function build(m: TeeMeasurements, s: TeeStyle, scye: number, warnings: string[]
     meta: { shoulderEase: 0, foldAt: 'centre back', knit: true },
   };
   const armhole = taggedLength(frontPath, 'armhole') + taggedLength(backPath, 'armhole');
-  return { front, back, scye, armhole, bustQ, waistQ, hemQ, hemY, bd };
+  // The finished widths round the body: front and back together, twice over.
+  const round = (f: number, b: number) => 2 * (f + b);
+  return {
+    front,
+    back,
+    scye,
+    armhole,
+    bust: round(frontBustQ, backBustQ),
+    waist: round(frontSide.waistQ, backSide.waistQ),
+    hem: round(frontSide.hemQ, backSide.hemQ),
+    frontBustQ,
+    backBustQ,
+    frontExtra: shaping.length,
+    hemY,
+    bd,
+  };
 }
 
 /** The neckband: a strip folded in half lengthwise, cut on the fold, its length across the fabric so it

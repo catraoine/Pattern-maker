@@ -18,8 +18,10 @@ const line = (...at: P[]) =>
     const n = Math.max(2, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) * 2));
     return Array.from({ length: n + (i === at.length - 2 ? 1 : 0) }, (_, j) => ({ x: a.x + ((b.x - a.x) * j) / n, y: a.y + ((b.y - a.y) * j) / n }));
   });
-/** A hem across the body: `side` cm below the waist at the side seams, `centre` at the centre. */
-const hem = (waistY: number, side: number, centre: number) => line({ x: -24, y: waistY + side }, { x: -12, y: waistY + (side + centre) / 2 }, { x: 0, y: waistY + centre }, { x: 12, y: waistY + (side + centre) / 2 }, { x: 24, y: waistY + side });
+/** A hem across the body: `side` cm below the waist at the side seams, `centre` at the centre. It runs
+ * level for the last few cm out to the side, so the side seam reads `side` wherever it sits. */
+const hem = (waistY: number, side: number, centre: number) =>
+  line({ x: -24, y: waistY + side }, { x: -20, y: waistY + side }, { x: -10, y: waistY + (side + centre) / 2 }, { x: 0, y: waistY + centre }, { x: 10, y: waistY + (side + centre) / 2 }, { x: 20, y: waistY + side }, { x: 24, y: waistY + side });
 
 describe('a hem drawn on the bodice', () => {
   it('sets the length from the side seams and keeps a level hem level', () => {

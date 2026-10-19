@@ -44,7 +44,7 @@ export interface SkirtFinish {
   liningM?: number;
   /** Fabric width in cm, when it isn't 140. */
   width?: number;
-  /** Hem allowance on a straight or A-line skirt, when it isn't the usual 4 cm. */
+  /** Hem allowance on a straight or A-line skirt, when it isn't the draft's own. */
   hem?: number;
 }
 
@@ -96,6 +96,8 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
   const elastic = draft.elastic;
   const backSeam = !draft.pieces[1].fold;
   const pockets = !!draft.pocket;
+  // The hem as cut: deep on a straight skirt, narrower on a flared one so it lies flat.
+  const hemCm = finish.hem ?? draft.pieces[0].allowances.hem ?? 4;
 
   const steps: SewStep[] = [
     {
@@ -216,8 +218,8 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
         : style.silhouette === 'trumpet'
           ? 'The hem is curved and full, so keep it narrow. Press up 0.5 cm, then 1.5 cm more, easing in the fullness with steam, and stitch by hand or machine.'
           : style.silhouette === 'a_line'
-            ? `Press up 1 cm, then ${(finish.hem ?? 4) - 1} cm more. The hem is curved, so ease in the extra fullness with steam as you press. Stitch by hand or machine.`
-            : `Press up 1 cm, then ${(finish.hem ?? 4) - 1} cm more, and stitch by hand or machine.${slit ? ' Turn the slit edges under and stitch them down.' : ''}`,
+            ? `Press up 1 cm, then ${hemCm - 1} cm more. The hem is curved, so ease in the extra fullness with steam as you press. Stitch by hand or machine.`
+            : `Press up 1 cm, then ${hemCm - 1} cm more, and stitch by hand or machine.${slit ? ' Turn the slit edges under and stitch them down.' : ''}`,
     },
     {
       title: 'Finish',
@@ -235,7 +237,7 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
       'Matching thread',
     ],
     // Pleats, godets, a flounce or tiers, sewn in at the right moment.
-    steps: volumeSteps(steps, draft, { seam, waist, hem: finish.hem ?? 4 }),
+    steps: volumeSteps(steps, draft, { seam, waist, hem: hemCm }),
   };
 }
 

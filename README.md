@@ -19,6 +19,14 @@ To read it all, set a read-out key:
 It returns JSON: `days` (daily totals), `crashes` (the latest 100 crash reports) and `signups` (`testers`, `news`).
 Without `STATS_KEY` set, the read-out is refused.
 
+## Fit tester codes
+
+Photo readings are capped at 5 a day per visitor and 100 a day for the whole site (`src/photo/limit.ts`). Fit testers
+type a code in Your account > Fit testing, which gives them 20 a day in a separate pool (600 a day for all testers),
+so testing doesn't use up the site's 100. Set the codes in Netlify as `TESTER_CODES` (comma separated, at least 4
+characters each, case doesn't matter), then redeploy. With no codes set, the tester box says every code is wrong.
+Remove a code from the list to switch it off.
+
 ## Tests
 
 - `npm test`: unit tests (vitest, files in `src/**/*.test.ts`).

@@ -144,3 +144,70 @@ describe('knit T-shirt', () => {
     expect(sameChoices(tee, { ...tee, stretch: 'high' })).toBe(false);
   });
 });
+
+describe('knit T-shirt bust shaping', () => {
+  const BIG = { ...EX, full_bust: 120, high_bust: 108, waist: 100, full_hip: 124 };
+  const piecesOf = (d: ReturnType<typeof draftTee>) => [d.pieces[0], d.pieces[1]];
+  const lowest = (pc: ReturnType<typeof draftTee>['pieces'][number]) => Math.max(...pc.outline.points().map((q) => q.y));
+
+  it('gives a fuller bust a wider, longer front, keeping the total round the bust', () => {
+    for (const fit of FITS)
+      for (const length of LENGTHS) {
+        const d = draftTee(BIG, { fit, length });
+        const [front, back] = piecesOf(d);
+        expect(d.frontBust - d.backBust).toBeGreaterThan(4);
+        expect(d.finishedBust).toBeCloseTo(BIG.full_bust * (1 + TEE_EASE[fit].medium), 0);
+        expect(2 * (d.frontBust + d.backBust)).toBeCloseTo(d.finishedBust, 0);
+        // The side seams sew together exactly, and the front's centre hangs lower than the back's.
+        expect(Math.abs(taggedLength(front.outline, 'side') - taggedLength(back.outline, 'side'))).toBeLessThan(0.01);
+        expect(d.frontExtra).toBeGreaterThan(3);
+        expect(d.frontExtra).toBeLessThanOrEqual(5);
+        expect(lowest(front) - lowest(back)).toBeCloseTo(d.frontExtra, 0);
+        // The front hem is a gentle curve: only a little longer than straight from the side to the centre.
+        const segs = front.outline.segs;
+        const corner = segs[front.outline.tags.indexOf('hem') - 1].to;
+        const centre = segs[front.outline.tags.indexOf('hem')].to;
+        const chord = Math.hypot(corner.x - centre.x, corner.y - centre.y);
+        const hem = taggedLength(front.outline, 'hem');
+        expect(hem).toBeGreaterThanOrEqual(chord - 0.01);
+        expect(hem).toBeLessThan(chord + 1);
+        // The side corner moves under a cm to keep the side seams matched.
+        expect(Math.abs(centre.y - corner.y - d.frontExtra)).toBeLessThan(1);
+        expect(checkPattern(d.pieces).filter((c) => !c.ok)).toEqual([]);
+      }
+    expect(teeGuide(draftTee(BIG), 1.5).steps.find((st) => st.title === 'Hem')!.text).toMatch(/lower at the centre/);
+  });
+
+  it('cuts a small cup, a measured flat chest and the menswear form front and back alike', () => {
+    const before = { ...EX, high_bust: EX.full_bust };
+    const flat = draftTee(before);
+    expect(flat.frontBust).toBe(flat.backBust);
+    expect(flat.frontExtra).toBe(0);
+    // The menswear form: no shaping, however full the bust.
+    const mens = draftTee(BIG, { flatFront: true });
+    expect(mens.frontBust).toBe(mens.backBust);
+    expect(mens.frontExtra).toBe(0);
+    expect(teeGuide(mens, 1.5).steps.find((st) => st.title === 'Hem')!.text).not.toMatch(/lower at the centre/);
+    // A B cup (5 cm) is close to the unshaped tee: under a cm moved, about a cm of length.
+    const small = draftTee({ ...EX, high_bust: EX.full_bust - 5 });
+    expect(small.frontBust - small.backBust).toBeLessThan(1.5);
+    expect(small.frontExtra).toBeLessThanOrEqual(1);
+    expect(small.finishedBust).toBe(flat.finishedBust);
+    expect(Math.abs(small.backLength - flat.backLength)).toBeLessThan(0.05);
+    // Without a high bust it's estimated from the bust, mildly.
+    const guessed = draftTee(EX);
+    expect(guessed.frontBust - guessed.backBust).toBeLessThan(1);
+  });
+
+  it('keeps matching side seams for random bodies', () => {
+    for (let seed = 1; seed <= 60; seed++) {
+      const r = rng(seed + 52000);
+      const b = randomBody(r);
+      const body = { ...b, ...randomArms(b, r) };
+      const d = draftTee(body, { fit: FITS[seed % 3], length: LENGTHS[(seed >> 1) % 3] });
+      const [front, back] = piecesOf(d);
+      expect(Math.abs(taggedLength(front.outline, 'side') - taggedLength(back.outline, 'side'))).toBeLessThan(0.01);
+      expect(d.frontBust).toBeGreaterThanOrEqual(d.backBust);
+    }
+  });
+});

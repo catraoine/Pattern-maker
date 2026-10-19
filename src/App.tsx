@@ -25,6 +25,7 @@ import { Fitting, carriedFitting, describeCarried, describeFitting, saveVersion,
 import { FabricWidth, layPlans } from './engine/layplan';
 import { MyFabric, clothFor, withFabric, withFabricEase } from './engine/fabrics';
 import { SPECIALS, needsNap, withCheckMarks, withSpecialAllowances } from './engine/specialFabrics';
+import { printNap, printOf } from './engine/prints';
 import { layAmount } from './engine/layplan';
 import { withEstimates } from './estimate';
 import { EXAMPLE_VALUES, FormKind, Garment, MeasurementId, MeasurementValues, Unit, checkMeasurements, isComplete } from './measurements';
@@ -38,6 +39,7 @@ import {
   addPerson,
   isSavedFor,
   makeBackup,
+  type Backup,
   personName,
   readBackup,
   profileName,
@@ -62,6 +64,9 @@ import { ExportScreen, Printable } from './screens/ExportScreen';
 import { ChapterBand } from './ui/ChapterBand';
 import { describePattern } from './screens/describe';
 import { WelcomeScreen } from './screens/WelcomeScreen';
+import { FABRIC, openTabNext } from './ui/StyleLayout';
+import { KeptCount } from './ui/SaveControl';
+import { GARMENT_NAME } from './measureFlow';
 import { MeasureStepsScreen, type StepsStart } from './screens/MeasureStepsScreen';
 import { AccountScreen } from './screens/AccountScreen';
 import { PhotoScreen } from './screens/PhotoScreen';
@@ -80,6 +85,8 @@ import { ClientBookScreen } from './screens/ClientBookScreen';
 import { MeasureLinkScreen } from './screens/MeasureLinkScreen';
 import { MeasureArrivalScreen } from './screens/MeasureArrivalScreen';
 import { readLink, type MeasureReply } from './measureLink';
+import { isMoveLink, moveLink, readMoveLink } from './moveLink';
+import { MoveArrivalScreen } from './screens/MoveArrivalScreen';
 import { CheckFileScreen } from './screens/CheckFileScreen';
 import { FormScreen } from './screens/FormScreen';
 import { coverGuide, coverMissing, coverPieces, padMap } from './engine/formCover';
@@ -103,7 +110,7 @@ const BRAND_BLOCK = 'M' + BODICE.map(([x, y]) => `${(9 + x * 14).toFixed(2)} ${(
 import { Mode, finishFor, keepFinish, modeOf } from './mode';
 
 export type Step = 'measure' | 'style' | 'export';
-type View = Step | 'plans' | 'welcome' | 'steps' | 'account' | 'photo' | 'fitting' | 'scale' | 'client' | 'check' | 'imported' | 'privacy' | 'terms' | 'tester' | 'news' | 'collection' | 'link' | 'arrive' | 'form' | 'formprint' | 'brands' | 'nights';
+type View = Step | 'plans' | 'welcome' | 'steps' | 'account' | 'photo' | 'fitting' | 'scale' | 'client' | 'check' | 'imported' | 'privacy' | 'terms' | 'tester' | 'news' | 'collection' | 'link' | 'arrive' | 'form' | 'formprint' | 'brands' | 'nights' | 'move';
 
 export interface Choices {
   fit: Fit;
@@ -257,7 +264,7 @@ const SIDE: Partial<Record<View, [string, string]>> = {
 const NEEDS_MEASUREMENTS: View[] = ['style', 'export', 'fitting', 'scale'];
 
 /** Where the header's back goes when there's nothing behind in history, such as after a reload. */
-const PARENT: Partial<Record<View, View>> = { measure: 'welcome', steps: 'welcome', style: 'measure', photo: 'style', export: 'style', fitting: 'export', scale: 'export', account: 'style', client: 'account', arrive: 'client', link: 'welcome', check: 'account', imported: 'check', form: 'account', formprint: 'form', privacy: 'welcome', terms: 'welcome', tester: 'account', news: 'account', brands: 'account', nights: 'account' };
+const PARENT: Partial<Record<View, View>> = { measure: 'welcome', steps: 'welcome', style: 'measure', photo: 'style', export: 'style', fitting: 'export', scale: 'export', account: 'style', client: 'account', arrive: 'client', link: 'welcome', check: 'account', imported: 'check', form: 'account', formprint: 'form', privacy: 'welcome', terms: 'welcome', tester: 'account', news: 'account', brands: 'account', nights: 'account', move: 'welcome' };
 
 export default function App() {
   const [saved, setSaved] = usePersistent<Saved>('skirt', INITIAL);
@@ -282,7 +289,7 @@ export default function App() {
   const setValues = (v: MeasurementValues) => setAccount(updatePerson(account, person.id, { values: v, example: person.example?.filter((id) => v[id] === measured[id]) }));
   const { garment } = saved;
   // Every visit opens on the welcome screen (Cat's pick, 2026-10-16). Saved measurements and
-  // patterns are kept, so a returning sewist taps through and carries on.
+  // patterns are kept, and once measured the welcome's button carries straight on with the garment.
   // Screens live in the browser's history, so phone and browser back step back through the app. Landing back
   // on a pattern screen whose measurements have since gone sends you to Measure instead.
   // A measure-me link opened here: a client's ask to measure, or a client's numbers coming back to their dressmaker.
@@ -291,12 +298,22 @@ export default function App() {
   // A link opened while the app is already showing (a pasted address, a second tap) starts over from it.
   useEffect(() => {
     const on = () => {
-      if (readLink(window.location.hash)) window.location.reload();
+      if (readLink(window.location.hash) || isMoveLink(window.location.hash)) window.location.reload();
     };
     window.addEventListener('hashchange', on);
     return () => window.removeEventListener('hashchange', on);
   }, []);
-  const [startView] = useState<View>(incoming?.kind === 'ask' ? 'link' : incoming?.kind === 'reply' ? 'arrive' : 'welcome');
+  // A "Send to my computer" link: everything from the sewist's other device, read once the page is up.
+  const [moving, setMoving] = useState<Backup<Saved> | 'broken'>();
+  useEffect(() => {
+    readMoveLink<Saved>(window.location.hash).then((b) => b && setMoving(b));
+  }, []);
+  const dropHash = () => {
+    if (window.location.hash) window.history.replaceState(window.history.state, '', window.location.pathname + window.location.search);
+  };
+  /** The link that carries everything on this device to another one. */
+  const sendLink = () => moveLink(window.location.origin, makeBackup(saved, account, pointEdits));
+  const [startView] = useState<View>(incoming?.kind === 'ask' ? 'link' : incoming?.kind === 'reply' ? 'arrive' : isMoveLink(window.location.hash) ? 'move' : 'welcome');
   const [step, setStep] = useViewHistory<View>(startView, (to) => (NEEDS_MEASUREMENTS.includes(to) && !canLeaveMeasure ? 'measure' : to));
   const openLegal = (page: 'privacy' | 'terms' | 'tester' | 'news' | 'brands' | 'nights') => setStep(page);
   // Where Plans goes back to: the screen it was opened from.
@@ -346,6 +363,8 @@ export default function App() {
   );
   const trousersChoices = saved.trousers ?? DEFAULT_TROUSERS_CHOICES;
   const teeChoices = saved.tee ?? DEFAULT_TEE_CHOICES;
+  // The menswear form's tee has no bust shaping: front and back cut alike.
+  const teeStyle = useMemo(() => ({ ...teeChoices, ...(form === 'menswear' ? { flatFront: true } : {}) }), [teeChoices, form]);
   const isOuterGarment = garment === 'jacket' || garment === 'coat';
   const outerChoices: OuterChoices = useMemo(() => (garment === 'coat' ? { ...DEFAULT_COAT_CHOICES, ...saved.coat } : { ...DEFAULT_JACKET_CHOICES, ...saved.jacket }), [garment, saved.coat, saved.jacket]);
   // Jackets and coats are drafted on the bodice block, so they take the bodice's toile corrections.
@@ -368,7 +387,7 @@ export default function App() {
       }
       if (garment === 'trousers') return { trousers: draftTrousers(values as TrousersMeasurements, trousersStyle) };
       // A knit block fits by stretch, so no woven toile corrections or heavy-cloth ease go into it.
-      if (garment === 'tee') return { tee: draftTee(values as TeeMeasurements, teeChoices) };
+      if (garment === 'tee') return { tee: draftTee(values as TeeMeasurements, teeStyle) };
       if (garment === 'dress') {
         const st = dressStyles(fitting);
         const d = draftDress(values as DressMeasurements, st.bodice, st.skirt);
@@ -379,7 +398,7 @@ export default function App() {
       return { error: e instanceof DraftError ? e.message : 'Something went wrong drafting this pattern.' };
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [values, skirtStyle, bodiceStyle, trousersStyle, teeChoices, dress, outerChoices, fabric, fitting, garment, canLeaveMeasure]);
+  }, [values, skirtStyle, bodiceStyle, trousersStyle, teeStyle, dress, outerChoices, fabric, fitting, garment, canLeaveMeasure]);
 
   // The drafts with any points moved on the flat pattern, so the preview, print and files all follow.
   const moved = pointEdits[garment];
@@ -421,7 +440,7 @@ export default function App() {
           const own = (pcs: Piece[]) => pcs.filter((pc) => pc.kind !== 'pocket');
           if (isOuterGarment) return draftOuter(values as OuterMeasurements, outerStyleFor(outerChoices, f)).pieces.filter((pc) => !pc.kind);
           if (garment === 'trousers') return draftTrousers(values as TrousersMeasurements, { ...trousersChoices, ...trousersCut, fitting: withFabricEase(toFitting(f, 'skirt'), fabric, 'skirt') }).block;
-          if (garment === 'tee') return draftTee(values as TeeMeasurements, teeChoices).pieces;
+          if (garment === 'tee') return draftTee(values as TeeMeasurements, teeStyle).pieces;
           if (garment === 'dress') {
             const st = dressStyles(f);
             return own(draftDress(values as DressMeasurements, st.bodice, st.skirt).pieces);
@@ -432,7 +451,7 @@ export default function App() {
         }
       },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [garment, values, saved.bodice, saved.choices, trousersChoices, teeChoices, dress, outerChoices, fabric],
+    [garment, values, saved.bodice, saved.choices, trousersChoices, teeStyle, dress, outerChoices, fabric],
   );
 
   /** The pattern's main pieces with allowances, drafted to any measurements: for grading a size run. */
@@ -447,7 +466,7 @@ export default function App() {
           return allow([...b.pieces, ...(sleeveFor(b, bodiceStyle, m)?.pieces ?? [])]);
         }
         // Knit pieces keep their 1 cm allowances whatever the style.
-        if (garment === 'tee') return draftTee(m as TeeMeasurements, teeChoices).pieces;
+        if (garment === 'tee') return draftTee(m as TeeMeasurements, teeStyle).pieces;
         if (isOuterGarment) return allow(draftOuter(m as OuterMeasurements, outerStyleFor(outerChoices, fitting)).pieces);
         if (garment === 'trousers') {
           const t = draftTrousers(m as TrousersMeasurements, trousersStyle);
@@ -462,7 +481,7 @@ export default function App() {
         return allow([...k.pieces, ...waistPieces(k, 1.5)]);
       },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [garment, bodiceStyle, trousersStyle, teeChoices, skirtStyle, dress, outerChoices, fitting, saved.finish?.allowances, saved.finish?.fabric?.special],
+    [garment, bodiceStyle, trousersStyle, teeStyle, skirtStyle, dress, outerChoices, fitting, saved.finish?.allowances, saved.finish?.fabric?.special],
   );
 
   const current = isOuterGarment ? outerChoices : garment === 'bodice' ? saved.bodice : garment === 'dress' ? dress : garment === 'trousers' ? trousersChoices : garment === 'tee' ? teeChoices : saved.choices;
@@ -480,8 +499,9 @@ export default function App() {
         const cut = withSpecialAllowances(withAllowances(pc, finish.allowances), special);
         return checks ? withCheckMarks(cut) : cut;
       });
-    const nap = finish.nap || needsNap(special);
+    const nap = finish.nap || needsNap(special) || printNap(printOf(fabric));
     const hide = special === 'leather';
+    const border = printOf(fabric) === 'border';
     const couture = finish.allowances === 'couture';
     const fittingNotes = [...fittingLines(ownFitting, garment), ...carriedNotes.map((l) => `${l}.`)];
     // The couture route's cloth follows the recorded fibre; either route opens with preparing the fabric.
@@ -490,7 +510,7 @@ export default function App() {
     if (tee) {
       // Knit allowances (1 cm, 2.5 cm at the hem) whatever the allowance style, and a knit lay.
       const pieces = tee.pieces;
-      const lays = layPlans(pieces, finish.fabricWidth, nap, false, true);
+      const lays = layPlans(pieces, finish.fabricWidth, nap, false, true, border);
       return {
         pieces,
         notes: [
@@ -506,7 +526,7 @@ export default function App() {
     }
     if (outer) {
       const pieces = allow(outer.pieces);
-      const lays = layPlans(pieces, finish.fabricWidth, nap, hide);
+      const lays = layPlans(pieces, finish.fabricWidth, nap, hide, false, border);
       const metres = (f: 'self' | 'lining') => lays.find((l) => l.fabric === f)?.metres;
       const hem = outer.pieces[0].allowances['opening-hem'] ?? 4;
       const kind = outer.kind;
@@ -534,7 +554,7 @@ export default function App() {
     if (trousers) {
       const pieces = allow([...trousers.pieces, trousersWaistband(trousers, 1.5)]);
       const hem = pieces[0].allowances.hem;
-      const lays = layPlans(pieces, finish.fabricWidth, nap, hide);
+      const lays = layPlans(pieces, finish.fabricWidth, nap, hide, false, border);
       const m = values as TrousersMeasurements;
       return {
         pieces,
@@ -573,7 +593,7 @@ export default function App() {
       // The hem is on the flounce below a flounced skirt, and on the bottom tier (2 cm) of a tiered one.
       const hem = pieces.find((pc) => !pc.kind && pc.allowances.hem !== undefined)?.allowances.hem ?? 2;
       // Tiers and the extra godets are cut but not printed.
-      const lays = layPlans([...pieces, ...allow(layoutExtras(skirt))], finish.fabricWidth, nap, hide);
+      const lays = layPlans([...pieces, ...allow(layoutExtras(skirt))], finish.fabricWidth, nap, hide, false, border);
       const metres = (f: 'self' | 'lining', fallback: () => number) => lays.find((l) => l.fabric === f)?.metres ?? fallback();
       return {
         pieces,
@@ -613,7 +633,7 @@ export default function App() {
       const [bf, bb] = blockOf(d.bodice);
       const facings = edges === 'facings' ? (d.bodice.drape ? drapeFacings(d.bodice, !sleeve) : bodiceFacings(bf, bb, !sleeve, d.bodice.collar !== 'mandarin')) : [];
       const pieces = allow([...top, ...(sleeve?.pieces ?? []), ...d.skirt.pieces, ...facings]);
-      const lays = layPlans([...pieces, ...allow(layoutExtras(d.skirt))], finish.fabricWidth, nap, hide);
+      const lays = layPlans([...pieces, ...allow(layoutExtras(d.skirt))], finish.fabricWidth, nap, hide, false, border);
       const metres = (f: 'self' | 'lining' | 'interlining') => lays.find((l) => l.fabric === f)?.metres ?? bodiceFabricMetres(d.bodice, sleeve) + fabricMetres(d.skirt);
       const edgeWords = sleeve
         ? { binding: 'a bias-bound neckline', facings: 'a faced neckline', lined: 'a lined bodice' }[edges]
@@ -664,7 +684,7 @@ export default function App() {
         ? { binding: 'a bias-bound neckline', facings: 'a faced neckline', lined: 'a lined bodice' }[edges]
         : { binding: 'bias-bound edges', facings: 'faced neck and armholes', lined: 'a full lining' }[edges];
       const sleeveWords = sleeve ? `${describeBodice(saved.bodice).replace(/^.* with /, 'With ')}` : 'Sleeveless';
-      const lays = layPlans(pieces, finish.fabricWidth, nap, hide);
+      const lays = layPlans(pieces, finish.fabricWidth, nap, hide, false, border);
       const metres = (f: 'self' | 'lining' | 'interlining') => lays.find((l) => l.fabric === f)?.metres ?? bodiceFabricMetres(bodice);
       return {
         pieces,
@@ -717,9 +737,9 @@ export default function App() {
       notes: [`Read from ${imported.fileName}${source ? `, made in ${source}` : ''}.`, ...notes],
       guide: importedGuide(pieces),
       spec: [],
-      lays: layPlans(pieces, finish.fabricWidth, finish.nap || needsNap(finish.fabric?.special)),
+      lays: layPlans(pieces, finish.fabricWidth, finish.nap || needsNap(finish.fabric?.special) || printNap(printOf(finish.fabric)), false, false, printOf(finish.fabric) === 'border'),
     };
-  }, [imported, finish.fabricWidth, finish.nap, finish.fabric?.special]);
+  }, [imported, finish.fabricWidth, finish.nap, finish.fabric]);
   // Body Double: the padded form cover, drafted from the same 3D body as every form in the app.
   const coverPrintable = useMemo((): Printable | undefined => {
     if ((step !== 'form' && step !== 'formprint') || coverMissing(measured).length) return undefined;
@@ -909,6 +929,7 @@ export default function App() {
         {(step === 'export' || step === 'imported' || step === 'formprint') && <ChapterBand key="print" kind="mat" />}
 
         <main className="main">
+          <KeptCount.Provider value={{ kept: account.patterns.length, limit: savedLimit(account) }}>
           {incoming?.kind === 'broken' && step === 'welcome' && (
             <p className="msg error" role="status">
               That measure link is incomplete. Ask for it to be sent again.
@@ -936,6 +957,25 @@ export default function App() {
               }}
             />
           )}
+          {step === 'move' && moving && (
+            <MoveArrivalScreen
+              backup={moving}
+              here={account}
+              hereMeasured={Object.keys(measured).length}
+              onBring={(b) => {
+                // Brought in, so a reload shouldn't offer it again.
+                dropHash();
+                setSaved({ ...INITIAL, ...b.skirt });
+                setAccount({ ...NEW_ACCOUNT, ...b.account, onboarded: true });
+                if (b.pointEdits) setPointEdits(b.pointEdits as Record<string, PointEdit[]>);
+              }}
+              onCarryOn={() => setStep(canLeaveMeasure ? 'export' : 'measure')}
+              onNotNow={() => {
+                dropHash();
+                setStep('welcome');
+              }}
+            />
+          )}
           {step === 'welcome' && (
             <WelcomeScreen
               formStart={formStart}
@@ -945,6 +985,11 @@ export default function App() {
                 setAccount({ ...account, onboarded: true, mode });
                 setStep('steps');
               }}
+              resume={
+                account.onboarded && canLeaveMeasure
+                  ? { garment: GARMENT_NAME[garment], onResume: () => setStep('style'), onSaved: () => setStep('account'), onNew: chooseGarment }
+                  : undefined
+              }
             />
           )}
           {step === 'steps' && stepsNote && (
@@ -955,6 +1000,7 @@ export default function App() {
           {step === 'steps' && (
             <MeasureStepsScreen
               key={stepsStart.at}
+              testerCode={account.testerCode}
               start={stepsStart.start}
               onSomeoneElse={(name) => setAccount(addPerson(account, name))}
               theirs={person.id !== ME}
@@ -996,6 +1042,7 @@ export default function App() {
           {step === 'photo' && plansShown() && <PhotoAllowance account={account} onPlans={openPlans} />}
           {step === 'photo' && canPhotoDraft(account) && (
             <PhotoScreen
+              testerCode={account.testerCode}
               measured={canLeaveMeasure}
               body={canLeaveMeasure ? (values as SkirtMeasurements) : undefined}
               unit={saved.unit}
@@ -1039,8 +1086,10 @@ export default function App() {
               onRemove={(id) => setAccount(removePattern(account, id))}
               onFit={(id, fit) => setAccount(setPatternFit(account, id, fit))}
               onReset={reset}
+              sendLink={sendLink}
+              onTesterCode={(testerCode) => setAccount({ ...account, testerCode })}
               onBackup={() => {
-                const url = URL.createObjectURL(new Blob([JSON.stringify(makeBackup(saved, account), null, 2)], { type: 'application/json' }));
+                const url = URL.createObjectURL(new Blob([JSON.stringify(makeBackup(saved, account, pointEdits), null, 2)], { type: 'application/json' }));
                 const a = document.createElement('a');
                 a.href = url;
                 a.download = `pattern-maker-backup-${new Date().toISOString().slice(0, 10)}.json`;
@@ -1052,6 +1101,7 @@ export default function App() {
                 if (!b) return false;
                 setSaved({ ...INITIAL, ...b.skirt });
                 setAccount({ ...NEW_ACCOUNT, ...b.account, onboarded: true });
+                if (b.pointEdits) setPointEdits(b.pointEdits as Record<string, PointEdit[]>);
                 return true;
               }}
             />
@@ -1210,6 +1260,7 @@ export default function App() {
               choices={teeChoices}
               onChoices={(t) => setSaved({ ...saved, tee: t })}
               fabric={fabric}
+              onFabric={(f) => setFinish({ ...finish, fabric: f, cloth: clothFor(f, finish.cloth) })}
               onChooseGarment={chooseGarment}
               values={values}
               draft={result.tee}
@@ -1249,8 +1300,14 @@ export default function App() {
           {step === 'export' && !hasGarment(account, garment) && <UnlockGarment garment={garment} onPlans={openPlans} onBack={() => setStep('style')} />}
           {step === 'export' && hasGarment(account, garment) && (
             <ExportScreen
+              sendLink={sendLink}
               mode={mode}
               onMode={setMode}
+              onEditFabric={() => {
+                openTabNext(FABRIC);
+                setStep('style');
+              }}
+              onKeep={saveState === 'can' ? () => setAccount(savePattern(account, current, describePattern(current), person.id)) : undefined}
               garment={garment}
               profile={profile}
               title={title}
@@ -1272,9 +1329,6 @@ export default function App() {
               }
               made={printable}
               error={result.error}
-              saveState={saveState}
-              onSave={() => setAccount(savePattern(account, current, describePattern(current), person.id))}
-              onAccount={() => setStep('account')}
               fitting={ownFitting}
               fittingNotes={[...describeFitting(ownFitting, garment), ...carriedNotes]}
               alterations={alterations}
@@ -1307,9 +1361,6 @@ export default function App() {
               onFinish={setFinish}
               style={{ garment: 'skirt', silhouette: saved.choices.silhouette, length: saved.choices.length }}
               made={importedPrintable}
-              saveState="can"
-              onSave={() => undefined}
-              onAccount={() => setStep('account')}
               fittingNotes={[]}
               onFitting={() => undefined}
               imported={{ source: imported.pattern.source, fileName: imported.fileName }}
@@ -1338,9 +1389,6 @@ export default function App() {
               onFinish={setFinish}
               style={{ garment: 'skirt', silhouette: saved.choices.silhouette, length: saved.choices.length }}
               made={coverPrintable}
-              saveState="can"
-              onSave={() => undefined}
-              onAccount={() => setStep('account')}
               fittingNotes={[]}
               onFitting={() => undefined}
               imported={{ fileName: `Drafted to ${profile === 'Me' ? 'you' : profile}` }}
@@ -1383,6 +1431,7 @@ export default function App() {
               }}
             />
           )}
+        </KeptCount.Provider>
         </main>
       </div>
       </PointEditContext.Provider>

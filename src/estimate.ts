@@ -1,4 +1,4 @@
-import { ESTIMATED, FIELDS, type FormKind, type MeasurementId, type MeasurementValues } from './measurements';
+import { ESTIMATED, EXAMPLE_VALUES, FIELDS, type FormKind, type MeasurementId, type MeasurementValues } from './measurements';
 
 // Fills in the upper-body measurements a first pattern can do without (ESTIMATED in measurements.ts),
 // from the bust, high bust, shoulder width, back length and height, with the body proportions the engine
@@ -62,4 +62,26 @@ function menswearEstimates(v: MeasurementValues): MeasurementValues {
   const out = { ...v, high_bust: chest };
   for (const id of ESTIMATED) if (out[id] === undefined) out[id] = round(id, guess[id]!);
   return out;
+}
+
+const LOWER = /hip|thigh|knee|calf|ankle|seat|crotch|rise/;
+const LENGTH = /_to_|length|depth|separation|width|across|slope|rise/;
+
+/**
+ * "Not sure? Estimate it for me" on one measuring page: the upper-body ones as above, the high bust from the
+ * full bust, and anything else from the example body, scaled to this body's own bust, hips and height.
+ * A rougher guess than measuring, so the page says so. Undefined when there is nothing to go on.
+ */
+export function estimateOne(id: MeasurementId, v: MeasurementValues, form: FormKind = 'womenswear'): number | undefined {
+  if (ESTIMATED.includes(id) && v.full_bust !== undefined) return withEstimates({ ...v, [id]: undefined }, form)[id];
+  if (id === 'high_bust' && v.full_bust !== undefined) return round(id, v.full_bust - (2.5 + Math.max(0, v.full_bust - 85) * 0.075));
+  const example = EXAMPLE_VALUES[id];
+  if (example === undefined) return undefined;
+  const ratio = (mine: number | undefined, theirs: number | undefined) => (mine && theirs ? mine / theirs : undefined);
+  const scale = LENGTH.test(id)
+    ? ratio(v.waist_to_floor, EXAMPLE_VALUES.waist_to_floor)
+    : LOWER.test(id)
+      ? ratio(v.full_hip, EXAMPLE_VALUES.full_hip)
+      : ratio(v.full_bust, EXAMPLE_VALUES.full_bust) ?? ratio(v.waist, EXAMPLE_VALUES.waist);
+  return round(id, example * (scale ?? 1));
 }

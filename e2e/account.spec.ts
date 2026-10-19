@@ -5,7 +5,7 @@ test('account: save a pattern, rename it, back up, delete it, restore', async ({
   const main = page.getByRole('main');
 
   await openReview(page);
-  await main.getByRole('button', { name: 'Save pattern' }).click();
+  await main.getByRole('button', { name: 'Keep in my patterns' }).click();
   await main.getByRole('button', { name: 'your patterns' }).click();
   await expect(main.getByRole('heading', { name: 'Saved patterns' })).toBeVisible();
 
