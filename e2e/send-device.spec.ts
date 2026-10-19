@@ -6,7 +6,7 @@ test('send to another device: a link from one browser brings measurements and pa
   await startWithExample(page);
   const main = page.getByRole('main');
   await openReview(page);
-  await main.getByRole('button', { name: 'Save pattern' }).click();
+  await main.getByRole('button', { name: /^(Save pattern|Keep in my patterns)$/ }).click();
   await main.getByRole('button', { name: 'your patterns' }).click();
 
   // No share sheet in this browser, so the link is copied, or shown to copy where the clipboard is blocked.
