@@ -73,4 +73,15 @@ describe('set-in sleeves', () => {
     // Widening to reach the armhole is for unusual arms, not the norm.
     expect(widened / total).toBeLessThan(0.05);
   });
+
+  it('cuts a fitted long sleeve wide enough for the hand to pass, with no wrist opening', () => {
+    const b = draftBodice(body);
+    for (const wrist of [13, 15, 16, 18]) {
+      const d = draftSleeve(b, { ...arms, wrist }, { ...style, length: 'long', shape: 'fitted', fit: 'regular' });
+      // A woven sleeve with no vent: at least 24 cm round, and wrist plus about 9 cm.
+      expect(d.hemCm).toBeGreaterThanOrEqual(24);
+      expect(d.hemCm).toBeGreaterThanOrEqual(wrist + 9 - 0.2);
+      expect(d.hemCm).toBeLessThan(Math.max(wrist + 9, 24) + 1);
+    }
+  });
 });

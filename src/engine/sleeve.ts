@@ -252,7 +252,10 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
     if (shape === 'bishop') return w * 1.5;
     if (s.outer && s.length === 'long') return shape === 'fitted' ? Math.max(wrist + (s.outer === 'coat' ? 14 : 11), hand + 5) : Math.max(w * 0.85, hand + 8);
     if (shape === 'fitted') {
-      if (s.length === 'long') return Math.max(wrist + 6, hand + 1);
+      // A fitted long sleeve has no opening at the wrist, and it is woven (a knit tee's sleeve is
+      // drafted straight), so the hand has to pass through the hem as cut: wrist plus 9 cm, and no
+      // less than 24 cm round, or a small wrist's sleeve is too tight to get on.
+      if (s.length === 'long') return Math.max(wrist + 9, hand + 4, 24);
       if (s.length === 'three_quarter') return Math.max(w + (wrist + 6 - w) * 0.6, hand + 2);
       return w * 0.86;
     }

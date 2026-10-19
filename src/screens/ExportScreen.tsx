@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { SendToDevice } from '../ui/SendToDevice';
 import { OVERLAP, PAGE_MARGIN, Paper, Sheet, layout, pageCount, pageName, pageSize, tileGrid, toSvg, usedTiles } from '../engine/export';
 import { checkPattern } from '../engine/qc';
 import type { Piece } from '../engine/piece';
@@ -42,6 +43,8 @@ export interface Printable {
 }
 
 interface Props {
+  /** The link that carries this device's measurements and patterns to a computer; see moveLink.ts. */
+  sendLink?: () => Promise<string>;
   profile: string;
   title: string;
   fit: string;
@@ -79,6 +82,9 @@ interface Props {
   credit?: string;
 }
 
+/** A touch screen with no mouse: a phone or tablet, where sending the work to a computer helps. */
+const onPhone = () => typeof window !== 'undefined' && !!window.matchMedia?.('(pointer: coarse)').matches && !window.matchMedia('(any-pointer: fine)').matches;
+
 const NONE: Alteration[] = [];
 
 type Output = Paper | 'projector' | 'projectorDark';
@@ -98,7 +104,7 @@ const printedDate = () => new Date().toLocaleDateString('en-GB', { day: 'numeric
 
 
 
-export function ExportScreen({ profile, title, fit, garment, finish, onFinish, made, error, onEditFabric, onKeep, fitting, fittingNotes, alterations = NONE, onFitting, onTrueScale, values, draftAt, style, imported, mode = 'all', onMode, edition, credit, label }: Props) {
+export function ExportScreen({ sendLink, profile, title, fit, garment, finish, onFinish, made, error, onEditFabric, onKeep, fitting, fittingNotes, alterations = NONE, onFitting, onTrueScale, values, draftAt, style, imported, mode = 'all', onMode, edition, credit, label }: Props) {
   const can = (t: ProTool) => shows(mode, t);
   const [picked, setPaper] = useState<Output>('a4');
   // The simple view prints at home, on A4 or Letter.
@@ -262,6 +268,12 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
               </button>
               {shareNote && <p className="msg small">{shareNote}</p>}
             </div>
+            {sendLink && onPhone() && (
+              <div className="stack send-device">
+                <p className="small">Printer on your computer? Send your measurements and patterns there, then print from it.</p>
+                <SendToDevice link={sendLink} className="link" />
+              </div>
+            )}
             <p>
               {projector
                 ? 'One page at true size, in fine lines for projecting onto fabric. Line your projector up with the 10 cm test square.'
