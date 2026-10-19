@@ -7,7 +7,7 @@ import type { SewingGuide } from '../engine/instructions';
 import type { SpecRow } from '../engine/techpack';
 import { PatternPreview } from '../ui/Preview';
 import type { Finish } from '../App';
-import type { Garment } from '../measurements';
+import type { Garment, Unit } from '../measurements';
 import type { Alteration, Fitting } from '../engine/fitting';
 import { FABRIC_WIDTHS, Lay, layAmount, layWords } from '../engine/layplan';
 import { LayPlanView } from '../ui/LayPlanView';
@@ -43,6 +43,8 @@ export interface Printable {
 }
 
 interface Props {
+  /** The sewist's unit; the PDF's text is written in inches when it is `in`. */
+  unit?: Unit;
   /** The link that carries this device's measurements and patterns to a computer; see moveLink.ts. */
   sendLink?: () => Promise<string>;
   profile: string;
@@ -104,11 +106,13 @@ const printedDate = () => new Date().toLocaleDateString('en-GB', { day: 'numeric
 
 
 
-export function ExportScreen({ sendLink, profile, title, fit, garment, finish, onFinish, made, error, onEditFabric, onKeep, fitting, fittingNotes, alterations = NONE, onFitting, onTrueScale, values, draftAt, style, imported, mode = 'all', onMode, edition, credit, label }: Props) {
+export function ExportScreen({ unit = 'cm', sendLink, profile, title, fit, garment, finish, onFinish, made, error, onEditFabric, onKeep, fitting, fittingNotes, alterations = NONE, onFitting, onTrueScale, values, draftAt, style, imported, mode = 'all', onMode, edition, credit, label }: Props) {
   const can = (t: ProTool) => shows(mode, t);
   const [picked, setPaper] = useState<Output>('a4');
+  // Jackets and coats run to dozens of home pages, so the copy-shop sheet is offered even in the simple view.
+  const bigGarment = garment === 'jacket' || garment === 'coat';
   // The simple view prints at home, on A4 or Letter.
-  const paper: Output = can('bigPrint') || picked === 'a4' || picked === 'letter' ? picked : 'a4';
+  const paper: Output = can('bigPrint') || picked === 'a4' || picked === 'letter' || (picked === 'a0' && bigGarment) ? picked : 'a4';
   const [pdf, setPdf] = useState<{ paper: Output; bytes: Uint8Array } | null>(null);
   const [shareNote, setShareNote] = useState('');
   const special = finish.fabric?.special;
@@ -157,13 +161,13 @@ export function ExportScreen({ sendLink, profile, title, fit, garment, finish, o
     setPdf(null);
     import('../engine/pdf')
       .then(({ toTiledPdf, toProjectorPdf }) =>
-        isProjector(paper) ? toProjectorPdf(sheet, { dark: paper === 'projectorDark', title }) : toTiledPdf(sheet, paper, { title, guide, summary }),
+        isProjector(paper) ? toProjectorPdf(sheet, { dark: paper === 'projectorDark', title }) : toTiledPdf(sheet, paper, { title, guide, summary, unit }),
       )
       .then((bytes) => live && setPdf({ paper, bytes }));
     return () => {
       live = false;
     };
-  }, [sheet, paper, title, guide, summary]);
+  }, [sheet, paper, title, guide, summary, unit]);
 
   if (!made || !sheet || !guide) {
     return (
@@ -235,7 +239,7 @@ export function ExportScreen({ sendLink, profile, title, fit, garment, finish, o
             <fieldset className="group">
               <legend>Print on</legend>
               <div className="chips" role="group" aria-label="Paper">
-                {PAPERS.filter((p) => can('bigPrint') || p.id === 'a4' || p.id === 'letter').map((p) => (
+                {PAPERS.filter((p) => can('bigPrint') || p.id === 'a4' || p.id === 'letter' || (p.id === 'a0' && bigGarment)).map((p) => (
                   <button
                     key={p.id}
                     type="button"
@@ -286,7 +290,7 @@ export function ExportScreen({ sendLink, profile, title, fit, garment, finish, o
                 <summary>How the pages fit together</summary>
                 <p className="muted small">
                   Trim each page along its dashed line on the left and top, then lay it over the page before so the half diamonds make whole ones.
-                  Tape them down and cut out your size line. On a phone, send the PDF to your email and print from a computer, or print straight from the
+                  Tape them down. On a phone, send the PDF to your email and print from a computer, or print straight from the
                   share menu.
                 </p>
               </details>
@@ -498,7 +502,6 @@ export function ExportScreen({ sendLink, profile, title, fit, garment, finish, o
               ))}
             </ul>
             <p className="muted small">These steps are also on the last pages of the PDF.</p>
-            <InterestCard offer="tools" pattern={title} inset />
           </div>
           <ol className="sewsteps">
             {guide.steps.map((st) => (
@@ -509,6 +512,7 @@ export function ExportScreen({ sendLink, profile, title, fit, garment, finish, o
               </li>
             ))}
           </ol>
+          <InterestCard offer="tools" pattern={title} inset />
         </div>
       </section>
 

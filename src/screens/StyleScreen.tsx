@@ -132,7 +132,7 @@ export function describe(c: Choices) {
   if (c.shape) return `Skirt matched to a photo${withTail.replace(' with', ', with')}`;
   const len = c.lengthCm !== undefined ? `${Math.round(c.lengthCm)} cm` : GROUPS[2].options.find((o) => o[0] === v.length)![1];
   const sil = v.silhouette === 'slip' ? 'Bias-cut slip' : GROUPS[1].options.find((o) => o[0] === v.silhouette)![1];
-  return `${len} ${sil.toLowerCase()} skirt${withTail}`;
+  return `${len} ${sil === 'A-line' ? sil : sil.toLowerCase()} skirt${withTail}`;
 }
 
 /** Fabric needed on 140 cm wide fabric, from the cutting layout of the pieces and the waistband. A

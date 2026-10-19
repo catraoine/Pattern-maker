@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { showInInches } from './units';
 import { canGoBack, goBack, useViewHistory } from './nav';
 import type { HemShape } from './engine/hem';
 import type { AsymHem } from './engine/asymHem';
@@ -302,6 +303,11 @@ export default function App() {
     window.addEventListener('hashchange', on);
     return () => window.removeEventListener('hashchange', on);
   }, []);
+  // Working in inches: every length written on screen is rewritten as it appears (see units.ts).
+  useEffect(() => {
+    if (saved.unit !== 'in') return;
+    return showInInches(document.body);
+  }, [saved.unit]);
   // A "Send to my computer" link: everything from the sewist's other device, read once the page is up.
   const [moving, setMoving] = useState<Backup<Saved> | 'broken'>();
   useEffect(() => {
@@ -1296,6 +1302,7 @@ export default function App() {
           {step === 'export' && !hasGarment(account, garment) && <UnlockGarment garment={garment} onPlans={openPlans} onBack={() => setStep('style')} />}
           {step === 'export' && hasGarment(account, garment) && (
             <ExportScreen
+              unit={saved.unit}
               sendLink={sendLink}
               mode={mode}
               onMode={setMode}
@@ -1347,6 +1354,7 @@ export default function App() {
           {step === 'imported' && !importedPrintable && <CheckFileScreen onUse={(pattern, fileName) => setImported({ pattern, fileName })} />}
           {step === 'imported' && importedPrintable && imported && (
             <ExportScreen
+              unit={saved.unit}
               mode={mode}
               onMode={setMode}
               garment={garment}
@@ -1375,6 +1383,7 @@ export default function App() {
           {step === 'formprint' && coverPrintable && (
             // Printed like a pattern read from a file: no style, fabric check or toile of its own.
             <ExportScreen
+              unit={saved.unit}
               mode={mode}
               onMode={setMode}
               garment={garment}
