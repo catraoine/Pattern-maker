@@ -69,26 +69,26 @@ const SWIM_PICKS: FabricPick[] = [
 const INTIMATE_PICKS: Record<LingerieStretch, FabricPick[]> = {
   medium: [
     pick('Cotton-elastane jersey', ['light'], 'soft', 'Soft and breathable for everyday briefs and bralettes.'),
-    pick('Stretch lace', ['light'], 'soft', 'Pretty and close-fitting. Choose one that stretches both ways.'),
-    pick('Modal or bamboo jersey', ['light'], 'fluid', 'Silky soft against the skin.'),
+    pick('Stretch lace', ['light'], 'soft', 'Pretty and close-fitting. Many laces stretch across only: choose that on the style screen if yours does.'),
+    pick('Power mesh', ['light'], 'soft', 'Firm, with strong recovery rather than a lot of stretch: good for a band, a shelf or a smoothing bodysuit.'),
   ],
   high: [
-    pick('Power mesh', ['light'], 'soft', 'Firm and supportive: good for a band or a bodysuit.'),
     pick('Microfibre Lycra', ['light'], 'soft', 'Smooth and invisible under clothes.'),
+    pick('Modal-elastane jersey', ['light'], 'fluid', 'Silky soft against the skin, and very stretchy.'),
     pick('Silk-elastane jersey', ['light'], 'fluid', 'Luxurious and very fine.'),
   ],
 };
 
 /** Fabrics for lingerie and swimwear: four-way stretch with strong recovery, and their lining. */
-export function lingerieFabrics(style: { piece: LingeriePiece; stretch: LingerieStretch }): FabricAdvice {
+export function lingerieFabrics(style: { piece: LingeriePiece; stretch: LingerieStretch; way?: 'four' | 'two' }): FabricAdvice {
   const swim = isSwim(style.piece);
   return {
     style: `a ${style.piece}`,
     picks: swim ? SWIM_PICKS : INTIMATE_PICKS[style.stretch],
-    avoid: 'Woven fabrics, and knits that stretch only one way or do not spring back: this pattern is cut smaller than you and relies on the stretch.',
+    avoid: 'Woven fabrics, and knits that do not spring back: this pattern is cut smaller than you and relies on the stretch.',
     note: swim
       ? 'Choose a swim fabric with at least 50% stretch both ways and chlorine-resistant elastane.'
-      : `Choose a knit with ${style.stretch === 'high' ? 'high stretch (50% or more)' : 'medium stretch (30 to 50%)'} both ways, that springs back when you let go.`,
+      : `Choose a knit with ${style.stretch === 'high' ? 'high stretch (50% or more)' : 'medium stretch (30 to 50%)'} across${style.way === 'two' ? '' : ' and some stretch down its length'}, that springs back when you let go.`,
     lining: swim
       ? pick('Swim lining', ['light'], 'soft', 'Lines the whole piece so it is opaque when wet.')
       : pick('Gusset: cotton jersey', ['light'], 'soft', 'Breathable next to the skin.'),

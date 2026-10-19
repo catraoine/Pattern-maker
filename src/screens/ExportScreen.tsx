@@ -385,14 +385,15 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
         )}
       </section>
 
-      {can('toile') && !imported && (
+      {(can('toile') || garment === 'lingerie') && !imported && (
         <section className="card" aria-labelledby="toiletitle">
           <p className="eyebrow">Before your fabric{fittingNotes.length && fitting ? ` · version ${fitting.round + 1}` : ''}</p>
           <h2 id="toiletitle">{knit ? 'Try it in a spare knit first' : fittingNotes.length ? 'Corrected after your toile' : 'Fit it in a toile first'}</h2>
           {knit ? (
             <p className="muted">
-              A knit fits by its stretch, so test it in a cheap knit with the same stretch as yours, not calico. If it is too snug or too
-              loose, change the stretch or the fit on the style screen.
+              {garment === 'lingerie'
+                ? 'A knit fits by its stretch, so make one first in a cheap knit with the same stretch as yours. Then tell us how it fitted under “How did it fit?” on the style screen, and the pattern is redrawn.'
+                : 'A knit fits by its stretch, so test it in a cheap knit with the same stretch as yours, not calico. If it is too snug or too loose, change the stretch or the fit on the style screen.'}
             </p>
           ) : fittingNotes.length ? (
             <ul className="fitlist">
@@ -570,12 +571,15 @@ function FabricStage({ fabric }: { fabric: MyFabric }) {
 }
 
 /** Every fabric as a photo swatch; tapping the chosen one again clears it. */
-function Swatches({ value, onPick }: { value?: Fibre | Special; onPick: (v: Fibre | Special | undefined) => void }) {
+/** What a knit can be: the fibres, and lace. Linen, denim, leather and the other wovens are left out. */
+const KNIT_OK = new Set<Fibre | Special>(['cotton', 'wool', 'silk', 'viscose', 'polyester', 'blend', 'lace']);
+
+function Swatches({ value, onPick, knit }: { value?: Fibre | Special; onPick: (v: Fibre | Special | undefined) => void; knit?: boolean }) {
   return (
     <fieldset className="group">
       <legend>Fabric</legend>
       <div className="swatches">
-        {FABRIC_OPTIONS.map((o) => (
+        {FABRIC_OPTIONS.filter((o) => !knit || KNIT_OK.has(o.id)).map((o) => (
           <button key={o.id} type="button" className={value === o.id ? 'swatch on' : 'swatch'} aria-pressed={value === o.id} onClick={() => onPick(value === o.id ? undefined : o.id)}>
             <img src={fabricPhoto(o.id)} alt="" loading="lazy" draggable={false} />
             <span>{o.label}</span>
@@ -679,7 +683,7 @@ function YourFabric({
           <input id="fabcolour" type="text" autoComplete="off" value={fabric.colour ?? ''} onChange={(e) => set({ colour: e.target.value })} />
         </div>
       </div>
-      <Swatches value={fabric.special ?? fabric.fibre} onPick={pickFabric} />
+      <Swatches value={fabric.special ?? fabric.fibre} onPick={pickFabric} knit={style.garment === 'tee' || style.garment === 'lingerie'} />
       <label className="check">
         <input type="checkbox" checked={!!fabric.checks} onChange={(e) => set({ checks: e.target.checked ? {} : undefined })} />
         <span>

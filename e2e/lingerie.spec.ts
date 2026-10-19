@@ -39,7 +39,13 @@ test('measures the underbust, drafts a bralette and a swimsuit, and prints', asy
   };
   await choose('Piece', 'Bralette');
   await expect(main(page).getByRole('heading', { level: 1, name: /Style your bralette/ })).toBeVisible();
-  await expect(main(page).getByText(/^bralette cup$/i).first()).toBeVisible();
+  await expect(main(page).getByText(/^bralette cup/i).first()).toBeVisible();
+  // Tried one on: the legs gaped, so the next draft cuts the leg elastic shorter.
+  const fitGroup = main(page).getByRole('group', { name: 'How did it fit?', exact: true });
+  const tabs = main(page).getByRole('tablist', { name: 'Style choices' });
+  if (!(await fitGroup.isVisible()) && (await tabs.isVisible())) await tabs.getByRole('tab', { name: 'How did it fit?', exact: true }).click();
+  await fitGroup.getByRole('group', { name: 'Cups' }).getByRole('button', { name: 'Spill over' }).click();
+  await expect(fitGroup.getByText(/Redrawn: cups cut fuller/)).toBeVisible();
   await choose('Piece', 'Swimsuit');
   await expect(main(page).getByText(/^swimsuit front$/i).first()).toBeVisible();
 

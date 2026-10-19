@@ -8,7 +8,7 @@ import { LEG_WORDS, Leg, TrouserClosure, TrouserLength } from './engine/trousers
 import type { Fit, WaistStyle } from './engine/skirt';
 import type { PocketStyle } from './engine/pockets';
 import type { Stretch, TeeFit, TeeLength, TeeNeck, TeeSleeve } from './engine/tee';
-import { isSwim, type CupStyle, type LegCut, type LingeriePiece, type LingerieStretch, type Rise } from './engine/lingerie';
+import { isSwim, type CupStyle, type LegCut, type LingerieFit, type LingeriePiece, type LingerieStretch, type Rise, type StretchWay } from './engine/lingerie';
 import { Peplum, isDraped } from './engine/drape';
 import { isShaped } from './engine/hem';
 import type { HemShape } from './engine/hem';
@@ -152,31 +152,43 @@ export interface LingerieChoices {
   garment: 'lingerie';
   piece: LingeriePiece;
   stretch: LingerieStretch;
+  /** Patterns saved before this choice was added read as four-way. */
+  way?: StretchWay;
   leg: LegCut;
   rise: Rise;
   cup: CupStyle;
+  closure?: 'none' | 'snaps';
+  /** What the maker saw when they tried one on. */
+  tried?: LingerieFit;
 }
 
-export const DEFAULT_LINGERIE_CHOICES: LingerieChoices = { garment: 'lingerie', piece: 'brief', stretch: 'medium', leg: 'classic', rise: 'high', cup: 'triangle' };
+export const DEFAULT_LINGERIE_CHOICES: LingerieChoices = { garment: 'lingerie', piece: 'brief', stretch: 'medium', way: 'four', leg: 'classic', rise: 'high', cup: 'triangle', closure: 'none' };
 
-export type LingerieGroupId = 'piece' | 'stretch' | 'leg' | 'rise' | 'cup';
+export type LingerieGroupId = 'piece' | 'way' | 'stretch' | 'leg' | 'rise' | 'cup' | 'closure';
 
 export const LINGERIE_GROUPS: { id: LingerieGroupId; label: string; options: [string, string][] }[] = [
   { id: 'piece', label: 'Piece', options: [['brief', 'Brief'], ['bralette', 'Bralette'], ['bodysuit', 'Bodysuit'], ['swimsuit', 'Swimsuit'], ['bikini', 'Bikini']] },
-  { id: 'stretch', label: 'Your knit’s stretch', options: [['medium', 'Medium: jersey, stretch lace'], ['high', 'High: power mesh, Lycra']] },
+  { id: 'way', label: 'Which way it stretches', options: [['four', 'Both ways'], ['two', 'Across only']] },
+  { id: 'stretch', label: 'How far it stretches', options: [['medium', 'Medium: jersey, lace, power mesh'], ['high', 'High: Lycra, microfibre']] },
   { id: 'leg', label: 'Leg', options: [['classic', 'Classic'], ['high', 'High cut']] },
   { id: 'rise', label: 'Rise', options: [['high', 'High waist'], ['mid', 'Mid rise']] },
   { id: 'cup', label: 'Cup', options: [['triangle', 'Triangle'], ['longline', 'Longline']] },
+  { id: 'closure', label: 'Crotch', options: [['none', 'Sewn closed'], ['snaps', 'Snap opening']] },
 ];
 
-/** Whether a group applies to the piece: swimwear is always cut for Lycra, only briefs have a rise, only tops a cup. */
+/** Whether a group applies to the piece: swimwear is always cut for four-way Lycra, only briefs have a rise,
+ * only tops a cup, only the bodysuit a snap crotch. */
 export function lingerieGroupShown(c: LingerieChoices, id: LingerieGroupId): boolean {
-  if (id === 'stretch') return !isSwim(c.piece);
+  if (id === 'stretch' || id === 'way') return !isSwim(c.piece);
   if (id === 'leg') return c.piece !== 'bralette';
   if (id === 'rise') return c.piece === 'brief' || c.piece === 'bikini';
   if (id === 'cup') return c.piece === 'bralette' || c.piece === 'bikini';
+  if (id === 'closure') return c.piece === 'bodysuit';
   return true;
 }
+
+/** The value a group shows as picked, with the defaults for patterns saved before it existed. */
+export const lingeriePick = (c: LingerieChoices, id: LingerieGroupId): string => (id === 'way' ? (c.way ?? 'four') : id === 'closure' ? (c.closure ?? 'none') : c[id]);
 
 const LINGERIE_PIECE_WORDS: Record<LingeriePiece, string> = { brief: 'brief', bralette: 'bralette', bodysuit: 'bodysuit', swimsuit: 'swimsuit', bikini: 'bikini' };
 

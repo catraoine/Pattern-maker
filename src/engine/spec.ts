@@ -160,7 +160,8 @@ export function lingerieSpec(m: LingerieMeasurements, d: LingerieDraft): SpecRow
     ...(d.style.piece !== 'bralette' ? [row('Hip', m.full_hip, d.finishedHip)] : []),
     ...(m.crotch_length !== undefined && d.style.piece !== 'bralette' ? [{ label: 'Crotch length', body: r1(m.crotch_length), finished: '' }] : []),
     { label: 'Length reduction for stretch', finished: `${Math.round(d.lengthReduction * 100)}%` },
-    ...d.elastic.map((e) => ({ label: `Elastic, ${e.edge.toLowerCase()}`, finished: `${r1(e.length)} x ${e.width}` })),
+    ...(m.torso_loop !== undefined && (d.style.piece === 'bodysuit' || d.style.piece === 'swimsuit') ? [{ label: 'Torso loop', body: r1(m.torso_loop), finished: '' }] : []),
+    ...d.elastic.map((e) => ({ label: `Elastic, ${e.edge.toLowerCase()}${e.count > 1 ? ` (cut ${e.count})` : ''}`, finished: `${r1(e.length)} x ${e.width}` })),
   ];
 }
 

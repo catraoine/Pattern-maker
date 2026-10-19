@@ -5714,3 +5714,11 @@ input.inline:focus,
   flex: none;
   width: 112px;
 }
+
+/* Lingerie: "How did it fit?" questions, one row of chips each. */
+.fitq {
+  margin: 0.6rem 0;
+}
+.fitq > p {
+  margin: 0 0 0.3rem;
+}

@@ -529,9 +529,9 @@ export default function App() {
       return {
         pieces,
         notes: [
-          `For four-way stretch ${piece === 'swimsuit' || piece === 'bikini' ? 'swim Lycra' : 'knit'} with ${lingerie.style.stretch} stretch. Cut ${cut.join(', ')}, ${Math.round(lingerie.lengthReduction * 100)}% shorter than the body.`,
-          `Seam allowance 1 cm included. Dashed line = stitching line. Grain lines run along the ribs.`,
-          `Elastic: ${lingerie.elastic.map((e) => `${e.edge.toLowerCase()} ${e.length} cm`).join(', ')}. Sewing steps are on the last pages.`,
+          `For ${lingerie.style.way === 'two' ? 'knit that stretches across' : `four-way stretch ${piece === 'swimsuit' || piece === 'bikini' ? 'swim Lycra' : 'knit'}`} with ${lingerie.style.stretch} stretch. Cut ${cut.join(', ')}, ${lingerie.lengthReduction ? `${Math.round(lingerie.lengthReduction * 100)}% shorter than the body` : 'full length'}.`,
+          `Seams 1 cm, and each elastic edge as wide as its elastic, all included. Dashed line = stitching line. Grain lines run down the fabric, with the most stretch going round the body.`,
+          `Elastic: ${lingerie.elastic.map((e) => `${e.edge.toLowerCase()} ${e.length} cm${e.count > 1 ? ` (cut ${e.count})` : ''}`).join(', ')}. Sewing steps are on the last pages.`,
         ],
         guide: withKnitFabric(lingerieGuide(lingerie, lays.find((l) => l.fabric === 'self')?.metres ?? lingerieFabricMetres(lingerie), { width: finish.fabricWidth }), fabric),
         spec: lingerieSpec(values as LingerieMeasurements, lingerie),

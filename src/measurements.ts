@@ -108,7 +108,7 @@ export const TROUSERS_FIELDS: MeasurementField[] = [
     hard: [45, 115],
     typical: [56, 95],
     helper: true,
-    tip: 'From your centre front waist, down between your legs, and up to your centre back waist. Hold the tape snug but not tight, as you would want the seam to sit.',
+    tip: 'From your centre front waist, down between your legs, and up to your centre back waist. Hold the tape snug but not tight, as you would want the seam to sit. Ask someone to hold the end at the back: alone, it often comes out a few cm off.',
   },
   ...SKIRT_FIELDS.filter((f) => f.fit),
 ];
@@ -298,11 +298,35 @@ const UNDERBUST: MeasurementField = {
   typical: [62, 130],
   tip: 'Snug round your ribcage, just under your bust, keeping the tape level all the way round. Breathe out and hold it firm, the way a bra band sits.',
 };
-const LINGERIE_IDS: MeasurementId[] = ['full_bust', 'underbust', 'waist', 'full_hip', 'waist_to_hip', 'crotch_length', 'nape_to_waist', 'shoulder_width', 'neck', 'bust_depth', 'apex_separation'];
-const LINGERIE_FIELDS: MeasurementField[] = LINGERIE_IDS.map((id) => {
-  if (id === 'underbust') return UNDERBUST;
+const TORSO_LOOP: MeasurementField = {
+  id: 'torso_loop',
+  label: 'Torso loop',
+  hard: [100, 230],
+  typical: [125, 190],
+  helper: true,
+  tip: 'From the top of one shoulder, down the front over your bust, between your legs and up your back to the same shoulder. Stand tall and keep the tape snug. It sets a one-piece\'s length.',
+};
+/** Only the waist, hip and crotch length are needed for every piece (the brief); the rest are asked when a
+ * piece needs them, from the style screen. */
+const LINGERIE_NEEDS_FOR: [MeasurementId, string | undefined][] = [
+  ['full_bust', undefined],
+  ['waist', undefined],
+  ['full_hip', undefined],
+  ['waist_to_hip', undefined],
+  ['crotch_length', undefined],
+  ['underbust', 'For the bralette, bikini top and one-pieces.'],
+  ['torso_loop', 'For the bodysuit and swimsuit.'],
+  ['nape_to_waist', 'For tops and one-pieces.'],
+  ['shoulder_width', 'For the bodysuit and swimsuit straps.'],
+  ['neck', ESTIMATE_NOTE],
+  ['bust_depth', ESTIMATE_NOTE],
+  ['apex_separation', ESTIMATE_NOTE],
+];
+const LINGERIE_FIELDS: MeasurementField[] = LINGERIE_NEEDS_FOR.map(([id, optional]) => {
+  if (id === 'underbust') return { ...UNDERBUST, optional };
+  if (id === 'torso_loop') return { ...TORSO_LOOP, optional };
   const f = [...BODICE_FIELDS, ...TROUSERS_FIELDS].find((b) => b.id === id)!;
-  return ESTIMATED.includes(id) ? f : { ...f, optional: undefined };
+  return { ...f, optional };
 });
 
 /** A jacket takes the bodice's measurements with the hip (it reaches below the waist) and the arms (it
@@ -352,6 +376,7 @@ export const EXAMPLE_VALUES: MeasurementValues = {
   bust_depth: 26,
   apex_separation: 18,
   underbust: 76,
+  torso_loop: 152,
   armscye: 40,
   arm_length: 59,
   upper_arm: 29,
@@ -495,6 +520,9 @@ export function crossChecks(v: MeasurementValues): CrossCheck[] {
   ratio('waist_to_knee', 'waist_to_floor', 0.47, 0.65,
     'Waist to knee looks short next to waist to floor. Measure down the side to the middle of the knee, standing straight.',
     'Waist to knee looks long next to waist to floor. Measure to the middle of the knee, and to the floor in bare feet.');
+  ratio('crotch_length', 'full_hip', 0.56, 0.84,
+    'Crotch length looks short for your hips. It runs from the centre front waist, right through between your legs, to the centre back waist. It is easiest with someone holding the tape at the back.',
+    'Crotch length looks long for your hips. Keep the tape snug between the legs, and stop at the waist front and back. It is easiest with someone holding the tape at the back.');
   ratio('crotch_length', 'crotch_depth', 2.1, 3.3,
     'Crotch length looks short next to your crotch depth. Take the tape from the centre front waist right through between the legs to the centre back waist.',
     'Crotch length looks long next to your crotch depth. Keep the tape snug between the legs, and stop at the waist front and back.');

@@ -36,6 +36,7 @@ export const MEASUREMENTS: Record<string, string> = {
   'Crotch length': '70',
   'Full bust': '92',
   Underbust: '76',
+  'Torso loop': '152',
   // The menswear form's bust.
   Chest: '100',
   'High bust': '86',
