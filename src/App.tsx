@@ -38,6 +38,7 @@ import {
   addPerson,
   isSavedFor,
   makeBackup,
+  type Backup,
   personName,
   readBackup,
   profileName,
@@ -80,6 +81,8 @@ import { ClientBookScreen } from './screens/ClientBookScreen';
 import { MeasureLinkScreen } from './screens/MeasureLinkScreen';
 import { MeasureArrivalScreen } from './screens/MeasureArrivalScreen';
 import { readLink, type MeasureReply } from './measureLink';
+import { isMoveLink, moveLink, readMoveLink } from './moveLink';
+import { MoveArrivalScreen } from './screens/MoveArrivalScreen';
 import { CheckFileScreen } from './screens/CheckFileScreen';
 import { FormScreen } from './screens/FormScreen';
 import { coverGuide, coverMissing, coverPieces, padMap } from './engine/formCover';
@@ -103,7 +106,7 @@ const BRAND_BLOCK = 'M' + BODICE.map(([x, y]) => `${(9 + x * 14).toFixed(2)} ${(
 import { Mode, finishFor, keepFinish, modeOf } from './mode';
 
 export type Step = 'measure' | 'style' | 'export';
-type View = Step | 'plans' | 'welcome' | 'steps' | 'account' | 'photo' | 'fitting' | 'scale' | 'client' | 'check' | 'imported' | 'privacy' | 'terms' | 'tester' | 'news' | 'collection' | 'link' | 'arrive' | 'form' | 'formprint' | 'brands' | 'nights';
+type View = Step | 'plans' | 'welcome' | 'steps' | 'account' | 'photo' | 'fitting' | 'scale' | 'client' | 'check' | 'imported' | 'privacy' | 'terms' | 'tester' | 'news' | 'collection' | 'link' | 'arrive' | 'form' | 'formprint' | 'brands' | 'nights' | 'move';
 
 export interface Choices {
   fit: Fit;
@@ -257,7 +260,7 @@ const SIDE: Partial<Record<View, [string, string]>> = {
 const NEEDS_MEASUREMENTS: View[] = ['style', 'export', 'fitting', 'scale'];
 
 /** Where the header's back goes when there's nothing behind in history, such as after a reload. */
-const PARENT: Partial<Record<View, View>> = { measure: 'welcome', steps: 'welcome', style: 'measure', photo: 'style', export: 'style', fitting: 'export', scale: 'export', account: 'style', client: 'account', arrive: 'client', link: 'welcome', check: 'account', imported: 'check', form: 'account', formprint: 'form', privacy: 'welcome', terms: 'welcome', tester: 'account', news: 'account', brands: 'account', nights: 'account' };
+const PARENT: Partial<Record<View, View>> = { measure: 'welcome', steps: 'welcome', style: 'measure', photo: 'style', export: 'style', fitting: 'export', scale: 'export', account: 'style', client: 'account', arrive: 'client', link: 'welcome', check: 'account', imported: 'check', form: 'account', formprint: 'form', privacy: 'welcome', terms: 'welcome', tester: 'account', news: 'account', brands: 'account', nights: 'account', move: 'welcome' };
 
 export default function App() {
   const [saved, setSaved] = usePersistent<Saved>('skirt', INITIAL);
@@ -291,12 +294,22 @@ export default function App() {
   // A link opened while the app is already showing (a pasted address, a second tap) starts over from it.
   useEffect(() => {
     const on = () => {
-      if (readLink(window.location.hash)) window.location.reload();
+      if (readLink(window.location.hash) || isMoveLink(window.location.hash)) window.location.reload();
     };
     window.addEventListener('hashchange', on);
     return () => window.removeEventListener('hashchange', on);
   }, []);
-  const [startView] = useState<View>(incoming?.kind === 'ask' ? 'link' : incoming?.kind === 'reply' ? 'arrive' : 'welcome');
+  // A "Send to my computer" link: everything from the sewist's other device, read once the page is up.
+  const [moving, setMoving] = useState<Backup<Saved> | 'broken'>();
+  useEffect(() => {
+    readMoveLink<Saved>(window.location.hash).then((b) => b && setMoving(b));
+  }, []);
+  const dropHash = () => {
+    if (window.location.hash) window.history.replaceState(window.history.state, '', window.location.pathname + window.location.search);
+  };
+  /** The link that carries everything on this device to another one. */
+  const sendLink = () => moveLink(window.location.origin, makeBackup(saved, account, pointEdits));
+  const [startView] = useState<View>(incoming?.kind === 'ask' ? 'link' : incoming?.kind === 'reply' ? 'arrive' : isMoveLink(window.location.hash) ? 'move' : 'welcome');
   const [step, setStep] = useViewHistory<View>(startView, (to) => (NEEDS_MEASUREMENTS.includes(to) && !canLeaveMeasure ? 'measure' : to));
   const openLegal = (page: 'privacy' | 'terms' | 'tester' | 'news' | 'brands' | 'nights') => setStep(page);
   // Where Plans goes back to: the screen it was opened from.
@@ -936,6 +949,25 @@ export default function App() {
               }}
             />
           )}
+          {step === 'move' && moving && (
+            <MoveArrivalScreen
+              backup={moving}
+              here={account}
+              hereMeasured={Object.keys(measured).length}
+              onBring={(b) => {
+                // Brought in, so a reload shouldn't offer it again.
+                dropHash();
+                setSaved({ ...INITIAL, ...b.skirt });
+                setAccount({ ...NEW_ACCOUNT, ...b.account, onboarded: true });
+                if (b.pointEdits) setPointEdits(b.pointEdits as Record<string, PointEdit[]>);
+              }}
+              onCarryOn={() => setStep(canLeaveMeasure ? 'export' : 'measure')}
+              onNotNow={() => {
+                dropHash();
+                setStep('welcome');
+              }}
+            />
+          )}
           {step === 'welcome' && (
             <WelcomeScreen
               formStart={formStart}
@@ -1039,8 +1071,9 @@ export default function App() {
               onRemove={(id) => setAccount(removePattern(account, id))}
               onFit={(id, fit) => setAccount(setPatternFit(account, id, fit))}
               onReset={reset}
+              sendLink={sendLink}
               onBackup={() => {
-                const url = URL.createObjectURL(new Blob([JSON.stringify(makeBackup(saved, account), null, 2)], { type: 'application/json' }));
+                const url = URL.createObjectURL(new Blob([JSON.stringify(makeBackup(saved, account, pointEdits), null, 2)], { type: 'application/json' }));
                 const a = document.createElement('a');
                 a.href = url;
                 a.download = `pattern-maker-backup-${new Date().toISOString().slice(0, 10)}.json`;
@@ -1052,6 +1085,7 @@ export default function App() {
                 if (!b) return false;
                 setSaved({ ...INITIAL, ...b.skirt });
                 setAccount({ ...NEW_ACCOUNT, ...b.account, onboarded: true });
+                if (b.pointEdits) setPointEdits(b.pointEdits as Record<string, PointEdit[]>);
                 return true;
               }}
             />
@@ -1249,6 +1283,7 @@ export default function App() {
           {step === 'export' && !hasGarment(account, garment) && <UnlockGarment garment={garment} onPlans={openPlans} onBack={() => setStep('style')} />}
           {step === 'export' && hasGarment(account, garment) && (
             <ExportScreen
+              sendLink={sendLink}
               mode={mode}
               onMode={setMode}
               garment={garment}

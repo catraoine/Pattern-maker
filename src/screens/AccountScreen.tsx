@@ -1,3 +1,4 @@
+import { SendToDevice } from '../ui/SendToDevice';
 import { useMemo, useState, type ReactNode } from 'react';
 import { Account, ME, Person, SavedPattern, activePerson, personName } from '../account';
 import { choicesFlat } from '../collection';
@@ -40,6 +41,8 @@ interface Props {
   /** Opens the Privacy Policy or the Terms of Use. */
   onLegal: (page: 'privacy' | 'terms' | 'tester' | 'news' | 'brands' | 'nights') => void;
   onBackup: () => void;
+  /** The link that carries everything on this device to another one; see moveLink.ts. */
+  sendLink: () => Promise<string>;
   onRestore: (file: File) => Promise<boolean>;
   /** Simple or all tools; all when not given. */
   mode?: Mode;
@@ -71,7 +74,7 @@ function Fold({ id, title, summary, open, children }: { id: string; title: strin
   );
 }
 
-export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurements, onSwitchPerson, onAddPerson, onRemovePerson, onClientBook, onCheckFile, onBodyDouble, onOpen, onRename, onRemove, onFit, onReset, onLegal, onBackup, onRestore, mode = 'all', onMode, onPlans }: Props) {
+export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurements, onSwitchPerson, onAddPerson, onRemovePerson, onClientBook, onCheckFile, onBodyDouble, onOpen, onRename, onRemove, onFit, onReset, onLegal, onBackup, sendLink, onRestore, mode = 'all', onMode, onPlans }: Props) {
   const limit = savedLimit(account);
   const [confirmReset, setConfirmReset] = useState(false);
   const [restoreMsg, setRestoreMsg] = useState('');
@@ -229,8 +232,9 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
         </Fold>
 
         <Fold id="datatitle" title="Your data" summary="On this device">
-          <p className="small">Everything is kept on this device. Download a backup to keep a copy, or to move it to another phone or computer.</p>
+          <p className="small">Everything is kept on this device. Send it to your computer to carry on there, or download a backup to keep a copy.</p>
           <div className="row wrap">
+            <SendToDevice link={sendLink} label="Send to another device" className="secondary sm" />
             <button type="button" className="secondary sm" onClick={onBackup}>
               Download a backup
             </button>
