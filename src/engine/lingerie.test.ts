@@ -58,6 +58,7 @@ describe('soft lingerie and swimwear', () => {
       { ...EX, full_bust: 104, underbust: 78, waist: 80, full_hip: 108 },
       { ...EX, full_bust: 118, underbust: 96, waist: 98, full_hip: 124, torso_loop: 170 },
       { ...EX, full_bust: 96, underbust: 74, waist: 66, full_hip: 112 },
+      { ...EX, full_bust: 82, underbust: 68, waist: 94, full_hip: 118 },
     ];
     for (const body of bodies)
       for (const piece of ['brief', 'bodysuit', 'swimsuit'] as LingeriePiece[])

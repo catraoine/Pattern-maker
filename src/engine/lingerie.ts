@@ -545,26 +545,30 @@ function onePiece(c: Ctx) {
   // Neckline and armhole leave the strap square, so they blend across the shoulder seam.
   const sh = unit(sub(strapOut, strapIn));
   const down = p(-sh.y, sh.x);
-  // The underarm point and the side seam down to the waist. The front is wider here, so its side is a
-  // little longer: the back's underarm rises a few mm to match it.
+  // The underarm point and the side seam down to the waist. With the front wider here, one side runs a
+  // little longer (the front, unless the waist is wider than the bust): the other's underarm rises a
+  // few mm to match it.
   const sideCtlAt = (x: number, y: number): [P, P, P, P] => {
     const d1 = NW - y;
     return [p(x, y), p(x, y + d1 * 0.4), p(waistQ, NW - d1 * 0.35), p(waistQ, NW)];
   };
   const sideLen = (c: [P, P, P, P]) => new Path(c[0]).curve(c[1], c[2], c[3], 'side').length();
-  const frontCtl = sideCtlAt(bustQ + shift, scye);
-  let lift = 0;
-  if (shift > 0) {
+  const raise = (x: number, target: number) => {
     let lo = 0;
-    let hi = 4;
-    for (let i = 0; i < 30; i++) {
+    let hi = 6;
+    for (let i = 0; i < 40; i++) {
       const mid = (lo + hi) / 2;
-      if (sideLen(sideCtlAt(bustQ - shift, scye - mid)) < sideLen(frontCtl)) lo = mid;
+      if (sideLen(sideCtlAt(x, scye - mid)) < target) lo = mid;
       else hi = mid;
     }
-    lift = lo;
-  }
-  const backCtl = sideCtlAt(bustQ - shift, scye - lift);
+    return (lo + hi) / 2;
+  };
+  const fx = bustQ + shift;
+  const bx = bustQ - shift;
+  const fLen = sideLen(sideCtlAt(fx, scye));
+  const bLen = sideLen(sideCtlAt(bx, scye));
+  const frontCtl = sideCtlAt(fx, scye - (bLen > fLen ? raise(fx, bLen) : 0));
+  const backCtl = sideCtlAt(bx, scye - (fLen > bLen ? raise(bx, fLen) : 0));
   const armhole = (path: Path, U: P) => path.line(strapOut, 'shoulder').curve(add(strapOut, mul(down, U.y * 0.3)), p(U.x - U.y * 0.3, U.y), U, 'armhole');
   const side = (path: Path, back: boolean) => {
     const ctl = back ? backCtl : frontCtl;
