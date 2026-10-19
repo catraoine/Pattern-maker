@@ -59,10 +59,53 @@ describe('knit T-shirt', () => {
     expect(scoop.necklineCm).toBeGreaterThan(draftTee(EX, { neckline: 'crew' }).necklineCm + 8);
   });
 
+  it('cuts a crew neck that goes over the head: about 48 cm on an average body, under 25% of stretch for a 56 cm head', () => {
+    const HEAD = 56;
+    for (const [neck, lo, hi] of [[31.8, 46, 50], [35, 48, 52]] as const) {
+      const d = draftTee({ ...EX, neck }, { neckline: 'crew' });
+      expect(d.necklineCm).toBeGreaterThanOrEqual(lo);
+      expect(d.necklineCm).toBeLessThanOrEqual(hi);
+      expect(HEAD / d.necklineCm - 1).toBeLessThanOrEqual(0.25);
+      // The band pulls the edge in, but never so far that it has to stretch past the knit's class (medium: 30 to 50%).
+      expect(HEAD / d.neckband.length - 1).toBeLessThanOrEqual(0.4);
+    }
+    // Scoop and V stay larger than the crew, in that order of depth.
+    const [crew, scoop, v] = NECKS.map((neckline) => draftTee(EX, { neckline }).necklineCm);
+    expect(scoop).toBeGreaterThan(v);
+    expect(v).toBeGreaterThan(crew + 8);
+  });
+
+  it('gives a fuller bust a little room: width to the front from a 4 cm cup, a side dart from 7 cm, side seams still matching', () => {
+    const sides = (body: typeof EX & { high_bust?: number }) => {
+      const d = draftTee(body);
+      const [f, b] = d.pieces;
+      return { d, f, b, sideF: taggedLength(f.outline, 'side'), sideB: taggedLength(b.outline, 'side'), width: (pc: typeof f) => pc.balance![0].pts[1].x };
+    };
+    const small = sides({ ...EX, high_bust: 90 });
+    expect(small.d.bust).toEqual({ cup: 2, shift: 0, extra: 0, dart: false });
+    expect(small.width(small.f)).toBeCloseTo(small.width(small.b), 1);
+    const mid = sides({ ...EX, high_bust: 86 });
+    expect(mid.d.bust.cup).toBe(6);
+    expect(mid.d.bust.dart).toBe(false);
+    expect(mid.d.bust.shift).toBeGreaterThan(0.5);
+    expect(mid.width(mid.f) - mid.width(mid.b)).toBeCloseTo(2 * mid.d.bust.shift, 1);
+    expect(Math.abs(mid.sideF - mid.sideB)).toBeLessThan(0.05);
+    expect(mid.f.lines.filter((l) => l.points().length >= 3)).toEqual([]);
+    const big = sides({ ...EX, full_bust: 100, high_bust: 90 });
+    expect(big.d.bust.dart).toBe(true);
+    expect(big.f.meta.bustDart).toBeCloseTo(big.d.bust.extra, 1);
+    expect(big.f.lines.some((l) => l.points().length >= 3)).toBe(true);
+    expect(big.f.outline.tags).toContain('dart');
+    expect(Math.abs(big.sideF - big.sideB)).toBeLessThan(0.05);
+    expect(big.d.bust.extra).toBeLessThanOrEqual(2.5);
+    for (const body of [mid, big]) expect(checkPattern(body.d.pieces).filter((c) => !c.ok)).toEqual([]);
+  });
+
   it('has no darts, knit seam allowances, and lengths and sleeves in order', () => {
     const d = draftTee(EX);
     expect(d.pieces.map((pc) => pc.name)).toEqual(['Tee front', 'Tee back', 'Sleeve', 'Neckband']);
     for (const pc of d.pieces) {
+      // No darts on an average cup (the fuller bust's small dart is tested below).
       expect(pc.lines.filter((l) => l.points().length >= 3)).toEqual([]);
       expect(pc.seamAllowance).toBe(1);
     }
