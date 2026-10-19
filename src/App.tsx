@@ -29,7 +29,7 @@ import { MyFabric, clothFor, withFabric, withFabricEase } from './engine/fabrics
 import { SPECIALS, needsNap, withCheckMarks, withSpecialAllowances } from './engine/specialFabrics';
 import { layAmount } from './engine/layplan';
 import { withEstimates } from './estimate';
-import { EXAMPLE_VALUES, FormKind, Garment, MeasurementValues, Unit, checkMeasurements, isComplete } from './measurements';
+import { EXAMPLE_VALUES, FormKind, Garment, MeasurementId, MeasurementValues, Unit, checkMeasurements, isComplete } from './measurements';
 import { usePersistent } from './store';
 import {
   Account,
@@ -63,6 +63,7 @@ import { TeeStyleScreen, teeFabricMetres } from './screens/TeeStyleScreen';
 import { LingerieStyleScreen, lingerieFabricMetres } from './screens/LingerieStyleScreen';
 import { OuterStyleScreen, outerFabricMetres } from './screens/OuterStyleScreen';
 import { ExportScreen, Printable } from './screens/ExportScreen';
+import { ChapterBand } from './ui/ChapterBand';
 import { describePattern } from './screens/describe';
 import { WelcomeScreen } from './screens/WelcomeScreen';
 import { MeasureStepsScreen, type StepsStart } from './screens/MeasureStepsScreen';
@@ -284,7 +285,8 @@ export default function App() {
   const [photoPreview, setPhotoPreview] = useState<string>();
   // The garment the photo was drafted as, so only that garment's style screen shows it.
   const [photoFor, setPhotoFor] = useState<Garment>();
-  const setValues = (v: MeasurementValues) => setAccount(updatePerson(account, person.id, { values: v }));
+  // A measurement taken (changed from the example body's) is no longer the example's.
+  const setValues = (v: MeasurementValues) => setAccount(updatePerson(account, person.id, { values: v, example: person.example?.filter((id) => v[id] === measured[id]) }));
   const { garment } = saved;
   // Every visit opens on the welcome screen (Cat's pick, 2026-10-16). Saved measurements and
   // patterns are kept, so a returning sewist taps through and carries on.
@@ -937,6 +939,8 @@ export default function App() {
             </>
           )}
         </header>
+        {(step === 'style' || step === 'collection') && <ChapterBand key="style" kind="selvedge" />}
+        {(step === 'export' || step === 'imported' || step === 'formprint') && <ChapterBand key="print" kind="mat" />}
 
         <main className="main">
           {incoming?.kind === 'broken' && step === 'welcome' && (
@@ -1004,7 +1008,8 @@ export default function App() {
               onNews={() => openLegal('news')}
               onSkip={(g?: Garment) => {
                 // Skip on the tape: try the app with the example measurements, under any already taken.
-                setAccount(updatePerson({ ...account, onboarded: true, mode }, person.id, { values: { ...EXAMPLE_VALUES, ...values } }));
+                const example = (Object.keys(EXAMPLE_VALUES) as MeasurementId[]).filter((id) => measured[id] === undefined);
+                setAccount(updatePerson({ ...account, onboarded: true, mode }, person.id, { values: { ...EXAMPLE_VALUES, ...values }, example }));
                 if (g && g !== garment) setSaved({ ...saved, garment: g });
                 setStep('style');
               }}
@@ -1118,6 +1123,22 @@ export default function App() {
                 window.scrollTo(0, 0);
               }}
             />
+          )}
+          {(step === 'style' || step === 'export') && !!person.example?.length && (
+            // Skipped measuring: say so on Style and Print (Cat's K1 Example Tag, 2026-10-18). Measure me drops the
+            // example's numbers and opens measuring from the start.
+            <button
+              type="button"
+              className="example-tag"
+              onClick={() => {
+                const own = Object.fromEntries(Object.entries(measured).filter(([id]) => !person.example!.includes(id as MeasurementId)));
+                setAccount(updatePerson(account, person.id, { values: own, example: [] }));
+                openSteps();
+              }}
+            >
+              <span>Drafted to an example body</span>
+              <span className="example-tag-go">Measure me ›</span>
+            </button>
           )}
           <CollectionLink.Provider value={step === 'style' ? () => { setStep('collection'); window.scrollTo(0, 0); } : undefined}>
           {step === 'style' && garment === 'skirt' && (

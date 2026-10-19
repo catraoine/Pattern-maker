@@ -20,7 +20,7 @@ test('undo, redo and save read the same on the trousers as on the skirt', async 
   await expect(wide).toHaveAttribute('aria-pressed', 'true');
   await expect(redo).toBeDisabled();
 
-  await expect(main.getByRole('group', { name: 'Preview view' }).getByRole('button', { name: 'Pieces', exact: true })).toBeVisible();
+  await expect(main.getByRole('group', { name: 'Preview view' }).getByRole('button', { name: /^Pattern/ })).toBeVisible();
   await openReview(page);
   await main.getByRole('button', { name: 'Save pattern' }).click();
   await expect(main.getByRole('status').filter({ hasText: 'Saved to your patterns' })).toBeVisible();
@@ -66,7 +66,7 @@ test('a wrong measurement is explained, not looped', async ({ page }) => {
     await box.fill(v);
     await main.getByRole('button', { name: /^Next/ }).click();
   }
-  await expect(main.getByRole('heading', { level: 1, name: 'Your skirt measurements' })).toBeVisible();
+  await expect(main.getByRole('heading', { level: 1, name: 'Your measurements' })).toBeVisible();
   await expect(main.getByRole('status').filter({ hasText: /Waist to knee should be shorter than waist to floor/ })).toBeVisible();
 });
 
@@ -85,7 +85,7 @@ test('a first dress asks five more measurements, not thirteen', async ({ page })
   await expectStyle(page, 'Dress');
   await openReview(page);
   await main.getByRole('button', { name: 'Edit measurements' }).click();
-  await expect(main.getByRole('button', { name: 'Add measurements for a closer fit' })).toBeVisible();
+  await expect(main.getByRole('button', { name: /more for a closer fit$/ })).toBeVisible();
 });
 
 // The skirt uses the same Undo and Redo, and a new change clears what could be redone.

@@ -24,6 +24,7 @@ import { FabricCard, FabricSummary } from '../ui/FabricCard';
 import { GODET_OPTIONS, VOLUME_OPTIONS, layoutExtras, setVolume, volumeAllowed, volumeOf, volumeWords } from '../engine/skirtVolume';
 
 import { EaseMapView } from '../ui/EaseMapView';
+import { FitSwitch, GarmentViews, PreviewSwitch } from '../ui/PreviewSwitch';
 import type { EaseView } from '../engine/easeMap';
 import { Mode, ProTool, shows } from '../mode';
 import { FABRIC, Group, PRO, StyleLayout, TabPanel } from '../ui/StyleLayout';
@@ -155,8 +156,9 @@ export function fabricMetres(draft: SkirtDraft): number {
 
 export function StyleScreen({ choices, onChoices, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, onPhoto, photo, onChooseGarment, finish, onFinish, easeMap, fabric, mode = 'all', onMode }: Props) {
   const can = (t: ProTool) => shows(mode, t);
-  const [picked, setView] = useState<'sketch' | 'round' | 'pattern' | 'ease'>('sketch');
-  const view = picked === 'ease' && !can('easeMap') ? 'sketch' : picked;
+  const [view, setView] = useState<'sketch' | 'round' | 'pattern'>('sketch');
+  const [fit, setFit] = useState(false);
+  const canFit = !!easeMap?.length && can('easeMap');
   const [side, setSide] = useState<Side>('front');
   const [drawing, setDrawing] = useState(false);
   const [play, setPlay] = useState(0);
@@ -413,59 +415,52 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
       </section>
 
       <section className="card grow" aria-label="Preview">
+        <PreviewSwitch
+          look={view === 'pattern' ? 'pattern' : 'garment'}
+          onLook={(l) => {
+            setView(l === 'pattern' ? 'pattern' : 'sketch');
+            setDrawing(false);
+          }}
+        />
         <div className="row between wrap">
-          <div className="seg" role="group" aria-label="Preview view">
-            {(
-              [
-                ['sketch', 'Sketch'],
-                ['round', 'All round'],
-                ['pattern', 'Pieces'],
-                ['ease', 'Ease'],
-              ] as const
-            ).filter(([id]) => id !== 'ease' || can('easeMap')).map(([id, name]) => (
-              <button
-                key={id}
-                type="button"
-                aria-pressed={view === id}
-                className={view === id ? 'on' : ''}
-                onClick={() => {
-                  setView(id);
-                  setDrawing(false);
-                }}
-              >
-                {name}
-              </button>
-            ))}
-          </div>
+          {view !== 'pattern' && draft ? (
+            <GarmentViews<Side | 'round'>
+              views={[['front', 'Front'], ['back', 'Back'], ...(round ? ([['round', 'All round']] as [Side | 'round', string][]) : [])]}
+              view={view === 'round' ? 'round' : side}
+              onView={(v) => {
+                if (v === 'round') setView('round');
+                else {
+                  setSide(v);
+                  setView('sketch');
+                }
+                setDrawing(false);
+              }}
+            />
+          ) : canFit ? (
+            <FitSwitch on={fit} onChange={setFit} />
+          ) : (
+            <span />
+          )}
           <UndoTools undo={undoer} />
         </div>
         {view === 'sketch' && draft && (
-          <div className="row between wrap">
-            <div className="seg" role="group" aria-label="Sketch side">
-              {(['front', 'back'] as const).map((s) => (
-                <button key={s} type="button" aria-pressed={side === s} className={side === s ? 'on' : ''} onClick={() => setSide(s)}>
-                  {s}
-                </button>
-              ))}
-            </div>
-            <div className="row tools">
-              {!drawing && (
-                <button type="button" className="link small" onClick={() => setOnForm(choices)}>
-                  Draw on your form
-                </button>
-              )}
-              {isShaped(choices.hem) && !drawing && (
-                <button type="button" className="link small" onClick={() => change({ ...choices, hem: undefined })}>
-                  Straighten hem
-                </button>
-              )}
-              {/* Pleats, godets and flounces are drafted on a level hem. */}
-              {volumeOf(choices) === 'none' && (
-                <button type="button" className={drawing ? 'ghost on' : 'ghost'} aria-pressed={drawing} onClick={() => setDrawing(!drawing)}>
-                  {drawing ? 'Done' : 'Draw hem'}
-                </button>
-              )}
-            </div>
+          <div className="row tools">
+            {!drawing && (
+              <button type="button" className="link small" onClick={() => setOnForm(choices)}>
+                Draw on your form
+              </button>
+            )}
+            {isShaped(choices.hem) && !drawing && (
+              <button type="button" className="link small" onClick={() => change({ ...choices, hem: undefined })}>
+                Straighten hem
+              </button>
+            )}
+            {/* Pleats, godets and flounces are drafted on a level hem. */}
+            {volumeOf(choices) === 'none' && (
+              <button type="button" className={drawing ? 'ghost on' : 'ghost'} aria-pressed={drawing} onClick={() => setDrawing(!drawing)}>
+                {drawing ? 'Done' : 'Draw hem'}
+              </button>
+            )}
           </div>
         )}
         <div className="preview">
@@ -492,10 +487,10 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
               label={`The ${title} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`}
             />
           )}
-          {draft && sheet && view === 'pattern' && (
+          {draft && sheet && view === 'pattern' && !(fit && canFit) && (
             <PatternPane><PatternPreview paper sheet={sheet} play={play} names={draft.pieces.map((pc) => pc.name)} label={`Front and back pattern pieces for a ${title}`} /></PatternPane>
           )}
-          {view === 'ease' && easeMap && <EaseMapView views={easeMap} label={`Ease map of the ${title}`} />}
+          {view === 'pattern' && fit && canFit && <EaseMapView views={easeMap!} label={`The fit of the ${title}, on its pattern pieces`} />}
           <UndoToast undo={undoer} />
         </div>
         {view === 'sketch' && (
@@ -507,10 +502,11 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
         )}
         {view === 'pattern' && draft && (
           <div className="row between wrap">
-            <button type="button" className="ghost" onClick={() => setPlay(play + 1)}>
-              Watch it draft
-            </button>
-            <p className="muted small">Drafted to your measurements as you choose.</p>
+            {!(fit && canFit) && (
+              <button type="button" className="ghost" onClick={() => setPlay(play + 1)}>
+                Watch it draft
+              </button>
+            )}
           </div>
         )}
       </section>

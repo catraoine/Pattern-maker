@@ -19,13 +19,14 @@ import { DRAPES, FIBRES, FIBRE_IDS, Fibre, MyFabric, WEIGHTS, FabricStyle, advic
 import { FabricGuide } from '../ui/FabricGuide';
 import { SPECIALS, SPECIAL_IDS, Special, checksLines, needsNap, specialLines } from '../engine/specialFabrics';
 import { SizeRun } from '../ui/SizeRun';
+import { Envelope } from '../ui/Envelope';
 import { InterestCard } from '../ui/InterestCard';
 import type { MeasurementValues } from '../measurements';
 import { Mode, ProTool, shows } from '../mode';
 import { ModeLink } from '../ui/ModeLink';
 import { countStep } from '../report/report';
 import { flatId } from '../ui/FabricFill';
-import { cartLink, shopFabric } from '../engine/shopFabrics';
+import { buyAmount, buyLink, shopFabric, shopPrice, type ShopFabric } from '../engine/shopFabrics';
 import { canShareFiles, download } from '../ui/download';
 import { LabelCard } from '../ui/LabelCard';
 
@@ -207,8 +208,8 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
   return (
     <>
       <div className="split">
-        <section className="card grow" aria-labelledby="ptitle">
-          <div>
+        <section className="card grow print-top" aria-labelledby="ptitle">
+          <div className="print-head">
             <h1 id="ptitle">{title[0].toUpperCase() + title.slice(1)}</h1>
             <p className="muted">
               {imported
@@ -216,79 +217,96 @@ export function ExportScreen({ profile, title, fit, garment, finish, onFinish, m
                 : `For ${profile === 'Me' ? 'you' : profile} · ${fit[0].toUpperCase() + fit.slice(1)} fit`}
             </p>
           </div>
-          <fieldset className="group">
-            <legend>Print on</legend>
-            <div className="chips" role="group" aria-label="Paper">
-              {PAPERS.filter((p) => can('bigPrint') || p.id === 'a4' || p.id === 'letter').map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  className={paperChoice === p.id ? 'chip on' : 'chip'}
-                  aria-pressed={paperChoice === p.id}
-                  onClick={() => setPaper(p.id === 'projector' ? (paper === 'projectorDark' ? 'projectorDark' : 'projector') : p.id)}
-                >
-                  {p.label}
-                </button>
+          <div className="print-cover">
+            <Envelope name={title[0].toUpperCase() + title.slice(1)} flat={made.flat} mark={edition} foot={imported ? undefined : `Drafted to ${profile === 'Me' ? 'you' : profile}`} />
+            <p className="eyebrow">Pieces</p>
+            <ul className="pieces">
+              {made.pieces.map((pc, i) => (
+                <li key={i}>
+                  {pc.name}: {pc.cut.replace(' (1 pair)', '').toLowerCase()}
+                </li>
               ))}
+            </ul>
+          </div>
+          <div className="print-controls">
+            <fieldset className="group">
+              <legend>Print on</legend>
+              <div className="chips" role="group" aria-label="Paper">
+                {PAPERS.filter((p) => can('bigPrint') || p.id === 'a4' || p.id === 'letter').map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    className={paperChoice === p.id ? 'chip on' : 'chip'}
+                    aria-pressed={paperChoice === p.id}
+                    onClick={() => setPaper(p.id === 'projector' ? (paper === 'projectorDark' ? 'projectorDark' : 'projector') : p.id)}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+              {projector && (
+                <label className="check">
+                  <input type="checkbox" checked={paper === 'projectorDark'} onChange={(e) => setPaper(e.target.checked ? 'projectorDark' : 'projector')} />
+                  <span>White lines on black, easier to see on dark fabric</span>
+                </label>
+              )}
+            </fieldset>
+            <div className="stack">
+              <button type="button" className="primary" onClick={download_} disabled={!ready}>
+                {ready ? `Download PDF (${pages} ${pages === 1 ? 'page' : 'pages'})` : 'Making your PDF…'}
+              </button>
+              {canShareFiles && (
+                <button type="button" className="secondary" onClick={share} disabled={!ready}>
+                  Send to email or a printer
+                </button>
+              )}
+              <button type="button" className="secondary" onClick={openToPrint} disabled={!ready}>
+                Open PDF to print
+              </button>
+              {shareNote && <p className="msg small">{shareNote}</p>}
             </div>
-            {projector && (
+            <p>
+              {projector
+                ? 'One page at true size, in fine lines for projecting onto fabric. Line your projector up with the 10 cm test square.'
+                : paper === 'a0'
+                  ? 'Ask the copy shop to print at 100% (actual size). Measure the 10 cm test square before you cut.'
+                  : 'Print at 100% (actual size). Measure the 10 cm test square on page A1 before you cut.'}
+            </p>
+            {!projector && paper !== 'a0' && (
+              <details className="small">
+                <summary>How the pages fit together</summary>
+                <p className="muted small">
+                  Trim each page along its dashed line on the left and top, then lay it over the page before so the half diamonds make whole ones.
+                  Tape them down and cut out your size line. On a phone, send the PDF to your email and print from a computer, or print straight from the
+                  share menu.
+                </p>
+              </details>
+            )}
+          </div>
+          <div className="print-sheet">
+            <div className="preview tiles" style={{ ['--cols' as string]: grid.cols }}>
+              <PatternPreview sheet={sheet} label={projector ? 'Pattern on one page for a projector' : `Pattern laid over ${pages} numbered print pages`} />
+              {!projector && <TileOverlay sheet={sheet} paper={paper} />}
+            </div>
+            {!imported && <p className="muted small">
+              {passed === checks.length
+                ? 'Checked: every seam meets its partner and every curve runs smoothly from piece to piece.'
+                : `${checks.length - passed} of ${checks.length} seam checks found something to look at. The details are on the last page of the PDF.`}
+            </p>}
+          </div>
+          <div className="print-more">
+            {can('byHand') && !imported && (
               <label className="check">
-                <input type="checkbox" checked={paper === 'projectorDark'} onChange={(e) => setPaper(e.target.checked ? 'projectorDark' : 'projector')} />
-                <span>White lines on black, easier to see on dark fabric</span>
+                <input type="checkbox" checked={!!finish.byHand} onChange={(e) => onFinish({ ...finish, byHand: e.target.checked })} />
+                <span>
+                  Draft it by hand <span className="muted small">add pages to draw the pattern yourself on pattern paper, point by point</span>
+                </span>
               </label>
             )}
-          </fieldset>
-          <div className="stack">
-            <button type="button" className="primary" onClick={download_} disabled={!ready}>
-              {ready ? `Download PDF (${pages} ${pages === 1 ? 'page' : 'pages'})` : 'Making your PDF…'}
-            </button>
-            {canShareFiles && (
-              <button type="button" className="secondary" onClick={share} disabled={!ready}>
-                Send to email or a printer
-              </button>
-            )}
-            <button type="button" className="secondary" onClick={openToPrint} disabled={!ready}>
-              Open PDF to print
-            </button>
-            {shareNote && <p className="msg small">{shareNote}</p>}
+            {!imported && <SaveControl state={saveState} onSave={onSave} onAccount={onAccount} />}
+            <p className="muted small">Printed it? The sewing steps are just below, and on the last pages of the PDF.</p>
+            <ModeLink mode={mode} onMode={onMode} />
           </div>
-          <p>
-            {projector
-              ? 'One page at true size, in fine lines for projecting onto fabric. Line your projector up with the 10 cm test square.'
-              : paper === 'a0'
-                ? 'Ask the copy shop to print at 100% (actual size). Measure the 10 cm test square before you cut.'
-                : 'Print at 100% (actual size). Measure the 10 cm test square on page 1 before you cut.'}
-          </p>
-          {!projector && paper !== 'a0' && (
-            <details className="small">
-              <summary>How the pages fit together</summary>
-              <p className="muted small">
-                Trim each page along its dashed line on the left and top, then lay it over the page before so the half diamonds make whole ones.
-                Tape them down and cut out your size line. On a phone, send the PDF to your email and print from a computer, or print straight from the
-                share menu.
-              </p>
-            </details>
-          )}
-          <div className="preview tiles" style={{ ['--cols' as string]: grid.cols }}>
-            <PatternPreview sheet={sheet} label={projector ? 'Pattern on one page for a projector' : `Pattern laid over ${pages} numbered print pages`} />
-            {!projector && <TileOverlay sheet={sheet} paper={paper} />}
-          </div>
-          {!imported && <p className="muted small">
-            {passed === checks.length
-              ? 'Checked: every seam meets its partner and every curve runs smoothly from piece to piece.'
-              : `${checks.length - passed} of ${checks.length} seam checks found something to look at. The details are on the last page of the PDF.`}
-          </p>}
-          {can('byHand') && !imported && (
-            <label className="check">
-              <input type="checkbox" checked={!!finish.byHand} onChange={(e) => onFinish({ ...finish, byHand: e.target.checked })} />
-              <span>
-                Draft it by hand <span className="muted small">add pages to draw the pattern yourself on pattern paper, point by point</span>
-              </span>
-            </label>
-          )}
-          {!imported && <SaveControl state={saveState} onSave={onSave} onAccount={onAccount} />}
-          <p className="muted small">Printed it? The sewing steps are just below, and on the last pages of the PDF.</p>
-          <ModeLink mode={mode} onMode={onMode} />
         </section>
       </div>
 
@@ -568,6 +586,27 @@ function Swatches({ value, onPick }: { value?: Fibre | Special; onPick: (v: Fibr
   );
 }
 
+/** Buy the shop fabric: opens the shop's own site with the amount from the cutting layout. */
+function BuyShopFabric({ shop, colour, metres }: { shop: ShopFabric; colour?: string; metres: number }) {
+  const { qty, unit } = buyAmount(shop, metres);
+  const link = buyLink(shop, colour, metres);
+  const words = unit === 'yd' ? (qty === 1 ? 'yard' : 'yards') : 'm';
+  const amount = unit === 'yd' ? `${qty} ${words}` : `${qty} m`;
+  const cost = Math.ceil(qty * shopPrice(shop, colour));
+  if (!link) return <p className="muted small">You need {amount}, about ${cost}.</p>;
+  return (
+    <>
+      <a className="buylink" href={link.href} target="_blank" rel="noopener noreferrer">
+        Buy {unit === 'yd' ? `${qty} yd` : `${qty} m`} at {shop.shop}
+      </a>
+      <p className="muted small">
+        {link.inCart ? `${amount} goes straight into the cart` : `Add ${amount} on ${shop.shop}'s page`}, about ${cost} {shop.currency}. We may earn a
+        commission when you buy.
+      </p>
+    </>
+  );
+}
+
 /** The fabric the maker has bought: checked against the style, and carried into the ease, the PDF and the tech pack. */
 function YourFabric({
   fabric,
@@ -617,19 +656,12 @@ function YourFabric({
         <div className="shopbuy">
           <p className="small">
             <b>{shop.name}</b>
-            {fabric.colour ? `, ${fabric.colour}` : ''} <span className="muted">from {shop.shop}, ${shop.price}/m</span>
+            {fabric.colour ? `, ${fabric.colour}` : ''}{' '}
+            <span className="muted">
+              from {shop.shop}, ${shopPrice(shop, fabric.colour)}/{shop.yards ? 'yd' : 'm'}
+            </span>
           </p>
-          {metres !== undefined &&
-            (cartLink(shop, metres) ? (
-              <a className="button" href={cartLink(shop, metres)} target="_blank" rel="noopener noreferrer">
-                Buy {metres} m
-              </a>
-            ) : (
-              <p className="muted small">
-                You need {metres} m, about ${Math.ceil(metres * shop.price)}. Buying straight from partner shops opens soon; leave your email on the fabric kit card
-                and we&rsquo;ll tell you.
-              </p>
-            ))}
+          {metres !== undefined && <BuyShopFabric shop={shop} colour={fabric.colour} metres={metres} />}
         </div>
       )}
       <p className="muted small">

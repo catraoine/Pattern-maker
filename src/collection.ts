@@ -197,7 +197,11 @@ export function lookValues(look: HouseLook, values: MeasurementValues): { values
 
 /** The look's technical flat, drafted to the given measurements; undefined if it can't be drafted for them. */
 export function lookFlat(look: HouseLook, m: MeasurementValues): Flat | undefined {
-  const c = look.choices;
+  return choicesFlat(look.choices, m);
+}
+
+/** The technical flat of any set of choices (a look, a saved pattern), drafted to the given measurements. */
+export function choicesFlat(c: PatternChoices, m: MeasurementValues): Flat | undefined {
   try {
     if (isOuter(c)) return outerFlat(draftOuter(m as never, { ...c, kind: c.garment }));
     if (isTrousers(c)) return trousersFlat(draftTrousers(m as never, c), m as never);

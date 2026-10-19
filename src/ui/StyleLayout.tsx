@@ -10,6 +10,8 @@ import { Title } from './Title';
 // pinned at the top, a row of tabs sits under it, and only one tab's choices show at a time, so choosing
 // never means scrolling away from the drawing. The summary is its own Review page before Print, and the
 // pro tools live together in one Pro tab, so switching them on shows that one tab appear.
+// On a computer it is Cat's D1 Drafting Table (2026-10-18): the tabs run down the left, the sketch fills the
+// middle, and the choices sit on the right above the summary with Print, so there's no separate Review page.
 
 /** The tab showing now. Groups and panels outside it are hidden, not removed, so the tab row can list them. */
 const ActiveTab = createContext<string | undefined>(undefined);
@@ -48,6 +50,23 @@ export function TabPanel({ tab, children }: { tab: string; children: ReactNode }
   );
 }
 
+/** The computer layout's width: the same as the min-width in styles.css. */
+const WIDE = '(min-width: 1100px)';
+
+/** Whether the screen is wide enough for the computer layout, kept up to date as the window resizes. */
+function useWide() {
+  const query = () => typeof window !== 'undefined' && !!window.matchMedia?.(WIDE).matches;
+  const [wide, setWide] = useState(query);
+  useEffect(() => {
+    const list = window.matchMedia?.(WIDE);
+    if (!list) return;
+    const change = () => setWide(list.matches);
+    list.addEventListener('change', change);
+    return () => list.removeEventListener('change', change);
+  }, []);
+  return wide;
+}
+
 /** Whether a swipe that starts here should scroll something sideways rather than change the tab. */
 function scrollsSideways(el: EventTarget | null, stop: HTMLElement) {
   for (let n = el as HTMLElement | null; n && n !== stop; n = n.parentElement) if (n.scrollWidth > n.clientWidth + 2) return true;
@@ -84,6 +103,7 @@ export function StyleLayout({ children, label, name, metres, width = 140, ready,
   const root = useRef<HTMLDivElement>(null);
   const panel = useRef<HTMLDivElement>(null);
   const swipe = useRef<{ x: number; y: number; sideways: boolean }>();
+  const wide = useWide();
 
   // The tab row lists every tab something on the page belongs to, in the order they're drawn: Looks first,
   // the choices, Fabric, then Pro. Switching the pro tools on opens the Pro tab, so the change is seen.
@@ -120,12 +140,13 @@ export function StyleLayout({ children, label, name, metres, width = 140, ready,
     return () => watch.disconnect();
   }, [page]);
 
-  // Bring the open tab into the row's view, without scrolling the page.
+  // Bring the open tab into the row's view, without scrolling the page. The computer's list shows every tab.
   useEffect(() => {
+    if (wide) return;
     const tab = active && document.getElementById(`tab-${active}`);
     const row = tab && tab.parentElement;
     if (tab && row) row.scrollTo({ left: tab.offsetLeft - row.offsetLeft - row.clientWidth / 2 + tab.offsetWidth / 2, behavior: 'smooth' });
-  }, [active, tabs]);
+  }, [active, tabs, wide]);
 
   const choose = (t: string) => setActive(t);
   const step = (by: number) => {
@@ -207,19 +228,26 @@ export function StyleLayout({ children, label, name, metres, width = 140, ready,
             )}
           </ActiveTab.Provider>
         </div>
-        <div className="style-bar">
-          <p className="style-bar-meta">
-            <strong>{name}</strong>
-            {metres !== undefined && (
-              <span className="muted">
-                {metres} m of {width} cm fabric
-              </span>
-            )}
-          </p>
-          <button type="button" className="primary" disabled={!ready} onClick={() => setPage('review')}>
-            Review
-          </button>
-        </div>
+        {wide ? (
+          <div className="style-side">
+            <p className="eyebrow">{name}</p>
+            {summary}
+          </div>
+        ) : (
+          <div className="style-bar">
+            <p className="style-bar-meta">
+              <strong>{name}</strong>
+              {metres !== undefined && (
+                <span className="muted">
+                  {metres} m of {width} cm fabric
+                </span>
+              )}
+            </p>
+            <button type="button" className="primary" disabled={!ready} onClick={() => setPage('review')}>
+              Review
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

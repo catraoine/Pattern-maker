@@ -25,3 +25,14 @@ test('plans: hidden by default, shown in preview without locking anything', asyn
   await main.getByRole('button', { name: 'Back' }).last().click();
   await expect(main.getByRole('heading', { name: 'Saved patterns' })).toBeVisible();
 });
+
+// Skipping measuring drafts to the example body, and Style and Print say so (Cat's K1 Example Tag).
+test('skip: the example body is tagged until you measure', async ({ page }) => {
+  await startWithExample(page);
+  const main = page.getByRole('main');
+  const tag = main.getByRole('button', { name: /Drafted to an example body/ });
+  await expect(tag).toBeVisible();
+  await tag.click();
+  await expect(main.getByRole('heading', { name: /take some measurements/i })).toBeVisible();
+  await expect(main.getByRole('button', { name: /Drafted to an example body/ })).toHaveCount(0);
+});

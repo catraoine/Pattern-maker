@@ -1,5 +1,7 @@
-import { useState, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Account, ME, Person, SavedPattern, activePerson, personName } from '../account';
+import { choicesFlat } from '../collection';
+import { Envelope } from '../ui/Envelope';
 import { PeopleSwitch } from '../ui/PeopleSwitch';
 import { BODICE_FIELDS, SKIRT_FIELDS, TROUSERS_FIELDS, Unit } from '../measurements';
 import { describePattern } from './describe';
@@ -361,9 +363,11 @@ function PatternRow({
     setEditing(false);
   };
   const detail = describePattern(pattern.choices);
+  const flat = useMemo(() => choicesFlat(pattern.choices, values), [pattern.choices, values]);
 
   return (
     <li>
+      <Envelope size="small" name={pattern.name} flat={flat} />
       <div className="grow">
         {editing ? (
           <input

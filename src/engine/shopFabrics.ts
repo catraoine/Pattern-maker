@@ -1,22 +1,28 @@
 // Fabric from partner shops (Cat's F3 Cart Ready) and the colours a fabric can be shown in.
 // A shop fabric fills in the maker's fabric in one tap: its name, fibre, weight, drape and colour. Buying it opens the
-// shop's own checkout with the metres from the cutting layout; until partner shops join, the fabrics below are examples
-// and buying is not open yet.
+// shop's own site with the amount from the cutting layout: straight into the cart for a shop with cart links, otherwise
+// the colour's own page. Prices are what the shop listed when the fabric was added; the shop's page has today's price.
 import type { Drape, Fibre, MyFabric, Weight } from './fabrics';
 import type { Special } from './specialFabrics';
 
 export interface Colour {
   name: string;
   hex: string;
+  /** This colourway's own page at the shop, when each colour is its own product. */
+  url?: string;
+  /** This colourway's price, when it differs from the fabric's. */
+  price?: number;
 }
 
 export interface ShopFabric {
   id: string;
   name: string;
   shop: string;
-  /** Price per metre, in the shop's currency. */
+  /** Price per metre (or per yard for a shop that sells by the yard), in the shop's currency. */
   price: number;
   currency: string;
+  /** The shop sells by the yard. */
+  yards?: boolean;
   /** The flat swatch the sketch uses. */
   tile: Fibre | Special;
   fibre: Fibre;
@@ -27,10 +33,8 @@ export interface ShopFabric {
   colours: Colour[];
   /** Which garments it suits. */
   suits: string[];
-  /** The shop's cart link; {qty} is replaced by the metres to buy. Empty until the shop has joined. */
+  /** The shop's cart link; {qty} is replaced by the amount to buy. */
   cart?: string;
-  /** Example fabric shown until partner shops join. */
-  example?: boolean;
 }
 
 /** Colours for any fabric. Natural keeps the swatch as photographed. */
@@ -49,152 +53,134 @@ export const COLOURS: Colour[] = [
   { name: 'Lilac', hex: '#a796c4' },
 ];
 
-const ALL = ['skirt', 'bodice', 'dress', 'trousers', 'jacket', 'coat'];
+const MOOD = 'Mood Fabrics';
+const mood = (path: string) => `https://www.moodfabrics.com/${path}`;
 
 export const SHOP_FABRICS: ShopFabric[] = [
   {
-    id: 'ex-denim-12oz',
-    name: '12 oz organic denim',
-    shop: 'Example shop',
-    price: 18,
+    id: 'mood-denim',
+    name: 'Cotton denim, 10.5 oz',
+    shop: MOOD,
+    price: 15.96,
     currency: 'USD',
+    yards: true,
     tile: 'denim',
     fibre: 'cotton',
     special: 'denim',
     weight: 'heavy',
     drape: 'crisp',
-    widthCm: 150,
+    widthCm: 147,
     colours: [
-      { name: 'Indigo', hex: '#24324f' },
-      { name: 'Mid wash', hex: '#5d7aa3' },
-      { name: 'Black', hex: '#1c1b1a' },
-      { name: 'Ecru', hex: '#d8c9a6' },
+      { name: 'Night sky', hex: '#1f2a44', url: mood('products/night-sky-10-5-oz-cotton-denim-428091') },
+      { name: 'Indigo twill', hex: '#24324f', url: mood('products/indigo-cotton-denim-twill-420606'), price: 13.96 },
     ],
     suits: ['skirt', 'trousers', 'jacket', 'dress'],
-    example: true,
   },
   {
-    id: 'ex-linen-mid',
-    name: 'Washed mid-weight linen',
-    shop: 'Example shop',
-    price: 24,
+    id: 'mood-linen-cotton',
+    name: 'Linen and cotton, medium weight',
+    shop: MOOD,
+    price: 24.96,
     currency: 'USD',
+    yards: true,
     tile: 'linen',
     fibre: 'linen',
     weight: 'medium',
     drape: 'soft',
-    widthCm: 140,
+    widthCm: 137,
     colours: [
-      { name: 'Natural', hex: '#cdbb98' },
-      { name: 'Olive', hex: '#6b6a3a' },
-      { name: 'Rust', hex: '#a2482a' },
-      { name: 'Black', hex: '#1c1b1a' },
-      { name: 'White', hex: '#f1ede4' },
+      { name: 'Black', hex: '#1c1b1a', url: mood('medium-weight-linen-and-cotton-woven-black-439241') },
+      { name: 'Oatmeal', hex: '#cdbb98', url: mood('medium-weight-linen-and-cotton-woven-oatmeal-439243') },
     ],
-    suits: ALL,
-    example: true,
+    suits: ['skirt', 'bodice', 'dress', 'trousers', 'jacket'],
   },
   {
-    id: 'ex-poplin',
-    name: 'Cotton poplin',
-    shop: 'Example shop',
-    price: 14,
+    id: 'mood-poplin',
+    name: 'Stretch cotton poplin',
+    shop: MOOD,
+    price: 8,
     currency: 'USD',
+    yards: true,
     tile: 'cotton',
     fibre: 'cotton',
     weight: 'light',
     drape: 'crisp',
-    widthCm: 145,
-    colours: [
-      { name: 'White', hex: '#f1ede4' },
-      { name: 'Sky', hex: '#9fb6d4' },
-      { name: 'Cobalt', hex: '#2f55a4' },
-      { name: 'Black', hex: '#1c1b1a' },
-    ],
+    widthCm: 137,
+    colours: [{ name: 'White', hex: '#f1ede4', url: mood('products/white-cotton-lycra-poplin-fc13379') }],
     suits: ['bodice', 'dress', 'skirt'],
-    example: true,
   },
   {
-    id: 'ex-wool-crepe',
-    name: 'Wool crepe',
-    shop: 'Example shop',
-    price: 38,
+    id: 'mood-wool-crepe',
+    name: 'Double wool crepe',
+    shop: MOOD,
+    price: 79.96,
     currency: 'USD',
+    yards: true,
     tile: 'wool',
     fibre: 'wool',
     weight: 'medium',
-    drape: 'soft',
-    widthCm: 150,
-    colours: [
-      { name: 'Charcoal', hex: '#3c3b3a' },
-      { name: 'Camel', hex: '#b48a5a' },
-      { name: 'Navy', hex: '#24304d' },
-      { name: 'Burgundy', hex: '#6d2133' },
-    ],
-    suits: ALL,
-    example: true,
+    drape: 'fluid',
+    widthCm: 147,
+    colours: [{ name: 'Black', hex: '#1c1b1a', url: mood('products/premium-black-double-wool-crepe-pv9200-black') }],
+    suits: ['skirt', 'dress', 'trousers', 'jacket', 'coat'],
   },
   {
-    id: 'ex-baby-cord',
-    name: 'Baby cord, 16 wale',
-    shop: 'Example shop',
-    price: 22,
+    id: 'mood-featherwale',
+    name: 'Featherwale cotton corduroy',
+    shop: MOOD,
+    price: 26.96,
     currency: 'USD',
+    yards: true,
     tile: 'corduroy',
     fibre: 'cotton',
     special: 'corduroy',
     weight: 'medium',
     drape: 'soft',
-    widthCm: 145,
+    widthCm: 142,
     colours: [
-      { name: 'Tan', hex: '#a07a4a' },
-      { name: 'Chocolate', hex: '#4a3022' },
-      { name: 'Forest', hex: '#2f4a33' },
-      { name: 'Cream', hex: '#e6dcc4' },
+      { name: 'Black', hex: '#1c1b1a', url: mood('products/dawn-black-featherwale-cotton-corduroy-320710') },
+      { name: 'Wildberry', hex: '#6d2840', url: mood('products/dawn-wildberry-featherwale-cotton-corduroy-320704') },
     ],
     suits: ['skirt', 'trousers', 'jacket', 'dress'],
-    example: true,
   },
   {
-    id: 'ex-silk-satin',
+    id: 'mood-silk-charmeuse',
     name: 'Silk charmeuse',
-    shop: 'Example shop',
-    price: 46,
+    shop: MOOD,
+    price: 39.96,
     currency: 'USD',
+    yards: true,
     tile: 'satin',
     fibre: 'silk',
     special: 'satin',
     weight: 'light',
     drape: 'fluid',
-    widthCm: 114,
+    widthCm: 112,
     colours: [
-      { name: 'Champagne', hex: '#d9c49b' },
-      { name: 'Black', hex: '#1c1b1a' },
-      { name: 'Emerald', hex: '#1f6b4c' },
-      { name: 'Blush', hex: '#e2b5aa' },
+      { name: 'Black', hex: '#1c1b1a', url: mood('products/premium-black-silk-charmeuse-pv1000-196') },
+      { name: 'Toasted', hex: '#b08a62', url: mood('products/premium-toasted-silk-charmeuse-pv1000-176'), price: 36.96 },
+      { name: 'Chili pepper', hex: '#8e2a22', url: mood('premium-chili-pepper-silk-charmeuse-pv1000-168') },
     ],
-    suits: ['skirt', 'bodice', 'dress'],
-    example: true,
+    suits: ['bodice', 'dress', 'skirt'],
   },
   {
-    id: 'ex-velvet',
-    name: 'Cotton velvet',
-    shop: 'Example shop',
-    price: 32,
+    id: 'mood-velveteen',
+    name: 'Cotton and rayon velveteen',
+    shop: MOOD,
+    price: 49.96,
     currency: 'USD',
+    yards: true,
     tile: 'velvet',
-    fibre: 'cotton',
+    fibre: 'blend',
     special: 'velvet',
     weight: 'medium',
     drape: 'soft',
-    widthCm: 140,
+    widthCm: 137,
     colours: [
-      { name: 'Black', hex: '#1c1b1a' },
-      { name: 'Burgundy', hex: '#6d2133' },
-      { name: 'Midnight', hex: '#1f2742' },
+      { name: 'Black', hex: '#1c1b1a', url: mood('products/black-cotton-and-rayon-velveteen-114890') },
+      { name: 'Warm sand', hex: '#c4a77f', url: mood('products/warm-sand-cotton-and-rayon-velveteen-115230') },
     ],
     suits: ['skirt', 'bodice', 'dress', 'jacket', 'trousers'],
-    example: true,
   },
 ];
 
@@ -227,8 +213,21 @@ export function withShopFabric(now: MyFabric, f: ShopFabric): MyFabric {
   };
 }
 
-/** The shop's checkout for this many metres, rounded up to the next tenth; none until the shop has joined. */
-export function cartLink(f: ShopFabric, metres: number): string | undefined {
-  if (!f.cart) return undefined;
-  return f.cart.replace('{qty}', String(Math.ceil(metres * 10) / 10));
+/** How much to buy for this many metres: metres rounded up to the next tenth, or whole yards for a shop that sells by the yard. */
+export function buyAmount(f: ShopFabric, metres: number): { qty: number; unit: 'm' | 'yd' } {
+  return f.yards ? { qty: Math.ceil(metres / 0.9144 - 1e-9), unit: 'yd' } : { qty: Math.ceil(metres * 10 - 1e-9) / 10, unit: 'm' };
+}
+
+/** The chosen colourway, or the fabric's first. */
+const colourway = (f: ShopFabric, colour: string | undefined) =>
+  f.colours.find((c) => c.name.toLowerCase() === colour?.trim().toLowerCase()) ?? f.colours[0];
+
+/** The price per metre or yard for this colour. */
+export const shopPrice = (f: ShopFabric, colour?: string) => colourway(f, colour)?.price ?? f.price;
+
+/** Where Buy goes: the shop's cart with the amount filled in, or the colour's own page; none if the shop has neither. */
+export function buyLink(f: ShopFabric, colour: string | undefined, metres: number): { href: string; inCart: boolean } | undefined {
+  if (f.cart) return { href: f.cart.replace('{qty}', String(buyAmount(f, metres).qty)), inCart: true };
+  const url = colourway(f, colour)?.url;
+  return url ? { href: url, inCart: false } : undefined;
 }

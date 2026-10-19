@@ -74,7 +74,7 @@ const aOrAn = (name: string) => (/(s|wear|lingerie)$/i.test(name) && !/dress$/i.
 // straight to the first extra that garment still needs. "Something else" asks what they have in mind and
 // answers "We can make that", "The closest we can do" or "Not yet" (Cat's pick, 2026-10-18); only "Not yet"
 // offers the full set of measurements, for a dressmaker.
-// The first page asks who is being measured, since "Someone else" words every page for the person holding the
+// The first page asks who you are designing for, since "Someone else" words every page for the person holding the
 // tape and asks their name first (Cat's pick V2, 2026-10-17). A tape runs across the top of every page, with
 // Skip at its end wherever measuring can be skipped.
 export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onValues, onDone, start, onSomeoneElse, theirs, onSkip, form = 'womenswear', onForm, onIdea, onPhoto, onNews }: Props) {
@@ -125,29 +125,23 @@ export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onV
     }
   };
 
+  // The first page (Cat's F1 Form Joins In, 2026-10-18): who you're designing for and the dress form to draft on,
+  // together, then Begin measuring. "Someone else" asks their name here, before any measurement is taken.
   if (page.kind === 'intro') {
     const begin = () => {
       if (helper) onSomeoneElse?.(name.trim());
-      setPage(onForm ? { kind: 'form' } : { kind: 'base', at: 0 });
+      onForm?.(chosen);
+      setPage({ kind: 'base', at: 0 });
     };
     return (
-      <Shell title="First, let's take your measurements." helperTitle="First, let's take their measurements." helper={helper} skip={onSkip && (() => onSkip())}>
-        <dl className="need">
-          <div>
-            <dt>You'll need</dt>
-            <dd>A soft tape measure</dd>
-          </div>
-          <div>
-            <dt>{helper ? 'They wear' : 'Wear'}</dt>
-            <dd>Close-fitting clothes</dd>
-          </div>
-        </dl>
+      <Shell title="First, let's take some measurements." skip={onSkip && (() => onSkip())}>
+        <p className="muted step-tip">Grab a soft tape measure.</p>
         <div className="who" role="group" aria-labelledby="who-q">
           <p id="who-q" className="who-q">
-            Who are we measuring?
+            Who are you designing for?
           </p>
           <div className="who-pick">
-            <button type="button" className="primary" onClick={() => (helper ? setHelper(false) : begin())}>
+            <button type="button" className="primary" aria-pressed={!helper} onClick={() => setHelper(false)}>
               Me
             </button>
             <button type="button" className="primary" aria-pressed={helper} onClick={() => setHelper(true)}>
@@ -156,22 +150,35 @@ export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onV
           </div>
         </div>
         {helper && (
+          <div className="field plain ready">
+            <label htmlFor="who-name">Name</label>
+            <input id="who-name" autoComplete="off" autoFocus value={name} onChange={(e) => setName(e.target.value)} />
+          </div>
+        )}
+        {onForm && (
           <>
-            <div className="field plain ready">
-              <label htmlFor="who-name">Name</label>
-              <input id="who-name" autoComplete="off" autoFocus value={name} onChange={(e) => setName(e.target.value)} />
+            <p className="who-q" id="form-q">
+              Which form to draft on?
+            </p>
+            <div className="form-pick on-intro" role="radiogroup" aria-labelledby="form-q">
+              {(['womenswear', 'menswear'] as const).map((k) => (
+                <button key={k} type="button" role="radio" aria-checked={chosen === k} className={chosen === k ? 'on' : ''} onClick={() => setChosen(k)}>
+                  <FormPicture kind={k} />
+                  <span>{k === 'womenswear' ? 'Womenswear' : 'Menswear'}</span>
+                </button>
+              ))}
             </div>
-            <button type="button" className="primary" disabled={!name.trim()} onClick={begin}>
-              Start measuring
-            </button>
           </>
         )}
+        <button type="button" className="primary" disabled={helper && !name.trim()} onClick={begin}>
+          Begin measuring
+        </button>
       </Shell>
     );
   }
 
-  // Which dress form to draft on (Cat's B2 Two Forms): the two forms side by side. The one picked is drawn on
-  // every page for this person, and the menswear form asks for the chest and none of the bust measurements.
+  // Changing the dress form later, from the measurements list (Cat's B2 Two Forms; the first pick is on the
+  // intro page). The menswear form asks for the chest and none of the bust measurements.
   if (page.kind === 'form')
     return (
       <Shell title={helper ? 'Their form' : 'Your form'} skip={start?.kind !== 'form' && onSkip ? () => onSkip() : undefined}>
@@ -392,8 +399,6 @@ export function MeasureStepsScreen({ garment: current, unit, values, onUnit, onV
 export function Shell({
   eyebrow,
   title,
-  helperTitle,
-  helper,
   hero,
   dots,
   short,
@@ -403,8 +408,6 @@ export function Shell({
   /** A small line above the title, only where it tells you something (which step, which garment). */
   eyebrow?: string;
   title: string;
-  helperTitle?: string;
-  helper?: boolean;
   /** The picture under the tape; the first page has none, so it opens on the words. */
   hero?: ReactNode;
   /** Skip at the end of the tape. */
@@ -433,14 +436,14 @@ export function Shell({
           </div>
         )}
         {eyebrow && <p className="eyebrow">{eyebrow}</p>}
-        <ShellTitle text={helper && helperTitle ? helperTitle : title} />
+        <ShellTitle text={title} />
         {children}
       </section>
     </div>
   );
 }
 
-/** "First, let's take your measurements." reads as FIRST, with the rest as the label under it. */
+/** "First, let's take some measurements." reads as FIRST, with the rest as the label under it. */
 function ShellTitle({ text }: { text: string }) {
   const cut = text.indexOf(', ');
   return cut > 0 && cut < 12 ? <Title id="stitle" big={text.slice(0, cut + 1)} label={text.slice(cut + 2)} /> : <h1 id="stitle">{text}</h1>;
