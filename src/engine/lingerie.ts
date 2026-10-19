@@ -78,7 +78,7 @@ export const LENGTH_REDUCTION = { knit: 0.03, swim: 0.08, two: 0 };
 /** The bralette's band, cut this much under the underbust so it grips. */
 export const BAND_EASE: Record<LingerieStretch, number> = { medium: -0.1, high: -0.14 };
 /** Elastic as a share of the edge it's sewn to. */
-export const ELASTIC_RATIO = { waist: 0.94, leg: 0.85, neck: 0.9, armhole: 0.9, cup: 0.92, band: 0.88, shelf: 0.9 };
+export const ELASTIC_RATIO = { waist: 0.94, leg: 0.85, neck: 0.9, armhole: 0.9, cup: 0.92, band: 0.92, shelf: 0.9 };
 /** How the crotch length is shared out along the centre: front piece, gusset, back piece. */
 export const CROTCH_SHARE = { front: 0.3, gusset: 0.22, back: 0.48 };
 /** Gusset widths in cm, edge to edge: where it meets the front, its narrowest, where it meets the back. */
@@ -422,10 +422,21 @@ function bralette(c: Ctx, stretch: LingerieStretch) {
   });
   let cups: Piece[];
   if (seamed) {
-    const centre = inner(new Path(p(0, height))).line(tipM, 'tab').line(apex, 'cupseam').line(dl, 'cupseam').line(p(0, height), 'base');
+    // Both seam edges bow out by the same amount, so they still sew together, and the cup rounds over
+    // the bust point instead of coming to a cone.
+    const bow = (path: Path, from: P, to: P, toward: number) => {
+      const d = sub(to, from);
+      let n = unit(p(-d.y, d.x));
+      if (Math.sign(n.x) !== toward) n = mul(n, -1);
+      const h = mul(n, Math.hypot(d.x, d.y) * 0.08);
+      return path.curve(add(lerp(from, to, 1 / 3), h), add(lerp(from, to, 2 / 3), h), to, 'cupseam');
+    };
+    const centre = inner(new Path(p(0, height))).line(tipM, 'tab');
+    bow(bow(centre, tipM, apex, 1), apex, dl, 1).line(p(0, height), 'base');
     centre.closed = true;
     const side = new Path(tipM).line(tipR, 'tab');
-    outer(side).line(dr, 'base').line(apex, 'cupseam').line(tipM, 'cupseam');
+    outer(side).line(dr, 'base');
+    bow(bow(side, dr, apex, -1), apex, tipM, -1);
     side.closed = true;
     const notch: Piece['notches'] = [[apex, p(0, -1)]];
     cups = [
@@ -475,7 +486,7 @@ function bralette(c: Ctx, stretch: LingerieStretch) {
     meta: { knit: true, lingerie: 'band', lengthCm: r1(bandHalf * 2), foldLabel: 'CENTRE FRONT' },
   };
   const along = (tag: string) => cups.reduce((a, pc) => a + taggedLength(pc.outline, tag), 0);
-  const strap = r1(m.nape_to_waist! * 0.8 + 5 + (fit.straps === 'dig' ? FIT_STEP.strap : fit.straps === 'slip' ? -FIT_STEP.strap : 0));
+  const strap = r1(m.nape_to_waist! * 0.9 + 8 + (fit.straps === 'dig' ? FIT_STEP.strap : fit.straps === 'slip' ? -FIT_STEP.strap : 0));
   return {
     pieces: [...cups, band],
     bust: r1(FB * (1 + LINGERIE_EASE[stretch])),
@@ -484,7 +495,7 @@ function bralette(c: Ctx, stretch: LingerieStretch) {
     seamed,
     gap,
     elastic: [
-      { edge: 'Under the band', length: r1(UB * ELASTIC_RATIO.band - HOOK_TAPE), width: ELASTIC_WIDTH.band, count: 1 },
+      { edge: 'Under the band', length: r1((finished - HOOK_TAPE) * ELASTIC_RATIO.band), width: ELASTIC_WIDTH.band, count: 1 },
       { edge: 'Each cup, neck edge', length: r1(along('inner') * ELASTIC_RATIO.cup), width: ELASTIC_WIDTH.cup, count: 2 },
       { edge: 'Each cup, underarm edge', length: r1(along('outer') * ELASTIC_RATIO.cup), width: ELASTIC_WIDTH.cup, count: 2 },
       { edge: 'Each strap', length: strap, width: ELASTIC_WIDTH.strap, count: 2 },
@@ -506,16 +517,22 @@ function onePiece(c: Ctx) {
   const CL = m.crotch_length!;
   // Extra front length at the centre for the bust, so the front doesn't flatten it and pull up between
   // the legs: from a B cup up, to 4 cm.
-  const bustLen = Math.min(4, Math.max(0, (FB - UB - 12) * 0.35));
+  const fuller = FB - UB - 12;
+  const bustBase = Math.min(4, Math.max(0, fuller * 0.35));
   // The torso loop sets the body's length: the draft's own loop (shoulder over the bust, through the legs
   // and back up) is matched to it, shortened like every other length.
   const nape = m.nape_to_waist! * k;
-  const own = 2 * (nape - 1) + CL * k + bustLen;
   const want = m.torso_loop! * k;
-  const raw = (want - own) / 2;
-  const torsoAdj = Math.max(-6, Math.min(6, raw)) + (fit.torso === 'short' ? FIT_STEP.torso : fit.torso === 'long' ? -FIT_STEP.torso : 0);
+  const raw = (want - (2 * (nape - 1) + CL * k + bustBase)) / 2;
+  // On a fuller bust, a longer loop is mostly the bust: up to 3 cm of it goes into the front's length, so
+  // the waist and legs stay where the measurements put them. The rest lengthens front and back alike.
+  const bustLen = bustBase + (fuller > 0 && raw > 0 ? Math.min(3, 2 * raw) : 0);
+  const rest = raw - (bustLen - bustBase) / 2;
+  const torsoAdj = Math.max(-6, Math.min(6, rest)) + (fit.torso === 'short' ? FIT_STEP.torso : fit.torso === 'long' ? -FIT_STEP.torso : 0);
   const NW = nape + torsoAdj;
   const bustQ = (FB * (1 + e)) / 4;
+  // The front is wider than the back at the bust, from a B cup up, meeting it again at the waist.
+  const shift = Math.min(2.5, Math.max(0, fuller * 0.2));
   const waistQ = (m.waist * (1 + e)) / 4;
   const L = lowerOf(c, NW, 0);
   const hipY = NW + m.waist_to_hip * k;
@@ -525,16 +542,34 @@ function onePiece(c: Ctx) {
   // A 3 cm strap at the shoulder, ending well inside the shoulder point.
   const strapIn = p(nw, 1);
   const strapOut = p(Math.min(nw + 3, m.shoulder_width! / 2 - 2), 2);
-  const U = p(bustQ, scye);
   // Neckline and armhole leave the strap square, so they blend across the shoulder seam.
   const sh = unit(sub(strapOut, strapIn));
   const down = p(-sh.y, sh.x);
-  const d1 = NW - scye;
-  const sideCtl: [P, P, P, P] = [U, p(U.x, scye + d1 * 0.4), p(waistQ, NW - d1 * 0.35), p(waistQ, NW)];
-  const armhole = (path: Path) => path.line(strapOut, 'shoulder').curve(add(strapOut, mul(down, scye * 0.3)), p(U.x - 2.5, scye), U, 'armhole');
-  const side = (path: Path) => {
-    armhole(path);
-    path.curve(sideCtl[1], sideCtl[2], sideCtl[3], 'side');
+  // The underarm point and the side seam down to the waist. The front is wider here, so its side is a
+  // little longer: the back's underarm rises a few mm to match it.
+  const sideCtlAt = (x: number, y: number): [P, P, P, P] => {
+    const d1 = NW - y;
+    return [p(x, y), p(x, y + d1 * 0.4), p(waistQ, NW - d1 * 0.35), p(waistQ, NW)];
+  };
+  const sideLen = (c: [P, P, P, P]) => new Path(c[0]).curve(c[1], c[2], c[3], 'side').length();
+  const frontCtl = sideCtlAt(bustQ + shift, scye);
+  let lift = 0;
+  if (shift > 0) {
+    let lo = 0;
+    let hi = 4;
+    for (let i = 0; i < 30; i++) {
+      const mid = (lo + hi) / 2;
+      if (sideLen(sideCtlAt(bustQ - shift, scye - mid)) < sideLen(frontCtl)) lo = mid;
+      else hi = mid;
+    }
+    lift = lo;
+  }
+  const backCtl = sideCtlAt(bustQ - shift, scye - lift);
+  const armhole = (path: Path, U: P) => path.line(strapOut, 'shoulder').curve(add(strapOut, mul(down, U.y * 0.3)), p(U.x - U.y * 0.3, U.y), U, 'armhole');
+  const side = (path: Path, back: boolean) => {
+    const ctl = back ? backCtl : frontCtl;
+    armhole(path, ctl[0]);
+    path.curve(ctl[1], ctl[2], ctl[3], 'side');
     if (L.sideEnd > hipY - 0.5) {
       const d2 = hipY - NW;
       path.curve(p(waistQ, NW + d2 * 0.4), p(hipQ, hipY - d2 * 0.4), p(hipQ, hipY), 'side');
@@ -553,7 +588,7 @@ function onePiece(c: Ctx) {
     const cy = back ? backDepth : frontDepth;
     const start = p(0, cy);
     const path = neckCurve(new Path(start), cy);
-    side(path);
+    side(path, back);
     legAndCrotch(path, back ? L : { ...L, frontEnd: L.frontEnd + bustLen }, back, start);
     path.closed = true;
     const name = `${swim ? 'Swimsuit' : 'Bodysuit'} ${back ? 'back' : 'front'}`;
@@ -583,13 +618,13 @@ function onePiece(c: Ctx) {
   let hi = 1;
   for (let i = 0; i < 30; i++) {
     const mid = (lo + hi) / 2;
-    if (cubicAt(...sideCtl, mid).y < ubY) lo = mid;
+    if (cubicAt(...frontCtl, mid).y < ubY) lo = mid;
     else hi = mid;
   }
-  const sideAt = cubicAt(...sideCtl, lo);
+  const sideAt = cubicAt(...frontCtl, lo);
   const shelfStart = p(0, frontDepth);
   const shelfPath = neckCurve(new Path(shelfStart), frontDepth);
-  armhole(shelfPath).line(p(sideAt.x, ubY), 'shelfside').line(p(0, ubY), 'shelf').line(shelfStart, 'fold');
+  armhole(shelfPath, frontCtl[0]).line(p(sideAt.x, ubY), 'shelfside').line(p(0, ubY), 'shelf').line(shelfStart, 'fold');
   shelfPath.closed = true;
   const shelfCut = `Cut 1 on fold in ${swim ? 'swim lining' : 'power mesh'}`;
   const shelf: Piece = {

@@ -52,12 +52,20 @@ describe('soft lingerie and swimwear', () => {
   });
 
   it('sews front to back at the same side and shoulder lengths', () => {
-    for (const piece of ['brief', 'bodysuit', 'swimsuit'] as LingeriePiece[])
-      for (const leg of LEGS) {
-        const d = draftLingerie(EX, { piece, leg });
-        const bad = checkPattern(d.pieces).filter((c) => !c.ok);
-        expect(bad, `${piece} ${leg}: ${bad.map((c) => c.detail).join('; ')}`).toEqual([]);
-      }
+    const bodies = [
+      EX,
+      { ...EX, full_bust: 84, underbust: 70, waist: 64, full_hip: 90 },
+      { ...EX, full_bust: 104, underbust: 78, waist: 80, full_hip: 108 },
+      { ...EX, full_bust: 118, underbust: 96, waist: 98, full_hip: 124, torso_loop: 170 },
+      { ...EX, full_bust: 96, underbust: 74, waist: 66, full_hip: 112 },
+    ];
+    for (const body of bodies)
+      for (const piece of ['brief', 'bodysuit', 'swimsuit'] as LingeriePiece[])
+        for (const leg of LEGS) {
+          const d = draftLingerie(body, { piece, leg });
+          const bad = checkPattern(d.pieces).filter((c) => !c.ok);
+          expect(bad, `${body.full_bust}/${body.underbust} ${piece} ${leg}: ${bad.map((c) => c.detail).join('; ')}`).toEqual([]);
+        }
   });
 
   it('cuts a high leg higher at the side, with a longer leg opening', () => {
@@ -77,7 +85,7 @@ describe('soft lingerie and swimwear', () => {
       expect(d.elastic.length).toBeGreaterThan(0);
       for (const e of d.elastic) expect(e.length).toBeGreaterThan(5);
       const band = d.elastic.find((e) => e.edge === 'Under the band');
-      if (band) expect(band.length).toBeLessThan(EX.underbust);
+      if (band) expect(band.length).toBeLessThan(d.finishedBand! - HOOK_TAPE);
       const waist = d.elastic.find((e) => e.edge === 'Waist');
       if (waist) expect(waist.length).toBeLessThan(EX.waist);
     }
@@ -134,6 +142,13 @@ describe('soft lingerie and swimwear', () => {
     const [centre, side] = full.pieces.filter((pc) => /cup/i.test(pc.name));
     expect(taggedLength(centre.outline, 'cupseam')).toBeCloseTo(taggedLength(side.outline, 'cupseam'), 5);
     for (const pc of [centre, side]) expect(taggedLength(pc.outline, 'tab')).toBeCloseTo(0.75, 5);
+    // The seam bows out round the bust point rather than running straight to it, like a dart.
+    const ends = centre.outline.segs.map((sg) => sg.to);
+    const apex = centre.notches[0][0];
+    const at = ends.findIndex((q) => q.x === apex.x && q.y === apex.y);
+    const straight = Math.hypot(apex.x - ends[at - 1].x, apex.y - ends[at - 1].y) + Math.hypot(ends[at + 1].x - apex.x, ends[at + 1].y - apex.y);
+    expect(centre.outline.segs[at].kind).toBe('C');
+    expect(taggedLength(centre.outline, 'cupseam')).toBeGreaterThan(straight + 0.15);
     expect(full.warnings).toEqual([]);
     expect(draftLingerie({ ...EX, full_bust: 112 }, { piece: 'bralette' }).warnings).toContain('soft cup');
   });
@@ -158,7 +173,17 @@ describe('soft lingerie and swimwear', () => {
     expect(full.elastic.some((e) => e.edge === 'Under the shelf')).toBe(true);
     const long = draftLingerie({ ...EX, torso_loop: 162 }, { piece: 'swimsuit' });
     const foot = (d: typeof plain) => Math.max(...d.pieces.find((pc) => / back$/.test(pc.name))!.outline.points().map((q) => q.y));
-    expect(foot(long) - foot(draftLingerie(EX, { piece: 'swimsuit' }))).toBeCloseTo((10 * (1 - LENGTH_REDUCTION.swim)) / 2, 1);
+    const base = draftLingerie(EX, { piece: 'swimsuit' });
+    const k = 1 - LENGTH_REDUCTION.swim;
+    // The whole loop grows by the extra; on this fuller bust 3 cm of it goes to the front, the rest to both.
+    const frontFoot = (d: typeof plain) => Math.max(...d.pieces.find((pc) => / front$/.test(pc.name))!.outline.points().map((q) => q.y));
+    expect(frontFoot(long) + foot(long) - frontFoot(base) - foot(base)).toBeCloseTo(10 * k, 1);
+    expect(foot(long) - foot(base)).toBeLessThan((10 * k) / 2 - 1);
+    // The front is wider than the back at the bust, and the side seams still match.
+    const xmax = (d: typeof plain, re: RegExp) => Math.max(...d.pieces.find((pc) => re.test(pc.name))!.outline.points().filter((q) => q.y < 25).map((q) => q.x));
+    expect(xmax(full, / front$/) - xmax(full, / back$/)).toBeGreaterThan(3);
+    const side = (d: typeof plain, re: RegExp) => taggedLength(d.pieces.find((pc) => re.test(pc.name))!.outline, 'side');
+    expect(Math.abs(side(full, / front$/) - side(full, / back$/))).toBeLessThan(0.1);
     expect(draftLingerie({ ...EX, torso_loop: 200 }, { piece: 'swimsuit' }).warnings).toContain('torso loop');
   });
 
@@ -189,6 +214,8 @@ describe('soft lingerie and swimwear', () => {
     expect(checkPattern(rides.pieces).filter((c) => !c.ok)).toEqual([]);
     const cupFull = draftLingerie(EX, { piece: 'bralette', tried: { cup: 'full' } });
     expect(cupFull.finishedBust).toBe(draftLingerie(EX, { piece: 'bralette' }).finishedBust);
+    // Long enough to reach from the cup over the shoulder to the band, with the slider loop-back.
+    expect(draftLingerie(EX, { piece: 'bralette' }).strap!).toBeGreaterThan(EX.nape_to_waist * 0.9 + 5);
     expect(draftLingerie(EX, { piece: 'bralette', tried: { straps: 'slip' } }).strap).toBeLessThan(draftLingerie(EX, { piece: 'bralette' }).strap!);
   });
 });

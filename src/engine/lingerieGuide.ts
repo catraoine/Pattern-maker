@@ -102,7 +102,7 @@ export function lingerieGuide(d: LingerieDraft, fabricM: number, finish: { width
       },
       {
         title: 'Straps and back',
-        text: `Each strap is ${cm(d.strap ?? 30)} of strap elastic. Stitch a ring to each cup's tab with a short loop of elastic. Thread the strap through the slider, round the ring and back through the slider, then stitch the end down. Stitch the other end to the back band at the STRAP notch. ${swim ? 'Sew the swim clasp to the band ends at the centre back.' : 'Sew the hook side of the tape to one band end and the eye side to the other, at the centre back: the band is cut short by the tape, so it closes at size on the middle row.'}`,
+        text: `Each strap is ${cm(d.strap ?? 30)} of strap elastic. Stitch a ring to each cup's tab with a short loop of elastic. Thread the strap through the slider, round the ring and back through the slider, then stitch the end down. Stitch the other end to the back band at the STRAP notch, try it on, and trim any extra before you stitch it for good. ${swim ? 'Sew the swim clasp to the band ends at the centre back.' : 'Sew the hook side of the tape to one band end and the eye side to the other, at the centre back: the band is cut short by the tape, so it closes at size on the middle row.'}`,
       },
     );
   }
