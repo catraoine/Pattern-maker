@@ -2,7 +2,7 @@
 import { P, add, lerp, mul, p, sub, unit } from './geometry';
 import { allNotches, drillHoles, edgeLabels, insidePolygon, notchSlit } from './marks';
 import { Piece, bounds, cutLine } from './piece';
-import { nestOutlines } from './layplan';
+import { PROFILE_RES, nestOutlines, profile } from './layplan';
 
 const GAP = 4; // cm between pieces
 const MARGIN = 3; // cm around the sheet
@@ -373,21 +373,41 @@ function freeRun(lo: number, hi: number, holes: [number, number][], at: number):
   return contains ?? runs.reduce((best, r) => (r[1] - r[0] > best[1] - best[0] ? r : best));
 }
 
-interface Packed {
+export interface Packed {
+  /** Where each piece's bounding box goes, its top-left corner. */
   at: P[];
+  /** Which pieces lie turned end to end (180 degrees about their box's centre); the box is the same. */
+  turned: boolean[];
   width: number;
   height: number;
 }
 
-/**
- * Pack the pieces' boxes no wider than `target`, biggest first, each dropped as low as it will go
- * (and then as far left), so small pieces fill in under and beside the big ones.
- */
+/** A piece's points turned end to end within its box. */
+export const turnedInBox = (q: P, [x0, y0, x1, y1]: [number, number, number, number]): P => p(x0 + x1 - q.x, y0 + y1 - q.y);
+
 /** The title block's footprint, from the sheet's margin: the test square and the card beside it. */
 const TITLE_BLOCK = { w: 10 + TITLE_W, h: 10 };
 
-/** The A4 pages a packing takes, counting the tiles the title block and the pieces' boxes touch. */
-export function packedPages(k: Packed, sizes: { w: number; h: number }[]): number {
+/** The vertical span of an outline in each column across it, from its box's top left. */
+export interface ColumnSpans {
+  x0: number;
+  y0: number;
+  step: number;
+  top: number[];
+  bottom: number[];
+}
+
+/** An outline's columns, in its own coordinates, for counting the pages it inks. */
+export function columnSpans(outline: P[]): ColumnSpans {
+  const prof = profile(outline);
+  return { x0: Math.min(...outline.map((q) => q.x)), y0: Math.min(...outline.map((q) => q.y)), step: PROFILE_RES, top: prof.top, bottom: prof.bottom };
+}
+
+/**
+ * The A4 pages a packing takes, counting the tiles the title block and the pieces touch: each
+ * piece by its outline's columns when given (`spans`, from its box's top left), else by its box.
+ */
+export function packedPages(k: Packed, sizes: { w: number; h: number }[], spans?: ColumnSpans[]): number {
   const [pw, ph] = PAPER_CM.a4;
   const stepX = pw - 2 * PAGE_MARGIN - OVERLAP;
   const stepY = ph - 2 * PAGE_MARGIN - OVERLAP;
@@ -396,12 +416,25 @@ export function packedPages(k: Packed, sizes: { w: number; h: number }[]): numbe
   const cols = Math.max(1, Math.ceil((w - OVERLAP) / stepX));
   const rows = Math.max(1, Math.ceil((h - OVERLAP) / stepY));
   const boxes = [{ x: MARGIN, y: MARGIN, ...TITLE_BLOCK }, ...sizes.map((s, i) => ({ x: k.at[i].x + MARGIN, y: k.at[i].y + MARGIN, w: s.w, h: s.h }))];
+  const touches = (b: { x: number; y: number; w: number; h: number }, x: number, y: number) => b.x < x + stepX + OVERLAP && b.x + b.w > x && b.y < y + stepY + OVERLAP && b.y + b.h > y;
+  // Whether a piece's outline reaches the tile: some column of it crosses the tile's width with its
+  // span crossing the tile's height.
+  const inks = (i: number, x: number, y: number) => {
+    const sp = spans?.[i];
+    if (!sp) return true;
+    const ox = boxes[i + 1].x + sp.x0;
+    const oy = boxes[i + 1].y + sp.y0;
+    const c0 = Math.max(0, Math.floor((x - ox) / sp.step));
+    const c1 = Math.min(sp.top.length - 1, Math.ceil((x + stepX + OVERLAP - ox) / sp.step));
+    for (let c = c0; c <= c1; c++) if (oy + sp.top[c] < y + stepY + OVERLAP && oy + sp.bottom[c] > y) return true;
+    return false;
+  };
   let n = 0;
   for (let r = 0; r < rows; r++)
     for (let c = 0; c < cols; c++) {
       const x = c * stepX;
       const y = r * stepY;
-      if (boxes.some((b) => b.x < x + stepX + OVERLAP && b.x + b.w > x && b.y < y + stepY + OVERLAP && b.y + b.h > y)) n++;
+      if (boxes.some((b, i) => touches(b, x, y) && (i === 0 || inks(i - 1, x, y)))) n++;
     }
   return n;
 }
@@ -410,11 +443,17 @@ export function packedPages(k: Packed, sizes: { w: number; h: number }[]): numbe
  * The pieces nested by their cutting lines, the way that takes the fewest A4 pages on a sheet not
  * much longer than it is wide: a range of sheet widths is tried, each filling whole columns of
  * pages, with the pieces taken tallest, biggest or widest first, dropped as low as they go or
- * filling the left first. Each returned position is where the piece's bounding box goes.
+ * filling the left first. Each piece may also lie turned end to end, which keeps its grain line
+ * vertical on the sheet (a quarter turn would not, and the sheet is for cutting). Each returned
+ * position is where the piece's bounding box goes.
  */
 export function pack(outlines: P[][], boxes: [number, number, number, number][]): Packed {
-  if (!outlines.length) return { at: [], width: 0, height: 0 };
+  if (!outlines.length) return { at: [], turned: [], width: 0, height: 0 };
   const sizes = boxes.map(([x0, y0, x1, y1]) => ({ w: x1 - x0, h: y1 - y0, x: x0, y: y0 }));
+  const turned = outlines.map((o, i) => o.map((q) => turnedInBox(q, boxes[i])));
+  // Each outline's columns within its box, both ways round, for counting the pages it inks.
+  const spansOf = (os: P[][]) => os.map((o, i) => columnSpans(o.map((q) => p(q.x - sizes[i].x, q.y - sizes[i].y))));
+  const spans = { plain: spansOf(outlines), turned: spansOf(turned) };
   const widest = Math.max(...sizes.map((s) => s.w));
   const all = sizes.reduce((t, s) => t + s.w + GAP, -GAP);
   const stepX = PAPER_CM.a4[0] - 2 * PAGE_MARGIN - OVERLAP;
@@ -431,13 +470,13 @@ export function pack(outlines: P[][], boxes: [number, number, number, number][])
   let bestPages = Infinity;
   for (const target of targets)
     for (const order of Object.values(orders))
-    for (const policy of ['low', 'left'] as const) {
-      const nest = nestOutlines(outlines, Math.max(target, TITLE_BLOCK.w) + GAP, GAP, order, TITLE_BLOCK, policy);
+    for (const policy of ['low', 'left', 'snug'] as const) {
+      const nest = nestOutlines(outlines, Math.max(target, TITLE_BLOCK.w) + GAP, GAP, order, TITLE_BLOCK, policy, turned);
       // From the outline's translation to where its box's top-left corner lands.
-      const k: Packed = { at: nest.at.map((d, i) => p(d.x + sizes[i].x, d.y + sizes[i].y)), width: nest.width, height: nest.height };
+      const k: Packed = { at: nest.at.map((d, i) => p(d.x + sizes[i].x, d.y + sizes[i].y)), turned: nest.turned, width: nest.width, height: nest.height };
       // Fewest pages, a sheet longer than twice its width counting as a page more, since it tapes
       // together awkwardly; among equals the squarer sheet.
-      const n = packedPages(k, sizes) + (oblong(k) > Math.log(2) ? 1 : 0);
+      const n = packedPages(k, sizes, k.turned.map((tn, i) => (tn ? spans.turned[i] : spans.plain[i]))) + (oblong(k) > Math.log(2) ? 1 : 0);
       if (n < bestPages || (n === bestPages && best && oblong(k) < oblong(best))) {
         best = k;
         bestPages = n;
@@ -471,7 +510,13 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
     const [x0, y0] = boxes[piece];
     const at = add(packed.at[piece], p(MARGIN, MARGIN));
     const off = sub(at, p(x0, y0));
-    const t = (q: P) => add(q, off);
+    // Onto the sheet: a piece the packer turned end to end goes round within its box first.
+    const turned = packed.turned[piece];
+    const t = (q: P) => add(turned ? turnedInBox(q, boxes[piece]) : q, off);
+    // A label's baseline point onto the sheet. A label is set a little to one side of its mark, and
+    // turning the piece would put its letters on the mark's other side, so on a turned piece the
+    // baseline moves down by the letters' height: the letters then sit where the turn put the label.
+    const tl = (q: P, size: number, rotate = 0) => (turned ? add(t(q), mul(turn(p(0, 1), rotate), size * 0.64)) : t(q));
     const stitch = pc.outline.points().map(t);
     const labs: Lab[] = [];
     const lab = (prim: TextPrim, rank: number, tracking = 0, along?: [P, P]) =>
@@ -496,7 +541,7 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
         let rot = (Math.atan2(u.y, u.x) * 180) / Math.PI;
         if (rot > 90) rot -= 180;
         if (rot <= -90) rot += 180;
-        lab(text(t(add(lerp(mid, near, 0.5), p(0, 0.18))), `${pc.alternate.label} LINE`, 0.45, rot, 'middle', { face: 'label', tracking: 0.12 }), 4, 0.12);
+        lab(text(tl(add(lerp(mid, near, 0.5), p(0, 0.18)), 0.45, rot), `${pc.alternate.label} LINE`, 0.45, rot, 'middle', { face: 'label', tracking: 0.12 }), 4, 0.12);
       }
     }
     if (opts.atelier && pc.draft) {
@@ -516,7 +561,7 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
       const [a, c] = [b.pts[0], b.pts[b.pts.length - 1]];
       const u = unit(sub(c, a));
       const rot = (Math.atan2(u.y, u.x) * 180) / Math.PI;
-      lab(text(t(add(lerp(a, c, 0.75), mul(p(u.y, -u.x), 0.35))), b.label, 0.5, rot, 'middle', { face: 'label', tracking: 0.15, grey: 0.35 }), 4, 0.15);
+      lab(text(tl(add(lerp(a, c, 0.75), mul(p(u.y, -u.x), 0.35)), 0.5, rot), b.label, 0.5, rot, 'middle', { face: 'label', tracking: 0.15, grey: 0.35 }), 4, 0.15);
     });
     // The grain arrow and the fold bracket: labels keep off them.
     const fixtures: Box[] = [];
@@ -527,26 +572,30 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
       fixtures.push(lineBox(a, b, 0.8));
       const u = unit(sub(pc.grain[1], pc.grain[0]));
       const rot = (Math.atan2(u.y, u.x) * 180) / Math.PI;
-      lab(text(t(add(lerp(pc.grain[0], pc.grain[1], 0.5), mul(p(-u.y, u.x), -0.6))), 'GRAIN', 0.7, rot, 'middle', { face: 'label', tracking: 0.2 }), 1, 0.2, [a, b]);
+      lab(text(tl(add(lerp(pc.grain[0], pc.grain[1], 0.5), mul(p(-u.y, u.x), -0.6)), 0.7, rot), 'GRAIN', 0.7, rot, 'middle', { face: 'label', tracking: 0.2 }), 1, 0.2, [a, b]);
     }
     if (pc.fold) {
-      const [a, b] = pc.fold.map(t);
+      // Top to bottom on the sheet; a turned piece has its fold edge on the right, so the bracket
+      // reaches in to the left and its label reads up the piece.
+      const [a, b] = pc.fold.map(t).sort((q, r) => q.y - r.y);
+      const side = turned ? -1 : 1;
       // The bracket reaches 2 cm into the piece, less on a narrow one (a fly shield), so its label
       // and the grain arrow have room beside it.
       const xs = stitch.map((q) => q.x);
-      const inset = p(Math.max(0.8, Math.min(2, (Math.max(...xs) - Math.min(...xs)) / 4)), 0);
+      const reach = Math.max(0.8, Math.min(2, (Math.max(...xs) - Math.min(...xs)) / 4));
+      const inset = p(side * reach, 0);
       const long = b.y - a.y > 9;
       poly([a, add(a, inset), add(b, inset), b], 'mark');
       if (long) {
         arrowHeads(add(add(a, mul(inset, 0.5)), p(0, 1)), sub(add(b, mul(inset, 0.5)), p(0, 1)), 0.9).forEach((h) => poly(h, 'mark'));
       }
-      fixtures.push({ c: lerp(add(a, mul(inset, 0.5)), add(b, mul(inset, 0.5)), 0.5), u: p(0, 1), n: p(1, 0), hw: (b.y - a.y) / 2, hh: inset.x / 2 });
-      lab(text(p(a.x + inset.x + 0.6, (a.y + b.y) / 2), long ? 'PLACE ON FOLD' : 'FOLD', 0.7, 90, 'middle', { face: 'label', tracking: 0.2 }), 1, 0.2, [a, b]);
+      fixtures.push({ c: lerp(add(a, mul(inset, 0.5)), add(b, mul(inset, 0.5)), 0.5), u: p(0, 1), n: p(1, 0), hw: (b.y - a.y) / 2, hh: reach / 2 });
+      lab(text(p(a.x + side * (reach + 0.6), (a.y + b.y) / 2), long ? 'PLACE ON FOLD' : 'FOLD', 0.7, side * 90, 'middle', { face: 'label', tracking: 0.2 }), 1, 0.2, [a, b]);
     }
     order = { piece, step: 'labels' };
     allNotches(pc).forEach(([pt, d]) => poly(notchSlit(pc, pt, d).map(t), 'notch'));
     // Facings are too narrow for seam names; their notches and the garment's own labels say it.
-    if (pc.kind !== 'facing') edgeLabels(pc).forEach((l) => lab(text(t(l.at), l.text, 0.45, l.rotate, 'middle', { face: 'label', tracking: 0.12, grey: 0.3 }), 3, 0.12));
+    if (pc.kind !== 'facing') edgeLabels(pc).forEach((l) => lab(text(tl(l.at, 0.45, l.rotate), l.text, 0.45, l.rotate, 'middle', { face: 'label', tracking: 0.12, grey: 0.3 }), 3, 0.12));
     const name = pc.name.toUpperCase();
     const fabric = FABRIC_NOTES.reduce((s, [re, to]) => s.replace(re, to), pc.fabric ?? 'Self fabric').toUpperCase();
     // Cutting words a piece carries beyond its count ("Cut 1 on fold, stretch along it") go in the
@@ -565,7 +614,7 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
         const size = pc.kind ? 0.42 : 0.5;
         const u = turn(p(1, 0), rot);
         const n = turn(p(0, 1), rot);
-        const at0 = t(l.at);
+        const at0 = tl(l.at, l.size, rot);
         // The room along the text, clear of the fold and grain marks beside it, and across it, clear
         // of a grain arrow running along it.
         const span = stitch.map((q) => dot(sub(q, at0), u));
@@ -694,7 +743,7 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
         if (trace) lab(text(place(add(nameAt, mul(n, -nameSize * 1.2))), trace, 0.45, rot, 'middle', { face: 'label', tracking: 0.15, grey: 0.35 }), 0, 0.15);
         return;
       }
-      lab(text(t(l.at), l.text, l.size, rot, 'middle', { face: 'label', tracking: 0.1 }), l.text === name ? 0 : 2, 0.1);
+      lab(text(tl(l.at, l.size, rot), l.text, l.size, rot, 'middle', { face: 'label', tracking: 0.1 }), l.text === name ? 0 : 2, 0.1);
     });
     if (pc.meta.threadTrace && !info) {
       const l = pc.labels[0];
