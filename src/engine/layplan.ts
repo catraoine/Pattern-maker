@@ -318,3 +318,72 @@ export function layWords(lay: Lay): string {
     : lay.rightSideUp ? ' The pieces marked right side up differ side to side: lay them printed side up on the right side of the fabric, never turned over.' : '';
   return `${way}${single}${grain}${bias}${up} The pieces use ${Math.round(lay.efficiency * 100)}% of the fabric.`;
 }
+
+/**
+ * Nest closed outlines on a sheet `width` wide, as drawn (nothing turned), with `gap` between any
+ * two: each is dropped as low as it will go, and then as far left, taken in `order`. A `reserved`
+ * rectangle at the top left (a title block) is kept clear, the gap round it too. Returns the
+ * translation of each outline, in the order given, and the extent the sheet takes, measured from
+ * the top left corner. Used for the printed sheet, where a sleeve's crown can tuck under an armhole
+ * rather than beside it.
+ */
+export function nestOutlines(
+  outlines: P[][],
+  width: number,
+  gap: number,
+  order: number[] = outlines.map((_, i) => i),
+  reserved?: { w: number; h: number },
+  policy: 'low' | 'left' = 'low',
+): { at: P[]; width: number; height: number } {
+  const cols = Math.max(1, Math.floor(width / RES));
+  const sky = new Array<number>(cols).fill(0);
+  if (reserved) for (let c = 0; c < Math.min(cols, Math.ceil((reserved.w + gap) / RES)); c++) sky[c] = reserved.h + gap / 2;
+  const at: P[] = new Array(outlines.length);
+  const pad = Math.ceil(gap / 2 / RES); // columns of half a gap either side
+  for (const i of order) {
+    const o = outlines[i];
+    const ox0 = Math.min(...o.map((q) => q.x));
+    const oy0 = Math.min(...o.map((q) => q.y));
+    const base = profile(o);
+    // The profile swollen by half the gap on every side, so two nested outlines stay the gap apart.
+    const prof = { cols: base.cols + 2 * pad, top: [] as number[], bottom: [] as number[] };
+    for (let c = 0; c < prof.cols; c++) {
+      let lo = Infinity;
+      let hi = -Infinity;
+      for (let k = Math.max(0, c - 2 * pad); k <= Math.min(base.cols - 1, c); k++) {
+        lo = Math.min(lo, base.top[k]);
+        hi = Math.max(hi, base.bottom[k]);
+      }
+      prof.top.push(lo - gap / 2);
+      prof.bottom.push(hi + gap / 2);
+    }
+    // Lowest spot, then leftmost; or, filling the left first, the leftmost spot that keeps the
+    // nest no taller than it already is, then the lowest.
+    const tallest = Math.max(...sky);
+    const deep = Math.max(...prof.bottom);
+    let best: { x: number; y: number; score: number } | undefined;
+    for (let x = 0; x <= cols - prof.cols; x++) {
+      let y = 0;
+      for (let c = 0; c < prof.cols; c++) y = Math.max(y, sky[x + c] - prof.top[c]);
+      const score = policy === 'low' || y + deep > tallest + 1e-6 ? y * 1e6 + x : x;
+      if (!best || score < best.score - 1e-6) best = { x, y, score };
+    }
+    const { x, y } = best ?? { x: 0, y: Math.max(...sky) };
+    for (let c = 0; c < Math.min(prof.cols, cols - x); c++) sky[x + c] = Math.max(sky[x + c], y + prof.bottom[c]);
+    // The swollen profile's corner sits at the column; the outline itself half a gap in from it.
+    at[i] = p((x + pad) * RES - ox0, y - oy0);
+  }
+  // Pull the lot flush with the top-left corner (the reserved block, when there is one, stays put).
+  let placed = outlines.flatMap((o, i) => o.map((q) => p(q.x + at[i].x, q.y + at[i].y)));
+  const dx = Math.min(reserved ? 0 : Infinity, ...placed.map((q) => q.x));
+  const dy = Math.min(reserved ? 0 : Infinity, ...placed.map((q) => q.y));
+  if (placed.length && (dx !== 0 || dy !== 0)) {
+    for (const i of order) at[i] = p(at[i].x - dx, at[i].y - dy);
+    placed = placed.map((q) => p(q.x - dx, q.y - dy));
+  }
+  return {
+    at,
+    width: Math.max(reserved?.w ?? 0, ...placed.map((q) => q.x)),
+    height: Math.max(reserved?.h ?? 0, ...placed.map((q) => q.y)),
+  };
+}
