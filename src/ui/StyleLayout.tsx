@@ -1,6 +1,7 @@
 import { Children, createContext, ReactNode, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { Mode } from '../mode';
 import { canGoBack, goBack, usePageHistory } from '../nav';
+import { EnlargeSketch } from './EnlargeSketch';
 import { CollectionEntry, GarmentSwitch } from './GarmentSwitch';
 import { ModeLink } from './ModeLink';
 import { PhotoEntry } from './PhotoEntry';
@@ -188,6 +189,12 @@ export function StyleLayout({ children, label, name, metres, width = 140, ready,
   // A preview too tall to leave room for the choices (the turning form with its notes) scrolls with the page instead.
   const pin = useRef<HTMLDivElement>(null);
   const [tall, setTall] = useState(false);
+  // The preview's drawing area, where the Enlarge button sits.
+  const [host, setHost] = useState<HTMLElement | null>(null);
+  useLayoutEffect(() => {
+    const el = pin.current?.querySelector<HTMLElement>('.preview') ?? null;
+    if (el !== host) setHost(el);
+  });
   useEffect(() => {
     const el = pin.current;
     if (!el || typeof ResizeObserver === 'undefined') return;
@@ -243,6 +250,7 @@ export function StyleLayout({ children, label, name, metres, width = 140, ready,
       <div className="style-edit">
         <div className={tall ? 'style-pin tall' : 'style-pin'} ref={pin}>
           {preview}
+          <EnlargeSketch host={host} name={name} />
           <div className="style-tabs" role="tablist" aria-label="Style choices">
             {tabs.map((t) => (
               <button
