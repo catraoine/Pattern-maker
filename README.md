@@ -16,8 +16,15 @@ To read it all, set a read-out key:
 3. Redeploy (**Deploys > Trigger deploy**) so the function picks it up.
 4. Open `https://<your-site>/.netlify/functions/report?key=<STATS_KEY>` (add `&days=90` for up to 90 days).
 
-It returns JSON: `days` (daily totals), `crashes` (the latest 100 crash reports) and `signups` (`testers`, `news`).
-Without `STATS_KEY` set, the read-out is refused.
+It returns JSON: `funnel` (the four numbers the business plan watches weekly, added up over the period: sign-ups by
+source, patterns printed, fits reported, payments), `days` (daily totals), `crashes` (the latest 100 crash reports)
+and `signups` (`testers`, `news`, `interest`). Without `STATS_KEY` set, the read-out is refused.
+
+A link with `?src=pinterest` (plain lower-case words and hyphens) tags where a visitor came from. The tag stays on
+their device, so a sign-up weeks later counts as `signup:pinterest`. No email or id goes with the count.
+
+Which garments are launched and which carry the "In testing" tag is one list in `src/launch.ts`; the ship list to
+the fit gate is `docs/SHIP-LIST.md`, and `docs/HOW-IT-FITS-TOGETHER.md` is the map for a developer new to the code.
 
 ## Fit tester codes
 

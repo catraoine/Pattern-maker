@@ -288,6 +288,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
       onEditMeasurements={onEditMeasurements}
       undo={undoer}
       label="your skirt"
+      garment="skirt"
       name={title}
       metres={draft ? fabricMetres(draft) : undefined}
       ready={!!draft}

@@ -5,7 +5,7 @@
 // set in Netlify (Site configuration > Environment variables); without it the read-out is refused.
 import { randomUUID } from 'node:crypto';
 import { getStore } from '@netlify/blobs';
-import { addBeacon, checkBeacon, keyMatches, lastDays, updateDay, type DayStore, type DayTotals, type StoredCrash } from '../../src/server/reports';
+import { addBeacon, checkBeacon, funnel, keyMatches, lastDays, updateDay, type DayStore, type DayTotals, type StoredCrash } from '../../src/server/reports';
 
 // Provided by the Netlify runtime.
 declare const Netlify: { env: { get(name: string): string | undefined } };
@@ -63,10 +63,13 @@ async function readOut(url: URL) {
   const signups = async (prefix: string) => Promise.all((await signupStore.list({ prefix })).blobs.map((b) => signupStore.get(b.key, { type: 'json' })));
   const [testers, news, interest] = await Promise.all([signups('tester/'), signups('news/'), signups('interest/')]);
 
+  const days_ = totals.flatMap(({ day, totals: t }) => (t ? [{ day, ...t }] : []));
   return Response.json(
     {
       ok: true,
-      days: totals.flatMap(({ day, totals: t }) => (t ? [{ day, ...t }] : [])),
+      // The four numbers the plan watches weekly (sign-ups by source, printed, fit reported, paid), over these days.
+      funnel: funnel(days_),
+      days: days_,
       crashes,
       signups: { testers, news, interest },
     },

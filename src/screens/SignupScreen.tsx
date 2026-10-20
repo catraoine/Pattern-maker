@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { countStep, flushReports, signupSource } from '../report/report';
 
 interface Props {
   kind: 'tester' | 'news';
@@ -38,7 +39,13 @@ export function SignupScreen({ kind, onOther, onPrivacy }: Props) {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setState('sending');
-    setState(await send(tester ? { kind, name, email, sews, size: size || undefined, consent, website } : { kind, email, website }));
+    const result = await send(tester ? { kind, name, email, sews, size: size || undefined, consent, website } : { kind, email, website });
+    setState(result);
+    if (result === 'sent') {
+      // One of the four weekly numbers: a sign-up, against where the visitor first came from. No email goes with it.
+      countStep('signup', signupSource());
+      flushReports();
+    }
   };
 
   return (

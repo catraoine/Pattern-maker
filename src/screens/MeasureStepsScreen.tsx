@@ -8,6 +8,7 @@ import { TapeBand } from '../ui/TapeBand';
 import { estimateOne } from '../estimate';
 import { Title } from '../ui/Title';
 import type { PatternChoices } from '../garments';
+import { IN_TESTING, inTesting } from '../launch';
 import { ideaChoices, ideaRows, pieceGarment } from '../photo/idea';
 import { isSwimIntimates } from '../photo/swim';
 import { InterestCard } from '../ui/InterestCard';
@@ -260,6 +261,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
           {[...GARMENTS, 'other' as const].map((g) => (
             <button key={g} type="button" role="radio" aria-checked={picked === g} className={picked === g ? 'on' : ''} onClick={() => setPicked(g)}>
               {g === 'other' ? 'Something else' : cap(GARMENT_NAME[g])}
+              {g !== 'other' && inTesting(g) && <span className="testing-tag">{IN_TESTING}</span>}
             </button>
           ))}
         </div>
