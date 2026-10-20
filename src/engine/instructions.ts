@@ -77,6 +77,8 @@ function oneSide(pc: Piece, also: string): string {
 }
 
 export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; length: Length } & Partial<VolumeStyle>, fabricM: number, finish: SkirtFinish = {}): SewingGuide {
+  // The hem depth is the draft's own hem allowance, which varies with the shape (narrower on a curve).
+  const hemDepth = draft.pieces.find((pc) => pc.allowances?.hem !== undefined)?.allowances.hem ?? finish.hem ?? 4;
   // Cut whole, with the zip in the left side seam: the slip, or a hem that differs side to side.
   if (draft.opening === 'left_side') return wholeGuide(draft, fabricM, finish);
   const { front, back } = draft.dartsPerSide;
@@ -96,8 +98,10 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
   const elastic = draft.elastic;
   const backSeam = !draft.pieces[1].fold;
   const pockets = !!draft.pocket;
-  // The hem as cut: deep on a straight skirt, narrower on a flared one so it lies flat.
-  const hemCm = finish.hem ?? draft.pieces[0].allowances.hem ?? 4;
+  // The lining is the same skirt without its pleats, godets or flounce, 2.5 cm shorter: it has darts
+  // where the plain skirt does (none on a circle), and the same centre seams.
+  const liningDarts = !circle && (dartCount > 0 || !!draft.volume?.pleats || !!draft.volume?.inverted);
+  const liningSeams = (also: string) => `Sew the lining ${frontSeam ? 'centre front seam, ' : ''}side seams${also}, ${seam} from the edge.`;
 
   const steps: SewStep[] = [
     {
@@ -185,9 +189,9 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
       ? [
           {
             title: 'Make the lining',
-            text: elastic
-              ? `Sew the lining side seams${backSeam ? ' and centre back seam' : ''}, ${seam} from the edge. Press up 1 cm at the hem, then 1 cm more, and stitch.`
-              : `Sew the lining darts as tucks: stitch each one only 3 cm down from the waist, so the lining has room to move. Sew the lining side seams, and the centre back seam from the ZIP ENDS notch down, ${seam} from the edge. Press up 1 cm at the hem, then 1 cm more, and stitch.`,
+            text: `${liningDarts ? 'Sew the lining darts as tucks: stitch each one only 3 cm down from the waist, so the lining has room to move. ' : ''}${
+              elastic ? liningSeams(backSeam ? ' and centre back seam' : '') : liningSeams(' and the centre back seam from the ZIP ENDS notch down')
+            } Press up 1 cm at the hem, then 1 cm more, and stitch.`,
           },
           {
             title: 'Put the lining in',
@@ -218,8 +222,8 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
         : style.silhouette === 'trumpet'
           ? 'The hem is curved and full, so keep it narrow. Press up 0.5 cm, then 1.5 cm more, easing in the fullness with steam, and stitch by hand or machine.'
           : style.silhouette === 'a_line'
-            ? `Press up 1 cm, then ${hemCm - 1} cm more. The hem is curved, so ease in the extra fullness with steam as you press. Stitch by hand or machine.`
-            : `Press up 1 cm, then ${hemCm - 1} cm more, and stitch by hand or machine.${slit ? ' Turn the slit edges under and stitch them down.' : ''}`,
+            ? `Press up 1 cm, then ${hemDepth - 1} cm more. The hem is curved, so ease in the extra fullness with steam as you press. Stitch by hand or machine.`
+            : `Press up 1 cm, then ${hemDepth - 1} cm more, and stitch by hand or machine.${slit ? ' Turn the slit edges under and stitch them down.' : ''}`,
     },
     {
       title: 'Finish',
@@ -237,7 +241,7 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
       'Matching thread',
     ],
     // Pleats, godets, a flounce or tiers, sewn in at the right moment.
-    steps: volumeSteps(steps, draft, { seam, waist, hem: hemCm }),
+    steps: volumeSteps(steps, draft, { seam, waist, hem: hemDepth }),
   };
 }
 
@@ -292,6 +296,8 @@ export function bodiceGuide(draft: BodiceDraft, _style: { length: BodiceLength }
   const curve = n1(sw.curve);
   const edges = finish.edges ?? 'binding';
   const bust = draft.bustDart > 0.3;
+  // When the draft notes the bust dart as pivoted into the waist dart, the side dart is 5 cm wide and the waist dart carries the rest.
+  const pivoted = draft.pieces.some((pc) => pc.draft?.points.some((pt) => pt.n === 'B' && /pivoted into the waist dart/i.test(pt.note ?? '')));
   const waist = draft.waistDarts.front > 0.3 || draft.waistDarts.back > 0.3;
   const dartWords = bust && waist ? 'bust and waist darts' : bust ? 'bust darts' : 'waist darts';
   const sleeve = finish.sleeve;
@@ -327,7 +333,7 @@ export function bodiceGuide(draft: BodiceDraft, _style: { length: BodiceLength }
           {
             title: `Sew the ${dartWords}`,
             text: [
-              bust ? 'Fold each bust dart with right sides together so the dart lines meet, stitch from the side seam to the point, and press it down.' : '',
+              bust ? `Fold each bust dart with right sides together so the dart lines meet, stitch from the side seam to the point, and press it down.${pivoted ? ' The side bust dart is 5 cm wide; the rest of the bust shaping is carried in the waist dart.' : ''}` : '',
               waist && below
                 ? 'The waist darts are pointed at both ends. Fold each one along its centre, stitch from one point through the widest part at the waist to the other point, then clip into the fold at the waist so it lies flat. Press toward the centre.'
                 : waist
@@ -470,7 +476,7 @@ function sleeveCutWords(sleeve: SleeveDraft | undefined): string {
   if (!sleeve) return '';
   return ` Place the sleeve on both layers too, so you get a pair, and snip its notches: one at the top of the crown, one on the front, two on the back.${
     sleeve.pieces.length > 1 ? ' Cut the two sleeve bands.' : ''
-  }${sleeve.elbowDart ? ' Chalk-mark the elbow dart.' : ''}`;
+  }${sleeve.vent ? ' Snip the vent notch on the back seam too.' : ''}${sleeve.elbowDart ? ' Chalk-mark the elbow dart.' : ''}`;
 }
 
 /**
@@ -583,7 +589,9 @@ function sleeveSteps(sl: SleeveDraft, seam: string, curve: string, lined: boolea
       : []),
     {
       title: 'Sew the sleeve seams',
-      text: `Fold each sleeve right sides together, matching the underarm corners, the notches and the hem. Sew the underarm seam ${seam} from the edge and press it open over a sleeve board or a rolled towel, so the crease doesn't press through to the top of the sleeve.`,
+      text: `Fold each sleeve right sides together, matching the underarm corners, the notches and the hem. Sew the underarm seam ${seam} from the edge${
+        sl.vent ? `, from the underarm down to the vent notch ${sl.vent.lengthCm} cm above the hem, and backstitch there: the seam stays open below it for the wrist vent. Press it` : ' and press it'
+      } open over a sleeve board or a rolled towel, so the crease doesn't press through to the top of the sleeve.`,
     },
     band
       ? {
@@ -592,7 +600,11 @@ function sleeveSteps(sl: SleeveDraft, seam: string, curve: string, lined: boolea
         }
       : {
           title: 'Hem the sleeves',
-          text: `Press up 1 cm, then ${Math.round((hemAllowance - 1) * 10) / 10} cm more, and stitch by hand or machine. It is far easier now than once the sleeves are in.`,
+          text: `${
+            sl.vent
+              ? `Finish the vent first: press the open seam allowances below the notch to the wrong side along the seam line, turn their raw edges under and stitch them down close to the fold, with a bar tack or a few stitches across the top of the vent so it doesn't tear. Then press up 1 cm`
+              : 'Press up 1 cm'
+          }, then ${Math.round((hemAllowance - 1) * 10) / 10} cm more, and stitch by hand or machine${sl.vent ? ', mitring the hem at the vent corners' : ''}. It is far easier now than once the sleeves are in.`,
         },
     puff
       ? {

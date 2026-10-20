@@ -7,6 +7,7 @@ import { deletePhoto, getPhoto, putPhoto, shrink } from '../photoStore';
 import type { Garment } from '../measurements';
 import type { MeasureReply } from '../measureLink';
 import { AskToMeasure } from '../ui/AskToMeasure';
+import { TestingTag } from '../ui/TestingTag';
 
 interface Props {
   account: Account & { people: Person[] };
@@ -53,7 +54,7 @@ export function ClientBookScreen({ account, person, unit, onChange, onOpen, garm
       <section className="card" aria-labelledby="cbtitle">
         <div className="row between wrap">
           <div>
-            <p className="eyebrow">Client book</p>
+            <p className="eyebrow">Client book <TestingTag /></p>
             <h1 id="cbtitle">{name}</h1>
           </div>
         </div>

@@ -7,7 +7,8 @@ import type { LingerieMeasurements } from './engine/lingerie';
 
 export type Garment = 'skirt' | 'bodice' | 'dress' | 'trousers' | 'tee' | 'jacket' | 'coat' | 'lingerie';
 
-export type MeasurementId = keyof SkirtMeasurements | keyof BodiceMeasurements | keyof SleeveMeasurements | keyof TrousersMeasurements | keyof LingerieMeasurements;
+/** The engine's measurements, and the height, which no block uses directly: it anchors the checks and the estimates. */
+export type MeasurementId = keyof SkirtMeasurements | keyof BodiceMeasurements | keyof SleeveMeasurements | keyof TrousersMeasurements | keyof LingerieMeasurements | 'height';
 
 export interface MeasurementField {
   id: MeasurementId;
@@ -22,6 +23,17 @@ export interface MeasurementField {
   /** Posture measurements for a closer fit, listed after the rest under their own heading. */
   fit?: boolean;
 }
+
+/** Asked first of everyone. Nothing is drafted from it, so an older profile without it still drafts; it is
+ * what the lengths are checked against, and what the estimates scale from. */
+export const HEIGHT: MeasurementField = {
+  id: 'height',
+  label: 'Height',
+  hard: [120, 230],
+  typical: [145, 200],
+  optional: 'Used to double-check your other measurements and to fill in estimates. Nothing is drafted from it.',
+  tip: 'Standing barefoot against a wall, looking straight ahead.',
+};
 
 const WAIST: MeasurementField = {
   id: 'waist',
@@ -71,6 +83,7 @@ const BACK_WAIST_TO_HIP: MeasurementField = {
 };
 
 export const SKIRT_FIELDS: MeasurementField[] = [
+  HEIGHT,
   WAIST,
   FULL_HIP,
   WAIST_TO_HIP,
@@ -117,6 +130,7 @@ const HIP_NOTE = 'Only needed for tops that reach below the waist.';
 const ARM_NOTE = 'Only needed for sleeves.';
 
 const BODICE_ALL: MeasurementField[] = [
+  HEIGHT,
   {
     id: 'full_bust',
     label: 'Full bust',
@@ -287,10 +301,13 @@ const TEE_IDS: [MeasurementId, boolean][] = [
   ['high_bust', false],
 ];
 const TEE_OPTIONAL: Partial<Record<MeasurementId, string>> = { wrist: 'For long sleeves.', armscye: 'For a closer armhole.', high_bust: 'For shaping over a fuller bust.' };
-export const TEE_FIELDS: MeasurementField[] = TEE_IDS.map(([id, needed]) => {
-  const f = BODICE_FIELDS.find((b) => b.id === id)!;
-  return { ...f, optional: needed ? undefined : TEE_OPTIONAL[id] };
-});
+export const TEE_FIELDS: MeasurementField[] = [
+  HEIGHT,
+  ...TEE_IDS.map(([id, needed]) => {
+    const f = BODICE_FIELDS.find((b) => b.id === id)!;
+    return { ...f, optional: needed ? undefined : TEE_OPTIONAL[id] };
+  }),
+];
 
 /** Lingerie and swimwear take the snug underbust, the crotch length for briefs and one-pieces, and the
  * back length and shoulders for straps. The neck and bust points are estimated until they're taken. */
@@ -325,12 +342,15 @@ const LINGERIE_NEEDS_FOR: [MeasurementId, string | undefined][] = [
   ['bust_depth', ESTIMATE_NOTE],
   ['apex_separation', ESTIMATE_NOTE],
 ];
-const LINGERIE_FIELDS: MeasurementField[] = LINGERIE_NEEDS_FOR.map(([id, optional]) => {
-  if (id === 'underbust') return { ...UNDERBUST, optional };
-  if (id === 'torso_loop') return { ...TORSO_LOOP, optional };
-  const f = [...BODICE_FIELDS, ...TROUSERS_FIELDS].find((b) => b.id === id)!;
-  return { ...f, optional };
-});
+const LINGERIE_FIELDS: MeasurementField[] = [
+  HEIGHT,
+  ...LINGERIE_NEEDS_FOR.map(([id, optional]) => {
+    if (id === 'underbust') return { ...UNDERBUST, optional };
+    if (id === 'torso_loop') return { ...TORSO_LOOP, optional };
+    const f = [...BODICE_FIELDS, ...TROUSERS_FIELDS].find((b) => b.id === id)!;
+    return { ...f, optional };
+  }),
+];
 
 /** A jacket takes the bodice's measurements with the hip (it reaches below the waist) and the arms (it
  * always has sleeves); a coat also the knee, for its length. */
@@ -359,6 +379,7 @@ export const worded = (s: string, form: FormKind = 'womenswear') =>
   form === 'menswear' ? s.replace(/\b([Ff])ull bust\b/g, (_, f: string) => (f === 'F' ? 'Chest' : 'chest')).replace(/\bbust\b/g, 'chest').replace(/\bBust\b/g, 'Chest') : s;
 
 export const EXAMPLE_VALUES: MeasurementValues = {
+  height: 165,
   waist: 76,
   full_hip: 102,
   waist_to_hip: 20.5,
@@ -396,8 +417,15 @@ const fmt = (cm: number, unit: Unit) => (unit === 'cm' ? `${cm} cm` : `${Math.ro
 
 const has = (v: MeasurementValues, id: MeasurementId) => typeof v[id] === 'number' && !Number.isNaN(v[id]);
 
-export function checkMeasurements(v: MeasurementValues, unit: Unit, garment: Garment = 'skirt', form: FormKind = 'womenswear'): Check[] {
-  if (form === 'menswear') return checkMeasurements(v, unit, garment).filter((c) => !MENSWEAR_SKIPS.includes(c.id)).map((c) => ({ ...c, message: worded(c.message, form) }));
+/** What is known about the body beyond the tape: the weight, in kg. Never drafted from; it only checks the girths. */
+export interface BodyInfo {
+  weight?: number;
+  /** The form the weight is read against, when the checks run on the womenswear path for the menswear form. */
+  form?: FormKind;
+}
+
+export function checkMeasurements(v: MeasurementValues, unit: Unit, garment: Garment = 'skirt', form: FormKind = 'womenswear', body: BodyInfo = {}): Check[] {
+  if (form === 'menswear') return checkMeasurements(v, unit, garment, 'womenswear', { ...body, form }).filter((c) => !MENSWEAR_SKIPS.includes(c.id)).map((c) => ({ ...c, message: worded(c.message, form) }));
   const out: Check[] = [];
   for (const f of FIELDS[garment]) {
     const x = v[f.id];
@@ -415,9 +443,16 @@ export function checkMeasurements(v: MeasurementValues, unit: Unit, garment: Gar
   }
   const { waist, full_hip, waist_to_hip, waist_to_knee, waist_to_floor } = v;
   const asked = new Set(FIELDS[garment].map((f) => f.id));
+  for (const c of weightChecks(v, body.weight, body.form ?? form)) if (asked.has(c.id) && !out.some((o) => o.id === c.id)) out.push(c);
   // Measurements checked against each other, after each has passed on its own.
+  // A cross-check names what to look at, so it replaces the plain "is unusual" on the same measurement.
   const crossed = () => {
-    for (const c of crossChecks(v)) if (asked.has(c.id) && asked.has(c.with) && !out.some((o) => o.id === c.id)) out.push({ id: c.id, level: 'warning', message: c.message });
+    for (const c of crossChecks(v)) {
+      if (!asked.has(c.id) || !asked.has(c.with)) continue;
+      const at = out.findIndex((o) => o.id === c.id);
+      if (at < 0) out.push({ id: c.id, level: 'warning', message: c.message });
+      else if (out[at].level === 'warning' && / is unusual\. /.test(out[at].message)) out[at] = { id: c.id, level: 'warning', message: c.message };
+    }
   };
   // A T-shirt hangs from the shoulders and is cut from the bust down, so only the top's checks apply.
   if (garment !== 'bodice' && garment !== 'tee') {
@@ -529,6 +564,26 @@ export function crossChecks(v: MeasurementValues): CrossCheck[] {
   ratio('crotch_length', 'crotch_depth', 2.1, 3.3,
     'Crotch length looks short next to your crotch depth. Take the tape from the centre front waist right through between the legs to the centre back waist.',
     'Crotch length looks long next to your crotch depth. Keep the tape snug between the legs, and stop at the waist front and back.');
+  // Lengths against the height: the body's proportions vary, but a length far off its share of the height is
+  // usually a tape that started or stopped in the wrong place, or a height typed in the wrong unit.
+  ratio('nape_to_waist', 'height', 0.2, 0.3,
+    'Back length looks short next to your height. Measure from the bone at the back of the neck (bow your head to find it) straight down to the waist.',
+    'Back length looks long next to your height. It stops at the waist, where a ribbon tied round settles; check your height too.');
+  ratio('waist_to_floor', 'height', 0.55, 0.68,
+    'Waist to floor looks short next to your height. Measure down the side from the waist to the floor in bare feet; check your height too.',
+    'Waist to floor looks long next to your height. It starts at the natural waist, not the hip; check your height too.');
+  ratio('waist_to_knee', 'height', 0.29, 0.4,
+    'Waist to knee looks short next to your height. Measure down the side from the waist to the middle of the knee.',
+    'Waist to knee looks long next to your height. It stops at the middle of the knee, not below it.');
+  ratio('arm_length', 'height', 0.29, 0.42,
+    'Arm length looks short next to your height. Measure from the shoulder bone over a slightly bent elbow to the wrist bone.',
+    'Arm length looks long next to your height. It ends at the wrist bone, not the knuckles.');
+  ratio('crotch_depth', 'height', 0.12, 0.22,
+    'Crotch depth looks short next to your height. Sit on a hard chair and measure from the side waist straight down to the seat.',
+    'Crotch depth looks long next to your height. Measure seated, from the side waist straight down to the chair seat, not to the floor.');
+  ratio('shoulder_width', 'height', 0.17, 0.31,
+    'Shoulder width looks narrow next to your height. Measure across the back from one shoulder point to the other.',
+    'Shoulder width looks wide next to your height. Measure between the shoulder points, not round the arms.');
   ratio('full_hip', 'full_bust', 0.8, 1.4,
     'Your hip looks small next to your bust. Measure round the fullest part of the seat, usually about 20 cm below the waist.',
     'Your hip looks large next to your bust. Keep the tape level all the way round, at the fullest part of the seat.');
@@ -551,6 +606,50 @@ export function crossChecks(v: MeasurementValues): CrossCheck[] {
   if (high_hip && waist && full_hip && (high_hip < waist - 2 || high_hip > full_hip + 1))
     out.push({ id: 'high_hip', with: 'full_hip', message: 'High hip usually comes between your waist and your full hip. Measure about 10 cm below the waist, round the top of the hip bones.' });
   return out;
+}
+
+/**
+ * The girths against the height and weight, the way a pattern cutter reads a measurement sheet alongside the
+ * person in front of them. At a given height and weight the bust, waist and hip each vary a lot with the body's
+ * shape, but taken together they vary much less, so the check reads them together: all of them off the same
+ * way means the height or weight slipped (or the unit did), and one standing far out from the others means
+ * that tape did. Only ever a warning, worded about the measurement, never about the body, and nothing is said
+ * without both the height and the weight.
+ */
+export function weightChecks(v: MeasurementValues, weight: number | undefined, form: FormKind = 'womenswear'): Check[] {
+  const { height } = v;
+  if (!height || !weight) return [];
+  const bmi = weight / (height / 100) ** 2;
+  if (bmi < 12 || bmi > 75) {
+    return [{ id: 'height', level: 'warning', message: "Your height and weight don't look right together. Is one of them in the wrong unit?" }];
+  }
+  // Expected girths at this BMI (cm), from population averages.
+  const expect: Partial<Record<MeasurementId, number>> =
+    form === 'menswear'
+      ? { full_bust: 2.4 * bmi + 45, waist: 2.5 * bmi + 30, full_hip: 1.6 * bmi + 60 }
+      : { full_bust: 2.3 * bmi + 40, waist: 2.2 * bmi + 27, full_hip: 2.0 * bmi + 55 };
+  const res = (Object.keys(expect) as MeasurementId[]).filter((id) => v[id]).map((id) => ({ id, r: v[id]! - expect[id]! }));
+  if (!res.length) return [];
+  const mean = res.reduce((a, b) => a + b.r, 0) / res.length;
+  const name: Partial<Record<MeasurementId, string>> = { full_bust: 'Full bust', waist: 'Waist', full_hip: 'Full hip' };
+  const one = (id: MeasurementId): Check => ({
+    id,
+    level: 'warning',
+    message: `${name[id]} doesn't quite match your height and weight. It's fine if it's right, but please double-check it: tape level all the way round, snug but not tight.`,
+  });
+  // One girth standing far out from the others, whichever way the rest lean: the one furthest from its
+  // expected value is the one to look at (with two girths each stands out from the other).
+  if (res.length > 1) {
+    const far = [...res].sort((a, b) => Math.abs(b.r) - Math.abs(a.r))[0];
+    const rest = res.filter((o) => o.id !== far.id).reduce((a, b) => a + b.r, 0) / (res.length - 1);
+    if (Math.abs(far.r - rest) > 28) return [one(far.id)];
+  }
+  if (Math.abs(mean) > 12) {
+    return res.length === 1
+      ? [one(res[0].id)]
+      : [{ id: 'height', level: 'warning', message: "Your measurements don't quite match your height and weight. It's fine if they're right, but please double-check the height and weight." }];
+  }
+  return [];
 }
 
 /** True when every measurement the garment always needs is filled in. */

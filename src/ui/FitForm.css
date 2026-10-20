@@ -109,3 +109,22 @@
   margin: 4px 0 0;
   color: var(--gild);
 }
+
+/* The toile photo, kept on the device: a small print beside its links. */
+.fitphoto {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}
+
+.fitphoto img {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border: 1px solid var(--line-strong);
+}
+
+.fitphoto .link {
+  cursor: pointer;
+}

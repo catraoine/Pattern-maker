@@ -7,8 +7,43 @@ import type { Garment } from '../measurements';
 export const ENDPOINT = '/.netlify/functions/report';
 export const MAX_CRASHES_PER_VISIT = 5;
 
-/** The steps of the way that are counted, once per visit each (per garment). */
-export type Step = 'measured' | 'styled' | 'printed' | 'photo';
+/**
+ * The steps of the way that are counted, once per visit each (per garment), and the four numbers the business
+ * plan watches weekly: a sign-up (by where the visitor came from), a pattern printed, a fit reported, a payment.
+ */
+export type Step = 'measured' | 'styled' | 'printed' | 'photo' | 'signup' | 'fit_reported' | 'paid';
+
+const SOURCE_KEY = 'maison-trace-source';
+
+/** Only plain lower-case words, as the server accepts: "pinterest", "class-vancouver". */
+export const cleanSource = (s: string | null | undefined) => {
+  const v = (s ?? '').trim().toLowerCase().replace(/[^a-z-]/g, '').slice(0, 20);
+  return v.length >= 2 ? v : undefined;
+};
+
+/**
+ * Where this visitor first came from: the `?src=` on the link they arrived by (a creator's video, a Pinterest pin, a
+ * class), kept on the device so a sign-up weeks later still counts against it. The first source wins.
+ */
+export function rememberSource(search: string, storage: Pick<Storage, 'getItem' | 'setItem'> | undefined): string | undefined {
+  const fromLink = cleanSource(new URLSearchParams(search).get('src'));
+  try {
+    const kept = cleanSource(storage?.getItem(SOURCE_KEY));
+    if (kept) return kept;
+    if (fromLink) storage?.setItem(SOURCE_KEY, fromLink);
+  } catch {
+    // Storage can be off (private windows); the source is then only this visit's.
+  }
+  return fromLink;
+}
+
+export const signupSource = (): string | undefined => {
+  try {
+    return cleanSource(typeof localStorage === 'undefined' ? undefined : localStorage.getItem(SOURCE_KEY));
+  } catch {
+    return undefined;
+  }
+};
 export type Where = 'error' | 'promise' | 'render';
 
 export interface CrashReport {
@@ -79,9 +114,9 @@ export class Reporter {
     this.count('visit');
   }
 
-  /** Counts a step of the way, once per visit. */
-  count(step: Step | 'visit', garment?: Garment) {
-    const key = garment ? `${step}:${garment}` : step;
+  /** Counts a step of the way, once per visit. The suffix is the garment it was for, or a sign-up's source. */
+  count(step: Step | 'visit', suffix?: Garment | string) {
+    const key = suffix ? `${step}:${suffix}` : step;
     if (!this.opts.counting || this.counted.has(key)) return;
     this.counted.add(key);
     this.counts[key] = 1;
@@ -122,6 +157,13 @@ let reporter: Reporter | null = null;
 export function startReports(version: string) {
   if (reporter || typeof window === 'undefined') return;
   const nav = navigator as Navigator & { globalPrivacyControl?: boolean };
+  const source = rememberSource(window.location.search, (() => {
+    try {
+      return window.localStorage;
+    } catch {
+      return undefined;
+    }
+  })());
   reporter = new Reporter({
     version,
     browser: browserFamily(nav.userAgent),
@@ -138,13 +180,15 @@ export function startReports(version: string) {
       }
     },
   });
+  // A visit that arrived by a tracked link is counted against its source too, so sign-ups per source have a base.
+  if (cleanSource(new URLSearchParams(window.location.search).get('src'))) reporter.count('visit', source);
   window.addEventListener('error', (e) => reporter?.crash(e.error ?? e.message, 'error'));
   window.addEventListener('unhandledrejection', (e) => reporter?.crash(e.reason, 'promise'));
   document.addEventListener('visibilitychange', () => document.visibilityState === 'hidden' && reporter?.flush());
   window.addEventListener('pagehide', () => reporter?.flush());
 }
 
-export const countStep = (step: Step, garment?: Garment) => reporter?.count(step, garment);
+export const countStep = (step: Step, suffix?: Garment | string) => reporter?.count(step, suffix);
 export const reportCrash = (err: unknown, where: Where) => reporter?.crash(err, where);
 export const flushReports = () => reporter?.flush();
 export const setReportView = (view: string) => {

@@ -1,14 +1,16 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { layout } from '../engine/export';
 import { piecesLengthCm, toMetres } from '../engine/fabric';
 import { layPlan } from '../engine/layplan';
 import { TROUSER_EASE, TrousersDraft } from '../engine/trousers';
-import { trousersFlat } from '../engine/flat';
+import { trousersFlat, trousersView } from '../engine/flat';
+import { skirtForm } from '../ui/DrawOnForm';
+import { FormSketch } from '../ui/FormSketch';
 import { TROUSER_GROUPS, TrousersChoices, describeTrousers, trouserAllowed, trouserChoice, validTrousers } from '../garments';
 import { TechFlatView } from '../ui/TechFlatView';
 import { AllRound } from '../ui/AllRound';
 import { roundTrousers } from '../engine/allRound';
-import { FabricSwatches, GarmentFabric } from '../ui/FabricFill';
+import { FabricSwatches, GarmentFabric, flatId } from '../ui/FabricFill';
 import { MeasurementValues } from '../measurements';
 import { PatternPreview } from '../ui/Preview';
 import { PatternPane } from '../ui/PointEditor';
@@ -62,7 +64,12 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
   const undo = useUndo(choices, setChoices);
   const onChoices = undo.change;
   const can = (t: ProTool) => shows(mode, t);
-  const [view, setView] = useState<'sketch' | 'round' | 'pattern'>('sketch');
+  const [view, setView] = useState<'sketch' | 'flat' | 'round' | 'pattern'>('sketch');
+  // A fabric dresses the flat drawing, so choosing one shows that drawing; the form is lines only.
+  const cloth = flatId(fabric);
+  useEffect(() => {
+    if (cloth) setView((v) => (v === 'sketch' ? 'flat' : v));
+  }, [cloth]);
   const [fit, setFit] = useState(false);
   const canFit = !!easeMap?.length && can('easeMap');
   const pieces = useMemo(() => draft?.pieces ?? [], [draft]);
@@ -75,6 +82,12 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
     () => (draft && values.waist_to_hip && values.crotch_depth ? trousersFlat(draft, { waist_to_hip: values.waist_to_hip, crotch_depth: values.crotch_depth }) : undefined),
     [draft, values.waist_to_hip, values.crotch_depth],
   );
+  const formBody = useMemo(() => (values.waist && values.full_hip && values.waist_to_hip ? skirtForm({ waist: values.waist, full_hip: values.full_hip, waist_to_hip: values.waist_to_hip }) : undefined), [values.waist, values.full_hip, values.waist_to_hip]);
+  const formOutline = useMemo(() => {
+    if (!draft || !values.waist_to_hip || !values.crotch_depth) return [];
+    const v = trousersView(draft, { waist_to_hip: values.waist_to_hip, crotch_depth: values.crotch_depth });
+    return [...v.shapes, ...v.lines.map((l) => l.pts)];
+  }, [draft, values.waist_to_hip, values.crotch_depth]);
   const shown = (id: string) => id !== 'length' || choices.leg !== 'culotte';
   const elastic = choices.waist === 'elastic';
   const pockets = choices.pockets ?? 'none';
@@ -84,6 +97,7 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
       onEditMeasurements={onEditMeasurements}
       undo={undo}
       label="your trousers"
+      garment="trousers"
       name={title}
       metres={draft ? trousersFabricMetres(draft) : undefined}
       ready={!!draft}
@@ -152,8 +166,8 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
         <PreviewSwitch look={view === 'pattern' ? 'pattern' : 'garment'} onLook={(l) => setView(l === 'pattern' ? 'pattern' : 'sketch')} />
         <div className="row between wrap">
           {view !== 'pattern' ? (
-            <GarmentViews<'sketch' | 'round'>
-              views={[['sketch', 'Drawing'], ...(round ? ([['round', 'All round']] as ['round', string][]) : [])]}
+            <GarmentViews<'sketch' | 'flat' | 'round'>
+              views={[['sketch', 'Form'], ['flat', 'Drawing'], ...(round ? ([['round', 'All round']] as ['round', string][]) : [])]}
               view={view}
               onView={setView}
             />
@@ -165,7 +179,10 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
         </div>
         <div className="preview">
           {error && <p className="msg error">{error}</p>}
-          {flat && view === 'sketch' && (
+          {formBody && draft && view === 'sketch' && (
+            <FormSketch body={formBody} m={values as { waist: number }} legs bottom={draft.lengthCm + 6} lines={{}} outline={formOutline} label={`The ${title.toLowerCase()} on your form`} />
+          )}
+          {flat && view === 'flat' && (
             <GarmentFabric fabric={fabric}>
               <TechFlatView flat={flat} title={title} />
             </GarmentFabric>

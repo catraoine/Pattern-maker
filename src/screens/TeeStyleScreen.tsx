@@ -21,6 +21,7 @@ import type { Mode } from '../mode';
 import { ChoicePic, chipsClass } from '../ui/ChoicePic';
 import { Explain } from '../ui/Explain';
 import { DrawOnForm } from '../ui/DrawOnForm';
+import { FormSketch } from '../ui/FormSketch';
 import { TeeFormMeasurements, readTeeFit, readTeeHem, readTeeNeckline, readTeeSleeve, teeForm, teeLines } from '../ui/formTops';
 import { FABRIC, Group, LOOKS, StyleLayout, TabPanel } from '../ui/StyleLayout';
 import { FabricDetails } from '../ui/FabricDetails';
@@ -68,11 +69,12 @@ function friendly(w: string) {
 export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices, onChooseGarment, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, fabric, onFabric, mode = 'all', onMode }: Props) {
   const undo = useUndo(choices, setChoices);
   const onChoices = undo.change;
-  const [view, setView] = useState<'sketch' | 'round' | 'pattern'>('sketch');
+  const [view, setView] = useState<'sketch' | 'flat' | 'round' | 'pattern'>('sketch');
   /** Drawing on the form: the choices from before, to keep or go back to. */
   const [onForm, setOnForm] = useState<TeeChoices>();
   const m = values as TeeFormMeasurements;
-  const form = useMemo(() => (onForm && draft ? teeForm(m, choices, draft) : undefined), [onForm, draft, m, choices]);
+  const form = useMemo(() => (draft ? teeForm(m, choices, draft) : undefined), [draft, m, choices]);
+  const formLines = useMemo(() => (draft && form ? teeLines(draft, form) : {}), [draft, form]);
   const pieces = useMemo(() => draft?.pieces ?? [], [draft]);
   const sheet = useMemo(() => (draft ? layout(pieces, '', []) : undefined), [draft, pieces]);
   const flat = useMemo(() => (draft ? teeFlat(draft) : undefined), [draft]);
@@ -130,6 +132,7 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
       onEditMeasurements={onEditMeasurements}
       undo={undo}
       label="your T-shirt"
+      garment="tee"
       name={title}
       metres={draft ? teeFabricMetres(draft) : undefined}
       ready={!!draft}
@@ -177,8 +180,8 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
         <PreviewSwitch look={view === 'pattern' ? 'pattern' : 'garment'} onLook={(l) => setView(l === 'pattern' ? 'pattern' : 'sketch')} />
         <div className="row between wrap">
           {view !== 'pattern' ? (
-            <GarmentViews<'sketch' | 'round'>
-              views={[['sketch', 'Drawing'], ...(round ? ([['round', 'All round']] as ['round', string][]) : [])]}
+            <GarmentViews<'sketch' | 'flat' | 'round'>
+              views={[['sketch', 'Form'], ['flat', 'Drawing'], ...(round ? ([['round', 'All round']] as ['round', string][]) : [])]}
               view={view}
               onView={setView}
             />
@@ -195,7 +198,8 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
         </div>
         <div className="preview">
           {error && <p className="msg error">{error}</p>}
-          {flat && view === 'sketch' && <TechFlatView flat={flat} title={title} />}
+          {form && view === 'sketch' && <FormSketch body={form.body} m={m} legs={false} bottom={form.hems.tunic + 6} arms={form.arm} lines={formLines} label={`The ${title.toLowerCase()} on your form`} />}
+          {flat && view === 'flat' && <TechFlatView flat={flat} title={title} />}
           {round && view === 'round' && <AllRound round={round} m={values} striped={!!fabric?.checks} label={`The ${title.toLowerCase()} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`} />}
           {draft && sheet && view === 'pattern' && <PatternPane><PatternPreview paper sheet={sheet} label={`Pattern pieces for ${title.toLowerCase()}`} /></PatternPane>}
           <UndoToast undo={undo} />

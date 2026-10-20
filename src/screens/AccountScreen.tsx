@@ -1,6 +1,9 @@
 import { SendToDevice } from '../ui/SendToDevice';
 import { TesterCode } from '../ui/TesterCode';
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { countStep } from '../report/report';
+import { deletePhoto } from '../photoStore';
+import { garmentKind } from '../fit';
 import { Account, ME, Person, SavedPattern, activePerson, personName } from '../account';
 import { choicesFlat } from '../collection';
 import { Envelope } from '../ui/Envelope';
@@ -38,6 +41,8 @@ interface Props {
   onRename: (id: string, name: string) => void;
   onRemove: (id: string) => void;
   onFit: (id: string, fit: FitFeedback | undefined) => void;
+  /** A saved pattern whose "How did it fit?" opens straight away (from the print screen's prompt). */
+  openFit?: string;
   onReset: () => void;
   /** Opens the Privacy Policy or the Terms of Use. */
   onLegal: (page: 'privacy' | 'terms' | 'tester' | 'news' | 'brands' | 'nights') => void;
@@ -77,7 +82,7 @@ function Fold({ id, title, summary, open, children }: { id: string; title: strin
   );
 }
 
-export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurements, onSwitchPerson, onAddPerson, onRemovePerson, onClientBook, onCheckFile, onBodyDouble, onOpen, onRename, onRemove, onFit, onReset, onLegal, onBackup, sendLink, onTesterCode, onRestore, mode = 'all', onMode, onPlans }: Props) {
+export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurements, onSwitchPerson, onAddPerson, onRemovePerson, onClientBook, onCheckFile, onBodyDouble, onOpen, onRename, onRemove, onFit, openFit, onReset, onLegal, onBackup, sendLink, onTesterCode, onRestore, mode = 'all', onMode, onPlans }: Props) {
   const limit = savedLimit(account);
   const [confirmReset, setConfirmReset] = useState(false);
   const [restoreMsg, setRestoreMsg] = useState('');
@@ -137,7 +142,7 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
           ) : (
             <ul className="saved">
               {account.patterns.map((p) => (
-                <PatternRow key={p.id} pattern={p} values={valuesFor(p)} whoFor={whoFor(p)} onOpen={() => onOpen(p)} onRename={(n) => onRename(p.id, n)} onRemove={() => onRemove(p.id)} onFit={(f) => onFit(p.id, f)} />
+                <PatternRow key={p.id} pattern={p} values={valuesFor(p)} whoFor={whoFor(p)} startFitting={openFit === p.id} onOpen={() => onOpen(p)} onRename={(n) => onRename(p.id, n)} onRemove={() => onRemove(p.id)} onFit={(f) => onFit(p.id, f)} />
               ))}
             </ul>
           )}
@@ -345,23 +350,31 @@ function PatternRow({
   onRename,
   onRemove,
   onFit,
+  startFitting = false,
 }: {
   pattern: SavedPattern;
   values: MeasurementValues;
   whoFor?: string;
+  startFitting?: boolean;
   onOpen: () => void;
   onRename: (n: string) => void;
   onRemove: () => void;
   onFit: (fit: FitFeedback | undefined) => void;
 }) {
   const [editing, setEditing] = useState(false);
-  const [fitting, setFitting] = useState(false);
+  const [fitting, setFitting] = useState(startFitting);
   const [more, setMore] = useState(false);
   const [sendMsg, setSendMsg] = useState('');
+  const row = useRef<HTMLLIElement>(null);
+  useEffect(() => {
+    if (startFitting) row.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }, [startFitting]);
   const saveFit = async (fit: FitFeedback, share: boolean) => {
     setFitting(false);
     const kept = { ...fit, sentAt: pattern.fit?.sentAt };
     onFit(kept);
+    // One of the four weekly numbers: a fit reported, by garment. Only the count goes; the notes stay here.
+    if (!pattern.fit) countStep('fit_reported', garmentKind(pattern.choices));
     if (!share) return setSendMsg('');
     setSendMsg('Sending…');
     const sent = await sendFitReport(fitReport(fit, pattern.choices, values));
@@ -377,7 +390,7 @@ function PatternRow({
   const flat = useMemo(() => choicesFlat(pattern.choices, values), [pattern.choices, values]);
 
   return (
-    <li>
+    <li ref={row}>
       <Envelope size="small" name={pattern.name} flat={flat} />
       <div className="grow">
         {editing ? (
@@ -449,6 +462,7 @@ function PatternRow({
           onClear={
             pattern.fit
               ? () => {
+                  if (pattern.fit?.photo) void deletePhoto(pattern.fit.photo).catch(() => {});
                   onFit(undefined);
                   setFitting(false);
                 }

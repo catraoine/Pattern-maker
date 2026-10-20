@@ -16,11 +16,17 @@ import {
 } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import * as fontData from './fontData';
+import type { Unit } from '../measurements';
+import { inInches } from '../units';
 import { type Lay, hideSqFt, layWords } from './layplan';
 import type { Flat } from './flat';
 import { DIAGRAMS, DiagramId } from './diagrams';
 import { P } from './geometry';
 import { Face, OVERLAP, PAGE_MARGIN, Paper, STYLES, Sheet, pageName, pageSize, tileGrid, usedTiles } from './export';
+
+// The page footer sits inside the 1 cm margin: closer to the edge most home printers cannot print, and some
+// drivers then offer to shrink the page, which breaks the scale.
+const FOOTER_Y = 1.05;
 import type { SewingGuide } from './instructions';
 import type { Check, FinishedRow } from './qc';
 import type { DraftPoint } from './piece';
@@ -45,12 +51,17 @@ async function embedFonts(doc: PDFDocument): Promise<Fonts> {
   return { label, body, bodyMedium };
 }
 
+// Set for the document being written when the sewist works in inches; every string drawn is rewritten on its way out.
+let inchMode = false;
+const worded = (text: string) => (inchMode ? inInches(text) : text);
+
 /** Text with letter spacing. `x` is the left edge, or the centre when `centre` is set. */
 function drawText(
   page: PDFPage,
   text: string,
   o: { x: number; y: number; size: number; font: PDFFont; grey?: number; tracking?: number; rotate?: number; centre?: boolean },
 ) {
+  text = worded(text);
   const cs = (o.tracking ?? 0) * o.size;
   const width = o.font.widthOfTextAtSize(text, o.size) + cs * Math.max(0, text.length - 1);
   const shift = o.centre ? width / 2 : 0;
@@ -194,6 +205,8 @@ function addCoverPage(doc: PDFDocument, fonts: Fonts, paper: 'a4' | 'letter', ti
 /** Everything printed after the pattern pages. */
 export interface PdfExtras {
   title: string;
+  /** The sewist's unit: with `in`, every length in the PDF's text is written in inches. */
+  unit?: Unit;
   guide?: SewingGuide;
   summary?: Summary;
 }
@@ -249,6 +262,7 @@ export async function toTiledPdf(sheet: Sheet, paper: Paper, extras?: PdfExtras)
   const stepX = tw - OVERLAP;
   const stepY = th - OVERLAP;
   const { rows, cols } = tileGrid(sheet, paper);
+  inchMode = extras?.unit === 'in';
   const doc = await PDFDocument.create();
   const fonts = await embedFonts(doc);
   doc.setTitle(extras ? `Maison Tracé: ${extras.title}` : 'Maison Tracé pattern');
@@ -295,10 +309,10 @@ export async function toTiledPdf(sheet: Sheet, paper: Paper, extras?: PdfExtras)
         if (has(r - 1, c)) diamond(page, x, top, pageName(r - 1, c), 'below', fonts.label);
         if (has(r + 1, c)) diamond(page, x, bottom, pageName(r + 1, c), 'above', fonts.label);
       }
-      drawText(page, `PAGE ${name}`, { x: PAGE_MARGIN * CM, y: 0.4 * CM, size: 7, font: fonts.label, tracking: 0.2 });
+      drawText(page, `PAGE ${name}`, { x: PAGE_MARGIN * CM, y: FOOTER_Y * CM, size: 7, font: fonts.label, tracking: 0.2 });
       drawText(page, `${number} OF ${total}   ·   ROW ${String.fromCharCode(65 + r)}, COLUMN ${c + 1}   ·   PRINT AT 100% / ACTUAL SIZE`, {
         x: (PAGE_MARGIN + 2.2) * CM,
-        y: 0.4 * CM,
+        y: FOOTER_Y * CM,
         size: 7,
         font: fonts.label,
         grey: 0.4,
@@ -382,6 +396,7 @@ function flow(doc: PDFDocument, paper: 'a4' | 'letter', fonts: Fonts) {
     }
   };
   const wrap = (text: string, size: number, f: PDFFont, w = width - 18) => {
+    text = worded(text);
     const lines: string[] = [];
     let line = '';
     for (const word of text.split(' ')) {
@@ -658,6 +673,7 @@ function addHandPages(doc: PDFDocument, fonts: Fonts, paper: 'a4' | 'letter', ti
 }
 
 function wrapText(text: string, size: number, f: PDFFont, w: number) {
+  text = worded(text);
   const lines: string[] = [];
   let line = '';
   for (const word of text.split(' ')) {

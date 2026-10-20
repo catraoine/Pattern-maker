@@ -53,6 +53,9 @@ test('a wrong measurement is explained, not looped', async ({ page }) => {
   // Print in the header waits for the measurements, and says so.
   await stepButton(page, 'Print').click();
   await expect(page.getByRole('status').filter({ hasText: /Measure first: the skirt needs a few more measurements before it can be printed/ })).toBeVisible();
+  // The height comes first; the bust in the wrong unit is caught on its own page.
+  await box.fill('165');
+  await next();
   await box.fill('9');
   await next();
   await expect(main.getByText(/Full bust should be between/)).toBeVisible();

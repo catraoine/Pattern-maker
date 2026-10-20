@@ -393,6 +393,32 @@ p {
   font-weight: var(--w-semi);
 }
 
+/* A number that could be right but doesn't agree with the rest: a quiet note, never in the way. */
+.msg.doubt {
+  border-left-color: var(--gild);
+  color: var(--muted);
+}
+
+.double-checks {
+  display: grid;
+  gap: 8px;
+}
+
+.check-list .doubtful {
+  color: var(--gild);
+}
+
+/* Weight, offered on the height page: a link until wanted, then its own box. */
+.weight-entry {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+
+.weight-note {
+  margin: 0;
+}
+
 /* Why Style or Print waits, over the guided measuring pages without moving them. */
 .msg.steps-note {
   position: fixed;
@@ -1335,6 +1361,117 @@ b {
   color: var(--ink);
   line-height: 1.45;
 }
+/* Cat's A1 Tap to Enlarge (2026-10-20): the Enlarge button on the style page's sketch, and the full-screen view. */
+.enlarge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 6px 10px;
+  border: 1px solid var(--guide);
+  background: var(--paper);
+  color: var(--gild);
+  font: var(--w-strong) 11px/1 var(--sans);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: zoom-in;
+}
+.enlarge.in-row {
+  position: static;
+}
+.enlarge svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+}
+.big-sketch {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: max(16px, env(safe-area-inset-top)) 16px max(20px, env(safe-area-inset-bottom));
+  background: var(--paper);
+}
+.big-sketch-top {
+  align-self: stretch;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.big-sketch-top p {
+  margin: 0;
+  color: var(--gild);
+  font-family: var(--sans);
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.big-sketch-x {
+  min-width: 40px;
+  min-height: 40px;
+  border: 0;
+  background: none;
+  color: var(--gild);
+  font-size: 18px;
+}
+.big-sketch-stage {
+  flex: 1;
+  align-self: stretch;
+  min-height: 0;
+  overflow: hidden;
+  touch-action: none;
+  cursor: zoom-in;
+}
+.big-sketch-draw {
+  width: 100%;
+  height: 100%;
+  transform-origin: center;
+}
+.big-sketch-draw svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-height: none;
+}
+/* A still copy: no handles or hints for dragging it on the page. */
+.big-sketch-draw :is(.handle, .hint) {
+  display: none;
+}
+.big-sketch-views {
+  display: flex;
+  gap: 22px;
+}
+.big-sketch-views button {
+  padding: 4px 0;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  background: none;
+  color: var(--muted);
+  font-family: var(--sans);
+  font-size: 13px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.big-sketch-views button[aria-pressed='true'] {
+  color: var(--gild);
+  border-bottom-color: var(--gild);
+}
+.big-sketch-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+}
 @media (prefers-reduced-motion: reduce) {
   :is(.explain-pic, .big-drawing) .pic-trace,
   .chips.pics .chip.on .pic-trace {
@@ -1570,6 +1707,8 @@ button.ghost:disabled {
 .people-seg {
   max-width: 100%;
   overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
 }
 
 .people-seg button {
@@ -1736,6 +1875,12 @@ details.more[open] > summary h2::after {
 }
 .welcome .fineprint {
   text-align: center;
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  opacity: 0.5;
+}
+.welcome .fineprint button.inline-link {
+  text-decoration: none;
 }
 .fineprint button.inline-link {
   min-height: 0;
@@ -1819,6 +1964,7 @@ details.more[open] > summary h2::after {
 }
 .legal-table {
   overflow-x: auto;
+  overflow-y: hidden;
   margin-bottom: 10px;
 }
 .legal-table table {
@@ -2188,6 +2334,18 @@ button.link.how-link {
   margin: -10px 0 -6px;
 }
 
+/* "How to do it", and on the height page the weight link beside it, on one line. */
+.how-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 16px;
+  margin: 0;
+}
+
+.how-row button.link.weight-link {
+  margin: -10px 0 -6px;
+}
+
 /* What you need, and what a garment still needs: label on the left, a line each */
 .need {
   margin: 0;
@@ -2294,6 +2452,28 @@ button.link.how-link {
   color: var(--paper);
 }
 
+/* "In testing": the quiet tag on garments that haven't passed their fit test yet (launch.ts). */
+.testing-tag {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.make-grid button.on .testing-tag {
+  color: var(--paper);
+}
+
+.screen-head .testing-tag {
+  display: inline-block;
+  margin: 0 auto 0 0;
+  padding: 2px 8px;
+  border: 1px solid var(--line-strong);
+}
+
 .measure-step.short .welcome-hero {
   max-height: 300px;
 }
@@ -2356,7 +2536,8 @@ button.link.how-link {
   flex-direction: column;
   gap: 14px;
   padding: 22px 22px calc(22px + env(safe-area-inset-bottom));
-  background: var(--fill);
+  /* Solid, so the page underneath never shows through the steps. */
+  background: var(--paper);
   border-top: var(--bw) solid var(--line-strong);
 }
 
@@ -2685,6 +2866,7 @@ dialog.guide::backdrop {
 /* True size: a bank card to calibrate against, then a piece at 1:1 */
 .calcard-wrap {
   overflow-x: auto;
+  overflow-y: hidden;
   padding: 8px 0;
 }
 .calcard {
@@ -2777,6 +2959,7 @@ dialog.guide::backdrop {
 }
 .tablewrap {
   overflow-x: auto;
+  overflow-y: hidden;
 }
 table.history {
   border-collapse: collapse;
@@ -3203,6 +3386,8 @@ button.link.garment-change {
   flex-wrap: nowrap;
   justify-content: flex-start;
   overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
   scrollbar-width: none;
   margin: 0 -2px;
   padding: 0 2px 2px;
@@ -3272,14 +3457,18 @@ button.link.garment-change {
 .form-svg {
   max-height: min(62vh, calc(100svh - 480px));
 }
-.form-svg .form-line {
+.form-svg .form-line,
+.form-still .form-line {
   stroke: var(--gild);
 }
 .form-svg .form-legs,
-.form-svg .form-stand {
+.form-svg .form-stand,
+.form-still .form-legs,
+.form-still .form-stand {
   stroke: var(--guide);
 }
-.form-svg .tape {
+.form-svg .tape,
+.form-still .tape {
   stroke: var(--muted);
 }
 .form-svg .tape.on {
@@ -3318,6 +3507,7 @@ button.link.garment-change {
   display: flex;
   gap: 10px;
   overflow-x: auto;
+  overflow-y: hidden;
   padding: 6px 5px;
   scrollbar-width: none;
   overscroll-behavior-x: contain;
@@ -3387,6 +3577,8 @@ button.link.garment-change {
   display: flex;
   gap: 10px;
   overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
   padding: 2px 2px 4px;
   scrollbar-width: none;
 }
@@ -3431,6 +3623,8 @@ button.link.garment-change {
   display: flex;
   gap: 10px;
   overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
   padding: 5px;
   scrollbar-width: none;
 }
@@ -4418,14 +4612,25 @@ button.link.garment-change {
   position: sticky;
   top: calc(var(--pin-top, 0px) + 12px);
 }
+/* Sideways rows slide only sideways (Cat, 2026-10-20): with overflow-x alone the browser lets the row scroll up
+   and down too, and the tabs' underline sitting 1px over the rule was enough to make it wobble. */
 .style-tabs {
   grid-area: tabs;
   display: flex;
   gap: 18px;
   overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
   scrollbar-width: none;
   border-bottom: 1px solid var(--guide);
   padding: 8px 0 0;
+  /* The strip scrolls on a phone: the last tab fades out at the right edge, so it is plainly cut off. */
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 44px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 44px), transparent);
+}
+.style-tabs.at-end {
+  -webkit-mask-image: none;
+  mask-image: none;
 }
 .style-tabs::-webkit-scrollbar {
   display: none;
@@ -5456,6 +5661,17 @@ input.inline:focus,
    Review page is only for phones. The print screen uses the same three columns. Phones and tablets below
    1100px keep their own layout. */
 @media (min-width: 1100px) {
+  .style-tabs,
+  .style-tabs.at-end {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+  /* The fabric close-up is a swatch beside its caption, not a screen-high photo. */
+  .fabstage {
+    grid-template-columns: 220px minmax(0, 1fr);
+    align-items: center;
+    gap: 18px;
+  }
   .style-edit {
     grid-template-columns: 160px minmax(0, 1fr) minmax(320px, 380px);
     grid-template-areas: 'tabs preview panel' 'tabs preview side';
@@ -5904,4 +6120,17 @@ input.inline:focus,
 }
 .printpick-hint {
   margin: 0;
+}
+
+/* On the form choice the tag sits in the picture's corner, so the first measuring page still fits a small phone. */
+.form-pick button {
+  position: relative;
+}
+
+.form-pick .testing-tag {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  margin: 0;
+  font-size: 9px;
 }

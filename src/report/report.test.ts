@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MAX_CRASHES_PER_VISIT, Reporter, browserFamily } from './report';
+import { MAX_CRASHES_PER_VISIT, Reporter, browserFamily, cleanSource, rememberSource } from './report';
 import { checkBeacon } from '../server/reports';
 
 const make = (counting = true) => {
@@ -85,5 +85,26 @@ describe('browser family', () => {
     );
     expect(browserFamily('Mozilla/5.0 (Macintosh; Intel Mac OS X 14.5; rv:131.0) Gecko/20100101 Firefox/131.0')).toBe('Firefox 131 Mac');
     expect(browserFamily('curl/8.0')).toBe('Other Other');
+  });
+});
+
+describe('where a visitor came from', () => {
+  const memory = () => {
+    const m = new Map<string, string>();
+    return { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v) };
+  };
+
+  it('keeps the first ?src= on the device, cleaned to plain words, and counts a sign-up against it', () => {
+    const store = memory();
+    expect(rememberSource('?src=Pinterest%20Board!', store)).toBe('pinterestboard');
+    expect(rememberSource('?src=tiktok', store)).toBe('pinterestboard');
+    expect(rememberSource('', memory())).toBeUndefined();
+    expect(cleanSource('x')).toBeUndefined();
+    const { r, last } = make();
+    r.count('signup', 'pinterestboard');
+    r.count('fit_reported', 'skirt');
+    r.flush();
+    expect(last().counts).toEqual({ visit: 1, 'signup:pinterestboard': 1, 'fit_reported:skirt': 1 });
+    expect(checkBeacon(JSON.stringify(last()))).not.toBeNull();
   });
 });

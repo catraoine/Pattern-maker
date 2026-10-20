@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Choices } from '../App';
-import type { Length, SkirtMeasurements } from '../engine/skirt';
+import { LENGTHS, type Length, type SkirtMeasurements } from '../engine/skirt';
 import type { Unit } from '../measurements';
 import { photoToJpeg } from '../photo/image';
 import type { Confidence, PhotoError, PhotoReading, PhotoResponse, PieceKind } from '../photo/types';
@@ -58,11 +58,11 @@ const SIL_NAME: Record<PhotoReading['silhouette']['value'], string> = {
   slip: 'Bias slip',
 };
 const WHERE: Record<Length, string> = { mini: 'mini length', above_knee: 'above the knee', knee: 'to the knee', midi: 'midi length', maxi: 'maxi length' };
-// Where each named length falls, waist (0) to floor (1), as the photo reading measures it.
-const HEM_AT: Record<Length, number> = { mini: 0.38, above_knee: 0.5, knee: 0.56, midi: 0.76, maxi: 0.93 };
 const SURE: Record<Confidence, string> = { high: 'clear in the photo', medium: 'fairly sure', low: 'a best guess' };
 const STAGES = ['Shape', 'Length', 'Fit'];
 const SAMPLE_BODY: SkirtMeasurements = { waist: 76, full_hip: 102, waist_to_hip: 20.5, waist_to_knee: 58, waist_to_floor: 104 } as SkirtMeasurements;
+// Where each named length falls on the sample body, waist (0) to floor (1), as the photo reading measures it.
+const HEM_AT = Object.fromEntries((Object.keys(LENGTHS) as Length[]).map((l) => [l, LENGTHS[l](SAMPLE_BODY) / SAMPLE_BODY.waist_to_floor])) as Record<Length, number>;
 const IN = 2.54;
 
 /** Skirts and dresses show the shape, length and fit to change here; the rest change on their style screen. */

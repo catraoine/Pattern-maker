@@ -16,8 +16,15 @@ To read it all, set a read-out key:
 3. Redeploy (**Deploys > Trigger deploy**) so the function picks it up.
 4. Open `https://<your-site>/.netlify/functions/report?key=<STATS_KEY>` (add `&days=90` for up to 90 days).
 
-It returns JSON: `days` (daily totals), `crashes` (the latest 100 crash reports) and `signups` (`testers`, `news`).
-Without `STATS_KEY` set, the read-out is refused.
+It returns JSON: `funnel` (the four numbers the business plan watches weekly, added up over the period: sign-ups by
+source, patterns printed, fits reported, payments), `days` (daily totals), `crashes` (the latest 100 crash reports)
+and `signups` (`testers`, `news`, `interest`). Without `STATS_KEY` set, the read-out is refused.
+
+A link with `?src=pinterest` (plain lower-case words and hyphens) tags where a visitor came from. The tag stays on
+their device, so a sign-up weeks later counts as `signup:pinterest`. No email or id goes with the count.
+
+Which garments are launched and which carry the "In testing" tag is one list in `src/launch.ts`; the ship list to
+the fit gate is `docs/SHIP-LIST.md`, and `docs/HOW-IT-FITS-TOGETHER.md` is the map for a developer new to the code.
 
 ## Fit tester codes
 
@@ -39,4 +46,4 @@ Both run on every pull request (`.github/workflows/e2e.yml`).
 
 ## The tour video
 
-The play button on the welcome's dress form plays `public/tour/walkthrough.mp4`, a captioned walkthrough recorded from the app itself. **Re-record it once, at the very end, when all the changes are in and the app is finalized** (Cat's rule, 2026-10-18). Until then it can lag behind the app. To re-record: start `npx vite --port 5173`, run `npm run record:tour` (needs ffmpeg), then copy the part start times and length it prints into `PARTS`, `TOUR_LENGTH` and `TOUR_LABEL` in `src/ui/TourPlayer.tsx`. The steps and captions it records are in `scripts/record-demo.mjs`.
+The play button on the welcome's dress form plays `public/tour/walkthrough.mp4`, a captioned walkthrough recorded from the app itself. It was last re-recorded on 2026-10-20 at Cat's request; **re-record it once more at the very end, when the app is finalized** (Cat's rule, 2026-10-18). Until then it can lag behind the app. To re-record: start `npx vite --port 5173`, run `npm run record:tour` (needs ffmpeg), then copy the part start times and length it prints into `PARTS`, `TOUR_LENGTH` and `TOUR_LABEL` in `src/ui/TourPlayer.tsx`. The steps and captions it records are in `scripts/record-demo.mjs`.

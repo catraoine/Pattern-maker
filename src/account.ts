@@ -29,6 +29,9 @@ export interface Person {
   example?: MeasurementId[];
   /** The dress form their patterns are drafted on, picked before measuring. Missing means womenswear. */
   form?: FormKind;
+  /** Their weight in kg, given if they like. Only ever read against the height to double-check the girths:
+   * never drafted from, shown on a pattern, exported or sent anywhere. */
+  weight?: number;
   /** Corrections from fitting toiles, for each garment. They go into every pattern drafted for this person. */
   fittings?: Partial<Record<Garment, Fitting>>;
   /** The client book: each set of measurements as it stood on a date, oldest first. */
