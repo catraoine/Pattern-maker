@@ -703,12 +703,14 @@ export function formLandmarks(): Record<'full_bust' | 'waist' | 'full_hip', numb
 }
 const KNEE = 3.2;
 /** Lengths from the waist: where they stop, how far the view pulls back, and the STOP name. */
-const LENGTHS: Partial<Record<MeasurementId, { to: number; zoom: number; stop: string }>> = {
+const LENGTHS: Partial<Record<MeasurementId, { to: number; zoom: number; stop: string; from?: number; start?: string }>> = {
   waist_to_hip: { to: 0.82, zoom: 0.6, stop: 'HIP' },
   front_waist_to_hip: { to: 0.82, zoom: 0.6, stop: 'HIP' },
   back_waist_to_hip: { to: 0.82, zoom: 0.6, stop: 'HIP' },
   waist_to_knee: { to: KNEE, zoom: 1, stop: 'KNEE' },
   waist_to_floor: { to: FLOOR, zoom: 1, stop: 'FLOOR' },
+  // The whole figure, top to floor: the form has no head, so the line runs from the top of its neck.
+  height: { to: FLOOR, zoom: 1, stop: 'FLOOR', from: -1.72, start: 'TOP OF HEAD' },
   // Seated, down the side to the chair: the seat is level with the figure's crotch, where the form ends.
   crotch_depth: { to: 1.3, zoom: 0.6, stop: 'CHAIR SEAT' },
 };
@@ -739,7 +741,7 @@ function paintDemo(g: CanvasRenderingContext2D, w: number, h: number, t: number,
   } else if (len) {
     const z = (seg(t, 300, 1400) - seg(t, 5300, 6200)) * len.zoom;
     figure(g, w, h, z, seen);
-    if (t > 1300 && t < 5300) lengthOn(g, w, h, z, 0.1, len.to, t - 1700, 'WAIST', len.stop, seen);
+    if (t > 1300 && t < 5300) lengthOn(g, w, h, z, len.from ?? 0.1, len.to, t - 1700, len.start ?? 'WAIST', len.stop, seen);
   } else if (y !== undefined) {
     g.lineCap = 'round';
     g.lineJoin = 'round';

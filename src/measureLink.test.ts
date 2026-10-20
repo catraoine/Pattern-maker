@@ -37,7 +37,7 @@ describe('measure-me links', () => {
 
   it('asks the base set plus what the garment needs, or just the redo', () => {
     const dress = askIds(ASK);
-    expect(dress.slice(0, 4)).toEqual(['full_bust', 'waist', 'full_hip', 'waist_to_floor']);
+    expect(dress.slice(0, 5)).toEqual(['height', 'full_bust', 'waist', 'full_hip', 'waist_to_floor']);
     expect(new Set(dress).size).toBe(dress.length);
     expect(askIds({ ...ASK, redo: ['full_hip'] })).toEqual(['full_hip']);
   });

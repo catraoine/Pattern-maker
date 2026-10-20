@@ -1,7 +1,7 @@
 import { ESTIMATED, EXAMPLE_VALUES, FIELDS, type FormKind, type MeasurementId, type MeasurementValues } from './measurements';
 
 // Fills in the upper-body measurements a first pattern can do without (ESTIMATED in measurements.ts),
-// from the bust, high bust, shoulder width, back length and height, with the body proportions the engine
+// from the bust, high bust, shoulder width, back length and height (measured, or read off the waist to floor), with the body proportions the engine
 // is stress-tested on (engine/randomBodies.ts, after Aldrich's size tables).
 const hardOf = new Map<MeasurementId, [number, number]>();
 for (const list of Object.values(FIELDS)) for (const f of list) if (!hardOf.has(f.id)) hardOf.set(f.id, f.hard);
@@ -15,7 +15,7 @@ export function withEstimates(v: MeasurementValues, form: FormKind = 'womenswear
   if (form === 'menswear') return menswearEstimates(v);
   const bust = v.full_bust;
   if (bust === undefined || ESTIMATED.every((id) => v[id] !== undefined)) return v;
-  const h = v.waist_to_floor ? v.waist_to_floor / 0.615 : v.nape_to_waist ? v.nape_to_waist / 0.25 : 165;
+  const h = v.height ?? (v.waist_to_floor ? v.waist_to_floor / 0.615 : v.nape_to_waist ? v.nape_to_waist / 0.25 : 165);
   const cup = v.high_bust !== undefined ? Math.max(1, bust - v.high_bust) : 2.5 + Math.max(0, bust - 85) * 0.075;
   const high = v.high_bust ?? bust - cup;
   const nw = v.nape_to_waist ?? h * 0.25;
@@ -44,7 +44,7 @@ export function withEstimates(v: MeasurementValues, form: FormKind = 'womenswear
 function menswearEstimates(v: MeasurementValues): MeasurementValues {
   const chest = v.full_bust;
   if (chest === undefined) return v;
-  const h = v.waist_to_floor ? v.waist_to_floor / 0.615 : v.nape_to_waist ? v.nape_to_waist / 0.255 : 176;
+  const h = v.height ?? (v.waist_to_floor ? v.waist_to_floor / 0.615 : v.nape_to_waist ? v.nape_to_waist / 0.255 : 176);
   const nw = v.nape_to_waist ?? h * 0.255;
   const ab = v.across_back ?? 34 + (chest - 88) * 0.2 + (h - 170) * 0.08;
   const sw = v.shoulder_width ?? ab + 4.5;
@@ -79,7 +79,7 @@ export function estimateOne(id: MeasurementId, v: MeasurementValues, form: FormK
   if (example === undefined) return undefined;
   const ratio = (mine: number | undefined, theirs: number | undefined) => (mine && theirs ? mine / theirs : undefined);
   const scale = LENGTH.test(id)
-    ? ratio(v.waist_to_floor, EXAMPLE_VALUES.waist_to_floor)
+    ? ratio(v.height, EXAMPLE_VALUES.height) ?? ratio(v.waist_to_floor, EXAMPLE_VALUES.waist_to_floor)
     : LOWER.test(id)
       ? ratio(v.full_hip, EXAMPLE_VALUES.full_hip)
       : ratio(v.full_bust, EXAMPLE_VALUES.full_bust) ?? ratio(v.waist, EXAMPLE_VALUES.waist);

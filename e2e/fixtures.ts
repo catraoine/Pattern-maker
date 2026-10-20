@@ -27,6 +27,7 @@ export { expect };
 
 /** Measurements typed in, by the label on screen (sample body A, in cm). Unknown required labels fail loudly. */
 export const MEASUREMENTS: Record<string, string> = {
+  Height: '165',
   Waist: '76',
   'Full hip': '102',
   'Waist to hip': '20.5',

@@ -335,7 +335,7 @@ export default function App() {
   const profile = profileName(account);
   const owner = personName(account, account.people.find((p) => p.id === ME)!);
 
-  const checks = checkMeasurements(measured, saved.unit, garment, form);
+  const checks = checkMeasurements(measured, saved.unit, garment, form, { weight: person.weight });
   const canLeaveMeasure = ready(measured, saved.unit, garment, form);
 
   // Corrections from this person's toile fittings go into every pattern drafted for them: the garment's
@@ -1011,6 +1011,8 @@ export default function App() {
               values={measured}
               onUnit={(unit) => setSaved({ ...saved, unit })}
               onValues={setValues}
+              weight={person.weight}
+              onWeight={(weight) => setAccount(updatePerson(account, person.id, { weight }))}
               onDone={(g) => {
                 countStep('measured', g);
                 switchGarment(g, {}, 'style');

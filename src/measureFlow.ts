@@ -3,8 +3,11 @@ import { FIELDS, MENSWEAR_SKIPS, fieldsFor, worded, type FormKind, type Garment,
 // First-time measuring: one base set that every garment uses, then only the extras a garment still needs.
 // Every measurement is kept with the person, so a later garment asks only for what is missing.
 
-/** Taken by everyone first. Waist to floor is the length every garment can work from, and easier alone than height. */
-export const BASE: MeasurementId[] = ['full_bust', 'waist', 'full_hip', 'waist_to_floor'];
+/** Taken by everyone first: the height, which every other number is checked against, then the four the tape
+ * takes. Waist to floor is the length every garment can work from. */
+export const BASE: MeasurementId[] = ['height', 'full_bust', 'waist', 'full_hip', 'waist_to_floor'];
+/** The base measurements a draft needs. The height isn't one: a profile measured before it was asked still drafts. */
+export const TAPE_BASE: MeasurementId[] = BASE.filter((id) => id !== 'height');
 
 export const GARMENTS: Garment[] = ['skirt', 'dress', 'bodice', 'trousers', 'tee', 'jacket', 'coat'];
 export const GARMENT_NAME: Record<Garment, string> = { skirt: 'skirt', dress: 'dress', bodice: 'bodice', trousers: 'trousers', tee: 'T-shirt', jacket: 'jacket', coat: 'coat' };
@@ -20,7 +23,7 @@ const has = (v: MeasurementValues, id: MeasurementId) => typeof v[id] === 'numbe
 export const extrasFor = (garment: Garment, form?: FormKind) => fieldsFor(garment, form).filter((f) => !f.optional && !BASE.includes(f.id));
 /** The extras still to take. */
 export const missingFor = (garment: Garment, v: MeasurementValues, form?: FormKind) => extrasFor(garment, form).filter((f) => !has(v, f.id));
-export const baseDone = (v: MeasurementValues) => BASE.every((id) => has(v, id));
+export const baseDone = (v: MeasurementValues) => TAPE_BASE.every((id) => has(v, id));
 
 /** Every measurement the app uses, for "Something else": the ones still to take, after the base set. */
 export const fullSetMissing = (v: MeasurementValues, form?: FormKind) =>
@@ -31,6 +34,7 @@ export const labelOf = (id: MeasurementId, form?: FormKind) => worded(fieldOf(id
 
 /** Girths read as a body part: "Your bust", "Their waist". Lengths keep their name. */
 const PART: Partial<Record<MeasurementId, string>> = {
+  height: 'height',
   full_bust: 'bust',
   high_bust: 'high bust',
   waist: 'waist',
@@ -41,7 +45,7 @@ const PART: Partial<Record<MeasurementId, string>> = {
   upper_arm: 'upper arm',
   wrist: 'wrist',
 };
-export const GIRTHS = new Set(Object.keys(PART) as MeasurementId[]);
+export const GIRTHS = new Set<MeasurementId>((Object.keys(PART) as MeasurementId[]).filter((id) => id !== 'height'));
 
 export function titleOf(id: MeasurementId, helper: boolean, form?: FormKind) {
   const part = PART[id];
@@ -59,6 +63,7 @@ export const forHelper = (s: string) =>
 
 /** One short line under the title. [for the wearer, for a helper] */
 const TIP: Partial<Record<MeasurementId, [string, string]>> = {
+  height: ['Barefoot, back to a wall.', 'Ask them to stand barefoot, back to a wall.'],
   full_bust: ['Round the fullest part, keeping the tape level.', 'Round the fullest part of their bust. Check the tape is level across their back.'],
   waist: ['Round the narrowest part of your middle.', 'Stand in front of them. Wrap the narrowest part of their middle and check the tape is level at the back.'],
   full_hip: ['Round the fullest part of your seat, keeping the tape level.', 'Round the fullest part of their seat. Look from the side to check the tape is level.'],
@@ -75,6 +80,10 @@ export function tipOf(id: MeasurementId, helper: boolean, form?: FormKind) {
 
 /** The "How to do it" steps. [for the wearer, for a helper] */
 const STEPS: Partial<Record<MeasurementId, [string[], string[]]>> = {
+  height: [
+    ['Take off your shoes and stand against a wall, heels touching it.', 'Look straight ahead, standing tall.', 'Rest something flat (a book) on your head, level against the wall.', 'Mark where it meets the wall and measure down to the floor.'],
+    ['Ask them to take off their shoes and stand against a wall, heels touching it.', 'Ask them to look straight ahead, standing tall.', 'Rest something flat (a book) on their head, level against the wall.', 'Mark where it meets the wall and measure down to the floor.'],
+  ],
   full_bust: [
     ['Stand relaxed with your arms down.', 'Wrap the tape round the fullest part of your bust.', 'Keep it level all the way round, across your back too.', 'Snug, not tight, then read the number.'],
     ['Ask them to stand relaxed with their arms down.', 'Wrap the tape round the fullest part of their bust.', 'Check it is level across their back.', 'Snug, not tight, then read the number.'],

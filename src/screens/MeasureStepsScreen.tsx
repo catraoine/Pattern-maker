@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react';
-import { FIELDS, checkMeasurements, type FormKind, type Garment, type MeasurementId, type MeasurementValues, type Unit } from '../measurements';
+import { FIELDS, checkMeasurements, type Check, type FormKind, type Garment, type MeasurementId, type MeasurementValues, type Unit } from '../measurements';
 import { BASE, baseDone, fullSetMissing, GARMENT_NAME, GARMENTS, labelOf, missingFor, stepsOf, tipOf, titleOf } from '../measureFlow';
+import { WEIGHT_HARD, WeightEntry, WeightLink, fromKg, weightUnitOf } from '../ui/WeightEntry';
 import { FormPicture, TapeDemo } from '../ui/ContourForm';
 import { canGoBack, goBack, usePageHistory } from '../nav';
 import { TapeBand } from '../ui/TapeBand';
@@ -21,6 +22,9 @@ interface Props {
   values: MeasurementValues;
   onUnit: (u: Unit) => void;
   onValues: (v: MeasurementValues) => void;
+  /** Their weight in kg, if given, and giving it: asked with the height, and only read against it to double-check the girths. */
+  weight?: number;
+  onWeight?: (kg: number | undefined) => void;
   /** Measured for this garment: on to styling it. */
   onDone: (garment: Garment) => void;
   /** Where to open. By default the start (or the check, once the base set is in). "choose" opens the list of what
@@ -81,7 +85,7 @@ const aOrAn = (name: string) => (/(s|wear|lingerie)$/i.test(name) && !/dress$/i.
 // The first page asks who you are designing for, since "Someone else" words every page for the person holding the
 // tape and asks their name first (Cat's pick V2, 2026-10-17). A tape runs across the top of every page, with
 // Skip at its end wherever measuring can be skipped.
-export function MeasureStepsScreen({ testerCode, garment: current, unit, values, onUnit, onValues, onDone, start, onSomeoneElse, theirs, onSkip, form = 'womenswear', onForm, onIdea, onPhoto, onNews }: Props) {
+export function MeasureStepsScreen({ testerCode, garment: current, unit, values, onUnit, onValues, weight, onWeight, onDone, start, onSomeoneElse, theirs, onSkip, form = 'womenswear', onForm, onIdea, onPhoto, onNews }: Props) {
   const aimed = start?.kind === 'for' ? start.garment : undefined;
   // Each page is a history entry, so the header's back and the phone's back go one page back.
   const [page, setPage] = usePageHistory<Page>(() => {
@@ -223,11 +227,20 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
             <li key={id}>
               <button type="button" onClick={() => setPage({ kind: 'base', at, back: 'check' })}>
                 <span>{cap(titleOf(id, false, form).replace(/^Your /, ''))}</span>
-                <span>{shown(values[id], unit)}</span>
+                {values[id] === undefined ? <em className="add">Add</em> : <span>{shown(values[id], unit)}</span>}
               </button>
             </li>
           ))}
+          {weight !== undefined && (
+            <li>
+              <button type="button" onClick={() => setPage({ kind: 'base', at: 0, back: 'check' })}>
+                <span>Weight</span>
+                <span>{`${fromKg(weight, weightUnitOf(unit))} ${weightUnitOf(unit)}`}</span>
+              </button>
+            </li>
+          )}
         </ul>
+        <DoubleChecks checks={checkMeasurements(values, unit, 'dress', form, { weight }).filter((c) => c.level === 'warning' && BASE.includes(c.id))} />
         {aimed ? (
           <button type="button" className="primary" onClick={() => go(aimed)}>
             Continue measuring
@@ -395,12 +408,28 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
       garment={g && g !== 'other' ? g : current}
       onUnit={onUnit}
       onValues={onValues}
+      weight={weight}
+      onWeight={onWeight}
       onNext={next}
       label={label}
       skip={onSkip && !(page.kind === 'base' && page.back) && !(page.kind === 'extra' && page.redo) ? () => onSkip(g && g !== 'other' ? g : undefined) : undefined}
       skipRest={!(page.kind === 'base' && at === 0)}
       canEstimate={page.kind === 'extra'}
     />
+  );
+}
+
+/** The measurements that could be right but don't quite agree with the rest, each with how to take it again. Nothing stops here. */
+export function DoubleChecks({ checks }: { checks: Check[] }) {
+  if (!checks.length) return null;
+  return (
+    <div className="double-checks" role="status">
+      {checks.map((c) => (
+        <p key={`${c.id}-${c.message}`} className="msg small doubt">
+          {c.message}
+        </p>
+      ))}
+    </div>
   );
 }
 
@@ -479,6 +508,8 @@ export function MeasurePage({
   garment,
   onUnit,
   onValues,
+  weight,
+  onWeight,
   onNext,
   label,
   skip,
@@ -495,6 +526,9 @@ export function MeasurePage({
   garment: Garment;
   onUnit: (u: Unit) => void;
   onValues: (v: MeasurementValues) => void;
+  /** On the height page: their weight too, if they like, which only ever double-checks the girths. */
+  weight?: number;
+  onWeight?: (kg: number | undefined) => void;
   onNext: () => void;
   label: string;
   skip?: () => void;
@@ -508,12 +542,18 @@ export function MeasurePage({
   const [text, setText] = useState<string | null>(null);
   const [tried, setTried] = useState(false);
   const [how, setHow] = useState(false);
+  // The weight, offered on the height page: its box opens from a link beside "How to do it".
+  const askWeight = id === 'height' && !!onWeight;
+  const [weightOpen, setWeightOpen] = useState(weight !== undefined);
   const value = values[id];
   // Range checks for this one measurement only; the cross-checks wait for the full measurements screen.
   // Checked as a garment that uses it, so a base measurement the skirt doesn't need (the bust) still is.
   const checkAs = FIELDS[garment].some((f) => f.id === id) ? garment : GARMENTS.find((g) => FIELDS[g].some((f) => f.id === id)) ?? garment;
   const problems = checkMeasurements({ [id]: value } as MeasurementValues, unit, checkAs, form).filter((c) => c.id === id && c.level === 'error' && value !== undefined);
   const error = problems[0];
+  // A double-check against the rest (the height, the weight, the other lengths): said here, where the number is
+  // typed, and never in the way. Only once the number could be right on its own.
+  const doubt = !error && value !== undefined ? checkMeasurements(values, unit, checkAs, form, { weight }).find((c) => c.id === id && c.level === 'warning') : undefined;
   const note = error ?? (tried && value === undefined ? { level: 'error', message: `Enter ${helper ? 'their' : 'your'} ${fieldLabel.toLowerCase()} to carry on.` } : undefined);
 
   const type = (t: string) => {
@@ -529,14 +569,18 @@ export function MeasurePage({
   return (
     <Shell eyebrow={eyebrow} title={titleOf(id, helper, form)} dots={dots} skip={skip} skipRest={skipRest} hero={<TapeDemo id={id} name={titleOf(id, false, form).replace(/^Your /, '')} kind={form} />}>
       <p className="muted step-tip">{tipOf(id, helper, form)}</p>
-      <button type="button" className="link quiet how-link" aria-expanded={how} onClick={() => setHow(true)}>
-        How to do it
-      </button>
+      <p className="how-row">
+        <button type="button" className="link quiet how-link" aria-expanded={how} onClick={() => setHow(true)}>
+          How to do it
+        </button>
+        {askWeight && !weightOpen && <WeightLink onOpen={() => setWeightOpen(true)} />}
+      </p>
       <form
         className="measure-entry"
         onSubmit={(e) => {
           e.preventDefault();
-          if (value === undefined || error) setTried(true);
+          const weightWrong = id === 'height' && weight !== undefined && (weight < WEIGHT_HARD[0] || weight > WEIGHT_HARD[1]);
+          if (value === undefined || error || weightWrong) setTried(true);
           else onNext();
         }}
       >
@@ -577,6 +621,12 @@ export function MeasurePage({
             {note.message}
           </p>
         )}
+        {doubt && (
+          <p className="msg small doubt" role="status">
+            {doubt.message}
+          </p>
+        )}
+        {askWeight && weightOpen && <WeightEntry unit={unit} helper={helper} weight={weight} onWeight={onWeight!} />}
         {estimated && value !== undefined ? (
           <p className="muted small estimate-note">Estimated from your other measurements. Swap in your own when you can, for a closer fit.</p>
         ) : (

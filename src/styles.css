@@ -393,6 +393,32 @@ p {
   font-weight: var(--w-semi);
 }
 
+/* A number that could be right but doesn't agree with the rest: a quiet note, never in the way. */
+.msg.doubt {
+  border-left-color: var(--gild);
+  color: var(--muted);
+}
+
+.double-checks {
+  display: grid;
+  gap: 8px;
+}
+
+.check-list .doubtful {
+  color: var(--gild);
+}
+
+/* Weight, offered on the height page: a link until wanted, then its own box. */
+.weight-entry {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+
+.weight-note {
+  margin: 0;
+}
+
 /* Why Style or Print waits, over the guided measuring pages without moving them. */
 .msg.steps-note {
   position: fixed;
@@ -2185,6 +2211,18 @@ button.link.quiet {
 }
 
 button.link.how-link {
+  margin: -10px 0 -6px;
+}
+
+/* "How to do it", and on the height page the weight link beside it, on one line. */
+.how-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 16px;
+  margin: 0;
+}
+
+.how-row button.link.weight-link {
   margin: -10px 0 -6px;
 }
 
