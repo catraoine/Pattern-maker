@@ -171,12 +171,13 @@ export const BODICE_HIP_EASE: Record<BodiceFit, number> = { fitted: 4, regular: 
 /** Lengths that need the hip measurements. */
 export const needsHip = (l: BodiceLength) => l !== 'waist';
 
-// Ease in cm from styling/styling-options.json (top/blouse fit options). Oversized has no darts,
-// so it needs its own block rather than this one.
+// Ease in cm for a blouse or dress bodice: a fitted one close to the body, a regular one with the
+// usual 7 cm at the bust and 5 at the waist, a relaxed one roomy. Oversized has no darts, so it needs
+// its own block rather than this one. Jackets and coats have their own (outerwear.ts).
 export const BODICE_FIT_EASE: Record<BodiceFit, { bust: number; waist: number }> = {
-  fitted: { bust: 5, waist: 3 },
-  regular: { bust: 9, waist: 6 },
-  relaxed: { bust: 14, waist: 12 },
+  fitted: { bust: 4, waist: 2.5 },
+  regular: { bust: 7, waist: 5 },
+  relaxed: { bust: 11, waist: 10 },
 };
 
 /** Drawn necklines flatter than this come to a point at the centre front, like a V. */
