@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { taggedLength } from './geometry';
 import { checkPattern } from './qc';
 import { randomArms, randomBody, rng } from './randomBodies';
-import { DEFAULT_TEE, NECKBAND_RATIO, Stretch, TEE_EASE, TeeFit, TeeLength, TeeNeck, TeeSleeve, draftTee } from './tee';
+import { DEFAULT_TEE, NECKBAND_RATIO, Stretch, neckbandLength, TEE_EASE, TeeFit, TeeLength, TeeNeck, TeeSleeve, draftTee } from './tee';
 import { teeGuide } from './teeGuide';
 import { teeFlat } from './flat';
 import { teeSpec } from './spec';
@@ -48,7 +48,9 @@ describe('knit T-shirt', () => {
         const band = d.pieces.find((pc) => pc.name === 'Neckband')!;
         expect(band.cut).toMatch(/fold/);
         const length = 2 * taggedLength(band.outline, 'band') / 2;
-        expect(length / d.necklineCm).toBeCloseTo(NECKBAND_RATIO[stretch], 2);
+        expect(length).toBeCloseTo(neckbandLength(d.necklineCm, stretch), 1);
+        expect(length / d.necklineCm).toBeGreaterThanOrEqual(NECKBAND_RATIO[stretch] - 0.001);
+        expect(length / d.necklineCm).toBeLessThan(0.96);
         expect(NECKBAND_RATIO[stretch]).toBeGreaterThanOrEqual(0.85);
         expect(NECKBAND_RATIO[stretch]).toBeLessThanOrEqual(0.9);
         // Laid long across the fabric, the grain line running across the band.
@@ -66,8 +68,9 @@ describe('knit T-shirt', () => {
       expect(d.necklineCm).toBeGreaterThanOrEqual(lo);
       expect(d.necklineCm).toBeLessThanOrEqual(hi);
       expect(HEAD / d.necklineCm - 1).toBeLessThanOrEqual(0.25);
-      // The band pulls the edge in, but never so far that it has to stretch past the knit's class (medium: 30 to 50%).
-      expect(HEAD / d.neckband.length - 1).toBeLessThanOrEqual(0.4);
+      // The band pulls the edge in, but never so far that it has to stretch more than about a quarter over the head.
+      expect(HEAD / d.neckband.length - 1).toBeLessThanOrEqual(0.29);
+      expect(d.neckband.length).toBeLessThan(d.necklineCm);
     }
     // Scoop and V stay larger than the crew, in that order of depth.
     const [crew, scoop, v] = NECKS.map((neckline) => draftTee(EX, { neckline }).necklineCm);

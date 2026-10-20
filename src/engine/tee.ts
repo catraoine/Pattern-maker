@@ -68,6 +68,16 @@ export const TEE_SLEEVE_EASE: Record<TeeFit, Record<Stretch, number>> = {
 
 /** The neckband's length as a share of the neckline it is sewn to: shorter for stretchier knits. */
 export const NECKBAND_RATIO: Record<Stretch, number> = { low: 0.9, medium: 0.87, high: 0.85 };
+/** The band has to pass over the head too: an adult head is about 56 cm round, and a band stretched more
+ * than a quarter goes on with a fight and sags after. So the band is never shorter than 56 / 1.25 cm,
+ * though it always stays a little shorter than the neckline it pulls in. */
+export const HEAD_CM = 56;
+export const NECKBAND_MAX_STRETCH = 0.25;
+const NECKBAND_MAX_RATIO = 0.95;
+/** The neckband's cut length (before its seam) for a neckline, in cm. */
+export function neckbandLength(neckline: number, stretch: Stretch): number {
+  return Math.min(neckline * NECKBAND_MAX_RATIO, Math.max(neckline * NECKBAND_RATIO[stretch], HEAD_CM / (1 + NECKBAND_MAX_STRETCH)));
+}
 /** The neckband's finished width, folded in half, in cm. */
 export const NECKBAND_CM = 1.5;
 
@@ -174,8 +184,9 @@ export function draftTee(m: TeeMeasurements, style: Partial<TeeStyle> = {}): Tee
   warnings.push(...sleeve.warnings.filter((w) => s.fit !== 'relaxed' || !/^sleeve widened/.test(w)));
 
   const neckline = 2 * (taggedLength(front.outline, 'neck') + taggedLength(back.outline, 'neck'));
-  const ratio = NECKBAND_RATIO[s.stretch];
-  const band = neckbandPiece(neckline * ratio, s.neckline === 'v');
+  const bandCm = neckbandLength(neckline, s.stretch);
+  const ratio = r1(bandCm / neckline * 100) / 100;
+  const band = neckbandPiece(bandCm, s.neckline === 'v');
 
   return {
     pieces: [front, back, ...sleeve.pieces, band],
@@ -196,7 +207,7 @@ export function draftTee(m: TeeMeasurements, style: Partial<TeeStyle> = {}): Tee
     armholeDepth: r1(scye),
     armhole: r1(shape.armhole),
     necklineCm: r1(neckline),
-    neckband: { length: r1(neckline * ratio), ratio, width: NECKBAND_CM },
+    neckband: { length: r1(bandCm), ratio, width: NECKBAND_CM },
     warnings,
   };
 }

@@ -25,6 +25,7 @@ import { FabricCard, FabricSummary } from '../ui/FabricCard';
 import { ChoicePic, chipsClass } from '../ui/ChoicePic';
 import { Explain } from '../ui/Explain';
 import { DrawOnForm, formWidth } from '../ui/DrawOnForm';
+import { FormSketch } from '../ui/FormSketch';
 import { landmarks } from '../ui/formLines';
 import { outerLines, readOuterCollar, readOuterFit, readOuterFront, readOuterHem, readOuterShaping } from '../ui/formTops';
 import { FABRIC, Group, PRO, StyleLayout, TabPanel } from '../ui/StyleLayout';
@@ -64,7 +65,7 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
   const undo = useUndo(choices, setChoices);
   const onChoices = undo.change;
   const can = (t: ProTool) => shows(mode, t);
-  const [view, setView] = useState<'sketch' | 'round' | 'pattern'>('sketch');
+  const [view, setView] = useState<'sketch' | 'flat' | 'round' | 'pattern'>('sketch');
   /** Drawing on the form: the choices from before, to keep or go back to. */
   const [onForm, setOnForm] = useState<OuterChoices>();
   const [fit, setFit] = useState(false);
@@ -77,10 +78,13 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
   const round = useMemo(() => (draft ? roundOuter(draft, values) : undefined), [draft, values]);
   const extra = fabricEase(fabric, kind);
 
+  const m = values as OuterMeasurements;
+  const waistY = draft ? landmarks(draft.base).waistY : 0;
+  const longest = kind === 'coat' ? 'midi' : 'long';
+  const formBody = useMemo(() => (draft ? formWidth(draft.base, m) : undefined), [draft, m]);
+  const formLines = useMemo(() => (draft ? outerLines(draft) : {}), [draft]);
+
   if (onForm && draft) {
-    const m = values as OuterMeasurements;
-    const waistY = landmarks(draft.base).waistY;
-    const longest = kind === 'coat' ? 'midi' : 'long';
     return (
       <DrawOnForm<OuterChoices>
         body={formWidth(draft.base, m)}
@@ -195,8 +199,8 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
         <PreviewSwitch look={view === 'pattern' ? 'pattern' : 'garment'} onLook={(l) => setView(l === 'pattern' ? 'pattern' : 'sketch')} />
         <div className="row between wrap">
           {view !== 'pattern' ? (
-            <GarmentViews<'sketch' | 'round'>
-              views={[['sketch', 'Drawing'], ...(round ? ([['round', 'All round']] as ['round', string][]) : [])]}
+            <GarmentViews<'sketch' | 'flat' | 'round'>
+              views={[['sketch', 'Form'], ['flat', 'Drawing'], ...(round ? ([['round', 'All round']] as ['round', string][]) : [])]}
               view={view}
               onView={setView}
             />
@@ -215,7 +219,10 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
         </div>
         <div className="preview">
           {error && <p className="msg error">{error}</p>}
-          {flat && view === 'sketch' && (
+          {formBody && view === 'sketch' && (
+            <FormSketch body={formBody} m={m} legs={kind === 'coat'} bottom={waistY + outerDrop(m, longest) + 6} lines={formLines} label={`The ${title.toLowerCase()} on your form`} />
+          )}
+          {flat && view === 'flat' && (
             <GarmentFabric fabric={fabric}>
               <TechFlatView flat={flat} title={title} />
             </GarmentFabric>

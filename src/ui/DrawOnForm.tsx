@@ -8,6 +8,7 @@ import { PointerEvent, useEffect, useMemo, useRef, useState } from 'react';
 import type { P } from '../engine/geometry';
 import type { BodiceDraft } from '../engine/bodice';
 import { bodyOutline, spline } from './bodyOutline';
+import { formArmLines, formContours, formFrame } from './FormSketch';
 import { FormLine, FormSide, Reading, landmarks } from './formLines';
 import type { SkirtMeasurements } from '../engine/skirt';
 
@@ -187,38 +188,10 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
   };
   const onBack = side === 'back' && FRONT_ONLY.includes(kind) ? false : side === 'back';
 
-  const frame = useMemo(() => {
-    const half = Math.max(Math.max(m.full_bust ?? 0, m.full_hip ?? 0, m.waist) / 4 + 7, arms ? armAt(arms, arms.wristY).outer + 2 : 0);
-    return { half, top: body.top - 2, bottom: Math.max(body.bottom + 12, bottom) };
-  }, [m, body, bottom, arms]);
+  const frame = useMemo(() => formFrame(m, body, bottom, arms), [m, body, bottom, arms]);
   const cx = frame.half;
-
-  // The form in contour lines, as on the welcome screen: each line a fixed fraction of the way round.
-  const contours = useMemo(() => {
-    const n = 15;
-    const ys = Array.from({ length: 121 }, (_, i) => body.top + ((body.bottom - body.top) * i) / 120);
-    return Array.from({ length: n }, (_, i) => {
-      const u = Math.sin(-Math.PI / 2 + (Math.PI * i) / (n - 1));
-      return { d: path(ys.map((y) => ({ x: cx + u * body.width(y), y }))), edge: Math.abs(u) > 0.98, u };
-    });
-  }, [body, cx]);
-
-  // The arms, each its outline round from the shoulder to the wrist and three lines down it.
-  const armLines = useMemo(() => {
-    if (!arms) return [];
-    const ys = (a: number, b: number) => Array.from({ length: 41 }, (_, i) => a + ((b - a) * i) / 40);
-    const outer = ys(arms.tip.y, arms.wristY).map((y) => ({ x: armAt(arms, y).outer, y }));
-    const inner = ys(arms.under.y, arms.wristY).map((y) => ({ x: armAt(arms, y).inner, y }));
-    const down = [0.25, 0.5, 0.75].map((k) =>
-      ys(arms.under.y + 2, arms.wristY).map((y) => {
-        const a = armAt(arms, y);
-        return { x: a.inner + (a.outer - a.inner) * k, y };
-      }),
-    );
-    // Up the inside from the wrist, over the shoulder and down the outside, closed across the wrist.
-    const outline = [...[...inner].reverse(), ...outer, inner[inner.length - 1]];
-    return [1, -1].flatMap((s) => [outline, ...down].map((pts, i) => ({ d: path(pts.map((q) => ({ x: cx + s * q.x, y: q.y }))), edge: i === 0 })));
-  }, [arms, cx]);
+  const contours = useMemo(() => formContours(body, cx), [body, cx]);
+  const armLines = useMemo(() => formArmLines(arms, cx), [arms, cx]);
 
   const current = lines(side);
   const at = (pts: P[]) => path(pts.map((q) => ({ x: cx + q.x, y: q.y })));

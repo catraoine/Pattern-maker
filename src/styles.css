@@ -3273,14 +3273,18 @@ button.link.garment-change {
 .form-svg {
   max-height: min(62vh, calc(100svh - 480px));
 }
-.form-svg .form-line {
+.form-svg .form-line,
+.form-still .form-line {
   stroke: var(--gild);
 }
 .form-svg .form-legs,
-.form-svg .form-stand {
+.form-svg .form-stand,
+.form-still .form-legs,
+.form-still .form-stand {
   stroke: var(--guide);
 }
-.form-svg .tape {
+.form-svg .tape,
+.form-still .tape {
   stroke: var(--muted);
 }
 .form-svg .tape.on {
