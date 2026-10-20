@@ -3,7 +3,8 @@
 // top point so the ease is shared between front and back the way a tailor sets it (a little more at
 // the back, over the shoulder blade). The notches sit at the armhole's own notches, with the ease
 // above them. Fitted long sleeves get an elbow dart, made by turning the forearm forward from the
-// front elbow, so the sleeve bends with the arm.
+// front elbow, so the sleeve bends with the arm, and a vent at the back of the wrist, so the hem can
+// come back close to the wrist and still let the hand through.
 import { P, Path, add, len, lerp, mul, p, sub, unit } from './geometry';
 import type { Piece } from './piece';
 import { BodiceDraft, BodiceFit, blockOf } from './bodice';
@@ -77,8 +78,14 @@ export interface SleeveDraft {
   /** Gathered sleeves: how much is gathered into the armhole (puff) and into the band. */
   gathers?: { crown?: number; hem: number };
   elbowDart?: number;
+  /** A fitted long sleeve's wrist vent: the sleeve seam left open from the hem up `lengthCm`, where
+   * the vent notch is, and hemmed as a slit. */
+  vent?: { lengthCm: number; at: 'back seam' };
   warnings: string[];
 }
+
+/** A fitted long sleeve's wrist vent, up the back of the sleeve seam from the hem, in cm. */
+export const VENT_CM = 9;
 
 const r1 = (v: number) => Math.round(v * 10) / 10;
 
@@ -252,10 +259,10 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
     if (shape === 'bishop') return w * 1.5;
     if (s.outer && s.length === 'long') return shape === 'fitted' ? Math.max(wrist + (s.outer === 'coat' ? 14 : 11), hand + 5) : Math.max(w * 0.85, hand + 8);
     if (shape === 'fitted') {
-      // A fitted long sleeve has no opening at the wrist, and it is woven (a knit tee's sleeve is
-      // drafted straight), so the hand has to pass through the hem as cut: wrist plus 9 cm, and no
-      // less than 24 cm round, or a small wrist's sleeve is too tight to get on.
-      if (s.length === 'long') return Math.max(wrist + 9, hand + 4, 24);
+      // A fitted long sleeve is woven (a knit tee's sleeve is drafted straight), so without an
+      // opening the hand would have to pass through the hem as cut. It gets a vent at the back of the
+      // wrist instead, so the hem comes back to the wrist plus 6 cm, and no less than 20 cm round.
+      if (s.length === 'long') return Math.max(wrist + 6, 20);
       if (s.length === 'three_quarter') return Math.max(w + (wrist + 6 - w) * 0.6, hand + 2);
       return w * 0.86;
     }
@@ -308,6 +315,11 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
     tip = add(m2, mul(toward, len(sub(Ef, Eb)) * 0.36));
   }
 
+  // The wrist vent: the back seam is left open from the hem up to a notch, so the hand passes a hem
+  // cut close to the wrist. Marked by the notch, a tick across the seam line at its top, and its name.
+  const vented = shape === 'fitted' && s.length === 'long' && !tailored && !s.outer;
+  const ventTop = vented ? add(Wb, mul(unit(sub(Eb2 ?? Ub, Wb)), VENT_CM)) : undefined;
+
   // The hem meets each underseam square, so it runs on smoothly round the sewn sleeve.
   const sqF = unit(sub(Wf, Ef ?? Uf));
   const sqB = unit(sub(Wb, Eb2 ?? Ub));
@@ -342,6 +354,13 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
 
   const lines: Path[] = [];
   if (tip && Eb && Eb2) lines.push(new Path(Eb).line(tip).line(Eb2));
+  // The vent: a tick 1.2 cm into the sleeve at its top, with a notch on the seam there.
+  // Square to the back seam, into the sleeve: the seam runs down the sleeve's left, so toward +x.
+  const ventIn = ventTop ? p(sqB.y, -sqB.x) : undefined;
+  if (ventTop && ventIn) {
+    lines.push(new Path(ventTop).line(add(ventTop, mul(ventIn, 1.2))));
+    notches.push([ventTop, mul(ventIn, -1)]);
+  }
   // Gathering marks: between the notches on a puff sleeve's crown.
   const cut = 'Cut 2 (1 pair)';
   const sleeve: Piece = {
@@ -358,6 +377,7 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
       { at: add(notchB, p(2.6, 1.6)), text: 'BACK', size: 0.6 },
       ...(shape === 'puff' ? [{ at: p(cx, h * 0.45), text: 'GATHER BETWEEN NOTCHES', size: 0.55 }] : []),
       ...(gathered ? [{ at: p(0, L - 3), text: 'GATHER TO FIT THE BAND', size: 0.55 }] : []),
+      ...(ventTop && ventIn ? [{ at: add(lerp(ventTop, Wb, 0.5), mul(ventIn, 1.6)), text: 'VENT', size: 0.5, rotate: ventRotate(sqB) }] : []),
     ],
     cut,
     seamAllowance: s.seamAllowance,
@@ -395,8 +415,17 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
         }
       : undefined,
     elbowDart: dartW || undefined,
+    ...(ventTop ? { vent: { lengthCm: VENT_CM, at: 'back seam' as const } } : {}),
     warnings,
   };
+}
+
+/** The vent label's turn: along the seam, reading up the sleeve. */
+function ventRotate(seamDir: P): number {
+  let rot = (Math.atan2(seamDir.y, seamDir.x) * 180) / Math.PI;
+  if (rot > 90) rot -= 180;
+  if (rot <= -90) rot += 180;
+  return rot;
 }
 
 /** Splits a polyline at distance `d` along it: the part before (ending at the split) and after (starting there). */

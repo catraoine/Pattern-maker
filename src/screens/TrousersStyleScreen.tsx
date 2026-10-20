@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { layout } from '../engine/export';
 import { piecesLengthCm, toMetres } from '../engine/fabric';
 import { layPlan } from '../engine/layplan';
@@ -10,7 +10,7 @@ import { TROUSER_GROUPS, TrousersChoices, describeTrousers, trouserAllowed, trou
 import { TechFlatView } from '../ui/TechFlatView';
 import { AllRound } from '../ui/AllRound';
 import { roundTrousers } from '../engine/allRound';
-import { FabricSwatches, GarmentFabric } from '../ui/FabricFill';
+import { FabricSwatches, GarmentFabric, flatId } from '../ui/FabricFill';
 import { MeasurementValues } from '../measurements';
 import { PatternPreview } from '../ui/Preview';
 import { PatternPane } from '../ui/PointEditor';
@@ -65,6 +65,11 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
   const onChoices = undo.change;
   const can = (t: ProTool) => shows(mode, t);
   const [view, setView] = useState<'sketch' | 'flat' | 'round' | 'pattern'>('sketch');
+  // A fabric dresses the flat drawing, so choosing one shows that drawing; the form is lines only.
+  const cloth = flatId(fabric);
+  useEffect(() => {
+    if (cloth) setView((v) => (v === 'sketch' ? 'flat' : v));
+  }, [cloth]);
   const [fit, setFit] = useState(false);
   const canFit = !!easeMap?.length && can('easeMap');
   const pieces = useMemo(() => draft?.pieces ?? [], [draft]);
