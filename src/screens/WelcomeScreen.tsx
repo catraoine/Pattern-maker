@@ -93,17 +93,21 @@ export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume }: Pr
             </button>
           </div>
         )}
-        <p className="fineprint">
-          By continuing you agree to our{' '}
-          <button type="button" className="inline-link" onClick={() => onLegal('terms')}>
-            Terms
-          </button>{' '}
-          and{' '}
-          <button type="button" className="inline-link" onClick={() => onLegal('privacy')}>
-            Privacy Policy
-          </button>
-          .
-        </p>
+        {/* The agreement shows once, hushed, on a first visit; coming back you've already agreed, and the links
+            stay in Your account (Cat's L5 First Visit Only, 2026-10-20). */}
+        {!resume && (
+          <p className="fineprint">
+            By continuing you agree to our{' '}
+            <button type="button" className="inline-link" onClick={() => onLegal('terms')}>
+              Terms
+            </button>{' '}
+            and{' '}
+            <button type="button" className="inline-link" onClick={() => onLegal('privacy')}>
+              Privacy Policy
+            </button>
+            .
+          </p>
+        )}
       </section>
       {touring && <TourPlayer onClose={() => setTouring(false)} />}
     </div>

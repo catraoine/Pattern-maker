@@ -1764,6 +1764,12 @@ details.more[open] > summary h2::after {
 }
 .welcome .fineprint {
   text-align: center;
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  opacity: 0.5;
+}
+.welcome .fineprint button.inline-link {
+  text-decoration: none;
 }
 .fineprint button.inline-link {
   min-height: 0;

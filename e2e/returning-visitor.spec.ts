@@ -32,6 +32,8 @@ test('returning visitor: a reload keeps the measurements and the saved pattern',
   await expect(main.getByRole('button', { name: 'Begin' })).toHaveCount(0);
   // No tape on the way back in: it belongs to Begin, which pulls it out into measuring.
   await expect(page.locator('.tape-tip, .tape-band')).toHaveCount(0);
+  // The agreement line is for first visits only: coming back, the welcome stays clear (Cat's L5).
+  await expect(main.getByText('By continuing you agree')).toHaveCount(0);
   await main.getByRole('button', { name: 'Carry on with your skirt' }).click();
   await expectStyle(page, 'Skirt');
 
