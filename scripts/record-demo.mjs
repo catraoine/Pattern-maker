@@ -1,6 +1,6 @@
 // Records the tour's walkthrough video (public/tour/walkthrough.mp4, and a .webm copy) from the running app, with a caption
-// under each step. Re-record it whenever the welcome or the first measuring pages change (Cat's rule,
-// 2026-10-17), then update PARTS and TOUR_LABEL in src/ui/TourPlayer.tsx from the times this prints.
+// under each step. Re-record it when the app changes enough that the tour looks out of date, then update PARTS,
+// TOUR_LENGTH and TOUR_LABEL in src/ui/TourPlayer.tsx from the times this prints.
 //
 //   npx vite --port 5173            (in another terminal)
 //   npm run record:tour             (or: node scripts/record-demo.mjs [out dir] [app url])
@@ -93,7 +93,8 @@ async function tap(loc, pause = 500) {
   await wait(pause);
 }
 async function scrollBy(px) {
-  const fr = p.frames().find((x) => x.url().includes('5173'));
+  // The app's iframe, not the page around it (which also loaded from the app's address first).
+  const fr = p.frames().find((x) => x !== p.mainFrame() && x.url().startsWith(APP));
   await fr.evaluate((y) => window.scrollBy({ top: y, behavior: 'smooth' }), px);
   await wait(700);
 }
@@ -140,6 +141,9 @@ await tap(main.getByRole('button', { name: 'Begin' }), 2000);
 await cap('01 · Measure', 'Measuring yourself, or someone else? Skip on the tape tries an example.');
 await wait(3200);
 await tap(main.getByRole('button', { name: 'Me', exact: true }), 600);
+await cap('01 · Measure', 'Pick the form to draft on: womenswear or menswear.');
+await wait(2400);
+await tap(main.getByRole('button', { name: /^Begin measuring$/i }), 600);
 await cap('01 · Measure', 'One measurement per page, each with a short how-to.');
 await fillPages(2);
 await cap('01 · Measure', 'Check them over before you carry on.');
@@ -150,19 +154,35 @@ await wait(2500);
 await scrollBy(300); await wait(800); await scrollBy(-300);
 const skirt = main.getByRole('radiogroup', { name: 'What would you like to make?' }).getByRole('radio', { name: /^Skirt\b/ });
 await tap(skirt, 700);
-await tap(main.getByRole('button', { name: /^(Continue measuring|Continue measurements)$/ }), 600);
+await tap(main.getByRole('button', { name: /^Next: \d+ skirt measurements?$/ }), 600);
 await cap('01 · Measure', 'Each garment asks only for the few extra measurements it needs.');
 await fillPages(1);
 
 // 3. Style
 await cap('02 · Style', 'Style it. Every choice redraws the pattern to your body.');
 await wait(2800);
-const chip = async (g, c) => tap(main.getByRole('group', { name: g, exact: true }).getByRole('button', { name: c, exact: true }), 1300);
-await chip('Silhouette', 'A-line');
+const tab = async (t) => tap(f.getByRole('tab', { name: t, exact: true }), 900);
+// Tapping the picked chip's drawing opens it full size, so only tap choices that aren't picked yet.
+const chip = async (g, c) => {
+  const b = main.getByRole('group', { name: g, exact: true }).getByRole('button', { name: c, exact: true });
+  if (await b.evaluate((el) => el.classList.contains('on'))) throw new Error(`${g}: ${c} is already picked; choose another`);
+  await tap(b, 1300);
+};
+await tab('Shape');
+await chip('Silhouette', 'Half circle');
+await tab('Length & hem');
 await chip('Length', 'Midi');
-await cap('02 · Style', 'Add pockets, change the waist, set the fit.');
+await cap('02 · Style', 'Add pockets, pleats or an elastic waist.');
+await tab('Details');
 await chip('Pockets', 'In-seam');
-await scrollBy(500); await wait(1500); await scrollBy(400); await wait(1500);
+await scrollBy(-2000);
+await cap('02 · Style', 'See it all round, or flip to the pattern pieces you will cut.');
+await tap(main.getByRole('group', { name: 'Garment view' }).getByRole('button', { name: 'All round' }), 3400);
+await tap(main.getByRole('group', { name: 'Preview view' }).getByRole('button', { name: /^Pattern/ }), 2600);
+await tap(main.getByRole('group', { name: 'Preview view' }).getByRole('button', { name: /^Garment/ }), 900);
+await tap(main.getByRole('button', { name: 'Review', exact: true }), 1200);
+await cap('02 · Style', 'Check the finished look before you print.');
+await wait(2400);
 
 // 4. Print
 const printBtn = main.getByRole('button', { name: 'Print my pattern' });
