@@ -624,7 +624,9 @@ function panelLine(r: Ring, at: number, dl: P[] | undefined): { line: P[]; top: 
   const underarm = arm[arm.length - 1];
   const waistSide = sideRun[sideRun.length - 1];
   const dartX = dl ? Math.max(dl[0].x, dl[2].x) + 1.5 : 0;
-  const x = Math.min(waistSide.x - 2, Math.max(dartX, waistSide.x - Math.max(3, underarm.x - top.x)));
+  // Never slanting out past where it leaves the armhole: just below the across point the armhole runs
+  // nearly straight down, so a seam leaning outward would cut out through it.
+  const x = Math.min(waistSide.x - 2, Math.max(dartX, Math.min(top.x, waistSide.x - Math.max(3, underarm.x - top.x))));
   const hit = waist.findIndex((q, i) => i > 0 && (waist[i - 1].x - x) * (q.x - x) <= 0 && waist[i - 1].x !== q.x);
   if (hit < 0) return undefined;
   const foot = lerp(waist[hit - 1], waist[hit], (x - waist[hit - 1].x) / (waist[hit].x - waist[hit - 1].x));

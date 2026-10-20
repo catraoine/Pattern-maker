@@ -770,13 +770,17 @@ function draftShape(m: SkirtMeasurements, s: SkirtStyle): SkirtDraft {
         hipQ - (waistQ + split.front) - 2 * FRONT_DART_MAX,
         hipQ - (waistQ + split.back) - 2 * BACK_DART_MAX,
       );
-  const hemSa = slip ? SLIP_HEM : Math.min(s.hemAllowance, hemCap(s.silhouette, standardFlare));
+  // A flared hem is wider round its edge than the skirt a few cm up, so a deep turn-up has too much
+  // cloth to lie flat and ripples: an A-line or trumpet hem, or a straight one flared out to a photo,
+  // turns up no more than 2 cm. Straight and pencil skirts keep the deep hem that weights them.
+  const FLARED_HEM = 2;
+  const hemFor = (flare: number) => (slip ? SLIP_HEM : s.silhouette === 'a_line' || s.silhouette === 'trumpet' || flare >= 4 ? Math.min(s.hemAllowance, FLARED_HEM) : s.hemAllowance);
   const drops = centreDrops(m, fit);
   const dartAdj = fit.dartLength ?? 0;
   // A centre moved at the fitting is no longer simply the measurement, so its note says so.
   const measured = { front: m.front_waist_to_hip !== undefined && !fit.frontDrop, back: m.back_waist_to_hip !== undefined && !fit.backDrop };
   const block = (flare: number): SkirtDraft => {
-    const common = { hipQ, hipDepth, length, sideSupp, flare, flareFrom, sa: s.seamAllowance, hemSa, zipCm };
+    const common = { hipQ, hipDepth, length, sideSupp, flare, flareFrom, sa: s.seamAllowance, hemSa: hemFor(flare), zipCm };
     const frontArgs = { ...common, name: 'Skirt front', waistQ: waistQ + split.front, dartMax: FRONT_DART_MAX, dartLen: 9 + dartAdj, isFront: true, dartAt: join?.dartAt?.front };
     const backArgs = { ...common, name: 'Skirt back', waistQ: waistQ + split.back, dartMax: BACK_DART_MAX, dartLen: 14 + dartAdj, isFront: false, dartAt: join?.dartAt?.back, onFold: elastic };
     const at = (d: { front: number; back: number }) => ({ meanDrop: (d.front + d.back) / 2 });
@@ -851,17 +855,10 @@ export function lengthRange(m: SkirtMeasurements) {
 }
 
 /** Trumpet skirts stay close to the body down to a little above the knee, never closer than 15 cm to the
- * hem; on a short skirt the flare starts as low as the length allows, never above 2 cm below the hip. */
+ * hem; on a short skirt the flare starts as low as the length allows. */
 const trumpetFrom = (m: SkirtMeasurements, length: number) => Math.max(m.waist_to_hip + TRUMPET_MIN_BELOW_HIP, Math.min(m.waist_to_hip + (m.waist_to_knee - m.waist_to_hip) * 0.6, length - 15));
+/** On a short skirt the flare starts as low as the length allows, never above 2 cm below the hip. */
 const TRUMPET_MIN_BELOW_HIP = 2;
-
-/** The deepest hem a shape takes: a straight or pencil hem turns up 4 cm, but the fuller the hem the
- * less it can be turned without puckering: 2.5 cm on an A-line, 2 on a trumpet, 1.5 on a circle. */
-export function hemCap(sil: Silhouette, flare: number): number {
-  if (sil === 'half_circle' || sil === 'circle') return 1.5;
-  if (sil === 'trumpet') return 2;
-  return flare <= 2 ? 4 : flare <= 10 ? 2.5 : 2;
-}
 
 function defaultFlare(sil: Silhouette, length: number, hipDepth: number, flareFrom?: number): number {
   return {

@@ -6,8 +6,6 @@ import { draftTrousers, TrousersMeasurements } from './trousers';
 import { bodiceGuide, sewingGuide } from './instructions';
 import { outerGuide } from './outerGuide';
 import { trousersGuide } from './trousersGuide';
-import { draftTee } from './tee';
-import { teeGuide } from './teeGuide';
 import { randomArms, randomBody, rng } from './randomBodies';
 import { draftSleeve } from './sleeve';
 import { EXAMPLE_VALUES } from '../measurements';
@@ -141,21 +139,7 @@ describe('the trousers steps follow their options', () => {
   });
 });
 
-describe('guide text guarded by draft fields another branch adds', () => {
-  const TEE = { full_bust: 92, waist: 76, full_hip: 102, waist_to_hip: 20.5, neck: 35, shoulder_width: 38, nape_to_waist: 41, armscye: 40, arm_length: 59, upper_arm: 29, wrist: 16 };
-
-  it('sews a tee bust dart before the side seams, and eases a longer front hem, only when the draft has them', () => {
-    const d = draftTee(TEE);
-    const plain = teeGuide(d, 1.5);
-    expect(titles(plain)).not.toContain('Sew the bust dart');
-    expect(step(plain, 'Sew the side seams')).not.toMatch(/longer at the side/);
-    const darted = teeGuide({ ...d, bust: { dart: true, extra: 1.5 } } as typeof d, 1.5);
-    const t = titles(darted);
-    expect(t.indexOf('Sew the bust dart')).toBeGreaterThan(-1);
-    expect(t.indexOf('Sew the bust dart')).toBeLessThan(t.indexOf('Sew the side seams'));
-    expect(step(darted, 'Sew the bust dart')).toMatch(/side bust dart \(BUST DART\).*press it down/);
-    expect(step(darted, 'Sew the side seams')).toMatch(/cut 1.5 cm longer at the side.*ease the front's hem edge to meet the back's/);
-  });
+describe('guide text that follows the draft', () => {
 
   it('treats a princess front facing as the whole centre front panel when there is no front lining piece', () => {
     const d = draftOuter(O, { kind: 'coat', shaping: 'princess' });

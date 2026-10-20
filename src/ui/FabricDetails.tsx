@@ -1,5 +1,7 @@
-import { DRAPES, FabricGarment, MyFabric, WEIGHTS, easeWords } from '../engine/fabrics';
-import { SPECIALS, checksLines, specialLines } from '../engine/specialFabrics';
+import { DRAPES, FabricGarment, MyFabric, WEIGHTS, easeWords, printRepeat } from '../engine/fabrics';
+import { SPECIALS, specialLines } from '../engine/specialFabrics';
+import { printLines, printOf } from '../engine/prints';
+import { PrintPicker } from './PrintPicker';
 
 /** One row of chips for a fabric trait; tapping the chosen one again clears it. */
 function Chips<T extends string>({ label, options, value, onPick }: { label: string; options: { id: T; label: string }[]; value?: T; onPick: (v: T | undefined) => void }) {
@@ -18,11 +20,11 @@ function Chips<T extends string>({ label, options, value, onPick }: { label: str
 }
 
 // The rest of what you can say about your fabric, on the Fabric tab under the swatches (one place to choose
-// fabric, Cat 2026-10-18): its name and colour, checks or stripes, weight and drape. Folded, so the tab stays
+// fabric, Cat 2026-10-18): its name and colour, the print, weight and drape. Folded, so the tab stays
 // short on a phone. It goes on the PDF and the tech pack, and heavy cloth gets a little more room.
 export function FabricDetails({ fabric = {}, onFabric, garment, simple = true }: { fabric?: MyFabric; onFabric: (f: MyFabric) => void; garment: FabricGarment; simple?: boolean }) {
   const set = (patch: Partial<MyFabric>) => onFabric({ ...fabric, ...patch });
-  const details = [...specialLines(fabric.special), ...checksLines(fabric.checks, garment).map((text) => ({ label: '', text }))];
+  const details = [...specialLines(fabric.special), ...printLines(printOf(fabric), printRepeat(fabric), garment).map((text) => ({ label: '', text }))];
   return (
     <details className="fabric-more">
       <summary>About your fabric</summary>
@@ -41,26 +43,7 @@ export function FabricDetails({ fabric = {}, onFabric, garment, simple = true }:
           <input id="fabcolour" type="text" autoComplete="off" value={fabric.colour ?? ''} onChange={(e) => set({ colour: e.target.value })} />
         </div>
       </div>
-      <label className="check">
-        <input type="checkbox" checked={!!fabric.checks} onChange={(e) => set({ checks: e.target.checked ? {} : undefined })} />
-        <span>
-          Checks or stripes <span className="muted small">match them at the seams</span>
-        </span>
-      </label>
-      {fabric.checks && (
-        <div className="field plain">
-          <label htmlFor="fabrepeat">Repeat, cm</label>
-          <input
-            id="fabrepeat"
-            type="number"
-            inputMode="decimal"
-            min={0}
-            value={fabric.checks.repeat ?? ''}
-            placeholder="10"
-            onChange={(e) => set({ checks: { repeat: e.target.value ? Number(e.target.value) : undefined } })}
-          />
-        </div>
-      )}
+      <PrintPicker fabric={fabric} onFabric={onFabric} />
       <Chips label="Weight" options={WEIGHTS} value={fabric.weight} onPick={(weight) => set({ weight })} />
       <Chips label="Drape" options={DRAPES} value={fabric.drape} onPick={(drape) => set({ drape })} />
       {details.length > 0 && (

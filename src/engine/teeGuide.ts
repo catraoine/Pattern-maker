@@ -10,8 +10,11 @@ export function teeGuide(d: TeeDraft, fabricM: number, finish: { width?: number 
   const seam = n1(KNIT_SEAM);
   const v = d.neckline === 'v';
   const pct = Math.round(d.neckband.ratio * 100);
-  // A draft can carry a side bust dart, and a front cut a little longer at the side for it.
-  const bust = (d as { bust?: { dart?: boolean; extra?: number } }).bust;
+  // The front cut longer at the centre for the bust: it looks uneven flat, and hangs level when worn.
+  const bustHem =
+    d.frontExtra >= 0.5
+      ? `The front hem curves down ${n1(d.frontExtra)} lower at the centre than at the sides: that is the length the bust takes up, so the tee hangs level when worn. Press it up the same depth all along. `
+      : '';
   const steps: SewStep[] = [
     {
       title: 'Print and check the size',
@@ -49,23 +52,13 @@ export function teeGuide(d: TeeDraft, fabricM: number, finish: { width?: number 
       title: 'Sew in the sleeves',
       text: `Lay the tee open, right side up. Pin each sleeve's crown to its armhole, right sides together, matching the notch at the top of the sleeve to the shoulder seam, the single notches at the front and the double notches at the back. There is very little to ease in: a knit sleeve fits its armhole almost exactly. Sew ${seam} from the edge with the sleeve on top and press the seams toward the sleeve.`,
     },
-    ...(bust?.dart
-      ? [
-          {
-            title: 'Sew the bust dart',
-            text: 'Sew the side bust dart (BUST DART) on the front: fold it with right sides together so the dart lines meet, stitch from the side seam to the point, run off the fold and knot the threads, and press it down.',
-          },
-        ]
-      : []),
     {
       title: 'Sew the side seams',
-      text: `Fold the tee right sides together at the sides. Pin each side from the sleeve hem, through the underarm, to the body hem, matching the underarm seams.${
-        bust?.extra ? ` The front is cut ${n1(bust.extra)} longer at the side than the back: ease the front's hem edge to meet the back's as you pin, so the hem hangs level over the bust.` : ''
-      } Sew ${seam} from the edge in one go and press the seams toward the back.`,
+      text: `Fold the tee right sides together at the sides. Pin each side from the sleeve hem, through the underarm, to the body hem, matching the underarm seams. Sew ${seam} from the edge in one go and press the seams toward the back.`,
     },
     {
       title: 'Hem',
-      text: `Press up ${n1(KNIT_SLEEVE_HEM)} at each sleeve hem and ${n1(KNIT_HEM)} at the body hem. A strip of fusible knit hem tape inside the fold stops the stitching rippling. From the right side, stitch ${n1(KNIT_SLEEVE_HEM - 0.5)} from the fold with a stretch twin needle, or a long narrow zigzag. Let the machine feed the knit: pulling it makes the hem wavy.`,
+      text: `${bustHem}Press up ${n1(KNIT_SLEEVE_HEM)} at each sleeve hem and ${n1(KNIT_HEM)} at the body hem. A strip of fusible knit hem tape inside the fold stops the stitching rippling. From the right side, stitch ${n1(KNIT_SLEEVE_HEM - 0.5)} from the fold with a stretch twin needle, or a long narrow zigzag. Let the machine feed the knit: pulling it makes the hem wavy.`,
     },
     {
       title: 'Finish',

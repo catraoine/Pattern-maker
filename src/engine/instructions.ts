@@ -44,7 +44,7 @@ export interface SkirtFinish {
   liningM?: number;
   /** Fabric width in cm, when it isn't 140. */
   width?: number;
-  /** Hem allowance on a straight or A-line skirt, when it isn't the usual 4 cm. */
+  /** Hem allowance on a straight or A-line skirt, when it isn't the draft's own. */
   hem?: number;
 }
 

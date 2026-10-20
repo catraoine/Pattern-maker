@@ -65,4 +65,24 @@ describe('skirt block', () => {
     const withSteps = await toTiledPdf(sheet, 'a4', { title: 'knee pencil skirt', guide });
     expect(withSteps.length).toBeGreaterThan(plain.length);
   });
+
+  it('turns up a narrow hem on a flared skirt, and keeps the deep hem on a straight or pencil one', () => {
+    const hemOf = (silhouette: 'straight' | 'pencil' | 'a_line' | 'trumpet', flareCm?: number) => {
+      const draft = draftSkirt(m, { silhouette, length: 'knee', flareCm });
+      const text = sewingGuide(draft, { silhouette, length: 'knee' }, 1.4).steps.find((s) => s.title === 'Hem')!.text;
+      return { sa: draft.pieces.map((pc) => pc.allowances.hem), text };
+    };
+    for (const sil of ['straight', 'pencil'] as const) {
+      const h = hemOf(sil);
+      expect(h.sa).toEqual([4, 4]);
+      expect(h.text).toMatch(/^Press up 1 cm, then 3 cm more/);
+    }
+    // The A-line's hem is about 128 cm round on a 96 cm hip: a 4 cm turn-up would ripple.
+    const aLine = hemOf('a_line');
+    expect(aLine.sa).toEqual([2, 2]);
+    expect(aLine.text).toMatch(/^Press up 1 cm, then 1 cm more/);
+    expect(hemOf('trumpet').sa).toEqual([2, 2]);
+    // A straight skirt dragged out into a flare gets the narrow hem too.
+    expect(hemOf('straight', 6).sa).toEqual([2, 2]);
+  });
 });

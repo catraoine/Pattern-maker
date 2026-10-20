@@ -15,8 +15,9 @@ import type { Flat } from '../engine/flat';
 import { TechFlatView } from '../ui/TechFlatView';
 import { StepDiagram } from '../ui/StepDiagram';
 import { CLOTHS, seamFinish } from '../engine/couture';
-import { FIBRES, Fibre, MyFabric, FabricStyle, adviceFor, checkFabric, clothFor, pickTag } from '../engine/fabrics';
+import { FIBRES, Fibre, MyFabric, FabricStyle, adviceFor, checkFabric, clothFor, pickTag, printRepeat } from '../engine/fabrics';
 import { SPECIALS, Special, needsNap } from '../engine/specialFabrics';
+import { printNap, printOf } from '../engine/prints';
 import { SizeRun } from '../ui/SizeRun';
 import { Envelope } from '../ui/Envelope';
 import { InterestCard } from '../ui/InterestCard';
@@ -116,7 +117,8 @@ export function ExportScreen({ unit = 'cm', sendLink, profile, title, fit, garme
   const [pdf, setPdf] = useState<{ paper: Output; bytes: Uint8Array } | null>(null);
   const [shareNote, setShareNote] = useState('');
   const special = finish.fabric?.special;
-  const napFixed = needsNap(special);
+  const print = printOf(finish.fabric);
+  const napFixed = needsNap(special) || printNap(print);
   const nap = finish.nap || napFixed;
   const guide = made?.guide;
   const date = useMemo(printedDate, []);
@@ -369,7 +371,7 @@ export function ExportScreen({ unit = 'cm', sendLink, profile, title, fit, garme
               <input type="checkbox" checked={nap} disabled={napFixed} onChange={(e) => onFinish({ ...finish, nap: e.target.checked })} />
               <span>
                 Nap or one-way print{' '}
-                <span className="muted small">{napFixed ? `always on for ${SPECIALS[special!].label.toLowerCase()}` : 'every piece the same way up'}</span>
+                <span className="muted small">{napFixed ? `always on for ${needsNap(special) ? SPECIALS[special!].label.toLowerCase() : print === 'motif' ? 'placed motifs' : 'a one-way print'}` : 'every piece the same way up'}</span>
               </span>
             </label>
           </div>
@@ -378,7 +380,12 @@ export function ExportScreen({ unit = 'cm', sendLink, profile, title, fit, garme
           lays.map((lay) => (
             <div key={lay.fabric} className="lay">
               {lays.length > 1 && <p className="eyebrow">{lay.fabric === 'lining' ? 'Lining' : lay.fabric === 'interlining' ? 'Coutil' : 'Fabric'}</p>}
-              <LayPlanView lay={lay} cloth={lay.fabric === 'self' ? (flatId(finish.fabric) ?? 'default') : lay.fabric === 'lining' ? 'silk' : 'cotton'} />
+              <LayPlanView
+                lay={lay}
+                cloth={lay.fabric === 'self' ? (flatId(finish.fabric) ?? 'default') : lay.fabric === 'lining' ? 'silk' : 'cotton'}
+                print={lay.fabric === 'self' && print ? { kind: print, repeat: printRepeat(finish.fabric) } : undefined}
+              />
+              {lay.fabric === 'self' && print === 'motif' && <p className="muted small">The front is centred on a motif. Move the pattern so no motif sits on the bust points or the seat.</p>}
               <p className="muted small">{layWords(lay)}</p>
             </div>
           ))

@@ -85,8 +85,8 @@ describe('import a pattern from pro software', () => {
     expect(back.source).toBe('Maison Tracé');
     expect(back.pieces[0].seamAllowance).toBe(d.pieces[0].seamAllowance);
     expect(back.pieces[0].meta.imported).toBe(true);
-    // The hem's deeper allowance comes back as its own edge, as the tech pack lists it.
-    expect(back.pieces[1].allowances.hem).toBe(2.5);
+    // The hem's allowance (2 cm on an A-line, which turns up narrowly) comes back as its own edge, as the tech pack lists it.
+    expect(back.pieces[1].allowances.hem).toBe(2);
   });
 
   it('reads home allowances, a bodice, trousers and a lined jacket', () => {

@@ -63,6 +63,30 @@ describe('cutting layouts', () => {
     expect(c).toBeLessThanOrEqual(b + 0.5);
   });
 
+  it('turns the hemmed pieces crosswise for a border print, every hem on the far selvedge', () => {
+    const d = draftSkirt(m, { silhouette: 'a_line' });
+    const pieces = [...d.pieces, waistbandPiece(d, 1.5)];
+    const lay = layPlan(pieces, 140, 'self', false, false, true)!;
+    expect(lay.border).toBe('crosswise');
+    expect(lay.folded).toBe(false);
+    expect(problems(lay)).toEqual([]);
+    const skirt = lay.placements.filter((pl) => /skirt/i.test(pl.name));
+    // The front opened out and the back pair: three pieces, each touching the border selvedge.
+    expect(skirt.length).toBe(3);
+    for (const pl of skirt) expect(Math.max(...pl.pts.map((q) => q.x))).toBeCloseTo(lay.across, 0);
+    // Turned crosswise, each piece is now longer along the fabric than its own length is across it.
+    for (const pl of skirt) expect(Math.max(...pl.pts.map((q) => q.x)) - Math.min(...pl.pts.map((q) => q.x))).toBeLessThan(d.lengthCm + 10);
+    expect(layPlans(pieces, 140, false, false, false, true)[0].border).toBe('crosswise');
+  });
+
+  it('lays a border print as usual when a piece is longer than the fabric is wide', () => {
+    // A maxi on a tall body: about 120 cm waist to hem, on 115 cm fabric.
+    const d = draftSkirt({ ...m, waist_to_knee: 66, waist_to_floor: 127 }, { silhouette: 'a_line', length: 'maxi' });
+    const lay = layPlan(d.pieces, 115, 'self', false, false, true)!;
+    expect(lay.border).toBe('too-long');
+    expect(problems(lay)).toEqual([]);
+  });
+
   it('keeps every piece the same way up for a fabric with a nap', () => {
     const d = draftSkirt(m, { silhouette: 'a_line' });
     const lay = layPlan(d.pieces, 140, 'self', true)!;

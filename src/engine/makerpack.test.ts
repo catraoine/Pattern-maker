@@ -113,9 +113,10 @@ describe('tech pack', () => {
   });
 
   it('lists seam allowances that differ by edge', () => {
-    const skirt = draftSkirt(sm, {});
-    expect(allowanceText(skirt.pieces[1])).toBe('1.5 cm, hem 2.5 cm');
-    expect(allowanceText(draftSkirt(sm, { silhouette: 'pencil' }).pieces[1])).toBe('1.5 cm, hem 4 cm');
+    const skirt = draftSkirt(sm, { silhouette: 'straight' });
+    expect(allowanceText(skirt.pieces[1])).toBe('1.5 cm, hem 4 cm');
+    // A flared A-line turns up a narrower hem.
+    expect(allowanceText(draftSkirt(sm, {}).pieces[1])).toBe('1.5 cm, hem 2 cm');
   });
 });
 

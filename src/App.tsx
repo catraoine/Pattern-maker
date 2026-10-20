@@ -26,6 +26,7 @@ import { Fitting, carriedFitting, describeCarried, describeFitting, saveVersion,
 import { FabricWidth, layPlans } from './engine/layplan';
 import { MyFabric, clothFor, withFabric, withFabricEase } from './engine/fabrics';
 import { SPECIALS, needsNap, withCheckMarks, withSpecialAllowances } from './engine/specialFabrics';
+import { printNap, printOf } from './engine/prints';
 import { layAmount } from './engine/layplan';
 import { withEstimates } from './estimate';
 import { EXAMPLE_VALUES, FormKind, Garment, MeasurementId, MeasurementValues, Unit, checkMeasurements, isComplete } from './measurements';
@@ -368,6 +369,8 @@ export default function App() {
   );
   const trousersChoices = saved.trousers ?? DEFAULT_TROUSERS_CHOICES;
   const teeChoices = saved.tee ?? DEFAULT_TEE_CHOICES;
+  // The menswear form's tee has no bust shaping: front and back cut alike.
+  const teeStyle = useMemo(() => ({ ...teeChoices, ...(form === 'menswear' ? { flatFront: true } : {}) }), [teeChoices, form]);
   const isOuterGarment = garment === 'jacket' || garment === 'coat';
   const outerChoices: OuterChoices = useMemo(() => (garment === 'coat' ? { ...DEFAULT_COAT_CHOICES, ...saved.coat } : { ...DEFAULT_JACKET_CHOICES, ...saved.jacket }), [garment, saved.coat, saved.jacket]);
   // Jackets and coats are drafted on the bodice block, so they take the bodice's toile corrections.
@@ -390,7 +393,7 @@ export default function App() {
       }
       if (garment === 'trousers') return { trousers: draftTrousers(values as TrousersMeasurements, trousersStyle) };
       // A knit block fits by stretch, so no woven toile corrections or heavy-cloth ease go into it.
-      if (garment === 'tee') return { tee: draftTee(values as TeeMeasurements, teeChoices) };
+      if (garment === 'tee') return { tee: draftTee(values as TeeMeasurements, teeStyle) };
       if (garment === 'dress') {
         const st = dressStyles(fitting);
         const d = draftDress(values as DressMeasurements, st.bodice, st.skirt);
@@ -401,7 +404,7 @@ export default function App() {
       return { error: e instanceof DraftError ? e.message : 'Something went wrong drafting this pattern.' };
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [values, skirtStyle, bodiceStyle, trousersStyle, teeChoices, dress, outerChoices, fabric, fitting, garment, canLeaveMeasure]);
+  }, [values, skirtStyle, bodiceStyle, trousersStyle, teeStyle, dress, outerChoices, fabric, fitting, garment, canLeaveMeasure]);
 
   // The drafts with any points moved on the flat pattern, so the preview, print and files all follow.
   const moved = pointEdits[garment];
@@ -443,7 +446,7 @@ export default function App() {
           const own = (pcs: Piece[]) => pcs.filter((pc) => pc.kind !== 'pocket');
           if (isOuterGarment) return draftOuter(values as OuterMeasurements, outerStyleFor(outerChoices, f)).pieces.filter((pc) => !pc.kind);
           if (garment === 'trousers') return draftTrousers(values as TrousersMeasurements, { ...trousersChoices, ...trousersCut, fitting: withFabricEase(toFitting(f, 'skirt'), fabric, 'skirt') }).block;
-          if (garment === 'tee') return draftTee(values as TeeMeasurements, teeChoices).pieces;
+          if (garment === 'tee') return draftTee(values as TeeMeasurements, teeStyle).pieces;
           if (garment === 'dress') {
             const st = dressStyles(f);
             return own(draftDress(values as DressMeasurements, st.bodice, st.skirt).pieces);
@@ -454,7 +457,7 @@ export default function App() {
         }
       },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [garment, values, saved.bodice, saved.choices, trousersChoices, teeChoices, dress, outerChoices, fabric],
+    [garment, values, saved.bodice, saved.choices, trousersChoices, teeStyle, dress, outerChoices, fabric],
   );
 
   /** The pattern's main pieces with allowances, drafted to any measurements: for grading a size run. */
@@ -469,7 +472,7 @@ export default function App() {
           return allow([...b.pieces, ...(sleeveFor(b, bodiceStyle, m)?.pieces ?? [])]);
         }
         // Knit pieces keep their 1 cm allowances whatever the style.
-        if (garment === 'tee') return draftTee(m as TeeMeasurements, teeChoices).pieces;
+        if (garment === 'tee') return draftTee(m as TeeMeasurements, teeStyle).pieces;
         if (isOuterGarment) return allow(draftOuter(m as OuterMeasurements, outerStyleFor(outerChoices, fitting)).pieces);
         if (garment === 'trousers') {
           const t = draftTrousers(m as TrousersMeasurements, trousersStyle);
@@ -484,7 +487,7 @@ export default function App() {
         return allow([...k.pieces, ...waistPieces(k, 1.5)]);
       },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [garment, bodiceStyle, trousersStyle, teeChoices, skirtStyle, dress, outerChoices, fitting, saved.finish?.allowances, saved.finish?.fabric?.special],
+    [garment, bodiceStyle, trousersStyle, teeStyle, skirtStyle, dress, outerChoices, fitting, saved.finish?.allowances, saved.finish?.fabric?.special],
   );
 
   const current = isOuterGarment ? outerChoices : garment === 'bodice' ? saved.bodice : garment === 'dress' ? dress : garment === 'trousers' ? trousersChoices : garment === 'tee' ? teeChoices : saved.choices;
@@ -502,8 +505,9 @@ export default function App() {
         const cut = withSpecialAllowances(withAllowances(pc, finish.allowances), special);
         return checks ? withCheckMarks(cut) : cut;
       });
-    const nap = finish.nap || needsNap(special);
+    const nap = finish.nap || needsNap(special) || printNap(printOf(fabric));
     const hide = special === 'leather';
+    const border = printOf(fabric) === 'border';
     const couture = finish.allowances === 'couture';
     const fittingNotes = [...fittingLines(ownFitting, garment), ...carriedNotes.map((l) => `${l}.`)];
     // The couture route's cloth follows the recorded fibre; either route opens with preparing the fabric.
@@ -512,7 +516,7 @@ export default function App() {
     if (tee) {
       // Knit allowances (1 cm, 2.5 cm at the hem) whatever the allowance style, and a knit lay.
       const pieces = tee.pieces;
-      const lays = layPlans(pieces, finish.fabricWidth, nap, false, true);
+      const lays = layPlans(pieces, finish.fabricWidth, nap, false, true, border);
       return {
         pieces,
         notes: [
@@ -528,7 +532,7 @@ export default function App() {
     }
     if (outer) {
       const pieces = allow(outer.pieces);
-      const lays = layPlans(pieces, finish.fabricWidth, nap, hide);
+      const lays = layPlans(pieces, finish.fabricWidth, nap, hide, false, border);
       const metres = (f: 'self' | 'lining') => lays.find((l) => l.fabric === f)?.metres;
       const hem = outer.pieces[0].allowances['opening-hem'] ?? 4;
       const kind = outer.kind;
@@ -556,7 +560,7 @@ export default function App() {
     if (trousers) {
       const pieces = allow([...trousers.pieces, trousersWaistband(trousers, 1.5)]);
       const hem = pieces[0].allowances.hem;
-      const lays = layPlans(pieces, finish.fabricWidth, nap, hide);
+      const lays = layPlans(pieces, finish.fabricWidth, nap, hide, false, border);
       const m = values as TrousersMeasurements;
       return {
         pieces,
@@ -595,7 +599,7 @@ export default function App() {
       // The hem is on the flounce below a flounced skirt, and on the bottom tier (2 cm) of a tiered one.
       const hem = pieces.find((pc) => !pc.kind && pc.allowances.hem !== undefined)?.allowances.hem ?? 2;
       // Tiers and the extra godets are cut but not printed.
-      const lays = layPlans([...pieces, ...allow(layoutExtras(skirt))], finish.fabricWidth, nap, hide);
+      const lays = layPlans([...pieces, ...allow(layoutExtras(skirt))], finish.fabricWidth, nap, hide, false, border);
       const metres = (f: 'self' | 'lining', fallback: () => number) => lays.find((l) => l.fabric === f)?.metres ?? fallback();
       return {
         pieces,
@@ -635,7 +639,7 @@ export default function App() {
       const [bf, bb] = blockOf(d.bodice);
       const facings = edges === 'facings' ? (d.bodice.drape ? drapeFacings(d.bodice, !sleeve) : bodiceFacings(bf, bb, !sleeve, d.bodice.collar !== 'mandarin')) : [];
       const pieces = allow([...top, ...(sleeve?.pieces ?? []), ...d.skirt.pieces, ...facings]);
-      const lays = layPlans([...pieces, ...allow(layoutExtras(d.skirt))], finish.fabricWidth, nap, hide);
+      const lays = layPlans([...pieces, ...allow(layoutExtras(d.skirt))], finish.fabricWidth, nap, hide, false, border);
       const metres = (f: 'self' | 'lining' | 'interlining') => lays.find((l) => l.fabric === f)?.metres ?? bodiceFabricMetres(d.bodice, sleeve) + fabricMetres(d.skirt);
       const edgeWords = sleeve
         ? { binding: 'a bias-bound neckline', facings: 'a faced neckline', lined: 'a lined bodice' }[edges]
@@ -686,7 +690,7 @@ export default function App() {
         ? { binding: 'a bias-bound neckline', facings: 'a faced neckline', lined: 'a lined bodice' }[edges]
         : { binding: 'bias-bound edges', facings: 'faced neck and armholes', lined: 'a full lining' }[edges];
       const sleeveWords = sleeve ? `${describeBodice(saved.bodice).replace(/^.* with /, 'With ')}` : 'Sleeveless';
-      const lays = layPlans(pieces, finish.fabricWidth, nap, hide);
+      const lays = layPlans(pieces, finish.fabricWidth, nap, hide, false, border);
       const metres = (f: 'self' | 'lining' | 'interlining') => lays.find((l) => l.fabric === f)?.metres ?? bodiceFabricMetres(bodice);
       return {
         pieces,
@@ -739,9 +743,9 @@ export default function App() {
       notes: [`Read from ${imported.fileName}${source ? `, made in ${source}` : ''}.`, ...notes],
       guide: importedGuide(pieces),
       spec: [],
-      lays: layPlans(pieces, finish.fabricWidth, finish.nap || needsNap(finish.fabric?.special)),
+      lays: layPlans(pieces, finish.fabricWidth, finish.nap || needsNap(finish.fabric?.special) || printNap(printOf(finish.fabric)), false, false, printOf(finish.fabric) === 'border'),
     };
-  }, [imported, finish.fabricWidth, finish.nap, finish.fabric?.special]);
+  }, [imported, finish.fabricWidth, finish.nap, finish.fabric]);
   // Body Double: the padded form cover, drafted from the same 3D body as every form in the app.
   const coverPrintable = useMemo((): Printable | undefined => {
     if ((step !== 'form' && step !== 'formprint') || coverMissing(measured).length) return undefined;
