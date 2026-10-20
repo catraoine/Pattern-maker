@@ -1361,6 +1361,117 @@ b {
   color: var(--ink);
   line-height: 1.45;
 }
+/* Cat's A1 Tap to Enlarge (2026-10-20): the Enlarge button on the style page's sketch, and the full-screen view. */
+.enlarge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 6px 10px;
+  border: 1px solid var(--guide);
+  background: var(--paper);
+  color: var(--gild);
+  font: var(--w-strong) 11px/1 var(--sans);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: zoom-in;
+}
+.enlarge.in-row {
+  position: static;
+}
+.enlarge svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+}
+.big-sketch {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: max(16px, env(safe-area-inset-top)) 16px max(20px, env(safe-area-inset-bottom));
+  background: var(--paper);
+}
+.big-sketch-top {
+  align-self: stretch;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.big-sketch-top p {
+  margin: 0;
+  color: var(--gild);
+  font-family: var(--sans);
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.big-sketch-x {
+  min-width: 40px;
+  min-height: 40px;
+  border: 0;
+  background: none;
+  color: var(--gild);
+  font-size: 18px;
+}
+.big-sketch-stage {
+  flex: 1;
+  align-self: stretch;
+  min-height: 0;
+  overflow: hidden;
+  touch-action: none;
+  cursor: zoom-in;
+}
+.big-sketch-draw {
+  width: 100%;
+  height: 100%;
+  transform-origin: center;
+}
+.big-sketch-draw svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-height: none;
+}
+/* A still copy: no handles or hints for dragging it on the page. */
+.big-sketch-draw :is(.handle, .hint) {
+  display: none;
+}
+.big-sketch-views {
+  display: flex;
+  gap: 22px;
+}
+.big-sketch-views button {
+  padding: 4px 0;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  background: none;
+  color: var(--muted);
+  font-family: var(--sans);
+  font-size: 13px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.big-sketch-views button[aria-pressed='true'] {
+  color: var(--gild);
+  border-bottom-color: var(--gild);
+}
+.big-sketch-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+}
 @media (prefers-reduced-motion: reduce) {
   :is(.explain-pic, .big-drawing) .pic-trace,
   .chips.pics .chip.on .pic-trace {

@@ -3,6 +3,7 @@ import type { Mode } from '../mode';
 import type { Garment } from '../measurements';
 import { IN_TESTING, inTesting } from '../launch';
 import { canGoBack, goBack, usePageHistory } from '../nav';
+import { EnlargeSketch } from './EnlargeSketch';
 import { CollectionEntry, GarmentSwitch } from './GarmentSwitch';
 import { ModeLink } from './ModeLink';
 import { PhotoEntry } from './PhotoEntry';
@@ -204,6 +205,12 @@ export function StyleLayout({ children, label, name, garment, metres, width = 14
     return () => ro.disconnect();
   }, [tabs.length]);
   const [tall, setTall] = useState(false);
+  // The preview's drawing area, where the Enlarge button sits.
+  const [host, setHost] = useState<HTMLElement | null>(null);
+  useLayoutEffect(() => {
+    const el = pin.current?.querySelector<HTMLElement>('.preview') ?? null;
+    if (el !== host) setHost(el);
+  });
   useEffect(() => {
     const el = pin.current;
     if (!el || typeof ResizeObserver === 'undefined') return;
@@ -277,6 +284,7 @@ export function StyleLayout({ children, label, name, garment, metres, width = 14
       <div className="style-edit">
         <div className={tall ? 'style-pin tall' : 'style-pin'} ref={pin}>
           {preview}
+          <EnlargeSketch host={host} name={name} />
           <div
             className={atEnd ? 'style-tabs at-end' : 'style-tabs'}
             role="tablist"
