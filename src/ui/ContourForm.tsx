@@ -43,12 +43,12 @@ const R_WOMENSWEAR = spline([
   [-1.05, 0.58], [-0.8, 0.59], [-0.55, 0.61],
   [-0.3, 0.53], [-0.05, 0.45], [0.1, 0.43], [0.3, 0.49], [0.55, 0.61], [0.8, 0.65], [1.05, 0.63], [1.3, 0.58],
 ]);
-// The menswear form (Cat's B2 Two Forms, 2026-10-18): a fuller neck, broader and squarer shoulders, a straighter
-// torso tapering gently to the waist, and narrower hips.
+// The menswear form (Cat's B2 Two Forms, 2026-10-18; shape M1 Tailor's Form, 2026-10-20): a suit-maker's form,
+// with a full neck, wide squared shoulders and the chest tapering in a clean V to a straight waist and hip.
 const R_MENSWEAR = spline([
-  [-1.75, 0.17], [-1.55, 0.175], [-1.47, 0.19], [-1.43, 0.3], [-1.39, 0.52], [-1.33, 0.63], [-1.22, 0.67],
-  [-1.05, 0.665], [-0.8, 0.64], [-0.55, 0.61],
-  [-0.3, 0.57], [-0.05, 0.535], [0.1, 0.525], [0.3, 0.535], [0.55, 0.56], [0.8, 0.575], [1.05, 0.565], [1.3, 0.54],
+  [-1.75, 0.19], [-1.55, 0.195], [-1.47, 0.215], [-1.43, 0.33], [-1.4, 0.56], [-1.35, 0.68], [-1.26, 0.72],
+  [-1.1, 0.71], [-0.85, 0.665], [-0.55, 0.615],
+  [-0.3, 0.575], [-0.05, 0.55], [0.1, 0.545], [0.3, 0.55], [0.55, 0.565], [0.8, 0.575], [1.05, 0.565], [1.3, 0.545],
 ]);
 // Every drawing below reads the form through R. Each paint picks the person's form first (JS paints one canvas
 // at a time, so two forms on one screen each draw their own).
