@@ -48,7 +48,10 @@ describe('seam allowance styles', () => {
   });
 
   it('cuts wide fitting allowances for couture and draws the stitching line to thread-trace', () => {
-    const pc = withAllowances(front, 'couture');
+    // A straight skirt's 4 cm hem is deepened to 5 for couture; an A-line's narrower hem is kept.
+    const [straight] = draftSkirt(m, { silhouette: 'straight' }).pieces;
+    expect(withAllowances(front, 'couture').allowances.hem).toBe(front.allowances.hem);
+    const pc = withAllowances(straight, 'couture');
     expect(pc.seamAllowance).toBe(2.5);
     expect(pc.allowances.hem).toBe(5);
     expect(pc.meta.threadTrace).toBe(true);
