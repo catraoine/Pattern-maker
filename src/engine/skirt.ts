@@ -102,12 +102,15 @@ export const FIT_EASE: Record<Fit, { waist: number; hip: number }> = {
   relaxed: { waist: 3, hip: 11 },
 };
 
-// Hem position from the body landmarks. Mid-calf and ankle are estimated from knee and floor.
+// Hem position from the body landmarks, scaled to the body so a petite and a tall mini read the same.
+// On the sample body (waist to knee 58, waist to floor 104) these finish at 38, 50, 58, 76 and 97 cm
+// from the natural waist, in line with ready-to-wear: a mini at mid-thigh, above the knee clear of the
+// kneecap, a midi at mid-calf (not the lower calf) and a maxi at the ankle.
 export const LENGTHS: Record<Length, (m: SkirtMeasurements) => number> = {
-  mini: (m) => m.waist_to_knee - 15,
-  above_knee: (m) => m.waist_to_knee - 5,
+  mini: (m) => Math.max(m.waist_to_hip + 12, m.waist_to_knee * 0.66),
+  above_knee: (m) => m.waist_to_knee * 0.86,
   knee: (m) => m.waist_to_knee,
-  midi: (m) => (m.waist_to_knee + m.waist_to_floor) / 2,
+  midi: (m) => m.waist_to_knee + (m.waist_to_floor - m.waist_to_knee) * 0.4,
   maxi: (m) => m.waist_to_floor - 7,
 };
 
