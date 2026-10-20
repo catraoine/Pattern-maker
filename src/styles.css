@@ -1596,6 +1596,8 @@ button.ghost:disabled {
 .people-seg {
   max-width: 100%;
   overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
 }
 
 .people-seg button {
@@ -1845,6 +1847,7 @@ details.more[open] > summary h2::after {
 }
 .legal-table {
   overflow-x: auto;
+  overflow-y: hidden;
   margin-bottom: 10px;
 }
 .legal-table table {
@@ -2745,6 +2748,7 @@ dialog.guide::backdrop {
 /* True size: a bank card to calibrate against, then a piece at 1:1 */
 .calcard-wrap {
   overflow-x: auto;
+  overflow-y: hidden;
   padding: 8px 0;
 }
 .calcard {
@@ -2837,6 +2841,7 @@ dialog.guide::backdrop {
 }
 .tablewrap {
   overflow-x: auto;
+  overflow-y: hidden;
 }
 table.history {
   border-collapse: collapse;
@@ -3263,6 +3268,8 @@ button.link.garment-change {
   flex-wrap: nowrap;
   justify-content: flex-start;
   overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
   scrollbar-width: none;
   margin: 0 -2px;
   padding: 0 2px 2px;
@@ -3378,6 +3385,7 @@ button.link.garment-change {
   display: flex;
   gap: 10px;
   overflow-x: auto;
+  overflow-y: hidden;
   padding: 6px 5px;
   scrollbar-width: none;
   overscroll-behavior-x: contain;
@@ -3447,6 +3455,8 @@ button.link.garment-change {
   display: flex;
   gap: 10px;
   overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
   padding: 2px 2px 4px;
   scrollbar-width: none;
 }
@@ -3491,6 +3501,8 @@ button.link.garment-change {
   display: flex;
   gap: 10px;
   overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
   padding: 5px;
   scrollbar-width: none;
 }
@@ -4478,11 +4490,15 @@ button.link.garment-change {
   position: sticky;
   top: calc(var(--pin-top, 0px) + 12px);
 }
+/* Sideways rows slide only sideways (Cat, 2026-10-20): with overflow-x alone the browser lets the row scroll up
+   and down too, and the tabs' underline sitting 1px over the rule was enough to make it wobble. */
 .style-tabs {
   grid-area: tabs;
   display: flex;
   gap: 18px;
   overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
   scrollbar-width: none;
   border-bottom: 1px solid var(--guide);
   padding: 8px 0 0;

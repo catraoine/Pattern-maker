@@ -209,6 +209,23 @@ export function StyleLayout({ children, label, name, garment, metres, width = 14
     if (tab && row) row.scrollTo({ left: tab.offsetLeft - row.offsetLeft - row.clientWidth / 2 + tab.offsetWidth / 2, behavior: 'smooth' });
   }, [active, tabs, wide]);
 
+  // A swipe across the choices to the next tab moves only sideways: once the finger is plainly going across,
+  // the page holds still instead of drifting up and down with it (Cat, 2026-10-20). React's touch handlers
+  // can't hold the page, so this one is added by hand.
+  useEffect(() => {
+    const el = panel.current;
+    if (!el) return;
+    const hold = (e: TouchEvent) => {
+      const s = swipe.current;
+      const p = e.touches[0];
+      if (!s || s.sideways || !p || !e.cancelable) return;
+      const dx = Math.abs(p.clientX - s.x);
+      if (dx > 10 && dx > 2 * Math.abs(p.clientY - s.y)) e.preventDefault();
+    };
+    el.addEventListener('touchmove', hold, { passive: false });
+    return () => el.removeEventListener('touchmove', hold);
+  }, [page]);
+
   const choose = (t: string) => setActive(t);
   const step = (by: number) => {
     const i = tabs.indexOf(active ?? '');
