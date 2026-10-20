@@ -11,13 +11,14 @@ describe('bodice block', () => {
   it('gives the expected darts and sizes for the three sample bodies', () => {
     // Started as the Python prototype's numbers (drafting/pattern/bodice.py). Since then the engine
     // draws shoulders at standard slopes, sizes the armhole from the high bust and gives the armhole
-    // more room as ease grows, so the bust dart and armhole differ from the prototype's. Body C's bust
-    // dart grew when the side seam was given a curve below the underarm to blend with the back's. The
-    // finished waist is the waist seam's length with darts closed, a little over the pieces' width.
+    // more room as ease grows, so the bust dart and armhole differ from the prototype's. Regular ease
+    // is now 7 cm at the bust and 5 at the waist. Body C's side bust dart is capped at 5 cm, the rest
+    // of what its cup needs pivoted into the waist dart, which is why its waist dart is the largest.
+    // The finished waist is the waist seam's length with darts closed, a little over the pieces' width.
     const expected = {
-      A: { bustDart: 3, front: 4.4, back: 2.4, armhole: 46.4, bust: 97, waist: 77.3 },
-      B: { bustDart: 1, front: 2.7, back: 2.7, armhole: 53.5, bust: 107, waist: 89.5 },
-      C: { bustDart: 11.64, front: 6.5, back: 0.5, armhole: 58.4, bust: 137, waist: 121 },
+      A: { bustDart: 3, front: 4.37, back: 2.33, armhole: 45.9, bust: 96, waist: 76.6 },
+      B: { bustDart: 1, front: 2.64, back: 2.63, armhole: 52.9, bust: 106, waist: 88.7 },
+      C: { bustDart: 5.02, front: 9.28, back: 0.5, armhole: 57.9, bust: 136, waist: 120 },
     };
     for (const [name, body] of Object.entries({ A, B, C })) {
       const d = draftBodice(body);

@@ -61,6 +61,9 @@ export const SLEEVE_EASE: Record<BodiceFit, { bicep: number; crown: number }> = 
 const BACK_SHARE = 0.55;
 /** Width of a puff or bishop sleeve's band when finished, in cm. */
 export const BAND_CM = 3;
+/** Room over the closed hand at a long sleeve's wrist opening or band, in cm, so it goes on without a vent. */
+export const HAND_ROOM = 2;
+export const BAND_ROOM = 2.5;
 
 export interface SleeveDraft {
   pieces: Piece[];
@@ -252,7 +255,8 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
     if (shape === 'bishop') return w * 1.5;
     if (s.outer && s.length === 'long') return shape === 'fitted' ? Math.max(wrist + (s.outer === 'coat' ? 14 : 11), hand + 5) : Math.max(w * 0.85, hand + 8);
     if (shape === 'fitted') {
-      if (s.length === 'long') return Math.max(wrist + 6, hand + 1);
+      // Close at the wrist, but the hand (no vent) still has to get through with a little to spare.
+      if (s.length === 'long') return Math.max(wrist + 6, hand + HAND_ROOM);
       if (s.length === 'three_quarter') return Math.max(w + (wrist + 6 - w) * 0.6, hand + 2);
       return w * 0.86;
     }
@@ -375,7 +379,7 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
       warnings,
     };
   }
-  const band = gathered ? bandPiece(shape === 'puff' ? m.upper_arm + 4 : hand + 1, s.seamAllowance) : undefined;
+  const band = gathered ? bandPiece(shape === 'puff' ? m.upper_arm + 4 : hand + BAND_ROOM, s.seamAllowance) : undefined;
   const crownLen = c.lenF + c.lenB;
   return {
     pieces: band ? [sleeve, band] : [sleeve],

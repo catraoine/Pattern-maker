@@ -86,7 +86,7 @@ describe('import a pattern from pro software', () => {
     expect(back.pieces[0].seamAllowance).toBe(d.pieces[0].seamAllowance);
     expect(back.pieces[0].meta.imported).toBe(true);
     // The hem's deeper allowance comes back as its own edge, as the tech pack lists it.
-    expect(back.pieces[1].allowances.hem).toBe(4);
+    expect(back.pieces[1].allowances.hem).toBe(2.5);
   });
 
   it('reads home allowances, a bodice, trousers and a lined jacket', () => {
