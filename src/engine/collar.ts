@@ -134,16 +134,20 @@ export function frontFacing(opened: Piece): Piece {
     bottomTags.push(r.tags[i - 1]);
   }
   const b6 = bottom[bottom.length - 1];
-  // The inner edge: straight up, then curving out to the shoulder.
+  // The inner edge: straight up, then curving out to meet the shoulder square, so the cutting line's
+  // mitre at the shoulder stays a seam allowance from the corner instead of running out in a spike.
   const m = p(FACING_IN, Math.min(b6.y - 2, r.pts[0].y + 4));
   const inner: P[] = [];
+  const uSh = unit(sub(r.pts[sh[1] + 1], hps));
+  const inward = p(-uSh.y, uSh.x).y > 0 ? p(-uSh.y, uSh.x) : p(uSh.y, -uSh.x);
+  const c = add(s4, mul(inward, Math.max(2, Math.min(5, (m.y - s4.y) * 0.5))));
   for (let i = 1; i <= 12; i++) {
     const t = i / 12;
-    const c = p(FACING_IN, s4.y + 2);
     inner.push(p((1 - t) ** 2 * m.x + 2 * (1 - t) * t * c.x + t * t * s4.x, (1 - t) ** 2 * m.y + 2 * (1 - t) * t * c.y + t * t * s4.y));
   }
   const pts = [...top, ...ext, ...bottom, m, ...inner.slice(0, -1)];
-  const tags = [...topTags, 'opening-neck', 'opening', 'opening-hem', ...bottomTags, ...Array(inner.length).fill('facing')];
+  // One 'facing' tag per inner-edge point, and one more for the edge that closes the ring back to the shoulder.
+  const tags = [...topTags, 'opening-neck', 'opening', 'opening-hem', ...bottomTags, ...Array(inner.length + 1).fill('facing')];
   // The ring ran neck-first from the centre front; here the extension edges follow the neck.
   tags[topTags.length - 1] = topTags[topTags.length - 1];
   const outline = pathOf({ pts, tags: tags.slice(0, pts.length) });
@@ -181,6 +185,21 @@ interface CollarIn {
   ext: number;
   closure: Closure;
   sa: number;
+}
+
+/** A polyline with the corner at index `k` rounded: points within `reach` of it are eased onto a smooth
+ * curve by averaging each with its neighbours, the two ends of the reach and the ends of the line fixed. */
+function smoothJoin(pts: P[], k: number, reach: number): P[] {
+  const out = pts.map((q) => p(q.x, q.y));
+  const near = (i: number) => len(sub(pts[i], pts[k])) < reach;
+  for (let pass = 0; pass < 6; pass++) {
+    const prev = out.map((q) => p(q.x, q.y));
+    for (let i = 1; i < out.length - 1; i++) {
+      if (!near(i)) continue;
+      out[i] = p((prev[i - 1].x + 2 * prev[i].x + prev[i + 1].x) / 4, (prev[i - 1].y + 2 * prev[i].y + prev[i + 1].y) / 4);
+    }
+  }
+  return out;
 }
 
 /** A neck curve x along, y up (negative), stretched until its length is exactly `L`. */
@@ -385,7 +404,9 @@ export function peterPanCollar(front: Piece, back: Piece, c: CollarIn): Piece[] 
   // Neck from centre back to the neck point, then on from the neck point to the centre front.
   const backNeck = b.neck.map(toFront);
   const frontNeck = [...f.neck].reverse();
-  const neck = [...backNeck, ...frontNeck.slice(1)];
+  // The swing leaves a small angle where the back neck meets the front at the neck point: the join is
+  // smoothed over a few centimetres each side, so the collar's edges run on without a step.
+  const neck = smoothJoin([...backNeck, ...frontNeck.slice(1)], backNeck.length - 1, 2.5);
   const L = polyLen(neck);
   // Outward: away from the neck hole, which lies toward the chord from centre back to centre front.
   const chordMid = lerp(neck[0], neck[neck.length - 1], 0.5);
