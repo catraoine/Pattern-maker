@@ -62,7 +62,6 @@ import { TrousersStyleScreen, trousersFabricMetres } from './screens/TrousersSty
 import { TeeStyleScreen, teeFabricMetres } from './screens/TeeStyleScreen';
 import { OuterStyleScreen, outerFabricMetres } from './screens/OuterStyleScreen';
 import { ExportScreen, Printable } from './screens/ExportScreen';
-import { ChapterBand } from './ui/ChapterBand';
 import { describePattern } from './screens/describe';
 import { WelcomeScreen } from './screens/WelcomeScreen';
 import { FABRIC, openTabNext } from './ui/StyleLayout';
@@ -946,8 +945,6 @@ export default function App() {
             </>
           )}
         </header>
-        {(step === 'style' || step === 'collection') && <ChapterBand key="style" kind="selvedge" />}
-        {(step === 'export' || step === 'imported' || step === 'formprint') && <ChapterBand key="print" kind="mat" />}
 
         <main className="main">
           <KeptCount.Provider value={{ kept: account.patterns.length, limit: savedLimit(account) }}>

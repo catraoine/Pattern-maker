@@ -90,10 +90,10 @@ export async function openFresh(page: Page) {
   await expect(heading(page, /drafted to your body/i)).toBeVisible();
 }
 
-/** Begin, then Skip on the tape across the top of the first measuring page. */
+/** Begin, then the quiet Skip link under the first measuring page's buttons. */
 export async function skipToExample(page: Page) {
   await main(page).getByRole('button', { name: 'Begin' }).click();
-  await main(page).getByRole('button', { name: 'Skip measuring and try an example' }).click();
+  await main(page).getByRole('button', { name: 'Skip and try an example' }).click();
 }
 
 /** "Me" on the first measuring page, with the form to draft on beside it (Cat's F1 Form Joins In): womenswear unless given. */

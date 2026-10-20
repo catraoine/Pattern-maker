@@ -18,6 +18,10 @@ Four things, nothing else:
 3. **Waitlist.** The sign-up page and the "tell me when it opens" cards.
 4. **Real sign-in.** Accounts that survive a new phone, before the public launch.
 
+**UX/UI fixes carry on (Cat, 20 October 2026).** The freeze stops new styling tools, garments and features. Making
+the screens that already exist clearer, easier and better looking is not frozen: layout, wording, buttons, demo
+videos for existing tools and fixes like these go ahead.
+
 | What | Where | State on 20 Oct |
 | --- | --- | --- |
 | Fit fixes from the Fable review | PR #114 | queued |
