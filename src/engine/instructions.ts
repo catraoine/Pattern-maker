@@ -476,7 +476,7 @@ function sleeveCutWords(sleeve: SleeveDraft | undefined): string {
   if (!sleeve) return '';
   return ` Place the sleeve on both layers too, so you get a pair, and snip its notches: one at the top of the crown, one on the front, two on the back.${
     sleeve.pieces.length > 1 ? ' Cut the two sleeve bands.' : ''
-  }${sleeve.elbowDart ? ' Chalk-mark the elbow dart.' : ''}`;
+  }${sleeve.vent ? ' Snip the vent notch on the back seam too.' : ''}${sleeve.elbowDart ? ' Chalk-mark the elbow dart.' : ''}`;
 }
 
 /**
@@ -589,7 +589,9 @@ function sleeveSteps(sl: SleeveDraft, seam: string, curve: string, lined: boolea
       : []),
     {
       title: 'Sew the sleeve seams',
-      text: `Fold each sleeve right sides together, matching the underarm corners, the notches and the hem. Sew the underarm seam ${seam} from the edge and press it open over a sleeve board or a rolled towel, so the crease doesn't press through to the top of the sleeve.`,
+      text: `Fold each sleeve right sides together, matching the underarm corners, the notches and the hem. Sew the underarm seam ${seam} from the edge${
+        sl.vent ? `, from the underarm down to the vent notch ${sl.vent.lengthCm} cm above the hem, and backstitch there: the seam stays open below it for the wrist vent. Press it` : ' and press it'
+      } open over a sleeve board or a rolled towel, so the crease doesn't press through to the top of the sleeve.`,
     },
     band
       ? {
@@ -598,7 +600,11 @@ function sleeveSteps(sl: SleeveDraft, seam: string, curve: string, lined: boolea
         }
       : {
           title: 'Hem the sleeves',
-          text: `Press up 1 cm, then ${Math.round((hemAllowance - 1) * 10) / 10} cm more, and stitch by hand or machine. It is far easier now than once the sleeves are in.`,
+          text: `${
+            sl.vent
+              ? `Finish the vent first: press the open seam allowances below the notch to the wrong side along the seam line, turn their raw edges under and stitch them down close to the fold, with a bar tack or a few stitches across the top of the vent so it doesn't tear. Then press up 1 cm`
+              : 'Press up 1 cm'
+          }, then ${Math.round((hemAllowance - 1) * 10) / 10} cm more, and stitch by hand or machine${sl.vent ? ', mitring the hem at the vent corners' : ''}. It is far easier now than once the sleeves are in.`,
         },
     puff
       ? {

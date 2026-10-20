@@ -6,7 +6,7 @@ import { draftTrousers, trousersWaistband } from './trousers';
 import { draftTee } from './tee';
 import { withAllowances } from './allowances';
 import { bounds, cutLine, Piece } from './piece';
-import { fitRow, labelCollisions, layout, pack, packedPages, pageCount, wrapInfo } from './export';
+import { columnSpans, fitRow, labelCollisions, layout, pack, packedPages, pageCount, textWidth, turnedInBox, wrapInfo } from './export';
 import { EXAMPLE_VALUES } from '../measurements';
 
 const GAP = 4;
@@ -69,7 +69,9 @@ describe('packing the sheet', () => {
       const boxes = pieces.map((pc) => bounds(pc));
       const outlines = pieces.map((pc) => cutLine(pc));
       const packed = pack(outlines, boxes);
-      const placed = outlines.map((o, i) => o.map((q) => ({ x: q.x + packed.at[i].x - boxes[i][0], y: q.y + packed.at[i].y - boxes[i][1] })));
+      // Each outline as laid: turned end to end within its box when the packer turned it.
+      const laid = outlines.map((o, i) => (packed.turned[i] ? o.map((q) => turnedInBox(q, boxes[i])) : o));
+      const placed = laid.map((o, i) => o.map((q) => ({ x: q.x + packed.at[i].x - boxes[i][0], y: q.y + packed.at[i].y - boxes[i][1] })));
       for (let i = 0; i < placed.length; i++)
         for (let j = i + 1; j < placed.length; j++) expect(apart(placed[i], placed[j]), `${pieces[i].name} / ${pieces[j].name}`).toBeGreaterThanOrEqual(GAP - 0.01);
       for (const at of packed.at) {
@@ -80,12 +82,33 @@ describe('packing the sheet', () => {
       expect(packed.width / packed.height).toBeLessThan(3);
       const sizes = boxes.map(([x0, y0, x1, y1]) => ({ w: x1 - x0, h: y1 - y0 }));
       let x = 0;
-      const row = { at: sizes.map((s) => ({ x: (x += s.w + GAP) - s.w - GAP, y: 0 })), width: x - GAP, height: Math.max(...sizes.map((s) => s.h)) };
-      const pages = packedPages(packed, sizes);
+      const row = { at: sizes.map((s) => ({ x: (x += s.w + GAP) - s.w - GAP, y: 0 })), turned: sizes.map(() => false), width: x - GAP, height: Math.max(...sizes.map((s) => s.h)) };
+      const spans = laid.map((o, i) => columnSpans(o.map((q) => ({ x: q.x - boxes[i][0], y: q.y - boxes[i][1] }))));
+      const pages = packedPages(packed, sizes, spans);
       expect(pages).toBeLessThan(packedPages(row, sizes));
-      expect(pages).toBeLessThanOrEqual(kind === 'jacket' ? 56 : 90);
-      // The packer counts the pieces' boxes; the laid-out sheet also carries labels and its own margin, so it can run a page over.
-      expect(Math.abs(pageCount(layout(pieces, kind, [], INFO), 'a4') - pages)).toBeLessThanOrEqual(1);
+      // Turning pieces end to end brought the jacket from 53 pages to 50 and the coat from 83 to 79.
+      expect(pages).toBeLessThanOrEqual(kind === 'jacket' ? 51 : 80);
+      // The packer counts the pieces' outlines; the laid-out sheet also carries labels and notches, so it can run a page over.
+      const sheet = layout(pieces, kind, [], INFO);
+      expect(Math.abs(pageCount(sheet, 'a4') - pages)).toBeLessThanOrEqual(1);
+      // Some pieces are turned, and a turned piece is drawn turned: its cutting line as laid, with
+      // its name block and every other label on it the right way up and still inside it.
+      expect(packed.turned.some(Boolean)).toBe(true);
+      pieces.forEach((pc, i) => {
+        const cut = sheet.prims.find((pr) => pr.kind === 'poly' && pr.style === 'cut' && pr.piece === i && pr.closed)!;
+        expect(cut.kind === 'poly' && cut.pts.length).toBe(placed[i].length);
+        if (cut.kind !== 'poly') return;
+        cut.pts.forEach((q, k) => {
+          expect(q.x).toBeCloseTo(placed[i][k].x + 3, 3);
+          expect(q.y).toBeCloseTo(placed[i][k].y + 3, 3);
+        });
+        for (const pr of sheet.prims) {
+          if (pr.kind !== 'text' || pr.piece !== i) continue;
+          expect(pr.rotate, `${pc.name}: ${pr.text}`).toBeGreaterThan(-91);
+          expect(pr.rotate, `${pc.name}: ${pr.text}`).toBeLessThanOrEqual(91);
+          expect(inside(pr.at, cut.pts), `${pc.name}: ${pr.text}`).toBe(true);
+        }
+      });
     });
   }
 
@@ -124,6 +147,36 @@ describe('labels on small pieces', () => {
       expect(labelCollisions(layout(pieces, name, [], INFO))).toEqual([]);
     });
   }
+
+  it('keeps the collar\'s name block off its roll line', () => {
+    const pieces = cases[0][1];
+    const sheet = layout(pieces, 'Jacket', [], INFO);
+    const i = pieces.findIndex((pc) => pc.name === 'Collar');
+    // The roll line as drawn on the sheet: the collar's one internal line, two points long.
+    const roll = sheet.prims.find((pr) => pr.kind === 'poly' && pr.piece === i && pr.style === 'mark' && pr.pts.length === 2 && !pr.closed)!;
+    expect(roll).toBeDefined();
+    if (roll.kind !== 'poly') return;
+    const [a, b] = roll.pts;
+    expect(Math.hypot(b.x - a.x, b.y - a.y)).toBeGreaterThan(10);
+    // The name block: the name, its information line(s) and the fabric. None of their boxes meets the roll line.
+    const block = sheet.prims.filter((pr): pr is Extract<typeof pr, { kind: 'text' }> => pr.kind === 'text' && pr.piece === i && /^COLLAR$|^PIECE |COLLAR IN SELF/.test(pr.text));
+    expect(block.length).toBeGreaterThanOrEqual(2);
+    for (const pr of block) {
+      expect(pr.rotate).toBe(0);
+      const hw = textWidth(pr.text, pr.size, pr.tracking ?? 0) / 2;
+      const top = pr.at.y - pr.size * 0.75;
+      const bottom = pr.at.y + pr.size * 0.1;
+      // The line's height where it passes the box, if it does.
+      const [x0, x1] = [pr.at.x - hw, pr.at.x + hw];
+      const yAt = (x: number) => a.y + ((b.y - a.y) * (x - a.x)) / (b.x - a.x);
+      const lo = Math.max(x0, Math.min(a.x, b.x));
+      const hi = Math.min(x1, Math.max(a.x, b.x));
+      if (lo > hi) continue;
+      const ys = [yAt(lo), yAt(hi)];
+      const clear = Math.max(...ys) < top || Math.min(...ys) > bottom;
+      expect(clear, `${pr.text} crosses the roll line`).toBe(true);
+    }
+  });
 
   it('names the collar as it is cut, on the fold in self', () => {
     const t = texts(cases[0][1], 'Collar');
