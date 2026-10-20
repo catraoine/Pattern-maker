@@ -29,6 +29,7 @@ import { FormSketch } from '../ui/FormSketch';
 import { landmarks } from '../ui/formLines';
 import { outerLines, readOuterCollar, readOuterFit, readOuterFront, readOuterHem, readOuterShaping } from '../ui/formTops';
 import { FABRIC, Group, PRO, StyleLayout, TabPanel } from '../ui/StyleLayout';
+import { DemoButton } from '../ui/DemoButton';
 
 interface Props {
   /** Start from a photo, and the photo this garment was matched to while the app is open. */
@@ -224,6 +225,7 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           </div>
         </div>
         <div className="preview">
+          <DemoButton demo="style" />
           {error && <p className="msg error">{error}</p>}
           {formBody && view === 'sketch' && (
             <FormSketch body={formBody} m={m} legs={kind === 'coat'} bottom={waistY + outerDrop(m, longest) + 6} lines={formLines} label={`The ${title.toLowerCase()} on your form`} />

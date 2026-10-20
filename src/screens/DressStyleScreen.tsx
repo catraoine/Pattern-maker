@@ -44,6 +44,7 @@ import { REPLACES } from './BodiceStyleScreen';
 import { bodiceLines, landmarks, readDrape, readFit, readNeckline, readSeam, readSkirtHem, skirtLines } from '../ui/formLines';
 import { ChoicePic, chipsClass } from '../ui/ChoicePic';
 import { Explain } from '../ui/Explain';
+import { DemoButton } from '../ui/DemoButton';
 
 /** Moving the shaping is a pro tool, so these groups sit on the Pro tab. */
 const PRO_GROUPS: string[] = ['princess', 'bustDart'];
@@ -411,6 +412,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           </div>
         </div>
         <div className="preview">
+          <DemoButton demo="style" />
           {error && <p className="msg error">{error}</p>}
           {formBody && view === 'sketch' && (
             <FormSketch body={formBody} m={mv} legs bottom={waistY + lengthRange(mv).max + 4} lines={formLines} label={`The ${title} on your form`} />

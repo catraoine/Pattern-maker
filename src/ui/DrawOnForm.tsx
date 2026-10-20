@@ -15,6 +15,7 @@ import { CM_PER_UNIT, HEAD_CHIN, HEAD_TOP, headLines } from './ContourForm';
 const HEAD_CM = (HEAD_CHIN - HEAD_TOP) * CM_PER_UNIT - 1.5;
 import { FormLine, FormSide, Reading, landmarks } from './formLines';
 import { TestingTag } from './TestingTag';
+import { DemoButton } from './DemoButton';
 
 type Measures = { full_bust?: number; waist: number; full_hip?: number; waist_to_hip?: number; waist_to_knee?: number; waist_to_floor?: number; crotch_depth?: number };
 
@@ -381,6 +382,7 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
           </div>
         </div>
         <div className="preview">
+          <DemoButton demo="draw" />
           <svg
             ref={svg}
             viewBox={`0 ${f(frame.top)} ${f(2 * cx)} ${f(frame.bottom - frame.top)}`}
