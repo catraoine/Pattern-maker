@@ -6,6 +6,8 @@ import { draftTrousers, TrousersMeasurements } from './trousers';
 import { bodiceGuide, sewingGuide } from './instructions';
 import { outerGuide } from './outerGuide';
 import { trousersGuide } from './trousersGuide';
+import { draftTee } from './tee';
+import { teeGuide } from './teeGuide';
 import { randomArms, randomBody, rng } from './randomBodies';
 import { draftSleeve } from './sleeve';
 import { EXAMPLE_VALUES } from '../measurements';
@@ -133,5 +135,55 @@ describe('the trousers steps follow their options', () => {
     expect(step(trousersGuide(draftTrousers(T), 2, { length: 'full' }), 'Hem')).not.toMatch(/ankle/);
     // Without the length, both are described.
     expect(step(trousersGuide(d, 2), 'Hem')).toMatch(/top of the shoe.*ankle bone/);
+  });
+});
+
+describe('guide text guarded by draft fields another branch adds', () => {
+  const TEE = { full_bust: 92, waist: 76, full_hip: 102, waist_to_hip: 20.5, neck: 35, shoulder_width: 38, nape_to_waist: 41, armscye: 40, arm_length: 59, upper_arm: 29, wrist: 16 };
+
+  it('sews a tee bust dart before the side seams, and eases a longer front hem, only when the draft has them', () => {
+    const d = draftTee(TEE);
+    const plain = teeGuide(d, 1.5);
+    expect(titles(plain)).not.toContain('Sew the bust dart');
+    expect(step(plain, 'Sew the side seams')).not.toMatch(/longer at the side/);
+    const darted = teeGuide({ ...d, bust: { dart: true, extra: 1.5 } } as typeof d, 1.5);
+    const t = titles(darted);
+    expect(t.indexOf('Sew the bust dart')).toBeGreaterThan(-1);
+    expect(t.indexOf('Sew the bust dart')).toBeLessThan(t.indexOf('Sew the side seams'));
+    expect(step(darted, 'Sew the bust dart')).toMatch(/side bust dart \(BUST DART\).*press it down/);
+    expect(step(darted, 'Sew the side seams')).toMatch(/cut 1.5 cm longer at the side.*ease the front's hem edge to meet the back's/);
+  });
+
+  it('treats a princess front facing as the whole centre front panel when there is no front lining piece', () => {
+    const d = draftOuter(O, { kind: 'coat', shaping: 'princess' });
+    const panel = { ...d, pieces: d.pieces.filter((pc) => pc.name !== 'Front lining') };
+    const g = outerGuide(panel, 3);
+    expect(step(g, 'Cut the lining')).toMatch(/^Cut the side front linings, /);
+    expect(step(g, 'Cut the lining')).toMatch(/no front lining: the front facing is the whole centre front panel, cut to the princess seam/);
+    expect(step(g, 'Make the lining')).toMatch(/^Sew each side back lining to its back lining along the princess seam/);
+    expect(step(g, 'Make the lining')).toMatch(/Sew each side front lining to its front facing along the princess seam/);
+    expect(step(g, 'Make the lining')).not.toMatch(/inner edges of the front facings/);
+    // With the front lining piece, the facing keeps its old line and the front lining is sewn as before.
+    const old = outerGuide(d, 3);
+    expect(step(old, 'Cut the lining')).toMatch(/^Cut the front linings, side front linings, /);
+    expect(step(old, 'Make the lining')).toMatch(/inner edges of the front facings/);
+  });
+
+  it("hems a skirt by its own hem allowance", () => {
+    const a = draftSkirt(m, { silhouette: 'a_line', length: 'knee' });
+    const hem = a.pieces[0].allowances.hem;
+    expect(step(sewingGuide(a, { silhouette: 'a_line', length: 'knee' }, 1.4), 'Hem')).toContain(`Press up 1 cm, then ${hem - 1} cm more.`);
+    const narrow = { ...a, pieces: a.pieces.map((pc) => ({ ...pc, allowances: { ...pc.allowances, hem: 2.5 } })) };
+    expect(step(sewingGuide(narrow, { silhouette: 'a_line', length: 'knee' }, 1.4), 'Hem')).toContain('Press up 1 cm, then 1.5 cm more.');
+  });
+
+  it('describes a bust dart pivoted into the waist dart only when the draft notes it', () => {
+    const b = draftBodice(randomBody(rng(3)), { fit: 'regular' });
+    expect(step(bodiceGuide(b, { length: 'waist' }, 1.5, 1), 'Sew the bust and waist darts')).not.toMatch(/5 cm wide/);
+    const noted = {
+      ...b,
+      pieces: b.pieces.map((pc) => ({ ...pc, draft: { frame: [], points: [{ n: 'B', at: { x: 0, y: 0 }, note: 'Bust dart: 7 cm, pivoted into the waist dart.' }] } })),
+    };
+    expect(step(bodiceGuide(noted, { length: 'waist' }, 1.5, 1), 'Sew the bust and waist darts')).toMatch(/side bust dart is 5 cm wide; the rest of the bust shaping is carried in the waist dart/);
   });
 });

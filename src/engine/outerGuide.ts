@@ -15,6 +15,9 @@ export function outerGuide(d: OuterDraft, fabricM: number, finish: { seams?: Sea
   const [over, under] = d.lapsLeft ? ['left', 'right'] : ['right', 'left'];
   const names = d.pieces.map((pc) => pc.name);
   const princess = names.some((n) => /side front/i.test(n));
+  // A princess front may have no front lining: the facing is then the whole centre front panel, cut to
+  // the princess seam, and the side front lining joins it there.
+  const panelFacing = princess && !names.some((n) => /^front lining$/i.test(n));
   const collar = names.includes('Collar') ? (d.lapel ? 'notched' : 'stand') : 'none';
   const pockets = names.includes('Patch pocket');
   const welts = names.includes('Welt');
@@ -50,8 +53,8 @@ export function outerGuide(d: OuterDraft, fabricM: number, finish: { seams?: Sea
     {
       title: 'Cut the lining',
       text: vent
-        ? `Cut the front linings, ${princess ? 'side front linings, ' : ''}two back linings${princess ? ', side back linings' : ''} and the ${tailored ? 'top and under sleeve linings' : 'sleeve linings'} from the lining fabric${welts ? ', and four pocket bags' : ''}. Cut the left back lining on the main line and the right one on the second line, which stops short at the vent. Each back lining is wider at the centre back for a pleat that gives you room to reach forward.`
-        : `Cut the front linings, ${princess ? 'side front linings, ' : ''}the back lining on the fold${princess ? ', side back linings' : ''} and the ${tailored ? 'top and under sleeve linings' : 'sleeve linings'} from the lining fabric${welts ? ', and four pocket bags' : ''}. The back lining is wider at the centre back for a pleat that gives you room to reach forward.`,
+        ? `Cut the ${panelFacing ? '' : 'front linings, '}${princess ? 'side front linings, ' : ''}two back linings${princess ? ', side back linings' : ''} and the ${tailored ? 'top and under sleeve linings' : 'sleeve linings'} from the lining fabric${welts ? ', and four pocket bags' : ''}. Cut the left back lining on the main line and the right one on the second line, which stops short at the vent. Each back lining is wider at the centre back for a pleat that gives you room to reach forward.${panelFacing ? ' There is no front lining: the front facing is the whole centre front panel, cut to the princess seam.' : ''}`
+        : `Cut the ${panelFacing ? '' : 'front linings, '}${princess ? 'side front linings, ' : ''}the back lining on the fold${princess ? ', side back linings' : ''} and the ${tailored ? 'top and under sleeve linings' : 'sleeve linings'} from the lining fabric${welts ? ', and four pocket bags' : ''}. The back lining is wider at the centre back for a pleat that gives you room to reach forward.${panelFacing ? ' There is no front lining: the front facing is the whole centre front panel, cut to the princess seam.' : ''}`,
     },
     {
       title: 'Interface',
@@ -136,8 +139,12 @@ export function outerGuide(d: OuterDraft, fabricM: number, finish: { seams?: Sea
     {
       title: 'Make the lining',
       text: `${
-        princess ? `Sew each side front lining to its front lining and each side back lining to its back lining along the princess seams, ${seam} from the edge, and press the seams open. ` : ''
-      }${vent ? 'Sew the back linings together down the centre back to just above the vent, then tack the pleat' : 'Tack the back lining pleat'} along its line, 8 cm down from the neck. Sew the lining's shoulders, side seams and sleeve seams, and set the sleeve linings into the armholes, leaving a 25 cm gap in one sleeve lining seam for turning. Sew the lining to the inner edges of the front facings${
+        panelFacing
+          ? `Sew each side back lining to its back lining along the princess seam, ${seam} from the edge, and press the seam open. `
+          : princess
+            ? `Sew each side front lining to its front lining and each side back lining to its back lining along the princess seams, ${seam} from the edge, and press the seams open. `
+            : ''
+      }${vent ? 'Sew the back linings together down the centre back to just above the vent, then tack the pleat' : 'Tack the back lining pleat'} along its line, 8 cm down from the neck. Sew the lining's shoulders, side seams and sleeve seams, and set the sleeve linings into the armholes, leaving a 25 cm gap in one sleeve lining seam for turning. ${panelFacing ? `Sew each side front lining to its front facing along the princess seam, right sides together, ${seam} from the edge, so the facing is the lining's centre front panel` : 'Sew the lining to the inner edges of the front facings'}${
         collar === 'notched' ? " and the upper collar to the lining's back neck" : collar === 'stand' ? " and the inner collar to the lining's back neck" : `, and its back neck to the ${kind}'s back neck between the shoulder seams, right sides together`
       }, matching the notches.`,
     },
