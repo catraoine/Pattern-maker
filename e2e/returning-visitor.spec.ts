@@ -30,6 +30,8 @@ test('returning visitor: a reload keeps the measurements and the saved pattern',
   // Every visit opens on the welcome, which carries straight on with the garment you were styling.
   await expect(main.getByText('Welcome back')).toBeVisible();
   await expect(main.getByRole('button', { name: 'Begin' })).toHaveCount(0);
+  // No tape on the way back in: it belongs to Begin, which pulls it out into measuring.
+  await expect(page.locator('.tape-tip, .tape-band')).toHaveCount(0);
   await main.getByRole('button', { name: 'Carry on with your skirt' }).click();
   await expectStyle(page, 'Skirt');
 
