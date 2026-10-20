@@ -7,7 +7,9 @@ import { createPortal } from 'react-dom';
 // garment, its fabric and its pattern pieces.
 
 /** The drawing in the preview to enlarge: the sketch or the pattern, not the turning form (a canvas). */
-const sketchIn = (preview: Element) => (preview.querySelector('.all-round, .point-svg') ? null : preview.querySelector<SVGSVGElement>('svg:not(.fabric-defs)'));
+// The drawing in the preview: not the fabric's own defs, and not the Enlarge button's icon, which sits in the preview too.
+const sketchIn = (preview: Element) =>
+  preview.querySelector('.all-round, .point-svg') ? null : Array.from(preview.querySelectorAll<SVGSVGElement>('svg:not(.fabric-defs)')).find((svg) => !svg.closest('.enlarge')) ?? null;
 
 interface View {
   label?: string;

@@ -10,8 +10,10 @@ test('enlarge the garment drawing', async ({ page }) => {
   await big.getByRole('button', { name: 'Close', exact: true }).click();
   await expect(big).toHaveCount(0);
 
-  // The dress's flat has a front and a back: one at a time, and a double tap zooms in.
+  // The dress opens on the form; its flat drawing has a front and a back: one at a time, and a double tap zooms in.
   await switchGarment(page, 'Dress');
+  await main.getByRole('button', { name: 'Drawing', exact: true }).click();
+  await expect(main.getByRole('img', { name: /^Technical flat/ })).toBeVisible();
   await main.getByRole('button', { name: /^Enlarge the drawing/ }).click();
   big = page.getByRole('dialog', { name: /enlarged$/ });
   const views = big.getByRole('group', { name: 'View' });
