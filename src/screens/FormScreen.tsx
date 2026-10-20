@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { buildBody } from '../engine/body3d';
 import { CHECK_TOLERANCE, coverMissing, formCheck, padMap, type PadId } from '../engine/formCover';
 import type { MeasurementValues, Unit } from '../measurements';
+import { TestingTag } from '../ui/TestingTag';
 
 interface Props {
   /** Measurements with estimates filled in, which the form is built from. */
@@ -86,7 +87,7 @@ export function FormScreen({ values, measured: taken, unit, profile, onPrint, on
     return (
       <div className="stack wide">
         <section className="card" aria-labelledby="formtitle">
-          <p className="eyebrow">Body Double</p>
+          <p className="eyebrow">Body Double <TestingTag /></p>
           <h1 id="formtitle">A dress form in your shape</h1>
           <p className="muted">
             The form is built from your own measurements. It still needs your {missing.map((id) => NAMES[id] ?? id.replace(/_/g, ' ')).join(', ')}.
@@ -102,7 +103,7 @@ export function FormScreen({ values, measured: taken, unit, profile, onPrint, on
   return (
     <div className="stack wide">
       <section className="card" aria-labelledby="formtitle">
-        <p className="eyebrow">Body Double</p>
+        <p className="eyebrow">Body Double <TestingTag /></p>
         <h1 id="formtitle">A dress form in your shape</h1>
         <p className="muted">
           Pad a store form out to {who === 'you' ? 'your' : `${who}'s`} measurements, then pull on a cover drafted to the same body. Everything you fit on it fits

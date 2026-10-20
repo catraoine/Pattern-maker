@@ -29,6 +29,7 @@ import { flatId } from '../ui/FabricFill';
 import { buyAmount, buyLink, shopFabric, shopPrice, type ShopFabric } from '../engine/shopFabrics';
 import { canShareFiles, download } from '../ui/download';
 import { LabelCard } from '../ui/LabelCard';
+import { TestingTag } from '../ui/TestingTag';
 
 /** What to print: the drafted pieces of either garment, with its notes and sewing steps. */
 export interface Printable {
@@ -830,7 +831,7 @@ function MakerPack({
 
       <details className="card more">
         <summary>
-          <span className="eyebrow">Having it made, or drafting by hand</span>
+          <span className="eyebrow">Having it made, or drafting by hand <TestingTag /></span>
           <h2>More files</h2>
         </summary>
         <p className="muted">

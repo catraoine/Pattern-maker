@@ -174,6 +174,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
                 <button key={k} type="button" role="radio" aria-checked={chosen === k} className={chosen === k ? 'on' : ''} onClick={() => setChosen(k)}>
                   <FormPicture kind={k} />
                   <span>{k === 'womenswear' ? 'Womenswear' : 'Menswear'}</span>
+                  {k === 'menswear' && <span className="testing-tag">{IN_TESTING}</span>}
                 </button>
               ))}
             </div>
@@ -199,6 +200,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
             <button key={k} type="button" role="radio" aria-checked={chosen === k} className={chosen === k ? 'on' : ''} onClick={() => setChosen(k)}>
               <FormPicture kind={k} />
               <span>{k === 'womenswear' ? 'Womenswear' : 'Menswear'}</span>
+                  {k === 'menswear' && <span className="testing-tag">{IN_TESTING}</span>}
             </button>
           ))}
         </div>

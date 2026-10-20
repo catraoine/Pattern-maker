@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { P } from '../engine/geometry';
 import { FileCheck, checkFile, readPatternFile } from '../engine/checkFile';
 import { ImportedPattern, importDxf } from '../engine/importDxf';
+import { TestingTag } from '../ui/TestingTag';
 
 /**
  * Check any pattern: open a DXF or SVG from pattern software or a tracing, and the seams are walked:
@@ -48,7 +49,7 @@ export function CheckFileScreen({ onUse }: { onUse?: (pattern: ImportedPattern, 
       <section className="card" aria-labelledby="cftitle">
         <div className="row between wrap">
           <div>
-            <p className="eyebrow">Check any pattern</p>
+            <p className="eyebrow">Check any pattern <TestingTag /></p>
             <h1 id="cftitle">Walk the seams of a pattern file</h1>
           </div>
         </div>

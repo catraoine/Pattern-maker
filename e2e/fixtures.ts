@@ -99,7 +99,7 @@ export async function skipToExample(page: Page) {
 /** "Me" on the first measuring page, with the form to draft on beside it (Cat's F1 Form Joins In): womenswear unless given. */
 export async function measureMe(page: Page, form: 'Womenswear' | 'Menswear' = 'Womenswear') {
   await main(page).getByRole('button', { name: 'Me', exact: true }).click();
-  const pick = main(page).getByRole('radiogroup', { name: 'Which form to draft on?' }).getByRole('radio', { name: form, exact: true });
+  const pick = main(page).getByRole('radiogroup', { name: 'Which form to draft on?' }).getByRole('radio', { name: new RegExp(`^${form}`) });
   await pick.click();
   await expect(pick).toHaveAttribute('aria-checked', 'true');
   await main(page).getByRole('button', { name: 'Begin measuring', exact: true }).click();
