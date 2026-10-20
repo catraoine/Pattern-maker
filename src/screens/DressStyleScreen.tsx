@@ -267,6 +267,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
       undo={undo}
       sections={DRESS_SECTIONS}
       label="your dress"
+      garment="dress"
       name={title}
       metres={draft ? dressFabricMetres([...pieces, ...layoutExtras(draft.skirt)]) : undefined}
       ready={!!draft}

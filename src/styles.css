@@ -2294,6 +2294,28 @@ button.link.how-link {
   color: var(--paper);
 }
 
+/* "In testing": the quiet tag on garments that haven't passed their fit test yet (launch.ts). */
+.testing-tag {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.make-grid button.on .testing-tag {
+  color: var(--paper);
+}
+
+.screen-head .testing-tag {
+  display: inline-block;
+  margin: 0 auto 0 0;
+  padding: 2px 8px;
+  border: 1px solid var(--line-strong);
+}
+
 .measure-step.short .welcome-hero {
   max-height: 300px;
 }

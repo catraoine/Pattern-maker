@@ -131,6 +131,7 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
       onEditMeasurements={onEditMeasurements}
       undo={undo}
       label={`your ${kind}`}
+      garment={kind}
       name={title}
       metres={draft ? outerFabricMetres(draft) : undefined}
       ready={!!draft}

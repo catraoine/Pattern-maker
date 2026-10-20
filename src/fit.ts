@@ -16,6 +16,8 @@ export interface FitFeedback {
   at: string; // ISO date
   /** Set once these notes have been sent to Maison Tracé (only ever when the sewist ticks the box). */
   sentAt?: string;
+  /** A photo of the toile on, kept in this device's photo store by id (see photoStore.ts). Never sent. */
+  photo?: string;
 }
 
 export type FitArea = 'waist' | 'hip' | 'length' | 'flare' | 'bust' | 'shoulders' | 'armholes' | 'neckline' | 'back' | 'rise' | 'thigh' | 'leg';

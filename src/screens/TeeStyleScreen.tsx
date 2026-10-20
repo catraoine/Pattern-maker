@@ -130,6 +130,7 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
       onEditMeasurements={onEditMeasurements}
       undo={undo}
       label="your T-shirt"
+      garment="tee"
       name={title}
       metres={draft ? teeFabricMetres(draft) : undefined}
       ready={!!draft}

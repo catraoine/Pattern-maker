@@ -8,6 +8,7 @@ import {
   addBeacon,
   checkBeacon,
   checkSignup,
+  funnel,
   keyMatches,
   lastDays,
   scrubCrash,
@@ -174,5 +175,28 @@ describe('sign-ups', () => {
     expect(checkSignup(JSON.stringify({ ...tester, website: 'spam.example' }))).toBeNull();
     expect(checkSignup(JSON.stringify({ kind: 'news', email: 'a@b.co', name: 'x' }))).toBeNull();
     expect(checkSignup('{')).toBeNull();
+  });
+});
+
+describe('the weekly funnel', () => {
+  it('adds up sign-ups by source, printed, fit reported and paid over the days given', () => {
+    const days: { counts: Record<string, number> }[] = [
+      { counts: { visit: 40, 'visit:pinterest': 10, 'signup:pinterest': 3, signup: 1, 'printed:skirt': 5, 'fit_reported:skirt': 2 } },
+      { counts: { visit: 20, 'signup:class-vancouver': 2, 'printed:dress': 1, paid: 1 } },
+    ];
+    expect(funnel(days)).toEqual({
+      visits: 60,
+      signups: 6,
+      printed: 6,
+      fitReported: 2,
+      paid: 1,
+      signupsBySource: { pinterest: 3, direct: 1, 'class-vancouver': 2 },
+      visitsBySource: { direct: 60, pinterest: 10 },
+    });
+  });
+
+  it('accepts the four events from the beacon, with a source on a sign-up', () => {
+    expect(checkBeacon(JSON.stringify({ counts: { 'signup:pinterest': 1, 'fit_reported:bodice': 1, paid: 1, 'printed:skirt': 1 } }))).not.toBeNull();
+    expect(checkBeacon(JSON.stringify({ counts: { 'signup:Pin terest': 1 } }))).toBeNull();
   });
 });

@@ -58,6 +58,10 @@ interface Props {
   onEditFabric?: () => void;
   /** Keeps the pattern in your patterns, for the label card's code; the button itself is on Review. */
   onKeep?: () => void;
+  /** After printing: "How did it fit?" opens the fit notes for this pattern (saving it first if need be). */
+  onFitNotes?: () => void;
+  /** The fit already reported for this pattern, in a line, if there is one. */
+  fitNote?: string;
   /** Corrections from toile fittings, and their notes, already in the pattern. */
   fitting?: Fitting;
   fittingNotes: string[];
@@ -105,7 +109,7 @@ const printedDate = () => new Date().toLocaleDateString('en-GB', { day: 'numeric
 
 
 
-export function ExportScreen({ sendLink, profile, title, fit, garment, finish, onFinish, made, error, onEditFabric, onKeep, fitting, fittingNotes, alterations = NONE, onFitting, onTrueScale, values, draftAt, style, imported, mode = 'all', onMode, edition, credit, label }: Props) {
+export function ExportScreen({ sendLink, profile, title, fit, garment, finish, onFinish, made, error, onEditFabric, onKeep, onFitNotes, fitNote, fitting, fittingNotes, alterations = NONE, onFitting, onTrueScale, values, draftAt, style, imported, mode = 'all', onMode, edition, credit, label }: Props) {
   const can = (t: ProTool) => shows(mode, t);
   const [picked, setPaper] = useState<Output>('a4');
   // The simple view prints at home, on A4 or Letter.
@@ -184,11 +188,14 @@ export function ExportScreen({ sendLink, profile, title, fit, garment, finish, o
   const fileName = `${fileBase}-${paper === 'projectorDark' ? 'projector-black' : paper}.pdf`;
   const ready = pdf?.paper === paper ? pdf.bytes : null;
 
+  // Once the pattern has left the app (downloaded, shared or opened to print), the fit question comes up.
+  const [printed, setPrinted] = useState(false);
   const share = async () => {
     if (!ready) return;
     try {
       await navigator.share({ files: [new File([ready], fileName, { type: 'application/pdf' })], title: `Maison Tracé: ${title}` });
       countStep('printed', garment);
+      setPrinted(true);
       setShareNote('');
     } catch (e) {
       if ((e as Error).name !== 'AbortError') setShareNote("Sharing didn't work on this device. Download the PDF instead.");
@@ -198,6 +205,7 @@ export function ExportScreen({ sendLink, profile, title, fit, garment, finish, o
   const openToPrint = () => {
     if (!ready) return;
     countStep('printed', garment);
+    setPrinted(true);
     const url = URL.createObjectURL(new Blob([ready], { type: 'application/pdf' }));
     window.open(url, '_blank');
     setTimeout(() => URL.revokeObjectURL(url), 60_000);
@@ -206,6 +214,7 @@ export function ExportScreen({ sendLink, profile, title, fit, garment, finish, o
   const download_ = () => {
     if (!ready) return;
     countStep('printed', garment);
+    setPrinted(true);
     download(ready, 'application/pdf', fileName);
   };
   const paperChoice = projector ? 'projector' : paper;
@@ -270,6 +279,18 @@ export function ExportScreen({ sendLink, profile, title, fit, garment, finish, o
               </button>
               {shareNote && <p className="msg small">{shareNote}</p>}
             </div>
+            {onFitNotes && !imported && (printed || fitNote) && (
+              <div className="stack fit-ask" role="status">
+                {fitNote ? (
+                  <p className="small">Fit reported: {fitNote}</p>
+                ) : (
+                  <p className="small">Sewn it? Say how it fitted, in three taps. Each note makes the next pattern better, for you and for everyone.</p>
+                )}
+                <button type="button" className="link" onClick={onFitNotes}>
+                  {fitNote ? 'Fit notes' : 'How did it fit?'}
+                </button>
+              </div>
+            )}
             {sendLink && onPhone() && (
               <div className="stack send-device">
                 <p className="small">Printer on your computer? Send your measurements and patterns there, then print from it.</p>

@@ -91,6 +91,7 @@ import { CheckFileScreen } from './screens/CheckFileScreen';
 import { FormScreen } from './screens/FormScreen';
 import { coverGuide, coverMissing, coverPieces, padMap } from './engine/formCover';
 import { labelCode, savedCopy } from './labels';
+import { fitSummary } from './fit';
 import { ImportedPattern, importedGuide } from './engine/importDxf';
 import { CollectionScreen } from './screens/CollectionScreen';
 import { lookPatch } from './collection';
@@ -761,6 +762,20 @@ export default function App() {
   const labelFor = savedNow && labelCode(savedNow.id);
   const saveState = isSaved ? 'saved' : account.patterns.length >= savedLimit(account) ? 'full' : 'can';
 
+  // "How did it fit?" from the print screen: the pattern is kept (if it can be) and its fit notes open on Your account.
+  const [fitFocus, setFitFocus] = useState<string>();
+  const openFitNotes = () => {
+    const next = saveState === 'can' ? savePattern(account, current, describePattern(current), person.id) : account;
+    const kept = savedNow ?? (saveState === 'can' ? next.patterns[0] : undefined);
+    if (!kept) return;
+    if (next !== account) setAccount(next);
+    setFitFocus(kept.id);
+    setStep('account');
+  };
+  useEffect(() => {
+    if (step !== 'account') setFitFocus(undefined);
+  }, [step]);
+
   // Where the guided measuring opens: the list of what to make, the next measurement a garment needs, or one to redo.
   const [stepsStart, setStepsStart] = useState<{ at: number; start?: StepsStart }>({ at: 0 });
   const openSteps = (start?: StepsStart) => {
@@ -1085,6 +1100,7 @@ export default function App() {
               onRename={(id, name) => setAccount(renamePattern(account, id, name))}
               onRemove={(id) => setAccount(removePattern(account, id))}
               onFit={(id, fit) => setAccount(setPatternFit(account, id, fit))}
+              openFit={fitFocus}
               onReset={reset}
               sendLink={sendLink}
               onTesterCode={(testerCode) => setAccount({ ...account, testerCode })}
@@ -1308,6 +1324,8 @@ export default function App() {
                 setStep('style');
               }}
               onKeep={saveState === 'can' ? () => setAccount(savePattern(account, current, describePattern(current), person.id)) : undefined}
+              onFitNotes={saveState === 'full' && !savedNow ? undefined : openFitNotes}
+              fitNote={savedNow?.fit ? fitSummary(savedNow.fit, savedNow.choices) : undefined}
               garment={garment}
               profile={profile}
               title={title}

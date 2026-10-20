@@ -1,5 +1,7 @@
 import { Children, createContext, ReactNode, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { Mode } from '../mode';
+import type { Garment } from '../measurements';
+import { IN_TESTING, inTesting } from '../launch';
 import { canGoBack, goBack, usePageHistory } from '../nav';
 import { CollectionEntry, GarmentSwitch } from './GarmentSwitch';
 import { ModeLink } from './ModeLink';
@@ -125,6 +127,8 @@ interface Props {
   label: string;
   /** The garment as chosen so far: "Knee A-line skirt". */
   name: string;
+  /** Which garment, for the "In testing" tag on garments that haven't passed their fit test (see launch.ts). */
+  garment?: Garment;
   /** Fabric needed, when the pattern is drafted. */
   metres?: number;
   /** Fabric width the metres are for. */
@@ -148,7 +152,7 @@ interface Props {
 
 const NO_SECTIONS: Record<string, string> = {};
 
-export function StyleLayout({ children, label, name, metres, width = 140, ready, onChooseGarment, onPhoto, photo, looks, mode, onMode, onEditMeasurements, sections = NO_SECTIONS, undo }: Props) {
+export function StyleLayout({ children, label, name, garment, metres, width = 140, ready, onChooseGarment, onPhoto, photo, looks, mode, onMode, onEditMeasurements, sections = NO_SECTIONS, undo }: Props) {
   const [options, preview, summary] = Children.toArray(children);
   const [page, setPage] = usePageHistory<'edit' | 'review'>(() => 'edit');
   // Read here and cleared once mounted: React may run this twice, and the second run must see it too.
@@ -238,6 +242,7 @@ export function StyleLayout({ children, label, name, metres, width = 140, ready,
     <div className="style-layout" ref={root}>
       <div className="screen-head">
         <Title id="opts" big="Style" label={label} />
+        {inTesting(garment) && <span className="testing-tag">{IN_TESTING}</span>}
         <GarmentSwitch onChoose={onChooseGarment} />
       </div>
       <div className="style-edit">

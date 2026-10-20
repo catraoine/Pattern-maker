@@ -84,6 +84,7 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
       onEditMeasurements={onEditMeasurements}
       undo={undo}
       label="your trousers"
+      garment="trousers"
       name={title}
       metres={draft ? trousersFabricMetres(draft) : undefined}
       ready={!!draft}
