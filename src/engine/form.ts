@@ -44,3 +44,57 @@ export function formLandmarks(): Record<'full_bust' | 'waist' | 'full_hip', numb
     full_hip: find(0.4, 1.3, (r, b) => r > b),
   };
 }
+
+/** The form's legs, as on the measuring pages: each leg's half-width down from the top of the thigh (the
+ *  form's own units), the legs standing LEG_X either side of the centre. */
+export const LEG = spline([[1.2, 0.3], [1.6, 0.28], [2.3, 0.21], [3.15, 0.15], [3.4, 0.16], [4.1, 0.12], [4.55, 0.08], [4.7, 0.1]]);
+export const LEG_X = 0.27;
+/** The knee and the floor on the form, in its own units. */
+export const LEG_KNEE = 3.2;
+export const LEG_FLOOR = 4.72;
+/** Where the legs part: the height at which each leg's inner edge reaches the centre. */
+export const LEG_CROTCH = (() => {
+  let y = 1.2;
+  while (y < LEG_KNEE && LEG(y) > LEG_X) y += 0.001;
+  return y;
+})();
+
+export interface LegMeasurements {
+  full_hip: number;
+  waist_to_hip: number;
+  waist_to_knee: number;
+  waist_to_floor: number;
+  crotch_depth?: number;
+}
+
+/** A pair of legs drawn to your measurements, in cm down from the waist (y = 0), widths in the way the
+ *  form draws the body (half of each width a quarter of its round). */
+export interface Legs {
+  /** Where the legs part, the knee and the floor. */
+  crotch: number;
+  knee: number;
+  floor: number;
+  /** How far each leg's middle stands from the centre. */
+  apart: number;
+  /** Each leg's half-width at y. */
+  half: (y: number) => number;
+}
+
+/** The form's legs, the same shape as on the measuring pages, set to your lengths: they part at your
+ *  crotch depth (or a little below your hip, when it isn't measured), bend at your knee and stand on the
+ *  floor at your waist to floor; at the top they are as wide as your hip. */
+export function legsFor(m: LegMeasurements): Legs {
+  const knee = m.waist_to_knee;
+  const floor = m.waist_to_floor;
+  const crotch = Math.min(m.crotch_depth ?? m.waist_to_hip + 7, knee - 12);
+  // Down the leg, the form's own heights to cm: the crotch, the knee and the floor land on yours.
+  const marks: [number, number][] = [[LEG_CROTCH, crotch], [LEG_KNEE, knee], [LEG_FLOOR, floor]];
+  const toForm = (y: number) => {
+    const i = y < knee ? 0 : 1;
+    const [[a, ya], [b, yb]] = [marks[i], marks[i + 1]];
+    return a + ((y - ya) * (b - a)) / (yb - ya);
+  };
+  // At the top, the outside of each leg runs on from the hip.
+  const s = ((m.full_hip / 4) * 0.97) / (LEG_X + LEG(LEG_CROTCH));
+  return { crotch, knee, floor, apart: LEG_X * s, half: (y: number) => LEG(toForm(y)) * s };
+}

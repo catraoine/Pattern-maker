@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { FormKind, MeasurementId } from '../measurements';
+import { LEG, LEG_FLOOR, LEG_KNEE, LEG_X } from '../engine/form';
 
 // The welcome screen's dress form, drawn in contour lines on black. It is the same form as the measuring pages
 // (Cat, 2026-10-18: the body must stay the same everywhere). The outline is drawn first, or handed over already
@@ -459,9 +460,8 @@ function tapeAt(g: CanvasRenderingContext2D, w: number, h: number, y: number, t:
 }
 // Lengths: the view pulls back from the welcome's framing to the whole figure, legs and floor, so both ends show.
 // z = 0 is exactly the welcome's framing; z = 1 has zoomed out so the floor is in view.
-const LEG = spline([[1.2, 0.3], [1.6, 0.28], [2.3, 0.21], [3.15, 0.15], [3.4, 0.16], [4.1, 0.12], [4.55, 0.08], [4.7, 0.1]]);
 const LEG_YS = Array.from({ length: 141 }, (_, i) => 1.2 + (3.5 * i) / 140);
-const FLOOR = 4.72;
+const FLOOR = LEG_FLOOR;
 function frame(w: number, h: number, z: number, seen = h) {
   const a = layout(w, h);
   // Zoomed right out, the floor sits just inside what the page shows of the canvas.
@@ -525,7 +525,7 @@ export function paintFigure(g: CanvasRenderingContext2D, S: number, cx: number, 
   // Legs fade in as the view pulls back
   if (k > 0) {
     for (const side of [-1, 1]) {
-      const lx = cx + side * 0.27 * S;
+      const lx = cx + side * LEG_X * S;
       g.globalAlpha = k;
       g.lineWidth = lw;
       for (const e of [-1, 1]) {
@@ -701,7 +701,7 @@ export function formLandmarks(): Record<'full_bust' | 'waist' | 'full_hip', numb
     full_hip: find(0.4, 1.3, (r, b) => r > b),
   };
 }
-const KNEE = 3.2;
+const KNEE = LEG_KNEE;
 /** Lengths from the waist: where they stop, how far the view pulls back, and the STOP name. */
 const LENGTHS: Partial<Record<MeasurementId, { to: number; zoom: number; stop: string }>> = {
   waist_to_hip: { to: 0.82, zoom: 0.6, stop: 'HIP' },
@@ -849,6 +849,6 @@ export const FORM_DEPTH = DEPTH;
 /** The legs' half-width down from the crotch, how far apart they stand, and the knee, for views that
  * turn the legs (the shape preview of trousers). */
 export const FORM_LEG = LEG;
-export const FORM_LEG_X = 0.27;
+export const FORM_LEG_X = LEG_X;
 export const FORM_CROTCH = 1.2;
 export const FORM_KNEE = KNEE;
