@@ -150,7 +150,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
       setPage({ kind: 'base', at: firstToTake() });
     };
     return (
-      <Shell title="First, let's take some measurements." skip={onSkip && (() => onSkip())}>
+      <Shell title="First, let's take some measurements." skip={onSkip && (() => onSkip())} tape>
         <div className="who" role="group" aria-labelledby="who-q">
           <p id="who-q" className="who-q">
             Who are you designing for?
@@ -487,6 +487,8 @@ function chooseLabel(picked: Pick | null, values: MeasurementValues, form: FormK
   return n ? `Next: ${n} ${GARMENT_NAME[picked]} measurement${n === 1 ? '' : 's'}` : `Style my ${GARMENT_NAME[picked]}`;
 }
 
+const TAPE_MARKS = Array.from({ length: 40 }, (_, i) => i + 41);
+
 export function Shell({
   eyebrow,
   title,
@@ -495,6 +497,7 @@ export function Shell({
   short,
   skip,
   later,
+  tape,
   aside,
   children,
 }: {
@@ -508,6 +511,8 @@ export function Shell({
   /** Finish later, in place of Skip once real measurements are in (Cat, 2026-10-20): an example under real
    *  numbers would draft a pattern that fits no one, so later pages only offer to stop and keep them. */
   later?: () => void;
+  /** The tape Begin pulls out on the welcome, landed across the top of the first page (Cat, 2026-10-20). */
+  tape?: boolean;
   dots?: [number, number];
   /** A shorter form on top, so a longer list fits above its button. */
   short?: boolean;
@@ -520,6 +525,15 @@ export function Shell({
   return (
     <div className="welcome">
       <section className={['card welcome-card measure-step', short && 'short', hero && 'has-hero', aside && 'has-aside'].filter(Boolean).join(' ')} aria-labelledby="stitle">
+        {tape && (
+          <div className="tape-band landed" aria-hidden="true">
+            <div className="tape-marks">
+              {TAPE_MARKS.map((n) => (
+                <span key={n}>{n}</span>
+              ))}
+            </div>
+          </div>
+        )}
         {aside && <aside className="step-list">{aside}</aside>}
         {hero && (
           <div className="welcome-hero">

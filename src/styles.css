@@ -5945,8 +5945,7 @@ input.inline:focus,
   margin: 0;
   top: calc(100% - 40px);
   z-index: 3;
-  animation: tape-pull 0.75s cubic-bezier(0.3, 0.6, 0.3, 1) both, tape-rise 0.75s cubic-bezier(0.2, 0.7, 0.2, 1) 0.9s both,
-    tape-off 0.35s ease-in 1.6s both;
+  animation: tape-pull 0.75s cubic-bezier(0.3, 0.6, 0.3, 1) both, tape-rise 0.75s cubic-bezier(0.2, 0.7, 0.2, 1) 0.9s both;
 }
 
 @keyframes tape-pull {
@@ -5968,10 +5967,16 @@ input.inline:focus,
   }
 }
 
-/* No strip on the measuring pages any more (2026-10-20): once risen, the tape fades into the first page. */
-@keyframes tape-off {
-  to {
-    opacity: 0;
+/* Risen, the tape stays across the top of the first page, and only that page (Cat, 2026-10-20). */
+.tape-band.landed {
+  margin: 0 0 18px;
+  grid-column: 1 / -1;
+}
+
+/* On a very short screen the strip would push Begin measuring below the fold, so it stays off. */
+@media (max-height: 480px) {
+  .tape-band.landed {
+    display: none;
   }
 }
 
