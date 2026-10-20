@@ -101,8 +101,8 @@ const STEPS: Partial<Record<MeasurementId, [string[], string[]]>> = {
     ['Ask them to take off their shoes and stand straight.', 'Hold the tape at their waist, at their side.', 'Let it fall straight down to the floor.', 'Read the number where it touches the floor.'],
   ],
   waist_to_hip: [
-    ['Find the fullest part of your hip, as for your hips.', 'Hold the tape at your waist, at your side.', 'Run it straight down to that fullest part.', 'Read the number there.'],
-    ['Find the fullest part of their hip, as for their hips.', 'Hold the tape at their waist, at their side.', 'Run it straight down to that fullest part.', 'Read the number there.'],
+    ['Find the fullest part of your hip, as for your hips.', 'Hold the tape at your waist, at your side.', 'Run it down over the curve of your hip to that fullest part.', 'Read the number there.'],
+    ['Find the fullest part of their hip, as for their hips.', 'Hold the tape at their waist, at their side.', 'Run it down over the curve of their hip to that fullest part.', 'Read the number there.'],
   ],
   waist_to_knee: [
     ['Stand straight with your knees relaxed.', 'Hold the tape at your waist, at your side.', 'Run it straight down to the middle of your knee.', 'Read the number there.'],

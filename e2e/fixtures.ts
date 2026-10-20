@@ -28,6 +28,8 @@ export { expect };
 /** Measurements typed in, by the label on screen (sample body A, in cm). Unknown required labels fail loudly. */
 export const MEASUREMENTS: Record<string, string> = {
   Height: '165',
+  // Its own optional page after the five basics.
+  Weight: '62',
   Waist: '76',
   'Full hip': '102',
   'Waist to hip': '20.5',
@@ -110,7 +112,10 @@ export async function fillStepPages(page: Page) {
   let last = '';
   for (let n = 0; n < 40; n++) {
     const input = main(page).getByRole('textbox');
-    await expect.poll(async () => ((await input.count()) === 1 ? labelOf(input) : last), { message: 'the next measurement page opens' }).not.toBe(last);
+    const checked = heading(page, 'Do these look right?');
+    await expect.poll(async () => ((await input.count()) === 1 ? labelOf(input) : (await checked.count()) ? '' : last), { message: 'the next measurement page opens' }).not.toBe(last);
+    // The optional weight page's Next lands on the check page, which has no box.
+    if (last && (await checked.count())) return;
     const label = await labelOf(input);
     const value = MEASUREMENTS[label];
     expect(value, `a test value for "${label}" (add it to MEASUREMENTS in e2e/fixtures.ts)`).toBeDefined();

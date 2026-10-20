@@ -429,7 +429,9 @@ p {
   width: min(92vw, 440px);
   margin: 0;
   padding: 12px 14px;
-  background: var(--fill);
+  /* Solid, with a shadow of the ground round it, so the form and the tape never show through or run into it. */
+  background: var(--paper);
+  box-shadow: 0 10px 24px 8px var(--paper);
   border: var(--bw) solid var(--line-strong);
   border-left: 3px solid var(--gild);
 }
@@ -6188,29 +6190,6 @@ input.inline:focus,
   }
 }
 
-/* "Play the tape again", quiet in the corner of the form's picture */
-button.replay-tape {
-  position: absolute;
-  right: 12px;
-  bottom: 8px;
-  z-index: 2;
-  min-height: 32px;
-  padding: 0 4px;
-  border: 0;
-  background: none;
-  color: var(--muted);
-  font: var(--w-body) 10px/1 var(--mono);
-  letter-spacing: var(--track);
-  text-transform: uppercase;
-  text-decoration: underline;
-  text-decoration-color: var(--line-strong);
-  text-underline-offset: 3px;
-  cursor: pointer;
-}
-button.replay-tape:hover,
-button.replay-tape:focus-visible {
-  color: var(--ink);
-}
 @media (max-height: 620px) {
   .measure-step.has-hero .welcome-hero {
     min-height: 64px;
@@ -6284,4 +6263,23 @@ button.replay-tape:focus-visible {
   .demo-play-words {
     animation: none;
   }
+}
+
+/* Height in feet and inches: two short boxes on the one line */
+.ft-in {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+.ft-in input {
+  width: 3.2em;
+  flex: none;
+}
+.ft-in > span {
+  color: var(--muted);
+  font: var(--w-body) 12px/1 var(--mono);
+  text-transform: uppercase;
+  letter-spacing: var(--track);
 }

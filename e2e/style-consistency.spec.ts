@@ -63,6 +63,8 @@ test('a wrong measurement is explained, not looped', async ({ page }) => {
     await box.fill(v);
     await next();
   }
+  // Weight is optional, on its own page after the base set.
+  await main.getByRole('button', { name: 'Skip this step' }).click();
   await main.getByRole('button', { name: 'Choose what to make' }).click();
   await pickToMake(page, 'Skirt');
   for (const v of ['20.5', '74']) {

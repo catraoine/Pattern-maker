@@ -47,10 +47,11 @@ export function formLandmarks(): Record<'full_bust' | 'waist' | 'full_hip', numb
 
 /** The form's legs, as on the measuring pages: each leg's half-width down from the top of the thigh (the
  *  form's own units), the legs standing LEG_X either side of the centre. */
-export const LEG = spline([[1.2, 0.3], [1.6, 0.28], [2.3, 0.21], [3.15, 0.15], [3.4, 0.16], [4.1, 0.12], [4.55, 0.08], [4.7, 0.1]]);
+export const LEG = spline([[1.2, 0.3], [1.6, 0.28], [2.1, 0.215], [2.65, 0.15], [2.9, 0.16], [3.8, 0.12], [4.55, 0.08], [4.7, 0.1]]);
 export const LEG_X = 0.27;
-/** The knee and the floor on the form, in its own units. */
-export const LEG_KNEE = 3.2;
+/** The knee and the floor on the form, in its own units. The knee is about 58 cm below the waist on the form's
+ *  166 cm (0.35 of the height), as on a real body. */
+export const LEG_KNEE = 2.7;
 export const LEG_FLOOR = 4.72;
 /** Where the legs part: the height at which each leg's inner edge reaches the centre. */
 export const LEG_CROTCH = (() => {
