@@ -12,11 +12,11 @@ const SOURCES = [
 /** Where each part starts in the video, in seconds, and how long it runs. Update with the video. */
 const PARTS: { name: string; from: number }[] = [
   { name: 'Measure', from: 0 },
-  { name: 'Style', from: 54 },
-  { name: 'Print', from: 67.5 },
+  { name: 'Style', from: 60.5 },
+  { name: 'Print', from: 89 },
 ];
-export const TOUR_LENGTH = 84;
-export const TOUR_LABEL = '1:24';
+export const TOUR_LENGTH = 106;
+export const TOUR_LABEL = '1:46';
 
 export function TourPlayer({ onClose }: { onClose: () => void }) {
   const video = useRef<HTMLVideoElement>(null);
