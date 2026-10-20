@@ -755,11 +755,8 @@ function draftShape(m: SkirtMeasurements, s: SkirtStyle): SkirtDraft {
     s.silhouette !== 'trumpet'
       ? undefined
       : shape?.flareAt !== undefined
-        ? clamp(shape.flareAt * m.waist_to_floor, hipDepth + 5, length - 10)
+        ? clamp(shape.flareAt * m.waist_to_floor, hipDepth + TRUMPET_MIN_BELOW_HIP, Math.max(hipDepth + TRUMPET_MIN_BELOW_HIP, length - 10))
         : trumpetFrom(m, length);
-  if (flareFrom !== undefined && flareFrom < hipDepth + 5) {
-    throw new DraftError('A trumpet skirt needs more length below the hip to flare into. Try a longer length.');
-  }
   const range = flareRange(m, length, s.silhouette);
   const standardFlare = s.flareCm !== undefined ? clamp(s.flareCm, range.min, range.max) : defaultFlare(s.silhouette, length, hipDepth, flareFrom);
   // Shift 0.5 cm of waist from back to front, take up to 3 cm at each side seam; darts take the rest,
@@ -860,8 +857,11 @@ export function lengthRange(m: SkirtMeasurements) {
   return { min, max, clamp: (v: number) => clamp(v, min, max) };
 }
 
-/** Trumpet skirts stay close to the body down to a little above the knee, never closer than 15 cm to the hem. */
-const trumpetFrom = (m: SkirtMeasurements, length: number) => Math.min(m.waist_to_hip + (m.waist_to_knee - m.waist_to_hip) * 0.6, length - 15);
+/** Trumpet skirts stay close to the body down to a little above the knee, never closer than 15 cm to the
+ * hem; on a short skirt the flare starts as low as the length allows. */
+const trumpetFrom = (m: SkirtMeasurements, length: number) => Math.max(m.waist_to_hip + TRUMPET_MIN_BELOW_HIP, Math.min(m.waist_to_hip + (m.waist_to_knee - m.waist_to_hip) * 0.6, length - 15));
+/** On a short skirt the flare starts as low as the length allows, never above 2 cm below the hip. */
+const TRUMPET_MIN_BELOW_HIP = 2;
 
 function defaultFlare(sil: Silhouette, length: number, hipDepth: number, flareFrom?: number): number {
   return {

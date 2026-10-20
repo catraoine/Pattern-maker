@@ -68,6 +68,16 @@ export const TEE_SLEEVE_EASE: Record<TeeFit, Record<Stretch, number>> = {
 
 /** The neckband's length as a share of the neckline it is sewn to: shorter for stretchier knits. */
 export const NECKBAND_RATIO: Record<Stretch, number> = { low: 0.9, medium: 0.87, high: 0.85 };
+/** The band has to pass over the head too: an adult head is about 56 cm round, and a band stretched more
+ * than a quarter goes on with a fight and sags after. So the band is never shorter than 56 / 1.25 cm,
+ * though it always stays a little shorter than the neckline it pulls in. */
+export const HEAD_CM = 56;
+export const NECKBAND_MAX_STRETCH = 0.25;
+const NECKBAND_MAX_RATIO = 0.95;
+/** The neckband's cut length (before its seam) for a neckline, in cm. */
+export function neckbandLength(neckline: number, stretch: Stretch): number {
+  return Math.min(neckline * NECKBAND_MAX_RATIO, Math.max(neckline * NECKBAND_RATIO[stretch], HEAD_CM / (1 + NECKBAND_MAX_STRETCH)));
+}
 /** The neckband's finished width, folded in half, in cm. */
 export const NECKBAND_CM = 1.5;
 
@@ -89,13 +99,18 @@ const DEPTH_EXTRA: Record<TeeFit, number> = { fitted: 0, regular: 1, relaxed: 2.
 /** How much of the way in to the waist the side seam goes: fitted follows the body, relaxed hangs straight. */
 const WAIST_SHAPING: Record<TeeFit, number> = { fitted: 0.7, regular: 0.35, relaxed: 0 };
 
-/** Necklines in cm: how far the front drops below the crew's base, how far the neck widens along the
- * shoulder, and how far the back neck drops. */
+/** Necklines in cm: how far the centre front drops below the neck point beyond a fifth of the neck
+ * (the crew's drop is a fifth of the neck plus 3.5 cm, about 10 cm), how far the neck widens along the
+ * shoulder from the knit neck width (a fifth of the neck plus 1.6 cm, each side), and how far the back
+ * neck drops below the nape line. A crew neck comes out about 48 cm round on an average body, so it
+ * goes over the head with the band stretching under a quarter. */
 export const TEE_NECKS: Record<TeeNeck, { frontDepth: number; width: number; backDepth: number }> = {
-  crew: { frontDepth: 1, width: 1, backDepth: 0.5 },
-  scoop: { frontDepth: 8, width: 3, backDepth: 1.5 },
-  v: { frontDepth: 11, width: 1.5, backDepth: 0.5 },
+  crew: { frontDepth: 3.5, width: 1.2, backDepth: 1 },
+  scoop: { frontDepth: 8.5, width: 3.2, backDepth: 2 },
+  v: { frontDepth: 11.5, width: 1.7, backDepth: 1 },
 };
+/** The knit neck width over a fifth of the neck, each side of the centre (the woven block uses 0.2 less). */
+export const TEE_NECK_WIDEN = 1.6;
 
 export interface TeeDraft {
   pieces: Piece[];
@@ -169,8 +184,9 @@ export function draftTee(m: TeeMeasurements, style: Partial<TeeStyle> = {}): Tee
   warnings.push(...sleeve.warnings.filter((w) => s.fit !== 'relaxed' || !/^sleeve widened/.test(w)));
 
   const neckline = 2 * (taggedLength(front.outline, 'neck') + taggedLength(back.outline, 'neck'));
-  const ratio = NECKBAND_RATIO[s.stretch];
-  const band = neckbandPiece(neckline * ratio, s.neckline === 'v');
+  const bandCm = neckbandLength(neckline, s.stretch);
+  const ratio = r1(bandCm / neckline * 100) / 100;
+  const band = neckbandPiece(bandCm, s.neckline === 'v');
 
   return {
     pieces: [front, back, ...sleeve.pieces, band],
@@ -191,7 +207,7 @@ export function draftTee(m: TeeMeasurements, style: Partial<TeeStyle> = {}): Tee
     armholeDepth: r1(scye),
     armhole: r1(shape.armhole),
     necklineCm: r1(neckline),
-    neckband: { length: r1(neckline * ratio), ratio, width: NECKBAND_CM },
+    neckband: { length: r1(bandCm), ratio, width: NECKBAND_CM },
     warnings,
   };
 }
@@ -243,7 +259,7 @@ function build(m: TeeMeasurements, s: TeeStyle, scye: number, warnings: string[]
   const relaxed = s.fit === 'relaxed';
 
   // ---- neck and shoulder --------------------------------------------------
-  const nw = N / 5 - 0.2;
+  const nw = N / 5 + TEE_NECK_WIDEN;
   const hps0 = p(nw, -2);
   const u = p(Math.cos(SLOPE), Math.sin(SLOPE));
   const spX = Math.max(SW / 2, nw + 8) + SHOULDER_EXT[s.fit];
@@ -338,7 +354,7 @@ function build(m: TeeMeasurements, s: TeeStyle, scye: number, warnings: string[]
   backPath.closed = true;
 
   // ---- front --------------------------------------------------------------
-  const cfY = Math.min(hps0.y + nw + 1 + nl.frontDepth, scye - 3);
+  const cfY = Math.min(hps0.y + N / 5 + nl.frontDepth, scye - 3);
   const cf = p(0, cfY);
   const drop = cfY - hps.y;
   const toward = (k: number) => add(hps, mul(perp(u), drop * k));

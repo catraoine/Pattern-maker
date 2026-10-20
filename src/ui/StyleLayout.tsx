@@ -191,6 +191,18 @@ export function StyleLayout({ children, label, name, garment, metres, width = 14
 
   // A preview too tall to leave room for the choices (the turning form with its notes) scrolls with the page instead.
   const pin = useRef<HTMLDivElement>(null);
+  // Whether the tab strip is scrolled to its end: until it is, the right edge fades to say there is more.
+  const strip = useRef<HTMLDivElement>(null);
+  const [atEnd, setAtEnd] = useState(false);
+  useEffect(() => {
+    const el = strip.current;
+    if (!el) return;
+    const check = () => setAtEnd(el.scrollLeft + el.clientWidth >= el.scrollWidth - 2);
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [tabs.length]);
   const [tall, setTall] = useState(false);
   useEffect(() => {
     const el = pin.current;
@@ -265,7 +277,13 @@ export function StyleLayout({ children, label, name, garment, metres, width = 14
       <div className="style-edit">
         <div className={tall ? 'style-pin tall' : 'style-pin'} ref={pin}>
           {preview}
-          <div className="style-tabs" role="tablist" aria-label="Style choices">
+          <div
+            className={atEnd ? 'style-tabs at-end' : 'style-tabs'}
+            role="tablist"
+            aria-label="Style choices"
+            ref={strip}
+            onScroll={(e) => setAtEnd(e.currentTarget.scrollLeft + e.currentTarget.clientWidth >= e.currentTarget.scrollWidth - 2)}
+          >
             {tabs.map((t) => (
               <button
                 key={t}
@@ -329,7 +347,7 @@ export function StyleLayout({ children, label, name, garment, metres, width = 14
         ) : (
           <div className="style-bar">
             <p className="style-bar-meta">
-              <strong>{name}</strong>
+              <strong>{name.charAt(0).toUpperCase() + name.slice(1)}</strong>
               {metres !== undefined && (
                 <span className="muted">
                   {metres} m of {width} cm fabric

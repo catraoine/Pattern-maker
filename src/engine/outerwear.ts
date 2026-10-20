@@ -345,7 +345,7 @@ function cutFrom(pc: Piece, r: Ring, name: string, over: Partial<Piece>): Piece 
 interface FrontOpening {
   piece: Piece;
   lapel?: Lapel;
-  /** The front facing's inner edge. */
+  /** The front facing's inner edge; no points when the facing is the whole centre panel of a princess front. */
   facing: { g: (y: number) => number; pts: P[] };
   /** The front neck seam's length, centre front (or the gorge) to the neck point. */
   frontNeck: number;
@@ -376,6 +376,9 @@ function openFront(pc: Piece, s: OuterStyle, ext: number, buttons: OuterDraft['b
     }
   labels.push({ at: p(hx + buttons.sizeCm / 2, buttons.at[0] - 0.6), text: 'BUTTONHOLE', size: 0.5 });
   const facingX = s.front === 'double' ? (buttons.columns[1] ?? 0) + 4.5 : 7.5;
+  // With princess seams the front is a narrow centre panel: the facing is the whole panel, cut to the
+  // princess seam, and the lining is cut from the side front only.
+  const toSeam = pc.outline.tags.includes('princess');
   const s4 = add(hps, mul(uSh, Math.min(4, len(sub(sp, hps)) * 0.4)));
   let pts: P[];
   let tags: string[];
@@ -428,11 +431,13 @@ function openFront(pc: Piece, s: OuterStyle, ext: number, buttons: OuterDraft['b
     tags = [...r.tags.slice(0, fi), 'opening-hem', 'opening', 'neck'];
     join = neckCF.y + 7;
   }
-  const facing = facingLine(s4, facingX, Math.max(join, s4.y + 10), foot.y);
-  const faceLine = new Path(facing.pts[0]);
-  for (const q of facing.pts.slice(1)) if (q.y < foot.y - 0.5) faceLine.line(q);
-  lines.push(faceLine);
-  labels.push({ at: p(facingX + 0.8, foot.y - 14), text: 'FACING LINE', size: 0.5, rotate: 90 });
+  const facing = toSeam ? { g: () => Infinity, pts: [] as P[] } : facingLine(s4, facingX, Math.max(join, s4.y + 10), foot.y);
+  if (!toSeam) {
+    const faceLine = new Path(facing.pts[0]);
+    for (const q of facing.pts.slice(1)) if (q.y < foot.y - 0.5) faceLine.line(q);
+    lines.push(faceLine);
+    labels.push({ at: p(facingX + 0.8, foot.y - 14), text: 'FACING LINE', size: 0.5, rotate: 90 });
+  }
   return {
     piece: {
       ...pc,
@@ -503,7 +508,7 @@ function notchedCollar(front: Piece, backNeck: number, frontNeck: number, s: Out
       { at: p(L * 0.35, -stand - 0.4), text: 'ROLL LINE', size: 0.45 },
     ],
     cut,
-    fabric: 'Upper collar in self, under collar in self on the bias + interfacing',
+    fabric: 'Upper and under collar in self + interfacing',
     seamAllowance: s.seamAllowance,
     allowances: { neck: 1, gorge: 1, collar: 1, fold: 0 },
     meta: { foldAt: 'centre back' },
@@ -806,7 +811,8 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
 
   // The front facing, and the front lining: the opened front either side of the facing line.
   const fr = ringOf(opening.piece.outline, 12);
-  const facingRing = clipRing(fr, opening.facing.g, true, 'lining', opening.facing.pts);
+  const toSeam = opening.facing.pts.length === 0;
+  const facingRing = toSeam ? fr : clipRing(fr, opening.facing.g, true, 'lining', opening.facing.pts);
   const facingPiece = cutFrom(opening.piece, facingRing, 'Front facing', {
     kind: 'facing',
     fabric: 'Self + interfacing',
@@ -837,6 +843,8 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
   // A collarless back neck is finished with a facing; under a collar the lining runs up to the neck.
   for (const pc of fronts) {
     if (pc === opening.piece) {
+      // The centre panel of a princess front is all facing: nothing left to line.
+      if (toSeam) continue;
       const lr = clipRing(fr, opening.facing.g, false, 'lining', opening.facing.pts);
       linings.push(cutFrom(pc, lr, 'Front lining', { kind: 'lining', fabric: 'Lining', cut: 'Cut 2 (1 pair)', allowances: { ...pc.allowances, lining: sa, hem: 1.5 } }));
     } else linings.push(cutFrom(pc, ringOf(pc.outline, 12), `${pc.name.replace(KIND, '').trim()} lining`.replace(/^./, (c) => c.toUpperCase()), { kind: 'lining', fabric: 'Lining', allowances: { ...pc.allowances, hem: 1.5 } }));

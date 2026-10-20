@@ -2425,7 +2425,8 @@ button.link.how-link {
   flex-direction: column;
   gap: 14px;
   padding: 22px 22px calc(22px + env(safe-area-inset-bottom));
-  background: var(--fill);
+  /* Solid, so the page underneath never shows through the steps. */
+  background: var(--paper);
   border-top: var(--bw) solid var(--line-strong);
 }
 
@@ -3345,14 +3346,18 @@ button.link.garment-change {
 .form-svg {
   max-height: min(62vh, calc(100svh - 480px));
 }
-.form-svg .form-line {
+.form-svg .form-line,
+.form-still .form-line {
   stroke: var(--gild);
 }
 .form-svg .form-legs,
-.form-svg .form-stand {
+.form-svg .form-stand,
+.form-still .form-legs,
+.form-still .form-stand {
   stroke: var(--guide);
 }
-.form-svg .tape {
+.form-svg .tape,
+.form-still .tape {
   stroke: var(--muted);
 }
 .form-svg .tape.on {
@@ -4508,6 +4513,13 @@ button.link.garment-change {
   scrollbar-width: none;
   border-bottom: 1px solid var(--guide);
   padding: 8px 0 0;
+  /* The strip scrolls on a phone: the last tab fades out at the right edge, so it is plainly cut off. */
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 44px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 44px), transparent);
+}
+.style-tabs.at-end {
+  -webkit-mask-image: none;
+  mask-image: none;
 }
 .style-tabs::-webkit-scrollbar {
   display: none;
@@ -5538,6 +5550,17 @@ input.inline:focus,
    Review page is only for phones. The print screen uses the same three columns. Phones and tablets below
    1100px keep their own layout. */
 @media (min-width: 1100px) {
+  .style-tabs,
+  .style-tabs.at-end {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+  /* The fabric close-up is a swatch beside its caption, not a screen-high photo. */
+  .fabstage {
+    grid-template-columns: 220px minmax(0, 1fr);
+    align-items: center;
+    gap: 18px;
+  }
   .style-edit {
     grid-template-columns: 160px minmax(0, 1fr) minmax(320px, 380px);
     grid-template-areas: 'tabs preview panel' 'tabs preview side';

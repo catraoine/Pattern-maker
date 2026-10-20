@@ -68,15 +68,27 @@ function kindOf(pc: Piece): Kind {
   return 'single';
 }
 
+/** The number in "Cut 2 (1 pair)" or "Cut 2 on fold"; 2 when there is none. */
+const cutCount = (pc: Piece) => Number(pc.cut.match(/cut\s+(\d+)/i)?.[1] ?? 2);
+
 /** How many times a pair is laid: twice for "Cut 4 (2 pairs)", like pocket bags. */
 function sets(pc: Piece): number {
-  const n = Number(pc.cut.match(/cut\s+(\d+)/i)?.[1] ?? 2);
-  return Math.max(1, Math.floor(n / 2));
+  return Math.max(1, Math.floor(cutCount(pc) / 2));
 }
 
-/** Which lays a piece is cut in. */
-function fabricsOf(pc: Piece): LayFabric[] {
+/** How many times a piece on the fold is laid: twice for "Cut 2 on fold" (a collar and its under
+ * collar, a collar stand), since each placing on folded fabric cuts one whole piece. */
+function foldTimes(pc: Piece): number {
+  return Math.max(1, cutCount(pc));
+}
+
+/** A pocket bag cut from "Lining or pocketing": it comes out of the lining when there is one. */
+const pocketing = (pc: Piece) => /pocketing/i.test(pc.fabric ?? '');
+
+/** Which lays a piece is cut in. `lined` says the garment has a lining lay of its own. */
+function fabricsOf(pc: Piece, lined = false): LayFabric[] {
   const f = (pc.fabric ?? '').toLowerCase();
+  if (pocketing(pc)) return lined ? ['lining'] : ['self'];
   if (f === 'lining') return ['lining'];
   if (f.includes('coutil')) return f.includes('lining') ? ['self', 'lining', 'interlining'] : ['self', 'interlining'];
   if (f.includes('lining')) return ['self', 'lining'];
@@ -185,7 +197,8 @@ function crosswise(pts: P[], down: P): P[] {
  * `border` turns the hemmed pieces crosswise so every hem sits on a border along the far selvedge.
  */
 export function layPlan(pieces: Piece[], width: FabricWidth, fabric: LayFabric = 'self', nap = false, hide = false, border = false): Lay | undefined {
-  const mine = pieces.filter((pc) => fabricsOf(pc).includes(fabric));
+  const lined = pieces.some((pc) => !pocketing(pc) && fabricsOf(pc).includes('lining'));
+  const mine = pieces.filter((pc) => fabricsOf(pc, lined).includes(fabric));
   if (!mine.length) return undefined;
   const usable = width - 2 * SELVEDGE;
   if (border && !hide) {
@@ -202,7 +215,9 @@ export function layPlan(pieces: Piece[], width: FabricWidth, fabric: LayFabric =
   // pair cut separately. A piece off the fold also keeps its gap from it.
   const folded = !hide && cut.every(({ pc, pts, kind }) => wide(pts) <= usable / 2 - (kind === 'fold' ? 0 : 2 * RES) && !pc.meta.singleLayer);
   const items: Item[] = cut.flatMap(({ pc, pts, kind }): Item[] => {
-    const times = kind === 'pair' ? sets(pc) : 1;
+    // A pair is cut through both layers at once; a piece on the fold comes out whole each time it is
+    // placed, so "Cut 2 on fold" is placed twice.
+    const times = kind === 'pair' ? sets(pc) : kind === 'fold' ? foldTimes(pc) : 1;
     return Array.from({ length: times }, () => one(pc, pts, kind)).flat();
   });
   function one(pc: Piece, pts: P[], kind: Kind): Item[] {
@@ -403,4 +418,73 @@ export function layWords(lay: Lay): string {
         ? ` Border print: a piece is longer than the fabric is wide, so it can't be turned to put its hem on the border. It is laid on the straight grain; let the border fall where it lands, or choose a shorter length or a wider fabric.`
         : '';
   return `${way}${single}${grain}${bias}${up}${edge} The pieces use ${Math.round(lay.efficiency * 100)}% of the fabric.`;
+}
+
+/**
+ * Nest closed outlines on a sheet `width` wide, as drawn (nothing turned), with `gap` between any
+ * two: each is dropped as low as it will go, and then as far left, taken in `order`. A `reserved`
+ * rectangle at the top left (a title block) is kept clear, the gap round it too. Returns the
+ * translation of each outline, in the order given, and the extent the sheet takes, measured from
+ * the top left corner. Used for the printed sheet, where a sleeve's crown can tuck under an armhole
+ * rather than beside it.
+ */
+export function nestOutlines(
+  outlines: P[][],
+  width: number,
+  gap: number,
+  order: number[] = outlines.map((_, i) => i),
+  reserved?: { w: number; h: number },
+  policy: 'low' | 'left' = 'low',
+): { at: P[]; width: number; height: number } {
+  const cols = Math.max(1, Math.floor(width / RES));
+  const sky = new Array<number>(cols).fill(0);
+  if (reserved) for (let c = 0; c < Math.min(cols, Math.ceil((reserved.w + gap) / RES)); c++) sky[c] = reserved.h + gap / 2;
+  const at: P[] = new Array(outlines.length);
+  const pad = Math.ceil(gap / 2 / RES); // columns of half a gap either side
+  for (const i of order) {
+    const o = outlines[i];
+    const ox0 = Math.min(...o.map((q) => q.x));
+    const oy0 = Math.min(...o.map((q) => q.y));
+    const base = profile(o);
+    // The profile swollen by half the gap on every side, so two nested outlines stay the gap apart.
+    const prof = { cols: base.cols + 2 * pad, top: [] as number[], bottom: [] as number[] };
+    for (let c = 0; c < prof.cols; c++) {
+      let lo = Infinity;
+      let hi = -Infinity;
+      for (let k = Math.max(0, c - 2 * pad); k <= Math.min(base.cols - 1, c); k++) {
+        lo = Math.min(lo, base.top[k]);
+        hi = Math.max(hi, base.bottom[k]);
+      }
+      prof.top.push(lo - gap / 2);
+      prof.bottom.push(hi + gap / 2);
+    }
+    // Lowest spot, then leftmost; or, filling the left first, the leftmost spot that keeps the
+    // nest no taller than it already is, then the lowest.
+    const tallest = Math.max(...sky);
+    const deep = Math.max(...prof.bottom);
+    let best: { x: number; y: number; score: number } | undefined;
+    for (let x = 0; x <= cols - prof.cols; x++) {
+      let y = 0;
+      for (let c = 0; c < prof.cols; c++) y = Math.max(y, sky[x + c] - prof.top[c]);
+      const score = policy === 'low' || y + deep > tallest + 1e-6 ? y * 1e6 + x : x;
+      if (!best || score < best.score - 1e-6) best = { x, y, score };
+    }
+    const { x, y } = best ?? { x: 0, y: Math.max(...sky) };
+    for (let c = 0; c < Math.min(prof.cols, cols - x); c++) sky[x + c] = Math.max(sky[x + c], y + prof.bottom[c]);
+    // The swollen profile's corner sits at the column; the outline itself half a gap in from it.
+    at[i] = p((x + pad) * RES - ox0, y - oy0);
+  }
+  // Pull the lot flush with the top-left corner (the reserved block, when there is one, stays put).
+  let placed = outlines.flatMap((o, i) => o.map((q) => p(q.x + at[i].x, q.y + at[i].y)));
+  const dx = Math.min(reserved ? 0 : Infinity, ...placed.map((q) => q.x));
+  const dy = Math.min(reserved ? 0 : Infinity, ...placed.map((q) => q.y));
+  if (placed.length && (dx !== 0 || dy !== 0)) {
+    for (const i of order) at[i] = p(at[i].x - dx, at[i].y - dy);
+    placed = placed.map((q) => p(q.x - dx, q.y - dy));
+  }
+  return {
+    at,
+    width: Math.max(reserved?.w ?? 0, ...placed.map((q) => q.x)),
+    height: Math.max(reserved?.h ?? 0, ...placed.map((q) => q.y)),
+  };
 }
