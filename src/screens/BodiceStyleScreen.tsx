@@ -36,6 +36,7 @@ import { FitSwitch, GarmentViews, PreviewSwitch } from '../ui/PreviewSwitch';
 import type { EaseView } from '../engine/easeMap';
 import { ChoicePic, chipsClass } from '../ui/ChoicePic';
 import { Explain } from '../ui/Explain';
+import { DemoButton } from '../ui/DemoButton';
 
 /** Moving the shaping is a pro tool, so these groups sit on the Pro tab. */
 const PRO_GROUPS: string[] = ['princess', 'bustDart'];
@@ -393,6 +394,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
             ))}
         </div>
         <div className="preview">
+          <DemoButton demo="style" />
           {error && <p className="msg error">{error}</p>}
           {draft && view === 'sketch' && (
             <GarmentFabric fabric={fabric}>

@@ -34,6 +34,7 @@ import { readSkirtHem, readSkirtSide, skirtLines } from '../ui/formLines';
 import { ChoicePic, chipsClass } from '../ui/ChoicePic';
 import { Explain } from '../ui/Explain';
 import { AllRound } from '../ui/AllRound';
+import { DemoButton } from '../ui/DemoButton';
 import { roundSkirt } from '../engine/allRound';
 
 interface Props {
@@ -470,6 +471,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
             ))}
         </div>
         <div className="preview">
+          <DemoButton demo="style" />
           {error && <p className="msg error">{error}</p>}
           {draft && sheet && view === 'sketch' && (
             <GarmentFabric fabric={fabric}>
