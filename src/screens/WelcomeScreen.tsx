@@ -27,7 +27,8 @@ const LEAVE_MS = 1700;
 // carries straight on from it.
 // The name is asked only when measuring someone else, on the first measuring page.
 // Coming back with measurements already taken, the button carries on with the garment you were on, straight
-// to its style screen, with a quiet way to your saved patterns or something new under it.
+// to its style screen, with a quiet way to your saved patterns or something new under it. No tape tip there
+// (Cat, 2026-10-20): it only belongs where Begin pulls the tape out into measuring.
 export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume }: Props) {
   const [touring, setTouring] = useState(false);
   const [leaving, setLeaving] = useState(false);
@@ -66,7 +67,7 @@ export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume }: Pr
             <span className="tour-play-ring" aria-hidden="true" />
             <span className="tour-play-label">How it works · {TOUR_LABEL}</span>
           </button>
-          <span className="tape-tip" aria-hidden="true" />
+          {!resume && <span className="tape-tip" aria-hidden="true" />}
           {leaving && <TapeBand className="unrolling" />}
         </div>
         <Title id="wtitle" big="Sewing patterns" label={resume ? 'Welcome back' : 'drafted to your body'} />
