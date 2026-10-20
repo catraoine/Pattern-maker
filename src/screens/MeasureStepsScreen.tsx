@@ -144,7 +144,6 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
     };
     return (
       <Shell title="First, let's take some measurements." skip={onSkip && (() => onSkip())}>
-        <p className="muted step-tip">Grab a soft tape measure.</p>
         <div className="who" role="group" aria-labelledby="who-q">
           <p id="who-q" className="who-q">
             Who are you designing for?

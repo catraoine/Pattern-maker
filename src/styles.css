@@ -4011,7 +4011,8 @@ button.link.garment-change {
   color: var(--paper);
 }
 
-/* Which form to draft on (Cat's B2 Two Forms): the two forms side by side, the picked one in the bright line */
+/* Which form to draft on (Cat's B2 Two Forms): the two forms side by side, the picked one in the bright border.
+   Both forms keep full-strength lines either way, so one never looks fainter than the other (Cat, 2026-10-20). */
 .form-pick {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -4041,10 +4042,6 @@ button.link.garment-change {
 .form-pick button.on {
   border-color: var(--gild);
   color: var(--gild);
-}
-
-.form-pick button:not(.on) .form-picture {
-  opacity: 0.45;
 }
 
 .form-picture {
