@@ -5919,3 +5919,16 @@ input.inline:focus,
 .printpick-hint {
   margin: 0;
 }
+
+/* On the form choice the tag sits in the picture's corner, so the first measuring page still fits a small phone. */
+.form-pick button {
+  position: relative;
+}
+
+.form-pick .testing-tag {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  margin: 0;
+  font-size: 9px;
+}

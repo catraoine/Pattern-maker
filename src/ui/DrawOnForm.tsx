@@ -10,6 +10,7 @@ import type { BodiceDraft } from '../engine/bodice';
 import { bodyOutline, spline } from './bodyOutline';
 import { FormLine, FormSide, Reading, landmarks } from './formLines';
 import type { SkirtMeasurements } from '../engine/skirt';
+import { TestingTag } from './TestingTag';
 
 type Measures = { full_bust?: number; waist: number; full_hip?: number; waist_to_hip?: number; waist_to_knee?: number; waist_to_floor?: number };
 
@@ -276,7 +277,7 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
     <div className="form-draw">
       <div className="screen-head">
         <div>
-          <p className="eyebrow">Drape · Your form</p>
+          <p className="eyebrow">Drape · Your form <TestingTag /></p>
           <h1>Draw your lines</h1>
         </div>
         <button type="button" className="primary done" onClick={() => leave(onDone)}>
