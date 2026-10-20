@@ -95,10 +95,13 @@ describe('the coat lining follows its pieces', () => {
   it('cuts and sews the side front and side back linings of a princess coat', () => {
     const d = draftOuter(O, { kind: 'coat', shaping: 'princess' });
     expect(d.pieces.map((pc) => pc.name)).toEqual(expect.arrayContaining(['Side front lining', 'Side back lining']));
+    // The centre front panel is all facing, so there is no front lining piece to sew the side front lining to.
+    expect(d.pieces.map((pc) => pc.name)).not.toContain('Front lining');
     const g = outerGuide(d, 3);
     expect(step(g, 'Cut the lining')).toMatch(/side front linings/);
     expect(step(g, 'Cut the lining')).toMatch(/side back linings/);
-    expect(step(g, 'Make the lining')).toMatch(/^Sew each side front lining to its front lining and each side back lining to its back lining along the princess seams/);
+    expect(step(g, 'Make the lining')).toMatch(/^Sew each side back lining to its back lining along the princess seam/);
+    expect(step(g, 'Make the lining')).toMatch(/Sew each side front lining to its front facing along the princess seam/);
     const darted = outerGuide(draftOuter(O, { kind: 'jacket', shaping: 'darts' }), 2);
     expect(step(darted, 'Cut the lining')).not.toMatch(/side front/);
     expect(step(darted, 'Make the lining')).not.toMatch(/princess/);
@@ -163,8 +166,9 @@ describe('guide text guarded by draft fields another branch adds', () => {
     expect(step(g, 'Make the lining')).toMatch(/^Sew each side back lining to its back lining along the princess seam/);
     expect(step(g, 'Make the lining')).toMatch(/Sew each side front lining to its front facing along the princess seam/);
     expect(step(g, 'Make the lining')).not.toMatch(/inner edges of the front facings/);
-    // With the front lining piece, the facing keeps its old line and the front lining is sewn as before.
-    const old = outerGuide(d, 3);
+    // With a front lining piece, the facing keeps its old line and the front lining is sewn as before.
+    const sideFront = d.pieces.find((pc) => pc.name === 'Side front lining')!;
+    const old = outerGuide({ ...d, pieces: [...d.pieces, { ...sideFront, name: 'Front lining' }] }, 3);
     expect(step(old, 'Cut the lining')).toMatch(/^Cut the front linings, side front linings, /);
     expect(step(old, 'Make the lining')).toMatch(/inner edges of the front facings/);
   });
