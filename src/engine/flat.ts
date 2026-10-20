@@ -539,6 +539,8 @@ function sleeveSide(h: Half, sl: SleeveDraft): { shape: P[]; band?: P[]; lines: 
     const shape = [...head, Ho, Hi, U, ...[...hole].reverse().slice(1, -1)];
     const lift = 2;
     lines.push({ pts: [add(Ho, mul(a, -lift)), add(Hi, mul(a, -lift))], kind: 'stitch' });
+    // The wrist vent: a short slit up the underseam from the hem.
+    if (sl.vent) lines.push({ pts: [add(Hi, mul(n, -0.4)), add(add(Hi, mul(n, -0.4)), mul(a, -sl.vent.lengthCm))], kind: 'seam' });
     // A two-piece sleeve's back seam, seen from the back: from above the back notch down to the wrist.
     let seam: P[] | undefined;
     if (sl.pieces.some((pc) => pc.meta.tailored)) {
