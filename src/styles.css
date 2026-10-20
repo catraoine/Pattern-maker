@@ -5843,82 +5843,55 @@ input.inline:focus,
   }
 }
 
-/* The welcome's "How it works", a quiet line beside Begin (under it on a phone). */
-button.tour-link {
-  align-self: center;
-  min-height: 36px;
-  padding: 0 4px;
+/* The tour's play button, on the welcome's dress form above the waist */
+.tour-play {
+  position: absolute;
+  left: 50%;
+  top: 30%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 0;
   border: 0;
   background: none;
-  color: var(--gild);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.tour-play-ring {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  border: 1px solid var(--ink);
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.tour-play-ring::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-35%, -50%);
+  border-left: 16px solid var(--ink);
+  border-top: 10px solid transparent;
+  border-bottom: 10px solid transparent;
+}
+
+.tour-play-label {
+  padding: 6px 8px;
+  background: rgba(0, 0, 0, 0.7);
   font: var(--w-body) 10px/1 var(--mono);
   letter-spacing: 0.25em;
   text-transform: uppercase;
-  cursor: pointer;
-}
-button.tour-link:hover,
-button.tour-link:focus-visible {
-  color: var(--gild-glow);
 }
 
-/* The title fades up once as the light crosses the form. */
-@media (prefers-reduced-motion: no-preference) {
-  .welcome.opening.go .welcome-card > :not(.welcome-hero) {
-    animation: welcome-up 1.2s 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
-  }
-}
-@keyframes welcome-up {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-@media (min-width: 1100px) and (min-height: 560px) {
-  /* The whole window is the picture: the form to the right, the title and Begin at the lower left over it. */
-  .main:has(.welcome.opening) {
-    padding: 0;
-  }
-  .welcome.opening .welcome-card {
-    position: relative;
-    max-width: none;
-    padding: 0 clamp(20px, 3vw, 56px) clamp(32px, 7vh, 80px);
-    justify-content: flex-end;
-    gap: 22px;
-    min-height: calc(100svh - 70px);
-  }
-  .welcome.opening .welcome-hero {
-    position: absolute;
-    inset: 0;
-    margin: 0;
-    max-height: none;
-  }
-  .welcome.opening .welcome-card > :not(.welcome-hero) {
-    position: relative;
-    width: min(36vw, 520px);
-  }
-  .welcome.opening .welcome-card h1 {
-    font-size: clamp(56px, 6.6vw, 112px);
-  }
-  .welcome.opening .stack {
-    flex-direction: row;
-    align-items: center;
-    gap: 28px;
-  }
-  .welcome.opening .stack > .primary {
-    flex: none;
-    width: min(18vw, 280px);
-  }
-  .welcome.opening .stack .resume-more {
-    margin: 0;
-  }
-  .welcome.opening .fineprint {
-    text-align: left;
-  }
+.tour-play:focus-visible .tour-play-ring {
+  outline: 2px solid var(--focus);
+  outline-offset: 4px;
 }
 
 /* Measuring. On a phone: one column, the form on top and the question under it. */

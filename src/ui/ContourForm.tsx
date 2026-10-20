@@ -220,6 +220,14 @@ function layout(w: number, h: number) {
   return { S, cx, wy, lw: lineFor(S), Y: (y: number) => wy + (y - 0.1) * S };
 }
 const lineFor = (S: number) => Math.max(0.7, S / 252) * 1.2;
+/** The welcome's own framing: a close crop of the torso, the neck running off the top and no head in view
+ *  (Cat went back to this from the full figure, 2026-10-20). */
+function welcomeLayout(w: number, h: number) {
+  const S = Math.min(w * 0.82, h * 0.46);
+  const cx = w / 2;
+  const wy = h * 0.5;
+  return { S, cx, wy, lw: lineFor(S), Y: (y: number) => wy + (y - 0.1) * S };
+}
 
 /**
  * The form's outline as one closed loop, clockwise from the top left (across the neck, down the right side,
@@ -227,7 +235,7 @@ const lineFor = (S: number) => Math.max(0.7, S / 252) * 1.2;
  */
 export function formOutline(w: number, h: number, kind?: FormKind): { pts: [number, number][]; lw: number } {
   pickForm(kind);
-  const { S, cx, Y, lw } = layout(w, h);
+  const { S, cx, Y, lw } = welcomeLayout(w, h);
   const left = YS.map((y): [number, number] => [cx - R(y) * S, Y(y)]);
   const right = YS.map((y): [number, number] => [cx + R(y) * S, Y(y)]);
   return { pts: [left[0], ...right, ...left.reverse()], lw };
@@ -259,18 +267,19 @@ function settledForm(g: CanvasRenderingContext2D, w: number, h: number, outline 
   fadeBottom(g, w, h);
 }
 
-// The welcome (Cat's C1 Light Pass): the outline draws, or arrives already drawn from the loading screen, then
-// the long lines and the head come up together while a soft light crosses the form once, from the left, and
-// comes to rest on its front.
+// The welcome (Cat's T5 Drawn Down): the outline draws, or arrives already drawn from the loading screen, then
+// all the long lines are drawn down together from the shoulders. A close crop, so the head is out of view.
 const OUTLINE = 1000;
-const LINES_IN = 1300;
-const PASS = 5000;
-const WELCOME_END = OUTLINE + PASS;
-const passLight = (L: number): Light => (u) => 0.22 + 0.78 * Math.exp(-((u - L) ** 2) / 0.09);
+const DOWN = 1300;
+const WELCOME_END = OUTLINE + DOWN + 300;
 function draw(g: CanvasRenderingContext2D, w: number, h: number, t: number, drawn: boolean) {
   const t0 = drawn ? 0 : OUTLINE;
-  const L = -1.6 + 1.6 * inOut(seg(t, t0, t0 + PASS));
-  settledForm(g, w, h, drawn ? 1 : inOut(seg(t, 0, OUTLINE - 100)), inOut(seg(t, t0, t0 + LINES_IN)), passLight(L));
+  g.globalAlpha = 1;
+  g.fillStyle = '#000';
+  g.fillRect(0, 0, w, h);
+  const { S, cx, lw, Y } = welcomeLayout(w, h);
+  paintTorso(g, S, cx, Y, lw, EVEN, drawn ? 1 : inOut(seg(t, 0, OUTLINE - 100)), inOut(seg(t, t0, t0 + DOWN)));
+  fadeBottom(g, w, h);
 }
 
 // When the app opens on the welcome screen, the loading screen reshapes its bodice into this form's outline.
@@ -327,7 +336,7 @@ export function ContourForm({ start: from = 'fresh', kind }: { start?: FormStart
   const ref = useCanvas(
     (g, w, h, now) => {
       const drawn = from === 'drawn';
-      const end = (drawn ? 0 : OUTLINE) + PASS;
+      const end = (drawn ? 0 : OUTLINE) + DOWN + 300;
       if (!begun.current) begun.current = now;
       const t = stillMotion() ? end : Math.min(now - begun.current, end);
       pickForm(kind);
