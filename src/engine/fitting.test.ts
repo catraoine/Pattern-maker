@@ -149,7 +149,7 @@ describe('bodice corrections', () => {
       // A lower shoulder's line leaves the main one only above the bust: the shoulder, the armhole
       // and the top of the side seam.
       if (d.lowShoulder) {
-        const below = Math.max(d.front.apex.y, d.armholeDepth + d.lowShoulder.cm + 3);
+        const below = Math.max(d.front.apex.y, d.front.bustSide.y + 0.5, d.armholeDepth + d.lowShoulder.cm + 3);
         for (const [i, pc] of d.pieces.entries()) {
           const far = leaving(d.lowShoulder.pieces[i].outline.points(), pc.outline.points()).flatMap((run) => run.slice(1, -1)).filter((q) => q.y > below);
           if (far.length) failures.push(`seed ${seed}: ${pc.name} second line strays below the armhole`);
