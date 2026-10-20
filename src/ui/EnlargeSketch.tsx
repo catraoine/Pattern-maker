@@ -7,7 +7,7 @@ import { createPortal } from 'react-dom';
 // garment, its fabric and its pattern pieces.
 
 /** The drawing in the preview to enlarge: the sketch or the pattern, not the turning form (a canvas). */
-const sketchIn = (preview: Element) => (preview.querySelector('.all-round') ? null : preview.querySelector<SVGSVGElement>('svg:not(.fabric-defs)'));
+const sketchIn = (preview: Element) => (preview.querySelector('.all-round, .point-svg') ? null : preview.querySelector<SVGSVGElement>('svg:not(.fabric-defs)'));
 
 interface View {
   label?: string;
@@ -42,12 +42,13 @@ const MAX = 5;
 /** The Enlarge button, placed on the preview of the style page, and the full-screen view it opens. */
 export function EnlargeSketch({ host, name }: { host: HTMLElement | null; name: string }) {
   const [open, setOpen] = useState<{ html: string; views: View[]; style: CSSProperties } | null>(null);
-  const [has, setHas] = useState(false);
-  // Only while there's a still drawing to show: not on the turning form, not while drawing a hem.
+  // Where the button goes: over the drawing's corner, or in the pattern's own row beside Move points.
+  const [spot, setSpot] = useState<HTMLElement | null>(null);
+  // Only while there's a still drawing to show: not on the turning form, not while drawing a hem or moving points.
   useLayoutEffect(() => {
     const svg = host && sketchIn(host);
-    const now = !!svg && !svg.classList.contains('drawing');
-    if (now !== has) setHas(now);
+    const now = svg && !svg.classList.contains('drawing') ? host.querySelector<HTMLElement>('.point-switch') ?? host : null;
+    if (now !== spot) setSpot(now);
   });
   if (!host) return null;
 
@@ -62,15 +63,15 @@ export function EnlargeSketch({ host, name }: { host: HTMLElement | null; name: 
 
   return (
     <>
-      {has &&
+      {spot &&
         createPortal(
-          <button type="button" className="enlarge" onClick={enlarge} aria-label={`Enlarge the drawing of the ${name.toLowerCase()}`}>
+          <button type="button" className={spot === host ? 'enlarge' : 'enlarge in-row'} onClick={enlarge} aria-label={`Enlarge the drawing of the ${name.toLowerCase()}`}>
             <svg viewBox="0 0 16 16" aria-hidden="true">
               <path d="M9.5 2.5h4v4M6.5 13.5h-4v-4M13.5 2.5 9 7M2.5 13.5 7 9" />
             </svg>
             Enlarge
           </button>,
-          host,
+          spot,
         )}
       {open && <BigSketch name={name} {...open} onClose={() => setOpen(null)} />}
     </>

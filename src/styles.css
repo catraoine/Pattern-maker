@@ -1354,6 +1354,9 @@ b {
   text-transform: uppercase;
   cursor: zoom-in;
 }
+.enlarge.in-row {
+  position: static;
+}
 .enlarge svg {
   width: 14px;
   height: 14px;
