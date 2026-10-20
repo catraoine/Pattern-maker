@@ -3,11 +3,15 @@
 import { SEAM_WIDTHS, SeamWidths } from './allowances';
 import { ELASTIC_FINISH, POCKET_CUT, casingSteps, elasticNotions, pocketBagsStep, pocketSeamWords } from './instructions';
 import type { SewingGuide, SewStep } from './instructions';
-import type { TrousersDraft } from './trousers';
+import type { TrouserLength, TrousersDraft } from './trousers';
 
 const n1 = (v: number) => `${v} cm`;
 
-export function trousersGuide(d: TrousersDraft, fabricM: number, finish: { seams?: SeamWidths; width?: number } = {}): SewingGuide {
+/**
+ * `finish.length` is the length chosen (full or ankle), which the draft itself does not record; without
+ * it the hem step describes both.
+ */
+export function trousersGuide(d: TrousersDraft, fabricM: number, finish: { seams?: SeamWidths; width?: number; length?: TrouserLength } = {}): SewingGuide {
   const sw = finish.seams ?? SEAM_WIDTHS.home;
   const seam = n1(sw.seam);
   const waist = n1(sw.waist);
@@ -64,7 +68,9 @@ export function trousersGuide(d: TrousersDraft, fabricM: number, finish: { seams
       : []),
     {
       title: 'Press the creases',
-      text: `Fold each front and each back along its chalked crease line, wrong sides together, and press the crease in from the hem up to the knee${culotte ? '' : ' and on up to the crotch line on the back, to the dart on the front'}. Use a press cloth and plenty of steam. A crease pressed now stays sharp.`,
+      text: `Fold each front and each back along its chalked crease line, wrong sides together, and press the crease in from the hem up to the knee${
+        culotte ? '' : ` and on up to the crotch line on the back, ${d.dartsPerSide.front ? 'to the dart' : 'to the hip line'} on the front`
+      }. Use a press cloth and plenty of steam. A crease pressed now stays sharp.`,
     },
     ...(slant
       ? [
@@ -105,7 +111,7 @@ export function trousersGuide(d: TrousersDraft, fabricM: number, finish: { seams
         ? [
             {
               title: 'Put in the side zip',
-              text: `Sew a ${d.zipCm} cm invisible zip into the open part of the left side seam, the top of the teeth ${waist} below the waist edge, stopping at the LEFT ZIP ENDS notch. Close the last few cm of the seam below the zip.`,
+              text: `Sew a ${d.zipCm} cm invisible zip into the open part of the left side seam, the top of the teeth ${waist} below the waist edge, stopping at the LEFT ZIP ENDS notch, where the seam you sewed below it begins.`,
             },
           ]
         : []),
@@ -125,7 +131,15 @@ export function trousersGuide(d: TrousersDraft, fabricM: number, finish: { seams
         ]),
     {
       title: 'Hem',
-      text: `Try the trousers on with the shoes you will wear and pin up the hem: ${culotte ? 'culottes sit at mid-calf' : 'full-length trousers just touch the top of the shoe at the front'}. Press up 1 cm, then ${Math.max(1, hem - 1)} cm more, and slip-stitch by hand so no stitches show on the outside.`,
+      text: `Try the trousers on with the shoes you will wear and pin up the hem: ${
+        culotte
+          ? 'culottes sit at mid-calf'
+          : finish.length === 'ankle'
+            ? 'ankle-length trousers end just above the ankle bone, clear of the shoe'
+            : finish.length === 'full'
+              ? 'full-length trousers just touch the top of the shoe at the front'
+              : 'full-length trousers just touch the top of the shoe at the front, ankle-length ones end just above the ankle bone'
+      }. Press up 1 cm, then ${Math.max(1, hem - 1)} cm more, and slip-stitch by hand so no stitches show on the outside.`,
     },
     {
       title: 'Finish',

@@ -77,6 +77,8 @@ function oneSide(pc: Piece, also: string): string {
 }
 
 export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; length: Length } & Partial<VolumeStyle>, fabricM: number, finish: SkirtFinish = {}): SewingGuide {
+  // The hem depth is the draft's own hem allowance, which varies with the shape (narrower on a curve).
+  const hemDepth = draft.pieces.find((pc) => pc.allowances?.hem !== undefined)?.allowances.hem ?? finish.hem ?? 4;
   // Cut whole, with the zip in the left side seam: the slip, or a hem that differs side to side.
   if (draft.opening === 'left_side') return wholeGuide(draft, fabricM, finish);
   const { front, back } = draft.dartsPerSide;
@@ -96,6 +98,10 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
   const elastic = draft.elastic;
   const backSeam = !draft.pieces[1].fold;
   const pockets = !!draft.pocket;
+  // The lining is the same skirt without its pleats, godets or flounce, 2.5 cm shorter: it has darts
+  // where the plain skirt does (none on a circle), and the same centre seams.
+  const liningDarts = !circle && (dartCount > 0 || !!draft.volume?.pleats || !!draft.volume?.inverted);
+  const liningSeams = (also: string) => `Sew the lining ${frontSeam ? 'centre front seam, ' : ''}side seams${also}, ${seam} from the edge.`;
 
   const steps: SewStep[] = [
     {
@@ -183,9 +189,9 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
       ? [
           {
             title: 'Make the lining',
-            text: elastic
-              ? `Sew the lining side seams${backSeam ? ' and centre back seam' : ''}, ${seam} from the edge. Press up 1 cm at the hem, then 1 cm more, and stitch.`
-              : `Sew the lining darts as tucks: stitch each one only 3 cm down from the waist, so the lining has room to move. Sew the lining side seams, and the centre back seam from the ZIP ENDS notch down, ${seam} from the edge. Press up 1 cm at the hem, then 1 cm more, and stitch.`,
+            text: `${liningDarts ? 'Sew the lining darts as tucks: stitch each one only 3 cm down from the waist, so the lining has room to move. ' : ''}${
+              elastic ? liningSeams(backSeam ? ' and centre back seam' : '') : liningSeams(' and the centre back seam from the ZIP ENDS notch down')
+            } Press up 1 cm at the hem, then 1 cm more, and stitch.`,
           },
           {
             title: 'Put the lining in',
@@ -216,8 +222,8 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
         : style.silhouette === 'trumpet'
           ? 'The hem is curved and full, so keep it narrow. Press up 0.5 cm, then 1.5 cm more, easing in the fullness with steam, and stitch by hand or machine.'
           : style.silhouette === 'a_line'
-            ? `Press up 1 cm, then ${(finish.hem ?? 4) - 1} cm more. The hem is curved, so ease in the extra fullness with steam as you press. Stitch by hand or machine.`
-            : `Press up 1 cm, then ${(finish.hem ?? 4) - 1} cm more, and stitch by hand or machine.${slit ? ' Turn the slit edges under and stitch them down.' : ''}`,
+            ? `Press up 1 cm, then ${hemDepth - 1} cm more. The hem is curved, so ease in the extra fullness with steam as you press. Stitch by hand or machine.`
+            : `Press up 1 cm, then ${hemDepth - 1} cm more, and stitch by hand or machine.${slit ? ' Turn the slit edges under and stitch them down.' : ''}`,
     },
     {
       title: 'Finish',
@@ -235,7 +241,7 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
       'Matching thread',
     ],
     // Pleats, godets, a flounce or tiers, sewn in at the right moment.
-    steps: volumeSteps(steps, draft, { seam, waist, hem: finish.hem ?? 4 }),
+    steps: volumeSteps(steps, draft, { seam, waist, hem: hemDepth }),
   };
 }
 
@@ -290,6 +296,8 @@ export function bodiceGuide(draft: BodiceDraft, _style: { length: BodiceLength }
   const curve = n1(sw.curve);
   const edges = finish.edges ?? 'binding';
   const bust = draft.bustDart > 0.3;
+  // When the draft notes the bust dart as pivoted into the waist dart, the side dart is 5 cm wide and the waist dart carries the rest.
+  const pivoted = draft.pieces.some((pc) => pc.draft?.points.some((pt) => pt.n === 'B' && /pivoted into the waist dart/i.test(pt.note ?? '')));
   const waist = draft.waistDarts.front > 0.3 || draft.waistDarts.back > 0.3;
   const dartWords = bust && waist ? 'bust and waist darts' : bust ? 'bust darts' : 'waist darts';
   const sleeve = finish.sleeve;
@@ -325,7 +333,7 @@ export function bodiceGuide(draft: BodiceDraft, _style: { length: BodiceLength }
           {
             title: `Sew the ${dartWords}`,
             text: [
-              bust ? 'Fold each bust dart with right sides together so the dart lines meet, stitch from the side seam to the point, and press it down.' : '',
+              bust ? `Fold each bust dart with right sides together so the dart lines meet, stitch from the side seam to the point, and press it down.${pivoted ? ' The side bust dart is 5 cm wide; the rest of the bust shaping is carried in the waist dart.' : ''}` : '',
               waist && below
                 ? 'The waist darts are pointed at both ends. Fold each one along its centre, stitch from one point through the widest part at the waist to the other point, then clip into the fold at the waist so it lies flat. Press toward the centre.'
                 : waist
