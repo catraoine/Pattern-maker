@@ -6,7 +6,7 @@ import { draftTrousers, trousersWaistband } from './trousers';
 import { draftTee } from './tee';
 import { withAllowances } from './allowances';
 import { bounds, cutLine, Piece } from './piece';
-import { columnSpans, fitRow, labelCollisions, layout, pack, packedPages, pageCount, turnedInBox, wrapInfo } from './export';
+import { columnSpans, fitRow, labelCollisions, layout, pack, packedPages, pageCount, textWidth, turnedInBox, wrapInfo } from './export';
 import { EXAMPLE_VALUES } from '../measurements';
 
 const GAP = 4;
@@ -147,6 +147,36 @@ describe('labels on small pieces', () => {
       expect(labelCollisions(layout(pieces, name, [], INFO))).toEqual([]);
     });
   }
+
+  it('keeps the collar\'s name block off its roll line', () => {
+    const pieces = cases[0][1];
+    const sheet = layout(pieces, 'Jacket', [], INFO);
+    const i = pieces.findIndex((pc) => pc.name === 'Collar');
+    // The roll line as drawn on the sheet: the collar's one internal line, two points long.
+    const roll = sheet.prims.find((pr) => pr.kind === 'poly' && pr.piece === i && pr.style === 'mark' && pr.pts.length === 2 && !pr.closed)!;
+    expect(roll).toBeDefined();
+    if (roll.kind !== 'poly') return;
+    const [a, b] = roll.pts;
+    expect(Math.hypot(b.x - a.x, b.y - a.y)).toBeGreaterThan(10);
+    // The name block: the name, its information line(s) and the fabric. None of their boxes meets the roll line.
+    const block = sheet.prims.filter((pr): pr is Extract<typeof pr, { kind: 'text' }> => pr.kind === 'text' && pr.piece === i && /^COLLAR$|^PIECE |COLLAR IN SELF/.test(pr.text));
+    expect(block.length).toBeGreaterThanOrEqual(2);
+    for (const pr of block) {
+      expect(pr.rotate).toBe(0);
+      const hw = textWidth(pr.text, pr.size, pr.tracking ?? 0) / 2;
+      const top = pr.at.y - pr.size * 0.75;
+      const bottom = pr.at.y + pr.size * 0.1;
+      // The line's height where it passes the box, if it does.
+      const [x0, x1] = [pr.at.x - hw, pr.at.x + hw];
+      const yAt = (x: number) => a.y + ((b.y - a.y) * (x - a.x)) / (b.x - a.x);
+      const lo = Math.max(x0, Math.min(a.x, b.x));
+      const hi = Math.min(x1, Math.max(a.x, b.x));
+      if (lo > hi) continue;
+      const ys = [yAt(lo), yAt(hi)];
+      const clear = Math.max(...ys) < top || Math.min(...ys) > bottom;
+      expect(clear, `${pr.text} crosses the roll line`).toBe(true);
+    }
+  });
 
   it('names the collar as it is cut, on the fold in self', () => {
     const t = texts(cases[0][1], 'Collar');

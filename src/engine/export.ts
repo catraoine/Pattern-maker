@@ -192,6 +192,37 @@ function reach(a: Box, b: Box, axis: P): number {
 const overlaps = (a: Box, b: Box) => [a.u, a.n, b.u, b.n].every((ax) => reach(a, b, ax) > 0);
 const within = (b: Box, poly: P[]) => corners(b).every((q) => insidePolygon(q, poly));
 
+/** Whether the segment a-b reaches into the box. */
+function crosses(b: Box, a: P, c: P): boolean {
+  // In the box's own frame: along the text and down it, from its centre.
+  const local = (q: P) => p(dot(sub(q, b.c), b.u), dot(sub(q, b.c), b.n));
+  const A = local(a);
+  const C = local(c);
+  // Clip the segment to the box (Liang-Barsky): any of it left means it reaches in.
+  let t0 = 0;
+  let t1 = 1;
+  const d = sub(C, A);
+  for (const [pk, qk] of [
+    [-d.x, A.x + b.hw],
+    [d.x, b.hw - A.x],
+    [-d.y, A.y + b.hh],
+    [d.y, b.hh - A.y],
+  ]) {
+    if (pk === 0) {
+      if (qk < 0) return false;
+      continue;
+    }
+    const r = qk / pk;
+    if (pk < 0) t0 = Math.max(t0, r);
+    else t1 = Math.min(t1, r);
+    if (t0 > t1) return false;
+  }
+  return true;
+}
+
+/** Whether a polyline reaches into the box. */
+const crossesLine = (b: Box, pts: P[]) => pts.some((q, i) => i > 0 && crosses(b, pts[i - 1], q));
+
 type TextPrim = Extract<Prim, { kind: 'text' }>;
 
 /** A label on a piece and how freely it moves out of another's way: the name block (rank 0) stays,
@@ -225,9 +256,10 @@ function besides(l: Lab, box: Box): boolean {
  * Nudge the labels of one piece apart. A label that strays outside the stitching line is first
  * brought back in along its reading direction; then, for each pair that collide, the one that gives
  * way moves the shortest valid distance along or across its text, a grain or fold label preferring to
- * slide along its line. Nothing moves onto a higher-ranked label or off the piece.
+ * slide along its line. Nothing moves onto a higher-ranked label, onto a line drawn across the piece
+ * (`marks`), or off the piece.
  */
-function settle(labs: Lab[], poly: P[]) {
+function settle(labs: Lab[], poly: P[], marks: P[][] = []) {
   for (const l of labs) {
     if (l.rank === 0 || within(l.box, poly)) continue;
     outer: for (let d = 0.5; d <= 4; d += 0.5)
@@ -256,9 +288,11 @@ function settle(labs: Lab[], poly: P[]) {
         });
         const dist = (m: P) => Math.hypot(m.x, m.y);
         const inside = (m: P) => within(shifted(mv.box, m), poly) && besides(mv, shifted(mv.box, m));
+        // Nor onto a line drawn across the piece, unless it already sat on one.
+        const onLine = marks.some((ln) => crossesLine(mv.box, ln));
         const clear = (m: P) => {
           const bx = shifted(mv.box, m);
-          return !overlaps(bx, stay.box) && !others.some((o) => o.rank <= mv.rank && overlaps(o.box, bx));
+          return !overlaps(bx, stay.box) && !others.some((o) => o.rank <= mv.rank && overlaps(o.box, bx)) && (onLine || !marks.some((ln) => crossesLine(bx, ln)));
         };
         const valid = options.filter((m) => inside(m) && clear(m)).sort((x, y) => dist(x) - dist(y));
         // A grain or fold label slides along its line rather than away from it, when it can.
@@ -553,6 +587,9 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
       });
     }
     order = { piece, step: 'darts' };
+    // The lines drawn across the piece (a roll line, dart legs, a pocket, a fold line): the name
+    // block keeps off them.
+    const marks: P[][] = [...pc.lines.map((ln) => ln.points().map(t)), ...(pc.balance ?? []).map((b) => b.pts.map(t))];
     pc.lines.forEach((ln) => poly(ln.points().map(t), 'mark'));
     drillHoles(pc).forEach((h) => drill(t(h)).forEach((ring) => poly(ring, 'mark')));
     order = { piece, step: 'grain' };
@@ -662,9 +699,23 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
         let block: Box = textBox(at0, name, nameSize, rot, 0.12);
         let shift = p(0, 0);
         // The lines are wrapped to the room beside the marks; when the block then fits nowhere on
-        // the piece (a narrow sleeve), they are wrapped tighter and the search is made again.
-        for (const wrapTo of [free, Math.max(width([name], nameSize), Math.min(free, 8))]) {
-          lines = [...wrapInfo(infoLine, size, 0.12, wrapTo), ...extras.flatMap((e) => wrapWords(e, size, 0.12, wrapTo))];
+        // the piece (a narrow sleeve), or only across a line drawn on it (a collar's roll line),
+        // they are wrapped tighter and the search is made again, and the best of the tries kept.
+        const nameW0 = width([name], nameSize);
+        const nameSize0 = nameSize;
+        const nameLines0 = nameLines;
+        type Try = { bestS: number; shift: P; lines: string[]; row: string; nameAt: P; block: Box; nameLines: string[]; nameSize: number };
+        let kept: Try | undefined;
+        for (const wrapTo of [...new Set([free, Math.max(nameW0, Math.min(free, 8)), Math.max(nameW0, Math.min(free, 6))])]) {
+          nameSize = nameSize0;
+          nameLines = nameLines0;
+          row = '';
+          const infoLines = wrapInfo(infoLine, size, 0.12, wrapTo);
+          // Wrapped tight, the information line gives up its fabric: it goes on in words instead.
+          const parts = infoLine.split(' · ');
+          if (infoLines.flatMap((x) => x.split(' · ')).length < parts.length)
+            infoLines.push(...wrapWords(ABBREVIATIONS.reduce((s, [re, to]) => s.replace(re, to), parts[parts.length - 1]), size, 0.12, wrapTo));
+          lines = [...infoLines, ...extras.flatMap((e) => wrapWords(e, size, 0.12, wrapTo))];
           // The lines' baselines down from the name's, and the block's extent across the text.
           const lead = nameSize * 1.15;
           const stacked = () => {
@@ -693,12 +744,17 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
           nameAt = add(at0, mul(u, du));
           const { topN, botN } = stacked();
           block = { c: add(nameAt, mul(n, (topN + botN) / 2)), u, n, hw: widest / 2 + 0.15, hh: (botN - topN) / 2 + 0.15 };
-          // The nearest shift that keeps the block on the piece and off the marks: tried close by at
-          // a fine step, then over the whole piece, and failing both, the spot that overlaps least.
+          // The nearest shift that keeps the block on the piece, off the marks and clear of the lines
+          // drawn across the piece: tried close by at a fine step, then over the whole piece, and
+          // failing both, the spot that overlaps least (a line crossed counts for less than a label).
           const bx0 = block;
           const score = (d: P) => {
             const bx = shifted(bx0, d);
-            return (within({ ...bx, hw: bx.hw - 0.15, hh: bx.hh - 0.15 }, stitch) ? 0 : 1e4) + obstacles.filter((o) => overlaps(o, bx)).length * 100;
+            return (
+              (within({ ...bx, hw: bx.hw - 0.15, hh: bx.hh - 0.15 }, stitch) ? 0 : 1e4) +
+              obstacles.filter((o) => overlaps(o, bx)).length * 100 +
+              marks.filter((ln) => crossesLine(bx, ln)).length * 50
+            );
           };
           shift = p(0, 0);
           let bestS = score(shift);
@@ -712,7 +768,7 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
               }
             };
             for (let dn = -6; dn <= 6; dn += 0.25) for (let dux = -12; dux <= 12; dux += 0.5) consider(dux, dn);
-            if (bestS >= 100) {
+            if (bestS >= 50) {
               const uLo = Math.min(...span) + block.hw - dot(sub(block.c, at0), u);
               const uHi = Math.max(...span) - block.hw - dot(sub(block.c, at0), u);
               const nLo = Math.min(...deep) + block.hh - dot(sub(block.c, at0), n);
@@ -720,8 +776,10 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
               for (let dn = nLo; dn <= nHi; dn += 0.5) for (let dux = uLo; dux <= uHi; dux += 1) consider(dux, dn);
             }
           }
-          if (bestS < 1e4 || row) break;
+          if (!kept || bestS < kept.bestS) kept = { bestS, shift, lines, row, nameAt, block, nameLines, nameSize };
+          if (bestS < 50 || row) break;
         }
+        ({ shift, lines, row, nameAt, block, nameLines, nameSize } = kept!);
         const lead = nameSize * 1.15;
         const nameW = width(nameLines, nameSize);
         const rowW = row ? textWidth(row, size, 0.12) : 0;
@@ -749,7 +807,7 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
       const l = pc.labels[0];
       if (l) lab(text(t(add(l.at, turn(p(0, -l.size * 1.2), l.rotate ?? 0))), 'THREAD-TRACE THE STITCHING LINE', 0.45, l.rotate ?? 0, 'middle', { face: 'label', tracking: 0.15, grey: 0.35 }), 2, 0.15);
     }
-    settle(labs, stitch);
+    settle(labs, stitch, marks);
     // A seam name left with no room is left off: the notches and the garment's own labels say it.
     for (const l of [...labs].reverse()) {
       if (l.rank !== 3 || !labs.some((o) => o !== l && overlaps(o.box, l.box))) continue;
