@@ -508,15 +508,20 @@ function arms(g: CanvasRenderingContext2D, S: number, cx: number, lw: number, Y:
 
 /** The form with its legs and floor line, at any scale: `legs` fades the legs in (0 to 1). The same
  * body as every other screen, for views that need the whole figure (the turning shape preview). */
-export function paintFigure(g: CanvasRenderingContext2D, S: number, cx: number, Y: (y: number) => number, lw: number, legs = 1, withArms = false) {
+/** The form, with `turn` (radians) spinning its long lines and legs round, as the All round view does. */
+export function paintFigure(g: CanvasRenderingContext2D, S: number, cx: number, Y: (y: number) => number, lw: number, legs = 1, withArms = false, turn?: number) {
   const k = legs;
+  const spin = turn ?? 0;
   const P = (y: number, th: number): Pt => [cx + Math.cos(th) * R(y) * S, Y(y) + Math.sin(th) * R(y) * S * DEPTH, Math.cos(th)];
   taper(g, YS.map((y) => [cx - R(y) * S, Y(y)]), 1, (u) => lw * (0.5 + Math.sin(Math.PI * u)));
   taper(g, YS.map((y) => [cx + R(y) * S, Y(y)]), 1, (u) => lw * (0.5 + Math.sin(Math.PI * u)));
-  for (let j = 0; j < LINES; j++) {
-    const th = (Math.PI * (j + 0.5)) / LINES;
+  // Turning, the lines run all the way round and only the front half shows, easing out at the sides.
+  for (let j = 0; j < (turn === undefined ? LINES : 2 * LINES); j++) {
+    const th = (Math.PI * (j + 0.5)) / LINES - spin;
+    const front = Math.sin(th);
+    if (front <= 0) continue;
     const c = Math.cos(th);
-    g.globalAlpha = 0.7;
+    g.globalAlpha = 0.7 * (turn === undefined ? 1 : Math.min(1, front * 6));
     g.lineWidth = lw * 0.6 * (1 - 0.35 * Math.abs(c));
     const pts = YS.map((y) => P(y, th));
     for (let i = 1; i < pts.length; i++) stroke(g, pts[i - 1], pts[i]);
@@ -525,18 +530,25 @@ export function paintFigure(g: CanvasRenderingContext2D, S: number, cx: number, 
   // Legs fade in as the view pulls back
   if (k > 0) {
     for (const side of [-1, 1]) {
-      const lx = cx + side * 0.27 * S;
-      g.globalAlpha = k;
+      const lx = cx + side * 0.27 * Math.cos(spin) * S;
+      const dy = -side * 0.27 * Math.sin(spin) * S * DEPTH;
+      const behind = turn !== undefined && -side * Math.sin(spin) < 0 ? 0.6 : 1;
+      g.globalAlpha = k * behind;
       g.lineWidth = lw;
       for (const e of [-1, 1]) {
-        const pts = LEG_YS.map((y): Pt => [lx + e * LEG(y) * S, Y(y)]);
+        const pts = LEG_YS.map((y): Pt => [lx + e * LEG(y) * S, Y(y) + dy]);
         for (let i = 1; i < pts.length; i++) stroke(g, pts[i - 1], pts[i]);
       }
-      for (let j = 1; j < 6; j++) {
-        const f = -1 + (2 * j) / 6;
-        g.globalAlpha = k * 0.45;
+      // Lines down the leg: evenly across it when still, turning round it when the form turns.
+      const across = turn === undefined
+        ? [1, 2, 3, 4, 5].map((j) => ({ f: -1 + (2 * j) / 6, a: 1 }))
+        : Array.from({ length: 12 }, (_, j) => (Math.PI * (j + 0.5)) / 6 - spin)
+            .filter((th) => Math.sin(th) > 0)
+            .map((th) => ({ f: Math.cos(th), a: Math.min(1, Math.sin(th) * 4) }));
+      for (const { f, a } of across) {
+        g.globalAlpha = k * 0.45 * behind * a;
         g.lineWidth = lw * 0.45;
-        const pts = LEG_YS.map((y): Pt => [lx + f * LEG(y) * S, Y(y)]);
+        const pts = LEG_YS.map((y): Pt => [lx + f * LEG(y) * S, Y(y) + dy]);
         for (let i = 1; i < pts.length; i++) stroke(g, pts[i - 1], pts[i]);
       }
     }
