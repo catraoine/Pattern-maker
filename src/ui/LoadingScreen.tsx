@@ -118,9 +118,12 @@ function draw(g: CanvasRenderingContext2D, w: number, h: number, t: number, box:
     bh = box.h * 0.78;
     bw = Math.min(bh / 1.15, box.w * 0.8);
     bh = bw * 1.15;
-    x0 = box.x + (box.w - bw) / 2;
+    // Centred on the form, which sits to the right of the title in a wide window.
+    const form = formOutline(box.w, box.h, box.kind);
+    const xs = form.pts.map((q) => q[0]);
+    x0 = box.x + (Math.min(...xs) + Math.max(...xs)) / 2 - bw / 2;
     y0 = box.y + (box.h - bh) * 0.45;
-    lw = formOutline(box.w, box.h, box.kind).lw;
+    lw = form.lw;
   } else {
     bw = Math.min(w * 0.7, (h * 0.55) / 1.15);
     bh = bw * 1.15;

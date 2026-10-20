@@ -4,7 +4,6 @@ import { BASE, baseDone, fullSetMissing, GARMENT_NAME, GARMENTS, labelOf, missin
 import { WEIGHT_HARD, WeightEntry, WeightLink, fromKg, weightUnitOf } from '../ui/WeightEntry';
 import { FormPicture, TapeDemo } from '../ui/ContourForm';
 import { canGoBack, goBack, usePageHistory } from '../nav';
-import { TapeBand } from '../ui/TapeBand';
 import { estimateOne } from '../estimate';
 import { Title } from '../ui/Title';
 import type { PatternChoices } from '../garments';
@@ -35,7 +34,7 @@ interface Props {
   onSomeoneElse?: (name: string) => void;
   /** The measurements in use are someone else's, so every page is worded for the person holding the tape. */
   theirs?: boolean;
-  /** Skip, at the end of the tape: try the app with example measurements (for the garment being measured). */
+  /** Skip, the quiet link under the button: try the app with example measurements (for the garment being measured). */
   onSkip?: (garment?: Garment) => void;
   /** The dress form this person's patterns are drafted on, and choosing it before the first measurement. */
   form?: FormKind;
@@ -84,8 +83,8 @@ const aOrAn = (name: string) => (/(s|wear|lingerie)$/i.test(name) && !/dress$/i.
 // answers "We can make that", "The closest we can do" or "Not yet" (Cat's pick, 2026-10-18); only "Not yet"
 // offers the full set of measurements, for a dressmaker.
 // The first page asks who you are designing for, since "Someone else" words every page for the person holding the
-// tape and asks their name first (Cat's pick V2, 2026-10-17). A tape runs across the top of every page, with
-// Skip at its end wherever measuring can be skipped.
+// tape and asks their name first (Cat's pick V2, 2026-10-17). A quiet "Skip and try an example" link sits under the
+// button wherever measuring can be skipped.
 export function MeasureStepsScreen({ testerCode, garment: current, unit, values, onUnit, onValues, weight, onWeight, onDone, start, onSomeoneElse, theirs, onSkip, form = 'womenswear', onForm, onIdea, onPhoto, onNews }: Props) {
   const aimed = start?.kind === 'for' ? start.garment : undefined;
   // Each page is a history entry, so the header's back and the phone's back go one page back.
@@ -418,6 +417,8 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
       skip={onSkip && !(page.kind === 'base' && page.back) && !(page.kind === 'extra' && page.redo) ? () => onSkip(g && g !== 'other' ? g : undefined) : undefined}
       skipRest={!(page.kind === 'base' && at === 0)}
       canEstimate={page.kind === 'extra'}
+      ids={ids}
+      listTitle={page.kind === 'base' ? (helper ? 'Their measurements' : 'Your measurements') : g === 'other' ? 'Full set' : cap(GARMENT_NAME[g!])}
     />
   );
 }
@@ -452,26 +453,31 @@ export function Shell({
   short,
   skip,
   skipRest,
+  aside,
   children,
 }: {
   /** A small line above the title, only where it tells you something (which step, which garment). */
   eyebrow?: string;
   title: string;
-  /** The picture under the tape; the first page has none, so it opens on the words. */
+  /** The picture: the form, with the tape on the measuring pages. The first page has none, so it opens on the words. */
   hero?: ReactNode;
-  /** Skip at the end of the tape. */
+  /** Skip, a quiet link under the button: try the app with example measurements. */
   skip?: () => void;
   /** Some measurements are taken already, so Skip fills in only the rest. */
   skipRest?: boolean;
   dots?: [number, number];
   /** A shorter form on top, so a longer list fits above its button. */
   short?: boolean;
+  /** The left-hand column on a computer (Cat's W3 Drafting Table): the measurements on this run. */
+  aside?: ReactNode;
   children: ReactNode;
 }) {
+  // On a phone the words follow the form in one column. On a computer the page is three columns: the list, the
+  // form in the middle, and the question on the right; with no list the form takes the first two.
   return (
     <div className="welcome">
-      <section className={short ? 'card welcome-card measure-step short' : 'card welcome-card measure-step'} aria-labelledby="stitle">
-        <TapeBand onSkip={skip} rest={skipRest} />
+      <section className={['card welcome-card measure-step', short && 'short', hero && 'has-hero', aside && 'has-aside'].filter(Boolean).join(' ')} aria-labelledby="stitle">
+        {aside && <aside className="step-list">{aside}</aside>}
         {hero && (
           <div className="welcome-hero">
             {hero}
@@ -486,11 +492,52 @@ export function Shell({
             </div>
           </div>
         )}
-        {eyebrow && <p className="eyebrow">{eyebrow}</p>}
-        <ShellTitle text={title} />
-        {children}
+        <div className="step-words">
+          {eyebrow && <p className="eyebrow">{eyebrow}</p>}
+          <ShellTitle text={title} />
+          {children}
+          {skip && (
+            <button type="button" className="link quiet skip-link" onClick={skip}>
+              {skipRest ? 'Example for the rest' : 'Skip and try an example'}
+            </button>
+          )}
+        </div>
       </section>
     </div>
+  );
+}
+
+/** The measurements on this run, for the list beside the form: body, arms and lengths, each with its number once taken. */
+const ARM_IDS: MeasurementId[] = ['arm_length', 'upper_arm', 'wrist', 'armscye'];
+const GIRTH_IDS: MeasurementId[] = ['height', 'full_bust', 'high_bust', 'waist', 'full_hip', 'neck'];
+function StepList({ title, ids, at, values, unit, form }: { title: string; ids: MeasurementId[]; at: number; values: MeasurementValues; unit: Unit; form: FormKind }) {
+  const groups: [string, MeasurementId[]][] =
+    ids.length > 6
+      ? ([
+          ['Body', ids.filter((i) => GIRTH_IDS.includes(i))],
+          ['Arms', ids.filter((i) => ARM_IDS.includes(i))],
+          ['Lengths and widths', ids.filter((i) => !GIRTH_IDS.includes(i) && !ARM_IDS.includes(i))],
+        ] as [string, MeasurementId[]][]).filter(([, g]) => g.length)
+      : [['', ids]];
+  return (
+    <>
+      <p className="eyebrow">
+        {title} · {ids.length}
+      </p>
+      {groups.map(([name, g]) => (
+        <div key={name} className="step-group">
+          {name && <p className="step-group-name">{name}</p>}
+          <ol>
+            {g.map((i) => (
+              <li key={i} className={i === ids[at] ? 'on' : undefined} aria-current={i === ids[at] ? 'step' : undefined}>
+                <span>{labelOf(i, form)}</span>
+                <em>{shown(values[i], unit)}</em>
+              </li>
+            ))}
+          </ol>
+        </div>
+      ))}
+    </>
   );
 }
 
@@ -518,6 +565,8 @@ export function MeasurePage({
   skip,
   skipRest,
   canEstimate,
+  ids,
+  listTitle,
 }: {
   id: MeasurementId;
   eyebrow: string;
@@ -538,7 +587,11 @@ export function MeasurePage({
   skipRest?: boolean;
   /** A garment's own measurement, which can be estimated from the base ones when you're not sure. */
   canEstimate?: boolean;
+  /** Every measurement on this run, for the list beside the form on a computer, and what to call it. */
+  ids?: MeasurementId[];
+  listTitle?: string;
 }) {
+  const [replay, setReplay] = useState(0);
   const fieldLabel = labelOf(id, form);
   const guess = canEstimate ? estimateOne(id, values, form) : undefined;
   const [estimated, setEstimated] = useState(false);
@@ -570,7 +623,22 @@ export function MeasurePage({
   };
 
   return (
-    <Shell eyebrow={eyebrow} title={titleOf(id, helper, form)} dots={dots} skip={skip} skipRest={skipRest} hero={<TapeDemo id={id} name={titleOf(id, false, form).replace(/^Your /, '')} kind={form} />}>
+    <Shell
+      eyebrow={eyebrow}
+      title={titleOf(id, helper, form)}
+      dots={dots}
+      skip={skip}
+      skipRest={skipRest}
+      hero={
+        <>
+          <TapeDemo id={id} kind={form} replay={replay} />
+          <button type="button" className="replay-tape" onClick={() => setReplay((n) => n + 1)}>
+            Play the tape again
+          </button>
+        </>
+      }
+      aside={ids && <StepList title={listTitle ?? 'Your measurements'} ids={ids} at={dots[1]} values={values} unit={unit} form={form} />}
+    >
       <p className="muted step-tip">{tipOf(id, helper, form)}</p>
       <p className="how-row">
         <button type="button" className="link quiet how-link" aria-expanded={how} onClick={() => setHow(true)}>

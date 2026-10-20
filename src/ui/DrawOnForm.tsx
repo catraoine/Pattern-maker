@@ -9,6 +9,10 @@ import type { P } from '../engine/geometry';
 import type { BodiceDraft } from '../engine/bodice';
 import { spline } from './bodyOutline';
 import { legsFor } from '../engine/form';
+import { CM_PER_UNIT, HEAD_CHIN, HEAD_TOP, headLines } from './ContourForm';
+
+/** How tall the head stands above the top of the neck, in cm. */
+const HEAD_CM = (HEAD_CHIN - HEAD_TOP) * CM_PER_UNIT - 1.5;
 import { FormLine, FormSide, Reading, landmarks } from './formLines';
 import { TestingTag } from './TestingTag';
 
@@ -20,6 +24,8 @@ export interface FormBody {
   top: number;
   bottom: number;
   waistY: number;
+  /** A bodice form has a neck, so the head sits on it. */
+  head?: boolean;
 }
 
 /** An arm hanging beside the form, as on the bodice sketch: from the shoulder tip, rounding over to
@@ -150,7 +156,7 @@ export function torsoForm({ neckPoint, shoulderTip, apex, waistY }: { neckPoint:
     }
     return body(Math.min(y, bottom));
   };
-  return { width, top: neckPoint.y - 7, bottom, waistY };
+  return { width, top: neckPoint.y - 7, bottom, waistY, head: true };
 }
 
 /** The skirt form: a lower torso from a little above the waist to below the hip, the waist at y = 0. */
@@ -227,7 +233,7 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
 
   const frame = useMemo(() => {
     const half = Math.max(Math.max(m.full_bust ?? 0, m.full_hip ?? 0, m.waist) / 4 + 7, arms ? armAt(arms, arms.wristY).outer + 2 : 0);
-    return { half, top: body.top - 2, bottom: Math.max(torsoBottom + 12, bottom, legLines ? legLines.floor + 1 : 0) };
+    return { half, top: body.top - (body.head ? HEAD_CM + 1 : 2), bottom: Math.max(torsoBottom + 12, bottom, legLines ? legLines.floor + 1 : 0) };
   }, [m, body, bottom, arms, torsoBottom, legLines]);
   const cx = frame.half;
 
@@ -240,6 +246,16 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
       return { d: path(ys.map((y) => ({ x: cx + u * body.width(y), y }))), edge: Math.abs(u) > 0.98, u };
     });
   }, [body, cx, torsoBottom]);
+
+  // The head, as on every other screen (Cat's body rule): the same faceless mannequin head, at the same scale to
+  // the body, on top of the neck.
+  const head = useMemo(() => {
+    if (!body.head) return undefined;
+    const chin = body.top + 1.5;
+    const { outline, lines: inner } = headLines(9);
+    const at = ([x, y]: [number, number]): P => ({ x: cx + x * CM_PER_UNIT, y: chin + (y - HEAD_CHIN) * CM_PER_UNIT });
+    return { outline: path(outline.map(at)) + ' Z', lines: inner.map((l) => path(l.map(at))) };
+  }, [body, cx]);
 
   // Each leg its outline, from where the legs part down to the floor, and lines down it as on the measuring pages.
   const legPaths = useMemo(() => {
@@ -402,6 +418,15 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
             {contours.map((c, i) => (
               <path key={i} d={c.d} className="form-line" fill="none" strokeWidth={c.edge ? 0.22 : 0.12} opacity={c.edge ? 0.9 : 0.25 + 0.2 * (1 - Math.abs(c.u))} />
             ))}
+            {head && (
+              <g className="form-head">
+                <path d={head.outline} fill="#000" stroke="none" />
+                {head.lines.map((d, i) => (
+                  <path key={i} d={d} className="form-line" fill="none" strokeWidth={0.12} opacity={0.35} />
+                ))}
+                <path d={head.outline} className="form-line" fill="none" strokeWidth={0.22} opacity={0.9} />
+              </g>
+            )}
             {kinds.map(([id]) =>
               (current[id] ?? []).map((pts, i) => (
                 <path key={`${id}${i}`} d={at(pts)} className={id === kind ? 'tape on' : 'tape'} fill="none" strokeWidth={id === kind ? 0.42 : 0.22} strokeLinecap="round" />
