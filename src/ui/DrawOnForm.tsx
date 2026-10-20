@@ -7,11 +7,11 @@
 import { PointerEvent, useEffect, useMemo, useRef, useState } from 'react';
 import type { P } from '../engine/geometry';
 import type { BodiceDraft } from '../engine/bodice';
-import { bodyOutline, spline } from './bodyOutline';
+import { spline } from './bodyOutline';
+import { legsFor } from '../engine/form';
 import { FormLine, FormSide, Reading, landmarks } from './formLines';
-import type { SkirtMeasurements } from '../engine/skirt';
 
-type Measures = { full_bust?: number; waist: number; full_hip?: number; waist_to_hip?: number; waist_to_knee?: number; waist_to_floor?: number };
+type Measures = { full_bust?: number; waist: number; full_hip?: number; waist_to_hip?: number; waist_to_knee?: number; waist_to_floor?: number; crotch_depth?: number };
 
 /** The form's outline: half its width at each height, from its top to where it ends above the stand or legs. */
 export interface FormBody {
@@ -22,32 +22,59 @@ export interface FormBody {
 }
 
 /** An arm hanging beside the form, as on the bodice sketch: from the shoulder tip, rounding over to
- * hang just clear of the underarm, `width` across at the top and `wristWidth` at the wrist. */
+ * hang just clear of the underarm, `width` across at the top, `elbowWidth` at the elbow and `wristWidth`
+ * at the wrist, each from its own round (see armFor). */
 export interface FormArm {
   tip: P;
   under: P;
+  elbowY: number;
   wristY: number;
   width: number;
+  elbowWidth: number;
   wristWidth: number;
+}
+
+/** An arm from your measurements: your arm length from the shoulder tip down to the wrist, the elbow a
+ * little past halfway, and widths from your upper arm, elbow and wrist rounds, drawn true to size. The
+ * elbow, which isn't measured, sits between the upper arm and the wrist. */
+export function armFor(tip: P, under: P, m: { arm_length: number; upper_arm: number; wrist?: number }): FormArm {
+  const wrist = m.wrist ?? m.upper_arm * 0.55;
+  const elbow = (m.upper_arm + wrist) / 2 + 1.5;
+  return {
+    tip,
+    under,
+    elbowY: tip.y + m.arm_length * 0.56,
+    wristY: tip.y + m.arm_length,
+    width: m.upper_arm / Math.PI,
+    elbowWidth: elbow / Math.PI,
+    wristWidth: wrist / Math.PI,
+  };
 }
 
 /** Where the arm's inner and outer edges sit at the height y (the right arm; the left mirrors it). */
 export function armAt(arm: FormArm, y: number): { inner: number; outer: number } {
-  const { tip, under, wristY, width, wristWidth } = arm;
+  const { tip, under, elbowY, wristY, width, elbowWidth, wristWidth } = arm;
+  // The arm hangs a little away from the body, more so towards the hand.
   const inner = under.x + 0.6 + 0.04 * Math.max(0, y - under.y);
   if (y < under.y) {
-    // Rounded over the top of the arm, like a shoulder cap, then straight down.
-    const t = Math.min(1, Math.max(0, (y - tip.y) / Math.max(1, Math.min(8, under.y - tip.y))));
-    return { inner, outer: tip.x + (inner + width - tip.x) * Math.sqrt(1 - (1 - t) ** 2) };
+    // Over the top of the arm, like a shoulder cap: rounding out from the shoulder tip to the arm's own
+    // width, beside the body as it widens from the shoulder down to the underarm.
+    const t = Math.min(1, Math.max(0, (y - tip.y) / Math.max(1, under.y - tip.y)));
+    const side = tip.x + (under.x - tip.x) * Math.sin((t * Math.PI) / 2);
+    return { inner, outer: side + (0.6 + width) * Math.sin((t * Math.PI) / 2) };
   }
-  const k = Math.min(1, (y - under.y) / Math.max(1, wristY - under.y));
-  return { inner, outer: inner + width + (wristWidth - width) * k };
+  // Fullest just under the arm, narrowing to the elbow, then to the wrist.
+  const across =
+    y <= elbowY
+      ? width + (elbowWidth - width) * Math.sin(((y - under.y) / Math.max(1, elbowY - under.y)) * (Math.PI / 2)) ** 2
+      : elbowWidth + (wristWidth - elbowWidth) * Math.min(1, (y - elbowY) / Math.max(1, wristY - elbowY));
+  return { inner, outer: inner + across };
 }
 
 interface Props<C> {
   body: FormBody;
   m: Measures;
-  /** Legs below the form (a dress or skirt), down to `bottom`; otherwise the form stands on its pole. */
+  /** Legs below the form (a dress, skirt or coat), drawn to your lengths down to the floor; otherwise the form stands on its pole. */
   legs: boolean;
   /** How far down the drawing goes, in the form's coordinates. */
   bottom: number;
@@ -187,21 +214,44 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
   };
   const onBack = side === 'back' && FRONT_ONLY.includes(kind) ? false : side === 'back';
 
+  // The legs to your measurements, from where they part down to the floor (cm below the waist).
+  const legLines = useMemo(() => {
+    if (!legs || !m.full_hip || !m.waist_to_hip || !m.waist_to_knee || !m.waist_to_floor) return undefined;
+    const lg = legsFor(m as Parameters<typeof legsFor>[0]);
+    const y0 = body.waistY;
+    return { ...lg, crotch: y0 + lg.crotch, floor: y0 + lg.floor, at: (y: number) => lg.half(y - y0) };
+  }, [legs, m, body]);
+  // With legs, the body runs on down to where they part.
+  const torsoBottom = legLines ? Math.max(body.bottom, legLines.crotch) : body.bottom;
+
   const frame = useMemo(() => {
     const half = Math.max(Math.max(m.full_bust ?? 0, m.full_hip ?? 0, m.waist) / 4 + 7, arms ? armAt(arms, arms.wristY).outer + 2 : 0);
-    return { half, top: body.top - 2, bottom: Math.max(body.bottom + 12, bottom) };
-  }, [m, body, bottom, arms]);
+    return { half, top: body.top - 2, bottom: Math.max(torsoBottom + 12, bottom, legLines ? legLines.floor + 1 : 0) };
+  }, [m, body, bottom, arms, torsoBottom, legLines]);
   const cx = frame.half;
 
   // The form in contour lines, as on the welcome screen: each line a fixed fraction of the way round.
   const contours = useMemo(() => {
     const n = 15;
-    const ys = Array.from({ length: 121 }, (_, i) => body.top + ((body.bottom - body.top) * i) / 120);
+    const ys = Array.from({ length: 121 }, (_, i) => body.top + ((torsoBottom - body.top) * i) / 120);
     return Array.from({ length: n }, (_, i) => {
       const u = Math.sin(-Math.PI / 2 + (Math.PI * i) / (n - 1));
       return { d: path(ys.map((y) => ({ x: cx + u * body.width(y), y }))), edge: Math.abs(u) > 0.98, u };
     });
-  }, [body, cx]);
+  }, [body, cx, torsoBottom]);
+
+  // Each leg its outline, from where the legs part down to the floor, and lines down it as on the measuring pages.
+  const legPaths = useMemo(() => {
+    if (!legLines) return [];
+    const { crotch, floor, apart, at: halfAt } = legLines;
+    const ys = Array.from({ length: 81 }, (_, i) => crotch + ((floor - crotch) * i) / 80);
+    return [1, -1].flatMap((s) =>
+      [-1, -2 / 3, -1 / 3, 0, 1 / 3, 2 / 3, 1].map((k) => ({
+        d: path(ys.map((y) => ({ x: cx + s * (apart + k * halfAt(y)), y }))),
+        edge: Math.abs(k) === 1,
+      })),
+    );
+  }, [legLines, cx]);
 
   // The arms, each its outline round from the shoulder to the wrist and three lines down it.
   const armLines = useMemo(() => {
@@ -331,12 +381,13 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
               setLive(undefined);
             }}
           >
-            {legs && m.full_hip && m.waist_to_hip && m.waist_to_knee && m.waist_to_floor && (
-              <g transform={`translate(0 ${f(body.waistY)})`}>
-                <path d={bodyOutline(m as SkirtMeasurements, cx)} className="form-legs" fill="none" strokeWidth={0.18} />
-              </g>
+            {legPaths.map((l, i) => (
+              <path key={`leg${i}`} d={l.d} className="form-line" fill="none" strokeWidth={l.edge ? 0.22 : 0.12} opacity={l.edge ? 0.9 : 0.35} />
+            ))}
+            {legLines && (
+              <path d={`M${f(cx - legLines.apart * 3)} ${f(legLines.floor)} L${f(cx + legLines.apart * 3)} ${f(legLines.floor)}`} className="form-stand" fill="none" strokeWidth={0.15} opacity={0.6} />
             )}
-            {!legs && (
+            {!legLines && (
               <path
                 d={`M${f(cx)} ${f(body.bottom)} L${f(cx)} ${f(frame.bottom - 2)} M${f(cx - 8)} ${f(frame.bottom - 2)} L${f(cx + 8)} ${f(frame.bottom - 2)}`}
                 className="form-stand"

@@ -15,7 +15,7 @@ import type { Piece } from '../engine/piece';
 import { TEE_EASE, TEE_NECKS, TeeDraft, TeeFit, TeeLength, TeeMeasurements, TeeNeck, TeeSleeve, draftTee, pctWords } from '../engine/tee';
 import { OUTER_EASE, OUTER_EXTENSION, OUTER_LENGTHS, OuterDraft, OuterFit, OuterFront, OuterMeasurements, outerDrop } from '../engine/outerwear';
 import { OUTER_LENGTH_WORDS, OuterChoices, TeeChoices } from '../garments';
-import { FormArm, FormBody, armAt, torsoForm } from './DrawOnForm';
+import { FormArm, FormBody, armAt, armFor, torsoForm } from './DrawOnForm';
 import { APEX_REACH, FormLine, Reading, WAIST_REACH, bodiceLines, edgeAt, half, landmarks, median, mirror } from './formLines';
 
 const dist = (a: P, b: P) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -78,13 +78,7 @@ export function teeForm(m: TeeFormMeasurements, c: TeeChoices, draft: TeeDraft):
   const bustY = m.bust_depth ? neckPoint.y + m.bust_depth : draft.armholeDepth + 3;
   const body = torsoForm({ neckPoint, shoulderTip: tip, apex: { x: 0, y: bustY }, waistY: m.nape_to_waist }, m);
   const underY = draft.armholeDepth - 2;
-  const arm: FormArm = {
-    tip,
-    under: { x: body.width(underY), y: underY },
-    wristY: tip.y + m.arm_length!,
-    width: m.upper_arm! / Math.PI,
-    wristWidth: (m.wrist ?? m.upper_arm! * 0.55) / Math.PI,
-  };
+  const arm = armFor(tip, { x: body.width(underY), y: underY }, { arm_length: m.arm_length!, upper_arm: m.upper_arm!, wrist: m.wrist });
   // Each option drafted, to see where it falls; the one chosen is the draft already made.
   const variant = <K extends 'neckline' | 'length' | 'sleeve'>(k: K, v: TeeChoices[K]) => (c[k] === v ? draft : draftTee(m, { ...c, [k]: v }));
   const each = <K extends string>(options: K[], value: (k: K) => number) => Object.fromEntries(options.map((k) => [k, value(k)])) as Record<K, number>;
