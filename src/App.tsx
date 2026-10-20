@@ -574,7 +574,7 @@ export default function App() {
           }${pocketWords(trousers.pockets, trousers.pocketSides)}. The crease line is the grain line. Sewing steps are on the last pages.`,
           ...fittingNotes,
         ],
-        guide: withFabric(trousersGuide(trousers, lays.find((l) => l.fabric === 'self')?.metres ?? trousersFabricMetres(trousers), { seams, width: finish.fabricWidth }), fabric, 'trousers'),
+        guide: withFabric(trousersGuide(trousers, lays.find((l) => l.fabric === 'self')?.metres ?? trousersFabricMetres(trousers), { seams, width: finish.fabricWidth, length: trousersChoices.length }), fabric, 'trousers'),
         spec: trousersSpec(m, trousers),
         lays,
         flat: trousersFlat(trousers, m),

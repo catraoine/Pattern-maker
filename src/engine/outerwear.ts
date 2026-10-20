@@ -508,7 +508,7 @@ function notchedCollar(front: Piece, backNeck: number, frontNeck: number, s: Out
       { at: p(L * 0.35, -stand - 0.4), text: 'ROLL LINE', size: 0.45 },
     ],
     cut,
-    fabric: 'Upper collar in self, under collar in self on the bias + interfacing',
+    fabric: 'Upper and under collar in self + interfacing',
     seamAllowance: s.seamAllowance,
     allowances: { neck: 1, gorge: 1, collar: 1, fold: 0 },
     meta: { foldAt: 'centre back' },
