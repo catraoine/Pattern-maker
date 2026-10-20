@@ -5843,6 +5843,160 @@ input.inline:focus,
   }
 }
 
+/* The tape on the welcome (Cat's U3 Real Tape + U2 Tape Tip + E5 Out of the Corner): the tip peeks in at the
+   form's corner, and Begin pulls the tape out across the form. */
+.tape-band {
+  position: relative;
+  flex: none;
+  height: 34px;
+  margin: 0 -22px;
+  overflow: hidden;
+  background-color: var(--tape);
+  /* Centimetres every 39px, centred on each number, and millimetres between */
+  background-image: repeating-linear-gradient(90deg, var(--tape-ink) 0 1px, transparent 1px 39px),
+    repeating-linear-gradient(90deg, rgba(43, 36, 24, 0.7) 0 1px, transparent 1px 3.9px);
+  background-size: 100% 13px, 100% 7px;
+  background-position: 19.5px 0, 19.5px 0;
+  background-repeat: no-repeat;
+}
+
+.tape-marks {
+  display: flex;
+  height: 100%;
+}
+
+.tape-marks span {
+  flex: none;
+  width: 39px;
+  padding-top: 15px;
+  text-align: center;
+  font: var(--w-strong) 10px/1 var(--mono);
+  color: var(--tape-ink);
+}
+
+/* The end of a tape measure peeking in at the form's bottom corner, where Begin pulls the tape out from
+   (Cat's U2 Tape Tip + E5 Out of the Corner, 2026-10-18): a short stub of tape and its metal hook */
+.tape-tip {
+  position: absolute;
+  right: -18px;
+  bottom: 14px;
+  z-index: 2;
+  width: 64px;
+  height: 18px;
+  background-color: var(--tape);
+  background-image: repeating-linear-gradient(90deg, var(--tape-ink) 0 1px, transparent 1px 19.5px),
+    repeating-linear-gradient(90deg, rgba(43, 36, 24, 0.6) 0 1px, transparent 1px 3.9px);
+  background-size: 100% 8px, 100% 4px;
+  background-position: 6px 0, 6px 0;
+  background-repeat: no-repeat;
+  opacity: 0;
+}
+
+.tape-tip::before {
+  content: '';
+  position: absolute;
+  left: -3px;
+  top: -4px;
+  bottom: -4px;
+  width: 4px;
+  border-radius: 1px;
+  background: #b8a274;
+}
+
+.tape-tip::after {
+  content: '1';
+  position: absolute;
+  left: 22px;
+  top: 6px;
+  font: 600 8px/1 var(--mono);
+  color: var(--tape-ink);
+}
+
+/* It slides in from the edge once the form has drawn */
+.welcome.go .tape-tip {
+  animation: tape-tip-in 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) 1.9s both;
+}
+
+@keyframes tape-tip-in {
+  from {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Begin takes the tip with it: the tape pulled out from here replaces it */
+.welcome.leaving .tape-tip {
+  animation: none;
+  opacity: 0;
+}
+
+/* Begin: the tape pulls out of the tip's corner, right to left across the foot of the form, the welcome fades,
+   and the tape rises to the top */
+.tape-band.unrolling {
+  position: absolute;
+  left: 0;
+  right: 0;
+  margin: 0;
+  top: calc(100% - 40px);
+  z-index: 3;
+  animation: tape-pull 0.75s cubic-bezier(0.3, 0.6, 0.3, 1) both, tape-rise 0.75s cubic-bezier(0.2, 0.7, 0.2, 1) 0.9s both,
+    tape-off 0.35s ease-in 1.6s both;
+}
+
+@keyframes tape-pull {
+  from {
+    clip-path: inset(0 0 0 100%);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+
+@keyframes tape-rise {
+  from {
+    top: calc(100% - 40px);
+  }
+  to {
+    top: 0;
+  }
+}
+
+/* No strip on the measuring pages any more (2026-10-20): once risen, the tape fades into the first page. */
+@keyframes tape-off {
+  to {
+    opacity: 0;
+  }
+}
+
+.welcome.leaving {
+  pointer-events: none;
+}
+
+.welcome.leaving .welcome-hero canvas,
+.welcome.leaving .tour-play,
+.welcome.leaving .welcome-card > :not(.welcome-hero) {
+  opacity: 0;
+  transition: opacity 0.45s ease 0.5s;
+}
+
+@media (max-width: 640px) {
+  .tape-band {
+    margin: 0 -18px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .welcome.go .tape-tip {
+    animation: none;
+    opacity: 1;
+  }
+}
+
 /* The tour's play button, on the welcome's dress form above the waist */
 .tour-play {
   position: absolute;
