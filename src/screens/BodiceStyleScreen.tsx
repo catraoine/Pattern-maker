@@ -237,6 +237,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
       onEditMeasurements={onEditMeasurements}
       undo={undoer}
       label="your bodice"
+      garment="bodice"
       name={title}
       metres={draft ? bodiceFabricMetres(draft, sleeve) : undefined}
       ready={!!draft}

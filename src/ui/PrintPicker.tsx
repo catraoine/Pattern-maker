@@ -3,6 +3,7 @@
 // pieces in the cutting layout.
 import type { MyFabric } from '../engine/fabrics';
 import { PRINTS, PRINT_IDS, PrintKind, printImage, printOf } from '../engine/prints';
+import { TestingTag } from './TestingTag';
 
 const base = import.meta.env.BASE_URL;
 
@@ -24,7 +25,7 @@ export function PrintPicker({ fabric, onFabric }: { fabric: MyFabric; onFabric: 
     onFabric(kind === 'checks' ? { ...fabric, checks: { repeat: r } } : { ...fabric, motif: { repeat: r } });
   return (
     <div className="printpick">
-      <p className="printpick-q">What's the print?</p>
+      <p className="printpick-q">What's the print? <TestingTag /></p>
       <div className="printtiles" role="radiogroup" aria-label="What's printed on your fabric">
         {PRINT_IDS.map((id) => (
           <button

@@ -20,10 +20,12 @@ describe('bodice block', () => {
     // shrank when the side seam was kept from swinging out under the arm; what is left past the side
     // dart's cap goes into the waist dart. The finished waist is the waist seam's length with darts
     // closed, a little over the pieces' width (B's moved a little with the side seam moved forward).
+    // Regular ease is 7 cm at the bust and 5 at the waist (was 9 and 6), so every finished size is
+    // 1 cm less at the bust, the waist darts a touch smaller and the armhole a little shorter.
     const expected = {
-      A: { bustDart: 3, front: 4.4, back: 2.4, armhole: 46.4, bust: 97, waist: 77.3 },
-      B: { bustDart: 1, front: 2.7, back: 2.7, armhole: 53.5, bust: 107, waist: 89.6 },
-      C: { bustDart: 6, front: 8.59, back: 0.5, armhole: 58.4, bust: 137, waist: 121.2 },
+      A: { bustDart: 3, front: 4.33, back: 2.33, armhole: 46, bust: 96, waist: 76.8 },
+      B: { bustDart: 1, front: 2.63, back: 2.63, armhole: 52.9, bust: 106, waist: 89.1 },
+      C: { bustDart: 6, front: 8.61, back: 0.5, armhole: 58, bust: 136, waist: 120.7 },
     };
     for (const [name, body] of Object.entries({ A, B, C })) {
       const d = draftBodice(body);

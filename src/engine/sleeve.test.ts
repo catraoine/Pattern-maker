@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { draftBodice } from './bodice';
-import { SHAPES_FOR_LENGTH, SLEEVE_EASE, SleeveLength, draftSleeve } from './sleeve';
+import { SHAPES_FOR_LENGTH, SLEEVE_EASE, SleeveLength, VENT_CM, draftSleeve } from './sleeve';
 import { checkPattern } from './qc';
 import { randomArms, randomBody, rng } from './randomBodies';
 import { DraftError } from './skirt';
@@ -30,9 +30,9 @@ describe('set-in sleeves', () => {
     const b = draftBodice(body);
     const long = draftSleeve(b, arms, { ...style, length: 'long', shape: 'fitted', fit: 'regular' });
     expect(long.elbowDart).toBe(2);
-    expect(long.pieces[0].lines).toHaveLength(1);
-    // The wrist goes over the hand.
-    expect(long.hemCm).toBeGreaterThan(arms.wrist * 1.3);
+    // The elbow dart and the vent's tick.
+    expect(long.pieces[0].lines).toHaveLength(2);
+    expect(long.pieces[0].lines[0].points()).toHaveLength(3);
     const puff = draftSleeve(b, arms, { ...style, length: 'short', shape: 'puff', fit: 'regular' });
     expect(puff.pieces.map((pc) => pc.name)).toEqual(['Sleeve', 'Sleeve band']);
     expect(puff.gathers!.crown).toBeGreaterThan(8);
@@ -74,14 +74,34 @@ describe('set-in sleeves', () => {
     expect(widened / total).toBeLessThan(0.05);
   });
 
-  it('cuts a fitted long sleeve wide enough for the hand to pass, with no wrist opening', () => {
+  it('gives a fitted long sleeve a wrist vent on the back seam, and brings its hem back to the wrist', () => {
     const b = draftBodice(body);
     for (const wrist of [13, 15, 16, 18]) {
       const d = draftSleeve(b, { ...arms, wrist }, { ...style, length: 'long', shape: 'fitted', fit: 'regular' });
-      // A woven sleeve with no vent: at least 24 cm round, and wrist plus about 9 cm.
-      expect(d.hemCm).toBeGreaterThanOrEqual(24);
-      expect(d.hemCm).toBeGreaterThanOrEqual(wrist + 9 - 0.2);
-      expect(d.hemCm).toBeLessThan(Math.max(wrist + 9, 24) + 1);
+      expect(d.vent).toEqual({ lengthCm: VENT_CM, at: 'back seam' });
+      // Wrist plus 6 cm, and no less than 20 cm round.
+      expect(d.hemCm).toBeGreaterThanOrEqual(20);
+      expect(d.hemCm).toBeGreaterThanOrEqual(wrist + 6 - 0.2);
+      expect(d.hemCm).toBeLessThan(Math.max(wrist + 6, 20) + 1);
+      const pc = d.pieces[0];
+      // The vent is marked: its label, a tick into the sleeve at its top, and a notch on the back seam there.
+      expect(pc.labels.some((l) => l.text === 'VENT')).toBe(true);
+      const tick = pc.lines.find((ln) => ln.points().length === 2)!;
+      expect(tick).toBeDefined();
+      const top = tick.points()[0];
+      const notch = pc.notches.find(([q]) => Math.hypot(q.x - top.x, q.y - top.y) < 1e-6)!;
+      expect(notch).toBeDefined();
+      expect(notch[1].x).toBeLessThan(0); // out of the piece, to the back
+      // The vent top sits VENT_CM up the back seam from the hem corner, on the stitching line.
+      const { pts, tags } = pc.outline.taggedPoints(48);
+      const backSeam = pts.filter((_, i) => tags[i] === 'sleeve-back' || tags[i - 1] === 'sleeve-back');
+      const hemCorner = backSeam.reduce((lo, q) => (q.y > lo.y ? q : lo));
+      expect(Math.hypot(top.x - hemCorner.x, top.y - hemCorner.y)).toBeCloseTo(VENT_CM, 1);
+      expect(checkPattern([...b.pieces, ...d.pieces]).filter((c) => /Sleeve/.test(c.label) && !c.ok)).toEqual([]);
     }
+    // Other sleeves have no vent: a three-quarter fitted sleeve, a bishop, and a jacket sleeve.
+    expect(draftSleeve(b, arms, { ...style, length: 'three_quarter', shape: 'fitted', fit: 'regular' }).vent).toBeUndefined();
+    expect(draftSleeve(b, arms, { ...style, length: 'long', shape: 'bishop', fit: 'regular' }).vent).toBeUndefined();
+    expect(draftSleeve(b, arms, { ...style, length: 'long', shape: 'fitted', fit: 'regular', outer: 'jacket' }).vent).toBeUndefined();
   });
 });

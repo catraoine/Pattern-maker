@@ -257,10 +257,11 @@ export function toCouture(guide: SewingGuide, c: CoutureContext): SewingGuide {
         ),
       );
     } else if (t === 'Sew the sleeve seams') {
+      const vent = /vent/.test(s.text) ? ' Stop at the vent notch above the wrist and leave the seam open below it for the vent.' : '';
       out.push(
         finish === 'french'
-          ? step(t, 'Sew the underarm seams as French seams: wrong sides together 0.6 cm outside the traced line, trimmed to 0.3 cm, then right sides together on the traced line. Press them toward the back over a sleeve board.', 'french')
-          : step(t, `Baste each underarm seam on the traced line, matching the notches and the bicep and elbow lines, then machine it and take the basting out. Press it open over a sleeve board, and finish the allowances as for the bodice. ${FINISH_WORDS[finish]}`, finish),
+          ? step(t, `Sew the underarm seams as French seams: wrong sides together 0.6 cm outside the traced line, trimmed to 0.3 cm, then right sides together on the traced line.${vent} Press them toward the back over a sleeve board.`, 'french')
+          : step(t, `Baste each underarm seam on the traced line, matching the notches and the bicep and elbow lines, then machine it and take the basting out.${vent} Press it open over a sleeve board, and finish the allowances as for the bodice. ${FINISH_WORDS[finish]}`, finish),
       );
     } else if (t === 'Ease the sleeve heads') {
       out.push(
@@ -291,7 +292,7 @@ export function toCouture(guide: SewingGuide, c: CoutureContext): SewingGuide {
         ),
       );
     } else if (t === 'Hem the sleeves') {
-      out.push(step(t, 'Thread-trace the hem line at a fitting, with the arm bent a little. Turn the hem up on the line and baste it 1 cm from the fold, trim to an even depth and finish the raw edge, then catch-stitch it by hand so nothing shows on the outside. Press from the inside over a sleeve board.', 'catch'));
+      out.push(step(t, `${/vent/.test(s.text) ? 'Finish the vent first: turn the open seam allowances below the vent notch under along the traced line, and fell them by hand with a few stitches across the top of the vent. ' : ''}Thread-trace the hem line at a fitting, with the arm bent a little. Turn the hem up on the line and baste it 1 cm from the fold, trim to an even depth and finish the raw edge, then catch-stitch it by hand so nothing shows on the outside. Press from the inside over a sleeve board.`, 'catch'));
     } else if (t === 'Attach the sleeve bands') {
       out.push(step(t, s.text.replace('and stitch it down over the seam.', 'and slip-stitch it by hand to the line of machine stitching inside.'), 'slipstitch'));
     } else if (t === 'Line the neckline' || t === 'Baste the lining to the armholes') {

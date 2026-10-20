@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { FormKind, MeasurementId } from '../measurements';
+import { LEG, LEG_FLOOR, LEG_KNEE, LEG_X } from '../engine/form';
 
 // The welcome screen's dress form, drawn in contour lines on black. It is the same form as the measuring pages
 // (Cat, 2026-10-18: the body must stay the same everywhere). The outline is drawn first, or handed over already
@@ -459,9 +460,8 @@ function tapeAt(g: CanvasRenderingContext2D, w: number, h: number, y: number, t:
 }
 // Lengths: the view pulls back from the welcome's framing to the whole figure, legs and floor, so both ends show.
 // z = 0 is exactly the welcome's framing; z = 1 has zoomed out so the floor is in view.
-const LEG = spline([[1.2, 0.3], [1.6, 0.28], [2.3, 0.21], [3.15, 0.15], [3.4, 0.16], [4.1, 0.12], [4.55, 0.08], [4.7, 0.1]]);
 const LEG_YS = Array.from({ length: 141 }, (_, i) => 1.2 + (3.5 * i) / 140);
-const FLOOR = 4.72;
+const FLOOR = LEG_FLOOR;
 function frame(w: number, h: number, z: number, seen = h) {
   const a = layout(w, h);
   // Zoomed right out, the floor sits just inside what the page shows of the canvas.
@@ -508,15 +508,20 @@ function arms(g: CanvasRenderingContext2D, S: number, cx: number, lw: number, Y:
 
 /** The form with its legs and floor line, at any scale: `legs` fades the legs in (0 to 1). The same
  * body as every other screen, for views that need the whole figure (the turning shape preview). */
-export function paintFigure(g: CanvasRenderingContext2D, S: number, cx: number, Y: (y: number) => number, lw: number, legs = 1, withArms = false) {
+/** The form, with `turn` (radians) spinning its long lines and legs round, as the All round view does. */
+export function paintFigure(g: CanvasRenderingContext2D, S: number, cx: number, Y: (y: number) => number, lw: number, legs = 1, withArms = false, turn?: number) {
   const k = legs;
+  const spin = turn ?? 0;
   const P = (y: number, th: number): Pt => [cx + Math.cos(th) * R(y) * S, Y(y) + Math.sin(th) * R(y) * S * DEPTH, Math.cos(th)];
   taper(g, YS.map((y) => [cx - R(y) * S, Y(y)]), 1, (u) => lw * (0.5 + Math.sin(Math.PI * u)));
   taper(g, YS.map((y) => [cx + R(y) * S, Y(y)]), 1, (u) => lw * (0.5 + Math.sin(Math.PI * u)));
-  for (let j = 0; j < LINES; j++) {
-    const th = (Math.PI * (j + 0.5)) / LINES;
+  // Turning, the lines run all the way round and only the front half shows, easing out at the sides.
+  for (let j = 0; j < (turn === undefined ? LINES : 2 * LINES); j++) {
+    const th = (Math.PI * (j + 0.5)) / LINES - spin;
+    const front = Math.sin(th);
+    if (front <= 0) continue;
     const c = Math.cos(th);
-    g.globalAlpha = 0.7;
+    g.globalAlpha = 0.7 * (turn === undefined ? 1 : Math.min(1, front * 6));
     g.lineWidth = lw * 0.6 * (1 - 0.35 * Math.abs(c));
     const pts = YS.map((y) => P(y, th));
     for (let i = 1; i < pts.length; i++) stroke(g, pts[i - 1], pts[i]);
@@ -525,18 +530,25 @@ export function paintFigure(g: CanvasRenderingContext2D, S: number, cx: number, 
   // Legs fade in as the view pulls back
   if (k > 0) {
     for (const side of [-1, 1]) {
-      const lx = cx + side * 0.27 * S;
-      g.globalAlpha = k;
+      const lx = cx + side * LEG_X * Math.cos(spin) * S;
+      const dy = -side * LEG_X * Math.sin(spin) * S * DEPTH;
+      const behind = turn !== undefined && -side * Math.sin(spin) < 0 ? 0.6 : 1;
+      g.globalAlpha = k * behind;
       g.lineWidth = lw;
       for (const e of [-1, 1]) {
-        const pts = LEG_YS.map((y): Pt => [lx + e * LEG(y) * S, Y(y)]);
+        const pts = LEG_YS.map((y): Pt => [lx + e * LEG(y) * S, Y(y) + dy]);
         for (let i = 1; i < pts.length; i++) stroke(g, pts[i - 1], pts[i]);
       }
-      for (let j = 1; j < 6; j++) {
-        const f = -1 + (2 * j) / 6;
-        g.globalAlpha = k * 0.45;
+      // Lines down the leg: evenly across it when still, turning round it when the form turns.
+      const across = turn === undefined
+        ? [1, 2, 3, 4, 5].map((j) => ({ f: -1 + (2 * j) / 6, a: 1 }))
+        : Array.from({ length: 12 }, (_, j) => (Math.PI * (j + 0.5)) / 6 - spin)
+            .filter((th) => Math.sin(th) > 0)
+            .map((th) => ({ f: Math.cos(th), a: Math.min(1, Math.sin(th) * 4) }));
+      for (const { f, a } of across) {
+        g.globalAlpha = k * 0.45 * behind * a;
         g.lineWidth = lw * 0.45;
-        const pts = LEG_YS.map((y): Pt => [lx + f * LEG(y) * S, Y(y)]);
+        const pts = LEG_YS.map((y): Pt => [lx + f * LEG(y) * S, Y(y) + dy]);
         for (let i = 1; i < pts.length; i++) stroke(g, pts[i - 1], pts[i]);
       }
     }
@@ -701,14 +713,16 @@ export function formLandmarks(): Record<'full_bust' | 'waist' | 'full_hip', numb
     full_hip: find(0.4, 1.3, (r, b) => r > b),
   };
 }
-const KNEE = 3.2;
+const KNEE = LEG_KNEE;
 /** Lengths from the waist: where they stop, how far the view pulls back, and the STOP name. */
-const LENGTHS: Partial<Record<MeasurementId, { to: number; zoom: number; stop: string }>> = {
+const LENGTHS: Partial<Record<MeasurementId, { to: number; zoom: number; stop: string; from?: number; start?: string }>> = {
   waist_to_hip: { to: 0.82, zoom: 0.6, stop: 'HIP' },
   front_waist_to_hip: { to: 0.82, zoom: 0.6, stop: 'HIP' },
   back_waist_to_hip: { to: 0.82, zoom: 0.6, stop: 'HIP' },
   waist_to_knee: { to: KNEE, zoom: 1, stop: 'KNEE' },
   waist_to_floor: { to: FLOOR, zoom: 1, stop: 'FLOOR' },
+  // The whole figure, top to floor: the form has no head, so the line runs from the top of its neck.
+  height: { to: FLOOR, zoom: 1, stop: 'FLOOR', from: -1.72, start: 'TOP OF HEAD' },
   // Seated, down the side to the chair: the seat is level with the figure's crotch, where the form ends.
   crotch_depth: { to: 1.3, zoom: 0.6, stop: 'CHAIR SEAT' },
 };
@@ -739,7 +753,7 @@ function paintDemo(g: CanvasRenderingContext2D, w: number, h: number, t: number,
   } else if (len) {
     const z = (seg(t, 300, 1400) - seg(t, 5300, 6200)) * len.zoom;
     figure(g, w, h, z, seen);
-    if (t > 1300 && t < 5300) lengthOn(g, w, h, z, 0.1, len.to, t - 1700, 'WAIST', len.stop, seen);
+    if (t > 1300 && t < 5300) lengthOn(g, w, h, z, len.from ?? 0.1, len.to, t - 1700, len.start ?? 'WAIST', len.stop, seen);
   } else if (y !== undefined) {
     g.lineCap = 'round';
     g.lineJoin = 'round';
@@ -849,6 +863,6 @@ export const FORM_DEPTH = DEPTH;
 /** The legs' half-width down from the crotch, how far apart they stand, and the knee, for views that
  * turn the legs (the shape preview of trousers). */
 export const FORM_LEG = LEG;
-export const FORM_LEG_X = 0.27;
+export const FORM_LEG_X = LEG_X;
 export const FORM_CROTCH = 1.2;
 export const FORM_KNEE = KNEE;

@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { deletePhoto, getPhoto, putPhoto, shrink } from '../photoStore';
 import type { PatternChoices } from '../garments';
 import { AreaFit, FitFeedback, NOTES_MAX, VERDICTS, cleanFit, emptyFit, fitAreas } from '../fit';
 import './FitForm.css';
@@ -88,6 +89,8 @@ export function FitForm({ choices, initial, onSave, onCancel, onClear }: Props) 
         </div>
       </fieldset>
 
+      <FitPhoto id={fit.photo} onChange={(photo) => set({ photo })} />
+
       <div className="field plain">
         <label htmlFor="fitnotes">Notes</label>
         <textarea
@@ -124,5 +127,61 @@ export function FitForm({ choices, initial, onSave, onCancel, onClear }: Props) 
         )}
       </div>
     </form>
+  );
+}
+
+/** One photo of the toile on, kept on this device only, so the next fit round can see what the notes mean. */
+function FitPhoto({ id, onChange }: { id?: string; onChange: (id: string | undefined) => void }) {
+  const [url, setUrl] = useState<string>();
+  useEffect(() => {
+    let revoke: string | undefined;
+    if (!id) setUrl(undefined);
+    else
+      getPhoto(id)
+        .then((b) => {
+          if (!b) return setUrl(undefined);
+          revoke = URL.createObjectURL(b);
+          setUrl(revoke);
+        })
+        .catch(() => setUrl(undefined));
+    return () => {
+      if (revoke) URL.revokeObjectURL(revoke);
+    };
+  }, [id]);
+
+  const pick = async (file: File | undefined) => {
+    if (!file) return;
+    const next = `fit-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+    try {
+      if (await putPhoto(next, await shrink(file, 1000))) {
+        if (id) void deletePhoto(id).catch(() => {});
+        onChange(next);
+      }
+    } catch {
+      // Without a photo store (private windows) the notes still save; the photo is just not kept.
+    }
+  };
+
+  return (
+    <div className="fitphoto">
+      {url && <img src={url} alt="Your toile" />}
+      <label className="link">
+        {url ? 'Change photo' : 'Add a photo of the toile on'}
+        <input type="file" accept="image/*" capture="environment" hidden onChange={(e) => pick(e.target.files?.[0])} />
+      </label>
+      {url && id && (
+        <button
+          type="button"
+          className="link"
+          onClick={() => {
+            void deletePhoto(id).catch(() => {});
+            onChange(undefined);
+          }}
+        >
+          Remove photo
+        </button>
+      )}
+      <span className="muted small">Stays on this device. It isn't sent with your notes.</span>
+    </div>
   );
 }

@@ -384,6 +384,7 @@ export function roundThrough(poly: P[], k: number, r: number): P[] {
 /** The two seams of a princess line, blended over the bust (or blade) and walked to the same length. */
 export function trueSeams(centre: P[], side: P[], at: number, extra: number[] = []): { centre: P[]; side: P[] } {
   const R = 4;
+  const R_MIN = 2.5;
   const shape = (poly: P[], r: number) => {
     // Round the lower corners first (indices shift once the upper one is rounded).
     let out = poly;
@@ -392,10 +393,20 @@ export function trueSeams(centre: P[], side: P[], at: number, extra: number[] = 
   };
   const c = shape(centre, R);
   const target = polyLen(c);
-  let lo = 0;
+  // The blend changes the seam's length a little as it widens: the side seam's is sized to match the
+  // centre's. It is never narrower than R_MIN, though: when the centre runs nearly straight through
+  // the bust point its blend changes nothing, and a side seam blended to match would be left with a
+  // hairpin over the bust (its cutting line crossing itself). The length left over is a few
+  // hundredths at most, within the seam check's tolerance.
+  let lo = R_MIN;
   let hi = 10;
-  // The blend shortens the seam a little as it widens: the side seam's is sized to match the centre's.
-  const longer = polyLen(shape(side, lo)) > polyLen(shape(side, hi));
+  const atLo = polyLen(shape(side, lo));
+  const atHi = polyLen(shape(side, hi));
+  if ((target - atLo) * (target - atHi) > 0) {
+    const r = Math.abs(polyLen(shape(side, R)) - target) <= 0.05 ? R : Math.abs(atLo - target) <= Math.abs(atHi - target) ? lo : hi;
+    return { centre: c, side: shape(side, r) };
+  }
+  const longer = atLo > atHi;
   for (let i = 0; i < 40; i++) {
     const mid = (lo + hi) / 2;
     if (polyLen(shape(side, mid)) > target === longer) lo = mid;

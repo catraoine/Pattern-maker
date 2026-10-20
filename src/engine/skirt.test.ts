@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { taggedLength } from './geometry';
 import { bounds } from './piece';
-import { draftSkirt } from './skirt';
+import { LENGTHS, draftSkirt, type SkirtMeasurements } from './skirt';
 import { layout, tileGrid, toSvg } from './export';
 import { toTiledPdf } from './pdf';
 import { sewingGuide } from './instructions';
@@ -84,5 +84,18 @@ describe('skirt block', () => {
     expect(hemOf('trumpet').sa).toEqual([2, 2]);
     // A straight skirt dragged out into a flare gets the narrow hem too.
     expect(hemOf('straight', 6).sa).toEqual([2, 2]);
+  });
+});
+
+describe('named lengths', () => {
+  const body = { waist: 76, full_hip: 102, waist_to_hip: 20.5, waist_to_knee: 58, waist_to_floor: 104 } as SkirtMeasurements;
+  it('finish where ready-to-wear does: mini at mid-thigh, midi at mid-calf', () => {
+    const at = Object.fromEntries(Object.entries(LENGTHS).map(([k, f]) => [k, Math.round(f(body))]));
+    expect(at).toEqual({ mini: 38, above_knee: 50, knee: 58, midi: 76, maxi: 97 });
+  });
+  it('scale with the body, and a mini always clears the hip', () => {
+    const petite = { ...body, waist_to_hip: 19, waist_to_knee: 50, waist_to_floor: 92 };
+    expect(LENGTHS.mini(petite)).toBeLessThan(LENGTHS.mini(body));
+    expect(LENGTHS.mini({ ...body, waist_to_hip: 26, waist_to_knee: 52 })).toBeGreaterThanOrEqual(38);
   });
 });

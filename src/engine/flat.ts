@@ -539,6 +539,8 @@ function sleeveSide(h: Half, sl: SleeveDraft): { shape: P[]; band?: P[]; lines: 
     const shape = [...head, Ho, Hi, U, ...[...hole].reverse().slice(1, -1)];
     const lift = 2;
     lines.push({ pts: [add(Ho, mul(a, -lift)), add(Hi, mul(a, -lift))], kind: 'stitch' });
+    // The wrist vent: a short slit up the underseam from the hem.
+    if (sl.vent) lines.push({ pts: [add(Hi, mul(n, -0.4)), add(add(Hi, mul(n, -0.4)), mul(a, -sl.vent.lengthCm))], kind: 'seam' });
     // A two-piece sleeve's back seam, seen from the back: from above the back notch down to the wrist.
     let seam: P[] | undefined;
     if (sl.pieces.some((pc) => pc.meta.tailored)) {
@@ -860,6 +862,11 @@ const bend = (a: P, c: P, b: P, n = 10) => quad(a, c, b, n);
  * the middle, at half its knee and hem round, and the fly or side zip with its stitching.
  */
 export function trousersFlat(d: TrousersDraft, m: { waist_to_hip: number; crotch_depth: number }): Flat {
+  return arrange((['FRONT', 'BACK'] as const).map((label) => ({ label, ...trousersView(d, m, label === 'BACK') })));
+}
+
+/** One view of the trousers as worn, the waist at y = 0 and the centre front at x = 0: the Style page draws the front on the form. */
+export function trousersView(d: TrousersDraft, m: { waist_to_hip: number; crotch_depth: number }, back = false): { shapes: P[][]; lines: FlatView['lines'] } {
   const W = d.finishedWaist / 4;
   const hw = d.finishedHip / 4 + 0.5;
   const hd = m.waist_to_hip;
@@ -869,8 +876,7 @@ export function trousersFlat(d: TrousersDraft, m: { waist_to_hip: number; crotch
   const xc = hw / 2;
   const knee = Math.max(d.kneeCm / 4, 4);
   const hem = Math.max(d.hemCm / 4, 4);
-  const views = (['FRONT', 'BACK'] as const).map((label, i) => {
-    const back = i === 1;
+  {
     const top = back ? -0.8 : 0;
     const run = [
       p(0, top),
@@ -912,9 +918,8 @@ export function trousersFlat(d: TrousersDraft, m: { waist_to_hip: number; crotch
       const pts = bend(p(W, 0), p(hw, hd * 0.45), p(hw, hd), 16).filter((q) => q.y <= d.zipCm).map((q) => p(q.x * sx, q.y));
       lines.push({ pts, kind: 'zip' });
     }
-    return { label, shapes, lines };
-  });
-  return arrange(views);
+    return { shapes, lines };
+  }
 }
 
 /**

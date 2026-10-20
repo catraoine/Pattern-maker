@@ -35,9 +35,10 @@ test('measure-me link: client measures, dressmaker asks for a redo, numbers land
   await page.goto(link('measure', { id: 'ask1', from: 'Anya', studio: 'Atelier Noor', note: 'Wear something close-fitting.', client: 'Jo Marsh', garment: 'skirt' }));
   await expect(main.getByRole('heading', { name: 'Atelier Noor' })).toBeVisible();
   await expect(main).toContainText('Wear something close-fitting.');
-  await expect(main).toContainText('6 measurements');
+  await expect(main).toContainText('7 measurements');
   await main.getByRole('button', { name: 'Start' }).click();
   await measure(page, [
+    ['Height', '165'],
     ['Full bust', '92'],
     ['Waist', '74'],
     ['Full hip', '81'],

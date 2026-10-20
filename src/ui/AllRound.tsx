@@ -318,7 +318,7 @@ export function AllRound({ round, m, striped = false, label }: Props) {
       g.clip();
       g.globalAlpha = 0.6;
       g.strokeStyle = GILD;
-      paintFigure(g, S, cx, Y, lw, trousers ? 0 : 1);
+      paintFigure(g, S, cx, Y, lw, trousers ? 0 : 1, false, phi);
       g.restore();
       if (trousers) {
         const ys = Array.from({ length: 71 }, (_, i) => FORM_CROTCH + ((FORM_FLOOR - 0.02 - FORM_CROTCH) * i) / 70);

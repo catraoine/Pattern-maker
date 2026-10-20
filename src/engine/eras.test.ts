@@ -69,7 +69,15 @@ describe('trumpet skirt', () => {
     expect(Math.max(...xs)).toBeGreaterThan(96 / 4 + 1 + 10);
   });
 
-  it('refuses a mini that leaves no room to flare', () => {
-    expect(() => draftSkirt({ ...m, waist_to_hip: 24, waist_to_knee: 52 }, { silhouette: 'trumpet', length: 'mini' })).toThrow(/longer length/);
+  it('drafts a mini on a short body with the flare starting just below the hip', () => {
+    const short = { ...m, waist_to_hip: 24, waist_to_knee: 52 };
+    const [front, back] = draftSkirt(short, { silhouette: 'trumpet', length: 'mini' }).pieces;
+    expect(Math.abs(taggedLength(front.outline, 'side') - taggedLength(back.outline, 'side'))).toBeLessThan(0.05);
+    // The side seam runs straight down to the hip and only starts swinging out below hip + 2.
+    const pts = front.outline.taggedPoints().pts;
+    const hipX = Math.max(...pts.filter((q) => q.y <= short.waist_to_hip + 0.1).map((q) => q.x));
+    const side = pts.filter((q) => q.x > hipX + 0.05);
+    expect(side.length).toBeGreaterThan(0);
+    expect(Math.min(...side.map((q) => q.y))).toBeGreaterThanOrEqual(short.waist_to_hip + 2 - 0.05);
   });
 });

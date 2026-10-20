@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { layout } from '../engine/export';
 import { bodiceEase } from '../engine/bodice';
 import { isTop } from '../engine/corset';
@@ -17,7 +17,7 @@ import { PatternPane } from '../ui/PointEditor';
 import { TechFlatView } from '../ui/TechFlatView';
 import { AllRound } from '../ui/AllRound';
 import { roundDress } from '../engine/allRound';
-import { FabricSwatches, GarmentFabric } from '../ui/FabricFill';
+import { FabricSwatches, GarmentFabric, flatId } from '../ui/FabricFill';
 import { DETAIL_GROUPS, GROUPS } from './StyleScreen';
 import { cutAllowed, validCut } from '../engine/slip';
 import { describePattern } from './describe';
@@ -37,6 +37,7 @@ import { lengthRange } from '../engine/skirt';
 import type { BodiceMeasurements } from '../engine/bodice';
 import type { SkirtMeasurements } from '../engine/skirt';
 import { DrawOnForm, formWidth } from '../ui/DrawOnForm';
+import { FormSketch } from '../ui/FormSketch';
 import { orSeam, readSeamLine } from '../ui/formSeams';
 import { orNeckline, readUnevenNeckline, unevenNecklineLines } from '../ui/formBodice';
 import { REPLACES } from './BodiceStyleScreen';
@@ -94,7 +95,12 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
   const undo = useUndo(choices, setChoices);
   const onChoices = undo.change;
   const can = (t: ProTool) => shows(mode, t);
-  const [view, setView] = useState<'sketch' | 'round' | 'pattern'>('sketch');
+  const [view, setView] = useState<'sketch' | 'flat' | 'round' | 'pattern'>('sketch');
+  // A fabric dresses the flat drawing, so choosing one shows that drawing; the form is lines only.
+  const cloth = flatId(fabric);
+  useEffect(() => {
+    if (cloth) setView((v) => (v === 'sketch' ? 'flat' : v));
+  }, [cloth]);
   /** Drawing on the form: the choices from before, to keep or go back to. */
   const [onForm, setOnForm] = useState<DressChoices>();
   const [fit, setFit] = useState(false);
@@ -207,11 +213,20 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
     onChoices({ ...choices, fit, bodice: validDetails({ ...bodice, darts, length: 'waist', closure: 'back_zip', sleeveShape: sleeveOf(bodice).shape }, 'dress'), skirt: { ...choices.skirt, fit } });
   };
 
+  const mv = values as BodiceMeasurements & SkirtMeasurements;
+  const waistY = draft ? landmarks(draft.bodice).waistY : 0;
+  const formBody = useMemo(() => (draft ? formWidth(draft.bodice, mv) : undefined), [draft, mv]);
+  const formLines = useMemo(() => {
+    if (!draft) return {};
+    const uneven = unevenNecklineLines(draft.bodice);
+    const skirt = skirtLines(draft.skirt, choices.skirt, mv, 'front', waistY);
+    const bodice = bodiceLines(draft.bodice, 'front');
+    return { ...bodice, hem: skirt.hem, fit: [...(bodice.fit ?? []), ...(skirt.fit ?? [])], ...(uneven.length ? { neckline: uneven } : {}) };
+  }, [draft, choices.skirt, mv, waistY]);
+
   if (onForm && draft) {
     // The bodice's lines are read at the dress's own fit and length; the hem is the skirt's.
     const asBodice: BodiceChoices = { ...choices.bodice, fit: choices.fit, length: 'waist', closure: 'back_zip' };
-    const mv = values as BodiceMeasurements & SkirtMeasurements;
-    const waistY = landmarks(draft.bodice).waistY;
     return (
       <DrawOnForm<DressChoices>
         body={formWidth(draft.bodice, mv)}
@@ -267,6 +282,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
       undo={undo}
       sections={DRESS_SECTIONS}
       label="your dress"
+      garment="dress"
       name={title}
       metres={draft ? dressFabricMetres([...pieces, ...layoutExtras(draft.skirt)]) : undefined}
       ready={!!draft}
@@ -378,8 +394,8 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
         <PreviewSwitch look={view === 'pattern' ? 'pattern' : 'garment'} onLook={(l) => setView(l === 'pattern' ? 'pattern' : 'sketch')} />
         <div className="row between wrap">
           {view !== 'pattern' ? (
-            <GarmentViews<'sketch' | 'round'>
-              views={[['sketch', 'Drawing'], ...(round ? ([['round', 'All round']] as ['round', string][]) : [])]}
+            <GarmentViews<'sketch' | 'flat' | 'round'>
+              views={[['sketch', 'Form'], ['flat', 'Drawing'], ...(round ? ([['round', 'All round']] as ['round', string][]) : [])]}
               view={view}
               onView={setView}
             />
@@ -396,7 +412,10 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
         </div>
         <div className="preview">
           {error && <p className="msg error">{error}</p>}
-          {flat && view === 'sketch' && (
+          {formBody && view === 'sketch' && (
+            <FormSketch body={formBody} m={mv} legs bottom={waistY + lengthRange(mv).max + 4} lines={formLines} label={`The ${title} on your form`} />
+          )}
+          {flat && view === 'flat' && (
             <GarmentFabric fabric={fabric}>
               <TechFlatView flat={flat} title={title} />
             </GarmentFabric>

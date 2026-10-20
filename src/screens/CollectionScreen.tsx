@@ -7,6 +7,7 @@ import { describePattern } from './describe';
 import { Envelope } from '../ui/Envelope';
 import { InterestCard } from '../ui/InterestCard';
 import { TechFlatView } from '../ui/TechFlatView';
+import { TestingTag } from '../ui/TestingTag';
 
 interface Props {
   values: MeasurementValues;
@@ -159,7 +160,7 @@ export function CollectionScreen({ values, onMake, onBack }: Props) {
   return (
     <div className="collection">
       <header className="collection-head">
-        <p className="eyebrow">Maison Tracé</p>
+        <p className="eyebrow">Maison Tracé <TestingTag /></p>
         <h1 id="ctitle">The collection</h1>
         <p className="muted">
           {shelf === 'house'

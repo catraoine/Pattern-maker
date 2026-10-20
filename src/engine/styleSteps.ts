@@ -204,12 +204,18 @@ export function styleBodiceSteps(g: SewingGuide, draft: BodiceDraft, o: { seam: 
       },
     );
   }
+  const stand = collar === 'mandarin' || collar === 'shirt';
+  const lined = o.edges === 'lined';
+  const standName = collar === 'shirt' ? 'stand' : 'band';
   const buttonFacing: SewStep = {
     title: 'Attach the front facings',
-    text:
-      collar === 'mandarin' || collar === 'shirt'
-        ? `Pin the facings to the fronts, right sides together, along the front edges only. Sew ${o.seam === '1.5 cm' ? '1 cm' : o.curve} from the edge from the hem to the neck seam line, trim, turn the facings to the inside and press. Baste the facings to the neckline, ${o.curve} from the edge, so the collar goes on through both.`
-        : `Pin the facings to the bodice, right sides together, down the front edges and round the neckline${collar === 'peter_pan' ? ' over the collar' : ''}, matching the shoulder seams. Sew 1 cm from the front edges and ${o.curve} round the neck. Trim, clip the neck curve, and understitch the neck as far as you can reach. Turn the facings to the inside, press, and tack them to the shoulder seams.`,
+    text: stand
+      ? `Pin the facings to the fronts, right sides together, along the front edges only. Sew ${o.seam === '1.5 cm' ? '1 cm' : o.curve} from the edge from the hem to the neck seam line, trim, turn the facings to the inside and press. ${
+          lined
+            ? `Smooth the lining into the bodice, wrong sides together, matching the shoulder and side seams, and baste the facings and the lining to the neckline, ${o.curve} from the edge: the ${standName} goes on through all the layers and covers the lining's neck edge.`
+            : `Baste the facings to the neckline, ${o.curve} from the edge, so the collar goes on through both.`
+        }`
+      : `Pin the facings to the bodice, right sides together, down the front edges and round the neckline${collar === 'peter_pan' ? ' over the collar' : ''}, matching the shoulder seams. Sew 1 cm from the front edges and ${o.curve} round the neck. Trim, clip the neck curve, and understitch the neck as far as you can reach. Turn the facings to the inside, press, and tack them to the shoulder seams.`,
   };
 
   if (neckAt >= 0) {
@@ -221,11 +227,36 @@ export function styleBodiceSteps(g: SewingGuide, draft: BodiceDraft, o: { seam: 
     else if (collar === 'peter_pan') replace.push(...collarSteps, { ...neckStep, text: neckStep.text.replace(/to the neckline/, 'to the neckline over the collar').replace(/round the neckline/, 'round the neckline over the collar') });
     else replace.push(neckStep);
     steps.splice(neckAt, 1, ...replace);
+  } else if (buttons && lined) {
+    // A lined sleeveless button front: the facings (or the stand) finish the neck, so the lining is
+    // made whole, basted in at the neck, and its armholes closed by hand.
+    const shoulders = steps.findIndex((s) => s.title === 'Sew the side seams');
+    steps.splice(shoulders, 0, {
+      title: 'Sew the shoulders',
+      text: `Pin the front to the back at the shoulders, right sides together. The back shoulder is 1 cm longer: ease it in so it fits without pleats. Sew ${o.seam} from the edge and press the seams open.`,
+    });
+    const ml = steps.findIndex((s) => s.title === 'Make the lining');
+    steps[ml] = { ...steps[ml], text: steps[ml].text.replace("'s darts and side seams", "'s darts, shoulders and side seams").replace(' Leave the shoulders of both open for now.', '') };
+    const li = steps.findIndex((s) => s.title === 'Line the neck and armholes');
+    steps[li] = {
+      title: 'Line the armholes',
+      text: `${stand ? '' : 'Smooth the lining into the bodice, wrong sides together, matching the shoulder and side seams. '}Turn the bodice's armhole allowance to the inside and press it, then turn the lining's under so it sits 0.3 cm inside the edge, and slip-stitch the lining to the bodice round each armhole.`,
+    };
+    steps.splice(li, 0, ...(stand ? [buttonFacing, ...collarSteps] : [...collarSteps, buttonFacing]));
   } else if (collarSteps.length || buttons) {
     // A lined sleeveless bodice finishes its neck with the lining: the collar goes on first.
     const li = steps.findIndex((s) => s.title === 'Line the neck and armholes' || s.title === 'Make the lining');
-    const add = buttons ? (collar === 'mandarin' || collar === 'shirt' ? [buttonFacing, ...collarSteps] : [...collarSteps, buttonFacing]) : collarSteps;
+    const add = buttons ? (stand ? [buttonFacing, ...collarSteps] : [...collarSteps, buttonFacing]) : collarSteps;
     steps.splice(li >= 0 ? li : steps.findIndex((s) => s.title === 'Hem'), 0, ...add);
+  }
+  // Without a stand to catch it, the lining's neck edge is slip-stitched over the back neck facing.
+  if (buttons && lined && !stand) {
+    const fl = steps.findIndex((s) => s.title === 'Finish the lining at the front');
+    if (fl >= 0)
+      steps[fl] = {
+        title: 'Finish the lining at the front and neck',
+        text: "Trim the lining's back neck to 1.5 cm beyond the back neck facing's inner edge. Turn the lining's front and neck edges under and slip-stitch them over the inner edges of the front facings and the back neck facing.",
+      };
   }
 
   if (buttons && draft.buttons) {
@@ -242,7 +273,7 @@ export function styleBodiceSteps(g: SewingGuide, draft: BodiceDraft, o: { seam: 
   }
 
   const notions = g.notions.flatMap((n) => {
-    if (buttons && /invisible zip/.test(n)) return [`${draft.buttons?.count ?? 5} buttons, ${draft.buttons?.sizeCm ?? 1.5} cm`];
+    if (buttons && /invisible zip/.test(n)) return [`${(draft.buttons?.count ?? 5) + (stand ? 1 : 0)} buttons, ${draft.buttons?.sizeCm ?? 1.5} cm`];
     if (buttons && n === 'Hook and eye') return [];
     return [n];
   });

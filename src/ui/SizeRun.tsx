@@ -4,6 +4,7 @@ import type { P } from '../engine/geometry';
 import { GradeStep, allSizes, gradeRun, gradedNest, rulesFor } from '../engine/grading';
 import { FIELDS, Garment, MeasurementValues } from '../measurements';
 import { FabricWidth, layPlan } from '../engine/layplan';
+import { TestingTag } from './TestingTag';
 
 interface Props {
   garment: Garment;
@@ -70,7 +71,7 @@ export function SizeRun({ garment, values, draftAt, title, fileBase, width, nap,
 
   return (
     <section className="card" aria-labelledby="gradetitle">
-      <p className="eyebrow">For production</p>
+      <p className="eyebrow">For production <TestingTag /></p>
       <h2 id="gradetitle">Grade it into a size run</h2>
       <p className="muted">
         Your pattern is the base size. Each size up or down moves every measurement by its grade rule, and every size is drafted from

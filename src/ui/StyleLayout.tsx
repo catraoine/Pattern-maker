@@ -1,6 +1,9 @@
 import { Children, createContext, ReactNode, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { Mode } from '../mode';
+import type { Garment } from '../measurements';
+import { IN_TESTING, inTesting } from '../launch';
 import { canGoBack, goBack, usePageHistory } from '../nav';
+import { EnlargeSketch } from './EnlargeSketch';
 import { CollectionEntry, GarmentSwitch } from './GarmentSwitch';
 import { ModeLink } from './ModeLink';
 import { PhotoEntry } from './PhotoEntry';
@@ -125,6 +128,8 @@ interface Props {
   label: string;
   /** The garment as chosen so far: "Knee A-line skirt". */
   name: string;
+  /** Which garment, for the "In testing" tag on garments that haven't passed their fit test (see launch.ts). */
+  garment?: Garment;
   /** Fabric needed, when the pattern is drafted. */
   metres?: number;
   /** Fabric width the metres are for. */
@@ -148,7 +153,7 @@ interface Props {
 
 const NO_SECTIONS: Record<string, string> = {};
 
-export function StyleLayout({ children, label, name, metres, width = 140, ready, onChooseGarment, onPhoto, photo, looks, mode, onMode, onEditMeasurements, sections = NO_SECTIONS, undo }: Props) {
+export function StyleLayout({ children, label, name, garment, metres, width = 140, ready, onChooseGarment, onPhoto, photo, looks, mode, onMode, onEditMeasurements, sections = NO_SECTIONS, undo }: Props) {
   const [options, preview, summary] = Children.toArray(children);
   const [page, setPage] = usePageHistory<'edit' | 'review'>(() => 'edit');
   // Read here and cleared once mounted: React may run this twice, and the second run must see it too.
@@ -187,7 +192,25 @@ export function StyleLayout({ children, label, name, metres, width = 140, ready,
 
   // A preview too tall to leave room for the choices (the turning form with its notes) scrolls with the page instead.
   const pin = useRef<HTMLDivElement>(null);
+  // Whether the tab strip is scrolled to its end: until it is, the right edge fades to say there is more.
+  const strip = useRef<HTMLDivElement>(null);
+  const [atEnd, setAtEnd] = useState(false);
+  useEffect(() => {
+    const el = strip.current;
+    if (!el) return;
+    const check = () => setAtEnd(el.scrollLeft + el.clientWidth >= el.scrollWidth - 2);
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [tabs.length]);
   const [tall, setTall] = useState(false);
+  // The preview's drawing area, where the Enlarge button sits.
+  const [host, setHost] = useState<HTMLElement | null>(null);
+  useLayoutEffect(() => {
+    const el = pin.current?.querySelector<HTMLElement>('.preview') ?? null;
+    if (el !== host) setHost(el);
+  });
   useEffect(() => {
     const el = pin.current;
     if (!el || typeof ResizeObserver === 'undefined') return;
@@ -204,6 +227,23 @@ export function StyleLayout({ children, label, name, metres, width = 140, ready,
     const row = tab && tab.parentElement;
     if (tab && row) row.scrollTo({ left: tab.offsetLeft - row.offsetLeft - row.clientWidth / 2 + tab.offsetWidth / 2, behavior: 'smooth' });
   }, [active, tabs, wide]);
+
+  // A swipe across the choices to the next tab moves only sideways: once the finger is plainly going across,
+  // the page holds still instead of drifting up and down with it (Cat, 2026-10-20). React's touch handlers
+  // can't hold the page, so this one is added by hand.
+  useEffect(() => {
+    const el = panel.current;
+    if (!el) return;
+    const hold = (e: TouchEvent) => {
+      const s = swipe.current;
+      const p = e.touches[0];
+      if (!s || s.sideways || !p || !e.cancelable) return;
+      const dx = Math.abs(p.clientX - s.x);
+      if (dx > 10 && dx > 2 * Math.abs(p.clientY - s.y)) e.preventDefault();
+    };
+    el.addEventListener('touchmove', hold, { passive: false });
+    return () => el.removeEventListener('touchmove', hold);
+  }, [page]);
 
   const choose = (t: string) => setActive(t);
   const step = (by: number) => {
@@ -238,12 +278,20 @@ export function StyleLayout({ children, label, name, metres, width = 140, ready,
     <div className="style-layout" ref={root}>
       <div className="screen-head">
         <Title id="opts" big="Style" label={label} />
+        {inTesting(garment) && <span className="testing-tag">{IN_TESTING}</span>}
         <GarmentSwitch onChoose={onChooseGarment} />
       </div>
       <div className="style-edit">
         <div className={tall ? 'style-pin tall' : 'style-pin'} ref={pin}>
           {preview}
-          <div className="style-tabs" role="tablist" aria-label="Style choices">
+          <EnlargeSketch host={host} name={name} />
+          <div
+            className={atEnd ? 'style-tabs at-end' : 'style-tabs'}
+            role="tablist"
+            aria-label="Style choices"
+            ref={strip}
+            onScroll={(e) => setAtEnd(e.currentTarget.scrollLeft + e.currentTarget.clientWidth >= e.currentTarget.scrollWidth - 2)}
+          >
             {tabs.map((t) => (
               <button
                 key={t}
@@ -307,7 +355,7 @@ export function StyleLayout({ children, label, name, metres, width = 140, ready,
         ) : (
           <div className="style-bar">
             <p className="style-bar-meta">
-              <strong>{name}</strong>
+              <strong>{name.charAt(0).toUpperCase() + name.slice(1)}</strong>
               {metres !== undefined && (
                 <span className="muted">
                   {metres} m of {width} cm fabric

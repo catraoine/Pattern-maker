@@ -9,8 +9,11 @@ export const MAX_SIGNUP_BYTES = 4_000;
 /** Daily caps, so a stuck page or a script can't fill the store. Past them, the day's extra reports are dropped. */
 export const DAY_CAPS = { beacons: 20_000, crashes: 200 };
 
-/** What can be counted: a visit, or a step of the way, optionally with the garment it was for. */
-export const EVENTS = ['visit', 'measured', 'styled', 'printed', 'photo'] as const;
+/**
+ * What can be counted: a visit, a step of the way (optionally with the garment it was for), and the four numbers the
+ * business plan watches weekly: signup (with the source the visitor came from), printed, fit_reported, paid.
+ */
+export const EVENTS = ['visit', 'measured', 'styled', 'printed', 'photo', 'signup', 'fit_reported', 'paid'] as const;
 const EVENT_KEY = new RegExp(`^(${EVENTS.join('|')})(:[a-z-]{2,20})?$`);
 
 const CrashSchema = z
@@ -127,6 +130,38 @@ export function keyMatches(given: string | null, expected: string | undefined): 
   let diff = given.length ^ expected.length;
   for (let i = 0; i < Math.max(given.length, expected.length); i++) diff |= (given.charCodeAt(i) || 0) ^ (expected.charCodeAt(i) || 0);
   return diff === 0;
+}
+
+/** The four numbers to look at weekly, added up over the days given, with sign-ups and visits by source. */
+export interface Funnel {
+  visits: number;
+  signups: number;
+  printed: number;
+  fitReported: number;
+  paid: number;
+  /** Sign-ups by where the visitor first came from (`?src=` on the link); "direct" when there was none. */
+  signupsBySource: Record<string, number>;
+  visitsBySource: Record<string, number>;
+}
+
+export function funnel(days: { counts: Record<string, number> }[]): Funnel {
+  const f: Funnel = { visits: 0, signups: 0, printed: 0, fitReported: 0, paid: 0, signupsBySource: {}, visitsBySource: {} };
+  const add = (into: Record<string, number>, k: string, n: number) => (into[k] = (into[k] ?? 0) + n);
+  for (const d of days) {
+    for (const [key, n] of Object.entries(d.counts)) {
+      const [event, suffix] = key.split(':');
+      if (event === 'visit') {
+        if (!suffix) f.visits += n;
+        add(f.visitsBySource, suffix ?? 'direct', n);
+      } else if (event === 'signup') {
+        f.signups += n;
+        add(f.signupsBySource, suffix ?? 'direct', n);
+      } else if (event === 'printed') f.printed += n;
+      else if (event === 'fit_reported') f.fitReported += n;
+      else if (event === 'paid') f.paid += n;
+    }
+  }
+  return f;
 }
 
 /** The last `n` days, newest first, as YYYY-MM-DD. */

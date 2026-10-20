@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { showInInches } from './units';
 import { canGoBack, goBack, useViewHistory } from './nav';
 import type { HemShape } from './engine/hem';
 import type { AsymHem } from './engine/asymHem';
@@ -91,6 +92,7 @@ import { CheckFileScreen } from './screens/CheckFileScreen';
 import { FormScreen } from './screens/FormScreen';
 import { coverGuide, coverMissing, coverPieces, padMap } from './engine/formCover';
 import { labelCode, savedCopy } from './labels';
+import { fitSummary } from './fit';
 import { ImportedPattern, importedGuide } from './engine/importDxf';
 import { CollectionScreen } from './screens/CollectionScreen';
 import { lookPatch } from './collection';
@@ -303,6 +305,11 @@ export default function App() {
     window.addEventListener('hashchange', on);
     return () => window.removeEventListener('hashchange', on);
   }, []);
+  // Working in inches: every length written on screen is rewritten as it appears (see units.ts).
+  useEffect(() => {
+    if (saved.unit !== 'in') return;
+    return showInInches(document.body);
+  }, [saved.unit]);
   // A "Send to my computer" link: everything from the sewist's other device, read once the page is up.
   const [moving, setMoving] = useState<Backup<Saved> | 'broken'>();
   useEffect(() => {
@@ -335,7 +342,7 @@ export default function App() {
   const profile = profileName(account);
   const owner = personName(account, account.people.find((p) => p.id === ME)!);
 
-  const checks = checkMeasurements(measured, saved.unit, garment, form);
+  const checks = checkMeasurements(measured, saved.unit, garment, form, { weight: person.weight });
   const canLeaveMeasure = ready(measured, saved.unit, garment, form);
 
   // Corrections from this person's toile fittings go into every pattern drafted for them: the garment's
@@ -572,7 +579,7 @@ export default function App() {
           }${pocketWords(trousers.pockets, trousers.pocketSides)}. The crease line is the grain line. Sewing steps are on the last pages.`,
           ...fittingNotes,
         ],
-        guide: withFabric(trousersGuide(trousers, lays.find((l) => l.fabric === 'self')?.metres ?? trousersFabricMetres(trousers), { seams, width: finish.fabricWidth }), fabric, 'trousers'),
+        guide: withFabric(trousersGuide(trousers, lays.find((l) => l.fabric === 'self')?.metres ?? trousersFabricMetres(trousers), { seams, width: finish.fabricWidth, length: trousersChoices.length }), fabric, 'trousers'),
         spec: trousersSpec(m, trousers),
         lays,
         flat: trousersFlat(trousers, m),
@@ -760,6 +767,20 @@ export default function App() {
   const savedNow = savedCopy(account, current, person.id);
   const labelFor = savedNow && labelCode(savedNow.id);
   const saveState = isSaved ? 'saved' : account.patterns.length >= savedLimit(account) ? 'full' : 'can';
+
+  // "How did it fit?" from the print screen: the pattern is kept (if it can be) and its fit notes open on Your account.
+  const [fitFocus, setFitFocus] = useState<string>();
+  const openFitNotes = () => {
+    const next = saveState === 'can' ? savePattern(account, current, describePattern(current), person.id) : account;
+    const kept = savedNow ?? (saveState === 'can' ? next.patterns[0] : undefined);
+    if (!kept) return;
+    if (next !== account) setAccount(next);
+    setFitFocus(kept.id);
+    setStep('account');
+  };
+  useEffect(() => {
+    if (step !== 'account') setFitFocus(undefined);
+  }, [step]);
 
   // Where the guided measuring opens: the list of what to make, the next measurement a garment needs, or one to redo.
   const [stepsStart, setStepsStart] = useState<{ at: number; start?: StepsStart }>({ at: 0 });
@@ -1011,6 +1032,8 @@ export default function App() {
               values={measured}
               onUnit={(unit) => setSaved({ ...saved, unit })}
               onValues={setValues}
+              weight={person.weight}
+              onWeight={(weight) => setAccount(updatePerson(account, person.id, { weight }))}
               onDone={(g) => {
                 countStep('measured', g);
                 switchGarment(g, {}, 'style');
@@ -1085,6 +1108,7 @@ export default function App() {
               onRename={(id, name) => setAccount(renamePattern(account, id, name))}
               onRemove={(id) => setAccount(removePattern(account, id))}
               onFit={(id, fit) => setAccount(setPatternFit(account, id, fit))}
+              openFit={fitFocus}
               onReset={reset}
               sendLink={sendLink}
               onTesterCode={(testerCode) => setAccount({ ...account, testerCode })}
@@ -1300,6 +1324,7 @@ export default function App() {
           {step === 'export' && !hasGarment(account, garment) && <UnlockGarment garment={garment} onPlans={openPlans} onBack={() => setStep('style')} />}
           {step === 'export' && hasGarment(account, garment) && (
             <ExportScreen
+              unit={saved.unit}
               sendLink={sendLink}
               mode={mode}
               onMode={setMode}
@@ -1308,6 +1333,8 @@ export default function App() {
                 setStep('style');
               }}
               onKeep={saveState === 'can' ? () => setAccount(savePattern(account, current, describePattern(current), person.id)) : undefined}
+              onFitNotes={saveState === 'full' && !savedNow ? undefined : openFitNotes}
+              fitNote={savedNow?.fit ? fitSummary(savedNow.fit, savedNow.choices) : undefined}
               garment={garment}
               profile={profile}
               title={title}
@@ -1351,6 +1378,7 @@ export default function App() {
           {step === 'imported' && !importedPrintable && <CheckFileScreen onUse={(pattern, fileName) => setImported({ pattern, fileName })} />}
           {step === 'imported' && importedPrintable && imported && (
             <ExportScreen
+              unit={saved.unit}
               mode={mode}
               onMode={setMode}
               garment={garment}
@@ -1379,6 +1407,7 @@ export default function App() {
           {step === 'formprint' && coverPrintable && (
             // Printed like a pattern read from a file: no style, fabric check or toile of its own.
             <ExportScreen
+              unit={saved.unit}
               mode={mode}
               onMode={setMode}
               garment={garment}

@@ -15,7 +15,7 @@ describe('shaping the bodice by hand', () => {
   });
 
   it('snaps a dragged fit to the nearest fit, and brings darts back for a closer one', () => {
-    expect(dragEase(DEFAULT_BODICE, 5.4)).toEqual({ ...DEFAULT_BODICE, fit: 'fitted' });
+    expect(dragEase(DEFAULT_BODICE, 4.4)).toEqual({ ...DEFAULT_BODICE, fit: 'fitted' });
     const roomy = dragEase({ ...DEFAULT_BODICE, darts: 'bust' }, 3);
     expect(roomy).toMatchObject({ fit: 'fitted', darts: 'bust_waist', bustEase: 3 });
     expect(dragEase(DEFAULT_BODICE, 18)).toMatchObject({ fit: 'relaxed', bustEase: 18 });
