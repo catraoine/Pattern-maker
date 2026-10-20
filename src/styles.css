@@ -6091,6 +6091,9 @@ button.replay-tape:focus-visible {
   .measure-step .step-words > button.skip-link {
     min-height: 28px;
     margin-top: -10px;
+  }
+}
+
 /* Watch demo (L1 Whisper): deep champagne caps, bottom right of a tool's box, one light pass on arrival */
 .demo-play {
   position: absolute;
