@@ -6300,7 +6300,8 @@ body:has(.tape-band.carried) {
   .measure-step.has-hero .welcome-hero {
     min-height: 64px;
   }
-  .measure-step .step-words > button.skip-link {
+  .measure-step .step-words > button.skip-link,
+  .measure-step .step-words > button.later {
     min-height: 28px;
     margin-top: -10px;
   }
