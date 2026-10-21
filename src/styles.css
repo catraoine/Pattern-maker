@@ -6609,3 +6609,10 @@ button.later.garment-change {
     max-height: 300px;
   }
 }
+
+/* On a computer the tip comes in once the form has slid across to its place beside the title. */
+@media (min-width: 960px) {
+  .welcome.go .tape-tip {
+    animation-delay: 2.9s;
+  }
+}
