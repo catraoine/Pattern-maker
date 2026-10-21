@@ -6030,7 +6030,7 @@ input.inline:focus,
 .welcome.leaving .tour-play,
 .welcome.leaving .welcome-card > :not(.welcome-hero) {
   opacity: 0;
-  transition: opacity 0.5s ease 1s;
+  transition: opacity 0.5s ease 1.4s;
 }
 
 @media (max-width: 640px) {
