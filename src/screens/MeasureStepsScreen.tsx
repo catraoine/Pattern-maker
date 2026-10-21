@@ -89,7 +89,7 @@ const aOrAn = (name: string) => (/(s|wear|lingerie)$/i.test(name) && !/dress$/i.
 // answers "We can make that", "The closest we can do" or "Not yet" (Cat's pick, 2026-10-18); only "Not yet"
 // offers the full set of measurements, for a dressmaker.
 // The first page asks who you are designing for, since "Someone else" words every page for the person holding the
-// tape and asks their name first (Cat's pick V2, 2026-10-17). A quiet "Skip and try an example" link sits under the
+// tape and asks their name first (Cat's pick V2, 2026-10-17). A quiet "Measure later" in capitals sits under the
 // button wherever measuring can be skipped.
 export function MeasureStepsScreen({ testerCode, garment: current, unit, values, onUnit, onValues, weight, onWeight, onDone, start, onSomeoneElse, theirs, onSkip, onLater, form = 'womenswear', onForm, onIdea, onPhoto, onNews }: Props) {
   const aimed = start?.kind === 'for' ? start.garment : undefined;
@@ -150,19 +150,27 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
       setPage({ kind: 'base', at: firstToTake() });
     };
     return (
-      <Shell title="First, let's take some measurements." skip={onSkip && (() => onSkip())} tape>
-        <div className="who" role="group" aria-labelledby="who-q">
-          <p id="who-q" className="who-q">
-            Who are you designing for?
-          </p>
-          <div className="who-pick">
-            <button type="button" className="primary" aria-pressed={!helper} onClick={() => setHelper(false)}>
-              Me
-            </button>
-            <button type="button" className="primary" aria-pressed={helper} onClick={() => setHelper(true)}>
-              Someone else
-            </button>
+      // Cat's R1 Two Switches (2026-10-21): the body alone, then two switches of the same kind, for the form and
+      // for whom, Begin, and Measure later in quiet capitals. No underlined links.
+      <Shell title="First, let's take some measurements." tape>
+        {onForm && <FormPicture kind={chosen} />}
+        {onForm && (
+          <div className="switch" role="radiogroup" aria-label="Which form to draft on?">
+            {(['womenswear', 'menswear'] as const).map((k) => (
+              <button key={k} type="button" role="radio" aria-checked={chosen === k} onClick={() => setChosen(k)}>
+                {k === 'womenswear' ? 'Womenswear' : 'Menswear'}
+                {k === 'menswear' && <span className="testing-tag">{IN_TESTING}</span>}
+              </button>
+            ))}
           </div>
+        )}
+        <div className="switch" role="radiogroup" aria-label="Who are you designing for?">
+          <button type="button" role="radio" aria-checked={!helper} onClick={() => setHelper(false)}>
+            For me
+          </button>
+          <button type="button" role="radio" aria-checked={helper} onClick={() => setHelper(true)}>
+            Someone else
+          </button>
         </div>
         {helper && (
           <div className="field plain ready">
@@ -170,25 +178,14 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
             <input id="who-name" autoComplete="off" autoFocus value={name} onChange={(e) => setName(e.target.value)} />
           </div>
         )}
-        {onForm && (
-          <>
-            <p className="who-q" id="form-q">
-              Which form to draft on?
-            </p>
-            <div className="form-pick on-intro" role="radiogroup" aria-labelledby="form-q">
-              {(['womenswear', 'menswear'] as const).map((k) => (
-                <button key={k} type="button" role="radio" aria-checked={chosen === k} className={chosen === k ? 'on' : ''} onClick={() => setChosen(k)}>
-                  <FormPicture kind={k} />
-                  <span>{k === 'womenswear' ? 'Womenswear' : 'Menswear'}</span>
-                  {k === 'menswear' && <span className="testing-tag">{IN_TESTING}</span>}
-                </button>
-              ))}
-            </div>
-          </>
-        )}
         <button type="button" className="primary" disabled={helper && !name.trim()} onClick={begin}>
           Begin measuring
         </button>
+        {onSkip && (
+          <button type="button" className="later" onClick={() => onSkip()}>
+            Measure later
+          </button>
+        )}
       </Shell>
     );
   }
@@ -554,8 +551,8 @@ export function Shell({
           <ShellTitle text={title} />
           {children}
           {skip ? (
-            <button type="button" className="link quiet skip-link" onClick={skip}>
-              Skip and try an example
+            <button type="button" className="later" onClick={skip}>
+              Measure later
             </button>
           ) : (
             later && (
