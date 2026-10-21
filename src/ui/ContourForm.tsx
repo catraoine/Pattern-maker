@@ -216,7 +216,7 @@ const REST_TOP = -2.8;
 /** Where the form sits in a canvas of this size: centred, or to the right of the title in a wide window. */
 function layout(w: number, h: number) {
   const S = Math.min(w * 0.6, (h * 0.96) / (1.3 - REST_TOP));
-  const cx = w > h * 1.25 ? w * 0.64 : w / 2;
+  const cx = w > h * 1.25 && w >= 900 ? w * 0.64 : w / 2;
   const wy = h * 0.04 + (0.1 - REST_TOP) * S;
   return { S, cx, wy, lw: lineFor(S), Y: (y: number) => wy + (y - 0.1) * S };
 }
@@ -773,7 +773,7 @@ function paintTape(g: CanvasRenderingContext2D, w: number, h: number, from: Cam,
     case 'side': {
       // In at the start, over the curve of the hip to its widest point, then straight down.
       const widest = 0.8;
-      const pts: Pt[] = [[edge, Y(t.from)]];
+      const pts: Pt[] = [[Math.min(edge, cx + R(t.from) * S + tw * 0.55 + Math.max(40, w * 0.12)), Y(t.from)]];
       for (let y = t.from; y <= Math.min(t.to, widest) + 1e-6; y += 0.02) pts.push([cx + R(y) * S + tw * 0.55, Y(y)]);
       if (t.to > widest) pts.push([cx + R(widest) * S + tw * 0.55, Y(t.to)]);
       tape(g, partial(pts, run), tw);

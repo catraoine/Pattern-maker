@@ -62,6 +62,24 @@ describe('the dress and cross-checks', () => {
   });
 });
 
+describe('base girths checked against each other (measuring accuracy)', () => {
+  const v = { ...EXAMPLE_VALUES };
+  const flag = (changes: Partial<typeof v>) => checkMeasurements({ ...v, ...changes }, 'cm', 'dress').filter((c) => c.level === 'warning').map((c) => c.id);
+
+  it('catches a waist pulled in, a bust tape that rode up, and other slips', () => {
+    expect(flag({ waist: 50 })).toContain('waist'); // pulled in hard
+    expect(flag({ full_bust: 62, high_bust: 60, underbust: 56 })).toContain('waist'); // the bust tape slipped
+    expect(flag({ waist_to_hip: 33 })).toContain('waist_to_hip'); // down to the thigh
+    expect(flag({ shoulder_width: 55 })).toContain('shoulder_width'); // round the arms
+    expect(flag({ across_back: 48, shoulder_width: 50 })).toContain('across_back');
+    expect(flag({ upper_arm: 44, armscye: 50 })).toContain('upper_arm');
+  });
+
+  it('stays quiet for a menswear body whose waist is near the chest', () => {
+    expect(flag({ full_bust: 100, high_bust: 98, waist: 98, full_hip: 102 }).filter((id) => id === 'waist')).toEqual([]);
+  });
+});
+
 describe('height and weight checks', () => {
   // Sample body A is 165 cm; about 62 kg goes with its bust, waist and hip.
   const body = { ...EXAMPLE_VALUES };

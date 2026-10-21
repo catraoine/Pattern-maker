@@ -1,7 +1,6 @@
 import { Children, createContext, ReactNode, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { Mode } from '../mode';
 import type { Garment } from '../measurements';
-import { IN_TESTING, inTesting } from '../launch';
 import { canGoBack, goBack, usePageHistory } from '../nav';
 import { EnlargeSketch } from './EnlargeSketch';
 import { CollectionEntry, GarmentSwitch } from './GarmentSwitch';
@@ -102,7 +101,7 @@ export function TabPanel({ tab, children }: { tab: string; children: ReactNode }
 const WIDE = '(min-width: 1100px)';
 
 /** Whether the screen is wide enough for the computer layout, kept up to date as the window resizes. */
-function useWide() {
+export function useWide() {
   const query = () => typeof window !== 'undefined' && !!window.matchMedia?.(WIDE).matches;
   const [wide, setWide] = useState(query);
   useEffect(() => {
@@ -128,7 +127,7 @@ interface Props {
   label: string;
   /** The garment as chosen so far: "Knee A-line skirt". */
   name: string;
-  /** Which garment, for the "In testing" tag on garments that haven't passed their fit test (see launch.ts). */
+  /** Which garment (kept for the screens that pass it; the "In testing" note is on the list of what to make). */
   garment?: Garment;
   /** Fabric needed, when the pattern is drafted. */
   metres?: number;
@@ -153,7 +152,7 @@ interface Props {
 
 const NO_SECTIONS: Record<string, string> = {};
 
-export function StyleLayout({ children, label, name, garment, metres, width = 140, ready, onChooseGarment, onPhoto, photo, looks, mode, onMode, onEditMeasurements, sections = NO_SECTIONS, undo }: Props) {
+export function StyleLayout({ children, label, name, metres, width = 140, ready, onChooseGarment, onPhoto, photo, looks, mode, onMode, onEditMeasurements, sections = NO_SECTIONS, undo }: Props) {
   const [options, preview, summary] = Children.toArray(children);
   const [page, setPage] = usePageHistory<'edit' | 'review'>(() => 'edit');
   // Read here and cleared once mounted: React may run this twice, and the second run must see it too.
@@ -214,9 +213,21 @@ export function StyleLayout({ children, label, name, garment, metres, width = 14
   useEffect(() => {
     const el = pin.current;
     if (!el || typeof ResizeObserver === 'undefined') return;
-    const check = () => setTall(el.offsetHeight > window.innerHeight * 0.66);
+    const preview = el.querySelector<HTMLElement>('.preview');
+    const strip = el.querySelector<HTMLElement>('.style-tabs');
+    const check = () => {
+      setTall(el.offsetHeight > window.innerHeight * 0.66);
+      // On a phone only the drawing and the tab strip stay pinned (the aesthetic review, 2026-10-21); the view
+      // switches above them scroll away. The strip sits under the drawing, and anything brought into view in the
+      // choices (by a finger, a key or a test) lands below both.
+      const pv = preview?.offsetHeight ?? 0;
+      root.current?.style.setProperty('--pv-h', `${pv}px`);
+      root.current?.style.setProperty('--pin-h', `${Math.max(el.offsetHeight, pv + (strip?.offsetHeight ?? 0))}px`);
+    };
     const watch = new ResizeObserver(check);
     watch.observe(el);
+    if (preview) watch.observe(preview);
+    if (strip) watch.observe(strip);
     return () => watch.disconnect();
   }, [page]);
 
@@ -278,7 +289,6 @@ export function StyleLayout({ children, label, name, garment, metres, width = 14
     <div className="style-layout" ref={root}>
       <div className="screen-head">
         <Title id="opts" big="Style" label={label} />
-        {inTesting(garment) && <span className="testing-tag">{IN_TESTING}</span>}
         <GarmentSwitch onChoose={onChooseGarment} />
       </div>
       <div className="style-edit">

@@ -12,7 +12,7 @@ import { BODICE_FIELDS, SKIRT_FIELDS, TROUSERS_FIELDS, Unit } from '../measureme
 import { describePattern } from './describe';
 import { FitForm } from '../ui/FitForm';
 import { FitFeedback, fitReport, fitSummary, sendFitReport } from '../fit';
-import type { MeasurementValues } from '../measurements';
+import type { MeasurementId, MeasurementValues } from '../measurements';
 import { Mode, shows } from '../mode';
 import { InterestCard } from '../ui/InterestCard';
 import { YourPlan } from '../ui/PlanPrompts';
@@ -96,7 +96,8 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
   const shown = allMeasured ? measured : key.length ? key : measured.slice(0, KEY_FIELDS.length);
   const saved = account.patterns.length;
   // Sent fit notes carry the measurements of whoever the pattern was saved for.
-  const valuesFor = (p: SavedPattern) => (account.people.find((x) => x.id === (p.personId ?? ME)) ?? person).values;
+  const personFor = (p: SavedPattern) => account.people.find((x) => x.id === (p.personId ?? ME)) ?? person;
+  const valuesFor = (p: SavedPattern) => personFor(p).values;
   const whoFor = (p: SavedPattern) => {
     const who = p.personId && p.personId !== ME ? account.people.find((x) => x.id === p.personId) : undefined;
     return who ? personName(account, who) : undefined;
@@ -142,7 +143,7 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
           ) : (
             <ul className="saved">
               {account.patterns.map((p) => (
-                <PatternRow key={p.id} pattern={p} values={valuesFor(p)} whoFor={whoFor(p)} startFitting={openFit === p.id} onOpen={() => onOpen(p)} onRename={(n) => onRename(p.id, n)} onRemove={() => onRemove(p.id)} onFit={(f) => onFit(p.id, f)} />
+                <PatternRow key={p.id} pattern={p} values={valuesFor(p)} helped={personFor(p).helped} whoFor={whoFor(p)} startFitting={openFit === p.id} onOpen={() => onOpen(p)} onRename={(n) => onRename(p.id, n)} onRemove={() => onRemove(p.id)} onFit={(f) => onFit(p.id, f)} />
               ))}
             </ul>
           )}
@@ -345,6 +346,7 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
 function PatternRow({
   pattern,
   values,
+  helped,
   whoFor,
   onOpen,
   onRename,
@@ -354,6 +356,8 @@ function PatternRow({
 }: {
   pattern: SavedPattern;
   values: MeasurementValues;
+  /** The measurements a friend held the tape for, sent with fit notes. */
+  helped?: MeasurementId[];
   whoFor?: string;
   startFitting?: boolean;
   onOpen: () => void;
@@ -377,7 +381,7 @@ function PatternRow({
     if (!pattern.fit) countStep('fit_reported', garmentKind(pattern.choices));
     if (!share) return setSendMsg('');
     setSendMsg('Sending…');
-    const sent = await sendFitReport(fitReport(fit, pattern.choices, values));
+    const sent = await sendFitReport(fitReport(fit, pattern.choices, values, helped));
     if (sent) onFit({ ...kept, sentAt: new Date().toISOString() });
     setSendMsg(sent ? 'Sent to Maison Tracé. Thank you.' : "Couldn't send just now. Your notes are saved on this device; try again later.");
   };

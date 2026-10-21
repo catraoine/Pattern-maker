@@ -32,6 +32,9 @@ export interface Person {
   /** Their weight in kg, given if they like. Only ever read against the height to double-check the girths:
    * never drafted from, shown on a pattern, exported or sent anywhere. */
   weight?: number;
+  /** The measurements taken with a friend holding the tape (or by the account holder, for someone else), so a fit
+   * report can say which numbers were taken alone. Never drafted from. */
+  helped?: MeasurementId[];
   /** Corrections from fitting toiles, for each garment. They go into every pattern drafted for this person. */
   fittings?: Partial<Record<Garment, Fitting>>;
   /** The client book: each set of measurements as it stood on a date, oldest first. */

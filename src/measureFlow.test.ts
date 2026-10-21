@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { BASE, extrasFor, forHelper, fullSetMissing, missingFor, stepsOf, tipOf, titleOf } from './measureFlow';
+import { BASE, extrasFor, forHelper, fullSetMissing, missingFor, mistakesOf, stepsOf, tipOf, titleOf } from './measureFlow';
+import { FIELDS } from './measurements';
 
 describe('measuring flow', () => {
+  it('lists the common mistakes for every measurement, worded for a friend holding the tape too', () => {
+    for (const f of Object.values(FIELDS).flat()) expect(mistakesOf(f.id, false).length).toBeGreaterThan(1);
+    expect(mistakesOf('waist', false).join(' ')).toMatch(/your tummy/);
+    expect(mistakesOf('waist', true).join(' ')).toMatch(/their tummy/);
+    expect(mistakesOf('waist', true).join(' ')).not.toMatch(/\byour?\b/i);
+  });
+
   it('takes the same base set for every garment', () => {
     expect(BASE).toEqual(['waist', 'full_bust', 'full_hip', 'waist_to_floor', 'height']);
   });

@@ -11,6 +11,13 @@ describe('sent fit reports', () => {
     expect(checkFitReport(JSON.stringify(good))).toMatchObject({ garment: 'bodice', verdict: 'tweaks', areas: { bust: -1 } });
   });
 
+  it('says which measurements a friend held the tape for, only those in the report', () => {
+    const r = fitReport(emptyFit(), DEFAULT_BODICE, { full_bust: 92, waist: 72 }, ['full_bust', 'nape_to_waist']);
+    expect(r.helped).toEqual(['full_bust']);
+    expect(checkFitReport(JSON.stringify(r))).toMatchObject({ helped: ['full_bust'] });
+    expect(good.helped).toBeUndefined();
+  });
+
   it('refuses anything else', () => {
     expect(checkFitReport('not json')).toBeNull();
     expect(checkFitReport(JSON.stringify({ ...good, name: 'Cat' }))).toBeNull();
