@@ -293,7 +293,8 @@ export default function App() {
   // The garment the photo was drafted as, so only that garment's style screen shows it.
   const [photoFor, setPhotoFor] = useState<Garment>();
   // A measurement taken (changed from the example body's) is no longer the example's.
-  const setValues = (v: MeasurementValues) => setAccount(updatePerson(account, person.id, { values: v, example: person.example?.filter((id) => v[id] === measured[id]) }));
+  const setValues = (v: MeasurementValues, helped?: MeasurementId[]) =>
+    setAccount(updatePerson(account, person.id, { values: v, example: person.example?.filter((id) => v[id] === measured[id]), ...(helped ? { helped } : {}) }));
   const { garment } = saved;
   // Every visit opens on the welcome screen (Cat's pick, 2026-10-16). Saved measurements and
   // patterns are kept, and once measured the welcome's button carries straight on with the garment.
@@ -1065,6 +1066,7 @@ export default function App() {
               values={measured}
               onUnit={(unit) => setSaved({ ...saved, unit })}
               onValues={setValues}
+              helped={person.helped}
               weight={person.weight}
               onWeight={(weight) => setAccount(updatePerson(account, person.id, { weight }))}
               onDone={(g) => {

@@ -587,6 +587,27 @@ export function crossChecks(v: MeasurementValues): CrossCheck[] {
   ratio('full_hip', 'full_bust', 0.8, 1.4,
     'Your hip looks small next to your bust. Measure round the fullest part of the seat, usually about 20 cm below the waist.',
     'Your hip looks large next to your bust. Keep the tape level all the way round, at the fullest part of the seat.');
+  // The base girths against each other, as they come in (measuring accuracy, 2026-10-21): bodies vary a lot here,
+  // so only a gap few bodies have is said, and it names the tape most often taken wrong (a waist pulled in, a bust
+  // tape riding up at the back).
+  ratio('waist', 'full_bust', 0.58, 1.2,
+    'Your waist looks small next to your bust. Breathe out normally and keep the tape snug, not pulled in; one finger should slide under it.',
+    'Your waist looks large next to your bust. Check the bust tape is level across your back, at the fullest part, and the waist tape is at the narrowest part, not the hip.');
+  // A waist larger than the hip is said already, for the skirts that can't draft it.
+  if (v.waist && v.full_hip && v.waist / v.full_hip < 0.5)
+    out.push({ id: 'waist', with: 'full_hip', message: 'Your waist looks small next to your hips. Breathe out normally and keep the waist tape snug, not pulled in.' });
+  ratio('waist_to_hip', 'height', 0.075, 0.19,
+    'Waist to hip looks short next to your height. Run the tape down your side from the waist to the fullest part of your seat, over the curve.',
+    'Waist to hip looks long next to your height. Stop at the fullest part of your seat, usually about 20 cm below the waist; check your height too.');
+  ratio('shoulder_width', 'full_bust', 0.26, 0.56,
+    'Shoulder width looks narrow next to your bust. Measure across the back from one shoulder bone to the other, over the top of the shoulders.',
+    'Shoulder width looks wide next to your bust. Measure between the shoulder bones, where the arm meets the shoulder, not round the outside of the arms.');
+  ratio('across_back', 'full_bust', 0.24, 0.5,
+    'Across back looks narrow next to your bust. Measure from crease to crease where the arms meet the back, with your arms relaxed.',
+    'Across back looks wide next to your bust. Measure between the arm creases, halfway between the shoulder and the underarm, arms relaxed.');
+  ratio('upper_arm', 'full_bust', 0.2, 0.45,
+    'Your upper arm looks small next to your bust. Measure round the fullest part of the arm, relaxed at your side, the tape just touching.',
+    'Your upper arm looks large next to your bust. Measure round the arm itself, not over the shoulder or a sleeve.');
   ratio('arm_length', 'nape_to_waist', 1.15, 1.75,
     'Arm length looks short next to your back length. Measure from the shoulder bone over a slightly bent elbow to the wrist bone.',
     'Arm length looks long next to your back length. It ends at the wrist bone, not the knuckles.');

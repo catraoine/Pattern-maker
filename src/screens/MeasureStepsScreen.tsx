@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { FIELDS, checkMeasurements, type Check, type FormKind, type Garment, type MeasurementId, type MeasurementValues, type Unit } from '../measurements';
-import { BASE, baseDone, fullSetMissing, GARMENT_NAME, GARMENTS, labelOf, missingFor, stepsOf, tipOf, titleOf } from '../measureFlow';
+import { BASE, baseDone, fieldOf, fullSetMissing, GARMENT_NAME, GARMENTS, labelOf, missingFor, mistakesOf, stepsOf, tipOf, titleOf } from '../measureFlow';
 import { createPortal } from 'react-dom';
 import { takeTapeRest, tapeRested } from '../ui/tapeHandoff';
 import { WEIGHT_HARD, WeightEntry, fromKg, weightUnitOf } from '../ui/WeightEntry';
@@ -23,7 +23,10 @@ interface Props {
   unit: Unit;
   values: MeasurementValues;
   onUnit: (u: Unit) => void;
-  onValues: (v: MeasurementValues) => void;
+  /** With the measurements taken with someone holding the tape, once a number is typed. */
+  onValues: (v: MeasurementValues, helped?: MeasurementId[]) => void;
+  /** The measurements already taken with someone holding the tape. */
+  helped?: MeasurementId[];
   /** Their weight in kg, if given, and giving it: asked with the height, and only read against it to double-check the girths. */
   weight?: number;
   onWeight?: (kg: number | undefined) => void;
@@ -93,7 +96,7 @@ const aOrAn = (name: string) => (/(s|wear|lingerie)$/i.test(name) && !/dress$/i.
 // The first page asks who you are designing for, since "Someone else" words every page for the person holding the
 // tape and asks their name first (Cat's pick V2, 2026-10-17). A quiet "Measure later" in capitals sits under the
 // button wherever measuring can be skipped.
-export function MeasureStepsScreen({ testerCode, garment: current, unit, values, onUnit, onValues, weight, onWeight, onDone, start, onSomeoneElse, theirs, onSkip, onLater, form = 'womenswear', onForm, onIdea, onPhoto, onNews }: Props) {
+export function MeasureStepsScreen({ testerCode, garment: current, unit, values, onUnit, onValues, helped = [], weight, onWeight, onDone, start, onSomeoneElse, theirs, onSkip, onLater, form = 'womenswear', onForm, onIdea, onPhoto, onNews }: Props) {
   const aimed = start?.kind === 'for' ? start.garment : undefined;
   // Each page is a history entry, so the header's back and the phone's back go one page back.
   const [page, setPage] = usePageHistory<Page>(() => {
@@ -107,6 +110,9 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
   // Opened on the check because the measurements were taken on an earlier visit: say so.
   const [returning] = useState(() => !start && baseDone(values));
   const [helper, setHelper] = useState(!!theirs);
+  // Measuring yourself with a friend holding the tape (measuring accuracy, 2026-10-21): every page is then worded for
+  // the friend, and the numbers taken this way are noted, so a fit report can tell them from those taken alone.
+  const [friend, setFriend] = useState(false);
   const [name, setName] = useState('');
   const [picked, setPicked] = useState<Pick | null>(start?.kind === 'choose' ? current : null);
   const [chosen, setChosen] = useState<FormKind>(form);
@@ -448,13 +454,18 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
       id={id}
       eyebrow={eyebrow}
       dots={[ids.length, at]}
-      helper={helper}
+      helper={helper || friend}
+      friend={helper ? undefined : friend}
+      onFriend={helper ? undefined : setFriend}
       form={form}
       unit={unit}
       values={values}
       garment={g && g !== 'other' ? g : current}
       onUnit={onUnit}
-      onValues={onValues}
+      onValues={(v, estimated) => {
+        const others = helped.filter((m) => m !== id);
+        onValues(v, (helper || friend) && !estimated && v[id] !== undefined ? [...others, id] : others);
+      }}
       weight={weight}
       onNext={next}
       label={label}
@@ -731,6 +742,8 @@ export function MeasurePage({
   eyebrow,
   dots,
   helper,
+  friend,
+  onFriend,
   form,
   unit,
   values,
@@ -749,13 +762,18 @@ export function MeasurePage({
   id: MeasurementId;
   eyebrow: string;
   dots: [number, number];
+  /** Every page worded for the person holding the tape. */
   helper: boolean;
+  /** Measuring yourself, with a friend holding the tape or not, and the switch between the two. */
+  friend?: boolean;
+  onFriend?: (on: boolean) => void;
   form: FormKind;
   unit: Unit;
   values: MeasurementValues;
   garment: Garment;
   onUnit: (u: Unit) => void;
-  onValues: (v: MeasurementValues) => void;
+  /** `estimated` when the number was filled in for them rather than taken. */
+  onValues: (v: MeasurementValues, estimated?: boolean) => void;
   /** Their weight, if given on its own page, which only ever double-checks the girths. */
   weight?: number;
   onNext: () => void;
@@ -779,7 +797,8 @@ export function MeasurePage({
   const value = values[id];
   // Range checks for this one measurement only; the cross-checks wait for the full measurements screen.
   // Checked as a garment that uses it, so a base measurement the skirt doesn't need (the bust) still is.
-  const checkAs = FIELDS[garment].some((f) => f.id === id) ? garment : GARMENTS.find((g) => FIELDS[g].some((f) => f.id === id)) ?? garment;
+  // The base set is checked as a dress, which asks all five, so the girths are read against each other as they come in.
+  const checkAs = BASE.includes(id) ? 'dress' : FIELDS[garment].some((f) => f.id === id) ? garment : GARMENTS.find((g) => FIELDS[g].some((f) => f.id === id)) ?? garment;
   const problems = checkMeasurements({ [id]: value } as MeasurementValues, unit, checkAs, form).filter((c) => c.id === id && c.level === 'error' && value !== undefined);
   const error = problems[0];
   // A double-check against the rest (the height, the weight, the other lengths): said here, where the number is
@@ -834,10 +853,16 @@ export function MeasurePage({
       labels={ids && ids.length <= 8 && ids.every((i) => labelLevel(i, form) !== undefined) && <FormLabels ids={ids} at={dots[1]} values={values} unit={unit} form={form} />}
     >
       <p className="muted step-tip">{tipOf(id, helper, form)}</p>
+      {onFriend && !friend && fieldOf(id).helper && <p className="muted small friend-nudge">This one is much easier with a friend holding the tape.</p>}
       <p className="how-row">
         <button type="button" className="later go how-link" aria-expanded={how} onClick={() => setHow(true)}>
           How to do it <span aria-hidden="true">›</span>
         </button>
+        {onFriend && (
+          <button type="button" className="later how-link friend-link" aria-pressed={!!friend} onClick={() => onFriend(!friend)}>
+            {friend ? "I'm measuring alone" : 'A friend is helping'}
+          </button>
+        )}
       </p>
       <form
         className="measure-entry"
@@ -933,7 +958,7 @@ export function MeasurePage({
                 setText(null);
                 setTried(false);
                 setEstimated(true);
-                onValues({ ...values, [id]: guess });
+                onValues({ ...values, [id]: guess }, true);
               }}
             >
               Not sure? Estimate it for me
@@ -955,6 +980,12 @@ export function MeasurePage({
                 <li key={s}>{s}</li>
               ))}
             </ol>
+            <p className="eyebrow how-mistakes-title">Common mistakes</p>
+            <ul className="how-mistakes">
+              {mistakesOf(id, helper, form).map((s) => (
+                <li key={s}>{s}</li>
+              ))}
+            </ul>
             <button type="button" className="primary" autoFocus onClick={() => setHow(false)}>
               Got it
             </button>

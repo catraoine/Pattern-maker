@@ -6653,3 +6653,34 @@ button.later.garment-change {
     animation-delay: 1.7s;
   }
 }
+
+/* Measuring accuracy (2026-10-21): the friend switch beside How to do it, the nudge on the measurements that are hard
+   alone, and the common mistakes under the steps. */
+.friend-nudge {
+  margin: 0;
+}
+.how-row button.later.friend-link[aria-pressed='true'] {
+  color: var(--gild);
+}
+.how-panel .how-mistakes-title {
+  margin-top: 4px;
+}
+.how-mistakes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.how-mistakes li {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  line-height: 1.45;
+  color: var(--muted);
+}
+.how-mistakes li::before {
+  content: '×';
+  font-family: var(--mono);
+  color: var(--muted);
+}

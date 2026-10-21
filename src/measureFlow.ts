@@ -92,8 +92,8 @@ const STEPS: Partial<Record<MeasurementId, [string[], string[]]>> = {
     ['Ask them to stand relaxed with their arms down.', 'Wrap the tape round the fullest part of their bust.', 'Check it is level across their back.', 'Snug, not tight, then read the number.'],
   ],
   waist: [
-    ['Bend to one side. The crease that forms is your waist.', 'Wrap the tape round there, level all the way round.', 'Snug, not tight: one finger should slide under it.', 'Breathe out normally, then read the number.'],
-    ['Ask them to bend to one side. The crease that forms is their waist.', 'Wrap the tape round there, level all the way round.', 'Snug, not tight: one finger should slide under it.', 'Ask them to breathe out normally, then read the number.'],
+    ['Bend to one side. The crease that forms is your waist.', 'Tie a ribbon or a length of elastic round it and leave it on: every length starts from it.', 'Wrap the tape round there, level all the way round.', 'Snug, not tight: one finger should slide under it.', 'Breathe out normally, then read the number.'],
+    ['Ask them to bend to one side. The crease that forms is their waist.', 'Tie a ribbon or a length of elastic round it and leave it on: every length starts from it.', 'Wrap the tape round there, level all the way round.', 'Snug, not tight: one finger should slide under it.', 'Ask them to breathe out normally, then read the number.'],
   ],
   full_hip: [
     ['Stand with your feet together.', 'Wrap the tape round the fullest part of your seat.', 'Check in a mirror from the side that it is level.', 'Snug, not tight, then read the number.'],
@@ -120,4 +120,32 @@ export function stepsOf(id: MeasurementId, helper: boolean, form?: FormKind): st
   const lines = tip.match(/[^.;:]+[.;:]?/g)!.map((l) => l.trim().replace(/[;:]$/, '.')).filter(Boolean);
   const last = GIRTHS.has(id) ? 'Snug, not tight: one finger should slide under it.' : 'Keep the tape straight, then read the number.';
   return [...lines.map((l) => l[0].toUpperCase() + l.slice(1)), last];
+}
+
+/** What most often goes wrong with each measurement at home, for the "How to do it" sheet (measuring accuracy,
+ *  2026-10-21). Written to the wearer; a helper reads them through forHelper. */
+const MISTAKES: Partial<Record<MeasurementId, string[]>> = {
+  height: ['Shoes or thick socks on.', 'Slouching, or the chin tipped up.', 'The book tilted, not level against the wall.'],
+  waist: ['Measuring over jeans or a belt.', 'Holding your breath or pulling your tummy in.', 'The tape slipping down at the back.'],
+  full_bust: ['The tape riding up at the back. Check it in a mirror.', 'A different bra from the one you will wear with it.', 'Arms raised while the number is read.'],
+  full_hip: ['Measuring at the hip bones, not the fullest part of the seat.', 'Feet apart, which widens the hips.', 'Something in a back pocket.'],
+  waist_to_floor: ['Shoes on.', 'Starting at the hip, or at a waistband that sits low.', 'Looking down, which tips the body forward.'],
+  waist_to_hip: ['Measuring straight down in the air, not over the curve of the hip.', 'Starting below the waist.'],
+  waist_to_knee: ['Bending the knee.', 'Stopping at the top or bottom of the knee, not the middle.'],
+  nape_to_waist: ['Starting at the top of the collar, not the neck bone.', 'Stooping while you measure.'],
+  front_hps_to_waist: ['Going round the side of the bust, not over the bust point.', 'A different bra from the one you will wear with it.'],
+  shoulder_width: ['Measuring round the outside of the arms.', 'Hunching the shoulders forward.'],
+  across_back: ['Arms pulled forward, which widens the back.', 'Measuring at the armpits, not halfway up.'],
+  across_front: ['Arms pulled back.', 'Measuring at the bust, not halfway up.'],
+  arm_length: ['A straight arm: bend the elbow a little.', 'Ending at the knuckles, not the wrist bone.'],
+  crotch_length: ['Letting the tape sag between the legs.', 'Stopping below the waist at the back. A friend holding the back end helps most here.'],
+  crotch_depth: ['Sitting on a soft chair or sofa.', 'Measuring at an angle, not straight down.'],
+};
+const GIRTH_MISTAKES = ['Measuring over clothes.', 'Pulling the tape tight.', 'The tape twisted or not level all the way round.'];
+const LENGTH_MISTAKES = ['Starting or stopping in the wrong place.', 'The tape sagging or twisted.'];
+
+/** The common mistakes for one measurement, for whoever holds the tape. */
+export function mistakesOf(id: MeasurementId, helper: boolean, form?: FormKind): string[] {
+  const list = MISTAKES[id] ?? (GIRTHS.has(id) ? GIRTH_MISTAKES : LENGTH_MISTAKES);
+  return list.map((l) => worded(helper ? forHelper(l) : l, form));
 }
