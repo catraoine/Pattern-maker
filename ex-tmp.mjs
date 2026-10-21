@@ -1,0 +1,18 @@
+import { chromium } from '@playwright/test';
+const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+const p = await (await b.newContext({ viewport: { width: 432, height: 768 }, isMobile: true, hasTouch: true })).newPage();
+await p.goto('http://127.0.0.1:5173/?fresh'); await p.waitForTimeout(1500);
+const m = p.getByRole('main');
+await m.getByRole('button', { name: 'Begin' }).click();
+await m.getByRole('button', { name: 'Skip and try an example' }).click();
+await m.getByRole('heading', { level: 1, name: 'Style your skirt' }).waitFor();
+const dump = async (t) => { console.log('=== '+t); console.log((await m.evaluate(el => [...el.querySelectorAll('h1,h2,h3,button,[role=tab],summary,a')].map(e=>e.tagName+': '+(e.getAttribute('aria-label')||e.textContent).trim().slice(0,60)).join('\n')))); };
+await m.getByRole('button', { name: 'Review', exact: true }).click(); await p.waitForTimeout(800);
+await m.getByRole('button', { name: /Print my pattern/ }).first().click(); await p.waitForTimeout(1500);
+await m.getByRole('button', { name: 'Show all tools' }).click(); await p.waitForTimeout(800); await dump('print all');
+const boxes = async (t) => { await dump(t); console.log(await m.evaluate(el=>[...el.querySelectorAll('section,.preview,svg[aria-label],input,label,[role=group],[role=radiogroup]')].map(e=>e.tagName+'.'+(e.getAttribute('class')||'')+' '+(e.getAttribute('aria-label')||'')).join('\n'))); };
+await m.getByRole('button', { name: 'See a piece at true size' }).click(); await p.waitForTimeout(1000); await boxes('truescale');
+await p.goBack().catch(()=>{}); await p.waitForTimeout(800);
+const back = m.getByRole('button', { name: /^Back|←/ }).first();
+await dump('after back');
+await b.close();

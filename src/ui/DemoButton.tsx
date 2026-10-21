@@ -41,6 +41,62 @@ export const DEMOS = {
     ],
     length: '0:35',
   },
+  photo: {
+    title: 'How starting from a photo works',
+    base: '/demos/photo',
+    parts: [
+      { name: 'Start', from: 0 },
+      { name: 'Photo', from: 7.9 },
+      { name: 'Check', from: 13.5 },
+      { name: 'Draft', from: 17.6 },
+    ],
+    length: '0:26',
+  },
+  fabric: {
+    title: 'How fabric and the lay plan work',
+    base: '/demos/fabric',
+    parts: [
+      { name: 'Fabric', from: 0 },
+      { name: 'Print', from: 13.3 },
+      { name: 'Lay plan', from: 21.6 },
+      { name: 'Width', from: 28.1 },
+    ],
+    length: '0:37',
+  },
+  print: {
+    title: 'How printing works',
+    base: '/demos/print',
+    parts: [
+      { name: 'Paper', from: 0 },
+      { name: 'Pages', from: 12.7 },
+      { name: 'Tape', from: 15.3 },
+      { name: 'Download', from: 19.0 },
+    ],
+    length: '0:25',
+  },
+  scale: {
+    title: 'How the true size check works',
+    base: '/demos/scale',
+    parts: [
+      { name: 'Open it', from: 0 },
+      { name: 'Card', from: 11.7 },
+      { name: 'Measure', from: 20.7 },
+      { name: 'Seam', from: 26.5 },
+    ],
+    length: '0:36',
+  },
+  fitting: {
+    title: 'How fitting after your toile works',
+    base: '/demos/fitting',
+    parts: [
+      { name: 'Open it', from: 0 },
+      { name: 'Tick', from: 11.7 },
+      { name: 'Amount', from: 14.1 },
+      { name: 'Correction', from: 17.5 },
+      { name: 'Save', from: 20.8 },
+    ],
+    length: '0:27',
+  },
 } satisfies Record<string, Demo>;
 
 export type DemoName = keyof typeof DEMOS;

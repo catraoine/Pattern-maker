@@ -22,7 +22,7 @@ html,body{margin:0;background:#000;overflow:hidden}
 #card h2{font-weight:400;font-size:28px;margin:0 32px}#card .r{width:120px;height:1px;background:#efe4cc;opacity:.6}
 </style></head><body><iframe id="app" src="${APP}/?fresh"></iframe><div id="cap"><small></small><span></span></div><div id="tap"></div><div id="pen"></div><div id="card" style="display:none"></div></body></html>`;
 
-async function record(name, script) {
+async function record(name, script, before) {
   const work = `${OUT}/work-${name}`;
   rmSync(work, { recursive: true, force: true });
   mkdirSync(`${work}/frames`, { recursive: true });
@@ -32,13 +32,14 @@ async function record(name, script) {
   const wait = (ms) => p.waitForTimeout(ms);
   const frames = [];
   const marks = [];
+  if (before) await before(ctx);
   await p.setContent(PAGE);
   const f = p.frameLocator('#app');
   const main = f.getByRole('main');
   // The example skirt, before recording starts.
   await wait(1200);
   await main.getByRole('button', { name: 'Begin' }).click();
-  await main.getByRole('button', { name: 'Skip measuring and try an example' }).click();
+  await main.getByRole('button', { name: 'Skip and try an example' }).click();
   await main.getByRole('heading', { level: 1, name: 'Style your skirt' }).waitFor();
   await wait(1500);
   const cdp = await ctx.newCDPSession(p);
@@ -81,12 +82,17 @@ async function record(name, script) {
     }, [ch, t]);
     await wait(400);
   };
-  const tap = async (loc, pause = 900) => {
+  /** The tap ring over a control, without pressing it (for downloads and new tabs). */
+  const point = async (loc, pause = 900) => {
     await loc.evaluate((el) => el.scrollIntoView({ block: 'center', inline: 'center' }));
     await p.evaluate(() => window.scrollTo(0, 0));
     await wait(250);
     const bx = await loc.boundingBox();
-    await p.evaluate(([x, y]) => {
+    await ring(bx.x + bx.width / 2, bx.y + bx.height / 2);
+    await wait(pause);
+  };
+  const ring = (x, y) =>
+    p.evaluate(([x, y]) => {
       const t = document.getElementById('tap');
       t.style.transition = 'none';
       t.style.left = x + 'px';
@@ -98,7 +104,29 @@ async function record(name, script) {
         t.style.transform = 'scale(1)';
         t.style.opacity = 0;
       });
-    }, [bx.x + bx.width / 2, bx.y + bx.height / 2]);
+    }, [x, y]);
+  /** Taps a point given as fractions of a box, as a finger would (pointer down and up there). */
+  const tapAt = async (loc, [fx, fy], pause = 900) => {
+    const bx = await loc.boundingBox();
+    const x = bx.x + fx * bx.width;
+    const y = bx.y + fy * bx.height;
+    await ring(x, y);
+    await wait(300);
+    await p.mouse.click(x, y);
+    await wait(pause);
+  };
+  /** Scrolls the app so an element sits in the middle of the screen. */
+  const show = async (loc, pause = 1200) => {
+    await loc.evaluate((el) => el.scrollIntoView({ block: 'center', behavior: 'smooth' }));
+    await p.evaluate(() => window.scrollTo(0, 0));
+    await wait(pause);
+  };
+  const tap = async (loc, pause = 900) => {
+    await loc.evaluate((el) => el.scrollIntoView({ block: 'center', inline: 'center' }));
+    await p.evaluate(() => window.scrollTo(0, 0));
+    await wait(250);
+    const bx = await loc.boundingBox();
+    await ring(bx.x + bx.width / 2, bx.y + bx.height / 2);
     await wait(350);
     await loc.click({ timeout: 2000 }).catch(() => loc.dispatchEvent('click'));
     await wait(pause);
@@ -132,7 +160,7 @@ async function record(name, script) {
     await wait(pause);
   };
 
-  await script({ main, wait, card, cap, tap, draw });
+  await script({ main, wait, card, cap, tap, draw, point, tapAt, show, ctx, f });
   await cdp.send('Page.stopScreencast');
   frames.sort((a, c) => a.t - c.t);
   const endT = Date.now() / 1000;
@@ -208,5 +236,141 @@ const DEMOS = {
   },
 };
 
+
+// The photo clip reads a photo from the eval set (a dressed mannequin, no face) with its real reading, stubbed so
+// nothing is sent anywhere.
+const PHOTO = 'evals/photo/photos/09-maxi.jpg';
+const READING = {
+  garment: 'skirt',
+  worn: true,
+  pieces: [{ garment: 'skirt', x: 0.5, y: 0.65 }],
+  silhouette: { value: 'a_line', confidence: 'medium' },
+  length: { value: 'maxi', confidence: 'high' },
+  fit: { value: 'regular', confidence: 'medium' },
+  shape: { hemAt: 0.95, hemFullness: 1.8, flareAt: null, confidence: 'medium' },
+  extras: { volume: 'none', asymHem: 'none', pockets: false, elasticWaist: false },
+  details: 'This 1970s-style floral maxi looks like a gored A-line with soft folds at the hem.',
+};
+const BEFORE = {
+  photo: (ctx) =>
+    ctx.route('**/.netlify/functions/analyze-photo', async (route) => {
+      await new Promise((r) => setTimeout(r, 2600));
+      await route.fulfill({ json: { ok: true, reading: READING } });
+    }),
+};
+
+/** From the style screen to Print, with every tool showing. */
+async function toPrint({ main, tap }, allTools) {
+  await tap(main.getByRole('button', { name: 'Review', exact: true }), 1200);
+  await tap(main.getByRole('button', { name: 'Print my pattern' }).first(), 1600);
+  if (allTools) await tap(main.getByRole('button', { name: 'Show all tools' }), 1000);
+}
+
+Object.assign(DEMOS, {
+  photo: async ({ main, wait, card, cap, tap, show }) => {
+    await card('Maison Tracé', 'From a photo', 2400);
+    await cap('Start', 'Seen something you love? Start from a photo, on Looks.');
+    await wait(600);
+    await tap(main.getByRole('tab', { name: 'Looks', exact: true }), 700);
+    await tap(main.getByRole('button', { name: 'Start from a photo' }), 1400);
+    await cap('Photo', 'Take one, or choose one. Worn or laid flat.');
+    await tap(main.locator('label').filter({ hasText: 'Take or choose a photo' }), 200).catch(() => {});
+    await main.locator('input[type=file]').setInputFiles(PHOTO);
+    await cap('Photo', 'We read the shape, the length and the fit.');
+    await main.getByRole('heading', { name: /A-line/ }).waitFor({ timeout: 15000 });
+    await wait(1600);
+    await cap('Check', 'Anything wrong? Change it. Here, a midi instead.');
+    await tap(main.locator('.photorow').filter({ hasText: 'Length' }).getByRole('button', { name: 'Change' }), 900);
+    await tap(main.locator('.photorow').filter({ hasText: 'Length' }).getByRole('button', { name: 'Midi', exact: true }), 1400);
+    await cap('Draft', 'Then draft it, to your measurements.');
+    await tap(main.getByRole('button', { name: /^Draft my|^Next/ }).first(), 1400);
+    const next = main.getByRole('button', { name: /^Draft my/ });
+    if (await next.isVisible().catch(() => false)) await tap(next, 1400);
+    await main.getByRole('heading', { name: /Style your/ }).waitFor({ timeout: 10000 });
+    await cap('Draft', 'Your pattern, matched to the photo. Style it from here.');
+    await wait(2600);
+    await cap('', '');
+    await card('Maison Tracé', 'Snap it. Make it yours.', 2200, true);
+  },
+  fabric: async (h) => {
+    const { main, wait, card, cap, tap, show } = h;
+    await card('Maison Tracé', 'Fabric and the lay plan', 2400);
+    await cap('Fabric', 'On Style, the Fabric tab: pick what you will sew it in.');
+    await tap(main.getByRole('tab', { name: 'Fabric', exact: true }), 900);
+    await tap(main.getByRole('radio', { name: 'Linen', exact: true }), 1200);
+    await tap(main.getByRole('group', { name: 'Colour' }).or(main.getByRole('radiogroup', { name: 'Colour' })).getByRole('radio').nth(2), 1400);
+    await cap('Print', 'Tell us the print, so pieces line up on checks or motifs.');
+    await tap(main.locator('summary').filter({ hasText: 'About your fabric' }), 900);
+    await tap(main.getByText('Checks, stripes', { exact: true }), 1600);
+    await cap('Lay plan', 'On Print, the lay plan shows every piece on your cloth.');
+    await toPrint(h, false);
+    await show(main.locator('.lay').first(), 1800);
+    await cap('Width', 'Change the fabric width, and the metres to buy change too.');
+    await tap(main.getByRole('button', { name: '115 cm', exact: true }), 1800);
+    await tap(main.getByRole('button', { name: '150 cm', exact: true }), 1800);
+    await cap('', '');
+    await card('Maison Tracé', 'Buy just what you need.', 2200, true);
+  },
+  print: async (h) => {
+    const { main, wait, card, cap, tap, point, show } = h;
+    await card('Maison Tracé', 'Printing your pattern', 2400);
+    await cap('Paper', 'Review, then Print my pattern. Pick your paper size.');
+    await toPrint(h, false);
+    await tap(main.getByRole('button', { name: 'US Letter', exact: true }), 1400);
+    await tap(main.getByRole('button', { name: 'A4', exact: true }), 1400);
+    await cap('Pages', 'Each page is numbered on the drawing, so you know where it goes.');
+    await show(main.locator('.preview.tiles'), 2200);
+    await cap('Tape', 'Trim, match the half diamonds, and tape the pages together.');
+    await tap(main.locator('summary').filter({ hasText: 'How the pages fit together' }), 2600);
+    await cap('Download', 'Download the PDF and print it at 100%, not fit to page.');
+    await point(main.getByRole('button', { name: /^Download PDF/ }), 2200);
+    await cap('', '');
+    await card('Maison Tracé', 'Print it. Tape it. Cut it.', 2200, true);
+  },
+  scale: async (h) => {
+    const { main, wait, card, cap, tap, tapAt, show } = h;
+    await card('Maison Tracé', 'Checking the true size', 2400);
+    await cap('Open it', 'On Print, under Fit it in a toile first: See a piece at true size.');
+    await toPrint(h, true);
+    await tap(main.getByRole('button', { name: 'See a piece at true size' }), 1400);
+    await cap('Card', 'Hold a bank card on the screen and match the shape to it.');
+    for (let i = 0; i < 6; i++) await tap(main.getByRole('button', { name: 'Larger' }), 250);
+    await wait(800);
+    await tap(main.getByRole('button', { name: 'It matches the card' }), 1600);
+    await cap('Measure', 'Now the piece is at its real size. Tap two points to measure.');
+    const pan = main.locator('.truescale-pan');
+    await show(pan, 900);
+    await tapAt(pan, [0.2, 0.25], 700);
+    await tapAt(pan, [0.75, 0.7], 900);
+    await show(main.locator('.truescale .reading'), 2200);
+    await cap('Seam', 'Walk a seam: tap an edge to see its length.');
+    await tap(main.getByRole('button', { name: 'Walk a seam', exact: true }), 900);
+    await show(pan, 600);
+    await tapAt(pan, [0.02, 0.5], 900);
+    await show(main.locator('.truescale .reading'), 2400);
+    await cap('', '');
+    await card('Maison Tracé', 'Check it before you cut.', 2200, true);
+  },
+  fitting: async (h) => {
+    const { main, wait, card, cap, tap, show } = h;
+    await card('Maison Tracé', 'After your toile', 2400);
+    await cap('Open it', 'Sewn a toile and tried it on? On Print: I’ve tried on a toile.');
+    await toPrint(h, true);
+    await tap(main.getByRole('button', { name: 'I’ve tried on a toile' }), 1400);
+    await cap('Tick', 'Tick what you see, like pulling across the hips.');
+    await tap(main.getByText('Pulls across the hips'), 1200);
+    await cap('Amount', 'Set how much. The pattern is corrected the way a cutter would.');
+    const more = main.getByRole('group', { name: 'How much: Pulls across the hips' }).getByRole('button', { name: 'More' });
+    await tap(more, 500);
+    await tap(more, 1200);
+    await cap('Correction', 'Dashed line: the pattern now. Solid: corrected, in millimetres.');
+    await show(main.locator('.fitside'), 2800);
+    await cap('Save', 'Save it as version 2, and print the corrected pattern.');
+    await tap(main.getByRole('button', { name: /^Save as version/ }), 2400);
+    await cap('', '');
+    await card('Maison Tracé', 'Fitted to you.', 2200, true);
+  },
+});
+
 mkdirSync(OUT, { recursive: true });
-for (const [name, script] of Object.entries(DEMOS)) if (!ONLY || ONLY === name) await record(name, script);
+for (const [name, script] of Object.entries(DEMOS)) if (!ONLY || ONLY === name) await record(name, script, BEFORE[name]);
