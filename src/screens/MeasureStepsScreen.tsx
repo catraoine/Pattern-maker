@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { FIELDS, checkMeasurements, type Check, type FormKind, type Garment, type MeasurementId, type MeasurementValues, type Unit } from '../measurements';
 import { BASE, baseDone, fullSetMissing, GARMENT_NAME, GARMENTS, labelOf, missingFor, stepsOf, tipOf, titleOf } from '../measureFlow';
+import { takeTapeRest } from '../ui/tapeHandoff';
 import { WEIGHT_HARD, WeightEntry, fromKg, weightUnitOf } from '../ui/WeightEntry';
 import { FormPicture, TapeDemo } from '../ui/ContourForm';
 import { canGoBack, goBack, usePageHistory } from '../nav';
@@ -505,8 +506,9 @@ function LandedTape() {
         const at = tape.getBoundingClientRect();
         const top = card.getBoundingClientRect();
         const phone = window.matchMedia('(max-width: 640px)').matches;
-        const dx = (phone ? 14 : top.left - 22) - at.left;
-        const dy = top.top - 17 - at.top;
+        const from = takeTapeRest() ?? { left: phone ? 14 : top.left - 22, top: top.top - 17 };
+        const dx = from.left - at.left;
+        const dy = from.top - at.top;
         tape.classList.remove('waiting');
         if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches)
           tape.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }], { duration: 900, easing: 'cubic-bezier(0.3, 0.1, 0.2, 1)' });

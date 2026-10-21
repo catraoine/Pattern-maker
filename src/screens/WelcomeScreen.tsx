@@ -3,6 +3,7 @@ import { ContourForm, type FormStart } from '../ui/ContourForm';
 import type { FormKind } from '../measurements';
 import { TOUR_LABEL, TourPlayer } from '../ui/TourPlayer';
 import { Title } from '../ui/Title';
+import { tapeRested } from '../ui/tapeHandoff';
 
 interface Props {
   onFinish: () => void;
@@ -43,9 +44,13 @@ export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume }: Pr
     return () => ro.disconnect();
   }, []);
 
+  const tape = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!leaving) return;
-    const t = window.setTimeout(() => done.current(), LEAVE_MS);
+    const t = window.setTimeout(() => {
+      if (tape.current) tapeRested(tape.current);
+      done.current();
+    }, LEAVE_MS);
     return () => window.clearTimeout(t);
   }, [leaving]);
 
@@ -67,7 +72,7 @@ export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume }: Pr
           </button>
           {!resume && <span className="tape-tip" aria-hidden="true" />}
           {leaving && (
-            <div className="tape-band unrolling" aria-hidden="true">
+            <div ref={tape} className="tape-band unrolling" aria-hidden="true">
               <div className="tape-marks">
                 {MARKS.map((n) => (
                   <span key={n}>{n}</span>

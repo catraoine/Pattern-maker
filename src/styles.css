@@ -6013,6 +6013,18 @@ input.inline:focus,
   z-index: 2;
 }
 
+/* It runs off the right-hand edge of the window, long enough to stay off it as it comes down; the page clips the
+   rest. */
+.welcome-card:has(.form-taped) {
+  overflow-x: visible;
+}
+.form-taped > .tape-band.landed {
+  right: calc((100% - 100vw) / 2 - 100vw);
+}
+body:has(.form-taped) {
+  overflow-x: clip;
+}
+
 .form-taped > .tape-band.landed.waiting {
   visibility: hidden;
 }
@@ -6020,21 +6032,14 @@ input.inline:focus,
 /* On a phone the tape runs the width of the screen, off the right-hand edge it came from, with its hook just in
    from the left; the card lets it out past its own edges. */
 @media (max-width: 640px) {
-  .welcome.leaving .welcome-card,
-  .welcome-card:has(.form-taped) {
+  .welcome.leaving .welcome-card {
     overflow-x: visible;
   }
   .tape-band.unrolling {
     left: calc(50% - 50vw + 14px);
     right: calc(50% - 50vw);
   }
-  /* Long enough to stay off the right-hand edge as it comes down from the top; the page clips the rest. */
-  .form-taped > .tape-band.landed {
-    right: calc((100% - 100vw) / 2 - 100vw);
-  }
-  body:has(.form-taped) {
-    overflow-x: clip;
-  }
+
 }
 
 /* On a very short screen the form, and the tape round it, stay off so Begin measuring stays in view. */
@@ -6466,4 +6471,43 @@ button.later.garment-change {
 }
 .example-ask button.later {
   justify-self: center;
+}
+
+/* The welcome on a computer (Cat's WA Half and Half, 2026-10-21): the close-crop form fills the left half of the
+   window, top to bottom, and the title, Begin and the fine print sit together on the right. */
+@media (min-width: 960px) {
+  .welcome-card:not(.measure-step) {
+    max-width: none;
+    display: grid;
+    grid-template-columns: minmax(0, 55fr) minmax(0, 45fr);
+    grid-template-rows: 1fr auto auto auto 1fr;
+    column-gap: clamp(40px, 6vw, 96px);
+    row-gap: 20px;
+  }
+  .welcome-card:not(.measure-step) > .welcome-hero {
+    grid-column: 1;
+    grid-row: 1 / -1;
+    margin: 0;
+    min-height: 0;
+    max-height: none;
+  }
+  .welcome-card:not(.measure-step) > h1 {
+    grid-column: 2;
+    grid-row: 2;
+    margin: 0;
+  }
+  .welcome-card:not(.measure-step) h1 .t-big {
+    font-size: clamp(48px, 5vw, 80px);
+  }
+  .welcome-card:not(.measure-step) > .stack {
+    grid-column: 2;
+    grid-row: 3;
+    max-width: 420px;
+  }
+  .welcome-card:not(.measure-step) > .fineprint {
+    grid-column: 2;
+    grid-row: 4;
+    align-self: start;
+    text-align: left;
+  }
 }
