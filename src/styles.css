@@ -5943,7 +5943,7 @@ input.inline:focus,
   left: 0;
   right: 0;
   margin: 0;
-  top: calc(100% - 40px);
+  top: calc(100% - 32px);
   z-index: 3;
   animation: tape-pull 1.5s cubic-bezier(0.35, 0.1, 0.25, 1) both, tape-rise 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) 1.75s both;
 }
@@ -5963,12 +5963,29 @@ input.inline:focus,
 .tape-band.landed::before {
   content: '';
   position: absolute;
-  left: -5px;
-  top: -5px;
-  bottom: -5px;
-  width: 6px;
+  left: -3px;
+  top: -4px;
+  bottom: -4px;
+  width: 4px;
   border-radius: 1px;
   background: #b8a274;
+}
+
+/* As thin as the tip it is pulled from (Cat, 2026-10-21), and as long as the screen is wide */
+.tape-band.unrolling,
+.tape-band.landed {
+  height: 18px;
+  background-image: repeating-linear-gradient(90deg, var(--tape-ink) 0 1px, transparent 1px 19.5px),
+    repeating-linear-gradient(90deg, rgba(43, 36, 24, 0.6) 0 1px, transparent 1px 3.9px);
+  background-size: 100% 8px, 100% 4px;
+  /* A long mark under each number, a short one between */
+  background-position: 19.5px 0, 19.5px 0;
+}
+
+.tape-band.unrolling .tape-marks span,
+.tape-band.landed .tape-marks span {
+  padding-top: 8px;
+  font-size: 8px;
 }
 
 /* It slides out of the tip rather than being uncovered, so the hook travels with it */
@@ -5983,7 +6000,7 @@ input.inline:focus,
 
 @keyframes tape-rise {
   from {
-    top: calc(100% - 40px);
+    top: calc(100% - 32px);
   }
   to {
     top: 0;
