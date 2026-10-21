@@ -97,7 +97,7 @@ import { CollectionScreen } from './screens/CollectionScreen';
 import { lookPatch } from './collection';
 import { archiveCut } from './archive';
 import { CollectionLink } from './ui/GarmentSwitch';
-import { LoadingScreen, BODICE } from './ui/LoadingScreen';
+import { LoadingScreen } from './ui/LoadingScreen';
 import type { FormStart } from './ui/ContourForm';
 import type { Piece } from './engine/piece';
 import type { PocketStyle } from './engine/pockets';
@@ -107,7 +107,6 @@ import { PointEditContext } from './ui/PointEditor';
 import { Flounce, GodetCount, Pleats, layoutExtras } from './engine/skirtVolume';
 
 // The logo (Cat's pick F1 Loading Block): the loading screen's bodice block, drawn inside the header's square.
-const BRAND_BLOCK = 'M' + BODICE.map(([x, y]) => `${(9 + x * 14).toFixed(2)} ${(8 + y * 16).toFixed(2)}`).join(' L') + ' Z';
 import { Mode, finishFor, keepFinish, modeOf } from './mode';
 
 export type Step = 'measure' | 'style' | 'export';
@@ -889,10 +888,6 @@ export default function App() {
         <header className={step === 'welcome' || step === 'link' ? 'topbar' : 'topbar steady'}>
           {step === 'welcome' || step === 'link' ? (
             <div className="brand">
-              <svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true">
-                <rect x="2.5" y="2.5" width="27" height="27" fill="none" style={{ stroke: 'var(--gild)' }} strokeWidth="1" />
-                <path d={BRAND_BLOCK} style={{ stroke: 'var(--gild)' }} strokeWidth="1" fill="none" strokeLinejoin="round" />
-              </svg>
               <span>Maison Tracé</span>
             </div>
           ) : (

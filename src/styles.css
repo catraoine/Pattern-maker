@@ -143,10 +143,12 @@ p {
   border-bottom: var(--bw) solid var(--line);
 }
 
+/* The name alone is the logo (Cat's R1, 2026-10-21); it keeps the height the old square mark gave the bar. */
 .brand {
   color: var(--gild);
   display: flex;
   align-items: center;
+  min-height: 28px;
   gap: 10px;
   font-family: var(--mono);
   font-weight: var(--w-strong);
