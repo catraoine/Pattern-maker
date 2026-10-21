@@ -1,15 +1,16 @@
 // The Privacy Policy and Terms of Use shown in the app. Drafts for a lawyer to review; the source documents are
 // Cat's "Maison Tracé Privacy Policy (draft)" and "Maison Tracé Terms of Use (draft)". Keep the two in step.
 
-/** The details only the owner can fill in. Until they are, the pages show these bracketed blanks. */
+/** The owner's details, shown in the privacy policy and terms. Keep in step with the Claude Docs drafts. */
 export const OWNER = {
-  name: '[Legal name]',
-  address: '[address]',
-  email: '[Contact email]',
-  law: '[Country/state]',
-  effective: '[Effective date]',
-  minimumAge: '[13 or 16, depending on your region]',
-  liabilityCap: '[amount]',
+  name: 'Catraoine Mary Buckley',
+  address: '505-428 West 8th Avenue, Vancouver, British Columbia V5Y 1N9, Canada',
+  email: 'hello@maisontrace.co',
+  law: 'British Columbia and the federal laws of Canada that apply there',
+  effective: '21 October 2026',
+  minimumAge: '16',
+  liabilityCap: 'CA$50',
+  courts: 'British Columbia, sitting in Vancouver',
 };
 
 /** A paragraph (a bold lead-in before any `|`), a bullet list, or a table whose first row is the header. */
@@ -188,7 +189,7 @@ export const TERMS: LegalDoc = {
         `Limit of our responsibility.|As far as the law allows, we aren’t responsible for indirect losses, or for the cost of fabric, notions, sewing time or production runs, including work done by a dressmaker or factory. If we are found responsible, our total liability is limited to what you paid us in the 12 months before the claim, or ${OWNER.liabilityCap} if you paid nothing. Nothing in these terms limits rights you have by law as a consumer that can’t be excluded.`,
         'Stopping use.|You can stop using Maison Tracé at any time and delete your data by clearing it from your device. We may suspend access to features such as photo reading if these terms are broken.',
         'Changes to these terms.|We may update these terms. We’ll change the date below and tell you in the app about important changes. Continuing to use the app after that means you accept the new terms.',
-        `Governing law.|These terms are governed by the laws of ${OWNER.law}, and disputes go to the courts of ${OWNER.law}, unless the law where you live gives you the right to bring a claim there.`,
+        `Governing law.|These terms are governed by the laws of ${OWNER.law}, and disputes go to the courts of ${OWNER.courts}, unless the law where you live gives you the right to bring a claim there.`,
         `Contact.|${contact}`,
       ],
     },
