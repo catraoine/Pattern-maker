@@ -20,8 +20,8 @@ export function FabricGuide({ label = 'Fabric guide' }: { label?: string }) {
   const dialog = useRef<HTMLDialogElement>(null);
   return (
     <>
-      <button type="button" className="link" onClick={() => dialog.current?.showModal()}>
-        {label}
+      <button type="button" className="later go" onClick={() => dialog.current?.showModal()}>
+        {label} <span aria-hidden="true">›</span>
       </button>
       <dialog ref={dialog} className="guide" aria-labelledby="fgtitle" onClick={(e) => e.target === dialog.current && dialog.current?.close()}>
         <div className="guide-body">

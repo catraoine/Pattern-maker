@@ -95,12 +95,12 @@ export async function openFresh(page: Page) {
 /** Begin, then the quiet Skip link under the first measuring page's buttons. */
 export async function skipToExample(page: Page) {
   await main(page).getByRole('button', { name: 'Begin' }).click();
-  await main(page).getByRole('button', { name: 'Skip and try an example' }).click();
+  await main(page).getByRole('button', { name: 'Measure later' }).click();
 }
 
 /** "Me" on the first measuring page, with the form to draft on beside it (Cat's F1 Form Joins In): womenswear unless given. */
 export async function measureMe(page: Page, form: 'Womenswear' | 'Menswear' = 'Womenswear') {
-  await main(page).getByRole('button', { name: 'Me', exact: true }).click();
+  await main(page).getByRole('radio', { name: 'For me' }).click();
   const pick = main(page).getByRole('radiogroup', { name: 'Which form to draft on?' }).getByRole('radio', { name: new RegExp(`^${form}`) });
   await pick.click();
   await expect(pick).toHaveAttribute('aria-checked', 'true');
@@ -269,7 +269,12 @@ export const stepButton = (page: Page, name: 'Measure' | 'Style' | 'Print') =>
 
 /** Download, save it with the test's output, and return its path and bytes. */
 export async function download(page: Page, button: Locator, info: TestInfo): Promise<{ download: Download; path: string; bytes: Buffer }> {
-  const [d] = await Promise.all([page.waitForEvent('download'), button.click()]);
+  const waiting = page.waitForEvent('download');
+  await button.click();
+  // On the example body the first print asks first; these tests print it anyway.
+  const anyway = page.getByRole('main').getByRole('button', { name: 'Print the example anyway' });
+  await anyway.waitFor({ timeout: 1000 }).then(() => anyway.click(), () => undefined);
+  const d = await waiting;
   const path = info.outputPath(d.suggestedFilename());
   await d.saveAs(path);
   return { download: d, path, bytes: await readFile(path) };

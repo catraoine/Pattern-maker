@@ -1,6 +1,7 @@
-import { useState, type ReactNode } from 'react';
+import { useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { FIELDS, checkMeasurements, type Check, type FormKind, type Garment, type MeasurementId, type MeasurementValues, type Unit } from '../measurements';
 import { BASE, baseDone, fullSetMissing, GARMENT_NAME, GARMENTS, labelOf, missingFor, stepsOf, tipOf, titleOf } from '../measureFlow';
+import { takeTapeRest } from '../ui/tapeHandoff';
 import { WEIGHT_HARD, WeightEntry, fromKg, weightUnitOf } from '../ui/WeightEntry';
 import { FormPicture, TapeDemo } from '../ui/ContourForm';
 import { canGoBack, goBack, usePageHistory } from '../nav';
@@ -89,7 +90,7 @@ const aOrAn = (name: string) => (/(s|wear|lingerie)$/i.test(name) && !/dress$/i.
 // answers "We can make that", "The closest we can do" or "Not yet" (Cat's pick, 2026-10-18); only "Not yet"
 // offers the full set of measurements, for a dressmaker.
 // The first page asks who you are designing for, since "Someone else" words every page for the person holding the
-// tape and asks their name first (Cat's pick V2, 2026-10-17). A quiet "Skip and try an example" link sits under the
+// tape and asks their name first (Cat's pick V2, 2026-10-17). A quiet "Measure later" in capitals sits under the
 // button wherever measuring can be skipped.
 export function MeasureStepsScreen({ testerCode, garment: current, unit, values, onUnit, onValues, weight, onWeight, onDone, start, onSomeoneElse, theirs, onSkip, onLater, form = 'womenswear', onForm, onIdea, onPhoto, onNews }: Props) {
   const aimed = start?.kind === 'for' ? start.garment : undefined;
@@ -150,19 +151,32 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
       setPage({ kind: 'base', at: firstToTake() });
     };
     return (
-      <Shell title="First, let's take some measurements." skip={onSkip && (() => onSkip())} tape>
-        <div className="who" role="group" aria-labelledby="who-q">
-          <p id="who-q" className="who-q">
-            Who are you designing for?
-          </p>
-          <div className="who-pick">
-            <button type="button" className="primary" aria-pressed={!helper} onClick={() => setHelper(false)}>
-              Me
-            </button>
-            <button type="button" className="primary" aria-pressed={helper} onClick={() => setHelper(true)}>
-              Someone else
-            </button>
+      // Cat's R1 Two Switches (2026-10-21): the body alone, then two switches of the same kind, for the form and
+      // for whom, Begin, and Measure later in quiet capitals. No underlined links.
+      <Shell title="First, let's take some measurements.">
+        {onForm && (
+          <div className="form-taped">
+            <FormPicture kind={chosen} />
+            <LandedTape />
           </div>
+        )}
+        {onForm && (
+          <div className="switch" role="radiogroup" aria-label="Which form to draft on?">
+            {(['womenswear', 'menswear'] as const).map((k) => (
+              <button key={k} type="button" role="radio" aria-checked={chosen === k} onClick={() => setChosen(k)}>
+                {k === 'womenswear' ? 'Womenswear' : 'Menswear'}
+                {k === 'menswear' && <span className="testing-tag">{IN_TESTING}</span>}
+              </button>
+            ))}
+          </div>
+        )}
+        <div className="switch" role="radiogroup" aria-label="Who are you designing for?">
+          <button type="button" role="radio" aria-checked={!helper} onClick={() => setHelper(false)}>
+            For me
+          </button>
+          <button type="button" role="radio" aria-checked={helper} onClick={() => setHelper(true)}>
+            Someone else
+          </button>
         </div>
         {helper && (
           <div className="field plain ready">
@@ -170,25 +184,14 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
             <input id="who-name" autoComplete="off" autoFocus value={name} onChange={(e) => setName(e.target.value)} />
           </div>
         )}
-        {onForm && (
-          <>
-            <p className="who-q" id="form-q">
-              Which form to draft on?
-            </p>
-            <div className="form-pick on-intro" role="radiogroup" aria-labelledby="form-q">
-              {(['womenswear', 'menswear'] as const).map((k) => (
-                <button key={k} type="button" role="radio" aria-checked={chosen === k} className={chosen === k ? 'on' : ''} onClick={() => setChosen(k)}>
-                  <FormPicture kind={k} />
-                  <span>{k === 'womenswear' ? 'Womenswear' : 'Menswear'}</span>
-                  {k === 'menswear' && <span className="testing-tag">{IN_TESTING}</span>}
-                </button>
-              ))}
-            </div>
-          </>
-        )}
         <button type="button" className="primary" disabled={helper && !name.trim()} onClick={begin}>
           Begin measuring
         </button>
+        {onSkip && (
+          <button type="button" className="later" onClick={() => onSkip()}>
+            Measure later
+          </button>
+        )}
       </Shell>
     );
   }
@@ -487,7 +490,42 @@ function chooseLabel(picked: Pick | null, values: MeasurementValues, form: FormK
   return n ? `Next: ${n} ${GARMENT_NAME[picked]} measurement${n === 1 ? '' : 's'}` : `Style my ${GARMENT_NAME[picked]}`;
 }
 
-const TAPE_MARKS = Array.from({ length: 40 }, (_, i) => i + 41);
+const TAPE_MARKS = Array.from({ length: 50 }, (_, i) => i + 41);
+
+/** The tape Begin pulls out on the welcome lands round the form's bust on the first page, measuring it (Cat's T3,
+ *  2026-10-21). It comes down from where the welcome left it, across the top, so it never jumps. */
+function LandedTape() {
+  const ref = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const tape = ref.current;
+    const card = tape?.closest('.welcome-card');
+    if (!tape || !card) return;
+    // Measured once the form has drawn and placed the bust, a frame or two after the page appears.
+    let frame = requestAnimationFrame(() => {
+      frame = requestAnimationFrame(() => {
+        const at = tape.getBoundingClientRect();
+        const top = card.getBoundingClientRect();
+        const phone = window.matchMedia('(max-width: 640px)').matches;
+        const from = takeTapeRest() ?? { left: phone ? 14 : top.left - 22, top: top.top - 17 };
+        const dx = from.left - at.left;
+        const dy = from.top - at.top;
+        tape.classList.remove('waiting');
+        if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+          tape.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }], { duration: 900, easing: 'cubic-bezier(0.3, 0.1, 0.2, 1)' });
+      });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, []);
+  return (
+    <div ref={ref} className="tape-band landed waiting" aria-hidden="true">
+      <div className="tape-marks">
+        {TAPE_MARKS.map((n) => (
+          <span key={n}>{n}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export function Shell({
   eyebrow,
@@ -497,7 +535,6 @@ export function Shell({
   short,
   skip,
   later,
-  tape,
   aside,
   children,
 }: {
@@ -511,8 +548,6 @@ export function Shell({
   /** Finish later, in place of Skip once real measurements are in (Cat, 2026-10-20): an example under real
    *  numbers would draft a pattern that fits no one, so later pages only offer to stop and keep them. */
   later?: () => void;
-  /** The tape Begin pulls out on the welcome, landed across the top of the first page (Cat, 2026-10-20). */
-  tape?: boolean;
   dots?: [number, number];
   /** A shorter form on top, so a longer list fits above its button. */
   short?: boolean;
@@ -525,15 +560,6 @@ export function Shell({
   return (
     <div className="welcome">
       <section className={['card welcome-card measure-step', short && 'short', hero && 'has-hero', aside && 'has-aside'].filter(Boolean).join(' ')} aria-labelledby="stitle">
-        {tape && (
-          <div className="tape-band landed" aria-hidden="true">
-            <div className="tape-marks">
-              {TAPE_MARKS.map((n) => (
-                <span key={n}>{n}</span>
-              ))}
-            </div>
-          </div>
-        )}
         {aside && <aside className="step-list">{aside}</aside>}
         {hero && (
           <div className="welcome-hero">
@@ -554,12 +580,12 @@ export function Shell({
           <ShellTitle text={title} />
           {children}
           {skip ? (
-            <button type="button" className="link quiet skip-link" onClick={skip}>
-              Skip and try an example
+            <button type="button" className="later" onClick={skip}>
+              Measure later
             </button>
           ) : (
             later && (
-              <button type="button" className="link quiet skip-link" onClick={later}>
+              <button type="button" className="later skip-link" onClick={later}>
                 Finish later
               </button>
             )
@@ -701,8 +727,8 @@ export function MeasurePage({
     >
       <p className="muted step-tip">{tipOf(id, helper, form)}</p>
       <p className="how-row">
-        <button type="button" className="link quiet how-link" aria-expanded={how} onClick={() => setHow(true)}>
-          How to do it
+        <button type="button" className="later go how-link" aria-expanded={how} onClick={() => setHow(true)}>
+          How to do it <span aria-hidden="true">›</span>
         </button>
       </p>
       <form

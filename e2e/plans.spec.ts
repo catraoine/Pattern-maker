@@ -18,7 +18,7 @@ test('plans: hidden by default, shown in preview without locking anything', asyn
   await plan.getByRole('button', { name: 'See plans' }).click();
 
   await expect(main.getByRole('heading', { name: 'Every garment' })).toBeVisible();
-  await expect(main).toContainText('$39 a year');
+  await expect(main).toContainText('$49 a year');
   await main.getByRole('button', { name: 'Go Premium' }).click();
   await expect(main).toContainText("Paid plans aren't open yet");
   await page.screenshot({ path: info.outputPath('plans.png'), fullPage: true });

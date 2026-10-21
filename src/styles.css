@@ -143,10 +143,12 @@ p {
   border-bottom: var(--bw) solid var(--line);
 }
 
+/* The name alone is the logo (Cat's R1, 2026-10-21); it keeps the height the old square mark gave the bar. */
 .brand {
   color: var(--gild);
   display: flex;
   align-items: center;
+  min-height: 28px;
   gap: 10px;
   font-family: var(--mono);
   font-weight: var(--w-strong);
@@ -5936,8 +5938,8 @@ input.inline:focus,
   opacity: 0;
 }
 
-/* Begin: the tape pulls out of the tip's corner, right to left across the foot of the form, the welcome fades,
-   and the tape rises to the top */
+/* Begin: the tape pulls out of the tip's corner, right to left across the foot of the form, its hook leading, the
+   welcome fades, and the tape rises to the top (Cat, 2026-10-21: wider, slower, the hook kept on it). */
 .tape-band.unrolling {
   position: absolute;
   left: 0;
@@ -5945,18 +5947,41 @@ input.inline:focus,
   margin: 0;
   top: calc(100% - 40px);
   z-index: 3;
-  animation: tape-pull 0.75s cubic-bezier(0.3, 0.6, 0.3, 1) both, tape-rise 0.75s cubic-bezier(0.2, 0.7, 0.2, 1) 0.9s both;
+  animation: tape-pull 1.5s cubic-bezier(0.35, 0.1, 0.25, 1) both, tape-rise 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) 1.75s both;
 }
 
+/* The hook on the tape's leading end, as on the tip it was pulled from */
+.tape-band.unrolling,
+.tape-band.landed {
+  overflow: visible;
+}
+
+.tape-band.unrolling .tape-marks,
+.tape-band.landed .tape-marks {
+  overflow: hidden;
+}
+
+.tape-band.unrolling::before,
+.tape-band.landed::before {
+  content: '';
+  position: absolute;
+  left: -5px;
+  top: -5px;
+  bottom: -5px;
+  width: 6px;
+  border-radius: 1px;
+  background: #b8a274;
+}
+
+/* It slides out of the tip rather than being uncovered, so the hook travels with it */
 @keyframes tape-pull {
   from {
-    clip-path: inset(0 0 0 100%);
+    transform: translateX(calc(100% - 46px));
   }
   to {
-    clip-path: inset(0 0 0 0);
+    transform: none;
   }
 }
-
 
 @keyframes tape-rise {
   from {
@@ -5967,15 +5992,61 @@ input.inline:focus,
   }
 }
 
-/* Risen, the tape stays across the top of the first page, and only that page (Cat, 2026-10-20). */
-.tape-band.landed {
-  margin: 0 0 18px;
-  grid-column: 1 / -1;
+/* Risen, the tape comes down onto the first page and lands round the form's bust, full size, measuring it
+   (Cat's T3, 2026-10-21). It starts where the welcome left it, across the top, and takes no room of its own. */
+.measure-step > .step-words > .form-taped {
+  position: relative;
+  display: flex;
+  flex: 1 1 0;
+  min-height: 96px;
+  max-height: 340px;
 }
 
-/* On a very short screen the strip would push Begin measuring below the fold, so it stays off. */
+.form-taped > .form-picture {
+  height: 100%;
+}
+
+.form-taped > .tape-band.landed {
+  position: absolute;
+  top: calc(var(--bust-y, 30%) - 17px);
+  left: calc(var(--bust-x, 30%) + 5px);
+  right: -22px;
+  margin: 0;
+  z-index: 2;
+}
+
+/* It runs off the right-hand edge of the window, long enough to stay off it as it comes down; the page clips the
+   rest. */
+.welcome-card:has(.form-taped) {
+  overflow-x: visible;
+}
+.form-taped > .tape-band.landed {
+  right: calc((100% - 100vw) / 2 - 100vw);
+}
+body:has(.form-taped) {
+  overflow-x: clip;
+}
+
+.form-taped > .tape-band.landed.waiting {
+  visibility: hidden;
+}
+
+/* On a phone the tape runs the width of the screen, off the right-hand edge it came from, with its hook just in
+   from the left; the card lets it out past its own edges. */
+@media (max-width: 640px) {
+  .welcome.leaving .welcome-card {
+    overflow-x: visible;
+  }
+  .tape-band.unrolling {
+    left: calc(50% - 50vw + 14px);
+    right: calc(50% - 50vw);
+  }
+
+}
+
+/* On a very short screen the form, and the tape round it, stay off so Begin measuring stays in view. */
 @media (max-height: 480px) {
-  .tape-band.landed {
+  .measure-step > .step-words > .form-taped {
     display: none;
   }
 }
@@ -5988,7 +6059,7 @@ input.inline:focus,
 .welcome.leaving .tour-play,
 .welcome.leaving .welcome-card > :not(.welcome-hero) {
   opacity: 0;
-  transition: opacity 0.45s ease 0.5s;
+  transition: opacity 0.5s ease 1.4s;
 }
 
 @media (max-width: 640px) {
@@ -5998,7 +6069,7 @@ input.inline:focus,
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .welcome.go .tape-tip {
+  .welcome.go .tape-tip{
     animation: none;
     opacity: 1;
   }
@@ -6287,4 +6358,180 @@ input.inline:focus,
   font: var(--w-body) 12px/1 var(--mono);
   text-transform: uppercase;
   letter-spacing: var(--track);
+}
+
+/* The first measuring page (Cat's R1 Two Switches, 2026-10-21): the body alone, filling the room above two
+   switches of one kind (the form, and for whom), Begin, and Measure later in quiet capitals. */
+
+
+.switch {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 4px 28px;
+}
+
+.switch button {
+  position: relative;
+  min-height: 40px;
+  padding: 6px 0;
+  border: none;
+  background: none;
+  color: var(--muted);
+  font: var(--w-strong) 11px/1 var(--mono);
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+}
+
+.switch button[aria-checked='true'] {
+  color: var(--gild);
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 8px;
+}
+
+.switch .testing-tag {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  margin: 0;
+  font-size: 8px;
+  text-decoration: none;
+}
+
+button.later {
+  align-self: center;
+  min-height: 40px;
+  padding: 6px 12px;
+  border: none;
+  background: none;
+  color: var(--muted);
+  font: var(--w-strong) 11px/1 var(--mono);
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+}
+
+button.later:hover,
+.switch button:hover {
+  color: var(--ink);
+}
+
+/* One underlined link per screen (Cat's L1, 2026-10-21): every other secondary action is quiet capitals, gold when it
+   opens or moves on (How to do it, Choose fabric, Fabric guide, the garment switch), grey when it steps aside. */
+button.later.go {
+  color: var(--gild);
+}
+button.later.go:hover {
+  color: var(--ink);
+}
+.how-row button.later,
+.review-edits button.later,
+.mode-link button.later,
+.fabric details button.later,
+.yourfabric button.later,
+button.later.name-edit {
+  align-self: flex-start;
+  padding-left: 0;
+  padding-right: 0;
+}
+.review-edits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 28px;
+}
+.step-words > button.later.skip-link {
+  align-self: center;
+}
+button.later.garment-change {
+  flex-basis: auto;
+  padding: 6px 0;
+  text-align: right;
+}
+.fineprint.plain .inline-link {
+  text-decoration: none;
+  color: var(--muted);
+}
+.fineprint.plain .inline-link:hover {
+  color: var(--ink);
+}
+.yourfabric button.later {
+  justify-self: start;
+  padding-left: 0;
+  text-align: left;
+}
+
+/* Printing the example body asks first (Cat, 2026-10-21): Measure me, or print it anyway. */
+.example-ask {
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 1px solid var(--gild);
+}
+.example-ask p {
+  margin: 0;
+}
+.example-ask button.later {
+  justify-self: center;
+}
+
+/* The welcome on a computer (Cat's WA Half and Half, 2026-10-21): the close-crop form fills the left half of the
+   window, top to bottom, and the title, Begin and the fine print sit together on the right. */
+@media (min-width: 960px) {
+  .welcome-card:not(.measure-step) {
+    max-width: none;
+    display: grid;
+    grid-template-columns: minmax(0, 55fr) minmax(0, 45fr);
+    grid-template-rows: 1fr auto auto auto 1fr;
+    column-gap: clamp(40px, 6vw, 96px);
+    row-gap: 20px;
+  }
+  .welcome-card:not(.measure-step) > .welcome-hero {
+    grid-column: 1;
+    grid-row: 1 / -1;
+    margin: 0;
+    min-height: 0;
+    max-height: none;
+  }
+  .welcome-card:not(.measure-step) > h1 {
+    grid-column: 2;
+    grid-row: 2;
+    margin: 0;
+  }
+  .welcome-card:not(.measure-step) h1 .t-big {
+    font-size: clamp(48px, 5vw, 80px);
+  }
+  .welcome-card:not(.measure-step) > .stack {
+    grid-column: 2;
+    grid-row: 3;
+    max-width: 420px;
+  }
+  .welcome-card:not(.measure-step) > .fineprint {
+    grid-column: 2;
+    grid-row: 4;
+    align-self: start;
+    text-align: left;
+  }
+}
+
+/* Boxes that hold a Watch demo in their bottom-right corner */
+.photostart,
+.lay-box,
+.fit-box,
+.calcard-wrap,
+.truescale {
+  position: relative;
+}
+.calcard-wrap {
+  padding-bottom: 32px;
+}
+/* Below the drawing, so it never sits on the cloth or a pattern line */
+.lay-box,
+.fit-box {
+  padding-bottom: 30px;
+}
+.lay-box .demo-play,
+.fit-box .demo-play {
+  right: -6px;
+  bottom: -2px;
 }

@@ -10,9 +10,9 @@ export type Plan = 'free' | 'premium' | 'maker';
 
 export const PRICES = {
   pack: '$6',
-  premiumYear: '$39 a year',
+  premiumYear: '$49 a year',
   premiumMonth: '$5 a month',
-  maker: '$15 a month',
+  maker: '$25 a month',
 } as const;
 
 /** Garments every plan can print. The rest need Premium, Maker or a garment pack. */

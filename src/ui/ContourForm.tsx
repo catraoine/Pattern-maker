@@ -851,7 +851,19 @@ export function FormPicture({ kind }: { kind: FormKind }) {
   const ref = useCanvas(
     (g, w, h) => {
       pickForm(kind);
-      settledForm(g, w, h);
+      // The body only, neck to hem, filling the card (Cat, 2026-10-21: no head on the first page).
+      g.globalAlpha = 1;
+      g.fillStyle = '#000';
+      g.fillRect(0, 0, w, h);
+      const S = Math.min(w * 0.6, (h * 0.94) / (1.3 + 1.7));
+      const wy = h * 0.03 + (0.1 + 1.7) * S;
+      paintTorso(g, S, w / 2, (y: number) => wy + (y - 0.1) * S, lineFor(S), EVEN, 1, 1);
+      fadeBottom(g, w, h);
+      // Where the bust's left edge falls, for the tape that lands round it (Cat's T3, 2026-10-21).
+      const bust = formLandmarks().full_bust;
+      const box = g.canvas.parentElement;
+      box?.style.setProperty('--bust-x', `${w / 2 - R(bust) * S}px`);
+      box?.style.setProperty('--bust-y', `${wy + (bust - 0.1) * S}px`);
       return false;
     },
     [kind],

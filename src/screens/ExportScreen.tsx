@@ -30,6 +30,7 @@ import { buyAmount, buyLink, shopFabric, shopPrice, type ShopFabric } from '../e
 import { canShareFiles, download } from '../ui/download';
 import { LabelCard } from '../ui/LabelCard';
 import { TestingTag } from '../ui/TestingTag';
+import { DemoButton } from '../ui/DemoButton';
 
 /** What to print: the drafted pieces of either garment, with its notes and sewing steps. */
 export interface Printable {
@@ -45,6 +46,10 @@ export interface Printable {
 }
 
 interface Props {
+  /** Drafted to the example body because measuring was skipped: printing asks first (Cat, 2026-10-21). */
+  example?: boolean;
+  /** Measure me, from that question: drops the example and opens measuring. */
+  onMeasureMe?: () => void;
   /** The sewist's unit; the PDF's text is written in inches when it is `in`. */
   unit?: Unit;
   /** The link that carries this device's measurements and patterns to a computer; see moveLink.ts. */
@@ -112,7 +117,7 @@ const printedDate = () => new Date().toLocaleDateString('en-GB', { day: 'numeric
 
 
 
-export function ExportScreen({ unit = 'cm', sendLink, profile, title, fit, garment, finish, onFinish, made, error, onEditFabric, onKeep, onFitNotes, fitNote, fitting, fittingNotes, alterations = NONE, onFitting, onTrueScale, values, draftAt, style, imported, mode = 'all', onMode, edition, credit, label }: Props) {
+export function ExportScreen({ example, onMeasureMe, unit = 'cm', sendLink, profile, title, fit, garment, finish, onFinish, made, error, onEditFabric, onKeep, onFitNotes, fitNote, fitting, fittingNotes, alterations = NONE, onFitting, onTrueScale, values, draftAt, style, imported, mode = 'all', onMode, edition, credit, label }: Props) {
   const can = (t: ProTool) => shows(mode, t);
   const [picked, setPaper] = useState<Output>('a4');
   // Jackets and coats run to dozens of home pages, so the copy-shop sheet is offered even in the simple view.
@@ -195,6 +200,10 @@ export function ExportScreen({ unit = 'cm', sendLink, profile, title, fit, garme
 
   // Once the pattern has left the app (downloaded, shared or opened to print), the fit question comes up.
   const [printed, setPrinted] = useState(false);
+  // On the example body, the first print asks once whether to measure first or print the example anyway.
+  const [asking, setAsking] = useState<(() => void) | undefined>();
+  const [exampleOk, setExampleOk] = useState(false);
+  const checked = (go: () => void) => () => (example && !exampleOk ? setAsking(() => go) : go());
   const share = async () => {
     if (!ready) return;
     try {
@@ -271,17 +280,40 @@ export function ExportScreen({ unit = 'cm', sendLink, profile, title, fit, garme
               )}
             </fieldset>
             <div className="stack">
-              <button type="button" className="primary" onClick={download_} disabled={!ready}>
+              <button type="button" className="primary" onClick={checked(download_)} disabled={!ready}>
                 {ready ? `Download PDF (${pages} ${pages === 1 ? 'page' : 'pages'})` : 'Making your PDF…'}
               </button>
               {canShareFiles && (
-                <button type="button" className="secondary" onClick={share} disabled={!ready}>
+                <button type="button" className="secondary" onClick={checked(share)} disabled={!ready}>
                   Send to email or a printer
                 </button>
               )}
-              <button type="button" className="secondary" onClick={openToPrint} disabled={!ready}>
+              <button type="button" className="secondary" onClick={checked(openToPrint)} disabled={!ready}>
                 Open PDF to print
               </button>
+              {asking && (
+                <div className="example-ask" role="alertdialog" aria-labelledby="example-ask-title">
+                  <p id="example-ask-title" className="small">
+                    This is drafted to an example body, not yours, so it won't fit you.
+                  </p>
+                  {onMeasureMe && (
+                    <button type="button" className="primary" onClick={onMeasureMe}>
+                      Measure me
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="later"
+                    onClick={() => {
+                      setExampleOk(true);
+                      setAsking(undefined);
+                      asking();
+                    }}
+                  >
+                    Print the example anyway
+                  </button>
+                </div>
+              )}
               {shareNote && <p className="msg small">{shareNote}</p>}
             </div>
             {onFitNotes && !imported && (printed || fitNote) && (
@@ -324,6 +356,7 @@ export function ExportScreen({ unit = 'cm', sendLink, profile, title, fit, garme
             <div className="preview tiles" style={{ ['--cols' as string]: grid.cols }}>
               <PatternPreview sheet={sheet} label={projector ? 'Pattern on one page for a projector' : `Pattern laid over ${pages} numbered print pages`} />
               {!projector && <TileOverlay sheet={sheet} paper={paper} />}
+              <DemoButton demo="print" />
             </div>
             {!imported && <p className="muted small">
               {passed === checks.length
@@ -341,7 +374,7 @@ export function ExportScreen({ unit = 'cm', sendLink, profile, title, fit, garme
               </label>
             )}
             <p className="muted small">Printed it? Your cutting layout and sewing steps are just below, and on the last pages of the PDF.</p>
-            <ModeLink mode={mode} onMode={onMode} what="big paper and projector, a toile fitting, a dressmaker's pack and more" />
+            <ModeLink quiet mode={mode} onMode={onMode} what="big paper and projector, a toile fitting, a dressmaker's pack and more" />
           </div>
         </section>
       </div>
@@ -402,11 +435,14 @@ export function ExportScreen({ unit = 'cm', sendLink, profile, title, fit, garme
           lays.map((lay) => (
             <div key={lay.fabric} className="lay">
               {lays.length > 1 && <p className="eyebrow">{lay.fabric === 'lining' ? 'Lining' : lay.fabric === 'interlining' ? 'Coutil' : 'Fabric'}</p>}
-              <LayPlanView
-                lay={lay}
-                cloth={lay.fabric === 'self' ? (flatId(finish.fabric) ?? 'default') : lay.fabric === 'lining' ? 'silk' : 'cotton'}
-                print={lay.fabric === 'self' && print ? { kind: print, repeat: printRepeat(finish.fabric) } : undefined}
-              />
+              <div className="lay-box">
+                <LayPlanView
+                  lay={lay}
+                  cloth={lay.fabric === 'self' ? (flatId(finish.fabric) ?? 'default') : lay.fabric === 'lining' ? 'silk' : 'cotton'}
+                  print={lay.fabric === 'self' && print ? { kind: print, repeat: printRepeat(finish.fabric) } : undefined}
+                />
+                {lay.fabric === 'self' && <DemoButton demo="fabric" />}
+              </div>
               {lay.fabric === 'self' && print === 'motif' && <p className="muted small">The front is centred on a motif. Move the pattern so no motif sits on the bust points or the seat.</p>}
               <p className="muted small">{layWords(lay)}</p>
             </div>
@@ -652,8 +688,8 @@ function YourFabric({ fabric, style, metres, onChange }: { fabric: MyFabric; sty
         {name ? 'Chosen on the Fabric tab. It sets the cutting layout below and goes on the PDF.' : 'Choose it on the Fabric tab to see the style in it. It goes on the PDF.'}
       </p>
       {onChange && (
-        <button type="button" className="link" onClick={onChange}>
-          {name ? 'Change fabric' : 'Choose fabric'}
+        <button type="button" className="later go" onClick={onChange}>
+          {name ? 'Change fabric' : 'Choose fabric'} <span aria-hidden="true">›</span>
         </button>
       )}
     </section>
