@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { TESTER_CAPS } from '../photo/limit';
+import { CODE_MESSAGE, checkCode } from '../access';
 
 /** The header that tells the photo and idea readers this is a fit tester, when a code is kept. */
 export const testerHeaders = (code: string | undefined): Record<string, string> => (code ? { 'x-tester-code': code } : {});
@@ -18,20 +19,12 @@ export function TesterCode({ code, onCode }: { code?: string; onCode: (code: str
     if (!typed.trim()) return;
     setChecking(true);
     setMsg('');
-    try {
-      const res = await fetch('/.netlify/functions/tester', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: typed.trim() }) });
-      const data = (await res.json().catch(() => ({}))) as { ok?: boolean; tester?: boolean; error?: string };
-      if (data.ok && data.tester) {
-        onCode(typed.trim());
-        setTyped('');
-      } else if (data.error === 'limit_reached') setMsg("That's a lot of tries today. Try again tomorrow.");
-      else if (data.ok) setMsg("That isn't a tester code. Check the email it came in.");
-      else setMsg("The code couldn't be checked just now. Try again in a minute.");
-    } catch {
-      setMsg("The code couldn't be checked. Check you're online and try again.");
-    } finally {
-      setChecking(false);
-    }
+    const result = await checkCode(typed);
+    if (result === 'tester') {
+      onCode(typed.trim());
+      setTyped('');
+    } else setMsg(CODE_MESSAGE[result]);
+    setChecking(false);
   };
 
   if (code)

@@ -4,6 +4,7 @@ import type { FormKind } from '../measurements';
 import { TOUR_LABEL, TourPlayer } from '../ui/TourPlayer';
 import { Title } from '../ui/Title';
 import { tapeRested } from '../ui/tapeHandoff';
+import { WaitlistForm } from '../ui/Waitlist';
 
 interface Props {
   onFinish: () => void;
@@ -15,6 +16,8 @@ interface Props {
   onLegal: (page: 'terms' | 'privacy') => void;
   /** Someone coming back with their measurements taken: the garment they were on, and the ways back in. */
   resume?: { garment: string; onResume: () => void; onSaved: () => void; onNew: () => void };
+  /** Until launch, someone without a tester link gets the waitlist where Begin was (Cat's W1, 2026-10-21). */
+  waitlist?: { onCode: (code: string) => void; checking?: boolean; linkMessage?: string };
 }
 
 // The welcome has one button (Cat, 2026-10-17): Begin. The tour plays from the dress form, a close crop of the
@@ -33,8 +36,9 @@ const SLIDE_MS = 1400;
 const PLAY_AT = SLIDE_AT + SLIDE_MS + 500;
 const MARKS = Array.from({ length: 30 }, (_, i) => i + 41);
 
-export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume }: Props) {
+export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume, waitlist }: Props) {
   const [touring, setTouring] = useState(false);
+  const [joined, setJoined] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const done = useRef(onFinish);
   done.current = onFinish;
@@ -112,8 +116,28 @@ export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume }: Pr
             </div>
           )}
         </div>
-        <Title id="wtitle" big="Sewing patterns" label={resume ? 'Welcome back' : 'drafted to your body'} />
-        {resume ? (
+        {waitlist && joined ? (
+          <Title id="wtitle" big="You're on the list" label="We'll write when it opens" />
+        ) : (
+          <Title id="wtitle" big="Sewing patterns" label={resume ? 'Welcome back' : 'drafted to your body'} />
+        )}
+        {waitlist ? (
+          joined ? (
+            <div className="stack waitlist">
+              <p className="waitlist-line" role="status">
+                One email when your invitation is ready, and the odd note before. Nothing else.
+              </p>
+            </div>
+          ) : waitlist.checking ? (
+            <div className="stack waitlist">
+              <p className="waitlist-line" role="status">
+                Checking your tester link…
+              </p>
+            </div>
+          ) : (
+            <WaitlistForm onJoined={() => setJoined(true)} onCode={waitlist.onCode} linkMessage={waitlist.linkMessage} />
+          )
+        ) : resume ? (
           <div className="stack">
             <button type="button" className="primary" onClick={resume.onResume}>
               Carry on with your {resume.garment}
@@ -137,7 +161,14 @@ export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume }: Pr
         )}
         {/* The agreement shows once, hushed, on a first visit; coming back you've already agreed, and the links
             stay in Your account (Cat's L5 First Visit Only, 2026-10-20). */}
-        {!resume && (
+        {waitlist ? (
+          <p className="fineprint">
+            We keep only your email, for Maison Tracé news, and delete it if you ask.{' '}
+            <button type="button" className="inline-link" onClick={() => onLegal('privacy')}>
+              Privacy Policy
+            </button>
+          </p>
+        ) : !resume && (
           <p className="fineprint">
             By continuing you agree to our{' '}
             <button type="button" className="inline-link" onClick={() => onLegal('terms')}>
