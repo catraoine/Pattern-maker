@@ -6,7 +6,7 @@
 import { checksExtra, checksLines } from './specialFabrics';
 
 export type PrintKind = 'plain' | 'ditsy' | 'oneway' | 'motif' | 'border' | 'checks';
-type Garment = 'skirt' | 'bodice' | 'dress' | 'trousers' | 'tee' | 'jacket' | 'coat';
+type Garment = 'skirt' | 'bodice' | 'dress' | 'trousers' | 'tee' | 'jacket' | 'coat' | 'lingerie';
 
 export interface PrintInfo {
   label: string;
@@ -43,7 +43,7 @@ export function printOf(f: { print?: PrintKind; checks?: object } | undefined): 
 /** Every piece the same way up, for a one-way print or placed motifs. */
 export const printNap = (kind: PrintKind | undefined) => !!kind && !!PRINTS[kind].nap;
 
-const MAIN_PIECES: Record<Garment, number> = { skirt: 2, bodice: 2, dress: 4, trousers: 2, tee: 2, jacket: 4, coat: 4 };
+const MAIN_PIECES: Record<Garment, number> = { skirt: 2, bodice: 2, dress: 4, trousers: 2, tee: 2, jacket: 4, coat: 4, lingerie: 3 };
 
 /** Extra fabric to place big motifs: about one repeat for each main piece. In metres, to 0.1. */
 export function motifExtra(repeat: number | undefined, garment: Garment): number {

@@ -10,7 +10,7 @@ export type Special = 'denim' | 'leather' | 'velvet' | 'corduroy' | 'sheer' | 's
 type Weight = 'light' | 'medium' | 'heavy';
 type Drape = 'crisp' | 'soft' | 'fluid';
 type Fibre = 'cotton' | 'linen' | 'wool' | 'silk' | 'viscose' | 'polyester' | 'blend';
-type Garment = 'skirt' | 'bodice' | 'dress' | 'trousers' | 'tee' | 'jacket' | 'coat';
+type Garment = 'skirt' | 'bodice' | 'dress' | 'trousers' | 'tee' | 'jacket' | 'coat' | 'lingerie';
 
 export interface SpecialInfo {
   label: string;
@@ -160,7 +160,7 @@ const NOT_FOR: Partial<Record<Special, { silhouettes?: string[]; legs?: string[]
 };
 
 /** What to watch for with a special cloth in this style. */
-export function specialWarnings(special: Special | undefined, style: { silhouette?: string; leg?: string; fit?: string }): string[] {
+export function specialWarnings(special: Special | undefined, style: { garment?: string; silhouette?: string; leg?: string; fit?: string }): string[] {
   const n = special && NOT_FOR[special];
   if (!n) return [];
   const bad = (style.silhouette && n.silhouettes?.includes(style.silhouette)) || (style.leg && n.legs?.includes(style.leg));
@@ -173,7 +173,7 @@ export interface Checks {
   repeat?: number;
 }
 
-const MAIN_PIECES: Record<Garment, number> = { skirt: 2, bodice: 2, dress: 4, trousers: 2, tee: 2, jacket: 4, coat: 4 };
+const MAIN_PIECES: Record<Garment, number> = { skirt: 2, bodice: 2, dress: 4, trousers: 2, tee: 2, jacket: 4, coat: 4, lingerie: 3 };
 const DEFAULT_REPEAT = 10;
 
 /** Extra fabric for matching checks: about one repeat for each main piece. In metres, to 0.1. */

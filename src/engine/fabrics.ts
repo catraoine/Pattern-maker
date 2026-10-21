@@ -11,14 +11,14 @@ import type { Structure } from './corset';
 import type { Cloth } from './couture';
 import type { SewingGuide } from './instructions';
 import { VolumeStyle, volumeFabrics, volumeWarnings, volumeWords } from './skirtVolume';
-import { TeeFabricStyle, teeFabrics, teeWarnings } from './knits';
+import { LingerieFabricStyle, TeeFabricStyle, lingerieFabrics, teeFabrics, teeWarnings } from './knits';
 import { PrintKind, printCut, printLines, printOf } from './prints';
 import { Checks, SPECIALS, Special, specialLines, specialWarnings } from './specialFabrics';
 
 export type Weight = 'light' | 'medium' | 'heavy';
 export type Drape = 'crisp' | 'soft' | 'fluid';
 /** Every garment the fabric advice covers. */
-export type FabricGarment = 'skirt' | 'bodice' | 'dress' | 'trousers' | 'tee' | 'jacket' | 'coat';
+export type FabricGarment = 'skirt' | 'bodice' | 'dress' | 'trousers' | 'tee' | 'jacket' | 'coat' | 'lingerie';
 export type Fibre = 'cotton' | 'linen' | 'wool' | 'silk' | 'viscose' | 'polyester' | 'blend';
 
 /** The fabric the maker has bought, or means to buy. Every field is optional. */
@@ -437,6 +437,7 @@ export type FabricStyle =
   | ({ garment: 'dress'; fit: BodiceFit; neckline: Neckline; silhouette: Silhouette; length: Length; structure?: Structure } & Partial<VolumeStyle>)
   | { garment: 'trousers'; fit: Fit; leg: Leg }
   | TeeFabricStyle
+  | LingerieFabricStyle
   | { garment: 'jacket' | 'coat'; fit: BodiceFit };
 
 const weightRank: Record<Weight, number> = { light: 0, medium: 1, heavy: 2 };
@@ -473,6 +474,7 @@ export function adviceFor(style: FabricStyle): FabricAdvice {
   if (style.garment === 'bodice') return bodiceFabrics(style);
   if (style.garment === 'dress') return dressFabrics(style);
   if (style.garment === 'tee') return teeFabrics(style);
+  if (style.garment === 'lingerie') return lingerieFabrics(style);
   if (style.garment === 'trousers') return trousersFabrics(style);
   return outerFabrics(style);
 }
@@ -480,6 +482,7 @@ export function adviceFor(style: FabricStyle): FabricAdvice {
 /** What to watch for with this fabric in this style. */
 function styleWarnings(style: FabricStyle, { weight, drape }: MyFabric): string[] {
   if (style.garment === 'tee') return teeWarnings(style, { weight, drape });
+  if (style.garment === 'lingerie') return weight === 'heavy' ? ['A heavy knit is too thick for lingerie or swimwear. Choose a light one.'] : [];
   const out: string[] = [];
   const name = adviceFor(style).style;
   if (style.garment === 'skirt' || style.garment === 'dress') {

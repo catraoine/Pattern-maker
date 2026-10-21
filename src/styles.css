@@ -5588,6 +5588,14 @@ input.inline:focus,
   width: 112px;
 }
 
+/* Lingerie: "How did it fit?" questions, one row of chips each. */
+.fitq {
+  margin: 0.6rem 0;
+}
+.fitq > p {
+  margin: 0 0 0.3rem;
+}
+
 /* Intuitiveness fixes (Cat, 2026-10-18). */
 /* 1. Coming back: the quiet ways in under "Carry on with your …". */
 .resume-more {

@@ -567,6 +567,10 @@ const TAPES: Partial<Record<MeasurementId, Tape>> = {
   full_hip: { kind: 'girth', y: 0.82 },
   // Snug up under the arms, above the bust.
   high_bust: { kind: 'girth', y: -0.95 },
+  // Snug round the ribcage, just under the bust where a bra band sits.
+  underbust: { kind: 'girth', y: -0.4 },
+  // From the shoulder down over the bust to between the legs (the back half is the same again).
+  torso_loop: { kind: 'path', pts: fig([[132, 64], [129, APEX], [118, 150], [106, 206], [100, 232]]) },
   neck: { kind: 'girth', y: -1.5 },
   waist_to_hip: { kind: 'side', from: 0.1, to: 0.82 },
   front_waist_to_hip: { kind: 'front', from: 0.1, to: 0.82 },

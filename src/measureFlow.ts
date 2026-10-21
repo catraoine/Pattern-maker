@@ -1,3 +1,4 @@
+import { lingerieShown } from './lingerieFlag';
 import { FIELDS, MENSWEAR_SKIPS, fieldsFor, worded, type FormKind, type Garment, type MeasurementField, type MeasurementId, type MeasurementValues } from './measurements';
 
 // First-time measuring: one base set that every garment uses, then only the extras a garment still needs.
@@ -10,8 +11,9 @@ export const BASE: MeasurementId[] = ['waist', 'full_bust', 'full_hip', 'waist_t
 /** The base measurements a draft needs. The height isn't one: a profile measured before it was asked still drafts. */
 export const TAPE_BASE: MeasurementId[] = BASE.filter((id) => id !== 'height');
 
-export const GARMENTS: Garment[] = ['skirt', 'dress', 'bodice', 'trousers', 'tee', 'jacket', 'coat'];
-export const GARMENT_NAME: Record<Garment, string> = { skirt: 'skirt', dress: 'dress', bodice: 'bodice', trousers: 'trousers', tee: 'T-shirt', jacket: 'jacket', coat: 'coat' };
+/** Lingerie is in the list only while previewing, until the fit test passes (lingerieFlag.ts). */
+export const GARMENTS: Garment[] = ['skirt', 'dress', 'bodice', 'trousers', 'tee', 'jacket', 'coat', ...(lingerieShown ? (['lingerie'] as const) : [])];
+export const GARMENT_NAME: Record<Garment, string> = { skirt: 'skirt', dress: 'dress', bodice: 'bodice', trousers: 'trousers', tee: 'T-shirt', jacket: 'jacket', coat: 'coat', lingerie: 'lingerie' };
 
 const ALL = new Map<MeasurementId, MeasurementField>();
 for (const list of Object.values(FIELDS)) for (const f of list) if (!ALL.has(f.id)) ALL.set(f.id, f);
