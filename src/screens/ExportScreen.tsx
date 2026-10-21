@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { SendToDevice } from '../ui/SendToDevice';
 import { OVERLAP, PAGE_MARGIN, Paper, Sheet, layout, pageCount, pageName, pageSize, tileGrid, toSvg, usedTiles } from '../engine/export';
 import { checkPattern } from '../engine/qc';
@@ -20,6 +20,7 @@ import { SPECIALS, Special, needsNap } from '../engine/specialFabrics';
 import { printNap, printOf } from '../engine/prints';
 import { SizeRun } from '../ui/SizeRun';
 import { Envelope } from '../ui/Envelope';
+import { useWide } from '../ui/StyleLayout';
 import { InterestCard } from '../ui/InterestCard';
 import type { MeasurementValues } from '../measurements';
 import { Mode, ProTool, shows } from '../mode';
@@ -202,6 +203,14 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', sendLink, prof
 
   // Once the pattern has left the app (downloaded, shared or opened to print), the fit question comes up.
   const [printed, setPrinted] = useState(false);
+  // How to sew it folds closed on a phone, where the page was one long scroll, and opens on a computer (the
+  // aesthetic review, 2026-10-21). Set once on arrival; after that the fold is the reader's.
+  const wide = useWide();
+  const sewFold = useRef<HTMLDetailsElement>(null);
+  useEffect(() => {
+    if (sewFold.current) sewFold.current.open = wide;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   // On the example body, the first print asks once whether to measure first or print the example anyway.
   const [asking, setAsking] = useState<(() => void) | undefined>();
   const [exampleOk, setExampleOk] = useState(false);
@@ -514,12 +523,12 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', sendLink, prof
       )}
       {values && draftAt && can('sizeRun') && <InterestCard offer="sizerun" pattern={title} />}
 
-      <section className="card sew" aria-labelledby="sewtitle">
+      <details className="card sew" ref={sewFold}>
+        <summary className="sew-summary">
+          <p className="eyebrow">After printing</p>
+          <h2 id="sewtitle">How to sew it</h2>
+        </summary>
         <div className="row between wrap">
-          <div>
-            <p className="eyebrow">After printing</p>
-            <h2 id="sewtitle">How to sew it</h2>
-          </div>
           {garment !== 'trousers' && !knit && can('couture') && !imported && (
           <div className="seg" role="group" aria-label="How to sew it">
             {(['quick', 'couture'] as const).map((r) => (
@@ -582,7 +591,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', sendLink, prof
           </ol>
           <InterestCard offer="tools" pattern={title} inset />
         </div>
-      </section>
+      </details>
 
       {/* Everything to buy or sign up for, folded at the very end so nothing comes between printing and sewing. */}
       {!imported && (

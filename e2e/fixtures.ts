@@ -110,24 +110,26 @@ export async function measureMe(page: Page, form: 'Womenswear' | 'Menswear' = 'W
 }
 
 /** The one-measurement-per-page flow: fill each page until the button that ends it. */
-export async function fillStepPages(page: Page) {
+export async function fillStepPages(page: Page): Promise<number> {
   let last = '';
+  let filled = 0;
   for (let n = 0; n < 40; n++) {
     const input = main(page).getByRole('textbox');
     const checked = heading(page, 'Do these look right?');
     await expect.poll(async () => ((await input.count()) === 1 ? labelOf(input) : (await checked.count()) ? '' : last), { message: 'the next measurement page opens' }).not.toBe(last);
     // The optional weight page's Next lands on the check page, which has no box.
-    if (last && (await checked.count())) return;
+    if (last && (await checked.count())) return filled;
     const label = await labelOf(input);
     const value = MEASUREMENTS[label];
     expect(value, `a test value for "${label}" (add it to MEASUREMENTS in e2e/fixtures.ts)`).toBeDefined();
     // No placeholder text in the boxes (the owner's rule): the label says what goes in.
     await expect(input).not.toHaveAttribute('placeholder');
     await input.fill(value);
+    filled++;
     const next = main(page).getByRole('button', { name: /^(Next|Done|Save)\b/ });
     const name = (await next.textContent())?.trim() ?? '';
     await next.click();
-    if (!/^Next$/.test(name)) return;
+    if (!/^Next$/.test(name)) return filled;
     last = label;
   }
   throw new Error('Too many measurement pages');
@@ -301,4 +303,12 @@ export async function startWithExample(page: Page) {
   await openFresh(page);
   await skipToExample(page);
   await expectStyle(page, 'Skirt');
+}
+
+/** "How to sew it" on the print screen folds shut on a phone (the aesthetic review, 2026-10-21): open it to read the steps. */
+export async function openSew(page: Page) {
+  const fold = main(page).locator('details.sew');
+  await expect(fold).toBeVisible();
+  if (!(await fold.evaluate((el) => (el as HTMLDetailsElement).open))) await fold.locator('> summary').click();
+  await expect(fold).toHaveAttribute('open', '');
 }

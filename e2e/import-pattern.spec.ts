@@ -1,4 +1,4 @@
-import { download, expect, goPrint, openAccount, startWithExample, test, showAllTools } from './fixtures';
+import { download, expect, goPrint, openAccount, startWithExample, test, showAllTools, openSew } from './fixtures';
 
 // A DXF from pattern software, opened on Check any pattern: seams walked, then printed and sent like a pattern drafted here.
 test('import a pattern: check a DXF, then use it to print and send', async ({ page }, info) => {
@@ -24,6 +24,7 @@ test('import a pattern: check a DXF, then use it to print and send', async ({ pa
   const { bytes } = await download(page, pdf, info);
   expect(bytes.subarray(0, 5).toString()).toBe('%PDF-');
   await expect(main.getByRole('heading', { name: 'How to sew it' })).toBeVisible();
+  await openSew(page);
   await expect(main.getByText('Join the seams')).toBeVisible();
   await expect(main.getByRole('button', { name: 'Send to a dressmaker' })).toBeEnabled({ timeout: 45_000 });
   // No toile, fabric check or save: those belong to patterns drafted here.

@@ -1,4 +1,4 @@
-import { download, expect, goPrint, openAccount, openFold, startWithExample, test, openExtras } from './fixtures';
+import { download, expect, goPrint, openAccount, openFold, startWithExample, test, openExtras, openSew } from './fixtures';
 
 // Body Double (B1, B2, B5): a store form padded to you, a cover drafted to the same body, and a check once padded.
 test('body double: pad map, cover pattern and form check', async ({ page }, info) => {
@@ -27,6 +27,7 @@ test('body double: pad map, cover pattern and form check', async ({ page }, info
   await expect(pdf).toBeEnabled({ timeout: 45_000 });
   const { bytes } = await download(page, pdf, info);
   expect(bytes.subarray(0, 5).toString('latin1')).toBe('%PDF-');
+  await openSew(page);
   await expect(main.getByText('Pad the form')).toBeVisible();
   await page.screenshot({ path: info.outputPath('form-cover-print.png'), fullPage: true });
 });

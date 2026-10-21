@@ -9,7 +9,7 @@ import { canGoBack, goBack, usePageHistory } from '../nav';
 import { estimateOne } from '../estimate';
 import { Title } from '../ui/Title';
 import type { PatternChoices } from '../garments';
-import { IN_TESTING, inTesting } from '../launch';
+import { testingNote } from '../launch';
 import { ideaChoices, ideaRows, pieceGarment } from '../photo/idea';
 import { isSwimIntimates } from '../photo/swim';
 import { InterestCard } from '../ui/InterestCard';
@@ -164,7 +164,6 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
             {(['womenswear', 'menswear'] as const).map((k) => (
               <button key={k} type="button" role="radio" aria-checked={chosen === k} onClick={() => setChosen(k)}>
                 {k === 'womenswear' ? 'Womenswear' : 'Menswear'}
-                {k === 'menswear' && <span className="testing-tag">{IN_TESTING}</span>}
               </button>
             ))}
           </div>
@@ -208,7 +207,6 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
             <button key={k} type="button" role="radio" aria-checked={chosen === k} className={chosen === k ? 'on' : ''} onClick={() => setChosen(k)}>
               <FormPicture kind={k} />
               <span>{k === 'womenswear' ? 'Womenswear' : 'Menswear'}</span>
-                  {k === 'menswear' && <span className="testing-tag">{IN_TESTING}</span>}
             </button>
           ))}
         </div>
@@ -233,9 +231,13 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
     const done = () => (page.back && canGoBack() ? goBack() : setPage({ kind: 'check' }));
     return (
       <Shell eyebrow="Optional" title={helper ? 'Their weight' : 'Your weight'} hero={<TapeDemo id="waist" mode="still" kind={form} />} short>
-        <p className="muted step-tip">
-          It helps us catch a slipped tape or a wrong unit: we check {helper ? 'their' : 'your'} measurements against {helper ? 'their' : 'your'} height and weight before anything is drafted. It's never drafted from, shown on a pattern or sent anywhere.
-        </p>
+        <p className="muted step-tip">Helps us catch a slipped tape. Never drafted from, shown or sent.</p>
+        <details className="how-more">
+          <summary className="link quiet how-link">How it's used</summary>
+          <p className="muted step-tip">
+            We check {helper ? 'their' : 'your'} measurements against {helper ? 'their' : 'your'} height and weight before anything is drafted, so a wrong unit or a slipped tape is caught early. It's never drafted from, shown on a pattern or sent anywhere.
+          </p>
+        </details>
         <form
           className="measure-entry"
           onSubmit={(e) => {
@@ -306,10 +308,10 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
           {[...GARMENTS, 'other' as const].map((g) => (
             <button key={g} type="button" role="radio" aria-checked={picked === g} className={picked === g ? 'on' : ''} onClick={() => setPicked(g)}>
               {g === 'other' ? 'Something else' : cap(GARMENT_NAME[g])}
-              {g !== 'other' && inTesting(g) && <span className="testing-tag">{IN_TESTING}</span>}
             </button>
           ))}
         </div>
+        {testingNote((g) => GARMENT_NAME[g], GARMENTS) && <p className="muted small testing-note">{testingNote((g) => GARMENT_NAME[g], GARMENTS)}</p>}
         <button type="button" className="primary" disabled={!picked} onClick={() => picked && go(picked)}>
           {chooseLabel(picked, values, form)}
         </button>
@@ -519,7 +521,6 @@ export function Shell({
   eyebrow,
   title,
   hero,
-  dots,
   short,
   skip,
   later,
@@ -540,6 +541,7 @@ export function Shell({
   later?: () => void;
   /** The tape Begin pulls out on the welcome, across the top of the first page (Cat, 2026-10-21). */
   tape?: boolean;
+  /** Which step of how many: the picture's dots went in the aesthetic review (2026-10-21); the eyebrow says it. */
   dots?: [number, number];
   /** A shorter form on top, so a longer list fits above its button. */
   short?: boolean;
@@ -561,13 +563,6 @@ export function Shell({
             {hero}
             {labels}
             <div className="welcome-top">
-              {dots && (
-                <div className="dots" aria-hidden="true">
-                  {Array.from({ length: dots[0] }, (_, i) => (
-                    <span key={i} className={i <= dots[1] ? 'dot on' : 'dot'} />
-                  ))}
-                </div>
-              )}
             </div>
           </div>
         )}

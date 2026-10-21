@@ -85,8 +85,7 @@ test('a first dress asks five more measurements, not thirteen', async ({ page })
   await main.getByRole('button', { name: 'Choose what to make' }).click();
   await pickToMake(page, 'Dress');
   await expect(main.getByRole('heading', { level: 1, name: 'Your high bust' })).toBeVisible();
-  await expect(main.locator('.dots .dot')).toHaveCount(5);
-  await fillStepPages(page);
+  expect(await fillStepPages(page)).toBe(5);
   await expectStyle(page, 'Dress');
   await openReview(page);
   await main.getByRole('button', { name: 'Edit measurements' }).click();
