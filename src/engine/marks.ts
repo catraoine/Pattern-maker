@@ -104,7 +104,7 @@ export function edgeLabels(pc: Piece): EdgeLabel[] {
     neck: 'NECKLINE',
     armhole: 'ARMHOLE',
     centre: front ? 'CENTRE FRONT SEAM' : 'CENTRE BACK SEAM',
-    fold: front ? 'CENTRE FRONT' : 'CENTRE BACK',
+    fold: (pc.meta.foldLabel as string | undefined) ?? (/gusset/i.test(pc.name) ? 'CENTRE' : front ? 'CENTRE FRONT' : 'CENTRE BACK'),
     facing: 'NEATEN THIS EDGE',
     flounce: 'FLOUNCE SEAM',
     tier: 'TIER SEAM',
@@ -112,7 +112,10 @@ export function edgeLabels(pc: Piece): EdgeLabel[] {
     godet: 'GODET SEAM',
     'pocket-side': 'SIDE SEAM',
     'pocket-edge': 'POCKET OPENING',
+    leg: 'LEG OPENING',
   };
+  // The gusset is too small for seam names; its shape says which end is which.
+  if (pc.meta.lingerie === 'gusset') return [];
   const { pts, tags } = pc.outline.taggedPoints(24);
   // Longest unbroken run of each tag.
   const runs = new Map<string, [number, number, number]>(); // tag -> [first edge, last edge, length]

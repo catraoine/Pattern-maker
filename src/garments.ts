@@ -8,6 +8,7 @@ import { LEG_WORDS, Leg, TrouserClosure, TrouserLength } from './engine/trousers
 import type { Fit, WaistStyle } from './engine/skirt';
 import type { PocketStyle } from './engine/pockets';
 import type { Stretch, TeeFit, TeeLength, TeeNeck, TeeSleeve } from './engine/tee';
+import { isSwim, type CupStyle, type LegCut, type LingerieFit, type LingeriePiece, type LingerieStretch, type Rise, type StretchWay } from './engine/lingerie';
 import { Peplum, isDraped } from './engine/drape';
 import { isShaped } from './engine/hem';
 import type { HemShape } from './engine/hem';
@@ -146,6 +147,61 @@ export function describeTee(c: TeeChoices) {
   return words[0].toUpperCase() + words.slice(1);
 }
 
+/** Lingerie and swimwear: which piece, the knit's stretch, and the leg, rise and cup. */
+export interface LingerieChoices {
+  garment: 'lingerie';
+  piece: LingeriePiece;
+  stretch: LingerieStretch;
+  /** Patterns saved before this choice was added read as four-way. */
+  way?: StretchWay;
+  leg: LegCut;
+  rise: Rise;
+  cup: CupStyle;
+  closure?: 'none' | 'snaps';
+  /** What the maker saw when they tried one on. */
+  tried?: LingerieFit;
+}
+
+export const DEFAULT_LINGERIE_CHOICES: LingerieChoices = { garment: 'lingerie', piece: 'brief', stretch: 'medium', way: 'four', leg: 'classic', rise: 'high', cup: 'triangle', closure: 'none' };
+
+export type LingerieGroupId = 'piece' | 'way' | 'stretch' | 'leg' | 'rise' | 'cup' | 'closure';
+
+export const LINGERIE_GROUPS: { id: LingerieGroupId; label: string; options: [string, string][] }[] = [
+  { id: 'piece', label: 'Piece', options: [['brief', 'Brief'], ['bralette', 'Bralette'], ['bodysuit', 'Bodysuit'], ['swimsuit', 'Swimsuit'], ['bikini', 'Bikini']] },
+  { id: 'way', label: 'Which way it stretches', options: [['four', 'Both ways'], ['two', 'Across only']] },
+  { id: 'stretch', label: 'How far it stretches', options: [['medium', 'Medium: jersey, lace, power mesh'], ['high', 'High: Lycra, microfibre']] },
+  { id: 'leg', label: 'Leg', options: [['classic', 'Classic'], ['high', 'High cut']] },
+  { id: 'rise', label: 'Rise', options: [['high', 'High waist'], ['mid', 'Mid rise']] },
+  { id: 'cup', label: 'Cup', options: [['triangle', 'Triangle'], ['longline', 'Longline']] },
+  { id: 'closure', label: 'Crotch', options: [['none', 'Sewn closed'], ['snaps', 'Snap opening']] },
+];
+
+/** Whether a group applies to the piece: swimwear is always cut for four-way Lycra, only briefs have a rise,
+ * only tops a cup, only the bodysuit a snap crotch. */
+export function lingerieGroupShown(c: LingerieChoices, id: LingerieGroupId): boolean {
+  if (id === 'stretch' || id === 'way') return !isSwim(c.piece);
+  if (id === 'leg') return c.piece !== 'bralette';
+  if (id === 'rise') return c.piece === 'brief' || c.piece === 'bikini';
+  if (id === 'cup') return c.piece === 'bralette' || c.piece === 'bikini';
+  if (id === 'closure') return c.piece === 'bodysuit';
+  return true;
+}
+
+/** The value a group shows as picked, with the defaults for patterns saved before it existed. */
+export const lingeriePick = (c: LingerieChoices, id: LingerieGroupId): string => (id === 'way' ? (c.way ?? 'four') : id === 'closure' ? (c.closure ?? 'none') : c[id]);
+
+const LINGERIE_PIECE_WORDS: Record<LingeriePiece, string> = { brief: 'brief', bralette: 'bralette', bodysuit: 'bodysuit', swimsuit: 'swimsuit', bikini: 'bikini' };
+
+/** A plain name, such as "High-waist high-cut brief" or "Longline bralette". */
+export function describeLingerie(c: LingerieChoices) {
+  const bits: string[] = [];
+  if (lingerieGroupShown(c, 'cup')) bits.push(c.cup === 'longline' ? 'longline' : 'triangle');
+  if (lingerieGroupShown(c, 'rise')) bits.push(c.rise === 'high' ? 'high-waist' : 'mid-rise');
+  if (lingerieGroupShown(c, 'leg') && c.leg === 'high') bits.push('high-cut');
+  const words = `${bits.join(' ')}${bits.length ? ' ' : ''}${LINGERIE_PIECE_WORDS[c.piece]}`;
+  return words[0].toUpperCase() + words.slice(1);
+}
+
 /** A jacket or a coat: drafted on the bodice block, with a button front, a collar and a lining. */
 export interface OuterChoices {
   garment: OuterKind;
@@ -204,12 +260,13 @@ export function describeOuter(c: OuterChoices) {
 }
 
 /** A saved pattern's choices. Skirt choices predate bodices, so they carry no garment field. */
-export type PatternChoices = Choices | BodiceChoices | DressChoices | TrousersChoices | TeeChoices | OuterChoices;
+export type PatternChoices = Choices | BodiceChoices | DressChoices | TrousersChoices | TeeChoices | OuterChoices | LingerieChoices;
 
 export const isBodice = (c: PatternChoices): c is BodiceChoices => (c as BodiceChoices).garment === 'bodice';
 export const isDress = (c: PatternChoices): c is DressChoices => (c as DressChoices).garment === 'dress';
 export const isTrousers = (c: PatternChoices): c is TrousersChoices => (c as TrousersChoices).garment === 'trousers';
 export const isTee = (c: PatternChoices): c is TeeChoices => (c as TeeChoices).garment === 'tee';
+export const isLingerie = (c: PatternChoices): c is LingerieChoices => (c as LingerieChoices).garment === 'lingerie';
 export const isOuter = (c: PatternChoices): c is OuterChoices => (c as OuterChoices).garment === 'jacket' || (c as OuterChoices).garment === 'coat';
 
 export const DEFAULT_BODICE: BodiceChoices = { garment: 'bodice', fit: 'regular', neckline: 'crew', length: 'waist', darts: 'bust_waist', sleeve: 'none', sleeveShape: 'straight' };

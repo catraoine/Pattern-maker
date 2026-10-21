@@ -5,6 +5,7 @@ import type { FabricAdvice, FabricPick, MyFabric } from './fabrics';
 import { describeFabric, fabricLines } from './fabrics';
 import type { SewingGuide } from './instructions';
 import type { Stretch, TeeFit, TeeNeck } from './tee';
+import { isSwim, type LingeriePiece, type LingerieStretch } from './lingerie';
 
 /** The style the knit is checked against. */
 export interface TeeFabricStyle {
@@ -50,6 +51,47 @@ export function teeFabrics(style: { fit: TeeFit; stretch: Stretch; neckline?: Te
       'Woven fabrics such as poplin, linen or chambray: this pattern is drafted for a knit, close to or smaller than the body, and a woven will not go on. Also avoid knits with less stretch than you chose, and loose sweater knits that ladder.',
     note: `Choose a knit with ${STRETCH_WORDS[style.stretch]} across the width, that springs back when you let go.${style.neckline === 'v' ? ' For the V-neck, a knit with good recovery keeps the point sharp.' : ''}`,
     lining: NECKBAND,
+  };
+}
+
+/** Lingerie and swimwear, checked against the piece and the knit's stretch. */
+export interface LingerieFabricStyle {
+  garment: 'lingerie';
+  piece: LingeriePiece;
+  stretch: LingerieStretch;
+}
+
+const SWIM_PICKS: FabricPick[] = [
+  pick('Nylon-elastane swim Lycra', ['light', 'medium'], 'soft', 'Four-way stretch with strong recovery: the classic swimsuit fabric.'),
+  pick('Recycled nylon swim fabric', ['light', 'medium'], 'soft', 'Made from fishing nets and waste nylon, and just as stretchy.'),
+  pick('Polyester-elastane swim fabric', ['light', 'medium'], 'soft', 'Lasts longest in chlorine and keeps its colour.'),
+];
+const INTIMATE_PICKS: Record<LingerieStretch, FabricPick[]> = {
+  medium: [
+    pick('Cotton-elastane jersey', ['light'], 'soft', 'Soft and breathable for everyday briefs and bralettes.'),
+    pick('Stretch lace', ['light'], 'soft', 'Pretty and close-fitting. Many laces stretch across only: choose that on the style screen if yours does.'),
+    pick('Power mesh', ['light'], 'soft', 'Firm, with strong recovery rather than a lot of stretch: good for a band, a shelf or a smoothing bodysuit.'),
+  ],
+  high: [
+    pick('Microfibre Lycra', ['light'], 'soft', 'Smooth and invisible under clothes.'),
+    pick('Modal-elastane jersey', ['light'], 'fluid', 'Silky soft against the skin, and very stretchy.'),
+    pick('Silk-elastane jersey', ['light'], 'fluid', 'Luxurious and very fine.'),
+  ],
+};
+
+/** Fabrics for lingerie and swimwear: four-way stretch with strong recovery, and their lining. */
+export function lingerieFabrics(style: { piece: LingeriePiece; stretch: LingerieStretch; way?: 'four' | 'two' }): FabricAdvice {
+  const swim = isSwim(style.piece);
+  return {
+    style: `a ${style.piece}`,
+    picks: swim ? SWIM_PICKS : INTIMATE_PICKS[style.stretch],
+    avoid: 'Woven fabrics, and knits that do not spring back: this pattern is cut smaller than you and relies on the stretch.',
+    note: swim
+      ? 'Choose a swim fabric with at least 50% stretch both ways and chlorine-resistant elastane.'
+      : `Choose a knit with ${style.stretch === 'high' ? 'high stretch (50% or more)' : 'medium stretch (30 to 50%)'} across${style.way === 'two' ? '' : ' and some stretch down its length'}, that springs back when you let go.`,
+    lining: swim
+      ? pick('Swim lining', ['light'], 'soft', 'Lines the whole piece so it is opaque when wet.')
+      : pick('Gusset: cotton jersey', ['light'], 'soft', 'Breathable next to the skin.'),
   };
 }
 
