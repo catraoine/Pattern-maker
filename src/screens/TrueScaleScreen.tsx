@@ -4,6 +4,7 @@ import { Piece, cutLine } from '../engine/piece';
 import type { Run } from '../engine/compare';
 import { edgeWords } from '../engine/compare';
 import { CARD_MM, Calibration, distanceCm, edgeAt, loadCalibration, pxPerMmOf, saveCalibration, screenKey, snap } from '../engine/scale';
+import { DemoButton } from '../ui/DemoButton';
 
 interface Props {
   pieces: Piece[];
@@ -53,6 +54,7 @@ function CardCalibration({ start, onDone, onCancel }: { start?: number; onDone: 
         <div className="calcard" style={{ width: `${px}px`, height: `${(px * CARD_MM.h) / CARD_MM.w}px`, borderRadius: `${(px * 3.18) / CARD_MM.w}px` }} aria-label="A card-sized shape to match">
           <span className="small">85.60 × 53.98 mm</span>
         </div>
+        <DemoButton demo="scale" />
       </div>
       <div className="row wrap">
         <div className="stepper" role="group" aria-label="Card size">
@@ -194,6 +196,7 @@ function PieceAtScale({ pieces, pxPerMm, onRecalibrate }: { pieces: Piece[]; pxP
           Match the card again
         </button>
       </div>
+      <DemoButton demo="scale" />
     </section>
   );
 }

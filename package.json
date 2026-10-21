@@ -10,7 +10,8 @@
     "test": "vitest run",
     "eval:photo": "vite-node scripts/eval-photo.ts",
     "test:e2e": "playwright test -c e2e",
-    "record:tour": "node scripts/record-demo.mjs public/tour"
+    "record:tour": "node scripts/record-demo.mjs public/tour",
+    "record:demos": "node scripts/record-demos.mjs public/demos"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.133.0",

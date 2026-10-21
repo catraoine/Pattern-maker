@@ -66,7 +66,6 @@ import { TeeStyleScreen, teeFabricMetres } from './screens/TeeStyleScreen';
 import { LingerieStyleScreen, lingerieFabricMetres } from './screens/LingerieStyleScreen';
 import { OuterStyleScreen, outerFabricMetres } from './screens/OuterStyleScreen';
 import { ExportScreen, Printable } from './screens/ExportScreen';
-import { ChapterBand } from './ui/ChapterBand';
 import { describePattern } from './screens/describe';
 import { WelcomeScreen } from './screens/WelcomeScreen';
 import { FABRIC, openTabNext } from './ui/StyleLayout';
@@ -102,7 +101,7 @@ import { CollectionScreen } from './screens/CollectionScreen';
 import { lookPatch } from './collection';
 import { archiveCut } from './archive';
 import { CollectionLink } from './ui/GarmentSwitch';
-import { LoadingScreen, BODICE } from './ui/LoadingScreen';
+import { LoadingScreen } from './ui/LoadingScreen';
 import type { FormStart } from './ui/ContourForm';
 import type { Piece } from './engine/piece';
 import type { PocketStyle } from './engine/pockets';
@@ -112,7 +111,6 @@ import { PointEditContext } from './ui/PointEditor';
 import { Flounce, GodetCount, Pleats, layoutExtras } from './engine/skirtVolume';
 
 // The logo (Cat's pick F1 Loading Block): the loading screen's bodice block, drawn inside the header's square.
-const BRAND_BLOCK = 'M' + BODICE.map(([x, y]) => `${(9 + x * 14).toFixed(2)} ${(8 + y * 16).toFixed(2)}`).join(' L') + ' Z';
 import { Mode, finishFor, keepFinish, modeOf } from './mode';
 
 export type Step = 'measure' | 'style' | 'export';
@@ -822,6 +820,13 @@ export default function App() {
     setStepsStart({ at: stepsStart.at + 1, start });
     setStep('steps');
   };
+  /** Measure me, from the example tag or the print question: drops the example's numbers and opens measuring from
+   *  the start. */
+  const measureMe = () => {
+    const own = Object.fromEntries(Object.entries(measured).filter(([id]) => !person.example?.includes(id as MeasurementId)));
+    setAccount(updatePerson(account, person.id, { values: own, example: [] }));
+    openSteps();
+  };
   /** "Choose another garment": the same list as when measuring. */
   const chooseGarment = () => openSteps({ kind: 'choose' });
 
@@ -924,10 +929,6 @@ export default function App() {
         <header className={step === 'welcome' || step === 'link' ? 'topbar' : 'topbar steady'}>
           {step === 'welcome' || step === 'link' ? (
             <div className="brand">
-              <svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true">
-                <rect x="2.5" y="2.5" width="27" height="27" fill="none" style={{ stroke: 'var(--gild)' }} strokeWidth="1" />
-                <path d={BRAND_BLOCK} style={{ stroke: 'var(--gild)' }} strokeWidth="1" fill="none" strokeLinejoin="round" />
-              </svg>
               <span>Maison Tracé</span>
             </div>
           ) : (
@@ -980,8 +981,6 @@ export default function App() {
             </>
           )}
         </header>
-        {(step === 'style' || step === 'collection') && <ChapterBand key="style" kind="selvedge" />}
-        {(step === 'export' || step === 'imported' || step === 'formprint') && <ChapterBand key="print" kind="mat" />}
 
         <main className="main">
           <KeptCount.Provider value={{ kept: account.patterns.length, limit: savedLimit(account) }}>
@@ -1075,6 +1074,7 @@ export default function App() {
               onIdea={(c) => styleChoices(c)}
               onPhoto={() => setStep('photo')}
               onNews={() => openLegal('news')}
+              onLater={() => setStep('welcome')}
               onSkip={(g?: Garment) => {
                 // Skip on the tape: try the app with the example measurements, under any already taken.
                 const example = (Object.keys(EXAMPLE_VALUES) as MeasurementId[]).filter((id) => measured[id] === undefined);
@@ -1204,11 +1204,7 @@ export default function App() {
             <button
               type="button"
               className="example-tag"
-              onClick={() => {
-                const own = Object.fromEntries(Object.entries(measured).filter(([id]) => !person.example!.includes(id as MeasurementId)));
-                setAccount(updatePerson(account, person.id, { values: own, example: [] }));
-                openSteps();
-              }}
+              onClick={measureMe}
             >
               <span>Drafted to an example body</span>
               <span className="example-tag-go">Measure me ›</span>
@@ -1379,6 +1375,8 @@ export default function App() {
           {step === 'export' && !hasGarment(account, garment) && <UnlockGarment garment={garment} onPlans={openPlans} onBack={() => setStep('style')} />}
           {step === 'export' && hasGarment(account, garment) && (
             <ExportScreen
+              example={!!person.example?.length}
+              onMeasureMe={measureMe}
               unit={saved.unit}
               sendLink={sendLink}
               mode={mode}

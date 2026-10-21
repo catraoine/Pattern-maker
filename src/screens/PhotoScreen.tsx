@@ -10,6 +10,7 @@ import { isDress, type PatternChoices } from '../garments';
 import { describePattern } from './describe';
 import { bodyOutline } from '../ui/bodyOutline';
 import { testerHeaders } from '../ui/TesterCode';
+import { DemoButton } from '../ui/DemoButton';
 
 interface Props {
   /** Sent with the photo, for a fit tester's larger daily allowance. */
@@ -222,6 +223,7 @@ export function PhotoScreen({ testerCode, measured, body, unit, onByHand, onAppl
           {chooser('Take or choose a photo', 'primary')}
           <Tips />
         </div>
+        <DemoButton demo="photo" />
       </section>
     );
 

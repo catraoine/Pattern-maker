@@ -128,7 +128,7 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
               </button>
             </form>
           ) : (
-            <button type="button" className="link" onClick={() => setNaming(true)}>
+            <button type="button" className="later name-edit" onClick={() => setNaming(true)}>
               {account.name.trim() ? 'Change name' : 'Add your name'}
             </button>
           )}
@@ -313,7 +313,7 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
         </Fold>
       </div>
 
-      <p className="fineprint">
+      <p className="fineprint plain">
         <button type="button" className="inline-link" onClick={() => onLegal('privacy')}>
           Privacy Policy
         </button>

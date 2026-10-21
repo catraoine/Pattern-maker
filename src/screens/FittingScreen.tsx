@@ -4,6 +4,7 @@ import type { Piece } from '../engine/piece';
 import type { Side } from '../engine/skirt';
 import { Carried, FIT_ISSUES, FitTarget, FitIssue, appliesTo, Fitting, NO_FITTING, describeFitting, setAmount, toggleIssue, versionsOf } from '../engine/fitting';
 import { PieceChange, changeLabel, changeWords, compareEdges } from '../engine/compare';
+import { DemoButton } from '../ui/DemoButton';
 
 interface Props {
   /** A dress is fitted as one toile, with the bodice's and the skirt's corrections together. */
@@ -66,7 +67,10 @@ export function FittingScreen({ garment, fitting, own, carried = [], draftWith, 
       <section className="card help fitside" aria-labelledby="fitprev">
         <h2 id="fitprev">The correction</h2>
         {before && after ? (
-          <BeforeAfter before={before} after={after} changes={changes} />
+          <div className="fit-box">
+            <BeforeAfter before={before} after={after} changes={changes} />
+            <DemoButton demo="fitting" />
+          </div>
         ) : (
           <p className="msg error">These corrections can't be drafted for these measurements. Try a smaller amount.</p>
         )}

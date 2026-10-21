@@ -55,8 +55,8 @@ export function FabricCard({ metres, advice, look, fabric, knit, lined, children
         <p className="avoid small">
           <b>Avoid</b> {advice.avoid}
         </p>
+        <FabricGuide />
       </details>
-      <FabricGuide />
     </div>
   );
 }

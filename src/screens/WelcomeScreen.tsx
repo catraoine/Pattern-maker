@@ -1,9 +1,9 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ContourForm, type FormStart } from '../ui/ContourForm';
 import type { FormKind } from '../measurements';
-import { TapeBand } from '../ui/TapeBand';
 import { TOUR_LABEL, TourPlayer } from '../ui/TourPlayer';
 import { Title } from '../ui/Title';
+import { tapeRested } from '../ui/tapeHandoff';
 
 interface Props {
   onFinish: () => void;
@@ -17,18 +17,16 @@ interface Props {
   resume?: { garment: string; onResume: () => void; onSaved: () => void; onNew: () => void };
 }
 
-/** How long Begin's tape takes to unroll, clear the form and rise to the top of the measuring page. */
-const LEAVE_MS = 1700;
-
-// The welcome has one button (Cat, 2026-10-17): Begin. The tour plays from the dress form; trying an example
-// is the Skip on the measuring pages' tape. The end of a tape measure peeks in at the form's bottom corner
-// (Cat's U2 Tape Tip, 2026-10-18); Begin pulls the tape out of that corner across the form (E5 Out of the
-// Corner), the form fades, and the tape rises to where the measuring page's tape sits, so the next page
-// carries straight on from it.
+// The welcome has one button (Cat, 2026-10-17): Begin. The tour plays from the dress form, a close crop of the
+// form with no head (Cat went back to this from C1 Light Pass, 2026-10-20). Trying an example is the quiet Skip
+// link on the measuring pages.
 // The name is asked only when measuring someone else, on the first measuring page.
 // Coming back with measurements already taken, the button carries on with the garment you were on, straight
-// to its style screen, with a quiet way to your saved patterns or something new under it. No tape tip there
-// (Cat, 2026-10-20): it only belongs where Begin pulls the tape out into measuring.
+// to its style screen, with a quiet way to your saved patterns or something new under it.
+/** How long Begin's tape takes to unroll across the form, rise and fade into the first measuring page. */
+const LEAVE_MS = 2600;
+const MARKS = Array.from({ length: 30 }, (_, i) => i + 41);
+
 export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume }: Props) {
   const [touring, setTouring] = useState(false);
   const [leaving, setLeaving] = useState(false);
@@ -46,12 +44,17 @@ export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume }: Pr
     return () => ro.disconnect();
   }, []);
 
+  const tape = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!leaving) return;
-    const t = window.setTimeout(() => done.current(), LEAVE_MS);
+    const t = window.setTimeout(() => {
+      if (tape.current) tapeRested(tape.current);
+      done.current();
+    }, LEAVE_MS);
     return () => window.clearTimeout(t);
   }, [leaving]);
 
+  // Begin pulls the tape out of the tip at the form's corner (Cat, 2026-10-20: brought back after Release 10).
   const begin = () => {
     if (leaving) return;
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) onFinish();
@@ -68,7 +71,15 @@ export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume }: Pr
             <span className="tour-play-label">How it works · {TOUR_LABEL}</span>
           </button>
           {!resume && <span className="tape-tip" aria-hidden="true" />}
-          {leaving && <TapeBand className="unrolling" />}
+          {leaving && (
+            <div ref={tape} className="tape-band unrolling" aria-hidden="true">
+              <div className="tape-marks">
+                {MARKS.map((n) => (
+                  <span key={n}>{n}</span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
         <Title id="wtitle" big="Sewing patterns" label={resume ? 'Welcome back' : 'drafted to your body'} />
         {resume ? (

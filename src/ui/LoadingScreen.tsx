@@ -16,6 +16,7 @@ const HOLD = 3500; // then the whole screen fades away, or the block starts to w
 const MORPH = 4600; // the block has become the form's outline
 const FADE = 400;
 const LOOP = 420; // points on each outline while one becomes the other
+const ASPECT = 0.58; // the block's width to its height
 
 // Champagne, as picked for the app's look
 const LINE = '#D9C49B';
@@ -38,17 +39,21 @@ const quad = (a: Pt, c: Pt, b: Pt, n: number): Pt[] =>
     return [v * v * a[0] + 2 * v * u * c[0] + u * u * b[0], v * v * a[1] + 2 * v * u * c[1] + u * u * b[1]];
   });
 
-/** A front bodice block in a unit box, as one closed pen stroke: neck, shoulder, armhole, side seam, waist dart, centre front. */
+/**
+ * A front bodice block in a unit box, as one closed pen stroke: neck, shoulder, armhole, side seam, waist dart,
+ * centre front. Cat's L1 Slim Dart (2026-10-21): taller than wide like a real front bodice, with the dart at its
+ * true size so the waist no longer splits into two legs.
+ */
 export const BODICE: Pt[] = [
-  quad([0, 0.16], [0.24, 0.15], [0.3, 0], 30),
-  line([0.3, 0], [0.8, 0.09], 30),
-  quad([0.8, 0.09], [0.7, 0.42], [0.96, 0.46], 40),
-  line([0.96, 0.46], [0.9, 1], 30),
-  line([0.9, 1], [0.6, 1], 18),
-  line([0.6, 1], [0.5, 0.58], 22),
-  line([0.5, 0.58], [0.4, 1], 22),
-  line([0.4, 1], [0, 1], 22),
-  line([0, 1], [0, 0.16], 30),
+  quad([0, 0.17], [0.22, 0.165], [0.27, 0], 30),
+  line([0.27, 0], [0.82, 0.075], 30),
+  quad([0.82, 0.075], [0.71, 0.37], [0.98, 0.42], 40),
+  line([0.98, 0.42], [0.92, 1], 34),
+  line([0.92, 1], [0.56, 1], 18),
+  line([0.56, 1], [0.5, 0.7], 16),
+  line([0.5, 0.7], [0.44, 1], 16),
+  line([0.44, 1], [0, 1], 22),
+  line([0, 1], [0, 0.17], 34),
 ].reduce<Pt[]>((all, part) => all.concat(all.length ? part.slice(1) : part), []);
 
 /** The same closed outline as `n` points evenly spaced along it. */
@@ -115,15 +120,18 @@ function draw(g: CanvasRenderingContext2D, w: number, h: number, t: number, box:
   // The block fills about the space the form will, so nothing jumps in size when one becomes the other
   let bw: number, bh: number, x0: number, y0: number, lw: number;
   if (box) {
-    bh = box.h * 0.78;
-    bw = Math.min(bh / 1.15, box.w * 0.8);
-    bh = bw * 1.15;
-    x0 = box.x + (box.w - bw) / 2;
+    bh = box.h * 0.9;
+    bw = Math.min(bh * ASPECT, box.w * 0.8);
+    bh = bw / ASPECT;
+    // Centred on the form, which sits to the right of the title in a wide window.
+    const form = formOutline(box.w, box.h, box.kind);
+    const xs = form.pts.map((q) => q[0]);
+    x0 = box.x + (Math.min(...xs) + Math.max(...xs)) / 2 - bw / 2;
     y0 = box.y + (box.h - bh) * 0.45;
-    lw = formOutline(box.w, box.h, box.kind).lw;
+    lw = form.lw;
   } else {
-    bw = Math.min(w * 0.7, (h * 0.55) / 1.15);
-    bh = bw * 1.15;
+    bw = Math.min(w * 0.7, h * 0.62 * ASPECT);
+    bh = bw / ASPECT;
     x0 = (w - bw) / 2;
     y0 = (h - bh) / 2 + 20;
     lw = Math.max(1, bw / 200);

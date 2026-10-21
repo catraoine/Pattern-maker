@@ -140,6 +140,7 @@ export function MeasureLinkScreen({ ask, unit, onUnit, onKeep }: Props) {
       onValues={(v) => setValues(v)}
       onNext={() => (page.back && canGoBack() ? goBack() : setPage(page.back || last ? { kind: 'done' } : { kind: 'measure', at: at + 1 }))}
       label={page.back ? 'Save' : last ? 'Done' : 'Next'}
+      ids={ids}
     />
   );
 }

@@ -261,11 +261,11 @@ export function StyleLayout({ children, label, name, garment, metres, width = 14
         <p className="review-name">{name}</p>
         {/* Both ways to change it, together under the name; the summary's own Edit measurements is for the computer layout. */}
         <p className="review-edits">
-          <button type="button" className="link" onClick={() => (canGoBack() ? goBack() : setPage('edit'))}>
+          <button type="button" className="later" onClick={() => (canGoBack() ? goBack() : setPage('edit'))}>
             Edit style
           </button>
           {onEditMeasurements && (
-            <button type="button" className="link" onClick={onEditMeasurements}>
+            <button type="button" className="later" onClick={onEditMeasurements}>
               Edit measurements
             </button>
           )}

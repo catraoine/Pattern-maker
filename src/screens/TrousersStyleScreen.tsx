@@ -29,6 +29,7 @@ import { MyFabric, fabricEase, trousersFabrics } from '../engine/fabrics';
 import { FabricCard, FabricSummary } from '../ui/FabricCard';
 import { ChoicePic, chipsClass } from '../ui/ChoicePic';
 import { Explain } from '../ui/Explain';
+import { DemoButton } from '../ui/DemoButton';
 
 interface Props {
   /** Start from a photo, and the photo this garment was matched to while the app is open. */
@@ -178,6 +179,7 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
           )}
         </div>
         <div className="preview">
+          <DemoButton demo="style" />
           {error && <p className="msg error">{error}</p>}
           {formBody && draft && view === 'sketch' && (
             <FormSketch body={formBody} m={values as { waist: number }} legs bottom={draft.lengthCm + 6} lines={{}} outline={formOutline} label={`The ${title.toLowerCase()} on your form`} />

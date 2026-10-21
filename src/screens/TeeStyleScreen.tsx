@@ -25,6 +25,7 @@ import { FormSketch } from '../ui/FormSketch';
 import { TeeFormMeasurements, readTeeFit, readTeeHem, readTeeNeckline, readTeeSleeve, teeForm, teeLines } from '../ui/formTops';
 import { FABRIC, Group, LOOKS, StyleLayout, TabPanel } from '../ui/StyleLayout';
 import { FabricDetails } from '../ui/FabricDetails';
+import { DemoButton } from '../ui/DemoButton';
 
 interface Props {
   /** Start from a photo, and the photo this garment was matched to while the app is open. */
@@ -197,6 +198,7 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
           </div>
         </div>
         <div className="preview">
+          <DemoButton demo="style" />
           {error && <p className="msg error">{error}</p>}
           {form && view === 'sketch' && <FormSketch body={form.body} m={m} legs={false} bottom={form.hems.tunic + 6} arms={form.arm} lines={formLines} label={`The ${title.toLowerCase()} on your form`} />}
           {flat && view === 'flat' && <TechFlatView flat={flat} title={title} />}
