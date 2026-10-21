@@ -16,6 +16,7 @@ export const FitReportSchema = z
     areas: z.partialRecord(z.enum(FIT_AREAS), area),
     notes: z.string().max(NOTES_MAX),
     measurements: z.record(z.string().max(40), z.number().min(0).max(400)),
+    helped: z.array(z.string().max(40)).max(80).optional(),
   })
   .strict();
 

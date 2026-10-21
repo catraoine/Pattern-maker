@@ -1,7 +1,7 @@
 // How a sewn pattern fitted, noted by the sewist against a saved pattern. Kept on this device with the pattern,
 // so the next toile can start from what was learnt.
 import { PatternChoices, isBodice, isDress, isOuter, isTee, isTrousers } from './garments';
-import type { MeasurementValues } from './measurements';
+import type { MeasurementId, MeasurementValues } from './measurements';
 
 export type Verdict = 'good' | 'tweaks' | 'off';
 /** -1 too tight (or short), 0 right, 1 too loose (or long). */
@@ -125,17 +125,23 @@ export interface FitReport {
   areas: FitFeedback['areas'];
   notes: string;
   measurements: MeasurementValues; // cm
+  /** Which of those a friend held the tape for, so a miss can be read against how the number was taken. */
+  helped?: MeasurementId[];
 }
 
-export const fitReport = (fit: FitFeedback, choices: PatternChoices, measurements: MeasurementValues): FitReport => ({
-  garment: garmentKind(choices),
-  choices,
-  verdict: fit.verdict,
-  made: fit.made,
-  areas: fit.areas,
-  notes: fit.notes,
-  measurements,
-});
+export const fitReport = (fit: FitFeedback, choices: PatternChoices, measurements: MeasurementValues, helped: MeasurementId[] = []): FitReport => {
+  const taken = helped.filter((id) => measurements[id] !== undefined);
+  return {
+    garment: garmentKind(choices),
+    choices,
+    verdict: fit.verdict,
+    made: fit.made,
+    areas: fit.areas,
+    notes: fit.notes,
+    measurements,
+    ...(taken.length ? { helped: taken } : {}),
+  };
+};
 
 /** Send fit notes to Maison Tracé. Resolves true when they arrived. */
 export async function sendFitReport(report: FitReport): Promise<boolean> {

@@ -463,7 +463,9 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', sendLink, prof
         )}
       </section>
 
-      {(can('toile') || garment === 'lingerie') && !imported && (
+      {/* The toile shows in the simple view too (measuring accuracy, 2026-10-21): a calico try-on fixes what a tape at
+          home can't, so a first-time sewist is offered it before cutting good fabric. */}
+      {!imported && (
         <section className="card" aria-labelledby="toiletitle">
           <p className="eyebrow">Before your fabric{fittingNotes.length && fitting ? ` · version ${fitting.round + 1}` : ''}</p>
           <h2 id="toiletitle">{knit ? 'Try it in a spare knit first' : fittingNotes.length ? 'Corrected after your toile' : 'Fit it in a toile first'}</h2>
@@ -491,7 +493,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', sendLink, prof
                 {fittingNotes.length ? 'Fit another toile' : 'I’ve tried on a toile'}
               </button>
             )}
-            {onTrueScale && made && (
+            {onTrueScale && made && can('toile') && (
               <button type="button" className="secondary" onClick={onTrueScale}>
                 See a piece at true size
               </button>

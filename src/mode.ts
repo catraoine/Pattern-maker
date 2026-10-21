@@ -21,7 +21,7 @@ export const PRO_TOOLS = [
   'bigPrint', // A0 copy shop and projector files
   'byHand', // draft-it-by-hand pages
   'techFlat', // the technical flat card
-  'toile', // the fitting loop and true-scale view
+  'toile', // the true-scale view (the toile fitting itself shows in both, since 2026-10-21: it fixes what the tape can't)
   'makerPack', // send to a dressmaker, tech pack, DXF, SVG, how it was drafted
   'sizeRun', // grading a size run
   'couture', // the couture sewing route
