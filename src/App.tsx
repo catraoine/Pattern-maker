@@ -64,6 +64,7 @@ import { OuterStyleScreen, outerFabricMetres } from './screens/OuterStyleScreen'
 import { ExportScreen, Printable } from './screens/ExportScreen';
 import { describePattern } from './screens/describe';
 import { WelcomeScreen } from './screens/WelcomeScreen';
+import { CODE_MESSAGE, checkCode, hasAccess, rememberAccess, testerFromLink, withoutTester } from './access';
 import { FABRIC, openTabNext } from './ui/StyleLayout';
 import { KeptCount } from './ui/SaveControl';
 import { GARMENT_NAME } from './measureFlow';
@@ -321,6 +322,30 @@ export default function App() {
   const [startView] = useState<View>(incoming?.kind === 'ask' ? 'link' : incoming?.kind === 'reply' ? 'arrive' : isMoveLink(window.location.hash) ? 'move' : 'welcome');
   const [step, setStep] = useViewHistory<View>(startView, (to) => (NEEDS_MEASUREMENTS.includes(to) && !canLeaveMeasure ? 'measure' : to));
   const openLegal = (page: 'privacy' | 'terms' | 'tester' | 'news' | 'brands' | 'nights') => setStep(page);
+  // The waitlist (Cat's W1, 2026-10-21): until launch, a visitor without a tester link sees the welcome with a waitlist
+  // where Begin was, and the Privacy and Terms pages, nothing else. Measure-me and move links still open, as they
+  // come from someone already using the app.
+  const [access, setAccess] = useState(() => hasAccess(storedAccount.testerCode));
+  const gated = !access && !storedAccount.testerCode && startView === 'welcome';
+  const [linkCheck, setLinkCheck] = useState<{ checking?: boolean; message?: string }>({});
+  const letIn = (code: string) => {
+    rememberAccess();
+    setAccess(true);
+    if (!storedAccount.testerCode) setAccount({ ...storedAccount, testerCode: code });
+  };
+  useEffect(() => {
+    if (gated && step !== 'welcome' && step !== 'privacy' && step !== 'terms') setStep('welcome');
+  }, [gated, step]);
+  // A tester link (?tester=TOILE-ONE): checked once, then the code leaves the address bar.
+  useEffect(() => {
+    const code = testerFromLink(window.location.search);
+    if (!code) return;
+    window.history.replaceState(window.history.state, '', withoutTester(window.location.pathname, window.location.search, window.location.hash));
+    if (access) return;
+    setLinkCheck({ checking: true });
+    checkCode(code).then((r) => (r === 'tester' ? (letIn(code), setLinkCheck({})) : setLinkCheck({ message: r === 'wrong' ? "That tester link isn't working. Check the email it came in, or type the code here." : CODE_MESSAGE[r] })));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   // Where Plans goes back to: the screen it was opened from.
   const [beforePlans, setBeforePlans] = useState<View>('account');
   const openPlans = () => {
@@ -892,8 +917,15 @@ export default function App() {
       )}
       <PointEditContext.Provider value={pointEditing}>
       <div className="app" {...{ inert: opening ? '' : undefined }}>
-        <header className={step === 'welcome' || step === 'link' ? 'topbar' : 'topbar steady'}>
-          {step === 'welcome' || step === 'link' ? (
+        <header className={step === 'welcome' || step === 'link' || gated ? 'topbar' : 'topbar steady'}>
+          {gated && step !== 'welcome' ? (
+            <div className="brand">
+              <button type="button" className="steady-back" aria-label="Back" onClick={back}>
+                ←
+              </button>
+              <span>Maison Tracé</span>
+            </div>
+          ) : step === 'welcome' || step === 'link' || gated ? (
             <div className="brand">
               <span>Maison Tracé</span>
             </div>
@@ -1001,6 +1033,7 @@ export default function App() {
               formStart={formStart}
               form={form}
               onLegal={openLegal}
+              waitlist={gated ? { onCode: letIn, checking: linkCheck.checking, linkMessage: linkCheck.message } : undefined}
               onFinish={() => {
                 setAccount({ ...account, onboarded: true, mode });
                 setStep('steps');
