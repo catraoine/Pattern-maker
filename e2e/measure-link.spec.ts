@@ -38,11 +38,11 @@ test('measure-me link: client measures, dressmaker asks for a redo, numbers land
   await expect(main).toContainText('7 measurements');
   await main.getByRole('button', { name: 'Start' }).click();
   await measure(page, [
-    ['Height', '165'],
-    ['Full bust', '92'],
     ['Waist', '74'],
+    ['Full bust', '92'],
     ['Full hip', '81'],
     ['Waist to floor', '104'],
+    ['Height', '165'],
     ['Waist to hip', '20'],
     ['Waist to knee', '58'],
   ]);

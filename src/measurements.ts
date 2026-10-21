@@ -3,11 +3,12 @@ import type { SkirtMeasurements } from './engine/skirt';
 import type { BodiceMeasurements } from './engine/bodice';
 import type { SleeveMeasurements } from './engine/sleeve';
 import type { TrousersMeasurements } from './engine/trousers';
+import type { LingerieMeasurements } from './engine/lingerie';
 
-export type Garment = 'skirt' | 'bodice' | 'dress' | 'trousers' | 'tee' | 'jacket' | 'coat';
+export type Garment = 'skirt' | 'bodice' | 'dress' | 'trousers' | 'tee' | 'jacket' | 'coat' | 'lingerie';
 
 /** The engine's measurements, and the height, which no block uses directly: it anchors the checks and the estimates. */
-export type MeasurementId = keyof SkirtMeasurements | keyof BodiceMeasurements | keyof SleeveMeasurements | keyof TrousersMeasurements | 'height';
+export type MeasurementId = keyof SkirtMeasurements | keyof BodiceMeasurements | keyof SleeveMeasurements | keyof TrousersMeasurements | keyof LingerieMeasurements | 'height';
 
 export interface MeasurementField {
   id: MeasurementId;
@@ -23,7 +24,7 @@ export interface MeasurementField {
   fit?: boolean;
 }
 
-/** Asked first of everyone. Nothing is drafted from it, so an older profile without it still drafts; it is
+/** Asked of everyone, last of the five on the measuring pages and first in the lists. Nothing is drafted from it, so an older profile without it still drafts; it is
  * what the lengths are checked against, and what the estimates scale from. */
 export const HEIGHT: MeasurementField = {
   id: 'height',
@@ -120,7 +121,7 @@ export const TROUSERS_FIELDS: MeasurementField[] = [
     hard: [45, 115],
     typical: [56, 95],
     helper: true,
-    tip: 'From your centre front waist, down between your legs, and up to your centre back waist. Hold the tape snug but not tight, as you would want the seam to sit.',
+    tip: 'From your centre front waist, down between your legs, and up to your centre back waist. Hold the tape snug but not tight, as you would want the seam to sit. Ask someone to hold the end at the back: alone, it often comes out a few cm off.',
   },
   ...SKIRT_FIELDS.filter((f) => f.fit),
 ];
@@ -308,6 +309,49 @@ export const TEE_FIELDS: MeasurementField[] = [
   }),
 ];
 
+/** Lingerie and swimwear take the snug underbust, the crotch length for briefs and one-pieces, and the
+ * back length and shoulders for straps. The neck and bust points are estimated until they're taken. */
+const UNDERBUST: MeasurementField = {
+  id: 'underbust',
+  label: 'Underbust',
+  hard: [55, 170],
+  typical: [62, 130],
+  tip: 'Snug round your ribcage, just under your bust, keeping the tape level all the way round. Breathe out and hold it firm, the way a bra band sits.',
+};
+const TORSO_LOOP: MeasurementField = {
+  id: 'torso_loop',
+  label: 'Torso loop',
+  hard: [100, 230],
+  typical: [125, 190],
+  helper: true,
+  tip: 'From the top of one shoulder, down the front over your bust, between your legs and up your back to the same shoulder. Stand tall and keep the tape snug. It sets a one-piece\'s length.',
+};
+/** Only the waist, hip and crotch length are needed for every piece (the brief); the rest are asked when a
+ * piece needs them, from the style screen. */
+const LINGERIE_NEEDS_FOR: [MeasurementId, string | undefined][] = [
+  ['full_bust', undefined],
+  ['waist', undefined],
+  ['full_hip', undefined],
+  ['waist_to_hip', undefined],
+  ['crotch_length', undefined],
+  ['underbust', 'For the bralette, bikini top and one-pieces.'],
+  ['torso_loop', 'For the bodysuit and swimsuit.'],
+  ['nape_to_waist', 'For tops and one-pieces.'],
+  ['shoulder_width', 'For the bodysuit and swimsuit straps.'],
+  ['neck', ESTIMATE_NOTE],
+  ['bust_depth', ESTIMATE_NOTE],
+  ['apex_separation', ESTIMATE_NOTE],
+];
+const LINGERIE_FIELDS: MeasurementField[] = [
+  HEIGHT,
+  ...LINGERIE_NEEDS_FOR.map(([id, optional]) => {
+    if (id === 'underbust') return { ...UNDERBUST, optional };
+    if (id === 'torso_loop') return { ...TORSO_LOOP, optional };
+    const f = [...BODICE_FIELDS, ...TROUSERS_FIELDS].find((b) => b.id === id)!;
+    return { ...f, optional };
+  }),
+];
+
 /** A jacket takes the bodice's measurements with the hip (it reaches below the waist) and the arms (it
  * always has sleeves); a coat also the knee, for its length. */
 const OUTER_NEEDS: MeasurementId[] = ['full_hip', 'waist_to_hip', 'arm_length', 'upper_arm'];
@@ -318,7 +362,7 @@ const COAT_FIELDS: MeasurementField[] = [
   ...JACKET_FIELDS.filter((f) => f.fit),
 ];
 
-export const FIELDS: Record<Garment, MeasurementField[]> = { skirt: SKIRT_FIELDS, bodice: BODICE_FIELDS, dress: DRESS_FIELDS, trousers: TROUSERS_FIELDS, tee: TEE_FIELDS, jacket: JACKET_FIELDS, coat: COAT_FIELDS };
+export const FIELDS: Record<Garment, MeasurementField[]> = { skirt: SKIRT_FIELDS, bodice: BODICE_FIELDS, dress: DRESS_FIELDS, trousers: TROUSERS_FIELDS, tee: TEE_FIELDS, jacket: JACKET_FIELDS, coat: COAT_FIELDS, lingerie: LINGERIE_FIELDS };
 
 export type Unit = 'cm' | 'in';
 export type MeasurementValues = Partial<Record<MeasurementId, number>>; // always stored in cm
@@ -355,6 +399,8 @@ export const EXAMPLE_VALUES: MeasurementValues = {
   front_hps_to_waist: 44,
   bust_depth: 26,
   apex_separation: 18,
+  underbust: 76,
+  torso_loop: 152,
   armscye: 40,
   arm_length: 59,
   upper_arm: 29,
@@ -444,6 +490,12 @@ export function checkMeasurements(v: MeasurementValues, unit: Unit, garment: Gar
     }
   }
   const { full_bust, high_bust, shoulder_width, across_back, front_hps_to_waist, bust_depth } = v;
+  const { underbust } = v;
+  if (full_bust && underbust && underbust >= full_bust) {
+    out.push({ id: 'underbust', level: 'error', message: 'Underbust should be smaller than full bust. Are they swapped?' });
+  } else if (full_bust && underbust && full_bust - underbust > 40) {
+    out.push({ id: 'underbust', level: 'warning', message: 'Full bust is a lot bigger than underbust. Please check both.' });
+  }
   if (full_bust && high_bust && high_bust > full_bust + 2) {
     out.push({ id: 'high_bust', level: 'warning', message: 'High bust is usually the same as or smaller than full bust. Are they swapped?' });
   } else if (full_bust && high_bust && full_bust - high_bust > 20) {
@@ -506,6 +558,9 @@ export function crossChecks(v: MeasurementValues): CrossCheck[] {
   ratio('waist_to_knee', 'waist_to_floor', 0.47, 0.65,
     'Waist to knee looks short next to waist to floor. Measure down the side to the middle of the knee, standing straight.',
     'Waist to knee looks long next to waist to floor. Measure to the middle of the knee, and to the floor in bare feet.');
+  ratio('crotch_length', 'full_hip', 0.56, 0.84,
+    'Crotch length looks short for your hips. It runs from the centre front waist, right through between your legs, to the centre back waist. It is easiest with someone holding the tape at the back.',
+    'Crotch length looks long for your hips. Keep the tape snug between the legs, and stop at the waist front and back. It is easiest with someone holding the tape at the back.');
   ratio('crotch_length', 'crotch_depth', 2.1, 3.3,
     'Crotch length looks short next to your crotch depth. Take the tape from the centre front waist right through between the legs to the centre back waist.',
     'Crotch length looks long next to your crotch depth. Keep the tape snug between the legs, and stop at the waist front and back.');

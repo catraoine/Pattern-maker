@@ -7,9 +7,8 @@ export function tapeRested(el: Element) {
   rest = { left: r.left, top: r.top, at: Date.now() };
 }
 
-/** The welcome's resting tape, if it closed a moment ago; taken once. */
+/** Where the tape last came to rest, if it was a moment ago: the welcome's as the first page opens, the first page's
+ *  as the waist page opens (Cat, 2026-10-21: the tape carries on down to the waist). */
 export function takeTapeRest() {
-  const r = rest;
-  rest = undefined;
-  return r && Date.now() - r.at < 2000 ? r : undefined;
+  return rest && Date.now() - rest.at < 2000 ? rest : undefined;
 }

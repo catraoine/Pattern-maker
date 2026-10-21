@@ -1,9 +1,10 @@
-import { useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { FIELDS, checkMeasurements, type Check, type FormKind, type Garment, type MeasurementId, type MeasurementValues, type Unit } from '../measurements';
 import { BASE, baseDone, fullSetMissing, GARMENT_NAME, GARMENTS, labelOf, missingFor, stepsOf, tipOf, titleOf } from '../measureFlow';
-import { takeTapeRest } from '../ui/tapeHandoff';
+import { createPortal } from 'react-dom';
+import { takeTapeRest, tapeRested } from '../ui/tapeHandoff';
 import { WEIGHT_HARD, WeightEntry, fromKg, weightUnitOf } from '../ui/WeightEntry';
-import { FormPicture, TapeDemo } from '../ui/ContourForm';
+import { CARRY_MS, FormPicture, labelLevel, readCamera, TapeDemo, TAPE_PX } from '../ui/ContourForm';
 import { canGoBack, goBack, usePageHistory } from '../nav';
 import { estimateOne } from '../estimate';
 import { Title } from '../ui/Title';
@@ -146,6 +147,9 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
   // together, then Begin measuring. "Someone else" asks their name here, before any measurement is taken.
   if (page.kind === 'intro') {
     const begin = () => {
+      // The tape across the top goes on down to the waist, the first measurement (Cat, 2026-10-21).
+      const strip = document.querySelector('.tape-band.landed');
+      if (strip) tapeRested(strip);
       if (helper) onSomeoneElse?.(name.trim());
       onForm?.(chosen);
       setPage({ kind: 'base', at: firstToTake() });
@@ -153,13 +157,8 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
     return (
       // Cat's R1 Two Switches (2026-10-21): the body alone, then two switches of the same kind, for the form and
       // for whom, Begin, and Measure later in quiet capitals. No underlined links.
-      <Shell title="First, let's take some measurements.">
-        {onForm && (
-          <div className="form-taped">
-            <FormPicture kind={chosen} />
-            <LandedTape />
-          </div>
-        )}
+      <Shell title="First, let's take some measurements." tape>
+        {onForm && <FormPicture kind={chosen} />}
         {onForm && (
           <div className="switch" role="radiogroup" aria-label="Which form to draft on?">
             {(['womenswear', 'menswear'] as const).map((k) => (
@@ -492,32 +491,21 @@ function chooseLabel(picked: Pick | null, values: MeasurementValues, form: FormK
 
 const TAPE_MARKS = Array.from({ length: 50 }, (_, i) => i + 41);
 
-/** The tape Begin pulls out on the welcome lands round the form's bust on the first page, measuring it (Cat's T3,
- *  2026-10-21). It comes down from where the welcome left it, across the top, so it never jumps. */
+/** The tape Begin pulls out on the welcome stays full size across the top of the first page (Cat, 2026-10-21), from
+ *  where the welcome left it, so it never jumps. Begin measuring carries it on down to the waist. */
 function LandedTape() {
   const ref = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     const tape = ref.current;
-    const card = tape?.closest('.welcome-card');
-    if (!tape || !card) return;
-    // Measured once the form has drawn and placed the bust, a frame or two after the page appears.
-    let frame = requestAnimationFrame(() => {
-      frame = requestAnimationFrame(() => {
-        const at = tape.getBoundingClientRect();
-        const top = card.getBoundingClientRect();
-        const phone = window.matchMedia('(max-width: 640px)').matches;
-        const from = takeTapeRest() ?? { left: phone ? 14 : top.left - 22, top: top.top - 17 };
-        const dx = from.left - at.left;
-        const dy = from.top - at.top;
-        tape.classList.remove('waiting');
-        if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches)
-          tape.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }], { duration: 900, easing: 'cubic-bezier(0.3, 0.1, 0.2, 1)' });
-      });
-    });
-    return () => cancelAnimationFrame(frame);
+    const from = takeTapeRest();
+    if (!tape || !from || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    // Where the welcome's layout left it a little off this page's top edge, it eases across rather than jumping.
+    const at = tape.getBoundingClientRect();
+    if (Math.abs(from.left - at.left) > 1 || Math.abs(from.top - at.top) > 1)
+      tape.animate([{ transform: `translate(${from.left - at.left}px, ${from.top - at.top}px)` }, { transform: 'none' }], { duration: 600, easing: 'cubic-bezier(0.3, 0.1, 0.2, 1)' });
   }, []);
   return (
-    <div ref={ref} className="tape-band landed waiting" aria-hidden="true">
+    <div ref={ref} className="tape-band landed" aria-hidden="true">
       <div className="tape-marks">
         {TAPE_MARKS.map((n) => (
           <span key={n}>{n}</span>
@@ -535,7 +523,9 @@ export function Shell({
   short,
   skip,
   later,
+  tape,
   aside,
+  labels,
   children,
 }: {
   /** A small line above the title, only where it tells you something (which step, which garment). */
@@ -548,22 +538,28 @@ export function Shell({
   /** Finish later, in place of Skip once real measurements are in (Cat, 2026-10-20): an example under real
    *  numbers would draft a pattern that fits no one, so later pages only offer to stop and keep them. */
   later?: () => void;
+  /** The tape Begin pulls out on the welcome, across the top of the first page (Cat, 2026-10-21). */
+  tape?: boolean;
   dots?: [number, number];
   /** A shorter form on top, so a longer list fits above its button. */
   short?: boolean;
   /** The left-hand column on a computer (Cat's W3 Drafting Table): the measurements on this run. */
   aside?: ReactNode;
+  /** On a computer, the list as names beside the form at their places on the body, in place of the aside. */
+  labels?: ReactNode;
   children: ReactNode;
 }) {
   // On a phone the words follow the form in one column. On a computer the page is three columns: the list, the
   // form in the middle, and the question on the right; with no list the form takes the first two.
   return (
     <div className="welcome">
-      <section className={['card welcome-card measure-step', short && 'short', hero && 'has-hero', aside && 'has-aside'].filter(Boolean).join(' ')} aria-labelledby="stitle">
+      <section className={['card welcome-card measure-step', short && 'short', hero && 'has-hero', aside && 'has-aside', labels && 'has-labels', tape && 'has-tape'].filter(Boolean).join(' ')} aria-labelledby="stitle">
+        {tape && <LandedTape />}
         {aside && <aside className="step-list">{aside}</aside>}
         {hero && (
           <div className="welcome-hero">
             {hero}
+            {labels}
             <div className="welcome-top">
               {dots && (
                 <div className="dots" aria-hidden="true">
@@ -593,6 +589,100 @@ export function Shell({
         </div>
       </section>
     </div>
+  );
+}
+
+/** The first page's tape, carried down from across the top to lie level at the waist, its hook at the body's left
+ *  edge, where the form's own tape takes over and wraps it round (Cat, 2026-10-21). The form is at the welcome's
+ *  scale here, so the tape is still the welcome's size. */
+function CarriedTape({ from }: { from: { left: number; top: number } }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const tape = ref.current;
+    if (!tape) return;
+    tape.style.left = `${from.left}px`;
+    tape.style.top = `${from.top}px`;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return void (tape.style.display = 'none');
+    // The form's first frame places the waist; then the tape travels to it.
+    let frame = 0;
+    let tries = 0;
+    const land = () => {
+      const cam = readCamera();
+      if (!cam) {
+        if (++tries < 30) frame = requestAnimationFrame(land);
+        else tape.style.opacity = '0';
+        return;
+      }
+      const c = cam.canvas.getBoundingClientRect();
+      // On a computer it stops at the form's own edge, clear of the words beside it.
+      if (!window.matchMedia('(max-width: 640px)').matches) tape.style.width = `${c.right - c.left - cam.x(0.1)}px`;
+      const to = `translate(${c.left + cam.x(0.1) - from.left}px, ${c.top + cam.Y(0.1) - TAPE_PX / 2 - from.top}px)`;
+      // It lands as the form's tape takes over, then gives way to it.
+      tape.animate(
+        [
+          { transform: 'none', opacity: 1 },
+          { transform: to, opacity: 1, offset: 0.8 },
+          { transform: to, opacity: 0 },
+        ],
+        { duration: CARRY_MS + 250, easing: 'cubic-bezier(0.3, 0.1, 0.2, 1)', fill: 'forwards' },
+      );
+    };
+    frame = requestAnimationFrame(land);
+    return () => cancelAnimationFrame(frame);
+  }, [from]);
+  return createPortal(
+    <div ref={ref} className="tape-band landed carried" aria-hidden="true">
+      <div className="tape-marks">
+        {TAPE_MARKS.map((n) => (
+          <span key={n}>{n}</span>
+        ))}
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+/** The measurements on this run as names beside the form, each at its own place on the body, the one being taken in
+ *  gold, its number once taken (Cat's M3b Labels on the Form, 2026-10-21). They follow the camera as it moves and keep
+ *  clear of each other, those out of view resting at the top or bottom edge. Computer only; the phone keeps its dots. */
+function FormLabels({ ids, at, values, unit, form }: { ids: MeasurementId[]; at: number; values: MeasurementValues; unit: Unit; form: FormKind }) {
+  const ref = useRef<HTMLOListElement>(null);
+  useEffect(() => {
+    let frame = 0;
+    const place = () => {
+      frame = requestAnimationFrame(place);
+      const list = ref.current;
+      const cam = readCamera();
+      if (!list || !cam || !list.offsetParent) return;
+      const box = list.getBoundingClientRect();
+      const c = cam.canvas.getBoundingClientRect();
+      const items = [...list.children] as HTMLElement[];
+      const GAP = 26;
+      const spots = items.map((li) => {
+        const y = Number(li.dataset.y);
+        return { li, top: c.top - box.top + cam.Y(y), right: box.right - (c.left + cam.x(y)) + 18 };
+      });
+      // In body order, pushed apart where they would touch and kept inside the picture.
+      const order = [...spots].sort((a, b) => a.top - b.top);
+      order.forEach((p, i) => (p.top = Math.max(p.top, i ? order[i - 1].top + GAP : 12)));
+      for (let i = order.length - 1; i >= 0; i--) order[i].top = Math.min(order[i].top, i < order.length - 1 ? order[i + 1].top - GAP : box.height - 12);
+      for (const p of spots) {
+        p.li.style.top = `${p.top}px`;
+        p.li.style.right = `${Math.min(p.right, box.width - 40)}px`;
+      }
+    };
+    place();
+    return () => cancelAnimationFrame(frame);
+  }, [ids, at]);
+  return (
+    <ol ref={ref} className="form-labels" aria-hidden="true">
+      {ids.map((i, n) => (
+        <li key={i} data-y={labelLevel(i, form)} className={n === at ? 'on' : undefined}>
+          {labelOf(i, form)}
+          {values[i] !== undefined && <b>{shown(values[i], unit)}</b>}
+        </li>
+      ))}
+    </ol>
   );
 }
 
@@ -679,6 +769,8 @@ export function MeasurePage({
   listTitle?: string;
 }) {
   const fieldLabel = labelOf(id, form);
+  // Opened by Begin measuring: the tape across the top of the first page comes down to the waist with it.
+  const [carry] = useState(() => (id === BASE[0] ? takeTapeRest() : undefined));
   const guess = canEstimate ? estimateOne(id, values, form) : undefined;
   const [estimated, setEstimated] = useState(false);
   const [text, setText] = useState<string | null>(null);
@@ -692,7 +784,17 @@ export function MeasurePage({
   const error = problems[0];
   // A double-check against the rest (the height, the weight, the other lengths): said here, where the number is
   // typed, and never in the way. Only once the number could be right on its own.
-  const doubt = !error && value !== undefined ? checkMeasurements(values, unit, checkAs, form, { weight }).find((c) => c.id === id && c.level === 'warning') : undefined;
+  // A check this number sets off on another one says so here too (Cat, 2026-10-21: the girths checked against each
+  // other as they come in, the lengths against the height once it's in), e.g. a waist larger than the hip just typed.
+  const doubt = (() => {
+    if (error || value === undefined) return undefined;
+    const warnings = (v: MeasurementValues) => checkMeasurements(v, unit, checkAs, form, { weight }).filter((c) => c.level === 'warning');
+    const now = warnings(values);
+    const without = { ...values };
+    delete without[id];
+    const before = new Set(warnings(without).map((c) => `${c.id} ${c.message}`));
+    return now.find((c) => c.id === id) ?? now.find((c) => !before.has(`${c.id} ${c.message}`));
+  })();
   const note = error ?? (tried && value === undefined ? { level: 'error', message: `Enter ${helper ? 'their' : 'your'} ${fieldLabel.toLowerCase()} to carry on.` } : undefined);
 
   const feetInches = id === 'height' && unit === 'in';
@@ -722,8 +824,14 @@ export function MeasurePage({
       dots={dots}
       skip={skip}
       later={later}
-      hero={<TapeDemo id={id} kind={form} />}
+      hero={
+        <>
+          <TapeDemo id={id} kind={form} carried={!!carry} />
+          {carry && <CarriedTape from={carry} />}
+        </>
+      }
       aside={ids && <StepList title={listTitle ?? 'Your measurements'} ids={ids} at={dots[1]} values={values} unit={unit} form={form} />}
+      labels={ids && ids.length <= 8 && ids.every((i) => labelLevel(i, form) !== undefined) && <FormLabels ids={ids} at={dots[1]} values={values} unit={unit} form={form} />}
     >
       <p className="muted step-tip">{tipOf(id, helper, form)}</p>
       <p className="how-row">

@@ -25,6 +25,12 @@ interface Props {
 // to its style screen, with a quiet way to your saved patterns or something new under it.
 /** How long Begin's tape takes to unroll across the form, rise and fade into the first measuring page. */
 const LEAVE_MS = 2600;
+/** On a computer, when the form starts sliding from the middle of the window to its place (as the loading screen
+ *  fades, so its lines drop as it goes), how long the slide takes, and when the play button comes in, last of all
+ *  (Cat, 2026-10-21). */
+const SLIDE_AT = 300;
+const SLIDE_MS = 1400;
+const PLAY_AT = SLIDE_AT + SLIDE_MS + 500;
 const MARKS = Array.from({ length: 30 }, (_, i) => i + 41);
 
 export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume }: Props) {
@@ -43,6 +49,31 @@ export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume }: Pr
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
+
+  // On a computer the loading screen's piece becomes the form in the middle of the window, then slides across to its
+  // place beside the title while its lines drop; the words come in as it arrives, the play button last (Cat, 2026-10-21).
+  useLayoutEffect(() => {
+    const el = hero.current;
+    if (formStart !== 'drawn' || !el || !matchMedia('(min-width: 960px)').matches || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const r = el.getBoundingClientRect();
+    const dx = window.innerWidth / 2 - (r.left + r.width / 2);
+    if (Math.abs(dx) < 8) return;
+    const timing = { duration: SLIDE_AT + SLIDE_MS, easing: 'linear', fill: 'backwards' as const };
+    const at = SLIDE_AT / (SLIDE_AT + SLIDE_MS);
+    const slide = el.animate(
+      [
+        { transform: `translateX(${dx}px)` },
+        { transform: `translateX(${dx}px)`, offset: at, easing: 'cubic-bezier(0.45, 0, 0.2, 1)' },
+        { transform: 'none' },
+      ],
+      timing,
+    );
+    const words = [...(el.parentElement?.children ?? [])].filter((c) => c !== el) as HTMLElement[];
+    const fades = words.map((c) => c.animate([{ opacity: 0 }, { opacity: 0, offset: at + (1 - at) * 0.7 }, { opacity: 1 }], { ...timing, duration: timing.duration + 300 }));
+    const play = el.querySelector('.tour-play');
+    const last = play?.animate([{ opacity: 0 }, { opacity: 0, offset: PLAY_AT / (PLAY_AT + 500) }, { opacity: 1 }], { duration: PLAY_AT + 500, fill: 'backwards' });
+    return () => [slide, ...fades, last].forEach((a) => a?.cancel());
+  }, [formStart]);
 
   const tape = useRef<HTMLDivElement>(null);
   useEffect(() => {

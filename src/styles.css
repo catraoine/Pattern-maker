@@ -5588,6 +5588,14 @@ input.inline:focus,
   width: 112px;
 }
 
+/* Lingerie: "How did it fit?" questions, one row of chips each. */
+.fitq {
+  margin: 0.6rem 0;
+}
+.fitq > p {
+  margin: 0 0 0.3rem;
+}
+
 /* Intuitiveness fixes (Cat, 2026-10-18). */
 /* 1. Coming back: the quiet ways in under "Carry on with your …". */
 .resume-more {
@@ -5945,7 +5953,7 @@ input.inline:focus,
   left: 0;
   right: 0;
   margin: 0;
-  top: calc(100% - 40px);
+  top: calc(100% - 32px);
   z-index: 3;
   animation: tape-pull 1.5s cubic-bezier(0.35, 0.1, 0.25, 1) both, tape-rise 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) 1.75s both;
 }
@@ -5973,6 +5981,33 @@ input.inline:focus,
   background: #b8a274;
 }
 
+/* The size of the tip it is pulled from, the whole way (Cat, 2026-10-21: the tip on the first screen is the right
+   size; the tape never grows), and as long as the screen is wide */
+.tape-band.unrolling,
+.tape-band.landed {
+  height: 18px;
+  background-image: repeating-linear-gradient(90deg, var(--tape-ink) 0 1px, transparent 1px 19.5px),
+    repeating-linear-gradient(90deg, rgba(43, 36, 24, 0.6) 0 1px, transparent 1px 3.9px);
+  background-size: 100% 8px, 100% 4px;
+  /* A long mark under each number, a short one between */
+  background-position: 19.5px 0, 19.5px 0;
+}
+
+.tape-band.unrolling .tape-marks span,
+.tape-band.landed .tape-marks span {
+  width: 19.5px;
+  padding-top: 8px;
+  font-size: 8px;
+}
+
+.tape-band.unrolling::before,
+.tape-band.landed::before {
+  left: -3px;
+  top: -4px;
+  bottom: -4px;
+  width: 4px;
+}
+
 /* It slides out of the tip rather than being uncovered, so the hook travels with it */
 @keyframes tape-pull {
   from {
@@ -5985,50 +6020,31 @@ input.inline:focus,
 
 @keyframes tape-rise {
   from {
-    top: calc(100% - 40px);
+    top: calc(100% - 32px);
   }
   to {
     top: 0;
   }
 }
 
-/* Risen, the tape comes down onto the first page and lands round the form's bust, full size, measuring it
-   (Cat's T3, 2026-10-21). It starts where the welcome left it, across the top, and takes no room of its own. */
-.measure-step > .step-words > .form-taped {
-  position: relative;
-  display: flex;
-  flex: 1 1 0;
-  min-height: 96px;
-  max-height: 340px;
+/* Risen, the tape stays full size across the top of the first page, and only that page (Cat, 2026-10-21), exactly
+   where the welcome's tape came to rest, so it doesn't jump as the page changes. Begin measuring carries it on down
+   to the waist. */
+.tape-band.landed {
+  margin: -17px -22px 18px;
+  grid-column: 1 / -1;
 }
 
-.form-taped > .form-picture {
-  height: 100%;
-}
-
-.form-taped > .tape-band.landed {
-  position: absolute;
-  top: calc(var(--bust-y, 30%) - 17px);
-  left: calc(var(--bust-x, 30%) + 5px);
-  right: -22px;
+/* Carried down to the waist: above everything, off the right-hand edge, the page clipping the rest. */
+.tape-band.landed.carried {
+  position: fixed;
+  z-index: 50;
+  width: 200vw;
   margin: 0;
-  z-index: 2;
+  pointer-events: none;
 }
-
-/* It runs off the right-hand edge of the window, long enough to stay off it as it comes down; the page clips the
-   rest. */
-.welcome-card:has(.form-taped) {
-  overflow-x: visible;
-}
-.form-taped > .tape-band.landed {
-  right: calc((100% - 100vw) / 2 - 100vw);
-}
-body:has(.form-taped) {
+body:has(.tape-band.carried) {
   overflow-x: clip;
-}
-
-.form-taped > .tape-band.landed.waiting {
-  visibility: hidden;
 }
 
 /* On a phone the tape runs the width of the screen, off the right-hand edge it came from, with its hook just in
@@ -6041,12 +6057,26 @@ body:has(.form-taped) {
     left: calc(50% - 50vw + 14px);
     right: calc(50% - 50vw);
   }
-
+  .welcome-card.has-tape {
+    overflow-x: visible;
+  }
+  .tape-band.landed:not(.carried) {
+    margin-left: calc(50% - 50vw + 14px);
+    margin-right: calc(50% - 50vw);
+  }
 }
 
-/* On a very short screen the form, and the tape round it, stay off so Begin measuring stays in view. */
+/* The body alone fills the room above the switches on the first page (Cat's R1 Two Switches). */
+.measure-step > .step-words > .form-picture {
+  flex: 1 1 0;
+  min-height: 96px;
+  max-height: 340px;
+}
+
+/* On a very short screen the form and the strip stay off so Begin measuring stays in view. */
 @media (max-height: 480px) {
-  .measure-step > .step-words > .form-taped {
+  .measure-step > .step-words > .form-picture,
+  .tape-band.landed:not(.carried) {
     display: none;
   }
 }
@@ -6270,7 +6300,8 @@ body:has(.form-taped) {
   .measure-step.has-hero .welcome-hero {
     min-height: 64px;
   }
-  .measure-step .step-words > button.skip-link {
+  .measure-step .step-words > button.skip-link,
+  .measure-step .step-words > button.later {
     min-height: 28px;
     margin-top: -10px;
   }
@@ -6390,13 +6421,14 @@ body:has(.form-taped) {
   text-underline-offset: 8px;
 }
 
+/* A small raised tag beside the word, not a second line under it (Cat, 2026-10-21: it looked cluttered). */
 .switch .testing-tag {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 100%;
-  margin: 0;
-  font-size: 8px;
+  display: inline-block;
+  margin: 0 0 0 6px;
+  vertical-align: 0.6em;
+  font-size: 7px;
+  letter-spacing: 0.12em;
+  opacity: 0.75;
   text-decoration: none;
 }
 
@@ -6481,9 +6513,12 @@ button.later.garment-change {
   .welcome-card:not(.measure-step) {
     max-width: none;
     display: grid;
-    grid-template-columns: minmax(0, 55fr) minmax(0, 45fr);
+    /* Two columns hugging the form and the words, the pair centred, so the form and the title read as one group and
+       the tape tip sits at the form's hip (Cat, 2026-10-21: the form was too far from the title). */
+    grid-template-columns: minmax(0, 52svh) minmax(0, 560px);
+    justify-content: center;
     grid-template-rows: 1fr auto auto auto 1fr;
-    column-gap: clamp(40px, 6vw, 96px);
+    column-gap: clamp(24px, 3vw, 48px);
     row-gap: 20px;
   }
   .welcome-card:not(.measure-step) > .welcome-hero {
@@ -6534,4 +6569,88 @@ button.later.garment-change {
 .fit-box .demo-play {
   right: -6px;
   bottom: -2px;
+}
+
+/* Measuring on a computer (Cat's M3b Labels on the Form, 2026-10-21): the list becomes the names beside the form,
+   each at its place on the body, in quiet capitals; the one being taken in gold. No dots and no "1 of 5": the
+   names say where you are. A long list (arms, crotch) stays a list on the left. */
+.form-labels {
+  display: none;
+}
+@media (min-width: 1100px) {
+  .measure-step.has-labels .step-list,
+  .measure-step.has-labels .dots,
+  .measure-step.has-labels .step-words > .eyebrow {
+    display: none;
+  }
+  .measure-step.has-labels.has-aside .welcome-hero {
+    grid-column: 1 / 3;
+    border-left: 0;
+  }
+  .measure-step.has-labels .welcome-hero {
+    overflow: hidden;
+  }
+  .form-labels {
+    display: block;
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    pointer-events: none;
+  }
+  .form-labels li {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transform: translateY(-50%);
+    white-space: nowrap;
+    font: var(--w-strong) 11px/1 var(--mono);
+    letter-spacing: var(--track);
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  /* A short line out to the body */
+  .form-labels li::after {
+    content: '';
+    width: 28px;
+    border-top: var(--bw) solid var(--line);
+  }
+  .form-labels li b {
+    font-weight: inherit;
+    color: var(--ink);
+  }
+  .form-labels li.on {
+    color: var(--gild);
+  }
+  .form-labels li.on::after {
+    border-color: var(--gild);
+  }
+}
+
+/* The first measuring page on a computer as one composed group (Cat, 2026-10-21: "a mess"): a narrow centred
+   column, the title centred over the form, the tape across its top the same width, the switches and Begin under
+   it, with even, tighter gaps. */
+@media (min-width: 960px) {
+  .measure-step.has-tape {
+    max-width: 520px;
+    margin-left: auto;
+    margin-right: auto;
+    row-gap: 18px;
+  }
+  .measure-step.has-tape h1 {
+    text-align: center;
+  }
+  .measure-step.has-tape > .step-words > .form-picture {
+    max-height: 300px;
+  }
+}
+
+/* On a computer the tip comes in once the form has slid across to its place beside the title, before the play
+   button. */
+@media (min-width: 960px) {
+  .welcome.go .tape-tip {
+    animation-delay: 1.7s;
+  }
 }

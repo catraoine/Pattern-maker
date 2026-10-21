@@ -1,16 +1,19 @@
+import { lingerieShown } from './lingerieFlag';
 import { FIELDS, MENSWEAR_SKIPS, fieldsFor, worded, type FormKind, type Garment, type MeasurementField, type MeasurementId, type MeasurementValues } from './measurements';
 
 // First-time measuring: one base set that every garment uses, then only the extras a garment still needs.
 // Every measurement is kept with the person, so a later garment asks only for what is missing.
 
-/** Taken by everyone first: the height, which every other number is checked against, then the four the tape
- * takes. Waist to floor is the length every garment can work from. */
-export const BASE: MeasurementId[] = ['height', 'full_bust', 'waist', 'full_hip', 'waist_to_floor'];
+/** Taken by everyone first, the way the tape travels (Cat, 2026-10-21): round the waist, where the welcome's form
+ * is centred, up to the bust, down to the hips, then out to the long ones, waist to floor and last the height. The
+ * girths are checked against each other as they come in, and the lengths against the height once it is in. */
+export const BASE: MeasurementId[] = ['waist', 'full_bust', 'full_hip', 'waist_to_floor', 'height'];
 /** The base measurements a draft needs. The height isn't one: a profile measured before it was asked still drafts. */
 export const TAPE_BASE: MeasurementId[] = BASE.filter((id) => id !== 'height');
 
-export const GARMENTS: Garment[] = ['skirt', 'dress', 'bodice', 'trousers', 'tee', 'jacket', 'coat'];
-export const GARMENT_NAME: Record<Garment, string> = { skirt: 'skirt', dress: 'dress', bodice: 'bodice', trousers: 'trousers', tee: 'T-shirt', jacket: 'jacket', coat: 'coat' };
+/** Lingerie is in the list only while previewing, until the fit test passes (lingerieFlag.ts). */
+export const GARMENTS: Garment[] = ['skirt', 'dress', 'bodice', 'trousers', 'tee', 'jacket', 'coat', ...(lingerieShown ? (['lingerie'] as const) : [])];
+export const GARMENT_NAME: Record<Garment, string> = { skirt: 'skirt', dress: 'dress', bodice: 'bodice', trousers: 'trousers', tee: 'T-shirt', jacket: 'jacket', coat: 'coat', lingerie: 'lingerie' };
 
 const ALL = new Map<MeasurementId, MeasurementField>();
 for (const list of Object.values(FIELDS)) for (const f of list) if (!ALL.has(f.id)) ALL.set(f.id, f);

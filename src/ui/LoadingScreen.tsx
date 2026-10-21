@@ -123,10 +123,10 @@ function draw(g: CanvasRenderingContext2D, w: number, h: number, t: number, box:
     bh = box.h * 0.9;
     bw = Math.min(bh * ASPECT, box.w * 0.8);
     bh = bw / ASPECT;
-    // Centred on the form, which sits to the right of the title in a wide window.
+    // Centred in the window: on a computer the form it becomes then slides across to its place beside the title
+    // (Cat, 2026-10-21), so the piece, the form and the slide are one path.
     const form = formOutline(box.w, box.h, box.kind);
-    const xs = form.pts.map((q) => q[0]);
-    x0 = box.x + (Math.min(...xs) + Math.max(...xs)) / 2 - bw / 2;
+    x0 = w / 2 - bw / 2;
     y0 = box.y + (box.h - bh) * 0.45;
     lw = form.lw;
   } else {
@@ -141,7 +141,7 @@ function draw(g: CanvasRenderingContext2D, w: number, h: number, t: number, box:
   const m = box ? inOut(seg(t, HOLD, MORPH)) : 0;
   g.lineWidth = lw;
   if (box && m > 0) {
-    morph(g, bodice, box, m);
+    morph(g, bodice, centred(box, w), m);
   } else {
     // The block, drawn in one stroke
     const f = inOut(seg(t, PEN[0], PEN[1]));
@@ -169,6 +169,9 @@ function draw(g: CanvasRenderingContext2D, w: number, h: number, t: number, box:
   g.fillText('MAISON TRACÉ', 0, 0);
   g.restore();
 }
+
+/** The form's box moved to the middle of the window, where the welcome's form starts before it slides to its place. */
+export const centred = (box: FormBox, w: number): FormBox => ({ ...box, x: w / 2 - box.w / 2 });
 
 /** The flat bodice part way (m, 0 to 1) to the form's outline, cropped and faded the way the welcome draws the form. */
 function morph(g: CanvasRenderingContext2D, bodice: Pt[], box: FormBox, m: number) {
