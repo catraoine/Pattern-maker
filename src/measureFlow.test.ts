@@ -3,7 +3,7 @@ import { BASE, extrasFor, forHelper, fullSetMissing, missingFor, stepsOf, tipOf,
 
 describe('measuring flow', () => {
   it('takes the same base set for every garment', () => {
-    expect(BASE).toEqual(['height', 'full_bust', 'waist', 'full_hip', 'waist_to_floor']);
+    expect(BASE).toEqual(['waist', 'full_bust', 'full_hip', 'waist_to_floor', 'height']);
   });
 
   it('asks a skirt for just its two lengths once the base set is in', () => {

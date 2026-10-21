@@ -5992,43 +5992,24 @@ input.inline:focus,
   }
 }
 
-/* Risen, the tape comes down onto the first page and lands round the form's bust, full size, measuring it
-   (Cat's T3, 2026-10-21). It starts where the welcome left it, across the top, and takes no room of its own. */
-.measure-step > .step-words > .form-taped {
-  position: relative;
-  display: flex;
-  flex: 1 1 0;
-  min-height: 96px;
-  max-height: 340px;
+/* Risen, the tape stays full size across the top of the first page, and only that page (Cat, 2026-10-21), exactly
+   where the welcome's tape came to rest, so it doesn't jump as the page changes. Begin measuring carries it on down
+   to the waist. */
+.tape-band.landed {
+  margin: -17px -22px 18px;
+  grid-column: 1 / -1;
 }
 
-.form-taped > .form-picture {
-  height: 100%;
-}
-
-.form-taped > .tape-band.landed {
-  position: absolute;
-  top: calc(var(--bust-y, 30%) - 17px);
-  left: calc(var(--bust-x, 30%) + 5px);
-  right: -22px;
+/* Carried down to the waist: above everything, off the right-hand edge, the page clipping the rest. */
+.tape-band.landed.carried {
+  position: fixed;
+  z-index: 50;
+  width: 200vw;
   margin: 0;
-  z-index: 2;
+  pointer-events: none;
 }
-
-/* It runs off the right-hand edge of the window, long enough to stay off it as it comes down; the page clips the
-   rest. */
-.welcome-card:has(.form-taped) {
-  overflow-x: visible;
-}
-.form-taped > .tape-band.landed {
-  right: calc((100% - 100vw) / 2 - 100vw);
-}
-body:has(.form-taped) {
+body:has(.tape-band.carried) {
   overflow-x: clip;
-}
-
-.form-taped > .tape-band.landed.waiting {
-  visibility: hidden;
 }
 
 /* On a phone the tape runs the width of the screen, off the right-hand edge it came from, with its hook just in
@@ -6041,12 +6022,26 @@ body:has(.form-taped) {
     left: calc(50% - 50vw + 14px);
     right: calc(50% - 50vw);
   }
-
+  .welcome-card.has-tape {
+    overflow-x: visible;
+  }
+  .tape-band.landed:not(.carried) {
+    margin-left: calc(50% - 50vw + 14px);
+    margin-right: calc(50% - 50vw);
+  }
 }
 
-/* On a very short screen the form, and the tape round it, stay off so Begin measuring stays in view. */
+/* The body alone fills the room above the switches on the first page (Cat's R1 Two Switches). */
+.measure-step > .step-words > .form-picture {
+  flex: 1 1 0;
+  min-height: 96px;
+  max-height: 340px;
+}
+
+/* On a very short screen the form and the strip stay off so Begin measuring stays in view. */
 @media (max-height: 480px) {
-  .measure-step > .step-words > .form-taped {
+  .measure-step > .step-words > .form-picture,
+  .tape-band.landed:not(.carried) {
     display: none;
   }
 }

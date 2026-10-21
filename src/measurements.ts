@@ -23,7 +23,7 @@ export interface MeasurementField {
   fit?: boolean;
 }
 
-/** Asked first of everyone. Nothing is drafted from it, so an older profile without it still drafts; it is
+/** Asked of everyone, last of the five on the measuring pages and first in the lists. Nothing is drafted from it, so an older profile without it still drafts; it is
  * what the lengths are checked against, and what the estimates scale from. */
 export const HEIGHT: MeasurementField = {
   id: 'height',

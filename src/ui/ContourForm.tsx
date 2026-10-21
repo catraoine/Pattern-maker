@@ -221,10 +221,16 @@ function layout(w: number, h: number) {
   return { S, cx, wy, lw: lineFor(S), Y: (y: number) => wy + (y - 0.1) * S };
 }
 const lineFor = (S: number) => Math.max(0.7, S / 252) * 1.2;
+/** The scale the welcome last drew its form at, in pixels to a form unit. The measuring pages start from it, and the
+ *  tape keeps the welcome's proportion to the body at every zoom (Cat, 2026-10-21). */
+let pageOneScale: number | undefined;
+/** The welcome's tape is this many pixels wide against the form at the welcome's scale. */
+export const TAPE_PX = 34;
 /** The welcome's own framing: a close crop of the torso, the neck running off the top and no head in view
  *  (Cat went back to this from the full figure, 2026-10-20). */
 function welcomeLayout(w: number, h: number) {
   const S = Math.min(w * 0.82, h * 0.46);
+  if (S > 0) pageOneScale = S;
   const cx = w / 2;
   const wy = h * 0.5;
   return { S, cx, wy, lw: lineFor(S), Y: (y: number) => wy + (y - 0.1) * S };
@@ -658,28 +664,52 @@ export const tapeView = (id: MeasurementId) => {
 };
 
 // The camera and the figure's turn carry on from page to page: each page starts where the last one left off.
-// The first page starts from the welcome's framing.
-let lastView: [number, number] = [REST_TOP, 1.3];
+// The first page starts from the welcome's framing: its scale, the waist in the middle (Cat, 2026-10-21).
+/** Where the camera looks (the body level in the middle of the picture) and the stretch of body it frames, top and
+ *  bottom in form units; with none it is as close as the welcome. */
+type Cam = { y: number; view?: [number, number] };
+/** The welcome's scale on this canvas, never wider than the welcome lets the body be. */
+const pageOne = (w: number, h: number) => Math.min(pageOneScale ?? Math.min(w * 0.82, h * 0.46), w * 0.82);
+/** The camera for a measure. The girths stay as close as the welcome, the camera moving up or down the body to each;
+ *  the lengths draw back to frame the whole of them. */
+function camFor(t: Tape | undefined): Cam {
+  if (t?.kind === 'girth') return { y: t.y };
+  const view: [number, number] = t ? viewFor(t) : [REST_TOP, 1.6];
+  return { y: (view[0] + view[1]) / 2, view };
+}
+/** How close a camera is on this canvas, in pixels to a form unit. */
+function scaleOf(c: Cam, w: number, h: number) {
+  if (!c.view) return pageOne(w, h);
+  const pad = Math.max(10, h * 0.03);
+  return Math.min((h - 2 * pad) / (c.view[1] - c.view[0]), w * 0.42);
+}
+let lastCam: Cam | undefined;
 let lastTurn = 0;
 // Cat's speed pick (2026-10-20): the first five pages play in full; after that the camera and tape go about
 // twice as fast, since by then the tape needs less showing.
 const played = new Set<MeasurementId>();
 const ZOOM = 1000;
 const PLAY = 2600;
+/** How long the tape carried down from the first page takes to land level across the waist. */
+export const CARRY_MS = 900;
+/** How far into a girth's play its tape lies level across the body, ready to wrap. */
+const WRAP_FROM = 0.55;
 
 /** One frame of a measuring page: `z` is how far the camera has come (0 to 1), `p` how far the tape has played. */
-function paintTape(g: CanvasRenderingContext2D, w: number, h: number, from: [number, number], to: [number, number], turn: [number, number], z: number, p: number, t: Tape | undefined) {
+function paintTape(g: CanvasRenderingContext2D, w: number, h: number, from: Cam, to: Cam, turn: [number, number], z: number, p: number, t: Tape | undefined) {
   g.globalAlpha = 1;
   g.fillStyle = '#000';
   g.fillRect(0, 0, w, h);
+  if (!w || !h) return;
   g.lineCap = 'round';
   g.lineJoin = 'round';
   const e = inOut(z);
-  const vt = from[0] + (to[0] - from[0]) * e, vb = from[1] + (to[1] - from[1]) * e;
-  const pad = Math.max(10, h * 0.03);
-  const S = Math.min((h - 2 * pad) / (vb - vt), w * 0.42);
+  // The zoom eases evenly in and out (by ratio), the camera gliding up or down the body with it.
+  const S0 = scaleOf(from, w, h), S1 = scaleOf(to, w, h);
+  const S = S0 * (S1 / S0) ** e;
+  const cy = from.y + (to.y - from.y) * e;
   const cx = w / 2;
-  const wy = h / 2 - ((vt + vb) / 2 - 0.1) * S;
+  const wy = h / 2 - (cy - 0.1) * S;
   const Y = (y: number) => wy + (y - 0.1) * S;
   camera = { canvas: g.canvas, Y, x: (y: number) => cx - R(y) * S };
   const lw = lineFor(S);
@@ -719,10 +749,11 @@ function paintTape(g: CanvasRenderingContext2D, w: number, h: number, from: [num
   }
   if (!t || p <= 0) return;
 
-  const tw = clamp(w * 0.03, 7, 13);
+  // The tape keeps the welcome's width against the body, so it grows and shrinks with the zoom.
+  const tw = Math.max(4, (TAPE_PX * S) / (pageOneScale ?? pageOne(w, h)));
   const edge = w + tw;
-  const k = inOut(seg(p, 0, 0.55));
-  const m = inOut(seg(p, 0.55, 0.85));
+  const k = inOut(seg(p, 0, WRAP_FROM));
+  const m = inOut(seg(p, WRAP_FROM, 0.85));
   const run = inOut(seg(p, 0, 0.85));
   const front = (y: number) => Y(y) + R(y) * S * DEPTH;
 
@@ -733,7 +764,7 @@ function paintTape(g: CanvasRenderingContext2D, w: number, h: number, from: [num
       return;
     }
     case 'girth':
-      return wrap(g, cx, Y(t.y), R(t.y) * S + lw * 0.5, DEPTH, edge, k, m, tw * 0.8);
+      return wrap(g, cx, Y(t.y), R(t.y) * S + lw * 0.5, DEPTH, edge, k, m, tw);
     case 'side': {
       // In at the start, over the curve of the hip to its widest point, then straight down.
       const widest = 0.8;
@@ -838,8 +869,8 @@ function allTapes(g: CanvasRenderingContext2D, w: number, h: number, kind?: Form
 
 /** One measurement's how-to: the figure with the tape played once to where it goes. Change `replay` to play it
  *  again from the start. */
-export function TapeDemo({ id, mode = 'play', kind, replay = 0 }: { id: MeasurementId; name?: string; mode?: DemoMode; kind?: FormKind; replay?: number }) {
-  const run = useRef<{ start: number; from: [number, number]; to: [number, number]; turn: [number, number]; zoom: number; play: number } | null>(null);
+export function TapeDemo({ id, mode = 'play', kind, replay = 0, carried = false }: { id: MeasurementId; name?: string; mode?: DemoMode; kind?: FormKind; replay?: number; carried?: boolean }) {
+  const run = useRef<{ start: number; from: Cam; to: Cam; turn: [number, number]; zoom: number; hold: number; play: number } | null>(null);
   const ref = useCanvas(
     (g, w, h, now) => {
       pickForm(kind);
@@ -852,18 +883,21 @@ export function TapeDemo({ id, mode = 'play', kind, replay = 0 }: { id: Measurem
       if (!run.current) {
         const fast = played.size >= 5 && !played.has(id);
         played.add(id);
-        const to = t ? viewFor(t) : ([REST_TOP, 1.6] as [number, number]);
+        const to = camFor(t);
+        const from = lastCam ?? { y: 0.1 };
         const turnTo = t && isBack(t) ? Math.PI : 0;
-        const same = Math.abs(lastView[0] - to[0]) < 1e-3 && Math.abs(lastView[1] - to[1]) < 1e-3 && lastTurn === turnTo;
-        run.current = { start: now, from: lastView, to, turn: [lastTurn, turnTo], zoom: same ? 0 : fast ? ZOOM / 2 : ZOOM, play: fast ? PLAY / 2 : PLAY };
-        lastView = to;
+        const same = Math.abs(from.y - to.y) < 1e-3 && from.view?.[0] === to.view?.[0] && from.view?.[1] === to.view?.[1] && lastTurn === turnTo;
+        // Carried down from the page before, the tape arrives already level across the body and only wraps.
+        run.current = { start: now, from, to, turn: [lastTurn, turnTo], zoom: same ? 0 : fast ? ZOOM / 2 : ZOOM, hold: carried ? CARRY_MS : 0, play: fast ? PLAY / 2 : PLAY };
+        lastCam = to;
         lastTurn = turnTo;
       }
       const r = run.current;
       const el = stillMotion() ? Infinity : now - r.start;
       const z = r.zoom ? clamp(el / r.zoom, 0, 1) : 1;
-      const p = clamp((el - r.zoom) / r.play, 0, 1);
-      paintTape(g, w, h, r.from, r.to, r.turn, z, p, t);
+      const lead = r.hold ? WRAP_FROM : 0;
+      const p = lead + (1 - lead) * clamp((el - r.zoom - r.hold) / (r.play * (1 - lead)), 0, 1);
+      paintTape(g, w, h, r.from, r.to, r.turn, z, el < r.zoom + r.hold ? 0 : p, t);
       return p < 1;
     },
     [id, mode, kind, replay],
@@ -886,11 +920,6 @@ export function FormPicture({ kind }: { kind: FormKind }) {
       const wy = h * 0.03 + (0.1 + 1.7) * S;
       paintTorso(g, S, w / 2, (y: number) => wy + (y - 0.1) * S, lineFor(S), EVEN, 1, 1);
       fadeBottom(g, w, h);
-      // Where the bust's left edge falls, for the tape that lands round it (Cat's T3, 2026-10-21).
-      const bust = formLandmarks().full_bust;
-      const box = g.canvas.parentElement;
-      box?.style.setProperty('--bust-x', `${w / 2 - R(bust) * S}px`);
-      box?.style.setProperty('--bust-y', `${wy + (bust - 0.1) * S}px`);
       return false;
     },
     [kind],
