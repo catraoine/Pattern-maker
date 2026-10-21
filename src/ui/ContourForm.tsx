@@ -224,8 +224,9 @@ const lineFor = (S: number) => Math.max(0.7, S / 252) * 1.2;
 /** The scale the welcome last drew its form at, in pixels to a form unit. The measuring pages start from it, and the
  *  tape keeps the welcome's proportion to the body at every zoom (Cat, 2026-10-21). */
 let pageOneScale: number | undefined;
-/** The welcome's tape is this many pixels wide against the form at the welcome's scale. */
-export const TAPE_PX = 34;
+/** The welcome's tape is this many pixels wide against the form at the welcome's scale: the tip's size, which it keeps
+ *  (Cat, 2026-10-21). */
+export const TAPE_PX = 18;
 /** The welcome's own framing: a close crop of the torso, the neck running off the top and no head in view
  *  (Cat went back to this from the full figure, 2026-10-20). */
 function welcomeLayout(w: number, h: number) {
