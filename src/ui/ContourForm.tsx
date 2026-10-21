@@ -55,6 +55,7 @@ const R_MENSWEAR = spline([
 let R = R_WOMENSWEAR;
 const pickForm = (kind: FormKind = 'womenswear') => {
   R = kind === 'menswear' ? R_MENSWEAR : R_WOMENSWEAR;
+  armOff = kind === 'menswear' ? 0.15 : 0;
 };
 // The form's own neck starts at -1.66: short and full, like a dressmaker's form.
 const YS = Array.from({ length: 221 }, (_, i) => -1.66 + (2.96 * i) / 220);
@@ -220,6 +221,14 @@ function layout(w: number, h: number) {
   return { S, cx, wy, lw: lineFor(S), Y: (y: number) => wy + (y - 0.1) * S };
 }
 const lineFor = (S: number) => Math.max(0.7, S / 252) * 1.2;
+/** The welcome's own framing: a close crop of the torso, the neck running off the top and no head in view
+ *  (Cat went back to this from the full figure, 2026-10-20). */
+function welcomeLayout(w: number, h: number) {
+  const S = Math.min(w * 0.82, h * 0.46);
+  const cx = w / 2;
+  const wy = h * 0.5;
+  return { S, cx, wy, lw: lineFor(S), Y: (y: number) => wy + (y - 0.1) * S };
+}
 
 /**
  * The form's outline as one closed loop, clockwise from the top left (across the neck, down the right side,
@@ -227,7 +236,7 @@ const lineFor = (S: number) => Math.max(0.7, S / 252) * 1.2;
  */
 export function formOutline(w: number, h: number, kind?: FormKind): { pts: [number, number][]; lw: number } {
   pickForm(kind);
-  const { S, cx, Y, lw } = layout(w, h);
+  const { S, cx, Y, lw } = welcomeLayout(w, h);
   const left = YS.map((y): [number, number] => [cx - R(y) * S, Y(y)]);
   const right = YS.map((y): [number, number] => [cx + R(y) * S, Y(y)]);
   return { pts: [left[0], ...right, ...left.reverse()], lw };
@@ -259,18 +268,19 @@ function settledForm(g: CanvasRenderingContext2D, w: number, h: number, outline 
   fadeBottom(g, w, h);
 }
 
-// The welcome (Cat's C1 Light Pass): the outline draws, or arrives already drawn from the loading screen, then
-// the long lines and the head come up together while a soft light crosses the form once, from the left, and
-// comes to rest on its front.
+// The welcome (Cat's T5 Drawn Down): the outline draws, or arrives already drawn from the loading screen, then
+// all the long lines are drawn down together from the shoulders. A close crop, so the head is out of view.
 const OUTLINE = 1000;
-const LINES_IN = 1300;
-const PASS = 5000;
-const WELCOME_END = OUTLINE + PASS;
-const passLight = (L: number): Light => (u) => 0.22 + 0.78 * Math.exp(-((u - L) ** 2) / 0.09);
+const DOWN = 1300;
+const WELCOME_END = OUTLINE + DOWN + 300;
 function draw(g: CanvasRenderingContext2D, w: number, h: number, t: number, drawn: boolean) {
   const t0 = drawn ? 0 : OUTLINE;
-  const L = -1.6 + 1.6 * inOut(seg(t, t0, t0 + PASS));
-  settledForm(g, w, h, drawn ? 1 : inOut(seg(t, 0, OUTLINE - 100)), inOut(seg(t, t0, t0 + LINES_IN)), passLight(L));
+  g.globalAlpha = 1;
+  g.fillStyle = '#000';
+  g.fillRect(0, 0, w, h);
+  const { S, cx, lw, Y } = welcomeLayout(w, h);
+  paintTorso(g, S, cx, Y, lw, EVEN, drawn ? 1 : inOut(seg(t, 0, OUTLINE - 100)), inOut(seg(t, t0, t0 + DOWN)));
+  fadeBottom(g, w, h);
 }
 
 // When the app opens on the welcome screen, the loading screen reshapes its bodice into this form's outline.
@@ -327,7 +337,7 @@ export function ContourForm({ start: from = 'fresh', kind }: { start?: FormStart
   const ref = useCanvas(
     (g, w, h, now) => {
       const drawn = from === 'drawn';
-      const end = (drawn ? 0 : OUTLINE) + PASS;
+      const end = (drawn ? 0 : OUTLINE) + DOWN + 300;
       if (!begun.current) begun.current = now;
       const t = stillMotion() ? end : Math.min(now - begun.current, end);
       pickForm(kind);
@@ -354,8 +364,12 @@ export const WELCOME_MS = WELCOME_END;
 
 /** The arms, for the arm measurements: each edge is a distance from the centre at a height; the outer edge
  *  starts on the form's shoulder, the inner one at the underarm, where the form's own side takes over above it. */
-const ARM_OUT = spline([[-1.4, 0.42], [-1.3, 0.62], [-1.15, 0.74], [-0.95, 0.79], [-0.6, 0.795], [-0.1, 0.775], [0.3, 0.79], [0.9, 0.785], [1.15, 0.77], [1.3, 0.79], [1.5, 0.78], [1.62, 0.74]]);
-const ARM_IN = spline([[-0.9, 0.6], [-0.6, 0.605], [-0.1, 0.635], [0.3, 0.645], [0.9, 0.675], [1.15, 0.69], [1.3, 0.67], [1.5, 0.68], [1.62, 0.72]]);
+const ARM_OUT_W = spline([[-1.4, 0.42], [-1.3, 0.62], [-1.15, 0.74], [-0.95, 0.79], [-0.6, 0.795], [-0.1, 0.775], [0.3, 0.79], [0.9, 0.785], [1.15, 0.77], [1.3, 0.79], [1.5, 0.78], [1.62, 0.74]]);
+const ARM_IN_W = spline([[-0.9, 0.6], [-0.6, 0.605], [-0.1, 0.635], [0.3, 0.645], [0.9, 0.675], [1.15, 0.69], [1.3, 0.67], [1.5, 0.68], [1.62, 0.72]]);
+/** The menswear form's shoulders are 0.15 wider a side, so its arms hang that much further out. */
+let armOff = 0;
+const ARM_OUT = (y: number) => ARM_OUT_W(y) + armOff;
+const ARM_IN = (y: number) => ARM_IN_W(y) + armOff;
 const ARM_YS = Array.from({ length: 121 }, (_, i) => -1.4 + (3.02 * i) / 120);
 const UNDERARM = -0.9;
 /** Where the shoulder point sits on the arm's outer edge, and the wrist bone. */
@@ -460,6 +474,40 @@ function tape(g: CanvasRenderingContext2D, pts: Pt[], tw: number, alpha = 1) {
   g.globalAlpha = 1;
 }
 
+/** A tape lying round something: a band of even height `tw` straight up and down at every point, the way a
+ *  tape looks wrapped round a body (a stroked line fattens at the sides into a plate). Marks hang from its
+ *  top edge; `marks` off draws a plain band, for the back. */
+function band(g: CanvasRenderingContext2D, pts: Pt[], tw: number, alpha = 1, marks = true) {
+  if (pts.length < 2 || alpha <= 0) return;
+  g.globalAlpha = alpha;
+  g.fillStyle = PAPER;
+  g.beginPath();
+  pts.forEach(([x, y], i) => (i ? g.lineTo(x, y - tw / 2) : g.moveTo(x, y - tw / 2)));
+  for (let i = pts.length - 1; i >= 0; i--) g.lineTo(pts[i][0], pts[i][1] + tw / 2);
+  g.closePath();
+  g.fill();
+  if (marks) {
+    g.strokeStyle = '#000';
+    g.lineWidth = Math.max(0.6, tw * 0.08);
+    g.lineCap = 'butt';
+    const gap = tw * 0.55;
+    let acc = 0, k = 0;
+    for (let i = 1; i < pts.length; i++) {
+      const [x0, y0] = pts[i - 1], [x1, y1] = pts[i];
+      const d = Math.hypot(x1 - x0, y1 - y0);
+      if (!d) continue;
+      while (acc + d >= k * gap) {
+        const f = (k * gap - acc) / d, x = x0 + (x1 - x0) * f, y = y0 + (y1 - y0) * f - tw / 2;
+        stroke(g, [x, y], [x, y + tw * (k % 5 ? 0.28 : 0.5)]);
+        k++;
+      }
+      acc += d;
+    }
+    g.lineCap = 'round';
+  }
+  g.globalAlpha = 1;
+}
+
 /** The first `frac` of a line, by length. */
 function partial(pts: Pt[], frac: number): Pt[] {
   const lens = pts.slice(1).map((q, i) => Math.hypot(q[0] - pts[i][0], q[1] - pts[i][1]));
@@ -483,6 +531,7 @@ type Tape =
   | { kind: 'side'; from: number; to: number }
   /** Down the centre back, with the figure turned round. */
   | { kind: 'back'; from: number; to: number }
+  | { kind: 'front'; from: number; to: number }
   | { kind: 'path'; pts: [number, number][]; back?: boolean }
   | { kind: 'arm'; at: number | 'length' }
   | { kind: 'crotch' };
@@ -496,34 +545,43 @@ function figY(y: number) {
   return a[1] + ((y - a[0]) / (b[0] - a[0])) * (b[1] - a[1]);
 }
 const fig = (pts: [number, number][]): [number, number][] => pts.map(([x, y]) => [((x - 100) / 56) * 0.58, figY(y)]);
-const ARMHOLE = fig(Array.from({ length: 33 }, (_, i): [number, number] => [149 + 8 * Math.sin((i / 32) * 2 * Math.PI), 98 - 22 * Math.cos((i / 32) * 2 * Math.PI)]));
+// Round the arm joint: from the shoulder point (-1.28) down to the underarm (-0.88), just in from the side.
+const ARMHOLE = Array.from({ length: 33 }, (_, i): [number, number] => [0.51 + 0.09 * Math.sin((i / 32) * 2 * Math.PI), -1.08 - 0.2 * Math.cos((i / 32) * 2 * Math.PI)]);
+
+/** The bust point on the old figure's scale: level with the full bust tape (-0.58), not 4.5 cm above it. */
+const APEX = 114.5;
+/** The bust point's height in form units, for the test that keeps it on the bust line. */
+export const BUST_POINT_Y = figY(APEX);
 
 const TAPES: Partial<Record<MeasurementId, Tape>> = {
   height: { kind: 'height' },
   full_bust: { kind: 'girth', y: -0.58 },
   waist: { kind: 'girth', y: 0.1 },
   full_hip: { kind: 'girth', y: 0.82 },
-  high_bust: { kind: 'girth', y: -1.08 },
+  // Snug up under the arms, above the bust.
+  high_bust: { kind: 'girth', y: -0.95 },
   neck: { kind: 'girth', y: -1.5 },
   waist_to_hip: { kind: 'side', from: 0.1, to: 0.82 },
-  front_waist_to_hip: { kind: 'side', from: 0.1, to: 0.82 },
+  front_waist_to_hip: { kind: 'front', from: 0.1, to: 0.82 },
   waist_to_knee: { kind: 'side', from: 0.1, to: KNEE },
   waist_to_floor: { kind: 'side', from: 0.1, to: FLOOR },
   // Seated, down the side to the chair: the seat is level with the crotch.
   crotch_depth: { kind: 'side', from: 0.1, to: CROTCH },
   crotch_length: { kind: 'crotch' },
   back_waist_to_hip: { kind: 'back', from: 0.1, to: 0.82 },
-  nape_to_waist: { kind: 'back', from: -1.62, to: 0.1 },
+  // From the bone where the neck meets the shoulders.
+  nape_to_waist: { kind: 'back', from: -1.47, to: 0.1 },
   armscye: { kind: 'path', pts: ARMHOLE },
   shoulder_width: { kind: 'path', pts: fig([[46, 76], [154, 76]]), back: true },
   shoulder_length: { kind: 'path', pts: fig([[115, 60], [152, 73]]) },
   across_back: { kind: 'path', pts: fig([[54, 96], [146, 96]]), back: true },
   across_front: { kind: 'path', pts: fig([[56, 86], [144, 86]]) },
-  front_hps_to_waist: { kind: 'path', pts: fig([[113, 59], [124, 104], [124, 150]]) },
-  bust_depth: { kind: 'path', pts: fig([[113, 59], [124, 104]]) },
-  apex_separation: { kind: 'path', pts: fig([[76, 104], [124, 104]]) },
-  front_shoulder_slope: { kind: 'path', pts: fig([[152, 73], [100, 150]]) },
-  back_shoulder_slope: { kind: 'path', pts: fig([[152, 73], [100, 150]]), back: true },
+  front_hps_to_waist: { kind: 'path', pts: fig([[113, 59], [129, APEX], [129, 150]]) },
+  bust_depth: { kind: 'path', pts: fig([[113, 59], [129, APEX]]) },
+  apex_separation: { kind: 'path', pts: fig([[71, APEX], [129, APEX]]) },
+  // From the middle of the waist up to the shoulder point, as the how-to says.
+  front_shoulder_slope: { kind: 'path', pts: fig([[100, 150], [152, 73]]) },
+  back_shoulder_slope: { kind: 'path', pts: fig([[100, 150], [152, 73]]), back: true },
   arm_length: { kind: 'arm', at: 'length' },
   upper_arm: { kind: 'arm', at: -0.55 },
   wrist: { kind: 'arm', at: WRIST },
@@ -535,7 +593,10 @@ const ON_MENSWEAR_FORM: Partial<Record<MeasurementId, number>> = { full_bust: -0
 const onFormFor = (kind?: FormKind) => (kind === 'menswear' ? ON_MENSWEAR_FORM : ON_FORM);
 const tapeFor = (id: MeasurementId, kind?: FormKind): Tape | undefined => {
   const y = onFormFor(kind)[id];
-  return y !== undefined ? { kind: 'girth', y } : TAPES[id];
+  if (y !== undefined) return { kind: 'girth', y };
+  // No bust point on the menswear form: the front length runs straight from the side of the neck to the waist.
+  if (kind === 'menswear' && id === 'front_hps_to_waist') return { kind: 'path', pts: [[0.135, -1.47], [0.3, 0.1]] };
+  return TAPES[id];
 };
 const isBack = (t: Tape) => t.kind === 'back' || (t.kind === 'path' && !!t.back);
 
@@ -549,6 +610,7 @@ function viewFor(t: Tape): [number, number] {
     case 'side':
       return [t.from - 0.5, t.to > 1.6 ? t.to + 0.14 : t.to + 0.6];
     case 'back':
+    case 'front':
       return [Math.max(HEAD_TOP - 0.15, t.from - 0.5), t.to + 0.6];
     case 'path': {
       const ys = t.pts.map((p) => p[1]);
@@ -602,13 +664,16 @@ function paintTape(g: CanvasRenderingContext2D, w: number, h: number, from: [num
   if (arms) paintArms(g, S, cx, lw, Y);
   paintHead(g, S, cx, Y, lw, EVEN, spin);
   // The floor, faint and dashed, when the measure goes down to it.
-  if (t && (t.kind === 'height' || (t.kind === 'side' && t.to > 4))) {
+  // The same for the chair seat crotch depth is taken sitting on, and the ruler held level across the front at
+  // the hip for the front waist to hip.
+  const level = !t ? undefined : t.kind === 'height' || (t.kind === 'side' && t.to > 4) ? FLOOR : t.kind === 'side' && t.to === CROTCH ? CROTCH : t.kind === 'front' ? t.to : undefined;
+  if (level !== undefined) {
     g.save();
     g.strokeStyle = CHAMPAGNE;
     g.globalAlpha = 0.4;
     g.lineWidth = 1;
     g.setLineDash([3, 4]);
-    stroke(g, [cx - S * 0.9, Y(FLOOR)], [cx + S * 0.95, Y(FLOOR)]);
+    stroke(g, [cx - S * 0.9, Y(level)], [cx + S * 0.95, Y(level)]);
     g.restore();
   }
   // Taken at the back: once the figure has turned, a quiet note says so (it looks the same from either side).
@@ -641,7 +706,7 @@ function paintTape(g: CanvasRenderingContext2D, w: number, h: number, from: [num
       return;
     }
     case 'girth':
-      return wrap(g, cx, Y(t.y), R(t.y) * S + tw * 0.15, DEPTH * 1.1, edge, k, m, tw);
+      return wrap(g, cx, Y(t.y), R(t.y) * S + lw * 0.5, DEPTH, edge, k, m, tw * 0.8);
     case 'side': {
       // In at the start, over the curve of the hip to its widest point, then straight down.
       const widest = 0.8;
@@ -652,14 +717,27 @@ function paintTape(g: CanvasRenderingContext2D, w: number, h: number, from: [num
       return;
     }
     case 'back':
+    case 'front':
       tape(g, partial([[edge, front(t.from)], [cx, front(t.from)], [cx, front(t.to)]], run), tw);
       return;
     case 'path': {
-      let pts: Pt[] = t.pts.map(([x, y]): Pt => [cx + x * S, Y(y)]);
+      // Drawn against the womenswear form: on another, each point keeps its share of the width at its height.
+      let pts: Pt[] = t.pts.map(([x, y]): Pt => [cx + x * (R(y) / R_WOMENSWEAR(y)) * S, Y(y)]);
       // Paths start where the tape starts; one across the body is run from its right-hand end, nearest the edge.
       const [a, b] = [pts[0], pts[pts.length - 1]];
       if (Math.abs(b[1] - a[1]) < Math.abs(b[0] - a[0]) * 0.3 && a[0] < b[0]) pts = [...pts].reverse();
-      tape(g, partial([[edge, pts[0][1]], ...pts], run), tw);
+      const full: Pt[] = [[edge, pts[0][1]], ...pts];
+      tape(g, partial(full, run), tw);
+      // Where the measure starts, once the tape has come in to it: a dark bar across the tape, like its zero.
+      const lead = Math.hypot(full[1][0] - full[0][0], full[1][1] - full[0][1]);
+      const all = full.slice(1).reduce((acc, q, i) => acc + Math.hypot(q[0] - full[i][0], q[1] - full[i][1]), 0);
+      if (run * all >= lead) {
+        g.strokeStyle = '#000';
+        g.lineWidth = Math.max(1.5, tw * 0.22);
+        g.lineCap = 'butt';
+        stroke(g, [pts[0][0], pts[0][1] - tw * 0.5], [pts[0][0], pts[0][1] + tw * 0.5]);
+        g.lineCap = 'round';
+      }
       return;
     }
     case 'arm': {
@@ -670,7 +748,7 @@ function paintTape(g: CanvasRenderingContext2D, w: number, h: number, from: [num
         return;
       }
       const mid = cx + ((ARM_IN(t.at) + ARM_OUT(t.at)) / 2) * S;
-      const r = ((ARM_OUT(t.at) - ARM_IN(t.at)) / 2) * S + tw * 0.15;
+      const r = ((ARM_OUT(t.at) - ARM_IN(t.at)) / 2) * S + lw * 0.5;
       return wrap(g, mid, Y(t.at), r, DEPTH * 2, edge, k, m, tw * 0.8);
     }
     case 'crotch': {
@@ -680,16 +758,18 @@ function paintTape(g: CanvasRenderingContext2D, w: number, h: number, from: [num
       const back = (y: number) => Y(y) - R(y) * S * DEPTH;
       const ys = Array.from({ length: 31 }, (_, i) => 0.1 + ((bottom - 0.1) * i) / 30);
       const dip = Y(CROTCH) + 4;
+      // The back run sits a tape and a half to the side, so it reads as its own half of the measure.
+      const off = tw * 1.5;
       const under = Array.from({ length: 13 }, (_, i): Pt => {
         const u = i / 12;
-        return [cx + 5 * u, front(bottom) + (dip - front(bottom)) * Math.sin(Math.PI * u) - (front(bottom) - back(bottom)) * u];
+        return [cx + off * u, front(bottom) + (dip - front(bottom)) * Math.sin(Math.PI * u) - (front(bottom) - back(bottom)) * u];
       });
       const down: Pt[] = [[edge, front(0.1)], ...ys.map((y): Pt => [cx, front(y)]), ...under.slice(0, 7)];
-      const up: Pt[] = [...under.slice(6), ...[...ys].reverse().map((y): Pt => [cx + 5, back(y)])];
+      const up: Pt[] = [...under.slice(6), ...[...ys].reverse().map((y): Pt => [cx + off, back(y)])];
       const lenOf = (pts: Pt[]) => pts.slice(1).reduce((a, q, i) => a + Math.hypot(q[0] - pts[i][0], q[1] - pts[i][1]), 0);
       const share = lenOf(down) / (lenOf(down) + lenOf(up));
       tape(g, partial(down, run / share), tw);
-      if (run > share) tape(g, partial(up, (run - share) / (1 - share)), tw * 0.8, 0.4);
+      if (run > share) tape(g, partial(up, (run - share) / (1 - share)), tw * 0.8, 0.55);
       return;
     }
   }
@@ -713,9 +793,9 @@ function wrap(g: CanvasRenderingContext2D, cx: number, y: number, r: number, dep
       const a = Math.PI * (1 + i / N);
       return [cx + r * Math.cos(a), y + Math.sin(a) * r * depth];
     });
-    tape(g, back, tw * 0.8, 0.35 * seg(m, 0.9, 1));
+    band(g, back, tw * 0.7, 0.15 * seg(m, 0.9, 1), false);
   }
-  tape(g, pts, tw);
+  band(g, pts, tw);
 }
 
 /** 'play' plays the measurement's tape once; 'still' is the welcome's form at rest with no tape; 'all' has the
@@ -726,7 +806,7 @@ export type DemoMode = 'play' | 'still' | 'all';
 function allTapes(g: CanvasRenderingContext2D, w: number, h: number, kind?: FormKind) {
   const { S, cx, Y } = layout(w, h);
   const tw = clamp(w * 0.03, 6, 11);
-  for (const y of Object.values(onFormFor(kind))) wrap(g, cx, Y(y!), R(y!) * S + tw * 0.15, DEPTH * 1.1, w, 1, 1, tw);
+  for (const y of Object.values(onFormFor(kind))) wrap(g, cx, Y(y!), R(y!) * S + lineFor(S) * 0.5, DEPTH, w, 1, 1, tw * 0.8);
 }
 
 /** One measurement's how-to: the figure with the tape played once to where it goes. Change `replay` to play it

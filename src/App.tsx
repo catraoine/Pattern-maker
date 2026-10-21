@@ -1038,6 +1038,7 @@ export default function App() {
               onIdea={(c) => styleChoices(c)}
               onPhoto={() => setStep('photo')}
               onNews={() => openLegal('news')}
+              onLater={() => setStep('welcome')}
               onSkip={(g?: Garment) => {
                 // Skip on the tape: try the app with the example measurements, under any already taken.
                 const example = (Object.keys(EXAMPLE_VALUES) as MeasurementId[]).filter((id) => measured[id] === undefined);

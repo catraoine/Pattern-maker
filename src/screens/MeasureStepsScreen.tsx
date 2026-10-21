@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { FIELDS, checkMeasurements, type Check, type FormKind, type Garment, type MeasurementId, type MeasurementValues, type Unit } from '../measurements';
 import { BASE, baseDone, fullSetMissing, GARMENT_NAME, GARMENTS, labelOf, missingFor, stepsOf, tipOf, titleOf } from '../measureFlow';
-import { WEIGHT_HARD, WeightEntry, WeightLink, fromKg, weightUnitOf } from '../ui/WeightEntry';
+import { WEIGHT_HARD, WeightEntry, fromKg, weightUnitOf } from '../ui/WeightEntry';
 import { FormPicture, TapeDemo } from '../ui/ContourForm';
 import { canGoBack, goBack, usePageHistory } from '../nav';
 import { estimateOne } from '../estimate';
@@ -36,6 +36,8 @@ interface Props {
   theirs?: boolean;
   /** Skip, the quiet link under the button: try the app with example measurements (for the garment being measured). */
   onSkip?: (garment?: Garment) => void;
+  /** Finish later: stop measuring, keeping what's in, and pick up at the first one still to take. */
+  onLater?: () => void;
   /** The dress form this person's patterns are drafted on, and choosing it before the first measurement. */
   form?: FormKind;
   onForm?: (form: FormKind) => void;
@@ -53,6 +55,7 @@ type Page =
   | { kind: 'intro' }
   | { kind: 'form' }
   | { kind: 'base'; at: number; back?: 'check' }
+  | { kind: 'weight'; back?: 'check' }
   | { kind: 'check' }
   | { kind: 'choose' }
   | { kind: 'extra'; garment: Garment | 'other'; ids: MeasurementId[]; at: number; redo?: boolean }
@@ -72,6 +75,9 @@ type Pick = Garment | 'other';
 
 const toDisplay = (cm: number | undefined, unit: Unit) =>
   cm === undefined ? '' : String(unit === 'cm' ? cm : Math.round((cm / 2.54) * 10) / 10);
+/** A height in feet and inches, for the two boxes. */
+const ftOf = (cm: number) => String(Math.floor(Math.round((cm / 2.54) * 10) / 10 / 12));
+const inOf = (cm: number) => String(Math.round(((cm / 2.54) % 12) * 10) / 10 % 12);
 const shown = (cm: number | undefined, unit: Unit) => (cm === undefined ? '' : `${toDisplay(cm, unit)} ${unit}`);
 const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
 /** "a slip dress", "an evening coat"; plurals ("wide-leg trousers", "shorts") take no article. */
@@ -85,7 +91,7 @@ const aOrAn = (name: string) => (/(s|wear|lingerie)$/i.test(name) && !/dress$/i.
 // The first page asks who you are designing for, since "Someone else" words every page for the person holding the
 // tape and asks their name first (Cat's pick V2, 2026-10-17). A quiet "Skip and try an example" link sits under the
 // button wherever measuring can be skipped.
-export function MeasureStepsScreen({ testerCode, garment: current, unit, values, onUnit, onValues, weight, onWeight, onDone, start, onSomeoneElse, theirs, onSkip, form = 'womenswear', onForm, onIdea, onPhoto, onNews }: Props) {
+export function MeasureStepsScreen({ testerCode, garment: current, unit, values, onUnit, onValues, weight, onWeight, onDone, start, onSomeoneElse, theirs, onSkip, onLater, form = 'womenswear', onForm, onIdea, onPhoto, onNews }: Props) {
   const aimed = start?.kind === 'for' ? start.garment : undefined;
   // Each page is a history entry, so the header's back and the phone's back go one page back.
   const [page, setPage] = usePageHistory<Page>(() => {
@@ -107,6 +113,8 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
   const [asking, setAsking] = useState(false);
   const [ideaError, setIdeaError] = useState<PhotoError>();
 
+  /** Back after Finish later: on at the first base measurement still to take. */
+  const firstToTake = () => Math.max(0, BASE.findIndex((m) => values[m] === undefined));
   /** Every measurement still to take, for a dressmaker. */
   const fullSet = () => {
     const ids = fullSetMissing(values, form).map((f) => f.id);
@@ -139,10 +147,10 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
     const begin = () => {
       if (helper) onSomeoneElse?.(name.trim());
       onForm?.(chosen);
-      setPage({ kind: 'base', at: 0 });
+      setPage({ kind: 'base', at: firstToTake() });
     };
     return (
-      <Shell title="First, let's take some measurements." skip={onSkip && (() => onSkip())}>
+      <Shell title="First, let's take some measurements." skip={onSkip && (() => onSkip())} tape>
         <div className="who" role="group" aria-labelledby="who-q">
           <p id="who-q" className="who-q">
             Who are you designing for?
@@ -209,13 +217,48 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
             onForm?.(chosen);
             // Changed from the measurements list: back to it, where anything the new form needs shows as Add.
             if (start?.kind === 'form' && canGoBack()) goBack();
-            else setPage({ kind: 'base', at: 0 });
+            else setPage({ kind: 'base', at: firstToTake() });
           }}
         >
           Continue
         </button>
       </Shell>
     );
+
+  // Weight on its own page after the five basics (Cat, 2026-10-20): why it's asked, kg or lb, and a skip.
+  if (page.kind === 'weight') {
+    const wrong = weight !== undefined && (weight < WEIGHT_HARD[0] || weight > WEIGHT_HARD[1]);
+    const done = () => (page.back && canGoBack() ? goBack() : setPage({ kind: 'check' }));
+    return (
+      <Shell eyebrow="Optional" title={helper ? 'Their weight' : 'Your weight'} hero={<TapeDemo id="waist" mode="still" kind={form} />} short>
+        <p className="muted step-tip">
+          It helps us catch a slipped tape or a wrong unit: we check {helper ? 'their' : 'your'} measurements against {helper ? 'their' : 'your'} height and weight before anything is drafted. It's never drafted from, shown on a pattern or sent anywhere.
+        </p>
+        <form
+          className="measure-entry"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!wrong) done();
+          }}
+        >
+          <WeightEntry unit={unit} helper={helper} weight={weight} onWeight={onWeight!} note={false} />
+          <button type="submit" className="primary step-next">
+            {page.back ? 'Save' : 'Next'}
+          </button>
+        </form>
+        <button
+          type="button"
+          className="link quiet skip-link"
+          onClick={() => {
+            if (!page.back) onWeight?.(undefined);
+            done();
+          }}
+        >
+          {page.back ? 'Back' : 'Skip this step'}
+        </button>
+      </Shell>
+    );
+  }
 
   if (page.kind === 'check')
     return (
@@ -232,11 +275,11 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
               </button>
             </li>
           ))}
-          {weight !== undefined && (
+          {onWeight && (
             <li>
-              <button type="button" onClick={() => setPage({ kind: 'base', at: 0, back: 'check' })}>
+              <button type="button" onClick={() => setPage({ kind: 'weight', back: 'check' })}>
                 <span>Weight</span>
-                <span>{`${fromKg(weight, weightUnitOf(unit))} ${weightUnitOf(unit)}`}</span>
+                {weight === undefined ? <em className="add">Add</em> : <span>{`${fromKg(weight, weightUnitOf(unit))} ${weightUnitOf(unit)}`}</span>}
               </button>
             </li>
           )}
@@ -383,13 +426,13 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
   const g = page.kind === 'extra' ? page.garment : null;
   const eyebrow = `${page.kind === 'base' ? '' : g === 'other' ? 'Full set · ' : `${cap(GARMENT_NAME[g!])} · `}${at + 1} of ${ids.length}`;
   const label =
-    (page.kind === 'base' && page.back === 'check') || (page.kind === 'extra' && page.redo && last) ? 'Save' : page.kind === 'extra' && page.redo ? 'Next' : page.kind === 'base' || g === 'other' ? (last ? 'Done' : 'Next') : last ? `Next: style your ${GARMENT_NAME[g!]}` : 'Next';
+    (page.kind === 'base' && page.back === 'check') || (page.kind === 'extra' && page.redo && last) ? 'Save' : page.kind === 'extra' && page.redo ? 'Next' : page.kind === 'base' ? (last && !onWeight ? 'Done' : 'Next') : g === 'other' ? (last ? 'Done' : 'Next') : last ? `Next: style your ${GARMENT_NAME[g!]}` : 'Next';
   const next = () => {
     // A redo from the check returns to it, the same as going back.
     if (page.kind === 'base' && page.back === 'check' && canGoBack()) goBack();
     // A redo from the measurements list goes back to the list, past every page it took.
     else if (page.kind === 'extra' && page.redo && last && canGoBack()) window.history.go(-(at + 1));
-    else if (page.kind === 'base') setPage(last ? { kind: 'check' } : { ...page, at: at + 1 });
+    else if (page.kind === 'base') setPage(last ? (onWeight ? { kind: 'weight' } : { kind: 'check' }) : { ...page, at: at + 1 });
     else if (last) {
       if (page.garment === 'other') setPage({ kind: 'saved' });
       else onDone(page.garment);
@@ -411,11 +454,10 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
       onUnit={onUnit}
       onValues={onValues}
       weight={weight}
-      onWeight={onWeight}
       onNext={next}
       label={label}
-      skip={onSkip && !(page.kind === 'base' && page.back) && !(page.kind === 'extra' && page.redo) ? () => onSkip(g && g !== 'other' ? g : undefined) : undefined}
-      skipRest={!(page.kind === 'base' && at === 0)}
+      skip={onSkip && page.kind === 'base' && !page.back && at === 0 && !Object.keys(values).length ? () => onSkip() : undefined}
+      later={onLater && !(page.kind === 'base' && page.back) && !(page.kind === 'extra' && page.redo) ? onLater : undefined}
       canEstimate={page.kind === 'extra'}
       ids={ids}
       listTitle={page.kind === 'base' ? (helper ? 'Their measurements' : 'Your measurements') : g === 'other' ? 'Full set' : cap(GARMENT_NAME[g!])}
@@ -445,6 +487,8 @@ function chooseLabel(picked: Pick | null, values: MeasurementValues, form: FormK
   return n ? `Next: ${n} ${GARMENT_NAME[picked]} measurement${n === 1 ? '' : 's'}` : `Style my ${GARMENT_NAME[picked]}`;
 }
 
+const TAPE_MARKS = Array.from({ length: 40 }, (_, i) => i + 41);
+
 export function Shell({
   eyebrow,
   title,
@@ -452,7 +496,8 @@ export function Shell({
   dots,
   short,
   skip,
-  skipRest,
+  later,
+  tape,
   aside,
   children,
 }: {
@@ -463,8 +508,11 @@ export function Shell({
   hero?: ReactNode;
   /** Skip, a quiet link under the button: try the app with example measurements. */
   skip?: () => void;
-  /** Some measurements are taken already, so Skip fills in only the rest. */
-  skipRest?: boolean;
+  /** Finish later, in place of Skip once real measurements are in (Cat, 2026-10-20): an example under real
+   *  numbers would draft a pattern that fits no one, so later pages only offer to stop and keep them. */
+  later?: () => void;
+  /** The tape Begin pulls out on the welcome, landed across the top of the first page (Cat, 2026-10-20). */
+  tape?: boolean;
   dots?: [number, number];
   /** A shorter form on top, so a longer list fits above its button. */
   short?: boolean;
@@ -477,6 +525,15 @@ export function Shell({
   return (
     <div className="welcome">
       <section className={['card welcome-card measure-step', short && 'short', hero && 'has-hero', aside && 'has-aside'].filter(Boolean).join(' ')} aria-labelledby="stitle">
+        {tape && (
+          <div className="tape-band landed" aria-hidden="true">
+            <div className="tape-marks">
+              {TAPE_MARKS.map((n) => (
+                <span key={n}>{n}</span>
+              ))}
+            </div>
+          </div>
+        )}
         {aside && <aside className="step-list">{aside}</aside>}
         {hero && (
           <div className="welcome-hero">
@@ -496,10 +553,16 @@ export function Shell({
           {eyebrow && <p className="eyebrow">{eyebrow}</p>}
           <ShellTitle text={title} />
           {children}
-          {skip && (
+          {skip ? (
             <button type="button" className="link quiet skip-link" onClick={skip}>
-              {skipRest ? 'Example for the rest' : 'Skip and try an example'}
+              Skip and try an example
             </button>
+          ) : (
+            later && (
+              <button type="button" className="link quiet skip-link" onClick={later}>
+                Finish later
+              </button>
+            )
           )}
         </div>
       </section>
@@ -559,11 +622,10 @@ export function MeasurePage({
   onUnit,
   onValues,
   weight,
-  onWeight,
   onNext,
   label,
   skip,
-  skipRest,
+  later,
   canEstimate,
   ids,
   listTitle,
@@ -578,29 +640,24 @@ export function MeasurePage({
   garment: Garment;
   onUnit: (u: Unit) => void;
   onValues: (v: MeasurementValues) => void;
-  /** On the height page: their weight too, if they like, which only ever double-checks the girths. */
+  /** Their weight, if given on its own page, which only ever double-checks the girths. */
   weight?: number;
-  onWeight?: (kg: number | undefined) => void;
   onNext: () => void;
   label: string;
   skip?: () => void;
-  skipRest?: boolean;
+  later?: () => void;
   /** A garment's own measurement, which can be estimated from the base ones when you're not sure. */
   canEstimate?: boolean;
   /** Every measurement on this run, for the list beside the form on a computer, and what to call it. */
   ids?: MeasurementId[];
   listTitle?: string;
 }) {
-  const [replay, setReplay] = useState(0);
   const fieldLabel = labelOf(id, form);
   const guess = canEstimate ? estimateOne(id, values, form) : undefined;
   const [estimated, setEstimated] = useState(false);
   const [text, setText] = useState<string | null>(null);
   const [tried, setTried] = useState(false);
   const [how, setHow] = useState(false);
-  // The weight, offered on the height page: its box opens from a link beside "How to do it".
-  const askWeight = id === 'height' && !!onWeight;
-  const [weightOpen, setWeightOpen] = useState(weight !== undefined);
   const value = values[id];
   // Range checks for this one measurement only; the cross-checks wait for the full measurements screen.
   // Checked as a garment that uses it, so a base measurement the skirt doesn't need (the bust) still is.
@@ -612,6 +669,16 @@ export function MeasurePage({
   const doubt = !error && value !== undefined ? checkMeasurements(values, unit, checkAs, form, { weight }).find((c) => c.id === id && c.level === 'warning') : undefined;
   const note = error ?? (tried && value === undefined ? { level: 'error', message: `Enter ${helper ? 'their' : 'your'} ${fieldLabel.toLowerCase()} to carry on.` } : undefined);
 
+  const feetInches = id === 'height' && unit === 'in';
+  const [ftIn, setFtIn] = useState<[string, string] | null>(null);
+  const typeFtIn = (ft: string, inch: string) => {
+    setFtIn([ft, inch]);
+    const f = parseFloat(ft.replace(',', '.')), i = parseFloat(inch.replace(',', '.'));
+    const v = { ...values };
+    if (Number.isNaN(f) && Number.isNaN(i)) delete v[id];
+    else v[id] = Math.round(((Number.isNaN(f) ? 0 : f) * 12 + (Number.isNaN(i) ? 0 : i)) * 2.54 * 10) / 10;
+    onValues(v);
+  };
   const type = (t: string) => {
     setText(t);
     setEstimated(false);
@@ -628,15 +695,8 @@ export function MeasurePage({
       title={titleOf(id, helper, form)}
       dots={dots}
       skip={skip}
-      skipRest={skipRest}
-      hero={
-        <>
-          <TapeDemo id={id} kind={form} replay={replay} />
-          <button type="button" className="replay-tape" onClick={() => setReplay((n) => n + 1)}>
-            Play the tape again
-          </button>
-        </>
-      }
+      later={later}
+      hero={<TapeDemo id={id} kind={form} />}
       aside={ids && <StepList title={listTitle ?? 'Your measurements'} ids={ids} at={dots[1]} values={values} unit={unit} form={form} />}
     >
       <p className="muted step-tip">{tipOf(id, helper, form)}</p>
@@ -644,44 +704,74 @@ export function MeasurePage({
         <button type="button" className="link quiet how-link" aria-expanded={how} onClick={() => setHow(true)}>
           How to do it
         </button>
-        {askWeight && !weightOpen && <WeightLink onOpen={() => setWeightOpen(true)} />}
       </p>
       <form
         className="measure-entry"
         onSubmit={(e) => {
           e.preventDefault();
-          const weightWrong = id === 'height' && weight !== undefined && (weight < WEIGHT_HARD[0] || weight > WEIGHT_HARD[1]);
-          if (value === undefined || error || weightWrong) setTried(true);
+          if (value === undefined || error) setTried(true);
           else onNext();
         }}
       >
         <div className={note ? 'entry-box error' : 'entry-box'}>
-          <label htmlFor="step-value">{fieldLabel}</label>
+          {/* The title already names it (Cat, 2026-10-20): the label is kept for screen readers only. */}
+          <label htmlFor="step-value" className="visually-hidden">
+            {fieldLabel}
+          </label>
           <div className="entry-row">
-            <input
-              id="step-value"
-              inputMode="decimal"
-              autoComplete="off"
-              enterKeyHint="next"
-              value={text ?? toDisplay(value, unit)}
-              aria-invalid={note ? true : undefined}
-              aria-describedby={note ? 'step-msg' : undefined}
-              onChange={(e) => type(e.target.value)}
-            />
+            {feetInches ? (
+              // Height in feet and inches (Cat, 2026-10-20), the way most people know it.
+              <span className="ft-in">
+                <input
+                  id="step-value"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  aria-label={`${fieldLabel}, feet`}
+                  value={ftIn?.[0] ?? (value === undefined ? '' : ftOf(value))}
+                  aria-invalid={note ? true : undefined}
+                  aria-describedby={note ? 'step-msg' : undefined}
+                  onChange={(e) => typeFtIn(e.target.value, ftIn?.[1] ?? (value === undefined ? '' : inOf(value)))}
+                />
+                <span aria-hidden="true">ft</span>
+                <input
+                  id="step-inches"
+                  inputMode="decimal"
+                  autoComplete="off"
+                  enterKeyHint="next"
+                  aria-label={`${fieldLabel}, inches`}
+                  value={ftIn?.[1] ?? (value === undefined ? '' : inOf(value))}
+                  aria-invalid={note ? true : undefined}
+                  onChange={(e) => typeFtIn(ftIn?.[0] ?? (value === undefined ? '' : ftOf(value)), e.target.value)}
+                />
+                <span aria-hidden="true">in</span>
+              </span>
+            ) : (
+              <input
+                id="step-value"
+                inputMode="decimal"
+                autoComplete="off"
+                enterKeyHint="next"
+                value={text ?? toDisplay(value, unit)}
+                aria-invalid={note ? true : undefined}
+                aria-describedby={note ? 'step-msg' : undefined}
+                onChange={(e) => type(e.target.value)}
+              />
+            )}
             <span className="unit-switch" role="group" aria-label="Units">
               {(['cm', 'in'] as Unit[]).map((u) => (
                 <button
                   key={u}
                   type="button"
                   aria-pressed={unit === u}
-                  aria-label={u === 'cm' ? 'Centimetres' : 'Inches'}
+                  aria-label={u === 'cm' ? 'Centimetres' : id === 'height' ? 'Feet and inches' : 'Inches'}
                   className={unit === u ? 'on' : ''}
                   onClick={() => {
                     setText(null);
+                    setFtIn(null);
                     onUnit(u);
                   }}
                 >
-                  {u}
+                  {u === 'in' && id === 'height' ? 'ft in' : u}
                 </button>
               ))}
             </span>
@@ -697,7 +787,6 @@ export function MeasurePage({
             {doubt.message}
           </p>
         )}
-        {askWeight && weightOpen && <WeightEntry unit={unit} helper={helper} weight={weight} onWeight={onWeight!} />}
         {estimated && value !== undefined ? (
           <p className="muted small estimate-note">Estimated from your other measurements. Swap in your own when you can, for a closer fit.</p>
         ) : (

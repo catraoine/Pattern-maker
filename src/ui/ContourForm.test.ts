@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { FIELDS } from '../measurements';
-import { FORM_FLOOR, formLandmarks, HEAD_TOP, hasDemo, ON_FORM, tapeView } from './ContourForm';
+import { BUST_POINT_Y, FORM_FLOOR, formLandmarks, HEAD_TOP, hasDemo, ON_FORM, tapeView } from './ContourForm';
 
 // The measuring pages draw each tape where that measurement is taken. These pin every tape to the form's own
 // shape, so a later change to the drawing or the tape heights fails here instead of showing the wrong place.
@@ -12,6 +12,11 @@ describe('measuring tapes on the dress form', () => {
       expect(Math.abs(ON_FORM[id]! - marks[id])).toBeLessThan(0.03);
     });
   }
+
+  // The bust depth and bust point tapes end on the full bust line, not above it (Fable accuracy check, 2026-10-20).
+  it('puts the bust point on the full bust line', () => {
+    expect(Math.abs(BUST_POINT_Y - ON_FORM.full_bust!)).toBeLessThan(0.01);
+  });
 
   it('keeps bust above waist above hip', () => {
     expect(marks.full_bust).toBeLessThan(marks.waist);
