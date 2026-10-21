@@ -6476,9 +6476,12 @@ button.later.garment-change {
   .welcome-card:not(.measure-step) {
     max-width: none;
     display: grid;
-    grid-template-columns: minmax(0, 55fr) minmax(0, 45fr);
+    /* Two columns hugging the form and the words, the pair centred, so the form and the title read as one group and
+       the tape tip sits at the form's hip (Cat, 2026-10-21: the form was too far from the title). */
+    grid-template-columns: minmax(0, 52svh) minmax(0, 560px);
+    justify-content: center;
     grid-template-rows: 1fr auto auto auto 1fr;
-    column-gap: clamp(40px, 6vw, 96px);
+    column-gap: clamp(24px, 3vw, 48px);
     row-gap: 20px;
   }
   .welcome-card:not(.measure-step) > .welcome-hero {
