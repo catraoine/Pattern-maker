@@ -524,7 +524,7 @@ export function Shell({
   // form in the middle, and the question on the right; with no list the form takes the first two.
   return (
     <div className="welcome">
-      <section className={['card welcome-card measure-step', short && 'short', hero && 'has-hero', aside && 'has-aside'].filter(Boolean).join(' ')} aria-labelledby="stitle">
+      <section className={['card welcome-card measure-step', short && 'short', hero && 'has-hero', aside && 'has-aside', tape && 'has-tape'].filter(Boolean).join(' ')} aria-labelledby="stitle">
         {tape && (
           <div className="tape-band landed" aria-hidden="true">
             <div className="tape-marks">

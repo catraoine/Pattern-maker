@@ -23,8 +23,8 @@ interface Props {
 // Coming back with measurements already taken, the button carries on with the garment you were on, straight
 // to its style screen, with a quiet way to your saved patterns or something new under it.
 /** How long Begin's tape takes to unroll across the form, rise and fade into the first measuring page. */
-const LEAVE_MS = 1950;
-const MARKS = Array.from({ length: 16 }, (_, i) => i + 41);
+const LEAVE_MS = 2600;
+const MARKS = Array.from({ length: 30 }, (_, i) => i + 41);
 
 export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume }: Props) {
   const [touring, setTouring] = useState(false);

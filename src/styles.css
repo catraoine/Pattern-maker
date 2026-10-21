@@ -5936,8 +5936,8 @@ input.inline:focus,
   opacity: 0;
 }
 
-/* Begin: the tape pulls out of the tip's corner, right to left across the foot of the form, the welcome fades,
-   and the tape rises to the top */
+/* Begin: the tape pulls out of the tip's corner, right to left across the foot of the form, its hook leading, the
+   welcome fades, and the tape rises to the top (Cat, 2026-10-21: wider, slower, the hook kept on it). */
 .tape-band.unrolling {
   position: absolute;
   left: 0;
@@ -5945,18 +5945,41 @@ input.inline:focus,
   margin: 0;
   top: calc(100% - 40px);
   z-index: 3;
-  animation: tape-pull 0.75s cubic-bezier(0.3, 0.6, 0.3, 1) both, tape-rise 0.75s cubic-bezier(0.2, 0.7, 0.2, 1) 0.9s both;
+  animation: tape-pull 1.5s cubic-bezier(0.35, 0.1, 0.25, 1) both, tape-rise 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) 1.75s both;
 }
 
+/* The hook on the tape's leading end, as on the tip it was pulled from */
+.tape-band.unrolling,
+.tape-band.landed {
+  overflow: visible;
+}
+
+.tape-band.unrolling .tape-marks,
+.tape-band.landed .tape-marks {
+  overflow: hidden;
+}
+
+.tape-band.unrolling::before,
+.tape-band.landed::before {
+  content: '';
+  position: absolute;
+  left: -5px;
+  top: -5px;
+  bottom: -5px;
+  width: 6px;
+  border-radius: 1px;
+  background: #b8a274;
+}
+
+/* It slides out of the tip rather than being uncovered, so the hook travels with it */
 @keyframes tape-pull {
   from {
-    clip-path: inset(0 0 0 100%);
+    transform: translateX(calc(100% - 46px));
   }
   to {
-    clip-path: inset(0 0 0 0);
+    transform: none;
   }
 }
-
 
 @keyframes tape-rise {
   from {
@@ -5975,6 +5998,23 @@ input.inline:focus,
   grid-column: 1 / -1;
 }
 
+/* On a phone the tape runs the width of the screen, off the right-hand edge it came from, with its hook just in
+   from the left; the card lets it out past its own edges. */
+@media (max-width: 640px) {
+  .welcome.leaving .welcome-card,
+  .welcome-card.has-tape {
+    overflow-x: visible;
+  }
+  .tape-band.unrolling {
+    left: calc(50% - 50vw + 14px);
+    right: calc(50% - 50vw);
+  }
+  .tape-band.landed {
+    margin-left: calc(50% - 50vw + 14px);
+    margin-right: calc(50% - 50vw);
+  }
+}
+
 /* On a very short screen the strip would push Begin measuring below the fold, so it stays off. */
 @media (max-height: 480px) {
   .tape-band.landed {
@@ -5990,7 +6030,7 @@ input.inline:focus,
 .welcome.leaving .tour-play,
 .welcome.leaving .welcome-card > :not(.welcome-hero) {
   opacity: 0;
-  transition: opacity 0.45s ease 0.5s;
+  transition: opacity 0.5s ease 1s;
 }
 
 @media (max-width: 640px) {
