@@ -859,8 +859,8 @@ export function MeasurePage({
           How to do it <span aria-hidden="true">›</span>
         </button>
         {onFriend && (
-          <button type="button" className="later how-link friend-link" aria-pressed={!!friend} onClick={() => onFriend(!friend)}>
-            {friend ? "I'm measuring alone" : 'A friend is helping'}
+          <button type="button" className="later how-link friend-link" aria-pressed={!!friend} aria-label={friend ? 'Measuring on my own' : 'A friend is holding the tape'} onClick={() => onFriend(!friend)}>
+            {friend ? 'On my own' : 'With a friend'}
           </button>
         )}
       </p>
