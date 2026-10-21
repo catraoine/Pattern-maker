@@ -787,6 +787,13 @@ export default function App() {
     setStepsStart({ at: stepsStart.at + 1, start });
     setStep('steps');
   };
+  /** Measure me, from the example tag or the print question: drops the example's numbers and opens measuring from
+   *  the start. */
+  const measureMe = () => {
+    const own = Object.fromEntries(Object.entries(measured).filter(([id]) => !person.example?.includes(id as MeasurementId)));
+    setAccount(updatePerson(account, person.id, { values: own, example: [] }));
+    openSteps();
+  };
   /** "Choose another garment": the same list as when measuring. */
   const chooseGarment = () => openSteps({ kind: 'choose' });
 
@@ -1168,11 +1175,7 @@ export default function App() {
             <button
               type="button"
               className="example-tag"
-              onClick={() => {
-                const own = Object.fromEntries(Object.entries(measured).filter(([id]) => !person.example!.includes(id as MeasurementId)));
-                setAccount(updatePerson(account, person.id, { values: own, example: [] }));
-                openSteps();
-              }}
+              onClick={measureMe}
             >
               <span>Drafted to an example body</span>
               <span className="example-tag-go">Measure me ›</span>
@@ -1322,6 +1325,8 @@ export default function App() {
           {step === 'export' && !hasGarment(account, garment) && <UnlockGarment garment={garment} onPlans={openPlans} onBack={() => setStep('style')} />}
           {step === 'export' && hasGarment(account, garment) && (
             <ExportScreen
+              example={!!person.example?.length}
+              onMeasureMe={measureMe}
               unit={saved.unit}
               sendLink={sendLink}
               mode={mode}

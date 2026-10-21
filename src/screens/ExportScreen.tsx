@@ -45,6 +45,10 @@ export interface Printable {
 }
 
 interface Props {
+  /** Drafted to the example body because measuring was skipped: printing asks first (Cat, 2026-10-21). */
+  example?: boolean;
+  /** Measure me, from that question: drops the example and opens measuring. */
+  onMeasureMe?: () => void;
   /** The sewist's unit; the PDF's text is written in inches when it is `in`. */
   unit?: Unit;
   /** The link that carries this device's measurements and patterns to a computer; see moveLink.ts. */
@@ -112,7 +116,7 @@ const printedDate = () => new Date().toLocaleDateString('en-GB', { day: 'numeric
 
 
 
-export function ExportScreen({ unit = 'cm', sendLink, profile, title, fit, garment, finish, onFinish, made, error, onEditFabric, onKeep, onFitNotes, fitNote, fitting, fittingNotes, alterations = NONE, onFitting, onTrueScale, values, draftAt, style, imported, mode = 'all', onMode, edition, credit, label }: Props) {
+export function ExportScreen({ example, onMeasureMe, unit = 'cm', sendLink, profile, title, fit, garment, finish, onFinish, made, error, onEditFabric, onKeep, onFitNotes, fitNote, fitting, fittingNotes, alterations = NONE, onFitting, onTrueScale, values, draftAt, style, imported, mode = 'all', onMode, edition, credit, label }: Props) {
   const can = (t: ProTool) => shows(mode, t);
   const [picked, setPaper] = useState<Output>('a4');
   // Jackets and coats run to dozens of home pages, so the copy-shop sheet is offered even in the simple view.
@@ -195,6 +199,10 @@ export function ExportScreen({ unit = 'cm', sendLink, profile, title, fit, garme
 
   // Once the pattern has left the app (downloaded, shared or opened to print), the fit question comes up.
   const [printed, setPrinted] = useState(false);
+  // On the example body, the first print asks once whether to measure first or print the example anyway.
+  const [asking, setAsking] = useState<(() => void) | undefined>();
+  const [exampleOk, setExampleOk] = useState(false);
+  const checked = (go: () => void) => () => (example && !exampleOk ? setAsking(() => go) : go());
   const share = async () => {
     if (!ready) return;
     try {
@@ -271,17 +279,40 @@ export function ExportScreen({ unit = 'cm', sendLink, profile, title, fit, garme
               )}
             </fieldset>
             <div className="stack">
-              <button type="button" className="primary" onClick={download_} disabled={!ready}>
+              <button type="button" className="primary" onClick={checked(download_)} disabled={!ready}>
                 {ready ? `Download PDF (${pages} ${pages === 1 ? 'page' : 'pages'})` : 'Making your PDF…'}
               </button>
               {canShareFiles && (
-                <button type="button" className="secondary" onClick={share} disabled={!ready}>
+                <button type="button" className="secondary" onClick={checked(share)} disabled={!ready}>
                   Send to email or a printer
                 </button>
               )}
-              <button type="button" className="secondary" onClick={openToPrint} disabled={!ready}>
+              <button type="button" className="secondary" onClick={checked(openToPrint)} disabled={!ready}>
                 Open PDF to print
               </button>
+              {asking && (
+                <div className="example-ask" role="alertdialog" aria-labelledby="example-ask-title">
+                  <p id="example-ask-title" className="small">
+                    This is drafted to an example body, not yours, so it won't fit you.
+                  </p>
+                  {onMeasureMe && (
+                    <button type="button" className="primary" onClick={onMeasureMe}>
+                      Measure me
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="later"
+                    onClick={() => {
+                      setExampleOk(true);
+                      setAsking(undefined);
+                      asking();
+                    }}
+                  >
+                    Print the example anyway
+                  </button>
+                </div>
+              )}
               {shareNote && <p className="msg small">{shareNote}</p>}
             </div>
             {onFitNotes && !imported && (printed || fitNote) && (

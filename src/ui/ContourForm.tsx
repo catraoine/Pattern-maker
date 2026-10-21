@@ -859,6 +859,11 @@ export function FormPicture({ kind }: { kind: FormKind }) {
       const wy = h * 0.03 + (0.1 + 1.7) * S;
       paintTorso(g, S, w / 2, (y: number) => wy + (y - 0.1) * S, lineFor(S), EVEN, 1, 1);
       fadeBottom(g, w, h);
+      // Where the bust's left edge falls, for the tape that lands round it (Cat's T3, 2026-10-21).
+      const bust = formLandmarks().full_bust;
+      const box = g.canvas.parentElement;
+      box?.style.setProperty('--bust-x', `${w / 2 - R(bust) * S}px`);
+      box?.style.setProperty('--bust-y', `${wy + (bust - 0.1) * S}px`);
       return false;
     },
     [kind],

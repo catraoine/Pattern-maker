@@ -269,7 +269,12 @@ export const stepButton = (page: Page, name: 'Measure' | 'Style' | 'Print') =>
 
 /** Download, save it with the test's output, and return its path and bytes. */
 export async function download(page: Page, button: Locator, info: TestInfo): Promise<{ download: Download; path: string; bytes: Buffer }> {
-  const [d] = await Promise.all([page.waitForEvent('download'), button.click()]);
+  const waiting = page.waitForEvent('download');
+  await button.click();
+  // On the example body the first print asks first; these tests print it anyway.
+  const anyway = page.getByRole('main').getByRole('button', { name: 'Print the example anyway' });
+  await anyway.waitFor({ timeout: 1000 }).then(() => anyway.click(), () => undefined);
+  const d = await waiting;
   const path = info.outputPath(d.suggestedFilename());
   await d.saveAs(path);
   return { download: d, path, bytes: await readFile(path) };

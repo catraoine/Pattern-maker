@@ -5943,7 +5943,7 @@ input.inline:focus,
   left: 0;
   right: 0;
   margin: 0;
-  top: calc(100% - 32px);
+  top: calc(100% - 40px);
   z-index: 3;
   animation: tape-pull 1.5s cubic-bezier(0.35, 0.1, 0.25, 1) both, tape-rise 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) 1.75s both;
 }
@@ -5963,29 +5963,12 @@ input.inline:focus,
 .tape-band.landed::before {
   content: '';
   position: absolute;
-  left: -3px;
-  top: -4px;
-  bottom: -4px;
-  width: 4px;
+  left: -5px;
+  top: -5px;
+  bottom: -5px;
+  width: 6px;
   border-radius: 1px;
   background: #b8a274;
-}
-
-/* As thin as the tip it is pulled from (Cat, 2026-10-21), and as long as the screen is wide */
-.tape-band.unrolling,
-.tape-band.landed {
-  height: 18px;
-  background-image: repeating-linear-gradient(90deg, var(--tape-ink) 0 1px, transparent 1px 19.5px),
-    repeating-linear-gradient(90deg, rgba(43, 36, 24, 0.6) 0 1px, transparent 1px 3.9px);
-  background-size: 100% 8px, 100% 4px;
-  /* A long mark under each number, a short one between */
-  background-position: 19.5px 0, 19.5px 0;
-}
-
-.tape-band.unrolling .tape-marks span,
-.tape-band.landed .tape-marks span {
-  padding-top: 8px;
-  font-size: 8px;
 }
 
 /* It slides out of the tip rather than being uncovered, so the hook travels with it */
@@ -6000,41 +5983,63 @@ input.inline:focus,
 
 @keyframes tape-rise {
   from {
-    top: calc(100% - 32px);
+    top: calc(100% - 40px);
   }
   to {
     top: 0;
   }
 }
 
-/* Risen, the tape stays across the top of the first page, and only that page (Cat, 2026-10-20). */
-.tape-band.landed {
-  /* Exactly where the welcome's tape comes to rest (the welcome's form runs to the card's edges and sits a little
-     higher), so the tape doesn't jump as the page changes. */
-  margin: -17px -22px 18px;
-  grid-column: 1 / -1;
+/* Risen, the tape comes down onto the first page and lands round the form's bust, full size, measuring it
+   (Cat's T3, 2026-10-21). It starts where the welcome left it, across the top, and takes no room of its own. */
+.measure-step > .step-words > .form-taped {
+  position: relative;
+  display: flex;
+  flex: 1 1 0;
+  min-height: 96px;
+  max-height: 340px;
+}
+
+.form-taped > .form-picture {
+  height: 100%;
+}
+
+.form-taped > .tape-band.landed {
+  position: absolute;
+  top: calc(var(--bust-y, 30%) - 17px);
+  left: calc(var(--bust-x, 30%) + 5px);
+  right: -22px;
+  margin: 0;
+  z-index: 2;
+}
+
+.form-taped > .tape-band.landed.waiting {
+  visibility: hidden;
 }
 
 /* On a phone the tape runs the width of the screen, off the right-hand edge it came from, with its hook just in
    from the left; the card lets it out past its own edges. */
 @media (max-width: 640px) {
   .welcome.leaving .welcome-card,
-  .welcome-card.has-tape {
+  .welcome-card:has(.form-taped) {
     overflow-x: visible;
   }
   .tape-band.unrolling {
     left: calc(50% - 50vw + 14px);
     right: calc(50% - 50vw);
   }
-  .tape-band.landed {
-    margin-left: calc(50% - 50vw + 14px);
-    margin-right: calc(50% - 50vw);
+  /* Long enough to stay off the right-hand edge as it comes down from the top; the page clips the rest. */
+  .form-taped > .tape-band.landed {
+    right: calc((100% - 100vw) / 2 - 100vw);
+  }
+  body:has(.form-taped) {
+    overflow-x: clip;
   }
 }
 
-/* On a very short screen the strip would push Begin measuring below the fold, so it stays off. */
+/* On a very short screen the form, and the tape round it, stay off so Begin measuring stays in view. */
 @media (max-height: 480px) {
-  .tape-band.landed {
+  .measure-step > .step-words > .form-taped {
     display: none;
   }
 }
@@ -6057,7 +6062,7 @@ input.inline:focus,
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .welcome.go .tape-tip {
+  .welcome.go .tape-tip{
     animation: none;
     opacity: 1;
   }
@@ -6350,11 +6355,7 @@ input.inline:focus,
 
 /* The first measuring page (Cat's R1 Two Switches, 2026-10-21): the body alone, filling the room above two
    switches of one kind (the form, and for whom), Begin, and Measure later in quiet capitals. */
-.measure-step > .step-words > .form-picture {
-  flex: 1 1 0;
-  min-height: 96px;
-  max-height: 340px;
-}
+
 
 .switch {
   display: flex;
@@ -6409,12 +6410,6 @@ button.later:hover,
   color: var(--ink);
 }
 
-@media (max-height: 480px) {
-  .measure-step > .step-words > .form-picture {
-    display: none;
-  }
-}
-
 /* One underlined link per screen (Cat's L1, 2026-10-21): every other secondary action is quiet capitals, gold when it
    opens or moves on (How to do it, Choose fabric, Fabric guide, the garment switch), grey when it steps aside. */
 button.later.go {
@@ -6457,4 +6452,18 @@ button.later.garment-change {
   justify-self: start;
   padding-left: 0;
   text-align: left;
+}
+
+/* Printing the example body asks first (Cat, 2026-10-21): Measure me, or print it anyway. */
+.example-ask {
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 1px solid var(--gild);
+}
+.example-ask p {
+  margin: 0;
+}
+.example-ask button.later {
+  justify-self: center;
 }
