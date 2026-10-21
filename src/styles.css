@@ -5969,7 +5969,9 @@ input.inline:focus,
 
 /* Risen, the tape stays across the top of the first page, and only that page (Cat, 2026-10-20). */
 .tape-band.landed {
-  margin: 0 0 18px;
+  /* Exactly where the welcome's tape comes to rest (the welcome's form runs to the card's edges and sits a little
+     higher), so the tape doesn't jump as the page changes. */
+  margin: -17px -22px 18px;
   grid-column: 1 / -1;
 }
 
