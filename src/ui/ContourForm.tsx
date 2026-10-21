@@ -600,6 +600,32 @@ const tapeFor = (id: MeasurementId, kind?: FormKind): Tape | undefined => {
 };
 const isBack = (t: Tape) => t.kind === 'back' || (t.kind === 'path' && !!t.back);
 
+/** Where on the body each measurement's name sits beside the form (Cat's M3b, 2026-10-21): the girth's level, the
+ *  middle of a length, the crown for height. Arms and the crotch have no one place, so a list with them stays a list. */
+export function labelLevel(id: MeasurementId, kind?: FormKind): number | undefined {
+  const t = tapeFor(id, kind);
+  if (!t) return undefined;
+  switch (t.kind) {
+    case 'height':
+      return HEAD_TOP;
+    case 'girth':
+      return t.y;
+    case 'side':
+    case 'back':
+    case 'front':
+      return (t.from + t.to) / 2;
+    case 'path':
+      return t.pts.reduce((a, p) => a + p[1], 0) / t.pts.length;
+    default:
+      return undefined;
+  }
+}
+
+/** The measuring form's camera as last drawn, for the names beside it: where a body level falls on the canvas,
+ *  and how far out the body reaches there. */
+let camera: { canvas: HTMLCanvasElement; Y: (y: number) => number; x: (y: number) => number } | undefined;
+export const readCamera = () => (camera?.canvas.isConnected ? camera : undefined);
+
 /** What the camera frames for a tape, top and bottom in form units: always the whole measure. */
 function viewFor(t: Tape): [number, number] {
   switch (t.kind) {
@@ -655,6 +681,7 @@ function paintTape(g: CanvasRenderingContext2D, w: number, h: number, from: [num
   const cx = w / 2;
   const wy = h / 2 - ((vt + vb) / 2 - 0.1) * S;
   const Y = (y: number) => wy + (y - 0.1) * S;
+  camera = { canvas: g.canvas, Y, x: (y: number) => cx - R(y) * S };
   const lw = lineFor(S);
   const spin = turn[0] + (turn[1] - turn[0]) * e;
   const arms = t?.kind === 'arm';

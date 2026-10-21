@@ -6535,3 +6535,61 @@ button.later.garment-change {
   right: -6px;
   bottom: -2px;
 }
+
+/* Measuring on a computer (Cat's M3b Labels on the Form, 2026-10-21): the list becomes the names beside the form,
+   each at its place on the body, in quiet capitals; the one being taken in gold. No dots and no "1 of 5": the
+   names say where you are. A long list (arms, crotch) stays a list on the left. */
+.form-labels {
+  display: none;
+}
+@media (min-width: 1100px) {
+  .measure-step.has-labels .step-list,
+  .measure-step.has-labels .dots,
+  .measure-step.has-labels .step-words > .eyebrow {
+    display: none;
+  }
+  .measure-step.has-labels.has-aside .welcome-hero {
+    grid-column: 1 / 3;
+    border-left: 0;
+  }
+  .measure-step.has-labels .welcome-hero {
+    overflow: hidden;
+  }
+  .form-labels {
+    display: block;
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    pointer-events: none;
+  }
+  .form-labels li {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transform: translateY(-50%);
+    white-space: nowrap;
+    font: var(--w-strong) 11px/1 var(--mono);
+    letter-spacing: var(--track);
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  /* A short line out to the body */
+  .form-labels li::after {
+    content: '';
+    width: 28px;
+    border-top: var(--bw) solid var(--line);
+  }
+  .form-labels li b {
+    font-weight: inherit;
+    color: var(--ink);
+  }
+  .form-labels li.on {
+    color: var(--gild);
+  }
+  .form-labels li.on::after {
+    border-color: var(--gild);
+  }
+}

@@ -1,9 +1,9 @@
-import { useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { FIELDS, checkMeasurements, type Check, type FormKind, type Garment, type MeasurementId, type MeasurementValues, type Unit } from '../measurements';
 import { BASE, baseDone, fullSetMissing, GARMENT_NAME, GARMENTS, labelOf, missingFor, stepsOf, tipOf, titleOf } from '../measureFlow';
 import { takeTapeRest } from '../ui/tapeHandoff';
 import { WEIGHT_HARD, WeightEntry, fromKg, weightUnitOf } from '../ui/WeightEntry';
-import { FormPicture, TapeDemo } from '../ui/ContourForm';
+import { FormPicture, labelLevel, readCamera, TapeDemo } from '../ui/ContourForm';
 import { canGoBack, goBack, usePageHistory } from '../nav';
 import { estimateOne } from '../estimate';
 import { Title } from '../ui/Title';
@@ -536,6 +536,7 @@ export function Shell({
   skip,
   later,
   aside,
+  labels,
   children,
 }: {
   /** A small line above the title, only where it tells you something (which step, which garment). */
@@ -553,17 +554,20 @@ export function Shell({
   short?: boolean;
   /** The left-hand column on a computer (Cat's W3 Drafting Table): the measurements on this run. */
   aside?: ReactNode;
+  /** On a computer, the list as names beside the form at their places on the body, in place of the aside. */
+  labels?: ReactNode;
   children: ReactNode;
 }) {
   // On a phone the words follow the form in one column. On a computer the page is three columns: the list, the
   // form in the middle, and the question on the right; with no list the form takes the first two.
   return (
     <div className="welcome">
-      <section className={['card welcome-card measure-step', short && 'short', hero && 'has-hero', aside && 'has-aside'].filter(Boolean).join(' ')} aria-labelledby="stitle">
+      <section className={['card welcome-card measure-step', short && 'short', hero && 'has-hero', aside && 'has-aside', labels && 'has-labels'].filter(Boolean).join(' ')} aria-labelledby="stitle">
         {aside && <aside className="step-list">{aside}</aside>}
         {hero && (
           <div className="welcome-hero">
             {hero}
+            {labels}
             <div className="welcome-top">
               {dots && (
                 <div className="dots" aria-hidden="true">
@@ -593,6 +597,50 @@ export function Shell({
         </div>
       </section>
     </div>
+  );
+}
+
+/** The measurements on this run as names beside the form, each at its own place on the body, the one being taken in
+ *  gold, its number once taken (Cat's M3b Labels on the Form, 2026-10-21). They follow the camera as it moves and keep
+ *  clear of each other, those out of view resting at the top or bottom edge. Computer only; the phone keeps its dots. */
+function FormLabels({ ids, at, values, unit, form }: { ids: MeasurementId[]; at: number; values: MeasurementValues; unit: Unit; form: FormKind }) {
+  const ref = useRef<HTMLOListElement>(null);
+  useEffect(() => {
+    let frame = 0;
+    const place = () => {
+      frame = requestAnimationFrame(place);
+      const list = ref.current;
+      const cam = readCamera();
+      if (!list || !cam || !list.offsetParent) return;
+      const box = list.getBoundingClientRect();
+      const c = cam.canvas.getBoundingClientRect();
+      const items = [...list.children] as HTMLElement[];
+      const GAP = 26;
+      const spots = items.map((li) => {
+        const y = Number(li.dataset.y);
+        return { li, top: c.top - box.top + cam.Y(y), right: box.right - (c.left + cam.x(y)) + 18 };
+      });
+      // In body order, pushed apart where they would touch and kept inside the picture.
+      const order = [...spots].sort((a, b) => a.top - b.top);
+      order.forEach((p, i) => (p.top = Math.max(p.top, i ? order[i - 1].top + GAP : 12)));
+      for (let i = order.length - 1; i >= 0; i--) order[i].top = Math.min(order[i].top, i < order.length - 1 ? order[i + 1].top - GAP : box.height - 12);
+      for (const p of spots) {
+        p.li.style.top = `${p.top}px`;
+        p.li.style.right = `${Math.min(p.right, box.width - 40)}px`;
+      }
+    };
+    place();
+    return () => cancelAnimationFrame(frame);
+  }, [ids, at]);
+  return (
+    <ol ref={ref} className="form-labels" aria-hidden="true">
+      {ids.map((i, n) => (
+        <li key={i} data-y={labelLevel(i, form)} className={n === at ? 'on' : undefined}>
+          {labelOf(i, form)}
+          {values[i] !== undefined && <b>{shown(values[i], unit)}</b>}
+        </li>
+      ))}
+    </ol>
   );
 }
 
@@ -724,6 +772,7 @@ export function MeasurePage({
       later={later}
       hero={<TapeDemo id={id} kind={form} />}
       aside={ids && <StepList title={listTitle ?? 'Your measurements'} ids={ids} at={dots[1]} values={values} unit={unit} form={form} />}
+      labels={ids && ids.length <= 8 && ids.every((i) => labelLevel(i, form) !== undefined) && <FormLabels ids={ids} at={dots[1]} values={values} unit={unit} form={form} />}
     >
       <p className="muted step-tip">{tipOf(id, helper, form)}</p>
       <p className="how-row">
