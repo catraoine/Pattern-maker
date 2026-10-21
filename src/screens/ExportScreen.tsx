@@ -30,6 +30,7 @@ import { buyAmount, buyLink, shopFabric, shopPrice, type ShopFabric } from '../e
 import { canShareFiles, download } from '../ui/download';
 import { LabelCard } from '../ui/LabelCard';
 import { TestingTag } from '../ui/TestingTag';
+import { DemoButton } from '../ui/DemoButton';
 
 /** What to print: the drafted pieces of either garment, with its notes and sewing steps. */
 export interface Printable {
@@ -355,6 +356,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', sendLink, prof
             <div className="preview tiles" style={{ ['--cols' as string]: grid.cols }}>
               <PatternPreview sheet={sheet} label={projector ? 'Pattern on one page for a projector' : `Pattern laid over ${pages} numbered print pages`} />
               {!projector && <TileOverlay sheet={sheet} paper={paper} />}
+              <DemoButton demo="print" />
             </div>
             {!imported && <p className="muted small">
               {passed === checks.length
@@ -433,11 +435,14 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', sendLink, prof
           lays.map((lay) => (
             <div key={lay.fabric} className="lay">
               {lays.length > 1 && <p className="eyebrow">{lay.fabric === 'lining' ? 'Lining' : lay.fabric === 'interlining' ? 'Coutil' : 'Fabric'}</p>}
-              <LayPlanView
-                lay={lay}
-                cloth={lay.fabric === 'self' ? (flatId(finish.fabric) ?? 'default') : lay.fabric === 'lining' ? 'silk' : 'cotton'}
-                print={lay.fabric === 'self' && print ? { kind: print, repeat: printRepeat(finish.fabric) } : undefined}
-              />
+              <div className="lay-box">
+                <LayPlanView
+                  lay={lay}
+                  cloth={lay.fabric === 'self' ? (flatId(finish.fabric) ?? 'default') : lay.fabric === 'lining' ? 'silk' : 'cotton'}
+                  print={lay.fabric === 'self' && print ? { kind: print, repeat: printRepeat(finish.fabric) } : undefined}
+                />
+                {lay.fabric === 'self' && <DemoButton demo="fabric" />}
+              </div>
               {lay.fabric === 'self' && print === 'motif' && <p className="muted small">The front is centred on a motif. Move the pattern so no motif sits on the bust points or the seat.</p>}
               <p className="muted small">{layWords(lay)}</p>
             </div>

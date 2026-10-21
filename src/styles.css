@@ -6511,3 +6511,25 @@ button.later.garment-change {
     text-align: left;
   }
 }
+
+/* Boxes that hold a Watch demo in their bottom-right corner */
+.photostart,
+.lay-box,
+.fit-box,
+.calcard-wrap,
+.truescale {
+  position: relative;
+}
+.calcard-wrap {
+  padding-bottom: 32px;
+}
+/* Below the drawing, so it never sits on the cloth or a pattern line */
+.lay-box,
+.fit-box {
+  padding-bottom: 30px;
+}
+.lay-box .demo-play,
+.fit-box .demo-play {
+  right: -6px;
+  bottom: -2px;
+}
