@@ -8,8 +8,8 @@ test('menswear form: chest, no bust measurements, a bodice with no bust dart', a
   await main.getByRole('button', { name: 'Begin' }).click();
   await measureMe(page, 'Menswear');
 
-  // The height comes first for every form; the chest is next.
-  await main.getByRole('textbox', { name: 'Height' }).fill('178');
+  // The waist comes first for every form (Cat, 2026-10-21); the chest is next.
+  await main.getByRole('textbox', { name: 'Waist' }).fill('84');
   await main.getByRole('button', { name: 'Next', exact: true }).click();
   await expect(main.getByRole('heading', { level: 1, name: 'Your chest' })).toBeVisible();
   await expect(main.getByRole('textbox', { name: 'Chest' })).toBeVisible();
