@@ -6591,3 +6591,21 @@ button.later.garment-change {
     border-color: var(--gild);
   }
 }
+
+/* The first measuring page on a computer as one composed group (Cat, 2026-10-21: "a mess"): a narrow centred
+   column, the title centred over the form, the tape across its top the same width, the switches and Begin under
+   it, with even, tighter gaps. */
+@media (min-width: 960px) {
+  .measure-step.has-tape {
+    max-width: 520px;
+    margin-left: auto;
+    margin-right: auto;
+    row-gap: 18px;
+  }
+  .measure-step.has-tape h1 {
+    text-align: center;
+  }
+  .measure-step.has-tape > .step-words > .form-picture {
+    max-height: 300px;
+  }
+}
