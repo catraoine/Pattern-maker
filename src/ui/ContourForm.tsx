@@ -851,7 +851,14 @@ export function FormPicture({ kind }: { kind: FormKind }) {
   const ref = useCanvas(
     (g, w, h) => {
       pickForm(kind);
-      settledForm(g, w, h);
+      // The body only, neck to hem, filling the card (Cat, 2026-10-21: no head on the first page).
+      g.globalAlpha = 1;
+      g.fillStyle = '#000';
+      g.fillRect(0, 0, w, h);
+      const S = Math.min(w * 0.6, (h * 0.94) / (1.3 + 1.7));
+      const wy = h * 0.03 + (0.1 + 1.7) * S;
+      paintTorso(g, S, w / 2, (y: number) => wy + (y - 0.1) * S, lineFor(S), EVEN, 1, 1);
+      fadeBottom(g, w, h);
       return false;
     },
     [kind],
