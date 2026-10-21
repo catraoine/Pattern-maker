@@ -6412,13 +6412,14 @@ body:has(.tape-band.carried) {
   text-underline-offset: 8px;
 }
 
+/* A small raised tag beside the word, not a second line under it (Cat, 2026-10-21: it looked cluttered). */
 .switch .testing-tag {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 100%;
-  margin: 0;
-  font-size: 8px;
+  display: inline-block;
+  margin: 0 0 0 6px;
+  vertical-align: 0.6em;
+  font-size: 7px;
+  letter-spacing: 0.12em;
+  opacity: 0.75;
   text-decoration: none;
 }
 
