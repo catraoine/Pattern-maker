@@ -556,7 +556,7 @@ export function Shell({
             </button>
           ) : (
             later && (
-              <button type="button" className="link quiet skip-link" onClick={later}>
+              <button type="button" className="later skip-link" onClick={later}>
                 Finish later
               </button>
             )
@@ -698,8 +698,8 @@ export function MeasurePage({
     >
       <p className="muted step-tip">{tipOf(id, helper, form)}</p>
       <p className="how-row">
-        <button type="button" className="link quiet how-link" aria-expanded={how} onClick={() => setHow(true)}>
-          How to do it
+        <button type="button" className="later go how-link" aria-expanded={how} onClick={() => setHow(true)}>
+          How to do it <span aria-hidden="true">›</span>
         </button>
       </p>
       <form

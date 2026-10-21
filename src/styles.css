@@ -6414,3 +6414,47 @@ button.later:hover,
     display: none;
   }
 }
+
+/* One underlined link per screen (Cat's L1, 2026-10-21): every other secondary action is quiet capitals, gold when it
+   opens or moves on (How to do it, Choose fabric, Fabric guide, the garment switch), grey when it steps aside. */
+button.later.go {
+  color: var(--gild);
+}
+button.later.go:hover {
+  color: var(--ink);
+}
+.how-row button.later,
+.review-edits button.later,
+.mode-link button.later,
+.fabric details button.later,
+.yourfabric button.later,
+button.later.name-edit {
+  align-self: flex-start;
+  padding-left: 0;
+  padding-right: 0;
+}
+.review-edits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 28px;
+}
+.step-words > button.later.skip-link {
+  align-self: center;
+}
+button.later.garment-change {
+  flex-basis: auto;
+  padding: 6px 0;
+  text-align: right;
+}
+.fineprint.plain .inline-link {
+  text-decoration: none;
+  color: var(--muted);
+}
+.fineprint.plain .inline-link:hover {
+  color: var(--ink);
+}
+.yourfabric button.later {
+  justify-self: start;
+  padding-left: 0;
+  text-align: left;
+}

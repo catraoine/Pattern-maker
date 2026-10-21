@@ -341,7 +341,7 @@ export function ExportScreen({ unit = 'cm', sendLink, profile, title, fit, garme
               </label>
             )}
             <p className="muted small">Printed it? Your cutting layout and sewing steps are just below, and on the last pages of the PDF.</p>
-            <ModeLink mode={mode} onMode={onMode} what="big paper and projector, a toile fitting, a dressmaker's pack and more" />
+            <ModeLink quiet mode={mode} onMode={onMode} what="big paper and projector, a toile fitting, a dressmaker's pack and more" />
           </div>
         </section>
       </div>
@@ -652,8 +652,8 @@ function YourFabric({ fabric, style, metres, onChange }: { fabric: MyFabric; sty
         {name ? 'Chosen on the Fabric tab. It sets the cutting layout below and goes on the PDF.' : 'Choose it on the Fabric tab to see the style in it. It goes on the PDF.'}
       </p>
       {onChange && (
-        <button type="button" className="link" onClick={onChange}>
-          {name ? 'Change fabric' : 'Choose fabric'}
+        <button type="button" className="later go" onClick={onChange}>
+          {name ? 'Change fabric' : 'Choose fabric'} <span aria-hidden="true">›</span>
         </button>
       )}
     </section>
