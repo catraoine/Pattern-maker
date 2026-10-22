@@ -14,10 +14,10 @@ const PARTS: { name: string; from: number }[] = [
   { name: 'Measure', from: 0 },
   { name: 'Choose', from: 22.1 },
   { name: 'Style', from: 28.3 },
-  { name: 'Print', from: 59.3 },
+  { name: 'Print', from: 58.1 },
 ];
-export const TOUR_LENGTH = 71;
-export const TOUR_LABEL = '1:11';
+export const TOUR_LENGTH = 70;
+export const TOUR_LABEL = '1:10';
 
 export function TourPlayer({ onClose }: { onClose: () => void }) {
   const video = useRef<HTMLVideoElement>(null);

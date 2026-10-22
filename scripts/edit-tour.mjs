@@ -80,15 +80,15 @@ async function piece({ shot, still, from = 0, dur, speed = 1, zoom = [1, 1], at 
 }
 
 // Where to look in each shot: the drawing alone, framed in black (see mask).
-const DRESS = { zoom: [2.1, 2.25], at: [0.5, 0.48], frame: [0.16, 0.88] };
-const ROUND = { zoom: [2.3, 2.4], at: [0.5, 0.45], frame: [0.2, 0.64] };
+// The dress filling with fabric: the drawing and the swatches tapped under it.
+const FABRIC = { zoom: [1.12, 1.18], at: [0.5, 0.52], frame: [0.27, 0.8] };
 // Cat (2026-10-22): the cream pattern paper was too bright after the black pages; a deeper champagne here.
 const PATTERN = { zoom: [1.1, 1.14], at: [0.5, 0.56], frame: [0.305, 0.712], tint: [0.84, 0.78, 0.66] };
 const PAGES = { shot: 'print', from: 5.2, speed: 0.75, frame: [0.15, 0.87] };
-const LOOKS = ['g01', 'g03', 'g08', 'g10'].map((g) => resolve(`public/looks/${g}.jpg`));
 const CUTS = {
   // V1 Chapter Words (Cat's pick, 2026-10-22): slow and cinematic, a word or two on a page between the moments;
-  // Style is about the clothes: the house's looks, the collection, and one of its pieces drafted to you.
+  // Style is about the clothes: the collection, one of its pieces in fabric after fabric, then all round on you,
+  // drawing closer as it turns (the recorder fills the screen with it; Cat, 2026-10-22).
   words: async () => {
     const f = 0.5;
     return [
@@ -99,11 +99,10 @@ const CUTS = {
       await piece({ still: await card('02', 'Choose', 'Then what to make.'), dur: 3, fadeIn: f, fadeOut: f }),
       await piece({ shot: 'choose', from: 0.3, dur: 3.2, fadeIn: f, fadeOut: f }),
       await piece({ still: await card('03', 'Style', 'Make it yours.'), dur: 3, fadeIn: f, fadeOut: f }),
-      ...(await Promise.all(LOOKS.map((still, i) => piece({ still, dur: 2.1, zoom: [1, 1.07], at: [0.5, 0.4], fadeIn: i ? 0.3 : f, fadeOut: 0.3 })))),
-      await piece({ shot: 'collection', from: 1, dur: 7.6, speed: 1.3, fadeIn: f, fadeOut: f }),
-      await piece({ shot: 'dress', from: 0.3, dur: 3.2, ...DRESS, fadeIn: f }),
-      await piece({ shot: 'round', from: 0.9, dur: 5.2, ...ROUND }),
-      await piece({ shot: 'pattern', from: 1.1, dur: 3.6, ...PATTERN, fadeOut: f }),
+      await piece({ shot: 'collection', from: 1, dur: 6, speed: 1.3, fadeIn: f, fadeOut: f }),
+      await piece({ shot: 'fabric', from: 0.6, dur: 8.6, speed: 2.1, ...FABRIC, fadeIn: f, fadeOut: f }),
+      await piece({ shot: 'round', from: 0.3, dur: 8.6, fadeIn: f, fadeOut: f }),
+      await piece({ shot: 'pattern', from: 1.1, dur: 3.6, ...PATTERN, fadeIn: f, fadeOut: f }),
       await piece({ still: await card('04', 'Print', 'At home, or full size.'), dur: 3, fadeIn: f, fadeOut: f }),
       await piece({ ...PAGES, dur: 4.4, fadeIn: f, fadeOut: f }),
       await piece({ still: await card('Maison Tracé', 'Drafted<br>to your body'), dur: 4.5, fadeIn: 0.8, fadeOut: 1.2 }),

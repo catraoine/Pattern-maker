@@ -113,51 +113,99 @@ await fillAll();
 await main.getByRole('heading', { level: 1, name: 'Style your dress' }).waitFor();
 await wait(1500);
 
-// collection: the Maison collection's looks, a slow scroll down to Colonne
+// collection: the Maison collection's looks, a slow scroll down to Épaule (Cat, 2026-10-22: the column dress read
+// wide and frumpy on the form; Épaule's bare shoulder and dipped hem are the sharper silhouette)
 const entry = main.getByRole('button', { name: 'Start from the Maison collection' });
 await entry.scrollIntoViewIfNeeded();
 await entry.click();
 await wait(1500);
 await p.evaluate(() => window.scrollTo(0, 0));
-const colonne = main.locator('li.house-look').filter({ has: p.getByRole('heading', { name: 'Colonne', exact: true }) });
-const colTop = await colonne.evaluate((el) => el.getBoundingClientRect().top + scrollY - 70);
+const epaule = main.locator('li.house-look').filter({ has: p.getByRole('heading', { name: 'Épaule', exact: true }) });
+const lookTop = await epaule.evaluate((el) => el.getBoundingClientRect().top + scrollY - 70);
 const tailleurTop = await main.locator('li.house-look').first().evaluate((el) => el.getBoundingClientRect().top + scrollY - 70);
 await glide(tailleurTop, 10);
 await wait(800);
 await start();
 await wait(1400);
-await glide(colTop, 9000);
+await glide(lookTop, 6500);
 await wait(1600);
 await stop('collection');
-await colonne.getByRole('button', { name: 'Make this look' }).click();
+await epaule.getByRole('button', { name: 'Make this look' }).click();
 await wait(1500);
 await fillAll();
 await main.getByRole('heading', { level: 1, name: /^Style your/ }).waitFor();
 await p.evaluate(() => window.scrollTo(0, 0));
 await wait(1500);
 
-// dress: the column dress drawn to you
+// fabric: the Fabric tab, the dress filling with one fabric and colour after another (Cat, 2026-10-22: in place of
+// the photo looks). Taps go straight to the buttons so the page doesn't scroll away from the drawing.
+const tap = async (loc, ms) => { await loc.evaluate((el) => el.click()); await p.evaluate(() => window.scrollTo(0, 0)); await wait(ms); };
+await tap(main.getByRole('tab', { name: 'Fabric', exact: true }), 1200);
+const fabric = (name) => main.getByRole('radio', { name, exact: true });
+const colour = (name) => main.getByRole('radiogroup', { name: 'Colour' }).getByRole('radio', { name, exact: true });
 await start();
-await wait(3500);
-await stop('dress');
+await wait(1000);
+await tap(fabric('Satin'), 600);
+await tap(colour('Black'), 1500);
+await tap(fabric('Silk'), 500);
+await tap(colour('Ivory'), 1500);
+await tap(fabric('Velvet'), 500);
+await tap(colour('Emerald'), 1500);
+await tap(fabric('Wool'), 500);
+await tap(colour('Burgundy'), 1800);
+await stop('fabric');
+await tap(fabric('Satin'), 300);
+await tap(colour('Black'), 600);
 
 // pattern: the pieces you cut
 await start();
 await wait(500);
 const patternView = main.getByRole('group', { name: 'Preview view' }).getByRole('button', { name: /^Pattern/ });
-await patternView.click();
-await p.waitForFunction((el) => el.getAttribute('aria-pressed') === 'true', await patternView.elementHandle(), { timeout: 5000 }).catch(async () => { await patternView.dispatchEvent('click'); });
+await tap(patternView, 0);
 await wait(4000);
 await stop('pattern');
-await main.getByRole('group', { name: 'Preview view' }).getByRole('button', { name: /^Garment/ }).click();
-await wait(800);
+await tap(main.getByRole('group', { name: 'Preview view' }).getByRole('button', { name: /^Garment/ }), 800);
 
-// round: turning all round on the form (after the pattern: from All round, Pattern doesn't redraw in time)
-await start();
-await wait(500);
+// round: turning all round on the form, filling the screen and drawing closer as it turns (Cat, 2026-10-22: start
+// close, then in and in, cinematic). The canvas is lifted out at its closest size, so it is drawn sharp, and shown
+// smaller by a scale that grows; resizing it as it goes would blank it between redraws.
+// (After the pattern: from All round, Pattern doesn't redraw in time.)
 await main.getByRole('group', { name: 'Garment view' }).getByRole('button', { name: 'All round' }).click();
-await wait(5500);
+await wait(800);
+const CLOSEST = 3.4;
+await p.evaluate((K) => {
+  const c = document.querySelector('.all-round-canvas');
+  document.body.appendChild(c);
+  const w = innerWidth * K, h = (innerHeight + 96) * K;
+  Object.assign(c.style, { position: 'fixed', zIndex: 9999, background: '#000', maxWidth: 'none', maxHeight: 'none', aspectRatio: 'auto', margin: 0, width: `${w}px`, height: `${h}px`, left: `${innerWidth / 2 - w / 2}px` });
+}, CLOSEST);
+const zoomTo = (from, to, ms) => p.evaluate(([from, to, ms, K]) => new Promise((done) => {
+  const c = document.querySelector('.all-round-canvas');
+  const h = (innerHeight + 96) * K;
+  // Where to keep still as it grows, as a fraction of the canvas: the bodice, rising a little towards the bust.
+  const set = (k) => {
+    const fy = 0.42 - 0.08 * ((k - from) / (to - from || 1));
+    Object.assign(c.style, { top: `${innerHeight / 2 - fy * h}px`, transformOrigin: `50% ${fy * 100}%`, transform: `scale(${k / K})` });
+  };
+  const t0 = performance.now();
+  const ease = (x) => x * x * (3 - 2 * x);
+  const step = (now) => { const x = Math.min(1, (now - t0) / (ms || 1)); set(from + (to - from) * ease(x)); x < 1 ? requestAnimationFrame(step) : done(); };
+  requestAnimationFrame(step);
+}), [from, to, ms, CLOSEST]);
+await zoomTo(1.3, 1.3, 0);
+await wait(600);
+await start();
+await wait(400);
+await zoomTo(1.3, 3.4, 8500);
+await wait(600);
 await stop('round');
+// Put the canvas back where it was.
+await p.evaluate(() => {
+  const c = document.querySelector('.all-round-canvas');
+  document.querySelector('.all-round')?.prepend(c);
+  c.removeAttribute('style');
+});
+await wait(600);
 
 // print: the print page, A4, and the tiled pages
 await main.getByRole('button', { name: 'Review', exact: true }).click();
