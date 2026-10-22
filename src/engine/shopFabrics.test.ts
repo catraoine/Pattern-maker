@@ -32,9 +32,10 @@ describe('shop fabrics', () => {
   });
 
   it("opens the colour's own page, or the cart with the amount when the shop has cart links", () => {
-    expect(buyLink(denim, 'Indigo twill', 2.4)).toEqual({ href: denim.colours[1].url, inCart: false });
-    expect(buyLink(denim, undefined, 2.4)?.href).toBe(denim.colours[0].url);
-    expect(buyLink({ ...denim, cart: 'https://shop.example/cart?q={qty}' }, 'Black', 2.4)).toEqual({ href: 'https://shop.example/cart?q=3', inCart: true });
+    const awin = (url: string) => `https://www.awin1.com/cread.php?awinmid=53817&awinaffid=3131502&ued=${encodeURIComponent(url)}`;
+    expect(buyLink(denim, 'Indigo twill', 2.4)).toEqual({ href: awin(denim.colours[1].url!), inCart: false });
+    expect(buyLink(denim, undefined, 2.4)?.href).toBe(awin(denim.colours[0].url!));
+    expect(buyLink({ ...denim, shop: 'Other', cart: 'https://shop.example/cart?q={qty}' }, 'Black', 2.4)).toEqual({ href: 'https://shop.example/cart?q=3', inCart: true });
     expect(buyLink({ ...denim, colours: [{ name: 'Black', hex: '#000' }] }, 'Black', 2.4)).toBeUndefined();
   });
 
