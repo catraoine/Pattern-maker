@@ -91,8 +91,9 @@ async function piece({ shot, still, from = 0, dur, speed = 1, zoom = [1, 1], at 
 // The dress filling with fabric: the drawing and the swatches tapped under it.
 const FABRIC = WIDE ? { zoom: [1.05, 1.1], at: [0.45, 0.48], frame: [0.08, 1.05] } : { zoom: [1.12, 1.18], at: [0.5, 0.52], frame: [0.27, 0.8] };
 // Cat (2026-10-22): the cream pattern paper was too bright after the black pages; a deeper champagne here.
+// Wide: from the moment the pattern is up, slowed a touch to fill its time (Cat, 2026-10-22: the drawing flashed before it).
 const PATTERN = WIDE
-  ? { from: 0.4, zoom: [1.6, 1.66], at: [0.42, 0.72], frame: [0.09, 1.05, 0.1, 0.92], tint: [0.84, 0.78, 0.66] }
+  ? { from: 1.1, speed: 0.8, zoom: [1.6, 1.66], at: [0.42, 0.72], frame: [0.09, 1.05, 0.1, 0.92], tint: [0.84, 0.78, 0.66] }
   : { from: 1.1, zoom: [1.1, 1.14], at: [0.5, 0.56], frame: [0.305, 0.712], tint: [0.84, 0.78, 0.66] };
 const PAGES = { shot: 'print', from: 5.2, speed: 0.75, frame: WIDE ? [0.08, 1.05] : [0.15, 0.87] };
 const CUTS = {
