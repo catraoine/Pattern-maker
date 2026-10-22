@@ -56,6 +56,12 @@ export const COLOURS: Colour[] = [
 const MOOD = 'Mood Fabrics';
 const mood = (path: string) => `https://www.moodfabrics.com/${path}`;
 
+/** Each shop's affiliate tracking: Buy goes through the network so the sale earns the commission. Mood is on Awin (publisher 3131502). */
+const AFFILIATE: Record<string, (url: string) => string> = {
+  [MOOD]: (url) => `https://www.awin1.com/cread.php?awinmid=53817&awinaffid=3131502&ued=${encodeURIComponent(url)}`,
+};
+const tracked = (f: ShopFabric, url: string) => AFFILIATE[f.shop]?.(url) ?? url;
+
 export const SHOP_FABRICS: ShopFabric[] = [
   {
     id: 'mood-denim',
@@ -225,9 +231,9 @@ const colourway = (f: ShopFabric, colour: string | undefined) =>
 /** The price per metre or yard for this colour. */
 export const shopPrice = (f: ShopFabric, colour?: string) => colourway(f, colour)?.price ?? f.price;
 
-/** Where Buy goes: the shop's cart with the amount filled in, or the colour's own page; none if the shop has neither. */
+/** Where Buy goes: the shop's cart with the amount filled in, or the colour's own page; none if the shop has neither. Sent through the shop's affiliate link when it has one. */
 export function buyLink(f: ShopFabric, colour: string | undefined, metres: number): { href: string; inCart: boolean } | undefined {
-  if (f.cart) return { href: f.cart.replace('{qty}', String(buyAmount(f, metres).qty)), inCart: true };
+  if (f.cart) return { href: tracked(f, f.cart.replace('{qty}', String(buyAmount(f, metres).qty))), inCart: true };
   const url = colourway(f, colour)?.url;
-  return url ? { href: url, inCart: false } : undefined;
+  return url ? { href: tracked(f, url), inCart: false } : undefined;
 }
