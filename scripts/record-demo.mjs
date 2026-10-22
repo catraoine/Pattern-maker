@@ -19,6 +19,8 @@ const APP = process.argv[3] ?? 'http://127.0.0.1:5173';
 const LOCAL_CHROMIUM = '/opt/pw-browsers/chromium';
 const b = await chromium.launch(existsSync(LOCAL_CHROMIUM) ? { executablePath: LOCAL_CHROMIUM } : {});
 const ctx = await b.newContext({ viewport: { width: 432, height: 768 }, deviceScaleFactor: 2.5, isMobile: true, hasTouch: true });
+// The waitlist front page only lets testers in; the recording browser is one.
+await ctx.addInitScript(() => { try { localStorage.setItem('maison-trace-access', 'tester'); } catch {} });
 const p = await ctx.newPage();
 mkdirSync(WORK + '/frames', { recursive: true });
 mkdirSync(OUT, { recursive: true });
@@ -99,16 +101,18 @@ async function scrollBy(px) {
   await wait(700);
 }
 
-const VALUES = { Waist: '76', 'Full hip': '102', 'Waist to hip': '20.5', 'Waist to knee': '58', 'Waist to floor': '104', 'Crotch depth': '27', 'Crotch length': '70', 'Full bust': '92', 'High bust': '86', Neck: '35', 'Shoulder width': '38', 'Back length': '41', 'Front length': '44', 'Bust depth': '26', 'Bust point to bust point': '18', 'Shoulder length': '12', 'Across back': '35', 'Across front': '32', Armhole: '40' };
+const VALUES = { Height: '165', Weight: '', Waist: '76', 'Full hip': '102', 'Waist to hip': '20.5', 'Waist to knee': '58', 'Waist to floor': '104', 'Crotch depth': '27', 'Crotch length': '70', 'Full bust': '92', 'High bust': '86', Neck: '35', 'Shoulder width': '38', 'Back length': '41', 'Front length': '44', 'Bust depth': '26', 'Bust point to bust point': '18', 'Shoulder length': '12', 'Across back': '35', 'Across front': '32', Armhole: '40' };
 async function fillPages(slowFirst) {
   let last = '';
   for (let n = 0; n < 40; n++) {
     const input = main.getByRole('textbox');
-    for (let k = 0; k < 60; k++) { if ((await input.count()) === 1) { const l = await input.evaluate((el) => (el.labels?.[0]?.textContent ?? '').replace(/\(optional\)/i, '').trim()); if (l !== last) { last = l; break; } } await wait(100); }
+    // The optional weight page's Next lands on the check page, which has no box.
+    const checked = main.getByRole('heading', { name: 'Do these look right?' });
+    for (let k = 0; k < 60; k++) { if (last && (await checked.count())) return; if ((await input.count()) === 1) { const l = await input.evaluate((el) => (el.labels?.[0]?.textContent ?? '').replace(/\(optional\)/i, '').trim()); if (l !== last) { last = l; break; } } await wait(100); }
     const v = VALUES[last] ?? '30';
     await wait(n < slowFirst ? 1700 : 500);
     await input.click();
-    await input.pressSequentially(v, { delay: n < slowFirst ? 140 : 60 });
+    if (v) await input.pressSequentially(v, { delay: n < slowFirst ? 140 : 60 });
     await wait(n < slowFirst ? 700 : 250);
     const next = main.getByRole('button', { name: /^(Next|Done|Save)\b/ });
     const name = ((await next.textContent()) ?? '').trim();
@@ -138,13 +142,14 @@ await wait(2400);
 await tap(main.getByRole('button', { name: 'Begin' }), 2000);
 
 // 2. Measure
-await cap('01 · Measure', 'Measuring yourself, or someone else? Skip on the tape tries an example.');
+await cap('01 · Measure', 'Measuring yourself, or someone else? Measure later tries an example.');
 await wait(3200);
-await tap(main.getByRole('button', { name: 'Me', exact: true }), 600);
+await tap(main.getByRole('radio', { name: 'For me' }), 600);
 await cap('01 · Measure', 'Pick the form to draft on: womenswear or menswear.');
-await wait(2400);
-await tap(main.getByRole('button', { name: /^Begin measuring$/i }), 600);
-await cap('01 · Measure', 'One measurement per page, each with a short how-to.');
+await wait(2000);
+await tap(main.getByRole('radiogroup', { name: 'Which form to draft on?' }).getByRole('radio', { name: /^Womenswear/ }), 1200);
+await tap(main.getByRole('button', { name: 'Begin measuring', exact: true }), 600);
+await cap('01 · Measure', 'Waist first. One measurement per page, each with a short how-to.');
 await fillPages(2);
 await cap('01 · Measure', 'Check them over before you carry on.');
 await wait(2600);
@@ -154,7 +159,7 @@ await wait(2500);
 await scrollBy(300); await wait(800); await scrollBy(-300);
 const skirt = main.getByRole('radiogroup', { name: 'What would you like to make?' }).getByRole('radio', { name: /^Skirt\b/ });
 await tap(skirt, 700);
-await tap(main.getByRole('button', { name: /^Next: \d+ skirt measurements?$/ }), 600);
+await tap(main.getByRole('button', { name: /^(Next: \d+ skirt measurements?|Style my skirt)$/ }), 600);
 await cap('01 · Measure', 'Each garment asks only for the few extra measurements it needs.');
 await fillPages(1);
 

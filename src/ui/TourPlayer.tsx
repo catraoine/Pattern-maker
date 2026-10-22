@@ -13,10 +13,10 @@ const SOURCES = [
 const PARTS: { name: string; from: number }[] = [
   { name: 'Measure', from: 0 },
   { name: 'Style', from: 60.5 },
-  { name: 'Print', from: 89 },
+  { name: 'Print', from: 88.5 },
 ];
-export const TOUR_LENGTH = 106;
-export const TOUR_LABEL = '1:46';
+export const TOUR_LENGTH = 105;
+export const TOUR_LABEL = '1:45';
 
 export function TourPlayer({ onClose }: { onClose: () => void }) {
   const video = useRef<HTMLVideoElement>(null);
