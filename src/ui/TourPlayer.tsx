@@ -1,22 +1,23 @@
 import { useEffect, useRef, useState } from 'react';
 
 // The tour: the walkthrough video, full screen, opened from the play button on the welcome's dress form.
-// Skip tour is always showing; the bar along the bottom marks Measure, Style and Print as the video reaches them.
+// Skip tour is always showing; the bar along the bottom marks Measure, Choose, Style and Print as the video reaches them.
 // Re-record the video (scripts/record-demo.mjs) whenever the welcome changes, so the tour shows the app as it is.
 
 /** H.264 for Safari and Chrome; WebM for browsers without it. */
 const SOURCES = [
-  { src: '/tour/walkthrough.mp4', type: 'video/mp4; codecs="avc1.640032"' },
-  { src: '/tour/walkthrough.webm', type: 'video/webm; codecs="vp9"' },
+  { src: '/tour/walkthrough.mp4', type: 'video/mp4; codecs="avc1.640032, mp4a.40.2"' },
+  { src: '/tour/walkthrough.webm', type: 'video/webm; codecs="vp9, opus"' },
 ];
 /** Where each part starts in the video, in seconds, and how long it runs. Update with the video. */
 const PARTS: { name: string; from: number }[] = [
   { name: 'Measure', from: 0 },
-  { name: 'Style', from: 60.5 },
-  { name: 'Print', from: 88.5 },
+  { name: 'Choose', from: 59.8 },
+  { name: 'Style', from: 78 },
+  { name: 'Print', from: 116.3 },
 ];
-export const TOUR_LENGTH = 105;
-export const TOUR_LABEL = '1:45';
+export const TOUR_LENGTH = 140;
+export const TOUR_LABEL = '2:20';
 
 export function TourPlayer({ onClose }: { onClose: () => void }) {
   const video = useRef<HTMLVideoElement>(null);
@@ -36,6 +37,17 @@ export function TourPlayer({ onClose }: { onClose: () => void }) {
     };
   }, [onClose]);
 
+  // With its lofi track (Cat, 2026-10-22). The play button's tap usually lets sound start; where a browser still
+  // blocks it, the tour plays muted and the video's own controls turn the sound on.
+  useEffect(() => {
+    const v = video.current;
+    v?.play().catch(() => {
+      if (!v) return;
+      v.muted = true;
+      v.play().catch(() => {});
+    });
+  }, []);
+
   const part = PARTS.reduce((p, x, i) => (at >= x.from ? i : p), 0);
 
   return (
@@ -49,8 +61,6 @@ export function TourPlayer({ onClose }: { onClose: () => void }) {
       <video
         ref={video}
         className="tour-video"
-        autoPlay
-        muted
         playsInline
         controls
         preload="auto"
