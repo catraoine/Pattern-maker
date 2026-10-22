@@ -63,7 +63,9 @@ export function TourPlayer({ onClose }: { onClose: () => void }) {
   return (
     <div className="tour" role="dialog" aria-modal="true" aria-label="How it works">
       <div className="tour-top">
-        <span className="tour-tag">The tour · 0{part + 1} {PARTS[part].name}</span>
+        {/* Just the house name (Cat, 2026-10-22); the bar along the bottom already marks the part. The film itself
+            doesn't say it again. */}
+        <span className="tour-tag">Maison Tracé</span>
         <button ref={close} type="button" className="tour-skip" onClick={onClose}>
           Skip tour ✕
         </button>
