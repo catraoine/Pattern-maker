@@ -52,9 +52,9 @@ export function WaitlistForm({ onJoined, onCode, linkMessage }: { onJoined: () =
           <label htmlFor="wl-email" className="visually-hidden">
             Your email
           </label>
-          <input id="wl-email" type="email" required maxLength={200} autoComplete="email" placeholder="Your email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <input id="wl-email" name="email" type="email" required maxLength={200} autoComplete="email" placeholder="Your email" value={email} onChange={(e) => setEmail(e.target.value)} />
         </div>
-        <input className="hp" tabIndex={-1} autoComplete="off" aria-hidden="true" name="website" value={website} onChange={(e) => setWebsite(e.target.value)} />
+        <input className="hp" tabIndex={-1} autoComplete="off" aria-hidden="true" name="mt-hp" value={website} onChange={(e) => setWebsite(e.target.value)} />
         <button type="submit" className="primary" disabled={state === 'sending'}>
           {state === 'sending' ? 'Joining…' : 'Join the waitlist'}
         </button>
