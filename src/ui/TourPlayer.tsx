@@ -4,26 +4,36 @@ import { useEffect, useRef, useState } from 'react';
 // Skip tour is always showing; the bar along the bottom marks Measure, Choose, Style and Print as the video reaches them.
 // Re-record the video (npm run record:tour) whenever the app changes enough that the tour looks out of date.
 
-/** H.264 for Safari and Chrome; WebM for browsers without it. */
-const SOURCES = [
-  { src: '/tour/walkthrough.mp4', type: 'video/mp4; codecs="avc1.640032, mp4a.40.2"' },
-  { src: '/tour/walkthrough.webm', type: 'video/webm; codecs="vp9, opus"' },
-];
+/** H.264 for Safari and Chrome; WebM for browsers without it. A tall film for phones, and a wide one, recorded in the
+ * computer layout, for wide screens (Cat, 2026-10-22); the same moments at the same times, so PARTS fits both. */
+const SOURCES = {
+  tall: [
+    { src: '/tour/walkthrough.mp4', type: 'video/mp4; codecs="avc1.640032, mp4a.40.2"' },
+    { src: '/tour/walkthrough.webm', type: 'video/webm; codecs="vp9, opus"' },
+  ],
+  wide: [
+    { src: '/tour/walkthrough-wide.mp4', type: 'video/mp4; codecs="avc1.640032, mp4a.40.2"' },
+    { src: '/tour/walkthrough-wide.webm', type: 'video/webm; codecs="vp9, opus"' },
+  ],
+};
+const WIDE_SCREEN = '(min-width: 900px) and (min-aspect-ratio: 1/1)';
 /** Where each part starts in the video, in seconds, and how long it runs. Update with the video. */
 const PARTS: { name: string; from: number }[] = [
   { name: 'Measure', from: 0 },
   { name: 'Choose', from: 22.1 },
   { name: 'Style', from: 28.3 },
-  { name: 'Print', from: 59.3 },
+  { name: 'Print', from: 58.1 },
 ];
-export const TOUR_LENGTH = 71;
-export const TOUR_LABEL = '1:11';
+export const TOUR_LENGTH = 70;
+export const TOUR_LABEL = '1:10';
 
 export function TourPlayer({ onClose }: { onClose: () => void }) {
   const video = useRef<HTMLVideoElement>(null);
   const close = useRef<HTMLButtonElement>(null);
   const [at, setAt] = useState(0);
   const [length, setLength] = useState(TOUR_LENGTH);
+  // Chosen once, as the tour opens, so turning a tablet doesn't restart it.
+  const [shape] = useState<'tall' | 'wide'>(() => (matchMedia(WIDE_SCREEN).matches ? 'wide' : 'tall'));
 
   useEffect(() => {
     close.current?.focus();
@@ -68,7 +78,7 @@ export function TourPlayer({ onClose }: { onClose: () => void }) {
         onTimeUpdate={(e) => setAt(e.currentTarget.currentTime)}
         onEnded={onClose}
       >
-        {SOURCES.map((v) => (
+        {SOURCES[shape].map((v) => (
           <source key={v.src} src={v.src} type={v.type} />
         ))}
       </video>

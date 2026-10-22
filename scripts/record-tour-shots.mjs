@@ -6,12 +6,16 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { chromium } from '@playwright/test';
 
-const OUT = resolve(process.argv[2] ?? 'tour-shots');
-const APP = process.argv[3] ?? 'http://127.0.0.1:5173';
+// --wide records the computer's version, in the wide layout (Cat, 2026-10-22: a film for each screen).
+const WIDE = process.argv.includes('--wide');
+const [outArg, appArg] = process.argv.slice(2).filter((a) => !a.startsWith('--'));
+const OUT = resolve(outArg ?? (WIDE ? 'tour-shots-wide' : 'tour-shots'));
+const APP = appArg ?? 'http://127.0.0.1:5173';
+const [FW, FH] = WIDE ? [1920, 1080] : [1080, 1920];
 const LOCAL_CHROMIUM = '/opt/pw-browsers/chromium';
 mkdirSync(OUT, { recursive: true });
 const b = await chromium.launch(existsSync(LOCAL_CHROMIUM) ? { executablePath: LOCAL_CHROMIUM } : {});
-const ctx = await b.newContext({ viewport: { width: 432, height: 768 }, deviceScaleFactor: 2.5, isMobile: true, hasTouch: true });
+const ctx = await b.newContext(WIDE ? { viewport: { width: 1440, height: 810 }, deviceScaleFactor: 4 / 3 } : { viewport: { width: 432, height: 768 }, deviceScaleFactor: 2.5, isMobile: true, hasTouch: true });
 // The waitlist front page only lets testers in; the recording browser is one.
 await ctx.addInitScript(() => { try { localStorage.setItem('maison-trace-access', 'tester'); } catch {} });
 const p = await ctx.newPage();
@@ -20,20 +24,31 @@ const wait = (ms) => p.waitForTimeout(ms);
 
 let cdp, frames;
 async function start() {
-  frames = [];
+  // A still screen sends no frames, so start with one. (Taken before the screencast starts: a screenshot during it
+  // stalls it on the wide screen.)
+  frames = [{ data: (await p.screenshot({ type: 'jpeg', quality: 92 })).toString('base64'), t: Date.now() / 1000 }];
   cdp = await ctx.newCDPSession(p);
   cdp.on('Page.screencastFrame', (e) => {
     frames.push({ data: e.data, t: e.metadata.timestamp });
     cdp.send('Page.screencastFrameAck', { sessionId: e.sessionId }).catch(() => {});
   });
-  await cdp.send('Page.startScreencast', { format: 'jpeg', quality: 92, maxWidth: 1080, maxHeight: 1920 });
-  // A still screen sends no frames, so start with one.
-  frames.push({ data: (await p.screenshot({ type: 'jpeg', quality: 92 })).toString('base64'), t: Date.now() / 1000 });
+  await cdp.send('Page.startScreencast', { format: 'jpeg', quality: 92, maxWidth: FW, maxHeight: FH });
+  // On the wide screen the screencast can stop sending frames after a tap; a speck in the corner that never stops
+  // changing keeps them coming.
+  if (WIDE) await p.evaluate(() => {
+    if (document.getElementById('rec-tick')) return;
+    const st = document.createElement('style');
+    st.textContent = '@keyframes rec-tick{to{opacity:.98}}#rec-tick{position:fixed;left:0;top:0;width:2px;height:2px;background:#000;z-index:99999;pointer-events:none;animation:rec-tick .2s linear infinite alternate}';
+    const d = document.createElement('div');
+    d.id = 'rec-tick';
+    document.head.appendChild(st);
+    document.body.appendChild(d);
+  });
 }
 async function stop(name) {
-  frames.push({ data: (await p.screenshot({ type: 'jpeg', quality: 92 })).toString('base64'), t: Date.now() / 1000 });
   await cdp.send('Page.stopScreencast');
   await cdp.detach();
+  frames.push({ data: (await p.screenshot({ type: 'jpeg', quality: 92 })).toString('base64'), t: Date.now() / 1000 });
   const endT = Date.now() / 1000;
   frames.sort((a, c) => a.t - c.t);
   const work = mkdtempSync(join(tmpdir(), 'shot-'));
@@ -45,7 +60,7 @@ async function stop(name) {
   });
   list += `file '${String(frames.length - 1).padStart(5, '0')}.jpg'\n`;
   writeFileSync(join(work, 'list.txt'), list);
-  execFileSync('ffmpeg', ['-v', 'error', '-y', '-f', 'concat', '-safe', '0', '-i', 'list.txt', '-vf', 'fps=30,scale=1080:1920,format=yuv420p', '-c:v', 'libx264', '-crf', '16', '-preset', 'medium', join(OUT, `${name}.mp4`)], { cwd: work });
+  execFileSync('ffmpeg', ['-v', 'error', '-y', '-f', 'concat', '-safe', '0', '-i', 'list.txt', '-vf', `fps=30,scale=${FW}:${FH},format=yuv420p`, '-c:v', 'libx264', '-crf', '16', '-preset', 'medium', join(OUT, `${name}.mp4`)], { cwd: work });
   rmSync(work, { recursive: true, force: true });
   console.log(`${name}: ${(endT - frames[0].t).toFixed(1)} s`);
 }
@@ -105,7 +120,8 @@ await main.getByRole('heading', { name: 'What would you like to make?' }).waitFo
 await wait(900);
 await start();
 await wait(1600);
-await main.getByRole('radiogroup', { name: 'What would you like to make?' }).getByRole('radio', { name: /^Dress\b/ }).click();
+// Clicked straight on the button: Playwright's click waits for the screen to settle, and the form never stops moving.
+await main.getByRole('radiogroup', { name: 'What would you like to make?' }).getByRole('radio', { name: /^Dress\b/ }).evaluate((el) => el.click());
 await wait(1800);
 await stop('choose');
 await main.getByRole('button', { name: /^(Next: \d+ dress measurements?|Style my dress)$/ }).click();
@@ -113,55 +129,107 @@ await fillAll();
 await main.getByRole('heading', { level: 1, name: 'Style your dress' }).waitFor();
 await wait(1500);
 
-// collection: the Maison collection's looks, a slow scroll down to Colonne
+// collection: the Maison collection's looks, a slow scroll down to Épaule (Cat, 2026-10-22: the column dress read
+// wide and frumpy on the form; Épaule's bare shoulder and dipped hem are the sharper silhouette)
 const entry = main.getByRole('button', { name: 'Start from the Maison collection' });
 await entry.scrollIntoViewIfNeeded();
 await entry.click();
 await wait(1500);
 await p.evaluate(() => window.scrollTo(0, 0));
-const colonne = main.locator('li.house-look').filter({ has: p.getByRole('heading', { name: 'Colonne', exact: true }) });
-const colTop = await colonne.evaluate((el) => el.getBoundingClientRect().top + scrollY - 70);
+const epaule = main.locator('li.house-look').filter({ has: p.getByRole('heading', { name: 'Épaule', exact: true }) });
+const lookTop = await epaule.evaluate((el) => el.getBoundingClientRect().top + scrollY - 70);
 const tailleurTop = await main.locator('li.house-look').first().evaluate((el) => el.getBoundingClientRect().top + scrollY - 70);
 await glide(tailleurTop, 10);
 await wait(800);
 await start();
 await wait(1400);
-await glide(colTop, 9000);
+await glide(lookTop, 6500);
 await wait(1600);
 await stop('collection');
-await colonne.getByRole('button', { name: 'Make this look' }).click();
+await epaule.getByRole('button', { name: 'Make this look' }).click();
 await wait(1500);
 await fillAll();
 await main.getByRole('heading', { level: 1, name: /^Style your/ }).waitFor();
 await p.evaluate(() => window.scrollTo(0, 0));
 await wait(1500);
 
-// dress: the column dress drawn to you
+// fabric: the Fabric tab, the dress filling with one fabric and colour after another (Cat, 2026-10-22: in place of
+// the photo looks). Taps go straight to the buttons so the page doesn't scroll away from the drawing.
+const tap = async (loc, ms) => { await loc.evaluate((el) => el.click()); await p.evaluate(() => window.scrollTo(0, 0)); await wait(ms); };
+await tap(main.getByRole('tab', { name: 'Fabric', exact: true }), 1200);
+const fabric = (name) => main.getByRole('radio', { name, exact: true });
+const colour = (name) => main.getByRole('radiogroup', { name: 'Colour' }).getByRole('radio', { name, exact: true });
 await start();
-await wait(3500);
-await stop('dress');
+await wait(1000);
+await tap(fabric('Satin'), 600);
+await tap(colour('Black'), 1500);
+await tap(fabric('Silk'), 500);
+await tap(colour('Ivory'), 1500);
+await tap(fabric('Velvet'), 500);
+await tap(colour('Emerald'), 1500);
+await tap(fabric('Wool'), 500);
+await tap(colour('Burgundy'), 1800);
+await stop('fabric');
+await tap(fabric('Satin'), 300);
+await tap(colour('Black'), 600);
 
 // pattern: the pieces you cut
 await start();
 await wait(500);
 const patternView = main.getByRole('group', { name: 'Preview view' }).getByRole('button', { name: /^Pattern/ });
-await patternView.click();
-await p.waitForFunction((el) => el.getAttribute('aria-pressed') === 'true', await patternView.elementHandle(), { timeout: 5000 }).catch(async () => { await patternView.dispatchEvent('click'); });
-await wait(4000);
+await tap(patternView, 0);
+await main.getByRole('button', { name: 'Move points' }).waitFor({ timeout: 20000 });
+await wait(3000);
 await stop('pattern');
-await main.getByRole('group', { name: 'Preview view' }).getByRole('button', { name: /^Garment/ }).click();
-await wait(800);
+await tap(main.getByRole('group', { name: 'Preview view' }).getByRole('button', { name: /^Garment/ }), 800);
 
-// round: turning all round on the form (after the pattern: from All round, Pattern doesn't redraw in time)
-await start();
-await wait(500);
+// round: turning all round on the form, filling the screen and drawing closer as it turns (Cat, 2026-10-22: start
+// close, then in and in, cinematic). The canvas is lifted out at its closest size, so it is drawn sharp, and shown
+// smaller by a scale that grows; resizing it as it goes would blank it between redraws.
+// (After the pattern: from All round, Pattern doesn't redraw in time.)
 await main.getByRole('group', { name: 'Garment view' }).getByRole('button', { name: 'All round' }).click();
-await wait(5500);
+await wait(800);
+const CLOSEST = 3.4;
+await p.evaluate((K) => {
+  const c = document.querySelector('.all-round-canvas');
+  document.body.appendChild(c);
+  const w = innerWidth * K, h = (innerHeight + 96) * K;
+  Object.assign(c.style, { position: 'fixed', zIndex: 9999, background: '#000', maxWidth: 'none', maxHeight: 'none', aspectRatio: 'auto', margin: 0, width: `${w}px`, height: `${h}px`, left: `${innerWidth / 2 - w / 2}px` });
+}, CLOSEST);
+const zoomTo = (from, to, ms) => p.evaluate(([from, to, ms, K]) => new Promise((done) => {
+  const c = document.querySelector('.all-round-canvas');
+  const h = (innerHeight + 96) * K;
+  // Where to keep still as it grows, as a fraction of the canvas: the bodice, rising a little towards the bust.
+  const set = (k) => {
+    const fy = 0.42 - 0.08 * ((k - from) / (to - from || 1));
+    Object.assign(c.style, { top: `${innerHeight / 2 - fy * h}px`, transformOrigin: `50% ${fy * 100}%`, transform: `scale(${k / K})` });
+  };
+  const t0 = performance.now();
+  const ease = (x) => x * x * (3 - 2 * x);
+  const step = (now) => { const x = Math.min(1, (now - t0) / (ms || 1)); set(from + (to - from) * ease(x)); x < 1 ? requestAnimationFrame(step) : done(); };
+  requestAnimationFrame(step);
+}), [from, to, ms, CLOSEST]);
+await zoomTo(1.3, 1.3, 0);
+await wait(600);
+await start();
+await wait(400);
+await zoomTo(1.3, 3.4, 8500);
+await wait(600);
 await stop('round');
+// Put the canvas back where it was.
+await p.evaluate(() => {
+  const c = document.querySelector('.all-round-canvas');
+  document.querySelector('.all-round')?.prepend(c);
+  c.removeAttribute('style');
+});
+await wait(600);
 
 // print: the print page, A4, and the tiled pages
-await main.getByRole('button', { name: 'Review', exact: true }).click();
-await wait(1200);
+// On a computer the summary and Print sit beside the drawing; there's no Review page.
+if (!WIDE) {
+  await main.getByRole('button', { name: 'Review', exact: true }).click();
+  await wait(1200);
+}
 await main.getByRole('button', { name: 'Print my pattern' }).click();
 await wait(1200);
 await main.getByRole('group', { name: 'Paper' }).getByRole('button', { name: 'A4', exact: true }).click();

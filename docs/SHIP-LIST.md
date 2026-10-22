@@ -1,7 +1,7 @@
-# What ships before 21 December 2026
+# What ships before 18 January 2027
 
 **Adopted by Cat on 20 October 2026.** The app is frozen to this list until the stage 1 fit gate (20 sewists
-averaging 4 of 5 on a skirt or bodice toile, decision on 21 December 2026). Everything else is either built
+averaging 4 of 5 on a skirt or bodice toile, decision on 18 January 2027; Cat moved it from 21 December 2026 on 22 October 2026, launch now Thursday 11 February 2027). Everything else is either built
 already, and labelled **In testing** in the app, or waits.
 
 Why: every new feature adds support load, fit-test surface and things to explain, and none adds
