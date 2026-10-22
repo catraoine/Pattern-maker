@@ -65,7 +65,8 @@ async function mask([top, bottom, left = -1, right = 2]) {
 // zoom: [from, to] scale; at: [x, y] the point zoomed into, as fractions of the frame.
 let k = 0;
 // overs: more words, each [picture, when it fades in], laid over one after another.
-async function piece({ shot, still, from = 0, dur, speed = 1, zoom = [1, 1], at = [0.5, 0.5], frame, tint, fadeIn = 0, fadeOut = 0, over, overIn = 0.4, overAt = 0, overs = [] }) {
+// reverse: play the moment backwards (a push-in becomes a pull-back).
+async function piece({ shot, still, from = 0, dur, speed = 1, zoom = [1, 1], at = [0.5, 0.5], frame, tint, fadeIn = 0, fadeOut = 0, over, overIn = 0.4, overAt = 0, overs = [], reverse = false }) {
   const edge = frame ? await mask(frame) : undefined;
   const out = join(work, `p${String(k++).padStart(3, '0')}.mp4`);
   const frames = Math.round(dur * FPS);
@@ -79,7 +80,7 @@ async function piece({ shot, still, from = 0, dur, speed = 1, zoom = [1, 1], at 
   const firstOver = oi + (over ? 1 : 0);
   const [z0, z1] = zoom;
   const z = `(${z0}+(${z1 - z0})*on/${frames})`;
-  let v = `[0:v]setpts=(PTS-STARTPTS)/${speed},fps=${FPS},scale=${2 * W}:${2 * H},zoompan=z='${z}':x='max(0,min(iw-iw/zoom,${at[0]}*iw-iw/zoom/2))':y='max(0,min(ih-ih/zoom,${at[1]}*ih-ih/zoom/2))':d=1:s=${W}x${H}:fps=${FPS},trim=end_frame=${frames},setsar=1`;
+  let v = `[0:v]setpts=(PTS-STARTPTS)/${speed},fps=${FPS},scale=${2 * W}:${2 * H},zoompan=z='${z}':x='max(0,min(iw-iw/zoom,${at[0]}*iw-iw/zoom/2))':y='max(0,min(ih-ih/zoom,${at[1]}*ih-ih/zoom/2))':d=1:s=${W}x${H}:fps=${FPS},trim=end_frame=${frames},setsar=1${reverse ? ',reverse' : ''}`;
   // tint: [r, g, b] multipliers, e.g. to take the cream pattern paper down to a deeper champagne.
   if (tint) v += `,colorchannelmixer=rr=${tint[0]}:gg=${tint[1]}:bb=${tint[2]}`;
   if (edge) v += `[raw];[raw][1:v]overlay=0:0:shortest=1`;
@@ -121,7 +122,12 @@ async function threeChecks() {
 }
 // The opening (Cat, 2026-10-22: the old one repeated the loading screen and welcome the viewer had just seen).
 const INTRO = process.env.TOUR_INTRO ?? 'A';
-const title = async () => words(`<div class="f mid" style="display:flex;background:radial-gradient(ellipse at center,rgba(0,0,0,.55) 0,rgba(0,0,0,0) 60%)"><h1 class="t" style="font-size:${WIDE ? 84 : 64}px">How it works</h1></div>`);
+const TITLE = `<h1 class="t" style="font-size:${WIDE ? 84 : 64}px">How it works</h1>`;
+const title = async (where = 'centre') => words(where === 'centre'
+  ? `<div class="f mid" style="display:flex;background:radial-gradient(ellipse at center,rgba(0,0,0,.55) 0,rgba(0,0,0,0) 60%)">${TITLE}</div>`
+  : WIDE
+    ? `<div class="f" style="display:flex;flex-direction:column;justify-content:center;padding-left:96px;background:linear-gradient(to right,rgba(0,0,0,.75) 0,rgba(0,0,0,.45) 30%,rgba(0,0,0,0) 42%)">${TITLE}</div>`
+    : `<div class="f" style="display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding-bottom:84px;background:linear-gradient(to top,rgba(0,0,0,.8) 0,rgba(0,0,0,.5) 22%,rgba(0,0,0,0) 34%)">${TITLE}</div>`);
 const INTROS = {
   // A Title Card: the words alone, then straight on.
   A: async () => [await piece({ still: await card('', 'How it works'), dur: 2.8, fadeIn: 0.8, fadeOut: 0.5 })],
@@ -129,6 +135,15 @@ const INTROS = {
   B: async () => [],
   // C Spin First: the finished dress turning close, the title over it.
   C: async () => [await piece({ shot: 'round', from: 6.5, dur: 3.6, fadeIn: 0.8, fadeOut: 0.5, over: await title(), overAt: 0.6 })],
+  // Takes on C (Cat, 2026-10-22).
+  // C2 Pull Back: from close on the seams, drawing back to the form as the title arrives.
+  C2: async () => [await piece({ shot: 'round', from: 2.4, dur: 4.2, reverse: true, fadeIn: 0.8, fadeOut: 0.5, over: await title(), overAt: 1.6, overIn: 0.8 })],
+  // C3 Title First: the words on black, the turning form rising behind them.
+  C3: async () => [await piece({ shot: 'round', from: 6.2, dur: 4, fadeIn: 1.8, fadeOut: 0.5, over: await title(), overAt: 0, overIn: 0.6 })],
+  // C4 Title Aside: the close turn with the words low (phone) or to the left (computer), the form left clear.
+  C4: async () => [await piece({ shot: 'round', from: 6.5, dur: 3.8, fadeIn: 0.8, fadeOut: 0.5, over: await title('aside'), overAt: 0.8, overIn: 0.6 })],
+  // C5 Long Push: the whole form, pushed in fast to the seams, the title landing as it gets close.
+  C5: async () => [await piece({ shot: 'round', from: 0.4, dur: 4.6, speed: 1.8, fadeIn: 0.8, fadeOut: 0.5, over: await title(), overAt: 2.4, overIn: 0.6 })],
   // D Fabric First: the dress flicking through fabrics, the title over it.
   D: async () => [await piece({ shot: 'fabric', from: 2, dur: 3.6, speed: 3, ...(WIDE ? { zoom: [2.1, 2.15], at: [0.41, 0.6], frame: [-0.1, 1.05, -0.1, 0.92] } : { zoom: [1.7, 1.75], at: [0.48, 0.49], frame: [0.23, 0.76] }), fadeIn: 0.8, fadeOut: 0.5, over: await title(), overAt: 0.6 })],
 };
