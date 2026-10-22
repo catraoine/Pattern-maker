@@ -23,7 +23,7 @@ export function WaitlistForm({ onJoined, onCode, linkMessage }: { onJoined: () =
     e.preventDefault();
     setState('sending');
     try {
-      const res = await fetch('/.netlify/functions/signup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind: 'news', email, website }) });
+      const res = await fetch('/.netlify/functions/signup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind: 'news', email, src: signupSource(), website }) });
       if (!res.ok) return setState(res.status === 429 ? 'busy' : 'failed');
     } catch {
       return setState('failed');

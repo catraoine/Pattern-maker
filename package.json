@@ -10,7 +10,7 @@
     "test": "vitest run",
     "eval:photo": "vite-node scripts/eval-photo.ts",
     "test:e2e": "playwright test -c e2e",
-    "record:tour": "node scripts/record-demo.mjs public/tour",
+    "record:tour": "node scripts/record-tour-shots.mjs tour-shots && node scripts/edit-tour.mjs tour-shots public/tour/walkthrough.mp4",
     "record:demos": "node scripts/record-demos.mjs public/demos"
   },
   "dependencies": {

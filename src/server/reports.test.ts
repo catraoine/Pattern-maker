@@ -153,6 +153,8 @@ describe('sign-ups', () => {
     expect(checkSignup(JSON.stringify(tester))).toEqual({ kind: 'tester', name: 'Ada', email: 'ada@example.com', sews: 'Trousers', consent: true });
     expect(checkSignup(JSON.stringify({ ...tester, size: 'UK 12-16' }))).toMatchObject({ size: 'UK 12-16' });
     expect(checkSignup(JSON.stringify({ kind: 'news', email: 'a@b.co' }))).toEqual({ kind: 'news', email: 'a@b.co' });
+    expect(checkSignup(JSON.stringify({ kind: 'news', email: 'a@b.co', src: 'ig' }))).toEqual({ kind: 'news', email: 'a@b.co', src: 'ig' });
+    expect(checkSignup(JSON.stringify({ kind: 'news', email: 'a@b.co', src: 'http://x' }))).toBeNull();
   });
 
   it('accepts an interest sign-up for a known offer only', () => {

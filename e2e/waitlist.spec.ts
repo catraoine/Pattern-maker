@@ -19,7 +19,7 @@ test('a stranger gets the waitlist where Begin was, and joining counts against t
   await main.getByLabel('Your email').fill('ada@example.com');
   await main.getByRole('button', { name: 'Join the waitlist' }).click();
   await expect(main.getByRole('heading', { level: 1, name: /You're on the list/ })).toBeVisible();
-  expect(sent).toMatchObject({ kind: 'news', email: 'ada@example.com' });
+  expect(sent).toMatchObject({ kind: 'news', email: 'ada@example.com', src: 'ig' });
   expect(await page.evaluate(() => localStorage.getItem('maison-trace-source'))).toBe('ig');
 
   // The Privacy Policy opens, and back comes home to the waitlist, not the app.
@@ -58,4 +58,11 @@ test('a wrong tester link says so, and the code can be typed instead', async ({ 
   await main.getByLabel('Tester code').fill('Toile-Two');
   await main.getByRole('button', { name: 'Use code' }).click();
   await expect(main.getByRole('button', { name: 'Begin' })).toBeVisible();
+});
+
+test('back from the confirm email, the waitlist says you are on the list', async ({ page }) => {
+  await page.goto('/?fresh&joined');
+  await skipLoading(page);
+  await expect(page.getByRole('main').getByRole('heading', { level: 1, name: /You're on the list/ })).toBeVisible();
+  expect(new URL(page.url()).search).toBe('');
 });

@@ -28,18 +28,22 @@ async function record(name, script, before) {
   mkdirSync(`${work}/frames`, { recursive: true });
   const b = await chromium.launch({ executablePath: process.env.CHROMIUM ?? '/opt/pw-browsers/chromium' });
   const ctx = await b.newContext({ viewport: { width: 432, height: 768 }, deviceScaleFactor: 2.5, isMobile: true, hasTouch: true });
+  // The waitlist front page only lets testers in; the recording browser is one.
+  await ctx.addInitScript(() => { try { localStorage.setItem('maison-trace-access', 'tester'); } catch {} });
   const p = await ctx.newPage();
   const wait = (ms) => p.waitForTimeout(ms);
   const frames = [];
   const marks = [];
   if (before) await before(ctx);
+  // From the app's own address, so the iframe shares its storage (and the tester pass above).
+  await p.goto(`${APP}/manifest.webmanifest`).catch(() => {});
   await p.setContent(PAGE);
   const f = p.frameLocator('#app');
   const main = f.getByRole('main');
   // The example skirt, before recording starts.
   await wait(1200);
   await main.getByRole('button', { name: 'Begin' }).click();
-  await main.getByRole('button', { name: 'Skip and try an example' }).click();
+  await main.getByRole('button', { name: 'Measure later' }).click();
   await main.getByRole('heading', { level: 1, name: 'Style your skirt' }).waitFor();
   await wait(1500);
   const cdp = await ctx.newCDPSession(p);
