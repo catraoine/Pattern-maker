@@ -1,5 +1,5 @@
 # The tour's lofi hip hop track (Cat, 2026-10-22): Rhodes-style chords, bass, soft swung boom-bap drums and vinyl
-# crackle, all synthesised here, so it's ours to use anywhere. record-demo.mjs lays scripts/tour-music.m4a under the
+# crackle, all synthesised here, so it's ours to use anywhere. edit-tour.mjs lays scripts/tour-music.m4a under the
 # walkthrough and fades it at the video's end. To remake it (needs numpy and scipy):
 #   python3 scripts/tour-music.py 150 /tmp/lofi.wav
 #   ffmpeg -i /tmp/lofi.wav -af loudnorm=I=-18:TP=-1.5 -c:a aac -b:a 128k scripts/tour-music.m4a

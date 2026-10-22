@@ -822,14 +822,16 @@ button.link {
   border-bottom: none;
 }
 
-/* Keep the headline to two lines on narrow phones */
+/* Keep the headline to two lines on narrow phones, and its label to one even while it comes in wide (it used to
+   wrap for a moment, nudging the form and the tape tip up and back down; Cat, 2026-10-22) */
 .welcome-card {
   overflow-x: clip;
 }
 .welcome-card h1 {
   font-size: clamp(30px, 10vw, 40px);
 }
-.welcome-card h1 .t-big {
+.welcome-card h1 .t-big,
+.welcome-card h1 .t-label {
   white-space: nowrap;
 }
 

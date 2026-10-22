@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 
 // The tour: the walkthrough video, full screen, opened from the play button on the welcome's dress form.
 // Skip tour is always showing; the bar along the bottom marks Measure, Choose, Style and Print as the video reaches them.
-// Re-record the video (scripts/record-demo.mjs) whenever the welcome changes, so the tour shows the app as it is.
+// Re-record the video (npm run record:tour) whenever the app changes enough that the tour looks out of date.
 
 /** H.264 for Safari and Chrome; WebM for browsers without it. */
 const SOURCES = [
@@ -12,12 +12,12 @@ const SOURCES = [
 /** Where each part starts in the video, in seconds, and how long it runs. Update with the video. */
 const PARTS: { name: string; from: number }[] = [
   { name: 'Measure', from: 0 },
-  { name: 'Choose', from: 59.8 },
-  { name: 'Style', from: 78 },
-  { name: 'Print', from: 116.3 },
+  { name: 'Choose', from: 22.1 },
+  { name: 'Style', from: 28.3 },
+  { name: 'Print', from: 59.3 },
 ];
-export const TOUR_LENGTH = 140;
-export const TOUR_LABEL = '2:20';
+export const TOUR_LENGTH = 71;
+export const TOUR_LABEL = '1:11';
 
 export function TourPlayer({ onClose }: { onClose: () => void }) {
   const video = useRef<HTMLVideoElement>(null);
