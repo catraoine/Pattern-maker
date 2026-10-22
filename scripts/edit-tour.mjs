@@ -121,7 +121,7 @@ async function threeChecks() {
   return pics;
 }
 // The opening (Cat, 2026-10-22: the old one repeated the loading screen and welcome the viewer had just seen).
-const INTRO = process.env.TOUR_INTRO ?? 'A';
+const INTRO = process.env.TOUR_INTRO ?? 'C2'; // Cat's pick, 2026-10-22: C2 Pull Back
 const TITLE = `<h1 class="t" style="font-size:${WIDE ? 84 : 64}px">How it works</h1>`;
 const title = async (where = 'centre') => words(where === 'centre'
   ? `<div class="f mid" style="display:flex;background:radial-gradient(ellipse at center,rgba(0,0,0,.55) 0,rgba(0,0,0,0) 60%)">${TITLE}</div>`
