@@ -123,10 +123,9 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', sendLink, prof
   /** Knits fit by their stretch: tested in a spare knit, not a calico toile. */
   const knit = garment === 'tee' || garment === 'lingerie';
   const [picked, setPaper] = useState<Output>('a4');
-  // Jackets and coats run to dozens of home pages, so the copy-shop sheet is offered even in the simple view.
-  const bigGarment = garment === 'jacket' || garment === 'coat';
-  // The simple view prints at home, on A4 or Letter.
-  const paper: Output = can('bigPrint') || picked === 'a4' || picked === 'letter' || (picked === 'a0' && bigGarment) ? picked : 'a4';
+  // The copy-shop sheet shows in every view (Cat, 2026-10-22): one big sheet saves testers and beginners the
+  // taping. Only the projector files wait behind all the tools.
+  const paper: Output = can('bigPrint') || !isProjector(picked) ? picked : 'a4';
   const [pdf, setPdf] = useState<{ paper: Output; bytes: Uint8Array } | null>(null);
   const [shareNote, setShareNote] = useState('');
   const special = finish.fabric?.special;
@@ -271,7 +270,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', sendLink, prof
             <fieldset className="group">
               <legend>Print on</legend>
               <div className="chips" role="group" aria-label="Paper">
-                {PAPERS.filter((p) => can('bigPrint') || p.id === 'a4' || p.id === 'letter' || (p.id === 'a0' && bigGarment)).map((p) => (
+                {PAPERS.filter((p) => can('bigPrint') || p.id !== 'projector').map((p) => (
                   <button
                     key={p.id}
                     type="button"
