@@ -4,6 +4,10 @@
 import { createHash } from 'node:crypto';
 import { getStore } from '@netlify/blobs';
 import { checkSignup } from '../../src/server/reports';
+import { addToKit } from '../../src/server/kit';
+
+// Provided by the Netlify runtime.
+declare const Netlify: { env: { get(name: string): string | undefined } };
 import { takeAllowance, type CountStore } from '../../src/photo/limit';
 
 const CAPS = { visitor: 5, all: 300 };
@@ -35,6 +39,11 @@ export default async (req: Request, context: { ip?: string }) => {
   } catch (e) {
     console.error('sign-up not stored', e);
     return Response.json({ ok: false, error: 'failed' }, { status: 502 });
+  }
+  // Waitlist and news sign-ups also join the newsletter list in Kit, once it's set up (src/server/kit.ts).
+  if (signup.kind === 'news') {
+    const kit = await addToKit(signup.email, signup.src, { apiKey: Netlify.env.get('KIT_API_KEY'), formId: Netlify.env.get('KIT_FORM_ID') }, new URL(req.url).origin);
+    if (kit === 'failed') console.error('sign-up not added to Kit');
   }
   return Response.json({ ok: true });
 };
