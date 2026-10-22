@@ -6,12 +6,16 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { chromium } from '@playwright/test';
 
-const OUT = resolve(process.argv[2] ?? 'tour-shots');
-const APP = process.argv[3] ?? 'http://127.0.0.1:5173';
+// --wide records the computer's version, in the wide layout (Cat, 2026-10-22: a film for each screen).
+const WIDE = process.argv.includes('--wide');
+const [outArg, appArg] = process.argv.slice(2).filter((a) => !a.startsWith('--'));
+const OUT = resolve(outArg ?? (WIDE ? 'tour-shots-wide' : 'tour-shots'));
+const APP = appArg ?? 'http://127.0.0.1:5173';
+const [FW, FH] = WIDE ? [1920, 1080] : [1080, 1920];
 const LOCAL_CHROMIUM = '/opt/pw-browsers/chromium';
 mkdirSync(OUT, { recursive: true });
 const b = await chromium.launch(existsSync(LOCAL_CHROMIUM) ? { executablePath: LOCAL_CHROMIUM } : {});
-const ctx = await b.newContext({ viewport: { width: 432, height: 768 }, deviceScaleFactor: 2.5, isMobile: true, hasTouch: true });
+const ctx = await b.newContext(WIDE ? { viewport: { width: 1440, height: 810 }, deviceScaleFactor: 4 / 3 } : { viewport: { width: 432, height: 768 }, deviceScaleFactor: 2.5, isMobile: true, hasTouch: true });
 // The waitlist front page only lets testers in; the recording browser is one.
 await ctx.addInitScript(() => { try { localStorage.setItem('maison-trace-access', 'tester'); } catch {} });
 const p = await ctx.newPage();
@@ -20,20 +24,31 @@ const wait = (ms) => p.waitForTimeout(ms);
 
 let cdp, frames;
 async function start() {
-  frames = [];
+  // A still screen sends no frames, so start with one. (Taken before the screencast starts: a screenshot during it
+  // stalls it on the wide screen.)
+  frames = [{ data: (await p.screenshot({ type: 'jpeg', quality: 92 })).toString('base64'), t: Date.now() / 1000 }];
   cdp = await ctx.newCDPSession(p);
   cdp.on('Page.screencastFrame', (e) => {
     frames.push({ data: e.data, t: e.metadata.timestamp });
     cdp.send('Page.screencastFrameAck', { sessionId: e.sessionId }).catch(() => {});
   });
-  await cdp.send('Page.startScreencast', { format: 'jpeg', quality: 92, maxWidth: 1080, maxHeight: 1920 });
-  // A still screen sends no frames, so start with one.
-  frames.push({ data: (await p.screenshot({ type: 'jpeg', quality: 92 })).toString('base64'), t: Date.now() / 1000 });
+  await cdp.send('Page.startScreencast', { format: 'jpeg', quality: 92, maxWidth: FW, maxHeight: FH });
+  // On the wide screen the screencast can stop sending frames after a tap; a speck in the corner that never stops
+  // changing keeps them coming.
+  if (WIDE) await p.evaluate(() => {
+    if (document.getElementById('rec-tick')) return;
+    const st = document.createElement('style');
+    st.textContent = '@keyframes rec-tick{to{opacity:.98}}#rec-tick{position:fixed;left:0;top:0;width:2px;height:2px;background:#000;z-index:99999;pointer-events:none;animation:rec-tick .2s linear infinite alternate}';
+    const d = document.createElement('div');
+    d.id = 'rec-tick';
+    document.head.appendChild(st);
+    document.body.appendChild(d);
+  });
 }
 async function stop(name) {
-  frames.push({ data: (await p.screenshot({ type: 'jpeg', quality: 92 })).toString('base64'), t: Date.now() / 1000 });
   await cdp.send('Page.stopScreencast');
   await cdp.detach();
+  frames.push({ data: (await p.screenshot({ type: 'jpeg', quality: 92 })).toString('base64'), t: Date.now() / 1000 });
   const endT = Date.now() / 1000;
   frames.sort((a, c) => a.t - c.t);
   const work = mkdtempSync(join(tmpdir(), 'shot-'));
@@ -45,7 +60,7 @@ async function stop(name) {
   });
   list += `file '${String(frames.length - 1).padStart(5, '0')}.jpg'\n`;
   writeFileSync(join(work, 'list.txt'), list);
-  execFileSync('ffmpeg', ['-v', 'error', '-y', '-f', 'concat', '-safe', '0', '-i', 'list.txt', '-vf', 'fps=30,scale=1080:1920,format=yuv420p', '-c:v', 'libx264', '-crf', '16', '-preset', 'medium', join(OUT, `${name}.mp4`)], { cwd: work });
+  execFileSync('ffmpeg', ['-v', 'error', '-y', '-f', 'concat', '-safe', '0', '-i', 'list.txt', '-vf', `fps=30,scale=${FW}:${FH},format=yuv420p`, '-c:v', 'libx264', '-crf', '16', '-preset', 'medium', join(OUT, `${name}.mp4`)], { cwd: work });
   rmSync(work, { recursive: true, force: true });
   console.log(`${name}: ${(endT - frames[0].t).toFixed(1)} s`);
 }
@@ -105,7 +120,8 @@ await main.getByRole('heading', { name: 'What would you like to make?' }).waitFo
 await wait(900);
 await start();
 await wait(1600);
-await main.getByRole('radiogroup', { name: 'What would you like to make?' }).getByRole('radio', { name: /^Dress\b/ }).click();
+// Clicked straight on the button: Playwright's click waits for the screen to settle, and the form never stops moving.
+await main.getByRole('radiogroup', { name: 'What would you like to make?' }).getByRole('radio', { name: /^Dress\b/ }).evaluate((el) => el.click());
 await wait(1800);
 await stop('choose');
 await main.getByRole('button', { name: /^(Next: \d+ dress measurements?|Style my dress)$/ }).click();
@@ -162,7 +178,8 @@ await start();
 await wait(500);
 const patternView = main.getByRole('group', { name: 'Preview view' }).getByRole('button', { name: /^Pattern/ });
 await tap(patternView, 0);
-await wait(4000);
+await main.getByRole('button', { name: 'Move points' }).waitFor({ timeout: 20000 });
+await wait(3000);
 await stop('pattern');
 await tap(main.getByRole('group', { name: 'Preview view' }).getByRole('button', { name: /^Garment/ }), 800);
 
@@ -208,8 +225,11 @@ await p.evaluate(() => {
 await wait(600);
 
 // print: the print page, A4, and the tiled pages
-await main.getByRole('button', { name: 'Review', exact: true }).click();
-await wait(1200);
+// On a computer the summary and Print sit beside the drawing; there's no Review page.
+if (!WIDE) {
+  await main.getByRole('button', { name: 'Review', exact: true }).click();
+  await wait(1200);
+}
 await main.getByRole('button', { name: 'Print my pattern' }).click();
 await wait(1200);
 await main.getByRole('group', { name: 'Paper' }).getByRole('button', { name: 'A4', exact: true }).click();

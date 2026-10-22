@@ -1,27 +1,33 @@
 // Cuts the How it works film from the shots scripts/record-tour-shots.mjs records, with its words set in the app's
 // own type and the lofi track (scripts/tour-music.m4a) under it. Needs the app running (npx vite --port 5173) for
-// the fonts, and ffmpeg. Usage: node scripts/edit-tour.mjs <shots dir> [out.mp4]
+// the fonts, and ffmpeg. Usage: node scripts/edit-tour.mjs <shots dir> [out.mp4] [--wide]
+// --wide cuts the computer's film from the shots record-tour-shots.mjs --wide records (Cat, 2026-10-22).
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { chromium } from '@playwright/test';
 
-const SHOTS = resolve(process.argv[2] ?? 'tour-shots');
-const OUT = resolve(process.argv[3] ?? 'public/tour/walkthrough.mp4');
+const WIDE = process.argv.includes('--wide');
+const [shotsArg, outArg] = process.argv.slice(2).filter((a) => !a.startsWith('--'));
+const SHOTS = resolve(shotsArg ?? (WIDE ? 'tour-shots-wide' : 'tour-shots'));
+const OUT = resolve(outArg ?? (WIDE ? 'public/tour/walkthrough-wide.mp4' : 'public/tour/walkthrough.mp4'));
 const APP = 'http://127.0.0.1:5173';
 const MUSIC = resolve('scripts/tour-music.m4a');
-const W = 1080, H = 1920, FPS = 30;
+const [W, H] = WIDE ? [1920, 1080] : [1080, 1920];
+const FPS = 30;
+// The words are laid out at the size the app's screens were recorded at, then drawn at the film's size.
+const [VW, VH] = WIDE ? [1440, 810] : [432, 768];
 const work = mkdtempSync(join(tmpdir(), 'edit-'));
 
-// Words: each a transparent 1080x1920 picture, drawn by the browser in the app's fonts.
+// Words: each a transparent picture the film's size, drawn by the browser in the app's fonts.
 const LOCAL_CHROMIUM = '/opt/pw-browsers/chromium';
 const b = await chromium.launch(existsSync(LOCAL_CHROMIUM) ? { executablePath: LOCAL_CHROMIUM } : {});
-const page = await (await b.newContext({ viewport: { width: 432, height: 768 }, deviceScaleFactor: 2.5 })).newPage();
+const page = await (await b.newContext({ viewport: { width: VW, height: VH }, deviceScaleFactor: W / VW })).newPage();
 await page.goto(APP);
 await page.waitForTimeout(1500);
 const CSS = `
-  html,body{margin:0;background:transparent!important;width:432px;height:768px;overflow:hidden}
+  html,body{margin:0;background:transparent!important;width:${VW}px;height:${VH}px;overflow:hidden}
   .f{position:fixed;inset:0;color:#efe4cc;font-family:'Space Grotesk',sans-serif}
   .k{font:400 10px/1 'Chakra Petch',monospace;letter-spacing:.34em;text-transform:uppercase;color:#d9c49b}
   .r{width:96px;height:1px;background:#d9c49b;margin:18px 0}
@@ -41,14 +47,16 @@ async function words(html, { solid = false } = {}) {
   await page.screenshot({ path: file, omitBackground: !solid });
   return file;
 }
-const card = (kicker, title, line = '', size = 64) => words(`<div class="f mid"><div class="k">${kicker}</div><div class="r"></div><h1 class="t" style="font-size:${size}px">${title}</h1>${line ? `<p class="l" style="margin-top:18px">${line}</p>` : ''}</div>`, { solid: true });
+const card = (kicker, title, line = '', size = WIDE ? 76 : 64) => words(`<div class="f mid"><div class="k">${kicker}</div><div class="r"></div><h1 class="t" style="font-size:${size}px">${title}</h1>${line ? `<p class="l" style="margin-top:18px">${line}</p>` : ''}</div>`, { solid: true });
 
 // A black frame round a drawing, so a zoomed-in moment shows the drawing alone, not cut-off words around it.
-// top and bottom: where the picture shows, as fractions of the height; it fades in over the 3% outside them.
+// top and bottom (and left and right, if given): where the picture shows, as fractions of the frame; it fades in
+// over the 3% outside them.
 const masks = {};
-async function mask([top, bottom]) {
-  const key = `${top}-${bottom}`;
-  masks[key] ??= await words(`<div class="f" style="background:linear-gradient(to bottom,#000 0,#000 ${(top - 0.03) * 100}%,rgba(0,0,0,0) ${top * 100}%,rgba(0,0,0,0) ${bottom * 100}%,#000 ${(bottom + 0.03) * 100}%,#000 100%)"></div>`);
+async function mask([top, bottom, left = -1, right = 2]) {
+  const key = `${top}-${bottom}-${left}-${right}`;
+  const band = (dir, a, b) => `linear-gradient(${dir},#000 0,#000 ${(a - 0.03) * 100}%,rgba(0,0,0,0) ${a * 100}%,rgba(0,0,0,0) ${b * 100}%,#000 ${(b + 0.03) * 100}%,#000 100%)`;
+  masks[key] ??= await words(`<div class="f" style="background:${band('to bottom', top, bottom)},${band('to right', left, right)}"></div>`);
   return masks[key];
 }
 
@@ -81,10 +89,12 @@ async function piece({ shot, still, from = 0, dur, speed = 1, zoom = [1, 1], at 
 
 // Where to look in each shot: the drawing alone, framed in black (see mask).
 // The dress filling with fabric: the drawing and the swatches tapped under it.
-const FABRIC = { zoom: [1.12, 1.18], at: [0.5, 0.52], frame: [0.27, 0.8] };
+const FABRIC = WIDE ? { zoom: [1.05, 1.1], at: [0.45, 0.48], frame: [0.08, 1.05] } : { zoom: [1.12, 1.18], at: [0.5, 0.52], frame: [0.27, 0.8] };
 // Cat (2026-10-22): the cream pattern paper was too bright after the black pages; a deeper champagne here.
-const PATTERN = { zoom: [1.1, 1.14], at: [0.5, 0.56], frame: [0.305, 0.712], tint: [0.84, 0.78, 0.66] };
-const PAGES = { shot: 'print', from: 5.2, speed: 0.75, frame: [0.15, 0.87] };
+const PATTERN = WIDE
+  ? { from: 0.4, zoom: [1.6, 1.66], at: [0.42, 0.72], frame: [0.09, 1.05, 0.1, 0.92], tint: [0.84, 0.78, 0.66] }
+  : { from: 1.1, zoom: [1.1, 1.14], at: [0.5, 0.56], frame: [0.305, 0.712], tint: [0.84, 0.78, 0.66] };
+const PAGES = { shot: 'print', from: 5.2, speed: 0.75, frame: WIDE ? [0.08, 1.05] : [0.15, 0.87] };
 const CUTS = {
   // V1 Chapter Words (Cat's pick, 2026-10-22): slow and cinematic, a word or two on a page between the moments;
   // Style is about the clothes: the collection, one of its pieces in fabric after fabric, then all round on you,
@@ -102,7 +112,7 @@ const CUTS = {
       await piece({ shot: 'collection', from: 1, dur: 6, speed: 1.3, fadeIn: f, fadeOut: f }),
       await piece({ shot: 'fabric', from: 0.6, dur: 8.6, speed: 2.1, ...FABRIC, fadeIn: f, fadeOut: f }),
       await piece({ shot: 'round', from: 0.3, dur: 8.6, fadeIn: f, fadeOut: f }),
-      await piece({ shot: 'pattern', from: 1.1, dur: 3.6, ...PATTERN, fadeIn: f, fadeOut: f }),
+      await piece({ shot: 'pattern', dur: 3.6, ...PATTERN, fadeIn: f, fadeOut: f }),
       await piece({ still: await card('04', 'Print', 'At home, or full size.'), dur: 3, fadeIn: f, fadeOut: f }),
       await piece({ ...PAGES, dur: 4.4, fadeIn: f, fadeOut: f }),
       await piece({ still: await card('Maison Tracé', 'Drafted<br>to your body'), dur: 4.5, fadeIn: 0.8, fadeOut: 1.2 }),
