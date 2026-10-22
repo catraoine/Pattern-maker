@@ -38,7 +38,14 @@ const MARKS = Array.from({ length: 30 }, (_, i) => i + 41);
 
 export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume, waitlist }: Props) {
   const [touring, setTouring] = useState(false);
-  const [joined, setJoined] = useState(false);
+  // Back from the newsletter's confirm email (Kit sends people to /?joined): straight to "You're on the list".
+  const [joined, setJoined] = useState(() => new URLSearchParams(window.location.search).has('joined'));
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has('joined')) return;
+    url.searchParams.delete('joined');
+    window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
+  }, []);
   const [leaving, setLeaving] = useState(false);
   const done = useRef(onFinish);
   done.current = onFinish;
@@ -163,7 +170,7 @@ export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume, wait
             stay in Your account (Cat's L5 First Visit Only, 2026-10-20). */}
         {waitlist ? (
           <p className="fineprint">
-            We keep only your email, for Maison Tracé news, and delete it if you ask.{' '}
+            We use your email only for Maison Tracé news, and delete it if you ask.{' '}
             <button type="button" className="inline-link" onClick={() => onLegal('privacy')}>
               Privacy Policy
             </button>

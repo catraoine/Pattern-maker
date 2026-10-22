@@ -39,7 +39,7 @@ export function SignupScreen({ kind, onOther, onPrivacy }: Props) {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setState('sending');
-    const result = await send(tester ? { kind, name, email, sews, size: size || undefined, consent, website } : { kind, email, website });
+    const result = await send(tester ? { kind, name, email, sews, size: size || undefined, consent, website } : { kind, email, src: signupSource(), website });
     setState(result);
     if (result === 'sent') {
       // One of the four weekly numbers: a sign-up, against where the visitor first came from. No email goes with it.
@@ -95,7 +95,7 @@ export function SignupScreen({ kind, onOther, onPrivacy }: Props) {
                 </span>
               </label>
             ) : (
-              <p className="muted small">We keep only your email, use it only for Maison Tracé news, and delete it if you ask. Every email has a way to stop them.</p>
+              <p className="muted small">We use your email only for Maison Tracé news, and delete it if you ask. Every email has a way to stop them.</p>
             )}
             <div className="row wrap">
               <button type="submit" className="primary" disabled={state === 'sending'}>

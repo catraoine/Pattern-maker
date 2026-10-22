@@ -191,7 +191,8 @@ export const SignupSchema = z.discriminatedUnion('kind', [
       website: honeypot,
     })
     .strict(),
-  z.object({ kind: z.literal('news'), email, website: honeypot }).strict(),
+  // A waitlist sign-up also says where the visitor first came from (?src=ig), so the newsletter list can show it.
+  z.object({ kind: z.literal('news'), email, src: z.string().regex(/^[a-z-]{2,20}$/).optional(), website: honeypot }).strict(),
   // "Tell me when it opens" for a paid extra that isn't built yet (src/offers.ts).
   // Atelier Nights sign-ups also name the city, so the first night goes where the most people asked.
   z.object({
