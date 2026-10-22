@@ -38,7 +38,14 @@ const MARKS = Array.from({ length: 30 }, (_, i) => i + 41);
 
 export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume, waitlist }: Props) {
   const [touring, setTouring] = useState(false);
-  const [joined, setJoined] = useState(false);
+  // Back from the newsletter's confirm email (Kit sends people to /?joined): straight to "You're on the list".
+  const [joined, setJoined] = useState(() => new URLSearchParams(window.location.search).has('joined'));
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has('joined')) return;
+    url.searchParams.delete('joined');
+    window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
+  }, []);
   const [leaving, setLeaving] = useState(false);
   const done = useRef(onFinish);
   done.current = onFinish;
