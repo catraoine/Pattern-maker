@@ -70,7 +70,7 @@ export function SignupScreen({ kind, onOther, onPrivacy }: Props) {
             )}
             <div className="field plain">
               <label htmlFor="semail">Email</label>
-              <input id="semail" type="email" required maxLength={200} autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+              <input id="semail" name="email" type="email" required maxLength={200} autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
             </div>
             {tester && (
               <>
@@ -86,7 +86,7 @@ export function SignupScreen({ kind, onOther, onPrivacy }: Props) {
                 </div>
               </>
             )}
-            <input className="hp" tabIndex={-1} autoComplete="off" aria-hidden="true" name="website" value={website} onChange={(e) => setWebsite(e.target.value)} />
+            <input className="hp" tabIndex={-1} autoComplete="off" aria-hidden="true" name="mt-hp" value={website} onChange={(e) => setWebsite(e.target.value)} />
             {tester ? (
               <label className="check">
                 <input type="checkbox" required checked={consent} onChange={(e) => setConsent(e.target.checked)} />
