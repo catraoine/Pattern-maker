@@ -1,8 +1,9 @@
 // POST: the app's report beacon, sent once when a visit ends or the tab is hidden (anonymous daily counts, and crash
 // reports with no measurements, names or photos). Kept in the "reports" Netlify Blobs store: daily totals under
 // day/<date>, crash reports under crash/<date>/. No IP address or per-person id is stored.
-// GET ?key=…: the owner's read-out of the daily totals, recent crash reports and sign-ups, as JSON. Needs STATS_KEY
-// set in Netlify (Site configuration > Environment variables); without it the read-out is refused.
+// GET ?key=…: the owner's read-out of the daily totals, recent crash reports, sign-ups and every fit report sent, as
+// JSON. Add &download=1 to save it as a dated file (the weekly backup of the fit evidence). Needs STATS_KEY set in
+// Netlify (Site configuration > Environment variables); without it the read-out is refused.
 import { randomUUID } from 'node:crypto';
 import { getStore } from '@netlify/blobs';
 import { addBeacon, checkBeacon, funnel, keyMatches, lastDays, updateDay, type DayStore, type DayTotals, type StoredCrash } from '../../src/server/reports';
@@ -62,6 +63,8 @@ async function readOut(url: URL) {
   const crashes = (await Promise.all(crashKeys.map((k) => store.get(k, { type: 'json' })))) as StoredCrash[];
   const signups = async (prefix: string) => Promise.all((await signupStore.list({ prefix })).blobs.map((b) => signupStore.get(b.key, { type: 'json' })));
   const [testers, news, interest] = await Promise.all([signups('tester/'), signups('news/'), signups('interest/')]);
+  const fitStore = getStore('fit-feedback');
+  const fitReports = await Promise.all((await fitStore.list()).blobs.map((b) => fitStore.get(b.key, { type: 'json' })));
 
   const days_ = totals.flatMap(({ day, totals: t }) => (t ? [{ day, ...t }] : []));
   return Response.json(
@@ -72,8 +75,9 @@ async function readOut(url: URL) {
       days: days_,
       crashes,
       signups: { testers, news, interest },
+      fitReports,
     },
-    { headers: { 'Cache-Control': 'no-store' } },
+    { headers: { 'Cache-Control': 'no-store', ...(url.searchParams.has('download') ? { 'Content-Disposition': `attachment; filename="maison-trace-backup-${new Date().toISOString().slice(0, 10)}.json"` } : {}) } },
   );
 }
 

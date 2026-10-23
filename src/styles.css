@@ -186,7 +186,8 @@ p {
 }
 
 .step.locked {
-  color: var(--disabled);
+  /* Dimmer than an open step, but 4.5:1 on black so the step names stay readable. */
+  color: #877c68;
 }
 
 /* A Steady Header (Cat's pick, 2026-10-17): back on the left, the steps in the middle, the account on the right,
@@ -1200,7 +1201,7 @@ b {
   min-height: 0;
   padding: 10px 4px 7px;
   border-color: var(--line-strong);
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.14em;
   line-height: 1.3;
 }
@@ -1881,9 +1882,10 @@ details.more[open] > summary h2::after {
 }
 .welcome .fineprint {
   text-align: center;
-  font-size: 10px;
+  /* Still the quiet line (Cat's L5), but readable: 12px at 0.85 clears 4.5:1 on black (accessibility check, 2026-10-23). */
+  font-size: 12px;
   letter-spacing: 0.02em;
-  opacity: 0.5;
+  opacity: 0.85;
 }
 .welcome .fineprint button.inline-link {
   text-decoration: none;
@@ -2714,7 +2716,7 @@ button.step-next {
 }
 .picks .tag {
   font-family: var(--mono);
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: var(--track);
   text-transform: uppercase;
   color: var(--gild);
@@ -2851,7 +2853,7 @@ dialog.guide::backdrop {
 .scalebar b {
   display: block;
   font-family: var(--mono);
-  font-size: 9.5px;
+  font-size: 10px;
   letter-spacing: var(--track);
   text-transform: uppercase;
   color: var(--gild);
@@ -3544,7 +3546,7 @@ button.link.garment-change {
   background: var(--paper);
   color: var(--muted);
   font-family: var(--mono);
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -5825,7 +5827,7 @@ input.inline:focus,
   top: 4px;
   right: 4px;
   margin: 0;
-  font-size: 9px;
+  font-size: 10px;
 }
 
 /* ---------------------------------------------------------------------------------------------------------
@@ -6430,7 +6432,7 @@ body:has(.tape-band.carried) {
   display: inline-block;
   margin: 0 0 0 6px;
   vertical-align: 0.6em;
-  font-size: 7px;
+  font-size: 10px;
   letter-spacing: 0.12em;
   opacity: 0.75;
   text-decoration: none;
@@ -6806,7 +6808,7 @@ button.later.garment-change {
   background: none;
   padding: 6px 4px;
   font-family: var(--mono);
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 0.22em;
 }
 @media (min-width: 1100px) {
@@ -7093,4 +7095,17 @@ details.sew > .sew-summary + .row {
   content: '×';
   font-family: var(--mono);
   color: var(--muted);
+}
+
+/* Less motion when the phone or computer asks for it (accessibility check, 2026-10-23): animations and transitions
+   finish at once, so anything waiting on their end still carries on. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
