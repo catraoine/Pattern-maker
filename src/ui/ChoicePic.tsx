@@ -110,11 +110,21 @@ const NECK: Record<string, ReactNode> = {
   ),
 };
 
+/** A sleeveless dress with its waist seam at y and the skirt flaring below. */
+function dressSeam(y: number) {
+  return (
+    <>
+      <path d={`M13 7Q20 11 27 7L29 13L28 ${y}L34 46H6L12 ${y}L11 13z`} />
+      <path className="pic-faint" d={`M12 ${y}H28`} />
+    </>
+  );
+}
+
 const SLEEVE: Record<string, ReactNode> = { none: sleeves(0), short: sleeves(8), elbow: sleeves(16), three_quarter: sleeves(22), long: sleeves(30) };
 
 const PICS: Record<PicSet, Record<string, Record<string, ReactNode>>> = {
   skirt: SKIRT,
-  bodice: { neckline: NECK, sleeve: SLEEVE, length: { waist: topTo(28), high_hip: topTo(34), hip: topTo(40) } },
+  bodice: { neckline: NECK, sleeve: SLEEVE, length: { waist: topTo(28), high_hip: topTo(34), hip: topTo(40) }, waistSeam: { empire: dressSeam(16), raised: dressSeam(19), natural: dressSeam(22), dropped: dressSeam(29), low: dressSeam(33) } },
   tee: { neckline: NECK, sleeve: { short: sleeves(8), elbow: sleeves(16), long: sleeves(30) }, length: { cropped: topTo(26), hip: topTo(36), tunic: topTo(45) } },
   trousers: {
     leg: {

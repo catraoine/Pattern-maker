@@ -7093,3 +7093,12 @@ details.sew > .sew-summary + .row {
   font-family: var(--mono);
   color: var(--muted);
 }
+
+/* The dress's waist seam, dragged to any height between under the bust and low on the hip. */
+.seam-height input[type='range'] {
+  width: 100%;
+  accent-color: var(--ink, currentColor);
+}
+.seam-height p {
+  margin: 0.25rem 0 0;
+}
