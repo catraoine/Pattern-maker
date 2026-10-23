@@ -3,7 +3,7 @@ import { layout } from '../engine/export';
 import { bodiceEase } from '../engine/bodice';
 import { isTop } from '../engine/corset';
 import type { DressDraft } from '../engine/dress';
-import { dressFlat } from '../engine/flat';
+import { dressFlat, wornShapes } from '../engine/flat';
 import { piecesLengthCm, toMetres } from '../engine/fabric';
 import { layPlan } from '../engine/layplan';
 import { hasSlit } from '../engine/instructions';
@@ -38,6 +38,7 @@ import type { BodiceMeasurements } from '../engine/bodice';
 import type { SkirtMeasurements } from '../engine/skirt';
 import { DrawOnForm, formWidth } from '../ui/DrawOnForm';
 import { FormSketch } from '../ui/FormSketch';
+import { armFor } from '../ui/DrawOnForm';
 import { orSeam, readSeamLine } from '../ui/formSeams';
 import { orNeckline, readUnevenNeckline, unevenNecklineLines } from '../ui/formBodice';
 import { REPLACES } from './BodiceStyleScreen';
@@ -217,6 +218,13 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
   const mv = values as BodiceMeasurements & SkirtMeasurements;
   const waistY = draft ? landmarks(draft.bodice).waistY : 0;
   const formBody = useMemo(() => (draft ? formWidth(draft.bodice, mv) : undefined), [draft, mv]);
+  const clothShapes = useMemo(() => (flat ? wornShapes(flat) : undefined), [flat]);
+  // The arms, for the sleeves to hang on: from the arm measurements, once they are given.
+  const formArm = useMemo(() => {
+    if (!draft || !sleeve || needsArms(values)) return undefined;
+    const { shoulderTip, underarm } = landmarks(draft.bodice);
+    return armFor(shoulderTip, underarm, { arm_length: values.arm_length!, upper_arm: values.upper_arm!, wrist: values.wrist });
+  }, [draft, sleeve, values]);
   const formLines = useMemo(() => {
     if (!draft) return {};
     const uneven = unevenNecklineLines(draft.bodice);
@@ -415,7 +423,9 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           <DemoButton demo="style" />
           {error && <p className="msg error">{error}</p>}
           {formBody && view === 'sketch' && (
-            <FormSketch body={formBody} m={mv} legs bottom={waistY + lengthRange(mv).max + 4} lines={formLines} label={`The ${title} on your form`} />
+            <GarmentFabric fabric={fabric}>
+              <FormSketch body={formBody} m={mv} legs bottom={waistY + lengthRange(mv).max + 4} lines={formLines} cloth={clothShapes} arms={formArm} sleeve={formArm ? sleeve : undefined} label={`The ${title} on your form`} />
+            </GarmentFabric>
           )}
           {flat && view === 'flat' && (
             <GarmentFabric fabric={fabric}>

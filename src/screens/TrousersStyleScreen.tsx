@@ -84,10 +84,10 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
     [draft, values.waist_to_hip, values.crotch_depth],
   );
   const formBody = useMemo(() => (values.waist && values.full_hip && values.waist_to_hip ? skirtForm({ waist: values.waist, full_hip: values.full_hip, waist_to_hip: values.waist_to_hip }) : undefined), [values.waist, values.full_hip, values.waist_to_hip]);
-  const formOutline = useMemo(() => {
-    if (!draft || !values.waist_to_hip || !values.crotch_depth) return [];
+  const onForm = useMemo(() => {
+    if (!draft || !values.waist_to_hip || !values.crotch_depth) return { cloth: [], lines: [] };
     const v = trousersView(draft, { waist_to_hip: values.waist_to_hip, crotch_depth: values.crotch_depth });
-    return [...v.shapes, ...v.lines.map((l) => l.pts)];
+    return { cloth: v.shapes, lines: v.lines.map((l) => l.pts) };
   }, [draft, values.waist_to_hip, values.crotch_depth]);
   const shown = (id: string) => id !== 'length' || choices.leg !== 'culotte';
   const elastic = choices.waist === 'elastic';
@@ -182,7 +182,9 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
           <DemoButton demo="style" />
           {error && <p className="msg error">{error}</p>}
           {formBody && draft && view === 'sketch' && (
-            <FormSketch body={formBody} m={values as { waist: number }} legs bottom={draft.lengthCm + 6} lines={{}} outline={formOutline} label={`The ${title.toLowerCase()} on your form`} />
+            <GarmentFabric fabric={fabric}>
+              <FormSketch body={formBody} m={values as { waist: number }} legs bottom={draft.lengthCm + 6} lines={{}} cloth={onForm.cloth} outline={onForm.lines} label={`The ${title.toLowerCase()} on your form`} />
+            </GarmentFabric>
           )}
           {flat && view === 'flat' && (
             <GarmentFabric fabric={fabric}>

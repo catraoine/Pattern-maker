@@ -27,6 +27,11 @@ export interface FlatView {
   lines: { pts: P[]; kind: FlatLineKind }[];
   /** Where the label goes, below the view. */
   at: P;
+  /** How far the view was moved to sit beside the others: take it off to get the pieces' own coordinates
+   *  (the centre at x = 0), which is where the Style page draws the garment on the form. */
+  origin: P;
+  /** Which of `shapes` are the sleeves (and their bands), drawn out at an angle as flats are. */
+  sleeves?: number[];
 }
 
 export interface Flat {
@@ -253,8 +258,8 @@ function zip(top: number, cm: number): FlatView['lines'] {
 }
 
 /** Front and back side by side, from the top left at 0, 0. */
-function arrange(views: Omit<FlatView, 'at'>[]): Flat {
-  const all = (v: Omit<FlatView, 'at'>) => [...v.shapes.flat(), ...v.lines.flatMap((l) => l.pts)];
+function arrange(views: Omit<FlatView, 'at' | 'origin'>[]): Flat {
+  const all = (v: Omit<FlatView, 'at' | 'origin'>) => [...v.shapes.flat(), ...v.lines.flatMap((l) => l.pts)];
   const top = Math.min(...views.flatMap((v) => all(v).map((q) => q.y)));
   const bottom = Math.max(...views.flatMap((v) => all(v).map((q) => q.y)));
   let x = 0;
@@ -268,6 +273,8 @@ function arrange(views: Omit<FlatView, 'at'>[]): Flat {
       shapes: v.shapes.map((s) => s.map(shift)),
       lines: v.lines.map((l) => ({ ...l, pts: l.pts.map(shift) })),
       at: p(dx, bottom - top),
+      origin: p(dx, -top),
+      sleeves: v.sleeves,
     };
   });
   return { views: placed, width: x - GAP, height: bottom - top };
@@ -301,7 +308,18 @@ function circleHalf(d: SkirtDraft, back: boolean): { shapes: P[][]; lines: FlatV
   return { shapes: [whole(run)], lines, waist: [p(0, top), p(w, 0)] };
 }
 
-type RawView = Omit<FlatView, 'at'>;
+type RawView = Omit<FlatView, 'at' | 'origin'>;
+
+/**
+ * One view's shapes in the pieces' own coordinates (the centre at x = 0, y as drafted), as the Style page
+ * lays the garment on the form. The sleeves are left out unless asked for: on the form they hang on the arms.
+ */
+export function wornShapes(flat: Flat, view = 0, withSleeves = false): P[][] {
+  const v = flat.views[view];
+  if (!v) return [];
+  const sleeves = new Set(withSleeves ? [] : v.sleeves ?? []);
+  return v.shapes.filter((_, i) => !sleeves.has(i)).map((s) => s.map((q) => p(q.x - v.origin.x, q.y - v.origin.y)));
+}
 
 /** The skirt: waistband, darts, centre back seam and zip, and a walking slit when it has one. */
 export function skirtFlat(d: SkirtDraft, opts: { slit?: boolean } = {}): Flat {
@@ -724,7 +742,7 @@ function withPeplumView(d: BodiceDraft, h: Half, v: RawView & { foot: number }):
       const y = ws.y + ((waist[0].y - ws.y) * (ws.x - x)) / Math.max(ws.x, 1);
       lines.push(...both([p(x, y + 0.3), p(x + (H - ws.x) * (x / ws.x), y + 2.6)]).map((pts) => ({ pts, kind: 'seam' as const })));
     }
-  return { ...v, shapes: [v.shapes[0], shape, ...v.shapes.slice(1)], lines };
+  return { ...v, shapes: [v.shapes[0], shape, ...v.shapes.slice(1)], lines, sleeves: v.sleeves?.map((j) => j + 1) };
 }
 
 /** A boned bodice's side seam channel: just inside the seam, stopping short of the top edge and the waist. */
@@ -814,19 +832,20 @@ function bodiceViews(d: BodiceDraft, edges: BodiceEdges, sleeve: SleeveDraft | u
     if (st) shapes.push(...both(strap([h.move(st[0]), h.move(st[1])])));
     const neckRun = uneven ? undefined : along(h, 'neck')[0];
     const collar = neckRun ? collarHalf(neckRun, d.collar, i === 0) : [];
+    const sleeves: number[] = [];
     if (sleeve) {
       const sl = sleeveSide(h, sleeve);
       for (const flip of [false, true]) {
         const f = (pts: P[]) => (flip ? mirror(pts) : pts);
-        if (sl.shape.length) shapes.push(f(sl.shape));
-        if (sl.band) shapes.push(f(sl.band));
+        if (sl.shape.length) sleeves.push(shapes.push(f(sl.shape)) - 1);
+        if (sl.band) sleeves.push(shapes.push(f(sl.band)) - 1);
         lines.push(...sl.lines.map((l) => ({ ...l, pts: f(l.pts) })));
       }
     }
     // The collar goes on last, over the sleeves' heads.
     // In one piece across the centre back on a button front; meeting at the zip or the centre front otherwise.
     for (const c of collar) shapes.push(...collarShapes(c, i === 1 && d.closure === 'front_buttons'));
-    const view = { label: i === 0 ? ('FRONT' as const) : ('BACK' as const), shapes, lines, foot: h.run[h.run.length - 1].y };
+    const view = { label: i === 0 ? ('FRONT' as const) : ('BACK' as const), shapes, lines, sleeves, foot: h.run[h.run.length - 1].y };
     return withPeplumView(d, h, i === 0 && d.drape?.kind === 'cowl' ? cowlFront(d, h, view) : view);
   });
 }
@@ -849,7 +868,7 @@ export function dressFlat(d: DressDraft, edges: BodiceEdges = 'binding', opts: {
         const neck = b.shapes[0].reduce((m, q) => (Math.abs(q.x) < 1e-6 && q.y < m ? q.y : m), Infinity);
         lines.push({ pts: [p(0, neck), p(0, b.foot)], kind: 'seam' }, ...zip(neck, d.zipCm));
       }
-      return { label: b.label, shapes: [b.shapes[0], ...k.shapes.map(move), ...b.shapes.slice(1)], lines };
+      return { label: b.label, shapes: [b.shapes[0], ...k.shapes.map(move), ...b.shapes.slice(1)], lines, sleeves: b.sleeves?.map((j) => j + k.shapes.length) };
     }),
   );
 }
@@ -947,10 +966,11 @@ export function teeFlat(d: TeeDraft): Flat {
         for (const at of [1.5, 2.1]) for (const r of inset(pts, at, shape)) lines.push({ pts: r, kind: 'stitch' });
     for (const pts of both(neck)) for (const r of inset(pts, 0.6, shape)) lines.push({ pts: r, kind: 'stitch' });
     const shapes = [shape];
+    const sleeves: number[] = [];
     const sl = sleeveSide(h, d.sleeve);
     for (const flip of [false, true]) {
       const f = (pts: P[]) => (flip ? mirror(pts) : pts);
-      if (sl.shape.length) shapes.push(f(sl.shape));
+      if (sl.shape.length) sleeves.push(shapes.push(f(sl.shape)) - 1);
       lines.push(...sl.lines.map((l) => ({ ...l, pts: f(l.pts) })));
     }
     // The band on top, standing up from the neckline into the opening.
@@ -959,7 +979,7 @@ export function teeFlat(d: TeeDraft): Flat {
       const half = [...neck, ...[...band].reverse()];
       shapes.push(half, mirror(half));
     }
-    return { label: i === 0 ? 'FRONT' : 'BACK', shapes, lines };
+    return { label: i === 0 ? 'FRONT' : 'BACK', shapes, lines, sleeves };
   });
   return arrange(views);
 }
@@ -1048,16 +1068,17 @@ export function outerFlat(d: OuterDraft): Flat {
       }
     }
     const sl = sleeveSide(h, d.sleeve);
+    const sleeves: number[] = [];
     for (const flip of [false, true]) {
       const f = (pts: P[]) => (flip ? mirror(pts) : pts);
-      if (sl.shape.length) shapes.push(f(sl.shape));
+      if (sl.shape.length) sleeves.push(shapes.push(f(sl.shape)) - 1);
       lines.push(...sl.lines.map((l) => ({ ...l, pts: f(l.pts) })));
       if (sl.seam && !isFront) lines.push({ pts: f(sl.seam), kind: 'seam' });
     }
     for (const o of over) shapes.push(isFront ? mirror(o) : o, ...(isFront ? [o] : []));
     // Menswear buttons left over right: the same front seen in a mirror.
-    if (isFront && d.lapsLeft) return { label: 'FRONT' as const, shapes: shapes.map(mirror), lines: lines.map((l) => ({ ...l, pts: mirror(l.pts) })) };
-    return { label: isFront ? ('FRONT' as const) : ('BACK' as const), shapes, lines };
+    if (isFront && d.lapsLeft) return { label: 'FRONT' as const, shapes: shapes.map(mirror), lines: lines.map((l) => ({ ...l, pts: mirror(l.pts) })), sleeves };
+    return { label: isFront ? ('FRONT' as const) : ('BACK' as const), shapes, lines, sleeves };
   });
   return arrange(views);
 }

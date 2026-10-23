@@ -3,7 +3,7 @@ import { layout } from '../engine/export';
 import { piecesLengthCm, toMetres } from '../engine/fabric';
 import { layPlan } from '../engine/layplan';
 import { NECKBAND_CM, STRETCH_TEST, TeeDraft, pctWords } from '../engine/tee';
-import { teeFlat } from '../engine/flat';
+import { teeFlat, wornShapes } from '../engine/flat';
 import { TEE_GROUPS, TeeChoices, describeTee } from '../garments';
 import { TechFlatView } from '../ui/TechFlatView';
 import { GarmentViews, PreviewSwitch } from '../ui/PreviewSwitch';
@@ -15,6 +15,7 @@ import { PatternPane } from '../ui/PointEditor';
 import { SaveControl } from '../ui/SaveControl';
 import { UndoToast, useUndo } from '../ui/useUndo';
 import type { MyFabric } from '../engine/fabrics';
+import { GarmentFabric } from '../ui/FabricFill';
 import { teeFabrics } from '../engine/knits';
 import { FabricCard, FabricSummary } from '../ui/FabricCard';
 import type { Mode } from '../mode';
@@ -79,6 +80,7 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
   const pieces = useMemo(() => draft?.pieces ?? [], [draft]);
   const sheet = useMemo(() => (draft ? layout(pieces, '', []) : undefined), [draft, pieces]);
   const flat = useMemo(() => (draft ? teeFlat(draft) : undefined), [draft]);
+  const clothShapes = useMemo(() => (flat ? wornShapes(flat) : undefined), [flat]);
   const title = describeTee(choices);
   const round = useMemo(() => (draft ? roundTee(draft, values) : undefined), [draft, values]);
   const hemLabel = choices.length === 'cropped' ? 'Hem' : 'Hip';
@@ -200,8 +202,16 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
         <div className="preview">
           <DemoButton demo="style" />
           {error && <p className="msg error">{error}</p>}
-          {form && view === 'sketch' && <FormSketch body={form.body} m={m} legs={false} bottom={form.hems.tunic + 6} arms={form.arm} lines={formLines} label={`The ${title.toLowerCase()} on your form`} />}
-          {flat && view === 'flat' && <TechFlatView flat={flat} title={title} />}
+          {form && draft && view === 'sketch' && (
+            <GarmentFabric fabric={fabric}>
+              <FormSketch body={form.body} m={m} legs={false} bottom={form.hems.tunic + 6} arms={form.arm} lines={formLines} cloth={clothShapes} sleeve={draft.sleeve} label={`The ${title.toLowerCase()} on your form`} />
+            </GarmentFabric>
+          )}
+          {flat && view === 'flat' && (
+            <GarmentFabric fabric={fabric}>
+              <TechFlatView flat={flat} title={title} />
+            </GarmentFabric>
+          )}
           {round && view === 'round' && <AllRound round={round} m={values} striped={!!fabric?.checks} label={`The ${title.toLowerCase()} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`} />}
           {draft && sheet && view === 'pattern' && <PatternPane><PatternPreview paper sheet={sheet} label={`Pattern pieces for ${title.toLowerCase()}`} /></PatternPane>}
           <UndoToast undo={undo} />

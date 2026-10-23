@@ -3482,6 +3482,18 @@ button.link.garment-change {
   stroke: var(--gild-glow);
   filter: drop-shadow(0 0 0.5px rgba(243, 230, 200, 0.8));
 }
+/* The garment as cloth on the form: the chosen fabric (black cloth until one is chosen), edged in champagne,
+   its seams drawn over it in the quieter line. */
+.form-still .cloth-fill {
+  fill: var(--garment, #000);
+  stroke: none;
+}
+.form-still .cloth-edge {
+  stroke: var(--gild);
+}
+.form-still .cloth ~ .tape {
+  stroke: var(--muted);
+}
 
 /* The sketch in the maker's fabric, and the swatches to choose it. */
 .garment-fabric {
