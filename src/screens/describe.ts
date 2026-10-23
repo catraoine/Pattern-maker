@@ -3,6 +3,8 @@ import { GROUPS, describe as describeSkirt } from './StyleScreen';
 import { buttonsOnSkirt, noSeamAllowed } from '../engine/dress';
 import { wrapSkirtAllowed } from '../engine/wrapSkirt';
 
+const SEAM_WORDS = { empire: 'empire-line', raised: 'high-waisted', natural: '', dropped: 'drop-waist', low: 'low-waisted' } as const;
+
 /** A plain name for a saved pattern's style, such as "Knee A-line skirt". */
 export function describePattern(c: PatternChoices) {
   if (isDress(c)) {
@@ -19,7 +21,10 @@ export function describePattern(c: PatternChoices) {
     const hem = parts.find((t) => / hem$/.test(t));
     const details = parts.filter((t) => t !== hem);
     // Buttoned down the front from the neck to the skirt, it is a shirt dress; crossed over and tied, a wrap dress.
-    const word = c.bodice.closure === 'front_buttons' && buttonsOnSkirt(c.skirt) ? 'shirt dress' : c.bodice.closure === 'wrap' && wrapSkirtAllowed(c.skirt) ? 'wrap dress' : 'dress';
+    // A seam dragged to its own height is named by which side of the waist it sits.
+    const seam = c.waistSeamCm !== undefined ? (c.waistSeamCm < 0 ? 'raised' : c.waistSeamCm > 0 ? 'dropped' : 'natural') : c.waistSeam;
+    const kind = c.bodice.closure === 'front_buttons' && buttonsOnSkirt(c.skirt) ? 'shirt dress' : c.bodice.closure === 'wrap' && wrapSkirtAllowed(c.skirt) ? 'wrap dress' : 'dress';
+    const word = seam && seam !== 'natural' ? `${SEAM_WORDS[seam]} ${kind}` : kind;
     const dress = /skirt/.test(skirt) ? skirt.replace('skirt', word) : `${skirt} ${word}`;
     const ends = [...(hem ? [hem] : []), ...(c.skirt.pockets === 'inseam' ? ['pockets'] : [])];
     return `${dress} with ${details.length ? `${details.join(' and ')}, ` : ''}${bodiceDetails(c.bodice)}${ends.length ? `, and ${ends.join(' and ')}` : ''}`;

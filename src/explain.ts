@@ -91,6 +91,13 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       high_hip: ['Ends a little below the waist, at the top of the hip.'],
       hip: ['Ends at the fullest part of the hip.'],
     },
+    waistSeam: {
+      empire: ['Just under the bust, the skirt falling free from there. Make it short and full for a babydoll.'],
+      raised: ['A little above your waist, for a longer-looking leg.'],
+      natural: ['The bodice meets the skirt at your natural waist.', 'easy'],
+      dropped: ['At the top of the hip: the bodice skims past your waist and the skirt falls from lower down. Lovely relaxed.', 'easy'],
+      low: ['Low on the hip, for a long, lean bodice and a short flip of skirt.'],
+    },
     darts: {
       bust_waist: ['Small folds sewn shut at the bust and waist that shape flat fabric round you. The closest fit.'],
       bust: ['A dart at the bust only, so it is shaped over the bust but looser at the waist.'],

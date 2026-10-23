@@ -1,8 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { fabricLines, withFabric } from './fabrics';
-import { PRINT_IDS, motifExtra, printExtra, printLines, printNap, printOf } from './prints';
+import { PRINT_IDS, STRIPES_REPEAT, motifExtra, printExtra, printImage, printLines, printNap, printOf, printTileCm } from './prints';
 
 describe('prints', () => {
+  it('draws stripes from their own swatch, three repeats to a tile', () => {
+    expect(printImage('checks', '/', true)).toBe('/prints/stripes.jpg');
+    expect(printImage('checks')).toBe('/prints/checks.jpg');
+    expect(printTileCm('checks', undefined, true)).toBe(STRIPES_REPEAT * 3);
+    expect(printTileCm('checks', 4, true)).toBe(12);
+    expect(printTileCm('checks', undefined)).toBe(30);
+  });
+
   it('reads checks saved before the picker as a checks print', () => {
     expect(printOf({ checks: {} })).toBe('checks');
     expect(printOf({ print: 'motif' })).toBe('motif');

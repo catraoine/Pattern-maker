@@ -512,10 +512,20 @@ function LandedTape() {
     const tape = ref.current;
     const from = takeTapeRest();
     if (!tape || !from || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    // Where the welcome's layout left it a little off this page's top edge, it eases across rather than jumping.
+    // From wherever the welcome's tape was as it handed over (still rising from the foot of the form), it carries on to
+    // its place rather than jumping.
     const at = tape.getBoundingClientRect();
     if (Math.abs(from.left - at.left) > 1 || Math.abs(from.top - at.top) > 1)
-      tape.animate([{ transform: `translate(${from.left - at.left}px, ${from.top - at.top}px)` }, { transform: 'none' }], { duration: 600, easing: 'cubic-bezier(0.3, 0.1, 0.2, 1)' });
+      tape.animate([{ transform: `translate(${from.left - at.left}px, ${from.top - at.top}px)` }, { transform: 'none' }], { duration: 750, easing: 'cubic-bezier(0.3, 0.1, 0.2, 1)' });
+    // On a computer the welcome's tape is only as long as the form is wide: it comes on at that length and pulls on
+    // out across the page, rather than appearing at full length (Cat, 2026-10-22: it looked glitchy).
+    const more = at.width - from.width;
+    if (more > 1)
+      tape.animate([{ clipPath: `inset(-8px ${more}px -8px -8px)` }, { clipPath: 'inset(-8px -8px -8px -8px)' }], { duration: 900, easing: 'cubic-bezier(0.35, 0.1, 0.25, 1)' });
+    // The page itself comes up under the tape instead of cutting in. (The words' wrapper is display: contents, which
+    // takes no opacity, so it's what's inside it that fades.)
+    const page = [...(tape.parentElement?.children ?? [])].filter((c) => c !== tape).flatMap((c) => (getComputedStyle(c).display === 'contents' ? [...c.children] : [c]));
+    page.forEach((c) => c.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 450, easing: 'ease-out' }));
   }, []);
   return (
     <div ref={ref} className="tape-band landed" aria-hidden="true">
@@ -609,6 +619,8 @@ function CarriedTape({ from }: { from: { left: number; top: number } }) {
     tape.style.left = `${from.left}px`;
     tape.style.top = `${from.top}px`;
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return void (tape.style.display = 'none');
+    // The waist page comes up under the tape as it travels, rather than cutting in (Cat, 2026-10-22).
+    document.querySelector('.measure-step')?.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 400, easing: 'ease-out' });
     // The form's first frame places the waist; then the tape travels to it.
     let frame = 0;
     let tries = 0;

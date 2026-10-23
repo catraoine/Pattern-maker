@@ -26,8 +26,9 @@ interface Props {
 // The name is asked only when measuring someone else, on the first measuring page.
 // Coming back with measurements already taken, the button carries on with the garment you were on, straight
 // to its style screen, with a quiet way to your saved patterns or something new under it.
-/** How long Begin's tape takes to unroll across the form, rise and fade into the first measuring page. */
-const LEAVE_MS = 2600;
+/** How long Begin's tape takes to unroll across the form while the welcome fades. The first measuring page then fades
+ *  up under it as it rises to its place, so there's no moment of the tape alone on black (Cat, 2026-10-22). */
+const LEAVE_MS = 1750;
 /** On a computer, when the form starts sliding from the middle of the window to its place (as the loading screen
  *  fades, so its lines drop as it goes), how long the slide takes, and when the play button comes in, last of all
  *  (Cat, 2026-10-21). */

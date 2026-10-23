@@ -351,7 +351,8 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, onLive, o
     <svg
       ref={svg}
       viewBox={`0 ${frame.top} ${2 * cx} ${frame.bottom - frame.top}`}
-      role="img"
+      // A group, not an image: an image hides the length and flare handles inside it from screen readers.
+      role="group"
       aria-label={label}
       className={drawing ? 'preview-svg sketch shape drawing' : 'preview-svg sketch shape'}
       onPointerDown={(e) => {

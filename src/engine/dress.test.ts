@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { taggedLength } from './geometry';
 import { DRESS_ZIPS, ZIP_BELOW_WAIST, draftDress, waistDartAt } from './dress';
+import { roundDress } from './allRound';
 import { checkPattern } from './qc';
 import { randomArms, randomBody, rng } from './randomBodies';
 import { DraftError } from './skirt';
@@ -114,5 +115,110 @@ describe('the dress', () => {
       const hem = dressGuide(d, { silhouette, length: 'knee' }, 2, 0.5).steps.find((s) => s.title === 'Hem')!;
       expect(hem.text).toMatch(new RegExp(`^Press up 1 cm, then ${more} cm more`));
     }
+  });
+
+  describe('with a raised waist', () => {
+    it('cuts the bodice under the bust and drafts the skirt from there, hem where it was', () => {
+      const b = randomBody(rng(7));
+      const style = { fit: 'regular', darts: 'bust_waist' } as const;
+      const skirt = { fit: 'regular', silhouette: 'a_line', length: 'mini' } as const;
+      const n = draftDress(b, style, skirt);
+      const d = draftDress(b, style, skirt, 'empire');
+      expect(d.seamDrop).toBeLessThan(-4);
+      expect(d.seamDrop).toBe(d.seamRange.min);
+      const [bf, bb, sf, sb] = d.pieces;
+      expect(Math.abs(taggedLength(bf.outline, 'waist') - taggedLength(sf.outline, 'waist'))).toBeLessThan(0.01);
+      expect(Math.abs(taggedLength(bb.outline, 'waist') - taggedLength(sb.outline, 'waist'))).toBeLessThan(0.01);
+      // The bodice dart stays open in the seam and the skirt dart sits under it.
+      expect(Math.abs(waistDartAt(bf)! - waistDartAt(sf)!)).toBeLessThan(0.3);
+      // The bodice ends higher, the skirt is longer, and the hem lands near the same place.
+      const low = (pcs: typeof d.pieces) => Math.max(...pcs[0].outline.points().map((q) => q.y));
+      expect(low(d.pieces)).toBeLessThan(low(n.pieces) + d.seamDrop + 1);
+      expect(d.skirt.lengthCm).toBeGreaterThan(n.skirt.lengthCm - d.seamDrop - 3);
+      expect(d.zipBelowWaist).toBeGreaterThanOrEqual(ZIP_BELOW_WAIST - d.seamDrop - 0.01 - (d.zipCm === DRESS_ZIPS[DRESS_ZIPS.length - 1] ? 99 : 0));
+      const r = roundDress(d, b);
+      expect(r.rings[0](0)).toBeLessThan(d.seamDrop + 2);
+      expect(r.seamsMeet).toBe(true);
+      // Halfway, and any dragged height within reach.
+      expect(draftDress(b, style, skirt, 'raised').seamDrop).toBeCloseTo(d.seamDrop / 2, 0);
+      expect(draftDress(b, style, skirt, { cm: -3 }).seamDrop).toBe(-3);
+      expect(draftDress(b, style, skirt, { cm: -99 }).seamDrop).toBe(d.seamDrop);
+      expect(draftDress(b, style, skirt, { cm: 99 }).seamDrop).toBeCloseTo(d.seamRange.max, 1);
+    });
+
+    it('keeps a princess-seamed or draped bodice at the waist', () => {
+      const b = randomBody(rng(3));
+      expect(draftDress(b, { fit: 'regular', princess: 'armhole' }, { silhouette: 'a_line', length: 'knee' }, 'empire').seamDrop).toBe(0);
+      expect(draftDress(b, { fit: 'regular', neckline: 'cowl' }, { silhouette: 'a_line', length: 'knee' }, 'empire').seamDrop).toBe(0);
+    });
+
+    it('passes the seam check for 60 random bodies at empire, raised and low seams', () => {
+      const failures: string[] = [];
+      for (let seed = 1; seed <= 60; seed++) {
+        const body = randomBody(rng(seed));
+        for (const at of ['empire', 'raised', 'low'] as const)
+          for (const fit of ['fitted', 'regular', 'relaxed'] as const)
+            for (const silhouette of ['straight', 'a_line', 'half_circle', 'slip'] as const) {
+              let d;
+              try {
+                d = draftDress(body, { fit, darts: fit === 'relaxed' && seed % 2 ? 'bust' : 'bust_waist' }, { fit, silhouette, length: seed % 2 ? 'above_knee' : 'maxi' }, at);
+              } catch (e) {
+                if (e instanceof DraftError) continue;
+                throw e;
+              }
+              if (at !== 'low' && d.seamDrop >= 0) failures.push(`${seed} ${at}: not raised`);
+              for (const c of checkPattern(d.pieces, { finishedWaist: d.skirt.finishedWaist })) if (!c.ok) failures.push(`${seed} ${at} ${fit} ${silhouette}: ${c.label} ${c.detail}`);
+            }
+      }
+      expect(failures.slice(0, 10)).toEqual([]);
+    });
+  });
+
+  describe('with a dropped waist', () => {
+    it('joins the skirt at the high hip, its hem where the natural-waist dress ends', () => {
+      const b = randomBody(rng(7));
+      const style = { fit: 'relaxed', darts: 'bust' } as const;
+      const skirt = { fit: 'relaxed', silhouette: 'a_line', length: 'midi' } as const;
+      const n = draftDress(b, style, skirt);
+      const d = draftDress(b, style, skirt, 'dropped');
+      expect(d.seamDrop).toBeCloseTo(b.waist_to_hip / 2, 0);
+      expect(n.seamDrop).toBe(0);
+      // A midi still ends at the mid-calf: the skirt is shorter by the drop, the bodice longer.
+      expect(Math.abs(d.lengthCm - n.lengthCm)).toBeLessThan(1);
+      expect(d.skirt.lengthCm).toBeCloseTo(n.skirt.lengthCm - d.seamDrop, 0);
+      const [bf, bb, sf, sb] = d.pieces;
+      expect(Math.abs(taggedLength(bf.outline, 'waist') - taggedLength(sf.outline, 'waist'))).toBeLessThan(0.01);
+      expect(Math.abs(taggedLength(bb.outline, 'waist') - taggedLength(sb.outline, 'waist'))).toBeLessThan(0.01);
+      // The bodice's hem is now the seam: sewn with a seam allowance, not turned up.
+      expect(bf.outline.tags).not.toContain('hem');
+      expect(bf.allowances.hem).toBeUndefined();
+      expect(d.zipBelowWaist).toBeGreaterThanOrEqual(ZIP_BELOW_WAIST);
+      // On the form, the ring round the body sits at the dropped seam and the hem as long as before.
+      const r = roundDress(d, b);
+      expect(r.rings[0](0)).toBeGreaterThan(d.seamDrop - 2);
+      expect(Math.abs(r.lengthAt(0) - roundDress(n, b).lengthAt(0))).toBeLessThan(1.5);
+      expect(r.seamsMeet).toBe(true);
+      const g = dressGuide(d, skirt, 2.5, 1);
+      expect(g.steps.find((s) => s.title === 'Join the bodice to the skirt')!.text).toMatch(/high hip/);
+    });
+
+    it('passes the seam check for 150 random bodies in every skirt shape and fit', () => {
+      const failures: string[] = [];
+      for (let seed = 1; seed <= 150; seed++) {
+        const body = randomBody(rng(seed));
+        for (const fit of ['fitted', 'regular', 'relaxed'] as const)
+          for (const silhouette of ['straight', 'pencil', 'a_line', 'trumpet', 'half_circle', 'circle', 'slip'] as const) {
+            let d;
+            try {
+              d = draftDress(body, { fit, darts: fit === 'relaxed' && seed % 2 ? 'bust' : 'bust_waist' }, { fit, silhouette, length: seed % 2 ? 'knee' : 'midi' }, 'dropped');
+            } catch (e) {
+              if (e instanceof DraftError) continue;
+              throw e;
+            }
+            for (const c of checkPattern(d.pieces, { finishedWaist: d.skirt.finishedWaist })) if (!c.ok) failures.push(`${seed} ${fit} ${silhouette}: ${c.label} ${c.detail}`);
+          }
+      }
+      expect(failures.slice(0, 10)).toEqual([]);
+    });
   });
 });

@@ -525,7 +525,8 @@ export function dressGuide(draft: DressDraft, style: { silhouette: Silhouette; l
   const curve = n1(sw.curve);
   const edges = finish.edges ?? 'binding';
   if (draft.noSeam) return noSeamGuide(draft, fabricM, bindingM, finish);
-  const top = bodiceGuide(draft.bodice, { length: 'waist' }, fabricM, bindingM, finish);
+  const dropped = (draft.seamDrop ?? 0) > 0;
+  const top = bodiceGuide(draft.bodice, { length: dropped ? 'high_hip' : 'waist' }, fabricM, bindingM, finish);
   // The skirt's pleats, godets or flounce are sewn in with the dress's own steps, below.
   const skirt = sewingGuide({ ...draft.skirt, volume: undefined }, style, fabricM, { seams: sw, width: finish.width });
   const find = (g: SewingGuide, re: RegExp) => g.steps.filter((s) => re.test(s.title));
@@ -572,7 +573,11 @@ export function dressGuide(draft: DressDraft, style: { silhouette: Silhouette; l
     ...find(skirt, /^Sew on the pocket bags$/),
     {
       title: 'Join the bodice to the skirt',
-      text: `Pin the bodice front to the skirt front at the waist, right sides together, matching the centre front, the side edges and the darts, so each bodice dart runs on into the skirt dart below it in one line. Pin each back half the same way. Sew ${waist} from the edge, press the seams up toward the bodice, and zigzag or overlock the two edges together.`,
+      text: `${
+        dropped
+          ? 'The waist seam is dropped to the high hip: the bodice runs on past your waist and the skirt starts lower. Pin the bodice front to the skirt front along this seam, right sides together, matching the centre front and the side edges.'
+          : 'Pin the bodice front to the skirt front at the waist, right sides together, matching the centre front, the side edges and the darts, so each bodice dart runs on into the skirt dart below it in one line.'
+      } Pin each back half the same way. Sew ${waist} from the edge, press the seams up toward the bodice, and zigzag or overlock the two edges together.`,
     },
     {
       title: 'Put in the zip',

@@ -1,6 +1,6 @@
 import { useId } from 'react';
 import type { Lay } from '../engine/layplan';
-import { PRINTS, PrintKind, printImage } from '../engine/prints';
+import { PrintKind, printImage, printTileCm } from '../engine/prints';
 import { tileUrl } from './FabricFill';
 
 /** One fabric tile, in cm, as on the style sketch. */
@@ -13,14 +13,14 @@ const TILE = 16;
  * With a print chosen, the print is drawn instead, at its own scale (Cat's P4 Place the Motifs): big
  * motifs are lined up so one sits in the middle of the front, and a border runs along the selvedge.
  */
-export function LayPlanView({ lay, cloth = 'default', print }: { lay: Lay; cloth?: string; print?: { kind: PrintKind; repeat?: number } }) {
+export function LayPlanView({ lay, cloth = 'default', print }: { lay: Lay; cloth?: string; print?: { kind: PrintKind; repeat?: number; stripes?: boolean } }) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
   const L = lay.length + 4;
   const H = lay.across;
   const pts = (ps: { x: number; y: number }[]) => ps.map((q) => `${(q.y + 2).toFixed(2)},${q.x.toFixed(2)}`).join(' ');
   const size = Math.max(1.6, Math.min(2.4, L / 60));
   const shown = print && print.kind !== 'plain' ? print : undefined;
-  const printTile = shown ? printSize(shown.kind, shown.repeat) : TILE;
+  const printTile = shown ? printTileCm(shown.kind, shown.repeat, shown.stripes) : TILE;
   // A motif in the middle of the front: the first front piece cut, else the first piece.
   const front = lay.placements.find((pl) => /front/i.test(pl.name)) ?? lay.placements[0];
   const centre = shown?.kind === 'motif' && front ? { x: front.at.y + 2, y: front.at.x } : undefined;
@@ -41,7 +41,7 @@ export function LayPlanView({ lay, cloth = 'default', print }: { lay: Lay; cloth
             height={printTile}
             patternTransform={shown.kind === 'border' ? undefined : centre ? `translate(${centre.x} ${centre.y}) rotate(90)` : 'rotate(90)'}
           >
-            <image href={printImage(shown.kind, import.meta.env.BASE_URL)} width={printTile} height={printTile} preserveAspectRatio="none" />
+            <image href={printImage(shown.kind, import.meta.env.BASE_URL, shown.stripes)} width={printTile} height={printTile} preserveAspectRatio="none" />
           </pattern>
         )}
         <pattern id={`dots${uid}`} patternUnits="userSpaceOnUse" width={2} height={2}>
@@ -82,14 +82,4 @@ export function LayPlanView({ lay, cloth = 'default', print }: { lay: Lay; cloth
       ))}
     </svg>
   );
-}
-
-/** How large one swatch of the print is drawn, in cm: a big motif and checks at their repeat. */
-function printSize(kind: PrintKind, repeat: number | undefined): number {
-  const r = repeat && repeat > 0 ? repeat : PRINTS[kind].defaultRepeat;
-  if (kind === 'motif') return r!;
-  // The check swatch shows about three repeats across.
-  if (kind === 'checks') return r! * 3;
-  if (kind === 'border') return 30;
-  return kind === 'ditsy' ? 12 : 20;
 }

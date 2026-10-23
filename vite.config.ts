@@ -35,6 +35,16 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,jpg,woff2}'],
+        // The printing code (about 1.4 MB) isn't saved to the phone on the first visit: it downloads the first time
+        // someone prints, then stays for offline use. Keeps a first visit light for Netlify bandwidth (Cat, 2026-10-23).
+        globIgnores: ['**/assets/pdf-*.js', '**/assets/PDFButton-*.js'],
+        runtimeCaching: [
+          {
+            urlPattern: ({ url, sameOrigin }) => sameOrigin && /^\/assets\/(pdf|PDFButton)-.+\.js$/.test(url.pathname),
+            handler: 'CacheFirst',
+            options: { cacheName: 'printing-code', expiration: { maxEntries: 8 } },
+          },
+        ],
       },
     }),
   ],
