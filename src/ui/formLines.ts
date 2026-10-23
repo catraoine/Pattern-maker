@@ -27,7 +27,7 @@ import { blockOf } from '../engine/bodice';
 import { currentNeck, dragDrop, dragEase, strokeToNeck, worn } from './BodiceShape';
 import { dragFlare, dragLength, strokeToHem } from './ShapeSketch';
 
-export type FormLine = 'neckline' | 'seam' | 'drape' | 'fit' | 'hem' | 'sleeve' | 'front' | 'collar';
+export type FormLine = 'neckline' | 'seam' | 'drape' | 'fit' | 'hem' | 'sleeve' | 'front' | 'collar' | 'waist';
 export type FormSide = 'front' | 'back';
 
 /** What a drawn line was read as: the new choices, or none when it couldn't be used, and why, in words. */
@@ -360,7 +360,7 @@ const darts = (draft: BodiceDraft, side: FormSide): P[][] =>
   });
 
 /** The bodice's lines as they stand, front or back, for each kind of line. */
-export function bodiceLines(draft: BodiceDraft, side: FormSide): Record<Exclude<FormLine, 'sleeve' | 'front' | 'collar'>, P[][]> {
+export function bodiceLines(draft: BodiceDraft, side: FormSide): Record<Exclude<FormLine, 'sleeve' | 'front' | 'collar' | 'waist'>, P[][]> {
   const w = worn(draft, side);
   const land = side === 'front' ? draft.front : draft.back;
   const { neckPoint, underarm, apex } = landmarks(draft, side);
@@ -419,6 +419,20 @@ export function skirtLines(draft: Pick<SkirtDraft, 'lengthCm' | 'hem' | 'flareCm
   const hipQ = (m.full_hip + FIT_EASE[skirt.fit].hip) / 4;
   const sideLine = [{ x: hipQ, y: m.waist_to_hip }, { x: hipQ + (draft.flareCm ?? 0), y: hem[hem.length - 1].y }];
   return { hem: [shift([...mirror(hem)[1].reverse(), ...hem.slice(1)])], fit: mirror(shift(sideLine)) };
+}
+
+/** A dress's waist seam drawn across the body: its height, from under the bust to low on the hip. */
+export function readWaistSeam(stroke: P[], waistY: number, range: { min: number; max: number }): Reading<number> {
+  if (stroke.length < 2) return { said: 'Draw across the body where the bodice should meet the skirt.' };
+  const cm = Math.round(Math.max(range.min, Math.min(range.max, median(stroke.map((q) => q.y)) - waistY)));
+  return { choices: cm, said: seamWords(cm, range) };
+}
+
+/** A waist seam's height in words. */
+export function seamWords(cm: number, range: { min: number; max: number }): string {
+  if (Math.abs(cm) < 1) return 'Seam at the natural waist.';
+  if (cm < 0) return `Seam ${Math.abs(cm)} cm above the waist${cm <= range.min + 1 ? ', just under the bust: an empire line' : ''}.`;
+  return `Seam ${cm} cm below the waist${cm >= range.max - 1 ? ', low on the hip' : ''}.`;
 }
 
 export { blockOf };

@@ -438,7 +438,18 @@ export function roundOuter(draft: OuterDraft, m: Nape): RoundGarment {
 
 export function roundDress(draft: DressDraft, m: Nape, sleeve?: SleeveDraft): RoundGarment {
   const top = roundBodice(draft.bodice, m, sleeve);
-  const skirt = roundSkirt(draft.skirt);
+  const plain = roundSkirt(draft.skirt);
+  // A dropped waist: the skirt hangs from the seam at the high hip, so all its heights move down.
+  const D = draft.seamDrop ?? 0;
+  const down = (q: RoundPt): RoundPt => ({ ...q, cm: q.cm + D });
+  const skirt = D
+    ? {
+        ...plain,
+        lengthAt: (phi: number) => plain.lengthAt(phi) + D,
+        seams: plain.seams.map((s) => ({ ...s, pts: s.pts.map(down) })),
+        darts: plain.darts.map((d) => ({ ...d, base: down(d.base), tip: down(d.tip) })),
+      }
+    : plain;
   const waistAt = top.lengthAt;
   const seams: RoundSeam[] = top.seams.map((s) =>
     s.kind === 'side' || s.kind === 'centre_back' ? { ...s, pts: [s.pts[0], { phi: s.pts[0].phi, cm: skirt.lengthAt(s.pts[0].phi) }] } : s,
@@ -464,7 +475,7 @@ export function roundDress(draft: DressDraft, m: Nape, sleeve?: SleeveDraft): Ro
     girth: { bust: draft.finishedBust, waist: draft.finishedWaist, hip: draft.finishedHip },
     seamsMeet: top.seamsMeet && skirt.seamsMeet,
     sideAngle: skirt.sideAngle,
-    readings: skirt.readings,
+    readings: D ? readingsOf(skirt.lengthAt) : skirt.readings,
   };
 }
 
