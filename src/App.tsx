@@ -4,7 +4,7 @@ import { showInInches } from './units';
 import { canGoBack, goBack, useViewHistory } from './nav';
 import type { HemShape } from './engine/hem';
 import type { AsymHem } from './engine/asymHem';
-import { DraftError, Fit, Length, Silhouette, SkirtDraft, SkirtMeasurements, SkirtShape, WaistStyle, draftSkirt } from './engine/skirt';
+import { DraftError, Fit, Length, Silhouette, SkirtDraft, SkirtMeasurements, NoSeam, SkirtShape, WaistStyle, draftSkirt } from './engine/skirt';
 import { BodiceDraft, BodiceMeasurements, blockOf, draftBodice } from './engine/bodice';
 import { BodiceEdges, SewingGuide, bodiceGuide, dressGuide, hasSlit, sewingGuide } from './engine/instructions';
 import { bodiceFlat, dressFlat, outerFlat, skirtFlat, teeFlat, trousersFlat } from './engine/flat';
@@ -142,6 +142,8 @@ export interface Choices {
   pockets?: 'none' | 'inseam';
   /** A waistband with a zip (older saves), or a pull-on elastic waist. */
   waist?: WaistStyle;
+  /** A dress only: cut with no waist seam, as a sheath or a shift. */
+  noSeam?: NoSeam;
 }
 
 // Saved under the original "skirt" key so measurements from before bodices still load; older saves
@@ -716,8 +718,8 @@ export default function App() {
           `Finished bust ${d.finishedBust} cm, waist ${d.finishedWaist} cm, hip ${d.finishedHip} cm, nape to hem ${d.lengthCm} cm.`,
           couture
             ? `Couture allowances: ${fmtCm(seams.seam)} at the seams, ${fmtCm(seams.waist)} at the waist, ${fmtCm(seams.curve)} at the neck and armholes. Thread-trace the solid stitching line.`
-            : `Seam allowance ${fmtCm(seams.seam)} included, ${fmtCm(seams.curve)} at the neck and armholes, ${fmtCm(pieces.find((pc) => /^(Skirt|Flounce) front/.test(pc.name) && pc.allowances.hem !== undefined)?.allowances.hem ?? (d.skirt.volume?.tiers ? 2 : 4))} at the hem. Dashed line = stitching line.`,
-          `The skirt is drafted to the bodice: waist seams the same length and darts in one line. ${d.skirtButtons ? `${(d.bodice.buttons?.count ?? 0) + d.skirtButtons.count} buttons down the centre front, from the neck through the waist,` : `A ${d.zipCm} cm ${d.zipSide ? `zip in the ${zipSide(d.bodice)} side seam` : 'centre back zip'}`}${d.bodice.collar !== 'none' ? `, a ${COLLAR_WORDS[d.bodice.collar]}` : ''} and ${edgeWords}${pocketWords(d.skirt.pocket ? 'inseam' : 'none')}. Sewing steps are on the last pages.`,
+            : `Seam allowance ${fmtCm(seams.seam)} included, ${fmtCm(seams.curve)} at the neck and armholes, ${fmtCm(pieces.find((pc) => /^(Skirt|Flounce|Dress) front/.test(pc.name) && pc.allowances.hem !== undefined)?.allowances.hem ?? (d.skirt.volume?.tiers ? 2 : 4))} at the hem. Dashed line = stitching line.`,
+          `${d.noSeam ? `Cut with no waist seam, as a ${d.noSeam}: front and back each one piece from the shoulder to the hem${d.noSeam === 'sheath' ? ', shaped at the waist by darts pointed at both ends' : ''}.` : 'The skirt is drafted to the bodice: waist seams the same length and darts in one line.'} ${d.skirtButtons ? `${(d.bodice.buttons?.count ?? 0) + d.skirtButtons.count} buttons down the centre front, from the neck through the waist,` : `A ${d.zipCm} cm ${d.zipSide ? `zip in the ${zipSide(d.bodice)} side seam` : 'centre back zip'}`}${d.bodice.collar !== 'none' ? `, a ${COLLAR_WORDS[d.bodice.collar]}` : ''} and ${edgeWords}${pocketWords(d.skirt.pocket ? 'inseam' : 'none')}. Sewing steps are on the last pages.`,
           ...(drapeNote(d.bodice) ? [drapeNote(d.bodice)!] : []),
           ...(sleeve ? [`Sleeve: bicep ${sleeve.bicep} cm, ${sleeve.gathers?.crown !== undefined ? `${sleeve.gathers.crown} cm gathered into the crown` : `crown ease ${sleeve.crownEase.front} cm front, ${sleeve.crownEase.back} cm back`}.`] : []),
           ...topNotes(d.bodice),

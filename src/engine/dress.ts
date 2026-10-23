@@ -7,7 +7,8 @@ import { P, Path, add, len, lerp, mul, p, sub, taggedLength, unit } from './geom
 import type { Piece } from './piece';
 import { BodiceDraft, BodiceMeasurements, BodiceStyle, draftBodice } from './bodice';
 import { Buttons, EXTENSION_CM, backOnFold, openFront } from './collar';
-import { Silhouette, SkirtDraft, SkirtMeasurements, SkirtStyle, draftSkirt } from './skirt';
+import { LENGTHS, NoSeam, Silhouette, SkirtDraft, SkirtMeasurements, SkirtStyle, draftSkirt, lengthRange } from './skirt';
+import { isTop } from './corset';
 import { volumeOf } from './skirtVolume';
 import { pathOf, ringOf } from './manipulate';
 import type { SleeveMeasurements } from './sleeve';
@@ -35,6 +36,8 @@ export interface DressDraft {
   skirtButtons?: Buttons;
   /** Nape to hem at the centre back. */
   lengthCm: number;
+  /** Cut with no waist seam: the front and back each one piece, from the shoulder to the hem. */
+  noSeam?: NoSeam;
   finishedBust: number;
   finishedWaist: number;
   finishedHip: number;
@@ -147,7 +150,66 @@ function skirtFrontFacing(front: Piece): Piece {
   };
 }
 
+/**
+ * Whether a dress can be cut with no waist seam: the bodice block is carried on to the hem, so it needs
+ * shoulders, no princess or style seams to break at the waist, no drape and no boning.
+ */
+export const noSeamAllowed = (b: Partial<BodiceStyle>) =>
+  !isTop(b.neckline) &&
+  b.neckline !== 'cowl' &&
+  b.neckline !== 'one_shoulder' &&
+  (b.princess ?? 'none') === 'none' &&
+  !b.yoke &&
+  b.empire === undefined &&
+  !b.panel &&
+  b.structure !== 'boned';
+
+/**
+ * A sheath or a shift: the bodice block drafted on past the hip to the dress's hem, so there is no
+ * waist seam. A sheath keeps its waist darts as fish-eye darts and narrows a little to the hem, with a
+ * walking slit at the centre back once it is past the knee; a shift has bust darts only and hangs
+ * straight from the bust, easing out a little to the hem. One zip opens the centre back to below the
+ * waist. The skirt is drafted too, for its length and the steps it shares, but not cut.
+ */
+function noSeamDress(m: DressMeasurements, bodiceStyle: Partial<BodiceStyle>, skirtStyle: Partial<SkirtStyle>, kind: NoSeam): DressDraft {
+  const plain: Partial<SkirtStyle> = { ...skirtStyle, silhouette: 'straight', pleats: undefined, godets: undefined, flounce: undefined, asymHem: undefined, pockets: undefined, hem: undefined, flareCm: undefined, shape: undefined };
+  const belowWaist = plain.lengthCm !== undefined ? lengthRange(m).clamp(plain.lengthCm) : LENGTHS[plain.length ?? 'knee'](m);
+  const bodice = draftBodice(m, {
+    ...bodiceStyle,
+    length: 'hip',
+    dropCm: undefined,
+    hem: undefined,
+    peplum: 'none',
+    closure: 'back_zip',
+    // A dress's hem: deeper than a top's, the weight helps it hang.
+    hemAllowance: skirtStyle.hemAllowance ?? 4,
+    ...(kind === 'shift' ? { darts: 'bust' as const } : {}),
+    dressHem: { belowWaist, shape: kind },
+  });
+  // The skirt as it would be under this bodice, with no waistband: its length and steps, never cut.
+  // A shift's waist can be as wide as its hip, so the skirt is joined no wider than the hip.
+  const joinAt = Math.min(bodice.finishedWaist, m.full_hip) / 4;
+  const skirt = draftSkirt(m, { ...plain, joinTo: { front: joinAt, back: joinAt, zipCm: 0 } });
+  const word = (t: string) => t.replace(/^Bodice/, 'Dress').replace(/^BODICE/, 'DRESS');
+  const pieces = bodice.pieces.map((pc) => (pc.kind ? pc : { ...pc, name: word(pc.name), labels: pc.labels.map((l) => ({ ...l, text: word(l.text) })) }));
+  const cbWaist = bodice.back.waistCentre.y;
+  return {
+    bodice,
+    skirt,
+    pieces,
+    zipCm: bodice.zipCm,
+    zipBelowWaist: Math.round((bodice.back.zipEnd.y - cbWaist) * 10) / 10,
+    lengthCm: bodice.backLength,
+    noSeam: kind,
+    finishedBust: bodice.finishedBust,
+    finishedWaist: bodice.finishedWaist,
+    finishedHip: bodice.finishedHip ?? skirt.finishedHip,
+    warnings: bodice.warnings,
+  };
+}
+
 export function draftDress(m: DressMeasurements, bodiceStyle: Partial<BodiceStyle> = {}, skirtStyle: Partial<SkirtStyle> = {}): DressDraft {
+  if (skirtStyle.noSeam && noSeamAllowed(bodiceStyle)) return noSeamDress(m, bodiceStyle, skirtStyle, skirtStyle.noSeam);
   // A shirt dress buttons down the front when its skirt can carry the buttons on; otherwise it zips.
   const wantButtons = bodiceStyle.closure === 'front_buttons' && buttonsOnSkirt(skirtStyle);
   const bodice = draftBodice(m, { ...bodiceStyle, length: 'waist', closure: wantButtons ? 'front_buttons' : 'back_zip', peplum: 'none' });

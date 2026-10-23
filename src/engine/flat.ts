@@ -843,6 +843,8 @@ function bodiceViews(d: BodiceDraft, edges: BodiceEdges, sleeve: SleeveDraft | u
  * and one zip down the centre back from the neck to below the waist.
  */
 export function dressFlat(d: DressDraft, edges: BodiceEdges = 'binding', opts: { sleeve?: SleeveDraft; slit?: boolean } = {}): Flat {
+  // With no waist seam the bodice runs on to the hem, its fish-eye darts and zip as drawn on it.
+  if (d.noSeam) return bodiceFlat(d.bodice, edges, opts.sleeve);
   const top = bodiceViews(d.bodice, edges, opts.sleeve, false);
   const below = skirtViews(d.skirt, { slit: opts.slit, band: false });
   return arrange(

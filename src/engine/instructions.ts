@@ -518,6 +518,7 @@ export function dressGuide(draft: DressDraft, style: { silhouette: Silhouette; l
   const waist = n1(sw.waist);
   const curve = n1(sw.curve);
   const edges = finish.edges ?? 'binding';
+  if (draft.noSeam) return noSeamGuide(draft, fabricM, bindingM, finish);
   const top = bodiceGuide(draft.bodice, { length: 'waist' }, fabricM, bindingM, finish);
   // The skirt's pleats, godets or flounce are sewn in with the dress's own steps, below.
   const skirt = sewingGuide({ ...draft.skirt, volume: undefined }, style, fabricM, { seams: sw, width: finish.width });
@@ -594,6 +595,27 @@ export function dressGuide(draft: DressDraft, style: { silhouette: Silhouette; l
     draft,
     { seam, waist, curve, edges, slit, sleeve: !!finish.sleeve },
   )), draft), draft, top, { seam, waist });
+}
+
+/**
+ * A sheath or a shift: the bodice's own steps, the block carried on to the hem, with a dress's words,
+ * and a sheath's walking slit left open below its notch at the centre back.
+ */
+function noSeamGuide(draft: DressDraft, fabricM: number, bindingM: number, finish: BodiceFinish): SewingGuide {
+  const g = bodiceGuide(draft.bodice, { length: 'hip' }, fabricM, bindingM, finish);
+  const slit = draft.pieces.find((pc) => /back/i.test(pc.name) && !pc.kind)?.meta.slitCm as number | undefined;
+  const dress = (t: string) => t.replace(/\bbodice\b/g, 'dress').replace(/\bBodice\b/g, 'Dress');
+  // A lined sheath's lining stops at the slit too, its edges turned under clear of the slit's own.
+  const lining = (t: string) => (slit ? t.replace(/below the ZIP ENDS notch,/, 'from the ZIP ENDS notch down to the SLIT ENDS notch,') : t);
+  const steps = g.steps.map((st) =>
+    st.title === 'Close the centre back' && slit
+      ? {
+          ...st,
+          text: `Sew the rest of the centre back seam, from the bottom of the zip down to the SLIT ENDS notch, ${n1((finish.seams ?? SEAM_WIDTHS.home).seam)} from the edge, and backstitch firmly there. Below it the seam stays open as a ${slit} cm walking slit: press the seam open all the way down, the slit's edges turned under along the seam line, and topstitch round the slit 1 cm from its edges, across the top at the notch.`,
+        }
+      : { ...st, text: dress(st.title === 'Make the lining' ? lining(st.text) : st.text) },
+  );
+  return { ...g, steps };
 }
 
 /**

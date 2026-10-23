@@ -438,6 +438,8 @@ export function roundOuter(draft: OuterDraft, m: Nape): RoundGarment {
 
 export function roundDress(draft: DressDraft, m: Nape, sleeve?: SleeveDraft): RoundGarment {
   const top = roundBodice(draft.bodice, m, sleeve);
+  // With no waist seam the bodice runs on to the hem: it is the whole dress.
+  if (draft.noSeam) return { ...top, kind: 'dress', girth: { bust: draft.finishedBust, waist: draft.finishedWaist, hip: draft.finishedHip } };
   const skirt = roundSkirt(draft.skirt);
   const waistAt = top.lengthAt;
   const seams: RoundSeam[] = top.seams.map((s) =>

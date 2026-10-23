@@ -60,6 +60,13 @@ export interface BodiceChoices {
 }
 
 /** A dress: a waist-length bodice and a skirt, in one fit. */
+/** A dress with a waist seam, or cut in one from shoulder to hem: a sheath, or a shift. */
+export const DRESS_CUTS: [string, string][] = [
+  ['seam', 'Waist seam'],
+  ['sheath', 'Sheath'],
+  ['shift', 'Shift'],
+];
+
 export interface DressChoices {
   garment: 'dress';
   fit: BodiceFit;

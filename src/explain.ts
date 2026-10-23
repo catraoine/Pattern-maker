@@ -34,6 +34,11 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       midi: ['Ends halfway down the calf.'],
       maxi: ['Ends near the ankle. Uses the most fabric.'],
     },
+    noSeam: {
+      seam: ['A bodice and a skirt joined at the waist, so you pick the skirt’s shape.', 'easy'],
+      sheath: ['Cut in one from shoulder to hem, darted in at the waist and close over the hips.', 'skill'],
+      shift: ['Cut in one from shoulder to hem, hanging straight from the bust with no waist shaping.', 'easy'],
+    },
     asymHem: {
       none: ['The hem is the same length all the way round.', 'easy'],
       high_low: ['Shorter at the front and longer at the back, curving between.'],

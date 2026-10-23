@@ -49,6 +49,16 @@ export type BodiceFit = 'fitted' | 'regular' | 'relaxed';
  * (strapless, sweetheart, cami) are cut below the shoulders in corset.ts. */
 export type Neckline = 'crew' | 'scoop' | 'v' | 'square' | 'boat' | 'one_shoulder' | 'cowl' | 'strapless' | 'sweetheart' | 'cami';
 export type BodiceLength = 'waist' | 'high_hip' | 'hip';
+export interface DressHem {
+  belowWaist: number;
+  shape: 'sheath' | 'shift';
+}
+/** How far a dress cut with no waist seam narrows (sheath) or widens (shift) from the hip to the hem, a quarter. */
+export const DRESS_HEM_TAPER: Record<DressHem['shape'], number> = { sheath: -1.5, shift: 2 };
+/** A sheath's walking slit at the centre back, from the hem up, once the hem is past the knee. */
+export const SHEATH_SLIT_CM = 18;
+/** A dress with no waist seam zips this far below the waist, so it steps on over the hips. */
+const DRESS_ZIP_BELOW = 18;
 /** Shaping: bust and waist darts, bust darts only, or none (the bust dart left as ease at the hem). */
 export type BodiceDarts = 'bust_waist' | 'bust' | 'none';
 
@@ -98,6 +108,10 @@ export interface BodiceStyle {
   collar?: Collar;
   /** A dragged hem: cm below the waist (0 for the waist), in place of the named length. */
   dropCm?: number;
+  /** A dress cut with no waist seam: the side seam carried on past the hip to a hem this many cm below
+   * the waist. A sheath is shaped at the waist by fish-eye darts and narrows a little to the hem; a
+   * shift has no waist shaping and eases out a little. */
+  dressHem?: DressHem;
   /** A hem drawn curved, dipped or longer at the back (see bodiceHem.ts), on a bodice below the waist.
    * A waist-length bodice keeps a level waist. */
   hem?: HemShape;
@@ -238,6 +252,8 @@ export interface BodiceDraft {
   finishedWaist: number;
   /** Finished hip (or high hip) for tops below the waist. */
   finishedHem?: number;
+  /** A dress with no waist seam: round the hip, the hem then going on below it. */
+  finishedHip?: number;
   /** Centre back length from the neck edge to the hem. */
   backLength: number;
   zipCm: number;
@@ -493,6 +509,12 @@ function hipCurve(path: Path, from: P, to: P, tag: string): Path {
 }
 const hipCurveLength = (from: P, to: P) => hipCurve(new Path(from), from, to, '').length();
 
+/** The hem's first control point leaving the foot of a sloping side seam square to it, toward the centre. */
+function squareHem(hip: P, hem: P): P {
+  const d = unit(sub(hem, hip));
+  return add(hem, mul(p(-d.y, d.x), hem.x * 0.35));
+}
+
 /** A waist dart carried on below the waist (a fish-eye dart), for tops longer than the waist. */
 const fishEye = (top: P, left: P, right: P, bottom: P) => new Path(top).line(left).line(bottom).line(right).line(top);
 
@@ -558,12 +580,13 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   const nl = s.neck ?? NECKLINES[s.neckline];
   const neckShape = s.neck ? 'drawn' : s.neckline;
   const pointed = s.neck ? s.neck.fullness < POINTED_NECK : s.neckline === 'v';
-  const waistDarts = s.darts === 'bust_waist';
+  const shiftDress = s.dressHem?.shape === 'shift';
+  const waistDarts = s.darts === 'bust_waist' && !shiftDress;
   const bustDarts = s.darts !== 'none' && !fit.flatFront;
-  const drop = hemDrop(m, s);
+  const drop = s.dressHem ? (m.waist_to_hip ?? DROP_MIN) : hemDrop(m, s);
   const below = drop > 0;
   // A shaped hem, and how high it comes: the fish-eye darts end clear of it.
-  const hemShape = bodiceHemShape(s.hem, m, drop);
+  const hemShape = s.dressHem ? undefined : bodiceHemShape(s.hem, m, drop);
   const shallowest = drop + Math.min(0, ...(hemShape ? [...hemShape.front, ...hemShape.back] : []));
 
   // Bust projection (full minus high bust) goes to the front piece.
@@ -624,7 +647,8 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   // Without waist darts the side seams take their share and the rest is left as ease.
   const low = Math.min(suppB, suppF);
   const easySide = low > 0 ? Math.min(2.5, 0.4 * low) : low;
-  const sideSupp = waistDarts ? Math.max(easySide, suppF - FRONT_DART_MAX, suppB - BACK_DART_MAX) : easySide;
+  // A shift hangs straight from the bust: no waist shaping at all.
+  const sideSupp = shiftDress ? 0 : waistDarts ? Math.max(easySide, suppF - FRONT_DART_MAX, suppB - BACK_DART_MAX) : easySide;
   const dartB = waistDarts ? Math.max(0, suppB - sideSupp) : 0;
   const dartF = waistDarts ? Math.max(0, suppF - sideSupp) : 0;
   const swB0 = p(backW - sideSupp, wb);
@@ -736,6 +760,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   const dartXB = swB.x * 0.48;
   const dartTipB = p(dartXB, scye - dropShoulder + 2.5);
   let hipB = swB;
+  let hemB = swB;
   if (!below) {
     // Waist darts are pressed toward the centre, trued, and the waist seam is peaked over them.
     const waistB = squaredWaist(wb, swB.x, wb, unit(sub(swB, sideB)));
@@ -748,20 +773,30 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
     waistRun(back, waistB, 0);
   } else {
     hipB = p(hemFull / 4 - 0.5 + forward, wb + drop);
+    hemB = hipB;
     hipCurve(back, swB, hipB, 'side');
     if (dartB > 0.3) {
       const depth = Math.max(2, Math.min(12, shallowest - 3));
       backLines.push(fishEye(p(dartXB, scye - dropShoulder + 2.5), p(dartXB - dartB / 2, wb), p(dartXB + dartB / 2, wb), p(dartXB, wb + depth)));
     }
-    back.line(p(0, hipB.y), 'hem');
+    // A dress with no waist seam carries the side seam on from the hip, straight to its hem.
+    if (s.dressHem) {
+      hemB = p(hipB.x + DRESS_HEM_TAPER[s.dressHem.shape], wb + Math.max(drop + 2, s.dressHem.belowWaist));
+      back.line(hemB, 'side');
+      // Square off the tapered (or flared) side seam, then level to the centre back.
+      back.curve(squareHem(hipB, hemB), p(hemB.x * 0.35, hemB.y), p(0, hemB.y), 'hem');
+    } else back.line(p(0, hemB.y), 'hem');
   }
   back.line(p(0, bd), 'centre');
   back.closed = true;
-  const backHem = hipB.y;
+  const backHem = hemB.y;
+  // A sheath past the knee opens at the centre back hem, so you can walk in it.
+  const slitCm = s.dressHem?.shape === 'sheath' && s.dressHem.belowWaist - drop > 25 ? SHEATH_SLIT_CM : 0;
 
   // The zip runs down the centre back from the neck edge, ending at the waist (just above a
-  // waist-length hem) so the top goes on over the head and shoulders.
-  const zipCm = zipFor(wb - bd - (below ? 0 : 2));
+  // waist-length hem) so the top goes on over the head and shoulders; a dress's runs on below the
+  // waist so it steps on over the hips.
+  const zipCm = zipFor(wb - bd + (s.dressHem ? DRESS_ZIP_BELOW : below ? 0 : -2));
   const zipEnd = p(0, bd + zipCm);
   const backCut = 'Cut 2 (1 pair)';
   const backDraft = {
@@ -797,16 +832,18 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
       [add(abPt, p(0, -0.5)), p(1, 0)], // double notch = back
       [add(abPt, p(0, 0.5)), p(1, 0)],
       [zipEnd, p(-1, 0)],
+      ...(slitCm ? [[p(0, backHem - slitCm), p(-1, 0)] as [P, P]] : []),
     ],
     labels: [
       { at: p(backW * 0.42, scye - 7), text: 'BODICE BACK', size: 1.4 },
       { at: p(backW * 0.42, scye - 5), text: backCut, size: 0.9 },
       { at: add(zipEnd, p(3.2, 0.3)), text: 'ZIP ENDS', size: 0.7 },
+      ...(slitCm ? [{ at: p(3.2, backHem - slitCm + 0.3), text: 'SLIT ENDS', size: 0.7 }] : []),
     ],
     cut: backCut,
     seamAllowance: s.seamAllowance,
     allowances: { neck: s.neckArmholeAllowance, armhole: s.neckArmholeAllowance, hem: s.hemAllowance },
-    meta: {},
+    meta: slitCm ? { slitCm } : {},
   };
 
   // ---- front, below the across front -----------------------------------------
@@ -891,6 +928,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   const farX = apex.x + dartF / 2;
   let cfHem = wf;
   let hipF = swF;
+  let hemF = swF;
   let waistDartF = dartF;
   if (!below) {
     if (dartF > 0.3) {
@@ -925,11 +963,17 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
         fishEye(p(apex.x, apex.y + 2.5), p(nearX, waistY(nearX)), p(farX, waistY(farX)), p(apex.x, waistY(apex.x) + depth)),
       );
     }
+    // A dress with no waist seam: on from the hip as the back's is, so the side seams match.
+    hemF = hipF;
+    if (s.dressHem) {
+      hemF = p(hipF.x + (hemB.x - hipB.x), hipF.y + (hemB.y - hipB.y));
+      front.line(hemF, 'side');
+    }
     // The hem runs parallel to the waist, so the front keeps the length the bust needs.
-    cfHem = wf + dy;
+    cfHem = wf + dy + (hemF.y - hipF.y);
     // Square to the side seam and to the centre front, even where the front hangs longer at the centre.
-    const k = hipF.x * 0.35;
-    front.curve(sub(hipF, p(k, 0)), p(k, cfHem), p(0, cfHem), 'hem');
+    const k = hemF.x * 0.35;
+    front.curve(s.dressHem ? squareHem(hipF, hemF) : sub(hemF, p(k, 0)), p(k, cfHem), p(0, cfHem), 'hem');
   }
   front.line(cfNeck, 'fold');
   front.closed = true;
@@ -1016,11 +1060,12 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
     finishedBust: r(2 * (backW + frontW), 1),
     // Round the body: the waist seam with darts closed (it slopes, so it is longer than the pieces are wide).
     finishedWaist: r(below ? 2 * (swB.x - dartB + swF.x - dartF) : 2 * (taggedLength(front, 'waist') + taggedLength(back, 'waist')), 1),
-    finishedHem: below ? r(2 * (hipB.x + hipF.x), 1) : undefined,
+    finishedHem: below ? r(2 * (hemB.x + hemF.x), 1) : undefined,
+    ...(s.dressHem ? { finishedHip: r(2 * (hipB.x + hipF.x), 1) } : {}),
     backLength: r(backHem + hemAt.back - bd, 1),
     zipCm,
-    front: { apex, waistSide: swF, waistCentre: p(0, wf), hemSide: add(hipF, p(0, hemAt.side)), hemCentre: p(0, cfHem + hemAt.front) },
-    back: { waistSide: swB, waistCentre: p(0, wb), hemSide: add(hipB, p(0, hemAt.side)), hemCentre: p(0, backHem + hemAt.back), neckCentre: p(0, bd), zipEnd },
+    front: { apex, waistSide: swF, waistCentre: p(0, wf), hemSide: add(hemF, p(0, hemAt.side)), hemCentre: p(0, cfHem + hemAt.front) },
+    back: { waistSide: swB, waistCentre: p(0, wb), hemSide: add(hemB, p(0, hemAt.side)), hemCentre: p(0, backHem + hemAt.back), neckCentre: p(0, bd), zipEnd },
     neckBlock: { front: { neckY: cfNeck0.y, neckX: nwF }, back: { neckY: 0, neckX: nw } },
     drop: r(drop, 1),
     hem: hemShape,

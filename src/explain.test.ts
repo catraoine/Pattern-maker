@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BODICE_GROUPS, TEE_GROUPS, TROUSER_GROUPS, outerGroups } from './garments';
+import { BODICE_GROUPS, DRESS_CUTS, TEE_GROUPS, TROUSER_GROUPS, outerGroups } from './garments';
 import { DETAIL_GROUPS, GROUPS } from './screens/StyleScreen';
 import { VOLUME_OPTIONS } from './engine/skirtVolume';
 import { ExplainSet, explainGroups, explainLine } from './explain';
@@ -7,7 +7,7 @@ import { detailGroups, detailPic } from './ui/detailPics';
 import { hasPics } from './ui/ChoicePic';
 
 const sets: [ExplainSet, { id: string; options: readonly (readonly [unknown, string])[] }[]][] = [
-  ['skirt', [...GROUPS, ...DETAIL_GROUPS, { id: 'volume', options: VOLUME_OPTIONS }]],
+  ['skirt', [...GROUPS, ...DETAIL_GROUPS, { id: 'volume', options: VOLUME_OPTIONS }, { id: 'noSeam', options: DRESS_CUTS }]],
   ['bodice', BODICE_GROUPS],
   ['tee', TEE_GROUPS],
   ['trousers', TROUSER_GROUPS],

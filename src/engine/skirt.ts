@@ -29,6 +29,7 @@ export type Silhouette = 'straight' | 'pencil' | 'a_line' | 'trumpet' | 'half_ci
 /** Circle skirts are cut as arcs from the waist rather than drafted from the block. */
 export const isCircle = (s: Silhouette) => s === 'half_circle' || s === 'circle';
 export type Length = 'mini' | 'above_knee' | 'knee' | 'midi' | 'maxi';
+export type NoSeam = 'sheath' | 'shift';
 
 export interface SkirtStyle {
   fit: Fit;
@@ -64,6 +65,9 @@ export interface SkirtStyle {
   pockets?: 'none' | 'inseam';
   /** A waistband with a zip, or an elastic casing that pulls on over the hips. Ignored on a dress. */
   waist?: WaistStyle;
+  /** A dress only: cut with no waist seam, front and back each one piece from the shoulder to the hem
+   * (see dress.ts). Ignored on a skirt. */
+  noSeam?: NoSeam;
 }
 
 export type WaistStyle = 'band' | 'elastic';

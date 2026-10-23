@@ -91,6 +91,22 @@ const SKIRT: Record<string, Record<string, ReactNode>> = {
     ),
     diagonal: <path d="M15 5h10l8 24L7 43z" />,
   },
+  // A dress with a waist seam, or cut in one: a sheath shaped in at the waist, a shift hanging straight.
+  noSeam: {
+    seam: (
+      <>
+        <path d="M15 5L20 8L25 5L27 13L25 21L32 43H8L15 21L13 13z" />
+        <path className="pic-faint" d="M15 21H25" />
+      </>
+    ),
+    sheath: (
+      <>
+        <path d="M15 5L20 8L25 5L27 13L25 21L27 29L25.5 43H14.5L13 29L15 21L13 13z" />
+        <path className="pic-faint" d="M17 15L16.5 21L17 27M23 15L23.5 21L23 27" />
+      </>
+    ),
+    shift: <path d="M15 5L20 8L25 5L27 13L28.5 43H11.5L13 13z" />,
+  },
 };
 
 const NECK: Record<string, ReactNode> = {
