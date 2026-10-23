@@ -10,7 +10,7 @@ import { TROUSER_GROUPS, TrousersChoices, describeTrousers, trouserAllowed, trou
 import { TechFlatView } from '../ui/TechFlatView';
 import { AllRound } from '../ui/AllRound';
 import { roundTrousers } from '../engine/allRound';
-import { FabricSwatches, GarmentFabric, flatId } from '../ui/FabricFill';
+import { FabricSwatches, GarmentFabric, fillId } from '../ui/FabricFill';
 import { MeasurementValues } from '../measurements';
 import { PatternPreview } from '../ui/Preview';
 import { PatternPane } from '../ui/PointEditor';
@@ -67,7 +67,7 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
   const can = (t: ProTool) => shows(mode, t);
   const [view, setView] = useState<'sketch' | 'flat' | 'round' | 'pattern'>('sketch');
   // A fabric dresses the flat drawing, so choosing one shows that drawing; the form is lines only.
-  const cloth = flatId(fabric);
+  const cloth = fillId(fabric);
   useEffect(() => {
     if (cloth) setView((v) => (v === 'sketch' ? 'flat' : v));
   }, [cloth]);
