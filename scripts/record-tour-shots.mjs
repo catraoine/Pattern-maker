@@ -33,9 +33,9 @@ async function start() {
     cdp.send('Page.screencastFrameAck', { sessionId: e.sessionId }).catch(() => {});
   });
   await cdp.send('Page.startScreencast', { format: 'jpeg', quality: 92, maxWidth: FW, maxHeight: FH });
-  // On the wide screen the screencast can stop sending frames after a tap; a speck in the corner that never stops
-  // changing keeps them coming.
-  if (WIDE) await p.evaluate(() => {
+  // The screencast can stop sending frames after a tap (on the phone too, 2026-10-23: the pattern shot froze on the
+  // drawing); a speck in the corner that never stops changing keeps them coming.
+  await p.evaluate(() => {
     if (document.getElementById('rec-tick')) return;
     const st = document.createElement('style');
     st.textContent = '@keyframes rec-tick{to{opacity:.98}}#rec-tick{position:fixed;left:0;top:0;width:2px;height:2px;background:#000;z-index:99999;pointer-events:none;animation:rec-tick .2s linear infinite alternate}';
