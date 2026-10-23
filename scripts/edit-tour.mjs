@@ -103,7 +103,8 @@ const FABRIC = WIDE ? { zoom: [1.05, 1.1], at: [0.45, 0.48], frame: [0.08, 1.05]
 const PATTERN = WIDE
   ? { from: 1.1, speed: 0.8, zoom: [1.6, 1.66], at: [0.42, 0.72], frame: [0.09, 1.05, 0.1, 0.92], tint: [0.84, 0.78, 0.66] }
   : { from: 1.1, zoom: [1.1, 1.14], at: [0.5, 0.56], frame: [0.305, 0.712], tint: [0.84, 0.78, 0.66] };
-const PAGES = { shot: 'print', from: 5.2, speed: 0.75, frame: WIDE ? [0.08, 1.05] : [0.15, 0.87] };
+// On a phone the words above the pages stay out of the frame, not cut through by its edge (Cat, 2026-10-23).
+const PAGES = { shot: 'print', from: 5.2, speed: 0.75, frame: WIDE ? [0.1, 1.05] : [0.26, 0.87] };
 // Cat's B Three Checks (2026-10-22): what All round is for, a line at a time over the turning form. On a phone in a
 // dark band along the bottom; on a computer to the left of the form. Each line is its own picture, all laid out
 // together so they stack in place; only the first carries the dark band.
@@ -156,9 +157,10 @@ const CUTS = {
     const opening = [
       ...(await INTROS[INTRO]()),
       await piece({ still: await card('01', 'Measure', 'Just a few, once.'), dur: 3, fadeIn: f, fadeOut: f }),
-      // From the tip on the welcome's form, so the tape is pulled out, carried up to the first page and down to the
-      // waist in one unbroken move (Cat, 2026-10-22: starting mid-pull, it appeared from nowhere, small).
-      await piece({ shot: 'tape', from: 0.3, dur: 8.7, frame: [WIDE ? 0.1 : 0.08, 1.05], fadeIn: f, fadeOut: f }),
+      // One unbroken move to the waist (Cat, 2026-10-22: starting mid-pull, it appeared from nowhere, small). On a
+      // phone from the tip on the welcome's form; on a computer from black, the tape pulling in across the top of the
+      // first page (Cat, 2026-10-23).
+      await piece({ shot: 'tape', from: WIDE ? 0.1 : 0.3, dur: 8.7, frame: [WIDE ? 0.1 : 0.08, 1.05], fadeIn: f, fadeOut: f }),
     ];
     // TOUR_PREVIEW=1 stops after the opening and the tape, to try an opening without cutting the whole film.
     if (process.env.TOUR_PREVIEW) return opening;

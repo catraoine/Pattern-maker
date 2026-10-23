@@ -99,12 +99,44 @@ await start();
 await wait(9500);
 await stop('form');
 
-// tape: Begin pulls the tape out and up to the first page; the form and who; Begin measuring carries it on down
+// tape: Begin pulls the tape out and up to the first page (on a computer, it pulls in across that page); the form and who; Begin measuring carries it on down
 // to the waist, all in one move
-await start();
-await wait(600);
-await main.getByRole('button', { name: 'Begin' }).click();
-await wait(3200);
+if (WIDE) {
+  // On a computer the film skips the welcome (Cat, 2026-10-23): after 01 Measure the tape pulls in along the top from
+  // the right, hook first, then the first page comes up under it. Begin is pressed off camera. The phone keeps the pull
+  // from the welcome's tip.
+  await main.getByRole('button', { name: 'Begin' }).click();
+  await main.getByRole('button', { name: 'Begin measuring', exact: true }).waitFor();
+  await wait(2500);
+  await p.evaluate(() => {
+    const tape = document.querySelector('.tape-band.landed');
+    const page = [...tape.parentElement.children].filter((c) => c !== tape).flatMap((c) => (getComputedStyle(c).display === 'contents' ? [...c.children] : [c]));
+    tape.style.transform = `translateX(${innerWidth - tape.getBoundingClientRect().left + 8}px)`;
+    // (The page's own entrance is a CSS animation, which an inline opacity can't hold down; an animation can.)
+    window.recHidden = page.map((c) => c.animate([{ opacity: 0 }, { opacity: 0 }], { duration: 1, fill: 'forwards' }));
+  });
+  await start();
+  await wait(400);
+  await p.evaluate(() => new Promise((done) => {
+    const tape = document.querySelector('.tape-band.landed');
+    const page = [...tape.parentElement.children].filter((c) => c !== tape).flatMap((c) => (getComputedStyle(c).display === 'contents' ? [...c.children] : [c]));
+    const from = tape.style.transform;
+    tape.style.transform = '';
+    tape.animate([{ transform: from }, { transform: 'none' }], { duration: 1600, easing: 'cubic-bezier(0.35, 0.1, 0.25, 1)' }).finished.then(() => {
+      page.forEach((c, i) => {
+        c.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 700, easing: 'ease-out', fill: 'forwards' }).finished.then((a) => a.cancel());
+        window.recHidden[i].cancel();
+      });
+      done();
+    });
+  }));
+  await wait(1500);
+} else {
+  await start();
+  await wait(600);
+  await main.getByRole('button', { name: 'Begin' }).click();
+  await wait(3200);
+}
 await main.getByRole('radiogroup', { name: 'Which form to draft on?' }).getByRole('radio', { name: /^Womenswear/ }).click();
 await wait(600);
 await main.getByRole('radio', { name: 'For me' }).click();

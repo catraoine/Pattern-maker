@@ -522,8 +522,9 @@ function LandedTape() {
     const more = at.width - from.width;
     if (more > 1)
       tape.animate([{ clipPath: `inset(-8px ${more}px -8px -8px)` }, { clipPath: 'inset(-8px -8px -8px -8px)' }], { duration: 900, easing: 'cubic-bezier(0.35, 0.1, 0.25, 1)' });
-    // The page itself comes up under the tape instead of cutting in.
-    const page = [...(tape.parentElement?.children ?? [])].filter((c) => c !== tape);
+    // The page itself comes up under the tape instead of cutting in. (The words' wrapper is display: contents, which
+    // takes no opacity, so it's what's inside it that fades.)
+    const page = [...(tape.parentElement?.children ?? [])].filter((c) => c !== tape).flatMap((c) => (getComputedStyle(c).display === 'contents' ? [...c.children] : [c]));
     page.forEach((c) => c.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 450, easing: 'ease-out' }));
   }, []);
   return (
