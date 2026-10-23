@@ -6092,7 +6092,8 @@ body:has(.tape-band.carried) {
 .welcome.leaving .tour-play,
 .welcome.leaving .welcome-card > :not(.welcome-hero) {
   opacity: 0;
-  transition: opacity 0.5s ease 1.4s;
+  /* Gone just as the first measuring page starts to come up under the tape (Cat, 2026-10-22: no gap on black) */
+  transition: opacity 0.4s ease 1.3s;
 }
 
 @media (max-width: 640px) {

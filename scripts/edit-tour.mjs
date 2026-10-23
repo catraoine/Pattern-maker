@@ -156,8 +156,9 @@ const CUTS = {
     const opening = [
       ...(await INTROS[INTRO]()),
       await piece({ still: await card('01', 'Measure', 'Just a few, once.'), dur: 3, fadeIn: f, fadeOut: f }),
-      // From the tape at the top of the first page: the welcome before it is what the viewer has just seen.
-      await piece({ shot: 'tape', from: 2.6, dur: 6.6, frame: [WIDE ? 0.1 : 0.08, 1.05], fadeIn: f, fadeOut: f }),
+      // From the tip on the welcome's form, so the tape is pulled out, carried up to the first page and down to the
+      // waist in one unbroken move (Cat, 2026-10-22: starting mid-pull, it appeared from nowhere, small).
+      await piece({ shot: 'tape', from: 0.3, dur: 8.7, frame: [WIDE ? 0.1 : 0.08, 1.05], fadeIn: f, fadeOut: f }),
     ];
     // TOUR_PREVIEW=1 stops after the opening and the tape, to try an opening without cutting the whole film.
     if (process.env.TOUR_PREVIEW) return opening;
