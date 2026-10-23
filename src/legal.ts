@@ -82,6 +82,7 @@ export const PRIVACY: LegalDoc = {
         'Visit counts.|To see whether the app is working for people, we count visits and how many visits reached each step (measuring, choosing a style, printing or saving the PDF, and using photo-to-pattern), for each garment. Each count is added straight into a total for the day. There’s no cookie, no ID and no IP address stored, so the totals can’t be traced back to you or linked between visits. The counts are sent once, when you leave or switch away from the app. If your browser sends a “Do Not Track” or “Global Privacy Control” signal, we don’t count your visit at all.',
         'Fit testers and news.|If you sign up as a fit tester, we keep your name, email, what you’d like to sew and the size range you give (if any), and use them only to invite you to test new patterns. If you join the waitlist or sign up for news, we keep your email and the link you arrived by, and use them only to send Maison Tracé news and tell you when it opens. Our newsletter service, Kit, holds that list and sends those emails. If you ask to hear when something opens, we keep your email, what you asked about (such as whether you’d like deadstock cloth cut for you) and the pattern you were looking at (or, for Atelier Nights, the city you picked), and use them only to tell you when it opens. If cutting opens, your pattern file and posting address will go only to the cutting studio you choose, and we’ll ask you before anything is sent. If you ask about Tracé Engine for brands, we use your email only to get in touch about early access. We count sign-ups under the same scrambled code as photo readings, so the form can’t be flooded.',
         'What we don’t do.|We don’t use cookies, advertising, tracking or outside analytics tools, and we don’t sell or share your information for marketing. Crash reports, counts and sign-ups go to our own server, and waitlist and news sign-ups also go to our newsletter service. The app’s typefaces are built in, so your browser doesn’t contact a font service.',
+        'Shop links.|Some Buy buttons, such as those for Mood Fabrics, go through an affiliate network (Awin) on their way to the shop, so we earn a small commission if you buy, at no extra cost to you. When you tap one, Awin and the shop may set their own cookies in your browser to record the sale, under their own privacy policies. The app itself sets none, and nothing is sent until you tap.',
       ],
     },
     {
@@ -100,6 +101,7 @@ export const PRIVACY: LegalDoc = {
               'Your IP address, request details, the photo in transit, fit notes and sign-ups you send, and crash reports',
             ],
             ['Kit', 'Keeps the waitlist and news list and sends those emails', 'Your email, the link you arrived by, and whether you open the emails'],
+            ['Awin', 'Tracks shop sales that start from a Buy button, so the shop pays our commission', 'That you tapped Buy, and what you bought at the shop'],
           ],
         },
         'Anthropic handles photos under its commercial terms for businesses using its API, which say it doesn’t train its models on that data. These companies are based in the United States, so your photo and request details may be processed there.',
@@ -165,6 +167,7 @@ export const TERMS: LegalDoc = {
         'Sewing safely.|Sewing involves sharp tools, irons and machines. Follow your equipment’s safety instructions. Our sewing steps are general guidance, not professional instruction.',
         'Maker pack for dressmakers and factories.|The tech pack and DXF files are provided to help a professional make your garment. Whoever makes it should review the pattern, measurements and construction notes, and make and fit a sample before cutting production fabric. We aren’t a party to any agreement between you and a dressmaker or factory, and we aren’t responsible for their work, pricing, materials or delivery. DXF files may open differently in different CAD programs, so check pieces against the PDF and the measurement table.',
         'Deadstock cloth and cutting (not open yet).|Deadstock lengths are limited and cut to order, so cut cloth can’t be returned, and colours can look different on screen. If you ask a cutting studio to cut your pieces, check your pattern and measurements first: the studio cuts exactly what the pattern shows. Signing up to hear when these open doesn’t reserve cloth or commit you to buy.',
+        'Fabric from partner shops.|Buy buttons take you to the shop’s own site. You buy from the shop, under its prices, delivery and returns, and we aren’t a party to that sale. We may earn a commission when you buy, at no extra cost to you.',
       ],
     },
     {

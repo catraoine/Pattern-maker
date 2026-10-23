@@ -171,6 +171,8 @@ export function specialWarnings(special: Special | undefined, style: { garment?:
 export interface Checks {
   /** The repeat in cm, from one check to the same point on the next. */
   repeat?: number;
+  /** Stripes rather than checks: matched at the seams the same way, drawn as stripes. */
+  stripes?: boolean;
 }
 
 const MAIN_PIECES: Record<Garment, number> = { skirt: 2, bodice: 2, dress: 4, trousers: 2, tee: 2, jacket: 4, coat: 4, lingerie: 3 };

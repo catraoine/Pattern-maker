@@ -8,7 +8,7 @@ import { OuterChoices, describeOuter, outerAllowed, outerGroups } from '../garme
 import { TechFlatView } from '../ui/TechFlatView';
 import { AllRound } from '../ui/AllRound';
 import { roundOuter } from '../engine/allRound';
-import { FabricSwatches, GarmentFabric, flatId } from '../ui/FabricFill';
+import { FabricSwatches, GarmentFabric, fillId } from '../ui/FabricFill';
 import { MeasurementValues } from '../measurements';
 import { PatternPreview } from '../ui/Preview';
 import { PatternPane } from '../ui/PointEditor';
@@ -68,7 +68,7 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
   const can = (t: ProTool) => shows(mode, t);
   const [view, setView] = useState<'sketch' | 'flat' | 'round' | 'pattern'>('sketch');
   // A fabric dresses the flat drawing, so choosing one shows that drawing; the form is lines only.
-  const cloth = flatId(fabric);
+  const cloth = fillId(fabric);
   useEffect(() => {
     if (cloth) setView((v) => (v === 'sketch' ? 'flat' : v));
   }, [cloth]);

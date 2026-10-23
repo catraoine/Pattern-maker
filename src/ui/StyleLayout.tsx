@@ -48,6 +48,7 @@ const SECTIONS: Record<string, string> = {
   Shaping: SHAPE,
   'Princess seams': SHAPE,
   Structure: SHAPE,
+  'Waist seam': SHAPE,
   Leg: SHAPE,
   'Your knit’s stretch': SHAPE,
   Neckline: NECK,

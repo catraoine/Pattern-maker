@@ -3,7 +3,8 @@
 // along it. The tiles are drawn by scripts/fabric-textures.py.
 import { CSSProperties, ReactNode, useId, useState } from 'react';
 import type { Finish } from '../App';
-import { FIBRES, FIBRE_IDS, FabricGarment, MyFabric, clothFor } from '../engine/fabrics';
+import { FIBRES, FIBRE_IDS, FabricGarment, MyFabric, clothFor, printRepeat } from '../engine/fabrics';
+import { PRINTS, printImage, printOf, printTileCm } from '../engine/prints';
 import { FabricDetails } from './FabricDetails';
 import { SPECIALS, Special } from '../engine/specialFabrics';
 import { colourHex, coloursFor, shopFabric, shopFabricsFor, withShopFabric } from '../engine/shopFabrics';
@@ -17,6 +18,18 @@ export const tileUrl = (id: string) => `${import.meta.env.BASE_URL}fabrics/flat/
 
 /** The fabric the sketch shows: a shop fabric's own swatch, else a special cloth over the fibre it is made of. */
 export const flatId = (f: MyFabric | undefined): string | undefined => shopFabric(f?.shop)?.tile ?? f?.special ?? f?.fibre;
+
+/** The print the sketch is drawn in, if one is picked: it shows over the cloth, in its own colours. */
+const printShown = (f: MyFabric | undefined) => {
+  const kind = printOf(f);
+  return kind && kind !== 'plain' ? kind : undefined;
+};
+
+/** What the sketch is filled with, a print or a cloth; undefined when it is left in lines. */
+export const fillId = (f: MyFabric | undefined): string | undefined => {
+  const kind = printShown(f);
+  return kind ? `print-${kind}${f?.checks?.stripes ? '-stripes' : ''}` : flatId(f);
+};
 
 export const fabricLabel = (f: MyFabric | undefined): string | undefined =>
   shopFabric(f?.shop)?.name ?? (f?.special ? SPECIALS[f.special].label : f?.fibre ? FIBRES[f.fibre].label : undefined);
@@ -58,20 +71,23 @@ function tintTable(hex: string): [string, string, string] {
 }
 
 /** Lends its children's sketch the fabric: shapes filled with var(--garment) take it, and a waistband
- * filled with var(--garment-band) takes it turned along the band. A colour the app knows tints the swatch.
- * With no fabric chosen nothing changes. */
+ * filled with var(--garment-band) takes it turned along the band. A colour the app knows tints the swatch;
+ * a picked print is drawn instead, at its own scale and in its own colours. With no fabric chosen nothing changes. */
 export function GarmentFabric({ fabric, children }: { fabric: MyFabric | undefined; children: ReactNode }) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
   const id = flatId(fabric);
-  if (!id) return <>{children}</>;
+  const kind = printShown(fabric);
+  if (!id && !kind) return <>{children}</>;
   const body = `fab${uid}`;
   const band = `fabband${uid}`;
   const tint = `fabtint${uid}`;
-  const hex = colourHex(fabric);
+  const hex = kind ? undefined : colourHex(fabric);
   const table = hex ? tintTable(hex) : undefined;
+  const size = kind ? printTileCm(kind, printRepeat(fabric), fabric?.checks?.stripes) : TILE;
+  const href = kind ? printImage(kind, import.meta.env.BASE_URL, fabric?.checks?.stripes) : tileUrl(id!);
   const tile = (pid: string, turn: boolean) => (
-    <pattern id={pid} patternUnits="userSpaceOnUse" width={TILE} height={TILE} patternTransform={turn ? 'rotate(90)' : undefined}>
-      <image href={tileUrl(id)} width={TILE} height={TILE} preserveAspectRatio="none" filter={table ? `url(#${tint})` : undefined} />
+    <pattern id={pid} patternUnits="userSpaceOnUse" width={size} height={size} patternTransform={turn ? 'rotate(90)' : undefined}>
+      <image href={href} width={size} height={size} preserveAspectRatio="none" filter={table ? `url(#${tint})` : undefined} />
     </pattern>
   );
   return (
@@ -109,7 +125,9 @@ export function FabricSwatches({ finish, onFinish, garment, details }: { finish:
     ...FIBRE_IDS.map((id) => ({ id, label: FIBRES[id].label })),
     ...SPECIAL_IDS.map((id) => ({ id, label: SPECIALS[id].label })),
   ];
-  const colour = fabric?.colour?.trim();
+  // A picked print is what the sketch shows, so it names the cloth in place of the colour.
+  const printed = printShown(fabric);
+  const colour = printed ? (printed === 'checks' ? (fabric?.checks?.stripes ? 'Stripes' : 'Checks') : PRINTS[printed].label) : fabric?.colour?.trim();
   const colours = coloursFor(fabric);
   return (
     <div className="swatch-row">

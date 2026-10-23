@@ -2,7 +2,7 @@
 // pieces are laid, how much more fabric to buy and the cutting steps, and its swatch goes under the
 // pieces in the cutting layout.
 import type { MyFabric } from '../engine/fabrics';
-import { PRINTS, PRINT_IDS, PrintKind, printImage, printOf } from '../engine/prints';
+import { PRINTS, PRINT_IDS, PrintKind, STRIPES_REPEAT, printImage, printOf } from '../engine/prints';
 import { TestingTag } from './TestingTag';
 
 const base = import.meta.env.BASE_URL;
@@ -21,8 +21,10 @@ export function PrintPicker({ fabric, onFabric }: { fabric: MyFabric; onFabric: 
   const kind = printOf(fabric);
   const info = kind && PRINTS[kind];
   const repeat = kind === 'checks' ? fabric.checks?.repeat : fabric.motif?.repeat;
+  const stripes = kind === 'checks' && !!fabric.checks?.stripes;
   const setRepeat = (r: number | undefined) =>
-    onFabric(kind === 'checks' ? { ...fabric, checks: { repeat: r } } : { ...fabric, motif: { repeat: r } });
+    onFabric(kind === 'checks' ? { ...fabric, checks: { ...fabric.checks, repeat: r } } : { ...fabric, motif: { repeat: r } });
+  const setStripes = (on: boolean) => onFabric({ ...fabric, checks: { ...fabric.checks, stripes: on || undefined } });
   return (
     <div className="printpick">
       <p className="printpick-q">What's the print? <TestingTag /></p>
@@ -42,6 +44,16 @@ export function PrintPicker({ fabric, onFabric }: { fabric: MyFabric; onFabric: 
           </button>
         ))}
       </div>
+      {kind === 'checks' && (
+        <div className="fabtabs" role="radiogroup" aria-label="Checks or stripes">
+          <button type="button" role="radio" aria-checked={!stripes} className={!stripes ? 'on' : ''} onClick={() => setStripes(false)}>
+            Checks
+          </button>
+          <button type="button" role="radio" aria-checked={stripes} className={stripes ? 'on' : ''} onClick={() => setStripes(true)}>
+            Stripes
+          </button>
+        </div>
+      )}
       {info && <p className="muted small printpick-hint">{info.hint[0].toUpperCase() + info.hint.slice(1)}.</p>}
       {info?.repeat && (
         <div className="field plain">
@@ -52,7 +64,7 @@ export function PrintPicker({ fabric, onFabric }: { fabric: MyFabric; onFabric: 
             inputMode="decimal"
             min={0}
             value={repeat ?? ''}
-            placeholder={String(info.defaultRepeat)}
+            placeholder={String(stripes ? STRIPES_REPEAT : info.defaultRepeat)}
             onChange={(e) => setRepeat(e.target.value ? Number(e.target.value) : undefined)}
           />
         </div>

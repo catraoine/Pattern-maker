@@ -11,6 +11,19 @@
   to = "/index.html"
   status = 200
 
+# Security headers on every page and file. The policy lets the app load only its own code, styles, fonts, images and
+# films, and talk only to its own server functions; Buy links and share links are ordinary links, so they aren't
+# affected. Anything new from another site (a script, an embed, a font service) has to be added here first.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; connect-src 'self'; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "SAMEORIGIN"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(self), microphone=(), geolocation=(), payment=(), usb=()"
+    Strict-Transport-Security = "max-age=31536000"
+
 # Server functions (photo to pattern). Set ANTHROPIC_API_KEY in Site configuration > Environment variables.
 [functions]
   directory = "netlify/functions"

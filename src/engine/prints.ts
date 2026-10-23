@@ -33,7 +33,21 @@ export const PRINTS: Record<PrintKind, PrintInfo> = {
 
 export const PRINT_IDS = Object.keys(PRINTS) as PrintKind[];
 
-export const printImage = (kind: PrintKind, base = '/') => `${base}prints/${PRINTS[kind].image}.jpg`;
+/** The print's swatch; checks chosen as stripes have their own. */
+export const printImage = (kind: PrintKind, base = '/', stripes = false) => `${base}prints/${kind === 'checks' && stripes ? 'stripes' : PRINTS[kind].image}.jpg`;
+
+/** The repeat stripes take until the maker enters theirs, in cm: closer than a check's. */
+export const STRIPES_REPEAT = 2.5;
+
+/** How large one swatch of the print is drawn, in cm: a big motif and checks at their repeat. */
+export function printTileCm(kind: PrintKind, repeat: number | undefined, stripes = false): number {
+  const r = repeat && repeat > 0 ? repeat : kind === 'checks' && stripes ? STRIPES_REPEAT : PRINTS[kind].defaultRepeat;
+  if (kind === 'motif') return r!;
+  // The check and stripe swatches show three repeats across.
+  if (kind === 'checks') return r! * 3;
+  if (kind === 'border') return 30;
+  return kind === 'ditsy' ? 12 : 20;
+}
 
 /** The print recorded for a fabric: fabrics saved before the picker only had the checks switch. */
 export function printOf(f: { print?: PrintKind; checks?: object } | undefined): PrintKind | undefined {
