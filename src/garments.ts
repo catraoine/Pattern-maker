@@ -13,6 +13,7 @@ import { Peplum, isDraped } from './engine/drape';
 import { isShaped } from './engine/hem';
 import type { HemShape } from './engine/hem';
 import { Structure, isBoned, isStrapless, isTop } from './engine/corset';
+import { WRAP_BUST_DARTS } from './engine/wrap';
 import type { Panel, SeamKind, Yoke } from './engine/seams';
 import type { OuterCollar, OuterFit, OuterFlare, OuterFront, OuterKind, OuterLength, OuterPads, OuterPockets, OuterShaping, OuterSleeve, OuterVent } from './engine/outerwear';
 
@@ -305,7 +306,7 @@ export const BODICE_GROUPS: [Group<'fit'>, Group<'neckline'>, Group<'length'>, G
     label: 'Bust dart from',
     options: [['side', 'Side seam'], ['french', 'French (low side)'], ['shoulder', 'Shoulder'], ['neck', 'Neckline'], ['armhole', 'Armhole'], ['waist', 'Waist']],
   },
-  { id: 'closure', label: 'Opening', options: [['back_zip', 'Back zip'], ['front_buttons', 'Front buttons']] },
+  { id: 'closure', label: 'Opening', options: [['back_zip', 'Back zip'], ['front_buttons', 'Front buttons'], ['wrap', 'Wrap']] },
   { id: 'collar', label: 'Collar', options: [['none', 'None'], ['peter_pan', 'Peter Pan'], ['mandarin', 'Mandarin'], ['mock', 'Mock neck'], ['funnel', 'Funnel neck'], ['shirt', 'Shirt collar']] },
   { id: 'structure', label: 'Structure', options: [['none', 'Soft'], ['boned', 'Boned, like a corset']] },
   { id: 'peplum', label: 'Peplum', options: [['none', 'None'], ['flared', 'Flared'], ['gathered', 'Gathered']] },
@@ -333,10 +334,11 @@ export function detailAllowed(c: BodiceChoices, id: 'princess' | 'bustDart' | 'c
   if ((isDraped(c) || (c.unevenNeck && !isTop(c.neckline))) && opt !== 'none') return id === 'bustDart' ? opt === 'side' : id === 'closure' && opt === 'back_zip';
   // A top below the shoulders has no shoulder or armhole for a dart or princess line, and opens at the back.
   const top = isTop(c.neckline);
-  if (id === 'princess') return opt === 'none' || (c.darts === 'bust_waist' && !top);
-  if (id === 'bustDart') return c.darts !== 'none' && (opt !== 'waist' || c.length === 'waist') && !(top && (opt === 'shoulder' || opt === 'armhole'));
+  if (id === 'princess') return opt === 'none' || (c.darts === 'bust_waist' && !top && c.closure !== 'wrap');
+  if (id === 'bustDart') return c.darts !== 'none' && (opt !== 'waist' || c.length === 'waist') && !(top && (opt === 'shoulder' || opt === 'armhole')) && (c.closure !== 'wrap' || (WRAP_BUST_DARTS as readonly string[]).includes(opt));
   // A dress buttons down the front too (a shirt dress), when its skirt can carry the buttons on (see dress.ts).
   if (id === 'closure') return opt === 'back_zip' || !top;
+  if (c.closure === 'wrap' && opt !== 'none') return false;
   if (opt === 'none') return true;
   if (opt === 'shirt') return c.closure === 'front_buttons' && c.neckline === 'crew';
   return c.neckline === 'crew' || (opt === 'peter_pan' && c.neckline === 'scoop');
@@ -360,6 +362,7 @@ export function seamBlocked(c: BodiceChoices, kind: SeamKind, garment: 'bodice' 
   const front = kind !== 'yoke' || side === 'front';
   if (front && c.bustDart && c.bustDart !== 'side') return `${words} takes the bust dart, so it can't be moved as well. Put the bust dart back in the side seam first.`;
   if (kind !== 'panel' && c.closure === 'front_buttons') return `${words} would cross the button front. Choose the back zip first.`;
+  if (c.closure === 'wrap') return `${words} would cross the wrap's front edge. Choose the back zip first.`;
   if (kind === 'yoke' && side === 'front') {
     const depth = c.neck ? c.neck.frontDepth : NECKLINE_DEPTH[c.neckline];
     if (depth > 4) return 'A front yoke needs a high neckline: this one cuts through where the yoke goes.';
@@ -402,6 +405,13 @@ export function validDetails(c: BodiceChoices, garment: 'bodice' | 'dress' = 'bo
   if (out.princess && !detailAllowed(out, 'princess', out.princess, garment)) out.princess = 'none';
   if (out.bustDart && !detailAllowed(out, 'bustDart', out.bustDart, garment)) out.bustDart = 'side';
   if (out.closure && !detailAllowed(out, 'closure', out.closure, garment)) out.closure = 'back_zip';
+  // A wrap crosses over in a V and ties at the waist: its neckline, length and shaping follow.
+  if (out.closure === 'wrap') {
+    delete out.neck;
+    delete out.unevenNeck;
+    delete out.dropCm;
+    Object.assign(out, { neckline: 'v', length: 'waist', princess: 'none', collar: 'none', peplum: 'none' });
+  }
   if (out.collar && !detailAllowed(out, 'collar', out.collar, garment)) out.collar = 'none';
   if (out.sleeve && !detailAllowed(out, 'sleeve', out.sleeve, garment)) out.sleeve = 'none';
   if (out.peplum && !detailAllowed(out, 'peplum', out.peplum, garment)) out.peplum = 'none';
@@ -456,12 +466,25 @@ const NECK_WORDS: Record<Neckline, string> = { crew: 'crew neck', scoop: 'scoop 
  * length but the waist and any darts but bust and waist (they become its princess seams).
  */
 export function topAllowed(c: BodiceChoices, id: string, opt: string): boolean {
+  if (c.closure === 'wrap') return wrapAllowed(id, opt);
   if (!isTop(c.neckline)) return true;
   if (id === 'sleeve') return opt === 'none';
   if (!isBoned(c)) return true;
   if (id === 'fit') return opt === 'fitted';
   if (id === 'length') return opt === 'waist';
   if (id === 'darts') return opt === 'bust_waist';
+  return true;
+}
+
+/**
+ * What a wrap rules out: it crosses over in a V and ties at the waist, so no other neckline or collar,
+ * no princess seams, peplum, boning or longer length, and no bust dart its edge would cut through.
+ */
+function wrapAllowed(id: string, opt: string): boolean {
+  if (id === 'neckline') return opt === 'v';
+  if (id === 'length') return opt === 'waist';
+  if (id === 'princess' || id === 'collar' || id === 'peplum' || id === 'structure') return opt === 'none';
+  if (id === 'bustDart') return (WRAP_BUST_DARTS as readonly string[]).includes(opt);
   return true;
 }
 
@@ -530,7 +553,7 @@ export function describeBodice(c: BodiceChoices) {
   const princess = v.princess && v.princess !== 'none' ? ' princess' : '';
   const seam = seamAdjective(v) ? ` ${seamAdjective(v)}` : '';
   const collar = v.collar && v.collar !== 'none' && !c.neck ? COLLAR_WORDS[v.collar] : '';
-  const front = v.closure === 'front_buttons' ? 'button-front ' : '';
+  const front = v.closure === 'front_buttons' ? 'button-front ' : v.closure === 'wrap' ? 'wrap ' : '';
   const draped = isDraped(c) ? (c.neckline === 'cowl' ? 'cowl-neck' : 'one-shoulder') : '';
   const neck = collar ? `${front}${collar.replace(' collar', '')}-collar` : draped || (v.unevenNeck ? 'uneven-neckline' : `${front}${c.neck ? 'drawn-neckline' : NECK_WORDS[c.neckline]}`);
   const dropped = c.dropCm !== undefined && c.dropCm >= 3;

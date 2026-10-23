@@ -50,6 +50,7 @@ const DETAILS: Record<ExplainSet, Record<string, Record<string, ReactNode>>> = {
     waist: {
       band: on(SKIRT, 'M13.5 6h13v4h-13zM24 10V22M23 22h2'),
       elastic: on(SKIRT, 'M13.5 6h13v4h-13zM15 7v2M17 7v2M19 7v2M21 7v2M23 7v2M25 7v2'),
+      wrap: on(SKIRT, 'M13.5 6h13v4h-13zM24 6L26.5 44M13.5 8L8 14M13.5 8L9.5 16'),
     },
     pockets: { none: on(SKIRT), inseam: inseam(SKIRT, 13) },
   },
@@ -84,6 +85,7 @@ const DETAILS: Record<ExplainSet, Record<string, Record<string, ReactNode>>> = {
     closure: {
       back_zip: on('M8 12L15 8Q20 10 25 8L32 12L30 22L29 40H11L10 22z', 'M20 9.5V32M19 32h2v2.5h-2z'),
       front_buttons: on(TOP, `M20 12.5V40${dot(21.5, 16)}${dot(21.5, 22)}${dot(21.5, 28)}${dot(21.5, 34)}`),
+      wrap: on('M8 12L15 8L25 8L32 12L30 22L29 40H11L10 22z', 'M15 8L24 26Q27 34 29 38M25 8L20 24M29 38l3 7M29 38l-1 7'),
     },
     collar: {
       none: on(TOP),

@@ -17,6 +17,7 @@ export function waistbandPiece(draft: SkirtDraft, sa: number): Piece {
   const L = draft.finishedWaist;
   const backQ = draft.waistband.sideMark - sa;
   if (draft.elastic) return casingPiece(L, [[backQ, 'SIDE SEAM'], [L / 2, 'CENTRE FRONT'], [L - backQ, 'SIDE SEAM']], sa);
+  if (draft.wrap?.ties) return wrapBand(draft.finishedWaist, draft.wrap.frontWaist, sa);
   const outline = new Path(p(0, 0)).line(p(W, 0), 'end').line(p(W, L), 'waist').line(p(0, L), 'end').line(p(0, 0), 'band');
   outline.closed = true;
   const marks = [backQ, L / 2, L - backQ];
@@ -47,6 +48,52 @@ export function waistbandPiece(draft: SkirtDraft, sa: number): Piece {
       tag(p(W * 0.2, L - backQ - 2.6), 'SIDE SEAM'),
       tag(add(hook, p(-0.9, 1.8)), 'HOOK'),
       tag(add(eye, p(-0.9, -1.4)), 'EYE'),
+    ],
+    cut,
+    fabric: 'Self + interfacing',
+    seamAllowance: sa,
+    allowances: {},
+    meta: { finishedWidth: WAISTBAND_CM, lengthCm: r1(L) },
+  };
+}
+
+/**
+ * A wrap skirt's waistband: once round the body and across the front again, from the top front's free
+ * edge, over its own side seam, round the back, over the other side seam and across the under front to
+ * its free edge. A tie goes in each end; the inner tie comes out through a buttonhole at the first side
+ * seam mark.
+ */
+function wrapBand(waist: number, front: number, sa: number): Piece {
+  const W = 2 * WAISTBAND_CM;
+  const L = waist + front;
+  const outline = new Path(p(0, 0)).line(p(W, 0), 'end').line(p(W, L), 'waist').line(p(0, L), 'end').line(p(0, 0), 'band');
+  outline.closed = true;
+  const marks: [number, string][] = [
+    [front / 2, 'CENTRE FRONT'],
+    [front, 'SIDE SEAM'],
+    [L - front, 'SIDE SEAM'],
+    [L - front / 2, 'CENTRE FRONT'],
+  ];
+  const tag = (at: P, text: string) => ({ at, text, size: 0.55, rotate: 90 });
+  const cut = 'Cut 1';
+  return {
+    name: 'Waistband',
+    kind: 'waistband',
+    outline,
+    lines: [new Path(p(W * 0.75, front - 1.4)).line(p(W * 0.75, front + 1.4))],
+    grain: [p(W * 0.25, 5.5), p(W * 0.25, Math.max(10, front - 4))],
+    notches: marks.flatMap(([y]): [P, P][] => [
+      [p(W, y), p(1, 0)],
+      [p(0, y), p(-1, 0)],
+    ]),
+    balance: [{ pts: [p(W / 2, 0), p(W / 2, L)], label: 'FOLD LINE' }],
+    labels: [
+      { at: p(W * 0.62, (L - front + L) / 2 - 6), text: 'WAISTBAND', size: 1.0, rotate: 90 },
+      { at: p(W * 0.5, (L - front + L) / 2 - 6), text: cut, size: 0.6, rotate: 90 },
+      ...marks.map(([y, text]) => tag(p(W * 0.2, y - 3), text)),
+      tag(p(W * 0.2, 1.5), 'LONG TIE'),
+      tag(p(W * 0.2, L - 7), 'SHORT TIE'),
+      tag(p(W * 0.95, front + 2), 'TIE HOLE'),
     ],
     cut,
     fabric: 'Self + interfacing',

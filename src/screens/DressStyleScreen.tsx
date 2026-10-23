@@ -4,6 +4,7 @@ import { bodiceEase } from '../engine/bodice';
 import { isTop } from '../engine/corset';
 import { BUTTONS_STOP_ABOVE_HEM, buttonsOnSkirt, noSeamAllowed } from '../engine/dress';
 import type { DressDraft } from '../engine/dress';
+import { wrapSkirtAllowed } from '../engine/wrapSkirt';
 import { dressFlat } from '../engine/flat';
 import { piecesLengthCm, toMetres } from '../engine/fabric';
 import { layPlan } from '../engine/layplan';
@@ -137,8 +138,12 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
   const cutOk = noSeamAllowed(choices.bodice);
   const noSeam: NoSeam | undefined = cutOk ? choices.skirt.noSeam : undefined;
   const buttonsOk = !noSeam && buttonsOnSkirt(choices.skirt);
-  const closure: BodiceChoices['closure'] = choices.bodice.closure === 'front_buttons' && buttonsOk ? 'front_buttons' : 'back_zip';
+  // A wrap dress: its skirt wraps too, so it needs a skirt that can (straight or A-line, nothing added).
+  const wrapOk = !noSeam && wrapSkirtAllowed(choices.skirt);
+  const closure: BodiceChoices['closure'] =
+    choices.bodice.closure === 'front_buttons' && buttonsOk ? 'front_buttons' : choices.bodice.closure === 'wrap' && wrapOk ? 'wrap' : 'back_zip';
   const buttoned = closure === 'front_buttons';
+  const wrapped = closure === 'wrap';
   const valid = validDetails({ ...choices.bodice, fit: choices.fit, length: 'waist', closure }, 'dress');
   const boned = valid.structure === 'boned';
   const top = isTop(choices.bodice.neckline);
@@ -177,7 +182,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           { id: 'silhouette', label: 'Skirt', options: GROUPS[1].options },
         ]),
     { id: 'length', label: 'Length', options: GROUPS[2].options },
-    ...(noSeam
+    ...(noSeam || wrapped
       ? []
       : [
           // The dress's zip runs down the centre back, so its skirt can't be cut whole for a diagonal hem.
@@ -222,7 +227,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
   // Cut in one, the dress takes no princess seams, boning, strapless or draped neckline, or buttons.
   const cutAllows = (id: string, opt: string) =>
     id === 'noSeam'
-      ? opt === 'seam' || (cutOk && !buttoned)
+      ? opt === 'seam' || (cutOk && !buttoned && !wrapped)
       : !noSeam || noSeamAllowed({ ...choices.bodice, [id]: opt }) && (id !== 'closure' || opt === 'back_zip');
   const baseAllowed = (id: string, opt: string) =>
     id === 'volume'
@@ -234,9 +239,9 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
         : id === 'sleeveShape'
           ? SHAPES_FOR_LENGTH[chosen.length].includes(opt as NonNullable<BodiceChoices['sleeveShape']>)
           : id === 'princess' || id === 'bustDart' || id === 'collar' || id === 'structure' || id === 'closure'
-            ? detailAllowed({ ...choices.bodice, length: 'waist', closure }, id, opt, 'dress') && (id !== 'closure' || opt === 'back_zip' || buttonsOk)
+            ? detailAllowed({ ...choices.bodice, length: 'waist', closure }, id, opt, 'dress') && (id !== 'closure' || (opt === 'front_buttons' ? buttonsOk : opt === 'wrap' ? wrapOk : true))
             : id === 'silhouette' || id === 'length' || id === 'asymHem'
-              ? cutAllowed(choices.skirt, id, opt, 'dress') && (!buttoned || buttonsOnSkirt({ ...choices.skirt, [id]: opt }))
+              ? cutAllowed(choices.skirt, id, opt, 'dress') && (!buttoned || buttonsOnSkirt({ ...choices.skirt, [id]: opt })) && (!wrapped || wrapSkirtAllowed({ ...choices.skirt, [id]: opt }))
               : true;
 
   const choose = (id: string, opt: string) => {
@@ -544,7 +549,9 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
             : choices.skirt.silhouette === 'gathered'
               ? 'The skirt is cut as straight panels and gathered to the bodice’s waist seam, so it needs no darts.'
               : 'The skirt is drafted to the bodice: the waist seams are the same length, and the darts meet at the seam in one line.'}{' '}
-          {draft?.skirtButtons
+          {wrapped
+            ? 'It crosses over at the front and ties at the waist, with no zip: each front is a pair, bodice and skirt, and the back is cut whole.'
+            : draft?.skirtButtons
             ? `It buttons down the centre front from the neck, through the waist, to ${BUTTONS_STOP_ABOVE_HEM} cm above the hem, and the back is cut whole.`
             : draft?.zipSide
               ? `One zip opens the ${zipSide(draft.bodice)} side seam from under the arm to below the waist.`

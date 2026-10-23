@@ -152,8 +152,12 @@ function sewn(pc: Piece, bottom?: number, skip?: 'side' | 'all' | 'none', centre
 
   const move = (q: P): P => {
     let x = q.x;
-    for (const d of waistDarts) x -= d.g * clamp01((q.x - d.lo) / d.g) * clamp01(1 - Math.abs(q.y - d.y) / d.reach);
-    const k = kCentre + (kSide - kCentre) * clamp01(q.x / Math.max(footPt.x, 1));
+    // Each dart draws in toward the centre: on a piece cut whole, the darts left of it pull the other way.
+    for (const d of waistDarts) {
+      const pull = d.g * clamp01(1 - Math.abs(q.y - d.y) / d.reach);
+      x += d.lo + d.g / 2 < 0 ? pull * clamp01((d.lo + d.g - q.x) / d.g) : -pull * clamp01((q.x - d.lo) / d.g);
+    }
+    const k = kCentre + (kSide - kCentre) * clamp01(Math.abs(q.x) / Math.max(Math.abs(footPt.x), 1));
     const y = q.y > from ? from + (q.y - from) * k : q.y;
     return p(x, y);
   };
@@ -384,6 +388,8 @@ function skirtViews(d: SkirtDraft, opts: { slit?: boolean; band: boolean; zipCm?
     // The waistband sits above the waist, as wide as it, gathered on an elastic waist.
     const band = [...waist, ...[...waist].reverse().map((q) => p(q.x, q.y - WAISTBAND_CM))];
     if (opts.band) shapes.push(wholePc ? band : whole(band));
+    // A wrap skirt's ties knot at the side, where the band runs on past the top front's edge.
+    if (opts.band && d.wrap?.ties && !back) shapes.push(...tieKnot(add(waist[waist.length - 1], p(0, -WAISTBAND_CM / 2))));
     if (opts.band && d.elastic) for (const run of [waist, mirror(waist)]) lines.push(...gathers(run[0], run[run.length - 1], WAISTBAND_CM));
     // A gathered skirt shows its gathers under the band or the bodice seam.
     else if (d.gathers) for (const run of [waist, mirror(waist)]) lines.push(...gathers(run[0], run[run.length - 1], opts.band ? WAISTBAND_CM : 0));
@@ -751,6 +757,27 @@ function sideChannel(h: Half, shape: P[]): FlatView['lines'] {
   return out;
 }
 
+/** A wrap front as worn, in the flat's coordinates: the V neckline from neck point to neck point (the two
+ * fronts' edges down to where they cross), the top front's edge on from there to its far side, and its
+ * tie knotted there with two tails. */
+function wrapEdges(w: NonNullable<BodiceDraft['wrap']>, h: Half): { neck: P[]; lap: P[]; tie: P[][] } {
+  const mv = (q: P) => {
+    const m = h.move(p(Math.abs(q.x), q.y));
+    return p(Math.sign(q.x) * m.x, m.y);
+  };
+  const top = w.edge.map(mv);
+  const ic = top.reduce((best, q, k) => (Math.abs(q.x) < Math.abs(top[best].x) ? k : best), 0);
+  const upper = top.slice(ic);
+  const neck = [...mirror(upper).reverse(), ...upper.slice(1)];
+  return { neck, lap: top.slice(0, ic + 1), tie: tieKnot(top[0]) };
+}
+
+/** A knot at `W` with its two tails hanging. */
+function tieKnot(W: P): P[][] {
+  const knot = [p(W.x - 1.4, W.y - 1), p(W.x + 0.4, W.y - 1), p(W.x + 0.4, W.y + 1.4), p(W.x - 1.4, W.y + 1.4)];
+  return [strap([p(W.x - 0.8, W.y + 1), p(W.x - 4, W.y + 16)], 2.2), strap([p(W.x - 0.2, W.y + 1), p(W.x + 1.8, W.y + 13)], 2.2), knot];
+}
+
 /** A spaghetti strap from the top edge up to the shoulder, about 6 mm wide as drawn. */
 function strap([a, b]: [P, P], width = 0.7): P[] {
   const u = unit(sub(b, a));
@@ -777,7 +804,10 @@ function bodiceViews(d: BodiceDraft, edges: BodiceEdges, sleeve: SleeveDraft | u
   return ([front, back] as const).map((h, i) => {
     if (d.drape?.kind === 'one_shoulder') return withPeplumView(d, h, oneShoulderView(d, h, i, edges));
     // An uneven front: both halves to the neck points, and the neckline as drafted across them.
-    const uneven = i === 0 && d.drape?.kind === 'uneven' ? unevenEdge(d) : undefined;
+    // A wrap: the top front's edge from its neck point down across the centre front, the under front's
+    // the same the other way; the two V edges make the neckline, and the top front's runs on to its tie.
+    const wrapped = i === 0 && d.wrap ? wrapEdges(d.wrap, h) : undefined;
+    const uneven = i === 0 && d.drape?.kind === 'uneven' ? unevenEdge(d) : wrapped?.neck;
     const fromNeck = uneven ? h.run.slice(h.tags.indexOf('shoulder')) : [];
     const shape = uneven ? [...fromNeck, ...mirror([...fromNeck].reverse()).slice(1), ...uneven.slice(1, -1)] : whole(h.run);
     const frontNeckY = uneven ? centreCrossing(uneven) : front.run[0].y;
@@ -811,11 +841,15 @@ function bodiceViews(d: BodiceDraft, edges: BodiceEdges, sleeve: SleeveDraft | u
         lines.push({ pts: Array.from({ length: 13 }, (_, k) => add(p(0, c.y), p(0.65 * Math.cos((k / 12) * 2 * Math.PI), 0.65 * Math.sin((k / 12) * 2 * Math.PI)))), kind: 'seam' });
       }
     }
-    if (i === 1 && zipped && d.closure !== 'front_buttons') {
+    if (wrapped) {
+      lines.push({ pts: wrapped.lap, kind: 'seam' });
+      if (edges === 'binding') for (const r of inset(wrapped.lap, 0.6, shape)) lines.push({ pts: r, kind: 'stitch' });
+    }
+    if (i === 1 && zipped && d.closure !== 'front_buttons' && d.closure !== 'wrap') {
       const top = h.run[0].y;
       lines.push({ pts: [p(0, top), p(0, h.run[h.run.length - 1].y)], kind: 'seam' }, ...zip(top, d.zipCm));
     }
-    const shapes = [shape];
+    const shapes = [shape, ...(wrapped?.tie ?? [])];
     // Spaghetti straps, from the top edge up over the shoulder.
     const st = d.top?.strapAt && (i === 0 ? d.top.strapAt.front : d.top.strapAt.back);
     // A halter's ties are wider bands, rising from the strap ends round the neck.
@@ -864,8 +898,8 @@ export function dressFlat(d: DressDraft, edges: BodiceEdges = 'binding', opts: {
           lines.push({ pts: Array.from({ length: 13 }, (_, n) => add(c, p(0.65 * Math.cos((n / 12) * 2 * Math.PI), 0.65 * Math.sin((n / 12) * 2 * Math.PI)))), kind: 'seam' });
         }
       }
-      // A one-shoulder dress zips in the side seam, out of sight; a shirt dress has no zip.
-      if (b.label === 'BACK' && !d.zipSide && !d.skirtButtons) {
+      // A one-shoulder dress zips in the side seam, out of sight; a shirt dress or a wrap has no zip.
+      if (b.label === 'BACK' && !d.zipSide && !d.skirtButtons && !d.bodice.wrap) {
         const neck = b.shapes[0].reduce((m, q) => (Math.abs(q.x) < 1e-6 && q.y < m ? q.y : m), Infinity);
         lines.push({ pts: [p(0, neck), p(0, b.foot)], kind: 'seam' }, ...zip(neck, d.zipCm));
       }

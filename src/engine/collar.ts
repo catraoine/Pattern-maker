@@ -6,7 +6,7 @@ import { Ring, pathOf, ringOf, roundCorner } from './manipulate';
 import { facing } from './finishing';
 import { DraftPoint, Piece } from './piece';
 
-export type Closure = 'back_zip' | 'front_buttons';
+export type Closure = 'back_zip' | 'front_buttons' | 'wrap';
 export type Collar = 'none' | 'peter_pan' | 'mandarin' | 'mock' | 'funnel' | 'shirt';
 /** The collars that are a single band standing up from the neck, sewn and finished like a mandarin. */
 export type BandCollar = 'mandarin' | 'mock' | 'funnel';

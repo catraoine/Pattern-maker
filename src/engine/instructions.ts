@@ -14,6 +14,7 @@ import { VolumeStyle, needsNoSlit, volumeSteps } from './skirtVolume';
 import { drapeBodiceSteps, drapeDressSteps } from './drapeSteps';
 import { mirrorWords } from './drape';
 import { bonedDressSteps, strapCut, topSteps } from './corsetGuide';
+import { wrapDressSteps, wrapSkirtSteps, wrapSteps } from './wrapGuide';
 import { isShaped } from './hem';
 import { SLIP_LEVEL } from './slip';
 import { wholeGuide } from './wholeGuide';
@@ -90,7 +91,8 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
   const dartCount = 2 * front + 2 * back;
   // A shape matched from a photo can come out as part of a circle whatever its silhouette chip says.
   const circle = isCircle(style.silhouette) || !!draft.circleShare;
-  const frontSeam = !draft.pieces[0].fold;
+  // A wrap skirt's fronts each reach across the body, so they have no centre front seam either.
+  const frontSeam = !draft.pieces[0].fold && !draft.pieces[0].meta.wrap;
   // A front too wide for the fold (big circle skirts) is cut as a pair with a centre front seam, and
   // the back is then too wide for folded fabric as well.
   const wide = frontSeam;
@@ -234,7 +236,8 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
     },
   ];
 
-  return {
+  // A wrap skirt: no zip, a free front edge, and ties (wrapGuide.ts).
+  return wrapSkirtSteps({
     notions: [
       `${fabricM.toFixed(1)} m of woven fabric, ${finish.width ?? 140} cm wide`,
       ...(lined ? [`${finish.liningM!.toFixed(1)} m of lining, ${finish.width ?? 140} cm wide`] : []),
@@ -243,7 +246,7 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
     ],
     // Pleats, godets, a flounce or tiers, sewn in at the right moment; a gathered skirt's gathers.
     steps: gatherSteps(volumeSteps(steps, draft, { seam, waist, hem: hemDepth }), draft, elastic ? 'casing' : 'band'),
-  };
+  }, draft);
 }
 
 /** Gathering a skirt's waist, sewn the way a pattern cutter would. */
@@ -487,7 +490,7 @@ export function bodiceGuide(draft: BodiceDraft, _style: { length: BodiceLength }
   };
   // The top neckline's steps (corsetGuide.ts), then a draped neckline's and a peplum's (drapeSteps.ts).
   return mirroredGuide(draft, drapeBodiceSteps(
-    topSteps(styleBodiceSteps(guide, draft, { seam, curve, edges, sleeve: !!sleeve }), draft, { seam, curve, fabricM, liningM: finish.liningM, coutilM: finish.coutilM, width: finish.width }),
+    wrapSteps(topSteps(styleBodiceSteps(guide, draft, { seam, curve, edges, sleeve: !!sleeve }), draft, { seam, curve, fabricM, liningM: finish.liningM, coutilM: finish.coutilM, width: finish.width }), draft, { curve }),
     draft,
     { seam, curve, edges, sleeve: !!sleeve },
   ));
@@ -586,7 +589,7 @@ export function dressGuide(draft: DressDraft, style: { silhouette: Silhouette; l
     { title: 'Finish', text: `Sew a hook and eye at the top of the zip, inside the ${draft.bodice.top ? 'top edge' : 'neckline'}. Give the dress a final press.` },
   ];
 
-  return shirtDress(gatheredJoin(mirroredGuide(draft.bodice, drapeDressSteps(
+  return wrapDressSteps(shirtDress(gatheredJoin(mirroredGuide(draft.bodice, drapeDressSteps(
     {
       notions: top.notions.map((n) => (/invisible zip/.test(n) ? `${draft.zipCm} cm invisible zip` : n)),
       steps: volumeSteps(steps, draft.skirt, { seam, waist, hem: draft.skirt.pieces[0].allowances.hem ?? 4 }, 'dress'),
@@ -594,7 +597,7 @@ export function dressGuide(draft: DressDraft, style: { silhouette: Silhouette; l
     top,
     draft,
     { seam, waist, curve, edges, slit, sleeve: !!finish.sleeve },
-  )), draft), draft, top, { seam, waist });
+  )), draft), draft, top, { seam, waist }), draft, { seam, waist });
 }
 
 /**

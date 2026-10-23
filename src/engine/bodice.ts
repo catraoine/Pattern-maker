@@ -6,6 +6,7 @@
 // - front: shoulder to waist over the bust, bust depth and apex separation place the bust point,
 //   and the extra front length over the bust becomes a side bust dart;
 // - waist suppression is shared between the side seams and one waist dart per piece.
+import { wrapFront, wrapStyle, wrapTies } from './wrap';
 import { P, Path, add, len, lerp, mul, p, sub, taggedLength, unit } from './geometry';
 import { finishDart } from './darts';
 import { Piece, withAlternate } from './piece';
@@ -294,6 +295,8 @@ export interface BodiceDraft {
   peplum?: PeplumInfo;
   /** A strapless, sweetheart or cami top edge, its straps, and a boned bodice's bones and waist stay. */
   top?: TopDetails;
+  /** A wrap front: its front edge (own half on x > 0), where it crosses the centre front, and the ties. */
+  wrap?: { edge: P[]; cross: P; tieAt: P; ties: ReturnType<typeof wrapTies> };
 }
 
 /** The front and back as drafted: the shape the bodice sews up to, whatever its seams. */
@@ -414,7 +417,7 @@ export function draftBodice(m: BodiceMeasurements, style: Partial<BodiceStyle> =
   // A draped or uneven neckline allows no moved dart, princess seams, collar or button front (see
   // drape.ts and uneven.ts). A yoke, an empire seam or side panels take the bust dart from the side
   // seam (see seams.ts).
-  const s = unevenStyle(seamStyle(drapeStyle({ ...DEFAULT_BODICE_STYLE, ...style })));
+  const s = wrapStyle(unevenStyle(seamStyle(drapeStyle({ ...DEFAULT_BODICE_STYLE, ...style }))));
   // A peplum (drape.ts) goes on any waist-length bodice, a boned one too.
   const redraft = (st: BodiceStyle) => draftBlock(m, st);
   if (isTop(s.neckline)) {
@@ -444,6 +447,14 @@ function finish(d: BodiceDraft, s: BodiceStyle): BodiceDraft {
     // The bodice as sewn is buttoned shut: the block itself, centre front to centre front.
     block = [bf, bb];
     pieces = [...pieces, frontFacing(openBlock), ...[backNeckFacing(foldBlock)].filter((pc): pc is Piece => !!pc)];
+  }
+  let wrap: BodiceDraft['wrap'];
+  if (closure === 'wrap') {
+    // Each front crosses over the other and ties: no zip, the back on the fold, no collar.
+    const w = wrapFront(d.pieces[0], d.front.apex);
+    pieces = pieces.map((pc) => (pc === d.pieces[0] ? w.piece : /back/i.test(pc.name) ? backOnFold(pc) : pc));
+    wrap = { edge: w.edge, cross: w.cross, tieAt: w.tieAt, ties: wrapTies(d.finishedWaist, s.neckArmholeAllowance) };
+    return { ...d, pieces, block: [bf, bb], closure, collar: 'none', zipCm: 0, wrap, neck: Math.round((2 * taggedLength(bb.outline, 'neck') + 2 * taggedLength(w.piece.outline, 'neck')) * 10) / 10 };
   }
   if (collar !== 'none') {
     const ext = closure === 'front_buttons' && collar !== 'peter_pan' ? EXTENSION_CM : 0;

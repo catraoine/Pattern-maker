@@ -56,6 +56,7 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
     waist: {
       band: ['A firm band at the waist that closes with a zip. Neat and sits in place.'],
       elastic: ['Elastic in the waist so it pulls on with no zip. The easiest to sew.', 'easy'],
+      wrap: ['The front crosses over and the waistband runs on into ties, knotted at the side. No zip, and it adjusts as you wear it.'],
     },
     pockets: {
       none: ['No pockets.'],
@@ -118,6 +119,7 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
     closure: {
       back_zip: ['A zip down the centre back, out of sight from the front.'],
       front_buttons: ['Buttons down the front, like a blouse. You will sew buttonholes.', 'skill'],
+      wrap: ['The fronts cross over in a V and tie at the waist, so there is no zip or button to sew.'],
     },
     collar: {
       none: ['No collar, just a neatly finished neckline.', 'easy'],

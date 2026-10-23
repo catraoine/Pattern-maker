@@ -8,6 +8,7 @@ import { Flounce, GodetCount, Pleats, VolumeDraft, addVolume, volumeOf } from '.
 import { AsymHem, AsymPlan, quarterAsym } from './asymHem';
 import { SLIP_HEM, SLIP_HIP_EASE_LESS, closeToHem, cutsWhole, cutWhole, slipSideSupp, validCut } from './slip';
 import { inseamPocket, markSeam } from './pockets';
+import { foldBack, wrapSkirtAllowed, wrapSkirtFront, wrapTies } from './wrapSkirt';
 
 export interface SkirtMeasurements {
   waist: number;
@@ -68,6 +69,8 @@ export interface SkirtStyle {
   /** A dress only: cut with no waist seam, front and back each one piece from the shoulder to the hem
    * (see dress.ts). Ignored on a skirt. */
   noSeam?: NoSeam;
+  /** Wrapped: each front reaches across the body to a free edge, and it ties at the waist (see wrapSkirt.ts). */
+  wrap?: boolean;
 }
 
 export type WaistStyle = 'band' | 'elastic';
@@ -532,6 +535,9 @@ export interface SkirtDraft {
   pocket?: [number, number];
   /** A gathered skirt: its waist round as cut, and the band, casing or bodice seam it is gathered into. */
   gathers?: { round: number; into: number };
+  /** A wrap skirt: the whole front's waist (each front reaches across), and its ties (none on a dress,
+   * whose bodice carries them). */
+  wrap?: { frontWaist: number; ties?: ReturnType<typeof wrapTies> };
 }
 
 export const WAISTBAND_CM = 3; // finished width
@@ -593,6 +599,7 @@ const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v
 
 export function draftSkirt(m: SkirtMeasurements, style: Partial<SkirtStyle> = {}): SkirtDraft {
   const s = validCut({ ...DEFAULT_STYLE, ...style });
+  if (s.wrap && wrapSkirtAllowed(s)) return wrapped(drafted(m, { ...s, hem: undefined }), s);
   // Cut whole (a bias slip, or a hem that differs side to side): the halves are mirrored into whole
   // pieces, then hemmed and fitted to one side as whole pieces. Neither takes pleats, godets or a flounce,
   // nor in-seam pockets.
@@ -602,6 +609,26 @@ export function draftSkirt(m: SkirtMeasurements, style: Partial<SkirtStyle> = {}
   const plain = volumeOf(s) !== 'none' ? { ...s, hem: undefined } : s;
   const draft = withHighHip(addVolume(m, s, drafted(m, plain), (st) => drafted(m, st)), s.fitting?.highHip);
   return s.pockets === 'inseam' && !draft.volume ? withPockets(draft) : draft;
+}
+
+/**
+ * A wrap skirt from the plain one: each front traced again across the body, the back on the fold with
+ * no zip, and on its own a waistband that goes round once and across the front again, a tie at each end.
+ */
+function wrapped(draft: SkirtDraft, s: SkirtStyle): SkirtDraft {
+  const [front, back, ...rest] = draft.pieces;
+  const whole = wrapSkirtFront(front);
+  const frontWaist = taggedLength(whole.outline, 'waist');
+  const band = s.joinTo ? undefined : draft.finishedWaist + frontWaist;
+  const r = (v: number) => Math.round(v * 10) / 10;
+  return {
+    ...draft,
+    pieces: [whole, foldBack(back), ...rest],
+    halves: [front, foldBack(back)],
+    zipCm: 0,
+    waistband: band ? { cutLength: r(band + 2 * s.seamAllowance), cutWidth: draft.waistband.cutWidth, sideMark: r(s.seamAllowance + frontWaist) } : draft.waistband,
+    wrap: { frontWaist: r(frontWaist), ...(band ? { ties: wrapTies(draft.finishedWaist, s.seamAllowance) } : {}) },
+  };
 }
 
 /**

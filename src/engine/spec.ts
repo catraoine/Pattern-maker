@@ -42,8 +42,17 @@ export function skirtSpec(m: SkirtMeasurements, d: SkirtDraft): SpecRow[] {
   ];
 }
 
-/** The waistband, and the zip or the elastic that closes it. */
-function waistRows(d: { waistband: { cutLength: number; cutWidth: number }; elastic?: Elastic; zipCm: number }, zip = 'Invisible zip, centre back'): SpecRow[] {
+/** A wrap's two ties, finished and cut. */
+function tieRows(t: { outer: number; inner: number; cutWidth: number; cut: { outer: number; inner: number } }): SpecRow[] {
+  return [
+    { label: 'Wrap ties, finished (long / short)', finished: `${t.outer} / ${t.inner}` },
+    { label: 'Wrap ties, cut on the grain', finished: `${t.cut.outer} and ${t.cut.inner} x ${t.cutWidth}` },
+  ];
+}
+
+/** The waistband, and the zip or the elastic that closes it, or the ties of a wrap. */
+function waistRows(d: { waistband: { cutLength: number; cutWidth: number }; elastic?: Elastic; zipCm: number; wrap?: SkirtDraft['wrap'] }, zip = 'Invisible zip, centre back'): SpecRow[] {
+  if (d.wrap?.ties) return [{ label: 'Waistband (finished width 3), ties sewn into its ends', finished: `cut ${d.waistband.cutLength} x ${d.waistband.cutWidth}` }, ...tieRows(d.wrap.ties)];
   return d.elastic
     ? [
         { label: 'Waistband, elastic casing (finished width 3)', finished: `cut ${d.waistband.cutLength} x ${d.waistband.cutWidth}` },
@@ -85,7 +94,7 @@ export function bodiceSpec(m: BodiceMeasurements, d: BodiceDraft, length: Bodice
     row('Shoulder seam (back)', m.shoulder_length, d.shoulder.back),
     { label: 'Shoulder angle, front / back', finished: `${d.shoulderSlope.front} / ${d.shoulderSlope.back} degrees` },
     ...drapeSpec(d),
-    { label: d.drape?.kind === 'one_shoulder' ? `Invisible zip, ${zipSide(d)} side` : 'Invisible zip, centre back', finished: `${d.zipCm}` },
+    ...(d.wrap ? tieRows(d.wrap.ties) : [{ label: d.drape?.kind === 'one_shoulder' ? `Invisible zip, ${zipSide(d)} side` : 'Invisible zip, centre back', finished: `${d.zipCm}` }]),
   );
   return rows;
 }
@@ -110,7 +119,7 @@ export function dressSpec(m: DressMeasurements, d: DressDraft, sleeve?: SleeveDr
     ...skirtSpec(m, d.skirt).filter((r) => r.label !== 'Waist' && !zip.test(r.label) && !/Waistband/.test(r.label)),
     row('Length, nape to hem', undefined, d.lengthCm),
     ...(sleeve ? sleeveSpec(m, sleeve) : []),
-    { label: d.zipSide ? `Invisible zip, ${zipSide(d.bodice)} side` : 'Invisible zip, centre back', finished: `${d.zipCm}` },
+    ...(d.bodice.wrap ? [] : [{ label: d.zipSide ? `Invisible zip, ${zipSide(d.bodice)} side` : 'Invisible zip, centre back', finished: `${d.zipCm}` }]),
   ];
 }
 

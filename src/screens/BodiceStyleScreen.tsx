@@ -507,6 +507,8 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
         <p className="muted small">
           {detail.closure === 'front_buttons'
             ? `Buttons down the centre front${draft?.buttons ? ` (${draft.buttons.count})` : ''}, with front facings.`
+            : draft?.wrap
+              ? `The fronts cross over and tie at the waist, with no zip: the two fronts are one piece cut as a pair, and the back is cut on the fold. Ties ${draft.wrap.ties.outer} cm and ${draft.wrap.ties.inner} cm.`
             : draft?.drape?.kind === 'one_shoulder'
               ? `With a zip in the ${zipSide(draft)} side seam.`
               : 'With a centre back zip.'}{' '}

@@ -276,9 +276,11 @@ export function bonedDressSteps(d: DressDraft, top: SewingGuide, skirt: SewingGu
   return { notions: bonedNotions(b, o, `${d.zipCm} cm invisible zip`, top.notions[0]), steps };
 }
 
-/** A top's edge finish: a boned bodice is always lined, and a cami has no shoulders to face. */
+/** A top's edge finish: a boned bodice is always lined, and a cami has no shoulders to face (nor a wrap its edge). */
 export function edgesFor(d: BodiceDraft, e: BodiceEdges): BodiceEdges {
   if (d.top?.boned) return 'lined';
+  // A wrap's long front edge is bound or lined: a facing that long and curved would twist.
+  if (d.wrap && e === 'facings') return 'lined';
   return d.top && e === 'facings' ? 'lined' : e;
 }
 

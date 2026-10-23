@@ -14,6 +14,7 @@ import { ShapeSketch, Side } from '../ui/ShapeSketch';
 import { FabricSwatches, GarmentFabric } from '../ui/FabricFill';
 import { UndoToast, useUndo } from '../ui/useUndo';
 import { DrawMenu } from '../ui/DrawMenu';
+import { wrapSkirtAllowed } from '../engine/wrapSkirt';
 import { SaveControl } from '../ui/SaveControl';
 import { FinishChoices } from '../ui/FinishChoices';
 import type { Finish } from '../App';
@@ -83,14 +84,18 @@ export const GROUPS: [Group<'fit'>, Group<'silhouette'>, Group<'length'>, Group<
 
 /** The chosen option in a group: older saves have no hem choice, which is a level hem. */
 export const chosen = (c: Choices, id: keyof Choices) => (id === 'asymHem' ? c.asymHem ?? 'none' : c[id]);
-/** The skirt's details: in-seam pockets, and a zipped waistband or a pull-on elastic waist. */
-export const DETAIL_GROUPS: [Group<'waist'>, Group<'pockets'>] = [
-  { id: 'waist', label: 'Waist', options: [['band', 'Waistband with zip'], ['elastic', 'Elastic, pull-on']] },
+/** The skirt's details: in-seam pockets, and a zipped waistband, a pull-on elastic waist or a wrap that ties. */
+export const DETAIL_GROUPS: [{ id: 'waist'; label: string; options: [NonNullable<Choices['waist']> | 'wrap', string][] }, Group<'pockets'>] = [
+  { id: 'waist', label: 'Waist', options: [['band', 'Waistband with zip'], ['elastic', 'Elastic, pull-on'], ['wrap', 'Wrap, tied']] },
   { id: 'pockets', label: 'Pockets', options: [['none', 'None'], ['inseam', 'In-seam']] },
 ];
 
-/** A detail as saved: older saves have no pockets and a zipped waistband. */
-const detailOf = (c: Choices, id: 'waist' | 'pockets') => (id === 'waist' ? (c.waist ?? 'band') : (c.pockets ?? 'none'));
+/** A detail as saved: older saves have no pockets and a zipped waistband. A wrap is kept apart from the waist. */
+const detailOf = (c: Choices, id: 'waist' | 'pockets'): string => (id === 'waist' ? (c.wrap && wrapSkirtAllowed(c) ? 'wrap' : c.waist ?? 'band') : (c.pockets ?? 'none'));
+/** Picking a waist: the wrap is its own flag, so picking it puts the waistband back, and the others let it go. */
+const withWaist = (c: Choices, id: string): Choices => (id === 'wrap' ? { ...c, waist: undefined, wrap: true } : { ...c, waist: id as Choices['waist'], wrap: undefined });
+/** The choices without the wrap where the skirt can no longer wrap. */
+const keepWrap = (c: Choices): Choices => (c.wrap && !wrapSkirtAllowed(c) ? { ...c, wrap: undefined } : c);
 
 /** A pencil skirt is shaped by its darts, so it can't be gathered onto elastic; nor can a bias slip, a
  * diagonal hem or pleats (see elasticCutAllowed). */
@@ -98,7 +103,7 @@ export const elasticAllowed = (c: Pick<Choices, 'silhouette' | 'asymHem' | 'plea
 
 /** In-seam pockets go in a plain side seam: not where pleats, godets, a flounce or tiers change the
  * skirt's pieces, nor on a skirt cut whole. */
-export const pocketsAllowed = (c: Choices) => volumeWords(c) === '' && c.silhouette !== 'slip' && c.asymHem !== 'diagonal';
+export const pocketsAllowed = (c: Choices) => volumeWords(c) === '' && c.silhouette !== 'slip' && c.asymHem !== 'diagonal' && !(c.wrap && wrapSkirtAllowed(c));
 
 /** The choices with the zipped waistband back where an elastic waist isn't allowed. */
 const keepWaist = (c: Choices): Choices => (elasticAllowed(c) ? c : { ...c, waist: undefined });
@@ -133,7 +138,7 @@ export function describe(c: Choices) {
   if (c.shape) return `Skirt matched to a photo${withTail.replace(' with', ', with')}`;
   const len = c.lengthCm !== undefined ? `${Math.round(c.lengthCm)} cm` : GROUPS[2].options.find((o) => o[0] === v.length)![1];
   const sil = v.silhouette === 'slip' ? 'Bias-cut slip' : GROUPS[1].options.find((o) => o[0] === v.silhouette)![1];
-  return `${len} ${sil === 'A-line' ? sil : sil.toLowerCase()} skirt${withTail}`;
+  return `${len} ${sil === 'A-line' ? sil : sil.toLowerCase()} ${c.wrap && wrapSkirtAllowed(v) ? 'wrap ' : ''}skirt${withTail}`;
 }
 
 /** Fabric needed on 140 cm wide fabric, from the cutting layout of the pieces and the waistband. A
@@ -165,7 +170,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
   const [drawing, setDrawing] = useState(false);
   const [play, setPlay] = useState(0);
   const undoer = useUndo(choices, onChoices);
-  const change = undoer.change;
+  const change: typeof undoer.change = (c, ...rest) => undoer.change(keepWrap(c), ...rest);
   const m = values as SkirtMeasurements;
   /** The choices before drawing on the form, while it is open. */
   const [onForm, setOnForm] = useState<Choices>();
@@ -362,7 +367,12 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
           <Group key={g.id} label={g.label}>
             <div className="chips">
               {g.options.map(([id, label]) => {
-                const allowed = g.id === 'waist' ? id !== 'elastic' || elasticAllowed(choices) : id !== 'inseam' || pocketsAllowed(choices);
+                const allowed =
+                  g.id === 'waist'
+                    ? id === 'elastic'
+                      ? elasticAllowed(choices)
+                      : id !== 'wrap' || wrapSkirtAllowed({ ...choices, waist: undefined })
+                    : id !== 'inseam' || pocketsAllowed(choices);
                 return (
                   <button
                     key={id}
@@ -370,7 +380,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
                     className={detailOf(choices, g.id) === id ? 'chip on' : 'chip'}
                     aria-pressed={detailOf(choices, g.id) === id}
                     disabled={!allowed}
-                    onClick={() => change({ ...choices, [g.id]: id })}
+                    onClick={() => change(g.id === 'waist' ? withWaist(choices, id) : { ...choices, pockets: id as Choices['pockets'] })}
                   >
                     {label}
                   </button>
@@ -388,6 +398,14 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
                       ? 'A diagonal hem is cut in whole pieces with a side zip, so it keeps its waistband.'
                       : 'Pleats take the waist in themselves, so a pleated skirt keeps its waistband and zip.'}
               </p>
+            )}
+            {g.id === 'waist' && detailOf(choices, 'waist') === 'wrap' && (
+              <p className="muted small">
+                Wraps round with no zip: the front is cut as a pair that crosses over, and the waistband runs on past each front edge into a tie, one passing through a buttonhole at the side to knot with the other.
+              </p>
+            )}
+            {g.id === 'waist' && !wrapSkirtAllowed({ ...choices, waist: undefined }) && (
+              <p className="muted small">A wrap needs a straight or A-line skirt with a level hem, and no pleats, godets, flounce or pockets.</p>
             )}
             {g.id === 'waist' && choices.waist === 'elastic' && (
               <p className="muted small">

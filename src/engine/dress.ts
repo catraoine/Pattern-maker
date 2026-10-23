@@ -8,6 +8,7 @@ import type { Piece } from './piece';
 import { BodiceDraft, BodiceMeasurements, BodiceStyle, draftBodice } from './bodice';
 import { Buttons, EXTENSION_CM, backOnFold, openFront } from './collar';
 import { LENGTHS, NoSeam, Silhouette, SkirtDraft, SkirtMeasurements, SkirtStyle, draftSkirt, lengthRange } from './skirt';
+import { wrapSkirtAllowed } from './wrapSkirt';
 import { isTop } from './corset';
 import { volumeOf } from './skirtVolume';
 import { pathOf, ringOf } from './manipulate';
@@ -212,8 +213,11 @@ export function draftDress(m: DressMeasurements, bodiceStyle: Partial<BodiceStyl
   if (skirtStyle.noSeam && noSeamAllowed(bodiceStyle)) return noSeamDress(m, bodiceStyle, skirtStyle, skirtStyle.noSeam);
   // A shirt dress buttons down the front when its skirt can carry the buttons on; otherwise it zips.
   const wantButtons = bodiceStyle.closure === 'front_buttons' && buttonsOnSkirt(skirtStyle);
-  const bodice = draftBodice(m, { ...bodiceStyle, length: 'waist', closure: wantButtons ? 'front_buttons' : 'back_zip', peplum: 'none' });
+  // A wrap dress crosses over and ties at the waist when its skirt can wrap too; otherwise it zips.
+  const wantWrap = bodiceStyle.closure === 'wrap' && wrapSkirtAllowed({ silhouette: 'a_line', ...skirtStyle });
+  const bodice = draftBodice(m, { ...bodiceStyle, length: 'waist', closure: wantButtons ? 'front_buttons' : wantWrap ? 'wrap' : 'back_zip', peplum: 'none' });
   const buttoned = bodice.closure === 'front_buttons' && !!bodice.buttons;
+  const wrapped = bodice.closure === 'wrap';
   // Front and back may each be one piece or two panels (princess seams): their waists add up, and the
   // skirt dart goes under the bodice dart or under the princess seam.
   const side = (which: 'front' | 'back') => bodice.pieces.filter((pc) => !pc.kind && new RegExp(which, 'i').test(pc.name));
@@ -234,11 +238,12 @@ export function draftDress(m: DressMeasurements, bodiceStyle: Partial<BodiceStyl
   const zipCm = sideOpen
     ? (SIDE_ZIPS.find((z) => z - sideOpen.openingCm >= ZIP_BELOW_WAIST) ?? SIDE_ZIPS[SIDE_ZIPS.length - 1])
     : (DRESS_ZIPS.find((z) => z - cb >= ZIP_BELOW_WAIST) ?? DRESS_ZIPS[DRESS_ZIPS.length - 1]);
-  const below = buttoned ? 0 : Math.round((zipCm - (sideOpen ? sideOpen.openingCm : cb)) * 10) / 10;
+  const below = buttoned || wrapped ? 0 : Math.round((zipCm - (sideOpen ? sideOpen.openingCm : cb)) * 10) / 10;
 
   // The skirt's waist curve is a little longer than its width, so walk it to the bodice's.
   const join = { front: waist.front, back: waist.back, dartAt, zipCm: below };
-  let skirt = draftSkirt(m, { ...skirtStyle, joinTo: join });
+  const skirtOf = (j: typeof join) => draftSkirt(m, { ...skirtStyle, joinTo: j, wrap: wrapped || undefined });
+  let skirt = skirtOf(join);
   // A pleated skirt split to fit the fabric has two pieces a side: their waists add up. A skirt front
   // cut whole (a bias slip) has both halves of the waist.
   const halfWaist = (pc: Piece) => taggedLength(pc.outline, 'waist') / (pc.meta.whole ? 2 : 1);
@@ -251,7 +256,7 @@ export function draftDress(m: DressMeasurements, bodiceStyle: Partial<BodiceStyl
     if (Math.abs(df) < 0.005 && Math.abs(db) < 0.005) break;
     join.front += df;
     join.back += db;
-    skirt = draftSkirt(m, { ...skirtStyle, joinTo: join });
+    skirt = skirtOf(join);
   }
 
   // The zip runs on through the waist, so the bodice back loses its zip mark.
@@ -287,7 +292,7 @@ export function draftDress(m: DressMeasurements, bodiceStyle: Partial<BodiceStyl
     // The skirt as drafted, its front still whole, for its drawing and steps; the pieces to cut are opened.
     skirt: buttoned ? { ...skirt, zipCm: 0, pieces: skirt.pieces.map((pc) => (/^Skirt back/.test(pc.name) ? backOnFold(pc) : pc)) } : skirt,
     pieces: [...bodice.pieces.map(unzip), ...skirtPieces],
-    zipCm: buttoned ? 0 : zipCm,
+    zipCm: buttoned || wrapped ? 0 : zipCm,
     zipBelowWaist: below,
     ...(skirtButtons ? { skirtButtons } : {}),
     ...(sideOpen ? { zipSide: true } : {}),
