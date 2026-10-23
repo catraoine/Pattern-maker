@@ -7,7 +7,20 @@ import { facing } from './finishing';
 import { DraftPoint, Piece } from './piece';
 
 export type Closure = 'back_zip' | 'front_buttons';
-export type Collar = 'none' | 'peter_pan' | 'mandarin' | 'shirt';
+export type Collar = 'none' | 'peter_pan' | 'mandarin' | 'mock' | 'funnel' | 'shirt';
+/** The collars that are a single band standing up from the neck, sewn and finished like a mandarin. */
+export type BandCollar = 'mandarin' | 'mock' | 'funnel';
+export const isBandCollar = (c: Collar | undefined): c is BandCollar => c === 'mandarin' || c === 'mock' || c === 'funnel';
+/**
+ * Each band's finished height and how far its neck edge rises toward the front, in cm. A mandarin and a
+ * mock neck rise, so their top edge is shorter than the neck and hugs it; a funnel's neck edge drops,
+ * so its top edge is longer and stands a little away from the neck.
+ */
+export const BANDS: Record<BandCollar, { height: number; rise: number }> = {
+  mandarin: { height: 3.5, rise: 1.2 },
+  mock: { height: 6, rise: 1.4 },
+  funnel: { height: 7, rise: -1.2 },
+};
 
 /** Button size and the extension beyond the centre front that carries it, in cm. */
 export const BUTTON_CM = 1.5;
@@ -243,8 +256,10 @@ const notchAt = (pts: P[], s: number): [P, P] => {
 function band(c: CollarIn, name: string, height: number, rise: number): { piece: Piece; neck: P[]; top: P[]; cfAt: number } {
   const buttons = c.closure === 'front_buttons';
   const L = c.back + c.front + c.ext;
-  // Centre back at x = 0. Rising toward the front, flat where the band is folded.
-  const neck = neckCurve(L, buttons ? (t) => -rise * t * t : (t) => -rise * (1 - (1 - t) ** 2));
+  // Centre back at x = 0. The band laid flat is an arc round the neck, its ends rising from the middle
+  // (flat where it is folded), so the top edge comes out shorter than the neck edge and hugs the neck:
+  // from the centre back on a button front, from the centre front with a back zip.
+  const neck = neckCurve(L, buttons ? (t) => -rise * t * t : (t) => -rise * (1 - t) ** 2);
   const top = neck.map((q, i) => add(q, mul(upNormal(neck, i), height)));
   const m = neck.length - 1;
   // Closed outline: the neck edge to the front, up the front end, back along the top, and down the
@@ -289,15 +304,20 @@ function band(c: CollarIn, name: string, height: number, rise: number): { piece:
   return { piece, neck, top, cfAt };
 }
 
-export function mandarinCollar(c: CollarIn): Piece[] {
-  const b = band(c, 'Collar', 3.5, 1.2).piece;
+export function bandCollar(c: CollarIn, kind: BandCollar = 'mandarin'): Piece[] {
+  const { height, rise } = BANDS[kind];
+  const b = band(c, 'Collar', height, rise).piece;
+  b.meta = { ...b.meta, band: kind };
   b.draft = draftNotes([
     ['1', 'Square a line the length of half the neckline as sewn: back neck, front neck' + (c.ext ? ' and the extension.' : '.')],
-    ['2', 'Raise the front end 1.2 cm and curve the neck edge up to it, keeping its length.'],
-    ['3', 'Square up 3.5 cm all along for the top edge, and finish the ends square to the neck edge.'],
+    rise > 0
+      ? ['2', `Raise the front end ${rise} cm and curve the neck edge up to it, keeping its length.`]
+      : ['2', `Drop the front end ${-rise} cm and curve the neck edge down to it, keeping its length, so the top edge comes out longer and stands away from the neck.`],
+    ['3', `Square up ${height} cm all along for the top edge, and finish the ends square to the neck edge.`],
   ], b);
   return [b];
 }
+export const mandarinCollar = (c: CollarIn) => bandCollar(c, 'mandarin');
 
 /** A shirt collar: a stand like the mandarin, and the collar on it, springing out at its edge. */
 export function shirtCollar(c: CollarIn): Piece[] {
@@ -467,7 +487,7 @@ function draftNotes(notes: [string, string][], pc: Piece): Piece['draft'] {
 
 export function collarPieces(kind: Collar, front: Piece, back: Piece, c: CollarIn): Piece[] {
   if (kind === 'peter_pan') return peterPanCollar(front, back, c);
-  if (kind === 'mandarin') return mandarinCollar(c);
+  if (isBandCollar(kind)) return bandCollar(c, kind);
   if (kind === 'shirt') return shirtCollar(c);
   return [];
 }

@@ -117,6 +117,8 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       none: ['No collar, just a neatly finished neckline.', 'easy'],
       peter_pan: ['A flat collar with rounded ends that lies on the shoulders.'],
       mandarin: ['A narrow band that stands up round the neck.'],
+      mock: ['A taller band that hugs the neck, like a turtleneck that stops halfway. The back zip runs up through it.'],
+      funnel: ['A tall band that stands a little away from the neck, widening toward its top edge like a funnel.'],
       shirt: ['A classic shirt collar on a stand, with points that fold down.', 'skill'],
     },
     structure: {
@@ -140,6 +142,7 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       crew: ['A round neck that sits close at the base of the neck.', 'easy'],
       scoop: ['A wider, lower round neck.'],
       v: ['Comes down to a point at the front.', 'skill'],
+      mock: ['A tall knit band that stands up and hugs the neck, like a turtleneck that stops halfway.'],
     },
     sleeve: {
       short: ['A sleeve that ends on the upper arm.', 'easy'],

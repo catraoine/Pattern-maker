@@ -97,6 +97,12 @@ const NECK: Record<string, ReactNode> = {
   crew: topTo(44),
   scoop: <path d="M8 12L15 8C16 20 24 20 25 8L32 12L30 22L29 44H11L10 22z" />,
   v: <path d="M8 12L15 8L20 22L25 8L32 12L30 22L29 44H11L10 22z" />,
+  mock: (
+    <>
+      {topTo(44)}
+      <path d="M15.5 8.5L16 3Q20 4.5 24 3L24.5 8.5" />
+    </>
+  ),
   square: <path d="M8 12L15 8V18H25V8L32 12L30 22L29 44H11L10 22z" />,
   boat: <path d="M8 13L12 10Q20 14 28 10L32 13L30 22L29 44H11L10 22z" />,
   one_shoulder: <path d="M10 13L16 9L30 22L29 44H11L10 22z" />,

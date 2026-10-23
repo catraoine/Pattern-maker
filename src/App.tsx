@@ -1,3 +1,4 @@
+import { isBandCollar } from './engine/collar';
 import { useEffect, useMemo, useState } from 'react';
 import { showInInches } from './units';
 import { canGoBack, goBack, useViewHistory } from './nav';
@@ -697,7 +698,7 @@ export default function App() {
           : bodicePcs;
       // Facings are cut from the bodice as sewn, with any moved dart or princess seam closed.
       const [bf, bb] = blockOf(d.bodice);
-      const facings = edges === 'facings' ? (d.bodice.drape ? drapeFacings(d.bodice, !sleeve) : bodiceFacings(bf, bb, !sleeve, d.bodice.collar !== 'mandarin')) : [];
+      const facings = edges === 'facings' ? (d.bodice.drape ? drapeFacings(d.bodice, !sleeve) : bodiceFacings(bf, bb, !sleeve, !isBandCollar(d.bodice.collar))) : [];
       const pieces = allow([...top, ...(sleeve?.pieces ?? []), ...d.skirt.pieces, ...facings]);
       const lays = layPlans([...pieces, ...allow(layoutExtras(d.skirt))], finish.fabricWidth, nap, hide, false, border);
       const metres = (f: 'self' | 'lining' | 'interlining') => lays.find((l) => l.fabric === f)?.metres ?? bodiceFabricMetres(d.bodice, sleeve) + fabricMetres(d.skirt);
@@ -718,7 +719,7 @@ export default function App() {
           ...fittingNotes,
         ],
         guide: route(
-          dressGuide(d, dress.skirt, metres('self'), bindingMetres(d.bodice, { neck: edges === 'binding' && d.bodice.collar !== 'mandarin', armholes: sleeve ? edges === 'lined' : edges === 'binding' }), {
+          dressGuide(d, dress.skirt, metres('self'), bindingMetres(d.bodice, { neck: edges === 'binding' && !isBandCollar(d.bodice.collar), armholes: sleeve ? edges === 'lined' : edges === 'binding' }), {
             seams,
             edges,
             width: finish.fabricWidth,
@@ -743,7 +744,7 @@ export default function App() {
             : bodice.pieces.map((pc) => (pc.kind || /coutil/.test(pc.fabric ?? '') ? pc : { ...pc, fabric: 'Self fabric and lining' }))
           : bodice.pieces;
       // A button front's facings, or a band collar, finish the neck.
-      const neckDone = bodice.closure === 'front_buttons' || bodice.collar === 'mandarin' || bodice.collar === 'shirt';
+      const neckDone = bodice.closure === 'front_buttons' || isBandCollar(bodice.collar) || bodice.collar === 'shirt';
       const facings = edges === 'facings' ? (bodice.drape ? drapeFacings(bodice, !sleeve, !neckDone) : bodiceFacings(...blockOf(bodice), !sleeve, !neckDone)) : [];
       const pieces = allow([...main, ...(sleeve?.pieces ?? []), ...facings]);
       const edgeWords = sleeve

@@ -42,7 +42,8 @@ import { FormSketch } from '../ui/FormSketch';
 import { orSeam, readSeamLine } from '../ui/formSeams';
 import { orNeckline, readUnevenNeckline, unevenNecklineLines } from '../ui/formBodice';
 import { REPLACES } from './BodiceStyleScreen';
-import { bodiceLines, landmarks, readDrape, readFit, readNeckline, readSeam, readSkirtHem, skirtLines } from '../ui/formLines';
+import { bodiceLines, landmarks, readDrape, readFit, readNeckline, readSeam, readSkirtHem, skirtLines, standingBand } from '../ui/formLines';
+import { BANDS, isBandCollar } from '../engine/collar';
 import { ChoicePic, chipsClass } from '../ui/ChoicePic';
 import { Explain } from '../ui/Explain';
 import { DemoButton } from '../ui/DemoButton';
@@ -224,7 +225,10 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
     const uneven = unevenNecklineLines(draft.bodice);
     const skirt = skirtLines(draft.skirt, choices.skirt, mv, 'front', waistY);
     const bodice = bodiceLines(draft.bodice, 'front');
-    return { ...bodice, hem: skirt.hem, fit: [...(bodice.fit ?? []), ...(skirt.fit ?? [])], ...(uneven.length ? { neckline: uneven } : {}) };
+    // A mock or funnel neck, or a mandarin, stands up from the neckline.
+    const band = draft.bodice.collar;
+    const collar = isBandCollar(band) && bodice.neckline[0] ? standingBand(bodice.neckline[0], BANDS[band].height, band === 'funnel' ? 1.12 : band === 'mock' ? 0.96 : 1) : [];
+    return { ...bodice, hem: skirt.hem, fit: [...(bodice.fit ?? []), ...(skirt.fit ?? [])], ...(uneven.length ? { neckline: uneven } : {}), ...(collar.length ? { collar } : {}) };
   }, [draft, choices.skirt, mv, waistY]);
 
   if (onForm && draft) {

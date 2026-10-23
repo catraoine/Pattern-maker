@@ -16,7 +16,7 @@ import { TEE_EASE, TEE_NECKS, TeeDraft, TeeFit, TeeLength, TeeMeasurements, TeeN
 import { OUTER_EASE, OUTER_EXTENSION, OUTER_LENGTHS, OuterDraft, OuterFit, OuterFront, OuterMeasurements, outerDrop } from '../engine/outerwear';
 import { OUTER_LENGTH_WORDS, OuterChoices, TeeChoices } from '../garments';
 import { FormArm, FormBody, armAt, armFor, torsoForm } from './DrawOnForm';
-import { APEX_REACH, FormLine, Reading, WAIST_REACH, bodiceLines, edgeAt, half, landmarks, median, mirror } from './formLines';
+import { APEX_REACH, FormLine, Reading, WAIST_REACH, bodiceLines, edgeAt, half, landmarks, median, mirror, standingBand } from './formLines';
 
 const dist = (a: P, b: P) => Math.hypot(a.x - b.x, a.y - b.y);
 const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
@@ -47,10 +47,10 @@ function sideAt(stroke: P[], bustY: number, waistY: number) {
 // ---- The T-shirt -----------------------------------------------------------------------------
 
 const TEE_FITS: TeeFit[] = ['fitted', 'regular', 'relaxed'];
-const NECKS: TeeNeck[] = ['crew', 'scoop', 'v'];
+const NECKS: TeeNeck[] = ['crew', 'scoop', 'v', 'mock'];
 const LENGTHS: TeeLength[] = ['cropped', 'hip', 'tunic'];
 const SLEEVES: TeeSleeve[] = ['short', 'elbow', 'long'];
-const NECK_WORDS: Record<TeeNeck, string> = { crew: 'A crew neck', scoop: 'A scoop neck', v: 'A V-neck' };
+const NECK_WORDS: Record<TeeNeck, string> = { crew: 'A crew neck', scoop: 'A scoop neck', v: 'A V-neck', mock: 'A mock neck' };
 const SLEEVE_WORDS: Record<TeeSleeve, string> = { short: 'Short sleeves', elbow: 'Elbow-length sleeves', long: 'Long sleeves' };
 
 export type TeeFormMeasurements = TeeMeasurements & { bust_depth?: number; wrist?: number };
@@ -104,12 +104,13 @@ export function readTeeNeckline(stroke: P[], tf: TeeForm, c: TeeChoices): Readin
   const bow = Math.max(...pts.map((q) => Math.abs((centre.x - top.x) * (top.y - q.y) - (top.x - q.x) * (centre.y - top.y)) / chord)) / chord;
   const y = centre.y;
   const low = Math.abs(y - tf.necks.crew) > Math.abs(y - Math.min(tf.necks.scoop, tf.necks.v));
-  const neckline: TeeNeck = !low ? 'crew' : bow < 0.08 ? 'v' : 'scoop';
+  // A line close round the neck keeps a mock neck, whose band stands above it.
+  const neckline: TeeNeck = !low ? (c.neckline === 'mock' ? 'mock' : 'crew') : bow < 0.08 ? 'v' : 'scoop';
   const depth = Math.round(tf.necks[neckline] - tf.necks.crew);
   const off = Math.abs(y - tf.necks[neckline]) > 3 ? ' The T-shirt’s necklines come at set depths, and this is the nearest to your line.' : '';
   return {
     choices: { ...c, neckline },
-    said: `${NECK_WORDS[neckline]}${neckline === 'crew' ? ', close round the neck' : `, ${depth} cm lower than a crew at the centre front`}.${off}`,
+    said: `${NECK_WORDS[neckline]}${neckline === 'crew' || neckline === 'mock' ? ', close round the neck' : `, ${depth} cm lower than a crew at the centre front`}.${off}`,
   };
 }
 
@@ -165,8 +166,11 @@ export function teeLines(draft: TeeDraft, tf: TeeForm): Partial<Record<FormLine,
   // A front shaped for the bust is cut longer at the centre, and the bust takes that up: worn, the hem
   // hangs level with the back's, so it's drawn there.
   const level = edgeRun(back, 'hem')[0].y;
+  const neck = edgeRun(front, 'neck');
   return {
-    neckline: mirror(edgeRun(front, 'neck')),
+    neckline: mirror(neck),
+    // A mock neck's band stands up from the neckline, hugging the neck.
+    ...(draft.neckline === 'mock' ? { collar: standingBand(neck, draft.neckband.width, 0.96) } : {}),
     fit: mirror(edgeRun(front, 'side')),
     hem: mirror(edgeRun(front, 'hem').map((q) => ({ x: q.x, y: level }))),
     sleeve: mirror([{ x: a.inner, y }, { x: a.outer, y }]),

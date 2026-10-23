@@ -7,11 +7,12 @@ import type { Piece } from './piece';
 import type { SkirtDraft } from './skirt';
 import { WAISTBAND_CM } from './skirt';
 import { BodiceDraft, blockOf } from './bodice';
+import { BANDS, isBandCollar } from './collar';
 import type { BodiceEdges } from './instructions';
 import { BAND_CM, SleeveDraft } from './sleeve';
 import type { DressDraft } from './dress';
 import type { TrousersDraft } from './trousers';
-import { NECKBAND_CM, TeeDraft } from './tee';
+import { TeeDraft } from './tee';
 import { INSEAM, SLANT } from './pockets';
 import type { OuterDraft } from './outerwear';
 import { lerp } from './geometry';
@@ -595,7 +596,11 @@ function offsetRun(run: P[], d: (i: number) => number, from: P): P[] {
 function collarHalf(neck: P[], kind: BodiceDraft['collar'], front: boolean): { a: P[]; b: P[] }[] {
   if (kind === 'none' || neck.length < 2) return [];
   const up = (h: number) => neck.map((q) => p(q.x, q.y - h));
-  if (kind === 'mandarin') return [{ a: neck, b: up(3.5) }];
+  // A band stands up from the neck: a mock neck leans in a little to hug it, a funnel stands out from it.
+  if (isBandCollar(kind)) {
+    const lean = kind === 'funnel' ? 1.12 : kind === 'mock' ? 0.96 : 1;
+    return [{ a: neck, b: up(BANDS[kind].height).map((q) => p(q.x * lean, q.y)) }];
+  }
   if (kind === 'peter_pan') {
     const L = neck.reduce((s2, q, i) => (i ? s2 + len(sub(q, neck[i - 1])) : 0), 0);
     let acc = 0;
@@ -940,7 +945,7 @@ export function teeFlat(d: TeeDraft): Flat {
       const shift = sub(hps(front), hps(back));
       const backNeck = along(back, 'neck')[0]?.map((q) => add(q, shift));
       if (backNeck && front.run[0].y > backNeck[0].y + 1) {
-        const band = offsetRun(backNeck, () => NECKBAND_CM, p(0, 1000));
+        const band = offsetRun(backNeck, () => d.neckband.width, p(0, 1000));
         for (const pts of [...both(backNeck), ...both(band)]) lines.push({ pts, kind: 'seam' });
       }
     }
@@ -957,7 +962,7 @@ export function teeFlat(d: TeeDraft): Flat {
     }
     // The band on top, standing up from the neckline into the opening.
     if (neck.length > 1) {
-      const band = offsetRun(neck, () => NECKBAND_CM, p(0, 1000));
+      const band = offsetRun(neck, () => d.neckband.width, p(0, 1000));
       const half = [...neck, ...[...band].reverse()];
       shapes.push(half, mirror(half));
     }

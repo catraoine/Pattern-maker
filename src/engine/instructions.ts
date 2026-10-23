@@ -1,5 +1,6 @@
 // Plain-language sewing steps for the drafted skirt and bodice, shown in the app and added to the end of the PDF.
 // Keep to plain ASCII punctuation: the PDF uses a standard font without curly quotes.
+import { isBandCollar } from './collar';
 import { isCircle } from './skirt';
 import type { Elastic, Length, Silhouette, SkirtDraft } from './skirt';
 import type { BodiceDraft, BodiceLength } from './bodice';
@@ -619,7 +620,7 @@ function gatheredJoin(g: SewingGuide, draft: DressDraft): SewingGuide {
 
 /** Cutting a dress's collar. */
 const collarCut = (d: BodiceDraft) =>
-  d.collar === 'peter_pan' ? ' Cut four collar pieces (two pairs), and interface two of them.' : d.collar === 'mandarin' ? ' Cut the collar twice on the fold, and interface one.' : '';
+  d.collar === 'peter_pan' ? ' Cut four collar pieces (two pairs), and interface two of them.' : isBandCollar(d.collar) ? ' Cut the collar twice on the fold, and interface one.' : '';
 
 /** The steps for set-in sleeves, after the bodice is closed and its neck finished. */
 function sleeveSteps(sl: SleeveDraft, seam: string, curve: string, lined: boolean): SewStep[] {

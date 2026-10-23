@@ -89,6 +89,9 @@ describe('collars and a button front', () => {
     { collar: 'mandarin' },
     { collar: 'peter_pan', closure: 'front_buttons' },
     { collar: 'mandarin', closure: 'front_buttons' },
+    { collar: 'mock' },
+    { collar: 'funnel' },
+    { collar: 'mock', closure: 'front_buttons' },
     { collar: 'shirt', closure: 'front_buttons' },
     { collar: 'shirt', closure: 'front_buttons', princess: 'armhole' },
     { closure: 'front_buttons', bustDart: 'neck' },
@@ -125,7 +128,7 @@ describe('steps, flat and print for the styled bodice', () => {
   it('writes plain steps for every finish, with no zip on a button front', () => {
     const b = randomBody(rng(5));
     for (const edges of ['binding', 'facings', 'lined'] as const)
-      for (const st of [{ princess: 'shoulder' }, { bustDart: 'neck' }, { collar: 'peter_pan' }, { collar: 'mandarin' }, { collar: 'shirt', closure: 'front_buttons' }, { closure: 'front_buttons' }] as Partial<BodiceStyle>[]) {
+      for (const st of [{ princess: 'shoulder' }, { bustDart: 'neck' }, { collar: 'peter_pan' }, { collar: 'mandarin' }, { collar: 'mock' }, { collar: 'funnel' }, { collar: 'shirt', closure: 'front_buttons' }, { closure: 'front_buttons' }] as Partial<BodiceStyle>[]) {
         const d = draftBodice(b, { fit: 'regular', ...st });
         const g = bodiceGuide(d, { length: 'waist' }, 1.5, 1, { edges });
         const t = g.steps.map((s) => s.title);

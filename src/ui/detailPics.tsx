@@ -89,6 +89,8 @@ const DETAILS: Record<ExplainSet, Record<string, Record<string, ReactNode>>> = {
       none: on(TOP),
       peter_pan: on(TOP, 'M15 8Q12 15 19.5 13.5M25 8Q28 15 20.5 13.5'),
       mandarin: on(TOP, 'M15 8V4.5Q20 7 25 4.5V8'),
+      mock: on(TOP, 'M15 8L15.5 2.5Q20 4.5 24.5 2.5L25 8'),
+      funnel: on(TOP, 'M15 8L13.5 2Q20 4 26.5 2L25 8'),
       shirt: on(TOP, 'M15 8V5Q20 7 25 5V8M15 8L17.5 15L20 12.5L22.5 15L25 8'),
     },
     structure: {

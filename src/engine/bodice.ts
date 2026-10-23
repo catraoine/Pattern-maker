@@ -12,7 +12,7 @@ import { Piece, withAlternate } from './piece';
 import { DraftError, Side, cm } from './skirt';
 import type { DartPlace, PrincessLine } from './manipulate';
 import { moveFrontDart, princessPieces } from './shaping';
-import { Buttons, Closure, Collar, EXTENSION_CM, backNeckFacing, backOnFold, buttonPlaces, collarPieces, frontFacing, openFront } from './collar';
+import { Buttons, Closure, Collar, EXTENSION_CM, backNeckFacing, backOnFold, buttonPlaces, collarPieces, frontFacing, isBandCollar, openFront } from './collar';
 import { DrapeInfo, Peplum, PeplumInfo, drapeBodice, drapeStyle } from './drape';
 import { BONED_EASE, Structure, TopDetails, bonedPanels, cutTop, isBoned, isTop, topStyle } from './corset';
 import type { HemShape } from './hem';
@@ -420,7 +420,7 @@ function finish(d: BodiceDraft, s: BodiceStyle): BodiceDraft {
   if (closure === 'front_buttons') {
     const cfNeck = bf.outline.start;
     const foot = Math.max(...bf.outline.points(4).filter((q) => Math.abs(q.x) < 1e-6).map((q) => q.y));
-    buttons = buttonPlaces(cfNeck.y, foot, collar === 'mandarin' || collar === 'shirt', !needsHip(s.length), d.front.apex.y);
+    buttons = buttonPlaces(cfNeck.y, foot, isBandCollar(collar) || collar === 'shirt', !needsHip(s.length), d.front.apex.y);
     pieces = pieces.map((pc) => (pc.fold && /front/i.test(pc.name) ? openFront(pc, buttons) : /back/i.test(pc.name) ? backOnFold(pc) : pc));
     const openBlock = openFront(bf);
     const foldBlock = backOnFold(bb);

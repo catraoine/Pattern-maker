@@ -353,6 +353,20 @@ export function readSkirtSide(stroke: P[], waistY: number, draft: Pick<SkirtDraf
 /** Both halves of a half line. */
 export const mirror = (pts: P[]): P[][] => [pts, pts.map((q) => ({ x: -q.x, y: q.y }))];
 
+/**
+ * A band standing up from a neckline, as it looks from the front: its top edge `height` above the
+ * neckline (half of it, centre to neck point), leaning in toward the neck (`lean` below 1) or out
+ * from it (above 1), and its sides at the neck points.
+ */
+export function standingBand(halfNeck: P[], height: number, lean = 1): P[][] {
+  if (halfNeck.length < 2) return [];
+  const end = halfNeck.reduce((a, q) => (Math.abs(q.x) > Math.abs(a.x) ? q : a));
+  // Wrapped round the neck, the band's top edge dips far less at the front than the neckline does.
+  const top = halfNeck.map((q) => ({ x: q.x * lean, y: end.y - height + (q.y - end.y) * 0.4 }));
+  const topEnd = top[halfNeck.indexOf(end)];
+  return [...mirror(top), ...mirror([end, topEnd])];
+}
+
 /** Dart fold lines from the sketch's own path, as polylines. */
 const darts = (draft: BodiceDraft, side: FormSide): P[][] =>
   (worn(draft, side).darts(0).match(/M[^M]+/g) ?? []).map((seg) => {
