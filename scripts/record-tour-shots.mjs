@@ -23,13 +23,15 @@ const main = p.getByRole('main');
 const wait = (ms) => p.waitForTimeout(ms);
 
 let cdp, frames;
+// While held, no frames are kept: the last one stays on screen until the change is drawn.
+let hold = false;
 async function start() {
   // A still screen sends no frames, so start with one. (Taken before the screencast starts: a screenshot during it
   // stalls it on the wide screen.)
   frames = [{ data: (await p.screenshot({ type: 'jpeg', quality: 92 })).toString('base64'), t: Date.now() / 1000 }];
   cdp = await ctx.newCDPSession(p);
   cdp.on('Page.screencastFrame', (e) => {
-    frames.push({ data: e.data, t: e.metadata.timestamp });
+    if (!hold) frames.push({ data: e.data, t: e.metadata.timestamp });
     cdp.send('Page.screencastFrameAck', { sessionId: e.sessionId }).catch(() => {});
   });
   await cdp.send('Page.startScreencast', { format: 'jpeg', quality: 92, maxWidth: FW, maxHeight: FH });
@@ -64,7 +66,8 @@ async function stop(name) {
   rmSync(work, { recursive: true, force: true });
   console.log(`${name}: ${(endT - frames[0].t).toFixed(1)} s`);
 }
-const VALUES = { Height: '165', Weight: '', Waist: '76', 'Full hip': '102', 'Waist to hip': '20.5', 'Waist to knee': '58', 'Waist to floor': '104', 'Crotch depth': '27', 'Crotch length': '70', 'Full bust': '92', 'High bust': '86', Neck: '35', 'Shoulder width': '38', 'Back length': '41', 'Front length': '44', 'Bust depth': '26', 'Bust point to bust point': '18', 'Shoulder length': '12', 'Across back': '35', 'Across front': '32', Armhole: '40', 'Upper arm': '28', Wrist: '16', 'Arm length': '58' };
+// A slimmer, taller sample figure, so the clothes read long and lean on the form (Cat, 2026-10-23).
+const VALUES = { Height: '176', Weight: '', Waist: '64', 'Full hip': '92', 'Waist to hip': '21', 'Waist to knee': '62', 'Waist to floor': '112', 'Crotch depth': '27', 'Crotch length': '68', 'Full bust': '84', 'High bust': '80', Neck: '33', 'Shoulder width': '37', 'Back length': '43', 'Front length': '45', 'Bust depth': '25', 'Bust point to bust point': '17', 'Shoulder length': '12', 'Across back': '34', 'Across front': '31', Armhole: '38', 'Upper arm': '25', Wrist: '15', 'Arm length': '61' };
 async function fillAll() {
   let last = '';
   const checked = main.getByRole('heading', { name: 'Do these look right?' });
@@ -155,49 +158,103 @@ await fillAll();
 await main.getByRole('heading', { level: 1, name: 'Style your dress' }).waitFor();
 await wait(1500);
 
-// collection: the Maison collection's looks, a slow scroll down to Épaule (Cat, 2026-10-22: the column dress read
-// wide and frumpy on the form; Épaule's bare shoulder and dipped hem are the sharper silhouette)
-const entry = main.getByRole('button', { name: 'Start from the Maison collection' });
-await entry.scrollIntoViewIfNeeded();
-await entry.click();
-await wait(1500);
-await p.evaluate(() => window.scrollTo(0, 0));
-const epaule = main.locator('li.house-look').filter({ has: p.getByRole('heading', { name: 'Épaule', exact: true }) });
-const lookTop = await epaule.evaluate((el) => el.getBoundingClientRect().top + scrollY - 70);
-const tailleurTop = await main.locator('li.house-look').first().evaluate((el) => el.getBoundingClientRect().top + scrollY - 70);
-await glide(tailleurTop, 10);
-await wait(800);
-await start();
-await wait(1400);
-await glide(lookTop, 6500);
-await wait(1600);
-await stop('collection');
-await epaule.getByRole('button', { name: 'Make this look' }).click();
-await wait(1500);
-await fillAll();
-await main.getByRole('heading', { level: 1, name: /^Style your/ }).waitFor();
-await p.evaluate(() => window.scrollTo(0, 0));
-await wait(1500);
-
-// fabric: the Fabric tab, the dress filling with one fabric and colour after another (Cat, 2026-10-22: in place of
-// the photo looks). Taps go straight to the buttons so the page doesn't scroll away from the drawing.
+// style: the dress styled with the tools (Cat, 2026-10-23, after a COS dress): the waist seam dropped, the hem drawn
+// longer and the side drawn looser on the form, then the drawing filled navy, a white stripe and, to end, Prince of
+// Wales. A tap shows as the pen dot pressing the button; marks prints when each moment starts, for edit-tour.mjs.
 const tap = async (loc, ms) => { await loc.evaluate((el) => el.click()); await p.evaluate(() => window.scrollTo(0, 0)); await wait(ms); };
-await tap(main.getByRole('tab', { name: 'Fabric', exact: true }), 1200);
-const fabric = (name) => main.getByRole('radio', { name, exact: true });
-const colour = (name) => main.getByRole('radiogroup', { name: 'Colour' }).getByRole('radio', { name, exact: true });
+await p.evaluate(() => {
+  const d = document.createElement('div');
+  d.id = 'pen';
+  Object.assign(d.style, { position: 'fixed', width: '14px', height: '14px', margin: '-7px 0 0 -7px', borderRadius: '50%', background: '#d8c49c', opacity: 0, zIndex: 99998, pointerEvents: 'none', boxShadow: '0 0 0 6px rgba(216,196,156,.25)', transition: 'opacity .25s' });
+  document.body.appendChild(d);
+});
+const pen = (x, y, o) => p.evaluate(([x, y, o]) => Object.assign(document.getElementById('pen').style, { left: x + 'px', top: y + 'px', opacity: o }), [x, y, o]);
+const press = async (loc, ms) => {
+  const bx = await loc.boundingBox();
+  if (!bx || bx.y < 0 || bx.y + bx.height > (WIDE ? 810 : 768)) return tap(loc, ms);
+  await pen(bx.x + bx.width / 2, bx.y + bx.height / 2, 1);
+  await wait(380);
+  await loc.evaluate((el) => el.click());
+  await wait(220);
+  await p.evaluate(() => { document.getElementById('pen').style.opacity = 0; });
+  await wait(ms);
+};
+// A line drawn with the pen dot, through points given as fractions of the form picture.
+const draw = async (loc, pts, pause) => {
+  const bx = await loc.boundingBox();
+  const at = ([x, y]) => [bx.x + x * bx.width, bx.y + y * bx.height];
+  const path = [];
+  for (let i = 0; i + 1 < pts.length; i++)
+    for (let s = 0; s < 14; s++) path.push(at([pts[i][0] + ((pts[i + 1][0] - pts[i][0]) * s) / 14, pts[i][1] + ((pts[i + 1][1] - pts[i][1]) * s) / 14]));
+  path.push(at(pts[pts.length - 1]));
+  await p.evaluate(() => { document.getElementById('pen').style.transition = 'none'; });
+  await pen(...path[0], 1);
+  await p.mouse.move(...path[0]);
+  await p.mouse.down();
+  for (const [x, y] of path.slice(1)) { await p.mouse.move(x, y); await pen(x, y, 1); await wait(24); }
+  await p.mouse.up();
+  await pen(...path[path.length - 1], 0);
+  await p.evaluate(() => { document.getElementById('pen').style.transition = 'opacity .25s'; });
+  await wait(pause);
+};
+let t0;
+const mark = (what) => console.log(`  style ${what}: ${((Date.now() - t0) / 1000).toFixed(1)} s`);
+// The lines, as fractions of the form picture: the hem low on the calf, the side out from the underarm to the hip.
+const LINES = WIDE
+  ? { hem: [[0.36, 0.86], [0.5, 0.875], [0.64, 0.86]], side: [[0.585, 0.29], [0.605, 0.4], [0.62, 0.5]] }
+  : { hem: [[0.32, 0.86], [0.5, 0.875], [0.68, 0.86]], side: [[0.6, 0.29], [0.625, 0.4], [0.64, 0.5]] };
+await p.evaluate(() => window.scrollTo(0, 0));
+await wait(600);
 await start();
-await wait(1000);
-await tap(fabric('Satin'), 600);
-await tap(colour('Black'), 1500);
-await tap(fabric('Silk'), 500);
-await tap(colour('Ivory'), 1500);
-await tap(fabric('Velvet'), 500);
-await tap(colour('Emerald'), 1500);
-await tap(fabric('Wool'), 500);
-await tap(colour('Burgundy'), 1800);
-await stop('fabric');
-await tap(fabric('Satin'), 300);
-await tap(colour('Black'), 600);
+t0 = Date.now();
+await wait(1200);
+mark('shape');
+await press(main.getByRole('tab', { name: 'Shape', exact: true }), 500);
+const dropped = main.locator('button, [role=radio]').filter({ hasText: /^\s*Dropped/ }).first();
+if (!WIDE) await glide(Math.max(0, await dropped.evaluate((el) => el.getBoundingClientRect().bottom + scrollY - 740)), 900);
+await wait(500);
+await press(dropped, 1800);
+if (!WIDE) await glide(0, 700);
+await wait(400);
+mark('draw');
+await press(main.getByRole('button', { name: 'Draw on your form' }).first(), 1300);
+const form = main.getByRole('img', { name: /Your dress form from the/ });
+const kinds = main.getByRole('group', { name: 'What you are drawing' });
+await tap(kinds.getByRole('button', { name: 'Hem', exact: true }), 500);
+await draw(form, LINES.hem, 1500);
+await tap(kinds.getByRole('button', { name: 'Side', exact: true }), 500);
+await draw(form, LINES.side, 1500);
+await press(main.getByRole('button', { name: 'Done', exact: true }), 600);
+await p.evaluate(() => window.scrollTo(0, 0));
+await press(main.getByRole('group', { name: 'Preview view' }).getByRole('button', { name: /^Garment/ }), 700);
+mark('fabric');
+await tap(main.getByRole('tab', { name: 'Fabric', exact: true }), 1200);
+// Two taps in one go, held off camera, so the frame between them (the cloth's own colour, or checks before stripes)
+// never shows.
+const both = async (first, second) => {
+  hold = true;
+  await twoTaps(first, second);
+  await wait(400);
+  hold = false;
+};
+const twoTaps = (first, second) => p.evaluate(async ([a, b]) => {
+  const find = (q) => [...document.querySelectorAll(q.sel)].find((el) => el.getAttribute('aria-label') === q.name || el.textContent.trim().startsWith(q.name));
+  find(a).click();
+  // (React may draw the second button a task later, still before the next frame.)
+  for (let i = 0; i < 20 && !find(b); i++) await new Promise((r) => setTimeout(r, 0));
+  find(b).click();
+  window.scrollTo(0, 0);
+}, [first, second]);
+await both({ sel: '[role=radiogroup][aria-label="Fabric for the sketch"] [role=radio]', name: 'Viscose' }, { sel: '[role=radiogroup][aria-label="Colour"] [role=radio]', name: 'Navy' });
+await wait(2000);
+const about = main.locator('summary', { hasText: 'About your fabric' });
+if (!(await about.evaluate((el) => el.parentElement.open))) await tap(about, 100);
+await both({ sel: '[role=radiogroup][aria-label="What\'s printed on your fabric"] [role=radio]', name: 'Checks' }, { sel: '[role=radiogroup][aria-label="Checks or stripes"] [role=radio]', name: 'Stripes' });
+await wait(2000);
+const stripes = main.getByRole('radiogroup', { name: 'Checks or stripes' });
+mark('checks');
+await tap(stripes.getByRole('radio', { name: 'Checks' }), 2600);
+await stop('style');
 
 // pattern: the pieces you cut
 await start();

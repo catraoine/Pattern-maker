@@ -98,6 +98,11 @@ async function piece({ shot, still, from = 0, dur, speed = 1, zoom = [1, 1], at 
 // Where to look in each shot: the drawing alone, framed in black (see mask).
 // The dress filling with fabric: the drawing and the swatches tapped under it.
 const FABRIC = WIDE ? { zoom: [1.05, 1.1], at: [0.45, 0.48], frame: [0.08, 1.05] } : { zoom: [1.12, 1.18], at: [0.5, 0.52], frame: [0.27, 0.8] };
+// The style shot's three moments (the times record-tour-shots.mjs prints): the waist seam dropped, the hem and
+// side drawn on the form, and the drawing filled navy, stripe, then Prince of Wales (Cat, 2026-10-23).
+const STYLE = WIDE
+  ? { shape: { from: 1, dur: 4.4, speed: 1.3, zoom: [1.3, 1.36], at: [0.6, 0.46] }, draw: { from: 7, dur: 7.6, speed: 1.5, zoom: [1.9, 1.95], at: [0.5, 0.57] }, fabric: { from: 26.05, dur: 6.4, speed: 1.4 } }
+  : { shape: { from: 1, dur: 6, speed: 1.3 }, draw: { from: 9.4, dur: 6, speed: 1.4 }, fabric: { from: 26.55, dur: 6.4, speed: 1.4 } };
 // Cat (2026-10-22): the cream pattern paper was too bright after the black pages; a deeper champagne here.
 // Wide: from the moment the pattern is up, slowed a touch to fill its time (Cat, 2026-10-22: the drawing flashed before it).
 const PATTERN = WIDE
@@ -146,12 +151,12 @@ const INTROS = {
   // C5 Long Push: the whole form, pushed in fast to the seams, the title landing as it gets close.
   C5: async () => [await piece({ shot: 'round', from: 0.4, dur: 4.6, speed: 1.8, fadeIn: 0.8, fadeOut: 0.5, over: await title(), overAt: 2.4, overIn: 0.6 })],
   // D Fabric First: the dress flicking through fabrics, the title over it.
-  D: async () => [await piece({ shot: 'fabric', from: 2, dur: 3.6, speed: 3, ...(WIDE ? { zoom: [2.1, 2.15], at: [0.41, 0.6], frame: [-0.1, 1.05, -0.1, 0.92] } : { zoom: [1.7, 1.75], at: [0.48, 0.49], frame: [0.23, 0.76] }), fadeIn: 0.8, fadeOut: 0.5, over: await title(), overAt: 0.6 })],
+  D: async () => [await piece({ shot: 'style', from: 24.4, dur: 3.6, speed: 3, ...(WIDE ? { zoom: [2.1, 2.15], at: [0.41, 0.6], frame: [-0.1, 1.05, -0.1, 0.92] } : { zoom: [1.7, 1.75], at: [0.48, 0.49], frame: [0.23, 0.76] }), fadeIn: 0.8, fadeOut: 0.5, over: await title(), overAt: 0.6 })],
 };
 const CUTS = {
   // V1 Chapter Words (Cat's pick, 2026-10-22): slow and cinematic, a word or two on a page between the moments;
-  // Style is about the clothes: the collection, one of its pieces in fabric after fabric, then all round on you,
-  // drawing closer as it turns (the recorder fills the screen with it; Cat, 2026-10-22).
+  // Style is about the clothes: a dress styled with the tools and filled with fabric (Cat, 2026-10-23), then all
+  // round on you, drawing closer as it turns (the recorder fills the screen with it; Cat, 2026-10-22).
   words: async () => {
     const f = 0.5;
     const opening = [
@@ -169,8 +174,9 @@ const CUTS = {
       await piece({ still: await card('02', 'Choose', 'Then what to make.'), dur: 3, fadeIn: f, fadeOut: f }),
       await piece({ shot: 'choose', from: 0.3, dur: 3.2, fadeIn: f, fadeOut: f }),
       await piece({ still: await card('03', 'Style', 'Make it yours.'), dur: 3, fadeIn: f, fadeOut: f }),
-      await piece({ shot: 'collection', from: 1, dur: 6, speed: 1.3, fadeIn: f, fadeOut: f }),
-      await piece({ shot: 'fabric', from: 0.6, dur: 8.6, speed: 2.1, ...FABRIC, fadeIn: f, fadeOut: f }),
+      await piece({ shot: 'style', ...STYLE.shape, fadeIn: f, fadeOut: f }),
+      await piece({ shot: 'style', ...STYLE.draw, fadeIn: f, fadeOut: f }),
+      await piece({ shot: 'style', ...STYLE.fabric, ...FABRIC, fadeIn: f, fadeOut: f }),
       await piece({ shot: 'round', from: 0.3, dur: 8.6, fadeIn: f, fadeOut: f, overs: (await threeChecks()).map((p, i) => [p, 0.9 + i * 1.8]) }),
       await piece({ shot: 'pattern', dur: 3.6, ...PATTERN, fadeIn: f, fadeOut: f }),
       await piece({ still: await card('04', 'Print', 'At home, or full size.'), dur: 3, fadeIn: f, fadeOut: f }),
