@@ -327,7 +327,8 @@ export function detailAllowed(c: BodiceChoices, id: 'princess' | 'bustDart' | 'c
   const top = isTop(c.neckline);
   if (id === 'princess') return opt === 'none' || (c.darts === 'bust_waist' && !top);
   if (id === 'bustDart') return c.darts !== 'none' && (opt !== 'waist' || c.length === 'waist') && !(top && (opt === 'shoulder' || opt === 'armhole'));
-  if (id === 'closure') return opt === 'back_zip' || (garment === 'bodice' && !top);
+  // A dress buttons down the front too (a shirt dress), when its skirt can carry the buttons on (see dress.ts).
+  if (id === 'closure') return opt === 'back_zip' || !top;
   if (opt === 'none') return true;
   if (opt === 'shirt') return c.closure === 'front_buttons' && c.neckline === 'crew';
   return c.neckline === 'crew' || (opt === 'peter_pan' && c.neckline === 'scoop');

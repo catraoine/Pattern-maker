@@ -250,7 +250,7 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
 export function gatherStep(g: NonNullable<SkirtDraft['gathers']>, into: string, zipped: boolean): SewStep {
   return {
     title: 'Gather the waist',
-    text: `Sew two rows of long machine stitches along the waist of each piece, one just inside the seam line and one 0.5 cm further out, stopping ${zipped ? 'at the zip and ' : ''}at each seam. Leave long thread ends. The waist is ${n1(g.round)} round as cut and gathers into ${n1(g.into)} of ${into}, ${Math.round((g.round / g.into) * 10) / 10} times as much: pull up the bobbin threads from both ends until each quarter fits its quarter of the ${into}, matching the notches, and spread the gathers evenly. Gathers are easiest to control in sections, so pin often.`,
+    text: `Sew two rows of long machine stitches along the waist of each piece, one just inside the seam line and one 0.5 cm further out, stopping ${zipped ? 'at the zip and ' : ''}at each seam. Leave long thread ends. The waist is ${n1(g.round)} round as cut and gathers into ${n1(g.into)} of ${into}, ${Math.round((g.round / g.into) * 10) / 10} times as much: pull up the bobbin threads from both ends until each quarter fits its quarter of ${into}, matching the notches, and spread the gathers evenly. Gathers are easiest to control in sections, so pin often.`,
   };
 }
 
@@ -585,7 +585,7 @@ export function dressGuide(draft: DressDraft, style: { silhouette: Silhouette; l
     { title: 'Finish', text: `Sew a hook and eye at the top of the zip, inside the ${draft.bodice.top ? 'top edge' : 'neckline'}. Give the dress a final press.` },
   ];
 
-  return gatheredJoin(mirroredGuide(draft.bodice, drapeDressSteps(
+  return shirtDress(gatheredJoin(mirroredGuide(draft.bodice, drapeDressSteps(
     {
       notions: top.notions.map((n) => (/invisible zip/.test(n) ? `${draft.zipCm} cm invisible zip` : n)),
       steps: volumeSteps(steps, draft.skirt, { seam, waist, hem: draft.skirt.pieces[0].allowances.hem ?? 4 }, 'dress'),
@@ -593,7 +593,73 @@ export function dressGuide(draft: DressDraft, style: { silhouette: Silhouette; l
     top,
     draft,
     { seam, waist, curve, edges, slit, sleeve: !!finish.sleeve },
-  )), draft);
+  )), draft), draft, top, { seam, waist });
+}
+
+/**
+ * A shirt dress: no zip, and the back cut whole on the fold. The bodice's and the skirt's front facings
+ * join at the waist into one long facing, the buttonholes run on down the skirt, and the facing is
+ * turned at the hem.
+ */
+function shirtDress(g: SewingGuide, draft: DressDraft, top: SewingGuide, o: { seam: string; waist: string }): SewingGuide {
+  const below = draft.skirtButtons;
+  const above = draft.bodice.buttons;
+  if (!below || !above) return g;
+  const count = above.count + below.count;
+  const fromTop = (title: string) => top.steps.filter((st) => st.title === title);
+  const steps = g.steps.flatMap((st): SewStep[] => {
+    switch (st.title) {
+      case 'Put in the zip':
+      case 'Close the centre back':
+      case 'Sew the skirt centre front':
+        return [];
+      case 'Cut out':
+        return [
+          {
+            ...st,
+            text: st.text
+              .replace(/The skirt pieces are too wide for folded fabric:[^.]*\./, '')
+              .replace(/ Place the skirt front on the fold and the skirt back on both layers\./, '')
+              .replace(/(Place the bodice back on the fold, and the bodice front on both layers so you get a pair\.)/, 'Place the bodice back and the skirt back on the fold, and the bodice front and the skirt front on both layers so you get pairs.')
+              .replace(/\s+/g, ' ')
+              .concat(' Cut the skirt front facings as a pair, from the fabric and again from fusible interfacing.'),
+          },
+        ];
+      case 'Interface the facings':
+        return [
+          { ...st, text: st.text.replace('Fuse the interfacing to the wrong side of the front facings', 'Fuse the interfacing to the wrong side of the front facings, the skirt front facings') },
+          {
+            title: 'Join the front facings at the waist',
+            text: `Pin each skirt front facing to the foot of its bodice front facing, right sides together, the extension edges level. Sew ${o.waist} from the edge and press the seam open, so each front has one long facing from the neck to the hem.`,
+          },
+        ];
+      case 'Neaten the edges':
+        return [{ ...st, text: st.text.replace(', and the centre back edges of both', '').replace('the side edges of the skirt', 'the side edges of the skirt and the inner edges of the skirt front facings') }];
+      case 'Join the bodice to the skirt':
+        return [{ ...st, text: st.text.replace('matching the centre front,', 'matching the front edges,').replace('Pin each back half the same way.', 'Pin the back the same way, matching the centre backs.') }];
+      case 'Attach the front facings':
+        return [{ ...st, text: st.text.replace('from the hem to the neck seam line', 'from the hem to the neck seam line, matching the waist seams') }];
+      case 'Finish the lining at the front':
+        return [{ ...st, text: `${st.text} Turn the lining's waist edge under and slip-stitch it over the waist seam inside.` }];
+      case 'Hem':
+        return [
+          {
+            ...st,
+            text: `At each front edge, fold the facing back over the dress, right sides together, and sew across it at the hem's depth. Trim, turn the facing back inside and push out the corner. Then hem the rest of the way round: ${st.text.charAt(0).toLowerCase()}${st.text.slice(1)}`,
+          },
+          ...fromTop('Make the buttonholes').map((b) => ({ ...b, text: b.text.replace(`Work ${above.count} buttonholes`, `Work ${count} buttonholes, ${above.count} on the bodice and ${below.count} on the skirt,`) })),
+          ...fromTop('Sew on the buttons'),
+        ];
+      case 'Finish':
+        return [{ ...st, text: 'Give the dress a final press, over a ham at the bust.' }];
+      default:
+        return [st];
+    }
+  });
+  return {
+    notions: g.notions.filter((n) => !/zip/.test(n)).map((n) => n.replace(/^(\d+) buttons/, (_, k: string) => `${Number(k) + below.count} buttons`)),
+    steps,
+  };
 }
 
 /** A gathered dress skirt: its waist gathered before it is joined to the bodice, the gathers taking

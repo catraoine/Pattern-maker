@@ -1,5 +1,6 @@
 import { PatternChoices, bodiceDetails, describeBodice, describeOuter, describeTee, describeTrousers, describeLingerie, isLingerie, isBodice, isDress, isOuter, isTee, isTrousers } from '../garments';
 import { describe as describeSkirt } from './StyleScreen';
+import { buttonsOnSkirt } from '../engine/dress';
 
 /** A plain name for a saved pattern's style, such as "Knee A-line skirt". */
 export function describePattern(c: PatternChoices) {
@@ -11,7 +12,9 @@ export function describePattern(c: PatternChoices) {
     const parts = tail ? tail.split(' and ') : [];
     const hem = parts.find((t) => / hem$/.test(t));
     const details = parts.filter((t) => t !== hem);
-    const dress = /skirt/.test(skirt) ? skirt.replace('skirt', 'dress') : `${skirt} dress`;
+    // Buttoned down the front from the neck to the skirt, it is a shirt dress.
+    const word = c.bodice.closure === 'front_buttons' && buttonsOnSkirt(c.skirt) ? 'shirt dress' : 'dress';
+    const dress = /skirt/.test(skirt) ? skirt.replace('skirt', word) : `${skirt} ${word}`;
     const ends = [...(hem ? [hem] : []), ...(c.skirt.pockets === 'inseam' ? ['pockets'] : [])];
     return `${dress} with ${details.length ? `${details.join(' and ')}, ` : ''}${bodiceDetails(c.bodice)}${ends.length ? `, and ${ends.join(' and ')}` : ''}`;
   }

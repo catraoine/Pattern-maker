@@ -851,8 +851,18 @@ export function dressFlat(d: DressDraft, edges: BodiceEdges = 'binding', opts: {
       const dy = b.foot - k.waistY;
       const move = (pts: P[]) => pts.map((q) => p(q.x, q.y + dy));
       const lines = [...b.lines, ...k.lines.map((l) => ({ ...l, pts: move(l.pts) }))];
-      // A one-shoulder dress zips in the side seam, out of sight.
-      if (b.label === 'BACK' && !d.zipSide) {
+      // A shirt dress: the lapped edge and the buttons run on down the skirt front.
+      if (b.label === 'FRONT' && d.skirtButtons) {
+        const edge = d.bodice.lapsLeft ? 1.5 : -1.5;
+        const hemY = k.shapes[0].reduce((m, q) => (Math.abs(q.x) < 0.5 && q.y > m ? q.y : m), -Infinity);
+        lines.push({ pts: [p(edge, b.foot), p(edge, hemY + dy)], kind: 'seam' });
+        for (const y of d.skirtButtons.at) {
+          const c = p(0, k.waistY + y + dy);
+          lines.push({ pts: Array.from({ length: 13 }, (_, n) => add(c, p(0.65 * Math.cos((n / 12) * 2 * Math.PI), 0.65 * Math.sin((n / 12) * 2 * Math.PI)))), kind: 'seam' });
+        }
+      }
+      // A one-shoulder dress zips in the side seam, out of sight; a shirt dress has no zip.
+      if (b.label === 'BACK' && !d.zipSide && !d.skirtButtons) {
         const neck = b.shapes[0].reduce((m, q) => (Math.abs(q.x) < 1e-6 && q.y < m ? q.y : m), Infinity);
         lines.push({ pts: [p(0, neck), p(0, b.foot)], kind: 'seam' }, ...zip(neck, d.zipCm));
       }
