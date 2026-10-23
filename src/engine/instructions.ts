@@ -18,6 +18,7 @@ import { wrapDressSteps, wrapSkirtSteps, wrapSteps } from './wrapGuide';
 import { isShaped } from './hem';
 import { SLIP_LEVEL } from './slip';
 import { wholeGuide } from './wholeGuide';
+import { skirtWaistSteps } from './skirtWaistGuide';
 import { slitHem, slitLining, slitStop, toHem, walkingSlit } from './slit';
 
 // Widest strip that fits across 140 cm fabric, leaving room for the selvedges.
@@ -83,7 +84,7 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
   // The hem depth is the draft's own hem allowance, which varies with the shape (narrower on a curve).
   const hemDepth = draft.pieces.find((pc) => pc.allowances?.hem !== undefined)?.allowances.hem ?? finish.hem ?? 4;
   // Cut whole, with the zip in the left side seam: the slip, or a hem that differs side to side.
-  if (draft.opening === 'left_side') return wholeGuide(draft, fabricM, finish);
+  if (draft.opening === 'left_side' && draft.halves) return wholeGuide(draft, fabricM, finish);
   const { front, back } = draft.dartsPerSide;
   const sw = finish.seams ?? SEAM_WIDTHS.home;
   const seam = n1(sw.seam);
@@ -239,7 +240,7 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
   ];
 
   // A wrap skirt: no zip, a free front edge, and ties (wrapGuide.ts).
-  return wrapSkirtSteps({
+  return wrapSkirtSteps(skirtWaistSteps({
     notions: [
       `${fabricM.toFixed(1)} m of woven fabric, ${finish.width ?? 140} cm wide`,
       ...(lined ? [`${finish.liningM!.toFixed(1)} m of lining, ${finish.width ?? 140} cm wide`] : []),
@@ -248,7 +249,7 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
     ],
     // Pleats, godets, a flounce or tiers, sewn in at the right moment; a gathered skirt's gathers.
     steps: gatherSteps(volumeSteps(steps, draft, { seam, waist, hem: hemDepth }), draft, elastic ? 'casing' : 'band'),
-  }, draft);
+  }, draft, { seam, waist }), draft);
 }
 
 /** Gathering a skirt's waist, sewn the way a pattern cutter would. */

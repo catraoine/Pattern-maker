@@ -10,6 +10,7 @@ import { SLIP_HEM, SLIP_HIP_EASE_LESS, closeToHem, cutsWhole, cutWhole, slipSide
 import { inseamPocket, markSeam } from './pockets';
 import { foldBack, wrapSkirtAllowed, wrapSkirtFront, wrapTies } from './wrapSkirt';
 import { Slit, SlitPlace, slitOf, slitPieces, slitRange } from './slit';
+import { HIGH, WaistFinish, facedAllowed, highAllowed, raiseWaist, sideZipAllowed, sideZipped } from './skirtWaist';
 
 export interface SkirtMeasurements {
   waist: number;
@@ -77,9 +78,12 @@ export interface SkirtStyle {
   slit?: SlitPlace;
   /** The slit's height above the hem, in cm. */
   slitCm?: number;
+  /** Where the zip goes: the centre back seam, or the left side seam with the back on the fold. */
+  zip?: 'back' | 'side';
 }
 
-export type WaistStyle = 'band' | 'elastic';
+/** A straight band with a zip, a pull-on elastic casing, a faced waist with no band, or a high faced waist (see skirtWaist.ts). */
+export type WaistStyle = 'band' | 'elastic' | 'faced' | 'high';
 
 /**
  * Corrections made after trying on a toile, in cm. Ease is added to (or taken from) the fit's own; a
@@ -544,6 +548,10 @@ export interface SkirtDraft {
   /** A wrap skirt: the whole front's waist (each front reaches across), and its ties (none on a dress,
    * whose bodice carries them). */
   wrap?: { frontWaist: number; ties?: ReturnType<typeof wrapTies> };
+  /** A faced waist with no band, or a high waist carried up past the waist and faced (see skirtWaist.ts). */
+  waistFinish?: WaistFinish;
+  /** A high waist's front and back as they were at the waist, before carrying up, for the flat. */
+  low?: [Piece, Piece];
   /** The slit as drafted: where, and its height above the hem, with the range it can be set in. */
   slit?: Slit & { range: { min: number; max: number } };
 }
@@ -616,7 +624,27 @@ export function draftSkirt(m: SkirtMeasurements, style: Partial<SkirtStyle> = {}
   // go in a plain side seam, so not where pleats, godets or a flounce change the skirt's pieces.
   const plain = volumeOf(s) !== 'none' ? { ...s, hem: undefined } : s;
   const draft = withHighHip(addVolume(m, s, drafted(m, plain), (st) => drafted(m, st)), s.fitting?.highHip);
-  return withSlit(s.pockets === 'inseam' && !draft.volume ? withPockets(draft) : draft, s, m);
+  return withWaist(withSlit(s.pockets === 'inseam' && !draft.volume ? withPockets(draft) : draft, s, m), s);
+}
+
+/**
+ * The zip moved to the left side seam, the back then cut on the fold (unless a back slit keeps its
+ * seam); and a faced or high waist in place of the band. A dress's skirt keeps its own.
+ */
+function withWaist(draft: SkirtDraft, s: SkirtStyle): SkirtDraft {
+  if (s.joinTo || draft.elastic) return draft;
+  let d = draft;
+  const [front, back, ...rest] = d.pieces;
+  if (s.zip === 'side' && sideZipAllowed(s)) {
+    const [f, b] = sideZipped(front, back, d.zipCm, d.slit?.at === 'back');
+    d = { ...d, pieces: [f, b, ...rest], opening: 'left_side' };
+  }
+  if (s.waist === 'high' && highAllowed(s)) {
+    const [f, b, ...more] = d.pieces;
+    return { ...d, pieces: [raiseWaist(f), raiseWaist(b), ...more], low: [f, b], zipCm: d.zipCm + HIGH.rise, waistFinish: 'high' };
+  }
+  if (s.waist === 'faced' && facedAllowed(s)) return { ...d, waistFinish: 'faced' };
+  return d;
 }
 
 /**

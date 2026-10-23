@@ -61,6 +61,8 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
     },
     waist: {
       band: ['A firm band at the waist that closes with a zip. Neat and sits in place.'],
+      faced: ['No band: the top is finished inside with a facing cut to its curve, so the skirt ends cleanly at your waist.'],
+      high: ['Carried up past your waist toward the ribs, its darts running to the top, and faced inside. Lengthens the leg.', 'skill'],
       elastic: ['Elastic in the waist so it pulls on with no zip. The easiest to sew.', 'easy'],
       wrap: ['The front crosses over and the waistband runs on into ties, knotted at the side. No zip, and it adjusts as you wear it.'],
     },

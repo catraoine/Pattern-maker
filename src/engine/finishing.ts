@@ -4,6 +4,7 @@ import { Piece } from './piece';
 import { WAISTBAND_CM } from './skirt';
 import type { SkirtDraft } from './skirt';
 import { SLIP_FACING } from './slip';
+import { waistFacings as topFacings } from './skirtWaist';
 
 const r1 = (v: number) => Math.round(v * 10) / 10;
 
@@ -109,6 +110,8 @@ function wrapBand(waist: number, front: number, sa: number): Piece {
  */
 export function waistPieces(draft: SkirtDraft, sa: number): Piece[] {
   if (draft.faced) return waistFacings(draft);
+  // A faced or high waist: facings traced from the skirt's own top, its darts closed (see skirtWaist.ts).
+  if (draft.waistFinish) return topFacings(draft.pieces.slice(0, 2), draft.waistFinish === 'high');
   const band = waistbandPiece(draft, sa);
   if (draft.opening !== 'left_side') return [band];
   // From the left side seam round by the front: centre front, right side seam, centre back.

@@ -1,5 +1,6 @@
 // Measurement tables for the tech pack: each body measurement the draft used, the ease added and the
 // finished garment measurement.
+import { FACING_DEPTH, HIGH } from './skirtWaist';
 import type { Elastic, SkirtDraft, SkirtMeasurements } from './skirt';
 import type { OuterDraft, OuterMeasurements } from './outerwear';
 import type { BodiceDraft, BodiceLength, BodiceMeasurements } from './bodice';
@@ -39,7 +40,13 @@ export function skirtSpec(m: SkirtMeasurements, d: SkirtDraft): SpecRow[] {
           { label: `Waist facing, ${SLIP_FACING} deep`, finished: 'cut 1 front, 1 back' },
           { label: 'Invisible zip, left side seam', finished: `${d.zipCm}` },
         ]
-      : waistRows(d, d.opening === 'left_side' ? 'Invisible zip, left side seam' : 'Invisible zip, centre back')),
+      : d.waistFinish
+        ? [
+            ...(d.waistFinish === 'high' ? [row('Rise above the waist', undefined, HIGH.rise)] : []),
+            { label: `Waist facing, ${d.waistFinish === 'high' ? HIGH.rise : FACING_DEPTH} deep, interfaced`, finished: 'cut 1 front, 1 back' },
+            { label: d.opening === 'left_side' ? 'Invisible zip, left side seam' : 'Invisible zip, centre back', finished: `${d.zipCm}` },
+          ]
+        : waistRows(d, d.opening === 'left_side' ? 'Invisible zip, left side seam' : 'Invisible zip, centre back')),
   ];
 }
 

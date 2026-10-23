@@ -49,6 +49,8 @@ const DETAILS: Record<ExplainSet, Record<string, Record<string, ReactNode>>> = {
     },
     waist: {
       band: on(SKIRT, 'M13.5 6h13v4h-13zM24 10V22M23 22h2'),
+      faced: on(SKIRT, 'M14.4 12Q20 13.5 25.6 12M24 6V20M23 20h2'),
+      high: on('M14 12h12l5 32H9z', 'M14.5 2h11L26 12H14zM17 2L17.5 8L18 2M22 2L22.5 8L23 2M24 2V20M23 20h2'),
       elastic: on(SKIRT, 'M13.5 6h13v4h-13zM15 7v2M17 7v2M19 7v2M21 7v2M23 7v2M25 7v2'),
       wrap: on(SKIRT, 'M13.5 6h13v4h-13zM24 6L26.5 44M13.5 8L8 14M13.5 8L9.5 16'),
     },

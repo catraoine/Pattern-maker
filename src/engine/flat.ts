@@ -6,6 +6,7 @@ import { P, add, len, mul, p, sub, unit } from './geometry';
 import type { Piece } from './piece';
 import type { SkirtDraft } from './skirt';
 import { WAISTBAND_CM } from './skirt';
+import { HIGH } from './skirtWaist';
 import { BodiceDraft, blockOf } from './bodice';
 import { BANDS, isBandCollar } from './collar';
 import type { BodiceEdges } from './instructions';
@@ -310,8 +311,8 @@ type RawView = Omit<FlatView, 'at'>;
 
 /** The skirt: waistband, darts, centre back seam and zip, and its slit when it has one. */
 export function skirtFlat(d: SkirtDraft): Flat {
-  // A slip has a faced waist, so no band shows.
-  return arrange(skirtViews(d, { band: !d.faced, zipCm: d.zipCm }));
+  // A slip, and a faced or high waist, have facings inside, so no band shows.
+  return arrange(skirtViews(d, { band: !d.faced && !d.waistFinish, zipCm: d.zipCm }));
 }
 
 /**
@@ -325,17 +326,19 @@ function wholeView(pc: Piece, zipCm?: number): { shapes: P[][]; lines: FlatView[
   // The waist from the -x side round to the +x side, for a band above it.
   const stretches = along(h, ['waist', 'dart']);
   const waist = stretches.length > 1 ? [...stretches[stretches.length - 1], ...stretches[0].slice(1)] : stretches[0] ?? [run[0]];
-  if (zipCm) {
-    const side = along(h, 'side')[0] ?? [];
-    const pts: P[] = [];
-    let acc = 0;
-    for (let i = 0; i < side.length && acc < zipCm; i++) {
-      if (i) acc += len(sub(side[i], side[i - 1]));
-      pts.push(add(side[i], p(-0.4, 0)));
-    }
-    if (pts.length > 1) lines.push({ pts, kind: 'zip' }, { pts: [add(pts[pts.length - 1], p(-0.6, 0)), add(pts[pts.length - 1], p(0.6, 0))], kind: 'seam' });
-  }
+  if (zipCm) lines.push(...sideZip(along(h, 'side')[0] ?? [], zipCm));
   return { shapes: [run], lines, waist };
+}
+
+/** A zip down the +x side seam from its top, `cm` long, just inside the edge. */
+function sideZip(side: P[], cm: number): FlatView['lines'] {
+  const pts: P[] = [];
+  let acc = 0;
+  for (let i = 0; i < side.length && acc < cm; i++) {
+    if (i) acc += len(sub(side[i], side[i - 1]));
+    pts.push(add(side[i], p(-0.4, 0)));
+  }
+  return pts.length > 1 ? [{ pts, kind: 'zip' }, { pts: [add(pts[pts.length - 1], p(-0.6, 0)), add(pts[pts.length - 1], p(0.6, 0))], kind: 'seam' }] : [];
 }
 
 /**
@@ -362,10 +365,24 @@ function skirtViews(d: SkirtDraft, opts: { band: boolean; zipCm?: number; seamFr
     } else {
       // Pleats are drawn on the skirt as it hangs; knife and box pleats take the darts' place.
       const pleated = !!(d.volume?.pleats || d.volume?.inverted) && !!d.block;
-      const h = sewn((pleated ? d.block! : d.pieces)[i]);
-      shapes = [whole(h.run)];
+      const h = sewn((pleated ? d.block! : (d.low ?? d.pieces))[i]);
       waist = along(h, ['waist', 'dart'])[0] ?? [h.run[0]];
       lines = d.volume?.pleats ? [] : h.darts.flatMap((dt) => both(dt).map((pts) => ({ pts, kind: 'dart' as const })));
+      let run = h.run;
+      // A high waist carries on up past the waist, its darts running on to the top.
+      if (d.low && d.waistFinish === 'high') {
+        const rise = (d.pieces[i].meta.rise as number | undefined) ?? HIGH.rise;
+        const xs = waist[waist.length - 1].x || 1;
+        const top = waist.map((q) => p(q.x + HIGH.sideOut * (q.x / xs) ** 4, q.y - rise));
+        run = [...top, ...h.run.slice(waist.length - 1)];
+        lines = lines.map((l) => ({ ...l, pts: [p(l.pts[0].x, l.pts[0].y - rise), ...l.pts] }));
+        waist = top;
+      }
+      shapes = [whole(run)];
+      // The zip in the left side seam: on the right of the front as drawn.
+      if (!back && d.opening === 'left_side' && opts.zipCm) {
+        lines.push(...sideZip(run.slice(waist.length - 1), opts.zipCm));
+      }
       hemY = h.run[h.run.length - 1].y;
       // A side slit opens the left side seam: on the right of the front as drawn, the left of the back.
       if (d.slit?.at === 'side') {
@@ -412,7 +429,7 @@ function skirtViews(d: SkirtDraft, opts: { band: boolean; zipCm?: number; seamFr
         lines.push({ pts: [p(0, from), p(0, top)], kind: 'seam' });
         lines.push({ pts: [p(0, top), p(-0.5, hemY)], kind: 'seam' }, { pts: [p(0, top), p(0.5, hemY)], kind: 'seam' });
       } else lines.push({ pts: [p(0, from), p(0, seamY ?? hemY)], kind: 'seam' });
-      if (opts.zipCm) lines.push(...zip(cbTop, opts.zipCm));
+      if (opts.zipCm && d.opening !== 'left_side') lines.push(...zip(cbTop, opts.zipCm));
     }
     // A front slit opens the centre front seam.
     if (!back && d.slit?.at === 'front') {
