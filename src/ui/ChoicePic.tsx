@@ -58,6 +58,12 @@ const SKIRT: Record<string, Record<string, ReactNode>> = {
     pencil: <path d="M14 5h12q3 8 1.5 15L26 43H14l-1.5-23Q11 13 14 5z" />,
     straight: <path d="M14 5h12q3 7 3 13V43H11V18q0-6 3-13z" />,
     a_line: <path d="M15 5h10l8 38H7z" />,
+    gathered: (
+      <>
+        <path d="M15 5h10q1 3 3 6q5 15 6 32H6q1-17 6-32q2-3 3-6z" />
+        <path className="pic-faint" d="M16 6l-1 6M18 6v7M20 6v7M22 6v7M24 6l1 6" />
+      </>
+    ),
     trumpet: <path d="M15 5h10q2 15 .5 22q2 9 9 16h-29q7-7 9-16Q13 20 15 5z" />,
     half_circle: <path d="M16 5h8L37 40Q20 46 3 40z" />,
     circle: <path d="M17 5h6L40 37Q20 48 0 37z" />,

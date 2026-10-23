@@ -71,7 +71,7 @@ export const GROUPS: [Group<'fit'>, Group<'silhouette'>, Group<'length'>, Group<
   {
     id: 'silhouette',
     label: 'Silhouette',
-    options: [['pencil', 'Pencil'], ['straight', 'Straight'], ['a_line', 'A-line'], ['trumpet', 'Trumpet'], ['half_circle', 'Half circle'], ['circle', 'Full circle'], ['slip', 'Bias slip']],
+    options: [['pencil', 'Pencil'], ['straight', 'Straight'], ['a_line', 'A-line'], ['gathered', 'Gathered'], ['trumpet', 'Trumpet'], ['half_circle', 'Half circle'], ['circle', 'Full circle'], ['slip', 'Bias slip']],
   },
   {
     id: 'length',

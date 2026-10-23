@@ -105,7 +105,8 @@ export function draftDress(m: DressMeasurements, bodiceStyle: Partial<BodiceStyl
   const halfWaist = (pc: Piece) => taggedLength(pc.outline, 'waist') / (pc.meta.whole ? 2 : 1);
   const skirtWaist = (d: SkirtDraft, which: 'front' | 'back') =>
     d.pieces.filter((pc) => /^Skirt/.test(pc.name) && new RegExp(which, 'i').test(pc.name)).reduce((t, pc) => t + halfWaist(pc), 0);
-  for (let i = 0; i < 4; i++) {
+  // A gathered skirt is gathered into the seam, so its waist is longer by design.
+  for (let i = 0; i < 4 && !skirt.gathers; i++) {
     const df = waist.front - skirtWaist(skirt, 'front');
     const db = waist.back - skirtWaist(skirt, 'back');
     if (Math.abs(df) < 0.005 && Math.abs(db) < 0.005) break;

@@ -384,6 +384,8 @@ function skirtViews(d: SkirtDraft, opts: { slit?: boolean; band: boolean; zipCm?
     const band = [...waist, ...[...waist].reverse().map((q) => p(q.x, q.y - WAISTBAND_CM))];
     if (opts.band) shapes.push(wholePc ? band : whole(band));
     if (opts.band && d.elastic) for (const run of [waist, mirror(waist)]) lines.push(...gathers(run[0], run[run.length - 1], WAISTBAND_CM));
+    // A gathered skirt shows its gathers under the band or the bodice seam.
+    else if (d.gathers) for (const run of [waist, mirror(waist)]) lines.push(...gathers(run[0], run[run.length - 1], opts.band ? WAISTBAND_CM : 0));
     const cbTop = wholePc ? waist[Math.floor(waist.length / 2)].y : waist[0].y;
     // A back cut whole has no centre back seam: the zip is in the left side seam. A pull-on back is cut on the fold.
     if (back && !wholePc && !d.pieces[1].fold) {

@@ -259,8 +259,12 @@ export function readBodiceHem(stroke: P[], draft: BodiceDraft, m: BodiceMeasurem
 const LENGTH_WORDS: Record<Length, string> = { mini: 'Mini', above_knee: 'Above the knee', knee: 'Knee length', midi: 'Midi', maxi: 'Maxi' };
 
 /** The skirt's hem line as it stands, front or back, centre (x = 0) to side, in cm below the waist. */
+/** A gathered skirt is cut straight, but its gathers stand it out below the hip as it hangs. */
+const gatheredSpread = (draft: Pick<SkirtDraft, 'lengthCm'>, skirt: Choices, m: SkirtMeasurements) =>
+  skirt.silhouette === 'gathered' ? Math.max(0, draft.lengthCm - m.waist_to_hip) * 0.2 : 0;
+
 export function skirtHem(draft: Pick<SkirtDraft, 'lengthCm' | 'hem' | 'flareCm'>, skirt: Choices, m: SkirtMeasurements, side: FormSide): P[] {
-  const halfWidth = (m.full_hip + FIT_EASE[skirt.fit].hip) / 4 + Math.max(0, draft.flareCm ?? 0);
+  const halfWidth = (m.full_hip + FIT_EASE[skirt.fit].hip) / 4 + Math.max(0, draft.flareCm ?? 0) + gatheredSpread(draft, skirt, m);
   const plan = planFor(skirt, m, draft.lengthCm);
   return Array.from({ length: HEM_SAMPLES }, (_, i) => {
     const u = i / (HEM_SAMPLES - 1);
@@ -417,7 +421,12 @@ export function skirtLines(draft: Pick<SkirtDraft, 'lengthCm' | 'hem' | 'flareCm
   const shift = (pts: P[]) => pts.map((q) => ({ x: q.x, y: q.y + waistY }));
   const hem = skirtHem(draft, skirt, m, side);
   const hipQ = (m.full_hip + FIT_EASE[skirt.fit].hip) / 4;
-  const sideLine = [{ x: hipQ, y: m.waist_to_hip }, { x: hipQ + (draft.flareCm ?? 0), y: hem[hem.length - 1].y }];
+  const end = { x: hipQ + (draft.flareCm ?? 0) + gatheredSpread(draft, skirt, m), y: hem[hem.length - 1].y };
+  // Gathered, the side falls from the waist, already full over the hip.
+  const sideLine =
+    skirt.silhouette === 'gathered'
+      ? [{ x: m.waist / 4 + 1, y: 0 }, { x: hipQ + 1.5, y: m.waist_to_hip * 0.8 }, end]
+      : [{ x: hipQ, y: m.waist_to_hip }, end];
   return { hem: [shift([...mirror(hem)[1].reverse(), ...hem.slice(1)])], fit: mirror(shift(sideLine)) };
 }
 

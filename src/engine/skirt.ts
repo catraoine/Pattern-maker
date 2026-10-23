@@ -22,8 +22,9 @@ export interface SkirtMeasurements {
 }
 
 export type Fit = 'fitted' | 'regular' | 'relaxed';
-/** 'slip' is the bias-cut slip skirt: dartless, cut whole on the bias (see slip.ts). */
-export type Silhouette = 'straight' | 'pencil' | 'a_line' | 'trumpet' | 'half_circle' | 'circle' | 'slip';
+/** 'slip' is the bias-cut slip skirt: dartless, cut whole on the bias (see slip.ts). 'gathered' is a
+ * dirndl: straight panels gathered into the waistband or the bodice. */
+export type Silhouette = 'straight' | 'pencil' | 'a_line' | 'trumpet' | 'half_circle' | 'circle' | 'slip' | 'gathered';
 
 /** Circle skirts are cut as arcs from the waist rather than drafted from the block. */
 export const isCircle = (s: Silhouette) => s === 'half_circle' || s === 'circle';
@@ -525,6 +526,8 @@ export interface SkirtDraft {
   elastic?: Elastic;
   /** In-seam pockets: where the opening is, in cm down the side seam from the waist. */
   pocket?: [number, number];
+  /** A gathered skirt: its waist round as cut, and the band, casing or bodice seam it is gathered into. */
+  gathers?: { round: number; into: number };
 }
 
 export const WAISTBAND_CM = 3; // finished width
@@ -655,6 +658,88 @@ function drafted(m: SkirtMeasurements, s: SkirtStyle): SkirtDraft {
   return { ...draft, hem, hemCm: hemCm(front, back) };
 }
 
+/** How full a gathered skirt is, by fit: its waist as cut, over the waist it gathers into. */
+export const GATHER_RATIO: Record<Fit, number> = { fitted: 1.6, regular: 2, relaxed: 2.5 };
+/** A gathered skirt always clears the hips by this much, however small the waist. */
+const GATHER_HIP_ROOM = 20;
+
+/**
+ * A gathered (dirndl) skirt: straight panels, a quarter of the round each, gathered into the waist. The
+ * front is cut on the fold and the back in two with the zip, or on the fold too on elastic. The round
+ * is the waist times the fit's fullness, never less than the hip plus 20 cm, and never so wide a
+ * quarter won't lie on folded 140 cm fabric.
+ */
+function gatheredSkirt(
+  m: SkirtMeasurements,
+  s: SkirtStyle,
+  o: { length: number; into: number; zipCm: number; quarter: { front: number; back: number }; elastic?: Elastic },
+): SkirtDraft {
+  const sa = s.seamAllowance;
+  const most = 4 * (FOLD_WIDTH_MAX - 2 * sa);
+  const round = Math.round(clamp(Math.max(o.into * GATHER_RATIO[s.fit], m.full_hip + GATHER_HIP_ROOM), 0, most) * 2) / 2;
+  const q = round / 4;
+  const L = o.length;
+  const hipDepth = m.waist_to_hip;
+  const hemSa = s.hemAllowance;
+  const piece = (isFront: boolean): Piece => {
+    const name = isFront ? 'Skirt front' : 'Skirt back';
+    const onFold = isFront || !!o.elastic;
+    const outline = new Path(p(0, 0)).line(p(q, 0), 'waist').line(p(q, L), 'side').line(p(0, L), 'hem').line(p(0, 0), onFold ? 'fold' : 'centre');
+    outline.closed = true;
+    const cut = onFold ? 'Cut 1 on fold' : 'Cut 2 (1 pair)';
+    // Halfway along the waist, to share the gathers out evenly; single at the front hip, double at the back.
+    const notches: [P, P][] = [
+      [p(q / 2, 0), p(0, -1)],
+      ...(isFront ? [[p(q, hipDepth), p(1, 0)] as [P, P]] : [[p(q, hipDepth - 0.5), p(1, 0)] as [P, P], [p(q, hipDepth + 0.5), p(1, 0)] as [P, P]]),
+    ];
+    const zipped = !isFront && o.zipCm > 0;
+    if (zipped) notches.push([p(0, o.zipCm), p(-1, 0)]);
+    const gx = Math.min(q * 0.45, 12);
+    return {
+      name,
+      outline,
+      lines: [],
+      grain: [p(gx, hipDepth + 4), p(gx, L - 8)],
+      fold: onFold ? [p(0, 2), p(0, L - 2)] : undefined,
+      notches,
+      balance: [{ pts: [p(0, hipDepth), p(q, hipDepth)], label: 'HIP LINE' }],
+      labels: [
+        { at: p(q * 0.5, hipDepth - 4), text: name.toUpperCase(), size: 1.6 },
+        { at: p(q * 0.5, hipDepth + 1), text: cut, size: 1.0 },
+        { at: p(q * 0.5, 3), text: 'GATHER', size: 0.8 },
+        ...(zipped ? [{ at: p(3.2, o.zipCm + 0.3), text: 'ZIP ENDS', size: 0.7 }] : []),
+      ],
+      cut,
+      draft: {
+        frame: [],
+        points: [
+          { n: '0', at: p(0, 0), note: `Centre ${isFront ? 'front' : 'back'} waist. The skirt is a plain rectangle, gathered at the waist.` },
+          { n: '1', at: p(q, 0), note: `0 to 1, a quarter of the skirt's round: ${cm(round)} / 4 = ${cm(q)}. It gathers into ${cm(isFront ? o.quarter.front : o.quarter.back)} of waist, ${Math.round((round / o.into) * 10) / 10} times as much.` },
+          { n: '2', at: p(0, L), note: `0 to 2, skirt length: ${cm(L)}. Square across for the hem; the side seam runs straight down from 1.` },
+        ],
+      },
+      seamAllowance: sa,
+      allowances: { hem: hemSa, fold: 0 },
+      // How much longer the waist is than the seam it gathers into, as for a peplum.
+      meta: { dartsCm: [], sideSuppressionCm: 0, gathered: q / (isFront ? o.quarter.front : o.quarter.back) },
+    };
+  };
+  const front = piece(true);
+  const back = piece(false);
+  return {
+    pieces: [front, back],
+    lengthCm: Math.round(L * 10) / 10,
+    finishedWaist: o.into,
+    finishedHip: round,
+    hemCm: Math.round(round),
+    zipCm: o.zipCm,
+    waistband: waistband(o.into, o.quarter.back, sa),
+    dartsPerSide: { front: 0, back: 0 },
+    gathers: { round, into: Math.round(o.into * 10) / 10 },
+    ...(o.elastic ? { elastic: o.elastic } : {}),
+  };
+}
+
 function draftShape(m: SkirtMeasurements, s: SkirtStyle): SkirtDraft {
   const fit = s.fitting ?? {};
   // Cut on the bias, the cloth gives round the body, so a slip takes less hip ease.
@@ -686,6 +771,13 @@ function draftShape(m: SkirtMeasurements, s: SkirtStyle): SkirtDraft {
   const zipCm = elastic ? 0 : (join?.zipCm ?? zipLength(hipDepth));
   const band = elastic ? { elastic: elasticFor(m.waist, finishedWaist) } : {};
   const targetHem = shape ? shape.hemFullness * finishedHip : undefined;
+
+  if (s.silhouette === 'gathered') {
+    // Into a band or a bodice seam the waist is its own; on elastic it is gathered into a casing cut to
+    // pass the hips, and the elastic gathers that in again.
+    const into = join ? 4 * waistQ : elastic ? pullOn : m.waist + ease.waist;
+    return gatheredSkirt(m, s, { length, into, zipCm, quarter: { front: into / 4 + split.front, back: into / 4 + split.back }, elastic: (band as { elastic?: Elastic }).elastic });
+  }
 
   // A circle skirt's waist is part of a circle: all of one for a full circle, half for a half circle.
   // Its hem is the waist plus 2 pi x share x length, so a target hem sets the share directly. The
@@ -872,6 +964,7 @@ function defaultFlare(sil: Silhouette, length: number, hipDepth: number, flareFr
     half_circle: 0,
     circle: 0,
     slip: 0,
+    gathered: 0,
   }[sil];
 }
 

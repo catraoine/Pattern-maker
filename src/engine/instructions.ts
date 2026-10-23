@@ -240,9 +240,36 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
       ...(elastic ? elasticNotions(elastic) : [`${draft.zipCm} cm invisible zip`, 'Hook and eye', '0.3 m lightweight fusible interfacing']),
       'Matching thread',
     ],
-    // Pleats, godets, a flounce or tiers, sewn in at the right moment.
-    steps: volumeSteps(steps, draft, { seam, waist, hem: hemDepth }),
+    // Pleats, godets, a flounce or tiers, sewn in at the right moment; a gathered skirt's gathers.
+    steps: gatherSteps(volumeSteps(steps, draft, { seam, waist, hem: hemDepth }), draft, elastic ? 'casing' : 'band'),
   };
+}
+
+/** Gathering a skirt's waist, sewn the way a pattern cutter would. */
+export function gatherStep(g: NonNullable<SkirtDraft['gathers']>, into: string, zipped: boolean): SewStep {
+  return {
+    title: 'Gather the waist',
+    text: `Sew two rows of long machine stitches along the waist of each piece, one just inside the seam line and one 0.5 cm further out, stopping ${zipped ? 'at the zip and ' : ''}at each seam. Leave long thread ends. The waist is ${n1(g.round)} round as cut and gathers into ${n1(g.into)} of ${into}, ${Math.round((g.round / g.into) * 10) / 10} times as much: pull up the bobbin threads from both ends until each quarter fits its quarter of the ${into}, matching the notches, and spread the gathers evenly. Gathers are easiest to control in sections, so pin often.`,
+  };
+}
+
+/** A gathered skirt: the waist gathered after the side seams and before the band or casing goes on. */
+function gatherSteps(steps: SewStep[], draft: SkirtDraft, kind: 'band' | 'casing'): SewStep[] {
+  const g = draft.gathers;
+  if (!g) return steps;
+  const at = steps.findIndex((st) => st.title === 'Attach the waistband' || st.title === 'Make the waistband loop');
+  const out = steps.map((st) =>
+    st.title === 'Attach the waistband'
+      ? {
+          ...st,
+          text: st.text
+            .replace('The band is the same length as the waist, so nothing needs easing. ', 'Pull up the gathers to fit the band, spread them evenly between the notches, and pin often. ')
+            .replace(', and let each end extend', ', pull up the gathers to fit and spread them evenly, and let each end extend'),
+        }
+      : st,
+  );
+  out.splice(at < 0 ? out.length - 2 : at, 0, gatherStep(g, kind === 'casing' ? 'the casing' : 'the waistband', kind === 'band' && draft.zipCm > 0));
+  return out;
 }
 
 /** Cutting the pocket bags, added to the cutting step. */
@@ -500,7 +527,7 @@ export function dressGuide(draft: DressDraft, style: { silhouette: Silhouette; l
   const lined = edges === 'lined';
   const pockets = !!draft.skirt.pocket;
   const dartLines = draft.bodice.bustDart > 0.3 || draft.skirt.dartsPerSide.front + draft.skirt.dartsPerSide.back > 0;
-  if (draft.bodice.top?.boned) return bonedDressSteps(draft, top, skirt, { seam, curve, fabricM, liningM: finish.liningM, coutilM: finish.coutilM, width: finish.width, waist, slit, wide });
+  if (draft.bodice.top?.boned) return gatheredJoin(bonedDressSteps(draft, top, skirt, { seam, curve, fabricM, liningM: finish.liningM, coutilM: finish.coutilM, width: finish.width, waist, slit, wide }), draft);
 
   // The bodice's own finishing, from the neck to the sleeves: everything after its side seams.
   const finishing = top.steps.slice(at('Sew the side seams') + 1, at('Hem')).map((s) =>
@@ -557,7 +584,7 @@ export function dressGuide(draft: DressDraft, style: { silhouette: Silhouette; l
     { title: 'Finish', text: `Sew a hook and eye at the top of the zip, inside the ${draft.bodice.top ? 'top edge' : 'neckline'}. Give the dress a final press.` },
   ];
 
-  return mirroredGuide(draft.bodice, drapeDressSteps(
+  return gatheredJoin(mirroredGuide(draft.bodice, drapeDressSteps(
     {
       notions: top.notions.map((n) => (/invisible zip/.test(n) ? `${draft.zipCm} cm invisible zip` : n)),
       steps: volumeSteps(steps, draft.skirt, { seam, waist, hem: draft.skirt.pieces[0].allowances.hem ?? 4 }, 'dress'),
@@ -565,7 +592,29 @@ export function dressGuide(draft: DressDraft, style: { silhouette: Silhouette; l
     top,
     draft,
     { seam, waist, curve, edges, slit, sleeve: !!finish.sleeve },
-  ));
+  )), draft);
+}
+
+/** A gathered dress skirt: its waist gathered before it is joined to the bodice, the gathers taking
+ * the place of the darts that would run on through the seam. */
+function gatheredJoin(g: SewingGuide, draft: DressDraft): SewingGuide {
+  const gathers = draft.skirt.gathers;
+  if (!gathers) return g;
+  const steps = g.steps.flatMap((st) =>
+    st.title === 'Join the bodice to the skirt'
+      ? [
+          gatherStep(gathers, 'the bodice waist', false),
+          {
+            ...st,
+            text: st.text
+              .replace(/the side edges and the darts, so each bodice dart runs on into the skirt dart below it in one line/g, 'the side edges and the halfway notches, then pull up the gathers to fit and spread them evenly')
+              .replace(/the side edges and the princess seams to the skirt darts, so each runs on in one line/g, 'the side edges and the halfway notches, then pull up the gathers to fit and spread them evenly')
+              .replace(/Sew ([^ ]+ cm) from the edge/, 'Sew $1 from the edge with the gathers on top, so they stay even'),
+          },
+        ]
+      : [st],
+  );
+  return { ...g, steps };
 }
 
 /** Cutting a dress's collar. */

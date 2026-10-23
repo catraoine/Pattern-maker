@@ -486,7 +486,9 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
         <p className="muted small">
           {choices.skirt.silhouette === 'slip'
             ? 'The skirt is cut on the bias, for a slip dress: it has no darts, its waist seam is drafted to the bodice, and the cloth moulds to the hip.'
-            : 'The skirt is drafted to the bodice: the waist seams are the same length, and the darts meet at the seam in one line.'}{' '}
+            : choices.skirt.silhouette === 'gathered'
+              ? 'The skirt is cut as straight panels and gathered to the bodice’s waist seam, so it needs no darts.'
+              : 'The skirt is drafted to the bodice: the waist seams are the same length, and the darts meet at the seam in one line.'}{' '}
           {draft?.zipSide ? `One zip opens the ${zipSide(draft.bodice)} side seam from under the arm to below the waist.` : `One zip opens the centre back from the ${top ? 'top edge' : 'neck'} to below the waist.`}
           {boned ? ' The bodice is boned like a corset, cut again from coutil and lining, with a grosgrain waist stay that carries the skirt.' : ''}
         </p>

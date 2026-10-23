@@ -21,6 +21,7 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       pencil: ['Narrows from the hip to the hem for a close, sleek line. A slit at the back hem lets you walk.'],
       straight: ['Falls straight down from the hip like a column. Simple and easy to wear.', 'easy'],
       a_line: ['Fitted at the waist and widening evenly to the hem, like the letter A. The classic first skirt.', 'easy'],
+      gathered: ['Straight panels gathered into the waistband, so it puffs softly out from the waist and swings. The easiest skirt to sew.', 'easy'],
       trumpet: ['Close over the hips and thighs, then flares out low down, like the bell of a trumpet.', 'skill'],
       half_circle: ['Cut as half a circle, so it falls in soft folds and swings as you move.'],
       circle: ['Cut as a full circle for the most swing and twirl. Uses the most fabric.'],
