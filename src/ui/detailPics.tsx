@@ -65,6 +65,8 @@ const DETAILS: Record<ExplainSet, Record<string, Record<string, ReactNode>>> = {
       straight: on('M13 8Q20 2 27 8L27 44H13z', 'M13 8Q20 2 27 8M13 44h14'),
       puff: on('M12 10Q20 -2 28 10Q31 16 27 20H13Q9 16 12 10z', 'M15 6v2M18 4.5v2M22 4.5v2M25 6v2M13 20h14'),
       bishop: on('M14 8Q20 2 26 8L31 38Q20 42 9 38z', 'M10 38Q20 42 30 38M14 40h12v4H14zM16 38v2M20 39v1.5M24 38v2'),
+      cap: on('M13 8Q20 2 27 8L28 14Q20 17 12 14z', 'M13 8Q20 2 27 8M12 14Q20 17 28 14'),
+      flutter: on('M13 8Q20 2 27 8L33 22Q30 25 27 22Q24 26 20 23Q16 26 13 22Q10 25 7 22z', 'M13 8Q20 2 27 8M7 22Q10 25 13 22Q16 26 20 23Q24 26 27 22Q30 25 33 22'),
     },
     princess: {
       none: on(TOP),

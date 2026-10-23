@@ -10,6 +10,7 @@ import { TechFlatView } from '../ui/TechFlatView';
 import { AllRound } from '../ui/AllRound';
 import { roundBodice } from '../engine/allRound';
 import { SHAPES_FOR_LENGTH, SleeveDraft, needsArms } from '../engine/sleeve';
+import { SleeveSlider } from '../ui/SleeveSlider';
 import { MeasurementValues, hasHip } from '../measurements';
 import { PatternPreview } from '../ui/Preview';
 import { PatternPane } from '../ui/PointEditor';
@@ -105,6 +106,7 @@ const NECK_NAMES: Record<BodiceChoices['neckline'], string> = {
 export const REPLACES: Record<string, (keyof BodiceChoices)[]> = {
   fit: ['bustEase'],
   length: ['dropCm'],
+  sleeve: ['sleeveCm'],
   neckline: ['neck', 'cowlDepth', 'unevenNeck'],
   princess: ['lineAt'],
   bustDart: ['lineAt'],
@@ -291,6 +293,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
                 </button>
               </p>
             )}
+            {g.id === 'sleeve' && arms && <SleeveSlider sleeve={sleeve} choices={choices} onChoices={(c) => change(validDetails(c))} />}
             {g.id === 'neckline' && draped && (
               <p className="muted small">
                 {choices.neckline === 'cowl'

@@ -598,7 +598,12 @@ function sleeveSteps(sl: SleeveDraft, seam: string, curve: string, lined: boolea
           title: 'Attach the sleeve bands',
           text: `Sew two rows of long gathering stitches round each sleeve hem, inside the seam allowance. Join each band's short ends into a ring, ${seam} from the edge, and press the seam open. Pin one edge of the band to the sleeve hem, right sides together, with its seam at the underarm and its notch at the middle of the sleeve, pull up the gathers to fit (${sl.gathers!.hem} cm is gathered into each band), and sew ${seam} from the edge. Fold the band in half to the inside along its fold line, turn its raw edge under ${seam}, and stitch it down over the seam.`,
         }
-      : {
+      : sl.pieces[0].meta.flutter
+        ? {
+            title: 'Hem the flutters',
+            text: 'The hem is curved and flared, so it takes a narrow hem only. Stay-stitch 0.5 cm from the edge, press up along that line, then fold the raw edge in to meet the crease and press again, easing it round the curve. Stitch close to the inner fold. In a fine fabric a rolled hem on an overlocker is lovely here. It is far easier now than once the sleeves are in.',
+          }
+        : {
           title: 'Hem the sleeves',
           text: `${
             sl.vent

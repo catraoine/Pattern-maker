@@ -75,3 +75,13 @@ New garments, new tools, new revenue streams, promo film re-records, expansion l
 more mock-up rounds for screens that already work. Bugs in anything already live are fixed as found.
 
 An ask that breaks the freeze is flagged before any work starts, with the cost, and Cat decides.
+
+## Exceptions Cat approved
+
+**Styling gaps (Cat, 23 October 2026).** After the waistline (#147), Cat approved all 15 ranked styling gaps
+from the [Styling gaps audit](https://claude.ai/artifact/K1z78vim85e8dr1rvwwsgX), on this schedule: the top 7 by
+mid-November so the 40 testers sew them, the other 8 by mid-December for the January round. Anything that
+hasn't passed at the gate keeps its "In testing" tag. In order: sleeve length anywhere with cap and flutter
+sleeves; gathered skirt; mock or funnel neck; shirt dress; shift or sheath dress; halter neck; wrap styles;
+then slits, skirt waists, cuffs, ties and bows, back details, drop shoulder and raglan, skirt yoke and button
+front, ruffles and shirring.

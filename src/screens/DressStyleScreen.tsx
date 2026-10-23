@@ -8,6 +8,7 @@ import { piecesLengthCm, toMetres } from '../engine/fabric';
 import { layPlan } from '../engine/layplan';
 import { hasSlit } from '../engine/instructions';
 import { SHAPES_FOR_LENGTH, SleeveDraft, needsArms } from '../engine/sleeve';
+import { SleeveSlider } from '../ui/SleeveSlider';
 import { BODICE_GROUPS, BodiceChoices, DARTS_FOR_FIT, DressChoices, detailAllowed, sleeveOf, topAllowed, validDetails } from '../garments';
 import type { MeasurementValues } from '../measurements';
 import { SaveControl } from '../ui/SaveControl';
@@ -163,7 +164,8 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
         : id === 'pockets'
           ? (choices.skirt.pockets ?? 'none')
           : id === 'sleeve'
-            ? chosen.length
+            ? // Set on the slider, no named length is picked, as with the bodice.
+              chosen.cm !== undefined ? '' : chosen.length
             : id === 'sleeveShape'
               ? chosen.shape
               : id === 'bustDart'
@@ -319,6 +321,9 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
                   Add them
                 </button>
               </p>
+            )}
+            {g.id === 'sleeve' && arms && (
+              <SleeveSlider sleeve={sleeve} choices={choices.bodice} onChoices={(c) => onChoices({ ...choices, bodice: validDetails({ ...c, length: 'waist', closure: 'back_zip' }, 'dress') })} />
             )}
             {g.id === 'volume' && volumeOf(choices.skirt) === 'godets' && (
               <div className="chips">

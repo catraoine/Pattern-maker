@@ -92,6 +92,8 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       straight: ['The same width all the way down. The simplest sleeve.', 'easy'],
       puff: ['Gathered at the top so it puffs out at the shoulder.'],
       bishop: ['Full lower down and gathered into a band at the end.', 'skill'],
+      cap: ['A tiny sleeve that just covers the top of the shoulder.', 'easy'],
+      flutter: ['A short sleeve that flares out and ripples at the hem. Best in a light, drapey fabric.'],
     },
     princess: {
       none: ['No extra seams. The bust is shaped with darts instead.', 'easy'],

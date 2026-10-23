@@ -230,11 +230,12 @@ const INITIAL: Saved = {
 
 /** The sleeve for a bodice, drafted to its armhole with its allowances, when one is chosen and the arms are measured. */
 function sleeveFor(bodice: BodiceDraft, choices: BodiceChoices, values: MeasurementValues): SleeveDraft | undefined {
-  const { length, shape } = sleeveOf(choices);
+  const { length, shape, cm } = sleeveOf(choices);
   if (length === 'none' || needsArms(values as SleeveMeasurements)) return undefined;
   return draftSleeve(bodice, values as SleeveMeasurements, {
     length,
     shape,
+    ...(cm !== undefined ? { lengthCm: cm } : {}),
     fit: choices.fit,
     seamAllowance: bodice.pieces[0].seamAllowance,
     armholeAllowance: bodice.pieces[0].allowances.armhole ?? 1,

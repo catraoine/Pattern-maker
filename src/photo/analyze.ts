@@ -14,7 +14,7 @@ const Top = z.object({
   fit,
   neckline: z.enum(['crew', 'scoop', 'v', 'square', 'boat', 'one_shoulder', 'cowl', 'strapless', 'sweetheart', 'cami']),
   sleeve: z.enum(['none', 'short', 'elbow', 'three_quarter', 'long']),
-  sleeveShape: z.enum(['fitted', 'straight', 'puff', 'bishop']),
+  sleeveShape: z.enum(['fitted', 'straight', 'puff', 'bishop', 'cap', 'flutter']),
   length: z.enum(['cropped', 'waist', 'high_hip', 'hip', 'tunic']),
   seams: z.enum(['darts', 'princess', 'none']),
   opening: z.enum(['back', 'front_buttons']),
@@ -96,7 +96,7 @@ Pick the closest option in each group:
 top: fill this in for a top, a T-shirt, the bodice of a dress, or a top worn under an open jacket; otherwise null.
 - fit: how close it sits round the bust and waist, judged like the skirt's fit. When unsure, choose "regular".
 - neckline: "crew" (round, close to the neck), "scoop" (lower round), "v", "square", "boat" (wide and shallow, shoulder to shoulder), "one_shoulder", "cowl" (draped folds at the front), "strapless" (straight across), "sweetheart" (strapless with two curves over the bust), "cami" (thin straps).
-- sleeve: "none", "short", "elbow", "three_quarter" or "long". sleeveShape: "fitted" (narrow, close to the arm), "straight", "puff" (gathered at the shoulder and the band) or "bishop" (long, full, gathered into a cuff). Use "straight" when there are no sleeves.
+- sleeve: "none", "short", "elbow", "three_quarter" or "long". sleeveShape: "fitted" (narrow, close to the arm), "straight", "puff" (gathered at the shoulder and the band), "bishop" (long, full, gathered into a cuff), "cap" (a tiny sleeve just covering the shoulder, short only) or "flutter" (short, flared and rippling at the hem, short only). Use "straight" when there are no sleeves.
 - length: where its hem falls: "cropped" (above the waist), "waist", "high_hip", "hip" or "tunic" (to the upper thigh). For a dress, use "waist".
 - seams: "princess" when long shaping seams run down the front over the bust, "darts" when it is shaped with darts or is close-fitting without visible seams, "none" for a loose, unshaped top.
 - opening: "front_buttons" when it buttons down the front, otherwise "back".

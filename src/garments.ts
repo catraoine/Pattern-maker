@@ -34,6 +34,9 @@ export interface BodiceChoices {
   /** Older saves have no sleeves. */
   sleeve?: SleeveLength;
   sleeveShape?: SleeveShape;
+  /** Set on the sleeve slider: crown point to hem in cm, in place of the named length's. `sleeve` is
+   * kept as the named length nearest it, which says which shapes it can have. */
+  sleeveCm?: number;
   /** Older saves have the block's side bust dart, no princess seams, a back zip and no collar. */
   bustDart?: DartPlace;
   princess?: PrincessLine;
@@ -288,7 +291,7 @@ export const BODICE_GROUPS: [Group<'fit'>, Group<'neckline'>, Group<'length'>, G
     label: 'Sleeves',
     options: [['none', 'Sleeveless'], ['short', 'Short'], ['elbow', 'Elbow'], ['three_quarter', 'Three-quarter'], ['long', 'Long']],
   },
-  { id: 'sleeveShape', label: 'Sleeve shape', options: [['fitted', 'Fitted'], ['straight', 'Straight'], ['puff', 'Puff'], ['bishop', 'Bishop']] },
+  { id: 'sleeveShape', label: 'Sleeve shape', options: [['fitted', 'Fitted'], ['straight', 'Straight'], ['cap', 'Cap'], ['flutter', 'Flutter'], ['puff', 'Puff'], ['bishop', 'Bishop']] },
   { id: 'princess', label: 'Princess seams', options: [['none', 'None'], ['shoulder', 'From the shoulder'], ['armhole', 'From the armhole']] },
   {
     id: 'bustDart',
@@ -406,11 +409,27 @@ export function validDetails(c: BodiceChoices, garment: 'bodice' | 'dress' = 'bo
 }
 
 /** The sleeve as chosen, made valid: a shape the length allows. */
-export function sleeveOf(c: BodiceChoices): { length: SleeveLength; shape: SleeveShape } {
+export function sleeveOf(c: BodiceChoices): { length: SleeveLength; shape: SleeveShape; cm?: number } {
   const length = c.sleeve ?? 'none';
   const shapes = SHAPES_FOR_LENGTH[length];
   const shape = c.sleeveShape && shapes.includes(c.sleeveShape) ? c.sleeveShape : (shapes.includes('straight') ? 'straight' : shapes[0]) ?? 'straight';
-  return { length, shape };
+  // A cap sleeve has its own length; any other keeps the length set on the slider.
+  const cm = length !== 'none' && shape !== 'cap' ? c.sleeveCm : undefined;
+  return cm === undefined ? { length, shape } : { length, shape, cm };
+}
+
+/**
+ * A sleeve length set on the slider: the named length nearest it (which says which shapes it can
+ * have), snapping onto a named one within a centimetre. A cap sleeve has its own length, so it has
+ * no slider; a shape the new length doesn't take falls back the way picking that length's chip does.
+ */
+export function slideSleeve(c: BodiceChoices, cm: number, named: Record<Exclude<SleeveLength, 'none'>, number>): BodiceChoices {
+  const { sleeveCm: _s, ...rest } = c;
+  const order = (['short', 'elbow', 'three_quarter', 'long'] as const).filter((l) => named[l] !== undefined);
+  const nearest = order.reduce((a, b) => (Math.abs(named[b] - cm) < Math.abs(named[a] - cm) ? b : a));
+  const next: BodiceChoices = { ...rest, sleeve: nearest };
+  const shaped = { ...next, sleeveShape: sleeveOf({ ...next, sleeveShape: c.sleeveShape }).shape };
+  return Math.abs(named[nearest] - cm) < 1 ? shaped : { ...shaped, sleeveCm: Math.round(cm) };
 }
 
 /** Which dart choices each fit allows: a fitted bodice needs both, and only a relaxed one can go without. */
@@ -474,23 +493,29 @@ const listed = (words: string[]) => (words.length < 2 ? words.join('') : `${word
 
 const SLEEVE_WORDS: Record<SleeveLength, string> = { none: '', short: 'short', elbow: 'elbow-length', three_quarter: 'three-quarter', long: 'long' };
 
+/** "short puff sleeves", "cap sleeves", "flutter sleeves" or "sleeves" when set on the slider. */
+function sleeveWordsOf({ length, shape, cm }: ReturnType<typeof sleeveOf>): string {
+  if (length === 'none') return '';
+  const kind = shape === 'straight' ? '' : `${shape} `;
+  if (shape === 'cap' || shape === 'flutter' || cm !== undefined) return `${kind}sleeves`;
+  return `${SLEEVE_WORDS[length]} ${kind}sleeves`;
+}
+
 /** The bodice's neckline and sleeves, for a dress's name: "a scoop neck and short puff sleeves". */
 export function bodiceDetails(c: BodiceChoices) {
   const v = validDetails(c, 'dress');
   if (isTop(v.neckline)) return `a ${withPeplum(topWords(v, ''), v)}`;
-  const { length, shape } = sleeveOf(v);
   const collarWords = v.collar && v.collar !== 'none' && !c.neck ? COLLAR_WORDS[v.collar] : '';
   const neck = collarWords ? `a ${collarWords}` : v.unevenNeck ? 'an uneven neckline' : `a ${c.neck ? 'drawn neckline' : NECK_WORDS[c.neckline]}`;
-  const sleeves = length === 'none' ? '' : `${SLEEVE_WORDS[length]} ${shape === 'straight' ? '' : `${shape} `}sleeves`;
+  const sleeves = sleeveWordsOf(sleeveOf(v));
   return listed([neck, seamNoun(v), sleeves].filter(Boolean));
 }
 
 export function describeBodice(c: BodiceChoices) {
   const v = validDetails(c);
   if (isTop(v.neckline)) return withPeplum(topWords(v, `${LENGTH_WORDS[v.length]} `), v);
-  const { length, shape } = sleeveOf(v);
   const peplum = v.peplum && v.peplum !== 'none' ? `a ${v.peplum} peplum` : '';
-  const sleeveWords = length === 'none' ? '' : `${SLEEVE_WORDS[length]} ${shape === 'straight' ? '' : `${shape} `}sleeves`;
+  const sleeveWords = sleeveWordsOf(sleeveOf(v));
   const sleeve = sleeveWords || peplum ? ` with ${[sleeveWords, peplum].filter(Boolean).join(' and ')}` : '';
   const princess = v.princess && v.princess !== 'none' ? ' princess' : '';
   const seam = seamAdjective(v) ? ` ${seamAdjective(v)}` : '';
