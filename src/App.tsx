@@ -414,6 +414,7 @@ export default function App() {
   const dressStyles = (f: Fitting | undefined) => ({
     bodice: { ...validDetails({ ...dress.bodice, length: 'waist' }, 'dress'), fit: dress.fit, length: 'waist' as const, fitting: bodiceFitting(f) },
     skirt: { ...dress.skirt, fit: dress.fit, fitting: withFabricEase(toFitting(f, 'skirt'), fabric, 'skirt') },
+    seam: { at: dress.waistSeam, cm: dress.waistSeamCm },
   });
 
   const drafts = useMemo((): { skirt?: SkirtDraft; bodice?: BodiceDraft; dress?: DressDraft; trousers?: TrousersDraft; tee?: TeeDraft; lingerie?: LingerieDraft; outer?: OuterDraft; sleeve?: SleeveDraft; error?: string } => {
@@ -430,7 +431,7 @@ export default function App() {
       if (garment === 'lingerie') return { lingerie: draftLingerie(values as LingerieMeasurements, lingerieChoices) };
       if (garment === 'dress') {
         const st = dressStyles(fitting);
-        const d = draftDress(values as DressMeasurements, st.bodice, st.skirt);
+        const d = draftDress(values as DressMeasurements, st.bodice, st.skirt, st.seam);
         return { dress: d, sleeve: sleeveFor(d.bodice, st.bodice, values) };
       }
       return { skirt: draftSkirt(values as SkirtMeasurements, skirtStyle) };
@@ -484,7 +485,7 @@ export default function App() {
           if (garment === 'lingerie') return draftLingerie(values as LingerieMeasurements, lingerieChoices).pieces;
           if (garment === 'dress') {
             const st = dressStyles(f);
-            return own(draftDress(values as DressMeasurements, st.bodice, st.skirt).pieces);
+            return own(draftDress(values as DressMeasurements, st.bodice, st.skirt, st.seam).pieces);
           }
           return own(draftSkirt(values as SkirtMeasurements, { ...saved.choices, fitting: withFabricEase(toFitting(f, 'skirt'), fabric, 'skirt') }).pieces);
         } catch {
@@ -516,7 +517,7 @@ export default function App() {
         }
         if (garment === 'dress') {
           const st = dressStyles(fitting);
-          const d = draftDress(m as DressMeasurements, st.bodice, st.skirt);
+          const d = draftDress(m as DressMeasurements, st.bodice, st.skirt, st.seam);
           return allow([...d.pieces, ...(sleeveFor(d.bodice, st.bodice, m)?.pieces ?? [])]);
         }
         const k = draftSkirt(m as SkirtMeasurements, skirtStyle);

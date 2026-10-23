@@ -125,6 +125,22 @@ test('draws a high-low hem on the dress', async ({ page }) => {
   await expect(main.getByRole('heading', { name: 'Style your dress' })).toBeVisible();
 });
 
+test('moves the dress waist seam: a chip, then drawn on the form', async ({ page }) => {
+  await startWithExample(page);
+  await switchGarment(page, 'Dress');
+  const main = page.getByRole('main');
+  const seam = await openGroup(page, 'Waist seam');
+  await seam.getByRole('button', { name: 'Empire', exact: true }).click();
+  await expect(seam.getByText(/above the waist, just under the bust/)).toBeVisible();
+  await (await drawTool(page)).click();
+  await main.getByRole('button', { name: 'Waist seam', exact: true }).click();
+  await draw(page, [{ x: -20, y: 52 }, { x: 0, y: 52 }, { x: 20, y: 52 }]);
+  await expect(main.getByRole('status')).toHaveText(/Seam \d+ cm below the waist/);
+  await main.getByRole('button', { name: 'Done', exact: true }).click();
+  await expect(main.getByRole('heading', { name: 'Style your dress' })).toBeVisible();
+  await expect(main.getByText(/drop-waist dress/i).first()).toBeVisible();
+});
+
 test('draws the hem and side of a skirt on the form', async ({ page }) => {
   await startWithExample(page);
   await switchGarment(page, 'Skirt');

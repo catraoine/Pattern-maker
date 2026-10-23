@@ -6,6 +6,7 @@ import type { DartPlace, PrincessLine } from './engine/manipulate';
 import type { Closure, Collar } from './engine/collar';
 import { LEG_WORDS, Leg, TrouserClosure, TrouserLength } from './engine/trousers';
 import type { Fit, WaistStyle } from './engine/skirt';
+import type { WaistSeam } from './engine/dress';
 import type { PocketStyle } from './engine/pockets';
 import type { Stretch, TeeFit, TeeLength, TeeNeck, TeeSleeve } from './engine/tee';
 import { isSwim, type CupStyle, type LegCut, type LingerieFit, type LingeriePiece, type LingerieStretch, type Rise, type StretchWay } from './engine/lingerie';
@@ -62,7 +63,24 @@ export interface DressChoices {
   fit: BodiceFit;
   bodice: BodiceChoices;
   skirt: Choices;
+  /** Where the bodice meets the skirt, from empire to low; older saves have none (the natural waist). */
+  waistSeam?: WaistSeam;
+  /** A seam dragged to its own height: cm below the natural waist, negative above it. */
+  waistSeamCm?: number;
 }
+
+/** The dress's waist seam, from just under the bust down to low on the hip. */
+export const WAIST_SEAM_GROUP = {
+  id: 'waistSeam',
+  label: 'Waist seam',
+  options: [
+    ['empire', 'Empire'],
+    ['raised', 'High'],
+    ['natural', 'At the waist'],
+    ['dropped', 'Dropped'],
+    ['low', 'Low'],
+  ] as [WaistSeam, string][],
+};
 
 /** Trousers: the leg's shape and length, a fly or side zip (or a pull-on elastic waist), and pockets. */
 export interface TrousersChoices {

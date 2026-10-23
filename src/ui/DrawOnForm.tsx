@@ -114,6 +114,7 @@ const HELP: Record<FormLine, string> = {
   sleeve: 'Draw across the arm where you want the sleeve to end.',
   front: 'Draw down the front where its edge should sit: just past the centre for one row of buttons, further across for two.',
   collar: 'Draw from the shoulder down the front: down to the bust for lapels, round to the centre for a collarless neck.',
+  waist: 'Draw across the body where the bodice meets the skirt: just under the bust for an empire line, at the waist, or low on the hip for a drop waist.',
 };
 const BACK_HELP: Partial<Record<FormLine, string>> = {
   neckline: 'Draw down the back to set how low the back neckline goes.',
@@ -121,7 +122,7 @@ const BACK_HELP: Partial<Record<FormLine, string>> = {
   hem: 'Draw the back hem. Lower than the front makes a high-low hem.',
 };
 /** Kinds that are drawn on the front only. */
-const FRONT_ONLY: FormLine[] = ['drape', 'fit'];
+const FRONT_ONLY: FormLine[] = ['drape', 'fit', 'waist'];
 
 /** Marks the drawing's own entry in the browser's history. */
 const DRAWING = 'drawing';
