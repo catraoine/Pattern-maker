@@ -73,6 +73,7 @@ export function bodiceSpec(m: BodiceMeasurements, d: BodiceDraft, length: Bodice
       ...t.bones.map((b) => ({ label: `Bone, ${b.where.toLowerCase()} (${b.count})`, finished: r1(b.lengthCm) })),
       ...(t.waistStay ? [{ label: `Waist stay, ${t.waistStay.widthCm} grosgrain`, finished: r1(t.waistStay.lengthCm) }] : []),
       ...(t.straps ? [row('Strap, finished (each)', undefined, t.straps.lengthCm), { label: 'Strap, cut on the bias', finished: `${t.straps.cutLengthCm} x ${t.straps.cutWidthCm}` }] : []),
+      ...(t.ties ? [row('Neck tie, finished (each)', undefined, t.ties.lengthCm), { label: 'Neck tie, cut on the grain', finished: `${t.ties.cutLengthCm} x ${t.ties.cutWidthCm}` }] : []),
       { label: 'Invisible zip, centre back', finished: `${d.zipCm}` },
     );
     return rows;

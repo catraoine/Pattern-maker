@@ -75,6 +75,7 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       strapless: ['No straps: it is boned and shaped to stay up on its own.', 'skill'],
       sweetheart: ['Curves over the bust in two arches, dipping in the middle like the top of a heart.', 'skill'],
       cami: ['Thin straps over the shoulders, like a camisole.'],
+      halter: ['Rises to the neck and ties behind it, leaving the shoulders and upper back bare.'],
     },
     length: {
       waist: ['Ends at your waist, the natural place to meet a skirt or trousers.'],

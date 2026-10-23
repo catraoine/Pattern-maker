@@ -289,7 +289,7 @@ export const BODICE_GROUPS: [Group<'fit'>, Group<'neckline'>, Group<'length'>, G
   {
     id: 'neckline',
     label: 'Neckline',
-    options: [['crew', 'Crew'], ['scoop', 'Scoop'], ['v', 'V-neck'], ['square', 'Square'], ['boat', 'Boat'], ['one_shoulder', 'One-shoulder'], ['cowl', 'Cowl'], ['strapless', 'Strapless'], ['sweetheart', 'Sweetheart'], ['cami', 'Cami straps']],
+    options: [['crew', 'Crew'], ['scoop', 'Scoop'], ['v', 'V-neck'], ['square', 'Square'], ['boat', 'Boat'], ['one_shoulder', 'One-shoulder'], ['cowl', 'Cowl'], ['strapless', 'Strapless'], ['sweetheart', 'Sweetheart'], ['cami', 'Cami straps'], ['halter', 'Halter']],
   },
   { id: 'length', label: 'Length', options: [['waist', 'Waist'], ['high_hip', 'High hip'], ['hip', 'Hip']] },
   { id: 'darts', label: 'Darts', options: [['bust_waist', 'Bust and waist'], ['bust', 'Bust only'], ['none', 'No darts']] },
@@ -327,7 +327,8 @@ export function detailAllowed(c: BodiceChoices, id: 'princess' | 'bustDart' | 'c
   if (id === 'peplum') return opt === 'none' || (garment === 'bodice' && c.length === 'waist' && !(c.dropCm !== undefined && c.dropCm >= 3));
   if (id === 'sleeve') return opt === 'none' || (c.neckline !== 'one_shoulder' && !isTop(c.neckline)) || !!c.neck;
   // Boning needs a top edge below the shoulders, and a strapless one needs the boning to stay up.
-  if (id === 'structure') return opt === 'boned' ? isTop(c.neckline) : !isStrapless(c.neckline);
+  // A halter hangs from the neck, so it stays soft.
+  if (id === 'structure') return opt === 'boned' ? isTop(c.neckline) && c.neckline !== 'halter' : !isStrapless(c.neckline);
   // So does an uneven neckline, its front cut whole across the centre.
   if ((isDraped(c) || (c.unevenNeck && !isTop(c.neckline))) && opt !== 'none') return id === 'bustDart' ? opt === 'side' : id === 'closure' && opt === 'back_zip';
   // A top below the shoulders has no shoulder or armhole for a dart or princess line, and opens at the back.
@@ -370,7 +371,7 @@ export function seamBlocked(c: BodiceChoices, kind: SeamKind, garment: 'bodice' 
 }
 
 /** How far each named neckline drops at the centre front, in cm (NECKLINES in bodice.ts). */
-const NECKLINE_DEPTH: Record<Neckline, number> = { crew: 1, scoop: 10, v: 14, square: 10, boat: 2, one_shoulder: 1, cowl: 1, strapless: 0, sweetheart: 0, cami: 0 };
+const NECKLINE_DEPTH: Record<Neckline, number> = { crew: 1, scoop: 10, v: 14, square: 10, boat: 2, one_shoulder: 1, cowl: 1, strapless: 0, sweetheart: 0, cami: 0, halter: 0 };
 
 /** The style seam a bodice has, one kind at a time: an empire seam, then side panels, then a yoke. */
 export function seamOf(c: BodiceChoices): SeamKind | undefined {
@@ -390,6 +391,7 @@ export function validDetails(c: BodiceChoices, garment: 'bodice' | 'dress' = 'bo
     delete out.neck;
     delete out.unevenNeck;
     if (isStrapless(out.neckline)) out.structure = 'boned';
+    if (out.neckline === 'halter' && out.structure === 'boned') out.structure = 'none';
     if (out.sleeve && out.sleeve !== 'none') out.sleeve = 'none';
     if (isBoned(out)) {
       delete out.dropCm;
@@ -447,7 +449,7 @@ export const DARTS_FOR_FIT: Record<BodiceFit, BodiceDarts[]> = {
   relaxed: ['bust_waist', 'bust', 'none'],
 };
 
-const NECK_WORDS: Record<Neckline, string> = { crew: 'crew neck', scoop: 'scoop neck', v: 'V-neck', square: 'square neck', boat: 'boat neck', one_shoulder: 'one-shoulder neckline', cowl: 'cowl neck', strapless: 'strapless', sweetheart: 'strapless sweetheart', cami: 'cami' };
+const NECK_WORDS: Record<Neckline, string> = { crew: 'crew neck', scoop: 'scoop neck', v: 'V-neck', square: 'square neck', boat: 'boat neck', one_shoulder: 'one-shoulder neckline', cowl: 'cowl neck', strapless: 'strapless', sweetheart: 'strapless sweetheart', cami: 'cami', halter: 'halter' };
 
 /**
  * What a top below the shoulders rules out: sleeves, and on a boned bodice any fit but fitted, any
@@ -465,7 +467,7 @@ export function topAllowed(c: BodiceChoices, id: string, opt: string): boolean {
 
 /** A top below the shoulders, named: "boned strapless sweetheart bodice", "cami bodice with spaghetti straps". */
 function topWords(v: BodiceChoices, length: string) {
-  const straps = v.neckline === 'cami' ? ' with spaghetti straps' : '';
+  const straps = v.neckline === 'cami' ? ' with spaghetti straps' : v.neckline === 'halter' ? ' tied at the neck' : '';
   return `${isBoned(v) ? 'boned ' : length}${NECK_WORDS[v.neckline]} bodice${straps}`;
 }
 

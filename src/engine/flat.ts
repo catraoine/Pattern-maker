@@ -752,9 +752,9 @@ function sideChannel(h: Half, shape: P[]): FlatView['lines'] {
 }
 
 /** A spaghetti strap from the top edge up to the shoulder, about 6 mm wide as drawn. */
-function strap([a, b]: [P, P]): P[] {
+function strap([a, b]: [P, P], width = 0.7): P[] {
   const u = unit(sub(b, a));
-  const n = mul(p(-u.y, u.x), 0.35);
+  const n = mul(p(-u.y, u.x), width / 2);
   return [add(a, n), add(b, n), sub(b, n), sub(a, n)];
 }
 
@@ -818,7 +818,8 @@ function bodiceViews(d: BodiceDraft, edges: BodiceEdges, sleeve: SleeveDraft | u
     const shapes = [shape];
     // Spaghetti straps, from the top edge up over the shoulder.
     const st = d.top?.strapAt && (i === 0 ? d.top.strapAt.front : d.top.strapAt.back);
-    if (st) shapes.push(...both(strap([h.move(st[0]), h.move(st[1])])));
+    // A halter's ties are wider bands, rising from the strap ends round the neck.
+    if (st) shapes.push(...both(strap([h.move(st[0]), h.move(st[1])], d.top?.ties ? 2 : 0.7)));
     const neckRun = uneven ? undefined : along(h, 'neck')[0];
     const collar = neckRun ? collarHalf(neckRun, d.collar, i === 0) : [];
     if (sleeve) {

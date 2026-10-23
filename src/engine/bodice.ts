@@ -47,7 +47,7 @@ export interface BodiceMeasurements {
 export type BodiceFit = 'fitted' | 'regular' | 'relaxed';
 /** The draped necklines (one-shoulder, cowl) are drafted as whole pieces in drape.ts; the top necklines
  * (strapless, sweetheart, cami) are cut below the shoulders in corset.ts. */
-export type Neckline = 'crew' | 'scoop' | 'v' | 'square' | 'boat' | 'one_shoulder' | 'cowl' | 'strapless' | 'sweetheart' | 'cami';
+export type Neckline = 'crew' | 'scoop' | 'v' | 'square' | 'boat' | 'one_shoulder' | 'cowl' | 'strapless' | 'sweetheart' | 'cami' | 'halter';
 export type BodiceLength = 'waist' | 'high_hip' | 'hip';
 export interface DressHem {
   belowWaist: number;
@@ -177,6 +177,7 @@ export const NECKLINES: Record<Neckline, { frontDepth: number; width: number; ba
   strapless: { frontDepth: 0, width: 0, backDepth: 0 },
   sweetheart: { frontDepth: 0, width: 0, backDepth: 0 },
   cami: { frontDepth: 0, width: 0, backDepth: 0 },
+  halter: { frontDepth: 0, width: 0, backDepth: 0 },
 };
 
 /** Hip ease (cm) for tops that reach below the waist, from the same fit options. */

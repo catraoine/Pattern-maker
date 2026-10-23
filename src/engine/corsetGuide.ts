@@ -24,12 +24,29 @@ const step = (title: string, text: string, diagram?: SewStep['diagram']): SewSte
 /** Cutting the straps, for the cutting step. */
 export function strapCut(d: BodiceDraft): string {
   const st = d.top?.straps;
+  const ties = d.top?.ties;
+  if (ties) return ` Cut two strips for the neck ties on the straight grain, ${ties.cutWidthCm} cm wide and ${ties.cutLengthCm} cm long. Stay-stitch the cut-in armholes 1 cm in as soon as they are cut, so they cannot stretch.`;
   return st ? ` Cut two bias strips for the straps, ${st.cutWidthCm} cm wide and ${st.cutLengthCm} cm long.` : '';
 }
+
+/** Sewing a halter's tie to each strap end. */
+const tieStep = () =>
+  step(
+    'Attach the ties',
+    "Turn the open end of each tie in by 1 cm. Slip a strap end 1 cm inside it, so the tie wraps the end with its seam to the inside, and edgestitch across through every layer, then again 0.5 cm above. Try the top on and knot the ties behind your neck: it should lie flat across the chest without pulling down the front.",
+  );
 
 /** Making the rouleau straps and settling their length. */
 function strapSteps(d: BodiceDraft): SewStep[] {
   const st = d.top?.straps;
+  const ties = d.top?.ties;
+  if (ties)
+    return [
+      step(
+        'Make the neck ties',
+        `Fold each tie strip in half lengthwise, right sides together, and sew the long edge and across one end ${r1((ties.cutWidthCm - 2 * 2.5) / 2)} cm from the edge. Trim the corners, turn the tie right side out with a loop turner or a safety pin, and press it flat with the seam along one edge. Each tie is ${ties.lengthCm} cm finished, long enough to reach round the back of your neck and knot.`,
+      ),
+    ];
   if (!st) return [];
   return [
     step(
@@ -161,6 +178,11 @@ export function topSteps(g: SewingGuide, d: BodiceDraft, o: TopFinish): SewingGu
   for (const s of g.steps) {
     if (s.title === 'Sew the shoulders' || s.title === 'Bind the armholes' || s.title === 'Face the armholes') continue;
     if (s.title === 'Cut out') steps.push({ ...s, text: `${s.text}${strapCut(d)}` });
+    else if (s.title === 'Bind the neckline' && t.ties)
+      steps.push(
+        { ...s, title: 'Bind the top edge', text: `${s.text.replace('to the neckline', 'to the top edge')} Bind the neckline and each armhole separately, from the centre back round to the strap end, leaving the strap ends themselves unbound.` },
+        tieStep(),
+      );
     else if (s.title === 'Bind the neckline')
       steps.push(
         { ...s, title: 'Bind the top edge', text: s.text.replace('to the neckline', 'to the top edge') },
@@ -169,8 +191,17 @@ export function topSteps(g: SewingGuide, d: BodiceDraft, o: TopFinish): SewingGu
           'Tuck each strap end 1 cm under the binding on the inside at its STRAP mark and stitch it to the binding by hand. Fold the strap up over the edge and stitch across again through the binding, so it can never pull out.',
         ),
       );
+    else if (s.title === 'Face the neckline' && t.ties) steps.push({ ...s, title: 'Face the top edge', text: s.text.replace('to the neckline', 'to the top edge').replace(', matching the shoulder seams,', ', matching the side seams,').replace(' and hand-tack it to the shoulder seams', ' and hand-tack it to the side seams') }, tieStep());
     else if (s.title === 'Face the neckline') steps.push({ ...s, title: 'Face the top edge', text: s.text.replace('to the neckline', 'to the top edge').replace(', matching the shoulder seams,', `, matching the side seams, with each strap end between the layers at its STRAP mark,`).replace(' and hand-tack it to the shoulder seams', ' and hand-tack it to the side seams') });
     else if (s.title === 'Make the lining') steps.push({ ...s, text: s.text.replace(' Leave the shoulders of both open for now.', '') });
+    else if (s.title === 'Line the neck and armholes' && t.ties)
+      steps.push(
+        step(
+          'Line the top edge',
+          `Pin the lining to the bodice along the top edge, right sides together, matching the side seams, with each tie's open end between the layers at its strap end, the tie lying down inside. Sew ${o.curve} from the edge, from one centre back seam line round the neck, across the strap ends and down the armholes to the other. Trim to 0.5 cm, clip the curves, and understitch the lining as far as you can reach. Turn and press.`,
+          'understitch',
+        ),
+      );
     else if (s.title === 'Line the neck and armholes')
       steps.push(
         step(
@@ -183,7 +214,7 @@ export function topSteps(g: SewingGuide, d: BodiceDraft, o: TopFinish): SewingGu
     else steps.push(s);
     if (s.title === 'Sew the side seams') steps.push(...strapSteps(d));
   }
-  return { notions: [...g.notions.slice(0, -1), 'A loop turner, for the straps', g.notions[g.notions.length - 1]], steps };
+  return { notions: [...g.notions.slice(0, -1), t.ties ? 'A loop turner or a safety pin, for the ties' : 'A loop turner, for the straps', g.notions[g.notions.length - 1]], steps };
 }
 
 /**
@@ -266,6 +297,7 @@ export function topNotes(d: BodiceDraft): string[] {
     );
   }
   if (t.grip) out.push(`The top edge is drafted ${t.grip} cm smaller round the body than you are, so it grips and stays up.`);
+  if (t.ties) out.push(`A halter: the front rises to the neck, tied behind it with two ties, each ${t.ties.lengthCm} cm finished. Cut the strips ${t.ties.cutWidthCm} x ${t.ties.cutLengthCm} cm.`);
   if (t.straps)
     out.push(
       `Straps: two bias rouleaux, each ${t.straps.lengthCm} cm finished from the front top edge over the shoulder to the back, plus ${STRAP_ADJUST} cm to settle at the fitting. Cut the strips ${t.straps.cutWidthCm} x ${t.straps.cutLengthCm} cm.`,

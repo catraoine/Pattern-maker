@@ -100,6 +100,7 @@ const NECK_NAMES: Record<BodiceChoices['neckline'], string> = {
   strapless: 'strapless top',
   sweetheart: 'sweetheart top',
   cami: 'cami top',
+  halter: 'halter top',
 };
 
 /** Which hand-shaped value a chip group replaces: picking a named choice lets go of the dragged or drawn one. */

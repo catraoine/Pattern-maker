@@ -136,6 +136,12 @@ const NECK: Record<string, ReactNode> = {
       <path d="M13 20L14 7M27 20L26 7" />
     </>
   ),
+  halter: (
+    <>
+      <path d="M17 6L23 6L30 20L29 44H11L10 20z" />
+      <path className="pic-faint" d="M17 6Q20 3 23 6M17 6Q20 9 23 6" />
+    </>
+  ),
 };
 
 const SLEEVE: Record<string, ReactNode> = { none: sleeves(0), short: sleeves(8), elbow: sleeves(16), three_quarter: sleeves(22), long: sleeves(30) };

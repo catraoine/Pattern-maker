@@ -109,7 +109,7 @@ function slanting(stroke: P[], draft: BodiceDraft) {
 }
 
 export function readNeckline(stroke: P[], draft: BodiceDraft, c: BodiceChoices, garment: Garment = 'bodice', side: FormSide = 'front'): Reading<BodiceChoices> {
-  if (isTop(c.neckline)) return { said: 'A strapless, sweetheart or cami top has no neckline to draw. Pick a higher neckline first.' };
+  if (isTop(c.neckline)) return { said: 'A strapless, sweetheart, cami or halter top has no neckline to draw. Pick a higher neckline first.' };
   if (side === 'front') {
     const slant = slanting(stroke, draft);
     if (slant) return oneShoulder(slant.high, c, garment);

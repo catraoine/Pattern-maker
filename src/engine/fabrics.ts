@@ -290,6 +290,7 @@ const CAMI = {
 const NECK_NOTES: Partial<Record<Neckline, string>> = {
   sweetheart: 'For a sweetheart neckline, choose a fabric that presses sharply so the centre dip stays crisp.',
   cami: 'Rouleau straps are cut on the bias from the same fabric, so a light, soft one turns through most easily.',
+  halter: 'A halter hangs from its neck ties, so a light or medium fabric that drapes sits best. The cut-in armholes are stay-stitched so they keep their shape.',
   square: 'For a square neck, choose a fabric that presses sharply so the corners stay crisp.',
   v: 'For a V-neck, a fabric that presses well keeps the point sharp.',
   boat: 'A boat neck sits best in a firmer fabric that will not slip off the shoulder.',
