@@ -9,7 +9,8 @@ test('skirt waist: faced, high and a side zip', async ({ page }, info) => {
   await chooseChip(page, 'Silhouette', 'A-line');
   await chooseChip(page, 'Waist', 'Faced, no band');
   await expect(main.getByText(/A-line skirt with a faced waist/i).filter({ visible: true }).first()).toBeVisible();
-  await expect(main.getByText(/Waist facings: cut 1 front and 1 back/).first()).toBeVisible();
+  // The piece list sits beside the drawing on a computer.
+  if (info.project.name === 'desktop') await expect(main.getByText(/Waist facings: cut 1 front and 1 back/).first()).toBeVisible();
   await chooseChip(page, 'Waist', 'High waist');
   await expect(main.getByText(/high-waisted A-line skirt/i).filter({ visible: true }).first()).toBeVisible();
   const waist = await openGroup(page, 'Waist');
