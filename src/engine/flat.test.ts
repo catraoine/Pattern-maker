@@ -65,7 +65,7 @@ describe('technical flats', () => {
   });
 
   it('opens a walking slit at the foot of the centre back seam', () => {
-    const f = skirtFlat(draftSkirt(m, { silhouette: 'pencil' }), { slit: true });
+    const f = skirtFlat(draftSkirt(m, { silhouette: 'pencil' }));
     const back = f.views[1];
     const cb = (back.shapes[0][0].x + back.shapes[0][back.shapes[0].length - 1].x) / 2;
     const feet = back.lines.filter((l) => l.kind === 'seam' && l.pts.length === 2 && Math.abs(l.pts[1].y - f.height) < 3 && l.pts[0].x === cb && l.pts[1].x !== cb);
@@ -83,7 +83,7 @@ describe('technical flats', () => {
           if (e instanceof DraftError) continue;
           throw e;
         }
-        for (const p of problems(skirtFlat(d, { slit: silhouette === 'pencil' }))) failures.push(`seed ${seed} ${silhouette}: ${p}`);
+        for (const p of problems(skirtFlat(d))) failures.push(`seed ${seed} ${silhouette}: ${p}`);
       }
     expect(failures.slice(0, 10)).toEqual([]);
   });

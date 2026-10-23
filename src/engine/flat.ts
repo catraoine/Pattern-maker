@@ -308,10 +308,10 @@ function circleHalf(d: SkirtDraft, back: boolean): { shapes: P[][]; lines: FlatV
 
 type RawView = Omit<FlatView, 'at'>;
 
-/** The skirt: waistband, darts, centre back seam and zip, and a walking slit when it has one. */
-export function skirtFlat(d: SkirtDraft, opts: { slit?: boolean } = {}): Flat {
+/** The skirt: waistband, darts, centre back seam and zip, and its slit when it has one. */
+export function skirtFlat(d: SkirtDraft): Flat {
   // A slip has a faced waist, so no band shows.
-  return arrange(skirtViews(d, { ...opts, band: !d.faced, zipCm: d.zipCm }));
+  return arrange(skirtViews(d, { band: !d.faced, zipCm: d.zipCm }));
 }
 
 /**
@@ -342,7 +342,7 @@ function wholeView(pc: Piece, zipCm?: number): { shapes: P[][]; lines: FlatView[
  * The skirt's views, with their waist at the top. A dress's skirt has no waistband, and its zip is
  * drawn with the bodice's, so the centre back seam starts at `seamFrom` above the waist.
  */
-function skirtViews(d: SkirtDraft, opts: { slit?: boolean; band: boolean; zipCm?: number; seamFrom?: number }): (RawView & { waistY: number })[] {
+function skirtViews(d: SkirtDraft, opts: { band: boolean; zipCm?: number; seamFrom?: number }): (RawView & { waistY: number })[] {
   return (['FRONT', 'BACK'] as const).map((label, i) => {
     const back = i === 1;
     let shapes: P[][];
@@ -367,6 +367,16 @@ function skirtViews(d: SkirtDraft, opts: { slit?: boolean; band: boolean; zipCm?
       waist = along(h, ['waist', 'dart'])[0] ?? [h.run[0]];
       lines = d.volume?.pleats ? [] : h.darts.flatMap((dt) => both(dt).map((pts) => ({ pts, kind: 'dart' as const })));
       hemY = h.run[h.run.length - 1].y;
+      // A side slit opens the left side seam: on the right of the front as drawn, the left of the back.
+      if (d.slit?.at === 'side') {
+        const k = h.tags.findIndex((t, j) => t === 'hem' && h.tags[j - 1] === 'side');
+        if (k > 0) {
+          const foot = h.run[k];
+          const top = yOn(h.run.slice(0, k + 1), foot.y - d.slit.cm) ?? foot;
+          const s = back ? -1 : 1;
+          lines.push(...[-0.4, 0.4].map((dx) => ({ pts: [p(s * top.x, top.y), p(s * (foot.x + dx), foot.y)], kind: 'seam' as const })));
+        }
+      }
       if (d.volume) {
         const v = volumeFlat(d, i, h, hemY);
         shapes.push(...v.shapes);
@@ -397,15 +407,31 @@ function skirtViews(d: SkirtDraft, opts: { slit?: boolean; band: boolean; zipCm?
     // A back cut whole has no centre back seam: the zip is in the left side seam. A pull-on back is cut on the fold.
     if (back && !wholePc && !d.pieces[1].fold) {
       const from = cbTop - (opts.band ? WAISTBAND_CM : (opts.seamFrom ?? 0));
-      if (opts.slit) {
-        const top = hemY - 15;
+      if (d.slit?.at === 'back') {
+        const top = hemY - d.slit.cm;
         lines.push({ pts: [p(0, from), p(0, top)], kind: 'seam' });
         lines.push({ pts: [p(0, top), p(-0.5, hemY)], kind: 'seam' }, { pts: [p(0, top), p(0.5, hemY)], kind: 'seam' });
       } else lines.push({ pts: [p(0, from), p(0, seamY ?? hemY)], kind: 'seam' });
       if (opts.zipCm) lines.push(...zip(cbTop, opts.zipCm));
     }
+    // A front slit opens the centre front seam.
+    if (!back && d.slit?.at === 'front') {
+      const top = hemY - d.slit.cm;
+      lines.push({ pts: [p(0, cbTop - (opts.band ? WAISTBAND_CM : (opts.seamFrom ?? 0))), p(0, top)], kind: 'seam' });
+      lines.push({ pts: [p(0, top), p(-0.5, hemY)], kind: 'seam' }, { pts: [p(0, top), p(0.5, hemY)], kind: 'seam' });
+    }
     return { label, shapes, lines, waistY: cbTop };
   });
+}
+
+/** The point on a polyline at height y, by its last crossing. */
+function yOn(pts: P[], y: number): P | undefined {
+  for (let i = pts.length - 1; i > 0; i--) {
+    const a = pts[i - 1];
+    const b = pts[i];
+    if ((a.y - y) * (b.y - y) <= 0 && a.y !== b.y) return lerp(a, b, (y - a.y) / (b.y - a.y));
+  }
+  return undefined;
 }
 
 /**
@@ -877,11 +903,11 @@ function bodiceViews(d: BodiceDraft, edges: BodiceEdges, sleeve: SleeveDraft | u
  * The dress: the bodice over its skirt, joined at the waist, the darts running on through the seam,
  * and one zip down the centre back from the neck to below the waist.
  */
-export function dressFlat(d: DressDraft, edges: BodiceEdges = 'binding', opts: { sleeve?: SleeveDraft; slit?: boolean } = {}): Flat {
+export function dressFlat(d: DressDraft, edges: BodiceEdges = 'binding', opts: { sleeve?: SleeveDraft } = {}): Flat {
   // With no waist seam the bodice runs on to the hem, its fish-eye darts and zip as drawn on it.
   if (d.noSeam) return bodiceFlat(d.bodice, edges, opts.sleeve);
   const top = bodiceViews(d.bodice, edges, opts.sleeve, false);
-  const below = skirtViews(d.skirt, { slit: opts.slit, band: false });
+  const below = skirtViews(d.skirt, { band: false });
   return arrange(
     top.map((b, i) => {
       const k = below[i];

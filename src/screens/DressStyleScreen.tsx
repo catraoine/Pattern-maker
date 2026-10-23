@@ -5,10 +5,11 @@ import { isTop } from '../engine/corset';
 import { BUTTONS_STOP_ABOVE_HEM, buttonsOnSkirt, noSeamAllowed } from '../engine/dress';
 import type { DressDraft } from '../engine/dress';
 import { wrapSkirtAllowed } from '../engine/wrapSkirt';
+import { SLIT_PLACES, SlitPlace, slitAllowed } from '../engine/slit';
+import { NO_SLIT, SlitSlider } from '../ui/SlitSlider';
 import { dressFlat } from '../engine/flat';
 import { piecesLengthCm, toMetres } from '../engine/fabric';
 import { layPlan } from '../engine/layplan';
-import { hasSlit } from '../engine/instructions';
 import { SHAPES_FOR_LENGTH, SleeveDraft, needsArms } from '../engine/sleeve';
 import { SleeveSlider } from '../ui/SleeveSlider';
 import { BODICE_GROUPS, BodiceChoices, DRESS_CUTS, DARTS_FOR_FIT, DressChoices, detailAllowed, sleeveOf, topAllowed, validDetails } from '../garments';
@@ -105,7 +106,7 @@ export const dressFabricMetres = (pieces: DressDraft['pieces']) =>
  * bodice with its darts running on through the waist seam.
  */
 /** The dress's skirt choices on one tab of their own. */
-const DRESS_SECTIONS: Record<string, string> = { Cut: 'Skirt & length', Skirt: 'Skirt & length', Length: 'Skirt & length', Hem: 'Skirt & length', 'Skirt details': 'Skirt & length', Pockets: 'Skirt & length' };
+const DRESS_SECTIONS: Record<string, string> = { Cut: 'Skirt & length', Skirt: 'Skirt & length', Length: 'Skirt & length', Hem: 'Skirt & length', Slit: 'Skirt & length', 'Skirt details': 'Skirt & length', Pockets: 'Skirt & length' };
 
 export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoices, onChooseGarment, values, draft, sleeve, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, finish, onFinish, fabric, mode = 'all', onMode }: Props) {
   const undo = useUndo(choices, setChoices);
@@ -128,7 +129,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
     return [...draft.pieces.filter((pc) => !skirt.has(pc.name)), ...(sleeve?.pieces ?? []), ...draft.pieces.filter((pc) => skirt.has(pc.name))];
   }, [draft, sleeve]);
   const sheet = useMemo(() => (pieces.length ? layout(pieces, '', []) : undefined), [pieces]);
-  const flat = useMemo(() => (draft ? dressFlat(draft, 'binding', { sleeve, slit: hasSlit(choices.skirt) }) : undefined), [draft, sleeve, choices.skirt]);
+  const flat = useMemo(() => (draft ? dressFlat(draft, 'binding', { sleeve }) : undefined), [draft, sleeve, choices.skirt]);
   const title = describePattern(choices);
   const round = useMemo(() => (draft ? roundDress(draft, values, sleeve) : undefined), [draft, values, sleeve]);
   const arms = !needsArms(values);
@@ -187,6 +188,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
       : [
           // The dress's zip runs down the centre back, so its skirt can't be cut whole for a diagonal hem.
           { id: 'asymHem', label: 'Hem', options: GROUPS[3].options.filter(([id]) => id !== 'diagonal') as [string, string][] },
+          { id: 'slit', label: 'Slit', options: SLIT_PLACES },
           { id: 'volume', label: 'Skirt details', options: VOLUME_OPTIONS },
           { id: 'pockets', label: 'Pockets', options: DETAIL_GROUPS[1].options },
         ]),
@@ -195,6 +197,8 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
   const value = (id: string) =>
     id === 'noSeam'
       ? noSeam ?? 'seam'
+      : id === 'slit'
+      ? draft?.skirt.slit?.at ?? 'none'
       : id === 'volume'
       ? volumeOf(choices.skirt)
       : id === 'fit'
@@ -230,7 +234,10 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
       ? opt === 'seam' || (cutOk && !buttoned && !wrapped)
       : !noSeam || noSeamAllowed({ ...choices.bodice, [id]: opt }) && (id !== 'closure' || opt === 'back_zip');
   const baseAllowed = (id: string, opt: string) =>
-    id === 'volume'
+    id === 'slit'
+      ? // A shirt dress opens down the front and its back is cut whole: only the side can take a slit.
+        opt === 'none' || (slitAllowed(choices.skirt) && (!buttoned || opt === 'side'))
+      : id === 'volume'
       ? volumeAllowed(choices.skirt, opt as Parameters<typeof volumeAllowed>[1]) && (!buttoned || opt === 'none')
       : id === 'darts'
       ? DARTS_FOR_FIT[choices.fit].includes(opt as BodiceChoices['darts'])
@@ -250,11 +257,15 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
       onChoices({ ...choices, skirt: opt === 'seam' ? skirt : { ...skirt, noSeam: opt as NoSeam } });
       return;
     }
+    if (id === 'slit') {
+      onChoices({ ...choices, skirt: { ...choices.skirt, slit: opt as SlitPlace, slitCm: undefined } });
+      return;
+    }
     if (id === 'silhouette' || id === 'length' || id === 'asymHem' || id === 'pockets') {
       // The dress skirt is styled by its chips: no era look, photo shape or hand-drawn changes.
       // Pleats, godets or a flounce stay; one the new shape, length or hem doesn't take falls back to none.
-      const { fit, silhouette, length, asymHem, pleats, godets, flounce, pockets } = choices.skirt;
-      onChoices({ ...choices, skirt: validCut({ fit, silhouette, length, ...(asymHem ? { asymHem } : {}), ...(pockets ? { pockets } : {}), pleats, godets, flounce, [id]: opt }) });
+      const { fit, silhouette, length, asymHem, pleats, godets, flounce, pockets, slit, slitCm } = choices.skirt;
+      onChoices({ ...choices, skirt: validCut({ fit, silhouette, length, ...(asymHem ? { asymHem } : {}), ...(pockets ? { pockets } : {}), ...(slit ? { slit } : {}), ...(slitCm !== undefined ? { slitCm } : {}), pleats, godets, flounce, [id]: opt }) });
       return;
     }
     if (id === 'volume') {
@@ -356,7 +367,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
       <section className="card numbered" aria-labelledby="opts">
         {groups.map((g) => (
           <Group key={g.id} label={g.label} tab={PRO_GROUPS.includes(g.id) ? PRO : undefined}>
-            <div className={chipsClass((['noSeam', 'silhouette', 'length', 'asymHem'].includes(g.id) ? 'skirt' : 'bodice'), g.id)}>
+            <div className={chipsClass((['noSeam', 'silhouette', 'length', 'asymHem', 'slit'].includes(g.id) ? 'skirt' : 'bodice'), g.id)}>
               {g.options.map(([id, label]) => (
                 <button
                   key={id}
@@ -366,12 +377,12 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
                   disabled={!allowed(g.id, id)}
                   onClick={() => choose(g.id, id)}
                 >
-                  <ChoicePic set={(['noSeam', 'silhouette', 'length', 'asymHem'].includes(g.id) ? 'skirt' : 'bodice')} group={g.id} id={id} />
+                  <ChoicePic set={(['noSeam', 'silhouette', 'length', 'asymHem', 'slit'].includes(g.id) ? 'skirt' : 'bodice')} group={g.id} id={id} />
                   {label}
                 </button>
               ))}
             </div>
-            <Explain set={['noSeam', 'silhouette', 'length', 'asymHem', 'volume', 'pockets'].includes(g.id) ? 'skirt' : 'bodice'} group={g.id} options={g.options} pick={value(g.id)} />
+            <Explain set={['noSeam', 'silhouette', 'length', 'asymHem', 'slit', 'volume', 'pockets'].includes(g.id) ? 'skirt' : 'bodice'} group={g.id} options={g.options} pick={value(g.id)} />
             {g.id === 'sleeve' && !arms && (
               <p className="muted small">
                 For sleeves, add your arm length, upper arm and wrist.{' '}
@@ -383,6 +394,8 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
             {g.id === 'sleeve' && arms && (
               <SleeveSlider sleeve={sleeve} choices={choices.bodice} onChoices={(c) => onChoices({ ...choices, bodice: validDetails({ ...c, length: 'waist', closure: c.closure ?? 'back_zip' }, 'dress') })} />
             )}
+            {g.id === 'slit' && <SlitSlider slit={draft?.skirt.slit} onCm={(slitCm) => onChoices({ ...choices, skirt: { ...choices.skirt, slitCm } })} />}
+            {g.id === 'slit' && !slitAllowed(choices.skirt) && <p className="muted small">{NO_SLIT}</p>}
             {g.id === 'volume' && volumeOf(choices.skirt) === 'godets' && (
               <div className="chips">
                 {GODET_OPTIONS.map(([n, label]) => (

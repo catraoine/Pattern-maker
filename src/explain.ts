@@ -44,6 +44,12 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       high_low: ['Shorter at the front and longer at the back, curving between.'],
       diagonal: ['The hem slants from one side to the other.', 'skill'],
     },
+    slit: {
+      none: ['No slit: the seams run closed to the hem.', 'easy'],
+      back: ['A slit up the centre back seam. A short one is the walking slit a narrow skirt needs.', 'easy'],
+      side: ['A slit up the left side seam, from a short split to a high leg slit.', 'easy'],
+      front: ['A slit up the centre front, so the front is cut in two with a seam.', 'easy'],
+    },
     volume: {
       none: ['A plain skirt with nothing added.', 'easy'],
       knife: ['Folds that all face one way, pressed flat at the waist and opening as you walk.'],

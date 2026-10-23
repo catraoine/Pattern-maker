@@ -15,6 +15,8 @@ import { FabricSwatches, GarmentFabric } from '../ui/FabricFill';
 import { UndoToast, useUndo } from '../ui/useUndo';
 import { DrawMenu } from '../ui/DrawMenu';
 import { wrapSkirtAllowed } from '../engine/wrapSkirt';
+import { SLIT_PLACES, slitAllowed, slitOf } from '../engine/slit';
+import { NO_SLIT, SlitSlider } from '../ui/SlitSlider';
 import { SaveControl } from '../ui/SaveControl';
 import { FinishChoices } from '../ui/FinishChoices';
 import type { Finish } from '../App';
@@ -113,7 +115,9 @@ const andList = (xs: string[]) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, 
 
 /** What the skirt has besides its shape, for its name: " with a shaped hem, an elastic waist and pockets". */
 function detailWords(c: Choices): string[] {
-  return [c.waist === 'elastic' && elasticAllowed(c) ? 'an elastic waist' : '', c.pockets === 'inseam' && pocketsAllowed(c) ? 'pockets' : ''].filter(Boolean);
+  // A slit chosen is named; the walking slit a narrow skirt gets unasked is not.
+  const slit = c.slit && c.slit !== 'none' ? slitOf(c) : undefined;
+  return [slit ? `a ${slit.at} slit` : '', c.waist === 'elastic' && elasticAllowed(c) ? 'an elastic waist' : '', c.pockets === 'inseam' && pocketsAllowed(c) ? 'pockets' : ''].filter(Boolean);
 }
 
 /** True when the skirt has been shaped by hand: a dragged length or flare, or a drawn hem. */
@@ -171,6 +175,8 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
   const [play, setPlay] = useState(0);
   const undoer = useUndo(choices, onChoices);
   const change: typeof undoer.change = (c, ...rest) => undoer.change(keepWrap(c), ...rest);
+  // The slit as it is drafted, or as chosen while the draft catches up; unchosen, a narrow skirt's walking slit.
+  const slitValue = draft?.slit?.at ?? slitOf(choices)?.at ?? 'none';
   const m = values as SkirtMeasurements;
   /** The choices before drawing on the form, while it is open. */
   const [onForm, setOnForm] = useState<Choices>();
@@ -324,6 +330,26 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
             <Explain set="skirt" group={g.id} options={g.options} pick={g.id === 'length' && choices.lengthCm !== undefined ? undefined : chosen(choices, g.id)} />
           </Group>
         ))}
+        <Group label="Slit">
+          <div className={chipsClass('skirt', 'slit')}>
+            {SLIT_PLACES.map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                className={slitValue === id ? 'chip on' : 'chip'}
+                aria-pressed={slitValue === id}
+                disabled={id !== 'none' && !slitAllowed(choices)}
+                onClick={() => change({ ...choices, slit: id, slitCm: undefined })}
+              >
+                <ChoicePic set="skirt" group="slit" id={id} />
+                {label}
+              </button>
+            ))}
+          </div>
+          <Explain set="skirt" group="slit" options={SLIT_PLACES} pick={slitValue} />
+          <SlitSlider slit={draft?.slit} onCm={(slitCm) => change({ ...choices, slitCm })} />
+          {!slitAllowed(choices) && <p className="muted small">{NO_SLIT}</p>}
+        </Group>
         <Group label="Details">
           <div className="chips">
             {VOLUME_OPTIONS.map(([id, label]) => (

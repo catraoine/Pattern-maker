@@ -18,6 +18,7 @@ import { wrapDressSteps, wrapSkirtSteps, wrapSteps } from './wrapGuide';
 import { isShaped } from './hem';
 import { SLIP_LEVEL } from './slip';
 import { wholeGuide } from './wholeGuide';
+import { slitHem, slitLining, slitStop, toHem, walkingSlit } from './slit';
 
 // Widest strip that fits across 140 cm fabric, leaving room for the selvedges.
 export const BAND_ACROSS_MAX = 135;
@@ -68,7 +69,7 @@ export interface BodiceFinish {
  * pleats, godets, a flounce or tiers give the room to walk. */
 export function hasSlit(style: { silhouette: string; length: string } & Partial<Pick<VolumeStyle, 'pleats' | 'godets' | 'flounce'>>): boolean {
   if (needsNoSlit(style as VolumeStyle)) return false;
-  return style.silhouette === 'pencil' || (style.silhouette === 'straight' && (style.length === 'midi' || style.length === 'maxi'));
+  return walkingSlit(style);
 }
 
 /** For a body that differs side to side: trim that side's pieces to their own line once cut. */
@@ -95,8 +96,9 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
   const frontSeam = !draft.pieces[0].fold && !draft.pieces[0].meta.wrap;
   // A front too wide for the fold (big circle skirts) is cut as a pair with a centre front seam, and
   // the back is then too wide for folded fabric as well.
-  const wide = frontSeam;
-  const slit = hasSlit(style);
+  // A front cut as a pair for its slit is no wider than one on the fold.
+  const wide = frontSeam && !draft.pieces[0].meta.slitSeam;
+  const slit = draft.slit;
   // A pull-on elastic waist: no zip, and the back on the fold when it fits.
   const elastic = draft.elastic;
   const backSeam = !draft.pieces[1].fold;
@@ -115,7 +117,7 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
       title: 'Cut out',
       text: (wide
         ? `These pieces are too wide to cut from folded fabric, so open it out to a single layer. Cut each piece twice, turning the pattern over for the second one so you get a pair. Keep each grain arrow parallel to the selvedge. Cut along the solid outer line and snip the small notches.${dartCount ? ' Chalk-mark the dart lines.' : ''}${circle ? ' To save fabric, turn every other piece upside down so the curves nest together.' : ''}`
-        : `Fold the fabric in half with the selvedges together. ${frontSeam ? 'Place the skirt front and the skirt back on both layers so you get a pair of each.' : backSeam ? 'Place the skirt front on the fold, and the skirt back on both layers so you get a pair.' : 'Place the skirt front and the skirt back on the fold.'} Keep each grain arrow parallel to the selvedge. Cut along the solid outer line, snip the small notches${dartCount ? ', and chalk-mark the dart lines' : ''}.`) +
+        : `Fold the fabric in half with the selvedges together. ${frontSeam ? (backSeam ? 'Place the skirt front and the skirt back on both layers so you get a pair of each.' : 'Place the skirt back on the fold, and the skirt front on both layers so you get a pair.') : backSeam ? 'Place the skirt front on the fold, and the skirt back on both layers so you get a pair.' : 'Place the skirt front and the skirt back on the fold.'} Keep each grain arrow parallel to the selvedge. Cut along the solid outer line, snip the small notches${dartCount ? ', and chalk-mark the dart lines' : ''}.`) +
         (pockets ? ` ${POCKET_CUT}` : '') +
         oneSide(draft.pieces[0], lined ? 'and the lining' : ''),
     },
@@ -158,7 +160,7 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
       ? [
           {
             title: 'Sew the centre front',
-            text: `Pin the two front pieces right sides together along the straight centre edge. Sew ${seam} from the edge and press the seam open.`,
+            text: `Pin the two front pieces right sides together along the straight centre edge. Sew ${seam} from the edge, from the waist ${toHem(slit, 'front')}, and press the seam open.${slitStop(slit, 'front')}`,
           },
         ]
       : []),
@@ -168,7 +170,7 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
         ? [
             {
               title: 'Sew the centre back',
-              text: `Pin the two back pieces right sides together along the centre back and sew ${seam} from the edge, from the waist to the hem.${slit ? ' Leave the bottom 15 cm open as a walking slit.' : ''} Press the seam open.`,
+              text: `Pin the two back pieces right sides together along the centre back and sew ${seam} from the edge, from the waist ${toHem(slit, 'back')}. Press the seam open.${slitStop(slit, 'back')}`,
             },
           ]
         : []
@@ -179,14 +181,14 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
           },
           {
             title: 'Close the centre back',
-            text: `Sew the rest of the centre back seam, from the bottom of the zip to the hem, ${seam} from the edge.${slit ? ' Leave the bottom 15 cm open as a walking slit.' : ''} Press the seam open.`,
+            text: `Sew the rest of the centre back seam, from the bottom of the zip ${toHem(slit, 'back')}, ${seam} from the edge. Press the seam open.${slitStop(slit, 'back')}`,
           },
         ]),
     {
       title: 'Sew the side seams',
       text: pockets
-        ? `Pin the front to the back at the sides, right sides together, matching the hip notches and the pocket bags edge to edge. ${pocketSeamWords(seam)} Try the skirt on now: this is the easiest moment to take it in or let it out at the sides.`
-        : `Pin the front to the back at the sides, right sides together, matching the hip notches. Sew ${seam} from the edge and press the seams open. Try the skirt on now: this is the easiest moment to take it in or let it out at the sides.`,
+        ? `Pin the front to the back at the sides, right sides together, matching the hip notches and the pocket bags edge to edge. ${pocketSeamWords(seam)}${slitStop(slit, 'side')} Try the skirt on now: this is the easiest moment to take it in or let it out at the sides.`
+        : `Pin the front to the back at the sides, right sides together, matching the hip notches. Sew ${seam} from the edge and press the seams open.${slitStop(slit, 'side')} Try the skirt on now: this is the easiest moment to take it in or let it out at the sides.`,
     },
     ...(lined
       ? [
@@ -194,7 +196,7 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
             title: 'Make the lining',
             text: `${liningDarts ? 'Sew the lining darts as tucks: stitch each one only 3 cm down from the waist, so the lining has room to move. ' : ''}${
               elastic ? liningSeams(backSeam ? ' and centre back seam' : '') : liningSeams(' and the centre back seam from the ZIP ENDS notch down')
-            } Press up 1 cm at the hem, then 1 cm more, and stitch.`,
+            } Press up 1 cm at the hem, then 1 cm more, and stitch.${slitLining(slit)}`,
           },
           {
             title: 'Put the lining in',
@@ -216,7 +218,7 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
         ]),
     {
       title: 'Hem',
-      text: draft.bias
+      text: (draft.bias
         ? `Hang the skirt up for a day before hemming: cut on the bias, it drops as it hangs, unevenly and often by 2 cm or more. The hem allowance has ${n1(SLIP_LEVEL)} spare for this. Try it on, have someone mark the hem with pins measured up from the floor${draft.asym ? ', following the high-low line of the pattern' : ''}, and trim 1 cm below the marks. Finish with a narrow rolled hem: press up 0.5 cm, then 0.5 cm more, and stitch close to the fold.`
         : circle
         ? 'Hang the skirt up for a day before hemming: the parts cut across the grain drop and stretch. Try it on, have someone mark an even hem with pins measured up from the floor, and trim to the marks. Press up 0.5 cm, then 1 cm more, easing the curve with steam, and stitch.'
@@ -226,7 +228,7 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
           ? 'The hem is curved and full, so keep it narrow. Press up 0.5 cm, then 1.5 cm more, easing in the fullness with steam, and stitch by hand or machine.'
           : style.silhouette === 'a_line'
             ? `Press up 1 cm, then ${hemDepth - 1} cm more. The hem is curved, so ease in the extra fullness with steam as you press. Stitch by hand or machine.`
-            : `Press up 1 cm, then ${hemDepth - 1} cm more, and stitch by hand or machine.${slit ? ' Turn the slit edges under and stitch them down.' : ''}`,
+            : `Press up 1 cm, then ${hemDepth - 1} cm more, and stitch by hand or machine.`) + slitHem(slit),
     },
     {
       title: 'Finish',
@@ -527,8 +529,10 @@ export function dressGuide(draft: DressDraft, style: { silhouette: Silhouette; l
   const skirt = sewingGuide({ ...draft.skirt, volume: undefined }, style, fabricM, { seams: sw, width: finish.width });
   const find = (g: SewingGuide, re: RegExp) => g.steps.filter((s) => re.test(s.title));
   const at = (title: string) => top.steps.findIndex((s) => s.title === title);
-  const wide = !draft.skirt.pieces[0].fold;
-  const slit = hasSlit(style);
+  const slit = draft.skirt.slit;
+  // A skirt front cut as a pair for its slit is no wider than one on the fold.
+  const frontSlit = slit?.at === 'front';
+  const wide = !draft.skirt.pieces[0].fold && !frontSlit;
   const lined = edges === 'lined';
   const pockets = !!draft.skirt.pocket;
   const dartLines = draft.bodice.bustDart > 0.3 || draft.skirt.dartsPerSide.front + draft.skirt.dartsPerSide.back > 0;
@@ -547,7 +551,7 @@ export function dressGuide(draft: DressDraft, style: { silhouette: Silhouette; l
     top.steps[0],
     {
       title: 'Cut out',
-      text: `Fold the fabric in half with the selvedges together. ${placeWords(draft.bodice)}${wide ? '' : ' Place the skirt front on the fold and the skirt back on both layers.'}${
+      text: `Fold the fabric in half with the selvedges together. ${placeWords(draft.bodice)}${wide ? '' : frontSlit ? ' Place the skirt front and the skirt back on both layers so you get a pair of each.' : ' Place the skirt front on the fold and the skirt back on both layers.'}${
         draft.skirt.bias
           ? ' The skirt is cut on the bias, from a single layer opened out flat on a big table: the front once, whole, and the back twice, turning the pattern over for the second. Lay each with its grain arrow parallel to the selvedge, so it sits at 45 degrees across the cloth. As soon as the skirt pieces are cut, stay-stitch their waist edges 1 cm in, so the bias waist cannot stretch before it is joined to the bodice.'
           : wide ? ' The skirt pieces are too wide for folded fabric: cut them from a single layer, turning the pattern over for the second of each so you get pairs.' : ''
@@ -559,7 +563,7 @@ export function dressGuide(draft: DressDraft, style: { silhouette: Silhouette; l
     {
       title: 'Neaten the edges',
       diagram: 'overlock',
-      text: `Zigzag or overlock the shoulder and side edges of the bodice, the side edges of the skirt, and the centre back edges of both${finish.sleeve ? ", and the sleeves' underarm seam edges" : ''}, so they will not fray inside.`,
+      text: `Zigzag or overlock the shoulder and side edges of the bodice, the side edges of the skirt${frontSlit ? ' and its centre front edges' : ''}, and the centre back edges of both${finish.sleeve ? ", and the sleeves' underarm seam edges" : ''}, so they will not fray inside.`,
     },
     ...find(top, /^(Sew the (.*darts?|princess seams|panel seams)|Join the (.*yokes?|midriff band))$/),
     ...find(skirt, /^Sew the .*darts?$/).map((s) => ({ ...s, title: 'Sew the skirt darts' })),
@@ -575,14 +579,14 @@ export function dressGuide(draft: DressDraft, style: { silhouette: Silhouette; l
     },
     {
       title: 'Close the centre back',
-      text: `Sew the rest of the centre back seam, from the bottom of the zip to the hem, ${seam} from the edge.${slit ? ' Leave the bottom 15 cm open as a walking slit.' : ''} Press the seam open.`,
+      text: `Sew the rest of the centre back seam, from the bottom of the zip ${toHem(slit, 'back')}, ${seam} from the edge. Press the seam open.${slitStop(slit, 'back')}`,
     },
     ...find(top, /^Sew the shoulders$/),
     {
       title: 'Sew the side seams',
       text: pockets
-        ? `Pin the front to the back at the sides, right sides together, from the underarm to the hem, matching the waist seams, the hip notches and the pocket bags edge to edge. Sew ${seam} from the edge in one seam, from the underarm down to the top POCKET notch, then pivot and sew round the pocket bags 1 cm from their edge, pivot again at the lower POCKET notch and carry on to the hem. Clip the back seam allowance just above and below the pocket, press the seam open and the bags toward the front, and zigzag or overlock the bag edges together. Try the dress on now: this is the easiest moment to take it in or let it out at the sides.`
-        : `Pin the front to the back at the sides, right sides together, from the underarm to the hem, matching the waist seams and the hip notches. Sew ${seam} from the edge in one seam and press it open. Try the dress on now: this is the easiest moment to take it in or let it out at the sides.`,
+        ? `Pin the front to the back at the sides, right sides together, from the underarm to the hem, matching the waist seams, the hip notches and the pocket bags edge to edge. Sew ${seam} from the edge in one seam, from the underarm down to the top POCKET notch, then pivot and sew round the pocket bags 1 cm from their edge, pivot again at the lower POCKET notch and carry on to the hem. Clip the back seam allowance just above and below the pocket, press the seam open and the bags toward the front, and zigzag or overlock the bag edges together.${slitStop(slit, 'side')} Try the dress on now: this is the easiest moment to take it in or let it out at the sides.`
+        : `Pin the front to the back at the sides, right sides together, from the underarm to the hem, matching the waist seams and the hip notches. Sew ${seam} from the edge in one seam and press it open.${slitStop(slit, 'side')} Try the dress on now: this is the easiest moment to take it in or let it out at the sides.`,
     },
     ...finishing,
     ...find(skirt, /^Hem$/),

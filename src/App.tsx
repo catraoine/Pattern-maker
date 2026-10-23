@@ -6,7 +6,8 @@ import type { HemShape } from './engine/hem';
 import type { AsymHem } from './engine/asymHem';
 import { DraftError, Fit, Length, Silhouette, SkirtDraft, SkirtMeasurements, NoSeam, SkirtShape, WaistStyle, draftSkirt } from './engine/skirt';
 import { BodiceDraft, BodiceMeasurements, blockOf, draftBodice } from './engine/bodice';
-import { BodiceEdges, SewingGuide, bodiceGuide, dressGuide, hasSlit, sewingGuide } from './engine/instructions';
+import { type SlitPlace, slitNote } from './engine/slit';
+import { BodiceEdges, SewingGuide, bodiceGuide, dressGuide, sewingGuide } from './engine/instructions';
 import { bodiceFlat, dressFlat, outerFlat, skirtFlat, teeFlat, trousersFlat } from './engine/flat';
 import { DressDraft, DressMeasurements, draftDress } from './engine/dress';
 import { TrousersDraft, TrousersMeasurements, draftTrousers, trousersWaistband } from './engine/trousers';
@@ -144,6 +145,10 @@ export interface Choices {
   waist?: WaistStyle;
   /** A wrap skirt: the front cut as a crossing pair, the waistband running on into ties. */
   wrap?: boolean;
+  /** A slit at the back, the side or the front, or none; unset, a narrow skirt gets the walking slit. */
+  slit?: SlitPlace;
+  /** The slit's height above the hem, in cm. */
+  slitCm?: number;
   /** A dress only: cut with no waist seam, as a sheath or a shift. */
   noSeam?: NoSeam;
 }
@@ -674,6 +679,7 @@ export default function App() {
             ? `Couture allowances: ${fmtCm(seams.seam)} at the seams, ${fmtCm(seams.waist)} at the waist, ${fmtCm(hem)} at the hem. Thread-trace the solid stitching line.`
             : `Seam allowance ${fmtCm(seams.seam)} included, ${fmtCm(hem)} at the hem. Dashed line = stitching line.`,
           `${skirt.elastic ? `A pull-on elastic waist, with no zip: ${skirt.elastic.cutCm} cm of ${skirt.elastic.widthCm} cm elastic in the waistband casing` : skirt.wrap?.ties ? `A wrap with no zip: the front cut as a crossing pair, and a waistband that runs on into ties (${skirt.wrap.ties.outer} cm and ${skirt.wrap.ties.inner} cm, cut ${skirt.wrap.ties.cutWidth} cm wide)` : skirt.faced ? 'Waist facings' : 'Waistband'}${lining ? ' and lining' : ''}${pocketWords(skirt.pocket ? 'inseam' : 'none')} included.${skirt.bias ? ' Cut on the bias: every piece single layer, grain at 45 degrees.' : ''}${skirt.volume?.tiers ? ' The tiers are rectangles: their measurements are in the sewing steps.' : ''} Sewing steps are on the last pages.`,
+          ...(skirt.slit ? [slitNote(skirt.slit)] : []),
           ...fittingNotes,
         ],
         guide: route(
@@ -687,7 +693,7 @@ export default function App() {
         ),
         spec: skirtSpec(values as SkirtMeasurements, skirt),
         lays,
-        flat: skirtFlat(skirt, { slit: hasSlit(saved.choices) }),
+        flat: skirtFlat(skirt),
       };
     }
     if (dressDraft) {
@@ -725,6 +731,7 @@ export default function App() {
           ...(drapeNote(d.bodice) ? [drapeNote(d.bodice)!] : []),
           ...(sleeve ? [`Sleeve: bicep ${sleeve.bicep} cm, ${sleeve.gathers?.crown !== undefined ? `${sleeve.gathers.crown} cm gathered into the crown` : `crown ease ${sleeve.crownEase.front} cm front, ${sleeve.crownEase.back} cm back`}.`] : []),
           ...topNotes(d.bodice),
+          ...(d.skirt.slit && !d.noSeam ? [slitNote(d.skirt.slit)] : []),
           ...fittingNotes,
         ],
         guide: route(
@@ -740,7 +747,7 @@ export default function App() {
         ),
         spec: dressSpec(values as DressMeasurements, d, sleeve),
         lays,
-        flat: dressFlat(d, edges, { sleeve, slit: hasSlit(dress.skirt) }),
+        flat: dressFlat(d, edges, { sleeve }),
       };
     }
     if (bodice) {

@@ -9,6 +9,7 @@ import { BodiceDraft, BodiceMeasurements, BodiceStyle, draftBodice } from './bod
 import { Buttons, EXTENSION_CM, backOnFold, openFront } from './collar';
 import { LENGTHS, NoSeam, Silhouette, SkirtDraft, SkirtMeasurements, SkirtStyle, draftSkirt, lengthRange } from './skirt';
 import { wrapSkirtAllowed } from './wrapSkirt';
+import { walkingSlit } from './slit';
 import { isTop } from './corset';
 import { volumeOf } from './skirtVolume';
 import { pathOf, ringOf } from './manipulate';
@@ -242,7 +243,9 @@ export function draftDress(m: DressMeasurements, bodiceStyle: Partial<BodiceStyl
 
   // The skirt's waist curve is a little longer than its width, so walk it to the bodice's.
   const join = { front: waist.front, back: waist.back, dartAt, zipCm: below };
-  const skirtOf = (j: typeof join) => draftSkirt(m, { ...skirtStyle, joinTo: j, wrap: wrapped || undefined });
+  // A shirt dress has no centre seam front or back for a slit: only the side can open.
+  const slit = wantButtons && (skirtStyle.slit === 'front' || skirtStyle.slit === 'back' || (skirtStyle.slit === undefined && walkingSlit({ silhouette: 'a_line', length: 'knee', ...skirtStyle }))) ? 'none' : skirtStyle.slit;
+  const skirtOf = (j: typeof join) => draftSkirt(m, { ...skirtStyle, joinTo: j, wrap: wrapped || undefined, slit });
   let skirt = skirtOf(join);
   // A pleated skirt split to fit the fabric has two pieces a side: their waists add up. A skirt front
   // cut whole (a bias slip) has both halves of the waist.

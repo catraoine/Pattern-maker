@@ -8,6 +8,7 @@ import type { DressDraft } from './dress';
 import type { BodiceEdges, SewStep, SewingGuide } from './instructions';
 import { BONED_EASE, BONE_STOP, STRAP_ADJUST, WAIST_STAY } from './corset';
 import { placeWords } from './styleSteps';
+import { type Slit, slitStop, toHem } from './slit';
 
 export interface TopFinish {
   seam: string;
@@ -222,7 +223,7 @@ export function topSteps(g: SewingGuide, d: BodiceDraft, o: TopFinish): SewingGu
  * waist, the side seams in one, then the boning, the waist stay (which carries the skirt), and the
  * lining over it all.
  */
-export function bonedDressSteps(d: DressDraft, top: SewingGuide, skirt: SewingGuide, o: TopFinish & { waist: string; slit: boolean; wide: boolean }): SewingGuide {
+export function bonedDressSteps(d: DressDraft, top: SewingGuide, skirt: SewingGuide, o: TopFinish & { waist: string; slit?: Slit; wide: boolean }): SewingGuide {
   const b = d.bodice;
   const c = bonedCore(b, o);
   const find = (g: SewingGuide, re: RegExp) => g.steps.filter((s) => re.test(s.title));
@@ -257,7 +258,7 @@ export function bonedDressSteps(d: DressDraft, top: SewingGuide, skirt: SewingGu
       'Put in the zip',
       `Sew a ${d.zipCm} cm invisible zip into the centre back edges, with the top of the teeth ${o.curve} below the top edge, across the waist seam, to the ZIP ENDS notch on the skirt. Sew one side, close the zip and mark where the waist seam crosses the other tape, so the waist meets exactly when you sew the second side.`,
     ),
-    step('Close the centre back', `Sew the rest of the centre back seam, from the bottom of the zip to the hem, ${o.seam} from the edge.${o.slit ? ' Leave the bottom 15 cm open as a walking slit.' : ''} Press the seam open.`),
+    step('Close the centre back', `Sew the rest of the centre back seam, from the bottom of the zip ${toHem(o.slit, 'back')}, ${o.seam} from the edge. Press the seam open.${slitStop(o.slit, 'back')}`),
     step(
       'Sew the side seams',
       `Pin the front to the back at the sides, right sides together, from the top edge to the hem, matching the waist seams and the hip notches. Sew ${o.seam} from the edge in one seam. Try the dress on now, zipped: the bodice should hold you firmly at the waist and lie flat along the top edge, with no gap. Take it in or let it out at the side and princess seams if it needs it.`,

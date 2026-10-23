@@ -9,6 +9,7 @@ import { AsymHem, AsymPlan, quarterAsym } from './asymHem';
 import { SLIP_HEM, SLIP_HIP_EASE_LESS, closeToHem, cutsWhole, cutWhole, slipSideSupp, validCut } from './slip';
 import { inseamPocket, markSeam } from './pockets';
 import { foldBack, wrapSkirtAllowed, wrapSkirtFront, wrapTies } from './wrapSkirt';
+import { Slit, SlitPlace, slitOf, slitPieces, slitRange } from './slit';
 
 export interface SkirtMeasurements {
   waist: number;
@@ -71,6 +72,11 @@ export interface SkirtStyle {
   noSeam?: NoSeam;
   /** Wrapped: each front reaches across the body to a free edge, and it ties at the waist (see wrapSkirt.ts). */
   wrap?: boolean;
+  /** A slit chosen at the back, the side or the front, or none; unchosen, a pencil or long straight
+   * skirt gets the walking slit at the back (see slit.ts). */
+  slit?: SlitPlace;
+  /** The slit's height above the hem, in cm. */
+  slitCm?: number;
 }
 
 export type WaistStyle = 'band' | 'elastic';
@@ -538,6 +544,8 @@ export interface SkirtDraft {
   /** A wrap skirt: the whole front's waist (each front reaches across), and its ties (none on a dress,
    * whose bodice carries them). */
   wrap?: { frontWaist: number; ties?: ReturnType<typeof wrapTies> };
+  /** The slit as drafted: where, and its height above the hem, with the range it can be set in. */
+  slit?: Slit & { range: { min: number; max: number } };
 }
 
 export const WAISTBAND_CM = 3; // finished width
@@ -608,7 +616,22 @@ export function draftSkirt(m: SkirtMeasurements, style: Partial<SkirtStyle> = {}
   // go in a plain side seam, so not where pleats, godets or a flounce change the skirt's pieces.
   const plain = volumeOf(s) !== 'none' ? { ...s, hem: undefined } : s;
   const draft = withHighHip(addVolume(m, s, drafted(m, plain), (st) => drafted(m, st)), s.fitting?.highHip);
-  return s.pockets === 'inseam' && !draft.volume ? withPockets(draft) : draft;
+  return withSlit(s.pockets === 'inseam' && !draft.volume ? withPockets(draft) : draft, s, m);
+}
+
+/**
+ * The slit, notched on its seam at its height above the hem: no higher than 5 cm below the hip line,
+ * nor, at the side, than 3 cm below a pocket's opening.
+ */
+function withSlit(draft: SkirtDraft, s: SkirtStyle, m: SkirtMeasurements): SkirtDraft {
+  const want = slitOf(s);
+  if (!want || draft.circleShare) return draft;
+  const range = slitRange(draft.lengthCm, m.waist_to_hip);
+  if (want.at === 'side' && draft.pocket) range.max = Math.max(range.min, Math.min(range.max, Math.floor(draft.lengthCm - draft.pocket[1] - 3)));
+  const slit = { at: want.at, cm: clamp(Math.round(want.cm), range.min, range.max) };
+  const [front, back, ...rest] = draft.pieces;
+  const [f, b] = slitPieces(front, back, slit);
+  return { ...draft, pieces: [f, b, ...rest], slit: { ...slit, range } };
 }
 
 /**

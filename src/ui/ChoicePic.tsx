@@ -91,6 +91,18 @@ const SKIRT: Record<string, Record<string, ReactNode>> = {
     ),
     diagonal: <path d="M15 5h10l8 24L7 43z" />,
   },
+  // A straight skirt with its slit: none, up the centre back (drawn dashed, round the back), up the side, or up the front.
+  slit: {
+    none: <path d="M14 5h12l2 38H12z" />,
+    back: (
+      <>
+        <path d="M14 5h12l2 38H12z" />
+        <path className="pic-faint" d="M20 30V43" />
+      </>
+    ),
+    side: <path d="M14 5h12l1.2 24L27 43H24.5L26 29L26.2 43" />,
+    front: <path d="M14 5h12l2 38H20.6L20 32L19.4 43H12z" />,
+  },
   // A dress with a waist seam, or cut in one: a sheath shaped in at the waist, a shift hanging straight.
   noSeam: {
     seam: (
