@@ -360,7 +360,7 @@ await tap(main.getByRole('group', { name: 'Preview view' }).getByRole('button', 
 // close, then in and in, cinematic). The canvas is lifted out at its closest size, so it is drawn sharp, and shown
 // smaller by a scale that grows; resizing it as it goes would blank it between redraws.
 // (After the pattern: from All round, Pattern doesn't redraw in time.)
-await p.evaluate(() => { window.__tourFilm = true; });
+await p.evaluate((look) => { window.__tourFilm = look === 'old' ? 'old' : true; }, process.env.TOUR_LOOK);
 await main.getByRole('group', { name: 'Garment view' }).getByRole('button', { name: 'All round' }).click();
 await wait(800);
 const CLOSEST = 1.45;

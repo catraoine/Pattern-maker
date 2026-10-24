@@ -134,7 +134,9 @@ export function AllRound({ round, m, striped = false, label }: Props) {
     const trousers = round.kind === 'trousers';
     // The How it works film's own cut of this view (scripts/record-tour-shots.mjs sets the flag): a gentler waist,
     // the cloth in long lines, no meeting dots. Nothing a maker sees changes.
-    const film = (window as any).__tourFilm === true;
+    const film = !!(window as any).__tourFilm;
+    // The film's 'old look': the form's lines run on through the whole garment, as the released film had it.
+    const through = (window as any).__tourFilm === 'old';
     const isTop = round.kind === 'top' || round.kind === 'dress';
     const strip = trousers ? 0 : STRIP;
 
@@ -337,7 +339,7 @@ export function AllRound({ round, m, striped = false, label }: Props) {
       g.strokeStyle = GILD;
       paintFigure(g, S, cx, Y, lw, trousers ? 0 : 1, false, phi);
       // The cloth covers the form: under the garment the body is not drawn, so the garment is what reads.
-      if (!trousers) {
+      if (!trousers && !through) {
         // The shoulders and the neck still show through a top's yoke: the cloth is held to the body there.
         const from = isTop && arm ? yU : yOf(highest);
         g.globalAlpha = 1;
@@ -371,7 +373,7 @@ export function AllRound({ round, m, striped = false, label }: Props) {
       // The cloth itself, as lines down the garment all the way round, so it reads over the form: hanging
       // straight where it has ease, and only pulled in where it is cut close.
       if (!trousers) {
-        const n = film ? 28 : 36;
+        const n = through ? 18 : film ? 28 : 36;
         for (let j = 0; j < n; j++) {
           const a = (TAU * (j + 0.5)) / n;
           const y0 = isTop && arm ? Math.max(topY(a), yU - 0.02) : topY(a);
@@ -381,7 +383,7 @@ export function AllRound({ round, m, striped = false, label }: Props) {
             const y = y0 + ((y1 - y0) * i) / 30;
             pts.push(P(a, radius(y), y));
           }
-          line(pts, GLOW, lw * 0.55, 0.08, film ? 0.75 : 0.6);
+          line(pts, GLOW, lw * 0.55, 0.08, through ? 0.45 : film ? 0.75 : 0.6);
         }
         for (let y = yOf(highest) + 0.12; !film && y < yOf(longest) - 0.04; y += 5 * kY) {
           const yy = y;
@@ -482,8 +484,9 @@ export function AllRound({ round, m, striped = false, label }: Props) {
           const o = centre(e * axisX(yU), yU);
           const alpha = film ? clamp(0.7 + o.z / (formHalfWidth(yU) + ra), 0.35, 1) : clamp(0.55 + o.z / (formHalfWidth(yU) + ra), 0.22, 1);
           for (const side of [-1, 1]) {
+            // The side toward the body shows only below the underarm; above it, it is inside the bodice.
             polyline(
-              ys.map((y) => {
+              ys.filter((y) => !film || side === e || y >= yU - 0.01).map((y) => {
                 const q = centre(e * axisX(y), y);
                 return [q.x + side * sleeveR(y) * S, q.y];
               }),
@@ -493,6 +496,8 @@ export function AllRound({ round, m, striped = false, label }: Props) {
             );
           }
           tubeRing(e * axisX(yE), rh, yE, GLOW, lw * (film ? 1.4 : 1.2), alpha);
+          // The crown, over the shoulder.
+          if (film) tubeRing(e * axisX(yS + 0.06), sleeveR(yS + 0.06), yS + 0.06, GLOW, lw * 1.1, alpha * 0.8);
           if (film) {
             // The sleeve's cloth, in a few lines down the front of the arm.
             for (const a of [-0.9, -0.3, 0.3, 0.9]) {
