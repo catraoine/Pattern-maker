@@ -341,10 +341,15 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
     // The bodice's lines are read at the dress's own fit and length; the hem is the skirt's.
     const asBodice: BodiceChoices = { ...choices.bodice, fit: choices.fit, length: 'waist', closure };
     return (
+      <GarmentFabric fabric={fabric}>
       <DrawOnForm<DressChoices>
         body={formWidth(draft.bodice, mv)}
         m={mv}
         legs
+        cloth={clothShapes}
+        arms={formArm}
+        sleeve={formArm ? sleeve : undefined}
+        underarmY={landmarks(draft.bodice).underarm.y}
         bottom={waistY + lengthRange(mv).max + 4}
         kinds={[
           ['neckline', 'Neckline'],
@@ -395,6 +400,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           setOnForm(undefined);
         }}
       />
+      </GarmentFabric>
     );
   }
 

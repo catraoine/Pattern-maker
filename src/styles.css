@@ -3486,12 +3486,25 @@ button.link.garment-change {
 }
 /* The garment as cloth on the form: the chosen fabric (black cloth until one is chosen), edged in champagne,
    its seams drawn over it in the quieter line. */
-.form-still .cloth-fill {
+.form-still .cloth-fill,
+.form-svg .cloth-fill {
   fill: var(--garment, #000);
   stroke: none;
 }
-.form-still .cloth-edge {
+.form-still .cloth-edge,
+.form-svg .cloth-edge {
   stroke: var(--gild);
+}
+/* Drawing on the garment (D1 Draw on the Dress): the cloth follows each line as it lands, and the cloth takes
+   no taps, so a line drawn over it still reaches the drawing. */
+.form-svg .cloth path {
+  pointer-events: none;
+  transition: d 0.6s cubic-bezier(0.3, 0.1, 0.2, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .form-svg .cloth path {
+    transition: none;
+  }
 }
 .form-still .cloth ~ .tape {
   stroke: var(--muted);

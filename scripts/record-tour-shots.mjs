@@ -67,7 +67,7 @@ async function stop(name) {
   console.log(`${name}: ${(endT - frames[0].t).toFixed(1)} s`);
 }
 // A slimmer, taller sample figure, so the clothes read long and lean on the form (Cat, 2026-10-23).
-const VALUES = { Height: '176', Weight: '', Waist: '64', 'Full hip': '92', 'Waist to hip': '21', 'Waist to knee': '62', 'Waist to floor': '112', 'Crotch depth': '27', 'Crotch length': '68', 'Full bust': '84', 'High bust': '80', Neck: '33', 'Shoulder width': '37', 'Back length': '43', 'Front length': '45', 'Bust depth': '25', 'Bust point to bust point': '17', 'Shoulder length': '12', 'Across back': '34', 'Across front': '31', Armhole: '38', 'Upper arm': '25', Wrist: '15', 'Arm length': '61' };
+const VALUES = { Height: '176', Weight: '', Waist: '62', 'Full hip': '90', 'Waist to hip': '21', 'Waist to knee': '62', 'Waist to floor': '112', 'Crotch depth': '27', 'Crotch length': '68', 'Full bust': '82', 'High bust': '78', Neck: '33', 'Shoulder width': '37', 'Back length': '43', 'Front length': '45', 'Bust depth': '25', 'Bust point to bust point': '17', 'Shoulder length': '12', 'Across back': '34', 'Across front': '31', Armhole: '38', 'Upper arm': '25', Wrist: '15', 'Arm length': '61' };
 async function fillAll() {
   let last = '';
   const checked = main.getByRole('heading', { name: 'Do these look right?' });
@@ -199,10 +199,11 @@ const draw = async (loc, pts, pause) => {
 };
 let t0;
 const mark = (what) => console.log(`  style ${what}: ${((Date.now() - t0) / 1000).toFixed(1)} s`);
-// The lines, as fractions of the form picture: the hem low on the calf, the side out from the underarm to the hip.
+// The lines, as fractions of the form picture, drawn on the dress itself (Cat's D1 Draw on the Dress, 2026-10-24):
+// the hem longer, down the calf, and the neckline a little wider and shallower, a soft boat neck but not a full one.
 const LINES = WIDE
-  ? { hem: [[0.36, 0.86], [0.5, 0.875], [0.64, 0.86]], side: [[0.585, 0.29], [0.605, 0.4], [0.62, 0.5]] }
-  : { hem: [[0.32, 0.86], [0.5, 0.875], [0.68, 0.86]], side: [[0.6, 0.29], [0.625, 0.4], [0.64, 0.5]] };
+  ? { hem: [[0.36, 0.86], [0.5, 0.875], [0.64, 0.86]], neck: [[0.445, 0.135], [0.475, 0.152], [0.5, 0.156]] }
+  : { hem: [[0.32, 0.86], [0.5, 0.875], [0.68, 0.86]], neck: [[0.44, 0.135], [0.47, 0.152], [0.5, 0.156]] };
 await p.evaluate(() => window.scrollTo(0, 0));
 await wait(600);
 await start();
@@ -222,8 +223,8 @@ const form = main.getByRole('img', { name: /Your dress form from the/ });
 const kinds = main.getByRole('group', { name: 'What you are drawing' });
 await tap(kinds.getByRole('button', { name: 'Hem', exact: true }), 500);
 await draw(form, LINES.hem, 1500);
-await tap(kinds.getByRole('button', { name: 'Side', exact: true }), 500);
-await draw(form, LINES.side, 1500);
+await tap(kinds.getByRole('button', { name: 'Neckline', exact: true }), 500);
+await draw(form, LINES.neck, 1500);
 await press(main.getByRole('button', { name: 'Done', exact: true }), 600);
 await p.evaluate(() => window.scrollTo(0, 0));
 await press(main.getByRole('group', { name: 'Preview view' }).getByRole('button', { name: /^Garment/ }), 700);

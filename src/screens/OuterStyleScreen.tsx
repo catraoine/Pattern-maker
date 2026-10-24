@@ -93,7 +93,12 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
 
   if (onForm && draft) {
     return (
+      <GarmentFabric fabric={fabric}>
       <DrawOnForm<OuterChoices>
+        cloth={clothShapes}
+        arms={formArm}
+        sleeve={formArm ? draft.sleeve : undefined}
+        underarmY={landmarks(draft.base).underarm.y}
         body={formWidth(draft.base, m)}
         m={m}
         legs={kind === 'coat'}
@@ -134,6 +139,7 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           setOnForm(undefined);
         }}
       />
+      </GarmentFabric>
     );
   }
 

@@ -14,6 +14,7 @@ import { CM_PER_UNIT, HEAD_CHIN, HEAD_TOP, headLines } from './ContourForm';
 /** How tall the head stands above the top of the neck, in cm. */
 const HEAD_CM = (HEAD_CHIN - HEAD_TOP) * CM_PER_UNIT - 1.5;
 import { FormLine, FormSide, Reading, landmarks } from './formLines';
+import { FormLayers, WornSleeve, wornCloth } from './FormSketch';
 import { TestingTag } from './TestingTag';
 import { DemoButton } from './DemoButton';
 
@@ -101,6 +102,13 @@ interface Props<C> {
   backs?: boolean;
   /** Arms beside the form, for a sleeve line. */
   arms?: FormArm;
+  /** The garment as cloth from the front (its flat's front view), worn on the form as on the Style page, so you
+   *  draw on the garment itself and see it change as each line lands (Cat's D1 Draw on the Dress, 2026-10-24). */
+  cloth?: P[][];
+  /** The drafted sleeve, to hang on the arms with the cloth. */
+  sleeve?: WornSleeve;
+  /** Where the underarm is: below it a fitted piece's sides follow the form. */
+  underarmY?: number;
   onDone: () => void;
   onCancel: () => void;
 }
@@ -175,7 +183,7 @@ export function skirtForm(m: { waist: number; full_hip: number; waist_to_hip: nu
   return { width: body, top: -12, bottom: m.waist_to_hip + 8, waistY: 0 };
 }
 
-export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, onChoices, read, help: helpFor, backs = true, arms, onDone, onCancel }: Props<C>) {
+export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, onChoices, read, help: helpFor, backs = true, arms, cloth, sleeve, underarmY, onDone, onCancel }: Props<C>) {
   const svg = useRef<SVGSVGElement>(null);
   const [kind, setKind] = useState<FormLine>(kinds[0][0]);
   const [side, setSide] = useState<FormSide>('front');
@@ -289,6 +297,10 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
     return [1, -1].flatMap((s) => [outline, ...down].map((pts, i) => ({ d: path(pts.map((q) => ({ x: cx + s * q.x, y: q.y }))), edge: i === 0 })));
   }, [arms, cx]);
 
+  // The garment on the form, front on (the back shows the form and its lines only).
+  const worn = useMemo(() => (cloth ? wornCloth(cloth, body, underarmY ?? arms?.under.y) : undefined), [cloth, body, underarmY, arms]);
+  const clothOn = side === 'front' ? worn : undefined;
+
   const current = lines(side);
   const at = (pts: P[]) => path(pts.map((q) => ({ x: cx + q.x, y: q.y })));
 
@@ -389,7 +401,7 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
             viewBox={`0 ${f(frame.top)} ${f(2 * cx)} ${f(frame.bottom - frame.top)}`}
             role="img"
             aria-label={`Your dress form from the ${side}, built from your measurements. ${help}`}
-            className="preview-svg sketch shape drawing form-svg"
+            className={`preview-svg sketch shape drawing form-svg${clothOn ? ' clothed' : ''}`}
             onPointerDown={(e) => {
               (e.target as Element).setPointerCapture?.(e.pointerId);
               setStroke([toSvg(e)]);
@@ -401,26 +413,33 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
               setLive(undefined);
             }}
           >
-            {legPaths.map((l, i) => (
-              <path key={`leg${i}`} d={l.d} className="form-line" fill="none" strokeWidth={l.edge ? 0.22 : 0.12} opacity={l.edge ? 0.9 : 0.35} />
-            ))}
-            {legLines && (
-              <path d={`M${f(cx - legLines.apart * 3)} ${f(legLines.floor)} L${f(cx + legLines.apart * 3)} ${f(legLines.floor)}`} className="form-stand" fill="none" strokeWidth={0.15} opacity={0.6} />
+            {clothOn ? (
+              // The garment on the form exactly as on the Style page, to draw on.
+              <FormLayers body={body} m={m} legs={legs} cx={cx} bottom={frame.bottom} arms={arms} lines={{}} worn={clothOn} sleeve={sleeve} />
+            ) : (
+              <>
+              {legPaths.map((l, i) => (
+                <path key={`leg${i}`} d={l.d} className="form-line" fill="none" strokeWidth={l.edge ? 0.22 : 0.12} opacity={l.edge ? 0.9 : 0.35} />
+              ))}
+              {legLines && (
+                <path d={`M${f(cx - legLines.apart * 3)} ${f(legLines.floor)} L${f(cx + legLines.apart * 3)} ${f(legLines.floor)}`} className="form-stand" fill="none" strokeWidth={0.15} opacity={0.6} />
+              )}
+              {!legLines && (
+                <path
+                  d={`M${f(cx)} ${f(body.bottom)} L${f(cx)} ${f(frame.bottom - 2)} M${f(cx - 8)} ${f(frame.bottom - 2)} L${f(cx + 8)} ${f(frame.bottom - 2)}`}
+                  className="form-stand"
+                  fill="none"
+                  strokeWidth={0.2}
+                />
+              )}
+              {armLines.map((a, i) => (
+                <path key={`arm${i}`} d={a.d} className="form-line" fill="none" strokeWidth={a.edge ? 0.22 : 0.12} opacity={a.edge ? 0.9 : 0.35} />
+              ))}
+              {contours.map((c, i) => (
+                <path key={i} d={c.d} className="form-line" fill="none" strokeWidth={c.edge ? 0.22 : 0.12} opacity={c.edge ? 0.9 : 0.25 + 0.2 * (1 - Math.abs(c.u))} />
+              ))}
+              </>
             )}
-            {!legLines && (
-              <path
-                d={`M${f(cx)} ${f(body.bottom)} L${f(cx)} ${f(frame.bottom - 2)} M${f(cx - 8)} ${f(frame.bottom - 2)} L${f(cx + 8)} ${f(frame.bottom - 2)}`}
-                className="form-stand"
-                fill="none"
-                strokeWidth={0.2}
-              />
-            )}
-            {armLines.map((a, i) => (
-              <path key={`arm${i}`} d={a.d} className="form-line" fill="none" strokeWidth={a.edge ? 0.22 : 0.12} opacity={a.edge ? 0.9 : 0.35} />
-            ))}
-            {contours.map((c, i) => (
-              <path key={i} d={c.d} className="form-line" fill="none" strokeWidth={c.edge ? 0.22 : 0.12} opacity={c.edge ? 0.9 : 0.25 + 0.2 * (1 - Math.abs(c.u))} />
-            ))}
             {head && (
               <g className="form-head">
                 <path d={head.outline} fill="#000" stroke="none" />
