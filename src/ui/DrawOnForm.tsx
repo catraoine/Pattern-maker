@@ -17,6 +17,7 @@ import { FormLine, FormSide, Reading, landmarks } from './formLines';
 import { CLOTH_EDGES, FormLayers, WornSleeve, wornCloth } from './FormSketch';
 import { TestingTag } from './TestingTag';
 import { DemoButton } from './DemoButton';
+import { isLadderStep } from '../nav';
 
 type Measures = { full_bust?: number; waist: number; full_hip?: number; waist_to_hip?: number; waist_to_knee?: number; waist_to_floor?: number; crotch_depth?: number };
 
@@ -223,8 +224,8 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
       return { ...now, sub: DRAWING, depth: (now.depth ?? 0) + 1 };
     };
     if ((window.history.state as { sub?: unknown } | null)?.sub !== DRAWING) window.history.pushState(entry(), '');
-    const on = () => {
-      if (leaving.current) return;
+    const on = (e: PopStateEvent) => {
+      if (leaving.current || isLadderStep(e)) return;
       if (drawn.current > 0) {
         // Stay, and ask: the lines go only when you say so.
         window.history.pushState(entry(), '');

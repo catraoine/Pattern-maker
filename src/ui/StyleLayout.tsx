@@ -34,6 +34,8 @@ let nextTab: string | undefined;
 export const openTabNext = (tab: string) => {
   nextTab = tab;
 };
+/** The step last open on a garment's style screen, so coming back to it (from Review, Print or anywhere) opens there. */
+let leftOn: { name: string; tab: string } | undefined;
 
 const rank = (t: string) => (t === LOOKS ? 0 : t === PRO ? 3 : t === FABRIC ? 2 : 1);
 
@@ -227,12 +229,15 @@ const NO_SECTIONS: Record<string, string> = {};
 
 export function StyleLayout({ children, label, name, metres, width = 140, ready, onChooseGarment, onPhoto, photo, looks, mode, onMode, onEditMeasurements, sections = NO_SECTIONS, undo }: Props) {
   const [options, preview, summary] = Children.toArray(children);
-  const [page, setPage] = usePageHistory<'edit' | 'review'>(() => 'edit');
+  const [page, setPage] = usePageHistory<'edit' | 'review'>(() => 'edit', (s) => s === 'edit' || s === 'review');
   // Read here and cleared once mounted: React may run this twice, and the second run must see it too.
-  const [active, setActive] = useState<string | undefined>(() => nextTab);
+  const [active, setActive] = useState<string | undefined>(() => nextTab ?? (leftOn?.name === name ? leftOn.tab : undefined));
   useEffect(() => {
     nextTab = undefined;
   }, []);
+  useEffect(() => {
+    if (active) leftOn = { name, tab: active };
+  }, [name, active]);
   const [tabs, setTabs] = useState<string[]>([]);
   const root = useRef<HTMLDivElement>(null);
   const panel = useRef<HTMLDivElement>(null);

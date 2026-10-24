@@ -1,4 +1,5 @@
 import { CSSProperties, PointerEvent as ReactPointerEvent, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { isLadderStep, onOverlay, pushOverlay } from '../nav';
 import { createPortal } from 'react-dom';
 
 // Cat's A1 Tap to Enlarge (2026-10-20): an Enlarge button on the pinned sketch opens it full screen, one view
@@ -41,6 +42,9 @@ function viewsOf(svg: SVGSVGElement): View[] {
 
 const MAX = 5;
 
+/** Marks the full-size picture's entry in the browser's history. */
+const ENLARGED = 'enlarged';
+
 /** The Enlarge button, placed on the preview of the style page, and the full-screen view it opens. */
 export function EnlargeSketch({ host, name }: { host: HTMLElement | null; name: string }) {
   const [open, setOpen] = useState<{ html: string; views: View[]; style: CSSProperties } | null>(null);
@@ -52,6 +56,14 @@ export function EnlargeSketch({ host, name }: { host: HTMLElement | null; name: 
     const now = svg && !svg.classList.contains('drawing') ? host.querySelector<HTMLElement>('.point-switch') ?? host : null;
     if (now !== spot) setSpot(now);
   });
+  useEffect(() => {
+    if (!open) return;
+    const on = (e: PopStateEvent) => {
+      if (!isLadderStep(e) && !onOverlay(ENLARGED)) setOpen(null);
+    };
+    window.addEventListener('popstate', on);
+    return () => window.removeEventListener('popstate', on);
+  }, [open]);
   if (!host) return null;
 
   const enlarge = () => {
@@ -61,7 +73,10 @@ export function EnlargeSketch({ host, name }: { host: HTMLElement | null; name: 
     const fabric = svg.closest<HTMLElement>('.garment-fabric');
     const style = fabric ? ({ '--garment': fabric.style.getPropertyValue('--garment'), '--garment-band': fabric.style.getPropertyValue('--garment-band') } as CSSProperties) : {};
     setOpen({ html: svg.outerHTML, views: viewsOf(svg), style });
+    // Its own entry in the history, so back (the phone's swipe too) closes the picture instead of leaving Style.
+    pushOverlay(ENLARGED);
   };
+  const close = () => (onOverlay(ENLARGED) ? window.history.back() : setOpen(null));
 
   return (
     <>
@@ -75,7 +90,7 @@ export function EnlargeSketch({ host, name }: { host: HTMLElement | null; name: 
           </button>,
           spot,
         )}
-      {open && <BigSketch name={name} {...open} onClose={() => setOpen(null)} />}
+      {open && <BigSketch name={name} {...open} onClose={close} />}
     </>
   );
 }

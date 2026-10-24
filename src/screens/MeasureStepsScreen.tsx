@@ -108,9 +108,10 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
     if (start?.kind === 'choose') return { kind: 'choose' };
     const ids = aimed ? neededFor(aimed, values, form).map((f) => f.id) : [];
     return ids.length ? { kind: 'extra', garment: aimed!, ids, at: 0 } : { kind: 'check' };
-  });
+  }, (s) => typeof s === 'object' && s !== null && 'kind' in s);
   // Opened on the check because the measurements were taken on an earlier visit: say so.
-  const [returning] = useState(() => !start && baseDone(values));
+  // Not when stepping back into it during this visit: only on opening it afresh.
+  const [returning] = useState(() => !start && baseDone(values) && (window.history.state as { sub?: unknown } | null)?.sub === undefined);
   const [helper, setHelper] = useState(!!theirs);
   // Measuring yourself with a friend holding the tape (measuring accuracy, 2026-10-21): every page is then worded for
   // the friend, and the numbers taken this way are noted, so a fit report can tell them from those taken alone.
