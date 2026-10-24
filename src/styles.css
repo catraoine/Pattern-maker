@@ -7819,3 +7819,11 @@ button.later.edit-measure {
   fill: transparent;
   cursor: pointer;
 }
+
+/* The string tip on the measuring pages (Cat's D, 2026-10-24) rides on the tip's line. On short phones (an iPhone SE
+   in Safari or Chrome) it would push Next off the screen, so there it stays in How to do it only. */
+@media (max-height: 600px), (max-height: 680px) and (max-width: 380px) {
+  .step-tip .string-tip {
+    display: none;
+  }
+}

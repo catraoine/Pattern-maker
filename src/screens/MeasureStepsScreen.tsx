@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { FIELDS, checkMeasurements, type Check, type FormKind, type Garment, type MeasurementId, type MeasurementValues, type Unit } from '../measurements';
-import { BASE, baseDone, begun, fieldOf, fullSetMissing, GARMENT_NAME, GARMENTS, labelOf, mistakesOf, neededFor, stepsOf, tipOf, titleOf } from '../measureFlow';
+import { BASE, baseDone, begun, fieldOf, fullSetMissing, GARMENT_NAME, GARMENTS, labelOf, mistakesOf, neededFor, stepsOf, stringOf, tipOf, titleOf } from '../measureFlow';
 import { createPortal } from 'react-dom';
 import { takeTapeRest, tapeRested } from '../ui/tapeHandoff';
 import { WEIGHT_HARD, WeightEntry, fromKg, weightUnitOf } from '../ui/WeightEntry';
@@ -861,7 +861,11 @@ export function MeasurePage({
       aside={ids && <StepList title={listTitle ?? 'Your measurements'} ids={ids} at={dots[1]} values={values} unit={unit} form={form} />}
       labels={ids && ids.length <= 8 && ids.every((i) => labelLevel(i, form) !== undefined) && <FormLabels ids={ids} at={dots[1]} values={values} unit={unit} form={form} />}
     >
-      <p className="muted step-tip">{tipOf(id, helper, form)}</p>
+      <p className="muted step-tip">
+        {tipOf(id, helper, form)}
+        {/* On the tip's own line, so the page still fits a phone without scrolling. */}
+        {stringOf(id, helper, form) && <span className="string-tip"> {stringOf(id, helper, form)}</span>}
+      </p>
       {onFriend && !friend && fieldOf(id).helper && <p className="muted small friend-nudge">This one is much easier with a friend holding the tape.</p>}
       <p className="how-row">
         <button type="button" className="later go how-link" aria-expanded={how} onClick={() => setHow(true)}>
