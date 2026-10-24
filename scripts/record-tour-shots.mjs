@@ -181,13 +181,17 @@ const press = async (loc, ms) => {
   await wait(ms);
 };
 // A line drawn with the pen dot, through points given as fractions of the form picture.
-const draw = async (loc, pts, pause) => {
+// ref: the picture's viewBox the points were measured on; a longer hem makes the picture taller, so the points are
+// moved to stay on the same place on the form.
+const viewBox = (loc) => loc.evaluate((svg) => { const v = svg.viewBox.baseVal; return [v.x, v.y, v.width, v.height]; });
+const draw = async (loc, pts, pause, ref) => {
   // The picture's own drawing box, which an enlarged form centres inside a wider box.
   const box = await loc.boundingBox();
-  const [vw, vh] = await loc.evaluate((svg) => [svg.viewBox.baseVal.width, svg.viewBox.baseVal.height]);
+  const [vx, vy, vw, vh] = await viewBox(loc);
   const k = Math.min(box.width / vw, box.height / vh);
   const bx = { x: box.x + (box.width - vw * k) / 2, y: box.y + (box.height - vh * k) / 2, width: vw * k, height: vh * k };
-  const at = ([x, y]) => [bx.x + x * bx.width, bx.y + y * bx.height];
+  const on = ref ? ([x, y]) => [(ref[0] + x * ref[2] - vx) / vw, (ref[1] + y * ref[3] - vy) / vh] : (q) => q;
+  const at = (q) => { const [x, y] = on(q); return [bx.x + x * bx.width, bx.y + y * bx.height]; };
   const path = [];
   for (let i = 0; i + 1 < pts.length; i++)
     for (let s = 0; s < 14; s++) path.push(at([pts[i][0] + ((pts[i + 1][0] - pts[i][0]) * s) / 14, pts[i][1] + ((pts[i + 1][1] - pts[i][1]) * s) / 14]));
@@ -209,11 +213,11 @@ const mark = (what) => console.log(`  style ${what}: ${((Date.now() - t0) / 1000
 const LINES = {
   hem: [[WIDE ? 0.36 : 0.32, 0.86], [0.5, 0.875], [WIDE ? 0.64 : 0.68, 0.86]],
   waist: [[0.34, 0.47], [0.5, 0.475], [0.66, 0.47]],
-  neck: [[0.25, 0.165], [0.32, 0.18], [0.42, 0.183], [0.5, 0.184]],
+  neck: [[0.2, 0.175], [0.23, 0.18], [0.35, 0.181], [0.5, 0.181]],
 };
 // Off camera, the dress is made to match the photo the film has just shown (Cat, 2026-10-24: show that starting from
 // a photo works): a boat neck, a fitted bodice to the natural waist, a half circle skirt to the knee, in Prince of
-// Wales check. The film opens on that dress, and the drawing tool takes it from there.
+// Wales check. The film opens on that dress, the fabric changes, and the drawing tool takes it from there.
 const pick = async (name) => {
   const r = main.locator('button[aria-pressed]').filter({ hasText: new RegExp(`^\\s*${name}\\b`) }).first();
   if (await r.count()) await r.evaluate((el) => el.click());
@@ -243,22 +247,33 @@ await p.evaluate(() => window.scrollTo(0, 0));
 await wait(1200);
 await start();
 t0 = Date.now();
-await wait(1600);
+await wait(2600);
+// Then the fabric changed, the same dress refilled in a big placed print (Cat, 2026-10-24: showcase fabric).
+mark('fabric');
+await press(main.getByRole('tab', { name: 'Fabric', exact: true }), 900);
+await press(main.locator('[role=radiogroup][aria-label="What\'s printed on your fabric"] [role=radio]').filter({ hasText: 'Big motifs' }), 2200);
+// Enlarged, the preview fills the screen with its tools (Cat, 2026-10-24: use the tools while it's enlarged), and
+// drawing on the form from there opens the drawing tool enlarged too, the place where room matters most.
+mark('enlarge');
+await press(main.getByRole('button', { name: /^Enlarge the drawing/ }), 1300);
 mark('draw');
-await press(main.getByRole('button', { name: 'Draw on your form' }).first(), 900);
-// Enlarged, so the film shows how roomy the place to draw is (Cat, 2026-10-24).
-await press(main.getByRole('button', { name: 'Enlarge', exact: true }), 1000);
+await press(main.getByRole('button', { name: 'Draw on your form' }).first(), 1100);
+const roomy = main.getByRole('button', { name: 'Enlarge', exact: true });
+if (await roomy.count()) await press(roomy, 1000);
 const form = main.getByRole('img', { name: /Your dress form from the/ });
 const kinds = main.getByRole('group', { name: 'What you are drawing' });
+const before = await viewBox(form);
+// Top to bottom: the neck first, while the picture is the size the lines were measured on, then the hem, then the
+// waist seam, moved to stay put on the now longer picture.
+mark('neck');
+await tap(kinds.getByRole('button', { name: 'Neckline', exact: true }), 500);
+await draw(form, LINES.neck, 1500);
 mark('hem');
 await tap(kinds.getByRole('button', { name: 'Hem', exact: true }), 500);
 await draw(form, LINES.hem, 1500);
 mark('waist');
 await tap(kinds.getByRole('button', { name: 'Waist seam', exact: true }), 500);
-await draw(form, LINES.waist, 1500);
-mark('neck');
-await tap(kinds.getByRole('button', { name: 'Neckline', exact: true }), 500);
-await draw(form, LINES.neck, 1500);
+await draw(form, LINES.waist, 1500, before);
 // Done lands on the pattern sheet, and the film stays there (Cat, 2026-10-24: no flash back to the dress).
 mark('done');
 await press(main.getByRole('button', { name: 'Done', exact: true }), 1200);

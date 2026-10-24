@@ -21,11 +21,11 @@ const WIDE_SCREEN = '(min-width: 900px) and (min-aspect-ratio: 1/1)';
 const PARTS: { name: string; from: number }[] = [
   { name: 'Measure', from: 0 },
   { name: 'Choose', from: 13.4 },
-  { name: 'Style', from: 21.8 },
-  { name: 'Print', from: 49 },
+  { name: 'Style', from: 21.6 },
+  { name: 'Print', from: 52.9 },
 ];
-export const TOUR_LENGTH = 64;
-export const TOUR_LABEL = '1:04';
+export const TOUR_LENGTH = 68;
+export const TOUR_LABEL = '1:08';
 
 export function TourPlayer({ onClose }: { onClose: () => void }) {
   const video = useRef<HTMLVideoElement>(null);

@@ -129,27 +129,31 @@ async function piece({ shot, still, from = 0, dur, speed = 1, zoom = [1, 1], at 
 
 // The Style chapter as one unbroken move (Cat, 2026-10-24: hand-hold on an elegant journey): it opens on the dress
 // already drafted from the photo the film has just shown (Cat, 2026-10-24: show that starting from a photo works),
-// then the drawing tool, enlarged, takes the hem longer, drops the waist seam and takes the boat neck straight
-// across, and Done goes on to the pattern sheet. The camera glides between the moments, and a big word or two names
+// then refilled in a big print, enlarged, and the drawing tool, enlarged with it, takes the boat neck straight
+// across, the hem longer and the waist seam down, and Done goes on to the pattern sheet. The camera glides between the moments, and a big word or two names
 // each step. Times are in the style shot, as record-tour-shots.mjs prints them.
-const MARKS = WIDE ? { draw: 1.6, hem: 4.9, waist: 9.0, neck: 13.2, done: 18.2 } : { draw: 1.6, hem: 4.8, waist: 8.8, neck: 12.7, done: 17.4 };
-const JOURNEY = { from: 0.6, to: MARKS.done + 0.9, dur: 14 };
+const MARKS = WIDE
+  ? { fabric: 2.6, enlarge: 6.8, draw: 8.7, neck: 10.5, hem: 15.1, waist: 19.0, done: 23.0 }
+  : { fabric: 2.6, enlarge: 6.6, draw: 8.6, neck: 10.4, hem: 14.9, waist: 18.9, done: 22.8 };
+const JOURNEY = { from: 0.6, to: MARKS.done + 0.9, dur: 18 };
 const atOut = (t) => ((t - JOURNEY.from) * JOURNEY.dur) / (JOURNEY.to - JOURNEY.from);
-// [shot time, zoom, x, y]: on a computer, close on the dress, in on the enlarged form to draw, and back as the
+// [shot time, zoom, x, y]: on a computer, the whole page, then in on the enlarged form to draw, and back as the
 // pattern comes up. A phone shows the whole screen throughout.
 const STYLE_CAM = (WIDE
-  ? [[0.6, 1, 0.5, 0.5], [MARKS.draw + 0.4, 1, 0.5, 0.5], [MARKS.hem - 0.2, 1.25, 0.5, 0.44], [MARKS.done, 1.25, 0.5, 0.44], [JOURNEY.to, 1, 0.5, 0.5]]
+  ? [[0.6, 1, 0.5, 0.5], [MARKS.draw, 1, 0.5, 0.5], [MARKS.neck - 0.2, 1.25, 0.5, 0.44], [MARKS.done, 1.25, 0.5, 0.44], [JOURNEY.to, 1, 0.5, 0.5]]
   : [[0.6, 1, 0.5, 0.5], [JOURNEY.to, 1.05, 0.5, 0.47]]).map(([t, ...r]) => [atOut(t), ...r]);
 const STYLE_NOTES = [
-  ['From your photo.', 0.6, MARKS.hem - 0.2],
-  ['Draw it longer.', MARKS.hem + 0.2, MARKS.waist - 0.2],
-  ['Drop the waist.', MARKS.waist + 0.2, MARKS.neck - 0.2],
-  ['Neck straight across.', MARKS.neck + 0.2, MARKS.done - 0.1],
+  ['From your photo.', 0.6, MARKS.fabric - 0.2],
+  ['Change the fabric.', MARKS.fabric + 0.2, MARKS.enlarge - 0.2],
+  ['Enlarge to draw.', MARKS.enlarge + 0.2, MARKS.neck - 0.2, 'side'],
+  ['Neck straight across.', MARKS.neck + 0.2, MARKS.hem - 0.2, 'side'],
+  ['Draw it longer.', MARKS.hem + 0.2, MARKS.waist - 0.2, 'side'],
+  ['Drop the waist.', MARKS.waist + 0.2, MARKS.done - 0.1, 'side'],
 ];
 const styleJourney = async () => {
   // One at a time: the words are all drawn on the one page.
   const notes = [];
-  for (const [line, on, off] of STYLE_NOTES) notes.push([await note(line), atOut(on), atOut(off)]);
+  for (const [line, on, off, where] of STYLE_NOTES) notes.push([await note(line, where), atOut(on), atOut(off)]);
   return piece({ shot: 'style', from: JOURNEY.from, dur: JOURNEY.dur, speed: (JOURNEY.to - JOURNEY.from) / JOURNEY.dur, cam: STYLE_CAM, fadeIn: 0.5, notes });
 };
 // Cat (2026-10-22): the cream pattern paper was too bright after the black pages; a deeper champagne here.
@@ -178,7 +182,10 @@ async function threeChecks() {
 }
 // A caption for a step in the Style chapter (Cat, 2026-10-24: not clear what's being picked), in a dark band along
 // the top, over the app's own header, so the choices being tapped stay clear.
-const note = (line) => words(WIDE
+// On a computer the enlarged preview keeps its view switches top left, so its words sit to the left of the form.
+const note = (line, where) => words(WIDE && where === 'side'
+  ? `<div class="f" style="display:flex;flex-direction:column;justify-content:center;padding-left:96px;background:linear-gradient(to right,rgba(0,0,0,.85) 0,rgba(0,0,0,.6) 30%,rgba(0,0,0,0) 42%)"><h1 class="t" style="font-size:46px">${line}</h1></div>`
+  : WIDE
   ? `<div class="f" style="background:linear-gradient(to bottom,rgba(0,0,0,.92) 0,rgba(0,0,0,.8) 13%,rgba(0,0,0,0) 22%);padding:44px 0 0 96px"><h1 class="t" style="font-size:46px">${line}</h1></div>`
   : `<div class="f" style="background:linear-gradient(to bottom,rgba(0,0,0,.92) 0,rgba(0,0,0,.8) 11%,rgba(0,0,0,0) 17%);padding:40px 0 0 28px"><h1 class="t" style="font-size:36px">${line}</h1></div>`);
 // P2 Or Start From a Photo (Cat, 2026-10-24): after the garments, a photo of a dress (made for the film, no person in
