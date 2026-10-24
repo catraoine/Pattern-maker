@@ -88,7 +88,10 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
 
   if (onForm && draft && form) {
     return (
+      <GarmentFabric fabric={fabric}>
       <DrawOnForm<TeeChoices>
+        cloth={clothShapes}
+        sleeve={draft.sleeve}
         body={form.body}
         m={m}
         legs={false}
@@ -127,6 +130,7 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
           setOnForm(undefined);
         }}
       />
+      </GarmentFabric>
     );
   }
 
