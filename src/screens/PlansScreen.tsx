@@ -7,7 +7,9 @@ import { BuyButton } from '../ui/PlanPrompts';
 /** Free, Premium and Maker side by side. Opened from Your account and from every unlock prompt. */
 export function PlansScreen({ account, onBack }: { account: Account; onBack: () => void }) {
   const plan = planOf(account);
-  useEffect(() => window.scrollTo(0, 0), []);
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
   const yours = (p: typeof plan) => (plan === p ? ' · yours now' : '');
 
   return (
