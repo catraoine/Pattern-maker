@@ -8,16 +8,17 @@ test('body double: pad map, cover pattern and form check', async ({ page }, info
   await openFold(page, 'Body Double');
   await main.getByRole('button', { name: 'Make my form' }).click();
   await expect(main.getByRole('heading', { name: 'A dress form in your shape' })).toBeVisible();
-  await expect(main.getByRole('heading', { name: /^Buy a size \d+ form$/ })).toBeVisible();
+  // The example body is smaller than a size 4 form, so it is told to look for a petite one; a bigger body gets a size.
+  await expect(main.getByRole('heading', { name: /^(Buy a size \d+ form|Buy the smallest form you can find)$/ })).toBeVisible();
   await expect(main.getByRole('table', { name: 'Padding to add' })).toContainText('Waist');
   await page.screenshot({ path: info.outputPath('body-double.png'), fullPage: true });
 
   // B5: a padded form that measures 2 cm small at the waist says to add wadding there.
-  await main.locator('#formcheck-full_bust').fill('92');
-  await main.locator('#formcheck-waist').fill('74');
-  await main.locator('#formcheck-full_hip').fill('102');
+  await main.locator('#formcheck-full_bust').fill('82');
+  await main.locator('#formcheck-waist').fill('60');
+  await main.locator('#formcheck-full_hip').fill('90');
   await expect(main.getByText(/Add .* round the waist/)).toBeVisible();
-  await main.locator('#formcheck-waist').fill('76');
+  await main.locator('#formcheck-waist').fill('62');
   await expect(main.getByText('It’s ready to fit on.')).toBeVisible();
 
   await main.getByRole('button', { name: 'Get the cover pattern' }).click();

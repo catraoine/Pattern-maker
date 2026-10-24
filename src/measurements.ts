@@ -407,6 +407,37 @@ export const EXAMPLE_VALUES: MeasurementValues = {
   wrist: 16,
 };
 
+/** The body the app shows before anyone has measured: "Try with an example body", the Style page's first
+ *  drawing and a look drafted before measuring. Slim and tall, as a fashion croquis is (Cat, 2026-10-24: the body the films use),
+ *  with every measurement in proportion. The engine's tests keep EXAMPLE_VALUES, their original test body. */
+export const EXAMPLE_BODY: MeasurementValues = {
+  height: 176,
+  waist: 62,
+  full_hip: 90,
+  waist_to_hip: 21.5,
+  waist_to_knee: 62,
+  waist_to_floor: 111,
+  crotch_depth: 26,
+  crotch_length: 65,
+  full_bust: 82,
+  high_bust: 79,
+  neck: 33,
+  shoulder_width: 38,
+  shoulder_length: 12.5,
+  across_back: 34,
+  across_front: 31,
+  nape_to_waist: 43,
+  front_hps_to_waist: 44.5,
+  bust_depth: 25,
+  apex_separation: 17.5,
+  underbust: 70,
+  torso_loop: 150,
+  armscye: 38,
+  arm_length: 61,
+  upper_arm: 25,
+  wrist: 15,
+};
+
 export interface Check {
   id: MeasurementId;
   level: 'error' | 'warning';

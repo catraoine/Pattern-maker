@@ -66,28 +66,61 @@ const SLEEVE_EASE = 0.35;
 
 /** How much of the garment's ease shows in its width when worn: the rest falls into the drape round the body. */
 const WORN_EASE = 0.4;
+/** Per quarter, how much wider than the form a fitted piece can be before its width is read as volume (gathers,
+ *  a straight cut) rather than as darts and ease that close on the body when worn. */
+const FITTED_UP_TO = 4;
+const VOLUME_FROM = 7;
+/** How far the hem of a piece falls at its centre, seen a little from above, as a share of the hem's half width. */
+const HEM_FALL = 0.07;
+/** How far below a seam a gathered or eased piece takes to bell out to its own width. */
+const BELL = 14;
 
-/** The cloth as it hangs on the form rather than laid out flat. A flat piece spreads its full half-girth,
- *  but worn, only part of the ease beyond the body shows in the width; the rest falls into the drape. Cloth
- *  hangs from the widest point above it, so the body it is drawn in toward is the form's widest width so far
- *  down (the shoulders, then the bust, then the hip), never the waist's dip: a straight jacket stays straight,
- *  and a piece shaped in to the waist keeps its own shaping. From the hip the drawing-in fades out over 25 cm
- *  so a skirt keeps its flare. The pattern itself is untouched. */
-export function wornCloth(cloth: P[][], body: FormBody): P[][] {
+/** The cloth as it hangs on the form rather than laid out flat. A flat piece spreads its full half-girth; worn,
+ *  a fitted piece closes its darts on the body and shows only part of its ease, so below the underarm its sides
+ *  follow the form plus that share of the ease. Where a piece is much wider than the form (gathers, a straight
+ *  cut) that width is volume: it hangs from the widest point of the form above it (shoulders, bust, hip), never
+ *  dipping to the waist, with the same share of the extra showing. From the hip the drawing-in fades out over
+ *  25 cm so a skirt keeps its flare, and each hem falls a little at its centre, as a hem does seen from a touch
+ *  above. The pattern itself is untouched. */
+export function wornCloth(cloth: P[][], body: FormBody, underarmY = body.top): P[][] {
   // The widest the form has been from the top down to each height, at 0.5 cm steps.
   const steps = Math.max(1, Math.ceil((body.bottom - body.top) / 0.5));
   const hang: number[] = [];
   for (let i = 0; i <= steps; i++) hang.push(Math.max(hang[i - 1] ?? 0, body.width(body.top + ((body.bottom - body.top) * i) / steps)));
   const hangAt = (y: number) => hang[Math.min(steps, Math.max(0, Math.round(((y - body.top) / (body.bottom - body.top)) * steps)))];
-  return cloth.map((s) =>
-    s.map((q) => {
+  return cloth.map((s) => {
+    const hemY = Math.max(...s.map((q) => q.y));
+    const hemHalf = Math.max(1, ...s.filter((q) => q.y > hemY - 1).map((q) => Math.abs(q.x)));
+    // A piece hanging from a seam on the body (a skirt from a waist seam) is sewn to the body's width there,
+    // gathers and all, and bells out below it.
+    const topY = Math.min(...s.map((q) => q.y));
+    const seamTop = topY > underarmY + 2 ? topY : undefined;
+    return s.map((q) => {
       const below = Math.max(0, q.y - body.bottom);
       const share = WORN_EASE + (1 - WORN_EASE) * Math.min(1, below / 25);
-      const w = hangAt(q.y);
-      const out = Math.abs(q.x) - w;
-      return out <= 0 ? q : { x: Math.sign(q.x) * (w + out * share), y: q.y };
-    }),
-  );
+      const w = body.width(Math.min(q.y, body.bottom));
+      const h = hangAt(q.y);
+      let x = q.x;
+      const out = Math.abs(q.x) - h;
+      if (out > 0) x = Math.sign(q.x) * (h + out * share);
+      // Fitted: follow the form itself, not its widest point, between the underarm and the hip.
+      const over = Math.abs(q.x) - w;
+      if (over > 0 && q.y > underarmY && below === 0) {
+        const fitted = Math.min(1, Math.max(0, (VOLUME_FROM - over) / (VOLUME_FROM - FITTED_UP_TO)));
+        const hug = Math.sign(q.x) * (w + Math.min(over, FITTED_UP_TO) * WORN_EASE);
+        x = hug * fitted + x * (1 - fitted);
+      }
+      if (seamTop !== undefined && q.y < seamTop + BELL && Math.abs(q.x) > w) {
+        const t = Math.min(1, (q.y - seamTop) / BELL);
+        const ease = t * t * (3 - 2 * t);
+        const sewn = Math.sign(q.x) * (w + Math.min(Math.abs(q.x) - w, FITTED_UP_TO) * WORN_EASE);
+        x = sewn * (1 - ease) + x * ease;
+      }
+      // The hem falls at its centre, seen a little from above.
+      const y = q.y > hemY - 0.8 && q.y > underarmY + 4 ? q.y + HEM_FALL * hemHalf * (1 - Math.min(1, (q.x / hemHalf) ** 2)) : q.y;
+      return { x, y };
+    });
+  });
 }
 
 /** The garment's shoulder point on its right: the furthest-out point of its cloth above the underarm. */
@@ -142,6 +175,8 @@ interface Props {
   /** Where the sleeves end, down the arms (needs `arms`): sleeves are drawn hanging on them, in the cloth. */
   /** The drafted sleeve, to hang on the arms; none for a sleeveless garment. */
   sleeve?: WornSleeve;
+  /** Where the underarm is: below it a fitted piece's sides follow the form. Shoulders and armholes stay as drafted. */
+  underarmY?: number;
   label: string;
 }
 
@@ -149,8 +184,8 @@ interface Props {
 const CLOTH_EDGES: FormLine[] = ['neckline', 'fit', 'hem', 'sleeve'];
 
 /** The garment drawn on the dress form, front on. */
-export function FormSketch({ body, m, legs, bottom, arms, lines, outline = [], cloth, sleeve, label }: Props) {
-  const worn = useMemo(() => (cloth ? wornCloth(cloth, body) : undefined), [cloth, body]);
+export function FormSketch({ body, m, legs, bottom, arms, lines, outline = [], cloth, sleeve, underarmY, label }: Props) {
+  const worn = useMemo(() => (cloth ? wornCloth(cloth, body, underarmY ?? arms?.under.y) : undefined), [cloth, body, underarmY, arms]);
   const frame = useMemo(() => formFrame(m, body, bottom, arms, worn), [m, body, bottom, arms, worn]);
   const cx = frame.half;
   const contours = useMemo(() => formContours(body, cx), [body, cx]);
@@ -161,17 +196,25 @@ export function FormSketch({ body, m, legs, bottom, arms, lines, outline = [], c
   // its own path: pieces overlap (a lapel on its front, a sleeve on the body) and one path would punch holes there.
   const sleeves = useMemo(() => (arms && sleeve && worn ? [sleeveShape(arms, sleeve, shoulderPoint(worn, arms))].flatMap((s) => [s, s.map((q) => ({ x: -q.x, y: q.y }))]) : []), [arms, sleeve, worn]);
   const pieces = worn ? [...sleeves, ...worn].map((s) => `${at(s)} Z`) : [];
-  const shade = `shade${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
+  const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
+  const shade = `shade${uid}`;
+  const clip = `clip${uid}`;
   const drawn = cloth ? Object.fromEntries(Object.entries(lines).filter(([id]) => !CLOTH_EDGES.includes(id as FormLine))) : lines;
   return (
     <svg viewBox={`0 ${f(frame.top)} ${f(2 * cx)} ${f(frame.bottom - frame.top)}`} role="img" aria-label={label} className="preview-svg sketch shape form-still">
       {cloth && (
         <defs>
           <linearGradient id={shade} gradientUnits="userSpaceOnUse" x1={f(cx - frame.half * 0.8)} x2={f(cx + frame.half * 0.8)} y1="0" y2="0">
-            <stop offset="0" stopColor="#fff8e6" stopOpacity="0.1" />
-            <stop offset="0.45" stopColor="#000" stopOpacity="0" />
-            <stop offset="1" stopColor="#000" stopOpacity="0.38" />
+            <stop offset="0" stopColor="#fff8e6" stopOpacity="0.16" />
+            <stop offset="0.3" stopColor="#fff8e6" stopOpacity="0.04" />
+            <stop offset="0.55" stopColor="#000" stopOpacity="0.08" />
+            <stop offset="1" stopColor="#000" stopOpacity="0.5" />
           </linearGradient>
+          <clipPath id={clip}>
+            {pieces.map((d, i) => (
+              <path key={i} d={d} />
+            ))}
+          </clipPath>
         </defs>
       )}
       {showLegs ? (
@@ -205,10 +248,14 @@ export function FormSketch({ body, m, legs, bottom, arms, lines, outline = [], c
           ))}
         </g>
       )}
+      {cloth && arms && !sleeve && armLines.filter((a) => a.edge).map((a, i) => <path key={`armover${i}`} d={a.d} className="form-arm-over" strokeWidth={0.24} />)}
+      {cloth && arms && !sleeve && armLines.filter((a) => !a.edge).map((a, i) => <path key={`armin${i}`} d={a.d} className="form-line" fill="none" strokeWidth={0.14} opacity={0.55} />)}
       {outline.map((pts, i) => (
         <path key={`o${i}`} d={at(pts)} className="tape" fill="none" strokeWidth={0.3} strokeLinecap="round" strokeLinejoin="round" />
       ))}
-      {Object.entries(drawn).flatMap(([id, runs]) => (runs ?? []).map((pts, i) => <path key={`${id}${i}`} d={at(pts)} className="tape" fill="none" strokeWidth={0.3} strokeLinecap="round" />))}
+      <g clipPath={cloth ? `url(#${clip})` : undefined}>
+        {Object.entries(drawn).flatMap(([id, runs]) => (runs ?? []).map((pts, i) => <path key={`${id}${i}`} d={at(pts)} className="tape" fill="none" strokeWidth={0.3} strokeLinecap="round" />))}
+      </g>
     </svg>
   );
 }

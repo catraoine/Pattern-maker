@@ -28,7 +28,7 @@ test('account: save a pattern, rename it, back up, delete it, restore', async ({
   const data = JSON.parse(backup.bytes.toString('utf8'));
   expect(data.app).toBe('pattern-maker');
   expect(JSON.stringify(data.account)).toContain('Wedding guest skirt');
-  expect(JSON.stringify(data.account)).toContain('"waist":76');
+  expect(JSON.stringify(data.account)).toContain('"waist":62');
 
   // Delete
   await rows.first().getByRole('button', { name: /^More for / }).click();

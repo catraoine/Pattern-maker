@@ -235,7 +235,7 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           {error && <p className="msg error">{error}</p>}
           {formBody && view === 'sketch' && (
             <GarmentFabric fabric={fabric}>
-              <FormSketch body={formBody} m={m} legs={kind === 'coat'} bottom={waistY + outerDrop(m, longest) + 6} lines={formLines} cloth={clothShapes} arms={formArm} sleeve={formArm ? draft?.sleeve : undefined} label={`The ${title.toLowerCase()} on your form`} />
+              <FormSketch body={formBody} m={m} legs={kind === 'coat'} bottom={waistY + outerDrop(m, longest) + 6} lines={formLines} cloth={clothShapes} arms={formArm} sleeve={formArm ? draft?.sleeve : undefined} underarmY={draft ? landmarks(draft.base).underarm.y : undefined} label={`The ${title.toLowerCase()} on your form`} />
             </GarmentFabric>
           )}
           {flat && view === 'flat' && (
