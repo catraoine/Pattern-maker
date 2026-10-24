@@ -486,7 +486,7 @@ export function AllRound({ round, m, striped = false, label }: Props) {
           for (const side of [-1, 1]) {
             // The side toward the body shows only below the underarm; above it, it is inside the bodice.
             polyline(
-              ys.filter((y) => !film || side === e || y >= yU - 0.01).map((y) => {
+              ys.filter((y) => !film || through || side === e || y >= yU - 0.01).map((y) => {
                 const q = centre(e * axisX(y), y);
                 return [q.x + side * sleeveR(y) * S, q.y];
               }),
@@ -496,8 +496,6 @@ export function AllRound({ round, m, striped = false, label }: Props) {
             );
           }
           tubeRing(e * axisX(yE), rh, yE, GLOW, lw * (film ? 1.4 : 1.2), alpha);
-          // The crown, over the shoulder.
-          if (film) tubeRing(e * axisX(yS + 0.06), sleeveR(yS + 0.06), yS + 0.06, GLOW, lw * 1.1, alpha * 0.8);
           if (film) {
             // The sleeve's cloth, in a few lines down the front of the arm.
             for (const a of [-0.9, -0.3, 0.3, 0.9]) {
