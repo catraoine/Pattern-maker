@@ -246,6 +246,16 @@ for (const [tab, names] of [['Shape', [['Relaxed', 'Fit'], 'Dropped']], ['Neck &
   await wait(400);
   for (const n of names) await (Array.isArray(n) ? pick(...n) : pick(n));
 }
+// The sleeves to the photo's length, about 20 cm from the shoulder, on the sleeve slider.
+await main.getByRole('tab', { name: 'Neck & sleeves', exact: true }).click();
+await wait(300);
+await main.locator('input[type=range][aria-label="Sleeve length, in cm from the shoulder"]').first().evaluate((el) => {
+  Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, '20');
+  el.dispatchEvent(new Event('input', { bubbles: true }));
+});
+await wait(300);
+await main.getByRole('tab', { name: 'Skirt & length', exact: true }).click();
+await wait(300);
 // The length is set from the marks beside the form.
 await p.evaluate(() => [...document.querySelectorAll('main .hem-mark')].find((g) => g.textContent.trim() === 'MINI')?.querySelector('.hit')?.dispatchEvent(new MouseEvent('click', { bubbles: true })));
 await wait(400);

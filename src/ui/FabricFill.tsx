@@ -110,6 +110,7 @@ export function GarmentFabric({ fabric, children }: { fabric: MyFabric | undefin
                 <feFuncG type="table" tableValues={table[1]} />
                 <feFuncB type="table" tableValues={table[2]} />
               </feComponentTransfer>
+              {gingham && <feColorMatrix type="saturate" values="1.2" />}
             </filter>
           )}
           {tile(body, false)}

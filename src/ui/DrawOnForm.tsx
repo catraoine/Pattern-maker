@@ -9,17 +9,14 @@ import type { P } from '../engine/geometry';
 import type { BodiceDraft } from '../engine/bodice';
 import { spline } from './bodyOutline';
 import { legsFor } from '../engine/form';
-import { CM_PER_UNIT, HEAD_CHIN, HEAD_TOP, headLines } from './ContourForm';
 
-/** How tall the head stands above the top of the neck, in cm. */
-const HEAD_CM = (HEAD_CHIN - HEAD_TOP) * CM_PER_UNIT - 1.5;
 import { FormLine, FormSide, Reading, landmarks } from './formLines';
-import { CLOTH_EDGES, FormLayers, SQUEEZE, WornSleeve, wornCloth } from './FormSketch';
+import { CLOTH_EDGES, FormHead, FormLayers, HEAD_CM, INTO_HEAD, SQUEEZE, WornSleeve, formHead, wornCloth } from './FormSketch';
 import { TestingTag } from './TestingTag';
 import { DemoButton } from './DemoButton';
 import { tookEnlarged } from './EnlargeSketch';
 
-type Measures = { full_bust?: number; waist: number; full_hip?: number; waist_to_hip?: number; waist_to_knee?: number; waist_to_floor?: number; crotch_depth?: number };
+type Measures = { full_bust?: number; neck?: number; waist: number; full_hip?: number; waist_to_hip?: number; waist_to_knee?: number; waist_to_floor?: number; crotch_depth?: number };
 
 /** The form's outline: half its width at each height, from its top to where it ends above the stand or legs. */
 export interface FormBody {
@@ -146,7 +143,9 @@ export function formWidth(draft: BodiceDraft, m: Measures & { full_bust: number 
 
 /** A torso form through the body's own landmarks: the neck point, the shoulder tip, the bust's height and the waist's. */
 export function torsoForm({ neckPoint, shoulderTip, apex, waistY }: { neckPoint: P; shoulderTip: P; apex: P; waistY: number }, m: Measures & { full_bust: number }): FormBody {
-  const neck = neckPoint.x * 0.85;
+  // The neck from the neck measurement, not the garment's neckline (a boat neck's points sit far out), as slim
+  // beside the head as on the welcome form: drawn, after the squeeze, about 0.45 of the head's width.
+  const neck = Math.min(neckPoint.x, ((m.neck ?? 34) / (2 * Math.PI)) * 0.95);
   const bust = m.full_bust / 4;
   const hip = m.full_hip && m.waist_to_hip ? { at: waistY + m.waist_to_hip, half: m.full_hip / 4 } : undefined;
   const body = spline([
@@ -266,7 +265,8 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
   // The form in contour lines, as on the welcome screen: each line a fixed fraction of the way round.
   const contours = useMemo(() => {
     const n = 15;
-    const ys = Array.from({ length: 121 }, (_, i) => body.top + ((torsoBottom - body.top) * i) / 120);
+    const top = body.head ? body.top - INTO_HEAD : body.top;
+    const ys = Array.from({ length: 121 }, (_, i) => top + ((torsoBottom - top) * i) / 120);
     return Array.from({ length: n }, (_, i) => {
       const u = Math.sin(-Math.PI / 2 + (Math.PI * i) / (n - 1));
       return { d: path(ys.map((y) => ({ x: cx + SQUEEZE * u * body.width(y), y }))), edge: Math.abs(u) > 0.98, u };
@@ -275,13 +275,7 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
 
   // The head, as on every other screen (Cat's body rule): the same faceless mannequin head, at the same scale to
   // the body, on top of the neck.
-  const head = useMemo(() => {
-    if (!body.head) return undefined;
-    const chin = body.top + 1.5;
-    const { outline, lines: inner } = headLines(9);
-    const at = ([x, y]: [number, number]): P => ({ x: cx + x * CM_PER_UNIT, y: chin + (y - HEAD_CHIN) * CM_PER_UNIT });
-    return { outline: path(outline.map(at)) + ' Z', lines: inner.map((l) => path(l.map(at))) };
-  }, [body, cx]);
+  const head = useMemo(() => formHead(body, cx), [body, cx]);
 
   // Each leg its outline, from where the legs part down to the floor, and lines down it as on the measuring pages.
   const legPaths = useMemo(() => {
@@ -463,15 +457,7 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
               ))}
               </>
             )}
-            {head && (
-              <g className="form-head">
-                <path d={head.outline} fill="#000" stroke="none" />
-                {head.lines.map((d, i) => (
-                  <path key={i} d={d} className="form-line" fill="none" strokeWidth={0.12} opacity={0.35} />
-                ))}
-                <path d={head.outline} className="form-line" fill="none" strokeWidth={0.22} opacity={0.9} />
-              </g>
-            )}
+            {head && !clothOn && <FormHead head={head} />}
             {/* On the dress, the cloth's own edges are the neckline, side, hem and sleeve, so only the pen shows. */}
             {kinds.filter(([id]) => !(clothOn && CLOTH_EDGES.includes(id))).map(([id]) =>
               (current[id] ?? []).map((pts, i) => (
