@@ -24,8 +24,8 @@ const PARTS: { name: string; from: number }[] = [
   { name: 'Style', from: 22.1 },
   { name: 'Print', from: 56.7 },
 ];
-export const TOUR_LENGTH = 69;
-export const TOUR_LABEL = '1:09';
+export const TOUR_LENGTH = 72;
+export const TOUR_LABEL = '1:12';
 
 export function TourPlayer({ onClose }: { onClose: () => void }) {
   const video = useRef<HTMLVideoElement>(null);

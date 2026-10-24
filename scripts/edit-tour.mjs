@@ -3,7 +3,7 @@
 // the fonts, and ffmpeg. Usage: node scripts/edit-tour.mjs <shots dir> [out.mp4] [--wide]
 // --wide cuts the computer's film from the shots record-tour-shots.mjs --wide records (Cat, 2026-10-22).
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { chromium } from '@playwright/test';
@@ -47,6 +47,13 @@ async function words(html, { solid = false } = {}) {
   await page.screenshot({ path: file, omitBackground: !solid });
   return file;
 }
+// The film ends on the house's wordmark (the app icon's stacked MAISON TRACÉ) and the site, for wherever it plays
+// without the player's corner, such as the YouTube trailer (Cat, 2026-10-24).
+const LOGO = readFileSync(new URL('../public/icon.svg', import.meta.url), 'utf8').replace(/<rect[^>]*\/>/, '').replace('viewBox="0 0 512 512"', 'viewBox="70 170 372 180"');
+const endCard = () => {
+  const [w, u] = WIDE ? [360, 15] : [230, 11];
+  return words(`<div class="f mid"><div style="width:${w}px">${LOGO}</div><div class="r" style="margin:26px auto 18px;opacity:.7"></div><div class="k" style="font-size:${u}px;text-transform:lowercase">maisontrace.co</div></div>`, { solid: true });
+};
 // The house name isn't on the cards: the player's corner already says it (Cat, 2026-10-22). No kicker, no rule.
 const card = (kicker, title, line = '', size = WIDE ? 76 : 64) => words(`<div class="f mid">${kicker ? `<div class="k">${kicker}</div><div class="r"></div>` : ''}<h1 class="t" style="font-size:${size}px">${title}</h1>${line ? `<p class="l" style="margin-top:18px">${line}</p>` : ''}</div>`, { solid: true });
 
@@ -194,6 +201,7 @@ const CUTS = {
       await piece({ still: await card('04', 'Print', 'At home, or full size.'), dur: 3, fadeIn: f, fadeOut: f }),
       await piece({ ...PAGES, dur: 4.4, fadeIn: f, fadeOut: f }),
       await piece({ still: await card('', 'Drafted<br>to your body'), dur: 4.5, fadeIn: 0.8, fadeOut: 1.2 }),
+      await piece({ still: await endCard(), dur: 3, fadeIn: 0.8, fadeOut: 0.8 }),
     ];
   },
 };
