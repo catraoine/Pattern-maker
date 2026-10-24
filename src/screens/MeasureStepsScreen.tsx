@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { FIELDS, checkMeasurements, type Check, type FormKind, type Garment, type MeasurementId, type MeasurementValues, type Unit } from '../measurements';
-import { BASE, baseDone, fieldOf, fullSetMissing, GARMENT_NAME, GARMENTS, labelOf, missingFor, mistakesOf, stepsOf, stringOf, tipOf, titleOf } from '../measureFlow';
+import { BASE, baseDone, begun, fieldOf, fullSetMissing, GARMENT_NAME, GARMENTS, labelOf, mistakesOf, neededFor, stepsOf, stringOf, tipOf, titleOf } from '../measureFlow';
 import { createPortal } from 'react-dom';
 import { takeTapeRest, tapeRested } from '../ui/tapeHandoff';
 import { WEIGHT_HARD, WeightEntry, fromKg, weightUnitOf } from '../ui/WeightEntry';
@@ -102,9 +102,11 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
   const [page, setPage] = usePageHistory<Page>(() => {
     if (start?.kind === 'redo') return { kind: 'extra', garment: start.garment, ids: start.ids, at: 0, redo: true };
     if (start?.kind === 'form') return { kind: 'form' };
-    if (!baseDone(values)) return { kind: 'intro' };
+    // Choosing another garment, or measuring for one, never goes back to the first-visit page once anything is
+    // measured: straight to the garments, or to the pages that garment still needs (Cat's A, 2026-10-24).
+    if (!baseDone(values) && !(begun(values) && (start?.kind === 'choose' || aimed))) return { kind: 'intro' };
     if (start?.kind === 'choose') return { kind: 'choose' };
-    const ids = aimed ? missingFor(aimed, values, form).map((f) => f.id) : [];
+    const ids = aimed ? neededFor(aimed, values, form).map((f) => f.id) : [];
     return ids.length ? { kind: 'extra', garment: aimed!, ids, at: 0 } : { kind: 'check' };
   });
   // Opened on the check because the measurements were taken on an earlier visit: say so.
@@ -130,7 +132,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
   };
   const go = (g: Pick) => {
     if (g === 'other') return setPage({ kind: 'describe' });
-    const ids = missingFor(g, values, form).map((f) => f.id);
+    const ids = neededFor(g, values, form).map((f) => f.id);
     if (ids.length) setPage({ kind: 'extra', garment: g, ids, at: 0 });
     else onDone(g);
   };
@@ -392,7 +394,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
         </Shell>
       );
     const g = pieceGarment(read.start);
-    const more = missingFor(g, values, form).length;
+    const more = neededFor(g, values, form).length;
     const closest = read.verdict === 'closest';
     return (
       <Shell eyebrow={closest ? 'The closest we can do' : 'We can make that'} title={`${cap(closest ? read.name : `${aOrAn(read.name)}`)}.`} hero={<TapeDemo id="waist" name="" mode="still" kind={form} />} short>
@@ -473,7 +475,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
       label={label}
       skip={onSkip && page.kind === 'base' && !page.back && at === 0 && !Object.keys(values).length ? () => onSkip() : undefined}
       later={onLater && !(page.kind === 'base' && page.back) && !(page.kind === 'extra' && page.redo) ? onLater : undefined}
-      canEstimate={page.kind === 'extra'}
+      canEstimate={page.kind === 'extra' && !BASE.includes(id)}
       ids={ids}
       listTitle={page.kind === 'base' ? (helper ? 'Their measurements' : 'Your measurements') : g === 'other' ? 'Full set' : cap(GARMENT_NAME[g!])}
     />
@@ -498,7 +500,7 @@ export function DoubleChecks({ checks }: { checks: Check[] }) {
 function chooseLabel(picked: Pick | null, values: MeasurementValues, form: FormKind): string {
   if (!picked) return 'Choose a garment';
   if (picked === 'other') return 'Next: describe it';
-  const n = missingFor(picked, values, form).length;
+  const n = neededFor(picked, values, form).length;
   return n ? `Next: ${n} ${GARMENT_NAME[picked]} measurement${n === 1 ? '' : 's'}` : `Style my ${GARMENT_NAME[picked]}`;
 }
 
