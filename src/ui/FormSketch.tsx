@@ -132,7 +132,7 @@ export function hemCorner(piece: P[]): P | undefined {
 }
 
 /** The garment's shoulder point on its right: the furthest-out point of its cloth above the underarm. */
-function shoulderPoint(cloth: P[][], arm: FormArm): P | undefined {
+export function shoulderPoint(cloth: P[][], arm: FormArm): P | undefined {
   const top = cloth.flat().filter((q) => q.x > 0 && q.y <= arm.under.y - 2);
   return top.length ? top.reduce((a, b) => (b.x > a.x ? b : a)) : undefined;
 }
