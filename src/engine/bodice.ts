@@ -514,7 +514,8 @@ function finish(d: BodiceDraft, s: BodiceStyle): BodiceDraft {
     const foldBlock = backOnFold(bb);
     // The bodice as sewn is buttoned shut: the block itself, centre front to centre front.
     block = [bf, bb];
-    pieces = [...pieces, frontFacing(openBlock), ...[backNeckFacing(foldBlock)].filter((pc): pc is Piece => !!pc)];
+    const ff = frontFacing(openBlock);
+    pieces = [...pieces, ff, ...[backNeckFacing(foldBlock, ff)].filter((pc): pc is Piece => !!pc)];
   }
   let wrap: BodiceDraft['wrap'];
   if (closure === 'wrap') {

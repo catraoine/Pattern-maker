@@ -192,12 +192,15 @@ export function frontFacing(opened: Piece): Piece {
     fabric: 'Self + interfacing',
     seamAllowance: opened.seamAllowance,
     allowances: { ...opened.allowances, facing: 0 },
-    meta: {},
+    meta: { shoulderAlong: along },
   };
 }
 
-/** The back neck facing for a button opening, cut on the fold. */
-export const backNeckFacing = (backFold: Piece) => facing(backFold, 'neck', 5, 'Back neck facing');
+/** The back neck facing for a button opening, cut on the fold: as deep as the front facing runs along
+ * the shoulder plus the back's 1 cm of shoulder ease, so the two meet at the shoulder seam (on a boat or
+ * square neck the shoulder is short, and the front facing stops halfway along it). */
+export const backNeckFacing = (backFold: Piece, front?: Piece) =>
+  facing(backFold, 'neck', Math.min(5, ((front?.meta.shoulderAlong as number | undefined) ?? FACING_SHOULDER) + 1), 'Back neck facing');
 
 // ---- collars ---------------------------------------------------------------------------------
 
