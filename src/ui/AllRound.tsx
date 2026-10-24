@@ -186,7 +186,7 @@ export function AllRound({ round, m, striped = false, label }: Props) {
     // only a fitted garment, with little ease at the waist, follows the waist in; a relaxed one falls straight
     // from the bust to the hip, its ease hanging in folds.
     // From the shoulders to the bust the cloth is held to the body; from the bust down it hangs.
-    const hangShare = round.girth.waist && m.waist ? clamp((round.girth.waist - m.waist - 4) / 3, 0, 1) * (film ? 0.5 : 1) : 0;
+    const hangShare = round.girth.waist && m.waist ? clamp((round.girth.waist - m.waist - 4) / 3, 0, 1) * (through ? 0 : film ? 0.5 : 1) : 0;
     const hang: number[] = [];
     for (let i = 0; i <= 60; i++) hang.push(Math.max(hang[i - 1] ?? 0, bodyR(BUST_Y + ((FORM_HIP - BUST_Y) * i) / 60)));
     const wornR = (y: number) => {
@@ -205,12 +205,14 @@ export function AllRound({ round, m, striped = false, label }: Props) {
     const yS = arm ? yOf(arm.shoulderCm) : 0;
     const yU = arm ? yOf(arm.underarmCm) : 0;
     const sl = round.sleeve;
-    const ra = sl ? Math.max(0.08, (sl.bicepCm / TAU) * krB * 0.95) : 0;
-    const rh = sl ? Math.max(0.05, (sl.hemCm / TAU) * krB * 0.95) : 0;
+    // In the film the sleeve hugs the arm (Cat, 2026-10-24: "make it look chic"); in the app it keeps its wearing ease.
+    const slim = film ? 0.8 : 1;
+    const ra = sl ? Math.max(0.08, (sl.bicepCm / TAU) * krB * 0.95 * slim) : 0;
+    const rh = sl ? Math.max(0.05, (sl.hemCm / TAU) * krB * 0.95 * slim) : 0;
     // The sleeve stands on the arm, outside the body at the underarm; even the shortest reaches a little below it.
     const yE = sl ? Math.max(yS + sl.lengthCm * kY, yU + 0.1) : 0;
-    const axisX = (y: number) => formHalfWidth(yS) + ra * 0.25 + (formHalfWidth(yU) + ra * (film ? 1.05 : 1) - formHalfWidth(yS) - ra * 0.25) * smooth(clamp((y - yS) / (yU - yS || 1), 0, 1)) + Math.max(0, y - yU) * (film ? 0.25 : 0.04);
-    const sleeveR = (y: number) => (y < yU ? ra * Math.pow(clamp((y - yS) / (yU - yS || 1), 0.15, 1), 0.35) : ra + (rh - ra) * clamp((y - yU) / (yE - yU || 1), 0, 1));
+    const axisX = (y: number) => formHalfWidth(yS) + ra * 0.25 + (formHalfWidth(yU) + ra * (film ? 0.55 : 1) - formHalfWidth(yS) - ra * 0.25) * smooth(clamp((y - yS) / (yU - yS || 1), 0, 1)) + Math.max(0, y - yU) * 0.04;
+    const sleeveR = (y: number) => (y < yU ? ra * Math.pow(clamp((y - yS) / (yU - yS || 1), 0.15, 1), film ? 0.5 : 0.35) : ra + (rh - ra) * clamp((y - yU) / (yE - yU || 1), 0, 1));
 
     // Trouser legs, round the form's own legs: easy at the thigh, then to the knee and the hem.
     const lg = round.legs;
@@ -495,7 +497,8 @@ export function AllRound({ round, m, striped = false, label }: Props) {
               alpha,
             );
           }
-          tubeRing(e * axisX(yE), rh, yE, GLOW, lw * (film ? 1.4 : 1.2), alpha);
+          // In the film the hem ring is left out: edge-on, as the form turns, it read as a coat hanger.
+          if (!film) tubeRing(e * axisX(yE), rh, yE, GLOW, lw * 1.2, alpha);
           if (film) {
             // The sleeve's cloth, in a few lines down the front of the arm.
             for (const a of [-0.9, -0.3, 0.3, 0.9]) {

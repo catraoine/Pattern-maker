@@ -241,7 +241,10 @@ await wait(1500);
 await main.getByRole('heading', { level: 1, name: /^Style your/ }).waitFor({ timeout: 15000 });
 await addPen();
 await wait(800);
-for (const [tab, names] of [['Shape', [['Relaxed', 'Fit'], 'Dropped']], ['Neck & sleeves', ['Boat', 'Short']], ['Skirt & length', [['Straight', 'Skirt'], ['Inverted pleats', 'Skirt details']]]]) {
+// TOUR_FIT and TOUR_SLEEVES try the dress another way (Fitted, Sleeveless) without touching the rest.
+const FIT = process.env.TOUR_FIT ?? 'Relaxed';
+const SLEEVES = process.env.TOUR_SLEEVES ?? 'Short';
+for (const [tab, names] of [['Shape', [[FIT, 'Fit'], 'Dropped']], ['Neck & sleeves', ['Boat', SLEEVES]], ['Skirt & length', [['Straight', 'Skirt'], ['Inverted pleats', 'Skirt details']]]]) {
   await main.getByRole('tab', { name: tab, exact: true }).click();
   await wait(400);
   for (const n of names) await (Array.isArray(n) ? pick(...n) : pick(n));
@@ -249,7 +252,7 @@ for (const [tab, names] of [['Shape', [['Relaxed', 'Fit'], 'Dropped']], ['Neck &
 // The sleeves to the photo's length, about 20 cm from the shoulder, on the sleeve slider.
 await main.getByRole('tab', { name: 'Neck & sleeves', exact: true }).click();
 await wait(300);
-await main.locator('input[type=range][aria-label="Sleeve length, in cm from the shoulder"]').first().evaluate((el) => {
+if (SLEEVES !== 'Sleeveless') await main.locator('input[type=range][aria-label="Sleeve length, in cm from the shoulder"]').first().evaluate((el) => {
   Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, '20');
   el.dispatchEvent(new Event('input', { bubbles: true }));
 });
