@@ -40,15 +40,19 @@ export interface ShopFabric {
 /** Colours for any fabric. Natural keeps the swatch as photographed. */
 export const COLOURS: Colour[] = [
   { name: 'Black', hex: '#1c1b1a' },
+  { name: 'White', hex: '#f7f5f0' },
   { name: 'Ivory', hex: '#efe8d6' },
   { name: 'Grey', hex: '#8d8c88' },
+  { name: 'Brown', hex: '#5e3d2a' },
   { name: 'Navy', hex: '#24304d' },
   { name: 'Cobalt', hex: '#2f55a4' },
   { name: 'Olive', hex: '#6b6a3a' },
   { name: 'Emerald', hex: '#1f6b4c' },
   { name: 'Camel', hex: '#b48a5a' },
   { name: 'Rust', hex: '#a2482a' },
+  { name: 'Red', hex: '#b3202a' },
   { name: 'Burgundy', hex: '#6d2133' },
+  { name: 'Yellow', hex: '#d9b23a' },
   { name: 'Blush', hex: '#e2b5aa' },
   { name: 'Lilac', hex: '#a796c4' },
 ];

@@ -16,11 +16,16 @@ export type OuterKind = 'jacket' | 'coat';
 export type OuterFit = 'fitted' | 'regular' | 'relaxed';
 export type OuterLength = 'cropped' | 'hip' | 'long' | 'thigh' | 'knee' | 'midi';
 export type OuterShaping = 'darts' | 'princess' | 'boxy';
-export type OuterFront = 'single' | 'double';
-export type OuterCollar = 'notched' | 'stand' | 'collarless';
+/** Buttons in one or two rows, or a separating zip up the centre front with no overlap. */
+export type OuterFront = 'single' | 'double' | 'zip';
+/** A notched lapel, a stand collar, no collar, or a hood in two pieces sewn to the neck. */
+export type OuterCollar = 'notched' | 'stand' | 'collarless' | 'hood';
 export type OuterPockets = 'none' | 'patch' | 'welt';
-/** 'tailored' is the two-piece sleeve, top and under sleeve; 'fitted' the one-piece with an elbow dart. */
-export type OuterSleeve = 'tailored' | 'fitted' | 'straight';
+/** 'tailored' is the two-piece sleeve, top and under sleeve; 'fitted' the one-piece with an elbow dart;
+ *  'raglan' runs up to the neck, the shoulders cut off the body and on to the sleeve. */
+export type OuterSleeve = 'tailored' | 'fitted' | 'straight' | 'raglan';
+/** Rib knit bands at the hem and the cuffs (a bomber, a fleece), or plain hems. */
+export type OuterTrim = 'none' | 'rib';
 export type OuterPads = 'none' | 'soft' | 'structured';
 export type OuterVent = 'none' | 'centre';
 export type OuterFlare = 'straight' | 'a_line';
@@ -42,6 +47,8 @@ export interface OuterStyle {
   pads: OuterPads;
   /** A vent at the centre back hem. Not on a cropped jacket. */
   vent: OuterVent;
+  /** Rib bands at the hem and cuffs. Older choices have none. */
+  trim?: OuterTrim;
   seamAllowance: number;
   hemAllowance: number;
   fitting?: BodiceFitting;
@@ -60,7 +67,11 @@ export const OUTER_EASE: Record<OuterKind, Record<OuterFit, number>> = {
 const OUTER_NECK = { frontDepth: 2, width: 1, backDepth: 0.5, fullness: 0.45 };
 
 /** The extension beyond the centre front, and the button size, in cm. */
-export const OUTER_EXTENSION: Record<OuterKind, Record<OuterFront, number>> = { jacket: { single: 2, double: 6.5 }, coat: { single: 2.5, double: 8 } };
+export const OUTER_EXTENSION: Record<OuterKind, Record<OuterFront, number>> = { jacket: { single: 2, double: 6.5, zip: 0 }, coat: { single: 2.5, double: 8, zip: 0 } };
+/** The rib bands, finished depth in cm, and how much shorter than the edge they are cut, so they pull in. */
+export const RIB = { hem: 6, cuff: 5, draw: 0.85 };
+/** The hood: from the neck to the top and from the face edge to the centre back, in cm, before it is sized to the neck. */
+const HOOD = { jacket: { height: 34, depth: 26 }, coat: { height: 36, depth: 27.5 } };
 export const OUTER_BUTTON: Record<OuterKind, number> = { jacket: 2, coat: 2.5 };
 
 /** How thick each pad is at the shoulder point, in cm. */
@@ -109,6 +120,10 @@ export interface OuterDraft {
   pads: number;
   /** The centre back vent: where it starts below the neck and how far the underlap reaches. */
   vent?: { top: number; width: number; length: number };
+  /** Rib bands at the hem and the cuffs, their finished depths. */
+  rib?: { hem: number; cuff: number };
+  /** A hood, its height from the neck and its depth from the face edge to the centre back. */
+  hood?: { height: number; depth: number };
   finishedBust: number;
   finishedWaist: number;
   finishedHem: number;
@@ -358,7 +373,8 @@ function openFront(pc: Piece, s: OuterStyle, ext: number, buttons: OuterDraft['b
   const fi = r.tags.indexOf('fold');
   const foot = r.pts[fi];
   const neckCF = r.pts[(fi + 1) % n];
-  const sh = runOf(r, 'shoulder')!;
+  // A raglan body has no shoulder: its raglan line stands in, from the neck end to the armhole notch.
+  const sh = runOf(r, 'shoulder') ?? runOf(r, 'raglan')!;
   const hps = r.pts[sh[0]];
   const sp = r.pts[sh[1] + 1];
   const uSh = unit(sub(sp, hps));
@@ -366,7 +382,7 @@ function openFront(pc: Piece, s: OuterStyle, ext: number, buttons: OuterDraft['b
   const lines: Path[] = [new Path(p(0, neckCF.y + 0.5)).line(p(0, foot.y - 0.5))];
   const labels = pc.labels.map((l) => (l.text === pc.cut ? { ...l, text: 'Cut 2 (1 pair)' } : l));
   labels.push({ at: p(0.7, (neckCF.y + foot.y) / 2 + 8), text: 'CENTRE FRONT', size: 0.6, rotate: 90 });
-  // Buttonholes on the right front, keyhole end toward the edge, at the outer column.
+  // Buttonholes on the right front, keyhole end toward the edge, at the outer column; a zip front has none.
   const hx = buttons.columns[0];
   for (const y of buttons.at) lines.push(new Path(p(hx - 0.3, y)).line(p(hx - 0.3 + buttons.sizeCm + 0.3, y)));
   if (buttons.columns.length > 1)
@@ -374,8 +390,9 @@ function openFront(pc: Piece, s: OuterStyle, ext: number, buttons: OuterDraft['b
       const bx = buttons.columns[1];
       lines.push(new Path(p(bx - 0.5, y)).line(p(bx + 0.5, y)), new Path(p(bx, y - 0.5)).line(p(bx, y + 0.5)));
     }
-  labels.push({ at: p(hx + buttons.sizeCm / 2, buttons.at[0] - 0.6), text: 'BUTTONHOLE', size: 0.5 });
-  const facingX = s.front === 'double' ? (buttons.columns[1] ?? 0) + 4.5 : 7.5;
+  if (buttons.at.length) labels.push({ at: p(hx + buttons.sizeCm / 2, buttons.at[0] - 0.6), text: 'BUTTONHOLE', size: 0.5 });
+  if (s.front === 'zip') labels.push({ at: p(1.6, neckCF.y + 6), text: 'ZIP', size: 0.6, rotate: 90 });
+  const facingX = s.front === 'double' ? (buttons.columns[1] ?? 0) + 4.5 : s.front === 'zip' ? 6.5 : 7.5;
   // With princess seams the front is a narrow centre panel: the facing is the whole panel, cut to the
   // princess seam, and the lining is cut from the side front only.
   const toSeam = pc.outline.tags.includes('princess');
@@ -735,6 +752,7 @@ function weltPieces(w: number, depth: number, bag: number, sa: number): Piece[] 
 /** Buttons down the front: from the break point (or just below the neck) to above the hem, about 10 cm apart. */
 function buttonsFor(s: OuterStyle, ext: number, first: number, last: number): OuterDraft['buttons'] {
   const size = OUTER_BUTTON[s.kind];
+  if (s.front === 'zip') return { at: [], sizeCm: size, columns: [0] };
   const gap = s.kind === 'coat' ? 11 : 10;
   const count = Math.max(s.front === 'double' ? 2 : 1, Math.round((last - first) / gap)) + 1;
   const at = Array.from({ length: count }, (_, i) => r1(first + (count > 1 ? ((last - first) * i) / (count - 1) : 0)));
@@ -743,18 +761,94 @@ function buttonsFor(s: OuterStyle, ext: number, first: number, last: number): Ou
   return { at, sizeCm: size, columns };
 }
 
+/**
+ * A hood in two pieces, one each side, seamed down the centre back and over the head and sewn to the neck:
+ * the face edge straight, the crown rounding back from it, the centre back curving in toward the nape,
+ * and the neck edge as long as half the neckline it joins (the hood's front edges meet at the centre front).
+ */
+function hoodPiece(neckHalf: number, kind: OuterKind, sa: number): Piece {
+  const { height: H } = HOOD[kind];
+  let D = HOOD[kind].depth;
+  const build = (depth: number) => {
+    const outline = new Path(p(0, H))
+      .line(p(0, 1.5), 'face')
+      .curve(p(depth * 0.4, -2.2), p(depth * 0.98, -0.4), p(depth, 9), 'centre')
+      .curve(p(depth * 1.01, H * 0.5), p(depth * 0.86, H - 6.5), p(depth * 0.84, H - 3.2), 'centre')
+      .curve(p(depth * 0.62, H + 1.6), p(depth * 0.22, H + 1.1), p(0, H), 'neck');
+    outline.closed = true;
+    return outline;
+  };
+  // Sized so the neck edge is as long as the neckline it joins.
+  for (let i = 0; i < 3; i++) D *= neckHalf / taggedLength(build(D), 'neck');
+  const outline = build(D);
+  const cut = 'Cut 2 (1 pair)';
+  return {
+    name: 'Hood',
+    outline,
+    lines: [],
+    grain: [p(D * 0.45, 6), p(D * 0.45, H - 6)],
+    notches: [
+      [p(D * 0.6, 1.2), p(0, -1)],
+      [p(D * 0.4, H + 0.2), p(0, 1)],
+    ],
+    labels: [
+      { at: p(D * 0.5, H * 0.4), text: 'HOOD', size: 1.4 },
+      { at: p(D * 0.5, H * 0.4 + 3.5), text: cut, size: 0.9 },
+      { at: p(D * 0.5, H * 0.4 + 6), text: 'CUT 2 MORE IN LINING', size: 0.7 },
+      { at: p(D * 0.35, H - 1.2), text: 'NECK', size: 0.6 },
+      { at: p(1.6, H * 0.5), text: 'FACE EDGE', size: 0.6, rotate: 90 },
+    ],
+    cut,
+    seamAllowance: sa,
+    allowances: { face: 2 },
+    meta: { hood: true, height: H, depth: r1(D) },
+  };
+}
+
+/** A rib band: a strip of ribbing cut to `draw` of the edge it joins, folded double to the finished depth. */
+function ribBand(name: string, edgeCm: number, depth: number, sa: number, cut: string, onFold: boolean): Piece {
+  const L = r1((edgeCm * RIB.draw) / (onFold ? 2 : 1));
+  const W = 2 * depth;
+  const outline = new Path(p(0, 0)).line(p(L, 0), 'band').line(p(L, W), 'end').line(p(0, W), 'band').line(p(0, 0), onFold ? 'fold' : 'end');
+  outline.closed = true;
+  return {
+    name,
+    kind: 'band',
+    fabric: 'Rib knit',
+    outline,
+    lines: [],
+    grain: [p(2, W * 0.3), p(Math.max(6, L - 2), W * 0.3)],
+    fold: onFold ? [p(0, 1), p(0, W - 1)] : undefined,
+    notches: [[p(L / 2, 0), p(0, -1)]],
+    balance: [{ pts: [p(0, W / 2), p(L, W / 2)], label: 'FOLD LINE' }],
+    labels: [
+      { at: p(L * 0.5, W * 0.32), text: name.toUpperCase(), size: 0.9 },
+      { at: p(L * 0.5, W * 0.32 + 1.6), text: `${cut}, rib knit, stretched to fit`, size: 0.6 },
+    ],
+    cut,
+    seamAllowance: sa,
+    allowances: { fold: 0 },
+    meta: { finishedWidth: depth, lengthCm: L, rib: true },
+  };
+}
+
 /** Draft a jacket or a coat. */
 export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { kind: OuterKind }): OuterDraft {
-  const s: OuterStyle = { ...DEFAULT_OUTER[style.kind], ...style };
+  let s: OuterStyle = { ...DEFAULT_OUTER[style.kind], ...style };
   if (!(m.full_hip && m.waist_to_hip)) throw new DraftError(`Add your full hip and waist to hip measurements to make a ${s.kind}.`);
   if (s.kind === 'coat' && !m.waist_to_knee) throw new DraftError('Add your waist to knee measurement to make a coat.');
   if (!(m.arm_length && m.upper_arm)) throw new DraftError(`Add your arm length and upper arm measurements for the ${s.kind}'s sleeves.`);
   const length = OUTER_LENGTHS[s.kind].includes(s.length) ? s.length : DEFAULT_OUTER[s.kind].length;
   // A fitted jacket needs its waist darts; only a roomier one can go boxy.
-  const shaping = s.shaping === 'boxy' && s.fit === 'fitted' ? 'darts' : s.shaping;
+  // A raglan sleeve is cut off a one-piece front and back, so princess seams give way to darts.
+  const shaping = s.shaping === 'boxy' && s.fit === 'fitted' ? 'darts' : s.shaping === 'princess' && s.sleeve === 'raglan' ? 'darts' : s.shaping;
   // Shoulder pads drafted in: each shoulder squared up so its point rises by the pad, which lengthens
   // the armhole; the sleeve is drafted to that armhole, so its crown rises with it.
   const pad = PAD_CM[s.kind][s.pads] ?? 0;
+  // A zip front or a raglan sleeve has no lapel to roll: a notched collar becomes a stand collar.
+  const collarKind: OuterCollar = s.collar === 'notched' && (s.front === 'zip' || s.sleeve === 'raglan') ? 'stand' : s.collar;
+  s = { ...s, collar: collarKind };
+  const rib = s.trim === 'rib';
   const bodiceStyle: Partial<BodiceStyle> = {
     fit: s.fit,
     neckline: 'crew',
@@ -770,10 +864,12 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
     shoulderPad: pad,
     closure: 'back_zip',
     collar: 'none',
+    ...(s.sleeve === 'raglan' ? { sleeveCut: 'raglan' as const, sleeve: 'long' as const } : {}),
   };
   const base = draftBodice(m, bodiceStyle);
   const drop = Math.max(base.drop, outerDrop(m, length));
-  const extra = drop - base.drop;
+  // A rib hem band stands in for the last of the length, where the shell is long enough to give it up.
+  const extra = Math.max(0, drop - base.drop - (rib ? RIB.hem : 0));
   const flare = (FLARE_PER_40[s.flare] * extra) / 40;
   const KIND = s.kind === 'coat' ? 'Coat' : 'Jacket';
   const rename = (pc: Piece): Piece => ({
@@ -824,7 +920,7 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
   const sa = s.seamAllowance;
   // The centre back vent, longer on a longer garment: from 12 cm on a hip jacket to 45 cm on a long coat.
   let vent: OuterDraft['vent'];
-  if (s.vent === 'centre' && length !== 'cropped') {
+  if (s.vent === 'centre' && length !== 'cropped' && !rib) {
     const width = VENT_WIDTH[s.kind];
     backs = backs.map((pc) => {
       if (!pc.fold) return pc;
@@ -839,7 +935,9 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
       ? [notchedCollar(opening.piece, backNeck, opening.frontNeck, s)]
       : s.collar === 'stand'
         ? collarPieces('mandarin', block[0], block[1], { back: backNeck, front: opening.frontNeck, ext, closure: 'front_buttons', sa })
-        : [];
+        : s.collar === 'hood'
+          ? [hoodPiece(backNeck + opening.frontNeck, s.kind, sa)]
+          : [];
   // A collarless back neck is finished with a facing; under a collar the lining runs up to the neck.
   for (const pc of fronts) {
     if (pc === opening.piece) {
@@ -855,15 +953,22 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
     else linings.push(cutFrom(pc, ringOf(pc.outline, 12), `${pc.name.replace(KIND, '').trim()} lining`.replace(/^./, (c) => c.toUpperCase()), { kind: 'lining', fabric: 'Lining', allowances: { ...pc.allowances, hem: 1.5 } }));
   }
 
-  const sleeve = draftSleeve(base, m, {
-    length: 'long',
-    shape: s.sleeve,
+  const sleeveStyle = {
+    length: 'long' as const,
+    shape: s.sleeve === 'raglan' ? ('straight' as const) : s.sleeve,
     fit: s.fit,
     outer: s.kind,
     seamAllowance: sa,
     armholeAllowance: 1,
-    hemAllowance: 4,
-  });
+    hemAllowance: rib ? 1 : 4,
+  };
+  let sleeve = draftSleeve(base, m, sleeveStyle);
+  // Rib cuffs: the sleeve stops a cuff's depth short, and ends in a band the sleeve blouses over a little.
+  if (rib) {
+    const shorter = draftSleeve(base, m, { ...sleeveStyle, lengthCm: Math.max(sleeve.length.min, sleeve.lengthCm - RIB.cuff) });
+    const round = r1(shorter.hemCm * RIB.draw);
+    sleeve = { ...shorter, hemCm: round, gathers: { hem: r1(shorter.hemCm - round) }, cuff: { kind: 'elastic', depth: RIB.cuff, round } };
+  }
   const sleevePieces = sleeve.pieces.map((pc) => ({ ...pc, labels: pc.labels }));
   const sleeveLining = sleeve.pieces.map((pc) => ({
     ...pc,
@@ -905,10 +1010,11 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
   }
 
   const backPiece = backs.find((pc) => pc.fold) ?? backs[0];
-  const pieces = [...fronts, ...backs, ...sleevePieces, ...collar, ...facings, ...pocketPieces, ...linings, ...sleeveLining];
-  const finishedHem = r1(
-    2 * shell.reduce((t, pc) => t + taggedLength(pc.outline, 'hem'), 0) + 0,
-  );
+  const shellHem = r1(2 * shell.reduce((t, pc) => t + taggedLength(pc.outline, 'hem'), 0));
+  // The rib bands: one hem band cut on the fold, and a cuff for each sleeve.
+  const bands = rib ? [ribBand('Hem band', shellHem, RIB.hem, sa, 'Cut 1 on fold', true), ribBand('Cuff band', sleeve.hemCm / RIB.draw, RIB.cuff, sa, 'Cut 2', false)] : [];
+  const pieces = [...fronts, ...backs, ...sleevePieces, ...collar, ...bands, ...facings, ...pocketPieces, ...linings, ...sleeveLining];
+  const finishedHem = rib ? r1(shellHem * RIB.draw) : shellHem;
   const cbTop = backPiece.outline.points(4).filter((q) => Math.abs(q.x) < 1e-6).reduce((mn, q) => Math.min(mn, q.y), Infinity);
   const cbFoot = backPiece.outline.points(4).filter((q) => Math.abs(q.x) < 1e-6).reduce((mx, q) => Math.max(mx, q.y), -Infinity);
   return {
@@ -924,6 +1030,8 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
     pocket,
     pads: pad,
     vent,
+    ...(rib ? { rib: { hem: RIB.hem, cuff: RIB.cuff } } : {}),
+    ...(s.collar === 'hood' ? { hood: { height: collar[0].meta.height as number, depth: collar[0].meta.depth as number } } : {}),
     finishedBust: base.finishedBust,
     finishedWaist: base.finishedWaist,
     finishedHem,

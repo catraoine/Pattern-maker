@@ -83,8 +83,8 @@ async function run() {
       const views = page.getByRole('group', { name: 'Garment view' });
       const shot = async (name) => {
         await page.waitForTimeout(350);
-        const target = (await preview.count()) ? preview : main;
-        await target.screenshot({ path: `${OUT}/${c.id}-${sizeName}-${name}.png` });
+        const target = (await preview.isVisible().catch(() => false)) ? preview : main;
+        await target.screenshot({ path: `${OUT}/${c.id}-${sizeName}-${name}.png` }).catch(() => page.screenshot({ path: `${OUT}/${c.id}-${sizeName}-${name}.png` }));
       };
       await shot('form');
       for (const [label, name] of [['Drawing', 'flat'], ['All round', 'round']]) {

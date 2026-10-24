@@ -30,7 +30,7 @@
       },
       "fabric": {
         "fibre": "cotton",
-        "colour": "Camel",
+        "colour": "Yellow",
         "print": "checks",
         "checks": {
           "repeat": 2.5
@@ -294,7 +294,7 @@
       },
       "fabric": {
         "fibre": "viscose",
-        "colour": "Rust",
+        "colour": "Red",
         "print": "motif",
         "motif": {
           "repeat": 20
@@ -392,7 +392,7 @@
       },
       "fabric": {
         "fibre": "wool",
-        "colour": "Rust"
+        "colour": "Red"
       },
       "truth": "Red wool full circle, midi",
       "likeness": {
@@ -481,7 +481,7 @@
       },
       "fabric": {
         "fibre": "cotton",
-        "colour": "Ivory",
+        "colour": "Black",
         "print": "checks",
         "checks": {
           "repeat": 4
@@ -546,7 +546,7 @@
       "fabric": {
         "fibre": "cotton",
         "special": "corduroy",
-        "colour": "Camel"
+        "colour": "Brown"
       },
       "truth": "Brown corduroy jeans-style mini",
       "likeness": {
@@ -640,7 +640,7 @@
       "fabric": {
         "fibre": "cotton",
         "special": "denim",
-        "colour": "Camel"
+        "colour": "Brown"
       },
       "truth": "Brown wide-leg denim trousers",
       "likeness": {
@@ -731,7 +731,7 @@
         "length": "long",
         "shaping": "boxy",
         "front": "single",
-        "collar": "stand",
+        "collar": "hood",
         "pockets": "patch",
         "sleeve": "tailored",
         "flare": "straight",
@@ -771,13 +771,14 @@
         "fit": "relaxed",
         "length": "cropped",
         "shaping": "boxy",
-        "front": "single",
+        "front": "zip",
         "collar": "stand",
         "pockets": "welt",
         "sleeve": "tailored",
         "flare": "straight",
         "pads": "none",
-        "vent": "centre"
+        "vent": "none",
+        "trim": "rib"
       },
       "fabric": {
         "special": "leather",
@@ -808,18 +809,18 @@
         "fit": "relaxed",
         "length": "hip",
         "shaping": "boxy",
-        "front": "single",
+        "front": "zip",
         "collar": "stand",
         "pockets": "welt",
         "sleeve": "tailored",
         "flare": "straight",
         "pads": "none",
-        "vent": "centre"
+        "vent": "none"
       },
       "fabric": {
         "fibre": "wool",
         "weight": "heavy",
-        "colour": "Camel"
+        "colour": "Brown"
       },
       "truth": "Brown boucle fleece zip jacket, quilted panels",
       "likeness": {
@@ -846,18 +847,18 @@
         "fit": "relaxed",
         "length": "cropped",
         "shaping": "boxy",
-        "front": "single",
+        "front": "zip",
         "collar": "stand",
         "pockets": "welt",
         "sleeve": "tailored",
         "flare": "straight",
         "pads": "none",
-        "vent": "centre"
+        "vent": "none"
       },
       "fabric": {
         "fibre": "cotton",
         "special": "denim",
-        "colour": "Camel"
+        "colour": "Brown"
       },
       "truth": "Brown denim cropped zip jacket",
       "likeness": {

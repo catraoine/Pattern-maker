@@ -6,8 +6,18 @@ import type { SewingGuide, SewStep } from './instructions';
 import type { OuterDraft } from './outerwear';
 
 const n1 = (v: number) => `${v} cm`;
+const tailoredWord = (names: string[]) => (names.includes('Top sleeve') ? 'top and under sleeves' : 'sleeves');
 
-export function outerGuide(d: OuterDraft, fabricM: number, finish: { seams?: SeamWidths; width?: number; liningM?: number; interfacingM?: number } = {}): SewingGuide {
+export function outerGuide(
+  d: OuterDraft,
+  fabricM: number,
+  finish: {
+    seams?: SeamWidths;
+    width?: number;
+    liningM?: number;
+    interfacingM?: number;
+  } = {},
+): SewingGuide {
   const sw = finish.seams ?? SEAM_WIDTHS.home;
   const seam = n1(sw.seam);
   const curve = n1(sw.curve);
@@ -18,7 +28,11 @@ export function outerGuide(d: OuterDraft, fabricM: number, finish: { seams?: Sea
   // A princess front may have no front lining: the facing is then the whole centre front panel, cut to
   // the princess seam, and the side front lining joins it there.
   const panelFacing = princess && !names.some((n) => /^front lining$/i.test(n));
-  const collar = names.includes('Collar') ? (d.lapel ? 'notched' : 'stand') : 'none';
+  const collar = names.includes('Collar') ? (d.lapel ? 'notched' : 'stand') : d.hood ? 'hood' : 'none';
+  const raglan = names.some((n) => /^Raglan sleeve front$/.test(n));
+  const zip = d.buttons.at.length === 0;
+  const rib = d.rib;
+  const sleevesWord = raglan ? 'raglan sleeve fronts and backs' : tailoredWord(names);
   const pockets = names.includes('Patch pocket');
   const welts = names.includes('Welt');
   const tailored = names.includes('Top sleeve');
@@ -35,10 +49,13 @@ export function outerGuide(d: OuterDraft, fabricM: number, finish: { seams?: Sea
     `${fabricM} m of ${width} cm wide fabric`,
     ...(finish.liningM ? [`${finish.liningM} m of lining`] : []),
     `${finish.interfacingM ?? (kind === 'coat' ? 1.5 : 1)} m of fusible weft interfacing`,
-    `${count} buttons, ${n1(d.buttons.sizeCm)} across${d.buttons.columns.length > 1 ? `, plus one small button for the inside` : ''}`,
+    ...(zip
+      ? [`An open-ended (separating) zip, about ${Math.round(d.lengthCm - (rib ? rib.hem : 0))} cm long: buy the nearest length and set its bottom stop at the ${rib ? 'hem band seam' : 'hem'}`]
+      : [`${count} buttons, ${n1(d.buttons.sizeCm)} across${d.buttons.columns.length > 1 ? `, plus one small button for the inside` : ''}`]),
+    ...(rib ? [`0.3 m of rib knit (tubular or 2x2 rib) for the hem band and cuffs`] : []),
     ...(d.pads ? [`A pair of set-in shoulder pads, ${d.pads < 1 ? `${Math.round(d.pads * 10)} mm` : n1(d.pads)} thick: the shoulders are drafted for them`] : []),
     ...(welts ? ['A strip of lining or pocketing for the pocket bags'] : []),
-    'Matching thread, and silk thread for the buttonholes if you sew them by hand',
+    zip ? 'Matching thread' : 'Matching thread, and silk thread for the buttonholes if you sew them by hand',
   ];
 
   const steps: SewStep[] = [
@@ -48,17 +65,17 @@ export function outerGuide(d: OuterDraft, fabricM: number, finish: { seams?: Sea
     },
     {
       title: 'Cut the fabric',
-      text: `Fold the fabric in half with the selvedges together. Cut the ${princess ? 'centre fronts, side fronts, side backs' : 'fronts'}${vent ? ', the backs' : ''} and the ${tailored ? 'top and under sleeves' : 'sleeves'} on both layers so you get pairs${vent ? '' : ', and the back on the fold'}. Cut the front facings${collar !== 'none' ? ' and the collar' : ''}${pockets ? ' and the pockets' : ''}${welts ? ', the welts and the pocket facings' : ''} too. Keep each grain arrow parallel to the selvedge. Snip the notches and chalk-mark the ${darts || waistDarts ? 'darts, the ' : ''}buttonholes${d.lapel ? ', the roll line' : ''}${pockets ? ' and the pocket corners' : ''}${welts ? ' and the welt pocket boxes' : ''}${vent ? ' and the top of the vent' : ''}.`,
+      text: `Fold the fabric in half with the selvedges together. Cut the ${princess ? 'centre fronts, side fronts, side backs' : 'fronts'}${vent ? ', the backs' : ''} and the ${sleevesWord} on both layers so you get pairs${vent ? '' : ', and the back on the fold'}. Cut the front facings${collar === 'hood' ? ' and the two hood pieces' : collar !== 'none' ? ' and the collar' : ''}${rib ? ', and the hem band and cuff bands from rib knit, the ribs running across the band' : ''}${pockets ? ' and the pockets' : ''}${welts ? ', the welts and the pocket facings' : ''} too. Keep each grain arrow parallel to the selvedge. Snip the notches and chalk-mark the ${darts || waistDarts ? 'darts, the ' : ''}${zip ? 'centre front' : 'buttonholes'}${d.lapel ? ', the roll line' : ''}${pockets ? ' and the pocket corners' : ''}${welts ? ' and the welt pocket boxes' : ''}${vent ? ' and the top of the vent' : ''}.`,
     },
     {
       title: 'Cut the lining',
       text: vent
-        ? `Cut the ${panelFacing ? '' : 'front linings, '}${princess ? 'side front linings, ' : ''}two back linings${princess ? ', side back linings' : ''} and the ${tailored ? 'top and under sleeve linings' : 'sleeve linings'} from the lining fabric${welts ? ', and four pocket bags' : ''}. Cut the left back lining on the main line and the right one on the second line, which stops short at the vent. Each back lining is wider at the centre back for a pleat that gives you room to reach forward.${panelFacing ? ' There is no front lining: the front facing is the whole centre front panel, cut to the princess seam.' : ''}`
-        : `Cut the ${panelFacing ? '' : 'front linings, '}${princess ? 'side front linings, ' : ''}the back lining on the fold${princess ? ', side back linings' : ''} and the ${tailored ? 'top and under sleeve linings' : 'sleeve linings'} from the lining fabric${welts ? ', and four pocket bags' : ''}. The back lining is wider at the centre back for a pleat that gives you room to reach forward.${panelFacing ? ' There is no front lining: the front facing is the whole centre front panel, cut to the princess seam.' : ''}`,
+        ? `Cut the ${panelFacing ? '' : 'front linings, '}${princess ? 'side front linings, ' : ''}two back linings${princess ? ', side back linings' : ''} and the ${raglan ? 'raglan sleeve linings' : tailored ? 'top and under sleeve linings' : 'sleeve linings'} from the lining fabric${welts ? ', and four pocket bags' : ''}. Cut the left back lining on the main line and the right one on the second line, which stops short at the vent. Each back lining is wider at the centre back for a pleat that gives you room to reach forward.${panelFacing ? ' There is no front lining: the front facing is the whole centre front panel, cut to the princess seam.' : ''}`
+        : `Cut the ${panelFacing ? '' : 'front linings, '}${princess ? 'side front linings, ' : ''}the back lining on the fold${princess ? ', side back linings' : ''} and the ${raglan ? 'raglan sleeve linings' : tailored ? 'top and under sleeve linings' : 'sleeve linings'} from the lining fabric${welts ? ', and four pocket bags' : ''}. The back lining is wider at the centre back for a pleat that gives you room to reach forward.${panelFacing ? ' There is no front lining: the front facing is the whole centre front panel, cut to the princess seam.' : ''}`,
     },
     {
       title: 'Interface',
-      text: `Fuse interfacing to the wrong side of the front facings${collar !== 'none' ? ', both collar pieces' : ''}, and the top 10 cm of each ${princess ? 'centre front' : 'front'} and the back${pockets ? ', and the top fold of each pocket' : ''}${welts ? ', the welts, and a 5 cm strip behind each welt pocket box' : ''}${vent ? ', and the vent underlaps' : ''}. Fuse a 5 cm strip along the hem of every shell piece and the sleeve hems. Use a press cloth and hold the iron still for 10 seconds at a time; let each piece cool flat before you move it.`,
+      text: `Fuse interfacing to the wrong side of the front facings${collar === 'hood' ? ", a 3 cm strip along each hood piece's face edge" : collar !== 'none' ? ', both collar pieces' : ''}, and the top 10 cm of each ${princess ? 'centre front' : 'front'} and the back${pockets ? ', and the top fold of each pocket' : ''}${welts ? ', the welts, and a 5 cm strip behind each welt pocket box' : ''}${vent ? ', and the vent underlaps' : ''}. ${rib ? 'The hem and sleeve edges take rib bands, so they need no strip.' : 'Fuse a 5 cm strip along the hem of every shell piece and the sleeve hems.'} Use a press cloth and hold the iron still for 10 seconds at a time; let each piece cool flat before you move it.`,
     },
     ...(darts || waistDarts
       ? [
@@ -101,9 +118,27 @@ export function outerGuide(d: OuterDraft, fabricM: number, finish: { seams?: Sea
         ]
       : []),
     {
-      title: 'Sew the shoulders and side seams',
-      text: `Sew the fronts to the back at the shoulders, right sides together, easing the back shoulder in to fit (it is 1 cm longer). Sew the side seams, matching the notches. Press every seam open over a sleeve board or a ham.`,
+      title: raglan ? 'Sew the side seams' : 'Sew the shoulders and side seams',
+      text: raglan
+        ? `Sew the side seams, matching the notches, and press them open over a sleeve board. There are no shoulder seams: the shoulders are part of the raglan sleeves, which go in next.`
+        : `Sew the fronts to the back at the shoulders, right sides together, easing the back shoulder in to fit (it is 1 cm longer). Sew the side seams, matching the notches. Press every seam open over a sleeve board or a ham.`,
     },
+    ...(raglan
+      ? [
+          {
+            title: 'Sew in the raglan sleeves',
+            text: `Sew each raglan sleeve front to its sleeve back along the top seam, from the neck down to the wrist: this seam stands in for the shoulder seam${d.pads ? ', and the pads sit under it' : ''}. Press it open. Pin each sleeve into its opening right sides together, the sleeve front to the ${kind} front and the sleeve back to the back, matching the notches, and sew from the neck down the raglan line, round the underarm and back up to the neck on the other side. Sew the underarm seam of each sleeve and press it open.${d.pads ? ' Slip in raglan shoulder pads (the rounded kind), centred on the top seam, and tack them by hand to the seam allowances.' : ''}`,
+          },
+        ]
+      : []),
+    ...(zip
+      ? [
+          {
+            title: 'Sew in the zip',
+            text: `Open the zip. Pin one half to each front edge, right sides together, the teeth ${seam} in from the raw edge so they sit just inside the seam line, the top stop ${collar === 'hood' ? "at the hood's neck seam" : collar === 'stand' ? "at the collar's neck seam" : 'at the neck seam line'} and the bottom stop at the ${rib ? 'hem band seam line' : 'hem fold'}. Baste by hand, close the zip to check the two sides match, then sew each half on with a zip foot. The facing is sewn over the zip tape in the next step and covers it inside.`,
+          },
+        ]
+      : []),
     ...(collar === 'notched'
       ? [
           {
@@ -121,21 +156,32 @@ export function outerGuide(d: OuterDraft, fabricM: number, finish: { seams?: Sea
         ]
       : [
           {
-            title: collar === 'stand' ? 'Sew the stand collar' : 'Face the neck and front',
+            title: collar === 'stand' ? 'Sew the stand collar' : collar === 'hood' ? 'Make and sew on the hood' : 'Face the neck and front',
             text:
-              collar === 'stand'
-                ? `Sew one collar piece to the neck of the ${kind}, matching the centre back and the ends to the front edges. Sew the other to the neck edge of each front facing, from the front edge to the shoulder end of the facing; its middle stays free for now and is sewn to the lining's back neck later. Pin the facings to the fronts right sides together and sew up each front edge, round the collar and down the other front. Trim, clip the curves and turn.`
-                : `Pin the front facings to the fronts right sides together, and sew up each front edge and round the neck as far as the shoulder seam, ${curve} from the edge. Trim and clip the curve, then understitch the facing and press it to the inside. The back neck is finished by the lining.`,
+              collar === 'hood'
+                ? `Sew the two hood pieces together along the curved seam from the neck up over the head to the face edge, right sides together, ${curve} from the edge; clip the curve and press the seam open. Turn the face edge under 2.5 cm and stitch it down, or bind it. Pin the hood to the neck of the ${kind} right sides together, matching the centre back notch, its front edges meeting the front edges${zip ? ' at the top of the zip' : ''}, and sew it on. Pin the front facings to the fronts right sides together and sew up each front edge and across the hood seam to the shoulder${raglan ? ' line' : ' seam'}; trim, turn and press. The rest of the neck seam is covered by the lining.`
+                : collar === 'stand'
+                  ? `Sew one collar piece to the neck of the ${kind}, matching the centre back and the ends to the front edges. Sew the other to the neck edge of each front facing, from the front edge to the shoulder end of the facing; its middle stays free for now and is sewn to the lining's back neck later. Pin the facings to the fronts right sides together and sew up each front edge, round the collar and down the other front. Trim, clip the curves and turn.`
+                  : `Pin the front facings to the fronts right sides together, and sew up each front edge and round the neck as far as the shoulder seam, ${curve} from the edge. Trim and clip the curve, then understitch the facing and press it to the inside. The back neck is finished by the lining.`,
           },
         ]),
-    {
-      title: 'Set in the sleeves',
-      text: `${tailored ? 'Sew each top sleeve to its under sleeve along the back seam, then the front seam, matching the elbow notches, and press both seams open over a sleeve board' : `Sew each sleeve seam${d.sleeve.elbowDart ? ' (sew the elbow dart first)' : ''} and press it open`}. Run two rows of long stitches round the crown between the notches and draw them up a little: the crown is ${Math.round((d.sleeve.crownEase.front + d.sleeve.crownEase.back) * 10) / 10} cm longer than the armhole, and shrinking that ease over a ham with steam gives a smooth, round head. Pin the sleeve in, matching the crown notch to the shoulder seam and the double notches at the back, and sew from the sleeve side. Sew again in the underarm and trim it there.${d.pads ? ' Slip the shoulder pads in, their straight edge 1 cm past the armhole seam and their middle notch on the shoulder seam, and tack them by hand to the shoulder and armhole seam allowances.' : ''}`,
-    },
-    {
-      title: 'Hem the shell',
-      text: `Turn up the ${kind} hem by ${n1(hem)} and the sleeve hems by ${n1(sleeveHem)}, press, and catch-stitch the raw edges by hand to the interfacing. Leave the front facings unfolded at the hem for now.${vent ? ' At the vent, mitre the corner of the right back facing and turn the left back underlap\'s hem up with the rest.' : ''}`,
-    },
+    ...(raglan
+      ? []
+      : [
+          {
+            title: 'Set in the sleeves',
+            text: `${tailored ? 'Sew each top sleeve to its under sleeve along the back seam, then the front seam, matching the elbow notches, and press both seams open over a sleeve board' : `Sew each sleeve seam${d.sleeve.elbowDart ? ' (sew the elbow dart first)' : ''} and press it open`}. Run two rows of long stitches round the crown between the notches and draw them up a little: the crown is ${Math.round((d.sleeve.crownEase.front + d.sleeve.crownEase.back) * 10) / 10} cm longer than the armhole, and shrinking that ease over a ham with steam gives a smooth, round head. Pin the sleeve in, matching the crown notch to the shoulder seam and the double notches at the back, and sew from the sleeve side. Sew again in the underarm and trim it there.${d.pads ? ' Slip the shoulder pads in, their straight edge 1 cm past the armhole seam and their middle notch on the shoulder seam, and tack them by hand to the shoulder and armhole seam allowances.' : ''}`,
+          },
+        ]),
+    rib
+      ? {
+          title: 'Sew on the rib bands',
+          text: `Join the short ends of the hem band into a ring and fold it in half lengthwise, wrong sides together, so both raw edges are together. Divide the band and the ${kind}'s hem into quarters with pins. Pin the band to the hem right sides together, raw edges level, matching the pins, and sew with a narrow zigzag or a stretch stitch, stretching the band to fit between the pins so the ${kind} gathers in evenly onto it. Make each cuff band the same way, in a ring, and sew it to the sleeve hem. Press the seams up into the ${kind}, never flattening the rib.`,
+        }
+      : {
+          title: 'Hem the shell',
+          text: `Turn up the ${kind} hem by ${n1(hem)} and the sleeve hems by ${n1(sleeveHem)}, press, and catch-stitch the raw edges by hand to the interfacing. Leave the front facings unfolded at the hem for now.${vent ? " At the vent, mitre the corner of the right back facing and turn the left back underlap's hem up with the rest." : ''}`,
+        },
     {
       title: 'Make the lining',
       text: `${
@@ -144,18 +190,28 @@ export function outerGuide(d: OuterDraft, fabricM: number, finish: { seams?: Sea
           : princess
             ? `Sew each side front lining to its front lining and each side back lining to its back lining along the princess seams, ${seam} from the edge, and press the seams open. `
             : ''
-      }${vent ? 'Sew the back linings together down the centre back to just above the vent, then tack the pleat' : 'Tack the back lining pleat'} along its line, 8 cm down from the neck. Sew the lining's shoulders, side seams and sleeve seams, and set the sleeve linings into the armholes, leaving a 25 cm gap in one sleeve lining seam for turning. ${panelFacing ? `Sew each side front lining to its front facing along the princess seam, right sides together, ${seam} from the edge, so the facing is the lining's centre front panel` : 'Sew the lining to the inner edges of the front facings'}${
-        collar === 'notched' ? " and the upper collar to the lining's back neck" : collar === 'stand' ? " and the inner collar to the lining's back neck" : `, and its back neck to the ${kind}'s back neck between the shoulder seams, right sides together`
+      }${vent ? 'Sew the back linings together down the centre back to just above the vent, then tack the pleat' : 'Tack the back lining pleat'} along its line, 8 cm down from the neck. ${raglan ? "Sew the lining's side seams, the raglan sleeve linings' top and underarm seams, and sew the sleeve linings into their openings" : "Sew the lining's shoulders, side seams and sleeve seams, and set the sleeve linings into the armholes"}, leaving a 25 cm gap in one sleeve lining seam for turning. ${panelFacing ? `Sew each side front lining to its front facing along the princess seam, right sides together, ${seam} from the edge, so the facing is the lining's centre front panel` : 'Sew the lining to the inner edges of the front facings'}${
+        collar === 'notched'
+          ? " and the upper collar to the lining's back neck"
+          : collar === 'stand'
+            ? " and the inner collar to the lining's back neck"
+            : collar === 'hood'
+              ? ", and its back neck to the hood's neck seam allowance, right sides together, so the lining covers the seam"
+              : `, and its back neck to the ${kind}'s back neck between the ${raglan ? 'raglan seams' : 'shoulder seams'}, right sides together`
       }, matching the notches.`,
     },
     {
       title: 'Bag the lining',
-      text: `With the ${kind} and its lining right sides together, sew the lining to the hem allowance of the ${kind} all round, 1 cm from the lining's edge, so a small fold of lining (the jump hem) stands below the stitching.${vent ? " Sew the back linings' lower edges round the vent: the left one to the underlap's edge, the right one to the vent facing's edge." : ''} Reach into each sleeve and sew the sleeve lining hems to the sleeve hems the same way. Turn the ${kind} right side out through the gap in the sleeve lining, then close the gap by machine close to the edge.`,
+      text: `With the ${kind} and its lining right sides together, sew the lining to the ${rib ? 'hem band seam allowance' : 'hem allowance'} of the ${kind} all round, 1 cm from the lining's edge, so a small fold of lining (the jump hem) stands below the stitching.${vent ? " Sew the back linings' lower edges round the vent: the left one to the underlap's edge, the right one to the vent facing's edge." : ''} Reach into each sleeve and sew the sleeve lining hems to the ${rib ? 'cuff band seam allowances' : 'sleeve hems'} the same way. Turn the ${kind} right side out through the gap in the sleeve lining, then close the gap by machine close to the edge.`,
     },
-    {
-      title: 'Buttonholes and buttons',
-      text: `Mark ${holes} buttonholes on the ${over} front (as you wear it) where the pattern shows them, ${n1(d.buttons.sizeCm + 0.3)} long. Sew them by machine or by hand with buttonhole twist, and cut them open. Sew the buttons to the ${under} front to match${d.buttons.columns.length > 1 ? `, and the second column on the ${over} front as the pattern shows; sew the small button inside the ${under} front to hold the underlap` : ''}, on a thread shank as long as the cloth is thick.`,
-    },
+    ...(zip
+      ? []
+      : [
+          {
+            title: 'Buttonholes and buttons',
+            text: `Mark ${holes} buttonholes on the ${over} front (as you wear it) where the pattern shows them, ${n1(d.buttons.sizeCm + 0.3)} long. Sew them by machine or by hand with buttonhole twist, and cut them open. Sew the buttons to the ${under} front to match${d.buttons.columns.length > 1 ? `, and the second column on the ${over} front as the pattern shows; sew the small button inside the ${under} front to hold the underlap` : ''}, on a thread shank as long as the cloth is thick.`,
+          },
+        ]),
     {
       title: 'Final press',
       text: `Press the whole ${kind} from the wrong side with a press cloth, ${d.lapel ? 'rolling the lapels over your hand rather than pressing a crease into the roll line, and ' : ''}letting each part cool before it moves.`,

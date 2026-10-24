@@ -1,6 +1,7 @@
 import { useId } from 'react';
 import type { Flat } from '../engine/flat';
 import { SHADE_STOPS } from './FormSketch';
+import { ClothDefs, ClothOverlay, SHEER_OPACITY, borderHems, useFabricLook } from './ClothLook';
 
 const d = (pts: { x: number; y: number }[], close = false) =>
   pts.map((q, i) => `${i ? 'L' : 'M'}${q.x.toFixed(2)},${q.y.toFixed(2)}`).join('') + (close ? 'Z' : '');
@@ -11,6 +12,7 @@ export function TechFlatView({ flat, title }: { flat: Flat; title: string }) {
   const pad = 4;
   const size = Math.max(1.8, flat.width / 45);
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
+  const look = useFabricLook();
   return (
     <svg
       viewBox={`${-pad} ${-pad} ${flat.width + 2 * pad} ${flat.height + 2 * pad + size * 2}`}
@@ -23,8 +25,10 @@ export function TechFlatView({ flat, title }: { flat: Flat; title: string }) {
         const left = Math.min(...xs);
         const right = Math.max(...xs);
         const shade = `flatshade${uid}${k}`;
+        const hems = look?.border ? borderHems(v.shapes) : [];
         return (
           <g key={v.label}>
+            <ClothDefs uid={`${uid}${k}`} x1={left + (right - left) * 0.1} x2={right - (right - left) * 0.1} look={look} />
             <defs>
               <linearGradient id={shade} gradientUnits="userSpaceOnUse" x1={(left + (right - left) * 0.1).toFixed(2)} x2={(right - (right - left) * 0.1).toFixed(2)} y1="0" y2="0">
                 {SHADE_STOPS.map(([offset, color, opacity]) => (
@@ -34,8 +38,9 @@ export function TechFlatView({ flat, title }: { flat: Flat; title: string }) {
             </defs>
             {v.shapes.map((s, i) => (
               <g key={i}>
-                <path d={d(s, true)} className="flat-shape" />
-                <path d={d(s, true)} className="flat-shade" style={{ fill: `url(#${shade})` }} />
+                <path d={d(s, true)} className="flat-shape" fillOpacity={look?.sheer ? SHEER_OPACITY : undefined} />
+                <ClothOverlay d={d(s, true)} uid={`${uid}${k}`} k={`s${i}`} look={look} hemY={hems[i]} />
+                <path d={d(s, true)} className="flat-shade" style={{ fill: `url(#${shade})` }} opacity={look?.sheer ? 0.6 : undefined} />
               </g>
             ))}
             {v.lines.map((l, i) => (

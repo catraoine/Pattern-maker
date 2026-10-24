@@ -3,7 +3,7 @@ import { layout } from '../engine/export';
 import { piecesLengthCm, toMetres } from '../engine/fabric';
 import { layPlan } from '../engine/layplan';
 import { NECKBAND_CM, STRETCH_TEST, TeeDraft, pctWords } from '../engine/tee';
-import { teeFlat, wornShapes } from '../engine/flat';
+import { teeFlat, wornLines, wornShapes } from '../engine/flat';
 import { TEE_GROUPS, TeeChoices, describeTee } from '../garments';
 import { TechFlatView } from '../ui/TechFlatView';
 import { GarmentViews, PreviewSwitch } from '../ui/PreviewSwitch';
@@ -81,6 +81,7 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
   const sheet = useMemo(() => (draft ? layout(pieces, '', []) : undefined), [draft, pieces]);
   const flat = useMemo(() => (draft ? teeFlat(draft) : undefined), [draft]);
   const clothShapes = useMemo(() => (flat ? wornShapes(flat) : undefined), [flat]);
+  const flatLines = useMemo(() => (flat ? wornLines(flat) : undefined), [flat]);
   const title = describeTee(choices);
   const round = useMemo(() => (draft ? roundTee(draft, values) : undefined), [draft, values]);
   const hemLabel = choices.length === 'cropped' ? 'Hem' : 'Hip';
@@ -215,7 +216,7 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
                 bottom={form.hems.tunic + 6}
                 arms={form.arm}
                 lines={formLines}
-                cloth={clothShapes}
+                cloth={clothShapes} flatLines={flatLines}
                 sleeve={draft.sleeve}
                 hem={{
                   name: 'T-shirt length',

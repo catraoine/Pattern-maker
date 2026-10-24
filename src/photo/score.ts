@@ -33,15 +33,44 @@ export type FabricType = Special | 'knit' | 'fleece' | 'chiffon' | 'crepe' | 'ga
 /** The parts of a label the reader has no slot for, so a photo can never set them (see evals/photo/README). */
 export function notRead(t: Truth): string[] {
   const out: string[] = [];
-  if (t.fabric) {
-    if (t.fabric.type && t.fabric.type !== 'plain') out.push(`fabric type (${t.fabric.type})`);
-    if (t.fabric.colour) out.push(`colour (${t.fabric.colour})`);
-    if (t.fabric.print && t.fabric.print !== 'none') out.push(`print (${t.fabric.print})`);
-    if (t.fabric.sheer) out.push('sheer');
-  }
-  if (t.waistSeam && t.waistSeam !== 'natural' && t.waistSeam !== 'none') out.push(`waist seam (${t.waistSeam})`);
-  if (t.belt && t.belt !== 'none') out.push(`belt (${t.belt})`);
+  // Since the reader gained its fabric, waist-seam and belt slots (October 2026), only a fibre is still unread.
+  if (t.fabric?.fibre) out.push(`fibre (${t.fabric.fibre})`);
   return out;
+}
+
+/** How a fabric label compares with the reading: type (a chiffon reads as sheer too), colour, print and sheerness. */
+export function fabricRight(r: PhotoReading, t: Truth): { right: number; of: number; wrong: string[] } | undefined {
+  const want = t.fabric;
+  const got = r.fabric;
+  if (!want || !got) return undefined;
+  const wrong: string[] = [];
+  let of = 0;
+  const same = (a: string, b: string) => a === b || (a === 'chiffon' && b === 'sheer') || (a === 'sheer' && b === 'chiffon');
+  if (want.type) {
+    of++;
+    if (!same(want.type, got.type)) wrong.push(`type ${got.type}≠${want.type}`);
+  }
+  if (want.colour) {
+    of++;
+    if (got.colour !== want.colour.toLowerCase()) wrong.push(`colour ${got.colour}≠${want.colour}`);
+  }
+  if (want.print) {
+    of++;
+    if (got.print !== want.print) wrong.push(`print ${got.print}≠${want.print}`);
+  }
+  if (want.sheer !== undefined) {
+    of++;
+    if (got.sheer !== want.sheer) wrong.push(`sheer ${got.sheer}≠${want.sheer}`);
+  }
+  if (t.waistSeam && r.top) {
+    of++;
+    if ((r.top.waistSeamAt ?? 'natural') !== t.waistSeam) wrong.push(`waist seam ${r.top.waistSeamAt}≠${t.waistSeam}`);
+  }
+  if (t.belt && r.top) {
+    of++;
+    if ((r.top.belt ?? 'none') !== t.belt) wrong.push(`belt ${r.top.belt}≠${t.belt}`);
+  }
+  return { right: of - wrong.length, of, wrong };
 }
 
 export interface Score {
@@ -53,6 +82,8 @@ export interface Score {
   notRead: string[];
   /** For a dress or top: which of the labelled top fields the reading got right, out of those labelled. */
   topRight?: { right: number; of: number; wrong: string[] };
+  /** How the fabric, waist seam and belt were read against the label. */
+  fabricRight?: { right: number; of: number; wrong: string[] };
   /** The reading turned into a pattern that passes every seam check on the reference body. */
   drafts: boolean;
   draftNote: string;
@@ -119,5 +150,5 @@ export function scoreReading(r: PhotoReading, t: Truth): Score {
     const of = Object.values(t.top).filter((v) => v !== undefined).length;
     topRight = { right: of - wrong.length, of, wrong };
   }
-  return { points, parts, confidentlyWrong, notRead: notRead(t), topRight, ...draftCheck(r) };
+  return { points, parts, confidentlyWrong, notRead: notRead(t), topRight, fabricRight: fabricRight(r, t), ...draftCheck(r) };
 }

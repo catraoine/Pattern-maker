@@ -78,7 +78,7 @@ async function main() {
     const got = `${g.silhouette.value} (${g.silhouette.confidence}), ${g.length.value}, ${g.fit.value}, hem ${g.shape.hemAt.toFixed(2)} × ${g.shape.hemFullness.toFixed(1)}`;
     const want = `${c.truth.silhouette}, ${c.truth.length}, ${c.truth.fit}, hem ${c.truth.hemAt.toFixed(2)} × ${c.truth.hemFullness.toFixed(1)}${c.truthChecked ? '' : ' (unchecked)'}`;
     rows.push(
-      `| ${c.id} | ${want} | ${got}${s.topRight ? `; top ${s.topRight.right}/${s.topRight.of}${s.topRight.wrong.length ? ' (wrong: ' + s.topRight.wrong.join(', ') + ')' : ''}` : ''} | **${s.points}**/${MAX_POINTS} | ${s.drafts ? 'yes' : 'no: ' + s.draftNote} | ${s.confidentlyWrong.join(', ')} | ${g.details.replace(/\|/g, '/')} | ${s.notRead.join(', ')} |`,
+      `| ${c.id} | ${want} | ${got}${s.topRight ? `; top ${s.topRight.right}/${s.topRight.of}${s.topRight.wrong.length ? ' (wrong: ' + s.topRight.wrong.join(', ') + ')' : ''}` : ''}${s.fabricRight ? `; fabric ${s.fabricRight.right}/${s.fabricRight.of}${s.fabricRight.wrong.length ? ' (wrong: ' + s.fabricRight.wrong.join(', ') + ')' : ''}` : ''} | **${s.points}**/${MAX_POINTS} | ${s.drafts ? 'yes' : 'no: ' + s.draftNote} | ${s.confidentlyWrong.join(', ')} | ${g.details.replace(/\|/g, '/')} | ${s.notRead.join(', ')} |`,
     );
   }
 

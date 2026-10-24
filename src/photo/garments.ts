@@ -21,6 +21,8 @@ import {
   validTrousers,
 } from '../garments';
 import type { BodiceLength } from '../engine/bodice';
+import { noSeamAllowed } from '../engine/dress';
+import type { MyFabric } from '../engine/fabrics';
 import type { OuterLength } from '../engine/outerwear';
 import type { TeeLength, TeeNeck, TeeSleeve } from '../engine/tee';
 import { setVolume, volumeOf } from '../engine/skirtVolume';
@@ -112,7 +114,30 @@ export function bodiceChoices(t: TopReading | null | undefined, garment: 'bodice
 
 export function dressChoices(r: PhotoReading): DressChoices {
   const bodice = bodiceChoices(r.top, 'dress');
-  return { garment: 'dress', fit: bodice.fit, bodice, skirt: skirtChoices(r, 'dress') };
+  let skirt = skirtChoices(r, 'dress');
+  const t = r.top;
+  // A belt at the waist: a sash, or loops for a belt; a wrap ties already.
+  const belt = t?.belt === 'sash' ? 'sash' : t?.belt === 'loops' ? 'loops' : undefined;
+  if (belt && bodice.closure !== 'wrap') skirt = { ...skirt, belt };
+  // Where the seam sits, when the reading says; a dress cut in one is a sheath where the skirt shape allows it.
+  const at = t?.waistSeamAt;
+  if (at === 'none' && noSeamAllowed(bodice) && bodice.closure === 'back_zip') skirt = { ...skirt, noSeam: 'sheath' };
+  const waistSeam = at && at !== 'none' && at !== 'natural' ? { waistSeam: at } : {};
+  return { garment: 'dress', fit: bodice.fit, bodice, skirt, ...waistSeam };
+}
+
+/** The maker's fabric as a photo read it: the app's own cloths by name, the rest by their nearest fibre, with the colour and print. */
+export function fabricFor(r: PhotoReading): MyFabric | undefined {
+  const f = r.fabric;
+  if (!f) return undefined;
+  const type = f.type;
+  const special: MyFabric['special'] | undefined = type === 'chiffon' ? 'sheer' : (['denim', 'leather', 'velvet', 'corduroy', 'sheer', 'satin', 'lace', 'sequins'] as const).find((k) => k === type);
+  const fibre: MyFabric['fibre'] | undefined = type === 'knit' || type === 'gauze' || type === 'corduroy' || type === 'denim' ? 'cotton' : type === 'fleece' ? 'wool' : type === 'chiffon' || type === 'satin' ? 'silk' : type === 'crepe' ? 'viscose' : type === 'plain' ? 'cotton' : undefined;
+  const colour = f.colour !== 'other' ? f.colour.replace(/^./, (c) => c.toUpperCase()) : undefined;
+  const print: Partial<MyFabric> =
+    f.print === 'checks' ? { print: 'checks', checks: {} } : f.print === 'stripes' ? { print: 'checks', checks: { stripes: true } } : f.print === 'border' ? { print: 'border' } : f.print !== 'none' ? { print: 'ditsy' } : {};
+  const sheer = f.sheer && !special ? { special: 'sheer' as const } : {};
+  return { ...(fibre ? { fibre } : {}), ...(special ? { special } : {}), ...sheer, ...(colour ? { colour } : {}), ...(type === 'fleece' ? { weight: 'heavy' as const } : {}), ...print };
 }
 
 const TEE_NECK: Record<TopReading['neckline'], TeeNeck> = {
@@ -172,7 +197,11 @@ export function outerChoices(r: PhotoReading, kind: 'jacket' | 'coat'): OuterCho
     shaping: o.shaping,
     pads: o.pads,
     flare: kind === 'coat' ? o.flare : 'straight',
+    sleeve: o.sleeve === 'raglan' ? 'raglan' : base.sleeve,
+    trim: o.trim === 'rib' ? 'rib' : 'none',
   };
+  // A notched lapel needs a shoulder seam and a buttoned front; a raglan is cut off a one-piece body.
+  if (!outerAllowed(c, 'collar', c.collar)) c.collar = 'stand';
   if (!outerAllowed(c, 'shaping', c.shaping)) c.shaping = 'darts';
   if (!outerAllowed(c, 'vent', c.vent)) c.vent = 'none';
   return c;

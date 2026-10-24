@@ -450,7 +450,7 @@ export default function App() {
     seam: { at: dress.waistSeam, cm: dress.waistSeamCm },
   });
 
-  const drafts = useMemo((): { skirt?: SkirtDraft; bodice?: BodiceDraft; dress?: DressDraft; trousers?: TrousersDraft; tee?: TeeDraft; lingerie?: LingerieDraft; outer?: OuterDraft; sleeve?: SleeveDraft; error?: string } => {
+  const drafts = useMemo((): { skirt?: SkirtDraft; bodice?: BodiceDraft; dress?: DressDraft; trousers?: TrousersDraft; tee?: TeeDraft; lingerie?: LingerieDraft; outer?: OuterDraft; sleeve?: SleeveDraft; error?: string; crash?: boolean } => {
     if (!canLeaveMeasure) return {};
     try {
       if (isOuterGarment) return { outer: draftOuter(values as OuterMeasurements, outerStyleFor(outerChoices, fitting)) };
@@ -469,10 +469,35 @@ export default function App() {
       }
       return { skirt: draftSkirt(values as SkirtMeasurements, skirtStyle) };
     } catch (e) {
-      return { error: e instanceof DraftError ? e.message : 'Something went wrong drafting this pattern.' };
+      return { error: e instanceof DraftError ? e.message : 'Something went wrong drafting this pattern.', crash: !(e instanceof DraftError) };
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [values, skirtStyle, bodiceStyle, trousersStyle, teeStyle, lingerieChoices, dress, outerChoices, fabric, fitting, garment, canLeaveMeasure]);
+
+  // A draft that crashes (not a DraftError, which is a message for the maker) is a saved choice the engine no longer
+  // knows, from an older release or a mistyped value: those choices go back to the garment's defaults, and the app
+  // carries on, rather than every screen showing "Something went wrong".
+  useEffect(() => {
+    if (!drafts.crash) return;
+    const fresh: Partial<Saved> =
+      garment === 'skirt'
+        ? { choices: INITIAL.choices }
+        : garment === 'bodice'
+          ? { bodice: DEFAULT_BODICE }
+          : garment === 'dress'
+            ? { dress: undefined, choices: INITIAL.choices, bodice: DEFAULT_BODICE }
+            : garment === 'trousers'
+              ? { trousers: DEFAULT_TROUSERS_CHOICES }
+              : garment === 'tee'
+                ? { tee: DEFAULT_TEE_CHOICES }
+                : garment === 'jacket'
+                  ? { jacket: DEFAULT_JACKET_CHOICES }
+                  : garment === 'coat'
+                    ? { coat: DEFAULT_COAT_CHOICES }
+                    : {};
+    if (Object.keys(fresh).length) setSaved({ ...saved, ...fresh });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drafts]);
 
   // The drafts with any points moved on the flat pattern, so the preview, print and files all follow.
   const moved = pointEdits[garment];
@@ -964,9 +989,9 @@ export default function App() {
   };
 
   /** Open the style screen with these choices, saved under their garment. */
-  const styleChoices = (c: PatternChoices, using: MeasurementValues = measured) => {
+  const styleChoices = (c: PatternChoices, using: MeasurementValues = measured, extra: Partial<Saved> = {}) => {
     const [g, patch] = choicesPatch(c);
-    switchGarment(g, patch, 'style', using);
+    switchGarment(g, { ...patch, ...extra }, 'style', using);
   };
 
   const reset = async () => {
@@ -1195,13 +1220,14 @@ export default function App() {
               body={canLeaveMeasure ? (values as SkirtMeasurements) : undefined}
               unit={saved.unit}
               onByHand={() => switchGarment('skirt', {}, 'style')}
-              onApply={(choices, preview) => {
+              onApply={(choices, preview, fabric) => {
                 if (BILLING_ON) setAccount(countPhotoDraft(account));
                 const g = choicesPatch(choices)[0];
                 countStep('photo', g);
                 setPhotoPreview(preview);
                 setPhotoFor(g);
-                styleChoices(choices);
+                // The cloth the photo showed goes with the style, so the drawing opens in it.
+                styleChoices(choices, measured, fabric ? { finish: keepFinish(storedFinish, { ...finish, fabric, cloth: clothFor(fabric, finish.cloth) }, mode) } : {});
               }}
             />
           )}

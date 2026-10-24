@@ -1,6 +1,8 @@
 // The Maison collection: the house's signature designs, each a set of style choices drafted to the
 // sewist's own measurements like any other pattern. Making a look opens its style screen with the
 // choices set, so every detail can still be changed.
+import type { MyFabric } from './engine/fabrics';
+import { COLOURS } from './engine/shopFabrics';
 import { dressBelt, skirtBelt } from './engine/belt';
 import type { Choices } from './App';
 import { draftBodice } from './engine/bodice';
@@ -31,6 +33,20 @@ import {
   validDetails,
 } from './garments';
 import { EXAMPLE_BODY, Garment, MeasurementValues, isComplete } from './measurements';
+
+/** The fabric a look is named for, read from its words, so its thumbnail draws in that cloth. */
+export function lookFabric(words: string): MyFabric {
+  const w = words.toLowerCase();
+  const special = (['denim', 'leather', 'velvet', 'corduroy', 'satin', 'lace', 'sequin'] as const).find((k) => w.includes(k));
+  const sheer = /georgette|chiffon|organza|voile|sheer/.test(w);
+  const fibre = (['silk', 'wool', 'cotton', 'linen', 'viscose', 'polyester'] as const).find((k) => w.includes(k));
+  const colour = COLOURS.map((c) => c.name).find((c) => w.includes(c.toLowerCase()));
+  return {
+    ...(fibre ? { fibre } : {}),
+    ...(special ? { special: special === 'sequin' ? 'sequins' : special } : sheer ? { special: 'sheer' } : {}),
+    ...(colour ? { colour } : {}),
+  };
+}
 
 export interface HouseLook {
   id: string;

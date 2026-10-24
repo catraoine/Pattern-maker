@@ -10,7 +10,7 @@ import { HEM_SAMPLES, HemShape, flatHem, isShaped, offsetAt } from '../engine/he
 import { LENGTHS, Length, Silhouette, SkirtDraft, SkirtMeasurements, flareRange, isCircle, lengthRange, presetFlare } from '../engine/skirt';
 import { GROUPS } from '../screens/StyleScreen';
 import { skirtForm } from './DrawOnForm';
-import { FormLayers, formFrame, hemCorner, wornCloth } from './FormSketch';
+import { FormLayers, formFrame, hemCorner, wornCloth, wornFolds, wornMapper } from './FormSketch';
 import { LengthMarks, MARGIN } from './HemMarks';
 
 export type Side = 'front' | 'back';
@@ -151,8 +151,13 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
   // The skirt as cloth on the form: its technical flat's shapes for this side, laid on the form as worn.
   const flat = useMemo(() => skirtFlat(draft, skirtBelt(choices.belt, draft)), [draft, choices.belt]);
   const view = side === 'front' ? 0 : 1;
-  const cloth = useMemo(() => wornCloth(wornShapes(flat, view), body), [flat, view, body]);
-  const lines = useMemo(() => ({ seam: wornLines(flat, view) }), [flat, view]);
+  const flatCloth = useMemo(() => wornShapes(flat, view), [flat, view]);
+  const cloth = useMemo(() => wornCloth(flatCloth, body), [flatCloth, body]);
+  const folds = useMemo(() => wornFolds(flatCloth, cloth), [flatCloth, cloth]);
+  const lines = useMemo(() => {
+    const map = wornMapper(flatCloth, body);
+    return { seam: wornLines(flat, view).map((run) => run.map(map)) };
+  }, [flat, view, flatCloth, body]);
 
   // The frame stays put while dragging, sized for the longest and widest the skirt can go, so the
   // handle stays under the finger. Knee and floor lines show where the hem falls on the body.
@@ -288,7 +293,7 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
       onPointerUp={end}
       onPointerCancel={end}
     >
-      <FormLayers body={body} m={m} legs cx={cx} bottom={frame.bottom} lines={lines} worn={cloth} />
+      <FormLayers body={body} m={m} legs cx={cx} bottom={frame.bottom} lines={lines} worn={cloth} folds={folds} />
       {!drawing && (
         <g className="hem-marks">
           <LengthMarks

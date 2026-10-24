@@ -1,9 +1,10 @@
+import { matchKind } from '../engine/prints';
 import { useMemo, useState } from 'react';
 import { layout } from '../engine/export';
 import { piecesLengthCm, toMetres } from '../engine/fabric';
 import { layPlan } from '../engine/layplan';
 import { OUTER_EASE, OuterDraft, OuterMeasurements, outerDrop } from '../engine/outerwear';
-import { outerFlat, wornShapes } from '../engine/flat';
+import { outerFlat, wornLines, wornShapes } from '../engine/flat';
 import { OuterChoices, describeOuter, outerAllowed, outerGroups } from '../garments';
 import { TechFlatView } from '../ui/TechFlatView';
 import { AllRound } from '../ui/AllRound';
@@ -85,6 +86,7 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
   const formBody = useMemo(() => (draft ? formWidth(draft.base, m) : undefined), [draft, m]);
   const formLines = useMemo(() => (draft ? outerLines(draft) : {}), [draft]);
   const clothShapes = useMemo(() => (flat ? wornShapes(flat) : undefined), [flat]);
+  const flatLines = useMemo(() => (flat ? wornLines(flat) : undefined), [flat]);
   const formArm = useMemo(() => {
     if (!draft || !m.arm_length || !m.upper_arm) return undefined;
     const { shoulderTip, underarm } = landmarks(draft.base);
@@ -175,8 +177,12 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
                       const next = { ...choices, [g.id]: id } as OuterChoices;
                       // A fitted cut keeps its waist darts.
                       if (next.fit === 'fitted' && next.shaping === 'boxy') next.shaping = 'darts';
-                      // A cropped jacket is too short for a vent.
-                      if (next.length === 'cropped') next.vent = 'none';
+                      // A cropped jacket is too short for a vent; rib bands at the hem leave no room for one.
+                      if (next.length === 'cropped' || next.trim === 'rib') next.vent = 'none';
+                      // A notched lapel needs a shoulder seam and a buttoned front: a zip or raglan sleeves switch it to a stand collar.
+                      if (next.collar === 'notched' && (next.front === 'zip' || next.sleeve === 'raglan')) next.collar = 'stand';
+                      // A raglan sleeve is cut off a one-piece front and back: princess seams give way to darts.
+                      if (next.sleeve === 'raglan' && next.shaping === 'princess') next.shaping = 'darts';
                       onChoices(next);
                     }}
                   >
@@ -236,7 +242,7 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           {error && <p className="msg error">{error}</p>}
           {formBody && view === 'sketch' && (
             <GarmentFabric fabric={fabric}>
-              <FormSketch body={formBody} m={m} legs={kind === 'coat'} bottom={waistY + outerDrop(m, longest) + 6} lines={formLines} cloth={clothShapes} arms={formArm} sleeve={formArm ? draft?.sleeve : undefined} underarmY={draft ? landmarks(draft.base).underarm.y : undefined} label={`The ${title.toLowerCase()} on your form`} />
+              <FormSketch body={formBody} m={m} legs={kind === 'coat'} bottom={waistY + outerDrop(m, longest) + 6} lines={formLines} cloth={clothShapes} flatLines={flatLines} arms={formArm} sleeve={formArm ? draft?.sleeve : undefined} underarmY={draft ? landmarks(draft.base).underarm.y : undefined} label={`The ${title.toLowerCase()} on your form`} />
             </GarmentFabric>
           )}
           {flat && view === 'flat' && (
@@ -244,7 +250,7 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
               <TechFlatView flat={flat} title={title} />
             </GarmentFabric>
           )}
-          {round && view === 'round' && <AllRound round={round} m={values} striped={!!fabric?.checks} label={`The ${title.toLowerCase()} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`} />}
+          {round && view === 'round' && <AllRound round={round} m={values} striped={matchKind(fabric)} label={`The ${title.toLowerCase()} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`} />}
           {draft && sheet && view === 'pattern' && !(fit && canFit) && <PatternPane><PatternPreview paper sheet={sheet} label={`Pattern pieces for ${title.toLowerCase()}`} /></PatternPane>}
           {view === 'pattern' && fit && canFit && <EaseMapView views={easeMap!} label={`The fit of the ${title.toLowerCase()}, on its pattern pieces`} />}
           <UndoToast undo={undo} />
