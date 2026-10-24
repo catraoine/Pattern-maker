@@ -156,6 +156,10 @@ export interface Choices {
   slitCm?: number;
   /** The zip in the left side seam, the back on the fold; unset, at the centre back. */
   zip?: 'back' | 'side';
+  /** A shaped yoke at the top, the darts closed into it. Older saves have none. */
+  yoke?: boolean;
+  /** Buttoned down the centre front, with no zip. Older saves have none. */
+  buttons?: boolean;
   /** A dress only: cut with no waist seam, as a sheath or a shift. */
   noSeam?: NoSeam;
 }
@@ -669,7 +673,7 @@ export default function App() {
       if (finish.skirtLined) {
         try {
           // A plain lining under pleats, godets or a flounce: they need no second layer. Nor pockets.
-          lining = draftSkirt(values as SkirtMeasurements, { ...skirtStyle, pleats: undefined, godets: undefined, flounce: undefined, lengthCm: skirt.lengthCm - 2.5, pockets: 'none' });
+          lining = draftSkirt(values as SkirtMeasurements, { ...skirtStyle, pleats: undefined, godets: undefined, flounce: undefined, lengthCm: skirt.lengthCm - 2.5, pockets: 'none', yoke: undefined, buttons: undefined });
         } catch {
           lining = undefined;
         }
@@ -690,6 +694,8 @@ export default function App() {
             : `Seam allowance ${fmtCm(seams.seam)} included, ${fmtCm(hem)} at the hem. Dashed line = stitching line.`,
           `${skirt.elastic ? `A pull-on elastic waist, with no zip: ${skirt.elastic.cutCm} cm of ${skirt.elastic.widthCm} cm elastic in the waistband casing` : skirt.wrap?.ties ? `A wrap with no zip: the front cut as a crossing pair, and a waistband that runs on into ties (${skirt.wrap.ties.outer} cm and ${skirt.wrap.ties.inner} cm, cut ${skirt.wrap.ties.cutWidth} cm wide)` : skirt.faced || skirt.waistFinish ? `${skirt.waistFinish === 'high' ? `A high waist, ${HIGH.rise} cm above your own, with waist facings` : 'Waist facings'}` : 'Waistband'}${lining ? ' and lining' : ''}${pocketWords(skirt.pocket ? 'inseam' : 'none')} included.${skirt.bias ? ' Cut on the bias: every piece single layer, grain at 45 degrees.' : ''}${skirt.volume?.tiers ? ' The tiers are rectangles: their measurements are in the sewing steps.' : ''} Sewing steps are on the last pages.`,
           ...(skirt.slit ? [slitNote(skirt.slit)] : []),
+          ...(skirt.yoke ? ['A shaped yoke at the top, the darts closed into it, so the skirt below has none.'] : []),
+          ...(skirt.buttons ? [`Buttoned down the front, with no zip: ${skirt.buttons.count} buttons (${skirt.buttons.sizeCm} cm) down the front and one on the waistband${skirt.pieces[1].fold ? ', and the back cut on the fold' : ''}.`] : []),
           ...(belt ? [beltNote(belt)] : []),
           ...(skirt.opening === 'left_side' && !skirt.halves && !skirt.faced ? [`The zip goes in the left side seam (as you wear it)${skirt.pieces[1].fold ? ', so the back is cut on the fold' : ''}.`] : []),
           ...fittingNotes,

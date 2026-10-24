@@ -19,6 +19,7 @@ import { wrapSkirtAllowed } from '../engine/wrapSkirt';
 import { SLIT_PLACES, slitAllowed, slitOf } from '../engine/slit';
 import { FACING_DEPTH, HIGH, facedAllowed, highAllowed, sideZipAllowed } from '../engine/skirtWaist';
 import { NO_SLIT, SlitSlider } from '../ui/SlitSlider';
+import { BUTTONS_STOP_ABOVE_HEM, buttonsBlocked, buttonsOf, yokeBlocked, yokeOf } from '../engine/skirtFront';
 import { SaveControl } from '../ui/SaveControl';
 import { FinishChoices } from '../ui/FinishChoices';
 import type { Finish } from '../App';
@@ -95,6 +96,20 @@ export const DETAIL_GROUPS: [{ id: 'waist'; label: string; options: [NonNullable
   { id: 'pockets', label: 'Pockets', options: [['none', 'None'], ['inseam', 'In-seam']] },
 ];
 
+/** The front: plain and darted, a yoke that takes the darts, or buttoned down the centre front. */
+export const FRONT_GROUP: { id: 'front'; label: string; options: ['plain' | 'yoke' | 'buttons', string][] } = {
+  id: 'front',
+  label: 'Front',
+  options: [
+    ['plain', 'Plain'],
+    ['yoke', 'Yoke'],
+    ['buttons', 'Buttoned'],
+  ],
+};
+
+/** The front as it will be made: a yoke or buttons only where the skirt can take them. */
+export const frontOf = (c: Choices): 'plain' | 'yoke' | 'buttons' => (yokeOf(c) ? 'yoke' : buttonsOf(c) ? 'buttons' : 'plain');
+
 /** Where the zip goes, on a skirt with one: the centre back, or the left side with the back on the fold. */
 export const ZIP_PLACES: ['back' | 'side', string][] = [
   ['back', 'Centre back'],
@@ -111,7 +126,7 @@ const detailOf = (c: Choices, id: 'waist' | 'pockets'): string => (id === 'waist
 /** Where the zip is, or none on a pull-on or wrap skirt. */
 const zipOf = (c: Choices): 'back' | 'side' | undefined => {
   const w = detailOf(c, 'waist');
-  if (w === 'elastic' || w === 'wrap') return undefined;
+  if (w === 'elastic' || w === 'wrap' || buttonsOf(c)) return undefined;
   return c.zip === 'side' && sideZipAllowed(c) ? 'side' : 'back';
 };
 /** Picking a waist: the wrap is its own flag, so picking it puts the waistband back, and the others let it go. */
@@ -126,7 +141,7 @@ export const elasticAllowed = (c: Pick<Choices, 'silhouette' | 'asymHem' | 'plea
 
 /** In-seam pockets go in a plain side seam: not where pleats, godets, a flounce or tiers change the
  * skirt's pieces, nor on a skirt cut whole. */
-export const pocketsAllowed = (c: Choices) => volumeWords(c) === '' && c.silhouette !== 'slip' && c.asymHem !== 'diagonal' && !(c.wrap && wrapSkirtAllowed(c));
+export const pocketsAllowed = (c: Choices) => volumeWords(c) === '' && !yokeOf(c) && c.silhouette !== 'slip' && c.asymHem !== 'diagonal' && !(c.wrap && wrapSkirtAllowed(c));
 
 /** The choices with the zipped waistband back where an elastic waist isn't allowed. */
 const keepWaist = (c: Choices): Choices => (elasticAllowed(c) ? c : { ...c, waist: undefined });
@@ -142,6 +157,7 @@ function detailWords(c: Choices): string[] {
   return [
     slit ? `a ${slit.at} slit` : '',
     waist === 'faced' ? 'a faced waist' : '',
+    yokeOf(c) ? 'a yoke' : buttonsOf(c) ? 'a button front' : '',
     zipOf(c) === 'side' ? 'a side zip' : '',
     c.waist === 'elastic' && elasticAllowed(c) ? 'an elastic waist' : '',
     c.pockets === 'inseam' && pocketsAllowed(c) ? 'pockets' : '',
@@ -526,6 +542,32 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
             )}
           </Group>
         ))}
+        <Group label={FRONT_GROUP.label}>
+          <div className="chips">
+            {FRONT_GROUP.options.map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                className={frontOf(choices) === id ? 'chip on' : 'chip'}
+                aria-pressed={frontOf(choices) === id}
+                disabled={id === 'yoke' ? !!yokeBlocked({ ...choices, buttons: undefined }) : id === 'buttons' ? !!buttonsBlocked(choices) : false}
+                onClick={() => change({ ...choices, yoke: id === 'yoke' || undefined, buttons: id === 'buttons' || undefined })}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <Explain set="skirt" group="front" options={FRONT_GROUP.options} pick={frontOf(choices)} />
+          {frontOf(choices) === 'yoke' && <p className="muted small">The yoke line runs through the point of each dart, so the darts close up inside it and the skirt below is cut without them.</p>}
+          {frontOf(choices) === 'buttons' && (
+            <p className="muted small">
+              {draft?.buttons ? `${draft.buttons.count} buttons` : 'Buttons'} from the waistband to {BUTTONS_STOP_ABOVE_HEM} cm above the hem, so it opens a little to walk in, and one on the band. No zip.
+            </p>
+          )}
+          {(yokeBlocked({ ...choices, buttons: undefined }) || buttonsBlocked(choices)) && (
+            <p className="muted small">{yokeBlocked({ ...choices, buttons: undefined }) ?? buttonsBlocked(choices)}</p>
+          )}
+        </Group>
         <Group label="Belt">
           <div className="chips">
             {BELTS.map(([id, label]) => (

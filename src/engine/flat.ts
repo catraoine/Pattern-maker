@@ -8,7 +8,7 @@ import type { SkirtDraft } from './skirt';
 import { WAISTBAND_CM } from './skirt';
 import { HIGH } from './skirtWaist';
 import { BodiceDraft, blockOf } from './bodice';
-import { BANDS, isBandCollar } from './collar';
+import { BANDS, EXTENSION_CM, isBandCollar } from './collar';
 import type { BodiceEdges } from './instructions';
 import { BAND_CM, SleeveDraft } from './sleeve';
 import type { DressDraft } from './dress';
@@ -435,9 +435,20 @@ function skirtViews(d: SkirtDraft, opts: { band: boolean; zipCm?: number; seamFr
     } else {
       // Pleats are drawn on the skirt as it hangs; knife and box pleats take the darts' place.
       const pleated = !!(d.volume?.pleats || d.volume?.inverted) && !!d.block;
-      const h = sewn((pleated ? d.block! : (d.low ?? d.pieces))[i]);
+      const h = sewn((pleated ? d.block! : (d.low ?? d.closed ?? d.pieces))[i]);
       waist = along(h, ['waist', 'dart'])[0] ?? [h.run[0]];
-      lines = d.volume?.pleats ? [] : h.darts.flatMap((dt) => both(dt).map((pts) => ({ pts, kind: 'dart' as const })));
+      // A yoke takes the darts: its seam is drawn instead.
+      lines = d.volume?.pleats || d.yoke ? [] : h.darts.flatMap((dt) => both(dt).map((pts) => ({ pts, kind: 'dart' as const })));
+      if (d.yoke) lines.push(...both(d.yoke[back ? 'back' : 'front'].map(h.move)).map((pts) => ({ pts, kind: 'seam' as const })));
+      // A button front: the lapped edge down the centre front, and the buttons on it.
+      if (d.buttons && !back) {
+        const foot = h.run.reduce((m, q) => (Math.abs(q.x) < 0.5 && q.y > m ? q.y : m), -Infinity);
+        lines.push({ pts: [p(-EXTENSION_CM, waist[0].y), p(-EXTENSION_CM, foot)], kind: 'seam' });
+        for (const y of d.buttons.at) {
+          const c = p(0, h.move(p(0, y)).y);
+          lines.push({ pts: Array.from({ length: 13 }, (_, n) => add(c, p(0.65 * Math.cos((n / 12) * 2 * Math.PI), 0.65 * Math.sin((n / 12) * 2 * Math.PI)))), kind: 'seam' });
+        }
+      }
       let run = h.run;
       // A high waist carries on up past the waist, its darts running on to the top.
       if (d.low && d.waistFinish === 'high') {

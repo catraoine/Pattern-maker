@@ -29,7 +29,7 @@ interface Worn {
 function worn(draft: SkirtDraft, side: Side): Worn {
   // Pleats, godets or a flounce: the skirt as it hangs, before they were drafted in. Pieces cut whole
   // are sketched from the halves they were drafted from.
-  const pc = (draft.block ?? draft.halves ?? draft.pieces)[side === 'front' ? 0 : 1];
+  const pc = (draft.block ?? draft.halves ?? draft.closed ?? draft.pieces)[side === 'front' ? 0 : 1];
   if (draft.circleShare) {
     const offs = draft.hem?.[side] ?? flatHem();
     const wh = draft.finishedWaist / 4;

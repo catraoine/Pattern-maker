@@ -1,5 +1,6 @@
 // Plain-language sewing steps for the drafted skirt and bodice, shown in the app and added to the end of the PDF.
 // Keep to plain ASCII punctuation: the PDF uses a standard font without curly quotes.
+import { buttonFrontSteps, yokeSteps } from './skirtFront';
 import { isBandCollar } from './collar';
 import { BackNeck, withBackNeck } from './backNeck';
 import { isCircle } from './skirt';
@@ -96,7 +97,8 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
   // A shape matched from a photo can come out as part of a circle whatever its silhouette chip says.
   const circle = isCircle(style.silhouette) || !!draft.circleShare;
   // A wrap skirt's fronts each reach across the body, so they have no centre front seam either.
-  const frontSeam = !draft.pieces[0].fold && !draft.pieces[0].meta.wrap;
+  // A button front opens at the centre front instead.
+  const frontSeam = !draft.pieces[0].fold && !draft.pieces[0].meta.wrap && !draft.buttons;
   // A front too wide for the fold (big circle skirts) is cut as a pair with a centre front seam, and
   // the back is then too wide for folded fabric as well.
   // A front cut as a pair for its slit is no wider than one on the fold.
@@ -108,7 +110,7 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
   const pockets = !!draft.pocket;
   // The lining is the same skirt without its pleats, godets or flounce, 2.5 cm shorter: it has darts
   // where the plain skirt does (none on a circle), and the same centre seams.
-  const liningDarts = !circle && (dartCount > 0 || !!draft.volume?.pleats || !!draft.volume?.inverted);
+  const liningDarts = !circle && (dartCount > 0 || !!draft.yoke || !!draft.volume?.pleats || !!draft.volume?.inverted);
   const liningSeams = (also: string) => `Sew the lining ${frontSeam ? 'centre front seam, ' : ''}side seams${also}, ${seam} from the edge.`;
 
   const steps: SewStep[] = [
@@ -241,8 +243,8 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
     },
   ];
 
-  // A wrap skirt: no zip, a free front edge, and ties (wrapGuide.ts).
-  return wrapSkirtSteps(skirtWaistSteps({
+  // A wrap skirt: no zip, a free front edge, and ties (wrapGuide.ts). A yoke or a button front (skirtFront.ts).
+  return skirtFrontSteps(wrapSkirtSteps(skirtWaistSteps({
     notions: [
       `${fabricM.toFixed(1)} m of woven fabric, ${finish.width ?? 140} cm wide`,
       ...(lined ? [`${finish.liningM!.toFixed(1)} m of lining, ${finish.width ?? 140} cm wide`] : []),
@@ -251,7 +253,14 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
     ],
     // Pleats, godets, a flounce or tiers, sewn in at the right moment; a gathered skirt's gathers.
     steps: gatherSteps(volumeSteps(steps, draft, { seam, waist, hem: hemDepth }), draft, elastic ? 'casing' : 'band'),
-  }, draft, { seam, waist }), draft);
+  }, draft, { seam, waist }), draft), draft, { seam, waist, backSeam });
+}
+
+/** A yoke or a button front, sewn in. */
+function skirtFrontSteps(g: SewingGuide, draft: SkirtDraft, o: { seam: string; waist: string; backSeam: boolean }): SewingGuide {
+  if (draft.yoke) return yokeSteps(g, o.seam);
+  if (draft.buttons) return buttonFrontSteps(g, draft.buttons, o);
+  return g;
 }
 
 /** Gathering a skirt's waist, sewn the way a pattern cutter would. */

@@ -1,6 +1,7 @@
 // The pieces that finish a garment beyond its block: a printed waistband, lining and facings.
 import { P, Path, add, intersect, len, lerp, mul, p, sub, unit } from './geometry';
 import { Piece } from './piece';
+import { BUTTON_CM, EXTENSION_CM } from './collar';
 import { WAISTBAND_CM } from './skirt';
 import type { SkirtDraft } from './skirt';
 import { SLIP_FACING } from './slip';
@@ -19,6 +20,7 @@ export function waistbandPiece(draft: SkirtDraft, sa: number): Piece {
   const backQ = draft.waistband.sideMark - sa;
   if (draft.elastic) return casingPiece(L, [[backQ, 'SIDE SEAM'], [L / 2, 'CENTRE FRONT'], [L - backQ, 'SIDE SEAM']], sa);
   if (draft.wrap?.ties) return wrapBand(draft.finishedWaist, draft.wrap.frontWaist, sa);
+  if (draft.buttons) return buttonBand(draft, sa);
   const outline = new Path(p(0, 0)).line(p(W, 0), 'end').line(p(W, L), 'waist').line(p(0, L), 'end').line(p(0, 0), 'band');
   outline.closed = true;
   const marks = [backQ, L / 2, L - backQ];
@@ -49,6 +51,57 @@ export function waistbandPiece(draft: SkirtDraft, sa: number): Piece {
       tag(p(W * 0.2, L - backQ - 2.6), 'SIDE SEAM'),
       tag(add(hook, p(-0.9, 1.8)), 'HOOK'),
       tag(add(eye, p(-0.9, -1.4)), 'EYE'),
+    ],
+    cut,
+    fabric: 'Self + interfacing',
+    seamAllowance: sa,
+    allowances: {},
+    meta: { finishedWidth: WAISTBAND_CM, lengthCm: r1(L) },
+  };
+}
+
+/**
+ * A button front's waistband: from one front edge round to the other, so it runs on across both
+ * extensions. A buttonhole on the end that laps on top, a button at the other end's centre front.
+ */
+function buttonBand(draft: SkirtDraft, sa: number): Piece {
+  const W = 2 * WAISTBAND_CM;
+  const L = draft.finishedWaist + 2 * EXTENSION_CM;
+  const frontQ = draft.waistband.sideMark - sa - EXTENSION_CM;
+  const backQ = draft.finishedWaist / 2 - frontQ;
+  const outline = new Path(p(0, 0)).line(p(W, 0), 'end').line(p(W, L), 'waist').line(p(0, L), 'end').line(p(0, 0), 'band');
+  outline.closed = true;
+  const marks: [number, string][] = [
+    [EXTENSION_CM, 'CENTRE FRONT'],
+    [EXTENSION_CM + frontQ, 'SIDE SEAM'],
+    [EXTENSION_CM + frontQ + backQ, 'CENTRE BACK'],
+    [EXTENSION_CM + frontQ + 2 * backQ, 'SIDE SEAM'],
+    [L - EXTENSION_CM, 'CENTRE FRONT'],
+  ];
+  const tag = (at: P, text: string) => ({ at, text, size: 0.55, rotate: 90 });
+  const button = p(W * 0.75, L - EXTENSION_CM);
+  const cut = 'Cut 1';
+  return {
+    name: 'Waistband',
+    kind: 'waistband',
+    outline,
+    lines: [
+      new Path(p(W * 0.75, EXTENSION_CM - 0.3)).line(p(W * 0.75, EXTENSION_CM + BUTTON_CM)),
+      new Path(add(button, p(-0.4, 0))).line(add(button, p(0.4, 0))),
+      new Path(add(button, p(0, -0.4))).line(add(button, p(0, 0.4))),
+    ],
+    grain: [p(W * 0.25, 5.5), p(W * 0.25, Math.max(10, frontQ - 2))],
+    notches: marks.flatMap(([y]): [P, P][] => [
+      [p(W, y), p(1, 0)],
+      [p(0, y), p(-1, 0)],
+    ]),
+    balance: [{ pts: [p(W / 2, 0), p(W / 2, L)], label: 'FOLD LINE' }],
+    labels: [
+      { at: p(W * 0.62, L / 2 + backQ / 2), text: 'WAISTBAND', size: 1.0, rotate: 90 },
+      { at: p(W * 0.5, L / 2 + backQ / 2), text: cut, size: 0.6, rotate: 90 },
+      ...marks.slice(1, -1).map(([y, text]) => tag(p(W * 0.2, y - 3), text)),
+      tag(p(W * 0.75 - 0.9, EXTENSION_CM + BUTTON_CM + 4.2), 'BUTTONHOLE'),
+      tag(add(button, p(-0.9, -1.4)), 'BUTTON'),
     ],
     cut,
     fabric: 'Self + interfacing',

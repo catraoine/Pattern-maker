@@ -57,6 +57,11 @@ const DETAILS: Record<ExplainSet, Record<string, Record<string, ReactNode>>> = {
       wrap: on(SKIRT, 'M13.5 6h13v4h-13zM24 6L26.5 44M13.5 8L8 14M13.5 8L9.5 16'),
     },
     pockets: { none: on(SKIRT), inseam: inseam(SKIRT, 13) },
+    front: {
+      plain: on(SKIRT, 'M16 6L16.5 13M24 6L23.5 13'),
+      yoke: on(SKIRT, 'M13.2 13Q16 15.5 20 15Q24 15.5 26.8 13'),
+      buttons: on(SKIRT, `M20 6V44${[11, 18, 25, 32].map((y) => dot(21.5, y)).join('')}`),
+    },
     belt: {
       none: on(SKIRT),
       sash: on(SKIRT, 'M13.6 8h12.8v4H13.6zM20 12L17.5 24M20.5 12L23 22'),

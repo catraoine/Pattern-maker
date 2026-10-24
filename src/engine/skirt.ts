@@ -10,6 +10,9 @@ import { SLIP_HEM, SLIP_HIP_EASE_LESS, closeToHem, cutsWhole, cutWhole, slipSide
 import { inseamPocket, markSeam } from './pockets';
 import { foldBack, wrapSkirtAllowed, wrapSkirtFront, wrapTies } from './wrapSkirt';
 import { Slit, SlitPlace, slitOf, slitPieces, slitRange } from './slit';
+import { buttonBandLength, buttonFront, buttonsOf, frontWaist, splitYoke, yokeOf, yokeSideAt } from './skirtFront';
+import { EXTENSION_CM } from './collar';
+import type { Buttons } from './collar';
 import { HIGH, WaistFinish, facedAllowed, highAllowed, raiseWaist, sideZipAllowed, sideZipped } from './skirtWaist';
 
 export interface SkirtMeasurements {
@@ -80,6 +83,10 @@ export interface SkirtStyle {
   slitCm?: number;
   /** Where the zip goes: the centre back seam, or the left side seam with the back on the fold. */
   zip?: 'back' | 'side';
+  /** A shaped yoke at the top, the darts closed into it (see skirtFront.ts). Ignored on a dress. */
+  yoke?: boolean;
+  /** Buttoned down the centre front, the back on the fold, with no zip (see skirtFront.ts). Ignored on a dress. */
+  buttons?: boolean;
 }
 
 /** A straight band with a zip, a pull-on elastic casing, a faced waist with no band, or a high faced waist (see skirtWaist.ts). */
@@ -554,6 +561,12 @@ export interface SkirtDraft {
   low?: [Piece, Piece];
   /** The slit as drafted: where, and its height above the hem, with the range it can be set in. */
   slit?: Slit & { range: { min: number; max: number } };
+  /** A yoke: its seam line on the front and the back, in the plain pieces' places. */
+  yoke?: { front: P[]; back: P[] };
+  /** A button front: the buttons down the centre front, from the waist. */
+  buttons?: Buttons;
+  /** A yoke or a button front: the plain front and back, as the skirt looks made up, for the sketches. */
+  closed?: [Piece, Piece];
 }
 
 export const WAISTBAND_CM = 3; // finished width
@@ -623,7 +636,7 @@ export function draftSkirt(m: SkirtMeasurements, style: Partial<SkirtStyle> = {}
   // Pleats, godets and flounces are drafted on the plain block, without a drawn hem. In-seam pockets
   // go in a plain side seam, so not where pleats, godets or a flounce change the skirt's pieces.
   const plain = volumeOf(s) !== 'none' ? { ...s, hem: undefined } : s;
-  const draft = withHighHip(addVolume(m, s, drafted(m, plain), (st) => drafted(m, st)), s.fitting?.highHip);
+  const draft = withHighHip(withYoke(addVolume(m, s, drafted(m, plain), (st) => drafted(m, st)), s, m), s.fitting?.highHip);
   return withWaist(withSlit(s.pockets === 'inseam' && !draft.volume ? withPockets(draft) : draft, s, m), s);
 }
 
@@ -644,7 +657,40 @@ function withWaist(draft: SkirtDraft, s: SkirtStyle): SkirtDraft {
     return { ...d, pieces: [raiseWaist(f), raiseWaist(b), ...more], low: [f, b], zipCm: d.zipCm + HIGH.rise, waistFinish: 'high' };
   }
   if (s.waist === 'faced' && facedAllowed(s)) return { ...d, waistFinish: 'faced' };
+  if (buttonsOf(s)) {
+    const [f, b, ...more] = d.pieces;
+    const o = buttonFront(f, b, d.slit?.at === 'back');
+    const r = (v: number) => Math.round(v * 10) / 10;
+    return {
+      ...d,
+      pieces: [o.front, o.back, ...more, o.facing],
+      closed: o.closed,
+      buttons: o.buttons,
+      zipCm: 0,
+      waistband: { ...d.waistband, cutLength: r(buttonBandLength(d.finishedWaist) + 2 * s.seamAllowance), sideMark: r(s.seamAllowance + EXTENSION_CM + frontWaist(f)) },
+    };
+  }
   return d;
+}
+
+/**
+ * A yoke: the front and back each cut along a line through their dart points, the darts closed in the
+ * yokes, which follow the skirt pieces; the skirt below has no darts.
+ */
+function withYoke(draft: SkirtDraft, s: SkirtStyle, m: SkirtMeasurements): SkirtDraft {
+  if (!yokeOf(s) || draft.volume || draft.circleShare || draft.halves) return draft;
+  const [front, back, ...rest] = draft.pieces;
+  const at = yokeSideAt(front, back, m.waist_to_hip);
+  const f = splitYoke(front, at, true);
+  const b = splitYoke(back, at, false);
+  if (!f || !b) return draft;
+  return {
+    ...draft,
+    pieces: [f.skirt, b.skirt, ...rest, f.yoke, b.yoke],
+    yoke: { front: f.seam, back: b.seam },
+    closed: [front, back],
+    dartsPerSide: { front: 0, back: 0 },
+  };
 }
 
 /**

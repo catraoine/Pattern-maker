@@ -35,7 +35,13 @@ export function skirtSpec(m: SkirtMeasurements, d: SkirtDraft): SpecRow[] {
     ...volumeSpec(d),
     ...(d.pocket ? [row('In-seam pocket opening', undefined, d.pocket[1] - d.pocket[0])] : []),
     ...(d.slit ? [{ label: `Slit, ${d.slit.at === 'side' ? 'left side' : `centre ${d.slit.at}`}, above the hem`, finished: `${d.slit.cm}` }] : []),
-    ...(d.faced
+    ...(d.yoke ? [row('Yoke, centre front, waist to seam', undefined, d.yoke.front[0].y - (d.closed?.[0].outline.start.y ?? 0)), row('Yoke, centre back, waist to seam', undefined, d.yoke.back[0].y - (d.closed?.[1].outline.start.y ?? 0))] : []),
+    ...(d.buttons
+      ? [
+          { label: 'Waistband (finished width 3), across both front edges', finished: `cut ${d.waistband.cutLength} x ${d.waistband.cutWidth}` },
+          { label: `Buttons, ${d.buttons.sizeCm} cm, down the front and on the band`, finished: `${d.buttons.count + 1}` },
+        ]
+      : d.faced
       ? [
           { label: `Waist facing, ${SLIP_FACING} deep`, finished: 'cut 1 front, 1 back' },
           { label: 'Invisible zip, left side seam', finished: `${d.zipCm}` },

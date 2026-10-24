@@ -66,6 +66,11 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       elastic: ['Elastic in the waist so it pulls on with no zip. The easiest to sew.', 'easy'],
       wrap: ['The front crosses over and the waistband runs on into ties, knotted at the side. No zip, and it adjusts as you wear it.'],
     },
+    front: {
+      plain: ['A plain front, shaped at the waist by its darts.', 'easy'],
+      yoke: ['A curved band at the top that takes the darts, so the skirt below hangs smooth. Denim and A-line classics.'],
+      buttons: ['Buttons all the way down the front and no zip. The back is cut in one piece.'],
+    },
     pockets: {
       none: ['No pockets.'],
       inseam: ['Pockets hidden in the side seams, out of sight until you use them.'],
