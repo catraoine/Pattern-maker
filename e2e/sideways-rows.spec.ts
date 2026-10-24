@@ -21,9 +21,10 @@ test('sideways rows on the Style page never scroll up and down', async ({ page }
   for (const g of garments) {
     if (g !== 'Skirt') await switchGarment(page, g);
     const tabs = page.getByRole('tablist', { name: 'Style choices' }).getByRole('tab');
-    for (const name of await tabs.allTextContents()) {
-      await tabs.getByText(name, { exact: true }).click();
-      await expect(tabs.getByText(name, { exact: true })).toHaveAttribute('aria-selected', 'true');
+    for (const tab of await tabs.all()) {
+      const name = await tab.textContent();
+      await tab.click();
+      await expect(tab).toHaveAttribute('aria-selected', 'true');
       expect(await wobblyRows(page), `${g}, ${name} tab`).toEqual([]);
     }
   }

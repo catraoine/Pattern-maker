@@ -13,13 +13,17 @@ import { Piece, withAlternate } from './piece';
 import { DraftError, Side, cm } from './skirt';
 import type { DartPlace, PrincessLine } from './manipulate';
 import { moveFrontDart, princessPieces } from './shaping';
-import { Buttons, Closure, Collar, EXTENSION_CM, backNeckFacing, backOnFold, buttonPlaces, collarPieces, frontFacing, isBandCollar, openFront } from './collar';
+import { BackNeck, KEYHOLE, backDepthFor, backNeckOf } from './backNeck';
+import { Buttons, Closure, Collar, EXTENSION_CM, RUFFLE_NECKS, backNeckFacing, backOnFold, buttonPlaces, collarPieces, frontFacing, isBandCollar, openFront } from './collar';
 import { DrapeInfo, Peplum, PeplumInfo, drapeBodice, drapeStyle } from './drape';
+import { Shirring, isShirred, shirredBack } from './shirred';
 import { BONED_EASE, Structure, TopDetails, bonedPanels, cutTop, isBoned, isTop, topStyle } from './corset';
 import type { HemShape } from './hem';
 import { bodiceHemShape, shapeBodiceHems } from './bodiceHem';
 import { unevenFront, unevenStyle } from './uneven';
 import { Panel, StyleSeam, Yoke, seamStyle, styleSeams } from './seams';
+import { DROP, KIMONO, KimonoLength, KimonoSize, RaglanYoke, SleeveCut, dropPiece, kimonoPair, kimonoReach, kimonoSize, raglanSplit, sideRoom, sleeveCutOf } from './sleeveCut';
+import type { SleeveLength, SleeveMeasurements, SleeveShape } from './sleeve';
 
 export interface BodiceMeasurements {
   full_bust: number;
@@ -106,7 +110,14 @@ export interface BodiceStyle {
   shoulder?: 'left' | 'right';
   /** A centre back zip (the default) or buttons down the centre front; and a collar. */
   closure?: Closure;
+  /** A low scoop or V at the back, or a keyhole that closes with a button and loop above the zip (see backNeck.ts). */
+  back?: BackNeck;
   collar?: Collar;
+  /** How the sleeve meets the body (see sleeveCut.ts), with the sleeve it is cut for: a dropped
+   * shoulder, a raglan or a kimono reshapes the bodice too. Set-in when missing. */
+  sleeveCut?: SleeveCut;
+  sleeve?: SleeveLength;
+  sleeveShape?: SleeveShape;
   /** A dragged hem: cm below the waist (0 for the waist), in place of the named length. */
   dropCm?: number;
   /** A dress cut with no waist seam: the side seam carried on past the hip to a hem this many cm below
@@ -295,8 +306,15 @@ export interface BodiceDraft {
   peplum?: PeplumInfo;
   /** A strapless, sweetheart or cami top edge, its straps, and a boned bodice's bones and waist stay. */
   top?: TopDetails;
+  /** A shirred back (see shirred.ts): how much wider it is cut, its rows, and its edges as cut. */
+  shirred?: Shirring;
   /** A wrap front: its front edge (own half on x > 0), where it crosses the centre front, and the ties. */
   wrap?: { edge: P[]; cross: P; tieAt: P; ties: ReturnType<typeof wrapTies> };
+  /** A sleeve that isn't set in (see sleeveCut.ts): a raglan's shoulders, cut off the front and back
+   * to go on the sleeve; a kimono sleeve's length and width, cut on. */
+  sleeveCut?: Exclude<SleeveCut, 'set_in'>;
+  raglan?: { front: RaglanYoke; back: RaglanYoke };
+  kimono?: KimonoSize & { length: KimonoLength };
 }
 
 /** The front and back as drafted: the shape the bodice sews up to, whatever its seams. */
@@ -424,15 +442,65 @@ export function draftBodice(m: BodiceMeasurements, style: Partial<BodiceStyle> =
     // Cut below the shoulders: the block drafted as usual, then cut along the top edge and shaped.
     const t = topStyle(s);
     const cut = cutTop(draftBlock(m, t), t, s.fitting?.lowShoulder);
-    return drapeBodice(isBoned(t) ? bonedPanels(cut, t) : shape(cut, t), t, m, redraft);
+    return drapeBodice(isBoned(t) ? bonedPanels(cut, t) : isShirred(t) ? shirredBack(shape(cut, t)) : shape(cut, t), t, m, redraft);
   }
-  return drapeBodice(unevenFront(finish(styleSeams(shape(draftBlock(m, s), s), s), s), s), s, m, redraft);
+  return drapeBodice(unevenFront(finish(cutSleeves(styleSeams(shape(draftBlock(m, s), s), s), s, m as BodiceMeasurements & SleeveMeasurements), s), s), s, m, redraft);
+}
+
+/**
+ * A dropped shoulder, raglan or kimono sleeve, cut on the bodice before its opening and collar. A dropped
+ * shoulder and a kimono reshape the printed pieces and the bodice as sewn alike; a raglan cuts the
+ * shoulders off the printed pieces only, the bodice as sewn keeping its armhole for the sleeve to be
+ * drafted to before the shoulders go onto it. The underarm is lowered the same on front and back, as
+ * far as the side seam allows above any side dart.
+ */
+function cutSleeves(d: BodiceDraft, s: BodiceStyle, m: Partial<SleeveMeasurements>): BodiceDraft {
+  const cut = sleeveCutOf(s);
+  if (cut === 'set_in' || d.lowShoulder) return d;
+  const [front, back] = d.pieces;
+  const [bf, bb] = blockOf(d);
+  const blocked = d.block ? [bf, bb] : undefined;
+  const room = Math.min(...[front, back, bf, bb].map(sideRoom)) - 1;
+  if (cut === 'drop') {
+    const lower = Math.max(0, Math.min(DROP.down, room));
+    const pieces = [dropPiece(front, lower), dropPiece(back, lower), ...d.pieces.slice(2)];
+    const block = blocked?.map((pc) => dropPiece(pc, lower));
+    const [nf, nb] = block ?? pieces;
+    return {
+      ...d,
+      pieces,
+      block,
+      sleeveCut: 'drop',
+      armhole: r(taggedLength(nf.outline, 'armhole') + taggedLength(nb.outline, 'armhole'), 1),
+      shoulder: { front: r(taggedLength(nf.outline, 'shoulder')), back: r(taggedLength(nb.outline, 'shoulder')) },
+      sideSeam: { ...d.sideSeam, back: r(taggedLength(nb.outline, 'side')) },
+    };
+  }
+  if (cut === 'kimono') {
+    if (!m.arm_length || !m.upper_arm || !s.sleeve || s.sleeve === 'none' || s.sleeve === 'long') return d;
+    const length = s.sleeve;
+    const under = Math.max(0, Math.min(KIMONO.under, room));
+    const sized = kimonoSize(length, { arm_length: m.arm_length, upper_arm: m.upper_arm, wrist: m.wrist });
+    const size = { ...sized, lengthCm: r(Math.max(sized.lengthCm, ...[front, back, bf, bb].map((pc) => kimonoReach(pc, under))), 1) };
+    const [kf, kb] = kimonoPair(front, back, size, under);
+    const block = blocked ? kimonoPair(bf, bb, size, under) : undefined;
+    return { ...d, pieces: [kf, kb, ...d.pieces.slice(2)], block, sleeveCut: 'kimono', kimono: { ...size, length } };
+  }
+  const f = raglanSplit(front);
+  const b = raglanSplit(back);
+  if (!f || !b) return d;
+  // The bodice as sewn keeps its armhole: the sleeve is drafted to it before the shoulders go on.
+  return { ...d, pieces: [f.body, b.body, ...d.pieces.slice(2)], block: [bf, bb], sleeveCut: 'raglan', raglan: { front: f.yoke, back: b.yoke } };
 }
 
 /** A button front (the back then on the fold) and a collar, both made on the bodice as sewn. */
 function finish(d: BodiceDraft, s: BodiceStyle): BodiceDraft {
   const closure = s.closure ?? 'back_zip';
-  const collar = s.neck ? 'none' : s.collar === 'shirt' && closure !== 'front_buttons' ? 'none' : s.collar && s.collar !== 'none' && s.neckline === 'crew' ? s.collar : s.collar === 'peter_pan' && s.neckline === 'scoop' ? 'peter_pan' : 'none';
+  // A pussy bow ties at the centre front, so it goes on a crew or V neck with the zip at the back.
+  const bow = s.collar === 'bow' && closure === 'back_zip' && (s.neckline === 'crew' || s.neckline === 'v');
+  // A ruffle goes into the seam of any neckline that rings the neck.
+  const ruffle = s.collar === 'ruffle' && (RUFFLE_NECKS as readonly string[]).includes(s.neckline);
+  const collar = s.neck ? 'none' : bow ? 'bow' : ruffle ? 'ruffle' : s.collar === 'ruffle' ? 'none' : s.collar === 'bow' || (s.collar === 'shirt' && closure !== 'front_buttons') ? 'none' : s.collar && s.collar !== 'none' && s.neckline === 'crew' ? s.collar : s.collar === 'peter_pan' && s.neckline === 'scoop' ? 'peter_pan' : 'none';
   const [bf, bb] = blockOf(d);
   let pieces = d.pieces;
   let buttons: Buttons | undefined;
@@ -446,7 +514,8 @@ function finish(d: BodiceDraft, s: BodiceStyle): BodiceDraft {
     const foldBlock = backOnFold(bb);
     // The bodice as sewn is buttoned shut: the block itself, centre front to centre front.
     block = [bf, bb];
-    pieces = [...pieces, frontFacing(openBlock), ...[backNeckFacing(foldBlock)].filter((pc): pc is Piece => !!pc)];
+    const ff = frontFacing(openBlock);
+    pieces = [...pieces, ff, ...[backNeckFacing(foldBlock, ff)].filter((pc): pc is Piece => !!pc)];
   }
   let wrap: BodiceDraft['wrap'];
   if (closure === 'wrap') {
@@ -457,7 +526,7 @@ function finish(d: BodiceDraft, s: BodiceStyle): BodiceDraft {
     return { ...d, pieces, block: [bf, bb], closure, collar: 'none', zipCm: 0, wrap, neck: Math.round((2 * taggedLength(bb.outline, 'neck') + 2 * taggedLength(w.piece.outline, 'neck')) * 10) / 10 };
   }
   if (collar !== 'none') {
-    const ext = closure === 'front_buttons' && collar !== 'peter_pan' ? EXTENSION_CM : 0;
+    const ext = closure === 'front_buttons' && collar !== 'peter_pan' && collar !== 'ruffle' ? EXTENSION_CM : 0;
     pieces = [...pieces, ...collarPieces(collar, bf, bb, { back: taggedLength(bb.outline, 'neck'), front: taggedLength(bf.outline, 'neck'), ext, closure, sa: s.seamAllowance })];
   }
   // Menswear buttons the other way: the left front laps over the right.
@@ -647,7 +716,10 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
     );
   }
   const uB = unit(sub(spB, hpsB));
-  const bd = Math.min(12, Math.max(0, nl.backDepth)); // a deep back neck still leaves room for a zip
+  // A deep back neck still leaves room for a zip; a scoop or V back is cut lower on purpose.
+  const backStyle = backNeckOf(s);
+  const bd = backStyle === 'scoop' || backStyle === 'v' ? backDepthFor(backStyle, NW) : Math.min(12, Math.max(0, nl.backDepth));
+  const key = backStyle === 'keyhole' ? KEYHOLE.length : 0;
 
   const abPt = p(AB / 2, scye / 2 + 1);
   const wb = NW;
@@ -763,8 +835,14 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   // seams come out equal, so the armhole keeps its size as the front's does.
   const sideB = side.backSide ? p(sideB0.x, swB.y - Math.sqrt(Math.max(side.backSide ** 2 - (sideB0.x - swB.x) ** 2, 0))) : sideB0;
 
+  // A scoop back is rounded out, full across the bottom; a V back runs nearly straight to the neck point.
   const back = new Path(p(0, bd))
-    .curve(p(hpsB.x * 0.6, bd), add(hpsB, mul(perp(uB), 1 + bd * 0.4)), hpsB, 'neck')
+    .curve(
+      backStyle === 'v' ? lerp(p(0, bd), hpsB, 0.35) : p(hpsB.x * (backStyle === 'scoop' ? 0.8 : 0.6), bd),
+      add(hpsB, mul(perp(uB), backStyle === 'v' ? 2 : backStyle === 'scoop' ? 0.45 * bd : 1 + bd * 0.4)),
+      hpsB,
+      'neck',
+    )
     .line(spB, 'shoulder');
   // The armhole meets the side seam square, so the underarm curve runs on smoothly into the front's.
   backArmhole(back, sideB, swB).line(swB, 'side');
@@ -799,7 +877,10 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
       back.curve(squareHem(hipB, hemB), p(hemB.x * 0.35, hemB.y), p(0, hemB.y), 'hem');
     } else back.line(p(0, hemB.y), 'hem');
   }
-  back.line(p(0, bd), 'centre');
+  if (key) {
+    // The keyhole: the centre back left open below the neck, curving out to a teardrop 2.5 cm wide each side.
+    back.line(p(0, bd + key), 'centre').curve(p(KEYHOLE.width * 1.3, bd + key - 1.5), p(KEYHOLE.width * 1.1, bd + 2), p(0, bd), 'keyhole');
+  } else back.line(p(0, bd), 'centre');
   back.closed = true;
   const backHem = hemB.y;
   // A sheath past the knee opens at the centre back hem, so you can walk in it.
@@ -808,8 +889,8 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   // The zip runs down the centre back from the neck edge, ending at the waist (just above a
   // waist-length hem) so the top goes on over the head and shoulders; a dress's runs on below the
   // waist so it steps on over the hips.
-  const zipCm = zipFor(wb - bd + (s.dressHem ? DRESS_ZIP_BELOW : below ? 0 : -2));
-  const zipEnd = p(0, bd + zipCm);
+  const zipCm = zipFor(wb - bd - key + (s.dressHem ? DRESS_ZIP_BELOW : below ? 0 : -2));
+  const zipEnd = p(0, bd + key + zipCm);
   const backCut = 'Cut 2 (1 pair)';
   const backDraft = {
     frame: [
@@ -854,8 +935,8 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
     ],
     cut: backCut,
     seamAllowance: s.seamAllowance,
-    allowances: { neck: s.neckArmholeAllowance, armhole: s.neckArmholeAllowance, hem: s.hemAllowance },
-    meta: slitCm ? { slitCm } : {},
+    allowances: { neck: s.neckArmholeAllowance, armhole: s.neckArmholeAllowance, hem: s.hemAllowance, ...(key ? { keyhole: KEYHOLE.allowance } : {}) },
+    meta: { ...(slitCm ? { slitCm } : {}), ...(backStyle !== 'plain' ? { backNeck: backStyle } : {}), ...(backStyle === 'v' ? { pointedAtCentre: ['neck'] } : {}) },
   };
 
   // ---- front, below the across front -----------------------------------------

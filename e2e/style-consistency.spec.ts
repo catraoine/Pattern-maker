@@ -1,4 +1,4 @@
-import { chooseChip, expect, expectStyle, fillStepPages, measureMe, openFresh, openReview, pickToMake, startWithExample, stepButton, switchGarment, test, showAllTools } from './fixtures';
+import { chooseChip, expect, expectStyle, fillStepPages, measureMe, openFresh, openReview, pickToMake, startWithExample, stepButton, switchGarment, test, showAllTools, openLooks } from './fixtures';
 
 // Every garment's style screen works the same way: Undo and Redo always in place, and the same save wording.
 test('undo, redo and save read the same on the trousers as on the skirt', async ({ page }) => {
@@ -37,6 +37,7 @@ test('a new sewist sees Start from a photo', async ({ page }) => {
   await pickToMake(page, 'Skirt');
   await fillStepPages(page);
   await expectStyle(page, 'Skirt');
+  await openLooks(page);
   await expect(main.getByRole('button', { name: 'Start from a photo' })).toBeVisible();
   await expect(await showAllTools(page)).toBeVisible();
 });

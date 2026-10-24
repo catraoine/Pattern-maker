@@ -3462,6 +3462,60 @@ button.link.garment-change {
   min-height: 2.9em;
   margin: 0;
 }
+/* Enlarge: the form fills the screen to draw on, with Done, the sides, the hint and the line kinds round it. */
+.form-draw.big {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: none;
+  margin: 0;
+  padding: max(12px, env(safe-area-inset-top, 0px)) 16px max(12px, env(safe-area-inset-bottom, 0px));
+  background: var(--paper);
+}
+.form-draw.big .screen-head {
+  justify-content: flex-end;
+  margin: 0;
+}
+.form-draw.big .screen-head > div {
+  display: none;
+}
+.form-draw.big .card {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  gap: 8px;
+}
+.form-draw.big .preview {
+  min-height: 0;
+}
+/* Room for three lines of hint, so the form keeps its size while the hint changes under a line being drawn. */
+.form-draw.big .form-said {
+  min-height: 4.4em;
+}
+.form-draw.big .form-svg {
+  width: auto;
+  max-width: 100%;
+  height: 100%;
+  max-height: none;
+  animation: form-grow 0.5s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+/* The form grows to fill the screen, rather than jumping there. */
+@keyframes form-grow {
+  from {
+    transform: scale(0.55);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .form-draw.big .form-svg {
+    animation: none;
+  }
+}
 /* Small enough that Done, the form, the hint and the line kinds all fit on a phone without scrolling. */
 .form-svg {
   max-height: min(62vh, calc(100svh - 480px));
@@ -7091,6 +7145,46 @@ details.sew > .sew-summary + .row {
 .waitlist-code button {
   white-space: nowrap;
 }
+/* L5 Ask First (2026-10-24): which language someone sews in, one line under the email with a drop-down. */
+.waitlist-lang {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border-bottom: 1px solid var(--line-strong);
+  padding: 2px 0;
+}
+.waitlist-lang label {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.waitlist-lang select {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 24px 0 0;
+  border: none;
+  border-radius: 0;
+  background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23d9c49b' stroke-width='1.2'/%3E%3C/svg%3E") no-repeat right 4px center;
+  appearance: none;
+  -webkit-appearance: none;
+  font-family: var(--sans);
+  font-size: 16px;
+  color: var(--ink);
+  cursor: pointer;
+}
+.waitlist-lang select option {
+  background: var(--paper);
+  color: var(--ink);
+}
+.waitlist-lang-note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
 /* Measuring accuracy (2026-10-21): the friend switch beside How to do it, the nudge on the measurements that are hard
    alone, and the common mistakes under the steps. */
 .friend-nudge {
@@ -7151,4 +7245,306 @@ details.sew > .sew-summary + .row {
 }
 .seam-height p {
   margin: 0.25rem 0 0;
+}
+/* Drop-downs (Cat applied, 2026-10-24): the garment on the Style title, paper size and fabric width on Print. */
+.drop {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+.drop-label {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.drop-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 2px;
+  border: none;
+  border-bottom: 1px solid var(--gild);
+  border-radius: 0;
+  background: none;
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink);
+  cursor: pointer;
+}
+.drop-button svg {
+  color: var(--gild);
+}
+.drop-list {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 30;
+  min-width: max(100%, 220px);
+  display: grid;
+  margin: 0;
+  padding: 6px 0;
+  background: var(--paper);
+  border: 1px solid var(--gild);
+}
+.drop-list button {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  height: 44px;
+  min-height: 44px;
+  margin: 0;
+  padding: 0 16px;
+  line-height: 1;
+  border: none;
+  border-radius: 0;
+  background: none;
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-align: left;
+  cursor: pointer;
+}
+.drop-list button.on {
+  color: var(--ink);
+}
+.drop-list button.on::after {
+  content: '';
+  flex: 0 0 18px;
+  height: 1px;
+  background: var(--gild);
+  align-self: center;
+}
+.drop-list .drop-note {
+  margin-left: auto;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: var(--muted);
+  opacity: 0.8;
+}
+.style-layout .screen-head .drop.garment-drop .drop-button {
+  font-size: 13px;
+}
+.drop.garment-drop .drop-list {
+  left: auto;
+  right: 0;
+}
+/* Shorter Print (Cat applied P2 + P3, 2026-10-24): no fabric yet is one line; the pages fold behind "See the pages". */
+.yourfabric.none .fabline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 16px;
+}
+.yourfabric.none .fabline p {
+  margin: 0;
+}
+.print-sheet .see-pages {
+  align-self: flex-start;
+}
+
+/* Cat's D The Journey (2026-10-24): the Style page walked as a fitting. */
+/* Looks is a quiet link by the title, under Choose another garment, not a step. */
+.style-layout .screen-head .looks-link {
+  flex: 1 0 100%;
+  margin-top: -10px;
+  text-align: right;
+}
+.style-layout .screen-head .looks-link[aria-pressed='true'] {
+  color: var(--ink);
+}
+/* The steps are numbered: the order is the way through. */
+.style-tabs .step-no {
+  margin-right: 6px;
+  color: var(--gild);
+}
+.style-tabs button.on .step-no {
+  color: var(--ink);
+}
+/* The way on, at the end of each step. */
+.step-next {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 22px 0 10px;
+}
+.step-next .step-go {
+  margin-left: auto;
+  min-height: 44px;
+  padding: 0 18px;
+  border: var(--bw) solid var(--gild);
+  background: none;
+  color: var(--gild);
+  font: var(--w-body) 11px/1 var(--mono);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.step-next .step-go:disabled {
+  border-color: var(--disabled);
+  color: var(--disabled);
+  cursor: default;
+}
+/* One question open at a time: the others are one line each, with their pick. */
+.style-panel fieldset.fold > legend {
+  width: 100%;
+  margin: 0;
+}
+.fold-head {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  min-height: 46px;
+  padding: 12px 0 10px;
+  border: none;
+  border-bottom: 1px solid var(--guide);
+  background: none;
+  color: var(--muted);
+  text-align: left;
+  cursor: pointer;
+}
+.fold-name {
+  font-family: var(--display);
+  font-stretch: 75%;
+  font-weight: 600;
+  font-size: 17px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.fold-pick {
+  font-family: var(--sans);
+  font-size: 14px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--gild);
+  text-align: right;
+}
+.fold-pick::after {
+  content: ' ›';
+  color: var(--muted);
+}
+fieldset.fold.open > legend .fold-head {
+  color: var(--ink);
+  border-bottom-color: transparent;
+  padding-bottom: 4px;
+}
+fieldset.fold.open > legend .fold-pick::after {
+  content: none;
+}
+.fold-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+fieldset.fold.open > .fold-body {
+  padding: 4px 0 18px;
+  border-bottom: 1px solid var(--guide);
+}
+.style-panel fieldset.fold {
+  gap: 0;
+}
+.style-panel > .card:has(> fieldset.fold),
+.style-panel > .tab-part:has(> fieldset.fold),
+.style-panel > .card > .tab-part:has(> fieldset.fold) {
+  gap: 0;
+}
+/* A pick is plain at a glance: a picked tile fills in champagne, the same as a picked word. */
+.style-panel .chips.pics .chip.on {
+  background: var(--ink);
+  color: var(--white);
+  border-color: var(--ink);
+  box-shadow: none;
+}
+.style-panel .chips.pics .chip.on :is(.pic, .pic-trace) {
+  stroke: var(--white);
+}
+/* The line under a pick stays, without the little picture box and the level tag. */
+.style-panel .explain.with-pic {
+  display: block;
+  padding-left: 10px;
+  border-left: var(--bw) solid var(--gild);
+}
+.style-panel .explain-pic,
+.style-panel .explain .skill-tag {
+  display: none;
+}
+/* The fabric swatches wrap into rows, so none is cut off at the edge. */
+.style-panel .swatch-row .swatches {
+  flex-wrap: wrap;
+  overflow: visible;
+}
+/* The example-body note is one quiet line on Style, not a box. */
+.main:has(.style-layout) .example-tag {
+  min-height: 0;
+  margin: 0 0 6px;
+  padding: 4px 0;
+  border: none;
+  justify-content: flex-start;
+}
+/* On a phone the view switches share one row over the drawing: Form, Drawing, All round on the left, Pattern on
+   the right, and Draw in the drawing's corner opposite Enlarge. */
+@media (max-width: 760px) {
+  .style-layout .screen-head {
+    flex-wrap: wrap;
+  }
+  .style-edit {
+    position: relative;
+  }
+  .style-pin > section > .row.between.wrap {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    height: 34px;
+    padding-right: 96px;
+  }
+  .style-pin > section > .lookboxes {
+    position: absolute;
+    top: 4px;
+    right: 0;
+    z-index: 6;
+    height: 34px;
+    align-items: center;
+  }
+  /* The view in use is only read out: the row shows the one to switch to. */
+  .style-pin > section > .lookboxes button.on {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .style-pin > section > .row.between.wrap > :is(.row.tools, .drawmenu, .link.small, .ghost) {
+    position: absolute;
+    top: 50px;
+    left: 0;
+    z-index: 6;
+  }
+  .style-pin > section > .row.between.wrap > .link.small,
+  .style-pin > section > .row.between.wrap > .row.tools > .link.small {
+    font-size: 0;
+    letter-spacing: 0;
+  }
+  .style-pin > section > .row.between.wrap > .link.small::before,
+  .style-pin > section > .row.between.wrap > .row.tools > .link.small::before {
+    content: '✎ Draw' / '';
+    font-size: 11px;
+    letter-spacing: var(--track);
+  }
+  .style-pin > section > .row.between.wrap > .drawmenu > summary::before {
+    content: '✎ ' / '';
+  }
 }

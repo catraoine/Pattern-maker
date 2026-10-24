@@ -6,6 +6,7 @@ import {
   EMPTY_DAY,
   MAX_BEACON_BYTES,
   addBeacon,
+  byLanguage,
   checkBeacon,
   checkSignup,
   funnel,
@@ -155,6 +156,12 @@ describe('sign-ups', () => {
     expect(checkSignup(JSON.stringify({ kind: 'news', email: 'a@b.co' }))).toEqual({ kind: 'news', email: 'a@b.co' });
     expect(checkSignup(JSON.stringify({ kind: 'news', email: 'a@b.co', src: 'ig' }))).toEqual({ kind: 'news', email: 'a@b.co', src: 'ig' });
     expect(checkSignup(JSON.stringify({ kind: 'news', email: 'a@b.co', src: 'http://x' }))).toBeNull();
+  });
+
+  it('keeps the language a waitlist sign-up sews in, from the list only, and counts them', () => {
+    expect(checkSignup(JSON.stringify({ kind: 'news', email: 'a@b.co', lang: 'de' }))).toEqual({ kind: 'news', email: 'a@b.co', lang: 'de' });
+    expect(checkSignup(JSON.stringify({ kind: 'news', email: 'a@b.co', lang: 'klingon' }))).toBeNull();
+    expect(byLanguage([{ lang: 'de' }, { lang: 'de' }, { lang: 'fr' }, {}, null])).toEqual({ de: 2, fr: 1, en: 2 });
   });
 
   it('accepts an interest sign-up for a known offer only', () => {

@@ -9,7 +9,9 @@ interface Props {
 /** Atelier Nights (Cat's N3 Pick Your City, 2026-10-18): tap a city to be counted in for a night there. No tickets are sold yet. */
 export function NightsScreen({ onPrivacy }: Props) {
   const [open, setOpen] = useState<NightCity>();
-  useEffect(() => window.scrollTo(0, 0), []);
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
   return (
     <article className="card legal promo" aria-labelledby="ntitle">
       <p className="eyebrow">Atelier Nights</p>

@@ -14,7 +14,7 @@ import { CM_PER_UNIT, HEAD_CHIN, HEAD_TOP, headLines } from './ContourForm';
 /** How tall the head stands above the top of the neck, in cm. */
 const HEAD_CM = (HEAD_CHIN - HEAD_TOP) * CM_PER_UNIT - 1.5;
 import { FormLine, FormSide, Reading, landmarks } from './formLines';
-import { FormLayers, WornSleeve, wornCloth } from './FormSketch';
+import { CLOTH_EDGES, FormLayers, WornSleeve, wornCloth } from './FormSketch';
 import { TestingTag } from './TestingTag';
 import { DemoButton } from './DemoButton';
 
@@ -195,6 +195,20 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
   const [undone, setUndone] = useState<C[]>([]);
   /** Asking whether to leave without the lines, after ← or the phone's back. */
   const [asking, setAsking] = useState(false);
+  /** The form enlarged to fill the screen, for a roomier place to draw. */
+  const [big, setBig] = useState(false);
+  useEffect(() => {
+    if (!big) return;
+    const key = (e: KeyboardEvent) => e.key === 'Escape' && setBig(false);
+    window.addEventListener('keydown', key);
+    // The page underneath stays put while the form fills the screen.
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', key);
+      document.body.style.overflow = overflow;
+    };
+  }, [big]);
   const drawn = useRef(0);
   drawn.current = steps.length;
   const cancel = useRef(onCancel);
@@ -354,7 +368,7 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
   const help = helpFor?.[kind] ?? ((onBack && BACK_HELP[kind]) || HELP[kind]);
 
   return (
-    <div className="form-draw">
+    <div className={big ? 'form-draw big' : 'form-draw'}>
       <div className="screen-head">
         <div>
           <p className="eyebrow">Drape · Your form <TestingTag /></p>
@@ -396,6 +410,12 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
         </div>
         <div className="preview">
           <DemoButton demo="draw" />
+          <button type="button" className="enlarge" aria-pressed={big} onClick={() => setBig(!big)}>
+            <svg viewBox="0 0 16 16" aria-hidden="true">
+              <path d={big ? 'M13.5 6.5h-4v-4M2.5 9.5h4v4M9.5 6.5 14 2M6.5 9.5 2 14' : 'M9.5 2.5h4v4M6.5 13.5h-4v-4M13.5 2.5 9 7M2.5 13.5 7 9'} />
+            </svg>
+            {big ? 'Smaller' : 'Enlarge'}
+          </button>
           <svg
             ref={svg}
             viewBox={`0 ${f(frame.top)} ${f(2 * cx)} ${f(frame.bottom - frame.top)}`}
@@ -449,7 +469,8 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
                 <path d={head.outline} className="form-line" fill="none" strokeWidth={0.22} opacity={0.9} />
               </g>
             )}
-            {kinds.map(([id]) =>
+            {/* On the dress, the cloth's own edges are the neckline, side, hem and sleeve, so only the pen shows. */}
+            {kinds.filter(([id]) => !(clothOn && CLOTH_EDGES.includes(id))).map(([id]) =>
               (current[id] ?? []).map((pts, i) => (
                 <path key={`${id}${i}`} d={at(pts)} className={id === kind ? 'tape on' : 'tape'} fill="none" strokeWidth={id === kind ? 0.42 : 0.22} strokeLinecap="round" />
               )),

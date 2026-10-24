@@ -7,7 +7,9 @@ interface Props {
 
 /** Tracé Engine for brands (Cat's E1 Quiet Page, 2026-10-18): what it would do and an early-access sign-up. Nothing is built behind it yet. */
 export function BrandsScreen({ onPrivacy }: Props) {
-  useEffect(() => window.scrollTo(0, 0), []);
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
   return (
     <article className="card legal promo" aria-labelledby="btitle">
       <p className="eyebrow">Tracé Engine · for brands</p>

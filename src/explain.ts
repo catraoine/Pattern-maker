@@ -66,9 +66,20 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       elastic: ['Elastic in the waist so it pulls on with no zip. The easiest to sew.', 'easy'],
       wrap: ['The front crosses over and the waistband runs on into ties, knotted at the side. No zip, and it adjusts as you wear it.'],
     },
+    front: {
+      plain: ['A plain front, shaped at the waist by its darts.', 'easy'],
+      yoke: ['A curved band at the top that takes the darts, so the skirt below hangs smooth. Denim and A-line classics.'],
+      buttons: ['Buttons all the way down the front and no zip. The back is cut in one piece.'],
+    },
     pockets: {
       none: ['No pockets.'],
       inseam: ['Pockets hidden in the side seams, out of sight until you use them.'],
+    },
+    belt: {
+      none: ['No belt: the waist as it is.', 'easy'],
+      sash: ['A long sash in the same fabric that wraps your waist and ties in a bow or a knot.', 'easy'],
+      sash_loops: ['The sash, held in place by a narrow loop at each side seam so it never slips.', 'easy'],
+      loops: ['Four narrow loops at the waist to carry a belt of your own, up to 3 cm wide.'],
     },
   },
   bodice: {
@@ -118,6 +129,18 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       cap: ['A tiny sleeve that just covers the top of the shoulder.', 'easy'],
       flutter: ['A short sleeve that flares out and ripples at the hem. Best in a light, drapey fabric.'],
     },
+    sleeveCut: {
+      set_in: ['The sleeve is sewn into a round armhole at your shoulder point. The usual way.', 'easy'],
+      drop: ['The shoulder runs on past your shoulder point and the sleeve starts lower down the arm, for an easy, relaxed look.', 'easy'],
+      raglan: ['A diagonal seam from the neck to the underarm, the shoulder cut as part of the sleeve. Easy to fit and to move in.'],
+      kimono: ['The sleeve is cut in one with the bodice, so there is no armhole seam at all. Short to three-quarter length.', 'easy'],
+    },
+    sleeveCuff: {
+      none: ['The sleeve ends in a plain hem, or the bishop sleeve in its band.', 'easy'],
+      shirt: ['A buttoned cuff over a bound slit, the sleeve gathered into it, as on a shirt.', 'skill'],
+      elastic: ['Elastic in a casing at the end, so the sleeve pulls on and gathers softly round the wrist.', 'easy'],
+      tie: ['A narrow band that runs on into ties, knotted at the wrist over a short slit.'],
+    },
     princess: {
       none: ['No extra seams. The bust is shaped with darts instead.', 'easy'],
       shoulder: ['Long curved seams from the shoulder over the bust, for a close, smooth fit with no darts.', 'skill'],
@@ -143,10 +166,19 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       mock: ['A taller band that hugs the neck, like a turtleneck that stops halfway. The back zip runs up through it.'],
       funnel: ['A tall band that stands a little away from the neck, widening toward its top edge like a funnel.'],
       shirt: ['A classic shirt collar on a stand, with points that fold down.', 'skill'],
+      bow: ['A soft bias strip round the neck that runs on into long ties, knotted in a bow at the front. On a crew or V neck.'],
+      ruffle: ['A soft folded frill gathered into the neckline seam, falling over the neck edge all round.'],
+    },
+    back: {
+      plain: ['The back neck sits high, close to the base of the neck.', 'easy'],
+      scoop: ['The back is cut away in a low curve, about a third of the way to the waist, and taped so it hugs you.'],
+      v: ['The back drops to a deep V, nearly halfway to the waist. Plan what goes underneath.', 'skill'],
+      keyhole: ['A small teardrop opening at the top of the back, closed at the neck with a button and a fine loop.'],
     },
     structure: {
       none: ['No boning, so the bodice is soft and moves with you.', 'easy'],
       boned: ['Thin, flexible bones sewn into the seams hold it firmly in shape, like a corset.', 'skill'],
+      shirred: ['Rows of elastic thread gather the back so the top pulls on and hugs you. No zip, no boning.'],
     },
     peplum: {
       none: ['No peplum.'],

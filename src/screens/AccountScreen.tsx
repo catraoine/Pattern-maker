@@ -1,5 +1,7 @@
 import { SendToDevice } from '../ui/SendToDevice';
 import { TesterCode } from '../ui/TesterCode';
+import { CloudAccount } from '../ui/CloudAccount';
+import type { Cloud } from '../cloud/useCloud';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { countStep } from '../report/report';
 import { deletePhoto } from '../photoStore';
@@ -57,6 +59,8 @@ interface Props {
   onMode?: (m: Mode) => void;
   /** Opens the plans; only given while the plan screens are shown (see plansShown). */
   onPlans?: () => void;
+  /** Sign-in, once it's shown (see cloud/flag.ts). */
+  cloud?: Cloud;
 }
 
 const show = (cm: number | undefined, unit: Unit) =>
@@ -82,7 +86,7 @@ function Fold({ id, title, summary, open, children }: { id: string; title: strin
   );
 }
 
-export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurements, onSwitchPerson, onAddPerson, onRemovePerson, onClientBook, onCheckFile, onBodyDouble, onOpen, onRename, onRemove, onFit, openFit, onReset, onLegal, onBackup, sendLink, onTesterCode, onRestore, mode = 'all', onMode, onPlans }: Props) {
+export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurements, onSwitchPerson, onAddPerson, onRemovePerson, onClientBook, onCheckFile, onBodyDouble, onOpen, onRename, onRemove, onFit, openFit, onReset, onLegal, onBackup, sendLink, onTesterCode, onRestore, mode = 'all', onMode, onPlans, cloud }: Props) {
   const limit = savedLimit(account);
   const [confirmReset, setConfirmReset] = useState(false);
   const [restoreMsg, setRestoreMsg] = useState('');
@@ -240,8 +244,11 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
           )}
         </Fold>
 
-        <Fold id="datatitle" title="Your data" summary="On this device">
-          <p className="small">Everything is kept on this device. Send it to your computer to carry on there, or download a backup to keep a copy.</p>
+        <Fold id="datatitle" title="Your data" summary={cloud?.user ? 'In your account' : 'On this device'} open={!!cloud?.usable}>
+          {cloud?.usable && <CloudAccount cloud={cloud} />}
+          <p className="small">
+            {cloud?.user ? 'A copy is also kept on this device.' : 'Everything is kept on this device.'} Send it to your computer to carry on there, or download a backup to keep a copy.
+          </p>
           <div className="row wrap">
             <SendToDevice link={sendLink} label="Send to another device" className="secondary sm" />
             <button type="button" className="secondary sm" onClick={onBackup}>
@@ -268,7 +275,10 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
           )}
           {confirmReset ? (
             <div className="stack">
-              <p className="small">This deletes your name, everyone's measurements and saved patterns from this device. It can't be undone.</p>
+              <p className="small">
+                This deletes your name, everyone's measurements and saved patterns from this device. It can't be undone.
+                {cloud?.user && ' You\'ll be signed out first, so your account keeps its copy.'}
+              </p>
               <div className="row wrap">
                 <button type="button" className="primary" onClick={onReset}>
                   Delete everything

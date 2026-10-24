@@ -25,7 +25,7 @@ import { cm } from './skirt';
 
 export type TopNeckline = 'strapless' | 'sweetheart' | 'cami' | 'halter';
 /** A soft bodice, or a boned one built like a corset. */
-export type Structure = 'none' | 'boned';
+export type Structure = 'none' | 'boned' | 'shirred';
 
 export const TOP_NECKLINES: readonly TopNeckline[] = ['strapless', 'sweetheart', 'cami', 'halter'];
 /** Necklines with a top edge below the shoulders. */
@@ -33,7 +33,7 @@ export const isTop = (n: string | undefined): n is TopNeckline => !!n && (TOP_NE
 /** Strapless necklines, which need the boning to stay up. */
 export const isStrapless = (n: string | undefined) => n === 'strapless' || n === 'sweetheart';
 /** Whether the bodice is boned: always when strapless, by choice on a cami. */
-export const isBoned = (s: { neckline?: string; structure?: Structure }) => isStrapless(s.neckline) || (s.neckline === 'cami' && s.structure === 'boned');
+export const isBoned = (s: { neckline?: string; structure?: Structure }) => (isStrapless(s.neckline) && s.structure !== 'shirred') || (s.neckline === 'cami' && s.structure === 'boned');
 
 /** A boned bodice's ease, in cm round the body: close at the bust, smaller than the body at the waist. */
 export const BONED_EASE = { bust: 2, waist: -2 };

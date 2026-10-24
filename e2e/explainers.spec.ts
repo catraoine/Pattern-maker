@@ -1,18 +1,13 @@
 import { chooseChip, expect, startWithExample, test } from './fixtures';
 
-// Each Style section says what its pick does, and its drawing opens full size (Cat's E2 + E3 and extras).
+// Each Style section says what its pick does, and a picked tile's drawing opens full size (Cat's E2 + E3; the
+// little drawing beside the line went in Cat's D, 2026-10-24).
 test('a picked choice is explained, and its drawing opens full size', async ({ page }) => {
   await startWithExample(page);
   const main = page.getByRole('main');
   const details = main.getByRole('group', { name: 'Details', exact: true });
   await chooseChip(page, 'Details', 'Box pleats');
   await expect(details.getByText(/Folds that face away from each other/)).toBeVisible();
-  // A section without picture tiles: its little drawing opens full size, and Escape closes it.
-  await details.getByRole('button', { name: 'See the drawing full size' }).click();
-  const big = page.getByRole('dialog', { name: 'Box pleats' });
-  await expect(big).toBeVisible();
-  await page.keyboard.press('Escape');
-  await expect(big).toHaveCount(0);
   // A picked picture tile: tapping its drawing opens it full size, and Close closes it.
   const silhouette = main.getByRole('group', { name: 'Silhouette', exact: true });
   await chooseChip(page, 'Silhouette', 'Trumpet');

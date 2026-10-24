@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { expect, startWithExample, test } from './fixtures';
+import { expect, startWithExample, test, openLooks } from './fixtures';
 
 // Photos of any garment: the reading names the garment and opens its result, an outfit photo asks which
 // piece to draft, and "Not a ...?" switches garment without reading the photo again. The server's reading
@@ -47,6 +47,7 @@ async function readPhoto(page: Page, reading: object) {
     return route.fulfill({ json: { ok: true, reading } });
   });
   const main = page.getByRole('main');
+  await openLooks(page);
   await main.getByRole('button', { name: 'Start from a photo' }).click();
   await expect(main.getByRole('heading', { name: 'Snap something you love.' })).toBeVisible();
   await main.locator('input[type=file]').setInputFiles({ name: 'look.png', mimeType: 'image/png', buffer: PNG });
@@ -72,6 +73,7 @@ test('an outfit photo asks which piece, and drafts the jacket', async ({ page })
   await main.getByRole('button', { name: 'Draft my coat' }).click();
 
   await expect(main.getByRole('heading', { name: 'Style your coat' })).toBeVisible();
+  await openLooks(page);
   await expect(main.getByText('Matched to your photo')).toBeVisible();
   expect(calls()).toBe(1);
 });
@@ -95,5 +97,6 @@ test('a dress photo drafts a dress, with its skirt to change', async ({ page }) 
   await expect(main.getByText('Silhouette', { exact: true })).toBeVisible();
   await main.getByRole('button', { name: 'Draft my dress' }).click();
   await expect(main.getByRole('heading', { name: 'Style your dress' })).toBeVisible();
+  await openLooks(page);
   await expect(main.getByText('Matched to your photo')).toBeVisible();
 });

@@ -1,6 +1,7 @@
 // Server side only: checks what the app's report beacon sends (crash reports and anonymous daily counts) and
 // sign-ups, before they're stored in Netlify Blobs. Imported by the report and signup functions.
 import { z } from 'zod';
+import { SEW_LANGS, type SewLang } from '../langs';
 import { NIGHT_CITIES, OFFER_IDS } from '../offers';
 
 export const MAX_BEACON_BYTES = 16_000;
@@ -192,7 +193,8 @@ export const SignupSchema = z.discriminatedUnion('kind', [
     })
     .strict(),
   // A waitlist sign-up also says where the visitor first came from (?src=ig), so the newsletter list can show it.
-  z.object({ kind: z.literal('news'), email, src: z.string().regex(/^[a-z-]{2,20}$/).optional(), website: honeypot }).strict(),
+  // It can also say which language they sew in.
+  z.object({ kind: z.literal('news'), email, src: z.string().regex(/^[a-z-]{2,20}$/).optional(), lang: z.enum(SEW_LANGS).optional(), website: honeypot }).strict(),
   // "Tell me when it opens" for a paid extra that isn't built yet (src/offers.ts).
   // Atelier Nights sign-ups also name the city, so the first night goes where the most people asked.
   z.object({
@@ -208,6 +210,16 @@ export const SignupSchema = z.discriminatedUnion('kind', [
 ]);
 
 export type Signup = z.infer<typeof SignupSchema>;
+
+/** Waitlist sign-ups by the language they sew in, for the read-out (a sign-up from before the question counts as English). */
+export function byLanguage(news: unknown[]): Partial<Record<SewLang, number>> {
+  const counts: Partial<Record<SewLang, number>> = {};
+  for (const n of news) {
+    const lang = (n as { lang?: SewLang } | null)?.lang ?? 'en';
+    counts[lang] = (counts[lang] ?? 0) + 1;
+  }
+  return counts;
+}
 
 /** The sign-up to store (without the honeypot), or null when the body isn't a valid one. */
 export function checkSignup(text: string): Signup | null {

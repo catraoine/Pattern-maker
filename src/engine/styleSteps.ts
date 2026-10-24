@@ -1,7 +1,7 @@
 // The bodice's sewing steps for its styled details, laid over the block's steps: a moved bust dart,
 // princess seams, a yoke, an empire seam or side panels, a button front and a collar. Plain ASCII
 // punctuation (see instructions.ts).
-import { isBandCollar } from './collar';
+import { BOW, RUFFLE, isBandCollar } from './collar';
 import type { BodiceDraft } from './bodice';
 import type { SewStep, SewingGuide } from './instructions';
 import type { DartPlace } from './manipulate';
@@ -106,12 +106,14 @@ export function styleBodiceSteps(g: SewingGuide, draft: BodiceDraft, o: { seam: 
     if (collar === 'peter_pan') extra.push(buttons ? 'Cut the collar twice on the fold, once for the top collar and once for the under collar, and once from interfacing.' : 'Cut four collar pieces (two pairs), two for the top collar and two for the under collar, and interface the top pair.');
     if (isBandCollar(collar)) extra.push('Cut the collar twice on the fold, once for the outer band and once for the inner band, and interface the outer one.');
     if (collar === 'shirt') extra.push('Cut the collar and the collar stand twice each on the fold, and interface one of each.');
+    if (collar === 'bow') extra.push('Cut the two bow strips as a pair, single layer on the true bias, and snip their notches.');
+    if (collar === 'ruffle') extra.push(`Cut the neck ruffle with its fold end on the fold, so it opens out into one long strip, and snip its notches.`);
     if (buttons && o.edges === 'lined') extra.push('Cut the lining fronts from the front pattern with the front facing laid over it, cutting 1.5 cm beyond the facing\'s inner edge, so the lining meets the facing.');
     let text = cut.text.replace(/Place the bodice front on the fold, and the bodice back on both layers so you get a pair\./, placeWords(draft));
     if (princess) text = text.replace(', and chalk-mark the dart lines and the bust point', ', and mark the bust point');
     if (buttons) text = text.replace(', and chalk-mark the dart lines and the bust point.', ', and chalk-mark the dart lines, the bust point and the buttonhole marks.').replace(/snip the small notches\./, 'snip the small notches and chalk-mark the buttonhole marks.');
-    // A mandarin collar finishes the neck itself: no neck facings.
-    if (isBandCollar(collar) && !buttons && o.edges === 'facings') text = text.replace(' Cut the neck facings from the fabric, and again from fusible interfacing.', '').replace('Cut the four facing pieces', 'Cut the two armhole facings');
+    // A mandarin collar or a bow finishes the neck itself: no neck facings.
+    if ((isBandCollar(collar) || collar === 'bow') && !buttons && o.edges === 'facings') text = text.replace(' Cut the neck facings from the fabric, and again from fusible interfacing.', '').replace('Cut the four facing pieces', 'Cut the two armhole facings');
     steps[at('Cut out')] = { ...cut, text: `${text} ${extra.join(' ')}`.trim() };
   }
 
@@ -134,7 +136,7 @@ export function styleBodiceSteps(g: SewingGuide, draft: BodiceDraft, o: { seam: 
     steps.splice(after, 0, added.join);
   }
 
-  if (isBandCollar(collar) && !buttons && o.edges === 'facings') {
+  if ((isBandCollar(collar) || collar === 'bow') && !buttons && o.edges === 'facings') {
     const fi = steps.findIndex((s) => s.title === 'Interface the facings');
     if (o.sleeve) steps.splice(fi, 1);
     else steps[fi] = { ...steps[fi], text: `Fuse the interfacing to the wrong side of each armhole facing. Join them at the shoulders and the sides, ${o.seam} from the edge. Press the seams open and overlock or zigzag the outer edges marked NEATEN THIS EDGE.` };
@@ -189,6 +191,32 @@ export function styleBodiceSteps(g: SewingGuide, draft: BodiceDraft, o: { seam: 
           : `Pin the outer band to the neckline, right sides together, its ends at the centre back seam lines either side of the zip and the notches at the shoulder seams. Sew ${o.curve} from the edge, trim and clip. Press the seam up into the band, fold the band's ends in over the zip tape, bring the inner band's folded edge over the seam, and slip-stitch it down.`,
       },
     );
+  } else if (collar === 'bow') {
+    collarSteps.push(
+      {
+        title: 'Make the bow ties',
+        text: `Fold each bow strip in half along its length, right sides together. Sew across the slanted end and along the long edge as far as the CENTRE FRONT notch, 1 cm from the edge, and stop there. Trim the corner, turn the tie right side out with a loop turner or the blunt end of a pencil, and press, leaving the neck part open and flat.`,
+      },
+      {
+        title: 'Attach the bow',
+        text: `Open out the neck part of each strip. Pin one layer to the neckline, right sides together, from the zip seam line at the centre back round to the centre front, the first notch at the shoulder seam and the CENTRE FRONT notch at the centre front (the point of a V neck), so the two ties hang from there. Sew ${o.curve} from the edge, clip the curve and press the seam up into the strip. Fold the strip's end in over the zip tape, turn the free edge under along the seam, and slip-stitch it down by hand. Knot the ties into a soft bow, ${BOW.tie} cm each.`,
+      },
+    );
+  } else if (collar === 'ruffle') {
+    const r = draft.pieces.find((pc) => pc.name === 'Neck ruffle');
+    const ratio = (r?.meta.ruffle as number | undefined) ?? RUFFLE.ratio;
+    collarSteps.push(
+      {
+        title: 'Make the ruffle',
+        text: `Fold the ruffle strip in half along its length, wrong sides together, and press.${buttons ? '' : ` Fold each end in ${o.seam}, right sides together, sew across it, and turn it out.`} Sew two rows of long machine stitches through both layers along the raw edges, one just inside the seam line and one 0.5 cm further out, leaving long thread ends. It is ${ratio === 2 ? 'twice' : `${ratio} times`} as long as the neckline, so it gathers up to fit.`,
+      },
+      {
+        title: 'Attach the ruffle',
+        text: buttons
+          ? `Pin the ruffle to the right side of the neckline, raw edges level, its middle at the centre back, its SHOULDER notches at the shoulder seams and its ends at the centre front marks. Pull up the gathers to fit, spread them evenly and baste ${o.curve} from the edge.`
+          : `Pin the ruffle to the right side of the neckline, raw edges level, its middle at the centre front, its SHOULDER notches at the shoulder seams and its ends at the zip seam lines. Pull up the gathers to fit, spread them evenly and baste ${o.curve} from the edge.`,
+      },
+    );
   } else if (collar === 'shirt') {
     collarSteps.push(
       {
@@ -216,7 +244,7 @@ export function styleBodiceSteps(g: SewingGuide, draft: BodiceDraft, o: { seam: 
             ? `Smooth the lining into the bodice, wrong sides together, matching the shoulder and side seams, and baste the facings and the lining to the neckline, ${o.curve} from the edge: the ${standName} goes on through all the layers and covers the lining's neck edge.`
             : `Baste the facings to the neckline, ${o.curve} from the edge, so the collar goes on through both.`
         }`
-      : `Pin the facings to the bodice, right sides together, down the front edges and round the neckline${collar === 'peter_pan' ? ' over the collar' : ''}, matching the shoulder seams. Sew 1 cm from the front edges and ${o.curve} round the neck. Trim, clip the neck curve, and understitch the neck as far as you can reach. Turn the facings to the inside, press, and tack them to the shoulder seams.`,
+      : `Pin the facings to the bodice, right sides together, down the front edges and round the neckline${collar === 'peter_pan' ? ' over the collar' : collar === 'ruffle' ? ' over the ruffle' : ''}, matching the shoulder seams. Sew 1 cm from the front edges and ${o.curve} round the neck. Trim, clip the neck curve, and understitch the neck as far as you can reach. Turn the facings to the inside, press, and tack them to the shoulder seams.`,
   };
 
   if (neckAt >= 0) {
@@ -224,8 +252,8 @@ export function styleBodiceSteps(g: SewingGuide, draft: BodiceDraft, o: { seam: 
     const replace: SewStep[] = [];
     if (buttons && (isBandCollar(collar) || collar === 'shirt')) replace.push(buttonFacing, ...collarSteps);
     else if (buttons) replace.push(...collarSteps, buttonFacing);
-    else if (isBandCollar(collar)) replace.push(...collarSteps);
-    else if (collar === 'peter_pan') replace.push(...collarSteps, { ...neckStep, text: neckStep.text.replace(/to the neckline/, 'to the neckline over the collar').replace(/round the neckline/, 'round the neckline over the collar') });
+    else if (isBandCollar(collar) || collar === 'bow') replace.push(...collarSteps);
+    else if (collar === 'peter_pan' || collar === 'ruffle') replace.push(...collarSteps, { ...neckStep, text: neckStep.text.replace(/to the neckline/, `to the neckline over the ${collar === 'ruffle' ? 'ruffle' : 'collar'}`).replace(/round the neckline/, `round the neckline over the ${collar === 'ruffle' ? 'ruffle' : 'collar'}`) });
     else replace.push(neckStep);
     steps.splice(neckAt, 1, ...replace);
   } else if (buttons && lined) {
@@ -278,6 +306,6 @@ export function styleBodiceSteps(g: SewingGuide, draft: BodiceDraft, o: { seam: 
     if (buttons && n === 'Hook and eye') return [];
     return [n];
   });
-  const interfacing = (buttons || collar !== 'none') && !notions.some((n) => /interfacing/.test(n));
+  const interfacing = (buttons || (collar !== 'none' && collar !== 'bow')) && !notions.some((n) => /interfacing/.test(n));
   return { notions: interfacing ? [...notions.slice(0, -1), '0.5 m lightweight fusible interfacing', notions[notions.length - 1]] : notions, steps };
 }

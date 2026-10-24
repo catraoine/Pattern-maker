@@ -282,6 +282,8 @@ export function edgesFor(d: BodiceDraft, e: BodiceEdges): BodiceEdges {
   if (d.top?.boned) return 'lined';
   // A wrap's long front edge is bound or lined: a facing that long and curved would twist.
   if (d.wrap && e === 'facings') return 'lined';
+  // A raglan's or kimono's lining would have to be cut with sleeves of its own: the neck is faced instead.
+  if ((d.sleeveCut === 'raglan' || d.sleeveCut === 'kimono') && e === 'lined') return 'facings';
   return d.top && e === 'facings' ? 'lined' : e;
 }
 

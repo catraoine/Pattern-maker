@@ -1,4 +1,4 @@
-import { expect, openFold, startWithExample, stepButton, test } from './fixtures';
+import { expect, openFold, startWithExample, stepButton, test, openLooks } from './fixtures';
 
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
 
@@ -33,6 +33,7 @@ test('fit tester code: checked once, kept, and sent with each photo reading', as
   });
   await stepButton(page, 'Style').click();
   const main = page.getByRole('main');
+  await openLooks(page);
   await main.getByRole('button', { name: 'Start from a photo' }).click();
   await main.locator('input[type=file]').setInputFiles({ name: 'look.png', mimeType: 'image/png', buffer: PNG });
   await expect.poll(() => sent).toBe('Atelier26');

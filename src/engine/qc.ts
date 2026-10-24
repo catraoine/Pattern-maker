@@ -72,7 +72,13 @@ const NAMES: Record<string, string> = {
   tier: 'tier seam',
   yoke: 'yoke seam',
   empire: 'empire seam',
+  'sleeve-hem': 'sleeve hem',
+  overarm: 'overarm seam',
+  underarm: 'underarm seam',
 };
+/** Seams that run on into each other round the body (a kimono's shoulder into its overarm, its
+ * underarm into the side), so the corner between them isn't one that blends across the seam. */
+const RUNS_ON: Record<string, string> = { shoulder: 'overarm', overarm: 'shoulder', side: 'underarm', underarm: 'side' };
 
 const isFront = (pc: Piece) => /front/i.test(pc.name);
 /** The garment a piece belongs to, from its first word: Bodice, Skirt. */
@@ -130,7 +136,7 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
   for (const { group, front, back } of all) {
     const which = (label: string) => (named ? `${group}${/ (centre|side)$/i.test(group) ? ' panel' : ''} ${label[0].toLowerCase()}${label.slice(1)}` : label);
     // Seams that sew together.
-    for (const seam of ['side', 'shoulder', 'inseam']) {
+    for (const seam of ['side', 'shoulder', 'inseam', 'overarm', 'underarm']) {
       const f = halfLength(front, seam, pieces);
       const b = halfLength(back, seam, pieces);
       if (!f || !b) continue;
@@ -160,7 +166,7 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
       } else {
         checks.push({
           group: 'Seams',
-          label: which(seam === 'inseam' ? 'Inside leg seams' : 'Side seams'),
+          label: which(seam === 'inseam' ? 'Inside leg seams' : seam === 'overarm' ? 'Overarm seams' : seam === 'underarm' ? 'Underarm seams' : 'Side seams'),
           detail: `front ${cm(f)}, back ${cm(b)}, ${Math.abs(f - b) < 0.05 ? 'identical' : `${cm(Math.abs(f - b))} apart`}`,
           ok: Math.abs(f - b) <= SEAM_TOLERANCE,
         });
@@ -171,6 +177,7 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
       const fc = [front, ...partsOf(front)].flatMap(corners).filter((c) => (c.a === seam || c.b === seam) && c.a !== 'dart' && c.b !== 'dart');
       for (const c of fc) {
         const other = c.a === seam ? c.b : c.a;
+        if (RUNS_ON[seam] === other) continue;
         const bc = corners(back).find((k) => ((k.a === seam && k.b === other) || (k.b === seam && k.a === other)) && (!whole || Math.sign(k.at!.x) === -Math.sign(c.at!.x)));
         if (!bc || !NAMES[other]) continue;
         const sum = c.angle + bc.angle;
@@ -307,7 +314,8 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
   // on to the edge of a button extension), and a shirt collar against its stand.
   const neckline = pieces.filter((pc) => !pc.kind && (isFront(pc) || isBack(pc)));
   for (const c of pieces.filter((pc) => pc.kind === 'collar' && taggedLength(pc.outline, 'neck') > 0)) {
-    const a = taggedLength(c.outline, 'neck');
+    // A ruffle is gathered into the neckline.
+    const a = taggedLength(c.outline, 'neck') / ((c.meta.ruffle as number | undefined) ?? 1);
     const b = sum(neckline, 'neck') + (c.meta.collarTo === 'extension' ? sum(neckline.filter(isFront), 'opening-neck') : 0);
     checks.push({
       group: 'Seams',
@@ -373,6 +381,7 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
   }
   for (const c of pocketChecks(pieces)) checks.push({ group: 'Seams', ...c });
 
+  for (const c of raglanChecks(pieces)) checks.push(c);
   const sleeve = pieces.find((pc) => /^sleeve$/i.test(pc.name));
   if (sleeve && front && back) checks.push(...sleeveChecks(sleeve, pieces.filter(isFront), pieces.filter(isBack)));
 
@@ -434,6 +443,23 @@ function acrossCentre(pc: Piece): Check[] {
       detail: deg(angle),
       ok: Math.abs(angle - 180) <= SQUARE_TOLERANCE * 2,
     });
+  }
+  return out;
+}
+
+/** A raglan sleeve's halves against the bodice: each raglan seam the same length on both, and the
+ * crown below it eased a little into the armhole left on the bodice. */
+function raglanChecks(pieces: Piece[]): Check[] {
+  const out: Check[] = [];
+  for (const side of ['front', 'back'] as const) {
+    const sleeve = pieces.find((pc) => pc.meta.raglan === side);
+    const body = pieces.find((pc) => !pc.meta.raglan && (side === 'front' ? isFront(pc) : isBack(pc)) && taggedLength(pc.outline, 'raglan') > 0);
+    if (!sleeve || !body) continue;
+    const a = taggedLength(body.outline, 'raglan');
+    const b = taggedLength(sleeve.outline, 'raglan');
+    out.push({ group: 'Seams', label: `${cap(side)} raglan seams`, detail: `bodice ${cm(a)}, sleeve ${cm(b)}, ${Math.abs(a - b) < 0.05 ? 'identical' : `${cm(Math.abs(a - b))} apart`}`, ok: Math.abs(a - b) <= SEAM_TOLERANCE });
+    const ease = taggedLength(sleeve.outline, 'armhole') - taggedLength(body.outline, 'armhole');
+    out.push({ group: 'Seams', label: `${cap(side)} raglan underarm ease`, detail: `${cm(ease)} eased into the armhole below the raglan line`, ok: ease >= -SEAM_TOLERANCE && ease <= 1 });
   }
   return out;
 }

@@ -6,6 +6,8 @@ import type { ReactNode } from 'react';
 import type { ExplainSet } from '../explain';
 
 const TOP = 'M8 12L15 8Q20 13 25 8L32 12L30 22L29 40H11L10 22z';
+/** The top with long sleeves, turned out a little from the body. */
+const SLEEVED = 'M15 8Q20 13 25 8L32 12L37 30H32L30 22L29 40H11L10 22L8 30H3L8 12z';
 const SHORT_TOP = 'M8 12L15 8Q20 13 25 8L32 12L30 22L29 28H11L10 22z';
 const SKIRT = 'M14 6h12l5 38H9z';
 const TROUSERS = 'M11 4h18l1 42h-8l-2-28-2 28h-8z';
@@ -55,6 +57,17 @@ const DETAILS: Record<ExplainSet, Record<string, Record<string, ReactNode>>> = {
       wrap: on(SKIRT, 'M13.5 6h13v4h-13zM24 6L26.5 44M13.5 8L8 14M13.5 8L9.5 16'),
     },
     pockets: { none: on(SKIRT), inseam: inseam(SKIRT, 13) },
+    front: {
+      plain: on(SKIRT, 'M16 6L16.5 13M24 6L23.5 13'),
+      yoke: on(SKIRT, 'M13.2 13Q16 15.5 20 15Q24 15.5 26.8 13'),
+      buttons: on(SKIRT, `M20 6V44${[11, 18, 25, 32].map((y) => dot(21.5, y)).join('')}`),
+    },
+    belt: {
+      none: on(SKIRT),
+      sash: on(SKIRT, 'M13.6 8h12.8v4H13.6zM20 12L17.5 24M20.5 12L23 22'),
+      sash_loops: on(SKIRT, 'M13.6 8h12.8v4H13.6zM20 12L17.5 24M20.5 12L23 22M14.5 7v6M25.5 7v6'),
+      loops: on(SKIRT, 'M16 5.5v3.5M24 5.5v3.5M16.8 5.5v3.5M24.8 5.5v3.5'),
+    },
   },
   bodice: {
     fit: FIT,
@@ -70,6 +83,18 @@ const DETAILS: Record<ExplainSet, Record<string, Record<string, ReactNode>>> = {
       bishop: on('M14 8Q20 2 26 8L31 38Q20 42 9 38z', 'M10 38Q20 42 30 38M14 40h12v4H14zM16 38v2M20 39v1.5M24 38v2'),
       cap: on('M13 8Q20 2 27 8L28 14Q20 17 12 14z', 'M13 8Q20 2 27 8M12 14Q20 17 28 14'),
       flutter: on('M13 8Q20 2 27 8L33 22Q30 25 27 22Q24 26 20 23Q16 26 13 22Q10 25 7 22z', 'M13 8Q20 2 27 8M7 22Q10 25 13 22Q16 26 20 23Q24 26 27 22Q30 25 33 22'),
+    },
+    sleeveCut: {
+      set_in: on(SLEEVED, 'M8 12Q11 17 10 22M32 12Q29 17 30 22'),
+      drop: on('M15 8Q20 13 25 8L34 11L38 30H33L31 24L29 40H11L9 24L7 30H2L6 11z', 'M6 11L15 8M34 11L25 8M6.5 13Q9.5 19 9 24M33.5 13Q30.5 19 31 24'),
+      raglan: on(SLEEVED, 'M16.5 9.5Q14 17 10 22M23.5 9.5Q26 17 30 22'),
+      kimono: on('M15 8Q20 13 25 8L36 15L33 22L29 19L29 40H11L11 19L7 22L4 15z', 'M15 8L4 15M25 8L36 15M11 19Q9 20 7 22M29 19Q31 20 33 22'),
+    },
+    sleeveCuff: {
+      none: on('M13 8Q20 2 27 8L28 44H12z', 'M12 42h16'),
+      shirt: on('M13 8Q20 2 27 8L29 36Q20 39 11 36z', 'M13 36h14v7H13zM24.5 39.5h.1M15 32v4M18 33v3M22 33v3M25 32v4'),
+      elastic: on('M13 8Q20 2 27 8L29 38Q20 41 11 38z', 'M14 38h12v3H14zM15.5 38.5v2M18 38.5v2M20.5 38.5v2M23 38.5v2'),
+      tie: on('M13 8Q20 2 27 8L29 38Q20 41 11 38z', 'M14 38h12v2.5H14zM26 39L31 46M26 39L33 43'),
     },
     princess: {
       none: on(TOP),
@@ -96,10 +121,19 @@ const DETAILS: Record<ExplainSet, Record<string, Record<string, ReactNode>>> = {
       mock: on(TOP, 'M15 8L15.5 2.5Q20 4.5 24.5 2.5L25 8'),
       funnel: on(TOP, 'M15 8L13.5 2Q20 4 26.5 2L25 8'),
       shirt: on(TOP, 'M15 8V5Q20 7 25 5V8M15 8L17.5 15L20 12.5L22.5 15L25 8'),
+      bow: on(TOP, 'M15 8Q20 13 25 8M20 12.5Q14 9 13.5 13Q14 16 20 12.5Q26 16 26.5 13Q26 9 20 12.5M20 12.5L17 24M20 12.5L23.5 23'),
+      ruffle: on(TOP, 'M15 8Q20 13 25 8M15 8Q13 10 14 12Q15 13 15.5 15Q17.5 15 18 16.5Q20 15.5 22 16.5Q22.5 15 24.5 15Q25 13 26 12Q27 10 25 8'),
+    },
+    back: {
+      plain: on('M8 12L15 8Q20 10 25 8L32 12L30 22L29 40H11L10 22z', 'M20 9.5V40'),
+      scoop: on('M8 12L15 8L25 8L32 12L30 22L29 40H11L10 22z', 'M15 8Q15.5 22 20 22Q24.5 22 25 8M20 22V40'),
+      v: on('M8 12L15 8L25 8L32 12L30 22L29 40H11L10 22z', 'M15 8L20 26L25 8M20 26V40'),
+      keyhole: on('M8 12L15 8Q20 10 25 8L32 12L30 22L29 40H11L10 22z', 'M20 9.5Q17 13 20 17Q23 13 20 9.5M20 17V40' + dot(21.6, 10.2, 0.6)),
     },
     structure: {
       none: on(TOP),
       boned: on('M10 18Q20 15 30 18L29 40H11z', 'M14.5 17.5V40M20 16.5V40M25.5 17.5V40M10.5 26.5V40M29.5 26.5V40'),
+      shirred: on('M10 18Q20 15 30 18L29 40H11z', 'M10.3 21H29.7M10.4 24.5H29.6M10.6 28H29.4M10.7 31.5H29.3M10.8 35H29.2M10.9 38.5H29.1'),
     },
     peplum: {
       none: on(SHORT_TOP),

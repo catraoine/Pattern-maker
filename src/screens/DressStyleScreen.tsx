@@ -1,3 +1,4 @@
+import { BELTS, Belt, beltAllowed, beltPieces, dressBelt } from '../engine/belt';
 import { useMemo, useState } from 'react';
 import { layout } from '../engine/export';
 import { bodiceEase } from '../engine/bodice';
@@ -12,6 +13,8 @@ import { piecesLengthCm, toMetres } from '../engine/fabric';
 import { layPlan } from '../engine/layplan';
 import { SHAPES_FOR_LENGTH, SleeveDraft, needsArms } from '../engine/sleeve';
 import { SleeveSlider } from '../ui/SleeveSlider';
+import { SLEEVE_CUTS, sleeveCutBlocked } from '../engine/sleeveCut';
+import { Cuff, cuffAllowed, cuffShown } from '../engine/cuffs';
 import { BODICE_GROUPS, BodiceChoices, DRESS_CUTS, WAIST_SEAM_GROUP, DARTS_FOR_FIT, DressChoices, detailAllowed, sleeveOf, topAllowed, validDetails } from '../garments';
 import type { MeasurementValues } from '../measurements';
 import { SaveControl } from '../ui/SaveControl';
@@ -107,7 +110,7 @@ export const dressFabricMetres = (pieces: DressDraft['pieces']) =>
  * bodice with its darts running on through the waist seam.
  */
 /** The dress's skirt choices on one tab of their own. */
-const DRESS_SECTIONS: Record<string, string> = { Cut: 'Skirt & length', Skirt: 'Skirt & length', Length: 'Skirt & length', Hem: 'Skirt & length', Slit: 'Skirt & length', 'Skirt details': 'Skirt & length', Pockets: 'Skirt & length' };
+const DRESS_SECTIONS: Record<string, string> = { Cut: 'Skirt & length', Skirt: 'Skirt & length', Length: 'Skirt & length', Hem: 'Skirt & length', Slit: 'Skirt & length', 'Skirt details': 'Skirt & length', Pockets: 'Skirt & length', Belt: 'Skirt & length' };
 
 export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoices, onChooseGarment, values, draft, sleeve, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, finish, onFinish, fabric, mode = 'all', onMode }: Props) {
   const undo = useUndo(choices, setChoices);
@@ -122,10 +125,10 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
   const pieces = useMemo(() => {
     if (!draft) return [];
     const skirt = new Set(draft.skirt.pieces.map((pc) => pc.name));
-    return [...draft.pieces.filter((pc) => !skirt.has(pc.name)), ...(sleeve?.pieces ?? []), ...draft.pieces.filter((pc) => skirt.has(pc.name))];
-  }, [draft, sleeve]);
+    return [...draft.pieces.filter((pc) => !skirt.has(pc.name)), ...(sleeve?.pieces ?? []), ...draft.pieces.filter((pc) => skirt.has(pc.name)), ...beltPieces(dressBelt(choices.skirt.belt, draft), 1.5)];
+  }, [draft, sleeve, choices.skirt.belt]);
   const sheet = useMemo(() => (pieces.length ? layout(pieces, '', []) : undefined), [pieces]);
-  const flat = useMemo(() => (draft ? dressFlat(draft, 'binding', { sleeve }) : undefined), [draft, sleeve, choices.skirt]);
+  const flat = useMemo(() => (draft ? dressFlat(draft, 'binding', { sleeve, belt: dressBelt(choices.skirt.belt, draft) }) : undefined), [draft, sleeve, choices.skirt]);
   const title = describePattern(choices);
   const round = useMemo(() => (draft ? roundDress(draft, values, sleeve) : undefined), [draft, values, sleeve]);
   const arms = !needsArms(values);
@@ -173,9 +176,13 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           (can('dartMoves') || (choices.bodice.bustDart ?? 'side') !== 'side')) ||
         (g.id === 'closure' && !top && !draped) ||
         (g.id === 'collar' && !top && !draped) ||
+        (g.id === 'back' && !top && !draped) ||
         (g.id === 'structure' && !draped) ||
         g.id === 'sleeve' ||
-        (g.id === 'sleeveShape' && chosen.length !== 'none'),
+        // A kimono sleeve is cut on at its named length, with no shape or cuff of its own.
+        (g.id === 'sleeveShape' && chosen.length !== 'none' && chosen.cut !== 'kimono') ||
+        (g.id === 'sleeveCut' && chosen.length !== 'none') ||
+        (g.id === 'sleeveCuff' && cuffShown(chosen) && chosen.cut !== 'kimono'),
     ).map((g) => ({
       id: g.id,
       label: g.label,
@@ -197,6 +204,8 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           { id: 'volume', label: 'Skirt details', options: VOLUME_OPTIONS },
           { id: 'pockets', label: 'Pockets', options: DETAIL_GROUPS[1].options },
         ]),
+    // A wrap ties already, so it takes no sash.
+    ...(wrapped ? [] : [{ id: 'belt', label: 'Belt', options: BELTS as [string, string][] }]),
   ];
 
   const value = (id: string) =>
@@ -216,17 +225,25 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
         ? choices.skirt[id]
         : id === 'pockets'
           ? (choices.skirt.pockets ?? 'none')
+          : id === 'belt'
+            ? (choices.skirt.belt ?? 'none')
           : id === 'sleeve'
             ? // Set on the slider, no named length is picked, as with the bodice.
               chosen.cm !== undefined ? '' : chosen.length
             : id === 'sleeveShape'
               ? chosen.shape
+              : id === 'sleeveCut'
+                ? (chosen.cut ?? 'set_in')
+              : id === 'sleeveCuff'
+                ? (chosen.cuff ?? 'none')
               : id === 'bustDart'
                 ? choices.bodice.bustDart ?? 'side'
                 : id === 'princess'
                   ? choices.bodice.princess ?? 'none'
                   : id === 'collar'
                     ? choices.bodice.collar ?? 'none'
+                  : id === 'back'
+                    ? valid.back ?? 'plain'
                   : id === 'closure'
                     ? closure
                     : id === 'structure'
@@ -246,6 +263,8 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
       : id === 'slit'
       ? // A shirt dress opens down the front and its back is cut whole: only the side can take a slit.
         opt === 'none' || (slitAllowed(choices.skirt) && (!buttoned || opt === 'side'))
+      : id === 'belt'
+      ? beltAllowed(opt as Belt, { wrap: wrapped })
       : id === 'volume'
       ? volumeAllowed(choices.skirt, opt as Parameters<typeof volumeAllowed>[1]) && (!buttoned || opt === 'none')
       : id === 'darts'
@@ -254,7 +273,11 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
         ? (opt === 'none' || arms) && detailAllowed(choices.bodice, 'sleeve', opt, 'dress')
         : id === 'sleeveShape'
           ? SHAPES_FOR_LENGTH[chosen.length].includes(opt as NonNullable<BodiceChoices['sleeveShape']>)
-          : id === 'princess' || id === 'bustDart' || id === 'collar' || id === 'structure' || id === 'closure'
+          : id === 'sleeveCuff'
+            ? cuffAllowed(opt as Cuff, chosen.length, chosen.shape)
+          : id === 'sleeveCut'
+            ? detailAllowed({ ...choices.bodice, length: 'waist', closure }, 'sleeveCut', opt, 'dress')
+          : id === 'princess' || id === 'bustDart' || id === 'collar' || id === 'back' || id === 'structure' || id === 'closure'
             ? detailAllowed({ ...choices.bodice, length: 'waist', closure }, id, opt, 'dress') && (id !== 'closure' || (opt === 'front_buttons' ? buttonsOk : opt === 'wrap' ? wrapOk : true))
             : id === 'silhouette' || id === 'length' || id === 'asymHem'
               ? cutAllowed(choices.skirt, id, opt, 'dress') && (!buttoned || buttonsOnSkirt({ ...choices.skirt, [id]: opt })) && (!wrapped || wrapSkirtAllowed({ ...choices.skirt, [id]: opt }))
@@ -278,8 +301,13 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
     if (id === 'silhouette' || id === 'length' || id === 'asymHem' || id === 'pockets') {
       // The dress skirt is styled by its chips: no era look, photo shape or hand-drawn changes.
       // Pleats, godets or a flounce stay; one the new shape, length or hem doesn't take falls back to none.
-      const { fit, silhouette, length, asymHem, pleats, godets, flounce, pockets, slit, slitCm } = choices.skirt;
-      onChoices({ ...choices, skirt: validCut({ fit, silhouette, length, ...(asymHem ? { asymHem } : {}), ...(pockets ? { pockets } : {}), ...(slit ? { slit } : {}), ...(slitCm !== undefined ? { slitCm } : {}), pleats, godets, flounce, [id]: opt }) });
+      const { fit, silhouette, length, asymHem, pleats, godets, flounce, pockets, slit, slitCm, belt } = choices.skirt;
+      onChoices({ ...choices, skirt: validCut({ fit, silhouette, length, ...(asymHem ? { asymHem } : {}), ...(pockets ? { pockets } : {}), ...(belt ? { belt } : {}), ...(slit ? { slit } : {}), ...(slitCm !== undefined ? { slitCm } : {}), pleats, godets, flounce, [id]: opt }) });
+      return;
+    }
+    if (id === 'belt') {
+      const { belt: _b, ...skirt } = choices.skirt;
+      onChoices({ ...choices, skirt: opt === 'none' ? skirt : { ...skirt, belt: opt as Belt } });
       return;
     }
     if (id === 'volume') {
@@ -438,7 +466,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
                 </button>
               ))}
             </div>
-            <Explain set={['noSeam', 'silhouette', 'length', 'asymHem', 'slit', 'volume', 'pockets'].includes(g.id) ? 'skirt' : 'bodice'} group={g.id} options={g.options} pick={value(g.id)} />
+            <Explain set={['noSeam', 'silhouette', 'length', 'asymHem', 'slit', 'volume', 'pockets', 'belt'].includes(g.id) ? 'skirt' : 'bodice'} group={g.id} options={g.options} pick={value(g.id)} />
             {g.id === 'sleeve' && !arms && (
               <p className="muted small">
                 For sleeves, add your arm length, upper arm and wrist.{' '}
@@ -447,7 +475,10 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
                 </button>
               </p>
             )}
-            {g.id === 'sleeve' && arms && (
+            {g.id === 'sleeveCut' && SLEEVE_CUTS.map(([c]) => sleeveCutBlocked({ ...choices.bodice, closure }, c)).find(Boolean) && (
+              <p className="muted small">{SLEEVE_CUTS.map(([c]) => sleeveCutBlocked({ ...choices.bodice, closure }, c)).find(Boolean)}</p>
+            )}
+            {g.id === 'sleeve' && arms && chosen.cut !== 'kimono' && (
               <SleeveSlider sleeve={sleeve} choices={choices.bodice} onChoices={(c) => onChoices({ ...choices, bodice: validDetails({ ...c, length: 'waist', closure: c.closure ?? 'back_zip' }, 'dress') })} />
             )}
             {g.id === 'slit' && <SlitSlider slit={draft?.skirt.slit} onCm={(slitCm) => onChoices({ ...choices, skirt: { ...choices.skirt, slitCm } })} />}

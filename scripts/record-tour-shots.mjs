@@ -182,7 +182,11 @@ const press = async (loc, ms) => {
 };
 // A line drawn with the pen dot, through points given as fractions of the form picture.
 const draw = async (loc, pts, pause) => {
-  const bx = await loc.boundingBox();
+  // The picture's own drawing box, which an enlarged form centres inside a wider box.
+  const box = await loc.boundingBox();
+  const [vw, vh] = await loc.evaluate((svg) => [svg.viewBox.baseVal.width, svg.viewBox.baseVal.height]);
+  const k = Math.min(box.width / vw, box.height / vh);
+  const bx = { x: box.x + (box.width - vw * k) / 2, y: box.y + (box.height - vh * k) / 2, width: vw * k, height: vh * k };
   const at = ([x, y]) => [bx.x + x * bx.width, bx.y + y * bx.height];
   const path = [];
   for (let i = 0; i + 1 < pts.length; i++)
@@ -201,17 +205,18 @@ const draw = async (loc, pts, pause) => {
 let t0;
 const mark = (what) => console.log(`  style ${what}: ${((Date.now() - t0) / 1000).toFixed(1)} s`);
 // The lines, as fractions of the form picture, drawn on the dress itself (Cat's D1 Draw on the Dress, 2026-10-24):
-// the hem longer, down the calf, and the neckline a little wider and shallower, a soft boat neck but not a full one.
+// the hem longer, down the calf, and the neckline out wide towards the shoulders and shallow: a boat neck (Cat, 2026-10-24).
 const LINES = WIDE
-  ? { hem: [[0.36, 0.86], [0.5, 0.875], [0.64, 0.86]], neck: [[0.463, 0.146], [0.482, 0.168], [0.5, 0.173]] }
-  : { hem: [[0.32, 0.86], [0.5, 0.875], [0.68, 0.86]], neck: [[0.463, 0.146], [0.482, 0.168], [0.5, 0.173]] };
+  ? { hem: [[0.36, 0.86], [0.5, 0.875], [0.64, 0.86]], neck: [[0.29, 0.162], [0.35, 0.174], [0.43, 0.182], [0.5, 0.184]] }
+  : { hem: [[0.32, 0.86], [0.5, 0.875], [0.68, 0.86]], neck: [[0.29, 0.162], [0.35, 0.174], [0.43, 0.182], [0.5, 0.184]] };
+// The film opens on the Shape tab already, not on Looks first (Cat, 2026-10-24: too choppy).
+await main.getByRole('tab', { name: 'Shape', exact: true }).click();
 await p.evaluate(() => window.scrollTo(0, 0));
-await wait(600);
+await wait(800);
 await start();
 t0 = Date.now();
-await wait(1200);
+await wait(900);
 mark('shape');
-await press(main.getByRole('tab', { name: 'Shape', exact: true }), 500);
 const dropped = main.locator('button, [role=radio]').filter({ hasText: /^\s*Dropped/ }).first();
 if (!WIDE) await glide(Math.max(0, await dropped.evaluate((el) => el.getBoundingClientRect().bottom + scrollY - 740)), 900);
 await wait(500);
@@ -248,17 +253,18 @@ await tap(stripes.getByRole('radio', { name: 'Checks' }), 1600);
 await p.evaluate(() => window.scrollTo(0, 0));
 await wait(400);
 mark('draw');
-await press(main.getByRole('button', { name: 'Draw on your form' }).first(), 1300);
+await press(main.getByRole('button', { name: 'Draw on your form' }).first(), 900);
+// Enlarged, so the film shows how roomy the place to draw is (Cat, 2026-10-24).
+await press(main.getByRole('button', { name: 'Enlarge', exact: true }), 1000);
 const form = main.getByRole('img', { name: /Your dress form from the/ });
 const kinds = main.getByRole('group', { name: 'What you are drawing' });
 await tap(kinds.getByRole('button', { name: 'Hem', exact: true }), 500);
 await draw(form, LINES.hem, 1500);
 await tap(kinds.getByRole('button', { name: 'Neckline', exact: true }), 500);
 await draw(form, LINES.neck, 1500);
-await press(main.getByRole('button', { name: 'Done', exact: true }), 600);
-await p.evaluate(() => window.scrollTo(0, 0));
-mark('dressed');
-await press(main.getByRole('group', { name: 'Preview view' }).getByRole('button', { name: /^Garment/ }), 2600);
+// Done lands on the pattern sheet, and the film stays there (Cat, 2026-10-24: no flash back to the dress).
+mark('done');
+await press(main.getByRole('button', { name: 'Done', exact: true }), 1200);
 await stop('style');
 
 // pattern: the pieces you cut

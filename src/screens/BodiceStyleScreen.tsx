@@ -1,16 +1,20 @@
+import { BackNeck, backBlocked } from '../engine/backNeck';
 import { useMemo, useState } from 'react';
 import { layout } from '../engine/export';
 import { BodiceDraft, BodiceMeasurements, bodiceEase, dropRange, needsHip } from '../engine/bodice';
 import { piecesLengthCm, toMetres } from '../engine/fabric';
 import { layPlan } from '../engine/layplan';
 import { BODICE_GROUPS, BodiceChoices, DARTS_FOR_FIT, describeBodice, detailAllowed, sleeveOf, topAllowed, validDetails } from '../garments';
-import { isTop } from '../engine/corset';
+import { isStrapless, isTop } from '../engine/corset';
+import { SHIRR } from '../engine/shirred';
 import { bodiceFlat } from '../engine/flat';
 import { TechFlatView } from '../ui/TechFlatView';
 import { AllRound } from '../ui/AllRound';
 import { roundBodice } from '../engine/allRound';
 import { SHAPES_FOR_LENGTH, SleeveDraft, needsArms } from '../engine/sleeve';
 import { SleeveSlider } from '../ui/SleeveSlider';
+import { SLEEVE_CUTS, sleeveCutBlocked } from '../engine/sleeveCut';
+import { Cuff, cuffAllowed, cuffShown } from '../engine/cuffs';
 import { MeasurementValues, hasHip } from '../measurements';
 import { PatternPreview } from '../ui/Preview';
 import { PatternPane } from '../ui/PointEditor';
@@ -148,21 +152,24 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
     return armFor(shoulderTip, underarm, { arm_length: values.arm_length!, upper_arm: values.upper_arm!, wrist: values.wrist });
   }, [draft, sleeve, arms, values]);
   const round = useMemo(() => (draft ? roundBodice(draft, values, sleeve) : undefined), [draft, values, sleeve]);
-  const detail = { bustDart: choices.bustDart ?? 'side', princess: choices.princess ?? 'none', closure: choices.closure ?? 'back_zip', collar: choices.collar ?? 'none', structure: valid.structure ?? 'none', peplum: choices.peplum ?? 'none' };
+  const detail = { bustDart: choices.bustDart ?? 'side', princess: choices.princess ?? 'none', closure: choices.closure ?? 'back_zip', collar: choices.collar ?? 'none', back: valid.back ?? 'plain', structure: valid.structure ?? 'none', peplum: choices.peplum ?? 'none' };
   // A draped neckline is its own shaping: the dart, seam, opening, collar and boning choices step aside.
   const draped = isDraped(choices);
   const valueOf = (id: (typeof BODICE_GROUPS)[number]['id']) =>
-    id === 'sleeveShape' ? chosen.shape : id === 'sleeve' ? chosen.length : id in detail ? detail[id as keyof typeof detail] : choices[id];
+    id === 'sleeveShape' ? chosen.shape : id === 'sleeveCut' ? (chosen.cut ?? 'set_in') : id === 'sleeveCuff' ? (chosen.cuff ?? 'none') : id === 'sleeve' ? chosen.length : id in detail ? detail[id as keyof typeof detail] : choices[id];
   // The simple view leaves moving the shaping to the pattern cutter's tools, unless it has been moved already.
   const moved = (id: string) => (id === 'bustDart' && detail.bustDart !== 'side') || (id === 'princess' && detail.princess !== 'none');
   const shown = (id: string) =>
-    (id !== 'sleeveShape' || chosen.length !== 'none') &&
+    // A kimono sleeve is cut on at its named length, with no shape or cuff of its own.
+    (id !== 'sleeveShape' || (chosen.length !== 'none' && chosen.cut !== 'kimono')) &&
+    (id !== 'sleeveCut' || chosen.length !== 'none') &&
+    (id !== 'sleeveCuff' || (cuffShown(chosen) && chosen.cut !== 'kimono')) &&
     (id !== 'bustDart' || (choices.darts !== 'none' && detail.princess === 'none' && !boned)) &&
     ((id !== 'bustDart' && id !== 'princess') || can('dartMoves') || moved(id)) &&
     // A top below the shoulders always opens at the back and has no collar; a boned one is cut in panels.
-    !(top && (id === 'closure' || id === 'collar')) &&
+    !(top && (id === 'closure' || id === 'collar' || id === 'back')) &&
     !(boned && id === 'princess') &&
-    !(draped && (id === 'princess' || id === 'bustDart' || id === 'closure' || id === 'collar' || id === 'structure'));
+    !(draped && (id === 'princess' || id === 'bustDart' || id === 'closure' || id === 'collar' || id === 'back' || id === 'structure'));
 
   const allowed = (id: string, opt: string) => topAllowed(choices, id, opt) && baseAllowed(id, opt);
   const baseAllowed = (id: string, opt: string) =>
@@ -174,7 +181,11 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
           ? (opt === 'none' || arms) && detailAllowed(choices, 'sleeve', opt)
           : id === 'sleeveShape'
             ? SHAPES_FOR_LENGTH[chosen.length].includes(opt as NonNullable<BodiceChoices['sleeveShape']>)
-            : id === 'princess' || id === 'bustDart' || id === 'closure' || id === 'collar' || id === 'structure' || id === 'peplum'
+            : id === 'sleeveCuff'
+              ? cuffAllowed(opt as Cuff, chosen.length, chosen.shape)
+            : id === 'sleeveCut'
+              ? detailAllowed(choices, 'sleeveCut', opt)
+            : id === 'princess' || id === 'bustDart' || id === 'closure' || id === 'collar' || id === 'back' || id === 'structure' || id === 'peplum'
               ? detailAllowed(choices, id, opt)
               : true;
 
@@ -300,7 +311,8 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
                 </button>
               </p>
             )}
-            {g.id === 'sleeve' && arms && <SleeveSlider sleeve={sleeve} choices={choices} onChoices={(c) => change(validDetails(c))} />}
+            {g.id === 'sleeveCut' && SLEEVE_CUTS.map(([c]) => sleeveCutBlocked(choices, c)).find(Boolean) && <p className="muted small">{SLEEVE_CUTS.map(([c]) => sleeveCutBlocked(choices, c)).find(Boolean)}</p>}
+            {g.id === 'sleeve' && arms && chosen.cut !== 'kimono' && <SleeveSlider sleeve={sleeve} choices={choices} onChoices={(c) => change(validDetails(c))} />}
             {g.id === 'neckline' && draped && (
               <p className="muted small">
                 {choices.neckline === 'cowl'
@@ -321,13 +333,20 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
             )}
             {g.id === 'sleeve' && !choices.neck && choices.neckline === 'one_shoulder' && <p className="muted small">A one-shoulder bodice is sleeveless.</p>}
             {g.id === 'peplum' && (choices.length !== 'waist' || (choices.dropCm !== undefined && choices.dropCm >= 3)) && <p className="muted small">A peplum sits on a waist-length bodice.</p>}
-            {g.id === 'structure' && !top && <p className="muted small">Boning needs a strapless, sweetheart or cami top.</p>}
-            {g.id === 'structure' && choices.neckline === 'strapless' && <p className="muted small">A strapless bodice is always boned: the boning holds it up.</p>}
+            {g.id === 'structure' && !top && <p className="muted small">Boning and a shirred back need a strapless, sweetheart or cami top.</p>}
+            {g.id === 'structure' && isStrapless(choices.neckline) && <p className="muted small">A strapless bodice needs something to hold it up: boning, or a shirred back.</p>}
+            {g.id === 'structure' && valid.structure === 'shirred' && (
+              <p className="muted small">The back is cut {SHIRR.ratio} times as wide as it sits and shirred with rows of elastic thread, so the top pulls on with no zip. The front stays smooth, lined to itself.</p>
+            )}
             {g.id === 'structure' && boned && <p className="muted small">Boned bodices are fitted and waist length, with the shaping in princess panels.</p>}
             {g.id === 'sleeve' && top && <p className="muted small">Sleeves need shoulders, so they go with the higher necklines.</p>}
             {g.id === 'princess' && choices.darts !== 'bust_waist' && <p className="muted small">Princess seams carry the bust and waist darts, so they need both.</p>}
             {g.id === 'collar' && choices.neck && <p className="muted small">Collars sit on the named necklines, not a drawn one.</p>}
-            {g.id === 'collar' && !choices.neck && choices.neckline !== 'crew' && <p className="muted small">Collars sit on a crew neck (a Peter Pan on a scoop neck too).</p>}
+            {g.id === 'collar' && !choices.neck && choices.neckline !== 'crew' && <p className="muted small">Collars sit on a crew neck (a Peter Pan on a scoop neck too, a pussy bow on a V).</p>}
+            {g.id === 'collar' && detail.back !== 'plain' && <p className="muted small">A collar goes round the back neck, so it needs a plain back.</p>}
+            {g.id === 'back' && ['scoop', 'v', 'keyhole'].map((b) => backBlocked(choices, b as BackNeck)).find(Boolean) && (
+              <p className="muted small">{['scoop', 'v', 'keyhole'].map((b) => backBlocked(choices, b as BackNeck)).find(Boolean)}</p>
+            )}
             {g.id === 'collar' && !choices.neck && choices.neckline === 'crew' && detail.closure !== 'front_buttons' && <p className="muted small">A shirt collar needs the front buttons.</p>}
             {g.id === 'darts' && choices.fit !== 'relaxed' && (
               <p className="muted small">{choices.fit === 'fitted' ? 'A fitted bodice needs bust and waist darts.' : 'Choose a relaxed fit to go without darts.'}</p>

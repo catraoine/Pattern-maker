@@ -14,6 +14,14 @@ export default defineConfig({
   test: {
     exclude: [...configDefaults.exclude, '.claude/**', 'e2e/**', 'playwright-report/**', 'test-results/**'],
   },
+  // Sign-in's library gets a name of its own, so the phone's offline copy can leave it out (see globIgnores).
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: (id) => (/node_modules\/@supabase\//.test(id) ? 'account-service' : undefined),
+      },
+    },
+  },
   plugins: [
     react(),
     VitePWA({
@@ -37,7 +45,8 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,png,jpg,woff2}'],
         // The printing code (about 1.4 MB) isn't saved to the phone on the first visit: it downloads the first time
         // someone prints, then stays for offline use. Keeps a first visit light for Netlify bandwidth (Cat, 2026-10-23).
-        globIgnores: ['**/assets/pdf-*.js', '**/assets/PDFButton-*.js'],
+        // The account service's code (sign-in, about 230 kB) needs the internet anyway, so it isn't kept either.
+        globIgnores: ['**/assets/pdf-*.js', '**/assets/PDFButton-*.js', '**/assets/account-service-*.js'],
         runtimeCaching: [
           {
             urlPattern: ({ url, sameOrigin }) => sameOrigin && /^\/assets\/(pdf|PDFButton)-.+\.js$/.test(url.pathname),
