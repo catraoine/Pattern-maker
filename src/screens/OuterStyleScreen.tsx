@@ -24,9 +24,11 @@ import { MyFabric, fabricEase, outerFabrics } from '../engine/fabrics';
 import { FabricCard, FabricSummary } from '../ui/FabricCard';
 import { ChoicePic, chipsClass } from '../ui/ChoicePic';
 import { Explain } from '../ui/Explain';
+import { OUTER_SLEEVE_HELP, readOuterSleeve } from '../ui/formSleeves';
+import { outerPocketLines, readOuterPocket, readOuterVent } from '../ui/formOuter';
 import { DrawOnForm, armFor, formWidth } from '../ui/DrawOnForm';
 import { FormSketch } from '../ui/FormSketch';
-import { landmarks } from '../ui/formLines';
+import { FormLine, landmarks } from '../ui/formLines';
 import { outerLines, readOuterCollar, readOuterFit, readOuterFront, readOuterHem, readOuterShaping } from '../ui/formTops';
 import { FABRIC, Group, PRO, StyleLayout, TabPanel } from '../ui/StyleLayout';
 import { DemoButton } from '../ui/DemoButton';
@@ -110,12 +112,19 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           ['front', 'Front edge'],
           ['collar', 'Collar'],
           ['seam', 'Shaping'],
+          ...(formArm ? ([['sleeve', 'Sleeve']] as [FormLine, string][]) : []),
+          ['pocket', 'Pocket'],
+          ['vent', 'Vent'],
         ]}
         help={{
-          hem: `Draw across where you want the hem. It takes the nearest of the ${kind}’s lengths, cut level.`,
+          hem: `Draw across where you want the hem: it takes the nearest of the ${kind}’s lengths. Curve it up to the front edge at the centre for a cutaway front.`,
+          fit: `Draw down the side: closer to the body for a closer fit${kind === 'coat' ? ', and out from the hip to the hem for an A-line coat' : ''}.`,
           seam: 'Draw from the armhole through the bust down to the waist for princess seams. Any other line keeps the darts.',
+          sleeve: OUTER_SLEEVE_HELP,
+          pocket: 'Draw a box on the front for a patch pocket, or a short level line for a welt pocket, where it should go.',
+          vent: 'Draw straight up from the hem at the centre for a back vent, as long as you want it. Across the hem there closes it.',
         }}
-        lines={() => outerLines(draft)}
+        lines={() => ({ ...outerLines(draft), ...outerPocketLines(draft) })}
         choices={choices}
         onChoices={setChoices}
         read={(line, _side, stroke) =>
@@ -127,7 +136,13 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
                 ? readOuterFront(stroke, draft, choices)
                 : line === 'collar'
                   ? readOuterCollar(stroke, draft, choices)
-                  : readOuterShaping(stroke, draft, choices)
+                  : line === 'sleeve' && formArm
+                    ? readOuterSleeve(stroke, formArm, landmarks(draft.base).neckPoint, choices)
+                    : line === 'pocket'
+                      ? readOuterPocket(stroke, choices)
+                      : line === 'vent'
+                        ? readOuterVent(stroke, draft, choices)
+                        : readOuterShaping(stroke, draft, choices)
         }
         onDone={() => {
           undo.change(choices, onForm);
