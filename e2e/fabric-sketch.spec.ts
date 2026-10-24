@@ -46,6 +46,9 @@ for (const g of ['Dress', 'Trousers'] as GarmentName[]) {
     const main = page.getByRole('main');
     await main.getByRole('tab', { name: 'Fabric' }).click();
     await main.getByRole('radiogroup', { name: 'Fabric for the sketch' }).getByRole('radio', { name: 'Denim' }).click();
+    // The garment on the form wears it, and the page stays on the form; the Drawing view wears it too.
+    await expect(main.locator('.garment-fabric .form-still .cloth-fill').first()).toBeVisible();
+    await main.getByRole('button', { name: 'Drawing', exact: true }).click();
     await expect(main.locator('.garment-fabric .techflat')).toBeVisible();
   });
 }

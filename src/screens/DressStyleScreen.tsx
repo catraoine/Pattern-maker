@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { layout } from '../engine/export';
 import { bodiceEase } from '../engine/bodice';
 import { isTop } from '../engine/corset';
@@ -21,7 +21,7 @@ import { PatternPane } from '../ui/PointEditor';
 import { TechFlatView } from '../ui/TechFlatView';
 import { AllRound } from '../ui/AllRound';
 import { roundDress } from '../engine/allRound';
-import { FabricSwatches, GarmentFabric, fillId } from '../ui/FabricFill';
+import { FabricSwatches, GarmentFabric } from '../ui/FabricFill';
 import { DETAIL_GROUPS, GROUPS } from './StyleScreen';
 import { cutAllowed, validCut } from '../engine/slip';
 import { describePattern } from './describe';
@@ -114,11 +114,6 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
   const onChoices = undo.change;
   const can = (t: ProTool) => shows(mode, t);
   const [view, setView] = useState<'sketch' | 'flat' | 'round' | 'pattern'>('sketch');
-  // A fabric dresses the flat drawing, so choosing one shows that drawing; the form is lines only.
-  const cloth = fillId(fabric);
-  useEffect(() => {
-    if (cloth) setView((v) => (v === 'sketch' ? 'flat' : v));
-  }, [cloth]);
   /** Drawing on the form: the choices from before, to keep or go back to. */
   const [onForm, setOnForm] = useState<DressChoices>();
   const [fit, setFit] = useState(false);

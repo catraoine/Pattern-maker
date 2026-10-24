@@ -25,7 +25,7 @@ import type { Finish } from '../App';
 import { MyFabric, bodiceFabrics, fabricEase } from '../engine/fabrics';
 import { FabricCard, FabricSummary } from '../ui/FabricCard';
 import { isDraped, zipSide } from '../engine/drape';
-import { DrawOnForm, formWidth } from '../ui/DrawOnForm';
+import { DrawOnForm, armFor, formWidth } from '../ui/DrawOnForm';
 import { orSeam, readSeamLine } from '../ui/formSeams';
 import { bodiceHemLine, orNeckline, readBodiceHemShape, readUnevenNeckline, unevenNecklineLines } from '../ui/formBodice';
 import { bodiceLines, landmarks, readDrape, readFit, readNeckline, readSeam } from '../ui/formLines';
@@ -141,6 +141,12 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
   const arms = !needsArms(values);
   const chosen = sleeveOf(choices);
   const flat = useMemo(() => (draft ? bodiceFlat(draft, 'binding', sleeve) : undefined), [draft, sleeve]);
+  // The arms, for the sleeves to hang on: from the arm measurements, once they are given.
+  const formArm = useMemo(() => {
+    if (!draft || !sleeve || !arms) return undefined;
+    const { shoulderTip, underarm } = landmarks(draft);
+    return armFor(shoulderTip, underarm, { arm_length: values.arm_length!, upper_arm: values.upper_arm!, wrist: values.wrist });
+  }, [draft, sleeve, arms, values]);
   const round = useMemo(() => (draft ? roundBodice(draft, values, sleeve) : undefined), [draft, values, sleeve]);
   const detail = { bustDart: choices.bustDart ?? 'side', princess: choices.princess ?? 'none', closure: choices.closure ?? 'back_zip', collar: choices.collar ?? 'none', structure: valid.structure ?? 'none', peplum: choices.peplum ?? 'none' };
   // A draped neckline is its own shaping: the dart, seam, opening, collar and boning choices step aside.
@@ -408,6 +414,8 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
               choices={choices}
               side={side}
               drawing={drawing}
+              sleeve={sleeve}
+              arms={formArm}
               label={`${title}, ${side} view. Drag the hem to change the length, or the side to change the fit.`}
               onLive={onChoices}
               onDone={(before, after) => change(after, before)}

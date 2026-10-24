@@ -1,7 +1,10 @@
-// The bodice sketch, shaped by hand: front or back as worn, with the darts closed. Drag the hem to
-// change the length, drag the side to change the fit, or draw a new neckline with a finger.
+// The bodice sketch, shaped by hand: the top as cloth on your form, the same drawing as every other
+// garment's Form view, front or back. Drag the hem to change the length, drag the side to change the
+// fit, or draw a new neckline with a finger.
 import { PointerEvent, useMemo, useRef, useState } from 'react';
+import { bodiceFlat, wornLines, wornShapes } from '../engine/flat';
 import type { P } from '../engine/geometry';
+import type { SleeveDraft } from '../engine/sleeve';
 import {
   BODICE_FIT_EASE,
   BodiceDraft,
@@ -21,7 +24,9 @@ import { COWL_DEPTH } from '../engine/drape';
 import { hemOffsetAt } from '../engine/bodiceHem';
 import { unevenEdge } from '../engine/uneven';
 import type { Side } from './ShapeSketch';
-import { bodiceBodyOutline } from './bodyOutline';
+import { FormArm, formWidth } from './DrawOnForm';
+import { FormLayers, formFrame, wornCloth } from './FormSketch';
+import { landmarks } from './formLines';
 
 interface Worn {
   /** One half from the centre neck round the shoulder and armhole, down the side to the centre hem. */
@@ -219,6 +224,10 @@ interface Props {
   side: Side;
   drawing: boolean;
   label: string;
+  /** The drafted sleeve, drawn hanging on the arms; none for a sleeveless top. */
+  sleeve?: SleeveDraft;
+  /** The arms beside the form, from your arm measurements, once they are given. */
+  arms?: FormArm;
   /** Called as a drag moves, to redraft live. */
   onLive: (c: BodiceChoices) => void;
   /** Called when a drag or a drawn stroke finishes, with the choices from before it, for undo. */
@@ -227,7 +236,7 @@ interface Props {
 
 type Drag = { kind: 'hem' | 'side'; start: P; before: BodiceChoices; drop: number; ease: number };
 
-export function BodiceShape({ draft, m, choices, side, drawing, label, onLive, onDone }: Props) {
+export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, arms, onLive, onDone }: Props) {
   const svg = useRef<SVGSVGElement>(null);
   const [drag, setDrag] = useState<Drag>();
   const [stroke, setStroke] = useState<P[]>();
@@ -235,8 +244,15 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, onLive, o
   live.current = choices;
   const hip = Boolean(m.full_hip && m.waist_to_hip);
 
-  const w = useMemo(() => worn(draft, side), [draft, side]);
+  const land = useMemo(() => landmarks(draft), [draft]);
   const waistY = (side === 'front' ? draft.front : draft.back).waistCentre.y;
+  const body = useMemo(() => formWidth(draft, m), [draft, m]);
+  // The top as cloth on the form: its technical flat's shapes for this side, laid on the form as worn, the
+  // sleeves left to hang on the arms.
+  const flat = useMemo(() => bodiceFlat(draft, 'binding', sleeve), [draft, sleeve]);
+  const view = side === 'front' ? 0 : 1;
+  const cloth = useMemo(() => wornCloth(wornShapes(flat, view), body, land.underarm.y), [flat, view, body, land]);
+  const lines = useMemo(() => ({ seam: wornLines(flat, view) }), [flat, view]);
 
   // The frame stays put while dragging, sized for the roomiest fit and the longest hem, so the handle
   // stays under the finger.
@@ -244,14 +260,17 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, onLive, o
     // Room at the sides for the arms.
     const half = (m.full_bust + BUST_EASE_RANGE.max) / 4 + 6 + 0.2 * (m.armscye ?? 0.43 * m.full_bust);
     const deepest = Math.max(draft.front.waistCentre.y, draft.back.waistCentre.y) + (hip ? dropRange(m).max : 0);
-    return { half, top: -8, bottom: deepest + 7 };
-  }, [m, hip, draft.front.waistCentre.y, draft.back.waistCentre.y]);
+    const base = formFrame(m, body, deepest + 7, arms, cloth);
+    return { half: Math.max(half, base.half), top: Math.min(-8, base.top), bottom: base.bottom };
+  }, [m, hip, draft.front.waistCentre.y, draft.back.waistCentre.y, body, arms, cloth]);
 
   const cx = frame.half;
   const k = (frame.bottom - frame.top) / 80; // handle and label size, in proportion to the sketch
-  const right = w.pts.map((q) => ({ x: cx + q.x, y: q.y }));
-  const left = w.pts.map((q) => ({ x: cx - q.x, y: q.y })).reverse();
-  const outline = drapedOutline(draft, side, w, cx) ?? [...right, ...left].map((q, i) => `${i ? 'L' : 'M'}${f(q)}`).join(' ') + ' Z';
+  // The handles sit on the top as drawn: its hem at the centre, and its side under the arm.
+  const piece = cloth[0] ?? [];
+  const hemCentre = piece.length ? piece.reduce((a, b) => (b.y > a.y ? b : a)) : { x: 0, y: waistY };
+  const underarmY = land.underarm.y;
+  const widest = piece.filter((q) => q.x > 0 && q.y >= underarmY - 1 && q.y <= waistY).reduce((a, b) => (b.x > a.x ? b : a), { x: body.width(underarmY), y: underarmY });
 
   const toSvg = (e: PointerEvent): P => {
     const ctm = svg.current!.getScreenCTM()!.inverse();
@@ -345,8 +364,6 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, onLive, o
     );
   };
 
-  const zip = side === 'back' && draft.drape?.kind !== 'one_shoulder' ? `M${f({ x: cx, y: draft.back.neckCentre.y })} L${f({ x: cx, y: draft.back.zipEnd.y })}` : '';
-
   return (
     <svg
       ref={svg}
@@ -354,7 +371,7 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, onLive, o
       // A group, not an image: an image hides the length and flare handles inside it from screen readers.
       role="group"
       aria-label={label}
-      className={drawing ? 'preview-svg sketch shape drawing' : 'preview-svg sketch shape'}
+      className={drawing ? 'preview-svg sketch shape form-still drawing' : 'preview-svg sketch shape form-still'}
       onPointerDown={(e) => {
         if (!drawing) return;
         (e.target as Element).setPointerCapture?.(e.pointerId);
@@ -364,20 +381,11 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, onLive, o
       onPointerUp={end}
       onPointerCancel={end}
     >
-      <path d={bodiceBodyOutline(m, w.top, waistY, frame.bottom, cx)} className="body-outline" fill="none" strokeWidth={0.2} strokeLinecap="round" />
+      <FormLayers body={body} m={m} legs={false} cx={cx} bottom={frame.bottom} arms={arms} lines={lines} worn={cloth} sleeve={arms ? sleeve : undefined} />
       {guide(waistY, 'WAIST')}
       {hip && guide(waistY + m.waist_to_hip!, 'HIP')}
-      <path d={outline} style={{ fill: 'var(--garment, var(--fill))', stroke: 'var(--ink)' }} strokeWidth={0.25} strokeLinejoin="round" />
-      <path d={w.darts(cx)} style={{ fill: 'none', stroke: 'var(--muted)' }} strokeWidth={0.15} />
-      <path d={w.seams(cx)} style={{ fill: 'none', stroke: 'var(--ink)' }} strokeWidth={0.18} strokeLinejoin="round" />
-      {zip && <path d={zip} style={{ fill: 'none', stroke: 'var(--muted)' }} strokeWidth={0.2} strokeDasharray="0.8 0.6" />}
-      {zip && (
-        <text x={cx + 1.2 * k} y={(draft.back.neckCentre.y + draft.back.zipEnd.y) / 2} fontSize={2 * k} className="hint" textAnchor="start">
-          ZIP
-        </text>
-      )}
-      {!drawing && hip && handle({ x: cx, y: w.hemCentre.y }, 'hem', lengthLabel)}
-      {!drawing && handle({ x: cx + w.widest.x, y: w.widest.y }, 'side', easeLabel)}
+      {!drawing && hip && handle({ x: cx + hemCentre.x, y: hemCentre.y }, 'hem', lengthLabel)}
+      {!drawing && handle({ x: cx + widest.x, y: widest.y }, 'side', easeLabel)}
       {drawing && !stroke && (
         <text x={cx} y={frame.bottom - 3 * k} fontSize={2.1 * k} textAnchor="middle" className="hint">
           {side === 'front' ? 'DRAW THE NECKLINE YOU WANT' : 'DRAW THE BACK NECKLINE'}

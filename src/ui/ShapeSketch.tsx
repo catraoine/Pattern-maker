@@ -1,12 +1,15 @@
-// The skirt sketch, shaped by hand: drag the hem to change the length, drag the side seam to change
-// the flare, or draw a new hemline across the bottom with a finger.
+// The skirt sketch, shaped by hand: the skirt as cloth on your form, the same drawing as every other
+// garment's Form view. Drag the hem to change the length, drag the side seam to change the flare, or
+// draw a new hemline across the bottom with a finger.
 import { PointerEvent, useMemo, useRef, useState } from 'react';
 import type { Choices } from '../App';
+import { skirtFlat, wornLines, wornShapes } from '../engine/flat';
 import type { P } from '../engine/geometry';
 import { HEM_SAMPLES, HemShape, flatHem, isShaped, offsetAt } from '../engine/hem';
 import { LENGTHS, Length, Silhouette, SkirtDraft, SkirtMeasurements, flareRange, isCircle, lengthRange, presetFlare } from '../engine/skirt';
 import { GROUPS } from '../screens/StyleScreen';
-import { bodyOutline } from './bodyOutline';
+import { skirtForm } from './DrawOnForm';
+import { FormLayers, formFrame, hemCorner, wornCloth } from './FormSketch';
 
 export type Side = 'front' | 'back';
 
@@ -140,7 +143,14 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
   live.current = choices;
 
   const circle = isCircle(choices.silhouette);
+  // The hem as it hangs, for reading a drawn hem against.
   const w = useMemo(() => worn(draft, side), [draft, side]);
+  const body = useMemo(() => skirtForm(m), [m]);
+  // The skirt as cloth on the form: its technical flat's shapes for this side, laid on the form as worn.
+  const flat = useMemo(() => skirtFlat(draft), [draft]);
+  const view = side === 'front' ? 0 : 1;
+  const cloth = useMemo(() => wornCloth(wornShapes(flat, view), body), [flat, view, body]);
+  const lines = useMemo(() => ({ seam: wornLines(flat, view) }), [flat, view]);
 
   // The frame stays put while dragging, sized for the longest and widest the skirt can go, so the
   // handle stays under the finger. Knee and floor lines show where the hem falls on the body.
@@ -149,20 +159,16 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
     const longest = lengthRange(m).max;
     const block = hipQ + Math.max(10, (longest - m.waist_to_hip) * 0.45) * 0.8;
     const bell = draft.circleShare ? draft.finishedWaist / 4 + longest * (0.25 + 0.4 * draft.circleShare) : 0;
-    const half = Math.max(block, bell, ...w.pts.map((q) => q.x)) + 4;
-    return { half, top: -8, bottom: m.waist_to_floor + 6 };
-  }, [draft.finishedHip, draft.finishedWaist, draft.circleShare, m, w]);
+    const base = formFrame(m, body, m.waist_to_floor + 6, undefined, cloth);
+    return { half: Math.max(base.half, block + 4, bell + 4), top: base.top, bottom: base.bottom };
+  }, [draft.finishedHip, draft.finishedWaist, draft.circleShare, m, body, cloth]);
 
   const cx = frame.half;
   const k = (frame.bottom - frame.top) / 110; // handle and label size, in proportion to the sketch
-  const right = w.pts.map((q) => ({ x: cx + q.x, y: q.y }));
-  const left = w.pts.map((q) => ({ x: cx - q.x, y: q.y })).reverse();
-  // A diagonal hem differs side to side, so it is sketched from the whole piece as cut.
-  const wholePc = draft.asym?.kind === 'diagonal' ? draft.pieces[side === 'front' ? 0 : 1] : undefined;
-  const outline = wholePc ? wholePc.outline.points(16).map((q) => ({ x: cx + q.x, y: q.y })) : [...right, ...left];
-  const path = outline.map((q, i) => `${i ? 'L' : 'M'}${q.x.toFixed(2)} ${q.y.toFixed(2)}`).join(' ') + ' Z';
-  const hemCentre = w.hem[w.hem.length - 1];
-  const hemSide = w.hem[0];
+  // The handles sit on the skirt as drawn: its hem at the centre, and the hem's outer corner.
+  const skirt = cloth[0] ?? [];
+  const hemCentre = skirt.length ? skirt.reduce((a, b) => (b.y > a.y ? b : a)) : { x: 0, y: draft.lengthCm };
+  const hemSide = hemCorner(skirt) ?? { x: w.hem[0].x, y: w.hem[0].y };
 
   const toSvg = (e: PointerEvent): P => {
     const ctm = svg.current!.getScreenCTM()!.inverse();
@@ -269,7 +275,7 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
       // A group, not an image: an image hides the length and flare handles inside it from screen readers.
       role="group"
       aria-label={label}
-      className={drawing ? 'preview-svg sketch shape drawing' : 'preview-svg sketch shape'}
+      className={drawing ? 'preview-svg sketch shape form-still drawing' : 'preview-svg sketch shape form-still'}
       onPointerDown={(e) => {
         if (!drawing) return;
         (e.target as Element).setPointerCapture?.(e.pointerId);
@@ -279,19 +285,10 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
       onPointerUp={end}
       onPointerCancel={end}
     >
-      <path d={bodyOutline(m, cx)} className="body-outline" fill="none" strokeWidth={0.2} strokeLinecap="round" />
+      <FormLayers body={body} m={m} legs cx={cx} bottom={frame.bottom} lines={lines} worn={cloth} />
       {guide(m.waist_to_knee, 'KNEE')}
       {guide(m.waist_to_floor, 'FLOOR')}
-      <path d={path} style={{ fill: 'var(--garment, var(--fill))', stroke: 'var(--ink)' }} strokeWidth={0.25} strokeLinejoin="round" />
-      <rect
-        x={cx - w.sideWaist.x}
-        y={w.sideWaist.y - 3}
-        width={2 * w.sideWaist.x}
-        height={3.5}
-        style={{ fill: 'var(--garment-band, var(--paper))', stroke: 'var(--ink)' }}
-        strokeWidth={0.25}
-      />
-      {!drawing && handle({ x: cx, y: hemCentre.y }, 'hem', lengthLabel)}
+      {!drawing && handle({ x: cx + hemCentre.x, y: hemCentre.y }, 'hem', lengthLabel)}
       {!drawing && !circle && choices.silhouette !== 'gathered' && handle({ x: cx + hemSide.x, y: hemSide.y }, 'side', flareLabel)}
       {drawing && !stroke && (
         <text x={cx} y={Math.min(frame.bottom - 4, hemCentre.y + 8 * k)} fontSize={2.1 * k} textAnchor="middle" className="hint">
