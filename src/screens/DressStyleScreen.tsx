@@ -40,7 +40,7 @@ import { FinishChoices } from '../ui/FinishChoices';
 import type { Finish } from '../App';
 import { GODET_OPTIONS, VOLUME_OPTIONS, layoutExtras, setVolume, volumeAllowed, volumeOf } from '../engine/skirtVolume';
 import { isDraped, zipSide } from '../engine/drape';
-import { NoSeam, lengthRange } from '../engine/skirt';
+import { LENGTHS, Length, NoSeam, lengthRange } from '../engine/skirt';
 import type { BodiceMeasurements } from '../engine/bodice';
 import type { SkirtMeasurements } from '../engine/skirt';
 import { DrawOnForm, formWidth } from '../ui/DrawOnForm';
@@ -194,7 +194,6 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
       : [
           { id: 'silhouette', label: 'Skirt', options: GROUPS[1].options },
         ]),
-    { id: 'length', label: 'Length', options: GROUPS[2].options },
     ...(noSeam || wrapped
       ? []
       : [
@@ -328,6 +327,13 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
   };
 
   const mv = values as BodiceMeasurements & SkirtMeasurements;
+  // The length is set on the drawing, with the hem dot and the lengths named beside the legs (Cat, 2026-10-24).
+  const hem = {
+    name: 'Dress length',
+    marks: GROUPS[2].options.filter(([id]) => allowed('length', id)).map(([id, label]) => ({ id, label, y: (draft ? landmarks(draft.bodice).waistY : 0) + LENGTHS[id as Length](mv) })),
+    value: choices.skirt.length,
+    onPick: (id: string) => choose('length', id),
+  };
   const waistY = draft ? landmarks(draft.bodice).waistY : 0;
   // A dropped waist: the skirt's lines and lengths are read from the seam at the high hip.
   const seamY = waistY + (draft?.seamDrop ?? 0);
@@ -602,7 +608,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           {error && <p className="msg error">{error}</p>}
           {formBody && view === 'sketch' && (
             <GarmentFabric fabric={fabric}>
-              <FormSketch body={formBody} m={mv} legs bottom={waistY + lengthRange(mv).max + 4} lines={formLines} cloth={clothShapes} arms={formArm} sleeve={formArm ? sleeve : undefined} underarmY={draft ? landmarks(draft.bodice).underarm.y : undefined} label={`The ${title} on your form`} />
+              <FormSketch body={formBody} m={mv} legs bottom={waistY + lengthRange(mv).max + 4} lines={formLines} cloth={clothShapes} arms={formArm} sleeve={formArm ? sleeve : undefined} underarmY={draft ? landmarks(draft.bodice).underarm.y : undefined} hem={draft ? hem : undefined} label={`The ${title} on your form`} />
             </GarmentFabric>
           )}
           {flat && view === 'flat' && (

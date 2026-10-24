@@ -346,8 +346,9 @@ function bodiceSteps(draft: BodiceDraft, _style: { length: BodiceLength }, fabri
   const curve = n1(sw.curve);
   const edges = finish.edges ?? 'binding';
   const bust = draft.bustDart > 0.3;
-  // When the draft notes the bust dart as pivoted into the waist dart, the side dart is 5 cm wide and the waist dart carries the rest.
-  const pivoted = draft.pieces.some((pc) => pc.draft?.points.some((pt) => pt.n === 'B' && /pivoted into the waist dart/i.test(pt.note ?? '')));
+  // A full bust whose shaping is too wide for one side dart: the side dart is capped (SIDE_DART_MAX) and the
+  // waist dart carries the rest, so the sewist knows the two darts are meant to be unequal.
+  const pivoted = (draft.bustToWaist ?? 0) > 0.3;
   const waist = draft.waistDarts.front > 0.3 || draft.waistDarts.back > 0.3;
   const dartWords = bust && waist ? 'bust and waist darts' : bust ? 'bust darts' : 'waist darts';
   const sleeve = finish.sleeve;
@@ -383,11 +384,11 @@ function bodiceSteps(draft: BodiceDraft, _style: { length: BodiceLength }, fabri
           {
             title: `Sew the ${dartWords}`,
             text: [
-              bust ? `Fold each bust dart with right sides together so the dart lines meet, stitch from the side seam to the point, and press it down.${pivoted ? ' The side bust dart is 5 cm wide; the rest of the bust shaping is carried in the waist dart.' : ''}` : '',
+              bust ? `Fold each bust dart with right sides together so the dart lines meet, stitch from the side seam to the point, and press it down.${pivoted ? ` The side bust dart is ${draft.bustDart} cm wide; the rest of the bust shaping is carried in the waist dart, which is wider than usual.` : ''}` : '',
               waist && below
                 ? 'The waist darts are pointed at both ends. Fold each one along its centre, stitch from one point through the widest part at the waist to the other point, then clip into the fold at the waist so it lies flat. Press toward the centre.'
                 : waist
-                  ? 'Fold each waist dart the same way, stitch from the hem edge to the point, and press toward the centre.'
+                  ? 'Fold each waist dart the same way, stitch from the waist edge to the point, and press toward the centre.'
                   : '',
               'Run each line of stitching off the fold at the point and knot the threads.',
             ]

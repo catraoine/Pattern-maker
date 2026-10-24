@@ -180,6 +180,10 @@ const PICS: Record<PicSet, Record<string, Record<string, ReactNode>>> = {
       culotte: <path d="M11 4h18l6 30H22l-2-16-2 16H5z" />,
     },
     length: {
+      shorts: <path d="M11 4h18l2 16h-9l-2-6-2 6h-9z" />,
+      knee: <path d="M11 4h18l1 26h-8l-2-12-2 12h-8z" />,
+      capri: <path d="M11 4h18l1 33h-8l-2-19-2 19h-8z" />,
+      cropped: <path d="M11 4h18l1 36h-8l-2-22-2 22h-8z" />,
       full: <path d="M11 4h18l1 42h-8l-2-28-2 28h-8z" />,
       ankle: (
         <>

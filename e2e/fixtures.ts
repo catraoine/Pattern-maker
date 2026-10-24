@@ -292,7 +292,18 @@ export async function goPrint(page: Page) {
 }
 
 /** Tap a style chip in a named group (Fit, Length, ...), and check it took. */
+/** The hem dot on the drawing, which sets the length of a skirt, dress, T-shirt or trousers. */
+export const lengthDot = (page: Page) => main(page).getByRole('slider', { name: /^(Skirt|Dress|T-shirt|Trouser) length$/ });
+
+/** Pick a named length by tapping its mark beside the drawing, then check the hem dot reads it. */
+export async function chooseLength(page: Page, name: string) {
+  await main(page).locator('.preview .hem-mark').filter({ hasText: new RegExp(`^${name}$`, 'i') }).click();
+  await expect(lengthDot(page)).toHaveAttribute('aria-valuetext', name);
+}
+
 export async function chooseChip(page: Page, group: string, chip: string) {
+  // The length is set on the drawing, not with buttons, where the garment has a hem dot (Cat, 2026-10-24).
+  if (group === 'Length' && (await lengthDot(page).count())) return chooseLength(page, chip);
   const button = (await openGroup(page, group)).getByRole('button', { name: chip, exact: true });
   // By its corner: tapping the drawing on a tile that is already picked opens it full size instead.
   await button.click({ position: { x: 4, y: 4 } });

@@ -11,6 +11,7 @@ import { LENGTHS, Length, Silhouette, SkirtDraft, SkirtMeasurements, flareRange,
 import { GROUPS } from '../screens/StyleScreen';
 import { skirtForm } from './DrawOnForm';
 import { FormLayers, formFrame, hemCorner, wornCloth } from './FormSketch';
+import { LengthMarks, MARGIN } from './HemMarks';
 
 export type Side = 'front' | 'back';
 
@@ -272,7 +273,8 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
   return (
     <svg
       ref={svg}
-      viewBox={`0 ${frame.top} ${2 * cx} ${frame.bottom - frame.top}`}
+      // Room for the length marks on the left, and as much on the right to keep the form centred.
+      viewBox={`${-MARGIN * k} ${frame.top} ${2 * cx + 2 * MARGIN * k} ${frame.bottom - frame.top}`}
       // A group, not an image: an image hides the length and flare handles inside it from screen readers.
       role="group"
       aria-label={label}
@@ -287,7 +289,19 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
       onPointerCancel={end}
     >
       <FormLayers body={body} m={m} legs cx={cx} top={frame.top} bottom={frame.bottom} lines={lines} worn={cloth} />
-      {guide(m.waist_to_knee, 'KNEE')}
+      {!drawing && (
+        <g className="hem-marks">
+          <LengthMarks
+            marks={LENGTH_IDS.map((id) => ({ id, label: lengthName(id), y: LENGTHS[id](m) }))}
+            on={choices.lengthCm ? undefined : choices.length}
+            k={k}
+            onPick={(id) => {
+              const { look: _look, lengthCm: _l, shape: _s, ...rest } = choices;
+              if (id !== choices.length || choices.lengthCm || choices.shape) onDone(choices, { ...rest, length: id as Length });
+            }}
+          />
+        </g>
+      )}
       {guide(m.waist_to_floor, 'FLOOR')}
       {!drawing && handle({ x: cx + hemCentre.x, y: hemCentre.y }, 'hem', lengthLabel)}
       {!drawing && !circle && choices.silhouette !== 'gathered' && handle({ x: cx + hemSide.x, y: hemSide.y }, 'side', flareLabel)}

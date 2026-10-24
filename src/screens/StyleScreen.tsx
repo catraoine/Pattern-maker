@@ -366,15 +366,16 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
       onMode={onMode}
     >
       <section className="card numbered" aria-labelledby="opts">
-        {GROUPS.map((g) => (
+        {/* The length is set on the drawing, with the hem dot and the lengths named beside the legs (Cat, 2026-10-24). */}
+        {GROUPS.filter((g) => g.id !== 'length').map((g) => (
           <Group key={g.id} label={g.label}>
             <div className={chipsClass('skirt', g.id)}>
               {g.options.map(([id, label]) => (
                 <button
                   key={id}
                   type="button"
-                  className={chosen(choices, g.id) === id && !(g.id === 'length' && choices.lengthCm !== undefined) ? 'chip on' : 'chip'}
-                  aria-pressed={chosen(choices, g.id) === id && !(g.id === 'length' && choices.lengthCm !== undefined)}
+                  className={chosen(choices, g.id) === id ? 'chip on' : 'chip'}
+                  aria-pressed={chosen(choices, g.id) === id}
                   disabled={g.id !== 'fit' && !cutAllowed(choices, g.id, id ?? 'none')}
                   onClick={() => choose({ ...choices, [g.id]: id }, g.id)}
                 >
@@ -383,7 +384,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
                 </button>
               ))}
             </div>
-            <Explain set="skirt" group={g.id} options={g.options} pick={g.id === 'length' && choices.lengthCm !== undefined ? undefined : chosen(choices, g.id)} />
+            <Explain set="skirt" group={g.id} options={g.options} pick={chosen(choices, g.id)} />
           </Group>
         ))}
         <Group label="Slit">

@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { layout } from '../engine/export';
 import { piecesLengthCm, toMetres } from '../engine/fabric';
 import { layPlan } from '../engine/layplan';
-import { TROUSER_EASE, TrousersDraft } from '../engine/trousers';
+import { TROUSER_EASE, TROUSER_LENGTHS, TrousersDraft, TrousersMeasurements, trouserLength } from '../engine/trousers';
 import { trousersFlat, trousersView } from '../engine/flat';
 import { skirtForm } from '../ui/DrawOnForm';
 import { FormSketch } from '../ui/FormSketch';
@@ -84,7 +84,19 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
     const v = trousersView(draft, { waist_to_hip: values.waist_to_hip, crotch_depth: values.crotch_depth });
     return { cloth: v.shapes, lines: v.lines.map((l) => l.pts) };
   }, [draft, values.waist_to_hip, values.crotch_depth]);
-  const shown = (id: string) => id !== 'length' || choices.leg !== 'culotte';
+  // The length is set on the drawing, with the hem dot (Cat, 2026-10-24); culottes keep their own.
+  const shown = (id: string) => id !== 'length';
+  const lengthGroup = TROUSER_GROUPS.find((g) => g.id === 'length')!;
+  const full = trouserLength(values as unknown as TrousersMeasurements, { leg: 'straight', length: 'full' });
+  const hem =
+    choices.leg === 'culotte' || !values.waist_to_floor || !values.waist_to_knee || !values.crotch_depth
+      ? undefined
+      : {
+          name: 'Trouser length',
+          marks: TROUSER_LENGTHS.map((id) => ({ id, label: lengthGroup.options.find((o) => o[0] === id)![1], y: trouserLength(values as unknown as TrousersMeasurements, { leg: choices.leg, length: id }) })),
+          value: choices.length,
+          onPick: (length: string) => onChoices(validTrousers({ ...choices, length: length as TrousersChoices['length'] })),
+        };
   const elastic = choices.waist === 'elastic';
   const pockets = choices.pockets ?? 'none';
 
@@ -180,7 +192,7 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
           {error && <p className="msg error">{error}</p>}
           {formBody && draft && view === 'sketch' && (
             <GarmentFabric fabric={fabric}>
-              <FormSketch body={formBody} m={values as { waist: number }} legs bottom={draft.lengthCm + 6} lines={{}} cloth={onForm.cloth} outline={onForm.lines} label={`The ${title.toLowerCase()} on your form`} />
+              <FormSketch body={formBody} m={values as { waist: number }} legs bottom={(values.waist_to_floor ? full : draft.lengthCm) + 6} lines={{}} cloth={onForm.cloth} outline={onForm.lines} hem={hem} label={`The ${title.toLowerCase()} on your form`} />
             </GarmentFabric>
           )}
           {flat && view === 'flat' && (
@@ -219,9 +231,13 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
           <span>Crotch length</span>
           <span>{values.crotch_length} cm</span>
           <strong>{draft ? Math.round((draft.crotch.front + draft.crotch.back) * 10) / 10 : '–'} cm</strong>
-          <span>Knee</span>
-          <span />
-          <strong>{draft ? draft.kneeCm : '–'} cm</strong>
+          {!draft?.shorts && (
+            <>
+              <span>Knee</span>
+              <span />
+              <strong>{draft ? draft.kneeCm : '–'} cm</strong>
+            </>
+          )}
           <span>Hem</span>
           <span />
           <strong>{draft ? draft.hemCm : '–'} cm</strong>

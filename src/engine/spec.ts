@@ -156,7 +156,7 @@ export function trousersSpec(m: TrousersMeasurements, d: TrousersDraft): SpecRow
     row('Crotch length', m.crotch_length, d.crotch.front + d.crotch.back),
     { label: 'Crotch curve, front / back', finished: `${d.crotch.front} / ${d.crotch.back}` },
     row('Outside leg, waist to hem', undefined, d.lengthCm),
-    row('Knee, round', undefined, d.kneeCm),
+    ...(d.shorts ? [] : [row('Knee, round', undefined, d.kneeCm)]),
     row('Hem, round', undefined, d.hemCm),
     ...(d.pockets !== 'none' ? [{ label: d.pockets === 'slant' ? 'Slant pockets' : d.pocketSides === 'right' ? 'In-seam pocket, right side' : 'In-seam pockets', finished: d.pockets === 'slant' ? `opening ${SLANT.in} in, ${SLANT.down} down` : `opening ${INSEAM.opening}` }] : []),
     ...waistRows(d, d.closure === 'fly' ? 'Trouser zip, fly front' : 'Invisible zip, left side'),

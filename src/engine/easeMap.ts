@@ -227,7 +227,7 @@ export function bodiceGroup(pieces: Piece[], m: Parameters<typeof upperBody>[0],
 
 /** Trousers: waist to hip round the body, then each leg below its crotch level. */
 export function trousersGroup(pieces: Piece[], m: Parameters<typeof lowerBody>[0] & { full_hip?: number }): EaseGroup | undefined {
-  const pcs = own(pieces, 'Trousers');
+  const pcs = [...own(pieces, 'Trousers'), ...own(pieces, 'Shorts')];
   if (!pcs.length) return undefined;
   const front = pcs[0];
   const shift = byWaist(pcs);
@@ -239,9 +239,10 @@ export function trousersGroup(pieces: Piece[], m: Parameters<typeof lowerBody>[0
     body: lowerBody(m, waistY(front) ?? 0, balanceY(front, 'HIP LINE')),
     crotchOf,
     leg: (y, pc) => {
-      const knee = balanceY(pc, 'KNEE LINE');
-      if (knee === undefined) return undefined;
-      return legBody(m, { crotch: crotchOf(pc), knee, ankle: Math.max(...pc.outline.points().map((q) => q.y)) })(y);
+      // Shorts end above the knee and have no knee line: the knee is then a little below their hem.
+      const hem = Math.max(...pc.outline.points().map((q) => q.y));
+      const knee = balanceY(pc, 'KNEE LINE') ?? hem + 8;
+      return legBody(m, { crotch: crotchOf(pc), knee, ankle: Math.max(hem, knee + 30) })(y);
     },
     shift,
     top: (pc) => waistLow(pc) ?? -Infinity,
