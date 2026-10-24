@@ -133,8 +133,8 @@ async function piece({ shot, still, from = 0, dur, speed = 1, zoom = [1, 1], at 
 // across, the hem longer and the waist seam down, and Done goes on to the pattern sheet. The camera glides between the moments, and a big word or two names
 // each step. Times are in the style shot, as record-tour-shots.mjs prints them.
 const MARKS = WIDE
-  ? { fabric: 2.6, enlarge: 7.5, draw: 9.5, hem: 11.4, side: 17.3, done: 22.0 }
-  : { fabric: 2.6, enlarge: 6.9, draw: 8.8, hem: 10.7, side: 16.3, done: 20.5 };
+  ? { fabric: 2.6, enlarge: 7.5, draw: 9.5, hem: 11.4, side: 17.1, done: 21.6 }
+  : { fabric: 2.6, enlarge: 6.9, draw: 8.8, hem: 10.6, side: 16.3, done: 20.6 };
 const JOURNEY = { from: 0.6, to: MARKS.done + 0.9, dur: 17 };
 const atOut = (t) => ((t - JOURNEY.from) * JOURNEY.dur) / (JOURNEY.to - JOURNEY.from);
 // [shot time, zoom, x, y]: on a computer, the whole page, then in on the enlarged form to draw, and back as the
