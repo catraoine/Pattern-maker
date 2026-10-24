@@ -17,6 +17,7 @@ import { FormLine, FormSide, Reading, landmarks } from './formLines';
 import { CLOTH_EDGES, FormLayers, WornSleeve, wornCloth } from './FormSketch';
 import { TestingTag } from './TestingTag';
 import { DemoButton } from './DemoButton';
+import { tookEnlarged } from './EnlargeSketch';
 
 type Measures = { full_bust?: number; waist: number; full_hip?: number; waist_to_hip?: number; waist_to_knee?: number; waist_to_floor?: number; crotch_depth?: number };
 
@@ -196,7 +197,8 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
   /** Asking whether to leave without the lines, after ← or the phone's back. */
   const [asking, setAsking] = useState(false);
   /** The form enlarged to fill the screen, for a roomier place to draw. */
-  const [big, setBig] = useState(false);
+  // Opened from the enlarged preview, it opens enlarged too.
+  const [big, setBig] = useState(tookEnlarged);
   useEffect(() => {
     if (!big) return;
     const key = (e: KeyboardEvent) => e.key === 'Escape' && setBig(false);

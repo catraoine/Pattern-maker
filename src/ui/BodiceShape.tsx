@@ -204,7 +204,9 @@ export function strokeToNeck(stroke: P[], side: Side, draft: BodiceDraft, curren
   // However far it was drawn, the neckline stays 8 cm above the waist and leaves 3 cm of shoulder.
   const top = worn(draft, 'front').top;
   const sh = top.pts.filter((_, i) => top.tags[i] === 'shoulder' || (i > 0 && top.tags[i - 1] === 'shoulder'));
-  const shoulderLen = sh.length > 1 ? Math.hypot(sh[sh.length - 1].x - sh[0].x, sh[sh.length - 1].y - sh[0].y) : 12;
+  // The shoulder left by the neckline drawn now, plus what that neckline already took, is the whole shoulder: a
+  // boat neck must not leave the next line only the 5 cm it kept.
+  const shoulderLen = (sh.length > 1 ? Math.hypot(sh[sh.length - 1].x - sh[0].x, sh[sh.length - 1].y - sh[0].y) : 12 - current.width) + current.width;
   const maxDepth = draft.front.waistCentre.y - 8 - block.neckY;
   const mid = (low.y + high.y) / 2;
   const near = pts.filter((q) => Math.abs(q.y - mid) < (low.y - high.y) * 0.12);

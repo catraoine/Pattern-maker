@@ -127,30 +127,33 @@ async function piece({ shot, still, from = 0, dur, speed = 1, zoom = [1, 1], at 
   return out;
 }
 
-// The Style chapter as one unbroken move (Cat, 2026-10-24: too choppy; hand-hold on an elegant journey): the waist
-// seam dropped, the dress filled navy, stripe, then Prince of Wales (Cat, 2026-10-23), and the hem and a boat neck
-// drawn straight on the dress in its fabric, enlarged (D1 Draw on the Dress, 2026-10-24), through Done to the pattern
-// sheet. The camera glides between the moments, and a big word or two names each step. Times are in the style shot,
-// as record-tour-shots.mjs prints them.
-const MARKS = WIDE ? { shape: 0.9, fabric: 4.7, checks: 12.1, draw: 14.4, done: 26.2 } : { shape: 0.9, fabric: 6.3, checks: 13.7, draw: 16.0, done: 27.5 };
-const JOURNEY = { from: 0.6, to: MARKS.done + 0.9, dur: 17 };
+// The Style chapter as one unbroken move (Cat, 2026-10-24: hand-hold on an elegant journey): it opens on the dress
+// already drafted from the photo the film has just shown (Cat, 2026-10-24: show that starting from a photo works),
+// then refilled in a big print, enlarged, and the drawing tool, enlarged with it, takes the boat neck straight
+// across, the hem longer and the waist seam down, and Done goes on to the pattern sheet. The camera glides between the moments, and a big word or two names
+// each step. Times are in the style shot, as record-tour-shots.mjs prints them.
+const MARKS = WIDE
+  ? { fabric: 2.6, enlarge: 6.8, draw: 8.7, neck: 10.5, hem: 15.1, waist: 19.0, done: 23.0 }
+  : { fabric: 2.6, enlarge: 6.6, draw: 8.6, neck: 10.4, hem: 14.9, waist: 18.9, done: 22.8 };
+const JOURNEY = { from: 0.6, to: MARKS.done + 0.9, dur: 18 };
 const atOut = (t) => ((t - JOURNEY.from) * JOURNEY.dur) / (JOURNEY.to - JOURNEY.from);
-// [shot time, zoom, x, y]: on a computer, close on the dress and the shapes, out a little for the fabrics beside it,
-// in on the enlarged form to draw, and back as the pattern comes up. A phone shows the whole screen throughout.
+// [shot time, zoom, x, y]: on a computer, the whole page, then in on the enlarged form to draw, and back as the
+// pattern comes up. A phone shows the whole screen throughout.
 const STYLE_CAM = (WIDE
-  ? [[0.6, 1.3, 0.6, 0.46], [MARKS.fabric - 0.6, 1.3, 0.6, 0.46], [MARKS.fabric + 1, 1.12, 0.5, 0.5], [MARKS.draw, 1.12, 0.5, 0.5], [MARKS.draw + 1.6, 1.22, 0.5, 0.46], [MARKS.done, 1.22, 0.5, 0.46], [JOURNEY.to, 1, 0.5, 0.5]]
+  ? [[0.6, 1, 0.5, 0.5], [MARKS.draw, 1, 0.5, 0.5], [MARKS.neck - 0.2, 1.25, 0.5, 0.44], [MARKS.done, 1.25, 0.5, 0.44], [JOURNEY.to, 1, 0.5, 0.5]]
   : [[0.6, 1, 0.5, 0.5], [JOURNEY.to, 1.05, 0.5, 0.47]]).map(([t, ...r]) => [atOut(t), ...r]);
 const STYLE_NOTES = [
-  ['Drop the waist.', MARKS.shape, MARKS.fabric - 0.4],
-  ['Choose the fabric.', MARKS.fabric + 0.2, MARKS.fabric + 4.6],
-  ['Add a print.', MARKS.fabric + 4.8, MARKS.draw - 0.3],
-  ['Draw it longer.', MARKS.draw + 1.9, MARKS.draw + 5.6],
-  ['Draw a boat neck.', MARKS.draw + 5.8, MARKS.done - 0.2],
+  ['From your photo.', 0.6, MARKS.fabric - 0.2],
+  ['Change the fabric.', MARKS.fabric + 0.2, MARKS.enlarge - 0.2],
+  ['Enlarge to draw.', MARKS.enlarge + 0.2, MARKS.neck - 0.2, 'side'],
+  ['Neck straight across.', MARKS.neck + 0.2, MARKS.hem - 0.2, 'side'],
+  ['Draw it longer.', MARKS.hem + 0.2, MARKS.waist - 0.2, 'side'],
+  ['Drop the waist.', MARKS.waist + 0.2, MARKS.done - 0.1, 'side'],
 ];
 const styleJourney = async () => {
   // One at a time: the words are all drawn on the one page.
   const notes = [];
-  for (const [line, on, off] of STYLE_NOTES) notes.push([await note(line), atOut(on), atOut(off)]);
+  for (const [line, on, off, where] of STYLE_NOTES) notes.push([await note(line, where), atOut(on), atOut(off)]);
   return piece({ shot: 'style', from: JOURNEY.from, dur: JOURNEY.dur, speed: (JOURNEY.to - JOURNEY.from) / JOURNEY.dur, cam: STYLE_CAM, fadeIn: 0.5, notes });
 };
 // Cat (2026-10-22): the cream pattern paper was too bright after the black pages; a deeper champagne here.
@@ -158,8 +161,9 @@ const styleJourney = async () => {
 const PATTERN = WIDE
   ? { from: 1.1, speed: 0.8, zoom: [1.6, 1.66], at: [0.42, 0.72], frame: [0.09, 1.05, 0.1, 0.92], tint: [0.84, 0.78, 0.66] }
   : { from: 1.1, speed: 0.75, zoom: [1.1, 1.14], at: [0.5, 0.56], frame: [0.305, 0.712], tint: [0.84, 0.78, 0.66] };
-// On a phone the whole sheet of pages shows, the words round it in black (Cat, 2026-10-24: 1.6 was too close).
-const PAGES = { shot: 'print', from: 5.2, speed: 0.75, ...(WIDE ? { frame: [0.1, 1.05] } : { zoom: [1.15, 1.2], at: [0.5, 0.49], frame: [0.12, 0.89] }) };
+// On a phone the whole sheet of pages shows, opened under See the pages, the words round it in black (Cat, 2026-10-24:
+// 1.6 was too close).
+const PAGES = { shot: 'print', from: 5.2, speed: 0.75, ...(WIDE ? { frame: [0.1, 1.05] } : { zoom: [1.08, 1.12], at: [0.5, 0.36], frame: [0.155, 0.62] }) };
 // Cat's B Three Checks (2026-10-22): what All round is for, a line at a time over the turning form. On a phone in a
 // dark band along the bottom; on a computer to the left of the form. Each line is its own picture, all laid out
 // together so they stack in place; only the first carries the dark band.
@@ -178,26 +182,18 @@ async function threeChecks() {
 }
 // A caption for a step in the Style chapter (Cat, 2026-10-24: not clear what's being picked), in a dark band along
 // the top, over the app's own header, so the choices being tapped stay clear.
-const note = (line) => words(WIDE
+// On a computer the enlarged preview keeps its view switches top left, so its words sit to the left of the form.
+const note = (line, where) => words(WIDE && where === 'side'
+  ? `<div class="f" style="display:flex;flex-direction:column;justify-content:center;padding-left:96px;background:linear-gradient(to right,rgba(0,0,0,.85) 0,rgba(0,0,0,.6) 30%,rgba(0,0,0,0) 42%)"><h1 class="t" style="font-size:46px">${line}</h1></div>`
+  : WIDE
   ? `<div class="f" style="background:linear-gradient(to bottom,rgba(0,0,0,.92) 0,rgba(0,0,0,.8) 13%,rgba(0,0,0,0) 22%);padding:44px 0 0 96px"><h1 class="t" style="font-size:46px">${line}</h1></div>`
   : `<div class="f" style="background:linear-gradient(to bottom,rgba(0,0,0,.92) 0,rgba(0,0,0,.8) 11%,rgba(0,0,0,0) 17%);padding:40px 0 0 28px"><h1 class="t" style="font-size:36px">${line}</h1></div>`);
 // P2 Or Start From a Photo (Cat, 2026-10-24): after the garments, a photo of a dress (made for the film, no person in
-// it) dissolves into the same dress drafted on the form, enlarged, before its lines are drawn. Its words are the
-// same size and place as the Style steps'.
+// it), briefly, its words the same size and place as the Style steps'. No drafted dress after it (Cat: skip that).
 const PHOTO = readFileSync(new URL('./tour/photo-dress.jpg', import.meta.url)).toString('base64');
-const DRAFTED = WIDE
-  ? { t: 16.8, zoom: [1.84, 1.8], at: [0.5, 0.46], frame: [-1, 2, 0.3, 0.7] }
-  : { t: 18.3, zoom: [2.04, 2], at: [0.5, 0.45], frame: [-1, 2, 0.16, 0.84] };
 async function photoMoment() {
   const pic = await words(`<div class="f" style="display:flex;align-items:center;justify-content:center;padding-top:${WIDE ? 70 : 60}px"><img src="data:image/jpeg;base64,${PHOTO}" style="height:${WIDE ? 640 : 560}px;max-width:94%;object-fit:cover"></div>`, { solid: true });
-  const drafted = join(work, 'drafted.png');
-  execFileSync('ffmpeg', ['-v', 'error', '-y', '-ss', String(DRAFTED.t), '-i', join(SHOTS, 'style.mp4'), '-frames:v', '1', drafted]);
-  const words1 = await note('Or start from a photo.');
-  return dissolve(
-    await piece({ still: pic, dur: 2.6, zoom: [1, 1.03], fadeIn: 0.5, notes: [[words1, 0.3, 3]] }),
-    await piece({ still: drafted, dur: 2.6, zoom: DRAFTED.zoom, at: DRAFTED.at, frame: DRAFTED.frame, fadeOut: 0.5, notes: [[words1, 0, 2]] }),
-    1,
-  );
+  return piece({ still: pic, dur: 2.2, zoom: [1, 1.03], fadeIn: 0.5, fadeOut: 0.5, notes: [[await note('Or start from a photo.'), 0.2, 2.2]] });
 }
 // The opening (Cat, 2026-10-22: the old one repeated the loading screen and welcome the viewer had just seen).
 const INTRO = process.env.TOUR_INTRO ?? 'C2'; // Cat's pick, 2026-10-22: C2 Pull Back

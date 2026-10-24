@@ -181,13 +181,17 @@ const press = async (loc, ms) => {
   await wait(ms);
 };
 // A line drawn with the pen dot, through points given as fractions of the form picture.
-const draw = async (loc, pts, pause) => {
+// ref: the picture's viewBox the points were measured on; a longer hem makes the picture taller, so the points are
+// moved to stay on the same place on the form.
+const viewBox = (loc) => loc.evaluate((svg) => { const v = svg.viewBox.baseVal; return [v.x, v.y, v.width, v.height]; });
+const draw = async (loc, pts, pause, ref) => {
   // The picture's own drawing box, which an enlarged form centres inside a wider box.
   const box = await loc.boundingBox();
-  const [vw, vh] = await loc.evaluate((svg) => [svg.viewBox.baseVal.width, svg.viewBox.baseVal.height]);
+  const [vx, vy, vw, vh] = await viewBox(loc);
   const k = Math.min(box.width / vw, box.height / vh);
   const bx = { x: box.x + (box.width - vw * k) / 2, y: box.y + (box.height - vh * k) / 2, width: vw * k, height: vh * k };
-  const at = ([x, y]) => [bx.x + x * bx.width, bx.y + y * bx.height];
+  const on = ref ? ([x, y]) => [(ref[0] + x * ref[2] - vx) / vw, (ref[1] + y * ref[3] - vy) / vh] : (q) => q;
+  const at = (q) => { const [x, y] = on(q); return [bx.x + x * bx.width, bx.y + y * bx.height]; };
   const path = [];
   for (let i = 0; i + 1 < pts.length; i++)
     for (let s = 0; s < 14; s++) path.push(at([pts[i][0] + ((pts[i + 1][0] - pts[i][0]) * s) / 14, pts[i][1] + ((pts[i + 1][1] - pts[i][1]) * s) / 14]));
@@ -205,63 +209,71 @@ const draw = async (loc, pts, pause) => {
 let t0;
 const mark = (what) => console.log(`  style ${what}: ${((Date.now() - t0) / 1000).toFixed(1)} s`);
 // The lines, as fractions of the form picture, drawn on the dress itself (Cat's D1 Draw on the Dress, 2026-10-24):
-// the hem longer, down the calf, and the neckline out wide towards the shoulders and shallow: a boat neck (Cat, 2026-10-24).
-const LINES = WIDE
-  ? { hem: [[0.36, 0.86], [0.5, 0.875], [0.64, 0.86]], neck: [[0.29, 0.162], [0.35, 0.174], [0.43, 0.182], [0.5, 0.184]] }
-  : { hem: [[0.32, 0.86], [0.5, 0.875], [0.68, 0.86]], neck: [[0.29, 0.162], [0.35, 0.174], [0.43, 0.182], [0.5, 0.184]] };
-// The film opens on the Shape tab already, not on Looks first (Cat, 2026-10-24: too choppy).
+// the hem longer, down the calf; the waist seam dropped to the hip; and the boat neck taken straight across.
+const LINES = {
+  hem: [[WIDE ? 0.36 : 0.32, 0.86], [0.5, 0.875], [WIDE ? 0.64 : 0.68, 0.86]],
+  waist: [[0.34, 0.47], [0.5, 0.475], [0.66, 0.47]],
+  neck: [[0.2, 0.175], [0.23, 0.18], [0.35, 0.181], [0.5, 0.181]],
+};
+// Off camera, the dress is made to match the photo the film has just shown (Cat, 2026-10-24: show that starting from
+// a photo works): a boat neck, a fitted bodice to the natural waist, a half circle skirt to the knee, in Prince of
+// Wales check. The film opens on that dress, the fabric changes, and the drawing tool takes it from there.
+const pick = async (name) => {
+  const r = main.locator('button[aria-pressed]').filter({ hasText: new RegExp(`^\\s*${name}\\b`) }).first();
+  if (await r.count()) await r.evaluate((el) => el.click());
+  await wait(250);
+};
+for (const [tab, names] of [['Neck & sleeves', ['Boat']], ['Skirt & length', ['Half circle', 'Knee']]]) {
+  await main.getByRole('tab', { name: tab, exact: true }).click();
+  await wait(400);
+  for (const n of names) await pick(n);
+}
+await main.getByRole('tab', { name: 'Fabric', exact: true }).click();
+await wait(400);
+const choose = (sel, name) => p.evaluate(([sel, name]) => [...document.querySelectorAll(sel)].find((el) => el.getAttribute('aria-label') === name || el.textContent.trim().startsWith(name))?.click(), [sel, name]);
+await choose('[role=radiogroup][aria-label="Fabric for the sketch"] [role=radio]', 'Viscose');
+await wait(300);
+await choose('[role=radiogroup][aria-label="Colour"] [role=radio]', 'Navy');
+await wait(300);
+const about = main.locator('summary', { hasText: 'About your fabric' });
+if (!(await about.evaluate((el) => el.parentElement.open))) await about.evaluate((el) => el.click());
+await wait(300);
+await choose('[role=radiogroup][aria-label="What\'s printed on your fabric"] [role=radio]', 'Checks');
+await wait(300);
+await choose('[role=radiogroup][aria-label="Checks or stripes"] [role=radio]', 'Checks');
+await wait(300);
 await main.getByRole('tab', { name: 'Shape', exact: true }).click();
 await p.evaluate(() => window.scrollTo(0, 0));
-await wait(800);
+await wait(1200);
 await start();
 t0 = Date.now();
-await wait(900);
-mark('shape');
-const dropped = main.locator('button, [role=radio]').filter({ hasText: /^\s*Dropped/ }).first();
-if (!WIDE) await glide(Math.max(0, await dropped.evaluate((el) => el.getBoundingClientRect().bottom + scrollY - 740)), 900);
-await wait(500);
-await press(dropped, 1800);
-if (!WIDE) await glide(0, 700);
-await wait(400);
+await wait(2600);
+// Then the fabric changed, the same dress refilled in a big placed print (Cat, 2026-10-24: showcase fabric).
 mark('fabric');
-await tap(main.getByRole('tab', { name: 'Fabric', exact: true }), 1200);
-// Two taps in one go, held off camera, so the frame between them (the cloth's own colour, or checks before stripes)
-// never shows.
-const both = async (first, second) => {
-  hold = true;
-  await twoTaps(first, second);
-  await wait(400);
-  hold = false;
-};
-const twoTaps = (first, second) => p.evaluate(async ([a, b]) => {
-  const find = (q) => [...document.querySelectorAll(q.sel)].find((el) => el.getAttribute('aria-label') === q.name || el.textContent.trim().startsWith(q.name));
-  find(a).click();
-  // (React may draw the second button a task later, still before the next frame.)
-  for (let i = 0; i < 20 && !find(b); i++) await new Promise((r) => setTimeout(r, 0));
-  find(b).click();
-  window.scrollTo(0, 0);
-}, [first, second]);
-await both({ sel: '[role=radiogroup][aria-label="Fabric for the sketch"] [role=radio]', name: 'Viscose' }, { sel: '[role=radiogroup][aria-label="Colour"] [role=radio]', name: 'Navy' });
-await wait(2000);
-const about = main.locator('summary', { hasText: 'About your fabric' });
-if (!(await about.evaluate((el) => el.parentElement.open))) await tap(about, 100);
-await both({ sel: '[role=radiogroup][aria-label="What\'s printed on your fabric"] [role=radio]', name: 'Checks' }, { sel: '[role=radiogroup][aria-label="Checks or stripes"] [role=radio]', name: 'Stripes' });
-await wait(2000);
-const stripes = main.getByRole('radiogroup', { name: 'Checks or stripes' });
-mark('checks');
-await tap(stripes.getByRole('radio', { name: 'Checks' }), 1600);
-await p.evaluate(() => window.scrollTo(0, 0));
-await wait(400);
+await press(main.getByRole('tab', { name: 'Fabric', exact: true }), 900);
+await press(main.locator('[role=radiogroup][aria-label="What\'s printed on your fabric"] [role=radio]').filter({ hasText: 'Big motifs' }), 2200);
+// Enlarged, the preview fills the screen with its tools (Cat, 2026-10-24: use the tools while it's enlarged), and
+// drawing on the form from there opens the drawing tool enlarged too, the place where room matters most.
+mark('enlarge');
+await press(main.getByRole('button', { name: /^Enlarge the drawing/ }), 1300);
 mark('draw');
-await press(main.getByRole('button', { name: 'Draw on your form' }).first(), 900);
-// Enlarged, so the film shows how roomy the place to draw is (Cat, 2026-10-24).
-await press(main.getByRole('button', { name: 'Enlarge', exact: true }), 1000);
+await press(main.getByRole('button', { name: 'Draw on your form' }).first(), 1100);
+const roomy = main.getByRole('button', { name: 'Enlarge', exact: true });
+if (await roomy.count()) await press(roomy, 1000);
 const form = main.getByRole('img', { name: /Your dress form from the/ });
 const kinds = main.getByRole('group', { name: 'What you are drawing' });
-await tap(kinds.getByRole('button', { name: 'Hem', exact: true }), 500);
-await draw(form, LINES.hem, 1500);
+const before = await viewBox(form);
+// Top to bottom: the neck first, while the picture is the size the lines were measured on, then the hem, then the
+// waist seam, moved to stay put on the now longer picture.
+mark('neck');
 await tap(kinds.getByRole('button', { name: 'Neckline', exact: true }), 500);
 await draw(form, LINES.neck, 1500);
+mark('hem');
+await tap(kinds.getByRole('button', { name: 'Hem', exact: true }), 500);
+await draw(form, LINES.hem, 1500);
+mark('waist');
+await tap(kinds.getByRole('button', { name: 'Waist seam', exact: true }), 500);
+await draw(form, LINES.waist, 1500, before);
 // Done lands on the pattern sheet, and the film stays there (Cat, 2026-10-24: no flash back to the dress).
 mark('done');
 await press(main.getByRole('button', { name: 'Done', exact: true }), 1200);
@@ -326,15 +338,25 @@ if (!WIDE) {
 }
 await main.getByRole('button', { name: 'Print my pattern' }).click();
 await wait(1200);
-await main.getByRole('group', { name: 'Paper' }).getByRole('button', { name: 'A4', exact: true }).click();
+// The paper is a drop-down now (Cat, 2026-10-24); A4 is picked from it when it isn't already.
+const paper = main.getByRole('group', { name: 'Paper' }).locator('.drop-button');
+if ((await paper.count()) && !/A4/.test(await paper.innerText())) {
+  await paper.click();
+  await main.getByRole('menuitemradio', { name: /^A4/ }).first().click();
+}
 await main.getByRole('button', { name: /^Download PDF/ }).waitFor({ timeout: 45000 });
+// On a phone the sheet of pages is folded away (Cat, 2026-10-24); it is opened off camera, so the film can glide to it.
+const see = main.locator('button.see-pages');
+if (!WIDE && (await see.count()) && (await see.getAttribute('aria-expanded')) !== 'true') await see.evaluate((el) => el.click());
+await wait(800);
+const sheetAt = !WIDE && (await see.count()) ? await see.evaluate((el) => el.getBoundingClientRect().bottom + scrollY - 100) : 1120;
 await p.evaluate(() => window.scrollTo({ top: 0 }));
 await wait(800);
 await start();
 await wait(1500);
-await glide(700, 900);
+await glide(Math.min(700, sheetAt / 2), 900);
 await wait(1800);
-await glide(1120, 700);
+await glide(sheetAt, 700);
 await wait(3500);
 await stop('print');
 
