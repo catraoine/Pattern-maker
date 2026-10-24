@@ -46,6 +46,9 @@ export const SLIP_LENGTHS = ['knee', 'midi', 'maxi'] as const;
 export function cutAllowed(c: { silhouette: string; length: string }, id: 'silhouette' | 'length' | 'asymHem', opt: string, garment: 'skirt' | 'dress' = 'skirt'): boolean {
   if (id === 'silhouette' && opt === 'slip') return (SLIP_LENGTHS as readonly string[]).includes(c.length);
   if (id === 'length' && c.silhouette === 'slip') return (SLIP_LENGTHS as readonly string[]).includes(opt);
+  // A gathered skirt's hem is the straight edge of its panels: level, or drawn by hand.
+  if (id === 'asymHem' && opt !== 'none' && c.silhouette === 'gathered') return false;
+  if (id === 'silhouette' && opt === 'gathered') return true;
   if (id === 'asymHem' && opt === 'diagonal') {
     if (garment === 'dress') return false;
     const slit = c.silhouette === 'pencil' || (c.silhouette === 'straight' && (c.length === 'midi' || c.length === 'maxi'));
@@ -58,7 +61,7 @@ export function cutAllowed(c: { silhouette: string; length: string }, id: 'silho
 export function validCut<T extends { silhouette: SkirtStyle['silhouette']; length: SkirtStyle['length']; asymHem?: SkirtStyle['asymHem']; joinTo?: unknown; waist?: SkirtStyle['waist']; pleats?: SkirtStyle['pleats'] }>(c: T): T {
   let out = c;
   if (out.silhouette === 'slip' && !(SLIP_LENGTHS as readonly string[]).includes(out.length)) out = { ...out, length: 'knee' };
-  if (out.asymHem === 'diagonal' && !cutAllowed(out, 'asymHem', 'diagonal', out.joinTo ? 'dress' : 'skirt')) out = { ...out, asymHem: 'none' };
+  if (out.asymHem && out.asymHem !== 'none' && !cutAllowed(out, 'asymHem', out.asymHem, out.joinTo ? 'dress' : 'skirt')) out = { ...out, asymHem: 'none' };
   if (out.waist === 'elastic' && !elasticCutAllowed(out)) out = { ...out, waist: 'band' };
   return out;
 }

@@ -1,5 +1,6 @@
 // Measurement tables for the tech pack: each body measurement the draft used, the ease added and the
 // finished garment measurement.
+import { FACING_DEPTH, HIGH } from './skirtWaist';
 import type { Elastic, SkirtDraft, SkirtMeasurements } from './skirt';
 import type { OuterDraft, OuterMeasurements } from './outerwear';
 import type { BodiceDraft, BodiceLength, BodiceMeasurements } from './bodice';
@@ -33,17 +34,33 @@ export function skirtSpec(m: SkirtMeasurements, d: SkirtDraft): SpecRow[] {
     // Pleats, godets, a flounce or tiers: how they are made.
     ...volumeSpec(d),
     ...(d.pocket ? [row('In-seam pocket opening', undefined, d.pocket[1] - d.pocket[0])] : []),
+    ...(d.slit ? [{ label: `Slit, ${d.slit.at === 'side' ? 'left side' : `centre ${d.slit.at}`}, above the hem`, finished: `${d.slit.cm}` }] : []),
     ...(d.faced
       ? [
           { label: `Waist facing, ${SLIP_FACING} deep`, finished: 'cut 1 front, 1 back' },
           { label: 'Invisible zip, left side seam', finished: `${d.zipCm}` },
         ]
-      : waistRows(d, d.opening === 'left_side' ? 'Invisible zip, left side seam' : 'Invisible zip, centre back')),
+      : d.waistFinish
+        ? [
+            ...(d.waistFinish === 'high' ? [row('Rise above the waist', undefined, HIGH.rise)] : []),
+            { label: `Waist facing, ${d.waistFinish === 'high' ? HIGH.rise : FACING_DEPTH} deep, interfaced`, finished: 'cut 1 front, 1 back' },
+            { label: d.opening === 'left_side' ? 'Invisible zip, left side seam' : 'Invisible zip, centre back', finished: `${d.zipCm}` },
+          ]
+        : waistRows(d, d.opening === 'left_side' ? 'Invisible zip, left side seam' : 'Invisible zip, centre back')),
   ];
 }
 
-/** The waistband, and the zip or the elastic that closes it. */
-function waistRows(d: { waistband: { cutLength: number; cutWidth: number }; elastic?: Elastic; zipCm: number }, zip = 'Invisible zip, centre back'): SpecRow[] {
+/** A wrap's two ties, finished and cut. */
+function tieRows(t: { outer: number; inner: number; cutWidth: number; cut: { outer: number; inner: number } }): SpecRow[] {
+  return [
+    { label: 'Wrap ties, finished (long / short)', finished: `${t.outer} / ${t.inner}` },
+    { label: 'Wrap ties, cut on the grain', finished: `${t.cut.outer} and ${t.cut.inner} x ${t.cutWidth}` },
+  ];
+}
+
+/** The waistband, and the zip or the elastic that closes it, or the ties of a wrap. */
+function waistRows(d: { waistband: { cutLength: number; cutWidth: number }; elastic?: Elastic; zipCm: number; wrap?: SkirtDraft['wrap'] }, zip = 'Invisible zip, centre back'): SpecRow[] {
+  if (d.wrap?.ties) return [{ label: 'Waistband (finished width 3), ties sewn into its ends', finished: `cut ${d.waistband.cutLength} x ${d.waistband.cutWidth}` }, ...tieRows(d.wrap.ties)];
   return d.elastic
     ? [
         { label: 'Waistband, elastic casing (finished width 3)', finished: `cut ${d.waistband.cutLength} x ${d.waistband.cutWidth}` },
@@ -73,6 +90,7 @@ export function bodiceSpec(m: BodiceMeasurements, d: BodiceDraft, length: Bodice
       ...t.bones.map((b) => ({ label: `Bone, ${b.where.toLowerCase()} (${b.count})`, finished: r1(b.lengthCm) })),
       ...(t.waistStay ? [{ label: `Waist stay, ${t.waistStay.widthCm} grosgrain`, finished: r1(t.waistStay.lengthCm) }] : []),
       ...(t.straps ? [row('Strap, finished (each)', undefined, t.straps.lengthCm), { label: 'Strap, cut on the bias', finished: `${t.straps.cutLengthCm} x ${t.straps.cutWidthCm}` }] : []),
+      ...(t.ties ? [row('Neck tie, finished (each)', undefined, t.ties.lengthCm), { label: 'Neck tie, cut on the grain', finished: `${t.ties.cutLengthCm} x ${t.ties.cutWidthCm}` }] : []),
       { label: 'Invisible zip, centre back', finished: `${d.zipCm}` },
     );
     return rows;
@@ -84,7 +102,7 @@ export function bodiceSpec(m: BodiceMeasurements, d: BodiceDraft, length: Bodice
     row('Shoulder seam (back)', m.shoulder_length, d.shoulder.back),
     { label: 'Shoulder angle, front / back', finished: `${d.shoulderSlope.front} / ${d.shoulderSlope.back} degrees` },
     ...drapeSpec(d),
-    { label: d.drape?.kind === 'one_shoulder' ? `Invisible zip, ${zipSide(d)} side` : 'Invisible zip, centre back', finished: `${d.zipCm}` },
+    ...(d.wrap ? tieRows(d.wrap.ties) : [{ label: d.drape?.kind === 'one_shoulder' ? `Invisible zip, ${zipSide(d)} side` : 'Invisible zip, centre back', finished: `${d.zipCm}` }]),
   );
   return rows;
 }
@@ -109,7 +127,7 @@ export function dressSpec(m: DressMeasurements, d: DressDraft, sleeve?: SleeveDr
     ...skirtSpec(m, d.skirt).filter((r) => r.label !== 'Waist' && !zip.test(r.label) && !/Waistband/.test(r.label)),
     row('Length, nape to hem', undefined, d.lengthCm),
     ...(sleeve ? sleeveSpec(m, sleeve) : []),
-    { label: d.zipSide ? `Invisible zip, ${zipSide(d.bodice)} side` : 'Invisible zip, centre back', finished: `${d.zipCm}` },
+    ...(d.bodice.wrap ? [] : [{ label: d.zipSide ? `Invisible zip, ${zipSide(d.bodice)} side` : 'Invisible zip, centre back', finished: `${d.zipCm}` }]),
   ];
 }
 

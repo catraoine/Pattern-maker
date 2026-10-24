@@ -2,7 +2,7 @@
 // stitch, or an overlocker. Plain ASCII only: the PDF's standard font has no curly quotes.
 import type { SewingGuide, SewStep } from './instructions';
 import { STRETCH_WORDS } from './knits';
-import { KNIT_HEM, KNIT_SEAM, KNIT_SLEEVE_HEM, NECKBAND_CM, TeeDraft } from './tee';
+import { KNIT_HEM, KNIT_SEAM, KNIT_SLEEVE_HEM, TeeDraft } from './tee';
 
 const n1 = (v: number) => `${v} cm`;
 
@@ -10,6 +10,7 @@ export function teeGuide(d: TeeDraft, fabricM: number, finish: { width?: number 
   const seam = n1(KNIT_SEAM);
   const v = d.neckline === 'v';
   const pct = Math.round(d.neckband.ratio * 100);
+  const mock = d.neckline === 'mock';
   // The front cut longer at the centre for the bust: it looks uneven flat, and hangs level when worn.
   const bustHem =
     d.frontExtra >= 0.5
@@ -36,7 +37,7 @@ export function teeGuide(d: TeeDraft, fabricM: number, finish: { width?: number 
       title: 'Make the neckband',
       text: v
         ? `The neckband is ${pct}% of the neckline's length, so it pulls the neck in to lie flat. Fold it in half lengthwise, wrong sides together, and press lightly without stretching it. Staystitch the front neckline just inside ${seam} for 3 cm each side of the point of the V, then clip into the point, right up to the stitching. Mark the band's fold (the centre back) with a pin.`
-        : `The neckband is ${pct}% of the neckline's length, so it pulls the neck in to lie flat. Sew its short ends right sides together, ${seam} from the edge, into a loop, and finger-press the seam open. Fold it in half lengthwise, wrong sides together, and press lightly without stretching it. Mark it in quarters with pins: the seam is the centre back, the fold the centre front, and the notches halfway between.`,
+        : `${mock ? `The mock neck band is ${pct}% of the neckline's length, so it hugs the neck without pulling the neckline in, and stands ${n1(d.neckband.width)} up the neck once folded. It must still pass over your head: stretch the loop over it before you sew it on.` : `The neckband is ${pct}% of the neckline's length, so it pulls the neck in to lie flat.`} Sew its short ends right sides together, ${seam} from the edge, into a loop, and finger-press the seam open. Fold it in half lengthwise, wrong sides together, and press lightly without stretching it. Mark it in quarters with pins: the seam is the centre back, the fold the centre front, and the notches halfway between.`,
     },
     {
       title: 'Sew on the neckband',
@@ -68,7 +69,7 @@ export function teeGuide(d: TeeDraft, fabricM: number, finish: { width?: number 
   return {
     notions: [
       `${fabricM.toFixed(1)} m of knit fabric, ${finish.width ?? 150} cm wide, ${STRETCH_WORDS[d.stretch]}`,
-      `Neckband: from the same knit, or 0.2 m of 1x1 rib (finished ${n1(NECKBAND_CM)} wide)`,
+      `${mock ? 'Mock neck' : 'Neckband'}: from the same knit, or ${mock ? '0.3' : '0.2'} m of 1x1 rib (finished ${n1(d.neckband.width)} ${mock ? 'tall' : 'wide'})`,
       'Ballpoint or stretch machine needles, size 75 or 80',
       'Polyester all-purpose thread (with an overlocker, 3 or 4 cones)',
       '0.5 m clear elastic or stay tape, 6 mm wide, for the shoulders',

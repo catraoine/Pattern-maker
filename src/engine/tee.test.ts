@@ -20,7 +20,7 @@ import { extrasFor, missingFor } from '../measureFlow';
 const EX = { full_bust: 92, waist: 76, full_hip: 102, waist_to_hip: 20.5, neck: 35, shoulder_width: 38, nape_to_waist: 41, armscye: 40, arm_length: 59, upper_arm: 29, wrist: 16 };
 const FITS: TeeFit[] = ['fitted', 'regular', 'relaxed'];
 const STRETCHES: Stretch[] = ['low', 'medium', 'high'];
-const NECKS: TeeNeck[] = ['crew', 'scoop', 'v'];
+const NECKS: TeeNeck[] = ['crew', 'scoop', 'v', 'mock'];
 const SLEEVES: TeeSleeve[] = ['short', 'elbow', 'long'];
 const LENGTHS: TeeLength[] = ['cropped', 'hip', 'tunic'];
 
@@ -45,10 +45,10 @@ describe('knit T-shirt', () => {
     for (const stretch of STRETCHES)
       for (const neckline of NECKS) {
         const d = draftTee(EX, { stretch, neckline });
-        const band = d.pieces.find((pc) => pc.name === 'Neckband')!;
+        const band = d.pieces.find((pc) => pc.kind === 'band')!;
         expect(band.cut).toMatch(/fold/);
         const length = 2 * taggedLength(band.outline, 'band') / 2;
-        expect(length).toBeCloseTo(neckbandLength(d.necklineCm, stretch), 1);
+        expect(length).toBeCloseTo(neckbandLength(d.necklineCm, stretch, neckline === 'mock'), 1);
         expect(length / d.necklineCm).toBeGreaterThanOrEqual(NECKBAND_RATIO[stretch] - 0.001);
         expect(length / d.necklineCm).toBeLessThan(0.96);
         expect(NECKBAND_RATIO[stretch]).toBeGreaterThanOrEqual(0.85);

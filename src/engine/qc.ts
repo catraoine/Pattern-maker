@@ -192,15 +192,17 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
       const fronts = pieces.filter((pc) => isFront(pc) && garmentOf(pc) === g);
       const backs = pieces.filter((pc) => isBack(pc) && garmentOf(pc) === g);
       // A gathered piece (a peplum) is cut longer and gathered to the seam.
-      const gather = (fronts[0]?.meta.gathered as number | undefined) ?? 1;
-      const f = sum(fronts, 'waist') / gather;
+      // Front and back can be cut to different ratios, so each side is divided by its own.
+      const ratio = (side: Piece[]) => (side[0]?.meta.gathered as number | undefined) ?? 1;
+      const gather = Math.max(ratio(fronts), ratio(backs));
+      const f = sum(fronts, 'waist') / ratio(fronts);
       if (!(f > 0)) continue;
       // Two of each piece (a pair, or a piece cut on the fold that is half the front).
-      const seam = 2 * (f + sum(backs, 'waist') / gather);
+      const seam = 2 * (f + sum(backs, 'waist') / ratio(backs));
       checks.push({
         group: 'Seams',
         label: garments.length > 1 || all.length > 1 ? `${g} waist seam to finished waist` : 'Waist seam to finished waist',
-        detail: `${cm(seam)}${gather > 1 ? ` once gathered (cut ${gather} times as long)` : ' with darts closed'}, finished ${cm(opts.finishedWaist)}`,
+        detail: `${cm(seam)}${gather > 1 ? ` once gathered (cut ${Math.round(gather * 100) / 100} times as long)` : ' with darts closed'}, finished ${cm(opts.finishedWaist)}`,
         // Up to 1.5 cm eases into a waistband or a matching seam without showing.
         ok: Math.abs(seam - opts.finishedWaist) <= 1.5,
       });
@@ -253,7 +255,9 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
   if (bodice)
     for (const side of ['front', 'back'] as const) {
       const b = sum(ofSide('Bodice', side), 'waist');
-      const k = sum(ofSide('Skirt', side), 'waist');
+      // A gathered skirt is cut longer and gathered to the seam.
+      const sk = ofSide('Skirt', side);
+      const k = sum(sk, 'waist') / ((sk[0]?.meta.gathered as number | undefined) ?? 1);
       checks.push({
         group: 'Seams',
         label: `Waist seam, bodice ${side} to skirt ${side}`,

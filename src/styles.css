@@ -7109,6 +7109,15 @@ details.sew > .sew-summary + .row {
   color: var(--muted);
 }
 
+/* The sleeve length slider, under the sleeve chips. */
+.sleeve-length input[type='range'] {
+  width: 100%;
+  accent-color: var(--ink, currentColor);
+}
+.sleeve-length p {
+  margin: 0.25rem 0 0;
+}
+
 /* Less motion when the phone or computer asks for it (accessibility check, 2026-10-23): animations and transitions
    finish at once, so anything waiting on their end still carries on. */
 @media (prefers-reduced-motion: reduce) {

@@ -5,7 +5,6 @@ import type { Choices } from './App';
 import { draftBodice } from './engine/bodice';
 import { draftDress } from './engine/dress';
 import { Flat, bodiceFlat, dressFlat, outerFlat, skirtFlat, teeFlat, trousersFlat } from './engine/flat';
-import { hasSlit } from './engine/instructions';
 import { draftOuter } from './engine/outerwear';
 import { draftSkirt } from './engine/skirt';
 import { SleeveDraft, draftSleeve, needsArms } from './engine/sleeve';
@@ -185,9 +184,9 @@ export function lookPatch(look: HouseLook): { garment: Garment } & Record<string
 }
 
 function sleeveFor(b: BodiceDraft, c: BodiceChoices, m: MeasurementValues): SleeveDraft | undefined {
-  const { length, shape } = sleeveOf(c);
+  const { length, shape, cm } = sleeveOf(c);
   if (length === 'none' || needsArms(m as never)) return undefined;
-  return draftSleeve(b, m as never, { length, shape, fit: c.fit, seamAllowance: b.pieces[0].seamAllowance, armholeAllowance: b.pieces[0].allowances.armhole ?? 1, hemAllowance: 2.5 });
+  return draftSleeve(b, m as never, { length, shape, ...(cm !== undefined ? { lengthCm: cm } : {}), fit: c.fit, seamAllowance: b.pieces[0].seamAllowance, armholeAllowance: b.pieces[0].allowances.armhole ?? 1, hemAllowance: 2.5 });
 }
 
 /** The measurements a look is drawn to: the sewist's own when the garment has all it needs, or the sample set. */
@@ -209,7 +208,7 @@ export function choicesFlat(c: PatternChoices, m: MeasurementValues): Flat | und
     if (isDress(c)) {
       const b = { ...validDetails(c.bodice, 'dress'), fit: c.fit, length: 'waist' as const };
       const d = draftDress(m as never, b, { ...c.skirt, fit: c.fit }, { at: c.waistSeam, cm: c.waistSeamCm });
-      return dressFlat(d, 'binding', { sleeve: sleeveFor(d.bodice, b, m), slit: hasSlit(c.skirt) });
+      return dressFlat(d, 'binding', { sleeve: sleeveFor(d.bodice, b, m) });
     }
     if (isBodice(c)) {
       const b = validDetails(c);
@@ -217,7 +216,7 @@ export function choicesFlat(c: PatternChoices, m: MeasurementValues): Flat | und
       return bodiceFlat(d, 'binding', sleeveFor(d, b, m));
     }
     if (isLingerie(c)) return undefined;
-    return skirtFlat(draftSkirt(m as never, c), { slit: hasSlit(c) });
+    return skirtFlat(draftSkirt(m as never, c));
   } catch {
     return undefined;
   }

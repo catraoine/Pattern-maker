@@ -21,6 +21,7 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       pencil: ['Narrows from the hip to the hem for a close, sleek line. A slit at the back hem lets you walk.'],
       straight: ['Falls straight down from the hip like a column. Simple and easy to wear.', 'easy'],
       a_line: ['Fitted at the waist and widening evenly to the hem, like the letter A. The classic first skirt.', 'easy'],
+      gathered: ['Straight panels gathered into the waistband, so it puffs softly out from the waist and swings. The easiest skirt to sew.', 'easy'],
       trumpet: ['Close over the hips and thighs, then flares out low down, like the bell of a trumpet.', 'skill'],
       half_circle: ['Cut as half a circle, so it falls in soft folds and swings as you move.'],
       circle: ['Cut as a full circle for the most swing and twirl. Uses the most fabric.'],
@@ -33,10 +34,21 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       midi: ['Ends halfway down the calf.'],
       maxi: ['Ends near the ankle. Uses the most fabric.'],
     },
+    noSeam: {
+      seam: ['A bodice and a skirt joined at the waist, so you pick the skirt’s shape.', 'easy'],
+      sheath: ['Cut in one from shoulder to hem, darted in at the waist and close over the hips.', 'skill'],
+      shift: ['Cut in one from shoulder to hem, hanging straight from the bust with no waist shaping.', 'easy'],
+    },
     asymHem: {
       none: ['The hem is the same length all the way round.', 'easy'],
       high_low: ['Shorter at the front and longer at the back, curving between.'],
       diagonal: ['The hem slants from one side to the other.', 'skill'],
+    },
+    slit: {
+      none: ['No slit: the seams run closed to the hem.', 'easy'],
+      back: ['A slit up the centre back seam. A short one is the walking slit a narrow skirt needs.', 'easy'],
+      side: ['A slit up the left side seam, from a short split to a high leg slit.', 'easy'],
+      front: ['A slit up the centre front, so the front is cut in two with a seam.', 'easy'],
     },
     volume: {
       none: ['A plain skirt with nothing added.', 'easy'],
@@ -49,7 +61,10 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
     },
     waist: {
       band: ['A firm band at the waist that closes with a zip. Neat and sits in place.'],
+      faced: ['No band: the top is finished inside with a facing cut to its curve, so the skirt ends cleanly at your waist.'],
+      high: ['Carried up past your waist toward the ribs, its darts running to the top, and faced inside. Lengthens the leg.', 'skill'],
       elastic: ['Elastic in the waist so it pulls on with no zip. The easiest to sew.', 'easy'],
+      wrap: ['The front crosses over and the waistband runs on into ties, knotted at the side. No zip, and it adjusts as you wear it.'],
     },
     pockets: {
       none: ['No pockets.'],
@@ -69,6 +84,7 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       strapless: ['No straps: it is boned and shaped to stay up on its own.', 'skill'],
       sweetheart: ['Curves over the bust in two arches, dipping in the middle like the top of a heart.', 'skill'],
       cami: ['Thin straps over the shoulders, like a camisole.'],
+      halter: ['Rises to the neck and ties behind it, leaving the shoulders and upper back bare.'],
     },
     length: {
       waist: ['Ends at your waist, the natural place to meet a skirt or trousers.'],
@@ -99,6 +115,8 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       straight: ['The same width all the way down. The simplest sleeve.', 'easy'],
       puff: ['Gathered at the top so it puffs out at the shoulder.'],
       bishop: ['Full lower down and gathered into a band at the end.', 'skill'],
+      cap: ['A tiny sleeve that just covers the top of the shoulder.', 'easy'],
+      flutter: ['A short sleeve that flares out and ripples at the hem. Best in a light, drapey fabric.'],
     },
     princess: {
       none: ['No extra seams. The bust is shaped with darts instead.', 'easy'],
@@ -116,11 +134,14 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
     closure: {
       back_zip: ['A zip down the centre back, out of sight from the front.'],
       front_buttons: ['Buttons down the front, like a blouse. You will sew buttonholes.', 'skill'],
+      wrap: ['The fronts cross over in a V and tie at the waist, so there is no zip or button to sew.'],
     },
     collar: {
       none: ['No collar, just a neatly finished neckline.', 'easy'],
       peter_pan: ['A flat collar with rounded ends that lies on the shoulders.'],
       mandarin: ['A narrow band that stands up round the neck.'],
+      mock: ['A taller band that hugs the neck, like a turtleneck that stops halfway. The back zip runs up through it.'],
+      funnel: ['A tall band that stands a little away from the neck, widening toward its top edge like a funnel.'],
       shirt: ['A classic shirt collar on a stand, with points that fold down.', 'skill'],
     },
     structure: {
@@ -144,6 +165,7 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       crew: ['A round neck that sits close at the base of the neck.', 'easy'],
       scoop: ['A wider, lower round neck.'],
       v: ['Comes down to a point at the front.', 'skill'],
+      mock: ['A tall knit band that stands up and hugs the neck, like a turtleneck that stops halfway.'],
     },
     sleeve: {
       short: ['A sleeve that ends on the upper arm.', 'easy'],

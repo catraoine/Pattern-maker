@@ -2,13 +2,17 @@ import { useEffect, useMemo, useState } from 'react';
 import { layout } from '../engine/export';
 import { bodiceEase } from '../engine/bodice';
 import { isTop } from '../engine/corset';
-import { type DressDraft, type WaistSeam, fromSeam } from '../engine/dress';
+import { BUTTONS_STOP_ABOVE_HEM, buttonsOnSkirt, fromSeam, noSeamAllowed } from '../engine/dress';
+import type { DressDraft, WaistSeam } from '../engine/dress';
+import { wrapSkirtAllowed } from '../engine/wrapSkirt';
+import { SLIT_PLACES, SlitPlace, slitAllowed } from '../engine/slit';
+import { NO_SLIT, SlitSlider } from '../ui/SlitSlider';
 import { dressFlat, wornShapes } from '../engine/flat';
 import { piecesLengthCm, toMetres } from '../engine/fabric';
 import { layPlan } from '../engine/layplan';
-import { hasSlit } from '../engine/instructions';
 import { SHAPES_FOR_LENGTH, SleeveDraft, needsArms } from '../engine/sleeve';
-import { BODICE_GROUPS, BodiceChoices, WAIST_SEAM_GROUP, DARTS_FOR_FIT, DressChoices, detailAllowed, sleeveOf, topAllowed, validDetails } from '../garments';
+import { SleeveSlider } from '../ui/SleeveSlider';
+import { BODICE_GROUPS, BodiceChoices, DRESS_CUTS, WAIST_SEAM_GROUP, DARTS_FOR_FIT, DressChoices, detailAllowed, sleeveOf, topAllowed, validDetails } from '../garments';
 import type { MeasurementValues } from '../measurements';
 import { SaveControl } from '../ui/SaveControl';
 import { UndoToast, useUndo } from '../ui/useUndo';
@@ -33,7 +37,7 @@ import { FinishChoices } from '../ui/FinishChoices';
 import type { Finish } from '../App';
 import { GODET_OPTIONS, VOLUME_OPTIONS, layoutExtras, setVolume, volumeAllowed, volumeOf } from '../engine/skirtVolume';
 import { isDraped, zipSide } from '../engine/drape';
-import { lengthRange } from '../engine/skirt';
+import { NoSeam, lengthRange } from '../engine/skirt';
 import type { BodiceMeasurements } from '../engine/bodice';
 import type { SkirtMeasurements } from '../engine/skirt';
 import { DrawOnForm, formWidth } from '../ui/DrawOnForm';
@@ -42,7 +46,8 @@ import { armFor } from '../ui/DrawOnForm';
 import { orSeam, readSeamLine } from '../ui/formSeams';
 import { orNeckline, readUnevenNeckline, unevenNecklineLines } from '../ui/formBodice';
 import { REPLACES } from './BodiceStyleScreen';
-import { FormLine, bodiceLines, landmarks, readDrape, readFit, readNeckline, readSeam, readSkirtHem, readWaistSeam, seamWords, skirtLines } from '../ui/formLines';
+import { FormLine, bodiceLines, landmarks, readDrape, readFit, readNeckline, readSeam, readSkirtHem, readWaistSeam, seamWords, skirtLines, standingBand } from '../ui/formLines';
+import { BANDS, isBandCollar } from '../engine/collar';
 import { ChoicePic, chipsClass } from '../ui/ChoicePic';
 import { Explain } from '../ui/Explain';
 import { DemoButton } from '../ui/DemoButton';
@@ -80,6 +85,17 @@ interface Props {
 
 type Option = { id: string; label: string; options: [string, string][] };
 
+/** A dress cut in one: its hem, and its side seams on from the waist, out over the hip, to the hem. */
+const noSeamLines = (draft: DressDraft, side: 'front' | 'back') => {
+  const { waistSide, hemSide, hemCentre } = side === 'front' ? draft.bodice.front : draft.bodice.back;
+  const edges = landmarks(draft.bodice, side).edges.filter((e) => e.tag === 'side' && e.b.y > waistSide.y - 0.5);
+  const seam = edges.length ? [edges[0].a, ...edges.map((e) => e.b)] : [waistSide, hemSide];
+  return {
+    hem: [[{ x: -hemSide.x, y: hemCentre.y }, { x: hemSide.x, y: hemCentre.y }]],
+    fit: [seam, seam.map((q) => ({ x: -q.x, y: q.y }))],
+  };
+};
+
 /** Fabric for the dress on 140 cm wide fabric, from the cutting layout, or a rough estimate. */
 // Whole bias pieces too wide for 140 cm cloth are bought 150 cm wide.
 export const dressFabricMetres = (pieces: DressDraft['pieces']) =>
@@ -91,7 +107,7 @@ export const dressFabricMetres = (pieces: DressDraft['pieces']) =>
  * bodice with its darts running on through the waist seam.
  */
 /** The dress's skirt choices on one tab of their own. */
-const DRESS_SECTIONS: Record<string, string> = { Skirt: 'Skirt & length', Length: 'Skirt & length', Hem: 'Skirt & length', 'Skirt details': 'Skirt & length', Pockets: 'Skirt & length' };
+const DRESS_SECTIONS: Record<string, string> = { Cut: 'Skirt & length', Skirt: 'Skirt & length', Length: 'Skirt & length', Hem: 'Skirt & length', Slit: 'Skirt & length', 'Skirt details': 'Skirt & length', Pockets: 'Skirt & length' };
 
 export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoices, onChooseGarment, values, draft, sleeve, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, finish, onFinish, fabric, mode = 'all', onMode }: Props) {
   const undo = useUndo(choices, setChoices);
@@ -107,14 +123,30 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
   const [onForm, setOnForm] = useState<DressChoices>();
   const [fit, setFit] = useState(false);
   const canFit = !!easeMap?.length && can('easeMap');
-  const pieces = useMemo(() => (draft ? [...draft.pieces.filter((pc) => /^Bodice/.test(pc.name)), ...(sleeve?.pieces ?? []), ...draft.skirt.pieces] : []), [draft, sleeve]);
+  // The bodice's pieces (with its collar and any button facings), the sleeves, then the skirt's.
+  const pieces = useMemo(() => {
+    if (!draft) return [];
+    const skirt = new Set(draft.skirt.pieces.map((pc) => pc.name));
+    return [...draft.pieces.filter((pc) => !skirt.has(pc.name)), ...(sleeve?.pieces ?? []), ...draft.pieces.filter((pc) => skirt.has(pc.name))];
+  }, [draft, sleeve]);
   const sheet = useMemo(() => (pieces.length ? layout(pieces, '', []) : undefined), [pieces]);
-  const flat = useMemo(() => (draft ? dressFlat(draft, 'binding', { sleeve, slit: hasSlit(choices.skirt) }) : undefined), [draft, sleeve, choices.skirt]);
+  const flat = useMemo(() => (draft ? dressFlat(draft, 'binding', { sleeve }) : undefined), [draft, sleeve, choices.skirt]);
   const title = describePattern(choices);
   const round = useMemo(() => (draft ? roundDress(draft, values, sleeve) : undefined), [draft, values, sleeve]);
   const arms = !needsArms(values);
   const chosen = sleeveOf(choices.bodice);
-  const valid = validDetails({ ...choices.bodice, fit: choices.fit, length: 'waist', closure: 'back_zip' }, 'dress');
+  // A shirt dress: the buttons run on down the skirt, so it needs a skirt that can carry them.
+  // A sheath or a shift is cut in one from shoulder to hem, so it has no skirt shape of its own.
+  const cutOk = noSeamAllowed(choices.bodice);
+  const noSeam: NoSeam | undefined = cutOk ? choices.skirt.noSeam : undefined;
+  const buttonsOk = !noSeam && buttonsOnSkirt(choices.skirt);
+  // A wrap dress: its skirt wraps too, so it needs a skirt that can (straight or A-line, nothing added).
+  const wrapOk = !noSeam && wrapSkirtAllowed(choices.skirt);
+  const closure: BodiceChoices['closure'] =
+    choices.bodice.closure === 'front_buttons' && buttonsOk ? 'front_buttons' : choices.bodice.closure === 'wrap' && wrapOk ? 'wrap' : 'back_zip';
+  const buttoned = closure === 'front_buttons';
+  const wrapped = closure === 'wrap';
+  const valid = validDetails({ ...choices.bodice, fit: choices.fit, length: 'waist', closure }, 'dress');
   const boned = valid.structure === 'boned';
   const top = isTop(choices.bodice.neckline);
   const ease = bodiceEase(valid);
@@ -123,7 +155,8 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
   const draped = isDraped(choices.bodice);
 
   // A boned or draped bodice is drafted to the natural waist, so it keeps its waist seam there.
-  const canDrop = !boned && !draped;
+  // A shirt dress or a wrap buttons or ties at the waist, so its seam stays there.
+  const canDrop = !boned && !draped && !buttoned && !wrapped;
   // Raising the seam cuts a plain front and back across: the engine says how high this bodice can go.
   const canRaise = canDrop && (draft?.seamRange.min ?? 0) < 0;
   const ownSeam = canDrop && choices.waistSeamCm !== undefined;
@@ -131,7 +164,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
 
   const groups: Option[] = [
     { id: 'fit', label: 'Fit', options: GROUPS[0].options },
-    WAIST_SEAM_GROUP,
+    ...(noSeam ? [] : [WAIST_SEAM_GROUP]),
     ...BODICE_GROUPS.filter(
       (g) =>
         g.id === 'neckline' ||
@@ -143,6 +176,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           !boned &&
           !draped &&
           (can('dartMoves') || (choices.bodice.bustDart ?? 'side') !== 'side')) ||
+        (g.id === 'closure' && !top && !draped) ||
         (g.id === 'collar' && !top && !draped) ||
         (g.id === 'structure' && !draped) ||
         g.id === 'sleeve' ||
@@ -152,16 +186,30 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
       label: g.label,
       options: g.options as [string, string][],
     })),
-    { id: 'silhouette', label: 'Skirt', options: GROUPS[1].options },
+    { id: 'noSeam', label: 'Cut', options: DRESS_CUTS },
+    ...(noSeam
+      ? []
+      : [
+          { id: 'silhouette', label: 'Skirt', options: GROUPS[1].options },
+        ]),
     { id: 'length', label: 'Length', options: GROUPS[2].options },
-    // The dress's zip runs down the centre back, so its skirt can't be cut whole for a diagonal hem.
-    { id: 'asymHem', label: 'Hem', options: GROUPS[3].options.filter(([id]) => id !== 'diagonal') as [string, string][] },
-    { id: 'volume', label: 'Skirt details', options: VOLUME_OPTIONS },
-    { id: 'pockets', label: 'Pockets', options: DETAIL_GROUPS[1].options },
+    ...(noSeam || wrapped
+      ? []
+      : [
+          // The dress's zip runs down the centre back, so its skirt can't be cut whole for a diagonal hem.
+          { id: 'asymHem', label: 'Hem', options: GROUPS[3].options.filter(([id]) => id !== 'diagonal') as [string, string][] },
+          { id: 'slit', label: 'Slit', options: SLIT_PLACES },
+          { id: 'volume', label: 'Skirt details', options: VOLUME_OPTIONS },
+          { id: 'pockets', label: 'Pockets', options: DETAIL_GROUPS[1].options },
+        ]),
   ];
 
   const value = (id: string) =>
-    id === 'volume'
+    id === 'noSeam'
+      ? noSeam ?? 'seam'
+      : id === 'slit'
+      ? draft?.skirt.slit?.at ?? 'none'
+      : id === 'volume'
       ? volumeOf(choices.skirt)
       : id === 'fit'
       ? choices.fit
@@ -174,7 +222,8 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
         : id === 'pockets'
           ? (choices.skirt.pockets ?? 'none')
           : id === 'sleeve'
-            ? chosen.length
+            ? // Set on the slider, no named length is picked, as with the bodice.
+              chosen.cm !== undefined ? '' : chosen.length
             : id === 'sleeveShape'
               ? chosen.shape
               : id === 'bustDart'
@@ -183,27 +232,37 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
                   ? choices.bodice.princess ?? 'none'
                   : id === 'collar'
                     ? choices.bodice.collar ?? 'none'
+                  : id === 'closure'
+                    ? closure
                     : id === 'structure'
                       ? valid.structure ?? 'none'
                       : choices.bodice[id as keyof BodiceChoices];
 
   // The dress's fit also sets the skirt's ease, so it stays free; a boned bodice keeps its own close fit.
-  const allowed = (id: string, opt: string) => (id === 'fit' || topAllowed(choices.bodice, id, opt)) && baseAllowed(id, opt);
+  const allowed = (id: string, opt: string) => (id === 'fit' || topAllowed(choices.bodice, id, opt)) && baseAllowed(id, opt) && cutAllows(id, opt);
+  // Cut in one, the dress takes no princess seams, boning, strapless or draped neckline, or buttons.
+  const cutAllows = (id: string, opt: string) =>
+    id === 'noSeam'
+      ? opt === 'seam' || (cutOk && !buttoned && !wrapped)
+      : !noSeam || noSeamAllowed({ ...choices.bodice, [id]: opt }) && (id !== 'closure' || opt === 'back_zip');
   const baseAllowed = (id: string, opt: string) =>
     id === 'waistSeam'
       ? opt === 'natural' || (opt === 'empire' || opt === 'raised' ? canRaise : canDrop)
+      : id === 'slit'
+      ? // A shirt dress opens down the front and its back is cut whole: only the side can take a slit.
+        opt === 'none' || (slitAllowed(choices.skirt) && (!buttoned || opt === 'side'))
       : id === 'volume'
-      ? volumeAllowed(choices.skirt, opt as Parameters<typeof volumeAllowed>[1])
+      ? volumeAllowed(choices.skirt, opt as Parameters<typeof volumeAllowed>[1]) && (!buttoned || opt === 'none')
       : id === 'darts'
       ? DARTS_FOR_FIT[choices.fit].includes(opt as BodiceChoices['darts'])
       : id === 'sleeve'
         ? (opt === 'none' || arms) && detailAllowed(choices.bodice, 'sleeve', opt, 'dress')
         : id === 'sleeveShape'
           ? SHAPES_FOR_LENGTH[chosen.length].includes(opt as NonNullable<BodiceChoices['sleeveShape']>)
-          : id === 'princess' || id === 'bustDart' || id === 'collar' || id === 'structure'
-            ? detailAllowed({ ...choices.bodice, length: 'waist', closure: 'back_zip' }, id, opt, 'dress')
+          : id === 'princess' || id === 'bustDart' || id === 'collar' || id === 'structure' || id === 'closure'
+            ? detailAllowed({ ...choices.bodice, length: 'waist', closure }, id, opt, 'dress') && (id !== 'closure' || (opt === 'front_buttons' ? buttonsOk : opt === 'wrap' ? wrapOk : true))
             : id === 'silhouette' || id === 'length' || id === 'asymHem'
-              ? cutAllowed(choices.skirt, id, opt, 'dress')
+              ? cutAllowed(choices.skirt, id, opt, 'dress') && (!buttoned || buttonsOnSkirt({ ...choices.skirt, [id]: opt })) && (!wrapped || wrapSkirtAllowed({ ...choices.skirt, [id]: opt }))
               : true;
 
   const choose = (id: string, opt: string) => {
@@ -212,11 +271,20 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
       onChoices(opt === 'natural' ? rest : { ...rest, waistSeam: opt as WaistSeam });
       return;
     }
+    if (id === 'noSeam') {
+      const { noSeam: _n, ...skirt } = choices.skirt;
+      onChoices({ ...choices, skirt: opt === 'seam' ? skirt : { ...skirt, noSeam: opt as NoSeam } });
+      return;
+    }
+    if (id === 'slit') {
+      onChoices({ ...choices, skirt: { ...choices.skirt, slit: opt as SlitPlace, slitCm: undefined } });
+      return;
+    }
     if (id === 'silhouette' || id === 'length' || id === 'asymHem' || id === 'pockets') {
       // The dress skirt is styled by its chips: no era look, photo shape or hand-drawn changes.
       // Pleats, godets or a flounce stay; one the new shape, length or hem doesn't take falls back to none.
-      const { fit, silhouette, length, asymHem, pleats, godets, flounce, pockets } = choices.skirt;
-      onChoices({ ...choices, skirt: validCut({ fit, silhouette, length, ...(asymHem ? { asymHem } : {}), ...(pockets ? { pockets } : {}), pleats, godets, flounce, [id]: opt }) });
+      const { fit, silhouette, length, asymHem, pleats, godets, flounce, pockets, slit, slitCm } = choices.skirt;
+      onChoices({ ...choices, skirt: validCut({ fit, silhouette, length, ...(asymHem ? { asymHem } : {}), ...(pockets ? { pockets } : {}), ...(slit ? { slit } : {}), ...(slitCm !== undefined ? { slitCm } : {}), pleats, godets, flounce, [id]: opt }) });
       return;
     }
     if (id === 'volume') {
@@ -229,10 +297,10 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
     for (const k of REPLACES[id] ?? []) delete bodice[k];
     // A tighter fit needs more shaping, and each sleeve length allows only some shapes.
     const darts = DARTS_FOR_FIT[fit].includes(bodice.darts) ? bodice.darts : 'bust_waist';
-    // A boned or draped bodice takes the waist seam back to the natural waist.
-    const next = validDetails({ ...bodice, darts, length: 'waist', closure: 'back_zip', sleeveShape: sleeveOf(bodice).shape }, 'dress');
+    // A boned or draped bodice, a button front or a wrap takes the waist seam back to the natural waist.
+    const next = validDetails({ ...bodice, darts, length: 'waist', closure: bodice.closure ?? 'back_zip', sleeveShape: sleeveOf(bodice).shape }, 'dress');
     const { waistSeam: _w, waistSeamCm: _c, ...plain } = choices;
-    const keepsDrop = next.structure !== 'boned' && !isDraped(next);
+    const keepsDrop = next.structure !== 'boned' && !isDraped(next) && (next.closure ?? 'back_zip') === 'back_zip';
     onChoices({ ...(keepsDrop ? choices : plain), fit, bodice: next, skirt: { ...choices.skirt, fit } });
   };
 
@@ -252,8 +320,17 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
   const formLines = useMemo(() => {
     if (!draft) return {};
     const uneven = unevenNecklineLines(draft.bodice);
-    const skirt = skirtLines(draft.skirt, choices.skirt, sm, 'front', seamY);
     const bodice = bodiceLines(draft.bodice, 'front');
+    // A mock or funnel neck, or a mandarin, stands up from the neckline.
+    const band = draft.bodice.collar;
+    const collar = isBandCollar(band) && bodice.neckline[0] ? standingBand(bodice.neckline[0], BANDS[band].height, band === 'funnel' ? 1.12 : band === 'mock' ? 0.96 : 1) : [];
+    const extras = { ...(uneven.length ? { neckline: uneven } : {}), ...(collar.length ? { collar } : {}) };
+    // Cut in one, the dress's own hem and side seams run on from the bodice's.
+    if (draft.noSeam) {
+      const skirt = noSeamLines(draft, 'front');
+      return { ...bodice, hem: skirt.hem, fit: [...(bodice.fit ?? []), ...(skirt.fit ?? [])], ...extras };
+    }
+    const skirt = skirtLines(draft.skirt, choices.skirt, sm, 'front', seamY);
     // The side runs from the underarm to the end of the waist seam, wherever it is, and on to the skirt.
     const seamEnds = bodice.hem[0] ?? [];
     const end = (x: number) => seamEnds.find((q) => Math.sign(q.x) === Math.sign(x));
@@ -262,12 +339,12 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
       const hip = skirt.fit?.find((r) => Math.sign(r[0].x) === Math.sign(run[0].x));
       return at ? [run[0], at, ...(hip ?? [])] : run;
     });
-    return { ...bodice, waist: bodice.hem, hem: skirt.hem, fit: sides, ...(uneven.length ? { neckline: uneven } : {}) };
+    return { ...bodice, waist: bodice.hem, hem: skirt.hem, fit: sides, ...extras };
   }, [draft, choices.skirt, sm, seamY]);
 
   if (onForm && draft) {
     // The bodice's lines are read at the dress's own fit and length; the hem is the skirt's.
-    const asBodice: BodiceChoices = { ...choices.bodice, fit: choices.fit, length: 'waist', closure: 'back_zip' };
+    const asBodice: BodiceChoices = { ...choices.bodice, fit: choices.fit, length: 'waist', closure };
     return (
       <DrawOnForm<DressChoices>
         body={formWidth(draft.bodice, mv)}
@@ -285,6 +362,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
         lines={(side) => {
           const uneven = side === 'front' ? unevenNecklineLines(draft.bodice) : [];
           const top = bodiceLines(draft.bodice, side);
+          if (draft.noSeam) return { ...top, hem: noSeamLines(draft, side).hem, ...(uneven.length ? { neckline: uneven } : {}) };
           return { ...top, waist: top.hem, hem: skirtLines(draft.skirt, choices.skirt, sm, side, seamY).hem, ...(uneven.length ? { neckline: uneven } : {}) };
         }}
         choices={choices}
@@ -344,7 +422,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
       <section className="card numbered" aria-labelledby="opts">
         {groups.map((g) => (
           <Group key={g.id} label={g.label} tab={PRO_GROUPS.includes(g.id) ? PRO : undefined}>
-            <div className={chipsClass((['silhouette', 'length', 'asymHem'].includes(g.id) ? 'skirt' : 'bodice'), g.id)}>
+            <div className={chipsClass((['noSeam', 'silhouette', 'length', 'asymHem', 'slit'].includes(g.id) ? 'skirt' : 'bodice'), g.id)}>
               {g.options.map(([id, label]) => (
                 <button
                   key={id}
@@ -354,12 +432,12 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
                   disabled={!allowed(g.id, id)}
                   onClick={() => choose(g.id, id)}
                 >
-                  <ChoicePic set={(['silhouette', 'length', 'asymHem'].includes(g.id) ? 'skirt' : 'bodice')} group={g.id} id={id} />
+                  <ChoicePic set={(['noSeam', 'silhouette', 'length', 'asymHem', 'slit'].includes(g.id) ? 'skirt' : 'bodice')} group={g.id} id={id} />
                   {label}
                 </button>
               ))}
             </div>
-            <Explain set={['silhouette', 'length', 'asymHem', 'volume', 'pockets'].includes(g.id) ? 'skirt' : 'bodice'} group={g.id} options={g.options} pick={value(g.id)} />
+            <Explain set={['noSeam', 'silhouette', 'length', 'asymHem', 'slit', 'volume', 'pockets'].includes(g.id) ? 'skirt' : 'bodice'} group={g.id} options={g.options} pick={value(g.id)} />
             {g.id === 'sleeve' && !arms && (
               <p className="muted small">
                 For sleeves, add your arm length, upper arm and wrist.{' '}
@@ -368,6 +446,11 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
                 </button>
               </p>
             )}
+            {g.id === 'sleeve' && arms && (
+              <SleeveSlider sleeve={sleeve} choices={choices.bodice} onChoices={(c) => onChoices({ ...choices, bodice: validDetails({ ...c, length: 'waist', closure: c.closure ?? 'back_zip' }, 'dress') })} />
+            )}
+            {g.id === 'slit' && <SlitSlider slit={draft?.skirt.slit} onCm={(slitCm) => onChoices({ ...choices, skirt: { ...choices.skirt, slitCm } })} />}
+            {g.id === 'slit' && !slitAllowed(choices.skirt) && <p className="muted small">{NO_SLIT}</p>}
             {g.id === 'volume' && volumeOf(choices.skirt) === 'godets' && (
               <div className="chips">
                 {GODET_OPTIONS.map(([n, label]) => (
@@ -403,7 +486,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
                   )}
               </p>
             )}
-            {g.id === 'waistSeam' && !canDrop && <p className="muted small">A {boned ? 'boned' : 'draped'} bodice is shaped to the natural waist, so its seam stays there.</p>}
+            {g.id === 'waistSeam' && !canDrop && <p className="muted small">{boned || draped ? `A ${boned ? 'boned' : 'draped'} bodice is shaped to the natural waist, so its seam stays there.` : `A ${wrapped ? 'wrap ties' : 'shirt dress buttons'} at the waist, so its seam stays there.`}</p>}
             {g.id === 'waistSeam' && canDrop && draft && (
               <div className="seam-height">
                 <input
@@ -550,13 +633,23 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
         </div>
         {draft && <FabricSummary metres={dressFabricMetres([...pieces, ...(draft ? layoutExtras(draft.skirt) : [])])} fabric={fabric} />}
         <p className="muted small">
-          {choices.skirt.silhouette === 'slip'
+          {draft?.noSeam
+            ? `Cut in one with no waist seam: front and back each one piece from the shoulder to the hem${draft.noSeam === 'sheath' ? `, shaped at the waist by darts pointed at both ends${draft.pieces.some((pc) => pc.meta.slitCm) ? ', with a walking slit at the back' : ''}` : ', hanging straight from the bust'}.`
+            : choices.skirt.silhouette === 'slip'
             ? 'The skirt is cut on the bias, for a slip dress: it has no darts, its waist seam is drafted to the bodice, and the cloth moulds to the hip.'
-            : draft?.seamDrop
-              ? 'The skirt is drafted to the bodice: the seams are the same length.'
-              : 'The skirt is drafted to the bodice: the waist seams are the same length, and the darts meet at the seam in one line.'}{' '}
+            : choices.skirt.silhouette === 'gathered'
+              ? `The skirt is cut as straight panels and gathered to the bodice’s ${draft?.seamDrop ? 'seam' : 'waist seam'}, so it needs no darts.`
+              : draft?.seamDrop
+                ? 'The skirt is drafted to the bodice: the seams are the same length.'
+                : 'The skirt is drafted to the bodice: the waist seams are the same length, and the darts meet at the seam in one line.'}{' '}
           {draft?.seamDrop ? 'The waist seam is dropped to the high hip: the bodice skims past your waist and the skirt falls from lower down. ' : ''}
-          {draft?.zipSide ? `One zip opens the ${zipSide(draft.bodice)} side seam from under the arm to below the waist.` : `One zip opens the centre back from the ${top ? 'top edge' : 'neck'} to below the ${draft?.seamDrop ? 'seam' : 'waist'}.`}
+          {wrapped
+            ? 'It crosses over at the front and ties at the waist, with no zip: each front is a pair, bodice and skirt, and the back is cut whole.'
+            : draft?.skirtButtons
+            ? `It buttons down the centre front from the neck, through the waist, to ${BUTTONS_STOP_ABOVE_HEM} cm above the hem, and the back is cut whole.`
+            : draft?.zipSide
+              ? `One zip opens the ${zipSide(draft.bodice)} side seam from under the arm to below the waist.`
+              : `One zip opens the centre back from the ${top ? 'top edge' : 'neck'} to below the ${draft?.seamDrop ? 'seam' : 'waist'}.`}
           {boned ? ' The bodice is boned like a corset, cut again from coutil and lining, with a grosgrain waist stay that carries the skirt.' : ''}
         </p>
         <button type="button" className="primary" disabled={!draft} onClick={onNext}>

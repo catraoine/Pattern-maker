@@ -142,7 +142,7 @@ export const UNEVEN_REACH = { cm: 2.5, fullness: 0.35 };
  */
 export function readUnevenNeckline(stroke: P[], draft: BodiceDraft, c: BodiceChoices, garment: Garment = 'bodice', side: FormSide = 'front'): Reading<BodiceChoices> {
   if (side === 'back') return { said: 'An uneven neckline is drawn on the front. The back neckline stays even, so the back is still cut as a pair.' };
-  if (isTop(c.neckline)) return { said: 'A strapless, sweetheart or cami top has no neckline to draw. Pick a higher neckline first.' };
+  if (isTop(c.neckline)) return { said: 'A strapless, sweetheart, cami or halter top has no neckline to draw. Pick a higher neckline first.' };
   if (!stroke.some((q) => q.x < -1) || !stroke.some((q) => q.x > 1)) return { said: 'Draw the whole neckline, from one shoulder across the centre to the other, so the two sides can differ.' };
   // The lowest point: the middle of the bottom of the line, which may run level for a way.
   const lowY = Math.max(...stroke.map((q) => q.y));

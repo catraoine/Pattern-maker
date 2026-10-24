@@ -29,9 +29,9 @@ export interface SkirtExtras {
 /** A top, a T-shirt, or a dress's bodice. */
 export interface TopReading {
   fit: Pick<'fitted' | 'regular' | 'relaxed'>;
-  neckline: 'crew' | 'scoop' | 'v' | 'square' | 'boat' | 'one_shoulder' | 'cowl' | 'strapless' | 'sweetheart' | 'cami';
+  neckline: 'crew' | 'scoop' | 'v' | 'square' | 'boat' | 'one_shoulder' | 'cowl' | 'strapless' | 'sweetheart' | 'cami' | 'halter';
   sleeve: 'none' | 'short' | 'elbow' | 'three_quarter' | 'long';
-  sleeveShape: 'fitted' | 'straight' | 'puff' | 'bishop';
+  sleeveShape: 'fitted' | 'straight' | 'puff' | 'bishop' | 'cap' | 'flutter';
   length: 'cropped' | 'waist' | 'high_hip' | 'hip' | 'tunic';
   seams: 'darts' | 'princess' | 'none';
   opening: 'back' | 'front_buttons';

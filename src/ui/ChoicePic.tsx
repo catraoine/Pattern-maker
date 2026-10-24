@@ -58,6 +58,12 @@ const SKIRT: Record<string, Record<string, ReactNode>> = {
     pencil: <path d="M14 5h12q3 8 1.5 15L26 43H14l-1.5-23Q11 13 14 5z" />,
     straight: <path d="M14 5h12q3 7 3 13V43H11V18q0-6 3-13z" />,
     a_line: <path d="M15 5h10l8 38H7z" />,
+    gathered: (
+      <>
+        <path d="M15 5h10q1 3 3 6q5 15 6 32H6q1-17 6-32q2-3 3-6z" />
+        <path className="pic-faint" d="M16 6l-1 6M18 6v7M20 6v7M22 6v7M24 6l1 6" />
+      </>
+    ),
     trumpet: <path d="M15 5h10q2 15 .5 22q2 9 9 16h-29q7-7 9-16Q13 20 15 5z" />,
     half_circle: <path d="M16 5h8L37 40Q20 46 3 40z" />,
     circle: <path d="M17 5h6L40 37Q20 48 0 37z" />,
@@ -85,12 +91,46 @@ const SKIRT: Record<string, Record<string, ReactNode>> = {
     ),
     diagonal: <path d="M15 5h10l8 24L7 43z" />,
   },
+  // A straight skirt with its slit: none, up the centre back (drawn dashed, round the back), up the side, or up the front.
+  slit: {
+    none: <path d="M14 5h12l2 38H12z" />,
+    back: (
+      <>
+        <path d="M14 5h12l2 38H12z" />
+        <path className="pic-faint" d="M20 30V43" />
+      </>
+    ),
+    side: <path d="M14 5h12l1.2 24L27 43H24.5L26 29L26.2 43" />,
+    front: <path d="M14 5h12l2 38H20.6L20 32L19.4 43H12z" />,
+  },
+  // A dress with a waist seam, or cut in one: a sheath shaped in at the waist, a shift hanging straight.
+  noSeam: {
+    seam: (
+      <>
+        <path d="M15 5L20 8L25 5L27 13L25 21L32 43H8L15 21L13 13z" />
+        <path className="pic-faint" d="M15 21H25" />
+      </>
+    ),
+    sheath: (
+      <>
+        <path d="M15 5L20 8L25 5L27 13L25 21L27 29L25.5 43H14.5L13 29L15 21L13 13z" />
+        <path className="pic-faint" d="M17 15L16.5 21L17 27M23 15L23.5 21L23 27" />
+      </>
+    ),
+    shift: <path d="M15 5L20 8L25 5L27 13L28.5 43H11.5L13 13z" />,
+  },
 };
 
 const NECK: Record<string, ReactNode> = {
   crew: topTo(44),
   scoop: <path d="M8 12L15 8C16 20 24 20 25 8L32 12L30 22L29 44H11L10 22z" />,
   v: <path d="M8 12L15 8L20 22L25 8L32 12L30 22L29 44H11L10 22z" />,
+  mock: (
+    <>
+      {topTo(44)}
+      <path d="M15.5 8.5L16 3Q20 4.5 24 3L24.5 8.5" />
+    </>
+  ),
   square: <path d="M8 12L15 8V18H25V8L32 12L30 22L29 44H11L10 22z" />,
   boat: <path d="M8 13L12 10Q20 14 28 10L32 13L30 22L29 44H11L10 22z" />,
   one_shoulder: <path d="M10 13L16 9L30 22L29 44H11L10 22z" />,
@@ -106,6 +146,12 @@ const NECK: Record<string, ReactNode> = {
     <>
       <path d="M10 20H30L29 44H11z" />
       <path d="M13 20L14 7M27 20L26 7" />
+    </>
+  ),
+  halter: (
+    <>
+      <path d="M17 6L23 6L30 20L29 44H11L10 20z" />
+      <path className="pic-faint" d="M17 6Q20 3 23 6M17 6Q20 9 23 6" />
     </>
   ),
 };

@@ -10,6 +10,7 @@ import { TechFlatView } from '../ui/TechFlatView';
 import { AllRound } from '../ui/AllRound';
 import { roundBodice } from '../engine/allRound';
 import { SHAPES_FOR_LENGTH, SleeveDraft, needsArms } from '../engine/sleeve';
+import { SleeveSlider } from '../ui/SleeveSlider';
 import { MeasurementValues, hasHip } from '../measurements';
 import { PatternPreview } from '../ui/Preview';
 import { PatternPane } from '../ui/PointEditor';
@@ -99,12 +100,14 @@ const NECK_NAMES: Record<BodiceChoices['neckline'], string> = {
   strapless: 'strapless top',
   sweetheart: 'sweetheart top',
   cami: 'cami top',
+  halter: 'halter top',
 };
 
 /** Which hand-shaped value a chip group replaces: picking a named choice lets go of the dragged or drawn one. */
 export const REPLACES: Record<string, (keyof BodiceChoices)[]> = {
   fit: ['bustEase'],
   length: ['dropCm'],
+  sleeve: ['sleeveCm'],
   neckline: ['neck', 'cowlDepth', 'unevenNeck'],
   princess: ['lineAt'],
   bustDart: ['lineAt'],
@@ -291,6 +294,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
                 </button>
               </p>
             )}
+            {g.id === 'sleeve' && arms && <SleeveSlider sleeve={sleeve} choices={choices} onChoices={(c) => change(validDetails(c))} />}
             {g.id === 'neckline' && draped && (
               <p className="muted small">
                 {choices.neckline === 'cowl'
@@ -503,6 +507,8 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
         <p className="muted small">
           {detail.closure === 'front_buttons'
             ? `Buttons down the centre front${draft?.buttons ? ` (${draft.buttons.count})` : ''}, with front facings.`
+            : draft?.wrap
+              ? `The fronts cross over and tie at the waist, with no zip: the two fronts are one piece cut as a pair, and the back is cut on the fold. Ties ${draft.wrap.ties.outer} cm and ${draft.wrap.ties.inner} cm.`
             : draft?.drape?.kind === 'one_shoulder'
               ? `With a zip in the ${zipSide(draft)} side seam.`
               : 'With a centre back zip.'}{' '}

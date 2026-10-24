@@ -49,7 +49,10 @@ const DETAILS: Record<ExplainSet, Record<string, Record<string, ReactNode>>> = {
     },
     waist: {
       band: on(SKIRT, 'M13.5 6h13v4h-13zM24 10V22M23 22h2'),
+      faced: on(SKIRT, 'M14.4 12Q20 13.5 25.6 12M24 6V20M23 20h2'),
+      high: on('M14 12h12l5 32H9z', 'M14.5 2h11L26 12H14zM17 2L17.5 8L18 2M22 2L22.5 8L23 2M24 2V20M23 20h2'),
       elastic: on(SKIRT, 'M13.5 6h13v4h-13zM15 7v2M17 7v2M19 7v2M21 7v2M23 7v2M25 7v2'),
+      wrap: on(SKIRT, 'M13.5 6h13v4h-13zM24 6L26.5 44M13.5 8L8 14M13.5 8L9.5 16'),
     },
     pockets: { none: on(SKIRT), inseam: inseam(SKIRT, 13) },
   },
@@ -65,6 +68,8 @@ const DETAILS: Record<ExplainSet, Record<string, Record<string, ReactNode>>> = {
       straight: on('M13 8Q20 2 27 8L27 44H13z', 'M13 8Q20 2 27 8M13 44h14'),
       puff: on('M12 10Q20 -2 28 10Q31 16 27 20H13Q9 16 12 10z', 'M15 6v2M18 4.5v2M22 4.5v2M25 6v2M13 20h14'),
       bishop: on('M14 8Q20 2 26 8L31 38Q20 42 9 38z', 'M10 38Q20 42 30 38M14 40h12v4H14zM16 38v2M20 39v1.5M24 38v2'),
+      cap: on('M13 8Q20 2 27 8L28 14Q20 17 12 14z', 'M13 8Q20 2 27 8M12 14Q20 17 28 14'),
+      flutter: on('M13 8Q20 2 27 8L33 22Q30 25 27 22Q24 26 20 23Q16 26 13 22Q10 25 7 22z', 'M13 8Q20 2 27 8M7 22Q10 25 13 22Q16 26 20 23Q24 26 27 22Q30 25 33 22'),
     },
     princess: {
       none: on(TOP),
@@ -82,11 +87,14 @@ const DETAILS: Record<ExplainSet, Record<string, Record<string, ReactNode>>> = {
     closure: {
       back_zip: on('M8 12L15 8Q20 10 25 8L32 12L30 22L29 40H11L10 22z', 'M20 9.5V32M19 32h2v2.5h-2z'),
       front_buttons: on(TOP, `M20 12.5V40${dot(21.5, 16)}${dot(21.5, 22)}${dot(21.5, 28)}${dot(21.5, 34)}`),
+      wrap: on('M8 12L15 8L25 8L32 12L30 22L29 40H11L10 22z', 'M15 8L24 26Q27 34 29 38M25 8L20 24M29 38l3 7M29 38l-1 7'),
     },
     collar: {
       none: on(TOP),
       peter_pan: on(TOP, 'M15 8Q12 15 19.5 13.5M25 8Q28 15 20.5 13.5'),
       mandarin: on(TOP, 'M15 8V4.5Q20 7 25 4.5V8'),
+      mock: on(TOP, 'M15 8L15.5 2.5Q20 4.5 24.5 2.5L25 8'),
+      funnel: on(TOP, 'M15 8L13.5 2Q20 4 26.5 2L25 8'),
       shirt: on(TOP, 'M15 8V5Q20 7 25 5V8M15 8L17.5 15L20 12.5L22.5 15L25 8'),
     },
     structure: {

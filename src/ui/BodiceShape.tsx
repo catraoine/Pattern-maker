@@ -177,7 +177,7 @@ export function dragEase(c: BodiceChoices, ease: number): BodiceChoices {
 }
 
 /** How full each named neckline's curve is, so drawing only the back keeps the front's shape. */
-const FULLNESS: Record<Neckline, number> = { crew: 0.75, scoop: 0.6, v: 0, square: 1, boat: 0.6, one_shoulder: 0.75, cowl: 0.6, strapless: 1, sweetheart: 0.6, cami: 0 };
+const FULLNESS: Record<Neckline, number> = { crew: 0.75, scoop: 0.6, v: 0, square: 1, boat: 0.6, one_shoulder: 0.75, cowl: 0.6, strapless: 1, sweetheart: 0.6, cami: 0, halter: 0.6 };
 
 /** The neckline as it stands, as a drawn one, so a stroke can change part of it. */
 export const currentNeck = (c: BodiceChoices): DrawnNeck => c.neck ?? { ...NECKLINES[c.neckline], fullness: FULLNESS[c.neckline] };
