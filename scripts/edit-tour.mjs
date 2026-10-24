@@ -98,16 +98,27 @@ async function piece({ shot, still, from = 0, dur, speed = 1, zoom = [1, 1], at 
 // Where to look in each shot: the drawing alone, framed in black (see mask).
 // The dress filling with fabric: the drawing and the swatches tapped under it.
 const FABRIC = WIDE ? { zoom: [1.05, 1.1], at: [0.45, 0.48], frame: [0.08, 1.05] } : { zoom: [1.12, 1.18], at: [0.5, 0.52], frame: [0.27, 0.8] };
-// The style shot's three moments (the times record-tour-shots.mjs prints): the waist seam dropped, the hem and
-// side drawn on the form, and the drawing filled navy, stripe, then Prince of Wales (Cat, 2026-10-23).
+// The style shot's four moments (the times record-tour-shots.mjs prints): the waist seam dropped, the drawing filled
+// navy, stripe, then Prince of Wales (Cat, 2026-10-23), the hem and a soft boat neck drawn straight on the dress in
+// its fabric (D1 Draw on the Dress, 2026-10-24), and the dress as it now is.
 const STYLE = WIDE
-  ? { shape: { from: 1, dur: 4.4, speed: 1.3, zoom: [1.3, 1.36], at: [0.6, 0.46] }, draw: { from: 7, dur: 7.6, speed: 1.5, zoom: [1.9, 1.95], at: [0.5, 0.57] }, fabric: { from: 26.05, dur: 6.4, speed: 1.4 } }
-  : { shape: { from: 1, dur: 6, speed: 1.3 }, draw: { from: 9.4, dur: 6, speed: 1.4 }, fabric: { from: 26.55, dur: 6.4, speed: 1.4 } };
+  ? {
+      shape: { from: 1, dur: 4, speed: 1.3, zoom: [1.3, 1.36], at: [0.6, 0.46] },
+      fabric: { from: 7, dur: 6, speed: 1.65 },
+      draw: { from: 17.7, dur: 7, speed: 1.73, zoom: [1.9, 1.95], at: [0.5, 0.57] },
+      dressed: { from: 30.6, dur: 2.6, zoom: [1.3, 1.36], at: [0.6, 0.46] },
+    }
+  : {
+      shape: { from: 1, dur: 4, speed: 1.6 },
+      fabric: { from: 8.6, dur: 6, speed: 1.6 },
+      draw: { from: 18.7, dur: 7, speed: 1.58 },
+      dressed: { from: 30.4, dur: 2.6 },
+    };
 // Cat (2026-10-22): the cream pattern paper was too bright after the black pages; a deeper champagne here.
 // Wide: from the moment the pattern is up, slowed a touch to fill its time (Cat, 2026-10-22: the drawing flashed before it).
 const PATTERN = WIDE
   ? { from: 1.1, speed: 0.8, zoom: [1.6, 1.66], at: [0.42, 0.72], frame: [0.09, 1.05, 0.1, 0.92], tint: [0.84, 0.78, 0.66] }
-  : { from: 1.1, zoom: [1.1, 1.14], at: [0.5, 0.56], frame: [0.305, 0.712], tint: [0.84, 0.78, 0.66] };
+  : { from: 1.1, speed: 0.75, zoom: [1.1, 1.14], at: [0.5, 0.56], frame: [0.305, 0.712], tint: [0.84, 0.78, 0.66] };
 // On a phone the pages fill the screen, the words above them out of the picture (Cat, 2026-10-23).
 const PAGES = { shot: 'print', from: 5.2, speed: 0.75, ...(WIDE ? { frame: [0.1, 1.05] } : { zoom: [1.6, 1.6], at: [0.49, 0.5725] }) };
 // Cat's B Three Checks (2026-10-22): what All round is for, a line at a time over the turning form. On a phone in a
@@ -175,8 +186,9 @@ const CUTS = {
       await piece({ shot: 'choose', from: 0.3, dur: 3.2, fadeIn: f, fadeOut: f }),
       await piece({ still: await card('03', 'Style', 'Make it yours.'), dur: 3, fadeIn: f, fadeOut: f }),
       await piece({ shot: 'style', ...STYLE.shape, fadeIn: f, fadeOut: f }),
-      await piece({ shot: 'style', ...STYLE.draw, fadeIn: f, fadeOut: f }),
       await piece({ shot: 'style', ...STYLE.fabric, ...FABRIC, fadeIn: f, fadeOut: f }),
+      await piece({ shot: 'style', ...STYLE.draw, fadeIn: f, fadeOut: f }),
+      await piece({ shot: 'style', ...STYLE.dressed, fadeIn: f, fadeOut: f }),
       await piece({ shot: 'round', from: 0.3, dur: 8.6, fadeIn: f, fadeOut: f, overs: (await threeChecks()).map((p, i) => [p, 0.9 + i * 1.8]) }),
       await piece({ shot: 'pattern', dur: 3.6, ...PATTERN, fadeIn: f, fadeOut: f }),
       await piece({ still: await card('04', 'Print', 'At home, or full size.'), dur: 3, fadeIn: f, fadeOut: f }),

@@ -158,9 +158,10 @@ await fillAll();
 await main.getByRole('heading', { level: 1, name: 'Style your dress' }).waitFor();
 await wait(1500);
 
-// style: the dress styled with the tools (Cat, 2026-10-23, after a COS dress): the waist seam dropped, the hem drawn
-// longer and the side drawn looser on the form, then the drawing filled navy, a white stripe and, to end, Prince of
-// Wales. A tap shows as the pen dot pressing the button; marks prints when each moment starts, for edit-tour.mjs.
+// style: the dress styled with the tools (Cat, 2026-10-23, after a COS dress): the waist seam dropped, the drawing
+// filled navy, a white stripe and then Prince of Wales, and to end the hem drawn longer and the neckline a soft boat
+// neck straight on the dress in its fabric (D1 Draw on the Dress, 2026-10-24). A tap shows as the pen dot pressing
+// the button; marks prints when each moment starts, for edit-tour.mjs.
 const tap = async (loc, ms) => { await loc.evaluate((el) => el.click()); await p.evaluate(() => window.scrollTo(0, 0)); await wait(ms); };
 await p.evaluate(() => {
   const d = document.createElement('div');
@@ -202,8 +203,8 @@ const mark = (what) => console.log(`  style ${what}: ${((Date.now() - t0) / 1000
 // The lines, as fractions of the form picture, drawn on the dress itself (Cat's D1 Draw on the Dress, 2026-10-24):
 // the hem longer, down the calf, and the neckline a little wider and shallower, a soft boat neck but not a full one.
 const LINES = WIDE
-  ? { hem: [[0.36, 0.86], [0.5, 0.875], [0.64, 0.86]], neck: [[0.445, 0.135], [0.475, 0.152], [0.5, 0.156]] }
-  : { hem: [[0.32, 0.86], [0.5, 0.875], [0.68, 0.86]], neck: [[0.44, 0.135], [0.47, 0.152], [0.5, 0.156]] };
+  ? { hem: [[0.36, 0.86], [0.5, 0.875], [0.64, 0.86]], neck: [[0.463, 0.146], [0.482, 0.168], [0.5, 0.173]] }
+  : { hem: [[0.32, 0.86], [0.5, 0.875], [0.68, 0.86]], neck: [[0.463, 0.146], [0.482, 0.168], [0.5, 0.173]] };
 await p.evaluate(() => window.scrollTo(0, 0));
 await wait(600);
 await start();
@@ -217,17 +218,6 @@ await wait(500);
 await press(dropped, 1800);
 if (!WIDE) await glide(0, 700);
 await wait(400);
-mark('draw');
-await press(main.getByRole('button', { name: 'Draw on your form' }).first(), 1300);
-const form = main.getByRole('img', { name: /Your dress form from the/ });
-const kinds = main.getByRole('group', { name: 'What you are drawing' });
-await tap(kinds.getByRole('button', { name: 'Hem', exact: true }), 500);
-await draw(form, LINES.hem, 1500);
-await tap(kinds.getByRole('button', { name: 'Neckline', exact: true }), 500);
-await draw(form, LINES.neck, 1500);
-await press(main.getByRole('button', { name: 'Done', exact: true }), 600);
-await p.evaluate(() => window.scrollTo(0, 0));
-await press(main.getByRole('group', { name: 'Preview view' }).getByRole('button', { name: /^Garment/ }), 700);
 mark('fabric');
 await tap(main.getByRole('tab', { name: 'Fabric', exact: true }), 1200);
 // Two taps in one go, held off camera, so the frame between them (the cloth's own colour, or checks before stripes)
@@ -254,7 +244,21 @@ await both({ sel: '[role=radiogroup][aria-label="What\'s printed on your fabric"
 await wait(2000);
 const stripes = main.getByRole('radiogroup', { name: 'Checks or stripes' });
 mark('checks');
-await tap(stripes.getByRole('radio', { name: 'Checks' }), 2600);
+await tap(stripes.getByRole('radio', { name: 'Checks' }), 1600);
+await p.evaluate(() => window.scrollTo(0, 0));
+await wait(400);
+mark('draw');
+await press(main.getByRole('button', { name: 'Draw on your form' }).first(), 1300);
+const form = main.getByRole('img', { name: /Your dress form from the/ });
+const kinds = main.getByRole('group', { name: 'What you are drawing' });
+await tap(kinds.getByRole('button', { name: 'Hem', exact: true }), 500);
+await draw(form, LINES.hem, 1500);
+await tap(kinds.getByRole('button', { name: 'Neckline', exact: true }), 500);
+await draw(form, LINES.neck, 1500);
+await press(main.getByRole('button', { name: 'Done', exact: true }), 600);
+await p.evaluate(() => window.scrollTo(0, 0));
+mark('dressed');
+await press(main.getByRole('group', { name: 'Preview view' }).getByRole('button', { name: /^Garment/ }), 2600);
 await stop('style');
 
 // pattern: the pieces you cut
