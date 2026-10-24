@@ -324,6 +324,7 @@ export function outerLines(draft: OuterDraft): Partial<Record<FormLine, P[][]>> 
     fit: mirror(edgeRun(front, 'side')),
     front: [[{ x: draft.ext, y: top }, { x: draft.ext, y: foot }]],
     collar,
-    seam: bodiceLines(draft.base, 'front').seam,
+    // A raglan's seam runs from the neck down to the armhole, in place of the shoulder seam.
+    seam: [...(bodiceLines(draft.base, 'front').seam ?? []), ...(draft.base.raglan ? mirror(draft.base.raglan.front.line) : [])],
   };
 }

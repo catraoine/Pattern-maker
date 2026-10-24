@@ -1,3 +1,4 @@
+import { matchKind } from '../engine/prints';
 import { BELTS, Belt, beltAllowed, beltPieces, dressBelt } from '../engine/belt';
 import { useMemo, useState } from 'react';
 import { layout } from '../engine/export';
@@ -8,7 +9,7 @@ import type { DressDraft, WaistSeam } from '../engine/dress';
 import { wrapSkirtAllowed } from '../engine/wrapSkirt';
 import { SLIT_PLACES, SlitPlace, slitAllowed } from '../engine/slit';
 import { NO_SLIT, SlitSlider } from '../ui/SlitSlider';
-import { dressFlat, wornShapes } from '../engine/flat';
+import { dressFlat, wornLines, wornShapes } from '../engine/flat';
 import { piecesLengthCm, toMetres } from '../engine/fabric';
 import { layPlan } from '../engine/layplan';
 import { SHAPES_FOR_LENGTH, SleeveDraft, SleeveMeasurements, needsArms } from '../engine/sleeve';
@@ -157,7 +158,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
 
   // A boned or draped bodice is drafted to the natural waist, so it keeps its waist seam there.
   // A shirt dress or a wrap buttons or ties at the waist, so its seam stays there.
-  const canDrop = !boned && !draped && !buttoned && !wrapped;
+  const canDrop = !boned && !draped;
   // Raising the seam cuts a plain front and back across: the engine says how high this bodice can go.
   const canRaise = canDrop && (draft?.seamRange.min ?? 0) < 0;
   const ownSeam = canDrop && choices.waistSeamCm !== undefined;
@@ -343,6 +344,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
   const sm = useMemo(() => fromSeam(mv, draft?.seamDrop ?? 0), [mv, draft?.seamDrop]);
   const formBody = useMemo(() => (draft ? formWidth(draft.bodice, mv) : undefined), [draft, mv]);
   const clothShapes = useMemo(() => (flat ? wornShapes(flat) : undefined), [flat]);
+  const flatLines = useMemo(() => (flat ? wornLines(flat) : undefined), [flat]);
   // The arms, for the sleeves to hang on: from the arm measurements, once they are given.
   const formArm = useMemo(() => {
     if (!draft || !sleeve || needsArms(values)) return undefined;
@@ -568,7 +570,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
                   )}
               </p>
             )}
-            {g.id === 'waistSeam' && !canDrop && <p className="muted small">{boned || draped ? `A ${boned ? 'boned' : 'draped'} bodice is shaped to the natural waist, so its seam stays there.` : `A ${wrapped ? 'wrap ties' : 'shirt dress buttons'} at the waist, so its seam stays there.`}</p>}
+            {g.id === 'waistSeam' && !canDrop && <p className="muted small">{`A ${boned ? 'boned' : 'draped'} bodice is shaped to the natural waist, so its seam stays there.`}</p>}
             {g.id === 'waistSeam' && canDrop && draft && (
               <div className="seam-height">
                 <input
@@ -650,7 +652,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           {error && <p className="msg error">{error}</p>}
           {formBody && view === 'sketch' && (
             <GarmentFabric fabric={fabric}>
-              <FormSketch body={formBody} m={mv} legs bottom={waistY + lengthRange(mv).max + 4} lines={formLines} cloth={clothShapes} arms={formArm} sleeve={formArm ? sleeve : undefined} underarmY={draft ? landmarks(draft.bodice).underarm.y : undefined} hem={draft ? hem : undefined} label={`The ${title} on your form`} />
+              <FormSketch body={formBody} m={mv} legs bottom={waistY + lengthRange(mv).max + 4} lines={formLines} cloth={clothShapes} flatLines={flatLines} arms={formArm} sleeve={formArm ? sleeve : undefined} underarmY={draft ? landmarks(draft.bodice).underarm.y : undefined} hem={draft ? hem : undefined} label={`The ${title} on your form`} />
             </GarmentFabric>
           )}
           {flat && view === 'flat' && (
@@ -658,7 +660,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
               <TechFlatView flat={flat} title={title} />
             </GarmentFabric>
           )}
-          {round && view === 'round' && <AllRound round={round} m={values} striped={!!fabric?.checks} label={`The ${title} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`} />}
+          {round && view === 'round' && <AllRound round={round} m={values} striped={matchKind(fabric)} label={`The ${title} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`} />}
           {sheet && view === 'pattern' && !(fit && canFit) && <PatternPane><PatternPreview paper sheet={sheet} label={`Pattern pieces for a ${title}`} /></PatternPane>}
           {view === 'pattern' && fit && canFit && <EaseMapView views={easeMap!} label={`The fit of the ${title}, on its pattern pieces`} />}
           <UndoToast undo={undo} />

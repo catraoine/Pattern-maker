@@ -7,6 +7,8 @@ import { describePattern } from './describe';
 import { Envelope } from '../ui/Envelope';
 import { InterestCard } from '../ui/InterestCard';
 import { TechFlatView } from '../ui/TechFlatView';
+import { GarmentFabric } from '../ui/FabricFill';
+import { lookFabric } from '../collection';
 import { TestingTag } from '../ui/TestingTag';
 
 interface Props {
@@ -32,7 +34,7 @@ function useNow(ticking: boolean): Date {
 
 function Flat({ look, values }: { look: HouseLook; values: MeasurementValues }) {
   const flat = useMemo(() => lookFlat(look, lookValues(look, values).values), [look, values]);
-  return flat ? <TechFlatView flat={flat} title={describePattern(look.choices).toLowerCase()} /> : <p className="muted small">This look can&rsquo;t be drafted to these measurements.</p>;
+  return flat ? <GarmentFabric fabric={lookFabric(look.fabric)}><TechFlatView flat={flat} title={describePattern(look.choices).toLowerCase()} /></GarmentFabric> : <p className="muted small">This look can&rsquo;t be drafted to these measurements.</p>;
 }
 
 /**
@@ -186,7 +188,7 @@ export function CollectionScreen({ values, onMake, onBack }: Props) {
             {looks.map(({ look, flat }) => (
               <li key={look.id} className="house-look">
                 <p className="eyebrow">{lookNo(look.number)}</p>
-                <div className="house-flat">{flat ? <TechFlatView flat={flat} title={describePattern(look.choices).toLowerCase()} /> : <p className="muted small">This look can&rsquo;t be drafted to these measurements.</p>}</div>
+                <div className="house-flat">{flat ? <GarmentFabric fabric={lookFabric(look.fabric)}><TechFlatView flat={flat} title={describePattern(look.choices).toLowerCase()} /></GarmentFabric> : <p className="muted small">This look can&rsquo;t be drafted to these measurements.</p>}</div>
                 <h2>{look.name}</h2>
                 <p className="muted">{look.line}</p>
                 <p className="muted small">Cut in {look.fabric[0].toLowerCase() + look.fabric.slice(1)}.</p>

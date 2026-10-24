@@ -260,16 +260,19 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
     front: {
       single: ['One row of buttons down the front, overlapping a little.'],
       double: ['Two rows of buttons with a wide overlap.', 'skill'],
+      zip: ['A separating zip up the centre front, edge to edge, with no overlap. Not with a notched lapel.'],
     },
     collar: {
       notched: ['The classic collar with lapels and a notch where they meet.', 'skill'],
       stand: ['A band that stands up round the neck.'],
       collarless: ['No collar, with a clean round neckline.', 'easy'],
+      hood: ['A hood in two pieces, seamed over the head and sewn to the neck. Goes with a zip or a plain front.'],
     },
     sleeve: {
       tailored: ['Two pieces shaped to bend with your arm, as in a tailored jacket.', 'skill'],
       fitted: ['One piece with a small dart at the elbow so it bends with your arm.'],
       straight: ['One straight piece. The simplest sleeve.', 'easy'],
+      raglan: ['A seam from the neck to the underarm, the shoulder cut as part of the sleeve. Sporty and easy to move in.'],
     },
     pads: {
       soft: ['Thin pads that smooth the shoulder without changing its shape.'],
@@ -284,6 +287,10 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
     vent: {
       centre: ['An opening at the back hem so it sits smoothly when you move or sit.'],
       none: ['No opening at the back.'],
+    },
+    trim: {
+      none: ['Plain turned-up hems at the bottom and the cuffs.'],
+      rib: ['Stretchy rib-knit bands at the hem and cuffs, as on a bomber, so the body blouses above them.'],
     },
     flare: {
       straight: ['Falls straight down below the hip.'],

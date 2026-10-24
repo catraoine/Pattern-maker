@@ -3560,8 +3560,22 @@ button.link.garment-change {
     transition: none;
   }
 }
-.form-still .cloth ~ .tape {
-  stroke: var(--muted);
+/* The garment's lines on the cloth: champagne over a soft dark halo, so they read on black cloth and on a light print alike. */
+.form-still .cloth ~ .tape,
+.form-still .cloth ~ g .tape,
+.form-svg .cloth ~ g .tape {
+  stroke: var(--gild);
+}
+.form-still .tape-halo,
+.form-svg .tape-halo {
+  stroke: #000;
+  opacity: 0.35;
+}
+/* The folds a full piece falls in: faint champagne, a touch lighter than the seams. */
+.form-still .cloth-fold,
+.form-svg .cloth-fold {
+  stroke: var(--gild);
+  opacity: 0.55;
 }
 
 /* The sketch in the maker's fabric, and the swatches to choose it. */
@@ -5516,11 +5530,17 @@ input.inline:focus,
   .style-side > aside > button.secondary {
     order: -1;
   }
-  .style-pin .preview-svg {
-    max-height: calc(100vh - var(--pin-top, 0px) - 280px);
+  /* The drawing takes the column: as tall as the screen allows, so the garment is not a small figure in the top third. */
+  .style-pin .preview-svg,
+  .style-pin .techflat {
+    max-height: calc(100vh - var(--pin-top, 0px) - 220px);
   }
   .style-pin .preview-svg.sketch {
-    max-width: 480px;
+    max-width: 640px;
+  }
+  .style-pin .techflat {
+    max-width: 760px;
+    margin: 0 auto;
   }
 }
 

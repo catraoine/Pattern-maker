@@ -190,6 +190,804 @@
       },
       "truthChecked": true,
       "labelNote": "Laid flat. Commons calls it a pencil skirt, but the hem does not taper in the photo, so labelled straight (pencil scores half). Length is a guess from proportions. Has a seam down the front. Seam lines and waistbands count as details (Cat, 2026-10-15)."
+    },
+    {
+      "id": "11-gingham-dress",
+      "wanted": "Drop-waist gingham dress, Cat's own",
+      "photo": "",
+      "photoNote": "Kept outside the repo: /mnt/project-files/drawing-check/photos/11-gingham-dress.jpg",
+      "source": "Cat's wardrobe",
+      "license": "Not licensed for the repo; eval use only",
+      "author": "",
+      "truth": {
+        "garment": "dress",
+        "silhouette": "straight",
+        "length": "mini",
+        "fit": "regular",
+        "hemAt": 0.42,
+        "hemFullness": 1.0,
+        "hasDetails": true,
+        "top": {
+          "neckline": "boat",
+          "sleeve": "short",
+          "sleeveShape": "straight"
+        },
+        "waistSeam": "dropped",
+        "belt": "loops",
+        "fabric": {
+          "type": "plain",
+          "fibre": "cotton",
+          "colour": "yellow and black",
+          "print": "checks"
+        }
+      },
+      "truthChecked": true,
+      "labelNote": "Yellow/black gingham, dropped seam with belt loops. Gingham is not one of the app's prints and yellow is not one of its colours."
+    },
+    {
+      "id": "12-shirt-dress",
+      "wanted": "Peter-pan shirt dress, Cat's own",
+      "photo": "",
+      "photoNote": "Kept outside the repo: /mnt/project-files/drawing-check/photos/12-shirt-dress.jpg",
+      "source": "Cat's wardrobe",
+      "license": "Not licensed for the repo; eval use only",
+      "author": "",
+      "truth": {
+        "garment": "dress",
+        "silhouette": "a_line",
+        "length": "maxi",
+        "fit": "relaxed",
+        "hemAt": 0.95,
+        "hemFullness": 2.0,
+        "hasDetails": true,
+        "top": {
+          "neckline": "crew",
+          "sleeve": "long",
+          "collar": "peter_pan",
+          "opening": "front_buttons"
+        },
+        "waistSeam": "raised",
+        "fabric": {
+          "type": "plain",
+          "fibre": "linen",
+          "colour": "grey"
+        }
+      },
+      "truthChecked": true,
+      "labelNote": "Gathered skirt from a raised seam, in-seam pockets. The app pins a buttoned dress to the natural waist."
+    },
+    {
+      "id": "13-stripe-wrap",
+      "wanted": "Striped sleeveless wrap dress, Cat's own",
+      "photo": "",
+      "photoNote": "Kept outside the repo: /mnt/project-files/drawing-check/photos/13-stripe-wrap.jpg",
+      "source": "Cat's wardrobe",
+      "license": "Not licensed for the repo; eval use only",
+      "author": "",
+      "truth": {
+        "garment": "dress",
+        "silhouette": "straight",
+        "length": "maxi",
+        "fit": "regular",
+        "hemAt": 0.95,
+        "hemFullness": 1.0,
+        "hasDetails": true,
+        "top": {
+          "neckline": "v",
+          "sleeve": "none"
+        },
+        "waistSeam": "raised",
+        "belt": "sash",
+        "fabric": {
+          "type": "plain",
+          "fibre": "viscose",
+          "colour": "grey",
+          "print": "stripes"
+        }
+      },
+      "truthChecked": true,
+      "labelNote": "Fine grey stripes, raised seam, sash. The app pins a wrap dress to the natural waist."
+    },
+    {
+      "id": "14-cos-navy",
+      "wanted": "Navy sleeveless drop-waist midi (COS)",
+      "photo": "",
+      "photoNote": "Kept outside the repo: /mnt/project-files/drawing-check/photos/14-cos-navy.jpg",
+      "source": "cos.com product shot",
+      "license": "Not licensed for the repo; eval use only",
+      "author": "",
+      "truth": {
+        "garment": "dress",
+        "silhouette": "a_line",
+        "length": "midi",
+        "fit": "regular",
+        "hemAt": 0.72,
+        "hemFullness": 1.4,
+        "hasDetails": true,
+        "top": {
+          "neckline": "crew",
+          "sleeve": "none"
+        },
+        "waistSeam": "dropped",
+        "fabric": {
+          "type": "knit",
+          "fibre": "cotton",
+          "colour": "navy"
+        }
+      },
+      "truthChecked": true,
+      "labelNote": "The one the app draws well: dropped seam, A-line, pockets."
+    },
+    {
+      "id": "b01-pleated-chiffon-skirt",
+      "wanted": "Pleated sheer chiffon midi skirt",
+      "photo": "",
+      "photoNote": "Kept outside the repo: /mnt/project-files/drawing-check/photos/b01-pleated-chiffon-skirt.jpg",
+      "source": "theblock.ca",
+      "license": "Not licensed for the repo; eval use only",
+      "author": "",
+      "truth": {
+        "garment": "skirt",
+        "silhouette": "a_line",
+        "length": "midi",
+        "fit": "regular",
+        "hemAt": 0.72,
+        "hemFullness": 2.5,
+        "hasDetails": true,
+        "fabric": {
+          "type": "chiffon",
+          "fibre": "polyester",
+          "colour": "black",
+          "sheer": true
+        }
+      },
+      "truthChecked": true,
+      "labelNote": "Sunray knife pleats in sheer chiffon; the sheerness is the point."
+    },
+    {
+      "id": "b02-corduroy-mini",
+      "wanted": "Corduroy jeans-style mini skirt",
+      "photo": "",
+      "photoNote": "Kept outside the repo: /mnt/project-files/drawing-check/photos/b02-corduroy-mini.jpg",
+      "source": "theblock.ca",
+      "license": "Not licensed for the repo; eval use only",
+      "author": "",
+      "truth": {
+        "garment": "skirt",
+        "silhouette": "a_line",
+        "length": "mini",
+        "fit": "regular",
+        "hemAt": 0.4,
+        "hemFullness": 1.2,
+        "hasDetails": true,
+        "fabric": {
+          "type": "corduroy",
+          "fibre": "cotton",
+          "colour": "brown"
+        }
+      },
+      "truthChecked": true,
+      "labelNote": "Five-pocket jeans styling, seamed panels. Brown is not one of the app's colours."
+    },
+    {
+      "id": "b03-wide-jeans",
+      "wanted": "Wide barrel-leg jeans",
+      "photo": "",
+      "photoNote": "Kept outside the repo: /mnt/project-files/drawing-check/photos/b03-wide-jeans.jpg",
+      "source": "theblock.ca",
+      "license": "Not licensed for the repo; eval use only",
+      "author": "",
+      "truth": {
+        "garment": "trousers",
+        "silhouette": "straight",
+        "length": "maxi",
+        "fit": "regular",
+        "hemAt": 1.0,
+        "hemFullness": 1.0,
+        "hasDetails": true,
+        "fabric": {
+          "type": "denim",
+          "fibre": "cotton",
+          "colour": "mid blue"
+        }
+      },
+      "truthChecked": true,
+      "labelNote": "Curved barrel leg with a knee seam."
+    },
+    {
+      "id": "b04-leather-trumpet",
+      "wanted": "Faux-leather trumpet midi skirt",
+      "photo": "",
+      "photoNote": "Kept outside the repo: /mnt/project-files/drawing-check/photos/b04-leather-trumpet.jpg",
+      "source": "theblock.ca",
+      "license": "Not licensed for the repo; eval use only",
+      "author": "",
+      "truth": {
+        "garment": "skirt",
+        "silhouette": "trumpet",
+        "length": "midi",
+        "fit": "fitted",
+        "hemAt": 0.75,
+        "hemFullness": 1.8,
+        "hasDetails": true,
+        "fabric": {
+          "type": "leather",
+          "colour": "black"
+        }
+      },
+      "truthChecked": true,
+      "labelNote": "Yoke seam at the hip with a flounce below."
+    },
+    {
+      "id": "b05-brown-wide-denim",
+      "wanted": "Brown wide-leg denim trousers",
+      "photo": "",
+      "photoNote": "Kept outside the repo: /mnt/project-files/drawing-check/photos/b05-brown-wide-denim.jpg",
+      "source": "theblock.ca",
+      "license": "Not licensed for the repo; eval use only",
+      "author": "",
+      "truth": {
+        "garment": "trousers",
+        "silhouette": "straight",
+        "length": "maxi",
+        "fit": "regular",
+        "hemAt": 1.0,
+        "hemFullness": 1.0,
+        "hasDetails": true,
+        "fabric": {
+          "type": "denim",
+          "fibre": "cotton",
+          "colour": "brown"
+        }
+      },
+      "truthChecked": true,
+      "labelNote": ""
+    },
+    {
+      "id": "b06-leather-culottes",
+      "wanted": "Faux-leather culottes, elastic waist, patch pockets",
+      "photo": "",
+      "photoNote": "Kept outside the repo: /mnt/project-files/drawing-check/photos/b06-leather-culottes.jpg",
+      "source": "theblock.ca",
+      "license": "Not licensed for the repo; eval use only",
+      "author": "",
+      "truth": {
+        "garment": "trousers",
+        "silhouette": "a_line",
+        "length": "midi",
+        "fit": "relaxed",
+        "hemAt": 0.8,
+        "hemFullness": 1.0,
+        "hasDetails": true,
+        "fabric": {
+          "type": "leather",
+          "colour": "black"
+        }
+      },
+      "truthChecked": true,
+      "labelNote": "Big patch pockets, elastic waist."
+    },
+    {
+      "id": "b07-balloon-skirt",
+      "wanted": "Black cotton balloon skirt, elastic waist and hem",
+      "photo": "",
+      "photoNote": "Kept outside the repo: /mnt/project-files/drawing-check/photos/b07-balloon-skirt.jpg",
+      "source": "theblock.ca",
+      "license": "Not licensed for the repo; eval use only",
+      "author": "",
+      "truth": {
+        "garment": "skirt",
+        "silhouette": "a_line",
+        "length": "midi",
+        "fit": "relaxed",
+        "hemAt": 0.75,
+        "hemFullness": 1.5,
+        "hasDetails": true,
+        "fabric": {
+          "type": "plain",
+          "fibre": "cotton",
+          "colour": "black"
+        }
+      },
+      "truthChecked": true,
+      "labelNote": "Bubble hem drawn in on a cord; the app has no balloon shape."
+    },
+    {
+      "id": "b08-plaid-field-jacket",
+      "wanted": "Plaid hooded field jacket, four patch pockets",
+      "photo": "",
+      "photoNote": "Kept outside the repo: /mnt/project-files/drawing-check/photos/b08-plaid-field-jacket.jpg",
+      "source": "theblock.ca",
+      "license": "Not licensed for the repo; eval use only",
+      "author": "",
+      "truth": {
+        "garment": "jacket",
+        "silhouette": "straight",
+        "length": "knee",
+        "fit": "relaxed",
+        "hemAt": 0.3,
+        "hemFullness": 1.0,
+        "hasDetails": true,
+        "fabric": {
+          "type": "plain",
+          "fibre": "cotton",
+          "colour": "olive and tan",
+          "print": "checks"
+        }
+      },
+      "truthChecked": true,
+      "labelNote": "Hood and drawcord hem are not drafted."
+    },
+    {
+      "id": "b09-leather-bomber",
+      "wanted": "Faux-leather bomber, ribbed hem and cuffs",
+      "photo": "",
+      "photoNote": "Kept outside the repo: /mnt/project-files/drawing-check/photos/b09-leather-bomber.jpg",
+      "source": "theblock.ca",
+      "license": "Not licensed for the repo; eval use only",
+      "author": "",
+      "truth": {
+        "garment": "jacket",
+        "silhouette": "straight",
+        "length": "mini",
+        "fit": "relaxed",
+        "hemAt": 0.1,
+        "hemFullness": 1.0,
+        "hasDetails": true,
+        "fabric": {
+          "type": "leather",
+          "colour": "black"
+        }
+      },
+      "truthChecked": true,
+      "labelNote": "Zip front, shirt collar, rib trims: none drafted."
+    },
+    {
+      "id": "b10-fleece-zip-jacket",
+      "wanted": "Brown boucle fleece zip jacket with quilted panels",
+      "photo": "",
+      "photoNote": "Kept outside the repo: /mnt/project-files/drawing-check/photos/b10-fleece-zip-jacket.jpg",
+      "source": "theblock.ca",
+      "license": "Not licensed for the repo; eval use only",
+      "author": "",
+      "truth": {
+        "garment": "jacket",
+        "silhouette": "straight",
+        "length": "mini",
+        "fit": "relaxed",
+        "hemAt": 0.15,
+        "hemFullness": 1.0,
+        "hasDetails": true,
+        "fabric": {
+          "type": "fleece",
+          "fibre": "wool",
+          "colour": "brown"
+        }
+      },
+      "truthChecked": true,
+      "labelNote": "Two cloths in one garment."
+    },
+    {
+      "id": "b11-brown-denim-jacket",
+      "wanted": "Brown denim cropped zip jacket",
+      "photo": "",
+      "photoNote": "Kept outside the repo: /mnt/project-files/drawing-check/photos/b11-brown-denim-jacket.jpg",
+      "source": "theblock.ca",
+      "license": "Not licensed for the repo; eval use only",
+      "author": "",
+      "truth": {
+        "garment": "jacket",
+        "silhouette": "straight",
+        "length": "mini",
+        "fit": "relaxed",
+        "hemAt": 0.05,
+        "hemFullness": 1.0,
+        "hasDetails": true,
+        "fabric": {
+          "type": "denim",
+          "fibre": "cotton",
+          "colour": "brown"
+        }
+      },
+      "truthChecked": true,
+      "labelNote": ""
+    },
+    {
+      "id": "b12-black-cotton-coat",
+      "wanted": "Black waxed-cotton raglan coat",
+      "photo": "",
+      "photoNote": "Kept outside the repo: /mnt/project-files/drawing-check/photos/b12-black-cotton-coat.jpg",
+      "source": "theblock.ca",
+      "license": "Not licensed for the repo; eval use only",
+      "author": "",
+      "truth": {
+        "garment": "coat",
+        "silhouette": "a_line",
+        "length": "midi",
+        "fit": "relaxed",
+        "hemAt": 0.8,
+        "hemFullness": 1.2,
+        "hasDetails": true,
+        "fabric": {
+          "type": "plain",
+          "fibre": "cotton",
+          "colour": "black"
+        }
+      },
+      "truthChecked": true,
+      "labelNote": "Raglan sleeves, shirt collar, flap pockets."
+    },
+    {
+      "id": "b13-cape-sleeve-column",
+      "wanted": "Black crepe column dress with cape sleeves",
+      "photo": "",
+      "photoNote": "Kept outside the repo: /mnt/project-files/drawing-check/photos/b13-cape-sleeve-column.jpg",
+      "source": "theblock.ca",
+      "license": "Not licensed for the repo; eval use only",
+      "author": "",
+      "truth": {
+        "garment": "dress",
+        "silhouette": "straight",
+        "length": "maxi",
+        "fit": "relaxed",
+        "hemAt": 0.98,
+        "hemFullness": 1.0,
+        "hasDetails": true,
+        "top": {
+          "neckline": "crew",
+          "sleeve": "short",
+          "sleeveShape": "flutter"
+        },
+        "waistSeam": "none",
+        "fabric": {
+          "type": "crepe",
+          "fibre": "viscose",
+          "colour": "black"
+        }
+      },
+      "truthChecked": true,
+      "labelNote": "Cape panels fall from the shoulder, no waist seam."
+    },
+    {
+      "id": "b14-tee-gauze-dress",
+      "wanted": "Tee-shirt dress with a crinkle-gauze gathered skirt",
+      "photo": "",
+      "photoNote": "Kept outside the repo: /mnt/project-files/drawing-check/photos/b14-tee-gauze-dress.jpg",
+      "source": "theblock.ca",
+      "license": "Not licensed for the repo; eval use only",
+      "author": "",
+      "truth": {
+        "garment": "dress",
+        "silhouette": "a_line",
+        "length": "maxi",
+        "fit": "relaxed",
+        "hemAt": 0.95,
+        "hemFullness": 2.0,
+        "hasDetails": true,
+        "top": {
+          "neckline": "crew",
+          "sleeve": "elbow"
+        },
+        "waistSeam": "dropped",
+        "fabric": {
+          "type": "knit",
+          "fibre": "cotton",
+          "colour": "black"
+        }
+      },
+      "truthChecked": true,
+      "labelNote": "Two cloths: jersey top, crinkle gauze skirt, dropped seam at the hip."
+    },
+    {
+      "id": "b15-blue-slip-mesh",
+      "wanted": "Blue crinkle-satin bias slip with sheer mesh yoke",
+      "photo": "",
+      "photoNote": "Kept outside the repo: /mnt/project-files/drawing-check/photos/b15-blue-slip-mesh.jpg",
+      "source": "theblock.ca",
+      "license": "Not licensed for the repo; eval use only",
+      "author": "",
+      "truth": {
+        "garment": "dress",
+        "silhouette": "half_circle",
+        "length": "maxi",
+        "fit": "regular",
+        "hemAt": 0.95,
+        "hemFullness": 1.6,
+        "hasDetails": true,
+        "top": {
+          "neckline": "cami",
+          "sleeve": "none"
+        },
+        "waistSeam": "none",
+        "fabric": {
+          "type": "satin",
+          "fibre": "polyester",
+          "colour": "steel blue",
+          "sheer": true
+        }
+      },
+      "truthChecked": true,
+      "labelNote": "Sheer mesh yoke over a satin slip; bias cut."
+    },
+    {
+      "id": "b16-leopard-puff-mini",
+      "wanted": "Leopard jacquard mini dress, puff sleeves, rib cuffs",
+      "photo": "",
+      "photoNote": "Kept outside the repo: /mnt/project-files/drawing-check/photos/b16-leopard-puff-mini.jpg",
+      "source": "theblock.ca",
+      "license": "Not licensed for the repo; eval use only",
+      "author": "",
+      "truth": {
+        "garment": "dress",
+        "silhouette": "straight",
+        "length": "above_knee",
+        "fit": "regular",
+        "hemAt": 0.5,
+        "hemFullness": 1.0,
+        "hasDetails": true,
+        "top": {
+          "neckline": "crew",
+          "sleeve": "long",
+          "sleeveShape": "puff"
+        },
+        "waistSeam": "none",
+        "fabric": {
+          "type": "knit",
+          "fibre": "blend",
+          "colour": "brown and black",
+          "print": "animal"
+        }
+      },
+      "truthChecked": true,
+      "labelNote": "Leopard is not one of the app's prints."
+    },
+    {
+      "id": "b17-marble-silk-maxi",
+      "wanted": "Marbled-print silk maxi, kimono sleeves, drawstring waist",
+      "photo": "",
+      "photoNote": "Kept outside the repo: /mnt/project-files/drawing-check/photos/b17-marble-silk-maxi.jpg",
+      "source": "theblock.ca",
+      "license": "Not licensed for the repo; eval use only",
+      "author": "",
+      "truth": {
+        "garment": "dress",
+        "silhouette": "a_line",
+        "length": "maxi",
+        "fit": "relaxed",
+        "hemAt": 0.98,
+        "hemFullness": 1.6,
+        "hasDetails": true,
+        "top": {
+          "neckline": "crew",
+          "sleeve": "elbow"
+        },
+        "waistSeam": "natural",
+        "belt": "ties",
+        "fabric": {
+          "type": "plain",
+          "fibre": "silk",
+          "colour": "multicolour",
+          "print": "abstract"
+        }
+      },
+      "truthChecked": true,
+      "labelNote": "A placed art print nothing in the app resembles."
+    },
+    {
+      "id": "b18-sheer-ruffle-mini",
+      "wanted": "Sheer chiffon mock-neck mini with ruffle hem and bell sleeves",
+      "photo": "",
+      "photoNote": "Kept outside the repo: /mnt/project-files/drawing-check/photos/b18-sheer-ruffle-mini.jpg",
+      "source": "revolve.com",
+      "license": "Not licensed for the repo; eval use only",
+      "author": "",
+      "truth": {
+        "garment": "dress",
+        "silhouette": "a_line",
+        "length": "mini",
+        "fit": "relaxed",
+        "hemAt": 0.35,
+        "hemFullness": 2.0,
+        "hasDetails": true,
+        "top": {
+          "neckline": "crew",
+          "sleeve": "long",
+          "sleeveShape": "flutter"
+        },
+        "waistSeam": "none",
+        "fabric": {
+          "type": "chiffon",
+          "fibre": "polyester",
+          "colour": "black",
+          "sheer": true
+        }
+      },
+      "truthChecked": true,
+      "labelNote": "Sheer over a slip; the app has no mock neck for a bodice."
+    },
+    {
+      "id": "b19-satin-tiered-gown",
+      "wanted": "Black satin tiered cami gown, high-low",
+      "photo": "",
+      "photoNote": "Kept outside the repo: /mnt/project-files/drawing-check/photos/b19-satin-tiered-gown.jpg",
+      "source": "revolve.com",
+      "license": "Not licensed for the repo; eval use only",
+      "author": "",
+      "truth": {
+        "garment": "dress",
+        "silhouette": "a_line",
+        "length": "maxi",
+        "fit": "relaxed",
+        "hemAt": 1.0,
+        "hemFullness": 2.5,
+        "hasDetails": true,
+        "top": {
+          "neckline": "cami",
+          "sleeve": "none"
+        },
+        "waistSeam": "none",
+        "fabric": {
+          "type": "satin",
+          "fibre": "polyester",
+          "colour": "black"
+        }
+      },
+      "truthChecked": true,
+      "labelNote": "Three deep tiers."
+    },
+    {
+      "id": "b20-one-shoulder-ruched-mini",
+      "wanted": "One-shoulder ruched jersey mini",
+      "photo": "",
+      "photoNote": "Kept outside the repo: /mnt/project-files/drawing-check/photos/b20-one-shoulder-ruched-mini.jpg",
+      "source": "revolve.com",
+      "license": "Not licensed for the repo; eval use only",
+      "author": "",
+      "truth": {
+        "garment": "dress",
+        "silhouette": "straight",
+        "length": "mini",
+        "fit": "fitted",
+        "hemAt": 0.35,
+        "hemFullness": 1.0,
+        "hasDetails": true,
+        "top": {
+          "neckline": "one_shoulder",
+          "sleeve": "none"
+        },
+        "waistSeam": "none",
+        "fabric": {
+          "type": "knit",
+          "fibre": "viscose",
+          "colour": "black"
+        }
+      },
+      "truthChecked": true,
+      "labelNote": "Side ruching on cords."
+    },
+    {
+      "id": "b21-cowl-wrap-midi",
+      "wanted": "Off-white draped cowl-collar wrap midi",
+      "photo": "",
+      "photoNote": "Kept outside the repo: /mnt/project-files/drawing-check/photos/b21-cowl-wrap-midi.jpg",
+      "source": "ssense.com",
+      "license": "Not licensed for the repo; eval use only",
+      "author": "",
+      "truth": {
+        "garment": "dress",
+        "silhouette": "straight",
+        "length": "midi",
+        "fit": "relaxed",
+        "hemAt": 0.7,
+        "hemFullness": 1.0,
+        "hasDetails": true,
+        "top": {
+          "neckline": "cowl",
+          "sleeve": "none"
+        },
+        "waistSeam": "natural",
+        "belt": "sash",
+        "fabric": {
+          "type": "plain",
+          "fibre": "viscose",
+          "colour": "off-white"
+        }
+      },
+      "truthChecked": true,
+      "labelNote": "Draped collar, wrapped skirt."
+    },
+    {
+      "id": "b22-draped-jersey-maxi",
+      "wanted": "Grey draped jersey maxi, cowl neck",
+      "photo": "",
+      "photoNote": "Kept outside the repo: /mnt/project-files/drawing-check/photos/b22-draped-jersey-maxi.jpg",
+      "source": "ssense.com",
+      "license": "Not licensed for the repo; eval use only",
+      "author": "",
+      "truth": {
+        "garment": "dress",
+        "silhouette": "straight",
+        "length": "maxi",
+        "fit": "relaxed",
+        "hemAt": 0.98,
+        "hemFullness": 1.0,
+        "hasDetails": true,
+        "top": {
+          "neckline": "cowl",
+          "sleeve": "none"
+        },
+        "waistSeam": "dropped",
+        "fabric": {
+          "type": "knit",
+          "fibre": "viscose",
+          "colour": "grey"
+        }
+      },
+      "truthChecked": true,
+      "labelNote": "Draped hip seam."
+    },
+    {
+      "id": "b23-asym-draped-tie-midi",
+      "wanted": "Black asymmetric draped midi with a tie",
+      "photo": "",
+      "photoNote": "Kept outside the repo: /mnt/project-files/drawing-check/photos/b23-asym-draped-tie-midi.jpg",
+      "source": "ssense.com",
+      "license": "Not licensed for the repo; eval use only",
+      "author": "",
+      "truth": {
+        "garment": "dress",
+        "silhouette": "straight",
+        "length": "midi",
+        "fit": "relaxed",
+        "hemAt": 0.78,
+        "hemFullness": 1.0,
+        "hasDetails": true,
+        "top": {
+          "neckline": "boat",
+          "sleeve": "short",
+          "sleeveShape": "cap"
+        },
+        "waistSeam": "natural",
+        "belt": "ties",
+        "fabric": {
+          "type": "plain",
+          "fibre": "polyester",
+          "colour": "black"
+        }
+      },
+      "truthChecked": true,
+      "labelNote": "Asymmetric drape."
+    },
+    {
+      "id": "b24-lace-high-low-gown",
+      "wanted": "Floral lace high-low ruffle gown",
+      "photo": "",
+      "photoNote": "Kept outside the repo: /mnt/project-files/drawing-check/photos/b24-lace-high-low-gown.jpg",
+      "source": "revolve.com",
+      "license": "Not licensed for the repo; eval use only",
+      "author": "",
+      "truth": {
+        "garment": "dress",
+        "silhouette": "a_line",
+        "length": "maxi",
+        "fit": "fitted",
+        "hemAt": 1.0,
+        "hemFullness": 2.0,
+        "hasDetails": true,
+        "top": {
+          "neckline": "halter",
+          "sleeve": "none"
+        },
+        "waistSeam": "none",
+        "fabric": {
+          "type": "lace",
+          "fibre": "polyester",
+          "colour": "camel",
+          "print": "floral"
+        }
+      },
+      "truthChecked": true,
+      "labelNote": "Tiered ruffle hem, front slit, lace over a lining."
     }
   ]
 }

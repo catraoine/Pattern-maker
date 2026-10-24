@@ -140,13 +140,19 @@ export function readBodiceSleeve(stroke: P[], draft: BodiceDraft, arm: FormArm, 
 export function readOuterSleeve(stroke: P[], arm: FormArm, neckPoint: P, c: OuterChoices): Reading<OuterChoices> {
   const kind = sleeveStroke(stroke, arm, neckPoint);
   if (kind === 'across') return { said: `${c.garment === 'coat' ? 'Coat' : 'Jacket'} sleeves run to the wrist. Draw down the outside of the arm for how close they sit.` };
-  if (kind !== 'down') return { said: 'Draw down the outside of the arm: close to it for a fitted sleeve, further out for a straight one.' };
+  if (kind === 'cut_raglan') {
+    // A raglan is cut off a one-piece body with no shoulder seam: princess seams give way to darts, a notched lapel to a stand collar.
+    const next: OuterChoices = { ...c, sleeve: 'raglan', shaping: c.shaping === 'princess' ? 'darts' : c.shaping, collar: c.collar === 'notched' ? 'stand' : c.collar };
+    return { choices: next, said: 'Raglan sleeves: the seam runs from the neck to under the arm.' };
+  }
+  if (kind !== 'down') return { said: 'Draw down the outside of the arm: close to it for a fitted sleeve, further out for a straight one; from the neck to under the arm for a raglan.' };
   const s = standOff(stroke, arm);
   const sleeve: OuterSleeve = s.most < 1.6 ? 'fitted' : s.most > 3.2 ? 'straight' : 'tailored';
   const words: Record<OuterSleeve, string> = {
     fitted: 'A fitted sleeve: one piece, close to the arm, with an elbow dart.',
     tailored: 'A tailored sleeve: two pieces, following the arm’s bend.',
     straight: 'A straight sleeve: one piece, with room down to the wrist.',
+    raglan: 'Raglan sleeves: the seam runs from the neck to under the arm.',
   };
   return { choices: { ...c, sleeve }, said: words[sleeve] };
 }

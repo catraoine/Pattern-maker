@@ -1,3 +1,4 @@
+import { matchKind } from '../engine/prints';
 import { useMemo, useState } from 'react';
 import { BELTS, Belt, beltAllowed, beltPieces, beltWords, skirtBelt } from '../engine/belt';
 import type { Choices } from '../App';
@@ -705,7 +706,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
             <AllRound
               round={round}
               m={values}
-              striped={!!fabric?.checks}
+              striped={matchKind(fabric)}
               label={`The ${title} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`}
             />
           )}

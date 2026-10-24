@@ -44,8 +44,8 @@ export interface RoundMeasurements {
 interface Props {
   round: RoundGarment;
   m: RoundMeasurements;
-  /** The fabric has checks or stripes to match. */
-  striped?: boolean;
+  /** The fabric has checks or stripes to match: which, so the note names the right one. */
+  striped?: boolean | 'checks' | 'stripes';
   label: string;
 }
 
@@ -61,7 +61,7 @@ interface Row {
 const fromWaist = (v: number) => (v < 0 ? `${-v} cm above the waist` : v === 0 ? 'at the waist' : `${v} cm below the waist`);
 
 /** The rows under the view: plain facts about the garment, never problems. */
-export function roundRows(r: RoundGarment, striped: boolean): Row[] {
+export function roundRows(r: RoundGarment, striped: boolean | 'checks' | 'stripes'): Row[] {
   const rows: Row[] = [];
   const n = r.seams.filter((s) => !s.cont).length;
   const d = r.darts.length;
@@ -91,7 +91,7 @@ export function roundRows(r: RoundGarment, striped: boolean): Row[] {
     rows.push({ id: 'sleeves', name: 'Sleeves', text: `${Math.round(r.sleeve.lengthCm)} cm from the shoulder, ${Math.round(r.sleeve.hemCm)} cm round the hem.`, turn: HALF });
   }
   if (striped && stripesMeet(r)) {
-    rows.push({ id: 'stripes', name: 'Stripes', text: 'Meet at both side seams. Line them up at the notches when you cut.', turn: -HALF });
+    rows.push({ id: 'stripes', name: striped === 'checks' ? 'Checks' : 'Stripes', text: 'Meet at both side seams. Line them up at the notches when you cut.', turn: -HALF });
   }
   return rows;
 }
