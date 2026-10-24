@@ -48,12 +48,46 @@ export function sleeveShape(arm: FormArm, sleeve: WornSleeve, head: P = arm.tip)
     const { inner, outer } = armAt(arm, Math.max(y, arm.under.y));
     return Math.max(0, sewn - (outer - inner)) / 2;
   };
-  const outer = ys(arm.tip.y, end).map((y) => ({ x: armAt(arm, y).outer + 0.8 + extra(y) * Math.min(1, Math.max(0.35, (y - arm.tip.y) / Math.max(1, arm.under.y - arm.tip.y))), y }));
-  const inner = ys(arm.under.y, end).map((y) => ({ x: armAt(arm, y).inner - 0.6 - extra(y), y })).reverse();
+  // The crown sits at the garment's shoulder point. Worn, the sleeve falls close to the arm: its ease hangs
+  // in soft folds rather than standing out flat, and from a shoulder set out past the arm it drops to the arm.
   const crown = { x: Math.max(head.x, arm.tip.x), y: Math.min(head.y, arm.tip.y) };
+  const outer = ys(crown.y, end).map((y) => {
+    const t = Math.min(1, Math.max(0.35, (y - arm.tip.y) / Math.max(1, arm.under.y - arm.tip.y)));
+    const onArm = armAt(arm, Math.max(y, arm.tip.y)).outer + 0.5 + SLEEVE_EASE * extra(y) * t;
+    return { x: Math.max(onArm, crown.x - 0.25 * (y - crown.y)), y };
+  });
+  const inner = ys(arm.under.y, end).map((y) => ({ x: armAt(arm, y).inner - 0.3 - SLEEVE_EASE * extra(y), y })).reverse();
   // Back inside the armhole, under the body's cloth.
-  const under = { x: arm.under.x - 4, y: arm.under.y };
-  return [crown, { x: arm.tip.x, y: arm.tip.y }, ...outer, ...inner, { x: arm.under.x, y: arm.under.y }, under, { x: crown.x - 4, y: crown.y + 1.2 }];
+  return [...outer, ...inner, { x: arm.under.x, y: arm.under.y }, { x: arm.under.x - 4, y: arm.under.y }, { x: crown.x - 4, y: crown.y + 1.2 }];
+}
+
+/** How much of a sleeve's ease shows in its width when worn; the rest hangs in folds. */
+const SLEEVE_EASE = 0.35;
+
+/** How much of the garment's ease shows in its width when worn: the rest falls into the drape round the body. */
+const WORN_EASE = 0.4;
+
+/** The cloth as it hangs on the form rather than laid out flat. A flat piece spreads its full half-girth,
+ *  but worn, only part of the ease beyond the body shows in the width; the rest falls into the drape. Cloth
+ *  hangs from the widest point above it, so the body it is drawn in toward is the form's widest width so far
+ *  down (the shoulders, then the bust, then the hip), never the waist's dip: a straight jacket stays straight,
+ *  and a piece shaped in to the waist keeps its own shaping. From the hip the drawing-in fades out over 25 cm
+ *  so a skirt keeps its flare. The pattern itself is untouched. */
+export function wornCloth(cloth: P[][], body: FormBody): P[][] {
+  // The widest the form has been from the top down to each height, at 0.5 cm steps.
+  const steps = Math.max(1, Math.ceil((body.bottom - body.top) / 0.5));
+  const hang: number[] = [];
+  for (let i = 0; i <= steps; i++) hang.push(Math.max(hang[i - 1] ?? 0, body.width(body.top + ((body.bottom - body.top) * i) / steps)));
+  const hangAt = (y: number) => hang[Math.min(steps, Math.max(0, Math.round(((y - body.top) / (body.bottom - body.top)) * steps)))];
+  return cloth.map((s) =>
+    s.map((q) => {
+      const below = Math.max(0, q.y - body.bottom);
+      const share = WORN_EASE + (1 - WORN_EASE) * Math.min(1, below / 25);
+      const w = hangAt(q.y);
+      const out = Math.abs(q.x) - w;
+      return out <= 0 ? q : { x: Math.sign(q.x) * (w + out * share), y: q.y };
+    }),
+  );
 }
 
 /** The garment's shoulder point on its right: the furthest-out point of its cloth above the underarm. */
@@ -116,7 +150,8 @@ const CLOTH_EDGES: FormLine[] = ['neckline', 'fit', 'hem', 'sleeve'];
 
 /** The garment drawn on the dress form, front on. */
 export function FormSketch({ body, m, legs, bottom, arms, lines, outline = [], cloth, sleeve, label }: Props) {
-  const frame = useMemo(() => formFrame(m, body, bottom, arms, cloth), [m, body, bottom, arms, cloth]);
+  const worn = useMemo(() => (cloth ? wornCloth(cloth, body) : undefined), [cloth, body]);
+  const frame = useMemo(() => formFrame(m, body, bottom, arms, worn), [m, body, bottom, arms, worn]);
   const cx = frame.half;
   const contours = useMemo(() => formContours(body, cx), [body, cx]);
   const armLines = useMemo(() => formArmLines(arms, cx), [arms, cx]);
@@ -124,8 +159,8 @@ export function FormSketch({ body, m, legs, bottom, arms, lines, outline = [], c
   const showLegs = legs && m.full_hip && m.waist_to_hip && m.waist_to_knee && m.waist_to_floor;
   // The cloth: sleeves first, then the body over their heads, then collars and lapels over that. Each piece is
   // its own path: pieces overlap (a lapel on its front, a sleeve on the body) and one path would punch holes there.
-  const sleeves = useMemo(() => (arms && sleeve && cloth ? [sleeveShape(arms, sleeve, shoulderPoint(cloth, arms))].flatMap((s) => [s, s.map((q) => ({ x: -q.x, y: q.y }))]) : []), [arms, sleeve, cloth]);
-  const pieces = cloth ? [...sleeves, ...cloth].map((s) => `${at(s)} Z`) : [];
+  const sleeves = useMemo(() => (arms && sleeve && worn ? [sleeveShape(arms, sleeve, shoulderPoint(worn, arms))].flatMap((s) => [s, s.map((q) => ({ x: -q.x, y: q.y }))]) : []), [arms, sleeve, worn]);
+  const pieces = worn ? [...sleeves, ...worn].map((s) => `${at(s)} Z`) : [];
   const shade = `shade${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
   const drawn = cloth ? Object.fromEntries(Object.entries(lines).filter(([id]) => !CLOTH_EDGES.includes(id as FormLine))) : lines;
   return (
