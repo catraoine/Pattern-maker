@@ -1,5 +1,6 @@
 // The garments the app can make, and the style choices saved for each.
 import { CUFFS, Cuff, cuffAllowed } from './engine/cuffs';
+import { BACK_NECKS, BackNeck, backBlocked } from './engine/backNeck';
 import type { Choices } from './App';
 import type { BodiceDarts, BodiceFit, BodiceLength, DrawnNeck, Neckline, UnevenNeck } from './engine/bodice';
 import { SHAPES_FOR_LENGTH, SleeveLength, SleeveShape } from './engine/sleeve';
@@ -52,6 +53,8 @@ export interface BodiceChoices {
   shoulder?: 'left' | 'right';
   closure?: Closure;
   collar?: Collar;
+  /** A scoop or V back, or a keyhole at the back neck (see backNeck.ts). Older saves are plain. */
+  back?: BackNeck;
   /** A peplum at the waist seam, on a waist-length bodice. */
   peplum?: Peplum;
   /** Boned like a corset. Older saves are soft; a strapless neckline is always boned. */
@@ -306,7 +309,7 @@ export const DEFAULT_BODICE: BodiceChoices = { garment: 'bodice', fit: 'regular'
 type Group<K extends keyof BodiceChoices> = { id: K; label: string; options: [NonNullable<BodiceChoices[K]>, string][] };
 
 // Options from styling/styling-options.json (top). Oversized fit needs its own block.
-export const BODICE_GROUPS: [Group<'fit'>, Group<'neckline'>, Group<'length'>, Group<'darts'>, Group<'sleeve'>, Group<'sleeveShape'>, Group<'sleeveCuff'>, Group<'princess'>, Group<'bustDart'>, Group<'closure'>, Group<'collar'>, Group<'structure'>, Group<'peplum'>] = [
+export const BODICE_GROUPS: [Group<'fit'>, Group<'neckline'>, Group<'length'>, Group<'darts'>, Group<'sleeve'>, Group<'sleeveShape'>, Group<'sleeveCuff'>, Group<'princess'>, Group<'bustDart'>, Group<'closure'>, Group<'collar'>, Group<'back'>, Group<'structure'>, Group<'peplum'>] = [
   { id: 'fit', label: 'Fit', options: [['fitted', 'Fitted'], ['regular', 'Regular'], ['relaxed', 'Relaxed']] },
   {
     id: 'neckline',
@@ -330,10 +333,12 @@ export const BODICE_GROUPS: [Group<'fit'>, Group<'neckline'>, Group<'length'>, G
   },
   { id: 'closure', label: 'Opening', options: [['back_zip', 'Back zip'], ['front_buttons', 'Front buttons'], ['wrap', 'Wrap']] },
   { id: 'collar', label: 'Collar', options: [['none', 'None'], ['peter_pan', 'Peter Pan'], ['mandarin', 'Mandarin'], ['mock', 'Mock neck'], ['funnel', 'Funnel neck'], ['shirt', 'Shirt collar'], ['bow', 'Pussy bow']] },
+  { id: 'back', label: 'Back', options: BACK_NECKS },
   { id: 'structure', label: 'Structure', options: [['none', 'Soft'], ['boned', 'Boned, like a corset']] },
   { id: 'peplum', label: 'Peplum', options: [['none', 'None'], ['flared', 'Flared'], ['gathered', 'Gathered']] },
 ];
 
+const BACK_WORDS: Record<BackNeck, string> = { plain: '', scoop: 'a scoop back', v: 'a V back', keyhole: 'a keyhole back' };
 export const COLLAR_WORDS: Record<Collar, string> = { none: '', peter_pan: 'Peter Pan collar', mandarin: 'mandarin collar', mock: 'mock neck', funnel: 'funnel neck', shirt: 'shirt collar', bow: 'pussy bow' };
 
 /**
@@ -344,7 +349,8 @@ export const COLLAR_WORDS: Record<Collar, string> = { none: '', peter_pan: 'Pete
  * the one-shoulder is sleeveless. A peplum goes on a waist-length bodice, not on a dress. A drawn style
  * seam (yoke, empire, panel) is allowed when seamBlocked finds no reason against it.
  */
-export function detailAllowed(c: BodiceChoices, id: 'princess' | 'bustDart' | 'closure' | 'collar' | 'structure' | 'sleeve' | 'peplum' | SeamKind, opt: string, garment: 'bodice' | 'dress' = 'bodice'): boolean {
+export function detailAllowed(c: BodiceChoices, id: 'princess' | 'bustDart' | 'closure' | 'collar' | 'back' | 'structure' | 'sleeve' | 'peplum' | SeamKind, opt: string, garment: 'bodice' | 'dress' = 'bodice'): boolean {
+  if (id === 'back') return !backBlocked(c, opt as BackNeck);
   if (id === 'yoke' || id === 'empire' || id === 'panel') return opt === 'none' || !seamBlocked(c, id, garment, opt === 'back' ? 'back' : 'front');
   // A peplum (flared or gathered) goes on a waist-length bodice, boned or soft, never on a dress.
   if (id === 'peplum') return opt === 'none' || (garment === 'bodice' && c.length === 'waist' && !(c.dropCm !== undefined && c.dropCm >= 3));
@@ -362,6 +368,8 @@ export function detailAllowed(c: BodiceChoices, id: 'princess' | 'bustDart' | 'c
   if (id === 'closure') return opt === 'back_zip' || !top;
   if (c.closure === 'wrap' && opt !== 'none') return false;
   if (opt === 'none') return true;
+  // A collar goes round the back neck, so not with a low or keyhole back.
+  if (c.back && c.back !== 'plain') return false;
   if (opt === 'shirt') return c.closure === 'front_buttons' && c.neckline === 'crew';
   // A pussy bow ties at the centre front, on a crew or V neck, so the opening stays at the back.
   if (opt === 'bow') return c.closure !== 'front_buttons' && (c.neckline === 'crew' || c.neckline === 'v');
@@ -437,6 +445,7 @@ export function validDetails(c: BodiceChoices, garment: 'bodice' | 'dress' = 'bo
     Object.assign(out, { neckline: 'v', length: 'waist', princess: 'none', collar: 'none', peplum: 'none' });
   }
   if (out.collar && !detailAllowed(out, 'collar', out.collar, garment)) out.collar = 'none';
+  if (out.back && backBlocked(out, out.back)) delete out.back;
   if (out.sleeve && !detailAllowed(out, 'sleeve', out.sleeve, garment)) out.sleeve = 'none';
   if (out.peplum && !detailAllowed(out, 'peplum', out.peplum, garment)) out.peplum = 'none';
   // A drawn seam the rest no longer allows is let go of, and only one kind is kept.
@@ -568,7 +577,7 @@ export function bodiceDetails(c: BodiceChoices) {
   const collarWords = v.collar && v.collar !== 'none' && !c.neck ? COLLAR_WORDS[v.collar] : '';
   const neck = collarWords ? `a ${collarWords}` : v.unevenNeck ? 'an uneven neckline' : `a ${c.neck ? 'drawn neckline' : NECK_WORDS[c.neckline]}`;
   const sleeves = sleeveWordsOf(sleeveOf(v));
-  return listed([neck, seamNoun(v), sleeves].filter(Boolean));
+  return listed([neck, seamNoun(v), sleeves, v.back && v.back !== 'plain' ? BACK_WORDS[v.back] : ''].filter(Boolean));
 }
 
 export function describeBodice(c: BodiceChoices) {
@@ -576,7 +585,8 @@ export function describeBodice(c: BodiceChoices) {
   if (isTop(v.neckline)) return withPeplum(topWords(v, `${LENGTH_WORDS[v.length]} `), v);
   const peplum = v.peplum && v.peplum !== 'none' ? `a ${v.peplum} peplum` : '';
   const sleeveWords = sleeveWordsOf(sleeveOf(v));
-  const sleeve = sleeveWords || peplum ? ` with ${[sleeveWords, peplum].filter(Boolean).join(' and ')}` : '';
+  const backWords = v.back && v.back !== 'plain' ? BACK_WORDS[v.back] : '';
+  const sleeve = sleeveWords || peplum || backWords ? ` with ${[sleeveWords, peplum, backWords].filter(Boolean).join(' and ')}` : '';
   const princess = v.princess && v.princess !== 'none' ? ' princess' : '';
   const seam = seamAdjective(v) ? ` ${seamAdjective(v)}` : '';
   const collar = v.collar && v.collar !== 'none' && !c.neck ? COLLAR_WORDS[v.collar] : '';

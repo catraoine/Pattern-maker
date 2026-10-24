@@ -175,6 +175,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           (can('dartMoves') || (choices.bodice.bustDart ?? 'side') !== 'side')) ||
         (g.id === 'closure' && !top && !draped) ||
         (g.id === 'collar' && !top && !draped) ||
+        (g.id === 'back' && !top && !draped) ||
         (g.id === 'structure' && !draped) ||
         g.id === 'sleeve' ||
         (g.id === 'sleeveShape' && chosen.length !== 'none') ||
@@ -236,6 +237,8 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
                   ? choices.bodice.princess ?? 'none'
                   : id === 'collar'
                     ? choices.bodice.collar ?? 'none'
+                  : id === 'back'
+                    ? valid.back ?? 'plain'
                   : id === 'closure'
                     ? closure
                     : id === 'structure'
@@ -267,7 +270,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           ? SHAPES_FOR_LENGTH[chosen.length].includes(opt as NonNullable<BodiceChoices['sleeveShape']>)
           : id === 'sleeveCuff'
             ? cuffAllowed(opt as Cuff, chosen.length, chosen.shape)
-          : id === 'princess' || id === 'bustDart' || id === 'collar' || id === 'structure' || id === 'closure'
+          : id === 'princess' || id === 'bustDart' || id === 'collar' || id === 'back' || id === 'structure' || id === 'closure'
             ? detailAllowed({ ...choices.bodice, length: 'waist', closure }, id, opt, 'dress') && (id !== 'closure' || (opt === 'front_buttons' ? buttonsOk : opt === 'wrap' ? wrapOk : true))
             : id === 'silhouette' || id === 'length' || id === 'asymHem'
               ? cutAllowed(choices.skirt, id, opt, 'dress') && (!buttoned || buttonsOnSkirt({ ...choices.skirt, [id]: opt })) && (!wrapped || wrapSkirtAllowed({ ...choices.skirt, [id]: opt }))

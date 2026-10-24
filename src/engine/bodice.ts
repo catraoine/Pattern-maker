@@ -13,6 +13,7 @@ import { Piece, withAlternate } from './piece';
 import { DraftError, Side, cm } from './skirt';
 import type { DartPlace, PrincessLine } from './manipulate';
 import { moveFrontDart, princessPieces } from './shaping';
+import { BackNeck, KEYHOLE, backDepthFor, backNeckOf } from './backNeck';
 import { Buttons, Closure, Collar, EXTENSION_CM, backNeckFacing, backOnFold, buttonPlaces, collarPieces, frontFacing, isBandCollar, openFront } from './collar';
 import { DrapeInfo, Peplum, PeplumInfo, drapeBodice, drapeStyle } from './drape';
 import { BONED_EASE, Structure, TopDetails, bonedPanels, cutTop, isBoned, isTop, topStyle } from './corset';
@@ -106,6 +107,8 @@ export interface BodiceStyle {
   shoulder?: 'left' | 'right';
   /** A centre back zip (the default) or buttons down the centre front; and a collar. */
   closure?: Closure;
+  /** A low scoop or V at the back, or a keyhole that closes with a button and loop above the zip (see backNeck.ts). */
+  back?: BackNeck;
   collar?: Collar;
   /** A dragged hem: cm below the waist (0 for the waist), in place of the named length. */
   dropCm?: number;
@@ -649,7 +652,10 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
     );
   }
   const uB = unit(sub(spB, hpsB));
-  const bd = Math.min(12, Math.max(0, nl.backDepth)); // a deep back neck still leaves room for a zip
+  // A deep back neck still leaves room for a zip; a scoop or V back is cut lower on purpose.
+  const backStyle = backNeckOf(s);
+  const bd = backStyle === 'scoop' || backStyle === 'v' ? backDepthFor(backStyle, NW) : Math.min(12, Math.max(0, nl.backDepth));
+  const key = backStyle === 'keyhole' ? KEYHOLE.length : 0;
 
   const abPt = p(AB / 2, scye / 2 + 1);
   const wb = NW;
@@ -765,8 +771,14 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   // seams come out equal, so the armhole keeps its size as the front's does.
   const sideB = side.backSide ? p(sideB0.x, swB.y - Math.sqrt(Math.max(side.backSide ** 2 - (sideB0.x - swB.x) ** 2, 0))) : sideB0;
 
+  // A scoop back is rounded out, full across the bottom; a V back runs nearly straight to the neck point.
   const back = new Path(p(0, bd))
-    .curve(p(hpsB.x * 0.6, bd), add(hpsB, mul(perp(uB), 1 + bd * 0.4)), hpsB, 'neck')
+    .curve(
+      backStyle === 'v' ? lerp(p(0, bd), hpsB, 0.35) : p(hpsB.x * (backStyle === 'scoop' ? 0.8 : 0.6), bd),
+      add(hpsB, mul(perp(uB), backStyle === 'v' ? 2 : backStyle === 'scoop' ? 0.45 * bd : 1 + bd * 0.4)),
+      hpsB,
+      'neck',
+    )
     .line(spB, 'shoulder');
   // The armhole meets the side seam square, so the underarm curve runs on smoothly into the front's.
   backArmhole(back, sideB, swB).line(swB, 'side');
@@ -801,7 +813,10 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
       back.curve(squareHem(hipB, hemB), p(hemB.x * 0.35, hemB.y), p(0, hemB.y), 'hem');
     } else back.line(p(0, hemB.y), 'hem');
   }
-  back.line(p(0, bd), 'centre');
+  if (key) {
+    // The keyhole: the centre back left open below the neck, curving out to a teardrop 2.5 cm wide each side.
+    back.line(p(0, bd + key), 'centre').curve(p(KEYHOLE.width * 1.3, bd + key - 1.5), p(KEYHOLE.width * 1.1, bd + 2), p(0, bd), 'keyhole');
+  } else back.line(p(0, bd), 'centre');
   back.closed = true;
   const backHem = hemB.y;
   // A sheath past the knee opens at the centre back hem, so you can walk in it.
@@ -810,8 +825,8 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   // The zip runs down the centre back from the neck edge, ending at the waist (just above a
   // waist-length hem) so the top goes on over the head and shoulders; a dress's runs on below the
   // waist so it steps on over the hips.
-  const zipCm = zipFor(wb - bd + (s.dressHem ? DRESS_ZIP_BELOW : below ? 0 : -2));
-  const zipEnd = p(0, bd + zipCm);
+  const zipCm = zipFor(wb - bd - key + (s.dressHem ? DRESS_ZIP_BELOW : below ? 0 : -2));
+  const zipEnd = p(0, bd + key + zipCm);
   const backCut = 'Cut 2 (1 pair)';
   const backDraft = {
     frame: [
@@ -856,8 +871,8 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
     ],
     cut: backCut,
     seamAllowance: s.seamAllowance,
-    allowances: { neck: s.neckArmholeAllowance, armhole: s.neckArmholeAllowance, hem: s.hemAllowance },
-    meta: slitCm ? { slitCm } : {},
+    allowances: { neck: s.neckArmholeAllowance, armhole: s.neckArmholeAllowance, hem: s.hemAllowance, ...(key ? { keyhole: KEYHOLE.allowance } : {}) },
+    meta: { ...(slitCm ? { slitCm } : {}), ...(backStyle !== 'plain' ? { backNeck: backStyle } : {}), ...(backStyle === 'v' ? { pointedAtCentre: ['neck'] } : {}) },
   };
 
   // ---- front, below the across front -----------------------------------------

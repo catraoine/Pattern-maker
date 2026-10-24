@@ -20,6 +20,7 @@ import { lerp } from './geometry';
 import { COWL_DEPTH, UNDER_ARM, oneShoulderEdge } from './drape';
 import { unevenEdge } from './uneven';
 import type { BeltDraft } from './belt';
+import { KEYHOLE } from './backNeck';
 
 export type FlatLineKind = 'seam' | 'dart' | 'stitch' | 'zip';
 
@@ -917,6 +918,12 @@ function strap([a, b]: [P, P], width = 0.7): P[] {
   return [add(a, n), add(b, n), sub(b, n), sub(a, n)];
 }
 
+/** How long a bodice's keyhole is, or 0 with none. */
+const keyholeOf = (d: BodiceDraft) => (d.pieces.some((pc) => pc.meta.backNeck === 'keyhole') ? KEYHOLE.length : 0);
+/** The keyhole's button at the top of the back neck, the loop round it. */
+const keyButton = (neckY: number, key: number): FlatView['lines'] =>
+  key ? [{ pts: Array.from({ length: 13 }, (_, k) => add(p(0.6, neckY + 0.7), p(0.45 * Math.cos((k / 12) * 2 * Math.PI), 0.45 * Math.sin((k / 12) * 2 * Math.PI)))), kind: 'seam' }] : [];
+
 /** The bodice: darts, the back neck seen over the front, centre back seam and zip, sleeves when it has
  * them, and the stitching that shows: binding round the neck (and the armholes of a sleeveless one),
  * and the hem of a longer top. */
@@ -978,8 +985,10 @@ function bodiceViews(d: BodiceDraft, edges: BodiceEdges, sleeve: SleeveDraft | u
       if (edges === 'binding') for (const r of inset(wrapped.lap, 0.6, shape)) lines.push({ pts: r, kind: 'stitch' });
     }
     if (i === 1 && zipped && d.closure !== 'front_buttons' && d.closure !== 'wrap') {
-      const top = h.run[0].y;
-      lines.push({ pts: [p(0, top), p(0, h.run[h.run.length - 1].y)], kind: 'seam' }, ...zip(top, d.zipCm));
+      // A keyhole opens at the top, its button and loop at the neck, the seam and zip starting below it.
+      const key = keyholeOf(d);
+      const top = Math.min(...h.run.filter((q) => Math.abs(q.x) < 1e-6).map((q) => q.y)) + key;
+      lines.push({ pts: [p(0, top), p(0, h.run[h.run.length - 1].y)], kind: 'seam' }, ...zip(top, d.zipCm), ...keyButton(top - key, key));
     }
     const shapes = [shape, ...(wrapped?.tie ?? [])];
     // Spaghetti straps, from the top edge up over the shoulder.
@@ -1044,8 +1053,9 @@ export function dressFlat(d: DressDraft, edges: BodiceEdges = 'binding', opts: {
       }
       // A one-shoulder dress zips in the side seam, out of sight; a shirt dress or a wrap has no zip.
       if (b.label === 'BACK' && !d.zipSide && !d.skirtButtons && !d.bodice.wrap) {
+        const key = keyholeOf(d.bodice);
         const neck = b.shapes[0].reduce((m, q) => (Math.abs(q.x) < 1e-6 && q.y < m ? q.y : m), Infinity);
-        lines.push({ pts: [p(0, neck), p(0, b.foot)], kind: 'seam' }, ...zip(neck, d.zipCm));
+        lines.push({ pts: [p(0, neck + key), p(0, b.foot)], kind: 'seam' }, ...zip(neck + key, d.zipCm), ...keyButton(neck, key));
       }
       return { label: b.label, shapes: [b.shapes[0], ...k.shapes.map(move), ...b.shapes.slice(1)], lines, sleeves: b.sleeves?.map((j) => j + k.shapes.length) };
   }

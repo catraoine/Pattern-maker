@@ -157,6 +157,12 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       shirt: ['A classic shirt collar on a stand, with points that fold down.', 'skill'],
       bow: ['A soft bias strip round the neck that runs on into long ties, knotted in a bow at the front. On a crew or V neck.'],
     },
+    back: {
+      plain: ['The back neck sits high, close to the base of the neck.', 'easy'],
+      scoop: ['The back is cut away in a low curve, about a third of the way to the waist, and taped so it hugs you.'],
+      v: ['The back drops to a deep V, nearly halfway to the waist. Plan what goes underneath.', 'skill'],
+      keyhole: ['A small teardrop opening at the top of the back, closed at the neck with a button and a fine loop.'],
+    },
     structure: {
       none: ['No boning, so the bodice is soft and moves with you.', 'easy'],
       boned: ['Thin, flexible bones sewn into the seams hold it firmly in shape, like a corset.', 'skill'],

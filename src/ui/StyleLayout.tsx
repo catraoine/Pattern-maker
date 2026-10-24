@@ -54,6 +54,7 @@ const SECTIONS: Record<string, string> = {
   Neckline: NECK,
   Neck: NECK,
   Collar: NECK,
+  Back: NECK,
   Sleeves: NECK,
   'Sleeve shape': NECK,
   Cuffs: NECK,

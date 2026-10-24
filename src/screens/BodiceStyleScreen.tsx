@@ -1,3 +1,4 @@
+import { BackNeck, backBlocked } from '../engine/backNeck';
 import { useMemo, useState } from 'react';
 import { layout } from '../engine/export';
 import { BodiceDraft, BodiceMeasurements, bodiceEase, dropRange, needsHip } from '../engine/bodice';
@@ -149,7 +150,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
     return armFor(shoulderTip, underarm, { arm_length: values.arm_length!, upper_arm: values.upper_arm!, wrist: values.wrist });
   }, [draft, sleeve, arms, values]);
   const round = useMemo(() => (draft ? roundBodice(draft, values, sleeve) : undefined), [draft, values, sleeve]);
-  const detail = { bustDart: choices.bustDart ?? 'side', princess: choices.princess ?? 'none', closure: choices.closure ?? 'back_zip', collar: choices.collar ?? 'none', structure: valid.structure ?? 'none', peplum: choices.peplum ?? 'none' };
+  const detail = { bustDart: choices.bustDart ?? 'side', princess: choices.princess ?? 'none', closure: choices.closure ?? 'back_zip', collar: choices.collar ?? 'none', back: valid.back ?? 'plain', structure: valid.structure ?? 'none', peplum: choices.peplum ?? 'none' };
   // A draped neckline is its own shaping: the dart, seam, opening, collar and boning choices step aside.
   const draped = isDraped(choices);
   const valueOf = (id: (typeof BODICE_GROUPS)[number]['id']) =>
@@ -162,9 +163,9 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
     (id !== 'bustDart' || (choices.darts !== 'none' && detail.princess === 'none' && !boned)) &&
     ((id !== 'bustDart' && id !== 'princess') || can('dartMoves') || moved(id)) &&
     // A top below the shoulders always opens at the back and has no collar; a boned one is cut in panels.
-    !(top && (id === 'closure' || id === 'collar')) &&
+    !(top && (id === 'closure' || id === 'collar' || id === 'back')) &&
     !(boned && id === 'princess') &&
-    !(draped && (id === 'princess' || id === 'bustDart' || id === 'closure' || id === 'collar' || id === 'structure'));
+    !(draped && (id === 'princess' || id === 'bustDart' || id === 'closure' || id === 'collar' || id === 'back' || id === 'structure'));
 
   const allowed = (id: string, opt: string) => topAllowed(choices, id, opt) && baseAllowed(id, opt);
   const baseAllowed = (id: string, opt: string) =>
@@ -178,7 +179,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
             ? SHAPES_FOR_LENGTH[chosen.length].includes(opt as NonNullable<BodiceChoices['sleeveShape']>)
             : id === 'sleeveCuff'
               ? cuffAllowed(opt as Cuff, chosen.length, chosen.shape)
-            : id === 'princess' || id === 'bustDart' || id === 'closure' || id === 'collar' || id === 'structure' || id === 'peplum'
+            : id === 'princess' || id === 'bustDart' || id === 'closure' || id === 'collar' || id === 'back' || id === 'structure' || id === 'peplum'
               ? detailAllowed(choices, id, opt)
               : true;
 
@@ -331,7 +332,11 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
             {g.id === 'sleeve' && top && <p className="muted small">Sleeves need shoulders, so they go with the higher necklines.</p>}
             {g.id === 'princess' && choices.darts !== 'bust_waist' && <p className="muted small">Princess seams carry the bust and waist darts, so they need both.</p>}
             {g.id === 'collar' && choices.neck && <p className="muted small">Collars sit on the named necklines, not a drawn one.</p>}
-            {g.id === 'collar' && !choices.neck && choices.neckline !== 'crew' && <p className="muted small">Collars sit on a crew neck (a Peter Pan on a scoop neck too).</p>}
+            {g.id === 'collar' && !choices.neck && choices.neckline !== 'crew' && <p className="muted small">Collars sit on a crew neck (a Peter Pan on a scoop neck too, a pussy bow on a V).</p>}
+            {g.id === 'collar' && detail.back !== 'plain' && <p className="muted small">A collar goes round the back neck, so it needs a plain back.</p>}
+            {g.id === 'back' && ['scoop', 'v', 'keyhole'].map((b) => backBlocked(choices, b as BackNeck)).find(Boolean) && (
+              <p className="muted small">{['scoop', 'v', 'keyhole'].map((b) => backBlocked(choices, b as BackNeck)).find(Boolean)}</p>
+            )}
             {g.id === 'collar' && !choices.neck && choices.neckline === 'crew' && detail.closure !== 'front_buttons' && <p className="muted small">A shirt collar needs the front buttons.</p>}
             {g.id === 'darts' && choices.fit !== 'relaxed' && (
               <p className="muted small">{choices.fit === 'fitted' ? 'A fitted bodice needs bust and waist darts.' : 'Choose a relaxed fit to go without darts.'}</p>

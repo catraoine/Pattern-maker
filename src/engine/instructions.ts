@@ -1,6 +1,7 @@
 // Plain-language sewing steps for the drafted skirt and bodice, shown in the app and added to the end of the PDF.
 // Keep to plain ASCII punctuation: the PDF uses a standard font without curly quotes.
 import { isBandCollar } from './collar';
+import { BackNeck, withBackNeck } from './backNeck';
 import { isCircle } from './skirt';
 import type { Elastic, Length, Silhouette, SkirtDraft } from './skirt';
 import type { BodiceDraft, BodiceLength } from './bodice';
@@ -493,12 +494,16 @@ export function bodiceGuide(draft: BodiceDraft, _style: { length: BodiceLength }
     ],
     steps,
   };
-  // The top neckline's steps (corsetGuide.ts), then a draped neckline's and a peplum's (drapeSteps.ts).
-  return mirroredGuide(draft, drapeBodiceSteps(
-    wrapSteps(topSteps(styleBodiceSteps(guide, draft, { seam, curve, edges, sleeve: !!sleeve }), draft, { seam, curve, fabricM, liningM: finish.liningM, coutilM: finish.coutilM, width: finish.width }), draft, { curve }),
-    draft,
-    { seam, curve, edges, sleeve: !!sleeve },
-  ));
+  // The top neckline's steps (corsetGuide.ts), then a draped neckline's and a peplum's (drapeSteps.ts),
+  // and a low or keyhole back's (backNeck.ts).
+  return withBackNeck(
+    mirroredGuide(draft, drapeBodiceSteps(
+      wrapSteps(topSteps(styleBodiceSteps(guide, draft, { seam, curve, edges, sleeve: !!sleeve }), draft, { seam, curve, fabricM, liningM: finish.liningM, coutilM: finish.coutilM, width: finish.width }), draft, { curve }),
+      draft,
+      { seam, curve, edges, sleeve: !!sleeve },
+    )),
+    backNeckOfDraft(draft),
+  );
 }
 
 /** A one-shoulder cut for the right shoulder: every step with left and right, and the fabric's face, turned over. */
@@ -521,6 +526,13 @@ function sleeveCutWords(sleeve: SleeveDraft | undefined): string {
  * across the waist seam, and the side seams sewn in one from the underarm to the hem.
  */
 export function dressGuide(draft: DressDraft, style: { silhouette: Silhouette; length: Length } & Partial<VolumeStyle>, fabricM: number, bindingM: number, finish: BodiceFinish = {}): SewingGuide {
+  return withBackNeck(dressSteps(draft, style, fabricM, bindingM, finish), backNeckOfDraft(draft.bodice));
+}
+
+/** A bodice's back detail, from its back piece. */
+const backNeckOfDraft = (d: BodiceDraft) => d.pieces.find((pc) => /back/i.test(pc.name) && pc.meta.backNeck)?.meta.backNeck as BackNeck | undefined;
+
+function dressSteps(draft: DressDraft, style: { silhouette: Silhouette; length: Length } & Partial<VolumeStyle>, fabricM: number, bindingM: number, finish: BodiceFinish = {}): SewingGuide {
   const sw = finish.seams ?? SEAM_WIDTHS.home;
   const seam = n1(sw.seam);
   const waist = n1(sw.waist);
