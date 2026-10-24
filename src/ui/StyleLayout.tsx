@@ -3,7 +3,7 @@ import type { Mode } from '../mode';
 import type { Garment } from '../measurements';
 import { canGoBack, goBack, usePageHistory } from '../nav';
 import { EnlargeSketch } from './EnlargeSketch';
-import { CollectionEntry, GarmentSwitch } from './GarmentSwitch';
+import { CollectionEntry, GarmentDrop } from './GarmentSwitch';
 import { ModeLink } from './ModeLink';
 import { PhotoEntry } from './PhotoEntry';
 import { Title } from './Title';
@@ -290,8 +290,8 @@ export function StyleLayout({ children, label, name, metres, width = 140, ready,
   return (
     <div className="style-layout" ref={root}>
       <div className="screen-head">
-        <Title id="opts" big="Style" label={label} />
-        <GarmentSwitch onChoose={onChooseGarment} />
+        <Title id="opts" big="Style" label={label} hideLabel />
+        <GarmentDrop label={label} onChoose={onChooseGarment} />
       </div>
       <div className="style-edit">
         <div className={tall ? 'style-pin tall' : 'style-pin'} ref={pin}>

@@ -6,7 +6,7 @@
 // Netlify (Site configuration > Environment variables); without it the read-out is refused.
 import { randomUUID } from 'node:crypto';
 import { getStore } from '@netlify/blobs';
-import { addBeacon, checkBeacon, funnel, keyMatches, lastDays, updateDay, type DayStore, type DayTotals, type StoredCrash } from '../../src/server/reports';
+import { addBeacon, checkBeacon, byLanguage, funnel, keyMatches, lastDays, updateDay, type DayStore, type DayTotals, type StoredCrash } from '../../src/server/reports';
 
 // Provided by the Netlify runtime.
 declare const Netlify: { env: { get(name: string): string | undefined } };
@@ -74,6 +74,8 @@ async function readOut(url: URL) {
       funnel: funnel(days_),
       days: days_,
       crashes,
+      // Which language waitlist sign-ups sew in, so the first translation follows them.
+      newsByLanguage: byLanguage(news),
       signups: { testers, news, interest },
       fitReports,
     },

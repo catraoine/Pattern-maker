@@ -1,4 +1,4 @@
-import { expect, skipLoading, skipToExample, fillStepPages, test } from './fixtures';
+import { chooseDrop, expect, skipLoading, skipToExample, fillStepPages, test } from './fixtures';
 import type { Page } from '@playwright/test';
 
 // Soft lingerie and swimwear, kept out of releases until its fit test: only ?lingerie=preview shows it.
@@ -10,7 +10,7 @@ test('hidden without the preview link', async ({ page }) => {
   await page.goto('/?fresh');
   await skipLoading(page);
   await skipToExample(page);
-  await main(page).getByRole('button', { name: 'Choose another garment' }).click();
+  await chooseDrop(page, 'Garment', 'See them all ›');
   await expect(makeList(page).getByRole('radio', { name: /^T-shirt\b/ })).toBeVisible();
   await expect(makeList(page).getByRole('radio', { name: /^Lingerie\b/ })).toHaveCount(0);
 });
@@ -19,7 +19,7 @@ test('measures the underbust, drafts a bralette and a swimsuit, and prints', asy
   await page.goto('/?fresh&lingerie=preview');
   await skipLoading(page);
   await skipToExample(page);
-  await main(page).getByRole('button', { name: 'Choose another garment' }).click();
+  await chooseDrop(page, 'Garment', 'See them all ›');
   const pick = makeList(page).getByRole('radio', { name: /^Lingerie\b/ });
   await pick.click();
   await main(page).getByRole('button', { name: /^(Continue measurements|Style my lingerie)$/i }).click();

@@ -7091,6 +7091,46 @@ details.sew > .sew-summary + .row {
 .waitlist-code button {
   white-space: nowrap;
 }
+/* L5 Ask First (2026-10-24): which language someone sews in, one line under the email with a drop-down. */
+.waitlist-lang {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border-bottom: 1px solid var(--line-strong);
+  padding: 2px 0;
+}
+.waitlist-lang label {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.waitlist-lang select {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 24px 0 0;
+  border: none;
+  border-radius: 0;
+  background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23d9c49b' stroke-width='1.2'/%3E%3C/svg%3E") no-repeat right 4px center;
+  appearance: none;
+  -webkit-appearance: none;
+  font-family: var(--sans);
+  font-size: 16px;
+  color: var(--ink);
+  cursor: pointer;
+}
+.waitlist-lang select option {
+  background: var(--paper);
+  color: var(--ink);
+}
+.waitlist-lang-note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
 /* Measuring accuracy (2026-10-21): the friend switch beside How to do it, the nudge on the measurements that are hard
    alone, and the common mistakes under the steps. */
 .friend-nudge {
@@ -7151,4 +7191,96 @@ details.sew > .sew-summary + .row {
 }
 .seam-height p {
   margin: 0.25rem 0 0;
+}
+/* Drop-downs (Cat applied, 2026-10-24): the garment on the Style title, paper size and fabric width on Print. */
+.drop {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+.drop-label {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.drop-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 2px;
+  border: none;
+  border-bottom: 1px solid var(--gild);
+  border-radius: 0;
+  background: none;
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink);
+  cursor: pointer;
+}
+.drop-button svg {
+  color: var(--gild);
+}
+.drop-list {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 30;
+  min-width: max(100%, 220px);
+  display: grid;
+  margin: 0;
+  padding: 6px 0;
+  background: var(--paper);
+  border: 1px solid var(--gild);
+}
+.drop-list button {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  height: 44px;
+  min-height: 44px;
+  margin: 0;
+  padding: 0 16px;
+  line-height: 1;
+  border: none;
+  border-radius: 0;
+  background: none;
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-align: left;
+  cursor: pointer;
+}
+.drop-list button.on {
+  color: var(--ink);
+}
+.drop-list button.on::after {
+  content: '';
+  flex: 0 0 18px;
+  height: 1px;
+  background: var(--gild);
+  align-self: center;
+}
+.drop-list .drop-note {
+  margin-left: auto;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: var(--muted);
+  opacity: 0.8;
+}
+.style-layout .screen-head .drop.garment-drop .drop-button {
+  font-size: 13px;
+}
+.drop.garment-drop .drop-list {
+  left: auto;
+  right: 0;
 }

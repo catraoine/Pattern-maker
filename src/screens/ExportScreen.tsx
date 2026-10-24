@@ -1,3 +1,4 @@
+import { DropMenu } from '../ui/DropMenu';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { SendToDevice } from '../ui/SendToDevice';
 import { OVERLAP, PAGE_MARGIN, Paper, Sheet, layout, pageCount, pageName, pageSize, tileGrid, toSvg, usedTiles } from '../engine/export';
@@ -9,7 +10,7 @@ import { PatternPreview } from '../ui/Preview';
 import type { Finish } from '../App';
 import type { Garment, Unit } from '../measurements';
 import type { Alteration, Fitting } from '../engine/fitting';
-import { FABRIC_WIDTHS, Lay, layAmount, layWords } from '../engine/layplan';
+import { FABRIC_WIDTHS, type FabricWidth, Lay, layAmount, layWords } from '../engine/layplan';
 import { LayPlanView } from '../ui/LayPlanView';
 import type { Flat } from '../engine/flat';
 import { TechFlatView } from '../ui/TechFlatView';
@@ -269,19 +270,12 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', sendLink, prof
           <div className="print-controls">
             <fieldset className="group">
               <legend>Print on</legend>
-              <div className="chips" role="group" aria-label="Paper">
-                {PAPERS.filter((p) => can('bigPrint') || p.id !== 'projector').map((p) => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    className={paperChoice === p.id ? 'chip on' : 'chip'}
-                    aria-pressed={paperChoice === p.id}
-                    onClick={() => setPaper(p.id === 'projector' ? (paper === 'projectorDark' ? 'projectorDark' : 'projector') : p.id)}
-                  >
-                    {p.label}
-                  </button>
-                ))}
-              </div>
+              <DropMenu
+                name="Paper"
+                value={PAPERS.find((p) => p.id === paperChoice)?.label}
+                items={PAPERS.filter((p) => can('bigPrint') || p.id !== 'projector').map((p) => ({ id: p.id, text: p.label, on: paperChoice === p.id }))}
+                onPick={(id) => setPaper(id === 'projector' ? (paper === 'projectorDark' ? 'projectorDark' : 'projector') : (id as Paper))}
+              />
               {projector && (
                 <label className="check">
                   <input type="checkbox" checked={paper === 'projectorDark'} onChange={(e) => setPaper(e.target.checked ? 'projectorDark' : 'projector')} />
@@ -425,13 +419,13 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', sendLink, prof
             {lays.some((l) => l.hide) && <p className="muted small">Leather is sold by the hide, in square feet. This includes a third extra for the hide's shape and flaws.</p>}
           </div>
           <div className="row wrap">
-            <div className="seg" role="group" aria-label="Fabric width">
-              {FABRIC_WIDTHS.map((w) => (
-                <button key={w} type="button" className={finish.fabricWidth === w ? 'on' : ''} aria-pressed={finish.fabricWidth === w} onClick={() => onFinish({ ...finish, fabricWidth: w })}>
-                  {w} cm
-                </button>
-              ))}
-            </div>
+            <DropMenu
+              name="Fabric width"
+              label="Fabric"
+              value={`${finish.fabricWidth} cm wide`}
+              items={FABRIC_WIDTHS.map((w) => ({ id: String(w), text: `${w} cm wide`, on: finish.fabricWidth === w }))}
+              onPick={(id) => onFinish({ ...finish, fabricWidth: Number(id) as FabricWidth })}
+            />
             <label className="check">
               <input type="checkbox" checked={nap} disabled={napFixed} onChange={(e) => onFinish({ ...finish, nap: e.target.checked })} />
               <span>
