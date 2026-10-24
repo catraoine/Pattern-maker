@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { taggedLength } from './geometry';
 import { checkPattern } from './qc';
 import { randomBody, randomCrotch, rng } from './randomBodies';
-import { DEFAULT_TROUSERS, Leg, TrouserClosure, TrousersMeasurements, draftTrousers, trousersWaistband } from './trousers';
+import { DEFAULT_TROUSERS, Leg, TROUSER_LENGTHS, TrouserClosure, TrousersMeasurements, draftTrousers, trousersWaistband } from './trousers';
 import { trousersGuide } from './trousersGuide';
 import { trousersFlat } from './flat';
 import { trousersSpec } from './spec';
@@ -17,6 +17,24 @@ const CLOSURES: TrouserClosure[] = ['fly', 'side_zip'];
 const FITS: Fit[] = ['fitted', 'regular', 'relaxed'];
 
 describe('trousers block', () => {
+  it('drafts every length, shortest to longest, shorts and knee with legs wide enough for the thigh', () => {
+    const d = TROUSER_LENGTHS.map((length) => draftTrousers(EX, { length }));
+    for (let i = 1; i < d.length; i++) expect(d[i].lengthCm).toBeGreaterThan(d[i - 1].lengthCm);
+    const [shorts, knee] = d;
+    expect(shorts.lengthCm - EX.crotch_depth).toBeGreaterThanOrEqual(10);
+    expect(shorts.lengthCm).toBeLessThan(EX.waist_to_knee - 10);
+    expect(knee.lengthCm).toBe(EX.waist_to_knee + 2);
+    // A thigh is well over half the hip round: the shorts' hem must clear it.
+    expect(shorts.hemCm).toBeGreaterThan(0.6 * EX.full_hip);
+    expect(shorts.hemCm).toBeGreaterThan(draftTrousers(EX).kneeCm);
+    expect(shorts.pieces[0].balance?.some((b) => b.label === 'KNEE LINE')).toBe(false);
+    for (const t of d) {
+      expect(t.crotchCapped).toBe(false);
+      expect(checkPattern(t.pieces, { finishedWaist: t.finishedWaist }).filter((c) => !c.ok)).toEqual([]);
+    }
+  });
+
+
   it('drafts the crotch seam to the crotch length with ease, front shorter than back', () => {
     const d = draftTrousers(EX);
     expect(d.crotch.front + d.crotch.back).toBeCloseTo(d.crotch.target, 0);
@@ -62,6 +80,32 @@ describe('trousers block', () => {
           expect(labels).toContain('Inside leg seams');
           expect(labels).toContain('Crotch seam to your crotch length');
           expect(labels).toContain('Crotch seam blends across the inside leg');
+        }
+    }
+  });
+
+  it('cuts shorts for random bodies in every leg, opening and pocket: clear of the thigh, hem risen at the inside leg', () => {
+    const r = rng(1104);
+    for (let i = 0; i < 16; i++) {
+      const b = randomBody(r);
+      const m: TrousersMeasurements = { ...b, ...randomCrotch(b, r) };
+      for (const leg of LEGS.filter((l) => l !== 'culotte'))
+        for (const closure of CLOSURES) {
+          const fit = FITS[Math.floor(r() * 3)];
+          const pockets = (['none', 'inseam', 'slant'] as const)[Math.floor(r() * 3)];
+          const d = draftTrousers(m, { leg, closure, fit, pockets, length: 'shorts' });
+          const bad = checkPattern(d.pieces, { finishedWaist: d.finishedWaist }).filter((c) => !c.ok);
+          expect(bad.map((c) => `${i} ${leg} ${closure} ${fit} ${pockets}: ${c.label} ${c.detail}`)).toEqual([]);
+          // Thigh estimated as in the draft: room for it at the hem with the fit's ease.
+          const t = (d.lengthCm - m.crotch_depth) / (m.waist_to_knee - m.crotch_depth);
+          expect(d.hemCm).toBeGreaterThanOrEqual(m.full_hip * (0.6 - 0.23 * t) + 4 - 0.2);
+          const front = d.pieces[0];
+          expect(front.name).toBe('Shorts front');
+          expect(front.allowances.hem).toBe(3);
+          // Each point starts the run it is tagged with: the hem starts at the side, the inside leg at the hem's end,
+          // which is higher (smaller y) by the rise.
+          const ring = d.block[0].outline.taggedPoints(4);
+          expect(ring.pts[ring.tags.lastIndexOf('hem') + 1].y).toBeCloseTo(ring.pts[ring.tags.indexOf('hem')].y - 1.5, 1);
         }
     }
   });

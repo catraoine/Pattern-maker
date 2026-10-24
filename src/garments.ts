@@ -124,7 +124,7 @@ export type TrouserGroupId = 'fit' | 'leg' | 'length' | 'waist' | 'closure' | 'p
 export const TROUSER_GROUPS: { id: TrouserGroupId; label: string; options: [string, string][] }[] = [
   { id: 'fit', label: 'Fit', options: [['fitted', 'Fitted'], ['regular', 'Regular'], ['relaxed', 'Relaxed']] },
   { id: 'leg', label: 'Leg', options: [['straight', 'Straight'], ['wide', 'Wide'], ['tapered', 'Tapered'], ['culotte', 'Culotte']] },
-  { id: 'length', label: 'Length', options: [['full', 'Full length'], ['ankle', 'Ankle']] },
+  { id: 'length', label: 'Length', options: [['shorts', 'Shorts'], ['knee', 'Knee'], ['capri', 'Capri'], ['cropped', 'Cropped'], ['ankle', 'Ankle'], ['full', 'Full length']] },
   { id: 'waist', label: 'Waist', options: [['band', 'Waistband with zip'], ['elastic', 'Elastic, pull-on']] },
   { id: 'closure', label: 'Opening', options: [['fly', 'Fly zip'], ['side_zip', 'Side zip']] },
   { id: 'pockets', label: 'Pockets', options: [['none', 'None'], ['inseam', 'In-seam'], ['slant', 'Slant front']] },
@@ -150,10 +150,11 @@ export function validTrousers(c: TrousersChoices): TrousersChoices {
 
 /** A plain name, such as "Ankle-length wide-leg trousers with a side zip and in-seam pockets". */
 export function describeTrousers(c: TrousersChoices) {
-  const length = c.leg === 'culotte' ? '' : c.length === 'ankle' ? 'Ankle-length ' : '';
+  const shorts = c.leg !== 'culotte' && c.length === 'shorts';
+  const length = c.leg === 'culotte' || shorts ? '' : { full: '', ankle: 'Ankle-length ', cropped: 'Cropped ', capri: 'Capri ', knee: 'Knee-length ', shorts: '' }[c.length];
   const pockets = c.pockets === 'slant' ? 'slant pockets' : c.pockets === 'inseam' ? 'in-seam pockets' : '';
   const opening = c.waist === 'elastic' ? 'an elastic waist' : `a ${c.closure === 'fly' ? 'fly front' : 'side zip'}`;
-  const words = `${length}${LEG_WORDS[c.leg]} with ${opening}${pockets ? ` and ${pockets}` : ''}`;
+  const words = `${length}${shorts ? `${c.leg === 'straight' ? '' : `${c.leg} `}shorts` : LEG_WORDS[c.leg]} with ${opening}${pockets ? ` and ${pockets}` : ''}`;
   return words[0].toUpperCase() + words.slice(1);
 }
 

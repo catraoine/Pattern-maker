@@ -7,8 +7,18 @@ import type { TrouserLength, TrousersDraft } from './trousers';
 
 const n1 = (v: number) => `${v} cm`;
 
+/** Where each length's hem is pinned at the fitting. */
+const HEM_AT: Record<TrouserLength, string> = {
+  shorts: 'shorts end at mid-thigh, level all round',
+  knee: 'knee-length trousers end just past the knee, so they cover it when you sit',
+  capri: 'capri trousers end below the calf, a little above the ankle',
+  cropped: 'cropped trousers end a hand above the ankle bone',
+  ankle: 'ankle-length trousers end just above the ankle bone, clear of the shoe',
+  full: 'full-length trousers just touch the top of the shoe at the front',
+};
+
 /**
- * `finish.length` is the length chosen (full or ankle), which the draft itself does not record; without
+ * `finish.length` is the length chosen, which the draft itself does not record; without
  * it the hem step describes both.
  */
 export function trousersGuide(d: TrousersDraft, fabricM: number, finish: { seams?: SeamWidths; width?: number; length?: TrouserLength } = {}): SewingGuide {
@@ -18,6 +28,9 @@ export function trousersGuide(d: TrousersDraft, fabricM: number, finish: { seams
   const fly = d.closure === 'fly';
   const sideZip = d.closure === 'side_zip';
   const elastic = d.elastic;
+  // Shorts end above the knee: no knee notches, and the crease runs from the hem.
+  const knee = d.shorts ? '' : ' and knee';
+  const things = d.shorts ? 'shorts' : 'trousers';
   const darts = 2 * (d.dartsPerSide.front + d.dartsPerSide.back);
   const hem = d.pieces[0].allowances.hem ?? 4;
   const culotte = d.leg === 'culotte';
@@ -34,7 +47,7 @@ export function trousersGuide(d: TrousersDraft, fabricM: number, finish: { seams
       : '';
   const sideSeam = (plain: string) =>
     inseam
-      ? `Pin each front to its back at the side, right sides together, matching the hip and knee notches${rightOnly ? ', and on the right leg the pocket bags edge to edge' : ' and the pocket bags edge to edge'}. ${rightOnly ? `On the right leg: ${pocketSeamWords(seam)}` : pocketSeamWords(seam)}${
+      ? `Pin each front to its back at the side, right sides together, matching the hip${knee} notches${rightOnly ? ', and on the right leg the pocket bags edge to edge' : ' and the pocket bags edge to edge'}. ${rightOnly ? `On the right leg: ${pocketSeamWords(seam)}` : pocketSeamWords(seam)}${
           sideZip ? ' On the left leg, leave the seam open from the waist to the LEFT ZIP ENDS notch, and sew from there to the hem.' : ''
         } Press the seams open over a sleeve board.`
       : plain;
@@ -68,7 +81,7 @@ export function trousersGuide(d: TrousersDraft, fabricM: number, finish: { seams
       : []),
     {
       title: 'Press the creases',
-      text: `Fold each front and each back along its chalked crease line, wrong sides together, and press the crease in from the hem up to the knee${
+      text: `Fold each front and each back along its chalked crease line, wrong sides together, and press the crease in from the hem${d.shorts ? '' : ' up to the knee'}${
         culotte ? '' : ` and on up to the crotch line on the back, ${d.dartsPerSide.front ? 'to the dart' : 'to the hip line'} on the front`
       }. Use a press cloth and plenty of steam. A crease pressed now stays sharp.`,
     },
@@ -86,13 +99,13 @@ export function trousersGuide(d: TrousersDraft, fabricM: number, finish: { seams
       title: 'Sew the side seams',
       text: sideZip
         ? sideSeam(
-            `Pin each front to its back at the side, right sides together, matching the hip and knee notches. On the right leg, sew the whole side seam ${seam} from the edge. On the left leg, leave the seam open from the waist to the LEFT ZIP ENDS notch, and sew from there to the hem. Press the seams open.`,
+            `Pin each front to its back at the side, right sides together, matching the hip${knee} notches. On the right leg, sew the whole side seam ${seam} from the edge. On the left leg, leave the seam open from the waist to the LEFT ZIP ENDS notch, and sew from there to the hem. Press the seams open.`,
           )
-        : sideSeam(`Pin each front to its back at the side, right sides together, matching the hip and knee notches. Sew ${seam} from the edge, from the waist to the hem, and press the seams open over a sleeve board.`),
+        : sideSeam(`Pin each front to its back at the side, right sides together, matching the hip${knee} notches. Sew ${seam} from the edge, from the waist to the hem, and press the seams open over a sleeve board.`),
     },
     {
       title: 'Sew the inside legs',
-      text: `Pin each front to its back along the inside leg, right sides together, matching the knee notches and the crotch points. The back is a little more curved at the top: ease it in rather than stretch it. Sew ${seam} from the edge and press open. You now have two legs.`,
+      text: `Pin each front to its back along the inside leg, right sides together, matching ${d.shorts ? 'the hem ends' : 'the knee notches'} and the crotch points. The back is a little more curved at the top: ease it in rather than stretch it. Sew ${seam} from the edge and press open. You now have two legs.`,
     },
     {
       title: 'Sew the crotch seam',
@@ -131,14 +144,12 @@ export function trousersGuide(d: TrousersDraft, fabricM: number, finish: { seams
         ]),
     {
       title: 'Hem',
-      text: `Try the trousers on with the shoes you will wear and pin up the hem: ${
+      text: `Try the ${things} on with the shoes you will wear and pin up the hem: ${
         culotte
           ? 'culottes sit at mid-calf'
-          : finish.length === 'ankle'
-            ? 'ankle-length trousers end just above the ankle bone, clear of the shoe'
-            : finish.length === 'full'
-              ? 'full-length trousers just touch the top of the shoe at the front'
-              : 'full-length trousers just touch the top of the shoe at the front, ankle-length ones end just above the ankle bone'
+          : finish.length
+            ? HEM_AT[finish.length]
+            : 'full-length trousers just touch the top of the shoe at the front, ankle-length ones end just above the ankle bone'
       }. Press up 1 cm, then ${Math.max(1, hem - 1)} cm more, and slip-stitch by hand so no stitches show on the outside.`,
     },
     {

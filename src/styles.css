@@ -1451,7 +1451,7 @@ b {
   max-height: none;
 }
 /* A still copy: no handles or hints for dragging it on the page. */
-.big-sketch-draw :is(.handle, .hint) {
+.big-sketch-draw :is(.handle, .hint, .hem-marks) {
   display: none;
 }
 .big-sketch-views {
@@ -7547,4 +7547,24 @@ fieldset.fold.open > .fold-body {
   .style-pin > section > .row.between.wrap > .drawmenu > summary::before {
     content: '✎ ' / '';
   }
+}
+
+/* Length on the drawing (Cat's L1, 2026-10-24): the named lengths beside the body, the picked one in ink. */
+.shape .hem-mark line {
+  stroke: var(--muted);
+}
+.shape .hem-mark text {
+  fill: var(--muted);
+  font-family: var(--mono);
+  letter-spacing: 0.16em;
+}
+.shape .hem-mark.on line {
+  stroke: var(--ink);
+}
+.shape .hem-mark.on text {
+  fill: var(--ink);
+}
+.shape .hem-mark .hit {
+  fill: transparent;
+  cursor: pointer;
 }

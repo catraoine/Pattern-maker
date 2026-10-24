@@ -1,4 +1,4 @@
-import { chooseChip, expect, expectStyle, openAccount, openFold, openGroup, openReview, skipLoading, startWithExample, test } from './fixtures';
+import { chooseChip, expect, expectStyle, lengthDot, openAccount, openFold, openReview, skipLoading, startWithExample, test } from './fixtures';
 
 test('returning visitor: a reload keeps the measurements and the saved pattern', async ({ page }) => {
   await startWithExample(page);
@@ -38,7 +38,7 @@ test('returning visitor: a reload keeps the measurements and the saved pattern',
   await expectStyle(page, 'Skirt');
 
   // The style chosen and the pattern saved are still there.
-  await expect((await openGroup(page, 'Length')).getByRole('button', { name: 'Midi' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(lengthDot(page)).toHaveAttribute('aria-valuetext', 'Midi');
   await openReview(page);
   await expect(main.getByRole('status').filter({ hasText: 'Kept in' })).toBeVisible();
 

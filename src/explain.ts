@@ -219,8 +219,12 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       culotte: ['Wide, short legs that end at mid-calf, almost like a skirt.'],
     },
     length: {
-      full: ['Long enough to reach the top of your shoe.'],
+      shorts: ['Shorts, ending at mid-thigh.'],
+      knee: ['Ends just past the knee.'],
+      capri: ['Ends below the calf, a little above the ankle.'],
+      cropped: ['Ends a hand above the ankle, to show off a shoe.'],
       ankle: ['Ends just above the ankle bone.'],
+      full: ['Long enough to reach the top of your shoe.'],
     },
     waist: {
       band: ['A firm band at the waist with a zip. Neat and sits in place.'],
