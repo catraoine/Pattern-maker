@@ -165,13 +165,11 @@ describe('guide text that follows the draft', () => {
     expect(step(sewingGuide(narrow, { silhouette: 'a_line', length: 'knee' }, 1.4), 'Hem')).toContain('Press up 1 cm, then 1.5 cm more.');
   });
 
-  it('describes a bust dart pivoted into the waist dart only when the draft notes it', () => {
+  it('says when the side bust dart is capped and the waist dart carries the rest of the bust shaping', () => {
     const b = draftBodice(randomBody(rng(3)), { fit: 'regular' });
-    expect(step(bodiceGuide(b, { length: 'waist' }, 1.5, 1), 'Sew the bust and waist darts')).not.toMatch(/5 cm wide/);
-    const noted = {
-      ...b,
-      pieces: b.pieces.map((pc) => ({ ...pc, draft: { frame: [], points: [{ n: 'B', at: { x: 0, y: 0 }, note: 'Bust dart: 7 cm, pivoted into the waist dart.' }] } })),
-    };
-    expect(step(bodiceGuide(noted, { length: 'waist' }, 1.5, 1), 'Sew the bust and waist darts')).toMatch(/side bust dart is 5 cm wide; the rest of the bust shaping is carried in the waist dart/);
+    expect(step(bodiceGuide(b, { length: 'waist' }, 1.5, 1), 'Sew the bust and waist darts')).not.toMatch(/rest of the bust shaping/);
+    const capped = { ...b, bustDart: 6, bustToWaist: 1.4 };
+    expect(step(bodiceGuide(capped, { length: 'waist' }, 1.5, 1), 'Sew the bust and waist darts')).toMatch(/side bust dart is 6 cm wide; the rest of the bust shaping is carried in the waist dart/);
+    expect(step(bodiceGuide(b, { length: 'waist' }, 1.5, 1), 'Sew the bust and waist darts')).toMatch(/from the waist edge to the point/);
   });
 });
