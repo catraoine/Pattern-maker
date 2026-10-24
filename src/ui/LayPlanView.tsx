@@ -13,7 +13,7 @@ const TILE = 16;
  * With a print chosen, the print is drawn instead, at its own scale (Cat's P4 Place the Motifs): big
  * motifs are lined up so one sits in the middle of the front, and a border runs along the selvedge.
  */
-export function LayPlanView({ lay, cloth = 'default', print }: { lay: Lay; cloth?: string; print?: { kind: PrintKind; repeat?: number; stripes?: boolean } }) {
+export function LayPlanView({ lay, cloth = 'default', print }: { lay: Lay; cloth?: string; print?: { kind: PrintKind; repeat?: number; stripes?: boolean; gingham?: boolean } }) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
   const L = lay.length + 4;
   const H = lay.across;
@@ -41,7 +41,7 @@ export function LayPlanView({ lay, cloth = 'default', print }: { lay: Lay; cloth
             height={printTile}
             patternTransform={shown.kind === 'border' ? undefined : centre ? `translate(${centre.x} ${centre.y}) rotate(90)` : 'rotate(90)'}
           >
-            <image href={printImage(shown.kind, import.meta.env.BASE_URL, shown.stripes)} width={printTile} height={printTile} preserveAspectRatio="none" />
+            <image href={printImage(shown.kind, import.meta.env.BASE_URL, shown.stripes, shown.gingham)} width={printTile} height={printTile} preserveAspectRatio="none" />
           </pattern>
         )}
         <pattern id={`dots${uid}`} patternUnits="userSpaceOnUse" width={2} height={2}>

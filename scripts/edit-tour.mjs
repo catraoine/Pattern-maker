@@ -133,8 +133,8 @@ async function piece({ shot, still, from = 0, dur, speed = 1, zoom = [1, 1], at 
 // across, the hem longer and the waist seam down, and Done goes on to the pattern sheet. The camera glides between the moments, and a big word or two names
 // each step. Times are in the style shot, as record-tour-shots.mjs prints them.
 const MARKS = WIDE
-  ? { fabric: 2.6, enlarge: 7.4, draw: 9.4, hem: 11.3, side: 15.9, done: 20.9 }
-  : { fabric: 2.6, enlarge: 7.1, draw: 9.0, hem: 10.9, side: 15.2, done: 20.4 };
+  ? { fabric: 2.6, enlarge: 7.5, draw: 9.5, hem: 11.4, side: 17.3, done: 22.0 }
+  : { fabric: 2.6, enlarge: 6.8, draw: 8.8, hem: 10.6, side: 16.2, done: 20.5 };
 const JOURNEY = { from: 0.6, to: MARKS.done + 0.9, dur: 17 };
 const atOut = (t) => ((t - JOURNEY.from) * JOURNEY.dur) / (JOURNEY.to - JOURNEY.from);
 // [shot time, zoom, x, y]: on a computer, the whole page, then in on the enlarged form to draw, and back as the
@@ -144,7 +144,7 @@ const STYLE_CAM = (WIDE
   : [[0.6, 1, 0.5, 0.5], [JOURNEY.to, 1.05, 0.5, 0.47]]).map(([t, ...r]) => [atOut(t), ...r]);
 const STYLE_NOTES = [
   ['From your photo.', 0.6, MARKS.fabric - 0.2],
-  ['Change the fabric.', MARKS.fabric + 0.2, MARKS.enlarge - 0.2],
+  ['Change the colour.', MARKS.fabric + 0.2, MARKS.enlarge - 0.2],
   ['Enlarge to draw.', MARKS.enlarge + 0.2, MARKS.hem - 0.2, 'side'],
   ['Draw it longer.', MARKS.hem + 0.2, MARKS.side - 0.2, 'side'],
   ['Flare the skirt.', MARKS.side + 0.2, MARKS.done - 0.1, 'side'],

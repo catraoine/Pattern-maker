@@ -14,7 +14,7 @@ import { CM_PER_UNIT, HEAD_CHIN, HEAD_TOP, headLines } from './ContourForm';
 /** How tall the head stands above the top of the neck, in cm. */
 const HEAD_CM = (HEAD_CHIN - HEAD_TOP) * CM_PER_UNIT - 1.5;
 import { FormLine, FormSide, Reading, landmarks } from './formLines';
-import { CLOTH_EDGES, FormLayers, WornSleeve, wornCloth } from './FormSketch';
+import { CLOTH_EDGES, FormLayers, SQUEEZE, WornSleeve, wornCloth } from './FormSketch';
 import { TestingTag } from './TestingTag';
 import { DemoButton } from './DemoButton';
 import { tookEnlarged } from './EnlargeSketch';
@@ -258,7 +258,7 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
   const torsoBottom = legLines ? Math.max(body.bottom, legLines.crotch) : body.bottom;
 
   const frame = useMemo(() => {
-    const half = Math.max(Math.max(m.full_bust ?? 0, m.full_hip ?? 0, m.waist) / 4 + 7, arms ? armAt(arms, arms.wristY).outer + 2 : 0);
+    const half = SQUEEZE * Math.max(Math.max(m.full_bust ?? 0, m.full_hip ?? 0, m.waist) / 4 + 7, arms ? armAt(arms, arms.wristY).outer + 2 : 0);
     return { half, top: body.top - (body.head ? HEAD_CM + 1 : 2), bottom: Math.max(torsoBottom + 12, bottom, legLines ? legLines.floor + 1 : 0) };
   }, [m, body, bottom, arms, torsoBottom, legLines]);
   const cx = frame.half;
@@ -269,7 +269,7 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
     const ys = Array.from({ length: 121 }, (_, i) => body.top + ((torsoBottom - body.top) * i) / 120);
     return Array.from({ length: n }, (_, i) => {
       const u = Math.sin(-Math.PI / 2 + (Math.PI * i) / (n - 1));
-      return { d: path(ys.map((y) => ({ x: cx + u * body.width(y), y }))), edge: Math.abs(u) > 0.98, u };
+      return { d: path(ys.map((y) => ({ x: cx + SQUEEZE * u * body.width(y), y }))), edge: Math.abs(u) > 0.98, u };
     });
   }, [body, cx, torsoBottom]);
 
@@ -290,7 +290,7 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
     const ys = Array.from({ length: 81 }, (_, i) => crotch + ((floor - crotch) * i) / 80);
     return [1, -1].flatMap((s) =>
       [-1, -2 / 3, -1 / 3, 0, 1 / 3, 2 / 3, 1].map((k) => ({
-        d: path(ys.map((y) => ({ x: cx + s * (apart + k * halfAt(y)), y }))),
+        d: path(ys.map((y) => ({ x: cx + SQUEEZE * s * (apart + k * halfAt(y)), y }))),
         edge: Math.abs(k) === 1,
       })),
     );
@@ -310,7 +310,7 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
     );
     // Up the inside from the wrist, over the shoulder and down the outside, closed across the wrist.
     const outline = [...[...inner].reverse(), ...outer, inner[inner.length - 1]];
-    return [1, -1].flatMap((s) => [outline, ...down].map((pts, i) => ({ d: path(pts.map((q) => ({ x: cx + s * q.x, y: q.y }))), edge: i === 0 })));
+    return [1, -1].flatMap((s) => [outline, ...down].map((pts, i) => ({ d: path(pts.map((q) => ({ x: cx + SQUEEZE * s * q.x, y: q.y }))), edge: i === 0 })));
   }, [arms, cx]);
 
   // The garment on the form, front on (the back shows the form and its lines only).
@@ -318,13 +318,14 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
   const clothOn = side === 'front' ? worn : undefined;
 
   const current = lines(side);
-  const at = (pts: P[]) => path(pts.map((q) => ({ x: cx + q.x, y: q.y })));
+  const at = (pts: P[]) => path(pts.map((q) => ({ x: cx + SQUEEZE * q.x, y: q.y })));
 
   const toSvg = (e: PointerEvent): P => {
     const pt = new DOMPoint(e.clientX, e.clientY).matrixTransform(svg.current!.getScreenCTM()!.inverse());
     return { x: pt.x, y: pt.y };
   };
-  const centred = (s: P[]) => s.map((q) => ({ x: q.x - cx, y: q.y }));
+  // Drawn where the finger went, read in the pattern's own cm: the form is drawn narrower than that.
+  const centred = (s: P[]) => s.map((q) => ({ x: (q.x - cx) / SQUEEZE, y: q.y }));
   const move = (e: PointerEvent) => {
     if (!stroke) return;
     const next = [...stroke, toSvg(e)];
@@ -444,7 +445,7 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
                 <path key={`leg${i}`} d={l.d} className="form-line" fill="none" strokeWidth={l.edge ? 0.22 : 0.12} opacity={l.edge ? 0.9 : 0.35} />
               ))}
               {legLines && (
-                <path d={`M${f(cx - legLines.apart * 3)} ${f(legLines.floor)} L${f(cx + legLines.apart * 3)} ${f(legLines.floor)}`} className="form-stand" fill="none" strokeWidth={0.15} opacity={0.6} />
+                <path d={`M${f(cx - SQUEEZE * legLines.apart * 3)} ${f(legLines.floor)} L${f(cx + SQUEEZE * legLines.apart * 3)} ${f(legLines.floor)}`} className="form-stand" fill="none" strokeWidth={0.15} opacity={0.6} />
               )}
               {!legLines && (
                 <path

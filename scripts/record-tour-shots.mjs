@@ -241,7 +241,7 @@ await wait(1500);
 await main.getByRole('heading', { level: 1, name: /^Style your/ }).waitFor({ timeout: 15000 });
 await addPen();
 await wait(800);
-for (const [tab, names] of [['Shape', ['Dropped']], ['Neck & sleeves', ['Boat', 'Short']], ['Skirt & length', [['Straight', 'Skirt']]]]) {
+for (const [tab, names] of [['Shape', [['Relaxed', 'Fit'], 'Dropped']], ['Neck & sleeves', ['Boat', 'Short']], ['Skirt & length', [['Straight', 'Skirt'], ['Inverted pleats', 'Skirt details']]]]) {
   await main.getByRole('tab', { name: tab, exact: true }).click();
   await wait(400);
   for (const n of names) await (Array.isArray(n) ? pick(...n) : pick(n));
@@ -261,11 +261,11 @@ if (!(await about.evaluate((el) => el.parentElement.open))) await about.evaluate
 await wait(300);
 await choose('[role=radiogroup][aria-label="What\'s printed on your fabric"] [role=radio]', 'Checks');
 await wait(300);
-await choose('[role=radiogroup][aria-label="Checks or stripes"] [role=radio]', 'Checks');
+await choose('[role=radiogroup][aria-label="Checks or stripes"] [role=radio]', 'Gingham');
 await wait(300);
-// A small check, as in the photo.
+// A gingham of about 2.25 cm squares, as in the photo.
 const repeat = main.locator('#fabrepeat');
-if (await repeat.count()) await repeat.fill(process.env.TOUR_REPEAT ?? '6');
+if (await repeat.count()) await repeat.fill(process.env.TOUR_REPEAT ?? '4.5');
 await wait(300);
 await main.getByRole('tab', { name: 'Shape', exact: true }).click();
 await p.evaluate(() => window.scrollTo(0, 0));
@@ -283,10 +283,10 @@ if (process.env.TOUR_PROBE) {
 await start();
 t0 = Date.now();
 await wait(2600);
-// Then the fabric changed, the same dress refilled in a big placed print (Cat, 2026-10-24: showcase fabric).
+// Then the fabric changed: the same check in another colour, so it stays her dress (Cat, 2026-10-24: not the toile).
 mark('fabric');
 await press(main.getByRole('tab', { name: 'Fabric', exact: true }), 900);
-await press(main.locator('[role=radiogroup][aria-label="What\'s printed on your fabric"] [role=radio]').filter({ hasText: 'Big motifs' }), 2200);
+await press(main.getByRole('radiogroup', { name: 'Colour' }).getByRole('radio', { name: 'Burgundy', exact: true }).first(), 2200);
 // Enlarged, the preview fills the screen with its tools (Cat, 2026-10-24: use the tools while it's enlarged), and
 // drawing on the form from there opens the drawing tool enlarged too, the place where room matters most.
 mark('enlarge');
@@ -307,7 +307,7 @@ if (process.env.TOUR_PROBE2) {
 // The hem first, then the side, drawn on the picture as it was measured, as it grows with the longer hem.
 mark('hem');
 await tap(kinds.getByRole('button', { name: 'Hem', exact: true }), 500);
-await draw(form, LINES.hem, 1500);
+await draw(form, LINES.hem, 3000);
 if (process.env.TOUR_PROBE3) { await p.screenshot({ path: `${OUT}/probe3a.png` }); console.log('HEM', JSON.stringify(before), JSON.stringify(await viewBox(form)), JSON.stringify(await form.boundingBox())); }
 mark('side');
 await tap(kinds.getByRole('button', { name: 'Side', exact: true }), 500);

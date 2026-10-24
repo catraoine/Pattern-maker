@@ -25,7 +25,7 @@ import { hemOffsetAt } from '../engine/bodiceHem';
 import { unevenEdge } from '../engine/uneven';
 import type { Side } from './ShapeSketch';
 import { FormArm, formWidth } from './DrawOnForm';
-import { FormLayers, formFrame, wornCloth } from './FormSketch';
+import { FormLayers, SQUEEZE, formFrame, wornCloth } from './FormSketch';
 import { landmarks } from './formLines';
 
 interface Worn {
@@ -260,7 +260,7 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
   // stays under the finger.
   const frame = useMemo(() => {
     // Room at the sides for the arms.
-    const half = (m.full_bust + BUST_EASE_RANGE.max) / 4 + 6 + 0.2 * (m.armscye ?? 0.43 * m.full_bust);
+    const half = SQUEEZE * ((m.full_bust + BUST_EASE_RANGE.max) / 4 + 6 + 0.2 * (m.armscye ?? 0.43 * m.full_bust));
     const deepest = Math.max(draft.front.waistCentre.y, draft.back.waistCentre.y) + (hip ? dropRange(m).max : 0);
     const base = formFrame(m, body, deepest + 7, arms, cloth);
     return { half: Math.max(half, base.half), top: Math.min(-8, base.top), bottom: base.bottom };
@@ -294,7 +294,7 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
       const next =
         drag.kind === 'hem'
           ? dragDrop(m, drag.before, drag.drop + at.y - drag.start.y)
-          : dragEase(drag.before, drag.ease + 4 * (at.x - drag.start.x) * (drag.start.x >= cx ? 1 : -1));
+          : dragEase(drag.before, drag.ease + (4 * (at.x - drag.start.x) * (drag.start.x >= cx ? 1 : -1)) / SQUEEZE);
       onLive(next);
     } else if (stroke) {
       setStroke([...stroke, toSvg(e)]);
@@ -306,7 +306,7 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
       onDone(drag.before, live.current);
       setDrag(undefined);
     } else if (stroke) {
-      const neck = stroke.length > 2 ? strokeToNeck(stroke.map((q) => ({ x: q.x - cx, y: q.y })), side, draft, currentNeck(choices)) : undefined;
+      const neck = stroke.length > 2 ? strokeToNeck(stroke.map((q) => ({ x: (q.x - cx) / SQUEEZE, y: q.y })), side, draft, currentNeck(choices)) : undefined;
       if (neck) onDone(choices, { ...choices, neck });
       setStroke(undefined);
     }
@@ -386,8 +386,8 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
       <FormLayers body={body} m={m} legs={false} cx={cx} bottom={frame.bottom} arms={arms} lines={lines} worn={cloth} sleeve={arms ? sleeve : undefined} />
       {guide(waistY, 'WAIST')}
       {hip && guide(waistY + m.waist_to_hip!, 'HIP')}
-      {!drawing && hip && handle({ x: cx + hemCentre.x, y: hemCentre.y }, 'hem', lengthLabel)}
-      {!drawing && handle({ x: cx + widest.x, y: widest.y }, 'side', easeLabel)}
+      {!drawing && hip && handle({ x: cx + SQUEEZE * hemCentre.x, y: hemCentre.y }, 'hem', lengthLabel)}
+      {!drawing && handle({ x: cx + SQUEEZE * widest.x, y: widest.y }, 'side', easeLabel)}
       {drawing && !stroke && (
         <text x={cx} y={frame.bottom - 3 * k} fontSize={2.1 * k} textAnchor="middle" className="hint">
           {side === 'front' ? 'DRAW THE NECKLINE YOU WANT' : 'DRAW THE BACK NECKLINE'}

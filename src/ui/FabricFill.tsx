@@ -28,7 +28,7 @@ const printShown = (f: MyFabric | undefined) => {
 /** What the sketch is filled with, a print or a cloth; undefined when it is left in lines. */
 export const fillId = (f: MyFabric | undefined): string | undefined => {
   const kind = printShown(f);
-  return kind ? `print-${kind}${f?.checks?.stripes ? '-stripes' : ''}` : flatId(f);
+  return kind ? `print-${kind}${f?.checks?.stripes ? '-stripes' : kind === 'checks' && f?.checks?.gingham ? '-gingham' : ''}` : flatId(f);
 };
 
 export const fabricLabel = (f: MyFabric | undefined): string | undefined =>
@@ -65,13 +65,14 @@ export function pickShopFabric(finish: Finish, id: string): Finish {
 }
 
 /** Lightness levels for a tinted swatch: the weave keeps its shading, in the chosen colour. */
-function tintTable(hex: string, deep = false): [string, string, string] {
+function tintTable(hex: string, deep = false, even = false): [string, string, string] {
   const ch = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
-  // Deep, for checks: near black to the colour, the colour taking most of the cloth.
+  // Deep, for checks: near black to the colour, the colour taking most of the cloth. Even, for a gingham: black,
+  // the colour, and the half shade where they cross, each as it is woven.
   return ch.map((c) => {
-    const lo = (c * (deep ? 0.1 : 0.45)).toFixed(3);
-    const hi = Math.min(1, c * 1.3 + 0.06).toFixed(3);
-    return deep ? `${lo} ${lo} ${hi} ${hi} ${hi}` : `${lo} ${hi}`;
+    const lo = (c * (deep ? (even ? 0.06 : 0.1) : 0.45)).toFixed(3);
+    const hi = Math.min(1, even ? c * 1.2 : c * 1.3 + 0.06).toFixed(3);
+    return deep && !even ? `${lo} ${lo} ${hi} ${hi} ${hi}` : `${lo} ${hi}`;
   }) as [string, string, string];
 }
 
@@ -88,9 +89,10 @@ export function GarmentFabric({ fabric, children }: { fabric: MyFabric | undefin
   const band = `fabband${uid}`;
   const tint = `fabtint${uid}`;
   const hex = !kind || (kind === 'checks' && !fabric?.checks?.stripes) ? colourHex(fabric) : undefined;
-  const table = hex ? tintTable(hex, !!kind) : undefined;
+  const gingham = kind === 'checks' && !fabric?.checks?.stripes && !!fabric?.checks?.gingham;
+  const table = hex ? tintTable(hex, !!kind, gingham) : undefined;
   const size = kind ? printTileCm(kind, printRepeat(fabric), fabric?.checks?.stripes) : TILE;
-  const href = kind ? printImage(kind, import.meta.env.BASE_URL, fabric?.checks?.stripes) : tileUrl(id!);
+  const href = kind ? printImage(kind, import.meta.env.BASE_URL, fabric?.checks?.stripes, gingham) : tileUrl(id!);
   const tile = (pid: string, turn: boolean) => (
     <pattern id={pid} patternUnits="userSpaceOnUse" width={size} height={size} patternTransform={turn ? 'rotate(90)' : undefined}>
       <image href={href} width={size} height={size} preserveAspectRatio="none" filter={table ? `url(#${tint})` : undefined} />
@@ -133,7 +135,7 @@ export function FabricSwatches({ finish, onFinish, garment, details }: { finish:
   ];
   // A picked print is what the sketch shows, so it names the cloth in place of the colour.
   const printed = printShown(fabric);
-  const colour = printed ? (printed === 'checks' ? (fabric?.checks?.stripes ? 'Stripes' : 'Checks') : PRINTS[printed].label) : fabric?.colour?.trim();
+  const colour = printed ? (printed === 'checks' ? (fabric?.checks?.stripes ? 'Stripes' : fabric?.checks?.gingham ? 'Gingham' : 'Checks') : PRINTS[printed].label) : fabric?.colour?.trim();
   const colours = coloursFor(fabric);
   return (
     <div className="swatch-row">

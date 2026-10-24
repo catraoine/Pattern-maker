@@ -16,12 +16,17 @@ import { HemChoice, HemMarks, MARGIN } from './HemMarks';
 type Measures = { full_bust?: number; waist: number; full_hip?: number; waist_to_hip?: number; waist_to_knee?: number; waist_to_floor?: number };
 
 const f = (n: number) => n.toFixed(2);
+/** How much narrower the form is drawn than the pattern's half girths. A quarter of a round measurement each side
+ *  of the centre is the width laid flat; from the front a body shows about two thirds of that, which is how the
+ *  welcome and measuring form are drawn beside the same head (Cat, 2026-10-24: the body read wide, the head tiny).
+ *  Only the drawing narrows: the garment's lines and the lines drawn on it are read back in the pattern's own cm. */
+export const SQUEEZE = 0.68;
 export const formPath = (pts: P[]) => pts.map((q, i) => `${i ? 'L' : 'M'}${f(q.x)} ${f(q.y)}`).join(' ');
 
 /** The drawing's frame: half its width (the centre line's x) and its top and bottom. */
 export function formFrame(m: Measures, body: FormBody, bottom: number, arms?: FormArm, cloth: P[][] = []) {
   const wide = Math.max(0, ...cloth.flat().map((q) => Math.abs(q.x) + 3));
-  const half = Math.max(Math.max(m.full_bust ?? 0, m.full_hip ?? 0, m.waist) / 4 + 7, arms ? armAt(arms, arms.wristY).outer + 2 : 0, wide);
+  const half = SQUEEZE * Math.max(Math.max(m.full_bust ?? 0, m.full_hip ?? 0, m.waist) / 4 + 7, arms ? armAt(arms, arms.wristY).outer + 2 : 0, wide);
   return { half, top: body.top - 2, bottom: Math.max(body.bottom + 12, bottom) };
 }
 
@@ -144,7 +149,7 @@ export function formContours(body: FormBody, cx: number): { d: string; edge: boo
   const ys = Array.from({ length: 121 }, (_, i) => body.top + ((body.bottom - body.top) * i) / 120);
   return Array.from({ length: n }, (_, i) => {
     const u = Math.sin(-Math.PI / 2 + (Math.PI * i) / (n - 1));
-    return { d: formPath(ys.map((y) => ({ x: cx + u * body.width(y), y }))), edge: Math.abs(u) > 0.98, u };
+    return { d: formPath(ys.map((y) => ({ x: cx + SQUEEZE * u * body.width(y), y }))), edge: Math.abs(u) > 0.98, u };
   });
 }
 
@@ -162,7 +167,7 @@ export function formArmLines(arms: FormArm | undefined, cx: number): { d: string
   );
   // Up the inside from the wrist, over the shoulder and down the outside, closed across the wrist.
   const outline = [...[...inner].reverse(), ...outer, inner[inner.length - 1]];
-  return [1, -1].flatMap((s) => [outline, ...down].map((pts, i) => ({ d: formPath(pts.map((q) => ({ x: cx + s * q.x, y: q.y }))), edge: i === 0 })));
+  return [1, -1].flatMap((s) => [outline, ...down].map((pts, i) => ({ d: formPath(pts.map((q) => ({ x: cx + SQUEEZE * s * q.x, y: q.y }))), edge: i === 0 })));
 }
 
 interface Props {
@@ -245,7 +250,7 @@ interface LayerProps extends Omit<Props, 'cloth' | 'underarmY' | 'label' | 'outl
 export function FormLayers({ body, m, legs, cx, bottom, arms, lines, outline = [], worn, sleeve }: LayerProps) {
   const contours = useMemo(() => formContours(body, cx), [body, cx]);
   const armLines = useMemo(() => formArmLines(arms, cx), [arms, cx]);
-  const at = (pts: P[]) => formPath(pts.map((q) => ({ x: cx + q.x, y: q.y })));
+  const at = (pts: P[]) => formPath(pts.map((q) => ({ x: cx + SQUEEZE * q.x, y: q.y })));
   const showLegs = legs && m.full_hip && m.waist_to_hip && m.waist_to_knee && m.waist_to_floor;
   const cloth = !!worn;
   // The cloth: sleeves first, then the body over their heads, then collars and lapels over that. Each piece is
@@ -273,7 +278,7 @@ export function FormLayers({ body, m, legs, cx, bottom, arms, lines, outline = [
         </defs>
       )}
       {showLegs ? (
-        <g transform={`translate(0 ${f(body.waistY)})`}>
+        <g transform={`translate(${f(cx * (1 - SQUEEZE))} ${f(body.waistY)}) scale(${SQUEEZE} 1)`}>
           <path d={bodyOutline(m as SkirtMeasurements, cx)} className="form-legs" fill="none" strokeWidth={0.18} />
         </g>
       ) : (

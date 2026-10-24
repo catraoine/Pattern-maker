@@ -33,8 +33,9 @@ export const PRINTS: Record<PrintKind, PrintInfo> = {
 
 export const PRINT_IDS = Object.keys(PRINTS) as PrintKind[];
 
-/** The print's swatch; checks chosen as stripes have their own. */
-export const printImage = (kind: PrintKind, base = '/', stripes = false) => `${base}prints/${kind === 'checks' && stripes ? 'stripes' : PRINTS[kind].image}.jpg`;
+/** The print's swatch; checks chosen as stripes or gingham have their own. */
+export const printImage = (kind: PrintKind, base = '/', stripes = false, gingham = false) =>
+  `${base}prints/${kind === 'checks' && stripes ? 'stripes' : kind === 'checks' && gingham ? 'gingham' : PRINTS[kind].image}.jpg`;
 
 /** The repeat stripes take until the maker enters theirs, in cm: closer than a check's. */
 export const STRIPES_REPEAT = 2.5;

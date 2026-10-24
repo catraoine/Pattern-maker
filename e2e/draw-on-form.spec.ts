@@ -4,16 +4,23 @@ import type { Page } from '@playwright/test';
 // Draw on your form: draw a princess seam and a neckline on the dress form, and the pattern follows.
 
 /** Draw a line through points given in cm on the form (the centre front at x = 0, y running down). */
+/** The form is drawn this much narrower than the pattern's cm (SQUEEZE in src/ui/FormSketch.tsx). */
+const SQUEEZE = 0.68;
+
+/** Draws through points given in the pattern's cm, centred on the form, where the form shows them. */
 async function draw(page: Page, at: { x: number; y: number }[]) {
-  const screen = await page.evaluate((pts) => {
-    const svg = document.querySelector<SVGSVGElement>('svg.form-svg')!;
-    const cx = svg.viewBox.baseVal.width / 2;
-    const ctm = svg.getScreenCTM()!;
-    return pts.map((q) => {
-      const p = new DOMPoint(q.x + cx, q.y).matrixTransform(ctm);
-      return { x: p.x, y: p.y };
-    });
-  }, at);
+  const screen = await page.evaluate(
+    ([pts, k]) => {
+      const svg = document.querySelector<SVGSVGElement>('svg.form-svg')!;
+      const cx = svg.viewBox.baseVal.width / 2;
+      const ctm = svg.getScreenCTM()!;
+      return pts.map((q) => {
+        const p = new DOMPoint(cx + k * q.x, q.y).matrixTransform(ctm);
+        return { x: p.x, y: p.y };
+      });
+    },
+    [at, SQUEEZE] as const,
+  );
   await page.mouse.move(screen[0].x, screen[0].y);
   await page.mouse.down();
   for (const q of screen.slice(1)) await page.mouse.move(q.x, q.y, { steps: 8 });

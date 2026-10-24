@@ -24,7 +24,9 @@ export function PrintPicker({ fabric, onFabric }: { fabric: MyFabric; onFabric: 
   const stripes = kind === 'checks' && !!fabric.checks?.stripes;
   const setRepeat = (r: number | undefined) =>
     onFabric(kind === 'checks' ? { ...fabric, checks: { ...fabric.checks, repeat: r } } : { ...fabric, motif: { repeat: r } });
-  const setStripes = (on: boolean) => onFabric({ ...fabric, checks: { ...fabric.checks, stripes: on || undefined } });
+  const gingham = kind === 'checks' && !stripes && !!fabric.checks?.gingham;
+  const setLook = (look: 'checks' | 'gingham' | 'stripes') =>
+    onFabric({ ...fabric, checks: { ...fabric.checks, stripes: look === 'stripes' || undefined, gingham: look === 'gingham' || undefined } });
   return (
     <div className="printpick">
       <p className="printpick-q">What's the print? <TestingTag /></p>
@@ -46,10 +48,13 @@ export function PrintPicker({ fabric, onFabric }: { fabric: MyFabric; onFabric: 
       </div>
       {kind === 'checks' && (
         <div className="fabtabs" role="radiogroup" aria-label="Checks or stripes">
-          <button type="button" role="radio" aria-checked={!stripes} className={!stripes ? 'on' : ''} onClick={() => setStripes(false)}>
+          <button type="button" role="radio" aria-checked={!stripes && !gingham} className={!stripes && !gingham ? 'on' : ''} onClick={() => setLook('checks')}>
             Checks
           </button>
-          <button type="button" role="radio" aria-checked={stripes} className={stripes ? 'on' : ''} onClick={() => setStripes(true)}>
+          <button type="button" role="radio" aria-checked={gingham} className={gingham ? 'on' : ''} onClick={() => setLook('gingham')}>
+            Gingham
+          </button>
+          <button type="button" role="radio" aria-checked={stripes} className={stripes ? 'on' : ''} onClick={() => setLook('stripes')}>
             Stripes
           </button>
         </div>
