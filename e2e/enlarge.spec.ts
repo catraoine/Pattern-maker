@@ -11,7 +11,7 @@ test('enlarge the garment drawing', async ({ page }) => {
   // Full screen, once it has grown in, with the drawing filling it.
   const view = page.viewportSize()!;
   await expect.poll(async () => (await preview.boundingBox())!.width).toBeGreaterThan(view.width - 2);
-  expect((await preview.boundingBox())!.height).toBeGreaterThan(view.height - 2);
+  await expect.poll(async () => (await preview.boundingBox())!.height).toBeGreaterThan(view.height - 2);
   expect((await preview.locator('.preview-svg').first().boundingBox())!.height).toBeGreaterThan(view.height / 2);
   await page.screenshot({ path: test.info().outputPath('enlarged.png') });
   await main.getByRole('button', { name: /^Make the drawing .* smaller$/ }).click();
