@@ -3462,6 +3462,60 @@ button.link.garment-change {
   min-height: 2.9em;
   margin: 0;
 }
+/* Enlarge: the form fills the screen to draw on, with Done, the sides, the hint and the line kinds round it. */
+.form-draw.big {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: none;
+  margin: 0;
+  padding: max(12px, env(safe-area-inset-top, 0px)) 16px max(12px, env(safe-area-inset-bottom, 0px));
+  background: var(--paper);
+}
+.form-draw.big .screen-head {
+  justify-content: flex-end;
+  margin: 0;
+}
+.form-draw.big .screen-head > div {
+  display: none;
+}
+.form-draw.big .card {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  gap: 8px;
+}
+.form-draw.big .preview {
+  min-height: 0;
+}
+/* Room for three lines of hint, so the form keeps its size while the hint changes under a line being drawn. */
+.form-draw.big .form-said {
+  min-height: 4.4em;
+}
+.form-draw.big .form-svg {
+  width: auto;
+  max-width: 100%;
+  height: 100%;
+  max-height: none;
+  animation: form-grow 0.5s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+/* The form grows to fill the screen, rather than jumping there. */
+@keyframes form-grow {
+  from {
+    transform: scale(0.55);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .form-draw.big .form-svg {
+    animation: none;
+  }
+}
 /* Small enough that Done, the form, the hint and the line kinds all fit on a phone without scrolling. */
 .form-svg {
   max-height: min(62vh, calc(100svh - 480px));
