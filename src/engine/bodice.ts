@@ -432,7 +432,9 @@ export function draftBodice(m: BodiceMeasurements, style: Partial<BodiceStyle> =
 /** A button front (the back then on the fold) and a collar, both made on the bodice as sewn. */
 function finish(d: BodiceDraft, s: BodiceStyle): BodiceDraft {
   const closure = s.closure ?? 'back_zip';
-  const collar = s.neck ? 'none' : s.collar === 'shirt' && closure !== 'front_buttons' ? 'none' : s.collar && s.collar !== 'none' && s.neckline === 'crew' ? s.collar : s.collar === 'peter_pan' && s.neckline === 'scoop' ? 'peter_pan' : 'none';
+  // A pussy bow ties at the centre front, so it goes on a crew or V neck with the zip at the back.
+  const bow = s.collar === 'bow' && closure === 'back_zip' && (s.neckline === 'crew' || s.neckline === 'v');
+  const collar = s.neck ? 'none' : bow ? 'bow' : s.collar === 'bow' || (s.collar === 'shirt' && closure !== 'front_buttons') ? 'none' : s.collar && s.collar !== 'none' && s.neckline === 'crew' ? s.collar : s.collar === 'peter_pan' && s.neckline === 'scoop' ? 'peter_pan' : 'none';
   const [bf, bb] = blockOf(d);
   let pieces = d.pieces;
   let buttons: Buttons | undefined;

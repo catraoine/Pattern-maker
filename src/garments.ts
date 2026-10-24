@@ -329,12 +329,12 @@ export const BODICE_GROUPS: [Group<'fit'>, Group<'neckline'>, Group<'length'>, G
     options: [['side', 'Side seam'], ['french', 'French (low side)'], ['shoulder', 'Shoulder'], ['neck', 'Neckline'], ['armhole', 'Armhole'], ['waist', 'Waist']],
   },
   { id: 'closure', label: 'Opening', options: [['back_zip', 'Back zip'], ['front_buttons', 'Front buttons'], ['wrap', 'Wrap']] },
-  { id: 'collar', label: 'Collar', options: [['none', 'None'], ['peter_pan', 'Peter Pan'], ['mandarin', 'Mandarin'], ['mock', 'Mock neck'], ['funnel', 'Funnel neck'], ['shirt', 'Shirt collar']] },
+  { id: 'collar', label: 'Collar', options: [['none', 'None'], ['peter_pan', 'Peter Pan'], ['mandarin', 'Mandarin'], ['mock', 'Mock neck'], ['funnel', 'Funnel neck'], ['shirt', 'Shirt collar'], ['bow', 'Pussy bow']] },
   { id: 'structure', label: 'Structure', options: [['none', 'Soft'], ['boned', 'Boned, like a corset']] },
   { id: 'peplum', label: 'Peplum', options: [['none', 'None'], ['flared', 'Flared'], ['gathered', 'Gathered']] },
 ];
 
-export const COLLAR_WORDS: Record<Collar, string> = { none: '', peter_pan: 'Peter Pan collar', mandarin: 'mandarin collar', mock: 'mock neck', funnel: 'funnel neck', shirt: 'shirt collar' };
+export const COLLAR_WORDS: Record<Collar, string> = { none: '', peter_pan: 'Peter Pan collar', mandarin: 'mandarin collar', mock: 'mock neck', funnel: 'funnel neck', shirt: 'shirt collar', bow: 'pussy bow' };
 
 /**
  * Which styled details a bodice allows, and why not when it doesn't: princess seams need bust and waist
@@ -363,6 +363,8 @@ export function detailAllowed(c: BodiceChoices, id: 'princess' | 'bustDart' | 'c
   if (c.closure === 'wrap' && opt !== 'none') return false;
   if (opt === 'none') return true;
   if (opt === 'shirt') return c.closure === 'front_buttons' && c.neckline === 'crew';
+  // A pussy bow ties at the centre front, on a crew or V neck, so the opening stays at the back.
+  if (opt === 'bow') return c.closure !== 'front_buttons' && (c.neckline === 'crew' || c.neckline === 'v');
   return c.neckline === 'crew' || (opt === 'peter_pan' && c.neckline === 'scoop');
 }
 
@@ -580,7 +582,7 @@ export function describeBodice(c: BodiceChoices) {
   const collar = v.collar && v.collar !== 'none' && !c.neck ? COLLAR_WORDS[v.collar] : '';
   const front = v.closure === 'front_buttons' ? 'button-front ' : v.closure === 'wrap' ? 'wrap ' : '';
   const draped = isDraped(c) ? (c.neckline === 'cowl' ? 'cowl-neck' : 'one-shoulder') : '';
-  const neck = collar ? `${front}${collar.replace(' collar', '')}-collar` : draped || (v.unevenNeck ? 'uneven-neckline' : `${front}${c.neck ? 'drawn-neckline' : NECK_WORDS[c.neckline]}`);
+  const neck = v.collar === 'bow' && collar ? 'pussy-bow' : collar ? `${front}${collar.replace(' collar', '')}-collar` : draped || (v.unevenNeck ? 'uneven-neckline' : `${front}${c.neck ? 'drawn-neckline' : NECK_WORDS[c.neckline]}`);
   const dropped = c.dropCm !== undefined && c.dropCm >= 3;
   const lengthWords = dropped ? '' : `${c.dropCm !== undefined ? 'waist-length' : LENGTH_WORDS[c.length]} `;
   const shapedHem = isShaped(c.hem) && (c.length !== 'waist' || dropped) ? ', with a shaped hem' : '';

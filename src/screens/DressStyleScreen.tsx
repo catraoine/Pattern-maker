@@ -1,3 +1,4 @@
+import { BELTS, Belt, beltAllowed, beltPieces, dressBelt } from '../engine/belt';
 import { useMemo, useState } from 'react';
 import { layout } from '../engine/export';
 import { bodiceEase } from '../engine/bodice';
@@ -108,7 +109,7 @@ export const dressFabricMetres = (pieces: DressDraft['pieces']) =>
  * bodice with its darts running on through the waist seam.
  */
 /** The dress's skirt choices on one tab of their own. */
-const DRESS_SECTIONS: Record<string, string> = { Cut: 'Skirt & length', Skirt: 'Skirt & length', Length: 'Skirt & length', Hem: 'Skirt & length', Slit: 'Skirt & length', 'Skirt details': 'Skirt & length', Pockets: 'Skirt & length' };
+const DRESS_SECTIONS: Record<string, string> = { Cut: 'Skirt & length', Skirt: 'Skirt & length', Length: 'Skirt & length', Hem: 'Skirt & length', Slit: 'Skirt & length', 'Skirt details': 'Skirt & length', Pockets: 'Skirt & length', Belt: 'Skirt & length' };
 
 export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoices, onChooseGarment, values, draft, sleeve, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, finish, onFinish, fabric, mode = 'all', onMode }: Props) {
   const undo = useUndo(choices, setChoices);
@@ -123,10 +124,10 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
   const pieces = useMemo(() => {
     if (!draft) return [];
     const skirt = new Set(draft.skirt.pieces.map((pc) => pc.name));
-    return [...draft.pieces.filter((pc) => !skirt.has(pc.name)), ...(sleeve?.pieces ?? []), ...draft.pieces.filter((pc) => skirt.has(pc.name))];
-  }, [draft, sleeve]);
+    return [...draft.pieces.filter((pc) => !skirt.has(pc.name)), ...(sleeve?.pieces ?? []), ...draft.pieces.filter((pc) => skirt.has(pc.name)), ...beltPieces(dressBelt(choices.skirt.belt, draft), 1.5)];
+  }, [draft, sleeve, choices.skirt.belt]);
   const sheet = useMemo(() => (pieces.length ? layout(pieces, '', []) : undefined), [pieces]);
-  const flat = useMemo(() => (draft ? dressFlat(draft, 'binding', { sleeve }) : undefined), [draft, sleeve, choices.skirt]);
+  const flat = useMemo(() => (draft ? dressFlat(draft, 'binding', { sleeve, belt: dressBelt(choices.skirt.belt, draft) }) : undefined), [draft, sleeve, choices.skirt]);
   const title = describePattern(choices);
   const round = useMemo(() => (draft ? roundDress(draft, values, sleeve) : undefined), [draft, values, sleeve]);
   const arms = !needsArms(values);
@@ -199,6 +200,8 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           { id: 'volume', label: 'Skirt details', options: VOLUME_OPTIONS },
           { id: 'pockets', label: 'Pockets', options: DETAIL_GROUPS[1].options },
         ]),
+    // A wrap ties already, so it takes no sash.
+    ...(wrapped ? [] : [{ id: 'belt', label: 'Belt', options: BELTS as [string, string][] }]),
   ];
 
   const value = (id: string) =>
@@ -218,6 +221,8 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
         ? choices.skirt[id]
         : id === 'pockets'
           ? (choices.skirt.pockets ?? 'none')
+          : id === 'belt'
+            ? (choices.skirt.belt ?? 'none')
           : id === 'sleeve'
             ? // Set on the slider, no named length is picked, as with the bodice.
               chosen.cm !== undefined ? '' : chosen.length
@@ -250,6 +255,8 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
       : id === 'slit'
       ? // A shirt dress opens down the front and its back is cut whole: only the side can take a slit.
         opt === 'none' || (slitAllowed(choices.skirt) && (!buttoned || opt === 'side'))
+      : id === 'belt'
+      ? beltAllowed(opt as Belt, { wrap: wrapped })
       : id === 'volume'
       ? volumeAllowed(choices.skirt, opt as Parameters<typeof volumeAllowed>[1]) && (!buttoned || opt === 'none')
       : id === 'darts'
@@ -284,8 +291,13 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
     if (id === 'silhouette' || id === 'length' || id === 'asymHem' || id === 'pockets') {
       // The dress skirt is styled by its chips: no era look, photo shape or hand-drawn changes.
       // Pleats, godets or a flounce stay; one the new shape, length or hem doesn't take falls back to none.
-      const { fit, silhouette, length, asymHem, pleats, godets, flounce, pockets, slit, slitCm } = choices.skirt;
-      onChoices({ ...choices, skirt: validCut({ fit, silhouette, length, ...(asymHem ? { asymHem } : {}), ...(pockets ? { pockets } : {}), ...(slit ? { slit } : {}), ...(slitCm !== undefined ? { slitCm } : {}), pleats, godets, flounce, [id]: opt }) });
+      const { fit, silhouette, length, asymHem, pleats, godets, flounce, pockets, slit, slitCm, belt } = choices.skirt;
+      onChoices({ ...choices, skirt: validCut({ fit, silhouette, length, ...(asymHem ? { asymHem } : {}), ...(pockets ? { pockets } : {}), ...(belt ? { belt } : {}), ...(slit ? { slit } : {}), ...(slitCm !== undefined ? { slitCm } : {}), pleats, godets, flounce, [id]: opt }) });
+      return;
+    }
+    if (id === 'belt') {
+      const { belt: _b, ...skirt } = choices.skirt;
+      onChoices({ ...choices, skirt: opt === 'none' ? skirt : { ...skirt, belt: opt as Belt } });
       return;
     }
     if (id === 'volume') {
@@ -438,7 +450,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
                 </button>
               ))}
             </div>
-            <Explain set={['noSeam', 'silhouette', 'length', 'asymHem', 'slit', 'volume', 'pockets'].includes(g.id) ? 'skirt' : 'bodice'} group={g.id} options={g.options} pick={value(g.id)} />
+            <Explain set={['noSeam', 'silhouette', 'length', 'asymHem', 'slit', 'volume', 'pockets', 'belt'].includes(g.id) ? 'skirt' : 'bodice'} group={g.id} options={g.options} pick={value(g.id)} />
             {g.id === 'sleeve' && !arms && (
               <p className="muted small">
                 For sleeves, add your arm length, upper arm and wrist.{' '}

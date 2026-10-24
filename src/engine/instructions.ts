@@ -539,6 +539,8 @@ export function dressGuide(draft: DressDraft, style: { silhouette: Silhouette; l
   const wide = !draft.skirt.pieces[0].fold && !frontSlit;
   const lined = edges === 'lined';
   const pockets = !!draft.skirt.pocket;
+  // A band collar or a bow finishes the neck itself (with a back zip), so it has no neck facings.
+  const ownNeck = draft.bodice.closure !== 'front_buttons' && (isBandCollar(draft.bodice.collar) || draft.bodice.collar === 'bow');
   const dartLines = draft.bodice.bustDart > 0.3 || draft.skirt.dartsPerSide.front + draft.skirt.dartsPerSide.back > 0;
   if (draft.bodice.top?.boned) return gatheredJoin(bonedDressSteps(draft, top, skirt, { seam, curve, fabricM, liningM: finish.liningM, coutilM: finish.coutilM, width: finish.width, waist, slit, wide }), draft);
 
@@ -560,7 +562,17 @@ export function dressGuide(draft: DressDraft, style: { silhouette: Silhouette; l
           ? ' The skirt is cut on the bias, from a single layer opened out flat on a big table: the front once, whole, and the back twice, turning the pattern over for the second. Lay each with its grain arrow parallel to the selvedge, so it sits at 45 degrees across the cloth. As soon as the skirt pieces are cut, stay-stitch their waist edges 1 cm in, so the bias waist cannot stretch before it is joined to the bodice.'
           : wide ? ' The skirt pieces are too wide for folded fabric: cut them from a single layer, turning the pattern over for the second of each so you get pairs.' : ''
       } Keep each grain arrow parallel to the selvedge. Cut along the solid outer line, snip the small notches${dartLines ? ', and chalk-mark the dart lines and the bust point' : ''}.${pockets ? ` ${POCKET_CUT}` : ''}${collarCut(draft.bodice)}${
-        lined ? ' Cut the bodice pieces again from the lining.' : edges === 'facings' ? (finish.sleeve ? ' Cut the neck facings from the fabric, and again from fusible interfacing.' : ' Cut the four facing pieces from the fabric, and again from fusible interfacing.') : ''
+        lined
+          ? ' Cut the bodice pieces again from the lining.'
+          : edges === 'facings'
+            ? ownNeck
+              ? finish.sleeve
+                ? ''
+                : ' Cut the two armhole facings from the fabric, and again from fusible interfacing.'
+              : finish.sleeve
+                ? ' Cut the neck facings from the fabric, and again from fusible interfacing.'
+                : ' Cut the four facing pieces from the fabric, and again from fusible interfacing.'
+            : ''
       }${sleeveCutWords(finish.sleeve)}${strapCut(draft.bodice)}${oneSide(draft.bodice.pieces[0], lined ? 'and the lining' : '')}`,
     },
     ...find(top, /^Interface the facings$/),
@@ -723,7 +735,7 @@ function gatheredJoin(g: SewingGuide, draft: DressDraft): SewingGuide {
 
 /** Cutting a dress's collar. */
 const collarCut = (d: BodiceDraft) =>
-  d.collar === 'peter_pan' ? ' Cut four collar pieces (two pairs), and interface two of them.' : isBandCollar(d.collar) ? ' Cut the collar twice on the fold, and interface one.' : '';
+  d.collar === 'peter_pan' ? ' Cut four collar pieces (two pairs), and interface two of them.' : isBandCollar(d.collar) ? ' Cut the collar twice on the fold, and interface one.' : d.collar === 'bow' ? ' Cut the two bow strips as a pair, single layer on the true bias.' : '';
 
 /** The steps for set-in sleeves, after the bodice is closed and its neck finished. */
 function sleeveSteps(sl: SleeveDraft, seam: string, curve: string, lined: boolean): SewStep[] {

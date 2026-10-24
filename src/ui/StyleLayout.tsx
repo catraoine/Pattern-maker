@@ -65,6 +65,7 @@ const SECTIONS: Record<string, string> = {
   'Below the hip': LENGTH,
   Waist: DETAILS,
   Pockets: DETAILS,
+  Belt: DETAILS,
   Details: DETAILS,
   Opening: DETAILS,
   Front: DETAILS,

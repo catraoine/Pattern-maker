@@ -70,6 +70,12 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       none: ['No pockets.'],
       inseam: ['Pockets hidden in the side seams, out of sight until you use them.'],
     },
+    belt: {
+      none: ['No belt: the waist as it is.', 'easy'],
+      sash: ['A long sash in the same fabric that wraps your waist and ties in a bow or a knot.', 'easy'],
+      sash_loops: ['The sash, held in place by a narrow loop at each side seam so it never slips.', 'easy'],
+      loops: ['Four narrow loops at the waist to carry a belt of your own, up to 3 cm wide.'],
+    },
   },
   bodice: {
     fit: FIT,
@@ -149,6 +155,7 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       mock: ['A taller band that hugs the neck, like a turtleneck that stops halfway. The back zip runs up through it.'],
       funnel: ['A tall band that stands a little away from the neck, widening toward its top edge like a funnel.'],
       shirt: ['A classic shirt collar on a stand, with points that fold down.', 'skill'],
+      bow: ['A soft bias strip round the neck that runs on into long ties, knotted in a bow at the front. On a crew or V neck.'],
     },
     structure: {
       none: ['No boning, so the bodice is soft and moves with you.', 'easy'],

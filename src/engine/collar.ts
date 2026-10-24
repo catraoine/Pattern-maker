@@ -7,7 +7,7 @@ import { facing } from './finishing';
 import { DraftPoint, Piece } from './piece';
 
 export type Closure = 'back_zip' | 'front_buttons' | 'wrap';
-export type Collar = 'none' | 'peter_pan' | 'mandarin' | 'mock' | 'funnel' | 'shirt';
+export type Collar = 'none' | 'peter_pan' | 'mandarin' | 'mock' | 'funnel' | 'shirt' | 'bow';
 /** The collars that are a single band standing up from the neck, sewn and finished like a mandarin. */
 export type BandCollar = 'mandarin' | 'mock' | 'funnel';
 export const isBandCollar = (c: Collar | undefined): c is BandCollar => c === 'mandarin' || c === 'mock' || c === 'funnel';
@@ -21,6 +21,12 @@ export const BANDS: Record<BandCollar, { height: number; rise: number }> = {
   mock: { height: 6, rise: 1.4 },
   funnel: { height: 7, rise: -1.2 },
 };
+
+/** A pussy bow: a bias strip folded to `width` cm along the neck, running on `tie` cm past the centre
+ * front into a tie, in two halves meeting at the zip. */
+export const BOW = { width: 4, tie: 55, slant: 4 };
+/** The collars that finish the neck themselves, with no facing or binding there: the bands and the bow. */
+export const finishesNeck = (c: Collar | undefined) => isBandCollar(c) || c === 'shirt' || c === 'bow';
 
 /** Button size and the extension beyond the centre front that carries it, in cm. */
 export const BUTTON_CM = 1.5;
@@ -479,6 +485,48 @@ export function peterPanCollar(front: Piece, back: Piece, c: CollarIn): Piece[] 
   return [piece];
 }
 
+/**
+ * A pussy bow: a straight bias strip for each half, its neck edge sewn from the zip at the centre back
+ * round to the centre front, where it runs on into a tie. Folded along its length, the strip finishes
+ * the neck and the two ties are knotted into a soft bow.
+ */
+export function bowCollar(c: CollarIn): Piece[] {
+  const neck = c.back + c.front;
+  const L = neck + BOW.tie;
+  const h = 2 * BOW.width;
+  // Neck edge along y = 0 from the centre back; the tie's end cut on a slant.
+  const pts = [p(0, 0), p(neck, 0), p(L, 0), p(L - BOW.slant, -h), p(0, -h)];
+  const tags = ['neck', 'collar', 'collar', 'collar', 'centre'];
+  const cut = 'Cut 2 (1 pair) on the bias';
+  const mid = p(neck * 0.5, -h * 0.5);
+  const piece: Piece = {
+    name: 'Bow',
+    kind: 'collar',
+    outline: pathOf({ pts, tags }),
+    lines: [new Path(p(0.5, -BOW.width)).line(p(L - BOW.slant / 2 - 0.5, -BOW.width))],
+    // On the true bias: the strip drapes round the neck and ties softly.
+    grain: [add(p(L * 0.75, -h * 0.5), p(-2.4, 2.4)), add(p(L * 0.75, -h * 0.5), p(2.4, -2.4))],
+    notches: [notchAt([p(0, 0), p(L, 0)], c.back), notchAt([p(0, 0), p(L, 0)], neck)],
+    labels: [
+      { at: add(mid, p(0, -1.4)), text: 'BOW', size: 0.7 },
+      { at: add(mid, p(0, 1.6)), text: cut, size: 0.5 },
+      { at: p(neck + 2.4, -BOW.width - 0.4), text: 'FOLD', size: 0.45 },
+      { at: p(neck - 0.2, 1.2), text: 'CENTRE FRONT', size: 0.45 },
+    ],
+    cut,
+    fabric: 'Self, cut on the bias',
+    seamAllowance: c.sa,
+    allowances: { neck: 1, collar: 1, centre: c.sa },
+    meta: { collarTo: 'centre front', bow: true },
+  };
+  piece.draft = draftNotes([
+    ['1', `Rule the neck edge half the neckline as sewn, back neck and front neck: ${neck.toFixed(1)} cm, and mark the centre front.`],
+    ['2', `Carry it on ${BOW.tie} cm past the centre front for the tie, and square up ${h} cm, twice the finished width.`],
+    ['3', `Slant the tie's end ${BOW.slant} cm, and mark the fold along the middle. Cut on the true bias.`],
+  ], piece);
+  return [piece];
+}
+
 function draftNotes(notes: [string, string][], pc: Piece): Piece['draft'] {
   const pts = pc.outline.points(4);
   const points: DraftPoint[] = notes.map(([n, note], i) => ({ n, at: pts[Math.floor((pts.length * i) / Math.max(notes.length, 1))], note }));
@@ -489,6 +537,7 @@ export function collarPieces(kind: Collar, front: Piece, back: Piece, c: CollarI
   if (kind === 'peter_pan') return peterPanCollar(front, back, c);
   if (isBandCollar(kind)) return bandCollar(c, kind);
   if (kind === 'shirt') return shirtCollar(c);
+  if (kind === 'bow') return bowCollar(c);
   return [];
 }
 

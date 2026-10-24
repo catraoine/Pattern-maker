@@ -1,6 +1,7 @@
 // The Maison collection: the house's signature designs, each a set of style choices drafted to the
 // sewist's own measurements like any other pattern. Making a look opens its style screen with the
 // choices set, so every detail can still be changed.
+import { dressBelt, skirtBelt } from './engine/belt';
 import type { Choices } from './App';
 import { draftBodice } from './engine/bodice';
 import { draftDress } from './engine/dress';
@@ -208,7 +209,7 @@ export function choicesFlat(c: PatternChoices, m: MeasurementValues): Flat | und
     if (isDress(c)) {
       const b = { ...validDetails(c.bodice, 'dress'), fit: c.fit, length: 'waist' as const };
       const d = draftDress(m as never, b, { ...c.skirt, fit: c.fit }, { at: c.waistSeam, cm: c.waistSeamCm });
-      return dressFlat(d, 'binding', { sleeve: sleeveFor(d.bodice, b, m) });
+      return dressFlat(d, 'binding', { sleeve: sleeveFor(d.bodice, b, m), belt: dressBelt(c.skirt.belt, d) });
     }
     if (isBodice(c)) {
       const b = validDetails(c);
@@ -216,7 +217,8 @@ export function choicesFlat(c: PatternChoices, m: MeasurementValues): Flat | und
       return bodiceFlat(d, 'binding', sleeveFor(d, b, m));
     }
     if (isLingerie(c)) return undefined;
-    return skirtFlat(draftSkirt(m as never, c));
+    const k = draftSkirt(m as never, c);
+    return skirtFlat(k, skirtBelt(c.belt, k));
   } catch {
     return undefined;
   }

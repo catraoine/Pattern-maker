@@ -55,6 +55,12 @@ const DETAILS: Record<ExplainSet, Record<string, Record<string, ReactNode>>> = {
       wrap: on(SKIRT, 'M13.5 6h13v4h-13zM24 6L26.5 44M13.5 8L8 14M13.5 8L9.5 16'),
     },
     pockets: { none: on(SKIRT), inseam: inseam(SKIRT, 13) },
+    belt: {
+      none: on(SKIRT),
+      sash: on(SKIRT, 'M13.6 8h12.8v4H13.6zM20 12L17.5 24M20.5 12L23 22'),
+      sash_loops: on(SKIRT, 'M13.6 8h12.8v4H13.6zM20 12L17.5 24M20.5 12L23 22M14.5 7v6M25.5 7v6'),
+      loops: on(SKIRT, 'M16 5.5v3.5M24 5.5v3.5M16.8 5.5v3.5M24.8 5.5v3.5'),
+    },
   },
   bodice: {
     fit: FIT,
@@ -102,6 +108,7 @@ const DETAILS: Record<ExplainSet, Record<string, Record<string, ReactNode>>> = {
       mock: on(TOP, 'M15 8L15.5 2.5Q20 4.5 24.5 2.5L25 8'),
       funnel: on(TOP, 'M15 8L13.5 2Q20 4 26.5 2L25 8'),
       shirt: on(TOP, 'M15 8V5Q20 7 25 5V8M15 8L17.5 15L20 12.5L22.5 15L25 8'),
+      bow: on(TOP, 'M15 8Q20 13 25 8M20 12.5Q14 9 13.5 13Q14 16 20 12.5Q26 16 26.5 13Q26 9 20 12.5M20 12.5L17 24M20 12.5L23.5 23'),
     },
     structure: {
       none: on(TOP),

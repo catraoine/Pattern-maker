@@ -1,6 +1,7 @@
 // The skirt sketch, shaped by hand: the skirt as cloth on your form, the same drawing as every other
 // garment's Form view. Drag the hem to change the length, drag the side seam to change the flare, or
 // draw a new hemline across the bottom with a finger.
+import { skirtBelt } from '../engine/belt';
 import { PointerEvent, useMemo, useRef, useState } from 'react';
 import type { Choices } from '../App';
 import { skirtFlat, wornLines, wornShapes } from '../engine/flat';
@@ -147,7 +148,7 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
   const w = useMemo(() => worn(draft, side), [draft, side]);
   const body = useMemo(() => skirtForm(m), [m]);
   // The skirt as cloth on the form: its technical flat's shapes for this side, laid on the form as worn.
-  const flat = useMemo(() => skirtFlat(draft), [draft]);
+  const flat = useMemo(() => skirtFlat(draft, skirtBelt(choices.belt, draft)), [draft, choices.belt]);
   const view = side === 'front' ? 0 : 1;
   const cloth = useMemo(() => wornCloth(wornShapes(flat, view), body), [flat, view, body]);
   const lines = useMemo(() => ({ seam: wornLines(flat, view) }), [flat, view]);

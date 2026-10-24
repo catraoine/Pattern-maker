@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { BELTS, Belt, beltAllowed, beltPieces, beltWords, skirtBelt } from '../engine/belt';
 import type { Choices } from '../App';
 import { layout } from '../engine/export';
 import { piecesLengthCm, toMetres } from '../engine/fabric';
@@ -143,8 +144,16 @@ function detailWords(c: Choices): string[] {
     waist === 'faced' ? 'a faced waist' : '',
     zipOf(c) === 'side' ? 'a side zip' : '',
     c.waist === 'elastic' && elasticAllowed(c) ? 'an elastic waist' : '',
-    c.pockets === 'inseam' && pocketsAllowed(c) ? 'pockets' : ''].filter(Boolean);
+    c.pockets === 'inseam' && pocketsAllowed(c) ? 'pockets' : '',
+    beltWords(beltOf_(c))].filter(Boolean);
 }
+
+/** The belt as it will be made: none on a wrap, and no loops on a pull-on elastic waist. */
+const beltOf_ = (c: Choices): Belt => {
+  const w = detailOf(c, 'waist');
+  const b = c.belt ?? 'none';
+  return beltAllowed(b, { wrap: w === 'wrap', elastic: w === 'elastic' }) ? b : 'none';
+};
 
 /** True when the skirt has been shaped by hand: a dragged length or flare, or a drawn hem. */
 export const handShaped = (c: Choices) => c.lengthCm !== undefined || c.flareCm !== undefined || isShaped(c.hem);
@@ -517,6 +526,25 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
             )}
           </Group>
         ))}
+        <Group label="Belt">
+          <div className="chips">
+            {BELTS.map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                className={beltOf_(choices) === id ? 'chip on' : 'chip'}
+                aria-pressed={beltOf_(choices) === id}
+                disabled={!beltAllowed(id, { wrap: detailOf(choices, 'waist') === 'wrap', elastic: detailOf(choices, 'waist') === 'elastic' })}
+                onClick={() => change({ ...choices, belt: id === 'none' ? undefined : id })}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <Explain set="skirt" group="belt" options={BELTS} pick={beltOf_(choices)} />
+          {detailOf(choices, 'waist') === 'wrap' && <p className="muted small">A wrap ties at the waist already, so it takes no sash or loops.</p>}
+          {detailOf(choices, 'waist') === 'elastic' && <p className="muted small">On a pull-on elastic waist a sash ties over the gathers; loops would stop it stretching.</p>}
+        </Group>
         {draft && (
           <TabPanel tab={FABRIC}>
             <FabricCard metres={fabricMetres(draft)} advice={skirtFabrics(choices)} look={currentLook(choices)} fabric={fabric}>
@@ -666,7 +694,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
         <div>
           <p className="eyebrow">Pattern pieces</p>
           <ul className="pieces">
-            {(draft?.pieces ?? []).map((pc) => (
+            {[...(draft?.pieces ?? []), ...(draft ? beltPieces(skirtBelt(choices.belt, draft), 1.5) : [])].map((pc) => (
               <li key={pc.name}>
                 {pc.name}: {pc.cut.replace(' (1 pair)', '').toLowerCase()}
               </li>
