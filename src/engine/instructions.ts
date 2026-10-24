@@ -1,6 +1,7 @@
 // Plain-language sewing steps for the drafted skirt and bodice, shown in the app and added to the end of the PDF.
 // Keep to plain ASCII punctuation: the PDF uses a standard font without curly quotes.
 import { buttonFrontSteps, yokeSteps } from './skirtFront';
+import { shirredSteps } from './shirred';
 import { isBandCollar } from './collar';
 import { BackNeck, withBackNeck } from './backNeck';
 import { isCircle } from './skirt';
@@ -511,7 +512,7 @@ function bodiceSteps(draft: BodiceDraft, _style: { length: BodiceLength }, fabri
   // and a low or keyhole back's (backNeck.ts).
   return withBackNeck(
     mirroredGuide(draft, drapeBodiceSteps(
-      wrapSteps(topSteps(styleBodiceSteps(guide, draft, { seam, curve, edges, sleeve: !!sleeve }), draft, { seam, curve, fabricM, liningM: finish.liningM, coutilM: finish.coutilM, width: finish.width }), draft, { curve }),
+      wrapSteps(shirredSteps(topSteps(styleBodiceSteps(guide, draft, { seam, curve, edges, sleeve: !!sleeve }), draft, { seam, curve, fabricM, liningM: finish.liningM, coutilM: finish.coutilM, width: finish.width }), draft, { seam }), draft, { curve }),
       draft,
       { seam, curve, edges, sleeve: !!sleeve },
     )),
@@ -831,7 +832,7 @@ function gatheredJoin(g: SewingGuide, draft: DressDraft): SewingGuide {
 
 /** Cutting a dress's collar. */
 const collarCut = (d: BodiceDraft) =>
-  d.collar === 'peter_pan' ? ' Cut four collar pieces (two pairs), and interface two of them.' : isBandCollar(d.collar) ? ' Cut the collar twice on the fold, and interface one.' : d.collar === 'bow' ? ' Cut the two bow strips as a pair, single layer on the true bias.' : '';
+  d.collar === 'peter_pan' ? ' Cut four collar pieces (two pairs), and interface two of them.' : isBandCollar(d.collar) ? ' Cut the collar twice on the fold, and interface one.' : d.collar === 'bow' ? ' Cut the two bow strips as a pair, single layer on the true bias.' : d.collar === 'ruffle' ? ' Cut the neck ruffle with its fold end on the fold.' : '';
 
 /** The steps for set-in sleeves, after the bodice is closed and its neck finished. */
 function sleeveSteps(sl: SleeveDraft, seam: string, curve: string, lined: boolean): SewStep[] {

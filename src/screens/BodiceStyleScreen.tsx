@@ -5,7 +5,8 @@ import { BodiceDraft, BodiceMeasurements, bodiceEase, dropRange, needsHip } from
 import { piecesLengthCm, toMetres } from '../engine/fabric';
 import { layPlan } from '../engine/layplan';
 import { BODICE_GROUPS, BodiceChoices, DARTS_FOR_FIT, describeBodice, detailAllowed, sleeveOf, topAllowed, validDetails } from '../garments';
-import { isTop } from '../engine/corset';
+import { isStrapless, isTop } from '../engine/corset';
+import { SHIRR } from '../engine/shirred';
 import { bodiceFlat } from '../engine/flat';
 import { TechFlatView } from '../ui/TechFlatView';
 import { AllRound } from '../ui/AllRound';
@@ -332,8 +333,11 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
             )}
             {g.id === 'sleeve' && !choices.neck && choices.neckline === 'one_shoulder' && <p className="muted small">A one-shoulder bodice is sleeveless.</p>}
             {g.id === 'peplum' && (choices.length !== 'waist' || (choices.dropCm !== undefined && choices.dropCm >= 3)) && <p className="muted small">A peplum sits on a waist-length bodice.</p>}
-            {g.id === 'structure' && !top && <p className="muted small">Boning needs a strapless, sweetheart or cami top.</p>}
-            {g.id === 'structure' && choices.neckline === 'strapless' && <p className="muted small">A strapless bodice is always boned: the boning holds it up.</p>}
+            {g.id === 'structure' && !top && <p className="muted small">Boning and a shirred back need a strapless, sweetheart or cami top.</p>}
+            {g.id === 'structure' && isStrapless(choices.neckline) && <p className="muted small">A strapless bodice needs something to hold it up: boning, or a shirred back.</p>}
+            {g.id === 'structure' && valid.structure === 'shirred' && (
+              <p className="muted small">The back is cut {SHIRR.ratio} times as wide as it sits and shirred with rows of elastic thread, so the top pulls on with no zip. The front stays smooth, lined to itself.</p>
+            )}
             {g.id === 'structure' && boned && <p className="muted small">Boned bodices are fitted and waist length, with the shaping in princess panels.</p>}
             {g.id === 'sleeve' && top && <p className="muted small">Sleeves need shoulders, so they go with the higher necklines.</p>}
             {g.id === 'princess' && choices.darts !== 'bust_waist' && <p className="muted small">Princess seams carry the bust and waist darts, so they need both.</p>}

@@ -314,7 +314,8 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
   // on to the edge of a button extension), and a shirt collar against its stand.
   const neckline = pieces.filter((pc) => !pc.kind && (isFront(pc) || isBack(pc)));
   for (const c of pieces.filter((pc) => pc.kind === 'collar' && taggedLength(pc.outline, 'neck') > 0)) {
-    const a = taggedLength(c.outline, 'neck');
+    // A ruffle is gathered into the neckline.
+    const a = taggedLength(c.outline, 'neck') / ((c.meta.ruffle as number | undefined) ?? 1);
     const b = sum(neckline, 'neck') + (c.meta.collarTo === 'extension' ? sum(neckline.filter(isFront), 'opening-neck') : 0);
     checks.push({
       group: 'Seams',

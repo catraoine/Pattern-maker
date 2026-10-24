@@ -764,6 +764,8 @@ function collarHalf(neck: P[], kind: BodiceDraft['collar'], front: boolean): { a
     });
     return [{ a: neck, b: offsetRun(neck, (i) => w[i], p(0, -100)) }];
   }
+  // A ruffle: falling from the neck seam, its outer edge rippling.
+  if (kind === 'ruffle') return [{ a: neck, b: offsetRun(neck, (i) => 3.4 + 0.6 * Math.sin(i * 1.7), p(0, -100)) }];
   // A pussy bow: the folded strip lying round the neck, and at the front its loops and the ties hanging.
   if (kind === 'bow') {
     const parts = [{ a: neck, b: offsetRun(neck, () => 2, p(0, -100)) }];
@@ -1014,7 +1016,16 @@ function bodiceViews(d: BodiceDraft, edges: BodiceEdges, sleeve: SleeveDraft | u
       lines.push({ pts: wrapped.lap, kind: 'seam' });
       if (edges === 'binding') for (const r of inset(wrapped.lap, 0.6, shape)) lines.push({ pts: r, kind: 'stitch' });
     }
-    if (i === 1 && zipped && d.closure !== 'front_buttons' && d.closure !== 'wrap') {
+    // A shirred back: its rows of elastic thread across, from just under the top edge to the lower edge.
+    if (i === 1 && d.shirred) {
+      const top = Math.min(...h.run.filter((q) => Math.abs(q.x) < 1e-6).map((q) => q.y));
+      const foot = h.run[h.run.length - 1].y;
+      for (let y = top + 1.2; y < foot - 1; y += 1.2) {
+        const X = halfWidthAt([shape], y);
+        if (X > 1) lines.push({ pts: [p(-X + 0.3, y), p(X - 0.3, y)], kind: 'stitch' });
+      }
+    }
+    if (i === 1 && zipped && !d.shirred && d.closure !== 'front_buttons' && d.closure !== 'wrap') {
       // A keyhole opens at the top, its button and loop at the neck, the seam and zip starting below it.
       const key = keyholeOf(d);
       const top = Math.min(...h.run.filter((q) => Math.abs(q.x) < 1e-6).map((q) => q.y)) + key;

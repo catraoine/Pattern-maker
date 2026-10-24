@@ -167,6 +167,7 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       funnel: ['A tall band that stands a little away from the neck, widening toward its top edge like a funnel.'],
       shirt: ['A classic shirt collar on a stand, with points that fold down.', 'skill'],
       bow: ['A soft bias strip round the neck that runs on into long ties, knotted in a bow at the front. On a crew or V neck.'],
+      ruffle: ['A soft folded frill gathered into the neckline seam, falling over the neck edge all round.'],
     },
     back: {
       plain: ['The back neck sits high, close to the base of the neck.', 'easy'],
@@ -177,6 +178,7 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
     structure: {
       none: ['No boning, so the bodice is soft and moves with you.', 'easy'],
       boned: ['Thin, flexible bones sewn into the seams hold it firmly in shape, like a corset.', 'skill'],
+      shirred: ['Rows of elastic thread gather the back so the top pulls on and hugs you. No zip, no boning.'],
     },
     peplum: {
       none: ['No peplum.'],

@@ -122,6 +122,7 @@ const DETAILS: Record<ExplainSet, Record<string, Record<string, ReactNode>>> = {
       funnel: on(TOP, 'M15 8L13.5 2Q20 4 26.5 2L25 8'),
       shirt: on(TOP, 'M15 8V5Q20 7 25 5V8M15 8L17.5 15L20 12.5L22.5 15L25 8'),
       bow: on(TOP, 'M15 8Q20 13 25 8M20 12.5Q14 9 13.5 13Q14 16 20 12.5Q26 16 26.5 13Q26 9 20 12.5M20 12.5L17 24M20 12.5L23.5 23'),
+      ruffle: on(TOP, 'M15 8Q20 13 25 8M15 8Q13 10 14 12Q15 13 15.5 15Q17.5 15 18 16.5Q20 15.5 22 16.5Q22.5 15 24.5 15Q25 13 26 12Q27 10 25 8'),
     },
     back: {
       plain: on('M8 12L15 8Q20 10 25 8L32 12L30 22L29 40H11L10 22z', 'M20 9.5V40'),
@@ -132,6 +133,7 @@ const DETAILS: Record<ExplainSet, Record<string, Record<string, ReactNode>>> = {
     structure: {
       none: on(TOP),
       boned: on('M10 18Q20 15 30 18L29 40H11z', 'M14.5 17.5V40M20 16.5V40M25.5 17.5V40M10.5 26.5V40M29.5 26.5V40'),
+      shirred: on('M10 18Q20 15 30 18L29 40H11z', 'M10.3 21H29.7M10.4 24.5H29.6M10.6 28H29.4M10.7 31.5H29.3M10.8 35H29.2M10.9 38.5H29.1'),
     },
     peplum: {
       none: on(SHORT_TOP),
