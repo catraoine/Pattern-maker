@@ -23,11 +23,11 @@ import type { DraftPoint, Label, Piece } from './piece';
 import { panels } from './shaping';
 import { cm } from './skirt';
 
-export type TopNeckline = 'strapless' | 'sweetheart' | 'cami';
+export type TopNeckline = 'strapless' | 'sweetheart' | 'cami' | 'halter';
 /** A soft bodice, or a boned one built like a corset. */
 export type Structure = 'none' | 'boned';
 
-export const TOP_NECKLINES: readonly TopNeckline[] = ['strapless', 'sweetheart', 'cami'];
+export const TOP_NECKLINES: readonly TopNeckline[] = ['strapless', 'sweetheart', 'cami', 'halter'];
 /** Necklines with a top edge below the shoulders. */
 export const isTop = (n: string | undefined): n is TopNeckline => !!n && (TOP_NECKLINES as readonly string[]).includes(n);
 /** Strapless necklines, which need the boning to stay up. */
@@ -44,10 +44,17 @@ export const BONE_STOP = { top: 2, waist: 1.5 };
 /** The top edge meets the side seam this far below the block's underarm. */
 export const SIDE_DROP = 2;
 /** The top edge over the bust point, in cm above it. */
-const ABOVE_BUST: Record<TopNeckline, number> = { strapless: 4.5, sweetheart: 4.5, cami: 7 };
+const ABOVE_BUST: Record<TopNeckline, number> = { strapless: 4.5, sweetheart: 4.5, cami: 7, halter: 7 };
 /** A sweetheart dips to this far above the bust point at the centre front; a cami's V to this. */
 const SWEETHEART_DIP = 1;
 const CAMI_CENTRE = 5;
+/**
+ * A halter: the front rises to the neck and the armholes are cut in from the side, so the shoulders
+ * are bare. The front's neck drops this far below the block's at the centre front, each strap end is
+ * this wide along the shoulder from the neck point, and a tie is sewn to each end to knot at the back
+ * of the neck: a folded band finished this wide, long enough to reach round the back neck and tie.
+ */
+export const HALTER = { neckDrop: 1.5, strapEnd: 3.5, tieWidth: 2.5, tieTails: 28 };
 /** Extra on each strap to settle its length at the fitting (half at each end). */
 export const STRAP_ADJUST = 4;
 /** A rouleau strap: the bias strip cut 2.5 cm wide turns to about 6 mm. */
@@ -75,6 +82,8 @@ export interface TopDetails {
   waistStay?: { lengthCm: number; widthCm: number };
   /** Rouleau straps: finished length (front top edge over the shoulder to the back top edge), and the strip to cut. */
   straps?: { lengthCm: number; cutLengthCm: number; cutWidthCm: number; lower?: { side: string; cm: number } };
+  /** A halter's two neck ties: finished length each, and the strip to cut for each. */
+  ties?: { lengthCm: number; cutLengthCm: number; cutWidthCm: number };
   /** Each strap from the top edge to the shoulder, front and back, in the block's coordinates (for the flat). */
   strapAt?: { front: [P, P]; back: [P, P] };
 }
@@ -271,6 +280,14 @@ function sideTurn(front: Piece, back: Piece, drop: number, frontFrom: P, backFro
   return Math.max(0, level, Math.min((fall + rise) / 2, fall));
 }
 
+/** The shoulder run on the block as drafted, from the neck point to the shoulder tip. */
+function runOf(pc: Piece, tag: string): [P, P] | undefined {
+  const { pts, tags } = pc.outline.taggedPoints(4);
+  const i = tags.indexOf(tag);
+  const j = tags.lastIndexOf(tag);
+  return i < 0 ? undefined : [pts[i], pts[j + 1]];
+}
+
 /** The shoulder run's middle on the block as drafted: where a strap goes over. */
 function shoulderMid(pc: Piece): P | undefined {
   const { pts, tags } = pc.outline.taggedPoints(4);
@@ -296,6 +313,24 @@ export function cutTop(d: BodiceDraft, s: BodiceStyle & { neckline: TopNeckline 
 
   // ---- front: the top edge from the centre front out to the side ----------------------------------
   let lift = 0;
+  // A halter: up from the centre front neck round to the neck point, along the shoulder to the strap
+  // end, then square off it and cut in across the armhole to the side.
+  const fShoulder = runOf(front, 'shoulder');
+  const neckPt = fShoulder?.[0] ?? p(0, 0);
+  const along = fShoulder ? unit(sub(fShoulder[1], fShoulder[0])) : p(1, 0);
+  const strapEnd = add(neckPt, mul(along, HALTER.strapEnd));
+  const halterEdge = (S: P, out: P): P[] => {
+    const C = p(0, front.outline.start.y + HALTER.neckDrop);
+    const dx = neckPt.x - C.x;
+    const dy = C.y - neckPt.y;
+    const neck = cubic(C, add(C, p(0.55 * dx, 0)), add(neckPt, p(-0.05 * dx, 0.55 * dy)), neckPt, 14);
+    const strap = straight(neckPt, strapEnd);
+    // Off the strap end square to the shoulder, down and in past the bust, then out to the side.
+    const downIn = unit(p(-along.y, along.x).y > 0 ? p(-along.y, along.x) : p(along.y, -along.x));
+    const k = len(sub(S, strapEnd)) * 0.45;
+    const cut = cubic(strapEnd, add(strapEnd, mul(downIn, k)), sub(S, mul(out, k * 0.8)), S, Math.max(16, Math.ceil(len(sub(S, strapEnd)) / 0.4)));
+    return squared([C, ...neck, ...strap, ...cut], p(1, 0), out);
+  };
   const frontEdge = (S: P, out: P): P[] => {
     const yb = apex.y - ABOVE_BUST[kind] + lift;
     const B = p(apex.x, yb);
@@ -316,6 +351,7 @@ export function cutTop(d: BodiceDraft, s: BodiceStyle & { neckline: TopNeckline 
       const lobe = cubic(C, add(C, p(0.12 * dx, -0.85 * dy)), sub(B, p(0.5 * dx, 0)), B, 16);
       return squared([C, ...lobe, ...toSide(B, p(1, 0))], undefined, out);
     }
+    if (kind === 'halter') return halterEdge(S, out);
     // A cami: a slight V from the centre front up to the strap, straight above the bust point.
     const C = p(0, Math.max(yb + 1, apex.y - CAMI_CENTRE + lift));
     return squared([C, ...straight(C, B), ...toSide(B, p(1, 0.15))], undefined, out);
@@ -324,6 +360,7 @@ export function cutTop(d: BodiceDraft, s: BodiceStyle & { neckline: TopNeckline 
   const clearDart = (top: P[]) => !sideDart || top.every((q) => q.x > sideDart[0].x - 0.3 || q.x < sideDart[1].x || q.y < (yAt(sideDart, q.x) ?? Infinity) - 0.8);
   const fOk = (top: P[]) => top.slice(1, -1).every((q) => insidePolygon(q, fr.pts)) && clearDart(top);
   const tryFront = (S: P, out: P) => {
+    if (kind === 'halter') return halterEdge(S, out);
     for (lift = 0; lift < ABOVE_BUST[kind] - 1.5; lift += 0.5) {
       const t = frontEdge(S, out);
       if (fOk(t)) return t;
@@ -381,6 +418,19 @@ export function cutTop(d: BodiceDraft, s: BodiceStyle & { neckline: TopNeckline 
   const strapF = fc.top.reduce((best, q) => (q.y < best.y ? q : best));
   const backX = dl ? dl[1].x : bc.side.x * 0.48;
   const strapB = p(backX, yAt(bc.top, backX) ?? bc.top[0].y);
+  let ties: TopDetails['ties'];
+  if (kind === 'halter') {
+    // Each tie reaches from the strap end round half the back neck, with tails to knot.
+    const backNeck = taggedLength(back.outline, 'neck');
+    const lengthCm = r1(backNeck + HALTER.strapEnd / 2 + HALTER.tieTails);
+    ties = { lengthCm, cutLengthCm: r1(lengthCm + 1 + s.neckArmholeAllowance), cutWidthCm: r1(2 * HALTER.tieWidth + 2 * s.neckArmholeAllowance) };
+    const bShoulder = runOf(back, 'shoulder');
+    const backNeckPt = bShoulder?.[0] ?? p(0, 0);
+    strapAt = {
+      front: [lerp(neckPt, strapEnd, 0.5), p(neckPt.x * 0.45, neckPt.y - 4)],
+      back: [p(backNeckPt.x, backNeckPt.y - 1), p(0.6, backNeckPt.y + 1.5)],
+    };
+  }
   if (kind === 'cami') {
     const mf = shoulderMid(front);
     const mb = shoulderMid(back);
@@ -416,11 +466,18 @@ export function cutTop(d: BodiceDraft, s: BodiceStyle & { neckline: TopNeckline 
           ? `Top edge: ${cm(ABOVE_BUST[kind] - lift)} above the bust point, squared out level from the centre front to the bust point line.`
           : kind === 'sweetheart'
             ? `Sweetheart dip at the centre front, ${cm(apex.y - C.y)} above the bust point. The edge rises steeply, then rounds over the bust.`
+            : kind === 'halter'
+              ? `Centre front neck, ${cm(HALTER.neckDrop)} below the block's, squared out from the centre front.`
             : `Centre front of the cami edge, ${cm(apex.y - C.y)} above the bust point: a ${cm(C.y - strapF.y)} V below the strap.`,
     },
     ...(kind === 'strapless'
       ? []
-      : [
+      : kind === 'halter'
+        ? [
+            { n: 'N', at: neckPt, note: 'Neck point: the halter rises to the neck here.' },
+            { n: 'H', at: strapEnd, note: `Strap end, ${cm(HALTER.strapEnd)} along the shoulder from the neck point. The armhole is cut in from here, square to the shoulder, to the side.` },
+          ]
+        : [
           {
             n: 'U',
             at: strapF,
@@ -448,7 +505,7 @@ export function cutTop(d: BodiceDraft, s: BodiceStyle & { neckline: TopNeckline 
     labels: label(p(fx, (Math.max(C.y, fTopAt(fx)) + fBottom) / 2), 'BODICE FRONT', front.cut),
     notches: [...fc.piece.notches, ...(straps ? [strapNotch(strapF)] : [])],
     draft: fc.piece.draft && { ...fc.piece.draft, points: [...fc.piece.draft.points, ...pointsF] },
-    meta: { ...front.meta, ...(kind === 'strapless' ? {} : { pointedAtCentre: ['neck'] }) },
+    meta: { ...front.meta, ...(kind === 'strapless' || kind === 'halter' ? {} : { pointedAtCentre: ['neck'] }) },
   };
   const backPc: Piece = {
     ...backPiece,
@@ -457,6 +514,7 @@ export function cutTop(d: BodiceDraft, s: BodiceStyle & { neckline: TopNeckline 
     notches: [...backPiece.notches.filter(([q, dir]) => !(Math.abs(q.x) < 1e-6 && dir.x < 0)), [zipEnd, p(-1, 0)], ...(straps ? [strapNotch(strapB)] : [])],
     draft: backPiece.draft && { ...backPiece.draft, points: [...backPiece.draft.points, ...pointsB] },
   };
+  if (ties) frontPc.labels.push({ at: add(lerp(neckPt, strapEnd, 0.5), p(0, 1.6)), text: 'TIE', size: 0.6 });
   if (straps) {
     frontPc.labels.push({ at: add(strapF, p(0, 1.4)), text: 'STRAP', size: 0.6 });
     backPc.labels.push({ at: add(strapB, p(0, 1.4)), text: 'STRAP', size: 0.6 });
@@ -475,7 +533,7 @@ export function cutTop(d: BodiceDraft, s: BodiceStyle & { neckline: TopNeckline 
     neck: r1(topEdge),
     closure: 'back_zip',
     collar: 'none',
-    top: { neckline: kind, boned, grip: 0, topEdge: r1(topEdge), bones: [], straps, strapAt },
+    top: { neckline: kind, boned, grip: 0, topEdge: r1(topEdge), bones: [], straps, ties, strapAt },
   };
 }
 

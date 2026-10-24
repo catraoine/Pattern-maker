@@ -188,6 +188,14 @@ const SKIRT: Record<Silhouette, { picks: FabricPick[]; avoid: string }> = {
     ],
     avoid: 'Crisp or stiff fabrics like cotton poplin, linen, taffeta or denim. On the bias they twist and stand away from the body instead of moulding to it. Loosely woven cloth drops too much as it hangs.',
   },
+  gathered: {
+    picks: [
+      pick('Cotton lawn, voile or poplin', ['light'], 'crisp', 'Gathers into small, neat folds that stand away a little.'),
+      pick('Viscose challis or crepe', ['light'], 'fluid', 'Gathers softly and swings as you walk.'),
+      pick('Linen, light weight', ['light', 'medium'], 'crisp', 'Relaxed and cool, with a slightly fuller fall.'),
+    ],
+    avoid: 'Medium and heavy fabrics like denim, wool suiting or canvas. Twice the waist gathered into a band gets too bulky to sit flat.',
+  },
 };
 
 const SILHOUETTE_WORDS: Record<Silhouette, string> = {
@@ -198,6 +206,7 @@ const SILHOUETTE_WORDS: Record<Silhouette, string> = {
   half_circle: 'half circle skirt',
   circle: 'full circle skirt',
   slip: 'bias-cut slip skirt',
+  gathered: 'gathered skirt',
 };
 
 const LENGTH_WORDS: Record<Length, string> = { mini: 'mini', above_knee: 'above-knee', knee: 'knee-length', midi: 'midi', maxi: 'maxi' };
@@ -281,6 +290,7 @@ const CAMI = {
 const NECK_NOTES: Partial<Record<Neckline, string>> = {
   sweetheart: 'For a sweetheart neckline, choose a fabric that presses sharply so the centre dip stays crisp.',
   cami: 'Rouleau straps are cut on the bias from the same fabric, so a light, soft one turns through most easily.',
+  halter: 'A halter hangs from its neck ties, so a light or medium fabric that drapes sits best. The cut-in armholes are stay-stitched so they keep their shape.',
   square: 'For a square neck, choose a fabric that presses sharply so the corners stay crisp.',
   v: 'For a V-neck, a fabric that presses well keeps the point sharp.',
   boat: 'A boat neck sits best in a firmer fabric that will not slip off the shoulder.',

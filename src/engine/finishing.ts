@@ -4,6 +4,7 @@ import { Piece } from './piece';
 import { WAISTBAND_CM } from './skirt';
 import type { SkirtDraft } from './skirt';
 import { SLIP_FACING } from './slip';
+import { waistFacings as topFacings } from './skirtWaist';
 
 const r1 = (v: number) => Math.round(v * 10) / 10;
 
@@ -17,6 +18,7 @@ export function waistbandPiece(draft: SkirtDraft, sa: number): Piece {
   const L = draft.finishedWaist;
   const backQ = draft.waistband.sideMark - sa;
   if (draft.elastic) return casingPiece(L, [[backQ, 'SIDE SEAM'], [L / 2, 'CENTRE FRONT'], [L - backQ, 'SIDE SEAM']], sa);
+  if (draft.wrap?.ties) return wrapBand(draft.finishedWaist, draft.wrap.frontWaist, sa);
   const outline = new Path(p(0, 0)).line(p(W, 0), 'end').line(p(W, L), 'waist').line(p(0, L), 'end').line(p(0, 0), 'band');
   outline.closed = true;
   const marks = [backQ, L / 2, L - backQ];
@@ -57,11 +59,59 @@ export function waistbandPiece(draft: SkirtDraft, sa: number): Piece {
 }
 
 /**
+ * A wrap skirt's waistband: once round the body and across the front again, from the top front's free
+ * edge, over its own side seam, round the back, over the other side seam and across the under front to
+ * its free edge. A tie goes in each end; the inner tie comes out through a buttonhole at the first side
+ * seam mark.
+ */
+function wrapBand(waist: number, front: number, sa: number): Piece {
+  const W = 2 * WAISTBAND_CM;
+  const L = waist + front;
+  const outline = new Path(p(0, 0)).line(p(W, 0), 'end').line(p(W, L), 'waist').line(p(0, L), 'end').line(p(0, 0), 'band');
+  outline.closed = true;
+  const marks: [number, string][] = [
+    [front / 2, 'CENTRE FRONT'],
+    [front, 'SIDE SEAM'],
+    [L - front, 'SIDE SEAM'],
+    [L - front / 2, 'CENTRE FRONT'],
+  ];
+  const tag = (at: P, text: string) => ({ at, text, size: 0.55, rotate: 90 });
+  const cut = 'Cut 1';
+  return {
+    name: 'Waistband',
+    kind: 'waistband',
+    outline,
+    lines: [new Path(p(W * 0.75, front - 1.4)).line(p(W * 0.75, front + 1.4))],
+    grain: [p(W * 0.25, 5.5), p(W * 0.25, Math.max(10, front - 4))],
+    notches: marks.flatMap(([y]): [P, P][] => [
+      [p(W, y), p(1, 0)],
+      [p(0, y), p(-1, 0)],
+    ]),
+    balance: [{ pts: [p(W / 2, 0), p(W / 2, L)], label: 'FOLD LINE' }],
+    labels: [
+      { at: p(W * 0.62, (L - front + L) / 2 - 6), text: 'WAISTBAND', size: 1.0, rotate: 90 },
+      { at: p(W * 0.5, (L - front + L) / 2 - 6), text: cut, size: 0.6, rotate: 90 },
+      ...marks.map(([y, text]) => tag(p(W * 0.2, y - 3), text)),
+      tag(p(W * 0.2, 1.5), 'LONG TIE'),
+      tag(p(W * 0.2, L - 7), 'SHORT TIE'),
+      tag(p(W * 0.95, front + 2), 'TIE HOLE'),
+    ],
+    cut,
+    fabric: 'Self + interfacing',
+    seamAllowance: sa,
+    allowances: {},
+    meta: { finishedWidth: WAISTBAND_CM, lengthCm: r1(L) },
+  };
+}
+
+/**
  * How a skirt's waist is finished: its waistband, ending at the zip in the centre back or, on a skirt
  * cut whole, in the left side seam; or for a bias slip, a narrow facing in place of a band.
  */
 export function waistPieces(draft: SkirtDraft, sa: number): Piece[] {
   if (draft.faced) return waistFacings(draft);
+  // A faced or high waist: facings traced from the skirt's own top, its darts closed (see skirtWaist.ts).
+  if (draft.waistFinish) return topFacings(draft.pieces.slice(0, 2), draft.waistFinish === 'high');
   const band = waistbandPiece(draft, sa);
   if (draft.opening !== 'left_side') return [band];
   // From the left side seam round by the front: centre front, right side seam, centre back.

@@ -18,7 +18,7 @@ import { SleeveDraft, SleeveMeasurements, draftSleeveTo } from './sleeve';
 export type TeeFit = 'fitted' | 'regular' | 'relaxed';
 /** How far the knit stretches across: 10 cm pulled to 12 to 13 cm is low, to 13 to 15 medium, past 15 high. */
 export type Stretch = 'low' | 'medium' | 'high';
-export type TeeNeck = 'crew' | 'scoop' | 'v';
+export type TeeNeck = 'crew' | 'scoop' | 'v' | 'mock';
 export type TeeSleeve = 'short' | 'elbow' | 'long';
 export type TeeLength = 'cropped' | 'hip' | 'tunic';
 
@@ -75,11 +75,17 @@ export const HEAD_CM = 56;
 export const NECKBAND_MAX_STRETCH = 0.25;
 const NECKBAND_MAX_RATIO = 0.95;
 /** The neckband's cut length (before its seam) for a neckline, in cm. */
-export function neckbandLength(neckline: number, stretch: Stretch): number {
-  return Math.min(neckline * NECKBAND_MAX_RATIO, Math.max(neckline * NECKBAND_RATIO[stretch], HEAD_CM / (1 + NECKBAND_MAX_STRETCH)));
+export function neckbandLength(neckline: number, stretch: Stretch, mock = false): number {
+  const ratio = mock ? MOCK_RATIO : NECKBAND_RATIO[stretch];
+  // A mock neck stands up the neck rather than pulling the neckline flat, so it may run to the full neckline to pass the head.
+  return Math.min(neckline * (mock ? 1 : NECKBAND_MAX_RATIO), Math.max(neckline * ratio, HEAD_CM / (1 + NECKBAND_MAX_STRETCH)));
 }
 /** The neckband's finished width, folded in half, in cm. */
 export const NECKBAND_CM = 1.5;
+/** A mock neck: the band stands 6 cm up the neck, and is cut nearer the neckline's length, so a tall
+ * band hugs the neck without dragging the neckline in. */
+export const MOCK_NECK_CM = 6;
+const MOCK_RATIO = 0.92;
 
 /** Seam allowances for knits: 1 cm everywhere (an overlocker trims to it), 2.5 cm at the body hem, 2 cm at the sleeve hem. */
 export const KNIT_SEAM = 1;
@@ -108,6 +114,7 @@ export const TEE_NECKS: Record<TeeNeck, { frontDepth: number; width: number; bac
   crew: { frontDepth: 3.5, width: 1.2, backDepth: 1 },
   scoop: { frontDepth: 8.5, width: 3.2, backDepth: 2 },
   v: { frontDepth: 11.5, width: 1.7, backDepth: 1 },
+  mock: { frontDepth: 3, width: 1.2, backDepth: 1 },
 };
 /** The knit neck width over a fifth of the neck, each side of the centre (the woven block uses 0.2 less). */
 export const TEE_NECK_WIDEN = 1.6;
@@ -184,9 +191,11 @@ export function draftTee(m: TeeMeasurements, style: Partial<TeeStyle> = {}): Tee
   warnings.push(...sleeve.warnings.filter((w) => s.fit !== 'relaxed' || !/^sleeve widened/.test(w)));
 
   const neckline = 2 * (taggedLength(front.outline, 'neck') + taggedLength(back.outline, 'neck'));
-  const bandCm = neckbandLength(neckline, s.stretch);
+  const mock = s.neckline === 'mock';
+  const bandCm = neckbandLength(neckline, s.stretch, mock);
   const ratio = r1(bandCm / neckline * 100) / 100;
-  const band = neckbandPiece(bandCm, s.neckline === 'v');
+  const bandWidth = mock ? MOCK_NECK_CM : NECKBAND_CM;
+  const band = neckbandPiece(bandCm, s.neckline === 'v', bandWidth);
 
   return {
     pieces: [front, back, ...sleeve.pieces, band],
@@ -207,7 +216,7 @@ export function draftTee(m: TeeMeasurements, style: Partial<TeeStyle> = {}): Tee
     armholeDepth: r1(scye),
     armhole: r1(shape.armhole),
     necklineCm: r1(neckline),
-    neckband: { length: r1(bandCm), ratio, width: NECKBAND_CM },
+    neckband: { length: r1(bandCm), ratio, width: bandWidth },
     warnings,
   };
 }
@@ -430,14 +439,15 @@ function build(m: TeeMeasurements, s: TeeStyle, scye: number, warnings: string[]
 
 /** The neckband: a strip folded in half lengthwise, cut on the fold, its length across the fabric so it
  * stretches along its length. Crew and scoop bands join at the centre back; a V's ends cross at the point. */
-function neckbandPiece(length: number, v: boolean): Piece {
+function neckbandPiece(length: number, v: boolean, width = NECKBAND_CM): Piece {
   const L = length / 2;
-  const Hh = 2 * NECKBAND_CM;
+  const Hh = 2 * width;
+  const name = width > NECKBAND_CM ? 'Mock neck' : 'Neckband';
   const outline = new Path(p(0, 0)).line(p(L, 0), 'band').line(p(L, Hh), 'end').line(p(0, Hh), 'band').line(p(0, 0), 'fold');
   outline.closed = true;
   const cut = 'Cut 1 on fold';
   return {
-    name: 'Neckband',
+    name,
     kind: 'band',
     outline,
     lines: [],
@@ -449,7 +459,7 @@ function neckbandPiece(length: number, v: boolean): Piece {
     ],
     balance: [{ pts: [p(0, Hh / 2), p(L, Hh / 2)], label: 'FOLD LINE' }],
     labels: [
-      { at: p(L * 0.35, Hh * 0.32), text: 'NECKBAND', size: 0.7 },
+      { at: p(L * 0.35, Hh * 0.32), text: name.toUpperCase(), size: 0.7 },
       { at: p(L * 0.35, Hh * 0.85), text: `${cut}, stretch along it`, size: 0.45 },
     ],
     cut,

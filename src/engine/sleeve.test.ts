@@ -105,3 +105,61 @@ describe('set-in sleeves', () => {
     expect(draftSleeve(b, arms, { ...style, length: 'long', shape: 'fitted', fit: 'regular', outer: 'jacket' }).vent).toBeUndefined();
   });
 });
+
+describe('sleeve length anywhere, cap and flutter sleeves', () => {
+  const b = draftBodice(body);
+  const polyLen = (pts: { x: number; y: number }[]) => pts.slice(1).reduce((s, q, i) => s + Math.hypot(q.x - pts[i].x, q.y - pts[i].y), 0);
+  const edge = (d: ReturnType<typeof draftSleeve>, tag: string) => {
+    const { pts, tags } = d.pieces[0].outline.taggedPoints(24);
+    return pts.filter((_, i) => tags[i] === tag || (i > 0 && tags[i - 1] === tag));
+  };
+
+  it('sets the length anywhere from just below the underarm to the wrist, keeping the crown', () => {
+    const named = draftSleeve(b, arms, { ...style, length: 'elbow', shape: 'straight', fit: 'regular' });
+    expect(named.length.cm).toBe(named.lengthCm);
+    expect(named.length.named.long).toBe(60);
+    for (const cm of [named.length.min, 30, 40, 50, named.length.max]) {
+      const length = cm < 32 ? 'short' : cm < 43 ? 'elbow' : cm < 53 ? 'three_quarter' : 'long';
+      const d = draftSleeve(b, arms, { ...style, length, shape: 'straight', fit: 'regular', lengthCm: cm });
+      expect(d.lengthCm).toBeCloseTo(cm, 0);
+      expect(d.capHeight).toBeCloseTo(named.capHeight, 0);
+      expect(d.crownEase.front + d.crownEase.back).toBeCloseTo(named.crownEase.front + named.crownEase.back, 0);
+      expect(checkPattern([...b.pieces, ...d.pieces]).filter((c) => /Sleeve/.test(c.label) && !c.ok)).toEqual([]);
+    }
+    // Past the ends, it stops at the underarm plus 3 cm and at the wrist.
+    expect(draftSleeve(b, arms, { ...style, length: 'short', shape: 'straight', fit: 'regular', lengthCm: 2 }).lengthCm).toBeCloseTo(named.length.min, 0);
+    expect(draftSleeve(b, arms, { ...style, length: 'long', shape: 'straight', fit: 'regular', lengthCm: 90 }).lengthCm).toBe(60);
+  });
+
+  it('narrows a fitted sleeve smoothly between the named lengths, and darts it only well past the elbow', () => {
+    const at = (length: 'elbow' | 'three_quarter' | 'long', cm?: number) => draftSleeve(b, arms, { ...style, length, shape: 'fitted', fit: 'regular', ...(cm ? { lengthCm: cm } : {}) });
+    const e = at('elbow');
+    const q = at('three_quarter');
+    const mid = at('three_quarter', (e.lengthCm + q.lengthCm) / 2 + 1);
+    expect(mid.hemCm).toBeLessThan(e.hemCm + 0.5);
+    expect(mid.hemCm).toBeGreaterThan(q.hemCm - 0.5);
+    expect(at('long', 52).vent).toBeDefined();
+  });
+
+  it('cuts a cap sleeve 2.5 cm below the underarm with a small hem, and ignores the slider', () => {
+    const d = draftSleeve(b, arms, { ...style, length: 'short', shape: 'cap', fit: 'regular', lengthCm: 40 });
+    expect(d.lengthCm).toBeCloseTo(d.capHeight + 2.5, 1);
+    expect(d.pieces).toHaveLength(1);
+    expect(d.pieces[0].allowances.hem).toBe(1.5);
+    expect(d.pieces[0].meta.cap).toBe(true);
+  });
+
+  it('fans a flutter out to twice the bicep at the hem, with matching underseams and a narrow hem', () => {
+    const plain = draftSleeve(b, arms, { ...style, length: 'short', shape: 'straight', fit: 'regular' });
+    const d = draftSleeve(b, arms, { ...style, length: 'short', shape: 'flutter', fit: 'regular' });
+    expect(d.hemCm).toBeCloseTo(d.bicep * 2, 0);
+    expect(d.crownEase.front + d.crownEase.back).toBeCloseTo(plain.crownEase.front + plain.crownEase.back, 1);
+    expect(polyLen(edge(d, 'sleeve-front'))).toBeCloseTo(polyLen(edge(d, 'sleeve-back')), 1);
+    expect(d.pieces[0].allowances.hem).toBe(1);
+    expect(d.pieces[0].meta.flutter).toBe(true);
+    // Longer on the slider, it still fans to twice the bicep.
+    const long = draftSleeve(b, arms, { ...style, length: 'short', shape: 'flutter', fit: 'regular', lengthCm: 26 });
+    expect(long.lengthCm).toBe(26);
+    expect(long.hemCm).toBeCloseTo(long.bicep * 2, 0);
+  });
+});

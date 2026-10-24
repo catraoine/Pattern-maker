@@ -8,6 +8,7 @@ import type { BodiceDraft } from './bodice';
 import type { DressDraft } from './dress';
 import type { SewStep, SewingGuide } from './instructions';
 import { placeWords } from './styleSteps';
+import { type Slit, slitStop, toHem } from './slit';
 
 const r1 = (v: number) => Math.round(v * 10) / 10;
 
@@ -248,7 +249,7 @@ export function drapeBodiceSteps(g: SewingGuide, d: BodiceDraft, o: Opts): Sewin
 }
 
 /** The dress's steps with a draped bodice: the bodice's own draped steps in the dress's order. */
-export function drapeDressSteps(g: SewingGuide, top: SewingGuide, d: DressDraft, o: Opts & { waist: string; slit: boolean }): SewingGuide {
+export function drapeDressSteps(g: SewingGuide, top: SewingGuide, d: DressDraft, o: Opts & { waist: string; slit?: Slit }): SewingGuide {
   const kind = d.bodice.drape?.kind;
   if (!kind) return g;
   const e = editor(g.steps);
@@ -271,7 +272,7 @@ export function drapeDressSteps(g: SewingGuide, top: SewingGuide, d: DressDraft,
     if (stay) e.before('Join the bodice to the skirt', stay);
     e.set(
       'Join the bodice to the skirt',
-      `Sew the skirt's centre back seam first, ${o.seam} from the edge${o.slit ? ', leaving the bottom 15 cm open as a walking slit' : ''}, and press it open. Pin the bodice front to the skirt front at the waist, right sides together, matching the centre front, the side edges and the darts, so each bodice dart runs on into the skirt dart below it in one line. Pin the bodice back to the skirt back the same way, matching the centre back. Sew ${o.waist} from the edge, press the seams up toward the bodice, and zigzag or overlock the two edges together.`,
+      `Sew the skirt's centre back seam first, ${o.seam} from the edge, ${toHem(o.slit, 'back').replace(/^to the hem$/, 'from the waist to the hem')}, and press it open.${slitStop(o.slit, 'back')} Pin the bodice front to the skirt front at the waist, right sides together, matching the centre front, the side edges and the darts, so each bodice dart runs on into the skirt dart below it in one line. Pin the bodice back to the skirt back the same way, matching the centre back. Sew ${o.waist} from the edge, press the seams up toward the bodice, and zigzag or overlock the two edges together.`,
     );
     e.set(
       'Put in the zip',

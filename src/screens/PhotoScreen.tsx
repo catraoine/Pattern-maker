@@ -57,6 +57,7 @@ const SIL_NAME: Record<PhotoReading['silhouette']['value'], string> = {
   half_circle: 'Half circle',
   circle: 'Full circle',
   slip: 'Bias slip',
+  gathered: 'Gathered',
 };
 const WHERE: Record<Length, string> = { mini: 'mini length', above_knee: 'above the knee', knee: 'to the knee', midi: 'midi length', maxi: 'maxi length' };
 const SURE: Record<Confidence, string> = { high: 'clear in the photo', medium: 'fairly sure', low: 'a best guess' };

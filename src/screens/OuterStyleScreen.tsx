@@ -3,7 +3,7 @@ import { layout } from '../engine/export';
 import { piecesLengthCm, toMetres } from '../engine/fabric';
 import { layPlan } from '../engine/layplan';
 import { OUTER_EASE, OuterDraft, OuterMeasurements, outerDrop } from '../engine/outerwear';
-import { outerFlat } from '../engine/flat';
+import { outerFlat, wornShapes } from '../engine/flat';
 import { OuterChoices, describeOuter, outerAllowed, outerGroups } from '../garments';
 import { TechFlatView } from '../ui/TechFlatView';
 import { AllRound } from '../ui/AllRound';
@@ -24,7 +24,7 @@ import { MyFabric, fabricEase, outerFabrics } from '../engine/fabrics';
 import { FabricCard, FabricSummary } from '../ui/FabricCard';
 import { ChoicePic, chipsClass } from '../ui/ChoicePic';
 import { Explain } from '../ui/Explain';
-import { DrawOnForm, formWidth } from '../ui/DrawOnForm';
+import { DrawOnForm, armFor, formWidth } from '../ui/DrawOnForm';
 import { FormSketch } from '../ui/FormSketch';
 import { landmarks } from '../ui/formLines';
 import { outerLines, readOuterCollar, readOuterFit, readOuterFront, readOuterHem, readOuterShaping } from '../ui/formTops';
@@ -89,6 +89,12 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
   const longest = kind === 'coat' ? 'midi' : 'long';
   const formBody = useMemo(() => (draft ? formWidth(draft.base, m) : undefined), [draft, m]);
   const formLines = useMemo(() => (draft ? outerLines(draft) : {}), [draft]);
+  const clothShapes = useMemo(() => (flat ? wornShapes(flat) : undefined), [flat]);
+  const formArm = useMemo(() => {
+    if (!draft || !m.arm_length || !m.upper_arm) return undefined;
+    const { shoulderTip, underarm } = landmarks(draft.base);
+    return armFor(shoulderTip, underarm, { arm_length: m.arm_length, upper_arm: m.upper_arm, wrist: m.wrist });
+  }, [draft, m]);
 
   if (onForm && draft) {
     return (
@@ -228,7 +234,9 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           <DemoButton demo="style" />
           {error && <p className="msg error">{error}</p>}
           {formBody && view === 'sketch' && (
-            <FormSketch body={formBody} m={m} legs={kind === 'coat'} bottom={waistY + outerDrop(m, longest) + 6} lines={formLines} label={`The ${title.toLowerCase()} on your form`} />
+            <GarmentFabric fabric={fabric}>
+              <FormSketch body={formBody} m={m} legs={kind === 'coat'} bottom={waistY + outerDrop(m, longest) + 6} lines={formLines} cloth={clothShapes} arms={formArm} sleeve={formArm ? draft?.sleeve : undefined} label={`The ${title.toLowerCase()} on your form`} />
+            </GarmentFabric>
           )}
           {flat && view === 'flat' && (
             <GarmentFabric fabric={fabric}>

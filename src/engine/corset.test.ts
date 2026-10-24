@@ -34,7 +34,8 @@ describe('boned and strapless tops', () => {
           const fit = FITS[seed % 3];
           const d = draftBodice(body, { neckline, structure, fit, darts: fit === 'relaxed' ? 'bust' : 'bust_waist' });
           for (const c of checkPattern(d.pieces, { finishedWaist: d.finishedWaist })) if (!c.ok) failures.push(`${seed} ${neckline} ${structure}: ${c.label} ${c.detail}`);
-          const boned = structure === 'boned' || neckline !== 'cami';
+          // A halter hangs from the neck, so it is never boned.
+          const boned = neckline !== 'halter' && (structure === 'boned' || neckline !== 'cami');
           expect(d.top?.boned).toBe(boned);
           expect(d.armhole).toBe(0);
           for (const pc of d.pieces) for (const q of pc.outline.points()) expect(Number.isFinite(q.x) && Number.isFinite(q.y)).toBe(true);
@@ -96,7 +97,7 @@ describe('boned and strapless tops', () => {
 
   it('writes the boned bodice in couture corsetry order, quick and couture, in ASCII', () => {
     const body = randomBody(rng(7));
-    for (const neckline of TOP_NECKLINES) {
+    for (const neckline of TOP_NECKLINES.filter((n) => n !== 'halter')) {
       const d = draftBodice(body, { neckline, structure: 'boned' });
       const g = bodiceGuide(d, { length: 'waist' }, 1.2, 1, { edges: edgesFor(d, 'binding'), liningM: 0.8, coutilM: 0.8 });
       expect(ascii(g)).toEqual([]);

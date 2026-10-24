@@ -4,7 +4,9 @@
 // the back, over the shoulder blade). The notches sit at the armhole's own notches, with the ease
 // above them. Fitted long sleeves get an elbow dart, made by turning the forearm forward from the
 // front elbow, so the sleeve bends with the arm, and a vent at the back of the wrist, so the hem can
-// come back close to the wrist and still let the hand through.
+// come back close to the wrist and still let the hand through. A cap sleeve is the crown alone, a few
+// centimetres below the underarm; a flutter is a short sleeve slashed from hem to crown and fanned
+// open at the hem, so the crown sews into the armhole as before and the hem ripples.
 import { P, Path, add, len, lerp, mul, p, sub, unit } from './geometry';
 import type { Piece } from './piece';
 import { BodiceDraft, BodiceFit, blockOf } from './bodice';
@@ -12,12 +14,12 @@ import { DraftError } from './skirt';
 
 export type SleeveLength = 'none' | 'short' | 'elbow' | 'three_quarter' | 'long';
 /** 'tailored' is the two-piece sleeve of a jacket or coat: long only, and not offered on a bodice. */
-export type SleeveShape = 'fitted' | 'straight' | 'puff' | 'bishop' | 'tailored';
+export type SleeveShape = 'fitted' | 'straight' | 'puff' | 'bishop' | 'cap' | 'flutter' | 'tailored';
 
-/** Which shapes each length allows: puff sleeves are short, bishop sleeves long. */
+/** Which shapes each length allows: puff, cap and flutter sleeves are short, bishop sleeves long. */
 export const SHAPES_FOR_LENGTH: Record<SleeveLength, SleeveShape[]> = {
   none: [],
-  short: ['straight', 'puff'],
+  short: ['straight', 'puff', 'cap', 'flutter'],
   elbow: ['fitted', 'straight', 'puff'],
   three_quarter: ['fitted', 'straight', 'bishop'],
   long: ['fitted', 'straight', 'bishop'],
@@ -38,6 +40,9 @@ export interface SleeveStyle {
   seamAllowance: number;
   armholeAllowance: number;
   hemAllowance: number;
+  /** A length set on the slider, from the crown point to the hem, in cm, in place of the named one's.
+   * The named length still says which shapes and shaping the sleeve takes. Not on a cap sleeve. */
+  lengthCm?: number;
   /** Ease in place of the fit's own: a knit sleeve takes less, or none, round the arm. */
   ease?: { bicep: number; crown: number };
   /** A jacket or coat sleeve, worn over other clothes: more room at the bicep and the hem, a little
@@ -62,6 +67,15 @@ export const SLEEVE_EASE: Record<BodiceFit, { bicep: number; crown: number }> = 
 const BACK_SHARE = 0.55;
 /** Width of a puff or bishop sleeve's band when finished, in cm. */
 export const BAND_CM = 3;
+/** How far a cap sleeve reaches below the underarm, in cm. */
+export const CAP_BELOW = 2.5;
+/** A flutter's hem, as a share of the bicep: fanned open to about twice as wide. */
+export const FLUTTER_SPREAD = 2;
+/** The shortest sleeve the slider sets: its underseam, below the underarm, in cm. */
+const MIN_UNDERSEAM = 3;
+/** The named lengths in order, shortest first. */
+export const SLEEVE_LENGTHS = ['short', 'elbow', 'three_quarter', 'long'] as const;
+type Named = (typeof SLEEVE_LENGTHS)[number];
 
 export interface SleeveDraft {
   pieces: Piece[];
@@ -73,6 +87,9 @@ export interface SleeveDraft {
   armhole: { front: number; back: number };
   /** Centre of the crown to the hem. */
   lengthCm: number;
+  /** For the length slider: this sleeve's length as set (without a gathered sleeve's blousing), the
+   * shortest and longest it can be, and where each named length falls, all from the crown point. */
+  length: { cm: number; min: number; max: number; named: Record<Named, number> };
   /** Round the hem as finished: the hem, or the band on a gathered sleeve. */
   hemCm: number;
   /** Gathered sleeves: how much is gathered into the armhole (puff) and into the band. */
@@ -195,8 +212,11 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
   const elbowY = arm * 0.58;
   const gathered = shape === 'puff' || shape === 'bishop';
 
-  // Length from the crown point, and the hem width before any shaping.
-  const lengthCm = { short: 0, elbow: elbowY + 2, three_quarter: arm * 0.8, long: arm + 1 + (s.outer === 'coat' ? 2.5 : s.outer ? 1.5 : 0) }[s.length];
+  // Length from the crown point for each named length, and the hem width before any shaping.
+  const longCm = arm + 1 + (s.outer === 'coat' ? 2.5 : s.outer ? 1.5 : 0);
+  const namedAt = (h: number): Record<Named, number> => ({ short: h + 6, elbow: Math.max(elbowY + 2, h + 6), three_quarter: Math.max(arm * 0.8, h + 6), long: Math.max(longCm, h + 6) });
+  const cap_ = shape === 'cap';
+  const flutter = shape === 'flutter';
 
   let w = m.upper_arm + ease.bicep;
   if (shape === 'puff') w *= 1.3;
@@ -252,29 +272,45 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
     return solve(w, h);
   };
 
-  const lengthFor = (h: number) => (s.length === 'short' ? h + 6 : Math.max(lengthCm, h + 6) + (gathered ? 2.5 : 0));
-  // Hem width, as cut.
-  const hemWidth = () => {
-    if (shape === 'puff') return w;
+  /** The length as set, before a gathered sleeve's blousing: the named one, or the slider's. */
+  const setFor = (h: number) => {
+    if (cap_) return h + CAP_BELOW;
+    const named = namedAt(h)[s.length as Named];
+    return s.lengthCm === undefined ? named : Math.min(namedAt(h).long, Math.max(h + MIN_UNDERSEAM, s.lengthCm));
+  };
+  const lengthFor = (h: number) => setFor(h) + (gathered ? 2.5 : 0);
+  // Hem width, as cut: at a named length, or between the two named ones either side of the slider's.
+  const hemWidth = (h: number) => {
+    if (s.lengthCm === undefined || gathered || cap_ || flutter || tailored || s.outer) return hemAt(s.length as Named);
+    const L = setFor(h);
+    const named = namedAt(h);
+    const ok = SLEEVE_LENGTHS.filter((l) => SHAPES_FOR_LENGTH[l].includes(shape));
+    const hi = ok.find((l) => named[l] >= L) ?? ok[ok.length - 1];
+    const lo = [...ok].reverse().find((l) => named[l] <= L) ?? ok[0];
+    if (hi === lo || named[hi] === named[lo]) return hemAt(hi);
+    return hemAt(lo) + ((hemAt(hi) - hemAt(lo)) * (L - named[lo])) / (named[hi] - named[lo]);
+  };
+  const hemAt = (length: Named) => {
+    if (shape === 'puff' || cap_ || flutter) return w;
     if (shape === 'bishop') return w * 1.5;
-    if (s.outer && s.length === 'long') return shape === 'fitted' ? Math.max(wrist + (s.outer === 'coat' ? 14 : 11), hand + 5) : Math.max(w * 0.85, hand + 8);
+    if (s.outer && length === 'long') return shape === 'fitted' ? Math.max(wrist + (s.outer === 'coat' ? 14 : 11), hand + 5) : Math.max(w * 0.85, hand + 8);
     if (shape === 'fitted') {
       // A fitted long sleeve is woven (a knit tee's sleeve is drafted straight), so without an
       // opening the hand would have to pass through the hem as cut. It gets a vent at the back of the
       // wrist instead, so the hem comes back to the wrist plus 6 cm, and no less than 20 cm round.
-      if (s.length === 'long') return Math.max(wrist + 6, 20);
-      if (s.length === 'three_quarter') return Math.max(w + (wrist + 6 - w) * 0.6, hand + 2);
+      if (length === 'long') return Math.max(wrist + 6, 20);
+      if (length === 'three_quarter') return Math.max(w + (wrist + 6 - w) * 0.6, hand + 2);
       return w * 0.86;
     }
-    const k = { short: 0.98, elbow: 0.93, three_quarter: 0.88, long: 0.82 }[s.length];
-    return Math.max(w * k, s.length === 'long' ? hand + 2 : 0);
+    const k = { short: 0.98, elbow: 0.93, three_quarter: 0.88, long: 0.82 }[length];
+    return Math.max(w * k, length === 'long' ? hand + 2 : 0);
   };
 
   let { h, cx } = fitCrown();
   // Second pass, with the underseams as they really run.
   {
     const L0 = lengthFor(h);
-    const hw = hemWidth();
+    const hw = hemWidth(h);
     dirs = [unit(sub(p(hw / 2, L0), p(w / 2, h))), unit(sub(p(-hw / 2, L0), p(-w / 2, h)))];
     ({ h, cx } = fitCrown());
   }
@@ -285,7 +321,7 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
   }
 
   const L = lengthFor(h);
-  const hemW = hemWidth();
+  const hemW = hemWidth(h);
   const mid = 0;
   let Wf = p(mid + hemW / 2, L);
   let Wb = p(mid - hemW / 2, L);
@@ -296,7 +332,8 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
   const c = cap(w, h, cx, uf, ub);
 
   // Elbow dart: the forearm turned forward about the front elbow, opening a dart at the back seam.
-  const dartW = !tailored && shape === 'fitted' && (s.length === 'long' || s.length === 'three_quarter') ? (s.length === 'long' ? 2 : 1.5) : 0;
+  // Only where the sleeve runs well past the elbow, wherever the slider has set it.
+  const dartW = !tailored && shape === 'fitted' && (s.length === 'long' || s.length === 'three_quarter') && L > elbowY + 5 ? (s.length === 'long' ? 2 : 1.5) : 0;
   let Ef: P | undefined;
   let Eb: P | undefined;
   let Eb2: P | undefined;
@@ -327,13 +364,6 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
   const hemC1 = add(Wf, mul(p(-sqF.y, sqF.x), hemSpan * 0.3));
   const hemC2 = add(Wb, mul(p(sqB.y, -sqB.x), hemSpan * 0.3));
 
-  const outline = new Path(c.crown).curve(c.front.c1, c.front.c2, Uf, 'armhole');
-  if (Ef) outline.line(Ef, 'sleeve-front');
-  outline.line(Wf, 'sleeve-front').curve(hemC1, hemC2, Wb, 'hem');
-  if (Eb && Eb2) outline.line(Eb2, 'sleeve-back').line(Eb, 'dart');
-  outline.line(Ub, 'sleeve-back').curve(c.back.c1, c.back.c2, c.crown, 'armhole');
-  outline.closed = true;
-
   // Notches at the armhole's own notches, measured up from the underarm, with a little of the ease
   // below them. A notch at the crown point marks the shoulder seam.
   const frontCap = cubicPts(c.crown, c.front.c1, c.front.c2, Uf, 96);
@@ -345,12 +375,39 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
   const out = (q: P, from: P) => unit(sub(q, from));
   const centre = p(0, h);
   const backDir = out(notchB, centre);
-  const notches: [P, P][] = [
+  let notches: [P, P][] = [
     [c.crown, p(0, -1)],
     [notchF, out(notchF, centre)],
     [add(notchB, mul(p(-backDir.y, backDir.x), 0.5)), backDir],
     [add(notchB, mul(p(-backDir.y, backDir.x), -0.5)), backDir],
   ];
+
+  let outline: Path;
+  let hemRun: P[];
+  let place = (q: P) => q;
+  if (flutter) {
+    // The crown and its notches go where the slashes take them; its length, and so its ease, stays.
+    const fan = flutterSpread(c, Ub, Uf, L, w * FLUTTER_SPREAD);
+    // From the crown point round the front, as the plain sleeve runs.
+    outline = new Path(fan.crown[fan.mid]);
+    fan.crown.slice(fan.mid + 1).forEach((q) => outline.line(q, 'armhole'));
+    outline.line(fan.hem[0], 'sleeve-front');
+    fan.hem.slice(1).forEach((q) => outline.line(q, 'hem'));
+    outline.line(fan.crown[0], 'sleeve-back');
+    fan.crown.slice(1, fan.mid + 1).forEach((q) => outline.line(q, 'armhole'));
+    // Both underseams keep their length, so they still sew together.
+    notches = notches.map(([q, d]) => [fan.place(q), fan.turn(q, d)]);
+    hemRun = fan.hem;
+    place = fan.place;
+  } else {
+    outline = new Path(c.crown).curve(c.front.c1, c.front.c2, Uf, 'armhole');
+    if (Ef) outline.line(Ef, 'sleeve-front');
+    outline.line(Wf, 'sleeve-front').curve(hemC1, hemC2, Wb, 'hem');
+    if (Eb && Eb2) outline.line(Eb2, 'sleeve-back').line(Eb, 'dart');
+    outline.line(Ub, 'sleeve-back').curve(c.back.c1, c.back.c2, c.crown, 'armhole');
+    hemRun = cubicPts(Wf, hemC1, hemC2, Wb);
+  }
+  outline.closed = true;
 
   const lines: Path[] = [];
   if (tip && Eb && Eb2) lines.push(new Path(Eb).line(tip).line(Eb2));
@@ -369,21 +426,26 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
     lines,
     grain: [p(cx * 0.3, h * 0.55), p(0, L - 4)],
     notches,
-    balance: [{ pts: [Ub, Uf], label: 'BICEP LINE' }, ...(Ef && Eb ? [{ pts: [Eb, Ef], label: 'ELBOW LINE' }] : [])],
+    // A flutter's bicep line is slashed apart, so it has none.
+    balance: flutter ? [] : [{ pts: [Ub, Uf], label: 'BICEP LINE' }, ...(Ef && Eb ? [{ pts: [Eb, Ef], label: 'ELBOW LINE' }] : [])],
     labels: [
-      { at: p(0, h + 4), text: 'SLEEVE', size: 1.4 },
-      { at: p(0, h + 6), text: cut, size: 0.9 },
-      { at: add(notchF, p(-2.6, 1.6)), text: 'FRONT', size: 0.6 },
-      { at: add(notchB, p(2.6, 1.6)), text: 'BACK', size: 0.6 },
+      // Kept inside a short sleeve, above its hem.
+      { at: p(0, Math.min(h + 4, L - 3.5)), text: 'SLEEVE', size: 1.4 },
+      { at: p(0, Math.min(h + 6, L - 1.5)), text: cut, size: 0.9 },
+      { at: place(add(notchF, p(-2.6, 1.6))), text: 'FRONT', size: 0.6 },
+      { at: place(add(notchB, p(2.6, 1.6))), text: 'BACK', size: 0.6 },
       ...(shape === 'puff' ? [{ at: p(cx, h * 0.45), text: 'GATHER BETWEEN NOTCHES', size: 0.55 }] : []),
       ...(gathered ? [{ at: p(0, L - 3), text: 'GATHER TO FIT THE BAND', size: 0.55 }] : []),
       ...(ventTop && ventIn ? [{ at: add(lerp(ventTop, Wb, 0.5), mul(ventIn, 1.6)), text: 'VENT', size: 0.5, rotate: ventRotate(sqB) }] : []),
     ],
     cut,
     seamAllowance: s.seamAllowance,
-    allowances: { armhole: s.armholeAllowance, hem: gathered ? s.seamAllowance : s.hemAllowance },
-    meta: { capHeight: r1(h), ...(shape === 'puff' ? { gatheredCrown: true } : {}) },
+    // A flutter's curved hem only turns as a narrow hem; a cap sleeve's is kept small too.
+    allowances: { armhole: s.armholeAllowance, hem: gathered ? s.seamAllowance : flutter ? 1 : cap_ ? Math.min(1.5, s.hemAllowance) : s.hemAllowance },
+    meta: { capHeight: r1(h), ...(shape === 'puff' ? { gatheredCrown: true } : {}), ...(flutter ? { flutter: true } : {}), ...(cap_ ? { cap: true } : {}) },
   };
+  const named = namedAt(h);
+  const lengthInfo = { cm: r1(setFor(h)), min: r1(h + MIN_UNDERSEAM), max: r1(named.long), named: Object.fromEntries(SLEEVE_LENGTHS.map((l) => [l, r1(named[l])])) as Record<Named, number> };
 
   if (tailored) {
     const pieces = twoPiece({ crown: c.crown, frontCap, backCap, Uf, Ub, Wf, Wb, hem: cubicPts(Wf, hemC1, hemC2, Wb, 60), notchB, backDir, elbowY, h, L, hemW, cx, s });
@@ -394,6 +456,7 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
       crownEase: { front: r1(easeF), back: r1(easeB) },
       armhole: { front: r1(front.length), back: r1(back.length) },
       lengthCm: r1(L),
+      length: lengthInfo,
       hemCm: r1(polyLen(cubicPts(Wf, hemC1, hemC2, Wb))),
       warnings,
     };
@@ -407,7 +470,8 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
     crownEase: { front: r1(easeF), back: r1(easeB) },
     armhole: { front: r1(front.length), back: r1(back.length) },
     lengthCm: r1(L),
-    hemCm: r1(band ? (band.meta.lengthCm as number) : polyLen(cubicPts(Wf, hemC1, hemC2, Wb))),
+    length: lengthInfo,
+    hemCm: r1(band ? (band.meta.lengthCm as number) : polyLen(hemRun)),
     gathers: gathered
       ? {
           crown: shape === 'puff' ? r1(crownLen - front.length - back.length) : undefined,
@@ -417,6 +481,78 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
     elbowDart: dartW || undefined,
     ...(ventTop ? { vent: { lengthCm: VENT_CM, at: 'back seam' as const } } : {}),
     warnings,
+  };
+}
+
+/**
+ * A flutter: the short sleeve slashed straight down from the crown to the hem many times, and each
+ * slash opened at the hem and hinged at the crown, so the crown keeps its length (and its ease) while
+ * the hem fans out to `hemLength`. The middle stays put; each strip toward the underarms turns a
+ * little more. Returns the crown from the back underarm to the front, the hem from the front
+ * underseam to the back, and where any point of the unspread sleeve goes.
+ */
+function flutterSpread(c: Cap, Ub: P, Uf: P, L: number, hemLength: number) {
+  const n = 120;
+  const top = [...cubicPts(Ub, c.back.c1, c.back.c2, c.crown, n), ...cubicPts(c.crown, c.front.c1, c.front.c2, Uf, n).slice(1)];
+  const mid = n;
+  const rot = (q: P, o: P, a: number) => rotateAbout(q, o, a);
+  type Move = { place: (q: P) => P; angle: number };
+  const spread = (step: number) => {
+    // moves[j] places strip j, between top[j] and top[j + 1].
+    const moves: Move[] = [];
+    moves[mid] = { place: (q) => q, angle: 0 };
+    for (let j = mid + 1; j < top.length - 1; j++) {
+      const prev = moves[j - 1];
+      const hinge = prev.place(top[j]);
+      moves[j] = { place: (q) => rot(prev.place(q), hinge, -step), angle: prev.angle - step };
+    }
+    for (let j = mid - 1; j >= 0; j--) {
+      const next = moves[j + 1];
+      const hinge = next.place(top[j + 1]);
+      moves[j] = { place: (q) => rot(next.place(q), hinge, step), angle: next.angle + step };
+    }
+    // Each slash runs straight down; the underseams leave the crown square to it, so the underarm
+    // runs smoothly across the sewn seam.
+    const last = top.length - 1;
+    const square = (a: P, b: P) => {
+      const t = unit(sub(b, a));
+      const n = p(-t.y, t.x);
+      return n.y > 0 ? n : mul(n, -1);
+    };
+    const down = (i: number) =>
+      i === 0 ? add(top[0], mul(square(top[0], top[1]), L - top[0].y)) : i === last ? add(top[last], mul(square(top[last - 1], top[last]), L - top[last].y)) : p(top[i].x, L);
+    const hem: P[] = [];
+    for (let j = 0; j < last; j++) hem.push(moves[j].place(down(j)), moves[j].place(down(j + 1)));
+    const crown = top.map((q, i) => moves[Math.min(i, top.length - 2)].place(q));
+    return { moves, hem: hem.reverse(), crown, mid };
+  };
+  let lo = 0;
+  let hi = 0.015;
+  for (let k = 0; k < 30; k++) {
+    const m = (lo + hi) / 2;
+    if (polyLen(spread(m).hem) < hemLength) lo = m;
+    else hi = m;
+  }
+  const { moves, hem, crown } = spread((lo + hi) / 2);
+  // The hem leaves each underseam square, so it runs on smoothly round the sewn sleeve.
+  const squareOff = (end: P, from: P, next: P) => {
+    const t = unit(sub(end, from));
+    const n = p(-t.y, t.x);
+    const inward = (next.x - end.x) * n.x + (next.y - end.y) * n.y > 0 ? n : mul(n, -1);
+    return add(end, mul(inward, len(sub(next, end))));
+  };
+  hem[1] = squareOff(hem[0], crown[crown.length - 1], hem[1]);
+  hem[hem.length - 2] = squareOff(hem[hem.length - 1], crown[0], hem[hem.length - 2]);
+  const strip = (q: P) => {
+    const j = top.findIndex((t, i) => i < top.length - 1 && q.x >= t.x && q.x <= top[i + 1].x);
+    return moves[j < 0 ? (q.x < 0 ? 0 : top.length - 2) : j];
+  };
+  return {
+    crown,
+    mid,
+    hem,
+    place: (q: P) => strip(q).place(q),
+    turn: (q: P, d: P) => rotateAbout(d, p(0, 0), strip(q).angle),
   };
 }
 

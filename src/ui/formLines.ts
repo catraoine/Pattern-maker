@@ -109,7 +109,7 @@ function slanting(stroke: P[], draft: BodiceDraft) {
 }
 
 export function readNeckline(stroke: P[], draft: BodiceDraft, c: BodiceChoices, garment: Garment = 'bodice', side: FormSide = 'front'): Reading<BodiceChoices> {
-  if (isTop(c.neckline)) return { said: 'A strapless, sweetheart or cami top has no neckline to draw. Pick a higher neckline first.' };
+  if (isTop(c.neckline)) return { said: 'A strapless, sweetheart, cami or halter top has no neckline to draw. Pick a higher neckline first.' };
   if (side === 'front') {
     const slant = slanting(stroke, draft);
     if (slant) return oneShoulder(slant.high, c, garment);
@@ -259,8 +259,12 @@ export function readBodiceHem(stroke: P[], draft: BodiceDraft, m: BodiceMeasurem
 const LENGTH_WORDS: Record<Length, string> = { mini: 'Mini', above_knee: 'Above the knee', knee: 'Knee length', midi: 'Midi', maxi: 'Maxi' };
 
 /** The skirt's hem line as it stands, front or back, centre (x = 0) to side, in cm below the waist. */
+/** A gathered skirt is cut straight, but its gathers stand it out below the hip as it hangs. */
+const gatheredSpread = (draft: Pick<SkirtDraft, 'lengthCm'>, skirt: Choices, m: SkirtMeasurements) =>
+  skirt.silhouette === 'gathered' ? Math.max(0, draft.lengthCm - m.waist_to_hip) * 0.2 : 0;
+
 export function skirtHem(draft: Pick<SkirtDraft, 'lengthCm' | 'hem' | 'flareCm'>, skirt: Choices, m: SkirtMeasurements, side: FormSide): P[] {
-  const halfWidth = (m.full_hip + FIT_EASE[skirt.fit].hip) / 4 + Math.max(0, draft.flareCm ?? 0);
+  const halfWidth = (m.full_hip + FIT_EASE[skirt.fit].hip) / 4 + Math.max(0, draft.flareCm ?? 0) + gatheredSpread(draft, skirt, m);
   const plan = planFor(skirt, m, draft.lengthCm);
   return Array.from({ length: HEM_SAMPLES }, (_, i) => {
     const u = i / (HEM_SAMPLES - 1);
@@ -349,6 +353,20 @@ export function readSkirtSide(stroke: P[], waistY: number, draft: Pick<SkirtDraf
 /** Both halves of a half line. */
 export const mirror = (pts: P[]): P[][] => [pts, pts.map((q) => ({ x: -q.x, y: q.y }))];
 
+/**
+ * A band standing up from a neckline, as it looks from the front: its top edge `height` above the
+ * neckline (half of it, centre to neck point), leaning in toward the neck (`lean` below 1) or out
+ * from it (above 1), and its sides at the neck points.
+ */
+export function standingBand(halfNeck: P[], height: number, lean = 1): P[][] {
+  if (halfNeck.length < 2) return [];
+  const end = halfNeck.reduce((a, q) => (Math.abs(q.x) > Math.abs(a.x) ? q : a));
+  // Wrapped round the neck, the band's top edge dips far less at the front than the neckline does.
+  const top = halfNeck.map((q) => ({ x: q.x * lean, y: end.y - height + (q.y - end.y) * 0.4 }));
+  const topEnd = top[halfNeck.indexOf(end)];
+  return [...mirror(top), ...mirror([end, topEnd])];
+}
+
 /** Dart fold lines from the sketch's own path, as polylines. */
 const darts = (draft: BodiceDraft, side: FormSide): P[][] =>
   (worn(draft, side).darts(0).match(/M[^M]+/g) ?? []).map((seg) => {
@@ -417,7 +435,12 @@ export function skirtLines(draft: Pick<SkirtDraft, 'lengthCm' | 'hem' | 'flareCm
   const shift = (pts: P[]) => pts.map((q) => ({ x: q.x, y: q.y + waistY }));
   const hem = skirtHem(draft, skirt, m, side);
   const hipQ = (m.full_hip + FIT_EASE[skirt.fit].hip) / 4;
-  const sideLine = [{ x: hipQ, y: m.waist_to_hip }, { x: hipQ + (draft.flareCm ?? 0), y: hem[hem.length - 1].y }];
+  const end = { x: hipQ + (draft.flareCm ?? 0) + gatheredSpread(draft, skirt, m), y: hem[hem.length - 1].y };
+  // Gathered, the side falls from the waist, already full over the hip.
+  const sideLine =
+    skirt.silhouette === 'gathered'
+      ? [{ x: m.waist / 4 + 1, y: 0 }, { x: hipQ + 1.5, y: m.waist_to_hip * 0.8 }, end]
+      : [{ x: hipQ, y: m.waist_to_hip }, end];
   return { hem: [shift([...mirror(hem)[1].reverse(), ...hem.slice(1)])], fit: mirror(shift(sideLine)) };
 }
 

@@ -3484,6 +3484,18 @@ button.link.garment-change {
   stroke: var(--gild-glow);
   filter: drop-shadow(0 0 0.5px rgba(243, 230, 200, 0.8));
 }
+/* The garment as cloth on the form: the chosen fabric (black cloth until one is chosen), edged in champagne,
+   its seams drawn over it in the quieter line. */
+.form-still .cloth-fill {
+  fill: var(--garment, #000);
+  stroke: none;
+}
+.form-still .cloth-edge {
+  stroke: var(--gild);
+}
+.form-still .cloth ~ .tape {
+  stroke: var(--muted);
+}
 
 /* The sketch in the maker's fabric, and the swatches to choose it. */
 .garment-fabric {
@@ -7095,6 +7107,15 @@ details.sew > .sew-summary + .row {
   content: '×';
   font-family: var(--mono);
   color: var(--muted);
+}
+
+/* The sleeve length slider, under the sleeve chips. */
+.sleeve-length input[type='range'] {
+  width: 100%;
+  accent-color: var(--ink, currentColor);
+}
+.sleeve-length p {
+  margin: 0.25rem 0 0;
 }
 
 /* Less motion when the phone or computer asks for it (accessibility check, 2026-10-23): animations and transitions

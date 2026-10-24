@@ -292,7 +292,7 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
         strokeWidth={0.25}
       />
       {!drawing && handle({ x: cx, y: hemCentre.y }, 'hem', lengthLabel)}
-      {!drawing && !circle && handle({ x: cx + hemSide.x, y: hemSide.y }, 'side', flareLabel)}
+      {!drawing && !circle && choices.silhouette !== 'gathered' && handle({ x: cx + hemSide.x, y: hemSide.y }, 'side', flareLabel)}
       {drawing && !stroke && (
         <text x={cx} y={Math.min(frame.bottom - 4, hemCentre.y + 8 * k)} fontSize={2.1 * k} textAnchor="middle" className="hint">
           DRAW A NEW HEM ACROSS THE SKIRT

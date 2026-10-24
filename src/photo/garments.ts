@@ -125,6 +125,7 @@ const TEE_NECK: Record<TopReading['neckline'], TeeNeck> = {
   one_shoulder: 'crew',
   strapless: 'scoop',
   cami: 'scoop',
+  halter: 'crew',
   v: 'v',
 };
 const TEE_SLEEVE: Record<TopReading['sleeve'], TeeSleeve> = { none: 'short', short: 'short', elbow: 'elbow', three_quarter: 'elbow', long: 'long' };

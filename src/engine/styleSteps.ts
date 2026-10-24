@@ -1,6 +1,7 @@
 // The bodice's sewing steps for its styled details, laid over the block's steps: a moved bust dart,
 // princess seams, a yoke, an empire seam or side panels, a button front and a collar. Plain ASCII
 // punctuation (see instructions.ts).
+import { isBandCollar } from './collar';
 import type { BodiceDraft } from './bodice';
 import type { SewStep, SewingGuide } from './instructions';
 import type { DartPlace } from './manipulate';
@@ -103,14 +104,14 @@ export function styleBodiceSteps(g: SewingGuide, draft: BodiceDraft, o: { seam: 
     const extra: string[] = [];
     if (buttons) extra.push('Cut the front facings as a pair and the back neck facing on the fold, from the fabric and again from fusible interfacing.');
     if (collar === 'peter_pan') extra.push(buttons ? 'Cut the collar twice on the fold, once for the top collar and once for the under collar, and once from interfacing.' : 'Cut four collar pieces (two pairs), two for the top collar and two for the under collar, and interface the top pair.');
-    if (collar === 'mandarin') extra.push('Cut the collar twice on the fold, once for the outer band and once for the inner band, and interface the outer one.');
+    if (isBandCollar(collar)) extra.push('Cut the collar twice on the fold, once for the outer band and once for the inner band, and interface the outer one.');
     if (collar === 'shirt') extra.push('Cut the collar and the collar stand twice each on the fold, and interface one of each.');
     if (buttons && o.edges === 'lined') extra.push('Cut the lining fronts from the front pattern with the front facing laid over it, cutting 1.5 cm beyond the facing\'s inner edge, so the lining meets the facing.');
     let text = cut.text.replace(/Place the bodice front on the fold, and the bodice back on both layers so you get a pair\./, placeWords(draft));
     if (princess) text = text.replace(', and chalk-mark the dart lines and the bust point', ', and mark the bust point');
     if (buttons) text = text.replace(', and chalk-mark the dart lines and the bust point.', ', and chalk-mark the dart lines, the bust point and the buttonhole marks.').replace(/snip the small notches\./, 'snip the small notches and chalk-mark the buttonhole marks.');
     // A mandarin collar finishes the neck itself: no neck facings.
-    if (collar === 'mandarin' && !buttons && o.edges === 'facings') text = text.replace(' Cut the neck facings from the fabric, and again from fusible interfacing.', '').replace('Cut the four facing pieces', 'Cut the two armhole facings');
+    if (isBandCollar(collar) && !buttons && o.edges === 'facings') text = text.replace(' Cut the neck facings from the fabric, and again from fusible interfacing.', '').replace('Cut the four facing pieces', 'Cut the two armhole facings');
     steps[at('Cut out')] = { ...cut, text: `${text} ${extra.join(' ')}`.trim() };
   }
 
@@ -133,7 +134,7 @@ export function styleBodiceSteps(g: SewingGuide, draft: BodiceDraft, o: { seam: 
     steps.splice(after, 0, added.join);
   }
 
-  if (collar === 'mandarin' && !buttons && o.edges === 'facings') {
+  if (isBandCollar(collar) && !buttons && o.edges === 'facings') {
     const fi = steps.findIndex((s) => s.title === 'Interface the facings');
     if (o.sleeve) steps.splice(fi, 1);
     else steps[fi] = { ...steps[fi], text: `Fuse the interfacing to the wrong side of each armhole facing. Join them at the shoulders and the sides, ${o.seam} from the edge. Press the seams open and overlock or zigzag the outer edges marked NEATEN THIS EDGE.` };
@@ -175,7 +176,7 @@ export function styleBodiceSteps(g: SewingGuide, draft: BodiceDraft, o: { seam: 
           : `Pin each collar half to the neckline, under collar against the right side of the bodice, the centre back ends at the zip seam line and the front ends meeting at the centre front, the notches at the shoulder seams. Baste ${o.curve} from the edge.`,
       },
     );
-  } else if (collar === 'mandarin') {
+  } else if (isBandCollar(collar)) {
     collarSteps.push(
       {
         title: 'Make the collar',
@@ -204,7 +205,7 @@ export function styleBodiceSteps(g: SewingGuide, draft: BodiceDraft, o: { seam: 
       },
     );
   }
-  const stand = collar === 'mandarin' || collar === 'shirt';
+  const stand = isBandCollar(collar) || collar === 'shirt';
   const lined = o.edges === 'lined';
   const standName = collar === 'shirt' ? 'stand' : 'band';
   const buttonFacing: SewStep = {
@@ -221,9 +222,9 @@ export function styleBodiceSteps(g: SewingGuide, draft: BodiceDraft, o: { seam: 
   if (neckAt >= 0) {
     const neckStep = steps[neckAt];
     const replace: SewStep[] = [];
-    if (buttons && (collar === 'mandarin' || collar === 'shirt')) replace.push(buttonFacing, ...collarSteps);
+    if (buttons && (isBandCollar(collar) || collar === 'shirt')) replace.push(buttonFacing, ...collarSteps);
     else if (buttons) replace.push(...collarSteps, buttonFacing);
-    else if (collar === 'mandarin') replace.push(...collarSteps);
+    else if (isBandCollar(collar)) replace.push(...collarSteps);
     else if (collar === 'peter_pan') replace.push(...collarSteps, { ...neckStep, text: neckStep.text.replace(/to the neckline/, 'to the neckline over the collar').replace(/round the neckline/, 'round the neckline over the collar') });
     else replace.push(neckStep);
     steps.splice(neckAt, 1, ...replace);
@@ -264,7 +265,7 @@ export function styleBodiceSteps(g: SewingGuide, draft: BodiceDraft, o: { seam: 
     const fin = steps.findIndex((s) => s.title === 'Finish');
     steps.splice(fin, 0, {
       title: 'Make the buttonholes',
-      text: `Work ${draft.buttons.count} buttonholes on the ${over} front (as you wear it) at the BUTTONHOLE marks, each ${(draft.buttons.sizeCm + 0.3).toFixed(1)} cm long, starting 0.3 cm beyond the centre front line toward the edge${collar === 'mandarin' || collar === 'shirt' ? ', and one across the stand' : ''}. Cut them open with a seam ripper, a pin across the end so you don't cut too far.`,
+      text: `Work ${draft.buttons.count} buttonholes on the ${over} front (as you wear it) at the BUTTONHOLE marks, each ${(draft.buttons.sizeCm + 0.3).toFixed(1)} cm long, starting 0.3 cm beyond the centre front line toward the edge${isBandCollar(collar) || collar === 'shirt' ? ', and one across the stand' : ''}. Cut them open with a seam ripper, a pin across the end so you don't cut too far.`,
     }, {
       title: 'Sew on the buttons',
       text: `Lap the ${over} front over the ${under}, centre front lines together, and push a pin through each buttonhole close to its outer end to mark the button. Sew each button on the ${under} front centre line, over a pin to make a thread shank.`,
