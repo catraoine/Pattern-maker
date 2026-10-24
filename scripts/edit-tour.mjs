@@ -241,7 +241,9 @@ const CUTS = {
   // round on you, drawing closer as it turns (the recorder fills the screen with it; Cat, 2026-10-22).
   words: async () => {
     const f = 0.5;
-    const TAPE_VIEW = WIDE ? { frame: [0.1, 1.05] } : { zoom: [1.1, 1.1], at: [0.5, 0.545] };
+    // On a phone the page is drawn in just enough that the header is off the top, and a touch left of centre so the
+    // tape's brass tip stays on screen the whole way (Cat, 2026-10-24: the end of the tape must stay the same).
+    const TAPE_VIEW = WIDE ? { frame: [0.1, 1.05] } : { zoom: [1.08, 1.08], at: [0.49, 0.545] };
     // In the take the tape is all the way across by about 1.8 s; the pull is made from that frame (below).
     const [TAPE_OUT, PULL] = [1.8, 1.1];
     // OPENER_FILM=<walkthrough.mp4> keeps a released film's opening shot and Measure card frame for frame (Cat,
