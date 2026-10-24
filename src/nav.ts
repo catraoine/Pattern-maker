@@ -190,5 +190,13 @@ export function pushOverlay(sub: string) {
   window.history.pushState({ ...(now ?? { view: '' }), sub, depth: (now?.depth ?? 0) + 1, visit: VISIT } satisfies NavState, '');
 }
 
+/** Start a screen's pages over on a new entry, such as the guided measuring opened again from one of its own pages. */
+export function pushFresh() {
+  const now = current();
+  if (!now) return;
+  const { sub: _, ...rest } = now;
+  window.history.pushState({ ...rest, depth: now.depth + 1, visit: VISIT } satisfies NavState, '');
+}
+
 /** Whether the entry showing is this overlay's. */
 export const onOverlay = (sub: string) => current()?.sub === sub;

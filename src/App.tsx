@@ -2,7 +2,7 @@ import { finishesNeck } from './engine/collar';
 import { Belt, beltNote, beltPieces, dressBelt, skirtBelt, withBelt } from './engine/belt';
 import { useEffect, useMemo, useState } from 'react';
 import { showInInches } from './units';
-import { canGoBack, goBack, useViewHistory } from './nav';
+import { canGoBack, goBack, pushFresh, useViewHistory } from './nav';
 import type { HemShape } from './engine/hem';
 import type { AsymHem } from './engine/asymHem';
 import { DraftError, Fit, Length, Silhouette, SkirtDraft, SkirtMeasurements, NoSeam, SkirtShape, WaistStyle, draftSkirt } from './engine/skirt';
@@ -916,7 +916,9 @@ export default function App() {
   const [stepsStart, setStepsStart] = useState<{ at: number; start?: StepsStart }>({ at: 0 });
   const openSteps = (start?: StepsStart) => {
     setStepsStart({ at: stepsStart.at + 1, start });
-    setStep('steps');
+    // Opened again from one of its own pages (a described idea, say): a fresh start on top, so back returns to that page.
+    if (step === 'steps') pushFresh();
+    else setStep('steps');
   };
   /** Measure me, from the example tag or the print question: drops the example's numbers and opens measuring from
    *  the start. */
