@@ -360,9 +360,10 @@ await tap(main.getByRole('group', { name: 'Preview view' }).getByRole('button', 
 // close, then in and in, cinematic). The canvas is lifted out at its closest size, so it is drawn sharp, and shown
 // smaller by a scale that grows; resizing it as it goes would blank it between redraws.
 // (After the pattern: from All round, Pattern doesn't redraw in time.)
+await p.evaluate(() => { window.__tourFilm = true; });
 await main.getByRole('group', { name: 'Garment view' }).getByRole('button', { name: 'All round' }).click();
 await wait(800);
-const CLOSEST = 1.7;
+const CLOSEST = 1.45;
 await p.evaluate((K) => {
   const c = document.querySelector('.all-round-canvas');
   document.body.appendChild(c);
@@ -374,7 +375,7 @@ const zoomTo = (from, to, ms) => p.evaluate(([from, to, ms, K]) => new Promise((
   const h = (innerHeight + 96) * K;
   // Where to keep still as it grows, as a fraction of the canvas: the bodice, rising a little towards the bust.
   const set = (k) => {
-    const fy = 0.42 - 0.08 * ((k - from) / (to - from || 1));
+    const fy = 0.47 - 0.06 * ((k - from) / (to - from || 1));
     Object.assign(c.style, { top: `${innerHeight / 2 - fy * h}px`, transformOrigin: `50% ${fy * 100}%`, transform: `scale(${k / K})` });
   };
   const t0 = performance.now();
@@ -382,11 +383,19 @@ const zoomTo = (from, to, ms) => p.evaluate(([from, to, ms, K]) => new Promise((
   const step = (now) => { const x = Math.min(1, (now - t0) / (ms || 1)); set(from + (to - from) * ease(x)); x < 1 ? requestAnimationFrame(step) : done(); };
   requestAnimationFrame(step);
 }), [from, to, ms, CLOSEST]);
-await zoomTo(1.3, 1.3, 0);
+await zoomTo(1, 1, 0);
 await wait(600);
+if (process.env.TOUR_PROBE5) {
+  // Stills of the All round moment as the film frames it: its first frame and its closest.
+  await p.screenshot({ path: `${OUT}/probe5-start.png` });
+  await zoomTo(1.45, 1.45, 0);
+  await wait(600);
+  await p.screenshot({ path: `${OUT}/probe5-end.png` });
+  process.exit(0);
+}
 await start();
 await wait(400);
-await zoomTo(1.3, 1.7, 8500);
+await zoomTo(1, 1.45, 8500);
 await wait(600);
 await stop('round');
 // Put the canvas back where it was.

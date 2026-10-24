@@ -132,6 +132,9 @@ export function AllRound({ round, m, striped = false, label }: Props) {
     ro.observe(cv);
 
     const trousers = round.kind === 'trousers';
+    // The How it works film's own cut of this view (scripts/record-tour-shots.mjs sets the flag): a gentler waist,
+    // the cloth in long lines, no meeting dots. Nothing a maker sees changes.
+    const film = (window as any).__tourFilm === true;
     const isTop = round.kind === 'top' || round.kind === 'dress';
     const strip = trousers ? 0 : STRIP;
 
@@ -180,14 +183,14 @@ export function AllRound({ round, m, striped = false, label }: Props) {
     // Worn, the cloth hangs from the widest point of the form above it (as wornCloth lays it on the form):
     // only a fitted garment, with little ease at the waist, follows the waist in; a relaxed one falls straight
     // from the bust to the hip, its ease hanging in folds.
-    const yTop = yOf(highest);
-    const hangShare = round.girth.waist && m.waist ? clamp((round.girth.waist - m.waist - 4) / 3, 0, 1) : 0;
+    // From the shoulders to the bust the cloth is held to the body; from the bust down it hangs.
+    const hangShare = round.girth.waist && m.waist ? clamp((round.girth.waist - m.waist - 4) / 3, 0, 1) * (film ? 0.5 : 1) : 0;
     const hang: number[] = [];
-    for (let i = 0; i <= 60; i++) hang.push(Math.max(hang[i - 1] ?? 0, bodyR(yTop + ((FORM_HIP - yTop) * i) / 60)));
+    for (let i = 0; i <= 60; i++) hang.push(Math.max(hang[i - 1] ?? 0, bodyR(BUST_Y + ((FORM_HIP - BUST_Y) * i) / 60)));
     const wornR = (y: number) => {
       const r = bodyR(y);
-      if (y <= yTop || y > FORM_HIP || !hangShare) return r;
-      return r + (hang[Math.round(((y - yTop) / (FORM_HIP - yTop)) * 60)] - r) * hangShare;
+      if (y <= BUST_Y || y > FORM_HIP || !hangShare) return r;
+      return r + (hang[Math.round(((y - BUST_Y) / (FORM_HIP - BUST_Y)) * 60)] - r) * hangShare;
     };
     const hipR = wornR(FORM_HIP);
     const hemR = hipR * clamp(round.flare, 0.85, 2.3);
@@ -204,7 +207,7 @@ export function AllRound({ round, m, striped = false, label }: Props) {
     const rh = sl ? Math.max(0.05, (sl.hemCm / TAU) * krB * 0.95) : 0;
     // The sleeve stands on the arm, outside the body at the underarm; even the shortest reaches a little below it.
     const yE = sl ? Math.max(yS + sl.lengthCm * kY, yU + 0.1) : 0;
-    const axisX = (y: number) => formHalfWidth(yS) + ra * 0.25 + (formHalfWidth(yU) + ra - formHalfWidth(yS) - ra * 0.25) * smooth(clamp((y - yS) / (yU - yS || 1), 0, 1)) + Math.max(0, y - yU) * 0.04;
+    const axisX = (y: number) => formHalfWidth(yS) + ra * 0.25 + (formHalfWidth(yU) + ra * (film ? 1.05 : 1) - formHalfWidth(yS) - ra * 0.25) * smooth(clamp((y - yS) / (yU - yS || 1), 0, 1)) + Math.max(0, y - yU) * (film ? 0.25 : 0.04);
     const sleeveR = (y: number) => (y < yU ? ra * Math.pow(clamp((y - yS) / (yU - yS || 1), 0.15, 1), 0.35) : ra + (rh - ra) * clamp((y - yU) / (yE - yU || 1), 0, 1));
 
     // Trouser legs, round the form's own legs: easy at the thigh, then to the knee and the hem.
@@ -222,7 +225,7 @@ export function AllRound({ round, m, striped = false, label }: Props) {
     const reach = Math.max(hemR, sl ? axisX(yE) + rh : 0, lg ? FORM_LEG_X + Math.max(thighR, kneeR, legHemR) : 0, formHalfWidth(-0.55) + eB);
 
     const draw = (now: number) => {
-      const top = Math.min(-0.45, yOf(highest) - 0.3);
+      const top = film ? Math.min(-2, yOf(highest) - 0.3) : Math.min(-0.45, yOf(highest) - 0.3);
       const bottom = trousers ? FORM_FLOOR + 0.1 : Math.min(FORM_FLOOR + 0.1, Math.max(yOf(longest), sl ? yE : -9) + 0.45);
       const fig = h - strip;
       const S = Math.min((fig - 16) / (bottom - top), (w / 2 - 14) / (reach * 1.04));
@@ -287,14 +290,14 @@ export function AllRound({ round, m, striped = false, label }: Props) {
         }
         return out;
       };
-      const ring = (yAt: (a: number) => number, rAt: (a: number, y: number) => number, colour: string, width: number, back = 0.25) => {
+      const ring = (yAt: (a: number) => number, rAt: (a: number, y: number) => number, colour: string, width: number, back = 0.25, alpha = 1) => {
         const pts: Pt[] = [];
         for (let i = 0; i <= 144; i++) {
           const a = -Math.PI + (TAU * i) / 144;
           const y = yAt(a);
           pts.push(P(a, rAt(a, y), y));
         }
-        line(pts, colour, width, back);
+        line(pts, colour, width, back, alpha);
       };
       const tubeRing = (X: number, r: number, y: number, colour: string, width: number, alpha = 1) => {
         const pts: Pt[] = [];
@@ -333,11 +336,13 @@ export function AllRound({ round, m, striped = false, label }: Props) {
       g.globalAlpha = 0.6;
       g.strokeStyle = GILD;
       paintFigure(g, S, cx, Y, lw, trousers ? 0 : 1, false, phi);
-      // Under the cloth the form shows through faintly, so the garment, not the body, is what reads.
+      // The cloth covers the form: under the garment the body is not drawn, so the garment is what reads.
       if (!trousers) {
+        // The shoulders and the neck still show through a top's yoke: the cloth is held to the body there.
+        const from = isTop && arm ? yU : yOf(highest);
         g.globalAlpha = 1;
-        g.fillStyle = 'rgba(0, 0, 0, 0.6)';
-        g.fillRect(0, Y(yOf(highest)) - 2, w, Y(longest) - Y(yOf(highest)) + 4);
+        g.fillStyle = '#000';
+        g.fillRect(0, Y(from) - 1, w, Y(longest) - Y(from) + 2);
       }
       g.restore();
       if (trousers) {
@@ -366,8 +371,9 @@ export function AllRound({ round, m, striped = false, label }: Props) {
       // The cloth itself, as lines down the garment all the way round, so it reads over the form: hanging
       // straight where it has ease, and only pulled in where it is cut close.
       if (!trousers) {
-        for (let j = 0; j < 36; j++) {
-          const a = (TAU * (j + 0.5)) / 36;
+        const n = film ? 28 : 36;
+        for (let j = 0; j < n; j++) {
+          const a = (TAU * (j + 0.5)) / n;
           const y0 = isTop && arm ? Math.max(topY(a), yU - 0.02) : topY(a);
           const y1 = hemY(a);
           const pts: Pt[] = [];
@@ -375,7 +381,11 @@ export function AllRound({ round, m, striped = false, label }: Props) {
             const y = y0 + ((y1 - y0) * i) / 30;
             pts.push(P(a, radius(y), y));
           }
-          line(pts, GLOW, lw * 0.55, 0, 0.7);
+          line(pts, GLOW, lw * 0.55, 0.08, film ? 0.75 : 0.6);
+        }
+        for (let y = yOf(highest) + 0.12; !film && y < yOf(longest) - 0.04; y += 5 * kY) {
+          const yy = y;
+          ring((a) => Math.max(yy, topY(a)), (_, v) => radius(v), GLOW, lw * 0.5, 0.08, 0.45);
         }
       }
       // The garment: its top edge and waistband, its hem and its outline.
@@ -441,7 +451,7 @@ export function AllRound({ round, m, striped = false, label }: Props) {
             const a = -Math.PI + (TAU * i) / 144;
             const y = yAt(a);
             const q = P(a, radius(y), y);
-            const inside = y < hemY(a) - 0.01 && y > topY(a) + 0.01 && !(isTop && arm && y < yU && Math.abs(Math.abs(a) - HALF) < 0.35);
+            const inside = y < hemY(a) - 0.01 && y > topY(a) + 0.01 && !(isTop && arm && y < yU && Math.abs(Math.abs(a) - HALF) < 0.35) && !(film && isTop && arm && y < yU + 0.02);
             // Each panel is drawn on its own, so stripes that don't meet would show as a break at the seam.
             const isFront = Math.abs(a) <= HALF;
             if (prev && inside && isFront === prevFront) {
@@ -466,11 +476,11 @@ export function AllRound({ round, m, striped = false, label }: Props) {
             const y = mid - half * Math.cos(t);
             loop.push(P(e * HALF + 0.32 * Math.sin(t), radius(y) + 0.004, y));
           }
-          line(loop, GLOW, lw * 1.05);
+          if (!(film && sl)) line(loop, GLOW, lw * 1.05);
           if (!sl) continue;
           const ys = Array.from({ length: 41 }, (_, i) => yS + ((yE - yS) * i) / 40);
           const o = centre(e * axisX(yU), yU);
-          const alpha = clamp(0.55 + o.z / (formHalfWidth(yU) + ra), 0.22, 1);
+          const alpha = film ? clamp(0.7 + o.z / (formHalfWidth(yU) + ra), 0.35, 1) : clamp(0.55 + o.z / (formHalfWidth(yU) + ra), 0.22, 1);
           for (const side of [-1, 1]) {
             polyline(
               ys.map((y) => {
@@ -478,11 +488,17 @@ export function AllRound({ round, m, striped = false, label }: Props) {
                 return [q.x + side * sleeveR(y) * S, q.y];
               }),
               GLOW,
-              lw * 1.1,
+              lw * (film ? 1.4 : 1.1),
               alpha,
             );
           }
-          tubeRing(e * axisX(yE), rh, yE, GLOW, lw * 1.2, alpha);
+          tubeRing(e * axisX(yE), rh, yE, GLOW, lw * (film ? 1.4 : 1.2), alpha);
+          if (film) {
+            // The sleeve's cloth, in a few lines down the front of the arm.
+            for (const a of [-0.9, -0.3, 0.3, 0.9]) {
+              line(ys.filter((y) => y >= yU - 0.02).map((y) => T(e * axisX(y), a, sleeveR(y), y)), GLOW, lw * 0.5, 0, alpha * 0.6);
+            }
+          }
           // The underarm seam, on the side of the sleeve toward the body.
           line(
             ys.filter((y) => y >= yU).map((y) => T(e * axisX(y), -e * HALF, sleeveR(y), y)),
@@ -513,7 +529,7 @@ export function AllRound({ round, m, striped = false, label }: Props) {
       }
 
       // Darts, seams, the zip, buttons and the vent.
-      for (const dt of round.darts) line(along([dt.base, dt.tip]), GILD, lw * 0.8);
+      for (const dt of round.darts) line(along([dt.base, dt.tip]), GILD, lw * 0.8, 0.2, film ? 0.5 : 1);
       const drawn = (sm: RoundSeam) => sm.kind !== 'sleeve';
       for (const sm of round.seams.filter(drawn)) line(along(sm.pts, sm.leg), GLOW, lw * 1.1);
       if (round.zip) {
@@ -537,7 +553,8 @@ export function AllRound({ round, m, striped = false, label }: Props) {
       // Where they meet: every seam at both ends, every dart point, stripes at the sides.
       const glow = clamp(1 - (now - pulse.current) / 1600, 0, 1);
       const meet = (q: Pt) => {
-        dot(q, OK);
+        if (film) return;
+        dot(q, OK, 2.4);
         if (glow > 0 && q[2] > -0.2) {
           g.save();
           g.globalAlpha = glow * (q[2] > 0 ? 0.9 : 0.35);
@@ -553,16 +570,16 @@ export function AllRound({ round, m, striped = false, label }: Props) {
       };
       for (const sm of round.seams.filter(drawn)) {
         if (sm.pts.length < 2) continue;
-        if (!sm.cont) dot(spot(sm.pts[0], sm.leg), OK);
+        if (!sm.cont && !film) dot(spot(sm.pts[0], sm.leg), OK, 2.4);
         meet(spot(sm.pts[sm.pts.length - 1], sm.leg));
       }
       if (sl && arm) {
         for (const e of [1, -1]) {
-          dot(P(e * HALF, radius(yU), yU), OK);
+          if (!film) dot(P(e * HALF, radius(yU), yU), OK);
           meet(T(e * axisX(yE), -e * HALF, rh, yE));
         }
       }
-      for (const dt of round.darts) dot(spot(dt.tip), OK, 2.4);
+      if (!film) for (const dt of round.darts) dot(spot(dt.tip), OK, 2.4);
       if (striped && stripesMeet(round)) {
         for (const a of [HALF, -HALF]) {
           for (let d = Math.max(12, Math.ceil(highest / 12) * 12 + 12); d < round.lengthAt(a) - 2; d += 12) {
@@ -572,7 +589,7 @@ export function AllRound({ round, m, striped = false, label }: Props) {
         }
       }
 
-      text('Drag to turn', 8, fig - 4);
+      if (!film) text('Drag to turn', 8, fig - 4);
       if (!strip) return;
 
       // The hem unrolled: centre front, round by the left side and the back, to the centre front again.
