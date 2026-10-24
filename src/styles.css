@@ -7284,3 +7284,17 @@ details.sew > .sew-summary + .row {
   left: auto;
   right: 0;
 }
+/* Shorter Print (Cat applied P2 + P3, 2026-10-24): no fabric yet is one line; the pages fold behind "See the pages". */
+.yourfabric.none .fabline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 16px;
+}
+.yourfabric.none .fabline p {
+  margin: 0;
+}
+.print-sheet .see-pages {
+  align-self: flex-start;
+}

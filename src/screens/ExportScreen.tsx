@@ -1,5 +1,6 @@
 import { DropMenu } from '../ui/DropMenu';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useWide } from '../ui/StyleLayout';
+import { useEffect, useMemo, useState } from 'react';
 import { SendToDevice } from '../ui/SendToDevice';
 import { OVERLAP, PAGE_MARGIN, Paper, Sheet, layout, pageCount, pageName, pageSize, tileGrid, toSvg, usedTiles } from '../engine/export';
 import { checkPattern } from '../engine/qc';
@@ -21,7 +22,6 @@ import { SPECIALS, Special, needsNap } from '../engine/specialFabrics';
 import { printNap, printOf } from '../engine/prints';
 import { SizeRun } from '../ui/SizeRun';
 import { Envelope } from '../ui/Envelope';
-import { useWide } from '../ui/StyleLayout';
 import { InterestCard } from '../ui/InterestCard';
 import type { MeasurementValues } from '../measurements';
 import { Mode, ProTool, shows } from '../mode';
@@ -205,15 +205,13 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', sendLink, prof
   const [printed, setPrinted] = useState(false);
   // How to sew it folds closed on a phone, where the page was one long scroll, and opens on a computer (the
   // aesthetic review, 2026-10-21). Set once on arrival; after that the fold is the reader's.
-  const wide = useWide();
-  const sewFold = useRef<HTMLDetailsElement>(null);
-  useEffect(() => {
-    if (sewFold.current) sewFold.current.open = wide;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
   // On the example body, the first print asks once whether to measure first or print the example anyway.
   const [asking, setAsking] = useState<(() => void) | undefined>();
   const [exampleOk, setExampleOk] = useState(false);
+  // On a computer the pages sit in their own column beside the controls, so they stay open there.
+  const wide = useWide();
+  const [seePages, setSeePages] = useState(false);
+  const showPages = wide || seePages;
   const checked = (go: () => void) => () => (example && !exampleOk ? setAsking(() => go) : go());
   const share = async () => {
     if (!ready) return;
@@ -357,11 +355,19 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', sendLink, prof
             )}
           </div>
           <div className="print-sheet">
-            <div className="preview tiles" style={{ ['--cols' as string]: grid.cols }}>
-              <PatternPreview sheet={sheet} label={projector ? 'Pattern on one page for a projector' : `Pattern laid over ${pages} numbered print pages`} />
-              {!projector && <TileOverlay sheet={sheet} paper={paper} />}
-              <DemoButton demo="print" />
-            </div>
+            {/* On a phone the pages fold behind one line (Cat applied P3, 2026-10-24), so Print is a shorter scroll. */}
+            {!wide && (
+              <button type="button" className="later go see-pages" aria-expanded={seePages} onClick={() => setSeePages(!seePages)}>
+                {seePages ? 'Hide the pages' : projector ? 'See the page' : `See the ${pages} ${pages === 1 ? 'page' : 'pages'}`} <span aria-hidden="true">{seePages ? '‹' : '›'}</span>
+              </button>
+            )}
+            {showPages && (
+              <div className="preview tiles" style={{ ['--cols' as string]: grid.cols }}>
+                <PatternPreview sheet={sheet} label={projector ? 'Pattern on one page for a projector' : `Pattern laid over ${pages} numbered print pages`} />
+                {!projector && <TileOverlay sheet={sheet} paper={paper} />}
+                <DemoButton demo="print" />
+              </div>
+            )}
             {!imported && <p className="muted small">
               {passed === checks.length
                 ? 'Checked: every seam meets its partner and every curve runs smoothly from piece to piece.'
@@ -518,7 +524,8 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', sendLink, prof
       )}
       {values && draftAt && can('sizeRun') && <InterestCard offer="sizerun" pattern={title} />}
 
-      <details className="card sew" ref={sewFold}>
+      {/* Folded shut on phone and computer alike (Cat applied P1, 2026-10-24), so Print is a shorter scroll. */}
+      <details className="card sew">
         <summary className="sew-summary">
           <p className="eyebrow">After printing</p>
           <h2 id="sewtitle">How to sew it</h2>
@@ -666,6 +673,23 @@ function YourFabric({ fabric, style, metres, onChange }: { fabric: MyFabric; sty
   const shop = shopFabric(fabric.shop);
   const notes = checkFabric(style, fabric);
   const name = fabricName(fabric);
+  // No fabric yet: one line and the way to choose it, not a photo of folded cloth (Cat applied P2, 2026-10-24).
+  if (!name)
+    return (
+      <section className="card yourfabric none" aria-labelledby="fabtitle">
+        <p className="eyebrow" id="fabtitle">
+          Your fabric
+        </p>
+        <div className="fabline">
+          <p className="muted small">Not chosen yet. It sets the cutting layout and goes on the PDF.</p>
+          {onChange && (
+            <button type="button" className="later go" onClick={onChange}>
+              Choose fabric <span aria-hidden="true">›</span>
+            </button>
+          )}
+        </div>
+      </section>
+    );
   return (
     <section className="card yourfabric" aria-labelledby="fabtitle">
       <p className="eyebrow">Your fabric</p>
