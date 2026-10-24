@@ -4,8 +4,8 @@ import { FIELDS } from './measurements';
 
 describe('measuring flow', () => {
   it('suggests a string at the waist, then starts the lengths from it', () => {
-    expect(stringOf('waist', false)).toMatch(/Tie it round your waist/);
-    expect(stringOf('waist', true)).toMatch(/their waist/);
+    expect(stringOf('waist', false)).toMatch(/Tie a string there/);
+    expect(stringOf('waist', true)).toMatch(/string/);
     for (const id of ['waist_to_floor', 'waist_to_hip', 'nape_to_waist'] as const) expect(stringOf(id, false)).toMatch(/Start from it/);
     expect(stringOf('full_bust', false)).toBeUndefined();
   });

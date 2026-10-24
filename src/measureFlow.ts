@@ -89,7 +89,7 @@ const FROM_WAIST = new Set<MeasurementId>(['waist_to_hip', 'waist_to_knee', 'wai
 export function stringOf(id: MeasurementId, helper: boolean, form?: FormKind): string | undefined {
   const l =
     id === 'waist'
-      ? 'Got a string, ribbon or elastic? Tie it round your waist and leave it on: your lengths start from it.'
+      ? 'Tie a string there if you have one.'
       : FROM_WAIST.has(id)
         ? 'Tied a string at your waist? Start from it.'
         : undefined;

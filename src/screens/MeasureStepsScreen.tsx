@@ -861,8 +861,11 @@ export function MeasurePage({
       aside={ids && <StepList title={listTitle ?? 'Your measurements'} ids={ids} at={dots[1]} values={values} unit={unit} form={form} />}
       labels={ids && ids.length <= 8 && ids.every((i) => labelLevel(i, form) !== undefined) && <FormLabels ids={ids} at={dots[1]} values={values} unit={unit} form={form} />}
     >
-      <p className="muted step-tip">{tipOf(id, helper, form)}</p>
-      {stringOf(id, helper, form) && <p className="muted small friend-nudge">{stringOf(id, helper, form)}</p>}
+      <p className="muted step-tip">
+        {tipOf(id, helper, form)}
+        {/* On the tip's own line, so the page still fits a phone without scrolling. */}
+        {stringOf(id, helper, form) && <span className="string-tip"> {stringOf(id, helper, form)}</span>}
+      </p>
       {onFriend && !friend && fieldOf(id).helper && <p className="muted small friend-nudge">This one is much easier with a friend holding the tape.</p>}
       <p className="how-row">
         <button type="button" className="later go how-link" aria-expanded={how} onClick={() => setHow(true)}>
