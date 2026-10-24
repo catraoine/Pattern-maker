@@ -178,6 +178,8 @@ const PICS: Record<PicSet, Record<string, Record<string, ReactNode>>> = {
       wide: <path d="M11 4h18l5 42H23l-3-28-3 28H6z" />,
       tapered: <path d="M10 4h20l-3 42h-6l-1-28-1 28h-6z" />,
       culotte: <path d="M11 4h18l6 30H22l-2-16-2 16H5z" />,
+      flare: <path d="M11 4h18l-1 24 4 18h-9l-3-28-3 28H8l4-18z" />,
+      bootcut: <path d="M11 4h18l-1 24 2 18h-8l-2-28-2 28h-8l2-18z" />,
     },
     length: {
       shorts: <path d="M11 4h18l2 16h-9l-2-6-2 6h-9z" />,

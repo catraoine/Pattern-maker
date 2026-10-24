@@ -1,3 +1,4 @@
+import { matchKind } from '../engine/prints';
 import { BELTS, Belt, beltAllowed, beltPieces, dressBelt } from '../engine/belt';
 import { useMemo, useState } from 'react';
 import { layout } from '../engine/export';
@@ -8,10 +9,13 @@ import type { DressDraft, WaistSeam } from '../engine/dress';
 import { wrapSkirtAllowed } from '../engine/wrapSkirt';
 import { SLIT_PLACES, SlitPlace, slitAllowed } from '../engine/slit';
 import { NO_SLIT, SlitSlider } from '../ui/SlitSlider';
-import { dressFlat, wornShapes } from '../engine/flat';
+import { dressFlat, wornLines, wornShapes } from '../engine/flat';
 import { piecesLengthCm, toMetres } from '../engine/fabric';
 import { layPlan } from '../engine/layplan';
-import { SHAPES_FOR_LENGTH, SleeveDraft, needsArms } from '../engine/sleeve';
+import { SHAPES_FOR_LENGTH, SleeveDraft, SleeveMeasurements, needsArms } from '../engine/sleeve';
+import { readBodiceSleeve, sleeveRange } from '../ui/formSleeves';
+import { readCollar, readFront } from '../ui/formCollar';
+import { readFullness, readSkirtPocket, readSlit, skirtHalf, slitLines } from '../ui/formSkirt';
 import { SleeveSlider } from '../ui/SleeveSlider';
 import { SLEEVE_CUTS, sleeveCutBlocked } from '../engine/sleeveCut';
 import { Cuff, cuffAllowed, cuffShown } from '../engine/cuffs';
@@ -25,7 +29,7 @@ import { TechFlatView } from '../ui/TechFlatView';
 import { AllRound } from '../ui/AllRound';
 import { roundDress } from '../engine/allRound';
 import { FabricSwatches, GarmentFabric } from '../ui/FabricFill';
-import { DETAIL_GROUPS, GROUPS } from './StyleScreen';
+import { DETAIL_GROUPS, GROUPS, pocketsAllowed } from './StyleScreen';
 import { cutAllowed, validCut } from '../engine/slip';
 import { describePattern } from './describe';
 import { FABRIC, Group, PRO, StyleLayout, TabPanel } from '../ui/StyleLayout';
@@ -154,7 +158,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
 
   // A boned or draped bodice is drafted to the natural waist, so it keeps its waist seam there.
   // A shirt dress or a wrap buttons or ties at the waist, so its seam stays there.
-  const canDrop = !boned && !draped && !buttoned && !wrapped;
+  const canDrop = !boned && !draped;
   // Raising the seam cuts a plain front and back across: the engine says how high this bodice can go.
   const canRaise = canDrop && (draft?.seamRange.min ?? 0) < 0;
   const ownSeam = canDrop && choices.waistSeamCm !== undefined;
@@ -340,12 +344,20 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
   const sm = useMemo(() => fromSeam(mv, draft?.seamDrop ?? 0), [mv, draft?.seamDrop]);
   const formBody = useMemo(() => (draft ? formWidth(draft.bodice, mv) : undefined), [draft, mv]);
   const clothShapes = useMemo(() => (flat ? wornShapes(flat) : undefined), [flat]);
+  const flatLines = useMemo(() => (flat ? wornLines(flat) : undefined), [flat]);
   // The arms, for the sleeves to hang on: from the arm measurements, once they are given.
   const formArm = useMemo(() => {
     if (!draft || !sleeve || needsArms(values)) return undefined;
     const { shoulderTip, underarm } = landmarks(draft.bodice);
     return armFor(shoulderTip, underarm, { arm_length: values.arm_length!, upper_arm: values.upper_arm!, wrist: values.wrist });
   }, [draft, sleeve, values]);
+  // On the form to draw on, the arms show once they are measured, so a sleeve can be drawn on a sleeveless dress too.
+  const drawArm = useMemo(() => {
+    if (!draft || needsArms(values)) return undefined;
+    const { shoulderTip, underarm } = landmarks(draft.bodice);
+    return armFor(shoulderTip, underarm, { arm_length: values.arm_length!, upper_arm: values.upper_arm!, wrist: values.wrist });
+  }, [draft, values]);
+  const sleeves = useMemo(() => (draft && onForm ? sleeveRange(draft.bodice, mv as unknown as BodiceMeasurements & SleeveMeasurements, choices.fit) : undefined), [draft, onForm, mv, choices.fit]);
   const formLines = useMemo(() => {
     if (!draft) return {};
     const uneven = unevenNecklineLines(draft.bodice);
@@ -381,7 +393,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
         m={mv}
         legs
         cloth={clothShapes}
-        arms={formArm}
+        arms={drawArm}
         sleeve={formArm ? sleeve : undefined}
         underarmY={landmarks(draft.bodice).underarm.y}
         bottom={waistY + lengthRange(mv).max + 4}
@@ -389,15 +401,24 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           ['neckline', 'Neckline'],
           ['seam', 'Seam'],
           ['drape', 'Drape'],
+          ...(drawArm && sleeves ? ([['sleeve', 'Sleeve']] as [FormLine, string][]) : []),
+          ['collar', 'Collar'],
+          ['front', 'Front'],
           ['fit', 'Side'],
           ['hem', 'Hem'],
           ...(canDrop ? ([['waist', 'Waist seam']] as [FormLine, string][]) : []),
+          ...(draft.noSeam ? [] : ([['slit', 'Slit'], ['fullness', 'Fullness'], ['pocket', 'Pocket']] as [FormLine, string][])),
         ]}
+        help={{
+          pocket: 'Draw a short line down the side seam of the skirt, below the waist, for in-seam pockets.',
+          collar: 'Draw the collar round the neck: standing up above the neckline for a band, lying flat and rounded for a Peter Pan, coming to points for a shirt collar, hanging down at the centre for a bow.',
+          front: 'Draw down the front: straight down the centre for a shirt dress buttoned to the hem, or from the neck crossing to the side at the waist for a wrap. On the back, down the centre for the zip.',
+        }}
         lines={(side) => {
           const uneven = side === 'front' ? unevenNecklineLines(draft.bodice) : [];
           const top = bodiceLines(draft.bodice, side);
           if (draft.noSeam) return { ...top, hem: noSeamLines(draft, side).hem, ...(uneven.length ? { neckline: uneven } : {}) };
-          return { ...top, waist: top.hem, hem: skirtLines(draft.skirt, choices.skirt, sm, side, seamY).hem, ...(uneven.length ? { neckline: uneven } : {}) };
+          return { ...top, waist: top.hem, hem: skirtLines(draft.skirt, choices.skirt, sm, side, seamY).hem, ...slitLines(draft.skirt, choices.skirt, sm, seamY, side), ...(uneven.length ? { neckline: uneven } : {}) };
         }}
         choices={choices}
         onChoices={setChoices}
@@ -411,6 +432,29 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           if (kind === 'hem') {
             const r = readSkirtHem(stroke, seamY, draft.skirt, sm, choices.skirt, side, 'dress');
             return { said: r.said, choices: r.choices && { ...choices, skirt: r.choices } };
+          }
+          if (kind === 'slit' || kind === 'fullness' || kind === 'pocket') {
+            const half = skirtHalf(draft.skirt, choices.skirt, sm, seamY);
+            const r =
+              kind === 'slit'
+                ? readSlit(stroke, seamY, draft.skirt.lengthCm, sm, choices.skirt, side, half, (at) => !buttoned || at === 'side')
+                : kind === 'fullness'
+                  ? buttoned
+                    ? { said: 'A dress buttoned down the front keeps a plain skirt, so the buttons run straight to the hem.' }
+                    : readFullness(stroke, seamY, draft.skirt.lengthCm, choices.skirt)
+                  : readSkirtPocket(stroke, seamY, sm, choices.skirt, half, pocketsAllowed(choices.skirt));
+            return { said: r.said, choices: r.choices && { ...choices, skirt: validCut(r.choices) } };
+          }
+          if (kind === 'collar' || kind === 'front') {
+            const r =
+              kind === 'collar'
+                ? readCollar(stroke, draft.bodice, asBodice, 'dress')
+                : readFront(stroke, draft.bodice, asBodice, 'dress', side, (cl) => (cl === 'front_buttons' ? buttonsOk : cl === 'wrap' ? wrapOk : true));
+            return { said: r.said, choices: r.choices && { ...choices, bodice: r.choices } };
+          }
+          if (kind === 'sleeve' && drawArm && sleeves) {
+            const r = readBodiceSleeve(stroke, draft.bodice, drawArm, sleeves, asBodice, 'dress');
+            return { said: r.said, choices: r.choices && { ...choices, bodice: r.choices } };
           }
           if (kind === 'fit') {
             const r = readFit(stroke, draft.bodice, mv, asBodice);
@@ -441,6 +485,8 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
   return (
     <StyleLayout
       onEditMeasurements={onEditMeasurements}
+      onPrint={onNext}
+      flat={flat}
       undo={undo}
       sections={DRESS_SECTIONS}
       label="your dress"
@@ -524,7 +570,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
                   )}
               </p>
             )}
-            {g.id === 'waistSeam' && !canDrop && <p className="muted small">{boned || draped ? `A ${boned ? 'boned' : 'draped'} bodice is shaped to the natural waist, so its seam stays there.` : `A ${wrapped ? 'wrap ties' : 'shirt dress buttons'} at the waist, so its seam stays there.`}</p>}
+            {g.id === 'waistSeam' && !canDrop && <p className="muted small">{`A ${boned ? 'boned' : 'draped'} bodice is shaped to the natural waist, so its seam stays there.`}</p>}
             {g.id === 'waistSeam' && canDrop && draft && (
               <div className="seam-height">
                 <input
@@ -606,7 +652,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           {error && <p className="msg error">{error}</p>}
           {formBody && view === 'sketch' && (
             <GarmentFabric fabric={fabric}>
-              <FormSketch body={formBody} m={mv} legs bottom={waistY + lengthRange(mv).max + 4} lines={formLines} cloth={clothShapes} arms={formArm} sleeve={formArm ? sleeve : undefined} underarmY={draft ? landmarks(draft.bodice).underarm.y : undefined} hem={draft ? hem : undefined} label={`The ${title} on your form`} />
+              <FormSketch body={formBody} m={mv} legs bottom={waistY + lengthRange(mv).max + 4} lines={formLines} cloth={clothShapes} flatLines={flatLines} arms={formArm} sleeve={formArm ? sleeve : undefined} underarmY={draft ? landmarks(draft.bodice).underarm.y : undefined} hem={draft ? hem : undefined} label={`The ${title} on your form`} />
             </GarmentFabric>
           )}
           {flat && view === 'flat' && (
@@ -614,7 +660,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
               <TechFlatView flat={flat} title={title} />
             </GarmentFabric>
           )}
-          {round && view === 'round' && <AllRound round={round} m={values} striped={!!fabric?.checks} label={`The ${title} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`} />}
+          {round && view === 'round' && <AllRound round={round} m={values} striped={matchKind(fabric)} label={`The ${title} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`} />}
           {sheet && view === 'pattern' && !(fit && canFit) && <PatternPane><PatternPreview paper sheet={sheet} label={`Pattern pieces for a ${title}`} /></PatternPane>}
           {view === 'pattern' && fit && canFit && <EaseMapView views={easeMap!} label={`The fit of the ${title}, on its pattern pieces`} />}
           <UndoToast undo={undo} />
@@ -694,7 +740,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           Print my pattern
         </button>
         <SaveControl state={saveState} disabled={!draft} onSave={onSave} onAccount={onAccount} />
-        <button type="button" className="link edit-measure" onClick={onEditMeasurements}>
+        <button type="button" className="later edit-measure" onClick={onEditMeasurements}>
           Edit measurements
         </button>
       </aside>

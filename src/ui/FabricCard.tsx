@@ -29,7 +29,7 @@ export function FabricCard({ metres, advice, look, fabric, knit, lined, children
       </p>
       {mine && <p className="small">Your fabric: {mine}.</p>}
       {/* Folded, so the tab stays short on a phone, under the pinned sketch. */}
-      <details className="small">
+      <details className="small fold-link">
         <summary>Good fabrics for {advice.style}</summary>
         <ul className="picks">
           {look && (

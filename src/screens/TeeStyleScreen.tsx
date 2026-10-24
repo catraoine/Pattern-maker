@@ -3,7 +3,7 @@ import { layout } from '../engine/export';
 import { piecesLengthCm, toMetres } from '../engine/fabric';
 import { layPlan } from '../engine/layplan';
 import { NECKBAND_CM, STRETCH_TEST, TeeDraft, pctWords } from '../engine/tee';
-import { teeFlat, wornShapes } from '../engine/flat';
+import { teeFlat, wornLines, wornShapes } from '../engine/flat';
 import { TEE_GROUPS, TeeChoices, describeTee } from '../garments';
 import { TechFlatView } from '../ui/TechFlatView';
 import { GarmentViews, PreviewSwitch } from '../ui/PreviewSwitch';
@@ -81,6 +81,7 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
   const sheet = useMemo(() => (draft ? layout(pieces, '', []) : undefined), [draft, pieces]);
   const flat = useMemo(() => (draft ? teeFlat(draft) : undefined), [draft]);
   const clothShapes = useMemo(() => (flat ? wornShapes(flat) : undefined), [flat]);
+  const flatLines = useMemo(() => (flat ? wornLines(flat) : undefined), [flat]);
   const title = describeTee(choices);
   const round = useMemo(() => (draft ? roundTee(draft, values) : undefined), [draft, values]);
   const hemLabel = choices.length === 'cropped' ? 'Hem' : 'Hip';
@@ -97,7 +98,7 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
         legs={false}
         bottom={form.hems.tunic + 6}
         arms={form.arm}
-        backs={false}
+        backKinds={['hem']}
         kinds={[
           ['neckline', 'Neckline'],
           ['fit', 'Side'],
@@ -106,19 +107,20 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
         ]}
         help={{
           neckline: 'Draw the neckline from the shoulder down to the centre front: close to the neck for a crew, lower and round for a scoop, straight down to a point for a V.',
-          hem: 'Draw across where you want the hem: just below the waist, at the hip, or lower for a tunic. A T-shirt hem is cut level.',
+          hem: 'Draw across where you want the hem: just below the waist, at the hip, or lower for a tunic. Curve it up at the sides for a shirttail, or turn to the back and draw it lower for a high-low hem.',
+          sleeve: 'Draw across the arm where you want the sleeve to end.',
         }}
         lines={() => teeLines(draft, form)}
         choices={choices}
         onChoices={setChoices}
-        read={(kind, _side, stroke) =>
+        read={(kind, side, stroke) =>
           kind === 'neckline'
             ? readTeeNeckline(stroke, form, choices)
             : kind === 'fit'
               ? readTeeFit(stroke, form, m, choices)
               : kind === 'sleeve'
                 ? readTeeSleeve(stroke, form, choices)
-                : readTeeHem(stroke, form, choices)
+                : readTeeHem(stroke, form, choices, side)
         }
         onDone={() => {
           undo.change(choices, onForm);
@@ -137,6 +139,8 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
   return (
     <StyleLayout
       onEditMeasurements={onEditMeasurements}
+      onPrint={onNext}
+      flat={flat}
       undo={undo}
       label="your T-shirt"
       garment="tee"
@@ -215,7 +219,7 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
                 bottom={form.hems.tunic + 6}
                 arms={form.arm}
                 lines={formLines}
-                cloth={clothShapes}
+                cloth={clothShapes} flatLines={flatLines}
                 sleeve={draft.sleeve}
                 hem={{
                   name: 'T-shirt length',
@@ -294,7 +298,7 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
           Print my pattern
         </button>
         <SaveControl state={saveState} disabled={!draft} onSave={onSave} onAccount={onAccount} />
-        <button type="button" className="link edit-measure" onClick={onEditMeasurements}>
+        <button type="button" className="later edit-measure" onClick={onEditMeasurements}>
           Edit measurements
         </button>
       </aside>

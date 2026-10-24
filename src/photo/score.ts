@@ -1,8 +1,11 @@
 // Scoring photo readings against hand labels, for the photo-to-pattern eval (scripts/eval-photo.ts).
 import { checkPattern } from '../engine/qc';
 import { DraftError, Fit, Length, Silhouette, SkirtMeasurements, draftSkirt } from '../engine/skirt';
+import type { Fibre } from '../engine/fabrics';
+import type { WaistSeam } from '../engine/dress';
+import type { Special } from '../engine/specialFabrics';
 import { fitOf, shapeOf } from './shape';
-import type { PhotoReading } from './types';
+import type { PhotoReading, TopReading } from './types';
 
 /** What the skirt in a photo really is, labelled by a person. */
 export interface Truth {
@@ -14,6 +17,60 @@ export interface Truth {
   hemFullness: number;
   /** True when it has features the app can't draft yet (pleats, gathers, a slit, seam lines, a special waistband...), so details should say so. */
   hasDetails: boolean;
+  /** What else the photo shows. The reader has no slot for some of these yet; those are listed as "not read" rather than scored. */
+  top?: Partial<Pick<TopReading, 'neckline' | 'sleeve' | 'sleeveShape' | 'collar' | 'opening'>>;
+  /** For a dress: where the waist seam sits, or none. */
+  waistSeam?: WaistSeam | 'none';
+  /** A belt, sash or ties at the waist. */
+  belt?: 'none' | 'sash' | 'loops' | 'ties';
+  /** The cloth as a sewist would name it, and its colour and print. */
+  fabric?: { type?: FabricType; fibre?: Fibre; colour?: string; print?: 'none' | 'checks' | 'stripes' | 'floral' | 'animal' | 'abstract' | 'border'; sheer?: boolean };
+}
+
+/** Cloth types a photo can show. The app's own special cloths, plus the ones it has no setting for yet. */
+export type FabricType = Special | 'knit' | 'fleece' | 'chiffon' | 'crepe' | 'gauze' | 'plain';
+
+/** The parts of a label the reader has no slot for, so a photo can never set them (see evals/photo/README). */
+export function notRead(t: Truth): string[] {
+  const out: string[] = [];
+  // Since the reader gained its fabric, waist-seam and belt slots (October 2026), only a fibre is still unread.
+  if (t.fabric?.fibre) out.push(`fibre (${t.fabric.fibre})`);
+  return out;
+}
+
+/** How a fabric label compares with the reading: type (a chiffon reads as sheer too), colour, print and sheerness. */
+export function fabricRight(r: PhotoReading, t: Truth): { right: number; of: number; wrong: string[] } | undefined {
+  const want = t.fabric;
+  const got = r.fabric;
+  if (!want || !got) return undefined;
+  const wrong: string[] = [];
+  let of = 0;
+  const same = (a: string, b: string) => a === b || (a === 'chiffon' && b === 'sheer') || (a === 'sheer' && b === 'chiffon');
+  if (want.type) {
+    of++;
+    if (!same(want.type, got.type)) wrong.push(`type ${got.type}≠${want.type}`);
+  }
+  if (want.colour) {
+    of++;
+    if (got.colour !== want.colour.toLowerCase()) wrong.push(`colour ${got.colour}≠${want.colour}`);
+  }
+  if (want.print) {
+    of++;
+    if (got.print !== want.print) wrong.push(`print ${got.print}≠${want.print}`);
+  }
+  if (want.sheer !== undefined) {
+    of++;
+    if (got.sheer !== want.sheer) wrong.push(`sheer ${got.sheer}≠${want.sheer}`);
+  }
+  if (t.waistSeam && r.top) {
+    of++;
+    if ((r.top.waistSeamAt ?? 'natural') !== t.waistSeam) wrong.push(`waist seam ${r.top.waistSeamAt}≠${t.waistSeam}`);
+  }
+  if (t.belt && r.top) {
+    of++;
+    if ((r.top.belt ?? 'none') !== t.belt) wrong.push(`belt ${r.top.belt}≠${t.belt}`);
+  }
+  return { right: of - wrong.length, of, wrong };
 }
 
 export interface Score {
@@ -21,6 +78,12 @@ export interface Score {
   parts: { garment: number; silhouette: number; length: number; fit: number; hemAt: number; hemFullness: number; details: number };
   /** Said "high" confidence about a silhouette or length it got wrong. */
   confidentlyWrong: string[];
+  /** Labelled things the reader has no slot for: the photo could be read perfectly and the app would still not know them. */
+  notRead: string[];
+  /** For a dress or top: which of the labelled top fields the reading got right, out of those labelled. */
+  topRight?: { right: number; of: number; wrong: string[] };
+  /** How the fabric, waist seam and belt were read against the label. */
+  fabricRight?: { right: number; of: number; wrong: string[] };
   /** The reading turned into a pattern that passes every seam check on the reference body. */
   drafts: boolean;
   draftNote: string;
@@ -81,5 +144,11 @@ export function scoreReading(r: PhotoReading, t: Truth): Score {
   if (r.silhouette.confidence === 'high' && r.silhouette.value !== t.silhouette) confidentlyWrong.push('silhouette');
   if (r.length.confidence === 'high' && r.length.value !== t.length) confidentlyWrong.push('length');
   const points = Object.values(parts).reduce((a, b) => a + b, 0);
-  return { points, parts, confidentlyWrong, ...draftCheck(r) };
+  let topRight: Score['topRight'];
+  if (t.top && r.top) {
+    const wrong = (Object.keys(t.top) as (keyof NonNullable<Truth['top']>)[]).filter((k) => t.top![k] !== undefined && r.top![k] !== t.top![k]);
+    const of = Object.values(t.top).filter((v) => v !== undefined).length;
+    topRight = { right: of - wrong.length, of, wrong };
+  }
+  return { points, parts, confidentlyWrong, notRead: notRead(t), topRight, fabricRight: fabricRight(r, t), ...draftCheck(r) };
 }

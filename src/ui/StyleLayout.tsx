@@ -2,7 +2,9 @@ import { Children, createContext, ReactNode, useContext, useEffect, useLayoutEff
 import type { Mode } from '../mode';
 import type { Garment } from '../measurements';
 import { canGoBack, goBack, usePageHistory } from '../nav';
+import type { Flat } from '../engine/flat';
 import { EnlargeSketch } from './EnlargeSketch';
+import { Envelope } from './Envelope';
 import { CollectionEntry, GarmentDrop } from './GarmentSwitch';
 import { ModeLink } from './ModeLink';
 import { PhotoEntry } from './PhotoEntry';
@@ -221,11 +223,15 @@ interface Props {
   sections?: Record<string, string>;
   /** Undo and Redo, in the bar at the bottom beside Review. */
   undo?: Undo;
+  /** The garment's technical flat: the Review page shows it as the pattern's envelope (R1, 2026-10-24). */
+  flat?: Flat;
+  /** Print my pattern, hoisted above the folded numbers on Review and on the computer's side. */
+  onPrint?: () => void;
 }
 
 const NO_SECTIONS: Record<string, string> = {};
 
-export function StyleLayout({ children, label, name, metres, width = 140, ready, onChooseGarment, onPhoto, photo, looks, mode, onMode, onEditMeasurements, sections = NO_SECTIONS, undo }: Props) {
+export function StyleLayout({ children, label, name, metres, width = 140, ready, onChooseGarment, onPhoto, photo, looks, mode, onMode, onEditMeasurements, sections = NO_SECTIONS, undo, flat, onPrint }: Props) {
   const [options, preview, summary] = Children.toArray(children);
   const [page, setPage] = usePageHistory<'edit' | 'review'>(() => 'edit');
   // Read here and cleared once mounted: React may run this twice, and the second run must see it too.
@@ -358,14 +364,32 @@ export function StyleLayout({ children, label, name, metres, width = 140, ready,
   };
   const at = steps.indexOf(active ?? '');
 
+  const Name = name.charAt(0).toUpperCase() + name.slice(1);
+  // The summary folded under one line, with its own Print and Edit measurements hidden (they're drawn here instead).
+  const folded = (
+    <details className="review-fold">
+      <summary>Numbers and pieces</summary>
+      {summary}
+    </details>
+  );
+
+  // The Review page as the pattern's envelope (R1, look and feel review, 2026-10-24): the garment's name, the
+  // front-and-back drawing, one Print, and the numbers folded under a line, so the page is a picture, not a table.
   if (page === 'review')
     return (
       <div className="style-review">
-        <div className="screen-head">
-          <Title big="Review" label={label} />
-        </div>
-        <p className="review-name">{name}</p>
-        {/* Both ways to change it, together under the name; the summary's own Edit measurements is for the computer layout. */}
+        <h1 className="review-title">
+          <span className="eyebrow">Review · {label}</span>
+          {Name}
+        </h1>
+        {flat && <Envelope name={Name} flat={flat} foot="Drafted to you" />}
+        {onPrint && (
+          <button type="button" className="primary review-print" disabled={!ready} onClick={onPrint}>
+            Print my pattern
+          </button>
+        )}
+        {folded}
+        {/* Both ways to change it, together under the fold. */}
         <p className="review-edits">
           <button type="button" className="later" onClick={() => (canGoBack() ? goBack() : setPage('edit'))}>
             Edit style
@@ -376,9 +400,10 @@ export function StyleLayout({ children, label, name, metres, width = 140, ready,
             </button>
           )}
         </p>
-        {summary}
       </div>
     );
+  // The step after this one, and its first word for the narrow bar at the bottom ("Next: Neck").
+  const next = active === LOOKS ? steps[0] : steps[at + 1];
 
   return (
     <div className="style-layout" ref={root}>
@@ -468,21 +493,19 @@ export function StyleLayout({ children, label, name, metres, width = 140, ready,
                   ‹ {steps[at - 1]}
                 </button>
               )}
-              {active === LOOKS && steps[0] ? (
-                <button type="button" className="step-go" onClick={() => goStep(steps[0])}>
-                  Start with {steps[0]} ›
-                </button>
-              ) : steps[at + 1] ? (
-                <button type="button" className="step-go" onClick={() => goStep(steps[at + 1])}>
-                  Next: {steps[at + 1]} ›
-                </button>
-              ) : (
-                !wide && (
-                  <button type="button" className="step-go" disabled={!ready} onClick={() => setPage('review')}>
-                    Review ›
+              {/* On a phone the one box is in the bar at the bottom (F1, 2026-10-24); the computer has no bar. */}
+              {wide &&
+                (active === LOOKS && steps[0] ? (
+                  <button type="button" className="step-go" onClick={() => goStep(steps[0])}>
+                    Start with {steps[0]} ›
                   </button>
-                )
-              )}
+                ) : (
+                  steps[at + 1] && (
+                    <button type="button" className="step-go" onClick={() => goStep(steps[at + 1])}>
+                      Next: {steps[at + 1]} ›
+                    </button>
+                  )
+                ))}
             </div>
           )}
         </div>
@@ -492,22 +515,48 @@ export function StyleLayout({ children, label, name, metres, width = 140, ready,
               <p className="eyebrow">{name}</p>
               {undo && <UndoTools undo={undo} />}
             </div>
-            {summary}
+            {onPrint && (
+              <button type="button" className="primary review-print" disabled={!ready} onClick={onPrint}>
+                Print my pattern
+              </button>
+            )}
+            {folded}
+            {onEditMeasurements && (
+              <p className="review-edits side-edits">
+                <button type="button" className="later" onClick={onEditMeasurements}>
+                  Edit measurements
+                </button>
+              </p>
+            )}
           </div>
         ) : (
+          // One box in the bar (F1, 2026-10-24): the next step, or Review after the last; undo and redo are bare
+          // arrows, and Review is a quiet link under the name until then.
           <div className="style-bar">
             <p className="style-bar-meta">
-              <strong>{name.charAt(0).toUpperCase() + name.slice(1)}</strong>
-              {metres !== undefined && (
-                <span className="muted">
-                  {metres} m of {width} cm fabric
-                </span>
-              )}
+              <strong>{Name}</strong>
+              <span className="muted">
+                {metres !== undefined && `${metres} m of ${width} cm`}
+                {next && ready && (
+                  <>
+                    {metres !== undefined && ' · '}
+                    <button type="button" className="later go bar-review" onClick={() => setPage('review')}>
+                      Review <span aria-hidden="true">›</span>
+                    </button>
+                  </>
+                )}
+              </span>
             </p>
             {undo && <UndoTools undo={undo} />}
-            <button type="button" className="primary" disabled={!ready} onClick={() => setPage('review')}>
-              Review
-            </button>
+            {next ? (
+              <button type="button" className="primary" onClick={() => goStep(next)}>
+                Next: {next.split(/\s/)[0]}
+              </button>
+            ) : (
+              <button type="button" className="primary" disabled={!ready} onClick={() => setPage('review')}>
+                Review
+              </button>
+            )}
           </div>
         )}
       </div>

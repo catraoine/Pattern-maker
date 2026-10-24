@@ -12,8 +12,8 @@
 // The same coordinates as formLines.ts: cm, the centre at x = 0, y running down.
 import type { P } from '../engine/geometry';
 import type { Piece } from '../engine/piece';
-import { TEE_EASE, TEE_NECKS, TeeDraft, TeeFit, TeeLength, TeeMeasurements, TeeNeck, TeeSleeve, draftTee, pctWords } from '../engine/tee';
-import { OUTER_EASE, OUTER_EXTENSION, OUTER_LENGTHS, OuterDraft, OuterFit, OuterFront, OuterMeasurements, outerDrop } from '../engine/outerwear';
+import { TEE_EASE, TEE_HEM_SHAPE, TEE_NECKS, TeeDraft, TeeFit, TeeLength, TeeMeasurements, TeeNeck, TeeSleeve, draftTee, pctWords } from '../engine/tee';
+import { FLARE_PER_40, OUTER_EASE, OUTER_EXTENSION, OUTER_LENGTHS, OuterDraft, OuterFit, OuterFront, OuterMeasurements, outerDrop } from '../engine/outerwear';
 import { OUTER_LENGTH_WORDS, OuterChoices, TeeChoices } from '../garments';
 import { FormArm, FormBody, armAt, armFor, torsoForm } from './DrawOnForm';
 import { APEX_REACH, FormLine, Reading, WAIST_REACH, bodiceLines, edgeAt, half, landmarks, median, mirror, standingBand } from './formLines';
@@ -128,20 +128,41 @@ export function readTeeFit(stroke: P[], tf: TeeForm, m: TeeMeasurements, c: TeeC
   };
 }
 
-/** A hem: the nearest length. A T-shirt hem is cut level, so a curved line sets its length only. */
-export function readTeeHem(stroke: P[], tf: TeeForm, c: TeeChoices): Reading<TeeChoices> {
+/**
+ * A hem: on the front, the nearest length at the middle, and a shirttail when it curves up to the side
+ * seams; on the back, how much lower than the front it hangs at the centre, for a high-low hem.
+ */
+export function readTeeHem(stroke: P[], tf: TeeForm, c: TeeChoices, side: 'front' | 'back' = 'front'): Reading<TeeChoices> {
   if (!stroke.length) return { said: 'Draw across the body where you want the hem.' };
-  const ys = stroke.map((q) => q.y);
-  const y = median(ys);
+  const pts = half(stroke);
+  const mid = pts.filter((q) => q.x < 4);
+  const reach = Math.max(...pts.map((q) => q.x));
+  const outer = pts.filter((q) => q.x > reach * 0.8);
+  const y = median((mid.length ? mid : pts).map((q) => q.y));
+  const { sides: _s, back: _b, ...shape } = c.hemShape ?? {};
+  const keep = (next: { sides?: number; back?: number }) => {
+    const h = { ...shape, ...next };
+    for (const k of ['sides', 'back'] as const) if (!h[k]) delete h[k];
+    return Object.keys(h).length ? { hemShape: h } : {};
+  };
+  if (side === 'back') {
+    const back = Math.round(Math.min(TEE_HEM_SHAPE.back, y - tf.hems[c.length]));
+    const { hemShape: _h, ...rest } = c;
+    if (back < 2) return { choices: { ...rest, ...keep({ sides: c.hemShape?.sides }) }, said: 'The back hem matches the front.' };
+    return { choices: { ...rest, ...keep({ sides: c.hemShape?.sides, back }) }, said: `A high-low hem: ${back} cm longer at the centre back, curving up to the side seams.` };
+  }
   const length = nearest(LENGTHS, (l) => tf.hems[l], y);
   const words: Record<TeeLength, string> = {
     cropped: 'Cropped: the hem just below your waist.',
     hip: 'Hip length: the hem at your hip.',
     tunic: `Tunic length: the hem ${Math.round(tf.hems.tunic - tf.hems.hip)} cm below your hip.`,
   };
-  const curved = Math.max(...ys) - Math.min(...ys) > 4 ? ' A T-shirt hem is cut level, so your line sets its length, at the middle.' : '';
+  const rise = outer.length && mid.length ? y - median(outer.map((q) => q.y)) : 0;
+  const sides = rise > 2.5 && length !== 'cropped' ? Math.round(Math.min(TEE_HEM_SHAPE.sides, rise)) : 0;
+  const curved = sides ? ` A shirttail hem, ${sides} cm higher at the side seams.` : rise > 2.5 ? ' A cropped T-shirt keeps a level hem.' : rise < -2.5 ? ' A T-shirt hem is cut level or curved up at the sides, so your line sets its length, at the middle.' : '';
   const off = Math.abs(y - tf.hems[length]) > 5 ? ' It is the nearest of the three lengths to your line.' : '';
-  return { choices: { ...c, length }, said: words[length] + curved + off };
+  const { hemShape: _h, ...rest } = c;
+  return { choices: { ...rest, length, ...keep({ back: c.hemShape?.back, sides }) }, said: words[length] + curved + off };
 }
 
 /** A line across the arm: the sleeve length, from the shoulder to where it crosses. */
@@ -193,9 +214,19 @@ export function readOuterHem(stroke: P[], draft: OuterDraft, m: OuterMeasurement
   const words = [`${OUTER_LENGTH_WORDS[length]} ${kind}: the hem ${Math.round(outerDrop(m, length))} cm below your waist.`];
   if (kind === 'jacket' && drop > outerDrop(m, 'long') + 8) words.push('A jacket goes no longer than this; for a longer hem, make a coat.');
   else if (kind === 'coat' && drop < outerDrop(m, 'thigh') - 8) words.push('A coat goes no shorter than this; for a shorter hem, make a jacket.');
-  if (Math.max(...ys) - Math.min(...ys) > 4) words.push('The hem is cut level, so your line sets its length, at the middle.');
+  // Curving up to the front edge at the centre front: a cutaway front, as high as it curves.
+  const front = stroke.filter((q) => Math.abs(q.x) < draft.ext + 3);
+  const sides = stroke.filter((q) => Math.abs(q.x) > draft.ext + 10);
+  const rise = front.length && sides.length ? median(sides.map((q) => q.y)) - Math.min(...front.map((q) => q.y)) : 0;
+  const { cutawayCm: _c, ...rest } = c;
+  if (rise > 3) {
+    const cm = Math.round(rise);
+    words.push(`Cut away at the front: the hem curves up ${cm} cm to the front edge, and the buttons stop above it.`);
+    return { choices: { ...rest, length, cutawayCm: cm, ...(length === 'cropped' ? { vent: 'none' as const } : {}) }, said: words.join(' ') };
+  }
+  if (Math.max(...ys) - Math.min(...ys) > 4) words.push('The hem is cut level, so your line sets its length, at the middle. Curve it up to the front edge for a cutaway front.');
   if (length === 'cropped' && c.vent === 'centre') words.push('It is too short for a back vent, so it has none.');
-  return { choices: { ...c, length, ...(length === 'cropped' ? { vent: 'none' as const } : {}) }, said: words.join(' ') };
+  return { choices: { ...rest, length, ...(length === 'cropped' ? { vent: 'none' as const } : {}) }, said: words.join(' ') };
 }
 
 /** The side line: the fit, from the room it leaves at the bust. */
@@ -211,7 +242,18 @@ export function readOuterFit(stroke: P[], draft: OuterDraft, m: OuterMeasurement
   const words = [`${cap(fit)}: ${ease[fit]} cm of room at the bust.`];
   if (Math.abs(room - ease[fit]) > 3) words.push('It is the nearest of the three fits to your line.');
   if (boxy) words.push(`A fitted ${c.garment} keeps its waist darts, so it is no longer boxy.`);
-  return { choices: { ...c, fit, ...(boxy ? { shaping: 'darts' as const } : {}) }, said: words.join(' ') };
+  // Carried on down past the hip on a longer garment: how far it flares out from there sets the flare.
+  const hipY = waistY + (m.waist_to_hip ?? 20);
+  const extra = draft.drop - draft.base.drop;
+  const atHip = stroke.filter((q) => Math.abs(q.y - hipY) < 4);
+  const low = stroke.filter((q) => q.y > hipY + extra * 0.6);
+  let flare: OuterChoices['flare'] = c.flare;
+  if (extra > 10 && atHip.length && low.length) {
+    const out = ((median(low.map((q) => Math.abs(q.x))) - median(atHip.map((q) => Math.abs(q.x)))) * 40) / Math.max(1, median(low.map((q) => q.y)) - hipY);
+    flare = Math.abs(out - FLARE_PER_40.straight) < Math.abs(out - FLARE_PER_40.a_line) ? 'straight' : 'a_line';
+    words.push(flare === 'a_line' ? `An A-line ${c.garment}, flaring out from the hip to the hem.` : `Straight from the hip to the hem.`);
+  }
+  return { choices: { ...c, fit, flare, ...(boxy ? { shaping: 'darts' as const } : {}) }, said: words.join(' ') };
 }
 
 /** A line down the front: the front edge, single-breasted just past the centre, double-breasted further across. */
@@ -282,6 +324,7 @@ export function outerLines(draft: OuterDraft): Partial<Record<FormLine, P[][]>> 
     fit: mirror(edgeRun(front, 'side')),
     front: [[{ x: draft.ext, y: top }, { x: draft.ext, y: foot }]],
     collar,
-    seam: bodiceLines(draft.base, 'front').seam,
+    // A raglan's seam runs from the neck down to the armhole, in place of the shoulder seam.
+    seam: [...(bodiceLines(draft.base, 'front').seam ?? []), ...(draft.base.raglan ? mirror(draft.base.raglan.front.line) : [])],
   };
 }

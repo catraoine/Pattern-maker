@@ -1,3 +1,4 @@
+import { matchKind } from '../engine/prints';
 import { BackNeck, backBlocked } from '../engine/backNeck';
 import { useMemo, useState } from 'react';
 import { layout } from '../engine/export';
@@ -11,7 +12,9 @@ import { bodiceFlat } from '../engine/flat';
 import { TechFlatView } from '../ui/TechFlatView';
 import { AllRound } from '../ui/AllRound';
 import { roundBodice } from '../engine/allRound';
-import { SHAPES_FOR_LENGTH, SleeveDraft, needsArms } from '../engine/sleeve';
+import { SHAPES_FOR_LENGTH, SleeveDraft, SleeveMeasurements, needsArms } from '../engine/sleeve';
+import { readBodiceSleeve, sleeveEndLines, sleeveRange } from '../ui/formSleeves';
+import { readCollar, readFront } from '../ui/formCollar';
 import { SleeveSlider } from '../ui/SleeveSlider';
 import { SLEEVE_CUTS, sleeveCutBlocked } from '../engine/sleeveCut';
 import { Cuff, cuffAllowed, cuffShown } from '../engine/cuffs';
@@ -32,7 +35,7 @@ import { isDraped, zipSide } from '../engine/drape';
 import { DrawOnForm, armFor, formWidth } from '../ui/DrawOnForm';
 import { orSeam, readSeamLine } from '../ui/formSeams';
 import { bodiceHemLine, orNeckline, readBodiceHemShape, readUnevenNeckline, unevenNecklineLines } from '../ui/formBodice';
-import { bodiceLines, landmarks, readDrape, readFit, readNeckline, readSeam } from '../ui/formLines';
+import { FormLine, bodiceLines, landmarks, readDrape, readFit, readNeckline, readSeam } from '../ui/formLines';
 import { FABRIC, Group, PRO, StyleLayout, TabPanel } from '../ui/StyleLayout';
 
 import { Mode, ProTool, shows } from '../mode';
@@ -151,6 +154,13 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
     const { shoulderTip, underarm } = landmarks(draft);
     return armFor(shoulderTip, underarm, { arm_length: values.arm_length!, upper_arm: values.upper_arm!, wrist: values.wrist });
   }, [draft, sleeve, arms, values]);
+  // On the form to draw on, the arms show once they are measured, so a sleeve can be drawn on a sleeveless bodice too.
+  const drawArm = useMemo(() => {
+    if (!draft || !arms) return undefined;
+    const { shoulderTip, underarm } = landmarks(draft);
+    return armFor(shoulderTip, underarm, { arm_length: values.arm_length!, upper_arm: values.upper_arm!, wrist: values.wrist });
+  }, [draft, arms, values]);
+  const sleeves = useMemo(() => (draft && onForm ? sleeveRange(draft, values as BodiceMeasurements & SleeveMeasurements, choices.fit) : undefined), [draft, onForm, values, choices.fit]);
   const round = useMemo(() => (draft ? roundBodice(draft, values, sleeve) : undefined), [draft, values, sleeve]);
   const detail = { bustDart: choices.bustDart ?? 'side', princess: choices.princess ?? 'none', closure: choices.closure ?? 'back_zip', collar: choices.collar ?? 'none', back: valid.back ?? 'plain', structure: valid.structure ?? 'none', peplum: choices.peplum ?? 'none' };
   // A draped neckline is its own shaping: the dart, seam, opening, collar and boning choices step aside.
@@ -215,17 +225,25 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
         body={formWidth(draft, m)}
         m={m}
         legs={false}
-        bottom={landmarks(draft).waistY + (hip ? dropRange(m).max : 0) + 6}
+        bottom={Math.max(landmarks(draft).waistY + (hip ? dropRange(m).max : 0) + 6, drawArm ? drawArm.wristY + 3 : 0)}
+        arms={drawArm}
         kinds={[
           ['neckline', 'Neckline'],
           ['seam', 'Seam'],
           ['drape', 'Drape'],
+          ...(drawArm && sleeves ? ([['sleeve', 'Sleeve']] as [FormLine, string][]) : []),
+          ['collar', 'Collar'],
+          ['front', 'Front'],
           ['fit', 'Side'],
           ['hem', 'Hem'],
         ]}
+        help={{
+          collar: 'Draw the collar round the neck: standing up above the neckline for a band, lying flat and rounded for a Peter Pan, coming to points for a shirt collar, hanging down at the centre for a bow.',
+          front: 'Draw down the front: straight down the centre for buttons, or from the neck crossing to the side at the waist for a wrap. On the back, down the centre for the zip.',
+        }}
         lines={(side) => {
           const uneven = side === 'front' ? unevenNecklineLines(draft) : [];
-          return { ...bodiceLines(draft, side), hem: [bodiceHemLine(draft, side)], ...(uneven.length ? { neckline: uneven } : {}) };
+          return { ...bodiceLines(draft, side), hem: [bodiceHemLine(draft, side)], ...(uneven.length ? { neckline: uneven } : {}), ...(drawArm ? sleeveEndLines(drawArm, sleeve) : {}) };
         }}
         choices={choices}
         onChoices={onChoices}
@@ -238,7 +256,13 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
                 ? readDrape(stroke, draft, choices, 'bodice')
                 : kind === 'fit'
                   ? readFit(stroke, draft, m, choices)
-                  : readBodiceHemShape(stroke, draft, m, choices, side)
+                  : kind === 'sleeve' && drawArm && sleeves
+                    ? readBodiceSleeve(stroke, draft, drawArm, sleeves, choices, 'bodice')
+                    : kind === 'collar'
+                      ? readCollar(stroke, draft, choices, 'bodice')
+                      : kind === 'front'
+                        ? readFront(stroke, draft, choices, 'bodice', side)
+                    : readBodiceHemShape(stroke, draft, m, choices, side)
         }
         onDone={() => {
           change(choices, onForm);
@@ -256,6 +280,8 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
   return (
     <StyleLayout
       onEditMeasurements={onEditMeasurements}
+      onPrint={onNext}
+      flat={flat}
       undo={undoer}
       label="your bodice"
       garment="bodice"
@@ -441,7 +467,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
             />
             </GarmentFabric>
           )}
-          {round && view === 'round' && <AllRound round={round} m={values} striped={!!fabric?.checks} label={`The ${title} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`} />}
+          {round && view === 'round' && <AllRound round={round} m={values} striped={matchKind(fabric)} label={`The ${title} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`} />}
           {flat && view === 'flat' && (
             <GarmentFabric fabric={fabric}>
               <TechFlatView flat={flat} title={title} />
@@ -551,7 +577,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
           Print my pattern
         </button>
         <SaveControl state={saveState} disabled={!draft} onSave={onSave} onAccount={onAccount} />
-        <button type="button" className="link edit-measure" onClick={onEditMeasurements}>
+        <button type="button" className="later edit-measure" onClick={onEditMeasurements}>
           Edit measurements
         </button>
       </aside>

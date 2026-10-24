@@ -42,6 +42,25 @@ export interface TopReading {
   knit: boolean;
   /** For a dress: a seam joins bodice and skirt at the natural waist. */
   waistSeam: boolean;
+  /** For a dress: where the seam between bodice and skirt sits, or "none" for a dress cut in one. Older readings leave it out. */
+  waistSeamAt?: 'none' | 'empire' | 'raised' | 'natural' | 'dropped' | 'low';
+  /** A belt at the waist: a tie sash, belt loops (for a belt), or ties. Older readings leave it out. */
+  belt?: 'none' | 'sash' | 'loops' | 'ties';
+}
+
+/** Cloth types a photo can show: the app's own special cloths, plus the ones it has no setting for yet. */
+export type FabricKind = 'plain' | 'denim' | 'leather' | 'velvet' | 'corduroy' | 'sheer' | 'satin' | 'lace' | 'sequins' | 'knit' | 'fleece' | 'chiffon' | 'crepe' | 'gauze';
+export type PrintKindRead = 'none' | 'checks' | 'stripes' | 'floral' | 'animal' | 'abstract' | 'border';
+export const READ_COLOURS = ['black', 'white', 'ivory', 'grey', 'brown', 'navy', 'cobalt', 'olive', 'emerald', 'camel', 'rust', 'red', 'burgundy', 'yellow', 'blush', 'lilac', 'other'] as const;
+export type ColourRead = (typeof READ_COLOURS)[number];
+
+/** The cloth of the main garment: what it is, its colour and its print, as far as a photo shows. */
+export interface FabricReading {
+  type: FabricKind;
+  colour: ColourRead;
+  print: PrintKindRead;
+  /** See-through, or partly so. */
+  sheer: boolean;
 }
 
 export interface TrousersReading {
@@ -56,12 +75,16 @@ export interface TrousersReading {
 export interface OuterReading {
   fit: Pick<'fitted' | 'regular' | 'relaxed'>;
   length: 'cropped' | 'hip' | 'long' | 'thigh' | 'knee' | 'midi';
-  front: 'single' | 'double';
-  collar: 'notched' | 'stand' | 'collarless';
+  front: 'single' | 'double' | 'zip';
+  collar: 'notched' | 'stand' | 'collarless' | 'hood';
   pockets: 'none' | 'patch' | 'welt';
   shaping: 'darts' | 'princess' | 'boxy';
   pads: 'none' | 'soft' | 'structured';
   flare: 'straight' | 'a_line';
+  /** How the sleeve joins: a raglan seam from the neck, or set in at the shoulder. Older readings have neither. */
+  sleeve?: 'set_in' | 'raglan';
+  /** Rib-knit bands at the hem and cuffs. */
+  trim?: 'none' | 'rib';
 }
 
 export interface PhotoReading {
@@ -81,6 +104,8 @@ export interface PhotoReading {
   top?: TopReading | null;
   trousers?: TrousersReading | null;
   outer?: OuterReading | null;
+  /** The main garment's cloth. Older readings leave it out. */
+  fabric?: FabricReading | null;
 }
 
 export type PhotoResponse = { ok: true; reading: PhotoReading } | { ok: false; error: PhotoError };

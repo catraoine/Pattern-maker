@@ -27,7 +27,7 @@ import { blockOf } from '../engine/bodice';
 import { currentNeck, dragDrop, dragEase, strokeToNeck, worn } from './BodiceShape';
 import { dragFlare, dragLength, strokeToHem } from './ShapeSketch';
 
-export type FormLine = 'neckline' | 'seam' | 'drape' | 'fit' | 'hem' | 'sleeve' | 'front' | 'collar' | 'waist';
+export type FormLine = 'neckline' | 'seam' | 'drape' | 'fit' | 'hem' | 'sleeve' | 'front' | 'collar' | 'waist' | 'slit' | 'fullness' | 'pocket' | 'vent';
 export type FormSide = 'front' | 'back';
 
 /** What a drawn line was read as: the new choices, or none when it couldn't be used, and why, in words. */
@@ -378,7 +378,7 @@ const darts = (draft: BodiceDraft, side: FormSide): P[][] =>
   });
 
 /** The bodice's lines as they stand, front or back, for each kind of line. */
-export function bodiceLines(draft: BodiceDraft, side: FormSide): Record<Exclude<FormLine, 'sleeve' | 'front' | 'collar' | 'waist'>, P[][]> {
+export function bodiceLines(draft: BodiceDraft, side: FormSide): Record<Exclude<FormLine, 'sleeve' | 'front' | 'collar' | 'waist' | 'slit' | 'fullness' | 'pocket' | 'vent'>, P[][]> {
   const w = worn(draft, side);
   const land = side === 'front' ? draft.front : draft.back;
   const { neckPoint, underarm, apex } = landmarks(draft, side);

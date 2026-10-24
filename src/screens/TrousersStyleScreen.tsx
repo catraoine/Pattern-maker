@@ -4,7 +4,8 @@ import { piecesLengthCm, toMetres } from '../engine/fabric';
 import { layPlan } from '../engine/layplan';
 import { TROUSER_EASE, TROUSER_LENGTHS, TrousersDraft, TrousersMeasurements, trouserLength } from '../engine/trousers';
 import { trousersFlat, trousersView } from '../engine/flat';
-import { skirtForm } from '../ui/DrawOnForm';
+import { DrawOnForm, skirtForm } from '../ui/DrawOnForm';
+import { TROUSER_HELP, readTrouserHem, readTrouserPocket, readTrouserRise, readTrouserSide, trouserLines } from '../ui/formTrousers';
 import { FormSketch } from '../ui/FormSketch';
 import { TROUSER_GROUPS, TrousersChoices, describeTrousers, trouserAllowed, trouserChoice, validTrousers } from '../garments';
 import { TechFlatView } from '../ui/TechFlatView';
@@ -67,6 +68,8 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
   const can = (t: ProTool) => shows(mode, t);
   const [view, setView] = useState<'sketch' | 'flat' | 'round' | 'pattern'>('sketch');
   const [fit, setFit] = useState(false);
+  /** Drawing on the form: the choices from before, to keep or go back to. */
+  const [drawing, setDrawing] = useState<TrousersChoices>();
   const canFit = !!easeMap?.length && can('easeMap');
   const pieces = useMemo(() => draft?.pieces ?? [], [draft]);
   const sheet = useMemo(() => (draft ? layout(pieces, '', []) : undefined), [draft, pieces]);
@@ -95,14 +98,63 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
           name: 'Trouser length',
           marks: TROUSER_LENGTHS.map((id) => ({ id, label: lengthGroup.options.find((o) => o[0] === id)![1], y: trouserLength(values as unknown as TrousersMeasurements, { leg: choices.leg, length: id }) })),
           value: choices.length,
-          onPick: (length: string) => onChoices(validTrousers({ ...choices, length: length as TrousersChoices['length'] })),
+          onPick: (length: string) => onChoices(validTrousers({ ...choices, length: length as TrousersChoices['length'], lengthCm: undefined })),
         };
   const elastic = choices.waist === 'elastic';
   const pockets = choices.pockets ?? 'none';
+  // A leg or length picked from the chips replaces one drawn on the form.
+  const pickFrom = (id: string, opt: string): TrousersChoices =>
+    validTrousers({ ...choices, [id]: opt, ...(id === 'leg' ? { legCm: undefined } : {}), ...(id === 'length' ? { lengthCm: undefined } : {}) });
+  const m = values as unknown as TrousersMeasurements;
+
+  if (drawing && draft && formBody) {
+    return (
+      <GarmentFabric fabric={fabric}>
+        <DrawOnForm<TrousersChoices>
+          cloth={onForm.cloth}
+          body={formBody}
+          m={values as { waist: number }}
+          legs
+          bottom={(values.waist_to_floor ? full : draft.lengthCm) + 6}
+          backs={false}
+          kinds={[
+            ['fit', 'Side'],
+            ['hem', 'Hem'],
+            ['waist', 'Waist'],
+            ['pocket', 'Pocket'],
+          ]}
+          help={TROUSER_HELP}
+          lines={() => trouserLines(draft, m)}
+          choices={choices}
+          onChoices={setChoices}
+          read={(kind, _side, stroke) =>
+            kind === 'fit'
+              ? readTrouserSide(stroke, draft, m, choices)
+              : kind === 'hem'
+                ? readTrouserHem(stroke, m, choices)
+                : kind === 'waist'
+                  ? readTrouserRise(stroke, m, choices)
+                  : readTrouserPocket(stroke, draft, m, choices)
+          }
+          onDone={() => {
+            undo.change(choices, drawing);
+            setDrawing(undefined);
+            setView('pattern');
+          }}
+          onCancel={() => {
+            setChoices(drawing);
+            setDrawing(undefined);
+          }}
+        />
+      </GarmentFabric>
+    );
+  }
 
   return (
     <StyleLayout
       onEditMeasurements={onEditMeasurements}
+      onPrint={onNext}
+      flat={flat}
       undo={undo}
       label="your trousers"
       garment="trousers"
@@ -126,7 +178,7 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
                   className={trouserChoice(choices, g.id) === id && trouserAllowed(choices, g.id, id) ? 'chip on' : 'chip'}
                   aria-pressed={trouserChoice(choices, g.id) === id && trouserAllowed(choices, g.id, id)}
                   disabled={!trouserAllowed(choices, g.id, id)}
-                  onClick={() => onChoices(validTrousers({ ...choices, [g.id]: id }))}
+                  onClick={() => onChoices(pickFrom(g.id, id))}
                 >
                   <ChoicePic set="trousers" group={g.id} id={id} />
                   {label}
@@ -184,6 +236,13 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
           ) : (
             <span />
           )}
+          <div className="row tools">
+            {draft && formBody && values.waist_to_floor && (
+              <button type="button" className="link small" onClick={() => setDrawing(choices)}>
+                Draw on your form
+              </button>
+            )}
+          </div>
         </div>
         <div className="preview">
           <DemoButton demo="style" />
@@ -274,7 +333,7 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
           Print my pattern
         </button>
         <SaveControl state={saveState} disabled={!draft} onSave={onSave} onAccount={onAccount} />
-        <button type="button" className="link edit-measure" onClick={onEditMeasurements}>
+        <button type="button" className="later edit-measure" onClick={onEditMeasurements}>
           Edit measurements
         </button>
       </aside>
