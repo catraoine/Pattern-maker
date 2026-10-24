@@ -4,6 +4,7 @@ import { BACK_NECKS, BackNeck, backBlocked } from './engine/backNeck';
 import type { Choices } from './App';
 import type { BodiceDarts, BodiceFit, BodiceLength, DrawnNeck, Neckline, UnevenNeck } from './engine/bodice';
 import { SHAPES_FOR_LENGTH, SleeveLength, SleeveShape } from './engine/sleeve';
+import { SLEEVE_CUTS, SleeveCut, sleeveCutBlocked, sleeveCutOf } from './engine/sleeveCut';
 import type { DartPlace, PrincessLine } from './engine/manipulate';
 import type { Closure, Collar } from './engine/collar';
 import { LEG_WORDS, Leg, TrouserClosure, TrouserLength } from './engine/trousers';
@@ -43,6 +44,9 @@ export interface BodiceChoices {
   sleeveCm?: number;
   /** A cuff on a straight or bishop sleeve that can take one (see cuffs.ts). Older saves have none. */
   sleeveCuff?: Cuff;
+  /** How the sleeve meets the body: set in, a dropped shoulder, raglan or kimono (see sleeveCut.ts).
+   * Older saves are set in. */
+  sleeveCut?: SleeveCut;
   /** Older saves have the block's side bust dart, no princess seams, a back zip and no collar. */
   bustDart?: DartPlace;
   princess?: PrincessLine;
@@ -309,7 +313,7 @@ export const DEFAULT_BODICE: BodiceChoices = { garment: 'bodice', fit: 'regular'
 type Group<K extends keyof BodiceChoices> = { id: K; label: string; options: [NonNullable<BodiceChoices[K]>, string][] };
 
 // Options from styling/styling-options.json (top). Oversized fit needs its own block.
-export const BODICE_GROUPS: [Group<'fit'>, Group<'neckline'>, Group<'length'>, Group<'darts'>, Group<'sleeve'>, Group<'sleeveShape'>, Group<'sleeveCuff'>, Group<'princess'>, Group<'bustDart'>, Group<'closure'>, Group<'collar'>, Group<'back'>, Group<'structure'>, Group<'peplum'>] = [
+export const BODICE_GROUPS: [Group<'fit'>, Group<'neckline'>, Group<'length'>, Group<'darts'>, Group<'sleeve'>, Group<'sleeveShape'>, Group<'sleeveCut'>, Group<'sleeveCuff'>, Group<'princess'>, Group<'bustDart'>, Group<'closure'>, Group<'collar'>, Group<'back'>, Group<'structure'>, Group<'peplum'>] = [
   { id: 'fit', label: 'Fit', options: [['fitted', 'Fitted'], ['regular', 'Regular'], ['relaxed', 'Relaxed']] },
   {
     id: 'neckline',
@@ -324,6 +328,7 @@ export const BODICE_GROUPS: [Group<'fit'>, Group<'neckline'>, Group<'length'>, G
     options: [['none', 'Sleeveless'], ['short', 'Short'], ['elbow', 'Elbow'], ['three_quarter', 'Three-quarter'], ['long', 'Long']],
   },
   { id: 'sleeveShape', label: 'Sleeve shape', options: [['fitted', 'Fitted'], ['straight', 'Straight'], ['cap', 'Cap'], ['flutter', 'Flutter'], ['puff', 'Puff'], ['bishop', 'Bishop']] },
+  { id: 'sleeveCut', label: 'Sleeve cut', options: SLEEVE_CUTS },
   { id: 'sleeveCuff', label: 'Cuffs', options: CUFFS },
   { id: 'princess', label: 'Princess seams', options: [['none', 'None'], ['shoulder', 'From the shoulder'], ['armhole', 'From the armhole']] },
   {
@@ -349,8 +354,9 @@ export const COLLAR_WORDS: Record<Collar, string> = { none: '', peter_pan: 'Pete
  * the one-shoulder is sleeveless. A peplum goes on a waist-length bodice, not on a dress. A drawn style
  * seam (yoke, empire, panel) is allowed when seamBlocked finds no reason against it.
  */
-export function detailAllowed(c: BodiceChoices, id: 'princess' | 'bustDart' | 'closure' | 'collar' | 'back' | 'structure' | 'sleeve' | 'peplum' | SeamKind, opt: string, garment: 'bodice' | 'dress' = 'bodice'): boolean {
+export function detailAllowed(c: BodiceChoices, id: 'princess' | 'bustDart' | 'closure' | 'collar' | 'back' | 'structure' | 'sleeve' | 'sleeveCut' | 'peplum' | SeamKind, opt: string, garment: 'bodice' | 'dress' = 'bodice'): boolean {
   if (id === 'back') return !backBlocked(c, opt as BackNeck);
+  if (id === 'sleeveCut') return !sleeveCutBlocked(c, opt as SleeveCut);
   if (id === 'yoke' || id === 'empire' || id === 'panel') return opt === 'none' || !seamBlocked(c, id, garment, opt === 'back' ? 'back' : 'front');
   // A peplum (flared or gathered) goes on a waist-length bodice, boned or soft, never on a dress.
   if (id === 'peplum') return opt === 'none' || (garment === 'bodice' && c.length === 'waist' && !(c.dropCm !== undefined && c.dropCm >= 3));
@@ -447,6 +453,7 @@ export function validDetails(c: BodiceChoices, garment: 'bodice' | 'dress' = 'bo
   if (out.collar && !detailAllowed(out, 'collar', out.collar, garment)) out.collar = 'none';
   if (out.back && backBlocked(out, out.back)) delete out.back;
   if (out.sleeve && !detailAllowed(out, 'sleeve', out.sleeve, garment)) out.sleeve = 'none';
+  if (out.sleeveCut && sleeveCutBlocked(out, out.sleeveCut)) delete out.sleeveCut;
   if (out.peplum && !detailAllowed(out, 'peplum', out.peplum, garment)) out.peplum = 'none';
   // A drawn seam the rest no longer allows is let go of, and only one kind is kept.
   const kind = seamOf(out);
@@ -462,15 +469,18 @@ export function validDetails(c: BodiceChoices, garment: 'bodice' | 'dress' = 'bo
 }
 
 /** The sleeve as chosen, made valid: a shape the length allows. */
-export function sleeveOf(c: BodiceChoices): { length: SleeveLength; shape: SleeveShape; cm?: number; cuff?: Exclude<Cuff, 'none'> } {
+export function sleeveOf(c: BodiceChoices): { length: SleeveLength; shape: SleeveShape; cm?: number; cuff?: Exclude<Cuff, 'none'>; cut?: Exclude<SleeveCut, 'set_in'> } {
   const length = c.sleeve ?? 'none';
+  // A kimono sleeve is cut on at its named length, with no shape, slider or cuff of its own.
+  const cut = sleeveCutOf(c);
+  if (cut === 'kimono') return { length, shape: 'straight', cut };
   const shapes = SHAPES_FOR_LENGTH[length];
   const shape = c.sleeveShape && shapes.includes(c.sleeveShape) ? c.sleeveShape : (shapes.includes('straight') ? 'straight' : shapes[0]) ?? 'straight';
   // A cap sleeve has its own length; any other keeps the length set on the slider.
   const cm = length !== 'none' && shape !== 'cap' ? c.sleeveCm : undefined;
   // A cuff the sleeve can't take is let go, the way a shape the length doesn't allow is.
   const cuff = c.sleeveCuff && c.sleeveCuff !== 'none' && cuffAllowed(c.sleeveCuff, length, shape) ? c.sleeveCuff : undefined;
-  return { length, shape, ...(cm === undefined ? {} : { cm }), ...(cuff ? { cuff } : {}) };
+  return { length, shape, ...(cm === undefined ? {} : { cm }), ...(cuff ? { cuff } : {}), ...(cut === 'set_in' ? {} : { cut }) };
 }
 
 /**
@@ -562,9 +572,9 @@ const listed = (words: string[]) => (words.length < 2 ? words.join('') : `${word
 const SLEEVE_WORDS: Record<SleeveLength, string> = { none: '', short: 'short', elbow: 'elbow-length', three_quarter: 'three-quarter', long: 'long' };
 
 /** "short puff sleeves", "cap sleeves", "flutter sleeves" or "sleeves" when set on the slider. */
-function sleeveWordsOf({ length, shape, cm, cuff }: ReturnType<typeof sleeveOf>): string {
+function sleeveWordsOf({ length, shape, cm, cuff, cut }: ReturnType<typeof sleeveOf>): string {
   if (length === 'none') return '';
-  const kind = shape === 'straight' ? '' : `${shape} `;
+  const kind = `${cut ? `${cut === 'drop' ? 'dropped-shoulder' : cut} ` : ''}${shape === 'straight' ? '' : `${shape} `}`;
   const cuffs = cuff ? ` with ${cuff === 'shirt' ? 'shirt' : cuff === 'tie' ? 'tie' : 'elastic'} cuffs` : '';
   if (shape === 'cap' || shape === 'flutter' || cm !== undefined) return `${kind}sleeves${cuffs}`;
   return `${SLEEVE_WORDS[length]} ${kind}sleeves${cuffs}`;

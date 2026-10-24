@@ -21,6 +21,8 @@ import type { HemShape } from './hem';
 import { bodiceHemShape, shapeBodiceHems } from './bodiceHem';
 import { unevenFront, unevenStyle } from './uneven';
 import { Panel, StyleSeam, Yoke, seamStyle, styleSeams } from './seams';
+import { DROP, KIMONO, KimonoLength, KimonoSize, RaglanYoke, SleeveCut, dropPiece, kimonoPair, kimonoReach, kimonoSize, raglanSplit, sideRoom, sleeveCutOf } from './sleeveCut';
+import type { SleeveLength, SleeveMeasurements, SleeveShape } from './sleeve';
 
 export interface BodiceMeasurements {
   full_bust: number;
@@ -110,6 +112,11 @@ export interface BodiceStyle {
   /** A low scoop or V at the back, or a keyhole that closes with a button and loop above the zip (see backNeck.ts). */
   back?: BackNeck;
   collar?: Collar;
+  /** How the sleeve meets the body (see sleeveCut.ts), with the sleeve it is cut for: a dropped
+   * shoulder, a raglan or a kimono reshapes the bodice too. Set-in when missing. */
+  sleeveCut?: SleeveCut;
+  sleeve?: SleeveLength;
+  sleeveShape?: SleeveShape;
   /** A dragged hem: cm below the waist (0 for the waist), in place of the named length. */
   dropCm?: number;
   /** A dress cut with no waist seam: the side seam carried on past the hip to a hem this many cm below
@@ -300,6 +307,11 @@ export interface BodiceDraft {
   top?: TopDetails;
   /** A wrap front: its front edge (own half on x > 0), where it crosses the centre front, and the ties. */
   wrap?: { edge: P[]; cross: P; tieAt: P; ties: ReturnType<typeof wrapTies> };
+  /** A sleeve that isn't set in (see sleeveCut.ts): a raglan's shoulders, cut off the front and back
+   * to go on the sleeve; a kimono sleeve's length and width, cut on. */
+  sleeveCut?: Exclude<SleeveCut, 'set_in'>;
+  raglan?: { front: RaglanYoke; back: RaglanYoke };
+  kimono?: KimonoSize & { length: KimonoLength };
 }
 
 /** The front and back as drafted: the shape the bodice sews up to, whatever its seams. */
@@ -429,7 +441,53 @@ export function draftBodice(m: BodiceMeasurements, style: Partial<BodiceStyle> =
     const cut = cutTop(draftBlock(m, t), t, s.fitting?.lowShoulder);
     return drapeBodice(isBoned(t) ? bonedPanels(cut, t) : shape(cut, t), t, m, redraft);
   }
-  return drapeBodice(unevenFront(finish(styleSeams(shape(draftBlock(m, s), s), s), s), s), s, m, redraft);
+  return drapeBodice(unevenFront(finish(cutSleeves(styleSeams(shape(draftBlock(m, s), s), s), s, m as BodiceMeasurements & SleeveMeasurements), s), s), s, m, redraft);
+}
+
+/**
+ * A dropped shoulder, raglan or kimono sleeve, cut on the bodice before its opening and collar. A dropped
+ * shoulder and a kimono reshape the printed pieces and the bodice as sewn alike; a raglan cuts the
+ * shoulders off the printed pieces only, the bodice as sewn keeping its armhole for the sleeve to be
+ * drafted to before the shoulders go onto it. The underarm is lowered the same on front and back, as
+ * far as the side seam allows above any side dart.
+ */
+function cutSleeves(d: BodiceDraft, s: BodiceStyle, m: Partial<SleeveMeasurements>): BodiceDraft {
+  const cut = sleeveCutOf(s);
+  if (cut === 'set_in' || d.lowShoulder) return d;
+  const [front, back] = d.pieces;
+  const [bf, bb] = blockOf(d);
+  const blocked = d.block ? [bf, bb] : undefined;
+  const room = Math.min(...[front, back, bf, bb].map(sideRoom)) - 1;
+  if (cut === 'drop') {
+    const lower = Math.max(0, Math.min(DROP.down, room));
+    const pieces = [dropPiece(front, lower), dropPiece(back, lower), ...d.pieces.slice(2)];
+    const block = blocked?.map((pc) => dropPiece(pc, lower));
+    const [nf, nb] = block ?? pieces;
+    return {
+      ...d,
+      pieces,
+      block,
+      sleeveCut: 'drop',
+      armhole: r(taggedLength(nf.outline, 'armhole') + taggedLength(nb.outline, 'armhole'), 1),
+      shoulder: { front: r(taggedLength(nf.outline, 'shoulder')), back: r(taggedLength(nb.outline, 'shoulder')) },
+      sideSeam: { ...d.sideSeam, back: r(taggedLength(nb.outline, 'side')) },
+    };
+  }
+  if (cut === 'kimono') {
+    if (!m.arm_length || !m.upper_arm || !s.sleeve || s.sleeve === 'none' || s.sleeve === 'long') return d;
+    const length = s.sleeve;
+    const under = Math.max(0, Math.min(KIMONO.under, room));
+    const sized = kimonoSize(length, { arm_length: m.arm_length, upper_arm: m.upper_arm, wrist: m.wrist });
+    const size = { ...sized, lengthCm: r(Math.max(sized.lengthCm, ...[front, back, bf, bb].map((pc) => kimonoReach(pc, under))), 1) };
+    const [kf, kb] = kimonoPair(front, back, size, under);
+    const block = blocked ? kimonoPair(bf, bb, size, under) : undefined;
+    return { ...d, pieces: [kf, kb, ...d.pieces.slice(2)], block, sleeveCut: 'kimono', kimono: { ...size, length } };
+  }
+  const f = raglanSplit(front);
+  const b = raglanSplit(back);
+  if (!f || !b) return d;
+  // The bodice as sewn keeps its armhole: the sleeve is drafted to it before the shoulders go on.
+  return { ...d, pieces: [f.body, b.body, ...d.pieces.slice(2)], block: [bf, bb], sleeveCut: 'raglan', raglan: { front: f.yoke, back: b.yoke } };
 }
 
 /** A button front (the back then on the fold) and a collar, both made on the bodice as sewn. */

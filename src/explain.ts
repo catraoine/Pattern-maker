@@ -124,6 +124,12 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       cap: ['A tiny sleeve that just covers the top of the shoulder.', 'easy'],
       flutter: ['A short sleeve that flares out and ripples at the hem. Best in a light, drapey fabric.'],
     },
+    sleeveCut: {
+      set_in: ['The sleeve is sewn into a round armhole at your shoulder point. The usual way.', 'easy'],
+      drop: ['The shoulder runs on past your shoulder point and the sleeve starts lower down the arm, for an easy, relaxed look.', 'easy'],
+      raglan: ['A diagonal seam from the neck to the underarm, the shoulder cut as part of the sleeve. Easy to fit and to move in.'],
+      kimono: ['The sleeve is cut in one with the bodice, so there is no armhole seam at all. Short to three-quarter length.', 'easy'],
+    },
     sleeveCuff: {
       none: ['The sleeve ends in a plain hem, or the bishop sleeve in its band.', 'easy'],
       shirt: ['A buttoned cuff over a bound slit, the sleeve gathered into it, as on a shirt.', 'skill'],

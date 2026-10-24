@@ -21,6 +21,7 @@ import { COWL_DEPTH, UNDER_ARM, oneShoulderEdge } from './drape';
 import { unevenEdge } from './uneven';
 import type { BeltDraft } from './belt';
 import { KEYHOLE } from './backNeck';
+import type { RaglanYoke } from './sleeveCut';
 
 export type FlatLineKind = 'seam' | 'dart' | 'stitch' | 'zip';
 
@@ -36,6 +37,8 @@ export interface FlatView {
   origin: P;
   /** Which of `shapes` are the sleeves (and their bands), drawn out at an angle as flats are. */
   sleeves?: number[];
+  /** A garment with sleeves cut on (kimono): the body without them, for the form, where they hang on the arms. */
+  armless?: P[];
 }
 
 export interface Flat {
@@ -283,6 +286,7 @@ function arrange(views: Omit<FlatView, 'at' | 'origin'>[]): Flat {
       at: p(dx, bottom - top),
       origin: p(dx, -top),
       sleeves: v.sleeves,
+      ...(v.armless ? { armless: v.armless.map(shift) } : {}),
     };
   });
   return { views: placed, width: x - GAP, height: bottom - top };
@@ -326,7 +330,8 @@ export function wornShapes(flat: Flat, view = 0, withSleeves = false): P[][] {
   const v = flat.views[view];
   if (!v) return [];
   const sleeves = new Set(withSleeves ? [] : v.sleeves ?? []);
-  return v.shapes.filter((_, i) => !sleeves.has(i)).map((s) => s.map((q) => p(q.x - v.origin.x, q.y - v.origin.y)));
+  const shapes = v.armless && !withSleeves ? [v.armless, ...v.shapes.slice(1)] : v.shapes;
+  return shapes.filter((_, i) => !sleeves.has(i)).map((s) => s.map((q) => p(q.x - v.origin.x, q.y - v.origin.y)));
 }
 
 /** One view's lines (seams, darts, stitching, zip) in the pieces' own coordinates, as `wornShapes` gives its shapes. */
@@ -617,10 +622,14 @@ const MAX_SLEEVE_TURN = 0.72;
  * until it is that wide, up to about 40 degrees; past that the crown rounds out a little over the
  * shoulder, and the rest is drawn narrower to scale, as flats are. Gathered sleeves billow into their band.
  */
-function sleeveSide(h: Half, sl: SleeveDraft): { shape: P[]; band?: P[]; lines: FlatView['lines']; seam?: P[] } {
+function sleeveSide(h: Half, sl: SleeveDraft, yoke?: RaglanYoke): { shape: P[]; band?: P[]; lines: FlatView['lines']; seam?: P[] } {
   const arm = along(h, 'armhole')[0];
   if (!arm) return { shape: [], lines: [] };
-  const hole = arm[0].y <= arm[arm.length - 1].y ? arm : [...arm].reverse();
+  const hole0 = arm[0].y <= arm[arm.length - 1].y ? arm : [...arm].reverse();
+  // A raglan sleeve runs on up to the neck: below the raglan line it meets the armhole, above it the
+  // shoulder piece is part of the sleeve, so its edge back up from the underarm follows the raglan line
+  // to the neck and the shoulder out to the shoulder point.
+  const hole = yoke ? raglanHole(hole0, yoke, h.move) : hole0;
   const S = hole[0];
   const U = hole[hole.length - 1];
   const v = sub(U, S);
@@ -703,6 +712,16 @@ function sleeveSide(h: Half, sl: SleeveDraft): { shape: P[]; band?: P[]; lines: 
     lines.push({ pts: [knot, add(knot, add(mul(a, 7), mul(n, 1.5)))], kind: 'seam' }, { pts: [knot, add(knot, add(mul(a, 6), mul(n, 3)))], kind: 'seam' });
   }
   return { shape, band: bandShape, lines };
+}
+
+/** The armhole from its shoulder point to its underarm, for a raglan: the shoulder, the neck to the raglan
+ * line, the raglan line down to the notch, and the armhole below it. */
+function raglanHole(hole: P[], y: RaglanYoke, move: (q: P) => P): P[] {
+  const R = move(y.notch);
+  const k = hole.reduce((best, q, i) => (len(sub(q, R)) < len(sub(hole[best], R)) ? i : best), 0);
+  const iSp = y.ring.pts.findIndex((q) => len(sub(q, y.sp)) < 1e-6);
+  const top = y.ring.pts.slice(0, iSp).map(move);
+  return [hole[0], ...[...top].reverse(), ...y.line.slice(1).map(move), ...hole.slice(k + 1)];
 }
 
 /** A run offset by d, square to it, to the side away from `from`. */
@@ -998,8 +1017,11 @@ function bodiceViews(d: BodiceDraft, edges: BodiceEdges, sleeve: SleeveDraft | u
     const neckRun = uneven ? undefined : along(h, 'neck')[0];
     const collar = neckRun ? collarHalf(neckRun, d.collar, i === 0) : [];
     const sleeves: number[] = [];
-    if (sleeve) {
-      const sl = sleeveSide(h, sleeve);
+    if (sleeve?.cut === 'kimono') {
+      for (const run of along(h, 'sleeve-hem')) for (const pts of [run, mirror(run)]) for (const r of inset(pts, 2, shape)) lines.push({ pts: r, kind: 'stitch' });
+    }
+    if (sleeve && sleeve.cut !== 'kimono') {
+      const sl = sleeveSide(h, sleeve, sleeve.cut === 'raglan' ? (i === 0 ? d.raglan?.front : d.raglan?.back) : undefined);
       for (const flip of [false, true]) {
         const f = (pts: P[]) => (flip ? mirror(pts) : pts);
         if (sl.shape.length) sleeves.push(shapes.push(f(sl.shape)) - 1);
@@ -1010,9 +1032,20 @@ function bodiceViews(d: BodiceDraft, edges: BodiceEdges, sleeve: SleeveDraft | u
     // The collar goes on last, over the sleeves' heads.
     // In one piece across the centre back on a button front; meeting at the zip or the centre front otherwise.
     for (const c of collar) shapes.push(...collarShapes(c, i === 1 && d.closure === 'front_buttons'));
-    const view = { label: i === 0 ? ('FRONT' as const) : ('BACK' as const), shapes, lines, sleeves, foot: h.run[h.run.length - 1].y };
+    const view = { label: i === 0 ? ('FRONT' as const) : ('BACK' as const), shapes, lines, sleeves, foot: h.run[h.run.length - 1].y, ...(sleeve?.cut === 'kimono' ? { armless: armlessOf(h) } : {}) };
     return withPeplumView(d, h, i === 0 && d.drape?.kind === 'cowl' ? cowlFront(d, h, view) : view);
   });
+}
+
+/** A kimono bodice with its sleeves taken off at the shoulder point and the underarm, for the form. */
+function armlessOf(h: Half): P[] {
+  const sp = h.tags.lastIndexOf('shoulder') + 1;
+  const u = h.tags.indexOf('side', sp);
+  if (sp < 1 || u < 0) return whole(h.run);
+  const S = h.run[sp];
+  const U = h.run[u];
+  const arm = quad(S, p(U.x, S.y + (U.y - S.y) * 0.6), U, 10);
+  return whole([...h.run.slice(0, sp), ...arm, ...h.run.slice(u + 1)]);
 }
 
 /**
@@ -1057,7 +1090,7 @@ export function dressFlat(d: DressDraft, edges: BodiceEdges = 'binding', opts: {
         const neck = b.shapes[0].reduce((m, q) => (Math.abs(q.x) < 1e-6 && q.y < m ? q.y : m), Infinity);
         lines.push({ pts: [p(0, neck + key), p(0, b.foot)], kind: 'seam' }, ...zip(neck + key, d.zipCm), ...keyButton(neck, key));
       }
-      return { label: b.label, shapes: [b.shapes[0], ...k.shapes.map(move), ...b.shapes.slice(1)], lines, sleeves: b.sleeves?.map((j) => j + k.shapes.length) };
+      return { label: b.label, shapes: [b.shapes[0], ...k.shapes.map(move), ...b.shapes.slice(1)], lines, sleeves: b.sleeves?.map((j) => j + k.shapes.length), ...(b.armless ? { armless: b.armless } : {}) };
   }
 }
 

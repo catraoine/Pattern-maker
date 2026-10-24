@@ -13,6 +13,7 @@ import { piecesLengthCm, toMetres } from '../engine/fabric';
 import { layPlan } from '../engine/layplan';
 import { SHAPES_FOR_LENGTH, SleeveDraft, needsArms } from '../engine/sleeve';
 import { SleeveSlider } from '../ui/SleeveSlider';
+import { SLEEVE_CUTS, sleeveCutBlocked } from '../engine/sleeveCut';
 import { Cuff, cuffAllowed, cuffShown } from '../engine/cuffs';
 import { BODICE_GROUPS, BodiceChoices, DRESS_CUTS, WAIST_SEAM_GROUP, DARTS_FOR_FIT, DressChoices, detailAllowed, sleeveOf, topAllowed, validDetails } from '../garments';
 import type { MeasurementValues } from '../measurements';
@@ -178,8 +179,10 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
         (g.id === 'back' && !top && !draped) ||
         (g.id === 'structure' && !draped) ||
         g.id === 'sleeve' ||
-        (g.id === 'sleeveShape' && chosen.length !== 'none') ||
-        (g.id === 'sleeveCuff' && cuffShown(chosen)),
+        // A kimono sleeve is cut on at its named length, with no shape or cuff of its own.
+        (g.id === 'sleeveShape' && chosen.length !== 'none' && chosen.cut !== 'kimono') ||
+        (g.id === 'sleeveCut' && chosen.length !== 'none') ||
+        (g.id === 'sleeveCuff' && cuffShown(chosen) && chosen.cut !== 'kimono'),
     ).map((g) => ({
       id: g.id,
       label: g.label,
@@ -229,6 +232,8 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
               chosen.cm !== undefined ? '' : chosen.length
             : id === 'sleeveShape'
               ? chosen.shape
+              : id === 'sleeveCut'
+                ? (chosen.cut ?? 'set_in')
               : id === 'sleeveCuff'
                 ? (chosen.cuff ?? 'none')
               : id === 'bustDart'
@@ -270,6 +275,8 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           ? SHAPES_FOR_LENGTH[chosen.length].includes(opt as NonNullable<BodiceChoices['sleeveShape']>)
           : id === 'sleeveCuff'
             ? cuffAllowed(opt as Cuff, chosen.length, chosen.shape)
+          : id === 'sleeveCut'
+            ? detailAllowed({ ...choices.bodice, length: 'waist', closure }, 'sleeveCut', opt, 'dress')
           : id === 'princess' || id === 'bustDart' || id === 'collar' || id === 'back' || id === 'structure' || id === 'closure'
             ? detailAllowed({ ...choices.bodice, length: 'waist', closure }, id, opt, 'dress') && (id !== 'closure' || (opt === 'front_buttons' ? buttonsOk : opt === 'wrap' ? wrapOk : true))
             : id === 'silhouette' || id === 'length' || id === 'asymHem'
@@ -462,7 +469,10 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
                 </button>
               </p>
             )}
-            {g.id === 'sleeve' && arms && (
+            {g.id === 'sleeveCut' && SLEEVE_CUTS.map(([c]) => sleeveCutBlocked({ ...choices.bodice, closure }, c)).find(Boolean) && (
+              <p className="muted small">{SLEEVE_CUTS.map(([c]) => sleeveCutBlocked({ ...choices.bodice, closure }, c)).find(Boolean)}</p>
+            )}
+            {g.id === 'sleeve' && arms && chosen.cut !== 'kimono' && (
               <SleeveSlider sleeve={sleeve} choices={choices.bodice} onChoices={(c) => onChoices({ ...choices, bodice: validDetails({ ...c, length: 'waist', closure: c.closure ?? 'back_zip' }, 'dress') })} />
             )}
             {g.id === 'slit' && <SlitSlider slit={draft?.skirt.slit} onCm={(slitCm) => onChoices({ ...choices, skirt: { ...choices.skirt, slitCm } })} />}

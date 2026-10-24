@@ -12,19 +12,13 @@ import { P, Path, add, len, lerp, mul, p, sub, unit } from './geometry';
 import type { Piece } from './piece';
 import { BodiceDraft, BodiceFit, blockOf } from './bodice';
 import { DraftError } from './skirt';
+import { DROP, RaglanYoke, SHAPES_FOR_LENGTH, SleeveCut } from './sleeveCut';
 
 export type SleeveLength = 'none' | 'short' | 'elbow' | 'three_quarter' | 'long';
 /** 'tailored' is the two-piece sleeve of a jacket or coat: long only, and not offered on a bodice. */
 export type SleeveShape = 'fitted' | 'straight' | 'puff' | 'bishop' | 'cap' | 'flutter' | 'tailored';
 
-/** Which shapes each length allows: puff, cap and flutter sleeves are short, bishop sleeves long. */
-export const SHAPES_FOR_LENGTH: Record<SleeveLength, SleeveShape[]> = {
-  none: [],
-  short: ['straight', 'puff', 'cap', 'flutter'],
-  elbow: ['fitted', 'straight', 'puff'],
-  three_quarter: ['fitted', 'straight', 'bishop'],
-  long: ['fitted', 'straight', 'bishop'],
-};
+export { SHAPES_FOR_LENGTH } from './sleeveCut';
 
 export interface SleeveMeasurements {
   /** Shoulder point to wrist bone, over a slightly bent elbow. */
@@ -51,6 +45,10 @@ export interface SleeveStyle {
   outer?: 'jacket' | 'coat';
   /** A cuff at the hem: a shirt cuff, elastic, or a tie band (see cuffs.ts). */
   cuff?: Cuff;
+  /** Set from the bodice (see sleeveCut.ts): a dropped shoulder's flatter crown, or a raglan's
+   * shoulders, cut off the bodice, to go onto the sleeve. */
+  cut?: SleeveCut;
+  raglan?: { front: RaglanYoke; back: RaglanYoke };
 }
 
 /** Bicep and crown ease for jacket and coat sleeves, by fit. */
@@ -103,6 +101,9 @@ export interface SleeveDraft {
   vent?: { lengthCm: number; at: 'back seam' };
   /** The cuff, when it has one; `hemCm` is then round the cuff. */
   cuff?: CuffDraft;
+  /** A sleeve that isn't set in: a dropped shoulder's, a raglan's (cut in two along the top of the
+   * arm, the shoulders on it), or a kimono's, cut on with the bodice so it has no pieces of its own. */
+  cut?: Exclude<SleeveCut, 'set_in'>;
   warnings: string[];
 }
 
@@ -194,8 +195,35 @@ export function needsArms(m: SleeveMeasurements): boolean {
 
 /** Draft the sleeve for a bodice. */
 export function draftSleeve(bodice: BodiceDraft, m: SleeveMeasurements, s: SleeveStyle): SleeveDraft {
+  if (bodice.sleeveCut === 'kimono' && bodice.kimono) return kimonoSleeve(bodice.kimono);
   // The armhole as sewn: the block's, whatever seams the bodice is cut with.
-  return draftSleeveTo(...blockOf(bodice), m, s);
+  return draftSleeveTo(...blockOf(bodice), m, { ...s, cut: bodice.sleeveCut, raglan: bodice.raglan });
+}
+
+/** The pattern's note on the sleeve: its bicep and crown ease, or how a sleeve that isn't set in is cut. */
+export function sleeveNote(sl: SleeveDraft): string {
+  if (sl.cut === 'kimono') return `Kimono sleeves, cut in one with the bodice: ${sl.lengthCm} cm from the shoulder point, ${sl.bicep} cm round under the arm, ${sl.hemCm} cm round the hem.`;
+  const crown = sl.gathers?.crown !== undefined ? `${sl.gathers.crown} cm gathered into the crown` : `crown ease ${sl.crownEase.front} cm front, ${sl.crownEase.back} cm back`;
+  if (sl.cut === 'raglan') return `Raglan sleeves, each cut in two along the top of the arm with the shoulder on it: bicep ${sl.bicep} cm.`;
+  if (sl.cut === 'drop') return `Dropped shoulder, ${DROP.out} cm past your shoulder point: bicep ${sl.bicep} cm, ${crown}.`;
+  return `Sleeve: bicep ${sl.bicep} cm, ${crown}.`;
+}
+
+/** A kimono sleeve is cut on with the bodice: no pieces of its own, its sizes for the notes and spec. */
+function kimonoSleeve(k: NonNullable<BodiceDraft['kimono']>): SleeveDraft {
+  const named = { short: 0, elbow: 0, three_quarter: 0, long: 0, [k.length]: k.lengthCm };
+  return {
+    pieces: [],
+    cut: 'kimono',
+    capHeight: 0,
+    bicep: k.bicepCm,
+    crownEase: { front: 0, back: 0 },
+    armhole: { front: 0, back: 0 },
+    lengthCm: k.lengthCm,
+    length: { cm: k.lengthCm, min: k.lengthCm, max: k.lengthCm, named },
+    hemCm: k.hemCm,
+    warnings: [],
+  };
 }
 
 /** Draft the sleeve to a front and back's armholes (tagged 'armhole', with their notches). */
@@ -209,8 +237,12 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
   const front = armholeOf(bf);
   const back = armholeOf(bb);
   const depth = (front.depth + back.depth) / 2;
-  const ease = s.ease ?? (s.outer ? OUTER_SLEEVE_EASE[s.outer][s.fit] : SLEEVE_EASE[s.fit]);
-  const arm = m.arm_length;
+  const ease0 = s.ease ?? (s.outer ? OUTER_SLEEVE_EASE[s.outer][s.fit] : SLEEVE_EASE[s.fit]);
+  // A dropped shoulder or raglan sleeve sews in with next to no ease; a dropped shoulder's sleeve starts
+  // past the shoulder point, so it is that much shorter.
+  const sleeveCut = s.cut === 'drop' || (s.cut === 'raglan' && s.raglan) ? s.cut : undefined;
+  const ease = sleeveCut ? { ...ease0, crown: DROP.crownEase } : ease0;
+  const arm = m.arm_length - (sleeveCut === 'drop' ? DROP.out : 0);
   const wrist = m.wrist ?? Math.max(13, m.upper_arm * 0.55);
   // A hand closed as to go through a sleeve is about 1.3 times the wrist.
   const hand = Math.max(19, wrist * 1.3);
@@ -231,8 +263,9 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
 
   // Find the crown height for the length, and the crown point for the split; widen or narrow the
   // sleeve when no sensible height fits.
-  const hMin = depth * 0.35;
-  const hMax = depth * 0.95;
+  // A dropped shoulder's crown is low and flat, as its armhole is.
+  const hMin = depth * (sleeveCut === 'drop' ? 0.15 : 0.35);
+  const hMax = depth * (sleeveCut === 'drop' ? 0.55 : 0.95);
   // Underseam directions at the underarm, worked out from a first pass and then from the real hem.
   let dirs: [P, P] = [unit(p(-0.08, 1)), unit(p(0.08, 1))];
   const bisect = (lo: number, hi: number, grows: (v: number) => boolean) => {
@@ -493,12 +526,15 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
     };
   }
   const band = gathered && !cuff ? bandPiece(shape === 'puff' ? m.upper_arm + 4 : hand + 1, s.seamAllowance) : undefined;
+  // A raglan: the sleeve cut in two along the top of the arm, the shoulders cut off the bodice joined on.
+  const own: Piece[] = sleeveCut === 'raglan' ? toRaglan(sleeve, { crown: c.crown, frontCap: cubicPts(c.crown, c.front.c1, c.front.c2, Uf, 400), backCap: cubicPts(Ub, c.back.c1, c.back.c2, c.crown, 400), Uf, Ub, Wf, Wb, hem: cubicPts(Wf, hemC1, hemC2, Wb, 60), h, L, w, yokes: s.raglan!, s }) : [sleeve];
+  const cutOf = sleeveCut ? { cut: sleeveCut } : {};
   const crownLen = c.lenF + c.lenB;
   const hemLen = polyLen(cubicPts(Wf, hemC1, hemC2, Wb));
   if (cuff) {
     // Gathered into the cuff (or drawn up by the elastic), the sleeve's hem shows as gathers.
     return {
-      pieces: [sleeve, ...cuffPieces(cuff, s.seamAllowance)],
+      pieces: [...own, ...cuffPieces(cuff, s.seamAllowance)],
       capHeight: r1(h),
       bicep: r1(w),
       crownEase: { front: r1(easeF), back: r1(easeB) },
@@ -509,11 +545,12 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
       gathers: { hem: r1(hemLen - cuff.round) },
       cuff,
       ...(ventTop ? { vent: { lengthCm: ventCm!, at: 'back seam' as const } } : {}),
+      ...cutOf,
       warnings,
     };
   }
   return {
-    pieces: band ? [sleeve, band] : [sleeve],
+    pieces: band ? [...own, band] : own,
     capHeight: r1(h),
     bicep: r1(w),
     crownEase: { front: r1(easeF), back: r1(easeB) },
@@ -529,8 +566,154 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
       : undefined,
     elbowDart: dartW || undefined,
     ...(ventTop ? { vent: { lengthCm: VENT_CM, at: 'back seam' as const } } : {}),
+    ...cutOf,
     warnings,
   };
+}
+
+/**
+ * A raglan sleeve: the set-in sleeve, drafted with next to no ease to the armhole as it was before the
+ * shoulders were cut off, cut in two down the middle, from the crown point to the middle of the hem.
+ * Each half takes its shoulder piece, turned so the armhole notch it was cut at sits on the sleeve's
+ * own notch and its shoulder point toward the crown; above the notch the crown gives way to the
+ * shoulder piece and the raglan line. The shoulder runs on into a seam down the top of the arm, curving
+ * into the middle line, so the two halves sew together over the shoulder and down to the hem; the back's
+ * meets the middle line a little higher or lower so the two are the same length.
+ */
+/** Ease in the crown below a raglan line, each side, in cm. */
+const RAGLAN_EASE = 0.15;
+
+function toRaglan(
+  sleeve: Piece,
+  o: { crown: P; frontCap: P[]; backCap: P[]; Uf: P; Ub: P; Wf: P; Wb: P; hem: P[]; h: number; L: number; w: number; yokes: { front: RaglanYoke; back: RaglanYoke }; s: SleeveStyle },
+): Piece[] {
+  const { crown, h, w } = o;
+  const cross = (a: P, b: P) => a.x * b.y - a.y * b.x;
+  const centroid = (pts: P[]) => mul(pts.reduce((t, q) => add(t, q), p(0, 0)), 1 / pts.length);
+  const hemLen = polyLen(o.hem);
+  const [hemF, hemB] = splitAt(o.hem, hemLen / 2);
+  const M = hemB[0];
+  const cl = unit(sub(M, crown));
+  /** The shoulder piece turned onto the sleeve at `notch`, on the far side of the crown from the sleeve. */
+  const place = (y: RaglanYoke, notch: P) => {
+    const inner = centroid([crown, notch, p(0, h)]);
+    const flip = Math.sign(cross(sub(y.sp, y.notch), sub(centroid(y.ring.pts), y.notch))) === Math.sign(cross(sub(crown, notch), sub(inner, notch)));
+    const f = (q: P) => (flip ? p(-q.x, q.y) : q);
+    const R = f(y.notch);
+    const a = Math.atan2(crown.y - notch.y, crown.x - notch.x) - Math.atan2(f(y.sp).y - R.y, f(y.sp).x - R.x);
+    return (q: P) => {
+      const d = sub(f(q), R);
+      return add(notch, p(d.x * Math.cos(a) - d.y * Math.sin(a), d.x * Math.sin(a) + d.y * Math.cos(a)));
+    };
+  };
+  /** The seam down the top of the arm: on from the shoulder, into the middle line `kd` below the crown, and down it to the hem. */
+  const overarm = (hps: P, sp: P, kd: number, k = 1) => {
+    const K = add(crown, mul(cl, kd));
+    const t = unit(sub(sp, hps));
+    const a = (len(sub(K, sp)) / 3) * k;
+    return [...cubicPts(sp, add(sp, mul(t, a)), sub(K, mul(cl, a)), K, 24), ...Array.from({ length: 8 }, (_, i) => lerp(K, M, (i + 1) / 8))];
+  };
+  const sides = (['front', 'back'] as const).map((side) => {
+    const y = o.yokes[side];
+    // Where the raglan line meets the crown: as far up from the underarm as it is on the bodice, with a
+    // little ease below it.
+    const fromUnder = y.under + RAGLAN_EASE;
+    const notch = side === 'front' ? at([...o.frontCap].reverse(), fromUnder) : at(o.backCap, fromUnder);
+    const T = place(y, notch);
+    const ring = y.ring.pts.map(T);
+    const iSp = y.ring.pts.findIndex((q) => len(sub(q, y.sp)) < 1e-6);
+    const iHps = y.ring.pts.findIndex((q) => len(sub(q, y.hps)) < 1e-6);
+    // The crown below the notch stays: it sews to the bodice's armhole below the raglan line.
+    const lower = side === 'front' ? [...splitAt(o.frontCap, nearestAlong(o.frontCap, notch))[1]].reverse() : splitAt(o.backCap, nearestAlong(o.backCap, notch))[0];
+    return { side, y, T, ring, iSp, iHps, lower, notch };
+  });
+  const kd = Math.min(h * 0.5, o.L * 0.4);
+  const lengthOf = (sd: (typeof sides)[number], k: number) => polyLen(overarm(sd.ring[sd.iHps], sd.ring[sd.iSp], kd, k));
+  // The shorter seam is drawn out in a fuller curve until it is as long as the other.
+  const [lf, lb] = sides.map((sd) => lengthOf(sd, 1));
+  const short = lf < lb ? 0 : 1;
+  const want = Math.max(lf, lb);
+  let lo = 1;
+  let hi = 3;
+  for (let i = 0; i < 30; i++) {
+    const mid = (lo + hi) / 2;
+    if (lengthOf(sides[short], mid) < want) lo = mid;
+    else hi = mid;
+  }
+  const ks = [1, 1];
+  ks[short] = (lo + hi) / 2;
+  return sides.map((sd, i) => {
+    const front = sd.side === 'front';
+    const over = overarm(sd.ring[sd.iHps], sd.ring[sd.iSp], kd, ks[i]);
+    const hem = front ? [...hemF].reverse() : hemB;
+    const U = front ? o.Uf : o.Ub;
+    const line = [...sd.y.line].reverse().map(sd.T);
+    const pts = [...sd.ring.slice(0, sd.iSp + 1), ...over.slice(1), ...hem.slice(1), U, ...sd.lower.slice(1), ...line.slice(1, -1)];
+    const tags = [
+      ...sd.y.ring.tags.slice(0, sd.iSp),
+      ...over.slice(1).map(() => 'overarm'),
+      ...hem.slice(1).map(() => 'hem'),
+      'underarm',
+      ...sd.lower.slice(1).map(() => 'armhole'),
+      ...line.slice(1).map(() => 'raglan'),
+    ];
+    const outline = ringPath(pts, tags);
+    const inside = centroid(pts);
+    const outward = (q: P, along: P) => {
+      const n = unit(p(-along.y, along.x));
+      return (q.x - inside.x) * n.x + (q.y - inside.y) * n.y < 0 ? mul(n, -1) : n;
+    };
+    // A notch halfway along the raglan seam (two at the back), and one where the shoulder meets the seam down the arm.
+    const half = at(line, polyLen(line) / 2);
+    const hd = unit(sub(at(line, polyLen(line) / 2 + 0.5), at(line, polyLen(line) / 2 - 0.5)));
+    const out = outward(half, hd);
+    const sp = sd.ring[sd.iSp];
+    const notches: [P, P][] = [
+      ...(front ? [[half, out] as [P, P]] : [[add(half, mul(hd, 0.5)), out] as [P, P], [add(half, mul(hd, -0.5)), out] as [P, P]]),
+      [sp, outward(sp, unit(sub(over[2], sp)))],
+    ];
+    const name = front ? 'Raglan sleeve front' : 'Raglan sleeve back';
+    const x = (front ? 1 : -1) * w * 0.22;
+    const onSide = (q: P) => (cross(cl, sub(q, crown)) < 0) === front;
+    const lines = sleeve.lines.filter((l) => onSide(l.start));
+    const labels = sleeve.labels.filter((l) => !/^(SLEEVE|FRONT|BACK|Cut )/.test(l.text) && onSide(l.at));
+    return {
+      ...sleeve,
+      name,
+      outline,
+      lines,
+      grain: [p(x, h * 0.75), p(x, o.L - 4)] as [P, P],
+      notches,
+      balance: [{ pts: [p(0, h), U], label: 'BICEP LINE' }],
+      labels: [
+        { at: p(x, Math.min(h + 3, o.L - 4)), text: name.toUpperCase(), size: 0.8 },
+        { at: p(x, Math.min(h + 5, o.L - 2)), text: sleeve.cut ?? 'Cut 2 (1 pair)', size: 0.7 },
+        ...labels,
+      ],
+      allowances: { ...sleeve.allowances, neck: o.s.armholeAllowance },
+      meta: { ...sleeve.meta, raglan: sd.side },
+    };
+  });
+}
+
+/** How far along a polyline its nearest point to `q` is. */
+function nearestAlong(pts: P[], q: P): number {
+  let best = 0;
+  let bestD = Infinity;
+  let acc = 0;
+  for (let i = 1; i < pts.length; i++) {
+    const a = pts[i - 1];
+    const ab = sub(pts[i], a);
+    const l = len(ab);
+    const t = l ? Math.max(0, Math.min(1, ((q.x - a.x) * ab.x + (q.y - a.y) * ab.y) / (l * l))) : 0;
+    const d = len(sub(add(a, mul(ab, t)), q));
+    if (d < bestD) {
+      bestD = d;
+      best = acc + t * l;
+    }
+    acc += l;
+  }
+  return best;
 }
 
 /**

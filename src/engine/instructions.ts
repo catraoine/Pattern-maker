@@ -325,7 +325,11 @@ export function casingSteps(e: Elastic, seam: string, waist: string, garment: st
 
 /** Sewing steps for the bodice: centre back zip, the neck (and, sleeveless, the armholes) bias-bound, faced or
  * lined, and set-in sleeves when it has them. */
-export function bodiceGuide(draft: BodiceDraft, _style: { length: BodiceLength }, fabricM: number, bindingM: number, finish: BodiceFinish = {}): SewingGuide {
+export function bodiceGuide(draft: BodiceDraft, style: { length: BodiceLength }, fabricM: number, bindingM: number, finish: BodiceFinish = {}): SewingGuide {
+  return withSleeveCut(bodiceSteps(draft, style, fabricM, bindingM, finish), finish.sleeve, finish.seams);
+}
+
+function bodiceSteps(draft: BodiceDraft, _style: { length: BodiceLength }, fabricM: number, bindingM: number, finish: BodiceFinish = {}): SewingGuide {
   const below = draft.finishedHem !== undefined;
   const sw = finish.seams ?? SEAM_WIDTHS.home;
   const seam = n1(sw.seam);
@@ -512,9 +516,80 @@ function mirroredGuide(d: BodiceDraft, g: SewingGuide): SewingGuide {
   return { ...g, steps: g.steps.map((st) => ({ ...st, text: mirrorWords(st.text) })) };
 }
 
+/**
+ * A sleeve that isn't set in (see sleeveCut.ts). A dropped shoulder's flat head goes in without easing.
+ * A raglan's halves are joined over the shoulder and down the arm, then sewn to the front and back along
+ * the raglan lines, the underarm closed with the side seam. A kimono's shoulder seam runs on down the top
+ * of the arm and its side seam round the underarm, which is clipped and reinforced. Either way the
+ * sleeves are on before the neck is finished.
+ */
+function withSleeveCut(g: SewingGuide, sl: SleeveDraft | undefined, sw: SeamWidths = SEAM_WIDTHS.home): SewingGuide {
+  if (!sl?.cut) return g;
+  const seam = n1(sw.seam);
+  const easier = / It is far easier now than once the sleeves are in\./;
+  const drop = ['Ease the sleeve heads', ...(sl.cut === 'drop' ? [] : ['Sew the sleeve seams', 'Gather the sleeve heads', 'Set in the sleeves', 'Finish the armhole seams'])];
+  let steps = g.steps.filter((st) => !drop.includes(st.title));
+  if (sl.cut === 'drop') {
+    steps = steps.map((st) =>
+      st.title === 'Set in the sleeves'
+        ? { ...st, text: st.text.replace(/the top notch to the shoulder seam/, 'the top notch to the shoulder seam, which sits a little way down the arm').replace(/Pin there first, then spread the ease evenly between the notches\./, 'Pin there first: the head is nearly flat, with only a few millimetres to ease in, so it needs no easing threads.') }
+        : st,
+    );
+    return { ...g, steps };
+  }
+  const raglan = sl.cut === 'raglan';
+  const sides = raglan
+    ? "Pin each sleeve's underarm edges together, and the front to the back at the sides, right sides together, in one seam from the sleeve hem through the underarm to the hem, matching the raglan seams at the underarm"
+    : 'Pin the front to the back along the underarms and the sides, right sides together, in one seam from the sleeve hem round the underarm curve to the hem';
+  const placket = steps.find((st) => st.title === 'Bind the plackets');
+  if (placket) steps = steps.filter((st) => st !== placket);
+  steps = steps.flatMap((st): SewStep[] => {
+    if (st.title === 'Neaten the edges')
+      return [
+        {
+          ...st,
+          text: st.text
+            .replace(/the shoulder, side and centre back edges/, raglan ? 'the raglan, side and centre back edges' : 'the shoulder, side and centre back edges')
+            .replace(/the shoulder and side edges of the bodice/, raglan ? 'the raglan and side edges of the bodice' : 'the shoulder and side edges of the bodice')
+            .replace(/the sleeves' underarm seam edges/, raglan ? "the sleeves' raglan, overarm and underarm edges" : 'the overarm and underarm edges of the sleeves'),
+        },
+      ];
+    if (st.title === 'Sew the shoulders')
+      return raglan
+        ? [
+            ...(placket ? [placket] : []),
+            {
+              title: 'Sew the overarm seams',
+              text: `Pin each raglan sleeve front to its back along the shoulder and on down the top of the arm, right sides together, matching the shoulder notches. The back shoulder is 1 cm longer: ease it in between the neck and the notch. Sew ${seam} from the edge, from the neck to the sleeve hem, and press the seam open over a ham so the shoulder keeps its curve.`,
+            },
+            {
+              title: 'Sew the raglan seams',
+              text: `Pin each sleeve's front raglan edge to the bodice front, right sides together, matching the single notches, the neck edges and the underarm corners, then its back raglan edge to the bodice back, matching the double notches. Sew ${seam} from the edge, clip the curve below the notches, and press the seams toward the sleeve.`,
+            },
+          ]
+        : [
+            {
+              ...st,
+              text: `Pin the front to the back along the shoulders and on down the top of each sleeve, right sides together, matching the shoulder notches. The back shoulder is 1 cm longer: ease it in between the neck and the notch. Sew ${seam} from the edge, from the neck to the sleeve hem, and press the seam open.`,
+            },
+          ];
+    if (st.title === 'Sew the side seams') {
+      const text = st.text.replace(/^Pin the front to the back at the sides, right sides together(, from the underarm to the hem)?/, sides);
+      return [{ ...st, text: raglan ? text : `${text} Clip into the seam allowance round the underarm curve, almost to the stitching, and sew a strip of stay tape over the curve, as it takes the strain when you lift your arms.` }];
+    }
+    return [{ ...st, text: st.text.replace(easier, '') }];
+  });
+  return { ...g, notions: raglan ? g.notions : [...g.notions.slice(0, -1), '20 cm of narrow stay tape, for the underarms', ...g.notions.slice(-1)], steps };
+}
+
 /** Cutting the sleeves, added to the cutting step. */
 function sleeveCutWords(sleeve: SleeveDraft | undefined): string {
-  if (!sleeve) return '';
+  // A kimono sleeve is cut on with the bodice.
+  if (!sleeve || sleeve.cut === 'kimono') return '';
+  if (sleeve.cut === 'raglan')
+    return ` Place the raglan sleeve front and back on both layers too, so you get a pair of each, and snip their notches: one on each front raglan edge, two on each back, and one where the shoulder meets the seam down the arm.${
+      sleeve.cuff ? cuffCutWords(sleeve.cuff) : sleeve.pieces.length > 2 ? ' Cut the two sleeve bands.' : ''
+    }`;
   return ` Place the sleeve on both layers too, so you get a pair, and snip its notches: one at the top of the crown, one on the front, two on the back.${
     sleeve.cuff ? cuffCutWords(sleeve.cuff) : sleeve.pieces.length > 1 ? ' Cut the two sleeve bands.' : ''
   }${sleeve.vent && !sleeve.cuff ? ' Snip the vent notch on the back seam too.' : ''}${sleeve.elbowDart ? ' Chalk-mark the elbow dart.' : ''}`;
@@ -526,7 +601,7 @@ function sleeveCutWords(sleeve: SleeveDraft | undefined): string {
  * across the waist seam, and the side seams sewn in one from the underarm to the hem.
  */
 export function dressGuide(draft: DressDraft, style: { silhouette: Silhouette; length: Length } & Partial<VolumeStyle>, fabricM: number, bindingM: number, finish: BodiceFinish = {}): SewingGuide {
-  return withBackNeck(dressSteps(draft, style, fabricM, bindingM, finish), backNeckOfDraft(draft.bodice));
+  return withSleeveCut(withBackNeck(dressSteps(draft, style, fabricM, bindingM, finish), backNeckOfDraft(draft.bodice)), finish.sleeve, finish.seams);
 }
 
 /** A bodice's back detail, from its back piece. */
@@ -540,7 +615,7 @@ function dressSteps(draft: DressDraft, style: { silhouette: Silhouette; length: 
   const edges = finish.edges ?? 'binding';
   if (draft.noSeam) return noSeamGuide(draft, fabricM, bindingM, finish);
   const dropped = (draft.seamDrop ?? 0) > 0;
-  const top = bodiceGuide(draft.bodice, { length: dropped ? 'high_hip' : 'waist' }, fabricM, bindingM, finish);
+  const top = bodiceSteps(draft.bodice, { length: dropped ? 'high_hip' : 'waist' }, fabricM, bindingM, finish);
   // The skirt's pleats, godets or flounce are sewn in with the dress's own steps, below.
   const skirt = sewingGuide({ ...draft.skirt, volume: undefined }, style, fabricM, { seams: sw, width: finish.width });
   const find = (g: SewingGuide, re: RegExp) => g.steps.filter((s) => re.test(s.title));
@@ -641,7 +716,7 @@ function dressSteps(draft: DressDraft, style: { silhouette: Silhouette; length: 
  * and a sheath's walking slit left open below its notch at the centre back.
  */
 function noSeamGuide(draft: DressDraft, fabricM: number, bindingM: number, finish: BodiceFinish): SewingGuide {
-  const g = bodiceGuide(draft.bodice, { length: 'hip' }, fabricM, bindingM, finish);
+  const g = bodiceSteps(draft.bodice, { length: 'hip' }, fabricM, bindingM, finish);
   const slit = draft.pieces.find((pc) => /back/i.test(pc.name) && !pc.kind)?.meta.slitCm as number | undefined;
   const dress = (t: string) => t.replace(/\bbodice\b/g, 'dress').replace(/\bBodice\b/g, 'Dress');
   // A lined sheath's lining stops at the slit too, its edges turned under clear of the slit's own.
@@ -751,8 +826,10 @@ const collarCut = (d: BodiceDraft) =>
 
 /** The steps for set-in sleeves, after the bodice is closed and its neck finished. */
 function sleeveSteps(sl: SleeveDraft, seam: string, curve: string, lined: boolean): SewStep[] {
+  // A kimono sleeve is sewn up with the shoulders and side seams: only its hem is left.
+  if (sl.cut === 'kimono') return [{ title: 'Hem the sleeves', text: 'Press up 1 cm round each sleeve hem, then 1.5 cm more, and stitch by hand or machine.' }];
   const puff = sl.gathers?.crown !== undefined;
-  const band = !sl.cuff && sl.pieces.length > 1;
+  const band = !sl.cuff && sl.pieces.length > (sl.cut === 'raglan' ? 2 : 1);
   const cuff = sl.cuff;
   const ease = Math.round((sl.crownEase.front + sl.crownEase.back) * 10) / 10;
   const hemAllowance = sl.pieces[0].allowances.hem ?? 2.5;

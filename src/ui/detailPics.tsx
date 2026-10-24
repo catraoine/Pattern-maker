@@ -6,6 +6,8 @@ import type { ReactNode } from 'react';
 import type { ExplainSet } from '../explain';
 
 const TOP = 'M8 12L15 8Q20 13 25 8L32 12L30 22L29 40H11L10 22z';
+/** The top with long sleeves, turned out a little from the body. */
+const SLEEVED = 'M15 8Q20 13 25 8L32 12L37 30H32L30 22L29 40H11L10 22L8 30H3L8 12z';
 const SHORT_TOP = 'M8 12L15 8Q20 13 25 8L32 12L30 22L29 28H11L10 22z';
 const SKIRT = 'M14 6h12l5 38H9z';
 const TROUSERS = 'M11 4h18l1 42h-8l-2-28-2 28h-8z';
@@ -76,6 +78,12 @@ const DETAILS: Record<ExplainSet, Record<string, Record<string, ReactNode>>> = {
       bishop: on('M14 8Q20 2 26 8L31 38Q20 42 9 38z', 'M10 38Q20 42 30 38M14 40h12v4H14zM16 38v2M20 39v1.5M24 38v2'),
       cap: on('M13 8Q20 2 27 8L28 14Q20 17 12 14z', 'M13 8Q20 2 27 8M12 14Q20 17 28 14'),
       flutter: on('M13 8Q20 2 27 8L33 22Q30 25 27 22Q24 26 20 23Q16 26 13 22Q10 25 7 22z', 'M13 8Q20 2 27 8M7 22Q10 25 13 22Q16 26 20 23Q24 26 27 22Q30 25 33 22'),
+    },
+    sleeveCut: {
+      set_in: on(SLEEVED, 'M8 12Q11 17 10 22M32 12Q29 17 30 22'),
+      drop: on('M15 8Q20 13 25 8L34 11L38 30H33L31 24L29 40H11L9 24L7 30H2L6 11z', 'M6 11L15 8M34 11L25 8M6.5 13Q9.5 19 9 24M33.5 13Q30.5 19 31 24'),
+      raglan: on(SLEEVED, 'M16.5 9.5Q14 17 10 22M23.5 9.5Q26 17 30 22'),
+      kimono: on('M15 8Q20 13 25 8L36 15L33 22L29 19L29 40H11L11 19L7 22L4 15z', 'M15 8L4 15M25 8L36 15M11 19Q9 20 7 22M29 19Q31 20 33 22'),
     },
     sleeveCuff: {
       none: on('M13 8Q20 2 27 8L28 44H12z', 'M12 42h16'),

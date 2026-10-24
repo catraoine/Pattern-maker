@@ -111,14 +111,19 @@ export function bodiceSpec(m: BodiceMeasurements, d: BodiceDraft, length: Bodice
 export function sleeveSpec(m: SleeveMeasurements, s: SleeveDraft): SpecRow[] {
   return [
     row('Upper arm (bicep)', m.upper_arm, s.bicep),
-    row('Sleeve length, crown to hem', undefined, s.lengthCm),
+    row(s.cut === 'kimono' ? 'Sleeve length, shoulder point to hem' : 'Sleeve length, crown to hem', undefined, s.lengthCm),
     row(s.cuff ? `${s.cuff.kind === 'shirt' ? 'Shirt cuff' : s.cuff.kind === 'tie' ? 'Tie cuff' : 'Elastic cuff'}, round` : s.gathers ? 'Sleeve band, round' : 'Sleeve hem, round', undefined, s.hemCm),
     ...(s.cuff ? [row(s.cuff.kind === 'elastic' ? 'Cuff casing depth' : 'Cuff depth', undefined, s.cuff.depth)] : []),
     ...(s.cuff?.kind === 'elastic' ? [row('Cuff elastic, cut', undefined, s.cuff.elasticCm!)] : []),
     ...(s.cuff?.kind === 'tie' ? [row('Cuff ties, each', undefined, s.cuff.tieCm!)] : []),
     ...(s.cuff?.kind === 'shirt' ? [row('Cuff placket', undefined, s.cuff.placketCm!)] : []),
-    row('Crown height', undefined, s.capHeight),
-    { label: 'Crown ease, front / back', finished: s.gathers?.crown !== undefined ? `${s.gathers.crown} gathered` : `${s.crownEase.front} / ${s.crownEase.back}` },
+    // A kimono sleeve, cut on, has no crown.
+    ...(s.cut === 'kimono'
+      ? []
+      : [
+          row('Crown height', undefined, s.capHeight),
+          { label: 'Crown ease, front / back', finished: s.gathers?.crown !== undefined ? `${s.gathers.crown} gathered` : `${s.crownEase.front} / ${s.crownEase.back}` },
+        ]),
     ...(s.elbowDart ? [row('Elbow dart', undefined, s.elbowDart)] : []),
   ];
 }
