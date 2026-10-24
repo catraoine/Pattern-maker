@@ -381,7 +381,7 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
       onPointerUp={end}
       onPointerCancel={end}
     >
-      <FormLayers body={body} m={m} legs={false} cx={cx} bottom={frame.bottom} arms={arms} lines={lines} worn={cloth} sleeve={arms ? sleeve : undefined} />
+      <FormLayers body={body} m={m} legs={false} cx={cx} top={frame.top} bottom={frame.bottom} arms={arms} lines={lines} worn={cloth} sleeve={arms ? sleeve : undefined} />
       {guide(waistY, 'WAIST')}
       {hip && guide(waistY + m.waist_to_hip!, 'HIP')}
       {!drawing && hip && handle({ x: cx + hemCentre.x, y: hemCentre.y }, 'hem', lengthLabel)}

@@ -435,6 +435,8 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
   return (
     <StyleLayout
       onEditMeasurements={onEditMeasurements}
+      onPrint={onNext}
+      flat={flat}
       undo={undo}
       sections={DRESS_SECTIONS}
       label="your dress"
@@ -688,7 +690,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           Print my pattern
         </button>
         <SaveControl state={saveState} disabled={!draft} onSave={onSave} onAccount={onAccount} />
-        <button type="button" className="link edit-measure" onClick={onEditMeasurements}>
+        <button type="button" className="later edit-measure" onClick={onEditMeasurements}>
           Edit measurements
         </button>
       </aside>

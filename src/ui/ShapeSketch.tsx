@@ -286,7 +286,7 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
       onPointerUp={end}
       onPointerCancel={end}
     >
-      <FormLayers body={body} m={m} legs cx={cx} bottom={frame.bottom} lines={lines} worn={cloth} />
+      <FormLayers body={body} m={m} legs cx={cx} top={frame.top} bottom={frame.bottom} lines={lines} worn={cloth} />
       {guide(m.waist_to_knee, 'KNEE')}
       {guide(m.waist_to_floor, 'FLOOR')}
       {!drawing && handle({ x: cx + hemCentre.x, y: hemCentre.y }, 'hem', lengthLabel)}

@@ -984,7 +984,8 @@ export default function App() {
   const openStep = (to: Step) => {
     if (STEP_OF[step] === to && step !== 'photo' && step !== 'fitting' && step !== 'scale') return;
     if (to !== 'measure' && !canLeaveMeasure) {
-      const why = `Measure first: the ${garment === 'tee' ? 'T-shirt' : garment} needs a few more measurements before it can be ${to === 'style' ? 'styled' : 'printed'}.`;
+      // A line, not a box over the headline, and no garment named (none may be chosen yet) (look and feel review, 2026-10-24).
+      const why = 'Style and Print open once your measurements are in.';
       if (step !== 'steps') sendToMeasure(why);
       else setStepsNote(why);
       return;

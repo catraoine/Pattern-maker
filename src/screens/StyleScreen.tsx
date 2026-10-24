@@ -25,6 +25,7 @@ import { FinishChoices } from '../ui/FinishChoices';
 import type { Finish } from '../App';
 import { BAND_ACROSS_MAX } from '../engine/instructions';
 import { ERAS, findLook } from '../engine/eras';
+import { skirtFlat } from '../engine/flat';
 import { shapeLine } from '../photo/shape';
 import { MyFabric, fabricEase, skirtFabrics } from '../engine/fabrics';
 import { FabricCard, FabricSummary } from '../ui/FabricCard';
@@ -217,6 +218,8 @@ export function fabricMetres(draft: SkirtDraft): number {
 }
 
 export function StyleScreen({ choices, onChoices, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, onPhoto, photo, onChooseGarment, finish, onFinish, easeMap, fabric, mode = 'all', onMode }: Props) {
+  // The skirt's technical flat, for the Review page's envelope (R1, 2026-10-24).
+  const flat = useMemo(() => (draft ? skirtFlat(draft, skirtBelt(choices.belt, draft)) : undefined), [draft, choices.belt]);
   const can = (t: ProTool) => shows(mode, t);
   const [view, setView] = useState<'sketch' | 'round' | 'pattern'>('sketch');
   const [fit, setFit] = useState(false);
@@ -349,6 +352,8 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
   return (
     <StyleLayout
       onEditMeasurements={onEditMeasurements}
+      onPrint={onNext}
+      flat={flat}
       undo={undoer}
       label="your skirt"
       garment="skirt"
@@ -769,7 +774,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
           Print my pattern
         </button>
         <SaveControl state={saveState} disabled={!draft} onSave={onSave} onAccount={onAccount} />
-        <button type="button" className="link edit-measure" onClick={onEditMeasurements}>
+        <button type="button" className="later edit-measure" onClick={onEditMeasurements}>
           Edit measurements
         </button>
       </aside>

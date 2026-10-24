@@ -18,7 +18,7 @@ export function Explain({ set, group, options, pick }: { set: ExplainSet; group:
   const pic = detailPic(set, group, String(pick));
   const words = (
     <span>
-      <span className="explain-name">{option[1]}:</span> {text}
+      <span className="explain-name visually-hidden">{option[1]}:</span> {text}
       {skill && <span className={`skill-tag ${skill}`}>{SKILL_WORDS[skill]}</span>}
     </span>
   );

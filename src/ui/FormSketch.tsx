@@ -208,7 +208,7 @@ export function FormSketch({ body, m, legs, bottom, arms, lines, outline = [], c
   const cx = frame.half;
   return (
     <svg viewBox={`0 ${f(frame.top)} ${f(2 * cx)} ${f(frame.bottom - frame.top)}`} role="img" aria-label={label} className="preview-svg sketch shape form-still">
-      <FormLayers body={body} m={m} legs={legs} cx={cx} bottom={frame.bottom} arms={arms} lines={lines} outline={outline} worn={worn} sleeve={sleeve} />
+      <FormLayers body={body} m={m} legs={legs} cx={cx} top={frame.top} bottom={frame.bottom} arms={arms} lines={lines} outline={outline} worn={worn} sleeve={sleeve} />
     </svg>
   );
 }
@@ -218,6 +218,9 @@ interface LayerProps extends Omit<Props, 'cloth' | 'underarmY' | 'label' | 'outl
   cx: number;
   /** The drawing's bottom, for the form's stand. */
   bottom: number;
+  /** The drawing's top, where it crops the form at the neck: the form's lines fade in below it instead of ending
+   *  in a row of bristles (look and feel review, 2026-10-24). Left out, nothing fades. */
+  top?: number;
   outline?: P[][];
   /** The garment as cloth, already laid on the form by `wornCloth`. */
   worn?: P[][];
@@ -228,7 +231,7 @@ interface LayerProps extends Omit<Props, 'cloth' | 'underarmY' | 'label' | 'outl
  * the arms, the form's contours, the cloth with its sleeves, and the garment's lines over it. The still Form
  * view and the skirt's and top's draggable sketches all draw the garment this way, so it looks the same everywhere.
  */
-export function FormLayers({ body, m, legs, cx, bottom, arms, lines, outline = [], worn, sleeve }: LayerProps) {
+export function FormLayers({ body, m, legs, cx, top, bottom, arms, lines, outline = [], worn, sleeve }: LayerProps) {
   const contours = useMemo(() => formContours(body, cx), [body, cx]);
   const armLines = useMemo(() => formArmLines(arms, cx), [arms, cx]);
   const at = (pts: P[]) => formPath(pts.map((q) => ({ x: cx + q.x, y: q.y })));
@@ -241,9 +244,26 @@ export function FormLayers({ body, m, legs, cx, bottom, arms, lines, outline = [
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
   const shade = `shade${uid}`;
   const clip = `clip${uid}`;
+  const fade = `fade${uid}`;
+  const neck = `neck${uid}`;
+  /** The form's lines start at `body.top`, 2 cm below the drawing's top (`formFrame`): they fade in from there. */
+  const FADE_FROM = (top ?? 0) + 2;
+  /** How far below that the form's lines take to come in fully. */
+  const FADE_CM = 5;
   const drawn = cloth ? Object.fromEntries(Object.entries(lines).filter(([id]) => !CLOTH_EDGES.includes(id as FormLine))) : lines;
   return (
     <>
+      {top !== undefined && (
+        <defs>
+          <linearGradient id={fade} gradientUnits="userSpaceOnUse" x1="0" x2="0" y1={f(FADE_FROM)} y2={f(FADE_FROM + FADE_CM)}>
+            <stop offset="0" stopColor="#fff" stopOpacity="0" />
+            <stop offset="1" stopColor="#fff" stopOpacity="1" />
+          </linearGradient>
+          <mask id={neck} maskUnits="userSpaceOnUse" x={f(-cx)} y={f(top - 1)} width={f(4 * cx)} height={f(bottom - top + 2)}>
+            <rect x={f(-cx)} y={f(top - 1)} width={f(4 * cx)} height={f(bottom - top + 2)} fill={`url(#${fade})`} />
+          </mask>
+        </defs>
+      )}
       {cloth && (
         <defs>
           <linearGradient id={shade} gradientUnits="userSpaceOnUse" x1={f(cx * 0.2)} x2={f(cx * 1.8)} y1="0" y2="0">
@@ -272,12 +292,14 @@ export function FormLayers({ body, m, legs, cx, bottom, arms, lines, outline = [
           />
         )
       )}
-      {armLines.map((a, i) => (
-        <path key={`arm${i}`} d={a.d} className="form-line" fill="none" strokeWidth={a.edge ? 0.24 : 0.14} opacity={a.edge ? 1 : 0.55} />
-      ))}
-      {contours.map((c, i) => (
-        <path key={i} d={c.d} className="form-line" fill="none" strokeWidth={c.edge ? 0.24 : 0.14} opacity={c.edge ? 1 : 0.45 + 0.3 * (1 - Math.abs(c.u))} />
-      ))}
+      <g mask={top !== undefined ? `url(#${neck})` : undefined}>
+        {armLines.map((a, i) => (
+          <path key={`arm${i}`} d={a.d} className="form-line" fill="none" strokeWidth={a.edge ? 0.24 : 0.14} opacity={a.edge ? 1 : 0.55} />
+        ))}
+        {contours.map((c, i) => (
+          <path key={i} d={c.d} className="form-line" fill="none" strokeWidth={c.edge ? 0.24 : 0.14} opacity={c.edge ? 1 : 0.45 + 0.3 * (1 - Math.abs(c.u))} />
+        ))}
+      </g>
       {cloth && (
         <g className="cloth">
           {pieces.map((d, i) => (
@@ -289,8 +311,12 @@ export function FormLayers({ body, m, legs, cx, bottom, arms, lines, outline = [
           ))}
         </g>
       )}
-      {cloth && arms && !sleeve && armLines.filter((a) => a.edge).map((a, i) => <path key={`armover${i}`} d={a.d} className="form-arm-over" strokeWidth={0.24} />)}
-      {cloth && arms && !sleeve && armLines.filter((a) => !a.edge).map((a, i) => <path key={`armin${i}`} d={a.d} className="form-line" fill="none" strokeWidth={0.14} opacity={0.55} />)}
+      {cloth && arms && !sleeve && (
+        <g mask={top !== undefined ? `url(#${neck})` : undefined}>
+          {armLines.filter((a) => a.edge).map((a, i) => <path key={`armover${i}`} d={a.d} className="form-arm-over" strokeWidth={0.24} />)}
+          {armLines.filter((a) => !a.edge).map((a, i) => <path key={`armin${i}`} d={a.d} className="form-line" fill="none" strokeWidth={0.14} opacity={0.55} />)}
+        </g>
+      )}
       {outline.map((pts, i) => (
         <path key={`o${i}`} d={at(pts)} className="tape" fill="none" strokeWidth={0.3} strokeLinecap="round" strokeLinejoin="round" />
       ))}
