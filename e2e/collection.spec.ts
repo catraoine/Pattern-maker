@@ -1,8 +1,9 @@
-import { expect, expectStyle, openGroup, startWithExample, test } from './fixtures';
+import { expect, expectStyle, openGroup, openLooks, startWithExample, test } from './fixtures';
 
 test('the Maison collection: open it from styling, draw every look, make one', async ({ page }) => {
   await startWithExample(page);
   const main = page.getByRole('main');
+  await openLooks(page);
   await main.getByRole('button', { name: 'Start from the Maison collection' }).click();
   await expect(main.getByRole('heading', { level: 1, name: 'The collection' })).toBeVisible();
   // Every look is drawn flat, front and back.
@@ -19,6 +20,7 @@ test('the Maison collection: open it from styling, draw every look, make one', a
 test('the collection: the next drop opens as a sign-up, and the Archive shows its records', async ({ page }) => {
   await startWithExample(page);
   const main = page.getByRole('main');
+  await openLooks(page);
   await main.getByRole('button', { name: 'Start from the Maison collection' }).click();
   // Drop 01 has no date yet: a gold strip and the drop alert sign-up, with the edition shown as printed.
   await expect(main.getByText('Date soon')).toBeVisible();

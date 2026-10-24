@@ -15,6 +15,8 @@ export const test = base.extend<{ consoleErrors: { allow: (re: RegExp) => void }
   access: [
     async ({ page, waitlist }, use) => {
       if (!waitlist) await page.addInitScript(() => localStorage.setItem('maison-trace-access', 'tester'));
+      // A pick on Style holds its question open, rather than moving on to the next, so a test can pick and check.
+      await page.addInitScript(() => localStorage.setItem('maison-trace-steady', '1'));
       await use();
     },
     { auto: true },
@@ -176,9 +178,13 @@ export async function switchGarment(page: Page, g: GarmentName) {
 export async function addCloserFit(page: Page, g: GarmentName) {
   const add = main(page).getByRole('button', { name: 'Add them' }).first();
   // The link sits under the choice that needs them (Sleeves, Length): look through the tabs for it.
-  for (const tab of await main(page).getByRole('tablist', { name: 'Style choices' }).getByRole('tab').all()) {
+  find: for (const tab of await main(page).getByRole('tablist', { name: 'Style choices' }).getByRole('tab').all()) {
     if (await add.isVisible()) break;
     await tab.click();
+    for (const head of await main(page).locator('fieldset.fold:not([hidden]) > legend > button.fold-head').all()) {
+      if (await add.isVisible()) break find;
+      await head.click();
+    }
   }
   await add.click();
   await expect(heading(page, /measurements$/)).toBeVisible();
@@ -197,16 +203,30 @@ export async function addCloserFit(page: Page, g: GarmentName) {
 export async function openGroup(page: Page, name: string) {
   const group = main(page).getByRole('group', { name, exact: true });
   const tabs = main(page).getByRole('tablist', { name: 'Style choices' });
-  if ((await group.isVisible()) || !(await tabs.isVisible())) return group;
-  const own = tabs.getByRole('tab', { name, exact: true });
-  if (await own.count()) await own.click();
-  else
-    for (const tab of await tabs.getByRole('tab').all()) {
-      await tab.click();
-      if (await group.isVisible()) break;
-    }
+  if (!(await group.isVisible()) && (await tabs.isVisible())) {
+    const own = tabs.getByRole('tab', { name, exact: true });
+    if (await own.count()) await own.click();
+    else
+      for (const tab of await tabs.getByRole('tab').all()) {
+        await tab.click();
+        if (await group.isVisible()) break;
+      }
+  }
   await expect(group).toBeVisible();
+  await unfold(group);
   return group;
+}
+
+/** On a step with several questions only one is open (Cat's D, 2026-10-24): open this one by its folded line. */
+export async function unfold(group: Locator) {
+  const head = group.locator(':scope > legend > button.fold-head');
+  if ((await head.count()) && (await head.getAttribute('aria-expanded')) === 'false') await head.click();
+}
+
+/** "Start from a look", by the Style title: the photo and the Maison collection (no longer a step of their own). */
+export async function openLooks(page: Page) {
+  const link = main(page).getByRole('button', { name: 'Start from a look' });
+  if ((await link.getAttribute('aria-pressed')) !== 'true') await link.click();
 }
 
 /** "Show all tools": on a style screen it sits under the last tab only, so open that tab first. */

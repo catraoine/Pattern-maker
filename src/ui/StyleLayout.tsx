@@ -15,6 +15,9 @@ import { UndoTools, type Undo } from './useUndo';
 // pro tools live together in one Pro tab, so switching them on shows that one tab appear.
 // On a computer it is Cat's D1 Drafting Table (2026-10-18): the tabs run down the left, the sketch fills the
 // middle, and the choices sit on the right above the summary with Print, so there's no separate Review page.
+// Cat's D The Journey (2026-10-24) walks it as a fitting: the tabs are numbered steps with Next at the end of
+// each, Looks is a link by the title rather than a step, and inside a step one question is open at a time, the
+// rest folded to a line with their pick. Picking a choice opens the next question.
 
 /** The tab showing now. Groups and panels outside it are hidden, not removed, so the tab row can list them. */
 const ActiveTab = createContext<string | undefined>(undefined);
@@ -73,18 +76,82 @@ const SECTIONS: Record<string, string> = {
 const Sections = createContext<Record<string, string>>({});
 
 /**
+ * Which question is open on each step (Cat's D, 2026-10-24), and a way to open one. Steady, when set, holds the
+ * open question still after a pick instead of moving on to the next (the click-throughs, which pick and check).
+ */
+const Fold = createContext<{ open: Record<string, string>; set: (tab: string, label: string) => void; steady: boolean } | undefined>(undefined);
+
+/** Set by the click-throughs, so a pick doesn't fold its question away while a test is still checking it. */
+const STEADY = 'maison-trace-steady';
+const steadyNow = () => {
+  try {
+    return localStorage.getItem(STEADY) === '1';
+  } catch {
+    return false;
+  }
+};
+
+/**
  * A group of choices, shown on its section's tab with the others there, or on `tab` (the Pro tab). Alone on a
- * tab of its own, the legend repeats the tab's name, so it is only read out, not shown.
+ * tab of its own, the legend repeats the tab's name, so it is only read out, not shown. On a shared step only one
+ * group is open at a time; the others fold to their name and their pick, and a tap on that line opens it.
  */
 export function Group({ label, tab, children, className }: { label: string; tab?: string; children: ReactNode; className?: string }) {
   const active = useContext(ActiveTab);
   const own = useContext(Sections);
+  const fold = useContext(Fold);
   const section = own[label] ?? SECTIONS[label];
   const t = tab ?? section ?? label;
+  const solo = !tab && !section;
+  const ref = useRef<HTMLFieldSetElement>(null);
+  const [pick, setPick] = useState('');
+  // The picked choice's name, for the folded line: a picked chip, or any pressed button when there are none.
+  useLayoutEffect(() => {
+    const el = ref.current;
+    const on = el?.querySelector<HTMLElement>('.chips [aria-pressed="true"]') ?? el?.querySelector<HTMLElement>('[aria-pressed="true"]');
+    const text = (on?.textContent ?? '').replace(/\s+/g, ' ').trim();
+    if (text !== pick) setPick(text);
+  });
+  const folds = !!fold && !solo && t !== PRO;
+  const open = !folds || fold.open[t] === label;
+  // A pick opens the next question on the step, after a beat to see it land on the drawing.
+  const timer = useRef<number>();
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+  const onPick = (e: React.MouseEvent) => {
+    if (!folds || fold.steady || !(e.target as HTMLElement).closest('.chips button')) return;
+    const all = [...(ref.current?.parentElement?.querySelectorAll<HTMLFieldSetElement>(`fieldset.group[data-tab="${t}"]`) ?? [])];
+    const next = all[all.indexOf(ref.current!) + 1];
+    window.clearTimeout(timer.current);
+    if (next) timer.current = window.setTimeout(() => fold.set(t, next.dataset.label!), 700);
+  };
   return (
-    <fieldset className={['group', tab || section ? '' : 'solo', className].filter(Boolean).join(' ')} data-tab={t} hidden={active !== t}>
-      <legend>{label}</legend>
-      {children}
+    <fieldset
+      ref={ref}
+      className={['group', solo ? 'solo' : '', folds ? (open ? 'fold open' : 'fold') : '', className].filter(Boolean).join(' ')}
+      data-tab={t}
+      data-label={label}
+      aria-label={label}
+      hidden={active !== t}
+      onClick={folds ? onPick : undefined}
+    >
+      <legend>
+        {folds ? (
+          <button type="button" className="fold-head" aria-expanded={open} onClick={() => fold.set(t, label)}>
+            <span className="fold-name">{label}</span>
+            {/* Shown, not read out: the picked choice says so itself, and the line's name stays the question's. */}
+            {pick && (
+              <span className="fold-pick" aria-hidden="true">
+                {pick}
+              </span>
+            )}
+          </button>
+        ) : (
+          label
+        )}
+      </legend>
+      <div className="fold-body" hidden={!open}>
+        {children}
+      </div>
     </fieldset>
   );
 }
@@ -167,6 +234,10 @@ export function StyleLayout({ children, label, name, metres, width = 140, ready,
   const panel = useRef<HTMLDivElement>(null);
   const swipe = useRef<{ x: number; y: number; sideways: boolean }>();
   const wide = useWide();
+  // The open question on each step: the first one until another is opened.
+  const [folds, setFolds] = useState<Record<string, string>>({});
+  const [steady] = useState(steadyNow);
+  const fold = { open: folds, set: (t: string, l: string) => setFolds((f) => (f[t] === l ? f : { ...f, [t]: l })), steady };
 
   // The tab row lists every tab something on the page belongs to, in the order they're drawn: Looks first,
   // the choices, Fabric, then Pro. Switching the pro tools on opens the Pro tab, so the change is seen.
@@ -182,7 +253,12 @@ export function StyleLayout({ children, label, name, metres, width = 140, ready,
       setTabs(next);
       if (tabs.length && !tabs.includes(PRO) && next.includes(PRO)) setActive(PRO);
     }
-    if (!active || !next.includes(active)) setActive(next[0]);
+    // It opens on the first step; Looks is there for the link by the title.
+    if (!active || !next.includes(active)) setActive(next.find((t) => t !== LOOKS) ?? next[0]);
+    if (active && !folds[active]) {
+      const first = panel.current.querySelector<HTMLElement>(`fieldset.group.fold[data-tab="${active}"]`);
+      if (first) setFolds((f) => ({ ...f, [active]: first.dataset.label! }));
+    }
   });
 
   // The sketch pins under the app's header, whatever height the header is.
@@ -258,12 +334,25 @@ export function StyleLayout({ children, label, name, metres, width = 140, ready,
     return () => el.removeEventListener('touchmove', hold);
   }, [page]);
 
+  // The numbered steps: every tab but Looks (a link by the title) and Pro (the pro tools, at the end).
+  const steps = tabs.filter((t) => t !== LOOKS && t !== PRO);
+  const strip_ = tabs.filter((t) => t !== LOOKS);
   const choose = (t: string) => setActive(t);
+  // Next and back bring the new step's start up under the drawing, if the page had scrolled past it.
+  const goStep = (t: string) => {
+    choose(t);
+    const row = strip.current;
+    if (!row || wide) return;
+    const pinned = parseFloat(getComputedStyle(row).top) || 0;
+    const top = window.scrollY + row.getBoundingClientRect().top - pinned;
+    if (window.scrollY > top) window.scrollTo({ top, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  };
   const step = (by: number) => {
-    const i = tabs.indexOf(active ?? '');
-    const to = tabs[i + by];
+    const i = strip_.indexOf(active ?? '');
+    const to = strip_[i + by];
     if (to) choose(to);
   };
+  const at = steps.indexOf(active ?? '');
 
   if (page === 'review')
     return (
@@ -292,6 +381,11 @@ export function StyleLayout({ children, label, name, metres, width = 140, ready,
       <div className="screen-head">
         <Title id="opts" big="Style" label={label} />
         <GarmentSwitch onChoose={onChooseGarment} />
+        {tabs.includes(LOOKS) && (
+          <button type="button" className="later looks-link" aria-pressed={active === LOOKS} onClick={() => choose(LOOKS)}>
+            Start from a look
+          </button>
+        )}
       </div>
       <div className="style-edit">
         <div className={tall ? 'style-pin tall' : 'style-pin'} ref={pin}>
@@ -304,7 +398,7 @@ export function StyleLayout({ children, label, name, metres, width = 140, ready,
             ref={strip}
             onScroll={(e) => setAtEnd(e.currentTarget.scrollLeft + e.currentTarget.clientWidth >= e.currentTarget.scrollWidth - 2)}
           >
-            {tabs.map((t) => (
+            {strip_.map((t) => (
               <button
                 key={t}
                 id={`tab-${t}`}
@@ -314,6 +408,11 @@ export function StyleLayout({ children, label, name, metres, width = 140, ready,
                 className={[active === t ? 'on' : '', t === PRO ? 'pro' : ''].filter(Boolean).join(' ')}
                 onClick={() => choose(t)}
               >
+                {steps.includes(t) && (
+                  <span className="step-no" aria-hidden="true">
+                    {steps.indexOf(t) + 1}
+                  </span>
+                )}
                 {t}
               </button>
             ))}
@@ -337,6 +436,7 @@ export function StyleLayout({ children, label, name, metres, width = 140, ready,
             if (Math.abs(dx) > 60 && Math.abs(dx) > 2 * Math.abs(p.clientY - s.y)) step(dx < 0 ? 1 : -1);
           }}
         >
+          <Fold.Provider value={fold}>
           <ActiveTab.Provider value={active}>
             <Sections.Provider value={sections}>
             <TabPanel tab={LOOKS}>
@@ -355,6 +455,32 @@ export function StyleLayout({ children, label, name, metres, width = 140, ready,
             )}
             </Sections.Provider>
           </ActiveTab.Provider>
+          </Fold.Provider>
+          {/* The way on: the next step, or Review after the last (on a computer the summary is already beside it). */}
+          {(active === LOOKS || at >= 0) && (
+            <div className="step-next">
+              {at > 0 && (
+                <button type="button" className="later step-back" onClick={() => goStep(steps[at - 1])}>
+                  ‹ {steps[at - 1]}
+                </button>
+              )}
+              {active === LOOKS && steps[0] ? (
+                <button type="button" className="step-go" onClick={() => goStep(steps[0])}>
+                  Start with {steps[0]} ›
+                </button>
+              ) : steps[at + 1] ? (
+                <button type="button" className="step-go" onClick={() => goStep(steps[at + 1])}>
+                  Next: {steps[at + 1]} ›
+                </button>
+              ) : (
+                !wide && (
+                  <button type="button" className="step-go" disabled={!ready} onClick={() => setPage('review')}>
+                    Review ›
+                  </button>
+                )
+              )}
+            </div>
+          )}
         </div>
         {wide ? (
           <div className="style-side">
