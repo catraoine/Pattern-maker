@@ -42,14 +42,14 @@
         "neckline": 1,
         "sleeves": 1,
         "length": 1,
-        "waist": 0.5,
+        "waist": 1,
         "details": 0.5,
-        "print": 0,
-        "colour": 0,
+        "print": 1,
+        "colour": 1,
         "fabric": 1
       },
-      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
-      "note": "Glen plaid in camel stands in for yellow gingham; belt loops not drawn."
+      "scored": "PR #163 build, 2026-10-24, by eye",
+      "note": "Yellow/black gingham drawn at its repeat; belt loops still not drawn."
     },
     {
       "id": "ph-cat-shirtdress",
@@ -84,18 +84,18 @@
       },
       "truth": "Grey linen shirt dress, Peter Pan collar, buttons, gathered skirt from a raised seam, pockets",
       "likeness": {
-        "silhouette": 0,
+        "silhouette": 0.5,
         "neckline": 0.5,
-        "sleeves": 0.5,
+        "sleeves": 1,
         "length": 1,
-        "waist": 0,
-        "details": 0,
+        "waist": 1,
+        "details": 0.5,
         "print": null,
         "colour": 1,
         "fabric": 0.5
       },
-      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
-      "note": "Drawn as a lampshade on a tiny bodice; buttons, collar, pockets missing; seam pinned to the natural waist."
+      "scored": "PR #163 build, 2026-10-24, by eye",
+      "note": "Gathered skirt hangs from the raised seam with folds; buttons, collar and pockets in Drawing, faint on the form."
     },
     {
       "id": "ph-cat-stripe",
@@ -138,14 +138,14 @@
         "neckline": 0.5,
         "sleeves": 1,
         "length": 1,
-        "waist": 0.5,
-        "details": 0,
-        "print": 0.5,
+        "waist": 1,
+        "details": 0.5,
+        "print": 1,
         "colour": 1,
         "fabric": 0.5
       },
-      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
-      "note": "Stripes vanish at 1.5 cm; no wrap overlap or sash; seam pinned to the natural waist."
+      "scored": "PR #163 build, 2026-10-24, by eye",
+      "note": "Fine stripes drawn; wrap edge and sash on the form; raised seam."
     },
     {
       "id": "ph-cos-navy",
@@ -184,13 +184,13 @@
         "sleeves": 1,
         "length": 1,
         "waist": 1,
-        "details": 0.5,
+        "details": 1,
         "print": null,
-        "colour": 0.5,
+        "colour": 1,
         "fabric": 0.5
       },
-      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
-      "note": "The best match in the set. Pockets show in Drawing, not on the form."
+      "scored": "PR #163 build, 2026-10-24, by eye",
+      "note": "Pockets now on the form too."
     },
     {
       "id": "ph-01-pencil",
@@ -219,7 +219,7 @@
         "colour": 1,
         "fabric": 1
       },
-      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
+      "scored": "PR #163 build, 2026-10-24, by eye",
       "note": "Princess seams not drawn."
     },
     {
@@ -245,13 +245,12 @@
         "sleeves": null,
         "length": 1,
         "waist": 1,
-        "details": 0.5,
+        "details": 1,
         "print": null,
         "colour": 1,
         "fabric": 1
       },
-      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
-      "note": ""
+      "scored": "PR #163 build, 2026-10-24, by eye"
     },
     {
       "id": "ph-03-a-line-mini",
@@ -274,13 +273,12 @@
         "sleeves": null,
         "length": 1,
         "waist": 1,
-        "details": 0.5,
+        "details": 1,
         "print": null,
         "colour": 1,
         "fabric": 1
       },
-      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
-      "note": ""
+      "scored": "PR #163 build, 2026-10-24, by eye"
     },
     {
       "id": "ph-04-a-line-midi",
@@ -309,11 +307,11 @@
         "waist": 1,
         "details": 1,
         "print": 0.5,
-        "colour": 0,
+        "colour": 1,
         "fabric": 0.5
       },
-      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
-      "note": "The toile motif in blue stands in for a red floral: colour ignored on prints."
+      "scored": "PR #163 build, 2026-10-24, by eye",
+      "note": "Motif tinted red; still the toile drawing, not a large floral."
     },
     {
       "id": "ph-05-trumpet",
@@ -342,12 +340,12 @@
         "length": 1,
         "waist": 1,
         "details": 0.5,
-        "print": 0.5,
-        "colour": 0,
+        "print": 1,
+        "colour": 1,
         "fabric": 0.5
       },
-      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
-      "note": "Drawn near-white; the camel is lost."
+      "scored": "PR #163 build, 2026-10-24, by eye",
+      "note": "Camel stripes drawn at the repeat."
     },
     {
       "id": "ph-06-half-circle",
@@ -367,7 +365,7 @@
       },
       "truth": "Leopard half-circle mini",
       "likeness": {
-        "silhouette": 0.5,
+        "silhouette": 1,
         "neckline": null,
         "sleeves": null,
         "length": 1,
@@ -377,8 +375,8 @@
         "colour": 0.5,
         "fabric": 0.5
       },
-      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
-      "note": "Lampshade with a scalloped hem; no animal print in the app."
+      "scored": "PR #163 build, 2026-10-24, by eye",
+      "note": "Half circle hangs with folds; no animal print in the app."
     },
     {
       "id": "ph-07-full-circle",
@@ -396,18 +394,18 @@
       },
       "truth": "Red wool full circle, midi",
       "likeness": {
-        "silhouette": 0.5,
+        "silhouette": 1,
         "neckline": null,
         "sleeves": null,
         "length": 1,
         "waist": 1,
         "details": 1,
         "print": null,
-        "colour": 0.5,
+        "colour": 1,
         "fabric": 0.5
       },
-      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
-      "note": "Flat triangle; rust renders brown, no red."
+      "scored": "PR #163 build, 2026-10-24, by eye",
+      "note": "Full circle with folds, in red."
     },
     {
       "id": "ph-08-pleated",
@@ -436,8 +434,8 @@
         "colour": 1,
         "fabric": 1
       },
-      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
-      "note": "Pleats are faint lines on the form."
+      "scored": "PR #163 build, 2026-10-24, by eye",
+      "note": "Pleats are lines on the form."
     },
     {
       "id": "ph-09-gathered-maxi",
@@ -463,11 +461,11 @@
         "waist": 1,
         "details": 0.5,
         "print": 0.5,
-        "colour": 0,
+        "colour": 1,
         "fabric": 0.5
       },
-      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
-      "note": "Drawn pale mauve: the ditsy tile ignores the chosen black."
+      "scored": "PR #163 build, 2026-10-24, by eye",
+      "note": "Black ground with the ditsy picked out pale."
     },
     {
       "id": "ph-10-flat-lay",
@@ -495,12 +493,12 @@
         "length": 1,
         "waist": 1,
         "details": 0.5,
-        "print": 0.5,
-        "colour": 0.5,
+        "print": 1,
+        "colour": 1,
         "fabric": 1
       },
-      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
-      "note": "Grey glen plaid stands in for a bold two-colour check."
+      "scored": "PR #163 build, 2026-10-24, by eye",
+      "note": "Black/white check drawn at its repeat; the diamonds are squares."
     },
     {
       "id": "b01-pleated-chiffon-skirt",
@@ -528,10 +526,10 @@
         "details": 0.5,
         "print": null,
         "colour": 1,
-        "fabric": 0
+        "fabric": 1
       },
-      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
-      "note": "Sheerness not shown; pleats are faint lines."
+      "scored": "PR #163 build, 2026-10-24, by eye",
+      "note": "Sheer cloth is see-through; pleats are lines."
     },
     {
       "id": "b02-corduroy-mini",
@@ -554,14 +552,14 @@
         "neckline": null,
         "sleeves": null,
         "length": 1,
-        "waist": 0.5,
+        "waist": 1,
         "details": 0,
         "print": null,
-        "colour": 0.5,
-        "fabric": 0
+        "colour": 1,
+        "fabric": 1
       },
-      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
-      "note": "Plain camel block: no cord, no pockets or fly."
+      "scored": "PR #163 build, 2026-10-24, by eye",
+      "note": "Brown cord drawn; no jeans pockets or fly on a skirt."
     },
     {
       "id": "b03-wide-jeans",
@@ -582,7 +580,7 @@
       },
       "truth": "Mid-blue barrel-leg jeans",
       "likeness": {
-        "silhouette": 0,
+        "silhouette": 1,
         "neckline": null,
         "sleeves": null,
         "length": 1,
@@ -590,10 +588,10 @@
         "details": 0.5,
         "print": null,
         "colour": 1,
-        "fabric": 0.5
+        "fabric": 1
       },
-      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
-      "note": "One block with no gap between the legs: reads as a skirt."
+      "scored": "PR #163 build, 2026-10-24, by eye",
+      "note": "Two legs with a gap, denim weave."
     },
     {
       "id": "b04-leather-trumpet",
@@ -619,10 +617,10 @@
         "details": 0,
         "print": null,
         "colour": 1,
-        "fabric": 0
+        "fabric": 1
       },
-      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
-      "note": "No sheen; the yoke seam is not an option."
+      "scored": "PR #163 build, 2026-10-24, by eye",
+      "note": "Leather sheen; the yoke seam is not an option."
     },
     {
       "id": "b05-brown-wide-denim",
@@ -644,18 +642,18 @@
       },
       "truth": "Brown wide-leg denim trousers",
       "likeness": {
-        "silhouette": 0,
+        "silhouette": 1,
         "neckline": null,
         "sleeves": null,
         "length": 1,
         "waist": 1,
         "details": 0.5,
         "print": null,
-        "colour": 0.5,
-        "fabric": 0
+        "colour": 1,
+        "fabric": 1
       },
-      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
-      "note": "Legs merge into a skirt; the colour pick wipes the denim texture."
+      "scored": "PR #163 build, 2026-10-24, by eye",
+      "note": "Two legs; brown denim keeps its weave."
     },
     {
       "id": "b06-leather-culottes",
@@ -677,18 +675,18 @@
       },
       "truth": "Black faux-leather culottes, elastic waist, patch pockets",
       "likeness": {
-        "silhouette": 0.5,
+        "silhouette": 1,
         "neckline": null,
         "sleeves": null,
         "length": 1,
         "waist": 1,
-        "details": 0,
+        "details": 1,
         "print": null,
         "colour": 1,
-        "fabric": 0
+        "fabric": 1
       },
-      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
-      "note": "Patch pockets not drawn."
+      "scored": "PR #163 build, 2026-10-24, by eye",
+      "note": "Patch pockets and elastic waist drawn; sheen."
     },
     {
       "id": "b07-balloon-skirt",
@@ -707,7 +705,7 @@
       },
       "truth": "Black cotton balloon skirt",
       "likeness": {
-        "silhouette": 0,
+        "silhouette": 0.5,
         "neckline": null,
         "sleeves": null,
         "length": 1,
@@ -717,8 +715,8 @@
         "colour": 1,
         "fabric": 1
       },
-      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
-      "note": "Lampshade trapezoid; no balloon or drawcord hem exists."
+      "scored": "PR #163 build, 2026-10-24, by eye",
+      "note": "Gathered skirt with folds; no balloon or drawcord hem exists."
     },
     {
       "id": "b08-plaid-field-jacket",
@@ -749,7 +747,7 @@
       "truth": "Olive/tan plaid hooded field jacket, four patch pockets",
       "likeness": {
         "silhouette": 1,
-        "neckline": 0,
+        "neckline": 1,
         "sleeves": 1,
         "length": 1,
         "waist": null,
@@ -758,8 +756,8 @@
         "colour": 0.5,
         "fabric": 1
       },
-      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
-      "note": "Hood missing; checks are the fine glen-plaid tile tinted olive."
+      "scored": "PR #163 build, 2026-10-24, by eye",
+      "note": "Hood drawn; olive gingham at 8 cm stands in for the plaid."
     },
     {
       "id": "b09-leather-bomber",
@@ -786,18 +784,18 @@
       },
       "truth": "Black faux-leather bomber, rib hem and cuffs, zip",
       "likeness": {
-        "silhouette": 0.5,
-        "neckline": 0.5,
-        "sleeves": 0.5,
+        "silhouette": 1,
+        "neckline": 1,
+        "sleeves": 1,
         "length": 1,
         "waist": null,
-        "details": 0,
+        "details": 1,
         "print": null,
         "colour": 1,
-        "fabric": 0
+        "fabric": 1
       },
-      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
-      "note": "No zip, rib trims or sheen."
+      "scored": "PR #163 build, 2026-10-24, by eye",
+      "note": "Zip, rib hem and cuffs, leather sheen."
     },
     {
       "id": "b10-fleece-zip-jacket",
@@ -824,18 +822,18 @@
       },
       "truth": "Brown boucle fleece zip jacket, quilted panels",
       "likeness": {
-        "silhouette": 0.5,
-        "neckline": 0.5,
-        "sleeves": 0.5,
+        "silhouette": 1,
+        "neckline": 1,
+        "sleeves": 1,
         "length": 1,
         "waist": null,
-        "details": 0,
+        "details": 0.5,
         "print": null,
-        "colour": 0.5,
+        "colour": 1,
         "fabric": 0
       },
-      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
-      "note": "Flat camel; no pile, no second cloth."
+      "scored": "PR #163 build, 2026-10-24, by eye",
+      "note": "Zip front in brown; no pile or second cloth."
     },
     {
       "id": "b11-brown-denim-jacket",
@@ -863,17 +861,17 @@
       "truth": "Brown denim cropped zip jacket",
       "likeness": {
         "silhouette": 1,
-        "neckline": 0.5,
+        "neckline": 1,
         "sleeves": 1,
         "length": 1,
         "waist": null,
-        "details": 0,
+        "details": 0.5,
         "print": null,
-        "colour": 0.5,
-        "fabric": 0
+        "colour": 1,
+        "fabric": 1
       },
-      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
-      "note": "Colour pick wipes the denim texture."
+      "scored": "PR #163 build, 2026-10-24, by eye",
+      "note": "Zip front; brown denim keeps its weave."
     },
     {
       "id": "b12-black-cotton-coat",
@@ -884,11 +882,11 @@
         "garment": "coat",
         "fit": "relaxed",
         "length": "midi",
-        "shaping": "boxy",
+        "shaping": "darts",
         "front": "single",
         "collar": "stand",
         "pockets": "welt",
-        "sleeve": "tailored",
+        "sleeve": "raglan",
         "flare": "a_line",
         "pads": "none",
         "vent": "centre"
@@ -901,7 +899,7 @@
       "likeness": {
         "silhouette": 1,
         "neckline": 1,
-        "sleeves": 0.5,
+        "sleeves": 1,
         "length": 1,
         "waist": null,
         "details": 0.5,
@@ -909,8 +907,8 @@
         "colour": 1,
         "fabric": 0.5
       },
-      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
-      "note": "Raglan not an option; otherwise close."
+      "scored": "PR #163 build, 2026-10-24, by eye",
+      "note": "Raglan sleeves drawn; flap pockets are welts."
     },
     {
       "id": "b13-cape-sleeve-column",
@@ -953,7 +951,7 @@
         "colour": 1,
         "fabric": 0.5
       },
-      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
+      "scored": "PR #163 build, 2026-10-24, by eye",
       "note": "Cape panels not drawn; a waist seam line shows on a seamless dress."
     },
     {
@@ -987,7 +985,7 @@
       },
       "truth": "Tee-shirt dress with crinkle-gauze gathered skirt, dropped seam",
       "likeness": {
-        "silhouette": 0,
+        "silhouette": 1,
         "neckline": 1,
         "sleeves": 1,
         "length": 1,
@@ -997,8 +995,8 @@
         "colour": 1,
         "fabric": 0
       },
-      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
-      "note": "Lampshade; the Drawing view shows the skirt as two huge rectangles."
+      "scored": "PR #163 build, 2026-10-24, by eye",
+      "note": "Gathered skirt hangs from the dropped seam with folds; no crinkle."
     },
     {
       "id": "b15-blue-slip-mesh",
@@ -1039,10 +1037,10 @@
         "details": 0,
         "print": null,
         "colour": 0.5,
-        "fabric": 0
+        "fabric": 0.5
       },
-      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
-      "note": "No sheen, no crinkle, no sheer yoke."
+      "scored": "PR #163 build, 2026-10-24, by eye",
+      "note": "Satin sheen; no crinkle, no sheer yoke."
     },
     {
       "id": "b16-leopard-puff-mini",
@@ -1079,16 +1077,16 @@
       "likeness": {
         "silhouette": 1,
         "neckline": 1,
-        "sleeves": 0,
+        "sleeves": 1,
         "length": 1,
         "waist": 0.5,
         "details": 0,
         "print": 0,
-        "colour": 0,
+        "colour": 0.5,
         "fabric": 0
       },
-      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
-      "note": "Pale ditsy stands in for dark leopard; puff sleeves drawn as tubes."
+      "scored": "PR #163 build, 2026-10-24, by eye",
+      "note": "Puff sleeves with gathers; no leopard print in the app."
     },
     {
       "id": "b17-marble-silk-maxi",
@@ -1124,18 +1122,18 @@
       },
       "truth": "Marbled-print silk maxi, kimono sleeves, drawstring waist",
       "likeness": {
-        "silhouette": 0,
+        "silhouette": 0.5,
         "neckline": 1,
         "sleeves": 0.5,
         "length": 1,
         "waist": 0.5,
         "details": 0,
         "print": 0,
-        "colour": 0,
-        "fabric": 0
+        "colour": 0.5,
+        "fabric": 0.5
       },
-      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
-      "note": "Blue toile for a marbled art print; lampshade."
+      "scored": "PR #163 build, 2026-10-24, by eye",
+      "note": "Gathered skirt hangs; toile for a marbled art print."
     },
     {
       "id": "b18-sheer-ruffle-mini",
@@ -1172,16 +1170,16 @@
       "likeness": {
         "silhouette": 0.5,
         "neckline": 0.5,
-        "sleeves": 0,
+        "sleeves": 0.5,
         "length": 1,
         "waist": 0.5,
         "details": 0,
         "print": null,
         "colour": 1,
-        "fabric": 0
+        "fabric": 1
       },
-      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
-      "note": "Bell sleeves and ruffle not drawn; no sheerness. A mistyped flounce value crashed the app."
+      "scored": "PR #163 build, 2026-10-24, by eye",
+      "note": "Sheer; bell sleeves and ruffle not drawn; no crash now."
     },
     {
       "id": "b19-satin-tiered-gown",
@@ -1216,7 +1214,7 @@
       },
       "truth": "Black satin tiered cami gown, high-low",
       "likeness": {
-        "silhouette": 0,
+        "silhouette": 0.5,
         "neckline": 1,
         "sleeves": null,
         "length": 1,
@@ -1224,10 +1222,10 @@
         "details": 0,
         "print": null,
         "colour": 1,
-        "fabric": 0
+        "fabric": 1
       },
-      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
-      "note": "Giant lampshade; tiers invisible; Drawing view rectangles."
+      "scored": "PR #163 build, 2026-10-24, by eye",
+      "note": "Gathered skirt with folds, satin sheen; tiers not drawn."
     },
     {
       "id": "b20-one-shoulder-ruched-mini",
@@ -1270,7 +1268,7 @@
         "colour": 1,
         "fabric": 0.5
       },
-      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
+      "scored": "PR #163 build, 2026-10-24, by eye",
       "note": "Close; ruching not drawn."
     },
     {
@@ -1305,17 +1303,17 @@
       "truth": "Off-white draped cowl-collar wrap midi, sash",
       "likeness": {
         "silhouette": 1,
-        "neckline": 0,
+        "neckline": 0.5,
         "sleeves": 1,
         "length": 1,
         "waist": 0.5,
-        "details": 0,
+        "details": 0.5,
         "print": null,
         "colour": 1,
         "fabric": 0.5
       },
-      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
-      "note": "Cowl drawn as a plain V; no wrap, no sash."
+      "scored": "PR #163 build, 2026-10-24, by eye",
+      "note": "Cowl drawn as drape lines; sash on the form; no wrap."
     },
     {
       "id": "b22-draped-jersey-maxi",
@@ -1349,7 +1347,7 @@
       "truth": "Grey draped jersey maxi, cowl, draped hip seam",
       "likeness": {
         "silhouette": 1,
-        "neckline": 0,
+        "neckline": 0.5,
         "sleeves": 1,
         "length": 1,
         "waist": 1,
@@ -1358,8 +1356,8 @@
         "colour": 1,
         "fabric": 0.5
       },
-      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
-      "note": "Cowl drape not drawn."
+      "scored": "PR #163 build, 2026-10-24, by eye",
+      "note": "Cowl drape lines; hip drape not drawn."
     },
     {
       "id": "b23-asym-draped-tie-midi",
@@ -1397,13 +1395,13 @@
         "sleeves": 1,
         "length": 1,
         "waist": 1,
-        "details": 0.5,
+        "details": 1,
         "print": null,
         "colour": 1,
         "fabric": 1
       },
-      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
-      "note": "Good; drape not shown."
+      "scored": "PR #163 build, 2026-10-24, by eye",
+      "note": "Ties drawn; drape not shown."
     },
     {
       "id": "b24-lace-high-low-gown",
@@ -1448,12 +1446,12 @@
         "length": 1,
         "waist": 1,
         "details": 0,
-        "print": 0,
-        "colour": 0,
-        "fabric": 0
+        "print": 0.5,
+        "colour": 1,
+        "fabric": 1
       },
-      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
-      "note": "Blue toile for camel floral lace; ruffle hem and slit not drawn."
+      "scored": "PR #163 build, 2026-10-24, by eye",
+      "note": "Lace weave in camel; ruffle hem and slit not drawn."
     }
   ]
 }

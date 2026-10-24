@@ -78,6 +78,10 @@ const light = (hex: string) => {
   const [r, g, b] = rgb(hex);
   return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.55;
 };
+const dark = (hex: string) => {
+  const [r, g, b] = rgb(hex);
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b < 0.12;
+};
 /** The two colours a print is drawn in: the chosen colour on ivory, or, when the colour is a light one, ink on it. */
 const twoTone = (hex: string | undefined): { tone: string; ground: string } => (!hex ? { tone: INK, ground: IVORY } : light(hex) ? { tone: INK, ground: hex } : { tone: hex, ground: IVORY });
 /** A print's darks in the tone and its lights in the ground, so the print keeps its drawing in the chosen colour. */
@@ -118,7 +122,9 @@ export function GarmentFabric({ fabric, children }: { fabric: MyFabric | undefin
   const bodyKind = kind === 'border' ? undefined : kind;
   // Checks and stripes are drawn, not pictured, so they come at the repeat entered and in the colour chosen.
   const drawn = bodyKind === 'checks';
-  const { tone, ground } = twoTone(hex);
+  const two = twoTone(hex);
+  // A pictured print in a dark colour is mostly that colour: its ground, with the drawing picked out pale.
+  const { tone, ground } = hex && bodyKind && !drawn && dark(hex) ? { tone: mix(IVORY, hex, 0.3), ground: hex } : two;
   // A cloth is tinted in its colour; a pictured print keeps its drawing but takes the colour, when one is chosen.
   const table = bodyKind ? (hex ? printTable(tone, ground) : undefined) : hex ? tintTable(hex) : undefined;
   const repeat = printRepeat(fabric);

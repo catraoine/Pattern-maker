@@ -333,7 +333,8 @@ function gatheredHalf(d: SkirtDraft, back: boolean): { shapes: P[][]; lines: Fla
   const w = g.into / 4;
   const q = g.round / 4;
   const L = d.lengthCm;
-  const H = Math.max(w + 2, Math.min(q, w + L * 0.3));
+  // The hem spreads to a quarter of its round, but no further than the cloth can hang: a fifth of the length out, and twice the waist.
+  const H = Math.max(w + 2, Math.min(q, w + L * 0.2, w * 2));
   const folds = Math.max(2, Math.min(5, Math.round((g.round / g.into) * 1.6)));
   const per = 8;
   const n = folds * per;
