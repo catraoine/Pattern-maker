@@ -8,6 +8,7 @@ import { PRINTS, printImage, printOf, printTileCm } from '../engine/prints';
 import { FabricDetails } from './FabricDetails';
 import { SPECIALS, Special } from '../engine/specialFabrics';
 import { colourHex, coloursFor, shopFabric, shopFabricsFor, withShopFabric } from '../engine/shopFabrics';
+import { FabricLook, FabricLookContext } from './ClothLook';
 
 /** One tile, in the sketch's own centimetres: larger than life, so ribs and twill read on a phone. */
 const TILE = 16;
@@ -65,15 +66,42 @@ export function pickShopFabric(finish: Finish, id: string): Finish {
 }
 
 /** Lightness levels for a tinted swatch: the weave keeps its shading, in the chosen colour. */
-function tintTable(hex: string, deep = false, even = false): [string, string, string] {
+function tintTable(hex: string): [string, string, string] {
   const ch = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
-  // Deep, for checks: near black to the colour, the colour taking most of the cloth. Even, for a gingham: black,
-  // the colour, and the half shade where they cross, each as it is woven.
-  return ch.map((c) => {
-    const lo = (c * (deep ? (even ? 0.06 : 0.1) : 0.45)).toFixed(3);
-    const hi = Math.min(1, even ? c * 1.2 : c * 1.3 + 0.06).toFixed(3);
-    return deep && !even ? `${lo} ${lo} ${hi} ${hi} ${hi}` : `${lo} ${hi}`;
-  }) as [string, string, string];
+  return ch.map((c) => `${(c * 0.45).toFixed(3)} ${Math.min(1, c * 1.3 + 0.06).toFixed(3)}`) as [string, string, string];
+}
+
+const IVORY = '#efe8d6';
+const INK = '#2a2826';
+const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+const light = (hex: string) => {
+  const [r, g, b] = rgb(hex);
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.55;
+};
+const dark = (hex: string) => {
+  const [r, g, b] = rgb(hex);
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b < 0.12;
+};
+/** The two colours a print is drawn in: the chosen colour on ivory, or, when the colour is a light one, ink on it. */
+const twoTone = (hex: string | undefined): { tone: string; ground: string } => (!hex ? { tone: INK, ground: IVORY } : light(hex) ? { tone: INK, ground: hex } : { tone: hex, ground: IVORY });
+/** A print's darks in the tone and its lights in the ground, so the print keeps its drawing in the chosen colour. */
+function printTable(tone: string, ground: string): [string, string, string] {
+  const t = rgb(tone);
+  const g = rgb(ground);
+  return t.map((c, i) => `${c.toFixed(3)} ${g[i].toFixed(3)}`) as [string, string, string];
+}
+const mix = (a: string, b: string, t: number) => {
+  const x = rgb(a);
+  const y = rgb(b);
+  return `#${x.map((c, i) => Math.round((c * (1 - t) + y[i] * t) * 255).toString(16).padStart(2, '0')).join('')}`;
+};
+
+/** The look the drawings give the cloth beyond its fill: sheer, sheen, weave, and a border print on the hem. */
+export function fabricLook(fabric: MyFabric | undefined, base: string): FabricLook | undefined {
+  const special = shopFabric(fabric?.shop)?.special ?? fabric?.special;
+  const kind = printShown(fabric);
+  if (!special && kind !== 'border') return undefined;
+  return { special, sheer: special === 'sheer' || special === 'lace', ...(kind === 'border' ? { border: { href: printImage('border', base), size: printTileCm('border', undefined) } } : {}) };
 }
 
 /** Lends its children's sketch the fabric: shapes filled with var(--garment) take it, and a waistband
@@ -88,14 +116,45 @@ export function GarmentFabric({ fabric, children }: { fabric: MyFabric | undefin
   const body = `fab${uid}`;
   const band = `fabband${uid}`;
   const tint = `fabtint${uid}`;
-  const hex = !kind || (kind === 'checks' && !fabric?.checks?.stripes) ? colourHex(fabric) : undefined;
-  const gingham = kind === 'checks' && !fabric?.checks?.stripes && !!fabric?.checks?.gingham;
-  const table = hex ? tintTable(hex, !!kind, gingham) : undefined;
-  const size = kind ? printTileCm(kind, printRepeat(fabric), fabric?.checks?.stripes) : TILE;
-  const href = kind ? printImage(kind, import.meta.env.BASE_URL, fabric?.checks?.stripes, gingham) : tileUrl(id!);
+  const hex = colourHex(fabric);
+  const base = import.meta.env.BASE_URL;
+  const look = fabricLook(fabric, base);
+  // A border print lies on the hem (see ClothLook); the body is plain cloth under it.
+  const bodyKind = kind === 'border' ? undefined : kind;
+  // Checks and stripes are drawn, not pictured, so they come at the repeat entered and in the colour chosen.
+  const drawn = bodyKind === 'checks';
+  const two = twoTone(hex);
+  // A pictured print in a dark colour is mostly that colour: its ground, with the drawing picked out pale.
+  const { tone, ground } = hex && bodyKind && !drawn && dark(hex) ? { tone: mix(IVORY, hex, 0.3), ground: hex } : two;
+  // A cloth is tinted in its colour; a pictured print keeps its drawing but takes the colour, when one is chosen.
+  const table = bodyKind ? (hex ? printTable(tone, ground) : undefined) : hex ? tintTable(hex) : undefined;
+  const repeat = printRepeat(fabric);
+  const stripes = !!fabric?.checks?.stripes;
+  const size = drawn ? printTileCm('checks', repeat, stripes) / 3 : bodyKind ? printTileCm(bodyKind, repeat, stripes) : TILE;
+  // Under a border print the cloth is the print's own ivory ground, unless a colour is chosen for it.
+  const href = bodyKind ? printImage(bodyKind, base, stripes) : id && (kind !== 'border' || hex) ? tileUrl(id) : undefined;
+  const half = mix(tone, ground, 0.5);
   const tile = (pid: string, turn: boolean) => (
     <pattern id={pid} patternUnits="userSpaceOnUse" width={size} height={size} patternTransform={turn ? 'rotate(90)' : undefined}>
-      <image href={href} width={size} height={size} preserveAspectRatio="none" filter={table ? `url(#${tint})` : undefined} />
+      {drawn ? (
+        stripes ? (
+          <>
+            <rect width={size} height={size} fill={ground} />
+            <rect width={size * 0.42} height={size} fill={tone} />
+          </>
+        ) : (
+          <>
+            <rect width={size} height={size} fill={ground} />
+            <rect width={size / 2} height={size / 2} fill={tone} />
+            <rect x={size / 2} width={size / 2} height={size / 2} fill={half} />
+            <rect y={size / 2} width={size / 2} height={size / 2} fill={half} />
+          </>
+        )
+      ) : href ? (
+        <image href={href} width={size} height={size} preserveAspectRatio="none" filter={table ? `url(#${tint})` : undefined} />
+      ) : (
+        <rect width={size} height={size} fill={hex ?? IVORY} />
+      )}
     </pattern>
   );
   return (
@@ -110,14 +169,13 @@ export function GarmentFabric({ fabric, children }: { fabric: MyFabric | undefin
                 <feFuncG type="table" tableValues={table[1]} />
                 <feFuncB type="table" tableValues={table[2]} />
               </feComponentTransfer>
-              {gingham && <feColorMatrix type="saturate" values="1.2" />}
             </filter>
           )}
           {tile(body, false)}
           {tile(band, true)}
         </defs>
       </svg>
-      {children}
+      <FabricLookContext.Provider value={look}>{children}</FabricLookContext.Provider>
     </div>
   );
 }

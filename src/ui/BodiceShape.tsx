@@ -25,7 +25,7 @@ import { hemOffsetAt } from '../engine/bodiceHem';
 import { unevenEdge } from '../engine/uneven';
 import type { Side } from './ShapeSketch';
 import { FormArm, formWidth } from './DrawOnForm';
-import { FormLayers, SQUEEZE, formFrame, wornCloth } from './FormSketch';
+import { FormLayers, SQUEEZE, formFrame, wornCloth, wornFolds, wornMapper } from './FormSketch';
 import { landmarks } from './formLines';
 
 interface Worn {
@@ -253,8 +253,13 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
   // sleeves left to hang on the arms.
   const flat = useMemo(() => bodiceFlat(draft, 'binding', sleeve), [draft, sleeve]);
   const view = side === 'front' ? 0 : 1;
-  const cloth = useMemo(() => wornCloth(wornShapes(flat, view), body, land.underarm.y), [flat, view, body, land]);
-  const lines = useMemo(() => ({ seam: wornLines(flat, view) }), [flat, view]);
+  const flatCloth = useMemo(() => wornShapes(flat, view), [flat, view]);
+  const cloth = useMemo(() => wornCloth(flatCloth, body, land.underarm.y), [flatCloth, body, land]);
+  const folds = useMemo(() => wornFolds(flatCloth, cloth), [flatCloth, cloth]);
+  const lines = useMemo(() => {
+    const map = wornMapper(flatCloth, body, land.underarm.y);
+    return { seam: wornLines(flat, view).map((run) => run.map(map)) };
+  }, [flat, view, flatCloth, body, land]);
 
   // The frame stays put while dragging, sized for the roomiest fit and the longest hem, so the handle
   // stays under the finger.
@@ -383,7 +388,7 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
       onPointerUp={end}
       onPointerCancel={end}
     >
-      <FormLayers body={body} m={m} legs={false} cx={cx} bottom={frame.bottom} arms={arms} lines={lines} worn={cloth} sleeve={arms ? sleeve : undefined} />
+      <FormLayers body={body} m={m} legs={false} cx={cx} top={frame.top} bottom={frame.bottom} arms={arms} lines={lines} worn={cloth} folds={folds} sleeve={arms ? sleeve : undefined} />
       {guide(waistY, 'WAIST')}
       {hip && guide(waistY + m.waist_to_hip!, 'HIP')}
       {!drawing && hip && handle({ x: cx + SQUEEZE * hemCentre.x, y: hemCentre.y }, 'hem', lengthLabel)}

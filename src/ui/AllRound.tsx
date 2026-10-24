@@ -44,7 +44,7 @@ export interface RoundMeasurements {
 interface Props {
   round: RoundGarment;
   m: RoundMeasurements;
-  /** The fabric has checks or stripes to match: which, for the row's name. */
+  /** The fabric has checks or stripes to match: which, so the note names the right one. */
   striped?: boolean | 'checks' | 'stripes';
   label: string;
 }

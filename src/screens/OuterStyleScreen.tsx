@@ -1,9 +1,10 @@
+import { matchKind } from '../engine/prints';
 import { useMemo, useState } from 'react';
 import { layout } from '../engine/export';
 import { piecesLengthCm, toMetres } from '../engine/fabric';
 import { layPlan } from '../engine/layplan';
 import { OUTER_EASE, OuterDraft, OuterMeasurements, outerDrop } from '../engine/outerwear';
-import { outerFlat, wornShapes } from '../engine/flat';
+import { outerFlat, wornLines, wornShapes } from '../engine/flat';
 import { OuterChoices, describeOuter, outerAllowed, outerGroups } from '../garments';
 import { TechFlatView } from '../ui/TechFlatView';
 import { AllRound } from '../ui/AllRound';
@@ -24,9 +25,11 @@ import { MyFabric, fabricEase, outerFabrics } from '../engine/fabrics';
 import { FabricCard, FabricSummary } from '../ui/FabricCard';
 import { ChoicePic, chipsClass } from '../ui/ChoicePic';
 import { Explain } from '../ui/Explain';
+import { OUTER_SLEEVE_HELP, readOuterSleeve } from '../ui/formSleeves';
+import { outerPocketLines, readOuterPocket, readOuterVent } from '../ui/formOuter';
 import { DrawOnForm, armFor, formWidth } from '../ui/DrawOnForm';
 import { FormSketch } from '../ui/FormSketch';
-import { landmarks } from '../ui/formLines';
+import { FormLine, landmarks } from '../ui/formLines';
 import { outerLines, readOuterCollar, readOuterFit, readOuterFront, readOuterHem, readOuterShaping } from '../ui/formTops';
 import { FABRIC, Group, PRO, StyleLayout, TabPanel } from '../ui/StyleLayout';
 import { DemoButton } from '../ui/DemoButton';
@@ -85,6 +88,7 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
   const formBody = useMemo(() => (draft ? formWidth(draft.base, m) : undefined), [draft, m]);
   const formLines = useMemo(() => (draft ? outerLines(draft) : {}), [draft]);
   const clothShapes = useMemo(() => (flat ? wornShapes(flat) : undefined), [flat]);
+  const flatLines = useMemo(() => (flat ? wornLines(flat) : undefined), [flat]);
   const formArm = useMemo(() => {
     if (!draft || !m.arm_length || !m.upper_arm) return undefined;
     const { shoulderTip, underarm } = landmarks(draft.base);
@@ -110,12 +114,19 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           ['front', 'Front edge'],
           ['collar', 'Collar'],
           ['seam', 'Shaping'],
+          ...(formArm ? ([['sleeve', 'Sleeve']] as [FormLine, string][]) : []),
+          ['pocket', 'Pocket'],
+          ['vent', 'Vent'],
         ]}
         help={{
-          hem: `Draw across where you want the hem. It takes the nearest of the ${kind}’s lengths, cut level.`,
+          hem: `Draw across where you want the hem: it takes the nearest of the ${kind}’s lengths. Curve it up to the front edge at the centre for a cutaway front.`,
+          fit: `Draw down the side: closer to the body for a closer fit${kind === 'coat' ? ', and out from the hip to the hem for an A-line coat' : ''}.`,
           seam: 'Draw from the armhole through the bust down to the waist for princess seams. Any other line keeps the darts.',
+          sleeve: OUTER_SLEEVE_HELP,
+          pocket: 'Draw a box on the front for a patch pocket, or a short level line for a welt pocket, where it should go.',
+          vent: 'Draw straight up from the hem at the centre for a back vent, as long as you want it. Across the hem there closes it.',
         }}
-        lines={() => outerLines(draft)}
+        lines={() => ({ ...outerLines(draft), ...outerPocketLines(draft) })}
         choices={choices}
         onChoices={setChoices}
         read={(line, _side, stroke) =>
@@ -127,7 +138,13 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
                 ? readOuterFront(stroke, draft, choices)
                 : line === 'collar'
                   ? readOuterCollar(stroke, draft, choices)
-                  : readOuterShaping(stroke, draft, choices)
+                  : line === 'sleeve' && formArm
+                    ? readOuterSleeve(stroke, formArm, landmarks(draft.base).neckPoint, choices)
+                    : line === 'pocket'
+                      ? readOuterPocket(stroke, choices)
+                      : line === 'vent'
+                        ? readOuterVent(stroke, draft, choices)
+                        : readOuterShaping(stroke, draft, choices)
         }
         onDone={() => {
           undo.change(choices, onForm);
@@ -146,6 +163,8 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
   return (
     <StyleLayout
       onEditMeasurements={onEditMeasurements}
+      onPrint={onNext}
+      flat={flat}
       undo={undo}
       label={`your ${kind}`}
       garment={kind}
@@ -175,8 +194,12 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
                       const next = { ...choices, [g.id]: id } as OuterChoices;
                       // A fitted cut keeps its waist darts.
                       if (next.fit === 'fitted' && next.shaping === 'boxy') next.shaping = 'darts';
-                      // A cropped jacket is too short for a vent.
-                      if (next.length === 'cropped') next.vent = 'none';
+                      // A cropped jacket is too short for a vent; rib bands at the hem leave no room for one.
+                      if (next.length === 'cropped' || next.trim === 'rib') next.vent = 'none';
+                      // A notched lapel needs a shoulder seam and a buttoned front: a zip or raglan sleeves switch it to a stand collar.
+                      if (next.collar === 'notched' && (next.front === 'zip' || next.sleeve === 'raglan')) next.collar = 'stand';
+                      // A raglan sleeve is cut off a one-piece front and back: princess seams give way to darts.
+                      if (next.sleeve === 'raglan' && next.shaping === 'princess') next.shaping = 'darts';
                       onChoices(next);
                     }}
                   >
@@ -236,7 +259,7 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           {error && <p className="msg error">{error}</p>}
           {formBody && view === 'sketch' && (
             <GarmentFabric fabric={fabric}>
-              <FormSketch body={formBody} m={m} legs={kind === 'coat'} bottom={waistY + outerDrop(m, longest) + 6} lines={formLines} cloth={clothShapes} arms={formArm} sleeve={formArm ? draft?.sleeve : undefined} underarmY={draft ? landmarks(draft.base).underarm.y : undefined} label={`The ${title.toLowerCase()} on your form`} />
+              <FormSketch body={formBody} m={m} legs={kind === 'coat'} bottom={waistY + outerDrop(m, longest) + 6} lines={formLines} cloth={clothShapes} flatLines={flatLines} arms={formArm} sleeve={formArm ? draft?.sleeve : undefined} underarmY={draft ? landmarks(draft.base).underarm.y : undefined} label={`The ${title.toLowerCase()} on your form`} />
             </GarmentFabric>
           )}
           {flat && view === 'flat' && (
@@ -244,7 +267,7 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
               <TechFlatView flat={flat} title={title} />
             </GarmentFabric>
           )}
-          {round && view === 'round' && <AllRound round={round} m={values} striped={fabric?.checks ? (fabric.checks.stripes ? 'stripes' : 'checks') : false} label={`The ${title.toLowerCase()} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`} />}
+          {round && view === 'round' && <AllRound round={round} m={values} striped={matchKind(fabric)} label={`The ${title.toLowerCase()} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`} />}
           {draft && sheet && view === 'pattern' && !(fit && canFit) && <PatternPane><PatternPreview paper sheet={sheet} label={`Pattern pieces for ${title.toLowerCase()}`} /></PatternPane>}
           {view === 'pattern' && fit && canFit && <EaseMapView views={easeMap!} label={`The fit of the ${title.toLowerCase()}, on its pattern pieces`} />}
           <UndoToast undo={undo} />
@@ -301,7 +324,7 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           Print my pattern
         </button>
         <SaveControl state={saveState} disabled={!draft} onSave={onSave} onAccount={onAccount} />
-        <button type="button" className="link edit-measure" onClick={onEditMeasurements}>
+        <button type="button" className="later edit-measure" onClick={onEditMeasurements}>
           Edit measurements
         </button>
       </aside>

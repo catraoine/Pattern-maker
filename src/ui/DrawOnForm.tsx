@@ -98,6 +98,8 @@ interface Props<C> {
   help?: Partial<Record<FormLine, string>>;
   /** Whether any line goes on the back; without, the form shows its front only. */
   backs?: boolean;
+  /** The only kinds drawn on the back, where a garment takes just a few there; the rest are front only. */
+  backKinds?: FormLine[];
   /** Arms beside the form, for a sleeve line. */
   arms?: FormArm;
   /** The garment as cloth from the front (its flat's front view), worn on the form as on the Style page, so you
@@ -117,10 +119,14 @@ const HELP: Record<FormLine, string> = {
   drape: 'Draw how the cloth hangs: dipping across the neck from shoulder to shoulder for a cowl, or flaring out from the waist for a peplum (wavy for gathers).',
   fit: 'Draw down the side, closer to the body for a closer fit or further out for more room.',
   hem: 'Draw across where you want the hem. Curve it to shape it, or turn to the back and draw it lower for a high-low hem.',
-  sleeve: 'Draw across the arm where you want the sleeve to end.',
+  sleeve: 'Draw across the arm where the sleeve should end. Draw down the outside of the arm for its shape: close for fitted, puffed at the top, full at the wrist for bishop, flaring for flutter. From the neck to under the arm makes raglan sleeves; across the top of the arm, a dropped shoulder.',
   front: 'Draw down the front where its edge should sit: just past the centre for one row of buttons, further across for two.',
   collar: 'Draw from the shoulder down the front: down to the bust for lapels, round to the centre for a collarless neck.',
   waist: 'Draw across the body where the bodice meets the skirt: just under the bust for an empire line, at the waist, or low on the hip for a drop waist.',
+  slit: 'Draw up from the hem where you want the slit: at the centre front, the side, or turn to the back. It opens as high as you draw.',
+  fullness: 'Draw short marks down from the waist for pleats, a wavy line along the waist for gathers, points up from the hem for godets, or a wavy line across low down for a flounce.',
+  pocket: 'Draw where the pocket goes: a slant from the waist to the side, or a short line down the side seam.',
+  vent: 'Turn to the back and draw up from the hem at the centre for a vent.',
 };
 const BACK_HELP: Partial<Record<FormLine, string>> = {
   neckline: 'Draw down the back to set how low the back neckline goes.',
@@ -128,7 +134,7 @@ const BACK_HELP: Partial<Record<FormLine, string>> = {
   hem: 'Draw the back hem. Lower than the front makes a high-low hem.',
 };
 /** Kinds that are drawn on the front only. */
-const FRONT_ONLY: FormLine[] = ['drape', 'fit', 'waist'];
+const FRONT_ONLY: FormLine[] = ['drape', 'fit', 'waist', 'collar', 'sleeve'];
 
 /** Marks the drawing's own entry in the browser's history. */
 const DRAWING = 'drawing';
@@ -183,7 +189,7 @@ export function skirtForm(m: { waist: number; full_hip: number; waist_to_hip: nu
   return { width: body, top: -12, bottom: m.waist_to_hip + 8, waistY: 0 };
 }
 
-export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, onChoices, read, help: helpFor, backs = true, arms, cloth, sleeve, underarmY, onDone, onCancel }: Props<C>) {
+export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, onChoices, read, help: helpFor, backs = true, backKinds, arms, cloth, sleeve, underarmY, onDone, onCancel }: Props<C>) {
   const svg = useRef<SVGSVGElement>(null);
   const [kind, setKind] = useState<FormLine>(kinds[0][0]);
   const [side, setSide] = useState<FormSide>('front');
@@ -244,7 +250,8 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
     if ((window.history.state as { sub?: unknown } | null)?.sub === DRAWING) window.history.back();
     then();
   };
-  const onBack = side === 'back' && FRONT_ONLY.includes(kind) ? false : side === 'back';
+  const frontOnly = (k: FormLine) => FRONT_ONLY.includes(k) || (!!backKinds && !backKinds.includes(k));
+  const onBack = side === 'back' && frontOnly(kind) ? false : side === 'back';
 
   // The legs to your measurements, from where they part down to the floor (cm below the waist).
   const legLines = useMemo(() => {
@@ -360,7 +367,7 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
   const pick = (k: FormLine) => {
     setKind(k);
     setSaid(undefined);
-    if (FRONT_ONLY.includes(k)) setSide('front');
+    if (frontOnly(k)) setSide('front');
   };
   const help = helpFor?.[kind] ?? ((onBack && BACK_HELP[kind]) || HELP[kind]);
 
@@ -385,7 +392,7 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
                 type="button"
                 aria-pressed={side === s}
                 className={side === s ? 'on' : ''}
-                disabled={s === 'back' && FRONT_ONLY.includes(kind)}
+                disabled={s === 'back' && frontOnly(kind)}
                 onClick={() => {
                   setSide(s);
                   setSaid(undefined);
@@ -432,7 +439,7 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
           >
             {clothOn ? (
               // The garment on the form exactly as on the Style page, to draw on.
-              <FormLayers body={body} m={m} legs={legs} cx={cx} bottom={frame.bottom} arms={arms} lines={{}} worn={clothOn} sleeve={sleeve} />
+              <FormLayers body={body} m={m} legs={legs} cx={cx} top={frame.top} bottom={frame.bottom} arms={arms} lines={{}} worn={clothOn} sleeve={sleeve} />
             ) : (
               <>
               {legPaths.map((l, i) => (

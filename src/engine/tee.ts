@@ -44,7 +44,13 @@ export interface TeeStyle {
   length: TeeLength;
   /** The menswear form: no bust shaping, front and back cut alike. */
   flatFront?: boolean;
+  /** Drawn on the form: a shaped hem. `sides` raises it at the side seams for a shirttail, `back`
+   * lowers the centre back for a high-low hem, in cm (see TEE_HEM_SHAPE). A level hem has neither. */
+  hemShape?: { sides?: number; back?: number };
 }
+
+/** How far a drawn T-shirt hem can rise at the sides and fall at the back, in cm. */
+export const TEE_HEM_SHAPE = { sides: 10, back: 12 };
 
 export const DEFAULT_TEE: TeeStyle = { fit: 'regular', stretch: 'medium', neckline: 'crew', sleeve: 'short', length: 'hip' };
 
@@ -139,6 +145,8 @@ export interface TeeDraft {
   frontExtra: number;
   /** Centre back, neck edge to hem. */
   backLength: number;
+  /** A shaped hem, as drafted: how far it rises at the side seams and falls at the centre back, in cm. */
+  hemShape?: { sides: number; back: number };
   armholeDepth: number;
   /** Round one armhole, front and back together. */
   armhole: number;
@@ -212,7 +220,8 @@ export function draftTee(m: TeeMeasurements, style: Partial<TeeStyle> = {}): Tee
     frontBust: r1(shape.frontBustQ),
     backBust: r1(shape.backBustQ),
     frontExtra: r1(shape.frontExtra),
-    backLength: r1(shape.hemY - shape.bd),
+    backLength: r1(shape.hemY + shape.backLonger - shape.bd),
+    ...(shape.sides || shape.backLonger ? { hemShape: { sides: r1(shape.sides), back: r1(shape.backLonger) } } : {}),
     armholeDepth: r1(scye),
     armhole: r1(shape.armhole),
     necklineCm: r1(neckline),
@@ -328,11 +337,14 @@ function build(m: TeeMeasurements, s: TeeStyle, scye: number, warnings: string[]
   // A wider front slants its side seam differently from the back's, so the two would come out a little
   // different in length. The front's hem corner moves up or down (under a cm) until its side seam
   // is exactly the back's, so the sides sew edge to edge from underarm to hem with nothing eased.
-  const backSideCm = sideLength(backSide, 0);
-  let rise = 0;
-  if (Math.abs(sideLength(frontSide, 0) - backSideCm) > 1e-4) {
-    let lo = -3;
-    let hi = 3;
+  // A shirttail hem rises at both side seams alike, so they still match; a high-low one falls at the back only.
+  const sides = Math.max(0, Math.min(s.hemShape?.sides ?? 0, TEE_HEM_SHAPE.sides, (hemY - scye) * 0.35));
+  const backLonger = Math.max(0, Math.min(s.hemShape?.back ?? 0, TEE_HEM_SHAPE.back));
+  const backSideCm = sideLength(backSide, sides);
+  let rise = sides;
+  if (Math.abs(sideLength(frontSide, sides) - backSideCm) > 1e-4) {
+    let lo = sides - 3;
+    let hi = sides + 3;
     for (let i = 0; i < 40; i++) {
       const mid = (lo + hi) / 2;
       if (sideLength(frontSide, mid) > backSideCm) lo = mid;
@@ -359,7 +371,7 @@ function build(m: TeeMeasurements, s: TeeStyle, scye: number, warnings: string[]
   const bd = nl.backDepth;
   const Ab = p(acrossX, (sp.y + scye) / 2 + 1);
   const backPath = new Path(p(0, bd)).curve(p(hps.x * 0.6, bd), add(hps, mul(perp(u), 1 + bd * 0.4)), hps, 'neck');
-  body(backPath, Ab, 0.6, backSide, 0, hemY).line(p(0, bd), 'fold');
+  body(backPath, Ab, 0.6, backSide, sides, hemY + backLonger).line(p(0, bd), 'fold');
   backPath.closed = true;
 
   // ---- front --------------------------------------------------------------
@@ -434,6 +446,8 @@ function build(m: TeeMeasurements, s: TeeStyle, scye: number, warnings: string[]
     frontExtra: shaping.length,
     hemY,
     bd,
+    sides,
+    backLonger,
   };
 }
 

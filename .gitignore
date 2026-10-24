@@ -9,3 +9,6 @@ test-results
 blob-report
 tour-shots/
 tour-shots-wide/
+evals/drawings/shots/
+evals/drawings/photos/*
+!evals/drawings/photos/README.md

@@ -55,6 +55,12 @@ export function printOf(f: { print?: PrintKind; checks?: object } | undefined): 
   return f?.print ?? (f?.checks ? 'checks' : undefined);
 }
 
+/** What the fabric has to match at the seams, when it has either: checks or stripes. */
+export function matchKind(f: { print?: PrintKind; checks?: { stripes?: boolean } } | undefined): 'checks' | 'stripes' | undefined {
+  if (printOf(f) !== 'checks') return undefined;
+  return f?.checks?.stripes ? 'stripes' : 'checks';
+}
+
 /** Every piece the same way up, for a one-way print or placed motifs. */
 export const printNap = (kind: PrintKind | undefined) => !!kind && !!PRINTS[kind].nap;
 

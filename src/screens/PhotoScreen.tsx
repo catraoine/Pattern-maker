@@ -5,7 +5,8 @@ import type { Unit } from '../measurements';
 import { photoToJpeg } from '../photo/image';
 import type { Confidence, PhotoError, PhotoReading, PhotoResponse, PieceKind } from '../photo/types';
 import { GROUPS } from './StyleScreen';
-import { PIECE_KINDS, PIECE_WORDS, aPiece, choicesFor, pieceName, mainPiece, pieceNote, piecesToPick, skirtChoices } from '../photo/garments';
+import { PIECE_KINDS, PIECE_WORDS, aPiece, choicesFor, fabricFor, pieceName, mainPiece, pieceNote, piecesToPick, skirtChoices } from '../photo/garments';
+import type { MyFabric } from '../engine/fabrics';
 import { isDress, type PatternChoices } from '../garments';
 import { describePattern } from './describe';
 import { bodyOutline } from '../ui/bodyOutline';
@@ -21,8 +22,8 @@ interface Props {
   unit: Unit;
   /** Leave for the style screen without a photo. */
   onByHand: () => void;
-  /** The photo's preview goes along, so the style screen can show it while the app is open. */
-  onApply: (c: PatternChoices, preview: string) => void;
+  /** The photo's preview goes along, so the style screen can show it while the app is open, and the cloth the photo showed. */
+  onApply: (c: PatternChoices, preview: string, fabric?: MyFabric) => void;
 }
 
 type Phase = 'start' | 'reading' | 'pick' | 'result' | 'length' | 'error';
@@ -338,7 +339,7 @@ export function PhotoScreen({ testerCode, measured, body, unit, onByHand, onAppl
       setTape('');
       setChoices({ ...choices, length, lengthCm: undefined, shape: choices.shape && { ...choices.shape, hemAt: HEM_AT[length] } });
     };
-    const done = () => onApply(final(tapeCm ? { ...choices, lengthCm: Math.round(tapeCm * 10) / 10 } : choices), preview);
+    const done = () => onApply(final(tapeCm ? { ...choices, lengthCm: Math.round(tapeCm * 10) / 10 } : choices), preview, fabricFor(reading));
     return (
       <section ref={top} className="card photolength" aria-labelledby="lentitle">
         <p className="eyebrow">One more thing</p>
@@ -438,7 +439,7 @@ export function PhotoScreen({ testerCode, measured, body, unit, onByHand, onAppl
             Next: where it ends
           </button>
         ) : (
-          <button type="button" className="primary" onClick={() => onApply(final(), preview)}>
+          <button type="button" className="primary" onClick={() => onApply(final(), preview, fabricFor(reading))}>
             {measured ? `Draft my ${word}` : 'Next: add my measurements'}
           </button>
         )}

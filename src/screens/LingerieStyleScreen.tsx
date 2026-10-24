@@ -100,6 +100,7 @@ export function LingerieStyleScreen({ onPhoto, photo, choices, onChoices: setCho
       photo={photo}
       mode={mode}
       onMode={onMode}
+      onPrint={onNext}
     >
       <section className="card numbered" aria-labelledby="opts">
         <TabPanel tab={LOOKS}>
@@ -231,7 +232,7 @@ export function LingerieStyleScreen({ onPhoto, photo, choices, onChoices: setCho
           Print my pattern
         </button>
         <SaveControl state={saveState} disabled={!draft} onSave={onSave} onAccount={onAccount} />
-        <button type="button" className="link" onClick={onEditMeasurements}>
+        <button type="button" className="later edit-measure" onClick={onEditMeasurements}>
           Edit measurements
         </button>
       </aside>

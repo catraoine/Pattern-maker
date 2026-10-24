@@ -1,4 +1,4 @@
-import { chooseDrop, expect, skipLoading, skipToExample, fillStepPages, test } from './fixtures';
+import { openReview, chooseDrop, expect, skipLoading, skipToExample, fillStepPages, test } from './fixtures';
 import type { Page } from '@playwright/test';
 
 // Soft lingerie and swimwear, kept out of releases until its fit test: only ?lingerie=preview shows it.
@@ -50,7 +50,7 @@ test('measures the underbust, drafts a bralette and a swimsuit, and prints', asy
   await expect(main(page).getByText(/^swimsuit front$/i).first()).toBeVisible();
 
   const print = main(page).getByRole('button', { name: 'Print my pattern' });
-  if (!(await print.isVisible())) await main(page).getByRole('button', { name: 'Review', exact: true }).click();
+  await openReview(page);
   // The summary lists each elastic, cut shorter than its edge.
   await expect(main(page).getByText(/Each leg: \d+(\.\d)? cm, 1 cm wide/)).toBeVisible();
   await print.click();

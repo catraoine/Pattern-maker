@@ -266,10 +266,22 @@ export async function openReview(page: Page): Promise<boolean> {
   const review = main(page).getByRole('button', { name: 'Review', exact: true });
   const print = main(page).getByRole('button', { name: 'Print my pattern' });
   await expect(review.or(print).first()).toBeVisible();
-  if (!(await review.isVisible())) return false;
+  if (!(await review.isVisible())) {
+    await openNumbers(page);
+    return false;
+  }
   await review.click();
   await expect(heading(page, /^Review /)).toBeVisible();
+  await openNumbers(page);
   return true;
+}
+
+/** The summary's numbers, pieces and Keep in my patterns fold under one line on Review and in the computer's
+ *  side panel (look and feel review R1, 2026-10-24): open that fold so the tests can read them. */
+async function openNumbers(page: Page) {
+  const fold = main(page).locator('details.review-fold').first();
+  if (!(await fold.count())) return;
+  if (!(await fold.evaluate((d) => (d as HTMLDetailsElement).open))) await fold.locator('> summary').click();
 }
 
 /** From a style screen (or its Review page) to Print. */

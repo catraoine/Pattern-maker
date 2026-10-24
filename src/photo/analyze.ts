@@ -3,7 +3,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { betaZodOutputFormat } from '@anthropic-ai/sdk/helpers/beta/zod';
 import { z } from 'zod';
-import { IMAGE_TYPES, MAX_IMAGE_BYTES, PhotoError, PhotoReading, PhotoResponse } from './types';
+import { IMAGE_TYPES, MAX_IMAGE_BYTES, PhotoError, PhotoReading, PhotoResponse, READ_COLOURS } from './types';
 
 const confidence = z.enum(['low', 'medium', 'high']);
 
@@ -23,6 +23,15 @@ const Top = z.object({
   boned: z.boolean(),
   knit: z.boolean(),
   waistSeam: z.boolean(),
+  waistSeamAt: z.enum(['none', 'empire', 'raised', 'natural', 'dropped', 'low']),
+  belt: z.enum(['none', 'sash', 'loops', 'ties']),
+});
+
+const Fabric = z.object({
+  type: z.enum(['plain', 'denim', 'leather', 'velvet', 'corduroy', 'sheer', 'satin', 'lace', 'sequins', 'knit', 'fleece', 'chiffon', 'crepe', 'gauze']),
+  colour: z.enum(READ_COLOURS),
+  print: z.enum(['none', 'checks', 'stripes', 'floral', 'animal', 'abstract', 'border']),
+  sheer: z.boolean(),
 });
 
 const Trousers = z.object({
@@ -37,12 +46,14 @@ const Trousers = z.object({
 const Outer = z.object({
   fit,
   length: z.enum(['cropped', 'hip', 'long', 'thigh', 'knee', 'midi']),
-  front: z.enum(['single', 'double']),
-  collar: z.enum(['notched', 'stand', 'collarless']),
+  front: z.enum(['single', 'double', 'zip']),
+  collar: z.enum(['notched', 'stand', 'collarless', 'hood']),
   pockets: z.enum(['none', 'patch', 'welt']),
   shaping: z.enum(['darts', 'princess', 'boxy']),
   pads: z.enum(['none', 'soft', 'structured']),
   flare: z.enum(['straight', 'a_line']),
+  sleeve: z.enum(['set_in', 'raglan']).optional(),
+  trim: z.enum(['none', 'rib']).optional(),
 });
 
 export const Reading = z.object({
@@ -61,6 +72,7 @@ export const Reading = z.object({
   top: Top.nullable(),
   trousers: Trousers.nullable(),
   outer: Outer.nullable(),
+  fabric: Fabric.nullable(),
   worn: z.boolean(),
   details: z.string(),
 });
@@ -105,6 +117,14 @@ top: fill this in for a top, a T-shirt, the bodice of a dress, or a top worn und
 - boned: true for a corset-like bodice with visible boning or a rigid, close-fitted shape.
 - knit: true when the fabric is a stretchy jersey or knit (a T-shirt), false for a woven fabric (a blouse, a shirt, a dress bodice in cotton or silk).
 - waistSeam: for a dress, true when a seam joins bodice and skirt at the natural waist. false for a shift, wrap or empire-line dress, and for anything that isn't a dress.
+- waistSeamAt: for a dress, where the seam between bodice and skirt sits: "empire" (just under the bust), "raised" (between the bust and the waist), "natural" (at the waist), "dropped" (at the high hip), "low" (near the hip), or "none" for a dress cut in one piece from shoulder to hem (a sheath, a shift, a slip). Use "natural" for anything that isn't a dress.
+- belt: what is at the waist: "sash" (a tie sash or a tie belt in the same fabric), "loops" (belt loops, with or without a belt in them), "ties" (narrow ties that knot, as on a wrap), or "none".
+
+fabric: fill this in for the main garment whenever there is one; null only when garment is "none".
+- type: what the cloth is: "denim", "leather" (including faux leather), "velvet", "corduroy", "sheer" (organza, mesh, tulle), "satin" (a shine), "lace", "sequins", "knit" (jersey, rib, sweatshirting), "fleece" (fleece, boucle, shearling, teddy), "chiffon" (a sheer, floaty woven), "crepe" (a matte, pebbled surface), "gauze" (a crinkled open cotton), or "plain" for any other woven cotton, linen, wool or silk.
+- colour: the garment's main colour, the nearest of: ${READ_COLOURS.slice(0, -1).map((c) => `"${c}"`).join(', ')}, or "other" when none is close (a bright pink, a green that isn't olive or emerald). For a print, the ground colour.
+- print: "checks" (gingham, plaid, tartan, windowpane), "stripes", "floral", "animal" (leopard, zebra, snake), "abstract" (a marble, a paint, geometric shapes, a toile or any other pattern), "border" (a print that runs along the hem only), or "none" for plain cloth or a texture.
+- sheer: true when the cloth is see-through or partly so (a chiffon skirt showing the legs, a mesh panel), false otherwise.
 
 trousers: fill this in for trousers, shorts or culottes; otherwise null.
 - fit: "fitted" only when close through the hip and thigh, otherwise "regular" or "relaxed".
@@ -113,7 +133,8 @@ trousers: fill this in for trousers, shorts or culottes; otherwise null.
 
 outer: fill this in for a jacket or a coat; otherwise null.
 - fit: as for a top. length: a jacket is "cropped" (above the hip), "hip" or "long" (to the upper thigh); a coat is "thigh" (mid-thigh), "knee" or "midi".
-- front: "single" or "double" (two rows of buttons, overlapping fronts). collar: "notched" (a lapel with a notch), "stand" or "collarless".
+- front: "single" (one row of buttons), "double" (two rows of buttons, overlapping fronts) or "zip" (a zip up the centre front). collar: "notched" (a lapel with a notch), "stand", "collarless" or "hood".
+- sleeve: "raglan" when a seam runs from the neck to the underarm with no shoulder seam, otherwise "set_in". trim: "rib" when the hem and cuffs are stretchy ribbed bands (as on a bomber), otherwise "none".
 - pockets: "patch" (sewn on top), "welt" (set-in slits or flaps) or "none". shaping: "princess" (long seams down the front), "darts" or "boxy" (straight and unshaped).
 - pads: "structured" for sharp, built-up shoulders, "soft" for a natural shoulder line, "none" for a soft, unstructured jacket. flare: "a_line" for a coat that widens below the hip, otherwise "straight".
 

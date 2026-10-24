@@ -171,16 +171,19 @@ const DETAILS: Record<ExplainSet, Record<string, Record<string, ReactNode>>> = {
     front: {
       single: on(JACKET, `M20 14V38${dot(20, 22)}${dot(20, 28)}${dot(20, 34)}`),
       double: on(JACKET, `M23 14V38${dot(17, 22)}${dot(23, 22)}${dot(17, 28)}${dot(23, 28)}${dot(17, 34)}${dot(23, 34)}`),
+      zip: on('M9 11L15 7Q20 10 25 7L31 11L30 22L31 38H9L10 22z', 'M20 9V38M19 11h2M19 14h2M19 17h2M19 20h2M19 23h2M19 26h2M19 29h2M19 32h2M19 35h2'),
     },
     collar: {
       notched: on(JACKET, 'M15 6L12.5 14L15.5 13.5L20 24M25 6L27.5 14L24.5 13.5L20 24'),
       stand: on('M9 11L15 7Q20 10 25 7L31 11L30 22L31 38H9L10 22z', 'M15 7V3.5Q20 6 25 3.5V7'),
       collarless: on('M9 11L15 7Q20 13 25 7L31 11L30 22L31 38H9L10 22z', 'M15 7Q20 13 25 7'),
+      hood: on('M9 11L15 7Q20 10 25 7L31 11L30 22L31 38H9L10 22z', 'M15 7Q13 -1 20 -1.5Q27 -1 25 7M17.5 5.5Q17 1.5 20 1Q23 1.5 22.5 5.5'),
     },
     sleeve: {
       tailored: on('M13 7Q20 2 27 7Q26 20 28 26L25 44H16L14 26Q12 18 13 7z', 'M18 5.5Q16 24 18.5 44'),
       fitted: on('M13 7Q20 2 27 7L25 44H16L13 7z', 'M14.5 24L18 25.5L14.8 27'),
       straight: on('M13 7Q20 2 27 7L27 44H13z', 'M13 44h14'),
+      raglan: on(JACKET, 'M17 10L9.5 22M23 10L30.5 22'),
     },
     pads: {
       soft: on(JACKET, 'M9.5 10.5Q12 7.5 15 6.5'),
@@ -191,6 +194,10 @@ const DETAILS: Record<ExplainSet, Record<string, Record<string, ReactNode>>> = {
     vent: {
       centre: on('M9 11L15 7Q20 9 25 7L31 11L30 22L31 38H9L10 22z', 'M20 9V38M20 29L21.5 31V38'),
       none: on('M9 11L15 7Q20 9 25 7L31 11L30 22L31 38H9L10 22z', 'M20 9V38'),
+    },
+    trim: {
+      none: on(JACKET, 'M9 38h22'),
+      rib: on('M9 11L15 6L20 14L25 6L31 11L30 22L31 34H9L10 22z', 'M10 34h20v4H10zM12 34v4M14 34v4M16 34v4M18 34v4M20 34v4M22 34v4M24 34v4M26 34v4M28 34v4'),
     },
     flare: {
       straight: on('M9 11L15 6L20 14L25 6L31 11L30 22L30.5 44H9.5L10 22z'),

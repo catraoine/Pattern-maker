@@ -236,12 +236,11 @@ export function draftDress(m: DressMeasurements, bodiceStyle: Partial<BodiceStyl
   const closure = wantButtons ? ('front_buttons' as const) : wantWrap ? ('wrap' as const) : ('back_zip' as const);
   const base = { ...bodiceStyle, length: 'waist' as const, dropCm: undefined, hem: undefined, closure, peplum: 'none' as const };
   const natural = draftBodice(m, base);
-  // Only a plain zipped front and back are cut across or carried down: panels, a drape, boning, a
-  // button front or a wrap keep the seam at the waist.
-  const zipped = closure === 'back_zip';
+  // Only a plain front and back are cut across or carried down: panels, a drape and boning keep the seam
+  // at the waist. A button front buttons on to a moved seam and a wrap ties at it, so they move with it.
   const plain = natural.pieces.filter((pc) => !pc.kind && /^Bodice/.test(pc.name)).length === 2 && !natural.drape && !natural.top?.boned;
-  const raise = plain && zipped ? maxRaise(natural) : 0;
-  const drop = zipped ? seamDrop(m, at, raise) : 0;
+  const raise = plain ? maxRaise(natural) : 0;
+  const drop = plain ? seamDrop(m, at, raise) : 0;
   if (skirtStyle.silhouette === 'slip' && drop > m.waist_to_hip / 2 + 0.05) {
     throw new DraftError('A bias slip skirt needs room to mould over the hip: bring the waist seam up to the high hip or above.');
   }
@@ -329,7 +328,7 @@ export function draftDress(m: DressMeasurements, bodiceStyle: Partial<BodiceStyl
     ...(skirtButtons ? { skirtButtons } : {}),
     ...(sideOpen ? { zipSide: true } : {}),
     seamDrop: drop,
-    seamRange: zipped ? seamRange(m, raise) : { min: 0, max: 0 },
+    seamRange: plain ? seamRange(m, raise) : { min: 0, max: 0 },
     lengthCm: Math.round((cb + skirt.lengthCm) * 10) / 10,
     finishedBust: bodice.finishedBust,
     // Raised, the bodice ends above the waist: the waist's room is the block's, under the loose skirt.

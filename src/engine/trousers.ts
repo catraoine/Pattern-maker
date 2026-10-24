@@ -24,7 +24,8 @@ export interface TrousersMeasurements {
   back_waist_to_hip?: number;
 }
 
-export type Leg = 'straight' | 'wide' | 'tapered' | 'culotte';
+/** Flare and bootcut are narrow at the knee and wider at the hem: bootcut a little, flare a lot. */
+export type Leg = 'straight' | 'wide' | 'tapered' | 'culotte' | 'flare' | 'bootcut';
 export type TrouserLength = 'shorts' | 'knee' | 'capri' | 'cropped' | 'ankle' | 'full';
 /** Shortest to longest, as the hem dot meets them going down the leg. */
 export const TROUSER_LENGTHS: TrouserLength[] = ['shorts', 'knee', 'capri', 'cropped', 'ankle', 'full'];
@@ -46,6 +47,14 @@ export interface TrousersStyle {
   waist?: WaistStyle;
   /** Cut on the menswear form: more room at the front of the crotch and a higher, deeper seat at the back. */
   cut?: 'menswear';
+  /** Drawn on the form: the leg's width round the knee and round a full-length hem, in cm, in place of the
+   * leg shape's own (see LEG_CM). The hem of a shorter leg is as wide as this leg is where it ends. */
+  legCm?: { knee: number; hem: number };
+  /** Drawn on the form: the outside leg from the waist to the hem in cm, in place of the named length's. */
+  lengthCm?: number;
+  /** Drawn on the form: where the waistband sits, in cm above (positive) or below (negative) your waist
+   * (see RISE_RANGE). The trousers are drafted from that line as if it were the waist. */
+  riseCm?: number;
 }
 
 export const DEFAULT_TROUSERS: TrousersStyle = { fit: 'regular', leg: 'straight', length: 'full', closure: 'fly', seamAllowance: 1.5, hemAllowance: 4 };
@@ -63,9 +72,49 @@ export const LEG_WIDTHS: Record<Leg, { knee: number; hem: number }> = {
   tapered: { knee: 0.41, hem: 0.3 },
   wide: { knee: 0.6, hem: 0.66 },
   culotte: { knee: 0.68, hem: 0.76 },
+  flare: { knee: 0.41, hem: 0.62 },
+  bootcut: { knee: 0.43, hem: 0.5 },
 };
 
-export const LEG_WORDS: Record<Leg, string> = { straight: 'straight-leg trousers', wide: 'wide-leg trousers', tapered: 'tapered trousers', culotte: 'culottes' };
+export const LEG_WORDS: Record<Leg, string> = { straight: 'straight-leg trousers', wide: 'wide-leg trousers', tapered: 'tapered trousers', culotte: 'culottes', flare: 'flared trousers', bootcut: 'bootcut trousers' };
+
+/** A drawn leg's widths, round the leg in cm: the knee from snug to culotte-wide, the hem from the
+ * narrowest a foot goes through to a wide flare, as shares of the finished hip. */
+export const LEG_CM = { knee: { min: 0.38, max: 0.7 }, hem: { max: 0.8 } };
+
+/** How far the waistband can be drawn from the waist: a low rise down to 8 cm below, a high rise up to 5 cm above. */
+export const RISE_RANGE = { min: -8, max: 5 };
+
+/** The rise as it can be cut on this body: a low rise goes no lower than a quarter of the way to the hip,
+ * or the waistband would sit where the body is nearly as wide as the hip and the side seam has no shape left. */
+export const riseFor = (m: Pick<TrousersMeasurements, 'waist_to_hip'>, rise: number) => clamp(rise, Math.max(RISE_RANGE.min, -0.25 * m.waist_to_hip), RISE_RANGE.max);
+
+/** The shortest and longest a drawn trouser leg can be, from the waist: shorts with a 10 cm inside leg (as the shortest named shorts), to 1 cm off the floor. */
+export const lengthCmRange = (m: Pick<TrousersMeasurements, 'crotch_depth' | 'waist_to_floor'>) => ({ min: m.crotch_depth + 10, max: m.waist_to_floor - 1 });
+
+/**
+ * The measurements as if the waist were `rise` cm higher (or lower, when negative): a low rise sits on
+ * the body between the waist and the hip, so its round is found between theirs; a high rise is a little
+ * fuller than the waist, over the lower ribs. Every length from the waist grows or shrinks with it, and
+ * the crotch length by twice as much, front and back.
+ */
+export function risen(m: TrousersMeasurements, rise: number): TrousersMeasurements {
+  const r = riseFor(m, rise);
+  if (!r) return m;
+  const t = Math.max(0, -r) / m.waist_to_hip;
+  const waist = r < 0 ? m.waist + (m.full_hip - m.waist) * (1 - (1 - t) ** 2) : m.waist + 0.4 * r;
+  return {
+    ...m,
+    waist,
+    waist_to_hip: m.waist_to_hip + r,
+    crotch_depth: m.crotch_depth + r,
+    crotch_length: m.crotch_length + 2 * r,
+    waist_to_knee: m.waist_to_knee + r,
+    waist_to_floor: m.waist_to_floor + r,
+    ...(m.front_waist_to_hip !== undefined ? { front_waist_to_hip: m.front_waist_to_hip + r } : {}),
+    ...(m.back_waist_to_hip !== undefined ? { back_waist_to_hip: m.back_waist_to_hip + r } : {}),
+  };
+}
 
 /** How much higher a shorts hem ends at the inside leg than at the side. */
 const SHORTS_RISE = 1.5;
@@ -91,6 +140,8 @@ export interface TrousersDraft {
   lengthCm: number;
   /** Shorts: the hem is above the knee, so there is no knee line or knee notches. Older drafts have none. */
   shorts?: boolean;
+  /** Where the waistband sits, cm above (below when negative) your waist; none at the waist. */
+  riseCm?: number;
   finishedWaist: number;
   finishedHip: number;
   kneeCm: number;
@@ -348,7 +399,11 @@ function secant(g: (x: number) => number, lo: number, hi: number): number {
  * the calf; knee 2 cm past the knee; shorts with an inside leg just under half the crotch to the knee.
  * Culottes are always mid-calf.
  */
-export function trouserLength(m: TrousersMeasurements, s: Pick<TrousersStyle, 'leg' | 'length'>): number {
+export function trouserLength(m: TrousersMeasurements, s: Pick<TrousersStyle, 'leg' | 'length'> & { lengthCm?: number }): number {
+  if (s.lengthCm !== undefined && s.leg !== 'culotte') {
+    const r = lengthCmRange(m);
+    return clamp(s.lengthCm, r.min, r.max);
+  }
   if (s.leg === 'culotte') return m.waist_to_knee + (m.waist_to_floor - m.waist_to_knee) * 0.42;
   switch (s.length) {
     case 'shorts': {
@@ -368,8 +423,12 @@ export function trouserLength(m: TrousersMeasurements, s: Pick<TrousersStyle, 'l
   }
 }
 
-export function draftTrousers(m: TrousersMeasurements, style: Partial<TrousersStyle> = {}): TrousersDraft {
+export function draftTrousers(body: TrousersMeasurements, style: Partial<TrousersStyle> = {}): TrousersDraft {
   const s = { ...DEFAULT_TROUSERS, ...style };
+  // A drawn rise drafts from the line the waistband sits on; a drawn length is still from your own waist.
+  const rise = s.riseCm ? riseFor(body, s.riseCm) : 0;
+  const m = risen(body, rise);
+  if (s.lengthCm !== undefined) s.lengthCm += rise;
   const ease = TROUSER_EASE[s.fit];
   const fit = s.fitting ?? {};
   const H = m.full_hip + ease.hip + (fit.hipEase ?? 0);
@@ -384,12 +443,13 @@ export function draftTrousers(m: TrousersMeasurements, style: Partial<TrousersSt
   // Every length is the full-length leg cut off: below the knee the hem is as wide as the leg is there,
   // above it (shorts) the leg is cut off the line from the hip to the knee.
   const culotte = s.leg === 'culotte';
-  const full = culotte ? L : trouserLength(m, { ...s, length: 'full' });
+  const full = culotte ? L : trouserLength(m, { ...s, length: 'full', lengthCm: undefined });
   const kn = Math.min(m.waist_to_knee - 2, (cd + full) / 2 + (culotte ? 0 : 10));
-  const short = !culotte && (s.length === 'shorts' || L < kn);
+  const short = !culotte && (s.lengthCm !== undefined ? L < kn : s.length === 'shorts' || L < kn);
   const widths = LEG_WIDTHS[s.leg];
-  const fullHemW = Math.max(MIN_HEM, widths.hem * H);
-  const kneeW = Math.max(widths.knee * H, s.leg === 'tapered' ? fullHemW + 3 : 0);
+  const drawn = !culotte && s.legCm ? { knee: clamp(s.legCm.knee, LEG_CM.knee.min * H, LEG_CM.knee.max * H), hem: clamp(s.legCm.hem, MIN_HEM, LEG_CM.hem.max * H) } : undefined;
+  const fullHemW = drawn ? drawn.hem : Math.max(MIN_HEM, widths.hem * H);
+  const kneeW = drawn ? drawn.knee : Math.max(widths.knee * H, s.leg === 'tapered' ? fullHemW + 3 : 0);
   const hemW = short || full <= kn ? fullHemW : kneeW + (fullHemW - kneeW) * ((L - kn) / (full - kn));
   // Shorts get a lighter hem, and are let out at the hem if the cut-off leg is tight on the thigh.
   const hemAllowance = short ? Math.min(s.hemAllowance, SHORTS_HEM) : s.hemAllowance;
@@ -483,7 +543,8 @@ export function draftTrousers(m: TrousersMeasurements, style: Partial<TrousersSt
     fit: s.fit,
     leg: s.leg,
     closure,
-    lengthCm: r(L),
+    lengthCm: r(L - rise),
+    ...(rise ? { riseCm: rise } : {}),
     ...(short ? { shorts: true } : {}),
     finishedWaist: r(W),
     finishedHip: r(H),

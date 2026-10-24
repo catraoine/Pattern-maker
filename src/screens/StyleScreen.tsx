@@ -1,3 +1,4 @@
+import { matchKind } from '../engine/prints';
 import { useMemo, useState } from 'react';
 import { BELTS, Belt, beltAllowed, beltPieces, beltWords, skirtBelt } from '../engine/belt';
 import type { Choices } from '../App';
@@ -25,6 +26,7 @@ import { FinishChoices } from '../ui/FinishChoices';
 import type { Finish } from '../App';
 import { BAND_ACROSS_MAX } from '../engine/instructions';
 import { ERAS, findLook } from '../engine/eras';
+import { skirtFlat } from '../engine/flat';
 import { shapeLine } from '../photo/shape';
 import { MyFabric, fabricEase, skirtFabrics } from '../engine/fabrics';
 import { FabricCard, FabricSummary } from '../ui/FabricCard';
@@ -37,6 +39,7 @@ import { Mode, ProTool, shows } from '../mode';
 import { FABRIC, Group, PRO, StyleLayout, TabPanel } from '../ui/StyleLayout';
 import { DrawOnForm, skirtForm } from '../ui/DrawOnForm';
 import { readSkirtHem, readSkirtSide, skirtLines } from '../ui/formLines';
+import { readFullness, readSkirtPocket, readSkirtWaist, readSlit, skirtHalf, slitLines } from '../ui/formSkirt';
 import { ChoicePic, chipsClass } from '../ui/ChoicePic';
 import { Explain } from '../ui/Explain';
 import { AllRound } from '../ui/AllRound';
@@ -217,6 +220,8 @@ export function fabricMetres(draft: SkirtDraft): number {
 }
 
 export function StyleScreen({ choices, onChoices, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, onPhoto, photo, onChooseGarment, finish, onFinish, easeMap, fabric, mode = 'all', onMode }: Props) {
+  // The skirt's technical flat, for the Review page's envelope (R1, 2026-10-24).
+  const flat = useMemo(() => (draft ? skirtFlat(draft, skirtBelt(choices.belt, draft)) : undefined), [draft, choices.belt]);
   const can = (t: ProTool) => shows(mode, t);
   const [view, setView] = useState<'sketch' | 'round' | 'pattern'>('sketch');
   const [fit, setFit] = useState(false);
@@ -328,11 +333,35 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
         kinds={[
           ['hem', 'Hem'],
           ['fit', 'Side'],
+          ['slit', 'Slit'],
+          ['fullness', 'Fullness'],
+          ['waist', 'Waist'],
+          ['pocket', 'Pocket'],
         ]}
-        lines={(s) => skirtLines(draft, choices, m, s, 0)}
+        help={{
+          waist: 'Draw across the body: above your waist for a high waist, across the hip for a yoke, at your waist for a waistband.',
+          pocket: 'Draw a short line down the side seam, below the waist, for in-seam pockets.',
+        }}
+        lines={(s) => ({ ...skirtLines(draft, choices, m, s, 0), ...slitLines(draft, choices, m, 0, s) })}
         choices={choices}
         onChoices={onChoices}
-        read={(kind, s, stroke) => (kind === 'hem' ? readSkirtHem(stroke, 0, draft, m, choices, s, 'skirt') : readSkirtSide(stroke, 0, draft, m, choices))}
+        read={(kind, s, stroke) => {
+          const half = skirtHalf(draft, choices, m, 0);
+          const r =
+            kind === 'hem'
+              ? readSkirtHem(stroke, 0, draft, m, choices, s, 'skirt')
+              : kind === 'fit'
+                ? readSkirtSide(stroke, 0, draft, m, choices)
+                : kind === 'slit'
+                  ? readSlit(stroke, 0, draft.lengthCm, m, choices, s, half)
+                  : kind === 'fullness'
+                    ? readFullness(stroke, 0, draft.lengthCm, choices)
+                    : kind === 'waist'
+                      ? readSkirtWaist(stroke, 0, m, choices)
+                      : readSkirtPocket(stroke, 0, m, choices, half, pocketsAllowed(choices));
+          // What the rest of the skirt no longer allows lets go, as when a chip is picked.
+          return r.choices ? { ...r, choices: keepWaist(keepWrap(r.choices)) } : r;
+        }}
         onDone={() => {
           change(choices, onForm);
           setOnForm(undefined);
@@ -349,6 +378,8 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
   return (
     <StyleLayout
       onEditMeasurements={onEditMeasurements}
+      onPrint={onNext}
+      flat={flat}
       undo={undoer}
       label="your skirt"
       garment="skirt"
@@ -675,7 +706,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
             <AllRound
               round={round}
               m={values}
-              striped={fabric?.checks ? (fabric.checks.stripes ? 'stripes' : 'checks') : false}
+              striped={matchKind(fabric)}
               label={`The ${title} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`}
             />
           )}
@@ -770,7 +801,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
           Print my pattern
         </button>
         <SaveControl state={saveState} disabled={!draft} onSave={onSave} onAccount={onAccount} />
-        <button type="button" className="link edit-measure" onClick={onEditMeasurements}>
+        <button type="button" className="later edit-measure" onClick={onEditMeasurements}>
           Edit measurements
         </button>
       </aside>

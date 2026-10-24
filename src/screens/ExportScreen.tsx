@@ -344,7 +344,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', sendLink, prof
                   : 'Print at 100% (actual size). Measure the 10 cm test square on page A1 before you cut.'}
             </p>
             {!projector && paper !== 'a0' && (
-              <details className="small">
+              <details className="small fold-link">
                 <summary>How the pages fit together</summary>
                 <p className="muted small">
                   Trim each page along its dashed line on the left and top, then lay it over the page before so the half diamonds make whole ones.
