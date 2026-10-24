@@ -28,7 +28,7 @@ const Top = z.object({
 const Trousers = z.object({
   fit,
   leg: z.enum(['straight', 'wide', 'tapered', 'culotte']),
-  length: z.enum(['full', 'ankle']),
+  length: z.enum(['shorts', 'knee', 'capri', 'cropped', 'ankle', 'full']),
   elasticWaist: z.boolean(),
   opening: z.enum(['fly', 'side_zip']),
   pockets: z.enum(['none', 'inseam', 'slant']),
@@ -108,7 +108,7 @@ top: fill this in for a top, a T-shirt, the bodice of a dress, or a top worn und
 
 trousers: fill this in for trousers, shorts or culottes; otherwise null.
 - fit: "fitted" only when close through the hip and thigh, otherwise "regular" or "relaxed".
-- leg: "straight", "wide" (widening toward the hem), "tapered" (narrowing toward the ankle) or "culotte" (wide and cut off below the knee). length: "full" or "ankle" (cropped at or above the ankle bone).
+- leg: "straight", "wide" (widening toward the hem), "tapered" (narrowing toward the ankle) or "culotte" (wide and cut off below the knee). length: "shorts" (mid-thigh), "knee", "capri" (below the calf), "cropped" (a hand above the ankle), "ankle" (just above the ankle bone) or "full".
 - elasticWaist: true for a pull-on elastic waist. opening: "fly" (a front zip under a flap) or "side_zip". pockets: "none", "inseam" (in the side seams) or "slant" (angled openings at the front hip).
 
 outer: fill this in for a jacket or a coat; otherwise null.

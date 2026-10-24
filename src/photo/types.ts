@@ -47,7 +47,7 @@ export interface TopReading {
 export interface TrousersReading {
   fit: Pick<'fitted' | 'regular' | 'relaxed'>;
   leg: 'straight' | 'wide' | 'tapered' | 'culotte';
-  length: 'full' | 'ankle';
+  length: 'shorts' | 'knee' | 'capri' | 'cropped' | 'ankle' | 'full';
   elasticWaist: boolean;
   opening: 'fly' | 'side_zip';
   pockets: 'none' | 'inseam' | 'slant';

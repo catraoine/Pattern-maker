@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { taggedLength } from './geometry';
 import { checkPattern } from './qc';
 import { randomBody, randomCrotch, rng } from './randomBodies';
-import { DEFAULT_TROUSERS, Leg, TrouserClosure, TrousersMeasurements, draftTrousers, trousersWaistband } from './trousers';
+import { DEFAULT_TROUSERS, Leg, TROUSER_LENGTHS, TrouserClosure, TrousersMeasurements, draftTrousers, trousersWaistband } from './trousers';
 import { trousersGuide } from './trousersGuide';
 import { trousersFlat } from './flat';
 import { trousersSpec } from './spec';
@@ -17,6 +17,24 @@ const CLOSURES: TrouserClosure[] = ['fly', 'side_zip'];
 const FITS: Fit[] = ['fitted', 'regular', 'relaxed'];
 
 describe('trousers block', () => {
+  it('drafts every length, shortest to longest, shorts and knee with legs wide enough for the thigh', () => {
+    const d = TROUSER_LENGTHS.map((length) => draftTrousers(EX, { length }));
+    for (let i = 1; i < d.length; i++) expect(d[i].lengthCm).toBeGreaterThan(d[i - 1].lengthCm);
+    const [shorts, knee] = d;
+    expect(shorts.lengthCm - EX.crotch_depth).toBeGreaterThanOrEqual(10);
+    expect(shorts.lengthCm).toBeLessThan(EX.waist_to_knee - 10);
+    expect(knee.lengthCm).toBe(EX.waist_to_knee + 2);
+    // A thigh is well over half the hip round: the shorts' hem must clear it.
+    expect(shorts.hemCm).toBeGreaterThan(0.6 * EX.full_hip);
+    expect(shorts.hemCm).toBeGreaterThan(draftTrousers(EX).kneeCm);
+    expect(shorts.pieces[0].balance?.some((b) => b.label === 'KNEE LINE')).toBe(false);
+    for (const t of d) {
+      expect(t.crotchCapped).toBe(false);
+      expect(checkPattern(t.pieces, { finishedWaist: t.finishedWaist }).filter((c) => !c.ok)).toEqual([]);
+    }
+  });
+
+
   it('drafts the crotch seam to the crotch length with ease, front shorter than back', () => {
     const d = draftTrousers(EX);
     expect(d.crotch.front + d.crotch.back).toBeCloseTo(d.crotch.target, 0);

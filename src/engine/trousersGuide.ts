@@ -7,8 +7,18 @@ import type { TrouserLength, TrousersDraft } from './trousers';
 
 const n1 = (v: number) => `${v} cm`;
 
+/** Where each length's hem is pinned at the fitting. */
+const HEM_AT: Record<TrouserLength, string> = {
+  shorts: 'shorts end at mid-thigh, level all round',
+  knee: 'knee-length trousers end just past the knee, so they cover it when you sit',
+  capri: 'capri trousers end below the calf, a little above the ankle',
+  cropped: 'cropped trousers end a hand above the ankle bone',
+  ankle: 'ankle-length trousers end just above the ankle bone, clear of the shoe',
+  full: 'full-length trousers just touch the top of the shoe at the front',
+};
+
 /**
- * `finish.length` is the length chosen (full or ankle), which the draft itself does not record; without
+ * `finish.length` is the length chosen, which the draft itself does not record; without
  * it the hem step describes both.
  */
 export function trousersGuide(d: TrousersDraft, fabricM: number, finish: { seams?: SeamWidths; width?: number; length?: TrouserLength } = {}): SewingGuide {
@@ -134,11 +144,9 @@ export function trousersGuide(d: TrousersDraft, fabricM: number, finish: { seams
       text: `Try the trousers on with the shoes you will wear and pin up the hem: ${
         culotte
           ? 'culottes sit at mid-calf'
-          : finish.length === 'ankle'
-            ? 'ankle-length trousers end just above the ankle bone, clear of the shoe'
-            : finish.length === 'full'
-              ? 'full-length trousers just touch the top of the shoe at the front'
-              : 'full-length trousers just touch the top of the shoe at the front, ankle-length ones end just above the ankle bone'
+          : finish.length
+            ? HEM_AT[finish.length]
+            : 'full-length trousers just touch the top of the shoe at the front, ankle-length ones end just above the ankle bone'
       }. Press up 1 cm, then ${Math.max(1, hem - 1)} cm more, and slip-stitch by hand so no stitches show on the outside.`,
     },
     {
