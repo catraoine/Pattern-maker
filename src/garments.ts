@@ -1,4 +1,5 @@
 // The garments the app can make, and the style choices saved for each.
+import { CUFFS, Cuff, cuffAllowed } from './engine/cuffs';
 import type { Choices } from './App';
 import type { BodiceDarts, BodiceFit, BodiceLength, DrawnNeck, Neckline, UnevenNeck } from './engine/bodice';
 import { SHAPES_FOR_LENGTH, SleeveLength, SleeveShape } from './engine/sleeve';
@@ -39,6 +40,8 @@ export interface BodiceChoices {
   /** Set on the sleeve slider: crown point to hem in cm, in place of the named length's. `sleeve` is
    * kept as the named length nearest it, which says which shapes it can have. */
   sleeveCm?: number;
+  /** A cuff on a straight or bishop sleeve that can take one (see cuffs.ts). Older saves have none. */
+  sleeveCuff?: Cuff;
   /** Older saves have the block's side bust dart, no princess seams, a back zip and no collar. */
   bustDart?: DartPlace;
   princess?: PrincessLine;
@@ -303,7 +306,7 @@ export const DEFAULT_BODICE: BodiceChoices = { garment: 'bodice', fit: 'regular'
 type Group<K extends keyof BodiceChoices> = { id: K; label: string; options: [NonNullable<BodiceChoices[K]>, string][] };
 
 // Options from styling/styling-options.json (top). Oversized fit needs its own block.
-export const BODICE_GROUPS: [Group<'fit'>, Group<'neckline'>, Group<'length'>, Group<'darts'>, Group<'sleeve'>, Group<'sleeveShape'>, Group<'princess'>, Group<'bustDart'>, Group<'closure'>, Group<'collar'>, Group<'structure'>, Group<'peplum'>] = [
+export const BODICE_GROUPS: [Group<'fit'>, Group<'neckline'>, Group<'length'>, Group<'darts'>, Group<'sleeve'>, Group<'sleeveShape'>, Group<'sleeveCuff'>, Group<'princess'>, Group<'bustDart'>, Group<'closure'>, Group<'collar'>, Group<'structure'>, Group<'peplum'>] = [
   { id: 'fit', label: 'Fit', options: [['fitted', 'Fitted'], ['regular', 'Regular'], ['relaxed', 'Relaxed']] },
   {
     id: 'neckline',
@@ -318,6 +321,7 @@ export const BODICE_GROUPS: [Group<'fit'>, Group<'neckline'>, Group<'length'>, G
     options: [['none', 'Sleeveless'], ['short', 'Short'], ['elbow', 'Elbow'], ['three_quarter', 'Three-quarter'], ['long', 'Long']],
   },
   { id: 'sleeveShape', label: 'Sleeve shape', options: [['fitted', 'Fitted'], ['straight', 'Straight'], ['cap', 'Cap'], ['flutter', 'Flutter'], ['puff', 'Puff'], ['bishop', 'Bishop']] },
+  { id: 'sleeveCuff', label: 'Cuffs', options: CUFFS },
   { id: 'princess', label: 'Princess seams', options: [['none', 'None'], ['shoulder', 'From the shoulder'], ['armhole', 'From the armhole']] },
   {
     id: 'bustDart',
@@ -447,13 +451,15 @@ export function validDetails(c: BodiceChoices, garment: 'bodice' | 'dress' = 'bo
 }
 
 /** The sleeve as chosen, made valid: a shape the length allows. */
-export function sleeveOf(c: BodiceChoices): { length: SleeveLength; shape: SleeveShape; cm?: number } {
+export function sleeveOf(c: BodiceChoices): { length: SleeveLength; shape: SleeveShape; cm?: number; cuff?: Exclude<Cuff, 'none'> } {
   const length = c.sleeve ?? 'none';
   const shapes = SHAPES_FOR_LENGTH[length];
   const shape = c.sleeveShape && shapes.includes(c.sleeveShape) ? c.sleeveShape : (shapes.includes('straight') ? 'straight' : shapes[0]) ?? 'straight';
   // A cap sleeve has its own length; any other keeps the length set on the slider.
   const cm = length !== 'none' && shape !== 'cap' ? c.sleeveCm : undefined;
-  return cm === undefined ? { length, shape } : { length, shape, cm };
+  // A cuff the sleeve can't take is let go, the way a shape the length doesn't allow is.
+  const cuff = c.sleeveCuff && c.sleeveCuff !== 'none' && cuffAllowed(c.sleeveCuff, length, shape) ? c.sleeveCuff : undefined;
+  return { length, shape, ...(cm === undefined ? {} : { cm }), ...(cuff ? { cuff } : {}) };
 }
 
 /**
@@ -545,11 +551,12 @@ const listed = (words: string[]) => (words.length < 2 ? words.join('') : `${word
 const SLEEVE_WORDS: Record<SleeveLength, string> = { none: '', short: 'short', elbow: 'elbow-length', three_quarter: 'three-quarter', long: 'long' };
 
 /** "short puff sleeves", "cap sleeves", "flutter sleeves" or "sleeves" when set on the slider. */
-function sleeveWordsOf({ length, shape, cm }: ReturnType<typeof sleeveOf>): string {
+function sleeveWordsOf({ length, shape, cm, cuff }: ReturnType<typeof sleeveOf>): string {
   if (length === 'none') return '';
   const kind = shape === 'straight' ? '' : `${shape} `;
-  if (shape === 'cap' || shape === 'flutter' || cm !== undefined) return `${kind}sleeves`;
-  return `${SLEEVE_WORDS[length]} ${kind}sleeves`;
+  const cuffs = cuff ? ` with ${cuff === 'shirt' ? 'shirt' : cuff === 'tie' ? 'tie' : 'elastic'} cuffs` : '';
+  if (shape === 'cap' || shape === 'flutter' || cm !== undefined) return `${kind}sleeves${cuffs}`;
+  return `${SLEEVE_WORDS[length]} ${kind}sleeves${cuffs}`;
 }
 
 /** The bodice's neckline and sleeves, for a dress's name: "a scoop neck and short puff sleeves". */

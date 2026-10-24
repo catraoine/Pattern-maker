@@ -11,6 +11,7 @@ import { AllRound } from '../ui/AllRound';
 import { roundBodice } from '../engine/allRound';
 import { SHAPES_FOR_LENGTH, SleeveDraft, needsArms } from '../engine/sleeve';
 import { SleeveSlider } from '../ui/SleeveSlider';
+import { Cuff, cuffAllowed, cuffShown } from '../engine/cuffs';
 import { MeasurementValues, hasHip } from '../measurements';
 import { PatternPreview } from '../ui/Preview';
 import { PatternPane } from '../ui/PointEditor';
@@ -152,11 +153,12 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
   // A draped neckline is its own shaping: the dart, seam, opening, collar and boning choices step aside.
   const draped = isDraped(choices);
   const valueOf = (id: (typeof BODICE_GROUPS)[number]['id']) =>
-    id === 'sleeveShape' ? chosen.shape : id === 'sleeve' ? chosen.length : id in detail ? detail[id as keyof typeof detail] : choices[id];
+    id === 'sleeveShape' ? chosen.shape : id === 'sleeveCuff' ? (chosen.cuff ?? 'none') : id === 'sleeve' ? chosen.length : id in detail ? detail[id as keyof typeof detail] : choices[id];
   // The simple view leaves moving the shaping to the pattern cutter's tools, unless it has been moved already.
   const moved = (id: string) => (id === 'bustDart' && detail.bustDart !== 'side') || (id === 'princess' && detail.princess !== 'none');
   const shown = (id: string) =>
     (id !== 'sleeveShape' || chosen.length !== 'none') &&
+    (id !== 'sleeveCuff' || cuffShown(chosen)) &&
     (id !== 'bustDart' || (choices.darts !== 'none' && detail.princess === 'none' && !boned)) &&
     ((id !== 'bustDart' && id !== 'princess') || can('dartMoves') || moved(id)) &&
     // A top below the shoulders always opens at the back and has no collar; a boned one is cut in panels.
@@ -174,6 +176,8 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
           ? (opt === 'none' || arms) && detailAllowed(choices, 'sleeve', opt)
           : id === 'sleeveShape'
             ? SHAPES_FOR_LENGTH[chosen.length].includes(opt as NonNullable<BodiceChoices['sleeveShape']>)
+            : id === 'sleeveCuff'
+              ? cuffAllowed(opt as Cuff, chosen.length, chosen.shape)
             : id === 'princess' || id === 'bustDart' || id === 'closure' || id === 'collar' || id === 'structure' || id === 'peplum'
               ? detailAllowed(choices, id, opt)
               : true;

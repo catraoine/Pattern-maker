@@ -71,6 +71,12 @@ const DETAILS: Record<ExplainSet, Record<string, Record<string, ReactNode>>> = {
       cap: on('M13 8Q20 2 27 8L28 14Q20 17 12 14z', 'M13 8Q20 2 27 8M12 14Q20 17 28 14'),
       flutter: on('M13 8Q20 2 27 8L33 22Q30 25 27 22Q24 26 20 23Q16 26 13 22Q10 25 7 22z', 'M13 8Q20 2 27 8M7 22Q10 25 13 22Q16 26 20 23Q24 26 27 22Q30 25 33 22'),
     },
+    sleeveCuff: {
+      none: on('M13 8Q20 2 27 8L28 44H12z', 'M12 42h16'),
+      shirt: on('M13 8Q20 2 27 8L29 36Q20 39 11 36z', 'M13 36h14v7H13zM24.5 39.5h.1M15 32v4M18 33v3M22 33v3M25 32v4'),
+      elastic: on('M13 8Q20 2 27 8L29 38Q20 41 11 38z', 'M14 38h12v3H14zM15.5 38.5v2M18 38.5v2M20.5 38.5v2M23 38.5v2'),
+      tie: on('M13 8Q20 2 27 8L29 38Q20 41 11 38z', 'M14 38h12v2.5H14zM26 39L31 46M26 39L33 43'),
+    },
     princess: {
       none: on(TOP),
       shoulder: on(TOP, 'M16 10Q14 24 15.5 40M24 10Q26 24 24.5 40'),

@@ -12,6 +12,7 @@ import { piecesLengthCm, toMetres } from '../engine/fabric';
 import { layPlan } from '../engine/layplan';
 import { SHAPES_FOR_LENGTH, SleeveDraft, needsArms } from '../engine/sleeve';
 import { SleeveSlider } from '../ui/SleeveSlider';
+import { Cuff, cuffAllowed, cuffShown } from '../engine/cuffs';
 import { BODICE_GROUPS, BodiceChoices, DRESS_CUTS, WAIST_SEAM_GROUP, DARTS_FOR_FIT, DressChoices, detailAllowed, sleeveOf, topAllowed, validDetails } from '../garments';
 import type { MeasurementValues } from '../measurements';
 import { SaveControl } from '../ui/SaveControl';
@@ -175,7 +176,8 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
         (g.id === 'collar' && !top && !draped) ||
         (g.id === 'structure' && !draped) ||
         g.id === 'sleeve' ||
-        (g.id === 'sleeveShape' && chosen.length !== 'none'),
+        (g.id === 'sleeveShape' && chosen.length !== 'none') ||
+        (g.id === 'sleeveCuff' && cuffShown(chosen)),
     ).map((g) => ({
       id: g.id,
       label: g.label,
@@ -221,6 +223,8 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
               chosen.cm !== undefined ? '' : chosen.length
             : id === 'sleeveShape'
               ? chosen.shape
+              : id === 'sleeveCuff'
+                ? (chosen.cuff ?? 'none')
               : id === 'bustDart'
                 ? choices.bodice.bustDart ?? 'side'
                 : id === 'princess'
@@ -254,6 +258,8 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
         ? (opt === 'none' || arms) && detailAllowed(choices.bodice, 'sleeve', opt, 'dress')
         : id === 'sleeveShape'
           ? SHAPES_FOR_LENGTH[chosen.length].includes(opt as NonNullable<BodiceChoices['sleeveShape']>)
+          : id === 'sleeveCuff'
+            ? cuffAllowed(opt as Cuff, chosen.length, chosen.shape)
           : id === 'princess' || id === 'bustDart' || id === 'collar' || id === 'structure' || id === 'closure'
             ? detailAllowed({ ...choices.bodice, length: 'waist', closure }, id, opt, 'dress') && (id !== 'closure' || (opt === 'front_buttons' ? buttonsOk : opt === 'wrap' ? wrapOk : true))
             : id === 'silhouette' || id === 'length' || id === 'asymHem'

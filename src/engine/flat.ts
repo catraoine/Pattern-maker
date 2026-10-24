@@ -607,7 +607,8 @@ function sleeveSide(h: Half, sl: SleeveDraft): { shape: P[]; band?: P[]; lines: 
   const head = out > 0.3 ? quad(S, add(Oh, mul(a, -out * 0.3)), add(Oh, mul(a, out * 2.5)), 8) : [S];
   const top = head[head.length - 1];
   const gathered = !!sl.gathers;
-  const band = gathered ? BAND_CM : 0;
+  // A cuff is drawn as the band it is, as deep as it is finished; elastic as its casing.
+  const band = sl.cuff ? sl.cuff.depth : gathered ? BAND_CM : 0;
   const L = sl.lengthCm - band;
   const Ho = add(S, add(sub(top, S), mul(a, L - len(sub(top, S)))));
   const lines: FlatView['lines'] = [];
@@ -652,6 +653,15 @@ function sleeveSide(h: Half, sl: SleeveDraft): { shape: P[]; band?: P[]; lines: 
       const q = hole[i];
       lines.push({ pts: [q, add(q, mul(unit(sub(q, mul(add(S, U), 0.5))), -1.6))], kind: 'seam' });
     }
+  // A shirt cuff's button near its outer end; a tie cuff's ties hanging from the inner side.
+  if (sl.cuff?.kind === 'shirt') {
+    const c = add(lerp(Bo, Bi, 0.18), mul(a, band / 2));
+    lines.push({ pts: Array.from({ length: 13 }, (_, j) => add(c, p(0.5 * Math.cos((j / 12) * 2 * Math.PI), 0.5 * Math.sin((j / 12) * 2 * Math.PI)))), kind: 'seam' });
+  }
+  if (sl.cuff?.kind === 'tie') {
+    const knot = add(Bi, mul(a, band / 2));
+    lines.push({ pts: [knot, add(knot, add(mul(a, 7), mul(n, 1.5)))], kind: 'seam' }, { pts: [knot, add(knot, add(mul(a, 6), mul(n, 3)))], kind: 'seam' });
+  }
   return { shape, band: bandShape, lines };
 }
 

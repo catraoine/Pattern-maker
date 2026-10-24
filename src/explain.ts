@@ -118,6 +118,12 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       cap: ['A tiny sleeve that just covers the top of the shoulder.', 'easy'],
       flutter: ['A short sleeve that flares out and ripples at the hem. Best in a light, drapey fabric.'],
     },
+    sleeveCuff: {
+      none: ['The sleeve ends in a plain hem, or the bishop sleeve in its band.', 'easy'],
+      shirt: ['A buttoned cuff over a bound slit, the sleeve gathered into it, as on a shirt.', 'skill'],
+      elastic: ['Elastic in a casing at the end, so the sleeve pulls on and gathers softly round the wrist.', 'easy'],
+      tie: ['A narrow band that runs on into ties, knotted at the wrist over a short slit.'],
+    },
     princess: {
       none: ['No extra seams. The bust is shaped with darts instead.', 'easy'],
       shoulder: ['Long curved seams from the shoulder over the bust, for a close, smooth fit with no darts.', 'skill'],

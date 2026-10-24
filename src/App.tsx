@@ -8,6 +8,7 @@ import { DraftError, Fit, Length, Silhouette, SkirtDraft, SkirtMeasurements, NoS
 import { BodiceDraft, BodiceMeasurements, blockOf, draftBodice } from './engine/bodice';
 import { type SlitPlace, slitNote } from './engine/slit';
 import { HIGH } from './engine/skirtWaist';
+import { cuffNote } from './engine/cuffs';
 import { BodiceEdges, SewingGuide, bodiceGuide, dressGuide, sewingGuide } from './engine/instructions';
 import { bodiceFlat, dressFlat, outerFlat, skirtFlat, teeFlat, trousersFlat } from './engine/flat';
 import { DressDraft, DressMeasurements, draftDress } from './engine/dress';
@@ -243,12 +244,13 @@ const INITIAL: Saved = {
 
 /** The sleeve for a bodice, drafted to its armhole with its allowances, when one is chosen and the arms are measured. */
 function sleeveFor(bodice: BodiceDraft, choices: BodiceChoices, values: MeasurementValues): SleeveDraft | undefined {
-  const { length, shape, cm } = sleeveOf(choices);
+  const { length, shape, cm, cuff } = sleeveOf(choices);
   if (length === 'none' || needsArms(values as SleeveMeasurements)) return undefined;
   return draftSleeve(bodice, values as SleeveMeasurements, {
     length,
     shape,
     ...(cm !== undefined ? { lengthCm: cm } : {}),
+    ...(cuff ? { cuff } : {}),
     fit: choices.fit,
     seamAllowance: bodice.pieces[0].seamAllowance,
     armholeAllowance: bodice.pieces[0].allowances.armhole ?? 1,
@@ -735,6 +737,7 @@ export default function App() {
           `${d.noSeam ? `Cut with no waist seam, as a ${d.noSeam}: front and back each one piece from the shoulder to the hem${d.noSeam === 'sheath' ? ', shaped at the waist by darts pointed at both ends' : ''}.` : 'The skirt is drafted to the bodice: waist seams the same length and darts in one line.'} ${d.skirtButtons ? `${(d.bodice.buttons?.count ?? 0) + d.skirtButtons.count} buttons down the centre front, from the neck through the waist,` : d.bodice.wrap ? `Wrap fronts that cross over and tie at the waist, with no zip (ties ${d.bodice.wrap.ties.outer} cm and ${d.bodice.wrap.ties.inner} cm, cut ${d.bodice.wrap.ties.cutWidth} cm wide),` : `A ${d.zipCm} cm ${d.zipSide ? `zip in the ${zipSide(d.bodice)} side seam` : 'centre back zip'}`}${d.bodice.collar !== 'none' ? `, a ${COLLAR_WORDS[d.bodice.collar]}` : ''} and ${edgeWords}${pocketWords(d.skirt.pocket ? 'inseam' : 'none')}. Sewing steps are on the last pages.`,
           ...(drapeNote(d.bodice) ? [drapeNote(d.bodice)!] : []),
           ...(sleeve ? [`Sleeve: bicep ${sleeve.bicep} cm, ${sleeve.gathers?.crown !== undefined ? `${sleeve.gathers.crown} cm gathered into the crown` : `crown ease ${sleeve.crownEase.front} cm front, ${sleeve.crownEase.back} cm back`}.`] : []),
+          ...(sleeve?.cuff ? [cuffNote(sleeve.cuff)] : []),
           ...topNotes(d.bodice),
           ...(d.skirt.slit && !d.noSeam ? [slitNote(d.skirt.slit)] : []),
           ...fittingNotes,
@@ -785,6 +788,7 @@ export default function App() {
           ...(drapeNote(bodice) ? [drapeNote(bodice)!] : []),
           ...(bodice.peplum ? [`A ${bodice.peplum.kind} peplum, ${bodice.peplum.depthCm} cm deep, ${bodice.peplum.hemCm} cm round the hem.`] : []),
           ...(sleeve ? [`Sleeve: bicep ${sleeve.bicep} cm, ${sleeve.gathers?.crown !== undefined ? `${sleeve.gathers.crown} cm gathered into the crown` : `crown ease ${sleeve.crownEase.front} cm front, ${sleeve.crownEase.back} cm back`}.`] : []),
+          ...(sleeve?.cuff ? [cuffNote(sleeve.cuff)] : []),
           ...topNotes(bodice),
           ...fittingNotes,
         ],

@@ -7,6 +7,7 @@
 // come back close to the wrist and still let the hand through. A cap sleeve is the crown alone, a few
 // centimetres below the underarm; a flutter is a short sleeve slashed from hem to crown and fanned
 // open at the hem, so the crown sews into the armhole as before and the hem ripples.
+import { CUFF, Cuff, CuffDraft, cuffAllowed, cuffOf, cuffPieces } from './cuffs';
 import { P, Path, add, len, lerp, mul, p, sub, unit } from './geometry';
 import type { Piece } from './piece';
 import { BodiceDraft, BodiceFit, blockOf } from './bodice';
@@ -48,6 +49,8 @@ export interface SleeveStyle {
   /** A jacket or coat sleeve, worn over other clothes: more room at the bicep and the hem, a little
    * longer, and the crown ease a tailor works into a wool armhole. */
   outer?: 'jacket' | 'coat';
+  /** A cuff at the hem: a shirt cuff, elastic, or a tie band (see cuffs.ts). */
+  cuff?: Cuff;
 }
 
 /** Bicep and crown ease for jacket and coat sleeves, by fit. */
@@ -98,6 +101,8 @@ export interface SleeveDraft {
   /** A fitted long sleeve's wrist vent: the sleeve seam left open from the hem up `lengthCm`, where
    * the vent notch is, and hemmed as a slit. */
   vent?: { lengthCm: number; at: 'back seam' };
+  /** The cuff, when it has one; `hemCm` is then round the cuff. */
+  cuff?: CuffDraft;
   warnings: string[];
 }
 
@@ -211,6 +216,8 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
   const hand = Math.max(19, wrist * 1.3);
   const elbowY = arm * 0.58;
   const gathered = shape === 'puff' || shape === 'bishop';
+  // A cuff takes the hem in, on a straight or bishop sleeve of a length that can have one.
+  const cuff = s.cuff && s.cuff !== 'none' && !tailored && !s.outer && cuffAllowed(s.cuff, s.length, shape) ? cuffOf(s.cuff, s.length as Named, wrist, m.upper_arm) : undefined;
 
   // Length from the crown point for each named length, and the hem width before any shaping.
   const longCm = arm + 1 + (s.outer === 'coat' ? 2.5 : s.outer ? 1.5 : 0);
@@ -278,9 +285,11 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
     const named = namedAt(h)[s.length as Named];
     return s.lengthCm === undefined ? named : Math.min(namedAt(h).long, Math.max(h + MIN_UNDERSEAM, s.lengthCm));
   };
-  const lengthFor = (h: number) => setFor(h) + (gathered ? 2.5 : 0);
+  // A cuff ends the sleeve: the sleeve stops short of the hem by its depth, and blouses over it.
+  const lengthFor = (h: number) => (cuff ? setFor(h) - (cuff.kind === 'elastic' ? 0 : cuff.depth) + CUFF.blouse : setFor(h) + (gathered ? 2.5 : 0));
   // Hem width, as cut: at a named length, or between the two named ones either side of the slider's.
   const hemWidth = (h: number) => {
+    if (cuff) return cuffHem(hemAt(s.length as Named));
     if (s.lengthCm === undefined || gathered || cap_ || flutter || tailored || s.outer) return hemAt(s.length as Named);
     const L = setFor(h);
     const named = namedAt(h);
@@ -290,6 +299,9 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
     if (hi === lo || named[hi] === named[lo]) return hemAt(hi);
     return hemAt(lo) + ((hemAt(hi) - hemAt(lo)) * (L - named[lo])) / (named[hi] - named[lo]);
   };
+  // Into a cuff, the hem is a little fuller than the cuff, to gather or pleat into it; elastic needs a
+  // hem the hand passes through.
+  const cuffHem = (plain: number) => (!cuff ? plain : cuff.kind === 'elastic' ? Math.max(plain, hand + 4) : Math.max(plain, cuff.round + 6));
   const hemAt = (length: Named) => {
     if (shape === 'puff' || cap_ || flutter) return w;
     if (shape === 'bishop') return w * 1.5;
@@ -354,8 +366,10 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
 
   // The wrist vent: the back seam is left open from the hem up to a notch, so the hand passes a hem
   // cut close to the wrist. Marked by the notch, a tick across the seam line at its top, and its name.
+  // A tie cuff closes round the wrist over a short slit left the same way.
   const vented = shape === 'fitted' && s.length === 'long' && !tailored && !s.outer;
-  const ventTop = vented ? add(Wb, mul(unit(sub(Eb2 ?? Ub, Wb)), VENT_CM)) : undefined;
+  const ventCm = vented ? VENT_CM : cuff?.slitCm;
+  const ventTop = ventCm ? add(Wb, mul(unit(sub(Eb2 ?? Ub, Wb)), ventCm)) : undefined;
 
   // The hem meets each underseam square, so it runs on smoothly round the sewn sleeve.
   const sqF = unit(sub(Wf, Ef ?? Uf));
@@ -418,6 +432,14 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
     lines.push(new Path(ventTop).line(add(ventTop, mul(ventIn, 1.2))));
     notches.push([ventTop, mul(ventIn, -1)]);
   }
+  // A shirt cuff's placket: a slit up from the hem a quarter of the way in from the back seam, cut
+  // when it is bound.
+  let placketAt: P | undefined;
+  if (cuff?.kind === 'shirt') {
+    placketAt = at(hemRun.slice().reverse(), polyLen(hemRun) / 4);
+    const up = unit(sub(lerp(Ub, Uf, 0.25), placketAt));
+    lines.push(new Path(placketAt).line(add(placketAt, mul(up, cuff.placketCm!))));
+  }
   // Gathering marks: between the notches on a puff sleeve's crown.
   const cut = 'Cut 2 (1 pair)';
   const sleeve: Piece = {
@@ -435,13 +457,22 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
       { at: place(add(notchF, p(-2.6, 1.6))), text: 'FRONT', size: 0.6 },
       { at: place(add(notchB, p(2.6, 1.6))), text: 'BACK', size: 0.6 },
       ...(shape === 'puff' ? [{ at: p(cx, h * 0.45), text: 'GATHER BETWEEN NOTCHES', size: 0.55 }] : []),
-      ...(gathered ? [{ at: p(0, L - 3), text: 'GATHER TO FIT THE BAND', size: 0.55 }] : []),
-      ...(ventTop && ventIn ? [{ at: add(lerp(ventTop, Wb, 0.5), mul(ventIn, 1.6)), text: 'VENT', size: 0.5, rotate: ventRotate(sqB) }] : []),
+      ...(cuff && cuff.kind !== 'elastic'
+        ? [{ at: p(0, L - 3), text: `GATHER TO FIT THE ${cuff.kind === 'shirt' ? 'CUFF' : 'TIE CUFF'}`, size: 0.55 }]
+        : gathered && !cuff
+          ? [{ at: p(0, L - 3), text: 'GATHER TO FIT THE BAND', size: 0.55 }]
+          : []),
+      ...(placketAt ? [{ at: add(placketAt, p(1.4, -cuff!.placketCm! / 2)), text: 'PLACKET', size: 0.5, rotate: 90 }] : []),
+      ...(ventTop && ventIn ? [{ at: add(lerp(ventTop, Wb, 0.5), mul(ventIn, 1.6)), text: cuff ? 'SLIT' : 'VENT', size: 0.5, rotate: ventRotate(sqB) }] : []),
     ],
     cut,
     seamAllowance: s.seamAllowance,
     // A flutter's curved hem only turns as a narrow hem; a cap sleeve's is kept small too.
-    allowances: { armhole: s.armholeAllowance, hem: gathered ? s.seamAllowance : flutter ? 1 : cap_ ? Math.min(1.5, s.hemAllowance) : s.hemAllowance },
+    // An elastic cuff's casing is turned up from the hem allowance: its depth and 0.5 cm to turn under.
+    allowances: {
+      armhole: s.armholeAllowance,
+      hem: cuff?.kind === 'elastic' ? cuff.depth + 0.5 : gathered || cuff ? s.seamAllowance : flutter ? 1 : cap_ ? Math.min(1.5, s.hemAllowance) : s.hemAllowance,
+    },
     meta: { capHeight: r1(h), ...(shape === 'puff' ? { gatheredCrown: true } : {}), ...(flutter ? { flutter: true } : {}), ...(cap_ ? { cap: true } : {}) },
   };
   const named = namedAt(h);
@@ -461,8 +492,26 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
       warnings,
     };
   }
-  const band = gathered ? bandPiece(shape === 'puff' ? m.upper_arm + 4 : hand + 1, s.seamAllowance) : undefined;
+  const band = gathered && !cuff ? bandPiece(shape === 'puff' ? m.upper_arm + 4 : hand + 1, s.seamAllowance) : undefined;
   const crownLen = c.lenF + c.lenB;
+  const hemLen = polyLen(cubicPts(Wf, hemC1, hemC2, Wb));
+  if (cuff) {
+    // Gathered into the cuff (or drawn up by the elastic), the sleeve's hem shows as gathers.
+    return {
+      pieces: [sleeve, ...cuffPieces(cuff, s.seamAllowance)],
+      capHeight: r1(h),
+      bicep: r1(w),
+      crownEase: { front: r1(easeF), back: r1(easeB) },
+      armhole: { front: r1(front.length), back: r1(back.length) },
+      lengthCm: r1(L),
+      length: lengthInfo,
+      hemCm: cuff.round,
+      gathers: { hem: r1(hemLen - cuff.round) },
+      cuff,
+      ...(ventTop ? { vent: { lengthCm: ventCm!, at: 'back seam' as const } } : {}),
+      warnings,
+    };
+  }
   return {
     pieces: band ? [sleeve, band] : [sleeve],
     capHeight: r1(h),
@@ -475,7 +524,7 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
     gathers: gathered
       ? {
           crown: shape === 'puff' ? r1(crownLen - front.length - back.length) : undefined,
-          hem: r1(polyLen(cubicPts(Wf, hemC1, hemC2, Wb)) - (band!.meta.lengthCm as number)),
+          hem: r1(hemLen - (band!.meta.lengthCm as number)),
         }
       : undefined,
     elbowDart: dartW || undefined,

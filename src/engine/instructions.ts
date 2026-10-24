@@ -5,6 +5,7 @@ import { isCircle } from './skirt';
 import type { Elastic, Length, Silhouette, SkirtDraft } from './skirt';
 import type { BodiceDraft, BodiceLength } from './bodice';
 import type { SleeveDraft } from './sleeve';
+import { cuffCutWords, cuffNotions, cuffStep, placketStep } from './cuffs';
 import type { DressDraft } from './dress';
 import { SEAM_WIDTHS, SeamWidths } from './allowances';
 import type { Piece } from './piece';
@@ -487,6 +488,7 @@ export function bodiceGuide(draft: BodiceDraft, _style: { length: BodiceLength }
       ...(edges === 'facings' ? ['0.5 m lightweight fusible interfacing'] : []),
       ...(edges === 'lined' ? [`${(finish.liningM ?? fabricM).toFixed(1)} m of lining, ${finish.width ?? 140} cm wide`] : []),
       'Hook and eye',
+      ...cuffNotions(sleeve?.cuff),
       'Matching thread',
     ],
     steps,
@@ -509,8 +511,8 @@ function mirroredGuide(d: BodiceDraft, g: SewingGuide): SewingGuide {
 function sleeveCutWords(sleeve: SleeveDraft | undefined): string {
   if (!sleeve) return '';
   return ` Place the sleeve on both layers too, so you get a pair, and snip its notches: one at the top of the crown, one on the front, two on the back.${
-    sleeve.pieces.length > 1 ? ' Cut the two sleeve bands.' : ''
-  }${sleeve.vent ? ' Snip the vent notch on the back seam too.' : ''}${sleeve.elbowDart ? ' Chalk-mark the elbow dart.' : ''}`;
+    sleeve.cuff ? cuffCutWords(sleeve.cuff) : sleeve.pieces.length > 1 ? ' Cut the two sleeve bands.' : ''
+  }${sleeve.vent && !sleeve.cuff ? ' Snip the vent notch on the back seam too.' : ''}${sleeve.elbowDart ? ' Chalk-mark the elbow dart.' : ''}`;
 }
 
 /**
@@ -726,7 +728,8 @@ const collarCut = (d: BodiceDraft) =>
 /** The steps for set-in sleeves, after the bodice is closed and its neck finished. */
 function sleeveSteps(sl: SleeveDraft, seam: string, curve: string, lined: boolean): SewStep[] {
   const puff = sl.gathers?.crown !== undefined;
-  const band = sl.pieces.length > 1;
+  const band = !sl.cuff && sl.pieces.length > 1;
+  const cuff = sl.cuff;
   const ease = Math.round((sl.crownEase.front + sl.crownEase.back) * 10) / 10;
   const hemAllowance = sl.pieces[0].allowances.hem ?? 2.5;
   return [
@@ -738,13 +741,18 @@ function sleeveSteps(sl: SleeveDraft, seam: string, curve: string, lined: boolea
           },
         ]
       : []),
+    ...(cuff?.kind === 'shirt' ? [placketStep(cuff)] : []),
     {
       title: 'Sew the sleeve seams',
       text: `Fold each sleeve right sides together, matching the underarm corners, the notches and the hem. Sew the underarm seam ${seam} from the edge${
-        sl.vent ? `, from the underarm down to the vent notch ${sl.vent.lengthCm} cm above the hem, and backstitch there: the seam stays open below it for the wrist vent. Press it` : ' and press it'
+        sl.vent
+          ? `, from the underarm down to the ${cuff ? 'slit' : 'vent'} notch ${sl.vent.lengthCm} cm above the hem, and backstitch there: the seam stays open below it for the ${cuff ? "tie cuff's slit" : 'wrist vent'}. Press it`
+          : ' and press it'
       } open over a sleeve board or a rolled towel, so the crease doesn't press through to the top of the sleeve.`,
     },
-    band
+    cuff
+      ? cuffStep(cuff, sl, seam)
+      : band
       ? {
           title: 'Attach the sleeve bands',
           text: `Sew two rows of long gathering stitches round each sleeve hem, inside the seam allowance. Join each band's short ends into a ring, ${seam} from the edge, and press the seam open. Pin one edge of the band to the sleeve hem, right sides together, with its seam at the underarm and its notch at the middle of the sleeve, pull up the gathers to fit (${sl.gathers!.hem} cm is gathered into each band), and sew ${seam} from the edge. Fold the band in half to the inside along its fold line, turn its raw edge under ${seam}, and stitch it down over the seam.`,
