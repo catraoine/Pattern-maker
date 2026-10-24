@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BASE, extrasFor, forHelper, fullSetMissing, missingFor, mistakesOf, stepsOf, tipOf, titleOf } from './measureFlow';
+import { BASE, begun, extrasFor, forHelper, fullSetMissing, missingFor, neededFor, mistakesOf, stepsOf, tipOf, titleOf } from './measureFlow';
 import { FIELDS } from './measurements';
 
 describe('measuring flow', () => {
@@ -25,6 +25,19 @@ describe('measuring flow', () => {
     const dress = missingFor('dress', v).map((f) => f.id);
     expect(dress).not.toContain('waist_to_knee');
     expect(dress.length).toBe(extrasFor('dress').length - 2);
+  });
+
+  it('measuring again asks only what the garment still needs, a missing base one first, never one already taken', () => {
+    // No bust and no waist to floor: a bodice asks the bust (it doesn't use the waist to floor), then its extras.
+    const v = { waist: 66, full_hip: 86, height: 165, waist_to_hip: 18 };
+    const bodice = neededFor('bodice', v).map((f) => f.id);
+    expect(bodice[0]).toBe('full_bust');
+    expect(bodice).not.toContain('waist_to_floor');
+    expect(bodice).not.toContain('full_hip');
+    expect(bodice.slice(1)).toEqual(missingFor('bodice', v).map((f) => f.id));
+    expect(neededFor('skirt', { ...v, full_bust: 92, waist_to_floor: 104 }).map((f) => f.id)).toEqual(['waist_to_knee']);
+    expect(begun(v)).toBe(true);
+    expect(begun({})).toBe(false);
   });
 
   it('words pages for a helper', () => {
