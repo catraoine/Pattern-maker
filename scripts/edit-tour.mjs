@@ -105,21 +105,20 @@ async function piece({ shot, still, from = 0, dur, speed = 1, zoom = [1, 1], at 
 // Where to look in each shot: the drawing alone, framed in black (see mask).
 // The dress filling with fabric: the drawing and the swatches tapped under it.
 const FABRIC = WIDE ? { zoom: [1.05, 1.1], at: [0.45, 0.48], frame: [0.08, 1.05] } : { zoom: [1.12, 1.18], at: [0.5, 0.52], frame: [0.27, 0.8] };
-// The style shot's four moments (the times record-tour-shots.mjs prints): the waist seam dropped, the drawing filled
-// navy, stripe, then Prince of Wales (Cat, 2026-10-23), the hem and a soft boat neck drawn straight on the dress in
-// its fabric (D1 Draw on the Dress, 2026-10-24), and the dress as it now is.
+// The style shot's three moments (the times record-tour-shots.mjs prints): the waist seam dropped, the drawing filled
+// navy, stripe, then Prince of Wales (Cat, 2026-10-23), and the hem and a soft neckline drawn straight on the dress in
+// its fabric (D1 Draw on the Dress, 2026-10-24), enlarged to show the room there is to draw, through Done to the
+// pattern sheet.
 const STYLE = WIDE
   ? {
       shape: { from: 1, dur: 4, speed: 1.3, zoom: [1.3, 1.36], at: [0.6, 0.46] },
       fabric: { from: 7, dur: 6, speed: 1.65 },
-      draw: { from: 17.7, dur: 7, speed: 1.73, zoom: [1.9, 1.95], at: [0.5, 0.57] },
-      dressed: { from: 30.6, dur: 2.6, zoom: [1.3, 1.36], at: [0.6, 0.46] },
+      draw: { from: 16.5, dur: 7.5, speed: 1.6, zoom: [1.22, 1.26], at: [0.5, 0.46] },
     }
   : {
       shape: { from: 1, dur: 4, speed: 1.6 },
       fabric: { from: 8.6, dur: 6, speed: 1.6 },
-      draw: { from: 18.7, dur: 7, speed: 1.58 },
-      dressed: { from: 30.4, dur: 2.6 },
+      draw: { from: 17.9, dur: 7.5, speed: 1.6 },
     };
 // Cat (2026-10-22): the cream pattern paper was too bright after the black pages; a deeper champagne here.
 // Wide: from the moment the pattern is up, slowed a touch to fill its time (Cat, 2026-10-22: the drawing flashed before it).
@@ -161,7 +160,8 @@ const INTROS = {
   C: async () => [await piece({ shot: 'round', from: 6.5, dur: 3.6, fadeIn: 0.8, fadeOut: 0.5, over: await title(), overAt: 0.6 })],
   // Takes on C (Cat, 2026-10-22).
   // C2 Pull Back: from close on the seams, drawing back to the form as the title arrives.
-  C2: async () => [await piece({ shot: 'round', from: 2.4, dur: 4.2, reverse: true, fadeIn: 0.8, fadeOut: 0.5, over: await title(), overAt: 1.6, overIn: 0.8 })],
+  // Tightened (Cat, 2026-10-24: too long to start): shorter, the title in sooner.
+  C2: async () => [await piece({ shot: 'round', from: 2.4, dur: 3.4, reverse: true, fadeIn: 0.5, fadeOut: 0.5, over: await title(), overAt: 0.8, overIn: 0.7 })],
   // C3 Title First: the words on black, the turning form rising behind them.
   C3: async () => [await piece({ shot: 'round', from: 6.2, dur: 4, fadeIn: 1.8, fadeOut: 0.5, over: await title(), overAt: 0, overIn: 0.6 })],
   // C4 Title Aside: the close turn with the words low (phone) or to the left (computer), the form left clear.
@@ -179,11 +179,12 @@ const CUTS = {
     const f = 0.5;
     const opening = [
       ...(await INTROS[INTRO]()),
-      await piece({ still: await card('01', 'Measure', 'Just a few, once.'), dur: 3, fadeIn: f, fadeOut: f }),
+      await piece({ still: await card('01', 'Measure', 'Just a few, once.'), dur: 2.2, fadeIn: f, fadeOut: f }),
       // One unbroken move to the waist (Cat, 2026-10-22: starting mid-pull, it appeared from nowhere, small): from
       // black, the tape pulling in across the top of the first page, the welcome skipped (Cat, 2026-10-23). On a phone
-      // it fills the screen, drawn in just enough that the header is off the top (Cat, 2026-10-23: no black band).
-      await piece({ shot: 'tape', from: 0.1, dur: 8.7, ...(WIDE ? { frame: [0.1, 1.05] } : { zoom: [1.1, 1.1], at: [0.5, 0.545] }), fadeIn: f, fadeOut: f }),
+      // it fills the screen, drawn in just enough that the header is off the top (Cat, 2026-10-23: no black band). It
+      // joins with the tape already on its way in, past the black second it took to reach the screen (Cat, 2026-10-24).
+      await piece({ shot: 'tape', from: 1, dur: 7.8, ...(WIDE ? { frame: [0.1, 1.05] } : { zoom: [1.1, 1.1], at: [0.5, 0.545] }), fadeIn: f, fadeOut: f }),
     ];
     // TOUR_PREVIEW=1 stops after the opening and the tape, to try an opening without cutting the whole film.
     if (process.env.TOUR_PREVIEW) return opening;
@@ -195,9 +196,10 @@ const CUTS = {
       await piece({ shot: 'style', ...STYLE.shape, fadeIn: f, fadeOut: f }),
       await piece({ shot: 'style', ...STYLE.fabric, ...FABRIC, fadeIn: f, fadeOut: f }),
       await piece({ shot: 'style', ...STYLE.draw, fadeIn: f, fadeOut: f }),
-      await piece({ shot: 'style', ...STYLE.dressed, fadeIn: f, fadeOut: f }),
-      await piece({ shot: 'round', from: 0.3, dur: 8.6, fadeIn: f, fadeOut: f, overs: (await threeChecks()).map((p, i) => [p, 0.9 + i * 1.8]) }),
+      // Done lands on the pattern sheet, so the pattern follows straight on, then the dress all round (Cat,
+      // 2026-10-24: no flash back to the dress between them).
       await piece({ shot: 'pattern', dur: 3.6, ...PATTERN, fadeIn: f, fadeOut: f }),
+      await piece({ shot: 'round', from: 0.3, dur: 8.6, fadeIn: f, fadeOut: f, overs: (await threeChecks()).map((p, i) => [p, 0.9 + i * 1.8]) }),
       await piece({ still: await card('04', 'Print', 'At home, or full size.'), dur: 3, fadeIn: f, fadeOut: f }),
       await piece({ ...PAGES, dur: 4.4, fadeIn: f, fadeOut: f }),
       await piece({ still: await card('', 'Drafted<br>to your body'), dur: 4.5, fadeIn: 0.8, fadeOut: 1.2 }),

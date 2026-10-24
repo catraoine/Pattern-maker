@@ -198,7 +198,8 @@ export const SHADE_STOPS: [number, string, number][] = [
 ];
 
 /** Which of the garment's lines the cloth's own edges already show. */
-const CLOTH_EDGES: FormLine[] = ['neckline', 'fit', 'hem', 'sleeve'];
+/** The lines the cloth's own edges show, so no tape is drawn over them. */
+export const CLOTH_EDGES: FormLine[] = ['neckline', 'fit', 'hem', 'sleeve'];
 
 /** The garment drawn on the dress form, front on. */
 export function FormSketch({ body, m, legs, bottom, arms, lines, outline = [], cloth, sleeve, underarmY, label }: Props) {

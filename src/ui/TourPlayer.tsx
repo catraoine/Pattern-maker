@@ -20,12 +20,12 @@ const WIDE_SCREEN = '(min-width: 900px) and (min-aspect-ratio: 1/1)';
 /** Where each part starts in the video, in seconds, and how long it runs. Update with the video. */
 const PARTS: { name: string; from: number }[] = [
   { name: 'Measure', from: 0 },
-  { name: 'Choose', from: 15.9 },
-  { name: 'Style', from: 22.1 },
-  { name: 'Print', from: 56.7 },
+  { name: 'Choose', from: 13.4 },
+  { name: 'Style', from: 19.6 },
+  { name: 'Print', from: 51.9 },
 ];
-export const TOUR_LENGTH = 72;
-export const TOUR_LABEL = '1:12';
+export const TOUR_LENGTH = 67;
+export const TOUR_LABEL = '1:07';
 
 export function TourPlayer({ onClose }: { onClose: () => void }) {
   const video = useRef<HTMLVideoElement>(null);
