@@ -229,9 +229,13 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
           <span>Crotch length</span>
           <span>{values.crotch_length} cm</span>
           <strong>{draft ? Math.round((draft.crotch.front + draft.crotch.back) * 10) / 10 : '–'} cm</strong>
-          <span>Knee</span>
-          <span />
-          <strong>{draft ? draft.kneeCm : '–'} cm</strong>
+          {!draft?.shorts && (
+            <>
+              <span>Knee</span>
+              <span />
+              <strong>{draft ? draft.kneeCm : '–'} cm</strong>
+            </>
+          )}
           <span>Hem</span>
           <span />
           <strong>{draft ? draft.hemCm : '–'} cm</strong>

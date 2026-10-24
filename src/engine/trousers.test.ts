@@ -84,6 +84,32 @@ describe('trousers block', () => {
     }
   });
 
+  it('cuts shorts for random bodies in every leg, opening and pocket: clear of the thigh, hem risen at the inside leg', () => {
+    const r = rng(1104);
+    for (let i = 0; i < 16; i++) {
+      const b = randomBody(r);
+      const m: TrousersMeasurements = { ...b, ...randomCrotch(b, r) };
+      for (const leg of LEGS.filter((l) => l !== 'culotte'))
+        for (const closure of CLOSURES) {
+          const fit = FITS[Math.floor(r() * 3)];
+          const pockets = (['none', 'inseam', 'slant'] as const)[Math.floor(r() * 3)];
+          const d = draftTrousers(m, { leg, closure, fit, pockets, length: 'shorts' });
+          const bad = checkPattern(d.pieces, { finishedWaist: d.finishedWaist }).filter((c) => !c.ok);
+          expect(bad.map((c) => `${i} ${leg} ${closure} ${fit} ${pockets}: ${c.label} ${c.detail}`)).toEqual([]);
+          // Thigh estimated as in the draft: room for it at the hem with the fit's ease.
+          const t = (d.lengthCm - m.crotch_depth) / (m.waist_to_knee - m.crotch_depth);
+          expect(d.hemCm).toBeGreaterThanOrEqual(m.full_hip * (0.6 - 0.23 * t) + 4 - 0.2);
+          const front = d.pieces[0];
+          expect(front.name).toBe('Shorts front');
+          expect(front.allowances.hem).toBe(3);
+          // Each point starts the run it is tagged with: the hem starts at the side, the inside leg at the hem's end,
+          // which is higher (smaller y) by the rise.
+          const ring = d.block[0].outline.taggedPoints(4);
+          expect(ring.pts[ring.tags.lastIndexOf('hem') + 1].y).toBeCloseTo(ring.pts[ring.tags.indexOf('hem')].y - 1.5, 1);
+        }
+    }
+  });
+
   it('takes the skirt toile’s waist, hip and sway back, not its darts', () => {
     const c = carriedFitting({ skirt: { issues: { 'skirt-sway-back': 1.5, 'skirt-hip-tight': 2, 'skirt-dart-bubble': 1 }, round: 1, date: '2026-10-01' } }, 'trousers');
     expect(Object.keys(c.fitting.issues).sort()).toEqual(['skirt-hip-tight', 'skirt-sway-back']);

@@ -67,6 +67,15 @@ export const LEG_WIDTHS: Record<Leg, { knee: number; hem: number }> = {
 
 export const LEG_WORDS: Record<Leg, string> = { straight: 'straight-leg trousers', wide: 'wide-leg trousers', tapered: 'tapered trousers', culotte: 'culottes' };
 
+/** How much higher a shorts hem ends at the inside leg than at the side. */
+const SHORTS_RISE = 1.5;
+/** How far a shorts inside leg leans in from the fork, per cm down. */
+const SHORTS_LEAN = 0.1;
+/** The least room round the thigh at a shorts hem, by fit, so they don't cling or ride up. */
+const SHORTS_THIGH_EASE: Record<Fit, number> = { fitted: 4, regular: 7, relaxed: 11 };
+/** Shorts hem allowance: 1 cm turned under, then 2 cm, which turns up cleanly on a leg that widens. */
+const SHORTS_HEM = 3;
+
 /** The narrowest hem a foot goes through. */
 const MIN_HEM = 31;
 /** A fly zip, and how far the fly's cut-on underlap reaches past the centre front on the waistband. */
@@ -80,6 +89,8 @@ export interface TrousersDraft {
   /** No opening at all on a pull-on elastic waist. */
   closure: TrouserClosure | 'none';
   lengthCm: number;
+  /** Shorts: the hem is above the knee, so there is no knee line or knee notches. Older drafts have none. */
+  shorts?: boolean;
   finishedWaist: number;
   finishedHip: number;
   kneeCm: number;
@@ -114,6 +125,8 @@ interface Frame {
   kn: number;
   /** A hem above the knee: the leg is cut off the full-length leg's line, with no knee point. */
   short: boolean;
+  /** Shorts: how far each side of each leg is let out at the hem, so the leg clears the thigh with ease. */
+  thighOut: number;
   kneeW: number;
   hemW: number;
 }
@@ -135,6 +148,9 @@ interface HalfArgs {
   dartMax: number;
   dartLens: number[];
   zipCm: number;
+  /** Shorts: the hem's side and inside-leg ends moved down (up if negative), to true the back's seams to the front's. */
+  sideDrop?: number;
+  inDrop?: number;
 }
 
 interface Half {
@@ -180,8 +196,12 @@ function half(f: Frame, a: HalfArgs): Half {
   // Above the knee the hem is where the full leg's side and inside leg cross it, the inside leg let out
   // a little for the thigh, since the straight line runs inside the curve leaving the fork.
   const at = (a0: P, a1: P, y: number) => add(a0, mul(sub(a1, a0), (y - a0.y) / (a1.y - a0.y)));
-  const ho = f.short ? at(sideHip, ko, L + shift) : p(crease - hemHalf, L + shift);
-  const hi = f.short ? add(at(fork, ki, L + shift), p(0.8, 0)) : p(crease + hemHalf, L + shift);
+  // Shorts' inside leg runs nearly straight down from the fork (a full leg's line to the knee leans in too
+  // far over a short leg), and their hem rises toward it: legs part a little when worn, and a level-cut
+  // hem would hang low between them and ride up as you walk.
+  const shortIn = f.short ? Math.max(at(fork, ki, L + shift).x + 0.8, fork.x - SHORTS_LEAN * (L + shift - fork.y)) : 0;
+  const ho = f.short ? add(at(sideHip, ko, L + shift), p(-f.thighOut, a.sideDrop ?? 0)) : p(crease - hemHalf, L + shift);
+  const hi = f.short ? p(shortIn + f.thighOut, L + shift - SHORTS_RISE + (a.inDrop ?? 0)) : p(crease + hemHalf, L + shift);
 
   // Darts square to the waist, pressed toward the centre. Front: one on the crease; back: two, spread.
   const nDown = perp(mul(w, -1)); // square to the waist, into the piece
@@ -211,7 +231,8 @@ function half(f: Frame, a: HalfArgs): Half {
   }
   // Hem: square to the side seam and to the inside leg, so it runs on across both once sewn.
   const iDir = f.short ? unit(sub(hi, fork)) : unit(sub(hi, ki));
-  const across = len(sub(hi, ho)) / 3;
+  // Squared off both seams; over a short leg's slanting seams a long square-off would bow the hem up.
+  const across = len(sub(hi, ho)) / (f.short ? 5 : 3);
   out.curve(add(ho, mul(p(kDir.y, -kDir.x), across)), sub(hi, mul(p(iDir.y, -iDir.x), across)), hi, 'hem');
   // Inside leg: up to the knee, then curving to leave the fork straight down.
   const kneeTop = f.short ? hi : ki;
@@ -223,7 +244,7 @@ function half(f: Frame, a: HalfArgs): Half {
   out.line(cw, 'crotch');
   out.closed = true;
 
-  const name = a.isFront ? 'Trousers front' : 'Trousers back';
+  const name = `${f.short ? 'Shorts' : 'Trousers'} ${a.isFront ? 'front' : 'back'}`;
   const cut = 'Cut 2 (1 pair)';
   const notches: [P, P][] = a.isFront ? [[sideHip, p(-1, 0)]] : [[add(sideHip, p(0, -0.5)), p(-1, 0)], [add(sideHip, p(0, 0.5)), p(-1, 0)]];
   // Knee notches on the side and the inside leg, and where the zip ends.
@@ -279,7 +300,7 @@ function half(f: Frame, a: HalfArgs): Half {
           ? []
           : [{ n: '7', at: p(crease, kn + shift), note: `Crease line halfway across the crotch line${a.isFront ? '' : (a.creaseShift ?? 0) - 1 > 0.05 ? `, plus ${cm((a.creaseShift ?? 0) - 1)} toward the fork` : (a.creaseShift ?? 0) - 1 < -0.05 ? `, less ${cm(1 - (a.creaseShift ?? 0))}` : ''}. Knee ${cm(2 * kneeHalf)} across, centred on it.` }]),
         f.short
-          ? { n: '7', at: p(crease, L + shift), note: `Crease line halfway across the crotch line. Hem line ${cm(L)} down from the waist: carry the side line down from the hip and the inside leg down from 5, and the hem runs ${cm(len(sub(hi, ho)))} between them.` }
+          ? { n: '7', at: p(crease, L + shift), note: `Crease line halfway across the crotch line. Hem line ${cm(L)} down from the waist: carry the side line down from the hip and the inside leg down from 5${f.thighOut ? `, each let out ${cm(f.thighOut)} for the thigh` : ''}. Raise the inside leg ${cm(SHORTS_RISE)} and curve the hem ${cm(len(sub(hi, ho)))} across, square to both seams.` }
           : { n: '8', at: p(crease, L + shift), note: `Hem ${cm(2 * hemHalf)} across, centred on the crease. Join the knee and the hem.` },
         ...darts.map((d, i) => ({ n: `D${i + 1}`, at: d.tip, note: `Dart ${i + 1}: ${cm(sup.darts[i])} wide, ${cm(len(sub(d.tip, p((d.near.x + d.far.x) / 2, (d.near.y + d.far.y) / 2))))} long, square to the waist.` })),
       ],
@@ -370,7 +391,9 @@ export function draftTrousers(m: TrousersMeasurements, style: Partial<TrousersSt
   const fullHemW = Math.max(MIN_HEM, widths.hem * H);
   const kneeW = Math.max(widths.knee * H, s.leg === 'tapered' ? fullHemW + 3 : 0);
   const hemW = short || full <= kn ? fullHemW : kneeW + (fullHemW - kneeW) * ((L - kn) / (full - kn));
-  const f: Frame = { m, s, H, W, hd, cd, L, kn, short, kneeW, hemW };
+  // Shorts get a lighter hem, and are let out at the hem if the cut-off leg is tight on the thigh.
+  const hemAllowance = short ? Math.min(s.hemAllowance, SHORTS_HEM) : s.hemAllowance;
+  const f: Frame = { m, s: { ...s, hemAllowance }, H, W, hd, cd, L, kn, short, thighOut: 0, kneeW, hemW };
   const target = m.crotch_length + ease.crotch;
   const closure = elastic ? 'none' : s.closure;
   const fly = closure === 'fly';
@@ -389,8 +412,9 @@ export function draftTrousers(m: TrousersMeasurements, style: Partial<TrousersSt
   // for room at the front, a shorter back one, which with the higher back waist gives a steeper seat seam.
   const fork0 = men ? { front: 0.065 * H, back: 0.105 * H } : { front: 0.05 * H, back: 0.12 * H };
 
-  const build = (k: number) => {
-    const front = half(f, { isFront: true, hipQ: H / 4 - 1, waistQ: W / 4 - 0.5, centreIn: frontIn, centreUp: frontUp, fork: fork0.front * k, legShift: 0, forkDrop: 0, dartMax: 2.5, dartLens: [9], zipCm: fly ? zipCm : 0 });
+  const build = (k: number, f: Frame) => {
+    const frontArgs: HalfArgs = { isFront: true, hipQ: H / 4 - 1, waistQ: W / 4 - 0.5, centreIn: frontIn, centreUp: frontUp, fork: fork0.front * k, legShift: 0, forkDrop: 0, dartMax: 2.5, dartLens: [9], zipCm: fly ? zipCm : 0 };
+    const front = half(f, frontArgs);
     const base = { isFront: false, hipQ: H / 4 + 1, waistQ: W / 4 + 0.5, centreIn: backIn, centreUp: backUp, fork: fork0.back * k, legShift: 0, forkDrop: 0.75, dartMax: 3, dartLens: [13, 11], zipCm: 0 };
     // A wide back fork pulls the inside leg long: set the back crease so it runs as the front's does,
     // then true the side seams by moving the back leg up or down, then the inside legs by dropping the
@@ -405,16 +429,43 @@ export function draftTrousers(m: TrousersMeasurements, style: Partial<TrousersSt
     const backArgs = { ...base, creaseShift };
     const forkDrop = solve((d) => front.inseam - half(f, { ...backArgs, legShift, forkDrop: d }).inseam, -4, 6);
     const back = half(f, { ...backArgs, legShift, forkDrop });
-    return { front, back };
+    return { front, back, frontArgs, backArgs: { ...backArgs, legShift, forkDrop } };
   };
   // The fork's reach sets the crotch seam's length: find the one that makes it the person's own.
-  const lo = 0.55;
-  const hi = 1.7;
-  const k = secant((x) => {
-    const b = build(x);
-    return b.front.crotch + b.back.crotch - target;
-  }, lo, hi);
-  const { front, back } = build(k);
+  const reach = (f: Frame) =>
+    secant(
+      (x) => {
+        const b = build(x, f);
+        return b.front.crotch + b.back.crotch - target;
+      },
+      0.55,
+      1.7,
+    );
+  // Shorts are the full-length trousers cut off: the crotch, crease and back leg are settled on the full
+  // leg (a short inside leg is too short to true them by), then the back's side and inside leg are trued
+  // to the front's at the hem.
+  const settled = short ? { ...f, short: false, L: full, hemW: fullHemW } : f;
+  const k = reach(settled);
+  let { front, back } = build(k, settled);
+  if (short) {
+    const { frontArgs, backArgs } = build(k, settled);
+    const cut = () => {
+      const fr = half(f, frontArgs);
+      const sideDrop = solve((d) => half(f, { ...backArgs, sideDrop: d }).side - fr.side, -6, 6);
+      const inDrop = solve((d) => half(f, { ...backArgs, sideDrop, inDrop: d }).inseam - fr.inseam, -6, 6);
+      return { front: fr, back: half(f, { ...backArgs, sideDrop, inDrop }) };
+    };
+    ({ front, back } = cut());
+    // The thigh round where the shorts end, estimated from the hip as no thigh is measured: about 0.6 of
+    // the hip at the crotch, narrowing to 0.37 at the knee. Let the legs out at the hem if they'd be tight.
+    const t = clamp((L - m.crotch_depth) / (m.waist_to_knee - m.crotch_depth), 0, 1);
+    const thigh = m.full_hip * (0.6 - 0.23 * t);
+    const tight = thigh + SHORTS_THIGH_EASE[s.fit] - (taggedLength(front.piece.outline, 'hem') + taggedLength(back.piece.outline, 'hem'));
+    if (tight > 0.1) {
+      f.thighOut = tight / 4;
+      ({ front, back } = cut());
+    }
+  }
   const crotch = front.crotch + back.crotch;
 
   front.piece.meta.crotchTarget = target;
@@ -422,7 +473,7 @@ export function draftTrousers(m: TrousersMeasurements, style: Partial<TrousersSt
   let pieces: Piece[] = [front.piece, back.piece];
   if (fly) pieces.push(...flyPieces(front.piece, zipCm, s.seamAllowance));
   else if (closure === 'side_zip') markSideZip(front.piece, back.piece, zipCm);
-  const pocketed = withPockets(pieces, s.pockets ?? 'none', closure, s.hemAllowance);
+  const pocketed = withPockets(pieces, s.pockets ?? 'none', closure, hemAllowance);
   pieces = pocketed.pieces;
 
   const r = (v: number) => Math.round(v * 10) / 10;
@@ -433,6 +484,7 @@ export function draftTrousers(m: TrousersMeasurements, style: Partial<TrousersSt
     leg: s.leg,
     closure,
     lengthCm: r(L),
+    ...(short ? { shorts: true } : {}),
     finishedWaist: r(W),
     finishedHip: r(H),
     hemCm: r(taggedLength(front.piece.outline, 'hem') + taggedLength(back.piece.outline, 'hem')),
