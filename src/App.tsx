@@ -34,7 +34,7 @@ import { SPECIALS, needsNap, withCheckMarks, withSpecialAllowances } from './eng
 import { printNap, printOf } from './engine/prints';
 import { layAmount } from './engine/layplan';
 import { withEstimates } from './estimate';
-import { EXAMPLE_VALUES, FormKind, Garment, MeasurementId, MeasurementValues, Unit, checkMeasurements, isComplete } from './measurements';
+import { EXAMPLE_BODY, FormKind, Garment, MeasurementId, MeasurementValues, Unit, checkMeasurements, isComplete } from './measurements';
 import { usePersistent } from './store';
 import {
   Account,
@@ -1135,8 +1135,8 @@ export default function App() {
               onLater={() => setStep('welcome')}
               onSkip={(g?: Garment) => {
                 // Skip on the tape: try the app with the example measurements, under any already taken.
-                const example = (Object.keys(EXAMPLE_VALUES) as MeasurementId[]).filter((id) => measured[id] === undefined);
-                setAccount(updatePerson({ ...account, onboarded: true, mode }, person.id, { values: { ...EXAMPLE_VALUES, ...values }, example }));
+                const example = (Object.keys(EXAMPLE_BODY) as MeasurementId[]).filter((id) => measured[id] === undefined);
+                setAccount(updatePerson({ ...account, onboarded: true, mode }, person.id, { values: { ...EXAMPLE_BODY, ...values }, example }));
                 if (g && g !== garment) setSaved({ ...saved, garment: g });
                 setStep('style');
               }}

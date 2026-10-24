@@ -22,7 +22,7 @@ test('pro files: pattern DXF, measurements for Seamly2D and CLO, and the 3D body
   expect(obj.download.suggestedFilename()).toMatch(/-body\.obj$/);
   const text = obj.bytes.toString('utf8');
   expect(text).toContain('Units: millimetres');
-  expect(text).toMatch(/#\s+Bust: 92\.0 at/);
+  expect(text).toMatch(/#\s+Bust: 82\.0 at/);
   expect(text.split('\n').filter((l) => l.startsWith('f ')).length).toBeGreaterThan(20000);
   await main.getByText('More files').scrollIntoViewIfNeeded();
   await page.screenshot({ path: info.outputPath('more-files.png'), fullPage: false });

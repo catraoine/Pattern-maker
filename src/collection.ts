@@ -29,7 +29,7 @@ import {
   sleeveOf,
   validDetails,
 } from './garments';
-import { EXAMPLE_VALUES, Garment, MeasurementValues, isComplete } from './measurements';
+import { EXAMPLE_BODY, Garment, MeasurementValues, isComplete } from './measurements';
 
 export interface HouseLook {
   id: string;
@@ -191,7 +191,7 @@ function sleeveFor(b: BodiceDraft, c: BodiceChoices, m: MeasurementValues): Slee
 
 /** The measurements a look is drawn to: the sewist's own when the garment has all it needs, or the sample set. */
 export function lookValues(look: HouseLook, values: MeasurementValues): { values: MeasurementValues; own: boolean } {
-  return isComplete(values, look.garment) ? { values, own: true } : { values: EXAMPLE_VALUES, own: false };
+  return isComplete(values, look.garment) ? { values, own: true } : { values: EXAMPLE_BODY, own: false };
 }
 
 /** The look's technical flat, drafted to the given measurements; undefined if it can't be drafted for them. */
