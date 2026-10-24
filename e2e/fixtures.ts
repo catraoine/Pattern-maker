@@ -162,15 +162,22 @@ export async function expectStyle(page: Page, g: GarmentName) {
   await expect(heading(page, `Style your ${lower(g)}`)).toBeVisible();
 }
 
-/** "Choose another garment" on the style screen: pick it from the list, measuring for it first when it needs more. */
+/** The garment drop-down on the Style title: pick another, measuring for it first when it needs more. */
 export async function switchGarment(page: Page, g: GarmentName) {
-  await main(page).getByRole('button', { name: 'Choose another garment' }).click();
-  await pickToMake(page, g);
+  await chooseDrop(page, 'Garment', new RegExp(`^${pickName(g)}\\b`));
   const style = heading(page, `Style your ${lower(g)}`);
   const measuring = main(page).getByRole('textbox');
   await expect(style.or(measuring).first()).toBeVisible();
   if (!(await style.isVisible())) await fillStepPages(page);
   await expectStyle(page, g);
+}
+
+/** Open a drop-down by its name (Garment, Paper, Fabric width) and pick from its list. */
+export async function chooseDrop(page: Page, name: string, item: string | RegExp) {
+  const drop = main(page).getByRole('group', { name, exact: true });
+  await drop.getByRole('button', { expanded: false }).click();
+  await drop.getByRole('menuitemradio', { name: item }).click();
+  await expect(drop.getByRole('menu')).toHaveCount(0);
 }
 
 /** On a style screen, "Add them" (e.g. the arms, for sleeves): the Measure list, then each measurement for a
@@ -318,7 +325,7 @@ export async function download(page: Page, button: Locator, info: TestInfo): Pro
 export async function printA4(page: Page, info: TestInfo) {
   await goPrint(page);
   await expect(main(page).getByRole('group', { name: 'Paper' })).toBeVisible();
-  await chooseChip(page, 'Paper', 'A4');
+  await chooseDrop(page, 'Paper', 'A4');
   const button = main(page).getByRole('button', { name: /^Download PDF \(\d+ pages?\)$/ });
   await expect(button).toBeEnabled({ timeout: 45_000 });
   const { download: d, bytes } = await download(page, button, info);

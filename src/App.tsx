@@ -104,7 +104,7 @@ import { ImportedPattern, importedGuide } from './engine/importDxf';
 import { CollectionScreen } from './screens/CollectionScreen';
 import { lookPatch } from './collection';
 import { archiveCut } from './archive';
-import { CollectionLink } from './ui/GarmentSwitch';
+import { CollectionLink, GarmentPick } from './ui/GarmentSwitch';
 import { LoadingScreen } from './ui/LoadingScreen';
 import type { FormStart } from './ui/ContourForm';
 import type { Piece } from './engine/piece';
@@ -1269,6 +1269,8 @@ export default function App() {
             </button>
           )}
           <CollectionLink.Provider value={step === 'style' ? () => { setStep('collection'); window.scrollTo(0, 0); } : undefined}>
+          {/* Switched in place from the title's drop-down: no new step in history, so ← still leaves the style screen. */}
+          <GarmentPick.Provider value={step === 'style' ? { garment, onSwitch: (g) => (ready(measured, saved.unit, g, form) ? setSaved({ ...saved, garment: g }) : switchGarment(g, {}, 'style')) } : undefined}>
           {step === 'style' && garment === 'skirt' && (
             <StyleScreen
               mode={mode}
@@ -1429,6 +1431,7 @@ export default function App() {
               onAccount={() => setStep('account')}
             />
           )}
+          </GarmentPick.Provider>
           </CollectionLink.Provider>
           {step === 'export' && !hasGarment(account, garment) && <UnlockGarment garment={garment} onPlans={openPlans} onBack={() => setStep('style')} />}
           {step === 'export' && hasGarment(account, garment) && (
