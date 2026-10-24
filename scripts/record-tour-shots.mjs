@@ -205,17 +205,18 @@ const draw = async (loc, pts, pause) => {
 let t0;
 const mark = (what) => console.log(`  style ${what}: ${((Date.now() - t0) / 1000).toFixed(1)} s`);
 // The lines, as fractions of the form picture, drawn on the dress itself (Cat's D1 Draw on the Dress, 2026-10-24):
-// the hem longer, down the calf, and the neckline a little wider and shallower, a soft boat neck but not a full one.
+// the hem longer, down the calf, and the neckline out wide towards the shoulders and shallow: a boat neck (Cat, 2026-10-24).
 const LINES = WIDE
-  ? { hem: [[0.36, 0.86], [0.5, 0.875], [0.64, 0.86]], neck: [[0.395, 0.151], [0.4, 0.17], [0.435, 0.184], [0.5, 0.187]] }
-  : { hem: [[0.32, 0.86], [0.5, 0.875], [0.68, 0.86]], neck: [[0.395, 0.151], [0.4, 0.17], [0.435, 0.184], [0.5, 0.187]] };
+  ? { hem: [[0.36, 0.86], [0.5, 0.875], [0.64, 0.86]], neck: [[0.29, 0.162], [0.35, 0.174], [0.43, 0.182], [0.5, 0.184]] }
+  : { hem: [[0.32, 0.86], [0.5, 0.875], [0.68, 0.86]], neck: [[0.29, 0.162], [0.35, 0.174], [0.43, 0.182], [0.5, 0.184]] };
+// The film opens on the Shape tab already, not on Looks first (Cat, 2026-10-24: too choppy).
+await main.getByRole('tab', { name: 'Shape', exact: true }).click();
 await p.evaluate(() => window.scrollTo(0, 0));
-await wait(600);
+await wait(800);
 await start();
 t0 = Date.now();
-await wait(1200);
+await wait(900);
 mark('shape');
-await press(main.getByRole('tab', { name: 'Shape', exact: true }), 500);
 const dropped = main.locator('button, [role=radio]').filter({ hasText: /^\s*Dropped/ }).first();
 if (!WIDE) await glide(Math.max(0, await dropped.evaluate((el) => el.getBoundingClientRect().bottom + scrollY - 740)), 900);
 await wait(500);

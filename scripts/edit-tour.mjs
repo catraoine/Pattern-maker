@@ -57,6 +57,13 @@ const endCard = () => {
 // The house name isn't on the cards: the player's corner already says it (Cat, 2026-10-22). No kicker, no rule.
 const card = (kicker, title, line = '', size = WIDE ? 76 : 64) => words(`<div class="f mid">${kicker ? `<div class="k">${kicker}</div><div class="r"></div>` : ''}<h1 class="t" style="font-size:${size}px">${title}</h1>${line ? `<p class="l" style="margin-top:18px">${line}</p>` : ''}</div>`, { solid: true });
 
+// Two pieces as one, the first dissolving into the second over d seconds, for a move with no dip to black.
+async function dissolve(a, b2, d) {
+  const out = join(work, `p${String(k++).padStart(3, '0')}.mp4`);
+  const len = Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', a]).toString());
+  execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', a, '-i', b2, '-filter_complex', `[0:v][1:v]xfade=transition=fade:duration=${d}:offset=${(len - d).toFixed(3)},format=yuv420p[v]`, '-map', '[v]', '-c:v', 'libx264', '-crf', '18', '-preset', 'medium', '-r', String(FPS), out]);
+  return out;
+}
 // A black frame round a drawing, so a zoomed-in moment shows the drawing alone, not cut-off words around it.
 // top and bottom (and left and right, if given): where the picture shows, as fractions of the frame; it fades in
 // over the 3% outside them.
@@ -73,7 +80,19 @@ async function mask([top, bottom, left = -1, right = 2]) {
 let k = 0;
 // overs: more words, each [picture, when it fades in], laid over one after another.
 // reverse: play the moment backwards (a push-in becomes a pull-back).
-async function piece({ shot, still, from = 0, dur, speed = 1, zoom = [1, 1], at = [0.5, 0.5], frame, tint, fadeIn = 0, fadeOut = 0, over, overIn = 0.4, overAt = 0, overs = [], reverse = false }) {
+// cam: a camera that moves, as [time in the piece, zoom, x, y] stops, eased from one to the next, in place of zoom and at.
+const eased = (stops, i) => {
+  const t = `(on/${FPS})`;
+  let e = String(stops[stops.length - 1][i]);
+  for (let j = stops.length - 2; j >= 0; j--) {
+    const [t0, t1, a, b] = [stops[j][0], stops[j + 1][0], stops[j][i], stops[j + 1][i]];
+    const u = `min(1,max(0,(${t}-${t0})/${Math.max(t1 - t0, 0.001)}))`;
+    e = `if(lt(${t},${t1}),${a}+(${b - a})*${u}*${u}*(3-2*${u}),${e})`;
+  }
+  return e;
+};
+// notes: captions, each [picture, when it fades in, when it fades out], so a first-time viewer knows what each tap does.
+async function piece({ shot, still, from = 0, dur, speed = 1, zoom = [1, 1], at = [0.5, 0.5], cam, frame, tint, fadeIn = 0, fadeOut = 0, over, overIn = 0.4, overAt = 0, overs = [], notes = [], reverse = false }) {
   const edge = frame ? await mask(frame) : undefined;
   const out = join(work, `p${String(k++).padStart(3, '0')}.mp4`);
   const frames = Math.round(dur * FPS);
@@ -83,17 +102,23 @@ async function piece({ shot, still, from = 0, dur, speed = 1, zoom = [1, 1], at 
   if (edge) args.push('-loop', '1', '-framerate', String(FPS), '-t', String(dur), '-i', edge);
   if (over) args.push('-loop', '1', '-framerate', String(FPS), '-t', String(dur), '-i', over);
   for (const [o] of overs) args.push('-loop', '1', '-framerate', String(FPS), '-t', String(dur), '-i', o);
+  for (const [o] of notes) args.push('-loop', '1', '-framerate', String(FPS), '-t', String(dur), '-i', o);
   const oi = edge ? 2 : 1;
   const firstOver = oi + (over ? 1 : 0);
   const [z0, z1] = zoom;
-  const z = `(${z0}+(${z1 - z0})*on/${frames})`;
-  let v = `[0:v]setpts=(PTS-STARTPTS)/${speed},fps=${FPS},scale=${2 * W}:${2 * H},zoompan=z='${z}':x='max(0,min(iw-iw/zoom,${at[0]}*iw-iw/zoom/2))':y='max(0,min(ih-ih/zoom,${at[1]}*ih-ih/zoom/2))':d=1:s=${W}x${H}:fps=${FPS},trim=end_frame=${frames},setsar=1${reverse ? ',reverse' : ''}`;
+  const z = cam ? eased(cam, 1) : `(${z0}+(${z1 - z0})*on/${frames})`;
+  const [ax, ay] = cam ? [eased(cam, 2), eased(cam, 3)] : at;
+  let v = `[0:v]setpts=(PTS-STARTPTS)/${speed},fps=${FPS},scale=${2 * W}:${2 * H},zoompan=z='${z}':x='max(0,min(iw-iw/zoom,(${ax})*iw-iw/zoom/2))':y='max(0,min(ih-ih/zoom,(${ay})*ih-ih/zoom/2))':d=1:s=${W}x${H}:fps=${FPS},trim=end_frame=${frames},setsar=1${reverse ? ',reverse' : ''}`;
   // tint: [r, g, b] multipliers, e.g. to take the cream pattern paper down to a deeper champagne.
   if (tint) v += `,colorchannelmixer=rr=${tint[0]}:gg=${tint[1]}:bb=${tint[2]}`;
   if (edge) v += `[raw];[raw][1:v]overlay=0:0:shortest=1`;
   if (over) v += `[base];[${oi}:v]format=rgba,fade=t=in:st=${overAt}:d=${overIn}:alpha=1[o];[base][o]overlay=0:0:shortest=1`;
   overs.forEach(([, when], i) => {
     v += `[b${i}];[${firstOver + i}:v]format=rgba,fade=t=in:st=${when}:d=0.5:alpha=1[w${i}];[b${i}][w${i}]overlay=0:0:shortest=1`;
+  });
+  const firstNote = firstOver + overs.length;
+  notes.forEach(([, on, off], i) => {
+    v += `[n${i}];[${firstNote + i}:v]format=rgba,fade=t=in:st=${on}:d=0.45:alpha=1,fade=t=out:st=${off - 0.45}:d=0.45:alpha=1[c${i}];[n${i}][c${i}]overlay=0:0:shortest=1`;
   });
   if (fadeIn) v += `,fade=t=in:st=0:d=${fadeIn}`;
   if (fadeOut) v += `,fade=t=out:st=${(dur - fadeOut).toFixed(3)}:d=${fadeOut}`;
@@ -102,24 +127,32 @@ async function piece({ shot, still, from = 0, dur, speed = 1, zoom = [1, 1], at 
   return out;
 }
 
-// Where to look in each shot: the drawing alone, framed in black (see mask).
-// The dress filling with fabric: the drawing and the swatches tapped under it.
-const FABRIC = WIDE ? { zoom: [1.05, 1.1], at: [0.45, 0.48], frame: [0.08, 1.05] } : { zoom: [1.12, 1.18], at: [0.5, 0.52], frame: [0.27, 0.8] };
-// The style shot's three moments (the times record-tour-shots.mjs prints): the waist seam dropped, the drawing filled
-// navy, stripe, then Prince of Wales (Cat, 2026-10-23), and the hem and a soft neckline drawn straight on the dress in
-// its fabric (D1 Draw on the Dress, 2026-10-24), enlarged to show the room there is to draw, through Done to the
-// pattern sheet.
-const STYLE = WIDE
-  ? {
-      shape: { from: 1, dur: 4, speed: 1.3, zoom: [1.3, 1.36], at: [0.6, 0.46] },
-      fabric: { from: 7, dur: 6, speed: 1.65 },
-      draw: { from: 16.5, dur: 7.5, speed: 1.6, zoom: [1.22, 1.26], at: [0.5, 0.46] },
-    }
-  : {
-      shape: { from: 1, dur: 4, speed: 1.6 },
-      fabric: { from: 8.6, dur: 6, speed: 1.6 },
-      draw: { from: 17.9, dur: 7.5, speed: 1.6 },
-    };
+// The Style chapter as one unbroken move (Cat, 2026-10-24: too choppy; hand-hold on an elegant journey): the waist
+// seam dropped, the dress filled navy, stripe, then Prince of Wales (Cat, 2026-10-23), and the hem and a boat neck
+// drawn straight on the dress in its fabric, enlarged (D1 Draw on the Dress, 2026-10-24), through Done to the pattern
+// sheet. The camera glides between the moments, and a big word or two names each step. Times are in the style shot,
+// as record-tour-shots.mjs prints them.
+const MARKS = WIDE ? { shape: 0.9, fabric: 4.7, checks: 12.1, draw: 14.4, done: 26.2 } : { shape: 0.9, fabric: 6.3, checks: 13.7, draw: 16.0, done: 27.5 };
+const JOURNEY = { from: 0.6, to: MARKS.done + 0.9, dur: 17 };
+const atOut = (t) => ((t - JOURNEY.from) * JOURNEY.dur) / (JOURNEY.to - JOURNEY.from);
+// [shot time, zoom, x, y]: on a computer, close on the dress and the shapes, out a little for the fabrics beside it,
+// in on the enlarged form to draw, and back as the pattern comes up. A phone shows the whole screen throughout.
+const STYLE_CAM = (WIDE
+  ? [[0.6, 1.3, 0.6, 0.46], [MARKS.fabric - 0.6, 1.3, 0.6, 0.46], [MARKS.fabric + 1, 1.12, 0.5, 0.5], [MARKS.draw, 1.12, 0.5, 0.5], [MARKS.draw + 1.6, 1.22, 0.5, 0.46], [MARKS.done, 1.22, 0.5, 0.46], [JOURNEY.to, 1, 0.5, 0.5]]
+  : [[0.6, 1, 0.5, 0.5], [JOURNEY.to, 1.05, 0.5, 0.47]]).map(([t, ...r]) => [atOut(t), ...r]);
+const STYLE_NOTES = [
+  ['Drop the waist.', MARKS.shape, MARKS.fabric - 0.4],
+  ['Choose the fabric.', MARKS.fabric + 0.2, MARKS.fabric + 4.6],
+  ['Add a print.', MARKS.fabric + 4.8, MARKS.draw - 0.3],
+  ['Draw it longer.', MARKS.draw + 1.9, MARKS.draw + 5.6],
+  ['Draw a boat neck.', MARKS.draw + 5.8, MARKS.done - 0.2],
+];
+const styleJourney = async () => {
+  // One at a time: the words are all drawn on the one page.
+  const notes = [];
+  for (const [line, on, off] of STYLE_NOTES) notes.push([await note(line), atOut(on), atOut(off)]);
+  return piece({ shot: 'style', from: JOURNEY.from, dur: JOURNEY.dur, speed: (JOURNEY.to - JOURNEY.from) / JOURNEY.dur, cam: STYLE_CAM, fadeIn: 0.5, notes });
+};
 // Cat (2026-10-22): the cream pattern paper was too bright after the black pages; a deeper champagne here.
 // Wide: from the moment the pattern is up, slowed a touch to fill its time (Cat, 2026-10-22: the drawing flashed before it).
 const PATTERN = WIDE
@@ -143,6 +176,11 @@ async function threeChecks() {
   }
   return pics;
 }
+// A caption for a step in the Style chapter (Cat, 2026-10-24: not clear what's being picked), in a dark band along
+// the top, over the app's own header, so the choices being tapped stay clear.
+const note = (line) => words(WIDE
+  ? `<div class="f" style="background:linear-gradient(to bottom,rgba(0,0,0,.92) 0,rgba(0,0,0,.8) 13%,rgba(0,0,0,0) 22%);padding:44px 0 0 96px"><h1 class="t" style="font-size:46px">${line}</h1></div>`
+  : `<div class="f" style="background:linear-gradient(to bottom,rgba(0,0,0,.92) 0,rgba(0,0,0,.8) 11%,rgba(0,0,0,0) 17%);padding:40px 0 0 28px"><h1 class="t" style="font-size:36px">${line}</h1></div>`);
 // The opening (Cat, 2026-10-22: the old one repeated the loading screen and welcome the viewer had just seen).
 const INTRO = process.env.TOUR_INTRO ?? 'C2'; // Cat's pick, 2026-10-22: C2 Pull Back
 const TITLE = `<h1 class="t" style="font-size:${WIDE ? 84 : 64}px">How it works</h1>`;
@@ -193,13 +231,13 @@ const CUTS = {
       await piece({ still: await card('02', 'Choose', 'Then what to make.'), dur: 3, fadeIn: f, fadeOut: f }),
       await piece({ shot: 'choose', from: 0.3, dur: 3.2, fadeIn: f, fadeOut: f }),
       await piece({ still: await card('03', 'Style', 'Make it yours.'), dur: 3, fadeIn: f, fadeOut: f }),
-      await piece({ shot: 'style', ...STYLE.shape, fadeIn: f, fadeOut: f }),
-      await piece({ shot: 'style', ...STYLE.fabric, ...FABRIC, fadeIn: f, fadeOut: f }),
-      await piece({ shot: 'style', ...STYLE.draw, fadeIn: f, fadeOut: f }),
       // Done lands on the pattern sheet, so the pattern follows straight on, then the dress all round (Cat,
-      // 2026-10-24: no flash back to the dress between them).
-      await piece({ shot: 'pattern', dur: 3.6, ...PATTERN, fadeIn: f, fadeOut: f }),
-      await piece({ shot: 'round', from: 0.3, dur: 8.6, fadeIn: f, fadeOut: f, overs: (await threeChecks()).map((p, i) => [p, 0.9 + i * 1.8]) }),
+      // 2026-10-24: no flash back to the dress between them), each dissolving into the next.
+      await dissolve(
+        await dissolve(await styleJourney(), await piece({ shot: 'pattern', dur: 3.6, ...PATTERN, notes: [[await note('Your pattern, drafted.'), 0.5, 3.4]] }), 0.8),
+        await piece({ shot: 'round', from: 0.3, dur: 8.6, fadeOut: f, overs: (await threeChecks()).map((p, i) => [p, 0.9 + i * 1.8]) }),
+        1,
+      ),
       await piece({ still: await card('04', 'Print', 'At home, or full size.'), dur: 3, fadeIn: f, fadeOut: f }),
       await piece({ ...PAGES, dur: 4.4, fadeIn: f, fadeOut: f }),
       await piece({ still: await card('', 'Drafted<br>to your body'), dur: 4.5, fadeIn: 0.8, fadeOut: 1.2 }),

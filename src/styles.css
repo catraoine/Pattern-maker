@@ -3503,6 +3503,18 @@ button.link.garment-change {
   max-width: 100%;
   height: 100%;
   max-height: none;
+  animation: form-grow 0.5s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+/* The form grows to fill the screen, rather than jumping there. */
+@keyframes form-grow {
+  from {
+    transform: scale(0.55);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .form-draw.big .form-svg {
+    animation: none;
+  }
 }
 /* Small enough that Done, the form, the hint and the line kinds all fit on a phone without scrolling. */
 .form-svg {
