@@ -386,7 +386,7 @@ export function draftTrousers(m: TrousersMeasurements, style: Partial<TrousersSt
   const culotte = s.leg === 'culotte';
   const full = culotte ? L : trouserLength(m, { ...s, length: 'full' });
   const kn = Math.min(m.waist_to_knee - 2, (cd + full) / 2 + (culotte ? 0 : 10));
-  const short = !culotte && L < kn;
+  const short = !culotte && (s.length === 'shorts' || L < kn);
   const widths = LEG_WIDTHS[s.leg];
   const fullHemW = Math.max(MIN_HEM, widths.hem * H);
   const kneeW = Math.max(widths.knee * H, s.leg === 'tapered' ? fullHemW + 3 : 0);
