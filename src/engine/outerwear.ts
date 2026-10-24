@@ -42,6 +42,13 @@ export interface OuterStyle {
   pads: OuterPads;
   /** A vent at the centre back hem. Not on a cropped jacket. */
   vent: OuterVent;
+  /** Drawn on the form: the vent's length up from the hem, in cm, in place of the length's own. */
+  ventCm?: number;
+  /** Drawn on the form: where the pockets go, their centre across from the centre front and their top
+   * edge, in the front's own coordinates (cm, y down from the neck). Kept clear of the buttons and seams. */
+  pocketAt?: P;
+  /** Drawn on the form: a cutaway front, the hem curving up from the hem to the front edge over this many cm. */
+  cutawayCm?: number;
   seamAllowance: number;
   hemAllowance: number;
   fitting?: BodiceFitting;
@@ -69,7 +76,7 @@ export const PAD_CM: Record<OuterKind, Record<OuterPads, number>> = { jacket: { 
 export const VENT_WIDTH: Record<OuterKind, number> = { jacket: 4, coat: 5 };
 
 /** Flare added to each seam at the hem, per 40 cm below the hip. */
-const FLARE_PER_40: Record<OuterFlare, number> = { straight: 1.2, a_line: 4 };
+export const FLARE_PER_40: Record<OuterFlare, number> = { straight: 1.2, a_line: 4 };
 
 export const DEFAULT_OUTER: Record<OuterKind, OuterStyle> = {
   jacket: { kind: 'jacket', fit: 'regular', length: 'hip', shaping: 'darts', front: 'single', collar: 'notched', pockets: 'patch', sleeve: 'tailored', flare: 'straight', pads: 'soft', vent: 'centre', seamAllowance: 1.5, hemAllowance: 4 },
@@ -109,6 +116,8 @@ export interface OuterDraft {
   pads: number;
   /** The centre back vent: where it starts below the neck and how far the underlap reaches. */
   vent?: { top: number; width: number; length: number };
+  /** A cutaway front: how far up the front edge the hem curves away, and how far in along the hem from the front edge, in cm. */
+  cutaway?: { up: number; along: number };
   finishedBust: number;
   finishedWaist: number;
   finishedHem: number;
@@ -349,6 +358,52 @@ interface FrontOpening {
   facing: { g: (y: number) => number; pts: P[] };
   /** The front neck seam's length, centre front (or the gorge) to the neck point. */
   frontNeck: number;
+}
+
+/** The cutaway's reach up the front edge, in cm: as drawn, kept 3 cm below the last button and 4 cm
+ * clear of the side of the front. None when not drawn. */
+export function cutawayOf(s: Pick<OuterStyle, 'cutawayCm'>, foot: number, buttons: OuterDraft['buttons']): number | undefined {
+  if (!s.cutawayCm || s.cutawayCm < 2) return undefined;
+  const last = Math.max(...buttons.at);
+  const r = Math.min(s.cutawayCm, foot - last - 3 - OUTER_BUTTON.coat / 2);
+  return r >= 2 ? r1(r) : undefined;
+}
+
+/**
+ * The front's corner at the hem and the front edge cut away in a curve: from `r` cm in along the hem
+ * (from the front edge) to `r` cm up the front edge, the way a morning coat's front curves back. The
+ * curve leaves the hem and the front edge along their own lines, so both stay smooth.
+ */
+export function cutAway(ring: Ring, ext: number, foot: number, r: number): Ring & { along: number } {
+  const n = ring.pts.length;
+  const corner = ring.pts.findIndex((q) => Math.abs(q.x + ext) < 1e-6 && Math.abs(q.y - foot) < 1e-6);
+  if (corner < 0) return { ...ring, along: 0 };
+  // The hem's far end from the front edge: where it meets the side or princess seam. The curve leaves
+  // the hem well short of it, so that seam keeps its length.
+  let e = corner;
+  while (Math.abs(ring.pts[(e - 1 + n) % n].y - foot) < 0.6 && e !== (corner + 1) % n) e = (e - 1 + n) % n;
+  const from = p(Math.min(-ext + Math.min(r * 1.4, ext + 14), ring.pts[e].x - 3), foot);
+  const to = p(-ext, foot - r);
+  // Back along the hem from the corner, past the points the curve takes off; on up the front edge likewise.
+  let a = corner;
+  while (Math.abs(ring.pts[(a - 1 + n) % n].y - foot) < 0.6 && ring.pts[(a - 1 + n) % n].x < from.x) a = (a - 1 + n) % n;
+  let b = corner;
+  while (Math.abs(ring.pts[(b + 1) % n].x + ext) < 1e-6 && ring.pts[(b + 1) % n].y > to.y) b = (b + 1) % n;
+  const before = (a - 1 + n) % n;
+  const curve = Array.from({ length: 15 }, (_, i) => quad(from, p(-ext, foot), to, (i + 1) / 16));
+  const pts: P[] = [];
+  const tags: string[] = [];
+  for (let k = (b + 1) % n; ; k = (k + 1) % n) {
+    pts.push(ring.pts[k]);
+    tags.push(ring.tags[k]);
+    if (k === before) break;
+  }
+  // The hem runs on to where the curve leaves it, then the curve (hemmed like the hem) up to the front edge.
+  pts.push(from, ...curve, to);
+  tags.push('opening-hem', ...curve.map(() => 'opening-hem'), 'opening');
+  // Starting where the front did.
+  const s0 = Math.max(0, pts.indexOf(ring.pts[0]));
+  return { pts: [...pts.slice(s0), ...pts.slice(0, s0)], tags: [...tags.slice(s0), ...tags.slice(0, s0)], along: from.x + ext };
 }
 
 /** The front opened at the centre front: the extension, the buttonholes, and the lapel or the collar's neck. */
@@ -793,7 +848,9 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
   const waistY = base.front.waistCentre.y;
   const breakY = s.collar === 'notched' ? (s.front === 'double' ? apexY - 2 : apexY + 2) : neckY + (s.collar === 'stand' ? 2 : 1.8);
   const lastY = s.kind === 'coat' ? Math.min(foot - 15, waistY + (m.waist_to_hip ?? 20) + 12) : foot - (length === 'cropped' ? 3.5 : 9);
-  const buttons = buttonsFor(s, ext, breakY, Math.max(breakY + 12, lastY));
+  // A cutaway front curves back from below the last button, so the buttons stop above it.
+  const cutTop = s.cutawayCm ? foot - Math.min(s.cutawayCm, foot - breakY - 18) - 4 - OUTER_BUTTON[s.kind] / 2 : Infinity;
+  const buttons = buttonsFor(s, ext, breakY, Math.max(breakY + 12, Math.min(lastY, cutTop)));
 
   const fronts: Piece[] = [];
   const facings: Piece[] = [];
@@ -803,6 +860,11 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
     if (!/front/i.test(pc.name)) continue;
     if (pc.fold) {
       opening = openFront(pc, s, ext, buttons, breakY);
+      const r = cutawayOf(s, foot, buttons);
+      if (r) {
+        const cut = cutAway(ringOf(opening.piece.outline, 24), ext, foot, r);
+        opening = { ...opening, piece: { ...opening.piece, outline: pathOf(cut), meta: { ...opening.piece.meta, cutaway: { up: r, along: r1(cut.along) } } } };
+      }
       fronts.push(opening.piece);
     } else fronts.push(pc);
   }
@@ -829,7 +891,8 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
     backs = backs.map((pc) => {
       if (!pc.fold) return pc;
       const backFoot = Math.max(...pc.outline.points(4).map((q) => q.y));
-      const top = r1(backFoot - Math.min(45, Math.max(12, (backFoot - waistY) * 0.6)));
+      const most = Math.min(45, Math.max(12, (backFoot - waistY) * 0.8));
+      const top = r1(backFoot - Math.min(most, Math.max(12, s.ventCm ?? Math.min(45, Math.max(12, (backFoot - waistY) * 0.6)))));
       vent = { top, width, length: r1(backFoot - top) };
       return ventBack(pc, top, width);
     });
@@ -883,9 +946,12 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
     const welt = s.pockets === 'welt';
     const w = welt ? (s.kind === 'coat' ? 16 : 14) : s.kind === 'coat' ? 18 : 15;
     const h = welt ? (s.kind === 'coat' ? 3 : 2.5) : s.kind === 'coat' ? 19 : length === 'cropped' ? 12 : 16;
-    const y = welt
-      ? Math.min(waistY + (m.waist_to_hip ?? 20) * (s.kind === 'coat' ? 0.5 : 0.4), foot - 8)
-      : Math.min(waistY + (m.waist_to_hip ?? 20) * 0.35, foot - h - 4);
+    const lowest = welt ? foot - 8 : foot - h - 4;
+    const y = s.pocketAt
+      ? Math.max(waistY - 4, Math.min(lowest, s.pocketAt.y))
+      : welt
+        ? Math.min(waistY + (m.waist_to_hip ?? 20) * (s.kind === 'coat' ? 0.5 : 0.4), foot - 8)
+        : Math.min(waistY + (m.waist_to_hip ?? 20) * 0.35, foot - h - 4);
     const carrier = fronts.reduce((best, pc) => {
       const [lo, hi] = spanAt(pc, y + h / 2);
       const [blo, bhi] = spanAt(best, y + h / 2);
@@ -893,7 +959,7 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
     });
     const [lo, hi] = spanAt(carrier, y + h / 2);
     const from = Math.max(lo + 1.5, ext + 2);
-    const x = Math.max(from, Math.min(hi - w - 2, (from + hi) / 2 - w / 2));
+    const x = Math.max(from, Math.min(hi - w - 2, s.pocketAt ? s.pocketAt.x - w / 2 : (from + hi) / 2 - w / 2));
     pocket = { x, y, w, h, kind: welt ? 'welt' : 'patch' };
     pocketPieces = welt ? weltPieces(w, h, s.kind === 'coat' ? 22 : 17, sa) : [patchPocket(w, h, sa)];
     const i = fronts.indexOf(carrier);
@@ -921,6 +987,7 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
     buttons,
     ...(s.fitting?.flatFront ? { lapsLeft: true } : {}),
     lapel: opening.lapel,
+    ...(opening.piece.meta.cutaway ? { cutaway: opening.piece.meta.cutaway as { up: number; along: number } } : {}),
     pocket,
     pads: pad,
     vent,

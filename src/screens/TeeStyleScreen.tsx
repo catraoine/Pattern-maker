@@ -97,7 +97,7 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
         legs={false}
         bottom={form.hems.tunic + 6}
         arms={form.arm}
-        backs={false}
+        backKinds={['hem']}
         kinds={[
           ['neckline', 'Neckline'],
           ['fit', 'Side'],
@@ -106,19 +106,20 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
         ]}
         help={{
           neckline: 'Draw the neckline from the shoulder down to the centre front: close to the neck for a crew, lower and round for a scoop, straight down to a point for a V.',
-          hem: 'Draw across where you want the hem: just below the waist, at the hip, or lower for a tunic. A T-shirt hem is cut level.',
+          hem: 'Draw across where you want the hem: just below the waist, at the hip, or lower for a tunic. Curve it up at the sides for a shirttail, or turn to the back and draw it lower for a high-low hem.',
+          sleeve: 'Draw across the arm where you want the sleeve to end.',
         }}
         lines={() => teeLines(draft, form)}
         choices={choices}
         onChoices={setChoices}
-        read={(kind, _side, stroke) =>
+        read={(kind, side, stroke) =>
           kind === 'neckline'
             ? readTeeNeckline(stroke, form, choices)
             : kind === 'fit'
               ? readTeeFit(stroke, form, m, choices)
               : kind === 'sleeve'
                 ? readTeeSleeve(stroke, form, choices)
-                : readTeeHem(stroke, form, choices)
+                : readTeeHem(stroke, form, choices, side)
         }
         onDone={() => {
           undo.change(choices, onForm);
