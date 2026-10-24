@@ -30,7 +30,7 @@ videos for existing tools and fixes like these go ahead.
 | Tester codes, send to device, keep data | `src/ui/TesterCode.tsx`, `src/moveLink.ts`, `src/store.ts` | live |
 | "How did it fit?" after printing, the four counts, In testing labels | PR #113 | queued |
 | Waitlist and tester sign-ups | `src/screens/SignupScreen.tsx`, `netlify/functions/signup.mts` | live |
-| Real sign-in | not started | build before the gate |
+| Real sign-in | `src/cloud/`, `src/ui/CloudAccount.tsx`, `netlify/functions/delete-account.mts`, `supabase/` | built, hidden behind `?signin=preview` until the 7 to 13 Dec fix week |
 
 ## Launch garments
 

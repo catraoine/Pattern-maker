@@ -79,6 +79,8 @@ import { KeptCount } from './ui/SaveControl';
 import { GARMENT_NAME } from './measureFlow';
 import { MeasureStepsScreen, type StepsStart } from './screens/MeasureStepsScreen';
 import { AccountScreen } from './screens/AccountScreen';
+import { useCloud } from './cloud/useCloud';
+import { signinShown } from './cloud/flag';
 import { PhotoScreen } from './screens/PhotoScreen';
 import { LegalScreen } from './screens/LegalScreen';
 import { SignupScreen } from './screens/SignupScreen';
@@ -348,6 +350,14 @@ export default function App() {
   const dropHash = () => {
     if (window.location.hash) window.history.replaceState(window.history.state, '', window.location.pathname + window.location.search);
   };
+  /** Everything here, put back from a backup, a move link or the signed-in account. */
+  const applyBackup = (b: Backup<Saved>) => {
+    setSaved({ ...INITIAL, ...b.skirt });
+    setAccount({ ...NEW_ACCOUNT, ...b.account, onboarded: true });
+    if (b.pointEdits) setPointEdits(b.pointEdits as Record<string, PointEdit[]>);
+  };
+  // Sign-in (Cat's plan, 2026-10-23): held behind ?signin=preview until the December fix week.
+  const cloud = useCloud(makeBackup(saved, account, pointEdits), applyBackup, signinShown);
   /** The link that carries everything on this device to another one. */
   const sendLink = () => moveLink(window.location.origin, makeBackup(saved, account, pointEdits));
   const [startView] = useState<View>(incoming?.kind === 'ask' ? 'link' : incoming?.kind === 'reply' ? 'arrive' : isMoveLink(window.location.hash) ? 'move' : 'welcome');
@@ -959,7 +969,9 @@ export default function App() {
     switchGarment(g, patch, 'style', using);
   };
 
-  const reset = () => {
+  const reset = async () => {
+    // Signed in, the account keeps its copy: sign out before clearing, or the empty device would be saved over it.
+    if (cloud.user) await cloud.signOut().catch(() => undefined);
     setSaved(INITIAL);
     setAccount(NEW_ACCOUNT);
     setStep('welcome');
@@ -1197,6 +1209,7 @@ export default function App() {
           {step === 'account' && (
             <AccountScreen
               onPlans={plansShown() ? openPlans : undefined}
+              cloud={cloud.usable ? cloud : undefined}
               mode={mode}
               onMode={setMode}
               account={account}
@@ -1236,9 +1249,7 @@ export default function App() {
               onRestore={async (file) => {
                 const b = readBackup<Saved>(await file.text());
                 if (!b) return false;
-                setSaved({ ...INITIAL, ...b.skirt });
-                setAccount({ ...NEW_ACCOUNT, ...b.account, onboarded: true });
-                if (b.pointEdits) setPointEdits(b.pointEdits as Record<string, PointEdit[]>);
+                applyBackup(b);
                 return true;
               }}
             />

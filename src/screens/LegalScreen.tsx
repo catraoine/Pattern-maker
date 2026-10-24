@@ -54,7 +54,9 @@ function Part({ block }: { block: Block }) {
 
 /** The Privacy Policy or the Terms of Use, opened from the welcome's fine print and from Your account. */
 export function LegalScreen({ doc, onOther, otherLabel }: Props) {
-  useEffect(() => window.scrollTo(0, 0), [doc]);
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [doc]);
   return (
     <article className="card legal" aria-labelledby="ltitle">
       <p className="eyebrow">Maison Tracé</p>
