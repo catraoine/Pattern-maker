@@ -92,7 +92,7 @@ const eased = (stops, i) => {
   return e;
 };
 // notes: captions, each [picture, when it fades in, when it fades out], so a first-time viewer knows what each tap does.
-async function piece({ shot, src, still, from = 0, dur, speed = 1, zoom = [1, 1], at = [0.5, 0.5], cam, frame, tint, fadeIn = 0, fadeOut = 0, over, overIn = 0.4, overAt = 0, overs = [], notes = [], reverse = false }) {
+async function piece({ shot, src, smooth = false, still, from = 0, dur, speed = 1, zoom = [1, 1], at = [0.5, 0.5], cam, frame, tint, fadeIn = 0, fadeOut = 0, over, overIn = 0.4, overAt = 0, overs = [], notes = [], reverse = false }) {
   const edge = frame ? await mask(frame) : undefined;
   const out = join(work, `p${String(k++).padStart(3, '0')}.mp4`);
   const frames = Math.round(dur * FPS);
@@ -108,7 +108,8 @@ async function piece({ shot, src, still, from = 0, dur, speed = 1, zoom = [1, 1]
   const [z0, z1] = zoom;
   const z = cam ? eased(cam, 1) : `(${z0}+(${z1 - z0})*on/${frames})`;
   const [ax, ay] = cam ? [eased(cam, 2), eased(cam, 3)] : at;
-  let v = `[0:v]setpts=(PTS-STARTPTS)/${speed},fps=${FPS},scale=${2 * W}:${2 * H},zoompan=z='${z}':x='max(0,min(iw-iw/zoom,(${ax})*iw-iw/zoom/2))':y='max(0,min(ih-ih/zoom,(${ay})*ih-ih/zoom/2))':d=1:s=${W}x${H}:fps=${FPS},trim=end_frame=${frames},setsar=1${reverse ? ',reverse' : ''}`;
+  // smooth: frames made up in between for slow motion (speed < 1), so the move stays fluid instead of stepping.
+  let v = `[0:v]setpts=(PTS-STARTPTS)/${speed},${smooth ? `minterpolate='fps=${FPS}:mi_mode=mci:mc_mode=aobmc:vsbmc=1'` : `fps=${FPS}`},scale=${2 * W}:${2 * H},zoompan=z='${z}':x='max(0,min(iw-iw/zoom,(${ax})*iw-iw/zoom/2))':y='max(0,min(ih-ih/zoom,(${ay})*ih-ih/zoom/2))':d=1:s=${W}x${H}:fps=${FPS},trim=end_frame=${frames},setsar=1${reverse ? ',reverse' : ''}`;
   // tint: [r, g, b] multipliers, e.g. to take the cream pattern paper down to a deeper champagne.
   if (tint) v += `,colorchannelmixer=rr=${tint[0]}:gg=${tint[1]}:bb=${tint[2]}`;
   if (edge) v += `[raw];[raw][1:v]overlay=0:0:shortest=1`;
@@ -231,14 +232,24 @@ const CUTS = {
   // round on you, drawing closer as it turns (the recorder fills the screen with it; Cat, 2026-10-22).
   words: async () => {
     const f = 0.5;
+    const TAPE_VIEW = WIDE ? { frame: [0.1, 1.05] } : { zoom: [1.1, 1.1], at: [0.5, 0.545] };
+    // In the take the tape's tip reaches the screen at about 0.5 s and the tape is across by about 1.7 s.
+    const [TAPE_IN, TAPE_OUT, CURTAIN] = [0.45, 1.8, 1 / 3];
+    // OPENER_FILM=<walkthrough.mp4> keeps a released film's opening shot and Measure card frame for frame (Cat,
+    // 2026-10-24: "go back to that other version exactly"): its first 5.6 s, fades and title already in them.
+    const released = process.env.OPENER_FILM ? resolve(process.env.OPENER_FILM) : undefined;
     const opening = [
-      ...(await INTROS[INTRO]()),
-      await piece({ still: await card('01', 'Measure', 'Just a few, once.'), dur: 2.2, fadeIn: f, fadeOut: f }),
+      ...(released
+        ? [await piece({ shot: 'round', src: released, from: 0, dur: 5.6 })]
+        : [...(await INTROS[INTRO]()), await piece({ still: await card('01', 'Measure', 'Just a few, once.'), dur: 2.2, fadeIn: f, fadeOut: f })]),
       // One unbroken move to the waist (Cat, 2026-10-22: starting mid-pull, it appeared from nowhere, small): from
       // black, the tape pulling in across the top of the first page, the welcome skipped (Cat, 2026-10-23). On a phone
       // it fills the screen, drawn in just enough that the header is off the top (Cat, 2026-10-23: no black band). It
       // joins with the tape already on its way in, past the black second it took to reach the screen (Cat, 2026-10-24).
-      await piece({ shot: 'tape', from: 1, dur: 7.8, ...(WIDE ? { frame: [0.1, 1.05] } : { zoom: [1.1, 1.1], at: [0.5, 0.545] }), fadeIn: f, fadeOut: f }),
+      // The tape is the opening curtain (Cat, 2026-10-24: "intentional and dramatic"): its pull across the top is
+      // played at a third of its speed, out of black, then the page goes on at its own pace.
+      await piece({ shot: 'tape', from: TAPE_IN, dur: (TAPE_OUT - TAPE_IN) / CURTAIN, speed: CURTAIN, smooth: true, ...TAPE_VIEW, fadeIn: 0.3 }),
+      await piece({ shot: 'tape', from: TAPE_OUT, dur: 7.8 - (TAPE_OUT - 1), ...TAPE_VIEW, fadeOut: f }),
     ];
     // TOUR_PREVIEW=1 stops after the opening and the tape, to try an opening without cutting the whole film.
     if (process.env.TOUR_PREVIEW) return opening;
