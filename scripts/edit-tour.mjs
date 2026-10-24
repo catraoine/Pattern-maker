@@ -158,8 +158,8 @@ const styleJourney = async () => {
 const PATTERN = WIDE
   ? { from: 1.1, speed: 0.8, zoom: [1.6, 1.66], at: [0.42, 0.72], frame: [0.09, 1.05, 0.1, 0.92], tint: [0.84, 0.78, 0.66] }
   : { from: 1.1, speed: 0.75, zoom: [1.1, 1.14], at: [0.5, 0.56], frame: [0.305, 0.712], tint: [0.84, 0.78, 0.66] };
-// On a phone the pages fill the screen, the words above them out of the picture (Cat, 2026-10-23).
-const PAGES = { shot: 'print', from: 5.2, speed: 0.75, ...(WIDE ? { frame: [0.1, 1.05] } : { zoom: [1.6, 1.6], at: [0.49, 0.5725] }) };
+// On a phone the whole sheet of pages shows, the words round it in black (Cat, 2026-10-24: 1.6 was too close).
+const PAGES = { shot: 'print', from: 5.2, speed: 0.75, ...(WIDE ? { frame: [0.1, 1.05] } : { zoom: [1.15, 1.2], at: [0.5, 0.49], frame: [0.12, 0.89] }) };
 // Cat's B Three Checks (2026-10-22): what All round is for, a line at a time over the turning form. On a phone in a
 // dark band along the bottom; on a computer to the left of the form. Each line is its own picture, all laid out
 // together so they stack in place; only the first carries the dark band.
@@ -181,6 +181,24 @@ async function threeChecks() {
 const note = (line) => words(WIDE
   ? `<div class="f" style="background:linear-gradient(to bottom,rgba(0,0,0,.92) 0,rgba(0,0,0,.8) 13%,rgba(0,0,0,0) 22%);padding:44px 0 0 96px"><h1 class="t" style="font-size:46px">${line}</h1></div>`
   : `<div class="f" style="background:linear-gradient(to bottom,rgba(0,0,0,.92) 0,rgba(0,0,0,.8) 11%,rgba(0,0,0,0) 17%);padding:40px 0 0 28px"><h1 class="t" style="font-size:36px">${line}</h1></div>`);
+// P2 Or Start From a Photo (Cat, 2026-10-24): after the garments, a photo of a dress (made for the film, no person in
+// it) dissolves into the same dress drafted on the form, enlarged, before its lines are drawn. Its words are the
+// same size and place as the Style steps'.
+const PHOTO = readFileSync(new URL('./tour/photo-dress.jpg', import.meta.url)).toString('base64');
+const DRAFTED = WIDE
+  ? { t: 16.8, zoom: [1.84, 1.8], at: [0.5, 0.46], frame: [-1, 2, 0.3, 0.7] }
+  : { t: 18.3, zoom: [2.04, 2], at: [0.5, 0.45], frame: [-1, 2, 0.16, 0.84] };
+async function photoMoment() {
+  const pic = await words(`<div class="f" style="display:flex;align-items:center;justify-content:center;padding-top:${WIDE ? 70 : 60}px"><img src="data:image/jpeg;base64,${PHOTO}" style="height:${WIDE ? 640 : 560}px;max-width:94%;object-fit:cover"></div>`, { solid: true });
+  const drafted = join(work, 'drafted.png');
+  execFileSync('ffmpeg', ['-v', 'error', '-y', '-ss', String(DRAFTED.t), '-i', join(SHOTS, 'style.mp4'), '-frames:v', '1', drafted]);
+  const words1 = await note('Or start from a photo.');
+  return dissolve(
+    await piece({ still: pic, dur: 2.6, zoom: [1, 1.03], fadeIn: 0.5, notes: [[words1, 0.3, 3]] }),
+    await piece({ still: drafted, dur: 2.6, zoom: DRAFTED.zoom, at: DRAFTED.at, frame: DRAFTED.frame, fadeOut: 0.5, notes: [[words1, 0, 2]] }),
+    1,
+  );
+}
 // The opening (Cat, 2026-10-22: the old one repeated the loading screen and welcome the viewer had just seen).
 const INTRO = process.env.TOUR_INTRO ?? 'C2'; // Cat's pick, 2026-10-22: C2 Pull Back
 const TITLE = `<h1 class="t" style="font-size:${WIDE ? 84 : 64}px">How it works</h1>`;
@@ -230,6 +248,7 @@ const CUTS = {
       ...opening,
       await piece({ still: await card('02', 'Choose', 'Then what to make.'), dur: 3, fadeIn: f, fadeOut: f }),
       await piece({ shot: 'choose', from: 0.3, dur: 3.2, fadeIn: f, fadeOut: f }),
+      await photoMoment(),
       await piece({ still: await card('03', 'Style', 'Make it yours.'), dur: 3, fadeIn: f, fadeOut: f }),
       // Done lands on the pattern sheet, so the pattern follows straight on, then the dress all round (Cat,
       // 2026-10-24: no flash back to the dress between them), each dissolving into the next.
