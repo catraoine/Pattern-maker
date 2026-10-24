@@ -280,6 +280,21 @@ await wait(300);
 await main.getByRole('tab', { name: 'Shape', exact: true }).click();
 await p.evaluate(() => window.scrollTo(0, 0));
 await wait(1200);
+if (process.env.TOUR_PROBE4) {
+  await main.getByRole('group', { name: 'Garment view' }).getByRole('button', { name: 'All round' }).click();
+  await wait(2500);
+  await p.screenshot({ path: `${OUT}/probe4.png` });
+  // The same, framed as the film holds it at its closest.
+  await p.evaluate((K) => {
+    const c = document.querySelector('.all-round-canvas');
+    document.body.appendChild(c);
+    const w = innerWidth * K, h = (innerHeight + 96) * K;
+    Object.assign(c.style, { position: 'fixed', zIndex: 9999, background: '#000', maxWidth: 'none', maxHeight: 'none', aspectRatio: 'auto', margin: 0, width: `${w}px`, height: `${h}px`, left: `${innerWidth / 2 - w / 2}px`, top: `${innerHeight / 2 - 0.34 * h}px` });
+  }, 1.7);
+  await wait(1200);
+  await p.screenshot({ path: `${OUT}/probe4-close.png` });
+  process.exit(0);
+}
 if (process.env.TOUR_PROBE) {
   await p.screenshot({ path: `${OUT}/probe.png` });
   console.log('LS', await p.evaluate(() => JSON.stringify(JSON.parse(localStorage.getItem('pattern-maker:skirt')).finish)));
@@ -347,7 +362,7 @@ await tap(main.getByRole('group', { name: 'Preview view' }).getByRole('button', 
 // (After the pattern: from All round, Pattern doesn't redraw in time.)
 await main.getByRole('group', { name: 'Garment view' }).getByRole('button', { name: 'All round' }).click();
 await wait(800);
-const CLOSEST = 3.4;
+const CLOSEST = 1.7;
 await p.evaluate((K) => {
   const c = document.querySelector('.all-round-canvas');
   document.body.appendChild(c);
@@ -371,7 +386,7 @@ await zoomTo(1.3, 1.3, 0);
 await wait(600);
 await start();
 await wait(400);
-await zoomTo(1.3, 3.4, 8500);
+await zoomTo(1.3, 1.7, 8500);
 await wait(600);
 await stop('round');
 // Put the canvas back where it was.

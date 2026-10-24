@@ -675,7 +675,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
             <AllRound
               round={round}
               m={values}
-              striped={!!fabric?.checks}
+              striped={fabric?.checks ? (fabric.checks.stripes ? 'stripes' : 'checks') : false}
               label={`The ${title} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`}
             />
           )}

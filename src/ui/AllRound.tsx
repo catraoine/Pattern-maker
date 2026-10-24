@@ -44,8 +44,8 @@ export interface RoundMeasurements {
 interface Props {
   round: RoundGarment;
   m: RoundMeasurements;
-  /** The fabric has checks or stripes to match. */
-  striped?: boolean;
+  /** The fabric has checks or stripes to match: which, for the row's name. */
+  striped?: boolean | 'checks' | 'stripes';
   label: string;
 }
 
@@ -61,7 +61,7 @@ interface Row {
 const fromWaist = (v: number) => (v < 0 ? `${-v} cm above the waist` : v === 0 ? 'at the waist' : `${v} cm below the waist`);
 
 /** The rows under the view: plain facts about the garment, never problems. */
-export function roundRows(r: RoundGarment, striped: boolean): Row[] {
+export function roundRows(r: RoundGarment, striped: boolean | 'checks' | 'stripes'): Row[] {
   const rows: Row[] = [];
   const n = r.seams.filter((s) => !s.cont).length;
   const d = r.darts.length;
@@ -91,7 +91,7 @@ export function roundRows(r: RoundGarment, striped: boolean): Row[] {
     rows.push({ id: 'sleeves', name: 'Sleeves', text: `${Math.round(r.sleeve.lengthCm)} cm from the shoulder, ${Math.round(r.sleeve.hemCm)} cm round the hem.`, turn: HALF });
   }
   if (striped && stripesMeet(r)) {
-    rows.push({ id: 'stripes', name: 'Stripes', text: 'Meet at both side seams. Line them up at the notches when you cut.', turn: -HALF });
+    rows.push({ id: 'stripes', name: striped === 'checks' ? 'Checks' : 'Stripes', text: 'Meet at both side seams. Line them up at the notches when you cut.', turn: -HALF });
   }
   return rows;
 }
@@ -175,11 +175,24 @@ export function AllRound({ round, m, striped = false, label }: Props) {
     const longest = Math.max(...lengths);
     const highest = Math.min(...tops);
     const meanY = yOf(lengths.reduce((t, v) => t + v, 0) / lengths.length);
-    const hipR = formHalfWidth(FORM_HIP) + eH;
     const flares = !trousers && meanY > FORM_HIP + 0.05;
+    const bodyR = (y: number) => formHalfWidth(Math.min(y, 1.3)) + easeAt(y);
+    // Worn, the cloth hangs from the widest point of the form above it (as wornCloth lays it on the form):
+    // only a fitted garment, with little ease at the waist, follows the waist in; a relaxed one falls straight
+    // from the bust to the hip, its ease hanging in folds.
+    const yTop = yOf(highest);
+    const hangShare = round.girth.waist && m.waist ? clamp((round.girth.waist - m.waist - 4) / 3, 0, 1) : 0;
+    const hang: number[] = [];
+    for (let i = 0; i <= 60; i++) hang.push(Math.max(hang[i - 1] ?? 0, bodyR(yTop + ((FORM_HIP - yTop) * i) / 60)));
+    const wornR = (y: number) => {
+      const r = bodyR(y);
+      if (y <= yTop || y > FORM_HIP || !hangShare) return r;
+      return r + (hang[Math.round(((y - yTop) / (FORM_HIP - yTop)) * 60)] - r) * hangShare;
+    };
+    const hipR = wornR(FORM_HIP);
     const hemR = hipR * clamp(round.flare, 0.85, 2.3);
     const radius = (y: number) =>
-      y <= FORM_HIP || !flares ? formHalfWidth(Math.min(y, 1.3)) + easeAt(y) : hipR + (hemR - hipR) * clamp((y - FORM_HIP) / Math.max(0.05, meanY - FORM_HIP), 0, 1.3);
+      y <= FORM_HIP || !flares ? wornR(y) : hipR + (hemR - hipR) * clamp((y - FORM_HIP) / Math.max(0.05, meanY - FORM_HIP), 0, 1.3);
     const bandTop = WAIST - round.bandCm * kY;
 
     // Sleeves hang from the armhole: out from the shoulder tip, then down the arm.
@@ -189,9 +202,10 @@ export function AllRound({ round, m, striped = false, label }: Props) {
     const sl = round.sleeve;
     const ra = sl ? Math.max(0.08, (sl.bicepCm / TAU) * krB * 0.95) : 0;
     const rh = sl ? Math.max(0.05, (sl.hemCm / TAU) * krB * 0.95) : 0;
-    const yE = sl ? Math.max(yS + sl.lengthCm * kY, yU + 0.05) : 0;
-    const axisX = (y: number) => formHalfWidth(yS) - 0.04 + (formHalfWidth(yU) + ra * 0.85 - formHalfWidth(yS) + 0.04) * smooth(clamp((y - yS) / (yU - yS || 1), 0, 1)) + Math.max(0, y - yU) * 0.04;
-    const sleeveR = (y: number) => (y < yU ? ra * Math.sqrt(clamp((y - yS) / (yU - yS || 1), 0.12, 1)) : ra + (rh - ra) * clamp((y - yU) / (yE - yU || 1), 0, 1));
+    // The sleeve stands on the arm, outside the body at the underarm; even the shortest reaches a little below it.
+    const yE = sl ? Math.max(yS + sl.lengthCm * kY, yU + 0.1) : 0;
+    const axisX = (y: number) => formHalfWidth(yS) + ra * 0.25 + (formHalfWidth(yU) + ra - formHalfWidth(yS) - ra * 0.25) * smooth(clamp((y - yS) / (yU - yS || 1), 0, 1)) + Math.max(0, y - yU) * 0.04;
+    const sleeveR = (y: number) => (y < yU ? ra * Math.pow(clamp((y - yS) / (yU - yS || 1), 0.15, 1), 0.35) : ra + (rh - ra) * clamp((y - yU) / (yE - yU || 1), 0, 1));
 
     // Trouser legs, round the form's own legs: easy at the thigh, then to the knee and the hem.
     const lg = round.legs;
@@ -319,6 +333,12 @@ export function AllRound({ round, m, striped = false, label }: Props) {
       g.globalAlpha = 0.6;
       g.strokeStyle = GILD;
       paintFigure(g, S, cx, Y, lw, trousers ? 0 : 1, false, phi);
+      // Under the cloth the form shows through faintly, so the garment, not the body, is what reads.
+      if (!trousers) {
+        g.globalAlpha = 1;
+        g.fillStyle = 'rgba(0, 0, 0, 0.6)';
+        g.fillRect(0, Y(yOf(highest)) - 2, w, Y(longest) - Y(yOf(highest)) + 4);
+      }
       g.restore();
       if (trousers) {
         const ys = Array.from({ length: 71 }, (_, i) => FORM_CROTCH + ((FORM_FLOOR - 0.02 - FORM_CROTCH) * i) / 70);
@@ -343,6 +363,21 @@ export function AllRound({ round, m, striped = false, label }: Props) {
         g.globalAlpha = 1;
       }
 
+      // The cloth itself, as lines down the garment all the way round, so it reads over the form: hanging
+      // straight where it has ease, and only pulled in where it is cut close.
+      if (!trousers) {
+        for (let j = 0; j < 36; j++) {
+          const a = (TAU * (j + 0.5)) / 36;
+          const y0 = isTop && arm ? Math.max(topY(a), yU - 0.02) : topY(a);
+          const y1 = hemY(a);
+          const pts: Pt[] = [];
+          for (let i = 0; i <= 30; i++) {
+            const y = y0 + ((y1 - y0) * i) / 30;
+            pts.push(P(a, radius(y), y));
+          }
+          line(pts, GLOW, lw * 0.55, 0, 0.7);
+        }
+      }
       // The garment: its top edge and waistband, its hem and its outline.
       if (round.bandCm) {
         ring(() => bandTop, () => radius(WAIST), GLOW, lw * 0.8, 0.2);
