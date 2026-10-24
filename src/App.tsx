@@ -1,4 +1,5 @@
-import { isBandCollar } from './engine/collar';
+import { finishesNeck } from './engine/collar';
+import { Belt, beltNote, beltPieces, dressBelt, skirtBelt, withBelt } from './engine/belt';
 import { useEffect, useMemo, useState } from 'react';
 import { showInInches } from './units';
 import { canGoBack, goBack, useViewHistory } from './nav';
@@ -8,6 +9,7 @@ import { DraftError, Fit, Length, Silhouette, SkirtDraft, SkirtMeasurements, NoS
 import { BodiceDraft, BodiceMeasurements, blockOf, draftBodice } from './engine/bodice';
 import { type SlitPlace, slitNote } from './engine/slit';
 import { HIGH } from './engine/skirtWaist';
+import { cuffNote } from './engine/cuffs';
 import { BodiceEdges, SewingGuide, bodiceGuide, dressGuide, sewingGuide } from './engine/instructions';
 import { bodiceFlat, dressFlat, outerFlat, skirtFlat, teeFlat, trousersFlat } from './engine/flat';
 import { DressDraft, DressMeasurements, draftDress } from './engine/dress';
@@ -26,7 +28,7 @@ import { bodiceFacings, liningPieces, waistPieces } from './engine/finishing';
 import { edgesFor, topNotes } from './engine/corsetGuide';
 import { drapeFacings, drapeLined, drapeNote, zipSide } from './engine/drape';
 import { bodiceSpec, dressSpec, outerSpec, skirtSpec, sleeveSpec, teeSpec, trousersSpec, lingerieSpec } from './engine/spec';
-import { SleeveDraft, SleeveMeasurements, draftSleeve, needsArms } from './engine/sleeve';
+import { SleeveDraft, SleeveMeasurements, draftSleeve, needsArms, sleeveNote } from './engine/sleeve';
 import { Fitting, carriedFitting, describeCarried, describeFitting, saveVersion, toFitting, alterationSheet } from './engine/fitting';
 import { FabricWidth, layPlans } from './engine/layplan';
 import { MyFabric, clothFor, withFabric, withFabricEase } from './engine/fabrics';
@@ -142,6 +144,8 @@ export interface Choices {
   asymHem?: AsymHem;
   /** In-seam pockets. Older saves have none. */
   pockets?: 'none' | 'inseam';
+  /** A tie sash, belt loops, or both, at the waist (see belt.ts). Older saves have none. On a dress, its skirt's choices carry it. */
+  belt?: Belt;
   /** A waistband with a zip (older saves), or a pull-on elastic waist. */
   waist?: WaistStyle;
   /** A wrap skirt: the front cut as a crossing pair, the waistband running on into ties. */
@@ -152,6 +156,10 @@ export interface Choices {
   slitCm?: number;
   /** The zip in the left side seam, the back on the fold; unset, at the centre back. */
   zip?: 'back' | 'side';
+  /** A shaped yoke at the top, the darts closed into it. Older saves have none. */
+  yoke?: boolean;
+  /** Buttoned down the centre front, with no zip. Older saves have none. */
+  buttons?: boolean;
   /** A dress only: cut with no waist seam, as a sheath or a shift. */
   noSeam?: NoSeam;
 }
@@ -243,12 +251,13 @@ const INITIAL: Saved = {
 
 /** The sleeve for a bodice, drafted to its armhole with its allowances, when one is chosen and the arms are measured. */
 function sleeveFor(bodice: BodiceDraft, choices: BodiceChoices, values: MeasurementValues): SleeveDraft | undefined {
-  const { length, shape, cm } = sleeveOf(choices);
+  const { length, shape, cm, cuff } = sleeveOf(choices);
   if (length === 'none' || needsArms(values as SleeveMeasurements)) return undefined;
   return draftSleeve(bodice, values as SleeveMeasurements, {
     length,
     shape,
     ...(cm !== undefined ? { lengthCm: cm } : {}),
+    ...(cuff ? { cuff } : {}),
     fit: choices.fit,
     seamAllowance: bodice.pieces[0].seamAllowance,
     armholeAllowance: bodice.pieces[0].allowances.armhole ?? 1,
@@ -664,12 +673,13 @@ export default function App() {
       if (finish.skirtLined) {
         try {
           // A plain lining under pleats, godets or a flounce: they need no second layer. Nor pockets.
-          lining = draftSkirt(values as SkirtMeasurements, { ...skirtStyle, pleats: undefined, godets: undefined, flounce: undefined, lengthCm: skirt.lengthCm - 2.5, pockets: 'none' });
+          lining = draftSkirt(values as SkirtMeasurements, { ...skirtStyle, pleats: undefined, godets: undefined, flounce: undefined, lengthCm: skirt.lengthCm - 2.5, pockets: 'none', yoke: undefined, buttons: undefined });
         } catch {
           lining = undefined;
         }
       }
-      const pieces = allow([...skirt.pieces, ...(lining ? liningPieces(lining) : []), ...waistPieces(skirt, 1.5)]);
+      const belt = skirtBelt(saved.choices.belt, skirt);
+      const pieces = allow([...skirt.pieces, ...(lining ? liningPieces(lining) : []), ...waistPieces(skirt, 1.5), ...beltPieces(belt, seams.seam)]);
       // The hem is on the flounce below a flounced skirt, and on the bottom tier (2 cm) of a tiered one.
       const hem = pieces.find((pc) => !pc.kind && pc.allowances.hem !== undefined)?.allowances.hem ?? 2;
       // Tiers and the extra godets are cut but not printed.
@@ -684,21 +694,28 @@ export default function App() {
             : `Seam allowance ${fmtCm(seams.seam)} included, ${fmtCm(hem)} at the hem. Dashed line = stitching line.`,
           `${skirt.elastic ? `A pull-on elastic waist, with no zip: ${skirt.elastic.cutCm} cm of ${skirt.elastic.widthCm} cm elastic in the waistband casing` : skirt.wrap?.ties ? `A wrap with no zip: the front cut as a crossing pair, and a waistband that runs on into ties (${skirt.wrap.ties.outer} cm and ${skirt.wrap.ties.inner} cm, cut ${skirt.wrap.ties.cutWidth} cm wide)` : skirt.faced || skirt.waistFinish ? `${skirt.waistFinish === 'high' ? `A high waist, ${HIGH.rise} cm above your own, with waist facings` : 'Waist facings'}` : 'Waistband'}${lining ? ' and lining' : ''}${pocketWords(skirt.pocket ? 'inseam' : 'none')} included.${skirt.bias ? ' Cut on the bias: every piece single layer, grain at 45 degrees.' : ''}${skirt.volume?.tiers ? ' The tiers are rectangles: their measurements are in the sewing steps.' : ''} Sewing steps are on the last pages.`,
           ...(skirt.slit ? [slitNote(skirt.slit)] : []),
+          ...(skirt.yoke ? ['A shaped yoke at the top, the darts closed into it, so the skirt below has none.'] : []),
+          ...(skirt.buttons ? [`Buttoned down the front, with no zip: ${skirt.buttons.count} buttons (${skirt.buttons.sizeCm} cm) down the front and one on the waistband${skirt.pieces[1].fold ? ', and the back cut on the fold' : ''}.`] : []),
+          ...(belt ? [beltNote(belt)] : []),
           ...(skirt.opening === 'left_side' && !skirt.halves && !skirt.faced ? [`The zip goes in the left side seam (as you wear it)${skirt.pieces[1].fold ? ', so the back is cut on the fold' : ''}.`] : []),
           ...fittingNotes,
         ],
         guide: route(
-          sewingGuide(skirt, saved.choices, metres('self', () => fabricMetres(skirt)), {
-            seams,
-            width: finish.fabricWidth,
-            liningM: lining ? metres('lining', () => fabricMetres(lining!)) : undefined,
-            hem: skirt.pieces[0].allowances.hem >= 4 ? hem : undefined,
-          }),
+          withBelt(
+            sewingGuide(skirt, saved.choices, metres('self', () => fabricMetres(skirt)), {
+              seams,
+              width: finish.fabricWidth,
+              liningM: lining ? metres('lining', () => fabricMetres(lining!)) : undefined,
+              hem: skirt.pieces[0].allowances.hem >= 4 ? hem : undefined,
+            }),
+            belt,
+            { band: !skirt.faced && !skirt.waistFinish, sideZip: skirt.opening === 'left_side' },
+          ),
           { garment: 'skirt', lined: !!lining, zipCm: skirt.zipCm },
         ),
         spec: skirtSpec(values as SkirtMeasurements, skirt),
         lays,
-        flat: skirtFlat(skirt),
+        flat: skirtFlat(skirt, belt),
       };
     }
     if (dressDraft) {
@@ -717,9 +734,10 @@ export default function App() {
       // Facings are cut from the bodice as sewn, with any moved dart or princess seam closed. A button
       // front's facings, or a band or shirt collar, finish the neck.
       const [bf, bb] = blockOf(d.bodice);
-      const neckDone = d.bodice.closure === 'front_buttons' || isBandCollar(d.bodice.collar) || d.bodice.collar === 'shirt';
+      const neckDone = d.bodice.closure === 'front_buttons' || finishesNeck(d.bodice.collar);
       const facings = edges === 'facings' ? (d.bodice.drape ? drapeFacings(d.bodice, !sleeve) : bodiceFacings(bf, bb, !sleeve, !neckDone)) : [];
-      const pieces = allow([...top, ...(sleeve?.pieces ?? []), ...skirtPcs, ...facings]);
+      const belt = dressBelt(dress.skirt.belt, d);
+      const pieces = allow([...top, ...(sleeve?.pieces ?? []), ...skirtPcs, ...facings, ...beltPieces(belt, seams.seam)]);
       const lays = layPlans([...pieces, ...allow(layoutExtras(d.skirt))], finish.fabricWidth, nap, hide, false, border);
       const metres = (f: 'self' | 'lining' | 'interlining') => lays.find((l) => l.fabric === f)?.metres ?? bodiceFabricMetres(d.bodice, sleeve) + fabricMetres(d.skirt);
       const edgeWords = sleeve
@@ -734,25 +752,27 @@ export default function App() {
             : `Seam allowance ${fmtCm(seams.seam)} included, ${fmtCm(seams.curve)} at the neck and armholes, ${fmtCm(pieces.find((pc) => /^(Skirt|Flounce|Dress) front/.test(pc.name) && pc.allowances.hem !== undefined)?.allowances.hem ?? (d.skirt.volume?.tiers ? 2 : 4))} at the hem. Dashed line = stitching line.`,
           `${d.noSeam ? `Cut with no waist seam, as a ${d.noSeam}: front and back each one piece from the shoulder to the hem${d.noSeam === 'sheath' ? ', shaped at the waist by darts pointed at both ends' : ''}.` : 'The skirt is drafted to the bodice: waist seams the same length and darts in one line.'} ${d.skirtButtons ? `${(d.bodice.buttons?.count ?? 0) + d.skirtButtons.count} buttons down the centre front, from the neck through the waist,` : d.bodice.wrap ? `Wrap fronts that cross over and tie at the waist, with no zip (ties ${d.bodice.wrap.ties.outer} cm and ${d.bodice.wrap.ties.inner} cm, cut ${d.bodice.wrap.ties.cutWidth} cm wide),` : `A ${d.zipCm} cm ${d.zipSide ? `zip in the ${zipSide(d.bodice)} side seam` : 'centre back zip'}`}${d.bodice.collar !== 'none' ? `, a ${COLLAR_WORDS[d.bodice.collar]}` : ''} and ${edgeWords}${pocketWords(d.skirt.pocket ? 'inseam' : 'none')}. Sewing steps are on the last pages.`,
           ...(drapeNote(d.bodice) ? [drapeNote(d.bodice)!] : []),
-          ...(sleeve ? [`Sleeve: bicep ${sleeve.bicep} cm, ${sleeve.gathers?.crown !== undefined ? `${sleeve.gathers.crown} cm gathered into the crown` : `crown ease ${sleeve.crownEase.front} cm front, ${sleeve.crownEase.back} cm back`}.`] : []),
+          ...(sleeve ? [sleeveNote(sleeve)] : []),
+          ...(sleeve?.cuff ? [cuffNote(sleeve.cuff)] : []),
           ...topNotes(d.bodice),
           ...(d.skirt.slit && !d.noSeam ? [slitNote(d.skirt.slit)] : []),
+          ...(belt ? [beltNote(belt)] : []),
           ...fittingNotes,
         ],
         guide: route(
-          dressGuide(d, dress.skirt, metres('self'), bindingMetres(d.bodice, { neck: edges === 'binding' && !isBandCollar(d.bodice.collar), armholes: sleeve ? edges === 'lined' : edges === 'binding' }), {
+          withBelt(dressGuide(d, dress.skirt, metres('self'), bindingMetres(d.bodice, { neck: edges === 'binding' && !finishesNeck(d.bodice.collar), armholes: sleeve ? edges === 'lined' : edges === 'binding' }), {
             seams,
             edges,
             width: finish.fabricWidth,
             liningM: metres('lining'),
             coutilM: d.bodice.top?.boned ? metres('interlining') : undefined,
             sleeve,
-          }),
+          }), belt, { band: false, sideZip: !!d.zipSide }),
           { garment: 'dress', lined: edges === 'lined', zipCm: d.zipCm },
         ),
         spec: dressSpec(values as DressMeasurements, d, sleeve),
         lays,
-        flat: dressFlat(d, edges, { sleeve }),
+        flat: dressFlat(d, edges, { sleeve, belt }),
       };
     }
     if (bodice) {
@@ -765,7 +785,7 @@ export default function App() {
             : bodice.pieces.map((pc) => (pc.kind || /coutil/.test(pc.fabric ?? '') ? pc : { ...pc, fabric: 'Self fabric and lining' }))
           : bodice.pieces;
       // A button front's facings, or a band collar, finish the neck.
-      const neckDone = bodice.closure === 'front_buttons' || isBandCollar(bodice.collar) || bodice.collar === 'shirt';
+      const neckDone = bodice.closure === 'front_buttons' || finishesNeck(bodice.collar);
       const facings = edges === 'facings' ? (bodice.drape ? drapeFacings(bodice, !sleeve, !neckDone) : bodiceFacings(...blockOf(bodice), !sleeve, !neckDone)) : [];
       const pieces = allow([...main, ...(sleeve?.pieces ?? []), ...facings]);
       const edgeWords = sleeve
@@ -784,7 +804,8 @@ export default function App() {
           `${sleeveWords}, ${bodice.closure === 'front_buttons' ? `${bodice.buttons?.count ?? 5} buttons down the centre front` : bodice.wrap ? `wrap fronts that tie at the waist (ties ${bodice.wrap.ties.outer} cm and ${bodice.wrap.ties.inner} cm, cut ${bodice.wrap.ties.cutWidth} cm wide)` : `a ${bodice.zipCm} cm ${bodice.drape?.kind === 'one_shoulder' ? `zip in the ${zipSide(bodice)} side seam` : 'centre back zip'}`}${bodice.collar !== 'none' ? `, a ${COLLAR_WORDS[bodice.collar]}` : ''} and ${edgeWords}. Sewing steps are on the last pages.`,
           ...(drapeNote(bodice) ? [drapeNote(bodice)!] : []),
           ...(bodice.peplum ? [`A ${bodice.peplum.kind} peplum, ${bodice.peplum.depthCm} cm deep, ${bodice.peplum.hemCm} cm round the hem.`] : []),
-          ...(sleeve ? [`Sleeve: bicep ${sleeve.bicep} cm, ${sleeve.gathers?.crown !== undefined ? `${sleeve.gathers.crown} cm gathered into the crown` : `crown ease ${sleeve.crownEase.front} cm front, ${sleeve.crownEase.back} cm back`}.`] : []),
+          ...(sleeve ? [sleeveNote(sleeve)] : []),
+          ...(sleeve?.cuff ? [cuffNote(sleeve.cuff)] : []),
           ...topNotes(bodice),
           ...fittingNotes,
         ],

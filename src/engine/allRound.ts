@@ -174,7 +174,7 @@ function skirtDarts(pc: Piece, back: boolean): RoundDart[] {
 
 export function roundSkirt(draft: SkirtDraft): RoundGarment {
   const [front, back] = draft.pieces;
-  const half = draft.halves ?? [front, back];
+  const half = draft.halves ?? draft.closed ?? [front, back];
   const L = draft.lengthCm;
   const lengthAt = (phi: number) => {
     const a = wrap(phi);
@@ -197,7 +197,8 @@ export function roundSkirt(draft: SkirtDraft): RoundGarment {
     topAt: () => 0,
     lengthAt,
     seams,
-    darts: [...skirtDarts(blocks[0], false), ...skirtDarts(blocks[1], true)],
+    // A yoke takes the darts.
+    darts: draft.yoke ? [] : [...skirtDarts(blocks[0], false), ...skirtDarts(blocks[1], true)],
     rings: [],
     zip: draft.zipCm > 0 ? { phi: zipPhi, fromCm: 0, toCm: draft.zipCm } : undefined,
     bandCm: draft.faced || draft.elastic ? (draft.elastic ? 3 : 0) : 3,

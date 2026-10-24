@@ -319,6 +319,19 @@ const FIT_WORDS: Record<BodiceFit, string> = { fitted: 'fitted', regular: 'regul
 export function bodiceFabrics(style: { fit: BodiceFit; neckline: Neckline; length?: BodiceLength; darts?: BodiceDarts; structure?: Structure; neck?: unknown; peplum?: 'none' | 'flared' | 'gathered' }): FabricAdvice {
   if (style.structure === 'boned')
     return { style: 'a boned bodice', picks: BONED.picks, avoid: BONED.avoid, note: BONED.note, lining: BODICE_LINING };
+  // Shirring draws up only light cloth.
+  if (style.structure === 'shirred')
+    return {
+      style: 'a top with a shirred back',
+      picks: [
+        pick('Cotton lawn or voile', ['light'], 'soft', 'Draws up into fine, even shirring, and is cool to wear.'),
+        pick('Double gauze or seersucker', ['light'], 'soft', 'Its crinkle hides any unevenness in the rows.'),
+        pick('Cotton poplin', ['light', 'medium'], 'crisp', 'Holds a crisp front and still shirrs well if light.'),
+      ],
+      avoid: `Heavy or stiff cloth, which the elastic thread cannot draw up, and slippery silks, which pucker unevenly. ${STRETCH}`,
+      note: 'Shirr a scrap of your fabric first: it should draw up to about two thirds of its width.',
+      lining: BODICE_LINING,
+    };
   if (style.neckline === 'cami')
     return { style: 'a cami top', picks: CAMI.picks, avoid: `${CAMI.avoid} ${STRETCH}`, note: NECK_NOTES.cami, lining: BODICE_LINING };
   const cowl = style.neckline === 'cowl' && !style.neck;

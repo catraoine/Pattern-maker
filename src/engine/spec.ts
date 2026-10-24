@@ -35,7 +35,13 @@ export function skirtSpec(m: SkirtMeasurements, d: SkirtDraft): SpecRow[] {
     ...volumeSpec(d),
     ...(d.pocket ? [row('In-seam pocket opening', undefined, d.pocket[1] - d.pocket[0])] : []),
     ...(d.slit ? [{ label: `Slit, ${d.slit.at === 'side' ? 'left side' : `centre ${d.slit.at}`}, above the hem`, finished: `${d.slit.cm}` }] : []),
-    ...(d.faced
+    ...(d.yoke ? [row('Yoke, centre front, waist to seam', undefined, d.yoke.front[0].y - (d.closed?.[0].outline.start.y ?? 0)), row('Yoke, centre back, waist to seam', undefined, d.yoke.back[0].y - (d.closed?.[1].outline.start.y ?? 0))] : []),
+    ...(d.buttons
+      ? [
+          { label: 'Waistband (finished width 3), across both front edges', finished: `cut ${d.waistband.cutLength} x ${d.waistband.cutWidth}` },
+          { label: `Buttons, ${d.buttons.sizeCm} cm, down the front and on the band`, finished: `${d.buttons.count + 1}` },
+        ]
+      : d.faced
       ? [
           { label: `Waist facing, ${SLIP_FACING} deep`, finished: 'cut 1 front, 1 back' },
           { label: 'Invisible zip, left side seam', finished: `${d.zipCm}` },
@@ -111,10 +117,19 @@ export function bodiceSpec(m: BodiceMeasurements, d: BodiceDraft, length: Bodice
 export function sleeveSpec(m: SleeveMeasurements, s: SleeveDraft): SpecRow[] {
   return [
     row('Upper arm (bicep)', m.upper_arm, s.bicep),
-    row('Sleeve length, crown to hem', undefined, s.lengthCm),
-    row(s.gathers ? 'Sleeve band, round' : 'Sleeve hem, round', undefined, s.hemCm),
-    row('Crown height', undefined, s.capHeight),
-    { label: 'Crown ease, front / back', finished: s.gathers?.crown !== undefined ? `${s.gathers.crown} gathered` : `${s.crownEase.front} / ${s.crownEase.back}` },
+    row(s.cut === 'kimono' ? 'Sleeve length, shoulder point to hem' : 'Sleeve length, crown to hem', undefined, s.lengthCm),
+    row(s.cuff ? `${s.cuff.kind === 'shirt' ? 'Shirt cuff' : s.cuff.kind === 'tie' ? 'Tie cuff' : 'Elastic cuff'}, round` : s.gathers ? 'Sleeve band, round' : 'Sleeve hem, round', undefined, s.hemCm),
+    ...(s.cuff ? [row(s.cuff.kind === 'elastic' ? 'Cuff casing depth' : 'Cuff depth', undefined, s.cuff.depth)] : []),
+    ...(s.cuff?.kind === 'elastic' ? [row('Cuff elastic, cut', undefined, s.cuff.elasticCm!)] : []),
+    ...(s.cuff?.kind === 'tie' ? [row('Cuff ties, each', undefined, s.cuff.tieCm!)] : []),
+    ...(s.cuff?.kind === 'shirt' ? [row('Cuff placket', undefined, s.cuff.placketCm!)] : []),
+    // A kimono sleeve, cut on, has no crown.
+    ...(s.cut === 'kimono'
+      ? []
+      : [
+          row('Crown height', undefined, s.capHeight),
+          { label: 'Crown ease, front / back', finished: s.gathers?.crown !== undefined ? `${s.gathers.crown} gathered` : `${s.crownEase.front} / ${s.crownEase.back}` },
+        ]),
     ...(s.elbowDart ? [row('Elbow dart', undefined, s.elbowDart)] : []),
   ];
 }

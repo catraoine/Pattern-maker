@@ -1,3 +1,4 @@
+import { beltWords } from '../engine/belt';
 import { PatternChoices, bodiceDetails, describeBodice, describeOuter, describeTee, describeTrousers, describeLingerie, isLingerie, isBodice, isDress, isOuter, isTee, isTrousers } from '../garments';
 import { GROUPS, describe as describeSkirt } from './StyleScreen';
 import { buttonsOnSkirt, noSeamAllowed } from '../engine/dress';
@@ -8,15 +9,17 @@ const SEAM_WORDS = { empire: 'empire-line', raised: 'high-waisted', natural: '',
 /** A plain name for a saved pattern's style, such as "Knee A-line skirt". */
 export function describePattern(c: PatternChoices) {
   if (isDress(c)) {
+    // A sash or belt loops go at the end of the name, like pockets; a wrap ties already.
+    const belted = c.bodice.closure === 'wrap' ? '' : beltWords(c.skirt.belt ?? 'none');
     // Cut in one from shoulder to hem: "Knee sheath dress with a boat neck and short sleeves".
     if (c.skirt.noSeam && noSeamAllowed(c.bodice)) {
       const len = c.skirt.lengthCm !== undefined ? `${Math.round(c.skirt.lengthCm)} cm` : GROUPS[2].options.find((o) => o[0] === c.skirt.length)![1];
-      return `${len} ${c.skirt.noSeam} dress with ${bodiceDetails(c.bodice)}`;
+      return `${len} ${c.skirt.noSeam} dress with ${bodiceDetails(c.bodice)}${belted ? `, and ${belted}` : ''}`;
     }
     // "Knee A-line dress with knife pleats, a scoop neck and short sleeves". A hem named on the skirt
     // ("with a high-low hem") goes last: "... dress with a crew neck, and a high-low hem". The dress's
     // skirt has no waistband of its own; its pockets go at the end of the name too.
-    const [skirt, tail = ''] = describeSkirt({ ...c.skirt, pockets: undefined, waist: undefined }).split(/ with (.*)/);
+    const [skirt, tail = ''] = describeSkirt({ ...c.skirt, pockets: undefined, waist: undefined, belt: undefined }).split(/ with (.*)/);
     const parts = tail ? tail.split(' and ') : [];
     const hem = parts.find((t) => / hem$/.test(t));
     const details = parts.filter((t) => t !== hem);
@@ -26,7 +29,7 @@ export function describePattern(c: PatternChoices) {
     const kind = c.bodice.closure === 'front_buttons' && buttonsOnSkirt(c.skirt) ? 'shirt dress' : c.bodice.closure === 'wrap' && wrapSkirtAllowed(c.skirt) ? 'wrap dress' : 'dress';
     const word = seam && seam !== 'natural' ? `${SEAM_WORDS[seam]} ${kind}` : kind;
     const dress = /skirt/.test(skirt) ? skirt.replace('skirt', word) : `${skirt} ${word}`;
-    const ends = [...(hem ? [hem] : []), ...(c.skirt.pockets === 'inseam' ? ['pockets'] : [])];
+    const ends = [...(hem ? [hem] : []), ...(c.skirt.pockets === 'inseam' ? ['pockets'] : []), ...(belted ? [belted] : [])];
     return `${dress} with ${details.length ? `${details.join(' and ')}, ` : ''}${bodiceDetails(c.bodice)}${ends.length ? `, and ${ends.join(' and ')}` : ''}`;
   }
   if (isTrousers(c)) return describeTrousers(c);
