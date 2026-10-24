@@ -1,0 +1,1458 @@
+{
+  "note": "Hand-scored by eye against the photo. 1 = the app's drawing shows it, 0.5 = roughly, 0 = missing or wrong, null = nothing to show. Rescore after a drawing change ships.",
+  "cases": [
+    {
+      "id": "ph-cat-gingham",
+      "source": "Cat's wardrobe",
+      "photo": "11-gingham-dress.jpg",
+      "garment": "dress",
+      "choices": {
+        "garment": "dress",
+        "fit": "regular",
+        "bodice": {
+          "garment": "bodice",
+          "fit": "regular",
+          "neckline": "boat",
+          "length": "waist",
+          "darts": "bust_waist",
+          "sleeve": "short",
+          "sleeveShape": "straight",
+          "closure": "back_zip",
+          "empire": 2
+        },
+        "skirt": {
+          "fit": "regular",
+          "silhouette": "straight",
+          "length": "mini",
+          "belt": "loops"
+        },
+        "waistSeam": "dropped"
+      },
+      "fabric": {
+        "fibre": "cotton",
+        "colour": "Camel",
+        "print": "checks",
+        "checks": {
+          "repeat": 2.5
+        }
+      },
+      "truth": "Yellow/black gingham drop-waist shift, boat neck, short sleeves, belt loops",
+      "likeness": {
+        "silhouette": 1,
+        "neckline": 1,
+        "sleeves": 1,
+        "length": 1,
+        "waist": 0.5,
+        "details": 0.5,
+        "print": 0,
+        "colour": 0,
+        "fabric": 1
+      },
+      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
+      "note": "Glen plaid in camel stands in for yellow gingham; belt loops not drawn."
+    },
+    {
+      "id": "ph-cat-shirtdress",
+      "source": "Cat's wardrobe",
+      "photo": "12-shirt-dress.jpg",
+      "garment": "dress",
+      "choices": {
+        "garment": "dress",
+        "fit": "relaxed",
+        "bodice": {
+          "garment": "bodice",
+          "fit": "relaxed",
+          "neckline": "crew",
+          "length": "waist",
+          "darts": "none",
+          "sleeve": "long",
+          "sleeveShape": "straight",
+          "closure": "front_buttons",
+          "collar": "peter_pan"
+        },
+        "skirt": {
+          "fit": "relaxed",
+          "silhouette": "gathered",
+          "length": "maxi",
+          "pockets": "inseam"
+        },
+        "waistSeam": "empire"
+      },
+      "fabric": {
+        "fibre": "linen",
+        "colour": "Grey"
+      },
+      "truth": "Grey linen shirt dress, Peter Pan collar, buttons, gathered skirt from a raised seam, pockets",
+      "likeness": {
+        "silhouette": 0,
+        "neckline": 0.5,
+        "sleeves": 0.5,
+        "length": 1,
+        "waist": 0,
+        "details": 0,
+        "print": null,
+        "colour": 1,
+        "fabric": 0.5
+      },
+      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
+      "note": "Drawn as a lampshade on a tiny bodice; buttons, collar, pockets missing; seam pinned to the natural waist."
+    },
+    {
+      "id": "ph-cat-stripe",
+      "source": "Cat's wardrobe",
+      "photo": "13-stripe-wrap.jpg",
+      "garment": "dress",
+      "choices": {
+        "garment": "dress",
+        "fit": "regular",
+        "bodice": {
+          "garment": "bodice",
+          "fit": "regular",
+          "neckline": "v",
+          "length": "waist",
+          "darts": "bust_waist",
+          "sleeve": "none",
+          "sleeveShape": "straight",
+          "closure": "wrap"
+        },
+        "skirt": {
+          "fit": "regular",
+          "silhouette": "straight",
+          "length": "maxi",
+          "belt": "sash"
+        },
+        "waistSeam": "raised"
+      },
+      "fabric": {
+        "fibre": "viscose",
+        "colour": "Grey",
+        "print": "checks",
+        "checks": {
+          "repeat": 1.5,
+          "stripes": true
+        }
+      },
+      "truth": "Grey fine-stripe sleeveless wrap, raised seam, sash",
+      "likeness": {
+        "silhouette": 1,
+        "neckline": 0.5,
+        "sleeves": 1,
+        "length": 1,
+        "waist": 0.5,
+        "details": 0,
+        "print": 0.5,
+        "colour": 1,
+        "fabric": 0.5
+      },
+      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
+      "note": "Stripes vanish at 1.5 cm; no wrap overlap or sash; seam pinned to the natural waist."
+    },
+    {
+      "id": "ph-cos-navy",
+      "source": "cos.com",
+      "photo": "14-cos-navy.jpg",
+      "garment": "dress",
+      "choices": {
+        "garment": "dress",
+        "fit": "regular",
+        "bodice": {
+          "garment": "bodice",
+          "fit": "regular",
+          "neckline": "crew",
+          "length": "waist",
+          "darts": "bust_waist",
+          "sleeve": "none",
+          "sleeveShape": "straight",
+          "closure": "back_zip"
+        },
+        "skirt": {
+          "fit": "regular",
+          "silhouette": "a_line",
+          "length": "midi",
+          "pockets": "inseam"
+        },
+        "waistSeam": "dropped"
+      },
+      "fabric": {
+        "fibre": "cotton",
+        "colour": "Navy"
+      },
+      "truth": "Navy sleeveless drop-waist A-line midi with pockets",
+      "likeness": {
+        "silhouette": 1,
+        "neckline": 1,
+        "sleeves": 1,
+        "length": 1,
+        "waist": 1,
+        "details": 0.5,
+        "print": null,
+        "colour": 0.5,
+        "fabric": 0.5
+      },
+      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
+      "note": "The best match in the set. Pockets show in Drawing, not on the form."
+    },
+    {
+      "id": "ph-01-pencil",
+      "source": "Wikimedia (CC)",
+      "photo": "../photo/photos/01-pencil.jpg",
+      "garment": "skirt",
+      "choices": {
+        "fit": "fitted",
+        "silhouette": "pencil",
+        "length": "above_knee",
+        "waist": "high"
+      },
+      "fabric": {
+        "fibre": "polyester",
+        "colour": "Black"
+      },
+      "truth": "Black high-waisted pencil, above knee",
+      "likeness": {
+        "silhouette": 1,
+        "neckline": null,
+        "sleeves": null,
+        "length": 1,
+        "waist": 0.5,
+        "details": 0.5,
+        "print": null,
+        "colour": 1,
+        "fabric": 1
+      },
+      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
+      "note": "Princess seams not drawn."
+    },
+    {
+      "id": "ph-02-straight",
+      "source": "Wikimedia (PD)",
+      "photo": "../photo/photos/02-straight.jpg",
+      "garment": "skirt",
+      "choices": {
+        "fit": "regular",
+        "silhouette": "straight",
+        "length": "knee",
+        "slit": "back",
+        "pockets": "inseam"
+      },
+      "fabric": {
+        "fibre": "cotton",
+        "special": "denim"
+      },
+      "truth": "Knee denim straight skirt, back slit, pockets",
+      "likeness": {
+        "silhouette": 1,
+        "neckline": null,
+        "sleeves": null,
+        "length": 1,
+        "waist": 1,
+        "details": 0.5,
+        "print": null,
+        "colour": 1,
+        "fabric": 1
+      },
+      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
+      "note": ""
+    },
+    {
+      "id": "ph-03-a-line-mini",
+      "source": "Wikimedia (CC)",
+      "photo": "../photo/photos/03-a-line-mini.jpg",
+      "garment": "skirt",
+      "choices": {
+        "fit": "regular",
+        "silhouette": "a_line",
+        "length": "mini"
+      },
+      "fabric": {
+        "fibre": "cotton",
+        "special": "denim"
+      },
+      "truth": "Denim A-line mini, frayed hem, pockets",
+      "likeness": {
+        "silhouette": 1,
+        "neckline": null,
+        "sleeves": null,
+        "length": 1,
+        "waist": 1,
+        "details": 0.5,
+        "print": null,
+        "colour": 1,
+        "fabric": 1
+      },
+      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
+      "note": ""
+    },
+    {
+      "id": "ph-04-a-line-midi",
+      "source": "Wikimedia (CC)",
+      "photo": "../photo/photos/04-a-line.jpg",
+      "garment": "skirt",
+      "choices": {
+        "fit": "regular",
+        "silhouette": "a_line",
+        "length": "knee"
+      },
+      "fabric": {
+        "fibre": "viscose",
+        "colour": "Rust",
+        "print": "motif",
+        "motif": {
+          "repeat": 20
+        }
+      },
+      "truth": "Red/rust large floral A-line, knee",
+      "likeness": {
+        "silhouette": 1,
+        "neckline": null,
+        "sleeves": null,
+        "length": 1,
+        "waist": 1,
+        "details": 1,
+        "print": 0.5,
+        "colour": 0,
+        "fabric": 0.5
+      },
+      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
+      "note": "The toile motif in blue stands in for a red floral: colour ignored on prints."
+    },
+    {
+      "id": "ph-05-trumpet",
+      "source": "Wikimedia (CC)",
+      "photo": "../photo/photos/05-trumpet.jpg",
+      "garment": "skirt",
+      "choices": {
+        "fit": "fitted",
+        "silhouette": "trumpet",
+        "length": "midi"
+      },
+      "fabric": {
+        "fibre": "silk",
+        "colour": "Camel",
+        "print": "checks",
+        "checks": {
+          "repeat": 1.5,
+          "stripes": true
+        }
+      },
+      "truth": "Camel striped silk trumpet, midi",
+      "likeness": {
+        "silhouette": 1,
+        "neckline": null,
+        "sleeves": null,
+        "length": 1,
+        "waist": 1,
+        "details": 0.5,
+        "print": 0.5,
+        "colour": 0,
+        "fabric": 0.5
+      },
+      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
+      "note": "Drawn near-white; the camel is lost."
+    },
+    {
+      "id": "ph-06-half-circle",
+      "source": "Wikimedia (CC)",
+      "photo": "../photo/photos/06-half-circle.jpg",
+      "garment": "skirt",
+      "choices": {
+        "fit": "regular",
+        "silhouette": "half_circle",
+        "length": "mini",
+        "waist": "elastic"
+      },
+      "fabric": {
+        "fibre": "viscose",
+        "colour": "Camel",
+        "print": "ditsy"
+      },
+      "truth": "Leopard half-circle mini",
+      "likeness": {
+        "silhouette": 0.5,
+        "neckline": null,
+        "sleeves": null,
+        "length": 1,
+        "waist": 1,
+        "details": 1,
+        "print": 0,
+        "colour": 0.5,
+        "fabric": 0.5
+      },
+      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
+      "note": "Lampshade with a scalloped hem; no animal print in the app."
+    },
+    {
+      "id": "ph-07-full-circle",
+      "source": "Wikimedia (CC)",
+      "photo": "../photo/photos/07-full-circle.jpg",
+      "garment": "skirt",
+      "choices": {
+        "fit": "regular",
+        "silhouette": "circle",
+        "length": "midi"
+      },
+      "fabric": {
+        "fibre": "wool",
+        "colour": "Rust"
+      },
+      "truth": "Red wool full circle, midi",
+      "likeness": {
+        "silhouette": 0.5,
+        "neckline": null,
+        "sleeves": null,
+        "length": 1,
+        "waist": 1,
+        "details": 1,
+        "print": null,
+        "colour": 0.5,
+        "fabric": 0.5
+      },
+      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
+      "note": "Flat triangle; rust renders brown, no red."
+    },
+    {
+      "id": "ph-08-pleated",
+      "source": "Wikimedia (CC)",
+      "photo": "../photo/photos/08-pleated.jpg",
+      "garment": "skirt",
+      "choices": {
+        "fit": "regular",
+        "silhouette": "a_line",
+        "length": "above_knee",
+        "pleats": "knife"
+      },
+      "fabric": {
+        "fibre": "polyester",
+        "colour": "Black"
+      },
+      "truth": "Black knife-pleated, above knee",
+      "likeness": {
+        "silhouette": 1,
+        "neckline": null,
+        "sleeves": null,
+        "length": 1,
+        "waist": 1,
+        "details": 0.5,
+        "print": null,
+        "colour": 1,
+        "fabric": 1
+      },
+      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
+      "note": "Pleats are faint lines on the form."
+    },
+    {
+      "id": "ph-09-gathered-maxi",
+      "source": "Wikimedia (CC)",
+      "photo": "../photo/photos/09-maxi.jpg",
+      "garment": "skirt",
+      "choices": {
+        "fit": "regular",
+        "silhouette": "a_line",
+        "length": "maxi"
+      },
+      "fabric": {
+        "fibre": "viscose",
+        "colour": "Black",
+        "print": "ditsy"
+      },
+      "truth": "Black ditsy floral gathered maxi",
+      "likeness": {
+        "silhouette": 0.5,
+        "neckline": null,
+        "sleeves": null,
+        "length": 1,
+        "waist": 1,
+        "details": 0.5,
+        "print": 0.5,
+        "colour": 0,
+        "fabric": 0.5
+      },
+      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
+      "note": "Drawn pale mauve: the ditsy tile ignores the chosen black."
+    },
+    {
+      "id": "ph-10-flat-lay",
+      "source": "Wikimedia (CC)",
+      "photo": "../photo/photos/10-flat-lay.jpg",
+      "garment": "skirt",
+      "choices": {
+        "fit": "regular",
+        "silhouette": "straight",
+        "length": "knee"
+      },
+      "fabric": {
+        "fibre": "cotton",
+        "colour": "Ivory",
+        "print": "checks",
+        "checks": {
+          "repeat": 4
+        }
+      },
+      "truth": "Black/white diamond check straight skirt, flat lay",
+      "likeness": {
+        "silhouette": 1,
+        "neckline": null,
+        "sleeves": null,
+        "length": 1,
+        "waist": 1,
+        "details": 0.5,
+        "print": 0.5,
+        "colour": 0.5,
+        "fabric": 1
+      },
+      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
+      "note": "Grey glen plaid stands in for a bold two-colour check."
+    },
+    {
+      "id": "b01-pleated-chiffon-skirt",
+      "source": "theblock.ca",
+      "photo": "b01-pleated-chiffon-skirt.jpg",
+      "garment": "skirt",
+      "choices": {
+        "fit": "regular",
+        "silhouette": "a_line",
+        "length": "midi",
+        "pleats": "knife"
+      },
+      "fabric": {
+        "fibre": "polyester",
+        "special": "sheer",
+        "colour": "Black"
+      },
+      "truth": "Sheer black pleated chiffon midi",
+      "likeness": {
+        "silhouette": 1,
+        "neckline": null,
+        "sleeves": null,
+        "length": 1,
+        "waist": 1,
+        "details": 0.5,
+        "print": null,
+        "colour": 1,
+        "fabric": 0
+      },
+      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
+      "note": "Sheerness not shown; pleats are faint lines."
+    },
+    {
+      "id": "b02-corduroy-mini",
+      "source": "theblock.ca",
+      "photo": "b02-corduroy-mini.jpg",
+      "garment": "skirt",
+      "choices": {
+        "fit": "regular",
+        "silhouette": "a_line",
+        "length": "mini"
+      },
+      "fabric": {
+        "fibre": "cotton",
+        "special": "corduroy",
+        "colour": "Camel"
+      },
+      "truth": "Brown corduroy jeans-style mini",
+      "likeness": {
+        "silhouette": 1,
+        "neckline": null,
+        "sleeves": null,
+        "length": 1,
+        "waist": 0.5,
+        "details": 0,
+        "print": null,
+        "colour": 0.5,
+        "fabric": 0
+      },
+      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
+      "note": "Plain camel block: no cord, no pockets or fly."
+    },
+    {
+      "id": "b03-wide-jeans",
+      "source": "theblock.ca",
+      "photo": "b03-wide-jeans.jpg",
+      "garment": "trousers",
+      "choices": {
+        "garment": "trousers",
+        "fit": "regular",
+        "leg": "wide",
+        "length": "full",
+        "closure": "fly",
+        "pockets": "slant"
+      },
+      "fabric": {
+        "fibre": "cotton",
+        "special": "denim"
+      },
+      "truth": "Mid-blue barrel-leg jeans",
+      "likeness": {
+        "silhouette": 0,
+        "neckline": null,
+        "sleeves": null,
+        "length": 1,
+        "waist": 1,
+        "details": 0.5,
+        "print": null,
+        "colour": 1,
+        "fabric": 0.5
+      },
+      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
+      "note": "One block with no gap between the legs: reads as a skirt."
+    },
+    {
+      "id": "b04-leather-trumpet",
+      "source": "theblock.ca",
+      "photo": "b04-leather-trumpet.jpg",
+      "garment": "skirt",
+      "choices": {
+        "fit": "regular",
+        "silhouette": "trumpet",
+        "length": "midi"
+      },
+      "fabric": {
+        "special": "leather",
+        "colour": "Black"
+      },
+      "truth": "Black faux-leather trumpet midi with a hip yoke",
+      "likeness": {
+        "silhouette": 1,
+        "neckline": null,
+        "sleeves": null,
+        "length": 1,
+        "waist": 1,
+        "details": 0,
+        "print": null,
+        "colour": 1,
+        "fabric": 0
+      },
+      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
+      "note": "No sheen; the yoke seam is not an option."
+    },
+    {
+      "id": "b05-brown-wide-denim",
+      "source": "theblock.ca",
+      "photo": "b05-brown-wide-denim.jpg",
+      "garment": "trousers",
+      "choices": {
+        "garment": "trousers",
+        "fit": "regular",
+        "leg": "wide",
+        "length": "full",
+        "closure": "fly",
+        "pockets": "slant"
+      },
+      "fabric": {
+        "fibre": "cotton",
+        "special": "denim",
+        "colour": "Camel"
+      },
+      "truth": "Brown wide-leg denim trousers",
+      "likeness": {
+        "silhouette": 0,
+        "neckline": null,
+        "sleeves": null,
+        "length": 1,
+        "waist": 1,
+        "details": 0.5,
+        "print": null,
+        "colour": 0.5,
+        "fabric": 0
+      },
+      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
+      "note": "Legs merge into a skirt; the colour pick wipes the denim texture."
+    },
+    {
+      "id": "b06-leather-culottes",
+      "source": "theblock.ca",
+      "photo": "b06-leather-culottes.jpg",
+      "garment": "trousers",
+      "choices": {
+        "garment": "trousers",
+        "fit": "relaxed",
+        "leg": "culotte",
+        "length": "cropped",
+        "closure": "side_zip",
+        "waist": "elastic",
+        "pockets": "slant"
+      },
+      "fabric": {
+        "special": "leather",
+        "colour": "Black"
+      },
+      "truth": "Black faux-leather culottes, elastic waist, patch pockets",
+      "likeness": {
+        "silhouette": 0.5,
+        "neckline": null,
+        "sleeves": null,
+        "length": 1,
+        "waist": 1,
+        "details": 0,
+        "print": null,
+        "colour": 1,
+        "fabric": 0
+      },
+      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
+      "note": "Patch pockets not drawn."
+    },
+    {
+      "id": "b07-balloon-skirt",
+      "source": "theblock.ca",
+      "photo": "b07-balloon-skirt.jpg",
+      "garment": "skirt",
+      "choices": {
+        "fit": "regular",
+        "silhouette": "gathered",
+        "length": "midi",
+        "waist": "elastic"
+      },
+      "fabric": {
+        "fibre": "cotton",
+        "colour": "Black"
+      },
+      "truth": "Black cotton balloon skirt",
+      "likeness": {
+        "silhouette": 0,
+        "neckline": null,
+        "sleeves": null,
+        "length": 1,
+        "waist": 1,
+        "details": 0,
+        "print": null,
+        "colour": 1,
+        "fabric": 1
+      },
+      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
+      "note": "Lampshade trapezoid; no balloon or drawcord hem exists."
+    },
+    {
+      "id": "b08-plaid-field-jacket",
+      "source": "theblock.ca",
+      "photo": "b08-plaid-field-jacket.jpg",
+      "garment": "jacket",
+      "choices": {
+        "garment": "jacket",
+        "fit": "relaxed",
+        "length": "long",
+        "shaping": "boxy",
+        "front": "single",
+        "collar": "stand",
+        "pockets": "patch",
+        "sleeve": "tailored",
+        "flare": "straight",
+        "pads": "none",
+        "vent": "centre"
+      },
+      "fabric": {
+        "fibre": "cotton",
+        "colour": "Olive",
+        "print": "checks",
+        "checks": {
+          "repeat": 8
+        }
+      },
+      "truth": "Olive/tan plaid hooded field jacket, four patch pockets",
+      "likeness": {
+        "silhouette": 1,
+        "neckline": 0,
+        "sleeves": 1,
+        "length": 1,
+        "waist": null,
+        "details": 0.5,
+        "print": 0.5,
+        "colour": 0.5,
+        "fabric": 1
+      },
+      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
+      "note": "Hood missing; checks are the fine glen-plaid tile tinted olive."
+    },
+    {
+      "id": "b09-leather-bomber",
+      "source": "theblock.ca",
+      "photo": "b09-leather-bomber.jpg",
+      "garment": "jacket",
+      "choices": {
+        "garment": "jacket",
+        "fit": "relaxed",
+        "length": "cropped",
+        "shaping": "boxy",
+        "front": "single",
+        "collar": "stand",
+        "pockets": "welt",
+        "sleeve": "tailored",
+        "flare": "straight",
+        "pads": "none",
+        "vent": "centre"
+      },
+      "fabric": {
+        "special": "leather",
+        "colour": "Black"
+      },
+      "truth": "Black faux-leather bomber, rib hem and cuffs, zip",
+      "likeness": {
+        "silhouette": 0.5,
+        "neckline": 0.5,
+        "sleeves": 0.5,
+        "length": 1,
+        "waist": null,
+        "details": 0,
+        "print": null,
+        "colour": 1,
+        "fabric": 0
+      },
+      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
+      "note": "No zip, rib trims or sheen."
+    },
+    {
+      "id": "b10-fleece-zip-jacket",
+      "source": "theblock.ca",
+      "photo": "b10-fleece-zip-jacket.jpg",
+      "garment": "jacket",
+      "choices": {
+        "garment": "jacket",
+        "fit": "relaxed",
+        "length": "hip",
+        "shaping": "boxy",
+        "front": "single",
+        "collar": "stand",
+        "pockets": "welt",
+        "sleeve": "tailored",
+        "flare": "straight",
+        "pads": "none",
+        "vent": "centre"
+      },
+      "fabric": {
+        "fibre": "wool",
+        "weight": "heavy",
+        "colour": "Camel"
+      },
+      "truth": "Brown boucle fleece zip jacket, quilted panels",
+      "likeness": {
+        "silhouette": 0.5,
+        "neckline": 0.5,
+        "sleeves": 0.5,
+        "length": 1,
+        "waist": null,
+        "details": 0,
+        "print": null,
+        "colour": 0.5,
+        "fabric": 0
+      },
+      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
+      "note": "Flat camel; no pile, no second cloth."
+    },
+    {
+      "id": "b11-brown-denim-jacket",
+      "source": "theblock.ca",
+      "photo": "b11-brown-denim-jacket.jpg",
+      "garment": "jacket",
+      "choices": {
+        "garment": "jacket",
+        "fit": "relaxed",
+        "length": "cropped",
+        "shaping": "boxy",
+        "front": "single",
+        "collar": "stand",
+        "pockets": "welt",
+        "sleeve": "tailored",
+        "flare": "straight",
+        "pads": "none",
+        "vent": "centre"
+      },
+      "fabric": {
+        "fibre": "cotton",
+        "special": "denim",
+        "colour": "Camel"
+      },
+      "truth": "Brown denim cropped zip jacket",
+      "likeness": {
+        "silhouette": 1,
+        "neckline": 0.5,
+        "sleeves": 1,
+        "length": 1,
+        "waist": null,
+        "details": 0,
+        "print": null,
+        "colour": 0.5,
+        "fabric": 0
+      },
+      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
+      "note": "Colour pick wipes the denim texture."
+    },
+    {
+      "id": "b12-black-cotton-coat",
+      "source": "theblock.ca",
+      "photo": "b12-black-cotton-coat.jpg",
+      "garment": "coat",
+      "choices": {
+        "garment": "coat",
+        "fit": "relaxed",
+        "length": "midi",
+        "shaping": "boxy",
+        "front": "single",
+        "collar": "stand",
+        "pockets": "welt",
+        "sleeve": "tailored",
+        "flare": "a_line",
+        "pads": "none",
+        "vent": "centre"
+      },
+      "fabric": {
+        "fibre": "cotton",
+        "colour": "Black"
+      },
+      "truth": "Black waxed-cotton raglan coat, flap pockets",
+      "likeness": {
+        "silhouette": 1,
+        "neckline": 1,
+        "sleeves": 0.5,
+        "length": 1,
+        "waist": null,
+        "details": 0.5,
+        "print": null,
+        "colour": 1,
+        "fabric": 0.5
+      },
+      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
+      "note": "Raglan not an option; otherwise close."
+    },
+    {
+      "id": "b13-cape-sleeve-column",
+      "source": "theblock.ca",
+      "photo": "b13-cape-sleeve-column.jpg",
+      "garment": "dress",
+      "choices": {
+        "garment": "dress",
+        "fit": "relaxed",
+        "bodice": {
+          "garment": "bodice",
+          "fit": "relaxed",
+          "neckline": "crew",
+          "length": "waist",
+          "darts": "bust_waist",
+          "sleeve": "short",
+          "sleeveShape": "flutter",
+          "closure": "back_zip"
+        },
+        "skirt": {
+          "fit": "relaxed",
+          "silhouette": "straight",
+          "length": "maxi"
+        },
+        "cut": "shift"
+      },
+      "fabric": {
+        "fibre": "viscose",
+        "colour": "Black"
+      },
+      "truth": "Black crepe column with cape sleeves",
+      "likeness": {
+        "silhouette": 0.5,
+        "neckline": 1,
+        "sleeves": 0,
+        "length": 1,
+        "waist": 0.5,
+        "details": 0,
+        "print": null,
+        "colour": 1,
+        "fabric": 0.5
+      },
+      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
+      "note": "Cape panels not drawn; a waist seam line shows on a seamless dress."
+    },
+    {
+      "id": "b14-tee-gauze-dress",
+      "source": "theblock.ca",
+      "photo": "b14-tee-gauze-dress.jpg",
+      "garment": "dress",
+      "choices": {
+        "garment": "dress",
+        "fit": "relaxed",
+        "bodice": {
+          "garment": "bodice",
+          "fit": "relaxed",
+          "neckline": "crew",
+          "length": "waist",
+          "darts": "none",
+          "sleeve": "elbow",
+          "sleeveShape": "straight",
+          "closure": "back_zip"
+        },
+        "skirt": {
+          "fit": "relaxed",
+          "silhouette": "gathered",
+          "length": "maxi"
+        },
+        "waistSeam": "dropped"
+      },
+      "fabric": {
+        "fibre": "cotton",
+        "colour": "Black"
+      },
+      "truth": "Tee-shirt dress with crinkle-gauze gathered skirt, dropped seam",
+      "likeness": {
+        "silhouette": 0,
+        "neckline": 1,
+        "sleeves": 1,
+        "length": 1,
+        "waist": 1,
+        "details": 0.5,
+        "print": null,
+        "colour": 1,
+        "fabric": 0
+      },
+      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
+      "note": "Lampshade; the Drawing view shows the skirt as two huge rectangles."
+    },
+    {
+      "id": "b15-blue-slip-mesh",
+      "source": "theblock.ca",
+      "photo": "b15-blue-slip-mesh.jpg",
+      "garment": "dress",
+      "choices": {
+        "garment": "dress",
+        "fit": "regular",
+        "bodice": {
+          "garment": "bodice",
+          "fit": "regular",
+          "neckline": "cami",
+          "length": "waist",
+          "darts": "bust_waist",
+          "sleeve": "none",
+          "sleeveShape": "straight",
+          "closure": "back_zip"
+        },
+        "skirt": {
+          "fit": "regular",
+          "silhouette": "slip",
+          "length": "maxi"
+        }
+      },
+      "fabric": {
+        "fibre": "polyester",
+        "special": "satin",
+        "colour": "Navy"
+      },
+      "truth": "Steel-blue crinkle satin bias slip with sheer mesh yoke",
+      "likeness": {
+        "silhouette": 1,
+        "neckline": 0.5,
+        "sleeves": null,
+        "length": 1,
+        "waist": 1,
+        "details": 0,
+        "print": null,
+        "colour": 0.5,
+        "fabric": 0
+      },
+      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
+      "note": "No sheen, no crinkle, no sheer yoke."
+    },
+    {
+      "id": "b16-leopard-puff-mini",
+      "source": "theblock.ca",
+      "photo": "b16-leopard-puff-mini.jpg",
+      "garment": "dress",
+      "choices": {
+        "garment": "dress",
+        "fit": "regular",
+        "bodice": {
+          "garment": "bodice",
+          "fit": "regular",
+          "neckline": "crew",
+          "length": "waist",
+          "darts": "bust_waist",
+          "sleeve": "long",
+          "sleeveShape": "puff",
+          "closure": "back_zip",
+          "sleeveCuff": "band"
+        },
+        "skirt": {
+          "fit": "regular",
+          "silhouette": "straight",
+          "length": "above_knee"
+        },
+        "cut": "shift"
+      },
+      "fabric": {
+        "fibre": "wool",
+        "colour": "Camel",
+        "print": "ditsy"
+      },
+      "truth": "Leopard jacquard mini, long puff sleeves, rib cuffs",
+      "likeness": {
+        "silhouette": 1,
+        "neckline": 1,
+        "sleeves": 0,
+        "length": 1,
+        "waist": 0.5,
+        "details": 0,
+        "print": 0,
+        "colour": 0,
+        "fabric": 0
+      },
+      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
+      "note": "Pale ditsy stands in for dark leopard; puff sleeves drawn as tubes."
+    },
+    {
+      "id": "b17-marble-silk-maxi",
+      "source": "theblock.ca",
+      "photo": "b17-marble-silk-maxi.jpg",
+      "garment": "dress",
+      "choices": {
+        "garment": "dress",
+        "fit": "relaxed",
+        "bodice": {
+          "garment": "bodice",
+          "fit": "relaxed",
+          "neckline": "crew",
+          "length": "waist",
+          "darts": "none",
+          "sleeve": "elbow",
+          "sleeveShape": "straight",
+          "closure": "back_zip"
+        },
+        "skirt": {
+          "fit": "relaxed",
+          "silhouette": "gathered",
+          "length": "maxi",
+          "waist": "elastic"
+        }
+      },
+      "fabric": {
+        "fibre": "silk",
+        "print": "motif",
+        "motif": {
+          "repeat": 40
+        }
+      },
+      "truth": "Marbled-print silk maxi, kimono sleeves, drawstring waist",
+      "likeness": {
+        "silhouette": 0,
+        "neckline": 1,
+        "sleeves": 0.5,
+        "length": 1,
+        "waist": 0.5,
+        "details": 0,
+        "print": 0,
+        "colour": 0,
+        "fabric": 0
+      },
+      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
+      "note": "Blue toile for a marbled art print; lampshade."
+    },
+    {
+      "id": "b18-sheer-ruffle-mini",
+      "source": "revolve.com",
+      "photo": "b18-sheer-ruffle-mini.jpg",
+      "garment": "dress",
+      "choices": {
+        "garment": "dress",
+        "fit": "relaxed",
+        "bodice": {
+          "garment": "bodice",
+          "fit": "relaxed",
+          "neckline": "crew",
+          "length": "waist",
+          "darts": "none",
+          "sleeve": "long",
+          "sleeveShape": "flutter",
+          "closure": "back_zip"
+        },
+        "skirt": {
+          "fit": "relaxed",
+          "silhouette": "a_line",
+          "length": "mini",
+          "flounce": "hem_flounce"
+        },
+        "cut": "shift"
+      },
+      "fabric": {
+        "fibre": "polyester",
+        "special": "sheer",
+        "colour": "Black"
+      },
+      "truth": "Sheer chiffon mock-neck mini, ruffle hem, bell sleeves",
+      "likeness": {
+        "silhouette": 0.5,
+        "neckline": 0.5,
+        "sleeves": 0,
+        "length": 1,
+        "waist": 0.5,
+        "details": 0,
+        "print": null,
+        "colour": 1,
+        "fabric": 0
+      },
+      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
+      "note": "Bell sleeves and ruffle not drawn; no sheerness. A mistyped flounce value crashed the app."
+    },
+    {
+      "id": "b19-satin-tiered-gown",
+      "source": "revolve.com",
+      "photo": "b19-satin-tiered-gown.jpg",
+      "garment": "dress",
+      "choices": {
+        "garment": "dress",
+        "fit": "relaxed",
+        "bodice": {
+          "garment": "bodice",
+          "fit": "relaxed",
+          "neckline": "cami",
+          "length": "waist",
+          "darts": "none",
+          "sleeve": "none",
+          "sleeveShape": "straight",
+          "closure": "back_zip"
+        },
+        "skirt": {
+          "fit": "relaxed",
+          "silhouette": "gathered",
+          "length": "maxi",
+          "flounce": "tiers",
+          "asymHem": "high_low"
+        }
+      },
+      "fabric": {
+        "fibre": "polyester",
+        "special": "satin",
+        "colour": "Black"
+      },
+      "truth": "Black satin tiered cami gown, high-low",
+      "likeness": {
+        "silhouette": 0,
+        "neckline": 1,
+        "sleeves": null,
+        "length": 1,
+        "waist": 0.5,
+        "details": 0,
+        "print": null,
+        "colour": 1,
+        "fabric": 0
+      },
+      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
+      "note": "Giant lampshade; tiers invisible; Drawing view rectangles."
+    },
+    {
+      "id": "b20-one-shoulder-ruched-mini",
+      "source": "revolve.com",
+      "photo": "b20-one-shoulder-ruched-mini.jpg",
+      "garment": "dress",
+      "choices": {
+        "garment": "dress",
+        "fit": "fitted",
+        "bodice": {
+          "garment": "bodice",
+          "fit": "fitted",
+          "neckline": "one_shoulder",
+          "length": "waist",
+          "darts": "bust_waist",
+          "sleeve": "none",
+          "sleeveShape": "straight",
+          "closure": "back_zip"
+        },
+        "skirt": {
+          "fit": "fitted",
+          "silhouette": "straight",
+          "length": "mini"
+        },
+        "cut": "sheath"
+      },
+      "fabric": {
+        "fibre": "viscose",
+        "colour": "Black"
+      },
+      "truth": "Black one-shoulder ruched jersey mini",
+      "likeness": {
+        "silhouette": 1,
+        "neckline": 1,
+        "sleeves": 1,
+        "length": 1,
+        "waist": 1,
+        "details": 0,
+        "print": null,
+        "colour": 1,
+        "fabric": 0.5
+      },
+      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
+      "note": "Close; ruching not drawn."
+    },
+    {
+      "id": "b21-cowl-wrap-midi",
+      "source": "ssense.com",
+      "photo": "b21-cowl-wrap-midi.jpg",
+      "garment": "dress",
+      "choices": {
+        "garment": "dress",
+        "fit": "relaxed",
+        "bodice": {
+          "garment": "bodice",
+          "fit": "relaxed",
+          "neckline": "cowl",
+          "length": "waist",
+          "darts": "none",
+          "sleeve": "none",
+          "sleeveShape": "straight",
+          "closure": "wrap"
+        },
+        "skirt": {
+          "fit": "relaxed",
+          "silhouette": "straight",
+          "length": "midi",
+          "belt": "sash"
+        }
+      },
+      "fabric": {
+        "fibre": "viscose",
+        "colour": "Ivory"
+      },
+      "truth": "Off-white draped cowl-collar wrap midi, sash",
+      "likeness": {
+        "silhouette": 1,
+        "neckline": 0,
+        "sleeves": 1,
+        "length": 1,
+        "waist": 0.5,
+        "details": 0,
+        "print": null,
+        "colour": 1,
+        "fabric": 0.5
+      },
+      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
+      "note": "Cowl drawn as a plain V; no wrap, no sash."
+    },
+    {
+      "id": "b22-draped-jersey-maxi",
+      "source": "ssense.com",
+      "photo": "b22-draped-jersey-maxi.jpg",
+      "garment": "dress",
+      "choices": {
+        "garment": "dress",
+        "fit": "relaxed",
+        "bodice": {
+          "garment": "bodice",
+          "fit": "relaxed",
+          "neckline": "cowl",
+          "length": "waist",
+          "darts": "none",
+          "sleeve": "none",
+          "sleeveShape": "straight",
+          "closure": "back_zip"
+        },
+        "skirt": {
+          "fit": "relaxed",
+          "silhouette": "straight",
+          "length": "maxi"
+        },
+        "waistSeam": "dropped"
+      },
+      "fabric": {
+        "fibre": "viscose",
+        "colour": "Grey"
+      },
+      "truth": "Grey draped jersey maxi, cowl, draped hip seam",
+      "likeness": {
+        "silhouette": 1,
+        "neckline": 0,
+        "sleeves": 1,
+        "length": 1,
+        "waist": 1,
+        "details": 0,
+        "print": null,
+        "colour": 1,
+        "fabric": 0.5
+      },
+      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
+      "note": "Cowl drape not drawn."
+    },
+    {
+      "id": "b23-asym-draped-tie-midi",
+      "source": "ssense.com",
+      "photo": "b23-asym-draped-tie-midi.jpg",
+      "garment": "dress",
+      "choices": {
+        "garment": "dress",
+        "fit": "relaxed",
+        "bodice": {
+          "garment": "bodice",
+          "fit": "relaxed",
+          "neckline": "boat",
+          "length": "waist",
+          "darts": "none",
+          "sleeve": "short",
+          "sleeveShape": "cap",
+          "closure": "back_zip"
+        },
+        "skirt": {
+          "fit": "relaxed",
+          "silhouette": "straight",
+          "length": "midi",
+          "belt": "sash"
+        }
+      },
+      "fabric": {
+        "fibre": "polyester",
+        "colour": "Black"
+      },
+      "truth": "Black asymmetric draped midi with ties",
+      "likeness": {
+        "silhouette": 1,
+        "neckline": 1,
+        "sleeves": 1,
+        "length": 1,
+        "waist": 1,
+        "details": 0.5,
+        "print": null,
+        "colour": 1,
+        "fabric": 1
+      },
+      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
+      "note": "Good; drape not shown."
+    },
+    {
+      "id": "b24-lace-high-low-gown",
+      "source": "revolve.com",
+      "photo": "b24-lace-high-low-gown.jpg",
+      "garment": "dress",
+      "choices": {
+        "garment": "dress",
+        "fit": "fitted",
+        "bodice": {
+          "garment": "bodice",
+          "fit": "fitted",
+          "neckline": "halter",
+          "length": "waist",
+          "darts": "bust_waist",
+          "sleeve": "none",
+          "sleeveShape": "straight",
+          "closure": "back_zip"
+        },
+        "skirt": {
+          "fit": "fitted",
+          "silhouette": "a_line",
+          "length": "maxi",
+          "asymHem": "high_low",
+          "flounce": "hem_flounce"
+        }
+      },
+      "fabric": {
+        "fibre": "polyester",
+        "special": "lace",
+        "colour": "Camel",
+        "print": "motif",
+        "motif": {
+          "repeat": 15
+        }
+      },
+      "truth": "Floral lace high-low ruffle gown with slit",
+      "likeness": {
+        "silhouette": 0.5,
+        "neckline": 1,
+        "sleeves": 1,
+        "length": 1,
+        "waist": 1,
+        "details": 0,
+        "print": 0,
+        "colour": 0,
+        "fabric": 0
+      },
+      "scored": "Release 23 + PR #158 + PR #162, 2026-10-24, by eye",
+      "note": "Blue toile for camel floral lace; ruffle hem and slit not drawn."
+    }
+  ]
+}
