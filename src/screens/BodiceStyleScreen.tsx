@@ -256,6 +256,8 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
   return (
     <StyleLayout
       onEditMeasurements={onEditMeasurements}
+      onPrint={onNext}
+      flat={flat}
       undo={undoer}
       label="your bodice"
       garment="bodice"
@@ -551,7 +553,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
           Print my pattern
         </button>
         <SaveControl state={saveState} disabled={!draft} onSave={onSave} onAccount={onAccount} />
-        <button type="button" className="link edit-measure" onClick={onEditMeasurements}>
+        <button type="button" className="later edit-measure" onClick={onEditMeasurements}>
           Edit measurements
         </button>
       </aside>

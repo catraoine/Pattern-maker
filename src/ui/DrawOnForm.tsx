@@ -435,7 +435,7 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
           >
             {clothOn ? (
               // The garment on the form exactly as on the Style page, to draw on.
-              <FormLayers body={body} m={m} legs={legs} cx={cx} bottom={frame.bottom} arms={arms} lines={{}} worn={clothOn} sleeve={sleeve} />
+              <FormLayers body={body} m={m} legs={legs} cx={cx} top={frame.top} bottom={frame.bottom} arms={arms} lines={{}} worn={clothOn} sleeve={sleeve} />
             ) : (
               <>
               {legPaths.map((l, i) => (
