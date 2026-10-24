@@ -65,14 +65,20 @@ export function pickShopFabric(finish: Finish, id: string): Finish {
 }
 
 /** Lightness levels for a tinted swatch: the weave keeps its shading, in the chosen colour. */
-function tintTable(hex: string): [string, string, string] {
+function tintTable(hex: string, deep = false): [string, string, string] {
   const ch = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
-  return ch.map((c) => `${(c * 0.45).toFixed(3)} ${Math.min(1, c * 1.3 + 0.06).toFixed(3)}`) as [string, string, string];
+  // Deep, for checks: near black to the colour, the colour taking most of the cloth.
+  return ch.map((c) => {
+    const lo = (c * (deep ? 0.1 : 0.45)).toFixed(3);
+    const hi = Math.min(1, c * 1.3 + 0.06).toFixed(3);
+    return deep ? `${lo} ${lo} ${hi} ${hi} ${hi}` : `${lo} ${hi}`;
+  }) as [string, string, string];
 }
 
 /** Lends its children's sketch the fabric: shapes filled with var(--garment) take it, and a waistband
  * filled with var(--garment-band) takes it turned along the band. A colour the app knows tints the swatch;
- * a picked print is drawn instead, at its own scale and in its own colours. With no fabric chosen nothing changes. */
+ * a picked print is drawn instead, at its own scale and in its own colours, except checks, which take the colour
+ * picked against near black (a camel check reads black and gold). With no fabric chosen nothing changes. */
 export function GarmentFabric({ fabric, children }: { fabric: MyFabric | undefined; children: ReactNode }) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
   const id = flatId(fabric);
@@ -81,8 +87,8 @@ export function GarmentFabric({ fabric, children }: { fabric: MyFabric | undefin
   const body = `fab${uid}`;
   const band = `fabband${uid}`;
   const tint = `fabtint${uid}`;
-  const hex = kind ? undefined : colourHex(fabric);
-  const table = hex ? tintTable(hex) : undefined;
+  const hex = !kind || (kind === 'checks' && !fabric?.checks?.stripes) ? colourHex(fabric) : undefined;
+  const table = hex ? tintTable(hex, !!kind) : undefined;
   const size = kind ? printTileCm(kind, printRepeat(fabric), fabric?.checks?.stripes) : TILE;
   const href = kind ? printImage(kind, import.meta.env.BASE_URL, fabric?.checks?.stripes) : tileUrl(id!);
   const tile = (pid: string, turn: boolean) => (

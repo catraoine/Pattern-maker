@@ -163,12 +163,13 @@ await wait(1500);
 // neck straight on the dress in its fabric (D1 Draw on the Dress, 2026-10-24). A tap shows as the pen dot pressing
 // the button; marks prints when each moment starts, for edit-tour.mjs.
 const tap = async (loc, ms) => { await loc.evaluate((el) => el.click()); await p.evaluate(() => window.scrollTo(0, 0)); await wait(ms); };
-await p.evaluate(() => {
+const addPen = () => p.evaluate(() => {
   const d = document.createElement('div');
   d.id = 'pen';
   Object.assign(d.style, { position: 'fixed', width: '14px', height: '14px', margin: '-7px 0 0 -7px', borderRadius: '50%', background: '#d8c49c', opacity: 0, zIndex: 99998, pointerEvents: 'none', boxShadow: '0 0 0 6px rgba(216,196,156,.25)', transition: 'opacity .25s' });
   document.body.appendChild(d);
 });
+await addPen();
 const pen = (x, y, o) => p.evaluate(([x, y, o]) => Object.assign(document.getElementById('pen').style, { left: x + 'px', top: y + 'px', opacity: o }), [x, y, o]);
 const press = async (loc, ms) => {
   const bx = await loc.boundingBox();
@@ -209,31 +210,51 @@ const draw = async (loc, pts, pause, ref) => {
 let t0;
 const mark = (what) => console.log(`  style ${what}: ${((Date.now() - t0) / 1000).toFixed(1)} s`);
 // The lines, as fractions of the form picture, drawn on the dress itself (Cat's D1 Draw on the Dress, 2026-10-24):
-// the hem longer, down the calf; the waist seam dropped to the hip; and the boat neck taken straight across.
+// the mini hem drawn longer, to the knee, then the side drawn out from the hip so the straight skirt flares (Cat,
+// 2026-10-24: longer and flare, the neck and waist kept as in her photo).
 const LINES = {
-  hem: [[WIDE ? 0.36 : 0.32, 0.86], [0.5, 0.875], [WIDE ? 0.64 : 0.68, 0.86]],
-  waist: [[0.34, 0.47], [0.5, 0.475], [0.66, 0.47]],
-  neck: [[0.2, 0.175], [0.23, 0.18], [0.35, 0.181], [0.5, 0.181]],
+  hem: [[0.12, 0.735], [0.5, 0.75], [0.88, 0.735]],
+  side: [[0.15, 0.44], [0.11, 0.58], [0.0, 0.735]],
 };
-// Off camera, the dress is made to match the photo the film has just shown (Cat, 2026-10-24: show that starting from
-// a photo works): a boat neck, a fitted bodice to the natural waist, a half circle skirt to the knee, in Prince of
-// Wales check. The film opens on that dress, the fabric changes, and the drawing tool takes it from there.
-const pick = async (name) => {
-  const r = main.locator('button[aria-pressed]').filter({ hasText: new RegExp(`^\\s*${name}\\b`) }).first();
+// Off camera, the dress is made to match the photo the film has just shown, Cat's own check silk dress (Cat,
+// 2026-10-24: show that starting from a photo works): a boat neck, short sleeves, a waist seam dropped low on the hip,
+// a straight mini skirt, in a small camel check. The film opens on that dress, the fabric changes, and the drawing
+// tool takes it from there.
+const pick = async (name, group) => {
+  const r = main.locator(group ? `fieldset[data-label="${group}"] button[aria-pressed]` : 'button[aria-pressed]').filter({ hasText: new RegExp(`^\\s*${name}\\b`) }).first();
   if (await r.count()) await r.evaluate((el) => el.click());
   await wait(250);
 };
-for (const [tab, names] of [['Neck & sleeves', ['Boat']], ['Skirt & length', ['Half circle', 'Knee']]]) {
+// Sleeves need the arm measurements, which the dress didn't ask for: added off camera, straight into the saved
+// measurements, and the page opened again.
+await p.evaluate(() => {
+  const k = 'pattern-maker:account';
+  const a = JSON.parse(localStorage.getItem(k));
+  for (const person of a.people ?? []) Object.assign(person.values, { arm_length: 61, upper_arm: 25, wrist: 15 });
+  localStorage.setItem(k, JSON.stringify(a));
+});
+await p.reload();
+await wait(2500);
+const carryOn = p.getByRole('button', { name: /^Carry on with your/ });
+if (await carryOn.count()) await carryOn.first().click();
+await wait(1500);
+await main.getByRole('heading', { level: 1, name: /^Style your/ }).waitFor({ timeout: 15000 });
+await addPen();
+await wait(800);
+for (const [tab, names] of [['Shape', ['Dropped']], ['Neck & sleeves', ['Boat', 'Short']], ['Skirt & length', [['Straight', 'Skirt']]]]) {
   await main.getByRole('tab', { name: tab, exact: true }).click();
   await wait(400);
-  for (const n of names) await pick(n);
+  for (const n of names) await (Array.isArray(n) ? pick(...n) : pick(n));
 }
+// The length is set from the marks beside the form.
+await p.evaluate(() => [...document.querySelectorAll('main .hem-mark')].find((g) => g.textContent.trim() === 'MINI')?.querySelector('.hit')?.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+await wait(400);
 await main.getByRole('tab', { name: 'Fabric', exact: true }).click();
 await wait(400);
 const choose = (sel, name) => p.evaluate(([sel, name]) => [...document.querySelectorAll(sel)].find((el) => el.getAttribute('aria-label') === name || el.textContent.trim().startsWith(name))?.click(), [sel, name]);
-await choose('[role=radiogroup][aria-label="Fabric for the sketch"] [role=radio]', 'Viscose');
+await choose('[role=radiogroup][aria-label="Fabric for the sketch"] [role=radio]', 'Silk');
 await wait(300);
-await choose('[role=radiogroup][aria-label="Colour"] [role=radio]', 'Navy');
+await main.getByRole('radiogroup', { name: 'Colour' }).getByRole('radio', { name: process.env.TOUR_COLOUR ?? 'Camel', exact: true }).first().click();
 await wait(300);
 const about = main.locator('summary', { hasText: 'About your fabric' });
 if (!(await about.evaluate((el) => el.parentElement.open))) await about.evaluate((el) => el.click());
@@ -242,9 +263,23 @@ await choose('[role=radiogroup][aria-label="What\'s printed on your fabric"] [ro
 await wait(300);
 await choose('[role=radiogroup][aria-label="Checks or stripes"] [role=radio]', 'Checks');
 await wait(300);
+// A small check, as in the photo.
+const repeat = main.locator('#fabrepeat');
+if (await repeat.count()) await repeat.fill(process.env.TOUR_REPEAT ?? '6');
+await wait(300);
 await main.getByRole('tab', { name: 'Shape', exact: true }).click();
 await p.evaluate(() => window.scrollTo(0, 0));
 await wait(1200);
+if (process.env.TOUR_PROBE) {
+  await p.screenshot({ path: `${OUT}/probe.png` });
+  console.log('LS', await p.evaluate(() => JSON.stringify(JSON.parse(localStorage.getItem('pattern-maker:skirt')).finish)));
+  for (const tab of ['Neck & sleeves', 'Skirt & length', 'Fabric']) {
+    await main.getByRole('tab', { name: tab, exact: true }).click();
+    await wait(400);
+    console.log(tab, JSON.stringify(await main.locator('button[aria-pressed], [role=radio]').evaluateAll((els) => els.map((e) => `${(e.getAttribute('aria-label') || e.textContent).trim().slice(0, 24)}${e.getAttribute('aria-pressed') === 'true' || e.getAttribute('aria-checked') === 'true' ? '*' : ''}${e.disabled ? '(x)' : ''}`))));
+  }
+  process.exit(0);
+}
 await start();
 t0 = Date.now();
 await wait(2600);
@@ -263,17 +298,24 @@ if (await roomy.count()) await press(roomy, 1000);
 const form = main.getByRole('img', { name: /Your dress form from the/ });
 const kinds = main.getByRole('group', { name: 'What you are drawing' });
 const before = await viewBox(form);
-// Top to bottom: the neck first, while the picture is the size the lines were measured on, then the hem, then the
-// waist seam, moved to stay put on the now longer picture.
-mark('neck');
-await tap(kinds.getByRole('button', { name: 'Neckline', exact: true }), 500);
-await draw(form, LINES.neck, 1500);
+if (process.env.TOUR_PROBE2) {
+  const bb = await form.boundingBox();
+  console.log('FORM', JSON.stringify(bb), JSON.stringify(before));
+  await p.screenshot({ path: `${OUT}/probe2.png` });
+  process.exit(0);
+}
+// The hem first, then the side, drawn on the picture as it was measured, as it grows with the longer hem.
 mark('hem');
 await tap(kinds.getByRole('button', { name: 'Hem', exact: true }), 500);
 await draw(form, LINES.hem, 1500);
-mark('waist');
-await tap(kinds.getByRole('button', { name: 'Waist seam', exact: true }), 500);
-await draw(form, LINES.waist, 1500, before);
+if (process.env.TOUR_PROBE3) { await p.screenshot({ path: `${OUT}/probe3a.png` }); console.log('HEM', JSON.stringify(before), JSON.stringify(await viewBox(form)), JSON.stringify(await form.boundingBox())); }
+mark('side');
+await tap(kinds.getByRole('button', { name: 'Side', exact: true }), 500);
+await draw(form, LINES.side, 1800, before);
+if (process.env.TOUR_PROBE3) {
+  await p.screenshot({ path: `${OUT}/probe3.png` });
+  process.exit(0);
+}
 // Done lands on the pattern sheet, and the film stays there (Cat, 2026-10-24: no flash back to the dress).
 mark('done');
 await press(main.getByRole('button', { name: 'Done', exact: true }), 1200);

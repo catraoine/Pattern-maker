@@ -49,7 +49,7 @@ import { armFor } from '../ui/DrawOnForm';
 import { orSeam, readSeamLine } from '../ui/formSeams';
 import { orNeckline, readUnevenNeckline, unevenNecklineLines } from '../ui/formBodice';
 import { REPLACES } from './BodiceStyleScreen';
-import { FormLine, bodiceLines, landmarks, readDrape, readFit, readNeckline, readSeam, readSkirtHem, readWaistSeam, seamWords, skirtLines, standingBand } from '../ui/formLines';
+import { FormLine, bodiceLines, landmarks, readDrape, readDressSide, readFit, readNeckline, readSeam, readSkirtHem, readWaistSeam, seamWords, skirtLines, standingBand } from '../ui/formLines';
 import { BANDS, isBandCollar } from '../engine/collar';
 import { ChoicePic, chipsClass } from '../ui/ChoicePic';
 import { Explain } from '../ui/Explain';
@@ -385,6 +385,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
         sleeve={formArm ? sleeve : undefined}
         underarmY={landmarks(draft.bodice).underarm.y}
         bottom={waistY + lengthRange(mv).max + 4}
+        help={draft.noSeam ? undefined : { fit: 'Draw down the side: closer beside the bust for a closer fit, and out at the hem to flare the skirt.' }}
         kinds={[
           ['neckline', 'Neckline'],
           ['seam', 'Seam'],
@@ -413,8 +414,12 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
             return { said: r.said, choices: r.choices && { ...choices, skirt: r.choices } };
           }
           if (kind === 'fit') {
-            const r = readFit(stroke, draft.bodice, mv, asBodice);
-            return { said: r.said, choices: r.choices && { ...choices, fit: r.choices.fit, bodice: r.choices, skirt: { ...choices.skirt, fit: r.choices.fit } } };
+            if (draft.noSeam) {
+              const r = readFit(stroke, draft.bodice, mv, asBodice);
+              return { said: r.said, choices: r.choices && { ...choices, fit: r.choices.fit, bodice: r.choices, skirt: { ...choices.skirt, fit: r.choices.fit } } };
+            }
+            const r = readDressSide(stroke, draft.bodice, mv, asBodice, seamY, draft.skirt, sm, choices.skirt);
+            return { said: r.said, choices: r.choices && { ...choices, fit: r.choices.bodice.fit, bodice: r.choices.bodice, skirt: r.choices.skirt } };
           }
           const r =
             kind === 'neckline'

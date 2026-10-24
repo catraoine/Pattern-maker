@@ -348,6 +348,47 @@ export function readSkirtSide(stroke: P[], waistY: number, draft: Pick<SkirtDraf
   return { choices: next, said: said[0].toUpperCase() + said.slice(1) + '.' };
 }
 
+/**
+ * A dress's side line: beside the bust it sets the room there, as on a bodice; out at the hem it sets the
+ * skirt's flare, as on a skirt. The skirt keeps the dress's one fit.
+ */
+export function readDressSide(
+  stroke: P[],
+  draft: BodiceDraft,
+  m: BodiceMeasurements,
+  c: BodiceChoices,
+  seamY: number,
+  skirtDraft: Pick<SkirtDraft, 'lengthCm'>,
+  sm: SkirtMeasurements,
+  skirt: Choices,
+): Reading<{ bodice: BodiceChoices; skirt: Choices }> {
+  const { waistY } = landmarks(draft);
+  const above = stroke.filter((q) => q.y < waistY - 4);
+  const nearHem = stroke.filter((q) => q.y - seamY > skirtDraft.lengthCm - 12);
+  if (!above.length && !nearHem.length) return { said: 'Draw down the side: beside the bust for the fit, or out to the hem to flare the skirt.' };
+  let bodice = c;
+  let next = skirt;
+  const said: string[] = [];
+  if (above.length) {
+    const r = readFit(above, draft, m, c);
+    if (r.choices) {
+      bodice = r.choices;
+      next = { ...next, fit: bodice.fit };
+      said.push(r.said);
+    } else if (!nearHem.length) return { said: r.said };
+  }
+  if (nearHem.length) {
+    const hipQ = (sm.full_hip + FIT_EASE[next.fit].hip) / 4;
+    next = dragFlare(sm, next, skirtDraft.lengthCm, median(nearHem.map((q) => Math.abs(q.x))) - hipQ);
+    said.push(
+      next.flareCm !== undefined
+        ? `${next.flareCm} cm of flare at each side of the skirt.`
+        : `${next.silhouette === 'a_line' ? 'An A-line' : `A ${next.silhouette}`} skirt.`,
+    );
+  }
+  return { choices: { bodice, skirt: next }, said: said.join(' ') };
+}
+
 // The lines already on the garment, drawn on the form as tape: polylines in the same coordinates.
 
 /** Both halves of a half line. */
