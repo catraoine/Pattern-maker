@@ -71,9 +71,22 @@ const TIP: Partial<Record<MeasurementId, [string, string]>> = {
   waist: ['Round the narrowest part of your middle.', 'Stand in front of them. Wrap the narrowest part of their middle and check the tape is level at the back.'],
   full_hip: ['Round the fullest part of your seat, keeping the tape level.', 'Round the fullest part of their seat. Look from the side to check the tape is level.'],
   waist_to_floor: ['Down your side, standing barefoot.', 'Ask them to stand barefoot. Hold the tape at their waist and let it fall down their side.'],
+  shoulder_width: ['Across your back, shoulder point to shoulder point, arms relaxed at your sides.', 'Across their back, shoulder point to shoulder point, their arms relaxed at their sides.'],
   waist_to_hip: ['Down your side to the fullest part of your hip.', 'Hold the tape at their waist and measure down their side to the fullest part of their hip.'],
   waist_to_knee: ['Down your side to the middle of your knee.', 'Hold the tape at their waist and measure down their side to the middle of their knee.'],
 };
+/** The string tied round the waist (Cat, 2026-10-24): suggested on the waist page, then every length that starts or
+ *  ends at the waist starts from it. */
+const FROM_WAIST = new Set<MeasurementId>(['waist_to_hip', 'waist_to_knee', 'waist_to_floor', 'crotch_depth', 'front_waist_to_hip', 'back_waist_to_hip', 'nape_to_waist', 'front_hps_to_waist']);
+export function stringOf(id: MeasurementId, helper: boolean, form?: FormKind): string | undefined {
+  const l =
+    id === 'waist'
+      ? 'Got a string, ribbon or elastic? Tie it round your waist and leave it on: your lengths start from it.'
+      : FROM_WAIST.has(id)
+        ? 'Tied a string at your waist? Start from it.'
+        : undefined;
+  return l && worded(helper ? forHelper(l) : l, form);
+}
 export function tipOf(id: MeasurementId, helper: boolean, form?: FormKind) {
   const t = TIP[id];
   if (t) return worded(t[helper ? 1 : 0], form);
@@ -92,24 +105,28 @@ const STEPS: Partial<Record<MeasurementId, [string[], string[]]>> = {
     ['Ask them to stand relaxed with their arms down.', 'Wrap the tape round the fullest part of their bust.', 'Check it is level across their back.', 'Snug, not tight, then read the number.'],
   ],
   waist: [
-    ['Bend to one side. The crease that forms is your waist.', 'Tie a ribbon or a length of elastic round it and leave it on: every length starts from it.', 'Wrap the tape round there, level all the way round.', 'Snug, not tight: one finger should slide under it.', 'Breathe out normally, then read the number.'],
-    ['Ask them to bend to one side. The crease that forms is their waist.', 'Tie a ribbon or a length of elastic round it and leave it on: every length starts from it.', 'Wrap the tape round there, level all the way round.', 'Snug, not tight: one finger should slide under it.', 'Ask them to breathe out normally, then read the number.'],
+    ['Bend to one side. The crease that forms is your waist.', 'If you have a string, ribbon or elastic, tie it round there and leave it on: every length starts from it.', 'Wrap the tape round there, level all the way round.', 'Snug, not tight: one finger should slide under it.', 'Breathe out normally, then read the number.'],
+    ['Ask them to bend to one side. The crease that forms is their waist.', 'If you have a string, ribbon or elastic, tie it round there and leave it on: every length starts from it.', 'Wrap the tape round there, level all the way round.', 'Snug, not tight: one finger should slide under it.', 'Ask them to breathe out normally, then read the number.'],
   ],
   full_hip: [
     ['Stand with your feet together.', 'Wrap the tape round the fullest part of your seat.', 'Check in a mirror from the side that it is level.', 'Snug, not tight, then read the number.'],
     ['Ask them to stand with their feet together.', 'Wrap the tape round the fullest part of their seat.', 'Look from the side to check it is level.', 'Snug, not tight, then read the number.'],
   ],
   waist_to_floor: [
-    ['Take off your shoes and stand straight.', 'Hold the tape at your waist, at your side.', 'Let it fall straight down to the floor.', 'Read the number where it touches the floor.'],
-    ['Ask them to take off their shoes and stand straight.', 'Hold the tape at their waist, at their side.', 'Let it fall straight down to the floor.', 'Read the number where it touches the floor.'],
+    ['Take off your shoes and stand straight.', 'Hold the tape at your waist (at the string, if you tied one), at your side.', 'Let it fall straight down to the floor.', 'Read the number where it touches the floor.'],
+    ['Ask them to take off their shoes and stand straight.', 'Hold the tape at their waist (at the string, if you tied one), at their side.', 'Let it fall straight down to the floor.', 'Read the number where it touches the floor.'],
+  ],
+  shoulder_width: [
+    ['Lift one arm out to the side. The dip at the end of your shoulder bone is your shoulder point.', 'Find the other one the same way.', 'Lower both arms and let your shoulders relax: a raised arm makes the number too short.', 'Measure straight across your back from one point to the other.'],
+    ['Ask them to lift one arm out to the side. The dip at the end of their shoulder bone is their shoulder point.', 'Find the other one the same way.', 'Ask them to lower both arms and let their shoulders relax: a raised arm makes the number too short.', 'Measure straight across their back from one point to the other.'],
   ],
   waist_to_hip: [
-    ['Find the fullest part of your hip, as for your hips.', 'Hold the tape at your waist, at your side.', 'Run it down over the curve of your hip to that fullest part.', 'Read the number there.'],
-    ['Find the fullest part of their hip, as for their hips.', 'Hold the tape at their waist, at their side.', 'Run it down over the curve of their hip to that fullest part.', 'Read the number there.'],
+    ['Find the fullest part of your hip, as for your hips.', 'Hold the tape at your waist (at the string, if you tied one), at your side.', 'Run it down over the curve of your hip to that fullest part.', 'Read the number there.'],
+    ['Find the fullest part of their hip, as for their hips.', 'Hold the tape at their waist (at the string, if you tied one), at their side.', 'Run it down over the curve of their hip to that fullest part.', 'Read the number there.'],
   ],
   waist_to_knee: [
-    ['Stand straight with your knees relaxed.', 'Hold the tape at your waist, at your side.', 'Run it straight down to the middle of your knee.', 'Read the number there.'],
-    ['Ask them to stand straight with their knees relaxed.', 'Hold the tape at their waist, at their side.', 'Run it straight down to the middle of their knee.', 'Read the number there.'],
+    ['Stand straight with your knees relaxed.', 'Hold the tape at your waist (at the string, if you tied one), at your side.', 'Run it straight down to the middle of your knee.', 'Read the number there.'],
+    ['Ask them to stand straight with their knees relaxed.', 'Hold the tape at their waist (at the string, if you tied one), at their side.', 'Run it straight down to the middle of their knee.', 'Read the number there.'],
   ],
 };
 export function stepsOf(id: MeasurementId, helper: boolean, form?: FormKind): string[] {
@@ -134,7 +151,7 @@ const MISTAKES: Partial<Record<MeasurementId, string[]>> = {
   waist_to_knee: ['Bending the knee.', 'Stopping at the top or bottom of the knee, not the middle.'],
   nape_to_waist: ['Starting at the top of the collar, not the neck bone.', 'Stooping while you measure.'],
   front_hps_to_waist: ['Going round the side of the bust, not over the bust point.', 'A different bra from the one you will wear with it.'],
-  shoulder_width: ['Measuring round the outside of the arms.', 'Hunching the shoulders forward.'],
+  shoulder_width: ['Measuring with an arm still raised.', 'Measuring round the outside of the arms.', 'Hunching the shoulders forward.'],
   across_back: ['Arms pulled forward, which widens the back.', 'Measuring at the armpits, not halfway up.'],
   across_front: ['Arms pulled back.', 'Measuring at the bust, not halfway up.'],
   arm_length: ['A straight arm: bend the elbow a little.', 'Ending at the knuckles, not the wrist bone.'],

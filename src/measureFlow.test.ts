@@ -1,8 +1,20 @@
 import { describe, expect, it } from 'vitest';
-import { BASE, extrasFor, forHelper, fullSetMissing, missingFor, mistakesOf, stepsOf, tipOf, titleOf } from './measureFlow';
+import { BASE, extrasFor, forHelper, fullSetMissing, missingFor, mistakesOf, stepsOf, stringOf, tipOf, titleOf } from './measureFlow';
 import { FIELDS } from './measurements';
 
 describe('measuring flow', () => {
+  it('suggests a string at the waist, then starts the lengths from it', () => {
+    expect(stringOf('waist', false)).toMatch(/Tie it round your waist/);
+    expect(stringOf('waist', true)).toMatch(/their waist/);
+    for (const id of ['waist_to_floor', 'waist_to_hip', 'nape_to_waist'] as const) expect(stringOf(id, false)).toMatch(/Start from it/);
+    expect(stringOf('full_bust', false)).toBeUndefined();
+  });
+
+  it('has the arms lowered before shoulder width is read', () => {
+    expect(stepsOf('shoulder_width', false).join(' ')).toMatch(/Lower both arms.*Measure straight across/);
+    expect(stepsOf('shoulder_width', true).join(' ')).not.toMatch(/\byour?\b/i);
+  });
+
   it('lists the common mistakes for every measurement, worded for a friend holding the tape too', () => {
     for (const f of Object.values(FIELDS).flat()) expect(mistakesOf(f.id, false).length).toBeGreaterThan(1);
     expect(mistakesOf('waist', false).join(' ')).toMatch(/your tummy/);
