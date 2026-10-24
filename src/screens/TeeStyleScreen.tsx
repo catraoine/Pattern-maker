@@ -153,7 +153,7 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
         <TabPanel tab={LOOKS}>
           <p className="muted small">Drafted for knit fabric: no darts, the stretch shapes it to you.</p>
         </TabPanel>
-        {TEE_GROUPS.map((g) => (
+        {TEE_GROUPS.filter((g) => g.id !== 'length').map((g) => (
           <Group key={g.id} label={g.label}>
             <div className={chipsClass('tee', g.id)}>
               {g.options.map(([id, label]) => (
@@ -208,7 +208,23 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
           {error && <p className="msg error">{error}</p>}
           {form && draft && view === 'sketch' && (
             <GarmentFabric fabric={fabric}>
-              <FormSketch body={form.body} m={m} legs={false} bottom={form.hems.tunic + 6} arms={form.arm} lines={formLines} cloth={clothShapes} sleeve={draft.sleeve} label={`The ${title.toLowerCase()} on your form`} />
+              <FormSketch
+                body={form.body}
+                m={m}
+                legs={false}
+                bottom={form.hems.tunic + 6}
+                arms={form.arm}
+                lines={formLines}
+                cloth={clothShapes}
+                sleeve={draft.sleeve}
+                hem={{
+                  name: 'T-shirt length',
+                  marks: TEE_GROUPS.find((g) => g.id === 'length')!.options.map(([id, label]) => ({ id, label, y: form.hems[id as TeeChoices['length']] })),
+                  value: choices.length,
+                  onPick: (length) => onChoices({ ...choices, length: length as TeeChoices['length'] }),
+                }}
+                label={`The ${title.toLowerCase()} on your form`}
+              />
             </GarmentFabric>
           )}
           {flat && view === 'flat' && (

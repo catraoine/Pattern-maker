@@ -5,12 +5,13 @@
 // form's lines, so the neck, shoulders, arms and legs still show it is on a body. Sleeves hang on the arms,
 // drawn from your arm measurements. Every garment's Style page opens on this, so the body looks the same
 // on the welcome screen, while measuring and while styling.
-import { useId, useMemo } from 'react';
+import { useId, useMemo, useRef } from 'react';
 import type { P } from '../engine/geometry';
 import type { SkirtMeasurements } from '../engine/skirt';
 import { bodyOutline } from './bodyOutline';
 import { FormArm, FormBody, armAt } from './DrawOnForm';
 import type { FormLine } from './formLines';
+import { HemChoice, HemMarks, MARGIN } from './HemMarks';
 
 type Measures = { full_bust?: number; waist: number; full_hip?: number; waist_to_hip?: number; waist_to_knee?: number; waist_to_floor?: number };
 
@@ -185,6 +186,8 @@ interface Props {
   sleeve?: WornSleeve;
   /** Where the underarm is: below it a fitted piece's sides follow the form. Shoulders and armholes stay as drafted. */
   underarmY?: number;
+  /** The length, set with a dot on the hem and named marks beside the body. */
+  hem?: HemChoice;
   label: string;
 }
 
@@ -202,13 +205,24 @@ export const SHADE_STOPS: [number, string, number][] = [
 export const CLOTH_EDGES: FormLine[] = ['neckline', 'fit', 'hem', 'sleeve'];
 
 /** The garment drawn on the dress form, front on. */
-export function FormSketch({ body, m, legs, bottom, arms, lines, outline = [], cloth, sleeve, underarmY, label }: Props) {
+export function FormSketch({ body, m, legs, bottom, arms, lines, outline = [], cloth, sleeve, underarmY, hem, label }: Props) {
+  const svg = useRef<SVGSVGElement>(null);
   const worn = useMemo(() => (cloth ? wornCloth(cloth, body, underarmY ?? arms?.under.y) : undefined), [cloth, body, underarmY, arms]);
   const frame = useMemo(() => formFrame(m, body, bottom, arms, worn), [m, body, bottom, arms, worn]);
   const cx = frame.half;
+  // The dot sits on the hem as drawn at the centre, where the cloth has one there near the length picked.
+  const picked = hem?.marks.find((k) => k.id === hem.value)?.y;
+  const centre = (worn ?? []).flat().filter((q) => Math.abs(q.x) < 2);
+  const low = centre.length ? Math.max(...centre.map((q) => q.y)) : undefined;
+  const hemAt = picked !== undefined && low !== undefined && Math.abs(low - picked) < 6 ? low : undefined;
+  const k = (frame.bottom - frame.top) / 110;
+  // Room for the length marks on the left, and as much on the right to keep the form centred.
+  const side = hem ? MARGIN * k : 0;
   return (
-    <svg viewBox={`0 ${f(frame.top)} ${f(2 * cx)} ${f(frame.bottom - frame.top)}`} role="img" aria-label={label} className="preview-svg sketch shape form-still">
+    // With a hem dot it is a group, not an image: an image hides the dot inside it from screen readers.
+    <svg ref={svg} viewBox={`${f(-side)} ${f(frame.top)} ${f(2 * cx + 2 * side)} ${f(frame.bottom - frame.top)}`} role={hem ? 'group' : 'img'} aria-label={label} className="preview-svg sketch shape form-still">
       <FormLayers body={body} m={m} legs={legs} cx={cx} bottom={frame.bottom} arms={arms} lines={lines} outline={outline} worn={worn} sleeve={sleeve} />
+      {hem && <HemMarks {...hem} svg={svg} cx={cx} k={k} hemAt={hemAt} />}
     </svg>
   );
 }
