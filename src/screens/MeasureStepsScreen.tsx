@@ -239,7 +239,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
       <Shell eyebrow="Optional" title={helper ? 'Their weight' : 'Your weight'} hero={<TapeDemo id="waist" mode="still" kind={form} />} short>
         <p className="muted step-tip">Helps us catch a slipped tape. Never drafted from, shown or sent.</p>
         <details className="how-more">
-          <summary className="link quiet how-link">How it's used</summary>
+          <summary className="later go how-link">How it's used</summary>
           <p className="muted step-tip">
             We check {helper ? 'their' : 'your'} measurements against {helper ? 'their' : 'your'} height and weight before anything is drafted, so a wrong unit or a slipped tape is caught early. It's never drafted from, shown on a pattern or sent anywhere.
           </p>
@@ -258,7 +258,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
         </form>
         <button
           type="button"
-          className="link quiet skip-link"
+          className="later skip-link"
           onClick={() => {
             if (!page.back) onWeight?.(undefined);
             done();
@@ -960,7 +960,7 @@ export function MeasurePage({
           value === undefined && (
             <button
               type="button"
-              className="link quiet estimate-link"
+              className="later go estimate-link"
               onClick={() => {
                 setText(null);
                 setTried(false);
@@ -968,7 +968,7 @@ export function MeasurePage({
                 onValues({ ...values, [id]: guess }, true);
               }}
             >
-              Not sure? Estimate it for me
+              Estimate it for me ›
             </button>
           )
         )}

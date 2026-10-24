@@ -4,7 +4,8 @@ import type { Mode } from '../mode';
  * `quiet` drops the underline, on a page that already has its own link (Print, Cat's L1d, 2026-10-21). */
 export function ModeLink({ mode, onMode, what = 'seam allowances, lining, ease and more', quiet }: { mode: Mode; onMode?: (m: Mode) => void; what?: string; quiet?: boolean }) {
   if (!onMode) return null;
-  const cls = quiet ? 'later' : 'link inline-link';
+  // Always the one quiet caps link (look and feel review, 2026-10-24); `quiet` is kept for the callers.
+  const cls = quiet ? 'later' : 'later go';
   return mode === 'simple' ? (
     <p className="muted small mode-link">
       <button type="button" className={cls} onClick={() => onMode('all')}>

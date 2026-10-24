@@ -7569,6 +7569,237 @@ fieldset.fold.open > .fold-body {
   }
 }
 
+/* Look and feel review (Release 23, 2026-10-24), findings 1 to 6 applied. */
+
+/* One pick, said once: an open question shows its chips, so the line's pick stays for the folded ones (Cat, 2026-10-24). */
+fieldset.fold.open > legend .fold-pick {
+  display: none;
+}
+
+/* T1: why Style and Print wait is a line, never a box over the headline. */
+.msg.steps-note {
+  width: auto;
+  max-width: min(92vw, 520px);
+  padding: 8px 14px;
+  border: none;
+  border-left: none;
+  box-shadow: 0 0 18px 12px var(--paper);
+  color: var(--gild);
+  font-family: var(--sans);
+  font-size: 15px;
+  text-align: center;
+}
+
+/* L1: one quiet link everywhere. A chevron goes somewhere, a plus unfolds in place. */
+summary.later {
+  display: inline-flex;
+  align-items: center;
+  list-style: none;
+  cursor: pointer;
+  min-height: 36px;
+  padding: 6px 0;
+  color: var(--gild);
+  font: var(--w-strong) 11px/1 var(--mono);
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+}
+summary.later:hover {
+  color: var(--ink);
+}
+summary.later::-webkit-details-marker {
+  display: none;
+}
+summary.later::after,
+.fold-link > summary::after,
+.fabric-more > summary::after {
+  content: ' +';
+  white-space: pre;
+  color: var(--muted);
+}
+details[open] > summary.later::after,
+.fold-link[open] > summary::after,
+.fabric-more[open] > summary::after {
+  content: ' −';
+}
+.fold-link > summary,
+.fabric-more > summary {
+  list-style: none;
+  cursor: pointer;
+  margin: 6px 0;
+  color: var(--gild);
+  font: var(--w-strong) 11px/1.4 var(--mono);
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+}
+.fold-link > summary::-webkit-details-marker,
+.fabric-more > summary::-webkit-details-marker {
+  display: none;
+}
+.measure-step .step-words > button.later.skip-link,
+.measure-step > button.later.skip-link {
+  align-self: center;
+}
+.measure-step .step-words > .how-more {
+  align-self: flex-start;
+}
+button.later.estimate-link {
+  align-self: flex-start;
+  padding-left: 0;
+  padding-right: 0;
+  margin: -4px 0;
+}
+button.later.edit-measure {
+  align-self: flex-start;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+/* F1: one box in the Style bar. Undo and redo are bare arrows; Review is a quiet link under the name. */
+.undotools button.ghost {
+  min-width: 30px;
+  padding: 8px 2px;
+  border: none;
+  color: var(--muted);
+}
+.undotools button.ghost:hover:not(:disabled) {
+  color: var(--ink);
+}
+.undotools button.ghost:disabled {
+  color: #3a352c;
+}
+.style-bar .primary {
+  min-width: 132px;
+  padding-left: 14px;
+  padding-right: 14px;
+}
+.style-bar-meta .muted {
+  display: flex;
+  align-items: center;
+  gap: 0 4px;
+  white-space: nowrap;
+}
+.style-bar-meta button.later.bar-review {
+  min-height: 24px;
+  padding: 0;
+  font-size: 10px;
+}
+
+/* R1: Review as the pattern's envelope. */
+.style-review {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.style-review > .eyebrow {
+  margin: 0 0 -8px;
+}
+.style-review .review-title .eyebrow {
+  display: block;
+  font-weight: 400;
+  letter-spacing: var(--track);
+  margin-bottom: 10px;
+  font-stretch: 100%;
+}
+.style-review .review-title {
+  font-size: 30px;
+  line-height: 0.98;
+  text-transform: uppercase;
+  font-family: var(--display);
+  font-stretch: 75%;
+  font-weight: 600;
+}
+.style-review .envelope {
+  margin: 0;
+}
+.review-fold {
+  margin: 0;
+}
+.review-fold > summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 52px;
+  list-style: none;
+  cursor: pointer;
+  border-top: 1px solid var(--guide);
+  border-bottom: 1px solid var(--guide);
+  font: var(--w-strong) 12px/1 var(--mono);
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.review-fold > summary::-webkit-details-marker {
+  display: none;
+}
+.review-fold > summary::after {
+  content: '+';
+  color: var(--muted);
+}
+.review-fold[open] > summary::after {
+  content: '−';
+}
+.review-fold[open] > summary {
+  border-bottom-color: transparent;
+}
+.review-fold > aside.card {
+  padding: 0 0 12px;
+}
+.review-fold > aside > h2:first-child,
+.review-fold .primary,
+.review-fold .edit-measure {
+  display: none;
+}
+.style-review .review-edits {
+  margin: 0;
+}
+.style-side .review-print {
+  margin: 8px 0 14px;
+}
+.style-side .side-edits {
+  margin: 14px 0 0;
+}
+
+/* W1: on a computer the words beside the form grow with the screen. */
+@media (min-width: 1100px) {
+  .measure-step.has-hero .step-words {
+    max-width: 560px;
+    gap: 18px;
+    padding-top: 72px;
+  }
+  .measure-step.has-hero .step-words h1 {
+    font-size: 72px;
+  }
+  .measure-step.has-hero .step-words h1 .t-label {
+    font-size: 14px;
+  }
+  .measure-step.has-hero .step-words .eyebrow {
+    font-size: 13px;
+  }
+  .measure-step.has-hero .step-words > p.muted:not(.testing-note),
+  .measure-step.has-hero .step-words .step-tip {
+    font-size: 19px;
+    line-height: 1.4;
+  }
+  .measure-step.has-hero .step-words .testing-note {
+    font-size: 12px;
+  }
+  .measure-step.has-hero .step-words .field.plain input,
+  .measure-step.has-hero .step-words .entry-box input {
+    font-size: 56px;
+  }
+  .measure-step.has-hero .step-words button.later,
+  .measure-step.has-hero .step-words .how-row button {
+    font-size: 12px;
+  }
+  .measure-step.has-hero .step-words button.primary {
+    min-height: 60px;
+    font-size: 13px;
+  }
+  .measure-step.has-hero .step-words .check-list {
+    font-size: 18px;
+  }
+}
+
 /* Length on the drawing (Cat's L1, 2026-10-24): the named lengths beside the body, the picked one in ink. */
 .shape .hem-mark line {
   stroke: var(--muted);

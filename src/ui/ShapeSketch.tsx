@@ -293,7 +293,7 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
       onPointerUp={end}
       onPointerCancel={end}
     >
-      <FormLayers body={body} m={m} legs cx={cx} bottom={frame.bottom} lines={lines} worn={cloth} folds={folds} />
+      <FormLayers body={body} m={m} legs cx={cx} top={frame.top} bottom={frame.bottom} lines={lines} worn={cloth} folds={folds} />
       {!drawing && (
         <g className="hem-marks">
           <LengthMarks
