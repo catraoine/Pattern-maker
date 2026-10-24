@@ -12,7 +12,7 @@ import { carriedFitting, toFitting } from './fitting';
 import type { Fit } from './skirt';
 
 const EX: TrousersMeasurements = { waist: 76, full_hip: 102, waist_to_hip: 20.5, waist_to_knee: 58, waist_to_floor: 104, crotch_depth: 27, crotch_length: 70 };
-const LEGS: Leg[] = ['straight', 'wide', 'tapered', 'culotte'];
+const LEGS: Leg[] = ['straight', 'wide', 'tapered', 'culotte', 'flare', 'bootcut'];
 const CLOSURES: TrouserClosure[] = ['fly', 'side_zip'];
 const FITS: Fit[] = ['fitted', 'regular', 'relaxed'];
 

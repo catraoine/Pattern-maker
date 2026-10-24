@@ -39,6 +39,7 @@ import { Mode, ProTool, shows } from '../mode';
 import { FABRIC, Group, PRO, StyleLayout, TabPanel } from '../ui/StyleLayout';
 import { DrawOnForm, skirtForm } from '../ui/DrawOnForm';
 import { readSkirtHem, readSkirtSide, skirtLines } from '../ui/formLines';
+import { readFullness, readSkirtPocket, readSkirtWaist, readSlit, skirtHalf, slitLines } from '../ui/formSkirt';
 import { ChoicePic, chipsClass } from '../ui/ChoicePic';
 import { Explain } from '../ui/Explain';
 import { AllRound } from '../ui/AllRound';
@@ -332,11 +333,35 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
         kinds={[
           ['hem', 'Hem'],
           ['fit', 'Side'],
+          ['slit', 'Slit'],
+          ['fullness', 'Fullness'],
+          ['waist', 'Waist'],
+          ['pocket', 'Pocket'],
         ]}
-        lines={(s) => skirtLines(draft, choices, m, s, 0)}
+        help={{
+          waist: 'Draw across the body: above your waist for a high waist, across the hip for a yoke, at your waist for a waistband.',
+          pocket: 'Draw a short line down the side seam, below the waist, for in-seam pockets.',
+        }}
+        lines={(s) => ({ ...skirtLines(draft, choices, m, s, 0), ...slitLines(draft, choices, m, 0, s) })}
         choices={choices}
         onChoices={onChoices}
-        read={(kind, s, stroke) => (kind === 'hem' ? readSkirtHem(stroke, 0, draft, m, choices, s, 'skirt') : readSkirtSide(stroke, 0, draft, m, choices))}
+        read={(kind, s, stroke) => {
+          const half = skirtHalf(draft, choices, m, 0);
+          const r =
+            kind === 'hem'
+              ? readSkirtHem(stroke, 0, draft, m, choices, s, 'skirt')
+              : kind === 'fit'
+                ? readSkirtSide(stroke, 0, draft, m, choices)
+                : kind === 'slit'
+                  ? readSlit(stroke, 0, draft.lengthCm, m, choices, s, half)
+                  : kind === 'fullness'
+                    ? readFullness(stroke, 0, draft.lengthCm, choices)
+                    : kind === 'waist'
+                      ? readSkirtWaist(stroke, 0, m, choices)
+                      : readSkirtPocket(stroke, 0, m, choices, half, pocketsAllowed(choices));
+          // What the rest of the skirt no longer allows lets go, as when a chip is picked.
+          return r.choices ? { ...r, choices: keepWaist(keepWrap(r.choices)) } : r;
+        }}
         onDone={() => {
           change(choices, onForm);
           setOnForm(undefined);

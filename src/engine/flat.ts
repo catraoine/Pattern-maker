@@ -1173,9 +1173,11 @@ export function trousersFlat(d: TrousersDraft, m: { waist_to_hip: number; crotch
 export function trousersView(d: TrousersDraft, m: { waist_to_hip: number; crotch_depth: number }, back = false): { shapes: P[][]; lines: FlatView['lines'] } {
   const W = d.finishedWaist / 4;
   const hw = d.finishedHip / 4 + 0.5;
-  const hd = m.waist_to_hip;
-  const cd = m.crotch_depth + 1;
-  const L = d.lengthCm;
+  // Drawn from the line the waistband sits on, then moved up or down onto your own waist (a high or low rise).
+  const rise = d.riseCm ?? 0;
+  const hd = m.waist_to_hip + rise;
+  const cd = m.crotch_depth + 1 + rise;
+  const L = d.lengthCm + rise;
   const kn = Math.min(cd + (L - cd) * 0.45, L - 4);
   const xc = hw / 2;
   const knee = Math.max(d.kneeCm / 4, 4);
@@ -1226,7 +1228,9 @@ export function trousersView(d: TrousersDraft, m: { waist_to_hip: number; crotch
       const pts = bend(p(W, 0), p(hw, hd * 0.45), p(hw, hd), 16).filter((q) => q.y <= d.zipCm).map((q) => p(q.x * sx, q.y));
       lines.push({ pts, kind: 'zip' });
     }
-    return { shapes, lines };
+    if (!rise) return { shapes, lines };
+    const onWaist = (pts: P[]) => pts.map((q) => p(q.x, q.y - rise));
+    return { shapes: shapes.map(onWaist), lines: lines.map((l) => ({ ...l, pts: onWaist(l.pts) })) };
   }
 }
 
@@ -1278,6 +1282,22 @@ export function teeFlat(d: TeeDraft): Flat {
  * lapels rolled back from the break point with the collar over them (or a stand collar, or a plain
  * edge), set-in sleeves, patch pockets, and the buttons. The back shows the collar lying over the neck.
  */
+/** The front's corner at the hem, as worn: square, or cut away in a curve from the hem up the front edge. */
+function frontCorner(ext: number, footY: number, cutaway?: { up: number; along: number }): P[] {
+  if (!cutaway) return [p(-ext, footY)];
+  const from = p(-ext + cutaway.along, footY);
+  const to = p(-ext, footY - cutaway.up);
+  const c = p(-ext, footY);
+  return Array.from({ length: 17 }, (_, i) => {
+    const t = i / 16;
+    return add(add(mul(from, (1 - t) ** 2), mul(c, 2 * t * (1 - t))), mul(to, t * t));
+  });
+}
+
+/** The front's run without the hem the cutaway takes off. */
+const cutRun = (run: P[], ext: number, footY: number, cutaway?: { up: number; along: number }) =>
+  cutaway ? run.filter((q) => !(Math.abs(q.y - footY) < 0.6 && q.x < -ext + cutaway.along)) : run;
+
 export function outerFlat(d: OuterDraft): Flat {
   const [bf, bb] = d.block;
   const style = d.base.styleLines;
@@ -1311,14 +1331,14 @@ export function outerFlat(d: OuterDraft): Flat {
       if (d.lapel) {
         const L = d.lapel;
         const top = lerp(L.roll[0], L.roll[1], 0.94);
-        half = [...run, p(-ext, footY), L.breakPt, top];
+        half = [...cutRun(run, ext, footY, d.cutaway), ...frontCorner(ext, footY, d.cutaway), L.breakPt, top];
         // The lapel rolled back over the front, and the collar from the notch round behind the neck.
         over.push([...L.worn]);
         const out = add(hps, mul(uSh, d.kind === 'coat' ? 4.5 : 3.8));
         const behind = p(0, hps.y - 1.6);
         over.push([L.notch, L.collarPoint, out, add(hps, p(-hps.x * 0.5, -1.4)), behind, p(0, top.y + 0.2), top, L.gorge]);
       } else {
-        half = [...run, p(-ext, footY), p(-ext, neckRun[0].y), ...neckRun];
+        half = [...cutRun(run, ext, footY, d.cutaway), ...frontCorner(ext, footY, d.cutaway), p(-ext, neckRun[0].y), ...neckRun];
         if (d.pieces.some((pc) => pc.name === 'Collar')) {
           const neck = [p(-ext, neckRun[0].y), ...neckRun];
           over.push([...neck, ...neck.map((q) => p(q.x, q.y - 3.5)).reverse()]);

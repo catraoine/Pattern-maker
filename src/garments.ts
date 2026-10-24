@@ -115,6 +115,11 @@ export interface TrousersChoices {
   /** Older saves have no pockets and a waistband with a zip. */
   pockets?: PocketStyle;
   waist?: WaistStyle;
+  /** Drawn on the form (see formTrousers.ts): the leg's widths round the knee and a full-length hem, the
+   * outside leg's length and where the waistband sits, in cm. Older saves have none. */
+  legCm?: { knee: number; hem: number };
+  lengthCm?: number;
+  riseCm?: number;
 }
 
 export const DEFAULT_TROUSERS_CHOICES: TrousersChoices = { garment: 'trousers', fit: 'regular', leg: 'straight', length: 'full', closure: 'fly' };
@@ -123,7 +128,7 @@ export type TrouserGroupId = 'fit' | 'leg' | 'length' | 'waist' | 'closure' | 'p
 
 export const TROUSER_GROUPS: { id: TrouserGroupId; label: string; options: [string, string][] }[] = [
   { id: 'fit', label: 'Fit', options: [['fitted', 'Fitted'], ['regular', 'Regular'], ['relaxed', 'Relaxed']] },
-  { id: 'leg', label: 'Leg', options: [['straight', 'Straight'], ['wide', 'Wide'], ['tapered', 'Tapered'], ['culotte', 'Culotte']] },
+  { id: 'leg', label: 'Leg', options: [['straight', 'Straight'], ['wide', 'Wide'], ['tapered', 'Tapered'], ['flare', 'Flare'], ['bootcut', 'Bootcut'], ['culotte', 'Culotte']] },
   { id: 'length', label: 'Length', options: [['shorts', 'Shorts'], ['knee', 'Knee'], ['capri', 'Capri'], ['cropped', 'Cropped'], ['ankle', 'Ankle'], ['full', 'Full length']] },
   { id: 'waist', label: 'Waist', options: [['band', 'Waistband with zip'], ['elastic', 'Elastic, pull-on']] },
   { id: 'closure', label: 'Opening', options: [['fly', 'Fly zip'], ['side_zip', 'Side zip']] },
@@ -151,7 +156,9 @@ export function validTrousers(c: TrousersChoices): TrousersChoices {
 /** A plain name, such as "Ankle-length wide-leg trousers with a side zip and in-seam pockets". */
 export function describeTrousers(c: TrousersChoices) {
   const shorts = c.leg !== 'culotte' && c.length === 'shorts';
-  const length = c.leg === 'culotte' || shorts ? '' : { full: '', ankle: 'Ankle-length ', cropped: 'Cropped ', capri: 'Capri ', knee: 'Knee-length ', shorts: '' }[c.length];
+  const drawn = c.leg !== 'culotte' && c.lengthCm !== undefined && !shorts ? `${Math.round(c.lengthCm)} cm ` : undefined;
+  const rise = !c.riseCm ? '' : c.riseCm > 0 ? 'high-rise ' : 'low-rise ';
+  const length = (drawn ?? (c.leg === 'culotte' || shorts ? '' : { full: '', ankle: 'Ankle-length ', cropped: 'Cropped ', capri: 'Capri ', knee: 'Knee-length ', shorts: '' }[c.length])) + rise;
   const pockets = c.pockets === 'slant' ? 'slant pockets' : c.pockets === 'inseam' ? 'in-seam pockets' : '';
   const opening = c.waist === 'elastic' ? 'an elastic waist' : `a ${c.closure === 'fly' ? 'fly front' : 'side zip'}`;
   const words = `${length}${shorts ? `${c.leg === 'straight' ? '' : `${c.leg} `}shorts` : LEG_WORDS[c.leg]} with ${opening}${pockets ? ` and ${pockets}` : ''}`;
@@ -166,6 +173,8 @@ export interface TeeChoices {
   neckline: TeeNeck;
   sleeve: TeeSleeve;
   length: TeeLength;
+  /** Drawn on the form: a shirttail or high-low hem (see tee.ts). Older saves have a level hem. */
+  hemShape?: { sides?: number; back?: number };
 }
 
 export const DEFAULT_TEE_CHOICES: TeeChoices = { garment: 'tee', fit: 'regular', stretch: 'medium', neckline: 'crew', sleeve: 'short', length: 'hip' };
@@ -259,6 +268,10 @@ export interface OuterChoices {
   vent: OuterVent;
   /** Rib bands at the hem and cuffs, as on a bomber; older saves have none. */
   trim?: OuterTrim;
+  /** Drawn on the form (see formOuter.ts): the vent's length, where the pockets go, and a cutaway front. Older saves have none. */
+  ventCm?: number;
+  pocketAt?: { x: number; y: number };
+  cutawayCm?: number;
 }
 
 export const DEFAULT_JACKET_CHOICES: OuterChoices = { garment: 'jacket', fit: 'regular', length: 'hip', shaping: 'darts', front: 'single', collar: 'notched', pockets: 'patch', sleeve: 'tailored', flare: 'straight', pads: 'soft', vent: 'centre', trim: 'none' };

@@ -381,9 +381,25 @@ const TROUSERS: Record<Leg, { picks: FabricPick[]; avoid: string }> = {
     ],
     avoid: 'Very fluid fabrics. Culottes lose their shape and look like a skirt that clings.',
   },
+  flare: {
+    picks: [
+      pick('Wool crepe or suiting', ['medium'], 'soft', 'Close through the thigh, then swings out below the knee.'),
+      pick('Stretch cotton twill', ['medium'], 'crisp', 'Holds the flare and moves with you at the seat and knee.'),
+      pick('Viscose or polyester crepe', ['medium'], 'fluid', 'A soft seventies fall to the hem.'),
+    ],
+    avoid: 'Stiff, heavy fabrics like canvas. The flare stands out like a bell instead of falling.',
+  },
+  bootcut: {
+    picks: [
+      pick('Stretch cotton twill or denim', ['medium', 'heavy'], 'crisp', 'The classic: holds the line over a boot.'),
+      pick('Wool suiting', ['medium'], 'crisp', 'Smart, with a clean break over the shoe.'),
+      pick('Corduroy, needlecord', ['medium'], 'soft', 'Warm. Cut every piece the same way up for the nap.'),
+    ],
+    avoid: 'Very fluid fabrics. The small flare collapses and the leg just looks long.',
+  },
 };
 
-const LEG_WORDS: Record<Leg, string> = { straight: 'straight-leg trousers', wide: 'wide-leg trousers', tapered: 'tapered trousers', culotte: 'culottes' };
+const LEG_WORDS: Record<Leg, string> = { straight: 'straight-leg trousers', wide: 'wide-leg trousers', tapered: 'tapered trousers', culotte: 'culottes', flare: 'flared trousers', bootcut: 'bootcut trousers' };
 
 /** Fabrics for trousers. */
 export function trousersFabrics(style: { leg: Leg }): FabricAdvice {

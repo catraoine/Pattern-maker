@@ -217,6 +217,8 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       wide: ['Wide all the way down, with plenty of swing.'],
       tapered: ['Narrows from the knee to the ankle.'],
       culotte: ['Wide, short legs that end at mid-calf, almost like a skirt.'],
+      flare: ['Close to the knee, then flaring out to a wide hem that swings over the shoe.'],
+      bootcut: ['Close to the knee, then a little wider at the hem, to sit over a boot.'],
     },
     length: {
       shorts: ['Shorts, ending at mid-thigh.'],
