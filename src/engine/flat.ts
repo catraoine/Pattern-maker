@@ -327,6 +327,13 @@ export function wornShapes(flat: Flat, view = 0, withSleeves = false): P[][] {
   return v.shapes.filter((_, i) => !sleeves.has(i)).map((s) => s.map((q) => p(q.x - v.origin.x, q.y - v.origin.y)));
 }
 
+/** One view's lines (seams, darts, stitching, zip) in the pieces' own coordinates, as `wornShapes` gives its shapes. */
+export function wornLines(flat: Flat, view = 0): P[][] {
+  const v = flat.views[view];
+  if (!v) return [];
+  return v.lines.map((l) => l.pts.map((q) => p(q.x - v.origin.x, q.y - v.origin.y)));
+}
+
 /** The skirt: waistband, darts, centre back seam and zip, and its slit when it has one. */
 export function skirtFlat(d: SkirtDraft): Flat {
   // A slip, and a faced or high waist, have facings inside, so no band shows.

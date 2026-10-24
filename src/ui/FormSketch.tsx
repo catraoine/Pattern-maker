@@ -123,6 +123,14 @@ export function wornCloth(cloth: P[][], body: FormBody, underarmY = body.top): P
   });
 }
 
+/** A piece's hem corner on its right: the furthest-out point of its last few centimetres, where a flare handle sits. */
+export function hemCorner(piece: P[]): P | undefined {
+  if (!piece.length) return undefined;
+  const hemY = Math.max(...piece.map((q) => q.y));
+  const foot = piece.filter((q) => q.x > 0 && q.y > hemY - 6);
+  return foot.length ? foot.reduce((a, b) => (b.x > a.x ? b : a)) : undefined;
+}
+
 /** The garment's shoulder point on its right: the furthest-out point of its cloth above the underarm. */
 function shoulderPoint(cloth: P[][], arm: FormArm): P | undefined {
   const top = cloth.flat().filter((q) => q.x > 0 && q.y <= arm.under.y - 2);
@@ -180,6 +188,15 @@ interface Props {
   label: string;
 }
 
+/** The light on the cloth: lit from the left, falling into shade on the right, so a print reads and black cloth has form.
+ *  Each stop is where along the piece it sits, its colour and how strong. The technical flat uses the same light. */
+export const SHADE_STOPS: [number, string, number][] = [
+  [0, '#fff8e6', 0.16],
+  [0.3, '#fff8e6', 0.04],
+  [0.55, '#000', 0.08],
+  [1, '#000', 0.5],
+];
+
 /** Which of the garment's lines the cloth's own edges already show. */
 const CLOTH_EDGES: FormLine[] = ['neckline', 'fit', 'hem', 'sleeve'];
 
@@ -188,10 +205,34 @@ export function FormSketch({ body, m, legs, bottom, arms, lines, outline = [], c
   const worn = useMemo(() => (cloth ? wornCloth(cloth, body, underarmY ?? arms?.under.y) : undefined), [cloth, body, underarmY, arms]);
   const frame = useMemo(() => formFrame(m, body, bottom, arms, worn), [m, body, bottom, arms, worn]);
   const cx = frame.half;
+  return (
+    <svg viewBox={`0 ${f(frame.top)} ${f(2 * cx)} ${f(frame.bottom - frame.top)}`} role="img" aria-label={label} className="preview-svg sketch shape form-still">
+      <FormLayers body={body} m={m} legs={legs} cx={cx} bottom={frame.bottom} arms={arms} lines={lines} outline={outline} worn={worn} sleeve={sleeve} />
+    </svg>
+  );
+}
+
+interface LayerProps extends Omit<Props, 'cloth' | 'underarmY' | 'label' | 'outline'> {
+  /** The centre line's x, in the drawing. */
+  cx: number;
+  /** The drawing's bottom, for the form's stand. */
+  bottom: number;
+  outline?: P[][];
+  /** The garment as cloth, already laid on the form by `wornCloth`. */
+  worn?: P[][];
+}
+
+/**
+ * The form and the garment on it, as layers inside an SVG whose centre line is at `cx`: the legs or the stand,
+ * the arms, the form's contours, the cloth with its sleeves, and the garment's lines over it. The still Form
+ * view and the skirt's and top's draggable sketches all draw the garment this way, so it looks the same everywhere.
+ */
+export function FormLayers({ body, m, legs, cx, bottom, arms, lines, outline = [], worn, sleeve }: LayerProps) {
   const contours = useMemo(() => formContours(body, cx), [body, cx]);
   const armLines = useMemo(() => formArmLines(arms, cx), [arms, cx]);
   const at = (pts: P[]) => formPath(pts.map((q) => ({ x: cx + q.x, y: q.y })));
   const showLegs = legs && m.full_hip && m.waist_to_hip && m.waist_to_knee && m.waist_to_floor;
+  const cloth = !!worn;
   // The cloth: sleeves first, then the body over their heads, then collars and lapels over that. Each piece is
   // its own path: pieces overlap (a lapel on its front, a sleeve on the body) and one path would punch holes there.
   const sleeves = useMemo(() => (arms && sleeve && worn ? [sleeveShape(arms, sleeve, shoulderPoint(worn, arms))].flatMap((s) => [s, s.map((q) => ({ x: -q.x, y: q.y }))]) : []), [arms, sleeve, worn]);
@@ -201,14 +242,13 @@ export function FormSketch({ body, m, legs, bottom, arms, lines, outline = [], c
   const clip = `clip${uid}`;
   const drawn = cloth ? Object.fromEntries(Object.entries(lines).filter(([id]) => !CLOTH_EDGES.includes(id as FormLine))) : lines;
   return (
-    <svg viewBox={`0 ${f(frame.top)} ${f(2 * cx)} ${f(frame.bottom - frame.top)}`} role="img" aria-label={label} className="preview-svg sketch shape form-still">
+    <>
       {cloth && (
         <defs>
-          <linearGradient id={shade} gradientUnits="userSpaceOnUse" x1={f(cx - frame.half * 0.8)} x2={f(cx + frame.half * 0.8)} y1="0" y2="0">
-            <stop offset="0" stopColor="#fff8e6" stopOpacity="0.16" />
-            <stop offset="0.3" stopColor="#fff8e6" stopOpacity="0.04" />
-            <stop offset="0.55" stopColor="#000" stopOpacity="0.08" />
-            <stop offset="1" stopColor="#000" stopOpacity="0.5" />
+          <linearGradient id={shade} gradientUnits="userSpaceOnUse" x1={f(cx * 0.2)} x2={f(cx * 1.8)} y1="0" y2="0">
+            {SHADE_STOPS.map(([offset, color, opacity]) => (
+              <stop key={offset} offset={offset} stopColor={color} stopOpacity={opacity} />
+            ))}
           </linearGradient>
           <clipPath id={clip}>
             {pieces.map((d, i) => (
@@ -224,7 +264,7 @@ export function FormSketch({ body, m, legs, bottom, arms, lines, outline = [], c
       ) : (
         !legs && (
           <path
-            d={`M${f(cx)} ${f(body.bottom)} L${f(cx)} ${f(frame.bottom - 2)} M${f(cx - 8)} ${f(frame.bottom - 2)} L${f(cx + 8)} ${f(frame.bottom - 2)}`}
+            d={`M${f(cx)} ${f(body.bottom)} L${f(cx)} ${f(bottom - 2)} M${f(cx - 8)} ${f(bottom - 2)} L${f(cx + 8)} ${f(bottom - 2)}`}
             className="form-stand"
             fill="none"
             strokeWidth={0.2}
@@ -256,6 +296,6 @@ export function FormSketch({ body, m, legs, bottom, arms, lines, outline = [], c
       <g clipPath={cloth ? `url(#${clip})` : undefined}>
         {Object.entries(drawn).flatMap(([id, runs]) => (runs ?? []).map((pts, i) => <path key={`${id}${i}`} d={at(pts)} className="tape" fill="none" strokeWidth={0.3} strokeLinecap="round" />))}
       </g>
-    </svg>
+    </>
   );
 }
