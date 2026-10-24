@@ -109,8 +109,9 @@ async function piece({ shot, src, slide = 0, still, from = 0, dur, speed = 1, zo
   const z = cam ? eased(cam, 1) : `(${z0}+(${z1 - z0})*on/${frames})`;
   const [ax, ay] = cam ? [eased(cam, 2), eased(cam, 3)] : at;
   let v = `[0:v]setpts=(PTS-STARTPTS)/${speed},fps=${FPS},scale=${2 * W}:${2 * H},zoompan=z='${z}':x='max(0,min(iw-iw/zoom,(${ax})*iw-iw/zoom/2))':y='max(0,min(ih-ih/zoom,(${ay})*ih-ih/zoom/2))':d=1:s=${W}x${H}:fps=${FPS},trim=end_frame=${frames},setsar=1${reverse ? ',reverse' : ''}`;
-  // slide: the picture travels in from the right edge to its place at one steady speed over that many seconds.
-  if (slide) v += `,pad=iw*2:ih:iw:0:black,crop=${W}:${H}:x='${W}*min(1,t/${slide})':y=0`;
+  // slide: the picture travels in from the right edge to its place over that many seconds, starting gently and
+  // gathering speed as it goes, like a camera move (Cat, 2026-10-24: "starts slower and ramps up slightly").
+  if (slide) v += `,pad=iw*2:ih:iw:0:black,crop=${W}:${H}:x='${W}*(0.3*min(1,t/${slide})+0.7*pow(min(1,t/${slide}),2))':y=0`;
   // tint: [r, g, b] multipliers, e.g. to take the cream pattern paper down to a deeper champagne.
   if (tint) v += `,colorchannelmixer=rr=${tint[0]}:gg=${tint[1]}:bb=${tint[2]}`;
   if (edge) v += `[raw];[raw][1:v]overlay=0:0:shortest=1`;
@@ -242,7 +243,7 @@ const CUTS = {
     const f = 0.5;
     const TAPE_VIEW = WIDE ? { frame: [0.1, 1.05] } : { zoom: [1.1, 1.1], at: [0.5, 0.545] };
     // In the take the tape is all the way across by about 1.8 s; the pull is made from that frame (below).
-    const [TAPE_OUT, PULL] = [1.8, 1.5];
+    const [TAPE_OUT, PULL] = [1.8, 1.1];
     // OPENER_FILM=<walkthrough.mp4> keeps a released film's opening shot and Measure card frame for frame (Cat,
     // 2026-10-24: "go back to that other version exactly"): its first 5.6 s, fades and title already in them.
     const released = process.env.OPENER_FILM ? resolve(process.env.OPENER_FILM) : undefined;
@@ -255,7 +256,7 @@ const CUTS = {
       // it fills the screen, drawn in just enough that the header is off the top (Cat, 2026-10-23: no black band). It
       // joins with the tape already on its way in, past the black second it took to reach the screen (Cat, 2026-10-24).
       // The tape is the opening curtain (Cat, 2026-10-24: "a steady smooth pull from one side to the other"): the
-      // tape, as it lies across the top once pulled, travels in from the right at one even speed, then the page
+      // tape, as it lies across the top once pulled, travels in from the right in one smooth move, then the page
       // goes on at its own pace from that same frame.
       await piece({ still: tapeAcross(TAPE_OUT), dur: PULL, slide: PULL, ...TAPE_VIEW }),
       await piece({ shot: 'tape', from: TAPE_OUT, dur: 7.8 - (TAPE_OUT - 1), ...TAPE_VIEW, fadeOut: f }),
