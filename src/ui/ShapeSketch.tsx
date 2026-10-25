@@ -10,7 +10,7 @@ import { HEM_SAMPLES, HemShape, flatHem, isShaped, offsetAt } from '../engine/he
 import { LENGTHS, Length, Silhouette, SkirtDraft, SkirtMeasurements, flareRange, isCircle, lengthRange, presetFlare } from '../engine/skirt';
 import { GROUPS } from '../screens/StyleScreen';
 import { skirtForm } from './DrawOnForm';
-import { FormLayers, formFrame, hemCorner, wornCloth, wornFolds, wornMapper } from './FormSketch';
+import { FormLayers, SQUEEZE, formFrame, hemCorner, wornCloth, wornFolds, wornMapper } from './FormSketch';
 import { LengthMarks, MARGIN } from './HemMarks';
 
 export type Side = 'front' | 'back';
@@ -167,7 +167,7 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
     const block = hipQ + Math.max(10, (longest - m.waist_to_hip) * 0.45) * 0.8;
     const bell = draft.circleShare ? draft.finishedWaist / 4 + longest * (0.25 + 0.4 * draft.circleShare) : 0;
     const base = formFrame(m, body, m.waist_to_floor + 6, undefined, cloth);
-    return { half: Math.max(base.half, block + 4, bell + 4), top: base.top, bottom: base.bottom };
+    return { half: Math.max(base.half, SQUEEZE * (block + 4), SQUEEZE * (bell + 4)), top: base.top, bottom: base.bottom };
   }, [draft.finishedHip, draft.finishedWaist, draft.circleShare, m, body, cloth]);
 
   const cx = frame.half;
@@ -196,7 +196,7 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
       const next =
         drag.kind === 'hem'
           ? dragLength(m, drag.base, drag.length + at.y - drag.start.y)
-          : dragFlare(m, drag.base, draft.lengthCm, drag.flare + (at.x - drag.start.x) * (drag.start.x >= cx ? 1 : -1));
+          : dragFlare(m, drag.base, draft.lengthCm, drag.flare + ((at.x - drag.start.x) * (drag.start.x >= cx ? 1 : -1)) / SQUEEZE);
       onLive(next);
     } else if (stroke) {
       setStroke([...stroke, toSvg(e)]);
@@ -210,7 +210,7 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
     } else if (stroke) {
       if (stroke.length > 2) {
         const current: HemShape = draft.hem ?? { front: flatHem(), back: flatHem() };
-        const pts = stroke.map((q) => ({ x: q.x - cx, y: q.y }));
+        const pts = stroke.map((q) => ({ x: (q.x - cx) / SQUEEZE, y: q.y }));
         const hem = { ...current, [side]: strokeToHem(pts, w.hem, current[side]) };
         // A drawn hem replaces a high-low or diagonal one.
         const { look: _look, asymHem: _asym, ...rest } = choices;
@@ -308,8 +308,8 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
         </g>
       )}
       {guide(m.waist_to_floor, 'FLOOR')}
-      {!drawing && handle({ x: cx + hemCentre.x, y: hemCentre.y }, 'hem', lengthLabel)}
-      {!drawing && !circle && choices.silhouette !== 'gathered' && handle({ x: cx + hemSide.x, y: hemSide.y }, 'side', flareLabel)}
+      {!drawing && handle({ x: cx + SQUEEZE * hemCentre.x, y: hemCentre.y }, 'hem', lengthLabel)}
+      {!drawing && !circle && choices.silhouette !== 'gathered' && handle({ x: cx + SQUEEZE * hemSide.x, y: hemSide.y }, 'side', flareLabel)}
       {drawing && !stroke && (
         <text x={cx} y={Math.min(frame.bottom - 4, hemCentre.y + 8 * k)} fontSize={2.1 * k} textAnchor="middle" className="hint">
           DRAW A NEW HEM ACROSS THE SKIRT

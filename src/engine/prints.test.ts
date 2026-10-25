@@ -6,6 +6,8 @@ describe('prints', () => {
   it('draws stripes from their own swatch, three repeats to a tile', () => {
     expect(printImage('checks', '/', true)).toBe('/prints/stripes.jpg');
     expect(printImage('checks')).toBe('/prints/checks.jpg');
+    expect(printImage('checks', '/', false, true)).toBe('/prints/gingham.jpg');
+    expect(printImage('checks', '/', true, true)).toBe('/prints/stripes.jpg');
     expect(printTileCm('checks', undefined, true)).toBe(STRIPES_REPEAT * 3);
     expect(printTileCm('checks', 4, true)).toBe(12);
     expect(printTileCm('checks', undefined)).toBe(30);

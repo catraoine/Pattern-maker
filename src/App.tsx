@@ -2,7 +2,7 @@ import { finishesNeck } from './engine/collar';
 import { Belt, beltNote, beltPieces, dressBelt, skirtBelt, withBelt } from './engine/belt';
 import { useEffect, useMemo, useState } from 'react';
 import { showInInches } from './units';
-import { canGoBack, goBack, useViewHistory } from './nav';
+import { canGoBack, goBack, pushFresh, useViewHistory } from './nav';
 import type { HemShape } from './engine/hem';
 import type { AsymHem } from './engine/asymHem';
 import { DraftError, Fit, Length, Silhouette, SkirtDraft, SkirtMeasurements, NoSeam, SkirtShape, WaistStyle, draftSkirt } from './engine/skirt';
@@ -296,6 +296,24 @@ const SIDE: Partial<Record<View, [string, string]>> = {
 /** Screens that draw a pattern, so they need the measurements first. */
 const NEEDS_MEASUREMENTS: View[] = ['style', 'export', 'fitting', 'scale'];
 
+/**
+ * The fixed ladder back climbs (Cat's B Fixed Ladder, 2026-10-24): Print hangs off Style, Style off your
+ * measurements, the measurements off the welcome, however the sewist got there.
+ */
+const RUNGS: Partial<Record<View, View[]>> = { welcome: ['welcome'], measure: ['welcome', 'measure'], style: ['welcome', 'measure', 'style'], export: ['welcome', 'measure', 'style', 'export'] };
+/** Side screens that always hang off the same screen. */
+const HANGS_OFF: Partial<Record<View, View>> = { photo: 'style', collection: 'style', fitting: 'export', scale: 'export', client: 'account', check: 'account', form: 'account', imported: 'check', formprint: 'form' };
+/** The screens `to` hangs off. Any other screen (Account, Plans, the legal pages, the guided measuring) hangs off
+ *  the one it was opened from, and going to one already behind steps back to it. */
+const ladder = (to: View, trail: View[]): View[] => {
+  const rung = RUNGS[to];
+  if (rung) return rung;
+  const parent = HANGS_OFF[to];
+  if (parent) return [...ladder(parent, trail), to];
+  const at = trail.indexOf(to);
+  return at >= 0 ? trail.slice(0, at + 1) : [...trail, to];
+};
+
 /** Where the header's back goes when there's nothing behind in history, such as after a reload. */
 const PARENT: Partial<Record<View, View>> = { measure: 'welcome', steps: 'welcome', style: 'measure', photo: 'style', export: 'style', fitting: 'export', scale: 'export', account: 'style', client: 'account', arrive: 'client', link: 'welcome', check: 'account', imported: 'check', form: 'account', formprint: 'form', privacy: 'welcome', terms: 'welcome', tester: 'account', news: 'account', brands: 'account', nights: 'account', move: 'welcome' };
 
@@ -361,7 +379,7 @@ export default function App() {
   /** The link that carries everything on this device to another one. */
   const sendLink = () => moveLink(window.location.origin, makeBackup(saved, account, pointEdits));
   const [startView] = useState<View>(incoming?.kind === 'ask' ? 'link' : incoming?.kind === 'reply' ? 'arrive' : isMoveLink(window.location.hash) ? 'move' : 'welcome');
-  const [step, setStep] = useViewHistory<View>(startView, (to) => (NEEDS_MEASUREMENTS.includes(to) && !canLeaveMeasure ? 'measure' : to));
+  const [step, setStep] = useViewHistory<View>(startView, (to) => (NEEDS_MEASUREMENTS.includes(to) && !canLeaveMeasure ? 'measure' : to), ladder);
   const openLegal = (page: 'privacy' | 'terms' | 'tester' | 'news' | 'brands' | 'nights') => setStep(page);
   // The waitlist (Cat's W1, 2026-10-21): until launch, a visitor without a tester link sees the welcome with a waitlist
   // where Begin was, and the Privacy and Terms pages, nothing else. Measure-me and move links still open, as they
@@ -923,7 +941,9 @@ export default function App() {
   const [stepsStart, setStepsStart] = useState<{ at: number; start?: StepsStart }>({ at: 0 });
   const openSteps = (start?: StepsStart) => {
     setStepsStart({ at: stepsStart.at + 1, start });
-    setStep('steps');
+    // Opened again from one of its own pages (a described idea, say): a fresh start on top, so back returns to that page.
+    if (step === 'steps') pushFresh();
+    else setStep('steps');
   };
   /** Measure me, from the example tag or the print question: drops the example's numbers and opens measuring from
    *  the start. */

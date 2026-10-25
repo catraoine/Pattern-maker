@@ -48,6 +48,7 @@ Each carries the "In testing" tag (`src/launch.ts`, `src/ui/TestingTag.tsx`):
 | The Collection and the Archive (numbered drops) | the Collection heading |
 | Body Double dress form and draping on it | the dress form page and "Draw your lines" |
 | Prints beyond checks | "What's the print?" in About your fabric |
+| Any colour for the fabric, matched to shop colourways | "Any colour" under the colour dots on the Fabric tab |
 | Pro files: DXF, measurement files, tech pack, 3D body | "More files" on Print |
 | Size run, pattern file check, client book | each one's heading |
 

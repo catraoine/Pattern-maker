@@ -66,12 +66,12 @@ async function dissolve(a, b2, d) {
 }
 // A black frame round a drawing, so a zoomed-in moment shows the drawing alone, not cut-off words around it.
 // top and bottom (and left and right, if given): where the picture shows, as fractions of the frame; it fades in
-// over the 3% outside them.
+// over the 3% outside them, or over soft at the top (a crisp top reads as the paper's own edge, not a blur).
 const masks = {};
-async function mask([top, bottom, left = -1, right = 2]) {
-  const key = `${top}-${bottom}-${left}-${right}`;
-  const band = (dir, a, b) => `linear-gradient(${dir},#000 0,#000 ${(a - 0.03) * 100}%,rgba(0,0,0,0) ${a * 100}%,rgba(0,0,0,0) ${b * 100}%,#000 ${(b + 0.03) * 100}%,#000 100%)`;
-  masks[key] ??= await words(`<div class="f" style="background:${band('to bottom', top, bottom)},${band('to right', left, right)}"></div>`);
+async function mask([top, bottom, left = -1, right = 2, soft = 0.03]) {
+  const key = `${top}-${bottom}-${left}-${right}-${soft}`;
+  const band = (dir, a, b, sa = 0.03) => `linear-gradient(${dir},#000 0,#000 ${(a - sa) * 100}%,rgba(0,0,0,0) ${a * 100}%,rgba(0,0,0,0) ${b * 100}%,#000 ${(b + 0.03) * 100}%,#000 100%)`;
+  masks[key] ??= await words(`<div class="f" style="background:${band('to bottom', top, bottom, soft)},${band('to right', left, right)}"></div>`);
   return masks[key];
 }
 
@@ -92,13 +92,13 @@ const eased = (stops, i) => {
   return e;
 };
 // notes: captions, each [picture, when it fades in, when it fades out], so a first-time viewer knows what each tap does.
-async function piece({ shot, still, from = 0, dur, speed = 1, zoom = [1, 1], at = [0.5, 0.5], cam, frame, tint, fadeIn = 0, fadeOut = 0, over, overIn = 0.4, overAt = 0, overs = [], notes = [], reverse = false }) {
+async function piece({ shot, src, slide = 0, still, from = 0, dur, speed = 1, zoom = [1, 1], at = [0.5, 0.5], cam, frame, tint, fadeIn = 0, fadeOut = 0, over, overIn = 0.4, overAt = 0, overs = [], notes = [], reverse = false, lift }) {
   const edge = frame ? await mask(frame) : undefined;
   const out = join(work, `p${String(k++).padStart(3, '0')}.mp4`);
   const frames = Math.round(dur * FPS);
   const args = ['-v', 'error', '-y'];
   if (still) args.push('-loop', '1', '-framerate', String(FPS), '-t', String(dur), '-i', still);
-  else args.push('-ss', String(from), '-t', String(dur * speed + 0.5), '-i', join(SHOTS, `${shot}.mp4`));
+  else args.push('-ss', String(from), '-t', String(dur * speed + 0.5), '-i', src ?? join(SHOTS, `${shot}.mp4`));
   if (edge) args.push('-loop', '1', '-framerate', String(FPS), '-t', String(dur), '-i', edge);
   if (over) args.push('-loop', '1', '-framerate', String(FPS), '-t', String(dur), '-i', over);
   for (const [o] of overs) args.push('-loop', '1', '-framerate', String(FPS), '-t', String(dur), '-i', o);
@@ -109,6 +109,16 @@ async function piece({ shot, still, from = 0, dur, speed = 1, zoom = [1, 1], at 
   const z = cam ? eased(cam, 1) : `(${z0}+(${z1 - z0})*on/${frames})`;
   const [ax, ay] = cam ? [eased(cam, 2), eased(cam, 3)] : at;
   let v = `[0:v]setpts=(PTS-STARTPTS)/${speed},fps=${FPS},scale=${2 * W}:${2 * H},zoompan=z='${z}':x='max(0,min(iw-iw/zoom,(${ax})*iw-iw/zoom/2))':y='max(0,min(ih-ih/zoom,(${ay})*ih-ih/zoom/2))':d=1:s=${W}x${H}:fps=${FPS},trim=end_frame=${frames},setsar=1${reverse ? ',reverse' : ''}`;
+  // slide: the picture travels in from the right edge to its place over that many seconds, starting gently and
+  // gathering speed as it goes, like a camera move (Cat, 2026-10-24: "starts slower and ramps up slightly").
+  // lift: [how far, of the frame height, the picture moves up; when it starts to; over how long], so the pattern
+  // sheet sits just under its words, not far below them (Cat, 2026-10-25: "such a big gap").
+  if (lift) {
+    const [l, a = -1, d = 0.001] = lift;
+    const px = Math.round(l * H);
+    v += `,pad=iw:ih+${px}:0:0:black,crop=${W}:${H}:0:'${px}*clip((t-${a})/${d},0,1)'`;
+  }
+  if (slide) v += `,pad=iw*2:ih:iw:0:black,crop=${W}:${H}:x='${W}*(0.3*min(1,t/${slide})+0.7*pow(min(1,t/${slide}),2))':y=0`;
   // tint: [r, g, b] multipliers, e.g. to take the cream pattern paper down to a deeper champagne.
   if (tint) v += `,colorchannelmixer=rr=${tint[0]}:gg=${tint[1]}:bb=${tint[2]}`;
   if (edge) v += `[raw];[raw][1:v]overlay=0:0:shortest=1`;
@@ -127,39 +137,50 @@ async function piece({ shot, still, from = 0, dur, speed = 1, zoom = [1, 1], at 
   return out;
 }
 
-// The Style chapter as one unbroken move (Cat, 2026-10-24: too choppy; hand-hold on an elegant journey): the waist
-// seam dropped, the dress filled navy, stripe, then Prince of Wales (Cat, 2026-10-23), and the hem and a boat neck
-// drawn straight on the dress in its fabric, enlarged (D1 Draw on the Dress, 2026-10-24), through Done to the pattern
-// sheet. The camera glides between the moments, and a big word or two names each step. Times are in the style shot,
-// as record-tour-shots.mjs prints them.
-const MARKS = WIDE ? { shape: 0.9, fabric: 4.7, checks: 12.1, draw: 14.4, done: 26.2 } : { shape: 0.9, fabric: 6.3, checks: 13.7, draw: 16.0, done: 27.5 };
+// The Style chapter as one unbroken move (Cat, 2026-10-24: hand-hold on an elegant journey): it opens on the dress
+// already drafted from the photo the film has just shown (Cat, 2026-10-24: show that starting from a photo works),
+// then refilled in a big print, enlarged, and the drawing tool, enlarged with it, takes the boat neck straight
+// across, the hem longer and the waist seam down, and Done goes on to the pattern sheet. The camera glides between the moments, and a big word or two names
+// each step. Times are in the style shot, as record-tour-shots.mjs prints them.
+/** One frame of the tape shot, as a picture. */
+function tapeAcross(t) {
+  const out = join(work, `tape-${t}.png`);
+  execFileSync('ffmpeg', ['-v', 'error', '-y', '-ss', String(t), '-i', join(SHOTS, 'tape.mp4'), '-frames:v', '1', out]);
+  return out;
+}
+
+const MARKS = WIDE
+  ? { fabric: 2.6, enlarge: 8.9, draw: 10.9, hem: 12.7, side: 18.3, done: 22.7 }
+  : { fabric: 2.6, enlarge: 8.0, draw: 10.0, hem: 11.8, side: 17.1, done: 21.4 };
 const JOURNEY = { from: 0.6, to: MARKS.done + 0.9, dur: 17 };
 const atOut = (t) => ((t - JOURNEY.from) * JOURNEY.dur) / (JOURNEY.to - JOURNEY.from);
-// [shot time, zoom, x, y]: on a computer, close on the dress and the shapes, out a little for the fabrics beside it,
-// in on the enlarged form to draw, and back as the pattern comes up. A phone shows the whole screen throughout.
+// [shot time, zoom, x, y]: on a computer, the whole page, then in on the enlarged form to draw, and back as the
+// pattern comes up. A phone shows the whole screen throughout. Both end framed as the pattern shot opens, so the
+// sheet doesn't jump as one dissolves into the other (Cat, 2026-10-25).
 const STYLE_CAM = (WIDE
-  ? [[0.6, 1.3, 0.6, 0.46], [MARKS.fabric - 0.6, 1.3, 0.6, 0.46], [MARKS.fabric + 1, 1.12, 0.5, 0.5], [MARKS.draw, 1.12, 0.5, 0.5], [MARKS.draw + 1.6, 1.22, 0.5, 0.46], [MARKS.done, 1.22, 0.5, 0.46], [JOURNEY.to, 1, 0.5, 0.5]]
-  : [[0.6, 1, 0.5, 0.5], [JOURNEY.to, 1.05, 0.5, 0.47]]).map(([t, ...r]) => [atOut(t), ...r]);
-const STYLE_NOTES = [
-  ['Drop the waist.', MARKS.shape, MARKS.fabric - 0.4],
-  ['Choose the fabric.', MARKS.fabric + 0.2, MARKS.fabric + 4.6],
-  ['Add a print.', MARKS.fabric + 4.8, MARKS.draw - 0.3],
-  ['Draw it longer.', MARKS.draw + 1.9, MARKS.draw + 5.6],
-  ['Draw a boat neck.', MARKS.draw + 5.8, MARKS.done - 0.2],
-];
+  ? [[0.6, 1, 0.5, 0.5], [MARKS.draw, 1, 0.5, 0.5], [MARKS.hem - 0.2, 1.25, 0.5, 0.44], [MARKS.done, 1.25, 0.5, 0.44], [JOURNEY.to, 1.6, 0.42, 0.72]]
+  : [[0.6, 1, 0.5, 0.5], [MARKS.done, 1.05, 0.5, 0.47], [JOURNEY.to, 1.1, 0.5, 0.56]]).map(([t, ...r]) => [atOut(t), ...r]);
+// No step words over the Style journey: what each move does is left to show itself (Cat, 2026-10-24: "take out
+// these headings, just leave it implied"), nor over the pattern: after the photo's own line, the next words are
+// "Drafted to your body".
+const STYLE_NOTES = [];
 const styleJourney = async () => {
   // One at a time: the words are all drawn on the one page.
   const notes = [];
-  for (const [line, on, off] of STYLE_NOTES) notes.push([await note(line), atOut(on), atOut(off)]);
-  return piece({ shot: 'style', from: JOURNEY.from, dur: JOURNEY.dur, speed: (JOURNEY.to - JOURNEY.from) / JOURNEY.dur, cam: STYLE_CAM, fadeIn: 0.5, notes });
+  for (const [line, on, off, where] of STYLE_NOTES) notes.push([await note(line, where), atOut(on), atOut(off)]);
+  return piece({ shot: 'style', from: JOURNEY.from, dur: JOURNEY.dur, speed: (JOURNEY.to - JOURNEY.from) / JOURNEY.dur, cam: STYLE_CAM, fadeIn: 0.5, notes, ...(LIFT && { lift: [LIFT, JOURNEY.dur - 2.4, 1.6] }) });
 };
 // Cat (2026-10-22): the cream pattern paper was too bright after the black pages; a deeper champagne here.
 // Wide: from the moment the pattern is up, slowed a touch to fill its time (Cat, 2026-10-22: the drawing flashed before it).
+// On a phone the sheet rises the last part of the journey, to sit just under 'Your pattern, drafted.'
+const LIFT = WIDE ? 0 : 0.13;
 const PATTERN = WIDE
-  ? { from: 1.1, speed: 0.8, zoom: [1.6, 1.66], at: [0.42, 0.72], frame: [0.09, 1.05, 0.1, 0.92], tint: [0.84, 0.78, 0.66] }
-  : { from: 1.1, speed: 0.75, zoom: [1.1, 1.14], at: [0.5, 0.56], frame: [0.305, 0.712], tint: [0.84, 0.78, 0.66] };
-// On a phone the whole sheet of pages shows, the words round it in black (Cat, 2026-10-24: 1.6 was too close).
-const PAGES = { shot: 'print', from: 5.2, speed: 0.75, ...(WIDE ? { frame: [0.1, 1.05] } : { zoom: [1.15, 1.2], at: [0.5, 0.49], frame: [0.12, 0.89] }) };
+  ? { from: 1.1, speed: 0.8, zoom: [1.6, 1.66], at: [0.42, 0.72], frame: [0.1, 1.05, 0.1, 0.92, 0.002], tint: [0.84, 0.78, 0.66] }
+  : { from: 1.1, speed: 0.75, zoom: [1.1, 1.14], at: [0.5, 0.56], frame: [0.29 - LIFT, 0.712 - LIFT, -1, 2, 0.002], lift: [LIFT], tint: [0.84, 0.78, 0.66] };
+// On a phone the whole sheet of pages shows, opened under See the pages, the words round it in black (Cat, 2026-10-24:
+// 1.6 was too close).
+// On a phone the sheet of pages is thin champagne lines on black; lifted so they read (walkthrough, 2026-10-24).
+const PAGES = { shot: 'print', from: 5.2, speed: 0.75, ...(WIDE ? { frame: [0.1, 1.05] } : { zoom: [1.08, 1.12], at: [0.5, 0.36], frame: [0.155, 0.62], tint: [1.4, 1.4, 1.4] }) };
 // Cat's B Three Checks (2026-10-22): what All round is for, a line at a time over the turning form. On a phone in a
 // dark band along the bottom; on a computer to the left of the form. Each line is its own picture, all laid out
 // together so they stack in place; only the first carries the dark band.
@@ -178,26 +199,22 @@ async function threeChecks() {
 }
 // A caption for a step in the Style chapter (Cat, 2026-10-24: not clear what's being picked), in a dark band along
 // the top, over the app's own header, so the choices being tapped stay clear.
-const note = (line) => words(WIDE
-  ? `<div class="f" style="background:linear-gradient(to bottom,rgba(0,0,0,.92) 0,rgba(0,0,0,.8) 13%,rgba(0,0,0,0) 22%);padding:44px 0 0 96px"><h1 class="t" style="font-size:46px">${line}</h1></div>`
-  : `<div class="f" style="background:linear-gradient(to bottom,rgba(0,0,0,.92) 0,rgba(0,0,0,.8) 11%,rgba(0,0,0,0) 17%);padding:40px 0 0 28px"><h1 class="t" style="font-size:36px">${line}</h1></div>`);
+// On a computer the enlarged preview keeps its view switches top left, so its words sit to the left of the form.
+// 'low' sits nearer the picture under it, over the black above the photo and the pattern sheet (Cat, 2026-10-25:
+// the photo's words a little too high, and the pattern's at the same height).
+// shade false: no dark fade behind the words, where they already sit on black (Cat, 2026-10-25: "so much black blur").
+const note = (line, where, shade = true) => words(WIDE && where === 'side'
+  ? `<div class="f" style="display:flex;flex-direction:column;justify-content:center;padding-left:96px;background:linear-gradient(to right,rgba(0,0,0,.85) 0,rgba(0,0,0,.6) 30%,rgba(0,0,0,0) 42%)"><h1 class="t" style="font-size:46px">${line}</h1></div>`
+  : WIDE
+  ? `<div class="f" style="${shade ? 'background:linear-gradient(to bottom,rgba(0,0,0,.92) 0,rgba(0,0,0,.8) 13%,rgba(0,0,0,0) 22%);' : ''}padding:${where === 'low' ? 54 : 44}px 0 0 96px"><h1 class="t" style="font-size:46px">${line}</h1></div>`
+  : `<div class="f" style="${shade ? 'background:linear-gradient(to bottom,rgba(0,0,0,.92) 0,rgba(0,0,0,.8) 11%,rgba(0,0,0,0) 17%);' : ''}padding:${where === 'low' ? 60 : 40}px 0 0 28px"><h1 class="t" style="font-size:36px">${line}</h1></div>`);
 // P2 Or Start From a Photo (Cat, 2026-10-24): after the garments, a photo of a dress (made for the film, no person in
-// it) dissolves into the same dress drafted on the form, enlarged, before its lines are drawn. Its words are the
-// same size and place as the Style steps'.
+// it), briefly, its words the same size and place as the Style steps'. No drafted dress after it (Cat: skip that).
 const PHOTO = readFileSync(new URL('./tour/photo-dress.jpg', import.meta.url)).toString('base64');
-const DRAFTED = WIDE
-  ? { t: 16.8, zoom: [1.84, 1.8], at: [0.5, 0.46], frame: [-1, 2, 0.3, 0.7] }
-  : { t: 18.3, zoom: [2.04, 2], at: [0.5, 0.45], frame: [-1, 2, 0.16, 0.84] };
 async function photoMoment() {
   const pic = await words(`<div class="f" style="display:flex;align-items:center;justify-content:center;padding-top:${WIDE ? 70 : 60}px"><img src="data:image/jpeg;base64,${PHOTO}" style="height:${WIDE ? 640 : 560}px;max-width:94%;object-fit:cover"></div>`, { solid: true });
-  const drafted = join(work, 'drafted.png');
-  execFileSync('ffmpeg', ['-v', 'error', '-y', '-ss', String(DRAFTED.t), '-i', join(SHOTS, 'style.mp4'), '-frames:v', '1', drafted]);
-  const words1 = await note('Or start from a photo.');
-  return dissolve(
-    await piece({ still: pic, dur: 2.6, zoom: [1, 1.03], fadeIn: 0.5, notes: [[words1, 0.3, 3]] }),
-    await piece({ still: drafted, dur: 2.6, zoom: DRAFTED.zoom, at: DRAFTED.at, frame: DRAFTED.frame, fadeOut: 0.5, notes: [[words1, 0, 2]] }),
-    1,
-  );
+  // Held long enough to read (Cat, 2026-10-25).
+  return piece({ still: pic, dur: 3.2, zoom: [1, 1.03], fadeIn: 0.5, fadeOut: 0.5, notes: [[await note('Or start from a photo.', 'low'), 0.2, 3.2]] });
 }
 // The opening (Cat, 2026-10-22: the old one repeated the loading screen and welcome the viewer had just seen).
 const INTRO = process.env.TOUR_INTRO ?? 'C2'; // Cat's pick, 2026-10-22: C2 Pull Back
@@ -223,7 +240,9 @@ const INTROS = {
   // C4 Title Aside: the close turn with the words low (phone) or to the left (computer), the form left clear.
   C4: async () => [await piece({ shot: 'round', from: 6.5, dur: 3.8, fadeIn: 0.8, fadeOut: 0.5, over: await title('aside'), overAt: 0.8, overIn: 0.6 })],
   // C5 Long Push: the whole form, pushed in fast to the seams, the title landing as it gets close.
-  C5: async () => [await piece({ shot: 'round', from: 0.4, dur: 4.6, speed: 1.8, fadeIn: 0.8, fadeOut: 0.5, over: await title(), overAt: 2.4, overIn: 0.6 })],
+  // OPENER=<round.mp4> cuts the opening shot from another take: the original dress stays in the opening while Style
+  // dresses the form in the one being styled (Cat, 2026-10-24: "it doesn't have to show the dress we are styling yet").
+  C5: async () => [await piece({ shot: 'round', src: process.env.OPENER ? resolve(process.env.OPENER) : undefined, from: 0.4, dur: 4.6, speed: 1.8, fadeIn: 0.8, fadeOut: 0.5, over: await title(), overAt: 2.4, overIn: 0.6 })],
   // D Fabric First: the dress flicking through fabrics, the title over it.
   D: async () => [await piece({ shot: 'style', from: 24.4, dur: 3.6, speed: 3, ...(WIDE ? { zoom: [2.1, 2.15], at: [0.41, 0.6], frame: [-0.1, 1.05, -0.1, 0.92] } : { zoom: [1.7, 1.75], at: [0.48, 0.49], frame: [0.23, 0.76] }), fadeIn: 0.8, fadeOut: 0.5, over: await title(), overAt: 0.6 })],
 };
@@ -233,14 +252,27 @@ const CUTS = {
   // round on you, drawing closer as it turns (the recorder fills the screen with it; Cat, 2026-10-22).
   words: async () => {
     const f = 0.5;
+    // On a phone the page is drawn in just enough that the header is off the top, and a touch left of centre so the
+    // tape's brass tip stays on screen the whole way (Cat, 2026-10-24: the end of the tape must stay the same).
+    const TAPE_VIEW = WIDE ? { frame: [0.1, 1.05] } : { zoom: [1.08, 1.08], at: [0.49, 0.545] };
+    // In the take the tape is all the way across by about 1.8 s; the pull is made from that frame (below).
+    const [TAPE_OUT, PULL] = [1.8, 1.1];
+    // OPENER_FILM=<walkthrough.mp4> keeps a released film's opening shot and Measure card frame for frame (Cat,
+    // 2026-10-24: "go back to that other version exactly"): its first 5.6 s, fades and title already in them.
+    const released = process.env.OPENER_FILM ? resolve(process.env.OPENER_FILM) : undefined;
     const opening = [
-      ...(await INTROS[INTRO]()),
-      await piece({ still: await card('01', 'Measure', 'Just a few, once.'), dur: 2.2, fadeIn: f, fadeOut: f }),
+      ...(released
+        ? [await piece({ shot: 'round', src: released, from: 0, dur: 5.6 })]
+        : [...(await INTROS[INTRO]()), await piece({ still: await card('01', 'Measure', 'Just a few, once.'), dur: 2.2, fadeIn: f, fadeOut: f })]),
       // One unbroken move to the waist (Cat, 2026-10-22: starting mid-pull, it appeared from nowhere, small): from
       // black, the tape pulling in across the top of the first page, the welcome skipped (Cat, 2026-10-23). On a phone
       // it fills the screen, drawn in just enough that the header is off the top (Cat, 2026-10-23: no black band). It
       // joins with the tape already on its way in, past the black second it took to reach the screen (Cat, 2026-10-24).
-      await piece({ shot: 'tape', from: 1, dur: 7.8, ...(WIDE ? { frame: [0.1, 1.05] } : { zoom: [1.1, 1.1], at: [0.5, 0.545] }), fadeIn: f, fadeOut: f }),
+      // The tape is the opening curtain (Cat, 2026-10-24: "a steady smooth pull from one side to the other"): the
+      // tape, as it lies across the top once pulled, travels in from the right in one smooth move, then the page
+      // goes on at its own pace from that same frame.
+      await piece({ still: tapeAcross(TAPE_OUT), dur: PULL, slide: PULL, ...TAPE_VIEW }),
+      await piece({ shot: 'tape', from: TAPE_OUT, dur: 7.8 - (TAPE_OUT - 1), ...TAPE_VIEW, fadeOut: f }),
     ];
     // TOUR_PREVIEW=1 stops after the opening and the tape, to try an opening without cutting the whole film.
     if (process.env.TOUR_PREVIEW) return opening;
@@ -253,7 +285,7 @@ const CUTS = {
       // Done lands on the pattern sheet, so the pattern follows straight on, then the dress all round (Cat,
       // 2026-10-24: no flash back to the dress between them), each dissolving into the next.
       await dissolve(
-        await dissolve(await styleJourney(), await piece({ shot: 'pattern', dur: 3.6, ...PATTERN, notes: [[await note('Your pattern, drafted.'), 0.5, 3.4]] }), 0.8),
+        await dissolve(await styleJourney(), await piece({ shot: 'pattern', dur: 3.6, ...PATTERN, notes: [[await note('Your pattern, drafted.', 'low', false), 0.5, 3.4]] }), 0.8),
         await piece({ shot: 'round', from: 0.3, dur: 8.6, fadeOut: f, overs: (await threeChecks()).map((p, i) => [p, 0.9 + i * 1.8]) }),
         1,
       ),

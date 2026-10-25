@@ -449,7 +449,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', sendLink, prof
                 <LayPlanView
                   lay={lay}
                   cloth={lay.fabric === 'self' ? (flatId(finish.fabric) ?? 'default') : lay.fabric === 'lining' ? 'silk' : 'cotton'}
-                  print={lay.fabric === 'self' && print ? { kind: print, repeat: printRepeat(finish.fabric), stripes: finish.fabric?.checks?.stripes } : undefined}
+                  print={lay.fabric === 'self' && print ? { kind: print, repeat: printRepeat(finish.fabric), stripes: finish.fabric?.checks?.stripes, gingham: finish.fabric?.checks?.gingham } : undefined}
                 />
                 {lay.fabric === 'self' && <DemoButton demo="fabric" />}
               </div>

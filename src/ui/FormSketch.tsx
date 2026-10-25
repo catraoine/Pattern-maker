@@ -9,6 +9,7 @@ import { useId, useMemo, useRef } from 'react';
 import type { P } from '../engine/geometry';
 import type { SkirtMeasurements } from '../engine/skirt';
 import { bodyOutline } from './bodyOutline';
+import { CM_PER_UNIT, HEAD_CHIN, HEAD_TOP, headLines } from './ContourForm';
 import { FormArm, FormBody, armAt } from './DrawOnForm';
 import type { FormLine } from './formLines';
 import { HemChoice, HemMarks, MARGIN } from './HemMarks';
@@ -17,13 +18,47 @@ import { ClothDefs, ClothOverlay, SHEER_OPACITY, borderHems, useFabricLook } fro
 type Measures = { full_bust?: number; waist: number; full_hip?: number; waist_to_hip?: number; waist_to_knee?: number; waist_to_floor?: number };
 
 const f = (n: number) => n.toFixed(2);
+/** How much narrower the form is drawn than the pattern's half girths. A quarter of a round measurement each side
+ *  of the centre is the width laid flat; from the front a body shows about two thirds of that, which is how the
+ *  welcome and measuring form are drawn beside the same head (Cat, 2026-10-24: the body read wide, the head tiny).
+ *  Only the drawing narrows: the garment's lines and the lines drawn on it are read back in the pattern's own cm. */
+export const SQUEEZE = 0.68;
 export const formPath = (pts: P[]) => pts.map((q, i) => `${i ? 'L' : 'M'}${f(q.x)} ${f(q.y)}`).join(' ');
+
+/** How tall the head stands above the top of the neck, in cm. */
+export const HEAD_CM = (HEAD_CHIN - HEAD_TOP) * CM_PER_UNIT - 1.5;
+/** How far the neck's lines run on up behind the head, so the neck goes into the jaw as on the welcome form
+ *  rather than stopping in a flat cut under it (Cat, 2026-10-24: "a thick tree trunk"). */
+export const INTO_HEAD = 3;
+
+/** The head on a form with a neck, as on every other screen (Cat's body rule): the same faceless mannequin head,
+ *  at the same scale to the body, its chin a little below the top of the neck. */
+export function formHead(body: FormBody, cx: number): { outline: string; lines: string[] } | undefined {
+  if (!body.head) return undefined;
+  const chin = body.top + 1.5;
+  const { outline, lines: inner } = headLines(9);
+  const at = ([x, y]: [number, number]): P => ({ x: cx + x * CM_PER_UNIT, y: chin + (y - HEAD_CHIN) * CM_PER_UNIT });
+  return { outline: formPath(outline.map(at)) + ' Z', lines: inner.map((l) => formPath(l.map(at))) };
+}
+
+/** The head drawn over the neck: black inside, so the neck's lines vanish into the jaw. */
+export function FormHead({ head }: { head: { outline: string; lines: string[] } }) {
+  return (
+    <g className="form-head">
+      <path d={head.outline} fill="#000" stroke="none" />
+      {head.lines.map((d, i) => (
+        <path key={i} d={d} className="form-line" fill="none" strokeWidth={0.12} opacity={0.35} />
+      ))}
+      <path d={head.outline} className="form-line" fill="none" strokeWidth={0.22} opacity={0.9} />
+    </g>
+  );
+}
 
 /** The drawing's frame: half its width (the centre line's x) and its top and bottom. */
 export function formFrame(m: Measures, body: FormBody, bottom: number, arms?: FormArm, cloth: P[][] = []) {
   const wide = Math.max(0, ...cloth.flat().map((q) => Math.abs(q.x) + 3));
-  const half = Math.max(Math.max(m.full_bust ?? 0, m.full_hip ?? 0, m.waist) / 4 + 7, arms ? armAt(arms, arms.wristY).outer + 2 : 0, wide);
-  return { half, top: body.top - 2, bottom: Math.max(body.bottom + 12, bottom) };
+  const half = SQUEEZE * Math.max(Math.max(m.full_bust ?? 0, m.full_hip ?? 0, m.waist) / 4 + 7, arms ? armAt(arms, arms.wristY).outer + 2 : 0, wide);
+  return { half, top: body.top - (body.head ? HEAD_CM + 1 : 2), bottom: Math.max(body.bottom + 12, bottom) };
 }
 
 /** What a sleeve on the form needs to know of the drafted sleeve: its length, and how wide it is sewn. */
@@ -279,10 +314,11 @@ export function shoulderPoint(cloth: P[][], arm: FormArm): P | undefined {
 /** The form in contour lines, as on the welcome screen: each line a fixed fraction of the way round. */
 export function formContours(body: FormBody, cx: number): { d: string; edge: boolean; u: number }[] {
   const n = 15;
-  const ys = Array.from({ length: 121 }, (_, i) => body.top + ((body.bottom - body.top) * i) / 120);
+  const top = body.head ? body.top - INTO_HEAD : body.top;
+  const ys = Array.from({ length: 121 }, (_, i) => top + ((body.bottom - top) * i) / 120);
   return Array.from({ length: n }, (_, i) => {
     const u = Math.sin(-Math.PI / 2 + (Math.PI * i) / (n - 1));
-    return { d: formPath(ys.map((y) => ({ x: cx + u * body.width(y), y }))), edge: Math.abs(u) > 0.98, u };
+    return { d: formPath(ys.map((y) => ({ x: cx + SQUEEZE * u * body.width(y), y }))), edge: Math.abs(u) > 0.98, u };
   });
 }
 
@@ -300,7 +336,7 @@ export function formArmLines(arms: FormArm | undefined, cx: number): { d: string
   );
   // Up the inside from the wrist, over the shoulder and down the outside, closed across the wrist.
   const outline = [...[...inner].reverse(), ...outer, inner[inner.length - 1]];
-  return [1, -1].flatMap((s) => [outline, ...down].map((pts, i) => ({ d: formPath(pts.map((q) => ({ x: cx + s * q.x, y: q.y }))), edge: i === 0 })));
+  return [1, -1].flatMap((s) => [outline, ...down].map((pts, i) => ({ d: formPath(pts.map((q) => ({ x: cx + SQUEEZE * s * q.x, y: q.y }))), edge: i === 0 })));
 }
 
 interface Props {
@@ -396,8 +432,9 @@ interface LayerProps extends Omit<Props, 'cloth' | 'underarmY' | 'label' | 'outl
  */
 export function FormLayers({ body, m, legs, cx, top, bottom, arms, lines, outline = [], worn, folds = [], sleeve }: LayerProps) {
   const contours = useMemo(() => formContours(body, cx), [body, cx]);
+  const head = useMemo(() => formHead(body, cx), [body, cx]);
   const armLines = useMemo(() => formArmLines(arms, cx), [arms, cx]);
-  const at = (pts: P[]) => formPath(pts.map((q) => ({ x: cx + q.x, y: q.y })));
+  const at = (pts: P[]) => formPath(pts.map((q) => ({ x: cx + SQUEEZE * q.x, y: q.y })));
   const showLegs = legs && m.full_hip && m.waist_to_hip && m.waist_to_knee && m.waist_to_floor;
   const cloth = !!worn;
   // The cloth: sleeves first, then the body over their heads, then collars and lapels over that. Each piece is
@@ -447,7 +484,7 @@ export function FormLayers({ body, m, legs, cx, top, bottom, arms, lines, outlin
       )}
       {cloth && <ClothDefs uid={uid} x1={cx * 0.2} x2={cx * 1.8} look={look} />}
       {showLegs ? (
-        <g transform={`translate(0 ${f(body.waistY)})`}>
+        <g transform={`translate(${f(cx * (1 - SQUEEZE))} ${f(body.waistY)}) scale(${SQUEEZE} 1)`}>
           <path d={bodyOutline(m as SkirtMeasurements, cx)} className="form-legs" fill="none" strokeWidth={0.18} />
         </g>
       ) : (
@@ -460,7 +497,8 @@ export function FormLayers({ body, m, legs, cx, top, bottom, arms, lines, outlin
           />
         )
       )}
-      <g mask={top !== undefined ? `url(#${neck})` : undefined}>
+      {/* With a head the neck runs into the jaw (FormHead); without one its lines fade in at the top. */}
+      <g mask={top !== undefined && !head ? `url(#${neck})` : undefined}>
         {armLines.map((a, i) => (
           <path key={`arm${i}`} d={a.d} className="form-line" fill="none" strokeWidth={a.edge ? 0.24 : 0.14} opacity={a.edge ? 1 : 0.55} />
         ))}
@@ -468,6 +506,7 @@ export function FormLayers({ body, m, legs, cx, top, bottom, arms, lines, outlin
           <path key={i} d={c.d} className="form-line" fill="none" strokeWidth={c.edge ? 0.24 : 0.14} opacity={c.edge ? 1 : 0.45 + 0.3 * (1 - Math.abs(c.u))} />
         ))}
       </g>
+      {head && <FormHead head={head} />}
       {cloth && (
         <g className="cloth">
           {pieces.map((d, i) => (

@@ -78,3 +78,32 @@ test('None, a colour and a shop fabric on the skirt sketch', async ({ page }) =>
   await expect(main.locator('.shopbuy')).toContainText('Mood Fabrics');
   await expect(main.locator('.shopbuy a')).toHaveAttribute('href', /indigo-cotton-denim-twill-420606$/);
 });
+
+// Any colour (Cat's W2 + W4): the bars and the hex box tint the sketch, and the shops' nearest colourway is one tap away.
+test('any colour tints the sketch and finds the closest shop colourway', async ({ page }) => {
+  await startWithExample(page);
+  const main = page.getByRole('main');
+  await main.getByRole('tab', { name: 'Fabric' }).click();
+  await main.getByRole('radiogroup', { name: 'Fabric for the sketch' }).getByRole('radio', { name: 'Linen' }).click();
+  await main.getByRole('button', { name: 'Any colour' }).click();
+  await expect(main.getByText('In testing').first()).toBeVisible();
+  await main.getByLabel('Hex').fill('#b8613f');
+  await expect(main.locator('.fabric-now')).toContainText('#B8613F');
+  await expect(main.locator('.garment-fabric filter')).toHaveCount(1);
+  if (process.env.SHOTS) {
+    await main.locator('.colourbars').scrollIntoViewIfNeeded();
+    await page.evaluate(() => window.scrollBy(0, 120));
+    await page.screenshot({ path: `${process.env.SHOTS}/any-colour.png` });
+  }
+  const rows = main.locator('.colourmatch-row');
+  await expect(rows).toHaveCount(3);
+  await main.getByLabel('Shade').fill('70');
+  await expect(main.locator('.fabric-now')).not.toContainText('#B8613F');
+  await rows.first().click();
+  await expect(main.getByRole('tab', { name: 'Shop' })).toHaveAttribute('aria-selected', 'true');
+  await expect(main.locator('.shopfab.on')).toHaveCount(1);
+  if (process.env.SHOTS) {
+    await main.locator('.fabric-now').scrollIntoViewIfNeeded();
+    await page.screenshot({ path: `${process.env.SHOTS}/any-colour-match.png` });
+  }
+});

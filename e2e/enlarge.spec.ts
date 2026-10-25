@@ -1,34 +1,44 @@
 import { expect, startWithExample, switchGarment, test } from './fixtures';
 
-// The sketch on the style page opens full screen, one side at a time, to look at the work up close.
+// The preview on the style page opens full screen, live: its views and tools work there as on the page
+// (Cat, 2026-10-24: enlarge is for using the tools with a larger view).
 test('enlarge the garment drawing', async ({ page }) => {
   await startWithExample(page);
   const main = page.getByRole('main');
+  const preview = main.getByRole('region', { name: 'Preview' });
   await main.getByRole('button', { name: /^Enlarge the drawing/ }).click();
-  let big = page.getByRole('dialog', { name: /enlarged$/ });
-  await expect(big.locator('svg').first()).toBeVisible();
-  await big.getByRole('button', { name: 'Close', exact: true }).click();
-  await expect(big).toHaveCount(0);
+  await expect(preview).toHaveClass(/live-big/);
+  // Full screen, once it has grown in, with the drawing filling it.
+  const view = page.viewportSize()!;
+  await expect.poll(async () => (await preview.boundingBox())!.width).toBeGreaterThan(view.width - 2);
+  await expect.poll(async () => (await preview.boundingBox())!.height).toBeGreaterThan(view.height - 2);
+  expect((await preview.locator('.preview-svg').first().boundingBox())!.height).toBeGreaterThan(view.height / 2);
+  await page.screenshot({ path: test.info().outputPath('enlarged.png') });
+  await main.getByRole('button', { name: /^Make the drawing .* smaller$/ }).click();
+  await expect(preview).not.toHaveClass(/live-big/);
 
-  // The dress opens on the form; its flat drawing has a front and a back: one at a time, and a double tap zooms in.
+  // The dress's views switch while it is enlarged, and Escape closes it.
   await switchGarment(page, 'Dress');
-  await main.getByRole('button', { name: 'Drawing', exact: true }).click();
-  await expect(main.getByRole('img', { name: /^Technical flat/ })).toBeVisible();
   await main.getByRole('button', { name: /^Enlarge the drawing/ }).click();
-  big = page.getByRole('dialog', { name: /enlarged$/ });
-  const views = big.getByRole('group', { name: 'View' });
-  await expect(views.getByRole('button', { name: /front/i })).toHaveAttribute('aria-pressed', 'true');
-  await views.getByRole('button', { name: /back/i }).click();
-  await expect(views.getByRole('button', { name: /back/i })).toHaveAttribute('aria-pressed', 'true');
-  const draw = big.locator('.big-sketch-draw');
-  const box = (await big.locator('.big-sketch-stage').boundingBox())!;
-  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 3);
-  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 3);
-  await expect(draw).toHaveAttribute('style', /scale\(2\.5\)/);
+  await expect(preview).toHaveClass(/live-big/);
+  await preview.getByRole('button', { name: 'Drawing', exact: true }).click();
+  await expect(main.getByRole('img', { name: /^Technical flat/ })).toBeVisible();
+  await expect(preview).toHaveClass(/live-big/);
   await page.keyboard.press('Escape');
-  await expect(big).toHaveCount(0);
+  await expect(preview).not.toHaveClass(/live-big/);
 
-  // The turning form has nothing to enlarge.
+  // Drawing from the enlarged form opens the drawing tool enlarged too.
+  await main.getByRole('button', { name: 'Form', exact: true }).click();
+  await main.getByRole('button', { name: /^Enlarge the drawing/ }).click();
+  await expect(preview).toHaveClass(/live-big/);
+  await main.getByRole('button', { name: 'Draw on your form' }).first().evaluate((el) => (el as HTMLElement).click());
+  await expect(main.getByRole('button', { name: 'Smaller', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await main.getByRole('button', { name: 'Smaller', exact: true }).click();
+  await main.getByRole('button', { name: 'Done', exact: true }).click();
+
+  // The turning form has nothing to enlarge. (Done shows the pattern; back to the garment first.)
+  const garment = main.getByRole('group', { name: 'Preview view' }).getByRole('button', { name: /^Garment/ });
+  if (await garment.count()) await garment.click();
   await main.getByRole('button', { name: 'All round' }).click();
   await expect(main.getByRole('button', { name: /^Enlarge the drawing/ })).toHaveCount(0);
 });
