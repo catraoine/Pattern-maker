@@ -36,6 +36,11 @@ const SLIDE_AT = 300;
 const SLIDE_MS = 1400;
 const PLAY_AT = SLIDE_AT + SLIDE_MS + 500;
 const MARKS = Array.from({ length: 30 }, (_, i) => i + 41);
+/** On a phone the waitlist opens on the form at Begin's full size, then, once its lines are drawn, the waitlist slides
+ *  up over its lower half, the way the measuring pages crop it (Cat's O2 Curtain Up, 2026-10-25). When it starts after
+ *  the form begins (the form's own drawing takes 1.6s handed over drawn, 2.6s from fresh), and how long it takes. */
+const CURTAIN_AT = { drawn: 1900, fresh: 2900 };
+const CURTAIN_MS = 1100;
 
 export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume, waitlist }: Props) {
   const [touring, setTouring] = useState(false);
@@ -48,6 +53,10 @@ export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume, wait
     window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
   }, []);
   const [leaving, setLeaving] = useState(false);
+  // A computer already opens the waitlist on the full-size form, beside the words, so the curtain is for phones.
+  const [curtain, setCurtain] = useState<'down' | 'up' | 'off'>(() =>
+    waitlist && !matchMedia('(min-width: 960px)').matches && !matchMedia('(prefers-reduced-motion: reduce)').matches ? 'down' : 'off',
+  );
   const done = useRef(onFinish);
   done.current = onFinish;
   // The form grows into the room Begin leaves; the measuring pages draw it at this same height, so it stays put.
@@ -87,6 +96,29 @@ export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume, wait
     return () => [slide, ...fades, last].forEach((a) => a?.cancel());
   }, [formStart]);
 
+  // Down, the waitlist is out of the way and the form takes Begin's room. Up, the form's canvas keeps that full height
+  // and the hero shrinks over it, cropping the form from the bottom while the waitlist rises into the room.
+  const curtainFrom = useRef(0);
+  useEffect(() => {
+    if (curtain !== 'down' || formStart === 'wait') return;
+    const t = window.setTimeout(() => {
+      const el = hero.current;
+      if (!el) return setCurtain('off');
+      curtainFrom.current = el.clientHeight;
+      el.style.setProperty('--curtain-h', `${el.clientHeight}px`);
+      setCurtain('up');
+    }, CURTAIN_AT[formStart === 'drawn' ? 'drawn' : 'fresh']);
+    return () => window.clearTimeout(t);
+  }, [curtain, formStart]);
+  useLayoutEffect(() => {
+    const el = hero.current;
+    if (curtain !== 'up' || !el || !curtainFrom.current) return;
+    const from = `${curtainFrom.current}px`;
+    const to = `${el.clientHeight}px`;
+    curtainFrom.current = 0;
+    el.animate([{ flexGrow: 0, flexBasis: from }, { flexGrow: 0, flexBasis: to }], { duration: CURTAIN_MS, easing: 'cubic-bezier(0.45, 0, 0.2, 1)' });
+  }, [curtain]);
+
   const tape = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!leaving) return;
@@ -105,7 +137,7 @@ export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume, wait
   };
 
   return (
-    <div className={['welcome', formStart !== 'wait' && 'go', leaving && 'leaving', waitlist && 'waitlist-page'].filter(Boolean).join(' ')}>
+    <div className={['welcome', formStart !== 'wait' && 'go', leaving && 'leaving', waitlist && 'waitlist-page', waitlist && curtain !== 'off' && `curtain-${curtain}`].filter(Boolean).join(' ')}>
       <section className="card welcome-card" aria-labelledby="wtitle">
         <div className="welcome-hero" ref={hero}>
           <ContourForm start={formStart} kind={form} />

@@ -66,3 +66,23 @@ test('back from the confirm email, the waitlist says you are on the list', async
   await expect(page.getByRole('main').getByRole('heading', { level: 1, name: /You're on the list/ })).toBeVisible();
   expect(new URL(page.url()).search).toBe('');
 });
+
+test('on a phone the waitlist rises over the form drawn at full size, and the language is a tag on the email line', async ({ page }, info) => {
+  await page.goto('/?fresh');
+  await skipLoading(page);
+  const main = page.getByRole('main');
+  const hero = page.locator('.welcome-hero');
+  if (info.project.name === 'phone') {
+    // Curtain Up (Cat's O2, 2026-10-25): the form takes Begin's room first, then the waitlist comes up over it.
+    const full = (await hero.boundingBox())!.height;
+    await expect(main.getByRole('button', { name: 'Join the waitlist' })).toBeVisible();
+    await expect.poll(async () => (await hero.boundingBox())!.height).toBeLessThan(full - 60);
+    const canvas = (await hero.locator('canvas').boundingBox())!.height;
+    expect(canvas).toBeGreaterThan(full - 2);
+  }
+  // L1 (2026-10-25): the language is picked from the tag at the end of the email line.
+  await expect(main.getByText('EN', { exact: true })).toBeVisible();
+  await main.getByLabel('I sew in').selectOption('de');
+  await expect(main.getByText('DE', { exact: true })).toBeVisible();
+  await expect(main).toContainText('We\'ll tell you when Maison Tracé speaks it.');
+});

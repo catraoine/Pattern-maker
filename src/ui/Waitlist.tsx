@@ -9,7 +9,7 @@ type Sent = 'idle' | 'sending' | 'failed' | 'busy';
  * The welcome's Begin, while the app is in testing (Cat's W1 Begin Becomes Join, 2026-10-21): a line to write your
  * email on and Join the waitlist, with a quiet way in for testers. A sign-up goes to the same list as "Get news",
  * and counts (with no email) against where the visitor first came from, so bio links like ?src=ig keep counting.
- * It also asks which language they sew in, on one line with a drop-down (Cat's L5 Ask First, 2026-10-24).
+ * It also asks which language they sew in (Cat's L5 Ask First, 2026-10-24), as a tag on the email line (L1, 2026-10-25).
  */
 export function WaitlistForm({ onJoined, onCode, linkMessage }: { onJoined: () => void; onCode: (code: string) => void; linkMessage?: string }) {
   const [email, setEmail] = useState('');
@@ -51,21 +51,26 @@ export function WaitlistForm({ onJoined, onCode, linkMessage }: { onJoined: () =
     <div className="stack waitlist">
       <p className="waitlist-line">Opening 2027</p>
       <form className="stack" onSubmit={join}>
-        <div className="field plain">
+        {/* The language is a small tag at the end of the email line, not a line of its own (Cat's L1, 2026-10-25): it
+            shows the language's short name and opens the full list. */}
+        <div className="field plain waitlist-email">
           <label htmlFor="wl-email" className="visually-hidden">
             Your email
           </label>
           <input id="wl-email" name="email" type="email" required maxLength={200} autoComplete="email" placeholder="Your email" value={email} onChange={(e) => setEmail(e.target.value)} />
-        </div>
-        <div className="waitlist-lang">
-          <label htmlFor="wl-lang">I sew in</label>
-          <select id="wl-lang" name="language" value={lang} onChange={(e) => setLang(e.target.value as SewLang)}>
-            {SEW_LANGS.map((id) => (
-              <option key={id} value={id}>
-                {SEW_LANG_NAME[id]}
-              </option>
-            ))}
-          </select>
+          <span className="waitlist-lang">
+            <span aria-hidden="true">{lang.toUpperCase()}</span>
+            <label htmlFor="wl-lang" className="visually-hidden">
+              I sew in
+            </label>
+            <select id="wl-lang" name="language" value={lang} onChange={(e) => setLang(e.target.value as SewLang)}>
+              {SEW_LANGS.map((id) => (
+                <option key={id} value={id}>
+                  {SEW_LANG_NAME[id]}
+                </option>
+              ))}
+            </select>
+          </span>
         </div>
         {lang !== 'en' && <p className="waitlist-lang-note">We'll tell you when Maison Tracé speaks it.</p>}
         <input className="hp" tabIndex={-1} autoComplete="off" aria-hidden="true" name="mt-hp" value={website} onChange={(e) => setWebsite(e.target.value)} />
