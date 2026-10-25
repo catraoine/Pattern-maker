@@ -61,18 +61,19 @@ test('hopping between screens never makes back ping-pong', async ({ page }) => {
   await welcome(page);
 });
 
-test('back on the enlarged drawing closes it and stays on Style', async ({ page }) => {
+test('back on the enlarged drawing makes it smaller and stays on Style', async ({ page }) => {
   await startWithExample(page);
-  await main(page).getByRole('button', { name: /^Enlarge/ }).first().click();
-  const big = page.getByRole('dialog', { name: /enlarged$/ });
-  await expect(big).toBeVisible();
+  const preview = main(page).getByRole('region', { name: 'Preview' });
+  await main(page).getByRole('button', { name: /^Enlarge the drawing/ }).click();
+  await expect(preview).toHaveClass(/live-big/);
   await page.goBack();
-  await expect(big).toHaveCount(0);
+  await expect(preview).not.toHaveClass(/live-big/);
   await expectStyle(page, 'Skirt');
-  // The close button takes the picture's step off too: back then leaves Style for the measurements.
-  await main(page).getByRole('button', { name: /^Enlarge/ }).first().click();
-  await page.getByRole('button', { name: 'Close full screen' }).click();
-  await expect(big).toHaveCount(0);
+  // Smaller takes the enlarged step off too: back then leaves Style for the measurements.
+  await main(page).getByRole('button', { name: /^Enlarge the drawing/ }).click();
+  await expect(preview).toHaveClass(/live-big/);
+  await main(page).getByRole('button', { name: /^Make the drawing .* smaller$/ }).click();
+  await expect(preview).not.toHaveClass(/live-big/);
   await page.goBack();
   await measurements(page);
 });
