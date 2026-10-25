@@ -219,7 +219,7 @@ const mark = (what) => console.log(`  style ${what}: ${((Date.now() - t0) / 1000
 // 2026-10-24: longer and flare, the neck and waist kept as in her photo).
 const LINES = {
   hem: [[0.12, 0.735], [0.5, 0.75], [0.88, 0.735]],
-  side: [[0.15, 0.44], [0.11, 0.58], [0.0, 0.735]],
+  side: [[0.15, 0.44], [0.11, 0.58], [-0.12, 0.735]],
 };
 // Off camera, the dress is made to match the photo the film has just shown, Cat's own check silk dress (Cat,
 // 2026-10-24: show that starting from a photo works): a boat neck, short sleeves, a waist seam dropped low on the hip,
@@ -316,10 +316,24 @@ if (process.env.TOUR_PROBE) {
 await start();
 t0 = Date.now();
 await wait(2600);
-// Then the fabric changed: the same check in another colour, so it stays her dress (Cat, 2026-10-24: not the toile).
 mark('fabric');
 await press(main.getByRole('tab', { name: 'Fabric', exact: true }), 900);
-await press(main.getByRole('radiogroup', { name: 'Colour' }).getByRole('radio', { name: 'Burgundy', exact: true }).first(), 2200);
+// Then the fabric changed to a plain ivory (Cat, 2026-10-25: no check at all for the change).
+const PRINT2 = process.env.TOUR_PRINT2 ?? 'Plain';
+if (PRINT2) {
+  const about2 = main.locator('summary', { hasText: 'About your fabric' });
+  if (!(await about2.evaluate((el) => el.parentElement.open))) await about2.evaluate((el) => el.click());
+  await wait(300);
+  await choose('[role=radiogroup][aria-label="What\'s printed on your fabric"] [role=radio]', PRINT2);
+  await wait(400);
+}
+if (process.env.TOUR_COLOUR2 !== 'none') await press(main.getByRole('radiogroup', { name: 'Colour' }).getByRole('radio', { name: process.env.TOUR_COLOUR2 ?? 'Ivory', exact: true }).first(), 2200);
+if (process.env.TOUR_PROBE_FABRIC) {
+  await main.getByRole('tab', { name: 'Shape', exact: true }).click();
+  await wait(1200);
+  await p.screenshot({ path: `${OUT}/fabric-${process.env.TOUR_PRINT2 ?? ''}${process.env.TOUR_COLOUR2}.png` });
+  process.exit(0);
+}
 // Enlarged, the preview fills the screen with its tools (Cat, 2026-10-24: use the tools while it's enlarged), and
 // drawing on the form from there opens the drawing tool enlarged too, the place where room matters most.
 mark('enlarge');

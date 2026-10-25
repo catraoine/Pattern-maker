@@ -210,9 +210,14 @@ export function AllRound({ round, m, striped = false, label }: Props) {
     const ra = sl ? Math.max(0.08, (sl.bicepCm / TAU) * krB * 0.95 * slim) : 0;
     const rh = sl ? Math.max(0.05, (sl.hemCm / TAU) * krB * 0.95 * slim) : 0;
     // The sleeve stands on the arm, outside the body at the underarm; even the shortest reaches a little below it.
-    const yE = sl ? Math.max(yS + sl.lengthCm * kY, yU + 0.1) : 0;
-    const axisX = (y: number) => formHalfWidth(yS) + ra * 0.25 + (formHalfWidth(yU) + ra * (film ? 0.55 : 1) - formHalfWidth(yS) - ra * 0.25) * smooth(clamp((y - yS) / (yU - yS || 1), 0, 1)) + Math.max(0, y - yU) * 0.04;
-    const sleeveR = (y: number) => (y < yU ? ra * Math.pow(clamp((y - yS) / (yU - yS || 1), 0.15, 1), film ? 0.5 : 0.35) : ra + (rh - ra) * clamp((y - yU) / (yE - yU || 1), 0, 1));
+    const yE = sl ? Math.max(yS + sl.lengthCm * kY, yU + (film ? 0.22 : 0.1)) : 0;
+    // In the film a short sleeve hangs straight down off the shoulder, rounding out from the top of the arm, so
+    // it reads as a sleeve and not a wing or a cape (Cat, 2026-10-25); its cap sits on the shoulder.
+    const yCap = yS + (yU - yS) * 0.3;
+    const filmAxis = (y: number) => formHalfWidth(yCap) + (formHalfWidth(yU) + ra * 0.5 - formHalfWidth(yCap)) * Math.sqrt(clamp((y - yCap) / (yU - yCap || 1), 0, 1)) + Math.max(0, y - yU) * 0.04;
+    const filmR = (y: number) => (y < yU ? ra * Math.pow(clamp((y - yCap) / (yU - yCap || 1), 0, 1), 0.45) : ra + (rh - ra) * clamp((y - yU) / (yE - yU || 1), 0, 1));
+    const axisX = (y: number) => film ? filmAxis(y) : formHalfWidth(yS) + ra * 0.25 + (formHalfWidth(yU) + ra * (film ? 0.55 : 1) - formHalfWidth(yS) - ra * 0.25) * smooth(clamp((y - yS) / (yU - yS || 1), 0, 1)) + Math.max(0, y - yU) * 0.04;
+    const sleeveR = (y: number) => film ? filmR(y) : (y < yU ? ra * Math.pow(clamp((y - yS) / (yU - yS || 1), 0.15, 1), film ? 0.5 : 0.35) : ra + (rh - ra) * clamp((y - yU) / (yE - yU || 1), 0, 1));
 
     // Trouser legs, round the form's own legs: easy at the thigh, then to the knee and the hem.
     const lg = round.legs;
@@ -303,10 +308,10 @@ export function AllRound({ round, m, striped = false, label }: Props) {
         }
         line(pts, colour, width, back, alpha);
       };
-      const tubeRing = (X: number, r: number, y: number, colour: string, width: number, alpha = 1) => {
+      const tubeRing = (X: number, r: number, y: number, colour: string, width: number, alpha = 1, back = 0.25) => {
         const pts: Pt[] = [];
         for (let i = 0; i <= 48; i++) pts.push(T(X, -Math.PI + (TAU * i) / 48, r, y));
-        line(pts, colour, width, 0.25, alpha);
+        line(pts, colour, width, back, alpha);
       };
       const dot = (q: Pt, colour: string, r = 3.4) => {
         g.globalAlpha = q[2] > 0 ? 1 : 0.35;
@@ -482,7 +487,8 @@ export function AllRound({ round, m, striped = false, label }: Props) {
           }
           if (!(film && sl)) line(loop, GLOW, lw * 1.05);
           if (!sl) continue;
-          const ys = Array.from({ length: 41 }, (_, i) => yS + ((yE - yS) * i) / 40);
+          const y0 = film ? yCap : yS;
+          const ys = Array.from({ length: 41 }, (_, i) => y0 + ((yE - y0) * i) / 40);
           const o = centre(e * axisX(yU), yU);
           const alpha = film ? clamp(0.7 + o.z / (formHalfWidth(yU) + ra), 0.35, 1) : clamp(0.55 + o.z / (formHalfWidth(yU) + ra), 0.22, 1);
           for (const side of [-1, 1]) {
@@ -497,8 +503,9 @@ export function AllRound({ round, m, striped = false, label }: Props) {
               alpha,
             );
           }
-          // In the film the hem ring is left out: edge-on, as the form turns, it read as a coat hanger.
-          if (!film) tubeRing(e * axisX(yE), rh, yE, GLOW, lw * 1.2, alpha);
+          // In the film only the hem's near half is drawn: the whole ring, edge-on as the form turns, read as a coat
+          // hanger, and with no hem at all the sleeve read as a wing off the shoulder (Cat, 2026-10-25).
+          tubeRing(e * axisX(yE), rh, yE, GLOW, lw * 1.2, alpha, film ? 0 : 0.25);
           if (film) {
             // The sleeve's cloth, in a few lines down the front of the arm.
             for (const a of [-0.9, -0.3, 0.3, 0.9]) {
