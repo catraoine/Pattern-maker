@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { isLadderStep, onOverlay, pushOverlay } from '../nav';
 import { createPortal } from 'react-dom';
 
@@ -22,6 +22,25 @@ export const tookEnlarged = () => {
   return now;
 };
 
+// Drawings that frame themselves closer while enlarged (Cat's E2 Garment fills, 2026-10-25) listen for it.
+const watchers = new Set<() => void>();
+let shownBig = false;
+const showBig = (now: boolean) => {
+  if (now === shownBig) return;
+  shownBig = now;
+  watchers.forEach((w) => w());
+};
+/** Whether the preview is enlarged now, for a drawing to frame itself closer. */
+export const useEnlarged = () =>
+  useSyncExternalStore(
+    (w) => {
+      watchers.add(w);
+      return () => watchers.delete(w);
+    },
+    () => shownBig,
+    () => false,
+  );
+
 /** Marks the enlarged preview's entry in the browser's history. */
 const ENLARGED = 'enlarged';
 
@@ -35,9 +54,11 @@ export function EnlargeSketch({ host, name }: { host: HTMLElement | null; name: 
     () => () => {
       if (isBig.current) leftBig = Date.now();
       bigNow = false;
+      showBig(false);
     },
     [],
   );
+  useLayoutEffect(() => showBig(big), [big]);
   // Where the button goes: over the drawing's corner, or in the pattern's own row beside Move points.
   const [spot, setSpot] = useState<HTMLElement | null>(null);
   // Only while there's a drawing to show: not on the turning form, not while drawing a hem.

@@ -458,5 +458,16 @@ await wait(1800);
 await glide(sheetAt, 700);
 await wait(3500);
 await stop('print');
+// On a phone the film fills the screen with the sheet and drifts across it (Cat picked P2, 2026-10-25); the screencast
+// is too soft to blow up, so the sheet is also taken as one sharp picture, drawn seven times over, without its Watch
+// demo button (a film inside the film).
+if (!WIDE) {
+  await main.locator('.preview.tiles').evaluate((el) => el.querySelectorAll('button').forEach((b) => (b.style.visibility = 'hidden')));
+  const box = await main.locator('.preview.tiles').boundingBox();
+  const y = await p.evaluate(() => scrollY);
+  const s = await ctx.newCDPSession(p);
+  const shot = await s.send('Page.captureScreenshot', { format: 'png', clip: { ...box, y: box.y + y, scale: 7 }, captureBeyondViewport: true });
+  writeFileSync(join(OUT, 'print-sheet.png'), Buffer.from(shot.data, 'base64'));
+}
 
 await b.close();

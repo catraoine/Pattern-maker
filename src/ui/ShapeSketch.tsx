@@ -3,6 +3,7 @@
 // draw a new hemline across the bottom with a finger.
 import { skirtBelt } from '../engine/belt';
 import { PointerEvent, useMemo, useRef, useState } from 'react';
+import { useEnlarged } from './EnlargeSketch';
 import type { Choices } from '../App';
 import { skirtFlat, wornLines, wornShapes } from '../engine/flat';
 import type { P } from '../engine/geometry';
@@ -171,7 +172,18 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
   }, [draft.finishedHip, draft.finishedWaist, draft.circleShare, m, body, cloth]);
 
   const cx = frame.half;
-  const k = (frame.bottom - frame.top) / 110; // handle and label size, in proportion to the sketch
+  // Enlarged, the skirt fills the screen (Cat's E2, 2026-10-25): from just above the waist to a little past the hem,
+  // as wide as the skirt. It holds still while a handle is dragged, and reframes once it's let go.
+  const big = useEnlarged();
+  const held = useRef(frame);
+  if (!drag) {
+    const pts = cloth.flat();
+    const wide = SQUEEZE * Math.max(...pts.map((q) => Math.abs(q.x)), m.waist / 4) + 6;
+    const low = Math.max(...pts.map((q) => q.y), m.waist_to_hip ?? 20);
+    held.current = big ? { half: frame.half, left: cx - wide, width: 2 * wide, top: -16, bottom: Math.min(frame.bottom, low + 9) } as typeof frame : frame;
+  }
+  const shown = held.current as typeof frame & { left?: number; width?: number };
+  const k = (shown.bottom - shown.top) / 110; // handle and label size, in proportion to the sketch
   // The handles sit on the skirt as drawn: its hem at the centre, and the hem's outer corner.
   const skirt = cloth[0] ?? [];
   const hemCentre = skirt.length ? skirt.reduce((a, b) => (b.y > a.y ? b : a)) : { x: 0, y: draft.lengthCm };
@@ -279,7 +291,7 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
     <svg
       ref={svg}
       // Room for the length marks on the left, and as much on the right to keep the form centred.
-      viewBox={`${-MARGIN * k} ${frame.top} ${2 * cx + 2 * MARGIN * k} ${frame.bottom - frame.top}`}
+      viewBox={shown.width ? `${shown.left} ${shown.top} ${shown.width} ${shown.bottom - shown.top}` : `${-MARGIN * k} ${frame.top} ${2 * cx + 2 * MARGIN * k} ${frame.bottom - frame.top}`}
       // A group, not an image: an image hides the length and flare handles inside it from screen readers.
       role="group"
       aria-label={label}
@@ -294,7 +306,7 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
       onPointerCancel={end}
     >
       <FormLayers body={body} m={m} legs cx={cx} top={frame.top} bottom={frame.bottom} lines={lines} worn={cloth} folds={folds} />
-      {!drawing && (
+      {!drawing && !big && (
         <g className="hem-marks">
           <LengthMarks
             marks={LENGTH_IDS.map((id) => ({ id, label: lengthName(id), y: LENGTHS[id](m) }))}
