@@ -482,6 +482,13 @@ button.secondary {
   }
 }
 
+/* A tap flashes champagne while the finger is down, and lets go with it, so nothing sticks (Cat, 2026-10-25) */
+button.primary:active:not(:disabled) {
+  background: var(--gild);
+  color: var(--paper);
+  border-color: var(--gild);
+}
+
 button.primary:disabled,
 button.primary:disabled:hover {
   background: transparent;
@@ -6254,6 +6261,24 @@ body:has(.tape-band.carried) {
   font: var(--w-body) 10px/1 var(--mono);
   letter-spacing: 0.25em;
   text-transform: uppercase;
+}
+
+/* The play button flashes champagne on a tap, like Join */
+.tour-play:active .tour-play-ring {
+  background: var(--gild);
+  border-color: var(--gild);
+}
+.tour-play:active .tour-play-ring::after {
+  border-left-color: var(--paper);
+}
+@media (hover: hover) {
+  .tour-play:hover .tour-play-ring {
+    background: var(--gild);
+    border-color: var(--gild);
+  }
+  .tour-play:hover .tour-play-ring::after {
+    border-left-color: var(--paper);
+  }
 }
 
 .tour-play:focus-visible .tour-play-ring {
