@@ -66,12 +66,12 @@ async function dissolve(a, b2, d) {
 }
 // A black frame round a drawing, so a zoomed-in moment shows the drawing alone, not cut-off words around it.
 // top and bottom (and left and right, if given): where the picture shows, as fractions of the frame; it fades in
-// over the 3% outside them.
+// over the 3% outside them, or over soft at the top (a crisp top reads as the paper's own edge, not a blur).
 const masks = {};
-async function mask([top, bottom, left = -1, right = 2]) {
-  const key = `${top}-${bottom}-${left}-${right}`;
-  const band = (dir, a, b) => `linear-gradient(${dir},#000 0,#000 ${(a - 0.03) * 100}%,rgba(0,0,0,0) ${a * 100}%,rgba(0,0,0,0) ${b * 100}%,#000 ${(b + 0.03) * 100}%,#000 100%)`;
-  masks[key] ??= await words(`<div class="f" style="background:${band('to bottom', top, bottom)},${band('to right', left, right)}"></div>`);
+async function mask([top, bottom, left = -1, right = 2, soft = 0.03]) {
+  const key = `${top}-${bottom}-${left}-${right}-${soft}`;
+  const band = (dir, a, b, sa = 0.03) => `linear-gradient(${dir},#000 0,#000 ${(a - sa) * 100}%,rgba(0,0,0,0) ${a * 100}%,rgba(0,0,0,0) ${b * 100}%,#000 ${(b + 0.03) * 100}%,#000 100%)`;
+  masks[key] ??= await words(`<div class="f" style="background:${band('to bottom', top, bottom, soft)},${band('to right', left, right)}"></div>`);
   return masks[key];
 }
 
@@ -166,8 +166,8 @@ const styleJourney = async () => {
 // Cat (2026-10-22): the cream pattern paper was too bright after the black pages; a deeper champagne here.
 // Wide: from the moment the pattern is up, slowed a touch to fill its time (Cat, 2026-10-22: the drawing flashed before it).
 const PATTERN = WIDE
-  ? { from: 1.1, speed: 0.8, zoom: [1.6, 1.66], at: [0.42, 0.72], frame: [0.09, 1.05, 0.1, 0.92], tint: [0.84, 0.78, 0.66] }
-  : { from: 1.1, speed: 0.75, zoom: [1.1, 1.14], at: [0.5, 0.56], frame: [0.305, 0.712], tint: [0.84, 0.78, 0.66] };
+  ? { from: 1.1, speed: 0.8, zoom: [1.6, 1.66], at: [0.42, 0.72], frame: [0.1, 1.05, 0.1, 0.92, 0.002], tint: [0.84, 0.78, 0.66] }
+  : { from: 1.1, speed: 0.75, zoom: [1.1, 1.14], at: [0.5, 0.56], frame: [0.29, 0.712, -1, 2, 0.002], tint: [0.84, 0.78, 0.66] };
 // On a phone the whole sheet of pages shows, opened under See the pages, the words round it in black (Cat, 2026-10-24:
 // 1.6 was too close).
 // On a phone the sheet of pages is thin champagne lines on black; lifted so they read (walkthrough, 2026-10-24).
@@ -193,11 +193,12 @@ async function threeChecks() {
 // On a computer the enlarged preview keeps its view switches top left, so its words sit to the left of the form.
 // 'low' sits nearer the picture under it, over the black above the photo and the pattern sheet (Cat, 2026-10-25:
 // the photo's words a little too high, and the pattern's at the same height).
-const note = (line, where) => words(WIDE && where === 'side'
+// shade false: no dark fade behind the words, where they already sit on black (Cat, 2026-10-25: "so much black blur").
+const note = (line, where, shade = true) => words(WIDE && where === 'side'
   ? `<div class="f" style="display:flex;flex-direction:column;justify-content:center;padding-left:96px;background:linear-gradient(to right,rgba(0,0,0,.85) 0,rgba(0,0,0,.6) 30%,rgba(0,0,0,0) 42%)"><h1 class="t" style="font-size:46px">${line}</h1></div>`
   : WIDE
-  ? `<div class="f" style="background:linear-gradient(to bottom,rgba(0,0,0,.92) 0,rgba(0,0,0,.8) 13%,rgba(0,0,0,0) 22%);padding:${where === 'low' ? 54 : 44}px 0 0 96px"><h1 class="t" style="font-size:46px">${line}</h1></div>`
-  : `<div class="f" style="background:linear-gradient(to bottom,rgba(0,0,0,.92) 0,rgba(0,0,0,.8) 11%,rgba(0,0,0,0) 17%);padding:${where === 'low' ? 60 : 40}px 0 0 28px"><h1 class="t" style="font-size:36px">${line}</h1></div>`);
+  ? `<div class="f" style="${shade ? 'background:linear-gradient(to bottom,rgba(0,0,0,.92) 0,rgba(0,0,0,.8) 13%,rgba(0,0,0,0) 22%);' : ''}padding:${where === 'low' ? 54 : 44}px 0 0 96px"><h1 class="t" style="font-size:46px">${line}</h1></div>`
+  : `<div class="f" style="${shade ? 'background:linear-gradient(to bottom,rgba(0,0,0,.92) 0,rgba(0,0,0,.8) 11%,rgba(0,0,0,0) 17%);' : ''}padding:${where === 'low' ? 60 : 40}px 0 0 28px"><h1 class="t" style="font-size:36px">${line}</h1></div>`);
 // P2 Or Start From a Photo (Cat, 2026-10-24): after the garments, a photo of a dress (made for the film, no person in
 // it), briefly, its words the same size and place as the Style steps'. No drafted dress after it (Cat: skip that).
 const PHOTO = readFileSync(new URL('./tour/photo-dress.jpg', import.meta.url)).toString('base64');
@@ -275,7 +276,7 @@ const CUTS = {
       // Done lands on the pattern sheet, so the pattern follows straight on, then the dress all round (Cat,
       // 2026-10-24: no flash back to the dress between them), each dissolving into the next.
       await dissolve(
-        await dissolve(await styleJourney(), await piece({ shot: 'pattern', dur: 3.6, ...PATTERN, notes: [[await note('Your pattern, drafted.', 'low'), 0.5, 3.4]] }), 0.8),
+        await dissolve(await styleJourney(), await piece({ shot: 'pattern', dur: 3.6, ...PATTERN, notes: [[await note('Your pattern, drafted.', 'low', false), 0.5, 3.4]] }), 0.8),
         await piece({ shot: 'round', from: 0.3, dur: 8.6, fadeOut: f, overs: (await threeChecks()).map((p, i) => [p, 0.9 + i * 1.8]) }),
         1,
       ),
