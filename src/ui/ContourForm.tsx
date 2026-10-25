@@ -11,7 +11,15 @@ import { LEG, LEG_FLOOR, LEG_KNEE, LEG_X } from '../engine/form';
 // Champagne lines (Cat's G4 pick), matching --gild and --gild-glow in styles.css.
 const CHAMPAGNE = '#d9c49b';
 // The tape: an ivory band with tick marks, like a real tape measure.
-const PAPER = '#e9dec4';
+/** The tape's own colours, as the first page's strip draws it (--tape and --tape-ink in styles.css), so the tape
+ *  round the body is the same tape that was pulled across the top (Cat, 2026-10-24). */
+const TAPE = '#e3d3ad';
+const TAPE_INK = '#2b2418';
+const TAPE_HOOK = '#b8a274';
+/** The strip on the first page is 18px tall; its marks and numbers are laid out on that, so they scale with it. */
+const STRIP_PX = 18;
+/** The first number on the strip, at its hooked end (TAPE_MARKS in MeasureStepsScreen). */
+const FIRST_MARK = 41;
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const seg = (t: number, a: number, b: number) => clamp((t - a) / (b - a), 0, 1);
@@ -452,16 +460,16 @@ export function paintFigure(g: CanvasRenderingContext2D, S: number, cx: number, 
   paintHead(g, S, cx, Y, lw, (u) => 0.7 * Math.min(1, Math.sqrt(Math.max(0, 1 - u * u)) * 6), spin);
 }
 
-/** A tape: an ivory band along the points, with a tick every few millimetres and a longer one every fifth. */
+/** A tape: a champagne band along the points, the strip's colours, with a tick every few millimetres and a longer one every fifth. */
 function tape(g: CanvasRenderingContext2D, pts: Pt[], tw: number, alpha = 1) {
   if (pts.length < 2 || alpha <= 0) return;
   g.globalAlpha = alpha;
-  g.strokeStyle = PAPER;
+  g.strokeStyle = TAPE;
   g.lineWidth = tw;
   g.lineCap = 'butt';
   g.lineJoin = 'round';
   path(g, pts);
-  g.strokeStyle = '#000';
+  g.strokeStyle = TAPE_INK;
   g.lineWidth = Math.max(0.6, tw * 0.08);
   const gap = tw * 0.55;
   let acc = 0, k = 0;
@@ -487,29 +495,51 @@ function tape(g: CanvasRenderingContext2D, pts: Pt[], tw: number, alpha = 1) {
 function band(g: CanvasRenderingContext2D, pts: Pt[], tw: number, alpha = 1, marks = true) {
   if (pts.length < 2 || alpha <= 0) return;
   g.globalAlpha = alpha;
-  g.fillStyle = PAPER;
+  g.fillStyle = TAPE;
   g.beginPath();
   pts.forEach(([x, y], i) => (i ? g.lineTo(x, y - tw / 2) : g.moveTo(x, y - tw / 2)));
   for (let i = pts.length - 1; i >= 0; i--) g.lineTo(pts[i][0], pts[i][1] + tw / 2);
   g.closePath();
   g.fill();
   if (marks) {
-    g.strokeStyle = '#000';
-    g.lineWidth = Math.max(0.6, tw * 0.08);
+    // As on the strip: a long mark each centimetre with its number between, and a short one every 2 mm, all from
+    // the top edge, counted from the hooked end at pts[0].
+    const u = tw / STRIP_PX;
+    const cm = 19.5 * u;
+    const mm = 3.9 * u;
+    g.strokeStyle = TAPE_INK;
+    g.fillStyle = TAPE_INK;
     g.lineCap = 'butt';
-    const gap = tw * 0.55;
-    let acc = 0, k = 0;
+    g.font = `600 ${(8 * u).toFixed(2)}px 'Chakra Petch', ui-monospace, monospace`;
+    g.textAlign = 'center';
+    g.textBaseline = 'alphabetic';
+    let acc = 0, k = 0, n = 0;
     for (let i = 1; i < pts.length; i++) {
       const [x0, y0] = pts[i - 1], [x1, y1] = pts[i];
       const d = Math.hypot(x1 - x0, y1 - y0);
       if (!d) continue;
-      while (acc + d >= k * gap) {
-        const f = (k * gap - acc) / d, x = x0 + (x1 - x0) * f, y = y0 + (y1 - y0) * f - tw / 2;
-        stroke(g, [x, y], [x, y + tw * (k % 5 ? 0.28 : 0.5)]);
+      while (acc + d >= k * mm) {
+        const f = (k * mm - acc) / d, x = x0 + (x1 - x0) * f, y = y0 + (y1 - y0) * f - tw / 2;
+        const long = k % 5 === 0;
+        g.globalAlpha = alpha * (long ? 1 : 0.6);
+        g.lineWidth = Math.max(0.5, u);
+        stroke(g, [x, y], [x, y + (long ? 8 : 4) * u]);
         k++;
+      }
+      // Each number sits half a centimetre past its long mark.
+      while (acc + d >= (n + 0.5) * cm) {
+        const f = ((n + 0.5) * cm - acc) / d, x = x0 + (x1 - x0) * f, y = y0 + (y1 - y0) * f - tw / 2;
+        g.globalAlpha = alpha;
+        g.fillText(String(FIRST_MARK + n), x, y + 15 * u);
+        n++;
       }
       acc += d;
     }
+    // The brass hook on its end, as on the strip it was pulled from.
+    const [hx, hy] = pts[0];
+    g.globalAlpha = alpha;
+    g.fillStyle = TAPE_HOOK;
+    g.fillRect(hx - 5 * u, hy - tw / 2 - 5 * u, 6 * u, tw + 10 * u);
     g.lineCap = 'round';
   }
   g.globalAlpha = 1;

@@ -141,6 +141,11 @@ await wait(900);
 await main.getByRole('button', { name: 'Begin measuring', exact: true }).click();
 await wait(3600);
 await stop('tape');
+// TOUR_TAPE_ONLY=1 records just the tape shot, to check the measuring pages without the rest.
+if (process.env.TOUR_TAPE_ONLY) {
+  await b.close();
+  process.exit(0);
+}
 await fillAll();
 
 // choose: what to make, and the dress picked
