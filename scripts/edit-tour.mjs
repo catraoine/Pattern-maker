@@ -92,7 +92,7 @@ const eased = (stops, i) => {
   return e;
 };
 // notes: captions, each [picture, when it fades in, when it fades out], so a first-time viewer knows what each tap does.
-async function piece({ shot, src, slide = 0, still, from = 0, dur, speed = 1, zoom = [1, 1], at = [0.5, 0.5], cam, frame, tint, fadeIn = 0, fadeOut = 0, over, overIn = 0.4, overAt = 0, overs = [], notes = [], reverse = false }) {
+async function piece({ shot, src, slide = 0, still, from = 0, dur, speed = 1, zoom = [1, 1], at = [0.5, 0.5], cam, frame, tint, fadeIn = 0, fadeOut = 0, over, overIn = 0.4, overAt = 0, overs = [], notes = [], reverse = false, lift }) {
   const edge = frame ? await mask(frame) : undefined;
   const out = join(work, `p${String(k++).padStart(3, '0')}.mp4`);
   const frames = Math.round(dur * FPS);
@@ -111,6 +111,13 @@ async function piece({ shot, src, slide = 0, still, from = 0, dur, speed = 1, zo
   let v = `[0:v]setpts=(PTS-STARTPTS)/${speed},fps=${FPS},scale=${2 * W}:${2 * H},zoompan=z='${z}':x='max(0,min(iw-iw/zoom,(${ax})*iw-iw/zoom/2))':y='max(0,min(ih-ih/zoom,(${ay})*ih-ih/zoom/2))':d=1:s=${W}x${H}:fps=${FPS},trim=end_frame=${frames},setsar=1${reverse ? ',reverse' : ''}`;
   // slide: the picture travels in from the right edge to its place over that many seconds, starting gently and
   // gathering speed as it goes, like a camera move (Cat, 2026-10-24: "starts slower and ramps up slightly").
+  // lift: [how far, of the frame height, the picture moves up; when it starts to; over how long], so the pattern
+  // sheet sits just under its words, not far below them (Cat, 2026-10-25: "such a big gap").
+  if (lift) {
+    const [l, a = -1, d = 0.001] = lift;
+    const px = Math.round(l * H);
+    v += `,pad=iw:ih+${px}:0:0:black,crop=${W}:${H}:0:'${px}*clip((t-${a})/${d},0,1)'`;
+  }
   if (slide) v += `,pad=iw*2:ih:iw:0:black,crop=${W}:${H}:x='${W}*(0.3*min(1,t/${slide})+0.7*pow(min(1,t/${slide}),2))':y=0`;
   // tint: [r, g, b] multipliers, e.g. to take the cream pattern paper down to a deeper champagne.
   if (tint) v += `,colorchannelmixer=rr=${tint[0]}:gg=${tint[1]}:bb=${tint[2]}`;
@@ -161,13 +168,15 @@ const styleJourney = async () => {
   // One at a time: the words are all drawn on the one page.
   const notes = [];
   for (const [line, on, off, where] of STYLE_NOTES) notes.push([await note(line, where), atOut(on), atOut(off)]);
-  return piece({ shot: 'style', from: JOURNEY.from, dur: JOURNEY.dur, speed: (JOURNEY.to - JOURNEY.from) / JOURNEY.dur, cam: STYLE_CAM, fadeIn: 0.5, notes });
+  return piece({ shot: 'style', from: JOURNEY.from, dur: JOURNEY.dur, speed: (JOURNEY.to - JOURNEY.from) / JOURNEY.dur, cam: STYLE_CAM, fadeIn: 0.5, notes, ...(LIFT && { lift: [LIFT, JOURNEY.dur - 2.4, 1.6] }) });
 };
 // Cat (2026-10-22): the cream pattern paper was too bright after the black pages; a deeper champagne here.
 // Wide: from the moment the pattern is up, slowed a touch to fill its time (Cat, 2026-10-22: the drawing flashed before it).
+// On a phone the sheet rises the last part of the journey, to sit just under 'Your pattern, drafted.'
+const LIFT = WIDE ? 0 : 0.13;
 const PATTERN = WIDE
   ? { from: 1.1, speed: 0.8, zoom: [1.6, 1.66], at: [0.42, 0.72], frame: [0.1, 1.05, 0.1, 0.92, 0.002], tint: [0.84, 0.78, 0.66] }
-  : { from: 1.1, speed: 0.75, zoom: [1.1, 1.14], at: [0.5, 0.56], frame: [0.29, 0.712, -1, 2, 0.002], tint: [0.84, 0.78, 0.66] };
+  : { from: 1.1, speed: 0.75, zoom: [1.1, 1.14], at: [0.5, 0.56], frame: [0.29 - LIFT, 0.712 - LIFT, -1, 2, 0.002], lift: [LIFT], tint: [0.84, 0.78, 0.66] };
 // On a phone the whole sheet of pages shows, opened under See the pages, the words round it in black (Cat, 2026-10-24:
 // 1.6 was too close).
 // On a phone the sheet of pages is thin champagne lines on black; lifted so they read (walkthrough, 2026-10-24).
