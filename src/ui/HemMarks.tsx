@@ -21,6 +21,8 @@ interface Props extends HemChoice {
   k: number;
   /** Where the hem is drawn at the centre, when the cloth has one there (not between trouser legs). */
   hemAt?: number;
+  /** Just the dot, without the named lengths beside the body: when the drawing is enlarged to the garment. */
+  bare?: boolean;
 }
 
 /** Room the marks take beside the drawing, in handle sizes: the drawing widens by this on each side so it stays centred. */
@@ -47,7 +49,7 @@ export function LengthMarks({ marks, on, k, onPick }: { marks: HemChoice['marks'
 /** The mark nearest a height on the drawing. */
 const nearest = (marks: HemChoice['marks'], y: number) => marks.reduce((a, b) => (Math.abs(b.y - y) < Math.abs(a.y - y) ? b : a));
 
-export function HemMarks({ name, marks, value, onPick, svg, cx, k, hemAt }: Props) {
+export function HemMarks({ name, marks, value, onPick, svg, cx, k, hemAt, bare }: Props) {
   // While dragging the dot rides the marks; the garment is redrafted once, where it is let go.
   const [held, setHeld] = useState<string>();
   const shown = held ?? value;
@@ -66,7 +68,7 @@ export function HemMarks({ name, marks, value, onPick, svg, cx, k, hemAt }: Prop
   const dot: P = { x: cx, y };
   return (
     <g className="hem-marks">
-      <LengthMarks marks={marks} on={shown} k={k} onPick={(id) => id !== value && onPick(id)} />
+      {!bare && <LengthMarks marks={marks} on={shown} k={k} onPick={(id) => id !== value && onPick(id)} />}
       <g className={held ? 'handle on' : 'handle'}>
         <circle cx={dot.x} cy={dot.y} r={r} strokeWidth={0.22} />
         <circle cx={dot.x} cy={dot.y} r={0.45 * k} className="dot" />
