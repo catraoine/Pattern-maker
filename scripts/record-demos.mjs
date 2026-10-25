@@ -189,7 +189,13 @@ async function record(name, script, before) {
 const DEMOS = {
   style: async ({ main, wait, card, cap, tap }) => {
     const tab = (n) => tap(main.getByRole('tablist', { name: 'Style choices' }).getByRole('tab', { name: n, exact: true }), 700);
-    const chip = (g, c) => tap(main.getByRole('group', { name: g, exact: true }).getByRole('button', { name: c, exact: true }), 1400);
+    // A choice folded under its name opens first (the choices fold away, one open at a time).
+    const chip = async (g, c) => {
+      const group = main.getByRole('group', { name: g, exact: true });
+      const pick = group.getByRole('button', { name: c, exact: true });
+      if (!(await pick.isVisible())) await tap(group.getByRole('button', { name: g, exact: true }), 600);
+      await tap(pick, 1400);
+    };
     await card('Maison Tracé', 'Styling, in thirty seconds', 2400);
     await cap('Tabs', 'Choices sit on tabs under the sketch. Open one at a time.');
     await wait(1600);
@@ -199,8 +205,8 @@ const DEMOS = {
     await chip('Silhouette', 'Pencil');
     await chip('Silhouette', 'A-line');
     await tab('Length & hem');
-    await cap('Length & hem', 'Set the length, then the hem.');
-    await chip('Length', 'Midi');
+    // The length is dragged on the sketch now; the tab holds the hem's shape.
+    await cap('Length & hem', 'Drag the hem on the sketch for length. Pick its shape here.');
     await chip('Hem', 'High-low');
     await tab('Details');
     await cap('Details', 'Pockets, waistband or elastic.');
@@ -263,6 +269,13 @@ const BEFORE = {
     }),
 };
 
+/** Opens a drop-down (the paper, the fabric width) and picks from it. */
+async function pickFrom({ main, tap }, group, item, ms = 1800) {
+  const g = main.getByRole('group', { name: group, exact: true });
+  await tap(g.getByRole('button').first(), 700);
+  await tap(g.getByRole('menuitemradio', { name: item, exact: true }), ms);
+}
+
 /** From the style screen to Print, with every tool showing. */
 async function toPrint({ main, tap }, allTools) {
   await tap(main.getByRole('button', { name: 'Review', exact: true }), 1200);
@@ -273,9 +286,9 @@ async function toPrint({ main, tap }, allTools) {
 Object.assign(DEMOS, {
   photo: async ({ main, wait, card, cap, tap, show }) => {
     await card('Maison Tracé', 'From a photo', 2400);
-    await cap('Start', 'Seen something you love? Start from a photo, on Looks.');
+    await cap('Start', 'Seen something you love? Start from a look, then a photo.');
     await wait(600);
-    await tap(main.getByRole('tab', { name: 'Looks', exact: true }), 700);
+    await tap(main.getByRole('button', { name: 'Start from a look' }), 700);
     await tap(main.getByRole('button', { name: 'Start from a photo' }), 1400);
     await cap('Photo', 'Take one, or choose one. Worn or laid flat.');
     await tap(main.locator('label').filter({ hasText: 'Take or choose a photo' }), 200).catch(() => {});
@@ -310,8 +323,8 @@ Object.assign(DEMOS, {
     await toPrint(h, false);
     await show(main.locator('.lay').first(), 1800);
     await cap('Width', 'Change the fabric width, and the metres to buy change too.');
-    await tap(main.getByRole('button', { name: '115 cm', exact: true }), 1800);
-    await tap(main.getByRole('button', { name: '150 cm', exact: true }), 1800);
+    await pickFrom(h, 'Fabric width', '115 cm wide');
+    await pickFrom(h, 'Fabric width', '150 cm wide');
     await cap('', '');
     await card('Maison Tracé', 'Buy just what you need.', 2200, true);
   },
@@ -320,9 +333,11 @@ Object.assign(DEMOS, {
     await card('Maison Tracé', 'Printing your pattern', 2400);
     await cap('Paper', 'Review, then Print my pattern. Pick your paper size.');
     await toPrint(h, false);
-    await tap(main.getByRole('button', { name: 'US Letter', exact: true }), 1400);
-    await tap(main.getByRole('button', { name: 'A4', exact: true }), 1400);
+    await pickFrom(h, 'Paper', 'US Letter', 1400);
+    await pickFrom(h, 'Paper', 'A4', 1400);
     await cap('Pages', 'Each page is numbered on the drawing, so you know where it goes.');
+    // On a phone the pages fold behind one line.
+    await tap(main.getByRole('button', { name: /^See the \d+ pages?$/ }), 900);
     await show(main.locator('.preview.tiles'), 2200);
     await cap('Tape', 'Trim, match the half diamonds, and tape the pages together.');
     await tap(main.locator('summary').filter({ hasText: 'How the pages fit together' }), 2600);
