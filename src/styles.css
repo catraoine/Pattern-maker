@@ -3730,6 +3730,151 @@ button.link.garment-change {
   outline: var(--bw) solid var(--gild);
   outline-offset: 3px;
 }
+.colourdot.anycolour {
+  background: conic-gradient(hsl(0 60% 50%), hsl(60 60% 50%), hsl(120 40% 40%), hsl(180 40% 40%), hsl(240 45% 45%), hsl(300 40% 45%), hsl(360 60% 50%));
+}
+/* Any colour: a colour bar, a shade bar, a hex box and the shops' nearest colourways (Cat's W2 + W4). */
+.colourbars {
+  margin: 6px 0 12px;
+}
+.colourbars-q,
+.colourmatch-q {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 8px;
+}
+.colourbars-q .testing-tag {
+  display: inline-block;
+  min-height: 0;
+  margin: 0 0 0 8px;
+  padding: 2px 8px;
+  border: 1px solid var(--line-strong);
+  font-size: 10px;
+}
+.colourbar {
+  display: block;
+  margin: 0 0 12px;
+}
+.colourbar span,
+.hexbox span {
+  display: block;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.colourbar input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 24px;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--guide);
+  border-radius: 0;
+  cursor: pointer;
+}
+.colourbar input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 32px;
+  background: transparent;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px #000;
+}
+.colourbar input[type='range']::-moz-range-thumb {
+  width: 12px;
+  height: 30px;
+  background: transparent;
+  border: 2px solid #fff;
+  border-radius: 0;
+  box-shadow: 0 0 0 1px #000;
+}
+.colourbar input[type='range']:focus-visible {
+  outline: var(--bw) solid var(--focus);
+  outline-offset: 3px;
+}
+.hexbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 12px;
+}
+.hexbox span {
+  margin: 0;
+}
+.hexbox input {
+  width: 7.5em;
+  font-family: var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.hexname {
+  font-family: var(--mono);
+  letter-spacing: 0.06em;
+}
+.colourmatch {
+  border-top: 1px solid var(--guide);
+  padding-top: 10px;
+}
+.colourmatch-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 0;
+  padding: 8px 0;
+  border: 0;
+  border-bottom: 1px solid var(--guide);
+  border-radius: 0;
+  background: none;
+  color: var(--ink);
+  text-align: left;
+  text-transform: none;
+  letter-spacing: normal;
+  font-family: var(--sans);
+}
+.colourmatch-split {
+  display: flex;
+  flex: 0 0 36px;
+  height: 36px;
+  border: 1px solid var(--guide);
+}
+.colourmatch-split i {
+  flex: 1;
+}
+.colourmatch-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.colourmatch-text b {
+  font-weight: var(--w-strong);
+}
+.colourmatch-tag {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.colourmatch-tag.near {
+  color: var(--ok);
+}
+.colourmatch-tag.close {
+  color: var(--gild);
+}
+.colourmatch-tag.far {
+  color: var(--warn);
+}
 /* Handle labels stay readable over a pale fabric. */
 .garment-fabric .handle text,
 .garment-fabric .hint {

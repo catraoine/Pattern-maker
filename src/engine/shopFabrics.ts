@@ -203,10 +203,14 @@ export const shopFabricsFor = (garment: string) => SHOP_FABRICS.filter((f) => f.
 /** The colours offered for this fabric: a shop fabric's own colourways, otherwise the general set. */
 export const coloursFor = (f: MyFabric | undefined): Colour[] => shopFabric(f?.shop)?.colours ?? COLOURS;
 
-/** The colour to tint the sketch with, when the fabric's colour is one the app knows. */
+/** A colour picked on the colour bars or typed in: kept as its hex, like #B8613F. */
+export const isHex = (s: string | undefined): s is string => !!s && /^#[0-9a-f]{6}$/i.test(s.trim());
+
+/** The colour to tint the sketch with: a picked hex, or a colour the app knows by name. */
 export function colourHex(f: MyFabric | undefined): string | undefined {
   const name = f?.colour?.trim().toLowerCase();
   if (!name) return undefined;
+  if (isHex(name)) return name;
   return coloursFor(f).find((c) => c.name.toLowerCase() === name)?.hex ?? COLOURS.find((c) => c.name.toLowerCase() === name)?.hex;
 }
 
@@ -241,4 +245,63 @@ export function buyLink(f: ShopFabric, colour: string | undefined, metres: numbe
   if (f.cart) return { href: tracked(f, f.cart.replace('{qty}', String(buyAmount(f, metres).qty))), inCart: true };
   const url = colourway(f, colour)?.url;
   return url ? { href: tracked(f, url), inCart: false } : undefined;
+}
+
+/** Hue (0-360), saturation and lightness (0-100) of a hex colour, for the colour and shade bars. */
+export function hexToHsl(hex: string): { h: number; s: number; l: number } {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  const d = max - min;
+  if (!d) return { h: 0, s: 0, l: l * 100 };
+  const s = d / (1 - Math.abs(2 * l - 1));
+  const h = max === r ? ((g - b) / d + 6) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return { h: h * 60, s: s * 100, l: l * 100 };
+}
+
+export function hslToHex(h: number, s: number, l: number): string {
+  const a = (s / 100) * Math.min(l / 100, 1 - l / 100);
+  const f = (n: number) => {
+    const k = (n + h / 30) % 12;
+    const c = l / 100 - a * Math.max(-1, Math.min(k - 3, 9 - k, 1));
+    return Math.round(c * 255).toString(16).padStart(2, '0');
+  };
+  return `#${f(0)}${f(8)}${f(4)}`.toUpperCase();
+}
+
+/** A colour in CIELAB, where distance is roughly how different two colours look. */
+function lab(hex: string): [number, number, number] {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((c) => (c > 0.04045 ? ((c + 0.055) / 1.055) ** 2.4 : c / 12.92));
+  const f = (t: number) => (t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116);
+  const x = f((r * 0.4124 + g * 0.3576 + b * 0.1805) / 0.95047);
+  const y = f(r * 0.2126 + g * 0.7152 + b * 0.0722);
+  const z = f((r * 0.0193 + g * 0.1192 + b * 0.9505) / 1.08883);
+  return [116 * y - 16, 500 * (x - y), 200 * (y - z)];
+}
+
+/** How different two colours look (CIE76): under 10 reads as the same colour, under 28 as close. */
+export function colourDistance(a: string, b: string): number {
+  const p = lab(a);
+  const q = lab(b);
+  return Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]);
+}
+
+export type Closeness = 'near' | 'close' | 'far';
+export const CLOSENESS: Record<Closeness, string> = { near: 'Near match', close: 'Close', far: 'Different shade' };
+
+export interface ColourMatch {
+  fabric: ShopFabric;
+  colour: Colour;
+  distance: number;
+  closeness: Closeness;
+}
+
+/** The partner shops' colourways nearest a picked colour, best first, among the fabrics that suit the garment (Cat's W4 Shop Match). */
+export function closestShopColours(hex: string, garment: string, n = 3): ColourMatch[] {
+  return shopFabricsFor(garment)
+    .flatMap((fabric) => fabric.colours.map((colour) => ({ fabric, colour, distance: colourDistance(hex, colour.hex) })))
+    .sort((a, b) => a.distance - b.distance)
+    .slice(0, n)
+    .map((m) => ({ ...m, closeness: m.distance < 10 ? 'near' : m.distance < 28 ? 'close' : 'far' }));
 }

@@ -7,7 +7,8 @@ import { FIBRES, FIBRE_IDS, FabricGarment, MyFabric, clothFor, printRepeat } fro
 import { PRINTS, printImage, printOf, printTileCm } from '../engine/prints';
 import { FabricDetails } from './FabricDetails';
 import { SPECIALS, Special } from '../engine/specialFabrics';
-import { colourHex, coloursFor, shopFabric, shopFabricsFor, withShopFabric } from '../engine/shopFabrics';
+import { CLOSENESS, closestShopColours, colourHex, coloursFor, hexToHsl, hslToHex, isHex, shopFabric, shopFabricsFor, withShopFabric } from '../engine/shopFabrics';
+import { TestingTag } from './TestingTag';
 import { FabricLook, FabricLookContext } from './ClothLook';
 
 /** One tile, in the sketch's own centimetres: larger than life, so ribs and twill read on a phone. */
@@ -63,6 +64,18 @@ export function pickShopFabric(finish: Finish, id: string): Finish {
   if (!f) return finish;
   if (now.shop === id) return pickFabric(finish, undefined);
   return withFabric(finish, withShopFabric(now, f));
+}
+
+/** A colour picked on the bars or typed as a hex: the sketch takes it as is. */
+export function pickHex(finish: Finish, hex: string): Finish {
+  return withFabric(finish, { ...(finish.fabric ?? {}), colour: hex.toUpperCase() });
+}
+
+/** A shop colourway tapped under the colour bars: that fabric, in that colour. */
+export function pickShopColour(finish: Finish, id: string, colour: string): Finish {
+  const f = shopFabric(id);
+  if (!f) return finish;
+  return withFabric(finish, { ...withShopFabric(finish.fabric ?? {}, f), colour });
 }
 
 /** Lightness levels for a tinted swatch: the weave keeps its shading, in the chosen colour. */
@@ -196,13 +209,17 @@ export function FabricSwatches({ finish, onFinish, garment, details }: { finish:
   const printed = printShown(fabric);
   const colour = printed ? (printed === 'checks' ? (fabric?.checks?.stripes ? 'Stripes' : fabric?.checks?.gingham ? 'Gingham' : 'Checks') : PRINTS[printed].label) : fabric?.colour?.trim();
   const colours = coloursFor(fabric);
+  const picked = isHex(fabric?.colour) ? fabric!.colour!.trim().toUpperCase() : undefined;
+  const [anyOpen, setAnyOpen] = useState(!!picked);
+  // Any colour is for the fabric types: a shop fabric comes only in its own colourways.
+  const anyColour = !fabric?.shop && !printed;
   return (
     <div className="swatch-row">
       <p className="fabric-now">
         {label ? (
           <>
             <em>{label}</em>
-            {colour && <span className="muted"> · {colour}</span>}
+            {colour && <span className="muted"> · {picked ? <span className="hexname">{picked}</span> : colour}</span>}
           </>
         ) : (
           <span className="muted">See it in your fabric</span>
@@ -288,9 +305,99 @@ export function FabricSwatches({ finish, onFinish, garment, details }: { finish:
               />
             );
           })}
+          {anyColour && (
+            <button
+              type="button"
+              aria-expanded={anyOpen}
+              aria-label="Any colour"
+              title="Any colour"
+              className={picked ? 'colourdot anycolour on' : 'colourdot anycolour'}
+              onClick={() => setAnyOpen(!anyOpen)}
+            />
+          )}
         </div>
       )}
+      {chosen && anyColour && anyOpen && <ColourBars finish={finish} onFinish={onFinish} garment={garment} onShop={() => setTab('shop')} />}
       {details && <FabricDetails fabric={fabric} garment={garment} onFabric={(f) => onFinish({ ...finish, fabric: f, cloth: clothFor(f, finish.cloth) })} />}
+    </div>
+  );
+}
+
+const HUES = 'hsl(0 60% 50%), hsl(40 65% 50%), hsl(60 60% 50%), hsl(120 40% 40%), hsl(180 40% 40%), hsl(240 45% 45%), hsl(300 40% 45%), hsl(360 60% 50%)';
+
+/** Any colour (Cat's W2 Two Bars + W4 Shop Match, 2026-10-25): a colour bar, a shade bar and a hex box, then the
+ * partner shops' nearest colourways, one tap to use that fabric in that colour. */
+function ColourBars({ finish, onFinish, garment, onShop }: { finish: Finish; onFinish: (f: Finish) => void; garment: FabricGarment; onShop: () => void }) {
+  const now = finish.fabric?.colour;
+  const hex = isHex(now) ? now.trim().toUpperCase() : undefined;
+  const hsl = hex ? hexToHsl(hex) : { h: 15, s: 50, l: 48 };
+  // A grey has no colour to turn, so turning the colour bar gives it some.
+  const sat = Math.max(hsl.s, 35);
+  const [typed, setTyped] = useState<string | undefined>();
+  const matches = hex ? closestShopColours(hex, garment) : [];
+  const set = (h: number, s: number, l: number) => {
+    setTyped(undefined);
+    onFinish(pickHex(finish, hslToHex(h, s, l)));
+  };
+  const onType = (v: string) => {
+    const t = v.trim().replace(/^#?/, '#');
+    setTyped(v);
+    if (isHex(t)) onFinish(pickHex(finish, t));
+  };
+  return (
+    <div className="colourbars">
+      <p className="colourbars-q">
+        Any colour <TestingTag />
+      </p>
+      <label className="colourbar">
+        <span>Colour</span>
+        <input type="range" min={0} max={359} value={Math.round(hsl.h)} style={{ background: `linear-gradient(90deg, ${HUES})` }} onChange={(e) => set(+e.target.value, sat, hsl.l)} />
+      </label>
+      <label className="colourbar">
+        <span>Shade</span>
+        <input
+          type="range"
+          min={6}
+          max={94}
+          value={Math.round(Math.min(94, Math.max(6, hsl.l)))}
+          style={{ background: `linear-gradient(90deg, ${hslToHex(hsl.h, sat, 6)}, ${hslToHex(hsl.h, sat, 50)}, ${hslToHex(hsl.h, sat, 94)})` }}
+          onChange={(e) => set(hsl.h, sat, +e.target.value)}
+        />
+      </label>
+      <label className="hexbox">
+        <span>Hex</span>
+        <input type="text" inputMode="text" spellCheck={false} autoCapitalize="characters" maxLength={7} placeholder="#B8613F" value={typed ?? hex ?? ''} onChange={(e) => onType(e.target.value)} onBlur={() => setTyped(undefined)} />
+        {hex && <i className="colourdot" style={{ background: hex }} aria-hidden="true" />}
+      </label>
+      {matches.length > 0 && (
+        <div className="colourmatch">
+          <p className="colourmatch-q">Closest at the shops</p>
+          {matches.map((m) => (
+            <button
+              key={`${m.fabric.id}-${m.colour.name}`}
+              type="button"
+              className="colourmatch-row"
+              onClick={() => {
+                onShop();
+                onFinish(pickShopColour(finish, m.fabric.id, m.colour.name));
+              }}
+            >
+              <span className="colourmatch-split" aria-hidden="true">
+                <i style={{ background: hex }} />
+                <i style={{ background: m.colour.hex }} />
+              </span>
+              <span className="colourmatch-text">
+                <b>{m.colour.name}</b>
+                <span className="muted small">
+                  {m.fabric.name} · {m.fabric.shop}
+                </span>
+              </span>
+              <span className={`colourmatch-tag ${m.closeness}`}>{CLOSENESS[m.closeness]}</span>
+            </button>
+          ))}
+          <p className="muted small">Tap one to use that fabric in that colour. Screens vary, so order a swatch first.</p>
+        </div>
+      )}
     </div>
   );
 }
