@@ -181,6 +181,20 @@ const PATTERN = WIDE
 // 1.6 was too close).
 // On a phone the sheet of pages is thin champagne lines on black; lifted so they read (walkthrough, 2026-10-24).
 const PAGES = { shot: 'print', from: 5.2, speed: 0.75, ...(WIDE ? { frame: [0.1, 1.05] } : { zoom: [1.08, 1.12], at: [0.5, 0.36], frame: [0.155, 0.62], tint: [1.4, 1.4, 1.4] }) };
+// Cat picked P2 (2026-10-25): on a phone the sheet fills the height of the screen, and the camera drifts slowly from
+// the left pieces to the right ones, eased at each end. Drawn from the sharp picture of the sheet the recorder takes.
+const SHEET = join(SHOTS, 'print-sheet.png');
+function sheetPan(dur) {
+  const out = join(work, 'sheet-pan.mp4');
+  const th = Math.round(H * 0.92 / 2) * 2;
+  const m = Math.round(W * 0.04);
+  const u = `(0.5-0.5*cos(PI*min(1,t/${dur})))`;
+  execFileSync('ffmpeg', ['-v', 'error', '-y', '-f', 'lavfi', '-i', `color=black:s=${W}x${H}:d=${dur + 0.5}:r=${FPS}`, '-loop', '1', '-framerate', String(FPS), '-t', String(dur + 0.5), '-i', SHEET,
+    '-filter_complex', `[1:v]scale=-2:${th}:flags=lanczos[s];[0:v][s]overlay=x='${m}-(overlay_w+${2 * m}-${W})*${u}':y=${(H - th) / 2}:shortest=1,format=yuv420p[v]`,
+    '-map', '[v]', '-c:v', 'libx264', '-crf', '14', '-preset', 'medium', out]);
+  return out;
+}
+const pages = (dur, fades) => (!WIDE && existsSync(SHEET) ? piece({ src: sheetPan(dur), dur, tint: [1.4, 1.4, 1.4], ...fades }) : piece({ ...PAGES, dur, ...fades }));
 // Cat's B Three Checks (2026-10-22): what All round is for, a line at a time over the turning form. On a phone in a
 // dark band along the bottom; on a computer to the left of the form. Each line is its own picture, all laid out
 // together so they stack in place; only the first carries the dark band.
@@ -290,7 +304,7 @@ const CUTS = {
         1,
       ),
       await piece({ still: await card('04', 'Print', 'At home, or full size.'), dur: 3, fadeIn: f, fadeOut: f }),
-      await piece({ ...PAGES, dur: 4.4, fadeIn: f, fadeOut: f }),
+      await pages(4.4, { fadeIn: f, fadeOut: f }),
       await piece({ still: await card('', 'Drafted<br>to your body'), dur: 4.5, fadeIn: 0.8, fadeOut: 1.2 }),
       await piece({ still: await endCard(), dur: 3, fadeIn: 0.8, fadeOut: 0.8 }),
     ];

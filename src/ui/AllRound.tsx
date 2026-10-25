@@ -206,15 +206,16 @@ export function AllRound({ round, m, striped = false, label }: Props) {
     const yU = arm ? yOf(arm.underarmCm) : 0;
     const sl = round.sleeve;
     // In the film the sleeve hugs the arm (Cat, 2026-10-24: "make it look chic"); in the app it keeps its wearing ease.
-    const slim = film ? 0.8 : 1;
+    const slim = film ? 0.9 : 1;
     const ra = sl ? Math.max(0.08, (sl.bicepCm / TAU) * krB * 0.95 * slim) : 0;
     const rh = sl ? Math.max(0.05, (sl.hemCm / TAU) * krB * 0.95 * slim) : 0;
     // The sleeve stands on the arm, outside the body at the underarm; even the shortest reaches a little below it.
-    const yE = sl ? Math.max(yS + sl.lengthCm * kY, yU + (film ? 0.22 : 0.1)) : 0;
+    const yE = sl ? Math.max(yS + sl.lengthCm * kY, yU + (film ? 0.4 : 0.1)) : 0;
     // In the film a short sleeve hangs straight down off the shoulder, rounding out from the top of the arm, so
-    // it reads as a sleeve and not a wing or a cape (Cat, 2026-10-25); its cap sits on the shoulder.
-    const yCap = yS + (yU - yS) * 0.3;
-    const filmAxis = (y: number) => formHalfWidth(yCap) + (formHalfWidth(yU) + ra * 0.5 - formHalfWidth(yCap)) * Math.sqrt(clamp((y - yCap) / (yU - yCap || 1), 0, 1)) + Math.max(0, y - yU) * 0.04;
+    // it reads as a sleeve and not a wing or a cape (Cat, 2026-10-25); its cap sits up on the shoulder tip, fuller and
+    // a little longer, not low and small on the arm (Cat applied the fix, 2026-10-25).
+    const yCap = yS + (yU - yS) * 0.12;
+    const filmAxis = (y: number) => formHalfWidth(yU) - ra * 0.2 + ra * 0.7 * Math.sqrt(clamp((y - yCap) / (yU - yCap || 1), 0, 1)) + Math.max(0, y - yU) * 0.04;
     const filmR = (y: number) => (y < yU ? ra * Math.pow(clamp((y - yCap) / (yU - yCap || 1), 0, 1), 0.45) : ra + (rh - ra) * clamp((y - yU) / (yE - yU || 1), 0, 1));
     const axisX = (y: number) => film ? filmAxis(y) : formHalfWidth(yS) + ra * 0.25 + (formHalfWidth(yU) + ra * (film ? 0.55 : 1) - formHalfWidth(yS) - ra * 0.25) * smooth(clamp((y - yS) / (yU - yS || 1), 0, 1)) + Math.max(0, y - yU) * 0.04;
     const sleeveR = (y: number) => film ? filmR(y) : (y < yU ? ra * Math.pow(clamp((y - yS) / (yU - yS || 1), 0.15, 1), film ? 0.5 : 0.35) : ra + (rh - ra) * clamp((y - yU) / (yE - yU || 1), 0, 1));
