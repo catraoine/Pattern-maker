@@ -73,7 +73,8 @@ export function HemMarks({ name, marks, value, onPick, svg, cx, k, hemAt, bare }
         <circle cx={dot.x} cy={dot.y} r={r} strokeWidth={0.22} />
         <circle cx={dot.x} cy={dot.y} r={0.45 * k} className="dot" />
         <path d={arrows} strokeWidth={0.22} fill="none" />
-        <text x={dot.x + r + 1.5 * k} y={dot.y + 0.9 * k} fontSize={2.6 * k}>
+        {/* Bare, the drawing is framed close to the garment: the name goes under the dot, where there's room. */}
+        <text x={bare ? dot.x : dot.x + r + 1.5 * k} y={bare ? dot.y + tip + 3.2 * k : dot.y + 0.9 * k} fontSize={2.6 * k} textAnchor={bare ? 'middle' : undefined}>
           {at.label.toUpperCase()}
         </text>
         <circle

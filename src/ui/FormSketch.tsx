@@ -404,11 +404,11 @@ export function FormSketch({ body, m, legs, bottom, arms, lines, outline = [], c
   const big = useEnlarged();
   const lowest = Math.max(...(worn ?? []).flat().map((q) => q.y), body.top + 20);
   const highest = Math.min(...(worn ?? []).flat().map((q) => q.y), body.top + 20);
-  const view = big ? { top: Math.max(body.top + 2, highest - 10), bottom: Math.min(frame.bottom, lowest + 9) } : frame;
+  const view = big ? { top: Math.max(body.top + 2, highest - 10), bottom: Math.min(frame.bottom + 6, lowest + 12) } : frame;
   const k = (view.bottom - view.top) / 110;
   // Room for the length marks on the left, and as much on the right to keep the form centred. Enlarged, the marks give
   // way to the garment: the dot still drags, and names the length it's on.
-  const side = hem ? (big ? 10 : MARGIN) * k : 0;
+  const side = hem ? (big ? 3 : MARGIN) * k : 0;
   return (
     // With a hem dot it is a group, not an image: an image hides the dot inside it from screen readers.
     <svg ref={svg} viewBox={`${f(-side)} ${f(view.top)} ${f(2 * cx + 2 * side)} ${f(view.bottom - view.top)}`} role={hem ? 'group' : 'img'} aria-label={label} className="preview-svg sketch shape form-still">
