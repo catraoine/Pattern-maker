@@ -7379,40 +7379,73 @@ details.sew > .sew-summary + .row {
 .waitlist-code button {
   white-space: nowrap;
 }
-/* L5 Ask First (2026-10-24): which language someone sews in, one line under the email with a drop-down. */
+/* L5 Ask First (2026-10-24), as a tag at the end of the email line (Cat's L1, 2026-10-25): the short name shows, and
+   the drop-down lies over it, unseen, so tapping it opens the full names. */
+.waitlist-email {
+  position: relative;
+}
+.waitlist-email input {
+  width: 100%;
+  padding-right: 84px;
+}
 .waitlist-lang {
+  position: absolute;
+  right: 0;
+  bottom: 8px;
   display: flex;
   align-items: center;
-  gap: 14px;
-  border-bottom: 1px solid var(--line-strong);
-  padding: 2px 0;
-}
-.waitlist-lang label {
+  min-width: 52px;
+  height: 32px;
+  padding: 0 16px 0 12px;
+  border-left: 1px solid var(--guide);
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23d9c49b' stroke-width='1.2'/%3E%3C/svg%3E") no-repeat right 0 center / 9px;
   font-family: var(--mono);
   font-size: 11px;
-  letter-spacing: 0.24em;
-  text-transform: uppercase;
+  letter-spacing: 0.2em;
   color: var(--muted);
-  white-space: nowrap;
 }
 .waitlist-lang select {
-  flex: 1;
-  min-width: 0;
-  min-height: 44px;
-  padding: 0 24px 0 0;
-  border: none;
-  border-radius: 0;
-  background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23d9c49b' stroke-width='1.2'/%3E%3C/svg%3E") no-repeat right 4px center;
-  appearance: none;
-  -webkit-appearance: none;
-  font-family: var(--sans);
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  min-height: 0;
+  opacity: 0;
   font-size: 16px;
-  color: var(--ink);
   cursor: pointer;
+}
+.waitlist-lang:focus-within {
+  color: var(--ink);
+  outline: 1px solid var(--gild);
+  outline-offset: 2px;
 }
 .waitlist-lang select option {
   background: var(--paper);
   color: var(--ink);
+}
+/* O2 Curtain Up (Cat, 2026-10-25): on a phone the waitlist opens with the form at Begin's full size and the waitlist
+   out of the way; then the form's canvas keeps that height while the hero shrinks over it, and the waitlist rises in. */
+.welcome.curtain-down .welcome-card > .stack.waitlist,
+.welcome.curtain-down .welcome-card > .fineprint {
+  position: absolute;
+  visibility: hidden;
+}
+.welcome.curtain-up .welcome-hero {
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to bottom, #000 82%, transparent);
+  mask-image: linear-gradient(to bottom, #000 82%, transparent);
+}
+.welcome.curtain-up .welcome-hero canvas {
+  height: max(100%, var(--curtain-h, 100%));
+}
+.welcome.curtain-up .welcome-card > .stack.waitlist,
+.welcome.curtain-up .welcome-card > .fineprint {
+  animation: curtain-in 0.9s 0.25s cubic-bezier(0.45, 0, 0.2, 1) both;
+}
+@keyframes curtain-in {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
 }
 .waitlist-lang-note {
   margin: 0;
