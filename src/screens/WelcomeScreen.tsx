@@ -173,7 +173,7 @@ export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume, wait
             stay in Your account (Cat's L5 First Visit Only, 2026-10-20). */}
         {waitlist ? (
           <p className="fineprint">
-            Only Maison Tracé news, deleted if you ask.{' '}
+            {/* Just the link where emails are collected (Cat, 2026-10-25: the sentence was clutter) */}
             <button type="button" className="inline-link" onClick={() => onLegal('privacy')}>
               Privacy Policy
             </button>
