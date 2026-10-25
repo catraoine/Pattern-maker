@@ -49,7 +49,7 @@ export function WaitlistForm({ onJoined, onCode, linkMessage }: { onJoined: () =
 
   return (
     <div className="stack waitlist">
-      <p className="waitlist-line">Opening in 2027. Join the list to get in first.</p>
+      <p className="waitlist-line">Opening 2027</p>
       <form className="stack" onSubmit={join}>
         <div className="field plain">
           <label htmlFor="wl-email" className="visually-hidden">

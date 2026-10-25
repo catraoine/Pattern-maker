@@ -105,15 +105,17 @@ export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume, wait
   };
 
   return (
-    <div className={['welcome', formStart !== 'wait' && 'go', leaving && 'leaving'].filter(Boolean).join(' ')}>
+    <div className={['welcome', formStart !== 'wait' && 'go', leaving && 'leaving', waitlist && 'waitlist-page'].filter(Boolean).join(' ')}>
       <section className="card welcome-card" aria-labelledby="wtitle">
         <div className="welcome-hero" ref={hero}>
           <ContourForm start={formStart} kind={form} />
           <button type="button" className="tour-play" onClick={() => setTouring(true)} aria-label={`Watch how it works, ${TOUR_LABEL}`}>
+            {/* The label above the ring, off the waist lines and without the running time (Cat, 2026-10-25) */}
+            <span className="tour-play-label">How it works</span>
             <span className="tour-play-ring" aria-hidden="true" />
-            <span className="tour-play-label">How it works · {TOUR_LABEL}</span>
           </button>
-          {!resume && <span className="tape-tip" aria-hidden="true" />}
+          {/* The tip is where Begin pulls the tape from, so the waitlist, with no Begin, leaves it out */}
+          {!resume && !waitlist && <span className="tape-tip" aria-hidden="true" />}
           {leaving && (
             <div ref={tape} className="tape-band unrolling" aria-hidden="true">
               <div className="tape-marks">
@@ -171,7 +173,7 @@ export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume, wait
             stay in Your account (Cat's L5 First Visit Only, 2026-10-20). */}
         {waitlist ? (
           <p className="fineprint">
-            We use your email only for Maison Tracé news, and delete it if you ask.{' '}
+            {/* Just the link where emails are collected (Cat, 2026-10-25: the sentence was clutter) */}
             <button type="button" className="inline-link" onClick={() => onLegal('privacy')}>
               Privacy Policy
             </button>
