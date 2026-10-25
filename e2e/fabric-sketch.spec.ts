@@ -63,7 +63,7 @@ test('None, a colour and a shop fabric on the skirt sketch', async ({ page }) =>
   await expect(none).toHaveAttribute('aria-checked', 'true');
   await swatches.getByRole('radio', { name: 'Wool' }).click();
   await main.getByRole('radiogroup', { name: 'Colour' }).getByRole('radio', { name: 'Camel' }).click();
-  await expect(main.locator('.garment-fabric filter')).toHaveCount(1);
+  await expect(main.locator('.garment-fabric filter.fabric-tint')).toHaveCount(1);
   await none.click();
   await expect(main.locator('.garment-fabric')).toHaveCount(0);
   await main.getByRole('tab', { name: 'Shop' }).click();
@@ -89,7 +89,7 @@ test('any colour tints the sketch and finds the closest shop colourway', async (
   await expect(main.getByText('In testing').first()).toBeVisible();
   await main.getByLabel('Hex').fill('#b8613f');
   await expect(main.locator('.fabric-now')).toContainText('#B8613F');
-  await expect(main.locator('.garment-fabric filter')).toHaveCount(1);
+  await expect(main.locator('.garment-fabric filter.fabric-tint')).toHaveCount(1);
   if (process.env.SHOTS) {
     await main.locator('.colourbars').scrollIntoViewIfNeeded();
     await page.evaluate(() => window.scrollBy(0, 120));

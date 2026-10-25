@@ -175,7 +175,7 @@ export function GarmentFabric({ fabric, children }: { fabric: MyFabric | undefin
       <svg className="fabric-defs" aria-hidden="true" focusable="false">
         <defs>
           {table && (
-            <filter id={tint} colorInterpolationFilters="sRGB">
+            <filter id={tint} className="fabric-tint" colorInterpolationFilters="sRGB">
               <feColorMatrix type="saturate" values="0" />
               <feComponentTransfer>
                 <feFuncR type="table" tableValues={table[0]} />
