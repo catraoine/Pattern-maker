@@ -173,6 +173,8 @@ export interface Checks {
   repeat?: number;
   /** Stripes rather than checks: matched at the seams the same way, drawn as stripes. */
   stripes?: boolean;
+  /** A gingham: even squares of the colour and black, crossing to a half shade (Cat, 2026-10-24: her own dress). */
+  gingham?: boolean;
 }
 
 const MAIN_PIECES: Record<Garment, number> = { skirt: 2, bodice: 2, dress: 4, trousers: 2, tee: 2, jacket: 4, coat: 4, lingerie: 3 };

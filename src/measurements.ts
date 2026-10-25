@@ -549,7 +549,7 @@ export function checkMeasurements(v: MeasurementValues, unit: Unit, garment: Gar
   return out;
 }
 
-interface CrossCheck {
+export interface CrossCheck {
   /** The measurement most likely to be off, and the one it was checked against. */
   id: MeasurementId;
   with: MeasurementId;
@@ -563,13 +563,32 @@ interface CrossCheck {
  * often taken wrong, with how to take it again. Warnings only: an unusual body is still drafted.
  */
 export function crossChecks(v: MeasurementValues): CrossCheck[] {
+  return proportions(v, 'out');
+}
+
+/** How far into each proportion's range, from either edge, a measurement is worth a second look (of the range's width). */
+const NEAR = 0.15;
+
+/**
+ * The quieter tier under the cross-checks (Cat, 2026-10-24: help people get it right): proportions still inside the
+ * range most bodies fall in, but near its edge, said gently at the end of measuring. Often just right, so it never
+ * marks the number or stands in the way; it only offers one more look, with how to take it.
+ */
+function proportions(v: MeasurementValues, mode: 'out' | 'near'): CrossCheck[] {
   const out: CrossCheck[] = [];
   const ratio = (a: MeasurementId, b: MeasurementId, lo: number, hi: number, low: string, high: string) => {
     const x = v[a];
     const y = v[b];
     if (!x || !y) return;
-    if (x / y < lo) out.push({ id: a, with: b, message: low });
-    else if (x / y > hi) out.push({ id: a, with: b, message: high });
+    const q = x / y;
+    if (mode === 'out') {
+      if (q < lo) out.push({ id: a, with: b, message: low });
+      else if (q > hi) out.push({ id: a, with: b, message: high });
+      return;
+    }
+    const band = (hi - lo) * NEAR;
+    const soft = q >= lo && q < lo + band ? gently(low) : q <= hi && q > hi - band ? gently(high) : undefined;
+    if (soft) out.push({ id: a, with: b, message: soft });
   };
   ratio('armscye', 'full_bust', 0.34, 0.55,
     'Your armhole looks small for your bust. Measure round the top of your arm through the armpit, with the tape snug but not tight.',
@@ -655,9 +674,36 @@ export function crossChecks(v: MeasurementValues): CrossCheck[] {
     out.push({ id: 'front_hps_to_waist', with: 'nape_to_waist', message: 'Front length is usually longer than back length, since it goes over the bust. Measure from the side of the neck over the bust point to the waist.' });
   else if (front_hps_to_waist && nape_to_waist && front_hps_to_waist > nape_to_waist + 14)
     out.push({ id: 'front_hps_to_waist', with: 'nape_to_waist', message: 'Front length looks long next to your back length. Tie a ribbon round your waist and measure to its top edge on both.' });
+  if (mode === 'near') return out;
   if (high_hip && waist && full_hip && (high_hip < waist - 2 || high_hip > full_hip + 1))
     out.push({ id: 'high_hip', with: 'full_hip', message: 'High hip usually comes between your waist and your full hip. Measure about 10 cm below the waist, round the top of the hip bones.' });
   return out;
+}
+
+/** A cross-check's "looks short" said as "is on the short side", and offered as one more look rather than a mistake. */
+function gently(message: string): string | undefined {
+  const m = /^(.*?) looks (short|long|small|large|narrow|wide) (.*?\.) (.*)$/.exec(message);
+  if (!m) return undefined;
+  return `${m[1]} is on the ${m[2]} side ${m[3]} That's often just right, but it's worth one more look. ${m[4]}`;
+}
+
+/**
+ * Measurements worth a second look once measuring is done: in range, and they agree with the rest, but sit near the edge
+ * of what most bodies measure, or front and back disagree in the usual way round. Said only for this garment's own
+ * measurements, and never more than a few, so it stays a gentle nudge.
+ */
+export function secondLooks(v: MeasurementValues, garment: Garment = 'skirt', form: FormKind = 'womenswear'): CrossCheck[] {
+  const asked = new Set(fieldsFor(garment, form).map((f) => f.id));
+  const out = proportions(v, 'near');
+  const { front_waist_to_hip, back_waist_to_hip } = v;
+  // The waist dips at the back, so the back waist to hip is usually the same as the front or longer.
+  if (front_waist_to_hip && back_waist_to_hip && front_waist_to_hip > back_waist_to_hip + 0.5)
+    out.push({
+      id: 'front_waist_to_hip',
+      with: 'back_waist_to_hip',
+      message: "Front waist to hip is longer than the back, which is the less usual way round. That can be right, but it's worth one more look: measure both straight down from the waist ribbon, keeping the tape level with the fullest part of your seat.",
+    });
+  return out.filter((c) => asked.has(c.id) && asked.has(c.with)).map((c) => ({ ...c, message: worded(c.message, form) }));
 }
 
 /**

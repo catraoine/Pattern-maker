@@ -3,7 +3,7 @@ import { draftBodice } from '../engine/bodice';
 import { draftSkirt } from '../engine/skirt';
 import { DEFAULT_BODICE } from '../garments';
 import type { P } from '../engine/geometry';
-import { bodiceLines, edgeAt, landmarks, readBodiceHem, readDrape, readFit, readNeckline, readSeam, readSkirtHem, readSkirtSide, skirtLines } from './formLines';
+import { bodiceLines, edgeAt, landmarks, readBodiceHem, readDrape, readDressSide, readFit, readNeckline, readSeam, readSkirtHem, readSkirtSide, skirtLines } from './formLines';
 
 const m = { full_bust: 92, high_bust: 86, waist: 74, neck: 35, shoulder_width: 38, shoulder_length: 12, across_back: 35, across_front: 32, nape_to_waist: 41, front_hps_to_waist: 44, bust_depth: 26, apex_separation: 18, armscye: 40, full_hip: 98, waist_to_hip: 20 };
 const d = draftBodice(m);
@@ -147,6 +147,21 @@ describe('reading lines drawn on the form', () => {
     const sideLine = readSkirtSide(line({ x: hipQ + 1, y: 12 }, { x: hipQ + 1, y: 20 }, { x: hipQ + 12, y: 56 }), 0, sd, legs, skirt);
     expect(sideLine.choices?.fit).toBe('fitted');
     expect(sideLine.said).toMatch(/flare|shape/);
+  });
+
+  it("flares a dress's skirt from its side line, keeping the dress's one fit", () => {
+    const legs = { ...m, waist_to_knee: 58, waist_to_floor: 104 };
+    const skirt = { fit: 'regular', silhouette: 'straight', length: 'knee' } as const;
+    const sd = draftSkirt(legs, skirt);
+    const hipQ = legs.full_hip / 4;
+    const seamY = L.waistY;
+    const out = readDressSide(line({ x: hipQ + 1, y: seamY + 20 }, { x: hipQ + 14, y: seamY + 57 }), d, m, DEFAULT_BODICE, seamY, sd, legs, skirt);
+    expect(out.choices?.skirt.silhouette).toBe('a_line');
+    expect(out.choices?.skirt.fit).toBe('regular');
+    expect(out.said).toMatch(/flare|A-line/);
+    const both = readDressSide(line({ x: m.full_bust / 4 + 0.5, y: L.apex.y - 2 }, { x: m.full_bust / 4 + 0.5, y: L.waistY - 5 }, { x: hipQ + 14, y: seamY + 57 }), d, m, DEFAULT_BODICE, seamY, sd, legs, skirt);
+    expect(both.choices?.bodice.fit).toBe('fitted');
+    expect(both.choices?.skirt).toMatchObject({ fit: 'fitted', silhouette: 'a_line' });
   });
 
   it('draws the lines a bodice already has', () => {

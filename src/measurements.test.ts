@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { EXAMPLE_VALUES, FIELDS, checkMeasurements, crossChecks, isComplete, weightChecks } from './measurements';
+import { EXAMPLE_VALUES, FIELDS, checkMeasurements, crossChecks, isComplete, secondLooks, weightChecks } from './measurements';
 import { randomArms, randomBody, rng } from './engine/randomBodies';
 
 describe('measurements per garment', () => {
@@ -44,6 +44,33 @@ describe('the dress and cross-checks', () => {
       if (crossChecks({ ...b, ...randomArms(b, r) }).length) flagged++;
     }
     expect(flagged).toBeLessThan(40);
+  });
+
+  it('offers a second look only now and then, for numbers in range but near its edge', () => {
+    let flagged = 0;
+    const r = rng(77);
+    for (let i = 0; i < 2000; i++) {
+      const b = randomBody(r);
+      if (secondLooks({ ...b, ...randomArms(b, r) }, 'dress').length) flagged++;
+    }
+    expect(flagged).toBeLessThan(200);
+    expect(secondLooks(EXAMPLE_VALUES, 'dress')).toEqual([]);
+    // Near the edge, gently: worded as on the side, never a mistake, with how to take it again.
+    const [near] = secondLooks({ ...EXAMPLE_VALUES, waist_to_hip: EXAMPLE_VALUES.height! * 0.08 }, 'skirt');
+    expect(near.id).toBe('waist_to_hip');
+    expect(near.message).toMatch(/^Waist to hip is on the short side next to your height\. That's often just right/);
+    // Out of range is the cross-check's to say, not this.
+    expect(secondLooks({ ...EXAMPLE_VALUES, waist_to_hip: EXAMPLE_VALUES.height! * 0.06 }, 'skirt').map((c) => c.id)).not.toContain('waist_to_hip');
+  });
+
+  it('asks for a second look when the front waist to hip is longer than the back', () => {
+    // Cat's own skirt measurements (2026-10-24), front 7.5 in and back 7.2 in.
+    const v = { height: 165.1, waist: 66, full_hip: 86.4, waist_to_hip: 18.3, waist_to_knee: 61, waist_to_floor: 104.1, front_waist_to_hip: 19.05, back_waist_to_hip: 18.29 };
+    expect(checkMeasurements(v, 'in', 'skirt')).toEqual([]);
+    expect(secondLooks(v, 'skirt').map((c) => c.id)).toEqual(['front_waist_to_hip']);
+    expect(secondLooks({ ...v, front_waist_to_hip: 18.3, back_waist_to_hip: 18.8 }, 'skirt')).toEqual([]);
+    // A bodice doesn't ask for them, so it doesn't say so.
+    expect(secondLooks(v, 'bodice')).toEqual([]);
   });
 
   it('catches a measurement taken wrong, and names the one to retake', () => {

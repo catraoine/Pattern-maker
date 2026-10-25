@@ -53,7 +53,7 @@ import { armFor } from '../ui/DrawOnForm';
 import { orSeam, readSeamLine } from '../ui/formSeams';
 import { orNeckline, readUnevenNeckline, unevenNecklineLines } from '../ui/formBodice';
 import { REPLACES } from './BodiceStyleScreen';
-import { FormLine, bodiceLines, landmarks, readDrape, readFit, readNeckline, readSeam, readSkirtHem, readWaistSeam, seamWords, skirtLines, standingBand } from '../ui/formLines';
+import { FormLine, bodiceLines, landmarks, readDrape, readDressSide, readFit, readNeckline, readSeam, readSkirtHem, readWaistSeam, seamWords, skirtLines, standingBand } from '../ui/formLines';
 import { BANDS, isBandCollar } from '../engine/collar';
 import { ChoicePic, chipsClass } from '../ui/ChoicePic';
 import { Explain } from '../ui/Explain';
@@ -410,6 +410,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           ...(draft.noSeam ? [] : ([['slit', 'Slit'], ['fullness', 'Fullness'], ['pocket', 'Pocket']] as [FormLine, string][])),
         ]}
         help={{
+          ...(draft.noSeam ? {} : { fit: 'Draw down the side: closer beside the bust for a closer fit, and out at the hem to flare the skirt.' }),
           pocket: 'Draw a short line down the side seam of the skirt, below the waist, for in-seam pockets.',
           collar: 'Draw the collar round the neck: standing up above the neckline for a band, lying flat and rounded for a Peter Pan, coming to points for a shirt collar, hanging down at the centre for a bow.',
           front: 'Draw down the front: straight down the centre for a shirt dress buttoned to the hem, or from the neck crossing to the side at the waist for a wrap. On the back, down the centre for the zip.',
@@ -457,8 +458,13 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
             return { said: r.said, choices: r.choices && { ...choices, bodice: r.choices } };
           }
           if (kind === 'fit') {
-            const r = readFit(stroke, draft.bodice, mv, asBodice);
-            return { said: r.said, choices: r.choices && { ...choices, fit: r.choices.fit, bodice: r.choices, skirt: { ...choices.skirt, fit: r.choices.fit } } };
+            if (draft.noSeam) {
+              const r = readFit(stroke, draft.bodice, mv, asBodice);
+              return { said: r.said, choices: r.choices && { ...choices, fit: r.choices.fit, bodice: r.choices, skirt: { ...choices.skirt, fit: r.choices.fit } } };
+            }
+            // Out at the hem the side line flares the skirt, as on a skirt.
+            const r = readDressSide(stroke, draft.bodice, mv, asBodice, seamY, draft.skirt, sm, choices.skirt);
+            return { said: r.said, choices: r.choices && { ...choices, fit: r.choices.bodice.fit, bodice: r.choices.bodice, skirt: r.choices.skirt } };
           }
           const r =
             kind === 'neckline'

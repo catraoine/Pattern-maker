@@ -43,6 +43,17 @@ describe('shaping the bodice by hand', () => {
     expect(draftBodice(m, { neck }).pieces[0].meta.pointedAtCentre).toEqual(['neck']);
   });
 
+  it('lets a neckline drawn over a boat neck reach as wide as the boat, or wider', () => {
+    const boat = { ...DEFAULT_BODICE, neckline: 'boat' as const };
+    const d = draftBodice(m, boat);
+    const { neckY, neckX } = d.neckBlock.front;
+    // Straight across from far out along the shoulder, just below the neck.
+    const flat = Array.from({ length: 21 }, (_, i) => ({ x: (neckX + 9) * (1 - i / 20) ** 0.3, y: neckY - 1 + 2.5 * Math.min(1, i / 4) }));
+    const neck = strokeToNeck(flat, 'front', d, currentNeck(boat))!;
+    expect(neck.width).toBeGreaterThanOrEqual(7);
+    expect(neck.fullness).toBe(1);
+  });
+
   it('keeps a neckline drawn far too low or wide on the bodice', () => {
     const d = draftBodice(m);
     const wild = [{ x: -40, y: -2 }, { x: -20, y: 60 }, { x: 0, y: 140 }];

@@ -25,7 +25,7 @@ import { hemOffsetAt } from '../engine/bodiceHem';
 import { unevenEdge } from '../engine/uneven';
 import type { Side } from './ShapeSketch';
 import { FormArm, formWidth } from './DrawOnForm';
-import { FormLayers, formFrame, wornCloth, wornFolds, wornMapper } from './FormSketch';
+import { FormLayers, SQUEEZE, formFrame, wornCloth, wornFolds, wornMapper } from './FormSketch';
 import { landmarks } from './formLines';
 
 interface Worn {
@@ -204,7 +204,9 @@ export function strokeToNeck(stroke: P[], side: Side, draft: BodiceDraft, curren
   // However far it was drawn, the neckline stays 8 cm above the waist and leaves 3 cm of shoulder.
   const top = worn(draft, 'front').top;
   const sh = top.pts.filter((_, i) => top.tags[i] === 'shoulder' || (i > 0 && top.tags[i - 1] === 'shoulder'));
-  const shoulderLen = sh.length > 1 ? Math.hypot(sh[sh.length - 1].x - sh[0].x, sh[sh.length - 1].y - sh[0].y) : 12;
+  // The shoulder left by the neckline drawn now, plus what that neckline already took, is the whole shoulder: a
+  // boat neck must not leave the next line only the 5 cm it kept.
+  const shoulderLen = (sh.length > 1 ? Math.hypot(sh[sh.length - 1].x - sh[0].x, sh[sh.length - 1].y - sh[0].y) : 12 - current.width) + current.width;
   const maxDepth = draft.front.waistCentre.y - 8 - block.neckY;
   const mid = (low.y + high.y) / 2;
   const near = pts.filter((q) => Math.abs(q.y - mid) < (low.y - high.y) * 0.12);
@@ -263,7 +265,7 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
   // stays under the finger.
   const frame = useMemo(() => {
     // Room at the sides for the arms.
-    const half = (m.full_bust + BUST_EASE_RANGE.max) / 4 + 6 + 0.2 * (m.armscye ?? 0.43 * m.full_bust);
+    const half = SQUEEZE * ((m.full_bust + BUST_EASE_RANGE.max) / 4 + 6 + 0.2 * (m.armscye ?? 0.43 * m.full_bust));
     const deepest = Math.max(draft.front.waistCentre.y, draft.back.waistCentre.y) + (hip ? dropRange(m).max : 0);
     const base = formFrame(m, body, deepest + 7, arms, cloth);
     return { half: Math.max(half, base.half), top: Math.min(-8, base.top), bottom: base.bottom };
@@ -297,7 +299,7 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
       const next =
         drag.kind === 'hem'
           ? dragDrop(m, drag.before, drag.drop + at.y - drag.start.y)
-          : dragEase(drag.before, drag.ease + 4 * (at.x - drag.start.x) * (drag.start.x >= cx ? 1 : -1));
+          : dragEase(drag.before, drag.ease + (4 * (at.x - drag.start.x) * (drag.start.x >= cx ? 1 : -1)) / SQUEEZE);
       onLive(next);
     } else if (stroke) {
       setStroke([...stroke, toSvg(e)]);
@@ -309,7 +311,7 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
       onDone(drag.before, live.current);
       setDrag(undefined);
     } else if (stroke) {
-      const neck = stroke.length > 2 ? strokeToNeck(stroke.map((q) => ({ x: q.x - cx, y: q.y })), side, draft, currentNeck(choices)) : undefined;
+      const neck = stroke.length > 2 ? strokeToNeck(stroke.map((q) => ({ x: (q.x - cx) / SQUEEZE, y: q.y })), side, draft, currentNeck(choices)) : undefined;
       if (neck) onDone(choices, { ...choices, neck });
       setStroke(undefined);
     }
@@ -389,8 +391,8 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
       <FormLayers body={body} m={m} legs={false} cx={cx} top={frame.top} bottom={frame.bottom} arms={arms} lines={lines} worn={cloth} folds={folds} sleeve={arms ? sleeve : undefined} />
       {guide(waistY, 'WAIST')}
       {hip && guide(waistY + m.waist_to_hip!, 'HIP')}
-      {!drawing && hip && handle({ x: cx + hemCentre.x, y: hemCentre.y }, 'hem', lengthLabel)}
-      {!drawing && handle({ x: cx + widest.x, y: widest.y }, 'side', easeLabel)}
+      {!drawing && hip && handle({ x: cx + SQUEEZE * hemCentre.x, y: hemCentre.y }, 'hem', lengthLabel)}
+      {!drawing && handle({ x: cx + SQUEEZE * widest.x, y: widest.y }, 'side', easeLabel)}
       {drawing && !stroke && (
         <text x={cx} y={frame.bottom - 3 * k} fontSize={2.1 * k} textAnchor="middle" className="hint">
           {side === 'front' ? 'DRAW THE NECKLINE YOU WANT' : 'DRAW THE BACK NECKLINE'}
