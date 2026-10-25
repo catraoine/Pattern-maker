@@ -730,6 +730,36 @@ export const CARRY_MS = 900;
 /** How far into a girth's play its tape lies level across the body, ready to wrap. */
 const WRAP_FROM = 0.55;
 
+/** A length that starts or ends at the waist, measured from the string tied round it (Cat's D, 2026-10-24). */
+const startsAtWaist = (t: Tape) => (t.kind === 'side' || t.kind === 'back' || t.kind === 'front') && (t.from === 0.1 || t.to === 0.1);
+
+/** The string tied round the waist: a thin ring, its back half faint, with a small bow at the front. */
+function paintWaistString(g: CanvasRenderingContext2D, S: number, cx: number, Y: (y: number) => number, lw: number) {
+  const r = R(0.1) * S + lw;
+  const wy = Y(0.1);
+  g.save();
+  g.strokeStyle = CHAMPAGNE;
+  g.lineWidth = Math.max(1.2, lw * 1.6);
+  g.globalAlpha = 0.35;
+  g.beginPath();
+  g.ellipse(cx, wy, r, r * DEPTH, 0, Math.PI, 2 * Math.PI);
+  g.stroke();
+  g.globalAlpha = 1;
+  g.beginPath();
+  g.ellipse(cx, wy, r, r * DEPTH, 0, 0, Math.PI);
+  g.stroke();
+  const by = wy + r * DEPTH;
+  g.beginPath();
+  g.ellipse(cx - r * 0.09, by, r * 0.08, r * 0.045, -0.3, 0, 2 * Math.PI);
+  g.ellipse(cx + r * 0.09, by, r * 0.08, r * 0.045, 0.3, 0, 2 * Math.PI);
+  g.moveTo(cx, by);
+  g.lineTo(cx - r * 0.06, by + r * 0.2);
+  g.moveTo(cx, by);
+  g.lineTo(cx + r * 0.07, by + r * 0.18);
+  g.stroke();
+  g.restore();
+}
+
 /** One frame of a measuring page: `z` is how far the camera has come (0 to 1), `p` how far the tape has played. */
 function paintTape(g: CanvasRenderingContext2D, w: number, h: number, from: Cam, to: Cam, turn: [number, number], z: number, p: number, t: Tape | undefined) {
   g.globalAlpha = 1;
@@ -755,6 +785,7 @@ function paintTape(g: CanvasRenderingContext2D, w: number, h: number, from: Cam,
   paintLegs(g, S, cx, Y, lw);
   if (arms) paintArms(g, S, cx, lw, Y);
   paintHead(g, S, cx, Y, lw, EVEN, spin);
+  if (t && startsAtWaist(t)) paintWaistString(g, S, cx, Y, lw);
   // The floor, faint and dashed, when the measure goes down to it.
   // The same for the chair seat crotch depth is taken sitting on, and the ruler held level across the front at
   // the hip for the front waist to hip.
