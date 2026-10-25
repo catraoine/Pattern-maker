@@ -3531,8 +3531,8 @@ button.link.garment-change {
   stroke: var(--gild-glow);
   filter: drop-shadow(0 0 0.5px rgba(243, 230, 200, 0.8));
 }
-/* The garment as cloth on the form: the chosen fabric (black cloth until one is chosen), edged in champagne,
-   its seams drawn over it in the quieter line. */
+/* The garment as cloth on the form (Cat's F5 Satin and Light): the chosen fabric (black cloth until one is chosen),
+   shaped by light rather than outlined, with a thread of champagne at its edge and its seams pressed in. */
 .form-still .cloth-fill,
 .form-svg .cloth-fill {
   fill: var(--garment, #000);
@@ -3541,6 +3541,13 @@ button.link.garment-change {
 .form-still .cloth-edge,
 .form-svg .cloth-edge {
   stroke: var(--gild);
+  opacity: 0.6;
+}
+/* Where the cloth turns away at its edges: a soft shadow just inside them. */
+.form-still .cloth-turn,
+.form-svg .cloth-turn {
+  stroke: #000;
+  opacity: 0.3;
 }
 /* Drawing on the garment (D1 Draw on the Dress): the cloth follows each line as it lands, and the cloth takes
    no taps, so a line drawn over it still reaches the drawing. */
@@ -3553,16 +3560,26 @@ button.link.garment-change {
     transition: none;
   }
 }
-/* The garment's lines on the cloth: champagne over a soft dark halo, so they read on black cloth and on a light print alike. */
+/* The garment's lines on the cloth, pressed in: a soft dark groove and its fold, with a thread of champagne light
+   beside it, so a seam reads on black cloth and on a light print alike without looking like piping. */
 .form-still .cloth ~ .tape,
 .form-still .cloth ~ g .tape,
 .form-svg .cloth ~ g .tape {
   stroke: var(--gild);
 }
-.form-still .tape-halo,
-.form-svg .tape-halo {
+.form-still .seam-groove,
+.form-svg .seam-groove {
   stroke: #000;
-  opacity: 0.35;
+  opacity: 0.4;
+}
+.form-still .seam-fold,
+.form-svg .seam-fold {
+  stroke: #000;
+  opacity: 0.55;
+}
+.form-still .seam-light,
+.form-svg .seam-light {
+  opacity: 0.45;
 }
 /* The folds a full piece falls in: faint champagne, a touch lighter than the seams. */
 .form-still .cloth-fold,

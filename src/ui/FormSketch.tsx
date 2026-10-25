@@ -1,7 +1,8 @@
-// The garment on your form, standing still: the dress form in contour lines that "Draw on your form"
-// uses, with the garment on it as cloth (Cat's G5 "In its fabric", 2026-10-23): the garment's shapes
-// from its technical flat, filled with the fabric chosen on the Fabric tab (plain black cloth until one
-// is), lit from the left and shaded to the right, with its seams and darts drawn over. The cloth covers the
+// The garment on your form, standing still: the dress form as a black satin mannequin, with the garment on it
+// as cloth (Cat's G5 "In its fabric", 2026-10-23, drawn in light since her F5 Satin and Light, 2026-10-25): the
+// garment's shapes from its technical flat, filled with the fabric chosen on the Fabric tab (plain black cloth
+// until one is), shaped by the light, brightest down the front and turning into shadow at the sides, with its
+// seams pressed in. The cloth covers the
 // form's lines, so the neck, shoulders, arms and legs still show it is on a body. Sleeves hang on the arms,
 // drawn from your arm measurements. Every garment's Style page opens on this, so the body looks the same
 // on the welcome screen, while measuring and while styling.
@@ -42,16 +43,87 @@ export function formHead(body: FormBody, cx: number): { outline: string; lines: 
   return { outline: formPath(outline.map(at)) + ' Z', lines: inner.map((l) => formPath(l.map(at))) };
 }
 
-/** The head drawn over the neck: black inside, so the neck's lines vanish into the jaw. */
-export function FormHead({ head }: { head: { outline: string; lines: string[] } }) {
+/** The head drawn over the neck, in the form's satin, so the neck runs into the jaw. `cx` is the form's centre
+ *  line, which the satin's light is laid across. */
+export function FormHead({ head, cx }: { head: { outline: string; lines: string[] }; cx: number }) {
+  const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
+  // The highlight runs down the head where it runs down the body, a little left of centre.
+  const lit = head.lines[Math.floor(head.lines.length * 0.25)];
   return (
     <g className="form-head">
-      <path d={head.outline} fill="#000" stroke="none" />
-      {head.lines.map((d, i) => (
-        <path key={i} d={d} className="form-line" fill="none" strokeWidth={0.12} opacity={0.35} />
-      ))}
-      <path d={head.outline} className="form-line" fill="none" strokeWidth={0.22} opacity={0.9} />
+      <SatinDefs id={`headsatin${uid}`} cx={cx} />
+      <path d={head.outline} fill={`url(#headsatin${uid})`} stroke="none" />
+      {lit && <path d={lit} className="form-line" fill="none" strokeWidth={0.12} opacity={0.3} />}
+      <path d={head.outline} className="form-line" fill="none" strokeWidth={0.18} opacity={0.85} />
     </g>
+  );
+}
+
+/** The form's black satin (Cat's F5 Satin and Light, 2026-10-25): lit from the upper left, a soft sheen a third of
+ *  the way across, falling into black on the right. The same light as the cloth's, and the welcome's canvas form. */
+export const SATIN_STOPS: [number, string][] = [
+  [0, '#14120e'],
+  [0.3, '#3b352a'],
+  [0.5, '#1c1915'],
+  [1, '#050505'],
+];
+/** The satin across a drawing whose centre line is at `cx`. */
+export function SatinDefs({ id, cx }: { id: string; cx: number }) {
+  return (
+    <defs>
+      <linearGradient id={id} gradientUnits="userSpaceOnUse" x1={f(cx * 0.1)} x2={f(cx * 1.9)} y1="0" y2="0">
+        {SATIN_STOPS.map(([offset, color]) => (
+          <stop key={offset} offset={offset} stopColor={color} />
+        ))}
+      </linearGradient>
+    </defs>
+  );
+}
+
+/** Where the form's one highlight runs, as a share of the way out from the centre to the left side. */
+export const SATIN_HIGHLIGHT = -0.5;
+
+/** The form as a satin mannequin: its body (and arms, when it has them) filled with the satin, a fine champagne
+ *  edge round each and one soft highlight down the lit side. Drawing on your form and the Style page's drawings
+ *  all draw the form this way. */
+export function FormSatin({ body, cx, arms, uid, bottom = body.bottom, edge = 0.18 }: { body: FormBody; cx: number; arms?: FormArm; uid: string; bottom?: number; edge?: number }) {
+  const armLines = useMemo(() => formArmLines(arms, cx), [arms, cx]);
+  const { silhouette, sides, highlight, from } = useMemo(() => {
+    const top = body.head ? body.top - INTO_HEAD : body.top;
+    const ys = Array.from({ length: 121 }, (_, i) => top + ((bottom - top) * i) / 120);
+    const at = (u: number) => ys.map((y) => ({ x: cx + SQUEEZE * u * body.width(Math.min(y, body.bottom)), y }));
+    const right = at(1);
+    const left = at(-1);
+    return {
+      silhouette: `${formPath([...right, ...[...left].reverse()])} Z`,
+      sides: [formPath(left), formPath(right)],
+      highlight: formPath(at(SATIN_HIGHLIGHT).filter((q) => q.y >= body.top)),
+      from: body.top,
+    };
+  }, [body, cx, bottom]);
+  const id = `satin${uid}`;
+  return (
+    <>
+      <SatinDefs id={id} cx={cx} />
+      {/* The highlight comes in below the neck, where the shoulders round off, so it doesn't cut across them. */}
+      <defs>
+        <linearGradient id={`sheen${uid}`} gradientUnits="userSpaceOnUse" x1="0" x2="0" y1={f(from + 3)} y2={f(from + 12)}>
+          <stop offset="0" stopColor="#d9c49b" stopOpacity="0" />
+          <stop offset="1" stopColor="#d9c49b" stopOpacity="0.35" />
+        </linearGradient>
+      </defs>
+      {armLines.map((a, i) => (
+        <path key={`armfill${i}`} d={`${a.d} Z`} fill={`url(#${id})`} stroke="none" />
+      ))}
+      <path d={silhouette} fill={`url(#${id})`} stroke="none" />
+      {armLines.map((a, i) => (
+        <path key={`arm${i}`} d={a.d} className="form-line" fill="none" strokeWidth={edge} opacity={0.85} />
+      ))}
+      {sides.map((d, i) => (
+        <path key={`side${i}`} d={d} className="form-line" fill="none" strokeWidth={edge} opacity={0.85} />
+      ))}
+      <path d={highlight} fill="none" stroke={`url(#sheen${uid})`} strokeWidth={0.14} />
+    </>
   );
 }
 
@@ -312,33 +384,26 @@ export function shoulderPoint(cloth: P[][], arm: FormArm): P | undefined {
   return top.length ? top.reduce((a, b) => (b.x > a.x ? b : a)) : undefined;
 }
 
-/** The form in contour lines, as on the welcome screen: each line a fixed fraction of the way round. */
-export function formContours(body: FormBody, cx: number): { d: string; edge: boolean; u: number }[] {
-  const n = 15;
-  const top = body.head ? body.top - INTO_HEAD : body.top;
-  const ys = Array.from({ length: 121 }, (_, i) => top + ((body.bottom - top) * i) / 120);
-  return Array.from({ length: n }, (_, i) => {
-    const u = Math.sin(-Math.PI / 2 + (Math.PI * i) / (n - 1));
-    return { d: formPath(ys.map((y) => ({ x: cx + SQUEEZE * u * body.width(y), y }))), edge: Math.abs(u) > 0.98, u };
-  });
-}
-
-/** The arms, each its outline round from the shoulder to the wrist and three lines down it. */
+/** The arms, each its outline round from the shoulder to the wrist, ending in a rounded wrist like a mannequin's
+ *  (Cat's F5, 2026-10-25: no stripes down them, no flat cut ends). */
 export function formArmLines(arms: FormArm | undefined, cx: number): { d: string; edge: boolean }[] {
   if (!arms) return [];
   const ys = (a: number, b: number) => Array.from({ length: 41 }, (_, i) => a + ((b - a) * i) / 40);
   const outer = ys(arms.tip.y, arms.wristY).map((y) => ({ x: armAt(arms, y).outer, y }));
   const inner = ys(arms.under.y, arms.wristY).map((y) => ({ x: armAt(arms, y).inner, y }));
-  const down = [0.25, 0.5, 0.75].map((k) =>
-    ys(arms.under.y + 2, arms.wristY).map((y) => {
-      const a = armAt(arms, y);
-      return { x: a.inner + (a.outer - a.inner) * k, y };
-    }),
-  );
-  // Up the inside from the wrist, over the shoulder and down the outside, closed across the wrist.
-  const outline = [...[...inner].reverse(), ...outer, inner[inner.length - 1]];
-  return [1, -1].flatMap((s) => [outline, ...down].map((pts, i) => ({ d: formPath(pts.map((q) => ({ x: cx + SQUEEZE * s * q.x, y: q.y }))), edge: i === 0 })));
+  const wrist = armAt(arms, arms.wristY);
+  const mid = (wrist.inner + wrist.outer) / 2;
+  const cap = Array.from({ length: 13 }, (_, i) => {
+    const a = (Math.PI * i) / 12;
+    return { x: mid + ((wrist.outer - wrist.inner) / 2) * Math.cos(a), y: arms.wristY + WRIST_ROUND * Math.sin(a) };
+  });
+  // Up the inside from the wrist, over the shoulder, down the outside and round the end of the wrist.
+  const outline = [...[...inner].reverse(), ...outer, ...cap];
+  return [1, -1].map((s) => ({ d: formPath(outline.map((q) => ({ x: cx + SQUEEZE * s * q.x, y: q.y }))), edge: true }));
 }
+
+/** How far the rounded end of a wrist drops below the wrist, in cm. */
+const WRIST_ROUND = 1.6;
 
 interface Props {
   body: FormBody;
@@ -369,8 +434,20 @@ interface Props {
   label: string;
 }
 
-/** The light on the cloth: lit from the left, falling into shade on the right, so a print reads and black cloth has form.
- *  Each stop is where along the piece it sits, its colour and how strong. The technical flat uses the same light. */
+/** The light on the cloth on the form (Cat's F5 Satin and Light): round like a body, brightest a third of the way
+ *  across from the left, turning into shadow at both sides and deepest on the right, so a print reads and black
+ *  cloth has form without an outline. Each stop is where across the drawing it sits, its colour and how strong. */
+export const ROUND_STOPS: [number, string, number][] = [
+  [0, '#000', 0.55],
+  [0.14, '#000', 0.15],
+  [0.36, '#fff8e6', 0.2],
+  [0.5, '#fff8e6', 0.04],
+  [0.78, '#000', 0.22],
+  [1, '#000', 0.62],
+];
+
+/** The light on the flat drawing: lit from the left, falling into shade on the right. Each stop is where along
+ *  the piece it sits, its colour and how strong. */
 export const SHADE_STOPS: [number, string, number][] = [
   [0, '#fff8e6', 0.16],
   [0.3, '#fff8e6', 0.04],
@@ -439,7 +516,6 @@ interface LayerProps extends Omit<Props, 'cloth' | 'underarmY' | 'label' | 'outl
  * view and the skirt's and top's draggable sketches all draw the garment this way, so it looks the same everywhere.
  */
 export function FormLayers({ body, m, legs, cx, top, bottom, arms, lines, outline = [], worn, folds = [], sleeve }: LayerProps) {
-  const contours = useMemo(() => formContours(body, cx), [body, cx]);
   const head = useMemo(() => formHead(body, cx), [body, cx]);
   const armLines = useMemo(() => formArmLines(arms, cx), [arms, cx]);
   const at = (pts: P[]) => formPath(pts.map((q) => ({ x: cx + SQUEEZE * q.x, y: q.y })));
@@ -458,6 +534,8 @@ export function FormLayers({ body, m, legs, cx, top, bottom, arms, lines, outlin
   const clip = `clip${uid}`;
   const fade = `fade${uid}`;
   const neck = `neck${uid}`;
+  const soft = `soft${uid}`;
+  const cast = `cast${uid}`;
   /** The form's lines start at `body.top`, 2 cm below the drawing's top (`formFrame`): they fade in from there. */
   const FADE_FROM = (top ?? 0) + 2;
   /** How far below that the form's lines take to come in fully. */
@@ -478,8 +556,8 @@ export function FormLayers({ body, m, legs, cx, top, bottom, arms, lines, outlin
       )}
       {cloth && (
         <defs>
-          <linearGradient id={shade} gradientUnits="userSpaceOnUse" x1={f(cx * 0.2)} x2={f(cx * 1.8)} y1="0" y2="0">
-            {SHADE_STOPS.map(([offset, color, opacity]) => (
+          <linearGradient id={shade} gradientUnits="userSpaceOnUse" x1={f(cx * 0.15)} x2={f(cx * 1.85)} y1="0" y2="0">
+            {ROUND_STOPS.map(([offset, color, opacity]) => (
               <stop key={offset} offset={offset} stopColor={color} stopOpacity={opacity} />
             ))}
           </linearGradient>
@@ -488,6 +566,13 @@ export function FormLayers({ body, m, legs, cx, top, bottom, arms, lines, outlin
               <path key={i} d={d} />
             ))}
           </clipPath>
+          {/* The cloth's edges turn away from the light: a soft shadow just inside them, and one on the form under them. */}
+          <filter id={soft} x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="0.6" />
+          </filter>
+          <filter id={cast} x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0.5" dy="0.9" stdDeviation="0.9" floodColor="#000" floodOpacity="0.85" />
+          </filter>
         </defs>
       )}
       {cloth && <ClothDefs uid={uid} x1={cx * 0.2} x2={cx * 1.8} look={look} />}
@@ -507,30 +592,29 @@ export function FormLayers({ body, m, legs, cx, top, bottom, arms, lines, outlin
       )}
       {/* With a head the neck runs into the jaw (FormHead); without one its lines fade in at the top. */}
       <g mask={top !== undefined && !head ? `url(#${neck})` : undefined}>
-        {armLines.map((a, i) => (
-          <path key={`arm${i}`} d={a.d} className="form-line" fill="none" strokeWidth={a.edge ? 0.24 : 0.14} opacity={a.edge ? 1 : 0.55} />
-        ))}
-        {contours.map((c, i) => (
-          <path key={i} d={c.d} className="form-line" fill="none" strokeWidth={c.edge ? 0.24 : 0.14} opacity={c.edge ? 1 : 0.45 + 0.3 * (1 - Math.abs(c.u))} />
-        ))}
+        <FormSatin body={body} cx={cx} arms={arms} uid={uid} />
       </g>
-      {head && <FormHead head={head} />}
+      {head && <FormHead head={head} cx={cx} />}
       {cloth && (
-        <g className="cloth">
+        <g className="cloth" filter={`url(#${cast})`}>
           {pieces.map((d, i) => (
             <g key={`c${i}`}>
               <path d={d} className="cloth-fill" strokeWidth={0.3} strokeLinejoin="round" fillOpacity={look?.sheer ? SHEER_OPACITY : undefined} />
               <ClothOverlay d={d} uid={uid} k={`p${i}`} look={look} hemY={hems[i]} />
               <path d={d} fill={`url(#${shade})`} stroke="none" opacity={look?.sheer ? 0.6 : undefined} />
-              <path d={d} className="cloth-edge" fill="none" strokeWidth={0.3} strokeLinejoin="round" />
+              <g clipPath={`url(#${clip})`}>
+                <path d={d} className="cloth-turn" fill="none" strokeWidth={1.3} filter={`url(#${soft})`} />
+              </g>
+              <path d={d} className="cloth-edge" fill="none" strokeWidth={0.1} strokeLinejoin="round" />
             </g>
           ))}
         </g>
       )}
       {cloth && arms && !sleeve && (
         <g mask={top !== undefined ? `url(#${neck})` : undefined}>
-          {armLines.filter((a) => a.edge).map((a, i) => <path key={`armover${i}`} d={a.d} className="form-arm-over" strokeWidth={0.24} />)}
-          {armLines.filter((a) => !a.edge).map((a, i) => <path key={`armin${i}`} d={a.d} className="form-line" fill="none" strokeWidth={0.14} opacity={0.55} />)}
+          <SatinDefs id={`armsatin${uid}`} cx={cx} />
+          {armLines.map((a, i) => <path key={`armover${i}`} d={`${a.d} Z`} fill={`url(#armsatin${uid})`} stroke="none" />)}
+          {armLines.map((a, i) => <path key={`armedge${i}`} d={a.d} className="form-line" fill="none" strokeWidth={0.18} opacity={0.85} />)}
         </g>
       )}
       {outline.map((pts, i) => (
@@ -543,8 +627,16 @@ export function FormLayers({ body, m, legs, cx, top, bottom, arms, lines, outlin
         {Object.entries(drawn).flatMap(([id, runs]) =>
           (runs ?? []).map((pts, i) => (
             <g key={`${id}${i}`}>
-              {cloth && <path d={at(pts)} className="tape-halo" fill="none" strokeWidth={0.7} strokeLinecap="round" strokeLinejoin="round" />}
-              <path d={at(pts)} className="tape" fill="none" strokeWidth={0.3} strokeLinecap="round" />
+              {cloth ? (
+                // On the cloth a seam is pressed in, not piped: a soft groove, its fold, and a thread of light on the lit side.
+                <>
+                  <path d={at(pts)} className="seam-groove" fill="none" strokeWidth={0.5} filter={`url(#${soft})`} strokeLinecap="round" />
+                  <path d={at(pts)} className="seam-fold" fill="none" strokeWidth={0.18} strokeLinecap="round" />
+                  <path d={at(pts)} className="tape seam-light" fill="none" strokeWidth={0.07} transform="translate(-0.18 0)" strokeLinecap="round" />
+                </>
+              ) : (
+                <path d={at(pts)} className="tape" fill="none" strokeWidth={0.3} strokeLinecap="round" />
+              )}
             </g>
           )),
         )}

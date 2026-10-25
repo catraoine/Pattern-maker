@@ -4,14 +4,14 @@
 // line is read). What a line will become shows while it is drawn; each line can be undone and redone.
 // One way out each way (Cat's pick D1 Steady Top, 2026-10-18): Done keeps the lines, and the header's ←
 // (or the phone's back) leaves without them, asking first once any line is drawn.
-import { PointerEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { PointerEvent, useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { P } from '../engine/geometry';
 import type { BodiceDraft } from '../engine/bodice';
 import { spline } from './bodyOutline';
 import { legsFor } from '../engine/form';
 
 import { FormLine, FormSide, Reading, landmarks } from './formLines';
-import { CLOTH_EDGES, FormHead, FormLayers, HEAD_CM, INTO_HEAD, SQUEEZE, WornSleeve, formHead, wornCloth } from './FormSketch';
+import { CLOTH_EDGES, FormHead, FormLayers, FormSatin, HEAD_CM, SQUEEZE, WornSleeve, formHead, wornCloth } from './FormSketch';
 import { TestingTag } from './TestingTag';
 import { DemoButton } from './DemoButton';
 import { tookEnlarged } from './EnlargeSketch';
@@ -270,20 +270,10 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
   }, [m, body, bottom, arms, torsoBottom, legLines]);
   const cx = frame.half;
 
-  // The form in contour lines, as on the welcome screen: each line a fixed fraction of the way round.
-  const contours = useMemo(() => {
-    const n = 15;
-    const top = body.head ? body.top - INTO_HEAD : body.top;
-    const ys = Array.from({ length: 121 }, (_, i) => top + ((torsoBottom - top) * i) / 120);
-    return Array.from({ length: n }, (_, i) => {
-      const u = Math.sin(-Math.PI / 2 + (Math.PI * i) / (n - 1));
-      return { d: path(ys.map((y) => ({ x: cx + SQUEEZE * u * body.width(y), y }))), edge: Math.abs(u) > 0.98, u };
-    });
-  }, [body, cx, torsoBottom]);
-
   // The head, as on every other screen (Cat's body rule): the same faceless mannequin head, at the same scale to
   // the body, on top of the neck.
   const head = useMemo(() => formHead(body, cx), [body, cx]);
+  const satinId = useId().replace(/[^a-zA-Z0-9]/g, '');
 
   // Each leg its outline, from where the legs part down to the floor, and lines down it as on the measuring pages.
   const legPaths = useMemo(() => {
@@ -297,23 +287,6 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
       })),
     );
   }, [legLines, cx]);
-
-  // The arms, each its outline round from the shoulder to the wrist and three lines down it.
-  const armLines = useMemo(() => {
-    if (!arms) return [];
-    const ys = (a: number, b: number) => Array.from({ length: 41 }, (_, i) => a + ((b - a) * i) / 40);
-    const outer = ys(arms.tip.y, arms.wristY).map((y) => ({ x: armAt(arms, y).outer, y }));
-    const inner = ys(arms.under.y, arms.wristY).map((y) => ({ x: armAt(arms, y).inner, y }));
-    const down = [0.25, 0.5, 0.75].map((k) =>
-      ys(arms.under.y + 2, arms.wristY).map((y) => {
-        const a = armAt(arms, y);
-        return { x: a.inner + (a.outer - a.inner) * k, y };
-      }),
-    );
-    // Up the inside from the wrist, over the shoulder and down the outside, closed across the wrist.
-    const outline = [...[...inner].reverse(), ...outer, inner[inner.length - 1]];
-    return [1, -1].flatMap((s) => [outline, ...down].map((pts, i) => ({ d: path(pts.map((q) => ({ x: cx + SQUEEZE * s * q.x, y: q.y }))), edge: i === 0 })));
-  }, [arms, cx]);
 
   // The garment on the form, front on (the back shows the form and its lines only).
   const worn = useMemo(() => (cloth ? wornCloth(cloth, body, underarmY ?? arms?.under.y) : undefined), [cloth, body, underarmY, arms]);
@@ -454,8 +427,8 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
               <FormLayers body={body} m={m} legs={legs} cx={cx} top={frame.top} bottom={frame.bottom} arms={arms} lines={{}} worn={clothOn} sleeve={sleeve} />
             ) : (
               <>
-              {legPaths.map((l, i) => (
-                <path key={`leg${i}`} d={l.d} className="form-line" fill="none" strokeWidth={l.edge ? 0.22 : 0.12} opacity={l.edge ? 0.9 : 0.35} />
+              {legPaths.filter((l) => l.edge).map((l, i) => (
+                <path key={`leg${i}`} d={l.d} className="form-line" fill="none" strokeWidth={0.2} opacity={0.85} />
               ))}
               {legLines && (
                 <path d={`M${f(cx - SQUEEZE * legLines.apart * 3)} ${f(legLines.floor)} L${f(cx + SQUEEZE * legLines.apart * 3)} ${f(legLines.floor)}`} className="form-stand" fill="none" strokeWidth={0.15} opacity={0.6} />
@@ -468,15 +441,11 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
                   strokeWidth={0.2}
                 />
               )}
-              {armLines.map((a, i) => (
-                <path key={`arm${i}`} d={a.d} className="form-line" fill="none" strokeWidth={a.edge ? 0.22 : 0.12} opacity={a.edge ? 0.9 : 0.35} />
-              ))}
-              {contours.map((c, i) => (
-                <path key={i} d={c.d} className="form-line" fill="none" strokeWidth={c.edge ? 0.22 : 0.12} opacity={c.edge ? 0.9 : 0.25 + 0.2 * (1 - Math.abs(c.u))} />
-              ))}
+              {/* The form as a satin mannequin, as on the Style page (Cat's F5 Satin and Light). */}
+              <FormSatin body={body} cx={cx} arms={arms} uid={satinId} bottom={torsoBottom} edge={0.2} />
               </>
             )}
-            {head && !clothOn && <FormHead head={head} />}
+            {head && !clothOn && <FormHead head={head} cx={cx} />}
             {/* On the dress, the cloth's own edges are the neckline, side, hem and sleeve, so only the pen shows. */}
             {kinds.filter(([id]) => !(clothOn && CLOTH_EDGES.includes(id))).map(([id]) =>
               (current[id] ?? []).map((pts, i) => (
