@@ -15,6 +15,11 @@
   --warn: #e0b07a; /* fabric notes: heads up */
   --ok: #a9c49b; /* fabric notes: good match */
   --paper: #000000;
+  /* Palette card strips under each swatch (Cat's A1 + A5): cream, darker at the right edge, near-black names. */
+  --card-strip: #ece2cb;
+  --card-edge: #d3c7ab;
+  --card-ink: #151311;
+  --card-quiet: #6c6250;
   --white: #000000; /* the "card" ground; text on --ink fills uses it too */
   --mono: 'Chakra Petch', ui-monospace, Menlo, monospace;
   --sans: 'Space Grotesk', system-ui, sans-serif;
@@ -3615,46 +3620,120 @@ button.link.garment-change {
   font-size: 20px;
   color: var(--ink);
 }
-.swatch-row .swatches {
+/* Swatches as palette cards (Cat's A1 + A5, 2026-10-25, from her palette card): the cloth on top, a cream strip
+   with its name in spaced capitals under it, and the picked card taller and wider than the rest, above and below. */
+.swatch-row .swatches,
+.colourdots,
+.shopfabs,
+.printtiles {
   display: flex;
-  gap: 10px;
+  align-items: center;
+  gap: 8px;
   overflow-x: auto;
   overflow-y: hidden;
-  padding: 6px 5px;
-  scrollbar-width: none;
   overscroll-behavior-x: contain;
+  padding: 4px 2px;
+  scrollbar-width: none;
 }
-.swatch-row .swatches::-webkit-scrollbar {
+.swatch-row .swatches::-webkit-scrollbar,
+.colourdots::-webkit-scrollbar,
+.shopfabs::-webkit-scrollbar,
+.printtiles::-webkit-scrollbar {
   display: none;
 }
-.swatch-row .swatch {
-  flex: 0 0 40px;
-  width: 40px;
-  height: 40px;
+.swatch-row .swatch,
+.colourdots .colourdot,
+.shopfab,
+.printtile {
+  --card-w: 72px;
+  --tex-h: 96px;
+  flex: 0 0 var(--card-w);
+  width: var(--card-w);
+  height: auto;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
   padding: 0;
-  border-radius: 50%;
-  border: var(--bw) solid var(--line-strong);
-  background-size: 64px 64px;
-  background-position: center;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--card-ink);
+  text-align: left;
+  cursor: pointer;
+  transition: flex-basis 0.18s ease, width 0.18s ease;
 }
-.swatch-row .swatch.on {
+.swatch-row .swatch.on,
+.colourdots .colourdot.on,
+.shopfab.on,
+.printtile.on {
+  --card-w: 84px;
+  --tex-h: 118px;
+  outline: none;
+}
+.card-tex,
+.shopfab-tile,
+.printtile img {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: var(--tex-h);
+  aspect-ratio: auto;
+  background-size: 96px 96px;
+  background-position: center;
+  object-fit: cover;
+  outline: none;
+  /* The soft shade down the right edge of each card, as on the palette card. */
+  box-shadow: inset -10px 0 14px -10px rgba(0, 0, 0, 0.35);
+  transition: height 0.18s ease;
+}
+.card-name,
+.shopfab-text {
+  display: block;
+  padding: 9px 7px;
+  background: linear-gradient(90deg, var(--card-strip) 0%, var(--card-strip) 78%, var(--card-edge) 100%);
+  color: var(--card-ink);
+  font-family: var(--mono);
+  font-weight: 500;
+  font-size: 8px;
+  line-height: 1.3;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: padding 0.18s ease;
+}
+.on > .card-name,
+.on > .shopfab-text {
+  padding-top: 13px;
+  padding-bottom: 15px;
+}
+.swatch-row .swatch:focus-visible,
+.colourdots .colourdot:focus-visible,
+.shopfab:focus-visible,
+.printtile:focus-visible {
   outline: 1px solid var(--ink);
   outline-offset: 3px;
 }
-/* None: the sketch in lines only, no fabric. */
-.swatch.none {
-  display: grid;
-  place-items: center;
+/* None: an empty black card crossed by one fine line, so the sketch stays in lines only. */
+.swatch.none .card-tex {
+  border: 1px solid var(--guide);
+  border-bottom: 0;
+  box-shadow: none;
   background: var(--paper);
-  color: var(--muted);
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
-.swatch.none.on {
-  color: var(--gild);
+.swatch.none .card-tex::after {
+  content: '';
+  position: absolute;
+  left: 15%;
+  right: 15%;
+  top: 50%;
+  border-top: 1px solid var(--guide);
+  transform: rotate(-55deg);
+}
+.swatch.none.on .card-tex {
+  border-color: var(--gild);
 }
 /* Fabrics or Shop: two small tabs above the swatches. */
 .fabtabs {
@@ -3677,7 +3756,7 @@ button.link.garment-change {
   background: var(--gild);
   color: var(--paper);
 }
-/* Partner shop fabrics, side by side: swatch, name, shop and price. */
+/* Partner shop fabrics as wider cards: the name on the strip, the shop and price in small capitals under it. */
 .shopwrap {
   display: grid;
   gap: 6px;
@@ -3685,63 +3764,58 @@ button.link.garment-change {
 .shopwrap p {
   margin: 0;
 }
-.shopfabs {
-  display: flex;
-  gap: 10px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  overscroll-behavior-x: contain;
-  padding: 2px 2px 4px;
-  scrollbar-width: none;
-}
-.shopfabs::-webkit-scrollbar {
-  display: none;
-}
 .shopfab {
-  flex: 0 0 132px;
-  display: grid;
-  align-content: start;
-  gap: 8px;
-  padding: 8px;
-  border: var(--bw) solid var(--guide);
-  background: none;
-  color: var(--ink);
-  text-align: left;
-  font-family: var(--sans);
-  text-transform: none;
-  letter-spacing: 0;
+  --card-w: 112px;
 }
 .shopfab.on {
-  border-color: var(--gild);
-}
-.shopfab-tile {
-  display: block;
-  height: 56px;
-  background-size: 80px 80px;
-  background-position: center;
+  --card-w: 124px;
 }
 .shopfab-text {
   display: grid;
-  gap: 2px;
+  gap: 3px;
+  white-space: normal;
   min-width: 0;
 }
 .shopfab-text b {
-  font-weight: var(--w-strong);
-  font-size: 13px;
-  line-height: 1.25;
+  font-weight: 600;
+  font-size: 8px;
+  line-height: 1.35;
 }
-/* The colours for the fabric chosen: the sketch takes the one tapped. */
-.colourdots {
-  display: flex;
-  gap: 10px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  overscroll-behavior-x: contain;
-  padding: 5px;
-  scrollbar-width: none;
+.shopfab-text span {
+  font-size: 6.5px;
+  letter-spacing: 0.12em;
+  color: var(--card-quiet);
 }
-.colourdots::-webkit-scrollbar {
-  display: none;
+/* The colours for the fabric chosen, as short cards: the chosen fabric's weave over each colour. */
+.colourdots .colourdot {
+  --card-w: 52px;
+  --tex-h: 48px;
+}
+.colourdots .colourdot.on {
+  --card-w: 60px;
+  --tex-h: 62px;
+}
+.colourdots .card-tex {
+  background-color: var(--guide);
+}
+.colourdots .card-tex::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: var(--tex);
+  background-size: 96px 96px;
+  background-position: center;
+  mix-blend-mode: overlay;
+  opacity: 0.6;
+}
+.colourdots .card-name {
+  font-size: 6.5px;
+  letter-spacing: 0.12em;
+  padding: 6px 5px;
+}
+.colourdots .on > .card-name {
+  padding-top: 8px;
+  padding-bottom: 10px;
 }
 .colourdot {
   flex: 0 0 26px;
@@ -3752,12 +3826,11 @@ button.link.garment-change {
   border-radius: 50%;
   border: 1px solid var(--guide);
 }
-.colourdot.on {
-  outline: var(--bw) solid var(--gild);
-  outline-offset: 3px;
-}
-.colourdot.anycolour {
+.colourdots .colourdot.anycolour .card-tex {
   background: conic-gradient(hsl(0 60% 50%), hsl(60 60% 50%), hsl(120 40% 40%), hsl(180 40% 40%), hsl(240 45% 45%), hsl(300 40% 45%), hsl(360 60% 50%));
+}
+.colourdots .colourdot.anycolour.on .card-tex[style] {
+  background: none;
 }
 /* Any colour: a colour bar, a shade bar, a hex box and the shops' nearest colourways (Cat's W2 + W4). */
 .colourbars {
@@ -6030,42 +6103,9 @@ input.inline:focus,
   letter-spacing: 0.02em;
   margin: 0;
 }
-.printtiles {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-}
+/* The prints: palette cards too (A5), in the row with the swatches' look. */
 .printtile {
-  display: grid;
-  gap: 6px;
-  padding: 0;
-  background: none;
-  border: 0;
-  color: var(--muted);
   font: inherit;
-  font-family: var(--mono);
-  font-size: 0.66rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  text-align: center;
-  cursor: pointer;
-}
-.printtile img {
-  width: 100%;
-  aspect-ratio: 1;
-  object-fit: cover;
-  display: block;
-  outline: 1px solid transparent;
-  outline-offset: 2px;
-}
-.printtile.on {
-  color: var(--ink);
-}
-.printtile.on img {
-  outline-color: var(--gild);
-}
-.printtile:focus-visible img {
-  outline-color: var(--ink);
 }
 .printpick-hint {
   margin: 0;
@@ -7675,8 +7715,11 @@ fieldset.fold.open > .fold-body {
 .style-panel .explain .skill-tag {
   display: none;
 }
-/* The fabric swatches wrap into rows, so none is cut off at the edge. */
-.style-panel .swatch-row .swatches {
+/* The fabric cards wrap into rows, so none is cut off at the edge. */
+.style-panel .swatch-row .swatches,
+.style-panel .colourdots,
+.style-panel .shopfabs,
+.style-panel .printtiles {
   flex-wrap: wrap;
   overflow: visible;
 }
@@ -7999,5 +8042,31 @@ button.later.edit-measure {
 @media (max-height: 600px), (max-height: 680px) and (max-width: 380px) {
   .step-tip .string-tip {
     display: none;
+  }
+}
+
+/* Longer names (prints, colourways) wrap to two lines on their strip, so none is cut off; every strip in the row
+   keeps the two-line height, so the cards line up. */
+.printtile .card-name,
+.colourdots .card-name {
+  white-space: normal;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  min-height: calc(2 * 1.3em + 18px);
+}
+.colourdots .card-name {
+  min-height: calc(2 * 1.3em + 12px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .swatch-row .swatch,
+  .colourdots .colourdot,
+  .shopfab,
+  .printtile,
+  .card-tex,
+  .shopfab-tile,
+  .printtile img,
+  .card-name,
+  .shopfab-text {
+    transition: none;
   }
 }

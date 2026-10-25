@@ -193,7 +193,8 @@ export function GarmentFabric({ fabric, children }: { fabric: MyFabric | undefin
   );
 }
 
-/** Under the sketch: None, then the fabric types or the partner shops' fabrics, then the colours for the one chosen. */
+/** Under the sketch: None, then the fabric types or the partner shops' fabrics, then the colours for the one chosen.
+ * Every swatch is a palette card (Cat's A1 + A5, 2026-10-25): the cloth above a cream name strip, the picked one taller. */
 /** The Fabric tab's swatches; `details` adds the folded "About your fabric" under them, the one place it's asked. */
 export function FabricSwatches({ finish, onFinish, garment, details }: { finish: Finish; onFinish: (f: Finish) => void; garment: FabricGarment; details?: boolean }) {
   const fabric = finish.fabric;
@@ -246,7 +247,8 @@ export function FabricSwatches({ finish, onFinish, garment, details }: { finish:
             className={!chosen ? 'swatch none on' : 'swatch none'}
             onClick={() => onFinish(pickFabric(finish, undefined))}
           >
-            None
+            <span className="card-tex" aria-hidden="true" />
+            <span className="card-name" aria-hidden="true">None</span>
           </button>
           {ids.map((s) => (
             <button
@@ -257,9 +259,11 @@ export function FabricSwatches({ finish, onFinish, garment, details }: { finish:
               aria-label={s.label}
               title={s.label}
               className={!fabric?.shop && chosen === s.id ? 'swatch on' : 'swatch'}
-              style={{ backgroundImage: `url(${tileUrl(s.id)})` }}
               onClick={() => onFinish(pickFabric(finish, s.id))}
-            />
+            >
+              <span className="card-tex" style={{ backgroundImage: `url(${tileUrl(s.id)})` }} aria-hidden="true" />
+              <span className="card-name" aria-hidden="true">{s.label}</span>
+            </button>
           ))}
         </div>
       ) : (
@@ -277,8 +281,8 @@ export function FabricSwatches({ finish, onFinish, garment, details }: { finish:
               <span className="shopfab-tile" style={{ backgroundImage: `url(${tileUrl(f.tile)})` }} aria-hidden="true" />
               <span className="shopfab-text">
                 <b>{f.name}</b>
-                <span className="muted small">{f.shop}</span>
-                <span className="muted small">
+                <span>{f.shop}</span>
+                <span>
                   ${f.price}/{f.yards ? 'yd' : 'm'} · {f.colours.length === 1 ? '1 colour' : `${f.colours.length} colours`}
                 </span>
               </span>
@@ -300,9 +304,12 @@ export function FabricSwatches({ finish, onFinish, garment, details }: { finish:
                 aria-label={c.name}
                 title={c.name}
                 className={on ? 'colourdot on' : 'colourdot'}
-                style={{ background: c.hex }}
                 onClick={() => onFinish(pickColour(finish, c.name))}
-              />
+              >
+                {/* The chosen fabric's weave over the colour, so each card reads as that cloth dyed. */}
+                <span className="card-tex" style={{ backgroundColor: c.hex, '--tex': `url(${tileUrl(chosen)})` } as CSSProperties} aria-hidden="true" />
+                <span className="card-name" aria-hidden="true">{c.name}</span>
+              </button>
             );
           })}
           {anyColour && (
@@ -313,7 +320,10 @@ export function FabricSwatches({ finish, onFinish, garment, details }: { finish:
               title="Any colour"
               className={picked ? 'colourdot anycolour on' : 'colourdot anycolour'}
               onClick={() => setAnyOpen(!anyOpen)}
-            />
+            >
+              <span className="card-tex" style={picked ? { backgroundColor: picked } : undefined} aria-hidden="true" />
+              <span className="card-name" aria-hidden="true">{picked ?? 'Any'}</span>
+            </button>
           )}
         </div>
       )}
