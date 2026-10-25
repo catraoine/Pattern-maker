@@ -2484,6 +2484,11 @@ button.link.how-link {
   max-height: 300px;
 }
 
+/* A page with no form, its words centred down the page ("What would you like to make?", Cat's N2, 2026-10-25) */
+.measure-step.centred {
+  justify-content: center;
+}
+
 /* "Something else", described: the picks it starts from, read-only, laid out like the check list */
 .idea-picks {
   margin: 4px 0 20px;
