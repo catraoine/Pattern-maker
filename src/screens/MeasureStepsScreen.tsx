@@ -312,7 +312,9 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
 
   if (page.kind === 'choose')
     return (
-      <Shell title="What would you like to make?" hero={<TapeDemo id="waist" name="" mode="still" kind={form} />} short>
+      // No form here, the question and the garments centred on the page (Cat's N2 No Form, Centred, 2026-10-25: the form
+      // was too small to read above the list).
+      <Shell title="What would you like to make?" centred>
         <div className="make-grid" role="radiogroup" aria-labelledby="stitle">
           {[...GARMENTS, 'other' as const].map((g) => (
             <button key={g} type="button" role="radio" aria-checked={picked === g} className={picked === g ? 'on' : ''} onClick={() => setPicked(g)}>
@@ -546,6 +548,7 @@ export function Shell({
   title,
   hero,
   short,
+  centred,
   skip,
   later,
   tape,
@@ -569,6 +572,8 @@ export function Shell({
   dots?: [number, number];
   /** A shorter form on top, so a longer list fits above its button. */
   short?: boolean;
+  /** No form, the words centred down the page. */
+  centred?: boolean;
   /** The left-hand column on a computer (Cat's W3 Drafting Table): the measurements on this run. */
   aside?: ReactNode;
   /** On a computer, the list as names beside the form at their places on the body, in place of the aside. */
@@ -579,7 +584,7 @@ export function Shell({
   // form in the middle, and the question on the right; with no list the form takes the first two.
   return (
     <div className="welcome">
-      <section className={['card welcome-card measure-step', short && 'short', hero && 'has-hero', aside && 'has-aside', labels && 'has-labels', tape && 'has-tape'].filter(Boolean).join(' ')} aria-labelledby="stitle">
+      <section className={['card welcome-card measure-step', short && 'short', centred && 'centred', hero && 'has-hero', aside && 'has-aside', labels && 'has-labels', tape && 'has-tape'].filter(Boolean).join(' ')} aria-labelledby="stitle">
         {tape && <LandedTape />}
         {aside && <aside className="step-list">{aside}</aside>}
         {hero && (
