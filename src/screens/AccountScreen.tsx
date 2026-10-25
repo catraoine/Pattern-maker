@@ -151,6 +151,24 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
               ))}
             </ul>
           )}
+          {saved > 0 && cloud?.usable && !cloud.user && (
+            <p className="small keep-safe">
+              Keep your patterns safe: sign in and they're there on any device.{' '}
+              <button
+                type="button"
+                className="link"
+                onClick={() => {
+                  const fold = document.getElementById('datatitle')?.closest('details');
+                  if (fold) fold.open = true;
+                  const email = document.getElementById('signin-email');
+                  email?.scrollIntoView({ block: 'center' });
+                  email?.focus();
+                }}
+              >
+                Sign in
+              </button>
+            </p>
+          )}
           {saved >= limit && (
             <p className="muted small">
               That's the free limit. Delete one to save another. <span className="badge">Premium</span> will save as many as you like.

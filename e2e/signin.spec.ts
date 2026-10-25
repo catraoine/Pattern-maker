@@ -37,6 +37,9 @@ test('guest work survives signing in, comes to a second device, and the account 
 
   await page.evaluate((k) => localStorage.setItem(k, '{}'), FAKE);
   await accountAt(page, '/?signin=preview');
+  // With a pattern saved, Saved patterns offers to keep it safe; the offer lands on the email box.
+  await main.getByRole('region', { name: 'Saved patterns' }).getByRole('button', { name: 'Sign in' }).click();
+  await expect(page.locator('#signin-email')).toBeFocused();
   const data = await openFold(page, 'Your data');
   await data.getByLabel('Email').fill('sewist@example.com');
   await data.getByRole('button', { name: 'Email me a sign-in link' }).click();
