@@ -152,13 +152,9 @@ const atOut = (t) => ((t - JOURNEY.from) * JOURNEY.dur) / (JOURNEY.to - JOURNEY.
 const STYLE_CAM = (WIDE
   ? [[0.6, 1, 0.5, 0.5], [MARKS.draw, 1, 0.5, 0.5], [MARKS.hem - 0.2, 1.25, 0.5, 0.44], [MARKS.done, 1.25, 0.5, 0.44], [JOURNEY.to, 1, 0.5, 0.5]]
   : [[0.6, 1, 0.5, 0.5], [JOURNEY.to, 1.05, 0.5, 0.47]]).map(([t, ...r]) => [atOut(t), ...r]);
-const STYLE_NOTES = [
-  ['From your photo.', 0.6, MARKS.fabric - 0.2],
-  ['Change the colour.', MARKS.fabric + 0.2, MARKS.enlarge - 0.2],
-  ['Enlarge to draw.', MARKS.enlarge + 0.2, MARKS.hem - 0.2, 'side'],
-  ['Draw it longer.', MARKS.hem + 0.2, MARKS.side - 0.2, 'side'],
-  ['Flare the skirt.', MARKS.side + 0.2, MARKS.done - 0.1, 'side'],
-];
+// No step words over the Style journey: what each move does is left to show itself (Cat, 2026-10-24: "take out
+// these headings, just leave it implied"). The pattern's own line after it stays.
+const STYLE_NOTES = [];
 const styleJourney = async () => {
   // One at a time: the words are all drawn on the one page.
   const notes = [];
