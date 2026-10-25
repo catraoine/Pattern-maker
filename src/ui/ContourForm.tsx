@@ -2,8 +2,8 @@ import { useEffect, useRef } from 'react';
 import type { FormKind, MeasurementId } from '../measurements';
 import { LEG, LEG_FLOOR, LEG_KNEE, LEG_X } from '../engine/form';
 
-// The dress form, a black satin mannequin edged in fine champagne lines (Cat's F5 Satin and Light, 2026-10-25):
-// one figure for every screen (Cat, 2026-10-18: the body must stay the same everywhere). It has a faceless head like an artist's wooden mannequin, about 8 cm of neck, and
+// The dress form, drawn in contour lines on black: one figure for every screen (Cat, 2026-10-18: the body must
+// stay the same everywhere). It has a faceless head like an artist's wooden mannequin, about 8 cm of neck, and
 // legs to the feet drawn as fine outlines like the Style page's (Cat, 2026-10-20). The welcome shows it without
 // the legs, with a light passing across it once (Cat's C1 Light Pass). The measuring pages show the whole
 // figure and play an ivory tape once to where each measurement goes.
@@ -127,50 +127,15 @@ const NECK_YS = Array.from({ length: 18 }, (_, i) => -2.0 + (0.34 * i) / 17);
 type Light = (u: number) => number;
 const EVEN: Light = () => 0.7;
 
-/** The form's black satin, lit from the upper left (SATIN_STOPS in FormSketch.tsx, so the Style page's form is the
- *  same): laid across the body at its widest, centred on `cx`. */
-const SATIN: [number, string][] = [
-  [0, '#14120e'],
-  [0.3, '#3b352a'],
-  [0.5, '#1c1915'],
-  [1, '#050505'],
-];
-function satin(g: CanvasRenderingContext2D, S: number, cx: number) {
-  const fill = g.createLinearGradient(cx - 0.85 * S, 0, cx + 0.85 * S, 0);
-  for (const [at, colour] of SATIN) fill.addColorStop(at, colour);
-  return fill;
-}
-/** Where the satin's one highlight runs down the form, as a share of the way out to the left side. */
-const SHEEN = -0.5;
-/** The welcome, the waitlist and the measuring pages draw the form in the long lines that drop down; the satin is
- *  for styling, the All round view here (Cat, 2026-10-25). paintFigure turns it on while it paints, like pickForm. */
-let satinLook = false;
-/** How strong the long lines are: in the lines look, always full; on the satin, only the faint `grain` of a turn. */
-const lineStrength = (grain: number) => (satinLook ? grain : 1);
-/** Fill a closed outline with the satin, or, in the lines look, with black, so lines behind it don't show. */
-function fillSatin(g: CanvasRenderingContext2D, S: number, cx: number, pts: Pt[], alpha = 1) {
-  if (pts.length < 3 || alpha <= 0) return;
-  g.globalAlpha = alpha;
-  g.fillStyle = satinLook ? satin(g, S, cx) : '#000';
-  g.beginPath();
-  pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
-  g.closePath();
-  g.fill();
-  g.globalAlpha = 1;
-}
-
-/** The neck above the form and the head on it, in the satin. `grain` shows the long lines faintly over it as the
- *  form turns (0, the default, at rest), `spin` turning them round. */
-function paintHead(g: CanvasRenderingContext2D, S: number, cx: number, Y: (y: number) => number, lw: number, light: Light = EVEN, spin = 0, alpha = 1, grain = 0) {
+/** The neck above the form and the head on it. `spin` turns the lines round, as the form turns. */
+function paintHead(g: CanvasRenderingContext2D, S: number, cx: number, Y: (y: number) => number, lw: number, light: Light = EVEN, spin = 0, alpha = 1) {
   g.strokeStyle = CHAMPAGNE;
-  // The neck runs up into the head.
-  fillSatin(g, S, cx, [...NECK_YS.map((y): Pt => [cx + R(y) * S, Y(y)]), ...[...NECK_YS].reverse().map((y): Pt => [cx - R(y) * S, Y(y)])], alpha);
-  g.strokeStyle = CHAMPAGNE;
-  for (let j = 0; j < 2 * LINES && lineStrength(grain) > 0; j++) {
+  // The neck: the form's long lines carry on up past its top and into the head.
+  for (let j = 0; j < 2 * LINES; j++) {
     const th = (Math.PI * (j + 0.5)) / LINES - spin;
     if (Math.sin(th) <= 1e-6) continue;
     const u = Math.cos(th);
-    g.globalAlpha = alpha * lineStrength(grain) * light(u);
+    g.globalAlpha = alpha * light(u);
     g.lineWidth = lw * 0.6 * (1 - 0.35 * Math.abs(u));
     path(g, NECK_YS.map((y): Pt => [cx + u * R(y) * S, Y(y) + Math.sin(th) * R(y) * S * DEPTH]));
   }
@@ -178,7 +143,7 @@ function paintHead(g: CanvasRenderingContext2D, S: number, cx: number, Y: (y: nu
   g.lineWidth = lw;
   path(g, NECK_YS.map((y): Pt => [cx - R(y) * S, Y(y)]));
   path(g, NECK_YS.map((y): Pt => [cx + R(y) * S, Y(y)]));
-  // The head in the satin over the top of the neck, so the neck disappears into the jaw.
+  // Black inside the head, so the top of the neck disappears into the jaw.
   const outline: Pt[] = [...HEAD_TS.map((t): Pt => [cx + headHalf(t) * S, Y(headY(t))]), ...[...HEAD_TS].reverse().map((t): Pt => [cx - headHalf(t) * S, Y(headY(t))])];
   g.globalAlpha = alpha;
   g.fillStyle = '#000';
@@ -186,20 +151,12 @@ function paintHead(g: CanvasRenderingContext2D, S: number, cx: number, Y: (y: nu
   outline.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
   g.closePath();
   g.fill();
-  fillSatin(g, S, cx, outline, alpha);
-  g.strokeStyle = CHAMPAGNE;
   const inner = HEAD_TS.slice(1, -1);
-  // Its highlight, where the body's runs.
-  if (satinLook) {
-    g.globalAlpha = alpha * light(SHEEN) * 0.45;
-    g.lineWidth = lw * 0.5;
-    path(g, inner.map((t): Pt => [cx + SHEEN * headHalf(t) * S, Y(headY(t))]));
-  }
-  for (let j = 0; j < 22 && lineStrength(grain) > 0; j++) {
+  for (let j = 0; j < 22; j++) {
     const th = (Math.PI * (j + 0.5)) / 11 - spin;
     if (Math.sin(th) <= 1e-6) continue;
     const u = Math.cos(th);
-    g.globalAlpha = alpha * lineStrength(grain) * light(u);
+    g.globalAlpha = alpha * light(u);
     g.lineWidth = lw * 0.6 * (1 - 0.35 * Math.abs(u));
     path(g, inner.map((t): Pt => [cx + u * headHalf(t) * S, Y(headY(t)) + Math.sin(th) * headHalf(t) * S * DEPTH]));
   }
@@ -241,40 +198,21 @@ function paintLegs(g: CanvasRenderingContext2D, S: number, cx: number, Y: (y: nu
   g.globalAlpha = 1;
 }
 
-/** The torso: its outline drawn as far as `outline`, then the satin poured down it as far as `lines`, with its one
- *  highlight drawn down alongside. `grain` shows the long lines faintly over the satin while the form turns (0 at
- *  rest), `spin` turning them round. In the lines look, the long lines alone on black. */
-function paintTorso(g: CanvasRenderingContext2D, S: number, cx: number, Y: (y: number) => number, lw: number, light: Light = EVEN, outline = 1, lines = 1, spin = 0, grain = 0) {
+/** The torso: outline and long lines, each drawn as far as given; `spin` turns the long lines round. */
+function paintTorso(g: CanvasRenderingContext2D, S: number, cx: number, Y: (y: number) => number, lw: number, light: Light = EVEN, outline = 1, lines = 1, spin = 0) {
+  g.strokeStyle = CHAMPAGNE;
   g.lineCap = 'round';
   g.lineJoin = 'round';
-  if (lines > 0 && satinLook) {
-    // The satin fills from the shoulders down to where the draw has reached.
-    const reach = Y(YS[0] + (YS[YS.length - 1] - YS[0]) * clamp(lines, 0, 1));
-    g.save();
-    g.beginPath();
-    g.rect(cx - 2 * S, 0, 4 * S, reach);
-    g.clip();
-    fillSatin(g, S, cx, [...YS.map((y): Pt => [cx + R(y) * S, Y(y)]), ...[...YS].reverse().map((y): Pt => [cx - R(y) * S, Y(y)])]);
-    g.restore();
-  }
-  g.strokeStyle = CHAMPAGNE;
   const edge = (u: number) => lw * (0.5 + Math.sin(Math.PI * u));
   g.globalAlpha = 1;
   taper(g, YS.map((y): Pt => [cx - R(y) * S, Y(y)]), outline, edge);
   taper(g, YS.map((y): Pt => [cx + R(y) * S, Y(y)]), outline, edge);
   if (lines <= 0) return;
-  if (satinLook) {
-    // The highlight comes in below the neck, where the shoulders round off.
-    const below = YS.filter((y) => y > -1.45);
-    const sheen = below.map((y): Pt => [cx + SHEEN * R(y) * S, Y(y)]);
-    g.globalAlpha = light(SHEEN) * 0.5;
-    taper(g, sheen, lines, (u) => lw * 0.55 * Math.min(1, u * 8));
-  }
-  for (let j = 0; j < 2 * LINES && lineStrength(grain) > 0; j++) {
+  for (let j = 0; j < 2 * LINES; j++) {
     const th = (Math.PI * (j + 0.5)) / LINES - spin;
     if (Math.sin(th) <= 1e-6) continue;
     const u = Math.cos(th);
-    g.globalAlpha = lineStrength(grain) * light(u);
+    g.globalAlpha = light(u);
     g.lineWidth = lw * 0.6 * (1 - 0.35 * Math.abs(u));
     path(g, YS.map((y): Pt => [cx + u * R(y) * S, Y(y) + Math.sin(th) * R(y) * S * DEPTH]), lines);
   }
@@ -346,8 +284,7 @@ function settledForm(g: CanvasRenderingContext2D, w: number, h: number, outline 
 }
 
 // The welcome (Cat's T5 Drawn Down): the outline draws, or arrives already drawn from the loading screen, then
-// all the long lines are drawn down together from the shoulders. A close crop, so the head is out of view. The
-// welcome and the waitlist keep the lines that drop down (Cat, 2026-10-25).
+// all the long lines are drawn down together from the shoulders. A close crop, so the head is out of view.
 const OUTLINE = 1000;
 const DOWN = 1300;
 const WELCOME_END = OUTLINE + DOWN + 300;
@@ -458,15 +395,18 @@ function paintArms(g: CanvasRenderingContext2D, S: number, cx: number, lw: numbe
   const inner = ARM_YS.filter((y) => y >= UNDERARM);
   for (const side of [-1, 1]) {
     const X = (r: number) => cx + side * r * S;
-    // The arm in the satin, over the form up to the form's own side; edged, with no lines down it.
-    fillSatin(g, S, cx, [...ARM_YS.map((y): Pt => [X(ARM_OUT(y)), Y(y)]), ...[...inner].reverse().map((y): Pt => [X(ARM_IN(y)), Y(y)]), ...ARM_YS.filter((y) => y < UNDERARM).reverse().map((y): Pt => [X(R(y)), Y(y)])]);
-    g.strokeStyle = CHAMPAGNE;
+    // Black out the form's lines behind the arm, up to the form's own side.
     g.globalAlpha = 1;
+    g.fillStyle = '#000';
+    g.beginPath();
+    ARM_YS.forEach((y, i) => (i ? g.lineTo(X(ARM_OUT(y)), Y(y)) : g.moveTo(X(ARM_OUT(y)), Y(y))));
+    [...inner].reverse().forEach((y) => g.lineTo(X(ARM_IN(y)), Y(y)));
+    ARM_YS.filter((y) => y < UNDERARM).reverse().forEach((y) => g.lineTo(X(R(y)), Y(y)));
+    g.fill();
+    g.strokeStyle = CHAMPAGNE;
     g.lineWidth = lw;
     path(g, ARM_YS.map((y): Pt => [X(ARM_OUT(y)), Y(y)]));
     path(g, inner.map((y): Pt => [X(ARM_IN(y)), Y(y)]));
-    if (satinLook) continue;
-    // In the lines look, a few lines down the arm.
     g.globalAlpha = 0.45;
     g.lineWidth = lw * 0.45;
     for (let j = 1; j < 4; j++) path(g, inner.map((y): Pt => [X(ARM_IN(y) + ((ARM_OUT(y) - ARM_IN(y)) * j) / 4), Y(y)]));
@@ -476,23 +416,11 @@ function paintArms(g: CanvasRenderingContext2D, S: number, cx: number, lw: numbe
 
 const LEG_YS = Array.from({ length: 141 }, (_, i) => 1.2 + (3.5 * i) / 140);
 
-/** How strong the lines over the satin are while the form turns, so the turn reads. */
-const TURNING = 0.3;
-
 /**
  * The whole figure at any scale, for the views that turn it round (the All round shape preview): `turn`
  * (radians) spins its long lines, head and legs round. `legs` fades the legs in (0 to 1).
  */
 export function paintFigure(g: CanvasRenderingContext2D, S: number, cx: number, Y: (y: number) => number, lw: number, legs = 1, withArms = false, turn?: number) {
-  // The styling views show the satin form (Cat, 2026-10-25: lines up to measuring, satin from Style on).
-  satinLook = true;
-  try {
-    paintSatinFigure(g, S, cx, Y, lw, legs, withArms, turn);
-  } finally {
-    satinLook = false;
-  }
-}
-function paintSatinFigure(g: CanvasRenderingContext2D, S: number, cx: number, Y: (y: number) => number, lw: number, legs: number, withArms: boolean, turn?: number) {
   const spin = turn ?? 0;
   if (turn === undefined) {
     paintTorso(g, S, cx, Y, lw);
@@ -501,16 +429,14 @@ function paintSatinFigure(g: CanvasRenderingContext2D, S: number, cx: number, Y:
     paintHead(g, S, cx, Y, lw);
     return;
   }
-  // Turning, the satin stays lit from the same side, and faint lines run all the way round over it, only the front
-  // half showing and easing out at the sides, so the turn shows.
-  paintTorso(g, S, cx, Y, lw, EVEN, 1, 1);
-  g.strokeStyle = CHAMPAGNE;
+  // Turning, the lines run all the way round and only the front half shows, easing out at the sides.
+  paintTorso(g, S, cx, Y, lw, EVEN, 1, 0);
   for (let j = 0; j < 2 * LINES; j++) {
     const th = (Math.PI * (j + 0.5)) / LINES - spin;
     const front = Math.sin(th);
     if (front <= 0) continue;
     const c = Math.cos(th);
-    g.globalAlpha = TURNING * Math.min(1, front * 6);
+    g.globalAlpha = 0.7 * Math.min(1, front * 6);
     g.lineWidth = lw * 0.6 * (1 - 0.35 * Math.abs(c));
     path(g, YS.map((y): Pt => [cx + c * R(y) * S, Y(y) + front * R(y) * S * DEPTH]));
   }
@@ -531,7 +457,7 @@ function paintSatinFigure(g: CanvasRenderingContext2D, S: number, cx: number, Y:
       }
     }
   }
-  paintHead(g, S, cx, Y, lw, (u) => 0.7 * Math.min(1, Math.sqrt(Math.max(0, 1 - u * u)) * 6), spin, 1, TURNING / 0.7);
+  paintHead(g, S, cx, Y, lw, (u) => 0.7 * Math.min(1, Math.sqrt(Math.max(0, 1 - u * u)) * 6), spin);
 }
 
 /** A tape: a champagne band along the points, the strip's colours, with a tick every few millimetres and a longer one every fifth. */
@@ -855,12 +781,10 @@ function paintTape(g: CanvasRenderingContext2D, w: number, h: number, from: Cam,
   const spin = turn[0] + (turn[1] - turn[0]) * e;
   const arms = t?.kind === 'arm';
 
-  // Lines show over the satin only while it turns round, so the turn reads.
-  const grain = (TURNING / 0.7) * Math.abs(Math.sin(spin));
-  paintTorso(g, S, cx, Y, lw, EVEN, 1, 1, spin, grain);
+  paintTorso(g, S, cx, Y, lw, EVEN, 1, 1, spin);
   paintLegs(g, S, cx, Y, lw);
   if (arms) paintArms(g, S, cx, lw, Y);
-  paintHead(g, S, cx, Y, lw, EVEN, spin, 1, grain);
+  paintHead(g, S, cx, Y, lw, EVEN, spin);
   if (t && startsAtWaist(t)) paintWaistString(g, S, cx, Y, lw);
   // The floor, faint and dashed, when the measure goes down to it.
   // The same for the chair seat crotch depth is taken sitting on, and the ruler held level across the front at
