@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { isLadderStep, onOverlay, pushOverlay } from '../nav';
 import { createPortal } from 'react-dom';
 
 // Cat's A1 Tap to Enlarge (2026-10-20): an Enlarge button on the style page's preview. It opens the live preview
@@ -20,6 +21,9 @@ export const tookEnlarged = () => {
   leftBig = 0;
   return now;
 };
+
+/** Marks the enlarged preview's entry in the browser's history. */
+const ENLARGED = 'enlarged';
 
 /** The Enlarge button, placed on the preview of the style page, and the full-screen preview it opens. */
 export function EnlargeSketch({ host, name }: { host: HTMLElement | null; name: string }) {
@@ -56,9 +60,23 @@ export function EnlargeSketch({ host, name }: { host: HTMLElement | null; name: 
       setBig(false);
     }
   }, [big, card]);
+  // Its own entry in the history, so back (the phone's swipe too) makes it smaller instead of leaving Style.
   useEffect(() => {
     if (!big) return;
-    const key = (e: KeyboardEvent) => e.key === 'Escape' && setBig(false);
+    const on = (e: PopStateEvent) => {
+      if (!isLadderStep(e) && !onOverlay(ENLARGED)) setBig(false);
+    };
+    window.addEventListener('popstate', on);
+    return () => window.removeEventListener('popstate', on);
+  }, [big]);
+  const open = () => {
+    setBig(true);
+    pushOverlay(ENLARGED);
+  };
+  const shrink = () => (onOverlay(ENLARGED) ? window.history.back() : setBig(false));
+  useEffect(() => {
+    if (!big) return;
+    const key = (e: KeyboardEvent) => e.key === 'Escape' && shrink();
     window.addEventListener('keydown', key);
     // The page underneath stays put while it's open.
     const overflow = document.body.style.overflow;
@@ -75,7 +93,7 @@ export function EnlargeSketch({ host, name }: { host: HTMLElement | null; name: 
       type="button"
       className={spot === host ? 'enlarge' : 'enlarge in-row'}
       aria-pressed={big}
-      onClick={() => setBig(!big)}
+      onClick={big ? shrink : open}
       aria-label={big ? `Make the drawing of the ${name.toLowerCase()} smaller` : `Enlarge the drawing of the ${name.toLowerCase()}`}
     >
       <svg viewBox="0 0 16 16" aria-hidden="true">
