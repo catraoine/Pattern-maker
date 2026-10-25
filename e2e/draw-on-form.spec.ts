@@ -12,7 +12,7 @@ async function draw(page: Page, at: { x: number; y: number }[]) {
   const screen = await page.evaluate(
     ([pts, k]) => {
       const svg = document.querySelector<SVGSVGElement>('svg.form-svg')!;
-      const cx = svg.viewBox.baseVal.width / 2;
+      const cx = svg.viewBox.baseVal.x + svg.viewBox.baseVal.width / 2;
       const ctm = svg.getScreenCTM()!;
       return pts.map((q) => {
         const p = new DOMPoint(cx + k * q.x, q.y).matrixTransform(ctm);

@@ -318,6 +318,17 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
   // The garment on the form, front on (the back shows the form and its lines only).
   const worn = useMemo(() => (cloth ? wornCloth(cloth, body, underarmY ?? arms?.under.y) : undefined), [cloth, body, underarmY, arms]);
   const clothOn = side === 'front' ? worn : undefined;
+  // Enlarged, the garment fills the screen as on the Style page (Cat, 2026-10-25: Draw inside Enlarge too): from just
+  // above it to well past its hem, so there's room to draw the hem longer, and only a little wider than it, both sides
+  // alike so the back matches the front.
+  const view = useMemo(() => {
+    const all = (worn ?? []).flat();
+    if (!big || !all.length) return { left: 0, width: 2 * cx, top: frame.top, bottom: frame.bottom };
+    const ys = all.map((q) => q.y);
+    const wide = SQUEEZE * Math.max(...all.map((q) => Math.abs(q.x))) + 7;
+    const top = Math.max(frame.top, Math.min(...ys) - 8);
+    return { left: cx - wide, width: 2 * wide, top, bottom: Math.min(frame.bottom, Math.max(...ys) + 20) };
+  }, [big, worn, cx, frame]);
 
   const current = lines(side);
   const at = (pts: P[]) => path(pts.map((q) => ({ x: cx + SQUEEZE * q.x, y: q.y })));
@@ -423,7 +434,7 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
           </button>
           <svg
             ref={svg}
-            viewBox={`0 ${f(frame.top)} ${f(2 * cx)} ${f(frame.bottom - frame.top)}`}
+            viewBox={`${f(view.left)} ${f(view.top)} ${f(view.width)} ${f(view.bottom - view.top)}`}
             role="img"
             aria-label={`Your dress form from the ${side}, built from your measurements. ${help}`}
             className={`preview-svg sketch shape drawing form-svg${clothOn ? ' clothed' : ''}`}
@@ -474,7 +485,7 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
             )}
             {side === 'back' && (
               // In the corner, clear of the neck.
-              <text x={2} y={frame.top + 3} fontSize={1.8} textAnchor="start" className="hint">
+              <text x={view.left + 2} y={view.top + 3} fontSize={1.8} textAnchor="start" className="hint">
                 BACK
               </text>
             )}
