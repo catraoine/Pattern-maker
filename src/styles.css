@@ -6191,6 +6191,7 @@ body:has(.tape-band.carried) {
 
 .welcome.leaving .welcome-hero canvas,
 .welcome.leaving .tour-play,
+.welcome.leaving .tour-play-label,
 .welcome.leaving .welcome-card > :not(.welcome-hero) {
   opacity: 0;
   /* Gone just as the first measuring page starts to come up under the tape (Cat, 2026-10-22: no gap on black) */
@@ -6248,9 +6249,20 @@ body:has(.tape-band.carried) {
   border-bottom: 10px solid transparent;
 }
 
+/* Under the form, clear of its lines (Cat, 2026-10-25: calmer front page), and a way into the film itself */
 .tour-play-label {
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  transform: translateX(-50%);
+  z-index: 2;
+  min-height: 0;
   padding: 6px 8px;
-  background: rgba(0, 0, 0, 0.7);
+  border: 0;
+  background: none;
+  color: var(--ink);
+  cursor: pointer;
+  white-space: nowrap;
   font: var(--w-body) 10px/1 var(--mono);
   letter-spacing: 0.25em;
   text-transform: uppercase;
