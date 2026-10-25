@@ -407,6 +407,16 @@ p {
   gap: 8px;
 }
 
+/* The gentle tier at the end of measuring: in range, near the edge, one tap to take it again. */
+.second-looks {
+  display: grid;
+  gap: 8px;
+}
+
+.second-looks .msg p {
+  margin: 0 0 4px;
+}
+
 .check-list .doubtful {
   color: var(--gild);
 }

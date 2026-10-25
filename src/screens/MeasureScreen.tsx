@@ -1,4 +1,4 @@
-import { Check, Garment, MeasurementId, MeasurementValues, Unit, fieldsFor, worded } from '../measurements';
+import { Check, Garment, MeasurementId, MeasurementValues, Unit, fieldsFor, secondLooks, worded } from '../measurements';
 import { GarmentSwitch } from '../ui/GarmentSwitch';
 import { GARMENT_NAME } from '../measureFlow';
 import { PeopleSwitch } from '../ui/PeopleSwitch';
@@ -42,6 +42,8 @@ export function MeasureScreen({ account, onSwitchPerson, onAddPerson, profile, g
   // Numbers that could be right but don't agree with the rest: marked on their row and explained under the list.
   const doubts = checks.filter((c) => c.level === 'warning' && values[c.id] !== undefined && rows.some((f) => f.id === c.id));
   const doubtful = (id: MeasurementId) => doubts.some((c) => c.id === id);
+  // Once everything is in and nothing is off: the few numbers worth one more look, each a tap from its page.
+  const looks = missing.length || problem ? [] : secondLooks(values, garment, form).filter((c) => !doubtful(c.id) && !doubtful(c.with) && values[c.id] !== undefined).slice(0, 3);
 
   return (
     <div className="welcome">
@@ -89,6 +91,21 @@ export function MeasureScreen({ account, onSwitchPerson, onAddPerson, profile, g
         </ul>
         {problem && <p className="msg error">{problem.message}</p>}
         {!problem && <DoubleChecks checks={doubts} />}
+        {looks.length > 0 && (
+          <div className="second-looks" role="status" aria-labelledby="looks-title">
+            <p id="looks-title" className="eyebrow">
+              Worth a second look
+            </p>
+            {looks.map((c) => (
+              <div key={`${c.id}-${c.with}`} className="msg small doubt">
+                <p>{c.message}</p>
+                <button type="button" className="link" onClick={() => onMeasure(c.with === 'height' ? [c.id] : [c.id, c.with])}>
+                  Measure again
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
         {missing.length ? (
           <button type="button" className="primary" onClick={() => onMeasure(missing.map((f) => f.id))}>
             Continue measuring
