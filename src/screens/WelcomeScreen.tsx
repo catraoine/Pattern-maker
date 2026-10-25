@@ -82,9 +82,9 @@ export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume, wait
     );
     const words = [...(el.parentElement?.children ?? [])].filter((c) => c !== el) as HTMLElement[];
     const fades = words.map((c) => c.animate([{ opacity: 0 }, { opacity: 0, offset: at + (1 - at) * 0.7 }, { opacity: 1 }], { ...timing, duration: timing.duration + 300 }));
-    const plays = [...el.querySelectorAll('.tour-play, .tour-play-label')];
-    const last = plays.map((p) => p.animate([{ opacity: 0 }, { opacity: 0, offset: PLAY_AT / (PLAY_AT + 500) }, { opacity: 1 }], { duration: PLAY_AT + 500, fill: 'backwards' }));
-    return () => [slide, ...fades, ...last].forEach((a) => a.cancel());
+    const play = el.querySelector('.tour-play');
+    const last = play?.animate([{ opacity: 0 }, { opacity: 0, offset: PLAY_AT / (PLAY_AT + 500) }, { opacity: 1 }], { duration: PLAY_AT + 500, fill: 'backwards' });
+    return () => [slide, ...fades, last].forEach((a) => a?.cancel());
   }, [formStart]);
 
   const tape = useRef<HTMLDivElement>(null);
@@ -110,11 +110,9 @@ export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume, wait
         <div className="welcome-hero" ref={hero}>
           <ContourForm start={formStart} kind={form} />
           <button type="button" className="tour-play" onClick={() => setTouring(true)} aria-label={`Watch how it works, ${TOUR_LABEL}`}>
+            {/* The label above the ring, off the waist lines and without the running time (Cat, 2026-10-25) */}
+            <span className="tour-play-label">How it works</span>
             <span className="tour-play-ring" aria-hidden="true" />
-          </button>
-          {/* The label sits under the form, off its waist lines (Cat, 2026-10-25: calmer front page) */}
-          <button type="button" className="tour-play-label" tabIndex={-1} aria-hidden="true" onClick={() => setTouring(true)}>
-            How it works · {TOUR_LABEL}
           </button>
           {/* The tip is where Begin pulls the tape from, so the waitlist, with no Begin, leaves it out */}
           {!resume && !waitlist && <span className="tape-tip" aria-hidden="true" />}
