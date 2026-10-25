@@ -7435,7 +7435,9 @@ details.sew > .sew-summary + .row {
   mask-image: linear-gradient(to bottom, #000 82%, transparent);
 }
 .welcome.curtain-up .welcome-hero canvas {
-  height: max(100%, var(--curtain-h, 100%));
+  /* A plain length: Safari doesn't resolve percentages inside the flexed hero (see .welcome-hero canvas) */
+  height: var(--curtain-h, 100%);
+  bottom: auto;
 }
 .welcome.curtain-up .welcome-card > .stack.waitlist,
 .welcome.curtain-up .welcome-card > .fineprint {
