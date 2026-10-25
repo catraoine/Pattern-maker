@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { COLOURS, SHOP_FABRICS, buyAmount, buyLink, colourHex, coloursFor, shopFabricsFor, withShopFabric } from './shopFabrics';
-import { pickColour, pickFabric, pickShopFabric, flatId, fabricLabel } from '../ui/FabricFill';
+import { COLOURS, SHOP_FABRICS, buyAmount, buyLink, closestShopColours, colourDistance, colourHex, coloursFor, hexToHsl, hslToHex, shopFabricsFor, withShopFabric } from './shopFabrics';
+import { pickColour, pickFabric, pickHex, pickShopColour, pickShopFabric, flatId, fabricLabel } from '../ui/FabricFill';
 import type { Finish } from '../App';
 
 const denim = SHOP_FABRICS.find((f) => f.id === 'mood-denim')!;
@@ -66,5 +66,29 @@ describe('fabric on the style sketch', () => {
     const blue = pickColour(pickFabric(start, 'cotton'), 'Cobalt');
     expect(blue.fabric?.colour).toBe('Cobalt');
     expect(pickColour(blue, 'cobalt').fabric?.colour).toBeUndefined();
+  });
+
+  it('takes any colour as a hex, and the bars turn it back into colour and shade', () => {
+    const f = pickHex(pickFabric(start, 'linen'), '#b8613f');
+    expect(f.fabric?.colour).toBe('#B8613F');
+    expect(colourHex(f.fabric)).toBe('#b8613f');
+    const { h, s, l } = hexToHsl('#B8613F');
+    expect(hslToHex(h, s, l)).toBe('#B8613F');
+  });
+
+  it('finds the nearest shop colourways for a picked colour, best first, among fabrics that suit the garment', () => {
+    expect(colourDistance('#1c1b1a', '#1c1b1a')).toBe(0);
+    const m = closestShopColours('#1d1c1b', 'skirt');
+    expect(m[0].colour.name).toBe('Black');
+    expect(m[0].closeness).toBe('near');
+    expect(m.every((x, i) => i === 0 || x.distance >= m[i - 1].distance)).toBe(true);
+    expect(m.every((x) => x.fabric.suits.includes('skirt'))).toBe(true);
+    expect(closestShopColours('#2f9a3a', 'skirt')[0].closeness).toBe('far');
+  });
+
+  it('uses a shop fabric in the matched colour when a match is tapped', () => {
+    const f = pickShopColour(pickHex(start, '#b8613f'), 'mood-silk-charmeuse', 'Chili pepper');
+    expect(f.fabric).toMatchObject({ shop: 'mood-silk-charmeuse', colour: 'Chili pepper' });
+    expect(colourHex(f.fabric)).toBe('#8e2a22');
   });
 });
