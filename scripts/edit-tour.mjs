@@ -196,8 +196,8 @@ async function threeChecks() {
 const note = (line, where) => words(WIDE && where === 'side'
   ? `<div class="f" style="display:flex;flex-direction:column;justify-content:center;padding-left:96px;background:linear-gradient(to right,rgba(0,0,0,.85) 0,rgba(0,0,0,.6) 30%,rgba(0,0,0,0) 42%)"><h1 class="t" style="font-size:46px">${line}</h1></div>`
   : WIDE
-  ? `<div class="f" style="background:linear-gradient(to bottom,rgba(0,0,0,.92) 0,rgba(0,0,0,.8) 13%,rgba(0,0,0,0) 22%);padding:${where === 'low' ? 64 : 44}px 0 0 96px"><h1 class="t" style="font-size:46px">${line}</h1></div>`
-  : `<div class="f" style="background:linear-gradient(to bottom,rgba(0,0,0,.92) 0,rgba(0,0,0,.8) 11%,rgba(0,0,0,0) 17%);padding:${where === 'low' ? 80 : 40}px 0 0 28px"><h1 class="t" style="font-size:36px">${line}</h1></div>`);
+  ? `<div class="f" style="background:linear-gradient(to bottom,rgba(0,0,0,.92) 0,rgba(0,0,0,.8) 13%,rgba(0,0,0,0) 22%);padding:${where === 'low' ? 54 : 44}px 0 0 96px"><h1 class="t" style="font-size:46px">${line}</h1></div>`
+  : `<div class="f" style="background:linear-gradient(to bottom,rgba(0,0,0,.92) 0,rgba(0,0,0,.8) 11%,rgba(0,0,0,0) 17%);padding:${where === 'low' ? 60 : 40}px 0 0 28px"><h1 class="t" style="font-size:36px">${line}</h1></div>`);
 // P2 Or Start From a Photo (Cat, 2026-10-24): after the garments, a photo of a dress (made for the film, no person in
 // it), briefly, its words the same size and place as the Style steps'. No drafted dress after it (Cat: skip that).
 const PHOTO = readFileSync(new URL('./tour/photo-dress.jpg', import.meta.url)).toString('base64');
