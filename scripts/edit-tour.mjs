@@ -173,7 +173,7 @@ const styleJourney = async () => {
 // Cat (2026-10-22): the cream pattern paper was too bright after the black pages; a deeper champagne here.
 // Wide: from the moment the pattern is up, slowed a touch to fill its time (Cat, 2026-10-22: the drawing flashed before it).
 // On a phone the sheet rises the last part of the journey, to sit just under 'Your pattern, drafted.'
-const LIFT = WIDE ? 0 : 0.13;
+const LIFT = WIDE ? 0 : 0.065;
 const PATTERN = WIDE
   ? { from: 1.1, speed: 0.8, zoom: [1.6, 1.66], at: [0.42, 0.72], frame: [0.1, 1.05, 0.1, 0.92, 0.002], tint: [0.84, 0.78, 0.66] }
   : { from: 1.1, speed: 0.75, zoom: [1.1, 1.14], at: [0.5, 0.56], frame: [0.29 - LIFT, 0.712 - LIFT, -1, 2, 0.002], lift: [LIFT], tint: [0.84, 0.78, 0.66] };
