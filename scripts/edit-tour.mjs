@@ -143,8 +143,8 @@ function tapeAcross(t) {
 }
 
 const MARKS = WIDE
-  ? { fabric: 2.6, enlarge: 7.5, draw: 9.5, hem: 11.4, side: 17.1, done: 21.6 }
-  : { fabric: 2.6, enlarge: 6.9, draw: 8.8, hem: 10.6, side: 16.3, done: 20.6 };
+  ? { fabric: 2.6, enlarge: 7.5, draw: 9.4, hem: 11.2, side: 16.8, done: 21.0 }
+  : { fabric: 2.6, enlarge: 6.8, draw: 8.8, hem: 10.6, side: 16.0, done: 20.2 };
 const JOURNEY = { from: 0.6, to: MARKS.done + 0.9, dur: 17 };
 const atOut = (t) => ((t - JOURNEY.from) * JOURNEY.dur) / (JOURNEY.to - JOURNEY.from);
 // [shot time, zoom, x, y]: on a computer, the whole page, then in on the enlarged form to draw, and back as the
@@ -153,7 +153,8 @@ const STYLE_CAM = (WIDE
   ? [[0.6, 1, 0.5, 0.5], [MARKS.draw, 1, 0.5, 0.5], [MARKS.hem - 0.2, 1.25, 0.5, 0.44], [MARKS.done, 1.25, 0.5, 0.44], [JOURNEY.to, 1, 0.5, 0.5]]
   : [[0.6, 1, 0.5, 0.5], [JOURNEY.to, 1.05, 0.5, 0.47]]).map(([t, ...r]) => [atOut(t), ...r]);
 // No step words over the Style journey: what each move does is left to show itself (Cat, 2026-10-24: "take out
-// these headings, just leave it implied"). The pattern's own line after it stays.
+// these headings, just leave it implied"), nor over the pattern: after the photo's own line, the next words are
+// "Drafted to your body".
 const STYLE_NOTES = [];
 const styleJourney = async () => {
   // One at a time: the words are all drawn on the one page.
@@ -270,7 +271,7 @@ const CUTS = {
       // Done lands on the pattern sheet, so the pattern follows straight on, then the dress all round (Cat,
       // 2026-10-24: no flash back to the dress between them), each dissolving into the next.
       await dissolve(
-        await dissolve(await styleJourney(), await piece({ shot: 'pattern', dur: 3.6, ...PATTERN, notes: [[await note('Your pattern, drafted.'), 0.5, 3.4]] }), 0.8),
+        await dissolve(await styleJourney(), await piece({ shot: 'pattern', dur: 3.6, ...PATTERN }), 0.8),
         await piece({ shot: 'round', from: 0.3, dur: 8.6, fadeOut: f, overs: (await threeChecks()).map((p, i) => [p, 0.9 + i * 1.8]) }),
         1,
       ),
