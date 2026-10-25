@@ -42,7 +42,7 @@ export function PrintPicker({ fabric, onFabric }: { fabric: MyFabric; onFabric: 
             onClick={() => onFabric(withPrint(fabric, kind === id ? undefined : id))}
           >
             <img src={printImage(id, base)} alt="" loading="lazy" />
-            <span>{PRINTS[id].label}</span>
+            <span className="card-name">{PRINTS[id].label}</span>
           </button>
         ))}
       </div>

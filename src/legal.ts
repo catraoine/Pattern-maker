@@ -1,3 +1,4 @@
+import { signinShown } from './cloud/flag';
 // The Privacy Policy and Terms of Use shown in the app. Drafts for a lawyer to review; the source documents are
 // Cat's "Maison Tracé Privacy Policy (draft)" and "Maison Tracé Terms of Use (draft)". Keep the two in step.
 
@@ -27,10 +28,20 @@ export interface LegalDoc {
 
 const contact = `${OWNER.name}, ${OWNER.address}. Email ${OWNER.email}.`;
 
+// Accounts (sign-in with an emailed link; see src/cloud) change where things are kept. Until they're switched on for
+// everyone, the wording below follows whether this device shows sign-in, so the preview reads right too.
+const ACCOUNTS = signinShown;
+/** Where something is kept: on the device, and in the account once there are accounts. */
+const kept = ACCOUNTS ? 'Your device, or your account if you sign in' : 'Your device';
+const received = (otherwise = 'No') => (ACCOUNTS ? `Only if you sign in${otherwise === 'No' ? '' : `, or if ${otherwise}`}` : otherwise === 'No' ? 'No' : `No, unless ${otherwise}`);
+
 export const PRIVACY: LegalDoc = {
   title: 'Privacy Policy',
   intro:
-    'Your measurements, the people you measure for and your saved patterns stay on your own device. We receive something from you only when you use photo-to-pattern (we don’t keep that photo), choose to send us fit notes, or sign up as a fit tester, for news, or to hear when something new opens. The app also sends us a short report if it crashes, and anonymous counts of visits, with nothing that identifies you.',
+    (ACCOUNTS
+      ? 'Your measurements, the people you measure for and your saved patterns stay on your own device, and in your account if you choose to sign in, so they’re there on your other devices. We receive something from you only when you sign in (your email address and the work in your account), when'
+      : 'Your measurements, the people you measure for and your saved patterns stay on your own device. We receive something from you only when') +
+    ' you use photo-to-pattern (we don’t keep that photo), choose to send us fit notes, or sign up as a fit tester, for news, or to hear when something new opens. The app also sends us a short report if it crashes, and anonymous counts of visits, with nothing that identifies you.',
   sections: [
     {
       heading: 'Who we are',
@@ -45,9 +56,10 @@ export const PRIVACY: LegalDoc = {
         {
           table: [
             ['What', 'Where it’s kept', 'Do we receive it?'],
-            ['Your name and the names of people you measure for', 'Your device', 'No'],
-            ['Body measurements and units', 'Your device', 'No, unless you send fit notes'],
-            ['Saved patterns and style choices', 'Your device', 'No'],
+            ...(ACCOUNTS ? [['Your email address, if you sign in', 'Our account service (Supabase), in Canada', 'Yes']] : []),
+            ['Your name and the names of people you measure for', kept, received()],
+            ['Body measurements and units', kept, received('you send fit notes')],
+            ['Saved patterns and style choices', kept, received()],
             ['Backup files you create', 'Wherever you save them', 'No'],
             ['Measure-me links between a dressmaker and a client (names, the garment and, in the reply, the measurements)', 'Inside the link, in the messages you send it in', 'No'],
             ['PDFs, tech packs and DXF files you export or share', 'Your device, or the app you share them to', 'No'],
@@ -74,8 +86,15 @@ export const PRIVACY: LegalDoc = {
             ['A scrambled code made from your IP address', 'Our photo, fit-note and sign-up counters, for one day', 'Yes'],
           ],
         },
-        'Your device.|The app saves your details in your browser’s storage so they’re there next time. They never leave your device unless you export, share or back them up yourself. Clearing your browser data, or uninstalling the app, deletes them.',
-        'Measurements are personal.|Body measurements can be sensitive, which is one reason we keep them on your device. If you enter measurements for someone else, please make sure they’re happy for you to do so.',
+        ACCOUNTS
+          ? 'Your device, and your account.|The app saves your details in your browser’s storage so they’re there next time. They leave your device only if you export, share or back them up yourself, or sign in. Clearing your browser data, or uninstalling the app, deletes the copy on that device.'
+          : 'Your device.|The app saves your details in your browser’s storage so they’re there next time. They never leave your device unless you export, share or back them up yourself. Clearing your browser data, or uninstalling the app, deletes them.',
+        ...(ACCOUNTS
+          ? [
+              'Signing in.|There’s no password: you give us your email address and we send you a link with a code. Once signed in, your name, the people you measure for, their measurements, your saved patterns and your fit notes are kept in your account as well as on your device, so they’re there when you sign in on another device, and each change is saved as you make it. Your account is held by Supabase in Canada, locked so that only you can read it. Signing out keeps the copy on your device; Delete my account, in Your account, removes your email address and everything in the account at once.',
+            ]
+          : []),
+        `Measurements are personal.|Body measurements can be sensitive, which is one reason we keep them on your device${ACCOUNTS ? ', and send them nowhere but your own account' : ''}. If you enter measurements for someone else, please make sure they’re happy for you to do so.`,
         'Measure-me links.|A dressmaker can send a client a link to measure themselves, and the client sends the numbers back in a reply link. Everything travels inside the link, after the “#”, a part of a web address that browsers never send to a server, so we don’t receive or store it. The link is only as private as the message it’s sent in, and anyone who has it can read it, so send it only to the person it’s for.',
         'Fit notes.|When you note how a pattern fitted, you can choose to send those notes to us. We receive the pattern’s style, your answers, any notes you write and the measurements it was drafted from. We don’t receive your name or the name of the person it was made for, so please leave names out of your notes. We use fit notes only to improve how our patterns fit. We count how many you send each day under the same scrambled code as photo readings, so the service can’t be flooded, and we don’t store your IP address with the notes.',
         'Crash reports.|If the app hits an error, it sends us a short report so we can fix it: the error message and where in the app’s code it happened, the screen you were on, the app version, your browser’s name and version (such as “Safari 17 on iOS”), and the time. Before it’s stored, we remove numbers from the error message, and email addresses, file data and web address details from the whole report. It never includes your measurements, names, patterns or photos, and we don’t store your IP address with it. The same error is reported once, and no more than five a visit.',
@@ -101,10 +120,16 @@ export const PRIVACY: LegalDoc = {
               'Your IP address, request details, the photo in transit, fit notes and sign-ups you send, and crash reports',
             ],
             ['Kit', 'Keeps the waitlist and news list and sends those emails', 'Your email, the link you arrived by, and whether you open the emails'],
+            ...(ACCOUNTS
+              ? [
+                  ['Supabase', 'Keeps accounts: who has signed in, and the work kept in each account. Its servers for us are in Canada', 'Your email address and, once you sign in, your name, people, measurements, saved patterns and fit notes'],
+                  ['Resend', 'Sends the sign-in emails', 'Your email address and the time each sign-in email was sent'],
+                ]
+              : []),
             ['Awin', 'Tracks shop sales that start from a Buy button, so the shop pays our commission', 'That you tapped Buy, and what you bought at the shop'],
           ],
         },
-        'Anthropic handles photos under its commercial terms for businesses using its API, which say it doesn’t train its models on that data. These companies are based in the United States, so your photo and request details may be processed there.',
+        `Anthropic handles photos under its commercial terms for businesses using its API, which say it doesn’t train its models on that data. ${ACCOUNTS ? 'Apart from Supabase, which holds your account in Canada, these companies are based in the United States, so your photo, request details and sign-in emails may be processed there.' : 'These companies are based in the United States, so your photo and request details may be processed there.'}`,
         'We may also share information if the law requires it, or with a buyer if the business is ever sold, under this same policy.',
       ],
     },
@@ -113,6 +138,7 @@ export const PRIVACY: LegalDoc = {
       body: [
         [
           'On your device: until you delete it. You can remove people and patterns in Your account, or clear everything by clearing your browser data for this site.',
+          ...(ACCOUNTS ? ['In your account: until you delete it. Removing a person or pattern removes it from your account too, and Delete my account in Your account removes your email address and everything in the account at once.'] : []),
           'Photos: not kept by us once the style has been read.',
           'Fit notes you send: kept while we use them to improve our patterns. Because they carry no name, we can’t match them to you later unless you tell us roughly when you sent one and what it said.',
           'Daily counters: one tally per day, keyed by the scrambled code.',
@@ -121,14 +147,16 @@ export const PRIVACY: LegalDoc = {
           'Fit tester, news and “tell me when it opens” sign-ups: until you ask us to remove you, or we stop fit testing, sending news, or plan not to open what you asked about. Every news email will say how to stop them.',
           'Hosting logs: kept by Netlify for its standard period.',
         ],
-        `Because almost everything stays on your device, we usually hold nothing we can look up about you, unless you signed up as a fit tester or for news. You can still contact us at ${OWNER.email} to ask what we hold, to correct it or to delete it. Depending on where you live (for example the UK, the EU, Canada or California), you may have further rights, including the right to complain to your local data protection authority.`,
+        `${ACCOUNTS ? 'Unless you sign in, or signed up as a fit tester or for news, we usually hold nothing we can look up about you. If you sign in, you can see everything in your account in the app and delete it yourself at any time.' : 'Because almost everything stays on your device, we usually hold nothing we can look up about you, unless you signed up as a fit tester or for news.'} You can still contact us at ${OWNER.email} to ask what we hold, to correct it or to delete it. Depending on where you live (for example the UK, the EU, Canada or California), you may have further rights, including the right to complain to your local data protection authority.`,
       ],
     },
     {
       heading: 'Children, changes and contact',
       body: [
         `Children.|Maison Tracé is made for adults. Its measurement guide covers adult sizes only, and it isn’t directed at children under ${OWNER.minimumAge}. A parent or guardian may enter a child’s measurements on their own device.`,
-        'Coming later.|When we add sign-in, saving to the cloud or paid plans, we’ll collect new information (such as an account email address, and payment details through a payment provider). We’ll update this policy before that happens and tell you in the app.',
+        ACCOUNTS
+          ? 'Coming later.|When we add paid plans, we’ll collect new information (payment details, through a payment provider, which we never see ourselves). We’ll update this policy before that happens and tell you in the app.'
+          : 'Coming later.|When we add sign-in, saving to the cloud or paid plans, we’ll collect new information (such as an account email address, and payment details through a payment provider). We’ll update this policy before that happens and tell you in the app.',
         'Changes.|If we change this policy, we’ll update the date below and, for important changes, let you know in the app.',
         `Contact.|${contact}`,
       ],
@@ -146,7 +174,9 @@ export const TERMS: LegalDoc = {
         `These terms are an agreement between you and ${OWNER.name} (“we”, “us”), which runs Maison Tracé. By using the Maison Tracé website or app, you agree to them. If you don’t agree, please don’t use it.`,
         'Who can use it.|You must be an adult (18 or older, or the age of majority where you live) or have a parent or guardian’s permission.',
         'Using it as a guest.|You can measure, draft, preview and export patterns without an account. Your details are saved on your device only, as our Privacy Policy explains. You’re responsible for keeping your own backups. If you clear your browser or lose your device, we can’t recover your measurements or patterns.',
-        'Accounts later.|When sign-in arrives, you’ll be responsible for keeping your login safe and for what happens under your account. We’ll update these terms before then.',
+        ACCOUNTS
+          ? 'Your account.|If you sign in, your work is also kept in your account. There’s no password: anyone who can read your email can sign in as you, so keep your email account safe. You’re responsible for what happens under your account. You can sign out on any device, and delete your account and everything in it from Your account at any time.'
+          : 'Accounts later.|When sign-in arrives, you’ll be responsible for keeping your login safe and for what happens under your account. We’ll update these terms before then.',
       ],
     },
     {
@@ -191,7 +221,7 @@ export const TERMS: LegalDoc = {
       body: [
         'No guarantee of fit or availability.|We work hard to make accurate patterns, but Maison Tracé is provided “as is”. We don’t promise that every pattern will fit perfectly, that the app will always be available, or that it will be free of errors.',
         `Limit of our responsibility.|As far as the law allows, we aren’t responsible for indirect losses, or for the cost of fabric, notions, sewing time or production runs, including work done by a dressmaker or factory. If we are found responsible, our total liability is limited to what you paid us in the 12 months before the claim, or ${OWNER.liabilityCap} if you paid nothing. Nothing in these terms limits rights you have by law as a consumer that can’t be excluded.`,
-        'Stopping use.|You can stop using Maison Tracé at any time and delete your data by clearing it from your device. We may suspend access to features such as photo reading if these terms are broken.',
+        `Stopping use.|You can stop using Maison Tracé at any time and delete your data by clearing it from your device${ACCOUNTS ? ' and deleting your account in Your account' : ''}. We may suspend access to features such as photo reading if these terms are broken.`,
         'Changes to these terms.|We may update these terms. We’ll change the date below and tell you in the app about important changes. Continuing to use the app after that means you accept the new terms.',
         `Governing law.|These terms are governed by the laws of ${OWNER.law}, and disputes go to the courts of ${OWNER.courts}, unless the law where you live gives you the right to bring a claim there.`,
         `Contact.|${contact}`,

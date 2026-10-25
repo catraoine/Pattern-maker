@@ -18,10 +18,21 @@ export interface CloudApi {
   /** The 6-digit code from that email, for when the link opens in another browser (or outside the home-screen app). */
   verifyCode(email: string, code: string): Promise<CloudUser>;
   signOut(): Promise<void>;
-  load(u: CloudUser): Promise<Backup<unknown> | null>;
-  save(u: CloudUser, backup: Backup<unknown>): Promise<void>;
+  /** The work kept in the account, with the stamp of its last save (null when there's none yet). */
+  load(u: CloudUser): Promise<Kept | null>;
+  /**
+   * Writes the account's copy, but only if nobody has saved since the copy stamped `seen` was read (null: nothing
+   * was there). Gives the new stamp, or null when another device got there first, so the caller loads and joins again.
+   */
+  save(u: CloudUser, backup: Backup<unknown>, seen: string | null): Promise<string | null>;
   /** Removes the account and everything kept in it. */
   deleteAccount(): Promise<void>;
+}
+
+export interface Kept {
+  backup: Backup<unknown>;
+  /** When it was last saved, as the service wrote it; compared as text, never parsed. */
+  stamp: string;
 }
 
 export const cloudConfigured = !!(SUPABASE_URL && SUPABASE_ANON_KEY);
@@ -62,13 +73,23 @@ async function supabaseCloud(): Promise<CloudApi> {
       await sb.auth.signOut();
     },
     async load(u) {
-      const { data, error } = await sb.from('backups').select('data').eq('user_id', u.id).maybeSingle();
+      const { data, error } = await sb.from('backups').select('data, updated_at').eq('user_id', u.id).maybeSingle();
       if (error) throw error;
-      return (data?.data as Backup<unknown> | undefined) ?? null;
+      return data ? { backup: data.data as Backup<unknown>, stamp: String(data.updated_at) } : null;
     },
-    async save(u, backup) {
-      const { error } = await sb.from('backups').upsert({ user_id: u.id, data: backup, updated_at: new Date().toISOString() });
+    async save(u, backup, seen) {
+      const row = { user_id: u.id, data: backup, updated_at: new Date().toISOString() };
+      if (seen === null) {
+        // First save: an insert, which fails if another device made the row meanwhile.
+        const { data, error } = await sb.from('backups').insert(row).select('updated_at').maybeSingle();
+        if (error?.code === '23505') return null;
+        if (error) throw error;
+        return data ? String(data.updated_at) : null;
+      }
+      // Later saves change the row only while it still carries the stamp we read: zero rows means someone saved first.
+      const { data, error } = await sb.from('backups').update(row).eq('user_id', u.id).eq('updated_at', seen).select('updated_at');
       if (error) throw error;
+      return data?.length ? String(data[0].updated_at) : null;
     },
     async deleteAccount() {
       const { data } = await sb.auth.getSession();
@@ -97,7 +118,7 @@ const hasFake = () => {
 export const FAKE_CODE = '123456';
 
 function fakeCloud(): CloudApi {
-  type Store = { users: Record<string, { id: string; backup: Backup<unknown> | null }>; session?: string; sent?: string };
+  type Store = { users: Record<string, { id: string; backup: Backup<unknown> | null; stamp?: string }>; session?: string; sent?: string };
   const read = (): Store => JSON.parse(localStorage.getItem(FAKE) || '{}').users ? JSON.parse(localStorage.getItem(FAKE)!) : { users: {} };
   const write = (s: Store) => localStorage.setItem(FAKE, JSON.stringify(s));
   const listeners = new Set<(u: CloudUser | null) => void>();
@@ -131,12 +152,19 @@ function fakeCloud(): CloudApi {
       tell();
     },
     async load(u) {
-      return read().users[u.email]?.backup ?? null;
+      const kept = read().users[u.email];
+      return kept?.backup ? { backup: kept.backup, stamp: kept.stamp ?? '0' } : null;
     },
-    async save(u, backup) {
+    async save(u, backup, seen) {
       const s = read();
-      if (s.users[u.email]) s.users[u.email].backup = backup;
+      const kept = s.users[u.email];
+      if (!kept) return null;
+      const now = kept.backup ? (kept.stamp ?? '0') : null;
+      if (now !== seen) return null;
+      kept.backup = backup;
+      kept.stamp = String(Number(kept.stamp ?? '0') + 1);
       write(s);
+      return kept.stamp;
     },
     async deleteAccount() {
       const s = read();
