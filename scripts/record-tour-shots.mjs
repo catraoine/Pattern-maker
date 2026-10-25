@@ -318,8 +318,9 @@ t0 = Date.now();
 await wait(2600);
 mark('fabric');
 await press(main.getByRole('tab', { name: 'Fabric', exact: true }), 900);
-// Then the fabric changed to a plain ivory (Cat, 2026-10-25: no check at all for the change).
-const PRINT2 = process.env.TOUR_PRINT2 ?? 'Plain';
+// Then the fabric changed to the one-way print, the jade python (Cat, 2026-10-25: no check at all; P2 Jade). Tapping
+// the camel again clears the colour, so the print shows in its own.
+const PRINT2 = process.env.TOUR_PRINT2 ?? 'One-way';
 if (PRINT2) {
   const about2 = main.locator('summary', { hasText: 'About your fabric' });
   if (!(await about2.evaluate((el) => el.parentElement.open))) await about2.evaluate((el) => el.click());
@@ -327,7 +328,7 @@ if (PRINT2) {
   await choose('[role=radiogroup][aria-label="What\'s printed on your fabric"] [role=radio]', PRINT2);
   await wait(400);
 }
-if (process.env.TOUR_COLOUR2 !== 'none') await press(main.getByRole('radiogroup', { name: 'Colour' }).getByRole('radio', { name: process.env.TOUR_COLOUR2 ?? 'Ivory', exact: true }).first(), 2200);
+if (process.env.TOUR_COLOUR2 !== 'none') await press(main.getByRole('radiogroup', { name: 'Colour' }).getByRole('radio', { name: process.env.TOUR_COLOUR2 ?? 'Camel', exact: true }).first(), 2200);
 if (process.env.TOUR_PROBE_FABRIC) {
   await main.getByRole('tab', { name: 'Shape', exact: true }).click();
   await wait(1200);
