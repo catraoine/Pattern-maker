@@ -53,6 +53,7 @@ export const COLOURS: Colour[] = [
   { name: 'Red', hex: '#b3202a' },
   { name: 'Burgundy', hex: '#6d2133' },
   { name: 'Yellow', hex: '#d9b23a' },
+  { name: 'Butter', hex: '#ecdf9e' },
   { name: 'Blush', hex: '#e2b5aa' },
   { name: 'Lilac', hex: '#a796c4' },
 ];

@@ -143,15 +143,16 @@ function tapeAcross(t) {
 }
 
 const MARKS = WIDE
-  ? { fabric: 2.6, enlarge: 7.5, draw: 9.4, hem: 11.2, side: 16.8, done: 21.0 }
-  : { fabric: 2.6, enlarge: 6.8, draw: 8.8, hem: 10.6, side: 16.0, done: 20.2 };
+  ? { fabric: 2.6, enlarge: 8.6, draw: 10.6, hem: 12.4, side: 18.0, done: 22.2 }
+  : { fabric: 2.6, enlarge: 8.0, draw: 9.9, hem: 11.7, side: 17.1, done: 21.3 };
 const JOURNEY = { from: 0.6, to: MARKS.done + 0.9, dur: 17 };
 const atOut = (t) => ((t - JOURNEY.from) * JOURNEY.dur) / (JOURNEY.to - JOURNEY.from);
 // [shot time, zoom, x, y]: on a computer, the whole page, then in on the enlarged form to draw, and back as the
-// pattern comes up. A phone shows the whole screen throughout.
+// pattern comes up. A phone shows the whole screen throughout. Both end framed as the pattern shot opens, so the
+// sheet doesn't jump as one dissolves into the other (Cat, 2026-10-25).
 const STYLE_CAM = (WIDE
-  ? [[0.6, 1, 0.5, 0.5], [MARKS.draw, 1, 0.5, 0.5], [MARKS.hem - 0.2, 1.25, 0.5, 0.44], [MARKS.done, 1.25, 0.5, 0.44], [JOURNEY.to, 1, 0.5, 0.5]]
-  : [[0.6, 1, 0.5, 0.5], [JOURNEY.to, 1.05, 0.5, 0.47]]).map(([t, ...r]) => [atOut(t), ...r]);
+  ? [[0.6, 1, 0.5, 0.5], [MARKS.draw, 1, 0.5, 0.5], [MARKS.hem - 0.2, 1.25, 0.5, 0.44], [MARKS.done, 1.25, 0.5, 0.44], [JOURNEY.to, 1.6, 0.42, 0.72]]
+  : [[0.6, 1, 0.5, 0.5], [MARKS.done, 1.05, 0.5, 0.47], [JOURNEY.to, 1.1, 0.5, 0.56]]).map(([t, ...r]) => [atOut(t), ...r]);
 // No step words over the Style journey: what each move does is left to show itself (Cat, 2026-10-24: "take out
 // these headings, just leave it implied"), nor over the pattern: after the photo's own line, the next words are
 // "Drafted to your body".
