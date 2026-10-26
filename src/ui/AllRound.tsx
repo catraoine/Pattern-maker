@@ -236,7 +236,7 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
     };
     const hipR = wornR(FORM_HIP);
     const hemR = hipR * clamp(round.flare, 0.85, 2.3);
-    const radius = (y: number) =>
+    const bodyRadius = (y: number) =>
       y <= FORM_HIP || !flares ? wornR(y) : hipR + (hemR - hipR) * clamp((y - FORM_HIP) / Math.max(0.05, meanY - FORM_HIP), 0, 1.3);
     const bandTop = WAIST - round.bandCm * kY;
 
@@ -245,6 +245,17 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
     const yS = arm ? yOf(arm.shoulderCm) : 0;
     const yU = arm ? yOf(arm.underarmCm) : 0;
     const sl = round.sleeve;
+    // With a sleeve, the shoulders are as broad as the body below them: from the base of the neck the cloth runs out
+    // to the shoulder tip and rounds over it, rather than following the form's narrow, sloping dressmaker's shoulder
+    // (Cat, 2026-10-26: "the shoulders still seem low or small").
+    const neckR = bodyRadius(NECK_Y);
+    const shoulderR = Math.max(bodyRadius(BUST_Y), formHalfWidth(yS));
+    const radius = (y: number) => {
+      const r = bodyRadius(y);
+      if (!sl || y >= BUST_Y) return r;
+      const t = clamp((y - NECK_Y) / (yS + 0.06 - NECK_Y), 0, 1);
+      return Math.max(r, y < NECK_Y ? 0 : neckR + (shoulderR - neckR) * (1 - (1 - t) ** 2));
+    };
     // In the film the sleeve hugs the arm (Cat, 2026-10-24: "make it look chic"); in the app it keeps its wearing ease.
     const slim = film ? 0.9 : 1;
     const ra = sl ? Math.max(0.08, (sl.bicepCm / TAU) * krB * 0.95 * slim) : 0;
@@ -258,11 +269,16 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
     // The cap starts at the shoulder tip, not out past it, and by the underarm the sleeve's inner side lies against
     // the bodice, so no gap opens between them as the form turns (Cat, 2026-10-26: still sitting low).
     const filmAxis = (y: number) => {
-      const from = formHalfWidth(yS) + ra * 0.1;
+      const from = radius(yS) + ra * 0.1;
       const to = (yU ? radius(yU) : 0) + ra * 0.7;
       return from + (to - from) * Math.sqrt(clamp((y - yCap) / (yU - yCap || 1), 0, 1)) + Math.max(0, y - yU) * 0.02;
     };
-    const filmR = (y: number) => (y < yU ? ra * Math.pow(clamp((y - yCap) / (yU - yCap || 1), 0, 1), 0.45) : ra + (rh - ra) * clamp((y - yU) / (yE - yU || 1), 0, 1));
+    // The cap rounds over like the top of an arm: a quarter circle from the shoulder tip to the underarm.
+    const filmR = (y: number) => {
+      if (y >= yU) return ra + (rh - ra) * clamp((y - yU) / (yE - yU || 1), 0, 1);
+      const t = clamp((y - yCap) / (yU - yCap || 1), 0, 1);
+      return ra * Math.sqrt(1 - (1 - t) ** 2);
+    };
     const axisX = filmAxis;
     const sleeveR = filmR;
 
@@ -403,7 +419,8 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
       // The cloth covers the form: under the garment the body is not drawn, so the garment is what reads.
       if (!trousers && !through && !cloth?.sheer) {
         // The shoulders and the neck still show through a top's yoke: the cloth is held to the body there.
-        const from = isTop && arm ? yU : yOf(highest);
+        // In cloth the garment covers the shoulders too, so nothing of the form shows between the bodice and a sleeve's cap.
+        const from = isTop && arm && !cloth ? yU : yOf(highest);
         g.globalAlpha = 1;
         g.fillStyle = '#000';
         g.fillRect(0, Y(from) - 1, w, Y(longest) - Y(from) + 2);
@@ -512,7 +529,9 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
         /** A tube round an axis at X(y): a sleeve or a trouser leg. */
         const tube = (X: (y: number) => number, R: (y: number) => number, y0: number, y1: number, panels: boolean, inBody = false) => {
           const NS = 32;
-          const NY = 16;
+          const NY = 24;
+          // Rows closer together at the top, so a sleeve's cap rounds over smoothly rather than in flat facets.
+          const rowY = (j: number) => y0 + (y1 - y0) * (j / NY) ** 1.6;
           const tv = (a: number, y: number): V => {
             const r = R(y);
             const q = T(X(y), a, r, y);
@@ -527,12 +546,14 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
             if (!inBody && Math.cos(th) < -0.2) continue;
             const c = panels && Math.abs(am) > HALF ? Math.PI : 0;
             for (let j = 0; j < NY; j++) {
-              const ya = y0 + ((y1 - y0) * j) / NY;
-              const yb = y0 + ((y1 - y0) * (j + 1)) / NY;
+              const ya = rowY(j);
+              const yb = rowY(j + 1);
               const ym = (ya + yb) / 2;
               const x = X(ym) + Math.sin(am) * R(ym);
               const zz = Math.cos(am) * R(ym);
-              // Where the sleeve's cap passes inside the bodice, the bodice in front of it covers it (patches go far to near).
+              // A patch of the cap wholly inside the bodice is never seen, and drawn it would flicker over the bodice's edge as
+              // the form turns; one only partly inside is kept, or a slit opens where it meets the bodice.
+              if (inBody && [ya, yb].every((y) => [a0, a1].every((a) => Math.hypot(X(y) + Math.sin(a) * R(y), Math.cos(a) * R(y)) < radius(y) - 0.01))) continue;
               patch([tv(a0, ya), tv(a1, ya), tv(a1, yb), tv(a0, yb)], c, zz * Math.cos(phi) - x * s, th);
             }
           }
