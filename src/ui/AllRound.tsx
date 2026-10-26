@@ -282,11 +282,14 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
     // A person's shoulders are broader than their bust seen from the front, and the arm hangs from the shoulder's tip:
     // so with a sleeve the cloth runs out to above the arm's middle, and the sleeve falls from there instead of
     // jutting out below a narrow shoulder like a puff (Cat, 2026-10-26: "all garments must be fixed").
-    const shoulderR = Math.max(bodyRadius(BUST_Y), formHalfWidth(yS), sl && yU ? bodyRadius(yU) + ra * 0.45 : 0);
+    // A jacket or coat is tailored: its shoulder runs out level to the top of the arm and the sleeve head drops from
+    // there, set flat, not rounded up into a puff (Cat, 2026-10-26: "I'd like them flatter").
+    const tailored = !!round.outer && !!sl;
+    const shoulderR = Math.max(bodyRadius(BUST_Y), formHalfWidth(yS), sl && yU ? bodyRadius(yU) + ra * (tailored ? 0.7 : 0.45) : 0);
     const radius = (y: number) => {
       const r = bodyRadius(y);
       if (!arm || y >= BUST_Y) return r;
-      const t = clamp((y - NECK_Y) / (yS + 0.14 - NECK_Y), 0, 1);
+      const t = clamp((y - NECK_Y) / (yS + (tailored ? 0.06 : 0.14) - NECK_Y), 0, 1);
       const broad = y < NECK_Y ? 0 : neckR + (shoulderR - neckR) * (1 - (1 - t) ** 2);
       // Under a sleeve the broad shoulder narrows back to the body by the underarm, so the sleeve hangs by the body and
       // does not stand out from it.
@@ -329,14 +332,15 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
     // the bodice, so no gap opens between them as the form turns (Cat, 2026-10-26: still sitting low).
     const filmAxis = (y: number) => {
       // A little in from the bodice's edge, so the cap rounds over the shoulder tip and no corner of the bodice juts past it.
-      const from = radius(yS) - ra * 0.3;
+      const from = radius(yS) - ra * (tailored ? 0.4 : 0.3);
       const to = (yU ? radius(yU) : 0) + ra * 0.7;
       return from + (to - from) * Math.sqrt(clamp((y - yCap) / (yU - yCap || 1), 0, 1)) + Math.max(0, y - yU) * 0.02;
     };
     // The cap rounds over like the top of an arm: a quarter circle from the shoulder tip to the underarm.
     const filmR = (y: number) => {
       if (y >= yU) return ra + (rh - ra) * clamp((y - yU) / (yE - yU || 1), 0, 1);
-      const t = clamp((y - yCap) / (yU - yCap || 1), 0, 1);
+      // Set flat, the head is full a short way below the shoulder, so the shoulder turns into the sleeve at a neat corner.
+      const t = clamp((y - yCap) / ((tailored ? Math.min(0.22, yU - yCap) : yU - yCap) || 1), 0, 1);
       return ra * Math.sqrt(1 - (1 - t) ** 2);
     };
     const axisX = filmAxis;

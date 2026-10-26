@@ -75,6 +75,8 @@ export interface RoundGarment {
   /** A centre back vent, from this height to the hem. */
   vent?: { fromCm: number };
   elastic: boolean;
+  /** A jacket or coat: tailored, its shoulders square and its sleeve heads set flat. */
+  outer?: boolean;
   /** Every pair of seams that sew together is the same length, and every dart is trued. */
   seamsMeet: boolean;
   /** Each side seam's angle to the straight grain, in degrees, front and back: stripes cut on the
@@ -438,6 +440,7 @@ export function roundOuter(draft: OuterDraft, m: Nape): RoundGarment {
     r.seams.push(...pr.seams.filter((s) => s.kind === 'princess'));
   }
   if (!r.opening) r.opening = { buttons: [] };
+  r.outer = true;
   return r;
 }
 
