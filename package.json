@@ -11,6 +11,7 @@
     "eval:photo": "vite-node scripts/eval-photo.ts",
     "eval:likeness": "vite-node scripts/eval-likeness.ts",
     "test:e2e": "playwright test -c e2e",
+    "sweep:all-round": "ROUND_SWEEP=all-round-sweep playwright test -c e2e e2e/all-round-sweep.spec.ts --project=phone && python3 scripts/all-round-sheet.py all-round-sweep/phone all-round-sweep/sheet.png",
     "record:tour": "node scripts/record-tour-shots.mjs tour-shots && node scripts/edit-tour.mjs tour-shots public/tour/walkthrough.mp4 && node scripts/record-tour-shots.mjs --wide && node scripts/edit-tour.mjs --wide",
     "record:demos": "node scripts/record-demos.mjs public/demos"
   },

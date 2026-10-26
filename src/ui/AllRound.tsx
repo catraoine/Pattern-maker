@@ -201,7 +201,22 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
 
     const N = m.nape_to_waist ?? 41;
     const wh = m.waist_to_hip ?? 20.5;
-    const yOf = placeOnForm(round, m);
+    const yOfLevel = placeOnForm(round, m);
+    // On a body the neck sits tilted: its base at the front is a good way below the neck point at the side, while the
+    // form's neck base is level all round. So on the front, a neckline is measured from the front of the neck's base,
+    // not from the side's, or every front neckline sits too deep on the form and a boat neck reads as a scoop (Cat,
+    // 2026-10-26: "does the neckline look strange?"). The lift fades out by the bust, so nothing below it moves.
+    const N0 = m.nape_to_waist ?? 41;
+    const frontNeckCm = -N0 + 5;
+    // A plain round neck, as drafted, follows the base of the neck: at the side neck point and some 9 cm lower at the
+    // centre front, round in between. Where that natural neckline lies is placed at the form's neck base all round.
+    const naturalNeck = (a: number) => -N0 - 4 + (frontNeckCm + N0 + 4) * Math.max(0, Math.cos(a)) ** 0.6;
+    const yAt = (a: number, cm: number) => {
+      if (!isTop || Math.cos(a) <= 0) return yOfLevel(cm);
+      const lift = Math.max(0, yOfLevel(naturalNeck(a)) - NECK_Y);
+      return yOfLevel(cm) - lift * clamp(1 - (cm - naturalNeck(a)) / 14, 0, 1);
+    };
+    const yOf = yOfLevel;
     const kY = (WAIST - NAPE_Y) / N;
 
     // The garment's ease over the body, as form units, at the bust, the waist and the hip.
@@ -384,7 +399,7 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
       const legX = (leg: number) => leg * FORM_LEG_X;
       /** A point on the garment, on the body or down a trouser leg. */
       const spot = (p: RoundPt, leg?: number): Pt => {
-        const y = yOf(p.cm);
+        const y = leg ? yOf(p.cm) : yAt(p.phi, p.cm);
         return leg ? T(legX(leg), p.phi, legR(y), y) : P(p.phi, rAt(p.phi, y), y);
       };
       /** A seam or dart through its points, in small steps so it follows the body. */
@@ -427,7 +442,29 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
         g.fillText(str.toUpperCase(), x, y);
       };
       const hemY = (a: number) => yOf(round.lengthAt(a));
-      const topY = (a: number) => yOf(round.topAt(a));
+      const topRaw = (a: number) => {
+        const y = yAt(a, round.topAt(a));
+        // At the side neck point a neckline that reaches the neck sits right at its base, so no pocket of the form shows
+        // between the cloth and the neck over the shoulder (Cat, 2026-10-26).
+        const near = isTop && sl ? clamp(1 - (y - NECK_Y) / 0.12, 0, 1) * Math.sin(a) ** 2 : 0;
+        return y - Math.max(0, y - NECK_Y) * near;
+      };
+      // Where the front neck meets the shoulder the edge is eased round, not left as a notch; the centre front (a V's
+      // point) and the back stay exactly as drawn.
+      const TOP_N = 360;
+      const topTable = Array.from({ length: TOP_N + 1 }, (_, i) => {
+        const a = -Math.PI + (TAU * i) / TOP_N;
+        const w = isTop ? Math.sin(a) ** 2 * Math.max(0, Math.cos(a) + 0.3) : 0;
+        if (w < 0.01) return topRaw(a);
+        let sum = 0;
+        for (let k = -6; k <= 6; k++) sum += topRaw(a + k * 0.03);
+        return topRaw(a) + (sum / 13 - topRaw(a)) * Math.min(1, w * 2.5);
+      });
+      const topY = (a: number) => {
+        const f = ((((a + Math.PI) / TAU) % 1) + 1) % 1 * TOP_N;
+        const i = Math.floor(f);
+        return topTable[i] + (topTable[i + 1] - topTable[i]) * (f - i);
+      };
 
       g.globalAlpha = 1;
       g.fillStyle = '#000';
@@ -493,6 +530,13 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
             g.lineTo(rim(-Math.PI / 2 - phi)[0], 0);
             g.closePath();
           }, (y) => Math.min(formHalfWidth(y), neckR));
+          // Sleeveless, the form's shoulders show through the open armholes, not black; the cloth is laid over them.
+          if (arm && !sl) {
+            redraw(() => {
+              g.beginPath();
+              g.rect(0, 0, w, Y(yU + 0.05));
+            }, formHalfWidth);
+          }
         }
       }
       g.restore();
@@ -701,7 +745,7 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
       // In cloth, the edges are fine lines: the cloth itself gives the shape.
       const edge = cloth ? 0.55 : 1;
       ring(topY, (a, y) => shell(a, y), GLOW, lw * 1.1, 0.25, edge);
-      for (const r of round.rings) ring((a) => yOf(r(a)), (a, y) => shell(a, y), GLOW, lw * 0.9, 0.25, edge);
+      for (const r of round.rings) ring((a) => yAt(a, r(a)), (a, y) => shell(a, y), GLOW, lw * 0.9, 0.25, edge);
       if (!trousers) ring(hemY, (_, y) => radius(y), GLOW, lw * 1.3, cloth ? 0 : 0.3, edge);
       for (const e of cloth ? [] : [1, -1]) {
         const a = (e * Math.PI) / 2 - phi;
@@ -871,7 +915,7 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
         g.globalAlpha = 1;
       }
       for (const b of round.opening?.buttons ?? []) {
-        const y = yOf(b);
+        const y = yAt(0.05, b);
         dot(P(0.05, shell(0.05, y) + 0.005, y), GILD, 2.2);
       }
       if (round.vent) line(along([{ phi: Math.PI + 0.05, cm: round.vent.fromCm }, { phi: Math.PI + 0.05, cm: round.lengthAt(Math.PI) }]), GILD, lw * 0.8);
