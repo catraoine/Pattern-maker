@@ -8,7 +8,8 @@ Sign-in is built but hidden: it shows only after opening the app with `?signin=p
 1. Supabase project in the Canada (Central) region. Run `schema.sql` once in the SQL Editor.
 2. Authentication > URL Configuration: Site URL `https://maisontrace.co`; add `https://maisontrace.co/**`,
    `https://*--whimsical-mooncake-2cf9a9.netlify.app/**` and `http://localhost:5173/**` to the redirect URLs.
-3. Authentication > Emails > Magic Link template: include the code as well as the link, so someone whose link opens
+3. Authentication > Emails > Magic Link template, AND the Confirm sign up template (Supabase sends that one the first
+   time an address signs in, Magic Link after that): include the code as well as the link, so someone whose link opens
    in another browser (or outside the home-screen app) can type it in. For example:
    `<p><a href="{{ .ConfirmationURL }}">Sign in to Maison Tracé</a></p><p>Or type this code in the app: <b>{{ .Token }}</b></p>`
 4. Authentication > SMTP: send through Resend (hello@maisontrace.co), so emails aren't capped at Supabase's few an hour.
