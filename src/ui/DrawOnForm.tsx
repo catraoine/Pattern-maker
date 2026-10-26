@@ -11,7 +11,7 @@ import { spline } from './bodyOutline';
 import { legsFor } from '../engine/form';
 
 import { FormLine, FormSide, Reading, landmarks } from './formLines';
-import { CLOTH_EDGES, FormHead, FormLayers, FormSatin, HEAD_CM, SQUEEZE, WornSleeve, formHead, wornCloth } from './FormSketch';
+import { BELOW_HEM, CLOTH_EDGES, FormHead, FormLayers, FormSatin, HEAD_CM, SQUEEZE, WornSleeve, formHead, wornCloth } from './FormSketch';
 import { TestingTag } from './TestingTag';
 import { DemoButton } from './DemoButton';
 import { tookEnlarged } from './EnlargeSketch';
@@ -62,8 +62,8 @@ export function armFor(tip: P, under: P, m: { arm_length: number; upper_arm: num
 /** Where the arm's inner and outer edges sit at the height y (the right arm; the left mirrors it). */
 export function armAt(arm: FormArm, y: number): { inner: number; outer: number } {
   const { tip, under, elbowY, wristY, width, elbowWidth, wristWidth } = arm;
-  // The arm hangs a little away from the body, more so towards the hand.
-  const inner = under.x + 0.6 + 0.04 * Math.max(0, y - under.y);
+  // The arm hangs close by the body, as it does standing at ease, a touch further from it towards the hand.
+  const inner = under.x + 0.25 + 0.012 * Math.max(0, y - under.y);
   if (y < under.y) {
     // Over the top of the arm, like a shoulder cap: rounding out from the shoulder tip to the arm's own
     // width, beside the body as it widens from the shoulder down to the underarm.
@@ -166,7 +166,8 @@ export function torsoForm({ neckPoint, shoulderTip, apex, waistY }: { neckPoint:
   ]);
   const bottom = hip ? hip.at + 8 : waistY + 8;
   const width = (y: number) => {
-    if (y <= neckPoint.y) return neck;
+    // The neck is a touch slimmer up under the jaw than where it meets the shoulders.
+    if (y <= neckPoint.y) return neck * (0.92 + 0.08 * Math.min(1, Math.max(0, (y - (neckPoint.y - 8)) / 8)));
     if (y <= shoulderTip.y) {
       const t = (y - neckPoint.y) / Math.max(0.1, shoulderTip.y - neckPoint.y);
       return neck + (shoulderTip.x - neck) * (1 - (1 - t) ** 2);
@@ -264,10 +265,16 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
   // With legs, the body runs on down to where they part.
   const torsoBottom = legLines ? Math.max(body.bottom, legLines.crotch) : body.bottom;
 
+  // The figure fills the drawing (Cat's D5, 2026-10-26): just wider than the arms and the garment, down to a little
+  // below the hem (room to draw it longer) rather than always to the floor.
   const frame = useMemo(() => {
-    const half = SQUEEZE * Math.max(Math.max(m.full_bust ?? 0, m.full_hip ?? 0, m.waist) / 4 + 7, arms ? armAt(arms, arms.wristY).outer + 2 : 0);
-    return { half, top: body.top - (body.head ? HEAD_CM + 1 : 2), bottom: Math.max(torsoBottom + 12, bottom, legLines ? legLines.floor + 1 : 0) };
-  }, [m, body, bottom, arms, torsoBottom, legLines]);
+    const all = (cloth ?? []).flat();
+    const wide = Math.max(0, ...all.map((q) => Math.abs(q.x) + 1.5));
+    const half = SQUEEZE * Math.max(Math.max(m.full_bust ?? 0, m.full_hip ?? 0, m.waist) / 4 + 3, arms ? armAt(arms, arms.wristY).outer + 1.5 : 0, wide);
+    const floor = Math.max(torsoBottom + 12, bottom, legLines ? legLines.floor + 1 : 0);
+    const low = all.length ? Math.max(...all.map((q) => q.y)) + BELOW_HEM + 2 : floor;
+    return { half, top: body.top - (body.head ? HEAD_CM + 1 : 2), bottom: Math.max(torsoBottom + 12, Math.min(low, legLines ? legLines.floor + 1 : low)) };
+  }, [m, body, bottom, arms, torsoBottom, legLines, cloth]);
   const cx = frame.half;
 
   // The head, as on every other screen (Cat's body rule): the same faceless mannequin head, at the same scale to
@@ -447,11 +454,34 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
             )}
             {head && !clothOn && <FormHead head={head} cx={cx} />}
             {/* On the dress, the cloth's own edges are the neckline, side, hem and sleeve, so only the pen shows. */}
-            {kinds.filter(([id]) => !(clothOn && CLOTH_EDGES.includes(id))).map(([id]) =>
-              (current[id] ?? []).map((pts, i) => (
-                <path key={`${id}${i}`} d={at(pts)} className={id === kind ? 'tape on' : 'tape'} fill="none" strokeWidth={id === kind ? 0.42 : 0.22} strokeLinecap="round" />
-              )),
+            {clothOn && (
+              <defs>
+                <clipPath id={`drawclip${satinId}`}>
+                  {clothOn.map((s, i) => (
+                    <path key={i} d={`${at(s)} Z`} />
+                  ))}
+                </clipPath>
+                <filter id={`drawsoft${satinId}`} x="-20%" y="-20%" width="140%" height="140%">
+                  <feGaussianBlur stdDeviation="0.5" />
+                </filter>
+              </defs>
             )}
+            {/* On the dress the lines are clipped to it, and all but the kind being drawn sit in the cloth as pressed
+                seams rather than drawn on it (Cat's D4, 2026-10-26); the kind being drawn stays lit. */}
+            <g clipPath={clothOn ? `url(#drawclip${satinId})` : undefined}>
+            {kinds.filter(([id]) => !(clothOn && CLOTH_EDGES.includes(id))).map(([id]) =>
+              (current[id] ?? []).map((pts, i) =>
+                clothOn && id !== kind ? (
+                  <g key={`${id}${i}`}>
+                    <path d={at(pts)} fill="none" stroke="#000" opacity={0.5} strokeWidth={0.55} filter={`url(#drawsoft${satinId})`} strokeLinecap="round" />
+                    <path d={at(pts)} className="tape" fill="none" strokeWidth={0.1} opacity={0.4} strokeLinecap="round" />
+                  </g>
+                ) : (
+                  <path key={`${id}${i}`} d={at(pts)} className={id === kind ? 'tape on' : 'tape'} fill="none" strokeWidth={id === kind ? 0.42 : 0.22} strokeLinecap="round" />
+                ),
+              ),
+            )}
+            </g>
             {side === 'back' && (
               // In the corner, clear of the neck.
               <text x={view.left + 2} y={view.top + 3} fontSize={1.8} textAnchor="start" className="hint">
