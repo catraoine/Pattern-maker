@@ -154,7 +154,7 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
     };
   }, [paintKey]);
   const layers = useMemo(clothLayers, []);
-  const turn = useRef({ phi: 0.6, target: null as number | null, dragging: false, idle: 0 });
+  const turn = useRef({ phi: 0.6, target: null as number | null, dragging: false, idle: 0, probe: false });
   const pulse = useRef(-1e9);
   const rows = useMemo(() => roundRows(round, striped), [round, striped]);
 
@@ -466,8 +466,12 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
         return topTable[i] + (topTable[i + 1] - topTable[i]) * (f - i);
       };
 
+      // For the all-round check, the backdrop and the hollow inside the garment are painted in colours of their own
+      // (red and magenta) so a picture can tell them from the form's own black; nobody else ever sees them.
+      const backdrop = st.probe ? '#f00' : '#000';
+      const hollow = st.probe ? '#f0f' : '#000';
       g.globalAlpha = 1;
-      g.fillStyle = '#000';
+      g.fillStyle = backdrop;
       g.fillRect(0, 0, w, h);
       g.lineCap = 'round';
       g.lineJoin = 'round';
@@ -486,7 +490,7 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
         // In cloth the garment covers the shoulders too, so nothing of the form shows between the bodice and a sleeve's cap.
         const from = isTop && arm && !cloth ? yU : yOf(highest);
         g.globalAlpha = 1;
-        g.fillStyle = '#000';
+        g.fillStyle = hollow;
         g.fillRect(0, Y(from) - 1, w, Y(longest) - Y(from) + 2);
         // In cloth, through the neck you see the form's chest, not a hollow inside the back: it is drawn again there.
         if (cloth && isTop) {
@@ -503,6 +507,7 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
             [...ys].reverse().forEach((y) => g.lineTo(cx + halfWidth(y) * S, Y(y)));
             g.clip();
             g.globalAlpha = 1;
+            g.fillStyle = '#000';
             g.fillRect(0, 0, w, h);
             g.globalAlpha = 0.6;
             paintFigure(g, S, cx, Y, lw, 1, false, phi);
@@ -1048,6 +1053,15 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
       st.dragging = false;
       st.idle = performance.now();
     };
+    // The all-round check (e2e/all-round-check.spec.ts) turns the form to an exact angle with this event.
+    const turnEv = (e: Event) => {
+      const { at, probe } = (e as CustomEvent<{ at: number; probe: boolean }>).detail;
+      st.phi = at;
+      st.probe = probe;
+      st.target = null;
+      st.idle = performance.now();
+    };
+    cv.addEventListener('allround-turn', turnEv);
     cv.addEventListener('pointerdown', downEv);
     cv.addEventListener('pointermove', move);
     cv.addEventListener('pointerup', up);
@@ -1056,6 +1070,7 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
       cancelAnimationFrame(raf);
       ro.disconnect();
       cv.removeEventListener('pointerdown', downEv);
+      cv.removeEventListener('allround-turn', turnEv);
       cv.removeEventListener('pointermove', move);
       cv.removeEventListener('pointerup', up);
       cv.removeEventListener('pointercancel', up);
