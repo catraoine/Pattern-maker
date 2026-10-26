@@ -25,13 +25,17 @@ const wait = (ms) => p.waitForTimeout(ms);
 let cdp, frames;
 // While held, no frames are kept: the last one stays on screen until the change is drawn.
 let hold = false;
+// While cut, no frames are kept and the time is taken out of the shot, so the change jumps in without a pause.
+let cutAt = null, skipped = 0;
+const cut = (on) => { if (on) cutAt = Date.now() / 1000; else { skipped += Date.now() / 1000 - cutAt; cutAt = null; } };
 async function start() {
   // A still screen sends no frames, so start with one. (Taken before the screencast starts: a screenshot during it
   // stalls it on the wide screen.)
+  skipped = 0;
   frames = [{ data: (await p.screenshot({ type: 'jpeg', quality: 92 })).toString('base64'), t: Date.now() / 1000 }];
   cdp = await ctx.newCDPSession(p);
   cdp.on('Page.screencastFrame', (e) => {
-    if (!hold) frames.push({ data: e.data, t: e.metadata.timestamp });
+    if (!hold && cutAt === null) frames.push({ data: e.data, t: e.metadata.timestamp - skipped });
     cdp.send('Page.screencastFrameAck', { sessionId: e.sessionId }).catch(() => {});
   });
   await cdp.send('Page.startScreencast', { format: 'jpeg', quality: 92, maxWidth: FW, maxHeight: FH });
@@ -50,8 +54,8 @@ async function start() {
 async function stop(name) {
   await cdp.send('Page.stopScreencast');
   await cdp.detach();
-  frames.push({ data: (await p.screenshot({ type: 'jpeg', quality: 92 })).toString('base64'), t: Date.now() / 1000 });
-  const endT = Date.now() / 1000;
+  frames.push({ data: (await p.screenshot({ type: 'jpeg', quality: 92 })).toString('base64'), t: Date.now() / 1000 - skipped });
+  const endT = Date.now() / 1000 - skipped;
   frames.sort((a, c) => a.t - c.t);
   const work = mkdtempSync(join(tmpdir(), 'shot-'));
   let list = 'ffconcat version 1.0\n';
@@ -213,7 +217,7 @@ const draw = async (loc, pts, pause, ref) => {
   await wait(pause);
 };
 let t0;
-const mark = (what) => console.log(`  style ${what}: ${((Date.now() - t0) / 1000).toFixed(1)} s`);
+const mark = (what) => console.log(`  style ${what}: ${((Date.now() - t0) / 1000 - skipped).toFixed(1)} s`);
 // The lines, as fractions of the form picture, drawn on the dress itself (Cat's D1 Draw on the Dress, 2026-10-24):
 // the mini hem drawn longer, to the knee, then the side drawn out from the hip so the straight skirt flares (Cat,
 // 2026-10-24: longer and flare, the neck and waist kept as in her photo).
@@ -342,24 +346,28 @@ if (process.env.TOUR_PROBE_FABRIC) {
 mark('enlarge');
 await press(main.getByRole('button', { name: /^Enlarge the drawing/ }), 1300);
 mark('draw');
-await press(main.getByRole('button', { name: 'Draw on your form' }).first(), 1100);
-const roomy = main.getByRole('button', { name: 'Enlarge', exact: true });
-if (await roomy.count()) await press(roomy, 1000);
 const form = main.getByRole('img', { name: /Your dress form from the/ });
 const kinds = main.getByRole('group', { name: 'What you are drawing' });
 // The drawing tool takes the dress from as short as the photo's, so the hem drawn to the knee is seen to lengthen it
 // (Cat, 2026-10-26: the hem edit should go from a mini, as in the photo, to longer, not start where the dress already
-// is). The dress is at the knee until then, so the flat drawing reads as a dress; the hem goes up unseen as the
-// drawing tool opens (no frames are kept meanwhile).
-if (await kinds.count()) {
-  hold = true;
-  await tap(kinds.getByRole('button', { name: 'Hem', exact: true }), 300);
-  await p.evaluate(() => { document.getElementById('pen').style.visibility = 'hidden'; });
-  await draw(form, LINES.photo, 600);
-  await p.evaluate(() => { document.getElementById('pen').style.visibility = ''; });
-  await tap(kinds.getByRole('button', { name: 'Neckline', exact: true }), 600);
-  hold = false;
-}
+// is). The dress is at the knee until then, so the flat drawing reads as a dress; from the tap on Draw on your form
+// until the tool is open on the shorter dress is cut out of the shot.
+const drawOn = main.getByRole('button', { name: 'Draw on your form' }).first();
+const db = await drawOn.boundingBox();
+await pen(db.x + db.width / 2, db.y + db.height / 2, 1);
+await wait(380);
+cut(true);
+await drawOn.evaluate((el) => el.click());
+await p.evaluate(() => { const d = document.getElementById('pen'); d.style.opacity = 0; d.style.visibility = 'hidden'; });
+await wait(900);
+const roomy = main.getByRole('button', { name: 'Enlarge', exact: true });
+if (await roomy.count()) await tap(roomy, 900);
+await tap(kinds.getByRole('button', { name: 'Hem', exact: true }), 300);
+await draw(form, LINES.photo, 600);
+await tap(kinds.getByRole('button', { name: 'Neckline', exact: true }), 600);
+await p.evaluate(() => { document.getElementById('pen').style.visibility = ''; });
+cut(false);
+await wait(1100);
 const before = await viewBox(form);
 if (process.env.TOUR_PROBE2) {
   const bb = await form.boundingBox();
