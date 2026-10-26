@@ -195,6 +195,7 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
     // The film's 'old look': the form's lines run on through the whole garment, as the released film had it.
     const through = (window as any).__tourFilm === 'old';
     const isTop = round.kind === 'top' || round.kind === 'dress';
+    const TRY: { fit?: boolean; folds?: boolean; arm?: boolean; quiet?: boolean; shade?: boolean } = (window as any).__allRoundTry ?? {};
     const strip = trousers ? 0 : STRIP;
     // In the maker's fabric, unless the film wants its old look.
     const cloth = through ? undefined : tiles;
@@ -241,7 +242,8 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
     // only a fitted garment, with little ease at the waist, follows the waist in; a relaxed one falls straight
     // from the bust to the hip, its ease hanging in folds.
     // From the shoulders to the bust the cloth is held to the body; from the bust down it hangs.
-    const hangShare = round.girth.waist && m.waist ? clamp((round.girth.waist - m.waist - 4) / 3, 0, 1) * (through ? 0 : film ? 0.5 : 1) : 0;
+    const seamed = round.kind === 'dress' && round.rings.length > 0;
+    const hangShare = TRY.fit && seamed ? 0 : round.girth.waist && m.waist ? clamp((round.girth.waist - m.waist - 4) / 3, 0, 1) * (through ? 0 : film ? 0.5 : 1) : 0;
     const hang: number[] = [];
     for (let i = 0; i <= 60; i++) hang.push(Math.max(hang[i - 1] ?? 0, bodyR(BUST_Y + ((FORM_HIP - BUST_Y) * i) / 60)));
     const wornR = (y: number) => {
@@ -274,10 +276,15 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
       return Math.max(r, y < NECK_Y ? 0 : neckR + (shoulderR - neckR) * (1 - (1 - t) ** 2));
     };
     /** How far out the cloth lies at angle a round the body: the full width at the sides, the body's own depth front and back. */
+    const foldAmp = (y: number) =>
+      TRY.folds && flares ? (0.018 + 0.06 * clamp(round.flare - 1, 0, 1)) * smooth(clamp((y - FORM_HIP) / Math.max(0.05, meanY - FORM_HIP), 0, 1)) : 0;
+    const FOLDS = 9;
+    const fold = (a: number, y: number) => 1 + foldAmp(y) * Math.cos(FOLDS * a + 0.6 * Math.sin(3 * a));
+    const foldTilt = (a: number, y: number) => Math.atan(-foldAmp(y) * FOLDS * Math.sin(FOLDS * a + 0.6 * Math.sin(3 * a)) * 1.2);
     const shell = (a: number, y: number) => {
       const W = radius(y);
       const D = bodyRadius(y);
-      return W <= D + 1e-6 ? W : 1 / Math.hypot(Math.sin(a) / W, Math.cos(a) / D);
+      return (W <= D + 1e-6 ? W : 1 / Math.hypot(Math.sin(a) / W, Math.cos(a) / D)) * fold(a, y);
     };
     // Over the shoulder the cloth runs out more than down: its print is laid by the length of cloth, not by the height
     // alone, or it smears into streaks across the top. Counted up from the bust, so below it nothing moves.
@@ -427,6 +434,7 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
         line(pts, colour, width, back, alpha);
       };
       const dot = (q: Pt, colour: string, r = 3.4) => {
+        if (TRY.quiet && cloth) return;
         g.globalAlpha = q[2] > 0 ? 1 : 0.35;
         g.strokeStyle = colour;
         g.lineWidth = 1.2;
@@ -578,7 +586,8 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
           const am = (v[0].a + v[1].a) / 2;
           const off = wrap(am - c);
           const slope = (v[2].r + v[3].r - v[0].r - v[1].r) / 2 / ((v[2].yy + v[3].yy - v[0].yy - v[1].yy) / 2 || 1e-6);
-          const { lit, shine } = lightOf(Math.sin(th), -clamp(slope, -3, 3), Math.cos(th), cloth.sheen);
+          const tt = th + foldTilt(am, (v[0].yy + v[2].yy) / 2);
+          const { lit, shine } = lightOf(Math.sin(tt), -clamp(slope, -3, 3), Math.cos(tt), cloth.sheen, TRY.shade);
           quads.push({
             q: v.map((p) => [p.x, p.y]),
             uv: v.map((p) => [(off + p.a - am) * (p.ur ?? p.r) * k, border ? border(p) : (p.v ?? p.yy) * k]),
@@ -601,6 +610,11 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
           if (arm && !sl) {
             const d = Math.abs(Math.abs(a) - HALF) / 0.32;
             if (d < 1) t = Math.max(t, mid + half * Math.sqrt(1 - d * d));
+            // The shoulders slope: from the side of the neck down to the shoulder tip at the armhole.
+            if (TRY.arm) {
+              const near = 1 - clamp((Math.abs(Math.abs(a) - HALF) - 0.32) / 0.75, 0, 1);
+              t = Math.max(t, t + (yS - t) * smooth(near) * 0.6);
+            }
           }
           return t;
         };
@@ -751,7 +765,7 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
       const edge = cloth ? 0.55 : 1;
       ring(topY, (a, y) => shell(a, y), GLOW, lw * 1.1, 0.25, edge);
       for (const r of round.rings) ring((a) => yAt(a, r(a)), (a, y) => shell(a, y), GLOW, lw * 0.9, 0.25, edge);
-      if (!trousers) ring(hemY, (_, y) => radius(y), GLOW, lw * 1.3, cloth ? 0 : 0.3, edge);
+      if (!trousers) ring(hemY, (a, y) => (TRY.folds ? shell(a, y) : radius(y)), GLOW, lw * 1.3, cloth ? 0 : 0.3, edge);
       for (const e of cloth ? [] : [1, -1]) {
         const a = (e * Math.PI) / 2 - phi;
         const y0 = isTop && arm ? yU : topY(a);
