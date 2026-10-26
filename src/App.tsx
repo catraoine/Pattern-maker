@@ -11,7 +11,7 @@ import { needsNap, withSpecialAllowances } from './engine/specialFabrics';
 import { printNap, printOf } from './engine/prints';
 import { layAmount } from './engine/layplan';
 import { withEstimates } from './estimate';
-import { EXAMPLE_BODY, FormKind, Garment, MeasurementId, MeasurementValues, Unit, checkMeasurements, isComplete } from './measurements';
+import { EXAMPLE_BODY, FormKind, Garment, MeasurementId, MeasurementValues, Unit, checkMeasurements, isComplete, isLowerBody, isOuterwear } from './measurements';
 import { usePersistent } from './store';
 import {
 Account,
@@ -244,7 +244,7 @@ export default function App() {
   const trousersChoices = trousersChoicesOf(saved);
   const teeChoices = teeChoicesOf(saved);
   const lingerieChoices = lingerieChoicesOf(saved);
-  const isOuterGarment = garment === 'jacket' || garment === 'coat';
+  const isOuterGarment = isOuterwear(garment);
   const outerChoices = useMemo(() => outerChoicesOf(inputs.saved, garment === 'coat' ? 'coat' : 'jacket'), [inputs, garment]);
 
   const drafts = useMemo((): Drafts & { error?: string; crash?: boolean } => {
@@ -982,7 +982,7 @@ export default function App() {
               finish={finish}
               onFinish={setFinish}
               style={
-                garment === 'jacket' || garment === 'coat'
+                isOuterGarment
                   ? { garment, fit: outerChoices.fit }
                   : garment === 'bodice'
                   ? { garment, fit: saved.bodice.fit, neckline: saved.bodice.neckline, structure: validDetails(saved.bodice).structure }
@@ -1092,7 +1092,7 @@ export default function App() {
               own={ownFitting}
               carried={carried.from}
               draftWith={draftWith}
-              hasBustDart={garment === 'skirt' || garment === 'trousers' || isOuterGarment || (garment === 'dress' ? dress.bodice : saved.bodice).darts !== 'none'}
+              hasBustDart={isLowerBody(garment) || isOuterGarment || (garment === 'dress' ? dress.bodice : saved.bodice).darts !== 'none'}
               onSave={(f, shown) => {
                 const next = saveVersion(ownFitting, f, new Date().toISOString().slice(0, 10), shown);
                 setAccount(updatePerson(account, person.id, { fittings: { ...person.fittings, [garment]: next } }));

@@ -33,6 +33,7 @@ import { canShareFiles, download } from '../ui/download';
 import { LabelCard } from '../ui/LabelCard';
 import { TestingTag } from '../ui/TestingTag';
 import { DemoButton } from '../ui/DemoButton';
+import { isKnit, isLowerBody } from '../measurements';
 
 /** What to print: the drafted pieces of either garment, with its notes and sewing steps. */
 export interface Printable {
@@ -122,7 +123,7 @@ const printedDate = () => new Date().toLocaleDateString('en-GB', { day: 'numeric
 export function ExportScreen({ example, onMeasureMe, unit = 'cm', sendLink, profile, title, fit, garment, finish, onFinish, made, error, onEditFabric, onKeep, onFitNotes, fitNote, fitting, fittingNotes, alterations = NONE, onFitting, onTrueScale, values, draftAt, style, imported, mode = 'all', onMode, edition, credit, label }: Props) {
   const can = (t: ProTool) => shows(mode, t);
   /** Knits fit by their stretch: tested in a spare knit, not a calico toile. */
-  const knit = garment === 'tee' || garment === 'lingerie';
+  const knit = isKnit(garment);
   const [picked, setPaper] = useState<Output>('a4');
   // The copy-shop sheet shows in every view (Cat, 2026-10-22): one big sheet saves testers and beginners the
   // taping. Only the projector files wait behind all the tools.
@@ -482,7 +483,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', sendLink, prof
             </ul>
           ) : (
             <p className="muted">
-              Make it up in calico first and try it on. Tell us what you see, such as {garment === 'skirt' || garment === 'trousers' ? 'pulling across the hips or folds below the back waist' : 'pulling at the bust or a gaping neckline'}, and the
+              Make it up in calico first and try it on. Tell us what you see, such as {isLowerBody(garment) ? 'pulling across the hips or folds below the back waist' : 'pulling at the bust or a gaping neckline'}, and the
               pattern is corrected the way a pattern cutter would, with a second line for one side if your shoulders or hips differ.
             </p>
           )}

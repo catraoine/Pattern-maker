@@ -14,6 +14,7 @@ import { VolumeStyle, volumeFabrics, volumeWarnings, volumeWords } from './skirt
 import { LingerieFabricStyle, TeeFabricStyle, lingerieFabrics, teeFabrics, teeWarnings } from './knits';
 import { PrintKind, printCut, printLines, printOf } from './prints';
 import { Checks, SPECIALS, Special, specialLines, specialWarnings } from './specialFabrics';
+import { isLowerBody, isOuterwear } from '../measurements';
 
 export type Weight = 'light' | 'medium' | 'heavy';
 export type Drape = 'crisp' | 'soft' | 'fluid';
@@ -547,7 +548,7 @@ function styleWarnings(style: FabricStyle, { weight, drape }: MyFabric): string[
     if (style.neckline === 'cami' && style.structure !== 'boned' && weight === 'heavy') out.push('A heavy fabric drags on rouleau straps. Choose a light one.');
     if (style.neckline === 'boat' && drape === 'fluid') out.push('A boat neck in a fluid fabric can slide off the shoulder. Stay the neckline with tape.');
   }
-  if (style.garment === 'jacket' || style.garment === 'coat') {
+  if (isOuterwear(style.garment)) {
     if (weight === 'light') out.push(`A light fabric will not hold the collar and shoulders of ${name}. Interface it throughout, or choose a medium or heavy weight.`);
     if (drape === 'fluid') out.push(`A fluid fabric collapses at the lapels and hem of ${name}. Choose a crisper cloth.`);
   }
@@ -562,13 +563,13 @@ function styleWarnings(style: FabricStyle, { weight, drape }: MyFabric): string[
 /** Extra ease (cm) for the fabric: heavy cloth takes up room with its own thickness. */
 export function fabricEase(f: MyFabric | undefined, garment: FabricGarment): { waist: number; hip: number; bust: number } {
   if (!f || f.matchEase === false || (f.weight !== 'heavy' && !(f.special && SPECIALS[f.special].thick))) return { waist: 0, hip: 0, bust: 0 };
-  return garment === 'skirt' || garment === 'trousers' ? { waist: 0.5, hip: 1, bust: 0 } : { waist: 0.5, hip: 1, bust: 1 };
+  return isLowerBody(garment) ? { waist: 0.5, hip: 1, bust: 0 } : { waist: 0.5, hip: 1, bust: 1 };
 }
 
 /** The fabric's extra ease in words: "0.5 cm more at the waist and 1 cm at the hip". */
 export function easeWords(f: MyFabric | undefined, garment: FabricGarment): string {
   const e = fabricEase({ ...f, matchEase: true }, garment);
-  if (garment === 'skirt' || garment === 'trousers') return `${e.waist} cm more at the waist and ${e.hip} cm at the hip`;
+  if (isLowerBody(garment)) return `${e.waist} cm more at the waist and ${e.hip} cm at the hip`;
   if (garment === 'dress') return `${e.bust} cm more at the bust and hip, and ${e.waist} cm at the waist`;
   return `${e.bust} cm more at the bust (and at the hip on longer tops) and ${e.waist} cm at the waist`;
 }

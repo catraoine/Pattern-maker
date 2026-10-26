@@ -2,6 +2,7 @@ import { ALLOWANCE_LABELS, AllowanceStyle } from '../engine/allowances';
 import type { BodiceEdges } from '../engine/instructions';
 import type { Finish } from '../savedWork';
 import type { Garment } from '../measurements';
+import { isOuterwear } from '../measurements';
 
 const EDGES: { id: BodiceEdges; label: string; detail: string }[] = [
   { id: 'binding', label: 'Bias binding', detail: 'Quick and neat' },
@@ -30,7 +31,7 @@ export function FinishChoices({
   const current = edges.some((e) => e.id === finish.bodiceEdges) ? finish.bodiceEdges : (edges.find((e) => e.id === 'lined') ?? edges[0]).id;
   return (
     <>
-      {garment === 'trousers' || garment === 'jacket' || garment === 'coat' ? null : garment === 'skirt' ? (
+      {garment === 'trousers' || isOuterwear(garment) ? null : garment === 'skirt' ? (
         <fieldset className="group">
           <legend>Lining</legend>
           {[false, true].map((on) => (

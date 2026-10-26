@@ -7,6 +7,13 @@ import type { LingerieMeasurements } from './engine/lingerie';
 
 export type Garment = 'skirt' | 'bodice' | 'dress' | 'trousers' | 'tee' | 'jacket' | 'coat' | 'lingerie';
 
+/** Garments cut from knit and fitted by stretch: knit allowances whatever the style, and no woven toile corrections. */
+export const isKnit = (g: Garment) => g === 'tee' || g === 'lingerie';
+/** Garments worn from the waist down, fitted at the waist and hip with no bust. */
+export const isLowerBody = (g: Garment) => g === 'skirt' || g === 'trousers';
+/** Jackets and coats: drafted on the bodice block, fully lined. */
+export const isOuterwear = (g: Garment): g is 'jacket' | 'coat' => g === 'jacket' || g === 'coat';
+
 /** The engine's measurements, and the height, which no block uses directly: it anchors the checks and the estimates. */
 export type MeasurementId = keyof SkirtMeasurements | keyof BodiceMeasurements | keyof SleeveMeasurements | keyof TrousersMeasurements | keyof LingerieMeasurements | 'height';
 
@@ -515,7 +522,7 @@ export function checkMeasurements(v: MeasurementValues, unit: Unit, garment: Gar
     if (crotch_depth && waist_to_knee && crotch_depth >= waist_to_knee - 12) {
       out.push({ id: 'crotch_depth', level: 'error', message: 'Crotch depth looks long next to waist to knee. Measure it seated, from the waist down to the chair.' });
     }
-    if (garment === 'skirt' || garment === 'trousers') {
+    if (isLowerBody(garment)) {
       crossed();
       return out;
     }
