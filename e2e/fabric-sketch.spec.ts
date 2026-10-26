@@ -107,3 +107,29 @@ test('any colour tints the sketch and finds the closest shop colourway', async (
     await page.screenshot({ path: `${process.env.SHOTS}/any-colour-match.png` });
   }
 });
+
+// Exact Colour Card (Cat's X1): when no shop colourway is a near match, print it or have it dyed in the exact colour.
+test('a colour the shops lack can be printed or dyed exactly', async ({ page }) => {
+  await startWithExample(page);
+  const main = page.getByRole('main');
+  await main.getByRole('tab', { name: 'Fabric' }).click();
+  await main.getByRole('radiogroup', { name: 'Fabric for the sketch' }).getByRole('radio', { name: 'Linen' }).click();
+  await main.getByRole('button', { name: 'Any colour' }).click();
+  await main.getByLabel('Hex').fill('#b8613f');
+  const card = main.locator('.exactcolour');
+  await expect(card).toContainText('Get #B8613F exactly');
+  // Spoonflower opens in a new tab; answer it here so the test needs no network.
+  await page.context().route('https://www.spoonflower.com/**', (r) => r.fulfill({ body: 'Spoonflower' }));
+  const download = page.waitForEvent('download');
+  const popup = page.waitForEvent('popup');
+  await card.getByRole('button', { name: 'Print it' }).click();
+  expect((await download).suggestedFilename()).toBe('maison-trace-B8613F.png');
+  await (await popup).waitForURL(/spoonflower\.com/);
+  await expect(card.locator('.exactcolour-steps')).toContainText('maison-trace-B8613F.png');
+  if (process.env.SHOTS) {
+    await main.locator('.colourmatch').scrollIntoViewIfNeeded();
+    await page.screenshot({ path: `${process.env.SHOTS}/exact-colour-${test.info().project.name}.png` });
+  }
+  await card.getByRole('button', { name: 'Dyed to order' }).click();
+  await expect(card.getByRole('button', { name: 'Tell me when it opens' })).toBeVisible();
+});

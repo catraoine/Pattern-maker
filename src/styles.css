@@ -3979,6 +3979,74 @@ button.link.garment-change {
 .colourmatch-tag.far {
   color: var(--warn);
 }
+/* Exact Colour Card (Cat's X1): print it or dye it, each a palette card in the picked colour. */
+.exactcolour {
+  margin-top: 14px;
+  padding: 12px 12px 4px;
+  border: 1px solid var(--gild);
+}
+.exactcolour .testing-tag {
+  display: inline-block;
+  min-height: 0;
+  margin: 0 0 0 8px;
+  padding: 2px 8px;
+  border: 1px solid var(--line-strong);
+  font-size: 10px;
+}
+.exactcolour-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 8px 0;
+}
+.exactcolour-row + .exactcolour-row,
+.exactcolour-steps + .exactcolour-row {
+  border-top: 1px solid var(--guide);
+}
+.exactcard {
+  --card-w: 72px;
+  --tex-h: 64px;
+  flex: 0 0 var(--card-w);
+  width: var(--card-w);
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--card-ink);
+  text-align: left;
+  cursor: pointer;
+}
+.exactcard.on {
+  --tex-h: 80px;
+}
+.exactcard .card-name {
+  white-space: normal;
+  min-height: calc(2 * 1.3em + 18px);
+}
+.exactcard:focus-visible {
+  outline: 1px solid var(--ink);
+  outline-offset: 3px;
+}
+.exactcolour-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding-top: 4px;
+}
+.exactcolour-text b {
+  font-weight: var(--w-strong);
+}
+.exactcolour-steps {
+  margin: 0 0 8px;
+  padding-left: 1.3em;
+}
+.exactcolour-steps li {
+  margin: 3px 0;
+}
 /* Handle labels stay readable over a pale fabric. */
 .garment-fabric .handle text,
 .garment-fabric .hint {
@@ -8106,7 +8174,8 @@ button.later.edit-measure {
   .shopfab-tile,
   .printtile img,
   .card-name,
-  .shopfab-text {
+  .shopfab-text,
+  .exactcard {
     transition: none;
   }
 }
