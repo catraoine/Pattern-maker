@@ -1,7 +1,7 @@
 // Paid extras that aren't built yet. Each one is shown as a sign-up so we can see who wants it before building
 // the paid part. Prices are the business plan's planned prices; nothing is charged until paid plans open.
 
-export const OFFER_IDS = ['founding', 'printed', 'tools', 'sewalong', 'designers', 'designer-partner', 'kit', 'gift', 'fitcheck', 'sizerun', 'classroom', 'sponsor', 'deadstock', 'cutforme', 'drops', 'archive', 'labels', 'engine', 'nights', 'swim'] as const;
+export const OFFER_IDS = ['founding', 'printed', 'tools', 'sewalong', 'designers', 'designer-partner', 'kit', 'gift', 'fitcheck', 'sizerun', 'classroom', 'sponsor', 'deadstock', 'cutforme', 'drops', 'archive', 'labels', 'engine', 'nights', 'swim', 'dyed'] as const;
 
 /** Where Atelier Nights could run, first one first. Night sign-ups are counted per city. */
 export const NIGHT_CITIES = ['vancouver', 'berlin', 'london', 'copenhagen'] as const;
@@ -199,5 +199,13 @@ export const OFFERS: Record<OfferId, Offer> = {
     text: "Bralettes, bodysuits, briefs and swimwear, drafted to you for stretch fabric, with wired bras to follow. We'll tell you the day it opens.",
     button: "Tell me when it's ready",
     thanks: "You're on the list. We'll email you the day Swim and Intimates opens.",
+  },
+  dyed: {
+    id: 'dyed',
+    eyebrow: 'Dyed to order',
+    title: 'Have it hand dyed in your colour',
+    text: "We're choosing small dye studios to dye natural fabric to the exact colour you picked. Leave your email and we'll tell you when the first one opens, with a price for your colour.",
+    button: 'Tell me when it opens',
+    thanks: "You're on the list. We'll email you when dyed to order opens.",
   },
 };
