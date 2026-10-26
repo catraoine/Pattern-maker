@@ -115,7 +115,8 @@ export function lightOf(nx: number, ny: number, nz: number, sheen?: 'gloss' | 'p
   if (z < 0) return { lit: 0.42, shine: 0 };
   const d = Math.max(0, x * L[0] + y * L[1] + z * L[2]);
   if (sheen === 'pile') return { lit: 0.22 + 0.7 * d * (0.4 + 0.6 * z), shine: 0.18 * Math.pow(1 - z, 3) };
-  const lit = 0.4 + 0.6 * d;
+  // Deeper toward the sides, where the cloth turns away, so the body reads round (Cat, 2026-10-26).
+  const lit = (0.3 + 0.75 * d ** 1.15) * (0.72 + 0.28 * z);
   if (sheen !== 'gloss') return { lit, shine: 0 };
   const h = Math.max(0, x * H[0] + y * H[1] + z * H[2]);
   return { lit, shine: Math.pow(h, 18) * 0.75 };
