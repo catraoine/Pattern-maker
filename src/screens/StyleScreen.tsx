@@ -707,6 +707,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
               round={round}
               m={values}
               striped={matchKind(fabric)}
+              fabric={fabric}
               label={`The ${title} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`}
             />
           )}

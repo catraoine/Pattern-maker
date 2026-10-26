@@ -236,7 +236,7 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
               <TechFlatView flat={flat} title={title} />
             </GarmentFabric>
           )}
-          {round && view === 'round' && <AllRound round={round} m={values} striped={fabric?.checks ? (fabric.checks.stripes ? 'stripes' : 'checks') : false} label={`The ${title.toLowerCase()} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`} />}
+          {round && view === 'round' && <AllRound round={round} m={values} fabric={fabric} striped={fabric?.checks ? (fabric.checks.stripes ? 'stripes' : 'checks') : false} label={`The ${title.toLowerCase()} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`} />}
           {draft && sheet && view === 'pattern' && <PatternPane><PatternPreview paper sheet={sheet} label={`Pattern pieces for ${title.toLowerCase()}`} /></PatternPane>}
           <UndoToast undo={undo} />
         </div>

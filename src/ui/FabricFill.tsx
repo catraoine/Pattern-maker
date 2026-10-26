@@ -117,20 +117,30 @@ export function fabricLook(fabric: MyFabric | undefined, base: string): FabricLo
   return { special, sheer: special === 'sheer' || special === 'lace', ...(kind === 'border' ? { border: { href: printImage('border', base), size: printTileCm('border', undefined) } } : {}) };
 }
 
-/** Lends its children's sketch the fabric: shapes filled with var(--garment) take it, and a waistband
- * filled with var(--garment-band) takes it turned along the band. A colour the app knows tints the swatch;
- * a picked print is drawn instead, at its own scale and in its own colours, except checks, which take the colour
- * picked against near black (a camel check reads black and gold). With no fabric chosen nothing changes. */
-export function GarmentFabric({ fabric, children }: { fabric: MyFabric | undefined; children: ReactNode }) {
-  const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
+/** How a fabric is painted: the swatch (or drawn checks) at its size in cm, the colour table that tints it,
+ * and its look. The sketch's fill and All round's cloth both take it from here, so they always agree. */
+export interface FabricPaint {
+  /** The swatch to tile; with neither it nor drawn checks, the cloth is plain `plain`. */
+  href?: string;
+  /** Lightness to colour, per channel, as SVG feFuncR/G/B tableValues: the swatch is greyed, then mapped. */
+  table?: [string, string, string];
+  /** One tile, in cm. */
+  size: number;
+  /** Checks or stripes, drawn in the tone on the ground. */
+  drawn?: 'checks' | 'stripes';
+  tone: string;
+  ground: string;
+  half: string;
+  plain: string;
+  look?: FabricLook;
+}
+
+/** The paint for a fabric, or undefined when the garment is left in lines. */
+export function fabricPaint(fabric: MyFabric | undefined, base: string): FabricPaint | undefined {
   const id = flatId(fabric);
   const kind = printShown(fabric);
-  if (!id && !kind) return <>{children}</>;
-  const body = `fab${uid}`;
-  const band = `fabband${uid}`;
-  const tint = `fabtint${uid}`;
+  if (!id && !kind) return undefined;
   const hex = colourHex(fabric);
-  const base = import.meta.env.BASE_URL;
   const look = fabricLook(fabric, base);
   // A border print lies on the hem (see ClothLook); the body is plain cloth under it.
   const bodyKind = kind === 'border' ? undefined : kind;
@@ -145,8 +155,24 @@ export function GarmentFabric({ fabric, children }: { fabric: MyFabric | undefin
   const stripes = !!fabric?.checks?.stripes;
   const size = drawn ? printTileCm('checks', repeat, stripes) / 3 : bodyKind ? printTileCm(bodyKind, repeat, stripes) : TILE;
   // Under a border print the cloth is the print's own ivory ground, unless a colour is chosen for it.
-  const href = bodyKind ? printImage(bodyKind, base, stripes) : id && (kind !== 'border' || hex) ? tileUrl(id) : undefined;
-  const half = mix(tone, ground, 0.5);
+  const href = drawn ? undefined : bodyKind ? printImage(bodyKind, base, stripes) : id && (kind !== 'border' || hex) ? tileUrl(id) : undefined;
+  return { href, table, size, drawn: drawn ? (stripes ? 'stripes' : 'checks') : undefined, tone, ground, half: mix(tone, ground, 0.5), plain: hex ?? IVORY, look };
+}
+
+/** Lends its children's sketch the fabric: shapes filled with var(--garment) take it, and a waistband
+ * filled with var(--garment-band) takes it turned along the band. A colour the app knows tints the swatch;
+ * a picked print is drawn instead, at its own scale and in its own colours, except checks, which take the colour
+ * picked against near black (a camel check reads black and gold). With no fabric chosen nothing changes. */
+export function GarmentFabric({ fabric, children }: { fabric: MyFabric | undefined; children: ReactNode }) {
+  const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
+  const paint = fabricPaint(fabric, import.meta.env.BASE_URL);
+  if (!paint) return <>{children}</>;
+  const body = `fab${uid}`;
+  const band = `fabband${uid}`;
+  const tint = `fabtint${uid}`;
+  const { href, table, size, tone, ground, half, look } = paint;
+  const drawn = !!paint.drawn;
+  const stripes = paint.drawn === 'stripes';
   const tile = (pid: string, turn: boolean) => (
     <pattern id={pid} patternUnits="userSpaceOnUse" width={size} height={size} patternTransform={turn ? 'rotate(90)' : undefined}>
       {drawn ? (
@@ -166,7 +192,7 @@ export function GarmentFabric({ fabric, children }: { fabric: MyFabric | undefin
       ) : href ? (
         <image href={href} width={size} height={size} preserveAspectRatio="none" filter={table ? `url(#${tint})` : undefined} />
       ) : (
-        <rect width={size} height={size} fill={hex ?? IVORY} />
+        <rect width={size} height={size} fill={paint.plain} />
       )}
     </pattern>
   );
