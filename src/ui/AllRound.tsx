@@ -280,9 +280,10 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
       return W <= D + 1e-6 ? W : 1 / Math.hypot(Math.sin(a) / W, Math.cos(a) / D);
     };
     // A wide neckline (a boat neck) reaches out along the shoulder: at the neck point it sits as far out across the
-    // shoulder as the pattern's neck point is, and so a little down it, not up against the neck (Cat, 2026-10-26).
+    // shoulder as the pattern's neck point is, and so a little down it, not up against the neck; only a little, or
+    // seen from behind and above it opens into a dark hole at the shoulder (Cat, 2026-10-26).
     const spread = clamp(((round.neckSpread ?? 0.35) - 0.35) / 0.65, 0, 1);
-    const neckOut = sl ? Math.max(0, NECK_Y + spread * (yS + 0.14 - NECK_Y) - yAt(Math.PI / 2, round.topAt(Math.PI / 2))) : 0;
+    const neckOut = sl ? Math.max(0, NECK_Y + 0.5 * spread * (yS - NECK_Y) - yAt(Math.PI / 2, round.topAt(Math.PI / 2))) : 0;
     // Over the shoulder the cloth runs out more than down: its print is laid by the length of cloth, not by the height
     // alone, or it smears into streaks across the top. Counted up from the bust, so below it nothing moves.
     const SHOULDER_TOP = BUST_Y;
