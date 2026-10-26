@@ -201,7 +201,20 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
 
     const N = m.nape_to_waist ?? 41;
     const wh = m.waist_to_hip ?? 20.5;
-    const yOf = placeOnForm(round, m);
+    const yOfLevel = placeOnForm(round, m);
+    // On a body the neck sits tilted: its base at the front is a good way below the neck point at the side, while the
+    // form's neck base is level all round. So on the front, a neckline is measured from the front of the neck's base,
+    // not from the side's, or every front neckline sits too deep on the form and a boat neck reads as a scoop (Cat,
+    // 2026-10-26: "does the neckline look strange?"). The lift fades out by the bust, so nothing below it moves.
+    const N0 = m.nape_to_waist ?? 41;
+    const frontNeckCm = -N0 + 5;
+    const neckLift = isTop ? Math.max(0, yOfLevel(frontNeckCm) - NECK_Y) : 0;
+    const yAt = (a: number, cm: number) => {
+      const front = Math.max(0, Math.cos(a)) ** 2;
+      if (!front || !neckLift) return yOfLevel(cm);
+      return yOfLevel(cm) - neckLift * front * clamp(1 - (cm - frontNeckCm) / 14, 0, 1);
+    };
+    const yOf = yOfLevel;
     const kY = (WAIST - NAPE_Y) / N;
 
     // The garment's ease over the body, as form units, at the bust, the waist and the hip.
@@ -384,7 +397,7 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
       const legX = (leg: number) => leg * FORM_LEG_X;
       /** A point on the garment, on the body or down a trouser leg. */
       const spot = (p: RoundPt, leg?: number): Pt => {
-        const y = yOf(p.cm);
+        const y = leg ? yOf(p.cm) : yAt(p.phi, p.cm);
         return leg ? T(legX(leg), p.phi, legR(y), y) : P(p.phi, rAt(p.phi, y), y);
       };
       /** A seam or dart through its points, in small steps so it follows the body. */
@@ -427,7 +440,7 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
         g.fillText(str.toUpperCase(), x, y);
       };
       const hemY = (a: number) => yOf(round.lengthAt(a));
-      const topY = (a: number) => yOf(round.topAt(a));
+      const topY = (a: number) => yAt(a, round.topAt(a));
 
       g.globalAlpha = 1;
       g.fillStyle = '#000';
@@ -701,7 +714,7 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
       // In cloth, the edges are fine lines: the cloth itself gives the shape.
       const edge = cloth ? 0.55 : 1;
       ring(topY, (a, y) => shell(a, y), GLOW, lw * 1.1, 0.25, edge);
-      for (const r of round.rings) ring((a) => yOf(r(a)), (a, y) => shell(a, y), GLOW, lw * 0.9, 0.25, edge);
+      for (const r of round.rings) ring((a) => yAt(a, r(a)), (a, y) => shell(a, y), GLOW, lw * 0.9, 0.25, edge);
       if (!trousers) ring(hemY, (_, y) => radius(y), GLOW, lw * 1.3, cloth ? 0 : 0.3, edge);
       for (const e of cloth ? [] : [1, -1]) {
         const a = (e * Math.PI) / 2 - phi;
@@ -871,7 +884,7 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
         g.globalAlpha = 1;
       }
       for (const b of round.opening?.buttons ?? []) {
-        const y = yOf(b);
+        const y = yAt(0.05, b);
         dot(P(0.05, shell(0.05, y) + 0.005, y), GILD, 2.2);
       }
       if (round.vent) line(along([{ phi: Math.PI + 0.05, cm: round.vent.fromCm }, { phi: Math.PI + 0.05, cm: round.lengthAt(Math.PI) }]), GILD, lw * 0.8);
