@@ -6498,8 +6498,8 @@ body:has(.tape-band.carried) {
 
 .tour-play-ring {
   position: relative;
-  width: 64px;
-  height: 64px;
+  width: 88px;
+  height: 88px;
   border: 1px solid var(--ink);
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.6);
@@ -6511,17 +6511,69 @@ body:has(.tape-band.carried) {
   left: 50%;
   top: 50%;
   transform: translate(-35%, -50%);
-  border-left: 16px solid var(--ink);
-  border-top: 10px solid transparent;
-  border-bottom: 10px solid transparent;
+  border-left: 22px solid var(--ink);
+  border-top: 13px solid transparent;
+  border-bottom: 13px solid transparent;
 }
 
 .tour-play-label {
-  padding: 6px 8px;
+  padding: 8px 12px;
   background: rgba(0, 0, 0, 0.7);
-  font: var(--w-body) 10px/1 var(--mono);
-  letter-spacing: 0.25em;
+  font: var(--w-body) 13px/1 var(--mono);
+  letter-spacing: 0.28em;
   text-transform: uppercase;
+}
+
+@media (min-width: 960px) {
+  .tour-play-ring {
+    width: 104px;
+    height: 104px;
+  }
+  .tour-play-ring::after {
+    border-left-width: 26px;
+    border-top-width: 15px;
+    border-bottom-width: 15px;
+  }
+  .tour-play-label {
+    font-size: 14px;
+  }
+}
+
+/* A champagne blink every 4 s, the tap flash's look, to draw the eye (Cat, 2026-10-26: A Champagne Blink) */
+@keyframes tour-blink {
+  0%, 80%, 100% {
+    background: rgba(0, 0, 0, 0.6);
+    border-color: var(--ink);
+  }
+  88% {
+    background: var(--gild);
+    border-color: var(--gild);
+  }
+}
+@keyframes tour-blink-tri {
+  0%, 80%, 100% {
+    border-left-color: var(--ink);
+  }
+  88% {
+    border-left-color: var(--paper);
+  }
+}
+.tour-play-ring {
+  animation: tour-blink 4s ease-in-out infinite;
+}
+.tour-play-ring::after {
+  animation: tour-blink-tri 4s ease-in-out infinite;
+}
+/* The tap and hover flash win over the blink */
+.tour-play:is(:active, :hover, :focus-visible) .tour-play-ring,
+.tour-play:is(:active, :hover, :focus-visible) .tour-play-ring::after {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tour-play-ring,
+  .tour-play-ring::after {
+    animation: none;
+  }
 }
 
 /* The play button flashes champagne on a tap, like Join */
