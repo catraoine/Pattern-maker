@@ -6391,7 +6391,7 @@ body:has(.tape-band.carried) {
 
 .welcome.leaving .welcome-hero canvas,
 .welcome.leaving .tour-play,
-.welcome.leaving .welcome-card > :not(.welcome-hero) {
+.welcome.leaving .welcome-card > :not(.welcome-hero, .tape-band) {
   opacity: 0;
   /* Gone just as the first measuring page starts to come up under the tape (Cat, 2026-10-22: no gap on black) */
   transition: opacity 0.4s ease 1.3s;
@@ -6971,11 +6971,41 @@ button.later.garment-change {
   }
 }
 
-/* On a computer the tip comes in once the form has slid across to its place beside the title, before the play
-   button. */
+/* On a computer there's no tip: Begin brings the tape in from off the top right of the window and pulls it across the
+   top, to exactly where the first measuring page's tape sits, which takes over from it without moving (Cat,
+   2026-10-26: started from the tip in the middle of the window, it didn't look smooth). 22px down the welcome's card
+   puts it there; between 960px and 1100px that page is a 520px column down the middle. */
 @media (min-width: 960px) {
-  .welcome.go .tape-tip {
-    animation-delay: 1.7s;
+  .tape-tip {
+    display: none;
+  }
+  .welcome.leaving .welcome-card {
+    position: relative;
+    overflow: visible;
+  }
+  body:has(.tape-band.unrolling.computer) {
+    overflow-x: clip;
+  }
+  .tape-band.unrolling.computer {
+    top: 22px;
+    left: 0;
+    right: 0;
+    animation: tape-pull-across 1.6s cubic-bezier(0.55, 0, 0.1, 1) both;
+  }
+}
+@media (min-width: 960px) and (max-width: 1099px) {
+  .tape-band.unrolling.computer {
+    left: calc(50% - 260px);
+    right: auto;
+    width: 520px;
+  }
+}
+@keyframes tape-pull-across {
+  from {
+    transform: translateX(100vw);
+  }
+  to {
+    transform: none;
   }
 }
 

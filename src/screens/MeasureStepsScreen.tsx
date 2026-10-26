@@ -507,7 +507,7 @@ function chooseLabel(picked: Pick | null, values: MeasurementValues, form: FormK
   return n ? `Next: ${n} ${GARMENT_NAME[picked]} measurement${n === 1 ? '' : 's'}` : `Style my ${GARMENT_NAME[picked]}`;
 }
 
-const TAPE_MARKS = Array.from({ length: 50 }, (_, i) => i + 41);
+const TAPE_MARKS = Array.from({ length: 100 }, (_, i) => i + 41);
 
 /** The tape Begin pulls out on the welcome stays full size across the top of the first page (Cat, 2026-10-21), from
  *  where the welcome left it, so it never jumps. Begin measuring carries it on down to the waist. */
