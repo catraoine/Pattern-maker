@@ -140,16 +140,16 @@ export function FormSatin({ body, cx, arms, uid, bottom = body.bottom, edge = 0.
   );
 }
 
-/** The drawing's frame: half its width (the centre line's x) and its top and bottom. The figure fills it (Cat's D5,
- *  2026-10-26): just wider than the arms and the garment, and down to a little below the hem rather than always to
- *  the floor, so the garment is the size of the page. */
+/** The drawing's frame: half its width (the centre line's x) and its top and bottom. The figure fills its width
+ *  (Cat's D5, 2026-10-26): just wider than the arms and the garment. The bottom stays where the caller puts it, so
+ *  every length mark beside the drawing stays in reach; only the draw tool, which has none, crops below the hem. */
 export function formFrame(m: Measures, body: FormBody, bottom: number, arms?: FormArm, cloth: P[][] = []) {
   const wide = Math.max(0, ...cloth.flat().map((q) => Math.abs(q.x) + 1.5));
   const half = SQUEEZE * Math.max(Math.max(m.full_bust ?? 0, m.full_hip ?? 0, m.waist) / 4 + 3, arms ? armAt(arms, arms.wristY).outer + 1.5 : 0, wide);
-  const low = cloth.length ? Math.max(...cloth.flat().map((q) => q.y)) + BELOW_HEM : bottom;
-  return { half, top: body.top - (body.head ? HEAD_CM + 1 : 2), bottom: Math.max(body.bottom + 12, Math.min(bottom, low)) };
+  return { half, top: body.top - (body.head ? HEAD_CM + 1 : 2), bottom: Math.max(body.bottom + 12, bottom) };
 }
-/** How far below the garment's hem the drawing goes, in cm: room for the legs to fade out and the hem to be dragged. */
+/** How far below the garment's hem the draw tool's drawing goes, in cm: room for the legs to fade out and for the hem
+ *  to be drawn longer. */
 export const BELOW_HEM = 16;
 
 /** What a sleeve on the form needs to know of the drafted sleeve: its length, and how wide it is sewn. */
