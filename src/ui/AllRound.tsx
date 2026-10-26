@@ -208,11 +208,13 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
     // 2026-10-26: "does the neckline look strange?"). The lift fades out by the bust, so nothing below it moves.
     const N0 = m.nape_to_waist ?? 41;
     const frontNeckCm = -N0 + 5;
-    const neckLift = isTop ? Math.max(0, yOfLevel(frontNeckCm) - NECK_Y) : 0;
+    // A plain round neck, as drafted, follows the base of the neck: at the side neck point and some 9 cm lower at the
+    // centre front, round in between. Where that natural neckline lies is placed at the form's neck base all round.
+    const naturalNeck = (a: number) => -N0 - 4 + (frontNeckCm + N0 + 4) * Math.max(0, Math.cos(a)) ** 0.6;
     const yAt = (a: number, cm: number) => {
-      const front = Math.max(0, Math.cos(a)) ** 2;
-      if (!front || !neckLift) return yOfLevel(cm);
-      return yOfLevel(cm) - neckLift * front * clamp(1 - (cm - frontNeckCm) / 14, 0, 1);
+      if (!isTop || Math.cos(a) <= 0) return yOfLevel(cm);
+      const lift = Math.max(0, yOfLevel(naturalNeck(a)) - NECK_Y);
+      return yOfLevel(cm) - lift * clamp(1 - (cm - naturalNeck(a)) / 14, 0, 1);
     };
     const yOf = yOfLevel;
     const kY = (WAIST - NAPE_Y) / N;
@@ -277,6 +279,10 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
       const D = bodyRadius(y);
       return W <= D + 1e-6 ? W : 1 / Math.hypot(Math.sin(a) / W, Math.cos(a) / D);
     };
+    // A wide neckline (a boat neck) reaches out along the shoulder: at the neck point it sits as far out across the
+    // shoulder as the pattern's neck point is, and so a little down it, not up against the neck (Cat, 2026-10-26).
+    const spread = clamp(((round.neckSpread ?? 0.35) - 0.35) / 0.65, 0, 1);
+    const neckOut = sl ? Math.max(0, NECK_Y + spread * (yS + 0.14 - NECK_Y) - yAt(Math.PI / 2, round.topAt(Math.PI / 2))) : 0;
     // Over the shoulder the cloth runs out more than down: its print is laid by the length of cloth, not by the height
     // alone, or it smears into streaks across the top. Counted up from the bust, so below it nothing moves.
     const SHOULDER_TOP = BUST_Y;
@@ -440,7 +446,23 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
         g.fillText(str.toUpperCase(), x, y);
       };
       const hemY = (a: number) => yOf(round.lengthAt(a));
-      const topY = (a: number) => yAt(a, round.topAt(a));
+      const topRaw = (a: number) => yAt(a, round.topAt(a)) + neckOut * Math.sin(a) ** 2;
+      // Where the front neck meets the shoulder the edge is eased round, not left as a notch; the centre front (a V's
+      // point) and the back stay exactly as drawn.
+      const TOP_N = 360;
+      const topTable = Array.from({ length: TOP_N + 1 }, (_, i) => {
+        const a = -Math.PI + (TAU * i) / TOP_N;
+        const w = isTop ? Math.sin(a) ** 2 * Math.max(0, Math.cos(a) + 0.3) : 0;
+        if (w < 0.01) return topRaw(a);
+        let sum = 0;
+        for (let k = -6; k <= 6; k++) sum += topRaw(a + k * 0.03);
+        return topRaw(a) + (sum / 13 - topRaw(a)) * Math.min(1, w * 2.5);
+      });
+      const topY = (a: number) => {
+        const f = ((((a + Math.PI) / TAU) % 1) + 1) % 1 * TOP_N;
+        const i = Math.floor(f);
+        return topTable[i] + (topTable[i + 1] - topTable[i]) * (f - i);
+      };
 
       g.globalAlpha = 1;
       g.fillStyle = '#000';
