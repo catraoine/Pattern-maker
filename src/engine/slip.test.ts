@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { draftSkirt, Fit, Length, Silhouette } from './skirt';
 import { draftDress } from './dress';
-import { randomBody, rng } from './randomBodies';
+import { randomBody, rng, sweep } from './randomBodies';
 import { checkPattern } from './qc';
 import { layPlan } from './layplan';
 import { sewingGuide, SewingGuide } from './instructions';
@@ -11,7 +11,7 @@ import { waistPieces } from './finishing';
 import { cutAllowed, validCut } from './slip';
 import { taggedLength } from "./geometry";
 import type { AsymHem } from './asymHem';
-import { describe as describeSkirt } from '../screens/StyleScreen';
+import { describe as describeSkirt } from '../skirtChoices';
 import { describePattern } from '../screens/describe';
 
 const FITS: Fit[] = ['fitted', 'regular', 'relaxed'];
@@ -113,7 +113,7 @@ describe('the bias-cut slip skirt', () => {
 describe('stress: every cut and hem on random bodies', () => {
   it('passes QC for slips and asymmetric hems, every fit', () => {
     const failures: string[] = [];
-    for (let seed = 1; seed <= 12; seed++) {
+    for (let seed = 1; seed <= sweep(12); seed++) {
       const body = randomBody(rng(seed * 7919));
       for (const fit of FITS) {
         const runs: { silhouette: Silhouette; length: Length; asymHem: AsymHem }[] = [];
@@ -154,7 +154,7 @@ describe('stress: every cut and hem on random bodies', () => {
 
   it('drafts a slip dress and high-low dresses that pass QC with the skirt matching the bodice', () => {
     const failures: string[] = [];
-    for (let seed = 1; seed <= 8; seed++) {
+    for (let seed = 1; seed <= sweep(8); seed++) {
       const body = randomBody(rng(seed * 104729));
       for (const fit of FITS) {
         const runs: { silhouette: Silhouette; length: Length; asymHem: AsymHem }[] = [

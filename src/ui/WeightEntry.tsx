@@ -5,12 +5,12 @@ import type { Unit } from '../measurements';
 // girths against the height, so a slipped tape or a wrong unit is caught before anything is drafted. It is not
 // drafted from, shown on a pattern, exported or sent anywhere, and the page says so.
 
-export type WeightUnit = 'kg' | 'lb';
+type WeightUnit = 'kg' | 'lb';
 /** Weight follows the tape's unit: kilograms with centimetres, pounds with inches. */
 export const weightUnitOf = (unit: Unit): WeightUnit => (unit === 'cm' ? 'kg' : 'lb');
 const LB = 0.45359237;
 export const fromKg = (kg: number, u: WeightUnit) => (u === 'kg' ? Math.round(kg * 10) / 10 : Math.round((kg / LB) * 10) / 10);
-export const toKg = (x: number, u: WeightUnit) => Math.round((u === 'kg' ? x : x * LB) * 10) / 10;
+const toKg = (x: number, u: WeightUnit) => Math.round((u === 'kg' ? x : x * LB) * 10) / 10;
 
 /** Weights that can't be right, in kg: outside this it is nearly always the other unit or a slipped digit. */
 export const WEIGHT_HARD: [number, number] = [25, 350];

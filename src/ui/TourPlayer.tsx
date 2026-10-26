@@ -24,7 +24,7 @@ const PARTS: { name: string; from: number }[] = [
   { name: 'Style', from: 22.9 },
   { name: 'Print', from: 53.2 },
 ];
-export const TOUR_LENGTH = 68;
+const TOUR_LENGTH = 68;
 export const TOUR_LABEL = '1:08';
 
 export function TourPlayer({ onClose }: { onClose: () => void }) {

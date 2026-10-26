@@ -23,7 +23,7 @@ type Named = (typeof SLEEVE_LENGTHS)[number];
 
 /** Where a sleeve's named lengths fall from the shoulder, and the shortest and longest it can be: from a
  * plain long sleeve drafted to this bodice's armhole. None without the arm measurements. */
-export interface SleeveRange {
+interface SleeveRange {
   named: Record<Named, number>;
   min: number;
   max: number;
@@ -52,7 +52,7 @@ const onArm = (stroke: P[], arm: FormArm, reach = 3) =>
     });
 
 /** What a line on the arm is: across it, down its outside, from the neck to under the arm, or down the top of the arm. */
-export function sleeveStroke(stroke: P[], arm: FormArm, neckPoint: P): 'cut_raglan' | 'cut_set_in' | 'cut_drop' | 'across' | 'down' | undefined {
+function sleeveStroke(stroke: P[], arm: FormArm, neckPoint: P): 'cut_raglan' | 'cut_set_in' | 'cut_drop' | 'across' | 'down' | undefined {
   const pts = stroke.map((q) => ({ x: Math.abs(q.x), y: q.y }));
   const [a, b] = [pts[0], pts[pts.length - 1]];
   const [top, end] = a.y <= b.y ? [a, b] : [b, a];
@@ -86,7 +86,7 @@ function standOff(stroke: P[], arm: FormArm) {
 }
 
 /** The shape a line down the arm draws, by where it stands off the arm. */
-export function shapeOfLine(stroke: P[], arm: FormArm, range: SleeveRange): SleeveShape {
+function shapeOfLine(stroke: P[], arm: FormArm, range: SleeveRange): SleeveShape {
   const s = standOff(stroke, arm);
   const cm = s.end - arm.tip.y;
   if (cm < range.named.short - 4) return s.bottom - s.top > 1.5 ? 'flutter' : 'cap';

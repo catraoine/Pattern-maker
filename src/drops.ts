@@ -24,7 +24,7 @@ export interface Drop {
 
 export const NEXT_DROP: Drop = { number: 1, editions: 600 };
 
-export type DropState =
+type DropState =
   | { kind: 'announced' } // no date yet
   | { kind: 'opens'; in: number } // ms until it opens
   | { kind: 'live'; left: number } // ms until it closes

@@ -36,7 +36,7 @@ export function slipSideSupp(front: number, back: number): number {
 }
 
 /** The slip's length is knee, midi or maxi: it needs room below the hip to hang and swing. */
-export const SLIP_LENGTHS = ['knee', 'midi', 'maxi'] as const;
+const SLIP_LENGTHS = ['knee', 'midi', 'maxi'] as const;
 
 /**
  * Whether a skirt choice goes with the rest: a slip needs at least knee length; a diagonal hem needs
@@ -222,7 +222,10 @@ function mirrorOutline(o: Path): Path {
   const out = new Path(o.start);
   const n = o.segs.length - 1; // the last edge is the centre line, which disappears
   const startOf = (i: number) => (i === 0 ? o.start : o.segs[i - 1].to);
-  for (let i = 0; i < n; i++) out.segs.push({ ...o.segs[i] }), out.tags.push(o.tags[i]);
+  for (let i = 0; i < n; i++) {
+    out.segs.push({ ...o.segs[i] });
+    out.tags.push(o.tags[i]);
+  }
   for (let i = n - 1; i >= 0; i--) {
     const s = o.segs[i];
     const to = mirror(startOf(i));
@@ -234,7 +237,7 @@ function mirrorOutline(o: Path): Path {
 }
 
 /** A half piece traced off and turned over along its centre line, for cutting whole, single layer. */
-export function wholePiece(pc: Piece): Piece {
+function wholePiece(pc: Piece): Piece {
   const outline = mirrorOutline(pc.outline);
   const lines = [...pc.lines, ...pc.lines.map((l) => {
     const pts = l.points(2);

@@ -48,7 +48,7 @@ function side(B: P, N: P, into: P, full: number): P[] {
 
 /** Where the lowest point can go: below the block's neck, 5 cm clear of the bust points, and no further
  * across than most of the way to a neck point. */
-export function unevenLimits(d: BodiceDraft) {
+function unevenLimits(d: BodiceDraft) {
   const top = d.neckBlock.front.neckY;
   const front = d.block?.[0] ?? d.pieces[0];
   const { pts, tags } = front.outline.taggedPoints(4);

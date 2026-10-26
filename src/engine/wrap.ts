@@ -6,22 +6,21 @@
 // carries a tie. The far half's waist dart stays, shortened to end below the edge, so the overlap is
 // shaped at the waist like the half under it. The two fronts are the same piece cut as a pair, each
 // one wearing its own half and lying over (or under) the other's.
-import { P, Path, add, lerp, len, mul, p, sub, taggedLength, unit } from './geometry';
+import { P, Path, add, lerp, len, mul, p, sub, unit } from './geometry';
 import { pathOf, ringOf } from './manipulate';
 import { finishDart } from './darts';
 import { coveredRun, cubic } from './drape';
 import { insidePolygon } from './marks';
 import type { DraftPoint, Piece } from './piece';
 import type { BodiceStyle } from './bodice';
-export { wrapTies } from './wrapSkirt';
 import { cm } from './skirt';
+export { wrapTies } from './wrapSkirt';
 
 /**
  * Where the front edge crosses the centre front, in cm above the bust point's level, and how far below
  * the edge the far waist dart must end.
  */
-export const WRAP = { crossAbove: 3, dartClear: 3 };
-
+const WRAP = { crossAbove: 3, dartClear: 3 };
 
 /** Bust darts that a wrap front keeps whole: one opening in the edge or the far side seam is cut away. */
 export const WRAP_BUST_DARTS = ['side', 'shoulder', 'armhole', 'waist'] as const;
@@ -58,7 +57,7 @@ function wrapEdge(N: P, into: P, cross: P, far: P): P[] {
   return [...[...lower].reverse(), ...[...upper].reverse().slice(1)];
 }
 
-export interface WrapFront {
+interface WrapFront {
   piece: Piece;
   /** The front edge from the far waist to the neck point, as the piece lies (its own half on x > 0). */
   edge: P[];
@@ -132,7 +131,4 @@ export function wrapFront(front: Piece, apex: P): WrapFront {
   };
   return { piece, edge, cross, tieAt: W };
 }
-
-/** The front edge's length, for its binding or facing. */
-export const wrapEdgeLength = (pc: Piece) => taggedLength(pc.outline, 'neck');
 

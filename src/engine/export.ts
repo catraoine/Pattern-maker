@@ -7,7 +7,7 @@ import { PROFILE_RES, nestOutlines, profile } from './layplan';
 const GAP = 4; // cm between pieces
 const MARGIN = 3; // cm around the sheet
 
-export type LineStyle = 'cut' | 'stitch' | 'stitchSolid' | 'mark' | 'notch' | 'fine';
+type LineStyle = 'cut' | 'stitch' | 'stitchSolid' | 'mark' | 'notch' | 'fine';
 
 /** Typefaces: the Contour Line label face (tracked capitals) and the body face. */
 export type Face = 'label' | 'body' | 'bodyMedium';
@@ -39,7 +39,7 @@ export interface Sheet {
 }
 
 /** Who and what the pattern is for, printed in each piece's information block. */
-export interface SheetInfo {
+interface SheetInfo {
   pattern: string;
   madeFor?: string;
   date?: string;
@@ -60,7 +60,7 @@ export const STYLES: Record<LineStyle, { width: number; dash?: number[]; grey: n
   fine: { width: 0.015, dash: [0.8, 0.2, 0.12, 0.2], grey: 0.45 },
 };
 
-export const FONT_FAMILY: Record<Face, string> = {
+const FONT_FAMILY: Record<Face, string> = {
   label: "'Chakra Petch', Helvetica, Arial, sans-serif",
   body: "'Space Grotesk', Helvetica, Arial, sans-serif",
   bodyMedium: "'Space Grotesk', Helvetica, Arial, sans-serif",
@@ -139,7 +139,7 @@ const turn = (v: P, deg: number): P => {
   return p(v.x * Math.cos(a) - v.y * Math.sin(a), v.x * Math.sin(a) + v.y * Math.cos(a));
 };
 
-export interface LayoutOptions {
+interface LayoutOptions {
   /** Draw the draft itself: the frame and the numbered construction points. */
   atelier?: boolean;
 }
@@ -386,7 +386,7 @@ export function fitRow(line: string, size: number, tracking: number, avail: numb
 }
 
 /** A line of plain words broken at its spaces into lines of at most `free` cm. */
-export function wrapWords(line: string, size: number, tracking: number, free: number): string[] {
+function wrapWords(line: string, size: number, tracking: number, free: number): string[] {
   const out: string[] = [];
   for (const word of line.split(' ')) {
     const last = out[out.length - 1];
@@ -407,7 +407,7 @@ function freeRun(lo: number, hi: number, holes: [number, number][], at: number):
   return contains ?? runs.reduce((best, r) => (r[1] - r[0] > best[1] - best[0] ? r : best));
 }
 
-export interface Packed {
+interface Packed {
   /** Where each piece's bounding box goes, its top-left corner. */
   at: P[];
   /** Which pieces lie turned end to end (180 degrees about their box's centre); the box is the same. */
@@ -423,7 +423,7 @@ export const turnedInBox = (q: P, [x0, y0, x1, y1]: [number, number, number, num
 const TITLE_BLOCK = { w: 10 + TITLE_W, h: 10 };
 
 /** The vertical span of an outline in each column across it, from its box's top left. */
-export interface ColumnSpans {
+interface ColumnSpans {
   x0: number;
   y0: number;
   step: number;
@@ -872,7 +872,7 @@ export function toSvg(sheet: Sheet): string {
 
 export type Paper = 'a4' | 'letter' | 'a0';
 
-export const PAPER_CM: Record<Paper, [number, number]> = {
+const PAPER_CM: Record<Paper, [number, number]> = {
   a4: [21.0, 29.7],
   letter: [21.59, 27.94],
   a0: [84.1, 118.9],

@@ -10,8 +10,6 @@ import { wrapSkirtAllowed } from '../engine/wrapSkirt';
 import { SLIT_PLACES, SlitPlace, slitAllowed } from '../engine/slit';
 import { NO_SLIT, SlitSlider } from '../ui/SlitSlider';
 import { dressFlat, wornLines, wornShapes } from '../engine/flat';
-import { piecesLengthCm, toMetres } from '../engine/fabric';
-import { layPlan } from '../engine/layplan';
 import { SHAPES_FOR_LENGTH, SleeveDraft, SleeveMeasurements, needsArms } from '../engine/sleeve';
 import { readBodiceSleeve, sleeveRange } from '../ui/formSleeves';
 import { readCollar, readFront } from '../ui/formCollar';
@@ -21,7 +19,6 @@ import { SLEEVE_CUTS, sleeveCutBlocked } from '../engine/sleeveCut';
 import { Cuff, cuffAllowed, cuffShown } from '../engine/cuffs';
 import { BODICE_GROUPS, BodiceChoices, DRESS_CUTS, WAIST_SEAM_GROUP, DARTS_FOR_FIT, DressChoices, detailAllowed, sleeveOf, topAllowed, validDetails } from '../garments';
 import type { MeasurementValues } from '../measurements';
-import { SaveControl } from '../ui/SaveControl';
 import { UndoToast, useUndo } from '../ui/useUndo';
 import { PatternPreview } from '../ui/Preview';
 import { PatternPane } from '../ui/PointEditor';
@@ -29,7 +26,7 @@ import { TechFlatView } from '../ui/TechFlatView';
 import { AllRound } from '../ui/AllRound';
 import { roundDress } from '../engine/allRound';
 import { FabricSwatches, GarmentFabric } from '../ui/FabricFill';
-import { DETAIL_GROUPS, GROUPS, pocketsAllowed } from './StyleScreen';
+import { DETAIL_GROUPS, GROUPS, pocketsAllowed } from '../skirtChoices';
 import { cutAllowed, validCut } from '../engine/slip';
 import { describePattern } from './describe';
 import { FABRIC, Group, PRO, StyleLayout, TabPanel } from '../ui/StyleLayout';
@@ -41,7 +38,7 @@ import { MyFabric, dressFabrics, fabricEase } from '../engine/fabrics';
 import { FabricCard, FabricSummary } from '../ui/FabricCard';
 import type { EaseView } from '../engine/easeMap';
 import { FinishChoices } from '../ui/FinishChoices';
-import type { Finish } from '../App';
+import type { Finish } from '../savedWork';
 import { GODET_OPTIONS, VOLUME_OPTIONS, layoutExtras, setVolume, volumeAllowed, volumeOf } from '../engine/skirtVolume';
 import { isDraped, zipSide } from '../engine/drape';
 import { LENGTHS, Length, NoSeam, lengthRange } from '../engine/skirt';
@@ -58,9 +55,12 @@ import { BANDS, isBandCollar } from '../engine/collar';
 import { ChoicePic, chipsClass } from '../ui/ChoicePic';
 import { Explain } from '../ui/Explain';
 import { DemoButton } from '../ui/DemoButton';
+import { PiecesList, SummaryActions, formViews } from '../ui/StyleSummary';
 
 /** Moving the shaping is a pro tool, so these groups sit on the Pro tab. */
 const PRO_GROUPS: string[] = ['princess', 'bustDart'];
+
+import { dressFabricMetres } from '../fabricAmounts';
 
 interface Props {
   /** Start from a photo, and the photo this garment was matched to while the app is open. */
@@ -102,11 +102,6 @@ const noSeamLines = (draft: DressDraft, side: 'front' | 'back') => {
     fit: [seam, seam.map((q) => ({ x: -q.x, y: q.y }))],
   };
 };
-
-/** Fabric for the dress on 140 cm wide fabric, from the cutting layout, or a rough estimate. */
-// Whole bias pieces too wide for 140 cm cloth are bought 150 cm wide.
-export const dressFabricMetres = (pieces: DressDraft['pieces']) =>
-  (layPlan(pieces, 140) ?? (pieces.some((pc) => pc.meta.bias) ? layPlan(pieces, 150) : undefined))?.metres ?? toMetres(piecesLengthCm(pieces) + 10);
 
 /**
  * Style the dress: one fit for the whole dress, the bodice's neckline, darts and sleeves, and the
@@ -638,7 +633,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
         <div className="row between wrap">
           {view !== 'pattern' ? (
             <GarmentViews<'sketch' | 'flat' | 'round'>
-              views={[['sketch', 'Form'], ['flat', 'Drawing'], ...(round ? ([['round', 'All round']] as ['round', string][]) : [])]}
+              views={formViews(round)}
               view={view}
               onView={setView}
             />
@@ -706,21 +701,13 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           Ease added: {ease.bust + extra.bust} cm at the bust, {ease.waist + extra.waist} cm at the waist{boned ? ' (negative ease, so the boned bodice holds you)' : ''}
           {extra.bust ? `, including ${extra.bust} cm and ${extra.waist} cm for your heavy fabric` : ''}.
         </p>
-        <div>
-          <p className="eyebrow">Pattern pieces</p>
-          <ul className="pieces">
-            {pieces.map((pc) => (
-              <li key={pc.name}>
-                {pc.name}: {pc.cut.replace(' (1 pair)', '').toLowerCase()}
-              </li>
-            ))}
-            {draft?.skirt.volume?.tiers?.bands.map((b) => (
-              <li key={b.name}>
-                {b.name}: cut {b.panels}, {b.cutLength} × {b.cutWidth} cm
-              </li>
-            ))}
-          </ul>
-        </div>
+        <PiecesList pieces={pieces}>
+          {draft?.skirt.volume?.tiers?.bands.map((b) => (
+            <li key={b.name}>
+              {b.name}: cut {b.panels}, {b.cutLength} × {b.cutWidth} cm
+            </li>
+          ))}
+        </PiecesList>
         {draft && <FabricSummary metres={dressFabricMetres([...pieces, ...(draft ? layoutExtras(draft.skirt) : [])])} fabric={fabric} />}
         <p className="muted small">
           {draft?.noSeam
@@ -742,13 +729,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
               : `One zip opens the centre back from the ${top ? 'top edge' : 'neck'} to below the ${draft?.seamDrop ? 'seam' : 'waist'}.`}
           {boned ? ' The bodice is boned like a corset, cut again from coutil and lining, with a grosgrain waist stay that carries the skirt.' : ''}
         </p>
-        <button type="button" className="primary" disabled={!draft} onClick={onNext}>
-          Print my pattern
-        </button>
-        <SaveControl state={saveState} disabled={!draft} onSave={onSave} onAccount={onAccount} />
-        <button type="button" className="later edit-measure" onClick={onEditMeasurements}>
-          Edit measurements
-        </button>
+        <SummaryActions ready={!!draft} onNext={onNext} saveState={saveState} onSave={onSave} onAccount={onAccount} onEditMeasurements={onEditMeasurements} />
       </aside>
     </StyleLayout>
   );

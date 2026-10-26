@@ -114,6 +114,7 @@ export function Group({ label, tab, children, className }: { label: string; tab?
   const ref = useRef<HTMLFieldSetElement>(null);
   const [pick, setPick] = useState('');
   // The picked choice's name, for the folded line: a picked chip, or any pressed button when there are none.
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- reads the page after every render; the check stops a loop
   useLayoutEffect(() => {
     const el = ref.current;
     const on = el?.querySelector<HTMLElement>('.chips [aria-pressed="true"]') ?? el?.querySelector<HTMLElement>('[aria-pressed="true"]');
@@ -256,6 +257,7 @@ export function StyleLayout({ children, label, name, metres, width = 140, ready,
 
   // The tab row lists every tab something on the page belongs to, in the order they're drawn: Looks first,
   // the choices, Fabric, then Pro. Switching the pro tools on opens the Pro tab, so the change is seen.
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- reads the page after every render; the checks stop a loop
   useLayoutEffect(() => {
     if (page !== 'edit' || !panel.current) return;
     const found: string[] = [];
@@ -299,6 +301,7 @@ export function StyleLayout({ children, label, name, metres, width = 140, ready,
   const [tall, setTall] = useState(false);
   // The preview's drawing area, where the Enlarge button sits.
   const [host, setHost] = useState<HTMLElement | null>(null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- reads the page after every render; the check stops a loop
   useLayoutEffect(() => {
     const el = pin.current?.querySelector<HTMLElement>('.preview') ?? null;
     if (el !== host) setHost(el);

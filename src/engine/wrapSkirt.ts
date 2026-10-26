@@ -2,7 +2,7 @@
 // back cut on the fold with no zip. The skirt ties at the waist: on its own, with ties at the ends of a
 // waistband long enough to go round once and across the front again; on a wrap dress, at the waist
 // seam with the bodice's ties. Kept apart from wrap.ts so the skirt draft can use it without a cycle.
-import { P, Path, p, taggedLength } from './geometry';
+import { P, Path, p } from './geometry';
 import { pathOf, ringOf } from './manipulate';
 import type { Piece } from './piece';
 
@@ -16,7 +16,7 @@ const mirrorLine = (l: Path) => {
 };
 
 /** Silhouettes a wrap skirt is drafted in: darted, cut in halves, with a side seam to wrap from. */
-export const WRAP_SILHOUETTES = ['straight', 'a_line'] as const;
+const WRAP_SILHOUETTES = ['straight', 'a_line'] as const;
 
 /** Whether a skirt can wrap: a straight or A-line skirt with nothing added to it, a level hem, no
  * pockets in the side seams (one of them is the free edge) and a waistband rather than elastic. */
@@ -54,11 +54,8 @@ export function foldBack(pc: Piece): Piece {
   };
 }
 
-/** A whole wrap front's waist: both halves, the whole front, from side to free edge. */
-export const wrapFrontWaist = (pc: Piece) => taggedLength(pc.outline, 'waist');
-
 /** The free front edge of a wrap skirt: turned under twice, 1 cm each time. */
-export const WRAP_EDGE_HEM = 2;
+const WRAP_EDGE_HEM = 2;
 
 /**
  * A wrap skirt's front: the half front traced again, turned over, so each front reaches right across.

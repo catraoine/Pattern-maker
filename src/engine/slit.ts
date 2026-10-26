@@ -20,7 +20,7 @@ export const SLIT_PLACES: [SlitPlace, string][] = [
  * below the hip line the highest stops (the seam has to hold the skirt over the hip). */
 export const SLIT = { walking: 15, start: { back: 15, side: 30, front: 20 }, min: 8, belowHip: 5 };
 
-export interface SlitStyle {
+interface SlitStyle {
   silhouette: string;
   length: string;
   slit?: SlitPlace;

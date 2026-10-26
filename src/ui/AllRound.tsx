@@ -37,7 +37,7 @@ const STRIP = 96; // the unrolled hem line under the figure, in px
 type Pt = [number, number, number];
 
 /** The measurements the view places the garment by; any it lacks fall back to the form's own. */
-export interface RoundMeasurements {
+interface RoundMeasurements {
   waist?: number;
   full_bust?: number;
   full_hip?: number;
@@ -152,6 +152,7 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
     return () => {
       live = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the paint's contents, not the rebuilt object
   }, [paintKey]);
   const layers = useMemo(clothLayers, []);
   const turn = useRef({ phi: 0.6, target: null as number | null, dragging: false, idle: 0, probe: false });
@@ -191,9 +192,10 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
     const trousers = round.kind === 'trousers';
     // The How it works film's own cut of this view (scripts/record-tour-shots.mjs sets the flag): a gentler waist,
     // the cloth in long lines, no meeting dots. Nothing a maker sees changes.
-    const film = !!(window as any).__tourFilm;
+    const flag = (window as Window & { __tourFilm?: string | boolean }).__tourFilm;
+    const film = !!flag;
     // The film's 'old look': the form's lines run on through the whole garment, as the released film had it.
-    const through = (window as any).__tourFilm === 'old';
+    const through = flag === 'old';
     const isTop = round.kind === 'top' || round.kind === 'dress';
     const strip = trousers ? 0 : STRIP;
     // In the maker's fabric, unless the film wants its old look.

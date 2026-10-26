@@ -1,3 +1,17 @@
+import { registerSW } from 'virtual:pwa-register';
+
+let registered = false;
+
+/**
+ * Saves the app on this device for offline use (about 1.2 MB). Only for people past the waitlist: a stranger who only
+ * sees the waitlist page doesn't download the whole app, which keeps a busy sign-up day light on Netlify bandwidth.
+ */
+export function keepOffline() {
+  if (registered || !('serviceWorker' in navigator)) return;
+  registered = true;
+  registerSW({ immediate: true });
+}
+
 // Brings an installed copy up to date. The service worker takes over as soon as a new release has
 // downloaded, but the page on screen was loaded from the old one, so it reloads once to show the new
 // release (progress is saved as you go, so nothing is lost). A home-screen app on a phone is often

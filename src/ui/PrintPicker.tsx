@@ -8,7 +8,7 @@ import { TestingTag } from './TestingTag';
 const base = import.meta.env.BASE_URL;
 
 /** The fabric with this print chosen: checks keep their own switch, so the seams are marked to match. */
-export function withPrint(f: MyFabric, kind: PrintKind | undefined): MyFabric {
+function withPrint(f: MyFabric, kind: PrintKind | undefined): MyFabric {
   return {
     ...f,
     print: kind,

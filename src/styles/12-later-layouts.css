@@ -1,0 +1,756 @@
+/* B1 Line to Write On (Cat's pick, 2026-10-18): a place you type is one champagne line to write on, never a box,
+   so anything with a box around it is a button. Typing thickens the line. */
+.field input,
+.field.plain input,
+input.inline,
+.makerform input,
+.offer input[type='email'],
+.tapeline input,
+.field textarea,
+.fitform textarea,
+.entry-box {
+  border: 0;
+  border-bottom: var(--bw) solid var(--gild);
+  background: transparent;
+  padding-left: 2px;
+  padding-right: 2px;
+}
+
+.field input:focus,
+input.inline:focus,
+.makerform input:focus,
+.offer input[type='email']:focus,
+.tapeline input:focus,
+.field textarea:focus,
+.fitform textarea:focus,
+.field.ready input,
+.entry-box:focus-within {
+  border-color: var(--gild);
+  background: transparent;
+  outline: none;
+  box-shadow: 0 1.5px 0 var(--gild);
+}
+
+.field input[aria-invalid] {
+  border-width: 0 0 3px;
+}
+
+.entry-box.error {
+  border-bottom-color: var(--muted);
+}
+
+/* All the way round: the turning shape preview on the skirt's style screen. */
+.all-round {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-width: 420px;
+}
+
+.all-round-canvas {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 5.4;
+  touch-action: pan-y;
+  cursor: grab;
+}
+
+.all-round-canvas.all-round-tall {
+  aspect-ratio: 4 / 6.6;
+}
+
+.all-round-canvas:active {
+  cursor: grabbing;
+}
+
+.all-round-rows {
+  display: flex;
+  flex-direction: column;
+  border-top: var(--bw) solid var(--line-strong);
+}
+
+.all-round-row {
+  display: grid;
+  grid-template-columns: 12px 1fr;
+  gap: 10px;
+  align-items: start;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-bottom: var(--bw) solid var(--line-strong);
+  padding: 9px 2px;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  text-transform: none;
+  letter-spacing: 0;
+  cursor: pointer;
+}
+
+.all-round-name {
+  display: block;
+  font-family: var(--mono);
+  text-transform: uppercase;
+  letter-spacing: var(--track);
+  font-size: 0.65rem;
+  color: var(--muted);
+  margin-bottom: 2px;
+}
+
+.all-round-mark {
+  width: 9px;
+  height: 9px;
+  margin-top: 4px;
+  border: 1.2px solid var(--ok);
+  border-radius: 50%;
+}
+
+.all-round-note {
+  margin: 0;
+  font-family: var(--mono);
+  text-transform: uppercase;
+  letter-spacing: var(--track);
+  font-size: 0.6rem;
+  color: var(--muted);
+}
+
+.formcheck input {
+  width: 100%;
+}
+.padform svg {
+  width: 100%;
+  max-width: 320px;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
+/* Skipped measuring (Cat's K1 Example Tag): a dashed strip on Style and Print, Measure me at its end */
+.example-tag {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  margin: 0 0 14px;
+  padding: 0 14px;
+  border: var(--bw) dashed var(--gild);
+  background: none;
+  color: var(--muted);
+  font: var(--w-body) 10.5px/1.2 var(--mono);
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  text-align: left;
+  cursor: pointer;
+}
+
+.example-tag-go {
+  color: var(--gild);
+  white-space: nowrap;
+}
+
+/* Drawing on the form is a screen of its own: the strip waits until you're back on Style */
+.main:has(.form-draw) .example-tag {
+  display: none;
+}
+
+/* The smallest screens: as the welcome's form steps aside there, these forms do too, leaving their names to pick */
+@media (max-height: 480px) {
+  .measure-step > button.primary {
+    min-height: 44px;
+    padding-block: 8px;
+  }
+}
+
+/* The Fabric tab's amount: the metres and what they're of, on one line. */
+.fabric-amount {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}
+
+/* Measure list (H2 + W1): the garment as a small label above the title, with "Make something else" beside it;
+   each row carries an arrow instead of a "tap one" hint, and a closer fit is the list's last row */
+.measure-list .garment-eyebrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 14px;
+  margin: 0 0 -8px;
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.measure-list .garment-eyebrow button.link.garment-change {
+  flex-basis: auto;
+  margin: 0;
+  min-height: 32px;
+  color: var(--gild);
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+}
+
+/* drawn with borders, not a character, so the row's name stays just its label and number */
+.measure-list .check-list button > :last-child::after,
+.measure-step .check-list button > :last-child::after {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin: 0 2px 1px 12px;
+  border-top: 1.3px solid var(--gild);
+  border-right: 1.3px solid var(--gild);
+  transform: rotate(45deg);
+}
+
+.measure-list .check-list .closer button span {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--gild);
+  font-family: var(--sans);
+  font-size: 15px;
+  letter-spacing: normal;
+}
+
+.measure-list button.primary {
+  margin-top: 8px;
+}
+
+/* Preview switch (Cat's D1): Garment / Pattern as two boxes, a short hint under each name. */
+.lookboxes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  width: 100%;
+}
+.lookboxes button {
+  display: grid;
+  gap: 2px;
+  justify-items: start;
+  min-height: 48px;
+  padding: 9px 12px;
+  border: var(--bw) solid var(--muted);
+  border-radius: var(--pill);
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+.lookboxes button.on {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--white);
+}
+.lookname {
+  font-size: 13px;
+  font-weight: var(--w-strong);
+}
+.lookhint {
+  font-family: var(--sans);
+  font-size: 12px;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--muted);
+}
+.lookboxes button.on .lookhint {
+  color: var(--white);
+  opacity: 0.75;
+}
+.fitswitch {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 12px;
+  cursor: pointer;
+}
+.fitswitch .knob {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  border: var(--bw) solid var(--gild);
+}
+.fitswitch .knob::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 12px;
+  height: 12px;
+  background: var(--muted);
+  transition: left 0.15s ease;
+}
+.fitswitch.on .knob::after {
+  left: 19px;
+  background: var(--gild);
+}
+.easerows.paper-sheet .easename {
+  fill: var(--muted);
+}
+.easerows.paper-sheet .easebands {
+  opacity: 0.92;
+}
+
+/* Cat's D1 Drafting Table on a computer (2026-10-18): the style tabs run down the left, the sketch fills the
+   middle between fine rules, and the choices sit on the right above the summary, Print and Save, so the
+   Review page is only for phones. The print screen uses the same three columns. Phones and tablets below
+   1100px keep their own layout. */
+@media (min-width: 1100px) {
+  .style-tabs,
+  .style-tabs.at-end {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+  /* The fabric close-up is a swatch beside its caption, not a screen-high photo. */
+  .fabstage {
+    grid-template-columns: 220px minmax(0, 1fr);
+    align-items: center;
+    gap: 18px;
+  }
+  .style-edit {
+    grid-template-columns: 160px minmax(0, 1fr) minmax(320px, 380px);
+    grid-template-areas: 'tabs preview panel' 'tabs preview side';
+    grid-template-rows: auto 1fr;
+    column-gap: 0;
+  }
+  .style-tabs {
+    position: sticky;
+    top: calc(var(--pin-top, 0px) + 12px);
+    align-self: start;
+    flex-direction: column;
+    gap: 2px;
+    overflow: visible;
+    border-bottom: none;
+    padding: 0;
+  }
+  .style-tabs button {
+    min-height: 40px;
+    padding: 0 0 0 14px;
+    border-bottom: none;
+    border-left: 1.5px solid transparent;
+    margin: 0;
+    text-align: left;
+    font-size: 12px;
+    letter-spacing: 0.2em;
+  }
+  .style-tabs button.on {
+    border-left-color: var(--gild);
+  }
+  .style-pin > section {
+    align-self: stretch;
+    min-height: calc(100vh - var(--pin-top, 0px) - 160px);
+    padding: 0 28px;
+    border-left: 1px solid var(--guide);
+    border-right: 1px solid var(--guide);
+  }
+  .style-panel,
+  .style-side {
+    padding-left: 32px;
+  }
+  .style-panel {
+    min-height: 0;
+  }
+  .style-panel > .tab-part:not([hidden]),
+  .style-panel > .card {
+    padding-top: 0;
+  }
+  .style-side {
+    grid-area: side;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 28px;
+    padding-top: 18px;
+    border-top: 1px solid var(--guide);
+  }
+  .style-side > .eyebrow {
+    margin: 0;
+  }
+  .style-side > aside.card {
+    padding: 0;
+  }
+  .style-side > aside > h2:first-child {
+    display: none;
+  }
+  /* Print and Save come first under the name, so they're in reach without scrolling past the summary. */
+  .style-side > aside > .primary,
+  .style-side > aside > button.secondary {
+    order: -1;
+  }
+  /* The drawing takes the column: as tall as the screen allows, so the garment is not a small figure in the top third. */
+  .style-pin .preview-svg,
+  .style-pin .techflat {
+    max-height: calc(100vh - var(--pin-top, 0px) - 220px);
+  }
+  .style-pin .preview-svg.sketch {
+    max-width: 640px;
+  }
+  .style-pin .techflat {
+    max-width: 760px;
+    margin: 0 auto;
+  }
+}
+
+/* The pattern envelope's front: house name and mark along the top, the flat in the middle, the name set
+   large at the foot, inside one champagne frame. */
+.envelope {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border: var(--bw) solid var(--gild);
+  background: var(--paper);
+  min-width: 0;
+}
+.env-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--muted);
+}
+.env-top span:first-child {
+  color: var(--ink);
+}
+.env-art {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+}
+.env-art .techflat {
+  max-height: 220px;
+}
+.envelope figcaption {
+  display: grid;
+  gap: 4px;
+}
+.env-name {
+  font-family: var(--display);
+  font-stretch: 75%;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 28px;
+  line-height: 0.95;
+  letter-spacing: var(--head-tracking);
+  color: var(--ink);
+  text-wrap: balance;
+}
+.env-foot {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.envelope.small {
+  gap: 6px;
+  padding: 8px;
+}
+.envelope.small .env-top,
+.envelope.small .env-foot {
+  font-size: 7px;
+  letter-spacing: 0.14em;
+}
+.envelope.small .env-top span:last-child {
+  display: none;
+}
+.envelope.small .env-art .techflat {
+  max-height: 64px;
+}
+.envelope.small .env-name {
+  font-size: 13px;
+}
+
+/* The print screen's three columns (D1). Below 1100px the parts sit in one column as before, and the cover
+   is left out. */
+.print-head,
+.print-controls,
+.print-sheet,
+.print-more {
+  display: contents;
+}
+.print-cover {
+  display: none;
+}
+@media (min-width: 1100px) {
+  .card.print-top {
+    display: grid;
+    grid-template-columns: 250px minmax(0, 1fr) 340px;
+    grid-template-areas: 'head sheet controls' 'cover sheet controls' 'cover sheet more';
+    grid-template-rows: auto auto 1fr;
+    gap: 0;
+    padding: 0 22px;
+    align-items: start;
+  }
+  .print-head,
+  .print-cover,
+  .print-controls,
+  .print-sheet,
+  .print-more {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+  }
+  .print-head {
+    grid-area: head;
+    gap: 6px;
+    padding-bottom: 20px;
+  }
+  .print-cover {
+    grid-area: cover;
+    gap: 10px;
+  }
+  .print-cover .eyebrow {
+    margin: 12px 0 0;
+  }
+  .print-cover .pieces {
+    margin: 0;
+    font-size: 14px;
+  }
+  .print-sheet {
+    grid-area: sheet;
+    align-self: stretch;
+    margin: 0 32px;
+    padding: 0 28px;
+    border-left: 1px solid var(--guide);
+    border-right: 1px solid var(--guide);
+  }
+  .print-sheet .preview.tiles {
+    max-height: calc(100vh - 220px);
+  }
+  .print-controls {
+    grid-area: controls;
+  }
+  .print-more {
+    grid-area: more;
+    padding-top: 18px;
+  }
+}
+
+.saved li > .envelope.small {
+  flex: none;
+  width: 112px;
+}
+
+/* Lingerie: "How did it fit?" questions, one row of chips each. */
+.fitq {
+  margin: 0.6rem 0;
+}
+.fitq > p {
+  margin: 0 0 0.3rem;
+}
+
+/* Intuitiveness fixes (Cat, 2026-10-18). */
+/* 1. Coming back: the quiet ways in under "Carry on with your …". */
+.resume-more {
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  gap: 10px;
+  margin: 2px 0 0;
+  color: var(--muted);
+}
+/* 2. Print: everything to buy or sign up for, folded at the end, under one row. */
+.extras > summary {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 12px;
+  cursor: pointer;
+  list-style: none;
+}
+.extras > summary::-webkit-details-marker {
+  display: none;
+}
+.extras > summary::after {
+  content: '+';
+  grid-row: 1;
+  grid-column: 2;
+  color: var(--muted);
+  font-family: var(--mono);
+}
+.extras[open] > summary::after {
+  content: '−';
+}
+.extras > summary .muted {
+  grid-column: 1 / -1;
+}
+.extras-title {
+  font-family: var(--display);
+  font-stretch: 75%;
+  font-weight: 600;
+  font-size: 24px;
+  line-height: 1.05;
+  text-transform: uppercase;
+}
+.extras[open] {
+  display: grid;
+  gap: 24px;
+}
+
+/* 3. The rest of what you can say about your fabric, folded on the Fabric tab. */
+.fabric-more {
+  display: grid;
+  gap: 12px;
+  margin-top: 4px;
+}
+.fabric-more > summary {
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.fabric-more[open] > summary {
+  margin-bottom: 4px;
+}
+.fabric-more p {
+  margin: 0;
+}
+
+/* 4. Skip says it fills in only the rest; and "Estimate it for me" under the box. */
+.estimate-link {
+  justify-self: start;
+  margin-top: 4px;
+}
+.estimate-note {
+  margin: 4px 0 0;
+}
+
+/* 6. Draw: one button above the sketch that opens its list. */
+.drawmenu {
+  position: relative;
+}
+.drawmenu > summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 6px 12px;
+  border: var(--bw, 1px) solid var(--line-strong);
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  color: var(--gild);
+}
+.drawmenu > summary::-webkit-details-marker {
+  display: none;
+}
+.drawmenu > summary::after {
+  content: ' ▾';
+}
+.drawmenu-list {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 8;
+  display: grid;
+  min-width: 190px;
+  border: 1px solid var(--line-strong);
+  background: var(--paper);
+}
+.drawmenu-list button {
+  padding: 12px 14px;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.drawmenu-list button + button {
+  border-top: 1px solid var(--guide);
+}
+/* Undo and Redo in the bar beside Review: two small square arrows. */
+.undotools {
+  flex: none;
+  gap: 6px;
+}
+.undotools button {
+  min-width: 40px;
+  padding: 8px 0;
+  font-size: 16px;
+  line-height: 1;
+}
+
+/* 8. Sign-up boxes are labelled like the measurement boxes. */
+.email-label {
+  display: block;
+  margin: 8px 0 -4px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* 9. Where kept patterns go. */
+.keep-note {
+  margin: 0;
+}
+
+/* 12. Edit style and Edit measurements together under the name on Review; the summary's own is for the
+   computer layout, which has no Review page. */
+.review-edits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  margin: 0 0 8px;
+}
+.style-review .edit-measure {
+  display: none;
+}
+
+/* The print picker (P1): a picture for each kind of print, in place of the checks switch. */
+.printpick {
+  display: grid;
+  gap: 10px;
+  margin: 6px 0 4px;
+}
+.printpick-q {
+  font-family: var(--display);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin: 0;
+}
+/* The prints: palette cards too (A5), in the row with the swatches' look. */
+.printtile {
+  font: inherit;
+}
+.printpick-hint {
+  margin: 0;
+}
+
+/* On the form choice the tag sits in the picture's corner, so the first measuring page still fits a small phone. */
+.form-pick button {
+  position: relative;
+}
+
+.form-pick .testing-tag {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  margin: 0;
+  font-size: 10px;
+}

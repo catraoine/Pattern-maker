@@ -48,7 +48,7 @@ export function withoutTester(path: string, search: string, hash: string): strin
   return `${path}${rest ? `?${rest}` : ''}${hash}`;
 }
 
-export type CodeCheck = 'tester' | 'wrong' | 'limit' | 'failed';
+type CodeCheck = 'tester' | 'wrong' | 'limit' | 'failed';
 
 /** Asks the tester function whether a code is one of the tester codes. */
 export async function checkCode(code: string): Promise<CodeCheck> {

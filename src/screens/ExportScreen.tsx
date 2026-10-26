@@ -8,7 +8,7 @@ import type { Piece } from '../engine/piece';
 import type { SewingGuide } from '../engine/instructions';
 import type { SpecRow } from '../engine/techpack';
 import { PatternPreview } from '../ui/Preview';
-import type { Finish } from '../App';
+import type { Finish } from '../savedWork';
 import type { Garment, Unit } from '../measurements';
 import type { Alteration, Fitting } from '../engine/fitting';
 import { FABRIC_WIDTHS, type FabricWidth, Lay, layAmount, layWords } from '../engine/layplan';
@@ -33,6 +33,7 @@ import { canShareFiles, download } from '../ui/download';
 import { LabelCard } from '../ui/LabelCard';
 import { TestingTag } from '../ui/TestingTag';
 import { DemoButton } from '../ui/DemoButton';
+import { isKnit, isLowerBody } from '../measurements';
 
 /** What to print: the drafted pieces of either garment, with its notes and sewing steps. */
 export interface Printable {
@@ -122,7 +123,7 @@ const printedDate = () => new Date().toLocaleDateString('en-GB', { day: 'numeric
 export function ExportScreen({ example, onMeasureMe, unit = 'cm', sendLink, profile, title, fit, garment, finish, onFinish, made, error, onEditFabric, onKeep, onFitNotes, fitNote, fitting, fittingNotes, alterations = NONE, onFitting, onTrueScale, values, draftAt, style, imported, mode = 'all', onMode, edition, credit, label }: Props) {
   const can = (t: ProTool) => shows(mode, t);
   /** Knits fit by their stretch: tested in a spare knit, not a calico toile. */
-  const knit = garment === 'tee' || garment === 'lingerie';
+  const knit = isKnit(garment);
   const [picked, setPaper] = useState<Output>('a4');
   // The copy-shop sheet shows in every view (Cat, 2026-10-22): one big sheet saves testers and beginners the
   // taping. Only the projector files wait behind all the tools.
@@ -184,6 +185,17 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', sendLink, prof
     };
   }, [sheet, paper, title, guide, summary, unit]);
 
+  // These hooks sit above the early return below so every render calls them in the same order.
+  // Once the pattern has left the app (downloaded, shared or opened to print), the fit question comes up.
+  const [printed, setPrinted] = useState(false);
+  // How to sew it folds closed on a phone, where the page was one long scroll, and opens on a computer (the
+  // aesthetic review, 2026-10-21). Set once on arrival; after that the fold is the reader's.
+  // On the example body, the first print asks once whether to measure first or print the example anyway.
+  const [asking, setAsking] = useState<(() => void) | undefined>();
+  const [exampleOk, setExampleOk] = useState(false);
+  // On a computer the pages sit in their own column beside the controls, so they stay open there.
+  const wide = useWide();
+  const [seePages, setSeePages] = useState(false);
   if (!made || !sheet || !guide) {
     return (
       <section className="card">
@@ -201,16 +213,6 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', sendLink, prof
   const fileName = `${fileBase}-${paper === 'projectorDark' ? 'projector-black' : paper}.pdf`;
   const ready = pdf?.paper === paper ? pdf.bytes : null;
 
-  // Once the pattern has left the app (downloaded, shared or opened to print), the fit question comes up.
-  const [printed, setPrinted] = useState(false);
-  // How to sew it folds closed on a phone, where the page was one long scroll, and opens on a computer (the
-  // aesthetic review, 2026-10-21). Set once on arrival; after that the fold is the reader's.
-  // On the example body, the first print asks once whether to measure first or print the example anyway.
-  const [asking, setAsking] = useState<(() => void) | undefined>();
-  const [exampleOk, setExampleOk] = useState(false);
-  // On a computer the pages sit in their own column beside the controls, so they stay open there.
-  const wide = useWide();
-  const [seePages, setSeePages] = useState(false);
   const showPages = wide || seePages;
   const checked = (go: () => void) => () => (example && !exampleOk ? setAsking(() => go) : go());
   const share = async () => {
@@ -482,7 +484,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', sendLink, prof
             </ul>
           ) : (
             <p className="muted">
-              Make it up in calico first and try it on. Tell us what you see, such as {garment === 'skirt' || garment === 'trousers' ? 'pulling across the hips or folds below the back waist' : 'pulling at the bust or a gaping neckline'}, and the
+              Make it up in calico first and try it on. Tell us what you see, such as {isLowerBody(garment) ? 'pulling across the hips or folds below the back waist' : 'pulling at the bust or a gaping neckline'}, and the
               pattern is corrected the way a pattern cutter would, with a second line for one side if your shoulders or hips differ.
             </p>
           )}

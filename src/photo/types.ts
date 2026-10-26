@@ -49,10 +49,10 @@ export interface TopReading {
 }
 
 /** Cloth types a photo can show: the app's own special cloths, plus the ones it has no setting for yet. */
-export type FabricKind = 'plain' | 'denim' | 'leather' | 'velvet' | 'corduroy' | 'sheer' | 'satin' | 'lace' | 'sequins' | 'knit' | 'fleece' | 'chiffon' | 'crepe' | 'gauze';
-export type PrintKindRead = 'none' | 'checks' | 'stripes' | 'floral' | 'animal' | 'abstract' | 'border';
+type FabricKind = 'plain' | 'denim' | 'leather' | 'velvet' | 'corduroy' | 'sheer' | 'satin' | 'lace' | 'sequins' | 'knit' | 'fleece' | 'chiffon' | 'crepe' | 'gauze';
+type PrintKindRead = 'none' | 'checks' | 'stripes' | 'floral' | 'animal' | 'abstract' | 'border';
 export const READ_COLOURS = ['black', 'white', 'ivory', 'grey', 'brown', 'navy', 'cobalt', 'olive', 'emerald', 'camel', 'rust', 'red', 'burgundy', 'yellow', 'blush', 'lilac', 'other'] as const;
-export type ColourRead = (typeof READ_COLOURS)[number];
+type ColourRead = (typeof READ_COLOURS)[number];
 
 /** The cloth of the main garment: what it is, its colour and its print, as far as a photo shows. */
 export interface FabricReading {

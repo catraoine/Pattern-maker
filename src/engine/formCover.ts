@@ -16,8 +16,8 @@ const PANELS = ['Centre front', 'Side front', 'Side back', 'Centre back'];
 /** Rings the pieces are drawn through; every third ring of the body is smooth enough and keeps the files small. */
 const STEP = 3;
 
-export const COVER_SEAM = 1;
-export const COVER_HEM = 2.5;
+const COVER_SEAM = 1;
+const COVER_HEM = 2.5;
 
 const loop = (k: number) => ((k % SEGMENTS) + SEGMENTS) % SEGMENTS;
 const dist = (a: V3, b: V3) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
@@ -33,7 +33,7 @@ function arc(pts: V3[], a: number, b: number) {
   return sum;
 }
 
-export interface CoverRow {
+interface CoverRow {
   /** How far down the piece each seam has come, from the neck, along the seam itself on the form. */
   yFront: number;
   yBack: number;
@@ -43,7 +43,7 @@ export interface CoverRow {
 }
 
 /** One piece's widths, ring by ring, and how long each of its seams runs on the form. */
-export interface CoverPanel {
+interface CoverPanel {
   name: string;
   rows: CoverRow[];
   /** The seam lines on the 3D form, front edge and back edge, for checking the flat piece against. */
@@ -158,7 +158,7 @@ export function coverPieces(values: MeasurementValues): Piece[] {
 }
 
 /** What the form is built from. Anything else is filled in from a typical body, which the cover can live with. */
-export const COVER_NEEDS: MeasurementId[] = ['full_bust', 'waist', 'full_hip', 'waist_to_hip', 'nape_to_waist', 'shoulder_width'];
+const COVER_NEEDS: MeasurementId[] = ['full_bust', 'waist', 'full_hip', 'waist_to_hip', 'nape_to_waist', 'shoulder_width'];
 
 /** Measurements still to take before the cover can be drafted to this person rather than a typical body. */
 export function coverMissing(values: MeasurementValues): MeasurementId[] {
@@ -229,9 +229,9 @@ export const FORM_SIZES: { size: string; full_bust: number; waist: number; full_
 
 export type PadId = 'full_bust' | 'waist' | 'full_hip';
 /** One layer of thin (2 oz) polyester wadding, pressed on a form, in cm. */
-export const LAYER = 0.3;
+const LAYER = 0.3;
 
-export interface Pad {
+interface Pad {
   id: PadId;
   label: string;
   /** The person's girth, and the store form's. */
@@ -244,7 +244,7 @@ export interface Pad {
   h: number;
 }
 
-export interface PadMap {
+interface PadMap {
   /** The form size to buy, or undefined when even the smallest is bigger than the person somewhere. */
   size?: string;
   pads: Pad[];
@@ -253,8 +253,8 @@ export interface PadMap {
 const LABELS: Record<PadId, string> = { full_bust: 'Bust', waist: 'Waist', full_hip: 'Hip' };
 
 /** Wadding wrapped round a girth adds 2π for every cm of thickness. */
-export const thickFor = (extra: number) => Math.max(0, extra) / (2 * Math.PI);
-export const layersFor = (thick: number) => Math.round(thick / LAYER);
+const thickFor = (extra: number) => Math.max(0, extra) / (2 * Math.PI);
+const layersFor = (thick: number) => Math.round(thick / LAYER);
 
 /**
  * The largest store form that is no bigger than the person at bust, waist and hip, and the padding that
@@ -277,7 +277,7 @@ export function padMap(values: MeasurementValues): PadMap {
 
 // ——— B5 Form Check ———
 
-export interface CheckRow {
+interface CheckRow {
   id: PadId;
   label: string;
   target: number;

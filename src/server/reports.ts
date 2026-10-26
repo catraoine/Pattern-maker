@@ -5,16 +5,19 @@ import { SEW_LANGS, type SewLang } from '../langs';
 import { NIGHT_CITIES, OFFER_IDS } from '../offers';
 
 export const MAX_BEACON_BYTES = 16_000;
-export const MAX_SIGNUP_BYTES = 4_000;
+const MAX_SIGNUP_BYTES = 4_000;
 
-/** Daily caps, so a stuck page or a script can't fill the store. Past them, the day's extra reports are dropped. */
-export const DAY_CAPS = { beacons: 20_000, crashes: 200 };
+/**
+ * Daily caps, so a stuck page or a script can't fill the store. Past them, the day's extra reports are dropped. A
+ * visitor sends one to three beacons, so 100,000 still counts a launch day of 15,000+ visitors in full.
+ */
+const DAY_CAPS = { beacons: 100_000, crashes: 200 };
 
 /**
  * What can be counted: a visit, a step of the way (optionally with the garment it was for), and the four numbers the
  * business plan watches weekly: signup (with the source the visitor came from), printed, fit_reported, paid.
  */
-export const EVENTS = ['visit', 'measured', 'styled', 'printed', 'photo', 'signup', 'fit_reported', 'paid'] as const;
+const EVENTS = ['visit', 'measured', 'styled', 'printed', 'photo', 'signup', 'fit_reported', 'paid'] as const;
 const EVENT_KEY = new RegExp(`^(${EVENTS.join('|')})(:[a-z-]{2,20})?$`);
 
 const CrashSchema = z
@@ -36,7 +39,7 @@ export const BeaconSchema = z
   })
   .strict();
 
-export type Crash = z.infer<typeof CrashSchema>;
+type Crash = z.infer<typeof CrashSchema>;
 export type Beacon = z.infer<typeof BeaconSchema>;
 export interface StoredCrash extends Crash {
   receivedAt: string;
@@ -134,7 +137,7 @@ export function keyMatches(given: string | null, expected: string | undefined): 
 }
 
 /** The four numbers to look at weekly, added up over the days given, with sign-ups and visits by source. */
-export interface Funnel {
+interface Funnel {
   visits: number;
   signups: number;
   printed: number;
@@ -180,7 +183,7 @@ const text = (max: number) => z.string().trim().min(1).max(max);
 // The hidden "website" box is left empty by people and filled in by bots.
 const honeypot = z.literal('').optional();
 
-export const SignupSchema = z.discriminatedUnion('kind', [
+const SignupSchema = z.discriminatedUnion('kind', [
   z
     .object({
       kind: z.literal('tester'),
@@ -209,7 +212,7 @@ export const SignupSchema = z.discriminatedUnion('kind', [
   }).strict(),
 ]);
 
-export type Signup = z.infer<typeof SignupSchema>;
+type Signup = z.infer<typeof SignupSchema>;
 
 /** Waitlist sign-ups by the language they sew in, for the read-out (a sign-up from before the question counts as English). */
 export function byLanguage(news: unknown[]): Partial<Record<SewLang, number>> {

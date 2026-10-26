@@ -6,7 +6,7 @@ export const MAX_REPORT_BYTES = 8_000;
 
 const area = z.union([z.literal(-1), z.literal(0), z.literal(1)]);
 
-export const FitReportSchema = z
+const FitReportSchema = z
   .object({
     garment: z.enum(['skirt', 'bodice', 'dress', 'trousers', 'tee']),
     // Style choices vary by garment and grow over time; keep them as sent, the size cap bounds them.
@@ -20,7 +20,7 @@ export const FitReportSchema = z
   })
   .strict();
 
-export type CheckedReport = z.infer<typeof FitReportSchema>;
+type CheckedReport = z.infer<typeof FitReportSchema>;
 
 /** The report to store, or null when the body isn't a fit report (or is too big to be one). */
 export function checkFitReport(text: string): CheckedReport | null {

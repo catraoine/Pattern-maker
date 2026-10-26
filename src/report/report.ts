@@ -4,14 +4,14 @@
 // app version and the browser family.
 import type { Garment } from '../measurements';
 
-export const ENDPOINT = '/.netlify/functions/report';
+const ENDPOINT = '/.netlify/functions/report';
 export const MAX_CRASHES_PER_VISIT = 5;
 
 /**
  * The steps of the way that are counted, once per visit each (per garment), and the four numbers the business
  * plan watches weekly: a sign-up (by where the visitor came from), a pattern printed, a fit reported, a payment.
  */
-export type Step = 'measured' | 'styled' | 'printed' | 'photo' | 'signup' | 'fit_reported' | 'paid';
+type Step = 'measured' | 'styled' | 'printed' | 'photo' | 'signup' | 'fit_reported' | 'paid';
 
 const SOURCE_KEY = 'maison-trace-source';
 
@@ -44,9 +44,9 @@ export const signupSource = (): string | undefined => {
     return undefined;
   }
 };
-export type Where = 'error' | 'promise' | 'render';
+type Where = 'error' | 'promise' | 'render';
 
-export interface CrashReport {
+interface CrashReport {
   message: string;
   stack?: string;
   where: Where;

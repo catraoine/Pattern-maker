@@ -39,7 +39,7 @@ export function notRead(t: Truth): string[] {
 }
 
 /** How a fabric label compares with the reading: type (a chiffon reads as sheer too), colour, print and sheerness. */
-export function fabricRight(r: PhotoReading, t: Truth): { right: number; of: number; wrong: string[] } | undefined {
+function fabricRight(r: PhotoReading, t: Truth): { right: number; of: number; wrong: string[] } | undefined {
   const want = t.fabric;
   const got = r.fabric;
   if (!want || !got) return undefined;
@@ -97,7 +97,7 @@ const NEAR_TRUMPET: Silhouette[] = ['pencil', 'straight', 'a_line'];
 const LENGTH_ORDER: Length[] = ['mini', 'above_knee', 'knee', 'midi', 'maxi'];
 
 /** A mid-size body to draft each reading on. */
-export const REFERENCE_BODY: SkirtMeasurements = { waist: 70, full_hip: 96, waist_to_hip: 20.5, waist_to_knee: 58, waist_to_floor: 104 };
+const REFERENCE_BODY: SkirtMeasurements = { waist: 70, full_hip: 96, waist_to_hip: 20.5, waist_to_knee: 58, waist_to_floor: 104 };
 
 function silhouettePoints(got: Silhouette, want: Silhouette): number {
   if (got === want) return 3;

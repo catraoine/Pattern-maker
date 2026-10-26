@@ -4,7 +4,7 @@ import { draftSkirt } from '../engine/skirt';
 import { draftOuter } from '../engine/outerwear';
 import { draftSleeve } from '../engine/sleeve';
 import { DEFAULT_BODICE, DEFAULT_JACKET_CHOICES, DEFAULT_COAT_CHOICES, validDetails } from '../garments';
-import type { Choices } from '../App';
+import type { Choices } from '../savedWork';
 import type { P } from '../engine/geometry';
 import { EXAMPLE_VALUES } from '../measurements';
 import { armAt, armFor } from './DrawOnForm';

@@ -3,6 +3,7 @@
 // every pattern drafted for them afterwards carries them.
 import type { Side, SkirtFitting } from './skirt';
 import type { BodiceFitting } from './bodice';
+import { isKnit, isOuterwear } from '../measurements';
 
 export type FitGarment = 'skirt' | 'bodice';
 /** Every garment that can be fitted in a toile: a dress takes both kinds of correction, trousers the skirt's waist and hip. */
@@ -426,7 +427,7 @@ export const FIT_ISSUES: FitIssue[] = [
   }),
 ];
 
-export const issueById = (id: string) => FIT_ISSUES.find((i) => i.id === id);
+const issueById = (id: string) => FIT_ISSUES.find((i) => i.id === id);
 
 /** The skirt corrections trousers take: the waist, the hip and the centre waists (not darts or one hip). */
 const TROUSER_KEYS = ['hipEase', 'waistEase', 'frontDrop', 'backDrop'];
@@ -435,9 +436,9 @@ const TROUSER_KEYS = ['hipEase', 'waistEase', 'frontDrop', 'backDrop'];
 export function appliesTo(issue: FitIssue, garment: FitTarget): boolean {
   if (garment === 'dress') return true;
   // A knit T-shirt is cut from its own block and fits by stretch: the woven toiles' corrections don't carry over.
-  if (garment === 'tee' || garment === 'lingerie') return false;
+  if (isKnit(garment)) return false;
   // Jackets and coats are drafted on the bodice block, so they take the bodice's corrections.
-  if (garment === 'jacket' || garment === 'coat') return issue.garment === 'bodice';
+  if (isOuterwear(garment)) return issue.garment === 'bodice';
   if (garment === 'trousers') return issue.garment === 'skirt' && issue.keys.every((k) => TROUSER_KEYS.includes(k));
   return issue.garment === garment;
 }

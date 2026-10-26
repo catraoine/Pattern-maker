@@ -1,7 +1,7 @@
 // The two ways to look at a garment on the style screens (Cat's D1, 2026-10-18): the garment itself, on
 // the form, or the paper pieces to cut. The fit is a switch on the pieces, not a view of its own.
 
-export type Look = 'garment' | 'pattern';
+type Look = 'garment' | 'pattern';
 
 /** Garment / Pattern, side by side, each with a short hint under its name. */
 export function PreviewSwitch({ look, onLook }: { look: Look; onLook: (look: Look) => void }) {

@@ -3,7 +3,7 @@ import { taggedLength } from './geometry';
 import { DRESS_ZIPS, ZIP_BELOW_WAIST, draftDress, waistDartAt } from './dress';
 import { roundDress } from './allRound';
 import { checkPattern } from './qc';
-import { randomArms, randomBody, rng } from './randomBodies';
+import { randomArms, randomBody, rng, sweep } from './randomBodies';
 import { DraftError } from './skirt';
 import { draftSleeve } from './sleeve';
 import { dressGuide } from './instructions';
@@ -39,7 +39,7 @@ describe('the dress', () => {
 
   it('passes the seam check for 150 random bodies in every skirt shape and fit', () => {
     const failures: string[] = [];
-    for (let seed = 1; seed <= 150; seed++) {
+    for (let seed = 1; seed <= sweep(150); seed++) {
       const body = randomBody(rng(seed));
       for (const fit of ['fitted', 'regular', 'relaxed'] as const)
         for (const silhouette of ['straight', 'pencil', 'a_line', 'trumpet', 'half_circle', 'circle'] as const) {
@@ -154,7 +154,7 @@ describe('the dress', () => {
 
     it('passes the seam check for 60 random bodies at empire, raised and low seams', () => {
       const failures: string[] = [];
-      for (let seed = 1; seed <= 60; seed++) {
+      for (let seed = 1; seed <= sweep(60); seed++) {
         const body = randomBody(rng(seed));
         for (const at of ['empire', 'raised', 'low'] as const)
           for (const fit of ['fitted', 'regular', 'relaxed'] as const)
@@ -204,7 +204,7 @@ describe('the dress', () => {
 
     it('passes the seam check for 150 random bodies in every skirt shape and fit', () => {
       const failures: string[] = [];
-      for (let seed = 1; seed <= 150; seed++) {
+      for (let seed = 1; seed <= sweep(150); seed++) {
         const body = randomBody(rng(seed));
         for (const fit of ['fitted', 'regular', 'relaxed'] as const)
           for (const silhouette of ['straight', 'pencil', 'a_line', 'trumpet', 'half_circle', 'circle', 'slip'] as const) {

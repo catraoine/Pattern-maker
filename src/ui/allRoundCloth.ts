@@ -158,7 +158,7 @@ const path = (g: CanvasRenderingContext2D, q: [number, number][]) => {
 };
 
 /** Layers the cloth is painted on, the size of the view, kept between frames. */
-export interface ClothLayers {
+interface ClothLayers {
   cloth: HTMLCanvasElement;
   shade: HTMLCanvasElement;
   shine: HTMLCanvasElement;

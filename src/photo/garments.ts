@@ -1,7 +1,7 @@
 // Turning a photo reading into any garment's style choices: the garment the photo shows, or another one
 // the sewist picks, using whatever parts of the reading fit it. Every result is made valid the same way
 // the style screens make a tapped choice valid.
-import type { Choices } from '../App';
+import type { Choices } from '../savedWork';
 import {
   BodiceChoices,
   DARTS_FOR_FIT,
@@ -27,7 +27,7 @@ import type { OuterLength } from '../engine/outerwear';
 import type { TeeLength, TeeNeck, TeeSleeve } from '../engine/tee';
 import { setVolume, volumeOf } from '../engine/skirtVolume';
 import { validCut } from '../engine/slip';
-import { elasticAllowed, pocketsAllowed } from '../screens/StyleScreen';
+import { elasticAllowed, pocketsAllowed } from '../skirtChoices';
 import { fitOf, shapeOf } from './shape';
 import type { Confidence, PhotoReading, PieceKind, TopReading } from './types';
 
@@ -89,7 +89,7 @@ export function skirtChoices(r: PhotoReading, garment: 'skirt' | 'dress' = 'skir
 const BODICE_LENGTH: Record<TopReading['length'], BodiceLength> = { cropped: 'waist', waist: 'waist', high_hip: 'high_hip', hip: 'hip', tunic: 'hip' };
 
 /** A woven top, or a dress's bodice (waist length, no peplum, zipped at the back). */
-export function bodiceChoices(t: TopReading | null | undefined, garment: 'bodice' | 'dress' = 'bodice'): BodiceChoices {
+function bodiceChoices(t: TopReading | null | undefined, garment: 'bodice' | 'dress' = 'bodice'): BodiceChoices {
   if (!t) return { ...DEFAULT_BODICE };
   const fit = safeFit(t.fit);
   // An unshaped top goes without darts where the fit allows it; anything shaped keeps both.
@@ -112,7 +112,7 @@ export function bodiceChoices(t: TopReading | null | undefined, garment: 'bodice
   return { ...v, sleeveShape: sleeveOf(v).shape };
 }
 
-export function dressChoices(r: PhotoReading): DressChoices {
+function dressChoices(r: PhotoReading): DressChoices {
   const bodice = bodiceChoices(r.top, 'dress');
   let skirt = skirtChoices(r, 'dress');
   const t = r.top;
@@ -157,12 +157,12 @@ const TEE_SLEEVE: Record<TopReading['sleeve'], TeeSleeve> = { none: 'short', sho
 const TEE_LENGTH: Record<TopReading['length'], TeeLength> = { cropped: 'cropped', waist: 'cropped', high_hip: 'hip', hip: 'hip', tunic: 'tunic' };
 
 /** A knit T-shirt. A photo can't show the knit's stretch, so that stays for the sewist to set. */
-export function teeChoices(t: TopReading | null | undefined): TeeChoices {
+function teeChoices(t: TopReading | null | undefined): TeeChoices {
   if (!t) return { ...DEFAULT_TEE_CHOICES };
   return { ...DEFAULT_TEE_CHOICES, fit: safeFit(t.fit), neckline: TEE_NECK[t.neckline], sleeve: TEE_SLEEVE[t.sleeve], length: TEE_LENGTH[t.length] };
 }
 
-export function trousersChoices(r: PhotoReading): TrousersChoices {
+function trousersChoices(r: PhotoReading): TrousersChoices {
   const t = r.trousers;
   if (!t) return { ...DEFAULT_TROUSERS_CHOICES };
   return validTrousers({
@@ -182,7 +182,7 @@ const AS_JACKET: Partial<Record<OuterLength, OuterLength>> = { thigh: 'long', kn
 const AS_COAT: Partial<Record<OuterLength, OuterLength>> = { cropped: 'thigh', hip: 'thigh', long: 'thigh' };
 
 /** A jacket or a coat. The back vent and the two-piece sleeve can't be seen from the front, so they keep their defaults. */
-export function outerChoices(r: PhotoReading, kind: 'jacket' | 'coat'): OuterChoices {
+function outerChoices(r: PhotoReading, kind: 'jacket' | 'coat'): OuterChoices {
   const base = kind === 'jacket' ? DEFAULT_JACKET_CHOICES : DEFAULT_COAT_CHOICES;
   const o = r.outer;
   if (!o) return { ...base };

@@ -16,7 +16,7 @@ export const LAYER = {
   sew: '14', // stitching line
 } as const;
 
-export interface DxfInfo {
+interface DxfInfo {
   style: string;
   size: string; // the profile name: each pattern is drafted for one person, so that is its "size"
   date: string;
@@ -98,7 +98,7 @@ export function quantity(cut: string): number {
 }
 
 /** The nearest point to q on a closed polygon. */
-export function nearestOn(poly: P[], q: P): P {
+function nearestOn(poly: P[], q: P): P {
   let best = poly[0];
   let bestD = Infinity;
   for (let i = 0; i < poly.length; i++) {

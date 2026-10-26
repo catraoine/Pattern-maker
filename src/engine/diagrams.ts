@@ -24,15 +24,15 @@ export type DiagramId =
  * edge: a cut or folded edge, or a seam. machine: machine stitching. hand: hand stitches, drawn one
  * by one. thread: tacking thread, in long stitches. under: something underneath, seen through.
  */
-export type PartKind = 'cloth' | 'fold' | 'edge' | 'machine' | 'hand' | 'thread' | 'under';
+type PartKind = 'cloth' | 'fold' | 'edge' | 'machine' | 'hand' | 'thread' | 'under';
 
-export interface DiagramPart {
+interface DiagramPart {
   pts: P[];
   kind: PartKind;
   closed?: boolean;
 }
 
-export interface Diagram {
+interface Diagram {
   w: number;
   h: number;
   parts: DiagramPart[];

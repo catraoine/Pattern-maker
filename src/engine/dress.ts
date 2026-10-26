@@ -27,9 +27,8 @@ export const ZIP_BELOW_WAIST = 12;
 
 /** Where the bodice and skirt meet, named: from just under the bust (empire) down to the hip (low). */
 export type WaistSeam = 'empire' | 'raised' | 'natural' | 'dropped' | 'low';
-export const WAIST_SEAMS: WaistSeam[] = ['empire', 'raised', 'natural', 'dropped', 'low'];
 /** A waist seam: a named place, or a dragged height in cm below the natural waist (negative above it). */
-export interface SeamChoice {
+interface SeamChoice {
   at?: WaistSeam;
   cm?: number;
 }
@@ -37,10 +36,10 @@ export interface SeamChoice {
 const LOW_ABOVE_HIP = 6;
 
 /** How far the seam can move: up to under the bust (negative, cm above the waist), down to near the hip. */
-export const seamRange = (m: { waist_to_hip?: number }, raise: number) => ({ min: -raise, max: Math.max(0, (m.waist_to_hip ?? 0) - LOW_ABOVE_HIP) });
+const seamRange = (m: { waist_to_hip?: number }, raise: number) => ({ min: -raise, max: Math.max(0, (m.waist_to_hip ?? 0) - LOW_ABOVE_HIP) });
 
 /** The seam's height in cm below the natural waist (negative above), within what the body allows. */
-export function seamDrop(m: { waist_to_hip?: number }, seam: SeamChoice, raise: number): number {
+function seamDrop(m: { waist_to_hip?: number }, seam: SeamChoice, raise: number): number {
   const range = seamRange(m, raise);
   const WH = m.waist_to_hip ?? 0;
   const named = { empire: -raise || 0, raised: -raise / 2, natural: 0, dropped: WH / 2, low: range.max }[seam.at ?? 'natural'];
@@ -141,7 +140,7 @@ function sideZip(pc: Piece, below: number): Piece {
 
 /** The skirts a button front runs on down: a straight centre front cut on the fold, with no pleats,
  * godets, flounce or uneven hem in the way, and no back vent (the back is cut on the fold). */
-export const BUTTON_SKIRTS: Silhouette[] = ['straight', 'a_line', 'gathered', 'trumpet'];
+const BUTTON_SKIRTS: Silhouette[] = ['straight', 'a_line', 'gathered', 'trumpet'];
 export const buttonsOnSkirt = (s: Partial<SkirtStyle>) =>
   BUTTON_SKIRTS.includes(s.silhouette ?? 'a_line') && volumeOf({ silhouette: 'a_line', length: 'knee', ...s }) === 'none' && (!s.asymHem || s.asymHem === 'none');
 

@@ -8,7 +8,7 @@ let asked = false;
  * for a while (Safari clears it after 7 days otherwise). Asked once a visit, the first time something is saved;
  * most browsers decide quietly, and the app works the same whatever they say.
  */
-export function keepData() {
+function keepData() {
   if (asked) return;
   asked = true;
   try {

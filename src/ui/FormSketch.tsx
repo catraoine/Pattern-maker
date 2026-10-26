@@ -26,13 +26,13 @@ const f = (n: number) => n.toFixed(2);
  *  welcome and measuring form are drawn beside the same head (Cat, 2026-10-24: the body read wide, the head tiny).
  *  Only the drawing narrows: the garment's lines and the lines drawn on it are read back in the pattern's own cm. */
 export const SQUEEZE = 0.68;
-export const formPath = (pts: P[]) => pts.map((q, i) => `${i ? 'L' : 'M'}${f(q.x)} ${f(q.y)}`).join(' ');
+const formPath = (pts: P[]) => pts.map((q, i) => `${i ? 'L' : 'M'}${f(q.x)} ${f(q.y)}`).join(' ');
 
 /** How tall the head stands above the top of the neck, in cm. */
 export const HEAD_CM = (HEAD_CHIN - HEAD_TOP) * CM_PER_UNIT - 1.5;
 /** How far the neck's lines run on up behind the head, so the neck goes into the jaw as on the welcome form
  *  rather than stopping in a flat cut under it (Cat, 2026-10-24: "a thick tree trunk"). */
-export const INTO_HEAD = 3;
+const INTO_HEAD = 3;
 
 /** The head on a form with a neck, as on every other screen (Cat's body rule): the same faceless mannequin head,
  *  at the same scale to the body, its chin a little below the top of the neck. */
@@ -62,14 +62,14 @@ export function FormHead({ head, cx }: { head: { outline: string; lines: string[
 
 /** The form's black satin (Cat's F5 Satin and Light, 2026-10-25): lit from the upper left, a soft sheen a third of
  *  the way across, falling into black on the right. The same light as the cloth's, and the welcome's canvas form. */
-export const SATIN_STOPS: [number, string][] = [
+const SATIN_STOPS: [number, string][] = [
   [0, '#14120e'],
   [0.3, '#3b352a'],
   [0.5, '#1c1915'],
   [1, '#050505'],
 ];
 /** The satin across a drawing whose centre line is at `cx`. */
-export function SatinDefs({ id, cx }: { id: string; cx: number }) {
+function SatinDefs({ id, cx }: { id: string; cx: number }) {
   return (
     <defs>
       <linearGradient id={id} gradientUnits="userSpaceOnUse" x1={f(cx * 0.1)} x2={f(cx * 1.9)} y1="0" y2="0">
@@ -82,7 +82,7 @@ export function SatinDefs({ id, cx }: { id: string; cx: number }) {
 }
 
 /** Where the form's one highlight runs, as a share of the way out from the centre to the left side. */
-export const SATIN_HIGHLIGHT = -0.5;
+const SATIN_HIGHLIGHT = -0.5;
 
 /** The form as a satin mannequin: its body (and arms, when it has them) filled with the satin, a fine champagne
  *  edge round each and one soft highlight down the lit side. Drawing on your form and the Style page's drawings
@@ -197,7 +197,7 @@ const BAND_ON_FORM = 3;
  *  A puff sleeve's crown balloons over the shoulder; a sleeve gathered into a band or cuff stays full and
  *  then draws in sharply above it; a flutter or bell flares. `head` is the garment's own shoulder point,
  *  which the sleeve's crown reaches up to. The right sleeve; the left mirrors it. */
-export function sleeveShape(arm: FormArm, sleeve: WornSleeve, head: P = arm.tip, cloth?: P[][], body?: FormBody): P[] {
+function sleeveShape(arm: FormArm, sleeve: WornSleeve, head: P = arm.tip, cloth?: P[][], body?: FormBody): P[] {
   const { end, puff, bandTop, extra, bandShare, crownGathers } = sleeveRun(arm, sleeve);
   const ys = (a: number, b: number) => Array.from({ length: 33 }, (_, i) => a + ((b - a) * i) / 32);
   // The crown sits at the garment's shoulder point. Worn, the sleeve falls close to the arm: its ease hangs
@@ -304,7 +304,7 @@ const FLARED_EASE = 0.7;
 
 /** The gathers on a sleeve on the form: short strokes fanning into its band or cuff, and over a puff's crown.
  *  For the right sleeve; mirror for the left. Drawn as folds, over the cloth. */
-export function sleeveMarks(arm: FormArm, sleeve: WornSleeve, head: P = arm.tip): P[][] {
+function sleeveMarks(arm: FormArm, sleeve: WornSleeve, head: P = arm.tip): P[][] {
   const { puff, band, bandTop, extra, bandShare } = sleeveRun(arm, sleeve);
   const out: P[][] = [];
   if (band) {
@@ -498,14 +498,14 @@ export function hemCorner(piece: P[]): P | undefined {
 }
 
 /** The garment's shoulder point on its right: the furthest-out point of its cloth above the underarm. */
-export function shoulderPoint(cloth: P[][], arm: FormArm): P | undefined {
+function shoulderPoint(cloth: P[][], arm: FormArm): P | undefined {
   const top = cloth.flat().filter((q) => q.x > 0 && q.y <= arm.under.y - 2);
   return top.length ? top.reduce((a, b) => (b.x > a.x ? b : a)) : undefined;
 }
 
 /** The arms, each its outline round from the shoulder to the wrist and on into a hand, like a mannequin's
  *  (Cat's F5, 2026-10-25: no stripes down them, no flat cut ends; D2, 2026-10-26: hands). */
-export function formArmLines(arms: FormArm | undefined, cx: number): { d: string; edge: boolean }[] {
+function formArmLines(arms: FormArm | undefined, cx: number): { d: string; edge: boolean }[] {
   if (!arms) return [];
   const ys = (a: number, b: number) => Array.from({ length: 41 }, (_, i) => a + ((b - a) * i) / 40);
   const outer = ys(arms.tip.y, arms.wristY).map((y) => ({ x: armAt(arms, y).outer, y }));
@@ -526,7 +526,7 @@ export function formArmLines(arms: FormArm | undefined, cx: number): { d: string
 }
 
 /** How long the hand is below the wrist, in cm. */
-export const HAND_CM = 6.5;
+const HAND_CM = 6.5;
 
 interface Props {
   body: FormBody;
@@ -561,7 +561,7 @@ interface Props {
  *  brightest a third of the way across from the left, turning into shadow at both sides and deepest on the right
  *  where the cloth turns away, so a print reads and black cloth has form without an outline. Each stop is where
  *  across the drawing it sits, its colour and how strong. */
-export const ROUND_STOPS: [number, string, number][] = [
+const ROUND_STOPS: [number, string, number][] = [
   [0, '#000', 0.72],
   [0.1, '#000', 0.34],
   [0.3, '#fff8e6', 0.22],
@@ -573,7 +573,7 @@ export const ROUND_STOPS: [number, string, number][] = [
 /** The light down the body (Cat's D3), by height in the form's cm: a lift over the bust, shade under it that draws
  *  the waist in, a shadow under the waist seam, and the skirt coming back into the light. The bust is taken as
  *  15 cm above the waist. */
-export function downLight(body: FormBody, bottom: number): [number, string, number][] {
+function downLight(body: FormBody, bottom: number): [number, string, number][] {
   const w = body.waistY;
   return [
     [body.top, '#000', 0],
@@ -587,9 +587,9 @@ export function downLight(body: FormBody, bottom: number): [number, string, numb
   ];
 }
 /** How far above the waist the bust sits, in cm, for the light on it. */
-export const BUST_ABOVE_WAIST = 15;
+const BUST_ABOVE_WAIST = 15;
 /** Soft bands of shade across the skirt below the hip, the folds its fullness falls in. */
-export const FOLD_BANDS: [string, string, number][] = [
+const FOLD_BANDS: [string, string, number][] = [
   ['0', '#000', 0.1],
   ['0.12', '#000', 0],
   ['0.24', '#000', 0.11],

@@ -22,11 +22,10 @@ export const SLEEVE_CUTS: [SleeveCut, string][] = [
  * back) and bows up to 1.5 cm off straight. A kimono sleeve slopes 30 degrees below level, the underarm
  * 6 cm lower, 12 cm of ease round the upper arm, a 2.5 cm hem. */
 export const DROP = { out: 5, down: 3, crownEase: 0.6 };
-export const RAGLAN = { neck: 3, backNeck: 2.5, bow: 1.5 };
+const RAGLAN = { neck: 3, backNeck: 2.5, bow: 1.5 };
 export const KIMONO = { angle: 30, under: 6, ease: 12, hem: 2.5, past: 8 };
 
 export type KimonoLength = 'short' | 'elbow' | 'three_quarter';
-export const KIMONO_LENGTHS: KimonoLength[] = ['short', 'elbow', 'three_quarter'];
 
 /** Which shapes each length allows: puff, cap and flutter sleeves are short, bishop sleeves long. Kept
  * here, and re-exported by sleeve.ts, so the bodice can read it without importing the sleeve. */
@@ -39,7 +38,7 @@ export const SHAPES_FOR_LENGTH: Record<SleeveLength, SleeveShape[]> = {
 };
 
 /** The sleeve shape as drafted: the one chosen, or straight when its length doesn't allow it. */
-export function shapeFor(length: string | undefined, shape: string | undefined): SleeveShape {
+function shapeFor(length: string | undefined, shape: string | undefined): SleeveShape {
   const shapes = SHAPES_FOR_LENGTH[(length ?? 'none') as SleeveLength] ?? [];
   return shape && shapes.includes(shape as SleeveShape) ? (shape as SleeveShape) : shapes.includes('straight') ? 'straight' : (shapes[0] ?? 'straight');
 }
@@ -256,7 +255,7 @@ const underCurve = (H2: P, U2: P, v: P, side: P, pull: number) => {
 
 /** A front or back with the sleeve cut on, sloping down from the shoulder point. `pull` shapes the
  * underarm curve (the back's is set to match the front's length). */
-export function kimonoPiece(pc: Piece, size: KimonoSize, pull = 0.45, under = KIMONO.under): Piece {
+function kimonoPiece(pc: Piece, size: KimonoSize, pull = 0.45, under = KIMONO.under): Piece {
   const k = landmarksOf(pc);
   if (!k) return pc;
   const { r, sp, u } = k;

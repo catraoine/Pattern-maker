@@ -1,7 +1,7 @@
 // Dart finishing: true the legs to equal length and shape the seam line over the dart.
 import { P, add, len, mul, p, sub, unit } from './geometry';
 
-export interface Dart {
+interface Dart {
   tip: P;
   /** Leg end on the side the dart is pressed toward (centre for waist darts, down for bust darts). */
   near: P;

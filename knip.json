@@ -1,0 +1,17 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": [
+    "netlify/functions/*.mts",
+    "scripts/*.{ts,mjs}",
+    "e2e/**/*.ts"
+  ],
+  "project": [
+    "src/**/*.{ts,tsx}",
+    "netlify/**/*.mts",
+    "scripts/**/*.{ts,mjs}",
+    "e2e/**/*.ts"
+  ],
+  "ignoreBinaries": [
+    "python3"
+  ]
+}

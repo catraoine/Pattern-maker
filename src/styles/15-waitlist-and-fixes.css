@@ -1,0 +1,295 @@
+/* The waitlist where Begin was (Cat's W1 Begin Becomes Join, 2026-10-21): a line of copy, the email on a line to
+   write on, Join the waitlist, and a quiet way in for testers. */
+.welcome-card .stack.waitlist {
+  gap: 12px;
+}
+.waitlist-line {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.waitlist .field.plain input::placeholder {
+  color: var(--muted);
+  opacity: 0.7;
+}
+.waitlist-tester {
+  margin: 2px 0 0;
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted);
+}
+.waitlist-tester .inline-link {
+  min-height: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: var(--guide);
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.waitlist-code {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+  gap: 8px 12px;
+}
+.waitlist-code .msg {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+@media (min-width: 960px) {
+  .welcome-card:not(.measure-step) .waitlist-tester {
+    text-align: left;
+  }
+}
+.waitlist-code button {
+  white-space: nowrap;
+}
+/* L5 Ask First (2026-10-24), as a tag at the end of the email line (Cat's L1, 2026-10-25): the short name shows, and
+   the drop-down lies over it, unseen, so tapping it opens the full names. */
+.waitlist-email {
+  position: relative;
+}
+.waitlist-email input {
+  width: 100%;
+  padding-right: 84px;
+}
+.waitlist-lang {
+  position: absolute;
+  right: 0;
+  bottom: 8px;
+  display: flex;
+  align-items: center;
+  min-width: 52px;
+  height: 32px;
+  padding: 0 16px 0 12px;
+  border-left: 1px solid var(--guide);
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23d9c49b' stroke-width='1.2'/%3E%3C/svg%3E") no-repeat right 0 center / 9px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  color: var(--muted);
+}
+.waitlist-lang select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  min-height: 0;
+  opacity: 0;
+  font-size: 16px;
+  cursor: pointer;
+}
+.waitlist-lang:focus-within {
+  color: var(--ink);
+  outline: 1px solid var(--gild);
+  outline-offset: 2px;
+}
+.waitlist-lang select option {
+  background: var(--paper);
+  color: var(--ink);
+}
+/* O2 Curtain Up (Cat, 2026-10-25): on a phone the waitlist opens with the form at Begin's full size and the waitlist
+   out of the way; then the form's canvas keeps that height while the hero shrinks over it, and the waitlist rises in. */
+.welcome.curtain-down .welcome-card > .stack.waitlist,
+.welcome.curtain-down .welcome-card > .fineprint {
+  position: absolute;
+  visibility: hidden;
+}
+.welcome.curtain-up .welcome-hero {
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to bottom, #000 82%, transparent);
+  mask-image: linear-gradient(to bottom, #000 82%, transparent);
+}
+.welcome.curtain-up .welcome-hero canvas {
+  /* A plain length: Safari doesn't resolve percentages inside the flexed hero (see .welcome-hero canvas) */
+  height: var(--curtain-h, 100%);
+  bottom: auto;
+}
+.welcome.curtain-up .welcome-card > .stack.waitlist,
+.welcome.curtain-up .welcome-card > .fineprint {
+  animation: curtain-in 0.9s 0.25s cubic-bezier(0.45, 0, 0.2, 1) both;
+}
+@keyframes curtain-in {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+}
+.waitlist-lang-note {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+/* Measuring accuracy (2026-10-21): the friend switch beside How to do it, the nudge on the measurements that are hard
+   alone, and the common mistakes under the steps. */
+.friend-nudge {
+  margin: 0;
+}
+.how-row button.later.friend-link[aria-pressed='true'] {
+  color: var(--gild);
+}
+.how-panel .how-mistakes-title {
+  margin-top: 4px;
+}
+.how-mistakes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.how-mistakes li {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  line-height: 1.45;
+  color: var(--muted);
+}
+.how-mistakes li::before {
+  content: '×';
+  font-family: var(--mono);
+  color: var(--muted);
+}
+
+/* The sleeve length slider, under the sleeve chips. */
+.sleeve-length input[type='range'] {
+  width: 100%;
+  accent-color: var(--ink, currentColor);
+}
+.sleeve-length p {
+  margin: 0.25rem 0 0;
+}
+
+/* Less motion when the phone or computer asks for it (accessibility check, 2026-10-23): animations and transitions
+   finish at once, so anything waiting on their end still carries on. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* The dress's waist seam, dragged to any height between under the bust and low on the hip. */
+.seam-height input[type='range'] {
+  width: 100%;
+  accent-color: var(--ink, currentColor);
+}
+.seam-height p {
+  margin: 0.25rem 0 0;
+}
+/* Drop-downs (Cat applied, 2026-10-24): the garment on the Style title, paper size and fabric width on Print. */
+.drop {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+.drop-label {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.drop-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 2px;
+  border: none;
+  border-bottom: 1px solid var(--gild);
+  border-radius: 0;
+  background: none;
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink);
+  cursor: pointer;
+}
+.drop-button svg {
+  color: var(--gild);
+}
+.drop-list {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 30;
+  min-width: max(100%, 220px);
+  display: grid;
+  margin: 0;
+  padding: 6px 0;
+  background: var(--paper);
+  border: 1px solid var(--gild);
+}
+.drop-list button {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  height: 44px;
+  min-height: 44px;
+  margin: 0;
+  padding: 0 16px;
+  line-height: 1;
+  border: none;
+  border-radius: 0;
+  background: none;
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-align: left;
+  cursor: pointer;
+}
+.drop-list button.on {
+  color: var(--ink);
+}
+.drop-list button.on::after {
+  content: '';
+  flex: 0 0 18px;
+  height: 1px;
+  background: var(--gild);
+  align-self: center;
+}
+.drop-list .drop-note {
+  margin-left: auto;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: var(--muted);
+  opacity: 0.8;
+}
+.style-layout .screen-head .drop.garment-drop .drop-button {
+  font-size: 13px;
+}
+.drop.garment-drop .drop-list {
+  left: auto;
+  right: 0;
+}
+/* Shorter Print (Cat applied P2 + P3, 2026-10-24): no fabric yet is one line; the pages fold behind "See the pages". */
+.yourfabric.none .fabline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 16px;
+}
+.yourfabric.none .fabline p {
+  margin: 0;
+}
+.print-sheet .see-pages {
+  align-self: flex-start;
+}

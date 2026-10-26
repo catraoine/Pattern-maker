@@ -203,7 +203,7 @@ function addCoverPage(doc: PDFDocument, fonts: Fonts, paper: 'a4' | 'letter', ti
 }
 
 /** Everything printed after the pattern pages. */
-export interface PdfExtras {
+interface PdfExtras {
   title: string;
   /** The sewist's unit: with `in`, every length in the PDF's text is written in inches. */
   unit?: Unit;
@@ -211,7 +211,7 @@ export interface PdfExtras {
   summary?: Summary;
 }
 
-export interface HandPiece {
+interface HandPiece {
   piece: string;
   frame: P[][];
   outline: P[];
@@ -219,7 +219,7 @@ export interface HandPiece {
   points: DraftPoint[];
 }
 
-export interface Summary {
+interface Summary {
   rows: FinishedRow[];
   checks: Check[];
   madeFor?: string;
@@ -349,7 +349,7 @@ export async function toProjectorPdf(sheet: Sheet, opts: { dark?: boolean; title
 }
 
 /** Size of one printed label, in cm: about what a woven label measures. */
-export const LABEL_SIZE = { w: 6, h: 2 };
+const LABEL_SIZE = { w: 6, h: 2 };
 
 /**
  * A sheet of twelve sew-in labels to print at home (Cat's pick L4): the name, the house, and the pattern's

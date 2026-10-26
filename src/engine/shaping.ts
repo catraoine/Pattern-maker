@@ -67,9 +67,6 @@ export function moveFrontDart(front: Piece, apex: P, to: DartPlace, waistSide?: 
   };
 }
 
-/** Index of the point of the ring nearest q. */
-const nearestIndex = (r: Ring, q: P) => r.pts.reduce((best, x, i) => (len(sub(x, q)) < len(sub(r.pts[best], q)) ? i : best), 0);
-
 function runOf(r: Ring, tag: string): [number, number] | undefined {
   const n = r.tags.length;
   for (let i = 0; i < n; i++) {
@@ -122,7 +119,7 @@ function dartAfter(r: Ring, after: string): [number, number, number] | undefined
   return undefined;
 }
 
-export interface Split {
+interface Split {
   ring: Ring;
   /** Where the line leaves the top edge: one point, or the two ends of a closed dart (front). */
   i1: number;
@@ -304,11 +301,3 @@ function dartTipOf(pc: Piece, r: Ring): P {
   return p(waistSide.x * 0.48, r.pts[sideRun[0]].y + 2.5);
 }
 
-/** The front's bust point: the cross drawn on the block. */
-export function apexOf(front: Piece): P | undefined {
-  const cross = front.lines.map((l) => l.points()).filter((q) => q.length === 2);
-  if (cross.length < 2) return undefined;
-  return lerp(cross[0][0], cross[0][1], 0.5);
-}
-
-export { nearestIndex };

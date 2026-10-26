@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { taggedLength } from './geometry';
 import { checkPattern } from './qc';
-import { randomArms, randomBody, rng } from './randomBodies';
+import { randomArms, randomBody, rng, sweep } from './randomBodies';
 import { DEFAULT_TEE, NECKBAND_RATIO, Stretch, neckbandLength, TEE_EASE, TeeFit, TeeLength, TeeNeck, TeeSleeve, draftTee } from './tee';
 import { teeGuide } from './teeGuide';
 import { teeFlat } from './flat';
@@ -98,7 +98,7 @@ describe('knit T-shirt', () => {
 
   it('passes every check for 120 random bodies, every fit, stretch, neckline, sleeve and length', () => {
     const failures: string[] = [];
-    for (let seed = 1; seed <= 120; seed++) {
+    for (let seed = 1; seed <= sweep(120); seed++) {
       const r = rng(seed + 31000);
       const b = randomBody(r);
       const body = { ...b, ...randomArms(b, r), ...(seed % 4 === 0 ? { armscye: undefined } : {}) };
@@ -220,7 +220,7 @@ describe('knit T-shirt bust shaping', () => {
   });
 
   it('keeps matching side seams for random bodies', () => {
-    for (let seed = 1; seed <= 60; seed++) {
+    for (let seed = 1; seed <= sweep(60); seed++) {
       const r = rng(seed + 52000);
       const b = randomBody(r);
       const body = { ...b, ...randomArms(b, r) };

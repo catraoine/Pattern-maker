@@ -28,7 +28,7 @@ const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v
  * The short end never comes within 8 cm of the hip line, and the long end stops 1.5 cm off the floor,
  * taking the difference from the long side.
  */
-export function asymPlan(kind: Exclude<AsymHem, 'none'>, m: SkirtMeasurements, length: number): AsymPlan {
+function asymPlan(kind: Exclude<AsymHem, 'none'>, m: SkirtMeasurements, length: number): AsymPlan {
   const below = length - m.waist_to_hip;
   const want = kind === 'high_low' ? clamp(0.22 * below, 5, 15) : clamp(0.28 * below, 6, 18);
   const rise = Math.max(0, Math.min(want, below - 8));

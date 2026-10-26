@@ -8,7 +8,7 @@ import { LAYER, Writer, ascii } from './dxf';
 
 const CM = 72 / 2.54;
 /** A PDF page can be up to 200 inches; panels stop short of that, with 2 cm overlap to join. */
-export const PANEL_CM = 480;
+const PANEL_CM = 480;
 const OVERLAP = 2;
 const MARGIN = 3;
 

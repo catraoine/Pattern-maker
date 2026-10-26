@@ -10,14 +10,14 @@ import type { SewStep, SewingGuide } from './instructions';
 const step = (title: string, text: string): SewStep => ({ title, text });
 
 /** The cutting words for the ties and the stay-stitched edges. */
-export function wrapCut(d: BodiceDraft): string {
+function wrapCut(d: BodiceDraft): string {
   const t = d.wrap?.ties;
   if (!t) return '';
   return ` Cut two tie strips on the straight grain, ${t.cutWidth} cm wide: one ${t.cut.outer} cm long and one ${t.cut.inner} cm long. As soon as the fronts are cut, stay-stitch their front edges 1 cm in: the edge runs across the grain and stretches easily.`;
 }
 
 /** Making the two ties and sewing them on at the far ends of the fronts. */
-export function wrapTieSteps(d: BodiceDraft): SewStep[] {
+function wrapTieSteps(d: BodiceDraft): SewStep[] {
   const t = d.wrap?.ties;
   if (!t) return [];
   return [

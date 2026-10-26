@@ -59,9 +59,9 @@ export interface DressHem {
   shape: 'sheath' | 'shift';
 }
 /** How far a dress cut with no waist seam narrows (sheath) or widens (shift) from the hip to the hem, a quarter. */
-export const DRESS_HEM_TAPER: Record<DressHem['shape'], number> = { sheath: -1.5, shift: 2 };
+const DRESS_HEM_TAPER: Record<DressHem['shape'], number> = { sheath: -1.5, shift: 2 };
 /** A sheath's walking slit at the centre back, from the hem up, once the hem is past the knee. */
-export const SHEATH_SLIT_CM = 18;
+const SHEATH_SLIT_CM = 18;
 /** A dress with no waist seam zips this far below the waist, so it steps on over the hips. */
 const DRESS_ZIP_BELOW = 18;
 /** Shaping: bust and waist darts, bust darts only, or none (the bust dart left as ease at the hem). */
@@ -193,7 +193,7 @@ export const NECKLINES: Record<Neckline, { frontDepth: number; width: number; ba
 };
 
 /** Hip ease (cm) for tops that reach below the waist, from the same fit options. */
-export const BODICE_HIP_EASE: Record<BodiceFit, number> = { fitted: 4, regular: 7, relaxed: 11 };
+const BODICE_HIP_EASE: Record<BodiceFit, number> = { fitted: 4, regular: 7, relaxed: 11 };
 
 /** Lengths that need the hip measurements. */
 export const needsHip = (l: BodiceLength) => l !== 'waist';
@@ -235,7 +235,7 @@ export function hemDrop(m: { waist_to_hip?: number }, s: { length: BodiceLength;
   return s.length === 'hip' ? WH : s.length === 'high_hip' ? WH / 2 : 0;
 }
 
-export const DEFAULT_BODICE_STYLE: BodiceStyle = {
+const DEFAULT_BODICE_STYLE: BodiceStyle = {
   fit: 'fitted',
   neckline: 'crew',
   length: 'waist',

@@ -1,7 +1,5 @@
 import { useMemo, useState } from 'react';
 import { layout } from '../engine/export';
-import { piecesLengthCm, toMetres } from '../engine/fabric';
-import { layPlan } from '../engine/layplan';
 import { TROUSER_EASE, TROUSER_LENGTHS, TrousersDraft, TrousersMeasurements, trouserLength } from '../engine/trousers';
 import { trousersFlat, trousersView } from '../engine/flat';
 import { DrawOnForm, skirtForm } from '../ui/DrawOnForm';
@@ -15,7 +13,6 @@ import { FabricSwatches, GarmentFabric } from '../ui/FabricFill';
 import { MeasurementValues } from '../measurements';
 import { PatternPreview } from '../ui/Preview';
 import { PatternPane } from '../ui/PointEditor';
-import { SaveControl } from '../ui/SaveControl';
 import { UndoToast, useUndo } from '../ui/useUndo';
 import { FABRIC, Group, PRO, StyleLayout, TabPanel } from '../ui/StyleLayout';
 
@@ -24,13 +21,16 @@ import { EaseMapView } from '../ui/EaseMapView';
 import { FitSwitch, GarmentViews, PreviewSwitch } from '../ui/PreviewSwitch';
 import type { EaseView } from '../engine/easeMap';
 import { FinishChoices } from '../ui/FinishChoices';
-import type { Finish } from '../App';
+import type { Finish } from '../savedWork';
 
 import { MyFabric, fabricEase, trousersFabrics } from '../engine/fabrics';
 import { FabricCard, FabricSummary } from '../ui/FabricCard';
 import { ChoicePic, chipsClass } from '../ui/ChoicePic';
 import { Explain } from '../ui/Explain';
 import { DemoButton } from '../ui/DemoButton';
+import { PiecesList, SummaryActions, formViews } from '../ui/StyleSummary';
+
+import { trousersFabricMetres } from '../fabricAmounts';
 
 interface Props {
   /** Start from a photo, and the photo this garment was matched to while the app is open. */
@@ -58,9 +58,6 @@ interface Props {
   mode?: Mode;
   onMode?: (m: Mode) => void;
 }
-
-/** Fabric needed on 140 cm wide fabric, from the cutting layout. */
-export const trousersFabricMetres = (draft: TrousersDraft) => layPlan(draft.pieces, 140)?.metres ?? toMetres(piecesLengthCm(draft.pieces) + 10);
 
 export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setChoices, onChooseGarment, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, finish, onFinish, fabric, mode = 'all', onMode }: Props) {
   const undo = useUndo(choices, setChoices);
@@ -227,7 +224,7 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
         <div className="row between wrap">
           {view !== 'pattern' ? (
             <GarmentViews<'sketch' | 'flat' | 'round'>
-              views={[['sketch', 'Form'], ['flat', 'Drawing'], ...(round ? ([['round', 'All round']] as ['round', string][]) : [])]}
+              views={formViews(round)}
               view={view}
               onView={setView}
             />
@@ -308,34 +305,20 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
             : `Ease added: ${ease.waist + extra.waist} cm at the waist, `}
           {ease.hip + extra.hip} cm at the hip{extra.hip ? ` (${extra.waist} cm and ${extra.hip} cm of it for your heavy fabric)` : ''}, {ease.depth} cm below the crotch and {ease.crotch} cm along it.
         </p>
-        <div>
-          <p className="eyebrow">Pattern pieces</p>
-          <ul className="pieces">
-            {pieces.map((pc) => (
-              <li key={pc.name}>
-                {pc.name}: {pc.cut.replace(' (1 pair)', '').toLowerCase()}
-              </li>
-            ))}
-            <li>Waistband{draft?.elastic ? ' (elastic casing)' : ''}: cut 1</li>
-            {draft?.elastic && (
-              <li>
-                Elastic, {draft.elastic.widthCm} cm wide: cut {draft.elastic.cutCm} cm
-              </li>
-            )}
-          </ul>
-        </div>
+        <PiecesList pieces={pieces}>
+          <li>Waistband{draft?.elastic ? ' (elastic casing)' : ''}: cut 1</li>
+          {draft?.elastic && (
+            <li>
+              Elastic, {draft.elastic.widthCm} cm wide: cut {draft.elastic.cutCm} cm
+            </li>
+          )}
+        </PiecesList>
         {draft && <FabricSummary metres={trousersFabricMetres(draft)} fabric={fabric} />}
         <p className="muted small">
           The crotch is drafted to your own crotch depth and length, front and back curves together, so the trousers sit without pulling or
           bagging. {elastic ? 'A pull-on elastic waist, with no zip.' : choices.closure === 'fly' ? 'A fly front with its facing and shield.' : 'An invisible zip in the left side seam.'}
         </p>
-        <button type="button" className="primary" disabled={!draft} onClick={onNext}>
-          Print my pattern
-        </button>
-        <SaveControl state={saveState} disabled={!draft} onSave={onSave} onAccount={onAccount} />
-        <button type="button" className="later edit-measure" onClick={onEditMeasurements}>
-          Edit measurements
-        </button>
+        <SummaryActions ready={!!draft} onNext={onNext} saveState={saveState} onSave={onSave} onAccount={onAccount} onEditMeasurements={onEditMeasurements} />
       </aside>
     </StyleLayout>
   );

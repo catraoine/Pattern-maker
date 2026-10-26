@@ -20,7 +20,6 @@ export function spline(keys: [number, number][]) {
   };
 }
 
-
 // The legs are drawn like a fashion sketch: slim, with a knee and a calf, standing on pointed heels
 // whose tips touch the floor line. Each point is [where down the leg, distance from the middle]:
 // above the knee the first number runs 0 (crotch) to 1 (knee), below it 1 (knee) to 2 (floor);
@@ -57,35 +56,4 @@ export function bodyOutline(m: SkirtMeasurements, cx: number): string {
       return `M${pt(outer[0])}${through(outer)} ${heel.map((q) => `L${pt(q)}`).join(' ')} L${pt(inner[0])}${through(inner)} Z`;
     })
     .join(' ');
-}
-
-/**
- * A faint outline of the wearer round a bodice sketch: the neck above it, the arms hanging at its
- * sides, and the body below its hem. The bodice is drawn over it, so only what shows past the bodice
- * is seen. `top` is the bodice's own outline, centre neck round to the underarm.
- */
-export function bodiceBodyOutline(
-  m: { waist: number; full_bust: number; armscye?: number; full_hip?: number; waist_to_hip?: number },
-  top: { pts: { x: number; y: number }[]; tags: (string | undefined)[] },
-  waistY: number,
-  bottom: number,
-  cx: number,
-): string {
-  const at = (tag: string) => top.pts[Math.max(0, top.tags.indexOf(tag))];
-  const hps = at('shoulder');
-  const tip = at('armhole');
-  const under = at('side');
-  const arm = 0.24 * (m.armscye ?? 0.43 * m.full_bust);
-  const ys = (a: number, b: number, n: number) => Array.from({ length: n + 1 }, (_, i) => a + ((b - a) * i) / n);
-  const line = (list: [number, number][]) => [1, -1].map((s) => list.map(([x, y], i) => `${i ? 'L' : 'M'}${(cx + s * x).toFixed(2)} ${y.toFixed(2)}`).join(' ')).join(' ');
-  const neck = line([[hps.x * 0.8, hps.y + 1], [hps.x * 0.75, -12]]);
-  // The arm falls from the shoulder, rounding over the top, and hangs a little away from the body.
-  const outer = ys(tip.y, bottom, 30).map((y) => {
-    const t = Math.min(1, (y - tip.y) / Math.max(1, under.y - tip.y));
-    return [under.x + arm * Math.sin((t * Math.PI) / 2) * 0.95 + (tip.x - under.x) * (1 - t) ** 2 + 0.04 * (y - under.y > 0 ? y - under.y : 0), y] as [number, number];
-  });
-  const inner = ys(under.y, bottom, 10).map((y) => [under.x + 0.6 + 0.04 * (y - under.y), y] as [number, number]);
-  const hip = m.full_hip && m.waist_to_hip ? spline([[waistY - 8, m.full_bust / 4 * 0.95], [waistY, m.waist / 4], [waistY + m.waist_to_hip * 0.5, (m.waist + m.full_hip) / 8 + 0.4], [waistY + m.waist_to_hip, m.full_hip / 4], [waistY + m.waist_to_hip + 20, m.full_hip / 4]]) : () => m.waist / 4;
-  const torso = ys(waistY - 8, bottom, 20).map((y) => [hip(y), y] as [number, number]);
-  return [neck, line(outer), line(inner), line(torso)].join(' ');
 }

@@ -1,6 +1,6 @@
 import { beltWords } from '../engine/belt';
 import { PatternChoices, bodiceDetails, describeBodice, describeOuter, describeTee, describeTrousers, describeLingerie, isLingerie, isBodice, isDress, isOuter, isTee, isTrousers } from '../garments';
-import { GROUPS, describe as describeSkirt } from './StyleScreen';
+import { GROUPS, describe as describeSkirt } from '../skirtChoices';
 import { buttonsOnSkirt, noSeamAllowed } from '../engine/dress';
 import { wrapSkirtAllowed } from '../engine/wrapSkirt';
 

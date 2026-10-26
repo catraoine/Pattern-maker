@@ -2,7 +2,7 @@
 // velvet pile and satin sheen run down the garment, and a waistband, cut lengthwise, has them running
 // along it. The tiles are drawn by scripts/fabric-textures.py.
 import { CSSProperties, ReactNode, useId, useState } from 'react';
-import type { Finish } from '../App';
+import type { Finish } from '../savedWork';
 import { FIBRES, FIBRE_IDS, FabricGarment, MyFabric, clothFor, printRepeat } from '../engine/fabrics';
 import { PRINTS, printImage, printOf, printTileCm } from '../engine/prints';
 import { FabricDetails } from './FabricDetails';
@@ -26,12 +26,6 @@ export const flatId = (f: MyFabric | undefined): string | undefined => shopFabri
 const printShown = (f: MyFabric | undefined) => {
   const kind = printOf(f);
   return kind && kind !== 'plain' ? kind : undefined;
-};
-
-/** What the sketch is filled with, a print or a cloth; undefined when it is left in lines. */
-export const fillId = (f: MyFabric | undefined): string | undefined => {
-  const kind = printShown(f);
-  return kind ? `print-${kind}${f?.checks?.stripes ? '-stripes' : kind === 'checks' && f?.checks?.gingham ? '-gingham' : ''}` : flatId(f);
 };
 
 export const fabricLabel = (f: MyFabric | undefined): string | undefined =>
@@ -111,7 +105,7 @@ const mix = (a: string, b: string, t: number) => {
 };
 
 /** The look the drawings give the cloth beyond its fill: sheer, sheen, weave, and a border print on the hem. */
-export function fabricLook(fabric: MyFabric | undefined, base: string): FabricLook | undefined {
+function fabricLook(fabric: MyFabric | undefined, base: string): FabricLook | undefined {
   const special = shopFabric(fabric?.shop)?.special ?? fabric?.special;
   const kind = printShown(fabric);
   if (!special && kind !== 'border') return undefined;

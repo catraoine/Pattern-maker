@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Choices } from '../App';
+import type { Choices } from '../savedWork';
 import { isBodice, isDress, type PatternChoices } from '../garments';
 import { ideaChoices, ideaRows, pieceGarment } from './idea';
 import type { IdeaReading, PhotoReading } from './types';

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { cleanFit, emptyFit, fitAreas, fitSummary } from './fit';
 import { NEW_ACCOUNT, savePattern, setPatternFit } from './account';
 import { DEFAULT_BODICE } from './garments';
-import type { Choices } from './App';
+import type { Choices } from './savedWork';
 
 const skirt: Choices = { fit: 'regular', silhouette: 'a_line', length: 'knee' };
 

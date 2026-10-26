@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import type { Choices } from '../App';
+import type { Choices } from '../savedWork';
 import { LENGTHS, type Length, type SkirtMeasurements } from '../engine/skirt';
 import type { Unit } from '../measurements';
 import { photoToJpeg } from '../photo/image';
 import type { Confidence, PhotoError, PhotoReading, PhotoResponse, PieceKind } from '../photo/types';
-import { GROUPS } from './StyleScreen';
+import { GROUPS } from '../skirtChoices';
 import { PIECE_KINDS, PIECE_WORDS, aPiece, choicesFor, fabricFor, pieceName, mainPiece, pieceNote, piecesToPick, skirtChoices } from '../photo/garments';
 import type { MyFabric } from '../engine/fabrics';
 import { isDress, type PatternChoices } from '../garments';

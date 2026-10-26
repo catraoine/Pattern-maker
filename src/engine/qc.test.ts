@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { draftBodice, dropRange } from './bodice';
 import { bodiceFacings } from './finishing';
 import { checkPattern } from './qc';
-import { randomBody, rng } from './randomBodies';
+import { randomBody, rng, sweep } from './randomBodies';
 import { DraftError, draftSkirt } from './skirt';
 
 const m = { waist: 70, full_hip: 96, waist_to_hip: 20.5, waist_to_knee: 58, waist_to_floor: 104 };
@@ -28,7 +28,7 @@ describe('pattern checks', () => {
 
   it('passes every check for 300 random bodies, every skirt shape and bodice style', () => {
     const failures: string[] = [];
-    for (let seed = 1; seed <= 300; seed++) {
+    for (let seed = 1; seed <= sweep(300); seed++) {
       const body = randomBody(rng(seed));
       for (const fit of ['fitted', 'regular', 'relaxed'] as const) {
         for (const silhouette of ['straight', 'pencil', 'a_line', 'trumpet', 'half_circle', 'circle'] as const) {
@@ -61,7 +61,7 @@ describe('pattern checks', () => {
 
   it('passes every check for 300 random bodices shaped by hand, with facings for the drawn necklines', () => {
     const failures: string[] = [];
-    for (let seed = 1; seed <= 300; seed++) {
+    for (let seed = 1; seed <= sweep(300); seed++) {
       const r = rng(seed + 7000);
       const body = randomBody(r);
       const range = dropRange(body);

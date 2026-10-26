@@ -3,9 +3,9 @@
 // home-screen app keeps it; ?lingerie=off hides them again. Turn them on for everyone with VITE_LINGERIE=on.
 const KEY = 'pattern-maker:lingerie-preview';
 
-export const LINGERIE_ON = import.meta.env.VITE_LINGERIE === 'on';
+const LINGERIE_ON = import.meta.env.VITE_LINGERIE === 'on';
 
-export function lingeriePreview(search = typeof location === 'undefined' ? '' : location.search): boolean {
+function lingeriePreview(search = typeof location === 'undefined' ? '' : location.search): boolean {
   const asked = new URLSearchParams(search).get('lingerie');
   try {
     if (asked === 'preview') localStorage.setItem(KEY, '1');

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { COLOURS, SHOP_FABRICS, buyAmount, buyLink, closestShopColours, colourDistance, colourHex, coloursFor, hexToHsl, hslToHex, shopFabricsFor, withShopFabric } from './shopFabrics';
 import { pickColour, pickFabric, pickHex, pickShopColour, pickShopFabric, flatId, fabricLabel } from '../ui/FabricFill';
-import type { Finish } from '../App';
+import type { Finish } from '../savedWork';
 
 const denim = SHOP_FABRICS.find((f) => f.id === 'mood-denim')!;
 const start = {} as Finish;

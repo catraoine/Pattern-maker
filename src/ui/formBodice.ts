@@ -131,7 +131,7 @@ function fullness(side: P[], low: P, neckX: number): number {
 
 /** Differences smaller than these read as an even neckline drawn by hand: the two sides this close in
  * height at the same distance out, and this close in fullness. */
-export const UNEVEN_REACH = { cm: 2.5, fullness: 0.35 };
+const UNEVEN_REACH = { cm: 2.5, fullness: 0.35 };
 
 /**
  * A front neckline drawn from one shoulder across the centre to the other, lower on one side or an

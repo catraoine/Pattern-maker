@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { draftBodice } from './bodice';
 import { SHAPES_FOR_LENGTH, SLEEVE_EASE, SleeveLength, VENT_CM, draftSleeve } from './sleeve';
 import { checkPattern } from './qc';
-import { randomArms, randomBody, rng } from './randomBodies';
+import { randomArms, randomBody, rng, sweep } from './randomBodies';
 import { DraftError } from './skirt';
 
 const body = { full_bust: 92, high_bust: 86, waist: 76, neck: 35, shoulder_width: 38, shoulder_length: 12, across_back: 35, across_front: 32, nape_to_waist: 41, front_hps_to_waist: 44, bust_depth: 26, apex_separation: 18, armscye: 40 };
@@ -52,7 +52,7 @@ describe('set-in sleeves', () => {
     const failures: string[] = [];
     let widened = 0;
     let total = 0;
-    for (let seed = 1; seed <= 120; seed++) {
+    for (let seed = 1; seed <= sweep(120); seed++) {
       const r = rng(seed * 977);
       const b = randomBody(rng(seed));
       const a = randomArms(b, r);

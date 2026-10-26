@@ -9,7 +9,7 @@ export interface CloudUser {
   email: string;
 }
 
-export interface CloudApi {
+interface CloudApi {
   /** Who is signed in on this device, if anyone (also finishes a sign-in arriving from an email link). */
   user(): Promise<CloudUser | null>;
   onChange(fn: (u: CloudUser | null) => void): () => void;
@@ -115,7 +115,7 @@ const hasFake = () => {
   }
 };
 
-export const FAKE_CODE = '123456';
+const FAKE_CODE = '123456';
 
 function fakeCloud(): CloudApi {
   type Store = { users: Record<string, { id: string; backup: Backup<unknown> | null; stamp?: string }>; session?: string; sent?: string };

@@ -8,7 +8,7 @@ import { checksExtra, checksLines } from './specialFabrics';
 export type PrintKind = 'plain' | 'ditsy' | 'oneway' | 'motif' | 'border' | 'checks';
 type Garment = 'skirt' | 'bodice' | 'dress' | 'trousers' | 'tee' | 'jacket' | 'coat' | 'lingerie';
 
-export interface PrintInfo {
+interface PrintInfo {
   label: string;
   /** One line under the label in the picker. */
   hint: string;

@@ -54,11 +54,6 @@ export function inInches(text: string): string {
     .replace(ONE_M, (_, a) => toYards(num(a)));
 }
 
-/** Text in the sewist's unit. */
-export function inUnit(text: string, unit: Unit): string {
-  return unit === 'in' ? inInches(text) : text;
-}
-
 /**
  * Show a page in inches: every length in its text is rewritten as it appears, and again whenever the page
  * changes. Returns a function that stops it. The screens keep drafting and writing centimetres, so switching

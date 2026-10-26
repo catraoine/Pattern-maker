@@ -11,7 +11,7 @@
 // - a pocket: a short line down the side seam below the waist is in-seam pockets.
 // The skirt's own coordinates: cm, the centre at x = 0, the skirt's waist at y = waistY, y running down.
 import type { P } from '../engine/geometry';
-import type { Choices } from '../App';
+import type { Choices } from '../savedWork';
 import { SlitPlace, slitAllowed, slitOf, slitRange } from '../engine/slit';
 import { GodetCount, VolumeKind, setVolume, volumeAllowed } from '../engine/skirtVolume';
 import { highAllowed } from '../engine/skirtWaist';
@@ -76,7 +76,7 @@ export function readFullness(stroke: P[], waistY: number, lengthCm: number, c: C
   const low = Math.max(...ys);
   const wide = span(xs) > span(ys) * 1.5;
   const wavy = turns(stroke, 'y') >= 3;
-  const use = (kind: Exclude<VolumeKind, 'none'>, godets?: GodetCount): Reading<Choices> => {
+  const pick = (kind: Exclude<VolumeKind, 'none'>, godets?: GodetCount): Reading<Choices> => {
     if (!volumeAllowed(c, kind)) {
       const why = kind === 'godets' || kind === 'tiers' ? ' on a straight, pencil or A-line skirt to the knee or longer' : ' on a straight, pencil or A-line skirt with a level hem';
       return { said: `${kind === 'godets' ? 'Godets go' : kind === 'tiers' ? 'Tiers go' : kind === 'hem_flounce' ? 'A flounce goes' : 'Pleats go'}${why}.` };
@@ -92,21 +92,21 @@ export function readFullness(stroke: P[], waistY: number, lengthCm: number, c: C
   // Across, wavy, lower down: a flounce at the hem, or tiers across the middle.
   if (wide && wavy) {
     const at = (median(ys) - waistY) / lengthCm;
-    if (at > 0.55) return use('hem_flounce');
-    if (at > 0.25) return use('tiers');
+    if (at > 0.55) return pick('hem_flounce');
+    if (at > 0.25) return pick('tiers');
     return { said: FULLNESS_HELP };
   }
   // A point up from the hem: godets, more of them the narrower it is.
   const ends = [stroke[0], stroke[stroke.length - 1]];
   if (ends.every((q) => q.y > hemY - 6) && top < hemY - 8 && turns(stroke, 'y') >= 1) {
     const base = Math.abs(ends[1].x - ends[0].x);
-    return use('godets', base < 7 ? 8 : base < 12 ? 6 : 4);
+    return pick('godets', base < 7 ? 8 : base < 12 ? 6 : 4);
   }
   // A short mark down from the waist: pleats.
   if (!wide && top < waistY + 5 && low - top > 3 && low < waistY + lengthCm * 0.6) {
     const back = turns(stroke, 'y') >= 1 && Math.abs(stroke[stroke.length - 1].y - stroke[0].y) < (low - top) * 0.5;
     const centre = Math.abs(median(xs)) < 2.5;
-    return use(back ? 'box' : centre ? 'inverted' : 'knife');
+    return pick(back ? 'box' : centre ? 'inverted' : 'knife');
   }
   return { said: FULLNESS_HELP };
 }

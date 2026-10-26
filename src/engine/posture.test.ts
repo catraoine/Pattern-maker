@@ -3,7 +3,7 @@ import { add, len, p, sub } from './geometry';
 import { draftBodice } from './bodice';
 import { DraftError, centreDrops, draftSkirt } from './skirt';
 import { checkPattern } from './qc';
-import { randomBody, rng } from './randomBodies';
+import { randomBody, rng, sweep } from './randomBodies';
 import { checkMeasurements } from '../measurements';
 
 const m = { waist: 70, full_hip: 96, waist_to_hip: 20.5, waist_to_knee: 58, waist_to_floor: 104 };
@@ -25,7 +25,7 @@ describe('centre front and back waist to hip', () => {
 
   it('passes the seam check for 300 random bodies with their own posture, every block shape', () => {
     const failures: string[] = [];
-    for (let seed = 1; seed <= 300; seed++) {
+    for (let seed = 1; seed <= sweep(300); seed++) {
       const r = rng(seed * 7919);
       const body = randomBody(rng(seed));
       const posture = { ...body, front_waist_to_hip: body.waist_to_hip + (r() * 6 - 2), back_waist_to_hip: body.waist_to_hip + (r() * 5 - 3) };
@@ -79,7 +79,7 @@ describe('shoulder slope', () => {
 
   it('passes the seam check for 300 random bodies with square to sloping shoulders, every style', () => {
     const failures: string[] = [];
-    for (let seed = 1; seed <= 300; seed++) {
+    for (let seed = 1; seed <= sweep(300); seed++) {
       const r = rng(seed * 104729);
       const b = randomBody(rng(seed));
       const std = draftBodice(b);
