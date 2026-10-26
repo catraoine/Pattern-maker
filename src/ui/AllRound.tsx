@@ -498,7 +498,7 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
             }
           }
         }
-        /** A tube round an axis at X(y): a sleeve or a trouser leg. Its inside is never seen, so only its outside is laid. */
+        /** A tube round an axis at X(y): a sleeve or a trouser leg. */
         const tube = (X: (y: number) => number, R: (y: number) => number, y0: number, y1: number, panels: boolean, inBody = false) => {
           const NS = 32;
           const NY = 16;
@@ -512,7 +512,8 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
             const a1 = a0 + TAU / NS;
             const am = (a0 + a1) / 2;
             const th = am + phi;
-            if (Math.cos(th) < -0.2) continue;
+            // A sleeve's inside shows past its edge as it turns, so it is laid too (in shadow); a leg's never does.
+            if (!inBody && Math.cos(th) < -0.2) continue;
             const c = panels && Math.abs(am) > HALF ? Math.PI : 0;
             for (let j = 0; j < NY; j++) {
               const ya = y0 + ((y1 - y0) * j) / NY;
