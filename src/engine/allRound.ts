@@ -70,8 +70,6 @@ export interface RoundGarment {
   armhole?: { shoulderCm: number; underarmCm: number };
   sleeve?: { lengthCm: number; bicepCm: number; hemCm: number };
   legs?: { crotchCm: number; lengthCm: number; kneeCm: number; hemCm: number };
-  /** How far out along the shoulder the neckline reaches at the neck point: 0 at the neck, 1 at the shoulder tip. */
-  neckSpread?: number;
   /** An open centre front, closed with buttons at these heights (cm from the waist). */
   opening?: { buttons: number[] };
   /** A centre back vent, from this height to the hem. */
@@ -357,7 +355,6 @@ function roundTop(t: TopInput): RoundGarment {
     flare: t.hemGirth && hipGirth ? t.hemGirth / hipGirth : 1,
     girth: t.girth,
     armhole,
-    neckSpread: tip.x > 0 ? clamp(hpsB.x / tip.x, 0, 1) : undefined,
     sleeve: t.sleeve ? { lengthCm: t.sleeve.lengthCm, bicepCm: t.sleeve.bicep, hemCm: t.sleeve.hemCm } : undefined,
     opening: opening.length ? { buttons: (t.buttons ?? []).map(cmF) } : undefined,
     vent: t.vent ? { fromCm: cmB(napeY + t.vent.top) } : undefined,
