@@ -13,7 +13,6 @@ import { FabricSwatches, GarmentFabric } from '../ui/FabricFill';
 import { MeasurementValues } from '../measurements';
 import { PatternPreview } from '../ui/Preview';
 import { PatternPane } from '../ui/PointEditor';
-import { SaveControl } from '../ui/SaveControl';
 import { UndoToast, useUndo } from '../ui/useUndo';
 import { EaseMapView } from '../ui/EaseMapView';
 import { FitSwitch, GarmentViews, PreviewSwitch } from '../ui/PreviewSwitch';
@@ -33,6 +32,7 @@ import { FormLine, landmarks } from '../ui/formLines';
 import { outerLines, readOuterCollar, readOuterFit, readOuterFront, readOuterHem, readOuterShaping } from '../ui/formTops';
 import { FABRIC, Group, PRO, StyleLayout, TabPanel } from '../ui/StyleLayout';
 import { DemoButton } from '../ui/DemoButton';
+import { PiecesList, SummaryActions, formViews } from '../ui/StyleSummary';
 
 interface Props {
   /** Start from a photo, and the photo this garment was matched to while the app is open. */
@@ -237,7 +237,7 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
         <div className="row between wrap">
           {view !== 'pattern' ? (
             <GarmentViews<'sketch' | 'flat' | 'round'>
-              views={[['sketch', 'Form'], ['flat', 'Drawing'], ...(round ? ([['round', 'All round']] as ['round', string][]) : [])]}
+              views={formViews(round)}
               view={view}
               onView={setView}
             />
@@ -304,29 +304,13 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           Ease added: {OUTER_EASE[kind][choices.fit] + extra.bust} cm at the bust{extra.bust ? `, ${extra.bust} cm of it for your heavy fabric` : ''}, enough to wear {kind === 'coat' ? 'over a jacket or a thick jumper' : 'over a blouse or a fine knit'}.
         </p>
         {draft && draft.warnings.length > 0 && <p className="msg small">Please check: {draft.warnings.join('; ')}.</p>}
-        <div>
-          <p className="eyebrow">Pattern pieces</p>
-          <ul className="pieces">
-            {pieces.map((pc) => (
-              <li key={pc.name}>
-                {pc.name}: {pc.cut.replace(' (1 pair)', '').toLowerCase()}
-                {pc.kind === 'lining' ? ' in lining' : ''}
-              </li>
-            ))}
-          </ul>
-        </div>
+        <PiecesList pieces={pieces} lining />
         {draft && <FabricSummary metres={outerFabricMetres(draft)} fabric={fabric} />}
         <p className="muted small">
           Fully lined, with interfaced front facings{choices.collar === 'notched' ? ' and an upper and under collar rolled at the lapel' : ''}. The sleeves are drafted to
           your own armhole with room for what you wear underneath{choices.pads !== 'none' ? ', and the shoulders and sleeve heads are raised to take the shoulder pads' : ''}.
         </p>
-        <button type="button" className="primary" disabled={!draft} onClick={onNext}>
-          Print my pattern
-        </button>
-        <SaveControl state={saveState} disabled={!draft} onSave={onSave} onAccount={onAccount} />
-        <button type="button" className="later edit-measure" onClick={onEditMeasurements}>
-          Edit measurements
-        </button>
+        <SummaryActions ready={!!draft} onNext={onNext} saveState={saveState} onSave={onSave} onAccount={onAccount} onEditMeasurements={onEditMeasurements} />
       </aside>
     </StyleLayout>
   );

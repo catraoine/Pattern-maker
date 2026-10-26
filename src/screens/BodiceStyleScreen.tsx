@@ -21,7 +21,6 @@ import { Cuff, cuffAllowed, cuffShown } from '../engine/cuffs';
 import { MeasurementValues, hasHip } from '../measurements';
 import { PatternPreview } from '../ui/Preview';
 import { PatternPane } from '../ui/PointEditor';
-import { SaveControl } from '../ui/SaveControl';
 import { FinishChoices } from '../ui/FinishChoices';
 import { BodiceShape } from '../ui/BodiceShape';
 import { FabricSwatches, GarmentFabric } from '../ui/FabricFill';
@@ -45,6 +44,7 @@ import type { EaseView } from '../engine/easeMap';
 import { ChoicePic, chipsClass } from '../ui/ChoicePic';
 import { Explain } from '../ui/Explain';
 import { DemoButton } from '../ui/DemoButton';
+import { PiecesList, SummaryActions } from '../ui/StyleSummary';
 
 /** Moving the shaping is a pro tool, so these groups sit on the Pro tab. */
 const PRO_GROUPS: string[] = ['princess', 'bustDart'];
@@ -546,16 +546,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
             ? `The bodice is ${ease.bust + extra.bust} cm bigger than you at the bust and ${-(ease.waist + extra.waist)} cm smaller at the waist, so it holds you like a corset${extra.bust ? `, including ${extra.bust} cm and ${extra.waist} cm for your heavy fabric` : ''}.`
             : `The bodice is ${ease.bust + extra.bust} cm bigger than you at the bust and ${ease.waist + extra.waist} cm at the waist, so you can move and breathe${extra.bust ? `, including ${extra.bust} cm and ${extra.waist} cm for your heavy fabric` : ''}.`}
         </p>
-        <div>
-          <p className="eyebrow">Pattern pieces</p>
-          <ul className="pieces">
-            {pieces.map((pc) => (
-              <li key={pc.name}>
-                {pc.name}: {pc.cut.replace(' (1 pair)', '').toLowerCase()}
-              </li>
-            ))}
-          </ul>
-        </div>
+        <PiecesList pieces={pieces} />
         {draft && <FabricSummary metres={bodiceFabricMetres(draft, sleeve)} fabric={fabric} />}
         <p className="muted small">
           {detail.closure === 'front_buttons'
@@ -573,13 +564,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
           {choices.neckline === 'cami' ? ' The rouleau straps are given as measurements on the pattern.' : ''}
           {!boned && !draped && (detail.princess !== 'none' || detail.bustDart !== 'side') ? ' The shaping is moved the way a pattern cutter does it: the garment sews up to exactly the same fit.' : ''}
         </p>
-        <button type="button" className="primary" disabled={!draft} onClick={onNext}>
-          Print my pattern
-        </button>
-        <SaveControl state={saveState} disabled={!draft} onSave={onSave} onAccount={onAccount} />
-        <button type="button" className="later edit-measure" onClick={onEditMeasurements}>
-          Edit measurements
-        </button>
+        <SummaryActions ready={!!draft} onNext={onNext} saveState={saveState} onSave={onSave} onAccount={onAccount} onEditMeasurements={onEditMeasurements} />
       </aside>
     </StyleLayout>
   );

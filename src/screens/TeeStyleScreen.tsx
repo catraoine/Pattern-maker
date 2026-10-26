@@ -12,7 +12,6 @@ import { roundTee } from '../engine/allRound';
 import { MeasurementValues } from '../measurements';
 import { PatternPreview } from '../ui/Preview';
 import { PatternPane } from '../ui/PointEditor';
-import { SaveControl } from '../ui/SaveControl';
 import { UndoToast, useUndo } from '../ui/useUndo';
 import type { MyFabric } from '../engine/fabrics';
 import { GarmentFabric } from '../ui/FabricFill';
@@ -27,6 +26,7 @@ import { TeeFormMeasurements, readTeeFit, readTeeHem, readTeeNeckline, readTeeSl
 import { FABRIC, Group, LOOKS, StyleLayout, TabPanel } from '../ui/StyleLayout';
 import { FabricDetails } from '../ui/FabricDetails';
 import { DemoButton } from '../ui/DemoButton';
+import { PiecesList, SummaryActions, formViews } from '../ui/StyleSummary';
 
 interface Props {
   /** Start from a photo, and the photo this garment was matched to while the app is open. */
@@ -192,7 +192,7 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
         <div className="row between wrap">
           {view !== 'pattern' ? (
             <GarmentViews<'sketch' | 'flat' | 'round'>
-              views={[['sketch', 'Form'], ['flat', 'Drawing'], ...(round ? ([['round', 'All round']] as ['round', string][]) : [])]}
+              views={formViews(round)}
               view={view}
               onView={setView}
             />
@@ -279,28 +279,13 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
             {draft.necklineCm} cm neckline, {NECKBAND_CM} cm wide.
           </p>
         )}
-        <div>
-          <p className="eyebrow">Pattern pieces</p>
-          <ul className="pieces">
-            {pieces.map((pc) => (
-              <li key={pc.name}>
-                {pc.name}: {pc.cut.replace(' (1 pair)', '').toLowerCase()}
-              </li>
-            ))}
-          </ul>
-        </div>
+        <PiecesList pieces={pieces} />
         {draft && <FabricSummary metres={teeFabricMetres(draft)} fabric={fabric} />}
         <p className="muted small">
           Seam allowances are 1 cm, the usual for knits, with 2.5 cm at the hem. The neckband is cut shorter than the neckline so it
           lies flat.
         </p>
-        <button type="button" className="primary" disabled={!draft} onClick={onNext}>
-          Print my pattern
-        </button>
-        <SaveControl state={saveState} disabled={!draft} onSave={onSave} onAccount={onAccount} />
-        <button type="button" className="later edit-measure" onClick={onEditMeasurements}>
-          Edit measurements
-        </button>
+        <SummaryActions ready={!!draft} onNext={onNext} saveState={saveState} onSave={onSave} onAccount={onAccount} onEditMeasurements={onEditMeasurements} />
       </aside>
     </StyleLayout>
   );

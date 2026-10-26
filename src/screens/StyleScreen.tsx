@@ -21,7 +21,6 @@ import { SLIT_PLACES, slitAllowed, slitOf } from '../engine/slit';
 import { FACING_DEPTH, HIGH, facedAllowed, highAllowed, sideZipAllowed } from '../engine/skirtWaist';
 import { NO_SLIT, SlitSlider } from '../ui/SlitSlider';
 import { BUTTONS_STOP_ABOVE_HEM, buttonsBlocked, buttonsOf, yokeBlocked, yokeOf } from '../engine/skirtFront';
-import { SaveControl } from '../ui/SaveControl';
 import { FinishChoices } from '../ui/FinishChoices';
 import type { Finish } from '../savedWork';
 import { BAND_ACROSS_MAX } from '../engine/instructions';
@@ -45,6 +44,7 @@ import { Explain } from '../ui/Explain';
 import { AllRound } from '../ui/AllRound';
 import { DemoButton } from '../ui/DemoButton';
 import { roundSkirt } from '../engine/allRound';
+import { PiecesList, SummaryActions } from '../ui/StyleSummary';
 
 interface Props {
   finish: Finish;
@@ -765,45 +765,31 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
             {slipped ? ` That is ${SLIP_HIP_EASE_LESS} cm less at the hip than on the straight grain: cut on the bias, the cloth gives and moulds to you.` : ''}
           </p>
         )}
-        <div>
-          <p className="eyebrow">Pattern pieces</p>
-          <ul className="pieces">
-            {[...(draft?.pieces ?? []), ...(draft ? beltPieces(skirtBelt(choices.belt, draft), 1.5) : [])].map((pc) => (
-              <li key={pc.name}>
-                {pc.name}: {pc.cut.replace(' (1 pair)', '').toLowerCase()}
-              </li>
-            ))}
-            {draft && draft.faced && <li>Waist facings: cut 1 front and 1 back, {SLIP_FACING} cm deep</li>}
-            {draft?.waistFinish && (
-              <li>
-                Waist facings: cut 1 front and 1 back, {draft.waistFinish === 'high' ? HIGH.rise : FACING_DEPTH} cm deep, and again in interfacing
-              </li>
-            )}
-            {draft && !draft.faced && !draft.waistFinish && (
-              <li>
-                Waistband{draft.elastic ? ' (elastic casing)' : ''}: cut 1, {draft.waistband.cutLength} × {draft.waistband.cutWidth} cm
-              </li>
-            )}
-            {draft?.elastic && (
-              <li>
-                Elastic, {draft.elastic.widthCm} cm wide: cut {draft.elastic.cutCm} cm
-              </li>
-            )}
-            {draft?.volume?.tiers?.bands.map((b) => (
-              <li key={b.name}>
-                {b.name}: cut {b.panels}, {b.cutLength} × {b.cutWidth} cm
-              </li>
-            ))}
-          </ul>
-        </div>
+        <PiecesList pieces={[...(draft?.pieces ?? []), ...(draft ? beltPieces(skirtBelt(choices.belt, draft), 1.5) : [])]}>
+          {draft && draft.faced && <li>Waist facings: cut 1 front and 1 back, {SLIP_FACING} cm deep</li>}
+          {draft?.waistFinish && (
+            <li>
+              Waist facings: cut 1 front and 1 back, {draft.waistFinish === 'high' ? HIGH.rise : FACING_DEPTH} cm deep, and again in interfacing
+            </li>
+          )}
+          {draft && !draft.faced && !draft.waistFinish && (
+            <li>
+              Waistband{draft.elastic ? ' (elastic casing)' : ''}: cut 1, {draft.waistband.cutLength} × {draft.waistband.cutWidth} cm
+            </li>
+          )}
+          {draft?.elastic && (
+            <li>
+              Elastic, {draft.elastic.widthCm} cm wide: cut {draft.elastic.cutCm} cm
+            </li>
+          )}
+          {draft?.volume?.tiers?.bands.map((b) => (
+            <li key={b.name}>
+              {b.name}: cut {b.panels}, {b.cutLength} × {b.cutWidth} cm
+            </li>
+          ))}
+        </PiecesList>
         {draft && <FabricSummary metres={fabricMetres(draft)} fabric={fabric} />}
-        <button type="button" className="primary" disabled={!draft} onClick={onNext}>
-          Print my pattern
-        </button>
-        <SaveControl state={saveState} disabled={!draft} onSave={onSave} onAccount={onAccount} />
-        <button type="button" className="later edit-measure" onClick={onEditMeasurements}>
-          Edit measurements
-        </button>
+        <SummaryActions ready={!!draft} onNext={onNext} saveState={saveState} onSave={onSave} onAccount={onAccount} onEditMeasurements={onEditMeasurements} />
       </aside>
     </StyleLayout>
   );
