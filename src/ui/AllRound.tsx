@@ -195,7 +195,6 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
     // The film's 'old look': the form's lines run on through the whole garment, as the released film had it.
     const through = (window as any).__tourFilm === 'old';
     const isTop = round.kind === 'top' || round.kind === 'dress';
-    const TRY: { fit?: boolean; folds?: boolean; arm?: boolean; quiet?: boolean; shade?: boolean } = (window as any).__allRoundTry ?? {};
     const strip = trousers ? 0 : STRIP;
     // In the maker's fabric, unless the film wants its old look.
     const cloth = through ? undefined : tiles;
@@ -242,8 +241,10 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
     // only a fitted garment, with little ease at the waist, follows the waist in; a relaxed one falls straight
     // from the bust to the hip, its ease hanging in folds.
     // From the shoulders to the bust the cloth is held to the body; from the bust down it hangs.
+    // A dress with a waist seam is held at its own waist size there (Cat, 2026-10-26: "weird and boxy"): only a dress
+    // without one hangs straight past the waist.
     const seamed = round.kind === 'dress' && round.rings.length > 0;
-    const hangShare = TRY.fit && seamed ? 0 : round.girth.waist && m.waist ? clamp((round.girth.waist - m.waist - 4) / 3, 0, 1) * (through ? 0 : film ? 0.5 : 1) : 0;
+    const hangShare = seamed ? 0 : round.girth.waist && m.waist ? clamp((round.girth.waist - m.waist - 4) / 3, 0, 1) * (through ? 0 : film ? 0.5 : 1) : 0;
     const hang: number[] = [];
     for (let i = 0; i <= 60; i++) hang.push(Math.max(hang[i - 1] ?? 0, bodyR(BUST_Y + ((FORM_HIP - BUST_Y) * i) / 60)));
     const wornR = (y: number) => {
@@ -276,8 +277,9 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
       return Math.max(r, y < NECK_Y ? 0 : neckR + (shoulderR - neckR) * (1 - (1 - t) ** 2));
     };
     /** How far out the cloth lies at angle a round the body: the full width at the sides, the body's own depth front and back. */
+    // Below the hip a skirt falls in soft folds, more for a fuller one (Cat, 2026-10-26): never a stiff cone.
     const foldAmp = (y: number) =>
-      TRY.folds && flares ? (0.018 + 0.06 * clamp(round.flare - 1, 0, 1)) * smooth(clamp((y - FORM_HIP) / Math.max(0.05, meanY - FORM_HIP), 0, 1)) : 0;
+      flares ? (0.018 + 0.06 * clamp(round.flare - 1, 0, 1)) * smooth(clamp((y - FORM_HIP) / Math.max(0.05, meanY - FORM_HIP), 0, 1)) : 0;
     const FOLDS = 9;
     const fold = (a: number, y: number) => 1 + foldAmp(y) * Math.cos(FOLDS * a + 0.6 * Math.sin(3 * a));
     const foldTilt = (a: number, y: number) => Math.atan(-foldAmp(y) * FOLDS * Math.sin(FOLDS * a + 0.6 * Math.sin(3 * a)) * 1.2);
@@ -434,7 +436,8 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
         line(pts, colour, width, back, alpha);
       };
       const dot = (q: Pt, colour: string, r = 3.4) => {
-        if (TRY.quiet && cloth) return;
+        // In the fabric the seam-check rings are left out, so the cloth reads; the lines view keeps them.
+        if (cloth) return;
         g.globalAlpha = q[2] > 0 ? 1 : 0.35;
         g.strokeStyle = colour;
         g.lineWidth = 1.2;
@@ -455,7 +458,12 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
         // At the side neck point a neckline that reaches the neck sits right at its base, so no pocket of the form shows
         // between the cloth and the neck over the shoulder (Cat, 2026-10-26).
         const near = isTop && sl ? clamp(1 - (y - NECK_Y) / 0.12, 0, 1) * Math.sin(a) ** 2 : 0;
-        return y - Math.max(0, y - NECK_Y) * near;
+        const atNeck = y - Math.max(0, y - NECK_Y) * near;
+        // Sleeveless, the shoulders slope from the side of the neck down toward the shoulder tip at the armhole, as on
+        // a body, rather than running out flat to a square corner (Cat, 2026-10-26).
+        if (!isTop || !arm || sl) return atNeck;
+        const slope = smooth(1 - clamp((Math.abs(Math.abs(a) - HALF) - 0.32) / 0.75, 0, 1));
+        return Math.max(atNeck, atNeck + (yS - atNeck) * slope * 0.6);
       };
       // Where the front neck meets the shoulder the edge is eased round, not left as a notch; the centre front (a V's
       // point) and the back stay exactly as drawn.
@@ -587,7 +595,7 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
           const off = wrap(am - c);
           const slope = (v[2].r + v[3].r - v[0].r - v[1].r) / 2 / ((v[2].yy + v[3].yy - v[0].yy - v[1].yy) / 2 || 1e-6);
           const tt = th + foldTilt(am, (v[0].yy + v[2].yy) / 2);
-          const { lit, shine } = lightOf(Math.sin(tt), -clamp(slope, -3, 3), Math.cos(tt), cloth.sheen, TRY.shade);
+          const { lit, shine } = lightOf(Math.sin(tt), -clamp(slope, -3, 3), Math.cos(tt), cloth.sheen);
           quads.push({
             q: v.map((p) => [p.x, p.y]),
             uv: v.map((p) => [(off + p.a - am) * (p.ur ?? p.r) * k, border ? border(p) : (p.v ?? p.yy) * k]),
@@ -610,11 +618,6 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
           if (arm && !sl) {
             const d = Math.abs(Math.abs(a) - HALF) / 0.32;
             if (d < 1) t = Math.max(t, mid + half * Math.sqrt(1 - d * d));
-            // The shoulders slope: from the side of the neck down to the shoulder tip at the armhole.
-            if (TRY.arm) {
-              const near = 1 - clamp((Math.abs(Math.abs(a) - HALF) - 0.32) / 0.75, 0, 1);
-              t = Math.max(t, t + (yS - t) * smooth(near) * 0.6);
-            }
           }
           return t;
         };
@@ -765,7 +768,7 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
       const edge = cloth ? 0.55 : 1;
       ring(topY, (a, y) => shell(a, y), GLOW, lw * 1.1, 0.25, edge);
       for (const r of round.rings) ring((a) => yAt(a, r(a)), (a, y) => shell(a, y), GLOW, lw * 0.9, 0.25, edge);
-      if (!trousers) ring(hemY, (a, y) => (TRY.folds ? shell(a, y) : radius(y)), GLOW, lw * 1.3, cloth ? 0 : 0.3, edge);
+      if (!trousers) ring(hemY, (a, y) => shell(a, y), GLOW, lw * 1.3, cloth ? 0 : 0.3, edge);
       for (const e of cloth ? [] : [1, -1]) {
         const a = (e * Math.PI) / 2 - phi;
         const y0 = isTop && arm ? yU : topY(a);
