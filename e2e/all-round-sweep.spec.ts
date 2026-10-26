@@ -23,8 +23,8 @@ const LOOKS: [GarmentName, string, string[]][] = [
   ['Skirt', 'Shape', []],
   ['Trousers', 'Shape', []],
 ];
-/** Eight views, an eighth of a turn apart: the drag across the whole canvas turns the form 1.6π (AllRound.tsx). */
-const STEP = 1 / 6.4;
+/** Eight views, about an eighth of a turn apart (measured on the phone layout). */
+const STEP = 1 / 12.8;
 
 test('all round sweep', async ({ page }, info) => {
   test.setTimeout(900_000);

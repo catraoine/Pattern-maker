@@ -442,7 +442,13 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
         g.fillText(str.toUpperCase(), x, y);
       };
       const hemY = (a: number) => yOf(round.lengthAt(a));
-      const topRaw = (a: number) => yAt(a, round.topAt(a));
+      const topRaw = (a: number) => {
+        const y = yAt(a, round.topAt(a));
+        // At the side neck point a neckline that reaches the neck sits right at its base, so no pocket of the form shows
+        // between the cloth and the neck over the shoulder (Cat, 2026-10-26).
+        const near = isTop && sl ? clamp(1 - (y - NECK_Y) / 0.12, 0, 1) * Math.sin(a) ** 2 : 0;
+        return y - Math.max(0, y - NECK_Y) * near;
+      };
       // Where the front neck meets the shoulder the edge is eased round, not left as a notch; the centre front (a V's
       // point) and the back stay exactly as drawn.
       const TOP_N = 360;
