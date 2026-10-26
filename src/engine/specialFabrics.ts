@@ -12,7 +12,7 @@ type Drape = 'crisp' | 'soft' | 'fluid';
 type Fibre = 'cotton' | 'linen' | 'wool' | 'silk' | 'viscose' | 'polyester' | 'blend';
 type Garment = 'skirt' | 'bodice' | 'dress' | 'trousers' | 'tee' | 'jacket' | 'coat' | 'lingerie';
 
-export interface SpecialInfo {
+interface SpecialInfo {
   label: string;
   /** The fibre it usually is, recorded with it when the maker has not chosen one. */
   fibre?: Fibre;

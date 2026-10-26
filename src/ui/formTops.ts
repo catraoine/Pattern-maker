@@ -56,7 +56,7 @@ const SLEEVE_WORDS: Record<TeeSleeve, string> = { short: 'Short sleeves', elbow:
 export type TeeFormMeasurements = TeeMeasurements & { bust_depth?: number; wrist?: number };
 
 /** The T-shirt's form, its arms, and where each of its options falls on it. */
-export interface TeeForm {
+interface TeeForm {
   body: FormBody;
   arm: FormArm;
   bustY: number;

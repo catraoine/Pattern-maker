@@ -4,11 +4,11 @@ import { P, add, len, lerp, mul, p, sub, unit } from './geometry';
 import { Piece } from './piece';
 
 /** How deep a notch is cut into the seam allowance, the industry 6 mm. */
-export const NOTCH_DEPTH = 0.6;
+const NOTCH_DEPTH = 0.6;
 /** Drill holes sit 1 cm short of a dart point, inside the dart, so they never show on the garment. */
-export const DRILL_INSET = 1;
+const DRILL_INSET = 1;
 
-export interface DartLine {
+interface DartLine {
   near: P;
   tip: P;
   far: P;
@@ -47,7 +47,7 @@ export function allNotches(pc: Piece): [P, P][] {
 }
 
 /** The seam allowance on the edge nearest a point of the stitching line. */
-export function allowanceAt(pc: Piece, at: P): number {
+function allowanceAt(pc: Piece, at: P): number {
   const { pts, tags } = pc.outline.taggedPoints(12);
   let best = Infinity;
   let tag = '';
@@ -85,7 +85,7 @@ export function insidePolygon(q: P, pts: P[]): boolean {
   return inside;
 }
 
-export interface EdgeLabel {
+interface EdgeLabel {
   at: P;
   text: string;
   rotate: number; // degrees, clockwise

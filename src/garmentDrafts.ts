@@ -42,7 +42,7 @@ export interface DraftInputs {
 }
 
 /** The sleeve for a bodice, drafted to its armhole with its allowances, when one is chosen and the arms are measured. */
-export function sleeveFor(bodice: BodiceDraft, choices: BodiceChoices, values: MeasurementValues): SleeveDraft | undefined {
+function sleeveFor(bodice: BodiceDraft, choices: BodiceChoices, values: MeasurementValues): SleeveDraft | undefined {
   const { length, shape, cm, cuff } = sleeveOf(choices);
   if (length === 'none' || needsArms(values as SleeveMeasurements)) return undefined;
   return draftSleeve(bodice, values as SleeveMeasurements, {
@@ -63,7 +63,7 @@ const bodiceFitting = ({ fabric, form }: DraftInputs, f: Fitting | undefined) =>
 const skirtFitting = ({ fabric }: DraftInputs, f: Fitting | undefined) => withFabricEase(toFitting(f, 'skirt'), fabric, 'skirt');
 
 export const skirtStyleOf = (i: DraftInputs, f: Fitting | undefined) => ({ ...i.saved.choices, fitting: skirtFitting(i, f) });
-export const bodiceStyleOf = (i: DraftInputs, f: Fitting | undefined) => ({ ...validDetails(i.saved.bodice), fitting: bodiceFitting(i, f) });
+const bodiceStyleOf = (i: DraftInputs, f: Fitting | undefined) => ({ ...validDetails(i.saved.bodice), fitting: bodiceFitting(i, f) });
 /** The dress's choices; until it is styled, it starts from the bodice and the skirt. */
 export const dressOf = (saved: DraftInputs['saved']): DressChoices =>
   saved.dress ?? { garment: 'dress', fit: saved.bodice.fit, bodice: { ...saved.bodice, length: 'waist' }, skirt: saved.choices };
@@ -73,8 +73,8 @@ export const lingerieChoicesOf = (saved: DraftInputs['saved']) => saved.lingerie
 export const outerChoicesOf = (saved: DraftInputs['saved'], g: 'jacket' | 'coat'): OuterChoices =>
   g === 'coat' ? { ...DEFAULT_COAT_CHOICES, ...saved.coat } : { ...DEFAULT_JACKET_CHOICES, ...saved.jacket };
 // The menswear form's tee has no bust shaping: front and back cut alike.
-export const teeStyleOf = (i: DraftInputs) => ({ ...teeChoicesOf(i.saved), ...(i.form === 'menswear' ? { flatFront: true } : {}) });
-export const trousersStyleOf = (i: DraftInputs, f: Fitting | undefined) => ({
+const teeStyleOf = (i: DraftInputs) => ({ ...teeChoicesOf(i.saved), ...(i.form === 'menswear' ? { flatFront: true } : {}) });
+const trousersStyleOf = (i: DraftInputs, f: Fitting | undefined) => ({
   ...trousersChoicesOf(i.saved),
   ...(i.form === 'menswear' ? { cut: 'menswear' as const } : {}),
   fitting: skirtFitting(i, f),
@@ -85,7 +85,7 @@ const outerStyleOf = (i: DraftInputs, g: 'jacket' | 'coat', f: Fitting | undefin
   return { ...c, kind: c.garment, fitting: bodiceFitting(i, f) };
 };
 /** The dress in one fit: the bodice at the waist, the skirt below it, each with its toile corrections. */
-export const dressStylesOf = (i: DraftInputs, f: Fitting | undefined) => {
+const dressStylesOf = (i: DraftInputs, f: Fitting | undefined) => {
   const dress = dressOf(i.saved);
   return {
     bodice: { ...validDetails({ ...dress.bodice, length: 'waist' }, 'dress'), fit: dress.fit, length: 'waist' as const, fitting: bodiceFitting(i, f) },
@@ -99,7 +99,7 @@ type Allow = (pieces: Piece[]) => Piece[];
 // The garment's own pieces: pocket bags don't change with a fitting.
 const own = (pcs: Piece[]) => pcs.filter((pc) => pc.kind !== 'pocket');
 
-export interface GarmentDrafting {
+interface GarmentDrafting {
   /** The choices it's styled with, as a saved pattern keeps them. */
   choices(saved: DraftInputs['saved']): PatternChoices;
   /** Its name on the page: "A-line skirt, knee length". */

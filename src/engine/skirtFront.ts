@@ -22,7 +22,7 @@ export const BUTTONS_STOP_ABOVE_HEM = 15;
 const FACING_IN = 6.5;
 /** The skirt yoke: how many cm down the side seam it reaches at least and at most, and how far above
  * the hip line it stays. */
-export const SKIRT_YOKE = { min: 8, max: 16, aboveHip: 3 };
+const SKIRT_YOKE = { min: 8, max: 16, aboveHip: 3 };
 
 interface FrontStyle {
   silhouette: string;
@@ -346,7 +346,7 @@ export function skirtFrontFacing(front: Piece): Piece {
 }
 
 /** A skirt's buttons: the first 3 cm below the waistband, the last 15 cm above the hem, about 8 cm apart. */
-export function skirtButtons(hem: number): Buttons {
+function skirtButtons(hem: number): Buttons {
   const first = 3;
   const last = hem - BUTTONS_STOP_ABOVE_HEM;
   const count = Math.max(2, Math.round((last - first) / 8));

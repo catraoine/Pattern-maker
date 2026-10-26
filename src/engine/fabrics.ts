@@ -466,7 +466,7 @@ export function pickTag(p: Pick<FabricPick, 'weight' | 'drape'>): string {
   return `${cap(p.weight.join(' to '))}, ${p.drape}`;
 }
 
-export interface FabricNote {
+interface FabricNote {
   level: 'ok' | 'warn' | 'info';
   text: string;
 }
@@ -628,7 +628,7 @@ export function fabricLines(f: MyFabric | undefined, garment: FabricGarment): st
 const PREPARE_TITLE = 'Prepare your fabric';
 
 /** The first sewing step: shrink, press and square the fabric before any pattern goes on it. */
-export function prepareStep(f: MyFabric | undefined): { title: string; text: string } {
+function prepareStep(f: MyFabric | undefined): { title: string; text: string } {
   const wash = f?.special
     ? SPECIALS[f.special].prewash
     : f?.fibre

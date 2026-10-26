@@ -85,9 +85,6 @@ export interface RoundGarment {
   readings: { front: number; back: number; left: number; right: number };
 }
 
-/** The skirt keeps its own name for the screens and tests that read it. */
-export type RoundSkirt = RoundGarment;
-
 const HALF = Math.PI / 2;
 const ease = (u: number) => u * u * (3 - 2 * u);
 const wrap = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));

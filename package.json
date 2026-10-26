@@ -13,7 +13,8 @@
     "test:e2e": "playwright test -c e2e",
     "record:tour": "node scripts/record-tour-shots.mjs tour-shots && node scripts/edit-tour.mjs tour-shots public/tour/walkthrough.mp4 && node scripts/record-tour-shots.mjs --wide && node scripts/edit-tour.mjs --wide",
     "record:demos": "node scripts/record-demos.mjs public/demos",
-    "lint": "eslint src netlify e2e"
+    "lint": "eslint src netlify e2e",
+    "dead-code": "knip"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.133.0",
@@ -37,9 +38,11 @@
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^5.2.0",
     "globals": "^16.4.0",
+    "knip": "^5.88.1",
     "typescript": "^5.6.3",
     "typescript-eslint": "^8.46.2",
     "vite": "^5.4.11",
+    "vite-node": "^2.1.8",
     "vite-plugin-pwa": "^0.21.1",
     "vitest": "^2.1.8"
   }

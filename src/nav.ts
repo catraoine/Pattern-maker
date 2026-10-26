@@ -78,7 +78,7 @@ export const canGoBack = () => (current()?.depth ?? 0) > 0;
 export const goBack = () => window.history.back();
 
 /** Swap the current entry for another screen, for redirects that shouldn't leave a step behind. */
-export function replaceView(view: string) {
+function replaceView(view: string) {
   const now = current();
   const trail = [...(now?.trail ?? []).slice(0, -1), view];
   window.history.replaceState({ view, depth: now?.depth ?? 0, trail, bases: now?.bases ?? [0], visit: VISIT } satisfies NavState, '');

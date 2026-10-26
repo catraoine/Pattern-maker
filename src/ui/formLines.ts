@@ -23,7 +23,6 @@ import { HEM_SAMPLES, matchSides, offsetAt } from '../engine/hem';
 import { asymOffset, planFor } from '../engine/asymHem';
 import { volumeOf } from '../engine/skirtVolume';
 import type { Choices } from '../savedWork';
-import { blockOf } from '../engine/bodice';
 import { currentNeck, dragDrop, dragEase, strokeToNeck, worn } from './BodiceShape';
 import { dragFlare, dragLength, strokeToHem } from './ShapeSketch';
 
@@ -42,7 +41,7 @@ const EDGES: Edge[] = ['neck', 'shoulder', 'armhole', 'side', 'waist'];
 
 /** How close a line must start to an edge, how close it must pass the bust point, and how near the
  * waist a seam must reach to be a princess seam, in cm. */
-export const EDGE_REACH = 5;
+const EDGE_REACH = 5;
 export const APEX_REACH = 6;
 export const WAIST_REACH = 4;
 
@@ -263,7 +262,7 @@ const LENGTH_WORDS: Record<Length, string> = { mini: 'Mini', above_knee: 'Above 
 const gatheredSpread = (draft: Pick<SkirtDraft, 'lengthCm'>, skirt: Choices, m: SkirtMeasurements) =>
   skirt.silhouette === 'gathered' ? Math.max(0, draft.lengthCm - m.waist_to_hip) * 0.2 : 0;
 
-export function skirtHem(draft: Pick<SkirtDraft, 'lengthCm' | 'hem' | 'flareCm'>, skirt: Choices, m: SkirtMeasurements, side: FormSide): P[] {
+function skirtHem(draft: Pick<SkirtDraft, 'lengthCm' | 'hem' | 'flareCm'>, skirt: Choices, m: SkirtMeasurements, side: FormSide): P[] {
   const halfWidth = (m.full_hip + FIT_EASE[skirt.fit].hip) / 4 + Math.max(0, draft.flareCm ?? 0) + gatheredSpread(draft, skirt, m);
   const plan = planFor(skirt, m, draft.lengthCm);
   return Array.from({ length: HEM_SAMPLES }, (_, i) => {
@@ -499,4 +498,3 @@ export function seamWords(cm: number, range: { min: number; max: number }): stri
   return `Seam ${cm} cm below the waist${cm >= range.max - 1 ? ', low on the hip' : ''}.`;
 }
 
-export { blockOf };

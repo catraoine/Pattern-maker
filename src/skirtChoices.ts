@@ -17,7 +17,7 @@ import { layoutExtras, volumeWords } from './engine/skirtVolume';
 // The skirt's choices as data: the groups on the Style screen, what each detail allows, the skirt's name in words
 // and the fabric it needs. Kept apart from the screen so the drafting, the photo reading and the print can use them.
 
-export type ChoiceGroup<K extends keyof Choices> = { id: K; label: string; options: [NonNullable<Choices[K]>, string][] };
+type ChoiceGroup<K extends keyof Choices> = { id: K; label: string; options: [NonNullable<Choices[K]>, string][] };
 
 export const GROUPS: [ChoiceGroup<'fit'>, ChoiceGroup<'silhouette'>, ChoiceGroup<'length'>, ChoiceGroup<'asymHem'>] = [
   { id: 'fit', label: 'Fit', options: [['fitted', 'Fitted'], ['regular', 'Regular'], ['relaxed', 'Relaxed']] },
@@ -64,7 +64,7 @@ export const ZIP_PLACES: ['back' | 'side', string][] = [
 ];
 
 /** The waist a skirt can have: a faced or high waist falls back to the band where the shape can't take it. */
-export const waistOf = (c: Choices): string => {
+const waistOf = (c: Choices): string => {
   const w = c.waist ?? 'band';
   return (w === 'faced' && !facedAllowed(c)) || (w === 'high' && !highAllowed(c)) ? 'band' : w;
 };
@@ -94,10 +94,10 @@ export const pocketsAllowed = (c: Choices) => volumeWords(c) === '' && !yokeOf(c
 export const keepWaist = (c: Choices): Choices => (elasticAllowed(c) ? c : { ...c, waist: undefined });
 
 /** "a, b and c". */
-export const andList = (xs: string[]) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
+const andList = (xs: string[]) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
 
 /** What the skirt has besides its shape, for its name: " with a shaped hem, an elastic waist and pockets". */
-export function detailWords(c: Choices): string[] {
+function detailWords(c: Choices): string[] {
   // A slit chosen is named; the walking slit a narrow skirt gets unasked is not.
   const slit = c.slit && c.slit !== 'none' ? slitOf(c) : undefined;
   const waist = detailOf(c, 'waist');
@@ -119,7 +119,7 @@ export const beltOf_ = (c: Choices): Belt => {
 };
 
 /** True when the skirt has been shaped by hand: a dragged length or flare, or a drawn hem. */
-export const handShaped = (c: Choices) => c.lengthCm !== undefined || c.flareCm !== undefined || isShaped(c.hem);
+const handShaped = (c: Choices) => c.lengthCm !== undefined || c.flareCm !== undefined || isShaped(c.hem);
 
 /** The era look the choices came from, if they still have its shape and length. */
 export function currentLook(c: Choices) {

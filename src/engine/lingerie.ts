@@ -65,7 +65,7 @@ export interface LingerieStyle {
   tried?: LingerieFit;
 }
 
-export const DEFAULT_LINGERIE: LingerieStyle = { piece: 'brief', stretch: 'medium', way: 'four', leg: 'classic', rise: 'high', cup: 'triangle', closure: 'none' };
+const DEFAULT_LINGERIE: LingerieStyle = { piece: 'brief', stretch: 'medium', way: 'four', leg: 'classic', rise: 'high', cup: 'triangle', closure: 'none' };
 
 /** Swimwear is cut in four-way stretch, lined, and shortened down the body. */
 export const isSwim = (piece: LingeriePiece) => piece === 'swimsuit' || piece === 'bikini';
@@ -76,9 +76,9 @@ export const LINGERIE_EASE: Record<LingerieStretch, number> = { medium: -0.08, h
  * A knit that stretches across only isn't shortened at all. */
 export const LENGTH_REDUCTION = { knit: 0.03, swim: 0.08, two: 0 };
 /** The bralette's band, cut this much under the underbust so it grips. */
-export const BAND_EASE: Record<LingerieStretch, number> = { medium: -0.1, high: -0.14 };
+const BAND_EASE: Record<LingerieStretch, number> = { medium: -0.1, high: -0.14 };
 /** Elastic as a share of the edge it's sewn to. */
-export const ELASTIC_RATIO = { waist: 0.94, leg: 0.85, neck: 0.9, armhole: 0.9, cup: 0.92, band: 0.92, shelf: 0.9 };
+const ELASTIC_RATIO = { waist: 0.94, leg: 0.85, neck: 0.9, armhole: 0.9, cup: 0.92, band: 0.92, shelf: 0.9 };
 /** How the crotch length is shared out along the centre: front piece, gusset, back piece. */
 export const CROTCH_SHARE = { front: 0.3, gusset: 0.22, back: 0.48 };
 /** Gusset widths in cm, edge to edge: where it meets the front, its narrowest, where it meets the back. */
@@ -86,7 +86,7 @@ export const GUSSET = { front: 8, narrow: 6.5, back: 12 };
 /** Seams are overlocked at 1 cm. */
 export const LINGERIE_SEAM = 1;
 /** Elastic widths in cm: each elastic edge's allowance is the same, so the edge turns once over it. */
-export const ELASTIC_WIDTH = { waistHigh: 2, waistMid: 1.5, swim: 1, edge: 1, band: 1.5, cup: 0.8, strap: 1 };
+const ELASTIC_WIDTH = { waistHigh: 2, waistMid: 1.5, swim: 1, edge: 1, band: 1.5, cup: 0.8, strap: 1 };
 /** Joined loops overlap this much where the ends are zigzagged together. */
 export const LOOP_OVERLAP = 1;
 /** Hook-and-eye tape, closed on its middle row: the band is cut this much short so it closes at size. */
@@ -94,7 +94,7 @@ export const HOOK_TAPE = 3;
 /** Above this gap between bust and underbust the soft cup is cut in two pieces with a seam, not a dart. */
 export const SEAMED_CUP_GAP = 15;
 /** Above this gap a soft cup gives only light support. */
-export const SOFT_CUP_LIMIT = 25;
+const SOFT_CUP_LIMIT = 25;
 /** The snapped bodysuit's gusset overlap, front over back, in cm. */
 export const SNAP_OVERLAP = 3;
 /** How much one fit answer moves the draft. */
@@ -133,7 +133,7 @@ export interface LingerieDraft {
 const r1 = (v: number) => Math.round(v * 10) / 10;
 
 /** The measurements each piece needs, beyond the waist and hip. */
-export const LINGERIE_NEEDS: Record<LingeriePiece, (keyof LingerieMeasurements)[]> = {
+const LINGERIE_NEEDS: Record<LingeriePiece, (keyof LingerieMeasurements)[]> = {
   brief: ['crotch_length'],
   bralette: ['full_bust', 'underbust', 'apex_separation', 'nape_to_waist'],
   bikini: ['full_bust', 'underbust', 'apex_separation', 'nape_to_waist', 'crotch_length'],
@@ -666,6 +666,3 @@ function onePiece(c: Ctx) {
     ],
   };
 }
-
-/** The pieces a lingerie choice makes, in words. */
-export const LINGERIE_NAMES: Record<LingeriePiece, string> = { brief: 'brief', bralette: 'bralette', bodysuit: 'bodysuit', swimsuit: 'swimsuit', bikini: 'bikini' };

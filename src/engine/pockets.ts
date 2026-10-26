@@ -34,7 +34,7 @@ interface Ring {
   tags: string[];
 }
 
-export function ringOf(pc: Piece, steps = 64): Ring {
+function ringOf(pc: Piece, steps = 64): Ring {
   let { pts, tags } = pc.outline.taggedPoints(steps);
   if (len(sub(pts[0], pts[pts.length - 1])) < 1e-6) pts = pts.slice(0, -1);
   return { pts, tags: tags.slice(0, pts.length) };
@@ -69,7 +69,7 @@ function between(r: Ring, a: At, b: At): P[] {
 }
 
 /** The stretch of a seam from `from` to `to` cm along it, from where the seam starts. */
-export function seamSlice(pc: Piece, tag: string, from: number, to: number): P[] | undefined {
+function seamSlice(pc: Piece, tag: string, from: number, to: number): P[] | undefined {
   const r = ringOf(pc);
   const s = runStart(r, tag);
   if (s < 0) return undefined;
@@ -183,7 +183,7 @@ function marked(name: string, cut: string, centre: P, grain: P, extra: Partial<P
   };
 }
 
-export interface InseamOpts {
+interface InseamOpts {
   /** The seam the pocket hangs in. */
   tag?: string;
   /** Kept clear above the end of the seam (the hem allowance and a little more). */
@@ -239,7 +239,7 @@ export function inseamPocket(garment: Piece, opts: InseamOpts = {}): { bag: Piec
   return { bag: markSeam(bag, 'pocket-side', [top - from, o1 - from], 'POCKET'), opening: [top, o1] };
 }
 
-export interface SlantPocket {
+interface SlantPocket {
   /** The garment front with the opening cut away. */
   front: Piece;
   /** Sewn to the opening and turned behind it. */

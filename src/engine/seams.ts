@@ -52,7 +52,7 @@ export const PANEL_RANGE = { min: 0.45, max: 0.92 };
 const WORDS: Record<SeamKind, string> = { yoke: 'yoke', empire: 'empire seam', panel: 'side panels' };
 
 /** Which style seam a bodice has: an empire seam, side panels or a yoke, one at a time. */
-export function seamOf(s: { yoke?: Yoke; empire?: number; panel?: Panel }): SeamKind | undefined {
+function seamOf(s: { yoke?: Yoke; empire?: number; panel?: Panel }): SeamKind | undefined {
   if (s.empire !== undefined) return 'empire';
   if (s.panel) return 'panel';
   if (s.yoke && (s.yoke.front !== undefined || s.yoke.back !== undefined)) return 'yoke';

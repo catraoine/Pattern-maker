@@ -15,7 +15,7 @@ type Demo = {
   length: string;
 };
 
-export const DEMOS = {
+const DEMOS = {
   style: {
     title: 'How Style works',
     base: '/demos/style',
@@ -99,7 +99,7 @@ export const DEMOS = {
   },
 } satisfies Record<string, Demo>;
 
-export type DemoName = keyof typeof DEMOS;
+type DemoName = keyof typeof DEMOS;
 
 export function DemoButton({ demo }: { demo: DemoName }) {
   const [open, setOpen] = useState(false);

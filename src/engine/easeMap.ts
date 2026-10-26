@@ -61,7 +61,7 @@ export function widthAt(pc: Piece, y: number, xMax = Infinity): number {
 /** How many of the piece the garment has, as a share of the whole round: a quarter piece counts twice. */
 const copies = (pc: Piece) => (/fold|2|pair/i.test(pc.cut) ? 2 : 1);
 
-export interface EaseGroup {
+interface EaseGroup {
   /** The pieces sewn round the body together: a skirt's front and back, a bodice's panels. */
   pieces: Piece[];
   /** The body round at level y, in the pieces' own coordinates; undefined where it isn't measured. */
@@ -123,7 +123,7 @@ export function easeMap(groups: EaseGroup[], step = 1): EaseView[] {
 }
 
 /** A smooth rise from one round to the next, the way the body curves between landmarks. */
-export const between = (y: number, ya: number, a: number, yb: number, b: number) => {
+const between = (y: number, ya: number, a: number, yb: number, b: number) => {
   const t = Math.min(1, Math.max(0, (y - ya) / (yb - ya)));
   return a + (b - a) * Math.sin((t * Math.PI) / 2);
 };
@@ -161,7 +161,7 @@ export function upperBody(m: { waist?: number; full_bust?: number; high_bust?: n
  * Round one leg below the crotch, estimated from the hip: the thigh about 0.6 of it at the crotch,
  * the knee about 0.37, the calf a little more, the ankle about 0.24. Estimated, as no leg is measured.
  */
-export function legBody(m: { full_hip?: number }, lv: { crotch: number; knee: number; ankle: number }) {
+function legBody(m: { full_hip?: number }, lv: { crotch: number; knee: number; ankle: number }) {
   return (y: number) => {
     if (!m.full_hip) return undefined;
     const H = m.full_hip;
@@ -173,10 +173,10 @@ export function legBody(m: { full_hip?: number }, lv: { crotch: number; knee: nu
 }
 
 /** The level of a piece's balance line, by its label. */
-export const balanceY = (pc: Piece, label: string) => pc.balance?.find((b) => b.label === label)?.pts[0].y;
+const balanceY = (pc: Piece, label: string) => pc.balance?.find((b) => b.label === label)?.pts[0].y;
 
 /** The middle level of a piece's waist seam. */
-export function waistY(pc: Piece): number | undefined {
+function waistY(pc: Piece): number | undefined {
   const { pts, tags } = pc.outline.taggedPoints(8);
   const ys = tags.flatMap((t, i) => (t === 'waist' ? [pts[i].y, pts[i + 1].y] : [])).sort((a, b) => a - b);
   return ys.length ? ys[Math.floor(ys.length / 2)] : undefined;

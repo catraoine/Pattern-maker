@@ -9,7 +9,7 @@ import { DraftPoint, Piece } from './piece';
 export type Closure = 'back_zip' | 'front_buttons' | 'wrap';
 export type Collar = 'none' | 'peter_pan' | 'mandarin' | 'mock' | 'funnel' | 'shirt' | 'bow' | 'ruffle';
 /** The collars that are a single band standing up from the neck, sewn and finished like a mandarin. */
-export type BandCollar = 'mandarin' | 'mock' | 'funnel';
+type BandCollar = 'mandarin' | 'mock' | 'funnel';
 export const isBandCollar = (c: Collar | undefined): c is BandCollar => c === 'mandarin' || c === 'mock' || c === 'funnel';
 /**
  * Each band's finished height and how far its neck edge rises toward the front, in cm. A mandarin and a
@@ -318,7 +318,7 @@ function band(c: CollarIn, name: string, height: number, rise: number): { piece:
   return { piece, neck, top, cfAt };
 }
 
-export function bandCollar(c: CollarIn, kind: BandCollar = 'mandarin'): Piece[] {
+function bandCollar(c: CollarIn, kind: BandCollar = 'mandarin'): Piece[] {
   const { height, rise } = BANDS[kind];
   const b = band(c, 'Collar', height, rise).piece;
   b.meta = { ...b.meta, band: kind };
@@ -331,10 +331,9 @@ export function bandCollar(c: CollarIn, kind: BandCollar = 'mandarin'): Piece[] 
   ], b);
   return [b];
 }
-export const mandarinCollar = (c: CollarIn) => bandCollar(c, 'mandarin');
 
 /** A shirt collar: a stand like the mandarin, and the collar on it, springing out at its edge. */
-export function shirtCollar(c: CollarIn): Piece[] {
+function shirtCollar(c: CollarIn): Piece[] {
   const s = band(c, 'Collar stand', 3, 1.5);
   // The stand's top edge as far as the centre front mark: the collar's lower edge is this long.
   const cfIndex = (() => {
@@ -413,7 +412,7 @@ export function shirtCollar(c: CollarIn): Piece[] {
  * the shoulder point so the collar rolls a little, and a band 6.5 cm wide drawn round them, rounding to
  * nothing at the centre front.
  */
-export function peterPanCollar(front: Piece, back: Piece, c: CollarIn): Piece[] {
+function peterPanCollar(front: Piece, back: Piece, c: CollarIn): Piece[] {
   const run = (pc: Piece) => {
     const r = ringOf(pc.outline);
     const nk = runOf(r, 'neck')!;
@@ -498,7 +497,7 @@ export function peterPanCollar(front: Piece, back: Piece, c: CollarIn): Piece[] 
  * round to the centre front, where it runs on into a tie. Folded along its length, the strip finishes
  * the neck and the two ties are knotted into a soft bow.
  */
-export function bowCollar(c: CollarIn): Piece[] {
+function bowCollar(c: CollarIn): Piece[] {
   const neck = c.back + c.front;
   const L = neck + BOW.tie;
   const h = 2 * BOW.width;
@@ -541,7 +540,7 @@ export function bowCollar(c: CollarIn): Piece[] {
  * the front and back to the zip, its fold at the centre front; or on a button front from front edge to
  * front edge, its fold at the centre back.
  */
-export function ruffleCollar(c: CollarIn): Piece {
+function ruffleCollar(c: CollarIn): Piece {
   const buttons = c.closure === 'front_buttons';
   const neck = c.back + c.front;
   const L = neck * RUFFLE.ratio;
@@ -593,4 +592,3 @@ export function collarPieces(kind: Collar, front: Piece, back: Piece, c: CollarI
   return [];
 }
 
-export type { CollarIn };

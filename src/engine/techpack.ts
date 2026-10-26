@@ -16,7 +16,7 @@ export interface SpecRow {
   finished: number | string;
 }
 
-export interface TechPack {
+interface TechPack {
   title: string;
   profile: string;
   fit: string;

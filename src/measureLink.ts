@@ -31,7 +31,7 @@ export interface MeasureReply {
   redo?: boolean;
 }
 
-export type Incoming = { kind: 'ask'; ask: MeasureAsk } | { kind: 'reply'; reply: MeasureReply } | { kind: 'broken' };
+type Incoming = { kind: 'ask'; ask: MeasureAsk } | { kind: 'reply'; reply: MeasureReply } | { kind: 'broken' };
 
 const ASK = 'measure=';
 const REPLY = 'measured=';
@@ -122,7 +122,7 @@ export function redoFlags(values: MeasurementValues, garment: Garment): { id: Me
 }
 
 /** What changed when a reply was added, for "99 (was 81)". */
-export interface Arrived {
+interface Arrived {
   account: Account;
   personId: string;
   changed: { id: MeasurementId; was?: number; now: number }[];

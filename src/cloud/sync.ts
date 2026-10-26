@@ -11,7 +11,7 @@ export interface SyncIo {
   save(backup: Backup<unknown>, seen: string | null): Promise<string | null>;
 }
 
-export interface SyncResult<S> {
+interface SyncResult<S> {
   /** What both sides hold now: the base for the next round. */
   base: Backup<S>;
   /** Whether this device's work was changed by the join. */

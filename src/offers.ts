@@ -9,7 +9,7 @@ export type NightCity = (typeof NIGHT_CITIES)[number];
 export const CITY_NAMES: Record<NightCity, string> = { vancouver: 'Vancouver', berlin: 'Berlin', london: 'London', copenhagen: 'Copenhagen' };
 export type OfferId = (typeof OFFER_IDS)[number];
 
-export interface Offer {
+interface Offer {
   id: OfferId;
   eyebrow: string;
   title: string;
@@ -22,7 +22,7 @@ export interface Offer {
   thanks: string;
 }
 
-export const FOUNDING_PLACES = 500;
+const FOUNDING_PLACES = 500;
 
 export const OFFERS: Record<OfferId, Offer> = {
   founding: {

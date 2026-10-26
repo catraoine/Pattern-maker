@@ -14,7 +14,7 @@ export function rng(seed: number) {
   };
 }
 
-export type Body = BodiceMeasurements & SkirtMeasurements;
+type Body = BodiceMeasurements & SkirtMeasurements;
 
 /** A random adult body. Measurements are linked the way bodies are (taller people have longer
  * backs, bigger busts have bigger necks and armholes) and stay inside the typical ranges of

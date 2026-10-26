@@ -287,10 +287,10 @@ export function colourDistance(a: string, b: string): number {
   return Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]);
 }
 
-export type Closeness = 'near' | 'close' | 'far';
+type Closeness = 'near' | 'close' | 'far';
 export const CLOSENESS: Record<Closeness, string> = { near: 'Near match', close: 'Close', far: 'Different shade' };
 
-export interface ColourMatch {
+interface ColourMatch {
   fabric: ShopFabric;
   colour: Colour;
   distance: number;

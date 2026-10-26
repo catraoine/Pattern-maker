@@ -176,7 +176,7 @@ export function buildBody(values: MeasurementValues): Body {
   return { rings, marks, shoulders };
 }
 
-export interface BodyMesh {
+interface BodyMesh {
   /** x, y (up), z (forward) for each vertex, in cm, with the floor at y = 0. */
   vertices: [number, number, number][];
   normals: [number, number, number][];

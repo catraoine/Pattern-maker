@@ -69,7 +69,7 @@ function fittingLines(f: Fitting | undefined, garment: Garment): string[] {
 }
 
 /** What the printed pattern is made from. */
-export interface PrintInputs {
+interface PrintInputs {
   result: Drafts;
   values: MeasurementValues;
   finish: Finish;

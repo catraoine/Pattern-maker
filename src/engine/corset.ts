@@ -42,7 +42,7 @@ export const GRIP_CM = 1.6;
 /** Where the bones stop, in cm: below the top edge and above the waist seam line. */
 export const BONE_STOP = { top: 2, waist: 1.5 };
 /** The top edge meets the side seam this far below the block's underarm. */
-export const SIDE_DROP = 2;
+const SIDE_DROP = 2;
 /** The top edge over the bust point, in cm above it. */
 const ABOVE_BUST: Record<TopNeckline, number> = { strapless: 4.5, sweetheart: 4.5, cami: 7, halter: 7 };
 /** A sweetheart dips to this far above the bust point at the centre front; a cami's V to this. */
@@ -58,7 +58,7 @@ export const HALTER = { neckDrop: 1.5, strapEnd: 3.5, tieWidth: 2.5, tieTails: 2
 /** Extra on each strap to settle its length at the fitting (half at each end). */
 export const STRAP_ADJUST = 4;
 /** A rouleau strap: the bias strip cut 2.5 cm wide turns to about 6 mm. */
-export const ROULEAU = { cutWidth: 2.5, finished: 0.6 };
+const ROULEAU = { cutWidth: 2.5, finished: 0.6 };
 /** The grosgrain waist stay: 2.5 cm wide, 5 cm longer than the waist to turn back for its hook and bar. */
 export const WAIST_STAY = { width: 2.5, ends: 5 };
 /** Standard invisible zips, as for the bodice. */

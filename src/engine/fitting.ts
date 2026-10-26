@@ -427,7 +427,7 @@ export const FIT_ISSUES: FitIssue[] = [
   }),
 ];
 
-export const issueById = (id: string) => FIT_ISSUES.find((i) => i.id === id);
+const issueById = (id: string) => FIT_ISSUES.find((i) => i.id === id);
 
 /** The skirt corrections trousers take: the waist, the hip and the centre waists (not darts or one hip). */
 const TROUSER_KEYS = ['hipEase', 'waistEase', 'frontDrop', 'backDrop'];

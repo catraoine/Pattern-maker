@@ -13,7 +13,7 @@ export interface Check {
 }
 
 /** Seams walked to within 1 mm, corners to within a degree (two where curves meet across a seam). */
-export const SEAM_TOLERANCE = 0.1;
+const SEAM_TOLERANCE = 0.1;
 const SQUARE_TOLERANCE = 1;
 const BLEND_TOLERANCE = 2;
 
@@ -29,7 +29,7 @@ interface Corner {
 }
 
 /** Interior angle at every point where one edge tag gives way to another. */
-export function corners(pc: Piece): Corner[] {
+function corners(pc: Piece): Corner[] {
   let { pts, tags } = pc.outline.taggedPoints(256);
   if (len(sub(pts[0], pts[pts.length - 1])) < 1e-6) pts = pts.slice(0, -1);
   // Drop zero-length edges so every direction is well defined.

@@ -3,7 +3,7 @@
 // length and fit, which can still be changed afterwards.
 import type { Fit, Length, Silhouette } from './skirt';
 
-export interface EraLook {
+interface EraLook {
   id: string;
   name: string;
   about: string;
@@ -13,7 +13,7 @@ export interface EraLook {
   fit: Fit;
 }
 
-export interface Era {
+interface Era {
   id: string;
   name: string;
   years: string;

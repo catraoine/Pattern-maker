@@ -35,8 +35,8 @@ export const COWL_FACING = 8;
 /** The one-shoulder edge: how far below the underarm it meets the right side seam, how far above the
  * right bust point it passes, and how much tighter it is drafted over the bust. */
 export const UNDER_ARM = 1.5;
-export const ABOVE_BUST = 5;
-export const TIGHTEN = 1;
+const ABOVE_BUST = 5;
+const TIGHTEN = 1;
 /** A gathered peplum is cut this many times the waist. */
 export const GATHER = 1.5;
 
@@ -118,7 +118,7 @@ const squareToward = (d: P, toward: P) => {
 };
 
 /** A run of points, tags[i] naming the edge pts[i] -> pts[i + 1]. */
-export interface Run {
+interface Run {
   pts: P[];
   tags: string[];
 }
@@ -696,7 +696,7 @@ function cowl(d: BodiceDraft, s: BodiceStyle, redraft: (s: BodiceStyle) => Bodic
 }
 
 /** How deep the peplum is: about 85% of the waist to hip, between 15 and 20 cm. */
-export const peplumDepth = (m: { waist_to_hip?: number }) => Math.max(15, Math.min(20, Math.round(0.85 * (m.waist_to_hip ?? 20))));
+const peplumDepth = (m: { waist_to_hip?: number }) => Math.max(15, Math.min(20, Math.round(0.85 * (m.waist_to_hip ?? 20))));
 
 /** A gathered peplum piece: a rectangle, its waist edge gathered to the bodice's. */
 function rectPiece(name: string, w: number, h: number, isFront: boolean, sa: number): Piece {

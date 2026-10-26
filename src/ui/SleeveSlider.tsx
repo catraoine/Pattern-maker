@@ -4,7 +4,7 @@ import { BodiceChoices, slideSleeve, sleeveOf } from '../garments';
 const NAMES = { short: 'short', elbow: 'elbow', three_quarter: 'three-quarter', long: 'long' } as const;
 
 /** Where a length sits among the named ones, in words: "at the elbow", "between elbow and three-quarter". */
-export function sleeveLengthWords(cm: number, named: SleeveDraft['length']['named']): string {
+function sleeveLengthWords(cm: number, named: SleeveDraft['length']['named']): string {
   const order = (['short', 'elbow', 'three_quarter', 'long'] as const).filter((l) => named[l] !== undefined);
   const on = order.find((l) => Math.abs(named[l] - cm) < 1);
   if (on) return on === 'elbow' ? 'At the elbow.' : on === 'long' ? 'Down to the wrist.' : `The ${NAMES[on]} length.`;

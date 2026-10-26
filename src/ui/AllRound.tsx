@@ -30,7 +30,7 @@ const STRIP = 96; // the unrolled hem line under the figure, in px
 type Pt = [number, number, number];
 
 /** The measurements the view places the garment by; any it lacks fall back to the form's own. */
-export interface RoundMeasurements {
+interface RoundMeasurements {
   waist?: number;
   full_bust?: number;
   full_hip?: number;

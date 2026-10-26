@@ -32,7 +32,7 @@ export type OuterFlare = 'straight' | 'a_line';
 
 export type OuterMeasurements = BodiceMeasurements & SleeveMeasurements & { waist_to_knee?: number; waist_to_floor?: number };
 
-export interface OuterStyle {
+interface OuterStyle {
   kind: OuterKind;
   fit: OuterFit;
   length: OuterLength;
@@ -76,20 +76,20 @@ const OUTER_NECK = { frontDepth: 2, width: 1, backDepth: 0.5, fullness: 0.45 };
 /** The extension beyond the centre front, and the button size, in cm. */
 export const OUTER_EXTENSION: Record<OuterKind, Record<OuterFront, number>> = { jacket: { single: 2, double: 6.5, zip: 0 }, coat: { single: 2.5, double: 8, zip: 0 } };
 /** The rib bands, finished depth in cm, and how much shorter than the edge they are cut, so they pull in. */
-export const RIB = { hem: 6, cuff: 5, draw: 0.85 };
+const RIB = { hem: 6, cuff: 5, draw: 0.85 };
 /** The hood: from the neck to the top and from the face edge to the centre back, in cm, before it is sized to the neck. */
 const HOOD = { jacket: { height: 34, depth: 26 }, coat: { height: 36, depth: 27.5 } };
-export const OUTER_BUTTON: Record<OuterKind, number> = { jacket: 2, coat: 2.5 };
+const OUTER_BUTTON: Record<OuterKind, number> = { jacket: 2, coat: 2.5 };
 
 /** How thick each pad is at the shoulder point, in cm. */
-export const PAD_CM: Record<OuterKind, Record<OuterPads, number>> = { jacket: { none: 0, soft: 0.6, structured: 1.2 }, coat: { none: 0, soft: 0.8, structured: 1.5 } };
+const PAD_CM: Record<OuterKind, Record<OuterPads, number>> = { jacket: { none: 0, soft: 0.6, structured: 1.2 }, coat: { none: 0, soft: 0.8, structured: 1.5 } };
 /** How far the vent's underlap reaches past the centre back, in cm. */
-export const VENT_WIDTH: Record<OuterKind, number> = { jacket: 4, coat: 5 };
+const VENT_WIDTH: Record<OuterKind, number> = { jacket: 4, coat: 5 };
 
 /** Flare added to each seam at the hem, per 40 cm below the hip. */
 export const FLARE_PER_40: Record<OuterFlare, number> = { straight: 1.2, a_line: 4 };
 
-export const DEFAULT_OUTER: Record<OuterKind, OuterStyle> = {
+const DEFAULT_OUTER: Record<OuterKind, OuterStyle> = {
   jacket: { kind: 'jacket', fit: 'regular', length: 'hip', shaping: 'darts', front: 'single', collar: 'notched', pockets: 'patch', sleeve: 'tailored', flare: 'straight', pads: 'soft', vent: 'centre', seamAllowance: 1.5, hemAllowance: 4 },
   coat: { kind: 'coat', fit: 'regular', length: 'knee', shaping: 'princess', front: 'single', collar: 'notched', pockets: 'welt', sleeve: 'tailored', flare: 'straight', pads: 'soft', vent: 'centre', seamAllowance: 1.5, hemAllowance: 5 },
 };
@@ -194,7 +194,7 @@ function runOf(r: Ring, tag: string): [number, number] | undefined {
  * The piece carried on below its hem by `extra` cm: the centre line and fold straight down, the side
  * and panel seams out by `flare` at the new hem, so the seams either side flare alike.
  */
-export function extendPiece(pc: Piece, extra: number, flare: number): Piece {
+function extendPiece(pc: Piece, extra: number, flare: number): Piece {
   if (extra <= 0.05) return pc;
   const r = ringOf(pc.outline, 12);
   const hem = runOf(r, 'hem');
@@ -264,7 +264,7 @@ export function extendPiece(pc: Piece, extra: number, flare: number): Piece {
 }
 
 /** The part of a ring on one side of the line x = g(y), the cut edge tagged `tag` and following the line. */
-export function clipRing(r: Ring, g: (y: number) => number, keepLeft: boolean, tag: string, boundary: P[]): Ring {
+function clipRing(r: Ring, g: (y: number) => number, keepLeft: boolean, tag: string, boundary: P[]): Ring {
   const inside = (q: P) => (keepLeft ? q.x <= g(q.y) + 1e-9 : q.x >= g(q.y) - 1e-9);
   const n = r.pts.length;
   const first = r.pts.findIndex(inside);
@@ -377,7 +377,7 @@ interface FrontOpening {
 
 /** The cutaway's reach up the front edge, in cm: as drawn, kept 3 cm below the last button and 4 cm
  * clear of the side of the front. None when not drawn. */
-export function cutawayOf(s: Pick<OuterStyle, 'cutawayCm'>, foot: number, buttons: OuterDraft['buttons']): number | undefined {
+function cutawayOf(s: Pick<OuterStyle, 'cutawayCm'>, foot: number, buttons: OuterDraft['buttons']): number | undefined {
   if (!s.cutawayCm || s.cutawayCm < 2) return undefined;
   const last = Math.max(...buttons.at);
   const r = Math.min(s.cutawayCm, foot - last - 3 - OUTER_BUTTON.coat / 2);
@@ -389,7 +389,7 @@ export function cutawayOf(s: Pick<OuterStyle, 'cutawayCm'>, foot: number, button
  * (from the front edge) to `r` cm up the front edge, the way a morning coat's front curves back. The
  * curve leaves the hem and the front edge along their own lines, so both stay smooth.
  */
-export function cutAway(ring: Ring, ext: number, foot: number, r: number): Ring & { along: number } {
+function cutAway(ring: Ring, ext: number, foot: number, r: number): Ring & { along: number } {
   const n = ring.pts.length;
   const corner = ring.pts.findIndex((q) => Math.abs(q.x + ext) < 1e-6 && Math.abs(q.y - foot) < 1e-6);
   if (corner < 0) return { ...ring, along: 0 };
@@ -661,7 +661,7 @@ function backLining(pc: Piece, pleat: number): Piece {
  * alike: on the left back the underlap lies under the vent, on the right it folds back along the
  * centre back as the vent's facing.
  */
-export function ventBack(pc: Piece, top: number, w: number): Piece {
+function ventBack(pc: Piece, top: number, w: number): Piece {
   const r = ringOf(pc.outline, 24);
   const n = r.pts.length;
   const fi = r.tags.indexOf('fold');

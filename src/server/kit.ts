@@ -4,7 +4,7 @@
 
 export const KIT_API = 'https://api.kit.com/v4';
 
-export interface KitSettings {
+interface KitSettings {
   apiKey?: string;
   formId?: string;
 }
@@ -49,7 +49,7 @@ export interface RetryStore {
 }
 
 /** Kit allows roughly 120 calls a minute per key and each sign-up takes two, so a catch-up sends at most 50. */
-export const RETRY_BATCH = 50;
+const RETRY_BATCH = 50;
 /** After a day of hourly tries something else is wrong (a bad key, a deleted form); the entry stays in the sign-ups store. */
 export const MAX_TRIES = 24;
 

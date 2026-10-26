@@ -18,7 +18,7 @@ export interface PointEdit {
 }
 
 /** Seams that sew front to back and walk together. */
-export const LINKED_SEAMS = ['side', 'shoulder', 'inseam'];
+const LINKED_SEAMS = ['side', 'shoulder', 'inseam'];
 
 type Seg = Path['segs'][number];
 
@@ -81,7 +81,7 @@ function cornerIds(m: Model): string[] {
 const tagsAt = (m: Model, i: number) => [m.segs[before(m, i)].tag, m.segs[i].tag];
 
 /** Points that can be dragged: not on a dart's edge (the dart point is moved instead). */
-export const movable = (tags: string[]) => !tags.includes('dart');
+const movable = (tags: string[]) => !tags.includes('dart');
 
 /** Edges shorter than this, in a run of the same seam, are the steps of a curve drawn as a polyline
  * (a shaped waist): they are pulled along with a moved point rather than swung round. */

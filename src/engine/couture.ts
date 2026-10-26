@@ -8,7 +8,7 @@ import type { DiagramId } from './diagrams';
 
 export type Route = 'quick' | 'couture';
 export type Cloth = 'cotton' | 'linen' | 'wool' | 'silk';
-export type SeamFinish = 'french' | 'hongkong' | 'pinked' | 'overcast';
+type SeamFinish = 'french' | 'hongkong' | 'pinked' | 'overcast';
 
 export const CLOTHS: { id: Cloth; label: string; detail: string }[] = [
   { id: 'cotton', label: 'Cotton', detail: 'Poplin, lawn, sateen' },
@@ -44,7 +44,7 @@ const FINISH_WORDS: Record<Exclude<SeamFinish, 'french'>, string> = {
     'Overcast each raw edge by hand: slanted stitches 0.5 cm deep and 0.5 cm apart, the thread never pulled tight. It stays soft and flat under the lining, where an overlocked edge would show.',
 };
 
-export interface CoutureContext {
+interface CoutureContext {
   garment: 'skirt' | 'bodice' | 'dress';
   cloth: Cloth;
   /** Lined: the inside is covered, so seam finishes only need to stay flat. */

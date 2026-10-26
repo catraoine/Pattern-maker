@@ -3,11 +3,11 @@
 // Turn them on for everyone with VITE_SIGNIN=on. They also need VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY set.
 const KEY = 'pattern-maker:signin-preview';
 
-export const SIGNIN_ON = import.meta.env.VITE_SIGNIN === 'on';
+const SIGNIN_ON = import.meta.env.VITE_SIGNIN === 'on';
 export const SUPABASE_URL: string | undefined = import.meta.env.VITE_SUPABASE_URL;
 export const SUPABASE_ANON_KEY: string | undefined = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-export function signinPreview(search = typeof location === 'undefined' ? '' : location.search): boolean {
+function signinPreview(search = typeof location === 'undefined' ? '' : location.search): boolean {
   const asked = new URLSearchParams(search).get('signin');
   try {
     if (asked === 'preview') localStorage.setItem(KEY, '1');

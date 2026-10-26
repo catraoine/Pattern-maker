@@ -139,7 +139,7 @@ export const LENGTHS: Record<Length, (m: SkirtMeasurements) => number> = {
   maxi: (m) => m.waist_to_floor - 7,
 };
 
-export const DEFAULT_STYLE: SkirtStyle = {
+const DEFAULT_STYLE: SkirtStyle = {
   fit: 'regular',
   silhouette: 'a_line',
   length: 'knee',
@@ -392,7 +392,7 @@ function half(a: HalfArgs): Piece {
   };
 }
 
-export interface CircleArgs {
+interface CircleArgs {
   name: string;
   r: number; // waist radius
   /** Waist darts, in cm of intake each, for a circle cut bigger than the waist so it clears the hips. */
@@ -578,7 +578,7 @@ export const WAISTBAND_CM = 3; // finished width
  * pass the hips, which is about as far as ordinary 2.5 cm woven elastic goes and still recovers.
  */
 export const PULL_ON_EASE = 6;
-export const ELASTIC_WIDTH = 2.5;
+const ELASTIC_WIDTH = 2.5;
 const ELASTIC_LESS = 6;
 const ELASTIC_OVERLAP = 2;
 const ELASTIC_STRETCH = 1.8;
@@ -601,7 +601,7 @@ export function elasticFor(waist: number, cutWaist: number): Elastic {
 }
 
 /** Pick a standard zip length that opens far enough to get over the hips. */
-export function zipLength(hipDepth: number): number {
+function zipLength(hipDepth: number): number {
   return hipDepth < 18 ? 18 : hipDepth < 22 ? 20 : 23;
 }
 

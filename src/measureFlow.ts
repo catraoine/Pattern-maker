@@ -9,7 +9,7 @@ import { FIELDS, MENSWEAR_SKIPS, fieldsFor, worded, type FormKind, type Garment,
  * girths are checked against each other as they come in, and the lengths against the height once it is in. */
 export const BASE: MeasurementId[] = ['waist', 'full_bust', 'full_hip', 'waist_to_floor', 'height'];
 /** The base measurements a draft needs. The height isn't one: a profile measured before it was asked still drafts. */
-export const TAPE_BASE: MeasurementId[] = BASE.filter((id) => id !== 'height');
+const TAPE_BASE: MeasurementId[] = BASE.filter((id) => id !== 'height');
 
 /** Lingerie is in the list only while previewing, until the fit test passes (lingerieFlag.ts). */
 export const GARMENTS: Garment[] = ['skirt', 'dress', 'bodice', 'trousers', 'tee', 'jacket', 'coat', ...(lingerieShown ? (['lingerie'] as const) : [])];
@@ -56,7 +56,7 @@ const PART: Partial<Record<MeasurementId, string>> = {
   upper_arm: 'upper arm',
   wrist: 'wrist',
 };
-export const GIRTHS = new Set<MeasurementId>((Object.keys(PART) as MeasurementId[]).filter((id) => id !== 'height'));
+const GIRTHS = new Set<MeasurementId>((Object.keys(PART) as MeasurementId[]).filter((id) => id !== 'height'));
 
 export function titleOf(id: MeasurementId, helper: boolean, form?: FormKind) {
   const part = PART[id];
