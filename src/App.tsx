@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { showInInches } from './units';
 import { canGoBack, goBack, pushFresh, useViewHistory } from './nav';
 import { DraftError, SkirtMeasurements } from './engine/skirt';
@@ -41,6 +41,7 @@ import { describePattern } from './screens/describe';
 import { WelcomeScreen } from './screens/WelcomeScreen';
 import { CODE_MESSAGE, checkCode, hasAccess, rememberAccess, testerFromLink, withoutTester } from './access';
 import { keepOffline } from './swUpdate';
+import { preloadScreens, screen } from './screens/load';
 import { FABRIC, openTabNext } from './ui/StyleLayout';
 import { KeptCount } from './ui/SaveControl';
 import { GARMENT_NAME } from './measureFlow';
@@ -77,43 +78,31 @@ import { DEFAULT_FINISH, INITIAL, choicesPatch, type Finish, type Saved } from '
 import { NEEDS_MEASUREMENTS, PARENT, SIDE, STEPS, STEP_OF, ladder, type Step, type View } from './navigation';
 
 
-// Every screen past the welcome loads when first opened, so a visitor who only sees the welcome or the waitlist
-// downloads the welcome alone. If a screen's file is gone (a release went out while the app was open), the page
-// reloads once to fetch the new release rather than showing the error screen.
-function fresh<M>(load: Promise<M>): Promise<M> {
-  return load.catch((e) => {
-    const key = 'pattern-maker-reloaded';
-    if (sessionStorage.getItem(key)) throw e;
-    sessionStorage.setItem(key, '1');
-    window.location.reload();
-    return new Promise<never>(() => {});
-  });
-}
-const MeasureScreen = lazy(() => fresh(import('./screens/MeasureScreen')).then((m) => ({ default: m.MeasureScreen })));
-const StyleScreen = lazy(() => fresh(import('./screens/StyleScreen')).then((m) => ({ default: m.StyleScreen })));
-const BodiceStyleScreen = lazy(() => fresh(import('./screens/BodiceStyleScreen')).then((m) => ({ default: m.BodiceStyleScreen })));
-const DressStyleScreen = lazy(() => fresh(import('./screens/DressStyleScreen')).then((m) => ({ default: m.DressStyleScreen })));
-const TrousersStyleScreen = lazy(() => fresh(import('./screens/TrousersStyleScreen')).then((m) => ({ default: m.TrousersStyleScreen })));
-const TeeStyleScreen = lazy(() => fresh(import('./screens/TeeStyleScreen')).then((m) => ({ default: m.TeeStyleScreen })));
-const LingerieStyleScreen = lazy(() => fresh(import('./screens/LingerieStyleScreen')).then((m) => ({ default: m.LingerieStyleScreen })));
-const OuterStyleScreen = lazy(() => fresh(import('./screens/OuterStyleScreen')).then((m) => ({ default: m.OuterStyleScreen })));
-const AccountScreen = lazy(() => fresh(import('./screens/AccountScreen')).then((m) => ({ default: m.AccountScreen })));
-const PhotoScreen = lazy(() => fresh(import('./screens/PhotoScreen')).then((m) => ({ default: m.PhotoScreen })));
-const SignupScreen = lazy(() => fresh(import('./screens/SignupScreen')).then((m) => ({ default: m.SignupScreen })));
-const BrandsScreen = lazy(() => fresh(import('./screens/BrandsScreen')).then((m) => ({ default: m.BrandsScreen })));
-const NightsScreen = lazy(() => fresh(import('./screens/NightsScreen')).then((m) => ({ default: m.NightsScreen })));
-const PlansScreen = lazy(() => fresh(import('./screens/PlansScreen')).then((m) => ({ default: m.PlansScreen })));
-const FittingScreen = lazy(() => fresh(import('./screens/FittingScreen')).then((m) => ({ default: m.FittingScreen })));
-const TrueScaleScreen = lazy(() => fresh(import('./screens/TrueScaleScreen')).then((m) => ({ default: m.TrueScaleScreen })));
-const ClientBookScreen = lazy(() => fresh(import('./screens/ClientBookScreen')).then((m) => ({ default: m.ClientBookScreen })));
-const MeasureLinkScreen = lazy(() => fresh(import('./screens/MeasureLinkScreen')).then((m) => ({ default: m.MeasureLinkScreen })));
-const MeasureArrivalScreen = lazy(() => fresh(import('./screens/MeasureArrivalScreen')).then((m) => ({ default: m.MeasureArrivalScreen })));
-const MoveArrivalScreen = lazy(() => fresh(import('./screens/MoveArrivalScreen')).then((m) => ({ default: m.MoveArrivalScreen })));
-const CheckFileScreen = lazy(() => fresh(import('./screens/CheckFileScreen')).then((m) => ({ default: m.CheckFileScreen })));
-const FormScreen = lazy(() => fresh(import('./screens/FormScreen')).then((m) => ({ default: m.FormScreen })));
-const CollectionScreen = lazy(() => fresh(import('./screens/CollectionScreen')).then((m) => ({ default: m.CollectionScreen })));
-const ExportScreen = lazy(() => fresh(import('./screens/ExportScreen')).then((m) => ({ default: m.ExportScreen })));
-const MeasureStepsScreen = lazy(() => fresh(import('./screens/MeasureStepsScreen')).then((m) => ({ default: m.MeasureStepsScreen })));
+const MeasureScreen = screen(() => import('./screens/MeasureScreen').then((m) => m.MeasureScreen));
+const StyleScreen = screen(() => import('./screens/StyleScreen').then((m) => m.StyleScreen));
+const BodiceStyleScreen = screen(() => import('./screens/BodiceStyleScreen').then((m) => m.BodiceStyleScreen));
+const DressStyleScreen = screen(() => import('./screens/DressStyleScreen').then((m) => m.DressStyleScreen));
+const TrousersStyleScreen = screen(() => import('./screens/TrousersStyleScreen').then((m) => m.TrousersStyleScreen));
+const TeeStyleScreen = screen(() => import('./screens/TeeStyleScreen').then((m) => m.TeeStyleScreen));
+const LingerieStyleScreen = screen(() => import('./screens/LingerieStyleScreen').then((m) => m.LingerieStyleScreen));
+const OuterStyleScreen = screen(() => import('./screens/OuterStyleScreen').then((m) => m.OuterStyleScreen));
+const AccountScreen = screen(() => import('./screens/AccountScreen').then((m) => m.AccountScreen));
+const PhotoScreen = screen(() => import('./screens/PhotoScreen').then((m) => m.PhotoScreen));
+const SignupScreen = screen(() => import('./screens/SignupScreen').then((m) => m.SignupScreen));
+const BrandsScreen = screen(() => import('./screens/BrandsScreen').then((m) => m.BrandsScreen));
+const NightsScreen = screen(() => import('./screens/NightsScreen').then((m) => m.NightsScreen));
+const PlansScreen = screen(() => import('./screens/PlansScreen').then((m) => m.PlansScreen));
+const FittingScreen = screen(() => import('./screens/FittingScreen').then((m) => m.FittingScreen));
+const TrueScaleScreen = screen(() => import('./screens/TrueScaleScreen').then((m) => m.TrueScaleScreen));
+const ClientBookScreen = screen(() => import('./screens/ClientBookScreen').then((m) => m.ClientBookScreen));
+const MeasureLinkScreen = screen(() => import('./screens/MeasureLinkScreen').then((m) => m.MeasureLinkScreen));
+const MeasureArrivalScreen = screen(() => import('./screens/MeasureArrivalScreen').then((m) => m.MeasureArrivalScreen));
+const MoveArrivalScreen = screen(() => import('./screens/MoveArrivalScreen').then((m) => m.MoveArrivalScreen));
+const CheckFileScreen = screen(() => import('./screens/CheckFileScreen').then((m) => m.CheckFileScreen));
+const FormScreen = screen(() => import('./screens/FormScreen').then((m) => m.FormScreen));
+const CollectionScreen = screen(() => import('./screens/CollectionScreen').then((m) => m.CollectionScreen));
+const ExportScreen = screen(() => import('./screens/ExportScreen').then((m) => m.ExportScreen));
+const MeasureStepsScreen = screen(() => import('./screens/MeasureStepsScreen').then((m) => m.MeasureStepsScreen));
 
 const ready = (values: MeasurementValues, unit: Unit, garment: Garment, form?: FormKind) =>
   isComplete(values, garment, form) && !checkMeasurements(values, unit, garment, form).some((c) => c.level === 'error');
@@ -199,7 +188,9 @@ export default function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps -- setStep is rebuilt each render; the effect only follows gated and step
   }, [gated, step]);
   useEffect(() => {
-    if (!gated) keepOffline();
+    if (gated) return;
+    keepOffline();
+    preloadScreens();
   }, [gated]);
   // A tester link (?tester=TOILE-ONE): checked once, then the code leaves the address bar.
   useEffect(() => {

@@ -184,6 +184,7 @@ export async function chooseDrop(page: Page, name: string, item: string | RegExp
  * closer fit on its own page, back to the list, and on to styling again. */
 export async function addCloserFit(page: Page, g: GarmentName) {
   const add = main(page).getByRole('button', { name: 'Add them' }).first();
+  await expect(main(page).getByRole('tablist', { name: 'Style choices' })).toBeVisible();
   // The link sits under the choice that needs them (Sleeves, Length): look through the tabs for it.
   find: for (const tab of await main(page).getByRole('tablist', { name: 'Style choices' }).getByRole('tab').all()) {
     if (await add.isVisible()) break;
