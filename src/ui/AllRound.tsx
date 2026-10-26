@@ -26,8 +26,8 @@ const WAIST = 0.1;
 /** Where the nape and the bust sit on the form. */
 const NAPE_Y = -1.45;
 /** The base of the form's neck, and its shoulder tips, where the shoulders reach their full width. */
-const NECK_Y = -1.52;
-const SHOULDER_Y = -1.3;
+const NECK_Y = -1.47;
+const SHOULDER_Y = -1.33;
 const BUST_Y = -0.58;
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const wrap = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
@@ -250,7 +250,13 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
     // sleeve and not a wing or a cape (Cat, 2026-10-25); its cap sits up on the shoulder tip, fuller and a little
     // longer, not low and small on the arm (Cat applied the fix in the film, 2026-10-25; the app too, 2026-10-26).
     const yCap = yS + (yU - yS) * 0.12;
-    const filmAxis = (y: number) => formHalfWidth(yU) - ra * 0.2 + ra * 0.7 * Math.sqrt(clamp((y - yCap) / (yU - yCap || 1), 0, 1)) + Math.max(0, y - yU) * 0.04;
+    // The cap starts at the shoulder tip, not out past it, and by the underarm the sleeve's inner side lies against
+    // the bodice, so no gap opens between them as the form turns (Cat, 2026-10-26: still sitting low).
+    const filmAxis = (y: number) => {
+      const from = formHalfWidth(yS) + ra * 0.1;
+      const to = (yU ? radius(yU) : 0) + ra * 0.7;
+      return from + (to - from) * Math.sqrt(clamp((y - yCap) / (yU - yCap || 1), 0, 1)) + Math.max(0, y - yU) * 0.02;
+    };
     const filmR = (y: number) => (y < yU ? ra * Math.pow(clamp((y - yCap) / (yU - yCap || 1), 0, 1), 0.45) : ra + (rh - ra) * clamp((y - yU) / (yE - yU || 1), 0, 1));
     const axisX = filmAxis;
     const sleeveR = filmR;
@@ -521,8 +527,7 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
               const ym = (ya + yb) / 2;
               const x = X(ym) + Math.sin(am) * R(ym);
               const zz = Math.cos(am) * R(ym);
-              // A sleeve's cap where it is inside the bodice is not seen.
-              if (inBody && Math.hypot(x, zz) < radius(ym)) continue;
+              // Where the sleeve's cap passes inside the bodice, the bodice in front of it covers it (patches go far to near).
               patch([tv(a0, ya), tv(a1, ya), tv(a1, yb), tv(a0, yb)], c, zz * Math.cos(phi) - x * s, th);
             }
           }

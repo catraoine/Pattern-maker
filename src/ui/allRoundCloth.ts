@@ -110,7 +110,7 @@ export function lightOf(nx: number, ny: number, nz: number, sheen?: 'gloss' | 'p
   const n = Math.hypot(nx, ny, nz) || 1;
   const [x, y, z] = [nx / n, ny / n, nz / n];
   // Seen from inside (the back of the garment through its neck): in shadow.
-  if (z < 0) return { lit: 0.3, shine: 0 };
+  if (z < 0) return { lit: 0.42, shine: 0 };
   const d = Math.max(0, x * L[0] + y * L[1] + z * L[2]);
   if (sheen === 'pile') return { lit: 0.22 + 0.7 * d * (0.4 + 0.6 * z), shine: 0.18 * Math.pow(1 - z, 3) };
   const lit = 0.4 + 0.6 * d;
