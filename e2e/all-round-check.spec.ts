@@ -46,7 +46,8 @@ type Found = { kind: 'dark hole' | 'seen through' | 'mirror' | 'jump'; at: numbe
 /**
  * In the page: turns the form through every view and reads each picture. The canvas is read at half size (a pixel
  * here is 2 x 2 of the canvas), into 0 the backdrop (red), 1 cloth (the jade python's greens and blues), 2 the hollow
- * inside the garment (magenta) or 3 anything else (the form, its lines, the edges).
+ * inside the garment (magenta), 3 anything else (the form, its lines, the edges) or 4 the window between a sleeve and
+ * the waist (yellow), which is neither a hole nor the form.
  */
 function check(o: { views: number; nudge: number; mirror: boolean; patch: { mirror: number; jump: number; hole: number; behind: number } }) {
   const cv = document.querySelector<HTMLCanvasElement>('canvas.all-round-canvas')!;
@@ -67,7 +68,7 @@ function check(o: { views: number; nudge: number; mirror: boolean; patch: { mirr
         const r = d[i];
         const gg = d[i + 1];
         const b = d[i + 2];
-        cls[y * w + x] = r > 200 && gg < 60 ? (b < 60 ? 0 : b > 200 ? 2 : 3) : gg - r > 12 || b - r > 12 ? 1 : 3;
+        cls[y * w + x] = r > 200 && gg < 60 ? (b < 60 ? 0 : b > 200 ? 2 : 3) : r > 200 && gg > 200 && b < 60 ? 4 : gg - r > 12 || b - r > 12 ? 1 : 3;
       }
     }
     return { w, h, cls };
