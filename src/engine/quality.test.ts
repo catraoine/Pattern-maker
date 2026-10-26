@@ -6,9 +6,9 @@ import { P, len, sub, taggedLength } from './geometry';
 import { Piece, bounds, cutLine } from './piece';
 import { BUST_EASE_RANGE, BodiceDarts, BodiceLength, Neckline, POINTED_NECK, draftBodice, dropRange } from './bodice';
 import { DraftError, FIT_EASE, Length, Silhouette, draftSkirt, isCircle } from './skirt';
-import { randomBody, rng } from './randomBodies';
+import { randomBody, rng, sweep } from './randomBodies';
 
-const BODIES = 2000;
+const BODIES = sweep(2000);
 
 function segmentsCross(a: P, b: P, c: P, d: P): boolean {
   const o = (p: P, q: P, s: P) => (q.x - p.x) * (s.y - p.y) - (q.y - p.y) * (s.x - p.x);

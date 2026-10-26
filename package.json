@@ -14,7 +14,8 @@
     "record:tour": "node scripts/record-tour-shots.mjs tour-shots && node scripts/edit-tour.mjs tour-shots public/tour/walkthrough.mp4 && node scripts/record-tour-shots.mjs --wide && node scripts/edit-tour.mjs --wide",
     "record:demos": "node scripts/record-demos.mjs public/demos",
     "lint": "eslint src netlify e2e",
-    "dead-code": "knip"
+    "dead-code": "knip",
+    "test:full": "SWEEP=full vitest run"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.133.0",

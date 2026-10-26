@@ -3,7 +3,7 @@ import { draftBodice } from './bodice';
 import { draftDress } from './dress';
 import { DraftError } from './skirt';
 import { checkPattern } from './qc';
-import { randomBody, rng } from './randomBodies';
+import { randomBody, rng, sweep } from './randomBodies';
 import { bodiceGuide, dressGuide } from './instructions';
 import { toCouture } from './couture';
 import { bodiceFlat, dressFlat } from './flat';
@@ -27,7 +27,7 @@ const FITS = ['fitted', 'regular', 'relaxed'] as const;
 describe('boned and strapless tops', () => {
   it('drafts every top neckline and structure on random bodies, passing QC', () => {
     const failures: string[] = [];
-    for (let seed = 1; seed <= 120; seed++) {
+    for (let seed = 1; seed <= sweep(120); seed++) {
       const body = randomBody(rng(seed));
       for (const neckline of TOP_NECKLINES)
         for (const structure of STRUCTURES) {
@@ -77,7 +77,7 @@ describe('boned and strapless tops', () => {
 
   it('drafts a boned or strapless dress with every skirt shape, passing QC', () => {
     const failures: string[] = [];
-    for (let seed = 1; seed <= 40; seed++) {
+    for (let seed = 1; seed <= sweep(40); seed++) {
       const body = randomBody(rng(seed + 300));
       for (const neckline of TOP_NECKLINES)
         for (const silhouette of ['straight', 'pencil', 'a_line', 'trumpet', 'half_circle', 'circle'] as const) {

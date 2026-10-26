@@ -23,6 +23,19 @@ jobs:
       - run: npm run dead-code
       - run: npm test
 
+  sweep:
+    name: Full body sweep (every random body)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run test:full
+
   e2e:
     name: End-to-end (Playwright, phone and desktop)
     runs-on: ubuntu-latest
