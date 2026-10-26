@@ -528,6 +528,13 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
             g.lineTo(rim(-Math.PI / 2 - phi)[0], 0);
             g.closePath();
           }, (y) => Math.min(formHalfWidth(y), neckR));
+          // Sleeveless, the form's shoulders show through the open armholes, not black; the cloth is laid over them.
+          if (arm && !sl) {
+            redraw(() => {
+              g.beginPath();
+              g.rect(0, 0, w, Y(yU + 0.05));
+            }, formHalfWidth);
+          }
         }
       }
       g.restore();
