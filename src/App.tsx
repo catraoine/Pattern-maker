@@ -74,6 +74,7 @@ import { ExportScreen, Printable } from './screens/ExportScreen';
 import { describePattern } from './screens/describe';
 import { WelcomeScreen } from './screens/WelcomeScreen';
 import { CODE_MESSAGE, checkCode, hasAccess, rememberAccess, testerFromLink, withoutTester } from './access';
+import { keepOffline } from './swUpdate';
 import { FABRIC, openTabNext } from './ui/StyleLayout';
 import { KeptCount } from './ui/SaveControl';
 import { GARMENT_NAME } from './measureFlow';
@@ -395,6 +396,9 @@ export default function App() {
   useEffect(() => {
     if (gated && step !== 'welcome' && step !== 'privacy' && step !== 'terms') setStep('welcome');
   }, [gated, step]);
+  useEffect(() => {
+    if (!gated) keepOffline();
+  }, [gated]);
   // A tester link (?tester=TOILE-ONE): checked once, then the code leaves the address bar.
   useEffect(() => {
     const code = testerFromLink(window.location.search);

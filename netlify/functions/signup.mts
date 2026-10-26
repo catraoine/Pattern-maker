@@ -10,7 +10,10 @@ import { addToKit } from '../../src/server/kit';
 declare const Netlify: { env: { get(name: string): string | undefined } };
 import { takeAllowance, type CountStore } from '../../src/photo/limit';
 
-const CAPS = { visitor: 5, all: 300 };
+// The whole-site cap only stops a runaway bot, so it sits well above a launch day (5,000 sign-ups is the planning
+// figure); the hidden bot trap and the per-sender cap do the everyday work. 20 per sender, because a sewing class on
+// one wifi or phones on the same mobile network can share an address.
+const CAPS = { visitor: 20, all: 25_000 };
 
 const blobCounts = (): CountStore => {
   const store = getStore({ name: 'signup-limits', consistency: 'strong' });
@@ -43,7 +46,14 @@ export default async (req: Request, context: { ip?: string }) => {
   // Waitlist and news sign-ups also join the newsletter list in Kit, once it's set up (src/server/kit.ts).
   if (signup.kind === 'news') {
     const kit = await addToKit(signup.email, signup.src, { apiKey: Netlify.env.get('KIT_API_KEY'), formId: Netlify.env.get('KIT_FORM_ID') }, new URL(req.url).origin);
-    if (kit === 'failed') console.error('sign-up not added to Kit');
+    if (kit === 'failed') {
+      // Kept for the hourly catch-up (kit-catch-up.mts), so a rush past Kit's rate limit still gets the welcome email.
+      try {
+        await getStore({ name: 'kit-retry', consistency: 'strong' }).setJSON(hash(signup.email, 16), { email: signup.email, src: signup.src, tries: 0 });
+      } catch (e) {
+        console.error('sign-up not added to Kit or kept for retry', e);
+      }
+    }
   }
   return Response.json({ ok: true });
 };

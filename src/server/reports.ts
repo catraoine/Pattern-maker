@@ -7,8 +7,11 @@ import { NIGHT_CITIES, OFFER_IDS } from '../offers';
 export const MAX_BEACON_BYTES = 16_000;
 export const MAX_SIGNUP_BYTES = 4_000;
 
-/** Daily caps, so a stuck page or a script can't fill the store. Past them, the day's extra reports are dropped. */
-export const DAY_CAPS = { beacons: 20_000, crashes: 200 };
+/**
+ * Daily caps, so a stuck page or a script can't fill the store. Past them, the day's extra reports are dropped. A
+ * visitor sends one to three beacons, so 100,000 still counts a launch day of 15,000+ visitors in full.
+ */
+export const DAY_CAPS = { beacons: 100_000, crashes: 200 };
 
 /**
  * What can be counted: a visit, a step of the way (optionally with the garment it was for), and the four numbers the
