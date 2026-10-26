@@ -291,7 +291,8 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
     // The cap starts at the shoulder tip, not out past it, and by the underarm the sleeve's inner side lies against
     // the bodice, so no gap opens between them as the form turns (Cat, 2026-10-26: still sitting low).
     const filmAxis = (y: number) => {
-      const from = radius(yS) + ra * 0.1;
+      // A little in from the bodice's edge, so the cap rounds over the shoulder tip and no corner of the bodice juts past it.
+      const from = radius(yS) - ra * 0.3;
       const to = (yU ? radius(yU) : 0) + ra * 0.7;
       return from + (to - from) * Math.sqrt(clamp((y - yCap) / (yU - yCap || 1), 0, 1)) + Math.max(0, y - yU) * 0.02;
     };
@@ -514,7 +515,9 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
         };
         /** The garment's body: from its top edge (or the armhole, under the arms) to its hem, or the crotch on trousers. */
         const NA = 60;
-        const NT = 14;
+        // Rows closer together at the top, where the cloth turns over the shoulder, so it rounds there and does not step.
+        const NT = 18;
+        const rowF = (j: number) => (j / NT) ** 1.6;
         const mid = (yS + yU) / 2;
         const half = (yU - yS) / 2;
         const topOf = (a: number) => {
@@ -548,8 +551,8 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
           const c = Math.abs(am) <= HALF ? 0 : Math.PI;
           const th = am + phi;
           for (let j = 0; j < NT; j++) {
-            const f0 = j / NT;
-            const f1 = (j + 1) / NT;
+            const f0 = rowF(j);
+            const f1 = rowF(j + 1);
             const v = [bodyV(a0, t0 + (b0 - t0) * f0), bodyV(a1, t1 + (b1 - t1) * f0), bodyV(a1, t1 + (b1 - t1) * f1), bodyV(a0, t0 + (b0 - t0) * f1)];
             if (Math.cos(th) < -0.15 && Math.min(v[0].yy, v[1].yy) > open + 2 * FORM_DEPTH * radius(open) + 0.05) break;
             patch(v, c, Math.cos(th) * rAt(am, (v[0].yy + v[2].yy) / 2), th);
