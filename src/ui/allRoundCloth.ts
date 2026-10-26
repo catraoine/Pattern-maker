@@ -16,6 +16,8 @@ export interface ClothQuad {
   shine: number;
   /** On the border band, along the hem. */
   border?: boolean;
+  /** The body inside the garment: it hides the inside of the far side, as seen through the neck. */
+  cut?: boolean;
 }
 
 /** The cloth's tiles, ready to paint: the body's and, for a border print, the band's. */
@@ -195,6 +197,13 @@ export function paintCloth(g: CanvasRenderingContext2D, layers: ClothLayers, til
   const kBorder = (tiles.borderSize ?? 1) / T;
   const order = [...quads].sort((a, b) => a.z - b.z);
   for (const qd of order) {
+    if (qd.cut) {
+      cg.globalCompositeOperation = 'destination-out';
+      path(cg, grown(qd.q, 0.6));
+      cg.fill();
+      cg.globalCompositeOperation = 'source-over';
+      continue;
+    }
     const pat = qd.border ? border : body;
     if (!pat) continue;
     const k = qd.border ? kBorder : kBody;
