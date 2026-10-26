@@ -9,7 +9,7 @@ import { skirtFlat, wornLines, wornShapes } from '../engine/flat';
 import type { P } from '../engine/geometry';
 import { HEM_SAMPLES, HemShape, flatHem, isShaped, offsetAt } from '../engine/hem';
 import { LENGTHS, Length, Silhouette, SkirtDraft, SkirtMeasurements, flareRange, isCircle, lengthRange, presetFlare } from '../engine/skirt';
-import { GROUPS } from '../screens/StyleScreen';
+import { GROUPS } from '../skirtChoices';
 import { skirtForm } from './DrawOnForm';
 import { FormLayers, SQUEEZE, formFrame, hemCorner, wornCloth, wornFolds, wornMapper } from './FormSketch';
 import { LengthMarks, MARGIN } from './HemMarks';

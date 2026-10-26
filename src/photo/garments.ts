@@ -27,7 +27,7 @@ import type { OuterLength } from '../engine/outerwear';
 import type { TeeLength, TeeNeck, TeeSleeve } from '../engine/tee';
 import { setVolume, volumeOf } from '../engine/skirtVolume';
 import { validCut } from '../engine/slip';
-import { elasticAllowed, pocketsAllowed } from '../screens/StyleScreen';
+import { elasticAllowed, pocketsAllowed } from '../skirtChoices';
 import { fitOf, shapeOf } from './shape';
 import type { Confidence, PhotoReading, PieceKind, TopReading } from './types';
 

@@ -1,7 +1,5 @@
 import { useMemo, useState } from 'react';
 import { layout } from '../engine/export';
-import { piecesLengthCm, toMetres } from '../engine/fabric';
-import { layPlan } from '../engine/layplan';
 import { TROUSER_EASE, TROUSER_LENGTHS, TrousersDraft, TrousersMeasurements, trouserLength } from '../engine/trousers';
 import { trousersFlat, trousersView } from '../engine/flat';
 import { DrawOnForm, skirtForm } from '../ui/DrawOnForm';
@@ -32,6 +30,8 @@ import { Explain } from '../ui/Explain';
 import { DemoButton } from '../ui/DemoButton';
 import { PiecesList, SummaryActions, formViews } from '../ui/StyleSummary';
 
+import { trousersFabricMetres } from '../fabricAmounts';
+
 interface Props {
   /** Start from a photo, and the photo this garment was matched to while the app is open. */
   onPhoto?: () => void;
@@ -58,9 +58,6 @@ interface Props {
   mode?: Mode;
   onMode?: (m: Mode) => void;
 }
-
-/** Fabric needed on 140 cm wide fabric, from the cutting layout. */
-export const trousersFabricMetres = (draft: TrousersDraft) => layPlan(draft.pieces, 140)?.metres ?? toMetres(piecesLengthCm(draft.pieces) + 10);
 
 export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setChoices, onChooseGarment, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, finish, onFinish, fabric, mode = 'all', onMode }: Props) {
   const undo = useUndo(choices, setChoices);

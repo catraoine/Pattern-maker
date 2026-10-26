@@ -1,8 +1,6 @@
 import { matchKind } from '../engine/prints';
 import { useMemo, useState } from 'react';
 import { layout } from '../engine/export';
-import { piecesLengthCm, toMetres } from '../engine/fabric';
-import { layPlan } from '../engine/layplan';
 import { OUTER_EASE, OuterDraft, OuterMeasurements, outerDrop } from '../engine/outerwear';
 import { outerFlat, wornLines, wornShapes } from '../engine/flat';
 import { OuterChoices, describeOuter, outerAllowed, outerGroups } from '../garments';
@@ -34,6 +32,8 @@ import { FABRIC, Group, PRO, StyleLayout, TabPanel } from '../ui/StyleLayout';
 import { DemoButton } from '../ui/DemoButton';
 import { PiecesList, SummaryActions, formViews } from '../ui/StyleSummary';
 
+import { outerFabricMetres } from '../fabricAmounts';
+
 interface Props {
   /** Start from a photo, and the photo this garment was matched to while the app is open. */
   onPhoto?: () => void;
@@ -58,12 +58,6 @@ interface Props {
   mode?: Mode;
   onMode?: (m: Mode) => void;
 }
-
-/** Self fabric needed on 140 cm wide fabric, from the cutting layout of the shell pieces. */
-export const outerFabricMetres = (draft: OuterDraft) => {
-  const self = draft.pieces.filter((pc) => pc.kind !== 'lining');
-  return layPlan(self, 140)?.metres ?? toMetres(piecesLengthCm(self) + 10);
-};
 
 export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoices, onChooseGarment, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, finish, onFinish, fabric, mode = 'all', onMode }: Props) {
   const undo = useUndo(choices, setChoices);

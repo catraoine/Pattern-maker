@@ -3,8 +3,6 @@ import { BackNeck, backBlocked } from '../engine/backNeck';
 import { useMemo, useState } from 'react';
 import { layout } from '../engine/export';
 import { BodiceDraft, BodiceMeasurements, bodiceEase, dropRange, needsHip } from '../engine/bodice';
-import { piecesLengthCm, toMetres } from '../engine/fabric';
-import { layPlan } from '../engine/layplan';
 import { BODICE_GROUPS, BodiceChoices, DARTS_FOR_FIT, describeBodice, detailAllowed, sleeveOf, topAllowed, validDetails } from '../garments';
 import { isStrapless, isTop } from '../engine/corset';
 import { SHIRR } from '../engine/shirred';
@@ -49,6 +47,8 @@ import { PiecesList, SummaryActions } from '../ui/StyleSummary';
 /** Moving the shaping is a pro tool, so these groups sit on the Pro tab. */
 const PRO_GROUPS: string[] = ['princess', 'bustDart'];
 
+import { bodiceFabricMetres } from '../fabricAmounts';
+
 interface Props {
   /** Start from a photo, and the photo this garment was matched to while the app is open. */
   onPhoto?: () => void;
@@ -77,17 +77,6 @@ interface Props {
   mode?: Mode;
   onMode?: (m: Mode) => void;
 }
-
-/** Fabric needed on 140 cm wide fabric, from the cutting layout. */
-export const bodiceFabricMetres = (draft: BodiceDraft, sleeve?: SleeveDraft) => {
-  const pieces = [...draft.pieces, ...(sleeve?.pieces ?? [])];
-  return layPlan(pieces, 140)?.metres ?? toMetres(piecesLengthCm(pieces) + 10);
-};
-
-/** Bias binding for the neck and armholes; with sleeves, for the neck, or for the armhole seams of a lined bodice.
- * Some to spare for joins. */
-export const bindingMetres = (draft: BodiceDraft, binds: { neck: boolean; armholes: boolean } = { neck: true, armholes: true }) =>
-  toMetres((binds.neck ? draft.neck : 0) + (binds.armholes ? (draft.drape?.kind === 'one_shoulder' ? 1 : 2) * draft.armhole : 0) + 20);
 
 /** The engine's warnings are written for the pattern cutter; this turns the common ones into a nudge. */
 function friendly(w: string) {

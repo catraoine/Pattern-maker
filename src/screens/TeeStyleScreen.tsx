@@ -1,7 +1,5 @@
 import { useMemo, useState } from 'react';
 import { layout } from '../engine/export';
-import { piecesLengthCm, toMetres } from '../engine/fabric';
-import { layPlan } from '../engine/layplan';
 import { NECKBAND_CM, STRETCH_TEST, TeeDraft, pctWords } from '../engine/tee';
 import { teeFlat, wornLines, wornShapes } from '../engine/flat';
 import { TEE_GROUPS, TeeChoices, describeTee } from '../garments';
@@ -28,6 +26,8 @@ import { FabricDetails } from '../ui/FabricDetails';
 import { DemoButton } from '../ui/DemoButton';
 import { PiecesList, SummaryActions, formViews } from '../ui/StyleSummary';
 
+import { teeFabricMetres } from '../fabricAmounts';
+
 interface Props {
   /** Start from a photo, and the photo this garment was matched to while the app is open. */
   onPhoto?: () => void;
@@ -50,9 +50,6 @@ interface Props {
   mode?: Mode;
   onMode?: (m: Mode) => void;
 }
-
-/** Knit on 150 cm wide fabric, from the cutting layout. */
-export const teeFabricMetres = (draft: TeeDraft) => layPlan(draft.pieces, 150)?.metres ?? toMetres(piecesLengthCm(draft.pieces) + 10);
 
 const FIT_NOTES: Record<TeeChoices['fit'], string> = {
   fitted: 'Cut smaller than you, so the knit stretches on and skims the body.',

@@ -10,8 +10,6 @@ import { wrapSkirtAllowed } from '../engine/wrapSkirt';
 import { SLIT_PLACES, SlitPlace, slitAllowed } from '../engine/slit';
 import { NO_SLIT, SlitSlider } from '../ui/SlitSlider';
 import { dressFlat, wornLines, wornShapes } from '../engine/flat';
-import { piecesLengthCm, toMetres } from '../engine/fabric';
-import { layPlan } from '../engine/layplan';
 import { SHAPES_FOR_LENGTH, SleeveDraft, SleeveMeasurements, needsArms } from '../engine/sleeve';
 import { readBodiceSleeve, sleeveRange } from '../ui/formSleeves';
 import { readCollar, readFront } from '../ui/formCollar';
@@ -28,7 +26,7 @@ import { TechFlatView } from '../ui/TechFlatView';
 import { AllRound } from '../ui/AllRound';
 import { roundDress } from '../engine/allRound';
 import { FabricSwatches, GarmentFabric } from '../ui/FabricFill';
-import { DETAIL_GROUPS, GROUPS, pocketsAllowed } from './StyleScreen';
+import { DETAIL_GROUPS, GROUPS, pocketsAllowed } from '../skirtChoices';
 import { cutAllowed, validCut } from '../engine/slip';
 import { describePattern } from './describe';
 import { FABRIC, Group, PRO, StyleLayout, TabPanel } from '../ui/StyleLayout';
@@ -61,6 +59,8 @@ import { PiecesList, SummaryActions, formViews } from '../ui/StyleSummary';
 
 /** Moving the shaping is a pro tool, so these groups sit on the Pro tab. */
 const PRO_GROUPS: string[] = ['princess', 'bustDart'];
+
+import { dressFabricMetres } from '../fabricAmounts';
 
 interface Props {
   /** Start from a photo, and the photo this garment was matched to while the app is open. */
@@ -102,11 +102,6 @@ const noSeamLines = (draft: DressDraft, side: 'front' | 'back') => {
     fit: [seam, seam.map((q) => ({ x: -q.x, y: q.y }))],
   };
 };
-
-/** Fabric for the dress on 140 cm wide fabric, from the cutting layout, or a rough estimate. */
-// Whole bias pieces too wide for 140 cm cloth are bought 150 cm wide.
-export const dressFabricMetres = (pieces: DressDraft['pieces']) =>
-  (layPlan(pieces, 140) ?? (pieces.some((pc) => pc.meta.bias) ? layPlan(pieces, 150) : undefined))?.metres ?? toMetres(piecesLengthCm(pieces) + 10);
 
 /**
  * Style the dress: one fit for the whole dress, the bodice's neckline, darts and sleeves, and the

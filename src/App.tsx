@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { showInInches } from './units';
 import { canGoBack, goBack, pushFresh, useViewHistory } from './nav';
 import { DraftError, SkirtMeasurements } from './engine/skirt';
@@ -36,15 +36,7 @@ recordMeasurements,
 withPeople,
 } from './account';
 import { validDetails, PatternChoices } from './garments';
-import { MeasureScreen } from './screens/MeasureScreen';
-import { StyleScreen } from './screens/StyleScreen';
-import { BodiceStyleScreen } from './screens/BodiceStyleScreen';
-import { DressStyleScreen } from './screens/DressStyleScreen';
-import { TrousersStyleScreen } from './screens/TrousersStyleScreen';
-import { TeeStyleScreen } from './screens/TeeStyleScreen';
-import { LingerieStyleScreen } from './screens/LingerieStyleScreen';
-import { OuterStyleScreen } from './screens/OuterStyleScreen';
-import { ExportScreen, Printable } from './screens/ExportScreen';
+import type { Printable } from './screens/ExportScreen';
 import { describePattern } from './screens/describe';
 import { WelcomeScreen } from './screens/WelcomeScreen';
 import { CODE_MESSAGE, checkCode, hasAccess, rememberAccess, testerFromLink, withoutTester } from './access';
@@ -52,35 +44,20 @@ import { keepOffline } from './swUpdate';
 import { FABRIC, openTabNext } from './ui/StyleLayout';
 import { KeptCount } from './ui/SaveControl';
 import { GARMENT_NAME } from './measureFlow';
-import { MeasureStepsScreen, type StepsStart } from './screens/MeasureStepsScreen';
-import { AccountScreen } from './screens/AccountScreen';
+import type { StepsStart } from './screens/MeasureStepsScreen';
 import { useCloud } from './cloud/useCloud';
 import { signinShown } from './cloud/flag';
-import { PhotoScreen } from './screens/PhotoScreen';
 import { LegalScreen } from './screens/LegalScreen';
-import { SignupScreen } from './screens/SignupScreen';
-import { BrandsScreen } from './screens/BrandsScreen';
-import { NightsScreen } from './screens/NightsScreen';
-import { PlansScreen } from './screens/PlansScreen';
 import { PhotoAllowance, UnlockGarment } from './ui/PlanPrompts';
 import { BILLING_ON, canPhotoDraft, countPhotoDraft, hasGarment, plansShown, savedLimit } from './plans';
 import { countStep, setReportView } from './report/report';
 import { PRIVACY, TERMS } from './legal';
-import { FittingScreen } from './screens/FittingScreen';
-import { TrueScaleScreen } from './screens/TrueScaleScreen';
-import { ClientBookScreen } from './screens/ClientBookScreen';
-import { MeasureLinkScreen } from './screens/MeasureLinkScreen';
-import { MeasureArrivalScreen } from './screens/MeasureArrivalScreen';
 import { readLink, type MeasureReply } from './measureLink';
 import { isMoveLink, moveLink, readMoveLink } from './moveLink';
-import { MoveArrivalScreen } from './screens/MoveArrivalScreen';
-import { CheckFileScreen } from './screens/CheckFileScreen';
-import { FormScreen } from './screens/FormScreen';
 import { coverGuide, coverMissing, coverPieces, padMap } from './engine/formCover';
 import { labelCode, savedCopy } from './labels';
 import { fitSummary } from './fit';
 import { ImportedPattern, importedGuide } from './engine/importDxf';
-import { CollectionScreen } from './screens/CollectionScreen';
 import { lookPatch } from './collection';
 import { archiveCut } from './archive';
 import { CollectionLink, GarmentPick } from './ui/GarmentSwitch';
@@ -98,6 +75,45 @@ import { printableFor } from './printable';
 import { GARMENT_DRAFTING, dressOf, lingerieChoicesOf, outerChoicesOf, skirtStyleOf, teeChoicesOf, trousersChoicesOf, type DraftInputs, type Drafts } from './garmentDrafts';
 import { DEFAULT_FINISH, INITIAL, choicesPatch, type Finish, type Saved } from './savedWork';
 import { NEEDS_MEASUREMENTS, PARENT, SIDE, STEPS, STEP_OF, ladder, type Step, type View } from './navigation';
+
+
+// Every screen past the welcome loads when first opened, so a visitor who only sees the welcome or the waitlist
+// downloads the welcome alone. If a screen's file is gone (a release went out while the app was open), the page
+// reloads once to fetch the new release rather than showing the error screen.
+function fresh<M>(load: Promise<M>): Promise<M> {
+  return load.catch((e) => {
+    const key = 'pattern-maker-reloaded';
+    if (sessionStorage.getItem(key)) throw e;
+    sessionStorage.setItem(key, '1');
+    window.location.reload();
+    return new Promise<never>(() => {});
+  });
+}
+const MeasureScreen = lazy(() => fresh(import('./screens/MeasureScreen')).then((m) => ({ default: m.MeasureScreen })));
+const StyleScreen = lazy(() => fresh(import('./screens/StyleScreen')).then((m) => ({ default: m.StyleScreen })));
+const BodiceStyleScreen = lazy(() => fresh(import('./screens/BodiceStyleScreen')).then((m) => ({ default: m.BodiceStyleScreen })));
+const DressStyleScreen = lazy(() => fresh(import('./screens/DressStyleScreen')).then((m) => ({ default: m.DressStyleScreen })));
+const TrousersStyleScreen = lazy(() => fresh(import('./screens/TrousersStyleScreen')).then((m) => ({ default: m.TrousersStyleScreen })));
+const TeeStyleScreen = lazy(() => fresh(import('./screens/TeeStyleScreen')).then((m) => ({ default: m.TeeStyleScreen })));
+const LingerieStyleScreen = lazy(() => fresh(import('./screens/LingerieStyleScreen')).then((m) => ({ default: m.LingerieStyleScreen })));
+const OuterStyleScreen = lazy(() => fresh(import('./screens/OuterStyleScreen')).then((m) => ({ default: m.OuterStyleScreen })));
+const AccountScreen = lazy(() => fresh(import('./screens/AccountScreen')).then((m) => ({ default: m.AccountScreen })));
+const PhotoScreen = lazy(() => fresh(import('./screens/PhotoScreen')).then((m) => ({ default: m.PhotoScreen })));
+const SignupScreen = lazy(() => fresh(import('./screens/SignupScreen')).then((m) => ({ default: m.SignupScreen })));
+const BrandsScreen = lazy(() => fresh(import('./screens/BrandsScreen')).then((m) => ({ default: m.BrandsScreen })));
+const NightsScreen = lazy(() => fresh(import('./screens/NightsScreen')).then((m) => ({ default: m.NightsScreen })));
+const PlansScreen = lazy(() => fresh(import('./screens/PlansScreen')).then((m) => ({ default: m.PlansScreen })));
+const FittingScreen = lazy(() => fresh(import('./screens/FittingScreen')).then((m) => ({ default: m.FittingScreen })));
+const TrueScaleScreen = lazy(() => fresh(import('./screens/TrueScaleScreen')).then((m) => ({ default: m.TrueScaleScreen })));
+const ClientBookScreen = lazy(() => fresh(import('./screens/ClientBookScreen')).then((m) => ({ default: m.ClientBookScreen })));
+const MeasureLinkScreen = lazy(() => fresh(import('./screens/MeasureLinkScreen')).then((m) => ({ default: m.MeasureLinkScreen })));
+const MeasureArrivalScreen = lazy(() => fresh(import('./screens/MeasureArrivalScreen')).then((m) => ({ default: m.MeasureArrivalScreen })));
+const MoveArrivalScreen = lazy(() => fresh(import('./screens/MoveArrivalScreen')).then((m) => ({ default: m.MoveArrivalScreen })));
+const CheckFileScreen = lazy(() => fresh(import('./screens/CheckFileScreen')).then((m) => ({ default: m.CheckFileScreen })));
+const FormScreen = lazy(() => fresh(import('./screens/FormScreen')).then((m) => ({ default: m.FormScreen })));
+const CollectionScreen = lazy(() => fresh(import('./screens/CollectionScreen')).then((m) => ({ default: m.CollectionScreen })));
+const ExportScreen = lazy(() => fresh(import('./screens/ExportScreen')).then((m) => ({ default: m.ExportScreen })));
+const MeasureStepsScreen = lazy(() => fresh(import('./screens/MeasureStepsScreen')).then((m) => ({ default: m.MeasureStepsScreen })));
 
 const ready = (values: MeasurementValues, unit: Unit, garment: Garment, form?: FormKind) =>
   isComplete(values, garment, form) && !checkMeasurements(values, unit, garment, form).some((c) => c.level === 'error');
@@ -565,6 +581,7 @@ export default function App() {
         </header>
 
         <main className="main">
+          <Suspense fallback={null}>
           <KeptCount.Provider value={{ kept: account.patterns.length, limit: savedLimit(account) }}>
           {incoming?.kind === 'broken' && step === 'welcome' && (
             <p className="msg error" role="status">
@@ -601,7 +618,7 @@ export default function App() {
               onBring={(b) => {
                 // Brought in, so a reload shouldn't offer it again.
                 dropHash();
-                setSaved({ ...INITIAL, ...b.skirt });
+                setSaved({ ...INITIAL, ...(b.skirt as Partial<Saved>) });
                 setAccount({ ...NEW_ACCOUNT, ...b.account, onboarded: true });
                 if (b.pointEdits) setPointEdits(b.pointEdits as Record<string, PointEdit[]>);
               }}
@@ -1103,6 +1120,7 @@ export default function App() {
             />
           )}
         </KeptCount.Provider>
+          </Suspense>
         </main>
       </div>
       </PointEditContext.Provider>

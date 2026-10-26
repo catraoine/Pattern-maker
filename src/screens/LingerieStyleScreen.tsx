@@ -1,7 +1,5 @@
 import { useMemo } from 'react';
 import { layout } from '../engine/export';
-import { piecesLengthCm, toMetres } from '../engine/fabric';
-import { layPlan } from '../engine/layplan';
 import { LingerieDraft, LingerieFit, LingerieMeasurements, isSwim, lingerieMissing } from '../engine/lingerie';
 import { STRETCH_TEST } from '../engine/tee';
 import { LINGERIE_GROUPS, LingerieChoices, describeLingerie, lingerieGroupShown, lingeriePick } from '../garments';
@@ -17,6 +15,8 @@ import type { Mode } from '../mode';
 import { FABRIC, Group, LOOKS, StyleLayout, TabPanel } from '../ui/StyleLayout';
 import { FabricDetails } from '../ui/FabricDetails';
 import { PiecesList, SummaryActions } from '../ui/StyleSummary';
+
+import { lingerieFabricMetres } from '../fabricAmounts';
 
 interface Props {
   onPhoto?: () => void;
@@ -37,9 +37,6 @@ interface Props {
   mode?: Mode;
   onMode?: (m: Mode) => void;
 }
-
-/** Knit on 150 cm wide fabric, from the cutting layout; swimwear needs the same again in lining. */
-export const lingerieFabricMetres = (draft: LingerieDraft) => layPlan(draft.pieces, 150)?.metres ?? toMetres(piecesLengthCm(draft.pieces) + 10);
 
 const PIECE_NOTES: Record<LingerieChoices['piece'], string> = {
   brief: 'A brief with a lined gusset and elastic at the waist and legs.',

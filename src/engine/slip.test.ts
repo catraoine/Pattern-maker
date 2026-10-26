@@ -11,7 +11,7 @@ import { waistPieces } from './finishing';
 import { cutAllowed, validCut } from './slip';
 import { taggedLength } from "./geometry";
 import type { AsymHem } from './asymHem';
-import { describe as describeSkirt } from '../screens/StyleScreen';
+import { describe as describeSkirt } from '../skirtChoices';
 import { describePattern } from '../screens/describe';
 
 const FITS: Fit[] = ['fitted', 'regular', 'relaxed'];

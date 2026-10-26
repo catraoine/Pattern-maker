@@ -12,7 +12,7 @@ import { MyFabric, withFabricEase } from './engine/fabrics';
 import { FormKind, Garment, MeasurementValues } from './measurements';
 import { DEFAULT_LINGERIE_CHOICES, describeLingerie } from './garments';
 import { BodiceChoices, DEFAULT_BODICE, DEFAULT_COAT_CHOICES, DEFAULT_JACKET_CHOICES, DEFAULT_TEE_CHOICES, DEFAULT_TROUSERS_CHOICES, OuterChoices, validDetails, DressChoices, PatternChoices, describeBodice, describeOuter, describeTee, describeTrousers, sleeveOf } from './garments';
-import { describe } from './screens/StyleScreen';
+import { describe } from './skirtChoices';
 import { describePattern } from './screens/describe';
 import type { Piece } from './engine/piece';
 import { INITIAL, type Saved } from './savedWork';

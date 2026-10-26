@@ -14,7 +14,7 @@ import { waistPieces, waistbandPiece } from './finishing';
 import { drillHoles, dartsOf } from './marks';
 import { skirtFabrics, checkFabric } from './fabrics';
 import { GodetCount, VolumeKind, layoutExtras, setVolume, volumeAllowed, volumeOf } from './skirtVolume';
-import { describe as describeSkirt } from '../screens/StyleScreen';
+import { describe as describeSkirt } from '../skirtChoices';
 import { describePattern } from '../screens/describe';
 import type { SewingGuide } from './instructions';
 

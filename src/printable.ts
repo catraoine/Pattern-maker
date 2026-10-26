@@ -31,13 +31,13 @@ import { SPECIALS, needsNap, withCheckMarks, withSpecialAllowances } from './eng
 import { printNap, printOf } from './engine/prints';
 import { Garment, MeasurementValues } from './measurements';
 import { BodiceChoices, COLLAR_WORDS, TrousersChoices, DressChoices, describeBodice } from './garments';
-import { fabricMetres } from './screens/StyleScreen';
-import { bindingMetres, bodiceFabricMetres } from './screens/BodiceStyleScreen';
-import { trousersFabricMetres } from './screens/TrousersStyleScreen';
-import { teeFabricMetres } from './screens/TeeStyleScreen';
-import { lingerieFabricMetres } from './screens/LingerieStyleScreen';
-import { outerFabricMetres } from './screens/OuterStyleScreen';
-import { Printable } from './screens/ExportScreen';
+import { fabricMetres } from './skirtChoices';
+import { bindingMetres, bodiceFabricMetres } from './fabricAmounts';
+import { trousersFabricMetres } from './fabricAmounts';
+import { teeFabricMetres } from './fabricAmounts';
+import { lingerieFabricMetres } from './fabricAmounts';
+import { outerFabricMetres } from './fabricAmounts';
+import type { Printable } from './screens/ExportScreen';
 import type { PocketStyle } from './engine/pockets';
 import { layoutExtras } from './engine/skirtVolume';
 

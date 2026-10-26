@@ -6,7 +6,7 @@ import { BODICE_GROUPS, TEE_GROUPS, TROUSER_GROUPS, isBodice, isDress, isOuter, 
 import type { Garment } from '../measurements';
 import { setVolume } from '../engine/skirtVolume';
 import { validCut } from '../engine/slip';
-import { GROUPS } from '../screens/StyleScreen';
+import { GROUPS } from '../skirtChoices';
 import { choicesFor } from './garments';
 import type { IdeaReading, PieceKind } from './types';
 
