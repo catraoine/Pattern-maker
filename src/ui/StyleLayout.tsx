@@ -87,6 +87,15 @@ const Sections = createContext<Record<string, string>>({});
  * Which question is open on each step (Cat's D, 2026-10-24), and a way to open one. Steady, when set, holds the
  * open question still after a pick instead of moving on to the next (the click-throughs, which pick and check).
  */
+/** Whether the step that sets the length is open (or there are no steps at all, as on a plain page): the named
+ *  lengths sit beside the drawing there, where the Length buttons were before the hem dot replaced them (Cat's L1,
+ *  2026-10-24). On every other step the drawing is framed close to the garment (Cat's D5, 2026-10-26). */
+export function useLengthStep(): boolean {
+  const active = useContext(ActiveTab);
+  const own = useContext(Sections);
+  return active === undefined || active === (own.Length ?? SECTIONS.Length);
+}
+
 const Fold = createContext<{ open: Record<string, string>; set: (tab: string, label: string) => void; steady: boolean } | undefined>(undefined);
 
 /** Set by the click-throughs, so a pick doesn't fold its question away while a test is still checking it. */
@@ -423,7 +432,10 @@ export function StyleLayout({ children, label, name, metres, width = 140, ready,
       </div>
       <div className="style-edit">
         <div className={tall ? 'style-pin tall' : 'style-pin'} ref={pin}>
-          {preview}
+          {/* The drawing knows which step is open: the named lengths sit beside it only on the length step. */}
+          <ActiveTab.Provider value={active}>
+            <Sections.Provider value={sections}>{preview}</Sections.Provider>
+          </ActiveTab.Provider>
           <EnlargeSketch host={host} name={name} />
           <div
             className={atEnd ? 'style-tabs at-end' : 'style-tabs'}

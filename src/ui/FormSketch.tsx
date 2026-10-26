@@ -15,6 +15,7 @@ import { FormArm, FormBody, armAt } from './DrawOnForm';
 import type { FormLine } from './formLines';
 import { HemChoice, HemMarks, MARGIN } from './HemMarks';
 import { useEnlarged } from './EnlargeSketch';
+import { useLengthStep } from './StyleLayout';
 import { ClothDefs, ClothOverlay, SHEER_OPACITY, borderHems, useFabricLook } from './ClothLook';
 
 type Measures = { full_bust?: number; waist: number; full_hip?: number; waist_to_hip?: number; waist_to_knee?: number; waist_to_floor?: number };
@@ -141,8 +142,8 @@ export function FormSatin({ body, cx, arms, uid, bottom = body.bottom, edge = 0.
 }
 
 /** The drawing's frame: half its width (the centre line's x) and its top and bottom. The figure fills its width
- *  (Cat's D5, 2026-10-26): just wider than the arms and the garment. The bottom stays where the caller puts it, so
- *  every length mark beside the drawing stays in reach; only the draw tool, which has none, crops below the hem. */
+ *  (Cat's D5, 2026-10-26): just wider than the arms and the garment. The bottom stays where the caller puts it (the
+ *  skirt and top sketches keep their length marks in reach); the form sketch and the draw tool crop below the hem. */
 export function formFrame(m: Measures, body: FormBody, bottom: number, arms?: FormArm, cloth: P[][] = []) {
   const wide = Math.max(0, ...cloth.flat().map((q) => Math.abs(q.x) + 1.5));
   const half = SQUEEZE * Math.max(Math.max(m.full_bust ?? 0, m.full_hip ?? 0, m.waist) / 4 + 3, arms ? armAt(arms, arms.wristY).outer + 1.5 : 0, wide);
@@ -636,16 +637,22 @@ export function FormSketch({ body, m, legs, bottom, arms, lines, outline = [], c
   const big = useEnlarged();
   const lowest = Math.max(...(worn ?? []).flat().map((q) => q.y), body.top + 20);
   const highest = Math.min(...(worn ?? []).flat().map((q) => q.y), body.top + 20);
-  const view = big ? { top: Math.max(body.top + 2, highest - 10), bottom: Math.min(frame.bottom + 6, lowest + 12) } : frame;
+  // The figure fills the frame (Cat's D5, 2026-10-26): the drawing stops a little below the hem, where the legs fade
+  // out, as in the draw tool. The named lengths show only on the length step, and there the frame reaches down to
+  // the lowest of them so every one stays in reach.
+  const ladder = useLengthStep() && !big && !!hem;
+  const reach = ladder ? Math.max(...hem!.marks.map((q) => q.y)) + 6 : 0;
+  const cropped = worn?.length ? Math.min(frame.bottom, Math.max(lowest + BELOW_HEM, reach)) : frame.bottom;
+  const view = big ? { top: Math.max(body.top + 2, highest - 10), bottom: Math.min(frame.bottom + 6, lowest + 12) } : { top: frame.top, bottom: cropped };
   const k = (view.bottom - view.top) / 110;
-  // Room for the length marks on the left, and as much on the right to keep the form centred. Enlarged, the marks give
-  // way to the garment: the dot still drags, and names the length it's on.
-  const side = hem ? (big ? 3 : MARGIN) * k : 0;
+  // Room for the length marks on the left, and as much on the right to keep the form centred. Without them the dot
+  // still drags, and names the length it's on under itself.
+  const side = hem ? (ladder ? MARGIN : 3) * k : 0;
   return (
     // With a hem dot it is a group, not an image: an image hides the dot inside it from screen readers.
     <svg ref={svg} viewBox={`${f(-side)} ${f(view.top)} ${f(2 * cx + 2 * side)} ${f(view.bottom - view.top)}`} role={hem ? 'group' : 'img'} aria-label={label} className="preview-svg sketch shape form-still">
-      <FormLayers body={body} m={m} legs={legs} cx={cx} top={frame.top} bottom={frame.bottom} arms={arms} lines={onCloth} outline={outline} worn={worn} folds={folds} sleeve={sleeve} />
-      {hem && <HemMarks {...hem} svg={svg} cx={cx} k={k} hemAt={hemAt} bare={big} />}
+      <FormLayers body={body} m={m} legs={legs} cx={cx} top={frame.top} bottom={big ? frame.bottom : cropped} arms={arms} lines={onCloth} outline={outline} worn={worn} folds={folds} sleeve={sleeve} />
+      {hem && <HemMarks {...hem} svg={svg} cx={cx} k={k} hemAt={hemAt} bare={!ladder} />}
     </svg>
   );
 }
