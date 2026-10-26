@@ -26,8 +26,8 @@ const WAIST = 0.1;
 /** Where the nape and the bust sit on the form. */
 const NAPE_Y = -1.45;
 /** The base of the form's neck, and its shoulder tips, where the shoulders reach their full width. */
-const NECK_Y = -1.47;
-const SHOULDER_Y = -1.33;
+export const NECK_Y = -1.47;
+export const SHOULDER_Y = -1.33;
 const BUST_Y = -0.58;
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const wrap = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
@@ -64,6 +64,40 @@ interface Row {
   text: string;
   /** Where to turn the form to when the row is tapped. */
   turn: number;
+}
+
+/** Lengths in cm from the waist, onto the form: the nape, waist, hip, crotch, knee and floor each at their own line
+ * on the figure. A top's shoulder tip goes on the form's shoulder tip, where its shoulders are full width, and the
+ * neck point at the base of the form's neck: drawn from the nape alone, the shoulders sat up on the neck and the
+ * sleeves hung low off the side, like dropped shoulders (Cat, 2026-10-26: "the shoulders are too low"). */
+export function placeOnForm(round: Pick<RoundGarment, 'armhole'>, m: RoundMeasurements): (cm: number) => number {
+  const N = m.nape_to_waist ?? 41;
+  const wh = m.waist_to_hip ?? 20.5;
+  const tip = round.armhole?.shoulderCm;
+  const knots: [number, number][] = [
+    ...(tip !== undefined && tip > -N + 0.3 && tip < -N / 2
+      ? ([
+          [-N - 4, NECK_Y],
+          [-N, NAPE_Y],
+          [tip, SHOULDER_Y],
+        ] as [number, number][])
+      : ([[-N, NAPE_Y]] as [number, number][])),
+    [0, WAIST],
+    [wh, FORM_HIP],
+  ];
+  const add = (cm: number | undefined, y: number) => {
+    if (cm !== undefined && cm > knots[knots.length - 1][0] + 1) knots.push([cm, y]);
+  };
+  add(m.crotch_depth ?? wh * 1.3, FORM_CROTCH);
+  add(m.waist_to_knee, FORM_KNEE);
+  add(Math.max(m.waist_to_floor ?? 104, wh + 2), FORM_FLOOR);
+  return (cm: number) => {
+    let i = 1;
+    while (i < knots.length - 1 && cm > knots[i][0]) i++;
+    const [c0, y0] = knots[i - 1];
+    const [c1, y1] = knots[i];
+    return y0 + ((cm - c0) / (c1 - c0)) * (y1 - y0);
+  };
 }
 
 /** Where a top's hem falls, in words. */
@@ -165,38 +199,9 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
     // In the maker's fabric, unless the film wants its old look.
     const cloth = through ? undefined : tiles;
 
-    // Lengths in cm from the waist, onto the form: the nape, waist, hip, crotch, knee and floor each at
-    // their own line on the figure.
     const N = m.nape_to_waist ?? 41;
     const wh = m.waist_to_hip ?? 20.5;
-    // A top's shoulder tip goes on the form's shoulder tip, where its shoulders are full width, and the neck point at
-    // the base of the form's neck: drawn from the nape alone, the shoulders sat up on the neck and the sleeves hung
-    // low off the side, like dropped shoulders (Cat, 2026-10-26: "the shoulders are too low").
-    const tip = round.armhole?.shoulderCm;
-    const knots: [number, number][] = [
-      ...(tip !== undefined && tip > -N + 0.3 && tip < -N / 2
-        ? ([
-            [-N - 4, NECK_Y],
-            [-N, NAPE_Y],
-            [tip, SHOULDER_Y],
-          ] as [number, number][])
-        : ([[-N, NAPE_Y]] as [number, number][])),
-      [0, WAIST],
-      [wh, FORM_HIP],
-    ];
-    const add = (cm: number | undefined, y: number) => {
-      if (cm !== undefined && cm > knots[knots.length - 1][0] + 1) knots.push([cm, y]);
-    };
-    add(m.crotch_depth ?? wh * 1.3, FORM_CROTCH);
-    add(m.waist_to_knee, FORM_KNEE);
-    add(Math.max(m.waist_to_floor ?? 104, wh + 2), FORM_FLOOR);
-    const yOf = (cm: number) => {
-      let i = 1;
-      while (i < knots.length - 1 && cm > knots[i][0]) i++;
-      const [c0, y0] = knots[i - 1];
-      const [c1, y1] = knots[i];
-      return y0 + ((cm - c0) / (c1 - c0)) * (y1 - y0);
-    };
+    const yOf = placeOnForm(round, m);
     const kY = (WAIST - NAPE_Y) / N;
 
     // The garment's ease over the body, as form units, at the bust, the waist and the hip.
