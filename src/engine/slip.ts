@@ -222,7 +222,10 @@ function mirrorOutline(o: Path): Path {
   const out = new Path(o.start);
   const n = o.segs.length - 1; // the last edge is the centre line, which disappears
   const startOf = (i: number) => (i === 0 ? o.start : o.segs[i - 1].to);
-  for (let i = 0; i < n; i++) out.segs.push({ ...o.segs[i] }), out.tags.push(o.tags[i]);
+  for (let i = 0; i < n; i++) {
+    out.segs.push({ ...o.segs[i] });
+    out.tags.push(o.tags[i]);
+  }
   for (let i = n - 1; i >= 0; i--) {
     const s = o.segs[i];
     const to = mirror(startOf(i));

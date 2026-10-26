@@ -57,7 +57,7 @@ function layerOf(name: string): string {
 const UNITS: Record<string, ['mm' | 'cm' | 'in', number]> = { '1': ['in', 2.54], '4': ['mm', 0.1], '5': ['cm', 1] };
 
 function entities(text: string): Ent[] {
-  const lines = text.replace(/^﻿/, '').split(/\r\n|\r|\n/);
+  const lines = text.replace(/^\uFEFF/, '').split(/\r\n|\r|\n/);
   const ents: Ent[] = [];
   for (let i = 0; i + 1 < lines.length; i += 2) {
     const c = Number(lines[i].trim());

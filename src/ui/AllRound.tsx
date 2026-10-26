@@ -134,9 +134,10 @@ export function AllRound({ round, m, striped = false, label }: Props) {
     const trousers = round.kind === 'trousers';
     // The How it works film's own cut of this view (scripts/record-tour-shots.mjs sets the flag): a gentler waist,
     // the cloth in long lines, no meeting dots. Nothing a maker sees changes.
-    const film = !!(window as any).__tourFilm;
+    const flag = (window as Window & { __tourFilm?: string | boolean }).__tourFilm;
+    const film = !!flag;
     // The film's 'old look': the form's lines run on through the whole garment, as the released film had it.
-    const through = (window as any).__tourFilm === 'old';
+    const through = flag === 'old';
     const isTop = round.kind === 'top' || round.kind === 'dress';
     const strip = trousers ? 0 : STRIP;
 

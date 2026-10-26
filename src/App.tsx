@@ -132,6 +132,7 @@ export default function App() {
   // The dress form their patterns are drafted on: the menswear form drafts with no bust shaping.
   const form = formOf(person);
   // Keyed on the numbers, as the account (and so the person) is rebuilt on every render.
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the numbers (measuredKey), not the rebuilt object
   const values = useMemo(() => withEstimates(measured, form), [measuredKey, form]);
   // The last photo matched to a skirt, shown beside "Matched to your photo" while the app is open. Never saved.
   const [photoPreview, setPhotoPreview] = useState<string>();
@@ -195,6 +196,7 @@ export default function App() {
   };
   useEffect(() => {
     if (gated && step !== 'welcome' && step !== 'privacy' && step !== 'terms') setStep('welcome');
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- setStep is rebuilt each render; the effect only follows gated and step
   }, [gated, step]);
   useEffect(() => {
     if (!gated) keepOffline();
@@ -332,6 +334,7 @@ export default function App() {
         const special = (saved.finish ?? DEFAULT_FINISH).fabric?.special;
         return drafting.graded(m, inputs, fitting, (pcs) => pcs.map((pc) => withSpecialAllowances(withAllowances(pc, allowance), special)));
       },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only the two finish fields the grading reads
     [drafting, inputs, fitting, saved.finish?.allowances, saved.finish?.fabric?.special],
   );
 
@@ -377,6 +380,7 @@ export default function App() {
       spec: [],
       lays,
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the numbers (measuredKey), not the rebuilt object
   }, [step, values, measuredKey, finish.fabricWidth]);
   const importedTitle = imported ? imported.pattern.style || imported.fileName.replace(/\.dxf$/i, '') : '';
 

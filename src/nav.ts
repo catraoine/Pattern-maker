@@ -173,6 +173,7 @@ export function usePageHistory<P>(initial: () => P, isPage: (sub: unknown) => bo
     window.addEventListener('popstate', on);
     return () => window.removeEventListener('popstate', on);
     // Only on opening: later pages are pushed by `go`.
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- only on opening: later pages are pushed by `go`
   }, []);
   const go = (p: P) => {
     const now = current();

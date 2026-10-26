@@ -215,7 +215,7 @@ export function moveBustDart(path: Path, apex: P, to: DartPlace, opts: { armhole
           : toNotch * 0.8,
     );
   } else if (to === 'french') {
-    let a = iN;
+    const a = iN;
     let b = iN;
     while (r.tags[b + 1] === 'side') b++;
     // Low on the side seam: a few cm above the waist (which may be part way down a longer top's side).

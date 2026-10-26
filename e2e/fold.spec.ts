@@ -12,6 +12,7 @@ const PHONES = [
   [430, 739], // iPhone Pro Max, Safari
 ] as const;
 
+// eslint-disable-next-line no-empty-pattern -- Playwright reads the fixtures from this pattern
 test.beforeEach(({}, info) => test.skip(info.project.name !== 'phone', 'phones only'));
 
 async function onScreen(page: Page, name: string | RegExp, where: string) {

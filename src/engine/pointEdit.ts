@@ -196,7 +196,7 @@ const tagLength = (m: Model, tag: string) => m.segs.reduce((t, s, i) => (s.tag =
 function runs(m: Model, tag: string): number[][] {
   const out: number[][] = [];
   const k = m.segs.length;
-  let start = m.segs.findIndex((s, i) => s.tag !== tag && m.segs[(i + 1) % k].tag === tag);
+  const start = m.segs.findIndex((s, i) => s.tag !== tag && m.segs[(i + 1) % k].tag === tag);
   if (start < 0) return m.segs.every((s) => s.tag === tag) ? [m.segs.map((_, i) => i)] : [];
   for (let j = 1; j <= k; j++) {
     const i = (start + j) % k;

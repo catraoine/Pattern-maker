@@ -185,6 +185,17 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', sendLink, prof
     };
   }, [sheet, paper, title, guide, summary, unit]);
 
+  // These hooks sit above the early return below so every render calls them in the same order.
+  // Once the pattern has left the app (downloaded, shared or opened to print), the fit question comes up.
+  const [printed, setPrinted] = useState(false);
+  // How to sew it folds closed on a phone, where the page was one long scroll, and opens on a computer (the
+  // aesthetic review, 2026-10-21). Set once on arrival; after that the fold is the reader's.
+  // On the example body, the first print asks once whether to measure first or print the example anyway.
+  const [asking, setAsking] = useState<(() => void) | undefined>();
+  const [exampleOk, setExampleOk] = useState(false);
+  // On a computer the pages sit in their own column beside the controls, so they stay open there.
+  const wide = useWide();
+  const [seePages, setSeePages] = useState(false);
   if (!made || !sheet || !guide) {
     return (
       <section className="card">
@@ -202,16 +213,6 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', sendLink, prof
   const fileName = `${fileBase}-${paper === 'projectorDark' ? 'projector-black' : paper}.pdf`;
   const ready = pdf?.paper === paper ? pdf.bytes : null;
 
-  // Once the pattern has left the app (downloaded, shared or opened to print), the fit question comes up.
-  const [printed, setPrinted] = useState(false);
-  // How to sew it folds closed on a phone, where the page was one long scroll, and opens on a computer (the
-  // aesthetic review, 2026-10-21). Set once on arrival; after that the fold is the reader's.
-  // On the example body, the first print asks once whether to measure first or print the example anyway.
-  const [asking, setAsking] = useState<(() => void) | undefined>();
-  const [exampleOk, setExampleOk] = useState(false);
-  // On a computer the pages sit in their own column beside the controls, so they stay open there.
-  const wide = useWide();
-  const [seePages, setSeePages] = useState(false);
   const showPages = wide || seePages;
   const checked = (go: () => void) => () => (example && !exampleOk ? setAsking(() => go) : go());
   const share = async () => {
