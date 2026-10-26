@@ -1,0 +1,486 @@
+/* Style choices, numbered (Cat's S2): each section a narrow capital heading with its number before it. */
+.numbered {
+  counter-reset: sec;
+}
+.numbered > fieldset.group > legend {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-family: var(--display);
+  font-stretch: 75%;
+  font-weight: 600;
+  font-size: 19px;
+  letter-spacing: 0;
+}
+.numbered > fieldset.group > legend::before {
+  counter-increment: sec;
+  content: counter(sec, decimal-leading-zero);
+  font-family: var(--mono);
+  font-stretch: normal;
+  font-weight: 400;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+
+/* Shape choices as little drawings (Cat's S1): a tile per choice, its words under the drawing. */
+.chips.pics {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+  gap: 8px;
+}
+.chips.pics .chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  min-height: 0;
+  padding: 10px 4px 7px;
+  border-color: var(--line-strong);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  line-height: 1.3;
+}
+.chips.pics .chip .pic {
+  width: 36px;
+  height: 44px;
+  fill: none;
+  stroke: var(--gild);
+  stroke-width: 1.1;
+  stroke-linejoin: round;
+}
+.chips.pics .chip .pic .pic-faint {
+  stroke: var(--muted);
+  stroke-dasharray: 2 2;
+  stroke-width: 0.8;
+}
+.chips.pics .chip.on {
+  background: var(--white);
+  color: var(--ink);
+  border-color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--ink);
+}
+.chips.pics .chip.on .pic {
+  stroke: var(--ink);
+}
+
+/* The picked tile's drawing moves (Cat's E3): a brighter pen runs round the outline of the picked choice. */
+.chips.pics .chip .pic-trace {
+  display: none;
+}
+.chips.pics .chip.on .pic-trace .pic-faint {
+  display: none;
+}
+/* The skirts that swing do: a circle, a half circle and a bias slip sway from the waist. */
+.chips.pics .chip.on :is(.pic-skirt-silhouette-circle, .pic-skirt-silhouette-half_circle, .pic-skirt-silhouette-slip) {
+  transform-origin: 50% 10%;
+  animation: pic-sway 2.8s ease-in-out infinite;
+}
+@keyframes pic-pen {
+  from {
+    stroke-dashoffset: var(--len, 100);
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes pic-sway {
+  0%,
+  100% {
+    transform: rotate(-3deg);
+  }
+  50% {
+    transform: rotate(3deg);
+  }
+}
+/* Sections without picture tiles show the picked choice as a small moving drawing beside its line; any
+   picked drawing opens full size when tapped (Cat's extras to E3). */
+.explain-pic .pic,
+.big-drawing .pic {
+  fill: none;
+  stroke: var(--gild);
+  stroke-width: 1.1;
+  stroke-linejoin: round;
+}
+:is(.explain-pic, .big-drawing, .chips.pics .chip) .pic .pic-faint-solid {
+  stroke: var(--muted);
+  stroke-width: 0.8;
+}
+:is(.explain-pic, .big-drawing) .pic-trace,
+.chips.pics .chip.on .pic-trace {
+  display: inline;
+  stroke: var(--gild-glow);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+/* On a picked tile the outline is already bright, so the pen is drawn wider to stand out. */
+.chips.pics .chip.on .pic-trace {
+  stroke-width: 2.4;
+}
+/* Each path carries its own length in --len, so the dash and its run are set on the path itself. */
+.pic-trace path {
+  stroke-dasharray: calc(var(--len, 100) * 0.16) calc(var(--len, 100) * 0.84);
+  animation: pic-pen 2.8s linear infinite;
+}
+:is(.explain-pic, .big-drawing) .pic-trace :is(.pic-faint, .pic-faint-solid) {
+  display: none;
+}
+.big-drawing :is(.pic-skirt-silhouette-circle, .pic-skirt-silhouette-half_circle, .pic-skirt-silhouette-slip) {
+  transform-origin: 50% 10%;
+  animation: pic-sway 2.8s ease-in-out infinite;
+}
+.big-drawing .pic .pic-faint {
+  stroke: var(--muted);
+  stroke-dasharray: 2 2;
+  stroke-width: 0.8;
+}
+/* Full size keeps the fine line: strokes stay their screen width however big the drawing is. */
+.big-drawing .pic path {
+  vector-effect: non-scaling-stroke;
+  stroke-width: 1.5px;
+}
+.big-drawing .pic .pic-trace path {
+  /* The pen scales with the drawing so its dash, measured along the path, stays one short stroke. */
+  vector-effect: none;
+  stroke-width: 0.4;
+}
+.big-drawing .pic :is(.pic-faint, .pic-faint-solid) {
+  stroke-width: 1px;
+}
+.explain.with-pic {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  gap: 12px;
+  align-items: center;
+}
+.explain.with-pic p {
+  margin: 0;
+  min-width: 0;
+}
+.explain-pic {
+  width: 52px;
+  height: 62px;
+  padding: 4px;
+  border: var(--bw) solid var(--line-strong);
+  border-radius: 0;
+  background: transparent;
+  cursor: zoom-in;
+}
+.explain-pic .pic {
+  width: 100%;
+  height: 100%;
+}
+.chips.pics .chip.on .pic {
+  cursor: zoom-in;
+}
+.big-drawing {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: max(24px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom));
+  background: var(--paper);
+  text-align: center;
+}
+.big-drawing .pic {
+  width: min(64vw, 300px);
+  height: auto;
+  aspect-ratio: 40 / 48;
+}
+.big-drawing-name {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 28px;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.big-drawing-line {
+  margin: 0;
+  max-width: 34ch;
+  color: var(--ink);
+  line-height: 1.45;
+}
+/* Cat's A1 Tap to Enlarge (2026-10-20): the Enlarge button on the style page's sketch, and the full-screen view. */
+.enlarge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 6px 10px;
+  border: 1px solid var(--guide);
+  background: var(--paper);
+  color: var(--gild);
+  font: var(--w-strong) 11px/1 var(--sans);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: zoom-in;
+}
+.enlarge.in-row {
+  position: static;
+}
+.enlarge svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+}
+/* Enlarged, the live preview card fills the screen, its views and tools working as on the page (Cat, 2026-10-24). */
+section.live-big,
+.style-pin > section.live-big {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 8px;
+  max-width: none;
+  margin: 0;
+  padding: max(12px, env(safe-area-inset-top, 0px)) 16px max(12px, env(safe-area-inset-bottom, 0px));
+  overflow: auto;
+  background: var(--paper);
+  animation: live-big 0.35s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+section.live-big > *,
+.style-pin > section.live-big > * {
+  flex: none;
+}
+section.live-big .preview,
+.style-pin > section.live-big > .preview {
+  position: relative;
+  top: auto;
+  clip-path: none;
+  box-shadow: none;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+section.live-big .preview > svg:not(.fabric-defs),
+.style-pin > section.live-big .preview .preview-svg {
+  flex: 1 1 auto;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  max-height: none;
+}
+/* On a phone, Draw keeps to the drawing's corner, inside the screen's edge. */
+.style-pin > section.live-big > .row.between.wrap > :is(.row.tools, .drawmenu, .link.small, .ghost) {
+  left: 16px;
+}
+@keyframes live-big {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  section.live-big {
+    animation: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  :is(.explain-pic, .big-drawing) .pic-trace,
+  .chips.pics .chip.on .pic-trace {
+    display: none;
+  }
+  .pic-trace path {
+    animation: none;
+  }
+  .chips.pics .chip.on .pic,
+  .big-drawing .pic {
+    animation: none;
+  }
+}
+
+/* The line under each Style section saying what its picked choice does (Cat's E2), with an Easy or More skill tag. */
+.explain {
+  margin: 10px 0 0;
+  padding-left: 10px;
+  border-left: var(--bw) solid var(--gild);
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ink);
+  max-width: 60ch;
+}
+.explain-name {
+  color: var(--gild);
+  font-weight: var(--w-strong);
+}
+.skill-tag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 6px;
+  border: 1px solid var(--muted);
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  vertical-align: 1px;
+}
+.skill-tag.easy {
+  border-color: var(--ok);
+  color: var(--ok);
+}
+
+/* Hands-on shaping: drag handles, drawn hems, the turning figure, the drafting replay and undo. */
+button.ghost {
+  min-height: 40px;
+  padding: 0 14px;
+  border: var(--bw) solid var(--line-strong);
+  border-radius: var(--pill);
+  background: transparent;
+  color: var(--ink);
+  font-size: 12px;
+  cursor: pointer;
+}
+button.ghost.on {
+  border-color: var(--ink);
+  box-shadow: inset 0 0 0 var(--bw-on) var(--ink);
+}
+button.ghost:disabled {
+  color: var(--disabled);
+  border-color: var(--disabled);
+  cursor: default;
+}
+.tools {
+  gap: 12px;
+  align-items: center;
+}
+
+.preview-svg.shape {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.preview-svg.shape.drawing {
+  cursor: crosshair;
+}
+.shape .guide line {
+  stroke: var(--guide);
+}
+.shape .guide text,
+.shape .hint {
+  fill: var(--muted);
+  font-family: var(--mono);
+  letter-spacing: 0.2em;
+}
+.shape .handle circle {
+  fill: var(--paper);
+  stroke: var(--ink);
+}
+.shape .handle .dot {
+  fill: var(--ink);
+  stroke: none;
+}
+.shape .handle path {
+  stroke: var(--muted);
+}
+.shape .handle text {
+  fill: var(--ink);
+  font-family: var(--mono);
+  letter-spacing: 0.2em;
+  pointer-events: none;
+}
+.shape .handle .hit {
+  fill: transparent;
+  stroke: none;
+  cursor: grab;
+  outline: none;
+}
+.shape .handle.on circle:first-child,
+.shape .handle .hit:focus-visible ~ circle {
+  stroke-width: 0.45;
+}
+.shape .handle.on path {
+  stroke: var(--ink);
+}
+.shape .handle .hit:focus-visible {
+  stroke: var(--ink);
+  stroke-width: 0.15;
+  stroke-dasharray: 0.6 0.6;
+}
+.shape .stroke {
+  stroke: var(--ink);
+  filter: drop-shadow(0 0 0.6px rgba(243, 230, 200, 0.9));
+}
+
+.toast,
+.draft-caption {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 8px 14px;
+  border: var(--bw) solid var(--ink);
+  background: var(--paper);
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.toast {
+  bottom: 14px;
+}
+.draft-caption {
+  bottom: 12px;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+}
+
+.preview-svg .drawn {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: draw-line 1s ease-in-out forwards;
+}
+.preview-svg .faded {
+  opacity: 0;
+  animation: fade-in 0.7s ease-out forwards;
+}
+@keyframes draw-line {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes fade-in {
+  to {
+    opacity: 1;
+  }
+}
+
+.figure .spot {
+  cursor: pointer;
+  outline: none;
+}
+.figure .spot text {
+  fill: var(--muted);
+  font-family: var(--mono);
+  letter-spacing: 0.2em;
+}
+.figure .spot.on text,
+.figure .spot:focus-visible text {
+  fill: var(--ink);
+}
+.tip {
+  animation: fade-in 0.35s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tip {
+    animation: none;
+  }
+}

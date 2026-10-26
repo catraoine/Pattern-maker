@@ -1,0 +1,849 @@
+/* ---------------------------------------------------------------------------------------------------------
+   Wide windows (Cat's W3 Drafting Table, 2026-10-20): the app fills the window instead of a phone-width
+   column. The 1280px cap is gone; the welcome is one full-window picture (C1 Light Pass); the measuring
+   pages are three columns: the list of measurements, the form, and the question. */
+:root {
+  --tape: #e3d3ad;
+  --tape-ink: #2b2418;
+}
+
+.welcome-hero {
+  position: relative;
+}
+
+.main,
+.steady-row,
+.crumb {
+  max-width: none;
+}
+
+@media (min-width: 1100px) {
+  .main {
+    padding-left: clamp(20px, 3vw, 56px);
+    padding-right: clamp(20px, 3vw, 56px);
+  }
+  .topbar {
+    padding-left: clamp(20px, 3vw, 56px);
+    padding-right: clamp(20px, 3vw, 56px);
+  }
+}
+
+/* The tape on the welcome (Cat's U3 Real Tape + U2 Tape Tip + E5 Out of the Corner): the tip peeks in at the
+   form's corner, and Begin pulls the tape out across the form. */
+.tape-band {
+  position: relative;
+  flex: none;
+  height: 34px;
+  margin: 0 -22px;
+  overflow: hidden;
+  background-color: var(--tape);
+  /* Centimetres every 39px, centred on each number, and millimetres between */
+  background-image: repeating-linear-gradient(90deg, var(--tape-ink) 0 1px, transparent 1px 39px),
+    repeating-linear-gradient(90deg, rgba(43, 36, 24, 0.7) 0 1px, transparent 1px 3.9px);
+  background-size: 100% 13px, 100% 7px;
+  background-position: 19.5px 0, 19.5px 0;
+  background-repeat: no-repeat;
+}
+
+.tape-marks {
+  display: flex;
+  height: 100%;
+}
+
+.tape-marks span {
+  flex: none;
+  width: 39px;
+  padding-top: 15px;
+  text-align: center;
+  font: var(--w-strong) 10px/1 var(--mono);
+  color: var(--tape-ink);
+}
+
+/* The end of a tape measure peeking in at the form's bottom corner, where Begin pulls the tape out from
+   (Cat's U2 Tape Tip + E5 Out of the Corner, 2026-10-18): a short stub of tape and its metal hook */
+.tape-tip {
+  position: absolute;
+  right: -18px;
+  bottom: 14px;
+  z-index: 2;
+  width: 64px;
+  height: 18px;
+  background-color: var(--tape);
+  background-image: repeating-linear-gradient(90deg, var(--tape-ink) 0 1px, transparent 1px 19.5px),
+    repeating-linear-gradient(90deg, rgba(43, 36, 24, 0.6) 0 1px, transparent 1px 3.9px);
+  background-size: 100% 8px, 100% 4px;
+  background-position: 6px 0, 6px 0;
+  background-repeat: no-repeat;
+  opacity: 0;
+}
+
+.tape-tip::before {
+  content: '';
+  position: absolute;
+  left: -3px;
+  top: -4px;
+  bottom: -4px;
+  width: 4px;
+  border-radius: 1px;
+  background: #b8a274;
+}
+
+.tape-tip::after {
+  content: '1';
+  position: absolute;
+  left: 22px;
+  top: 6px;
+  font: 600 8px/1 var(--mono);
+  color: var(--tape-ink);
+}
+
+/* It slides in from the edge once the form has drawn */
+.welcome.go .tape-tip {
+  animation: tape-tip-in 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) 1.9s both;
+}
+
+@keyframes tape-tip-in {
+  from {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Begin takes the tip with it: the tape pulled out from here replaces it */
+.welcome.leaving .tape-tip {
+  animation: none;
+  opacity: 0;
+}
+
+/* Begin: the tape pulls out of the tip's corner, right to left across the foot of the form, its hook leading, the
+   welcome fades, and the tape rises to the top (Cat, 2026-10-21: wider, slower, the hook kept on it). */
+.tape-band.unrolling {
+  position: absolute;
+  left: 0;
+  right: 0;
+  margin: 0;
+  top: calc(100% - 32px);
+  z-index: 3;
+  animation: tape-pull 1.5s cubic-bezier(0.35, 0.1, 0.25, 1) both, tape-rise 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) 1.75s both;
+}
+
+/* The hook on the tape's leading end, as on the tip it was pulled from */
+.tape-band.unrolling,
+.tape-band.landed {
+  overflow: visible;
+}
+
+.tape-band.unrolling .tape-marks,
+.tape-band.landed .tape-marks {
+  overflow: hidden;
+}
+
+.tape-band.unrolling::before,
+.tape-band.landed::before {
+  content: '';
+  position: absolute;
+  left: -5px;
+  top: -5px;
+  bottom: -5px;
+  width: 6px;
+  border-radius: 1px;
+  background: #b8a274;
+}
+
+/* The size of the tip it is pulled from, the whole way (Cat, 2026-10-21: the tip on the first screen is the right
+   size; the tape never grows), and as long as the screen is wide */
+.tape-band.unrolling,
+.tape-band.landed {
+  height: 18px;
+  background-image: repeating-linear-gradient(90deg, var(--tape-ink) 0 1px, transparent 1px 19.5px),
+    repeating-linear-gradient(90deg, rgba(43, 36, 24, 0.6) 0 1px, transparent 1px 3.9px);
+  background-size: 100% 8px, 100% 4px;
+  /* A long mark under each number, a short one between */
+  background-position: 19.5px 0, 19.5px 0;
+}
+
+.tape-band.unrolling .tape-marks span,
+.tape-band.landed .tape-marks span {
+  width: 19.5px;
+  padding-top: 8px;
+  font-size: 8px;
+}
+
+.tape-band.unrolling::before,
+.tape-band.landed::before {
+  left: -3px;
+  top: -4px;
+  bottom: -4px;
+  width: 4px;
+}
+
+/* It slides out of the tip rather than being uncovered, so the hook travels with it */
+@keyframes tape-pull {
+  from {
+    transform: translateX(calc(100% - 46px));
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes tape-rise {
+  from {
+    top: calc(100% - 32px);
+  }
+  to {
+    top: 0;
+  }
+}
+
+/* Risen, the tape stays full size across the top of the first page, and only that page (Cat, 2026-10-21), exactly
+   where the welcome's tape came to rest, so it doesn't jump as the page changes. Begin measuring carries it on down
+   to the waist. */
+.tape-band.landed {
+  margin: -17px -22px 18px;
+  grid-column: 1 / -1;
+}
+
+/* Carried down to the waist: above everything, off the right-hand edge, the page clipping the rest. */
+.tape-band.landed.carried {
+  position: fixed;
+  z-index: 50;
+  width: 200vw;
+  margin: 0;
+  pointer-events: none;
+}
+body:has(.tape-band.carried) {
+  overflow-x: clip;
+}
+
+/* On a phone the tape runs the width of the screen, off the right-hand edge it came from, with its hook just in
+   from the left; the card lets it out past its own edges. */
+@media (max-width: 640px) {
+  .welcome.leaving .welcome-card {
+    overflow-x: visible;
+  }
+  .tape-band.unrolling {
+    left: calc(50% - 50vw + 14px);
+    right: calc(50% - 50vw);
+  }
+  .welcome-card.has-tape {
+    overflow-x: visible;
+  }
+  .tape-band.landed:not(.carried) {
+    margin-left: calc(50% - 50vw + 14px);
+    margin-right: calc(50% - 50vw);
+  }
+}
+
+/* The body alone fills the room above the switches on the first page (Cat's R1 Two Switches). */
+.measure-step > .step-words > .form-picture {
+  flex: 1 1 0;
+  min-height: 96px;
+  max-height: 340px;
+}
+
+/* On a very short screen the form and the strip stay off so Begin measuring stays in view. */
+@media (max-height: 480px) {
+  .measure-step > .step-words > .form-picture,
+  .tape-band.landed:not(.carried) {
+    display: none;
+  }
+}
+
+.welcome.leaving {
+  pointer-events: none;
+}
+
+.welcome.leaving .welcome-hero canvas,
+.welcome.leaving .tour-play,
+.welcome.leaving .welcome-card > :not(.welcome-hero) {
+  opacity: 0;
+  /* Gone just as the first measuring page starts to come up under the tape (Cat, 2026-10-22: no gap on black) */
+  transition: opacity 0.4s ease 1.3s;
+}
+
+@media (max-width: 640px) {
+  .tape-band {
+    margin: 0 -18px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .welcome.go .tape-tip{
+    animation: none;
+    opacity: 1;
+  }
+}
+
+/* The tour's play button, on the welcome's dress form above the waist */
+.tour-play {
+  position: absolute;
+  left: 50%;
+  top: 30%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.tour-play-ring {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  border: 1px solid var(--ink);
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.tour-play-ring::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-35%, -50%);
+  border-left: 16px solid var(--ink);
+  border-top: 10px solid transparent;
+  border-bottom: 10px solid transparent;
+}
+
+.tour-play-label {
+  padding: 6px 8px;
+  background: rgba(0, 0, 0, 0.7);
+  font: var(--w-body) 10px/1 var(--mono);
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+}
+
+/* The play button flashes champagne on a tap, like Join */
+.tour-play:active .tour-play-ring {
+  background: var(--gild);
+  border-color: var(--gild);
+}
+.tour-play:active .tour-play-ring::after {
+  border-left-color: var(--paper);
+}
+@media (hover: hover) {
+  .tour-play:hover .tour-play-ring {
+    background: var(--gild);
+    border-color: var(--gild);
+  }
+  .tour-play:hover .tour-play-ring::after {
+    border-left-color: var(--paper);
+  }
+}
+
+.tour-play:focus-visible .tour-play-ring {
+  outline: 2px solid var(--focus);
+  outline-offset: 4px;
+}
+
+/* Measuring. On a phone: one column, the form on top and the question under it. */
+.step-words {
+  display: contents;
+}
+.step-list {
+  display: none;
+}
+.measure-step.has-hero .welcome-hero {
+  max-height: 56svh;
+  min-height: 110px;
+}
+.measure-step .welcome-hero canvas {
+  height: 100%;
+}
+.measure-step.short .welcome-hero {
+  max-height: 34svh;
+}
+.measure-step .step-words > button.skip-link,
+.measure-step > button.skip-link {
+  align-self: center;
+  margin-top: -6px;
+}
+
+@media (min-width: 1100px) {
+  .measure-step.has-hero {
+    max-width: none;
+    display: grid;
+    grid-template-columns: minmax(220px, 1fr) minmax(0, 1.9fr) minmax(340px, 1.25fr);
+    align-items: start;
+    gap: 0;
+    padding: 0;
+    min-height: calc(100svh - 150px);
+  }
+  .main:has(.measure-step.has-hero) .welcome-card {
+    max-width: none;
+  }
+  .measure-step.has-hero .welcome-hero {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: stretch;
+    margin: 0;
+    max-height: none;
+    min-height: 480px;
+    border-left: var(--bw) solid var(--line);
+    border-right: var(--bw) solid var(--line);
+  }
+  .measure-step.has-hero:not(.has-aside) .welcome-hero {
+    grid-column: 1 / 3;
+    border-left: 0;
+  }
+  .measure-step.has-hero .step-words {
+    grid-column: 3;
+    grid-row: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 56px 0 0 40px;
+    max-width: 520px;
+  }
+  .measure-step .step-list {
+    display: block;
+    grid-column: 1;
+    grid-row: 1;
+    padding: 8px 32px 0 0;
+  }
+  .measure-step.short .welcome-hero {
+    max-height: none;
+  }
+}
+
+.step-list .eyebrow {
+  margin: 0 0 14px;
+}
+.step-group + .step-group {
+  margin-top: 18px;
+}
+.step-group-name {
+  margin: 0 0 6px;
+  font: var(--w-body) 10px/1.4 var(--mono);
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.step-list ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: var(--bw) solid var(--line);
+}
+.step-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 10px;
+  border-bottom: var(--bw) solid var(--line);
+  color: var(--muted);
+  font-size: 14px;
+}
+.step-list li.on {
+  color: var(--ink);
+  background: rgba(217, 196, 155, 0.08);
+  box-shadow: inset 2px 0 0 var(--gild);
+}
+.step-list li em {
+  font-style: normal;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--gild);
+  white-space: nowrap;
+}
+
+/* Your account on a computer: who you are on the left, the folded rows in two columns beside it. */
+@media (min-width: 1100px) {
+  .account {
+    max-width: none;
+    display: grid;
+    grid-template-columns: minmax(240px, 1fr) minmax(0, 3fr);
+    align-items: start;
+    gap: 0 56px;
+  }
+  .account-who {
+    position: sticky;
+    top: 110px;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .account > :not(.account-who) {
+    grid-column: 2;
+  }
+  .account .folds {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 48px;
+    align-items: start;
+  }
+  .account .folds > :not(.fold) {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-height: 620px) {
+  .measure-step.has-hero .welcome-hero {
+    min-height: 64px;
+  }
+  .measure-step .step-words > button.skip-link,
+  .measure-step .step-words > button.later {
+    min-height: 28px;
+    margin-top: -10px;
+  }
+}
+
+/* Watch demo (L1 Whisper): deep champagne caps, bottom right of a tool's box, one light pass on arrival */
+.demo-play {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  z-index: 3;
+  padding: 12px 8px;
+  border: 0;
+  background: none;
+  font: var(--w-strong) 8px/1 var(--mono);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.demo-play-words {
+  background: linear-gradient(100deg, #8a6d3b 0 38%, var(--ink) 50%, #8a6d3b 62% 100%) 0 0 / 300% 100% no-repeat;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: demo-light 1.8s ease-in-out 0.6s backwards;
+}
+.demo-play:hover .demo-play-words,
+.demo-play:active .demo-play-words,
+.demo-play:focus-visible .demo-play-words {
+  background: var(--gild);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+.demo-play:focus-visible {
+  outline: 1.5px solid var(--focus);
+  outline-offset: -4px;
+}
+.demo-play-mark {
+  margin-left: 0.5em;
+  letter-spacing: 0;
+}
+@keyframes demo-light {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0 0;
+  }
+}
+.demo-parts {
+  grid-template-columns: none;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+}
+.demo-parts li:not(.on) .demo-part-name {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.demo-parts li.on .demo-part-name {
+  white-space: nowrap;
+}
+@media (prefers-reduced-motion: reduce) {
+  .demo-play-words {
+    animation: none;
+  }
+}
+
+/* Height in feet and inches: two short boxes on the one line */
+.ft-in {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+.ft-in input {
+  width: 3.2em;
+  flex: none;
+}
+.ft-in > span {
+  color: var(--muted);
+  font: var(--w-body) 12px/1 var(--mono);
+  text-transform: uppercase;
+  letter-spacing: var(--track);
+}
+
+/* The first measuring page (Cat's R1 Two Switches, 2026-10-21): the body alone, filling the room above two
+   switches of one kind (the form, and for whom), Begin, and Measure later in quiet capitals. */
+
+
+.switch {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 4px 28px;
+}
+
+.switch button {
+  position: relative;
+  min-height: 40px;
+  padding: 6px 0;
+  border: none;
+  background: none;
+  color: var(--muted);
+  font: var(--w-strong) 11px/1 var(--mono);
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+}
+
+.switch button[aria-checked='true'] {
+  color: var(--gild);
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 8px;
+}
+
+/* A small raised tag beside the word, not a second line under it (Cat, 2026-10-21: it looked cluttered). */
+.switch .testing-tag {
+  display: inline-block;
+  margin: 0 0 0 6px;
+  vertical-align: 0.6em;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  opacity: 0.75;
+  text-decoration: none;
+}
+
+button.later {
+  align-self: center;
+  min-height: 40px;
+  padding: 6px 12px;
+  border: none;
+  background: none;
+  color: var(--muted);
+  font: var(--w-strong) 11px/1 var(--mono);
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+}
+
+button.later:hover,
+.switch button:hover {
+  color: var(--ink);
+}
+
+/* One underlined link per screen (Cat's L1, 2026-10-21): every other secondary action is quiet capitals, gold when it
+   opens or moves on (How to do it, Choose fabric, Fabric guide, the garment switch), grey when it steps aside. */
+button.later.go {
+  color: var(--gild);
+}
+button.later.go:hover {
+  color: var(--ink);
+}
+.how-row button.later,
+.review-edits button.later,
+.mode-link button.later,
+.fabric details button.later,
+.yourfabric button.later,
+button.later.name-edit {
+  align-self: flex-start;
+  padding-left: 0;
+  padding-right: 0;
+}
+.review-edits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 28px;
+}
+.step-words > button.later.skip-link {
+  align-self: center;
+}
+button.later.garment-change {
+  flex-basis: auto;
+  padding: 6px 0;
+  text-align: right;
+}
+.fineprint.plain .inline-link {
+  text-decoration: none;
+  color: var(--muted);
+}
+.fineprint.plain .inline-link:hover {
+  color: var(--ink);
+}
+.yourfabric button.later {
+  justify-self: start;
+  padding-left: 0;
+  text-align: left;
+}
+
+/* Printing the example body asks first (Cat, 2026-10-21): Measure me, or print it anyway. */
+.example-ask {
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 1px solid var(--gild);
+}
+.example-ask p {
+  margin: 0;
+}
+.example-ask button.later {
+  justify-self: center;
+}
+
+/* The welcome on a computer (Cat's WA Half and Half, 2026-10-21): the close-crop form fills the left half of the
+   window, top to bottom, and the title, Begin and the fine print sit together on the right. */
+@media (min-width: 960px) {
+  .welcome-card:not(.measure-step) {
+    max-width: none;
+    display: grid;
+    /* Two columns hugging the form and the words, the pair centred, so the form and the title read as one group and
+       the tape tip sits at the form's hip (Cat, 2026-10-21: the form was too far from the title). */
+    grid-template-columns: minmax(0, 52svh) minmax(0, 560px);
+    justify-content: center;
+    grid-template-rows: 1fr auto auto auto 1fr;
+    column-gap: clamp(24px, 3vw, 48px);
+    row-gap: 20px;
+  }
+  .welcome-card:not(.measure-step) > .welcome-hero {
+    grid-column: 1;
+    grid-row: 1 / -1;
+    margin: 0;
+    min-height: 0;
+    max-height: none;
+  }
+  .welcome-card:not(.measure-step) > h1 {
+    grid-column: 2;
+    grid-row: 2;
+    margin: 0;
+  }
+  .welcome-card:not(.measure-step) h1 .t-big {
+    font-size: clamp(48px, 5vw, 80px);
+  }
+  .welcome-card:not(.measure-step) > .stack {
+    grid-column: 2;
+    grid-row: 3;
+    max-width: 420px;
+  }
+  .welcome-card:not(.measure-step) > .fineprint {
+    grid-column: 2;
+    grid-row: 4;
+    align-self: start;
+    text-align: left;
+  }
+}
+
+/* Boxes that hold a Watch demo in their bottom-right corner */
+.photostart,
+.lay-box,
+.fit-box,
+.calcard-wrap,
+.truescale {
+  position: relative;
+}
+.calcard-wrap {
+  padding-bottom: 32px;
+}
+/* Below the drawing, so it never sits on the cloth or a pattern line */
+.lay-box,
+.fit-box {
+  padding-bottom: 30px;
+}
+.lay-box .demo-play,
+.fit-box .demo-play {
+  right: -6px;
+  bottom: -2px;
+}
+
+/* Measuring on a computer (Cat's M3b Labels on the Form, 2026-10-21): the list becomes the names beside the form,
+   each at its place on the body, in quiet capitals; the one being taken in gold. No dots and no "1 of 5": the
+   names say where you are. A long list (arms, crotch) stays a list on the left. */
+.form-labels {
+  display: none;
+}
+@media (min-width: 1100px) {
+  .measure-step.has-labels .step-list,
+  .measure-step.has-labels .dots,
+  .measure-step.has-labels .step-words > .eyebrow {
+    display: none;
+  }
+  .measure-step.has-labels.has-aside .welcome-hero {
+    grid-column: 1 / 3;
+    border-left: 0;
+  }
+  .measure-step.has-labels .welcome-hero {
+    overflow: hidden;
+  }
+  .form-labels {
+    display: block;
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    pointer-events: none;
+  }
+  .form-labels li {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transform: translateY(-50%);
+    white-space: nowrap;
+    font: var(--w-strong) 11px/1 var(--mono);
+    letter-spacing: var(--track);
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  /* A short line out to the body */
+  .form-labels li::after {
+    content: '';
+    width: 28px;
+    border-top: var(--bw) solid var(--line);
+  }
+  .form-labels li b {
+    font-weight: inherit;
+    color: var(--ink);
+  }
+  .form-labels li.on {
+    color: var(--gild);
+  }
+  .form-labels li.on::after {
+    border-color: var(--gild);
+  }
+}
+
+/* The first measuring page on a computer as one composed group (Cat, 2026-10-21: "a mess"): a narrow centred
+   column, the title centred over the form, the tape across its top the same width, the switches and Begin under
+   it, with even, tighter gaps. */
+@media (min-width: 960px) {
+  .measure-step.has-tape {
+    max-width: 520px;
+    margin-left: auto;
+    margin-right: auto;
+    row-gap: 18px;
+  }
+  .measure-step.has-tape h1 {
+    text-align: center;
+  }
+  .measure-step.has-tape > .step-words > .form-picture {
+    max-height: 300px;
+  }
+}
+
+/* On a computer the tip comes in once the form has slid across to its place beside the title, before the play
+   button. */
+@media (min-width: 960px) {
+  .welcome.go .tape-tip {
+    animation-delay: 1.7s;
+  }
+}
