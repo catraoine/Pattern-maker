@@ -218,8 +218,9 @@ const mark = (what) => console.log(`  style ${what}: ${((Date.now() - t0) / 1000
 // the mini hem drawn longer, to the knee, then the side drawn out from the hip so the straight skirt flares (Cat,
 // 2026-10-24: longer and flare, the neck and waist kept as in her photo).
 const LINES = {
-  hem: [[0.11, 0.966], [0.5, 0.983], [0.89, 0.966]],
-  side: [[0.15, 0.44], [0.11, 0.58], [-0.09, 0.966]],
+  photo: [[0.13, 0.639], [0.5, 0.652], [0.87, 0.639]],
+  hem: [[0.104, 0.975], [0.5, 0.99], [0.896, 0.975]],
+  side: [[0.143, 0.483], [0.102, 0.638], [-0.104, 0.975]],
 };
 // Off camera, the dress is made to match the photo the film has just shown, Cat's own check silk dress (Cat,
 // 2026-10-24: show that starting from a photo works): a boat neck, short sleeves, a waist seam dropped low on the hip,
@@ -339,32 +340,26 @@ if (process.env.TOUR_PROBE_FABRIC) {
 // Enlarged, the preview fills the screen with its tools (Cat, 2026-10-24: use the tools while it's enlarged), and
 // drawing on the form from there opens the drawing tool enlarged too, the place where room matters most.
 mark('enlarge');
-// The drawing tool takes the dress from the mini, so the hem drawn to the knee is seen to lengthen it (Cat,
-// 2026-10-26: the hem edit should go from mini to longer, not start where the dress already is). The dress is at the
-// knee until then, so the flat drawing reads as a dress; the length goes to the mini unseen, as the preview grows to
-// fill the screen (no frames are kept meanwhile).
-const enlarge = main.getByRole('button', { name: /^Enlarge the drawing/ });
-const eb = await enlarge.boundingBox();
-await pen(eb.x + eb.width / 2, eb.y + eb.height / 2, 1);
-await wait(380);
-hold = true;
-await main.getByRole('tab', { name: 'Skirt & length', exact: true }).click();
-await wait(300);
-await p.evaluate(() => [...document.querySelectorAll('main .hem-mark')].find((g) => g.textContent.trim() === 'MINI')?.querySelector('.hit')?.dispatchEvent(new MouseEvent('click', { bubbles: true })));
-await wait(400);
-await main.getByRole('tab', { name: 'Shape', exact: true }).click();
-await p.evaluate(() => window.scrollTo(0, 0));
-await enlarge.evaluate((el) => el.click());
-await p.evaluate(() => { document.getElementById('pen').style.opacity = 0; });
-await wait(900);
-hold = false;
-await wait(1100);
+await press(main.getByRole('button', { name: /^Enlarge the drawing/ }), 1300);
 mark('draw');
 await press(main.getByRole('button', { name: 'Draw on your form' }).first(), 1100);
 const roomy = main.getByRole('button', { name: 'Enlarge', exact: true });
 if (await roomy.count()) await press(roomy, 1000);
 const form = main.getByRole('img', { name: /Your dress form from the/ });
 const kinds = main.getByRole('group', { name: 'What you are drawing' });
+// The drawing tool takes the dress from as short as the photo's, so the hem drawn to the knee is seen to lengthen it
+// (Cat, 2026-10-26: the hem edit should go from a mini, as in the photo, to longer, not start where the dress already
+// is). The dress is at the knee until then, so the flat drawing reads as a dress; the hem goes up unseen as the
+// drawing tool opens (no frames are kept meanwhile).
+if (await kinds.count()) {
+  hold = true;
+  await tap(kinds.getByRole('button', { name: 'Hem', exact: true }), 300);
+  await p.evaluate(() => { document.getElementById('pen').style.visibility = 'hidden'; });
+  await draw(form, LINES.photo, 600);
+  await p.evaluate(() => { document.getElementById('pen').style.visibility = ''; });
+  await tap(kinds.getByRole('button', { name: 'Neckline', exact: true }), 600);
+  hold = false;
+}
 const before = await viewBox(form);
 if (process.env.TOUR_PROBE2) {
   const bb = await form.boundingBox();
