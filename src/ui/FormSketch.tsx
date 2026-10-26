@@ -20,6 +20,7 @@ import { ClothDefs, ClothOverlay, SHEER_OPACITY, borderHems, useFabricLook } fro
 type Measures = { full_bust?: number; waist: number; full_hip?: number; waist_to_hip?: number; waist_to_knee?: number; waist_to_floor?: number };
 
 const f = (n: number) => n.toFixed(2);
+
 /** How much narrower the form is drawn than the pattern's half girths. A quarter of a round measurement each side
  *  of the centre is the width laid flat; from the front a body shows about two thirds of that, which is how the
  *  welcome and measuring form are drawn beside the same head (Cat, 2026-10-24: the body read wide, the head tiny).
@@ -86,12 +87,20 @@ export const SATIN_HIGHLIGHT = -0.5;
 /** The form as a satin mannequin: its body (and arms, when it has them) filled with the satin, a fine champagne
  *  edge round each and one soft highlight down the lit side. Drawing on your form and the Style page's drawings
  *  all draw the form this way. */
-export function FormSatin({ body, cx, arms, uid, bottom = body.bottom, edge = 0.18 }: { body: FormBody; cx: number; arms?: FormArm; uid: string; bottom?: number; edge?: number }) {
+export function FormSatin({ body, cx, arms, uid, bottom = body.bottom, edge = 0.18, legsTo }: { body: FormBody; cx: number; arms?: FormArm; uid: string; bottom?: number; edge?: number; legsTo?: { y: number; half: number } }) {
   const armLines = useMemo(() => formArmLines(arms, cx), [arms, cx]);
   const { silhouette, sides, highlight, from } = useMemo(() => {
     const top = body.head ? body.top - INTO_HEAD : body.top;
-    const ys = Array.from({ length: 121 }, (_, i) => top + ((bottom - top) * i) / 120);
-    const at = (u: number) => ys.map((y) => ({ x: cx + SQUEEZE * u * body.width(Math.min(y, body.bottom)), y }));
+    // With legs below, the torso runs on down into them rather than ending in a flat cut at the hip.
+    const low = legsTo ? Math.max(bottom, legsTo.y) : bottom;
+    const ys = Array.from({ length: 121 }, (_, i) => top + ((low - top) * i) / 120);
+    const widthAt = (y: number) => {
+      const w = body.width(Math.min(y, body.bottom));
+      if (!legsTo || y <= body.bottom) return w;
+      const t = Math.min(1, (y - body.bottom) / Math.max(1, legsTo.y - body.bottom));
+      return w + (legsTo.half - w) * t * t;
+    };
+    const at = (u: number) => ys.map((y) => ({ x: cx + SQUEEZE * u * widthAt(y), y }));
     const right = at(1);
     const left = at(-1);
     return {
@@ -100,8 +109,12 @@ export function FormSatin({ body, cx, arms, uid, bottom = body.bottom, edge = 0.
       highlight: formPath(at(SATIN_HIGHLIGHT).filter((q) => q.y >= body.top)),
       from: body.top,
     };
-  }, [body, cx, bottom]);
+  }, [body, cx, bottom, legsTo]);
   const id = `satin${uid}`;
+  // No gold outline round the mannequin, just a faint edge, so it reads as a lit body rather than a drawing of one
+  // (Cat's D6, 2026-10-26).
+  const edgeOn = 0.35;
+  const edgeW = Math.min(edge, 0.12);
   return (
     <>
       <SatinDefs id={id} cx={cx} />
@@ -117,22 +130,27 @@ export function FormSatin({ body, cx, arms, uid, bottom = body.bottom, edge = 0.
       ))}
       <path d={silhouette} fill={`url(#${id})`} stroke="none" />
       {armLines.map((a, i) => (
-        <path key={`arm${i}`} d={a.d} className="form-line" fill="none" strokeWidth={edge} opacity={0.85} />
+        <path key={`arm${i}`} d={a.d} className="form-line" fill="none" strokeWidth={edgeW} opacity={edgeOn} />
       ))}
       {sides.map((d, i) => (
-        <path key={`side${i}`} d={d} className="form-line" fill="none" strokeWidth={edge} opacity={0.85} />
+        <path key={`side${i}`} d={d} className="form-line" fill="none" strokeWidth={edgeW} opacity={edgeOn} />
       ))}
       <path d={highlight} fill="none" stroke={`url(#sheen${uid})`} strokeWidth={0.14} />
     </>
   );
 }
 
-/** The drawing's frame: half its width (the centre line's x) and its top and bottom. */
+/** The drawing's frame: half its width (the centre line's x) and its top and bottom. The figure fills it (Cat's D5,
+ *  2026-10-26): just wider than the arms and the garment, and down to a little below the hem rather than always to
+ *  the floor, so the garment is the size of the page. */
 export function formFrame(m: Measures, body: FormBody, bottom: number, arms?: FormArm, cloth: P[][] = []) {
-  const wide = Math.max(0, ...cloth.flat().map((q) => Math.abs(q.x) + 3));
-  const half = SQUEEZE * Math.max(Math.max(m.full_bust ?? 0, m.full_hip ?? 0, m.waist) / 4 + 7, arms ? armAt(arms, arms.wristY).outer + 2 : 0, wide);
-  return { half, top: body.top - (body.head ? HEAD_CM + 1 : 2), bottom: Math.max(body.bottom + 12, bottom) };
+  const wide = Math.max(0, ...cloth.flat().map((q) => Math.abs(q.x) + 1.5));
+  const half = SQUEEZE * Math.max(Math.max(m.full_bust ?? 0, m.full_hip ?? 0, m.waist) / 4 + 3, arms ? armAt(arms, arms.wristY).outer + 1.5 : 0, wide);
+  const low = cloth.length ? Math.max(...cloth.flat().map((q) => q.y)) + BELOW_HEM : bottom;
+  return { half, top: body.top - (body.head ? HEAD_CM + 1 : 2), bottom: Math.max(body.bottom + 12, Math.min(bottom, low)) };
 }
+/** How far below the garment's hem the drawing goes, in cm: room for the legs to fade out and the hem to be dragged. */
+export const BELOW_HEM = 16;
 
 /** What a sleeve on the form needs to know of the drafted sleeve: its length, and how wide it is sewn. */
 export interface WornSleeve {
@@ -322,7 +340,9 @@ const WORN_EASE = 0.4;
 const FITTED_UP_TO = 4;
 const VOLUME_FROM = 7;
 /** How far the hem of a piece falls at its centre, seen a little from above, as a share of the hem's half width. */
-const HEM_FALL = 0.07;
+const HEM_FALL = 0.13;
+/** How much of the ease a piece shows where it is held carries down a fitted piece to the hip. */
+const HELD_EASE = 0.3;
 /** How far below a seam a gathered or eased piece takes to bell out to its own width. */
 const BELL = 14;
 
@@ -370,6 +390,18 @@ function pieceOnForm(s: P[], body: FormBody, underarmY: number): (q: P) => P {
     // gathers and all, and bells out below it.
     const topY = Math.min(...s.map((q) => q.y));
     const seamTop = topY > underarmY + 2 ? topY : undefined;
+    // True waist (Cat's D1, 2026-10-26): a piece is judged fitted where it is held, just under the armhole (or at the
+    // seam it hangs from): its darts close the rest on the body, so its flat width at the waist is not ease to show. A
+    // bodice fitted at the bust follows the form in to the waist; only a cut that is loose at the top hangs straight.
+    const heldY = seamTop !== undefined ? seamTop + 1 : underarmY + 1.5;
+    const heldHalf = Math.max(0, ...s.filter((q) => Math.abs(q.y - heldY) < 2.5).map((q) => Math.abs(q.x)));
+    const overHeld = heldHalf ? heldHalf - body.width(Math.min(heldY, body.bottom)) : 0;
+    const fittedHeld = Math.min(1, Math.max(0, (VOLUME_FROM - overHeld) / (VOLUME_FROM - FITTED_UP_TO)));
+    const hemHalfFlat = hemHalf;
+    const hipY = body.bottom;
+    const above = s.filter((p) => p.y < underarmY);
+    const tipHalf = above.length ? Math.max(...above.map((p) => Math.abs(p.x))) : 0;
+    const tipY = above.length ? above.reduce((a, b) => (Math.abs(b.x) > Math.abs(a.x) ? b : a)).y : underarmY;
     return (q) => {
       const below = Math.max(0, q.y - body.bottom);
       const share = WORN_EASE + (1 - WORN_EASE) * Math.min(1, below / 25);
@@ -384,6 +416,26 @@ function pieceOnForm(s: P[], body: FormBody, underarmY: number): (q: P) => P {
         const fitted = Math.min(1, Math.max(0, (VOLUME_FROM - over) / (VOLUME_FROM - FITTED_UP_TO)));
         const hug = Math.sign(q.x) * (w + Math.min(over, FITTED_UP_TO) * WORN_EASE);
         x = hug * fitted + x * (1 - fitted);
+        if (heldHalf && q.y > heldY - 1) {
+          // Held fitted above: close in to the body plus the ease it showed there, down to the hip, letting go over the
+          // last stretch above the hip so a flare from the hip still flares.
+          const carried = fittedHeld * Math.min(1, Math.max(0, (hipY - q.y) / 8));
+          const held = Math.sign(q.x) * (w + Math.min(Math.max(0, overHeld), FITTED_UP_TO) * HELD_EASE);
+          if (Math.abs(held) < Math.abs(x)) x = held * carried + x * (1 - carried);
+        }
+      }
+      if (q.y > hipY - 2 && hemY > hipY + 8 && hemHalfFlat > body.width(body.bottom) + 1.5) {
+        // Soft fall: below the hip the sides sway in a touch before the hem, so the skirt falls instead of standing out
+        // as a stiff cone.
+        const t = Math.min(1, (q.y - (hipY - 2)) / Math.max(1, hemY - (hipY - 2)));
+        const flare = Math.max(0, Math.abs(x) - body.width(body.bottom));
+        x -= Math.sign(x) * Math.min(1.2, 0.12 * flare) * Math.sin(Math.PI * t) * Math.min(1, Math.abs(q.x) / Math.max(1, hemHalfFlat));
+      }
+      if (q.y < underarmY && Math.abs(q.x) > 6) {
+        // Sloped shoulders: the shoulder corner rounds off down toward the arm, no square hanger corner. The drop
+        // fades out down the armhole, so the armhole keeps its line.
+        const near = Math.max(0, 1 - (tipHalf - Math.abs(q.x)) / 5) * Math.max(0, 1 - Math.max(0, q.y - tipY) / 6);
+        if (near > 0) return { x, y: q.y + 1.1 * near * near };
       }
       if (seamTop !== undefined && q.y < seamTop + BELL && Math.abs(q.x) > w) {
         const t = Math.min(1, (q.y - seamTop) / BELL);
@@ -451,8 +503,8 @@ export function shoulderPoint(cloth: P[][], arm: FormArm): P | undefined {
   return top.length ? top.reduce((a, b) => (b.x > a.x ? b : a)) : undefined;
 }
 
-/** The arms, each its outline round from the shoulder to the wrist, ending in a rounded wrist like a mannequin's
- *  (Cat's F5, 2026-10-25: no stripes down them, no flat cut ends). */
+/** The arms, each its outline round from the shoulder to the wrist and on into a hand, like a mannequin's
+ *  (Cat's F5, 2026-10-25: no stripes down them, no flat cut ends; D2, 2026-10-26: hands). */
 export function formArmLines(arms: FormArm | undefined, cx: number): { d: string; edge: boolean }[] {
   if (!arms) return [];
   const ys = (a: number, b: number) => Array.from({ length: 41 }, (_, i) => a + ((b - a) * i) / 40);
@@ -460,17 +512,21 @@ export function formArmLines(arms: FormArm | undefined, cx: number): { d: string
   const inner = ys(arms.under.y, arms.wristY).map((y) => ({ x: armAt(arms, y).inner, y }));
   const wrist = armAt(arms, arms.wristY);
   const mid = (wrist.inner + wrist.outer) / 2;
-  const cap = Array.from({ length: 13 }, (_, i) => {
-    const a = (Math.PI * i) / 12;
-    return { x: mid + ((wrist.outer - wrist.inner) / 2) * Math.cos(a), y: arms.wristY + WRIST_ROUND * Math.sin(a) };
+  // A hand, as a mannequin's (Cat's D2, 2026-10-26): the wrist runs on into a slim hand, a little fuller at the palm,
+  // tapering to rounded fingertips.
+  const cap = Array.from({ length: 25 }, (_, i) => {
+    const a = (Math.PI * i) / 24;
+    const t = Math.sin(a);
+    const r = ((wrist.outer - wrist.inner) / 2) * (1 + 0.2 * Math.sin(Math.PI * Math.min(1, t * 1.3)) - 0.3 * Math.max(0, t - 0.8) ** 1.2);
+    return { x: mid + r * Math.cos(a) + 0.3 * t, y: arms.wristY + HAND_CM * Math.sin(a) ** 0.85 };
   });
   // Up the inside from the wrist, over the shoulder, down the outside and round the end of the wrist.
   const outline = [...[...inner].reverse(), ...outer, ...cap];
   return [1, -1].map((s) => ({ d: formPath(outline.map((q) => ({ x: cx + SQUEEZE * s * q.x, y: q.y }))), edge: true }));
 }
 
-/** How far the rounded end of a wrist drops below the wrist, in cm. */
-const WRIST_ROUND = 1.6;
+/** How long the hand is below the wrist, in cm. */
+export const HAND_CM = 6.5;
 
 interface Props {
   body: FormBody;
@@ -501,16 +557,48 @@ interface Props {
   label: string;
 }
 
-/** The light on the cloth on the form (Cat's F5 Satin and Light): round like a body, brightest a third of the way
- *  across from the left, turning into shadow at both sides and deepest on the right, so a print reads and black
- *  cloth has form without an outline. Each stop is where across the drawing it sits, its colour and how strong. */
+/** The light on the cloth on the form (Cat's F5 Satin and Light, deepened in her D3, 2026-10-26): round like a body,
+ *  brightest a third of the way across from the left, turning into shadow at both sides and deepest on the right
+ *  where the cloth turns away, so a print reads and black cloth has form without an outline. Each stop is where
+ *  across the drawing it sits, its colour and how strong. */
 export const ROUND_STOPS: [number, string, number][] = [
-  [0, '#000', 0.55],
-  [0.14, '#000', 0.15],
-  [0.36, '#fff8e6', 0.2],
-  [0.5, '#fff8e6', 0.04],
-  [0.78, '#000', 0.22],
-  [1, '#000', 0.62],
+  [0, '#000', 0.72],
+  [0.1, '#000', 0.34],
+  [0.3, '#fff8e6', 0.22],
+  [0.46, '#fff8e6', 0.05],
+  [0.68, '#000', 0.26],
+  [0.86, '#000', 0.55],
+  [1, '#000', 0.78],
+];
+/** The light down the body (Cat's D3), by height in the form's cm: a lift over the bust, shade under it that draws
+ *  the waist in, a shadow under the waist seam, and the skirt coming back into the light. The bust is taken as
+ *  15 cm above the waist. */
+export function downLight(body: FormBody, bottom: number): [number, string, number][] {
+  const w = body.waistY;
+  return [
+    [body.top, '#000', 0],
+    [w - 7, '#000', 0],
+    [w - 3, '#000', 0.14],
+    [w, '#000', 0.22],
+    [w + 0.6, '#000', 0.3],
+    [w + 5, '#000', 0.1],
+    [w + 16, '#000', 0],
+    [bottom, '#fff8e6', 0.03],
+  ];
+}
+/** How far above the waist the bust sits, in cm, for the light on it. */
+export const BUST_ABOVE_WAIST = 15;
+/** Soft bands of shade across the skirt below the hip, the folds its fullness falls in. */
+export const FOLD_BANDS: [string, string, number][] = [
+  ['0', '#000', 0.1],
+  ['0.12', '#000', 0],
+  ['0.24', '#000', 0.11],
+  ['0.38', '#000', 0],
+  ['0.52', '#000', 0.09],
+  ['0.66', '#000', 0],
+  ['0.8', '#000', 0.12],
+  ['0.92', '#000', 0.02],
+  ['1', '#000', 0.1],
 ];
 
 /** The light on the flat drawing: lit from the left, falling into shade on the right. Each stop is where along
@@ -633,6 +721,40 @@ export function FormLayers({ body, m, legs, cx, top, bottom, arms, lines, outlin
               <path key={i} d={d} />
             ))}
           </clipPath>
+          {
+            // The light falls down the body too: a lift over the bust, shade under it and in at the waist, a shadow
+            // under the waist seam, and the skirt's fullness falling in soft bands of shade.
+            <>
+              <linearGradient id={`down${uid}`} gradientUnits="userSpaceOnUse" x1="0" x2="0" y1={f(body.top)} y2={f(bottom)}>
+                {downLight(body, bottom).map(([at, color, opacity], i) => (
+                  <stop key={i} offset={f((at - body.top) / (bottom - body.top))} stopColor={color} stopOpacity={opacity} />
+                ))}
+              </linearGradient>
+              {/* The lift over the bust and the shade under it are the shape of the bust, not bands across the garment
+                  (a tee or jacket is wider than the body there). */}
+              <radialGradient id={`bust${uid}`} gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform={`translate(${f(cx * 0.93)} ${f(body.waistY - BUST_ABOVE_WAIST)}) scale(${f(SQUEEZE * body.width(body.waistY - BUST_ABOVE_WAIST) * 1.5)} 5.5)`}>
+                <stop offset="0" stopColor="#fff8e6" stopOpacity="0.07" />
+                <stop offset="0.6" stopColor="#fff8e6" stopOpacity="0.025" />
+                <stop offset="1" stopColor="#fff8e6" stopOpacity="0" />
+              </radialGradient>
+              <radialGradient id={`underbust${uid}`} gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform={`translate(${f(cx)} ${f(body.waistY - BUST_ABOVE_WAIST + 9)}) scale(${f(SQUEEZE * body.width(body.waistY - BUST_ABOVE_WAIST) * 1.5)} 6)`}>
+                <stop offset="0" stopColor="#000" stopOpacity="0.12" />
+                <stop offset="1" stopColor="#000" stopOpacity="0" />
+              </radialGradient>
+              <linearGradient id={`bands${uid}`} gradientUnits="userSpaceOnUse" x1={f(cx * 0.25)} x2={f(cx * 1.75)} y1="0" y2="0">
+                {FOLD_BANDS.map(([at, color, opacity], i) => (
+                  <stop key={i} offset={at} stopColor={color} stopOpacity={opacity} />
+                ))}
+              </linearGradient>
+              <linearGradient id={`bandfade${uid}`} gradientUnits="userSpaceOnUse" x1="0" x2="0" y1={f(body.bottom - 4)} y2={f(body.bottom + 14)}>
+                <stop offset="0" stopColor="#fff" stopOpacity="0" />
+                <stop offset="1" stopColor="#fff" stopOpacity="1" />
+              </linearGradient>
+              <mask id={`bandmask${uid}`} maskUnits="userSpaceOnUse" x={f(-cx)} y={f(body.top)} width={f(4 * cx)} height={f(bottom - body.top + 2)}>
+                <rect x={f(-cx)} y={f(body.top)} width={f(4 * cx)} height={f(bottom - body.top + 2)} fill={`url(#bandfade${uid})`} />
+              </mask>
+            </>
+          }
           {/* The cloth's edges turn away from the light: a soft shadow just inside them, and one on the form under them. */}
           <filter id={soft} x="-20%" y="-20%" width="140%" height="140%">
             <feGaussianBlur stdDeviation="0.6" />
@@ -643,9 +765,24 @@ export function FormLayers({ body, m, legs, cx, top, bottom, arms, lines, outlin
         </defs>
       )}
       {cloth && <ClothDefs uid={uid} x1={cx * 0.2} x2={cx * 1.8} look={look} />}
+      {
+        // The legs fade out toward the drawing's bottom rather than being cut off at it.
+        <defs>
+          <linearGradient id={`legfade${uid}`} gradientUnits="userSpaceOnUse" x1="0" x2="0" y1={f(bottom - 9)} y2={f(bottom - 1)}>
+            <stop offset="0" stopColor="#fff" stopOpacity="1" />
+            <stop offset="1" stopColor="#fff" stopOpacity="0" />
+          </linearGradient>
+          <mask id={`legmask${uid}`} maskUnits="userSpaceOnUse" x={f(-cx)} y={f(body.top)} width={f(4 * cx)} height={f(bottom - body.top + 2)}>
+            <rect x={f(-cx)} y={f(body.top)} width={f(4 * cx)} height={f(bottom - body.top + 2)} fill={`url(#legfade${uid})`} />
+          </mask>
+        </defs>
+      }
       {showLegs ? (
-        <g transform={`translate(${f(cx * (1 - SQUEEZE))} ${f(body.waistY)}) scale(${SQUEEZE} 1)`}>
-          <path d={bodyOutline(m as SkirtMeasurements, cx)} className="form-legs" fill="none" strokeWidth={0.18} />
+        <g transform={`translate(${f(cx * (1 - SQUEEZE))} ${f(body.waistY)}) scale(${SQUEEZE} 1)`} mask={`url(#legmask${uid})`}>
+          {/* The legs in the same satin as the torso and arms: one mannequin from head to heel (Cat's D2). */}
+          <SatinDefs id={`legsatin${uid}`} cx={cx} />
+          <path d={bodyOutline(m as SkirtMeasurements, cx)} fill={`url(#legsatin${uid})`} stroke="none" />
+          <path d={bodyOutline(m as SkirtMeasurements, cx)} className="form-line" fill="none" strokeWidth={0.12} opacity={0.35} />
         </g>
       ) : (
         !legs && (
@@ -659,7 +796,7 @@ export function FormLayers({ body, m, legs, cx, top, bottom, arms, lines, outlin
       )}
       {/* With a head the neck runs into the jaw (FormHead); without one its lines fade in at the top. */}
       <g mask={top !== undefined && !head ? `url(#${neck})` : undefined}>
-        <FormSatin body={body} cx={cx} arms={arms} uid={uid} />
+        <FormSatin body={body} cx={cx} arms={arms} uid={uid} legsTo={showLegs ? { y: body.waistY + (m.waist_to_hip! + 7), half: (m.full_hip! / 4) * 0.74 } : undefined} />
       </g>
       {head && <FormHead head={head} cx={cx} />}
       {cloth && (
@@ -669,10 +806,18 @@ export function FormLayers({ body, m, legs, cx, top, bottom, arms, lines, outlin
               <path d={d} className="cloth-fill" strokeWidth={0.3} strokeLinejoin="round" fillOpacity={look?.sheer ? SHEER_OPACITY : undefined} />
               <ClothOverlay d={d} uid={uid} k={`p${i}`} look={look} hemY={hems[i]} />
               <path d={d} fill={`url(#${shade})`} stroke="none" opacity={look?.sheer ? 0.6 : undefined} />
+              <path d={d} fill={`url(#down${uid})`} stroke="none" />
+              {body.head && (
+                <>
+                  <path d={d} fill={`url(#bust${uid})`} stroke="none" />
+                  <path d={d} fill={`url(#underbust${uid})`} stroke="none" />
+                </>
+              )}
+              <path d={d} fill={`url(#bands${uid})`} stroke="none" mask={`url(#bandmask${uid})`} />
               <g clipPath={`url(#${clip})`}>
                 <path d={d} className="cloth-turn" fill="none" strokeWidth={1.3} filter={`url(#${soft})`} />
               </g>
-              <path d={d} className="cloth-edge" fill="none" strokeWidth={0.1} strokeLinejoin="round" />
+              <path d={d} className="cloth-edge" fill="none" strokeWidth={0.07} strokeLinejoin="round" opacity={0.45} />
             </g>
           ))}
         </g>
@@ -681,7 +826,7 @@ export function FormLayers({ body, m, legs, cx, top, bottom, arms, lines, outlin
         <g mask={top !== undefined ? `url(#${neck})` : undefined}>
           <SatinDefs id={`armsatin${uid}`} cx={cx} />
           {armLines.map((a, i) => <path key={`armover${i}`} d={`${a.d} Z`} fill={`url(#armsatin${uid})`} stroke="none" />)}
-          {armLines.map((a, i) => <path key={`armedge${i}`} d={a.d} className="form-line" fill="none" strokeWidth={0.18} opacity={0.85} />)}
+          {armLines.map((a, i) => <path key={`armedge${i}`} d={a.d} className="form-line" fill="none" strokeWidth={0.12} opacity={0.35} />)}
         </g>
       )}
       {outline.map((pts, i) => (
@@ -695,12 +840,9 @@ export function FormLayers({ body, m, legs, cx, top, bottom, arms, lines, outlin
           (runs ?? []).map((pts, i) => (
             <g key={`${id}${i}`}>
               {cloth ? (
-                // On the cloth a seam is pressed in, not piped: a soft groove, its fold, and a thread of light on the lit side.
-                <>
-                  <path d={at(pts)} className="seam-groove" fill="none" strokeWidth={0.5} filter={`url(#${soft})`} strokeLinecap="round" />
-                  <path d={at(pts)} className="seam-fold" fill="none" strokeWidth={0.18} strokeLinecap="round" />
-                  <path d={at(pts)} className="tape seam-light" fill="none" strokeWidth={0.07} transform="translate(-0.18 0)" strokeLinecap="round" />
-                </>
+                // On the cloth a seam is only a soft pressed groove (Cat's D4, 2026-10-26): no fold line, no thread of
+                // light, no drafting marks on the dress.
+                <path d={at(pts)} className="seam-groove" fill="none" strokeWidth={0.55} opacity={0.5} filter={`url(#${soft})`} strokeLinecap="round" />
               ) : (
                 <path d={at(pts)} className="tape" fill="none" strokeWidth={0.3} strokeLinecap="round" />
               )}
