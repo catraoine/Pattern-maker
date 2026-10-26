@@ -8,6 +8,7 @@ import { PRINTS, printImage, printOf, printTileCm } from '../engine/prints';
 import { FabricDetails } from './FabricDetails';
 import { SPECIALS, Special } from '../engine/specialFabrics';
 import { CLOSENESS, closestShopColours, colourHex, coloursFor, hexToHsl, hslToHex, isHex, shopFabric, shopFabricsFor, withShopFabric } from '../engine/shopFabrics';
+import { ExactColour } from './ExactColour';
 import { TestingTag } from './TestingTag';
 import { FabricLook, FabricLookContext } from './ClothLook';
 
@@ -434,6 +435,7 @@ function ColourBars({ finish, onFinish, garment, onShop }: { finish: Finish; onF
           <p className="muted small">Tap one to use that fabric in that colour. Screens vary, so order a swatch first.</p>
         </div>
       )}
+      {hex && (matches.length === 0 || matches[0].closeness !== 'near') && <ExactColour hex={hex} garment={garment} />}
     </div>
   );
 }
