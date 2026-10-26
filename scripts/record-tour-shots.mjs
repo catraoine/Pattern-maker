@@ -218,13 +218,14 @@ const mark = (what) => console.log(`  style ${what}: ${((Date.now() - t0) / 1000
 // the mini hem drawn longer, to the knee, then the side drawn out from the hip so the straight skirt flares (Cat,
 // 2026-10-24: longer and flare, the neck and waist kept as in her photo).
 const LINES = {
-  hem: [[0.12, 0.735], [0.5, 0.75], [0.88, 0.735]],
-  side: [[0.15, 0.44], [0.11, 0.58], [-0.12, 0.735]],
+  hem: [[0.12, 0.84], [0.5, 0.855], [0.88, 0.84]],
+  side: [[0.15, 0.44], [0.11, 0.58], [-0.08, 0.84]],
 };
 // Off camera, the dress is made to match the photo the film has just shown, Cat's own check silk dress (Cat,
 // 2026-10-24: show that starting from a photo works): a boat neck, short sleeves, a waist seam dropped low on the hip,
-// a straight mini skirt, in a small camel check. The film opens on that dress, the fabric changes, and the drawing
-// tool takes it from there.
+// a straight skirt, in a small camel check. The film opens on that dress, the fabric changes, and the drawing
+// tool takes it from there. The skirt is set to the knee rather than the mini of the photo, so the flat drawing
+// reads as a dress rather than a t-shirt (Cat, 2026-10-26).
 const pick = async (name, group) => {
   const r = main.locator(group ? `fieldset[data-label="${group}"] button[aria-pressed]` : 'button[aria-pressed]').filter({ hasText: new RegExp(`^\\s*${name}\\b`) }).first();
   if (await r.count()) await r.evaluate((el) => el.click());
@@ -265,7 +266,7 @@ await wait(300);
 await main.getByRole('tab', { name: 'Skirt & length', exact: true }).click();
 await wait(300);
 // The length is set from the marks beside the form.
-await p.evaluate(() => [...document.querySelectorAll('main .hem-mark')].find((g) => g.textContent.trim() === 'MINI')?.querySelector('.hit')?.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+await p.evaluate(() => [...document.querySelectorAll('main .hem-mark')].find((g) => g.textContent.trim() === 'KNEE')?.querySelector('.hit')?.dispatchEvent(new MouseEvent('click', { bubbles: true })));
 await wait(400);
 await main.getByRole('tab', { name: 'Fabric', exact: true }).click();
 await wait(400);

@@ -10,5 +10,8 @@
     "netlify/**/*.mts",
     "scripts/**/*.{ts,mjs}",
     "e2e/**/*.ts"
+  ],
+  "ignoreBinaries": [
+    "python3"
   ]
 }

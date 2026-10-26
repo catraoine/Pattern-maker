@@ -278,7 +278,8 @@ button.later.edit-measure {
   .shopfab-tile,
   .printtile img,
   .card-name,
-  .shopfab-text {
+  .shopfab-text,
+  .exactcard {
     transition: none;
   }
 }

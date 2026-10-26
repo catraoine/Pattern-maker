@@ -179,7 +179,7 @@ const BAND_ON_FORM = 3;
  *  A puff sleeve's crown balloons over the shoulder; a sleeve gathered into a band or cuff stays full and
  *  then draws in sharply above it; a flutter or bell flares. `head` is the garment's own shoulder point,
  *  which the sleeve's crown reaches up to. The right sleeve; the left mirrors it. */
-function sleeveShape(arm: FormArm, sleeve: WornSleeve, head: P = arm.tip): P[] {
+function sleeveShape(arm: FormArm, sleeve: WornSleeve, head: P = arm.tip, cloth?: P[][], body?: FormBody): P[] {
   const { end, puff, bandTop, extra, bandShare, crownGathers } = sleeveRun(arm, sleeve);
   const ys = (a: number, b: number) => Array.from({ length: 33 }, (_, i) => a + ((b - a) * i) / 32);
   // The crown sits at the garment's shoulder point. Worn, the sleeve falls close to the arm: its ease hangs
@@ -199,16 +199,83 @@ function sleeveShape(arm: FormArm, sleeve: WornSleeve, head: P = arm.tip): P[] {
     const onArm = step(y, wide, narrow);
     return { x: Math.max(onArm, crown.x - 0.25 * (y - crown.y)), y };
   });
+  // Just under the arm the sleeve's underarm seam meets the body's side seam: no form shows between them there.
+  const side = cloth ? clothEdge(cloth) : undefined;
   const inner = ys(arm.under.y, end)
     .map((y) => {
       const base = armAt(arm, y).inner - 0.3;
       const wide = base - bandShare(Math.min(y, bandTop - 1.01)) * extra(Math.min(y, bandTop - 1.01)) - 0.5 * bulge(y);
       const narrow = base - SLEEVE_EASE * extra(Math.max(y, bandTop));
-      return { x: step(y, wide, narrow), y };
+      const x = step(y, wide, narrow);
+      const at = side?.(y) ?? -Infinity;
+      if (!Number.isFinite(at)) return { x, y };
+      const t = Math.min(1, Math.max(0, (y - arm.under.y) / 6));
+      return { x: Math.min(x, at - 1.5 + (x - at + 1.5) * t), y };
     })
     .reverse();
   // Back inside the armhole, under the body's cloth.
-  return [...outer, ...inner, { x: arm.under.x, y: arm.under.y }, { x: arm.under.x - 4, y: arm.under.y }, { x: crown.x - 4, y: crown.y + 1.2 }];
+  const back = cloth && body ? tuckedUnder(arm, crown, cloth, body) : [{ x: arm.under.x - 4, y: arm.under.y }, { x: crown.x - 4, y: crown.y + 1.2 }];
+  return [...outer, ...inner, { x: arm.under.x, y: arm.under.y }, ...back];
+}
+
+/** Where a sleeve tucks back under the body's cloth: up its armhole a little inside it, so no form shows between
+ *  the sleeve and the bodice however deep the armhole is cut, then over the top of the shoulder along the form
+ *  itself to the crown, so none shows above the sleeve's head either (Cat, 2026-10-26). */
+/** How far out the body's cloth reaches at y, on the right (-Infinity where there is none). */
+function clothEdge(cloth: P[][]): (y: number) => number {
+  return (y) => {
+    let x = -Infinity;
+    for (const s of cloth) {
+      for (let i = 0; i < s.length; i++) {
+        const a = s[i];
+        const b = s[(i + 1) % s.length];
+        if (a.y === b.y || (a.y - y) * (b.y - y) > 0) continue;
+        const xx = a.x + ((b.x - a.x) * (y - a.y)) / (b.y - a.y);
+        if (xx > 0) x = Math.max(x, xx);
+      }
+    }
+    return x;
+  };
+}
+
+function tuckedUnder(arm: FormArm, crown: P, cloth: P[][], body: FormBody): P[] {
+  const edgeAt = clothEdge(cloth);
+  // Straight up inside the armhole, wherever it curves in deepest.
+  let xIn = Infinity;
+  for (let y = arm.under.y - 0.5; y > crown.y; y -= 0.5) {
+    const x = edgeAt(y);
+    if (Number.isFinite(x)) xIn = Math.min(xIn, x - 1.5);
+  }
+  // The body's own piece, the one reaching out to the armhole: a collar or stand standing up the neck is not it.
+  const piece = cloth.reduce((a, b) => (Math.max(...b.map((q) => q.x)) > Math.max(...a.map((q) => q.x)) ? b : a));
+  const right = piece.filter((q) => q.x > 0.5);
+  if (!Number.isFinite(xIn) || !right.length) return [{ x: arm.under.x - 4, y: arm.under.y }, { x: crown.x - 4, y: crown.y + 1.2 }];
+  xIn = Math.max(xIn, arm.under.x - 6);
+  // The cloth's top at x (its shoulder seam), and the form's own top: its body, or the cap of its arm.
+  const clothTop = (x: number) => {
+    let top = Infinity;
+    for (let i = 0; i < piece.length; i++) {
+      const a = piece[i];
+      const b = piece[(i + 1) % piece.length];
+      if (a.x === b.x || (a.x - x) * (b.x - x) > 0) continue;
+      top = Math.min(top, a.y + ((b.y - a.y) * (x - a.x)) / (b.x - a.x));
+    }
+    return top;
+  };
+  const formTop = (x: number) => {
+    for (let y = body.top; y < arm.under.y; y += 0.2) {
+      if (body.width(y) >= x || (y >= arm.tip.y && armAt(arm, y).outer >= x)) return y;
+    }
+    return arm.under.y;
+  };
+  // In along the shoulder seam, just under it, to the neck point (inside it the neckline is open), then back out over
+  // the top of the shoulder along the form.
+  const neck = right.reduce((a, b) => (b.y < a.y ? b : a));
+  const inTo = Math.min(xIn, Math.max(neck.x + 0.3, crown.x - 14));
+  const xs = (a: number, b: number) => Array.from({ length: 13 }, (_, i) => a + ((b - a) * i) / 12);
+  const seam = xs(xIn, inTo).map((x) => ({ x, y: clothTop(x) + 0.6 }));
+  const over = xs(inTo, crown.x).map((x) => ({ x, y: Math.min(formTop(x), clothTop(x)) }));
+  return [{ x: xIn, y: arm.under.y }, ...seam.filter((q) => Number.isFinite(q.y)), ...over.filter((q) => Number.isFinite(q.y))];
 }
 
 /** How far a puff sleeve's crown stands up above the shoulder point. */
@@ -523,7 +590,7 @@ export function FormLayers({ body, m, legs, cx, top, bottom, arms, lines, outlin
   const cloth = !!worn;
   // The cloth: sleeves first, then the body over their heads, then collars and lapels over that. Each piece is
   // its own path: pieces overlap (a lapel on its front, a sleeve on the body) and one path would punch holes there.
-  const sleeves = useMemo(() => (arms && sleeve && worn ? [sleeveShape(arms, sleeve, shoulderPoint(worn, arms))].flatMap((s) => [s, s.map((q) => ({ x: -q.x, y: q.y }))]) : []), [arms, sleeve, worn]);
+  const sleeves = useMemo(() => (arms && sleeve && worn ? [sleeveShape(arms, sleeve, shoulderPoint(worn, arms), worn, body)].flatMap((s) => [s, s.map((q) => ({ x: -q.x, y: q.y }))]) : []), [arms, sleeve, worn, body]);
   const marks = useMemo(() => (arms && sleeve && worn ? sleeveMarks(arms, sleeve, shoulderPoint(worn, arms)).flatMap((s) => [s, s.map((q) => ({ x: -q.x, y: q.y }))]) : []), [arms, sleeve, worn]);
   const onForm = worn ? [...sleeves, ...worn] : [];
   const pieces = onForm.map((s) => `${at(s)} Z`);
