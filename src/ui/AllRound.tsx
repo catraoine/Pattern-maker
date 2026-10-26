@@ -287,7 +287,7 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
     // A short sleeve hangs straight down off the shoulder, rounding out from the top of the arm, so it reads as a
     // sleeve and not a wing or a cape (Cat, 2026-10-25); its cap sits up on the shoulder tip, fuller and a little
     // longer, not low and small on the arm (Cat applied the fix in the film, 2026-10-25; the app too, 2026-10-26).
-    const yCap = yS + (yU - yS) * 0.12;
+    const yCap = yS - 0.01;
     // The cap starts at the shoulder tip, not out past it, and by the underarm the sleeve's inner side lies against
     // the bodice, so no gap opens between them as the form turns (Cat, 2026-10-26: still sitting low).
     const filmAxis = (y: number) => {
@@ -303,6 +303,10 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
       return ra * Math.sqrt(1 - (1 - t) ** 2);
     };
     const axisX = filmAxis;
+    // The crown is as deep, front to back, as the shoulder it is sewn to, so the shoulder runs straight into it and
+    // the bodice does not round down past it; by the underarm it is round, as the arm is (Cat, 2026-10-26: "still low").
+    const crownZ = sl ? Math.max(1, (bodyRadius(yS) * 0.95) / ra) : 1;
+    const capDepth = (y: number) => (y >= yU ? 1 : 1 + (crownZ - 1) * (1 - clamp((y - yCap) / (yU - yCap || 1), 0, 1)) ** 1.5);
     const sleeveR = filmR;
 
     // Trouser legs, round the form's own legs: easy at the thigh, then to the knee and the hem.
@@ -344,9 +348,9 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
         return [cx + Math.sin(th) * r * S, Y(y) + Math.cos(th) * r * S * FORM_DEPTH, Math.cos(th)];
       };
       /** A point round a tube (a sleeve or a leg) standing at x = X, at angle a round it. */
-      const T = (X: number, a: number, r: number, y: number): Pt => {
+      const T = (X: number, a: number, r: number, y: number, zr = r): Pt => {
         const x = X + Math.sin(a) * r;
-        const z = Math.cos(a) * r;
+        const z = Math.cos(a) * zr;
         return [cx + (x * c + z * s) * S, Y(y) + (z * c - x * s) * S * FORM_DEPTH, Math.cos(a + phi)];
       };
       /** Where a tube's centre comes on the screen, and how far in front of the body it stands. */
@@ -497,7 +501,7 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
       if (cloth) {
         const quads: ClothQuad[] = [];
         const k = 1 / kY; // cm of cloth to a unit of the form
-        type V = { x: number; y: number; a: number; r: number; yy: number; v?: number };
+        type V = { x: number; y: number; a: number; r: number; yy: number; v?: number; ur?: number };
         /** A patch from four corners (top left, top right, bottom right, bottom left), its panel centred at c. */
         const patch = (v: V[], c: number, z: number, th: number, border?: (q: V) => number) => {
           const am = (v[0].a + v[1].a) / 2;
@@ -506,7 +510,7 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
           const { lit, shine } = lightOf(Math.sin(th), -clamp(slope, -3, 3), Math.cos(th), cloth.sheen);
           quads.push({
             q: v.map((p) => [p.x, p.y]),
-            uv: v.map((p) => [(off + p.a - am) * p.r * k, border ? border(p) : (p.v ?? p.yy) * k]),
+            uv: v.map((p) => [(off + p.a - am) * (p.ur ?? p.r) * k, border ? border(p) : (p.v ?? p.yy) * k]),
             z,
             lit,
             shine,
@@ -597,15 +601,25 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
           }
         }
         /** A tube round an axis at X(y): a sleeve or a trouser leg. */
-        const tube = (X: (y: number) => number, R: (y: number) => number, y0: number, y1: number, panels: boolean, inBody = false) => {
+        const tube = (X: (y: number) => number, R: (y: number) => number, y0: number, y1: number, panels: boolean, inBody = false, Z: (y: number) => number = () => 1) => {
           const NS = 32;
           const NY = 24;
           // Rows closer together at the top, so a sleeve's cap rounds over smoothly rather than in flat facets.
           const rowY = (j: number) => y0 + (y1 - y0) * (j / NY) ** 1.6;
-          const tv = (a: number, y: number): V => {
+          // Down the cloth by its length over the crown, not its height, counted up from the hem, so the print is not
+          // smeared across the top of the cap where it runs out more than down.
+          const down: number[] = [y1];
+          for (let j = NY - 1; j >= 0; j--) {
+            const ya = rowY(j);
+            const yb = rowY(j + 1);
+            down.unshift(down[0] - Math.hypot(yb - ya, R(yb) - R(ya)));
+          }
+          const tv = (a: number, j: number): V => {
+            const y = rowY(j);
             const r = R(y);
-            const q = T(X(y), a, r, y);
-            return { x: q[0], y: q[1], a, r, yy: y };
+            const q = T(X(y), a, r, y, r * Z(y));
+            // Over the crown the cloth is laid at the arm's own width, or the print squeezes into streaks at its top.
+            return { x: q[0], y: q[1], a, r, yy: y, v: down[j], ur: Math.max(r, R(y1) * 0.8) };
           };
           for (let i = 0; i < NS; i++) {
             const a0 = -Math.PI + (TAU * i) / NS;
@@ -620,17 +634,17 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
               const yb = rowY(j + 1);
               const ym = (ya + yb) / 2;
               const x = X(ym) + Math.sin(am) * R(ym);
-              const zz = Math.cos(am) * R(ym);
+              const zz = Math.cos(am) * R(ym) * Z(ym);
               // A patch of the cap wholly inside the bodice is never seen, and drawn it would flicker over the bodice's edge as
               // the form turns; one only partly inside is kept, or a slit opens where it meets the bodice.
-              if (inBody && [ya, yb].every((y) => [a0, a1].every((a) => Math.hypot((X(y) + Math.sin(a) * R(y)) / radius(y), (Math.cos(a) * R(y)) / bodyRadius(y)) < 0.98))) continue;
-              patch([tv(a0, ya), tv(a1, ya), tv(a1, yb), tv(a0, yb)], c, zz * Math.cos(phi) - x * s, th);
+              if (inBody && [ya, yb].every((y) => [a0, a1].every((a) => Math.hypot((X(y) + Math.sin(a) * R(y)) / radius(y), (Math.cos(a) * R(y) * Z(y)) / bodyRadius(y)) < 0.98))) continue;
+              patch([tv(a0, j), tv(a1, j), tv(a1, j + 1), tv(a0, j + 1)], c, zz * Math.cos(phi) - x * s, th);
             }
           }
         };
         if (sl && arm) {
           for (const e of [1, -1]) {
-            tube((y) => e * axisX(y), sleeveR, yCap, yE, false, true);
+            tube((y) => e * axisX(y), sleeveR, yCap, yE, false, true, capDepth);
           }
         }
         if (lg) for (const leg of [-1, 1]) tube(() => legX(leg), legR, yC, yH, true);
