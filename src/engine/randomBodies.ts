@@ -73,5 +73,5 @@ export function randomCrotch(b: Body, r: () => number): { crotch_depth: number; 
 
 /** How many random bodies a sweep test runs: a fifth (at least 3) on every run, all of them with SWEEP=full, which
  *  the tests workflow runs on every pull request in its own job. Keeps `npm test` to a couple of minutes. */
-export const FULL_SWEEP = typeof process !== 'undefined' && process.env.SWEEP === 'full';
+const FULL_SWEEP = typeof process !== 'undefined' && process.env.SWEEP === 'full';
 export const sweep = (n: number) => (FULL_SWEEP ? n : Math.max(3, Math.ceil(n / 5)));
