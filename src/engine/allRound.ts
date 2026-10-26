@@ -247,7 +247,12 @@ function roundTop(t: TopInput): RoundGarment {
   const neckB = edge(B, ['neck']);
   const neckF = edge(t.openFront ?? F, ['neck']);
   const nape = neckB.reduce((a, p) => (Math.abs(p.x) < Math.abs(a.x) ? p : a), neckB[0] ?? { x: 0, y: 0 });
-  const napeY = nape.y;
+  // A strapless or sweetheart top has no shoulders and its top edge is well below the nape: it is placed by its waist
+  // instead, or it rides up the body to the neck.
+  const shoulderB = edge(B, ['shoulder']);
+  const waistB = edge(B, ['waist']);
+  const waistCB = waistB.reduce((a, p) => (Math.abs(p.x) < Math.abs(a.x) ? p : a), waistB[0] ?? { x: 0, y: 0 });
+  const napeY = shoulderB.length || !waistB.length ? nape.y : waistCB.y - N;
   // The front's side seam comes down to the same point as the back's: that lines the two up.
   const lowest = (s: P[]) => (s.length ? s[s.length - 1].y : 0);
   const offset = lowest(sideB) - lowest(sideF);
@@ -281,14 +286,13 @@ function roundTop(t: TopInput): RoundGarment {
   const hemPts = [...edge(F, hemTags).map(onF), ...edge(B, hemTags).map(onB)];
   const lengthAt = curve(hemPts, 0);
 
-  const shoulderB = edge(B, ['shoulder']);
   const tip = shoulderB.reduce((a, p) => (p.x > a.x ? p : a), shoulderB[0] ?? { x: 0, y: 0 });
-  const armhole = { shoulderCm: cmB(tip.y), underarmCm: cmB(sideB[0]?.y ?? 20) };
+  const armhole = shoulderB.length ? { shoulderCm: cmB(tip.y), underarmCm: cmB(sideB[0]?.y ?? 20) } : undefined;
 
   const seams: RoundSeam[] = [];
   for (const s of [1, -1] as const) {
-    seams.push({ kind: 'side', pts: [{ phi: s * HALF, cm: armhole.underarmCm }, { phi: s * HALF, cm: lengthAt(HALF) }] });
-    seams.push({ kind: 'shoulder', pts: [{ phi: s * HALF, cm: topAt(HALF) }, { phi: s * HALF, cm: armhole.shoulderCm }] });
+    seams.push({ kind: 'side', pts: [{ phi: s * HALF, cm: armhole?.underarmCm ?? topAt(HALF) }, { phi: s * HALF, cm: lengthAt(HALF) }] });
+    if (armhole) seams.push({ kind: 'shoulder', pts: [{ phi: s * HALF, cm: topAt(HALF) }, { phi: s * HALF, cm: armhole.shoulderCm }] });
   }
   if (!B.fold && !B.meta.whole) seams.push({ kind: 'centre_back', pts: [{ phi: Math.PI, cm: topAt(Math.PI) }, { phi: Math.PI, cm: lengthAt(Math.PI) }] });
   if (!F.fold && !F.meta.whole) seams.push({ kind: 'centre_front', pts: [{ phi: 0, cm: topAt(0) }, { phi: 0, cm: lengthAt(0) }] });
