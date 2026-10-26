@@ -1,7 +1,7 @@
 // The garments the app can make, and the style choices saved for each.
 import { CUFFS, Cuff, cuffAllowed } from './engine/cuffs';
 import { BACK_NECKS, BackNeck, backBlocked } from './engine/backNeck';
-import type { Choices } from './App';
+import type { Choices } from './savedWork';
 import type { BodiceDarts, BodiceFit, BodiceLength, DrawnNeck, Neckline, UnevenNeck } from './engine/bodice';
 import { SHAPES_FOR_LENGTH, SleeveLength, SleeveShape } from './engine/sleeve';
 import { SLEEVE_CUTS, SleeveCut, sleeveCutBlocked, sleeveCutOf } from './engine/sleeveCut';

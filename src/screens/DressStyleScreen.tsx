@@ -41,7 +41,7 @@ import { MyFabric, dressFabrics, fabricEase } from '../engine/fabrics';
 import { FabricCard, FabricSummary } from '../ui/FabricCard';
 import type { EaseView } from '../engine/easeMap';
 import { FinishChoices } from '../ui/FinishChoices';
-import type { Finish } from '../App';
+import type { Finish } from '../savedWork';
 import { GODET_OPTIONS, VOLUME_OPTIONS, layoutExtras, setVolume, volumeAllowed, volumeOf } from '../engine/skirtVolume';
 import { isDraped, zipSide } from '../engine/drape';
 import { LENGTHS, Length, NoSeam, lengthRange } from '../engine/skirt';

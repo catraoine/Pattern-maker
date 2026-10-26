@@ -4,7 +4,7 @@
 import { skirtBelt } from '../engine/belt';
 import { PointerEvent, useMemo, useRef, useState } from 'react';
 import { useEnlarged } from './EnlargeSketch';
-import type { Choices } from '../App';
+import type { Choices } from '../savedWork';
 import { skirtFlat, wornLines, wornShapes } from '../engine/flat';
 import type { P } from '../engine/geometry';
 import { HEM_SAMPLES, HemShape, flatHem, isShaped, offsetAt } from '../engine/hem';

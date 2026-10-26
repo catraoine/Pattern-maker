@@ -1,6 +1,6 @@
 import { ALLOWANCE_LABELS, AllowanceStyle } from '../engine/allowances';
 import type { BodiceEdges } from '../engine/instructions';
-import type { Finish } from '../App';
+import type { Finish } from '../savedWork';
 import type { Garment } from '../measurements';
 
 const EDGES: { id: BodiceEdges; label: string; detail: string }[] = [

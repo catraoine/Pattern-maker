@@ -1,7 +1,7 @@
 import { matchKind } from '../engine/prints';
 import { useMemo, useState } from 'react';
 import { BELTS, Belt, beltAllowed, beltPieces, beltWords, skirtBelt } from '../engine/belt';
-import type { Choices } from '../App';
+import type { Choices } from '../savedWork';
 import { layout } from '../engine/export';
 import { piecesLengthCm, toMetres } from '../engine/fabric';
 import { layPlan } from '../engine/layplan';
@@ -23,7 +23,7 @@ import { NO_SLIT, SlitSlider } from '../ui/SlitSlider';
 import { BUTTONS_STOP_ABOVE_HEM, buttonsBlocked, buttonsOf, yokeBlocked, yokeOf } from '../engine/skirtFront';
 import { SaveControl } from '../ui/SaveControl';
 import { FinishChoices } from '../ui/FinishChoices';
-import type { Finish } from '../App';
+import type { Finish } from '../savedWork';
 import { BAND_ACROSS_MAX } from '../engine/instructions';
 import { ERAS, findLook } from '../engine/eras';
 import { skirtFlat } from '../engine/flat';

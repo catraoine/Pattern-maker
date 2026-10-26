@@ -1,7 +1,7 @@
 // Turning a photo reading into any garment's style choices: the garment the photo shows, or another one
 // the sewist picks, using whatever parts of the reading fit it. Every result is made valid the same way
 // the style screens make a tapped choice valid.
-import type { Choices } from '../App';
+import type { Choices } from '../savedWork';
 import {
   BodiceChoices,
   DARTS_FOR_FIT,

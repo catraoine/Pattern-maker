@@ -11,7 +11,7 @@
 // - a pocket: a short line down the side seam below the waist is in-seam pockets.
 // The skirt's own coordinates: cm, the centre at x = 0, the skirt's waist at y = waistY, y running down.
 import type { P } from '../engine/geometry';
-import type { Choices } from '../App';
+import type { Choices } from '../savedWork';
 import { SlitPlace, slitAllowed, slitOf, slitRange } from '../engine/slit';
 import { GodetCount, VolumeKind, setVolume, volumeAllowed } from '../engine/skirtVolume';
 import { highAllowed } from '../engine/skirtWaist';

@@ -8,7 +8,7 @@ import type { Piece } from '../engine/piece';
 import type { SewingGuide } from '../engine/instructions';
 import type { SpecRow } from '../engine/techpack';
 import { PatternPreview } from '../ui/Preview';
-import type { Finish } from '../App';
+import type { Finish } from '../savedWork';
 import type { Garment, Unit } from '../measurements';
 import type { Alteration, Fitting } from '../engine/fitting';
 import { FABRIC_WIDTHS, type FabricWidth, Lay, layAmount, layWords } from '../engine/layplan';

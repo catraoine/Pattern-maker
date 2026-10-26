@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { Choices } from '../App';
+import type { Choices } from '../savedWork';
 import { LENGTHS, type Length, type SkirtMeasurements } from '../engine/skirt';
 import type { Unit } from '../measurements';
 import { photoToJpeg } from '../photo/image';

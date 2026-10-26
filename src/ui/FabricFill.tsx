@@ -2,7 +2,7 @@
 // velvet pile and satin sheen run down the garment, and a waistband, cut lengthwise, has them running
 // along it. The tiles are drawn by scripts/fabric-textures.py.
 import { CSSProperties, ReactNode, useId, useState } from 'react';
-import type { Finish } from '../App';
+import type { Finish } from '../savedWork';
 import { FIBRES, FIBRE_IDS, FabricGarment, MyFabric, clothFor, printRepeat } from '../engine/fabrics';
 import { PRINTS, printImage, printOf, printTileCm } from '../engine/prints';
 import { FabricDetails } from './FabricDetails';

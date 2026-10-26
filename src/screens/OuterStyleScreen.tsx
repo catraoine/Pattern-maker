@@ -20,7 +20,7 @@ import { FitSwitch, GarmentViews, PreviewSwitch } from '../ui/PreviewSwitch';
 import type { EaseView } from '../engine/easeMap';
 import { FinishChoices } from '../ui/FinishChoices';
 import { Mode, ProTool, shows } from '../mode';
-import type { Finish } from '../App';
+import type { Finish } from '../savedWork';
 import { MyFabric, fabricEase, outerFabrics } from '../engine/fabrics';
 import { FabricCard, FabricSummary } from '../ui/FabricCard';
 import { ChoicePic, chipsClass } from '../ui/ChoicePic';

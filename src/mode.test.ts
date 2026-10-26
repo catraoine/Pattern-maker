@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { NEW_ACCOUNT } from './account';
-import { DEFAULT_FINISH, Finish } from './App';
+import { DEFAULT_FINISH, Finish } from './savedWork';
 import { PRO_TOOLS, SIMPLE_FINISH, finishFor, keepFinish, modeOf, shows } from './mode';
 
 const pro: Finish = { ...DEFAULT_FINISH, allowances: 'couture', route: 'couture', skirtLined: true, bodiceEdges: 'lined', atelier: true, byHand: true };

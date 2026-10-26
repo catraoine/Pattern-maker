@@ -22,7 +22,7 @@ import { FIT_EASE, Fit, Length, SkirtDraft, SkirtMeasurements, lengthRange } fro
 import { HEM_SAMPLES, matchSides, offsetAt } from '../engine/hem';
 import { asymOffset, planFor } from '../engine/asymHem';
 import { volumeOf } from '../engine/skirtVolume';
-import type { Choices } from '../App';
+import type { Choices } from '../savedWork';
 import { blockOf } from '../engine/bodice';
 import { currentNeck, dragDrop, dragEase, strokeToNeck, worn } from './BodiceShape';
 import { dragFlare, dragLength, strokeToHem } from './ShapeSketch';

@@ -24,7 +24,7 @@ import { EaseMapView } from '../ui/EaseMapView';
 import { FitSwitch, GarmentViews, PreviewSwitch } from '../ui/PreviewSwitch';
 import type { EaseView } from '../engine/easeMap';
 import { FinishChoices } from '../ui/FinishChoices';
-import type { Finish } from '../App';
+import type { Finish } from '../savedWork';
 
 import { MyFabric, fabricEase, trousersFabrics } from '../engine/fabrics';
 import { FabricCard, FabricSummary } from '../ui/FabricCard';

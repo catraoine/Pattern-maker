@@ -28,7 +28,7 @@ import { FabricSwatches, GarmentFabric } from '../ui/FabricFill';
 import type { Side } from '../ui/ShapeSketch';
 import { UndoToast, useUndo } from '../ui/useUndo';
 import { DrawMenu } from '../ui/DrawMenu';
-import type { Finish } from '../App';
+import type { Finish } from '../savedWork';
 import { MyFabric, bodiceFabrics, fabricEase } from '../engine/fabrics';
 import { FabricCard, FabricSummary } from '../ui/FabricCard';
 import { isDraped, zipSide } from '../engine/drape';

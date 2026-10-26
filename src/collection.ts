@@ -4,7 +4,7 @@
 import type { MyFabric } from './engine/fabrics';
 import { COLOURS } from './engine/shopFabrics';
 import { dressBelt, skirtBelt } from './engine/belt';
-import type { Choices } from './App';
+import type { Choices } from './savedWork';
 import { draftBodice } from './engine/bodice';
 import { draftDress } from './engine/dress';
 import { Flat, bodiceFlat, dressFlat, outerFlat, skirtFlat, teeFlat, trousersFlat } from './engine/flat';
