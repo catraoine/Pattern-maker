@@ -255,7 +255,7 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
     const radius = (y: number) => {
       const r = bodyRadius(y);
       if (!sl || y >= BUST_Y) return r;
-      const t = clamp((y - NECK_Y) / (yS + 0.06 - NECK_Y), 0, 1);
+      const t = clamp((y - NECK_Y) / (yS + 0.14 - NECK_Y), 0, 1);
       return Math.max(r, y < NECK_Y ? 0 : neckR + (shoulderR - neckR) * (1 - (1 - t) ** 2));
     };
     /** How far out the cloth lies at angle a round the body: the full width at the sides, the body's own depth front and back. */
@@ -453,24 +453,46 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
         g.fillRect(0, Y(from) - 1, w, Y(longest) - Y(from) + 2);
         // In cloth, through the neck you see the form's chest, not a hollow inside the back: it is drawn again there.
         if (cloth && isTop) {
-          g.beginPath();
-          for (let i = 0; i <= 144; i++) {
-            const a = -Math.PI + (TAU * i) / 144;
-            const y = topY(a);
-            const q = P(a, shell(a, y), y);
-            if (i) g.lineTo(q[0], q[1]);
-            else g.moveTo(q[0], q[1]);
-          }
-          g.clip();
-          // Only over the form itself: the neck, and not the cloth's armholes or past the body's sides.
-          g.beginPath();
-          const ys = Array.from({ length: 41 }, (_, i) => NECK_Y - 0.4 + ((yOf(longest) - NECK_Y + 0.4) * i) / 40);
-          ys.forEach((y, i) => (i ? g.lineTo(cx - formHalfWidth(y) * S, Y(y)) : g.moveTo(cx - formHalfWidth(y) * S, Y(y))));
-          [...ys].reverse().forEach((y) => g.lineTo(cx + formHalfWidth(y) * S, Y(y)));
-          g.clip();
-          g.fillRect(0, 0, w, h);
-          g.globalAlpha = 0.6;
-          paintFigure(g, S, cx, Y, lw, 1, false, phi);
+          const rim = (a: number) => P(a, shell(a, topY(a)), topY(a));
+          // The form, drawn again over the black, within a clip, and only over the form itself (not the cloth's
+          // armholes, nor past the body's sides).
+          const redraw = (clip: () => void, halfWidth: (y: number) => number) => {
+            g.save();
+            clip();
+            g.clip();
+            g.beginPath();
+            const ys = Array.from({ length: 41 }, (_, i) => NECK_Y - 0.4 + ((yOf(longest) - NECK_Y + 0.4) * i) / 40);
+            ys.forEach((y, i) => (i ? g.lineTo(cx - halfWidth(y) * S, Y(y)) : g.moveTo(cx - halfWidth(y) * S, Y(y))));
+            [...ys].reverse().forEach((y) => g.lineTo(cx + halfWidth(y) * S, Y(y)));
+            g.clip();
+            g.globalAlpha = 1;
+            g.fillRect(0, 0, w, h);
+            g.globalAlpha = 0.6;
+            paintFigure(g, S, cx, Y, lw, 1, false, phi);
+            g.restore();
+          };
+          // Through the neck: the chest, inside the top edge all round.
+          redraw(() => {
+            g.beginPath();
+            for (let i = 0; i <= 144; i++) {
+              const q = rim(-Math.PI + (TAU * i) / 144);
+              if (i) g.lineTo(q[0], q[1]);
+              else g.moveTo(q[0], q[1]);
+            }
+          }, formHalfWidth);
+          // And the neck itself, down to the near side of the neckline (seen from behind, no black band between the
+          // neck and the back neckline); only as wide as the neck, so the form's shoulders never show above the cloth's.
+          redraw(() => {
+            g.beginPath();
+            for (let i = 0; i <= 72; i++) {
+              const q = rim(-Math.PI / 2 - phi + (Math.PI * i) / 72);
+              if (i) g.lineTo(q[0], q[1]);
+              else g.moveTo(q[0], q[1]);
+            }
+            g.lineTo(rim(Math.PI / 2 - phi)[0], 0);
+            g.lineTo(rim(-Math.PI / 2 - phi)[0], 0);
+            g.closePath();
+          }, (y) => Math.min(formHalfWidth(y), neckR));
         }
       }
       g.restore();
