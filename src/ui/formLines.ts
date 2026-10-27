@@ -13,7 +13,8 @@
 // The T-shirt's and the jacket's lines (sleeve, front edge, collar among them) are read in formTops.ts.
 // Everything is in the pieces' own coordinates: cm, the centre at x = 0, y running down.
 import type { P } from '../engine/geometry';
-import { BodiceDraft, BodiceMeasurements } from '../engine/bodice';
+import { BODICE_FIT_EASE, BodiceDraft, BodiceMeasurements } from '../engine/bodice';
+import { bodiceFlat, wornShapes } from '../engine/flat';
 import type { DartPlace, PrincessLine } from '../engine/manipulate';
 import { isTop } from '../engine/corset';
 import { COWL_DEPTH_RANGE } from '../engine/drape';
@@ -239,7 +240,15 @@ export function readFit(stroke: P[], draft: BodiceDraft, m: BodiceMeasurements, 
   if (!pts.length) return { said: 'Draw down the side of the body, closer in or further out.' };
   const x = median(pts.map((q) => Math.abs(q.x)));
   if (x < m.full_bust / 8) return { said: 'Draw down the side of the body, where the side seam goes.' };
-  const next = dragEase(c, 4 * x - m.full_bust);
+  // Read against the cloth's own edge where the line was drawn (Cat, 2026-10-27: the line lands where it is drawn):
+  // each centimetre of room round the bust moves the front's edge out a quarter of a centimetre.
+  // Compared at the bust line where the line passes it, else where the line is.
+  const atBust = pts.filter((q) => Math.abs(q.y - apex.y) < 4);
+  const y = atBust.length ? apex.y : median(pts.map((q) => q.y));
+  const xAt = atBust.length ? median(atBust.map((q) => Math.abs(q.x))) : x;
+  const edge = Math.max(0, ...wornShapes(bodiceFlat(draft)).flat().filter((q) => Math.abs(q.y - y) < 1.5).map((q) => Math.abs(q.x)));
+  const have = c.bustEase ?? BODICE_FIT_EASE[c.fit].bust;
+  const next = dragEase(c, edge > 0 ? have + 4 * (xAt - edge) : 4 * x - m.full_bust);
   const ease = next.bustEase ?? undefined;
   return { choices: next, said: ease !== undefined ? `${ease} cm of room at the bust, pinned where you drew it.` : `A ${next.fit} fit at the bust.` };
 }
