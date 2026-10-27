@@ -196,3 +196,20 @@ fieldset.fold.open > .fold-body {
     content: '✎ ' / '';
   }
 }
+
+/* The tab strip ran off a phone's screen (bodice: 4 Details and 5 Fabric sat beyond the edge; the tester walk,
+   2026-10-27). On a phone each tab shows its first word and the strip sits tighter, so every step is on screen. */
+.style-tabs .tab-short {
+  display: none;
+}
+@media (max-width: 480px) {
+  .style-tabs {
+    gap: 14px;
+  }
+  .style-tabs .tab-full {
+    display: none;
+  }
+  .style-tabs .tab-short {
+    display: inline;
+  }
+}

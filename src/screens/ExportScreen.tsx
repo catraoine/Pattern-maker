@@ -55,6 +55,9 @@ interface Props {
   onMeasureMe?: () => void;
   /** The sewist's unit; the PDF's text is written in inches when it is `in`. */
   unit?: Unit;
+  /** The paper picked last time, kept with the rest of the work; without one, inches start on US Letter. */
+  paper?: Paper;
+  onPaper?: (p: Paper) => void;
   /** The link that carries this device's measurements and patterns to a computer; see moveLink.ts. */
   sendLink?: () => Promise<string>;
   profile: string;
@@ -103,6 +106,11 @@ const onPhone = () => typeof window !== 'undefined' && !!window.matchMedia?.('(p
 
 const NONE: Alteration[] = [];
 
+/** US Letter for inches, or a browser set to Canada or the US; A4 everywhere else. */
+export function defaultPaper(unit: Unit, language = typeof navigator === 'undefined' ? '' : navigator.language): Paper {
+  return unit === 'in' || /^en-(US|CA)\b/i.test(language) ? 'letter' : 'a4';
+}
+
 type Output = Paper | 'projector' | 'projectorDark';
 
 // The dark projector file is the same page with white lines on black, offered as an option of the projector.
@@ -120,15 +128,22 @@ const printedDate = () => new Date().toLocaleDateString('en-GB', { day: 'numeric
 
 
 
-export function ExportScreen({ example, onMeasureMe, unit = 'cm', sendLink, profile, title, fit, garment, finish, onFinish, made, error, onEditFabric, onKeep, onFitNotes, fitNote, fitting, fittingNotes, alterations = NONE, onFitting, onTrueScale, values, draftAt, style, imported, mode = 'all', onMode, edition, credit, label }: Props) {
+export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPaper, onPaper, sendLink, profile, title, fit, garment, finish, onFinish, made, error, onEditFabric, onKeep, onFitNotes, fitNote, fitting, fittingNotes, alterations = NONE, onFitting, onTrueScale, values, draftAt, style, imported, mode = 'all', onMode, edition, credit, label }: Props) {
   const can = (t: ProTool) => shows(mode, t);
   /** Knits fit by their stretch: tested in a spare knit, not a calico toile. */
   const knit = isKnit(garment);
-  const [picked, setPaper] = useState<Output>('a4');
+  // The paper starts on what was picked before, else on US Letter for a sewist measuring in inches or on a
+  // North American browser (the tester walk, 2026-10-27: an inch tester printed A4 tiles on Letter paper). The pick
+  // is kept with the saved work, so it holds across visits and garments.
+  const [picked, setPicked] = useState<Output>(savedPaper ?? defaultPaper(unit));
+  const setPaper = (p: Output) => {
+    setPicked(p);
+    if (!isProjector(p)) onPaper?.(p);
+  };
   // The copy-shop sheet shows in every view (Cat, 2026-10-22): one big sheet saves testers and beginners the
   // taping. Only the projector files wait behind all the tools.
   const paper: Output = can('bigPrint') || !isProjector(picked) ? picked : 'a4';
-  const [pdf, setPdf] = useState<{ paper: Output; bytes: Uint8Array } | null>(null);
+  const [pdf, setPdf] = useState<{ paper: Output; bytes: Uint8Array; total: number } | null>(null);
   const [shareNote, setShareNote] = useState('');
   const special = finish.fabric?.special;
   const print = printOf(finish.fabric);
@@ -175,11 +190,13 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', sendLink, prof
     if (!sheet || !guide) return;
     let live = true;
     setPdf(null);
+    let countPages = async (_: Uint8Array) => 0;
     import('../engine/pdf')
-      .then(({ toTiledPdf, toProjectorPdf }) =>
-        isProjector(paper) ? toProjectorPdf(sheet, { dark: paper === 'projectorDark', title }) : toTiledPdf(sheet, paper, { title, guide, summary, unit }),
-      )
-      .then((bytes) => live && setPdf({ paper, bytes }));
+      .then(({ toTiledPdf, toProjectorPdf, pdfPageCount }) => {
+        countPages = pdfPageCount;
+        return isProjector(paper) ? toProjectorPdf(sheet, { dark: paper === 'projectorDark', title }) : toTiledPdf(sheet, paper, { title, guide, summary, unit });
+      })
+      .then(async (bytes) => live && setPdf({ paper, bytes, total: await countPages(bytes) }));
     return () => {
       live = false;
     };
@@ -345,6 +362,12 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', sendLink, prof
                   ? 'Ask the copy shop to print at 100% (actual size). Measure the 10 cm test square before you cut.'
                   : 'Print at 100% (actual size). Measure the 10 cm test square on page A1 before you cut.'}
             </p>
+            {/* The file is longer than the tiles: a copy shop prints and charges for every page (the tester walk, 2026-10-27). */}
+            {!projector && paper !== 'a0' && ready && pdf && pdf.total > pages && (
+              <p className="small muted">
+                The file has {pdf.total} pages: a cover, the {pages} pattern pages (A1 is page 2), then the cutting layout and sewing steps. At a copy shop, ask for pages 2 to {pages + 1}.
+              </p>
+            )}
             {!projector && paper !== 'a0' && (
               <details className="small fold-link">
                 <summary>How the pages fit together</summary>

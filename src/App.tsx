@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { showInInches } from './units';
 import { canGoBack, goBack, pushFresh, useViewHistory } from './nav';
 import { DraftError, SkirtMeasurements } from './engine/skirt';
@@ -177,7 +177,22 @@ export default function App() {
   // come from someone already using the app.
   const [access, setAccess] = useState(() => hasAccess(storedAccount.testerCode));
   const gated = !access && !storedAccount.testerCode && startView === 'welcome';
-  const [linkCheck, setLinkCheck] = useState<{ checking?: boolean; message?: string }>({});
+  // "Checking your tester link…" from the first frame when a link carries a code, so the welcome never sits bare.
+  const [linkCheck, setLinkCheck] = useState<{ checking?: boolean; message?: string }>(() => (testerFromLink(window.location.search) && !hasAccess(storedAccount.testerCode) ? { checking: true } : {}));
+  const linkCode = useRef<string>();
+  /** Checks the link's code; a check that couldn't reach the server is tried once more by itself, then offers Try again. */
+  const checkLink = async (code: string) => {
+    setLinkCheck({ checking: true });
+    let r = await checkCode(code);
+    if (r === 'failed') {
+      await new Promise((done) => setTimeout(done, 1500));
+      r = await checkCode(code);
+    }
+    if (r === 'tester') {
+      letIn(code);
+      setLinkCheck({});
+    } else setLinkCheck({ message: r === 'wrong' ? "That tester link isn't working. Check the email it came in, or type the code here." : CODE_MESSAGE[r] });
+  };
   const letIn = (code: string) => {
     rememberAccess();
     setAccess(true);
@@ -198,8 +213,8 @@ export default function App() {
     if (!code) return;
     window.history.replaceState(window.history.state, '', withoutTester(window.location.pathname, window.location.search, window.location.hash));
     if (access) return;
-    setLinkCheck({ checking: true });
-    checkCode(code).then((r) => (r === 'tester' ? (letIn(code), setLinkCheck({})) : setLinkCheck({ message: r === 'wrong' ? "That tester link isn't working. Check the email it came in, or type the code here." : CODE_MESSAGE[r] })));
+    linkCode.current = code;
+    void checkLink(code);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   // Where Plans goes back to: the screen it was opened from.
@@ -629,7 +644,7 @@ export default function App() {
               formStart={formStart}
               form={form}
               onLegal={openLegal}
-              waitlist={gated ? { onCode: letIn, checking: linkCheck.checking, linkMessage: linkCheck.message } : undefined}
+              waitlist={gated ? { onCode: letIn, checking: linkCheck.checking, linkMessage: linkCheck.message, onRetry: linkCode.current && linkCheck.message === CODE_MESSAGE.failed ? () => void checkLink(linkCode.current!) : undefined } : undefined}
               onFinish={() => {
                 setAccount({ ...account, onboarded: true, mode });
                 setStep('steps');
@@ -977,6 +992,8 @@ export default function App() {
               example={!!person.example?.length}
               onMeasureMe={measureMe}
               unit={saved.unit}
+              paper={saved.paper}
+              onPaper={(paper) => setSaved({ ...saved, paper })}
               sendLink={sendLink}
               mode={mode}
               onMode={setMode}

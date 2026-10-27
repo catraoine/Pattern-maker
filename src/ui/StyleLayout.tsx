@@ -454,6 +454,7 @@ export function StyleLayout({ children, label, name, metres, width = 140, ready,
                 type="button"
                 role="tab"
                 aria-selected={active === t}
+                aria-label={t}
                 className={[active === t ? 'on' : '', t === PRO ? 'pro' : ''].filter(Boolean).join(' ')}
                 onClick={() => choose(t)}
               >
@@ -462,7 +463,9 @@ export function StyleLayout({ children, label, name, metres, width = 140, ready,
                     {steps.indexOf(t) + 1}
                   </span>
                 )}
-                {t}
+                {/* On a phone the strip ran off the screen (the tester walk, 2026-10-27): there each tab is its first word. */}
+                <span className="tab-full">{t}</span>
+                <span className="tab-short">{t.split(/\s/)[0]}</span>
               </button>
             ))}
           </div>
