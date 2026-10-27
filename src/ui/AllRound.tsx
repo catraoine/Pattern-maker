@@ -310,7 +310,9 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
     // stands out further than the hanging cloth. Laid as a table down the garment, read between its rows.
     const HANG_N = 72;
     const HANG_DY = 0.02;
-    const hangTop = NECK_Y - 0.3;
+    // From the bust down: above it the cloth is held on the neck and shoulders and lies on the body (hung from the
+    // shoulders, the chest and back read as a box seen from the side).
+    const hangTop = BUST_Y;
     const hangRows = Math.max(2, Math.ceil((Math.max(yOf(longest), FORM_HIP) + 0.1 - hangTop) / HANG_DY) + 1);
     const hang = new Float64Array(HANG_N * hangRows);
     for (let i = 0; i < HANG_N; i++) {
@@ -389,7 +391,7 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
       // slowly down to the underarm (which hung the sleeve as a bell with a corner at the tip, Cat 2026-10-27: "frumpy").
       const t = Math.min(1, capT(y) / 0.7);
       // Set flat, a tailored head runs out a little further before it turns down.
-      return tipX + (armX + ra - tipX) * (1 - (1 - t) ** (tailored ? 1.5 : 2));
+      return tipX + (armX + ra - tipX) * (1 - (1 - t) ** (tailored ? 1.5 : 2.6));
     };
     const capInner = (y: number) => tipX - 0.03 + (armX - ra - (tipX - 0.03)) * capT(y);
     const filmAxis = (y: number) => (y < yU ? (capOuter(y) + capInner(y)) / 2 : armX + (y - yU) * 0.06);
@@ -533,8 +535,16 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
         }
         return best;
       };
-      const ring = (yAt: (a: number) => number, rAt: (a: number, y: number) => number, colour: string, width: number, back = 0.25, alpha = 1, overBody = false) => {
+      const ring = (yAt: (a: number) => number, rAt: (a: number, y: number) => number, colour: string, width: number, back = 0.25, alpha = 1, overBody = false, groove = false) => {
         let pts: Pt[] = [];
+        // A sewn seam round the garment (a dress's waist seam) is a shadow in the cloth, as the side seams are, not a
+        // bright edge like a hem or a neckline (Cat, 2026-10-27).
+        const draw = (run: Pt[]) => {
+          if (groove) {
+            line(run, '#000', width * 1.8, 0, 0.45, 0.3);
+            line(run, GLOW, width * 0.5, 0, 0.5, 0.3);
+          } else line(run, colour, width, back, alpha);
+        };
         for (let i = 0; i <= 144; i++) {
           const a = -Math.PI + (TAU * i) / 144;
           const y = yAt(a);
@@ -542,13 +552,13 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
           // On the satin form the far side of an edge is hidden wherever the body stands between you and it (it showed
           // as a line across the neck); it still shows past the body's sides.
           if (overBody && q[2] <= 0 && Math.abs(q[0] - cx) < bodyEdge(y) * S - 1) {
-            if (pts.length > 1) line(pts, colour, width, back, alpha);
+            if (pts.length > 1) draw(pts);
             pts = [];
             continue;
           }
           pts.push(q);
         }
-        if (pts.length > 1) line(pts, colour, width, back, alpha);
+        if (pts.length > 1) draw(pts);
       };
       const tubeRing = (X: number, r: number, y: number, colour: string, width: number, alpha = 1, back = 0.25) => {
         const pts: Pt[] = [];
@@ -890,7 +900,10 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
               // A patch of the cap wholly inside the bodice is never seen, and drawn it would flicker over the bodice's edge as
               // the form turns; one only partly inside is kept, or a slit opens where it meets the bodice.
               if (inBody && [ya, yb].every((y) => [a0, a1].every((a) => Math.abs(Math.cos(a) * R(y) * Z(y)) < zAcross(X(y) + Math.sin(a) * R(y), y, Math.cos(a) > 0) * 0.98))) continue;
-              patch([tv(a0, j), tv(a1, j), tv(a1, j + 1), tv(a0, j + 1)], c, zz * Math.cos(phi) - x * s, th);
+              // The inside of a cap (facing away) is laid well behind everything: its top rows, tiny and at the shoulder
+              // tip, otherwise sorted in front of the bodice's own side and showed as a dark stroke at the tip.
+              const behind = inBody && Math.cos(th) < 0 ? 0.5 : 0;
+              patch([tv(a0, j), tv(a1, j), tv(a1, j + 1), tv(a0, j + 1)], c, zz * Math.cos(phi) - x * s - behind, th);
             }
           }
         };
@@ -931,7 +944,7 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
       // In cloth, the edges are fine lines: the cloth itself gives the shape.
       const edge = cloth ? 0.55 : 1;
       ring(topY, (a, y) => shell(a, y), GLOW, lw * 1.1, 0.25, edge, !!cloth);
-      for (const r of round.rings) ring((a) => yAt(a, r(a)), (a, y) => shell(a, y), GLOW, lw * 0.9, cloth ? 0 : 0.25, edge);
+      for (const r of round.rings) ring((a) => yAt(a, r(a)), (a, y) => shell(a, y), GLOW, lw * 0.9, cloth ? 0 : 0.25, edge, false, !!cloth);
       if (!trousers) ring(hemY, (a, y) => shell(a, y), GLOW, lw * 1.3, cloth ? 0 : 0.3, edge);
       for (const e of cloth ? [] : [1, -1]) {
         const a = (e * Math.PI) / 2 - phi;

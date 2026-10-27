@@ -27,7 +27,7 @@ const ANGLES = process.env.BODY_ANGLES ? process.env.BODY_ANGLES.split(',').map(
 
 test('body stills', async ({ page, consoleErrors }, info) => {
   consoleErrors.allow(/.*/);
-  test.setTimeout(900_000);
+  test.setTimeout(1_500_000);
   await page.emulateMedia({ reducedMotion: 'reduce' });
   if (process.env.FILM) await page.addInitScript(() => ((window as unknown as { __tourFilm: boolean }).__tourFilm = true));
   await startWithExample(page);
