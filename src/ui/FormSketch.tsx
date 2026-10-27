@@ -302,11 +302,13 @@ function tuckedUnder(arm: FormArm, crown: P, cloth: P[][], body: FormBody): P[] 
     const x = edgeAt(y);
     if (Number.isFinite(x)) xIn = Math.min(xIn, x - 1.5);
   }
-  // The body's own piece, the one reaching out to the armhole: a collar or stand standing up the neck is not it.
-  const piece = cloth.reduce((a, b) => (Math.max(...b.map((q) => q.x)) > Math.max(...a.map((q) => q.x)) ? b : a));
+  // The body's own piece, the one reaching out to the armhole and up to the shoulder: a collar or stand standing up
+  // the neck is not it, nor a skirt hanging from a waist seam, however wide it flares.
+  const reaching = cloth.filter((b) => Math.max(...b.map((q) => q.x)) >= arm.tip.x - 6);
+  const piece = (reaching.length ? reaching : cloth).reduce((a, b) => (Math.min(...b.map((q) => q.y)) < Math.min(...a.map((q) => q.y)) ? b : a));
   const right = piece.filter((q) => q.x > 0.5);
   if (!Number.isFinite(xIn) || !right.length) return [{ x: arm.under.x - 4, y: arm.under.y }, { x: crown.x - 4, y: crown.y + 1.2 }];
-  xIn = Math.max(xIn, arm.under.x - 6);
+  xIn = Math.max(xIn, arm.under.x - 12);
   // The cloth's top at x (its shoulder seam), and the form's own top: its body, or the cap of its arm.
   const clothTop = (x: number) => {
     let top = Infinity;
@@ -463,7 +465,10 @@ export function wornMapper(cloth: P[][], body: FormBody, underarmY = body.top, s
 function pieceOnForm(s: P[], body: FormBody, underarmY: number, sewnHalf?: number, sewn?: SewnLevel[]): (q: P) => P {
   // The pattern's own finished width at each height (Cat, 2026-10-27: the drawing cinches only as much as the pattern
   // does): the cloth is never drawn narrower than the pattern is sewn there.
-  const sewnWidth = sewnAt(sewn ?? []);
+  // Each level's width is capped at this piece's own flat width there (a front piece is narrower than a quarter of the
+  // girth where the back takes more), and a level the piece does not reach is left out.
+  const ownAt = (y: number) => Math.max(0, ...s.filter((q) => Math.abs(q.y - y) < 1).map((q) => Math.abs(q.x)));
+  const sewnWidth = sewnAt((sewn ?? []).flatMap((l) => (ownAt(l.y) > 0 ? [{ y: l.y, half: Math.min(l.half, ownAt(l.y)) }] : [])));
   // The widest the form has been from the top down to each height, at 0.5 cm steps.
   const steps = Math.max(1, Math.ceil((body.bottom - body.top) / 0.5));
   const hang: number[] = [];
@@ -512,21 +517,22 @@ function pieceOnForm(s: P[], body: FormBody, underarmY: number, sewnHalf?: numbe
         // as a stiff cone.
         const t = Math.min(1, (q.y - (hipY - 2)) / Math.max(1, hemY - (hipY - 2)));
         const flare = Math.max(0, Math.abs(x) - body.width(body.bottom));
-        x -= Math.sign(x) * Math.min(1.2, 0.12 * flare) * Math.sin(Math.PI * t) * Math.min(1, Math.abs(q.x) / Math.max(1, hemHalfFlat));
+        x -= Math.sign(x) * Math.min(1.2, 0.12 * flare) * Math.sin((Math.PI / 2) * t) * Math.min(1, Math.abs(q.x) / Math.max(1, hemHalfFlat));
       } else if (q.y > hipY + 2 && hemY > hipY + 10 && Math.abs(x) > body.width(body.bottom) - 1) {
         // A straight cut hangs in a touch from the hip to its hem: a tube that falls, not a box that stands.
         const t = Math.min(1, (q.y - hipY - 2) / Math.max(1, hemY - hipY - 2));
         x -= Math.sign(x) * 0.5 * t * Math.min(1, Math.abs(q.x) / Math.max(1, hemHalfFlat));
       }
+      // Never narrower than the pattern is sewn at this height: its finished width, darts closed, ease and all.
+      const floor = sewnWidth(q.y);
+      if (floor !== undefined && Math.abs(q.x) >= floor - 0.05 && Math.abs(x) < floor) x = Math.sign(q.x) * floor;
+      // Sewn to the piece above at the seam, then out to its own width: the floor joins in over the same stretch.
       if (seamTop !== undefined && q.y < seamTop + BELL && Math.abs(q.x) > w) {
         const t = Math.min(1, (q.y - seamTop) / BELL);
         const ease = t * t * (3 - 2 * t);
         const sewn = Math.sign(q.x) * (sewnHalf ?? w + Math.min(Math.abs(q.x) - w, FITTED_UP_TO) * WORN_EASE);
         x = sewn * (1 - ease) + x * ease;
       }
-      // Never narrower than the pattern is sewn at this height: its finished width, darts closed, ease and all.
-      const floor = sewnWidth(q.y);
-      if (floor !== undefined && Math.abs(q.x) >= floor - 0.05 && Math.abs(x) < floor) x = Math.sign(q.x) * floor;
       // The hem falls at its centre, seen a little from above.
       const y = q.y > hemY - 0.8 && q.y > underarmY + 4 ? q.y + HEM_FALL * hemHalf * (1 - Math.min(1, (q.x / hemHalf) ** 2)) : q.y;
       return { x, y };

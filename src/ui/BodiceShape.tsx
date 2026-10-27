@@ -256,7 +256,7 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
   const flatCloth = useMemo(() => wornShapes(flat, view), [flat, view]);
   // The pattern's finished widths: the drawing cinches only as much as the pattern does (Cat, 2026-10-27).
   const sewn = useMemo(
-    () => [{ y: land.underarm.y, half: draft.finishedBust / 4 }, { y: waistY, half: draft.finishedWaist / 4 }, ...(draft.finishedHip && m.waist_to_hip ? [{ y: waistY + m.waist_to_hip, half: draft.finishedHip / 4 }] : [])],
+    () => [{ y: land.apex.y, half: draft.finishedBust / 4 }, { y: waistY, half: draft.finishedWaist / 4 }, ...(draft.finishedHip && m.waist_to_hip ? [{ y: waistY + m.waist_to_hip, half: draft.finishedHip / 4 }] : [])],
     [land, draft, waistY, m.waist_to_hip],
   );
   const cloth = useMemo(() => wornCloth(flatCloth, body, land.underarm.y, sewn), [flatCloth, body, land, sewn]);
