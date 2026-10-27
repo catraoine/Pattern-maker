@@ -165,7 +165,8 @@ export async function analyzePhoto(input: AnalyzeInput, client: Anthropic | null
   try {
     const response = await client.beta.messages.parse({
       model: 'claude-opus-5-5',
-      max_tokens: 16000,
+      // A reading is a few hundred words at most; the ceiling bounds what one request can ever cost (about 16 cents).
+      max_tokens: 8000,
       // Reading a photo is a quick classification, so low effort keeps it fast and cheap.
       output_config: { effort: 'low', format: betaZodOutputFormat(Reading) },
       betas: ['server-side-fallback-2026-07-01'],
@@ -184,6 +185,8 @@ export async function analyzePhoto(input: AnalyzeInput, client: Anthropic | null
         },
       ],
     });
+    // Logged so the real cost per reading shows in Netlify's function logs.
+    console.log('photo reading tokens', { in: response.usage?.input_tokens, out: response.usage?.output_tokens });
     if (response.stop_reason === 'refusal') return { ok: false, error: 'declined' };
     const reading = response.parsed_output as PhotoReading | null;
     return reading ? { ok: true, reading } : { ok: false, error: 'failed' };

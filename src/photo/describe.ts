@@ -47,13 +47,16 @@ export async function describeIdea(text: unknown, client: Anthropic | null): Pro
   try {
     const response = await client.beta.messages.parse({
       model: 'claude-opus-5-5',
-      max_tokens: 16000,
+      // A reading is a few hundred words at most; the ceiling bounds what one request can ever cost (about 16 cents).
+      max_tokens: 8000,
       output_config: { effort: 'low', format: betaZodOutputFormat(Idea) },
       betas: ['server-side-fallback-2026-07-01'],
       fallbacks: 'default',
       system: SYSTEM,
       messages: [{ role: 'user', content: [{ type: 'text', text: `What they would like to make: ${idea}` }] }],
     });
+    // Logged so the real cost per reading shows in Netlify's function logs.
+    console.log('idea reading tokens', { in: response.usage?.input_tokens, out: response.usage?.output_tokens });
     if (response.stop_reason === 'refusal') return { ok: false, error: 'declined' };
     const parsed = response.parsed_output as IdeaReading | null;
     if (!parsed) return { ok: false, error: 'failed' };
