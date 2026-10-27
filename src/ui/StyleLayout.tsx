@@ -328,6 +328,8 @@ export function StyleLayout({ children, label, name, metres, width = 140, ready,
       const pv = preview?.offsetHeight ?? 0;
       root.current?.style.setProperty('--pv-h', `${pv}px`);
       root.current?.style.setProperty('--pin-h', `${Math.max(el.offsetHeight, pv + (strip?.offsetHeight ?? 0))}px`);
+      // A strip that fits whole has nothing cut off, so no fade at its edge (the tester walk, 2026-10-27).
+      if (strip) setAtEnd(strip.scrollLeft + strip.clientWidth >= strip.scrollWidth - 2);
     };
     const watch = new ResizeObserver(check);
     watch.observe(el);

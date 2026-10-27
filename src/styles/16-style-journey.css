@@ -204,7 +204,7 @@ fieldset.fold.open > .fold-body {
 }
 @media (max-width: 480px) {
   .style-tabs {
-    gap: 14px;
+    gap: 12px;
   }
   .style-tabs .tab-full {
     display: none;
