@@ -252,6 +252,21 @@ await wait(1500);
 await main.getByRole('heading', { level: 1, name: /^Style your/ }).waitFor({ timeout: 15000 });
 await addPen();
 await wait(800);
+if (process.env.TOUR_OPENER_STILLS) {
+  // Probe: the dress as it first opens, before any styling, all round in the film's line look.
+  await p.evaluate(() => { window.__tourFilm = 'old'; });
+  await main.getByRole('group', { name: 'Garment view' }).getByRole('button', { name: 'All round' }).click();
+  await wait(1500);
+  await p.evaluate((K) => {
+    const c = document.querySelector('.all-round-canvas');
+    document.body.appendChild(c);
+    const w = innerWidth * K, h = (innerHeight + 96) * K;
+    Object.assign(c.style, { position: 'fixed', zIndex: 9999, background: '#000', maxWidth: 'none', maxHeight: 'none', aspectRatio: 'auto', margin: 0, width: `${w}px`, height: `${h}px`, left: `${innerWidth / 2 - w / 2}px`, top: `${innerHeight / 2 - 0.47 * h}px`, transformOrigin: '50% 47%', transform: `scale(${1 / K})` });
+  }, 1.45);
+  await wait(1200);
+  for (let i = 0; i < 8; i++) { await p.screenshot({ path: `${OUT}/opener-${i}.png` }); await wait(600); }
+  process.exit(0);
+}
 // TOUR_FIT and TOUR_SLEEVES try the dress another way (Fitted, Sleeveless) without touching the rest.
 const FIT = process.env.TOUR_FIT ?? 'Relaxed';
 const SLEEVES = process.env.TOUR_SLEEVES ?? 'Short';
