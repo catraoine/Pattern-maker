@@ -254,12 +254,17 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
   const flat = useMemo(() => bodiceFlat(draft, 'binding', sleeve), [draft, sleeve]);
   const view = side === 'front' ? 0 : 1;
   const flatCloth = useMemo(() => wornShapes(flat, view), [flat, view]);
-  const cloth = useMemo(() => wornCloth(flatCloth, body, land.underarm.y), [flatCloth, body, land]);
+  // The pattern's finished widths: the drawing cinches only as much as the pattern does (Cat, 2026-10-27).
+  const sewn = useMemo(
+    () => [{ y: land.underarm.y, half: draft.finishedBust / 4 }, { y: waistY, half: draft.finishedWaist / 4 }, ...(draft.finishedHip && m.waist_to_hip ? [{ y: waistY + m.waist_to_hip, half: draft.finishedHip / 4 }] : [])],
+    [land, draft, waistY, m.waist_to_hip],
+  );
+  const cloth = useMemo(() => wornCloth(flatCloth, body, land.underarm.y, sewn), [flatCloth, body, land, sewn]);
   const folds = useMemo(() => wornFolds(flatCloth, cloth), [flatCloth, cloth]);
   const lines = useMemo(() => {
-    const map = wornMapper(flatCloth, body, land.underarm.y);
+    const map = wornMapper(flatCloth, body, land.underarm.y, sewn);
     return { seam: wornLines(flat, view).map((run) => run.map(map)) };
-  }, [flat, view, flatCloth, body, land]);
+  }, [flat, view, flatCloth, body, land, sewn]);
 
   // The frame stays put while dragging, sized for the roomiest fit and the longest hem, so the handle
   // stays under the finger.

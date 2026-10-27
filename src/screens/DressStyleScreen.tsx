@@ -339,6 +339,12 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
     onPick: (id: string) => choose('length', id),
   };
   const waistY = draft ? landmarks(draft.bodice).waistY : 0;
+  // The pattern's finished widths at the bust, waist and hip: the drawing cinches only as much as the pattern does
+  // (Cat, 2026-10-27).
+  const sewn = useMemo(
+    () => (draft ? [{ y: landmarks(draft.bodice).underarm.y, half: draft.finishedBust / 4 }, { y: waistY, half: draft.finishedWaist / 4 }, { y: waistY + (mv.waist_to_hip ?? 20), half: draft.finishedHip / 4 }] : undefined),
+    [draft, waistY, mv.waist_to_hip],
+  );
   // A dropped waist: the skirt's lines and lengths are read from the seam at the high hip.
   const seamY = waistY + (draft?.seamDrop ?? 0);
   const sm = useMemo(() => fromSeam(mv, draft?.seamDrop ?? 0), [mv, draft?.seamDrop]);
@@ -396,6 +402,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
         arms={drawArm}
         sleeve={formArm ? sleeve : undefined}
         underarmY={landmarks(draft.bodice).underarm.y}
+        sewn={sewn}
         bottom={waistY + lengthRange(mv).max + 4}
         kinds={[
           ['neckline', 'Neckline'],
@@ -658,7 +665,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           {error && <p className="msg error">{error}</p>}
           {formBody && view === 'sketch' && (
             <GarmentFabric fabric={fabric}>
-              <FormSketch body={formBody} m={mv} legs bottom={waistY + lengthRange(mv).max + 4} lines={formLines} cloth={clothShapes} flatLines={flatLines} arms={formArm} sleeve={formArm ? sleeve : undefined} underarmY={draft ? landmarks(draft.bodice).underarm.y : undefined} hem={draft ? hem : undefined} label={`The ${title} on your form`} />
+              <FormSketch body={formBody} m={mv} legs bottom={waistY + lengthRange(mv).max + 4} lines={formLines} cloth={clothShapes} flatLines={flatLines} arms={formArm} sleeve={formArm ? sleeve : undefined} underarmY={draft ? landmarks(draft.bodice).underarm.y : undefined} sewn={sewn} hem={draft ? hem : undefined} label={`The ${title} on your form`} />
             </GarmentFabric>
           )}
           {flat && view === 'flat' && (

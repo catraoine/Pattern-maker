@@ -391,17 +391,40 @@ const BELL = 14;
  *  dipping to the waist, with the same share of the extra showing. From the hip the drawing-in fades out over
  *  25 cm so a skirt keeps its flare, and each hem falls a little at its centre, as a hem does seen from a touch
  *  above. The pattern itself is untouched. */
-export function wornCloth(cloth: P[][], body: FormBody, underarmY = body.top): P[][] {
+export function wornCloth(cloth: P[][], body: FormBody, underarmY = body.top, sewn?: SewnLevel[]): P[][] {
   const pieces = cloth.map(dense);
-  const worn = pieces.map((s) => s.map(pieceOnForm(s, body, underarmY)));
+  const worn = pieces.map((s) => s.map(pieceOnForm(s, body, underarmY, undefined, sewn)));
   // A piece hanging from a seam (a skirt from a waist seam) is sewn to the piece above it: at the seam it is as wide
   // as that piece hangs there, then bells out to its own width, so the seam is a line and never a ledge.
   return pieces.map((s, i) => {
     const topY = Math.min(...s.map((q) => q.y));
     if (topY <= underarmY + 2) return worn[i];
     const above = worn.filter((_, j) => j !== i).flatMap((w) => w.filter((q) => Math.abs(q.y - topY) < 1.5 && Math.abs(q.x) > 1));
-    return above.length ? s.map(pieceOnForm(s, body, underarmY, Math.max(...above.map((q) => Math.abs(q.x))))) : worn[i];
+    return above.length ? s.map(pieceOnForm(s, body, underarmY, Math.max(...above.map((q) => Math.abs(q.x))), sewn)) : worn[i];
   });
+}
+
+/** The pattern's finished width at one level of the body, as drafted: a quarter of the finished girth (what the
+ *  flat front view shows as half its width), at that level's height in the pieces' coordinates. */
+export interface SewnLevel {
+  y: number;
+  half: number;
+}
+
+/** The pattern's finished half-width at any height, between its levels (held at the ends). */
+function sewnAt(levels: SewnLevel[]): (y: number) => number | undefined {
+  const ls = [...levels].sort((a, b) => a.y - b.y);
+  if (!ls.length) return () => undefined;
+  return (y) => {
+    if (y <= ls[0].y) return ls[0].half;
+    for (let i = 1; i < ls.length; i++) {
+      if (y <= ls[i].y) {
+        const t = (y - ls[i - 1].y) / Math.max(0.01, ls[i].y - ls[i - 1].y);
+        return ls[i - 1].half + (ls[i].half - ls[i - 1].half) * t;
+      }
+    }
+    return ls[ls.length - 1].half;
+  };
 }
 
 /** A piece's outline with no edge longer than 2 cm, so a hem, a shoulder or a side can curve on the form instead of
@@ -420,13 +443,13 @@ function dense(s: P[]): P[] {
 /** Where a point of the flat garment lands on the form: by the piece it lies in (the first whose box holds it, else
  *  the nearest), moved as `wornCloth` moves that piece. For the garment's lines (buttons, pockets, pleats, darts),
  *  so they sit on the cloth as drawn rather than where the flat had them. */
-export function wornMapper(cloth: P[][], body: FormBody, underarmY = body.top): (q: P) => P {
+export function wornMapper(cloth: P[][], body: FormBody, underarmY = body.top, sewn?: SewnLevel[]): (q: P) => P {
   const boxes = cloth.map((s) => ({
     left: Math.min(...s.map((q) => q.x)),
     right: Math.max(...s.map((q) => q.x)),
     top: Math.min(...s.map((q) => q.y)),
     bottom: Math.max(...s.map((q) => q.y)),
-    map: pieceOnForm(s, body, underarmY),
+    map: pieceOnForm(s, body, underarmY, undefined, sewn),
   }));
   if (!boxes.length) return (q) => q;
   return (q) => {
@@ -437,7 +460,10 @@ export function wornMapper(cloth: P[][], body: FormBody, underarmY = body.top): 
 }
 
 /** How `wornCloth` moves each point of one piece. */
-function pieceOnForm(s: P[], body: FormBody, underarmY: number, sewnHalf?: number): (q: P) => P {
+function pieceOnForm(s: P[], body: FormBody, underarmY: number, sewnHalf?: number, sewn?: SewnLevel[]): (q: P) => P {
+  // The pattern's own finished width at each height (Cat, 2026-10-27: the drawing cinches only as much as the pattern
+  // does): the cloth is never drawn narrower than the pattern is sewn there.
+  const sewnWidth = sewnAt(sewn ?? []);
   // The widest the form has been from the top down to each height, at 0.5 cm steps.
   const steps = Math.max(1, Math.ceil((body.bottom - body.top) / 0.5));
   const hang: number[] = [];
@@ -498,6 +524,9 @@ function pieceOnForm(s: P[], body: FormBody, underarmY: number, sewnHalf?: numbe
         const sewn = Math.sign(q.x) * (sewnHalf ?? w + Math.min(Math.abs(q.x) - w, FITTED_UP_TO) * WORN_EASE);
         x = sewn * (1 - ease) + x * ease;
       }
+      // Never narrower than the pattern is sewn at this height: its finished width, darts closed, ease and all.
+      const floor = sewnWidth(q.y);
+      if (floor !== undefined && Math.abs(q.x) >= floor - 0.05 && Math.abs(x) < floor) x = Math.sign(q.x) * floor;
       // The hem falls at its centre, seen a little from above.
       const y = q.y > hemY - 0.8 && q.y > underarmY + 4 ? q.y + HEM_FALL * hemHalf * (1 - Math.min(1, (q.x / hemHalf) ** 2)) : q.y;
       return { x, y };
@@ -609,6 +638,8 @@ interface Props {
   underarmY?: number;
   /** The length, set with a dot on the hem and named marks beside the body. */
   hem?: HemChoice;
+  /** The pattern's finished widths at the bust, waist and hip, so the cloth is never drawn narrower than it is sewn. */
+  sewn?: SewnLevel[];
   /** The garment's own lines from its flat (buttons, pockets, pleats, darts, seams), in the pieces' coordinates:
    *  laid on the cloth where `wornCloth` puts each piece. */
   flatLines?: P[][];
@@ -673,14 +704,14 @@ export const SHADE_STOPS: [number, string, number][] = [
 export const CLOTH_EDGES: FormLine[] = ['neckline', 'fit', 'hem', 'sleeve'];
 
 /** The garment drawn on the dress form, front on. */
-export function FormSketch({ body, m, legs, bottom, arms, lines, outline = [], cloth, sleeve, underarmY, hem, flatLines, label }: Props) {
+export function FormSketch({ body, m, legs, bottom, arms, lines, outline = [], cloth, sleeve, underarmY, hem, flatLines, label, sewn }: Props) {
   const svg = useRef<SVGSVGElement>(null);
-  const worn = useMemo(() => (cloth ? wornCloth(cloth, body, underarmY ?? arms?.under.y) : undefined), [cloth, body, underarmY, arms]);
+  const worn = useMemo(() => (cloth ? wornCloth(cloth, body, underarmY ?? arms?.under.y, sewn) : undefined), [cloth, body, underarmY, arms, sewn]);
   const onCloth = useMemo(() => {
     if (!cloth || !flatLines?.length) return lines;
-    const map = wornMapper(cloth, body, underarmY ?? arms?.under.y);
+    const map = wornMapper(cloth, body, underarmY ?? arms?.under.y, sewn);
     return { ...lines, seam: [...(lines.seam ?? []), ...flatLines.map((run) => run.map(map))] };
-  }, [cloth, flatLines, lines, body, underarmY, arms]);
+  }, [cloth, flatLines, lines, body, underarmY, arms, sewn]);
   const folds = useMemo(() => (cloth && worn ? wornFolds(cloth, worn) : undefined), [cloth, worn]);
   const frame = useMemo(() => formFrame(m, body, bottom, arms, worn), [m, body, bottom, arms, worn]);
   const cx = frame.half;
