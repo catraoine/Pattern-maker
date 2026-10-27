@@ -310,11 +310,13 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
     const FOLDS = 9;
     const fold = (a: number, y: number) => 1 + foldAmp(y) * Math.cos(FOLDS * a + 0.6 * Math.sin(3 * a));
     const foldTilt = (a: number, y: number) => Math.atan(-foldAmp(y) * FOLDS * Math.sin(FOLDS * a + 0.6 * Math.sin(3 * a)) * 1.2);
-    const deepAt = (y: number) => neckR + (bodyRadius(BUST_Y) - neckR) * Math.sqrt(clamp((y - NECK_Y) / (BUST_Y - NECK_Y), 0, 1));
+    const deepAt = (y: number) => neckR + (bodyRadius(BUST_Y) - neckR) * clamp((y - NECK_Y) / (BUST_Y - NECK_Y), 0, 1) ** 0.2;
     const shell = (a: number, y: number) => {
       const W = radius(y);
       // Front to back, a top deepens gradually from the neck down to the bust, as the chest and back slope away from
-      // the shoulders, so the shoulders read as a ridge and not as a flat lid seen from above.
+      // the shoulders, so the shoulders read as a ridge and not as a flat lid seen from above. Most of the depth comes
+      // early, so seen three-quarters on the far sleeve's cap stays hidden behind the shoulder and leaves no dark notch
+      // by the back neck (the film thread, 2026-10-27).
       const D = isTop && !tailored && y < BUST_Y ? Math.min(bodyRadius(y), deepAt(y)) : bodyRadius(y);
       return (W <= D + 1e-6 ? W : 1 / Math.hypot(Math.sin(a) / W, Math.cos(a) / D)) * fold(a, y);
     };
