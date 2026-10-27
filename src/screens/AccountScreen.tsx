@@ -1,4 +1,5 @@
 import { SendToDevice } from '../ui/SendToDevice';
+import { fmtMeasure } from '../units';
 import { TesterCode } from '../ui/TesterCode';
 import { CloudAccount } from '../ui/CloudAccount';
 import type { Cloud } from '../cloud/useCloud';
@@ -63,8 +64,7 @@ interface Props {
   cloud?: Cloud;
 }
 
-const show = (cm: number | undefined, unit: Unit) =>
-  cm === undefined ? '–' : unit === 'cm' ? `${cm} cm` : `${Math.round((cm / 2.54) * 10) / 10} in`;
+const show = (id: string, cm: number | undefined, unit: Unit) => (cm === undefined ? '–' : fmtMeasure(id, cm, unit));
 
 const dateFmt = new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 
@@ -147,7 +147,7 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
           ) : (
             <ul className="saved">
               {account.patterns.map((p) => (
-                <PatternRow key={p.id} pattern={p} values={valuesFor(p)} helped={personFor(p).helped} whoFor={whoFor(p)} startFitting={openFit === p.id} onOpen={() => onOpen(p)} onRename={(n) => onRename(p.id, n)} onRemove={() => onRemove(p.id)} onFit={(f) => onFit(p.id, f)} />
+                <PatternRow key={p.id} pattern={p} values={valuesFor(p)} helped={personFor(p).helped} whoFor={whoFor(p)} startFitting={openFit === p.id} tester={!!account.testerCode} onOpen={() => onOpen(p)} onRename={(n) => onRename(p.id, n)} onRemove={() => onRemove(p.id)} onFit={(f) => onFit(p.id, f)} />
               ))}
             </ul>
           )}
@@ -201,7 +201,7 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
             {shown.map((f) => (
               <div key={f.id}>
                 <dt>{f.label}</dt>
-                <dd>{show(values[f.id], unit)}</dd>
+                <dd>{show(f.id, values[f.id], unit)}</dd>
               </div>
             ))}
           </dl>
@@ -381,6 +381,7 @@ function PatternRow({
   onRemove,
   onFit,
   startFitting = false,
+  tester = false,
 }: {
   pattern: SavedPattern;
   values: MeasurementValues;
@@ -388,6 +389,8 @@ function PatternRow({
   helped?: MeasurementId[];
   whoFor?: string;
   startFitting?: boolean;
+  /** A fit tester's device: fit notes start ticked to send. */
+  tester?: boolean;
   onOpen: () => void;
   onRename: (n: string) => void;
   onRemove: () => void;
@@ -489,6 +492,7 @@ function PatternRow({
         <FitForm
           choices={pattern.choices}
           initial={pattern.fit}
+          shareByDefault={tester}
           onSave={saveFit}
           onCancel={() => setFitting(false)}
           onClear={

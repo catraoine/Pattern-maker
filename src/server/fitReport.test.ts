@@ -28,7 +28,10 @@ describe('sent fit reports', () => {
 
   it('caps how many a sender can send a day', async () => {
     const counts = new Map<string, number>();
-    const store: CountStore = { get: async (k) => counts.get(k) ?? 0, set: async (k, n) => void counts.set(k, n) };
+    const store: CountStore = {
+      get: async (k) => counts.get(k) ?? 0,
+      take: async (k, cap) => (counts.get(k) ?? 0) < cap && !!counts.set(k, (counts.get(k) ?? 0) + 1),
+    };
     const caps = { visitor: 2, all: 10 };
     const day = new Date('2026-10-16T10:00:00Z');
     expect(await takeAllowance(store, 'a', day, caps)).toBe('ok');

@@ -11,12 +11,14 @@ interface Props {
   onSave: (fit: FitFeedback, share: boolean) => void;
   onCancel: () => void;
   onClear?: () => void;
+  /** Fit testers' notes start ticked to send (the tester walk, 2026-10-27): their round is what the notes are for. */
+  shareByDefault?: boolean;
 }
 
 /** "How did it fit?" for one saved pattern: an overall verdict, each area tight / right / loose, and notes. */
-export function FitForm({ choices, initial, onSave, onCancel, onClear }: Props) {
+export function FitForm({ choices, initial, onSave, onCancel, onClear, shareByDefault }: Props) {
   const [fit, setFit] = useState<FitFeedback>(() => initial ?? emptyFit());
-  const [share, setShare] = useState(false);
+  const [share, setShare] = useState(!!shareByDefault);
   const set = (change: Partial<FitFeedback>) => setFit({ ...fit, ...change });
   const setArea = (id: string, v: AreaFit) => {
     const areas = { ...fit.areas };
@@ -108,7 +110,7 @@ export function FitForm({ choices, initial, onSave, onCancel, onClear }: Props) 
           <strong>{initial?.sentAt ? 'Send these changes to Maison Tracé' : 'Send these notes to Maison Tracé'}</strong>
           <span className="muted small">
             Helps us improve the fit for everyone. We receive the pattern style, your answers and notes, and the measurements it was drafted from, with no
-            name attached. Please leave names out of your notes.
+            name attached. Please leave names out of your notes.{shareByDefault ? ' Ticked for you as a fit tester.' : ''}
           </span>
         </span>
       </label>

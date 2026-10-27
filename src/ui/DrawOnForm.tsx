@@ -7,8 +7,9 @@
 import { PointerEvent, useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { P } from '../engine/geometry';
 import type { BodiceDraft } from '../engine/bodice';
-import { spline } from './bodyOutline';
+
 import { legsFor } from '../engine/form';
+import { bodyHalf } from '../engine/body';
 
 import { FormLine, FormSide, Reading, landmarks } from './formLines';
 import { BELOW_HEM, CLOTH_EDGES, FormHead, FormLayers, FormSatin, HEAD_CM, SQUEEZE, SewnLevel, WornSleeve, formHead, wornCloth } from './FormSketch';
@@ -150,47 +151,56 @@ export function formWidth(draft: BodiceDraft, m: Measures & { full_bust: number 
   return torsoForm(landmarks(draft), m);
 }
 
-/** A torso form through the body's own landmarks: the neck point, the shoulder tip, the bust's height and the waist's. */
+/** The real body's side (engine/body.ts) run through the drawing's own landmarks: between one landmark and the next
+ *  the body's own profile carries, scaled so it meets each landmark's width exactly. `marks` pairs the drawing's
+ *  heights (cm) and half-widths with the body's heights (the form's units). */
+function realSide(marks: { y: number; by: number; half: number }[]): (y: number) => number {
+  const ks = marks.map((m) => ({ ...m, k: m.half / bodyHalf(m.by) }));
+  return (y: number) => {
+    if (y <= ks[0].y) return bodyHalf(ks[0].by + (y - ks[0].y) * ((ks[1].by - ks[0].by) / (ks[1].y - ks[0].y))) * ks[0].k;
+    const last = ks[ks.length - 1];
+    if (y >= last.y) {
+      const prev = ks[ks.length - 2];
+      return bodyHalf(last.by + (y - last.y) * ((last.by - prev.by) / (last.y - prev.y))) * last.k;
+    }
+    let i = 0;
+    while (y > ks[i + 1].y) i++;
+    const a = ks[i], b = ks[i + 1];
+    const u = (y - a.y) / (b.y - a.y);
+    const by = a.by + (b.by - a.by) * u;
+    const s = u * u * (3 - 2 * u);
+    return bodyHalf(by) * (a.k + (b.k - a.k) * s);
+  };
+}
+
+/** A torso form through the body's own landmarks: the neck point, the shoulder tip, the bust's height and the waist's.
+ *  Its outline is the real body's (Cat, 2026-10-27): the neck rising out of the trapezius, the shoulder sloping to its
+ *  tip, the chest, the waist and the hip, each landmark at the measured width. */
 export function torsoForm({ neckPoint, shoulderTip, apex, waistY }: { neckPoint: P; shoulderTip: P; apex: P; waistY: number }, m: Measures & { full_bust: number }): FormBody {
   // The neck from the neck measurement, not the garment's neckline (a boat neck's points sit far out), as slim
   // beside the head as on the welcome form: drawn, after the squeeze, about 0.45 of the head's width.
   const neck = Math.min(neckPoint.x, ((m.neck ?? 34) / (2 * Math.PI)) * 0.95);
   const bust = m.full_bust / 4;
   const hip = m.full_hip && m.waist_to_hip ? { at: waistY + m.waist_to_hip, half: m.full_hip / 4 } : undefined;
-  const body = spline([
-    [shoulderTip.y, shoulderTip.x],
-    [(shoulderTip.y + apex.y) / 2, bust * 0.96],
-    [apex.y, bust],
-    [waistY, m.waist / 4],
-    ...(hip
-      ? ([[waistY + (hip.at - waistY) / 2, (m.waist / 4 + hip.half) / 2 + 0.4], [hip.at, hip.half], [hip.at + 8, hip.half * 0.97]] as [number, number][])
-      : ([[waistY + 8, (m.waist / 4) * 1.08]] as [number, number][])),
-  ]);
   const bottom = hip ? hip.at + 8 : waistY + 8;
-  const width = (y: number) => {
-    // The neck is a touch slimmer up under the jaw than where it meets the shoulders.
-    if (y <= neckPoint.y) return neck * (0.92 + 0.08 * Math.min(1, Math.max(0, (y - (neckPoint.y - 8)) / 8)));
-    if (y <= shoulderTip.y) {
-      const t = (y - neckPoint.y) / Math.max(0.1, shoulderTip.y - neckPoint.y);
-      return neck + (shoulderTip.x - neck) * (1 - (1 - t) ** 2);
-    }
-    return body(Math.min(y, bottom));
-  };
+  const side = realSide([
+    { y: neckPoint.y - 6, by: -1.62, half: neck },
+    { y: shoulderTip.y, by: -1.34, half: Math.max(shoulderTip.x, neck + 2) },
+    { y: apex.y, by: -0.58, half: bust },
+    { y: waistY, by: 0.1, half: m.waist / 4 },
+    ...(hip ? [{ y: hip.at, by: 0.82, half: hip.half }] : [{ y: waistY + 8, by: 0.4, half: (m.waist / 4) * 1.08 }]),
+  ]);
+  const width = (y: number) => side(Math.min(y, bottom));
   return { width, top: neckPoint.y - 7, bottom, waistY, head: true };
 }
 
 /** The skirt form: a lower torso from a little above the waist to below the hip, the waist at y = 0. */
 export function skirtForm(m: { waist: number; full_hip: number; waist_to_hip: number }): FormBody {
-  const w = m.waist / 4;
-  const h = m.full_hip / 4;
-  const body = spline([
-    [-12, w * 1.1],
-    [0, w],
-    [m.waist_to_hip / 2, (w + h) / 2 + 0.4],
-    [m.waist_to_hip, h],
-    [m.waist_to_hip + 8, h * 0.97],
+  const side = realSide([
+    { y: 0, by: 0.1, half: m.waist / 4 },
+    { y: m.waist_to_hip, by: 0.82, half: m.full_hip / 4 },
   ]);
-  return { width: body, top: -12, bottom: m.waist_to_hip + 8, waistY: 0 };
+  return { width: side, top: -12, bottom: m.waist_to_hip + 8, waistY: 0 };
 }
 
 export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, onChoices, read, help: helpFor, backs = true, backKinds, arms, cloth, sleeve, underarmY, sewn, onDone, onCancel }: Props<C>) {
@@ -269,13 +279,25 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
 
   // The figure fills the drawing (Cat's D5, 2026-10-26): just wider than the arms and the garment, down to a little
   // below the hem (room to draw it longer) rather than always to the floor.
+  // The frame holds still while you draw (Cat, 2026-10-27: the body jumped as the hem moved): set when the tool opens,
+  // its centre never moves and it only grows downward, when a hem is drawn near its foot.
+  const heldFrame = useRef<{ half: number; top: number; bottom: number } | null>(null);
   const frame = useMemo(() => {
     const all = (cloth ?? []).flat();
     const wide = Math.max(0, ...all.map((q) => Math.abs(q.x) + 1.5));
     const half = SQUEEZE * Math.max(Math.max(m.full_bust ?? 0, m.full_hip ?? 0, m.waist) / 4 + 3, arms ? armAt(arms, arms.wristY).outer + 1.5 : 0, wide);
     const floor = Math.max(torsoBottom + 12, bottom, legLines ? legLines.floor + 1 : 0);
-    const low = all.length ? Math.max(...all.map((q) => q.y)) + BELOW_HEM + 2 : floor;
-    return { half, top: body.top - (body.head ? HEAD_CM + 1 : 2), bottom: Math.max(torsoBottom + 12, Math.min(low, legLines ? legLines.floor + 1 : low)) };
+    const hem = all.length ? Math.max(...all.map((q) => q.y)) : undefined;
+    const low = hem !== undefined ? hem + BELOW_HEM + 2 : floor;
+    const fresh = { half, top: body.top - (body.head ? HEAD_CM + 1 : 2), bottom: Math.max(torsoBottom + 12, Math.min(low, legLines ? legLines.floor + 1 : low)) };
+    const was = heldFrame.current;
+    if (!was) return (heldFrame.current = fresh);
+    const grown = {
+      half: was.half,
+      top: Math.min(was.top, fresh.top),
+      bottom: hem !== undefined && hem + 4 > was.bottom ? Math.max(was.bottom, fresh.bottom) : was.bottom,
+    };
+    return (heldFrame.current = grown);
   }, [m, body, bottom, arms, torsoBottom, legLines, cloth]);
   const cx = frame.half;
 
@@ -303,13 +325,22 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
   // Enlarged, the garment fills the screen as on the Style page (Cat, 2026-10-25: Draw inside Enlarge too): from just
   // above it to well past its hem, so there's room to draw the hem longer, and only a little wider than it, both sides
   // alike so the back matches the front.
+  // Enlarged, the garment fills the screen as on the Style page (Cat, 2026-10-25: Draw inside Enlarge too): from just
+  // above it to the frame's foot, and only a little wider than it, both sides alike so the back matches the front. The
+  // width holds with the frame, so the view stays still while you draw.
+  const heldView = useRef<{ wide: number; top: number } | null>(null);
   const view = useMemo(() => {
     const all = (worn ?? []).flat();
-    if (!big || !all.length) return { left: 0, width: 2 * cx, top: frame.top, bottom: frame.bottom };
-    const ys = all.map((q) => q.y);
-    const wide = SQUEEZE * Math.max(...all.map((q) => Math.abs(q.x))) + 7;
-    const top = Math.max(frame.top, Math.min(...ys) - 8);
-    return { left: cx - wide, width: 2 * wide, top, bottom: Math.min(frame.bottom, Math.max(...ys) + 20) };
+    if (!big || !all.length) {
+      heldView.current = null;
+      return { left: 0, width: 2 * cx, top: frame.top, bottom: frame.bottom };
+    }
+    // Room at the sides for a flare or more ease to be drawn without the view moving.
+    const wide = SQUEEZE * (Math.max(...all.map((q) => Math.abs(q.x))) + 9);
+    const top = Math.max(frame.top, Math.min(...all.map((q) => q.y)) - 8);
+    const was = heldView.current;
+    const held = (heldView.current = { wide: was && wide <= was.wide + 1 ? was.wide : wide, top: was ? Math.min(was.top, top) : top });
+    return { left: cx - held.wide, width: 2 * held.wide, top: held.top, bottom: frame.bottom };
   }, [big, worn, cx, frame]);
 
   const current = lines(side);

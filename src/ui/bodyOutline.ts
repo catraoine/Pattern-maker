@@ -3,23 +3,6 @@
 // (a quarter of the round measurement), so the body and the skirt read at the same scale.
 import type { SkirtMeasurements } from '../engine/skirt';
 
-/** Smooth curve through keypoints (Catmull-Rom). */
-export function spline(keys: [number, number][]) {
-  return (y: number) => {
-    const n = keys.length;
-    if (y <= keys[0][0]) return keys[0][1];
-    if (y >= keys[n - 1][0]) return keys[n - 1][1];
-    let i = 0;
-    while (keys[i + 1][0] < y) i++;
-    const p0 = keys[Math.max(i - 1, 0)], p1 = keys[i], p2 = keys[i + 1], p3 = keys[Math.min(i + 2, n - 1)];
-    const d = p2[0] - p1[0], u = (y - p1[0]) / d;
-    const m1 = ((p2[1] - p0[1]) / (p2[0] - p0[0] || 1)) * d;
-    const m2 = ((p3[1] - p1[1]) / (p3[0] - p1[0] || 1)) * d;
-    const u2 = u * u, u3 = u2 * u;
-    return (2 * u3 - 3 * u2 + 1) * p1[1] + (u3 - 2 * u2 + u) * m1 + (-2 * u3 + 3 * u2) * p2[1] + (u3 - u2) * m2;
-  };
-}
-
 // The legs are drawn like a fashion sketch: slim, with a knee and a calf, standing on pointed heels
 // whose tips touch the floor line. Each point is [where down the leg, distance from the middle]:
 // above the knee the first number runs 0 (crotch) to 1 (knee), below it 1 (knee) to 2 (floor);

@@ -468,7 +468,12 @@ function pieceOnForm(s: P[], body: FormBody, underarmY: number, sewnHalf?: numbe
   // Each level's width is capped at this piece's own flat width there (a front piece is narrower than a quarter of the
   // girth where the back takes more), and a level the piece does not reach is left out.
   const ownAt = (y: number) => Math.max(0, ...s.filter((q) => Math.abs(q.y - y) < 1).map((q) => Math.abs(q.x)));
-  const sewnWidth = sewnAt((sewn ?? []).flatMap((l) => (ownAt(l.y) > 0 ? [{ y: l.y, half: Math.min(l.half, ownAt(l.y)) }] : [])));
+  const levels = (sewn ?? []).filter((l) => ownAt(l.y) > 0);
+  const band = levels.length ? { top: Math.min(...levels.map((l) => l.y)), bottom: Math.max(...levels.map((l) => l.y)) } : undefined;
+  // Between the bust and the hip the cloth shows exactly its own sewn width (a drawn side line lands where it was
+  // drawn, Cat 2026-10-27); beyond the band, the nearest level's width, capped at the piece's own.
+  const atLevels = sewnAt(levels.map((l) => ({ y: l.y, half: Math.min(l.half, ownAt(l.y)) })));
+  const sewnWidth = (y: number) => (band && y >= band.top && y <= band.bottom ? ownAt(y) : atLevels(y));
   // The widest the form has been from the top down to each height, at 0.5 cm steps.
   const steps = Math.max(1, Math.ceil((body.bottom - body.top) / 0.5));
   const hang: number[] = [];
@@ -497,7 +502,7 @@ function pieceOnForm(s: P[], body: FormBody, underarmY: number, sewnHalf?: numbe
       const h = hangAt(q.y);
       let x = q.x;
       const out = Math.abs(q.x) - h;
-      if (out > 0) x = Math.sign(q.x) * (h + out * share);
+      if (out > 0) x = Math.sign(q.x) * (h + Math.min(out, FLARE_TRUE) + Math.max(0, out - FLARE_TRUE) * share);
       // Fitted: follow the form itself, not its widest point, between the underarm and the hip.
       const over = Math.abs(q.x) - w;
       if (over > 0 && q.y > underarmY && below === 0) {
@@ -539,6 +544,10 @@ function pieceOnForm(s: P[], body: FormBody, underarmY: number, sewnHalf?: numbe
     };
   }
 }
+
+/** How far beyond the form's widest point a piece shows at its full pattern width (a drawn flare lands where it was
+ *  drawn, Cat 2026-10-27); only fullness past that hangs in, in folds. */
+const FLARE_TRUE = 16;
 
 /** How much wider than it shows on the form a piece's hem has to be before its fullness is drawn as folds. */
 const FOLDS_FROM = 5;

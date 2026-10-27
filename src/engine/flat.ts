@@ -91,7 +91,7 @@ interface Half {
 
 /**
  * A half piece with its darts sewn. Waist darts close into the waist, the fabric either side drawn in
- * and easing back to full width over twice the dart's length. A dart in the side seam is
+ * and easing back to full width at the dart's tip, as the sewn piece does. A dart in the side seam is
  * folded away, and the piece below it drawn up to `bottom`, so the front's side seam is as long as
  * the back's.
  */
@@ -139,7 +139,7 @@ function sewn(pc: Piece, bottom?: number, skip?: 'side' | 'all' | 'none', centre
     .map(({ a, b }) => {
       const tip = tipOf(a, b);
       const mid = mul(add(a, b), 0.5);
-      return { lo: Math.min(a.x, b.x), g: Math.abs(b.x - a.x), y: mid.y, reach: 2 * (tip ? len(sub(tip, mid)) : 8) };
+      return { lo: Math.min(a.x, b.x), g: Math.abs(b.x - a.x), y: mid.y, reach: tip ? len(sub(tip, mid)) : 8, toward: tip ? Math.sign(tip.y - mid.y) || 1 : 1 };
     });
   const side = openings.find(({ a, b }) => Math.abs(b.y - a.y) >= Math.abs(b.x - a.x));
   // The bust dart's shaped end stands proud of the side seam until it is sewn: draw the seam straight past it.
@@ -167,7 +167,8 @@ function sewn(pc: Piece, bottom?: number, skip?: 'side' | 'all' | 'none', centre
     let x = q.x;
     // Each dart draws in toward the centre: on a piece cut whole, the darts left of it pull the other way.
     for (const d of waistDarts) {
-      const pull = d.g * clamp01(1 - Math.abs(q.y - d.y) / d.reach);
+      // The whole dart at its opening and beyond it (the waist edge), tapering to nothing at its tip.
+      const pull = d.g * clamp01(1 - Math.max(0, (q.y - d.y) * d.toward) / d.reach);
       x += d.lo + d.g / 2 < 0 ? pull * clamp01((d.lo + d.g - q.x) / d.g) : -pull * clamp01((q.x - d.lo) / d.g);
     }
     const k = kCentre + (kSide - kCentre) * clamp01(Math.abs(q.x) / Math.max(Math.abs(footPt.x), 1));

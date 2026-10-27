@@ -11,7 +11,7 @@ type Sent = 'idle' | 'sending' | 'failed' | 'busy';
  * and counts (with no email) against where the visitor first came from, so bio links like ?src=ig keep counting.
  * It also asks which language they sew in (Cat's L5 Ask First, 2026-10-24), as a tag on the email line (L1, 2026-10-25).
  */
-export function WaitlistForm({ onJoined, onCode, linkMessage }: { onJoined: () => void; onCode: (code: string) => void; linkMessage?: string }) {
+export function WaitlistForm({ onJoined, onCode, linkMessage, onRetry }: { onJoined: () => void; onCode: (code: string) => void; linkMessage?: string; /** Checks the tester link's code again, offered when the check couldn't reach the server. */ onRetry?: () => void }) {
   const [email, setEmail] = useState('');
   // Left empty by people; bots fill in every box.
   const [website, setWebsite] = useState('');
@@ -102,6 +102,14 @@ export function WaitlistForm({ onJoined, onCode, linkMessage }: { onJoined: () =
           {codeMsg && (
             <p className="msg small" role="status">
               {codeMsg}
+              {onRetry && codeMsg === linkMessage && (
+                <>
+                  {' '}
+                  <button type="button" className="inline-link" onClick={onRetry}>
+                    Try again
+                  </button>
+                </>
+              )}
             </p>
           )}
         </form>

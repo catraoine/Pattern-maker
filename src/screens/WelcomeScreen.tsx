@@ -17,7 +17,7 @@ interface Props {
   /** Someone coming back with their measurements taken: the garment they were on, and the ways back in. */
   resume?: { garment: string; onResume: () => void; onSaved: () => void; onNew: () => void };
   /** Until launch, someone without a tester link gets the waitlist where Begin was (Cat's W1, 2026-10-21). */
-  waitlist?: { onCode: (code: string) => void; checking?: boolean; linkMessage?: string };
+  waitlist?: { onCode: (code: string) => void; checking?: boolean; linkMessage?: string; onRetry?: () => void };
 }
 
 // The welcome has one button (Cat, 2026-10-17): Begin. The tour plays from the dress form, a close crop of the
@@ -35,9 +35,9 @@ const LEAVE_MS = 1750;
 const SLIDE_AT = 300;
 const SLIDE_MS = 1400;
 const PLAY_AT = SLIDE_AT + SLIDE_MS + 500;
-const MARKS = Array.from({ length: 30 }, (_, i) => i + 41);
+const MARKS = Array.from({ length: 30 }, (_, i) => i + 1);
 /** As many as the first measuring page's tape, which takes over from it where it stops. */
-const WIDE_MARKS = Array.from({ length: 100 }, (_, i) => i + 41);
+const WIDE_MARKS = Array.from({ length: 100 }, (_, i) => i + 1);
 /** On a phone the waitlist opens on the form at Begin's full size, then, once its lines are drawn, the waitlist slides
  *  up over its lower half, the way the measuring pages crop it (Cat's O2 Curtain Up, 2026-10-25). When it starts after
  *  the form begins (the form's own drawing takes 1.6s handed over drawn, 2.6s from fresh), and how long it takes. */
@@ -54,8 +54,8 @@ export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume, wait
     url.searchParams.delete('joined');
     window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
   }, []);
-  // Begin's tape: on a phone it pulls out of the tip at the form's corner; on a computer it comes in from off the top
-  // right and pulls across the top of the window to where the first page's tape sits (Cat, 2026-10-26).
+  // Begin's tape comes in from off the top right and pulls across the top of the window to where the first page's tape
+  // sits (Cat, 2026-10-26 on a computer; 2026-10-27 on a phone too, with the tip at the form's corner gone).
   const [leaving, setLeaving] = useState<false | 'phone' | 'computer'>(false);
   // A computer already opens the waitlist on the full-size form, beside the words, so the curtain is for phones.
   const [curtain, setCurtain] = useState<'down' | 'up' | 'off'>(() =>
@@ -133,7 +133,6 @@ export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume, wait
     return () => window.clearTimeout(t);
   }, [leaving]);
 
-  // Begin pulls the tape out of the tip at the form's corner (Cat, 2026-10-20: brought back after Release 10).
   const begin = () => {
     if (leaving) return;
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) onFinish();
@@ -153,7 +152,7 @@ export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume, wait
   return (
     <div className={['welcome', formStart !== 'wait' && 'go', leaving && 'leaving', waitlist && 'waitlist-page', waitlist && curtain !== 'off' && `curtain-${curtain}`].filter(Boolean).join(' ')}>
       <section className="card welcome-card" aria-labelledby="wtitle">
-        {leaving === 'computer' && pulled}
+        {leaving && pulled}
         <div className="welcome-hero" ref={hero}>
           <ContourForm start={formStart} kind={form} />
           <button type="button" className="tour-play" onClick={() => setTouring(true)} aria-label={`Watch how it works, ${TOUR_LABEL}`}>
@@ -161,9 +160,6 @@ export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume, wait
             <span className="tour-play-label">How it works</span>
             <span className="tour-play-ring" aria-hidden="true" />
           </button>
-          {/* The tip is where Begin pulls the tape from, so the waitlist, with no Begin, leaves it out */}
-          {!resume && !waitlist && <span className="tape-tip" aria-hidden="true" />}
-          {leaving === 'phone' && pulled}
         </div>
         {waitlist && joined ? (
           <Title id="wtitle" big="You're on the list" label="We'll write when it opens" />
@@ -184,7 +180,7 @@ export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume, wait
               </p>
             </div>
           ) : (
-            <WaitlistForm onJoined={() => setJoined(true)} onCode={waitlist.onCode} linkMessage={waitlist.linkMessage} />
+            <WaitlistForm onJoined={() => setJoined(true)} onCode={waitlist.onCode} linkMessage={waitlist.linkMessage} onRetry={waitlist.onRetry} />
           )
         ) : resume ? (
           <div className="stack">

@@ -59,79 +59,36 @@
   color: var(--tape-ink);
 }
 
-/* The end of a tape measure peeking in at the form's bottom corner, where Begin pulls the tape out from
-   (Cat's U2 Tape Tip + E5 Out of the Corner, 2026-10-18): a short stub of tape and its metal hook */
-.tape-tip {
-  position: absolute;
-  right: -18px;
-  bottom: 14px;
-  z-index: 2;
-  width: 64px;
-  height: 18px;
-  background-color: var(--tape);
-  background-image: repeating-linear-gradient(90deg, var(--tape-ink) 0 1px, transparent 1px 19.5px),
-    repeating-linear-gradient(90deg, rgba(43, 36, 24, 0.6) 0 1px, transparent 1px 3.9px);
-  background-size: 100% 8px, 100% 4px;
-  background-position: 6px 0, 6px 0;
-  background-repeat: no-repeat;
-  opacity: 0;
-}
-
-.tape-tip::before {
-  content: '';
-  position: absolute;
-  left: -3px;
-  top: -4px;
-  bottom: -4px;
-  width: 4px;
-  border-radius: 1px;
-  background: #b8a274;
-}
-
-.tape-tip::after {
-  content: '1';
-  position: absolute;
-  left: 22px;
-  top: 6px;
-  font: 600 8px/1 var(--mono);
-  color: var(--tape-ink);
-}
-
-/* It slides in from the edge once the form has drawn */
-.welcome.go .tape-tip {
-  animation: tape-tip-in 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) 1.9s both;
-}
-
-@keyframes tape-tip-in {
-  from {
-    opacity: 0;
-    transform: translateX(40px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-/* Begin takes the tip with it: the tape pulled out from here replaces it */
-.welcome.leaving .tape-tip {
-  animation: none;
-  opacity: 0;
-}
-
-/* Begin: the tape pulls out of the tip's corner, right to left across the foot of the form, its hook leading, the
-   welcome fades, and the tape rises to the top (Cat, 2026-10-21: wider, slower, the hook kept on it). */
+/* Begin: the tape comes in from off the top right of the window and pulls across the top, to exactly where the first
+   measuring page's tape sits, which takes over from it without moving (Cat, 2026-10-26 on a computer: started from a
+   tip in the middle of the window, it didn't look smooth; 2026-10-27 on a phone too, the tip gone). 22px down the
+   welcome's card puts it there. */
 .tape-band.unrolling {
   position: absolute;
   left: 0;
   right: 0;
   margin: 0;
-  top: calc(100% - 32px);
+  top: 22px;
   z-index: 3;
-  animation: tape-pull 1.5s cubic-bezier(0.35, 0.1, 0.25, 1) both, tape-rise 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) 1.75s both;
+  animation: tape-pull-across 1.6s cubic-bezier(0.55, 0, 0.1, 1) both;
+}
+.welcome.leaving .welcome-card {
+  position: relative;
+  overflow: visible;
+}
+body:has(.tape-band.unrolling) {
+  overflow-x: clip;
+}
+@keyframes tape-pull-across {
+  from {
+    transform: translateX(100vw);
+  }
+  to {
+    transform: none;
+  }
 }
 
-/* The hook on the tape's leading end, as on the tip it was pulled from */
+/* The flat metal end of a sewing tape on its leading end */
 .tape-band.unrolling,
 .tape-band.landed {
   overflow: visible;
@@ -146,58 +103,38 @@
 .tape-band.landed::before {
   content: '';
   position: absolute;
-  left: -5px;
-  top: -5px;
-  bottom: -5px;
-  width: 6px;
   border-radius: 1px;
   background: #b8a274;
 }
 
-/* The size of the tip it is pulled from, the whole way (Cat, 2026-10-21: the tip on the first screen is the right
-   size; the tape never grows), and as long as the screen is wide */
+/* The same width the whole way (Cat, 2026-10-21: the tape never grows): 26px, Cat's C (2026-10-27: 18px read as a
+   hairline ruler), with its marks, numbers and metal end laid out on an 18px strip and scaled up by --u. TAPE_PX in
+   ContourForm.tsx draws the tape round the body at the same width. */
 .tape-band.unrolling,
 .tape-band.landed {
-  height: 18px;
-  background-image: repeating-linear-gradient(90deg, var(--tape-ink) 0 1px, transparent 1px 19.5px),
-    repeating-linear-gradient(90deg, rgba(43, 36, 24, 0.6) 0 1px, transparent 1px 3.9px);
-  background-size: 100% 8px, 100% 4px;
+  --u: calc(26px / 18);
+  height: calc(18 * var(--u));
+  background-image: repeating-linear-gradient(90deg, var(--tape-ink) 0 1px, transparent 1px calc(19.5 * var(--u))),
+    repeating-linear-gradient(90deg, rgba(43, 36, 24, 0.6) 0 1px, transparent 1px calc(3.9 * var(--u)));
+  background-size: 100% calc(8 * var(--u)), 100% calc(4 * var(--u));
   /* A long mark under each number, a short one between */
-  background-position: 19.5px 0, 19.5px 0;
+  background-position: calc(19.5 * var(--u)) 0, calc(19.5 * var(--u)) 0;
 }
 
 .tape-band.unrolling .tape-marks span,
 .tape-band.landed .tape-marks span {
-  width: 19.5px;
-  padding-top: 8px;
-  font-size: 8px;
+  width: calc(19.5 * var(--u));
+  padding-top: calc(8 * var(--u));
+  font-size: calc(8 * var(--u));
 }
 
+/* Flush with the tape, as on a sewing tape (Cat's E2, 2026-10-27), rather than a builder's hook standing proud of it */
 .tape-band.unrolling::before,
 .tape-band.landed::before {
-  left: -3px;
-  top: -4px;
-  bottom: -4px;
-  width: 4px;
-}
-
-/* It slides out of the tip rather than being uncovered, so the hook travels with it */
-@keyframes tape-pull {
-  from {
-    transform: translateX(calc(100% - 46px));
-  }
-  to {
-    transform: none;
-  }
-}
-
-@keyframes tape-rise {
-  from {
-    top: calc(100% - 32px);
-  }
-  to {
-    top: 0;
-  }
+  left: calc(-9 * var(--u));
+  top: 0;
+  bottom: 0;
+  width: calc(10 * var(--u));
 }
 
 /* Risen, the tape stays full size across the top of the first page, and only that page (Cat, 2026-10-21), exactly
@@ -220,13 +157,14 @@ body:has(.tape-band.carried) {
   overflow-x: clip;
 }
 
-/* On a phone the tape runs the width of the screen, off the right-hand edge it came from, with its hook just in
-   from the left; the card lets it out past its own edges. */
+/* On a phone the tape runs the width of the screen, off the right-hand edge it came from, with its metal end just in
+   from the left; the card lets it out past its own edges. 18px down the welcome's card is the first page's tape. */
 @media (max-width: 640px) {
   .welcome.leaving .welcome-card {
     overflow-x: visible;
   }
   .tape-band.unrolling {
+    top: 18px;
     left: calc(50% - 50vw + 14px);
     right: calc(50% - 50vw);
   }
@@ -269,13 +207,6 @@ body:has(.tape-band.carried) {
 @media (max-width: 640px) {
   .tape-band {
     margin: 0 -18px;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .welcome.go .tape-tip{
-    animation: none;
-    opacity: 1;
   }
 }
 
@@ -892,40 +823,11 @@ button.later.garment-change {
   }
 }
 
-/* On a computer there's no tip: Begin brings the tape in from off the top right of the window and pulls it across the
-   top, to exactly where the first measuring page's tape sits, which takes over from it without moving (Cat,
-   2026-10-26: started from the tip in the middle of the window, it didn't look smooth). 22px down the welcome's card
-   puts it there; between 960px and 1100px that page is a 520px column down the middle. */
-@media (min-width: 960px) {
-  .tape-tip {
-    display: none;
-  }
-  .welcome.leaving .welcome-card {
-    position: relative;
-    overflow: visible;
-  }
-  body:has(.tape-band.unrolling.computer) {
-    overflow-x: clip;
-  }
-  .tape-band.unrolling.computer {
-    top: 22px;
-    left: 0;
-    right: 0;
-    animation: tape-pull-across 1.6s cubic-bezier(0.55, 0, 0.1, 1) both;
-  }
-}
+/* Between 960px and 1100px the first measuring page is a 520px column down the middle, so Begin's tape lands there. */
 @media (min-width: 960px) and (max-width: 1099px) {
   .tape-band.unrolling.computer {
     left: calc(50% - 260px);
     right: auto;
     width: 520px;
-  }
-}
-@keyframes tape-pull-across {
-  from {
-    transform: translateX(100vw);
-  }
-  to {
-    transform: none;
   }
 }

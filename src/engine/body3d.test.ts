@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { EXAMPLE_VALUES } from '../measurements';
-import { R } from './form';
+import { bodyHalf as R } from './body';
 import { bodyMesh, buildBody, toObj } from './body3d';
 
 /** Cut the mesh with a level plane and measure round the cut, as a tape would (round its convex hull). */
@@ -72,7 +72,7 @@ describe('3D body from measurements', () => {
     });
   }
 
-  it("keeps the app's form outline: widest at bust and hip, narrowest at the waist, same neck and shoulders", () => {
+  it("keeps the real body's outline: widest at bust and hip, narrowest at the waist, same neck and shoulders", () => {
     const body = buildBody(EXAMPLE_VALUES);
     // Front view: the form's own profile, sized to the person. Between the bust and the hip it matches R closely.
     const scale = body.rings.find((r) => Math.abs(r.y - 0.1) < 0.02)!.half / R(0.1);
@@ -80,7 +80,7 @@ describe('3D body from measurements', () => {
     const at = (y: number) => body.rings.reduce((best, r) => (Math.abs(r.y - y) < Math.abs(best.y - y) ? r : best));
     expect(at(-0.58).half).toBeGreaterThan(at(0.1).half);
     expect(at(0.82).half).toBeGreaterThan(at(0.1).half);
-    expect(at(-1.6).half).toBeLessThan(at(-1.22).half / 2);
+    expect(at(-1.6).half).toBeLessThan(at(-1.3).half / 2);
   });
 
   it('writes an OBJ in millimetres with the girths in its header', () => {

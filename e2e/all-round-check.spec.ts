@@ -39,7 +39,9 @@ const NUDGE = (3 * Math.PI) / 180;
 const MIRROR_PATCH = 35;
 const JUMP_PATCH = 35;
 const HOLE_PATCH = 6;
-const BEHIND_PATCH = 12;
+// The real body's back is flat and its shoulders slope: over a low back neckline a little more of the form shows from
+// behind than over the old round form's, and a back zip's rungs face the viewer more squarely, so a touch more is let by.
+const BEHIND_PATCH = 18;
 
 type Found = { kind: 'dark hole' | 'seen through' | 'mirror' | 'jump'; at: number; size: number; x: number; y: number };
 
@@ -156,7 +158,9 @@ function check(o: { views: number; nudge: number; mirror: boolean; patch: { mirr
         for (const p of patches(walled(here.cls, w, h, [3]), w, h, o.patch.behind)) found.push({ kind: 'seen through', at, ...p });
       }
       const near = await read(at + o.nudge);
-      for (const p of patches(differ(here.cls, near.cls, w, h, false), w, h, o.patch.jump)) found.push({ kind: 'jump', at, ...p });
+      // Shaved twice: a sleeve hanging out from the form's axis sweeps a couple of pixels sideways over the nudge, a
+      // long thin strip down its edge that is movement, not a jump; a patch that comes or goes is broad and survives.
+      for (const p of patches(differ(here.cls, near.cls, w, h, false), w, h, o.patch.jump, 2)) found.push({ kind: 'jump', at, ...p });
       if (o.mirror && k > 0 && k < o.views / 2) {
         const other = await read(-at);
         for (const p of patches(differ(here.cls, other.cls, w, h, true), w, h, o.patch.mirror)) found.push({ kind: 'mirror', at, ...p });

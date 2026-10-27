@@ -3,20 +3,13 @@
 // yet are counted by name (never with who asked), so the most wanted garments show up.
 import { createHash } from 'node:crypto';
 import Anthropic from '@anthropic-ai/sdk';
-import { getStore } from '@netlify/blobs';
+import { blobCounts } from '../../src/server/blobCounts';
 import { checkIdea, describeIdea, wishKey } from '../../src/photo/describe';
-import { TESTER_CAPS, TESTER_POOL, isTesterCode, takeAllowance, type Allowance, type CountStore } from '../../src/photo/limit';
+import { TESTER_CAPS, TESTER_POOL, isTesterCode, takeAllowance, type Allowance } from '../../src/photo/limit';
 
 // Provided by the Netlify runtime.
 declare const Netlify: { env: { get(name: string): string | undefined } };
 
-const counts = (name: string): CountStore => {
-  const store = getStore({ name, consistency: 'strong' });
-  return {
-    get: async (key) => Number((await store.get(key)) ?? 0),
-    set: async (key, count) => void (await store.set(key, String(count))),
-  };
-};
 
 // Visitors are counted by a hash of their IP address, so no address is stored.
 const visitorId = (ip: string | undefined) => createHash('sha256').update(ip ?? 'unknown').digest('hex').slice(0, 24);
@@ -38,11 +31,12 @@ export default async (req: Request, context: { ip?: string }) => {
       // A fit tester's code (sent from Your account) counts them in the testers' own, larger allowance.
       const tester = isTesterCode(req.headers.get('x-tester-code'), Netlify.env.get('TESTER_CODES'));
       allowance = tester
-        ? await takeAllowance(counts('describe-limits'), visitorId(context.ip), new Date(), TESTER_CAPS, TESTER_POOL)
-        : await takeAllowance(counts('describe-limits'), visitorId(context.ip));
+        ? await takeAllowance(blobCounts('describe-limits'), visitorId(context.ip), new Date(), TESTER_CAPS, TESTER_POOL)
+        : await takeAllowance(blobCounts('describe-limits'), visitorId(context.ip));
     } catch (e) {
-      // If the counter can't be reached, still read it; the prepaid credit stays the hard cap.
+      // If the counter can't be reached, nothing is read: an uncounted reading is one the caps can't stop.
       console.error('describe limit check failed', e);
+      allowance = 'busy';
     }
     if (allowance !== 'ok') return Response.json({ ok: false, error: allowance }, { status: 429 });
   }
@@ -50,9 +44,7 @@ export default async (req: Request, context: { ip?: string }) => {
   const result = await describeIdea(text, key ? new Anthropic({ apiKey: key }) : null);
   if (result.ok && result.idea.verdict === 'not_yet') {
     try {
-      const wishes = counts('wishes');
-      const k = wishKey(result.idea.name);
-      await wishes.set(k, (await wishes.get(k)) + 1);
+      await blobCounts('wishes').take(wishKey(result.idea.name), Infinity);
     } catch (e) {
       console.error('wish count failed', e);
     }
@@ -60,3 +52,7 @@ export default async (req: Request, context: { ip?: string }) => {
   const status = result.ok ? 200 : result.error === 'not_configured' ? 503 : result.error === 'failed' ? 502 : 400;
   return Response.json(result, { status });
 };
+
+// Netlify turns away more than 10 requests a minute from one address before the function even starts, so a script
+// hammering it never reaches Claude or uses function time. The daily caps above still do the everyday work.
+export const config = { rateLimit: { windowLimit: 10, windowSize: 60, aggregateBy: ['ip', 'domain'] } };
