@@ -289,7 +289,7 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
     // A jacket or coat is tailored: its shoulder runs out level to the top of the arm and the sleeve head drops from
     // there, set flat, not rounded up into a puff (Cat, 2026-10-26: "I'd like them flatter").
     const tailored = !!round.outer && !!sl;
-    const shoulderR = Math.max(bodyRadius(BUST_Y), formHalfWidth(yS), sl && yU ? bodyRadius(yU) + ra * (tailored ? 0.7 : 0.45) : 0);
+    const shoulderR = Math.max(bodyRadius(BUST_Y), formHalfWidth(yS), sl && yU ? bodyRadius(yU) + ra * (tailored ? 0.4 : 0.45) : 0);
     // A set-in sleeve's shoulder slopes down from the neck to its tip, a little below the shoulder point, so the top
     // reads as shoulders and not as a flat lid (Cat, 2026-10-26: "still looks boxy").
     const soft = !!sl && !tailored;
@@ -364,7 +364,7 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
       if (soft) return shoulderR - ra * 0.45 + clamp(y - yCap, 0, 0.9) * 0.12;
       // A little in from the bodice's edge, so the cap rounds over the shoulder tip and no corner of the bodice juts past it.
       const from = radius(yS) - ra * (tailored ? 0.4 : 0.05);
-      const to = (yU ? radius(yU) : 0) + ra * (tailored ? 0.7 : 0.8);
+      const to = (yU ? radius(yU) : 0) + ra * (tailored ? 0.55 : 0.8);
       return from + (to - from) * Math.sqrt(clamp((y - yCap) / (yU - yCap || 1), 0, 1)) + Math.max(0, y - yU) * 0.02;
     };
     // The cap rounds over like the top of an arm: a quarter circle from the shoulder tip to the underarm.
@@ -377,7 +377,7 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
     const axisX = filmAxis;
     // The crown is as deep, front to back, as the shoulder it is sewn to, so the shoulder runs straight into it and
     // the bodice does not round down past it; by the underarm it is round, as the arm is (Cat, 2026-10-26: "still low").
-    const crownZ = sl ? (tailored ? Math.max(1, (depthAt(0, yS) * 1.9) / ra) : clamp((depthAt(0, yS) * 0.75) / ra, 0.7, 2)) : 1;
+    const crownZ = sl ? (tailored ? Math.max(1, (depthAt(0, yS) * 1.3) / ra) : clamp((depthAt(0, yS) * 0.75) / ra, 0.7, 2)) : 1;
     const capDepth = (y: number) => (y >= yU ? 1 : 1 + (crownZ - 1) * (1 - clamp((y - yCap) / (yU - yCap || 1), 0, 1)) ** 1.5);
     const sleeveR = filmR;
 
