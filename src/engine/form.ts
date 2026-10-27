@@ -18,33 +18,6 @@ function spline(keys: [number, number][]) {
   };
 }
 
-// Half-width of the form from neck (top) to hip (bottom); the waist sits at y = 0.1. A dressmaker's form
-// (Cat's pick N1): a short, full neck and broad, nearly level shoulders that round off at the arm.
-export const R = spline([
-  [-1.75, 0.15], [-1.55, 0.155], [-1.47, 0.17], [-1.43, 0.25], [-1.38, 0.42], [-1.32, 0.52], [-1.22, 0.57],
-  [-1.05, 0.58], [-0.8, 0.59], [-0.55, 0.61],
-  [-0.3, 0.53], [-0.05, 0.45], [0.1, 0.43], [0.3, 0.49], [0.55, 0.61], [0.8, 0.65], [1.05, 0.63], [1.3, 0.58],
-]);
-
-/** Where the form starts (top of the neck) and ends (below the hip), in the profile's own units. */
-export const FORM_TOP = -1.66;
-export const FORM_BOTTOM = 1.3;
-
-/** Where each girth belongs on the form, read off its outline: bust is the widest point above the waist,
- *  waist the narrowest, hip the widest below. The tapes are tested against these so a drawing can't drift. */
-export function formLandmarks(): Record<'full_bust' | 'waist' | 'full_hip', number> {
-  const find = (a: number, b: number, better: (r: number, best: number) => boolean) => {
-    let at = a;
-    for (let y = a; y <= b; y += 0.001) if (better(R(y), R(at))) at = y;
-    return at;
-  };
-  return {
-    full_bust: find(-1.1, -0.2, (r, b) => r > b),
-    waist: find(-0.3, 0.5, (r, b) => r < b),
-    full_hip: find(0.4, 1.3, (r, b) => r > b),
-  };
-}
-
 /** The form's legs, as on the measuring pages: each leg's half-width down from the top of the thigh (the
  *  form's own units), the legs standing LEG_X either side of the centre. */
 export const LEG = spline([[1.2, 0.3], [1.6, 0.28], [2.1, 0.215], [2.65, 0.15], [2.9, 0.16], [3.8, 0.12], [4.55, 0.08], [4.7, 0.1]]);

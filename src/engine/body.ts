@@ -21,8 +21,7 @@ export function bodyHalf(y: number): number {
   return u ? BODY_HALF[i] + (BODY_HALF[i + 1] - BODY_HALF[i]) * u : BODY_HALF[i];
 }
 
-/** Where the side of the neck meets the shoulder, and the shoulder tip, on the body (the form's units). */
-export const NECK_BASE_Y = -1.47;
+/** The shoulder tip on the body (the form's units); the side of the neck meets the shoulder at -1.47. */
 export const SHOULDER_TIP_Y = -1.34;
 /** Where the body's rings start (just under the chin) and end (below the hip). */
 export const BODY_TOP = BODY_YS[0];
