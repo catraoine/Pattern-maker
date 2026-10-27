@@ -3,7 +3,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { betaZodOutputFormat } from '@anthropic-ai/sdk/helpers/beta/zod';
 import { z } from 'zod';
-import { Reading, SYSTEM as READING_GUIDE, piece } from './analyze';
+import { Reading, SYSTEM as READING_GUIDE, piece, spendLimitReached } from './analyze';
 import { IdeaReading, IdeaResponse, MAX_IDEA_CHARS } from './types';
 
 const Idea = z.object({
@@ -47,13 +47,16 @@ export async function describeIdea(text: unknown, client: Anthropic | null): Pro
   try {
     const response = await client.beta.messages.parse({
       model: 'claude-opus-5-5',
-      max_tokens: 16000,
+      // A reading is a few hundred words at most; the ceiling bounds what one request can ever cost (about 16 cents).
+      max_tokens: 8000,
       output_config: { effort: 'low', format: betaZodOutputFormat(Idea) },
       betas: ['server-side-fallback-2026-07-01'],
       fallbacks: 'default',
       system: SYSTEM,
       messages: [{ role: 'user', content: [{ type: 'text', text: `What they would like to make: ${idea}` }] }],
     });
+    // Logged so the real cost per reading shows in Netlify's function logs.
+    console.log('idea reading tokens', { in: response.usage?.input_tokens, out: response.usage?.output_tokens });
     if (response.stop_reason === 'refusal') return { ok: false, error: 'declined' };
     const parsed = response.parsed_output as IdeaReading | null;
     if (!parsed) return { ok: false, error: 'failed' };
@@ -61,6 +64,7 @@ export async function describeIdea(text: unknown, client: Anthropic | null): Pro
     const out: IdeaReading = parsed.verdict === 'not_yet' ? { ...parsed, start: null } : parsed.start ? parsed : { ...parsed, verdict: 'not_yet' };
     return { ok: true, idea: out };
   } catch (e) {
+    if (spendLimitReached(e)) return { ok: false, error: 'busy' };
     console.error('describeIdea failed', e instanceof Anthropic.APIError ? `${e.status} ${e.message}` : e);
     return { ok: false, error: 'failed' };
   }

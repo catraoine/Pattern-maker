@@ -23,7 +23,8 @@ export function isTesterCode(given: string | null | undefined, codes: string | u
 
 export interface CountStore {
   get(key: string): Promise<number>;
-  set(key: string, count: number): Promise<void>;
+  /** Adds one to the count unless it is already at `cap`, in one step nothing else can slip between. Whether it added. */
+  take(key: string, cap: number): Promise<boolean>;
 }
 
 export type Allowance = 'ok' | 'limit_reached' | 'busy';
@@ -41,9 +42,9 @@ export async function takeAllowance(
   const base = pool ? `${day}/${pool}` : day;
   const allKey = `${base}/all`;
   const visitorKey = `${base}/visitor/${visitor}`;
-  const [all, mine] = await Promise.all([store.get(allKey), store.get(visitorKey)]);
-  if (all >= caps.all) return 'busy';
-  if (mine >= caps.visitor) return 'limit_reached';
-  await Promise.all([store.set(allKey, all + 1), store.set(visitorKey, mine + 1)]);
-  return 'ok';
+  // A quick look first, so nobody's own count goes up on a day the site is already full.
+  if ((await store.get(allKey)) >= caps.all) return 'busy';
+  // The visitor's own count before the site's, so someone already at their cap can't use up everyone else's.
+  if (!(await store.take(visitorKey, caps.visitor))) return 'limit_reached';
+  return (await store.take(allKey, caps.all)) ? 'ok' : 'busy';
 }

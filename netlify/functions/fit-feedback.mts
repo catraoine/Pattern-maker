@@ -2,18 +2,12 @@
 // report, keyed by date: open the site in Netlify, then Blobs, to read them. Nothing that identifies the sender is kept.
 import { createHash, randomUUID } from 'node:crypto';
 import { getStore } from '@netlify/blobs';
+import { blobCounts } from '../../src/server/blobCounts';
 import { checkFitReport } from '../../src/server/fitReport';
-import { takeAllowance, type CountStore } from '../../src/photo/limit';
+import { takeAllowance } from '../../src/photo/limit';
 
 const CAPS = { visitor: 20, all: 500 };
 
-const blobCounts = (): CountStore => {
-  const store = getStore({ name: 'fit-feedback-limits', consistency: 'strong' });
-  return {
-    get: async (key) => Number((await store.get(key)) ?? 0),
-    set: async (key, count) => void (await store.set(key, String(count))),
-  };
-};
 
 // Senders are counted by a hash of their IP address, so no address is stored.
 const visitorId = (ip: string | undefined) => createHash('sha256').update(ip ?? 'unknown').digest('hex').slice(0, 24);
@@ -24,7 +18,7 @@ export default async (req: Request, context: { ip?: string }) => {
   if (!report) return Response.json({ ok: false, error: 'bad_report' }, { status: 400 });
 
   try {
-    if ((await takeAllowance(blobCounts(), visitorId(context.ip), new Date(), CAPS)) !== 'ok') {
+    if ((await takeAllowance(blobCounts('fit-feedback-limits'), visitorId(context.ip), new Date(), CAPS)) !== 'ok') {
       return Response.json({ ok: false, error: 'limit_reached' }, { status: 429 });
     }
     const at = new Date().toISOString();

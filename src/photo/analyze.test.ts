@@ -1,5 +1,5 @@
+import Anthropic from '@anthropic-ai/sdk';
 import { describe, expect, it, vi } from 'vitest';
-import type Anthropic from '@anthropic-ai/sdk';
 import { analyzePhoto } from './analyze';
 
 const reading = {
@@ -67,5 +67,12 @@ describe('analyzePhoto', () => {
     expect(await analyzePhoto(photo, fakeClient({ stop_reason: 'refusal', parsed_output: null }).client)).toEqual({ ok: false, error: 'declined' });
     vi.spyOn(console, 'error').mockImplementation(() => {});
     expect(await analyzePhoto(photo, fakeClient(new Error('boom')).client)).toEqual({ ok: false, error: 'failed' });
+  });
+
+  it('says photo reading is resting, not that the photo is bad, once the monthly spend limit is reached', async () => {
+    const limit = new Anthropic.BadRequestError(400, { type: 'error', error: { type: 'invalid_request_error', message: 'You have reached your specified API usage limits.' } }, undefined, new Headers());
+    expect(await analyzePhoto(photo, fakeClient(limit).client)).toEqual({ ok: false, error: 'busy' });
+    const bad = new Anthropic.BadRequestError(400, { type: 'error', error: { type: 'invalid_request_error', message: 'Could not process image' } }, undefined, new Headers());
+    expect(await analyzePhoto(photo, fakeClient(bad).client)).toEqual({ ok: false, error: 'bad_image' });
   });
 });

@@ -149,6 +149,13 @@ export interface AnalyzeInput {
   mediaType: string;
 }
 
+/**
+ * The monthly spend limit set in the Claude Console was reached (a 400 "specified API usage limits", or the tier cap's
+ * 429). Shown as "resting" rather than as a bad photo, and nothing more is spent until the limit resets or is raised.
+ */
+export const spendLimitReached = (e: unknown) =>
+  e instanceof Anthropic.APIError && (e.status === 400 || e.status === 429) && /API usage limit/i.test(e.message);
+
 /** Cheap checks on the upload, done before anything that costs money. */
 export function checkPhoto(input: AnalyzeInput): PhotoError | null {
   if (typeof input?.image !== 'string' || !(IMAGE_TYPES as readonly string[]).includes(input.mediaType)) return 'bad_image';
@@ -165,7 +172,8 @@ export async function analyzePhoto(input: AnalyzeInput, client: Anthropic | null
   try {
     const response = await client.beta.messages.parse({
       model: 'claude-opus-5-5',
-      max_tokens: 16000,
+      // A reading is a few hundred words at most; the ceiling bounds what one request can ever cost (about 16 cents).
+      max_tokens: 8000,
       // Reading a photo is a quick classification, so low effort keeps it fast and cheap.
       output_config: { effort: 'low', format: betaZodOutputFormat(Reading) },
       betas: ['server-side-fallback-2026-07-01'],
@@ -184,10 +192,13 @@ export async function analyzePhoto(input: AnalyzeInput, client: Anthropic | null
         },
       ],
     });
+    // Logged so the real cost per reading shows in Netlify's function logs.
+    console.log('photo reading tokens', { in: response.usage?.input_tokens, out: response.usage?.output_tokens });
     if (response.stop_reason === 'refusal') return { ok: false, error: 'declined' };
     const reading = response.parsed_output as PhotoReading | null;
     return reading ? { ok: true, reading } : { ok: false, error: 'failed' };
   } catch (e) {
+    if (spendLimitReached(e)) return { ok: false, error: 'busy' };
     if (e instanceof Anthropic.BadRequestError) return { ok: false, error: 'bad_image' };
     console.error('analyzePhoto failed', e instanceof Anthropic.APIError ? `${e.status} ${e.message}` : e);
     return { ok: false, error: 'failed' };

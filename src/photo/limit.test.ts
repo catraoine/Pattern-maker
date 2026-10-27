@@ -3,7 +3,17 @@ import { ALL_VISITORS_PER_DAY, CountStore, PER_VISITOR_PER_DAY, TESTER_CAPS, TES
 
 const memoryStore = (): CountStore & { data: Map<string, number> } => {
   const data = new Map<string, number>();
-  return { data, get: async (k) => data.get(k) ?? 0, set: async (k, n) => void data.set(k, n) };
+  return {
+    data,
+    get: async (k) => data.get(k) ?? 0,
+    take: async (k, cap) => {
+      // Checked and counted in one go, as the Blobs store's compare-and-swap does.
+      const n = data.get(k) ?? 0;
+      if (n >= cap) return false;
+      data.set(k, n + 1);
+      return true;
+    },
+  };
 };
 
 const day = new Date('2026-10-14T10:00:00Z');
@@ -27,6 +37,21 @@ describe('takeAllowance', () => {
     store.data.set('2026-10-14/all', ALL_VISITORS_PER_DAY);
     expect(await takeAllowance(store, 'new', day)).toBe('busy');
     expect(store.data.get('2026-10-14/visitor/new')).toBeUndefined();
+  });
+
+  it("doesn't let a burst of requests arriving together slip past the caps", async () => {
+    const store = memoryStore();
+    const results = await Promise.all(Array.from({ length: 50 }, () => takeAllowance(store, 'a', day)));
+    expect(results.filter((r) => r === 'ok')).toHaveLength(PER_VISITOR_PER_DAY);
+    const many = await Promise.all(Array.from({ length: ALL_VISITORS_PER_DAY * 2 }, (_, i) => takeAllowance(store, `v${i}`, day)));
+    expect(store.data.get('2026-10-14/all')).toBe(ALL_VISITORS_PER_DAY);
+    expect(many.filter((r) => r === 'ok')).toHaveLength(ALL_VISITORS_PER_DAY - PER_VISITOR_PER_DAY);
+  });
+
+  it("doesn't let someone at their own cap use up the site's", async () => {
+    const store = memoryStore();
+    for (let i = 0; i < PER_VISITOR_PER_DAY + 20; i++) await takeAllowance(store, 'a', day);
+    expect(store.data.get('2026-10-14/all')).toBe(PER_VISITOR_PER_DAY);
   });
 
   it("counts fit testers in their own pool, which the site's cap doesn't stop", async () => {
