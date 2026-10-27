@@ -333,7 +333,7 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
       if (W <= D + 1e-6) return W * fold(a, y);
       // Squarer than an oval, as a body is, and squarest across the shoulders, where the arm is as deep as the shoulder
       // it hangs from: the sleeve's cap then sits inside the shoulder's line, not out past it at the front and back.
-      const p = sl && y < BUST_Y ? 2.2 + 1.8 * smooth(clamp((y - NECK_Y) / (tipY - NECK_Y), 0, 1)) * (1 - smooth(clamp((y - yU) / (BUST_Y - yU), 0, 1))) : 2.2;
+      const p = sl && y < BUST_Y ? 2.2 + 0.8 * smooth(clamp((y - NECK_Y) / (tipY - NECK_Y), 0, 1)) * (1 - smooth(clamp((y - yU) / (BUST_Y - yU), 0, 1))) : 2.2;
       return ((Math.abs(Math.sin(a)) / W) ** p + (Math.abs(Math.cos(a)) / D) ** p) ** (-1 / p) * fold(a, y);
     };
     // Over the shoulder the cloth runs out more than down: its print is laid by the length of cloth, not by the height
