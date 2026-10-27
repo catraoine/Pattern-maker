@@ -1,4 +1,5 @@
 import { Belt } from './engine/belt';
+import type { Paper } from './engine/export';
 import type { HemShape } from './engine/hem';
 import type { AsymHem } from './engine/asymHem';
 import { Fit, Length, Silhouette, NoSeam, SkirtShape, WaistStyle } from './engine/skirt';
@@ -63,6 +64,8 @@ export interface Choices {
 // is only read to move an older save's measurements across (see withPeople).
 export interface Saved {
   unit: Unit;
+  /** The printer paper picked on Print, kept so it holds across visits and garments. */
+  paper?: Paper;
   values: MeasurementValues;
   choices: Choices;
   garment: Garment;

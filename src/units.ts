@@ -25,6 +25,19 @@ export function toYards(m: number): string {
   return `${whole || ''}${part} yd`;
 }
 
+/** A height in feet and inches, the way most people know it: 165 cm → "5 ft 5 in". */
+export function toFeetInches(cm: number): string {
+  const inches = Math.round(cm / 2.54);
+  return `${Math.floor(inches / 12)} ft ${inches % 12} in`;
+}
+
+/** A measurement as the sewist reads it back: centimetres, inches to a tenth, or feet and inches for a height. */
+export function fmtMeasure(id: string, cm: number, unit: Unit): string {
+  if (unit === 'cm') return `${cm} cm`;
+  if (id === 'height') return toFeetInches(cm);
+  return `${Math.round((cm / 2.54) * 10) / 10} in`;
+}
+
 /** A length in the sewist's unit: "12 cm" or "4¾ in". */
 export function fmtLength(cm: number, unit: Unit): string {
   return unit === 'cm' ? `${cm} cm` : toInches(cm);

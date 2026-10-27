@@ -201,3 +201,24 @@ input.inline {
   width: 100%;
   min-height: 40px;
 }
+
+/* On a phone the headline fills the width at its final (narrow) stretch, so a wider start ran off the right edge
+   for the first second ("SEWING PATTE"; the tester walk, 2026-10-27). There it comes in wide but small, and grows
+   as it's taken in, so it never leaves the screen. */
+@media (max-width: 959px) and (prefers-reduced-motion: no-preference) {
+  .welcome.go .welcome-card h1 .t-big {
+    animation-name: taken-in-narrow;
+    display: inline-block;
+    transform-origin: left center;
+  }
+}
+@keyframes taken-in-narrow {
+  from {
+    font-stretch: 125%;
+    transform: scale(0.6);
+  }
+  to {
+    font-stretch: 75%;
+    transform: scale(1);
+  }
+}

@@ -254,6 +254,11 @@ function diamond(page: PDFPage, x: number, y: number, label: string, labelSide: 
   page.drawText(label, { ...at, size, font, color: rgb(0, 0, 0) });
 }
 
+/** How many pages a finished PDF holds (cover, tiles and guide pages together), for the print screen's note. */
+export async function pdfPageCount(bytes: Uint8Array): Promise<number> {
+  return (await PDFDocument.load(bytes)).getPageCount();
+}
+
 /** Tile the sheet onto printer pages with trim guides, matching diamonds and page names. */
 export async function toTiledPdf(sheet: Sheet, paper: Paper, extras?: PdfExtras): Promise<Uint8Array> {
   const [pw, ph] = pageSize(sheet, paper);

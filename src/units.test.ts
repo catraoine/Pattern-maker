@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fmtLength, inInches, toInches, toYards } from './units';
+import { fmtLength, fmtMeasure, inInches, toFeetInches, toInches, toYards } from './units';
 
 describe('inches', () => {
   it('rounds to the nearest eighth', () => {
@@ -27,5 +27,15 @@ describe('inches', () => {
     expect(inInches('10 cm (3.94 in) test square')).toBe('10 cm (3.94 in) test square');
     expect(inInches('cm or in')).toBe('cm or in');
     expect(inInches('Page 2 of 4')).toBe('Page 2 of 4');
+  });
+});
+
+describe('heights in feet and inches', () => {
+  it('reads a height back the way people know it', () => {
+    expect(toFeetInches(165)).toBe('5 ft 5 in');
+    expect(toFeetInches(182.9)).toBe('6 ft 0 in');
+    expect(fmtMeasure('height', 165, 'in')).toBe('5 ft 5 in');
+    expect(fmtMeasure('height', 165, 'cm')).toBe('165 cm');
+    expect(fmtMeasure('waist', 76, 'in')).toBe('29.9 in');
   });
 });

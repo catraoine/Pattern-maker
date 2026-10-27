@@ -17,7 +17,7 @@ interface Props {
   /** Someone coming back with their measurements taken: the garment they were on, and the ways back in. */
   resume?: { garment: string; onResume: () => void; onSaved: () => void; onNew: () => void };
   /** Until launch, someone without a tester link gets the waitlist where Begin was (Cat's W1, 2026-10-21). */
-  waitlist?: { onCode: (code: string) => void; checking?: boolean; linkMessage?: string };
+  waitlist?: { onCode: (code: string) => void; checking?: boolean; linkMessage?: string; onRetry?: () => void };
 }
 
 // The welcome has one button (Cat, 2026-10-17): Begin. The tour plays from the dress form, a close crop of the
@@ -180,7 +180,7 @@ export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume, wait
               </p>
             </div>
           ) : (
-            <WaitlistForm onJoined={() => setJoined(true)} onCode={waitlist.onCode} linkMessage={waitlist.linkMessage} />
+            <WaitlistForm onJoined={() => setJoined(true)} onCode={waitlist.onCode} linkMessage={waitlist.linkMessage} onRetry={waitlist.onRetry} />
           )
         ) : resume ? (
           <div className="stack">

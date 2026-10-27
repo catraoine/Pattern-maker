@@ -328,6 +328,8 @@ export function StyleLayout({ children, label, name, metres, width = 140, ready,
       const pv = preview?.offsetHeight ?? 0;
       root.current?.style.setProperty('--pv-h', `${pv}px`);
       root.current?.style.setProperty('--pin-h', `${Math.max(el.offsetHeight, pv + (strip?.offsetHeight ?? 0))}px`);
+      // A strip that fits whole has nothing cut off, so no fade at its edge (the tester walk, 2026-10-27).
+      if (strip) setAtEnd(strip.scrollLeft + strip.clientWidth >= strip.scrollWidth - 2);
     };
     const watch = new ResizeObserver(check);
     watch.observe(el);
@@ -454,6 +456,7 @@ export function StyleLayout({ children, label, name, metres, width = 140, ready,
                 type="button"
                 role="tab"
                 aria-selected={active === t}
+                aria-label={t}
                 className={[active === t ? 'on' : '', t === PRO ? 'pro' : ''].filter(Boolean).join(' ')}
                 onClick={() => choose(t)}
               >
@@ -462,7 +465,9 @@ export function StyleLayout({ children, label, name, metres, width = 140, ready,
                     {steps.indexOf(t) + 1}
                   </span>
                 )}
-                {t}
+                {/* On a phone the strip ran off the screen (the tester walk, 2026-10-27): there each tab is its first word. */}
+                <span className="tab-full">{t}</span>
+                <span className="tab-short">{t.split(/\s/)[0]}</span>
               </button>
             ))}
           </div>
