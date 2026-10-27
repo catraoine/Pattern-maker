@@ -69,8 +69,11 @@ export const SATIN_STOPS: [number, string][] = [
   [0.5, '#1c1915'],
   [1, '#050505'],
 ];
-/** The satin across a drawing whose centre line is at `cx`. */
-export function SatinDefs({ id, cx }: { id: string; cx: number }) {
+/** The satin across a drawing whose centre line is at `cx`. With arms, each arm gets the same light across its own
+ *  width (`${id}0` the right arm, `${id}1` the left), so it rounds like the body instead of sitting in the body's
+ *  shadow as a flat dark slab. */
+export function SatinDefs({ id, cx, arms }: { id: string; cx: number; arms?: FormArm }) {
+  const at = arms ? armAt(arms, arms.under.y + 4) : undefined;
   return (
     <defs>
       <linearGradient id={id} gradientUnits="userSpaceOnUse" x1={f(cx * 0.1)} x2={f(cx * 1.9)} y1="0" y2="0">
@@ -78,6 +81,19 @@ export function SatinDefs({ id, cx }: { id: string; cx: number }) {
           <stop key={offset} offset={offset} stopColor={color} />
         ))}
       </linearGradient>
+      {at &&
+        [1, -1].map((s, i) => {
+          const xs = [cx + SQUEEZE * s * at.inner, cx + SQUEEZE * s * at.outer];
+          const left = Math.min(...xs) - 0.3;
+          const right = Math.max(...xs) + 0.3;
+          return (
+            <linearGradient key={s} id={`${id}${i}`} gradientUnits="userSpaceOnUse" x1={f(left)} x2={f(right)} y1="0" y2="0">
+              {SATIN_STOPS.map(([offset, color]) => (
+                <stop key={offset} offset={offset} stopColor={color} />
+              ))}
+            </linearGradient>
+          );
+        })}
     </defs>
   );
 }
@@ -118,7 +134,7 @@ export function FormSatin({ body, cx, arms, uid, bottom = body.bottom, edge = 0.
   const edgeW = Math.min(edge, 0.12);
   return (
     <>
-      <SatinDefs id={id} cx={cx} />
+      <SatinDefs id={id} cx={cx} arms={arms} />
       {/* The highlight comes in below the neck, where the shoulders round off, so it doesn't cut across them. */}
       <defs>
         <linearGradient id={`sheen${uid}`} gradientUnits="userSpaceOnUse" x1="0" x2="0" y1={f(from + 3)} y2={f(from + 12)}>
@@ -127,7 +143,7 @@ export function FormSatin({ body, cx, arms, uid, bottom = body.bottom, edge = 0.
         </linearGradient>
       </defs>
       {armLines.map((a, i) => (
-        <path key={`armfill${i}`} d={`${a.d} Z`} fill={`url(#${id})`} stroke="none" />
+        <path key={`armfill${i}`} d={`${a.d} Z`} fill={`url(#${id}${i})`} stroke="none" />
       ))}
       <path d={silhouette} fill={`url(#${id})`} stroke="none" />
       {armLines.map((a, i) => (
@@ -210,13 +226,22 @@ export function sleeveShape(arm: FormArm, sleeve: WornSleeve, head: P = arm.tip,
   const bulge = (y: number) => (puff ? swell * Math.sin(Math.PI * Math.min(1, Math.max(0, (y - crown.y) / Math.max(1, puffEnd - crown.y)))) : 0);
   // Into the band: the width steps down over a centimetre, the gathers' edge.
   const step = (y: number, wide: number, narrow: number) => (bandTop < end && y > bandTop - 1 && y < bandTop ? narrow + (wide - narrow) * (bandTop - y) : y >= bandTop ? narrow : wide);
-  const outer = ys(crown.y, end).map((y) => {
+  // Below the underarm the ease hangs in toward the hem: a sleeve that falls, not a tube that stands.
+  const hang = (y: number) => 1 - 0.4 * Math.min(1, Math.max(0, y - arm.under.y) / Math.max(1, end - arm.under.y));
+  const onArm = (y: number) => {
     const t = Math.min(1, Math.max(0.35, (y - arm.tip.y) / Math.max(1, arm.under.y - arm.tip.y)));
     const base = armAt(arm, Math.max(y, arm.tip.y)).outer + 0.5;
-    const wide = base + bandShare(Math.min(y, bandTop - 1.01)) * extra(Math.min(y, bandTop - 1.01)) * t + bulge(y);
+    const wide = base + bandShare(Math.min(y, bandTop - 1.01)) * extra(Math.min(y, bandTop - 1.01)) * t * hang(y) + bulge(y);
     const narrow = base + SLEEVE_EASE * extra(Math.max(y, bandTop));
-    const onArm = step(y, wide, narrow);
-    return { x: Math.max(onArm, crown.x - 0.25 * (y - crown.y)), y };
+    return step(y, wide, narrow);
+  };
+  // The cap rounds over the top of the arm from the crown (no hanger corner): out and down in a soft curve to where
+  // the sleeve hangs, and from a shoulder set out past the arm it falls to the arm in the same curve.
+  const capLen = Math.max(CAP_CM, 2 * (crown.x - onArm(crown.y + CAP_CM)));
+  const outer = ys(crown.y, end).map((y) => {
+    const on = onArm(y);
+    const c = Math.min(1, (y - crown.y) / capLen);
+    return { x: on + Math.max(0, crown.x - on) * Math.cos((c * Math.PI) / 2), y };
   });
   // Just under the arm the sleeve's underarm seam meets the body's side seam: no form shows between them there.
   const side = cloth ? clothEdge(cloth) : undefined;
@@ -234,8 +259,20 @@ export function sleeveShape(arm: FormArm, sleeve: WornSleeve, head: P = arm.tip,
     .reverse();
   // Back inside the armhole, under the body's cloth.
   const back = cloth && body ? tuckedUnder(arm, crown, cloth, body) : [{ x: arm.under.x - 4, y: arm.under.y }, { x: crown.x - 4, y: crown.y + 1.2 }];
-  return [...outer, ...inner, { x: arm.under.x, y: arm.under.y }, ...back];
+  // The hem falls a little at its middle, seen a touch from above, like every hem on the form: not a flat cut.
+  const o = outer[outer.length - 1];
+  const n = inner[0];
+  const hem = Array.from({ length: 9 }, (_, i) => {
+    const u = (i + 1) / 10;
+    return { x: o.x + (n.x - o.x) * u, y: end + SLEEVE_HEM_FALL * Math.abs(o.x - n.x) * Math.sin(u * Math.PI) };
+  });
+  return [...outer, ...hem, ...inner, { x: arm.under.x, y: arm.under.y }, ...back];
 }
+
+/** How far down the arm a sleeve set out past the arm takes to fall to it, in cm, at the least. */
+const CAP_CM = 5;
+/** How far a sleeve's hem falls at its middle, as a share of its width. */
+const SLEEVE_HEM_FALL = 0.1;
 
 /** Where a sleeve tucks back under the body's cloth: up its armhole a little inside it, so no form shows between
  *  the sleeve and the bodice however deep the armhole is cut, then over the top of the shoulder along the form
@@ -355,7 +392,29 @@ const BELL = 14;
  *  25 cm so a skirt keeps its flare, and each hem falls a little at its centre, as a hem does seen from a touch
  *  above. The pattern itself is untouched. */
 export function wornCloth(cloth: P[][], body: FormBody, underarmY = body.top): P[][] {
-  return cloth.map((s) => s.map(pieceOnForm(s, body, underarmY)));
+  const pieces = cloth.map(dense);
+  const worn = pieces.map((s) => s.map(pieceOnForm(s, body, underarmY)));
+  // A piece hanging from a seam (a skirt from a waist seam) is sewn to the piece above it: at the seam it is as wide
+  // as that piece hangs there, then bells out to its own width, so the seam is a line and never a ledge.
+  return pieces.map((s, i) => {
+    const topY = Math.min(...s.map((q) => q.y));
+    if (topY <= underarmY + 2) return worn[i];
+    const above = worn.filter((_, j) => j !== i).flatMap((w) => w.filter((q) => Math.abs(q.y - topY) < 1.5 && Math.abs(q.x) > 1));
+    return above.length ? s.map(pieceOnForm(s, body, underarmY, Math.max(...above.map((q) => Math.abs(q.x))))) : worn[i];
+  });
+}
+
+/** A piece's outline with no edge longer than 2 cm, so a hem, a shoulder or a side can curve on the form instead of
+ *  running straight between two corners. */
+function dense(s: P[]): P[] {
+  const out: P[] = [];
+  for (let i = 0; i < s.length; i++) {
+    const a = s[i];
+    const b = s[(i + 1) % s.length];
+    const n = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / 2));
+    for (let k = 0; k < n; k++) out.push({ x: a.x + ((b.x - a.x) * k) / n, y: a.y + ((b.y - a.y) * k) / n });
+  }
+  return out;
 }
 
 /** Where a point of the flat garment lands on the form: by the piece it lies in (the first whose box holds it, else
@@ -378,7 +437,7 @@ export function wornMapper(cloth: P[][], body: FormBody, underarmY = body.top): 
 }
 
 /** How `wornCloth` moves each point of one piece. */
-function pieceOnForm(s: P[], body: FormBody, underarmY: number): (q: P) => P {
+function pieceOnForm(s: P[], body: FormBody, underarmY: number, sewnHalf?: number): (q: P) => P {
   // The widest the form has been from the top down to each height, at 0.5 cm steps.
   const steps = Math.max(1, Math.ceil((body.bottom - body.top) / 0.5));
   const hang: number[] = [];
@@ -400,9 +459,6 @@ function pieceOnForm(s: P[], body: FormBody, underarmY: number): (q: P) => P {
     const fittedHeld = Math.min(1, Math.max(0, (VOLUME_FROM - overHeld) / (VOLUME_FROM - FITTED_UP_TO)));
     const hemHalfFlat = hemHalf;
     const hipY = body.bottom;
-    const above = s.filter((p) => p.y < underarmY);
-    const tipHalf = above.length ? Math.max(...above.map((p) => Math.abs(p.x))) : 0;
-    const tipY = above.length ? above.reduce((a, b) => (Math.abs(b.x) > Math.abs(a.x) ? b : a)).y : underarmY;
     return (q) => {
       const below = Math.max(0, q.y - body.bottom);
       const share = WORN_EASE + (1 - WORN_EASE) * Math.min(1, below / 25);
@@ -431,17 +487,15 @@ function pieceOnForm(s: P[], body: FormBody, underarmY: number): (q: P) => P {
         const t = Math.min(1, (q.y - (hipY - 2)) / Math.max(1, hemY - (hipY - 2)));
         const flare = Math.max(0, Math.abs(x) - body.width(body.bottom));
         x -= Math.sign(x) * Math.min(1.2, 0.12 * flare) * Math.sin(Math.PI * t) * Math.min(1, Math.abs(q.x) / Math.max(1, hemHalfFlat));
-      }
-      if (q.y < underarmY && Math.abs(q.x) > 6) {
-        // Sloped shoulders: the shoulder corner rounds off down toward the arm, no square hanger corner. The drop
-        // fades out down the armhole, so the armhole keeps its line.
-        const near = Math.max(0, 1 - (tipHalf - Math.abs(q.x)) / 5) * Math.max(0, 1 - Math.max(0, q.y - tipY) / 6);
-        if (near > 0) return { x, y: q.y + 1.1 * near * near };
+      } else if (q.y > hipY + 2 && hemY > hipY + 10 && Math.abs(x) > body.width(body.bottom) - 1) {
+        // A straight cut hangs in a touch from the hip to its hem: a tube that falls, not a box that stands.
+        const t = Math.min(1, (q.y - hipY - 2) / Math.max(1, hemY - hipY - 2));
+        x -= Math.sign(x) * 0.5 * t * Math.min(1, Math.abs(q.x) / Math.max(1, hemHalfFlat));
       }
       if (seamTop !== undefined && q.y < seamTop + BELL && Math.abs(q.x) > w) {
         const t = Math.min(1, (q.y - seamTop) / BELL);
         const ease = t * t * (3 - 2 * t);
-        const sewn = Math.sign(q.x) * (w + Math.min(Math.abs(q.x) - w, FITTED_UP_TO) * WORN_EASE);
+        const sewn = Math.sign(q.x) * (sewnHalf ?? w + Math.min(Math.abs(q.x) - w, FITTED_UP_TO) * WORN_EASE);
         x = sewn * (1 - ease) + x * ease;
       }
       // The hem falls at its centre, seen a little from above.
@@ -501,7 +555,10 @@ export function hemCorner(piece: P[]): P | undefined {
 /** The garment's shoulder point on its right: the furthest-out point of its cloth above the underarm. */
 export function shoulderPoint(cloth: P[][], arm: FormArm): P | undefined {
   const top = cloth.flat().filter((q) => q.x > 0 && q.y <= arm.under.y - 2);
-  return top.length ? top.reduce((a, b) => (b.x > a.x ? b : a)) : undefined;
+  if (!top.length) return undefined;
+  // The highest of the outermost points: the shoulder corner, not a point of the armhole just under it.
+  const wide = Math.max(...top.map((q) => q.x));
+  return top.filter((q) => q.x > wide - 0.8).reduce((a, b) => (b.y < a.y ? b : a));
 }
 
 /** The arms, each its outline round from the shoulder to the wrist and on into a hand, like a mannequin's
@@ -831,8 +888,8 @@ export function FormLayers({ body, m, legs, cx, top, bottom, arms, lines, outlin
       )}
       {cloth && arms && !sleeve && (
         <g mask={top !== undefined ? `url(#${neck})` : undefined}>
-          <SatinDefs id={`armsatin${uid}`} cx={cx} />
-          {armLines.map((a, i) => <path key={`armover${i}`} d={`${a.d} Z`} fill={`url(#armsatin${uid})`} stroke="none" />)}
+          <SatinDefs id={`armsatin${uid}`} cx={cx} arms={arms} />
+          {armLines.map((a, i) => <path key={`armover${i}`} d={`${a.d} Z`} fill={`url(#armsatin${uid}${i})`} stroke="none" />)}
           {armLines.map((a, i) => <path key={`armedge${i}`} d={a.d} className="form-line" fill="none" strokeWidth={0.12} opacity={0.35} />)}
         </g>
       )}
