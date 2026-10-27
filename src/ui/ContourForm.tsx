@@ -16,10 +16,10 @@ const CHAMPAGNE = '#d9c49b';
 const TAPE = '#e3d3ad';
 const TAPE_INK = '#2b2418';
 const TAPE_HOOK = '#b8a274';
-/** The strip on the first page is 18px tall; its marks and numbers are laid out on that, so they scale with it. */
+/** The tape's marks and numbers are laid out on an 18px strip and scale with the tape's width (TAPE_PX). */
 const STRIP_PX = 18;
-/** The first number on the strip, at its hooked end (TAPE_MARKS in MeasureStepsScreen). */
-const FIRST_MARK = 41;
+/** The first number on the strip, at its metal end (TAPE_MARKS in MeasureStepsScreen). */
+const FIRST_MARK = 1;
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const seg = (t: number, a: number, b: number) => clamp((t - a) / (b - a), 0, 1);
@@ -232,9 +232,9 @@ const lineFor = (S: number) => Math.max(0.7, S / 252) * 1.2;
 /** The scale the welcome last drew its form at, in pixels to a form unit. The measuring pages start from it, and the
  *  tape keeps the welcome's proportion to the body at every zoom (Cat, 2026-10-21). */
 let pageOneScale: number | undefined;
-/** The welcome's tape is this many pixels wide against the form at the welcome's scale: the tip's size, which it keeps
- *  (Cat, 2026-10-21). */
-export const TAPE_PX = 18;
+/** The welcome's tape is this many pixels wide against the form at the welcome's scale, and the first page's strip
+ *  the same; it never grows (Cat, 2026-10-21). 26px from Cat's C (2026-10-27: 18px read as a hairline ruler). */
+export const TAPE_PX = 26;
 /** The welcome's own framing: a close crop of the torso, the neck running off the top and no head in view
  *  (Cat went back to this from the full figure, 2026-10-20). */
 function welcomeLayout(w: number, h: number) {
@@ -499,7 +499,7 @@ function band(g: CanvasRenderingContext2D, pts: Pt[], tw: number, alpha = 1, mar
   g.fill();
   if (marks) {
     // As on the strip: a long mark each centimetre with its number between, and a short one every 2 mm, all from
-    // the top edge, counted from the hooked end at pts[0].
+    // the top edge, counted from the metal end at pts[0].
     const u = tw / STRIP_PX;
     const cm = 19.5 * u;
     const mm = 3.9 * u;
@@ -531,11 +531,11 @@ function band(g: CanvasRenderingContext2D, pts: Pt[], tw: number, alpha = 1, mar
       }
       acc += d;
     }
-    // The brass hook on its end, as on the strip it was pulled from.
+    // The flat brass end of a sewing tape, flush with it, as on the strip it was pulled from (Cat's E2, 2026-10-27).
     const [hx, hy] = pts[0];
     g.globalAlpha = alpha;
     g.fillStyle = TAPE_HOOK;
-    g.fillRect(hx - 5 * u, hy - tw / 2 - 5 * u, 6 * u, tw + 10 * u);
+    g.fillRect(hx - 9 * u, hy - tw / 2, 10 * u, tw);
     g.lineCap = 'round';
   }
   g.globalAlpha = 1;
