@@ -3,7 +3,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { betaZodOutputFormat } from '@anthropic-ai/sdk/helpers/beta/zod';
 import { z } from 'zod';
-import { Reading, SYSTEM as READING_GUIDE, piece } from './analyze';
+import { Reading, SYSTEM as READING_GUIDE, piece, spendLimitReached } from './analyze';
 import { IdeaReading, IdeaResponse, MAX_IDEA_CHARS } from './types';
 
 const Idea = z.object({
@@ -64,6 +64,7 @@ export async function describeIdea(text: unknown, client: Anthropic | null): Pro
     const out: IdeaReading = parsed.verdict === 'not_yet' ? { ...parsed, start: null } : parsed.start ? parsed : { ...parsed, verdict: 'not_yet' };
     return { ok: true, idea: out };
   } catch (e) {
+    if (spendLimitReached(e)) return { ok: false, error: 'busy' };
     console.error('describeIdea failed', e instanceof Anthropic.APIError ? `${e.status} ${e.message}` : e);
     return { ok: false, error: 'failed' };
   }
