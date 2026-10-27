@@ -14,11 +14,31 @@ function rowAt(y: number): [number, number] {
   return [i, f - i];
 }
 
+/** A smooth curve through evenly spaced samples, read between sample i and i + 1 at fraction u: a cubic that keeps the
+ *  samples' own rise and fall (Fritsch and Carlson's), so it never overshoots them. Read in straight runs from sample
+ *  to sample, the body's rings kinked at every sample, which showed as scallops along a neckline laid on them. */
+function smoothAt(v: number[], i: number, u: number): number {
+  if (!u) return v[i];
+  const n = v.length;
+  const d0 = v[i + 1] - v[i];
+  const slope = (k: number) => {
+    const a = k > 0 ? v[k] - v[k - 1] : d0;
+    const b = k < n - 1 ? v[k + 1] - v[k] : d0;
+    // Where the samples turn, the curve is flat; otherwise their two steps' harmonic mean, so a short step wins.
+    return a * b <= 0 ? 0 : (2 * a * b) / (a + b);
+  };
+  const m0 = slope(i);
+  const m1 = slope(i + 1);
+  const u2 = u * u;
+  const u3 = u2 * u;
+  return (2 * u3 - 3 * u2 + 1) * v[i] + (u3 - 2 * u2 + u) * m0 + (-2 * u3 + 3 * u2) * v[i + 1] + (u3 - u2) * m1;
+}
+
 /** Half-width of the body from the neck (top) to below the hip (bottom), in the form's own units (waist at 0.1):
  *  the neck rising out of the trapezius, shoulders sloping to the tip, the chest, the waist and the hip. */
 export function bodyHalf(y: number): number {
   const [i, u] = rowAt(y);
-  return u ? BODY_HALF[i] + (BODY_HALF[i + 1] - BODY_HALF[i]) * u : BODY_HALF[i];
+  return smoothAt(BODY_HALF, i, u);
 }
 
 /** The shoulder tip on the body (the form's units); the side of the neck meets the shoulder at -1.47. */
@@ -35,9 +55,23 @@ export function shapeAt(a: number, y: number): number {
   const t = (Math.abs(Math.atan2(Math.sin(a), Math.cos(a))) / Math.PI) * (BODY_ANGLES - 1);
   const k = Math.min(BODY_ANGLES - 2, Math.floor(t));
   const v = t - k;
-  const row = (r: number[]) => r[k] + (r[k + 1] - r[k]) * v;
-  const s0 = row(BODY_SHAPE[i]);
-  return u ? s0 + (row(BODY_SHAPE[i + 1]) - s0) * u : s0;
+  // Round the body, each ring is read a touch softened over its neighbouring samples (about 4 degrees each way): the
+  // rings are convex hulls of the mesh, whose corners showed as scallops along a neckline laid over them.
+  const ring = (row: number[]) => {
+    const here = smoothAt(row, k, v);
+    const before = k > 0 ? smoothAt(row, k - 1, v) : here;
+    const after = k < BODY_ANGLES - 2 ? smoothAt(row, k + 1, v) : here;
+    return 0.5 * here + 0.25 * (before + after);
+  };
+  const s0 = ring(BODY_SHAPE[i]);
+  if (!u) return s0;
+  const s1 = ring(BODY_SHAPE[i + 1]);
+  // Between rows, the same smooth curve down the body: the rows above and below lend their rise and fall.
+  const col = (r: number) => (r < 0 || r >= BODY_SHAPE.length ? NaN : ring(BODY_SHAPE[r]));
+  const vals = [col(i - 1), s0, s1, col(i + 2)];
+  if (Number.isNaN(vals[0])) vals[0] = 2 * s0 - s1;
+  if (Number.isNaN(vals[3])) vals[3] = 2 * s1 - s0;
+  return smoothAt(vals, 1, u);
 }
 
 /** How far from the centre line the body's surface lies at height y and angle a round it, for a body `half` wide there. */

@@ -239,27 +239,19 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
     const meanY = yOf(lengths.reduce((t, v) => t + v, 0) / lengths.length);
     const flares = !trousers && meanY > FORM_HIP + 0.05;
     const bodyR = (y: number) => formHalfWidth(Math.min(y, 1.3)) + easeAt(y);
-    // Worn, the cloth hangs from the widest point of the form above it (as wornCloth lays it on the form):
-    // only a fitted garment, with little ease at the waist, follows the waist in; a relaxed one falls straight
-    // from the bust to the hip, its ease hanging in folds.
-    // From the shoulders to the bust the cloth is held to the body; from the bust down it hangs.
-    // A dress with a waist seam is held at its own waist size there (Cat, 2026-10-26: "weird and boxy"): only a dress
-    // without one hangs straight past the waist.
+    // The cloth shows the pattern's own widths everywhere (Cat, 2026-10-27: "the waist should only cinch to the extent
+    // that the pattern does"), as the Form view does: a tee goes in at the waist by what its side seam does, no more
+    // and no less. (It used to hang straight from the bust when it had more ease at the waist than the bust.)
+    const wornR = bodyR;
+    // Whether the cloth hangs in front and behind, or is shaped to the body there: a garment cut straight, with more
+    // ease at the waist than at the bust (a tee), hangs from the bust; one cut in to the waist (a bodice, a jacket or
+    // coat with shaped seams, a dress held at its waist seam) follows the body, however much ease it has (Cat,
+    // 2026-10-26: the bodice and jacket "hung like boxes"). Below the hip everything hangs from the hip.
     const seamed = round.kind === 'dress' && round.rings.length > 0;
-    // What hangs is a garment cut straight, with more ease at the waist than at the bust (a tee). One cut in to the waist
-    // (a bodice, a jacket or coat with shaped seams) follows it, however much ease it has (Cat, 2026-10-26: "all
-    // garments must be fixed": the bodice and jacket hung like boxes).
     const waistEase = round.girth.waist && m.waist ? round.girth.waist - m.waist : undefined;
     const bustEase = round.girth.bust && m.full_bust ? round.girth.bust - m.full_bust : undefined;
     const straightCut = waistEase === undefined ? 0 : bustEase === undefined ? (waistEase - 4) / 3 : (waistEase - bustEase - 2) / 4;
     const hangShare = seamed || !isTop ? 0 : clamp(straightCut, 0, 1) * (through ? 0 : film ? 0.5 : 1);
-    const hang: number[] = [];
-    for (let i = 0; i <= 60; i++) hang.push(Math.max(hang[i - 1] ?? 0, bodyR(BUST_Y + ((FORM_HIP - BUST_Y) * i) / 60)));
-    const wornR = (y: number) => {
-      const r = bodyR(y);
-      if (y <= BUST_Y || y > FORM_HIP || !hangShare) return r;
-      return r + (hang[Math.round(((y - BUST_Y) / (FORM_HIP - BUST_Y)) * 60)] - r) * hangShare;
-    };
     const hipR = wornR(FORM_HIP);
     const hemR = hipR * clamp(round.flare, 0.85, 2.3);
     const bodyRadius = (y: number) =>
@@ -306,11 +298,50 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
       const body = formHalfWidth(Math.min(y, 1.3));
       return body * deep(y, Math.cos(a) > 0) + radius(y) - body;
     };
-    const shell = (a: number, y: number) => {
-      // The real body's own cross-section at this height (form.ts, from MakeHuman's body), with whatever the garment
-      // adds over the body, its ease and its hang, standing out evenly all round.
+    /** The body's own cross-section at this height (engine/body.ts, from MakeHuman's body) with the garment's ease over it. */
+    const onBody = (a: number, y: number) => {
       const body = formHalfWidth(Math.min(y, 1.3));
-      return (bodyReach(body, a, y) + radius(y) - body) * fold(a, y);
+      return bodyReach(body, a, y) + radius(y) - body;
+    };
+    // Hanging cloth falls straight from the widest point above it rather than following the body in and out (which
+    // drew the belly's own bump on a tee, Cat 2026-10-27: "the bump out around the belly line looks weird"). Down each line round the body the cloth reaches at least as far as it did just above, with the pattern's
+    // own width at the sides: where the pattern narrows (the waist) the sides come in and the front and back hang
+    // straight; where it widens below the hip (a flare) it widens all round. The body itself still shows wherever it
+    // stands out further than the hanging cloth. Laid as a table down the garment, read between its rows.
+    const HANG_N = 72;
+    const HANG_DY = 0.02;
+    const hangTop = NECK_Y - 0.3;
+    const hangRows = Math.max(2, Math.ceil((Math.max(yOf(longest), FORM_HIP) + 0.1 - hangTop) / HANG_DY) + 1);
+    const hang = new Float64Array(HANG_N * hangRows);
+    for (let i = 0; i < HANG_N; i++) {
+      const a = -Math.PI + (TAU * i) / HANG_N;
+      const sa = Math.sin(a) ** 2;
+      let prev = onBody(a, hangTop);
+      hang[i * hangRows] = prev;
+      for (let j = 1; j < hangRows; j++) {
+        const y = hangTop + j * HANG_DY;
+        const rho = radius(y) / (radius(y - HANG_DY) || 1e-6);
+        const fell = prev * (y > FORM_HIP ? rho : Math.sqrt(sa * rho * rho + (1 - sa)));
+        prev = Math.max(onBody(a, y), fell);
+        hang[i * hangRows + j] = prev;
+      }
+    }
+    const hung = (a: number, y: number) => {
+      const f = ((((a + Math.PI) / TAU) % 1) + 1) % 1 * HANG_N;
+      const i0 = Math.floor(f) % HANG_N;
+      const i1 = (i0 + 1) % HANG_N;
+      const u = f - Math.floor(f);
+      const g = (y - hangTop) / HANG_DY;
+      if (g <= 0) return onBody(a, y);
+      const j0 = Math.min(hangRows - 2, Math.floor(g));
+      const v = Math.min(1, g - j0);
+      const at = (i: number) => hang[i * hangRows + j0] * (1 - v) + hang[i * hangRows + j0 + 1] * v;
+      return at(i0) * (1 - u) + at(i1) * u;
+    };
+    const shell = (a: number, y: number) => {
+      const share = y > FORM_HIP ? 1 : hangShare;
+      const r = share ? (share < 1 ? onBody(a, y) + (hung(a, y) - onBody(a, y)) * share : hung(a, y)) : onBody(a, y);
+      return r * fold(a, y);
     };
     /** How far forward (or back) the cloth reaches at x across the body at height y: zero at the side, the full depth at the middle. */
     const zAcross = (x: number, y: number, front = true) => {
@@ -354,7 +385,9 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
     const armX = Math.max(tipX, yU ? radius(yU) : 0) + ra * (tailored ? 0.45 : 0.3);
     const capT = (y: number) => clamp((y - yCap) / (yU - yCap || 1), 0, 1);
     const capOuter = (y: number) => {
-      const t = capT(y);
+      // The cap is out to the arm's full width well up the cap, as the shoulder's own muscle rounds out from the tip, not
+      // slowly down to the underarm (which hung the sleeve as a bell with a corner at the tip, Cat 2026-10-27: "frumpy").
+      const t = Math.min(1, capT(y) / 0.7);
       // Set flat, a tailored head runs out a little further before it turns down.
       return tipX + (armX + ra - tipX) * (1 - (1 - t) ** (tailored ? 1.5 : 2));
     };
@@ -491,14 +524,31 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
         }
         return out;
       };
-      const ring = (yAt: (a: number) => number, rAt: (a: number, y: number) => number, colour: string, width: number, back = 0.25, alpha = 1) => {
-        const pts: Pt[] = [];
+      /** How far out the body itself reaches across the view at height y (its edge as you see it). */
+      const bodyEdge = (y: number) => {
+        let best = 0;
+        for (let i = 0; i < 48; i++) {
+          const a = -Math.PI + (TAU * i) / 48;
+          best = Math.max(best, Math.abs(Math.sin(a + phi)) * bodyReach(formHalfWidth(Math.min(y, 1.3)), a, y));
+        }
+        return best;
+      };
+      const ring = (yAt: (a: number) => number, rAt: (a: number, y: number) => number, colour: string, width: number, back = 0.25, alpha = 1, overBody = false) => {
+        let pts: Pt[] = [];
         for (let i = 0; i <= 144; i++) {
           const a = -Math.PI + (TAU * i) / 144;
           const y = yAt(a);
-          pts.push(onCloth(a, rAt(a, y), y));
+          const q = onCloth(a, rAt(a, y), y);
+          // On the satin form the far side of an edge is hidden wherever the body stands between you and it (it showed
+          // as a line across the neck); it still shows past the body's sides.
+          if (overBody && q[2] <= 0 && Math.abs(q[0] - cx) < bodyEdge(y) * S - 1) {
+            if (pts.length > 1) line(pts, colour, width, back, alpha);
+            pts = [];
+            continue;
+          }
+          pts.push(q);
         }
-        line(pts, colour, width, back, alpha);
+        if (pts.length > 1) line(pts, colour, width, back, alpha);
       };
       const tubeRing = (X: number, r: number, y: number, colour: string, width: number, alpha = 1, back = 0.25) => {
         const pts: Pt[] = [];
@@ -880,7 +930,7 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
       }
       // In cloth, the edges are fine lines: the cloth itself gives the shape.
       const edge = cloth ? 0.55 : 1;
-      ring(topY, (a, y) => shell(a, y), GLOW, lw * 1.1, 0.25, edge);
+      ring(topY, (a, y) => shell(a, y), GLOW, lw * 1.1, 0.25, edge, !!cloth);
       for (const r of round.rings) ring((a) => yAt(a, r(a)), (a, y) => shell(a, y), GLOW, lw * 0.9, cloth ? 0 : 0.25, edge);
       if (!trousers) ring(hemY, (a, y) => shell(a, y), GLOW, lw * 1.3, cloth ? 0 : 0.3, edge);
       for (const e of cloth ? [] : [1, -1]) {

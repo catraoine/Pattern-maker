@@ -13,6 +13,8 @@ const ALL: [string, GarmentName, string, string[]][] = [
   ['dress-sweetheart', 'Dress', 'Neck & sleeves', ['Sweetheart', 'Sleeveless']],
   ['bodice', 'Bodice', 'Neck & sleeves', []],
   ['tee', 'Tee', 'Neckline', ['Crew']],
+  ['tee-fitted', 'Tee', 'Fit', ['Fitted']],
+  ['tee-scoop', 'Tee', 'Neckline', ['Scoop']],
   ['jacket', 'Jacket', 'Shape', []],
   ['coat', 'Coat', 'Shape', []],
   ['skirt', 'Skirt', 'Shape', []],
@@ -68,6 +70,15 @@ test('body stills', async ({ page, consoleErrors }, info) => {
       await main.getByRole('tab', { name: 'Shape', exact: true }).click();
       continue;
     }
+    if (process.env.ENLARGE) {
+      // The enlarged drawing (ENLARGE=1), as Cat looks at it on her phone: enlarged from the Form view (All round has no
+      // Enlarge button of its own), then switched to All round while it is big.
+      const big = main.getByRole('button', { name: /^Enlarge the drawing/ });
+      if (await big.count()) {
+        await big.click();
+        await page.waitForTimeout(1500);
+      }
+    }
     await main.getByRole('group', { name: 'Garment view' }).getByRole('button', { name: 'All round', exact: true }).click();
     const cv = main.locator('canvas.all-round-canvas');
     await expect(cv).toBeVisible();
@@ -77,6 +88,11 @@ test('body stills', async ({ page, consoleErrors }, info) => {
       await cv.evaluate((el, at) => el.dispatchEvent(new CustomEvent('allround-turn', { detail: { at, probe: false } })), ANGLES[k]);
       await page.waitForTimeout(150);
       await cv.screenshot({ path: `${OUT}/${info.project.name}/${key}/${k}.png` });
+    }
+    if (process.env.ENLARGE) {
+      const small = main.getByRole('button', { name: /^Make the drawing .* smaller$/ });
+      if (await small.count()) await small.click();
+      await page.waitForTimeout(600);
     }
     await main.getByRole('tab', { name: 'Shape', exact: true }).click();
   }
