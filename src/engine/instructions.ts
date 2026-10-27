@@ -693,7 +693,7 @@ function dressSteps(draft: DressDraft, style: { silhouette: Silhouette; length: 
     },
     {
       title: 'Put in the zip',
-      text: `Sew a ${draft.zipCm} cm invisible zip into the centre back edges, with the top of the teeth ${curve} below the neck edge, across the waist seam, to the ZIP ENDS notch on the skirt. Sew one side, close the zip and mark where the waist seam crosses the other tape, so the waist meets exactly when you sew the second side.`,
+      text: `Sew a ${draft.zipCm} cm invisible zip into the centre back edges, with the top of the teeth ${curve} below the neck edge, across the waist seam, to the ZIP ENDS notch on the skirt. Sew one side, close the zip and mark where the waist seam crosses the other tape, so the waist meets exactly when you sew the second side.${OVER_HEAD(draft)}`,
     },
     {
       title: 'Close the centre back',
@@ -726,6 +726,9 @@ function dressSteps(draft: DressDraft, style: { silhouette: Silhouette; length: 
  * A sheath or a shift: the bodice's own steps, the block carried on to the hem, with a dress's words,
  * and a sheath's walking slit left open below its notch at the centre back.
  */
+/** The zip opens to above the hips on this body, so the dress goes on over the head. */
+const OVER_HEAD = (draft: DressDraft) => (draft.overHead ? ' The opening ends above your hips, so this dress goes on over your head with the zip open, not stepped into.' : '');
+
 function noSeamGuide(draft: DressDraft, fabricM: number, bindingM: number, finish: BodiceFinish): SewingGuide {
   const g = bodiceSteps(draft.bodice, { length: 'hip' }, fabricM, bindingM, finish);
   const slit = draft.pieces.find((pc) => /back/i.test(pc.name) && !pc.kind)?.meta.slitCm as number | undefined;
@@ -738,7 +741,7 @@ function noSeamGuide(draft: DressDraft, fabricM: number, bindingM: number, finis
           ...st,
           text: `Sew the rest of the centre back seam, from the bottom of the zip down to the SLIT ENDS notch, ${n1((finish.seams ?? SEAM_WIDTHS.home).seam)} from the edge, and backstitch firmly there. Below it the seam stays open as a ${slit} cm walking slit: press the seam open all the way down, the slit's edges turned under along the seam line, and topstitch round the slit 1 cm from its edges, across the top at the notch.`,
         }
-      : { ...st, text: dress(st.title === 'Make the lining' ? lining(st.text) : st.text) },
+      : { ...st, text: dress(st.title === 'Make the lining' ? lining(st.text) : st.text) + (st.title === 'Put in the zip' ? OVER_HEAD(draft) : '') },
   );
   return { ...g, steps };
 }

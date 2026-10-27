@@ -144,7 +144,8 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', sendLink, prof
   // The seam check walks the garment's own pieces and its pockets; its lining and facings follow them.
   const checks = useMemo(() => {
     if (!made) return [];
-    const waist = made.spec.find((r) => r.label === 'Waist')?.finished;
+    // A dress with its waist seam moved off the waist: the seam is checked against its own girth, not the waist's.
+    const waist = (made.spec.find((r) => /^Waist seam, /.test(r.label)) ?? made.spec.find((r) => r.label === 'Waist'))?.finished;
     return checkPattern(
       made.pieces.filter((pc) => !pc.kind || pc.kind === 'collar' || pc.kind === 'pocket'),
       { finishedWaist: typeof waist === 'number' ? waist : undefined },
