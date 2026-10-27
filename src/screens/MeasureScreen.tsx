@@ -1,3 +1,4 @@
+import { fmtMeasure } from '../units';
 import { Check, Garment, MeasurementId, MeasurementValues, Unit, fieldsFor, secondLooks, worded } from '../measurements';
 import { GarmentSwitch } from '../ui/GarmentSwitch';
 import { GARMENT_NAME } from '../measureFlow';
@@ -25,7 +26,7 @@ interface Props {
   onChangeForm?: () => void;
 }
 
-const show = (cm: number, unit: Unit) => (unit === 'cm' ? `${cm} cm` : `${Math.round((cm / 2.54) * 10) / 10} in`);
+const show = (id: string, cm: number, unit: Unit) => fmtMeasure(id, cm, unit);
 
 // The Measure step once measuring is done: just this garment's measurements, like the check page, and a
 // tap on one opens its own page with the drawing and how-to. One button goes on; the garment sits in a small
@@ -74,7 +75,7 @@ export function MeasureScreen({ account, onSwitchPerson, onAddPerson, profile, g
               <li key={f.id}>
                 <button type="button" onClick={() => onMeasure([f.id])}>
                   <span>{worded(f.label, form)}</span>
-                  {v === undefined ? <em className="add">Add</em> : wrong(f.id) ? <em className="add">Check</em> : doubtful(f.id) ? <span className="doubtful">{show(v, unit)}</span> : <span>{show(v, unit)}</span>}
+                  {v === undefined ? <em className="add">Add</em> : wrong(f.id) ? <em className="add">Check</em> : doubtful(f.id) ? <span className="doubtful">{show(f.id, v, unit)}</span> : <span>{show(f.id, v, unit)}</span>}
                 </button>
               </li>
             );
