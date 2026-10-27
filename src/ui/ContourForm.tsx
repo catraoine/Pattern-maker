@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { FormKind, MeasurementId } from '../measurements';
 import { LEG, LEG_FLOOR, LEG_KNEE, LEG_X } from '../engine/form';
+import { lightOf } from './allRoundCloth';
 
 // The dress form, drawn in contour lines on black: one figure for every screen (Cat, 2026-10-18: the body must
 // stay the same everywhere). It has a faceless head like an artist's wooden mannequin, about 8 cm of neck, and
@@ -128,10 +129,10 @@ type Light = (u: number) => number;
 const EVEN: Light = () => 0.7;
 
 /** The neck above the form and the head on it. `spin` turns the lines round, as the form turns. */
-function paintHead(g: CanvasRenderingContext2D, S: number, cx: number, Y: (y: number) => number, lw: number, light: Light = EVEN, spin = 0, alpha = 1) {
+function paintHead(g: CanvasRenderingContext2D, S: number, cx: number, Y: (y: number) => number, lw: number, light: Light = EVEN, spin = 0, alpha = 1, neck = true) {
   g.strokeStyle = CHAMPAGNE;
   // The neck: the form's long lines carry on up past its top and into the head.
-  for (let j = 0; j < 2 * LINES; j++) {
+  for (let j = 0; neck && j < 2 * LINES; j++) {
     const th = (Math.PI * (j + 0.5)) / LINES - spin;
     if (Math.sin(th) <= 1e-6) continue;
     const u = Math.cos(th);
@@ -141,8 +142,10 @@ function paintHead(g: CanvasRenderingContext2D, S: number, cx: number, Y: (y: nu
   }
   g.globalAlpha = alpha;
   g.lineWidth = lw;
-  path(g, NECK_YS.map((y): Pt => [cx - R(y) * S, Y(y)]));
-  path(g, NECK_YS.map((y): Pt => [cx + R(y) * S, Y(y)]));
+  if (neck) {
+    path(g, NECK_YS.map((y): Pt => [cx - R(y) * S, Y(y)]));
+    path(g, NECK_YS.map((y): Pt => [cx + R(y) * S, Y(y)]));
+  }
   // Black inside the head, so the top of the neck disappears into the jaw.
   const outline: Pt[] = [...HEAD_TS.map((t): Pt => [cx + headHalf(t) * S, Y(headY(t))]), ...[...HEAD_TS].reverse().map((t): Pt => [cx - headHalf(t) * S, Y(headY(t))])];
   g.globalAlpha = alpha;
@@ -416,6 +419,82 @@ const LEG_YS = Array.from({ length: 141 }, (_, i) => 1.2 + (3.5 * i) / 140);
  * The whole figure at any scale, for the views that turn it round (the All round shape preview): `turn`
  * (radians) spins its long lines, head and legs round. `legs` fades the legs in (0 to 1).
  */
+/** The form's black satin (Cat's F5 Satin and Light): from the deepest black, through the satin's warm charcoal, to its
+ *  glint; `lit` and `shine` as lightOf gives them for the cloth, so the form and the garment on it are lit alike. */
+function satinColour(lit: number, shine: number): string {
+  const t = clamp((lit - 0.25) / 0.8, 0, 1);
+  const k = Math.min(1, shine * 1.4);
+  const ch = (lo: number, hi: number) => Math.round(lo + (hi - lo) * t + (95 - (lo + (hi - lo) * t)) * k);
+  return `rgb(${ch(5, 62)},${ch(5, 55)},${ch(5, 42)})`;
+}
+
+/** The form as a black satin mannequin, turned by `spin`, from `yTop` (the chin) to `yBottom`: the real body's rings
+ *  (`half` and `shape`, as engine/body.ts gives them) laid as small lit patches, the far half left out. The light is
+ *  the cloth's, so through a neckline the chest reads as the same satin form the Style page draws. */
+function paintSatinBody(
+  g: CanvasRenderingContext2D,
+  S: number,
+  cx: number,
+  Y: (y: number) => number,
+  spin: number,
+  half: (y: number) => number,
+  shape: (a: number, y: number) => number,
+  yTop: number,
+  yBottom: number,
+  depth = DEPTH,
+) {
+  const NA = 72;
+  const DY = 0.03;
+  const rows = Math.max(1, Math.round((yBottom - yTop) / DY));
+  const at = (a: number, y: number): [number, number, number] => {
+    const r = half(y) * shape(a, y);
+    const th = a + spin;
+    return [cx + Math.sin(th) * r * S, Y(y) + Math.cos(th) * r * S * depth, Math.cos(th) * r];
+  };
+  const quads: { q: [number, number][]; z: number; fill: string }[] = [];
+  for (let i = 0; i < NA; i++) {
+    const a0 = -Math.PI + (2 * Math.PI * i) / NA;
+    const a1 = a0 + (2 * Math.PI) / NA;
+    const am = (a0 + a1) / 2;
+    const th = am + spin;
+    if (Math.cos(th) < -0.05) continue;
+    for (let j = 0; j < rows; j++) {
+      const y0 = yTop + (yBottom - yTop) * (j / rows);
+      const y1 = yTop + (yBottom - yTop) * ((j + 1) / rows);
+      const p = [at(a0, y0), at(a1, y0), at(a1, y1), at(a0, y1)];
+      // The normal: out from the ring, tipped up where the body widens going down (the shoulders, the hips).
+      const r0 = half(y0) * shape(am, y0);
+      const r1 = half(y1) * shape(am, y1);
+      const slope = (r1 - r0) / (y1 - y0);
+      // Round the body the ring's own direction: its reach changing with the angle tilts the normal round.
+      const ra = half(y0) * shape(a1, y0) - half(y0) * shape(a0, y0);
+      const tilt = Math.atan2(ra, ((r0 + r1) / 2) * ((2 * Math.PI) / NA));
+      const nth = th - tilt;
+      const { lit, shine } = lightOf(Math.sin(nth), -slope, Math.cos(nth), 'gloss');
+      if (Math.cos(nth) <= 0) continue;
+      quads.push({ q: p.map(([x, y]) => [x, y] as [number, number]), z: (p[0][2] + p[2][2]) / 2, fill: satinColour(lit, shine) });
+    }
+  }
+  quads.sort((a, b) => a.z - b.z);
+  g.globalAlpha = 1;
+  for (const { q, fill } of quads) {
+    const mx = (q[0][0] + q[1][0] + q[2][0] + q[3][0]) / 4;
+    const my = (q[0][1] + q[1][1] + q[2][1] + q[3][1]) / 4;
+    g.fillStyle = fill;
+    g.beginPath();
+    q.forEach(([x, y], k) => {
+      // Each patch a touch bigger than itself, so no hairline shows between neighbours.
+      const l = Math.hypot(x - mx, y - my) || 1;
+      const gx = x + ((x - mx) / l) * 0.7;
+      const gy = y + ((y - my) / l) * 0.7;
+      if (k) g.lineTo(gx, gy);
+      else g.moveTo(gx, gy);
+    });
+    g.closePath();
+    g.fill();
+  }
+}
+
 export function paintFigure(
   g: CanvasRenderingContext2D,
   S: number,
@@ -425,7 +504,7 @@ export function paintFigure(
   legs = 1,
   withArms = false,
   turn?: number,
-  body?: { half: (y: number) => number; shape: (a: number, y: number) => number },
+  body?: { half: (y: number) => number; shape: (a: number, y: number) => number; satin?: boolean },
 ) {
   const spin = turn ?? 0;
   if (turn === undefined) {
@@ -441,6 +520,20 @@ export function paintFigure(
   const half = body?.half ?? R;
   const shape = body?.shape ?? (() => 1);
   const cs = Math.cos(spin), ss = Math.sin(spin);
+  if (body?.satin) {
+    // The satin form (Cat, 2026-10-27: the real body with the satin finish), from the chin down; the neck's own ring
+    // carries on up to the jaw. Its legs and head are drawn as ever.
+    const top = -2.0;
+    const neckHalf = (y: number) => half(Math.max(y, -1.75));
+    const neckShape = (a: number, y: number) => shape(a, Math.max(y, -1.75));
+    paintSatinBody(g, S, cx, Y, spin, neckHalf, neckShape, top, 1.3);
+    const alpha = g.globalAlpha;
+    g.globalAlpha = 1;
+    paintLegsTurned(g, S, cx, Y, lw, legs, spin);
+    paintHead(g, S, cx, Y, lw, (u) => 0.7 * Math.min(1, Math.sqrt(Math.max(0, 1 - u * u)) * 6), spin, 1, false);
+    g.globalAlpha = alpha;
+    return;
+  }
   const edge = (y: number) => {
     let best = 0;
     for (let i = 0; i < 48; i++) {
@@ -466,23 +559,28 @@ export function paintFigure(
     }));
   }
   if (withArms) paintArms(g, S, cx, lw, Y);
-  if (legs > 0) {
-    for (const side of [-1, 1]) {
-      const lx = cx + side * LEG_X * Math.cos(spin) * S;
-      const dy = -side * LEG_X * Math.sin(spin) * S * DEPTH;
-      const behind = -side * Math.sin(spin) < 0 ? 0.6 : 1;
-      g.globalAlpha = legs * behind;
-      g.lineWidth = lw;
-      for (const e of [-1, 1]) path(g, LEG_YS.map((y): Pt => [lx + e * LEG(y) * S, Y(y) + dy]));
-      for (const th of Array.from({ length: 12 }, (_, j) => (Math.PI * (j + 0.5)) / 6 - spin)) {
-        if (Math.sin(th) <= 0) continue;
-        g.globalAlpha = legs * 0.45 * behind * Math.min(1, Math.sin(th) * 4);
-        g.lineWidth = lw * 0.45;
-        path(g, LEG_YS.map((y): Pt => [lx + Math.cos(th) * LEG(y) * S, Y(y) + dy]));
-      }
+  paintLegsTurned(g, S, cx, Y, lw, legs, spin);
+  paintHead(g, S, cx, Y, lw, (u) => 0.7 * Math.min(1, Math.sqrt(Math.max(0, 1 - u * u)) * 6), spin);
+}
+
+/** The legs as the form turns: each leg's lines round its own axis, the far leg fainter. */
+function paintLegsTurned(g: CanvasRenderingContext2D, S: number, cx: number, Y: (y: number) => number, lw: number, legs: number, spin: number) {
+  if (legs <= 0) return;
+  g.strokeStyle = CHAMPAGNE;
+  for (const side of [-1, 1]) {
+    const lx = cx + side * LEG_X * Math.cos(spin) * S;
+    const dy = -side * LEG_X * Math.sin(spin) * S * DEPTH;
+    const behind = -side * Math.sin(spin) < 0 ? 0.6 : 1;
+    g.globalAlpha = legs * behind;
+    g.lineWidth = lw;
+    for (const e of [-1, 1]) path(g, LEG_YS.map((y): Pt => [lx + e * LEG(y) * S, Y(y) + dy]));
+    for (const th of Array.from({ length: 12 }, (_, j) => (Math.PI * (j + 0.5)) / 6 - spin)) {
+      if (Math.sin(th) <= 0) continue;
+      g.globalAlpha = legs * 0.45 * behind * Math.min(1, Math.sin(th) * 4);
+      g.lineWidth = lw * 0.45;
+      path(g, LEG_YS.map((y): Pt => [lx + Math.cos(th) * LEG(y) * S, Y(y) + dy]));
     }
   }
-  paintHead(g, S, cx, Y, lw, (u) => 0.7 * Math.min(1, Math.sqrt(Math.max(0, 1 - u * u)) * 6), spin);
 }
 
 /** A tape: a champagne band along the points, the strip's colours, with a tick every few millimetres and a longer one every fifth. */

@@ -362,13 +362,14 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
     const filmAxis = (y: number) => (y < yU ? (capOuter(y) + capInner(y)) / 2 : armX + (y - yU) * 0.06);
     const filmR = (y: number) => (y < yU ? Math.max(0.012, (capOuter(y) - capInner(y)) / 2) : ra + (rh - ra) * clamp((y - yU) / (yE - yU || 1), 0, 1));
     const axisX = filmAxis;
-    // The crown is as deep, front to back, as the shoulder it is sewn to, so the shoulder runs straight into it and no
-    // notch opens between them at the front or the back; by the underarm it is round, as the arm is.
+    // The crown rounds over the top of the arm: a little deeper, front to back, than the arm is wide where it meets
+    // the shoulder, so it runs into the shoulder without a notch, but never as deep as the body, which from the side
+    // read as a box with a lid on the shoulder (Cat, 2026-10-27); by the underarm it is round, as the arm is.
     const capDepth = (y: number) => {
       if (y >= yU || !sl) return 1;
       const r = filmR(y);
       const need = Math.max(zAcross(filmAxis(y) - r * 0.4, y, true), zAcross(filmAxis(y) - r * 0.4, y, false));
-      return clamp(need / r, 1, 4) ** (1 - capT(y) ** 2);
+      return clamp(need / r, 1, 1.6) ** (1 - capT(y) ** 2);
     };
     const sleeveR = filmR;
 
@@ -567,7 +568,7 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
       g.clip();
       g.globalAlpha = 0.6;
       g.strokeStyle = GILD;
-      paintFigure(g, S, cx, Y, lw, trousers ? 0 : 1, false, phi, { half: formHalfWidth, shape: shapeAt });
+      paintFigure(g, S, cx, Y, lw, trousers ? 0 : 1, false, phi, { half: formHalfWidth, shape: shapeAt, satin: true });
       // The cloth covers the form: under the garment the body is not drawn, so the garment is what reads.
       if (!trousers && !through && !cloth?.sheer) {
         // The shoulders and the neck still show through a top's yoke: the cloth is held to the body there.
@@ -609,7 +610,7 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
             g.fillStyle = '#000';
             g.fillRect(0, 0, w, h);
             g.globalAlpha = 0.6;
-            paintFigure(g, S, cx, Y, lw, 1, false, phi, { half: formHalfWidth, shape: shapeAt });
+            paintFigure(g, S, cx, Y, lw, 1, false, phi, { half: formHalfWidth, shape: shapeAt, satin: true });
             g.restore();
           };
           // Through the neck: the chest, inside the top edge all round.
@@ -768,39 +769,36 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
         let neckLow = -9;
         for (let i = 0; i < 72; i++) neckLow = Math.max(neckLow, topY(-Math.PI + (TAU * i) / 72));
         if (isTop && neckLow > NECK_Y) {
-          const NB = 36;
-          const NBY = 10;
+          const NB = 48;
+          const NBY = 24;
+          const y0 = -2.0;
           const y1 = neckLow + 0.1;
-          // Only as wide as the neck's opening at each height: the cloth over the far shoulder shows past the near
-          // neckline over the shoulder's slope, and it lies on the body, not behind it, so it must not be cut away.
-          const rimPts = Array.from({ length: 145 }, (_, i) => {
-            const a = -Math.PI + (TAU * i) / 144;
-            return Math.cos(a + phi) > 0 ? { y: topY(a), x: Math.abs(P(a, shell(a, topY(a)), topY(a))[0] - cx) } : undefined;
-          });
-          const openHalf = (y: number) => {
-            let x = 0;
-            for (const r of rimPts) if (r && r.y > y - 0.01) x = Math.max(x, r.x);
-            return x;
-          };
+          // The opening in front of you: inside the near top edge, up past the neck. Only there can the body be seen
+          // at all, and the cloth over the far shoulder, showing past the near neckline over the shoulder's slope, lies
+          // on the body rather than behind it, so outside the opening nothing is cut.
+          const opening: [number, number][] = [];
+          for (let i = 0; i <= 96; i++) {
+            const a = -HALF - phi + (Math.PI * i) / 96;
+            const q = P(a, shell(a, topY(a)), topY(a));
+            opening.push([q[0], q[1]]);
+          }
+          opening.push([opening[opening.length - 1][0], -2], [opening[0][0], -2]);
+          // The body itself, its real shape, seen from where you stand: what it hides of the back is cut away.
           const bv = (a: number, y: number): [number, number] => {
-            const W = formHalfWidth(y);
-            const q = P(a, 1 / Math.hypot(Math.sin(a) / W, Math.cos(a) / (W * deep(y, Math.cos(a) > 0))) + 0.004, y);
-            const o = openHalf(y) + 1.5;
-            return [clamp(q[0], cx - o, cx + o), q[1]];
+            const yy = Math.max(y, -1.75);
+            const q = P(a, bodyReach(formHalfWidth(yy), a, yy) + 0.004, y);
+            return [q[0], q[1]];
           };
           for (let i = 0; i < NB; i++) {
             const a0 = -Math.PI + (TAU * i) / NB;
             const a1 = a0 + TAU / NB;
             const th = (a0 + a1) / 2 + phi;
             if (Math.cos(th) < 0.05) continue;
-            // Only where the front is open at this angle: below its top edge the cloth covers the body anyway.
-            const yo = Math.max(NECK_Y, Math.min(topY(a0), topY(a1)) - 0.02);
-            if (yo >= y1) continue;
             for (let j = 0; j < NBY; j++) {
-              const ya = yo + ((y1 - yo) * j) / NBY;
-              const yb = yo + ((y1 - yo) * (j + 1)) / NBY;
+              const ya = y0 + ((y1 - y0) * j) / NBY;
+              const yb = y0 + ((y1 - y0) * (j + 1)) / NBY;
               // Laid after everything facing away and before anything facing you: the body is inside all the cloth that faces you.
-              quads.push({ q: [bv(a0, ya), bv(a1, ya), bv(a1, yb), bv(a0, yb)], uv: [[0, 0], [1, 0], [1, 1], [0, 1]], z: -1e-6, lit: 0, shine: 0, cut: true });
+              quads.push({ q: [bv(a0, ya), bv(a1, ya), bv(a1, yb), bv(a0, yb)], uv: [[0, 0], [1, 0], [1, 1], [0, 1]], z: -1e-6, lit: 0, shine: 0, cut: true, clip: opening });
             }
           }
         }
