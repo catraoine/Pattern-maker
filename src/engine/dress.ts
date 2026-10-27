@@ -6,7 +6,7 @@
 // down the front instead, from the neck through the waist seam and on down the skirt.
 import { P, add, len, mul, p, sub, taggedLength, unit } from './geometry';
 import type { Piece } from './piece';
-import { BodiceDraft, BodiceMeasurements, BodiceStyle, DROP_MIN, draftBodice } from './bodice';
+import { BodiceDraft, BodiceMeasurements, BodiceStyle, DROP_MIN, draftBodice, girthBelowWaist } from './bodice';
 import { maxRaise, raiseBodice } from './waistline';
 import { Buttons, EXTENSION_CM, backOnFold } from './collar';
 import { BUTTONS_STOP_ABOVE_HEM, openSkirtFront, skirtFrontFacing } from './skirtFront';
@@ -58,9 +58,9 @@ function seamDrop(m: { waist_to_hip?: number }, seam: SeamChoice, raise: number)
 export function fromSeam<T extends SkirtMeasurements & { high_hip?: number; full_bust?: number; underbust?: number }>(m: T, drop: number): T {
   if (!drop) return m;
   const less = (v: number | undefined) => (v === undefined ? undefined : v - drop);
-  const HH = m.high_hip ?? m.waist + 0.65 * (m.full_hip - m.waist);
   const under = m.underbust ?? (m.full_bust ? m.waist + 0.5 * (m.full_bust - m.waist) : m.waist);
-  const girth = drop > 0 ? Math.min(m.waist + ((HH - m.waist) * drop) / (m.waist_to_hip / 2), m.full_hip) : m.waist + (under - m.waist) * Math.min(1, -drop / 10);
+  // Below the waist, the same body as the bodice's hem is cut to, so the two meet at one girth.
+  const girth = drop > 0 ? girthBelowWaist(m, drop) : m.waist + (under - m.waist) * Math.min(1, -drop / 10);
   return {
     ...m,
     waist: girth,
@@ -87,6 +87,12 @@ export interface DressDraft {
   skirtButtons?: Buttons;
   /** How far the waist seam is below the natural waist in cm: 0 at the waist, negative above it. */
   seamDrop: number;
+  /** Round the waist seam as sewn, darts closed, when the seam is moved off the waist: what the seam check
+   * compares the bodice and skirt seams with (the finished waist is the natural waist's room). */
+  seamCm?: number;
+  /** The zip's opening ends above the hips even at the longest standard zip (a hip well over the bust), so
+   * the dress goes on over the head, zip open. */
+  overHead?: boolean;
   /** How far it can move on this body, the same way. */
   seamRange: { min: number; max: number };
   /** Nape to hem at the centre back. */
@@ -200,12 +206,17 @@ function noSeamDress(m: DressMeasurements, bodiceStyle: Partial<BodiceStyle>, sk
   const word = (t: string) => t.replace(/^Bodice/, 'Dress').replace(/^BODICE/, 'DRESS');
   const pieces = bodice.pieces.map((pc) => (pc.kind ? pc : { ...pc, name: word(pc.name), labels: pc.labels.map((l) => ({ ...l, text: word(l.text) })) }));
   const cbWaist = bodice.back.waistCentre.y;
+  const zipBelow = Math.round((bodice.back.zipEnd.y - cbWaist) * 10) / 10;
+  const bf = pieces.find((pc) => !pc.kind && /front/i.test(pc.name));
+  const bb = pieces.find((pc) => !pc.kind && /back/i.test(pc.name));
+  const ring = bf && bb ? 2 * (widthAt(bf, bodice.front.waistCentre.y + zipBelow + 1) + widthAt(bb, cbWaist + zipBelow + 1)) : Infinity;
   return {
     bodice,
     skirt,
     pieces,
     zipCm: bodice.zipCm,
-    zipBelowWaist: Math.round((bodice.back.zipEnd.y - cbWaist) * 10) / 10,
+    zipBelowWaist: zipBelow,
+    ...(ring < m.full_hip - HIP_CLEAR ? { overHead: true } : {}),
     lengthCm: bodice.backLength,
     noSeam: kind,
     seamDrop: 0,
@@ -216,6 +227,25 @@ function noSeamDress(m: DressMeasurements, bodiceStyle: Partial<BodiceStyle>, sk
     warnings: bodice.warnings,
   };
 }
+
+/** How much smaller than the hip the closed tube below the zip may be and still pull up over it. */
+const HIP_CLEAR = 1.5;
+
+/** The width of a piece along the horizontal line y, from its leftmost crossing to its rightmost. */
+function widthAt(pc: Piece, y: number): number {
+  const pts = pc.outline.points(24);
+  const xs: number[] = [];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const a = pts[i];
+    const b = pts[i + 1];
+    if ((a.y <= y && b.y > y) || (b.y <= y && a.y > y)) xs.push(a.x + ((y - a.y) * (b.x - a.x)) / (b.y - a.y));
+  }
+  return xs.length < 2 ? 0 : (Math.max(...xs) - Math.min(...xs)) / (pc.meta.whole ? 2 : 1);
+}
+
+/** Round a skirt `below` cm under its seam, both halves: what has to pass over the hips below the zip. */
+const ringAt = (pieces: Piece[], below: number) =>
+  2 * pieces.filter((pc) => /^Skirt/.test(pc.name) && !pc.kind).reduce((t, pc) => t + widthAt(pc, below), 0);
 
 /** A bodice piece's hem made the waist seam, sewn with a seam allowance rather than turned up. */
 function hemToSeam(pc: Piece): Piece {
@@ -270,10 +300,11 @@ export function draftDress(m: DressMeasurements, bodiceStyle: Partial<BodiceStyl
   const cb = bodice.backLength;
   // One-shoulder: the zip goes in the right side seam from under the arm instead.
   const sideOpen = bodice.drape?.zip;
-  const zipCm = sideOpen
+  let zipCm = sideOpen
     ? (SIDE_ZIPS.find((z) => z - sideOpen.openingCm >= ZIP_BELOW_WAIST) ?? SIDE_ZIPS[SIDE_ZIPS.length - 1])
     : (DRESS_ZIPS.find((z) => z - cb >= ZIP_BELOW_WAIST + Math.max(0, -drop)) ?? DRESS_ZIPS[DRESS_ZIPS.length - 1]);
-  const below = buttoned || wrapped ? 0 : Math.round((zipCm - (sideOpen ? sideOpen.openingCm : cb)) * 10) / 10;
+  const belowOf = (z: number) => (buttoned || wrapped ? 0 : Math.round((z - (sideOpen ? sideOpen.openingCm : cb)) * 10) / 10);
+  let below = belowOf(zipCm);
 
   // The skirt's waist curve is a little longer than its width, so walk it to the bodice's.
   const join = { front: waist.front, back: waist.back, dartAt, zipCm: below };
@@ -294,6 +325,22 @@ export function draftDress(m: DressMeasurements, bodiceStyle: Partial<BodiceStyl
     join.front += df;
     join.back += db;
     skirt = skirtOf(join);
+  }
+  // Below the zip the dress is a closed tube that has to pull up over the hips: on a hip well over the
+  // bust the zip takes the next standard length until it does, and if none does, the dress goes on over
+  // the head instead and the steps say so.
+  let overHead = false;
+  if (below > 0 && !sideOpen) {
+    const hipAt = (z: number) => ringAt(skirt.pieces, belowOf(z) + 1) >= m.full_hip - HIP_CLEAR;
+    if (!hipAt(zipCm)) {
+      const longer = DRESS_ZIPS.find((z) => z > zipCm && hipAt(z));
+      if (longer !== undefined) {
+        zipCm = longer;
+        below = belowOf(zipCm);
+        join.zipCm = below;
+        skirt = skirtOf(join);
+      } else overHead = true;
+    }
   }
 
   // The zip runs on through the waist, so the bodice back loses its zip mark.
@@ -327,6 +374,8 @@ export function draftDress(m: DressMeasurements, bodiceStyle: Partial<BodiceStyl
     ...(skirtButtons ? { skirtButtons } : {}),
     ...(sideOpen ? { zipSide: true } : {}),
     seamDrop: drop,
+    ...(drop ? { seamCm: Math.round(2 * (waist.front + waist.back) * 10) / 10 } : {}),
+    ...(overHead ? { overHead: true } : {}),
     seamRange: plain ? seamRange(m, raise) : { min: 0, max: 0 },
     lengthCm: Math.round((cb + skirt.lengthCm) * 10) / 10,
     finishedBust: bodice.finishedBust,
