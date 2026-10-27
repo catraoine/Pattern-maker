@@ -11,7 +11,7 @@ import { spline } from './bodyOutline';
 import { legsFor } from '../engine/form';
 
 import { FormLine, FormSide, Reading, landmarks } from './formLines';
-import { BELOW_HEM, CLOTH_EDGES, FormHead, FormLayers, FormSatin, HEAD_CM, SQUEEZE, WornSleeve, formHead, wornCloth } from './FormSketch';
+import { BELOW_HEM, CLOTH_EDGES, FormHead, FormLayers, FormSatin, HEAD_CM, SQUEEZE, SewnLevel, WornSleeve, formHead, wornCloth } from './FormSketch';
 import { TestingTag } from './TestingTag';
 import { DemoButton } from './DemoButton';
 import { tookEnlarged } from './EnlargeSketch';
@@ -110,6 +110,8 @@ interface Props<C> {
   sleeve?: WornSleeve;
   /** Where the underarm is: below it a fitted piece's sides follow the form. */
   underarmY?: number;
+  /** The pattern's finished widths at the bust, waist and hip, so the cloth is never drawn narrower than it is sewn. */
+  sewn?: SewnLevel[];
   onDone: () => void;
   onCancel: () => void;
 }
@@ -191,7 +193,7 @@ export function skirtForm(m: { waist: number; full_hip: number; waist_to_hip: nu
   return { width: body, top: -12, bottom: m.waist_to_hip + 8, waistY: 0 };
 }
 
-export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, onChoices, read, help: helpFor, backs = true, backKinds, arms, cloth, sleeve, underarmY, onDone, onCancel }: Props<C>) {
+export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, onChoices, read, help: helpFor, backs = true, backKinds, arms, cloth, sleeve, underarmY, sewn, onDone, onCancel }: Props<C>) {
   const svg = useRef<SVGSVGElement>(null);
   const [kind, setKind] = useState<FormLine>(kinds[0][0]);
   const [side, setSide] = useState<FormSide>('front');
@@ -296,7 +298,7 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
   }, [legLines, cx]);
 
   // The garment on the form, front on (the back shows the form and its lines only).
-  const worn = useMemo(() => (cloth ? wornCloth(cloth, body, underarmY ?? arms?.under.y) : undefined), [cloth, body, underarmY, arms]);
+  const worn = useMemo(() => (cloth ? wornCloth(cloth, body, underarmY ?? arms?.under.y, sewn) : undefined), [cloth, body, underarmY, arms, sewn]);
   const clothOn = side === 'front' ? worn : undefined;
   // Enlarged, the garment fills the screen as on the Style page (Cat, 2026-10-25: Draw inside Enlarge too): from just
   // above it to well past its hem, so there's room to draw the hem longer, and only a little wider than it, both sides
