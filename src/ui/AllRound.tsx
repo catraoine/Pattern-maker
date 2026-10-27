@@ -288,14 +288,19 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
     // there, set flat, not rounded up into a puff (Cat, 2026-10-26: "I'd like them flatter").
     const tailored = !!round.outer && !!sl;
     const shoulderR = Math.max(bodyRadius(BUST_Y), formHalfWidth(yS), sl && yU ? bodyRadius(yU) + ra * (tailored ? 0.7 : 0.45) : 0);
+    // A set-in sleeve's shoulder slopes down from the neck to its tip, a little below the shoulder point, so the top
+    // reads as shoulders and not as a flat lid (Cat, 2026-10-26: "still looks boxy").
+    const soft = !!sl && !tailored;
+    const tipY = yS + (tailored ? 0.06 : 0.07);
     const radius = (y: number) => {
       const r = bodyRadius(y);
       if (!arm || y >= BUST_Y) return r;
-      const t = clamp((y - NECK_Y) / (yS + (tailored ? 0.06 : 0.14) - NECK_Y), 0, 1);
-      const broad = y < NECK_Y ? 0 : neckR + (shoulderR - neckR) * (1 - (1 - t) ** 2);
+      const t = clamp((y - NECK_Y) / ((sl ? tipY : yS + 0.14) - NECK_Y), 0, 1);
+      const broad = y < NECK_Y ? 0 : neckR + (shoulderR - neckR) * (soft ? t ** 0.8 : 1 - (1 - t) ** 2);
       // Under a sleeve the broad shoulder narrows back to the body by the underarm, so the sleeve hangs by the body and
       // does not stand out from it.
-      const under = sl && yU > yS + 0.14 ? smooth(clamp((y - yS - 0.14) / (yU - yS - 0.14), 0, 1)) : 0;
+      const u0 = soft ? tipY + 0.04 : yS + 0.14;
+      const under = sl && yU > u0 ? smooth(clamp((y - u0) / (yU - u0), 0, 1)) : 0;
       return Math.max(r, broad + (r - broad) * under);
     };
     /** How far out the cloth lies at angle a round the body: the full width at the sides, the body's own depth front and back. */
@@ -305,9 +310,12 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
     const FOLDS = 9;
     const fold = (a: number, y: number) => 1 + foldAmp(y) * Math.cos(FOLDS * a + 0.6 * Math.sin(3 * a));
     const foldTilt = (a: number, y: number) => Math.atan(-foldAmp(y) * FOLDS * Math.sin(FOLDS * a + 0.6 * Math.sin(3 * a)) * 1.2);
+    const deepAt = (y: number) => neckR + (bodyRadius(BUST_Y) - neckR) * Math.sqrt(clamp((y - NECK_Y) / (BUST_Y - NECK_Y), 0, 1));
     const shell = (a: number, y: number) => {
       const W = radius(y);
-      const D = bodyRadius(y);
+      // Front to back, a top deepens gradually from the neck down to the bust, as the chest and back slope away from
+      // the shoulders, so the shoulders read as a ridge and not as a flat lid seen from above.
+      const D = isTop && !tailored && y < BUST_Y ? Math.min(bodyRadius(y), deepAt(y)) : bodyRadius(y);
       return (W <= D + 1e-6 ? W : 1 / Math.hypot(Math.sin(a) / W, Math.cos(a) / D)) * fold(a, y);
     };
     // Over the shoulder the cloth runs out more than down: its print is laid by the length of cloth, not by the height
@@ -329,26 +337,29 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
     // A short sleeve hangs straight down off the shoulder, rounding out from the top of the arm, so it reads as a
     // sleeve and not a wing or a cape (Cat, 2026-10-25); its cap sits up on the shoulder tip, fuller and a little
     // longer, not low and small on the arm (Cat applied the fix in the film, 2026-10-25; the app too, 2026-10-26).
-    const yCap = yS - 0.01;
+    const yCap = soft ? tipY : yS - 0.01;
     // The cap starts at the shoulder tip, not out past it, and by the underarm the sleeve's inner side lies against
     // the bodice, so no gap opens between them as the form turns (Cat, 2026-10-26: still sitting low).
     const filmAxis = (y: number) => {
+      // Set in, the sleeve hangs from the shoulder's tip, its outside just past it, and angles out as it falls past the
+      // bust, as an arm does, so the top reads as a gentle A and not a box.
+      if (soft) return shoulderR - ra * 0.45 + clamp(y - yCap, 0, 0.9) * 0.12;
       // A little in from the bodice's edge, so the cap rounds over the shoulder tip and no corner of the bodice juts past it.
-      const from = radius(yS) - ra * (tailored ? 0.4 : 0.3);
-      const to = (yU ? radius(yU) : 0) + ra * 0.7;
+      const from = radius(yS) - ra * (tailored ? 0.4 : 0.05);
+      const to = (yU ? radius(yU) : 0) + ra * (tailored ? 0.7 : 0.8);
       return from + (to - from) * Math.sqrt(clamp((y - yCap) / (yU - yCap || 1), 0, 1)) + Math.max(0, y - yU) * 0.02;
     };
     // The cap rounds over like the top of an arm: a quarter circle from the shoulder tip to the underarm.
     const filmR = (y: number) => {
       if (y >= yU) return ra + (rh - ra) * clamp((y - yU) / (yE - yU || 1), 0, 1);
       // Set flat, the head is full a short way below the shoulder, so the shoulder turns into the sleeve at a neat corner.
-      const t = clamp((y - yCap) / ((tailored ? Math.min(0.22, yU - yCap) : yU - yCap) || 1), 0, 1);
+      const t = clamp((y - yCap) / (Math.min(soft ? 0.2 : tailored ? 0.22 : 9, yU - yCap) || 1), 0, 1);
       return ra * Math.sqrt(1 - (1 - t) ** 2);
     };
     const axisX = filmAxis;
     // The crown is as deep, front to back, as the shoulder it is sewn to, so the shoulder runs straight into it and
     // the bodice does not round down past it; by the underarm it is round, as the arm is (Cat, 2026-10-26: "still low").
-    const crownZ = sl ? Math.max(1, (bodyRadius(yS) * 0.95) / ra) : 1;
+    const crownZ = sl ? Math.max(1, (bodyRadius(yS) * (tailored ? 0.95 : 0.6)) / ra) : 1;
     const capDepth = (y: number) => (y >= yU ? 1 : 1 + (crownZ - 1) * (1 - clamp((y - yCap) / (yU - yCap || 1), 0, 1)) ** 1.5);
     const sleeveR = filmR;
 
