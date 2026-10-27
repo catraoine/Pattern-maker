@@ -29,6 +29,8 @@ const NAPE_Y = -1.45;
 export const NECK_Y = -1.47;
 export const SHOULDER_Y = -1.33;
 const BUST_Y = -0.58;
+/** How deep the body is front and back, as a share of its half-width, down from the neck (body3d.ts's form). */
+const DEEP: [number, number, number][] = [[-1.52, 0.88, 0.82], [-1.22, 0.42, 0.48], [-0.95, 0.62, 0.6], [BUST_Y, 0.74, 0.58], [WAIST, 0.72, 0.7], [FORM_HIP, 0.58, 0.78]];
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const wrap = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
 const smooth = (u: number) => u * u * (3 - 2 * u);
@@ -310,15 +312,29 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
     const FOLDS = 9;
     const fold = (a: number, y: number) => 1 + foldAmp(y) * Math.cos(FOLDS * a + 0.6 * Math.sin(3 * a));
     const foldTilt = (a: number, y: number) => Math.atan(-foldAmp(y) * FOLDS * Math.sin(FOLDS * a + 0.6 * Math.sin(3 * a)) * 1.2);
-    const deepAt = (y: number) => neckR + (bodyRadius(BUST_Y) - neckR) * clamp((y - NECK_Y) / (BUST_Y - NECK_Y), 0, 1) ** 0.2;
+    // Seen from above a body is an oval, not a circle: thin front to back at the shoulders, deeper at the bust, the
+    // seat standing out behind at the hip. The depths are the 3D body's (body3d.ts), as shares of the form's width, so
+    // the figure turning here is the same body as the one drawn flat; whatever the garment adds over the body (its
+    // ease, a flare) stands out evenly all round (Cat, 2026-10-27: "this body shape still looks weird").
+    const deep = (y: number, front: boolean) => {
+      const k = DEEP.findIndex(([yy]) => yy >= y);
+      const [y0, f0, b0] = DEEP[Math.max(0, k - 1)];
+      const [y1, f1, b1] = DEEP[k < 0 ? DEEP.length - 1 : k];
+      const u = y1 > y0 ? smooth(clamp((y - y0) / (y1 - y0), 0, 1)) : 0;
+      return front ? f0 + (f1 - f0) * u : b0 + (b1 - b0) * u;
+    };
+    const depthAt = (a: number, y: number) => {
+      const body = formHalfWidth(Math.min(y, 1.3));
+      return body * deep(y, Math.cos(a) > 0) + bodyRadius(y) - body;
+    };
     const shell = (a: number, y: number) => {
       const W = radius(y);
-      // Front to back, a top deepens gradually from the neck down to the bust, as the chest and back slope away from
-      // the shoulders, so the shoulders read as a ridge and not as a flat lid seen from above. Most of the depth comes
-      // early, so seen three-quarters on the far sleeve's cap stays hidden behind the shoulder and leaves no dark notch
-      // by the back neck (the film thread, 2026-10-27).
-      const D = isTop && !tailored && y < BUST_Y ? Math.min(bodyRadius(y), deepAt(y)) : bodyRadius(y);
-      return (W <= D + 1e-6 ? W : 1 / Math.hypot(Math.sin(a) / W, Math.cos(a) / D)) * fold(a, y);
+      const D = depthAt(a, y);
+      if (W <= D + 1e-6) return W * fold(a, y);
+      // Squarer than an oval, as a body is, and squarest across the shoulders, where the arm is as deep as the shoulder
+      // it hangs from: the sleeve's cap then sits inside the shoulder's line, not out past it at the front and back.
+      const p = sl && y < BUST_Y ? 2.2 + 1.8 * smooth(clamp((y - NECK_Y) / (tipY - NECK_Y), 0, 1)) * (1 - smooth(clamp((y - yU) / (BUST_Y - yU), 0, 1))) : 2.2;
+      return ((Math.abs(Math.sin(a)) / W) ** p + (Math.abs(Math.cos(a)) / D) ** p) ** (-1 / p) * fold(a, y);
     };
     // Over the shoulder the cloth runs out more than down: its print is laid by the length of cloth, not by the height
     // alone, or it smears into streaks across the top. Counted up from the bust, so below it nothing moves.
@@ -361,7 +377,7 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
     const axisX = filmAxis;
     // The crown is as deep, front to back, as the shoulder it is sewn to, so the shoulder runs straight into it and
     // the bodice does not round down past it; by the underarm it is round, as the arm is (Cat, 2026-10-26: "still low").
-    const crownZ = sl ? Math.max(1, (bodyRadius(yS) * (tailored ? 0.95 : 0.6)) / ra) : 1;
+    const crownZ = sl ? (tailored ? Math.max(1, (depthAt(0, yS) * 1.9) / ra) : clamp((depthAt(0, yS) * 0.75) / ra, 0.7, 2)) : 1;
     const capDepth = (y: number) => (y >= yU ? 1 : 1 + (crownZ - 1) * (1 - clamp((y - yCap) / (yU - yCap || 1), 0, 1)) ** 1.5);
     const sleeveR = filmR;
 
@@ -436,12 +452,13 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
         g.stroke();
       };
       /** A line through points: bright where it faces you, faint behind. */
-      const line = (pts: Pt[], colour: string, width: number, back = 0.2, alpha = 1) => {
+      const line = (pts: Pt[], colour: string, width: number, back = 0.2, alpha = 1, graze = 0) => {
         g.strokeStyle = colour;
         g.lineWidth = width;
         for (let i = 1; i < pts.length; i++) {
           const f = (pts[i][2] + pts[i - 1][2]) / 2;
-          g.globalAlpha = alpha * (f > 0 ? 0.55 + 0.45 * Math.min(1, f) : back);
+          // A groove in the cloth fades out as it turns away toward the edge, rather than showing past it.
+          g.globalAlpha = alpha * (f > 0 ? (0.55 + 0.45 * Math.min(1, f)) * clamp((f - graze) * 4, 0, 1) : back);
           seg(pts[i - 1], pts[i]);
         }
         g.globalAlpha = 1;
@@ -457,9 +474,20 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
       };
       const legX = (leg: number) => leg * FORM_LEG_X;
       /** A point on the garment, on the body or down a trouser leg. */
+      // On an oval a line faces you by the cloth's own slope, not by its angle round the body alone, or a seam on the far
+      // side near the edge shows past the cloth.
+      const onCloth = (a: number, r: number, y: number): Pt => {
+        const q = P(a, r, y);
+        const W = radius(y);
+        const D = depthAt(a, y);
+        const nx = Math.sin(a) / (W * W);
+        const nz = Math.cos(a) / (D * D);
+        q[2] = (nz * Math.cos(phi) - nx * Math.sin(phi)) / Math.hypot(nx, nz);
+        return q;
+      };
       const spot = (p: RoundPt, leg?: number): Pt => {
         const y = leg ? yOf(p.cm) : yAt(p.phi, p.cm);
-        return leg ? T(legX(leg), p.phi, legR(y), y) : P(p.phi, rAt(p.phi, y), y);
+        return leg ? T(legX(leg), p.phi, legR(y), y) : onCloth(p.phi, rAt(p.phi, y), y);
       };
       /** A seam or dart through its points, in small steps so it follows the body. */
       const along = (pts: RoundPt[], leg?: number): Pt[] => {
@@ -476,7 +504,7 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
         for (let i = 0; i <= 144; i++) {
           const a = -Math.PI + (TAU * i) / 144;
           const y = yAt(a);
-          pts.push(P(a, rAt(a, y), y));
+          pts.push(onCloth(a, rAt(a, y), y));
         }
         line(pts, colour, width, back, alpha);
       };
@@ -551,7 +579,7 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
       g.clip();
       g.globalAlpha = 0.6;
       g.strokeStyle = GILD;
-      paintFigure(g, S, cx, Y, lw, trousers ? 0 : 1, false, phi);
+      paintFigure(g, S, cx, Y, lw, trousers ? 0 : 1, false, phi, deep);
       // The cloth covers the form: under the garment the body is not drawn, so the garment is what reads.
       if (!trousers && !through && !cloth?.sheer) {
         // The shoulders and the neck still show through a top's yoke: the cloth is held to the body there.
@@ -593,7 +621,7 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
             g.fillStyle = '#000';
             g.fillRect(0, 0, w, h);
             g.globalAlpha = 0.6;
-            paintFigure(g, S, cx, Y, lw, 1, false, phi);
+            paintFigure(g, S, cx, Y, lw, 1, false, phi, deep);
             g.restore();
           };
           // Through the neck: the chest, inside the top edge all round.
@@ -752,7 +780,8 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
           const NBY = 10;
           const y1 = neckLow + 0.1;
           const bv = (a: number, y: number): [number, number] => {
-            const q = P(a, formHalfWidth(y) + 0.004, y);
+            const W = formHalfWidth(y);
+            const q = P(a, 1 / Math.hypot(Math.sin(a) / W, Math.cos(a) / (W * deep(y, Math.cos(a) > 0))) + 0.004, y);
             return [q[0], q[1]];
           };
           for (let i = 0; i < NB; i++) {
@@ -805,7 +834,7 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
               const zz = Math.cos(am) * R(ym) * Z(ym);
               // A patch of the cap wholly inside the bodice is never seen, and drawn it would flicker over the bodice's edge as
               // the form turns; one only partly inside is kept, or a slit opens where it meets the bodice.
-              if (inBody && [ya, yb].every((y) => [a0, a1].every((a) => Math.hypot((X(y) + Math.sin(a) * R(y)) / radius(y), (Math.cos(a) * R(y) * Z(y)) / bodyRadius(y)) < 0.98))) continue;
+              if (inBody && [ya, yb].every((y) => [a0, a1].every((a) => Math.hypot((X(y) + Math.sin(a) * R(y)) / radius(y), (Math.cos(a) * R(y) * Z(y)) / depthAt(Math.cos(a) > 0 ? 0 : Math.PI, y)) < 0.98))) continue;
               patch([tv(a0, j), tv(a1, j), tv(a1, j + 1), tv(a0, j + 1)], c, zz * Math.cos(phi) - x * s, th);
             }
           }
@@ -847,7 +876,7 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
       // In cloth, the edges are fine lines: the cloth itself gives the shape.
       const edge = cloth ? 0.55 : 1;
       ring(topY, (a, y) => shell(a, y), GLOW, lw * 1.1, 0.25, edge);
-      for (const r of round.rings) ring((a) => yAt(a, r(a)), (a, y) => shell(a, y), GLOW, lw * 0.9, 0.25, edge);
+      for (const r of round.rings) ring((a) => yAt(a, r(a)), (a, y) => shell(a, y), GLOW, lw * 0.9, cloth ? 0 : 0.25, edge);
       if (!trousers) ring(hemY, (a, y) => shell(a, y), GLOW, lw * 1.3, cloth ? 0 : 0.3, edge);
       for (const e of cloth ? [] : [1, -1]) {
         const a = (e * Math.PI) / 2 - phi;
@@ -992,13 +1021,13 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
         // In cloth, seams and darts are grooves: a shadow line with a fine light edge, as on the style drawing.
         for (const dt of round.darts) {
           const pts = along([dt.base, dt.tip]);
-          line(pts, '#000', lw * 1.8, 0, 0.4);
-          line(pts, GLOW, lw * 0.5, 0, 0.45);
+          line(pts, '#000', lw * 1.8, 0, 0.4, 0.3);
+          line(pts, GLOW, lw * 0.5, 0, 0.45, 0.3);
         }
         for (const sm of round.seams.filter(drawn)) {
           const pts = along(sm.pts, sm.leg);
-          line(pts, '#000', lw * 2, 0, 0.45);
-          line(pts, GLOW, lw * 0.55, 0, 0.5);
+          line(pts, '#000', lw * 2, 0, 0.45, 0.3);
+          line(pts, GLOW, lw * 0.55, 0, 0.5, 0.3);
         }
       } else {
         for (const dt of round.darts) line(along([dt.base, dt.tip]), GILD, lw * 0.8, 0.2, film ? 0.5 : 1);

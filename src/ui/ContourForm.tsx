@@ -199,14 +199,14 @@ function paintLegs(g: CanvasRenderingContext2D, S: number, cx: number, Y: (y: nu
 }
 
 /** The torso: outline and long lines, each drawn as far as given; `spin` turns the long lines round. */
-function paintTorso(g: CanvasRenderingContext2D, S: number, cx: number, Y: (y: number) => number, lw: number, light: Light = EVEN, outline = 1, lines = 1, spin = 0) {
+function paintTorso(g: CanvasRenderingContext2D, S: number, cx: number, Y: (y: number) => number, lw: number, light: Light = EVEN, outline = 1, lines = 1, spin = 0, half: (y: number) => number = R) {
   g.strokeStyle = CHAMPAGNE;
   g.lineCap = 'round';
   g.lineJoin = 'round';
   const edge = (u: number) => lw * (0.5 + Math.sin(Math.PI * u));
   g.globalAlpha = 1;
-  taper(g, YS.map((y): Pt => [cx - R(y) * S, Y(y)]), outline, edge);
-  taper(g, YS.map((y): Pt => [cx + R(y) * S, Y(y)]), outline, edge);
+  taper(g, YS.map((y): Pt => [cx - half(y) * S, Y(y)]), outline, edge);
+  taper(g, YS.map((y): Pt => [cx + half(y) * S, Y(y)]), outline, edge);
   if (lines <= 0) return;
   for (let j = 0; j < 2 * LINES; j++) {
     const th = (Math.PI * (j + 0.5)) / LINES - spin;
@@ -416,7 +416,17 @@ const LEG_YS = Array.from({ length: 141 }, (_, i) => 1.2 + (3.5 * i) / 140);
  * The whole figure at any scale, for the views that turn it round (the All round shape preview): `turn`
  * (radians) spins its long lines, head and legs round. `legs` fades the legs in (0 to 1).
  */
-export function paintFigure(g: CanvasRenderingContext2D, S: number, cx: number, Y: (y: number) => number, lw: number, legs = 1, withArms = false, turn?: number) {
+export function paintFigure(
+  g: CanvasRenderingContext2D,
+  S: number,
+  cx: number,
+  Y: (y: number) => number,
+  lw: number,
+  legs = 1,
+  withArms = false,
+  turn?: number,
+  deep: (y: number, front: boolean) => number = () => 1,
+) {
   const spin = turn ?? 0;
   if (turn === undefined) {
     paintTorso(g, S, cx, Y, lw);
@@ -425,16 +435,22 @@ export function paintFigure(g: CanvasRenderingContext2D, S: number, cx: number, 
     paintHead(g, S, cx, Y, lw);
     return;
   }
-  // Turning, the lines run all the way round and only the front half shows, easing out at the sides.
-  paintTorso(g, S, cx, Y, lw, EVEN, 1, 0);
+  // Turning, the lines run all the way round and only the front half shows, easing out at the sides. Seen from above
+  // the body is an oval, `deep` its depth front and back as a share of its width, so turned to the side it is slimmer.
+  const cs = Math.cos(spin), ss = Math.sin(spin);
+  paintTorso(g, S, cx, Y, lw, EVEN, 1, 0, 0, (y) => R(y) * Math.hypot(cs, ss * (deep(y, true) + deep(y, false)) / 2));
   for (let j = 0; j < 2 * LINES; j++) {
-    const th = (Math.PI * (j + 0.5)) / LINES - spin;
+    const al = (Math.PI * (j + 0.5)) / LINES;
+    const th = al - spin;
     const front = Math.sin(th);
     if (front <= 0) continue;
     const c = Math.cos(th);
     g.globalAlpha = 0.7 * Math.min(1, front * 6);
     g.lineWidth = lw * 0.6 * (1 - 0.35 * Math.abs(c));
-    path(g, YS.map((y): Pt => [cx + c * R(y) * S, Y(y) + front * R(y) * S * DEPTH]));
+    path(g, YS.map((y): Pt => {
+      const bx = R(y) * Math.cos(al), bz = R(y) * deep(y, Math.sin(al) > 0) * Math.sin(al);
+      return [cx + (bx * cs + bz * ss) * S, Y(y) + (bz * cs - bx * ss) * S * DEPTH];
+    }));
   }
   if (withArms) paintArms(g, S, cx, lw, Y);
   if (legs > 0) {
