@@ -337,7 +337,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
   // The pattern's finished widths at the bust, waist and hip: the drawing cinches only as much as the pattern does
   // (Cat, 2026-10-27).
   const sewn = useMemo(
-    () => (draft ? [{ y: landmarks(draft.bodice).underarm.y, half: draft.finishedBust / 4 }, { y: waistY, half: draft.finishedWaist / 4 }, { y: waistY + (mv.waist_to_hip ?? 20), half: draft.finishedHip / 4 }] : undefined),
+    () => (draft ? [{ y: landmarks(draft.bodice).apex.y, half: draft.finishedBust / 4 }, { y: waistY, half: draft.finishedWaist / 4 }, { y: waistY + (mv.waist_to_hip ?? 20), half: draft.finishedHip / 4 }] : undefined),
     [draft, waistY, mv.waist_to_hip],
   );
   // A dropped waist: the skirt's lines and lengths are read from the seam at the high hip.
