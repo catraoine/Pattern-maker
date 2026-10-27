@@ -7,13 +7,12 @@
 // so sleeves, facings and the flat drawing are worked from it, and only the printed pieces move.
 import { P, Path, add, len, lerp, mul, p, sub, unit } from './geometry';
 import { finishDart } from './darts';
-import { DraftPoint, Piece } from './piece';
 
 export type DartPlace = 'side' | 'french' | 'shoulder' | 'neck' | 'armhole' | 'waist';
 export type PrincessLine = 'none' | 'shoulder' | 'armhole';
 
 /** How far short of the bust point each moved dart ends, in cm. */
-export const DART_SHORT: Record<DartPlace, number> = { side: 2.5, french: 3, shoulder: 4, neck: 4, armhole: 3, waist: 2.5 };
+const DART_SHORT: Record<DartPlace, number> = { side: 2.5, french: 3, shoulder: 4, neck: 4, armhole: 3, waist: 2.5 };
 
 /** A closed outline as points: tags[i] names the edge pts[i] -> pts[i + 1] (the last edge closes it). */
 export interface Ring {
@@ -157,7 +156,7 @@ function dartAfter(r: Ring, after: string): [number, number, number] | undefined
   return undefined;
 }
 
-export interface Moved {
+interface Moved {
   ring: Ring;
   /** The new dart, as near leg, point, far leg; undefined for a princess line, which has none. */
   dart?: { near: P; tip: P; far: P };
@@ -215,7 +214,7 @@ export function moveBustDart(path: Path, apex: P, to: DartPlace, opts: { armhole
           : toNotch * 0.8,
     );
   } else if (to === 'french') {
-    let a = iN;
+    const a = iN;
     let b = iN;
     while (r.tags[b + 1] === 'side') b++;
     // Low on the side seam: a few cm above the waist (which may be part way down a longer top's side).
@@ -357,7 +356,7 @@ export function roundCorner(poly: P[], k: number, r: number): P[] {
  * r before and after the corner along their own lines and swells out to the corner point, the way a
  * pattern cutter blends a princess seam over the bust point instead of cutting across it.
  */
-export function roundThrough(poly: P[], k: number, r: number): P[] {
+function roundThrough(poly: P[], k: number, r: number): P[] {
   const a = poly[k - 1];
   const c = poly[k];
   const b = poly[k + 1];
@@ -434,14 +433,4 @@ export function marksAlong(poly: P[], at: number[]): [P, P][] {
   return out;
 }
 
-/** A point of the draft moved with the piece, and a note added for the manipulation. */
-export function movePoints(points: DraftPoint[], move: (q: P) => P): DraftPoint[] {
-  return points.map((pt) => ({ ...pt, at: move(pt.at) }));
-}
-
 export { polyLen };
-
-/** The pieces' waist seam, front or back: every piece of that side summed (two panels, or one piece). */
-export function waistOf(pieces: Piece[], side: 'front' | 'back'): Piece[] {
-  return pieces.filter((pc) => new RegExp(side, 'i').test(pc.name));
-}

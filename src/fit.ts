@@ -76,7 +76,7 @@ const TEE_AREAS: AreaInfo[] = [
   { id: 'length', label: 'Length', words: ['Too short', 'Too long'] },
 ];
 
-export type FitGarmentKind = 'skirt' | 'bodice' | 'dress' | 'trousers' | 'tee';
+type FitGarmentKind = 'skirt' | 'bodice' | 'dress' | 'trousers' | 'tee';
 // Jackets and coats are felt where a bodice is, so they share its areas.
 export const garmentKind = (c: PatternChoices): FitGarmentKind =>
   isBodice(c) || isOuter(c) ? 'bodice' : isDress(c) ? 'dress' : isTrousers(c) ? 'trousers' : isTee(c) ? 'tee' : 'skirt';
@@ -117,7 +117,7 @@ export function cleanFit(fit: FitFeedback, choices: PatternChoices): FitFeedback
  * What is sent when the sewist chooses to share fit notes: the pattern's style, the fit answers and notes, and the
  * measurements it was drafted from. No names, no pattern name, nothing that says who the person is.
  */
-export interface FitReport {
+interface FitReport {
   garment: FitGarmentKind;
   choices: PatternChoices;
   verdict: Verdict;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { checkPattern } from './qc';
-import { randomArms, randomBody, rng } from './randomBodies';
+import { randomArms, randomBody, rng, sweep } from './randomBodies';
 import { taggedLength } from './geometry';
 import { OUTER_EASE, OUTER_LENGTHS, OuterKind, draftOuter } from './outerwear';
 import { outerFlat } from './flat';
@@ -94,7 +94,7 @@ describe('jackets and coats', () => {
 
   it('drafts every style for 30 random bodies, passing every pattern check', () => {
     const failures: string[] = [];
-    for (let seed = 1; seed <= 30; seed++) {
+    for (let seed = 1; seed <= sweep(30); seed++) {
       const r = rng(seed);
       const body = randomBody(r);
       const b = { ...body, ...randomArms(body, r), waist_to_knee: body.waist_to_knee ?? 58 };

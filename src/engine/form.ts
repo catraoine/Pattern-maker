@@ -2,7 +2,7 @@
 // on the welcome screen, the measuring pages, the 3D body export and the 3D shape preview.
 
 /** Smooth curve through keypoints (Catmull-Rom). */
-export function spline(keys: [number, number][]) {
+function spline(keys: [number, number][]) {
   return (y: number) => {
     const n = keys.length;
     if (y <= keys[0][0]) return keys[0][1];
@@ -60,7 +60,7 @@ export const LEG_CROTCH = (() => {
   return y;
 })();
 
-export interface LegMeasurements {
+interface LegMeasurements {
   full_hip: number;
   waist_to_hip: number;
   waist_to_knee: number;
@@ -70,7 +70,7 @@ export interface LegMeasurements {
 
 /** A pair of legs drawn to your measurements, in cm down from the waist (y = 0), widths in the way the
  *  form draws the body (half of each width a quarter of its round). */
-export interface Legs {
+interface Legs {
   /** Where the legs part, the knee and the floor. */
   crotch: number;
   knee: number;

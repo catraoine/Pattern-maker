@@ -1,0 +1,440 @@
+/* Who are we measuring: Me or Someone else, either one starts */
+.who {
+  display: grid;
+  gap: 10px;
+}
+
+.who-q {
+  margin: 0;
+  color: var(--muted);
+  font: var(--w-body) 11px/1.2 var(--mono);
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+}
+
+/* Which form to draft on (Cat's B2 Two Forms): the two forms side by side, the picked one in the bright border.
+   Both forms keep full-strength lines either way, so one never looks fainter than the other (Cat, 2026-10-20). */
+.form-pick {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  /* Takes the room the title and Continue leave, like the welcome's form, so Continue is never a scroll away */
+  flex: 1 1 0;
+  min-height: 120px;
+  max-height: 420px;
+}
+
+.form-pick button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 6px 12px;
+  border: var(--bw) solid var(--disabled);
+  background: none;
+  color: var(--muted);
+  font: var(--w-body) 11px/1.2 var(--mono);
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  cursor: pointer;
+  min-height: 0;
+}
+
+.form-pick button.on {
+  border-color: var(--gild);
+  color: var(--gild);
+}
+
+.form-picture {
+  display: block;
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+}
+
+/* The tour, full screen */
+.tour {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+  color: var(--ink);
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+.tour-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+}
+
+.tour-tag {
+  color: var(--muted);
+  font: var(--w-body) 10px/1 var(--mono);
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+}
+
+.tour-skip {
+  padding: 9px 12px;
+  border: 1px solid var(--ink);
+  border-radius: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: var(--w-body) 10px/1 var(--mono);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.tour-video {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  object-fit: contain;
+  background: var(--paper);
+}
+
+.tour-parts {
+  list-style: none;
+  margin: 0;
+  padding: 14px 16px 22px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.tour-parts button {
+  width: 100%;
+  display: grid;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: var(--w-body) 10px/1 var(--mono);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tour-parts li.on button {
+  color: var(--ink);
+}
+
+.tour-track {
+  display: block;
+  height: 2px;
+  background: var(--guide);
+  overflow: hidden;
+}
+
+.tour-track span {
+  display: block;
+  height: 100%;
+  background: var(--ink);
+  transform-origin: left;
+}
+
+
+/* Short screens: the measuring pages carry the tape too, so they tighten a little more to keep Next on screen */
+@media (max-height: 620px) {
+  .measure-step {
+    gap: 10px;
+  }
+  .measure-step .welcome-hero {
+    min-height: 44px;
+  }
+  button.step-next {
+    margin-top: 8px;
+  }
+}
+
+/* The smallest screens (an old 4-inch phone with the browser's bars showing): too little room for the form
+   to read as one, so it steps aside and the words and the button fit. */
+@media (max-height: 480px) {
+  .welcome-hero {
+    display: none;
+  }
+  .need div {
+    padding: 8px 0;
+  }
+  .measure-step {
+    gap: 6px;
+  }
+}
+/* Photo to pattern: one card that moves through start, reading, result and, for a skirt laid flat, its length */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.photostart,
+.photoread,
+.photopick,
+.photoerror,
+.photoresult,
+.photolength {
+  max-width: 560px;
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.photostart {
+  min-height: min(68vh, 620px);
+  padding-top: 40px;
+}
+.photostart h1 {
+  font-size: clamp(36px, 10vw, 48px);
+  line-height: 1.05;
+  margin: 0;
+}
+.photostart > .muted {
+  font-size: 16px;
+  margin: 0;
+}
+.photostart-actions {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.photostart-actions .muted.small {
+  text-align: center;
+  margin: 0;
+}
+.phototips summary {
+  cursor: pointer;
+  text-align: center;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  color: var(--muted);
+  min-height: 32px;
+}
+.phototips ul {
+  margin: 6px 0 12px;
+  padding-left: 18px;
+}
+.photoframe {
+  position: relative;
+  overflow: hidden;
+  border: var(--bw) solid var(--line);
+}
+.photoframe img {
+  display: block;
+  width: 100%;
+  max-height: 52vh;
+  object-fit: cover;
+}
+.photoframe.dim img {
+  opacity: 0.45;
+  max-height: 36vh;
+}
+.photoframe .sweep {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 2px;
+  background: var(--ink);
+  box-shadow: 0 0 18px 4px rgba(217, 196, 155, 0.35);
+  animation: photo-sweep 2.4s ease-in-out infinite alternate;
+}
+@keyframes photo-sweep {
+  from {
+    top: 4%;
+  }
+  to {
+    top: 96%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .photoframe .sweep {
+    animation: none;
+    top: 50%;
+  }
+}
+.photoread .stages {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--guide);
+}
+.photoread .stages .on {
+  color: var(--ink);
+}
+.photoread .center {
+  text-align: center;
+  margin: 0;
+}
+.photoread button.link {
+  align-self: center;
+}
+.photoerror h1,
+.photoresult h1,
+.photolength h1 {
+  margin: 0;
+  font-size: 24px;
+}
+.photohead {
+  display: flex;
+  gap: 14px;
+  align-items: flex-end;
+}
+.photohead p {
+  margin: 0;
+}
+.photothumb {
+  width: 88px;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  flex: none;
+  border: var(--bw) solid var(--line);
+}
+.photorows {
+  display: flex;
+  flex-direction: column;
+}
+.photorow {
+  border-top: 1px solid var(--line);
+  padding: 4px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.photorow:last-child {
+  border-bottom: 1px solid var(--line);
+}
+.photorow .group {
+  padding-bottom: 10px;
+}
+.photorow-line {
+  display: grid;
+  grid-template-columns: 96px 1fr auto;
+  align-items: center;
+  gap: 8px;
+}
+.photorow-line .eyebrow {
+  margin: 0;
+}
+.photorow-line button.link {
+  color: var(--muted);
+  font-size: 12px;
+}
+.filelink {
+  position: relative;
+  align-self: flex-start;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  font-size: 14px;
+  font-weight: var(--w-strong);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.filelink input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+.filelink:focus-within {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+.whereends {
+  width: 100%;
+  max-height: 40vh;
+}
+.whereends .guide {
+  stroke: var(--muted);
+}
+.tapeline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.tapeline input {
+  width: 80px;
+  min-height: 44px;
+  padding: 0 10px;
+  border: var(--bw) solid var(--ink);
+  border-radius: 0;
+  background: var(--white);
+  color: var(--ink);
+  font: inherit;
+  font-family: var(--mono);
+  font-size: 18px;
+  text-align: right;
+}
+.tapeline input:focus {
+  border-color: var(--gild);
+  background: var(--fill);
+  outline: 1px solid var(--gild);
+  outline-offset: 0;
+}
+/* The photo button and the matched photo sit under the style screen's heading */
+.photopick h1 {
+  margin: 0;
+}
+/* The outfit photo's pieces, labelled where each sits; tap one to draft it. */
+.piecetag {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  padding: 6px 10px;
+  border: var(--bw) solid var(--gild);
+  background: var(--paper);
+  color: var(--ink);
+  font: 500 11px/1 var(--mono);
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.piecetag.on,
+.piecetag:hover {
+  background: var(--gild);
+  color: var(--paper);
+}
+.photo-entry {
+  width: 100%;
+  max-width: 420px;
+  margin: 0 0 16px;
+}
+.photo-matched {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 520px;
+  padding: 8px 12px 8px 8px;
+  margin: 0 0 16px;
+  border: var(--bw) solid var(--line-strong);
+}
+.photo-matched img {
+  width: 44px;
+  height: 58px;
+  object-fit: cover;
+  flex: none;
+}
+.photo-matched p {
+  margin: 0;
+}
+.photo-matched button.link {
+  margin-left: auto;
+  font-size: 12px;
+}

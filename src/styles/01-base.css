@@ -1,0 +1,749 @@
+/* Contour Line in champagne (Cat's G4 pick): true black, fine champagne lines, warm ivory text, small tracked labels in Chakra Petch, Space Grotesk for reading. */
+:root {
+  --ink: #efe4cc;
+  --gild: #d9c49b; /* champagne: drawings, the name, the main button */
+  --gild-glow: #f3e6c8;
+  --muted: #9a8e78;
+  /* M1 across the app (Cat's K1, 2026-10-18): no thin rules and no tinted panels, and every outline is the one
+     bright line. --line and --fill are kept so the rules they drew simply disappear. */
+  --line: transparent;
+  --line-strong: var(--gild);
+  --guide: #4a4338; /* faint guides inside drawings: knee and floor marks, the cloth under a lay plan */
+  --fill: transparent;
+  --focus: #9a8e78;
+  --disabled: #5c5446;
+  --warn: #e0b07a; /* fabric notes: heads up */
+  --ok: #a9c49b; /* fabric notes: good match */
+  --paper: #000000;
+  /* Palette card strips under each swatch (Cat's A1 + A5): cream, darker at the right edge, near-black names. */
+  --card-strip: #ece2cb;
+  --card-edge: #d3c7ab;
+  --card-ink: #151311;
+  --card-quiet: #6c6250;
+  --white: #000000; /* the "card" ground; text on --ink fills uses it too */
+  --mono: 'Chakra Petch', ui-monospace, Menlo, monospace;
+  --sans: 'Space Grotesk', system-ui, sans-serif;
+  /* Headings (Cat's N1 Narrow Stack): narrow Archivo capitals, a spaced Chakra label under them. */
+  --display: 'Archivo Variable', 'Archivo Narrow', 'Arial Narrow', sans-serif;
+  --grid: transparent;
+  --w-head: 300;
+  --w-strong: 500;
+  --w-semi: 500;
+  --w-body: 400;
+  --head-tracking: -0.01em;
+  --track: 0.2em;
+  --bw: 1.3px;
+  --bw-on: 1.3px;
+  --pill: 0px;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--sans);
+  font-weight: var(--w-body);
+  font-size: 16px;
+  background-color: var(--paper);
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 20px 20px;
+  -webkit-text-size-adjust: 100%;
+}
+
+legend,
+.eyebrow,
+button,
+.unit,
+label {
+  font-family: var(--mono);
+}
+
+h1,
+h2 {
+  font-family: var(--display);
+  font-stretch: 75%;
+  text-transform: uppercase;
+}
+
+button,
+label,
+legend,
+.eyebrow,
+.brand,
+.badge,
+.filebtn {
+  text-transform: uppercase;
+  letter-spacing: var(--track);
+}
+
+h1,
+h2 {
+  font-weight: 600;
+  letter-spacing: var(--head-tracking);
+}
+
+h1 {
+  margin: 0;
+  font-size: 36px;
+  line-height: 0.98;
+}
+
+h2 {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.05;
+}
+
+/* A two-part title: the key words big, the rest as a spaced label under them. */
+h1 .t-big {
+  display: block;
+}
+h1 .t-label {
+  display: block;
+  margin-top: 8px;
+  font-family: var(--mono);
+  font-stretch: normal;
+  font-weight: 400;
+  font-size: 11px;
+  line-height: 1.4;
+  letter-spacing: 0.3em;
+}
+
+p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.small {
+  font-size: 14px;
+}
+
+.eyebrow {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.app {
+  min-height: 100vh;
+}
+
+.topbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: calc(12px + env(safe-area-inset-top)) 20px 12px;
+  background: var(--white);
+  border-bottom: var(--bw) solid var(--line);
+}
+
+/* The name alone is the logo (Cat's R1, 2026-10-21); it keeps the height the old square mark gave the bar. */
+.brand {
+  color: var(--gild);
+  display: flex;
+  align-items: center;
+  min-height: 28px;
+  gap: 10px;
+  font-family: var(--mono);
+  font-weight: var(--w-strong);
+  font-size: 12px;
+}
+
+.steps {
+  display: flex;
+  flex: 1;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+/* The three steps in the header: words only, the one you're on lit in champagne with a line under it. */
+.step {
+  flex: 1;
+  max-width: 140px;
+  min-height: 44px;
+  padding: 0 6px;
+  border: none;
+  border-bottom: var(--bw) solid transparent;
+  border-radius: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.step.on {
+  color: var(--gild);
+  border-bottom-color: var(--gild);
+}
+
+.step.locked {
+  /* Dimmer than an open step, but 4.5:1 on black so the step names stay readable. */
+  color: #877c68;
+}
+
+/* A Steady Header (Cat's pick, 2026-10-17): back on the left, the steps in the middle, the account on the right,
+   the same on every screen after the welcome. */
+.topbar.steady {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.steady-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 1280px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.steady-back {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border: var(--bw) solid var(--line-strong);
+  border-radius: 0;
+  background: none;
+  color: var(--ink);
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.steady-back:hover,
+.steady-back:focus-visible {
+  border-color: var(--gild);
+  color: var(--gild);
+}
+
+.crumb {
+  margin: 0 auto;
+  max-width: 1280px;
+  width: 100%;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.crumb span {
+  color: var(--ink);
+}
+
+.main {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 24px 20px calc(32px + env(safe-area-inset-bottom));
+}
+
+.split {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.card {
+  flex: 1 1 280px;
+  min-width: 0;
+  background: var(--white);
+  border: var(--bw) solid var(--line);
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.card.grow {
+  flex: 999 1 460px;
+}
+
+.card.help {
+  flex: 1 1 300px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.row.between {
+  justify-content: space-between;
+}
+
+.row.wrap {
+  flex-wrap: wrap;
+}
+
+.figure {
+  width: 100%;
+  max-width: 220px;
+  height: auto;
+  align-self: center;
+}
+
+.seg {
+  display: inline-flex;
+  padding: 4px;
+  background: var(--fill);
+  border-radius: var(--pill);
+}
+
+.seg button {
+  min-height: 40px;
+  padding: 0 16px;
+  border: none;
+  border-radius: var(--pill);
+  background: transparent;
+  color: var(--muted);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.seg button.on {
+  background: var(--ink);
+  color: var(--white);
+  font-weight: var(--w-strong);
+}
+
+/* The garments: the switch fills a narrow card's width, wrapping onto a second row rather than spilling out of it. */
+.seg.garments {
+  max-width: 100%;
+  flex-wrap: wrap;
+}
+
+.seg.garments button {
+  flex: 1 1 auto;
+  padding: 0 10px;
+  white-space: nowrap;
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px 18px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: var(--bw) solid transparent;
+}
+
+.field.focus {
+  background: var(--fill);
+  border-color: var(--ink);
+}
+
+.field label {
+  font-weight: var(--w-strong);
+  font-size: 12px;
+}
+
+.field input {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 48px;
+  padding: 0 12px;
+  border: var(--bw) solid var(--ink);
+  border-radius: 0;
+  background: var(--white);
+  color: var(--ink);
+  font: inherit;
+  font-family: var(--mono);
+  font-size: 18px;
+}
+
+.field input:focus {
+  outline: 3px solid var(--focus);
+  outline-offset: 1px;
+}
+
+.field input[aria-invalid] {
+  border-width: 3px;
+}
+
+.unit {
+  width: 34px;
+  color: var(--muted);
+}
+
+.msg {
+  font-size: 14px;
+  color: var(--ink);
+  padding-left: 10px;
+  border-left: 3px solid var(--focus);
+}
+
+.msg.error {
+  border-left-color: var(--ink);
+  font-weight: var(--w-semi);
+}
+
+/* A number that could be right but doesn't agree with the rest: a quiet note, never in the way. */
+.msg.doubt {
+  border-left-color: var(--gild);
+  color: var(--muted);
+}
+
+.double-checks {
+  display: grid;
+  gap: 8px;
+}
+
+/* The gentle tier at the end of measuring: in range, near the edge, one tap to take it again. */
+.second-looks {
+  display: grid;
+  gap: 8px;
+}
+
+.second-looks .msg p {
+  margin: 0 0 4px;
+}
+
+.check-list .doubtful {
+  color: var(--gild);
+}
+
+/* Weight, offered on the height page: a link until wanted, then its own box. */
+.weight-entry {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+
+.weight-note {
+  margin: 0;
+}
+
+/* Why Style or Print waits, over the guided measuring pages without moving them. */
+.msg.steps-note {
+  position: fixed;
+  top: calc(84px + env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  width: min(92vw, 440px);
+  margin: 0;
+  padding: 12px 14px;
+  /* Solid, with a shadow of the ground round it, so the form and the tape never show through or run into it. */
+  background: var(--paper);
+  box-shadow: 0 10px 24px 8px var(--paper);
+  border: var(--bw) solid var(--line-strong);
+  border-left: 3px solid var(--gild);
+}
+
+.footer {
+  border-top: 1px solid var(--line);
+  padding-top: 18px;
+}
+
+button.primary,
+button.secondary {
+  min-height: 52px;
+  padding: 0 24px;
+  border-radius: var(--pill);
+  border: var(--bw) solid var(--ink);
+  font-size: 12px;
+  font-weight: var(--w-strong);
+  cursor: pointer;
+}
+
+button.primary {
+  background: transparent;
+  color: var(--gild);
+  border-color: var(--gild);
+}
+
+button.secondary {
+  background: transparent;
+  color: var(--muted);
+  border-color: var(--line-strong);
+}
+
+/* Phones keep :hover stuck on whatever was last tapped, so hover fills only apply with a real pointer */
+@media (hover: hover) {
+  button.primary:hover {
+    background: var(--gild);
+    color: var(--paper);
+    border-color: var(--gild);
+  }
+
+  button.secondary:hover {
+    background: var(--ink);
+    color: var(--paper);
+    border-color: var(--ink);
+  }
+}
+
+/* A tap flashes champagne while the finger is down, and lets go with it, so nothing sticks; the same on every
+   button in the app (Cat, 2026-10-25) */
+button.primary:active:not(:disabled),
+button.secondary:active:not(:disabled) {
+  background: var(--gild);
+  color: var(--paper);
+  border-color: var(--gild);
+}
+
+button.primary:disabled,
+button.primary:disabled:hover {
+  background: transparent;
+  color: var(--disabled);
+  border-color: var(--disabled);
+  cursor: not-allowed;
+}
+
+button.link {
+  min-height: 44px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: var(--w-strong);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.group {
+  margin: 0;
+  padding: 0;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.group legend {
+  padding: 0;
+  margin-bottom: 10px;
+  font-weight: var(--w-strong);
+  font-size: 12px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: var(--pill);
+  border: 1px solid var(--ink);
+  background: var(--white);
+  color: var(--ink);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.looks {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+.look {
+  display: grid;
+  gap: 2px;
+  text-align: left;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--pill);
+  background: var(--white);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 14px;
+  text-transform: none;
+  letter-spacing: normal;
+  cursor: pointer;
+}
+.look strong {
+  font-family: var(--mono);
+  text-transform: uppercase;
+  letter-spacing: var(--track);
+  font-size: 12px;
+}
+.look.on {
+  border-color: var(--ink);
+  box-shadow: inset 0 0 0 var(--bw-on) var(--ink);
+}
+.chip.on {
+  background: var(--ink);
+  color: var(--white);
+  font-weight: var(--w-strong);
+}
+
+.preview {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  padding: 12px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  min-height: 300px;
+}
+
+.preview-svg {
+  width: 100%;
+  max-height: 70vh;
+  height: auto;
+}
+
+.preview-svg.sketch {
+  max-width: 360px;
+}
+
+.preview.tiles {
+  padding: 0;
+}
+
+.preview-svg.overlay {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  max-height: none;
+  pointer-events: none;
+}
+
+.sumgrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  font-size: 14px;
+}
+
+.pieces {
+  margin: 0;
+  padding-left: 18px;
+  line-height: 1.6;
+}
+
+.fabric {
+  padding: 14px;
+  background: var(--fill);
+}
+
+.fabric .big {
+  font-family: var(--sans);
+  font-size: 30px;
+  font-weight: 300;
+}
+
+.radio {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 0 14px;
+  border: 1px solid var(--ink);
+  border-radius: var(--pill);
+  font-family: var(--sans);
+  cursor: pointer;
+}
+
+.radio.on {
+  border-width: var(--bw-on);
+  font-weight: var(--w-semi);
+}
+
+.radio input {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--ink);
+}
+
+.radio.locked {
+  color: var(--muted);
+  border-style: dashed;
+  justify-content: space-between;
+  cursor: default;
+}
+
+.badge {
+  padding: 2px 10px;
+  border: 1px solid var(--ink);
+  border-radius: var(--pill);
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink);
+}
+
+@media (max-width: 640px) {
+  .welcome-hero {
+    margin: 0 -18px;
+  }
+  .welcome-top {
+    left: 18px;
+    right: 18px;
+  }
+  .topbar {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .main {
+    padding: 16px 16px calc(28px + env(safe-area-inset-bottom));
+  }
+  .card {
+    padding: 18px;
+  }
+  .split.three > .card:first-child {
+    order: 1;
+  }
+  .split.three > aside {
+    order: 2;
+  }
+}
+
+.avatar {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border-radius: 50%;
+  border: var(--bw) solid var(--ink);
+  background: var(--white);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-weight: var(--w-strong);
+  font-size: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.avatar.on {
+  background: var(--ink);
+  color: var(--white);
+}
+
+.avatar.big {
+  width: 56px;
+  height: 56px;
+  font-size: 22px;
+  cursor: default;
+}

@@ -74,7 +74,7 @@ export function resample(pts: Pt[], n: number): Pt[] {
 
 /** Where the welcome's form is on screen, so the bodice can land on it. */
 /** Where the welcome's form is, and which form it draws. */
-export type FormBox = { x: number; y: number; w: number; h: number; kind?: FormKind };
+type FormBox = { x: number; y: number; w: number; h: number; kind?: FormKind };
 
 function polyTo(g: CanvasRenderingContext2D, pts: Pt[], frac: number): Pt {
   const n = Math.floor((pts.length - 1) * clamp(frac, 0, 1));
@@ -99,7 +99,7 @@ function pen(g: CanvasRenderingContext2D, p: Pt, r: number) {
 }
 
 /** Where the header's name sits, so the name can rise into it. */
-export type NameSpot = { x: number; y: number; w: number; h: number; font: string; tracking: string };
+type NameSpot = { x: number; y: number; w: number; h: number; font: string; tracking: string };
 
 function findName(): NameSpot | null {
   const el = document.querySelector<HTMLElement>('.topbar .brand span');
@@ -171,7 +171,7 @@ function draw(g: CanvasRenderingContext2D, w: number, h: number, t: number, box:
 }
 
 /** The form's box moved to the middle of the window, where the welcome's form starts before it slides to its place. */
-export const centred = (box: FormBox, w: number): FormBox => ({ ...box, x: w / 2 - box.w / 2 });
+const centred = (box: FormBox, w: number): FormBox => ({ ...box, x: w / 2 - box.w / 2 });
 
 /** The flat bodice part way (m, 0 to 1) to the form's outline, cropped and faded the way the welcome draws the form. */
 function morph(g: CanvasRenderingContext2D, bodice: Pt[], box: FormBox, m: number) {

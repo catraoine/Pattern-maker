@@ -7,7 +7,7 @@ import type { Piece } from './piece';
 import { P, add, sub } from './geometry';
 
 /** How much each measurement moves per size, in cm, with a 4 cm step at the bust, waist and hip. */
-export const GRADE_RULES: { id: MeasurementId; perSize: number }[] = [
+const GRADE_RULES: { id: MeasurementId; perSize: number }[] = [
   { id: 'full_bust', perSize: 4 },
   { id: 'high_bust', perSize: 4 },
   { id: 'waist', perSize: 4 },
@@ -40,7 +40,7 @@ export const GRADE_RULES: { id: MeasurementId; perSize: number }[] = [
 /** The size steps either side of the base: a 4 cm step (UK and EU) or a 5 cm step (larger ranges). */
 export type GradeStep = 4 | 5;
 
-export const sizeLabel = (offset: number) => (offset === 0 ? 'Base' : offset > 0 ? `+${offset}` : `${offset}`);
+const sizeLabel = (offset: number) => (offset === 0 ? 'Base' : offset > 0 ? `+${offset}` : `${offset}`);
 
 /** The measurements graded `offset` sizes up (or down), with every rule scaled to the step. */
 export function gradedValues(base: MeasurementValues, offset: number, step: GradeStep = 4): MeasurementValues {
@@ -58,7 +58,7 @@ export function rulesFor(values: MeasurementValues, step: GradeStep = 4) {
   return GRADE_RULES.filter((r) => typeof values[r.id] === 'number').map((r) => ({ id: r.id, perSize: Math.round(((r.perSize * step) / 4) * 100) / 100 }));
 }
 
-export interface GradedSize {
+interface GradedSize {
   offset: number;
   label: string;
   values: MeasurementValues;
@@ -82,7 +82,7 @@ export function gradeRun(base: MeasurementValues, draft: (m: MeasurementValues) 
 }
 
 /** One piece in every size, each moved so its starting point sits on the base size's. */
-export interface NestPiece {
+interface NestPiece {
   name: string;
   sizes: { offset: number; label: string; pts: P[] }[];
 }

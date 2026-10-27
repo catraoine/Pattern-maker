@@ -82,7 +82,7 @@ export function volumeOf(s: VolumeStyle): VolumeKind {
 }
 
 /** How many godets, four, six or eight. */
-export const godetCount = (s: { godets?: GodetCount }): 4 | 6 | 8 => (s.godets === 4 || s.godets === 8 ? s.godets : 6);
+const godetCount = (s: { godets?: GodetCount }): 4 | 6 | 8 => (s.godets === 4 || s.godets === 8 ? s.godets : 6);
 
 /** The choices with one detail set and the others cleared. */
 export function setVolume<C extends Partial<VolumeStyle>>(c: C, kind: VolumeKind, godets?: GodetCount): C {
@@ -1115,7 +1115,7 @@ export function layoutExtras(draft: SkirtDraft): Piece[] {
 // ---------------------------------------------------------------------------------------------------
 // The sewing guide.
 
-export interface VolumeSewing {
+interface VolumeSewing {
   seam: string;
   waist: string;
   /** The hem depth, as drafted, for a straight hem. */

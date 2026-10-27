@@ -26,6 +26,8 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      // Registered by the app itself (keepOffline in src/swUpdate.ts), and only once someone is past the waitlist.
+      injectRegister: false,
       includeAssets: ['icon.svg', 'favicon.svg', 'apple-touch-icon.png'],
       manifest: {
         name: 'Maison Tracé',
@@ -46,7 +48,8 @@ export default defineConfig({
         // The printing code (about 1.4 MB) isn't saved to the phone on the first visit: it downloads the first time
         // someone prints, then stays for offline use. Keeps a first visit light for Netlify bandwidth (Cat, 2026-10-23).
         // The account service's code (sign-in, about 230 kB) needs the internet anyway, so it isn't kept either.
-        globIgnores: ['**/assets/pdf-*.js', '**/assets/PDFButton-*.js', '**/assets/account-service-*.js'],
+        // Fabric and print photos (about 1.5 MB) are saved the first time the Fabric tab shows them, not on the first visit.
+        globIgnores: ['**/assets/pdf-*.js', '**/assets/PDFButton-*.js', '**/assets/account-service-*.js', 'fabrics/**', 'prints/**'],
         // A film or download opened by its own address (e.g. /tour/walkthrough.mp4 to save it) goes to the file, not
         // the app: the saved app otherwise answers every address typed into the browser.
         navigateFallbackDenylist: [/^\/tour\//, /^\/demos\//, /\.(mp4|webm|pdf|dxf|svg|png|jpg)$/],
@@ -55,6 +58,11 @@ export default defineConfig({
             urlPattern: ({ url, sameOrigin }) => sameOrigin && /^\/assets\/(pdf|PDFButton)-.+\.js$/.test(url.pathname),
             handler: 'CacheFirst',
             options: { cacheName: 'printing-code', expiration: { maxEntries: 8 } },
+          },
+          {
+            urlPattern: ({ url, sameOrigin }) => sameOrigin && /^\/(fabrics|prints)\/.+\.jpg$/.test(url.pathname),
+            handler: 'CacheFirst',
+            options: { cacheName: 'fabric-photos', expiration: { maxEntries: 120 } },
           },
         ],
       },

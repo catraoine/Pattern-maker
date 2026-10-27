@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { BODICE_GROUPS, DRESS_CUTS, TEE_GROUPS, TROUSER_GROUPS, WAIST_SEAM_GROUP, outerGroups } from './garments';
-import { DETAIL_GROUPS, FRONT_GROUP, GROUPS } from './screens/StyleScreen';
+import { DETAIL_GROUPS, FRONT_GROUP, GROUPS } from './skirtChoices';
 import { VOLUME_OPTIONS } from './engine/skirtVolume';
 import { SLIT_PLACES } from './engine/slit';
 import { BELTS } from './engine/belt';

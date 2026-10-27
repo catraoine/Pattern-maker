@@ -287,7 +287,6 @@ function settledForm(g: CanvasRenderingContext2D, w: number, h: number, outline 
 // all the long lines are drawn down together from the shoulders. A close crop, so the head is out of view.
 const OUTLINE = 1000;
 const DOWN = 1300;
-const WELCOME_END = OUTLINE + DOWN + 300;
 function draw(g: CanvasRenderingContext2D, w: number, h: number, t: number, drawn: boolean) {
   const t0 = drawn ? 0 : OUTLINE;
   g.globalAlpha = 1;
@@ -365,9 +364,6 @@ export function ContourForm({ start: from = 'fresh', kind }: { start?: FormStart
   useEffect(() => () => void (begun.current = 0), [from, kind]);
   return <canvas ref={ref} className="contour" aria-hidden="true" />;
 }
-
-/** The welcome's whole play, for the screen to time things against. */
-export const WELCOME_MS = WELCOME_END;
 
 // ---------------------------------------------------------------------------------------------------------
 // The measuring pages: the whole figure, head to feet, and a tape that plays once to where the measurement
@@ -924,7 +920,7 @@ function wrap(g: CanvasRenderingContext2D, cx: number, y: number, r: number, dep
 
 /** 'play' plays the measurement's tape once; 'still' is the welcome's form at rest with no tape; 'all' has the
  *  base girths' tapes on it, for the check page. */
-export type DemoMode = 'play' | 'still' | 'all';
+type DemoMode = 'play' | 'still' | 'all';
 
 /** The tapes round the form at rest, for the check page. */
 function allTapes(g: CanvasRenderingContext2D, w: number, h: number, kind?: FormKind) {

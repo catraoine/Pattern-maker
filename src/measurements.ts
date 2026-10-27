@@ -7,6 +7,13 @@ import type { LingerieMeasurements } from './engine/lingerie';
 
 export type Garment = 'skirt' | 'bodice' | 'dress' | 'trousers' | 'tee' | 'jacket' | 'coat' | 'lingerie';
 
+/** Garments cut from knit and fitted by stretch: knit allowances whatever the style, and no woven toile corrections. */
+export const isKnit = (g: Garment) => g === 'tee' || g === 'lingerie';
+/** Garments worn from the waist down, fitted at the waist and hip with no bust. */
+export const isLowerBody = (g: Garment) => g === 'skirt' || g === 'trousers';
+/** Jackets and coats: drafted on the bodice block, fully lined. */
+export const isOuterwear = (g: Garment): g is 'jacket' | 'coat' => g === 'jacket' || g === 'coat';
+
 /** The engine's measurements, and the height, which no block uses directly: it anchors the checks and the estimates. */
 export type MeasurementId = keyof SkirtMeasurements | keyof BodiceMeasurements | keyof SleeveMeasurements | keyof TrousersMeasurements | keyof LingerieMeasurements | 'height';
 
@@ -26,7 +33,7 @@ export interface MeasurementField {
 
 /** Asked of everyone, last of the five on the measuring pages and first in the lists. Nothing is drafted from it, so an older profile without it still drafts; it is
  * what the lengths are checked against, and what the estimates scale from. */
-export const HEIGHT: MeasurementField = {
+const HEIGHT: MeasurementField = {
   id: 'height',
   label: 'Height',
   hard: [120, 230],
@@ -272,7 +279,7 @@ const BODICE_ALL: MeasurementField[] = [
  * closer fit, and they're offered under "Add measurements for a closer fit".
  */
 export const ESTIMATED: MeasurementId[] = ['neck', 'shoulder_length', 'across_back', 'across_front', 'front_hps_to_waist', 'bust_depth', 'apex_separation', 'armscye'];
-export const ESTIMATE_NOTE = 'Estimated from your other measurements until you take it. Take it for a closer fit.';
+const ESTIMATE_NOTE = 'Estimated from your other measurements until you take it. Take it for a closer fit.';
 
 export const BODICE_FIELDS: MeasurementField[] = BODICE_ALL.map((f) => (ESTIMATED.includes(f.id) && !f.optional ? { ...f, optional: ESTIMATE_NOTE } : f));
 
@@ -301,7 +308,7 @@ const TEE_IDS: [MeasurementId, boolean][] = [
   ['high_bust', false],
 ];
 const TEE_OPTIONAL: Partial<Record<MeasurementId, string>> = { wrist: 'For long sleeves.', armscye: 'For a closer armhole.', high_bust: 'For shaping over a fuller bust.' };
-export const TEE_FIELDS: MeasurementField[] = [
+const TEE_FIELDS: MeasurementField[] = [
   HEIGHT,
   ...TEE_IDS.map(([id, needed]) => {
     const f = BODICE_FIELDS.find((b) => b.id === id)!;
@@ -449,7 +456,7 @@ const fmt = (cm: number, unit: Unit) => (unit === 'cm' ? `${cm} cm` : `${Math.ro
 const has = (v: MeasurementValues, id: MeasurementId) => typeof v[id] === 'number' && !Number.isNaN(v[id]);
 
 /** What is known about the body beyond the tape: the weight, in kg. Never drafted from; it only checks the girths. */
-export interface BodyInfo {
+interface BodyInfo {
   weight?: number;
   /** The form the weight is read against, when the checks run on the womenswear path for the menswear form. */
   form?: FormKind;
@@ -515,7 +522,7 @@ export function checkMeasurements(v: MeasurementValues, unit: Unit, garment: Gar
     if (crotch_depth && waist_to_knee && crotch_depth >= waist_to_knee - 12) {
       out.push({ id: 'crotch_depth', level: 'error', message: 'Crotch depth looks long next to waist to knee. Measure it seated, from the waist down to the chair.' });
     }
-    if (garment === 'skirt' || garment === 'trousers') {
+    if (isLowerBody(garment)) {
       crossed();
       return out;
     }
@@ -549,7 +556,7 @@ export function checkMeasurements(v: MeasurementValues, unit: Unit, garment: Gar
   return out;
 }
 
-export interface CrossCheck {
+interface CrossCheck {
   /** The measurement most likely to be off, and the one it was checked against. */
   id: MeasurementId;
   with: MeasurementId;

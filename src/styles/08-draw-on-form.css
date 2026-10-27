@@ -1,0 +1,177 @@
+/* Draw on your form: one job, the form and its lines, with the line chips and one button under it */
+.form-draw {
+  max-width: 520px;
+  margin: 0 auto;
+}
+.form-draw .card {
+  display: grid;
+  gap: 14px;
+}
+.form-draw .screen-head {
+  align-items: flex-end;
+}
+.form-draw .card > .row {
+  flex-wrap: nowrap;
+}
+.form-draw .seg button {
+  padding: 0 14px;
+}
+/* Done: the one way on, filled so it reads apart from everything else on the screen. */
+.form-draw button.primary.done,
+.form-leave button.primary.done {
+  background: var(--gild);
+  color: #000;
+  border-color: var(--gild);
+}
+.form-draw .screen-head button.done {
+  min-height: 42px;
+  padding: 0 18px;
+}
+/* Line kinds in one row under the form, sliding sideways when they don't fit. */
+.form-draw .form-kinds {
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  margin: 0 -2px;
+  padding: 0 2px 2px;
+}
+.form-draw .form-kinds::-webkit-scrollbar {
+  display: none;
+}
+.form-draw .form-kinds .chip {
+  flex: 0 0 auto;
+}
+/* Undo and Redo as plain words, so they don't read as a third side of the form. */
+.form-undo {
+  display: flex;
+  gap: 2px;
+}
+.form-undo button {
+  min-height: 40px;
+  padding: 0 10px;
+  background: none;
+  border: none;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink);
+  cursor: pointer;
+}
+.form-undo button:disabled {
+  color: var(--disabled);
+  cursor: default;
+}
+/* "Leave your lines?", from the bottom of the screen. */
+.form-leave {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: flex-end;
+  background: rgba(0, 0, 0, 0.72);
+}
+.form-leave-box {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 22px 16px calc(26px + env(safe-area-inset-bottom, 0px));
+  background: var(--paper);
+  border-top: var(--bw) solid var(--gild);
+}
+.form-leave-box h2 {
+  margin: 0;
+}
+.form-leave-box p {
+  margin: 0 0 6px;
+  color: var(--muted);
+}
+.form-draw .row.end {
+  justify-content: flex-end;
+}
+.form-draw .form-said {
+  text-align: center;
+  min-height: 2.9em;
+  margin: 0;
+}
+/* Enlarge: the form fills the screen to draw on, with Done, the sides, the hint and the line kinds round it. */
+.form-draw.big {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: none;
+  margin: 0;
+  padding: max(12px, env(safe-area-inset-top, 0px)) 16px max(12px, env(safe-area-inset-bottom, 0px));
+  background: var(--paper);
+}
+.form-draw.big .screen-head {
+  justify-content: flex-end;
+  margin: 0;
+}
+.form-draw.big .screen-head > div {
+  display: none;
+}
+.form-draw.big .card {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  gap: 8px;
+}
+.form-draw.big .preview {
+  min-height: 0;
+}
+/* Room for three lines of hint, so the form keeps its size while the hint changes under a line being drawn. */
+.form-draw.big .form-said {
+  min-height: 4.4em;
+}
+.form-draw.big .form-svg {
+  width: auto;
+  max-width: 100%;
+  height: 100%;
+  max-height: none;
+  animation: form-grow 0.5s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+/* The form grows to fill the screen, rather than jumping there. */
+@keyframes form-grow {
+  from {
+    transform: scale(0.55);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .form-draw.big .form-svg {
+    animation: none;
+  }
+}
+/* Small enough that Done, the form, the hint and the line kinds all fit on a phone without scrolling. */
+.form-svg {
+  max-height: min(62vh, calc(100svh - 480px));
+}
+.form-svg .form-line,
+.form-still .form-line {
+  stroke: var(--gild);
+}
+.form-svg .form-legs,
+.form-svg .form-stand,
+.form-still .form-legs,
+.form-still .form-stand {
+  stroke: var(--guide);
+}
+.form-svg .tape,
+.form-still .tape {
+  stroke: var(--muted);
+}
+.form-svg .tape.on {
+  stroke: var(--gild-glow);
+  filter: drop-shadow(0 0 0.5px rgba(243, 230, 200, 0.8));
+}

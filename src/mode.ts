@@ -1,7 +1,7 @@
 // Simple or all tools: a first-time sewist sees only what a first pattern needs, and the professional
 // tools wait behind one quiet link. Nothing is removed; the setting is kept with the account.
 import type { Account } from './account';
-import type { Finish } from './App';
+import type { Finish } from './savedWork';
 
 export type Mode = NonNullable<Account['mode']>;
 

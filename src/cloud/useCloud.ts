@@ -8,7 +8,7 @@ import { contentKey } from './merge';
 import { syncOnce } from './sync';
 import { cloud, cloudConfigured, type CloudUser } from './api';
 
-export type CloudStatus = 'off' | 'checking' | 'out' | 'syncing' | 'saved' | 'offline';
+type CloudStatus = 'off' | 'checking' | 'out' | 'syncing' | 'saved' | 'offline';
 
 const CHANGED = 'pattern-maker:changed-at';
 /** What this device and the account last agreed on, for the account it was signed in to. */

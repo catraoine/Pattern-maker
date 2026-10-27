@@ -52,7 +52,7 @@ export interface SleeveStyle {
 }
 
 /** Bicep and crown ease for jacket and coat sleeves, by fit. */
-export const OUTER_SLEEVE_EASE: Record<'jacket' | 'coat', Record<BodiceFit, { bicep: number; crown: number }>> = {
+const OUTER_SLEEVE_EASE: Record<'jacket' | 'coat', Record<BodiceFit, { bicep: number; crown: number }>> = {
   jacket: { fitted: { bicep: 8, crown: 3.5 }, regular: { bicep: 10, crown: 3 }, relaxed: { bicep: 13, crown: 2.5 } },
   coat: { fitted: { bicep: 10, crown: 3.5 }, regular: { bicep: 13, crown: 3 }, relaxed: { bicep: 16, crown: 2.5 } },
 };
@@ -69,9 +69,9 @@ const BACK_SHARE = 0.55;
 /** Width of a puff or bishop sleeve's band when finished, in cm. */
 export const BAND_CM = 3;
 /** How far a cap sleeve reaches below the underarm, in cm. */
-export const CAP_BELOW = 2.5;
+const CAP_BELOW = 2.5;
 /** A flutter's hem, as a share of the bicep: fanned open to about twice as wide. */
-export const FLUTTER_SPREAD = 2;
+const FLUTTER_SPREAD = 2;
 /** The shortest sleeve the slider sets: its underseam, below the underarm, in cm. */
 const MIN_UNDERSEAM = 3;
 /** The named lengths in order, shortest first. */

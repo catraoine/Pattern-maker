@@ -10,7 +10,7 @@ import type { Piece } from '../engine/piece';
 import { Handle, PointEdit, applyPointEdits, handlesOf, measureAt, pointOnEdge } from '../engine/pointEdit';
 import { pairs } from '../engine/qc';
 
-export interface PointEditing {
+interface PointEditing {
   /** The garment's own pieces as drafted, before any point is moved. */
   base: Piece[];
   edits: PointEdit[];
@@ -84,7 +84,7 @@ function withMove(edits: PointEdit[], piece: string, at: string, by: P): PointEd
   return edits.map((e, k) => (k === i ? { ...e, by } : e));
 }
 
-export function PointEditor({ base, edits, setEdits }: PointEditing) {
+function PointEditor({ base, edits, setEdits }: PointEditing) {
   const pieces = useMemo(() => applyPointEdits(base, edits), [base, edits]);
   const handles = useMemo(() => handlesOf(pieces), [pieces]);
   const { at: place, width, height } = useMemo(() => arrange(base), [base]);

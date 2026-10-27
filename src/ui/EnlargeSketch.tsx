@@ -62,6 +62,7 @@ export function EnlargeSketch({ host, name }: { host: HTMLElement | null; name: 
   // Where the button goes: over the drawing's corner, or in the pattern's own row beside Move points.
   const [spot, setSpot] = useState<HTMLElement | null>(null);
   // Only while there's a drawing to show: not on the turning form, not while drawing a hem.
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- reads the page after every render; the check stops a loop
   useLayoutEffect(() => {
     const svg = host && sketchIn(host);
     const now = svg && (big || !svg.classList.contains('drawing')) ? host.querySelector<HTMLElement>('.point-switch') ?? host : null;

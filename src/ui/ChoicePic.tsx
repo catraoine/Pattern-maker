@@ -5,7 +5,7 @@ import { useState, type ReactNode } from 'react';
 import { explainLine } from '../explain';
 import { BigDrawing, Drawing } from './Drawing';
 
-export type PicSet = 'skirt' | 'bodice' | 'tee' | 'trousers' | 'jacket' | 'coat';
+type PicSet = 'skirt' | 'bodice' | 'tee' | 'trousers' | 'jacket' | 'coat';
 
 const f = (n: number) => n.toFixed(1);
 

@@ -1,14 +1,11 @@
 import { matchKind } from '../engine/prints';
 import { useMemo, useState } from 'react';
-import { BELTS, Belt, beltAllowed, beltPieces, beltWords, skirtBelt } from '../engine/belt';
-import type { Choices } from '../App';
+import { BELTS, beltAllowed, beltPieces, skirtBelt } from '../engine/belt';
+import type { Choices } from '../savedWork';
 import { layout } from '../engine/export';
-import { piecesLengthCm, toMetres } from '../engine/fabric';
-import { layPlan } from '../engine/layplan';
-import { waistPieces } from '../engine/finishing';
-import { FIT_EASE, PULL_ON_EASE, lengthRange, Silhouette, SkirtDraft, SkirtMeasurements } from '../engine/skirt';
+import { FIT_EASE, PULL_ON_EASE, lengthRange, SkirtDraft, SkirtMeasurements } from '../engine/skirt';
 import { isShaped } from '../engine/hem';
-import { SLIP_FACING, SLIP_HIP_EASE_LESS, cutAllowed, elasticCutAllowed, validCut } from '../engine/slip';
+import { SLIP_FACING, SLIP_HIP_EASE_LESS, cutAllowed, validCut } from '../engine/slip';
 import type { MeasurementValues } from '../measurements';
 import { PatternPreview } from '../ui/Preview';
 import { PatternPane } from '../ui/PointEditor';
@@ -20,17 +17,15 @@ import { wrapSkirtAllowed } from '../engine/wrapSkirt';
 import { SLIT_PLACES, slitAllowed, slitOf } from '../engine/slit';
 import { FACING_DEPTH, HIGH, facedAllowed, highAllowed, sideZipAllowed } from '../engine/skirtWaist';
 import { NO_SLIT, SlitSlider } from '../ui/SlitSlider';
-import { BUTTONS_STOP_ABOVE_HEM, buttonsBlocked, buttonsOf, yokeBlocked, yokeOf } from '../engine/skirtFront';
-import { SaveControl } from '../ui/SaveControl';
+import { BUTTONS_STOP_ABOVE_HEM, buttonsBlocked, yokeBlocked } from '../engine/skirtFront';
 import { FinishChoices } from '../ui/FinishChoices';
-import type { Finish } from '../App';
-import { BAND_ACROSS_MAX } from '../engine/instructions';
-import { ERAS, findLook } from '../engine/eras';
+import type { Finish } from '../savedWork';
+import { ERAS } from '../engine/eras';
 import { skirtFlat } from '../engine/flat';
 import { shapeLine } from '../photo/shape';
 import { MyFabric, fabricEase, skirtFabrics } from '../engine/fabrics';
 import { FabricCard, FabricSummary } from '../ui/FabricCard';
-import { GODET_OPTIONS, VOLUME_OPTIONS, layoutExtras, setVolume, volumeAllowed, volumeOf, volumeWords } from '../engine/skirtVolume';
+import { GODET_OPTIONS, VOLUME_OPTIONS, setVolume, volumeAllowed, volumeOf } from '../engine/skirtVolume';
 
 import { EaseMapView } from '../ui/EaseMapView';
 import { FitSwitch, GarmentViews, PreviewSwitch } from '../ui/PreviewSwitch';
@@ -45,6 +40,9 @@ import { Explain } from '../ui/Explain';
 import { AllRound } from '../ui/AllRound';
 import { DemoButton } from '../ui/DemoButton';
 import { roundSkirt } from '../engine/allRound';
+import { PiecesList, SummaryActions } from '../ui/StyleSummary';
+
+import { GROUPS, chosen, DETAIL_GROUPS, FRONT_GROUP, frontOf, ZIP_PLACES, detailOf, zipOf, withWaist, keepWrap, elasticAllowed, pocketsAllowed, keepWaist, beltOf_, currentLook, describe, fabricMetres } from '../skirtChoices';
 
 interface Props {
   finish: Finish;
@@ -71,152 +69,6 @@ interface Props {
   /** Simple or all tools; all when not given. */
   mode?: Mode;
   onMode?: (m: Mode) => void;
-}
-
-type Group<K extends keyof Choices> = { id: K; label: string; options: [NonNullable<Choices[K]>, string][] };
-
-export const GROUPS: [Group<'fit'>, Group<'silhouette'>, Group<'length'>, Group<'asymHem'>] = [
-  { id: 'fit', label: 'Fit', options: [['fitted', 'Fitted'], ['regular', 'Regular'], ['relaxed', 'Relaxed']] },
-  {
-    id: 'silhouette',
-    label: 'Silhouette',
-    options: [['pencil', 'Pencil'], ['straight', 'Straight'], ['a_line', 'A-line'], ['gathered', 'Gathered'], ['trumpet', 'Trumpet'], ['half_circle', 'Half circle'], ['circle', 'Full circle'], ['slip', 'Bias slip']],
-  },
-  {
-    id: 'length',
-    label: 'Length',
-    options: [['mini', 'Mini'], ['above_knee', 'Above knee'], ['knee', 'Knee'], ['midi', 'Midi'], ['maxi', 'Maxi']],
-  },
-  { id: 'asymHem', label: 'Hem', options: [['none', 'Level'], ['high_low', 'High-low'], ['diagonal', 'Diagonal']] },
-];
-
-/** The chosen option in a group: older saves have no hem choice, which is a level hem. */
-export const chosen = (c: Choices, id: keyof Choices) => (id === 'asymHem' ? c.asymHem ?? 'none' : c[id]);
-/** The skirt's details: in-seam pockets, and a zipped waistband, a faced or high faced waist, a pull-on
- * elastic waist or a wrap that ties. */
-export const DETAIL_GROUPS: [{ id: 'waist'; label: string; options: [NonNullable<Choices['waist']> | 'wrap', string][] }, Group<'pockets'>] = [
-  { id: 'waist', label: 'Waist', options: [['band', 'Waistband with zip'], ['faced', 'Faced, no band'], ['high', 'High waist'], ['elastic', 'Elastic, pull-on'], ['wrap', 'Wrap, tied']] },
-  { id: 'pockets', label: 'Pockets', options: [['none', 'None'], ['inseam', 'In-seam']] },
-];
-
-/** The front: plain and darted, a yoke that takes the darts, or buttoned down the centre front. */
-export const FRONT_GROUP: { id: 'front'; label: string; options: ['plain' | 'yoke' | 'buttons', string][] } = {
-  id: 'front',
-  label: 'Front',
-  options: [
-    ['plain', 'Plain'],
-    ['yoke', 'Yoke'],
-    ['buttons', 'Buttoned'],
-  ],
-};
-
-/** The front as it will be made: a yoke or buttons only where the skirt can take them. */
-export const frontOf = (c: Choices): 'plain' | 'yoke' | 'buttons' => (yokeOf(c) ? 'yoke' : buttonsOf(c) ? 'buttons' : 'plain');
-
-/** Where the zip goes, on a skirt with one: the centre back, or the left side with the back on the fold. */
-export const ZIP_PLACES: ['back' | 'side', string][] = [
-  ['back', 'Centre back'],
-  ['side', 'Left side'],
-];
-
-/** The waist a skirt can have: a faced or high waist falls back to the band where the shape can't take it. */
-const waistOf = (c: Choices): string => {
-  const w = c.waist ?? 'band';
-  return (w === 'faced' && !facedAllowed(c)) || (w === 'high' && !highAllowed(c)) ? 'band' : w;
-};
-/** A detail as saved: older saves have no pockets and a zipped waistband. A wrap is kept apart from the waist. */
-const detailOf = (c: Choices, id: 'waist' | 'pockets'): string => (id === 'waist' ? (c.wrap && wrapSkirtAllowed(c) ? 'wrap' : waistOf(c)) : (c.pockets ?? 'none'));
-/** Where the zip is, or none on a pull-on or wrap skirt. */
-const zipOf = (c: Choices): 'back' | 'side' | undefined => {
-  const w = detailOf(c, 'waist');
-  if (w === 'elastic' || w === 'wrap' || buttonsOf(c)) return undefined;
-  return c.zip === 'side' && sideZipAllowed(c) ? 'side' : 'back';
-};
-/** Picking a waist: the wrap is its own flag, so picking it puts the waistband back, and the others let it go. */
-const withWaist = (c: Choices, id: string): Choices =>
-  id === 'wrap' ? { ...c, waist: undefined, wrap: true } : { ...c, waist: id === 'band' ? undefined : (id as Choices['waist']), wrap: undefined };
-/** The choices without the wrap where the skirt can no longer wrap. */
-const keepWrap = (c: Choices): Choices => (c.wrap && !wrapSkirtAllowed(c) ? { ...c, wrap: undefined } : c);
-
-/** A pencil skirt is shaped by its darts, so it can't be gathered onto elastic; nor can a bias slip, a
- * diagonal hem or pleats (see elasticCutAllowed). */
-export const elasticAllowed = (c: Pick<Choices, 'silhouette' | 'asymHem' | 'pleats'> & { silhouette: Silhouette }) => c.silhouette !== 'pencil' && elasticCutAllowed(c);
-
-/** In-seam pockets go in a plain side seam: not where pleats, godets, a flounce or tiers change the
- * skirt's pieces, nor on a skirt cut whole. */
-export const pocketsAllowed = (c: Choices) => volumeWords(c) === '' && !yokeOf(c) && c.silhouette !== 'slip' && c.asymHem !== 'diagonal' && !(c.wrap && wrapSkirtAllowed(c));
-
-/** The choices with the zipped waistband back where an elastic waist isn't allowed. */
-const keepWaist = (c: Choices): Choices => (elasticAllowed(c) ? c : { ...c, waist: undefined });
-
-/** "a, b and c". */
-const andList = (xs: string[]) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
-
-/** What the skirt has besides its shape, for its name: " with a shaped hem, an elastic waist and pockets". */
-function detailWords(c: Choices): string[] {
-  // A slit chosen is named; the walking slit a narrow skirt gets unasked is not.
-  const slit = c.slit && c.slit !== 'none' ? slitOf(c) : undefined;
-  const waist = detailOf(c, 'waist');
-  return [
-    slit ? `a ${slit.at} slit` : '',
-    waist === 'faced' ? 'a faced waist' : '',
-    yokeOf(c) ? 'a yoke' : buttonsOf(c) ? 'a button front' : '',
-    zipOf(c) === 'side' ? 'a side zip' : '',
-    c.waist === 'elastic' && elasticAllowed(c) ? 'an elastic waist' : '',
-    c.pockets === 'inseam' && pocketsAllowed(c) ? 'pockets' : '',
-    beltWords(beltOf_(c))].filter(Boolean);
-}
-
-/** The belt as it will be made: none on a wrap, and no loops on a pull-on elastic waist. */
-const beltOf_ = (c: Choices): Belt => {
-  const w = detailOf(c, 'waist');
-  const b = c.belt ?? 'none';
-  return beltAllowed(b, { wrap: w === 'wrap', elastic: w === 'elastic' }) ? b : 'none';
-};
-
-/** True when the skirt has been shaped by hand: a dragged length or flare, or a drawn hem. */
-export const handShaped = (c: Choices) => c.lengthCm !== undefined || c.flareCm !== undefined || isShaped(c.hem);
-
-/** The era look the choices came from, if they still have its shape and length. */
-export function currentLook(c: Choices) {
-  const look = findLook(c.look);
-  return look && look.silhouette === c.silhouette && look.length === c.length && !handShaped(c) ? look : undefined;
-}
-
-export function describe(c: Choices) {
-  const look = currentLook(c);
-  const v = validCut(c);
-  // Pleats, godets, a flounce or tiers: "with knife pleats". A drawn hem gives way to them; a high-low
-  // or diagonal hem, an elastic waist and pockets go last: "with 6 godets and a high-low hem".
-  const words = volumeWords(v);
-  const hem = v.asymHem === 'high_low' ? 'a high-low hem' : v.asymHem === 'diagonal' ? 'a diagonal hem' : !words && isShaped(c.hem) && !look ? 'a shaped hem' : '';
-  const parts = [words.replace(/^with /, ''), hem, ...detailWords(v)].filter(Boolean);
-  const withTail = parts.length ? ` with ${andList(parts)}` : '';
-  if (look) return `${look.name}${withTail}`;
-  if (c.shape) return `Skirt matched to a photo${withTail.replace(' with', ', with')}`;
-  const len = c.lengthCm !== undefined ? `${Math.round(c.lengthCm)} cm` : GROUPS[2].options.find((o) => o[0] === v.length)![1];
-  const sil = v.silhouette === 'slip' ? 'Bias-cut slip' : GROUPS[1].options.find((o) => o[0] === v.silhouette)![1];
-  return `${len} ${detailOf(v, 'waist') === 'high' ? 'high-waisted ' : ''}${sil === 'A-line' ? sil : sil.toLowerCase()} ${c.wrap && wrapSkirtAllowed(v) ? 'wrap ' : ''}skirt${withTail}`;
-}
-
-/** Fabric needed on 140 cm wide fabric, from the cutting layout of the pieces and the waistband. A
- * rough estimate where the pieces are too wide to lay out. */
-export function fabricMetres(draft: SkirtDraft): number {
-  const all = [...draft.pieces, ...layoutExtras(draft), ...waistPieces(draft, 1.5)];
-  // Whole bias pieces too wide for 140 cm cloth are bought 150 cm wide (the fabric advice says so).
-  const lay = layPlan(all, 140) ?? (draft.bias ? layPlan(all, 150) : undefined);
-  if (lay) return lay.metres;
-  if (draft.bias) {
-    // Too wide even then: each piece end to end, turned to 45 degrees.
-    const along = (pc: SkirtDraft['pieces'][number]) => {
-      const ys = pc.outline.taggedPoints(8).pts.map((q) => (q.x + q.y) / Math.SQRT2);
-      return (Math.max(...ys) - Math.min(...ys)) * (pc.meta.whole ? 1 : 2);
-    };
-    return toMetres(draft.pieces.reduce((t, pc) => t + along(pc), 0) + 25);
-  }
-  const { cutLength, cutWidth } = draft.waistband;
-  const band = cutLength <= BAND_ACROSS_MAX ? cutWidth : cutLength;
-  return toMetres(piecesLengthCm([...draft.pieces, ...layoutExtras(draft)]) + band + 15);
 }
 
 export function StyleScreen({ choices, onChoices, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, onPhoto, photo, onChooseGarment, finish, onFinish, easeMap, fabric, mode = 'all', onMode }: Props) {
@@ -766,45 +618,31 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
             {slipped ? ` That is ${SLIP_HIP_EASE_LESS} cm less at the hip than on the straight grain: cut on the bias, the cloth gives and moulds to you.` : ''}
           </p>
         )}
-        <div>
-          <p className="eyebrow">Pattern pieces</p>
-          <ul className="pieces">
-            {[...(draft?.pieces ?? []), ...(draft ? beltPieces(skirtBelt(choices.belt, draft), 1.5) : [])].map((pc) => (
-              <li key={pc.name}>
-                {pc.name}: {pc.cut.replace(' (1 pair)', '').toLowerCase()}
-              </li>
-            ))}
-            {draft && draft.faced && <li>Waist facings: cut 1 front and 1 back, {SLIP_FACING} cm deep</li>}
-            {draft?.waistFinish && (
-              <li>
-                Waist facings: cut 1 front and 1 back, {draft.waistFinish === 'high' ? HIGH.rise : FACING_DEPTH} cm deep, and again in interfacing
-              </li>
-            )}
-            {draft && !draft.faced && !draft.waistFinish && (
-              <li>
-                Waistband{draft.elastic ? ' (elastic casing)' : ''}: cut 1, {draft.waistband.cutLength} × {draft.waistband.cutWidth} cm
-              </li>
-            )}
-            {draft?.elastic && (
-              <li>
-                Elastic, {draft.elastic.widthCm} cm wide: cut {draft.elastic.cutCm} cm
-              </li>
-            )}
-            {draft?.volume?.tiers?.bands.map((b) => (
-              <li key={b.name}>
-                {b.name}: cut {b.panels}, {b.cutLength} × {b.cutWidth} cm
-              </li>
-            ))}
-          </ul>
-        </div>
+        <PiecesList pieces={[...(draft?.pieces ?? []), ...(draft ? beltPieces(skirtBelt(choices.belt, draft), 1.5) : [])]}>
+          {draft && draft.faced && <li>Waist facings: cut 1 front and 1 back, {SLIP_FACING} cm deep</li>}
+          {draft?.waistFinish && (
+            <li>
+              Waist facings: cut 1 front and 1 back, {draft.waistFinish === 'high' ? HIGH.rise : FACING_DEPTH} cm deep, and again in interfacing
+            </li>
+          )}
+          {draft && !draft.faced && !draft.waistFinish && (
+            <li>
+              Waistband{draft.elastic ? ' (elastic casing)' : ''}: cut 1, {draft.waistband.cutLength} × {draft.waistband.cutWidth} cm
+            </li>
+          )}
+          {draft?.elastic && (
+            <li>
+              Elastic, {draft.elastic.widthCm} cm wide: cut {draft.elastic.cutCm} cm
+            </li>
+          )}
+          {draft?.volume?.tiers?.bands.map((b) => (
+            <li key={b.name}>
+              {b.name}: cut {b.panels}, {b.cutLength} × {b.cutWidth} cm
+            </li>
+          ))}
+        </PiecesList>
         {draft && <FabricSummary metres={fabricMetres(draft)} fabric={fabric} />}
-        <button type="button" className="primary" disabled={!draft} onClick={onNext}>
-          Print my pattern
-        </button>
-        <SaveControl state={saveState} disabled={!draft} onSave={onSave} onAccount={onAccount} />
-        <button type="button" className="later edit-measure" onClick={onEditMeasurements}>
-          Edit measurements
-        </button>
+        <SummaryActions ready={!!draft} onNext={onNext} saveState={saveState} onSave={onSave} onAccount={onAccount} onEditMeasurements={onEditMeasurements} />
       </aside>
     </StyleLayout>
   );

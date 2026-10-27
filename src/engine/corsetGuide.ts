@@ -10,7 +10,7 @@ import { BONED_EASE, BONE_STOP, STRAP_ADJUST, WAIST_STAY } from './corset';
 import { placeWords } from './styleSteps';
 import { type Slit, slitStop, toHem } from './slit';
 
-export interface TopFinish {
+interface TopFinish {
   seam: string;
   curve: string;
   fabricM: number;

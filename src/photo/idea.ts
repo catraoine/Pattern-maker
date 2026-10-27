@@ -1,12 +1,12 @@
 // "Something else", described: the described idea as style choices for the garment it starts from, and the
 // few picks worth showing before measuring for it. Reuses the photo reading's mapping, so a described
 // garment and a photographed one start the same way.
-import type { Choices } from '../App';
+import type { Choices } from '../savedWork';
 import { BODICE_GROUPS, TEE_GROUPS, TROUSER_GROUPS, isBodice, isDress, isOuter, isTee, isTrousers, outerGroups, type PatternChoices } from '../garments';
 import type { Garment } from '../measurements';
 import { setVolume } from '../engine/skirtVolume';
 import { validCut } from '../engine/slip';
-import { GROUPS } from '../screens/StyleScreen';
+import { GROUPS } from '../skirtChoices';
 import { choicesFor } from './garments';
 import type { IdeaReading, PieceKind } from './types';
 

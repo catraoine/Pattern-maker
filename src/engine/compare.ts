@@ -4,7 +4,7 @@ import { P, Path, len, sub } from './geometry';
 import type { Piece } from './piece';
 
 /** An edge's name in a cutter's words, from its tag. */
-export const EDGE_WORDS: Record<string, string> = {
+const EDGE_WORDS: Record<string, string> = {
   side: 'side seam',
   waist: 'waist',
   hem: 'hem',

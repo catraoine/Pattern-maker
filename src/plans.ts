@@ -6,7 +6,7 @@ import type { Account } from './account';
 import type { Garment } from './measurements';
 import { FREE_SAVED_LIMIT } from './account';
 
-export type Plan = 'free' | 'premium' | 'maker';
+type Plan = 'free' | 'premium' | 'maker';
 
 export const PRICES = {
   pack: '$6',
@@ -16,7 +16,7 @@ export const PRICES = {
 } as const;
 
 /** Garments every plan can print. The rest need Premium, Maker or a garment pack. */
-export const FREE_GARMENTS: readonly Garment[] = ['skirt', 'bodice'];
+const FREE_GARMENTS: readonly Garment[] = ['skirt', 'bodice'];
 export const FREE_PHOTO_DRAFTS = 3;
 
 /** Paid plans lock things only when this is on. Turned on with VITE_BILLING=on once payments work. */

@@ -1,7 +1,7 @@
 // The garments the app can make, and the style choices saved for each.
 import { CUFFS, Cuff, cuffAllowed } from './engine/cuffs';
 import { BACK_NECKS, BackNeck, backBlocked } from './engine/backNeck';
-import type { Choices } from './App';
+import type { Choices } from './savedWork';
 import type { BodiceDarts, BodiceFit, BodiceLength, DrawnNeck, Neckline, UnevenNeck } from './engine/bodice';
 import { SHAPES_FOR_LENGTH, SleeveLength, SleeveShape } from './engine/sleeve';
 import { SLEEVE_CUTS, SleeveCut, sleeveCutBlocked, sleeveCutOf } from './engine/sleeveCut';
@@ -124,7 +124,7 @@ export interface TrousersChoices {
 
 export const DEFAULT_TROUSERS_CHOICES: TrousersChoices = { garment: 'trousers', fit: 'regular', leg: 'straight', length: 'full', closure: 'fly' };
 
-export type TrouserGroupId = 'fit' | 'leg' | 'length' | 'waist' | 'closure' | 'pockets';
+type TrouserGroupId = 'fit' | 'leg' | 'length' | 'waist' | 'closure' | 'pockets';
 
 export const TROUSER_GROUPS: { id: TrouserGroupId; label: string; options: [string, string][] }[] = [
   { id: 'fit', label: 'Fit', options: [['fitted', 'Fitted'], ['regular', 'Regular'], ['relaxed', 'Relaxed']] },
@@ -215,7 +215,7 @@ export interface LingerieChoices {
 
 export const DEFAULT_LINGERIE_CHOICES: LingerieChoices = { garment: 'lingerie', piece: 'brief', stretch: 'medium', way: 'four', leg: 'classic', rise: 'high', cup: 'triangle', closure: 'none' };
 
-export type LingerieGroupId = 'piece' | 'way' | 'stretch' | 'leg' | 'rise' | 'cup' | 'closure';
+type LingerieGroupId = 'piece' | 'way' | 'stretch' | 'leg' | 'rise' | 'cup' | 'closure';
 
 export const LINGERIE_GROUPS: { id: LingerieGroupId; label: string; options: [string, string][] }[] = [
   { id: 'piece', label: 'Piece', options: [['brief', 'Brief'], ['bralette', 'Bralette'], ['bodysuit', 'Bodysuit'], ['swimsuit', 'Swimsuit'], ['bikini', 'Bikini']] },

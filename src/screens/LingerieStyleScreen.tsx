@@ -1,7 +1,5 @@
 import { useMemo } from 'react';
 import { layout } from '../engine/export';
-import { piecesLengthCm, toMetres } from '../engine/fabric';
-import { layPlan } from '../engine/layplan';
 import { LingerieDraft, LingerieFit, LingerieMeasurements, isSwim, lingerieMissing } from '../engine/lingerie';
 import { STRETCH_TEST } from '../engine/tee';
 import { LINGERIE_GROUPS, LingerieChoices, describeLingerie, lingerieGroupShown, lingeriePick } from '../garments';
@@ -9,7 +7,6 @@ import { MeasurementValues } from '../measurements';
 import { labelOf } from '../measureFlow';
 import { PatternPreview } from '../ui/Preview';
 import { PatternPane } from '../ui/PointEditor';
-import { SaveControl } from '../ui/SaveControl';
 import { UndoToast, UndoTools, useUndo } from '../ui/useUndo';
 import type { MyFabric } from '../engine/fabrics';
 import { lingerieFabrics } from '../engine/knits';
@@ -17,6 +14,9 @@ import { FabricCard, FabricSummary } from '../ui/FabricCard';
 import type { Mode } from '../mode';
 import { FABRIC, Group, LOOKS, StyleLayout, TabPanel } from '../ui/StyleLayout';
 import { FabricDetails } from '../ui/FabricDetails';
+import { PiecesList, SummaryActions } from '../ui/StyleSummary';
+
+import { lingerieFabricMetres } from '../fabricAmounts';
 
 interface Props {
   onPhoto?: () => void;
@@ -37,9 +37,6 @@ interface Props {
   mode?: Mode;
   onMode?: (m: Mode) => void;
 }
-
-/** Knit on 150 cm wide fabric, from the cutting layout; swimwear needs the same again in lining. */
-export const lingerieFabricMetres = (draft: LingerieDraft) => layPlan(draft.pieces, 150)?.metres ?? toMetres(piecesLengthCm(draft.pieces) + 10);
 
 const PIECE_NOTES: Record<LingerieChoices['piece'], string> = {
   brief: 'A brief with a lined gusset and elastic at the waist and legs.',
@@ -216,25 +213,10 @@ export function LingerieStyleScreen({ onPhoto, photo, choices, onChoices: setCho
             </ul>
           </div>
         )}
-        <div>
-          <p className="eyebrow">Pattern pieces</p>
-          <ul className="pieces">
-            {pieces.map((pc) => (
-              <li key={pc.name}>
-                {pc.name}: {pc.cut.replace(' (1 pair)', '').toLowerCase()}
-              </li>
-            ))}
-          </ul>
-        </div>
+        <PiecesList pieces={pieces} />
         {draft && <FabricSummary metres={lingerieFabricMetres(draft)} fabric={fabric} />}
         <p className="muted small">Seams are 1 cm. Each elastic edge has an allowance as wide as its elastic, so it turns once over it.</p>
-        <button type="button" className="primary" disabled={!draft} onClick={onNext}>
-          Print my pattern
-        </button>
-        <SaveControl state={saveState} disabled={!draft} onSave={onSave} onAccount={onAccount} />
-        <button type="button" className="later edit-measure" onClick={onEditMeasurements}>
-          Edit measurements
-        </button>
+        <SummaryActions ready={!!draft} onNext={onNext} saveState={saveState} onSave={onSave} onAccount={onAccount} onEditMeasurements={onEditMeasurements} />
       </aside>
     </StyleLayout>
   );

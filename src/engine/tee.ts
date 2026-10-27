@@ -36,7 +36,7 @@ export interface TeeMeasurements extends SleeveMeasurements {
   high_bust?: number;
 }
 
-export interface TeeStyle {
+interface TeeStyle {
   fit: TeeFit;
   stretch: Stretch;
   neckline: TeeNeck;
@@ -66,7 +66,7 @@ export const TEE_EASE: Record<TeeFit, Record<Stretch, number>> = {
 };
 
 /** Ease round the upper arm, as a share of it: the sleeve follows the body's fit, a little roomier. */
-export const TEE_SLEEVE_EASE: Record<TeeFit, Record<Stretch, number>> = {
+const TEE_SLEEVE_EASE: Record<TeeFit, Record<Stretch, number>> = {
   fitted: { low: 0.04, medium: 0, high: -0.04 },
   regular: { low: 0.1, medium: 0.07, high: 0.05 },
   relaxed: { low: 0.2, medium: 0.18, high: 0.16 },
@@ -123,7 +123,7 @@ export const TEE_NECKS: Record<TeeNeck, { frontDepth: number; width: number; bac
   mock: { frontDepth: 3, width: 1.2, backDepth: 1 },
 };
 /** The knit neck width over a fifth of the neck, each side of the centre (the woven block uses 0.2 less). */
-export const TEE_NECK_WIDEN = 1.6;
+const TEE_NECK_WIDEN = 1.6;
 
 export interface TeeDraft {
   pieces: Piece[];
@@ -252,7 +252,7 @@ const MAX_FRONT_EXTRA = 5;
  *   to sew. 0.4 cm of length for each cm of cup, as the bodice estimates its front length (estimate.ts).
  * - The menswear form, and a high bust as big as the full bust, get none.
  */
-export function bustShaping(m: Pick<TeeMeasurements, 'full_bust' | 'high_bust'>, s: Pick<TeeStyle, 'flatFront' | 'fit' | 'stretch'>) {
+function bustShaping(m: Pick<TeeMeasurements, 'full_bust' | 'high_bust'>, s: Pick<TeeStyle, 'flatFront' | 'fit' | 'stretch'>) {
   if (s.flatFront) return { cup: 0, shift: 0, length: 0 };
   const B = m.full_bust;
   // Until the high bust is taken, the cup the measurement estimates use for the same bust (estimate.ts).

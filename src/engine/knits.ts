@@ -108,7 +108,7 @@ export function teeWarnings(style: { fit: TeeFit; stretch: Stretch }, { weight, 
 const PREPARE_TITLE = 'Prepare your fabric';
 
 /** The first step for a knit: wash it, let it relax, and find the grain along the ribs. */
-export function knitPrepareStep(f: MyFabric | undefined): { title: string; text: string } {
+function knitPrepareStep(f: MyFabric | undefined): { title: string; text: string } {
   const wash =
     f?.fibre === 'wool'
       ? 'Hand wash it cool and dry it flat, or it will felt.'

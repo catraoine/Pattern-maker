@@ -15,7 +15,7 @@ type Demo = {
   length: string;
 };
 
-export const DEMOS = {
+const DEMOS = {
   style: {
     title: 'How Style works',
     base: '/demos/style',
@@ -23,7 +23,7 @@ export const DEMOS = {
       { name: 'Tabs', from: 0 },
       { name: 'Shape', from: 6.6 },
       { name: 'Length & hem', from: 16.6 },
-      { name: 'Details', from: 20.9 },
+      { name: 'Details', from: 21.0 },
       { name: 'Undo', from: 25.1 },
       { name: 'Pattern', from: 27.9 },
       { name: 'Review', from: 33.3 },
@@ -36,8 +36,8 @@ export const DEMOS = {
     parts: [
       { name: 'Open it', from: 0 },
       { name: 'Draw', from: 11.2 },
-      { name: 'Undo', from: 23.2 },
-      { name: 'Done', from: 28.7 },
+      { name: 'Undo', from: 22.9 },
+      { name: 'Done', from: 28.3 },
     ],
     length: '0:35',
   },
@@ -99,7 +99,7 @@ export const DEMOS = {
   },
 } satisfies Record<string, Demo>;
 
-export type DemoName = keyof typeof DEMOS;
+type DemoName = keyof typeof DEMOS;
 
 export function DemoButton({ demo }: { demo: DemoName }) {
   const [open, setOpen] = useState(false);

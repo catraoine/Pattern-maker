@@ -16,7 +16,7 @@ import type { Piece } from './piece';
  * at the top, and a long tunic's dip below the hip at the bottom. The side seam moves less: it can rise
  * as far, but drop only a little, since below the hip the bodice is no wider than where it was cut. */
 export const HEM_ABOVE = 5;
-export const bodiceHemRange = (m: { waist_to_hip?: number }, drop: number) => ({
+const bodiceHemRange = (m: { waist_to_hip?: number }, drop: number) => ({
   min: HEM_ABOVE,
   max: (m.waist_to_hip ?? drop) + 12,
   sideMax: Math.max(drop, Math.min(drop + 2, (m.waist_to_hip ?? drop) + 4)),

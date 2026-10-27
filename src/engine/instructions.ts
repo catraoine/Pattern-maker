@@ -58,7 +58,7 @@ export interface SkirtFinish {
 
 export type BodiceEdges = 'binding' | 'facings' | 'lined';
 
-export interface BodiceFinish {
+interface BodiceFinish {
   seams?: SeamWidths;
   edges?: BodiceEdges;
   liningM?: number;
@@ -265,7 +265,7 @@ function skirtFrontSteps(g: SewingGuide, draft: SkirtDraft, o: { seam: string; w
 }
 
 /** Gathering a skirt's waist, sewn the way a pattern cutter would. */
-export function gatherStep(g: NonNullable<SkirtDraft['gathers']>, into: string, zipped: boolean): SewStep {
+function gatherStep(g: NonNullable<SkirtDraft['gathers']>, into: string, zipped: boolean): SewStep {
   return {
     title: 'Gather the waist',
     text: `Sew two rows of long machine stitches along the waist of each piece, one just inside the seam line and one 0.5 cm further out, stopping ${zipped ? 'at the zip and ' : ''}at each seam. Leave long thread ends. The waist is ${n1(g.round)} round as cut and gathers into ${n1(g.into)} of ${into}, ${Math.round((g.round / g.into) * 10) / 10} times as much: pull up the bobbin threads from both ends until each quarter fits its quarter of ${into}, matching the notches, and spread the gathers evenly. Gathers are easiest to control in sections, so pin often.`,

@@ -31,7 +31,7 @@ export type TrouserLength = 'shorts' | 'knee' | 'capri' | 'cropped' | 'ankle' | 
 export const TROUSER_LENGTHS: TrouserLength[] = ['shorts', 'knee', 'capri', 'cropped', 'ankle', 'full'];
 export type TrouserClosure = 'fly' | 'side_zip';
 
-export interface TrousersStyle {
+interface TrousersStyle {
   fit: Fit;
   leg: Leg;
   /** Culottes are always cut to mid-calf. */
@@ -80,7 +80,7 @@ export const LEG_WORDS: Record<Leg, string> = { straight: 'straight-leg trousers
 
 /** A drawn leg's widths, round the leg in cm: the knee from snug to culotte-wide, the hem from the
  * narrowest a foot goes through to a wide flare, as shares of the finished hip. */
-export const LEG_CM = { knee: { min: 0.38, max: 0.7 }, hem: { max: 0.8 } };
+const LEG_CM = { knee: { min: 0.38, max: 0.7 }, hem: { max: 0.8 } };
 
 /** How far the waistband can be drawn from the waist: a low rise down to 8 cm below, a high rise up to 5 cm above. */
 export const RISE_RANGE = { min: -8, max: 5 };
@@ -98,7 +98,7 @@ export const lengthCmRange = (m: Pick<TrousersMeasurements, 'crotch_depth' | 'wa
  * fuller than the waist, over the lower ribs. Every length from the waist grows or shrinks with it, and
  * the crotch length by twice as much, front and back.
  */
-export function risen(m: TrousersMeasurements, rise: number): TrousersMeasurements {
+function risen(m: TrousersMeasurements, rise: number): TrousersMeasurements {
   const r = riseFor(m, rise);
   if (!r) return m;
   const t = Math.max(0, -r) / m.waist_to_hip;

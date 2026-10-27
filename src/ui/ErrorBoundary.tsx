@@ -22,7 +22,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, State> {
   }
 }
 
-export function CrashScreen() {
+function CrashScreen() {
   return (
     <div className="app">
       <main className="main">
