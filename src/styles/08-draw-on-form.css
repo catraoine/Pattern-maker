@@ -13,9 +13,6 @@
 .form-draw .card > .row {
   flex-wrap: nowrap;
 }
-.form-draw .seg button {
-  padding: 0 14px;
-}
 /* Done: the one way on, filled so it reads apart from everything else on the screen. */
 .form-draw button.primary.done,
 .form-leave button.primary.done {
@@ -27,22 +24,56 @@
   min-height: 42px;
   padding: 0 18px;
 }
-/* Line kinds in one row under the form, sliding sideways when they don't fit. */
+/* Every line kind showing at once in a grid under the form, none cut off (Cat's B Tray Below, 2026-10-27). */
 .form-draw .form-kinds {
-  flex-wrap: nowrap;
-  justify-content: flex-start;
-  overflow-x: auto;
-  overflow-y: hidden;
-  overscroll-behavior-x: contain;
-  scrollbar-width: none;
-  margin: 0 -2px;
-  padding: 0 2px 2px;
-}
-.form-draw .form-kinds::-webkit-scrollbar {
-  display: none;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
 }
 .form-draw .form-kinds .chip {
-  flex: 0 0 auto;
+  min-height: 34px;
+  padding: 0 4px;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  border-width: 1px;
+  border-color: var(--guide);
+}
+.form-draw .form-kinds .chip.on {
+  border-color: var(--ink);
+}
+@media (min-width: 900px) {
+  .form-draw.big .form-kinds {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    width: 100%;
+    max-width: 720px;
+    margin: 0 auto;
+  }
+}
+/* Under the kinds, the sides and Undo/Redo on one hairline-topped row. */
+.form-draw .form-sides {
+  border-top: 1px solid var(--guide);
+  padding-top: 2px;
+}
+.form-draw .form-sides .seg {
+  border: 0;
+  gap: 0;
+}
+/* The sides as plain words, the one showing underlined, so they don't read as a third kind of button. */
+.form-draw .form-sides .seg button {
+  min-height: 40px;
+  padding: 0 14px 0 0;
+  background: none;
+  border: 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+.form-draw .form-sides .seg button.on {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 6px;
+}
+.form-draw .form-sides .seg button:disabled {
+  color: var(--disabled);
 }
 /* Undo and Redo as plain words, so they don't read as a third side of the form. */
 .form-undo {
@@ -113,8 +144,16 @@
   background: var(--paper);
 }
 .form-draw.big .screen-head {
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
   margin: 0;
+}
+/* Smaller, up top across from Done. */
+.form-draw.big .screen-head .enlarge {
+  position: static;
+  padding: 10px 0;
+  color: var(--ink);
+  font-size: 11px;
 }
 .form-draw.big .screen-head > div {
   display: none;
@@ -125,8 +164,8 @@
   width: 100%;
   max-width: 900px;
   margin: 0 auto;
-  grid-template-rows: auto minmax(0, 1fr) auto auto;
-  gap: 8px;
+  grid-template-rows: minmax(0, 1fr) auto auto auto;
+  gap: 10px;
 }
 .form-draw.big .preview {
   min-height: 0;
@@ -174,4 +213,45 @@
 .form-svg .tape.on {
   stroke: var(--gild-glow);
   filter: drop-shadow(0 0 0.5px rgba(243, 230, 200, 0.8));
+}
+
+/* The line being drawn is a fine chalk line, and a hem shows a level line where it will sit, with its length. */
+.form-svg .stroke.chalk {
+  stroke: var(--gild-glow);
+  stroke-dasharray: 0.8 0.45;
+  filter: none;
+  opacity: 0.9;
+}
+.form-svg .hem-ghost path {
+  stroke: var(--gild);
+  stroke-width: 0.18;
+  fill: none;
+  opacity: 0.85;
+}
+.form-svg .hem-ghost text {
+  fill: var(--gild-glow);
+  font-family: var(--mono);
+  font-weight: 600;
+  letter-spacing: 0.18em;
+}
+/* Watch demo readable here: ivory caps with a play ring, not the whisper it is elsewhere. */
+.form-draw .demo-play {
+  font-size: 11px;
+  padding: 10px 6px;
+}
+.form-draw .demo-play-words {
+  background: none;
+  color: var(--ink);
+  animation: none;
+}
+.form-draw .demo-play-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin-left: 8px;
+  border: 1px solid var(--ink);
+  border-radius: 50%;
+  font-size: 8px;
+  vertical-align: middle;
 }

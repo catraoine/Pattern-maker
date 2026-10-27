@@ -363,6 +363,28 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
   };
   const help = helpFor?.[kind] ?? ((onBack && BACK_HELP[kind]) || HELP[kind]);
 
+  // Enlarged, Smaller sits up top across from Done, and every other tool waits in the tray under the form (Cat's B Tray
+  // Below, 2026-10-27).
+  const enlarge = (
+    <button type="button" className="enlarge" aria-pressed={big} onClick={() => setBig(!big)}>
+      <svg viewBox="0 0 16 16" aria-hidden="true">
+        <path d={big ? 'M13.5 6.5h-4v-4M2.5 9.5h4v4M9.5 6.5 14 2M6.5 9.5 2 14' : 'M9.5 2.5h4v4M6.5 13.5h-4v-4M13.5 2.5 9 7M2.5 13.5 7 9'} />
+      </svg>
+      {big ? 'Smaller' : 'Enlarge'}
+    </button>
+  );
+  // While a hem is drawn, a level line shows where it will sit, with its length on it, so the wobble of a finger
+  // reads as a sketch rather than as the hem itself.
+  const ghost = useMemo(() => {
+    if (!stroke || kind !== 'hem' || stroke.length < 5) return undefined;
+    const ys = stroke.map((q) => q.y).sort((a, b) => a - b);
+    // Only a level line sets a length; a curved one shapes the hem along it, so it has no level line to show.
+    if (ys[ys.length - 1] - ys[0] >= 3) return undefined;
+    const xs = stroke.map((q) => q.x);
+    const tag = live?.replace(/\.$/, '').replace(/ (length|skirt)$/, '');
+    return { y: ys[Math.floor(ys.length / 2)], x0: Math.min(...xs) - 2, x1: Math.max(...xs) + 2, tag: tag && tag.length <= 26 ? tag : undefined };
+  }, [stroke, kind, live]);
+
   return (
     <div className={big ? 'form-draw big' : 'form-draw'}>
       <div className="screen-head">
@@ -370,48 +392,15 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
           <p className="eyebrow">Drape · Your form <TestingTag /></p>
           <h1>Draw your lines</h1>
         </div>
+        {big && enlarge}
         <button type="button" className="primary done" onClick={() => leave(onDone)}>
           Done
         </button>
       </div>
       <section className="card" aria-label="Your dress form">
-        <div className={backs ? 'row between wrap' : 'row end wrap'}>
-          {backs && (
-          <div className="seg" role="group" aria-label="Side of the form">
-            {(['front', 'back'] as const).map((s) => (
-              <button
-                key={s}
-                type="button"
-                aria-pressed={side === s}
-                className={side === s ? 'on' : ''}
-                disabled={s === 'back' && frontOnly(kind)}
-                onClick={() => {
-                  setSide(s);
-                  setSaid(undefined);
-                }}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
-          )}
-          <div className="form-undo">
-            <button type="button" onClick={undoLine} disabled={!steps.length} aria-label="Undo the last line">
-              ↶ Undo
-            </button>
-            <button type="button" onClick={redoLine} disabled={!undone.length} aria-label="Redo the line you undid">
-              ↷ Redo
-            </button>
-          </div>
-        </div>
         <div className="preview">
           <DemoButton demo="draw" />
-          <button type="button" className="enlarge" aria-pressed={big} onClick={() => setBig(!big)}>
-            <svg viewBox="0 0 16 16" aria-hidden="true">
-              <path d={big ? 'M13.5 6.5h-4v-4M2.5 9.5h4v4M9.5 6.5 14 2M6.5 9.5 2 14' : 'M9.5 2.5h4v4M6.5 13.5h-4v-4M13.5 2.5 9 7M2.5 13.5 7 9'} />
-            </svg>
-            {big ? 'Smaller' : 'Enlarge'}
-          </button>
+          {!big && enlarge}
           <svg
             ref={svg}
             viewBox={`${f(view.left)} ${f(view.top)} ${f(view.width)} ${f(view.bottom - view.top)}`}
@@ -488,7 +477,17 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
                 BACK
               </text>
             )}
-            {stroke && <polyline points={stroke.map((q) => `${f(q.x)},${f(q.y)}`).join(' ')} className="stroke" strokeWidth={0.5} fill="none" strokeLinecap="round" strokeLinejoin="round" />}
+            {ghost && (
+              <g className="hem-ghost">
+                <path d={`M${f(ghost.x0)} ${f(ghost.y)} L${f(ghost.x1)} ${f(ghost.y)} M${f(ghost.x0)} ${f(ghost.y - 0.8)} V${f(ghost.y + 0.8)} M${f(ghost.x1)} ${f(ghost.y - 0.8)} V${f(ghost.y + 0.8)}`} />
+                {ghost.tag && (
+                  <text x={(ghost.x0 + ghost.x1) / 2} y={ghost.y - 1.3} fontSize={1.7} textAnchor="middle">
+                    {ghost.tag.toUpperCase()}
+                  </text>
+                )}
+              </g>
+            )}
+            {stroke && <polyline points={stroke.map((q) => `${f(q.x)},${f(q.y)}`).join(' ')} className="stroke chalk" strokeWidth={0.3} fill="none" strokeLinecap="round" strokeLinejoin="round" />}
           </svg>
         </div>
         <p className="muted small form-said" role="status">
@@ -500,6 +499,35 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
               {label}
             </button>
           ))}
+        </div>
+        <div className={backs ? 'row between wrap form-sides' : 'row end wrap form-sides'}>
+          {backs && (
+          <div className="seg" role="group" aria-label="Side of the form">
+            {(['front', 'back'] as const).map((s) => (
+              <button
+                key={s}
+                type="button"
+                aria-pressed={side === s}
+                className={side === s ? 'on' : ''}
+                disabled={s === 'back' && frontOnly(kind)}
+                onClick={() => {
+                  setSide(s);
+                  setSaid(undefined);
+                }}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+          )}
+          <div className="form-undo">
+            <button type="button" onClick={undoLine} disabled={!steps.length} aria-label="Undo the last line">
+              ↶ Undo
+            </button>
+            <button type="button" onClick={redoLine} disabled={!undone.length} aria-label="Redo the line you undid">
+              ↷ Redo
+            </button>
+          </div>
         </div>
       </section>
       {asking && (
