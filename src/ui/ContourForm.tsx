@@ -428,6 +428,40 @@ function satinColour(lit: number, shine: number): string {
   return `rgb(${ch(5, 62)},${ch(5, 55)},${ch(5, 42)})`;
 }
 
+/** Where a dress form's neck ends (form units): the side of the neck meets the shoulder at -1.47, the top is about
+ *  7 cm above it. The real body's neck ring there is the one the top is cut across. */
+const NECK_TOP = -1.75;
+
+/** The flat top of the neck on a dress form: the neck's ring at `yTop`, filled as a surface facing up and lit
+ *  as the satin is. Drawn after the sides, since the form is seen from a touch above. */
+function paintNeckTop(
+  g: CanvasRenderingContext2D,
+  S: number,
+  cx: number,
+  Y: (y: number) => number,
+  spin: number,
+  half: (y: number) => number,
+  shape: (a: number, y: number) => number,
+  yTop: number,
+  depth = DEPTH,
+) {
+  const { lit, shine } = lightOf(0, -1, 0, 'gloss');
+  g.globalAlpha = 1;
+  g.fillStyle = satinColour(lit * 0.85, shine * 0.5);
+  g.beginPath();
+  for (let i = 0; i <= 72; i++) {
+    const a = -Math.PI + (2 * Math.PI * i) / 72;
+    const r = half(yTop) * shape(a, yTop);
+    const th = a + spin;
+    const x = cx + Math.sin(th) * r * S;
+    const y = Y(yTop) + Math.cos(th) * r * S * depth;
+    if (i) g.lineTo(x, y);
+    else g.moveTo(x, y);
+  }
+  g.closePath();
+  g.fill();
+}
+
 /** The form as a black satin mannequin, turned by `spin`, from `yTop` (the chin) to `yBottom`: the real body's rings
  *  (`half` and `shape`, as engine/body.ts gives them) laid as small lit patches, the far half left out. The light is
  *  the cloth's, so through a neckline the chest reads as the same satin form the Style page draws. */
@@ -504,7 +538,7 @@ export function paintFigure(
   legs = 1,
   withArms = false,
   turn?: number,
-  body?: { half: (y: number) => number; shape: (a: number, y: number) => number; satin?: boolean },
+  body?: { half: (y: number) => number; shape: (a: number, y: number) => number; satin?: boolean; head?: boolean },
 ) {
   const spin = turn ?? 0;
   if (turn === undefined) {
@@ -521,16 +555,19 @@ export function paintFigure(
   const shape = body?.shape ?? (() => 1);
   const cs = Math.cos(spin), ss = Math.sin(spin);
   if (body?.satin) {
-    // The satin form (Cat, 2026-10-27: the real body with the satin finish), from the chin down; the neck's own ring
-    // carries on up to the jaw. Its legs and head are drawn as ever.
-    const top = -2.0;
-    const neckHalf = (y: number) => half(Math.max(y, -1.75));
-    const neckShape = (a: number, y: number) => shape(a, Math.max(y, -1.75));
+    // The satin form (Cat, 2026-10-27: the real body with the satin finish). With a head, the satin runs from the chin
+    // down, the neck's own ring carried on up to the jaw. Without one (All round, Cat 2026-10-27: the head didn't
+    // turn, so keep it off) it is a dress form: the neck ends about 7 cm above the shoulders in a flat top.
+    const withHead = body.head !== false;
+    const top = withHead ? -2.0 : NECK_TOP;
+    const neckHalf = (y: number) => half(Math.max(y, NECK_TOP));
+    const neckShape = (a: number, y: number) => shape(a, Math.max(y, NECK_TOP));
     paintSatinBody(g, S, cx, Y, spin, neckHalf, neckShape, top, 1.3);
+    if (!withHead) paintNeckTop(g, S, cx, Y, spin, neckHalf, neckShape, top);
     const alpha = g.globalAlpha;
     g.globalAlpha = 1;
     paintLegsTurned(g, S, cx, Y, lw, legs, spin);
-    paintHead(g, S, cx, Y, lw, (u) => 0.7 * Math.min(1, Math.sqrt(Math.max(0, 1 - u * u)) * 6), spin, 1, false);
+    if (withHead) paintHead(g, S, cx, Y, lw, (u) => 0.7 * Math.min(1, Math.sqrt(Math.max(0, 1 - u * u)) * 6), spin, 1, false);
     g.globalAlpha = alpha;
     return;
   }

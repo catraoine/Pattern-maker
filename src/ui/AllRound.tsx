@@ -568,7 +568,7 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
       g.clip();
       g.globalAlpha = 0.6;
       g.strokeStyle = GILD;
-      paintFigure(g, S, cx, Y, lw, trousers ? 0 : 1, false, phi, { half: formHalfWidth, shape: shapeAt, satin: true });
+      paintFigure(g, S, cx, Y, lw, trousers ? 0 : 1, false, phi, { half: formHalfWidth, shape: shapeAt, satin: true, head: false });
       // The cloth covers the form: under the garment the body is not drawn, so the garment is what reads.
       if (!trousers && !through && !cloth?.sheer) {
         // The shoulders and the neck still show through a top's yoke: the cloth is held to the body there.
@@ -610,7 +610,7 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
             g.fillStyle = '#000';
             g.fillRect(0, 0, w, h);
             g.globalAlpha = 0.6;
-            paintFigure(g, S, cx, Y, lw, 1, false, phi, { half: formHalfWidth, shape: shapeAt, satin: true });
+            paintFigure(g, S, cx, Y, lw, 1, false, phi, { half: formHalfWidth, shape: shapeAt, satin: true, head: false });
             g.restore();
           };
           // Through the neck: the chest, inside the top edge all round.
