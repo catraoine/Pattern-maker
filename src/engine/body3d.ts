@@ -1,18 +1,16 @@
-// A 3D dress form built from a person's measurements: the app's own form (R in form.ts) turned into oval
-// cross-sections, stretched so the neck, high bust, bust, waist, high hip and hip measure exactly what the
-// person measured, at the heights they measured them. It is exported as an OBJ that CLO 3D and Browzwear
-// load as an avatar, and it is the body the 3D shape preview draws on.
+// A 3D body built from a person's measurements: the app's real body (engine/body.ts, read off MakeHuman's base
+// body) ring by ring, each ring stretched so the neck, high bust, bust, waist, high hip and hip measure exactly what
+// the person measured, at the heights they measured them. It is exported as an OBJ that CLO 3D and Browzwear load
+// as an avatar, and it is the body the All round view and the Body Double cover are built on.
 import { EXAMPLE_VALUES, type MeasurementId, type MeasurementValues } from '../measurements';
-import { FORM_BOTTOM, FORM_TOP, R, formLandmarks } from './form';
+import { BODY_BOTTOM, BODY_TOP, bodyHalf as R, bodyLandmarks as formLandmarks, shapeAt } from './body';
 
 /** Points round each cross-section. Girths are measured round this same loop, so they are exact. */
 export const SEGMENTS = 96;
 /** Rings from the top of the neck to below the hip, before the landmark rings are added. */
 const RINGS = 150;
-/** Cross-sections are a little squarer than an ellipse, like a padded form. */
-const SQUARE = 2.2;
 
-/** One cross-section of the form. Heights and sizes are in cm; y is the form's own profile unit. */
+/** One cross-section of the body. Heights and sizes are in cm; y is the form's own profile unit. */
 export interface BodyRing {
   y: number;
   /** Height above the floor. */
@@ -41,21 +39,25 @@ export interface Body {
   shoulders: number;
 }
 
-const sgnPow = (v: number, p: number) => Math.sign(v) * Math.abs(v) ** p;
-
-/** The loop round one cross-section, as [x, z] in cm: x to the side, z forward. */
-export function section(r: Pick<BodyRing, 'half' | 'front' | 'back'>, segments = SEGMENTS): [number, number][] {
+/** The loop round one cross-section, as [x, z] in cm: x to the side, z forward. The real body's own ring at that
+ *  height, as wide as `half`, its front and back drawn out (or in) to `front` and `back`. */
+export function section(r: Pick<BodyRing, 'y' | 'half' | 'front' | 'back'>, segments = SEGMENTS): [number, number][] {
   const out: [number, number][] = [];
+  const f0 = shapeAt(0, r.y) * r.half;
+  const b0 = shapeAt(Math.PI, r.y) * r.half;
   for (let i = 0; i < segments; i++) {
     const th = (2 * Math.PI * i) / segments;
-    const c = Math.cos(th), s = Math.sin(th);
-    out.push([r.half * sgnPow(c, 2 / SQUARE), (s >= 0 ? r.front : r.back) * sgnPow(s, 2 / SQUARE)]);
+    // th runs from the right side (x) round the front (z): the angle from straight ahead is its complement.
+    const a = Math.atan2(Math.cos(th), Math.sin(th));
+    const reach = r.half * shapeAt(a, r.y);
+    const z = reach * Math.cos(a);
+    out.push([reach * Math.sin(a), z * (z >= 0 ? r.front / f0 : r.back / b0)]);
   }
   return out;
 }
 
 /** The tape measurement round a cross-section. */
-export function girth(r: Pick<BodyRing, 'half' | 'front' | 'back'>, segments = SEGMENTS) {
+export function girth(r: Pick<BodyRing, 'y' | 'half' | 'front' | 'back'>, segments = SEGMENTS) {
   const pts = section(r, segments);
   let sum = 0;
   for (let i = 0; i < pts.length; i++) {
@@ -69,7 +71,7 @@ interface Knot {
   y: number;
   /** cm of half-width per unit of the form's profile. */
   scale: number;
-  /** Front and back reach as a share of the half-width. */
+  /** Front and back reach, as a share of the body's own there (1 = as the body is). */
   front: number;
   back: number;
 }
@@ -131,7 +133,7 @@ export function buildBody(values: MeasurementValues): Body {
   const shoulders = m('shoulder_width') * 0.94;
 
   const lm = formLandmarks();
-  const Y = { neck: -1.52, nape: -1.45, shoulder: -1.22, highBust: -0.95, bust: lm.full_bust, waist: lm.waist, hip: lm.full_hip };
+  const Y = { neck: -1.6, nape: -1.45, shoulder: -1.34, highBust: -0.95, bust: lm.full_bust, waist: lm.waist, hip: lm.full_hip };
   const height = heights([
     [Y.nape, napeH],
     [Y.bust, waistH + bustAbove],
@@ -141,26 +143,27 @@ export function buildBody(values: MeasurementValues): Body {
   // High hip is taken about 10 cm below the waist; find where that falls on the form.
   const highHipY = Y.waist + ((Y.hip - Y.waist) * Math.min(10, waistToHip * 0.6)) / waistToHip;
 
-  // A fuller bust than high bust brings the front forward; the seat brings the back out below the waist.
-  const bustFront = 0.74 + Math.max(-0.08, Math.min(0.25, (bust - highBust - 6) * 0.02));
+  // A fuller bust than high bust brings the front forward of the body's own; otherwise each ring keeps its real shape.
+  const bustFront = 1 + Math.max(-0.1, Math.min(0.3, (bust - highBust - 6) * 0.025));
   const girths: { id: BodyMark['id']; label: string; y: number; girth: number; front: number; back: number; estimated: boolean }[] = [
-    { id: 'neck', label: 'Neck', y: Y.neck, girth: m('neck'), front: 0.88, back: 0.82, estimated: !has('neck') },
-    { id: 'high_bust', label: 'High bust', y: Y.highBust, girth: highBust, front: 0.62, back: 0.6, estimated: !has('high_bust') },
-    { id: 'full_bust', label: 'Bust', y: Y.bust, girth: bust, front: bustFront, back: 0.58, estimated: !has('full_bust') },
-    { id: 'waist', label: 'Waist', y: Y.waist, girth: waist, front: 0.72, back: 0.7, estimated: !has('waist') },
+    { id: 'neck', label: 'Neck', y: Y.neck, girth: m('neck'), front: 1, back: 1, estimated: !has('neck') },
+    { id: 'high_bust', label: 'High bust', y: Y.highBust, girth: highBust, front: 1, back: 1, estimated: !has('high_bust') },
+    { id: 'full_bust', label: 'Bust', y: Y.bust, girth: bust, front: bustFront, back: 1, estimated: !has('full_bust') },
+    { id: 'waist', label: 'Waist', y: Y.waist, girth: waist, front: 1, back: 1, estimated: !has('waist') },
     ...(has('high_hip')
-      ? [{ id: 'high_hip' as const, label: 'High hip', y: highHipY, girth: m('high_hip'), front: 0.64, back: 0.74, estimated: false }]
+      ? [{ id: 'high_hip' as const, label: 'High hip', y: highHipY, girth: m('high_hip'), front: 1, back: 1, estimated: false }]
       : []),
-    { id: 'full_hip', label: 'Hip', y: Y.hip, girth: hip, front: 0.58, back: 0.78, estimated: !has('full_hip') },
+    { id: 'full_hip', label: 'Hip', y: Y.hip, girth: hip, front: 1, back: 1, estimated: !has('full_hip') },
   ];
-  const knots: Knot[] = girths.map((g) => ({ y: g.y, scale: g.girth / girth({ half: 1, front: g.front, back: g.back }) / R(g.y), front: g.front, back: g.back }));
-  // The shoulders are set by their width, and are thin front to back like a form's.
-  knots.push({ y: Y.shoulder, scale: shoulders / 2 / R(Y.shoulder), front: 0.42, back: 0.48 });
+  const unitGirth = (y: number, front: number, back: number) => girth({ y, half: 1, front: shapeAt(0, y) * front, back: shapeAt(Math.PI, y) * back });
+  const knots: Knot[] = girths.map((g) => ({ y: g.y, scale: g.girth / unitGirth(g.y, g.front, g.back) / R(g.y), front: g.front, back: g.back }));
+  // The shoulders are set by their width across, at the shoulder tip.
+  knots.push({ y: Y.shoulder, scale: shoulders / 2 / R(Y.shoulder), front: 1, back: 1 });
   knots.sort((a, b) => a.y - b.y);
 
-  const ys = Array.from({ length: RINGS + 1 }, (_, i) => FORM_TOP + ((FORM_BOTTOM - FORM_TOP) * i) / RINGS);
+  const ys = Array.from({ length: RINGS + 1 }, (_, i) => BODY_TOP + ((BODY_BOTTOM - BODY_TOP) * i) / RINGS);
   for (const g of girths) {
-    const near = ys.findIndex((y) => Math.abs(y - g.y) < (FORM_BOTTOM - FORM_TOP) / RINGS / 2);
+    const near = ys.findIndex((y) => Math.abs(y - g.y) < (BODY_BOTTOM - BODY_TOP) / RINGS / 2);
     if (near >= 0) ys[near] = g.y;
     else ys.push(g.y);
   }
@@ -170,7 +173,7 @@ export function buildBody(values: MeasurementValues): Body {
   const rings = ys.map((y): BodyRing => {
     const k = at(y);
     const half = R(y) * k.scale;
-    return { y, h: height(y), half, front: half * k.front, back: half * k.back };
+    return { y, h: height(y), half, front: half * shapeAt(0, y) * k.front, back: half * shapeAt(Math.PI, y) * k.back };
   });
   const marks = girths.map((g): BodyMark => ({ id: g.id, label: g.label, h: height(g.y), girth: g.girth, estimated: g.estimated }));
   return { rings, marks, shoulders };

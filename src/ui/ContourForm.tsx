@@ -425,7 +425,7 @@ export function paintFigure(
   legs = 1,
   withArms = false,
   turn?: number,
-  deep: (y: number, front: boolean) => number = () => 1,
+  body?: { half: (y: number) => number; shape: (a: number, y: number) => number },
 ) {
   const spin = turn ?? 0;
   if (turn === undefined) {
@@ -435,10 +435,21 @@ export function paintFigure(
     paintHead(g, S, cx, Y, lw);
     return;
   }
-  // Turning, the lines run all the way round and only the front half shows, easing out at the sides. Seen from above
-  // the body is an oval, `deep` its depth front and back as a share of its width, so turned to the side it is slimmer.
+  // Turning, the lines run all the way round and only the front half shows, easing out at the sides. All round turns
+  // the real body (engine/body.ts): its own half-width and cross-section at each height, so its edge is the widest its
+  // ring reaches across the view and each long line lies on its surface. Without one the form turns as a plain oval.
+  const half = body?.half ?? R;
+  const shape = body?.shape ?? (() => 1);
   const cs = Math.cos(spin), ss = Math.sin(spin);
-  paintTorso(g, S, cx, Y, lw, EVEN, 1, 0, 0, (y) => R(y) * Math.hypot(cs, ss * (deep(y, true) + deep(y, false)) / 2));
+  const edge = (y: number) => {
+    let best = 0;
+    for (let i = 0; i < 48; i++) {
+      const a = (Math.PI * 2 * i) / 48;
+      best = Math.max(best, Math.abs(Math.sin(a + spin)) * half(y) * shape(a, y));
+    }
+    return best;
+  };
+  paintTorso(g, S, cx, Y, lw, EVEN, 1, 0, 0, edge);
   for (let j = 0; j < 2 * LINES; j++) {
     const al = (Math.PI * (j + 0.5)) / LINES;
     const th = al - spin;
@@ -448,7 +459,9 @@ export function paintFigure(
     g.globalAlpha = 0.7 * Math.min(1, front * 6);
     g.lineWidth = lw * 0.6 * (1 - 0.35 * Math.abs(c));
     path(g, YS.map((y): Pt => {
-      const bx = R(y) * Math.cos(al), bz = R(y) * deep(y, Math.sin(al) > 0) * Math.sin(al);
+      // al runs from the right side round the front: the angle from straight ahead is its complement.
+      const r = half(y) * shape(Math.atan2(Math.cos(al), Math.sin(al)), y);
+      const bx = r * Math.cos(al), bz = r * Math.sin(al);
       return [cx + (bx * cs + bz * ss) * S, Y(y) + (bz * cs - bx * ss) * S * DEPTH];
     }));
   }
