@@ -3,7 +3,7 @@
 // crease line runs down the middle of each, the front and back crotch curves are drafted so the whole
 // crotch seam is the person's own crotch length with ease, and the seams are trued so front and back
 // sew together end to end.
-import { P, Path, add, len, mul, p, sub, taggedLength, unit } from './geometry';
+import { P, Path, add, len, lerp, mul, p, sub, taggedLength, unit } from './geometry';
 import { finishDart } from './darts';
 import type { Piece } from './piece';
 import { DraftError, Elastic, Fit, PULL_ON_EASE, SkirtFitting, WaistStyle, Waistband, WAISTBAND_CM, cm, elasticFor } from './skirt';
@@ -202,6 +202,9 @@ interface HalfArgs {
   /** Shorts: the hem's side and inside-leg ends moved down (up if negative), to true the back's seams to the front's. */
   sideDrop?: number;
   inDrop?: number;
+  /** Where the waist line meets the side line, in cm below the waist line (negative above): the back's is moved
+   * a few millimetres so its side seam from the waist to the hip notch is the front's length. */
+  waistSideY?: number;
 }
 
 interface Half {
@@ -209,6 +212,8 @@ interface Half {
   crotch: number;
   side: number;
   inseam: number;
+  /** The side seam from the waist down to the hip notch. */
+  sideToHip: number;
 }
 
 /** Darts for the waist suppression: the side takes up to 2 cm, the darts the rest, the side again past their most. */
@@ -230,12 +235,35 @@ function half(f: Frame, a: HalfArgs): Half {
   const hipC = p(a.hipQ, hd); // centre at the hip
   const cw = p(a.hipQ - a.centreIn, -a.centreUp); // centre waist
   const down = unit(sub(hipC, cw)); // down the centre seam
-  const w = perp(down); // along the waist toward the side seam, square to the centre seam
-  // The waist from the centre to the side line at x = 0 is the room there is; the rest is suppression.
-  const room = cw.x / -w.x;
+  // The waist runs square off the centre seam, as a seam must, then curves to meet the side line level with
+  // the waist line, so the front and back side waists sit at one height and the hip notches meet when the
+  // side seams are sewn. (Drawn square to the slanted centre back seam all the way, the back's side waist
+  // fell by the seam's slope times the half waist: 2 to 7 cm on a curvy body, and the hip notches missed by
+  // as much. Fable fit check, 2026-10-27.)
+  const sideLine = p(0, a.waistSideY ?? 0);
+  const wC = perp(down); // along the waist at the centre, square to the centre seam, toward the side
+  const kW = len(sub(sideLine, cw)) / 3;
+  const waistCurve = new Path(cw).curve(add(cw, mul(wC, kW)), add(sideLine, p(kW, 0)), sideLine);
+  // Sampled, so a point can be found by its distance along the waist; past the side line it runs on level
+  // (a pull-on waist is cut wider than the side line).
+  const wpts = waistCurve.points(64);
+  const wlen: number[] = [0];
+  for (let i = 1; i < wpts.length; i++) wlen.push(wlen[i - 1] + len(sub(wpts[i], wpts[i - 1])));
+  // The waist from the centre to the side line is the room there is; the rest is suppression.
+  const room = wlen[wlen.length - 1];
+  const waistAt = (d: number): { q: P; t: P } => {
+    if (d >= room) return { q: add(sideLine, p(room - d, 0)), t: p(-1, 0) };
+    let i = 1;
+    while (i < wlen.length - 1 && wlen[i] < d) i++;
+    const u = (d - wlen[i - 1]) / (wlen[i] - wlen[i - 1] || 1);
+    return { q: lerp(wpts[i - 1], wpts[i], u), t: unit(sub(wpts[i], wpts[i - 1])) };
+  };
   const sup = suppression(room - a.waistQ, a.dartLens.length, a.dartMax);
   const dartTotal = sup.darts.reduce((t, d) => t + d, 0);
-  const sw = add(cw, mul(w, a.waistQ + dartTotal)); // side waist
+  const span = a.waistQ + dartTotal;
+  const swAt = waistAt(span);
+  const sw = swAt.q; // side waist
+  const nDown = perp(mul(swAt.t, -1)); // square to the waist at the side, into the piece
   const fork = p(a.hipQ + a.fork, cd + a.forkDrop);
   const crease = a.isFront ? fork.x / 2 : fork.x / 2 - 1 + (a.creaseShift ?? 0);
   const share = a.isFront ? -1.5 : 1.5;
@@ -255,26 +283,45 @@ function half(f: Frame, a: HalfArgs): Half {
   const hi = f.short ? p(shortIn + f.thighOut, L + shift - SHORTS_RISE + (a.inDrop ?? 0)) : p(crease + hemHalf, L + shift);
 
   // Darts square to the waist, pressed toward the centre. Front: one on the crease; back: two, spread.
-  const nDown = perp(mul(w, -1)); // square to the waist, into the piece
   const along = sup.darts.map((d, i) => {
-    const span = a.waistQ + dartTotal;
-    if (a.isFront) return clamp((crease - cw.x) / w.x, d / 2 + 3, span - d / 2 - 3);
+    if (a.isFront) {
+      let c = 0;
+      while (c < room && waistAt(c).q.x > crease) c += 0.25;
+      return clamp(c, d / 2 + 3, span - d / 2 - 3);
+    }
     return span * (i === 0 ? 0.36 : 0.66);
   });
   const darts = sup.darts.map((d, i) => {
     const c = along[i];
-    const near = add(cw, mul(w, c - d / 2));
-    const far = add(cw, mul(w, c + d / 2));
-    const tip = add(add(cw, mul(w, c)), mul(nDown, Math.min(a.dartLens[i], hd - 3)));
-    return finishDart(tip, near, far, mul(w, -1));
+    const near = waistAt(c - d / 2).q;
+    const far = waistAt(c + d / 2).q;
+    const { q: base, t } = waistAt(c);
+    const n = perp(mul(t, -1));
+    // The tip stops 3 cm clear of the hip line, measured from where this dart starts (the back waist starts
+    // above the waist line, so a cap from the waist line let tips reach the hip).
+    const tip = add(base, mul(n, Math.min(a.dartLens[i], (hd - 3 - base.y) / n.y)));
+    return finishDart(tip, near, far, mul(t, -1));
   });
 
+  // The waist edge, drawn along the curve with the darts in it.
   const out = new Path(cw);
-  for (const d of darts) out.line(d.near, 'waist').line(d.peak, 'dart').line(d.far, 'dart');
-  out.line(sw, 'waist');
+  let from = 0;
+  const waistRun = (to: number, end: P) => {
+    for (let d = Math.floor(from) + 1; d < to - 0.5; d += 1) out.line(waistAt(d).q, 'waist');
+    out.line(end, 'waist');
+    from = to;
+  };
+  darts.forEach((d, i) => {
+    waistRun(along[i] - sup.darts[i] / 2, d.near);
+    out.line(d.peak, 'dart').line(d.far, 'dart');
+    from = along[i] + sup.darts[i] / 2;
+  });
+  waistRun(span, sw);
   // Side seam: square off the waist, down to the hip, the knee and the hem (straight to the hem in shorts).
   const kDir = f.short ? unit(sub(ho, sideHip)) : unit(sub(ho, ko));
-  out.curve(add(sw, mul(nDown, (hd - sw.y) * 0.35)), p(0, hd - (hd - sw.y) * 0.35), sideHip, 'side');
+  const toHip = new Path(sw).curve(add(sw, mul(nDown, (hd - sw.y) * 0.35)), p(0, hd - (hd - sw.y) * 0.35), sideHip, 'side');
+  out.segs.push(...toHip.segs);
+  out.tags.push(...toHip.tags);
   if (f.short) out.curve(p(0, hd + (ho.y - hd) * 0.35), sub(ho, mul(kDir, (ho.y - hd) * 0.3)), ho, 'side');
   else {
     out.curve(p(0, hd + (ko.y - hd) * 0.35), sub(ko, mul(kDir, (ko.y - hd) * 0.3)), ko, 'side');
@@ -346,7 +393,7 @@ function half(f: Frame, a: HalfArgs): Half {
           at: fork,
           note: `3 to 5 on the crotch line, the ${a.isFront ? 'front' : 'back'} fork: ${cm(a.fork)}${a.forkDrop ? `, dropped ${cm(a.forkDrop)} to true the inside leg` : ''}. Curve 3 to 5 for the crotch.`,
         },
-        { n: '6', at: sw, note: `Side waist: a quarter of the waist with ease, ${a.isFront ? 'less' : 'plus'} 0.5 cm, is ${cm(a.waistQ)}, square off the ${a.isFront ? 'centre front' : 'centre back seam'}, plus ${cm(dartTotal)} of darts.` },
+        { n: '6', at: sw, note: `Side waist: a quarter of the waist with ease, ${a.isFront ? 'less' : 'plus'} 0.5 cm, is ${cm(a.waistQ)}, from 4 along the waist, square off the centre seam then curving level to the side, plus ${cm(dartTotal)} of darts.` },
         ...(f.short
           ? []
           : [{ n: '7', at: p(crease, kn + shift), note: `Crease line halfway across the crotch line${a.isFront ? '' : (a.creaseShift ?? 0) - 1 > 0.05 ? `, plus ${cm((a.creaseShift ?? 0) - 1)} toward the fork` : (a.creaseShift ?? 0) - 1 < -0.05 ? `, less ${cm(1 - (a.creaseShift ?? 0))}` : ''}. Knee ${cm(2 * kneeHalf)} across, centred on it.` }]),
@@ -360,7 +407,7 @@ function half(f: Frame, a: HalfArgs): Half {
     allowances: { hem: f.s.hemAllowance, crotch: 1 },
     meta: { dartsCm: sup.darts.map((d) => Math.round(d * 100) / 100), creaseX: crease, fork: fork, crotchCurve: true },
   };
-  return { piece, crotch: taggedLength(out, 'crotch'), side: taggedLength(out, 'side'), inseam: taggedLength(out, 'inseam') };
+  return { piece, crotch: taggedLength(out, 'crotch'), side: taggedLength(out, 'side'), inseam: taggedLength(out, 'inseam'), sideToHip: toHip.length() };
 }
 
 /** Bisection for an increasing function: the x in [lo, hi] where g(x) is zero (to 0.1 mm), or the nearer end. */
@@ -457,7 +504,8 @@ export function draftTrousers(body: TrousersMeasurements, style: Partial<Trouser
   const target = m.crotch_length + ease.crotch;
   const closure = elastic ? 'none' : s.closure;
   const fly = closure === 'fly';
-  const zipCm = elastic ? 0 : fly ? Math.min(FLY_ZIP, cd - 6) : Math.min(20, Math.max(18, hd));
+  // A side zip opens to just past the hip line, so the trousers pull on over the hips: 18 to 25 cm.
+  const zipCm = elastic ? 0 : fly ? Math.min(FLY_ZIP, cd - 6) : Math.min(25, Math.max(18, Math.ceil(hd + 2)));
 
   // Centre waists: the front 1 cm in from the hip line, the back raised and in for the seat. A tummy or
   // a sway back measured (or found on a toile) raises or lowers them.
@@ -480,14 +528,18 @@ export function draftTrousers(body: TrousersMeasurements, style: Partial<Trouser
     // then true the side seams by moving the back leg up or down, then the inside legs by dropping the
     // back fork the last few millimetres.
     // Moving the leg changes the inside leg and moving the crease changes the side seam, so settle them in turn.
+    // First the back's side waist, a few millimetres up or down, so the seam from the waist to the hip notch
+    // is the front's length and the notches meet.
+    const waistSideY = solve((y) => front.sideToHip - half(f, { ...base, waistSideY: y }).sideToHip, -3, 3);
+    const based = { ...base, waistSideY };
     let creaseShift = 0;
     let legShift = 0;
     for (let i = 0; i < 3; i++) {
-      creaseShift = solve((c) => front.inseam - half(f, { ...base, legShift, creaseShift: c }).inseam, -6, 6);
-      legShift = solve((e) => half(f, { ...base, creaseShift, legShift: e }).side - front.side, -8, 8);
+      creaseShift = solve((c) => front.inseam - half(f, { ...based, legShift, creaseShift: c }).inseam, -6, 6);
+      legShift = solve((e) => half(f, { ...based, creaseShift, legShift: e }).side - front.side, -8, 8);
     }
-    const backArgs = { ...base, creaseShift };
-    const forkDrop = solve((d) => front.inseam - half(f, { ...backArgs, legShift, forkDrop: d }).inseam, -4, 6);
+    const backArgs = { ...based, creaseShift };
+    const forkDrop = solve((d) => front.inseam - half(f, { ...backArgs, legShift, forkDrop: d }).inseam, -4, 8);
     const back = half(f, { ...backArgs, legShift, forkDrop });
     return { front, back, frontArgs, backArgs: { ...backArgs, legShift, forkDrop } };
   };

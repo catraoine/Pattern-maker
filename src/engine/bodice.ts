@@ -195,6 +195,24 @@ export const NECKLINES: Record<Neckline, { frontDepth: number; width: number; ba
 /** Hip ease (cm) for tops that reach below the waist, from the same fit options. */
 const BODICE_HIP_EASE: Record<BodiceFit, number> = { fitted: 4, regular: 7, relaxed: 11 };
 
+/**
+ * The body's girth `drop` cm below the waist: out to the high hip halfway down to the hip in a straight run,
+ * then filling out to the full hip on a curve that is nearly at the hip a few centimetres above it, as a
+ * seat is. The bodice's hem below the waist and the dress's skirt both draft from it, so a dropped or low
+ * waist seam is cut to one body. (A straight run from the high hip to the hip left a low seam 3 to 7 cm
+ * under the body on curvy figures. Fable fit check, 2026-10-27.)
+ */
+export function girthBelowWaist(m: { waist: number; full_hip: number; waist_to_hip: number; high_hip?: number }, drop: number): number {
+  const W = m.waist;
+  const H = m.full_hip;
+  const WH = m.waist_to_hip;
+  const HH = m.high_hip ?? W + 0.65 * (H - W);
+  if (drop <= 0) return W;
+  if (drop <= WH / 2) return W + ((HH - W) * drop) / (WH / 2);
+  const t = Math.min(1, (drop - WH / 2) / (WH / 2));
+  return HH + (H - HH) * Math.sin((Math.PI / 2) * t);
+}
+
 /** Lengths that need the hip measurements. */
 export const needsHip = (l: BodiceLength) => l !== 'waist';
 
@@ -681,12 +699,8 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   // way: the high hip halfway down to the hip, the full hip at the hip, in between along the way.
   let hemFull = 0;
   if (below) {
-    const H = m.full_hip!;
-    const WH = m.waist_to_hip!;
-    const HH = m.high_hip ?? W + 0.65 * (H - W);
     const he = Math.max(2, BODICE_HIP_EASE[s.fit] + bodiceEase(s).bust - BODICE_FIT_EASE[s.fit].bust) + (fit.hipEase ?? 0);
-    const body = drop <= WH / 2 ? W + ((HH - W) * drop) / (WH / 2) : HH + (H - HH) * Math.min(1, (drop - WH / 2) / (WH / 2));
-    hemFull = body + he;
+    hemFull = girthBelowWaist({ waist: W, full_hip: m.full_hip!, waist_to_hip: m.waist_to_hip!, high_hip: m.high_hip }, drop) + he;
   }
 
   // ---- back ---------------------------------------------------------------

@@ -140,6 +140,7 @@ export function dressSpec(m: DressMeasurements, d: DressDraft, sleeve?: SleeveDr
   return [
     ...bodiceSpec(m, d.bodice, 'waist').filter((r) => !zip.test(r.label)),
     ...skirtSpec(m, d.skirt).filter((r) => r.label !== 'Waist' && !zip.test(r.label) && !/Waistband/.test(r.label)),
+    ...(d.seamCm ? [{ label: d.seamDrop > 0 ? `Waist seam, ${d.seamDrop} cm below the waist` : `Waist seam, ${-d.seamDrop} cm above the waist`, finished: d.seamCm }] : []),
     row('Length, nape to hem', undefined, d.lengthCm),
     ...(sleeve ? sleeveSpec(m, sleeve) : []),
     ...(d.bodice.wrap ? [] : [{ label: d.zipSide ? `Invisible zip, ${zipSide(d.bodice)} side` : 'Invisible zip, centre back', finished: `${d.zipCm}` }]),
