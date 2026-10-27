@@ -297,7 +297,10 @@ export function readSkirtHem(stroke: P[], waistY: number, draft: Pick<SkirtDraft
     const { hem: _h, ...plain } = rest;
     const kept = skirt.hem && skirt.hem.back.some((v) => Math.abs(v) > 0.3) ? { hem: { front: new Array(HEM_SAMPLES).fill(0), back: skirt.hem.back } } : {};
     const next = { ...dragLength(m, plain as Choices, median(ys)), ...kept };
-    return { choices: next, said: next.lengthCm !== undefined ? `Skirt ${Math.round(next.lengthCm)} cm long.` : `${LENGTH_WORDS[next.length]} skirt.` };
+    // On a dress the length is the dress's, not a skirt's (Cat, 2026-10-27: "Mini skirt." on a dress confused).
+    const words = LENGTH_WORDS[next.length];
+    const named = garment === 'dress' ? (next.length === 'knee' ? `${words}.` : `${words} length.`) : `${words} skirt.`;
+    return { choices: next, said: next.lengthCm !== undefined ? `${garment === 'dress' ? 'Hem' : 'Skirt'} ${Math.round(next.lengthCm)} cm ${garment === 'dress' ? 'below the waist seam' : 'long'}.` : named };
   }
   // Pleats, godets and flounces are drafted on a level hem, as on the sketch.
   if (volumeOf(skirt) !== 'none') return { said: 'Pleats, godets and flounces need a level hem. Draw it straight across to set the length.' };
