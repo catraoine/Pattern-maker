@@ -236,8 +236,10 @@ export function roundShape(round: RoundGarment, m: RoundMeasurements, { film, th
     return at(i0) * (1 - u) + at(i1) * u;
   };
   const shell = (a: number, y: number) => {
-    // The cloth lets go of the body over the last stretch above the hip, not all at once on the hip line.
-    const share = hangShare + (1 - hangShare) * smooth(clamp((y - (FORM_HIP - 0.2)) / 0.2, 0, 1));
+    // Cloth shaped to the body hangs from wherever the body is fullest below the waist (the belly in front, the seat
+    // behind), straight on down: hung from the waist it lies on the body until then, so there is no step. Cloth
+    // hung from the bust in part (a tee) lets go of the body over the last stretch above the hip.
+    const share = hangShare > 0 ? hangShare + (1 - hangShare) * smooth(clamp((y - (FORM_HIP - 0.2)) / 0.2, 0, 1)) : 1;
     const r = share ? (share < 1 ? onBody(a, y) + (hung(a, y) - onBody(a, y)) * share : hung(a, y)) : onBody(a, y);
     return r * fold(a, y);
   };
@@ -326,11 +328,25 @@ export function roundShape(round: RoundGarment, m: RoundMeasurements, { film, th
 
   // Trousers below the waist are oval, as hips are (about three quarters as deep as they are wide), not round, so the seat
   // runs gently into the thighs instead of standing out over them (Cat, 2026-10-26: "trousers look weird").
+  const ovalK = (y: number) => 1 - 0.28 * smooth(clamp((y - WAIST) / (FORM_HIP - WAIST), 0, 1));
+  // Front to back the cloth hangs from the fullest point above it (the belly, the seat), as it does at the sides,
+  // rather than coming in with the oval below the belly and out again at the hip in a ledge (Cat, 2026-10-28).
+  const SEAT_N = 48;
+  const seatDepth = new Float64Array(SEAT_N + 1);
+  for (let i = 0, top = 0; i <= SEAT_N; i++) {
+    const y = WAIST + ((1.3 - WAIST) * i) / SEAT_N;
+    top = Math.max(top, radius(y) * ovalK(y));
+    seatDepth[i] = top;
+  }
+  const depthOf = (y: number) => {
+    const f = clamp(((y - WAIST) / (1.3 - WAIST)) * SEAT_N, 0, SEAT_N);
+    const i = Math.min(SEAT_N - 1, Math.floor(f));
+    return seatDepth[i] + (seatDepth[i + 1] - seatDepth[i]) * (f - i);
+  };
   const rAt = (a: number, y: number) => {
     if (!lg || y <= WAIST) return shell(a, y);
     const W = radius(y);
-    const k = 1 - 0.28 * smooth(clamp((y - WAIST) / (FORM_HIP - WAIST), 0, 1));
-    const r = 1 / Math.hypot(Math.sin(a) / W, Math.cos(a) / (W * k));
+    const r = 1 / Math.hypot(Math.sin(a) / W, Math.cos(a) / depthOf(y));
     // The seat keeps its own depth down to the crotch: the front of the trousers hangs from the belly and the back
     // from the seat, and each leg goes round over the thigh below (allRoundMesh.ts grows the leg out of this ring).
     // Closed in round the thighs above the crotch, the seat bulged out over thin legs seen from the side (Cat,
