@@ -17,6 +17,8 @@ import { FitForm } from '../ui/FitForm';
 import { FitFeedback, fitReport, fitSummary, sendFitReport } from '../fit';
 import type { MeasurementId, MeasurementValues } from '../measurements';
 import { Mode, shows } from '../mode';
+import { stillInTesting } from '../launch';
+import { GARMENTS, GARMENT_NAME } from '../measureFlow';
 import { InterestCard } from '../ui/InterestCard';
 import { YourPlan } from '../ui/PlanPrompts';
 import { savedLimit } from '../plans';
@@ -99,6 +101,7 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
   const key = measured.filter((f) => KEY_FIELDS.includes(f.id));
   const shown = allMeasured ? measured : key.length ? key : measured.slice(0, KEY_FIELDS.length);
   const saved = account.patterns.length;
+  const left = stillInTesting((g) => GARMENT_NAME[g], GARMENTS);
   // Sent fit notes carry the measurements of whoever the pattern was saved for.
   const personFor = (p: SavedPattern) => account.people.find((x) => x.id === (p.personId ?? ME)) ?? person;
   const valuesFor = (p: SavedPattern) => personFor(p).values;
@@ -315,6 +318,17 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
 
         <Fold id="testtitle" title="Fit testing" summary={account.testerCode ? 'Tester code on' : 'For testers'}>
           <TesterCode code={account.testerCode} onCode={onTesterCode} />
+        </Fold>
+
+        <Fold id="intesttitle" title="Still in testing" summary={`${left.length} to pass`}>
+          <p className="muted small">Usable now, labelled In testing until each passes its test at the fit gate. A label comes off by hand once its test is passed, never by itself.</p>
+          <ul className="muted small testing-list">
+            {left.map((t) => (
+              <li key={t.name}>
+                <b>{t.name}</b> · comes off when {t.proof}
+              </li>
+            ))}
+          </ul>
         </Fold>
 
         <Fold id="memtitle" title="Membership" summary={onPlans ? undefined : 'Founding places'}>

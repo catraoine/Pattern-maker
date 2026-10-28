@@ -87,7 +87,7 @@ export function FormScreen({ values, measured: taken, unit, profile, onPrint, on
     return (
       <div className="stack wide">
         <section className="card" aria-labelledby="formtitle">
-          <p className="eyebrow">Body Double <TestingTag /></p>
+          <p className="eyebrow">Body Double <TestingTag tool="body_double" /></p>
           <h1 id="formtitle">A dress form in your shape</h1>
           <p className="muted">
             The form is built from your own measurements. It still needs your {missing.map((id) => NAMES[id] ?? id.replace(/_/g, ' ')).join(', ')}.
@@ -103,7 +103,7 @@ export function FormScreen({ values, measured: taken, unit, profile, onPrint, on
   return (
     <div className="stack wide">
       <section className="card" aria-labelledby="formtitle">
-        <p className="eyebrow">Body Double <TestingTag /></p>
+        <p className="eyebrow">Body Double <TestingTag tool="body_double" /></p>
         <h1 id="formtitle">A dress form in your shape</h1>
         <p className="muted">
           Pad a store form out to {who === 'you' ? 'your' : `${who}'s`} measurements, then pull on a cover drafted to the same body. Everything you fit on it fits

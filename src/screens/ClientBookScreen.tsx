@@ -54,7 +54,7 @@ export function ClientBookScreen({ account, person, unit, onChange, onOpen, garm
       <section className="card" aria-labelledby="cbtitle">
         <div className="row between wrap">
           <div>
-            <p className="eyebrow">Client book <TestingTag /></p>
+            <p className="eyebrow">Client book <TestingTag tool="client_book" /></p>
             <h1 id="cbtitle">{name}</h1>
           </div>
         </div>
