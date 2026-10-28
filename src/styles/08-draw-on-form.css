@@ -220,10 +220,21 @@
   height: 100%;
   max-height: none;
 }
+/* The tag on the turning view: the small quiet tag of the screen heads, not a chip (Cat, 2026-10-28). */
 .form-draw .preview.round-draw > .testing-tag {
   position: absolute;
   top: 10px;
   left: 10px;
+  display: inline-block;
+  min-height: 0;
+  height: auto;
+  margin: 0;
+  padding: 3px 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 0;
+  background: none;
+  line-height: 1.4;
+  cursor: default;
 }
 .form-draw .preview.round-draw {
   position: relative;
