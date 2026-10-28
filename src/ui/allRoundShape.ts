@@ -192,6 +192,14 @@ export function roundShape(round: RoundGarment, m: RoundMeasurements, { film, th
   // own width at the sides: where the pattern narrows (the waist) the sides come in and the front and back hang
   // straight; where it widens below the hip (a flare) it widens all round. The body itself still shows wherever it
   // stands out further than the hanging cloth. Laid as a table down the garment, read between its rows.
+  // How much of a flare below the hip is cut at the side seams (an A-line: its centre front and back on the straight
+  // grain, so seen from the side it hangs straight and only the sides go out) and how much all round (gores, a
+  // circle). Flaring everything all round made an A-line a tent from the side (Cat, 2026-10-28: "these angles are
+  // a bit weird"). From the side seams' angle to the grain over the drop from the hip to the hem.
+  const dropCm = Math.max(0, longest - wh);
+  const gainCm = Math.max(0, (round.girth.hip ?? 0) * (round.flare - 1));
+  const sideGainCm = 2 * dropCm * (Math.tan((round.sideAngle.front * Math.PI) / 180) + Math.tan((round.sideAngle.back * Math.PI) / 180));
+  const allRound = gainCm > 0.5 ? 1 - clamp(sideGainCm / gainCm, 0, 1) : 0;
   const HANG_N = 72;
   const HANG_DY = 0.02;
   // From the bust down: above it the cloth is held on the neck and shoulders and lies on the body (hung from the
@@ -209,7 +217,8 @@ export function roundShape(round: RoundGarment, m: RoundMeasurements, { film, th
     for (let j = 1; j < hangRows; j++) {
       const y = hangTop + j * HANG_DY;
       const rho = radius(y) / (radius(y - HANG_DY) || 1e-6);
-      const fell = prev * (y > FORM_HIP ? rho : Math.sqrt(sa * rho * rho + (1 - sa)));
+      const sides = Math.sqrt(sa * rho * rho + (1 - sa));
+      const fell = prev * (y > FORM_HIP ? sides + (rho - sides) * allRound : sides);
       prev = Math.max(onBody(a, y), fell);
       hang[i * hangRows + j] = prev;
     }
@@ -315,27 +324,18 @@ export function roundShape(round: RoundGarment, m: RoundMeasurements, { film, th
     y <= yK ? thighTop + (kneeR - thighTop) * clamp((y - yC) / (yK - yC || 1), 0, 1) : kneeR + (legHemR - kneeR) * clamp((y - yK) / (yH - yK || 1), 0, 1);
   const legAxis = (y: number) => (lg ? Math.max(FORM_LEG_X, legR(y) * 0.97) : FORM_LEG_X);
 
-  // Trousers, below the hip, close in round the two legs, so the seat runs into the legs and not over them like shorts.
-  // Below the waist they are oval, as hips are (about three quarters as deep as they are wide), not round, so the seat
+  // Trousers below the waist are oval, as hips are (about three quarters as deep as they are wide), not round, so the seat
   // runs gently into the thighs instead of standing out over them (Cat, 2026-10-26: "trousers look weird").
   const rAt = (a: number, y: number) => {
     if (!lg || y <= WAIST) return shell(a, y);
     const W = radius(y);
     const k = 1 - 0.28 * smooth(clamp((y - WAIST) / (FORM_HIP - WAIST), 0, 1));
     const r = 1 / Math.hypot(Math.sin(a) / W, Math.cos(a) / (W * k));
-    // The seat closes in round the thighs over the last stretch above the crotch, however near the hip the crotch is.
-    const y0 = Math.min(FORM_HIP, yC - 0.3);
-    const y1 = yC - 0.04;
-    if (y <= y0) return r;
-    // Round both thighs: the edge, at angle a, of the outline wrapping the two of them (two circles and the straight
-    // runs between them), so no part of the form's legs shows past the cloth and the seat meets the legs exactly.
-    const sa = Math.abs(Math.sin(a));
-    const ca = Math.abs(Math.cos(a));
-    // Round the legs where they stand (legAxis: side by side, as wide as the hip), so the outside runs straight on.
-    const cx = legAxis(yC);
-    const legs = ca > 1e-6 && (thighTop / ca) * sa <= cx ? thighTop / ca : sa * cx + Math.sqrt(Math.max(0, thighTop ** 2 - (cx * ca) ** 2));
-    // Fully round the thighs a little above the crotch, so the seat meets the legs without a step.
-    return r + (Math.min(r, legs) - r) * smooth(clamp((y - y0) / (y1 - y0 || 1), 0, 1));
+    // The seat keeps its own depth down to the crotch: the front of the trousers hangs from the belly and the back
+    // from the seat, and each leg goes round over the thigh below (allRoundMesh.ts grows the leg out of this ring).
+    // Closed in round the thighs above the crotch, the seat bulged out over thin legs seen from the side (Cat,
+    // 2026-10-28).
+    return r;
   };
 
   const reach = Math.max(hemR, sl ? axisX(yE) + rh : 0, lg ? FORM_LEG_X + Math.max(thighTop, kneeR, legHemR) : 0, formHalfWidth(-0.55) + eB);

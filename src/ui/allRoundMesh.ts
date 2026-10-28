@@ -391,7 +391,7 @@ export function createRoundView(): RoundView | undefined {
     clear();
     built = o;
     const { round, sh, cloth, film } = o;
-    const { trousers, isTop, yAt, yOf, kY, longest, highest, bandTop, arm, yS, yU, sl, rh, radius, shell, clothDown, yE, yCap, axisX, capDepth, sleeveR, lg, yC, yH, legHemR, legR, legAxis, rAt } = sh;
+    const { trousers, isTop, yAt, yOf, kY, longest, highest, bandTop, arm, yS, yU, sl, rh, radius, shell, clothDown, yE, yCap, axisX, capDepth, sleeveR, lg, yC, yK, yH, legHemR, legR, legAxis, rAt } = sh;
     const k = 1 / kY; // cm of cloth to a unit of the form
     const add = (geo: THREE.BufferGeometry, mat: RoundMaterial, order = 1) => {
       const mesh = new THREE.Mesh(geo, mat);
@@ -586,7 +586,12 @@ export function createRoundView(): RoundView | undefined {
               const sOf = e * wrap(a);
               const aw = sOf >= 0 ? e * (2 * sOf - HALF) : -e * HALF;
               const p = T(X(y), aw, r, y, r * Z(y));
-              const w = smooth(clamp(1 - (y - y0) / 0.45, 0, 1));
+              // Over the whole thigh, down to the knee: the cloth hangs from the seat and the belly and only closes
+              // round the leg as the thigh narrows (over a hand's width it bulged at the seat, Cat 2026-10-28).
+              const wOut = smooth(clamp(1 - (y - y0) / Math.max(0.45, (yK - y0) * 0.85), 0, 1));
+              // The inseam side parts from the other leg straight below the crotch, so two legs show from the front.
+              const wIn = smooth(clamp(1 - (y - y0) / 0.3, 0, 1));
+              const w = wOut + (wIn - wOut) * smooth(clamp(-sOf / 0.6, 0, 1));
               if (w <= 0) return p;
               let qx = 0;
               let qz: number;
@@ -596,7 +601,9 @@ export function createRoundView(): RoundView | undefined {
                 qx = Math.sin(g) * rs;
                 qz = Math.cos(g) * rs;
               } else qz = Math.cos(sOf) * seat(Math.cos(sOf) >= 0 ? 0 : Math.PI);
-              return [qx * w + p[0] * (1 - w), y, qz * w + p[2] * (1 - w)];
+              // Across the body each leg is on its own axis within a hand's width of the crotch; front to back it
+              // keeps the seat's depth down the thigh.
+              return [qx * wIn + p[0] * (1 - wIn), y, qz * w + p[2] * (1 - w)];
             },
             uv: (a, t) => {
               const y = rowY(t);
