@@ -129,7 +129,7 @@
 
 .tour-track {
   display: block;
-  height: 2px;
+  height: 1px;
   background: var(--guide);
   overflow: hidden;
 }
@@ -137,7 +137,8 @@
 .tour-track span {
   display: block;
   height: 100%;
-  background: var(--ink);
+  /* Quiet, so the gold in the film (Done) is the only gold on screen (Cat, 2026-10-27) */
+  background: var(--muted);
   transform-origin: left;
 }
 

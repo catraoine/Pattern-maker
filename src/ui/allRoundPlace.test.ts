@@ -5,7 +5,7 @@ import { draftDress } from '../engine/dress';
 import { draftOuter } from '../engine/outerwear';
 import { draftTee } from '../engine/tee';
 import { EXAMPLE_BODY, EXAMPLE_VALUES } from '../measurements';
-import { NECK_Y, SHOULDER_Y, placeOnForm } from './AllRound';
+import { NECK_Y, SHOULDER_Y, placeOnForm } from './allRoundShape';
 
 const HALF = Math.PI / 2;
 

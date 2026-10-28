@@ -14,11 +14,12 @@ export default defineConfig({
   test: {
     exclude: [...configDefaults.exclude, '.claude/**', 'e2e/**', 'playwright-report/**', 'test-results/**'],
   },
-  // Sign-in's library gets a name of its own, so the phone's offline copy can leave it out (see globIgnores).
+  // Sign-in's library, and the 3D drawing's, get names of their own, so the phone's offline copy can leave them out
+  // (see globIgnores).
   build: {
     rollupOptions: {
       output: {
-        manualChunks: (id) => (/node_modules\/@supabase\//.test(id) ? 'account-service' : undefined),
+        manualChunks: (id) => (/node_modules\/@supabase\//.test(id) ? 'account-service' : /node_modules\/three\//.test(id) ? 'round-3d' : undefined),
       },
     },
   },
@@ -49,13 +50,14 @@ export default defineConfig({
         // someone prints, then stays for offline use. Keeps a first visit light for Netlify bandwidth (Cat, 2026-10-23).
         // The account service's code (sign-in, about 230 kB) needs the internet anyway, so it isn't kept either.
         // Fabric and print photos (about 1.5 MB) are saved the first time the Fabric tab shows them, not on the first visit.
-        globIgnores: ['**/assets/pdf-*.js', '**/assets/PDFButton-*.js', '**/assets/account-service-*.js', 'fabrics/**', 'prints/**'],
+        // The 3D drawing's library (All round, about 140 kB) downloads the first time All round opens, then stays.
+        globIgnores: ['**/assets/pdf-*.js', '**/assets/PDFButton-*.js', '**/assets/account-service-*.js', '**/assets/round-3d-*.js', 'fabrics/**', 'prints/**'],
         // A film or download opened by its own address (e.g. /tour/walkthrough.mp4 to save it) goes to the file, not
         // the app: the saved app otherwise answers every address typed into the browser.
         navigateFallbackDenylist: [/^\/tour\//, /^\/demos\//, /\.(mp4|webm|pdf|dxf|svg|png|jpg)$/],
         runtimeCaching: [
           {
-            urlPattern: ({ url, sameOrigin }) => sameOrigin && /^\/assets\/(pdf|PDFButton)-.+\.js$/.test(url.pathname),
+            urlPattern: ({ url, sameOrigin }) => sameOrigin && /^\/assets\/(pdf|PDFButton|round-3d)-.+\.js$/.test(url.pathname),
             handler: 'CacheFirst',
             options: { cacheName: 'printing-code', expiration: { maxEntries: 8 } },
           },
