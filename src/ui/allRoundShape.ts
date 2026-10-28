@@ -129,6 +129,9 @@ export function roundShape(round: RoundGarment, m: RoundMeasurements, { film, th
   const straightCut = waistEase === undefined ? 0 : bustEase === undefined ? (waistEase - 4) / 3 : (waistEase - bustEase - 2) / 4;
   const hangShare = seamed || !isTop ? 0 : clamp(straightCut, 0, 1) * (through ? 0 : film ? 0.5 : 1);
   const hipR = wornR(FORM_HIP);
+  // The body's widest point below the waist is the top of the thighs, a little under the hip line; trousers hang from
+  // there (hung from the hip line they came in over the thighs: the hip stood out as a shelf, Cat 2026-10-28).
+  const hipWide = Math.max(...Array.from({ length: 25 }, (_, i) => wornR(FORM_HIP + ((1.3 - FORM_HIP) * i) / 24)));
   const hemR = hipR * clamp(round.flare, 0.85, 2.3);
   const bodyRadius = (y: number) =>
     y <= FORM_HIP || !flares ? wornR(y) : hipR + (hemR - hipR) * clamp((y - FORM_HIP) / Math.max(0.05, meanY - FORM_HIP), 0, 1.3);
@@ -192,8 +195,10 @@ export function roundShape(round: RoundGarment, m: RoundMeasurements, { film, th
   const HANG_N = 72;
   const HANG_DY = 0.02;
   // From the bust down: above it the cloth is held on the neck and shoulders and lies on the body (hung from the
-  // shoulders, the chest and back read as a box seen from the side).
-  const hangTop = BUST_Y;
+  // shoulders, the chest and back read as a box seen from the side). Cloth shaped to the body down to the hip (a
+  // bottom, a seamed dress, a fitted jacket) leaves it at the waist, not the bust: hung from the bust it stood out
+  // past the body in one step at the hip, a shelf right round the garment (Cat, 2026-10-28).
+  const hangTop = hangShare > 0 ? BUST_Y : WAIST;
   const hangRows = Math.max(2, Math.ceil((Math.max(yOf(longest), FORM_HIP) + 0.1 - hangTop) / HANG_DY) + 1);
   const hang = new Float64Array(HANG_N * hangRows);
   for (let i = 0; i < HANG_N; i++) {
@@ -222,7 +227,8 @@ export function roundShape(round: RoundGarment, m: RoundMeasurements, { film, th
     return at(i0) * (1 - u) + at(i1) * u;
   };
   const shell = (a: number, y: number) => {
-    const share = y > FORM_HIP ? 1 : hangShare;
+    // The cloth lets go of the body over the last stretch above the hip, not all at once on the hip line.
+    const share = hangShare + (1 - hangShare) * smooth(clamp((y - (FORM_HIP - 0.2)) / 0.2, 0, 1));
     const r = share ? (share < 1 ? onBody(a, y) + (hung(a, y) - onBody(a, y)) * share : hung(a, y)) : onBody(a, y);
     return r * fold(a, y);
   };
@@ -304,7 +310,7 @@ export function roundShape(round: RoundGarment, m: RoundMeasurements, { film, th
   // at the crotch and hanging straight from there to the knee as cut cloth does (not closing in round the thigh and
   // belling out above it, Cat 2026-10-28: "why are pants like this?"). Each leg stands on its own axis, out at half
   // its width so the two touch, and back on the form's leg once the cloth is narrower than the legs are apart.
-  const thighTop = lg ? Math.max(thighR, radius(yC - 0.04) / 2) : 0;
+  const thighTop = lg ? Math.max(thighR, hipWide / 2) : 0;
   const legR = (y: number) =>
     y <= yK ? thighTop + (kneeR - thighTop) * clamp((y - yC) / (yK - yC || 1), 0, 1) : kneeR + (legHemR - kneeR) * clamp((y - yK) / (yH - yK || 1), 0, 1);
   const legAxis = (y: number) => (lg ? Math.max(FORM_LEG_X, legR(y) * 0.97) : FORM_LEG_X);
@@ -325,7 +331,9 @@ export function roundShape(round: RoundGarment, m: RoundMeasurements, { film, th
     // runs between them), so no part of the form's legs shows past the cloth and the seat meets the legs exactly.
     const sa = Math.abs(Math.sin(a));
     const ca = Math.abs(Math.cos(a));
-    const legs = ca > 1e-6 && (thighTop / ca) * sa <= FORM_LEG_X ? thighTop / ca : sa * FORM_LEG_X + Math.sqrt(Math.max(0, thighTop ** 2 - (FORM_LEG_X * ca) ** 2));
+    // Round the legs where they stand (legAxis: side by side, as wide as the hip), so the outside runs straight on.
+    const cx = legAxis(yC);
+    const legs = ca > 1e-6 && (thighTop / ca) * sa <= cx ? thighTop / ca : sa * cx + Math.sqrt(Math.max(0, thighTop ** 2 - (cx * ca) ** 2));
     // Fully round the thighs a little above the crotch, so the seat meets the legs without a step.
     return r + (Math.min(r, legs) - r) * smooth(clamp((y - y0) / (y1 - y0 || 1), 0, 1));
   };
