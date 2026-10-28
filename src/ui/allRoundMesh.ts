@@ -395,10 +395,24 @@ export function createRoundView(): RoundView | undefined {
       return P(a, bodyReach(bodyHalf(Math.min(yy, 1.3)), a, yy), y);
     };
     const satin = material('satin');
+    // Where the cloth lies on the body (over the shoulders, a shelf the cloth's thin ease barely clears) the two
+    // surfaces are all but one, and the body's facets won the fight for the pixel in places, showing through the
+    // cloth seen from behind: the body is pushed back a little in depth so the cloth always wins there.
+    satin.polygonOffsetFactor = 8;
+    satin.polygonOffsetUnits = 16;
     // Under trousers the body below the waist is left out: the trousers are oval and close in round the legs, and the
     // seat would stand out through them.
     if (trousers) satin.uniforms.hideBelow.value = WAIST + 0.02;
-    add(sweep({ at: (a, t) => bodyAt(a, NECK_TOP + (1.3 - NECK_TOP) * t), out: radial }, -Math.PI, Math.PI, 96, 80), satin, 0);
+    // Rows close together over the neck and shoulders, where the body's profile turns sharply out from the neck to
+    // the shoulder tip: laid in coarse rows, the straight runs between them cut outside the true shoulder at the base
+    // of the neck, and the body showed through the cloth lying on it there, seen from behind.
+    const BODY_BOTTOM = 1.3;
+    const SHOULDER_BAND = (-1.0 - NECK_TOP) / (BODY_BOTTOM - NECK_TOP);
+    const bodyRow = (j: number, n: number) => {
+      const u = j / n;
+      return u <= 0.5 ? (u / 0.5) * SHOULDER_BAND : SHOULDER_BAND + ((u - 0.5) / 0.5) * (1 - SHOULDER_BAND);
+    };
+    add(sweep({ at: (a, t) => bodyAt(a, NECK_TOP + (BODY_BOTTOM - NECK_TOP) * t), out: radial, rowT: bodyRow }, -Math.PI, Math.PI, 96, 120), satin, 0);
     const neck = material('satin');
     neck.uniforms.dimLit.value = 0.85;
     neck.uniforms.dimShine.value = 0.5;
