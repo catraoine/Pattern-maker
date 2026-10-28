@@ -712,7 +712,7 @@ export default function App() {
             <PhotoScreen
               testerCode={account.testerCode}
               measured={canLeaveMeasure}
-              body={canLeaveMeasure ? (values as SkirtMeasurements) : undefined}
+              body={canLeaveMeasure ? (values as SkirtMeasurements & { arm_length?: number }) : undefined}
               unit={saved.unit}
               onByHand={() => switchGarment('skirt', {}, 'style')}
               onApply={(choices, preview, fabric) => {

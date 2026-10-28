@@ -3,11 +3,11 @@ import type { Choices } from '../savedWork';
 import { LENGTHS, type Length, type SkirtMeasurements } from '../engine/skirt';
 import type { Unit } from '../measurements';
 import { photoToJpeg } from '../photo/image';
-import type { Confidence, PhotoError, PhotoReading, PhotoResponse, PieceKind } from '../photo/types';
+import type { Confidence, PhotoError, PhotoReading, PhotoResponse, PieceKind, TopReading, TrousersReading, UnsureGroup } from '../photo/types';
 import { GROUPS } from '../skirtChoices';
-import { PIECE_KINDS, PIECE_WORDS, aPiece, choicesFor, fabricFor, pieceName, mainPiece, pieceNote, piecesToPick, skirtChoices } from '../photo/garments';
+import { PIECE_KINDS, PIECE_WORDS, aPiece, choicesFor, fabricFor, pieceName, mainPiece, pieceNote, piecesToPick, skirtChoices, type PhotoBody } from '../photo/garments';
 import type { MyFabric } from '../engine/fabrics';
-import { isDress, type PatternChoices } from '../garments';
+import { isBodice, isDress, type PatternChoices } from '../garments';
 import { describePattern } from './describe';
 import { bodyOutline } from '../ui/bodyOutline';
 import { testerHeaders } from '../ui/TesterCode';
@@ -18,7 +18,7 @@ interface Props {
   testerCode?: string;
   measured: boolean;
   /** The wearer's measurements in cm, when taken: the laid-flat length question draws on them. */
-  body?: SkirtMeasurements;
+  body?: SkirtMeasurements & PhotoBody;
   unit: Unit;
   /** Leave for the style screen without a photo. */
   onByHand: () => void;
@@ -67,6 +67,55 @@ const SAMPLE_BODY: SkirtMeasurements = { waist: 76, full_hip: 102, waist_to_hip:
 // Where each named length falls on the sample body, waist (0) to floor (1), as the photo reading measures it.
 const HEM_AT = Object.fromEntries((Object.keys(LENGTHS) as Length[]).map((l) => [l, LENGTHS[l](SAMPLE_BODY) / SAMPLE_BODY.waist_to_floor])) as Record<Length, number>;
 const IN = 2.54;
+
+const NECK_NAME: Record<TopReading['neckline'], string> = {
+  crew: 'Crew neck',
+  scoop: 'Scoop neck',
+  v: 'V-neck',
+  square: 'Square neck',
+  boat: 'Boat neck',
+  one_shoulder: 'One shoulder',
+  cowl: 'Cowl neck',
+  strapless: 'Strapless',
+  sweetheart: 'Sweetheart',
+  cami: 'Cami straps',
+  halter: 'Halter',
+};
+const SLEEVE_NAME: Record<TopReading['sleeve'], string> = { none: 'Sleeveless', short: 'Short sleeves', elbow: 'Elbow sleeves', three_quarter: 'Three-quarter sleeves', long: 'Long sleeves' };
+const LEG_NAME: Record<TrousersReading['leg'], string> = { straight: 'Straight leg', wide: 'Wide leg', tapered: 'Tapered leg', culotte: 'Culottes' };
+const LENGTH_NAME: Record<Length, string> = { mini: 'Mini', above_knee: 'Above the knee', knee: 'Knee', midi: 'Midi', maxi: 'Maxi' };
+
+/**
+ * The question to ask when the reading was torn between its pick and one other option: the two names,
+ * the photo's pick first, and the reading with either one set. Undefined when there's nothing to ask
+ * for this garment, or the other option isn't one the app has.
+ */
+export function tornBetween(r: PhotoReading, piece: PieceKind): { group: UnsureGroup; options: [string, string][]; set: (v: string) => PhotoReading } | undefined {
+  const u = r.unsure;
+  if (!u) return undefined;
+  const skirtish = piece === 'skirt' || piece === 'dress';
+  const topish = (piece === 'top' || piece === 'tee' || piece === 'dress') && r.top;
+  const two = (names: Record<string, string>, pick: string): [string, string][] | undefined =>
+    u.other !== pick && names[u.other] && names[pick] ? [[pick, names[pick]], [u.other, names[u.other]]] : undefined;
+  const ask = (options: [string, string][] | undefined, set: (v: string) => PhotoReading) => (options ? { group: u.group, options, set } : undefined);
+  const silNames = Object.fromEntries(Object.entries(SIL_NAME).filter(([k]) => !['slip', 'gathered'].includes(k)));
+  switch (u.group) {
+    case 'silhouette':
+      // A new shape lets go of the photo's exact proportions, which were read for the other one.
+      return skirtish ? ask(two(silNames, r.silhouette.value), (v) => ({ ...r, silhouette: { value: v as PhotoReading['silhouette']['value'], confidence: 'high' }, shape: undefined as unknown as PhotoReading['shape'] })) : undefined;
+    case 'length':
+      return skirtish ? ask(two(LENGTH_NAME, r.length.value), (v) => ({ ...r, length: { value: v as Length, confidence: 'high' }, shape: r.shape && { ...r.shape, hemAt: HEM_AT[v as Length] } })) : undefined;
+    case 'neckline':
+      return topish ? ask(two(NECK_NAME, r.top!.neckline), (v) => ({ ...r, top: { ...r.top!, neckline: v as TopReading['neckline'] }, measures: r.measures && { ...r.measures, neckDepthCm: null } })) : undefined;
+    case 'sleeve':
+      return topish ? ask(two(SLEEVE_NAME, r.top!.sleeve), (v) => ({ ...r, top: { ...r.top!, sleeve: v as TopReading['sleeve'] }, measures: r.measures && { ...r.measures, sleeveEndsAt: null } })) : undefined;
+    case 'leg':
+      return piece === 'trousers' && r.trousers ? ask(two(LEG_NAME, r.trousers.leg), (v) => ({ ...r, trousers: { ...r.trousers!, leg: v as TrousersReading['leg'] } })) : undefined;
+  }
+}
+
+/** "a shoulder bow", "a shoulder bow and tiered hem", "a, b and c". */
+export const listWords = (xs: string[]) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
 
 /** Skirts and dresses show the shape, length and fit to change here; the rest change on their style screen. */
 const hasSkirt = (g: PieceKind) => g === 'skirt' || g === 'dress';
@@ -132,6 +181,8 @@ export function PhotoScreen({ testerCode, measured, body, unit, onByHand, onAppl
   const [open, setOpen] = useState<'fit' | 'silhouette' | 'length'>();
   const [stage, setStage] = useState(0);
   const [tape, setTape] = useState('');
+  // The one question an unsure reading asks, once answered, stays answered for this photo.
+  const [answered, setAnswered] = useState(false);
   const pending = useRef<AbortController>();
   const top = useRef<HTMLElement>(null);
 
@@ -188,6 +239,7 @@ export function PhotoScreen({ testerCode, measured, body, unit, onByHand, onAppl
       const g = mainPiece(r) ?? 'skirt';
       setPiece(g);
       setChoices(skirtChoices(r, g === 'dress' ? 'dress' : 'skirt'));
+      setAnswered(false);
       setPhase(piecesToPick(r).length > 1 ? 'pick' : 'result');
     } catch {
       if (!ctrl.signal.aborted) fail('network');
@@ -302,7 +354,7 @@ export function PhotoScreen({ testerCode, measured, body, unit, onByHand, onAppl
   /** The whole garment's choices: a skirt as changed here, a dress with its skirt as changed here, the rest as read. */
   const final = (skirt: Choices = choices): PatternChoices => {
     if (piece === 'skirt') return skirt;
-    const c = choicesFor(reading, piece);
+    const c = choicesFor(reading, piece, body);
     return isDress(c) ? { ...c, skirt: { ...skirt, fit: c.fit } } : c;
   };
 
@@ -368,6 +420,15 @@ export function PhotoScreen({ testerCode, measured, body, unit, onByHand, onAppl
   }
 
   const tip = hasSkirt(piece) || piece === 'trousers' ? tipFor(reading) : undefined;
+  const torn = answered ? undefined : tornBetween(reading, piece);
+  const answer = (v: string) => {
+    if (!torn) return;
+    const r = torn.set(v);
+    setReading(r);
+    setChoices(skirtChoices(r, piece === 'dress' ? 'dress' : 'skirt'));
+    setAnswered(true);
+  };
+  const missing = (reading.missing ?? []).map((m) => m.trim().toLowerCase()).filter(Boolean).slice(0, 5);
   // A dress takes its fit from the bodice, so only the skirt's shape and length change here.
   const groups = piece === 'dress' ? (flat ? [GROUPS[1]] : [GROUPS[1], GROUPS[2]]) : flat ? [GROUPS[1], GROUPS[0]] : [GROUPS[1], GROUPS[2], GROUPS[0]];
   const conf = { silhouette: reading.silhouette.confidence, length: reading.length.confidence, fit: reading.fit.confidence };
@@ -378,9 +439,13 @@ export function PhotoScreen({ testerCode, measured, body, unit, onByHand, onAppl
   const needsLength = flat && hasSkirt(piece);
   // The name, without the dress skirt's "matched to a photo".
   const named = final();
-  const title =
-    piece !== 'skirt' ? describePattern(isDress(named) ? { ...named, skirt: { ...named.skirt, shape: undefined } } : named) : flat ? `A ${sil.toLowerCase()} skirt` : `${sil}, ${WHERE[choices.length]}`;
-  const sub = piece !== 'skirt' ? (needsLength ? 'The length is up to you' : '') : flat ? `${label('fit')} fit · the length is up to you` : `${label('fit')} fit · ${SURE[reading.shape?.confidence ?? reading.length.confidence]}`;
+  // A neckline the photo deepened is still named as the photo's ("V-neck"), with its depth below.
+  const bodiceOf = isDress(named) ? named.bodice : isBodice(named) ? named : undefined;
+  const plainName = (c: PatternChoices): PatternChoices =>
+    isDress(c) ? { ...c, bodice: { ...c.bodice, neck: undefined }, skirt: { ...c.skirt, shape: undefined } } : isBodice(c) ? { ...c, neck: undefined } : c;
+  const title = piece !== 'skirt' ? describePattern(plainName(named)) : flat ? `A ${sil.toLowerCase()} skirt` : `${sil}, ${WHERE[choices.length]}`;
+  const depth = bodiceOf?.neck ? `Neckline ${unit === 'in' ? `${Math.round((bodiceOf.neck.frontDepth / IN) * 4) / 4} in` : `${bodiceOf.neck.frontDepth} cm`} deep, as in the photo` : '';
+  const sub = piece !== 'skirt' ? (needsLength ? 'The length is up to you' : depth) : flat ? `${label('fit')} fit · the length is up to you` : `${label('fit')} fit · ${SURE[reading.shape?.confidence ?? reading.length.confidence]}`;
 
   return (
     <section ref={top} className="card photoresult" aria-labelledby="seetitle">
@@ -394,6 +459,19 @@ export function PhotoScreen({ testerCode, measured, body, unit, onByHand, onAppl
       </div>
       {note && <p className="msg small">{note}</p>}
       {tip && <p className="msg small">{tip}</p>}
+      {torn && (
+        <fieldset className="group photoask">
+          <legend>{`${torn.options[0][1]} or ${torn.options[1][1].toLowerCase()}?`}</legend>
+          <p className="muted small">The photo could be either. Which is it?</p>
+          <div className="chips">
+            {torn.options.map(([id, text]) => (
+              <button key={id} type="button" className="chip" onClick={() => answer(id)}>
+                {text}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+      )}
       {hasSkirt(piece) && (
       <div className="photorows">
         {groups.map((g) => (
@@ -430,7 +508,18 @@ export function PhotoScreen({ testerCode, measured, body, unit, onByHand, onAppl
         ))}
       </div>
       )}
-      {reading.details && <p className="muted small">{reading.details}</p>}
+      {missing.length > 0 ? (
+        <div className="photomissing">
+          <p className="small">
+            <span className="eyebrow">Not in the app yet</span> {listWords(missing)[0].toUpperCase() + listWords(missing).slice(1)}.
+          </p>
+          <p className="muted small">
+            We've noted {missing.length > 1 ? 'them' : 'it'} for what we add next. Seams, necklines and hems you can draw on your form after drafting.
+          </p>
+        </div>
+      ) : (
+        reading.details && <p className="muted small">{reading.details}</p>
+      )}
       {piece === 'skirt' && choices.shape && !flat && <p className="muted small">Your pattern copies these proportions, drafted to your measurements.</p>}
       {!hasSkirt(piece) && <p className="muted small">Drafted to your measurements. You can change any detail on the next screen.</p>}
       <div className="stack">

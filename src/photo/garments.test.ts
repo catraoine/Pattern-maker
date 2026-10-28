@@ -127,3 +127,31 @@ describe('skirt details from a photo', () => {
     expect(skirt({ asymHem: 'high_low' }).asymHem).toBe('high_low');
   });
 });
+
+describe("a photo's exact sizes", () => {
+  const body = { waist_to_floor: 104, arm_length: 60 };
+  const measures = { neckDepthCm: 22, sleeveEndsAt: 0.4, topHemAt: 0.18, trouserHemAt: 0.8 };
+  const read = { ...outfit, top: { ...top, length: 'hip' as const }, measures };
+
+  it('deepens an open neckline, and sets the sleeve, top hem and trouser length on the wearer', () => {
+    const c = choicesFor(read, 'top', body);
+    expect(isBodice(c) && c.neck?.frontDepth).toBe(22);
+    expect(isBodice(c) && c.sleeveCm).toBe(24);
+    expect(isBodice(c) && c.dropCm).toBe(19);
+    const t = choicesFor(read, 'trousers', body);
+    expect(isTrousers(t) && t.lengthCm).toBe(83);
+    for (const g of ['top', 'dress', 'trousers'] as const) expect(lookFlat({ choices: choicesFor(read, g, body) } as HouseLook, EXAMPLE_VALUES), g).toBeDefined();
+  });
+
+  it('keeps the named choice when the size is close to it, or without the measurements', () => {
+    const plain = choicesFor({ ...read, measures: { ...measures, neckDepthCm: 15 } }, 'top', body);
+    expect(isBodice(plain) && plain.neck).toBeUndefined();
+    const noBody = choicesFor(read, 'trousers');
+    expect(isTrousers(noBody) && noBody.lengthCm).toBeUndefined();
+  });
+
+  it('leaves a neckline with a collar alone', () => {
+    const c = choicesFor({ ...read, top: { ...read.top, neckline: 'scoop', collar: 'peter_pan' } }, 'top', body);
+    expect(isBodice(c) && c.neck).toBeUndefined();
+  });
+});

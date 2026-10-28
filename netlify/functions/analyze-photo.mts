@@ -3,7 +3,7 @@
 import { createHash } from 'node:crypto';
 import Anthropic from '@anthropic-ai/sdk';
 import { blobCounts } from '../../src/server/blobCounts';
-import { analyzePhoto, checkPhoto, type AnalyzeInput } from '../../src/photo/analyze';
+import { analyzePhoto, checkPhoto, missingKeys, type AnalyzeInput } from '../../src/photo/analyze';
 import { TESTER_CAPS, TESTER_POOL, isTesterCode, takeAllowance, type Allowance } from '../../src/photo/limit';
 
 // Provided by the Netlify runtime.
@@ -12,6 +12,15 @@ declare const Netlify: { env: { get(name: string): string | undefined } };
 
 // Visitors are counted by a hash of their IP address, so no address is stored.
 const visitorId = (ip: string | undefined) => createHash('sha256').update(ip ?? 'unknown').digest('hex').slice(0, 24);
+
+async function countMissing(keys: string[]) {
+  try {
+    const store = blobCounts('missing-details');
+    for (const k of keys) await store.take(k, Infinity);
+  } catch (e) {
+    console.error('missing detail count failed', e);
+  }
+}
 
 export default async (req: Request, context: { ip?: string }) => {
   if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 });
@@ -42,6 +51,8 @@ export default async (req: Request, context: { ip?: string }) => {
   }
 
   const result = await analyzePhoto(body, key ? new Anthropic({ apiKey: key }) : null);
+  // What the app couldn't match is counted by name and garment (never with who sent it), so the most wanted details show up.
+  if (result.ok) await countMissing(missingKeys(result.reading));
   const status = result.ok ? 200 : result.error === 'not_configured' ? 503 : result.error === 'failed' ? 502 : 400;
   return Response.json(result, { status });
 };

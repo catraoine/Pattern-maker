@@ -76,3 +76,12 @@ describe('analyzePhoto', () => {
     expect(await analyzePhoto(photo, fakeClient(bad).client)).toEqual({ ok: false, error: 'bad_image' });
   });
 });
+
+describe('missingKeys', () => {
+  it('counts each unmatched detail under its garment, at most five, without repeats', async () => {
+    const { missingKeys } = await import('./analyze');
+    expect(missingKeys({ garment: 'dress', missing: ['Shoulder bow', 'tiered hem', 'shoulder  bow!'] })).toEqual(['dress/shoulder-bow', 'dress/tiered-hem']);
+    expect(missingKeys({ garment: 'skirt', missing: ['a', 'b', 'c', 'd', 'e', 'f'] })).toHaveLength(5);
+    expect(missingKeys({ garment: 'skirt' })).toEqual([]);
+  });
+});

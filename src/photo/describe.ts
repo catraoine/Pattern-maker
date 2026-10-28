@@ -25,7 +25,7 @@ const SYSTEM = `A home sewist has typed what they would like to make, in their o
 - note: one or two short, friendly sentences to the sewist. For "make", what you set up for them. For "closest", plainly what will be different, and for a two-piece idea which garment to make next to finish it. For "not_yet", why the app can't draft it yet (for swimwear and lingerie: they need patterns drafted for stretch fabric). Never mention prices, other apps or AI.
 - start: the garment to start from ("skirt", "dress", "top", "tee", "trousers", "jacket", "coat"), or null for "not_yet".
 - bias: true for a skirt or dress cut on the bias (a slip skirt or slip dress), otherwise false.
-- reading: the style of the start garment, filled in exactly like the photo reading described below, as if the photo showed what they described. Use their words for every detail they give and the plain, everyday choice for anything they don't. Use "high" confidence for details they named and "medium" for the rest. Set reading.garment to the start garment ("other" for "not_yet"), pieces to that one garment at x 0.5, y 0.5, and worn to true.
+- reading: the style of the start garment, filled in exactly like the photo reading described below, as if the photo showed what they described. Use their words for every detail they give and the plain, everyday choice for anything they don't. Use "high" confidence for details they named and "medium" for the rest. Set reading.garment to the start garment ("other" for "not_yet"), pieces to that one garment at x 0.5, y 0.5, and worn to true. Fill reading.measures only with sizes they give (a neckline 12 cm deep, a hem at the ankle), otherwise null, and reading.unsure with null. List in reading.missing every feature they asked for that the fields can't draft.
 
 The photo reading, for reference:
 
@@ -70,10 +70,4 @@ export async function describeIdea(text: unknown, client: Anthropic | null): Pro
   }
 }
 
-/** A key for counting what people ask for that the app can't make yet: "Wide-leg  Jumpsuit!" is "wide-leg-jumpsuit". */
-export const wishKey = (name: string) =>
-  name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 60) || 'unnamed';
+export { wishKey } from './wish';

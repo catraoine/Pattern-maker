@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto';
 import Anthropic from '@anthropic-ai/sdk';
 import { blobCounts } from '../../src/server/blobCounts';
 import { checkIdea, describeIdea, wishKey } from '../../src/photo/describe';
+import { missingKeys } from '../../src/photo/analyze';
 import { TESTER_CAPS, TESTER_POOL, isTesterCode, takeAllowance, type Allowance } from '../../src/photo/limit';
 
 // Provided by the Netlify runtime.
@@ -47,6 +48,15 @@ export default async (req: Request, context: { ip?: string }) => {
       await blobCounts('wishes').take(wishKey(result.idea.name), Infinity);
     } catch (e) {
       console.error('wish count failed', e);
+    }
+  }
+  // Details asked for that the garment can't have yet are counted the way a photo's are.
+  if (result.ok && result.idea.verdict !== 'not_yet') {
+    try {
+      const store = blobCounts('missing-details');
+      for (const k of missingKeys(result.idea.reading)) await store.take(k, Infinity);
+    } catch (e) {
+      console.error('missing detail count failed', e);
     }
   }
   const status = result.ok ? 200 : result.error === 'not_configured' ? 503 : result.error === 'failed' ? 502 : 400;

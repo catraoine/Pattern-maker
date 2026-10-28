@@ -3,6 +3,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { betaZodOutputFormat } from '@anthropic-ai/sdk/helpers/beta/zod';
 import { z } from 'zod';
+import { wishKey } from './wish';
 import { IMAGE_TYPES, MAX_IMAGE_BYTES, PhotoError, PhotoReading, PhotoResponse, READ_COLOURS } from './types';
 
 const confidence = z.enum(['low', 'medium', 'high']);
@@ -74,6 +75,14 @@ export const Reading = z.object({
   outer: Outer.nullable(),
   fabric: Fabric.nullable(),
   worn: z.boolean(),
+  measures: z.object({
+    neckDepthCm: z.number().nullable(),
+    sleeveEndsAt: z.number().nullable(),
+    topHemAt: z.number().nullable(),
+    trouserHemAt: z.number().nullable(),
+  }),
+  unsure: z.object({ group: z.enum(['silhouette', 'length', 'neckline', 'sleeve', 'leg']), other: z.string() }).nullable(),
+  missing: z.array(z.string()),
   details: z.string(),
 });
 
@@ -140,9 +149,19 @@ outer: fill this in for a jacket or a coat; otherwise null.
 
 worn: true when a person or a full-length mannequin is wearing the main garment, so where it ends can be measured against the body; false when it is laid flat, on a hanger or on a dress form without legs.
 
+measures: exact sizes, so the pattern copies the photo rather than a standard option. Measure against the wearer's body, as for the skirt's shape, and use null when the photo doesn't show it, the garment has none, or it isn't worn:
+- neckDepthCm: for a top, T-shirt or dress bodice, how far the lowest point of the front neckline sits below the hollow at the base of the throat, in cm on an average adult (a crew neck 1 to 2, a scoop 8 to 14, a deep V 18 to 28). null for a strapless, cami, halter, one-shoulder or cowl neckline.
+- sleeveEndsAt: where a sleeve ends, as a fraction of the arm from the shoulder point (0) to the wrist bone (1): a short sleeve about 0.25, elbow 0.5, three-quarter 0.75, long 1. null with no sleeves or a cap sleeve.
+- topHemAt: for a top below the waist (not a dress), where its hem falls, as a fraction of the natural waist (0) to the floor (1), like the skirt's hemAt (the hip line is about 0.2).
+- trouserHemAt: for trousers, where the hem falls, as a fraction of the natural waist (0) to the floor (1) (shorts about 0.3, knee 0.56, ankle 0.93, full 0.98).
+
+unsure: when you are torn between your pick and one other option in one of these groups, name the group and the other option exactly as it is written above, so the sewist can be asked which it is: "silhouette" (the skirt's), "length" (the skirt's), "neckline", "sleeve" (top.sleeve) or "leg" (trousers.leg). For example a skirt that could be straight or pencil: group "silhouette", other "pencil". Use it only when both really are likely and the choice changes the pattern; otherwise null.
+
+missing: the design features of the main garment that none of the fields above can draft, each named in two to four plain lower-case words, such as "shoulder bow", "ruched side seams", "cape back", "balloon hem", "ruffled sleeve hems", "lace-up back" or "front slit". At most five, the most noticeable first. Leave out the cloth, colour and print, things already covered by a field, and anything sewn the usual way (a zip, a waistband, hems, plain seams). Empty when the fields cover everything.
+
 Confidence (for each group, and for the shape as a whole): "high" when the photo clearly shows it, "medium" when it is a reasonable reading, "low" when you are guessing (cropped, folded, odd angle, or not that garment).
 
-details: one short, friendly sentence naming design features of the main garment that none of the fields above cover, which the sewist may want to add themselves (for example gathers, a front slit, patch pockets on a skirt, a yoke, a ruffle at the neck, a wrap front, a hood). Leave it empty if there are none. If the item is "other", still fill in your best reading and say what the item is.`;
+details: one short, friendly sentence naming the features in missing, which the sewist may want to add themselves. Leave it empty if missing is empty. If the item is "other", still fill in your best reading and say what the item is.`;
 
 export interface AnalyzeInput {
   image: string; // base64, no data: prefix
@@ -155,6 +174,15 @@ export interface AnalyzeInput {
  */
 export const spendLimitReached = (e: unknown) =>
   e instanceof Anthropic.APIError && (e.status === 400 || e.status === 429) && /API usage limit/i.test(e.message);
+
+/**
+ * The keys a reading's unmatched details are counted under, in the "missing-details" store: the garment
+ * and the detail, as "dress/shoulder-bow". At most five, with no repeats.
+ */
+export function missingKeys(r: Pick<PhotoReading, 'garment' | 'missing'>): string[] {
+  const keys = (r.missing ?? []).slice(0, 5).map((m) => `${r.garment}/${wishKey(m)}`);
+  return [...new Set(keys)];
+}
 
 /** Cheap checks on the upload, done before anything that costs money. */
 export function checkPhoto(input: AnalyzeInput): PhotoError | null {
