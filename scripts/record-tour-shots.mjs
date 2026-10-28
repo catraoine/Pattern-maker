@@ -175,7 +175,7 @@ const tap = async (loc, ms) => { await loc.evaluate((el) => el.click()); await p
 const addPen = () => p.evaluate(() => {
   const d = document.createElement('div');
   d.id = 'pen';
-  Object.assign(d.style, { position: 'fixed', width: '14px', height: '14px', margin: '-7px 0 0 -7px', borderRadius: '50%', background: '#d8c49c', opacity: 0, zIndex: 99998, pointerEvents: 'none', boxShadow: '0 0 0 6px rgba(216,196,156,.25)', transition: 'opacity .25s' });
+  Object.assign(d.style, { position: 'fixed', width: '8px', height: '8px', margin: '-4px 0 0 -4px', borderRadius: '50%', background: '#f2ece0', opacity: 0, zIndex: 99998, pointerEvents: 'none', transition: 'opacity .25s' });
   document.body.appendChild(d);
 });
 await addPen();
@@ -252,6 +252,35 @@ await wait(1500);
 await main.getByRole('heading', { level: 1, name: /^Style your/ }).waitFor({ timeout: 15000 });
 await addPen();
 await wait(800);
+// The film's opening All round (Cat, 2026-10-27): the dress as the Style page first opens it, before any styling, in
+// lines on the same body as the second All round, no fabric. TOUR_OPENER=1 records only that take (opener.mp4) and
+// stops; edit-tour cuts its opening from it (OPENER=<dir>/opener.mp4).
+if (process.env.TOUR_OPENER) {
+  await p.evaluate(() => { window.__tourFilm = 'old'; });
+  await main.getByRole('group', { name: 'Garment view' }).getByRole('button', { name: 'All round' }).click();
+  await wait(1500);
+  const K = 1.45;
+  await p.evaluate((K) => {
+    const c = document.querySelector('.all-round-canvas');
+    document.body.appendChild(c);
+    const w = innerWidth * K, h = (innerHeight + 96) * K;
+    Object.assign(c.style, { position: 'fixed', zIndex: 9999, background: '#000', maxWidth: 'none', maxHeight: 'none', aspectRatio: 'auto', margin: 0, width: `${w}px`, height: `${h}px`, left: `${innerWidth / 2 - w / 2}px`, top: `${innerHeight / 2 - 0.47 * h}px`, transformOrigin: '50% 47%', transform: `scale(${1 / K})` });
+  }, K);
+  await wait(1200);
+  await start();
+  await wait(400);
+  // In and in as it turns, as the second All round does.
+  await p.evaluate(([K, ms]) => new Promise((done) => {
+    const c = document.querySelector('.all-round-canvas');
+    const t0 = performance.now();
+    const ease = (x) => x * x * (3 - 2 * x);
+    const step = (now) => { const x = Math.min(1, (now - t0) / ms); const k = 1 + (K - 1) * ease(x); const fy = 0.47 - 0.06 * ((k - 1) / (K - 1)); c.style.transformOrigin = `50% ${fy * 100}%`; c.style.transform = `scale(${k / K})`; x < 1 ? requestAnimationFrame(step) : done(); };
+    requestAnimationFrame(step);
+  }), [K, 8500]);
+  await wait(600);
+  await stop('opener');
+  process.exit(0);
+}
 // TOUR_FIT and TOUR_SLEEVES try the dress another way (Fitted, Sleeveless) without touching the rest.
 const FIT = process.env.TOUR_FIT ?? 'Relaxed';
 const SLEEVES = process.env.TOUR_SLEEVES ?? 'Short';
