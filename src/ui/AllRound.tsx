@@ -12,8 +12,8 @@ import { ClothQuad, ClothTiles, clothLayers, clothTiles, lightOf, paintCloth } f
 import { RoundGarment, RoundPt, RoundSeam, stripesMeet } from '../engine/allRound';
 import { bodyHalf as formHalfWidth, reach as bodyReach, shapeAt } from '../engine/body';
 import { FORM_CROTCH, FORM_DEPTH, FORM_FLOOR, FORM_LEG, FORM_LEG_X, paintFigure } from './ContourForm';
-import { NECK_Y, RoundMeasurements, WAIST, roundShape } from './allRoundShape';
-import type { RoundView } from './allRoundMesh';
+import { BUST_Y, FORM_HIP, NECK_Y, RoundMeasurements, WAIST, roundShape } from './allRoundShape';
+import type { Pick, PickPart, RoundView } from './allRoundMesh';
 
 // Matching --gild, --gild-glow, --guide, --muted and --ok in styles.css.
 const GILD = '#d9c49b';
@@ -30,6 +30,19 @@ const STRIP = 96; // the unrolled hem line under the figure, in px
 
 type Pt = [number, number, number];
 
+/** A point of a line drawn on the turning garment (Cat's A Draw on it, 2026-10-28), read for the draw tool: what it
+ *  is on, its height in cm below the waist (above is negative), and where it sits across the flat drawing in the
+ *  pattern's cm (the view's own guess; on a sleeve or a leg the tool places it round the arm or leg from `a`). */
+export interface RoundPick {
+  part: PickPart;
+  /** The side of a sleeve or a leg, -1 or 1. */
+  e: number;
+  /** The angle round the body from the centre front, or round a sleeve or leg from its front (outward past 0). */
+  a: number;
+  cm: number;
+  xCm: number;
+}
+
 interface Props {
   round: RoundGarment;
   m: RoundMeasurements;
@@ -38,6 +51,9 @@ interface Props {
   /** The maker's fabric: the garment is drawn in it. Left out, or with none chosen, the garment stays in lines. */
   fabric?: MyFabric;
   label: string;
+  /** The draw tool inside the view: one finger draws a line on the garment (sent as it grows, then once more with
+   *  `done`), two fingers turn it. The rows under the view are left out, so the view is the drawing alone. */
+  draw?: { onStroke: (pts: RoundPick[], done: boolean) => void };
 }
 
 interface Row {
@@ -92,8 +108,11 @@ export function roundRows(r: RoundGarment, striped: boolean | 'checks' | 'stripe
   return rows;
 }
 
-export function AllRound({ round, m, striped = false, fabric, label }: Props) {
+export function AllRound({ round, m, striped = false, fabric, label, draw }: Props) {
   const ref = useRef<HTMLCanvasElement>(null);
+  const drawRef = useRef(draw);
+  drawRef.current = draw;
+  const drawing = !!draw;
   // The cloth's tiles, once its swatch has loaded; until then (and with no fabric) the garment is in lines.
   const paint = useMemo(() => fabricPaint(fabric, import.meta.env.BASE_URL), [fabric]);
   const paintKey = JSON.stringify(paint ?? null);
@@ -126,7 +145,7 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
       v3ref.current = undefined;
     };
   }, []);
-  const turn = useRef({ phi: 0.6, target: null as number | null, dragging: false, idle: 0, probe: false });
+  const turn = useRef({ phi: 0.6, target: null as number | null, dragging: false, idle: 0, probe: false, stroke: null as [number, number][] | null, picks: [] as RoundPick[] });
   const pulse = useRef(-1e9);
   const rows = useMemo(() => roundRows(round, striped), [round, striped]);
 
@@ -168,14 +187,55 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
     // The film's 'old look': the form's lines run on through the whole garment, as the released film had it.
     const through = flag === 'old';
     const isTop = round.kind === 'top' || round.kind === 'dress';
-    const strip = trousers ? 0 : STRIP;
+    // Drawing on it, the figure has the whole canvas: no hem strip, the status line under it reads the hem.
+    const strip = trousers || drawing ? 0 : STRIP;
     // In the maker's fabric, unless the film wants its old look.
     const cloth = through ? undefined : tiles;
 
     const sh = roundShape(round, m, { film, through });
     const v3 = through ? undefined : v3ref.current;
     if (v3) v3.build({ round, sh, cloth, film, striped: !!striped });
-    const { hemY, topY, wh, yAt, yOf, kY, lengths, longest, highest, bandTop, arm, yS, yU, sl, ra, rh, neckOnly, radius, foldTilt, depthAt, shell, zAcross, clothDown, yE, yCap, axisX, capDepth, sleeveR, lg, yC, yH, legHemR, legR, legAxis, rAt, reach } = sh;
+    const { hemY, topY, wh, yAt, yOf, kY, N, krB, krW, krH, lengths, longest, highest, bandTop, arm, yS, yU, sl, ra, rh, neckOnly, radius, foldTilt, depthAt, shell, zAcross, clothDown, yE, yCap, axisX, capDepth, sleeveR, lg, yC, yH, legHemR, legR, legAxis, rAt, reach } = sh;
+    /** The last frame's layout, for reading where a finger is. */
+    let frame = { S: 1, cx: 0, top: 0, lw: 1, fig: 1 };
+
+    // A point of the view read for the draw tool: the form's units back into the pattern's cm. Across, the form's
+    // units are the body's radius scaled, and the flat drawing is in the pattern's cm (a quarter of the round, so
+    // pi/2 times the radius); down, the garment's own placing on the form (placeOnForm), undone by halving.
+    const kr = (y: number) => (y <= BUST_Y ? krB : y <= WAIST ? krB + ((krW - krB) * (y - BUST_Y)) / (WAIST - BUST_Y) : y <= FORM_HIP ? krW + ((krH - krW) * (y - WAIST)) / (FORM_HIP - WAIST) : krH);
+    const cmAt = (a: number, y: number) => {
+      let lo = -N - 40;
+      let hi = 220;
+      for (let i = 0; i < 40; i++) {
+        const mid = (lo + hi) / 2;
+        if (yAt(a, mid) < y) lo = mid;
+        else hi = mid;
+      }
+      return (lo + hi) / 2;
+    };
+    const toPick = (p: Pick, phi: number): RoundPick => {
+      // The view looks from a touch above (FORM_DEPTH), so a level line across the cloth would read higher at the
+      // front than at the sides; it is read as the flat tool reads it, straight on, so a level line is level.
+      const [x, yHit, z] = p.p;
+      const y = yHit + (z * Math.cos(phi) - x * Math.sin(phi)) * FORM_DEPTH;
+      const xCm = (x / kr(y)) * HALF;
+      if (p.part === 'sleeve') return { part: p.part, e: p.e, a: Math.atan2((x - p.e * axisX(y)) * p.e, z), cm: cmAt(0, y), xCm };
+      if (p.part === 'leg') return { part: p.part, e: p.e, a: Math.atan2((x - p.e * (lg ? legAxis(y) : FORM_LEG_X)) * p.e, z), cm: cmAt(Math.PI, y), xCm };
+      const a = Math.atan2(x, z);
+      return { part: p.part, e: p.e, a, cm: cmAt(a, y), xCm };
+    };
+    /** What is under the finger at (px, py) on the canvas: the graphics chip's view asked, or (without it) the plane
+     *  through the form's axis facing you. */
+    const pickAt = (px: number, py: number): RoundPick => {
+      const { S, cx, top, lw, fig } = frame;
+      const phi = st.phi;
+      if (v3) {
+        const hit = v3.pick({ phi, w, h: fig, dpr, S, cx, top, lw }, px, py);
+        if (hit) return toPick(hit, phi);
+      }
+      const xw = (px - cx) / S;
+      return toPick({ part: 'air', e: 0, p: [xw * Math.cos(phi), top + (py - 8) / S, xw * Math.sin(phi)] }, phi);
+    };
 
     const draw = (now: number) => {
       const top = film ? Math.min(-2, yOf(highest) - 0.3) : Math.min(-0.45, yOf(highest) - 0.3);
@@ -185,6 +245,7 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
       const cx = w / 2;
       const Y = (y: number) => 8 + (y - top) * S;
       const lw = Math.max(0.7, S / 252) * 1.2;
+      frame = { S, cx, top, lw, fig };
       const phi = st.phi;
       const c = Math.cos(phi);
       const s = Math.sin(phi);
@@ -885,7 +946,14 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
         }
       }
 
-      if (!film) text('Drag to turn', 8, fig - 4);
+      if (!film && !drawing) text('Drag to turn', 8, fig - 4);
+      // The line being drawn, a fine chalk line over the garment.
+      if (st.stroke && st.stroke.length > 1) {
+        g.save();
+        g.setLineDash([5, 3]);
+        polyline(st.stroke, GLOW, 1.8, 0.95);
+        g.restore();
+      }
       if (!strip) return;
 
       // The hem unrolled: centre front, round by the left side and the back, to the centre front again.
@@ -951,7 +1019,7 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
           const d = wrap(st.target - st.phi);
           st.phi += d * Math.min(1, dt * 4);
           if (Math.abs(d) < 0.002) st.target = null;
-        } else if (!still && now - st.idle > 2500) st.phi += dt * 0.3;
+        } else if (!still && !drawing && now - st.idle > 2500) st.phi += dt * 0.3;
       }
       draw(now);
       raf = requestAnimationFrame(loop);
@@ -960,20 +1028,59 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
 
     let x0 = 0;
     let phi0 = 0;
+    // Drawing (Cat's A Draw on it): one finger draws on the garment, a second finger turns it instead.
+    const fingers = new Map<number, number>();
+    // Where the finger is on the canvas, from where the canvas was when the line began: the page can shift under
+    // it as the hint changes while the line is drawn.
+    let rect = cv.getBoundingClientRect();
+    const at = (e: PointerEvent): [number, number] => [e.clientX - rect.left, e.clientY - rect.top];
+    const meanX = () => [...fingers.values()].reduce((t, v) => t + v, 0) / (fingers.size || 1);
     const downEv = (e: PointerEvent) => {
-      st.dragging = true;
+      fingers.set(e.pointerId, e.clientX);
       st.target = null;
-      x0 = e.clientX;
-      phi0 = st.phi;
       cv.setPointerCapture(e.pointerId);
+      if (drawing && fingers.size === 1) {
+        rect = cv.getBoundingClientRect();
+        const q = at(e);
+        st.stroke = [q];
+        st.picks = [pickAt(q[0], q[1])];
+        st.dragging = false;
+        return;
+      }
+      st.stroke = null;
+      st.picks = [];
+      st.dragging = true;
+      x0 = meanX();
+      phi0 = st.phi;
     };
     const move = (e: PointerEvent) => {
-      if (st.dragging) st.phi = phi0 + ((e.clientX - x0) / (cv.clientWidth || 1)) * Math.PI * 1.6;
+      if (!fingers.has(e.pointerId)) return;
+      fingers.set(e.pointerId, e.clientX);
+      if (st.stroke) {
+        const q = at(e);
+        st.stroke.push(q);
+        st.picks.push(pickAt(q[0], q[1]));
+        if (st.picks.length > 4 && st.picks.length % 4 === 0) drawRef.current?.onStroke(st.picks, false);
+        return;
+      }
+      if (st.dragging) st.phi = phi0 + ((meanX() - x0) / (cv.clientWidth || 1)) * Math.PI * 1.6;
     };
-    const up = () => {
-      st.dragging = false;
+    const up = (e: PointerEvent) => {
+      fingers.delete(e.pointerId);
+      if (st.stroke) {
+        const picks = st.picks;
+        st.stroke = null;
+        st.picks = [];
+        if (e.type === 'pointerup' && picks.length > 2) drawRef.current?.onStroke(picks, true);
+      }
+      if (!fingers.size) st.dragging = false;
+      else {
+        x0 = meanX();
+        phi0 = st.phi;
+      }
       st.idle = performance.now();
     };
+    cv.style.touchAction = drawing ? 'none' : '';
     // The all-round check (e2e/all-round-check.spec.ts) turns the form to an exact angle with this event.
     const turnEv = (e: Event) => {
       const { at, probe } = (e as CustomEvent<{ at: number; probe: boolean }>).detail;
@@ -996,7 +1103,7 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
       cv.removeEventListener('pointerup', up);
       cv.removeEventListener('pointercancel', up);
     };
-  }, [round, m, striped, tiles, layers, v3ready]);
+  }, [round, m, striped, tiles, layers, v3ready, drawing]);
 
   const turnTo = (a: number) => {
     turn.current.target = -a + 0.3;
@@ -1005,7 +1112,8 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
 
   return (
     <div className="all-round">
-      <canvas ref={ref} className={`all-round-canvas${round.legs ? ' all-round-tall' : ''}`} role="img" aria-label={label} />
+      <canvas ref={ref} className={`all-round-canvas${round.legs ? ' all-round-tall' : ''}${drawing ? ' drawing' : ''}`} role="img" aria-label={label} />
+      {!drawing && (
       <div className="all-round-rows">
         {rows.map((r) => (
           <button key={r.id} type="button" className="all-round-row" onClick={() => turnTo(r.turn)}>
@@ -1017,7 +1125,8 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
           </button>
         ))}
       </div>
-      <p className="all-round-note">Shape preview, not a cloth simulation</p>
+      )}
+      {!drawing && <p className="all-round-note">Shape preview, not a cloth simulation</p>}
     </div>
   );
 }

@@ -15,6 +15,10 @@ import { FormLine, FormSide, Reading, landmarks } from './formLines';
 import { BELOW_HEM, CLOTH_EDGES, FormHead, FormLayers, FormSatin, HEAD_CM, SQUEEZE, SewnLevel, WornSleeve, formHead, wornCloth } from './FormSketch';
 import { TestingTag } from './TestingTag';
 import { DemoButton } from './DemoButton';
+import { AllRound, RoundPick } from './AllRound';
+import type { RoundGarment } from '../engine/allRound';
+import type { RoundMeasurements } from './allRoundShape';
+import type { MyFabric } from '../engine/fabrics';
 import { tookEnlarged } from './EnlargeSketch';
 import { isLadderStep } from '../nav';
 
@@ -113,6 +117,8 @@ interface Props<C> {
   underarmY?: number;
   /** The pattern's finished widths at the bust, waist and hip, so the cloth is never drawn narrower than it is sewn. */
   sewn?: SewnLevel[];
+  /** The garment as All round shows it, to draw on while it turns (Cat's A Draw on it, 2026-10-28). */
+  allRound?: { round: RoundGarment; m: RoundMeasurements; fabric?: MyFabric; striped?: boolean | 'checks' | 'stripes' };
   onDone: () => void;
   onCancel: () => void;
 }
@@ -203,10 +209,12 @@ export function skirtForm(m: { waist: number; full_hip: number; waist_to_hip: nu
   return { width: side, top: -12, bottom: m.waist_to_hip + 8, waistY: 0 };
 }
 
-export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, onChoices, read, help: helpFor, backs = true, backKinds, arms, cloth, sleeve, underarmY, sewn, onDone, onCancel }: Props<C>) {
+export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, onChoices, read, help: helpFor, backs = true, backKinds, arms, cloth, sleeve, underarmY, sewn, allRound, onDone, onCancel }: Props<C>) {
   const svg = useRef<SVGSVGElement>(null);
   const [kind, setKind] = useState<FormLine>(kinds[0][0]);
   const [side, setSide] = useState<FormSide>('front');
+  /** Drawing on the turning garment (All round) rather than the flat form. */
+  const [onRound, setOnRound] = useState(false);
   const [stroke, setStroke] = useState<P[]>();
   const [said, setSaid] = useState<string>();
   const [live, setLive] = useState<string>();
@@ -396,6 +404,41 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
   };
   const help = helpFor?.[kind] ?? ((onBack && BACK_HELP[kind]) || HELP[kind]);
 
+  // A line drawn on the turning garment, read as if drawn on the flat form: each point at its height, and across by
+  // where it sits round the body (on a sleeve, round the arm; on a leg, round the leg), on the front or the back by
+  // which way most of it faces. Then it is read exactly as a flat line is.
+  const fromRound = (picks: RoundPick[]): { s: FormSide; pts: P[] } => {
+    const facing = picks.filter((q) => q.part === 'sleeve' || Math.cos(q.a) >= 0).length * 2 >= picks.length;
+    const s: FormSide = facing || frontOnly(kind) ? 'front' : 'back';
+    const pts = picks.map((q) => {
+      const y = body.waistY + q.cm;
+      let x = q.xCm;
+      if (q.part === 'sleeve' && arms) {
+        const { inner, outer } = armAt(arms, y);
+        x = q.e * ((inner + outer) / 2 + (Math.sin(q.a) * (outer - inner)) / 2);
+      } else if (q.part === 'leg' && legLines) x = q.e * (legLines.apart + Math.sin(q.a) * legLines.at(y));
+      return { x: s === 'back' ? -x : x, y };
+    });
+    return { s, pts };
+  };
+  const roundStroke = (picks: RoundPick[], done: boolean) => {
+    const { s, pts } = fromRound(picks);
+    if (!done) {
+      setLive(read(kind, s, pts).said);
+      return;
+    }
+    const r = read(kind, s, pts);
+    if (r.choices) {
+      setSteps([...steps, choices]);
+      setUndone([]);
+      onChoices(r.choices);
+    }
+    setSaid(r.said);
+    setLive(undefined);
+  };
+  const roundOn = onRound && !!allRound;
+  // Enlarged, the flat form's held frame is the drawing's; All round lays itself out.
+
   // Enlarged, Smaller sits up top across from Done, and every other tool waits in the tray under the form (Cat's B Tray
   // Below, 2026-10-27).
   const enlarge = (
@@ -431,9 +474,20 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
         </button>
       </div>
       <section className="card" aria-label="Your dress form">
-        <div className="preview">
+        <div className={roundOn ? 'preview round-draw' : 'preview'}>
           <DemoButton demo="draw" />
           {!big && enlarge}
+          {roundOn && <TestingTag tool="draw_round" />}
+          {roundOn && allRound ? (
+            <AllRound
+              round={allRound.round}
+              m={allRound.m}
+              fabric={allRound.fabric}
+              striped={allRound.striped}
+              label={`Your garment turning on your form. Draw on it with one finger; turn it with two. ${help}`}
+              draw={{ onStroke: roundStroke }}
+            />
+          ) : (
           <svg
             ref={svg}
             viewBox={`${f(view.left)} ${f(view.top)} ${f(view.width)} ${f(view.bottom - view.top)}`}
@@ -522,9 +576,10 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
             )}
             {stroke && <polyline points={stroke.map((q) => `${f(q.x)},${f(q.y)}`).join(' ')} className="stroke chalk" strokeWidth={0.3} fill="none" strokeLinecap="round" strokeLinejoin="round" />}
           </svg>
+          )}
         </div>
         <p className="muted small form-said" role="status">
-          {live ?? said ?? help}
+          {live ?? said ?? (roundOn ? `${help} One finger draws on it; two fingers turn it.` : help)}
         </p>
         <div className="chips form-kinds" role="group" aria-label="What you are drawing">
           {kinds.map(([id, label]) => (
@@ -533,17 +588,19 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
             </button>
           ))}
         </div>
-        <div className={backs ? 'row between wrap form-sides' : 'row end wrap form-sides'}>
-          {backs && (
+        <div className={backs || allRound ? 'row between wrap form-sides' : 'row end wrap form-sides'}>
+          {(backs || allRound) && (
+          // The sides of the form, and (with All round) the garment turning as a third way to see it, to draw on.
           <div className="seg" role="group" aria-label="Side of the form">
-            {(['front', 'back'] as const).map((s) => (
+            {(backs ? (['front', 'back'] as const) : (['front'] as const)).map((s) => (
               <button
                 key={s}
                 type="button"
-                aria-pressed={side === s}
-                className={side === s ? 'on' : ''}
+                aria-pressed={!roundOn && side === s}
+                className={!roundOn && side === s ? 'on' : ''}
                 disabled={s === 'back' && frontOnly(kind)}
                 onClick={() => {
+                  setOnRound(false);
                   setSide(s);
                   setSaid(undefined);
                 }}
@@ -551,6 +608,11 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
                 {s}
               </button>
             ))}
+            {allRound && (
+              <button type="button" aria-pressed={roundOn} className={roundOn ? 'on' : ''} onClick={() => setOnRound(true)}>
+                all round
+              </button>
+            )}
           </div>
           )}
           <div className="form-undo">

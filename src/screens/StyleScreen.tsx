@@ -178,6 +178,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
   if (onForm && draft) {
     return (
       <DrawOnForm<Choices>
+        allRound={round ? { round, m: values, fabric, striped: matchKind(fabric) } : undefined}
         body={skirtForm(m)}
         m={m}
         legs

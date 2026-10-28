@@ -49,6 +49,7 @@ testing". A tag comes off by hand, once its proof is in: delete the entry and th
 | --- | --- | --- |
 | Trousers, T-shirt, jacket, coat (and lingerie while hidden) | "What would you like to make?" and the Style heading | sewists score it 4 of 5 or better at the fit gate |
 | Draw your lines | Style, Draw on your form | fit testers draw a hem, a neckline and a side and the pattern follows |
+| Draw on it all round | Draw your lines, the all round switch | three testers draw a hem and a side on the turning garment and get the same pattern as drawn flat |
 | Body Double | Account and the form page | one padded form checked against its person |
 | Prints beyond checks | "What's the print?" in About your fabric | three testers cut a one-way or border print from the lay plan |
 | Any colour | the colour dots on the Fabric tab | shop colourways match the picked colour on five fabrics |

@@ -192,6 +192,46 @@
     animation: none;
   }
 }
+/* Drawing on the turning garment (All round, Cat's A Draw on it): the view alone, at the flat form's height, the
+   chip beside the flat / all round words. */
+.form-draw .preview.round-draw {
+  display: flex;
+  justify-content: center;
+}
+.form-draw .preview.round-draw .all-round {
+  max-width: none;
+  width: auto;
+}
+.form-draw .all-round-canvas.drawing {
+  width: auto;
+  height: min(62vh, calc(100svh - 480px));
+  min-height: 300px;
+  max-width: 100%;
+  cursor: crosshair;
+  touch-action: none;
+}
+.form-draw.big .preview.round-draw {
+  height: 100%;
+}
+.form-draw.big .preview.round-draw .all-round {
+  height: 100%;
+}
+.form-draw.big .all-round-canvas.drawing {
+  height: 100%;
+  max-height: none;
+}
+.form-draw .preview.round-draw > .testing-tag {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+}
+.form-draw .preview.round-draw {
+  position: relative;
+}
+/* The hint under the turning garment keeps its height as it changes, so the view holds still under the finger. */
+.form-draw .preview.round-draw + .form-said {
+  min-height: 4.4em;
+}
 /* Small enough that Done, the form, the hint and the line kinds all fit on a phone without scrolling. */
 .form-svg {
   max-height: min(62vh, calc(100svh - 480px));
