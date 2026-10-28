@@ -9,13 +9,14 @@ const TAU = Math.PI * 2;
 const HALF = Math.PI / 2;
 export const WAIST = 0.1;
 /** Where the nape and the bust sit on the form. */
-export const NAPE_Y = -1.45;
+const NAPE_Y = -1.45;
 /** The base of the form's neck, and its shoulder tips, where the shoulders reach their full width. */
 export const NECK_Y = -1.47;
 export const SHOULDER_Y = SHOULDER_TIP_Y;
-export const BUST_Y = -0.58;
+const BUST_Y = -0.58;
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const smooth = (u: number) => u * u * (3 - 2 * u);
+const TOP_N = 360;
 
 /** The measurements the view places the garment by; any it lacks fall back to the form's own. */
 export interface RoundMeasurements {
@@ -65,7 +66,7 @@ export function placeOnForm(round: Pick<RoundGarment, 'armhole'>, m: RoundMeasur
 
 /** How the view is drawn: for the How it works film (a gentler waist), or the film's old look (the form's lines running on
  *  through the garment). */
-export interface ShapeFlags {
+interface ShapeFlags {
   film: boolean;
   through: boolean;
 }
@@ -264,9 +265,9 @@ export function roundShape(round: RoundGarment, m: RoundMeasurements, { film, th
   const capOuter = (y: number) => {
     // The cap is out to the arm's full width well up the cap, as the shoulder's own muscle rounds out from the tip, not
     // slowly down to the underarm (which hung the sleeve as a bell with a corner at the tip, Cat 2026-10-27: "frumpy").
-    const t = Math.min(1, capT(y) / 0.7);
+    const t = Math.min(1, capT(y) / 0.85);
     // Set flat, a tailored head runs out a little further before it turns down.
-    return tipX + (armX + ra - tipX) * (1 - (1 - t) ** (tailored ? 1.5 : 2.6));
+    return tipX + (armX + ra - tipX) * (1 - (1 - t) ** (tailored ? 1.5 : 2));
   };
   const capInner = (y: number) => tipX - 0.03 + (armX - ra - (tipX - 0.03)) * capT(y);
   const filmAxis = (y: number) => (y < yU ? (capOuter(y) + capInner(y)) / 2 : armX + (y - yU) * 0.06);
@@ -279,7 +280,7 @@ export function roundShape(round: RoundGarment, m: RoundMeasurements, { film, th
     if (y >= yU || !sl) return 1;
     const r = filmR(y);
     const need = Math.max(zAcross(filmAxis(y) - r * 0.4, y, true), zAcross(filmAxis(y) - r * 0.4, y, false));
-    return clamp(need / r, 1, 1.6) ** (1 - capT(y) ** 2);
+    return clamp(need / r, 1, 1.3) ** (1 - capT(y) ** 2);
   };
   const sleeveR = filmR;
 
@@ -322,5 +323,31 @@ export function roundShape(round: RoundGarment, m: RoundMeasurements, { film, th
   };
 
   const reach = Math.max(hemR, sl ? axisX(yE) + rh : 0, lg ? FORM_LEG_X + Math.max(thighTop, kneeR, legHemR) : 0, formHalfWidth(-0.55) + eB);
-  return { trousers, isTop, N, wh, yOfLevel, N0, frontNeckCm, naturalNeck, yAt, yOf, kY, krB, krW, krH, easeOf, eW, eB, eH, easeAt, lengths, tops, longest, highest, meanY, flares, bodyR, wornR, seamed, waistEase, bustEase, straightCut, hangShare, hipR, hemR, bodyRadius, bandTop, arm, yS, yU, sl, slim, ra, rh, tailored, neckOnly, pad, radius, foldAmp, FOLDS, fold, foldTilt, deep, depthAt, onBody, HANG_N, HANG_DY, hangTop, hangRows, hang, hung, shell, zAcross, SHOULDER_TOP, clothDown, yE, yCap, tipX, armX, capT, capOuter, capInner, filmAxis, filmR, axisX, capDepth, sleeveR, lg, yC, yH, yK, krL, thighR, kneeR, legHemR, thighTop, legR, rAt, reach };
+  const hemY = (a: number) => yOf(round.lengthAt(a));
+  const topRaw = (a: number) => {
+    const y = yAt(a, round.topAt(a));
+    // At the side neck point a neckline that reaches the neck sits right at its base, so no pocket of the form shows
+    // between the cloth and the neck over the shoulder (Cat, 2026-10-26).
+    const near = isTop && sl ? clamp(1 - (y - NECK_Y) / 0.12, 0, 1) * Math.sin(a) ** 2 : 0;
+    // The shoulders slope from the side of the neck down to the shoulder tip on the body itself, so the top edge
+    // simply lies where it is drafted.
+    return y - Math.max(0, y - NECK_Y) * near;
+  };
+  // Where the front neck meets the shoulder the edge is eased round, not left as a notch; the centre front (a V's
+  // point) and the back stay exactly as drawn.
+  const topTable = Array.from({ length: TOP_N + 1 }, (_, i) => {
+    const a = -Math.PI + (TAU * i) / TOP_N;
+    const w = isTop ? Math.sin(a) ** 2 * Math.max(0, Math.cos(a) + 0.3) : 0;
+    if (w < 0.01) return topRaw(a);
+    let sum = 0;
+    for (let k = -6; k <= 6; k++) sum += topRaw(a + k * 0.03);
+    return topRaw(a) + (sum / 13 - topRaw(a)) * Math.min(1, w * 2.5);
+  });
+  const topY = (a: number) => {
+    const f = ((((a + Math.PI) / TAU) % 1) + 1) % 1 * TOP_N;
+    const i = Math.floor(f);
+    return topTable[i] + (topTable[i + 1] - topTable[i]) * (f - i);
+  };
+
+  return { trousers, isTop, hemY, topY, N, wh, yOfLevel, N0, frontNeckCm, naturalNeck, yAt, yOf, kY, krB, krW, krH, easeOf, eW, eB, eH, easeAt, lengths, tops, longest, highest, meanY, flares, bodyR, wornR, seamed, waistEase, bustEase, straightCut, hangShare, hipR, hemR, bodyRadius, bandTop, arm, yS, yU, sl, slim, ra, rh, tailored, neckOnly, pad, radius, foldAmp, FOLDS, fold, foldTilt, deep, depthAt, onBody, HANG_N, HANG_DY, hangTop, hangRows, hang, hung, shell, zAcross, SHOULDER_TOP, clothDown, yE, yCap, tipX, armX, capT, capOuter, capInner, filmAxis, filmR, axisX, capDepth, sleeveR, lg, yC, yH, yK, krL, thighR, kneeR, legHemR, thighTop, legR, rAt, reach };
 }

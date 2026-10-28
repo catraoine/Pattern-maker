@@ -1,7 +1,7 @@
 import { GarmentName, expect, startWithExample, switchGarment, test } from './fixtures';
 
 // Stills of All round at exact angles, for checking a body change by eye (not a CI test).
-// BODY_STILLS=<folder> [BODY_LOOKS=dress,tee,...] [FILM=1] [LINES=1] [FORM=1] npx playwright test -c e2e body-stills --project=phone
+// BODY_STILLS=<folder> [BODY_LOOKS=dress,tee,...] [FILM=1] [LINES=1] [FORM=1] [ROUND2D=1 for the canvas painter] npx playwright test -c e2e body-stills --project=phone
 const OUT = process.env.BODY_STILLS;
 test.skip(!OUT, 'Set BODY_STILLS to a folder to take the stills');
 
@@ -30,6 +30,7 @@ test('body stills', async ({ page, consoleErrors }, info) => {
   test.setTimeout(1_500_000);
   await page.emulateMedia({ reducedMotion: 'reduce' });
   if (process.env.FILM) await page.addInitScript(() => ((window as unknown as { __tourFilm: boolean }).__tourFilm = true));
+  if (process.env.ROUND2D) await page.addInitScript(() => ((window as unknown as { __round2d: boolean }).__round2d = true));
   await startWithExample(page);
   const main = page.getByRole('main');
   let current: GarmentName = 'Skirt';

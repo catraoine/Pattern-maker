@@ -13,6 +13,7 @@ import { RoundGarment, RoundPt, RoundSeam, stripesMeet } from '../engine/allRoun
 import { bodyHalf as formHalfWidth, reach as bodyReach, shapeAt } from '../engine/body';
 import { FORM_CROTCH, FORM_DEPTH, FORM_FLOOR, FORM_LEG, FORM_LEG_X, paintFigure } from './ContourForm';
 import { NECK_Y, RoundMeasurements, WAIST, roundShape } from './allRoundShape';
+import type { RoundView } from './allRoundMesh';
 
 // Matching --gild, --gild-glow, --guide, --muted and --ok in styles.css.
 const GILD = '#d9c49b';
@@ -107,6 +108,24 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the paint's contents, not the rebuilt object
   }, [paintKey]);
   const layers = useMemo(clothLayers, []);
+  // The figure drawn by the graphics chip (allRoundMesh.ts), once its code has loaded; until then, and in a browser
+  // without WebGL, the canvas painter below draws it. ?round=2d asks for the canvas painter.
+  const v3ref = useRef<RoundView | undefined>(undefined);
+  const [v3ready, setV3ready] = useState(false);
+  useEffect(() => {
+    if (new URLSearchParams(location.search).get('round') === '2d' || (window as Window & { __round2d?: boolean }).__round2d) return;
+    let live = true;
+    import('./allRoundMesh').then(({ createRoundView }) => {
+      if (!live) return;
+      v3ref.current = createRoundView();
+      setV3ready(true);
+    });
+    return () => {
+      live = false;
+      v3ref.current?.dispose();
+      v3ref.current = undefined;
+    };
+  }, []);
   const turn = useRef({ phi: 0.6, target: null as number | null, dragging: false, idle: 0, probe: false });
   const pulse = useRef(-1e9);
   const rows = useMemo(() => roundRows(round, striped), [round, striped]);
@@ -154,7 +173,9 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
     const cloth = through ? undefined : tiles;
 
     const sh = roundShape(round, m, { film, through });
-    const { wh, yAt, yOf, kY, lengths, longest, highest, bandTop, arm, yS, yU, sl, ra, rh, neckOnly, radius, foldTilt, depthAt, shell, zAcross, clothDown, yE, yCap, axisX, capDepth, sleeveR, lg, yC, yH, legHemR, legR, rAt, reach } = sh;
+    const v3 = through ? undefined : v3ref.current;
+    if (v3) v3.build({ round, sh, cloth, film, striped: !!striped });
+    const { hemY, topY, wh, yAt, yOf, kY, lengths, longest, highest, bandTop, arm, yS, yU, sl, ra, rh, neckOnly, radius, foldTilt, depthAt, shell, zAcross, clothDown, yE, yCap, axisX, capDepth, sleeveR, lg, yC, yH, legHemR, legR, rAt, reach } = sh;
 
     const draw = (now: number) => {
       const top = film ? Math.min(-2, yOf(highest) - 0.3) : Math.min(-0.45, yOf(highest) - 0.3);
@@ -290,33 +311,6 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
         g.textAlign = align;
         g.fillText(str.toUpperCase(), x, y);
       };
-      const hemY = (a: number) => yOf(round.lengthAt(a));
-      const topRaw = (a: number) => {
-        const y = yAt(a, round.topAt(a));
-        // At the side neck point a neckline that reaches the neck sits right at its base, so no pocket of the form shows
-        // between the cloth and the neck over the shoulder (Cat, 2026-10-26).
-        const near = isTop && sl ? clamp(1 - (y - NECK_Y) / 0.12, 0, 1) * Math.sin(a) ** 2 : 0;
-        // The shoulders slope from the side of the neck down to the shoulder tip on the body itself, so the top edge
-        // simply lies where it is drafted.
-        return y - Math.max(0, y - NECK_Y) * near;
-      };
-      // Where the front neck meets the shoulder the edge is eased round, not left as a notch; the centre front (a V's
-      // point) and the back stay exactly as drawn.
-      const TOP_N = 360;
-      const topTable = Array.from({ length: TOP_N + 1 }, (_, i) => {
-        const a = -Math.PI + (TAU * i) / TOP_N;
-        const w = isTop ? Math.sin(a) ** 2 * Math.max(0, Math.cos(a) + 0.3) : 0;
-        if (w < 0.01) return topRaw(a);
-        let sum = 0;
-        for (let k = -6; k <= 6; k++) sum += topRaw(a + k * 0.03);
-        return topRaw(a) + (sum / 13 - topRaw(a)) * Math.min(1, w * 2.5);
-      });
-      const topY = (a: number) => {
-        const f = ((((a + Math.PI) / TAU) % 1) + 1) % 1 * TOP_N;
-        const i = Math.floor(f);
-        return topTable[i] + (topTable[i + 1] - topTable[i]) * (f - i);
-      };
-
       // For the all-round check, the backdrop and the hollow inside the garment are painted in colours of their own
       // (red and magenta) so a picture can tell them from the form's own black; nobody else ever sees them.
       const backdrop = st.probe ? '#f00' : '#000';
@@ -326,6 +320,30 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
       g.fillRect(0, 0, w, h);
       g.lineCap = 'round';
       g.lineJoin = 'round';
+      const drawn = (sm: RoundSeam) => sm.kind !== 'sleeve';
+      if (v3) {
+        // Below the arms, the space between a sleeve and the waist is a window onto the background, as on a person whose
+        // hands hang by their hips, not a hole in the garment: the check is shown it as neither.
+        if (st.probe && cloth && sl && yU) {
+          g.fillStyle = '#ff0';
+          const ys = Array.from({ length: 41 }, (_, i) => yU + 0.1 + ((yOf(longest) - yU - 0.1) * i) / 40);
+          const side = (y: number, e: number) => Math.max(...Array.from({ length: 48 }, (_, i) => e * (P((TAU * i) / 48, shell((TAU * i) / 48, y), y)[0] - cx)));
+          for (const e of [-1, 1]) {
+            g.beginPath();
+            g.moveTo(cx + e * w, Y(ys[0]));
+            ys.forEach((y) => g.lineTo(cx + e * (side(y, e) - 2), Y(y)));
+            g.lineTo(cx + e * w, Y(ys[ys.length - 1]));
+            g.fill();
+          }
+        }
+        // The figure, drawn by the graphics chip, stops above the hem line.
+        g.save();
+        g.beginPath();
+        g.rect(0, 0, w, fig);
+        g.clip();
+        g.drawImage(v3.render({ phi, w, h: fig, dpr, S, cx, top, lw }), 0, 0, w, fig);
+        g.restore();
+      } else {
       // The figure stops above the hem line, so its legs don't run through it. Under trousers its legs
       // turn with the garment.
       g.save();
@@ -791,8 +809,7 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
         }
       }
 
-      // Darts, seams, the zip, buttons and the vent.
-      const drawn = (sm: RoundSeam) => sm.kind !== 'sleeve';
+      // Darts, seams and the vent.
       if (cloth) {
         // In cloth, seams and darts are grooves: a shadow line with a fine light edge, as on the style drawing.
         for (const dt of round.darts) {
@@ -809,6 +826,8 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
         for (const dt of round.darts) line(along([dt.base, dt.tip]), GILD, lw * 0.8, 0.2, film ? 0.5 : 1);
         for (const sm of round.seams.filter(drawn)) line(along(sm.pts, sm.leg), GLOW, lw * 1.1);
       }
+      }
+      // The zip, buttons and where things meet.
       if (round.zip) {
         const z = round.zip;
         g.strokeStyle = GILD;
@@ -977,7 +996,7 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
       cv.removeEventListener('pointerup', up);
       cv.removeEventListener('pointercancel', up);
     };
-  }, [round, m, striped, tiles, layers]);
+  }, [round, m, striped, tiles, layers, v3ready]);
 
   const turnTo = (a: number) => {
     turn.current.target = -a + 0.3;
