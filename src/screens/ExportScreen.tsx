@@ -140,9 +140,9 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
     setPicked(p);
     if (!isProjector(p)) onPaper?.(p);
   };
-  // The copy-shop sheet shows in every view (Cat, 2026-10-22): one big sheet saves testers and beginners the
-  // taping. Only the projector files wait behind all the tools.
-  const paper: Output = can('bigPrint') || !isProjector(picked) ? picked : 'a4';
+  // The copy-shop sheet (Cat, 2026-10-22) and the projector file (Cat, 2026-10-28) show in every view: many
+  // sewists, beginners too, project instead of taping pages.
+  const paper: Output = picked;
   const [pdf, setPdf] = useState<{ paper: Output; bytes: Uint8Array; total: number } | null>(null);
   const [shareNote, setShareNote] = useState('');
   const special = finish.fabric?.special;
@@ -291,7 +291,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
               <DropMenu
                 name="Paper"
                 value={PAPERS.find((p) => p.id === paperChoice)?.label}
-                items={PAPERS.filter((p) => can('bigPrint') || p.id !== 'projector').map((p) => ({ id: p.id, text: p.label, on: paperChoice === p.id }))}
+                items={PAPERS.map((p) => ({ id: p.id, text: p.label, on: paperChoice === p.id }))}
                 onPick={(id) => setPaper(id === 'projector' ? (paper === 'projectorDark' ? 'projectorDark' : 'projector') : (id as Paper))}
               />
               {projector && (
@@ -410,7 +410,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
               </label>
             )}
             <p className="muted small">Printed it? Your cutting layout and sewing steps are just below, and on the last pages of the PDF.</p>
-            <ModeLink quiet mode={mode} onMode={onMode} what="big paper and projector, a toile fitting, a dressmaker's pack and more" />
+            <ModeLink quiet mode={mode} onMode={onMode} what="a toile fitting, a dressmaker's pack and more" />
           </div>
         </section>
       </div>

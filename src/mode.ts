@@ -18,7 +18,6 @@ export const PRO_TOOLS = [
   'dartMoves', // moving the bust dart, princess seams
   'insideFinish', // lining, neck and armhole finish, seam allowance styles
   // Print screen
-  'bigPrint', // projector files (the A0 copy-shop sheet shows in both)
   'byHand', // draft-it-by-hand pages
   'techFlat', // the technical flat card
   'toile', // the true-scale view (the toile fitting itself shows in both, since 2026-10-21: it fixes what the tape can't)
