@@ -239,11 +239,13 @@ interface Props {
   flat?: Flat;
   /** Print my pattern, hoisted above the folded numbers on Review and on the computer's side. */
   onPrint?: () => void;
+  /** The finished measurements and ease, open above Print rather than folded (F1, 2026-10-28). */
+  finished?: ReactNode;
 }
 
 const NO_SECTIONS: Record<string, string> = {};
 
-export function StyleLayout({ children, label, name, metres, width = 140, ready, onChooseGarment, onPhoto, photo, looks, mode, onMode, onEditMeasurements, sections = NO_SECTIONS, undo, flat, onPrint }: Props) {
+export function StyleLayout({ children, label, name, metres, width = 140, ready, onChooseGarment, onPhoto, photo, looks, mode, onMode, onEditMeasurements, sections = NO_SECTIONS, undo, flat, onPrint, finished }: Props) {
   const [options, preview, summary] = Children.toArray(children);
   const [page, setPage] = usePageHistory<'edit' | 'review'>(() => 'edit', (s) => s === 'edit' || s === 'review');
   // Read here and cleared once mounted: React may run this twice, and the second run must see it too.
@@ -387,13 +389,13 @@ export function StyleLayout({ children, label, name, metres, width = 140, ready,
   // The summary folded under one line, with its own Print and Edit measurements hidden (they're drawn here instead).
   const folded = (
     <details className="review-fold">
-      <summary>Numbers and pieces</summary>
+      <summary>Pieces and fabric</summary>
       {summary}
     </details>
   );
 
   // The Review page as the pattern's envelope (R1, look and feel review, 2026-10-24): the garment's name, the
-  // front-and-back drawing, one Print, and the numbers folded under a line, so the page is a picture, not a table.
+  // front-and-back drawing, the finished measurements open (F1, 2026-10-28), one Print, and the pieces folded under a line.
   if (page === 'review')
     return (
       <div className="style-review">
@@ -402,6 +404,7 @@ export function StyleLayout({ children, label, name, metres, width = 140, ready,
           {Name}
         </h1>
         {flat && <Envelope name={Name} flat={flat} foot="Drafted to you" />}
+        {finished}
         {onPrint && (
           <button type="button" className="primary review-print" disabled={!ready} onClick={onPrint}>
             Print my pattern
@@ -540,6 +543,7 @@ export function StyleLayout({ children, label, name, metres, width = 140, ready,
               <p className="eyebrow">{name}</p>
               {undo && <UndoTools undo={undo} />}
             </div>
+            {finished}
             {onPrint && (
               <button type="button" className="primary review-print" disabled={!ready} onClick={onPrint}>
                 Print my pattern

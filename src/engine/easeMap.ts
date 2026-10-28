@@ -30,7 +30,7 @@ export const EASE_LEVELS: { max: number; label: string; cls: string }[] = [
 export const easeLevel = (ease: number) => EASE_LEVELS.find((l) => ease < l.max) ?? EASE_LEVELS[EASE_LEVELS.length - 1];
 
 /** Where a horizontal line at y crosses a closed polyline, sorted left to right. */
-function crossings(pts: P[], y: number): number[] {
+export function crossings(pts: P[], y: number): number[] {
   const xs: number[] = [];
   for (let i = 0; i < pts.length; i++) {
     const a = pts[i];
