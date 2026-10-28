@@ -29,6 +29,11 @@ test('a stranger gets the waitlist where Begin was, and joining counts against t
   await expect(page.getByRole('banner').getByRole('button', { name: /account/i })).toHaveCount(0);
   await page.getByRole('banner').getByRole('button', { name: 'Back' }).click();
   await expect(main.getByRole('button', { name: 'Join the waitlist' })).toBeVisible();
+  // So does "How it's made", for strangers wondering if it's an AI pattern (Cat's AI stance, 2026-10-28).
+  await main.getByRole('button', { name: "How it's made" }).click();
+  await expect(main.getByRole('heading', { level: 1, name: 'Drafted, not generated' })).toBeVisible();
+  await page.getByRole('banner').getByRole('button', { name: 'Back' }).click();
+  await expect(main.getByRole('button', { name: 'Join the waitlist' })).toBeVisible();
 });
 
 test('a tester link lets this device into the full app for good, and leaves the address bar', async ({ page }) => {

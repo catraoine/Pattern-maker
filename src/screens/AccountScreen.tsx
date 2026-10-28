@@ -48,7 +48,7 @@ interface Props {
   openFit?: string;
   onReset: () => void;
   /** Opens the Privacy Policy or the Terms of Use. */
-  onLegal: (page: 'privacy' | 'terms' | 'tester' | 'news' | 'brands' | 'nights') => void;
+  onLegal: (page: 'privacy' | 'terms' | 'tester' | 'news' | 'brands' | 'nights' | 'made') => void;
   onBackup: () => void;
   /** The link that carries everything on this device to another one; see moveLink.ts. */
   sendLink: () => Promise<string>;
@@ -343,6 +343,10 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
       </div>
 
       <p className="fineprint plain">
+        <button type="button" className="inline-link" onClick={() => onLegal('made')}>
+          How your pattern is made
+        </button>
+        {' · '}
         <button type="button" className="inline-link" onClick={() => onLegal('privacy')}>
           Privacy Policy
         </button>
