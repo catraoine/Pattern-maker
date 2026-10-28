@@ -57,7 +57,10 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       inverted: ['Two folds that meet in the middle, so the pleat opens out from inside.'],
       godets: ['Triangles of fabric set into the seams near the hem to add flare where you want it.', 'skill'],
       hem_flounce: ['A curved band of fabric sewn to the hem, so it ripples out at the bottom.', 'skill'],
-      tiers: ['Bands of fabric, each wider than the one above, gathered on top of each other.'],
+      tiers: ['Bands of fabric, each wider than the one above, gathered on top of each other. Two shallow tiers on a short skirt.'],
+      ruffle: ['A straight strip, nearly twice the hem round, gathered onto the hem. Softer and fuller than a flounce.'],
+      balloon: ['A fuller outer skirt gathered onto a shorter underskirt at the hem, so it puffs out and turns under.', 'skill'],
+      ruched: ['Side seams cut longer and gathered up on elastic below the hip, so soft folds run in from the sides.'],
     },
     waist: {
       band: ['A firm band at the waist that closes with a zip. Neat and sits in place.'],
@@ -140,6 +143,7 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       shirt: ['A buttoned cuff over a bound slit, the sleeve gathered into it, as on a shirt.', 'skill'],
       elastic: ['Elastic in a casing at the end, so the sleeve pulls on and gathers softly round the wrist.', 'easy'],
       tie: ['A narrow band that runs on into ties, knotted at the wrist over a short slit.'],
+      ruffle: ['A straight strip gathered onto the hem of a plain sleeve, so it ends in a soft frill.'],
     },
     princess: {
       none: ['No extra seams. The bust is shaped with darts instead.', 'easy'],
@@ -168,6 +172,7 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       shirt: ['A classic shirt collar on a stand, with points that fold down.', 'skill'],
       bow: ['A soft bias strip round the neck that runs on into long ties, knotted in a bow at the front. On a crew or V neck.'],
       ruffle: ['A soft folded frill gathered into the neckline seam, falling over the neck edge all round.'],
+      cape: ['A short circle cape sewn into the neckline, falling over the shoulders to just above the elbow.', 'skill'],
     },
     back: {
       plain: ['The back neck sits high, close to the base of the neck.', 'easy'],

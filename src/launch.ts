@@ -18,3 +18,14 @@ export function testingNote(name: (g: Garment) => string, garments: readonly Gar
   const list = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
   return `${list[0].toUpperCase()}${list.slice(1)} ${names.length === 1 ? 'is' : 'are'} still in testing.`;
 }
+
+/** Style options that draft but haven't been sewn by a tester yet (Cat, 2026-10-28), by option group:
+ *  their chips carry the In testing tag. */
+const OPTIONS_IN_TESTING: Record<string, readonly string[]> = {
+  volume: ['ruffle', 'balloon', 'ruched'],
+  ruched: ['ruched'],
+  collar: ['cape'],
+  sleeveCuff: ['ruffle'],
+};
+
+export const optionInTesting = (group: string, id: string) => !!OPTIONS_IN_TESTING[group]?.includes(id);

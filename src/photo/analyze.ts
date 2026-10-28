@@ -19,7 +19,7 @@ const Top = z.object({
   length: z.enum(['cropped', 'waist', 'high_hip', 'hip', 'tunic']),
   seams: z.enum(['darts', 'princess', 'none']),
   opening: z.enum(['back', 'front_buttons']),
-  collar: z.enum(['none', 'peter_pan', 'mandarin', 'shirt']),
+  collar: z.enum(['none', 'peter_pan', 'mandarin', 'shirt', 'cape']),
   peplum: z.enum(['none', 'flared', 'gathered']),
   boned: z.boolean(),
   knit: z.boolean(),
@@ -65,7 +65,7 @@ export const Reading = z.object({
   fit,
   shape: z.object({ hemAt: z.number(), hemFullness: z.number(), flareAt: z.number().nullable(), confidence }),
   extras: z.object({
-    volume: z.enum(['none', 'knife', 'box', 'inverted', 'godets', 'hem_flounce', 'tiers']),
+    volume: z.enum(['none', 'knife', 'box', 'inverted', 'godets', 'hem_flounce', 'tiers', 'ruffle', 'balloon', 'ruched']),
     asymHem: z.enum(['none', 'high_low', 'diagonal']),
     pockets: z.boolean(),
     elasticWaist: z.boolean(),
@@ -110,7 +110,7 @@ Pick the closest option in each group:
   - flareAt: for a trumpet skirt, where the flare starts, as a fraction of waist to floor like hemAt (around the knee is 0.5 to 0.56). null for every other silhouette.
 
 - extras, details of the skirt the app can draft (use "none" or false when the skirt has none):
-  - volume: "knife" pleats (all folded one way), "box" pleats, "inverted" pleats (folds meeting at a centre), "godets" (triangular panels set into the hem), "hem_flounce" (one gathered or flared band at the hem) or "tiers" (two or more gathered bands, each fuller than the one above). Gathers into the waist are not any of these: use "none" and mention them in details.
+  - volume: "knife" pleats (all folded one way), "box" pleats, "inverted" pleats (folds meeting at a centre), "godets" (triangular panels set into the hem), "hem_flounce" (one smooth, flared band at the hem that ripples without gathers), "ruffle" (one straight band gathered onto the hem, frilly and full), "tiers" (two or more gathered bands, each fuller than the one above), "balloon" (the hem puffs out and turns under, like a bubble) or "ruched" (the side seams gathered up so soft folds run in from the sides, on a straight or fitted skirt). Gathers into the waist are not any of these: use "none" and mention them in details.
   - asymHem: "high_low" (shorter at the front than the back) or "diagonal" (one side longer than the other).
   - pockets: true when there are pockets in the side seams.
   - elasticWaist: true for a pull-on, gathered elastic waist.
@@ -123,7 +123,7 @@ top: fill this in for a top, a T-shirt, the bodice of a dress, or a top worn und
 - length: where its hem falls: "cropped" (above the waist), "waist", "high_hip", "hip" or "tunic" (to the upper thigh). For a dress, use "waist".
 - seams: "princess" when long shaping seams run down the front over the bust, "darts" when it is shaped with darts or is close-fitting without visible seams, "none" for a loose, unshaped top.
 - opening: "front_buttons" when it buttons down the front, otherwise "back".
-- collar: "none", "peter_pan" (flat and rounded), "mandarin" (a short stand-up band) or "shirt" (a stand with a turned-down collar).
+- collar: "none", "peter_pan" (flat and rounded), "mandarin" (a short stand-up band) or "shirt" (a stand with a turned-down collar) or "cape" (a short cape or capelet sewn in at the neck, over the shoulders).
 - peplum: a short flared or gathered frill below the waist: "none", "flared" or "gathered".
 - boned: true for a corset-like bodice with visible boning or a rigid, close-fitted shape.
 - knit: true when the fabric is a stretchy jersey or knit (a T-shirt), false for a woven fabric (a blouse, a shirt, a dress bodice in cotton or silk).
@@ -159,7 +159,7 @@ measures: exact sizes, so the pattern copies the photo rather than a standard op
 
 unsure: when you are torn between your pick and one other option in one of these groups, name the group and the other option exactly as it is written above, so the sewist can be asked which it is: "silhouette" (the skirt's), "length" (the skirt's), "neckline", "sleeve" (top.sleeve) or "leg" (trousers.leg). For example a skirt that could be straight or pencil: group "silhouette", other "pencil". Use it only when both really are likely and the choice changes the pattern; otherwise null.
 
-missing: the design features of the main garment that none of the fields above can draft, each named in two to four plain lower-case words, such as "shoulder bow", "ruched side seams", "cape back", "balloon hem", "ruffled sleeve hems", "lace-up back" or "front slit". At most five, the most noticeable first. Leave out the cloth, colour and print, things already covered by a field, and anything sewn the usual way (a zip, a waistband, hems, plain seams). Empty when the fields cover everything.
+missing: the design features of the main garment that none of the fields above can draft, each named in two to four plain lower-case words, such as "shoulder bow", "ruched sleeves", "cape back", "bow at the neck", "ruffled sleeve hems", "lace-up back" or "front slit". At most five, the most noticeable first. Leave out the cloth, colour and print, things already covered by a field, and anything sewn the usual way (a zip, a waistband, hems, plain seams). Empty when the fields cover everything.
 
 Confidence (for each group, and for the shape as a whole): "high" when the photo clearly shows it, "medium" when it is a reasonable reading, "low" when you are guessing (cropped, folded, odd angle, or not that garment).
 

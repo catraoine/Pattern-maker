@@ -1,5 +1,6 @@
 // Straight skirt block, drafted flat from waist, hip and waist-to-hip depth (Aldrich-style).
 // Ported from the Python prototype in the drafting thread (pattern/skirt.py).
+import { withRuche, type RucheDraft } from './ruche';
 import { P, Path, add, len, mul, p, sub, taggedLength, unit } from './geometry';
 import { finishDart } from './darts';
 import { Piece, withAlternate } from './piece';
@@ -87,6 +88,8 @@ export interface SkirtStyle {
   yoke?: boolean;
   /** Buttoned down the centre front, the back on the fold, with no zip (see skirtFront.ts). Ignored on a dress. */
   buttons?: boolean;
+  /** Ruched sides: the side seams cut longer and gathered up on elastic (see ruche.ts). In testing. */
+  ruched?: boolean;
 }
 
 /** A straight band with a zip, a pull-on elastic casing, a faced waist with no band, or a high faced waist (see skirtWaist.ts). */
@@ -535,6 +538,8 @@ export interface SkirtDraft {
   block?: Piece[];
   /** What gives the skirt its fullness, as drafted. */
   volume?: VolumeDraft;
+  /** Ruched side seams, and the pieces before they were spread for the ruching. */
+  ruche?: RucheDraft;
   /** Cut on the bias: the slip skirt. */
   bias?: boolean;
   /** Pieces cut whole, single layer (a bias slip, or a hem that differs side to side): the half
@@ -637,7 +642,7 @@ export function draftSkirt(m: SkirtMeasurements, style: Partial<SkirtStyle> = {}
   // go in a plain side seam, so not where pleats, godets or a flounce change the skirt's pieces.
   const plain = volumeOf(s) !== 'none' ? { ...s, hem: undefined } : s;
   const draft = withHighHip(withYoke(addVolume(m, s, drafted(m, plain), (st) => drafted(m, st)), s, m), s.fitting?.highHip);
-  return withWaist(withSlit(s.pockets === 'inseam' && !draft.volume ? withPockets(draft) : draft, s, m), s);
+  return withWaist(withRuche(withSlit(s.pockets === 'inseam' && !draft.volume ? withPockets(draft) : draft, s, m), s, m), s);
 }
 
 /**

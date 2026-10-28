@@ -39,7 +39,8 @@ import { FabricCard, FabricSummary } from '../ui/FabricCard';
 import type { EaseView } from '../engine/easeMap';
 import { FinishChoices } from '../ui/FinishChoices';
 import type { Finish } from '../savedWork';
-import { GODET_OPTIONS, VOLUME_OPTIONS, layoutExtras, setVolume, volumeAllowed, volumeOf } from '../engine/skirtVolume';
+import { DETAIL_OPTIONS, GODET_OPTIONS, layoutExtras, setSkirtDetail, setVolume, skirtDetailAllowed, skirtDetailOf, volumeAllowed, volumeOf } from '../engine/skirtVolume';
+import { IN_TESTING, optionInTesting } from '../launch';
 import { isDraped, zipSide } from '../engine/drape';
 import { LENGTHS, Length, NoSeam, lengthRange } from '../engine/skirt';
 import type { BodiceMeasurements } from '../engine/bodice';
@@ -111,6 +112,12 @@ const noSeamLines = (draft: DressDraft, side: 'front' | 'back') => {
 /** The dress's skirt choices on one tab of their own. */
 const DRESS_SECTIONS: Record<string, string> = { Cut: 'Skirt & length', Skirt: 'Skirt & length', Length: 'Skirt & length', Hem: 'Skirt & length', Slit: 'Skirt & length', 'Skirt details': 'Skirt & length', Pockets: 'Skirt & length', Belt: 'Skirt & length' };
 
+
+/** A sheath's sides: plain, or ruched below the hip. */
+const SHEATH_SIDES: [string, string][] = [
+  ['plain', 'Plain'],
+  ['ruched', 'Ruched sides'],
+];
 export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoices, onChooseGarment, values, draft, sleeve, error, onEditMeasurements, onNext, saveState, onSave, onAccount, easeMap, finish, onFinish, fabric, mode = 'all', onMode }: Props) {
   const undo = useUndo(choices, setChoices);
   const onChoices = undo.change;
@@ -188,6 +195,8 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
       options: g.options as [string, string][],
     })),
     { id: 'noSeam', label: 'Cut', options: DRESS_CUTS },
+    // A sheath can be ruched at the sides below the hip.
+    ...(noSeam === 'sheath' ? [{ id: 'ruched', label: 'Sides', options: SHEATH_SIDES }] : []),
     ...(noSeam
       ? []
       : [
@@ -199,7 +208,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           // The dress's zip runs down the centre back, so its skirt can't be cut whole for a diagonal hem.
           { id: 'asymHem', label: 'Hem', options: GROUPS[3].options.filter(([id]) => id !== 'diagonal') as [string, string][] },
           { id: 'slit', label: 'Slit', options: SLIT_PLACES },
-          { id: 'volume', label: 'Skirt details', options: VOLUME_OPTIONS },
+          { id: 'volume', label: 'Skirt details', options: DETAIL_OPTIONS },
           { id: 'pockets', label: 'Pockets', options: DETAIL_GROUPS[1].options },
         ]),
     // A wrap ties already, so it takes no sash.
@@ -212,7 +221,9 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
       : id === 'slit'
       ? draft?.skirt.slit?.at ?? 'none'
       : id === 'volume'
-      ? volumeOf(choices.skirt)
+      ? skirtDetailOf(choices.skirt)
+      : id === 'ruched'
+      ? (choices.skirt.ruched ? 'ruched' : 'plain')
       : id === 'fit'
       ? choices.fit
       : id === 'waistSeam'
@@ -264,7 +275,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
       : id === 'belt'
       ? beltAllowed(opt as Belt, { wrap: wrapped })
       : id === 'volume'
-      ? volumeAllowed(choices.skirt, opt as Parameters<typeof volumeAllowed>[1]) && (!buttoned || opt === 'none')
+      ? skirtDetailAllowed(choices.skirt, opt as Parameters<typeof skirtDetailAllowed>[1]) && (!buttoned || opt === 'none')
       : id === 'darts'
       ? DARTS_FOR_FIT[choices.fit].includes(opt as BodiceChoices['darts'])
       : id === 'sleeve'
@@ -309,7 +320,12 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
       return;
     }
     if (id === 'volume') {
-      onChoices({ ...choices, skirt: setVolume(choices.skirt, opt as Parameters<typeof setVolume>[1]) });
+      onChoices({ ...choices, skirt: setSkirtDetail(choices.skirt, opt as Parameters<typeof setSkirtDetail>[1]) });
+      return;
+    }
+    if (id === 'ruched') {
+      const { ruched: _r, ...skirt } = choices.skirt;
+      onChoices({ ...choices, skirt: opt === 'ruched' ? { ...skirt, ruched: true } : skirt });
       return;
     }
     const fit = id === 'fit' ? (opt as DressChoices['fit']) : choices.fit;
@@ -523,6 +539,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
                 >
                   <ChoicePic set={(['noSeam', 'silhouette', 'length', 'asymHem', 'slit'].includes(g.id) ? 'skirt' : 'bodice')} group={g.id} id={id} />
                   {label}
+                  {optionInTesting(g.id, id) && <span className="testing-tag">{IN_TESTING}</span>}
                 </button>
               ))}
             </div>

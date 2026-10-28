@@ -14,19 +14,21 @@
 //   the one above.
 // Keep to plain ASCII punctuation in the words: they go into the PDF.
 import { P, Path, add, len, lerp, mul, p, sub, taggedLength, unit } from './geometry';
-import { cutLine, type Label, type Piece } from './piece';
+import { bounds, cutLine, type Label, type Piece } from './piece';
 import { layPlan } from './layplan';
 import { arc, cm, onCircle } from './skirt';
 import type { Length, Silhouette, SkirtDraft, SkirtMeasurements, SkirtStyle } from './skirt';
+import { rucheAllowed } from './ruche';
 import type { SewStep } from './instructions';
 import type { AsymHem } from './asymHem';
 import type { FabricAdvice, FabricPick, MyFabric } from './fabrics';
 
 export type Pleats = 'none' | 'knife' | 'box' | 'inverted';
 export type GodetCount = 0 | 4 | 6 | 8;
-export type Flounce = 'none' | 'hem_flounce' | 'tiers';
-/** The one detail a skirt carries: pleats, godets, a hem flounce or tiers. */
-export type VolumeKind = 'none' | 'knife' | 'box' | 'inverted' | 'godets' | 'hem_flounce' | 'tiers';
+export type Flounce = 'none' | 'hem_flounce' | 'tiers' | 'ruffle' | 'balloon';
+/** The one detail a skirt carries: pleats, godets, a hem flounce, tiers, a ruffled hem or a balloon hem. */
+export type VolumeKind = 'none' | 'knife' | 'box' | 'inverted' | 'godets' | 'hem_flounce' | 'tiers' | 'ruffle' | 'balloon';
+
 
 /** The choices that bear on the detail. */
 export interface VolumeStyle {
@@ -37,14 +39,18 @@ export interface VolumeStyle {
   flounce?: Flounce;
   /** A high-low or diagonal hem (asymHem.ts): only godets go with one. */
   asymHem?: AsymHem;
+  /** Ruched sides (ruche.ts): set in the same group, one or the other. */
+  ruched?: boolean;
 }
 
 const BLOCK: Silhouette[] = ['straight', 'pencil', 'a_line'];
-/** Godets and tiers need the length below the hip to show: knee and longer. */
+/** Godets need the length below the hip to show: knee and longer. */
 const LONG: Length[] = ['knee', 'midi', 'maxi'];
+/** A balloon hem puffs out and turns under: above the knee to midi. Longer, it drags the skirt down. */
+const BALLOON: Length[] = ['mini', 'above_knee', 'knee', 'midi'];
 
 /** The chips for the Details group, in order. */
-export const VOLUME_OPTIONS: [VolumeKind, string][] = [
+const VOLUME_OPTIONS: [VolumeKind, string][] = [
   ['none', 'None'],
   ['knife', 'Knife pleats'],
   ['box', 'Box pleats'],
@@ -52,6 +58,8 @@ export const VOLUME_OPTIONS: [VolumeKind, string][] = [
   ['godets', 'Godets'],
   ['hem_flounce', 'Hem flounce'],
   ['tiers', 'Tiers'],
+  ['ruffle', 'Ruffled hem'],
+  ['balloon', 'Balloon hem'],
 ];
 export const GODET_OPTIONS: [GodetCount, string][] = [
   [4, '4 godets'],
@@ -60,8 +68,9 @@ export const GODET_OPTIONS: [GodetCount, string][] = [
 ];
 
 /** Whether a detail suits the shape, length and hem: all of them need a block skirt (a circle or
- * trumpet is already full at the hem, and a bias slip is cut whole and moulds to the body), and godets
- * and tiers need a skirt to the knee or longer. A diagonal hem is cut whole, single layer, so it takes
+ * trumpet is already full at the hem, and a bias slip is cut whole and moulds to the body), godets need
+ * a skirt to the knee or longer, and a balloon hem one no longer than midi. Tiers go at any length: two
+ * shallow ones on a short skirt. A diagonal hem is cut whole, single layer, so it takes
  * none of them; a high-low hem takes godets, which follow the hem, but not pleats (the folds would
  * twist round the curve), a flounce or tiers (they would need the curve drafted into them too). */
 export function volumeAllowed(s: { silhouette: Silhouette; length: Length; asymHem?: AsymHem }, kind: VolumeKind): boolean {
@@ -69,8 +78,9 @@ export function volumeAllowed(s: { silhouette: Silhouette; length: Length; asymH
   if (!BLOCK.includes(s.silhouette)) return false;
   if (s.asymHem === 'diagonal') return false;
   if (s.asymHem === 'high_low' && kind !== 'godets') return false;
-  if (kind === 'godets' || kind === 'tiers') return LONG.includes(s.length);
+  if (kind === 'godets') return LONG.includes(s.length);
   if (kind === 'hem_flounce') return s.length !== 'mini';
+  if (kind === 'balloon') return BALLOON.includes(s.length);
   return true;
 }
 
@@ -86,18 +96,36 @@ const godetCount = (s: { godets?: GodetCount }): 4 | 6 | 8 => (s.godets === 4 ||
 
 /** The choices with one detail set and the others cleared. */
 export function setVolume<C extends Partial<VolumeStyle>>(c: C, kind: VolumeKind, godets?: GodetCount): C {
-  const { pleats: _p, godets: g, flounce: _f, ...rest } = c;
+  const { pleats: _p, godets: g, flounce: _f, ruched: _r, ...rest } = c;
   if (kind === 'none') return rest as C;
   if (kind === 'knife' || kind === 'box' || kind === 'inverted') return { ...rest, pleats: kind } as C;
   if (kind === 'godets') return { ...rest, godets: godets ?? (g ? godetCount({ godets: g }) : 6) } as C;
   return { ...rest, flounce: kind } as C;
 }
 
+/** The Details group: the fullness details, and ruched sides, which take the place of any of them. */
+type DetailKind = VolumeKind | 'ruched';
+export const DETAIL_OPTIONS: [DetailKind, string][] = [...VOLUME_OPTIONS, ['ruched', 'Ruched sides']];
+
+/** The detail picked in the Details group. */
+export const skirtDetailOf = (s: VolumeStyle & Partial<SkirtStyle>): DetailKind => (s.ruched && rucheAllowed({ ...s, pleats: undefined, godets: undefined, flounce: undefined }) ? 'ruched' : volumeOf(s));
+
+/** Whether the shape allows the detail: ruching goes on a straight or pencil skirt with plain side seams. */
+export function skirtDetailAllowed(s: VolumeStyle & Partial<SkirtStyle>, kind: DetailKind): boolean {
+  return kind === 'ruched' ? rucheAllowed({ ...s, pleats: undefined, godets: undefined, flounce: undefined }) : volumeAllowed(s, kind);
+}
+
+/** The choices with one detail set and the others cleared. */
+export function setSkirtDetail<C extends Partial<VolumeStyle>>(c: C, kind: DetailKind): C {
+  return kind === 'ruched' ? { ...setVolume(c, 'none'), ruched: true } : setVolume(c, kind);
+}
+
 /** The detail in a skirt's name: "with knife pleats", "with 6 godets". Empty for none. */
 export function volumeWords(s: VolumeStyle): string {
+  if (skirtDetailOf(s) === 'ruched') return 'with ruched sides';
   const k = volumeOf(s);
   if (k === 'godets') return `with ${godetCount(s)} godets`;
-  return { none: '', knife: 'with knife pleats', box: 'with box pleats', inverted: 'with inverted pleats', hem_flounce: 'with a hem flounce', tiers: 'with gathered tiers' }[k];
+  return { none: '', knife: 'with knife pleats', box: 'with box pleats', inverted: 'with inverted pleats', hem_flounce: 'with a hem flounce', tiers: 'with gathered tiers', ruffle: 'with a ruffled hem', balloon: 'with a balloon hem' }[k];
 }
 
 /** No walking slit is needed once a skirt has pleats, godets, a flounce or tiers: they give the room. */
@@ -133,8 +161,11 @@ export interface VolumeDraft {
   godets?: { count: number; length: number; hemWidth: number; from: number; inSeams: boolean };
   /** Hem flounce: its depth, where it joins (below the waist), and its hem round. */
   flounce?: { depth: number; joinAt: number; hem: number };
-  /** Tiers below the yoke, top to bottom, and how far below the waist the yoke ends. */
+  /** Tiers below the yoke, top to bottom, and how far below the waist the yoke ends. A ruffled hem is
+   * one band below the shortened skirt, given the same way. */
   tiers?: { yoke: number; bands: TierBand[] };
+  /** Balloon hem: the outer skirt's length and hem round, gathered onto the shorter underskirt's hem. */
+  balloon?: { outerLength: number; outerHem: number; underLength: number; underHem: number; puff: number };
   /** Per piece (front, back), in the worn block's coordinates: the pleat folds and the godet slashes, for the flat. */
   folds?: { top: P; hip: P; hem: P }[][];
   slashes?: [P, P][][];
@@ -974,7 +1005,7 @@ function ringPiece(name: string, r: number, depth: number, angle: number, isFron
   };
 }
 
-function flounced(m: SkirtMeasurements, s: SkirtStyle, draft: SkirtDraft, redraft: (st: SkirtStyle) => SkirtDraft, kind: 'hem_flounce' | 'tiers'): SkirtDraft {
+function flounced(m: SkirtMeasurements, s: SkirtStyle, draft: SkirtDraft, redraft: (st: SkirtStyle) => SkirtDraft, kind: 'hem_flounce' | 'tiers' | 'ruffle' | 'balloon'): SkirtDraft {
   const [bf] = draft.pieces;
   const hipY = hipOf(bf, m);
   const Lc = draft.lengthCm;
@@ -1016,11 +1047,15 @@ function flounced(m: SkirtMeasurements, s: SkirtStyle, draft: SkirtDraft, redraf
     };
   }
 
-  // Tiers: a yoke to just below the hip and clear of the zip, then two or three gathered tiers.
+  if (kind === 'ruffle') return ruffled(m, s, draft, redraft, hipY);
+  if (kind === 'balloon') return ballooned(s, draft, redraft);
+
+  // Tiers: a yoke to just below the hip and clear of the zip, then two or three gathered tiers (two
+  // shallow ones on a skirt above the knee).
   const zipEnd = draft.pieces[1].notches.find(([q, dir]) => Math.abs(q.x) < 1e-6 && dir.x < 0)?.[0].y ?? draft.zipCm;
   const yoke = Math.max(hipY + 5, zipEnd + 4);
   const T = Lc - yoke;
-  const n = T >= 48 ? 3 : T >= 20 ? 2 : 0;
+  const n = T >= 48 ? 3 : T >= 12 ? 2 : 0;
   if (!n) return draft;
   const upper = shortened(s, draft, redraft, hipY, yoke, 'tier');
   const named = upper.pieces.map((pc) => ({
@@ -1072,6 +1107,106 @@ function flounced(m: SkirtMeasurements, s: SkirtStyle, draft: SkirtDraft, redraf
     hemCm: Math.round(above),
     flareCm: draft.flareCm,
     volume: { kind, tiers: { yoke: r1(yoke), bands } },
+  };
+}
+
+/**
+ * A ruffled hem: the skirt shortened by the ruffle's depth, and one straight band, about one and
+ * four-fifths of the hem round, gathered onto its lower edge. Softer and fuller than the circular
+ * flounce, and given as a measured rectangle like a tier.
+ */
+function ruffled(m: SkirtMeasurements, s: SkirtStyle, draft: SkirtDraft, redraft: (st: SkirtStyle) => SkirtDraft, hipY: number): SkirtDraft {
+  const Lc = draft.lengthCm;
+  const sa = draft.pieces[0].seamAllowance;
+  const depth = r1(clamp(0.22 * (Lc - hipY), 8, 22));
+  const at = Lc - depth;
+  if (at < hipY + 3) return draft;
+  const upper = shortened(s, draft, redraft, hipY, at, 'tier');
+  const top = 2 * upper.pieces.reduce((t, pc) => t + taggedLength(pc.outline, 'tier'), 0);
+  const ratio = 1.8;
+  const round = top * ratio;
+  const perHalf = Math.ceil(round / 2 / (PANEL_MAX - 2 * sa));
+  const band: TierBand = {
+    name: 'Ruffle',
+    depth,
+    round: r1(round),
+    gatheredTo: r1(top),
+    ratio,
+    panels: 2 * perHalf,
+    cutLength: r1(round / (2 * perHalf) + 2 * sa),
+    cutWidth: r1(depth + sa + 2),
+  };
+  const joined = upper.pieces.map((pc) => {
+    const mid = alongTag(pc.outline, 'tier', 0.5);
+    return {
+      ...pc,
+      notches: mid ? [...pc.notches, [mid.at, p(0, 1)] as [P, P]] : pc.notches,
+      draft: pc.draft && {
+        frame: pc.draft.frame,
+        points: [...pc.draft.points, { n: 'R', at: p(0, at), note: `Ruffle seam: the skirt stops ${cm(depth)} above the hem, ${cm(at)} below the waist, its lower edge drawn level like a hem. The ruffle is gathered onto it.` }],
+      },
+    };
+  });
+  void m;
+  return { ...upper, pieces: joined, lengthCm: draft.lengthCm, block: draft.pieces, hemCm: Math.round(round), flareCm: draft.flareCm, volume: { kind: 'ruffle', tiers: { yoke: r1(at), bands: [band] } } };
+}
+
+/**
+ * A balloon hem: an outer skirt cut longer and fuller at the hem, gathered onto the hem of a shorter,
+ * plain underskirt, so the hem puffs out and turns under. The two are basted together at the waist and
+ * sewn on as one. The outer skirt keeps the block's darts; its fullness is all added at the hem.
+ */
+function ballooned(s: SkirtStyle, draft: SkirtDraft, redraft: (st: SkirtStyle) => SkirtDraft): SkirtDraft {
+  const Lc = draft.lengthCm;
+  const { pleats: _p, godets: _g, flounce: _f, hem: _h, shape: _s, ...rest } = s;
+  // The underskirt ends 2 cm above the finished length, straight, its hem a seam.
+  const underLength = Lc - 2;
+  const under = redraft({ ...rest, silhouette: rest.silhouette === 'a_line' ? 'a_line' : 'straight', lengthCm: underLength });
+  const underHem = under.hemCm;
+  // The outer skirt is longer by the puff, and flared until its hem is about one and a half times the
+  // underskirt's, as far as the A-line goes, and no wider than a piece cut on the fold of 140 cm fabric.
+  const FOLD_WIDE = 68;
+  const puff = r1(clamp(0.1 * Lc, 4, 8));
+  const want = underHem * 1.5;
+  const fits = (d: SkirtDraft) => d.pieces.every((pc) => {
+    const [x0, , x1] = bounds(pc);
+    return x1 - x0 <= FOLD_WIDE;
+  });
+  let lo = 0;
+  let hi = 80;
+  let outer = redraft({ ...rest, silhouette: 'a_line', lengthCm: Lc + puff, flareCm: lo });
+  for (let i = 0; i < 18; i++) {
+    const mid = (lo + hi) / 2;
+    const d = redraft({ ...rest, silhouette: 'a_line', lengthCm: Lc + puff, flareCm: mid });
+    if (d.hemCm < want && fits(d)) {
+      lo = mid;
+      outer = d;
+    } else if (!fits(d)) hi = mid;
+    else {
+      hi = mid;
+      outer = d;
+    }
+  }
+  const asSeam = (pc: Piece, name?: string): Piece => {
+    const { hem: _hem, ...allow } = pc.allowances;
+    const renamed = name ?? pc.name;
+    return {
+      ...pc,
+      name: renamed,
+      outline: retagged(pc.outline, 'hem', 'balloon'),
+      allowances: { ...allow, balloon: pc.seamAllowance },
+      labels: pc.labels.map((l) => (l.text === pc.name.toUpperCase() ? { ...l, text: renamed.toUpperCase() } : l)),
+    };
+  };
+  const underPieces = under.pieces.map((pc) => asSeam(pc, `Underskirt ${pc.name.replace(/^Skirt /i, '').toLowerCase()}`));
+  return {
+    ...outer,
+    pieces: [...outer.pieces.map((pc) => asSeam(pc)), ...underPieces],
+    lengthCm: Lc,
+    block: under.pieces,
+    hemCm: Math.round(underHem),
+    flareCm: outer.flareCm,
+    volume: { kind: 'balloon', balloon: { outerLength: r1(Lc + puff), outerHem: Math.round(outer.hemCm), underLength: r1(underLength), underHem: Math.round(underHem), puff } },
   };
 }
 
@@ -1270,6 +1405,51 @@ export function volumeSteps(steps: SewStep[], draft: SkirtDraft, sw: VolumeSewin
       'Hem',
       `Press up 0.5 cm on the bottom tier, then 1.5 cm more, and stitch close to the fold. A straight hem on a straight edge: no easing needed.`,
     );
+  } else if (v.kind === 'ruffle') {
+    const b = v.tiers!.bands[0];
+    insert(['Interface the waistband', 'Neaten the edges'], [
+      {
+        title: 'Cut the ruffle',
+        text: `The ruffle is a plain rectangle, so it is given as measurements: chalk it straight onto the fabric, the short edges on the straight grain. Cut ${b.panels}, each ${b.cutLength} x ${b.cutWidth} cm. Seam allowance ${sw.seam} is included on every edge, and 2 cm for the hem on the lower edge.`,
+      },
+    ]);
+    insert(['Hem'], [
+      {
+        title: 'Make the ruffle',
+        text: `Sew the ruffle panels into a ring, right sides together along the short edges, ${sw.seam} from the edge, and press the seams open. Press up 0.5 cm along the lower edge, then 1.5 cm more, and stitch close to the fold: it is far easier to hem the ruffle flat now than once it is gathered. Mark the ring into quarters with pins, starting from a seam.`,
+      },
+      {
+        title: 'Gather the ruffle',
+        text: `Sew two rows of long machine stitches along the top edge, 0.5 cm and 1.2 cm from the edge, stopping and starting again at each quarter. Pin the ruffle to the ${thing}'s lower edge, right sides together, matching the quarter pins to the side seams, the centre front and the centre back. Pull up the bobbin threads until the ruffle gathers from ${cm(b.round)} to ${cm(b.gatheredTo)}, and spread the gathers evenly.`,
+      },
+      {
+        title: 'Sew on the ruffle',
+        text: `Sew the ruffle on with the gathers on top, ${sw.seam} from the edge, between the two rows of gathering. Pull out the gathering threads that show, zigzag or overlock the edges together and press the seam up toward the ${thing}. Topstitch 0.5 cm above the seam to keep it lying flat.`,
+      },
+    ]);
+    remove('Hem');
+  } else if (v.kind === 'balloon') {
+    const bl = v.balloon!;
+    append('Cut out', `Cut the underskirt front and back from the same fabric, or from a lining that matches. The outer skirt is ${cm(bl.puff)} longer than its finished length: the extra puffs out over the hem.`);
+    insert(['Hem'], [
+      {
+        title: 'Make the underskirt',
+        text: `Sew the underskirt's side seams, right sides together, ${sw.seam} from the edge, and press them open. Leave its centre back open as far as the bottom of the zip. Neaten the edges.`,
+      },
+      {
+        title: 'Gather the outer hem',
+        text: `Sew two rows of long machine stitches along the outer skirt's hem, 0.5 cm and 1.2 cm from the edge, stopping and starting again at each side seam. Mark the quarters of both hems with pins: the side seams, the centre front and the centre back.`,
+      },
+      {
+        title: 'Join the hems',
+        text: `Turn the outer skirt inside out and slip the underskirt inside it, right sides together, so the two hem edges meet. Pin them together, matching the quarter pins, and pull up the gathering threads until the outer hem, ${cm(bl.outerHem)} round, fits the underskirt's, ${cm(bl.underHem)} round. Spread the gathers evenly and sew ${sw.seam} from the edge, gathers on top. Neaten the seam and press it toward the underskirt.`,
+      },
+      {
+        title: 'Turn and baste the waist',
+        text: `Turn the underskirt up inside the outer skirt, wrong sides together, so the hem seam rolls just under at the fold: the outer skirt puffs out over it. Match the two at the waist, the side seams and the centre back together, and baste them ${sw.waist} from the edge. From here on, sew them as one at the zip and the ${garment === 'dress' ? 'waist seam' : 'waistband'}.`,
+      },
+    ]);
+    remove('Hem');
   }
   return out;
 }
@@ -1332,6 +1512,24 @@ const VOLUME_FABRICS: Record<Exclude<VolumeKind, 'none'>, { picks: FabricPick[];
     avoid: 'Medium and heavy fabrics. The gathered seams get bulky and the tiers weigh the skirt down.',
     note: 'The bottom tier takes the most fabric: it is over twice the yoke round.',
   },
+  ruffle: {
+    picks: [
+      pick('Cotton lawn or voile', ['light'], 'crisp', 'Gathers finely and holds a fresh ruffle.'),
+      pick('Viscose challis or crepe', ['light'], 'fluid', 'A soft ruffle that swings as you walk.'),
+      pick('Silk or polyester georgette', ['light'], 'fluid', 'Floaty and light, for a dressy ruffle.'),
+    ],
+    avoid: 'Medium and heavy fabrics. The gathered seam gets bulky and the ruffle hangs flat instead of standing out.',
+    note: 'The ruffle is about twice the hem round: allow a little extra for it.',
+  },
+  balloon: {
+    picks: [
+      pick('Silk or polyester taffeta', ['light', 'medium'], 'crisp', 'Holds the puff out round the hem.'),
+      pick('Cotton poplin or sateen', ['light', 'medium'], 'crisp', 'A crisp, rounded balloon for day.'),
+      pick('Duchess satin or mikado', ['medium'], 'crisp', 'Sculptural and dressy.'),
+    ],
+    avoid: 'Soft or fluid fabrics like jersey, viscose or chiffon. They collapse instead of puffing, and the hem hangs in limp folds.',
+    note: 'Two skirts, one inside the other: you need about twice the fabric of a plain skirt. The underskirt can be lining.',
+  },
 };
 
 /** The fabric advice for a skirt with a detail: the detail's needs come first. */
@@ -1348,6 +1546,8 @@ export function volumeWarnings(s: VolumeStyle, f: MyFabric): string[] {
   const out: string[] = [];
   if ((k === 'knife' || k === 'box' || k === 'inverted') && f.drape === 'fluid') out.push('A fluid fabric will not hold a pressed crease, so the pleats soften and fall open. Choose a crisp wool or polyester suiting.');
   if (k === 'tiers' && f.weight === 'heavy') out.push('A heavy fabric makes bulky gathered seams and weighs the tiers down. Choose a light fabric.');
+  if (k === 'ruffle' && f.weight === 'heavy') out.push('A heavy fabric makes a bulky gathered seam and the ruffle hangs flat. Choose a light fabric.');
+  if (k === 'balloon' && f.drape === 'fluid') out.push('A fluid fabric will not hold the puff: the balloon collapses into folds. Choose a crisp taffeta, poplin or satin.');
   if ((k === 'hem_flounce' || k === 'godets') && f.drape === 'crisp' && f.weight === 'heavy') out.push('A heavy, crisp fabric makes the extra fullness stand out stiffly. A softer one falls in folds.');
   return out;
 }
@@ -1374,6 +1574,16 @@ export function volumeSpec(d: SkirtDraft): { label: string; finished: number | s
     return [
       { label: 'Flounce seam, below the waist', finished: v.flounce.joinAt },
       { label: 'Flounce depth', finished: v.flounce.depth },
+    ];
+  if (v.balloon)
+    return [
+      { label: 'Outer skirt length / hem round', finished: `${v.balloon.outerLength} / ${v.balloon.outerHem}` },
+      { label: 'Underskirt length / hem round', finished: `${v.balloon.underLength} / ${v.balloon.underHem}` },
+    ];
+  if (v.kind === 'ruffle' && v.tiers)
+    return [
+      { label: 'Ruffle seam, below the waist', finished: v.tiers.yoke },
+      { label: `Ruffle: depth, round (gathered ${v.tiers.bands[0].ratio} to 1)`, finished: `${v.tiers.bands[0].depth}, ${v.tiers.bands[0].round}` },
     ];
   if (v.tiers)
     return [

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { BODICE_GROUPS, DRESS_CUTS, TEE_GROUPS, TROUSER_GROUPS, WAIST_SEAM_GROUP, outerGroups } from './garments';
 import { DETAIL_GROUPS, FRONT_GROUP, GROUPS } from './skirtChoices';
-import { VOLUME_OPTIONS } from './engine/skirtVolume';
+import { DETAIL_OPTIONS } from './engine/skirtVolume';
 import { SLIT_PLACES } from './engine/slit';
 import { BELTS } from './engine/belt';
 import { ExplainSet, explainGroups, explainLine } from './explain';
@@ -9,7 +9,7 @@ import { detailGroups, detailPic } from './ui/detailPics';
 import { hasPics } from './ui/ChoicePic';
 
 const sets: [ExplainSet, { id: string; options: readonly (readonly [unknown, string])[] }[]][] = [
-  ['skirt', [...GROUPS, ...DETAIL_GROUPS, FRONT_GROUP, { id: 'volume', options: VOLUME_OPTIONS }, { id: 'noSeam', options: DRESS_CUTS }, { id: 'slit', options: SLIT_PLACES }, { id: 'belt', options: BELTS }]],
+  ['skirt', [...GROUPS, ...DETAIL_GROUPS, FRONT_GROUP, { id: 'volume', options: DETAIL_OPTIONS }, { id: 'noSeam', options: DRESS_CUTS }, { id: 'slit', options: SLIT_PLACES }, { id: 'belt', options: BELTS }]],
   ['bodice', [...BODICE_GROUPS, WAIST_SEAM_GROUP]],
   ['tee', TEE_GROUPS],
   ['trousers', TROUSER_GROUPS],

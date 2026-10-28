@@ -35,6 +35,8 @@ export interface Choices {
   pleats?: Pleats;
   godets?: GodetCount;
   flounce?: Flounce;
+  /** Ruched side seams (engine/ruche.ts), in place of pleats, godets or a flounce. In testing. */
+  ruched?: boolean;
   /** A high-low or diagonal hem, in place of a drawn one. Older saves have none. */
   asymHem?: AsymHem;
   /** In-seam pockets. Older saves have none. */

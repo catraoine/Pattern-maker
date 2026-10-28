@@ -324,6 +324,18 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
       ok: Math.abs(a - b) <= SEAM_TOLERANCE,
     });
   }
+  // A cape's front and back neck edges together against the half neckline they are sewn into.
+  const cape = pieces.filter((pc) => pc.kind === 'collar' && pc.meta.cape !== undefined);
+  if (cape.length) {
+    const a = cape.reduce((t, pc) => t + taggedLength(pc.outline, 'cape-neck'), 0);
+    const b = sum(neckline, 'neck');
+    checks.push({
+      group: 'Seams',
+      label: 'Cape to neckline',
+      detail: `cape ${cm(a)}, neckline ${cm(b)} (half), ${Math.abs(a - b) < 0.05 ? 'identical' : `${cm(Math.abs(a - b))} apart`}`,
+      ok: Math.abs(a - b) <= SEAM_TOLERANCE,
+    });
+  }
   const stand = pieces.find((pc) => pc.name === 'Collar stand');
   const fall = pieces.find((pc) => pc.name === 'Collar' && pc.kind === 'collar');
   if (stand && fall && taggedLength(fall.outline, 'stand') > 0) {

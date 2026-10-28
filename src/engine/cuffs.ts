@@ -5,12 +5,13 @@
 import { P, Path, p } from './geometry';
 import type { Piece } from './piece';
 
-export type Cuff = 'none' | 'shirt' | 'elastic' | 'tie';
+export type Cuff = 'none' | 'shirt' | 'elastic' | 'tie' | 'ruffle';
 export const CUFFS: [Cuff, string][] = [
   ['none', 'None'],
   ['shirt', 'Shirt cuff'],
   ['elastic', 'Elastic'],
   ['tie', 'Tie'],
+  ['ruffle', 'Ruffle'],
 ];
 
 /** A shirt cuff 6 cm deep, 3 cm round the wrist and 2.5 cm more to lap under the button, over a 10 cm
@@ -20,6 +21,8 @@ export const CUFF = {
   shirt: { depth: 6, ease: 3, overlap: 2.5, placket: 10, placketWidth: 1 },
   elastic: { depth: 2.5, width: 1.5, ease: 2 },
   tie: { depth: 2, ease: 3, tie: 35, slit: 8 },
+  /** A ruffle: a straight strip gathered onto the sleeve's hem, deeper on a longer sleeve. In testing. */
+  ruffle: { ratio: 1.8, depth: { short: 5, elbow: 6, three_quarter: 7, long: 8 } },
   blouse: 2,
 };
 
@@ -29,6 +32,8 @@ type Length = 'short' | 'elbow' | 'three_quarter' | 'long';
  * long for ties, and elbow-length too for elastic. */
 export function cuffAllowed(cuff: Cuff, length: Length | 'none', shape: string): boolean {
   if (cuff === 'none') return true;
+  // A ruffle goes on a plain straight sleeve of any length.
+  if (cuff === 'ruffle') return shape === 'straight' && length !== 'none';
   if (shape !== 'straight' && shape !== 'bishop') return false;
   if (cuff === 'shirt') return length === 'long';
   if (cuff === 'tie') return length === 'long' || length === 'three_quarter';
@@ -36,14 +41,16 @@ export function cuffAllowed(cuff: Cuff, length: Length | 'none', shape: string):
 }
 
 /** Whether the cuff choice shows: when the sleeve can take some cuff. */
-export const cuffShown = (s: { length: Length | 'none'; shape: string }) => (['shirt', 'elastic', 'tie'] as const).some((c) => cuffAllowed(c, s.length, s.shape));
+export const cuffShown = (s: { length: Length | 'none'; shape: string }) => (['shirt', 'elastic', 'tie', 'ruffle'] as const).some((c) => cuffAllowed(c, s.length, s.shape));
 
 /** The cuff as drafted: its kind, how deep it is finished, how far round, and what goes with it. */
 export interface CuffDraft {
   kind: Exclude<Cuff, 'none'>;
   depth: number;
-  /** Round the arm where it sits, finished. */
+  /** Round the arm where it sits, finished; for a ruffle, the sleeve's hem it is gathered onto. */
   round: number;
+  /** A ruffle: how many times the hem its strip is cut. */
+  ratio?: number;
   /** Elastic: cut this long. Shirt: the placket slit. Tie: the ties, and the slit. */
   elasticCm?: number;
   placketCm?: number;
@@ -62,6 +69,8 @@ function armAt(length: Length, wrist: number, upperArm: number): number {
 
 export function cuffOf(cuff: Exclude<Cuff, 'none'>, length: Length, wrist: number, upperArm: number): CuffDraft {
   const arm = armAt(length, wrist, upperArm);
+  // The ruffle's round is set from the sleeve's hem once it is drafted.
+  if (cuff === 'ruffle') return { kind: 'ruffle', depth: CUFF.ruffle.depth[length], round: 0, ratio: CUFF.ruffle.ratio };
   if (cuff === 'shirt') return { kind: 'shirt', depth: CUFF.shirt.depth, round: r1(arm + CUFF.shirt.ease), placketCm: CUFF.shirt.placket };
   if (cuff === 'tie') return { kind: 'tie', depth: CUFF.tie.depth, round: r1(arm + CUFF.tie.ease), tieCm: CUFF.tie.tie, slitCm: CUFF.tie.slit };
   // Elastic: the casing passes the hand, and the elastic draws it in to the arm.
@@ -115,6 +124,16 @@ export function cuffPieces(c: CuffDraft, sa: number): Piece[] {
     const placket = strip('Sleeve placket', 'PLACKET', 2 * c.placketCm! + 2, 4 * CUFF.shirt.placketWidth, 'Cut 2', 0, { meta: { lengthCm: 2 * c.placketCm! + 2 } });
     return [cuff, placket];
   }
+  if (c.kind === 'ruffle') {
+    // One layer, its lower edge narrow-hemmed: the depth, the seam above and 1 cm for the hem.
+    const L = c.round * c.ratio!;
+    return [
+      strip('Sleeve ruffle', 'SLEEVE RUFFLE', r1(L + 2 * sa), c.depth + sa + 1, 'Cut 2', 0, {
+        notchAt: [r1(sa + L / 2)],
+        meta: { finishedWidth: c.depth, lengthCm: r1(L), ruffle: c.ratio },
+      }),
+    ];
+  }
   if (c.kind === 'tie') {
     // The band round the wrist, running on into a tie at each end, cut on the grain.
     const L = c.round + 2 * c.tieCm!;
@@ -137,6 +156,7 @@ export function cuffCutWords(c: CuffDraft | undefined): string {
   if (!c) return '';
   if (c.kind === 'shirt') return ' Cut the two cuffs on the fold line, and again from fusible interfacing to the fold, and the two placket strips. Snip the cuff notches and mark BUTTONHOLE and BUTTON.';
   if (c.kind === 'tie') return ' Cut the two tie cuffs and snip their notches, where the ties start. Snip the slit notch on the back of each sleeve seam too.';
+  if (c.kind === 'ruffle') return ' Cut the two sleeve ruffles and snip the notch at the middle of each.';
   return '';
 }
 
@@ -144,6 +164,7 @@ export function cuffCutWords(c: CuffDraft | undefined): string {
 export function cuffNote(c: CuffDraft | undefined): string {
   if (!c) return '';
   if (c.kind === 'shirt') return `Shirt cuffs, ${c.depth} cm deep and ${c.round} cm round, buttoned over a ${c.placketCm} cm bound placket.`;
+  if (c.kind === 'ruffle') return `Sleeve ruffles, ${c.depth} cm deep, gathered ${c.ratio} to 1 onto the ${c.round} cm sleeve hem.`;
   if (c.kind === 'tie') return `Tie cuffs, ${c.depth} cm deep and ${c.round} cm round, with ${c.tieCm} cm ties, over an ${c.slitCm} cm slit.`;
   return `Elastic cuffs: ${c.elasticCm} cm of ${CUFF.elastic.width} cm elastic in each, in a ${c.depth} cm casing.`;
 }
@@ -174,6 +195,12 @@ export function cuffStep(c: CuffDraft, sl: { gathers?: { hem: number } }, seam: 
     return {
       title: 'Attach the cuffs',
       text: `Fuse the interfacing to the wrong side of each cuff. Press under ${seam} along the long edge without the notch. ${gather}, or fold the fullness into two pleats toward the placket. Pin the cuff's notched edge to the sleeve hem, right sides together, with the BUTTON end at the back of the placket and the BUTTONHOLE end at the front: the back of the placket laps under by the cuff's ${CUFF.shirt.overlap} cm extension. Sew ${seam} from the edge and press the seam into the cuff. Fold the cuff right sides together along its fold line and sew across each end ${seam} in. Trim, turn it right side out and press. Stitch the pressed edge down over the seam inside, then topstitch round the cuff 0.3 cm from the edge. Work a buttonhole at BUTTONHOLE and sew a button at BUTTON. The cuff closes ${c.round} cm round.`,
+    };
+  }
+  if (c.kind === 'ruffle') {
+    return {
+      title: 'Attach the sleeve ruffles',
+      text: `Sew the short ends of each ruffle together, right sides together, ${seam} from the edge, into a ring, and press the seam open. Press up 0.5 cm along the lower edge, then 0.5 cm more, and stitch close to the fold. Sew two rows of long gathering stitches along the top edge, inside the seam allowance. Pin the ruffle to the sleeve hem, right sides together, its seam at the underarm seam and its middle notch at the top of the sleeve, and draw the gathers up from ${r1(c.round * c.ratio!)} cm to the ${c.round} cm hem, spreading them evenly. Sew ${seam} from the edge, neaten the edges together and press the seam up into the sleeve. Topstitch 0.5 cm above it to hold it flat.`,
     };
   }
   if (c.kind === 'tie') {

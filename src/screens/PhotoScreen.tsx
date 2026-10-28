@@ -3,7 +3,7 @@ import type { Choices } from '../savedWork';
 import { LENGTHS, type Length, type SkirtMeasurements } from '../engine/skirt';
 import type { Unit } from '../measurements';
 import { photoToJpeg } from '../photo/image';
-import type { BackReading, BackResponse, Confidence, PhotoError, PhotoReading, PhotoResponse, PieceKind, TopReading, TrousersReading, UnsureGroup } from '../photo/types';
+import type { BackReading, BackResponse, PhotoError, PhotoReading, PhotoResponse, PieceKind, TopReading, TrousersReading, UnsureGroup } from '../photo/types';
 import { GROUPS } from '../skirtChoices';
 import { PIECE_KINDS, PIECE_WORDS, aPiece, backMissing, backWords, choicesFor, withBack, fabricFor, pieceName, mainPiece, pieceNote, piecesToPick, skirtChoices, type PhotoBody } from '../photo/garments';
 import type { MyFabric } from '../engine/fabrics';
@@ -62,7 +62,6 @@ const SIL_NAME: Record<PhotoReading['silhouette']['value'], string> = {
   gathered: 'Gathered',
 };
 const WHERE: Record<Length, string> = { mini: 'mini length', above_knee: 'above the knee', knee: 'to the knee', midi: 'midi length', maxi: 'maxi length' };
-const SURE: Record<Confidence, string> = { high: 'clear in the photo', medium: 'fairly sure', low: 'a best guess' };
 const STAGES = ['Shape', 'Length', 'Fit'];
 const SAMPLE_BODY: SkirtMeasurements = { waist: 76, full_hip: 102, waist_to_hip: 20.5, waist_to_knee: 58, waist_to_floor: 104 } as SkirtMeasurements;
 // Where each named length falls on the sample body, waist (0) to floor (1), as the photo reading measures it.
@@ -127,14 +126,6 @@ const backLine = (words: string, listed: boolean) =>
 /** Skirts and dresses show the shape, length and fit to change here; the rest change on their style screen. */
 const hasSkirt = (g: PieceKind) => g === 'skirt' || g === 'dress';
 
-/** The one thing that would make an unsure reading exact, or nothing when the photo was clear. */
-function tipFor(r: PhotoReading): string | undefined {
-  if (r.worn === false) return undefined; // laid flat: the length is asked next, and the shape reads from the outline
-  if (r.length.confidence === 'low' || r.shape?.confidence === 'low') return 'The hem is hard to see in this photo. For an exact length, show the whole garment down to the feet.';
-  if (r.silhouette.confidence === 'low') return 'The shape is hard to see in this photo. For a closer match, stand straight on and keep still.';
-  return undefined;
-}
-
 function Tips() {
   return (
     <details className="small phototips">
@@ -185,7 +176,7 @@ export function PhotoScreen({ testerCode, measured, body, unit, onByHand, onAppl
   // The garment to draft (G1): the one the photo shows, or another picked from the list, or a piece tapped on an outfit photo (G3).
   const [piece, setPiece] = useState<PieceKind>('skirt');
   const [choosing, setChoosing] = useState(false);
-  const [open, setOpen] = useState<'fit' | 'silhouette' | 'length'>();
+  const [editing, setEditing] = useState(false);
   const [stage, setStage] = useState(0);
   const [tape, setTape] = useState('');
   // The one question an unsure reading asks, once answered, stays answered for this photo.
@@ -221,7 +212,7 @@ export function PhotoScreen({ testerCode, measured, body, unit, onByHand, onAppl
   const pick = async (file: File | undefined) => {
     if (!file) return;
     setReading(undefined);
-    setOpen(undefined);
+    setEditing(false);
     setChoosing(false);
     setTape('');
     let img;
@@ -362,7 +353,7 @@ export function PhotoScreen({ testerCode, measured, body, unit, onByHand, onAppl
   const choose = (g: PieceKind) => {
     setPiece(g);
     setChoosing(false);
-    setOpen(undefined);
+    setEditing(false);
     setChoices(skirtChoices(reading, g === 'dress' ? 'dress' : 'skirt'));
     setPhase('result');
   };
@@ -469,7 +460,6 @@ export function PhotoScreen({ testerCode, measured, body, unit, onByHand, onAppl
     );
   }
 
-  const tip = hasSkirt(piece) || piece === 'trousers' ? tipFor(reading) : undefined;
   const torn = answered ? undefined : tornBetween(reading, piece);
   const answer = (v: string) => {
     if (!torn) return;
@@ -478,6 +468,28 @@ export function PhotoScreen({ testerCode, measured, body, unit, onByHand, onAppl
     setChoices(skirtChoices(r, piece === 'dress' ? 'dress' : 'skirt'));
     setAnswered(true);
   };
+
+  // An unsure reading asks its one question first, on its own, with the photo large.
+  if (torn) {
+    return (
+      <section ref={top} className="card photoresult photoq" aria-labelledby="asktitle">
+        {preview && <img src={preview} alt="Your photo" className="photobig" />}
+        <div className="photoask" role="group" aria-labelledby="asktitle">
+          <p className="eyebrow">One question</p>
+          <h1 id="asktitle">{`${torn.options[0][1]} or ${torn.options[1][1].toLowerCase()}?`}</h1>
+          <div className="chips">
+            {torn.options.map(([id, text]) => (
+              <button key={id} type="button" className="chip" onClick={() => answer(id)}>
+                {text}
+              </button>
+            ))}
+          </div>
+          <p className="muted small">{`Then your ${word} is ready to draft.`}</p>
+        </div>
+      </section>
+    );
+  }
+
   const missing = [...(reading.missing ?? []), ...backMissing(back)].map((m) => m.trim().toLowerCase()).filter(Boolean).slice(0, 5);
   // A dress takes its fit from the bodice, so only the skirt's shape and length change here.
   const groups = piece === 'dress' ? (flat ? [GROUPS[1]] : [GROUPS[1], GROUPS[2]]) : flat ? [GROUPS[1], GROUPS[0]] : [GROUPS[1], GROUPS[2], GROUPS[0]];
@@ -494,8 +506,13 @@ export function PhotoScreen({ testerCode, measured, body, unit, onByHand, onAppl
   const plainName = (c: PatternChoices): PatternChoices =>
     isDress(c) ? { ...c, bodice: { ...c.bodice, neck: undefined }, skirt: { ...c.skirt, shape: undefined } } : isBodice(c) ? { ...c, neck: undefined } : c;
   const title = piece !== 'skirt' ? describePattern(plainName(named)) : flat ? `A ${sil.toLowerCase()} skirt` : `${sil}, ${WHERE[choices.length]}`;
-  const depth = bodiceOf?.neck ? `Neckline ${unit === 'in' ? `${Math.round((bodiceOf.neck.frontDepth / IN) * 4) / 4} in` : `${bodiceOf.neck.frontDepth} cm`} deep, as in the photo` : '';
-  const sub = piece !== 'skirt' ? (needsLength ? 'The length is up to you' : depth) : flat ? `${label('fit')} fit · the length is up to you` : `${label('fit')} fit · ${SURE[reading.shape?.confidence ?? reading.length.confidence]}`;
+  const depth = bodiceOf?.neck ? `Neckline ${unit === 'in' ? `${Math.round((bodiceOf.neck.frontDepth / IN) * 4) / 4} in` : `${bodiceOf.neck.frontDepth} cm`} deep` : '';
+  // Everything read, on one line: what changes here, a guess marked as one, the neckline's depth.
+  const summary = [
+    ...(hasSkirt(piece) ? groups.map((g) => (conf[g.id] === 'low' ? `${label(g.id)} (best guess)` : label(g.id))) : []),
+    ...(needsLength ? ['length up to you'] : []),
+    ...(depth ? [depth] : []),
+  ];
 
   return (
     <section ref={top} className="card photoresult" aria-labelledby="seetitle">
@@ -504,72 +521,45 @@ export function PhotoScreen({ testerCode, measured, body, unit, onByHand, onAppl
         <div>
           <p className="eyebrow">{`We see ${aPiece(piece)}${flat ? ' · laid flat' : ''}`}</p>
           <h1 id="seetitle">{title}</h1>
-          {sub && <p className="muted small">{sub}</p>}
         </div>
       </div>
       {note && <p className="msg small">{note}</p>}
-      {tip && <p className="msg small">{tip}</p>}
-      {torn && (
-        <fieldset className="group photoask">
-          <legend>{`${torn.options[0][1]} or ${torn.options[1][1].toLowerCase()}?`}</legend>
-          <p className="muted small">The photo could be either. Which is it?</p>
-          <div className="chips">
-            {torn.options.map(([id, text]) => (
-              <button key={id} type="button" className="chip" onClick={() => answer(id)}>
-                {text}
-              </button>
-            ))}
-          </div>
-        </fieldset>
-      )}
-      {hasSkirt(piece) && (
-      <div className="photorows">
-        {groups.map((g) => (
-          <div key={g.id} className="photorow">
-            <div className="photorow-line">
-              <span className="eyebrow">{g.label}</span>
-              <span>
-                {label(g.id)}
-                {conf[g.id] === 'low' && <span className="muted small"> · best guess</span>}
-              </span>
-              <button type="button" className="link small" aria-expanded={open === g.id} onClick={() => setOpen(open === g.id ? undefined : g.id)}>
-                {open === g.id ? 'Done' : 'Change'}
-              </button>
-            </div>
-            {open === g.id && (
-              <fieldset className="group">
-                <legend className="visually-hidden">{g.label}</legend>
-                <div className="chips">
-                  {g.options.map(([id, text]) => (
-                    <button
-                      key={id}
-                      type="button"
-                      className={choices[g.id] === id ? 'chip on' : 'chip'}
-                      aria-pressed={choices[g.id] === id}
-                      onClick={() => setChoices({ ...choices, [g.id]: id, ...(g.id === 'fit' ? {} : { shape: undefined }) })}
-                    >
-                      {text}
-                    </button>
-                  ))}
-                </div>
-              </fieldset>
-            )}
-          </div>
-        ))}
-      </div>
-      )}
-      <div className="photoback">
-        {backPreview && <img src={backPreview} alt="The back" className="photothumb small" />}
-        <div>
-          {backState === 'none' && (
-            <>
-              <label className="filelink small">
-                Add a photo of the back
-                <input type="file" accept="image/*" onChange={(e) => pickBack(e.target.files?.[0]).finally(() => (e.target.value = ''))} />
-              </label>
-              <p className="muted small">Optional. For vents, slits, zips and low backs.</p>
-            </>
+      {summary.length > 0 && (
+        <p className="photosum">
+          <span>{summary.join(' · ')}</span>
+          {hasSkirt(piece) && (
+            <button type="button" className="link small" aria-expanded={editing} onClick={() => setEditing(!editing)}>
+              {editing ? 'Done' : 'Change'}
+            </button>
           )}
+        </p>
+      )}
+      {hasSkirt(piece) && editing && (
+        <div className="photorows">
+          {groups.map((g) => (
+            <fieldset key={g.id} className="group photorow">
+              <legend className="eyebrow">{g.label}</legend>
+              <div className="chips">
+                {g.options.map(([id, text]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    className={choices[g.id] === id ? 'chip on' : 'chip'}
+                    aria-pressed={choices[g.id] === id}
+                    onClick={() => setChoices({ ...choices, [g.id]: id, ...(g.id === 'fit' ? {} : { shape: undefined }) })}
+                  >
+                    {text}
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+          ))}
+        </div>
+      )}
+      {missing.length > 0 && <p className="muted small">{`Not in the app yet: ${listWords(missing)}.`}</p>}
+      {backState !== 'none' && (
+        <div className="photoback">
+          {backPreview && <img src={backPreview} alt="The back" className="photothumb small" />}
           {backState === 'reading' && (
             <p className="muted small" role="status">
               Reading the back…
@@ -585,53 +575,45 @@ export function PhotoScreen({ testerCode, measured, body, unit, onByHand, onAppl
           {backState === 'limit' && <p className="muted small">That's today's photo readings, so the back stays as usual. You can change it on the next screen.</p>}
           {backState === 'failed' && <p className="muted small">We couldn't read the back. You can change it on the next screen.</p>}
         </div>
-      </div>
-      {missing.length > 0 ? (
-        <div className="photomissing">
-          <p className="small">
-            <span className="eyebrow">Not in the app yet</span> {listWords(missing)[0].toUpperCase() + listWords(missing).slice(1)}.
-          </p>
-          <p className="muted small">
-            We've noted {missing.length > 1 ? 'them' : 'it'} for what we add next. Seams, necklines and hems you can draw on your form after drafting.
-          </p>
-        </div>
-      ) : (
-        reading.details && <p className="muted small">{reading.details}</p>
       )}
-      {piece === 'skirt' && choices.shape && !flat && <p className="muted small">Your pattern copies these proportions, drafted to your measurements.</p>}
-      {!hasSkirt(piece) && <p className="muted small">Drafted to your measurements. You can change any detail on the next screen.</p>}
-      <div className="stack">
-        {needsLength ? (
-          <button type="button" className="primary" onClick={() => setPhase('length')}>
-            Next: where it ends
-          </button>
-        ) : (
-          <button type="button" className="primary" onClick={() => onApply(final(), preview, fabricFor(reading), source())}>
-            {measured ? `Draft my ${word}` : 'Next: add my measurements'}
-          </button>
+      {needsLength ? (
+        <button type="button" className="primary" onClick={() => setPhase('length')}>
+          Next: where it ends
+        </button>
+      ) : (
+        <button type="button" className="primary" onClick={() => onApply(final(), preview, fabricFor(reading), source())}>
+          {measured ? `Draft my ${word}` : 'Next: add my measurements'}
+        </button>
+      )}
+      <div className="photolinks">
+        {backState === 'none' && (
+          <label className="filelink small" title="Optional. For vents, slits, zips and low backs.">
+            Add back photo
+            <input type="file" accept="image/*" onChange={(e) => pickBack(e.target.files?.[0]).finally(() => (e.target.value = ''))} />
+          </label>
         )}
         {others && (
           <button type="button" className="link small" onClick={() => setPhase('pick')}>
-            Draft another piece from this photo
+            Another piece
           </button>
         )}
         <button type="button" className="link small" aria-expanded={choosing} onClick={() => setChoosing(!choosing)}>
-          {`Not ${aPiece(piece)}? Choose the garment`}
+          Wrong garment?
         </button>
-        {choosing && (
-          <fieldset className="group">
-            <legend className="visually-hidden">Garment</legend>
-            <div className="chips">
-              {PIECE_KINDS.map((g) => (
-                <button key={g} type="button" className={g === piece ? 'chip on' : 'chip'} aria-pressed={g === piece} onClick={() => choose(g)}>
-                  {pieceName(g)}
-                </button>
-              ))}
-            </div>
-          </fieldset>
-        )}
-        {chooser('Try another photo', 'link')}
+        {chooser('New photo', 'link')}
       </div>
+      {choosing && (
+        <fieldset className="group">
+          <legend className="muted small">What is it?</legend>
+          <div className="chips">
+            {PIECE_KINDS.map((g) => (
+              <button key={g} type="button" className={g === piece ? 'chip on' : 'chip'} aria-pressed={g === piece} onClick={() => choose(g)}>
+                {pieceName(g)}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+      )}
     </section>
   );
 }

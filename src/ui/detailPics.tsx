@@ -48,6 +48,9 @@ const DETAILS: Record<ExplainSet, Record<string, Record<string, ReactNode>>> = {
       godets: on(SKIRT, 'M13 30L10 44H16zM20 30L17.5 44H22.5zM27 30L24 44H30z'),
       hem_flounce: on('M14 6h12l3.5 28H10.5z', 'M10.5 34Q9 44 14 42Q17 46 20 42Q23 46 26 42Q31 44 29.5 34'),
       tiers: on('M14 6h12l1 10H13z', 'M13 16H27L29 28H11zM11 28H29L32 42H8z'),
+      ruffle: on('M14 6h12l2.5 26H11.5z', 'M11.5 32H28.5L33 41Q30 44 27 42Q24 45 20 42Q16 45 13 42Q10 44 7 41zM14 33l-.5 4M18 33v4M22 33v4M26 33l.5 4'),
+      ruched: on(SKIRT, 'M10.5 18q3 1.5 5 .5M10.8 23q3 1.5 5 .5M11.1 28q3 1.5 5 .5M11.4 33q3 1.5 5 .5M11.7 38q3 1.5 5 .5M29.5 18q-3 1.5 -5 .5M29.2 23q-3 1.5 -5 .5M28.9 28q-3 1.5 -5 .5M28.6 33q-3 1.5 -5 .5M28.3 38q-3 1.5 -5 .5'),
+      balloon: on('M14 6h12Q34 30 28 40Q25 43 20 43Q15 43 12 40Q6 30 14 6z', 'M15 40.5l.5 2M18 41v2M22 41v2M25 40.5l-.5 2'),
     },
     waist: {
       band: on(SKIRT, 'M13.5 6h13v4h-13zM24 10V22M23 22h2'),
@@ -95,6 +98,7 @@ const DETAILS: Record<ExplainSet, Record<string, Record<string, ReactNode>>> = {
       shirt: on('M13 8Q20 2 27 8L29 36Q20 39 11 36z', 'M13 36h14v7H13zM24.5 39.5h.1M15 32v4M18 33v3M22 33v3M25 32v4'),
       elastic: on('M13 8Q20 2 27 8L29 38Q20 41 11 38z', 'M14 38h12v3H14zM15.5 38.5v2M18 38.5v2M20.5 38.5v2M23 38.5v2'),
       tie: on('M13 8Q20 2 27 8L29 38Q20 41 11 38z', 'M14 38h12v2.5H14zM26 39L31 46M26 39L33 43'),
+      ruffle: on('M13 8Q20 2 27 8L28 36H12z', 'M12 36H28L32 43Q29 46 26 44Q23 47 20 44Q17 47 14 44Q11 46 8 43zM14 37l-.5 4M18 37v4M22 37v4M26 37l.5 4'),
     },
     princess: {
       none: on(TOP),
@@ -123,6 +127,7 @@ const DETAILS: Record<ExplainSet, Record<string, Record<string, ReactNode>>> = {
       shirt: on(TOP, 'M15 8V5Q20 7 25 5V8M15 8L17.5 15L20 12.5L22.5 15L25 8'),
       bow: on(TOP, 'M15 8Q20 13 25 8M20 12.5Q14 9 13.5 13Q14 16 20 12.5Q26 16 26.5 13Q26 9 20 12.5M20 12.5L17 24M20 12.5L23.5 23'),
       ruffle: on(TOP, 'M15 8Q20 13 25 8M15 8Q13 10 14 12Q15 13 15.5 15Q17.5 15 18 16.5Q20 15.5 22 16.5Q22.5 15 24.5 15Q25 13 26 12Q27 10 25 8'),
+      cape: on(TOP, 'M15 8Q20 13 25 8L32 12Q35 18 36 25Q20 30 4 25Q5 18 8 12zM12 15L9 24M28 15L31 24'),
     },
     back: {
       plain: on('M8 12L15 8Q20 10 25 8L32 12L30 22L29 40H11L10 22z', 'M20 9.5V40'),

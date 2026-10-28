@@ -203,7 +203,7 @@ export function printableFor({ result, values, finish, fabric, garment, ownFitti
     if (finish.skirtLined) {
       try {
         // A plain lining under pleats, godets or a flounce: they need no second layer. Nor pockets.
-        lining = draftSkirt(values as SkirtMeasurements, { ...skirtStyle, pleats: undefined, godets: undefined, flounce: undefined, lengthCm: skirt.lengthCm - 2.5, pockets: 'none', yoke: undefined, buttons: undefined });
+        lining = draftSkirt(values as SkirtMeasurements, { ...skirtStyle, pleats: undefined, godets: undefined, flounce: undefined, lengthCm: skirt.lengthCm - 2.5, pockets: 'none', yoke: undefined, buttons: undefined, ruched: undefined });
       } catch {
         lining = undefined;
       }

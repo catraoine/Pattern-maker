@@ -7,7 +7,7 @@ import { facing } from './finishing';
 import { DraftPoint, Piece } from './piece';
 
 export type Closure = 'back_zip' | 'front_buttons' | 'wrap';
-export type Collar = 'none' | 'peter_pan' | 'mandarin' | 'mock' | 'funnel' | 'shirt' | 'bow' | 'ruffle';
+export type Collar = 'none' | 'peter_pan' | 'mandarin' | 'mock' | 'funnel' | 'shirt' | 'bow' | 'ruffle' | 'cape';
 /** The collars that are a single band standing up from the neck, sewn and finished like a mandarin. */
 type BandCollar = 'mandarin' | 'mock' | 'funnel';
 export const isBandCollar = (c: Collar | undefined): c is BandCollar => c === 'mandarin' || c === 'mock' || c === 'funnel';
@@ -28,6 +28,18 @@ export const BOW = { width: 4, tie: 55, slant: 4 };
 /** A ruffle round the neckline: a straight strip folded along its length to `width` cm, cut `ratio` times
  * the neckline and gathered into the neckline seam, under the binding, facing or lining. */
 export const RUFFLE = { width: 4, ratio: 2 };
+/** The necklines a cape goes round: those that ring the neck and sit on the shoulders. In testing. */
+export const CAPE_NECKS = ['crew', 'scoop', 'boat', 'square'] as const;
+
+/**
+ * How long a cape is from the neck seam, out over the shoulder to just above the elbow: the shoulder,
+ * then a little over half the arm (the elbow sits about 0.57 of the way down it). Without an arm length,
+ * the elbow is taken at the waist, where it hangs.
+ */
+export function capeDepth(m: { shoulder_length: number; arm_length?: number; nape_to_waist?: number }): number {
+  const arm = m.arm_length ?? 1.35 * (m.nape_to_waist ?? 42);
+  return Math.round((m.shoulder_length + 0.57 * arm - 2) * 10) / 10;
+}
 /** The necklines a ruffle goes round: those that ring the neck. */
 export const RUFFLE_NECKS = ['crew', 'scoop', 'v', 'square', 'boat'] as const;
 /** The collars that finish the neck themselves, with no facing or binding there: the bands and the bow. */
@@ -583,7 +595,75 @@ function draftNotes(notes: [string, string][], pc: Piece): Piece['draft'] {
   return { frame: [], points };
 }
 
-export function collarPieces(kind: Collar, front: Piece, back: Piece, c: CollarIn): Piece[] {
+const onRing = (r: number, R: number, a: number) => p(R * Math.sin(a), -r + R * Math.cos(a));
+/** An arc round the ring's centre (0, -r), at radius R, from angle a0 to a1, as cubic Beziers. */
+function ringArc(path: Path, r: number, R: number, a0: number, a1: number, tag: string) {
+  const n = Math.max(1, Math.ceil(Math.abs(a1 - a0) / (Math.PI / 6)));
+  const step = (a1 - a0) / n;
+  const k = (4 / 3) * Math.tan(step / 4) * R;
+  for (let i = 0; i < n; i++) {
+    const b0 = a0 + step * i;
+    const b1 = b0 + step;
+    const e0 = onRing(r, R, b0);
+    const e1 = onRing(r, R, b1);
+    path.curve(add(e0, mul(p(Math.cos(b0), -Math.sin(b0)), k)), sub(e1, mul(p(Math.cos(b1), -Math.sin(b1)), k)), e1, tag);
+  }
+}
+
+/**
+ * A cape: one full circle round the neck, sewn into the neckline and falling over the shoulders to just
+ * above the elbow. Its neck edge is the neckline as sewn, so the inner radius is the whole neck over 2 pi;
+ * the front and back quarters meet at the shoulder seams. It opens where the bodice does: at the zip
+ * (the backs cut as a pair, the front on the fold), or down the front of a button front.
+ */
+function capePieces(c: CollarIn, depth: number): Piece[] {
+  const buttons = c.closure === 'front_buttons';
+  const r = (c.front + c.back) / Math.PI;
+  const R = r + depth;
+  const hemSa = 1;
+  const piece = (name: string, sewn: number, opens: boolean): Piece => {
+    const a = sewn / r;
+    const outline = new Path(p(0, 0));
+    ringArc(outline, r, r, 0, a, 'cape-neck');
+    outline.line(onRing(r, R, a), 'shoulder');
+    ringArc(outline, r, R, a, 0, 'hem');
+    outline.line(p(0, 0), opens ? 'opening' : 'fold');
+    outline.closed = true;
+    const cut = opens ? 'Cut 2 (1 pair)' : 'Cut 1 on fold';
+    const mid = onRing(r, r + depth * 0.45, a / 2);
+    const turn = (-(a / 2) * 180) / Math.PI;
+    const gx = Math.min(6, onRing(r, r + depth * 0.5, a / 2).x * 0.4);
+    const pc: Piece = {
+      name,
+      kind: 'collar',
+      outline,
+      lines: [],
+      grain: [p(gx, depth * 0.2), p(gx, depth * 0.8)],
+      fold: opens ? undefined : [p(0, 1), p(0, depth - 1)],
+      notches: [[onRing(r, r, a / 2), unit(sub(p(0, -r), onRing(r, r, a / 2)))]],
+      labels: [
+        { at: mid, text: name.toUpperCase(), size: Math.min(1.4, depth / 12), rotate: turn },
+        { at: add(mid, mul(unit(sub(mid, p(0, -r))), 2.4)), text: cut, size: 0.8, rotate: turn },
+      ],
+      cut,
+      fabric: 'Self',
+      seamAllowance: c.sa,
+      allowances: { 'cape-neck': 1, hem: hemSa, opening: hemSa, fold: 0 },
+      // Front and back shoulders are the same length: nothing is eased.
+      meta: { cape: depth, shoulderEase: 0 },
+    };
+    pc.draft = draftNotes([
+      ['1', `The neck circle: radius ${r.toFixed(1)} cm, so its whole round is the neckline as sewn, ${(2 * (c.front + c.back)).toFixed(1)} cm.`],
+      ['2', `Out ${sewn.toFixed(1)} cm round it from the centre ${name.includes('front') ? 'front' : 'back'} to the shoulder seam: the ${name.includes('front') ? 'front' : 'back'} neck as sewn.`],
+      ['3', `The hem ${depth.toFixed(1)} cm out from the neck, over the shoulder to just above the elbow.`],
+    ], pc);
+    return pc;
+  };
+  return [piece('Cape front', c.front, buttons), piece('Cape back', c.back, !buttons)];
+}
+
+export function collarPieces(kind: Collar, front: Piece, back: Piece, c: CollarIn & { capeCm?: number }): Piece[] {
+  if (kind === 'cape') return capePieces(c, c.capeCm ?? 40);
   if (kind === 'peter_pan') return peterPanCollar(front, back, c);
   if (isBandCollar(kind)) return bandCollar(c, kind);
   if (kind === 'shirt') return shirtCollar(c);

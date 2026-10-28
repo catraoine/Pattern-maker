@@ -477,8 +477,9 @@ function skirtViews(d: SkirtDraft, opts: { band: boolean; zipCm?: number; seamFr
       hemY = d.lengthCm;
     } else {
       // Pleats are drawn on the skirt as it hangs; knife and box pleats take the darts' place.
-      const pleated = !!(d.volume?.pleats || d.volume?.inverted) && !!d.block;
-      const h = sewn((pleated ? d.block! : (d.low ?? d.closed ?? d.pieces))[i]);
+      // A balloon hem is drawn over its underskirt, which gives the waist and the hip.
+      const pleated = !!(d.volume?.pleats || d.volume?.inverted || d.volume?.balloon) && !!d.block;
+      const h = sewn((pleated ? d.block! : (d.low ?? d.closed ?? d.ruche?.plain ?? d.pieces))[i]);
       waist = along(h, ['waist', 'dart'])[0] ?? [h.run[0]];
       // A yoke takes the darts: its seam is drawn instead.
       lines = d.volume?.pleats || d.yoke ? [] : h.darts.flatMap((dt) => both(dt).map((pts) => ({ pts, kind: 'dart' as const })));
@@ -525,6 +526,7 @@ function skirtViews(d: SkirtDraft, opts: { band: boolean; zipCm?: number; seamFr
         hemY = v.hemY;
         seamY = v.seamTo ?? hemY;
       }
+      if (d.ruche) lines.push(...rucheFolds(h.run, d.ruche.from + h.run[0].y, hemY));
       // The pocket bag, where it hangs behind the front.
       const bag = d.pieces.find((pc) => pc.kind === 'pocket');
       if (bag && !back) {
@@ -563,6 +565,24 @@ function skirtViews(d: SkirtDraft, opts: { band: boolean; zipCm?: number; seamFr
     }
     return { label, shapes, lines, waistY: cbTop };
   });
+}
+
+/**
+ * Ruched sides: soft folds drawn in from both side seams, from where the ruching starts to just above
+ * the hem, each a shallow curve dipping toward the centre.
+ */
+function rucheFolds(run: P[], from: number, hemY: number): FlatView['lines'] {
+  const out: FlatView['lines'] = [];
+  const n = Math.max(4, Math.round((hemY - from) / 4.5));
+  for (let k = 0; k < n; k++) {
+    const y = from + ((hemY - 2 - from) * (k + 0.5)) / n;
+    const edge = yOn(run.filter((q) => q.x > 0.5), y);
+    if (!edge) continue;
+    const reach = Math.min(edge.x * 0.55, 12);
+    const fold = quad(p(edge.x - 0.3, y - 0.8), p(edge.x - reach * 0.45, y + 2.4), p(edge.x - reach, y + 1.2), 8);
+    out.push({ pts: fold, kind: 'seam' }, { pts: mirror(fold), kind: 'seam' });
+  }
+  return out;
 }
 
 /** The point on a polyline at height y, by its last crossing. */
@@ -620,6 +640,26 @@ function volumeFlat(d: SkirtDraft, i: number, h: Half, hemY: number): { shapes: 
     });
     return { shapes, lines, hemY };
   }
+  if (v.balloon) {
+    // The outer skirt falls from the hip, puffs out below it and turns in under the hem onto the underskirt.
+    // The hip, where the outer skirt starts to puff: on the underskirt's side seam, at its hip line.
+    const hipY = d.block?.[i]?.balance?.[0]?.pts[0].y;
+    const at = hipY !== undefined ? yOn(h.run.filter((q) => q.x > 0.5), h.move(p(0, hipY)).y) : undefined;
+    const side = h.run.filter((q) => q.x > 0.5 && q.y < hemY - 0.5);
+    const hip = at ?? side.reduce((m, q) => (q.x > m.x ? q : m), side[0] ?? p(0, hemY / 3));
+    const foot = h.run.reduce((m, q) => (q.x > 0.5 && q.y > m.y ? q : m), hip);
+    const puff = Math.min(v.balloon.puff, (hemY - hip.y) * 0.25);
+    const wide = p(Math.max(hip.x, foot.x) + puff * 0.9, hip.y + (hemY - hip.y) * 0.72);
+    const tuck = p(foot.x * 0.86, hemY);
+    const curve = [...quad(hip, p(wide.x, hip.y + (wide.y - hip.y) * 0.45), wide, 10), ...quad(wide, p(wide.x + puff * 0.1, hemY), tuck, 8).slice(1)];
+    shapes.push(whole([p(0, hip.y), ...curve, p(0, hemY)]));
+    // The gathers where the outer hem turns under.
+    for (let k = 1; k <= 7; k++) {
+      const x = (tuck.x * k) / 8;
+      add2([p(x, hemY - 0.3), p(x + 0.15, hemY - 2.2)], 'seam');
+    }
+    return { shapes, lines, hemY };
+  }
   const tag = v.flounce ? 'flounce' : 'tier';
   const join = along(h, tag)[0];
   if (!join) return { shapes, lines, hemY };
@@ -644,10 +684,24 @@ function volumeFlat(d: SkirtDraft, i: number, h: Half, hemY: number): { shapes: 
   }
   // Tiers: each a little wider than the one above, gathered into the seam.
   let top = { left: centre.y, right: side };
+  const ruffle = v.kind === 'ruffle';
   for (const b of v.tiers?.bands ?? []) {
-    const right = p(top.right.x + b.depth * 0.22, top.right.y + b.depth);
+    const right = p(top.right.x + b.depth * (ruffle ? 0.5 : 0.22), top.right.y + b.depth);
     const left = top.left + b.depth;
-    shapes.push(whole([p(0, top.left), top.right, right, p(0, left)]));
+    if (ruffle) {
+      // A ruffle stands out wider than a tier, its hem rippling in soft folds.
+      const folds = 4;
+      const per = 6;
+      const hem = Array.from({ length: folds * per + 1 }, (_, k) => {
+        const t = k / (folds * per);
+        return p(right.x * (1 - t), lerp(right, p(0, left), t).y + 0.8 * Math.cos(t * folds * 2 * Math.PI));
+      });
+      shapes.push(whole([p(0, top.left), top.right, ...hem]));
+      for (let f = 0; f < folds; f++) {
+        const at = hem[f * per + per / 2];
+        add2([p((top.right.x * at.x) / right.x, lerp(p(0, top.left), top.right, at.x / right.x).y + 1.5), p(at.x, at.y - 0.4)], 'seam');
+      }
+    } else shapes.push(whole([p(0, top.left), top.right, right, p(0, left)]));
     for (let k = 1; k <= 6; k++) {
       const x = (top.right.x * k) / 7;
       const y = top.left + (top.right.y - top.left) * (k / 7);
@@ -711,7 +765,8 @@ function sleeveSide(h: Half, sl: SleeveDraft, yoke?: RaglanYoke): { shape: P[]; 
   const top = head[head.length - 1];
   const gathered = !!sl.gathers;
   // A cuff is drawn as the band it is, as deep as it is finished; elastic as its casing.
-  const band = sl.cuff ? sl.cuff.depth : gathered ? BAND_CM : 0;
+  const ruffle = sl.cuff?.kind === 'ruffle' ? sl.cuff.depth : 0;
+  const band = sl.cuff && !ruffle ? sl.cuff.depth : gathered ? BAND_CM : 0;
   const L = sl.lengthCm - band;
   const Ho = add(S, add(sub(top, S), mul(a, L - len(sub(top, S)))));
   const lines: FlatView['lines'] = [];
@@ -719,6 +774,19 @@ function sleeveSide(h: Half, sl: SleeveDraft, yoke?: RaglanYoke): { shape: P[]; 
     const Hi = add(Ho, mul(n, (k * sl.hemCm) / 2));
     const shape = [...head, Ho, Hi, U, ...[...hole].reverse().slice(1, -1)];
     const lift = 2;
+    if (ruffle) {
+      // A ruffle below the hem, flaring out a little each side, its edge rippling, gathered at the top.
+      const flare = ruffle * 0.35;
+      const Ro = add(add(Ho, mul(a, ruffle)), mul(n, -flare));
+      const Ri = add(add(Hi, mul(a, ruffle)), mul(n, flare));
+      const waves = 4;
+      const edge = Array.from({ length: waves * 6 + 1 }, (_, j) => add(lerp(Ri, Ro, j / (waves * 6)), mul(a, 0.5 * Math.cos((j / 6) * 2 * Math.PI))));
+      for (let j = 1; j < 6; j++) {
+        const q = lerp(Ho, Hi, j / 6);
+        lines.push({ pts: [add(q, mul(a, 0.3)), add(q, add(mul(a, ruffle * 0.55), mul(n, (j / 6 - 0.5) * flare)))], kind: 'seam' });
+      }
+      return { shape, band: [Ho, Hi, ...edge], lines };
+    }
     lines.push({ pts: [add(Ho, mul(a, -lift)), add(Hi, mul(a, -lift))], kind: 'stitch' });
     // The wrist vent: a short slit up the underseam from the hem.
     if (sl.vent) lines.push({ pts: [add(Hi, mul(n, -0.4)), add(add(Hi, mul(n, -0.4)), mul(a, -sl.vent.lengthCm))], kind: 'seam' });
@@ -791,7 +859,8 @@ function offsetRun(run: P[], d: (i: number) => number, from: P): P[] {
 /** The collar as seen on the flat, half of it from the centre: a band standing up from the neck, a
  * Peter Pan lying on the body, or a shirt collar's points over its stand. */
 function collarHalf(neck: P[], kind: BodiceDraft['collar'], front: boolean): { a: P[]; b: P[] }[] {
-  if (kind === 'none' || neck.length < 2) return [];
+  // A cape is drawn on its own, over the sleeves (see capeHalf).
+  if (kind === 'none' || kind === 'cape' || neck.length < 2) return [];
   const up = (h: number) => neck.map((q) => p(q.x, q.y - h));
   // A band stands up from the neck: a mock neck leans in a little to hug it, a funnel stands out from it.
   if (isBandCollar(kind)) {
@@ -829,6 +898,38 @@ function collarHalf(neck: P[], kind: BodiceDraft['collar'], front: boolean): { a
   const fall = offsetRun(neck, () => (front ? 3.2 : 4.5), p(0, -100));
   if (front) fall[0] = add(neck[0], p(2.2, 6));
   return [{ a: neck, b: stand }, { a: stand, b: fall }];
+}
+
+/**
+ * Half a cape as it falls on the body: from the centre of the neck along the neck seam and out along the
+ * shoulder seam (so it sits exactly where the shoulders are), past the shoulder point and down over the
+ * arm, flaring a little, then its hem curving back to the centre, a cape's length below the neck.
+ */
+function capeHalf(neck: P[], shoulder: P[], depth: number): P[] {
+  const hps = neck[neck.length - 1];
+  const along = shoulder[0].x < shoulder[shoulder.length - 1].x ? shoulder : [...shoulder].reverse();
+  const sp = along[along.length - 1];
+  const reach = len(sub(sp, hps));
+  // Over the shoulder point the cape bends down the arm: what is left of its length falls from there.
+  const fall = Math.max(4, depth - reach);
+  const out = sp.x + 0.4 * fall;
+  const side = quad(add(sp, p(0.6, -0.4)), p(sp.x + 0.12 * fall, sp.y + 0.35 * fall), p(out, sp.y + fall * 0.92), 10);
+  const centreY = neck[0].y + depth * 0.94;
+  const hem = quad(p(out, sp.y + fall * 0.92), p(out * 0.62, centreY + 2.5), p(0, centreY), 12);
+  return [...neck, ...along.slice(1), ...side.slice(1), ...hem.slice(1)];
+}
+
+/** The cape's soft folds, falling from the shoulder to the hem. */
+function capeFolds(neck: P[], shoulder: P[], depth: number): P[][] {
+  const hps = neck[neck.length - 1];
+  const sp = shoulder[0].x > shoulder[shoulder.length - 1].x ? shoulder[0] : shoulder[shoulder.length - 1];
+  const fall = Math.max(4, depth - len(sub(sp, hps)));
+  const out = sp.x + 0.4 * fall;
+  return [0.35, 0.62, 0.85].map((t) => {
+    const top = lerp(hps, sp, t);
+    const foot = p(out * (0.25 + 0.6 * t), top.y + fall * (0.62 + 0.25 * t));
+    return quad(add(top, p(0, 2.5)), p((top.x + foot.x) / 2 + 0.6, (top.y + foot.y) / 2), foot, 6);
+  });
 }
 
 /** Both halves of a collar part (each run starting at the centre line), as one outline when it is
@@ -1097,6 +1198,15 @@ function bodiceViews(d: BodiceDraft, edges: BodiceEdges, sleeve: SleeveDraft | u
     // The collar goes on last, over the sleeves' heads.
     // In one piece across the centre back on a button front; meeting at the zip or the centre front otherwise.
     for (const c of collar) shapes.push(...collarShapes(c, i === 1 && d.closure === 'front_buttons'));
+    // A cape over it all, from the neck seam out along the shoulder seam and down over the arm.
+    const capeCm = d.collar === 'cape' ? (d.pieces.find((pc) => pc.meta.cape)?.meta.cape as number | undefined) : undefined;
+    const shoulderRun = along(h, 'shoulder')[0];
+    if (capeCm && neckRun && shoulderRun) {
+      const half = capeHalf(neckRun, shoulderRun, capeCm);
+      const opens = i === (d.closure === 'front_buttons' ? 0 : 1);
+      shapes.push(...(opens ? [half, mirror(half)] : [[...mirror(half).reverse(), ...half.slice(1)]]));
+      for (const fold of capeFolds(neckRun, shoulderRun, capeCm)) lines.push({ pts: fold, kind: 'seam' }, { pts: mirror(fold), kind: 'seam' });
+    }
     const view = { label: i === 0 ? ('FRONT' as const) : ('BACK' as const), shapes, lines, sleeves, foot: h.run[h.run.length - 1].y, ...(sleeve?.cut === 'kimono' ? { armless: armlessOf(h) } : {}) };
     return withPeplumView(d, h, i === 0 && d.drape?.kind === 'cowl' ? cowlFront(d, h, view) : view);
   });
@@ -1122,7 +1232,16 @@ export function dressFlat(d: DressDraft, edges: BodiceEdges = 'binding', opts: {
   // With no waist seam the bodice runs on to the hem, its fish-eye darts and zip as drawn on it; a sash
   // goes round the natural waist.
   if (d.noSeam) {
-    const views = bodiceViews(d.bodice, edges, opts.sleeve, true);
+    const plainViews = bodiceViews(d.bodice, edges, opts.sleeve, true);
+    // A ruched sheath: the folds run in from the side seams below the hip.
+    const r = d.skirt.ruche;
+    const views = r
+      ? plainViews.map((v, i) => {
+          const waistY = (i === 0 ? d.bodice.front : d.bodice.back).waistCentre.y;
+          const hemY = Math.max(...v.shapes[0].map((q) => q.y));
+          return { ...v, lines: [...v.lines, ...rucheFolds(v.shapes[0], waistY + r.from, hemY)] };
+        })
+      : plainViews;
     return arrange(belt ? views.map((v, i) => beltOn(v, (i === 0 ? d.bodice.front : d.bodice.back).waistCentre.y, belt)) : views);
   }
   const top = bodiceViews(d.bodice, edges, opts.sleeve, false);
