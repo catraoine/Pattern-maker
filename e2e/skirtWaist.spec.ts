@@ -9,7 +9,7 @@ test('skirt waist: faced, high and a side zip', async ({ page }, info) => {
   await chooseChip(page, 'Silhouette', 'A-line');
   await chooseChip(page, 'Waist', 'Faced, no band');
   await expect(main.getByText(/A-line skirt with a faced waist/i).first()).toBeAttached();
-  // The piece list sits beside the drawing on a computer, folded under Numbers and pieces.
+  // The piece list sits beside the drawing on a computer, folded under Pieces and fabric.
   if (info.project.name === 'desktop') {
     await openReview(page);
     await expect(main.getByText(/Waist facings: cut 1 front and 1 back/).first()).toBeVisible();

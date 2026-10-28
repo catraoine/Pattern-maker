@@ -29,7 +29,7 @@ export function PrintPicker({ fabric, onFabric }: { fabric: MyFabric; onFabric: 
     onFabric({ ...fabric, checks: { ...fabric.checks, stripes: look === 'stripes' || undefined, gingham: look === 'gingham' || undefined } });
   return (
     <div className="printpick">
-      <p className="printpick-q">What's the print? <TestingTag /></p>
+      <p className="printpick-q">What's the print? <TestingTag tool="prints" /></p>
       <div className="printtiles" role="radiogroup" aria-label="What's printed on your fabric">
         {PRINT_IDS.map((id) => (
           <button

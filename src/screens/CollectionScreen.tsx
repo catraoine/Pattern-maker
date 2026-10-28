@@ -162,7 +162,7 @@ export function CollectionScreen({ values, onMake, onBack }: Props) {
   return (
     <div className="collection">
       <header className="collection-head">
-        <p className="eyebrow">Maison Tracé <TestingTag /></p>
+        <p className="eyebrow">Maison Tracé <TestingTag tool="collection" /></p>
         <h1 id="ctitle">The collection</h1>
         <p className="muted">
           {shelf === 'house'
