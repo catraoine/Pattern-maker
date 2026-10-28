@@ -143,7 +143,7 @@ export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume, wait
     <div ref={tape} className={`tape-band unrolling ${leaving}`} aria-hidden="true">
       <div className="tape-marks">
         {(leaving === 'computer' ? WIDE_MARKS : MARKS).map((n) => (
-          <span key={n}>{n}</span>
+          <span key={n} />
         ))}
       </div>
     </div>
