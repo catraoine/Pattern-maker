@@ -61,6 +61,26 @@ describe('cuffs', () => {
     expect(cuffAllowed('shirt', 'three_quarter', 'straight')).toBe(false);
   });
 
+  it('gathers a ruffle onto the plain hem of a straight sleeve, any length, keeping where it ends', () => {
+    const b = draftBodice(body);
+    for (const length of ['short', 'elbow', 'three_quarter', 'long'] as const) {
+      const plain = draftSleeve(b, arms, { ...style, length, shape: 'straight', fit: 'regular' });
+      const sl = draftSleeve(b, arms, { ...style, length, shape: 'straight', fit: 'regular', cuff: 'ruffle' });
+      const c = sl.cuff!;
+      expect(c.kind).toBe('ruffle');
+      expect(sl.lengthCm).toBeCloseTo(plain.lengthCm - c.depth, 0);
+      expect(sl.gathers).toBeUndefined();
+      const strip = sl.pieces.find((pc) => pc.name === 'Sleeve ruffle')!;
+      expect(strip.meta.lengthCm).toBeCloseTo(c.round * CUFF.ruffle.ratio, 0);
+      expect(checkPattern([...b.pieces, ...sl.pieces]).filter((x) => !x.ok)).toEqual([]);
+      const g = bodiceGuide(b, { length: 'waist' }, 1.5, 1, { sleeve: sl });
+      expect(g.steps.map((s) => s.title)).toContain('Attach the sleeve ruffles');
+      expect(ascii(g)).toEqual([]);
+      expect(bodiceFlat(b, 'binding', sl).views[0].sleeves?.length).toBe(4);
+    }
+    expect(cuffAllowed('ruffle', 'short', 'puff')).toBe(false);
+  });
+
   it('is sewn, drawn, measured and named', () => {
     const b = draftBodice(body);
     for (const cuff of ['shirt', 'elastic', 'tie'] as const) {
@@ -81,6 +101,7 @@ describe('cuffs', () => {
       expect(sleeveSpec(arms, sl).some((r) => /cuff/i.test(r.label))).toBe(true);
     }
     expect(describeBodice({ ...DEFAULT_BODICE, sleeve: 'long', sleeveShape: 'bishop', sleeveCuff: 'shirt' })).toMatch(/long bishop sleeves with shirt cuffs/);
+    expect(describeBodice({ ...DEFAULT_BODICE, sleeve: 'short', sleeveShape: 'straight', sleeveCuff: 'ruffle' })).toMatch(/short sleeves with ruffled hems/);
     // A cuff a short sleeve can't take isn't named.
     expect(describeBodice({ ...DEFAULT_BODICE, sleeve: 'short', sleeveShape: 'straight', sleeveCuff: 'tie' })).not.toMatch(/cuff/);
   });

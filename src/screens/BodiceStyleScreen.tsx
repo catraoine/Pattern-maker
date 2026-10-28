@@ -1,4 +1,6 @@
+import { TestingTag } from '../ui/TestingTag';
 import { matchKind } from '../engine/prints';
+import { optionInTesting } from '../launch';
 import { BackNeck, backBlocked } from '../engine/backNeck';
 import { useMemo, useState } from 'react';
 import { layout } from '../engine/export';
@@ -319,6 +321,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
                 >
                   <ChoicePic set="bodice" group={g.id} id={id} />
                   {label}
+                  {optionInTesting(g.id, id) && <TestingTag tool="new_details" />}
                 </button>
               ))}
             </div>

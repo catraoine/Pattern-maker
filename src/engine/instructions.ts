@@ -15,6 +15,7 @@ import type { Piece } from './piece';
 import type { DiagramId } from './diagrams';
 import { placeWords, styleBodiceSteps } from './styleSteps';
 import { VolumeStyle, needsNoSlit, volumeSteps } from './skirtVolume';
+import { rucheNotion, rucheSteps } from './ruche';
 import { drapeBodiceSteps, drapeDressSteps } from './drapeSteps';
 import { mirrorWords } from './drape';
 import { bonedDressSteps, strapCut, topSteps } from './corsetGuide';
@@ -250,10 +251,11 @@ export function sewingGuide(draft: SkirtDraft, style: { silhouette: Silhouette; 
       `${fabricM.toFixed(1)} m of woven fabric, ${finish.width ?? 140} cm wide`,
       ...(lined ? [`${finish.liningM!.toFixed(1)} m of lining, ${finish.width ?? 140} cm wide`] : []),
       ...(elastic ? elasticNotions(elastic) : [`${draft.zipCm} cm invisible zip`, 'Hook and eye', '0.3 m lightweight fusible interfacing']),
+      ...(draft.ruche ? [rucheNotion(draft.ruche)] : []),
       'Matching thread',
     ],
     // Pleats, godets, a flounce or tiers, sewn in at the right moment; a gathered skirt's gathers.
-    steps: gatherSteps(volumeSteps(steps, draft, { seam, waist, hem: hemDepth }), draft, elastic ? 'casing' : 'band'),
+    steps: rucheSteps(gatherSteps(volumeSteps(steps, draft, { seam, waist, hem: hemDepth }), draft, elastic ? 'casing' : 'band'), draft.ruche),
   }, draft, { seam, waist }), draft), draft, { seam, waist, backSeam });
 }
 
@@ -713,8 +715,8 @@ function dressSteps(draft: DressDraft, style: { silhouette: Silhouette; length: 
 
   return wrapDressSteps(shirtDress(gatheredJoin(mirroredGuide(draft.bodice, drapeDressSteps(
     {
-      notions: top.notions.map((n) => (/invisible zip/.test(n) ? `${draft.zipCm} cm invisible zip` : n)),
-      steps: volumeSteps(steps, draft.skirt, { seam, waist, hem: draft.skirt.pieces[0].allowances.hem ?? 4 }, 'dress'),
+      notions: [...top.notions.map((n) => (/invisible zip/.test(n) ? `${draft.zipCm} cm invisible zip` : n)), ...(draft.skirt.ruche ? [rucheNotion(draft.skirt.ruche)] : [])],
+      steps: rucheSteps(volumeSteps(steps, draft.skirt, { seam, waist, hem: draft.skirt.pieces[0].allowances.hem ?? 4 }, 'dress'), draft.skirt.ruche, 'dress'),
     },
     top,
     draft,
@@ -743,7 +745,8 @@ function noSeamGuide(draft: DressDraft, fabricM: number, bindingM: number, finis
         }
       : { ...st, text: dress(st.title === 'Make the lining' ? lining(st.text) : st.text) + (st.title === 'Put in the zip' ? OVER_HEAD(draft) : '') },
   );
-  return { ...g, steps };
+  const r = draft.skirt.ruche;
+  return { ...g, notions: r ? [...g.notions, rucheNotion(r)] : g.notions, steps: rucheSteps(steps, r, 'dress') };
 }
 
 /**
@@ -836,7 +839,7 @@ function gatheredJoin(g: SewingGuide, draft: DressDraft): SewingGuide {
 
 /** Cutting a dress's collar. */
 const collarCut = (d: BodiceDraft) =>
-  d.collar === 'peter_pan' ? ' Cut four collar pieces (two pairs), and interface two of them.' : isBandCollar(d.collar) ? ' Cut the collar twice on the fold, and interface one.' : d.collar === 'bow' ? ' Cut the two bow strips as a pair, single layer on the true bias.' : d.collar === 'ruffle' ? ' Cut the neck ruffle with its fold end on the fold.' : '';
+  d.collar === 'peter_pan' ? ' Cut four collar pieces (two pairs), and interface two of them.' : isBandCollar(d.collar) ? ' Cut the collar twice on the fold, and interface one.' : d.collar === 'bow' ? ' Cut the two bow strips as a pair, single layer on the true bias.' : d.collar === 'ruffle' ? ' Cut the neck ruffle with its fold end on the fold.' : d.collar === 'cape' ? ' Cut the cape front and backs, one of them on the fold.' : '';
 
 /** The steps for set-in sleeves, after the bodice is closed and its neck finished. */
 function sleeveSteps(sl: SleeveDraft, seam: string, curve: string, lined: boolean): SewStep[] {

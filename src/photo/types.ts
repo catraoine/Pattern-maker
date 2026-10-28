@@ -20,7 +20,7 @@ export interface PhotoPiece {
 
 /** What a skirt (or a dress's skirt) has besides its shape, all things the app drafts. */
 export interface SkirtExtras {
-  volume: 'none' | 'knife' | 'box' | 'inverted' | 'godets' | 'hem_flounce' | 'tiers';
+  volume: 'none' | 'knife' | 'box' | 'inverted' | 'godets' | 'hem_flounce' | 'tiers' | 'ruffle' | 'balloon' | 'ruched';
   asymHem: 'none' | 'high_low' | 'diagonal';
   pockets: boolean;
   elasticWaist: boolean;
@@ -37,7 +37,7 @@ export interface TopReading {
   length: 'cropped' | 'waist' | 'high_hip' | 'hip' | 'tunic';
   seams: 'darts' | 'princess' | 'none';
   opening: 'back' | 'front_buttons';
-  collar: 'none' | 'peter_pan' | 'mandarin' | 'shirt';
+  collar: 'none' | 'peter_pan' | 'mandarin' | 'shirt' | 'cape';
   peplum: 'none' | 'flared' | 'gathered';
   boned: boolean;
   /** Knitted jersey (a T-shirt) rather than a woven fabric. */

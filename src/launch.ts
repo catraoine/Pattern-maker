@@ -35,7 +35,8 @@ export type TestingTool =
   | 'check_file'
   | 'client_book'
   | 'collection'
-  | 'projector';
+  | 'projector'
+  | 'new_details';
 
 export const TESTING_TOOLS: Record<TestingTool, { name: string; where: string; proof: string }> = {
   draw_lines: { name: 'Draw your lines', where: 'Style, Draw on your form', proof: 'fit testers draw a hem, a neckline and a side and the pattern follows' },
@@ -51,6 +52,8 @@ export const TESTING_TOOLS: Record<TestingTool, { name: string; where: string; p
   collection: { name: 'The collection and the Archive', where: 'the Collection heading', proof: 'drop 01 published' },
   // Cat broke the freeze for it (2026-10-28), modelled on the free Pattern Projector app.
   projector: { name: 'Projector mode', where: 'Print, Projector, and inside projector mode', proof: 'two sewists cut a garment with it on their own projectors' },
+  // Cat broke the freeze for these too (2026-10-28), so a photo can name them.
+  new_details: { name: 'Ruffles, ruching, cape and balloon hem', where: 'the chips for each on the Style screens', proof: 'three testers sew a ruffled hem, ruched sides and a cape and each hangs as drawn' },
 };
 
 /** What takes a garment's tag off: moving it to LAUNCH_GARMENTS once sewists score it at the fit gate. */
@@ -62,3 +65,13 @@ export function stillInTesting(name: (g: Garment) => string, garments: readonly 
   const ts = (Object.keys(TESTING_TOOLS) as TestingTool[]).map((k) => ({ name: TESTING_TOOLS[k].name, proof: TESTING_TOOLS[k].proof }));
   return [...gs, ...ts];
 }
+
+/** The style options under the new_details tool, by option group: their chips carry its In testing tag. */
+const OPTIONS_IN_TESTING: Record<string, readonly string[]> = {
+  volume: ['ruffle', 'balloon', 'ruched'],
+  ruched: ['ruched'],
+  collar: ['cape'],
+  sleeveCuff: ['ruffle'],
+};
+
+export const optionInTesting = (group: string, id: string) => !!OPTIONS_IN_TESTING[group]?.includes(id);

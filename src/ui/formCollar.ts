@@ -24,6 +24,7 @@ const COLLAR_WORDS: Record<Collar, string> = {
   shirt: 'A shirt collar on a stand, its points at the front.',
   bow: 'A pussy bow, tied at the centre front.',
   ruffle: 'A ruffle sewn into the neckline.',
+  cape: 'A cape sewn into the neckline, falling over the shoulders to the elbow.',
 };
 const COLLAR_NEEDS: Partial<Record<Collar, string>> = {
   shirt: 'A shirt collar goes on a crew neckline that buttons down the front.',

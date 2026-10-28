@@ -14,7 +14,7 @@ import { DraftError, Side, cm } from './skirt';
 import type { DartPlace, PrincessLine } from './manipulate';
 import { moveFrontDart, princessPieces } from './shaping';
 import { BackNeck, KEYHOLE, backDepthFor, backNeckOf } from './backNeck';
-import { Buttons, Closure, Collar, EXTENSION_CM, RUFFLE_NECKS, backNeckFacing, backOnFold, buttonPlaces, collarPieces, frontFacing, isBandCollar, openFront } from './collar';
+import { Buttons, CAPE_NECKS, Closure, Collar, EXTENSION_CM, RUFFLE_NECKS, capeDepth, backNeckFacing, backOnFold, buttonPlaces, collarPieces, frontFacing, isBandCollar, openFront } from './collar';
 import { DrapeInfo, Peplum, PeplumInfo, drapeBodice, drapeStyle } from './drape';
 import { Shirring, isShirred, shirredBack } from './shirred';
 import { BONED_EASE, Structure, TopDetails, bonedPanels, cutTop, isBoned, isTop, topStyle } from './corset';
@@ -462,7 +462,7 @@ export function draftBodice(m: BodiceMeasurements, style: Partial<BodiceStyle> =
     const cut = cutTop(draftBlock(m, t), t, s.fitting?.lowShoulder);
     return drapeBodice(isBoned(t) ? bonedPanels(cut, t) : isShirred(t) ? shirredBack(shape(cut, t)) : shape(cut, t), t, m, redraft);
   }
-  return drapeBodice(unevenFront(finish(cutSleeves(styleSeams(shape(draftBlock(m, s), s), s), s, m as BodiceMeasurements & SleeveMeasurements), s), s), s, m, redraft);
+  return drapeBodice(unevenFront(finish(cutSleeves(styleSeams(shape(draftBlock(m, s), s), s), s, m as BodiceMeasurements & SleeveMeasurements), s, m), s), s, m, redraft);
 }
 
 /**
@@ -512,13 +512,14 @@ function cutSleeves(d: BodiceDraft, s: BodiceStyle, m: Partial<SleeveMeasurement
 }
 
 /** A button front (the back then on the fold) and a collar, both made on the bodice as sewn. */
-function finish(d: BodiceDraft, s: BodiceStyle): BodiceDraft {
+function finish(d: BodiceDraft, s: BodiceStyle, m: BodiceMeasurements & { arm_length?: number }): BodiceDraft {
   const closure = s.closure ?? 'back_zip';
   // A pussy bow ties at the centre front, so it goes on a crew or V neck with the zip at the back.
   const bow = s.collar === 'bow' && closure === 'back_zip' && (s.neckline === 'crew' || s.neckline === 'v');
   // A ruffle goes into the seam of any neckline that rings the neck.
   const ruffle = s.collar === 'ruffle' && (RUFFLE_NECKS as readonly string[]).includes(s.neckline);
-  const collar = s.neck ? 'none' : bow ? 'bow' : ruffle ? 'ruffle' : s.collar === 'ruffle' ? 'none' : s.collar === 'bow' || (s.collar === 'shirt' && closure !== 'front_buttons') ? 'none' : s.collar && s.collar !== 'none' && s.neckline === 'crew' ? s.collar : s.collar === 'peter_pan' && s.neckline === 'scoop' ? 'peter_pan' : 'none';
+  const cape = s.collar === 'cape' && (CAPE_NECKS as readonly string[]).includes(s.neckline);
+  const collar = s.neck ? 'none' : bow ? 'bow' : ruffle ? 'ruffle' : cape ? 'cape' : s.collar === 'ruffle' || s.collar === 'cape' ? 'none' : s.collar === 'bow' || (s.collar === 'shirt' && closure !== 'front_buttons') ? 'none' : s.collar && s.collar !== 'none' && s.neckline === 'crew' ? s.collar : s.collar === 'peter_pan' && s.neckline === 'scoop' ? 'peter_pan' : 'none';
   const [bf, bb] = blockOf(d);
   let pieces = d.pieces;
   let buttons: Buttons | undefined;
@@ -544,8 +545,8 @@ function finish(d: BodiceDraft, s: BodiceStyle): BodiceDraft {
     return { ...d, pieces, block: [bf, bb], closure, collar: 'none', zipCm: 0, wrap, neck: Math.round((2 * taggedLength(bb.outline, 'neck') + 2 * taggedLength(w.piece.outline, 'neck')) * 10) / 10 };
   }
   if (collar !== 'none') {
-    const ext = closure === 'front_buttons' && collar !== 'peter_pan' && collar !== 'ruffle' ? EXTENSION_CM : 0;
-    pieces = [...pieces, ...collarPieces(collar, bf, bb, { back: taggedLength(bb.outline, 'neck'), front: taggedLength(bf.outline, 'neck'), ext, closure, sa: s.seamAllowance })];
+    const ext = closure === 'front_buttons' && collar !== 'peter_pan' && collar !== 'ruffle' && collar !== 'cape' ? EXTENSION_CM : 0;
+    pieces = [...pieces, ...collarPieces(collar, bf, bb, { back: taggedLength(bb.outline, 'neck'), front: taggedLength(bf.outline, 'neck'), ext, closure, sa: s.seamAllowance, capeCm: capeDepth(m) })];
   }
   // Menswear buttons the other way: the left front laps over the right.
   return { ...d, pieces, block, closure, collar, buttons, ...(buttons && s.fitting?.flatFront ? { lapsLeft: true } : {}) };

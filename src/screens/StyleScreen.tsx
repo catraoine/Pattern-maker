@@ -1,3 +1,4 @@
+import { TestingTag } from '../ui/TestingTag';
 import { matchKind } from '../engine/prints';
 import { useMemo, useState } from 'react';
 import { BELTS, beltAllowed, beltPieces, skirtBelt } from '../engine/belt';
@@ -27,7 +28,8 @@ import { skirtFlat } from '../engine/flat';
 import { shapeLine } from '../photo/shape';
 import { MyFabric, fabricEase, skirtFabrics } from '../engine/fabrics';
 import { FabricCard, FabricSummary } from '../ui/FabricCard';
-import { GODET_OPTIONS, VOLUME_OPTIONS, setVolume, volumeAllowed, volumeOf } from '../engine/skirtVolume';
+import { DETAIL_OPTIONS, GODET_OPTIONS, setSkirtDetail, setVolume, skirtDetailAllowed, skirtDetailOf, volumeAllowed, volumeOf } from '../engine/skirtVolume';
+import { optionInTesting } from '../launch';
 
 import { EaseMapView } from '../ui/EaseMapView';
 import { FitSwitch, GarmentViews, PreviewSwitch } from '../ui/PreviewSwitch';
@@ -305,20 +307,21 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
         </Group>
         <Group label="Details">
           <div className="chips">
-            {VOLUME_OPTIONS.map(([id, label]) => (
+            {DETAIL_OPTIONS.map(([id, label]) => (
               <button
                 key={id}
                 type="button"
-                className={volumeOf(choices) === id ? 'chip on' : 'chip'}
-                aria-pressed={volumeOf(choices) === id}
-                disabled={!volumeAllowed(choices, id)}
-                onClick={() => change(keepWaist(setVolume(choices, id)))}
+                className={skirtDetailOf(choices) === id ? 'chip on' : 'chip'}
+                aria-pressed={skirtDetailOf(choices) === id}
+                disabled={!skirtDetailAllowed(choices, id)}
+                onClick={() => change(keepWaist(setSkirtDetail(choices, id)))}
               >
                 {label}
+                {optionInTesting('volume', id) && <TestingTag tool="new_details" />}
               </button>
             ))}
           </div>
-          <Explain set="skirt" group="volume" options={VOLUME_OPTIONS} pick={volumeOf(choices)} />
+          <Explain set="skirt" group="volume" options={DETAIL_OPTIONS} pick={skirtDetailOf(choices)} />
           {volumeOf(choices) === 'godets' && (
             <div className="chips">
               {GODET_OPTIONS.map(([n, label]) => (

@@ -180,8 +180,8 @@ export interface WornSleeve {
   hemCm: number;
   /** Gathered sleeves: how much is gathered into the armhole (a puff) and into the band or cuff. */
   gathers?: { crown?: number; hem: number };
-  /** The cuff, when it has one. */
-  cuff?: { depth: number };
+  /** The cuff, when it has one: a ruffle hangs below the hem rather than gathering it in. */
+  cuff?: { depth: number; kind?: string };
 }
 
 /** How the sleeve hangs, read from the draft: where its band starts, and how its width runs. */
@@ -263,10 +263,23 @@ function sleeveShape(arm: FormArm, sleeve: WornSleeve, head: P = arm.tip, cloth?
   // The hem falls a little at its middle, seen a touch from above, like every hem on the form: not a flat cut.
   const o = outer[outer.length - 1];
   const n = inner[0];
-  const hem = Array.from({ length: 9 }, (_, i) => {
-    const u = (i + 1) / 10;
-    return { x: o.x + (n.x - o.x) * u, y: end + SLEEVE_HEM_FALL * Math.abs(o.x - n.x) * Math.sin(u * Math.PI) };
-  });
+  const ruffle = sleeve.cuff?.kind === 'ruffle' ? sleeve.cuff.depth : 0;
+  const hem = ruffle
+    ? // A ruffle below the hem: flaring out a little each side, its edge rippling.
+      [
+        { x: o.x + ruffle * 0.35, y: end + ruffle },
+        ...Array.from({ length: 13 }, (_, i) => {
+          const u = (i + 1) / 14;
+          const x0 = o.x + ruffle * 0.35;
+          const x1 = n.x - ruffle * 0.35;
+          return { x: x0 + (x1 - x0) * u, y: end + ruffle + 0.5 * Math.cos(u * 8 * Math.PI) + SLEEVE_HEM_FALL * Math.abs(x0 - x1) * Math.sin(u * Math.PI) };
+        }),
+        { x: n.x - ruffle * 0.35, y: end + ruffle },
+      ]
+    : Array.from({ length: 9 }, (_, i) => {
+        const u = (i + 1) / 10;
+        return { x: o.x + (n.x - o.x) * u, y: end + SLEEVE_HEM_FALL * Math.abs(o.x - n.x) * Math.sin(u * Math.PI) };
+      });
   return [...outer, ...hem, ...inner, { x: arm.under.x, y: arm.under.y }, ...back];
 }
 
@@ -599,7 +612,9 @@ export function hemCorner(piece: P[]): P | undefined {
 
 /** The garment's shoulder point on its right: the furthest-out point of its cloth above the underarm. */
 function shoulderPoint(cloth: P[][], arm: FormArm): P | undefined {
-  const top = cloth.flat().filter((q) => q.x > 0 && q.y <= arm.under.y - 2);
+  // Read off the garment's body, the first shape: a cape over the shoulders flares out wider than them.
+  const own = cloth[0]?.filter((q) => q.x > 0 && q.y <= arm.under.y - 2) ?? [];
+  const top = own.length ? own : cloth.flat().filter((q) => q.x > 0 && q.y <= arm.under.y - 2);
   if (!top.length) return undefined;
   // The highest of the outermost points: the shoulder corner, not a point of the armhole just under it.
   const wide = Math.max(...top.map((q) => q.x));

@@ -3,6 +3,7 @@
 // Woven fabrics only: every draft is for woven cloth, so stretch fabrics and knits are ruled out. The T-shirt is the
 // one knit garment: its advice is in knits.ts, hooked in below.
 // Keep to plain ASCII punctuation: these words go into the PDF and the tech pack.
+import { rucheAllowed } from './ruche';
 import type { Fit, Length, Silhouette, SkirtFitting } from './skirt';
 import type { AsymHem } from './asymHem';
 import type { BodiceDarts, BodiceFit, BodiceFitting, BodiceLength, Neckline } from './bodice';
@@ -212,11 +213,23 @@ const SILHOUETTE_WORDS: Record<Silhouette, string> = {
 
 const LENGTH_WORDS: Record<Length, string> = { mini: 'mini', above_knee: 'above-knee', knee: 'knee-length', midi: 'midi', maxi: 'maxi' };
 
+/** Ruched sides want a soft, fluid cloth that falls into small folds. */
+const RUCHED = {
+  picks: [
+    pick('Viscose or rayon crepe', ['light', 'medium'], 'fluid', 'Gathers into soft, even folds.'),
+    pick('Silk or polyester crepe de chine', ['light'], 'fluid', 'Fine folds that catch the light.'),
+    pick('Matte satin or charmeuse', ['light'], 'fluid', 'A dressy ruche with a soft sheen.'),
+  ],
+  avoid: 'Crisp or heavy fabrics like denim, twill, taffeta or wool suiting. They bunch into stiff ridges instead of folds. Stretch fabrics need a pattern made for them.',
+  note: 'The ruched part is cut half as long again, so allow about a third more fabric than for a plain skirt.',
+};
+
 const SKIRT_LINING = pick('Lining: Bemberg (cupro) or acetate', ['light'], 'fluid', 'Slides over tights and breathes.');
 const BODICE_LINING = pick('Lining: cotton lawn or Bemberg (cupro)', ['light'], 'soft', 'Breathes and slides on easily.');
 
 /** Fabrics for a skirt style. */
-export function skirtFabrics(style: { fit?: Fit; silhouette: Silhouette; length: Length; asymHem?: AsymHem } & Partial<VolumeStyle>): FabricAdvice {
+export function skirtFabrics(style: { fit?: Fit; silhouette: Silhouette; length: Length; asymHem?: AsymHem; ruched?: boolean } & Partial<VolumeStyle>): FabricAdvice {
+  if (style.ruched && rucheAllowed(style)) return { ...RUCHED, style: `a ${LENGTH_WORDS[style.length]} ${SILHOUETTE_WORDS[style.silhouette]} with ruched sides`.replace('a above', 'an above'), lining: SKIRT_LINING };
   const base = SKIRT[style.silhouette];
   const full = style.silhouette === 'half_circle' || style.silhouette === 'circle';
   const note =
@@ -534,6 +547,7 @@ function styleWarnings(style: FabricStyle, { weight, drape }: MyFabric): string[
     else if (weight === 'heavy' && (s === 'half_circle' || s === 'circle')) out.push('Heavy fabric drags on the bias of a circle. Hang the skirt for two days before you hem it.');
     else if (drape === 'crisp' && s === 'trumpet') out.push('A crisp fabric makes the trumpet flare stand out. A soft or fluid one flutes better.');
     out.push(...volumeWarnings(style, { weight, drape }));
+    if ((style as { ruched?: boolean }).ruched && (drape === 'crisp' || weight === 'heavy')) out.push('Ruched sides need a soft, fluid fabric: a crisp or heavy one bunches into stiff ridges. Choose a crepe or a light satin.');
     if (s === 'slip' && drape === 'crisp') out.push('A crisp fabric will not mould to the body on the bias: it twists at the seams and stands away. Choose a fluid one, like silk satin, crepe de chine or viscose crepe.');
     if (s === 'slip' && weight === 'heavy') out.push('A heavy fabric drops and grows on the bias under its own weight. Choose a light one, and hang the skirt for a day before you level the hem.');
   }

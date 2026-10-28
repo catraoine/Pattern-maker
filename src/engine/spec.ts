@@ -33,6 +33,7 @@ export function skirtSpec(m: SkirtMeasurements, d: SkirtDraft): SpecRow[] {
     ...(d.asym ? [{ label: `Hem ${d.asym.kind === 'diagonal' ? 'left to right' : 'front to back'}, shortest to longest`, finished: `${r1(d.lengthCm + d.asym.shift - d.asym.amp)} to ${r1(d.lengthCm + d.asym.shift + d.asym.amp)}` }] : []),
     // Pleats, godets, a flounce or tiers: how they are made.
     ...volumeSpec(d),
+    ...(d.ruche ? [{ label: 'Ruched sides, below the waist', finished: `${d.ruche.from} to the hem` }, { label: 'Side seam cut longer by / elastic each side', finished: `${d.ruche.extra} / ${d.ruche.elastic}` }] : []),
     ...(d.pocket ? [row('In-seam pocket opening', undefined, d.pocket[1] - d.pocket[0])] : []),
     ...(d.slit ? [{ label: `Slit, ${d.slit.at === 'side' ? 'left side' : `centre ${d.slit.at}`}, above the hem`, finished: `${d.slit.cm}` }] : []),
     ...(d.yoke ? [row('Yoke, centre front, waist to seam', undefined, d.yoke.front[0].y - (d.closed?.[0].outline.start.y ?? 0)), row('Yoke, centre back, waist to seam', undefined, d.yoke.back[0].y - (d.closed?.[1].outline.start.y ?? 0))] : []),
@@ -118,8 +119,8 @@ export function sleeveSpec(m: SleeveMeasurements, s: SleeveDraft): SpecRow[] {
   return [
     row('Upper arm (bicep)', m.upper_arm, s.bicep),
     row(s.cut === 'kimono' ? 'Sleeve length, shoulder point to hem' : 'Sleeve length, crown to hem', undefined, s.lengthCm),
-    row(s.cuff ? `${s.cuff.kind === 'shirt' ? 'Shirt cuff' : s.cuff.kind === 'tie' ? 'Tie cuff' : 'Elastic cuff'}, round` : s.gathers ? 'Sleeve band, round' : 'Sleeve hem, round', undefined, s.hemCm),
-    ...(s.cuff ? [row(s.cuff.kind === 'elastic' ? 'Cuff casing depth' : 'Cuff depth', undefined, s.cuff.depth)] : []),
+    row(s.cuff ? `${s.cuff.kind === 'shirt' ? 'Shirt cuff' : s.cuff.kind === 'tie' ? 'Tie cuff' : s.cuff.kind === 'ruffle' ? 'Sleeve hem, under the ruffle' : 'Elastic cuff'}, round` : s.gathers ? 'Sleeve band, round' : 'Sleeve hem, round', undefined, s.hemCm),
+    ...(s.cuff ? [row(s.cuff.kind === 'elastic' ? 'Cuff casing depth' : s.cuff.kind === 'ruffle' ? 'Sleeve ruffle depth' : 'Cuff depth', undefined, s.cuff.depth)] : []),
     ...(s.cuff?.kind === 'elastic' ? [row('Cuff elastic, cut', undefined, s.cuff.elasticCm!)] : []),
     ...(s.cuff?.kind === 'tie' ? [row('Cuff ties, each', undefined, s.cuff.tieCm!)] : []),
     ...(s.cuff?.kind === 'shirt' ? [row('Cuff placket', undefined, s.cuff.placketCm!)] : []),
