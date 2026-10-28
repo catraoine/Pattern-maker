@@ -25,6 +25,7 @@ export function testingNote(name: (g: Garment) => string, garments: readonly Gar
  *  has drifted. Taking a tag off is deleting its entry and its tag; garments come off by moving to LAUNCH_GARMENTS. */
 export type TestingTool =
   | 'draw_lines'
+  | 'draw_round'
   | 'body_double'
   | 'prints'
   | 'any_colour'
@@ -38,6 +39,7 @@ export type TestingTool =
 
 export const TESTING_TOOLS: Record<TestingTool, { name: string; where: string; proof: string }> = {
   draw_lines: { name: 'Draw your lines', where: 'Style, Draw on your form', proof: 'fit testers draw a hem, a neckline and a side and the pattern follows' },
+  draw_round: { name: 'Draw on it all round', where: 'Draw your lines, the all round switch', proof: 'three testers draw a hem and a side on the turning garment and get the same pattern as drawn flat' },
   body_double: { name: 'Body Double', where: 'Account and the form page', proof: 'one padded form checked against its person' },
   prints: { name: 'Prints beyond checks', where: "What's the print?, About your fabric", proof: 'three testers cut a one-way or border print from the lay plan' },
   any_colour: { name: 'Any colour', where: 'the colour dots on the Fabric tab', proof: 'shop colourways match the picked colour on five fabrics' },

@@ -95,6 +95,7 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
     return (
       <GarmentFabric fabric={fabric}>
       <DrawOnForm<OuterChoices>
+        allRound={round ? { round, m: values, fabric, striped: matchKind(fabric) } : undefined}
         cloth={clothShapes}
         arms={formArm}
         sleeve={formArm ? draft.sleeve : undefined}

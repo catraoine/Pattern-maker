@@ -213,6 +213,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
   if (onForm && draft) {
     return (
       <DrawOnForm<BodiceChoices>
+        allRound={round ? { round, m: values, fabric, striped: matchKind(fabric) } : undefined}
         body={formWidth(draft, m)}
         m={m}
         legs={false}

@@ -390,6 +390,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
     return (
       <GarmentFabric fabric={fabric}>
       <DrawOnForm<DressChoices>
+        allRound={round ? { round, m: values, fabric, striped: matchKind(fabric) } : undefined}
         body={formWidth(draft.bodice, mv)}
         m={mv}
         legs

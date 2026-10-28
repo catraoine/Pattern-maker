@@ -326,11 +326,30 @@ export interface Frame {
   probe?: boolean;
 }
 
+/** What a point of the view stands on: the garment's cloth, a sleeve, a leg (the form's own, or a trouser leg),
+ *  the form's body, or the air beside it. `e` is the side of a sleeve or a leg (-1 or 1). */
+export type PickPart = 'cloth' | 'sleeve' | 'leg' | 'body' | 'air';
+export interface Pick {
+  part: PickPart;
+  e: number;
+  /** The point in the form's own units, turned back to face the front. */
+  p: V3;
+}
+
 export interface RoundView {
   build(o: BuildOptions): void;
   /** Draw the frame; the canvas returned is clear where there is nothing, to lay over the backdrop. */
   render(f: Frame): HTMLCanvasElement;
+  /** What stands under the point (px, py) of the canvas, in CSS px, for the draw tool. In the air past everything,
+   *  the point on the plane through the form's axis facing the view. */
+  pick(f: Frame, px: number, py: number): Pick | undefined;
   dispose(): void;
+}
+
+/** The view's own projection, as the canvas painter laid it: x across by the scale, y down by the scale and a
+ *  little by the depth (seen from a touch above), nothing shrinking with distance. */
+function projection({ w, h, S, cx, top }: Frame) {
+  return { A: (2 * S) / w, B: (2 * cx) / w - 1, C: (-2 * S) / h, D: (-2 * S * FORM_DEPTH) / h, E: 1 - (16 - 2 * top * S) / h };
 }
 
 /** The view, or nothing where the browser has no WebGL (the canvas painter draws then). */
@@ -393,9 +412,10 @@ export function createRoundView(): RoundView | undefined {
     const { round, sh, cloth, film } = o;
     const { trousers, isTop, yAt, yOf, kY, longest, highest, bandTop, arm, yS, yU, sl, rh, radius, shell, clothDown, yE, yCap, axisX, capDepth, sleeveR, lg, yC, yK, yH, legHemR, legR, legAxis, rAt } = sh;
     const k = 1 / kY; // cm of cloth to a unit of the form
-    const add = (geo: THREE.BufferGeometry, mat: RoundMaterial, order = 1) => {
+    const add = (geo: THREE.BufferGeometry, mat: RoundMaterial, order = 1, part: PickPart = 'cloth', e = 0) => {
       const mesh = new THREE.Mesh(geo, mat);
       mesh.renderOrder = order;
+      mesh.userData = { part, e };
       turning.add(mesh);
       disposables.push(geo, mat);
       return mesh;
@@ -439,18 +459,18 @@ export function createRoundView(): RoundView | undefined {
       const u = j / n;
       return u <= 0.5 ? (u / 0.5) * SHOULDER_BAND : SHOULDER_BAND + ((u - 0.5) / 0.5) * (1 - SHOULDER_BAND);
     };
-    add(sweep({ at: (a, t) => bodyAt(a, NECK_TOP + (BODY_BOTTOM - NECK_TOP) * t), out: radial, rowT: bodyRow }, -Math.PI, Math.PI, 96, 120), satin, 0);
+    add(sweep({ at: (a, t) => bodyAt(a, NECK_TOP + (BODY_BOTTOM - NECK_TOP) * t), out: radial, rowT: bodyRow }, -Math.PI, Math.PI, 96, 120), satin, 0, 'body');
     const neck = material('satin');
     neck.color.set(0x0e0c0a);
     neck.roughness = 0.45;
-    add(cap((a) => bodyAt(a, NECK_TOP), [0, -1, 0]), neck, 0);
+    add(cap((a) => bodyAt(a, NECK_TOP), [0, -1, 0]), neck, 0, 'body');
     for (const leg of [-1, 1]) {
       const legs = material('satin');
       if (!isTop && !trousers) {
         legs.uniforms.shadeY.value = hemMean;
         legs.uniforms.shadeDepth.value = 0.3;
       }
-      add(sweep({ at: (a, t) => T(leg * FORM_LEG_X, a, FORM_LEG(LEG_TOP + (FORM_FLOOR - LEG_TOP) * t), LEG_TOP + (FORM_FLOOR - LEG_TOP) * t), out: radial }, -Math.PI, Math.PI, 48, 60), legs, 0);
+      add(sweep({ at: (a, t) => T(leg * FORM_LEG_X, a, FORM_LEG(LEG_TOP + (FORM_FLOOR - LEG_TOP) * t), LEG_TOP + (FORM_FLOOR - LEG_TOP) * t), out: radial }, -Math.PI, Math.PI, 48, 60), legs, 0, 'leg', leg);
     }
 
     // The cloth: the garment's body from its top edge (or the armhole, under the arms) to its hem (the crotch on
@@ -554,7 +574,8 @@ export function createRoundView(): RoundView | undefined {
       }
     }
     /** A tube round an axis at X(y): a sleeve or a trouser leg, in its cloth. */
-    const tube = (X: (y: number) => number, R: (y: number) => number, y0: number, y1: number, panels: boolean, Z: (y: number) => number = () => 1, seat?: (g: number) => number) => {
+    const tube = (X: (y: number) => number, R: (y: number) => number, y0: number, y1: number, panels: boolean, Z: (y: number) => number = () => 1, seat?: (g: number) => number, part: PickPart = 'cloth') => {
+      const e = Math.sign(X(y0)) || 1;
       const NY = 32;
       const rowY = (t: number) => y0 + (y1 - y0) * t ** 1.6;
       // Down the cloth by its length over the crown, not its height, counted up from the hem, so the print is not
@@ -630,13 +651,13 @@ export function createRoundView(): RoundView | undefined {
           NY,
         );
       if (panels) {
-        add(geo(0, -HALF, HALF), clothMat());
-        add(geo(Math.PI, HALF, 3 * HALF), clothMat());
-      } else add(geo(0, -Math.PI, Math.PI), clothMat());
+        add(geo(0, -HALF, HALF), clothMat(), 1, part, e);
+        add(geo(Math.PI, HALF, 3 * HALF), clothMat(), 1, part, e);
+      } else add(geo(0, -Math.PI, Math.PI), clothMat(), 1, part, e);
     };
     // In lines the sleeves and trouser legs are lines alone, as the canvas painter drew them; in cloth they are cloth.
-    if (cloth && sl && arm) for (const e of [1, -1]) tube((y) => e * axisX(y), sleeveR, yCap, yE, false, capDepth);
-    if (cloth && lg) for (const leg of [-1, 1]) tube((y) => leg * legAxis(y), legR, yC, yH, false, undefined, (g) => rAt(g, yC));
+    if (cloth && sl && arm) for (const e of [1, -1]) tube((y) => e * axisX(y), sleeveR, yCap, yE, false, capDepth, undefined, 'sleeve');
+    if (cloth && lg) for (const leg of [-1, 1]) tube((y) => leg * legAxis(y), legR, yC, yH, false, undefined, (g) => rAt(g, yC), 'leg');
     // A waistband is cloth too, standing on the garment's top edge, not a hoop in the air above it.
     // The band lies on the body above the waist, which widens again up from it.
     const bandR = (a: number, y = bandTop) => shell(a, Math.min(y, WAIST)) + 0.006;
@@ -889,7 +910,7 @@ export function createRoundView(): RoundView | undefined {
   };
 
   const render = (f: Frame): HTMLCanvasElement => {
-    const { phi, w, h, dpr, S, cx, top, lw, probe } = f;
+    const { phi, w, h, dpr, lw, probe } = f;
     for (const l of lamps) l.visible = !probe;
     flat.visible = !!probe;
     // The check reads what is cloth and what is form; the lines drawn on the cloth (seams, darts, edges) are neither,
@@ -917,13 +938,7 @@ export function createRoundView(): RoundView | undefined {
       lwBuilt = lw * dpr;
     }
     outline?.(f);
-    // The view's own projection, as the canvas painter laid it: x across by the scale, y down by the scale and a
-    // little by the depth (seen from a touch above), nothing shrinking with distance.
-    const A = (2 * S) / w;
-    const B = (2 * cx) / w - 1;
-    const C = (-2 * S) / h;
-    const D = (-2 * S * FORM_DEPTH) / h;
-    const E = 1 - (16 - 2 * top * S) / h;
+    const { A, B, C, D, E } = projection(f);
     camera.projectionMatrix.set(A, 0, 0, B, 0, C, D, E, 0, 0, -0.25, 0, 0, 0, 0, 1);
     camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
     turning.rotation.y = phi;
@@ -931,9 +946,38 @@ export function createRoundView(): RoundView | undefined {
     return renderer.domElement;
   };
 
+  // The draw tool inside All round (Cat's A Draw on it, 2026-10-28): what stands under a point of the canvas. The
+  // view's projection is affine, so a point of the canvas is a line straight into the depth, tilted by the view's
+  // slight look from above; the first surface it meets is the one the finger is on.
+  const caster = new THREE.Raycaster();
+  const pick = (f: Frame, px: number, py: number): Pick | undefined => {
+    const { A, B, C, D, E } = projection(f);
+    const nx = (px / f.w) * 2 - 1;
+    const ny = 1 - (py / f.h) * 2;
+    const x = (nx - B) / A;
+    const yAt = (z: number) => (ny - E - D * z) / C;
+    const origin = new THREE.Vector3(x, yAt(10), 10);
+    const dir = new THREE.Vector3(0, yAt(0) - yAt(10), -10).normalize();
+    caster.set(origin, dir);
+    turning.rotation.y = f.phi;
+    turning.updateMatrixWorld(true);
+    // Only the surfaces themselves: the fat lines are meshes too, but take a camera to be cast at.
+    const meshes = turning.children.filter((o): o is THREE.Mesh => (o as THREE.Mesh).isMesh && 'part' in o.userData);
+    const hit = caster.intersectObjects(meshes, false).find((h) => {
+      // What the shader leaves out (the body under trousers) is not there to touch.
+      const u = (h.object as THREE.Mesh<THREE.BufferGeometry, RoundMaterial>).material.uniforms;
+      const yy = turning.worldToLocal(h.point.clone()).y;
+      return !u || (yy >= u.hideAbove.value && yy <= u.hideBelow.value);
+    });
+    const local = turning.worldToLocal((hit?.point ?? new THREE.Vector3(x, yAt(0), 0)).clone());
+    const { part, e } = (hit?.object.userData ?? { part: 'air', e: 0 }) as { part: PickPart; e: number };
+    return { part, e, p: [local.x, local.y, local.z] };
+  };
+
   return {
     build,
     render,
+    pick,
     dispose: () => {
       clear();
       renderer.dispose();
