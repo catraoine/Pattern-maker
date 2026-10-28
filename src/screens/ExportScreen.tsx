@@ -1,6 +1,6 @@
 import { DropMenu } from '../ui/DropMenu';
 import { useWide } from '../ui/StyleLayout';
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { SendToDevice } from '../ui/SendToDevice';
 import { OVERLAP, PAGE_MARGIN, Paper, Sheet, layout, pageCount, pageName, pageSize, tileGrid, toSvg, usedTiles } from '../engine/export';
 import { checkPattern } from '../engine/qc';
@@ -123,6 +123,9 @@ const PAPERS: { id: Paper | 'projector'; label: string }[] = [
 
 const isProjector = (o: Output): o is 'projector' | 'projectorDark' => o === 'projector' || o === 'projectorDark';
 
+// Projector mode loads only when it is opened.
+const ProjectorMode = lazy(() => import('../ui/ProjectorMode').then((m) => ({ default: m.ProjectorMode })));
+
 /** The date as printed on the pattern, such as 14 Oct 2026. */
 const printedDate = () => new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
@@ -145,6 +148,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
   const paper: Output = picked;
   const [pdf, setPdf] = useState<{ paper: Output; bytes: Uint8Array; total: number } | null>(null);
   const [shareNote, setShareNote] = useState('');
+  const [projecting, setProjecting] = useState(false);
   const special = finish.fabric?.special;
   const print = printOf(finish.fabric);
   const napFixed = needsNap(special) || printNap(print);
@@ -380,11 +384,31 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
             )}
             <p>
               {projector
-                ? 'One page at true size, in fine lines for projecting onto fabric. Line your projector up with the 10 cm test square.'
+                ? 'One page at true size, for a projector app such as Pattern Projector. Line your projector up with the 10 cm test square.'
                 : paper === 'a0'
                   ? 'Ask the copy shop to print at 100% (actual size). Measure the 10 cm test square before you cut.'
                   : 'Print at 100% (actual size). Measure the 10 cm test square on page A1 before you cut.'}
             </p>
+            {projector && made && (
+              <div className="stack projector-offer">
+                <p className="eyebrow">
+                  Or project straight from here <TestingTag />
+                </p>
+                <h3>Projector mode</h3>
+                <p className="muted small">
+                  Plug your projector into this computer or tablet. Line it up with your cutting mat once, then show one piece at a time at true
+                  size, in thick lines on black. Move and turn each piece on the cloth.
+                </p>
+                <button type="button" className="secondary" onClick={() => setProjecting(true)}>
+                  Open projector mode
+                </button>
+              </div>
+            )}
+            {projecting && made && (
+              <Suspense fallback={null}>
+                <ProjectorMode pieces={made.pieces} unit={unit} onClose={() => setProjecting(false)} />
+              </Suspense>
+            )}
             {/* The file is longer than the tiles: a copy shop prints and charges for every page (the tester walk, 2026-10-27). */}
             {!projector && paper !== 'a0' && ready && pdf && pdf.total > pages && (
               <p className="small muted">

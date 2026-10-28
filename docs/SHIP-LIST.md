@@ -51,6 +51,7 @@ Each carries the "In testing" tag (`src/launch.ts`, `src/ui/TestingTag.tsx`):
 | Any colour for the fabric, matched to shop colourways | "Any colour" under the colour dots on the Fabric tab |
 | Pro files: DXF, measurement files, tech pack, 3D body | "More files" on Print |
 | Size run, pattern file check, client book | each one's heading |
+| Projector mode (Cat broke the freeze for it, 2026-10-28) | "Or project straight from here" on Print, and inside projector mode |
 
 Lingerie and swimwear stay hidden (`?lingerie=preview`, PR #102). Tracé Engine, Atelier Nights, Deadstock and
 Cut For You are sign-ups only: nothing more is built behind them before the gate.

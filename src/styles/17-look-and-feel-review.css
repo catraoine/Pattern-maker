@@ -283,3 +283,205 @@ button.later.edit-measure {
     transition: none;
   }
 }
+
+/* The free plan's projector line (Cat, 2026-10-28): the one perk picked out in champagne. */
+.plan-perk {
+  color: var(--gild);
+}
+
+/* Projector mode (Cat applied, 2026-10-28): black everywhere, so only the pattern lights the cloth. */
+.projector-offer {
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid var(--guide);
+}
+.projector {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: #000;
+  color: var(--ink);
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+}
+.projector-stage {
+  position: absolute;
+  inset: 0;
+}
+.pj-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.pj-grid line {
+  stroke: #fff;
+  stroke-width: 1;
+  opacity: 0.35;
+}
+.pj-quad {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 3;
+}
+.pj-corner {
+  cursor: grab;
+}
+.pj-corner .pj-hit {
+  fill: transparent;
+}
+.pj-corner .pj-ring {
+  fill: none;
+  stroke: var(--gild);
+  stroke-width: 3;
+}
+.pj-corner.on .pj-ring {
+  stroke-width: 5;
+}
+.pj-corner .pj-dot {
+  fill: var(--gild);
+}
+.pj-corner text {
+  fill: var(--gild);
+  font-family: var(--mono);
+  font-size: 16px;
+}
+.pj-ink {
+  fill: none;
+  stroke: #fff;
+}
+.pj-stitch {
+  opacity: 0.8;
+}
+.pj-faint {
+  fill: none;
+  stroke: #fff;
+  opacity: 0.25;
+}
+.pj-text {
+  fill: #fff;
+  font-family: var(--mono);
+  letter-spacing: 0.1em;
+}
+.pj-turn {
+  fill: none;
+  stroke: var(--gild);
+}
+.projector-panel {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(520px, calc(100vw - 32px));
+  padding: 22px 26px;
+  background: #000;
+  border: 1px solid var(--guide);
+}
+.projector-panel.bottom {
+  top: auto;
+  bottom: 40px;
+  transform: translateX(-50%);
+  text-align: center;
+  border: 0;
+}
+.projector-panel.bottom .row {
+  justify-content: center;
+}
+.projector-panel h2 {
+  margin: 10px 0 8px;
+}
+.pj-mat {
+  align-items: baseline;
+  gap: 8px;
+  margin: 14px 0;
+}
+.pj-mat input {
+  width: 72px;
+}
+.pj-warn {
+  color: var(--warn);
+}
+.pj-top {
+  position: absolute;
+  left: 22px;
+  top: 14px;
+}
+.pj-hint {
+  position: absolute;
+  right: 22px;
+  top: 14px;
+}
+.pj-turned {
+  color: var(--gild);
+}
+.projector-tools {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 12px 18px;
+  background: #000;
+  border-top: 1px solid var(--guide);
+}
+.projector-tools button {
+  padding: 8px 12px;
+  border: 1.3px solid var(--guide);
+  background: #000;
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+}
+.projector-tools button.on {
+  border-color: var(--gild);
+  color: var(--gild);
+}
+.pj-name {
+  min-width: 150px;
+  text-align: center;
+}
+.pj-gap {
+  width: 12px;
+}
+.pj-gap.grow {
+  flex: 1;
+}
+.projector-show {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  opacity: 0.35;
+  background: #000;
+  color: var(--ink);
+  border: 1px solid var(--guide);
+  padding: 6px 10px;
+}
+.projector .testing-tag,
+.projector-offer .testing-tag {
+  display: inline-block;
+  min-height: 0;
+  margin: 0 0 0 8px;
+  padding: 2px 6px;
+  color: var(--gild);
+}
+.pj-mat input {
+  background: transparent;
+  border: 0;
+  border-bottom: var(--bw) solid var(--gild);
+  color: var(--ink);
+  font: inherit;
+  font-size: 17px;
+  padding: 2px 0;
+}
+@media (max-width: 700px) {
+  .pj-hint {
+    top: 40px;
+    left: 22px;
+    right: auto;
+  }
+}
