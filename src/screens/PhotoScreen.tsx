@@ -3,9 +3,9 @@ import type { Choices } from '../savedWork';
 import { LENGTHS, type Length, type SkirtMeasurements } from '../engine/skirt';
 import type { Unit } from '../measurements';
 import { photoToJpeg } from '../photo/image';
-import type { Confidence, PhotoError, PhotoReading, PhotoResponse, PieceKind, TopReading, TrousersReading, UnsureGroup } from '../photo/types';
+import type { BackReading, BackResponse, Confidence, PhotoError, PhotoReading, PhotoResponse, PieceKind, TopReading, TrousersReading, UnsureGroup } from '../photo/types';
 import { GROUPS } from '../skirtChoices';
-import { PIECE_KINDS, PIECE_WORDS, aPiece, choicesFor, fabricFor, pieceName, mainPiece, pieceNote, piecesToPick, skirtChoices, type PhotoBody } from '../photo/garments';
+import { PIECE_KINDS, PIECE_WORDS, aPiece, backMissing, backWords, choicesFor, withBack, fabricFor, pieceName, mainPiece, pieceNote, piecesToPick, skirtChoices, type PhotoBody } from '../photo/garments';
 import type { MyFabric } from '../engine/fabrics';
 import { isBodice, isDress, type PatternChoices } from '../garments';
 import { describePattern } from './describe';
@@ -117,6 +117,10 @@ export function tornBetween(r: PhotoReading, piece: PieceKind): { group: UnsureG
 /** "a shoulder bow", "a shoulder bow and tiered hem", "a, b and c". */
 export const listWords = (xs: string[]) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
 
+/** "V back, back slit." as a line, or what to say when the back adds nothing the app drafts. */
+const backLine = (words: string, listed: boolean) =>
+  words ? `${words[0].toUpperCase()}${words.slice(1)}.` : listed ? 'Its back details are listed below.' : 'A plain back, as drafted.';
+
 /** Skirts and dresses show the shape, length and fit to change here; the rest change on their style screen. */
 const hasSkirt = (g: PieceKind) => g === 'skirt' || g === 'dress';
 
@@ -183,6 +187,9 @@ export function PhotoScreen({ testerCode, measured, body, unit, onByHand, onAppl
   const [tape, setTape] = useState('');
   // The one question an unsure reading asks, once answered, stays answered for this photo.
   const [answered, setAnswered] = useState(false);
+  const [back, setBack] = useState<BackReading>();
+  const [backPreview, setBackPreview] = useState<string>();
+  const [backState, setBackState] = useState<'none' | 'reading' | 'done' | 'unseen' | 'limit' | 'failed'>('none');
   const pending = useRef<AbortController>();
   const top = useRef<HTMLElement>(null);
 
@@ -240,6 +247,9 @@ export function PhotoScreen({ testerCode, measured, body, unit, onByHand, onAppl
       setPiece(g);
       setChoices(skirtChoices(r, g === 'dress' ? 'dress' : 'skirt'));
       setAnswered(false);
+      setBack(undefined);
+      setBackPreview(undefined);
+      setBackState('none');
       setPhase(piecesToPick(r).length > 1 ? 'pick' : 'result');
     } catch {
       if (!ctrl.signal.aborted) fail('network');
@@ -352,10 +362,33 @@ export function PhotoScreen({ testerCode, measured, body, unit, onByHand, onAppl
   };
 
   /** The whole garment's choices: a skirt as changed here, a dress with its skirt as changed here, the rest as read. */
-  const final = (skirt: Choices = choices): PatternChoices => {
+  const front = (skirt: Choices = choices): PatternChoices => {
     if (piece === 'skirt') return skirt;
     const c = choicesFor(reading, piece, body);
     return isDress(c) ? { ...c, skirt: { ...skirt, fit: c.fit } } : c;
+  };
+  /** With what the back photo showed, when there is one. */
+  const final = (skirt: Choices = choices): PatternChoices => withBack(front(skirt), back);
+
+  /** A second, optional photo of the back, read for its back details only. */
+  const pickBack = async (file: File | undefined) => {
+    if (!file) return;
+    setBackState('reading');
+    try {
+      const img = await photoToJpeg(file);
+      setBackPreview(img.preview);
+      const res = await fetch('/.netlify/functions/analyze-photo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...testerHeaders(testerCode) },
+        body: JSON.stringify({ image: img.image, mediaType: img.mediaType, view: 'back', garment: piece }),
+      });
+      const data = (await res.json().catch(() => ({ ok: false, error: 'failed' }))) as BackResponse;
+      if (!data.ok) return setBackState(data.error === 'limit_reached' || data.error === 'busy' ? 'limit' : 'failed');
+      setBack(data.back);
+      setBackState(data.back.shown ? 'done' : 'unseen');
+    } catch {
+      setBackState('failed');
+    }
   };
 
   if (phase === 'pick') {
@@ -428,7 +461,7 @@ export function PhotoScreen({ testerCode, measured, body, unit, onByHand, onAppl
     setChoices(skirtChoices(r, piece === 'dress' ? 'dress' : 'skirt'));
     setAnswered(true);
   };
-  const missing = (reading.missing ?? []).map((m) => m.trim().toLowerCase()).filter(Boolean).slice(0, 5);
+  const missing = [...(reading.missing ?? []), ...backMissing(back)].map((m) => m.trim().toLowerCase()).filter(Boolean).slice(0, 5);
   // A dress takes its fit from the bodice, so only the skirt's shape and length change here.
   const groups = piece === 'dress' ? (flat ? [GROUPS[1]] : [GROUPS[1], GROUPS[2]]) : flat ? [GROUPS[1], GROUPS[0]] : [GROUPS[1], GROUPS[2], GROUPS[0]];
   const conf = { silhouette: reading.silhouette.confidence, length: reading.length.confidence, fit: reading.fit.confidence };
@@ -508,6 +541,34 @@ export function PhotoScreen({ testerCode, measured, body, unit, onByHand, onAppl
         ))}
       </div>
       )}
+      <div className="photoback">
+        {backPreview && <img src={backPreview} alt="The back" className="photothumb small" />}
+        <div>
+          {backState === 'none' && (
+            <>
+              <label className="filelink small">
+                Add a photo of the back
+                <input type="file" accept="image/*" onChange={(e) => pickBack(e.target.files?.[0]).finally(() => (e.target.value = ''))} />
+              </label>
+              <p className="muted small">Optional. For vents, slits, zips and low backs.</p>
+            </>
+          )}
+          {backState === 'reading' && (
+            <p className="muted small" role="status">
+              Reading the back…
+            </p>
+          )}
+          {backState === 'done' && (
+            <p className="small">
+              <span className="eyebrow">From the back</span>
+              {backLine(backWords(front(), final()), backMissing(back).length > 0)}
+            </p>
+          )}
+          {backState === 'unseen' && <p className="muted small">That photo doesn't show this piece from the back, so nothing from it is used.</p>}
+          {backState === 'limit' && <p className="muted small">That's today's photo readings, so the back stays as usual. You can change it on the next screen.</p>}
+          {backState === 'failed' && <p className="muted small">We couldn't read the back. You can change it on the next screen.</p>}
+        </div>
+      </div>
       {missing.length > 0 ? (
         <div className="photomissing">
           <p className="small">

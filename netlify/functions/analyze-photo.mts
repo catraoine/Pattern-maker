@@ -3,7 +3,7 @@
 import { createHash } from 'node:crypto';
 import Anthropic from '@anthropic-ai/sdk';
 import { blobCounts } from '../../src/server/blobCounts';
-import { analyzePhoto, checkPhoto, missingKeys, type AnalyzeInput } from '../../src/photo/analyze';
+import { analyzeBack, analyzePhoto, checkPhoto, missingKeys, type AnalyzeInput } from '../../src/photo/analyze';
 import { TESTER_CAPS, TESTER_POOL, isTesterCode, takeAllowance, type Allowance } from '../../src/photo/limit';
 
 // Provided by the Netlify runtime.
@@ -50,7 +50,15 @@ export default async (req: Request, context: { ip?: string }) => {
     if (allowance !== 'ok') return Response.json({ ok: false, error: allowance }, { status: 429 });
   }
 
-  const result = await analyzePhoto(body, key ? new Anthropic({ apiKey: key }) : null);
+  const client = key ? new Anthropic({ apiKey: key }) : null;
+  // A back photo is read for its back details only, and counted like any reading.
+  if (body.view === 'back') {
+    const back = await analyzeBack(body, client);
+    if (back.ok && back.back.shown) await countMissing(missingKeys({ garment: body.garment ?? 'other', missing: back.back.missing }));
+    const status = back.ok ? 200 : back.error === 'not_configured' ? 503 : back.error === 'failed' ? 502 : 400;
+    return Response.json(back, { status });
+  }
+  const result = await analyzePhoto(body, client);
   // What the app couldn't match is counted by name and garment (never with who sent it), so the most wanted details show up.
   if (result.ok) await countMissing(missingKeys(result.reading));
   const status = result.ok ? 200 : result.error === 'not_configured' ? 503 : result.error === 'failed' ? 502 : 400;

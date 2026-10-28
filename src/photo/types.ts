@@ -24,6 +24,8 @@ export interface SkirtExtras {
   asymHem: 'none' | 'high_low' | 'diagonal';
   pockets: boolean;
   elasticWaist: boolean;
+  /** An open slit up from the hem. Older readings leave it out. */
+  slit?: 'none' | 'front' | 'side' | 'back';
 }
 
 /** A top, a T-shirt, or a dress's bodice. */
@@ -129,6 +131,20 @@ export interface PhotoReading {
   /** The main garment's cloth. Older readings leave it out. */
   fabric?: FabricReading | null;
 }
+
+/** A second photo, of the garment from behind: what only the back shows. */
+export interface BackReading {
+  /** False when the photo doesn't show the garment's back, so nothing in it is used. */
+  shown: boolean;
+  backNeck: 'plain' | 'scoop' | 'v' | 'keyhole';
+  opening: 'zip' | 'buttons' | 'lace_up' | 'none';
+  slit: 'none' | 'back' | 'side';
+  vent: boolean;
+  confidence: Confidence;
+  missing: string[];
+}
+
+export type BackResponse = { ok: true; back: BackReading } | { ok: false; error: PhotoError };
 
 export type PhotoResponse = { ok: true; reading: PhotoReading } | { ok: false; error: PhotoError };
 

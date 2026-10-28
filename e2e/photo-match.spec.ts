@@ -65,3 +65,24 @@ test('an unsure reading asks once, and names what the app cannot draft yet', asy
   await expect(main.getByRole('heading', { name: /half circle/i })).toBeVisible();
   if (dir) await page.screenshot({ path: `${dir}/${info.project.name}-2-answered.png`, fullPage: true });
 });
+
+test('a back photo adds a low back and a slit to the dress', async ({ page }, info) => {
+  await startWithExample(page);
+  const front = { ...reading, unsure: null, missing: [] };
+  const back = { shown: true, backNeck: 'v', opening: 'lace_up', slit: 'back', vent: false, confidence: 'high', missing: [] };
+  await page.route('**/.netlify/functions/analyze-photo', (route) =>
+    route.fulfill({ json: (route.request().postDataJSON() as { view?: string }).view === 'back' ? { ok: true, back } : { ok: true, reading: front } }),
+  );
+  const main = page.getByRole('main');
+  await openLooks(page);
+  await main.getByRole('button', { name: 'Start from a photo' }).click();
+  await main.locator('input[type=file]').first().setInputFiles({ name: 'dress.jpg', mimeType: 'image/jpeg', buffer: PHOTO });
+  await expect(main.getByText('Add a photo of the back')).toBeVisible();
+  const dir = process.env.STILLS;
+  if (dir) await page.screenshot({ path: `${dir}/${info.project.name}-3-back-offer.png`, fullPage: true });
+
+  await main.locator('.photoback input[type=file]').setInputFiles({ name: 'back.jpg', mimeType: 'image/jpeg', buffer: PHOTO });
+  await expect(main.getByText('V back, back slit.')).toBeVisible();
+  await expect(main.getByText('Lace-up back.')).toBeVisible();
+  if (dir) await page.screenshot({ path: `${dir}/${info.project.name}-4-back-read.png`, fullPage: true });
+});

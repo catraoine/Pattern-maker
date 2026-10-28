@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { HouseLook, lookFlat } from '../collection';
 import { isBodice, isDress, isOuter, isTee, isTrousers } from '../garments';
 import { EXAMPLE_VALUES } from '../measurements';
-import { PIECE_KINDS, choicesFor, mainPiece, pieceNote, piecesToPick, skirtChoices } from './garments';
+import { PIECE_KINDS, backMissing, backWords, choicesFor, mainPiece, pieceNote, piecesToPick, skirtChoices, withBack } from './garments';
 import type { PhotoReading, TopReading } from './types';
 
 const top: TopReading = {
@@ -153,5 +153,30 @@ describe("a photo's exact sizes", () => {
   it('leaves a neckline with a collar alone', () => {
     const c = choicesFor({ ...read, top: { ...read.top, neckline: 'scoop', collar: 'peter_pan' } }, 'top', body);
     expect(isBodice(c) && c.neck).toBeUndefined();
+  });
+});
+
+describe('a back photo', () => {
+  const back = { shown: true, backNeck: 'v' as const, opening: 'zip' as const, slit: 'back' as const, vent: false, confidence: 'high' as const, missing: [] };
+
+  it('adds a low back and a slit to a dress, and drafts', () => {
+    const before = choicesFor(dress, 'dress');
+    const after = withBack(before, back);
+    expect(isDress(after) && after.bodice.back).toBe('v');
+    expect(isDress(after) && after.skirt.slit).toBe('back');
+    expect(backWords(before, after)).toBe('V back, back slit');
+    expect(lookFlat({ choices: after } as HouseLook, EXAMPLE_VALUES)).toBeDefined();
+  });
+
+  it("takes a jacket's vent away, and changes nothing when the photo isn't the back", () => {
+    const jacket = choicesFor(outfit, 'jacket');
+    const after = withBack(jacket, back);
+    expect(isOuter(after) && after.vent).toBe('none');
+    expect(withBack(jacket, { ...back, shown: false })).toEqual(jacket);
+  });
+
+  it('lists a back the app has no option for', () => {
+    expect(backMissing({ ...back, opening: 'lace_up', missing: ['back bow'] })).toEqual(['lace-up back', 'back bow']);
+    expect(backMissing({ ...back, shown: false, opening: 'lace_up' })).toEqual([]);
   });
 });

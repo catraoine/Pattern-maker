@@ -463,3 +463,19 @@
   display: block;
   margin: 0 0 2px;
 }
+/* The optional back photo, beside its line. */
+.photoback {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.photoback p {
+  margin: 0;
+}
+.photoback .eyebrow {
+  display: block;
+  margin-bottom: 2px;
+}
+.photothumb.small {
+  width: 52px;
+}

@@ -15,6 +15,11 @@ import {
   PatternChoices,
   TeeChoices,
   TrousersChoices,
+  isBodice,
+  isDress,
+  isOuter,
+  isTee,
+  isTrousers,
   outerAllowed,
   sleeveOf,
   validDetails,
@@ -27,11 +32,13 @@ import type { OuterLength } from '../engine/outerwear';
 import type { TeeLength, TeeNeck, TeeSleeve } from '../engine/tee';
 import { setVolume, volumeOf } from '../engine/skirtVolume';
 import { validCut } from '../engine/slip';
+import { slitAllowed } from '../engine/slit';
+import { backBlocked } from '../engine/backNeck';
 import { elasticAllowed, pocketsAllowed } from '../skirtChoices';
 import { NECKLINES } from '../engine/bodice';
 import { FULLNESS } from '../ui/BodiceShape';
 import { fitOf, shapeOf } from './shape';
-import type { Confidence, PhotoReading, PieceKind, TopReading } from './types';
+import type { BackReading, Confidence, PhotoReading, PieceKind, TopReading } from './types';
 
 /** The wearer's measurements the photo's exact sizes are scaled by, when they've been taken. */
 export interface PhotoBody {
@@ -119,6 +126,7 @@ export function skirtChoices(r: PhotoReading, garment: 'skirt' | 'dress' = 'skir
   }
   if (garment === 'skirt' && x.elasticWaist && elasticAllowed(c)) c = { ...c, waist: 'elastic' };
   if (x.pockets && pocketsAllowed(c)) c = { ...c, pockets: 'inseam' };
+  if (x.slit && x.slit !== 'none' && slitAllowed(c)) c = { ...c, slit: x.slit };
   if (c.asymHem || volumeOf(c) !== 'none') delete c.shape;
   return c;
 }
@@ -279,4 +287,50 @@ export function pieceNote(r: PhotoReading, garment: PieceKind): string {
   if (garment === 'tee') return 'A photo can’t show how stretchy a knit is, so set your own knit’s stretch on the next screen.';
   if ((garment === 'jacket' || garment === 'coat') && r.outer) return 'The back vent and sleeve can’t be seen from the front, so they start as standard.';
   return '';
+}
+
+/** A back the app can draft: a low or keyhole back where the bodice allows one. */
+function bodiceBack(c: BodiceChoices, b: BackReading): BodiceChoices {
+  return b.backNeck !== 'plain' && !backBlocked(c, b.backNeck) ? { ...c, back: b.backNeck } : c;
+}
+
+/** A slit at the back or side where the skirt allows one, in place of the one read from the front. */
+function skirtBack(c: Choices, b: BackReading): Choices {
+  return b.slit !== 'none' && slitAllowed(c) && (!c.slit || c.slit === 'none') ? { ...c, slit: b.slit } : c;
+}
+
+/**
+ * The garment with what its back photo showed: the back neckline, a slit, a jacket or coat's vent. A
+ * photo that doesn't show the garment's back changes nothing.
+ */
+export function withBack(c: PatternChoices, b: BackReading | undefined): PatternChoices {
+  if (!b?.shown) return c;
+  if (isDress(c)) return { ...c, bodice: bodiceBack(c.bodice, b), skirt: skirtBack(c.skirt, b) };
+  if (isBodice(c)) return bodiceBack(c, b);
+  if (isOuter(c)) {
+    const vent = b.vent ? 'centre' : 'none';
+    return outerAllowed(c, 'vent', vent) ? { ...c, vent } : c;
+  }
+  if (isTee(c) || isTrousers(c)) return c;
+  return skirtBack(c as Choices, b);
+}
+
+/** What the back showed that the app can't draft yet, for the "Not in the app yet" list. */
+export function backMissing(b: BackReading | undefined): string[] {
+  if (!b?.shown) return [];
+  const opening = b.opening === 'buttons' ? ['buttoned back'] : b.opening === 'lace_up' ? ['lace-up back'] : [];
+  return [...opening, ...b.missing];
+}
+
+/** The back details the pattern took from the back photo, in words: "V back, back slit". */
+export function backWords(before: PatternChoices, after: PatternChoices): string {
+  const words: string[] = [];
+  const bod = (c: PatternChoices) => (isDress(c) ? c.bodice : isBodice(c) ? c : undefined);
+  const sk = (c: PatternChoices) => (isDress(c) ? c.skirt : !isBodice(c) && !isOuter(c) && !isTee(c) && !isTrousers(c) ? (c as Choices) : undefined);
+  const back = bod(after)?.back;
+  if (back && back !== bod(before)?.back) words.push({ plain: '', scoop: 'scoop back', v: 'V back', keyhole: 'keyhole back' }[back]);
+  const slit = sk(after)?.slit;
+  if (slit && slit !== 'none' && slit !== sk(before)?.slit) words.push(`${slit} slit`);
+  if (isOuter(after) && isOuter(before) && after.vent !== before.vent) words.push(after.vent === 'centre' ? 'back vent' : 'no back vent');
+  return words.join(', ');
 }

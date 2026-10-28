@@ -4,7 +4,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { betaZodOutputFormat } from '@anthropic-ai/sdk/helpers/beta/zod';
 import { z } from 'zod';
 import { wishKey } from './wish';
-import { IMAGE_TYPES, MAX_IMAGE_BYTES, PhotoError, PhotoReading, PhotoResponse, READ_COLOURS } from './types';
+import { BackReading, BackResponse, IMAGE_TYPES, MAX_IMAGE_BYTES, PhotoError, PhotoReading, PhotoResponse, READ_COLOURS } from './types';
 
 const confidence = z.enum(['low', 'medium', 'high']);
 
@@ -69,6 +69,7 @@ export const Reading = z.object({
     asymHem: z.enum(['none', 'high_low', 'diagonal']),
     pockets: z.boolean(),
     elasticWaist: z.boolean(),
+    slit: z.enum(['none', 'front', 'side', 'back']),
   }),
   top: Top.nullable(),
   trousers: Trousers.nullable(),
@@ -113,6 +114,7 @@ Pick the closest option in each group:
   - asymHem: "high_low" (shorter at the front than the back) or "diagonal" (one side longer than the other).
   - pockets: true when there are pockets in the side seams.
   - elasticWaist: true for a pull-on, gathered elastic waist.
+  - slit: an open slit up from the hem: "front" (at the centre front), "side" (up a side seam) or "back" (at the centre back, when it shows), otherwise "none".
 
 top: fill this in for a top, a T-shirt, the bodice of a dress, or a top worn under an open jacket; otherwise null.
 - fit: how close it sits round the bust and waist, judged like the skirt's fit. When unsure, choose "regular".
@@ -163,9 +165,34 @@ Confidence (for each group, and for the shape as a whole): "high" when the photo
 
 details: one short, friendly sentence naming the features in missing, which the sewist may want to add themselves. Leave it empty if missing is empty. If the item is "other", still fill in your best reading and say what the item is.`;
 
+const Back = z.object({
+  shown: z.boolean(),
+  backNeck: z.enum(['plain', 'scoop', 'v', 'keyhole']),
+  opening: z.enum(['zip', 'buttons', 'lace_up', 'none']),
+  slit: z.enum(['none', 'back', 'side']),
+  vent: z.boolean(),
+  confidence,
+  missing: z.array(z.string()),
+});
+
+const BACK_SYSTEM = `You help home sewists turn photos of a garment into a sewing pattern. The front has already been read; this photo shows the same garment from the back. Read only what the back shows. The garment is: `;
+
+const BACK_GUIDE = `
+- shown: true when the photo shows that garment from the back, false when it shows the front, another garment, or no garment. When false, fill in the rest with plain, none and false.
+- backNeck: the back neckline: "scoop" (a low, rounded back), "v" (a low V back), "keyhole" (a small opening at the top of the centre back, closed by a button and loop) or "plain" (a high, ordinary back neck, or none for a skirt or trousers).
+- opening: how it fastens at the back: "zip" (a centre back zip), "buttons" (buttons down the back), "lace_up" (laced or corset-tied) or "none" (no back opening).
+- slit: an open slit up from the hem: "back" (at the centre back) or "side" (up a side seam), otherwise "none". A jacket or coat's vent is not a slit.
+- vent: for a jacket or coat, true when there is a vent (an overlapping opening) at the centre back hem.
+- confidence: "high" when the back is clearly shown, "medium" when it is a reasonable reading, "low" when guessing.
+- missing: back features none of the fields above cover, each in two to four plain lower-case words, such as "back bow", "cut-out back", "back yoke", "criss-cross straps" or "back pleat". At most five. Empty when the fields cover everything.`;
+
 export interface AnalyzeInput {
   image: string; // base64, no data: prefix
   mediaType: string;
+  /** "back" for a second photo of the garment from behind, read for its back details only. */
+  view?: 'front' | 'back';
+  /** With a back photo: the garment the front was read as. */
+  garment?: string;
 }
 
 /**
@@ -179,8 +206,8 @@ export const spendLimitReached = (e: unknown) =>
  * The keys a reading's unmatched details are counted under, in the "missing-details" store: the garment
  * and the detail, as "dress/shoulder-bow". At most five, with no repeats.
  */
-export function missingKeys(r: Pick<PhotoReading, 'garment' | 'missing'>): string[] {
-  const keys = (r.missing ?? []).slice(0, 5).map((m) => `${r.garment}/${wishKey(m)}`);
+export function missingKeys(r: { garment: string; missing?: string[] }): string[] {
+  const keys = (r.missing ?? []).slice(0, 5).map((m) => `${wishKey(r.garment)}/${wishKey(m)}`);
   return [...new Set(keys)];
 }
 
@@ -189,6 +216,42 @@ export function checkPhoto(input: AnalyzeInput): PhotoError | null {
   if (typeof input?.image !== 'string' || !(IMAGE_TYPES as readonly string[]).includes(input.mediaType)) return 'bad_image';
   if (input.image.length > MAX_IMAGE_BYTES) return 'too_large';
   return null;
+}
+
+/** Read a back photo for what only the back shows: its neckline, opening, slit or vent. A quarter of a front reading's words. */
+export async function analyzeBack(input: AnalyzeInput, client: Anthropic | null): Promise<BackResponse> {
+  if (!client) return { ok: false, error: 'not_configured' };
+  const bad = checkPhoto(input);
+  if (bad) return { ok: false, error: bad };
+  const garment = typeof input.garment === 'string' && /^[a-z]{2,10}$/.test(input.garment) ? input.garment : 'a garment';
+  try {
+    const response = await client.beta.messages.parse({
+      model: 'claude-opus-5-5',
+      max_tokens: 4000,
+      output_config: { effort: 'low', format: betaZodOutputFormat(Back) },
+      betas: ['server-side-fallback-2026-07-01'],
+      fallbacks: 'default',
+      system: BACK_SYSTEM + garment + '.' + BACK_GUIDE,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: input.mediaType as (typeof IMAGE_TYPES)[number], data: input.image } },
+            { type: 'text', text: 'Read the back of the garment in this photo.' },
+          ],
+        },
+      ],
+    });
+    console.log('back reading tokens', { in: response.usage?.input_tokens, out: response.usage?.output_tokens });
+    if (response.stop_reason === 'refusal') return { ok: false, error: 'declined' };
+    const back = response.parsed_output as BackReading | null;
+    return back ? { ok: true, back } : { ok: false, error: 'failed' };
+  } catch (e) {
+    if (spendLimitReached(e)) return { ok: false, error: 'busy' };
+    if (e instanceof Anthropic.BadRequestError) return { ok: false, error: 'bad_image' };
+    console.error('analyzeBack failed', e instanceof Anthropic.APIError ? `${e.status} ${e.message}` : e);
+    return { ok: false, error: 'failed' };
+  }
 }
 
 /** Validate the upload, ask Claude, and turn every outcome into a PhotoResponse the app can show. */
