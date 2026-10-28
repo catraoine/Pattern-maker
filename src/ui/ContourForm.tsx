@@ -19,8 +19,6 @@ const TAPE_INK = '#2b2418';
 const TAPE_HOOK = '#b8a274';
 /** The tape's marks and numbers are laid out on an 18px strip and scale with the tape's width (TAPE_PX). */
 const STRIP_PX = 18;
-/** The first number on the strip, at its metal end (TAPE_MARKS in MeasureStepsScreen). */
-const FIRST_MARK = 1;
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const seg = (t: number, a: number, b: number) => clamp((t - a) / (b - a), 0, 1);
@@ -662,18 +660,15 @@ function band(g: CanvasRenderingContext2D, pts: Pt[], tw: number, alpha = 1, mar
   g.closePath();
   g.fill();
   if (marks) {
-    // As on the strip: a long mark each centimetre with its number between, and a short one every 2 mm, all from
-    // the top edge, counted from the metal end at pts[0].
+    // As on the strip: a long mark each centimetre and a short one every 2 mm, all from the top edge, counted from
+    // the metal end at pts[0]. No numbers (Cat, 2026-10-28): drawn at the screen's scale, not the body's, they read as
+    // a tiny waist.
     const u = tw / STRIP_PX;
-    const cm = 19.5 * u;
     const mm = 3.9 * u;
     g.strokeStyle = TAPE_INK;
     g.fillStyle = TAPE_INK;
     g.lineCap = 'butt';
-    g.font = `600 ${(8 * u).toFixed(2)}px 'Chakra Petch', ui-monospace, monospace`;
-    g.textAlign = 'center';
-    g.textBaseline = 'alphabetic';
-    let acc = 0, k = 0, n = 0;
+    let acc = 0, k = 0;
     for (let i = 1; i < pts.length; i++) {
       const [x0, y0] = pts[i - 1], [x1, y1] = pts[i];
       const d = Math.hypot(x1 - x0, y1 - y0);
@@ -685,13 +680,6 @@ function band(g: CanvasRenderingContext2D, pts: Pt[], tw: number, alpha = 1, mar
         g.lineWidth = Math.max(0.5, u);
         stroke(g, [x, y], [x, y + (long ? 8 : 4) * u]);
         k++;
-      }
-      // Each number sits half a centimetre past its long mark.
-      while (acc + d >= (n + 0.5) * cm) {
-        const f = ((n + 0.5) * cm - acc) / d, x = x0 + (x1 - x0) * f, y = y0 + (y1 - y0) * f - tw / 2;
-        g.globalAlpha = alpha;
-        g.fillText(String(FIRST_MARK + n), x, y + 15 * u);
-        n++;
       }
       acc += d;
     }

@@ -439,3 +439,56 @@
   margin-left: auto;
   font-size: 12px;
 }
+
+/* An unsure reading's one question, and what the photo showed that the app can't draft yet. */
+.photoask {
+  border-left: 3px solid var(--gild);
+  padding: 2px 0 4px 10px;
+  margin: 0;
+}
+.photoask legend {
+  font-weight: var(--w-semi);
+  padding: 0;
+}
+.photoask p {
+  margin: 2px 0 8px;
+}
+.photomissing p {
+  margin: 0 0 4px;
+}
+.photomissing .eyebrow {
+  margin-right: 6px;
+}
+.photomissing .eyebrow {
+  display: block;
+  margin: 0 0 2px;
+}
+/* The optional back photo, beside its line. */
+.photoback {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.photoback p {
+  margin: 0;
+}
+.photoback .eyebrow {
+  display: block;
+  margin-bottom: 2px;
+}
+.photothumb.small {
+  width: 52px;
+}
+/* The self-check just after a photo is drafted: one quiet line, with Undo when it changed something. */
+.photo-check {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  border-left: 3px solid var(--gild);
+  padding: 4px 0 4px 10px;
+  margin: 0 0 12px;
+}
+.photo-check p {
+  margin: 0;
+}

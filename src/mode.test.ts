@@ -35,7 +35,7 @@ describe('shows', () => {
 
   it('counts these as professional tools', () => {
     expect([...PRO_TOOLS].sort()).toEqual(
-      ['bigPrint', 'byHand', 'checkFile', 'clientBook', 'couture', 'dartMoves', 'easeMap', 'insideFinish', 'makerPack', 'posture', 'sizeRun', 'techFlat', 'toile'].sort(),
+      ['byHand', 'checkFile', 'clientBook', 'couture', 'dartMoves', 'easeMap', 'insideFinish', 'makerPack', 'posture', 'sizeRun', 'techFlat', 'toile'].sort(),
     );
   });
 });

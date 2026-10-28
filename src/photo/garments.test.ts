@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { HouseLook, lookFlat } from '../collection';
 import { isBodice, isDress, isOuter, isTee, isTrousers } from '../garments';
 import { EXAMPLE_VALUES } from '../measurements';
-import { PIECE_KINDS, choicesFor, mainPiece, pieceNote, piecesToPick, skirtChoices } from './garments';
+import { PIECE_KINDS, backMissing, backWords, choicesFor, mainPiece, pieceNote, piecesToPick, skirtChoices, withBack } from './garments';
 import type { PhotoReading, TopReading } from './types';
 
 const top: TopReading = {
@@ -125,5 +125,58 @@ describe('skirt details from a photo', () => {
   it('adds an elastic waist, pockets and a high-low hem', () => {
     expect(skirt({ elasticWaist: true, pockets: true })).toMatchObject({ waist: 'elastic', pockets: 'inseam' });
     expect(skirt({ asymHem: 'high_low' }).asymHem).toBe('high_low');
+  });
+});
+
+describe("a photo's exact sizes", () => {
+  const body = { waist_to_floor: 104, arm_length: 60 };
+  const measures = { neckDepthCm: 22, sleeveEndsAt: 0.4, topHemAt: 0.18, trouserHemAt: 0.8 };
+  const read = { ...outfit, top: { ...top, length: 'hip' as const }, measures };
+
+  it('deepens an open neckline, and sets the sleeve, top hem and trouser length on the wearer', () => {
+    const c = choicesFor(read, 'top', body);
+    expect(isBodice(c) && c.neck?.frontDepth).toBe(22);
+    expect(isBodice(c) && c.sleeveCm).toBe(24);
+    expect(isBodice(c) && c.dropCm).toBe(19);
+    const t = choicesFor(read, 'trousers', body);
+    expect(isTrousers(t) && t.lengthCm).toBe(83);
+    for (const g of ['top', 'dress', 'trousers'] as const) expect(lookFlat({ choices: choicesFor(read, g, body) } as HouseLook, EXAMPLE_VALUES), g).toBeDefined();
+  });
+
+  it('keeps the named choice when the size is close to it, or without the measurements', () => {
+    const plain = choicesFor({ ...read, measures: { ...measures, neckDepthCm: 15 } }, 'top', body);
+    expect(isBodice(plain) && plain.neck).toBeUndefined();
+    const noBody = choicesFor(read, 'trousers');
+    expect(isTrousers(noBody) && noBody.lengthCm).toBeUndefined();
+  });
+
+  it('leaves a neckline with a collar alone', () => {
+    const c = choicesFor({ ...read, top: { ...read.top, neckline: 'scoop', collar: 'peter_pan' } }, 'top', body);
+    expect(isBodice(c) && c.neck).toBeUndefined();
+  });
+});
+
+describe('a back photo', () => {
+  const back = { shown: true, backNeck: 'v' as const, opening: 'zip' as const, slit: 'back' as const, vent: false, confidence: 'high' as const, missing: [] };
+
+  it('adds a low back and a slit to a dress, and drafts', () => {
+    const before = choicesFor(dress, 'dress');
+    const after = withBack(before, back);
+    expect(isDress(after) && after.bodice.back).toBe('v');
+    expect(isDress(after) && after.skirt.slit).toBe('back');
+    expect(backWords(before, after)).toBe('V back, back slit');
+    expect(lookFlat({ choices: after } as HouseLook, EXAMPLE_VALUES)).toBeDefined();
+  });
+
+  it("takes a jacket's vent away, and changes nothing when the photo isn't the back", () => {
+    const jacket = choicesFor(outfit, 'jacket');
+    const after = withBack(jacket, back);
+    expect(isOuter(after) && after.vent).toBe('none');
+    expect(withBack(jacket, { ...back, shown: false })).toEqual(jacket);
+  });
+
+  it('lists a back the app has no option for', () => {
+    expect(backMissing({ ...back, opening: 'lace_up', missing: ['back bow'] })).toEqual(['lace-up back', 'back bow']);
+    expect(backMissing({ ...back, shown: false, opening: 'lace_up' })).toEqual([]);
   });
 });

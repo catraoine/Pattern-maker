@@ -24,6 +24,8 @@ export interface SkirtExtras {
   asymHem: 'none' | 'high_low' | 'diagonal';
   pockets: boolean;
   elasticWaist: boolean;
+  /** An open slit up from the hem. Older readings leave it out. */
+  slit?: 'none' | 'front' | 'side' | 'back';
 }
 
 /** A top, a T-shirt, or a dress's bodice. */
@@ -87,6 +89,22 @@ export interface OuterReading {
   trim?: 'none' | 'rib';
 }
 
+/**
+ * Exact sizes, so the pattern copies the photo rather than the nearest named option. Lengths are read
+ * against the body: a sleeve as a fraction of shoulder point (0) to wrist (1), a hem as a fraction of
+ * natural waist (0) to floor (1).
+ */
+export interface PhotoMeasures {
+  /** The front neckline's lowest point, cm below the hollow of the throat. */
+  neckDepthCm: number | null;
+  sleeveEndsAt: number | null;
+  /** A top's hem, below the waist. */
+  topHemAt: number | null;
+  trouserHemAt: number | null;
+}
+
+export type UnsureGroup = 'silhouette' | 'length' | 'neckline' | 'sleeve' | 'leg';
+
 export interface PhotoReading {
   /** The main garment in the photo. */
   garment: PieceKind | 'other' | 'none';
@@ -98,6 +116,12 @@ export interface PhotoReading {
   /** False when the garment is laid flat or on a hanger, so where the hem falls on a body can't be seen. Older readings leave it out. */
   worn?: boolean;
   details: string; // one plain sentence on what we noticed but can't draft yet (gathers, a yoke...), or ''
+  /** Exact sizes read from the photo, each null when it doesn't show. Older readings leave it out. */
+  measures?: PhotoMeasures;
+  /** The one choice the reading was torn on, and the other option it might be, to ask the sewist. */
+  unsure?: { group: UnsureGroup; other: string } | null;
+  /** Features of the garment the app can't draft yet, a few words each ("shoulder bow"). Older readings leave it out. */
+  missing?: string[];
   /** Readings from before other garments have none of these: they read skirts only. */
   pieces?: PhotoPiece[];
   extras?: SkirtExtras;
@@ -107,6 +131,23 @@ export interface PhotoReading {
   /** The main garment's cloth. Older readings leave it out. */
   fabric?: FabricReading | null;
 }
+
+/** A second photo, of the garment from behind: what only the back shows. */
+export interface BackReading {
+  /** False when the photo doesn't show the garment's back, so nothing in it is used. */
+  shown: boolean;
+  backNeck: 'plain' | 'scoop' | 'v' | 'keyhole';
+  opening: 'zip' | 'buttons' | 'lace_up' | 'none';
+  slit: 'none' | 'back' | 'side';
+  vent: boolean;
+  confidence: Confidence;
+  missing: string[];
+}
+
+export type BackResponse = { ok: true; back: BackReading } | { ok: false; error: PhotoError };
+
+/** The self-check: the reading corrected against the drawing of what was drafted, and each change in a few words. */
+export type CheckResponse = { ok: true; reading: PhotoReading; changes: string[] } | { ok: false; error: PhotoError };
 
 export type PhotoResponse = { ok: true; reading: PhotoReading } | { ok: false; error: PhotoError };
 

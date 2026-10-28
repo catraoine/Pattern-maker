@@ -536,7 +536,7 @@ function LandedTape() {
     <div ref={ref} className="tape-band landed" aria-hidden="true">
       <div className="tape-marks">
         {TAPE_MARKS.map((n) => (
-          <span key={n}>{n}</span>
+          <span key={n} />
         ))}
       </div>
     </div>
@@ -660,7 +660,7 @@ function CarriedTape({ from }: { from: { left: number; top: number } }) {
     <div ref={ref} className="tape-band landed carried" aria-hidden="true">
       <div className="tape-marks">
         {TAPE_MARKS.map((n) => (
-          <span key={n}>{n}</span>
+          <span key={n} />
         ))}
       </div>
     </div>,

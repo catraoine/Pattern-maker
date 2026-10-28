@@ -150,7 +150,7 @@ const BODICE_ALL: MeasurementField[] = [
     label: 'High bust',
     hard: [60, 190],
     typical: [72, 140],
-    tip: 'Up under your arms, above the bust and across your shoulder blades. The difference from your full bust sizes the bust darts.',
+    tip: 'Up under your arms, above the bust and across your shoulder blades. Its difference from your full bust is how we draft your cup, so you never have to do a full or small bust adjustment.',
   },
   WAIST,
   {

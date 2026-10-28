@@ -129,6 +129,9 @@ export function roundShape(round: RoundGarment, m: RoundMeasurements, { film, th
   const straightCut = waistEase === undefined ? 0 : bustEase === undefined ? (waistEase - 4) / 3 : (waistEase - bustEase - 2) / 4;
   const hangShare = seamed || !isTop ? 0 : clamp(straightCut, 0, 1) * (through ? 0 : film ? 0.5 : 1);
   const hipR = wornR(FORM_HIP);
+  // The body's widest point below the waist is the top of the thighs, a little under the hip line; trousers hang from
+  // there (hung from the hip line they came in over the thighs: the hip stood out as a shelf, Cat 2026-10-28).
+  const hipWide = Math.max(...Array.from({ length: 25 }, (_, i) => wornR(FORM_HIP + ((1.3 - FORM_HIP) * i) / 24)));
   const hemR = hipR * clamp(round.flare, 0.85, 2.3);
   const bodyRadius = (y: number) =>
     y <= FORM_HIP || !flares ? wornR(y) : hipR + (hemR - hipR) * clamp((y - FORM_HIP) / Math.max(0.05, meanY - FORM_HIP), 0, 1.3);
@@ -160,9 +163,14 @@ export function roundShape(round: RoundGarment, m: RoundMeasurements, { film, th
     return r + over;
   };
   /** How far out the cloth lies at angle a round the body: the full width at the sides, the body's own depth front and back. */
-  const foldAmp = (y: number) =>
-    flares ? (0.018 + 0.06 * clamp(round.flare - 1, 0, 1)) * smooth(clamp((y - FORM_HIP) / Math.max(0.05, meanY - FORM_HIP), 0, 1)) : 0;
-  const FOLDS = 9;
+  // Cloth that hangs falls in soft folds, not as a smooth vase (Cat, 2026-10-28, "in another league"): a few gentle
+  // ones down any hanging cloth from where it leaves the body, and deeper ones where a flare adds cloth.
+  const foldAmp = (y: number) => {
+    const soft = isTop ? 0.028 * smooth(clamp((y - BUST_Y) / 0.6, 0, 1)) : trousers ? 0.012 * smooth(clamp((y - WAIST) / 0.5, 0, 1)) : 0.034 * smooth(clamp((y - WAIST) / 0.5, 0, 1));
+    const flared = flares ? (0.018 + 0.06 * clamp(round.flare - 1, 0, 1)) * smooth(clamp((y - FORM_HIP) / Math.max(0.05, meanY - FORM_HIP), 0, 1)) : 0;
+    return Math.max(soft, flared);
+  };
+  const FOLDS = 8;
   const fold = (a: number, y: number) => 1 + foldAmp(y) * Math.cos(FOLDS * a + 0.6 * Math.sin(3 * a));
   const foldTilt = (a: number, y: number) => Math.atan(-foldAmp(y) * FOLDS * Math.sin(FOLDS * a + 0.6 * Math.sin(3 * a)) * 1.2);
   // Seen from above a body is an oval, not a circle: thin across the shoulders, deeper at the bust, the seat standing
@@ -184,11 +192,21 @@ export function roundShape(round: RoundGarment, m: RoundMeasurements, { film, th
   // own width at the sides: where the pattern narrows (the waist) the sides come in and the front and back hang
   // straight; where it widens below the hip (a flare) it widens all round. The body itself still shows wherever it
   // stands out further than the hanging cloth. Laid as a table down the garment, read between its rows.
+  // How much of a flare below the hip is cut at the side seams (an A-line: its centre front and back on the straight
+  // grain, so seen from the side it hangs straight and only the sides go out) and how much all round (gores, a
+  // circle). Flaring everything all round made an A-line a tent from the side (Cat, 2026-10-28: "these angles are
+  // a bit weird"). From the side seams' angle to the grain over the drop from the hip to the hem.
+  const dropCm = Math.max(0, longest - wh);
+  const gainCm = Math.max(0, (round.girth.hip ?? 0) * (round.flare - 1));
+  const sideGainCm = 2 * dropCm * (Math.tan((round.sideAngle.front * Math.PI) / 180) + Math.tan((round.sideAngle.back * Math.PI) / 180));
+  const allRound = gainCm > 0.5 ? 1 - clamp(sideGainCm / gainCm, 0, 1) : 0;
   const HANG_N = 72;
   const HANG_DY = 0.02;
   // From the bust down: above it the cloth is held on the neck and shoulders and lies on the body (hung from the
-  // shoulders, the chest and back read as a box seen from the side).
-  const hangTop = BUST_Y;
+  // shoulders, the chest and back read as a box seen from the side). Cloth shaped to the body down to the hip (a
+  // bottom, a seamed dress, a fitted jacket) leaves it at the waist, not the bust: hung from the bust it stood out
+  // past the body in one step at the hip, a shelf right round the garment (Cat, 2026-10-28).
+  const hangTop = hangShare > 0 ? BUST_Y : WAIST;
   const hangRows = Math.max(2, Math.ceil((Math.max(yOf(longest), FORM_HIP) + 0.1 - hangTop) / HANG_DY) + 1);
   const hang = new Float64Array(HANG_N * hangRows);
   for (let i = 0; i < HANG_N; i++) {
@@ -199,7 +217,8 @@ export function roundShape(round: RoundGarment, m: RoundMeasurements, { film, th
     for (let j = 1; j < hangRows; j++) {
       const y = hangTop + j * HANG_DY;
       const rho = radius(y) / (radius(y - HANG_DY) || 1e-6);
-      const fell = prev * (y > FORM_HIP ? rho : Math.sqrt(sa * rho * rho + (1 - sa)));
+      const sides = Math.sqrt(sa * rho * rho + (1 - sa));
+      const fell = prev * (y > FORM_HIP ? sides + (rho - sides) * allRound : sides);
       prev = Math.max(onBody(a, y), fell);
       hang[i * hangRows + j] = prev;
     }
@@ -217,7 +236,10 @@ export function roundShape(round: RoundGarment, m: RoundMeasurements, { film, th
     return at(i0) * (1 - u) + at(i1) * u;
   };
   const shell = (a: number, y: number) => {
-    const share = y > FORM_HIP ? 1 : hangShare;
+    // Cloth shaped to the body hangs from wherever the body is fullest below the waist (the belly in front, the seat
+    // behind), straight on down: hung from the waist it lies on the body until then, so there is no step. Cloth
+    // hung from the bust in part (a tee) lets go of the body over the last stretch above the hip.
+    const share = hangShare > 0 ? hangShare + (1 - hangShare) * smooth(clamp((y - (FORM_HIP - 0.2)) / 0.2, 0, 1)) : 1;
     const r = share ? (share < 1 ? onBody(a, y) + (hung(a, y) - onBody(a, y)) * share : hung(a, y)) : onBody(a, y);
     return r * fold(a, y);
   };
@@ -295,31 +317,41 @@ export function roundShape(round: RoundGarment, m: RoundMeasurements, { film, th
   const legHemR = lg ? Math.max(FORM_LEG(yH) + 0.012, (lg.hemCm / TAU) * krL) : 0;
   // At the top each leg is as wide as the hip above it, so the outside runs on down from the hip without a step in
   // (Cat, 2026-10-26: "trousers look weird"); the extra goes by mid-thigh, as a thigh narrows.
-  const thighTop = lg ? Math.max(thighR, radius(yC - 0.04) - FORM_LEG_X) : 0;
+  // Trouser legs are the seat's two halves, side by side with their inseams together, each as wide as half the seat
+  // at the crotch and hanging straight from there to the knee as cut cloth does (not closing in round the thigh and
+  // belling out above it, Cat 2026-10-28: "why are pants like this?"). Each leg stands on its own axis, out at half
+  // its width so the two touch, and back on the form's leg once the cloth is narrower than the legs are apart.
+  const thighTop = lg ? Math.max(thighR, hipWide / 2) : 0;
   const legR = (y: number) =>
-    y <= yK
-      ? thighR + (kneeR - thighR) * clamp((y - yC) / (yK - yC || 1), 0, 1) + (thighTop - thighR) * (1 - clamp((y - yC) / ((yK - yC) * 0.6 || 1), 0, 1)) ** 2
-      : kneeR + (legHemR - kneeR) * clamp((y - yK) / (yH - yK || 1), 0, 1);
+    y <= yK ? thighTop + (kneeR - thighTop) * clamp((y - yC) / (yK - yC || 1), 0, 1) : kneeR + (legHemR - kneeR) * clamp((y - yK) / (yH - yK || 1), 0, 1);
+  const legAxis = (y: number) => (lg ? Math.max(FORM_LEG_X, legR(y) * 0.97) : FORM_LEG_X);
 
-  // Trousers, below the hip, close in round the two legs, so the seat runs into the legs and not over them like shorts.
-  // Below the waist they are oval, as hips are (about three quarters as deep as they are wide), not round, so the seat
+  // Trousers below the waist are oval, as hips are (about three quarters as deep as they are wide), not round, so the seat
   // runs gently into the thighs instead of standing out over them (Cat, 2026-10-26: "trousers look weird").
+  const ovalK = (y: number) => 1 - 0.28 * smooth(clamp((y - WAIST) / (FORM_HIP - WAIST), 0, 1));
+  // Front to back the cloth hangs from the fullest point above it (the belly, the seat), as it does at the sides,
+  // rather than coming in with the oval below the belly and out again at the hip in a ledge (Cat, 2026-10-28).
+  const SEAT_N = 48;
+  const seatDepth = new Float64Array(SEAT_N + 1);
+  for (let i = 0, top = 0; i <= SEAT_N; i++) {
+    const y = WAIST + ((1.3 - WAIST) * i) / SEAT_N;
+    top = Math.max(top, radius(y) * ovalK(y));
+    seatDepth[i] = top;
+  }
+  const depthOf = (y: number) => {
+    const f = clamp(((y - WAIST) / (1.3 - WAIST)) * SEAT_N, 0, SEAT_N);
+    const i = Math.min(SEAT_N - 1, Math.floor(f));
+    return seatDepth[i] + (seatDepth[i + 1] - seatDepth[i]) * (f - i);
+  };
   const rAt = (a: number, y: number) => {
     if (!lg || y <= WAIST) return shell(a, y);
     const W = radius(y);
-    const k = 1 - 0.28 * smooth(clamp((y - WAIST) / (FORM_HIP - WAIST), 0, 1));
-    const r = 1 / Math.hypot(Math.sin(a) / W, Math.cos(a) / (W * k));
-    // The seat closes in round the thighs over the last stretch above the crotch, however near the hip the crotch is.
-    const y0 = Math.min(FORM_HIP, yC - 0.3);
-    const y1 = yC - 0.04;
-    if (y <= y0) return r;
-    // Round both thighs: the edge, at angle a, of the outline wrapping the two of them (two circles and the straight
-    // runs between them), so no part of the form's legs shows past the cloth and the seat meets the legs exactly.
-    const sa = Math.abs(Math.sin(a));
-    const ca = Math.abs(Math.cos(a));
-    const legs = ca > 1e-6 && (thighTop / ca) * sa <= FORM_LEG_X ? thighTop / ca : sa * FORM_LEG_X + Math.sqrt(Math.max(0, thighTop ** 2 - (FORM_LEG_X * ca) ** 2));
-    // Fully round the thighs a little above the crotch, so the seat meets the legs without a step.
-    return r + (Math.min(r, legs) - r) * smooth(clamp((y - y0) / (y1 - y0 || 1), 0, 1));
+    const r = 1 / Math.hypot(Math.sin(a) / W, Math.cos(a) / depthOf(y));
+    // The seat keeps its own depth down to the crotch: the front of the trousers hangs from the belly and the back
+    // from the seat, and each leg goes round over the thigh below (allRoundMesh.ts grows the leg out of this ring).
+    // Closed in round the thighs above the crotch, the seat bulged out over thin legs seen from the side (Cat,
+    // 2026-10-28).
+    return r;
   };
 
   const reach = Math.max(hemR, sl ? axisX(yE) + rh : 0, lg ? FORM_LEG_X + Math.max(thighTop, kneeR, legHemR) : 0, formHalfWidth(-0.55) + eB);
@@ -349,5 +381,5 @@ export function roundShape(round: RoundGarment, m: RoundMeasurements, { film, th
     return topTable[i] + (topTable[i + 1] - topTable[i]) * (f - i);
   };
 
-  return { trousers, isTop, hemY, topY, N, wh, yOfLevel, N0, frontNeckCm, naturalNeck, yAt, yOf, kY, krB, krW, krH, easeOf, eW, eB, eH, easeAt, lengths, tops, longest, highest, meanY, flares, bodyR, wornR, seamed, waistEase, bustEase, straightCut, hangShare, hipR, hemR, bodyRadius, bandTop, arm, yS, yU, sl, slim, ra, rh, tailored, neckOnly, pad, radius, foldAmp, FOLDS, fold, foldTilt, deep, depthAt, onBody, HANG_N, HANG_DY, hangTop, hangRows, hang, hung, shell, zAcross, SHOULDER_TOP, clothDown, yE, yCap, tipX, armX, capT, capOuter, capInner, filmAxis, filmR, axisX, capDepth, sleeveR, lg, yC, yH, yK, krL, thighR, kneeR, legHemR, thighTop, legR, rAt, reach };
+  return { trousers, isTop, hemY, topY, N, wh, yOfLevel, N0, frontNeckCm, naturalNeck, yAt, yOf, kY, krB, krW, krH, easeOf, eW, eB, eH, easeAt, lengths, tops, longest, highest, meanY, flares, bodyR, wornR, seamed, waistEase, bustEase, straightCut, hangShare, hipR, hemR, bodyRadius, bandTop, arm, yS, yU, sl, slim, ra, rh, tailored, neckOnly, pad, radius, foldAmp, FOLDS, fold, foldTilt, deep, depthAt, onBody, HANG_N, HANG_DY, hangTop, hangRows, hang, hung, shell, zAcross, SHOULDER_TOP, clothDown, yE, yCap, tipX, armX, capT, capOuter, capInner, filmAxis, filmR, axisX, capDepth, sleeveR, lg, yC, yH, yK, krL, thighR, kneeR, legHemR, thighTop, legR, legAxis, rAt, reach };
 }

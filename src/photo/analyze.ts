@@ -3,7 +3,8 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { betaZodOutputFormat } from '@anthropic-ai/sdk/helpers/beta/zod';
 import { z } from 'zod';
-import { IMAGE_TYPES, MAX_IMAGE_BYTES, PhotoError, PhotoReading, PhotoResponse, READ_COLOURS } from './types';
+import { wishKey } from './wish';
+import { BackReading, BackResponse, CheckResponse, IMAGE_TYPES, MAX_IMAGE_BYTES, PhotoError, PhotoReading, PhotoResponse, READ_COLOURS } from './types';
 
 const confidence = z.enum(['low', 'medium', 'high']);
 
@@ -68,12 +69,21 @@ export const Reading = z.object({
     asymHem: z.enum(['none', 'high_low', 'diagonal']),
     pockets: z.boolean(),
     elasticWaist: z.boolean(),
+    slit: z.enum(['none', 'front', 'side', 'back']),
   }),
   top: Top.nullable(),
   trousers: Trousers.nullable(),
   outer: Outer.nullable(),
   fabric: Fabric.nullable(),
   worn: z.boolean(),
+  measures: z.object({
+    neckDepthCm: z.number().nullable(),
+    sleeveEndsAt: z.number().nullable(),
+    topHemAt: z.number().nullable(),
+    trouserHemAt: z.number().nullable(),
+  }),
+  unsure: z.object({ group: z.enum(['silhouette', 'length', 'neckline', 'sleeve', 'leg']), other: z.string() }).nullable(),
+  missing: z.array(z.string()),
   details: z.string(),
 });
 
@@ -104,6 +114,7 @@ Pick the closest option in each group:
   - asymHem: "high_low" (shorter at the front than the back) or "diagonal" (one side longer than the other).
   - pockets: true when there are pockets in the side seams.
   - elasticWaist: true for a pull-on, gathered elastic waist.
+  - slit: an open slit up from the hem: "front" (at the centre front), "side" (up a side seam) or "back" (at the centre back, when it shows), otherwise "none".
 
 top: fill this in for a top, a T-shirt, the bodice of a dress, or a top worn under an open jacket; otherwise null.
 - fit: how close it sits round the bust and waist, judged like the skirt's fit. When unsure, choose "regular".
@@ -140,13 +151,111 @@ outer: fill this in for a jacket or a coat; otherwise null.
 
 worn: true when a person or a full-length mannequin is wearing the main garment, so where it ends can be measured against the body; false when it is laid flat, on a hanger or on a dress form without legs.
 
+measures: exact sizes, so the pattern copies the photo rather than a standard option. Measure against the wearer's body, as for the skirt's shape, and use null when the photo doesn't show it, the garment has none, or it isn't worn:
+- neckDepthCm: for a top, T-shirt or dress bodice, how far the lowest point of the front neckline sits below the hollow at the base of the throat, in cm on an average adult (a crew neck 1 to 2, a scoop 8 to 14, a deep V 18 to 28). null for a strapless, cami, halter, one-shoulder or cowl neckline.
+- sleeveEndsAt: where a sleeve ends, as a fraction of the arm from the shoulder point (0) to the wrist bone (1): a short sleeve about 0.25, elbow 0.5, three-quarter 0.75, long 1. null with no sleeves or a cap sleeve.
+- topHemAt: for a top below the waist (not a dress), where its hem falls, as a fraction of the natural waist (0) to the floor (1), like the skirt's hemAt (the hip line is about 0.2).
+- trouserHemAt: for trousers, where the hem falls, as a fraction of the natural waist (0) to the floor (1) (shorts about 0.3, knee 0.56, ankle 0.93, full 0.98).
+
+unsure: when you are torn between your pick and one other option in one of these groups, name the group and the other option exactly as it is written above, so the sewist can be asked which it is: "silhouette" (the skirt's), "length" (the skirt's), "neckline", "sleeve" (top.sleeve) or "leg" (trousers.leg). For example a skirt that could be straight or pencil: group "silhouette", other "pencil". Use it only when both really are likely and the choice changes the pattern; otherwise null.
+
+missing: the design features of the main garment that none of the fields above can draft, each named in two to four plain lower-case words, such as "shoulder bow", "ruched side seams", "cape back", "balloon hem", "ruffled sleeve hems", "lace-up back" or "front slit". At most five, the most noticeable first. Leave out the cloth, colour and print, things already covered by a field, and anything sewn the usual way (a zip, a waistband, hems, plain seams). Empty when the fields cover everything.
+
 Confidence (for each group, and for the shape as a whole): "high" when the photo clearly shows it, "medium" when it is a reasonable reading, "low" when you are guessing (cropped, folded, odd angle, or not that garment).
 
-details: one short, friendly sentence naming design features of the main garment that none of the fields above cover, which the sewist may want to add themselves (for example gathers, a front slit, patch pockets on a skirt, a yoke, a ruffle at the neck, a wrap front, a hood). Leave it empty if there are none. If the item is "other", still fill in your best reading and say what the item is.`;
+details: one short, friendly sentence naming the features in missing, which the sewist may want to add themselves. Leave it empty if missing is empty. If the item is "other", still fill in your best reading and say what the item is.`;
+
+const Back = z.object({
+  shown: z.boolean(),
+  backNeck: z.enum(['plain', 'scoop', 'v', 'keyhole']),
+  opening: z.enum(['zip', 'buttons', 'lace_up', 'none']),
+  slit: z.enum(['none', 'back', 'side']),
+  vent: z.boolean(),
+  confidence,
+  missing: z.array(z.string()),
+});
+
+const BACK_SYSTEM = `You help home sewists turn photos of a garment into a sewing pattern. The front has already been read; this photo shows the same garment from the back. Read only what the back shows. The garment is: `;
+
+const BACK_GUIDE = `
+- shown: true when the photo shows that garment from the back, false when it shows the front, another garment, or no garment. When false, fill in the rest with plain, none and false.
+- backNeck: the back neckline: "scoop" (a low, rounded back), "v" (a low V back), "keyhole" (a small opening at the top of the centre back, closed by a button and loop) or "plain" (a high, ordinary back neck, or none for a skirt or trousers).
+- opening: how it fastens at the back: "zip" (a centre back zip), "buttons" (buttons down the back), "lace_up" (laced or corset-tied) or "none" (no back opening).
+- slit: an open slit up from the hem: "back" (at the centre back) or "side" (up a side seam), otherwise "none". A jacket or coat's vent is not a slit.
+- vent: for a jacket or coat, true when there is a vent (an overlapping opening) at the centre back hem.
+- confidence: "high" when the back is clearly shown, "medium" when it is a reasonable reading, "low" when guessing.
+- missing: back features none of the fields above cover, each in two to four plain lower-case words, such as "back bow", "cut-out back", "back yoke", "criss-cross straps" or "back pleat". At most five. Empty when the fields cover everything.`;
 
 export interface AnalyzeInput {
   image: string; // base64, no data: prefix
   mediaType: string;
+  /** "back" for a second photo of the garment from behind, read for its back details only; "check" to compare the drawing with the photo. */
+  view?: 'front' | 'back' | 'check';
+  /** With a back photo: the garment the front was read as. */
+  garment?: string;
+}
+
+/** A self-check: the photo again, the app's drawing of what it drafted (a PNG, base64), and the reading it drafted from. */
+export interface CheckInput extends AnalyzeInput {
+  drawing: string;
+  reading: unknown;
+}
+
+const Check = z.object({ reading: Reading, changes: z.array(z.string()) });
+
+const CHECK_SYSTEM = `You check a sewing app's work. The first image is a photo of a garment. The second is the app's drawing of the pattern it drafted from your earlier reading of that photo, shown on a dress form from the front, drafted to the sewist's own measurements (so the body may differ from the photo's, and the cloth is drawn plain). Your earlier reading follows, as JSON.
+
+Compare the drawing with the photo, part by part: the outline and how full it is at the hem, where the hem falls on the body, the neckline's shape and depth, the sleeves' length and shape, where the waist seam sits, and the details. Where the drawing clearly differs from the photo because the reading was off, correct the reading. Change only what the comparison shows to be wrong, keep everything else exactly as it was, and don't change anything to match the body or the cloth, which are the sewist's own. When the drawing already matches, return the reading unchanged.
+
+- reading: the whole reading, corrected, filled in by the same rules as before (below).
+- changes: each correction in a few plain words for the sewist, such as "hem 5 cm longer", "fuller skirt", "deeper V-neck" or "elbow-length sleeves". Empty when nothing changed.
+
+The reading's rules:
+
+`;
+
+/** Read the earlier reading back in, keeping only one that has the reading's shape: anything else in the request is dropped. */
+const earlier = (r: unknown) => {
+  const ok = Reading.safeParse(r);
+  return ok.success ? ok.data : null;
+};
+
+/** Compare the drawing of what was drafted with the photo, and correct the reading once where they differ. */
+export async function checkDrawing(input: CheckInput, client: Anthropic | null): Promise<CheckResponse> {
+  if (!client) return { ok: false, error: 'not_configured' };
+  const bad = checkPhoto(input) ?? (typeof input.drawing === 'string' && input.drawing.length <= MAX_IMAGE_BYTES ? null : 'bad_image');
+  if (bad) return { ok: false, error: bad };
+  const before = earlier(input.reading);
+  if (!before) return { ok: false, error: 'bad_image' };
+  try {
+    const response = await client.beta.messages.parse({
+      model: 'claude-opus-5-5',
+      max_tokens: 8000,
+      output_config: { effort: 'low', format: betaZodOutputFormat(Check) },
+      betas: ['server-side-fallback-2026-07-01'],
+      fallbacks: 'default',
+      system: CHECK_SYSTEM + SYSTEM,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: input.mediaType as (typeof IMAGE_TYPES)[number], data: input.image } },
+            { type: 'image', source: { type: 'base64', media_type: 'image/png', data: input.drawing } },
+            { type: 'text', text: `Your earlier reading:\n${JSON.stringify(before)}\n\nCompare the drawing with the photo and correct the reading where they differ.` },
+          ],
+        },
+      ],
+    });
+    console.log('check tokens', { in: response.usage?.input_tokens, out: response.usage?.output_tokens });
+    if (response.stop_reason === 'refusal') return { ok: false, error: 'declined' };
+    const out = response.parsed_output as { reading: PhotoReading; changes: string[] } | null;
+    return out ? { ok: true, reading: out.reading, changes: out.changes.slice(0, 6) } : { ok: false, error: 'failed' };
+  } catch (e) {
+    if (spendLimitReached(e)) return { ok: false, error: 'busy' };
+    if (e instanceof Anthropic.BadRequestError) return { ok: false, error: 'bad_image' };
+    console.error('checkDrawing failed', e instanceof Anthropic.APIError ? `${e.status} ${e.message}` : e);
+    return { ok: false, error: 'failed' };
+  }
 }
 
 /**
@@ -156,11 +265,56 @@ export interface AnalyzeInput {
 export const spendLimitReached = (e: unknown) =>
   e instanceof Anthropic.APIError && (e.status === 400 || e.status === 429) && /API usage limit/i.test(e.message);
 
+/**
+ * The keys a reading's unmatched details are counted under, in the "missing-details" store: the garment
+ * and the detail, as "dress/shoulder-bow". At most five, with no repeats.
+ */
+export function missingKeys(r: { garment: string; missing?: string[] }): string[] {
+  const keys = (r.missing ?? []).slice(0, 5).map((m) => `${wishKey(r.garment)}/${wishKey(m)}`);
+  return [...new Set(keys)];
+}
+
 /** Cheap checks on the upload, done before anything that costs money. */
 export function checkPhoto(input: AnalyzeInput): PhotoError | null {
   if (typeof input?.image !== 'string' || !(IMAGE_TYPES as readonly string[]).includes(input.mediaType)) return 'bad_image';
   if (input.image.length > MAX_IMAGE_BYTES) return 'too_large';
   return null;
+}
+
+/** Read a back photo for what only the back shows: its neckline, opening, slit or vent. A quarter of a front reading's words. */
+export async function analyzeBack(input: AnalyzeInput, client: Anthropic | null): Promise<BackResponse> {
+  if (!client) return { ok: false, error: 'not_configured' };
+  const bad = checkPhoto(input);
+  if (bad) return { ok: false, error: bad };
+  const garment = typeof input.garment === 'string' && /^[a-z]{2,10}$/.test(input.garment) ? input.garment : 'a garment';
+  try {
+    const response = await client.beta.messages.parse({
+      model: 'claude-opus-5-5',
+      max_tokens: 4000,
+      output_config: { effort: 'low', format: betaZodOutputFormat(Back) },
+      betas: ['server-side-fallback-2026-07-01'],
+      fallbacks: 'default',
+      system: BACK_SYSTEM + garment + '.' + BACK_GUIDE,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: input.mediaType as (typeof IMAGE_TYPES)[number], data: input.image } },
+            { type: 'text', text: 'Read the back of the garment in this photo.' },
+          ],
+        },
+      ],
+    });
+    console.log('back reading tokens', { in: response.usage?.input_tokens, out: response.usage?.output_tokens });
+    if (response.stop_reason === 'refusal') return { ok: false, error: 'declined' };
+    const back = response.parsed_output as BackReading | null;
+    return back ? { ok: true, back } : { ok: false, error: 'failed' };
+  } catch (e) {
+    if (spendLimitReached(e)) return { ok: false, error: 'busy' };
+    if (e instanceof Anthropic.BadRequestError) return { ok: false, error: 'bad_image' };
+    console.error('analyzeBack failed', e instanceof Anthropic.APIError ? `${e.status} ${e.message}` : e);
+    return { ok: false, error: 'failed' };
+  }
 }
 
 /** Validate the upload, ask Claude, and turn every outcome into a PhotoResponse the app can show. */
