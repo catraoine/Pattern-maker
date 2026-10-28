@@ -75,6 +75,9 @@ import { Mode, finishFor, keepFinish, modeOf } from './mode';
 import { printableFor } from './printable';
 import { GARMENT_DRAFTING, dressOf, lingerieChoicesOf, outerChoicesOf, skirtStyleOf, teeChoicesOf, trousersChoicesOf, type DraftInputs, type Drafts } from './garmentDrafts';
 import { DEFAULT_FINISH, INITIAL, choicesPatch, type Finish, type Saved } from './savedWork';
+import { PhotoCheck } from './ui/PhotoCheck';
+import type { PhotoSource } from './photo/check';
+import { testerHeaders } from './ui/TesterCode';
 import { NEEDS_MEASUREMENTS, PARENT, SIDE, STEPS, STEP_OF, ladder, type Step, type View } from './navigation';
 
 
@@ -127,6 +130,8 @@ export default function App() {
   const [photoPreview, setPhotoPreview] = useState<string>();
   // The garment the photo was drafted as, so only that garment's style screen shows it.
   const [photoFor, setPhotoFor] = useState<Garment>();
+  // The photo and its reading, for the self-check on the style screen just after drafting. Never saved.
+  const [photoSource, setPhotoSource] = useState<PhotoSource>();
   // A measurement taken (changed from the example body's) is no longer the example's.
   const setValues = (v: MeasurementValues, helped?: MeasurementId[]) =>
     setAccount(updatePerson(account, person.id, { values: v, example: person.example?.filter((id) => v[id] === measured[id]), ...(helped ? { helped } : {}) }));
@@ -715,7 +720,8 @@ export default function App() {
               body={canLeaveMeasure ? (values as SkirtMeasurements & { arm_length?: number }) : undefined}
               unit={saved.unit}
               onByHand={() => switchGarment('skirt', {}, 'style')}
-              onApply={(choices, preview, fabric) => {
+              onApply={(choices, preview, fabric, source) => {
+                setPhotoSource(source);
                 if (BILLING_ON) setAccount(countPhotoDraft(account));
                 const g = choicesPatch(choices)[0];
                 countStep('photo', g);
@@ -824,6 +830,15 @@ export default function App() {
           <CollectionLink.Provider value={step === 'style' ? () => { setStep('collection'); window.scrollTo(0, 0); } : undefined}>
           {/* Switched in place from the title's drop-down: no new step in history, so ← still leaves the style screen. */}
           <GarmentPick.Provider value={step === 'style' ? { garment, onSwitch: (g) => (ready(measured, saved.unit, g, form) ? setSaved({ ...saved, garment: g }) : switchGarment(g, {}, 'style')) } : undefined}>
+          {step === 'style' && photoSource && photoFor === garment && (
+            <PhotoCheck
+              source={photoSource}
+              current={current}
+              body={values as { waist_to_floor?: number; arm_length?: number }}
+              headers={testerHeaders(account.testerCode)}
+              onChoices={(c) => setSaved({ ...saved, ...choicesPatch(c)[1] })}
+            />
+          )}
           {step === 'style' && garment === 'skirt' && (
             <StyleScreen
               mode={mode}

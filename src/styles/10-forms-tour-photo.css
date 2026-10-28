@@ -479,3 +479,16 @@
 .photothumb.small {
   width: 52px;
 }
+/* The self-check just after a photo is drafted: one quiet line, with Undo when it changed something. */
+.photo-check {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  border-left: 3px solid var(--gild);
+  padding: 4px 0 4px 10px;
+  margin: 0 0 12px;
+}
+.photo-check p {
+  margin: 0;
+}

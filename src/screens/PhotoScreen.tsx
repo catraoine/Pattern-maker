@@ -12,6 +12,7 @@ import { describePattern } from './describe';
 import { bodyOutline } from '../ui/bodyOutline';
 import { testerHeaders } from '../ui/TesterCode';
 import { DemoButton } from '../ui/DemoButton';
+import type { PhotoSource } from '../photo/check';
 
 interface Props {
   /** Sent with the photo, for a fit tester's larger daily allowance. */
@@ -23,7 +24,7 @@ interface Props {
   /** Leave for the style screen without a photo. */
   onByHand: () => void;
   /** The photo's preview goes along, so the style screen can show it while the app is open, and the cloth the photo showed. */
-  onApply: (c: PatternChoices, preview: string, fabric?: MyFabric) => void;
+  onApply: (c: PatternChoices, preview: string, fabric?: MyFabric, source?: PhotoSource) => void;
 }
 
 type Phase = 'start' | 'reading' | 'pick' | 'result' | 'length' | 'error';
@@ -67,6 +68,8 @@ const SAMPLE_BODY: SkirtMeasurements = { waist: 76, full_hip: 102, waist_to_hip:
 // Where each named length falls on the sample body, waist (0) to floor (1), as the photo reading measures it.
 const HEM_AT = Object.fromEntries((Object.keys(LENGTHS) as Length[]).map((l) => [l, LENGTHS[l](SAMPLE_BODY) / SAMPLE_BODY.waist_to_floor])) as Record<Length, number>;
 const IN = 2.54;
+// The hem's fullness each shape usually has, for a shape the sewist picked when the photo was unsure.
+const USUAL_FULLNESS: Partial<Record<PhotoReading['silhouette']['value'], number>> = { pencil: 0.9, straight: 1, a_line: 1.5, trumpet: 1.8, half_circle: 3, circle: 5 };
 
 const NECK_NAME: Record<TopReading['neckline'], string> = {
   crew: 'Crew neck',
@@ -187,6 +190,8 @@ export function PhotoScreen({ testerCode, measured, body, unit, onByHand, onAppl
   const [tape, setTape] = useState('');
   // The one question an unsure reading asks, once answered, stays answered for this photo.
   const [answered, setAnswered] = useState(false);
+  // The photo as sent, kept for the self-check on the next screen.
+  const [sent, setSent] = useState<{ image: string; mediaType: string }>();
   const [back, setBack] = useState<BackReading>();
   const [backPreview, setBackPreview] = useState<string>();
   const [backState, setBackState] = useState<'none' | 'reading' | 'done' | 'unseen' | 'limit' | 'failed'>('none');
@@ -227,6 +232,7 @@ export function PhotoScreen({ testerCode, measured, body, unit, onByHand, onAppl
       return fail('bad_image');
     }
     setPreview(img.preview);
+    setSent({ image: img.image, mediaType: img.mediaType });
     setPhase('reading');
     const ctrl = new AbortController();
     pending.current = ctrl;
@@ -367,6 +373,17 @@ export function PhotoScreen({ testerCode, measured, body, unit, onByHand, onAppl
     const c = choicesFor(reading, piece, body);
     return isDress(c) ? { ...c, skirt: { ...skirt, fit: c.fit } } : c;
   };
+  /**
+   * What the self-check needs, unless the sewist changed the shape, length or fit here: then the pattern is theirs,
+   * not the photo's, and there's nothing to check it against. A shape asked about starts from its usual proportions.
+   */
+  const source = (): PhotoSource | undefined => {
+    if (!sent) return undefined;
+    const changed = hasSkirt(piece) && (choices.silhouette !== reading.silhouette.value || (reading.worn !== false && choices.length !== reading.length.value) || choices.fit !== skirtChoices(reading).fit);
+    if (changed) return undefined;
+    const shape = reading.shape ?? { hemAt: HEM_AT[reading.length.value], hemFullness: USUAL_FULLNESS[reading.silhouette.value] ?? 1.4, flareAt: null, confidence: 'low' as const };
+    return { ...sent, reading: { ...reading, shape }, back, garment: piece };
+  };
   /** With what the back photo showed, when there is one. */
   const final = (skirt: Choices = choices): PatternChoices => withBack(front(skirt), back);
 
@@ -424,7 +441,7 @@ export function PhotoScreen({ testerCode, measured, body, unit, onByHand, onAppl
       setTape('');
       setChoices({ ...choices, length, lengthCm: undefined, shape: choices.shape && { ...choices.shape, hemAt: HEM_AT[length] } });
     };
-    const done = () => onApply(final(tapeCm ? { ...choices, lengthCm: Math.round(tapeCm * 10) / 10 } : choices), preview, fabricFor(reading));
+    const done = () => onApply(final(tapeCm ? { ...choices, lengthCm: Math.round(tapeCm * 10) / 10 } : choices), preview, fabricFor(reading), source());
     return (
       <section ref={top} className="card photolength" aria-labelledby="lentitle">
         <p className="eyebrow">One more thing</p>
@@ -589,7 +606,7 @@ export function PhotoScreen({ testerCode, measured, body, unit, onByHand, onAppl
             Next: where it ends
           </button>
         ) : (
-          <button type="button" className="primary" onClick={() => onApply(final(), preview, fabricFor(reading))}>
+          <button type="button" className="primary" onClick={() => onApply(final(), preview, fabricFor(reading), source())}>
             {measured ? `Draft my ${word}` : 'Next: add my measurements'}
           </button>
         )}

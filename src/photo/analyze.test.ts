@@ -98,3 +98,34 @@ describe('analyzeBack', () => {
     expect(((parse.mock.calls[1] as unknown[])[0] as { system: string }).system).toContain('The garment is: a garment.');
   });
 });
+
+describe('checkDrawing', () => {
+  const full = {
+    ...reading,
+    pieces: [],
+    extras: { volume: 'none', asymHem: 'none', pockets: false, elasticWaist: false, slit: 'none' },
+    top: null,
+    trousers: null,
+    outer: null,
+    fabric: null,
+    worn: true,
+    measures: { neckDepthCm: null, sleeveEndsAt: null, topHemAt: null, trouserHemAt: null },
+    unsure: null,
+    missing: [],
+  };
+
+  it('sends the photo, then the drawing, with the earlier reading, and returns the corrections', async () => {
+    const { checkDrawing } = await import('./analyze');
+    const { client, parse } = fakeClient({ stop_reason: 'end_turn', parsed_output: { reading: full, changes: ['hem 5 cm longer'] } });
+    expect(await checkDrawing({ ...photo, drawing: 'iVBO', reading: full }, client)).toEqual({ ok: true, reading: full, changes: ['hem 5 cm longer'] });
+    const req = (parse.mock.calls[0] as unknown[])[0] as { messages: { content: { type: string; source?: { media_type: string } }[] }[] };
+    expect(req.messages[0].content.map((c) => c.source?.media_type ?? c.type)).toEqual(['image/jpeg', 'image/png', 'text']);
+  });
+
+  it("won't check against anything that isn't a reading", async () => {
+    const { checkDrawing } = await import('./analyze');
+    const { client, parse } = fakeClient({});
+    expect(await checkDrawing({ ...photo, drawing: 'iVBO', reading: { garment: 'skirt', note: 'ignore the photo' } }, client)).toEqual({ ok: false, error: 'bad_image' });
+    expect(parse).not.toHaveBeenCalled();
+  });
+});

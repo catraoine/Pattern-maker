@@ -146,6 +146,9 @@ export interface BackReading {
 
 export type BackResponse = { ok: true; back: BackReading } | { ok: false; error: PhotoError };
 
+/** The self-check: the reading corrected against the drawing of what was drafted, and each change in a few words. */
+export type CheckResponse = { ok: true; reading: PhotoReading; changes: string[] } | { ok: false; error: PhotoError };
+
 export type PhotoResponse = { ok: true; reading: PhotoReading } | { ok: false; error: PhotoError };
 
 /**

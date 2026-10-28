@@ -3,7 +3,7 @@
 import { createHash } from 'node:crypto';
 import Anthropic from '@anthropic-ai/sdk';
 import { blobCounts } from '../../src/server/blobCounts';
-import { analyzeBack, analyzePhoto, checkPhoto, missingKeys, type AnalyzeInput } from '../../src/photo/analyze';
+import { analyzeBack, analyzePhoto, checkDrawing, checkPhoto, missingKeys, type AnalyzeInput, type CheckInput } from '../../src/photo/analyze';
 import { TESTER_CAPS, TESTER_POOL, isTesterCode, takeAllowance, type Allowance } from '../../src/photo/limit';
 
 // Provided by the Netlify runtime.
@@ -34,14 +34,16 @@ export default async (req: Request, context: { ip?: string }) => {
   const bad = checkPhoto(body);
   if (bad) return Response.json({ ok: false, error: bad }, { status: 400 });
 
+  // The self-check that follows each reading has caps of its own, the same size, so it never uses up a reading.
+  const store = body.view === 'check' ? 'check-limits' : 'photo-limits';
   if (key) {
     let allowance: Allowance = 'ok';
     try {
       // A fit tester's code (sent from Your account) counts them in the testers' own, larger allowance.
       const tester = isTesterCode(req.headers.get('x-tester-code'), Netlify.env.get('TESTER_CODES'));
       allowance = tester
-        ? await takeAllowance(blobCounts('photo-limits'), visitorId(context.ip), new Date(), TESTER_CAPS, TESTER_POOL)
-        : await takeAllowance(blobCounts('photo-limits'), visitorId(context.ip));
+        ? await takeAllowance(blobCounts(store), visitorId(context.ip), new Date(), TESTER_CAPS, TESTER_POOL)
+        : await takeAllowance(blobCounts(store), visitorId(context.ip));
     } catch (e) {
       // If the counter can't be reached, nothing is read: an uncounted reading is one the caps can't stop.
       console.error('photo limit check failed', e);
@@ -51,6 +53,11 @@ export default async (req: Request, context: { ip?: string }) => {
   }
 
   const client = key ? new Anthropic({ apiKey: key }) : null;
+  if (body.view === 'check') {
+    const checked = await checkDrawing(body as CheckInput, client);
+    const status = checked.ok ? 200 : checked.error === 'not_configured' ? 503 : checked.error === 'failed' ? 502 : 400;
+    return Response.json(checked, { status });
+  }
   // A back photo is read for its back details only, and counted like any reading.
   if (body.view === 'back') {
     const back = await analyzeBack(body, client);

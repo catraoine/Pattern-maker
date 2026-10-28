@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { expect, openLooks, startWithExample, test } from './fixtures';
 
 // Matching the real piece: a reading torn between two shapes asks which, what the app can't draft yet is
@@ -85,4 +85,31 @@ test('a back photo adds a low back and a slit to the dress', async ({ page }, in
   await expect(main.getByText('V back, back slit.')).toBeVisible();
   await expect(main.getByText('Lace-up back.')).toBeVisible();
   if (dir) await page.screenshot({ path: `${dir}/${info.project.name}-4-back-read.png`, fullPage: true });
+});
+
+test('the self-check compares the drawing with the photo, corrects it once, and can be undone', async ({ page }, info) => {
+  await startWithExample(page);
+  const front = { ...reading, unsure: null, missing: [], measures: { ...reading.measures, neckDepthCm: null } };
+  let drawingSent = '';
+  await page.route('**/.netlify/functions/analyze-photo', (route) => {
+    const req = route.request().postDataJSON() as { view?: string; drawing?: string };
+    if (req.view !== 'check') return route.fulfill({ json: { ok: true, reading: front } });
+    drawingSent = req.drawing ?? '';
+    return route.fulfill({ json: { ok: true, reading: { ...front, length: { value: 'midi', confidence: 'high' }, shape: { ...front.shape, hemAt: 0.74 } }, changes: ['hem 15 cm longer'] } });
+  });
+  const main = page.getByRole('main');
+  await openLooks(page);
+  await main.getByRole('button', { name: 'Start from a photo' }).click();
+  await main.locator('input[type=file]').first().setInputFiles({ name: 'dress.jpg', mimeType: 'image/jpeg', buffer: PHOTO });
+  await main.getByRole('button', { name: /Draft my dress/ }).click();
+  await expect(main.getByText('Changed: hem 15 cm longer.')).toBeVisible();
+  // The drawing went as a picture.
+  expect(Buffer.from(drawingSent, 'base64').subarray(1, 4).toString()).toBe('PNG');
+  const dir = process.env.STILLS;
+  if (dir) {
+    await page.screenshot({ path: `${dir}/${info.project.name}-5-checked.png` });
+    writeFileSync(`${dir}/${info.project.name}-5-drawing-sent.png`, Buffer.from(drawingSent, 'base64'));
+  }
+  await main.getByRole('button', { name: 'Undo', exact: true }).first().click();
+  await expect(main.getByText('Changed: hem 15 cm longer.')).toHaveCount(0);
 });

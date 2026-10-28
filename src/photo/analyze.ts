@@ -4,7 +4,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { betaZodOutputFormat } from '@anthropic-ai/sdk/helpers/beta/zod';
 import { z } from 'zod';
 import { wishKey } from './wish';
-import { BackReading, BackResponse, IMAGE_TYPES, MAX_IMAGE_BYTES, PhotoError, PhotoReading, PhotoResponse, READ_COLOURS } from './types';
+import { BackReading, BackResponse, CheckResponse, IMAGE_TYPES, MAX_IMAGE_BYTES, PhotoError, PhotoReading, PhotoResponse, READ_COLOURS } from './types';
 
 const confidence = z.enum(['low', 'medium', 'high']);
 
@@ -189,10 +189,73 @@ const BACK_GUIDE = `
 export interface AnalyzeInput {
   image: string; // base64, no data: prefix
   mediaType: string;
-  /** "back" for a second photo of the garment from behind, read for its back details only. */
-  view?: 'front' | 'back';
+  /** "back" for a second photo of the garment from behind, read for its back details only; "check" to compare the drawing with the photo. */
+  view?: 'front' | 'back' | 'check';
   /** With a back photo: the garment the front was read as. */
   garment?: string;
+}
+
+/** A self-check: the photo again, the app's drawing of what it drafted (a PNG, base64), and the reading it drafted from. */
+export interface CheckInput extends AnalyzeInput {
+  drawing: string;
+  reading: unknown;
+}
+
+const Check = z.object({ reading: Reading, changes: z.array(z.string()) });
+
+const CHECK_SYSTEM = `You check a sewing app's work. The first image is a photo of a garment. The second is the app's drawing of the pattern it drafted from your earlier reading of that photo, shown on a dress form from the front, drafted to the sewist's own measurements (so the body may differ from the photo's, and the cloth is drawn plain). Your earlier reading follows, as JSON.
+
+Compare the drawing with the photo, part by part: the outline and how full it is at the hem, where the hem falls on the body, the neckline's shape and depth, the sleeves' length and shape, where the waist seam sits, and the details. Where the drawing clearly differs from the photo because the reading was off, correct the reading. Change only what the comparison shows to be wrong, keep everything else exactly as it was, and don't change anything to match the body or the cloth, which are the sewist's own. When the drawing already matches, return the reading unchanged.
+
+- reading: the whole reading, corrected, filled in by the same rules as before (below).
+- changes: each correction in a few plain words for the sewist, such as "hem 5 cm longer", "fuller skirt", "deeper V-neck" or "elbow-length sleeves". Empty when nothing changed.
+
+The reading's rules:
+
+`;
+
+/** Read the earlier reading back in, keeping only one that has the reading's shape: anything else in the request is dropped. */
+const earlier = (r: unknown) => {
+  const ok = Reading.safeParse(r);
+  return ok.success ? ok.data : null;
+};
+
+/** Compare the drawing of what was drafted with the photo, and correct the reading once where they differ. */
+export async function checkDrawing(input: CheckInput, client: Anthropic | null): Promise<CheckResponse> {
+  if (!client) return { ok: false, error: 'not_configured' };
+  const bad = checkPhoto(input) ?? (typeof input.drawing === 'string' && input.drawing.length <= MAX_IMAGE_BYTES ? null : 'bad_image');
+  if (bad) return { ok: false, error: bad };
+  const before = earlier(input.reading);
+  if (!before) return { ok: false, error: 'bad_image' };
+  try {
+    const response = await client.beta.messages.parse({
+      model: 'claude-opus-5-5',
+      max_tokens: 8000,
+      output_config: { effort: 'low', format: betaZodOutputFormat(Check) },
+      betas: ['server-side-fallback-2026-07-01'],
+      fallbacks: 'default',
+      system: CHECK_SYSTEM + SYSTEM,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: input.mediaType as (typeof IMAGE_TYPES)[number], data: input.image } },
+            { type: 'image', source: { type: 'base64', media_type: 'image/png', data: input.drawing } },
+            { type: 'text', text: `Your earlier reading:\n${JSON.stringify(before)}\n\nCompare the drawing with the photo and correct the reading where they differ.` },
+          ],
+        },
+      ],
+    });
+    console.log('check tokens', { in: response.usage?.input_tokens, out: response.usage?.output_tokens });
+    if (response.stop_reason === 'refusal') return { ok: false, error: 'declined' };
+    const out = response.parsed_output as { reading: PhotoReading; changes: string[] } | null;
+    return out ? { ok: true, reading: out.reading, changes: out.changes.slice(0, 6) } : { ok: false, error: 'failed' };
+  } catch (e) {
+    if (spendLimitReached(e)) return { ok: false, error: 'busy' };
+    if (e instanceof Anthropic.BadRequestError) return { ok: false, error: 'bad_image' };
+    console.error('checkDrawing failed', e instanceof Anthropic.APIError ? `${e.status} ${e.message}` : e);
+    return { ok: false, error: 'failed' };
+  }
 }
 
 /**
