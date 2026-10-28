@@ -14,7 +14,7 @@ test('ties: a pussy bow, a sash and belt loops', async ({ page }, info) => {
   await addCloserFit(page, 'Bodice');
 
   await chooseChip(page, 'Collar', 'Pussy bow');
-  await expect(main.getByText(/pussy-bow bodice/i).filter({ visible: true }).first()).toBeVisible();
+  await expect(main.getByText(/pussy-bow bodice/i).first()).toBeAttached();
   await page.screenshot({ path: info.outputPath('pussy-bow.png'), fullPage: true });
   // A bow ties at the front, so it can't go with a button front.
   await chooseChip(page, 'Opening', 'Front buttons');
@@ -23,12 +23,12 @@ test('ties: a pussy bow, a sash and belt loops', async ({ page }, info) => {
 
   await switchGarment(page, 'Dress');
   await chooseChip(page, 'Belt', 'Sash in loops');
-  await expect(main.getByText(/dress with .*a sash in loops$/i).filter({ visible: true }).first()).toBeVisible();
+  await expect(main.getByText(/dress with .*a sash in loops$/i).first()).toBeAttached();
   await page.screenshot({ path: info.outputPath('dress-sash.png'), fullPage: true });
 
   await switchGarment(page, 'Skirt');
   await chooseChip(page, 'Belt', 'Belt loops');
-  await expect(main.getByText(/skirt with .*belt loops/i).filter({ visible: true }).first()).toBeVisible();
+  await expect(main.getByText(/skirt with .*belt loops/i).first()).toBeAttached();
   // A wrap ties already.
   await chooseChip(page, 'Waist', 'Wrap, tied');
   const belt = await openGroup(page, 'Belt');

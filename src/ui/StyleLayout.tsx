@@ -567,12 +567,20 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
           // One clear box in the bar (Cat's N3, 2026-10-28): Next in champagne, or Review after the last, with a quiet
           // Review link beside it until then. Undo and redo show only once there is something to undo.
           <div className="style-bar">
+            {/* The garment's name is read out as it changes, not shown: the drawing shows it (Cat's N3). */}
+            <p className="visually-hidden" role="status">
+              {Name}
+            </p>
             {next && ready && (
               <button type="button" className="later go bar-review" onClick={() => setPage('review')}>
                 Review <span aria-hidden="true">›</span>
               </button>
             )}
-            {undo && (undo.canUndo || undo.canRedo) && <UndoTools undo={undo} />}
+            {undo && (
+              <div className={undo.canUndo || undo.canRedo ? 'bar-undo' : 'bar-undo idle'}>
+                <UndoTools undo={undo} />
+              </div>
+            )}
             {next ? (
               <button type="button" className="primary" onClick={() => goStep(next)}>
                 Next: {next.split(/\s/)[0]} <span aria-hidden="true">›</span>

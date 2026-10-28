@@ -16,14 +16,14 @@ test('cuffs: shirt, elastic and tie on the bodice and the dress', async ({ page 
   await chooseChip(page, 'Sleeves', 'Long');
   await chooseChip(page, 'Sleeve shape', 'Straight');
   await chooseChip(page, 'Cuffs', 'Shirt cuff');
-  await expect(main.getByText(/bodice with long sleeves with shirt cuffs$/i).filter({ visible: true }).first()).toBeVisible();
+  await expect(main.getByText(/bodice with long sleeves with shirt cuffs$/i).first()).toBeAttached();
   await page.screenshot({ path: info.outputPath('shirt-cuff.png'), fullPage: true });
   // A shirt cuff is for a long sleeve; elastic goes on shorter ones too.
   await chooseChip(page, 'Sleeves', 'Elbow');
   const cuffs = await openGroup(page, 'Cuffs');
   await expect(cuffs.getByRole('button', { name: 'Shirt cuff' })).toBeDisabled();
   await chooseChip(page, 'Cuffs', 'Elastic');
-  await expect(main.getByText(/elbow-length sleeves with elastic cuffs$/i).filter({ visible: true }).first()).toBeVisible();
+  await expect(main.getByText(/elbow-length sleeves with elastic cuffs$/i).first()).toBeAttached();
   // A short sleeve has no cuff choice.
   await chooseChip(page, 'Sleeves', 'Short');
   await expect(main.getByRole('button', { name: 'Elastic', exact: true })).toHaveCount(0);
@@ -32,6 +32,6 @@ test('cuffs: shirt, elastic and tie on the bodice and the dress', async ({ page 
   await chooseChip(page, 'Sleeves', 'Three-quarter');
   await chooseChip(page, 'Sleeve shape', 'Bishop');
   await chooseChip(page, 'Cuffs', 'Tie');
-  await expect(main.getByText(/three-quarter bishop sleeves with tie cuffs/i).filter({ visible: true }).first()).toBeVisible();
+  await expect(main.getByText(/three-quarter bishop sleeves with tie cuffs/i).first()).toBeAttached();
   await page.screenshot({ path: info.outputPath('dress-tie-cuff.png'), fullPage: true });
 });

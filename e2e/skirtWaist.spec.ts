@@ -8,17 +8,17 @@ test('skirt waist: faced, high and a side zip', async ({ page }, info) => {
   await switchGarment(page, 'Skirt');
   await chooseChip(page, 'Silhouette', 'A-line');
   await chooseChip(page, 'Waist', 'Faced, no band');
-  await expect(main.getByText(/A-line skirt with a faced waist/i).filter({ visible: true }).first()).toBeVisible();
+  await expect(main.getByText(/A-line skirt with a faced waist/i).first()).toBeAttached();
   // The piece list sits beside the drawing on a computer, folded under Numbers and pieces.
   if (info.project.name === 'desktop') {
     await openReview(page);
     await expect(main.getByText(/Waist facings: cut 1 front and 1 back/).first()).toBeVisible();
   }
   await chooseChip(page, 'Waist', 'High waist');
-  await expect(main.getByText(/high-waisted A-line skirt/i).filter({ visible: true }).first()).toBeVisible();
+  await expect(main.getByText(/high-waisted A-line skirt/i).first()).toBeAttached();
   const waist = await openGroup(page, 'Waist');
   await waist.getByRole('button', { name: 'Zip: Left side' }).click();
-  await expect(main.getByText(/high-waisted A-line skirt with a side zip/i).filter({ visible: true }).first()).toBeVisible();
+  await expect(main.getByText(/high-waisted A-line skirt with a side zip/i).first()).toBeAttached();
   await expect(waist.getByText(/back is cut whole on the fold/)).toBeVisible();
   await page.screenshot({ path: info.outputPath('skirt-high-side.png'), fullPage: true });
   // A gathered skirt keeps its band.

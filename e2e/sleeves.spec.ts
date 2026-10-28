@@ -22,18 +22,18 @@ test('sleeves: any length on the slider, cap and flutter', async ({ page }, info
   // Set by hand, no named length chip stays picked, as with a dragged hem.
   await expect(group.getByRole('button', { name: 'Long', exact: true })).toHaveAttribute('aria-pressed', 'false');
   // The title says "sleeves" without a length.
-  await expect(main.getByText(/^waist-length crew neck bodice with sleeves$/i).filter({ visible: true }).first()).toBeVisible();
+  await expect(main.getByText(/^waist-length crew neck bodice with sleeves$/i).first()).toBeAttached();
   await group.screenshot({ path: info.outputPath('slider.png') });
 
   await chooseChip(page, 'Sleeves', 'Short');
   await chooseChip(page, 'Sleeve shape', 'Flutter');
-  await expect(main.getByText(/^waist-length crew neck bodice with flutter sleeves$/i).filter({ visible: true }).first()).toBeVisible();
+  await expect(main.getByText(/^waist-length crew neck bodice with flutter sleeves$/i).first()).toBeAttached();
   await group.screenshot({ path: info.outputPath('flutter.png') });
 
   // A cap sleeve has its own length, so the slider goes.
   await chooseChip(page, 'Sleeve shape', 'Cap');
   await expect(slider).toHaveCount(0);
-  await expect(main.getByText(/^waist-length crew neck bodice with cap sleeves$/i).filter({ visible: true }).first()).toBeVisible();
+  await expect(main.getByText(/^waist-length crew neck bodice with cap sleeves$/i).first()).toBeAttached();
 
   // The dress takes the same sleeves.
   await switchGarment(page, 'Dress');
