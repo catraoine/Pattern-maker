@@ -22,7 +22,7 @@ const m = { waist: 70, full_hip: 96, waist_to_hip: 20.5, waist_to_knee: 58, wais
 const FITS: Fit[] = ['fitted', 'regular', 'relaxed'];
 const BLOCKS: Silhouette[] = ['straight', 'pencil', 'a_line'];
 const LENGTHS: Length[] = ['mini', 'above_knee', 'knee', 'midi', 'maxi'];
-const KINDS: VolumeKind[] = ['knife', 'box', 'inverted', 'godets', 'hem_flounce', 'tiers'];
+const KINDS: VolumeKind[] = ['knife', 'box', 'inverted', 'godets', 'hem_flounce', 'tiers', 'ruffle', 'balloon'];
 const style = (kind: VolumeKind, godets: GodetCount = 6) => setVolume({}, kind, godets);
 const titles = (g: SewingGuide) => g.steps.map((s) => s.title);
 
@@ -116,6 +116,42 @@ describe('skirt volume', () => {
       expect(yoke).toBeGreaterThan(d.zipCm);
       expect(checkPattern(d.pieces, { finishedWaist: d.finishedWaist }).filter((c) => !c.ok)).toEqual([]);
       expect(layPlan([...d.pieces, ...layoutExtras(d), waistbandPiece(d, 1.5)], 140)).toBeDefined();
+    }
+  });
+
+  it('goes to two shallow tiers on a skirt above the knee', () => {
+    const short = draftSkirt(m, { silhouette: 'straight', length: 'above_knee', flounce: 'tiers' });
+    expect(short.volume?.tiers?.bands).toHaveLength(2);
+    expect(checkPattern(short.pieces, { finishedWaist: short.finishedWaist }).filter((c) => !c.ok)).toEqual([]);
+  });
+
+  it('gathers a ruffle onto the hem of the shortened skirt, keeping the length', () => {
+    for (const length of LENGTHS) {
+      const d = draftSkirt(m, { silhouette: 'a_line', length, flounce: 'ruffle' });
+      const plain = draftSkirt(m, { silhouette: 'a_line', length });
+      const v = d.volume!;
+      expect(v.kind).toBe('ruffle');
+      const [b] = v.tiers!.bands;
+      expect(v.tiers!.bands).toHaveLength(1);
+      expect(b.ratio).toBe(1.8);
+      expect(Math.abs(v.tiers!.yoke + b.depth - plain.lengthCm)).toBeLessThan(0.3);
+      expect(d.lengthCm).toBeCloseTo(plain.lengthCm, 1);
+      expect(checkPattern(d.pieces, { finishedWaist: d.finishedWaist }).filter((c) => !c.ok)).toEqual([]);
+      expect(layoutExtras(d).length).toBeGreaterThan(0);
+    }
+  });
+
+  it('puffs a balloon hem: a longer, fuller outer skirt over a shorter underskirt, only above the knee to midi', () => {
+    expect(volumeAllowed({ silhouette: 'straight', length: 'maxi' }, 'balloon')).toBe(false);
+    for (const length of ['mini', 'above_knee', 'knee', 'midi'] as const) {
+      const d = draftSkirt(m, { silhouette: 'straight', length, flounce: 'balloon' });
+      const bl = d.volume!.balloon!;
+      expect(bl.outerLength - bl.underLength).toBeGreaterThan(5);
+      expect(bl.outerHem / bl.underHem).toBeGreaterThan(1.2);
+      expect(bl.outerHem / bl.underHem).toBeLessThan(1.6);
+      expect(d.pieces.filter((pc) => pc.name.startsWith('Underskirt'))).toHaveLength(2);
+      expect(checkPattern(d.pieces, { finishedWaist: d.finishedWaist }).filter((c) => !c.ok)).toEqual([]);
+      expect(layPlan([...d.pieces, waistbandPiece(d, 1.5)], 140)).toBeDefined();
     }
   });
 
@@ -228,6 +264,8 @@ describe('skirt volume', () => {
       if (kind === 'hem_flounce') expect(t.indexOf('Sew on the flounce')).toBeLessThan(t.indexOf('Hem'));
       if (kind === 'tiers') expect(t).toEqual(expect.arrayContaining(['Cut the tiers', 'Gather the tiers', 'Sew on the tiers']));
       if (kind === 'inverted') expect(t).toContain('Make the front pleat');
+      if (kind === 'ruffle') expect(t).toEqual(expect.arrayContaining(['Cut the ruffle', 'Gather the ruffle', 'Sew on the ruffle']));
+      if (kind === 'balloon') expect(t).toEqual(expect.arrayContaining(['Make the underskirt', 'Join the hems', 'Turn and baste the waist']));
       const dd = draftDress(body, { fit: 'regular' }, { fit: 'regular', ...st });
       const dg = dressGuide(dd, st, 2.5, 0.8);
       problems.push(...sound(dg).map((x) => `${kind} dress: ${x}`));
@@ -290,7 +328,7 @@ describe('skirt volume', () => {
             if (e instanceof DraftError) continue;
             throw e;
           }
-          const want = seed % 4 !== 0 || kind === 'godets';
+          const want = (seed % 4 !== 0 || kind === 'godets') && volumeAllowed({ silhouette, length }, kind);
           if (want && !d.skirt.volume) failures.push(`${seed} ${silhouette} ${kind}: no detail`);
           if (!want && d.skirt.volume) failures.push(`${seed} ${silhouette} ${kind}: a detail under a high-low hem`);
           for (const c of checkPattern(d.pieces, { finishedWaist: d.finishedWaist })) if (!c.ok) failures.push(`${seed} ${fit} ${silhouette} ${length} ${kind} ${d.bodice.pieces[0].name}: ${c.label} ${c.detail}`);

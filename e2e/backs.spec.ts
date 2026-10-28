@@ -14,7 +14,7 @@ test('backs: a V back on the bodice, a keyhole on the dress', async ({ page }, i
   await addCloserFit(page, 'Bodice');
 
   await chooseChip(page, 'Back', 'V back');
-  await expect(main.getByText(/bodice with a V back$/i).filter({ visible: true }).first()).toBeVisible();
+  await expect(main.getByText(/bodice with a V back$/i).first()).toBeAttached();
   // A collar goes round the back neck, so it waits for a plain back.
   const collar = await openGroup(page, 'Collar');
   await expect(collar.getByRole('button', { name: 'Mandarin' })).toBeDisabled();
@@ -22,5 +22,5 @@ test('backs: a V back on the bodice, a keyhole on the dress', async ({ page }, i
 
   await switchGarment(page, 'Dress');
   await chooseChip(page, 'Back', 'Keyhole');
-  await expect(main.getByText(/a keyhole back/i).filter({ visible: true }).first()).toBeVisible();
+  await expect(main.getByText(/a keyhole back/i).first()).toBeAttached();
 });

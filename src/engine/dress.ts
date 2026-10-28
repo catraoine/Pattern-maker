@@ -4,6 +4,7 @@
 // to front and back to back, and its darts sit under the bodice's so they run on as one line through
 // the seam. One long zip opens the centre back from the neck to below the waist; a shirt dress buttons
 // down the front instead, from the neck through the waist seam and on down the skirt.
+import { rucheFor, spread } from './ruche';
 import { P, add, len, mul, p, sub, taggedLength, unit } from './geometry';
 import type { Piece } from './piece';
 import { BodiceDraft, BodiceMeasurements, BodiceStyle, DROP_MIN, draftBodice, girthBelowWaist } from './bodice';
@@ -185,7 +186,7 @@ export const noSeamAllowed = (b: Partial<BodiceStyle>) =>
  * waist. The skirt is drafted too, for its length and the steps it shares, but not cut.
  */
 function noSeamDress(m: DressMeasurements, bodiceStyle: Partial<BodiceStyle>, skirtStyle: Partial<SkirtStyle>, kind: NoSeam): DressDraft {
-  const plain: Partial<SkirtStyle> = { ...skirtStyle, silhouette: 'straight', pleats: undefined, godets: undefined, flounce: undefined, asymHem: undefined, pockets: undefined, hem: undefined, flareCm: undefined, shape: undefined };
+  const plain: Partial<SkirtStyle> = { ...skirtStyle, silhouette: 'straight', pleats: undefined, godets: undefined, flounce: undefined, asymHem: undefined, pockets: undefined, hem: undefined, flareCm: undefined, shape: undefined, ruched: undefined };
   const belowWaist = plain.lengthCm !== undefined ? lengthRange(m).clamp(plain.lengthCm) : LENGTHS[plain.length ?? 'knee'](m);
   const bodice = draftBodice(m, {
     ...bodiceStyle,
@@ -202,9 +203,16 @@ function noSeamDress(m: DressMeasurements, bodiceStyle: Partial<BodiceStyle>, sk
   // The skirt as it would be under this bodice, with no waistband: its length and steps, never cut.
   // A shift's waist can be as wide as its hip, so the skirt is joined no wider than the hip.
   const joinAt = Math.min(bodice.finishedWaist, m.full_hip) / 4;
-  const skirt = draftSkirt(m, { ...plain, joinTo: { front: joinAt, back: joinAt, zipCm: 0 } });
+  const drafted = draftSkirt(m, { ...plain, joinTo: { front: joinAt, back: joinAt, zipCm: 0 } });
   const word = (t: string) => t.replace(/^Bodice/, 'Dress').replace(/^BODICE/, 'DRESS');
-  const pieces = bodice.pieces.map((pc) => (pc.kind ? pc : { ...pc, name: word(pc.name), labels: pc.labels.map((l) => ({ ...l, text: word(l.text) })) }));
+  const named = bodice.pieces.map((pc) => (pc.kind ? pc : { ...pc, name: word(pc.name), labels: pc.labels.map((l) => ({ ...l, text: word(l.text) })) }));
+  // A ruched sheath: slashed across just below the hip, front and back, and opened for the ruching. The
+  // drawings keep the bodice as drafted; the skirt carries where the ruching runs, for the steps.
+  const ruche = kind === 'sheath' && skirtStyle.ruched ? rucheFor(m.waist_to_hip, drafted.lengthCm) : undefined;
+  const pieces = ruche
+    ? named.map((pc) => (pc.kind ? pc : spread(pc, (/back/i.test(pc.name) ? bodice.back : bodice.front).waistCentre.y + ruche.from, ruche.extra)))
+    : named;
+  const skirt = ruche ? { ...drafted, ruche: { ...ruche, plain: [] } } : drafted;
   const cbWaist = bodice.back.waistCentre.y;
   const zipBelow = Math.round((bodice.back.zipEnd.y - cbWaist) * 10) / 10;
   const bf = pieces.find((pc) => !pc.kind && /front/i.test(pc.name));

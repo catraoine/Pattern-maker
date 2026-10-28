@@ -110,6 +110,7 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
     return (
       <GarmentFabric fabric={fabric}>
         <DrawOnForm<TrousersChoices>
+          allRound={round ? { round, m: values, fabric } : undefined}
           cloth={onForm.cloth}
           body={formBody}
           m={values as { waist: number }}

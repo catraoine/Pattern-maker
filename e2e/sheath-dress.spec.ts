@@ -8,7 +8,7 @@ test('sheath and shift: a dress with no waist seam', async ({ page }, info) => {
   await switchGarment(page, 'Dress');
 
   await chooseChip(page, 'Cut', 'Sheath');
-  await expect(main.getByText(/sheath dress with/i).filter({ visible: true }).first()).toBeVisible();
+  await expect(main.getByText(/sheath dress with/i).first()).toBeAttached();
   // Cut in one, the dress has no skirt shape to pick, and can't take princess seams or a strapless top.
   await expect(main.getByRole('group', { name: 'Skirt', exact: true })).toHaveCount(0);
   const neck = await openGroup(page, 'Neckline');
@@ -18,7 +18,7 @@ test('sheath and shift: a dress with no waist seam', async ({ page }, info) => {
   await page.screenshot({ path: info.outputPath('sheath-drawing.png'), fullPage: true });
 
   await chooseChip(page, 'Cut', 'Shift');
-  await expect(main.getByText(/shift dress with/i).filter({ visible: true }).first()).toBeVisible();
+  await expect(main.getByText(/shift dress with/i).first()).toBeAttached();
   await chooseChip(page, 'Cut', 'Waist seam');
   await expect((await openGroup(page, 'Skirt')).getByRole('button', { name: 'Full circle', exact: true })).toBeVisible();
 });

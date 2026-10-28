@@ -61,13 +61,14 @@ export function FormHead({ head, cx }: { head: { outline: string; lines: string[
   );
 }
 
-/** The form's black satin (Cat's F5 Satin and Light, 2026-10-25): lit from the upper left, a soft sheen a third of
- *  the way across, falling into black on the right. The same light as the cloth's, and the welcome's canvas form. */
+/** The form's satin (Cat's F5 Satin and Light, 2026-10-25), lit from the upper left, a soft sheen a third of the
+ *  way across, falling into shadow on the right. Warm graphite since Cat's F5 Atelier Light (2026-10-28): black
+ *  satin on the black page was barely there. */
 const SATIN_STOPS: [number, string][] = [
-  [0, '#14120e'],
-  [0.3, '#3b352a'],
-  [0.5, '#1c1915'],
-  [1, '#050505'],
+  [0, '#4d463b'],
+  [0.3, '#a3937a'],
+  [0.5, '#5a5245'],
+  [1, '#211d18'],
 ];
 /** The satin across a drawing whose centre line is at `cx`. With arms, each arm gets the same light across its own
  *  width (`${id}0` the right arm, `${id}1` the left), so it rounds like the body instead of sitting in the body's
@@ -179,8 +180,8 @@ export interface WornSleeve {
   hemCm: number;
   /** Gathered sleeves: how much is gathered into the armhole (a puff) and into the band or cuff. */
   gathers?: { crown?: number; hem: number };
-  /** The cuff, when it has one. */
-  cuff?: { depth: number };
+  /** The cuff, when it has one: a ruffle hangs below the hem rather than gathering it in. */
+  cuff?: { depth: number; kind?: string };
 }
 
 /** How the sleeve hangs, read from the draft: where its band starts, and how its width runs. */
@@ -262,10 +263,23 @@ function sleeveShape(arm: FormArm, sleeve: WornSleeve, head: P = arm.tip, cloth?
   // The hem falls a little at its middle, seen a touch from above, like every hem on the form: not a flat cut.
   const o = outer[outer.length - 1];
   const n = inner[0];
-  const hem = Array.from({ length: 9 }, (_, i) => {
-    const u = (i + 1) / 10;
-    return { x: o.x + (n.x - o.x) * u, y: end + SLEEVE_HEM_FALL * Math.abs(o.x - n.x) * Math.sin(u * Math.PI) };
-  });
+  const ruffle = sleeve.cuff?.kind === 'ruffle' ? sleeve.cuff.depth : 0;
+  const hem = ruffle
+    ? // A ruffle below the hem: flaring out a little each side, its edge rippling.
+      [
+        { x: o.x + ruffle * 0.35, y: end + ruffle },
+        ...Array.from({ length: 13 }, (_, i) => {
+          const u = (i + 1) / 14;
+          const x0 = o.x + ruffle * 0.35;
+          const x1 = n.x - ruffle * 0.35;
+          return { x: x0 + (x1 - x0) * u, y: end + ruffle + 0.5 * Math.cos(u * 8 * Math.PI) + SLEEVE_HEM_FALL * Math.abs(x0 - x1) * Math.sin(u * Math.PI) };
+        }),
+        { x: n.x - ruffle * 0.35, y: end + ruffle },
+      ]
+    : Array.from({ length: 9 }, (_, i) => {
+        const u = (i + 1) / 10;
+        return { x: o.x + (n.x - o.x) * u, y: end + SLEEVE_HEM_FALL * Math.abs(o.x - n.x) * Math.sin(u * Math.PI) };
+      });
   return [...outer, ...hem, ...inner, { x: arm.under.x, y: arm.under.y }, ...back];
 }
 
@@ -598,7 +612,9 @@ export function hemCorner(piece: P[]): P | undefined {
 
 /** The garment's shoulder point on its right: the furthest-out point of its cloth above the underarm. */
 function shoulderPoint(cloth: P[][], arm: FormArm): P | undefined {
-  const top = cloth.flat().filter((q) => q.x > 0 && q.y <= arm.under.y - 2);
+  // Read off the garment's body, the first shape: a cape over the shoulders flares out wider than them.
+  const own = cloth[0]?.filter((q) => q.x > 0 && q.y <= arm.under.y - 2) ?? [];
+  const top = own.length ? own : cloth.flat().filter((q) => q.x > 0 && q.y <= arm.under.y - 2);
   if (!top.length) return undefined;
   // The highest of the outermost points: the shoulder corner, not a point of the armhole just under it.
   const wide = Math.max(...top.map((q) => q.x));

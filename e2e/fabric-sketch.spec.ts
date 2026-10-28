@@ -86,7 +86,7 @@ test('any colour tints the sketch and finds the closest shop colourway', async (
   await main.getByRole('tab', { name: 'Fabric' }).click();
   await main.getByRole('radiogroup', { name: 'Fabric for the sketch' }).getByRole('radio', { name: 'Linen' }).click();
   await main.getByRole('button', { name: 'Any colour' }).click();
-  await expect(main.getByText('In testing').first()).toBeVisible();
+  await expect(main.locator('.testing-tag[title*="shop colourways match"]')).toBeVisible();
   await main.getByLabel('Hex').fill('#b8613f');
   await expect(main.locator('.fabric-now')).toContainText('#B8613F');
   await expect(main.locator('.garment-fabric filter.fabric-tint')).toHaveCount(1);

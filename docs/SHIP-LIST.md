@@ -49,6 +49,7 @@ testing". A tag comes off by hand, once its proof is in: delete the entry and th
 | --- | --- | --- |
 | Trousers, T-shirt, jacket, coat (and lingerie while hidden) | "What would you like to make?" and the Style heading | sewists score it 4 of 5 or better at the fit gate |
 | Draw your lines | Style, Draw on your form | fit testers draw a hem, a neckline and a side and the pattern follows |
+| Draw on it all round | Draw your lines, the all round switch | three testers draw a hem and a side on the turning garment and get the same pattern as drawn flat |
 | Body Double | Account and the form page | one padded form checked against its person |
 | Prints beyond checks | "What's the print?" in About your fabric | three testers cut a one-way or border print from the lay plan |
 | Any colour | the colour dots on the Fabric tab | shop colourways match the picked colour on five fabrics |
@@ -59,6 +60,7 @@ testing". A tag comes off by hand, once its proof is in: delete the entry and th
 | Client book | Account | one dressmaker keeps three clients in it |
 | The collection and the Archive | the Collection heading | drop 01 published |
 | Projector mode | Print, Projector, and inside projector mode | two sewists cut a garment with it on their own projectors |
+| Ruffles, ruching, cape and balloon hem (ruffled hems and sleeve hems, ruched sides, cape, balloon hem) | the chips for each on the Style screens | three testers sew a ruffled hem, ruched sides and a cape and each hangs as drawn |
 
 Lingerie and swimwear stay hidden (`?lingerie=preview`, PR #102). Tracé Engine, Atelier Nights, Deadstock and
 Cut For You are sign-ups only: nothing more is built behind them before the gate.

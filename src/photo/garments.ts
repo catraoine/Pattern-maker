@@ -30,7 +30,7 @@ import { noSeamAllowed } from '../engine/dress';
 import type { MyFabric } from '../engine/fabrics';
 import type { OuterLength } from '../engine/outerwear';
 import type { TeeLength, TeeNeck, TeeSleeve } from '../engine/tee';
-import { setVolume, volumeOf } from '../engine/skirtVolume';
+import { setSkirtDetail, skirtDetailOf, volumeOf } from '../engine/skirtVolume';
 import { validCut } from '../engine/slip';
 import { slitAllowed } from '../engine/slit';
 import { backBlocked } from '../engine/backNeck';
@@ -121,12 +121,13 @@ export function skirtChoices(r: PhotoReading, garment: 'skirt' | 'dress' = 'skir
   c = validCut({ ...c, ...(garment === 'dress' ? { joinTo: true } : {}) });
   delete (c as { joinTo?: unknown }).joinTo;
   if (x.volume !== 'none') {
-    const v = setVolume(c, x.volume);
-    if (volumeOf(v) !== 'none') c = v;
+    const v = setSkirtDetail(c, x.volume);
+    if (skirtDetailOf(v) !== 'none') c = v;
   }
   if (garment === 'skirt' && x.elasticWaist && elasticAllowed(c)) c = { ...c, waist: 'elastic' };
-  if (x.pockets && pocketsAllowed(c)) c = { ...c, pockets: 'inseam' };
-  if (x.slit && x.slit !== 'none' && slitAllowed(c)) c = { ...c, slit: x.slit };
+  // Ruched sides keep their side seams plain: no pocket or slit in them.
+  if (x.pockets && pocketsAllowed(c) && !c.ruched) c = { ...c, pockets: 'inseam' };
+  if (x.slit && x.slit !== 'none' && slitAllowed(c) && !(c.ruched && x.slit === 'side')) c = { ...c, slit: x.slit };
   if (c.asymHem || volumeOf(c) !== 'none') delete c.shape;
   return c;
 }

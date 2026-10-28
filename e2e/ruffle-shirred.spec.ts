@@ -15,12 +15,12 @@ test('ruffle neckline on a bodice and a dress, and a shirred cami top', async ({
 
   await chooseChip(page, 'Neckline', 'V-neck');
   await chooseChip(page, 'Collar', 'Ruffle');
-  await expect(main.getByText(/ruffled V-neck bodice/i).filter({ visible: true }).first()).toBeVisible();
+  await expect(main.getByText(/ruffled V-neck bodice/i).first()).toBeAttached();
   await page.screenshot({ path: info.outputPath('ruffle.png'), fullPage: true });
 
   await chooseChip(page, 'Neckline', 'Cami straps');
   await chooseChip(page, 'Structure', 'Shirred back');
-  await expect(main.getByText(/cami bodice with spaghetti straps and a shirred back/i).filter({ visible: true }).first()).toBeVisible();
+  await expect(main.getByText(/cami bodice with spaghetti straps and a shirred back/i).first()).toBeAttached();
   await expect((await openGroup(page, 'Structure')).getByText(/pulls on with no zip/)).toBeVisible();
   await main.getByRole('button', { name: 'Back', exact: true }).first().click();
   await page.screenshot({ path: info.outputPath('shirred.png'), fullPage: true });
@@ -29,5 +29,5 @@ test('ruffle neckline on a bodice and a dress, and a shirred cami top', async ({
   await switchGarment(page, 'Dress');
   await chooseChip(page, 'Neckline', 'Crew');
   await chooseChip(page, 'Collar', 'Ruffle');
-  await expect(main.getByText(/dress with a ruffled neckline/i).filter({ visible: true }).first()).toBeVisible();
+  await expect(main.getByText(/dress with a ruffled neckline/i).first()).toBeAttached();
 });

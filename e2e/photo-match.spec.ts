@@ -49,20 +49,24 @@ test('an unsure reading asks once, and names what the app cannot draft yet', asy
   await main.getByRole('button', { name: 'Start from a photo' }).click();
   await main.locator('input[type=file]').setInputFiles({ name: 'dress.jpg', mimeType: 'image/jpeg', buffer: PHOTO });
 
-  await expect(main.getByText('We see a dress')).toBeVisible();
-  await expect(main.getByRole('heading', { name: /V-neck/ })).toBeVisible();
-  await expect(main.getByText('Neckline 22 cm deep, as in the photo')).toBeVisible();
-  await expect(main.getByText('A-line or half circle?')).toBeVisible();
-  await expect(main.getByText('Shoulder bow and tiered hem.')).toBeVisible();
-  await expect(main.getByText(/We've noted them/)).toBeVisible();
-  // The details sentence is replaced by the list, not shown as well.
-  await expect(main.getByText('It has a bow at the shoulder')).toHaveCount(0);
+  // The one question comes first, on its own, before anything else.
+  await expect(main.getByRole('heading', { name: 'A-line or half circle?' })).toBeVisible();
+  await expect(main.getByText('Then your dress is ready to draft.')).toBeVisible();
+  await expect(main.getByText('We see a dress')).toHaveCount(0);
   const dir = process.env.STILLS;
   if (dir) await page.screenshot({ path: `${dir}/${info.project.name}-1-ask.png`, fullPage: true });
 
   await main.getByRole('button', { name: 'Half circle', exact: true }).click();
   await expect(main.getByText('A-line or half circle?')).toHaveCount(0);
+  await expect(main.getByText('We see a dress')).toBeVisible();
   await expect(main.getByRole('heading', { name: /half circle/i })).toBeVisible();
+  await expect(main.getByText(/Neckline 22 cm deep/)).toBeVisible();
+  await expect(main.getByText('Not in the app yet: shoulder bow and tiered hem.')).toBeVisible();
+  // The details sentence is replaced by the list, not shown as well.
+  await expect(main.getByText('It has a bow at the shoulder')).toHaveCount(0);
+  // Everything read sits on one line, with one Change that opens the choices.
+  await main.getByRole('button', { name: 'Change', exact: true }).click();
+  await expect(main.getByRole('group', { name: 'Silhouette' })).toBeVisible();
   if (dir) await page.screenshot({ path: `${dir}/${info.project.name}-2-answered.png`, fullPage: true });
 });
 
@@ -77,11 +81,11 @@ test('a back photo adds a low back and a slit to the dress', async ({ page }, in
   await openLooks(page);
   await main.getByRole('button', { name: 'Start from a photo' }).click();
   await main.locator('input[type=file]').first().setInputFiles({ name: 'dress.jpg', mimeType: 'image/jpeg', buffer: PHOTO });
-  await expect(main.getByText('Add a photo of the back')).toBeVisible();
+  await expect(main.getByText('Add back photo')).toBeVisible();
   const dir = process.env.STILLS;
   if (dir) await page.screenshot({ path: `${dir}/${info.project.name}-3-back-offer.png`, fullPage: true });
 
-  await main.locator('.photoback input[type=file]').setInputFiles({ name: 'back.jpg', mimeType: 'image/jpeg', buffer: PHOTO });
+  await main.locator('.photolinks label', { hasText: 'Add back photo' }).locator('input[type=file]').setInputFiles({ name: 'back.jpg', mimeType: 'image/jpeg', buffer: PHOTO });
   await expect(main.getByText('V back, back slit.')).toBeVisible();
   await expect(main.getByText('Lace-up back.')).toBeVisible();
   if (dir) await page.screenshot({ path: `${dir}/${info.project.name}-4-back-read.png`, fullPage: true });

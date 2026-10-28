@@ -231,10 +231,11 @@ export async function unfold(group: Locator) {
   if ((await head.count()) && (await head.getAttribute('aria-expanded')) === 'false') await head.click();
 }
 
-/** "Start from a look", by the Style title: the photo and the Maison collection (no longer a step of their own). */
+/** "Start from a look", the first line in the garment's drop-down: the photo and the Maison collection. */
 export async function openLooks(page: Page) {
-  const link = main(page).getByRole('button', { name: 'Start from a look' });
-  if ((await link.getAttribute('aria-pressed')) !== 'true') await link.click();
+  if (await main(page).getByRole('heading', { name: 'Start from a look', level: 2 }).isVisible()) return;
+  await main(page).getByRole('group', { name: 'Garment' }).locator('.drop-button').click();
+  await main(page).getByRole('menuitemradio', { name: /Start from a look/ }).click();
 }
 
 /** "Show all tools": on a style screen it sits under the last tab only, so open that tab first. */

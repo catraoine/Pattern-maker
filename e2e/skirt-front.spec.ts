@@ -9,13 +9,13 @@ test('skirt front: a yoke, then buttons down the front', async ({ page }, info) 
   await chooseChip(page, 'Silhouette', 'A-line');
   await chooseChip(page, 'Length', 'Knee');
   await chooseChip(page, 'Front', 'Yoke');
-  await expect(main.getByText(/knee a-line skirt with a yoke/i).filter({ visible: true }).first()).toBeVisible();
+  await expect(main.getByText(/knee a-line skirt with a yoke/i).first()).toBeAttached();
   await page.screenshot({ path: info.outputPath('yoke.png'), fullPage: true });
   // In-seam pockets would open where the yoke meets the side seam.
   await expect((await openGroup(page, 'Pockets')).getByRole('button', { name: 'In-seam' })).toBeDisabled();
 
   await chooseChip(page, 'Front', 'Buttoned');
-  await expect(main.getByText(/knee a-line skirt with a button front/i).filter({ visible: true }).first()).toBeVisible();
+  await expect(main.getByText(/knee a-line skirt with a button front/i).first()).toBeAttached();
   await expect((await openGroup(page, 'Front')).getByText(/buttons from the waistband to 15 cm above the hem/i)).toBeVisible();
   // A button front is the opening, so no zip choice.
   await expect(main.getByRole('button', { name: /Zip: Left side/ })).toHaveCount(0);

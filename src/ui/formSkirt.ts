@@ -65,6 +65,8 @@ const VOLUME_WORDS: Record<Exclude<VolumeKind, 'none'>, string> = {
   godets: 'godets',
   hem_flounce: 'A gathered flounce round the hem.',
   tiers: 'Gathered tiers, each fuller than the one above.',
+  ruffle: 'A ruffle gathered round the hem.',
+  balloon: 'A balloon hem, puffed out and turned under.',
 };
 
 /** A fullness line: pleats, gathers, godets, a flounce or tiers. */

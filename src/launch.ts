@@ -25,6 +25,7 @@ export function testingNote(name: (g: Garment) => string, garments: readonly Gar
  *  has drifted. Taking a tag off is deleting its entry and its tag; garments come off by moving to LAUNCH_GARMENTS. */
 export type TestingTool =
   | 'draw_lines'
+  | 'draw_round'
   | 'body_double'
   | 'prints'
   | 'any_colour'
@@ -34,10 +35,12 @@ export type TestingTool =
   | 'check_file'
   | 'client_book'
   | 'collection'
-  | 'projector';
+  | 'projector'
+  | 'new_details';
 
 export const TESTING_TOOLS: Record<TestingTool, { name: string; where: string; proof: string }> = {
   draw_lines: { name: 'Draw your lines', where: 'Style, Draw on your form', proof: 'fit testers draw a hem, a neckline and a side and the pattern follows' },
+  draw_round: { name: 'Draw on it all round', where: 'Draw your lines, the all round switch', proof: 'three testers draw a hem and a side on the turning garment and get the same pattern as drawn flat' },
   body_double: { name: 'Body Double', where: 'Account and the form page', proof: 'one padded form checked against its person' },
   prints: { name: 'Prints beyond checks', where: "What's the print?, About your fabric", proof: 'three testers cut a one-way or border print from the lay plan' },
   any_colour: { name: 'Any colour', where: 'the colour dots on the Fabric tab', proof: 'shop colourways match the picked colour on five fabrics' },
@@ -49,6 +52,8 @@ export const TESTING_TOOLS: Record<TestingTool, { name: string; where: string; p
   collection: { name: 'The collection and the Archive', where: 'the Collection heading', proof: 'drop 01 published' },
   // Cat broke the freeze for it (2026-10-28), modelled on the free Pattern Projector app.
   projector: { name: 'Projector mode', where: 'Print, Projector, and inside projector mode', proof: 'two sewists cut a garment with it on their own projectors' },
+  // Cat broke the freeze for these too (2026-10-28), so a photo can name them.
+  new_details: { name: 'Ruffles, ruching, cape and balloon hem', where: 'the chips for each on the Style screens', proof: 'three testers sew a ruffled hem, ruched sides and a cape and each hangs as drawn' },
 };
 
 /** What takes a garment's tag off: moving it to LAUNCH_GARMENTS once sewists score it at the fit gate. */
@@ -60,3 +65,13 @@ export function stillInTesting(name: (g: Garment) => string, garments: readonly 
   const ts = (Object.keys(TESTING_TOOLS) as TestingTool[]).map((k) => ({ name: TESTING_TOOLS[k].name, proof: TESTING_TOOLS[k].proof }));
   return [...gs, ...ts];
 }
+
+/** The style options under the new_details tool, by option group: their chips carry its In testing tag. */
+const OPTIONS_IN_TESTING: Record<string, readonly string[]> = {
+  volume: ['ruffle', 'balloon', 'ruched'],
+  ruched: ['ruched'],
+  collar: ['cape'],
+  sleeveCuff: ['ruffle'],
+};
+
+export const optionInTesting = (group: string, id: string) => !!OPTIONS_IN_TESTING[group]?.includes(id);

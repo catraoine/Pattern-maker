@@ -66,11 +66,11 @@ test('an outfit photo asks which piece, and drafts the jacket', async ({ page })
   await expect(main.getByRole('heading', { name: /double-breasted jacket with notched lapels/ })).toBeVisible();
 
   // Back to the photo for the other piece, then the wrong-garment switch, all from the one reading.
-  await main.getByRole('button', { name: 'Draft another piece from this photo' }).click();
+  await main.getByRole('button', { name: 'Another piece' }).click();
   await main.getByRole('button', { name: 'Trousers', exact: true }).click();
   await expect(main.getByRole('heading', { name: /Wide-leg trousers with a fly front and slant pockets/i })).toBeVisible();
-  await main.getByRole('button', { name: 'Not trousers? Choose the garment' }).click();
-  await main.getByRole('group', { name: 'Garment' }).getByRole('button', { name: 'Coat', exact: true }).click();
+  await main.getByRole('button', { name: 'Wrong garment?' }).click();
+  await main.getByRole('group', { name: 'What is it?' }).getByRole('button', { name: 'Coat', exact: true }).click();
   await expect(main.getByText('We see a coat')).toBeVisible();
   await main.getByRole('button', { name: 'Draft my coat' }).click();
 
@@ -96,7 +96,9 @@ test('a dress photo drafts a dress, with its skirt to change', async ({ page }) 
   });
   await expect(main.getByText('We see a dress')).toBeVisible();
   await expect(main.getByRole('heading', { name: /dress with a V-neck and short sleeves/i })).toBeVisible();
-  await expect(main.getByText('Silhouette', { exact: true })).toBeVisible();
+  await expect(main.getByText('A-line · Knee', { exact: false })).toBeVisible();
+  await main.getByRole('button', { name: 'Change', exact: true }).click();
+  await expect(main.getByRole('group', { name: 'Silhouette' })).toBeVisible();
   await main.getByRole('button', { name: 'Draft my dress' }).click();
   await expect(main.getByRole('heading', { name: 'Style your dress' })).toBeVisible();
   await openLooks(page);

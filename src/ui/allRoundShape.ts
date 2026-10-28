@@ -4,6 +4,7 @@
 import { RoundGarment } from '../engine/allRound';
 import { SHOULDER_TIP_Y, bodyHalf as formHalfWidth, depthShare, reach as bodyReach } from '../engine/body';
 import { FORM_CROTCH, FORM_FLOOR, FORM_HIP, FORM_KNEE, FORM_LEG, FORM_LEG_X } from './ContourForm';
+export { FORM_HIP };
 
 const TAU = Math.PI * 2;
 const HALF = Math.PI / 2;
@@ -13,7 +14,7 @@ const NAPE_Y = -1.45;
 /** The base of the form's neck, and its shoulder tips, where the shoulders reach their full width. */
 export const NECK_Y = -1.47;
 export const SHOULDER_Y = SHOULDER_TIP_Y;
-const BUST_Y = -0.58;
+export const BUST_Y = -0.58;
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const smooth = (u: number) => u * u * (3 - 2 * u);
 const TOP_N = 360;

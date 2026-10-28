@@ -61,7 +61,7 @@ import { fitSummary } from './fit';
 import { ImportedPattern, importedGuide } from './engine/importDxf';
 import { lookPatch } from './collection';
 import { archiveCut } from './archive';
-import { CollectionLink, GarmentPick } from './ui/GarmentSwitch';
+import { CollectionLink, ExampleTag, GarmentPick } from './ui/GarmentSwitch';
 import { LoadingScreen } from './ui/LoadingScreen';
 import type { FormStart } from './ui/ContourForm';
 import type { Piece } from './engine/piece';
@@ -431,6 +431,14 @@ export default function App() {
     setAccount(updatePerson(account, person.id, { values: own, example: [] }));
     openSteps();
   };
+  // Skipped measuring: say so on Style and Print (Cat's K1 Example Tag, 2026-10-18). Measure me drops the
+  // example's numbers and opens measuring from the start.
+  const exampleTag = !!person.example?.length && (
+    <button type="button" className="example-tag" onClick={measureMe}>
+      <span>Drafted to an example body</span>
+      <span className="example-tag-go">Measure me ›</span>
+    </button>
+  );
   /** "Choose another garment": the same list as when measuring. */
   const chooseGarment = () => openSteps({ kind: 'choose' });
 
@@ -819,18 +827,9 @@ export default function App() {
               }}
             />
           )}
-          {(step === 'style' || step === 'export') && !!person.example?.length && (
-            // Skipped measuring: say so on Style and Print (Cat's K1 Example Tag, 2026-10-18). Measure me drops the
-            // example's numbers and opens measuring from the start.
-            <button
-              type="button"
-              className="example-tag"
-              onClick={measureMe}
-            >
-              <span>Drafted to an example body</span>
-              <span className="example-tag-go">Measure me ›</span>
-            </button>
-          )}
+          {/* On Style it sits under the garment's name (Cat's K3, 2026-10-28), so StyleLayout draws it. */}
+          {step === 'export' && exampleTag}
+          <ExampleTag.Provider value={step === 'style' ? exampleTag : undefined}>
           <CollectionLink.Provider value={step === 'style' ? () => { setStep('collection'); window.scrollTo(0, 0); } : undefined}>
           {/* Switched in place from the title's drop-down: no new step in history, so ← still leaves the style screen. */}
           <GarmentPick.Provider value={step === 'style' ? { garment, onSwitch: (g) => (ready(measured, saved.unit, g, form) ? setSaved({ ...saved, garment: g }) : switchGarment(g, {}, 'style')) } : undefined}>
@@ -1005,6 +1004,7 @@ export default function App() {
           )}
           </GarmentPick.Provider>
           </CollectionLink.Provider>
+          </ExampleTag.Provider>
           {step === 'export' && !hasGarment(account, garment) && <UnlockGarment garment={garment} onPlans={openPlans} onBack={() => setStep('style')} />}
           {step === 'export' && hasGarment(account, garment) && (
             <ExportScreen
