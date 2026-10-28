@@ -5,7 +5,7 @@ import { canGoBack, goBack, usePageHistory } from '../nav';
 import type { Flat } from '../engine/flat';
 import { EnlargeSketch } from './EnlargeSketch';
 import { Envelope } from './Envelope';
-import { CollectionEntry, GarmentDrop } from './GarmentSwitch';
+import { CollectionEntry, ExampleTag, GarmentDrop } from './GarmentSwitch';
 import { ModeLink } from './ModeLink';
 import { PhotoEntry } from './PhotoEntry';
 import { Title } from './Title';
@@ -216,7 +216,7 @@ interface Props {
   name: string;
   /** Which garment (kept for the screens that pass it; the "In testing" note is on the list of what to make). */
   garment?: Garment;
-  /** Fabric needed, when the pattern is drafted. */
+  /** Fabric needed, when the pattern is drafted (shown on the Fabric step's card now, not in the bar). */
   metres?: number;
   /** Fabric width the metres are for. */
   width?: number;
@@ -243,7 +243,7 @@ interface Props {
 
 const NO_SECTIONS: Record<string, string> = {};
 
-export function StyleLayout({ children, label, name, metres, width = 140, ready, onChooseGarment, onPhoto, photo, looks, mode, onMode, onEditMeasurements, sections = NO_SECTIONS, undo, flat, onPrint }: Props) {
+export function StyleLayout({ children, label, name, ready, onChooseGarment, onPhoto, photo, looks, mode, onMode, onEditMeasurements, sections = NO_SECTIONS, undo, flat, onPrint }: Props) {
   const [options, preview, summary] = Children.toArray(children);
   const [page, setPage] = usePageHistory<'edit' | 'review'>(() => 'edit', (s) => s === 'edit' || s === 'review');
   // Read here and cleared once mounted: React may run this twice, and the second run must see it too.
@@ -259,6 +259,7 @@ export function StyleLayout({ children, label, name, metres, width = 140, ready,
   const panel = useRef<HTMLDivElement>(null);
   const swipe = useRef<{ x: number; y: number; sideways: boolean }>();
   const wide = useWide();
+  const exampleTag = useContext(ExampleTag);
   // The open question on each step: the first one until another is opened.
   const [folds, setFolds] = useState<Record<string, string>>({});
   const [steady] = useState(steadyNow);
@@ -297,6 +298,7 @@ export function StyleLayout({ children, label, name, metres, width = 140, ready,
   const pin = useRef<HTMLDivElement>(null);
   // Whether the tab strip is scrolled to its end: until it is, the right edge fades to say there is more.
   const strip = useRef<HTMLDivElement>(null);
+  const chapter = useRef<HTMLDivElement>(null);
   const [atEnd, setAtEnd] = useState(false);
   useEffect(() => {
     const el = strip.current;
@@ -319,7 +321,7 @@ export function StyleLayout({ children, label, name, metres, width = 140, ready,
     const el = pin.current;
     if (!el || typeof ResizeObserver === 'undefined') return;
     const preview = el.querySelector<HTMLElement>('.preview');
-    const strip = el.querySelector<HTMLElement>('.style-tabs');
+    const strip = el.querySelector<HTMLElement>('.row.between.wrap');
     const check = () => {
       setTall(el.offsetHeight > window.innerHeight * 0.66);
       // On a phone only the drawing and the tab strip stay pinned (the aesthetic review, 2026-10-21); the view
@@ -328,8 +330,6 @@ export function StyleLayout({ children, label, name, metres, width = 140, ready,
       const pv = preview?.offsetHeight ?? 0;
       root.current?.style.setProperty('--pv-h', `${pv}px`);
       root.current?.style.setProperty('--pin-h', `${Math.max(el.offsetHeight, pv + (strip?.offsetHeight ?? 0))}px`);
-      // A strip that fits whole has nothing cut off, so no fade at its edge (the tester walk, 2026-10-27).
-      if (strip) setAtEnd(strip.scrollLeft + strip.clientWidth >= strip.scrollWidth - 2);
     };
     const watch = new ResizeObserver(check);
     watch.observe(el);
@@ -370,10 +370,11 @@ export function StyleLayout({ children, label, name, metres, width = 140, ready,
   // Next and back bring the new step's start up under the drawing, if the page had scrolled past it.
   const goStep = (t: string) => {
     choose(t);
-    const row = strip.current;
-    if (!row || wide) return;
-    const pinned = parseFloat(getComputedStyle(row).top) || 0;
-    const top = window.scrollY + row.getBoundingClientRect().top - pinned;
+    const head = chapter.current;
+    if (!head || wide) return;
+    // The step's chapter lands just under the pinned drawing and its row of views.
+    const pinned = Math.max(0, ...[...(pin.current?.querySelectorAll<HTMLElement>('.preview, .row.between.wrap') ?? [])].map((e) => parseFloat(getComputedStyle(e).top) + e.offsetHeight || 0));
+    const top = window.scrollY + head.getBoundingClientRect().top - pinned;
     if (window.scrollY > top) window.scrollTo({ top, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
   };
   const step = (by: number) => {
@@ -426,15 +427,13 @@ export function StyleLayout({ children, label, name, metres, width = 140, ready,
 
   return (
     <div className="style-layout" ref={root}>
+      {/* The garment's name is the page's one big heading (Cat's K3, 2026-10-28): the word Style is only read out
+          (the top bar says it), Start from a look is in the name's drop-down, and the example note is one soft line. */}
       <div className="screen-head">
         <Title id="opts" big="Style" label={label} hideLabel />
-        <GarmentDrop label={label} onChoose={onChooseGarment} />
-        {tabs.includes(LOOKS) && (
-          <button type="button" className="later looks-link" aria-pressed={active === LOOKS} onClick={() => choose(LOOKS)}>
-            Start from a look
-          </button>
-        )}
+        <GarmentDrop label={label} onChoose={onChooseGarment} onLooks={tabs.includes(LOOKS) ? () => choose(LOOKS) : undefined} />
       </div>
+      {exampleTag}
       <div className="style-edit">
         <div className={tall ? 'style-pin tall' : 'style-pin'} ref={pin}>
           {/* The drawing knows which step is open: the named lengths sit beside it only on the length step. */}
@@ -442,35 +441,6 @@ export function StyleLayout({ children, label, name, metres, width = 140, ready,
             <Sections.Provider value={sections}>{preview}</Sections.Provider>
           </ActiveTab.Provider>
           <EnlargeSketch host={host} name={name} />
-          <div
-            className={atEnd ? 'style-tabs at-end' : 'style-tabs'}
-            role="tablist"
-            aria-label="Style choices"
-            ref={strip}
-            onScroll={(e) => setAtEnd(e.currentTarget.scrollLeft + e.currentTarget.clientWidth >= e.currentTarget.scrollWidth - 2)}
-          >
-            {strip_.map((t) => (
-              <button
-                key={t}
-                id={`tab-${t}`}
-                type="button"
-                role="tab"
-                aria-selected={active === t}
-                aria-label={t}
-                className={[active === t ? 'on' : '', t === PRO ? 'pro' : ''].filter(Boolean).join(' ')}
-                onClick={() => choose(t)}
-              >
-                {steps.includes(t) && (
-                  <span className="step-no" aria-hidden="true">
-                    {steps.indexOf(t) + 1}
-                  </span>
-                )}
-                {/* On a phone the strip ran off the screen (the tester walk, 2026-10-27): there each tab is its first word. */}
-                <span className="tab-full">{t}</span>
-                <span className="tab-short">{t.split(/\s/)[0]}</span>
-              </button>
-            ))}
-          </div>
         </div>
         <div
           className="style-panel"
@@ -490,6 +460,45 @@ export function StyleLayout({ children, label, name, metres, width = 140, ready,
             if (Math.abs(dx) > 60 && Math.abs(dx) > 2 * Math.abs(p.clientY - s.y)) step(dx < 0 ? 1 : -1);
           }}
         >
+          {/* The open step as a chapter (Cat's H4 + N3, 2026-10-28): "Step 1 of 5", the step's name set large, and the
+              steps as a thin line of bars to tap under it. The next step's name is only on the Next button. */}
+          <div className="chapter" ref={chapter}>
+            {at >= 0 && (
+              <p className="chapter-step">
+                Step <b>{at + 1}</b> of {steps.length}
+              </p>
+            )}
+            <h2 className="chapter-name">{active === LOOKS ? 'Start from a look' : active}</h2>
+            <div
+              className={atEnd ? 'style-tabs at-end' : 'style-tabs'}
+              role="tablist"
+              aria-label="Style choices"
+              ref={strip}
+              onScroll={(e) => setAtEnd(e.currentTarget.scrollLeft + e.currentTarget.clientWidth >= e.currentTarget.scrollWidth - 2)}
+            >
+              {strip_.map((t) => (
+                <button
+                  key={t}
+                  id={`tab-${t}`}
+                  type="button"
+                  role="tab"
+                  aria-selected={active === t}
+                  aria-label={t}
+                  className={[active === t ? 'on' : '', t === PRO ? 'pro' : ''].filter(Boolean).join(' ')}
+                  onClick={() => choose(t)}
+                >
+                  {steps.includes(t) && (
+                    <span className="step-no" aria-hidden="true">
+                      {steps.indexOf(t) + 1}
+                    </span>
+                  )}
+                  {/* On a phone the strip ran off the screen (the tester walk, 2026-10-27): there each tab is its first word. */}
+                  <span className="tab-full">{t}</span>
+                  <span className="tab-short">{t.split(/\s/)[0]}</span>
+                </button>
+              ))}
+            </div>
+          </div>
           <Fold.Provider value={fold}>
           <ActiveTab.Provider value={active}>
             <Sections.Provider value={sections}>
@@ -555,31 +564,22 @@ export function StyleLayout({ children, label, name, metres, width = 140, ready,
             )}
           </div>
         ) : (
-          // One box in the bar (F1, 2026-10-24): the next step, or Review after the last; undo and redo are bare
-          // arrows, and Review is a quiet link under the name until then.
+          // One clear box in the bar (Cat's N3, 2026-10-28): Next in champagne, or Review after the last, with a quiet
+          // Review link beside it until then. Undo and redo show only once there is something to undo.
           <div className="style-bar">
-            <p className="style-bar-meta">
-              <strong>{Name}</strong>
-              <span className="muted">
-                {metres !== undefined && `${metres} m of ${width} cm`}
-                {next && ready && (
-                  <>
-                    {metres !== undefined && ' · '}
-                    <button type="button" className="later go bar-review" onClick={() => setPage('review')}>
-                      Review <span aria-hidden="true">›</span>
-                    </button>
-                  </>
-                )}
-              </span>
-            </p>
-            {undo && <UndoTools undo={undo} />}
+            {next && ready && (
+              <button type="button" className="later go bar-review" onClick={() => setPage('review')}>
+                Review <span aria-hidden="true">›</span>
+              </button>
+            )}
+            {undo && (undo.canUndo || undo.canRedo) && <UndoTools undo={undo} />}
             {next ? (
               <button type="button" className="primary" onClick={() => goStep(next)}>
-                Next: {next.split(/\s/)[0]}
+                Next: {next.split(/\s/)[0]} <span aria-hidden="true">›</span>
               </button>
             ) : (
               <button type="button" className="primary" disabled={!ready} onClick={() => setPage('review')}>
-                Review
+                Review <span aria-hidden="true">›</span>
               </button>
             )}
           </div>

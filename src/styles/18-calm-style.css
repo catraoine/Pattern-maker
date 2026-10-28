@@ -1,0 +1,397 @@
+/* ---- A calmer Style page (Cat's picks, 2026-10-28): F5 Atelier Light with C1 calico, D, H4, K3 and N3. ---- */
+
+/* F5 + C1: until a fabric is picked the garment is a light champagne calico, like a toile on the stand, and the
+   drawing sits in a soft pool of warm light, so the graphite form and the cloth read on the black page. */
+:root {
+  --calico: #e8d9b8;
+}
+.form-still .cloth-fill,
+.form-svg .cloth-fill {
+  fill: var(--garment, var(--calico));
+}
+.form-still .cloth-edge,
+.form-svg .cloth-edge {
+  opacity: 0.25;
+}
+.garment-fabric .cloth-edge {
+  opacity: 0.6;
+}
+.style-pin .preview:has(.form-still) {
+  background-image: radial-gradient(closest-side ellipse at 50% 48%, rgb(217 196 155 / 0.2), rgb(217 196 155 / 0.06) 55%, transparent);
+}
+
+/* K3: the garment's name is the one big heading. The word Style is only read out, and the example note is one soft
+   line in plain words under the name. */
+.style-layout .screen-head h1 {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.style-layout .screen-head {
+  justify-content: flex-start;
+  margin-bottom: 4px;
+}
+.style-layout .screen-head .drop.garment-drop .drop-button {
+  padding: 0;
+  border: 0;
+  color: var(--ink);
+  font-family: var(--display);
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+.style-layout .screen-head .drop.garment-drop .drop-button svg {
+  width: 16px;
+  height: 11px;
+  margin-left: 4px;
+  color: var(--gild);
+}
+.style-layout > .example-tag {
+  gap: 10px;
+  margin: 0 0 10px;
+}
+.style-layout > .example-tag span {
+  font-family: var(--sans);
+  font-size: 13px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--muted);
+}
+.style-layout > .example-tag .example-tag-go {
+  color: var(--gild);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* K2: the view switches sit under the drawing as one quiet row (Form, Drawing, All round, then Pattern), with Draw,
+   Enlarge and Demo as small marks at its end. Nothing is laid over the drawing. */
+.style-pin > section:not(.live-big) > .preview {
+  order: -1;
+  overflow: visible;
+}
+.style-pin > section:not(.live-big) > .row.between.wrap {
+  order: 1;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  height: 36px;
+  min-height: 0;
+  padding: 0 104px 0 0;
+  position: relative;
+}
+.style-pin > section:not(.live-big) > .lookboxes {
+  order: 2;
+  display: flex;
+  align-self: flex-end;
+  height: 36px;
+  margin: -36px 92px 0 0;
+  align-items: center;
+  position: relative;
+  top: auto;
+  right: auto;
+  z-index: 6;
+}
+/* The row names the view to switch to; the one in use is only read out. */
+.style-pin > section:not(.live-big) > .lookboxes button.on {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.style-pin > section:not(.live-big) .seg {
+  flex-wrap: nowrap;
+  gap: 14px;
+}
+.style-layout .style-pin > section:not(.live-big) > .lookboxes button {
+  height: 36px;
+  align-items: center;
+  border-bottom-width: 0;
+}
+.style-layout .style-pin > section:not(.live-big) .seg button,
+.style-layout .style-pin > section:not(.live-big) > .lookboxes button,
+.style-layout .style-pin > section:not(.live-big) > .lookboxes .lookname {
+  min-height: 32px;
+  padding: 0;
+  white-space: nowrap;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  color: var(--muted);
+}
+.style-layout .style-pin > section:not(.live-big) .seg button.on {
+  color: var(--gild);
+}
+.style-pin > section:not(.live-big) > p {
+  order: 3;
+}
+/* The marks: Draw at the row's end, Enlarge and Demo hung from the drawing's foot into the same row. */
+.style-pin > section:not(.live-big) > .row.between.wrap > :is(.row.tools, .drawmenu, .link.small, .ghost) {
+  position: absolute;
+  top: 0;
+  right: 60px;
+  left: auto;
+  height: 36px;
+  display: flex;
+  align-items: center;
+}
+.style-pin > section:not(.live-big) > .row.between.wrap > .link.small,
+.style-pin > section:not(.live-big) > .row.between.wrap > .row.tools > .link.small {
+  font-size: 0;
+  letter-spacing: 0;
+  min-height: 32px;
+  padding: 0 4px;
+}
+.style-pin > section:not(.live-big) > .row.between.wrap > .link.small::before,
+.style-pin > section:not(.live-big) > .row.between.wrap > .row.tools > .link.small::before {
+  content: '✎' / 'Draw';
+  font-size: 16px;
+  color: var(--gild);
+}
+.style-pin > section:not(.live-big) > .row.between.wrap > .drawmenu > summary {
+  font-size: 0;
+}
+.style-pin > section:not(.live-big) > .row.between.wrap > .drawmenu > summary::before {
+  content: '✎' / 'Draw';
+  font-size: 16px;
+  color: var(--gild);
+}
+.style-pin > section:not(.live-big) > .preview > .enlarge {
+  position: absolute;
+  top: auto;
+  bottom: -36px;
+  right: 30px;
+  left: auto;
+  width: 28px;
+  height: 36px;
+  padding: 0;
+  font-size: 0;
+  letter-spacing: 0;
+  justify-content: center;
+  z-index: 7;
+}
+.style-pin > section:not(.live-big) > .preview > .enlarge svg {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+}
+.style-pin > section:not(.live-big) > .preview > .demo-play {
+  position: absolute;
+  top: auto;
+  bottom: -36px;
+  right: 0;
+  left: auto;
+  height: 36px;
+  min-height: 0;
+  padding: 0 2px;
+  z-index: 7;
+}
+.style-pin > section:not(.live-big) > .preview > .demo-play .demo-play-words {
+  font-size: 0;
+  letter-spacing: 0;
+}
+.style-pin > section:not(.live-big) > .preview > .demo-play .demo-play-mark {
+  font-size: 14px;
+  color: var(--gild);
+}
+@media (min-width: 761px) {
+  .style-pin > section:not(.live-big) {
+    display: flex;
+    flex-direction: column;
+    row-gap: 0;
+  }
+  .style-pin > section:not(.live-big) > .preview {
+    position: relative;
+  }
+  .style-pin > section:not(.live-big) > p.muted {
+    display: none;
+  }
+}
+/* On a phone the drawing and its row pin together under the header, as the drawing and the steps did before. */
+@media (max-width: 760px) {
+  .style-pin > section:not(.live-big) > .preview {
+    z-index: 6;
+    box-shadow: -16px 0 0 var(--paper), 16px 0 0 var(--paper);
+    clip-path: inset(0 -16px -36px);
+  }
+  .style-pin > section:not(.live-big) > :is(.row.between.wrap, .lookboxes) {
+    position: sticky;
+    top: calc(var(--pin-top, 0px) + var(--pv-h, 0px));
+    background: var(--paper);
+  }
+  .style-pin > section:not(.live-big) > .row.between.wrap {
+    z-index: 5;
+    box-shadow: 0 0 0 16px var(--paper);
+    clip-path: inset(0 -16px);
+  }
+  .style-pin > section:not(.live-big) > .lookboxes {
+    z-index: 6;
+  }
+  .style-edit > .style-panel {
+    order: 3;
+    width: calc(100% + 32px);
+    max-width: none;
+    margin-left: -16px;
+    margin-right: -16px;
+  }
+  .style-edit > .style-bar {
+    order: 4;
+  }
+}
+
+/* H4: the open step is a chapter (its number, then its name set large), with the steps as a thin line of bars to
+   tap; the questions' names are small champagne capitals and the folded ones plain words with their pick. */
+.style-panel > .chapter {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  padding: 18px 0 2px;
+}
+.chapter-step {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.chapter-step b {
+  color: var(--gild);
+  font-weight: 500;
+}
+.chapter-name {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  color: var(--ink);
+  text-wrap: balance;
+}
+.chapter .style-tabs,
+.chapter .style-tabs.at-end {
+  position: static;
+  align-self: stretch;
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 0;
+  overflow: visible;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  clip-path: none;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+.chapter .style-tabs::after {
+  display: none;
+}
+.chapter .style-tabs button {
+  flex: 1;
+  min-height: 24px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-left: 0;
+  background: linear-gradient(var(--guide), var(--guide)) center / 100% 2px no-repeat;
+  font-size: 0;
+}
+.chapter .style-tabs button.on {
+  background-image: linear-gradient(var(--gild), var(--gild));
+}
+.chapter .style-tabs button :is(.step-no, .tab-full, .tab-short) {
+  display: none;
+}
+/* Pro, when the pro tools are on, keeps its word after the bars. */
+.chapter .style-tabs button.pro {
+  flex: none;
+  padding: 0 0 0 8px;
+  background: none;
+  font-size: 10px;
+  letter-spacing: var(--track);
+  color: var(--muted);
+}
+.chapter .style-tabs button.pro .tab-full {
+  display: inline;
+}
+.chapter .style-tabs button.pro.on {
+  color: var(--gild);
+}
+.style-panel fieldset.group > legend,
+.style-panel fieldset.group > legend .fold-name {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--gild);
+}
+.style-panel fieldset.fold:not(.open) > legend .fold-name {
+  font-family: var(--sans);
+  font-size: 17px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink);
+}
+.style-panel fieldset.fold:not(.open) > legend .fold-pick {
+  color: var(--gild);
+}
+
+/* H3: the choices sit on a slightly lifted sheet with a champagne line along its top, apart from the lit drawing. */
+.style-panel {
+  background: #14120e;
+  border-top: 1px solid rgb(217 196 155 / 0.45);
+  padding-left: 16px;
+  padding-right: 16px;
+}
+.style-panel :is(.card, .tab-part, fieldset) {
+  background: transparent;
+}
+
+/* N3: one clear Next, filled in champagne, with a quiet Review link beside it. */
+.style-bar {
+  gap: 14px;
+}
+.style-bar .bar-review {
+  flex: none;
+  font-size: 11px;
+}
+.style-bar .primary,
+.step-next .step-go {
+  flex: 1 1 auto;
+  background: var(--gild);
+  border-color: var(--gild);
+  color: #000;
+  font-weight: 600;
+}
+.step-next .step-go {
+  flex: none;
+}
+
+/* On a computer the steps' list down the left gives way to the chapter, so the drawing and the choices share the
+   width. */
+@media (min-width: 1100px) {
+  .style-edit {
+    grid-template-columns: minmax(0, 1fr) minmax(340px, 400px);
+    grid-template-areas: 'preview panel' 'preview side';
+  }
+  .style-panel {
+    padding: 0 24px 20px;
+  }
+  .style-pin > section {
+    border-left: 0;
+  }
+  .style-layout .screen-head .drop.garment-drop .drop-button {
+    font-size: 36px;
+  }
+}

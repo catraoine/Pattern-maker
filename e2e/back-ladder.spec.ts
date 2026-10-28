@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { expect, expectStyle, fillStepPages, goPrint, headerBack, measureMe, openFresh, pickToMake, skipLoading, startWithExample, stepButton, test } from './fixtures';
+import { expect, expectStyle, fillStepPages, goPrint, headerBack, measureMe, openFresh, openLooks, pickToMake, skipLoading, startWithExample, stepButton, test } from './fixtures';
 
 // Back climbs a fixed ladder (Cat's B Fixed Ladder, 2026-10-24): Print, Style, Measurements, Welcome, however
 // the sewist got there, so it never walks back through measuring or ping-pongs between two screens.
@@ -39,7 +39,7 @@ test('hopping between screens never makes back ping-pong', async ({ page }) => {
   test.setTimeout(150_000);
   await startWithExample(page);
   // The collection's own "Back to styling", then back: up to the measurements, not into the collection again.
-  await main(page).getByRole('button', { name: 'Start from a look' }).click();
+  await openLooks(page);
   await main(page).getByRole('button', { name: /Start from the Maison collection/ }).click();
   await expect(h1(page, /collection/i)).toBeVisible();
   await main(page).getByRole('button', { name: 'Back to styling' }).click();

@@ -61,13 +61,14 @@ export function FormHead({ head, cx }: { head: { outline: string; lines: string[
   );
 }
 
-/** The form's black satin (Cat's F5 Satin and Light, 2026-10-25): lit from the upper left, a soft sheen a third of
- *  the way across, falling into black on the right. The same light as the cloth's, and the welcome's canvas form. */
+/** The form's satin (Cat's F5 Satin and Light, 2026-10-25), lit from the upper left, a soft sheen a third of the
+ *  way across, falling into shadow on the right. Warm graphite since Cat's F5 Atelier Light (2026-10-28): black
+ *  satin on the black page was barely there. */
 const SATIN_STOPS: [number, string][] = [
-  [0, '#14120e'],
-  [0.3, '#3b352a'],
-  [0.5, '#1c1915'],
-  [1, '#050505'],
+  [0, '#4d463b'],
+  [0.3, '#a3937a'],
+  [0.5, '#5a5245'],
+  [1, '#211d18'],
 ];
 /** The satin across a drawing whose centre line is at `cx`. With arms, each arm gets the same light across its own
  *  width (`${id}0` the right arm, `${id}1` the left), so it rounds like the body instead of sitting in the body's
