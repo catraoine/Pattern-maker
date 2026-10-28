@@ -151,10 +151,15 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
   const nap = finish.nap || napFixed;
   const guide = made?.guide;
   const date = useMemo(printedDate, []);
+  // Pieces left out of the print, by their place in the list, so one lost sleeve reprints on a page or two
+  // instead of the whole pattern (the PDF-printing pain in the Reddit research, 2026-10-28). A new draft starts whole.
+  const [leftOut, setLeftOut] = useState<number[]>([]);
+  useEffect(() => setLeftOut([]), [made]);
+  const toPrint = useMemo(() => made?.pieces.filter((_, i) => !leftOut.includes(i)), [made, leftOut]);
   const sheet = useMemo(
     () =>
-      made ? layout(made.pieces, `Maison Tracé: ${title}`, made.notes, { pattern: title, madeFor: profile, date, edition, credit }, { atelier: finish.atelier }) : undefined,
-    [made, title, profile, date, finish.atelier, edition, credit],
+      made && toPrint ? layout(toPrint, `Maison Tracé: ${title}`, made.notes, { pattern: title, madeFor: profile, date, edition, credit }, { atelier: finish.atelier }) : undefined,
+    [made, toPrint, title, profile, date, finish.atelier, edition, credit],
   );
   // The seam check walks the garment's own pieces and its pockets; its lining and facings follow them.
   const checks = useMemo(() => {
@@ -299,6 +304,23 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
                   <input type="checkbox" checked={paper === 'projectorDark'} onChange={(e) => setPaper(e.target.checked ? 'projectorDark' : 'projector')} />
                   <span>White lines on black, easier to see on dark fabric</span>
                 </label>
+              )}
+              {made.pieces.length > 1 && (
+                <details className="small fold-link print-some" open={leftOut.length > 0 || undefined}>
+                  <summary>{leftOut.length ? `Printing ${made.pieces.length - leftOut.length} of ${made.pieces.length} pieces` : 'Print only some pieces'}</summary>
+                  {made.pieces.map((pc, i) => (
+                    <label className="check" key={i}>
+                      <input
+                        type="checkbox"
+                        checked={!leftOut.includes(i)}
+                        // At least one piece stays in, so there is always something to print.
+                        disabled={!leftOut.includes(i) && leftOut.length === made.pieces.length - 1}
+                        onChange={(e) => setLeftOut(e.target.checked ? leftOut.filter((j) => j !== i) : [...leftOut, i])}
+                      />
+                      <span>{pc.name}</span>
+                    </label>
+                  ))}
+                </details>
               )}
             </fieldset>
             <div className="stack">
