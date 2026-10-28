@@ -392,7 +392,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
             {projector && made && (
               <div className="stack projector-offer">
                 <p className="eyebrow">
-                  Or project straight from here <TestingTag />
+                  Or project straight from here <TestingTag tool="projector" />
                 </p>
                 <h3>Projector mode</h3>
                 <p className="muted small">
@@ -970,7 +970,7 @@ function MakerPack({
 
       <details className="card more">
         <summary>
-          <span className="eyebrow">Having it made, or drafting by hand <TestingTag /></span>
+          <span className="eyebrow">Having it made, or drafting by hand <TestingTag tool="pro_files" /></span>
           <h2>More files</h2>
         </summary>
         <p className="muted">

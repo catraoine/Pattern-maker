@@ -182,7 +182,7 @@ function Corners({ lineUp, unit, view, onChange, onNext, onClose }: { lineUp: Li
       </svg>
       <div className="projector-panel">
         <p className="eyebrow">
-          Projector mode · line up · 1 of 2 <TestingTag />
+          Projector mode · line up · 1 of 2 <TestingTag tool="projector" />
         </p>
         <h2>Drag each corner onto a corner of your cutting mat</h2>
         <p className="muted small">
@@ -362,7 +362,7 @@ function Project({ pieces, lineUp, onLineUp, onClose }: { pieces: Piece[]; lineU
       {tools ? (
         <>
           <p className="eyebrow pj-top">
-            Projector mode · true size <TestingTag />
+            Projector mode · true size <TestingTag tool="projector" />
           </p>
           <p className="muted small pj-hint">
             Drag to move · drag the dot to turn{turnText && <span className="pj-turned"> · {turnText}</span>}

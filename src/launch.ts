@@ -18,3 +18,45 @@ export function testingNote(name: (g: Garment) => string, garments: readonly Gar
   const list = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
   return `${list[0].toUpperCase()}${list.slice(1)} ${names.length === 1 ? 'is' : 'are'} still in testing.`;
 }
+
+/** Every tool that carries the "In testing" tag, and what takes the tag off. One list, so nothing built stays tagged by
+ *  accident (Cat, 2026-10-28): the Account page's "Still in testing" and docs/SHIP-LIST.md both read it, and
+ *  launch.test.ts fails the build if a tag on any screen isn't here, an entry here is on no screen, or the ship list
+ *  has drifted. Taking a tag off is deleting its entry and its tag; garments come off by moving to LAUNCH_GARMENTS. */
+export type TestingTool =
+  | 'draw_lines'
+  | 'body_double'
+  | 'prints'
+  | 'any_colour'
+  | 'exact_colour'
+  | 'pro_files'
+  | 'size_run'
+  | 'check_file'
+  | 'client_book'
+  | 'collection'
+  | 'projector';
+
+export const TESTING_TOOLS: Record<TestingTool, { name: string; where: string; proof: string }> = {
+  draw_lines: { name: 'Draw your lines', where: 'Style, Draw on your form', proof: 'fit testers draw a hem, a neckline and a side and the pattern follows' },
+  body_double: { name: 'Body Double', where: 'Account and the form page', proof: 'one padded form checked against its person' },
+  prints: { name: 'Prints beyond checks', where: "What's the print?, About your fabric", proof: 'three testers cut a one-way or border print from the lay plan' },
+  any_colour: { name: 'Any colour', where: 'the colour dots on the Fabric tab', proof: 'shop colourways match the picked colour on five fabrics' },
+  exact_colour: { name: 'Exact colour', where: 'under Any colour', proof: 'the first custom-dyed order delivered and matched' },
+  pro_files: { name: 'Pro files', where: 'More files on Print', proof: 'one factory or dressmaker cuts from the pack' },
+  size_run: { name: 'Size run', where: 'Print, For production', proof: 'a graded run sewn in two sizes' },
+  check_file: { name: 'Check any pattern file', where: 'Account', proof: 'five outside files walked with no false alarm' },
+  client_book: { name: 'Client book', where: 'Account', proof: 'one dressmaker keeps three clients in it' },
+  collection: { name: 'The collection and the Archive', where: 'the Collection heading', proof: 'drop 01 published' },
+  // Cat broke the freeze for it (2026-10-28), modelled on the free Pattern Projector app.
+  projector: { name: 'Projector mode', where: 'Print, Projector, and inside projector mode', proof: 'two sewists cut a garment with it on their own projectors' },
+};
+
+/** What takes a garment's tag off: moving it to LAUNCH_GARMENTS once sewists score it at the fit gate. */
+export const GARMENT_PROOF = 'sewists score it 4 of 5 or better at the fit gate';
+
+/** Everything still tagged, for the Account page and the ship list: garments first, then tools. */
+export function stillInTesting(name: (g: Garment) => string, garments: readonly Garment[]): { name: string; proof: string }[] {
+  const gs = garments.filter(inTesting).map((g) => ({ name: `${name(g)[0].toUpperCase()}${name(g).slice(1)}`, proof: GARMENT_PROOF }));
+  const ts = (Object.keys(TESTING_TOOLS) as TestingTool[]).map((k) => ({ name: TESTING_TOOLS[k].name, proof: TESTING_TOOLS[k].proof }));
+  return [...gs, ...ts];
+}
