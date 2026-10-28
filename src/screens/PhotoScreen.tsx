@@ -25,6 +25,8 @@ interface Props {
   onByHand: () => void;
   /** The photo's preview goes along, so the style screen can show it while the app is open, and the cloth the photo showed. */
   onApply: (c: PatternChoices, preview: string, fabric?: MyFabric, source?: PhotoSource) => void;
+  /** "How your pattern is made", for the AI line. */
+  onMade?: () => void;
 }
 
 type Phase = 'start' | 'reading' | 'pick' | 'result' | 'length' | 'error';
@@ -176,7 +178,7 @@ function WhereItEnds({ body, lengthCm, fullness }: { body: SkirtMeasurements; le
   );
 }
 
-export function PhotoScreen({ testerCode, measured, body, unit, onByHand, onApply }: Props) {
+export function PhotoScreen({ testerCode, measured, body, unit, onByHand, onApply, onMade }: Props) {
   const [phase, setPhase] = useState<Phase>('start');
   const [preview, setPreview] = useState<string>();
   const [problem, setProblem] = useState<Problem>();
@@ -293,6 +295,15 @@ export function PhotoScreen({ testerCode, measured, body, unit, onByHand, onAppl
           {chooser('Take or choose a photo', 'primary')}
           <Tips />
         </div>
+        {/* Say it plainly, right where it happens (Cat's AI stance, 2026-10-28). */}
+        <p className="muted small">
+          We use AI to read the style from your photo. You check it, then we draft.{' '}
+          {onMade && (
+            <button type="button" className="inline-link" onClick={onMade}>
+              How your pattern is made
+            </button>
+          )}
+        </p>
         <DemoButton demo="photo" />
       </section>
     );

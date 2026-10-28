@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
 import { layout } from '../engine/export';
+import { trousersSpec } from '../engine/spec';
+import { FinishedTable, finishedLines } from '../ui/FinishedTable';
 import { TROUSER_EASE, TROUSER_LENGTHS, TrousersDraft, TrousersMeasurements, trouserLength } from '../engine/trousers';
 import { trousersFlat, trousersView } from '../engine/flat';
 import { DrawOnForm, skirtForm } from '../ui/DrawOnForm';
@@ -163,6 +165,17 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
       photo={photo}
       mode={mode}
       onMode={onMode}
+      finished={
+        draft && (
+          <FinishedTable lines={finishedLines(trousersSpec(values as TrousersMeasurements, draft), { elasticCm: draft.elastic?.finishedCm })} noun="Trousers">
+            <p className="muted small">
+              {draft.elastic ? `The waist is cut to pass over your hips and gathered onto ${draft.elastic.finishedCm} cm of elastic. ` : ''}
+              {extra.hip ? `The ease includes ${extra.waist} cm at the waist and ${extra.hip} cm at the hip for your heavy fabric. ` : ''}
+              There is {ease.depth} cm of room below the crotch and {ease.crotch} cm along it.
+            </p>
+          </FinishedTable>
+        )
+      }
     >
       <section className="card numbered" aria-labelledby="opts">
         {TROUSER_GROUPS.filter((g) => shown(g.id)).map((g) => (
@@ -272,39 +285,6 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
 
       <aside className="card" aria-labelledby="sum">
         <h2 id="sum">Summary</h2>
-        <div className="sumgrid">
-          <span />
-          <span className="muted">Body</span>
-          <span className="muted">Trousers</span>
-          <span>Waist</span>
-          <span>{values.waist} cm</span>
-          <strong>{draft ? draft.finishedWaist : '–'} cm</strong>
-          <span>Hip</span>
-          <span>{values.full_hip} cm</span>
-          <strong>{draft ? draft.finishedHip : '–'} cm</strong>
-          <span>Crotch length</span>
-          <span>{values.crotch_length} cm</span>
-          <strong>{draft ? Math.round((draft.crotch.front + draft.crotch.back) * 10) / 10 : '–'} cm</strong>
-          {!draft?.shorts && (
-            <>
-              <span>Knee</span>
-              <span />
-              <strong>{draft ? draft.kneeCm : '–'} cm</strong>
-            </>
-          )}
-          <span>Hem</span>
-          <span />
-          <strong>{draft ? draft.hemCm : '–'} cm</strong>
-          <span>Outside leg</span>
-          <span />
-          <strong>{draft ? draft.lengthCm : '–'} cm</strong>
-        </div>
-        <p className="muted small">
-          {draft?.elastic
-            ? `The waist is cut to pass over your hips and gathered onto ${draft.elastic.finishedCm} cm of elastic. Ease added: `
-            : `Ease added: ${ease.waist + extra.waist} cm at the waist, `}
-          {ease.hip + extra.hip} cm at the hip{extra.hip ? ` (${extra.waist} cm and ${extra.hip} cm of it for your heavy fabric)` : ''}, {ease.depth} cm below the crotch and {ease.crotch} cm along it.
-        </p>
         <PiecesList pieces={pieces}>
           <li>Waistband{draft?.elastic ? ' (elastic casing)' : ''}: cut 1</li>
           {draft?.elastic && (

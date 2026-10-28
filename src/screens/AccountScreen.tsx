@@ -17,6 +17,8 @@ import { FitForm } from '../ui/FitForm';
 import { FitFeedback, fitReport, fitSummary, sendFitReport } from '../fit';
 import type { MeasurementId, MeasurementValues } from '../measurements';
 import { Mode, shows } from '../mode';
+import { stillInTesting } from '../launch';
+import { GARMENTS, GARMENT_NAME } from '../measureFlow';
 import { InterestCard } from '../ui/InterestCard';
 import { YourPlan } from '../ui/PlanPrompts';
 import { savedLimit } from '../plans';
@@ -48,7 +50,7 @@ interface Props {
   openFit?: string;
   onReset: () => void;
   /** Opens the Privacy Policy or the Terms of Use. */
-  onLegal: (page: 'privacy' | 'terms' | 'tester' | 'news' | 'brands' | 'nights') => void;
+  onLegal: (page: 'privacy' | 'terms' | 'tester' | 'news' | 'brands' | 'nights' | 'made') => void;
   onBackup: () => void;
   /** The link that carries everything on this device to another one; see moveLink.ts. */
   sendLink: () => Promise<string>;
@@ -99,6 +101,7 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
   const key = measured.filter((f) => KEY_FIELDS.includes(f.id));
   const shown = allMeasured ? measured : key.length ? key : measured.slice(0, KEY_FIELDS.length);
   const saved = account.patterns.length;
+  const left = stillInTesting((g) => GARMENT_NAME[g], GARMENTS);
   // Sent fit notes carry the measurements of whoever the pattern was saved for.
   const personFor = (p: SavedPattern) => account.people.find((x) => x.id === (p.personId ?? ME)) ?? person;
   const valuesFor = (p: SavedPattern) => personFor(p).values;
@@ -317,6 +320,17 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
           <TesterCode code={account.testerCode} onCode={onTesterCode} />
         </Fold>
 
+        <Fold id="intesttitle" title="Still in testing" summary={`${left.length} to pass`}>
+          <p className="muted small">Usable now, labelled In testing until each passes its test at the fit gate. A label comes off by hand once its test is passed, never by itself.</p>
+          <ul className="muted small testing-list">
+            {left.map((t) => (
+              <li key={t.name}>
+                <b>{t.name}</b> · comes off when {t.proof}
+              </li>
+            ))}
+          </ul>
+        </Fold>
+
         <Fold id="memtitle" title="Membership" summary={onPlans ? undefined : 'Founding places'}>
           {onPlans && <YourPlan account={account} onPlans={onPlans} />}
           <InterestCard offer="founding" inset />
@@ -343,6 +357,10 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
       </div>
 
       <p className="fineprint plain">
+        <button type="button" className="inline-link" onClick={() => onLegal('made')}>
+          How your pattern is made
+        </button>
+        {' · '}
         <button type="button" className="inline-link" onClick={() => onLegal('privacy')}>
           Privacy Policy
         </button>

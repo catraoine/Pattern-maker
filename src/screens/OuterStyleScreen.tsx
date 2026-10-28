@@ -1,7 +1,9 @@
 import { matchKind } from '../engine/prints';
 import { useMemo, useState } from 'react';
 import { layout } from '../engine/export';
-import { OUTER_EASE, OuterDraft, OuterMeasurements, outerDrop } from '../engine/outerwear';
+import { outerSpec } from '../engine/spec';
+import { FinishedTable, finishedLines } from '../ui/FinishedTable';
+import { OuterDraft, OuterMeasurements, outerDrop } from '../engine/outerwear';
 import { outerFlat, wornLines, wornShapes } from '../engine/flat';
 import { OuterChoices, describeOuter, outerAllowed, outerGroups } from '../garments';
 import { TechFlatView } from '../ui/TechFlatView';
@@ -170,6 +172,16 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
       photo={photo}
       mode={mode}
       onMode={onMode}
+      finished={
+        draft && (
+          <FinishedTable lines={finishedLines(outerSpec(values as OuterMeasurements, draft))} noun={kind === 'coat' ? 'Coat' : 'Jacket'}>
+            <p className="muted small">
+              Room to wear it {kind === 'coat' ? 'over a jacket or a thick jumper' : 'over a blouse or a fine knit'}
+              {extra.bust ? `, ${extra.bust} cm of the bust ease for your heavy fabric` : ''}.
+            </p>
+          </FinishedTable>
+        )
+      }
     >
       <section className="card numbered" aria-labelledby="opts">
         {outerGroups(kind).map((g) => (
@@ -274,29 +286,6 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
       <aside className="card" aria-labelledby="sum">
         <h2 id="sum">Summary</h2>
         <p>{title}</p>
-        <div className="sumgrid">
-          <span />
-          <span className="muted">Body</span>
-          <span className="muted">{kind === 'coat' ? 'Coat' : 'Jacket'}</span>
-          <span>Bust</span>
-          <span>{values.full_bust} cm</span>
-          <strong>{draft ? draft.finishedBust : '–'} cm</strong>
-          <span>Waist</span>
-          <span>{values.waist} cm</span>
-          <strong>{draft ? draft.finishedWaist : '–'} cm</strong>
-          <span>Hem</span>
-          <span />
-          <strong>{draft ? draft.finishedHem : '–'} cm</strong>
-          <span>Back length</span>
-          <span />
-          <strong>{draft ? draft.lengthCm : '–'} cm</strong>
-          <span>Sleeve</span>
-          <span>{values.arm_length} cm</span>
-          <strong>{draft ? draft.sleeve.lengthCm : '–'} cm</strong>
-        </div>
-        <p className="muted small">
-          Ease added: {OUTER_EASE[kind][choices.fit] + extra.bust} cm at the bust{extra.bust ? `, ${extra.bust} cm of it for your heavy fabric` : ''}, enough to wear {kind === 'coat' ? 'over a jacket or a thick jumper' : 'over a blouse or a fine knit'}.
-        </p>
         {draft && draft.warnings.length > 0 && <p className="msg small">Please check: {draft.warnings.join('; ')}.</p>}
         <PiecesList pieces={pieces} lining />
         {draft && <FabricSummary metres={outerFabricMetres(draft)} fabric={fabric} />}

@@ -39,7 +39,7 @@ export function ExactColour({ hex, garment }: { hex: string; garment: string }) 
   return (
     <div className="exactcolour">
       <p className="colourmatch-q">
-        Not close enough? Get <span className="hexname">{hex}</span> exactly <TestingTag />
+        Not close enough? Get <span className="hexname">{hex}</span> exactly <TestingTag tool="exact_colour" />
       </p>
       <div className="exactcolour-row">
         <button type="button" className="exactcard" onClick={printIt} aria-describedby="exact-print">

@@ -3,7 +3,7 @@
 // The app's screens, which of the three steps each belongs to, and the ladder the back button climbs.
 
 export type Step = 'measure' | 'style' | 'export';
-export type View = Step | 'plans' | 'welcome' | 'steps' | 'account' | 'photo' | 'fitting' | 'scale' | 'client' | 'check' | 'imported' | 'privacy' | 'terms' | 'tester' | 'news' | 'collection' | 'link' | 'arrive' | 'form' | 'formprint' | 'brands' | 'nights' | 'move';
+export type View = Step | 'plans' | 'welcome' | 'steps' | 'account' | 'photo' | 'fitting' | 'scale' | 'client' | 'check' | 'imported' | 'privacy' | 'terms' | 'tester' | 'news' | 'collection' | 'link' | 'arrive' | 'form' | 'formprint' | 'brands' | 'nights' | 'move' | 'made';
 
 export const STEPS: { id: Step; label: string }[] = [
   { id: 'measure', label: 'Measure' },
@@ -50,4 +50,4 @@ export const ladder = (to: View, trail: View[]): View[] => {
 };
 
 /** Where the header's back goes when there's nothing behind in history, such as after a reload. */
-export const PARENT: Partial<Record<View, View>> = { measure: 'welcome', steps: 'welcome', style: 'measure', photo: 'style', export: 'style', fitting: 'export', scale: 'export', account: 'style', client: 'account', arrive: 'client', link: 'welcome', check: 'account', imported: 'check', form: 'account', formprint: 'form', privacy: 'welcome', terms: 'welcome', tester: 'account', news: 'account', brands: 'account', nights: 'account', move: 'welcome' };
+export const PARENT: Partial<Record<View, View>> = { measure: 'welcome', steps: 'welcome', style: 'measure', photo: 'style', export: 'style', fitting: 'export', scale: 'export', account: 'style', client: 'account', arrive: 'client', link: 'welcome', check: 'account', imported: 'check', form: 'account', formprint: 'form', privacy: 'welcome', terms: 'welcome', tester: 'account', news: 'account', brands: 'account', nights: 'account', move: 'welcome', made: 'welcome' };

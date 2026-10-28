@@ -765,7 +765,7 @@ export function createRoundView(): RoundView | undefined {
       } else if (seams) along(seams, sm.pts, sm.leg);
     }
     if (round.vent) {
-      const vent = lines({ colour: GILD, width: 0.8, back: 0.2 });
+      const vent = lines({ colour: GILD, width: 0.8, back: cloth ? 0 : 0.2 });
       along(vent, [{ phi: Math.PI + 0.05, cm: round.vent.fromCm }, { phi: Math.PI + 0.05, cm: round.lengthAt(Math.PI) }]);
     }
 
@@ -802,7 +802,8 @@ export function createRoundView(): RoundView | undefined {
         const hemRing = lines({ colour: GLOW, width: 1.2, back: film || cloth ? 0 : 0.25, alpha: edge });
         hemRing.curve(48, (i) => onTube(e * axisX(yE), -Math.PI + (TAU * i) / 48, rh, yE));
         // The underarm seam, on the side of the sleeve toward the body.
-        const under = lines({ colour: GLOW, width: 1, back: 0.2 });
+        // Its faint through-the-cloth copy only in lines: in cloth it showed as a white sliver inside the near sleeve (film thread, 2026-10-28).
+        const under = lines({ colour: GLOW, width: 1, back: cloth ? 0 : 0.2 });
         under.curve(40, (i) => {
           const y = yU + ((yE - yU) * i) / 40;
           return onTube(e * axisX(y), -e * HALF, sleeveR(y), y);

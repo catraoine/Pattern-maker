@@ -39,18 +39,26 @@ A garment joins them (`src/launch.ts`) when sewists score it 4 of 5 or better in
 
 ## In testing (usable, labelled in the app, not promoted)
 
-Each carries the "In testing" tag (`src/launch.ts`, `src/ui/TestingTag.tsx`):
+Each carries the "In testing" tag. The list below is the registry in `src/launch.ts` (`TESTING_TOOLS` for tools,
+`LAUNCH_GARMENTS` for garments); `src/launch.test.ts` fails the build if a tag on any screen is missing from it, an
+entry is on no screen, or this table no longer names them all. The Account page shows the same list under "Still in
+testing". A tag comes off by hand, once its proof is in: delete the entry and the tag (or move the garment to
+`LAUNCH_GARMENTS`). The fit gate release on 18 Jan 2027 does the batch.
 
-| Feature | Where the tag shows |
-| --- | --- |
-| Trousers, T-shirt, jacket, coat | "What would you like to make?" and the Style heading |
-| Menswear form | the form choice when measuring |
-| The Collection and the Archive (numbered drops) | the Collection heading |
-| Body Double dress form and draping on it | the dress form page and "Draw your lines" |
-| Prints beyond checks | "What's the print?" in About your fabric |
-| Any colour for the fabric, matched to shop colourways | "Any colour" under the colour dots on the Fabric tab |
-| Pro files: DXF, measurement files, tech pack, 3D body | "More files" on Print |
-| Size run, pattern file check, client book | each one's heading |
+| Still in testing | Where the tag shows | Comes off when |
+| --- | --- | --- |
+| Trousers, T-shirt, jacket, coat (and lingerie while hidden) | "What would you like to make?" and the Style heading | sewists score it 4 of 5 or better at the fit gate |
+| Draw your lines | Style, Draw on your form | fit testers draw a hem, a neckline and a side and the pattern follows |
+| Body Double | Account and the form page | one padded form checked against its person |
+| Prints beyond checks | "What's the print?" in About your fabric | three testers cut a one-way or border print from the lay plan |
+| Any colour | the colour dots on the Fabric tab | shop colourways match the picked colour on five fabrics |
+| Exact colour | under Any colour | the first custom-dyed order delivered and matched |
+| Pro files (DXF, measurement files, tech pack, 3D body) | More files on Print | one factory or dressmaker cuts from the pack |
+| Size run | Print, For production | a graded run sewn in two sizes |
+| Check any pattern file | Account | five outside files walked with no false alarm |
+| Client book | Account | one dressmaker keeps three clients in it |
+| The collection and the Archive | the Collection heading | drop 01 published |
+| Projector mode | Print, Projector, and inside projector mode | two sewists cut a garment with it on their own projectors |
 
 Lingerie and swimwear stay hidden (`?lingerie=preview`, PR #102). Tracé Engine, Atelier Nights, Deadstock and
 Cut For You are sign-ups only: nothing more is built behind them before the gate.

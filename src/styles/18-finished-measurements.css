@@ -1,0 +1,66 @@
+/* The finished measurements up front (F1 Table Up Front, 2026-10-28): you, the garment and the ease. */
+.finished {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+.finished .eyebrow {
+  margin: 0;
+}
+.finished-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.finished-table th,
+.finished-table td {
+  padding: 6px 8px 6px 0;
+  text-align: left;
+  font-weight: var(--w-body);
+  border-top: 1px solid var(--guide);
+  vertical-align: baseline;
+}
+.finished-table thead th {
+  border-top: 0;
+  font: var(--w-body) 10px/1.2 var(--mono);
+  letter-spacing: var(--track);
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.finished-table tbody th {
+  color: var(--ink);
+}
+.finished-table td {
+  color: var(--muted);
+  white-space: nowrap;
+}
+.finished-table td.fin {
+  color: var(--ink);
+  font-weight: var(--w-strong);
+}
+.finished-table td.ease {
+  color: var(--gild);
+}
+.fitword {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 5px;
+  font: var(--w-strong) 9px/1.4 var(--mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #000;
+  background: #c4a774;
+}
+.fitword.fit-held { background: #5a3a1e; color: var(--ink); }
+.fitword.fit-close,
+.fitword.fit-snug { background: #8a6d3b; color: var(--ink); }
+.fitword.fit-roomy { background: #eadcb8; }
+.fitword.fit-stretches { background: transparent; color: var(--gild); border: 1px solid var(--gild); }
+.style-review .finished,
+.style-side .finished {
+  margin: 4px 0 6px;
+}
+.finished p.small {
+  margin: 0;
+}

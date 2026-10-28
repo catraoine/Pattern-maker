@@ -378,7 +378,7 @@ function ColourBars({ finish, onFinish, garment, onShop }: { finish: Finish; onF
   return (
     <div className="colourbars">
       <p className="colourbars-q">
-        Any colour <TestingTag />
+        Any colour <TestingTag tool="any_colour" />
       </p>
       <label className="colourbar">
         <span>Colour</span>
