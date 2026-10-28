@@ -50,6 +50,8 @@ interface Props {
   onIdea?: (choices: PatternChoices) => void;
   /** "Or start from a photo" on the describe page. */
   onPhoto?: () => void;
+  /** "How your pattern is made", for the AI line on the describe page. */
+  onMade?: () => void;
   /** "Tell me when it's ready", for something the app can't make yet. */
   onNews?: () => void;
 }
@@ -96,7 +98,7 @@ const aOrAn = (name: string) => (/(s|wear|lingerie)$/i.test(name) && !/dress$/i.
 // The first page asks who you are designing for, since "Someone else" words every page for the person holding the
 // tape and asks their name first (Cat's pick V2, 2026-10-17). A quiet "Measure later" in capitals sits under the
 // button wherever measuring can be skipped.
-export function MeasureStepsScreen({ testerCode, garment: current, unit, values, onUnit, onValues, helped = [], weight, onWeight, onDone, start, onSomeoneElse, theirs, onSkip, onLater, form = 'womenswear', onForm, onIdea, onPhoto, onNews }: Props) {
+export function MeasureStepsScreen({ testerCode, garment: current, unit, values, onUnit, onValues, helped = [], weight, onWeight, onDone, start, onSomeoneElse, theirs, onSkip, onLater, form = 'womenswear', onForm, onIdea, onPhoto, onMade, onNews }: Props) {
   const aimed = start?.kind === 'for' ? start.garment : undefined;
   // Each page is a history entry, so the header's back and the phone's back go one page back.
   const [page, setPage] = usePageHistory<Page>(() => {
@@ -336,7 +338,15 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
           <label htmlFor="idea">Describe it</label>
           <textarea id="idea" rows={3} maxLength={MAX_IDEA_CHARS} value={idea} onChange={(e) => setIdea(e.target.value)} />
         </div>
-        <p className="muted step-tip">A few words is enough. Name the garment and anything you love about it.</p>
+        <p className="muted step-tip">
+          A few words is enough. Name the garment and anything you love about it. We use AI to read your words, then you check the style
+          before we draft.{' '}
+          {onMade && (
+            <button type="button" className="inline-link" onClick={onMade}>
+              How your pattern is made
+            </button>
+          )}
+        </p>
         {ideaError && (
           <p className="msg small" role="alert">
             {IDEA_ERROR[ideaError] ?? "We couldn't read that just now. Try again, or pick from the list."}

@@ -94,6 +94,7 @@ const PhotoScreen = screen(() => import('./screens/PhotoScreen').then((m) => m.P
 const SignupScreen = screen(() => import('./screens/SignupScreen').then((m) => m.SignupScreen));
 const BrandsScreen = screen(() => import('./screens/BrandsScreen').then((m) => m.BrandsScreen));
 const NightsScreen = screen(() => import('./screens/NightsScreen').then((m) => m.NightsScreen));
+const MadeScreen = screen(() => import('./screens/MadeScreen').then((m) => m.MadeScreen));
 const PlansScreen = screen(() => import('./screens/PlansScreen').then((m) => m.PlansScreen));
 const FittingScreen = screen(() => import('./screens/FittingScreen').then((m) => m.FittingScreen));
 const TrueScaleScreen = screen(() => import('./screens/TrueScaleScreen').then((m) => m.TrueScaleScreen));
@@ -176,7 +177,7 @@ export default function App() {
   const sendLink = () => moveLink(window.location.origin, makeBackup(saved, account, pointEdits));
   const [startView] = useState<View>(incoming?.kind === 'ask' ? 'link' : incoming?.kind === 'reply' ? 'arrive' : isMoveLink(window.location.hash) ? 'move' : 'welcome');
   const [step, setStep] = useViewHistory<View>(startView, (to) => (NEEDS_MEASUREMENTS.includes(to) && !canLeaveMeasure ? 'measure' : to), ladder);
-  const openLegal = (page: 'privacy' | 'terms' | 'tester' | 'news' | 'brands' | 'nights') => setStep(page);
+  const openLegal = (page: 'privacy' | 'terms' | 'tester' | 'news' | 'brands' | 'nights' | 'made') => setStep(page);
   // The waitlist (Cat's W1, 2026-10-21): until launch, a visitor without a tester link sees the welcome with a waitlist
   // where Begin was, and the Privacy and Terms pages, nothing else. Measure-me and move links still open, as they
   // come from someone already using the app.
@@ -204,7 +205,7 @@ export default function App() {
     if (!storedAccount.testerCode) setAccount({ ...storedAccount, testerCode: code });
   };
   useEffect(() => {
-    if (gated && step !== 'welcome' && step !== 'privacy' && step !== 'terms') setStep('welcome');
+    if (gated && step !== 'welcome' && step !== 'privacy' && step !== 'terms' && step !== 'made') setStep('welcome');
   // eslint-disable-next-line react-hooks/exhaustive-deps -- setStep is rebuilt each render; the effect only follows gated and step
   }, [gated, step]);
   useEffect(() => {
@@ -689,6 +690,7 @@ export default function App() {
               }}
               onIdea={(c) => styleChoices(c)}
               onPhoto={() => setStep('photo')}
+              onMade={() => openLegal('made')}
               onNews={() => openLegal('news')}
               onLater={() => setStep('welcome')}
               onSkip={(g?: Garment) => {
@@ -712,6 +714,7 @@ export default function App() {
           )}
           {step === 'brands' && <BrandsScreen onPrivacy={() => openLegal('privacy')} />}
           {step === 'nights' && <NightsScreen onPrivacy={() => openLegal('privacy')} />}
+          {step === 'made' && <MadeScreen onPrivacy={() => openLegal('privacy')} />}
           {step === 'photo' && plansShown() && <PhotoAllowance account={account} onPlans={openPlans} />}
           {step === 'photo' && canPhotoDraft(account) && (
             <PhotoScreen
@@ -720,6 +723,7 @@ export default function App() {
               body={canLeaveMeasure ? (values as SkirtMeasurements & { arm_length?: number }) : undefined}
               unit={saved.unit}
               onByHand={() => switchGarment('skirt', {}, 'style')}
+              onMade={() => openLegal('made')}
               onApply={(choices, preview, fabric, source) => {
                 setPhotoSource(source);
                 if (BILLING_ON) setAccount(countPhotoDraft(account));

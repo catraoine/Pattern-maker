@@ -13,7 +13,7 @@ interface Props {
   /** The form the person's patterns are drafted on, so the welcome shows the same body as measuring. */
   form?: FormKind;
   /** Opens the Terms of Use or the Privacy Policy. */
-  onLegal: (page: 'terms' | 'privacy') => void;
+  onLegal: (page: 'terms' | 'privacy' | 'made') => void;
   /** Someone coming back with their measurements taken: the garment they were on, and the ways back in. */
   resume?: { garment: string; onResume: () => void; onSaved: () => void; onNew: () => void };
   /** Until launch, someone without a tester link gets the waitlist where Begin was (Cat's W1, 2026-10-21). */
@@ -208,7 +208,12 @@ export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume, wait
             stay in Your account (Cat's L5 First Visit Only, 2026-10-20). */}
         {waitlist ? (
           <p className="fineprint">
-            {/* Just the link where emails are collected (Cat, 2026-10-25: the sentence was clutter) */}
+            {/* Just the link where emails are collected (Cat, 2026-10-25: the sentence was clutter), and how a
+                pattern is made, for anyone wondering if it's an "AI pattern" (Cat's AI stance, 2026-10-28) */}
+            <button type="button" className="inline-link" onClick={() => onLegal('made')}>
+              How it's made
+            </button>
+            {' · '}
             <button type="button" className="inline-link" onClick={() => onLegal('privacy')}>
               Privacy Policy
             </button>
