@@ -1,8 +1,11 @@
+import { TestingTag } from '../ui/TestingTag';
 import { matchKind } from '../engine/prints';
-import { IN_TESTING, optionInTesting } from '../launch';
+import { optionInTesting } from '../launch';
 import { BackNeck, backBlocked } from '../engine/backNeck';
 import { useMemo, useState } from 'react';
 import { layout } from '../engine/export';
+import { bodiceSpec, sleeveSpec } from '../engine/spec';
+import { FinishedTable, finishedLines } from '../ui/FinishedTable';
 import { BodiceDraft, BodiceMeasurements, bodiceEase, dropRange, needsHip } from '../engine/bodice';
 import { BODICE_GROUPS, BodiceChoices, DARTS_FOR_FIT, describeBodice, detailAllowed, sleeveOf, topAllowed, validDetails } from '../garments';
 import { isStrapless, isTop } from '../engine/corset';
@@ -283,6 +286,24 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
       photo={photo}
       mode={mode}
       onMode={onMode}
+      finished={
+        draft && (
+          <FinishedTable
+            lines={finishedLines([
+              ...bodiceSpec(values as BodiceMeasurements, draft, choices.length, choices.dropCm),
+              ...(sleeve ? sleeveSpec(values as SleeveMeasurements, sleeve) : []),
+            ])}
+            noun="Bodice"
+          >
+            {(ease.waist + extra.waist < 0 || extra.bust > 0) && (
+              <p className="muted small">
+                {ease.waist + extra.waist < 0 ? 'Held in at the waist on purpose, so it holds you like a corset. ' : ''}
+                {extra.bust ? `The ease includes ${extra.bust} cm at the bust and ${extra.waist} cm at the waist for your heavy fabric.` : ''}
+              </p>
+            )}
+          </FinishedTable>
+        )
+      }
     >
       <section className="card numbered" aria-labelledby="opts">
         {BODICE_GROUPS.filter((g) => shown(g.id)).map((g) => (
@@ -299,7 +320,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
                 >
                   <ChoicePic set="bodice" group={g.id} id={id} />
                   {label}
-                  {optionInTesting(g.id, id) && <span className="testing-tag">{IN_TESTING}</span>}
+                  {optionInTesting(g.id, id) && <TestingTag tool="new_details" />}
                 </button>
               ))}
             </div>
@@ -501,42 +522,6 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
 
       <aside className="card" aria-labelledby="sum">
         <h2 id="sum">Summary</h2>
-        <div className="sumgrid">
-          <span />
-          <span className="muted">You</span>
-          <span className="muted">Bodice</span>
-          <span>Bust</span>
-          <span>{values.full_bust} cm</span>
-          <strong>{draft ? draft.finishedBust : '–'} cm</strong>
-          <span>Waist</span>
-          <span>{values.waist} cm</span>
-          <strong>{draft ? draft.finishedWaist : '–'} cm</strong>
-          {draft?.finishedHem !== undefined && (
-            <>
-              <span>Hem</span>
-              <span />
-              <strong>{draft.finishedHem} cm</strong>
-            </>
-          )}
-          <span>Back length</span>
-          <span />
-          <strong>{draft ? draft.backLength : '–'} cm</strong>
-          {sleeve && (
-            <>
-              <span>Upper arm</span>
-              <span>{values.upper_arm} cm</span>
-              <strong>{sleeve.bicep} cm</strong>
-              <span>Sleeve length</span>
-              <span />
-              <strong>{sleeve.lengthCm} cm</strong>
-            </>
-          )}
-        </div>
-        <p className="muted small">
-          {ease.waist + extra.waist < 0
-            ? `The bodice is ${ease.bust + extra.bust} cm bigger than you at the bust and ${-(ease.waist + extra.waist)} cm smaller at the waist, so it holds you like a corset${extra.bust ? `, including ${extra.bust} cm and ${extra.waist} cm for your heavy fabric` : ''}.`
-            : `The bodice is ${ease.bust + extra.bust} cm bigger than you at the bust and ${ease.waist + extra.waist} cm at the waist, so you can move and breathe${extra.bust ? `, including ${extra.bust} cm and ${extra.waist} cm for your heavy fabric` : ''}.`}
-        </p>
         <PiecesList pieces={pieces} />
         {draft && <FabricSummary metres={bodiceFabricMetres(draft, sleeve)} fabric={fabric} />}
         <p className="muted small">

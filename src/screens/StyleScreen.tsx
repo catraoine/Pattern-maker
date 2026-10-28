@@ -1,9 +1,12 @@
+import { TestingTag } from '../ui/TestingTag';
 import { matchKind } from '../engine/prints';
 import { useMemo, useState } from 'react';
 import { BELTS, beltAllowed, beltPieces, skirtBelt } from '../engine/belt';
 import type { Choices } from '../savedWork';
 import { layout } from '../engine/export';
-import { FIT_EASE, PULL_ON_EASE, lengthRange, SkirtDraft, SkirtMeasurements } from '../engine/skirt';
+import { PULL_ON_EASE, lengthRange, SkirtDraft, SkirtMeasurements } from '../engine/skirt';
+import { skirtSpec } from '../engine/spec';
+import { FinishedTable, finishedLines } from '../ui/FinishedTable';
 import { isShaped } from '../engine/hem';
 import { SLIP_FACING, SLIP_HIP_EASE_LESS, cutAllowed, validCut } from '../engine/slip';
 import type { MeasurementValues } from '../measurements';
@@ -26,7 +29,7 @@ import { shapeLine } from '../photo/shape';
 import { MyFabric, fabricEase, skirtFabrics } from '../engine/fabrics';
 import { FabricCard, FabricSummary } from '../ui/FabricCard';
 import { DETAIL_OPTIONS, GODET_OPTIONS, setSkirtDetail, setVolume, skirtDetailAllowed, skirtDetailOf, volumeAllowed, volumeOf } from '../engine/skirtVolume';
-import { IN_TESTING, optionInTesting } from '../launch';
+import { optionInTesting } from '../launch';
 
 import { EaseMapView } from '../ui/EaseMapView';
 import { FitSwitch, GarmentViews, PreviewSwitch } from '../ui/PreviewSwitch';
@@ -92,7 +95,6 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
 
   const sheet = useMemo(() => (draft ? layout(draft.pieces, '', []) : undefined), [draft]);
   const round = useMemo(() => (draft ? roundSkirt(draft) : undefined), [draft]);
-  const ease = FIT_EASE[choices.fit];
   const slipped = choices.silhouette === 'slip';
   const extra = fabricEase(fabric, 'skirt');
   const title = describe(choices);
@@ -243,6 +245,22 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
       looks={looks}
       mode={mode}
       onMode={onMode}
+      finished={
+        draft && (
+          <FinishedTable lines={finishedLines(skirtSpec(m, draft), { elasticCm: draft.elastic?.finishedCm })} noun="Skirt">
+            {draft.elastic ? (
+              <p className="muted small">The waist is cut to pass over your hips and gathered onto {draft.elastic.finishedCm} cm of elastic.</p>
+            ) : (
+              (extra.hip > 0 || slipped) && (
+                <p className="muted small">
+                  {extra.hip ? `The ease includes ${extra.waist} cm at the waist and ${extra.hip} cm at the hip for your heavy fabric.` : ''}
+                  {slipped ? `${extra.hip ? ' ' : ''}It has ${SLIP_HIP_EASE_LESS} cm less at the hip than on the straight grain: cut on the bias, the cloth gives and moulds to you.` : ''}
+                </p>
+              )
+            )}
+          </FinishedTable>
+        )
+      }
     >
       <section className="card numbered" aria-labelledby="opts">
         {/* The length is set on the drawing, with the hem dot and the lengths named beside the legs (Cat, 2026-10-24). */}
@@ -298,7 +316,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
                 onClick={() => change(keepWaist(setSkirtDetail(choices, id)))}
               >
                 {label}
-                {optionInTesting('volume', id) && <span className="testing-tag">{IN_TESTING}</span>}
+                {optionInTesting('volume', id) && <TestingTag tool="new_details" />}
               </button>
             ))}
           </div>
@@ -591,35 +609,6 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
 
       <aside className="card" aria-labelledby="sum">
         <h2 id="sum">Summary</h2>
-        <div className="sumgrid">
-          <span />
-          <span className="muted">You</span>
-          <span className="muted">Skirt</span>
-          <span>Waist</span>
-          <span>{values.waist} cm</span>
-          <strong>{draft ? draft.finishedWaist : '–'} cm</strong>
-          <span>Hip</span>
-          <span>{values.full_hip} cm</span>
-          <strong>{draft ? draft.finishedHip : '–'} cm</strong>
-          <span>Length</span>
-          <span />
-          <strong>{draft ? draft.lengthCm : '–'} cm</strong>
-          <span>Hem</span>
-          <span />
-          <strong>{draft ? draft.hemCm : '–'} cm</strong>
-        </div>
-        {draft?.elastic ? (
-          <p className="muted small">
-            The waist is cut to pass over your hips and gathered onto {draft.elastic.finishedCm} cm of elastic. The skirt is{' '}
-            {Math.round((draft.finishedHip - (values.full_hip ?? 0)) * 10) / 10} cm bigger than you at the hip, so you can move and sit.
-          </p>
-        ) : (
-          <p className="muted small">
-            The skirt is {ease.waist + extra.waist} cm bigger than you at the waist and {ease.hip + extra.hip - (slipped ? SLIP_HIP_EASE_LESS : 0)} cm at the hip, so you can move and sit
-            {extra.hip ? `, including ${extra.waist} cm and ${extra.hip} cm for your heavy fabric` : ''}.
-            {slipped ? ` That is ${SLIP_HIP_EASE_LESS} cm less at the hip than on the straight grain: cut on the bias, the cloth gives and moulds to you.` : ''}
-          </p>
-        )}
         <PiecesList pieces={[...(draft?.pieces ?? []), ...(draft ? beltPieces(skirtBelt(choices.belt, draft), 1.5) : [])]}>
           {draft && draft.faced && <li>Waist facings: cut 1 front and 1 back, {SLIP_FACING} cm deep</li>}
           {draft?.waistFinish && (

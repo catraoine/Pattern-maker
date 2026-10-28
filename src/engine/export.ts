@@ -1,7 +1,7 @@
 // Lay out pieces and export them at true scale: SVG and tiled PDF for home printing.
 import { P, add, lerp, mul, p, sub, unit } from './geometry';
 import { allNotches, drillHoles, edgeLabels, insidePolygon, notchSlit } from './marks';
-import { Piece, bounds, cutLine } from './piece';
+import { MARK_TEXT, Piece, bounds, cutLine } from './piece';
 import { PROFILE_RES, nestOutlines, profile } from './layplan';
 
 const GAP = 4; // cm between pieces
@@ -599,6 +599,16 @@ export function layout(pieces: Piece[], title: string, notes: string[], info?: S
       const u = unit(sub(c, a));
       const rot = (Math.atan2(u.y, u.x) * 180) / Math.PI;
       lab(text(tl(add(lerp(a, c, 0.75), mul(p(u.y, -u.x), 0.35)), 0.5, rot), b.label, 0.5, rot, 'middle', { face: 'label', tracking: 0.15, grey: 0.35 }), 4, 0.15);
+    });
+    // The finished measurement marks: a bullseye at the level, its words under it on the sheet, turned
+    // piece or not (F5, 2026-10-28).
+    (pc.finished ?? []).forEach((f) => {
+      const c = t(f.at);
+      poly(Array.from({ length: 25 }, (_, i) => add(c, p(0.5 * Math.cos((i * Math.PI) / 12), 0.5 * Math.sin((i * Math.PI) / 12)))), 'mark', true);
+      poly([add(c, p(-0.75, 0)), add(c, p(0.75, 0))], 'mark');
+      poly([add(c, p(0, -0.75)), add(c, p(0, 0.75))], 'mark');
+      lab(text(add(c, p(0, f.above ? -1.55 : 1.35)), f.title, MARK_TEXT, 0, 'middle', { face: 'label', tracking: 0.12 }), 2, 0.12);
+      lab(text(add(c, p(0, f.above ? -0.9 : 2.0)), f.note, 0.36, 0, 'middle', { face: 'label', tracking: 0.12, grey: 0.35 }), 2, 0.12);
     });
     // The grain arrow and the fold bracket: labels keep off them.
     const fixtures: Box[] = [];

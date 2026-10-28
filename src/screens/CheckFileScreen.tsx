@@ -49,7 +49,7 @@ export function CheckFileScreen({ onUse }: { onUse?: (pattern: ImportedPattern, 
       <section className="card" aria-labelledby="cftitle">
         <div className="row between wrap">
           <div>
-            <p className="eyebrow">Check any pattern <TestingTag /></p>
+            <p className="eyebrow">Check any pattern <TestingTag tool="check_file" /></p>
             <h1 id="cftitle">Walk the seams of a pattern file</h1>
           </div>
         </div>

@@ -21,6 +21,8 @@ export function PlansScreen({ account, onBack }: { account: Account; onBack: () 
           Every style option, a pattern you print at home, {FREE_SAVED_LIMIT} saved patterns, {FREE_PHOTO_DRAFTS} photo drafts a month and how much
           fabric to buy.
         </p>
+        {/* Projector and copy-shop files are free for everyone (Cat, 2026-10-28): highlighted, not a Premium extra. */}
+        <p className="plan-perk">Project it straight onto fabric, or print one big copy-shop sheet. No taping pages, free.</p>
         <p className="muted small">Any other garment can be unlocked on its own for {PRICES.pack}, and it's yours to keep.</p>
       </section>
 
@@ -28,8 +30,7 @@ export function PlansScreen({ account, onBack }: { account: Account; onBack: () 
         <p className="eyebrow">Premium{yours('premium') || ' · best value yearly'}</p>
         <h2 id="premiumtitle">Every garment</h2>
         <p className="muted">
-          Dress, trousers, T-shirt, jacket and coat as well, as many people and saved patterns as you like, unlimited photo drafts, and A0 and
-          projector files.
+          Dress, trousers, T-shirt, jacket and coat as well, as many people and saved patterns as you like, and unlimited photo drafts.
         </p>
         <dl className="offerprices">
           <div>

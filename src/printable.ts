@@ -40,6 +40,7 @@ import { outerFabricMetres } from './fabricAmounts';
 import type { Printable } from './screens/ExportScreen';
 import type { PocketStyle } from './engine/pockets';
 import { layoutExtras } from './engine/skirtVolume';
+import { withFinishedMarks } from './engine/finishedMarks';
 
 import type { Choices, Finish } from './savedWork';
 import type { Drafts } from './garmentDrafts';
@@ -83,7 +84,13 @@ interface PrintInputs {
   trousersChoices: TrousersChoices;
 }
 
-export function printableFor({ result, values, finish, fabric, garment, ownFitting, carriedNotes, saved, dress, skirtStyle, trousersChoices }: PrintInputs): Printable | undefined {
+/** The printed pattern, its front pieces marked with the finished bust, waist and hip (F5, 2026-10-28). */
+export function printableFor(inputs: PrintInputs): Printable | undefined {
+  const made = drafted(inputs);
+  return made && { ...made, pieces: withFinishedMarks(made.pieces, made.spec) };
+}
+
+function drafted({ result, values, finish, fabric, garment, ownFitting, carriedNotes, saved, dress, skirtStyle, trousersChoices }: PrintInputs): Printable | undefined {
   const { skirt, bodice, sleeve, dress: dressDraft, trousers, tee, lingerie, outer } = result;
   // A special cloth (leather) can need its own seam allowances, whatever the style.
   const special = fabric?.special;

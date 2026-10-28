@@ -277,7 +277,7 @@ export async function openReview(page: Page): Promise<boolean> {
   return true;
 }
 
-/** The summary's numbers, pieces and Keep in my patterns fold under one line on Review and in the computer's
+/** The summary's pieces, fabric and Keep in my patterns fold under one line on Review and in the computer's
  *  side panel (look and feel review R1, 2026-10-24): open that fold so the tests can read them. */
 async function openNumbers(page: Page) {
   const fold = main(page).locator('details.review-fold').first();
