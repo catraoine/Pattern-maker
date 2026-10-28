@@ -2,10 +2,9 @@ import { matchKind } from '../engine/prints';
 import { BELTS, Belt, beltAllowed, beltPieces, dressBelt } from '../engine/belt';
 import { useMemo, useState } from 'react';
 import { layout } from '../engine/export';
-import { bodiceEase } from '../engine/bodice';
 import { isTop } from '../engine/corset';
 import { BUTTONS_STOP_ABOVE_HEM, buttonsOnSkirt, fromSeam, noSeamAllowed } from '../engine/dress';
-import type { DressDraft, WaistSeam } from '../engine/dress';
+import type { DressDraft, DressMeasurements, WaistSeam } from '../engine/dress';
 import { wrapSkirtAllowed } from '../engine/wrapSkirt';
 import { SLIT_PLACES, SlitPlace, slitAllowed } from '../engine/slit';
 import { NO_SLIT, SlitSlider } from '../ui/SlitSlider';
@@ -61,6 +60,8 @@ import { PiecesList, SummaryActions, formViews } from '../ui/StyleSummary';
 const PRO_GROUPS: string[] = ['princess', 'bustDart'];
 
 import { dressFabricMetres } from '../fabricAmounts';
+import { dressSpec } from '../engine/spec';
+import { FinishedTable, finishedLines } from '../ui/FinishedTable';
 
 interface Props {
   /** Start from a photo, and the photo this garment was matched to while the app is open. */
@@ -146,7 +147,6 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
   const valid = validDetails({ ...choices.bodice, fit: choices.fit, length: 'waist', closure }, 'dress');
   const boned = valid.structure === 'boned';
   const top = isTop(choices.bodice.neckline);
-  const ease = bodiceEase(valid);
   const extra = fabricEase(fabric, 'dress');
   // A draped neckline is its own shaping: no princess seams, moved dart or collar.
   const draped = isDraped(choices.bodice);
@@ -507,6 +507,18 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
       photo={photo}
       mode={mode}
       onMode={onMode}
+      finished={
+        draft && (
+          <FinishedTable lines={finishedLines(dressSpec(values as DressMeasurements, draft, sleeve))} noun="Dress">
+            {(boned || extra.bust > 0) && (
+              <p className="muted small">
+                {boned ? 'Held in: the boned bodice is cut smaller than you on purpose, so the boning holds you. ' : ''}
+                {extra.bust ? `The ease includes ${extra.bust} cm at the bust and ${extra.waist} cm at the waist for your heavy fabric.` : ''}
+              </p>
+            )}
+          </FinishedTable>
+        )
+      }
     >
       <section className="card numbered" aria-labelledby="opts">
         {groups.map((g) => (
@@ -680,34 +692,6 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
 
       <aside className="card" aria-labelledby="sum">
         <h2 id="sum">Summary</h2>
-        <div className="sumgrid">
-          <span />
-          <span className="muted">Body</span>
-          <span className="muted">Dress</span>
-          <span>Bust</span>
-          <span>{values.full_bust} cm</span>
-          <strong>{draft ? draft.finishedBust : '–'} cm</strong>
-          <span>Waist</span>
-          <span>{values.waist} cm</span>
-          <strong>{draft ? draft.finishedWaist : '–'} cm</strong>
-          <span>Hip</span>
-          <span>{values.full_hip} cm</span>
-          <strong>{draft ? draft.finishedHip : '–'} cm</strong>
-          <span>Nape to hem</span>
-          <span />
-          <strong>{draft ? draft.lengthCm : '–'} cm</strong>
-          {sleeve && (
-            <>
-              <span>Upper arm</span>
-              <span>{values.upper_arm} cm</span>
-              <strong>{sleeve.bicep} cm</strong>
-            </>
-          )}
-        </div>
-        <p className="muted small">
-          Ease added: {ease.bust + extra.bust} cm at the bust, {ease.waist + extra.waist} cm at the waist{boned ? ' (negative ease, so the boned bodice holds you)' : ''}
-          {extra.bust ? `, including ${extra.bust} cm and ${extra.waist} cm for your heavy fabric` : ''}.
-        </p>
         <PiecesList pieces={pieces}>
           {draft?.skirt.volume?.tiers?.bands.map((b) => (
             <li key={b.name}>

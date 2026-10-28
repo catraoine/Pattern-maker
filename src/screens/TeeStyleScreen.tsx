@@ -1,6 +1,9 @@
 import { useMemo, useState } from 'react';
 import { layout } from '../engine/export';
-import { NECKBAND_CM, STRETCH_TEST, TeeDraft, pctWords } from '../engine/tee';
+import { NECKBAND_CM, STRETCH_TEST, TeeDraft, TeeMeasurements, pctWords } from '../engine/tee';
+import { teeSpec } from '../engine/spec';
+import { FinishedTable, finishedLines } from '../ui/FinishedTable';
+
 import { teeFlat, wornLines, wornShapes } from '../engine/flat';
 import { TEE_GROUPS, TeeChoices, describeTee } from '../garments';
 import { TechFlatView } from '../ui/TechFlatView';
@@ -81,8 +84,6 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
   const flatLines = useMemo(() => (flat ? wornLines(flat) : undefined), [flat]);
   const title = describeTee(choices);
   const round = useMemo(() => (draft ? roundTee(draft, values) : undefined), [draft, values]);
-  const hemLabel = choices.length === 'cropped' ? 'Hem' : 'Hip';
-  const hemBody = choices.length === 'cropped' ? values.waist : values.full_hip;
 
   if (onForm && draft && form) {
     return (
@@ -149,6 +150,9 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
       photo={photo}
       mode={mode}
       onMode={onMode}
+      finished={
+        draft && <FinishedTable lines={finishedLines(teeSpec(values as TeeMeasurements, draft), { knit: true })} noun="T-shirt" />
+      }
     >
       <section className="card numbered" aria-labelledby="opts">
         <TabPanel tab={LOOKS}>
@@ -249,26 +253,6 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
 
       <aside className="card" aria-labelledby="sum">
         <h2 id="sum">Summary</h2>
-        <div className="sumgrid">
-          <span />
-          <span className="muted">You</span>
-          <span className="muted">T-shirt</span>
-          <span>Bust</span>
-          <span>{values.full_bust} cm</span>
-          <strong>{draft ? draft.finishedBust : '–'} cm</strong>
-          <span>Waist</span>
-          <span>{values.waist} cm</span>
-          <strong>{draft ? draft.finishedWaist : '–'} cm</strong>
-          <span>{hemLabel}</span>
-          <span>{hemBody} cm</span>
-          <strong>{draft ? draft.finishedHem : '–'} cm</strong>
-          <span>Back length</span>
-          <span />
-          <strong>{draft ? draft.backLength : '–'} cm</strong>
-          <span>Sleeve</span>
-          <span />
-          <strong>{draft ? draft.sleeve.lengthCm : '–'} cm</strong>
-        </div>
         {draft && (
           <p className="muted small">
             Ease at the bust: {pctWords(draft.easePct)} ({Math.round((draft.finishedBust - (values.full_bust ?? 0)) * 10) / 10} cm)

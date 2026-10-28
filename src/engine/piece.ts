@@ -42,6 +42,20 @@ export interface Piece {
   cutOutline?: P[];
   allowances: Record<string, number>; // per edge tag, e.g. { hem: 4, fold: 0 }
   meta: Record<string, unknown>;
+  /** Finished measurement marks for the printed pattern: a bullseye at the level, and its words under it. */
+  finished?: FinishedMark[];
+}
+
+/** The size of a finished mark's title, in cm; the body and ease under it are a little smaller. */
+export const MARK_TEXT = 0.42;
+
+/** "FINISHED BUST 99 CM" over "YOU 92 · EASE +7", at the bust line, as the pattern houses mark it. */
+export interface FinishedMark {
+  at: P;
+  title: string;
+  note: string;
+  /** The words over the mark rather than under it: a top's waist, near its lower edge. */
+  above?: boolean;
 }
 
 export function cutLine(pc: Piece, outline: Path = pc.outline): P[] {
