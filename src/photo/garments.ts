@@ -15,6 +15,11 @@ import {
   PatternChoices,
   TeeChoices,
   TrousersChoices,
+  isBodice,
+  isDress,
+  isOuter,
+  isTee,
+  isTrousers,
   outerAllowed,
   sleeveOf,
   validDetails,
@@ -27,9 +32,48 @@ import type { OuterLength } from '../engine/outerwear';
 import type { TeeLength, TeeNeck, TeeSleeve } from '../engine/tee';
 import { setVolume, volumeOf } from '../engine/skirtVolume';
 import { validCut } from '../engine/slip';
+import { slitAllowed } from '../engine/slit';
+import { backBlocked } from '../engine/backNeck';
 import { elasticAllowed, pocketsAllowed } from '../skirtChoices';
+import { NECKLINES } from '../engine/bodice';
+import { FULLNESS } from '../ui/BodiceShape';
 import { fitOf, shapeOf } from './shape';
-import type { Confidence, PhotoReading, PieceKind, TopReading } from './types';
+import type { BackReading, Confidence, PhotoReading, PieceKind, TopReading } from './types';
+
+/** The wearer's measurements the photo's exact sizes are scaled by, when they've been taken. */
+export interface PhotoBody {
+  waist_to_floor?: number;
+  arm_length?: number;
+}
+
+const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+const num = (v: number | null | undefined): v is number => typeof v === 'number' && Number.isFinite(v);
+
+/** Necklines whose depth the photo can set: the open ones drawn as a curve or a point. */
+const DEEPENED: TopReading['neckline'][] = ['scoop', 'v', 'square'];
+
+/**
+ * The exact sizes the photo showed, laid over the named choices: the neckline's depth (as the
+ * Draw-on-form neckline, keeping the named one's width and curve), the sleeve's length and a top's hem.
+ * A size close to the named choice's own is left alone, so a plain scoop stays a scoop.
+ */
+function measuredBodice(c: BodiceChoices, r: PhotoReading, body: PhotoBody | undefined, garment: 'bodice' | 'dress'): BodiceChoices {
+  const m = r.measures;
+  if (!m) return c;
+  let out = c;
+  const named = NECKLINES[c.neckline];
+  if (num(m.neckDepthCm) && DEEPENED.includes(c.neckline) && (!c.collar || c.collar === 'none') && Math.abs(m.neckDepthCm - named.frontDepth) >= 2.5) {
+    out = { ...out, neck: { ...named, frontDepth: clamp(Math.round(m.neckDepthCm), 4, 30), fullness: FULLNESS[c.neckline] } };
+  }
+  const sleeve = sleeveOf(out);
+  if (num(m.sleeveEndsAt) && body?.arm_length && sleeve.length !== 'none' && sleeve.shape !== 'cap' && !sleeve.cut) {
+    out = { ...out, sleeveCm: Math.round(clamp(m.sleeveEndsAt, 0.15, 1) * body.arm_length) };
+  }
+  if (garment === 'bodice' && num(m.topHemAt) && body?.waist_to_floor && out.length !== 'waist') {
+    out = { ...out, dropCm: Math.round(clamp(m.topHemAt, 0, 0.45) * body.waist_to_floor) };
+  }
+  return out;
+}
 
 export const PIECE_WORDS: Record<PieceKind, string> = {
   skirt: 'skirt',
@@ -82,6 +126,7 @@ export function skirtChoices(r: PhotoReading, garment: 'skirt' | 'dress' = 'skir
   }
   if (garment === 'skirt' && x.elasticWaist && elasticAllowed(c)) c = { ...c, waist: 'elastic' };
   if (x.pockets && pocketsAllowed(c)) c = { ...c, pockets: 'inseam' };
+  if (x.slit && x.slit !== 'none' && slitAllowed(c)) c = { ...c, slit: x.slit };
   if (c.asymHem || volumeOf(c) !== 'none') delete c.shape;
   return c;
 }
@@ -89,7 +134,7 @@ export function skirtChoices(r: PhotoReading, garment: 'skirt' | 'dress' = 'skir
 const BODICE_LENGTH: Record<TopReading['length'], BodiceLength> = { cropped: 'waist', waist: 'waist', high_hip: 'high_hip', hip: 'hip', tunic: 'hip' };
 
 /** A woven top, or a dress's bodice (waist length, no peplum, zipped at the back). */
-function bodiceChoices(t: TopReading | null | undefined, garment: 'bodice' | 'dress' = 'bodice'): BodiceChoices {
+function bodiceChoices(t: TopReading | null | undefined, garment: 'bodice' | 'dress' = 'bodice', r?: PhotoReading, body?: PhotoBody): BodiceChoices {
   if (!t) return { ...DEFAULT_BODICE };
   const fit = safeFit(t.fit);
   // An unshaped top goes without darts where the fit allows it; anything shaped keeps both.
@@ -109,11 +154,12 @@ function bodiceChoices(t: TopReading | null | undefined, garment: 'bodice' | 'dr
     peplum: garment === 'dress' ? 'none' : t.peplum,
   };
   const v = validDetails(raw, garment);
-  return { ...v, sleeveShape: sleeveOf(v).shape };
+  const shaped = { ...v, sleeveShape: sleeveOf(v).shape };
+  return r ? measuredBodice(shaped, r, body, garment) : shaped;
 }
 
-function dressChoices(r: PhotoReading): DressChoices {
-  const bodice = bodiceChoices(r.top, 'dress');
+function dressChoices(r: PhotoReading, body?: PhotoBody): DressChoices {
+  const bodice = bodiceChoices(r.top, 'dress', r, body);
   let skirt = skirtChoices(r, 'dress');
   const t = r.top;
   // A belt at the waist: a sash, or loops for a belt; a wrap ties already.
@@ -162,10 +208,14 @@ function teeChoices(t: TopReading | null | undefined): TeeChoices {
   return { ...DEFAULT_TEE_CHOICES, fit: safeFit(t.fit), neckline: TEE_NECK[t.neckline], sleeve: TEE_SLEEVE[t.sleeve], length: TEE_LENGTH[t.length] };
 }
 
-function trousersChoices(r: PhotoReading): TrousersChoices {
+function trousersChoices(r: PhotoReading, body?: PhotoBody): TrousersChoices {
   const t = r.trousers;
   if (!t) return { ...DEFAULT_TROUSERS_CHOICES };
+  // The exact length, on the wearer, for any leg but a culotte (whose length is its shape); the draft keeps it in range.
+  const at = r.measures?.trouserHemAt;
+  const lengthCm = num(at) && body?.waist_to_floor && t.leg !== 'culotte' ? { lengthCm: Math.round(clamp(at, 0.2, 1) * body.waist_to_floor) } : {};
   return validTrousers({
+    ...lengthCm,
     garment: 'trousers',
     fit: safeFit(t.fit),
     leg: t.leg,
@@ -207,19 +257,19 @@ function outerChoices(r: PhotoReading, kind: 'jacket' | 'coat'): OuterChoices {
   return c;
 }
 
-/** The style choices for one garment, from the photo. */
-export function choicesFor(r: PhotoReading, garment: PieceKind): PatternChoices {
+/** The style choices for one garment, from the photo, with its exact sizes when the wearer's measurements are known. */
+export function choicesFor(r: PhotoReading, garment: PieceKind, body?: PhotoBody): PatternChoices {
   switch (garment) {
     case 'skirt':
       return skirtChoices(r);
     case 'dress':
-      return dressChoices(r);
+      return dressChoices(r, body);
     case 'top':
-      return bodiceChoices(r.top);
+      return bodiceChoices(r.top, 'bodice', r, body);
     case 'tee':
       return teeChoices(r.top);
     case 'trousers':
-      return trousersChoices(r);
+      return trousersChoices(r, body);
     case 'jacket':
     case 'coat':
       return outerChoices(r, garment);
@@ -237,4 +287,50 @@ export function pieceNote(r: PhotoReading, garment: PieceKind): string {
   if (garment === 'tee') return 'A photo can’t show how stretchy a knit is, so set your own knit’s stretch on the next screen.';
   if ((garment === 'jacket' || garment === 'coat') && r.outer) return 'The back vent and sleeve can’t be seen from the front, so they start as standard.';
   return '';
+}
+
+/** A back the app can draft: a low or keyhole back where the bodice allows one. */
+function bodiceBack(c: BodiceChoices, b: BackReading): BodiceChoices {
+  return b.backNeck !== 'plain' && !backBlocked(c, b.backNeck) ? { ...c, back: b.backNeck } : c;
+}
+
+/** A slit at the back or side where the skirt allows one, in place of the one read from the front. */
+function skirtBack(c: Choices, b: BackReading): Choices {
+  return b.slit !== 'none' && slitAllowed(c) && (!c.slit || c.slit === 'none') ? { ...c, slit: b.slit } : c;
+}
+
+/**
+ * The garment with what its back photo showed: the back neckline, a slit, a jacket or coat's vent. A
+ * photo that doesn't show the garment's back changes nothing.
+ */
+export function withBack(c: PatternChoices, b: BackReading | undefined): PatternChoices {
+  if (!b?.shown) return c;
+  if (isDress(c)) return { ...c, bodice: bodiceBack(c.bodice, b), skirt: skirtBack(c.skirt, b) };
+  if (isBodice(c)) return bodiceBack(c, b);
+  if (isOuter(c)) {
+    const vent = b.vent ? 'centre' : 'none';
+    return outerAllowed(c, 'vent', vent) ? { ...c, vent } : c;
+  }
+  if (isTee(c) || isTrousers(c)) return c;
+  return skirtBack(c as Choices, b);
+}
+
+/** What the back showed that the app can't draft yet, for the "Not in the app yet" list. */
+export function backMissing(b: BackReading | undefined): string[] {
+  if (!b?.shown) return [];
+  const opening = b.opening === 'buttons' ? ['buttoned back'] : b.opening === 'lace_up' ? ['lace-up back'] : [];
+  return [...opening, ...b.missing];
+}
+
+/** The back details the pattern took from the back photo, in words: "V back, back slit". */
+export function backWords(before: PatternChoices, after: PatternChoices): string {
+  const words: string[] = [];
+  const bod = (c: PatternChoices) => (isDress(c) ? c.bodice : isBodice(c) ? c : undefined);
+  const sk = (c: PatternChoices) => (isDress(c) ? c.skirt : !isBodice(c) && !isOuter(c) && !isTee(c) && !isTrousers(c) ? (c as Choices) : undefined);
+  const back = bod(after)?.back;
+  if (back && back !== bod(before)?.back) words.push({ plain: '', scoop: 'scoop back', v: 'V back', keyhole: 'keyhole back' }[back]);
+  const slit = sk(after)?.slit;
+  if (slit && slit !== 'none' && slit !== sk(before)?.slit) words.push(`${slit} slit`);
+  if (isOuter(after) && isOuter(before) && after.vent !== before.vent) words.push(after.vent === 'centre' ? 'back vent' : 'no back vent');
+  return words.join(', ');
 }

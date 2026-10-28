@@ -3,7 +3,7 @@
 import { createHash } from 'node:crypto';
 import Anthropic from '@anthropic-ai/sdk';
 import { blobCounts } from '../../src/server/blobCounts';
-import { analyzePhoto, checkPhoto, type AnalyzeInput } from '../../src/photo/analyze';
+import { analyzeBack, analyzePhoto, checkDrawing, checkPhoto, missingKeys, type AnalyzeInput, type CheckInput } from '../../src/photo/analyze';
 import { TESTER_CAPS, TESTER_POOL, isTesterCode, takeAllowance, type Allowance } from '../../src/photo/limit';
 
 // Provided by the Netlify runtime.
@@ -12,6 +12,15 @@ declare const Netlify: { env: { get(name: string): string | undefined } };
 
 // Visitors are counted by a hash of their IP address, so no address is stored.
 const visitorId = (ip: string | undefined) => createHash('sha256').update(ip ?? 'unknown').digest('hex').slice(0, 24);
+
+async function countMissing(keys: string[]) {
+  try {
+    const store = blobCounts('missing-details');
+    for (const k of keys) await store.take(k, Infinity);
+  } catch (e) {
+    console.error('missing detail count failed', e);
+  }
+}
 
 export default async (req: Request, context: { ip?: string }) => {
   if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 });
@@ -25,14 +34,16 @@ export default async (req: Request, context: { ip?: string }) => {
   const bad = checkPhoto(body);
   if (bad) return Response.json({ ok: false, error: bad }, { status: 400 });
 
+  // The self-check that follows each reading has caps of its own, the same size, so it never uses up a reading.
+  const store = body.view === 'check' ? 'check-limits' : 'photo-limits';
   if (key) {
     let allowance: Allowance = 'ok';
     try {
       // A fit tester's code (sent from Your account) counts them in the testers' own, larger allowance.
       const tester = isTesterCode(req.headers.get('x-tester-code'), Netlify.env.get('TESTER_CODES'));
       allowance = tester
-        ? await takeAllowance(blobCounts('photo-limits'), visitorId(context.ip), new Date(), TESTER_CAPS, TESTER_POOL)
-        : await takeAllowance(blobCounts('photo-limits'), visitorId(context.ip));
+        ? await takeAllowance(blobCounts(store), visitorId(context.ip), new Date(), TESTER_CAPS, TESTER_POOL)
+        : await takeAllowance(blobCounts(store), visitorId(context.ip));
     } catch (e) {
       // If the counter can't be reached, nothing is read: an uncounted reading is one the caps can't stop.
       console.error('photo limit check failed', e);
@@ -41,7 +52,22 @@ export default async (req: Request, context: { ip?: string }) => {
     if (allowance !== 'ok') return Response.json({ ok: false, error: allowance }, { status: 429 });
   }
 
-  const result = await analyzePhoto(body, key ? new Anthropic({ apiKey: key }) : null);
+  const client = key ? new Anthropic({ apiKey: key }) : null;
+  if (body.view === 'check') {
+    const checked = await checkDrawing(body as CheckInput, client);
+    const status = checked.ok ? 200 : checked.error === 'not_configured' ? 503 : checked.error === 'failed' ? 502 : 400;
+    return Response.json(checked, { status });
+  }
+  // A back photo is read for its back details only, and counted like any reading.
+  if (body.view === 'back') {
+    const back = await analyzeBack(body, client);
+    if (back.ok && back.back.shown) await countMissing(missingKeys({ garment: body.garment ?? 'other', missing: back.back.missing }));
+    const status = back.ok ? 200 : back.error === 'not_configured' ? 503 : back.error === 'failed' ? 502 : 400;
+    return Response.json(back, { status });
+  }
+  const result = await analyzePhoto(body, client);
+  // What the app couldn't match is counted by name and garment (never with who sent it), so the most wanted details show up.
+  if (result.ok) await countMissing(missingKeys(result.reading));
   const status = result.ok ? 200 : result.error === 'not_configured' ? 503 : result.error === 'failed' ? 502 : 400;
   return Response.json(result, { status });
 };
