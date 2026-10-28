@@ -45,8 +45,9 @@ export function PhotoCheck({ source, current, body, headers, onChoices }: { sour
       }
       const res = await requestCheck(source, png, headers, ctrl.signal);
       if (ctrl.signal.aborted) return;
-      if (!res.ok || res.reading.garment === 'none') return setState({ kind: 'quiet' });
-      const changes = res.changes.map((c) => c.trim()).filter(Boolean);
+      // Anything but a whole answer (an older server, a stand-in) leaves the pattern as drafted.
+      if (!res.ok || !res.reading?.garment || res.reading.garment === 'none' || !Array.isArray(res.changes)) return setState({ kind: 'quiet' });
+      const changes = res.changes.filter((c): c is string => typeof c === 'string').map((c) => c.trim()).filter(Boolean);
       if (!changes.length) return setState({ kind: 'same' });
       const before = now.current;
       apply.current(checkedChoices(res.reading, source, before, body));

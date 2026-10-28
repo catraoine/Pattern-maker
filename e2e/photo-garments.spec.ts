@@ -43,6 +43,8 @@ const outfit = {
 async function readPhoto(page: Page, reading: object) {
   let calls = 0;
   await page.route('**/.netlify/functions/analyze-photo', (route) => {
+    // The self-check after drafting compares the drawing with the photo; it isn't a second reading.
+    if ((route.request().postDataJSON() as { view?: string }).view === 'check') return route.fulfill({ json: { ok: true, reading, changes: [] } });
     calls++;
     return route.fulfill({ json: { ok: true, reading } });
   });
