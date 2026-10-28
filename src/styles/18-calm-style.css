@@ -242,8 +242,13 @@
     box-shadow: none;
     clip-path: none;
   }
+  /* Lets taps through its empty end to Enlarge and Demo, which sit in that end but belong to the drawing below. */
   .style-pin > section:not(.live-big) > .row.between.wrap {
     z-index: 7;
+    pointer-events: none;
+  }
+  .style-pin > section:not(.live-big) > .row.between.wrap > * {
+    pointer-events: auto;
   }
   .style-pin > section:not(.live-big) > .lookboxes {
     z-index: 8;
