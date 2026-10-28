@@ -70,6 +70,43 @@ async function stop(name) {
   rmSync(work, { recursive: true, force: true });
   console.log(`${name}: ${(endT - frames[0].t).toFixed(1)} s`);
 }
+// A shot taken frame by frame on the page's own clock (Cat, 2026-10-28: "the all round jumps and skips"): the real
+// body takes longer to draw than a frame lasts in the recorder's browser, so filmed live the turn only moved every
+// half second or so. Here the page's time stands still between frames: each frame the clock moves on 1/30 s, the
+// page draws it, and it is captured, so the film turns smoothly at the speed a maker sees.
+async function stepped(name, ms, kick) {
+  await p.evaluate(() => {
+    const real = { raf: window.requestAnimationFrame.bind(window), caf: window.cancelAnimationFrame.bind(window), now: performance.now.bind(performance) };
+    let vt = real.now();
+    let q = new Map();
+    let id = 1e6;
+    window.requestAnimationFrame = (cb) => { q.set(++id, cb); return id; };
+    window.cancelAnimationFrame = (i) => { q.delete(i); };
+    performance.now = () => vt;
+    window.__step = (dt) => { vt += dt; const run = [...q.values()]; q = new Map(); for (const cb of run) cb(vt); };
+    window.__unstep = () => {
+      Object.assign(window, { requestAnimationFrame: real.raf, cancelAnimationFrame: real.caf });
+      performance.now = real.now;
+      for (const cb of q.values()) real.raf(cb);
+      q = new Map();
+    };
+  });
+  const done = kick ? kick() : Promise.resolve();
+  const session = await ctx.newCDPSession(p);
+  const work = mkdtempSync(join(tmpdir(), 'shot-'));
+  const n = Math.round((ms / 1000) * 30);
+  for (let i = 0; i < n; i++) {
+    await p.evaluate(() => window.__step(1000 / 30));
+    const { data } = await session.send('Page.captureScreenshot', { format: 'jpeg', quality: 92 });
+    writeFileSync(join(work, `${String(i).padStart(5, '0')}.jpg`), Buffer.from(data, 'base64'));
+  }
+  await session.detach();
+  await p.evaluate(() => window.__unstep());
+  await done;
+  execFileSync('ffmpeg', ['-v', 'error', '-y', '-framerate', '30', '-i', '%05d.jpg', '-vf', `scale=${FW}:${FH},format=yuv420p`, '-c:v', 'libx264', '-crf', '16', '-preset', 'medium', join(OUT, `${name}.mp4`)], { cwd: work });
+  rmSync(work, { recursive: true, force: true });
+  console.log(`${name}: ${(n / 30).toFixed(1)} s (stepped)`);
+}
 // A slimmer, taller sample figure, so the clothes read long and lean on the form (Cat, 2026-10-23).
 const VALUES = { Height: '176', Weight: '', Waist: '62', 'Full hip': '90', 'Waist to hip': '21', 'Waist to knee': '62', 'Waist to floor': '112', 'Crotch depth': '27', 'Crotch length': '68', 'Full bust': '82', 'High bust': '78', Neck: '33', 'Shoulder width': '37', 'Back length': '43', 'Front length': '45', 'Bust depth': '25', 'Bust point to bust point': '17', 'Shoulder length': '12', 'Across back': '34', 'Across front': '31', Armhole: '38', 'Upper arm': '25', Wrist: '15', 'Arm length': '61' };
 async function fillAll() {
@@ -267,18 +304,14 @@ if (process.env.TOUR_OPENER) {
     Object.assign(c.style, { position: 'fixed', zIndex: 9999, background: '#000', maxWidth: 'none', maxHeight: 'none', aspectRatio: 'auto', margin: 0, width: `${w}px`, height: `${h}px`, left: `${innerWidth / 2 - w / 2}px`, top: `${innerHeight / 2 - 0.47 * h}px`, transformOrigin: '50% 47%', transform: `scale(${1 / K})` });
   }, K);
   await wait(1200);
-  await start();
-  await wait(400);
-  // In and in as it turns, as the second All round does.
-  await p.evaluate(([K, ms]) => new Promise((done) => {
-    const c = document.querySelector('.all-round-canvas');
-    const t0 = performance.now();
-    const ease = (x) => x * x * (3 - 2 * x);
-    const step = (now) => { const x = Math.min(1, (now - t0) / ms); const k = 1 + (K - 1) * ease(x); const fy = 0.47 - 0.06 * ((k - 1) / (K - 1)); c.style.transformOrigin = `50% ${fy * 100}%`; c.style.transform = `scale(${k / K})`; x < 1 ? requestAnimationFrame(step) : done(); };
-    requestAnimationFrame(step);
-  }), [K, 8500]);
-  await wait(600);
-  await stop('opener');
+  await stepped('opener', 9500, () =>
+  p.evaluate(([K, ms]) => new Promise((done) => {
+      const c = document.querySelector('.all-round-canvas');
+      const t0 = performance.now() + 400;
+      const ease = (x) => x * x * (3 - 2 * x);
+      const step = (now) => { const x = Math.max(0, Math.min(1, (now - t0) / ms)); const k = 1 + (K - 1) * ease(x); const fy = 0.47 - 0.06 * ((k - 1) / (K - 1)); c.style.transformOrigin = `50% ${fy * 100}%`; c.style.transform = `scale(${k / K})`; x < 1 ? requestAnimationFrame(step) : done(); };
+      requestAnimationFrame(step);
+    }), [K, 8500]));
   process.exit(0);
 }
 // TOUR_FIT and TOUR_SLEEVES try the dress another way (Fitted, Sleeveless) without touching the rest.
@@ -445,7 +478,7 @@ await p.evaluate((K) => {
   const w = innerWidth * K, h = (innerHeight + 96) * K;
   Object.assign(c.style, { position: 'fixed', zIndex: 9999, background: '#000', maxWidth: 'none', maxHeight: 'none', aspectRatio: 'auto', margin: 0, width: `${w}px`, height: `${h}px`, left: `${innerWidth / 2 - w / 2}px` });
 }, CLOSEST);
-const zoomTo = (from, to, ms) => p.evaluate(([from, to, ms, K]) => new Promise((done) => {
+const zoomTo = (from, to, ms, delay = 0) => p.evaluate(([from, to, ms, K, delay]) => new Promise((done) => {
   const c = document.querySelector('.all-round-canvas');
   const h = (innerHeight + 96) * K;
   // Where to keep still as it grows, as a fraction of the canvas: the bodice, rising a little towards the bust.
@@ -453,11 +486,11 @@ const zoomTo = (from, to, ms) => p.evaluate(([from, to, ms, K]) => new Promise((
     const fy = 0.47 - 0.06 * ((k - from) / (to - from || 1));
     Object.assign(c.style, { top: `${innerHeight / 2 - fy * h}px`, transformOrigin: `50% ${fy * 100}%`, transform: `scale(${k / K})` });
   };
-  const t0 = performance.now();
+  const t0 = performance.now() + delay;
   const ease = (x) => x * x * (3 - 2 * x);
-  const step = (now) => { const x = Math.min(1, (now - t0) / (ms || 1)); set(from + (to - from) * ease(x)); x < 1 ? requestAnimationFrame(step) : done(); };
+  const step = (now) => { const x = Math.max(0, Math.min(1, (now - t0) / (ms || 1))); set(from + (to - from) * ease(x)); x < 1 ? requestAnimationFrame(step) : done(); };
   requestAnimationFrame(step);
-}), [from, to, ms, CLOSEST]);
+}), [from, to, ms, CLOSEST, delay]);
 await zoomTo(1, 1, 0);
 await wait(600);
 if (process.env.TOUR_PROBE5) {
@@ -468,11 +501,8 @@ if (process.env.TOUR_PROBE5) {
   await p.screenshot({ path: `${OUT}/probe5-end.png` });
   process.exit(0);
 }
-await start();
-await wait(400);
-await zoomTo(1, 1.45, 8500);
-await wait(600);
-await stop('round');
+// Still a moment, then in and in as it turns, frame by frame (see stepped).
+await stepped('round', 9500, () => zoomTo(1, 1.45, 8500, 400));
 // Put the canvas back where it was.
 await p.evaluate(() => {
   const c = document.querySelector('.all-round-canvas');

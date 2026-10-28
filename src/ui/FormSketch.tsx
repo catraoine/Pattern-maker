@@ -469,11 +469,10 @@ function pieceOnForm(s: P[], body: FormBody, underarmY: number, sewnHalf?: numbe
   // girth where the back takes more), and a level the piece does not reach is left out.
   const ownAt = (y: number) => Math.max(0, ...s.filter((q) => Math.abs(q.y - y) < 1).map((q) => Math.abs(q.x)));
   const levels = (sewn ?? []).filter((l) => ownAt(l.y) > 0);
-  const band = levels.length ? { top: Math.min(...levels.map((l) => l.y)), bottom: Math.max(...levels.map((l) => l.y)) } : undefined;
-  // Between the bust and the hip the cloth shows exactly its own sewn width (a drawn side line lands where it was
-  // drawn, Cat 2026-10-27); beyond the band, the nearest level's width, capped at the piece's own.
-  const atLevels = sewnAt(levels.map((l) => ({ y: l.y, half: Math.min(l.half, ownAt(l.y)) })));
-  const sewnWidth = (y: number) => (band && y >= band.top && y <= band.bottom ? ownAt(y) : atLevels(y));
+  // Between the levels the sewn width runs smoothly from one to the next, and beyond them it holds the nearest one's.
+  // (Not the flat outline's own width: that still holds the darts' take, and read point by point it jumped in and
+  // out, so a loose dress showed spikes at the bust, waist and hip, Cat 2026-10-28.)
+  const sewnWidth = sewnAt(levels.map((l) => ({ y: l.y, half: Math.min(l.half, ownAt(l.y)) })));
   // The widest the form has been from the top down to each height, at 0.5 cm steps.
   const steps = Math.max(1, Math.ceil((body.bottom - body.top) / 0.5));
   const hang: number[] = [];
@@ -529,8 +528,9 @@ function pieceOnForm(s: P[], body: FormBody, underarmY: number, sewnHalf?: numbe
         x -= Math.sign(x) * 0.5 * t * Math.min(1, Math.abs(q.x) / Math.max(1, hemHalfFlat));
       }
       // Never narrower than the pattern is sewn at this height: its finished width, darts closed, ease and all.
+      // A point inside the outline is held only to its own flat place, so the floor rises with the edge, never in a step.
       const floor = sewnWidth(q.y);
-      if (floor !== undefined && Math.abs(q.x) >= floor - 0.05 && Math.abs(x) < floor) x = Math.sign(q.x) * floor;
+      if (floor !== undefined && Math.abs(x) < Math.min(floor, Math.abs(q.x))) x = Math.sign(q.x) * Math.min(floor, Math.abs(q.x));
       // Sewn to the piece above at the seam, then out to its own width: the floor joins in over the same stretch.
       if (seamTop !== undefined && q.y < seamTop + BELL && Math.abs(q.x) > w) {
         const t = Math.min(1, (q.y - seamTop) / BELL);
