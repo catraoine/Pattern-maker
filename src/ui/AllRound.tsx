@@ -175,7 +175,7 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
     const sh = roundShape(round, m, { film, through });
     const v3 = through ? undefined : v3ref.current;
     if (v3) v3.build({ round, sh, cloth, film, striped: !!striped });
-    const { hemY, topY, wh, yAt, yOf, kY, lengths, longest, highest, bandTop, arm, yS, yU, sl, ra, rh, neckOnly, radius, foldTilt, depthAt, shell, zAcross, clothDown, yE, yCap, axisX, capDepth, sleeveR, lg, yC, yH, legHemR, legR, rAt, reach } = sh;
+    const { hemY, topY, wh, yAt, yOf, kY, lengths, longest, highest, bandTop, arm, yS, yU, sl, ra, rh, neckOnly, radius, foldTilt, depthAt, shell, zAcross, clothDown, yE, yCap, axisX, capDepth, sleeveR, lg, yC, yH, legHemR, legR, legAxis, rAt, reach } = sh;
 
     const draw = (now: number) => {
       const top = film ? Math.min(-2, yOf(highest) - 0.3) : Math.min(-0.45, yOf(highest) - 0.3);
@@ -228,7 +228,7 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
         g.stroke();
         g.globalAlpha = 1;
       };
-      const legX = (leg: number) => leg * FORM_LEG_X;
+      const legX = (leg: number, y: number) => leg * legAxis(y);
       /** A point on the garment, on the body or down a trouser leg. */
       // On an oval a line faces you by the cloth's own slope, not by its angle round the body alone, or a seam on the far
       // side near the edge shows past the cloth.
@@ -243,7 +243,7 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
       };
       const spot = (p: RoundPt, leg?: number): Pt => {
         const y = leg ? yOf(p.cm) : yAt(p.phi, p.cm);
-        return leg ? T(legX(leg), p.phi, legR(y), y) : onCloth(p.phi, rAt(p.phi, y), y);
+        return leg ? T(legX(leg, y), p.phi, legR(y), y) : onCloth(p.phi, rAt(p.phi, y), y);
       };
       /** A seam or dart through its points, in small steps so it follows the body. */
       const along = (pts: RoundPt[], leg?: number): Pt[] => {
@@ -341,7 +341,7 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
         g.beginPath();
         g.rect(0, 0, w, fig);
         g.clip();
-        g.drawImage(v3.render({ phi, w, h: fig, dpr, S, cx, top, lw }), 0, 0, w, fig);
+        g.drawImage(v3.render({ phi, w, h: fig, dpr, S, cx, top, lw, probe: st.probe }), 0, 0, w, fig);
         g.restore();
       } else {
       // The figure stops above the hem line, so its legs don't run through it. Under trousers its legs
@@ -437,7 +437,7 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
           for (const e of [-1, 1]) {
             polyline(
               ys.map((y) => {
-                const o = centre(legX(leg), y);
+                const o = centre(legX(leg, y), y);
                 return [o.x + e * FORM_LEG(y) * S, o.y];
               }),
               GILD,
@@ -445,7 +445,7 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
               0.5,
             );
           }
-          for (const a of [-0.9, 0, 0.9]) line(ys.map((y) => T(legX(leg), a, FORM_LEG(y), y)), GILD, lw * 0.45, 0, 0.45);
+          for (const a of [-0.9, 0, 0.9]) line(ys.map((y) => T(leg * FORM_LEG_X, a, FORM_LEG(y), y)), GILD, lw * 0.45, 0, 0.45);
         }
         g.globalAlpha = 0.6;
         g.lineWidth = 0.6;
@@ -638,7 +638,7 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
             tube((y) => e * axisX(y), sleeveR, yCap, yE, false, true, capDepth);
           }
         }
-        if (lg) for (const leg of [-1, 1]) tube(() => legX(leg), legR, yC, yH, true);
+        if (lg) for (const leg of [-1, 1]) tube((y) => legX(leg, y), legR, yC, yH, true);
         paintCloth(g, layers, cloth, quads, w, h, dpr);
       }
 
@@ -798,14 +798,14 @@ export function AllRound({ round, m, striped = false, fabric, label }: Props) {
           for (const e of cloth ? [] : [-1, 1]) {
             polyline(
               ys.map((y) => {
-                const o = centre(legX(leg), y);
+                const o = centre(legX(leg, y), y);
                 return [o.x + e * legR(y) * S, o.y];
               }),
               GLOW,
               lw * 1.2,
             );
           }
-          tubeRing(legX(leg), legHemR, yH, GLOW, lw * 1.3, edge, cloth ? 0 : 0.25);
+          tubeRing(legX(leg, yH), legHemR, yH, GLOW, lw * 1.3, edge, cloth ? 0 : 0.25);
         }
       }
 

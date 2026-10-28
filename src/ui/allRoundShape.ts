@@ -160,9 +160,14 @@ export function roundShape(round: RoundGarment, m: RoundMeasurements, { film, th
     return r + over;
   };
   /** How far out the cloth lies at angle a round the body: the full width at the sides, the body's own depth front and back. */
-  const foldAmp = (y: number) =>
-    flares ? (0.018 + 0.06 * clamp(round.flare - 1, 0, 1)) * smooth(clamp((y - FORM_HIP) / Math.max(0.05, meanY - FORM_HIP), 0, 1)) : 0;
-  const FOLDS = 9;
+  // Cloth that hangs falls in soft folds, not as a smooth vase (Cat, 2026-10-28, "in another league"): a few gentle
+  // ones down any hanging cloth from where it leaves the body, and deeper ones where a flare adds cloth.
+  const foldAmp = (y: number) => {
+    const soft = isTop ? 0.028 * smooth(clamp((y - BUST_Y) / 0.6, 0, 1)) : trousers ? 0.012 * smooth(clamp((y - WAIST) / 0.5, 0, 1)) : 0.034 * smooth(clamp((y - WAIST) / 0.5, 0, 1));
+    const flared = flares ? (0.018 + 0.06 * clamp(round.flare - 1, 0, 1)) * smooth(clamp((y - FORM_HIP) / Math.max(0.05, meanY - FORM_HIP), 0, 1)) : 0;
+    return Math.max(soft, flared);
+  };
+  const FOLDS = 8;
   const fold = (a: number, y: number) => 1 + foldAmp(y) * Math.cos(FOLDS * a + 0.6 * Math.sin(3 * a));
   const foldTilt = (a: number, y: number) => Math.atan(-foldAmp(y) * FOLDS * Math.sin(FOLDS * a + 0.6 * Math.sin(3 * a)) * 1.2);
   // Seen from above a body is an oval, not a circle: thin across the shoulders, deeper at the bust, the seat standing
@@ -295,11 +300,14 @@ export function roundShape(round: RoundGarment, m: RoundMeasurements, { film, th
   const legHemR = lg ? Math.max(FORM_LEG(yH) + 0.012, (lg.hemCm / TAU) * krL) : 0;
   // At the top each leg is as wide as the hip above it, so the outside runs on down from the hip without a step in
   // (Cat, 2026-10-26: "trousers look weird"); the extra goes by mid-thigh, as a thigh narrows.
-  const thighTop = lg ? Math.max(thighR, radius(yC - 0.04) - FORM_LEG_X) : 0;
+  // Trouser legs are the seat's two halves, side by side with their inseams together, each as wide as half the seat
+  // at the crotch and hanging straight from there to the knee as cut cloth does (not closing in round the thigh and
+  // belling out above it, Cat 2026-10-28: "why are pants like this?"). Each leg stands on its own axis, out at half
+  // its width so the two touch, and back on the form's leg once the cloth is narrower than the legs are apart.
+  const thighTop = lg ? Math.max(thighR, radius(yC - 0.04) / 2) : 0;
   const legR = (y: number) =>
-    y <= yK
-      ? thighR + (kneeR - thighR) * clamp((y - yC) / (yK - yC || 1), 0, 1) + (thighTop - thighR) * (1 - clamp((y - yC) / ((yK - yC) * 0.6 || 1), 0, 1)) ** 2
-      : kneeR + (legHemR - kneeR) * clamp((y - yK) / (yH - yK || 1), 0, 1);
+    y <= yK ? thighTop + (kneeR - thighTop) * clamp((y - yC) / (yK - yC || 1), 0, 1) : kneeR + (legHemR - kneeR) * clamp((y - yK) / (yH - yK || 1), 0, 1);
+  const legAxis = (y: number) => (lg ? Math.max(FORM_LEG_X, legR(y) * 0.97) : FORM_LEG_X);
 
   // Trousers, below the hip, close in round the two legs, so the seat runs into the legs and not over them like shorts.
   // Below the waist they are oval, as hips are (about three quarters as deep as they are wide), not round, so the seat
@@ -349,5 +357,5 @@ export function roundShape(round: RoundGarment, m: RoundMeasurements, { film, th
     return topTable[i] + (topTable[i + 1] - topTable[i]) * (f - i);
   };
 
-  return { trousers, isTop, hemY, topY, N, wh, yOfLevel, N0, frontNeckCm, naturalNeck, yAt, yOf, kY, krB, krW, krH, easeOf, eW, eB, eH, easeAt, lengths, tops, longest, highest, meanY, flares, bodyR, wornR, seamed, waistEase, bustEase, straightCut, hangShare, hipR, hemR, bodyRadius, bandTop, arm, yS, yU, sl, slim, ra, rh, tailored, neckOnly, pad, radius, foldAmp, FOLDS, fold, foldTilt, deep, depthAt, onBody, HANG_N, HANG_DY, hangTop, hangRows, hang, hung, shell, zAcross, SHOULDER_TOP, clothDown, yE, yCap, tipX, armX, capT, capOuter, capInner, filmAxis, filmR, axisX, capDepth, sleeveR, lg, yC, yH, yK, krL, thighR, kneeR, legHemR, thighTop, legR, rAt, reach };
+  return { trousers, isTop, hemY, topY, N, wh, yOfLevel, N0, frontNeckCm, naturalNeck, yAt, yOf, kY, krB, krW, krH, easeOf, eW, eB, eH, easeAt, lengths, tops, longest, highest, meanY, flares, bodyR, wornR, seamed, waistEase, bustEase, straightCut, hangShare, hipR, hemR, bodyRadius, bandTop, arm, yS, yU, sl, slim, ra, rh, tailored, neckOnly, pad, radius, foldAmp, FOLDS, fold, foldTilt, deep, depthAt, onBody, HANG_N, HANG_DY, hangTop, hangRows, hang, hung, shell, zAcross, SHOULDER_TOP, clothDown, yE, yCap, tipX, armX, capT, capOuter, capInner, filmAxis, filmR, axisX, capDepth, sleeveR, lg, yC, yH, yK, krL, thighR, kneeR, legHemR, thighTop, legR, legAxis, rAt, reach };
 }
