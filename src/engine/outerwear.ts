@@ -1049,8 +1049,9 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
   let pocket: OuterDraft['pocket'];
   if (s.pockets !== 'none') {
     const welt = s.pockets === 'welt';
-    const w = welt ? (s.kind === 'coat' ? 16 : 14) : s.kind === 'coat' ? 18 : 15;
-    const h = welt ? (s.kind === 'coat' ? 3 : 2.5) : s.kind === 'coat' ? 19 : length === 'cropped' ? 12 : 16;
+    let w = welt ? (s.kind === 'coat' ? 16 : 14) : s.kind === 'coat' ? 18 : 15;
+    // A patch pocket on a short jacket is shallower, so its top sits no higher than 2 cm above the waist.
+    const h = welt ? (s.kind === 'coat' ? 3 : 2.5) : s.kind === 'coat' ? 19 : length === 'cropped' ? 12 : Math.max(12, Math.min(16, foot - 4 - (waistY - 2)));
     const lowest = welt ? foot - 8 : foot - h - 4;
     const y = s.pocketAt
       ? Math.max(waistY - 4, Math.min(lowest, s.pocketAt.y))
@@ -1064,6 +1065,9 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
     });
     const [lo, hi] = spanAt(carrier, y + h / 2);
     const from = Math.max(lo + 1.5, ext + 2);
+    // The pocket fits its panel: a welt on the side front of a princess-seamed coat is narrowed, never
+    // less than 11 cm, so it stays 2 cm clear of the side seam. (Fable fit check of the SS27 looks, 2026-10-29.)
+    w = r1(Math.max(Math.min(w, 11), Math.min(w, hi - from - 2)));
     const x = Math.max(from, Math.min(hi - w - 2, s.pocketAt ? s.pocketAt.x - w / 2 : (from + hi) / 2 - w / 2));
     pocket = { x, y, w, h, kind: welt ? 'welt' : 'patch' };
     pocketPieces = welt ? weltPieces(w, h, s.kind === 'coat' ? 22 : 17, sa) : [patchPocket(w, h, sa)];
