@@ -2,8 +2,8 @@
 // sewist like any house look. Each cut is credited to the museum, dealer or pattern cutter it comes
 // from, on its record and on the pattern. Until a source is licensed a cut is shown as a preview only,
 // with a sign-up for when the Archive opens.
-import { HouseLook, dressChoices } from './collection';
-import type { TrousersChoices } from './garments';
+import { HouseLook, bodiceChoices, dressChoices, skirtLook } from './collection';
+import { DEFAULT_JACKET_CHOICES, OuterChoices, TrousersChoices } from './garments';
 
 export interface ArchiveCut extends HouseLook {
   year: number;
@@ -14,6 +14,11 @@ export interface ArchiveCut extends HouseLook {
   /** The credit line, as the source asks for it: on the record and the pattern's title block. */
   credit?: string;
 }
+
+// Last season's house looks, kept here once the House moves on to the next season: the house's own, so
+// credited to it and made like any look.
+const HOUSE = 'Maison Tracé';
+const HOUSE_CREDIT = 'From the Maison Tracé collection, Autumn Winter 2026.';
 
 export const ARCHIVE: ArchiveCut[] = [
   {
@@ -59,6 +64,136 @@ export const ARCHIVE: ArchiveCut[] = [
     fabric: 'Silk charmeuse, or a sand-washed satin',
     garment: 'dress',
     choices: dressChoices('regular', { neckline: 'cami' }, { silhouette: 'slip', length: 'midi' }),
+  },
+  {
+    id: 'aw26-tailleur',
+    number: 5,
+    year: 2026,
+    origin: 'Maison Tracé, AW26',
+    source: HOUSE,
+    credit: HOUSE_CREDIT,
+    name: 'Tailleur',
+    line: 'The house jacket: double-breasted, a notched lapel, a two-piece sleeve and a soft shoulder.',
+    fabric: 'Wool suiting, or a fine bouclé',
+    garment: 'jacket',
+    choices: { ...DEFAULT_JACKET_CHOICES, fit: 'fitted', shaping: 'princess', front: 'double', pockets: 'welt' } as OuterChoices,
+  },
+  {
+    id: 'aw26-bal',
+    number: 6,
+    year: 2026,
+    origin: 'Maison Tracé, AW26',
+    source: HOUSE,
+    credit: HOUSE_CREDIT,
+    name: 'Bal',
+    line: 'A boned sweetheart bodice, cut like a corset, over a full circle skirt to the mid-calf.',
+    fabric: 'Silk duchess satin, or a taffeta',
+    garment: 'dress',
+    choices: dressChoices('fitted', { neckline: 'sweetheart', structure: 'boned' }, { silhouette: 'circle', length: 'midi' }),
+  },
+  {
+    id: 'aw26-epaule',
+    number: 7,
+    year: 2026,
+    origin: 'Maison Tracé, AW26',
+    source: HOUSE,
+    credit: HOUSE_CREDIT,
+    name: 'Épaule',
+    line: 'One bare shoulder, a clean diagonal neckline, and a hem that dips longer at the back.',
+    fabric: 'Silk crepe, or a heavy crepe-backed satin',
+    garment: 'dress',
+    choices: dressChoices('fitted', { neckline: 'one_shoulder' }, { silhouette: 'a_line', length: 'midi', asymHem: 'high_low' }),
+  },
+  {
+    id: 'aw26-drape',
+    number: 8,
+    year: 2026,
+    origin: 'Maison Tracé, AW26',
+    source: HOUSE,
+    credit: HOUSE_CREDIT,
+    name: 'Drapé',
+    line: 'A cowl neck that falls in soft folds at the front, its front cut on the bias.',
+    fabric: 'Silk satin, or a fluid viscose crepe',
+    garment: 'bodice',
+    choices: bodiceChoices({ fit: 'regular', neckline: 'cowl' }),
+  },
+  {
+    id: 'aw26-peplum',
+    number: 9,
+    year: 2026,
+    origin: 'Maison Tracé, AW26',
+    source: HOUSE,
+    credit: HOUSE_CREDIT,
+    name: 'Basque',
+    line: 'A fitted bodice with a boat neck and a flared peplum that stands out from the waist.',
+    fabric: 'Wool crepe, or a silk faille',
+    garment: 'bodice',
+    choices: bodiceChoices({ fit: 'fitted', neckline: 'boat', peplum: 'flared' }),
+  },
+  {
+    id: 'aw26-sirene',
+    number: 10,
+    year: 2026,
+    origin: 'Maison Tracé, AW26',
+    source: HOUSE,
+    credit: HOUSE_CREDIT,
+    name: 'Sirène',
+    line: 'A pencil skirt to the floor, opened out below the knee by eight godets.',
+    fabric: 'Crepe-backed satin, or a silk crepe',
+    garment: 'skirt',
+    choices: skirtLook({ fit: 'fitted', silhouette: 'pencil', length: 'maxi', godets: 8 }),
+  },
+  {
+    id: 'aw26-colonne',
+    number: 11,
+    year: 2026,
+    origin: 'Maison Tracé, AW26',
+    source: HOUSE,
+    credit: HOUSE_CREDIT,
+    name: 'Colonne',
+    line: 'A long, narrow column: a fitted bodice with a boat neck over a floor-length straight skirt.',
+    fabric: 'Wool crepe, or a heavy silk crepe',
+    garment: 'dress',
+    choices: dressChoices('fitted', { neckline: 'boat', princess: 'armhole' }, { silhouette: 'straight', length: 'maxi' }),
+  },
+  {
+    id: 'aw26-volant',
+    number: 12,
+    year: 2026,
+    origin: 'Maison Tracé, AW26',
+    source: HOUSE,
+    credit: HOUSE_CREDIT,
+    name: 'Volant',
+    line: 'An A-line skirt that ends in a circular flounce, so the hem moves with every step.',
+    fabric: 'Silk georgette, or a light crepe',
+    garment: 'skirt',
+    choices: skirtLook({ fit: 'regular', silhouette: 'a_line', length: 'midi', flounce: 'hem_flounce' }),
+  },
+  {
+    id: 'aw26-ligne',
+    number: 13,
+    year: 2026,
+    origin: 'Maison Tracé, AW26',
+    source: HOUSE,
+    credit: HOUSE_CREDIT,
+    name: 'Ligne',
+    line: 'An A-line skirt with its hem cut on a diagonal, short on one side and long on the other.',
+    fabric: 'Wool crepe, or a heavy linen, the same on both sides',
+    garment: 'skirt',
+    choices: skirtLook({ fit: 'regular', silhouette: 'a_line', length: 'midi', asymHem: 'diagonal' }),
+  },
+  {
+    id: 'aw26-palazzo',
+    number: 14,
+    year: 2026,
+    origin: 'Maison Tracé, AW26',
+    source: HOUSE,
+    credit: HOUSE_CREDIT,
+    name: 'Palazzo',
+    line: 'Wide, fluid trousers that fall from the hip to the floor.',
+    fabric: 'Silk crepe, viscose or a fluid wool',
+    garment: 'trousers',
+    choices: { garment: 'trousers', fit: 'regular', leg: 'wide', length: 'full', closure: 'side_zip' } as TrousersChoices,
   },
 ];
 

@@ -56,6 +56,8 @@ export const COLOURS: Colour[] = [
   { name: 'Butter', hex: '#ecdf9e' },
   { name: 'Blush', hex: '#e2b5aa' },
   { name: 'Lilac', hex: '#a796c4' },
+  { name: 'Aqua', hex: '#4fa9a0' },
+  { name: 'Chartreuse', hex: '#b8b33a' },
 ];
 
 const MOOD = 'Mood Fabrics';

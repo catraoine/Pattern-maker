@@ -23,6 +23,13 @@ describe('the Archive', () => {
     expect(canMake({ ...cut, source: 'A museum' })).toBe(false);
     expect(canMake({ ...cut, source: 'A museum', credit: 'From the collection of a museum.' })).toBe(true);
     expect(archiveCut(cut.id)).toBe(cut);
-    expect(archiveCut('tailleur')).toBeUndefined();
+    expect(archiveCut('klein')).toBeUndefined();
+  });
+
+  it("keeps last season's house looks, credited to the house and open to make", () => {
+    const last = ARCHIVE.filter((c) => c.source === 'Maison Tracé');
+    expect(last.map((c) => c.name)).toContain('Tailleur');
+    expect(last).toHaveLength(10);
+    for (const cut of last) expect(canMake(cut)).toBe(true);
   });
 });
