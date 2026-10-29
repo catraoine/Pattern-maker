@@ -38,7 +38,7 @@ function Flat({ look, values }: { look: HouseLook; values: MeasurementValues }) 
 }
 
 /**
- * The next numbered drop, first in the collection under a gold strip. Before a designer and a date are set
+ * The next numbered drop, first in the collection under a gold strip. Before a piece and a date are set
  * it is a sign-up for the drop alert; once live, it is made like any look and each copy is numbered.
  */
 function DropSlot({ values, onMake }: Pick<Props, 'values' | 'onMake'>) {

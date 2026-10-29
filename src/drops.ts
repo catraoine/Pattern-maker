@@ -1,5 +1,6 @@
-// Numbered drops: a limited pattern from an independent designer, open for a short window, each copy
-// drafted to its buyer and numbered in the title block of every pattern piece. Until a designer signs,
+// Numbered drops: a limited house piece each season, open for a short window, each copy drafted to its
+// buyer and numbered in the title block of every pattern piece. Premium members get in a day early. Guest
+// designers come later (Cat, 2026-10-29), so a drop can still carry one. Until a piece and a date are set,
 // the next drop is announced without a date and the collection shows a sign-up for its alert.
 import type { HouseLook } from './collection';
 import type { PatternChoices } from './garments';
