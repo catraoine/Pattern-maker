@@ -135,7 +135,7 @@ export const COLLECTION: HouseLook[] = [
     line: 'Straight from a boat neck to above the knee. Sixties, and worn with flat shoes.',
     fabric: 'Butter wool crepe',
     garment: 'dress',
-    choices: dress('regular', { neckline: 'boat' }, { silhouette: 'straight', length: 'above_knee' }),
+    choices: dress('regular', { neckline: 'boat' }, { silhouette: 'straight', length: 'above_knee', noSeam: 'shift' }),
   },
   {
     id: 'tiny-top',
