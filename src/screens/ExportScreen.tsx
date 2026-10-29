@@ -28,7 +28,7 @@ import { Mode, ProTool, shows } from '../mode';
 import { ModeLink } from '../ui/ModeLink';
 import { countStep } from '../report/report';
 import { flatId } from '../ui/FabricFill';
-import { AMAZON_TAG, amazonLink, kit } from '../engine/projectorKit';
+import { amazonLink, amazonTagged, kit } from '../engine/projectorKit';
 import { buyAmount, buyLink, shopFabric, shopPrice, type ShopFabric } from '../engine/shopFabrics';
 import { canShareFiles, download } from '../ui/download';
 import { LabelCard } from '../ui/LabelCard';
@@ -420,7 +420,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
                       </li>
                     ))}
                   </ul>
-                  {AMAZON_TAG && <p className="muted small">As an Amazon Associate, Maison Tracé earns from qualifying purchases.</p>}
+                  {amazonTagged() && <p className="muted small">As an Amazon Associate, Maison Tracé earns from qualifying purchases.</p>}
                 </details>
               </div>
             )}
