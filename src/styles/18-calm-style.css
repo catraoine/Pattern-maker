@@ -265,6 +265,33 @@
   }
 }
 
+/* A narrow phone (Cat, 2026-10-29, the phone sweep): four views (the bodice's Front, Back, Drawing, All round) ran under
+   Pattern at 390 px and below. The row's words sit a little tighter, Pattern moves up to Draw, and should the views
+   still not fit (a 320 px phone, or large text) they scroll sideways in their own space instead of running under Pattern. */
+@media (max-width: 420px) {
+  .style-pin > section:not(.live-big) .seg {
+    gap: 8px;
+    max-width: calc(100% - 34px);
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
+  .style-pin > section:not(.live-big) .seg::-webkit-scrollbar {
+    display: none;
+  }
+  .style-pin > section:not(.live-big) .seg button {
+    flex: none;
+  }
+  .style-layout .style-pin > section:not(.live-big) .seg button,
+  .style-layout .style-pin > section:not(.live-big) > .lookboxes button,
+  .style-layout .style-pin > section:not(.live-big) > .lookboxes .lookname {
+    letter-spacing: 0.04em;
+  }
+  .style-pin > section:not(.live-big) > .lookboxes {
+    margin-right: 84px;
+  }
+}
+
 /* H4: the open step is a chapter (its number, then its name set large), with the steps as a thin line of bars to
    tap; the questions' names are small champagne capitals and the folded ones plain words with their pick. */
 .style-panel > .chapter {
