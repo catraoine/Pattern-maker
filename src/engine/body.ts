@@ -102,7 +102,7 @@ function shapeExact(a: number, y: number): number {
 /** How much of the hollow of the back (the small of the back between the shoulder blades and the seat) is filled in:
  *  0 is the scanned body's own sway, 1 a straight line from the shoulder blades to the seat. At its own sway the
  *  seat stood out too far from the side (Cat, 2026-10-29: "the butt sticks out too much"). */
-export const SWAY_FILL = (globalThis as { __swayFill?: number }).__swayFill ?? 0.5;
+const SWAY_FILL = (globalThis as { __swayFill?: number }).__swayFill ?? 0.5;
 
 export function shapeAt(a: number, y: number): number {
   if (!fineShape) {
