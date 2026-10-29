@@ -5,7 +5,7 @@ import type { Unit } from "../measurements";
 
 export const AMAZON_TAG = "";
 
-export interface KitItem {
+interface KitItem {
   name: string;
   why: string;
   optional?: boolean;
