@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ARCHIVE, ArchiveCut, accession, canMake } from '../archive';
-import { COLLECTION, HouseLook, lookFlat, lookValues } from '../collection';
+import { COLLECTION, HouseLook, SEASON, lookFlat, lookValues } from '../collection';
 import { NEXT_DROP, clock, dropLook, dropNo, dropState, editionLabel } from '../drops';
 import type { MeasurementValues } from '../measurements';
 import { describePattern } from './describe';
@@ -38,7 +38,7 @@ function Flat({ look, values }: { look: HouseLook; values: MeasurementValues }) 
 }
 
 /**
- * The next numbered drop, first in the collection under a gold strip. Before a designer and a date are set
+ * The next numbered drop, first in the collection under a gold strip. Before a piece and a date are set
  * it is a sign-up for the drop alert; once live, it is made like any look and each copy is numbered.
  */
 function DropSlot({ values, onMake }: Pick<Props, 'values' | 'onMake'>) {
@@ -164,10 +164,11 @@ export function CollectionScreen({ values, onMake, onBack }: Props) {
       <header className="collection-head">
         <p className="eyebrow">Maison Tracé <TestingTag tool="collection" /></p>
         <h1 id="ctitle">The collection</h1>
+        {shelf === 'house' && <p className="season-name">{SEASON.code} · {SEASON.name}</p>}
         <p className="muted">
           {shelf === 'house'
-            ? 'Signature designs from the house, each drafted to your measurements. Make one, then change any detail you like.'
-            : 'Cuts from fashion history, each credited to the museum, dealer or pattern cutter it comes from, and drafted to you.'}
+            ? 'This season\u2019s house looks, in its colours, each drafted to your measurements. Make one, then change any detail you like.'
+            : 'Last season\u2019s house looks, and cuts from fashion history credited to the museum, dealer or pattern cutter they come from, all drafted to you.'}
         </p>
         {sample && <p className="muted small">Looks you haven&rsquo;t measured for yet are drawn to sample measurements.</p>}
         <div className="seg shelves" role="group" aria-label="Collection">
@@ -206,7 +207,7 @@ export function CollectionScreen({ values, onMake, onBack }: Props) {
               <Record key={cut.id} cut={cut} values={values} onMake={onMake} />
             ))}
           </ol>
-          {!ARCHIVE.some(canMake) && <InterestCard offer="archive" />}
+          {ARCHIVE.some((c) => !canMake(c)) && <InterestCard offer="archive" />}
         </>
       )}
     </div>
