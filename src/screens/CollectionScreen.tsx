@@ -162,9 +162,9 @@ export function CollectionScreen({ values, onMake, onBack }: Props) {
   return (
     <div className="collection">
       <header className="collection-head">
-        <p className="eyebrow">Maison Tracé · {SEASON.code} <TestingTag tool="collection" /></p>
+        <p className="eyebrow">Maison Tracé <TestingTag tool="collection" /></p>
         <h1 id="ctitle">The collection</h1>
-        {shelf === 'house' && <p className="season-name">{SEASON.name}</p>}
+        {shelf === 'house' && <p className="season-name">{SEASON.code} · {SEASON.name}</p>}
         <p className="muted">
           {shelf === 'house'
             ? 'This season\u2019s house looks, in its colours, each drafted to your measurements. Make one, then change any detail you like.'

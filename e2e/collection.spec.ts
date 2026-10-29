@@ -11,7 +11,7 @@ test('the Maison collection: open it from styling, draw every look, make one', a
   await expect(looks).toHaveCount(10);
   await expect(main.getByRole('img', { name: /Technical flat/ })).toHaveCount(10);
   // The House shows one season at a time.
-  await expect(main.getByText('Spring Summer 2027')).toBeVisible();
+  await expect(main.getByText('SS27 · Spring Summer 2027')).toBeVisible();
 
   // Making Olive Pleat opens the skirt with its knife pleats chosen.
   await looks.filter({ has: page.getByRole('heading', { name: 'Olive Pleat' }) }).getByRole('button', { name: 'Make this look' }).click();
