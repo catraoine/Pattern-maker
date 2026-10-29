@@ -184,7 +184,8 @@ export function CollectionScreen({ values, onMake, onBack }: Props) {
       </header>
       {shelf === 'house' ? (
         <>
-          <DropSlot values={values} onMake={onMake} />
+          {/* Hidden until a drop has its own piece; it opens with a clear word on what a drop is (Cat, 2026-10-29). */}
+          {dropLook(NEXT_DROP) && <DropSlot values={values} onMake={onMake} />}
           <ol className="lookbook" aria-labelledby="ctitle">
             {looks.map(({ look, flat }) => (
               <li key={look.id} className="house-look">

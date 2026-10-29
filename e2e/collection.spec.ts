@@ -19,17 +19,14 @@ test('the Maison collection: open it from styling, draw every look, make one', a
   await expect((await openGroup(page, 'Details')).getByRole('button', { name: 'Knife pleats' })).toHaveAttribute('aria-pressed', 'true');
 });
 
-test('the collection: the next drop opens as a sign-up, and the Archive shows its records', async ({ page }) => {
+test('the collection: the next drop stays hidden until it has a piece, and the Archive shows its records', async ({ page }) => {
   await startWithExample(page);
   const main = page.getByRole('main');
   await openLooks(page);
   await main.getByRole('button', { name: 'Start from the Maison collection' }).click();
-  // Drop 01 has no date yet: a gold strip and the drop alert sign-up, with the edition shown as printed.
-  await expect(main.getByText('Date soon')).toBeVisible();
-  await expect(main.getByRole('heading', { name: 'Get the drop alert' })).toBeVisible();
-  await expect(main.getByText('No. 0127/600')).toBeVisible();
-  if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/house-${test.info().project.name}.png`, fullPage: false });
-
+  // Drop 01 has no piece yet, so it stays hidden: no strip and no sign-up (Cat, 2026-10-29).
+  await expect(main.getByText('Date soon')).toHaveCount(0);
+  await expect(main.getByRole('heading', { name: 'Get the drop alert' })).toHaveCount(0);
   await main.getByRole('group', { name: 'Collection' }).getByRole('button', { name: 'Archive' }).click();
   const records = main.getByRole('list', { name: 'The Archive' }).getByRole('listitem');
   await expect(records).toHaveCount(14);
