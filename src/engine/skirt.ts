@@ -707,7 +707,11 @@ function withSlit(draft: SkirtDraft, s: SkirtStyle, m: SkirtMeasurements): Skirt
   if (!want || draft.circleShare) return draft;
   const range = slitRange(draft.lengthCm, m.waist_to_hip);
   if (want.at === 'side' && draft.pocket) range.max = Math.max(range.min, Math.min(range.max, Math.floor(draft.lengthCm - draft.pocket[1] - 3)));
-  const slit = { at: want.at, cm: clamp(Math.round(want.cm), range.min, range.max) };
+  // The walking slit nobody asked for reaches the knee on a skirt that falls well below it: a narrow
+  // column closed to the mid-calf lets you shuffle, not stride. (Fable fit check of the SS27 looks, 2026-10-29.)
+  const unasked = s.slitCm === undefined && s.slit === undefined && want.at === 'back';
+  const cm = unasked ? Math.max(want.cm, draft.lengthCm - m.waist_to_knee) : want.cm;
+  const slit = { at: want.at, cm: clamp(Math.round(cm), range.min, range.max) };
   const [front, back, ...rest] = draft.pieces;
   const [f, b] = slitPieces(front, back, slit);
   return { ...draft, pieces: [f, b, ...rest], slit: { ...slit, range } };

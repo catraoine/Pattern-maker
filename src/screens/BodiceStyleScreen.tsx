@@ -37,7 +37,7 @@ import { DrawOnForm, armFor, formWidth } from '../ui/DrawOnForm';
 import { orSeam, readSeamLine } from '../ui/formSeams';
 import { bodiceHemLine, orNeckline, readBodiceHemShape, readUnevenNeckline, unevenNecklineLines } from '../ui/formBodice';
 import { FormLine, bodiceLines, landmarks, readDrape, readFit, readNeckline, readSeam } from '../ui/formLines';
-import { FABRIC, Group, PRO, StyleLayout, TabPanel } from '../ui/StyleLayout';
+import { FABRIC, Group, InCorner, PRO, StyleLayout, TabPanel } from '../ui/StyleLayout';
 
 import { Mode, ProTool, shows } from '../mode';
 import { EaseMapView } from '../ui/EaseMapView';
@@ -45,7 +45,6 @@ import { FitSwitch, GarmentViews, PreviewSwitch } from '../ui/PreviewSwitch';
 import type { EaseView } from '../engine/easeMap';
 import { ChoicePic, chipsClass } from '../ui/ChoicePic';
 import { Explain } from '../ui/Explain';
-import { DemoButton } from '../ui/DemoButton';
 import { PiecesList, SummaryActions } from '../ui/StyleSummary';
 
 /** Moving the shaping is a pro tool, so these groups sit on the Pro tab. */
@@ -208,7 +207,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
   const garmentViews: [Side | 'flat' | 'round', string][] = [
     ['front', 'Front'],
     ['back', 'Back'],
-    ['flat', 'Drawing'],
+    ['flat', 'Flat'],
     ['round', 'All round'],
   ];
 
@@ -441,28 +440,29 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
           ) : (
             <span />
           )}
-          {view === 'sketch' && draft &&
-            (drawing ? (
-              <button type="button" className="ghost on" aria-pressed="true" onClick={() => setDrawing(false)}>
-                Done
-              </button>
-            ) : top ? (
-              <button type="button" className="link small" onClick={() => setOnForm(choices)}>
-                Draw on your form
-              </button>
-            ) : (
-              <DrawMenu>
-                <button type="button" onClick={() => setOnForm(choices)}>
+          <InCorner>
+            {view === 'sketch' && draft &&
+              (drawing ? (
+                <button type="button" className="ghost on" aria-pressed="true" onClick={() => setDrawing(false)}>
+                  Done
+                </button>
+              ) : top ? (
+                <button type="button" className="link small" onClick={() => setOnForm(choices)}>
                   Draw on your form
                 </button>
-                <button type="button" onClick={() => setDrawing(true)}>
-                  Draw neck
-                </button>
-              </DrawMenu>
-            ))}
+              ) : (
+                <DrawMenu>
+                  <button type="button" onClick={() => setOnForm(choices)}>
+                    Draw on your form
+                  </button>
+                  <button type="button" onClick={() => setDrawing(true)}>
+                    Draw neck
+                  </button>
+                </DrawMenu>
+              ))}
+          </InCorner>
         </div>
         <div className="preview">
-          <DemoButton demo="style" />
           {error && <p className="msg error">{error}</p>}
           {draft && view === 'sketch' && (
             <GarmentFabric fabric={fabric}>

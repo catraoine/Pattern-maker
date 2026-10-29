@@ -15,7 +15,7 @@ import { FormArm, FormBody, armAt } from './DrawOnForm';
 import type { FormLine } from './formLines';
 import { HemChoice, HemMarks, MARGIN } from './HemMarks';
 import { useEnlarged } from './EnlargeSketch';
-import { useLengthStep } from './StyleLayout';
+import { useLengthStep, useNarrow } from './StyleLayout';
 import { ClothDefs, ClothOverlay, SHEER_OPACITY, borderHems, useFabricLook } from './ClothLook';
 
 type Measures = { full_bust?: number; waist: number; full_hip?: number; waist_to_hip?: number; waist_to_knee?: number; waist_to_floor?: number };
@@ -762,7 +762,11 @@ export function FormSketch({ body, m, legs, bottom, arms, lines, outline = [], c
   const ladder = useLengthStep() && !big && !!hem;
   const reach = ladder ? Math.max(...hem!.marks.map((q) => q.y)) + 6 : 0;
   const cropped = worn?.length ? Math.min(frame.bottom, Math.max(lowest + BELOW_HEM, reach)) : frame.bottom;
-  const view = big ? { top: Math.max(body.top + 2, highest - 10), bottom: Math.min(frame.bottom + 6, lowest + 12) } : { top: frame.top, bottom: cropped };
+  // On a phone the drawing is cropped like a lookbook photo, from mid-head to just past the hem, so the garment
+  // stands tall beside the tag of picks (Cat's L4, 2026-10-29).
+  const narrow = useNarrow();
+  const top = narrow && worn?.length ? Math.max(frame.top, Math.min(...worn.flat().map((q) => q.y)) - 13) : frame.top;
+  const view = big ? { top: Math.max(body.top + 2, highest - 10), bottom: Math.min(frame.bottom + 6, lowest + 12) } : { top, bottom: cropped };
   const k = (view.bottom - view.top) / 110;
   // Room for the length marks on the left, and as much on the right to keep the form centred. Without them the dot
   // still drags, and names the length it's on under itself.
@@ -770,7 +774,7 @@ export function FormSketch({ body, m, legs, bottom, arms, lines, outline = [], c
   return (
     // With a hem dot it is a group, not an image: an image hides the dot inside it from screen readers.
     <svg ref={svg} viewBox={`${f(-side)} ${f(view.top)} ${f(2 * cx + 2 * side)} ${f(view.bottom - view.top)}`} role={hem ? 'group' : 'img'} aria-label={label} className="preview-svg sketch shape form-still">
-      <FormLayers body={body} m={m} legs={legs} cx={cx} top={frame.top} bottom={big ? frame.bottom : cropped} arms={arms} lines={onCloth} outline={outline} worn={worn} folds={folds} sleeve={sleeve} />
+      <FormLayers body={body} m={m} legs={legs} cx={cx} top={big ? frame.top : top} bottom={big ? frame.bottom : cropped} arms={arms} lines={onCloth} outline={outline} worn={worn} folds={folds} sleeve={sleeve} />
       {hem && <HemMarks {...hem} svg={svg} cx={cx} k={k} hemAt={hemAt} bare={!ladder} />}
     </svg>
   );

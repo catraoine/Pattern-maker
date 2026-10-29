@@ -29,7 +29,7 @@ import { FabricSwatches, GarmentFabric } from '../ui/FabricFill';
 import { DETAIL_GROUPS, GROUPS, pocketsAllowed } from '../skirtChoices';
 import { cutAllowed, validCut } from '../engine/slip';
 import { describePattern } from './describe';
-import { FABRIC, Group, PRO, StyleLayout, TabPanel } from '../ui/StyleLayout';
+import { FABRIC, Group, InCorner, PRO, StyleLayout, TabPanel } from '../ui/StyleLayout';
 
 import { Mode, ProTool, shows } from '../mode';
 import { EaseMapView } from '../ui/EaseMapView';
@@ -55,7 +55,6 @@ import { FormLine, bodiceLines, landmarks, readDrape, readDressSide, readFit, re
 import { BANDS, isBandCollar } from '../engine/collar';
 import { ChoicePic, chipsClass } from '../ui/ChoicePic';
 import { Explain } from '../ui/Explain';
-import { DemoButton } from '../ui/DemoButton';
 import { PiecesList, SummaryActions, formViews } from '../ui/StyleSummary';
 
 /** Moving the shaping is a pro tool, so these groups sit on the Pro tab. */
@@ -680,14 +679,13 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           ) : (
             <span />
           )}
-          <div className="row tools">
+          <InCorner>
             <button type="button" className="link small" onClick={() => setOnForm(choices)}>
               Draw on your form
             </button>
-          </div>
+          </InCorner>
         </div>
         <div className="preview">
-          <DemoButton demo="style" />
           {error && <p className="msg error">{error}</p>}
           {formBody && view === 'sketch' && (
             <GarmentFabric fabric={fabric}>

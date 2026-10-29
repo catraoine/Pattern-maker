@@ -35,6 +35,14 @@ interface Props {
 type Stage = 'corners' | 'check' | 'project';
 
 const IN = 2.54;
+// On-screen nudges for touch screens, which have no arrow keys: a pixel at a time.
+const NUDGES: [string, [number, number]][] = [
+  ['left', [-1, 0]],
+  ['up', [0, -1]],
+  ['down', [0, 1]],
+  ['right', [1, 0]],
+];
+const ARROWS: Record<string, string> = { left: '←', up: '↑', down: '↓', right: '→' };
 const WEIGHTS: LineWeight[] = ['thin', 'medium', 'thick'];
 // Mats are sold by their marked grid: 60 × 45 cm, or 24 × 18 in.
 const START_MAT = { cm: { w: 60, h: 45 }, in: { w: 24 * IN, h: 18 * IN } };
@@ -147,38 +155,13 @@ function Corners({ lineUp, unit, view, onChange, onNext, onClose }: { lineUp: Li
 
   return (
     <>
-      <svg
-        className="projector-stage"
-        width={view.w}
-        height={view.h}
-        onPointerMove={(e) => held !== undefined && move(held, { x: e.clientX, y: e.clientY })}
-        onPointerUp={() => setHeld(undefined)}
-        onPointerCancel={() => setHeld(undefined)}
-      >
+      <svg className="projector-stage" width={view.w} height={view.h}>
         <g className="pj-grid">
           {grid.map(([a, b], i) => (
             <line key={i} x1={a.x} y1={a.y} x2={b.x} y2={b.y} />
           ))}
         </g>
         <polygon points={pts(corners)} className="pj-quad" />
-        {corners.map((c, i) => (
-          <g
-            key={i}
-            className={`pj-corner${picked === i ? ' on' : ''}`}
-            onPointerDown={(e) => {
-              (e.currentTarget.ownerSVGElement ?? e.currentTarget).setPointerCapture?.(e.pointerId);
-              setHeld(i);
-              setPicked(i);
-            }}
-          >
-            <circle cx={c.x} cy={c.y} r={28} className="pj-hit" />
-            <circle cx={c.x} cy={c.y} r={22} className="pj-ring" />
-            <circle cx={c.x} cy={c.y} r={4} className="pj-dot" />
-            <text x={c.x + (i === 0 || i === 3 ? -38 : 30)} y={c.y + (i < 2 ? -26 : 40)}>
-              {i + 1}
-            </text>
-          </g>
-        ))}
       </svg>
       <div className="projector-panel">
         <p className="eyebrow">
@@ -186,8 +169,8 @@ function Corners({ lineUp, unit, view, onChange, onNext, onClose }: { lineUp: Li
         </p>
         <h2>Drag each corner onto a corner of your cutting mat</h2>
         <p className="muted small">
-          Use the grid lines printed on the mat, not its edge. Tap a corner, then use the arrow keys for the last millimetre. It is kept for
-          next time on this screen.
+          Use the grid lines printed on the mat, not its edge. Tap a corner, then nudge it with the arrows below (or your arrow keys) for
+          the last millimetre. It is kept for next time on this screen.
         </p>
         <div className="row wrap pj-mat">
           <span>Mat grid</span>
@@ -195,6 +178,14 @@ function Corners({ lineUp, unit, view, onChange, onNext, onClose }: { lineUp: Li
           <span>×</span>
           <input type="number" inputMode="decimal" aria-label="Mat grid height" value={size(mat.h)} onChange={(e) => setSize('h', e.target.value)} />
           <span>{unit}</span>
+        </div>
+        <div className="row pj-nudge" role="group" aria-label={`Nudge corner ${picked + 1}`}>
+          <span className="small muted">Corner {picked + 1}</span>
+          {NUDGES.map(([label, d]) => (
+            <button key={label} type="button" aria-label={`Nudge ${label}`} onClick={() => move(picked, { x: corners[picked].x + d[0], y: corners[picked].y + d[1] })}>
+              {ARROWS[label]}
+            </button>
+          ))}
         </div>
         {!ok && <p className="small pj-warn">Two corners have crossed over: drag them back so the shape goes round 1, 2, 3, 4.</p>}
         <div className="row wrap">
@@ -206,6 +197,30 @@ function Corners({ lineUp, unit, view, onChange, onNext, onClose }: { lineUp: Li
           </button>
         </div>
       </div>
+      {/* The corners sit above the panel, so on a short screen (a phone turned sideways) none is ever hidden under it. */}
+      <svg className="projector-stage pj-handles" width={view.w} height={view.h}>
+        {corners.map((c, i) => (
+          <g
+            key={i}
+            className={`pj-corner${picked === i ? ' on' : ''}`}
+            onPointerDown={(e) => {
+              e.currentTarget.setPointerCapture?.(e.pointerId);
+              setHeld(i);
+              setPicked(i);
+            }}
+            onPointerMove={(e) => held === i && move(i, { x: e.clientX, y: e.clientY })}
+            onPointerUp={() => setHeld(undefined)}
+            onPointerCancel={() => setHeld(undefined)}
+          >
+            <circle cx={c.x} cy={c.y} r={28} className="pj-hit" />
+            <circle cx={c.x} cy={c.y} r={22} className="pj-ring" />
+            <circle cx={c.x} cy={c.y} r={4} className="pj-dot" />
+            <text x={c.x + (i === 0 || i === 3 ? -38 : 30)} y={c.y + (i < 2 ? -26 : 40)}>
+              {i + 1}
+            </text>
+          </g>
+        ))}
+      </svg>
     </>
   );
 }

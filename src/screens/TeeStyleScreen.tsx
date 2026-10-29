@@ -24,9 +24,8 @@ import { Explain } from '../ui/Explain';
 import { DrawOnForm } from '../ui/DrawOnForm';
 import { FormSketch } from '../ui/FormSketch';
 import { TeeFormMeasurements, readTeeFit, readTeeHem, readTeeNeckline, readTeeSleeve, teeForm, teeLines } from '../ui/formTops';
-import { FABRIC, Group, LOOKS, StyleLayout, TabPanel } from '../ui/StyleLayout';
+import { FABRIC, Group, InCorner, LOOKS, StyleLayout, TabPanel } from '../ui/StyleLayout';
 import { FabricDetails } from '../ui/FabricDetails';
-import { DemoButton } from '../ui/DemoButton';
 import { PiecesList, SummaryActions, formViews } from '../ui/StyleSummary';
 
 import { teeFabricMetres } from '../fabricAmounts';
@@ -201,16 +200,15 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
           ) : (
             <span />
           )}
-          <div className="row tools">
+          <InCorner>
             {draft && (
               <button type="button" className="link small" onClick={() => setOnForm(choices)}>
                 Draw on your form
               </button>
             )}
-          </div>
+          </InCorner>
         </div>
         <div className="preview">
-          <DemoButton demo="style" />
           {error && <p className="msg error">{error}</p>}
           {form && draft && view === 'sketch' && (
             <GarmentFabric fabric={fabric}>

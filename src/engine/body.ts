@@ -99,12 +99,44 @@ function shapeExact(a: number, y: number): number {
   return smoothAt(vals, 1, u);
 }
 
+/** How much of the hollow of the back (the small of the back between the shoulder blades and the seat) is filled in:
+ *  0 is the scanned body's own sway, 1 a straight line from the shoulder blades to the seat. At its own sway the
+ *  seat stood out too far from the side (Cat, 2026-10-29: "the butt sticks out too much"). */
+const SWAY_FILL = (globalThis as { __swayFill?: number }).__swayFill ?? 0.5;
+
 export function shapeAt(a: number, y: number): number {
   if (!fineShape) {
     fineShape = new Float32Array(FINE_ROWS * FINE_ANGLES);
+    const ys: number[] = [];
     for (let r = 0; r < FINE_ROWS; r++) {
       const y0 = BODY_YS[0] + ((BODY_YS[ROWS - 1] - BODY_YS[0]) * r) / (FINE_ROWS - 1);
+      ys.push(y0);
       for (let k = 0; k < FINE_ANGLES; k++) fineShape[r * FINE_ANGLES + k] = shapeExact((Math.PI * k) / (FINE_ANGLES - 1), y0);
+    }
+    // The hollow of the back filled in by SWAY_FILL: down each line round the back half, between the fullest point
+    // above the waist (the shoulder blades) and the fullest below it (the seat), the surface comes no further in than
+    // that share of the way from the straight line between them. Full at the centre back, fading to nothing at the sides.
+    if (SWAY_FILL > 0) {
+      for (let k = 0; k < FINE_ANGLES; k++) {
+        const ang = (Math.PI * k) / (FINE_ANGLES - 1);
+        const fill = SWAY_FILL * Math.max(0, -Math.cos(ang)) ** 2;
+        if (fill <= 0) continue;
+        const at = (r: number) => fineShape![r * FINE_ANGLES + k] * bodyHalf(ys[r]);
+        let top = 0;
+        let seat = 0;
+        for (let r = 0; r < FINE_ROWS; r++) {
+          if (ys[r] < 0.1 && ys[r] > -1.0 && at(r) > at(top)) top = r;
+          if (ys[r] >= 0.1 && at(r) > at(seat)) seat = r;
+        }
+        if (seat <= top) continue;
+        const a0 = at(top);
+        const a1 = at(seat);
+        for (let r = top + 1; r < seat; r++) {
+          const chord = a0 + ((a1 - a0) * (r - top)) / (seat - top);
+          const now = at(r);
+          if (chord > now) fineShape[r * FINE_ANGLES + k] = (now + (chord - now) * fill) / bodyHalf(ys[r]);
+        }
+      }
     }
   }
   const [i, u] = fineRow(y);

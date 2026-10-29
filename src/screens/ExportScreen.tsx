@@ -28,6 +28,7 @@ import { Mode, ProTool, shows } from '../mode';
 import { ModeLink } from '../ui/ModeLink';
 import { countStep } from '../report/report';
 import { flatId } from '../ui/FabricFill';
+import { amazonLink, amazonTagged, kit } from '../engine/projectorKit';
 import { buyAmount, buyLink, shopFabric, shopPrice, type ShopFabric } from '../engine/shopFabrics';
 import { canShareFiles, download } from '../ui/download';
 import { LabelCard } from '../ui/LabelCard';
@@ -391,10 +392,9 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
             </p>
             {projector && made && (
               <div className="stack projector-offer">
-                <p className="eyebrow">
-                  Or project straight from here <TestingTag tool="projector" />
-                </p>
-                <h3>Projector mode</h3>
+                <h3>
+                  Projector mode <TestingTag tool="projector" />
+                </h3>
                 <p className="muted small">
                   Plug your projector into this computer or tablet. Line it up with your cutting mat once, then show one piece at a time at true
                   size, in thick lines on black. Move and turn each piece on the cloth.
@@ -402,6 +402,26 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
                 <button type="button" className="secondary" onClick={() => setProjecting(true)}>
                   Open projector mode
                 </button>
+                <details className="small fold-link projector-kit">
+                  <summary>What you'll need</summary>
+                  <ul>
+                    {kit(unit).map((item) => (
+                      <li key={item.name}>
+                        <span>
+                          <span>
+                            <strong>{item.name}</strong>
+                            {item.optional && <span className="muted"> · optional</span>}
+                          </span>
+                          <span className="muted small">{item.why}</span>
+                        </span>
+                        <a href={amazonLink(item)} target="_blank" rel="noopener noreferrer">
+                          See on Amazon ↗
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                  {amazonTagged() && <p className="muted small">As an Amazon Associate, Maison Tracé earns from qualifying purchases.</p>}
+                </details>
               </div>
             )}
             {projecting && made && (

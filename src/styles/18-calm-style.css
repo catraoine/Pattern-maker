@@ -134,85 +134,6 @@
 .style-pin > section:not(.live-big) > p {
   order: 3;
 }
-/* The marks: Draw at the row's end, Enlarge and Demo hung from the drawing's foot into the same row. */
-.style-pin > section:not(.live-big) > .row.between.wrap > :is(.row.tools, .drawmenu, .link.small, .ghost) {
-  position: absolute;
-  top: 0;
-  right: 60px;
-  left: auto;
-  height: 36px;
-  display: flex;
-  align-items: center;
-}
-.style-pin > section:not(.live-big) > .row.between.wrap > .link.small,
-.style-pin > section:not(.live-big) > .row.between.wrap > .row.tools > .link.small {
-  font-size: 0;
-  letter-spacing: 0;
-  min-height: 32px;
-  padding: 0 4px;
-}
-.style-pin > section:not(.live-big) > .row.between.wrap > .link.small::before,
-.style-pin > section:not(.live-big) > .row.between.wrap > .row.tools > .link.small::before {
-  content: '✎' / '';
-  font-size: 16px;
-  color: var(--gild);
-}
-.style-pin > section:not(.live-big) > .row.between.wrap > .drawmenu > summary {
-  padding: 4px;
-  border: 0;
-  font-size: 0;
-}
-.style-pin > section:not(.live-big) > .row.between.wrap > .drawmenu > summary::after {
-  content: none;
-}
-/* The Draw list opens upward over the drawing, from the row at its foot. */
-.style-pin > section:not(.live-big) .drawmenu-list {
-  top: auto;
-  bottom: calc(100% + 6px);
-}
-.style-pin > section:not(.live-big) > .row.between.wrap > .drawmenu > summary::before {
-  content: '✎' / '';
-  font-size: 16px;
-  color: var(--gild);
-}
-.style-pin > section:not(.live-big) > .preview > .enlarge {
-  position: absolute;
-  top: auto;
-  bottom: -36px;
-  right: 30px;
-  left: auto;
-  width: 28px;
-  height: 36px;
-  padding: 0;
-  font-size: 0;
-  letter-spacing: 0;
-  justify-content: center;
-  z-index: 7;
-}
-.style-pin > section:not(.live-big) > .preview > .enlarge svg {
-  width: 15px;
-  height: 15px;
-  margin: 0;
-}
-.style-pin > section:not(.live-big) > .preview > .demo-play {
-  position: absolute;
-  top: auto;
-  bottom: -36px;
-  right: 0;
-  left: auto;
-  height: 36px;
-  min-height: 0;
-  padding: 0 2px;
-  z-index: 7;
-}
-.style-pin > section:not(.live-big) > .preview > .demo-play .demo-play-words {
-  font-size: 0;
-  letter-spacing: 0;
-}
-.style-pin > section:not(.live-big) > .preview > .demo-play .demo-play-mark {
-  font-size: 14px;
-  color: var(--gild);
-}
 @media (min-width: 761px) {
   .style-pin > section:not(.live-big) {
     display: flex;
@@ -232,8 +153,8 @@
      Draw list opening upward from it, all show. */
   .style-pin > section:not(.live-big) > .preview {
     z-index: 6;
-    box-shadow: -16px 0 0 var(--paper), 16px 0 0 var(--paper), 0 36px 0 16px var(--paper);
-    clip-path: inset(0 -16px -36px);
+    box-shadow: -16px 0 0 var(--paper), 16px 0 0 var(--paper), 0 44px 0 16px var(--paper);
+    clip-path: inset(0 -16px -44px);
   }
   .style-pin > section:not(.live-big) > :is(.row.between.wrap, .lookboxes) {
     position: sticky;
@@ -262,6 +183,33 @@
   }
   .style-edit > .style-bar {
     order: 4;
+  }
+}
+
+/* A narrow phone (Cat, 2026-10-29, the phone sweep): four views (the bodice's Front, Back, Drawing, All round) ran under
+   Pattern at 390 px and below. The row's words sit a little tighter, Pattern moves up to Draw, and should the views
+   still not fit (a 320 px phone, or large text) they scroll sideways in their own space instead of running under Pattern. */
+@media (max-width: 420px) {
+  .style-pin > section:not(.live-big) .seg {
+    gap: 8px;
+    max-width: calc(100% - 34px);
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
+  .style-pin > section:not(.live-big) .seg::-webkit-scrollbar {
+    display: none;
+  }
+  .style-pin > section:not(.live-big) .seg button {
+    flex: none;
+  }
+  .style-layout .style-pin > section:not(.live-big) .seg button,
+  .style-layout .style-pin > section:not(.live-big) > .lookboxes button,
+  .style-layout .style-pin > section:not(.live-big) > .lookboxes .lookname {
+    letter-spacing: 0.04em;
+  }
+  .style-pin > section:not(.live-big) > .lookboxes {
+    margin-right: 84px;
   }
 }
 

@@ -30,8 +30,7 @@ import { DrawOnForm, armFor, formWidth } from '../ui/DrawOnForm';
 import { FormSketch } from '../ui/FormSketch';
 import { FormLine, landmarks } from '../ui/formLines';
 import { outerLines, readOuterCollar, readOuterFit, readOuterFront, readOuterHem, readOuterShaping } from '../ui/formTops';
-import { FABRIC, Group, PRO, StyleLayout, TabPanel } from '../ui/StyleLayout';
-import { DemoButton } from '../ui/DemoButton';
+import { FABRIC, Group, InCorner, PRO, StyleLayout, TabPanel } from '../ui/StyleLayout';
 import { PiecesList, SummaryActions, formViews } from '../ui/StyleSummary';
 
 import { outerFabricMetres } from '../fabricAmounts';
@@ -253,16 +252,15 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           ) : (
             <span />
           )}
-          <div className="row tools">
+          <InCorner>
             {draft && (
               <button type="button" className="link small" onClick={() => setOnForm(choices)}>
                 Draw on your form
               </button>
             )}
-          </div>
+          </InCorner>
         </div>
         <div className="preview">
-          <DemoButton demo="style" />
           {error && <p className="msg error">{error}</p>}
           {formBody && view === 'sketch' && (
             <GarmentFabric fabric={fabric}>

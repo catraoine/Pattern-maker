@@ -35,14 +35,13 @@ import { EaseMapView } from '../ui/EaseMapView';
 import { FitSwitch, GarmentViews, PreviewSwitch } from '../ui/PreviewSwitch';
 import type { EaseView } from '../engine/easeMap';
 import { Mode, ProTool, shows } from '../mode';
-import { FABRIC, Group, PRO, StyleLayout, TabPanel } from '../ui/StyleLayout';
+import { FABRIC, Group, InCorner, PRO, StyleLayout, TabPanel } from '../ui/StyleLayout';
 import { DrawOnForm, skirtForm } from '../ui/DrawOnForm';
 import { readSkirtHem, readSkirtSide, skirtLines } from '../ui/formLines';
 import { readFullness, readSkirtPocket, readSkirtWaist, readSlit, skirtHalf, slitLines } from '../ui/formSkirt';
 import { ChoicePic, chipsClass } from '../ui/ChoicePic';
 import { Explain } from '../ui/Explain';
 import { AllRound } from '../ui/AllRound';
-import { DemoButton } from '../ui/DemoButton';
 import { roundSkirt } from '../engine/allRound';
 import { PiecesList, SummaryActions } from '../ui/StyleSummary';
 
@@ -534,32 +533,33 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
           ) : (
             <span />
           )}
-          {view === 'sketch' && draft &&
-            (drawing ? (
-              <button type="button" className="ghost on" aria-pressed="true" onClick={() => setDrawing(false)}>
-                Done
-              </button>
-            ) : (
-              <DrawMenu>
-                <button type="button" onClick={() => setOnForm(choices)}>
-                  Draw on your form
+          <InCorner>
+            {view === 'sketch' && draft &&
+              (drawing ? (
+                <button type="button" className="ghost on" aria-pressed="true" onClick={() => setDrawing(false)}>
+                  Done
                 </button>
-                {/* Pleats, godets and flounces are drafted on a level hem. */}
-                {volumeOf(choices) === 'none' && (
-                  <button type="button" onClick={() => setDrawing(true)}>
-                    Draw hem
+              ) : (
+                <DrawMenu>
+                  <button type="button" onClick={() => setOnForm(choices)}>
+                    Draw on your form
                   </button>
-                )}
-                {isShaped(choices.hem) && (
-                  <button type="button" onClick={() => change({ ...choices, hem: undefined })}>
-                    Straighten hem
-                  </button>
-                )}
-              </DrawMenu>
-            ))}
+                  {/* Pleats, godets and flounces are drafted on a level hem. */}
+                  {volumeOf(choices) === 'none' && (
+                    <button type="button" onClick={() => setDrawing(true)}>
+                      Draw hem
+                    </button>
+                  )}
+                  {isShaped(choices.hem) && (
+                    <button type="button" onClick={() => change({ ...choices, hem: undefined })}>
+                      Straighten hem
+                    </button>
+                  )}
+                </DrawMenu>
+              ))}
+          </InCorner>
         </div>
         <div className="preview">
-          <DemoButton demo="style" />
           {error && <p className="msg error">{error}</p>}
           {draft && sheet && view === 'sketch' && (
             <GarmentFabric fabric={fabric}>

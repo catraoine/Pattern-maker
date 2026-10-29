@@ -21,7 +21,7 @@ test('enlarge the garment drawing', async ({ page }) => {
   await switchGarment(page, 'Dress');
   await main.getByRole('button', { name: /^Enlarge the drawing/ }).click();
   await expect(preview).toHaveClass(/live-big/);
-  await preview.getByRole('button', { name: 'Drawing', exact: true }).click();
+  await preview.getByRole('button', { name: 'Flat', exact: true }).click();
   await expect(main.getByRole('img', { name: /^Technical flat/ })).toBeVisible();
   await expect(preview).toHaveClass(/live-big/);
   await page.keyboard.press('Escape');

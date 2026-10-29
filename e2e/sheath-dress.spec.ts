@@ -14,7 +14,7 @@ test('sheath and shift: a dress with no waist seam', async ({ page }, info) => {
   const neck = await openGroup(page, 'Neckline');
   await expect(neck.getByRole('button', { name: 'Strapless', exact: true })).toBeDisabled();
   await page.screenshot({ path: info.outputPath('sheath-form.png'), fullPage: true });
-  await main.getByRole('button', { name: 'Drawing', exact: true }).click();
+  await main.getByRole('button', { name: 'Flat', exact: true }).click();
   await page.screenshot({ path: info.outputPath('sheath-drawing.png'), fullPage: true });
 
   await chooseChip(page, 'Cut', 'Shift');

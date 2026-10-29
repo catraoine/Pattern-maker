@@ -8,6 +8,13 @@ test('projector: line up on the mat, check the square, then project a piece', as
   const main = page.getByRole('main');
   await chooseDrop(page, 'Paper', 'Projector');
   await expect(main.getByRole('button', { name: /^Download PDF \(1 page\)$/ })).toBeEnabled({ timeout: 45_000 });
+  // What you'll need (K1 Fold-out, 2026-10-29): the kit, each with an Amazon link, folded under the card.
+  await main.locator('.projector-kit > summary').click();
+  const kit = main.locator('.projector-kit');
+  await expect(kit.getByRole('link', { name: /See on Amazon/ })).toHaveCount(5);
+  await expect(kit.getByRole('link', { name: /See on Amazon/ }).first()).toHaveAttribute('href', /^https:\/\/www\.amazon\.(com|ca|co\.uk)\/s\?k=/);
+  await kit.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: info.outputPath('0-kit.png') });
   await main.getByRole('button', { name: 'Open projector mode' }).click();
 
   const pj = page.getByRole('dialog', { name: 'Projector mode' });
@@ -42,4 +49,37 @@ test('projector: line up on the mat, check the square, then project a piece', as
   // The line-up is kept: opening again goes straight to projecting.
   await main.getByRole('button', { name: 'Open projector mode' }).click();
   await expect(page.getByRole('toolbar', { name: 'Projector tools' })).toBeVisible();
+});
+
+// A phone turned sideways and mirrored to the projector (Cat, 2026-10-29): the line-up panel used to cover the
+// corners on a short screen, so a finger could not grab them. They now sit above it, with arrows to nudge.
+test('projector: on a phone turned sideways, a finger drags a corner and the arrows nudge it', async ({ page }, info) => {
+  test.skip(info.project.name !== 'phone', 'touch on a short screen');
+  await startWithExample(page);
+  await goPrint(page);
+  const main = page.getByRole('main');
+  await chooseDrop(page, 'Paper', 'Projector');
+  await expect(main.getByRole('button', { name: /^Download PDF \(1 page\)$/ })).toBeEnabled({ timeout: 45_000 });
+  await page.setViewportSize({ width: 844, height: 390 });
+  await main.getByRole('button', { name: 'Open projector mode' }).click();
+
+  const pj = page.getByRole('dialog', { name: 'Projector mode' });
+  const ring = pj.locator('.pj-corner').first().locator('.pj-ring');
+  const a = (await ring.boundingBox())!;
+  const cdp = await page.context().newCDPSession(page);
+  const x = a.x + a.width / 2, y = a.y + a.height / 2;
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
+  for (let i = 1; i <= 6; i++) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: x + i * 5, y: y + i * 3 }] });
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await expect.poll(async () => Math.round((await ring.boundingBox())!.x - a.x)).toBe(30);
+
+  await pj.getByRole('button', { name: 'Nudge right' }).click();
+  await expect.poll(async () => Math.round((await ring.boundingBox())!.x - a.x)).toBe(31);
+
+  await pj.getByRole('button', { name: /^Next: check the 10 cm square$/ }).click();
+  await pj.getByRole('button', { name: 'Yes: start projecting' }).click();
+  // The tools keep to one row, and Close is still on the screen.
+  const tools = pj.getByRole('toolbar', { name: 'Projector tools' });
+  expect((await tools.boundingBox())!.height).toBeLessThan(70);
+  expect((await tools.getByRole('button', { name: 'Close' }).boundingBox())!.x + 40).toBeLessThan(844);
 });

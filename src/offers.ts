@@ -152,7 +152,7 @@ export const OFFERS: Record<OfferId, Offer> = {
     id: 'drops',
     eyebrow: 'Numbered drops',
     title: 'Get the drop alert',
-    text: 'Limited patterns from independent designers, open for 72 hours. Each copy is drafted to you and numbered on every pattern piece.',
+    text: 'A limited piece from the house each season, open for 72 hours. Each copy is drafted to you and numbered on every pattern piece. Premium members get in 24 hours early.',
     prices: [['Each drop pattern', 'from $28']],
     button: 'Alert me',
     thanks: "You're on the list. We'll email you before Drop 01 opens.",
