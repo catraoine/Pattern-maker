@@ -5,8 +5,10 @@ import { draftSkirt, FIT_EASE } from './skirt';
 import { BODICE_FIT_EASE, draftBodice, girthBelowWaist } from './bodice';
 import { draftDress } from './dress';
 import { draftTrousers, TROUSER_EASE, TrousersMeasurements } from './trousers';
+import { draftOuter, OUTER_EASE } from './outerwear';
+import { draftSleeve } from './sleeve';
 import { checkPattern } from './qc';
-import { randomBody, randomCrotch, rng } from './randomBodies';
+import { randomArms, randomBody, randomCrotch, rng } from './randomBodies';
 import { withEstimates } from '../estimate';
 import { waistPieces } from './finishing';
 import { taggedLength } from './geometry';
@@ -246,6 +248,117 @@ describe('dress measured against the body', () => {
         if (ring < body.full_hip - 1.5 && !d.overHead) failures.push(`${tag}: ${r1(ring)} round at the zip end, hip ${r1(body.full_hip)}, zip ${d.zipCm}`);
         if (d.overHead && ring < body.full_bust - 1.5) failures.push(`${tag}: over the head but ${r1(ring)} round at the zip end, bust ${r1(body.full_bust)}`);
       }
+    }
+    expect(failures.slice(0, 10), `${failures.length} failures`).toEqual([]);
+  });
+});
+
+// Added after the Fable fit check of the SS27 house looks, 2026-10-29: the combinations the collection
+// uses that no sweep had measured before.
+describe('the SS27 looks measured against the body', () => {
+  /** Where a piece's outline crosses the level y: its leftmost and rightmost x. */
+  const spanAt = (pc: Piece, y: number): [number, number] => {
+    const pts = pc.outline.points(24);
+    const xs: number[] = [];
+    for (let i = 0; i < pts.length - 1; i++) {
+      const a = pts[i];
+      const b = pts[i + 1];
+      if ((a.y <= y && b.y > y) || (b.y <= y && a.y > y)) xs.push(a.x + ((y - a.y) * (b.x - a.x)) / (b.y - a.y));
+    }
+    return [Math.min(...xs), Math.max(...xs)];
+  };
+  const maxY = (pc: Piece) => Math.max(...pc.outline.points(24).map((q) => q.y));
+  const outerChecks = (pieces: Piece[]) => checkPattern(pieces.filter((pc) => !pc.kind || pc.kind === 'collar' || pc.kind === 'pocket'));
+
+  it(`drafts the boxy unpadded jacket and the double-breasted A-line coat to the body, pockets inside their panels, for ${BODIES} bodies`, () => {
+    const failures: string[] = [];
+    for (let seed = 1; seed <= BODIES; seed++) {
+      const r = rng(seed + 31000);
+      const b = randomBody(r);
+      const m = { ...b, ...randomArms(b, r) };
+      const styles = [
+        { kind: 'jacket', fit: 'relaxed', shaping: 'boxy', pads: 'none', pockets: 'patch', length: 'hip' },
+        { kind: 'coat', fit: 'relaxed', front: 'double', flare: 'a_line', pads: 'soft', shaping: 'princess', pockets: 'welt', length: 'knee' },
+      ] as const;
+      for (const st of styles) {
+        const tag = `seed ${seed} ${st.kind}`;
+        const d = draftOuter(m, st);
+        const ease = OUTER_EASE[st.kind][st.fit];
+        if (d.warnings.length) failures.push(`${tag}: ${d.warnings.join('; ')}`);
+        const [bf, bb] = d.block;
+        const base = d.base;
+        const [basef] = base.block ?? base.pieces;
+        const sideBust = basef.draft!.points.find((q) => q.n === '6')!.at;
+        const underF = basef.draft!.points.find((q) => q.n === '5')!.at;
+        const bust = 2 * (widthAt(bf, sideBust.y + 0.2) + widthAt(bb, base.armholeDepth + (sideBust.y - underF.y) + 0.2));
+        if (bust < m.full_bust + ease - 3.5 || bust > m.full_bust + ease + 1) failures.push(`${tag}: bust ${r1(bust)} vs ${r1(m.full_bust + ease)}`);
+        // The hem clears the hip by the fit's room (a jacket ends at the hip; a coat flares on past it).
+        if (d.finishedHem < m.full_hip + 16) failures.push(`${tag}: hem ${d.finishedHem} over a ${r1(m.full_hip)} hip`);
+        // The sleeve has the outerwear ease at the bicep and goes on over a hand.
+        if (d.sleeve.bicep < m.upper_arm + (st.kind === 'coat' ? 16 : 13) - 0.5) failures.push(`${tag}: sleeve ${d.sleeve.bicep} round a ${r1(m.upper_arm)} arm`);
+        if (d.sleeve.hemCm < Math.max(19, m.wrist * 1.3) + 4) failures.push(`${tag}: sleeve hem ${d.sleeve.hemCm}`);
+        // The pocket lies inside the front it is drawn on, clear of the side seam, the front edge and the buttons.
+        const pk = d.pocket!;
+        const carrier = d.pieces.find((pc) => !pc.kind && /front/i.test(pc.name) && pc.lines.some((l) => l.points().some((q) => Math.abs(q.x - pk.x) < 1e-6 && Math.abs(q.y - pk.y) < 1e-6)));
+        if (!carrier) failures.push(`${tag}: pocket drawn on no front`);
+        else {
+          const [lo, hi] = spanAt(carrier, pk.y + pk.h / 2);
+          if (hi - (pk.x + pk.w) < 1.9) failures.push(`${tag}: pocket to ${r1(pk.x + pk.w)} on a ${carrier.name} that ends at ${r1(hi)}`);
+          if (pk.x - lo < 1.4) failures.push(`${tag}: pocket from ${r1(pk.x)} on a ${carrier.name} that starts at ${r1(lo)}`);
+          if (maxY(carrier) - (pk.y + pk.h) < 3.9) failures.push(`${tag}: pocket bottom ${r1(maxY(carrier) - (pk.y + pk.h))} above the hem`);
+          if (pk.x - Math.max(...d.buttons.columns) < d.buttons.sizeCm) failures.push(`${tag}: pocket under the buttons`);
+          if (pk.y < base.front.waistCentre.y - 2.05) failures.push(`${tag}: pocket top ${r1(base.front.waistCentre.y - pk.y)} above the waist`);
+        }
+        if (pk.w < 11) failures.push(`${tag}: pocket ${pk.w} wide`);
+        // The collar's neck edge is the neckline it sews to.
+        const collar = d.pieces.find((pc) => pc.name === 'Collar')!;
+        const opened = d.pieces.find((pc) => !pc.kind && /front/i.test(pc.name) && pc.outline.tags.includes('gorge'))!;
+        const backFold = d.pieces.find((pc) => !pc.kind && /back/i.test(pc.name) && (pc.fold || pc.meta.vent))!;
+        const neck = taggedLength(opened.outline, 'neck') + taggedLength(backFold.outline, 'neck');
+        if (Math.abs(taggedLength(collar.outline, 'neck') - neck) > 0.3) failures.push(`${tag}: collar ${r1(taggedLength(collar.outline, 'neck'))} on a ${r1(neck)} neck seam`);
+        for (const c of outerChecks(d.pieces)) if (!c.ok) failures.push(`${tag}: ${c.label} (${c.detail})`);
+      }
+    }
+    expect(failures.slice(0, 10), `${failures.length} failures`).toEqual([]);
+  });
+
+  it(`drafts the relaxed dartless shirt with its collar and sleeves, the gathered sash skirt and the knee-slit column, for ${BODIES} bodies`, () => {
+    const failures: string[] = [];
+    for (let seed = 1; seed <= BODIES; seed++) {
+      const r = rng(seed + 31000);
+      const b = randomBody(r);
+      const m = { ...b, ...randomArms(b, r) };
+      const tag = `seed ${seed}`;
+      // The shirt: no darts, so the bust is still the bust plus ease, the hem clears the hip, and the front hangs a little longer at the centre.
+      const shirt = draftBodice(m, { fit: 'relaxed', neckline: 'crew', collar: 'shirt', closure: 'front_buttons', length: 'hip', darts: 'none' });
+      const [sf, sb] = shirt.block ?? shirt.pieces;
+      const sideBust = sf.draft!.points.find((q) => q.n === '6')!.at;
+      const underF = sf.draft!.points.find((q) => q.n === '5')!.at;
+      const bust = 2 * (widthAt(sf, sideBust.y + 0.2) + widthAt(sb, shirt.armholeDepth + (sideBust.y - underF.y) + 0.2));
+      if (Math.abs(bust - (m.full_bust + BODICE_FIT_EASE.relaxed.bust)) > 3) failures.push(`${tag} shirt: bust ${r1(bust)} vs ${r1(m.full_bust + 11)}`);
+      if ((shirt.finishedHem ?? 0) < m.full_hip + 10) failures.push(`${tag} shirt: hem ${shirt.finishedHem} over a ${r1(m.full_hip)} hip`);
+      const dip = shirt.front.hemCentre.y - shirt.front.hemSide.y;
+      if (dip < -0.5 || dip > 8) failures.push(`${tag} shirt: front hem ${r1(dip)} lower at the centre than the side`);
+      if (!shirt.pieces.some((pc) => /stand/i.test(pc.name)) || !shirt.buttons) failures.push(`${tag} shirt: no collar stand or buttons`);
+      if (shirt.neck < m.neck + 1.5) failures.push(`${tag} shirt: neck ${shirt.neck} round a ${r1(m.neck)} neck`);
+      const sl = draftSleeve(shirt, m, { length: 'long', shape: 'straight', fit: 'relaxed', seamAllowance: 1.5, armholeAllowance: 1, hemAllowance: 2.5 });
+      if (sl.hemCm < Math.max(19, m.wrist * 1.3) + 1.5) failures.push(`${tag} shirt: sleeve hem ${sl.hemCm}`);
+      for (const c of checkPattern([...shirt.pieces, ...sl.pieces])) if (!c.ok) failures.push(`${tag} shirt: ${c.label} (${c.detail})`);
+      // The gathered maxi: its round passes the hips with room to spare, and a quarter cuts on folded 140 cm cloth.
+      const sash = draftSkirt(m, { fit: 'regular', silhouette: 'gathered', length: 'maxi' });
+      if (!sash.gathers || sash.gathers.round < m.full_hip + 19) failures.push(`${tag} sash: round ${sash.gathers?.round} over a ${r1(m.full_hip)} hip`);
+      const [gf] = sash.pieces;
+      const qw = Math.max(...gf.outline.points().map((q) => q.x)) - Math.min(...gf.outline.points().map((q) => q.x));
+      if (qw + gf.seamAllowance > 70) failures.push(`${tag} sash: quarter ${r1(qw)} wide`);
+      if (Math.abs(sash.finishedWaist - (m.waist + FIT_EASE.regular.waist)) > 0.05) failures.push(`${tag} sash: waist ${sash.finishedWaist}`);
+      // The column: a straight maxi skirt's unasked walking slit reaches the knee.
+      const column = draftDress(m, { fit: 'fitted', neckline: 'scoop' }, { fit: 'fitted', silhouette: 'straight', length: 'maxi' }, 'natural');
+      const slit = column.skirt.slit;
+      const want = Math.min(column.skirt.lengthCm - m.waist_to_knee, column.skirt.slit?.range.max ?? Infinity);
+      if (!slit || slit.at !== 'back' || Math.abs(slit.cm - Math.round(want)) > 1) failures.push(`${tag} column: slit ${JSON.stringify(slit)} vs ${r1(want)} to the knee`);
+      // Asked for, a slit keeps its height.
+      const asked = draftSkirt(m, { fit: 'fitted', silhouette: 'straight', length: 'maxi', slit: 'back', slitCm: 20 });
+      if (asked.slit?.cm !== 20) failures.push(`${tag} column: asked for 20, got ${asked.slit?.cm}`);
     }
     expect(failures.slice(0, 10), `${failures.length} failures`).toEqual([]);
   });
