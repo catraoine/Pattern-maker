@@ -26,15 +26,26 @@ export const kit = (unit: Unit): KitItem[] => [
   { name: 'Pattern weights', why: 'Keep the cloth still while you cut.', optional: true, search: 'sewing pattern weights' },
 ];
 
-/** The sewist's own Amazon: Canada, the UK or the US, read from the browser's language. */
-export function amazonHost(language = typeof navigator === 'undefined' ? '' : navigator.language): Store {
-  if (/^[a-z]{2}-CA\b/i.test(language)) return 'www.amazon.ca';
+// Many Canadians browse in en-US, so a Canadian time zone also counts as Canada.
+const CANADA_ZONES = /^America\/(Vancouver|Edmonton|Winnipeg|Regina|Toronto|Montreal|Halifax|St_Johns|Moncton|Glace_Bay|Goose_Bay|Whitehorse|Dawson|Dawson_Creek|Fort_Nelson|Creston|Yellowknife|Inuvik|Cambridge_Bay|Iqaluit|Rankin_Inlet|Resolute|Atikokan|Blanc-Sablon|Swift_Current|Thunder_Bay|Nipigon|Rainy_River|Pangnirtung)$/;
+
+const browserZone = () => {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone ?? '';
+  } catch {
+    return '';
+  }
+};
+
+/** The sewist's own Amazon: Canada, the UK or the US, read from the browser's language and time zone. */
+export function amazonHost(language = typeof navigator === 'undefined' ? '' : navigator.language, zone = browserZone()): Store {
+  if (/^[a-z]{2}-CA\b/i.test(language) || CANADA_ZONES.test(zone)) return 'www.amazon.ca';
   if (/^en-(GB|IE)\b/i.test(language)) return 'www.amazon.co.uk';
   return 'www.amazon.com';
 }
 
-export function amazonLink(item: KitItem, language?: string, tags = AMAZON_TAGS): string {
-  const host = amazonHost(language);
+export function amazonLink(item: KitItem, language?: string, tags = AMAZON_TAGS, zone?: string): string {
+  const host = amazonHost(language, zone);
   const q = new URLSearchParams({ k: item.search });
   const tag = tags[host];
   if (tag) q.set('tag', tag);
@@ -42,4 +53,4 @@ export function amazonLink(item: KitItem, language?: string, tags = AMAZON_TAGS)
 }
 
 /** Amazon's line goes under the list whenever this sewist's links carry a tag. */
-export const amazonTagged = (language?: string, tags = AMAZON_TAGS) => Boolean(tags[amazonHost(language)]);
+export const amazonTagged = (language?: string, tags = AMAZON_TAGS, zone?: string) => Boolean(tags[amazonHost(language, zone)]);
