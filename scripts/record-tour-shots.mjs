@@ -204,6 +204,28 @@ await fillAll();
 await main.getByRole('heading', { level: 1, name: 'Style your dress' }).waitFor();
 await wait(1500);
 
+// collection: the Maison collection's looks, a slow scroll down through them from just under the drop alert, for
+// "start from a look" (Cat, 2026-10-29: add it back, the film longer, nothing cut). Taken before the dress is styled.
+await main.getByRole('group', { name: 'Garment' }).locator('.drop-button').click();
+await main.getByRole('menuitemradio', { name: /Start from a look/ }).click();
+await main.getByRole('button', { name: 'Start from the Maison collection' }).click();
+await main.getByRole('heading', { level: 1, name: 'The collection' }).waitFor();
+await wait(1500);
+const lookTop = (el) => el.getBoundingClientRect().top + scrollY - 70;
+const firstLook = await main.locator('li.house-look').first().evaluate(lookTop);
+const lastLook = await main.locator('li.house-look').last().evaluate(lookTop);
+await p.evaluate((y) => window.scrollTo(0, y), firstLook);
+await wait(1000);
+await start();
+await wait(1200);
+await glide(lastLook, WIDE ? 9000 : 12000);
+await wait(1400);
+await stop('collection');
+await main.getByRole('button', { name: 'Back to styling' }).click();
+await main.getByRole('heading', { level: 1, name: 'Style your dress' }).waitFor();
+await p.evaluate(() => window.scrollTo(0, 0));
+await wait(1500);
+
 // style: the dress styled with the tools (Cat, 2026-10-23, after a COS dress): the waist seam dropped, the drawing
 // filled navy, a white stripe and then Prince of Wales, and to end the hem drawn longer and the neckline a soft boat
 // neck straight on the dress in its fabric (D1 Draw on the Dress, 2026-10-24). A tap shows as the pen dot pressing
@@ -513,11 +535,23 @@ await wait(600);
 
 // print: the print page, A4, and the tiled pages
 // On a computer the summary and Print sit beside the drawing; there's no Review page.
+// review: on a phone, the Review page scrolled down to Print my pattern and the tap (Cat, 2026-10-29: add back the
+// scroll down to print); on a computer the tap on Print my pattern beside the drawing.
 if (!WIDE) {
   await main.getByRole('button', { name: 'Review', exact: true }).click();
   await wait(1200);
+  await p.evaluate(() => window.scrollTo(0, 0));
+  await wait(600);
 }
-await main.getByRole('button', { name: 'Print my pattern' }).click();
+const printMine = main.getByRole('button', { name: 'Print my pattern' });
+await start();
+await wait(1200);
+if (!WIDE) {
+  await glide(await printMine.evaluate((el) => Math.max(0, el.getBoundingClientRect().bottom + scrollY - innerHeight + 140)), 2600);
+  await wait(700);
+}
+await press(printMine, 1000);
+await stop('review');
 await wait(1200);
 // The paper is a drop-down now (Cat, 2026-10-24); A4 is picked from it when it isn't already.
 const paper = main.getByRole('group', { name: 'Paper' }).locator('.drop-button');
@@ -551,5 +585,48 @@ if (!WIDE) {
   const shot = await s.send('Page.captureScreenshot', { format: 'png', clip: { ...box, y: box.y + y, scale: 7 }, captureBeyondViewport: true });
   writeFileSync(join(OUT, 'print-sheet.png'), Buffer.from(shot.data, 'base64'));
 }
+
+// projector: Projector picked as the paper, then projector mode showing a piece at true size (Cat, 2026-10-29: show
+// the projector feature). Lined up once off camera, so on camera it opens straight onto the piece.
+const paperMenu = main.getByRole('group', { name: 'Paper' }).locator('.drop-button');
+const pickPaper = async (name, pressIt) => {
+  if (pressIt) await press(paperMenu, 700); else await paperMenu.click();
+  const item = main.getByRole('menuitemradio', { name }).first();
+  if (pressIt) await press(item, 900); else await item.click();
+};
+// The film shows projector mode without its In testing tag; the app keeps it until the projector test (Cat, 2026-10-29).
+await p.addStyleTag({ content: '.projector-offer .testing-tag, .projector .testing-tag { display: none !important; }' });
+await pickPaper(/^Projector/);
+await main.getByRole('button', { name: 'Open projector mode' }).click();
+await p.getByRole('button', { name: /^Next: check/ }).click();
+await p.getByRole('button', { name: 'Yes: start projecting' }).click();
+await wait(600);
+await p.getByRole('dialog', { name: 'Projector mode' }).getByRole('button', { name: 'Close', exact: true }).click();
+await wait(600);
+await pickPaper(/^A4/);
+await main.locator('.preview.tiles button').evaluateAll((bs) => bs.forEach((b) => (b.style.visibility = '')));
+const paperAt = await paperMenu.evaluate((el) => Math.max(0, el.getBoundingClientRect().top + scrollY - innerHeight * 0.35));
+await p.evaluate((y) => window.scrollTo(0, y), WIDE ? 0 : Math.max(0, paperAt - 500));
+await wait(1000);
+await start();
+await wait(900);
+if (!WIDE) await glide(paperAt, 1800);
+await wait(500);
+await pickPaper(/^Projector/, true);
+const offer = main.locator('.projector-offer');
+await glide(await offer.evaluate((el) => Math.max(0, el.getBoundingClientRect().bottom + scrollY - innerHeight + 40)), 2200);
+await wait(1200);
+await press(offer.getByRole('button', { name: 'Open projector mode' }), 0);
+// On a phone the screen can still read as new while filming, and it opens on the line-up again: that is cut out.
+const lineUpNext = p.getByRole('button', { name: /^Next: check/ });
+if (await lineUpNext.isVisible()) {
+  cut(true);
+  await lineUpNext.click();
+  await p.getByRole('button', { name: 'Yes: start projecting' }).click();
+  await wait(700);
+  cut(false);
+}
+await wait(3600);
+await stop('projector');
 
 await b.close();

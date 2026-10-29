@@ -222,6 +222,12 @@ const note = (line, where, shade = true) => words(WIDE && where === 'side'
   : WIDE
   ? `<div class="f" style="${shade ? 'background:linear-gradient(to bottom,rgba(0,0,0,.92) 0,rgba(0,0,0,.8) 13%,rgba(0,0,0,0) 22%);' : ''}padding:${where === 'low' ? 54 : 44}px 0 0 96px"><h1 class="t" style="font-size:46px">${line}</h1></div>`
   : `<div class="f" style="${shade ? 'background:linear-gradient(to bottom,rgba(0,0,0,.92) 0,rgba(0,0,0,.8) 11%,rgba(0,0,0,0) 17%);' : ''}padding:${where === 'low' ? 60 : 40}px 0 0 28px"><h1 class="t" style="font-size:36px">${line}</h1></div>`);
+// The scroll down the collection's looks, the way down to Print my pattern, and projector mode, as recorded
+// (record-tour-shots.mjs: the phone's scrolls are longer).
+const COLLECTION = WIDE ? { from: 0.8, dur: 8.5, speed: 1.15 } : { from: 0.8, dur: 8.5, speed: 1.45 };
+// A computer has no Review page to scroll (Print my pattern sits beside the drawing), so its projector runs longer.
+const REVIEW = WIDE ? undefined : { from: 0.4, dur: 4.4, speed: 1.15 };
+const PROJECTOR = WIDE ? { from: 0.2, dur: 12.6 } : { from: 1.5, dur: 9.8, speed: 1.25 };
 // P2 Or Start From a Photo (Cat, 2026-10-24): after the garments, a photo of a dress (made for the film, no person in
 // it), briefly, its words the same size and place as the Style steps'. No drafted dress after it (Cat: skip that).
 const PHOTO = readFileSync(new URL('./tour/photo-dress.jpg', import.meta.url)).toString('base64');
@@ -294,6 +300,8 @@ const CUTS = {
       ...opening,
       await piece({ still: await card('02', 'Choose', 'Then what to make.'), dur: 3, fadeIn: f, fadeOut: f }),
       await piece({ shot: 'choose', from: 0.3, dur: 3.2, fadeIn: f, fadeOut: f }),
+      // Start from a look, then from a photo (Cat, 2026-10-29: the scroll through the collection back in, before the photo).
+      await piece({ shot: 'collection', ...COLLECTION, fadeIn: f, fadeOut: f, notes: [[await note('Or start from a look.'), 0.4, COLLECTION.dur - 0.3]] }),
       await photoMoment(),
       await piece({ still: await card('03', 'Style', 'Make it yours.'), dur: 3, fadeIn: f, fadeOut: f }),
       // Done lands on the pattern sheet, so the pattern follows straight on, then the dress all round (Cat,
@@ -304,7 +312,11 @@ const CUTS = {
         1,
       ),
       await piece({ still: await card('04', 'Print', 'At home, or full size.'), dur: 3, fadeIn: f, fadeOut: f }),
+      // Down to Print my pattern, the pages, then projector mode (Cat, 2026-10-29: the scroll to print and the
+      // projector back in).
+      ...(REVIEW ? [await piece({ shot: 'review', ...REVIEW, fadeIn: f })] : []),
       await pages(4.4, { fadeIn: f, fadeOut: f }),
+      await piece({ shot: 'projector', ...PROJECTOR, fadeIn: f, fadeOut: f, notes: [[await note('Or project it, true size.'), 0.4, PROJECTOR.dur - 0.3]] }),
       await piece({ still: await card('', 'Drafted<br>to your body'), dur: 4.5, fadeIn: 0.8, fadeOut: 1.2 }),
       await piece({ still: await endCard(), dur: 3, fadeIn: 0.8, fadeOut: 0.8 }),
     ];
