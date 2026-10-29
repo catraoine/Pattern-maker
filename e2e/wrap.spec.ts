@@ -9,7 +9,7 @@ test('wrap: a bodice that crosses over and ties', async ({ page }, info) => {
   await chooseChip(page, 'Opening', 'Wrap');
   await expect(main.getByText(/wrap V-neck bodice/i).first()).toBeAttached();
   await page.screenshot({ path: info.outputPath('bodice-form.png'), fullPage: true });
-  await main.getByRole('button', { name: 'Drawing', exact: true }).click();
+  await main.getByRole('button', { name: 'Flat', exact: true }).click();
   await page.screenshot({ path: info.outputPath('bodice-drawing.png'), fullPage: true });
 });
 
@@ -25,7 +25,7 @@ test('wrap: a dress and a skirt that cross over and tie', async ({ page }, info)
   const skirt = await openGroup(page, 'Skirt');
   await expect(skirt.getByRole('button', { name: 'Full circle', exact: true })).toBeDisabled();
   await page.screenshot({ path: info.outputPath('dress-form.png'), fullPage: true });
-  await main.getByRole('button', { name: 'Drawing', exact: true }).click();
+  await main.getByRole('button', { name: 'Flat', exact: true }).click();
   await page.screenshot({ path: info.outputPath('dress-drawing.png'), fullPage: true });
 
   await switchGarment(page, 'Skirt');

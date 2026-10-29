@@ -9,7 +9,7 @@ test('halter: a bodice and a dress tied at the neck', async ({ page }, info) => 
   await chooseChip(page, 'Neckline', 'Halter');
   await expect(main.getByText(/halter bodice tied at the neck/i).first()).toBeAttached();
   await page.screenshot({ path: info.outputPath('bodice-form.png'), fullPage: true });
-  await main.getByRole('button', { name: 'Drawing', exact: true }).click();
+  await main.getByRole('button', { name: 'Flat', exact: true }).click();
   await page.screenshot({ path: info.outputPath('bodice-drawing.png'), fullPage: true });
 
   await switchGarment(page, 'Dress');

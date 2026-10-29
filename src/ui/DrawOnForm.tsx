@@ -4,7 +4,7 @@
 // line is read). What a line will become shows while it is drawn; each line can be undone and redone.
 // One way out each way (Cat's pick D1 Steady Top, 2026-10-18): Done keeps the lines, and the header's ←
 // (or the phone's back) leaves without them, asking first once any line is drawn.
-import { PointerEvent, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { PointerEvent, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { P } from '../engine/geometry';
 import type { BodiceDraft } from '../engine/bodice';
 
@@ -460,6 +460,11 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
     const tag = live?.replace(/\.$/, '').replace(/ (length|skirt)$/, '');
     return { y: ys[Math.floor(ys.length / 2)], x0: Math.min(...xs) - 2, x1: Math.max(...xs) + 2, tag: tag && tag.length <= 26 ? tag : undefined };
   }, [stroke, kind, live]);
+
+  // It opens at its top, title and all, not partway down where the style page had been scrolled to.
+  useLayoutEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   return (
     <div className={big ? 'form-draw big' : 'form-draw'}>
