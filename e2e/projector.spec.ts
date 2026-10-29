@@ -8,6 +8,13 @@ test('projector: line up on the mat, check the square, then project a piece', as
   const main = page.getByRole('main');
   await chooseDrop(page, 'Paper', 'Projector');
   await expect(main.getByRole('button', { name: /^Download PDF \(1 page\)$/ })).toBeEnabled({ timeout: 45_000 });
+  // What you'll need (K1 Fold-out, 2026-10-29): the kit, each with an Amazon link, folded under the card.
+  await main.locator('.projector-kit > summary').click();
+  const kit = main.locator('.projector-kit');
+  await expect(kit.getByRole('link', { name: /See on Amazon/ })).toHaveCount(5);
+  await expect(kit.getByRole('link', { name: /See on Amazon/ }).first()).toHaveAttribute('href', /^https:\/\/www\.amazon\.(com|ca|co\.uk)\/s\?k=/);
+  await kit.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: info.outputPath('0-kit.png') });
   await main.getByRole('button', { name: 'Open projector mode' }).click();
 
   const pj = page.getByRole('dialog', { name: 'Projector mode' });
