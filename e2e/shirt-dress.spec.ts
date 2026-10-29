@@ -15,6 +15,6 @@ test('shirt dress: buttons down the front and a shirt collar', async ({ page }, 
   await expect(skirt.getByRole('button', { name: 'Full circle', exact: true })).toBeDisabled();
   await expect(skirt.getByRole('button', { name: 'Gathered', exact: true })).toBeEnabled();
   await page.screenshot({ path: info.outputPath('form.png'), fullPage: true });
-  await main.getByRole('button', { name: 'Drawing', exact: true }).click();
+  await main.getByRole('button', { name: 'Flat', exact: true }).click();
   await page.screenshot({ path: info.outputPath('drawing.png'), fullPage: true });
 });

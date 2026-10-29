@@ -16,7 +16,7 @@ import { MeasurementValues } from '../measurements';
 import { PatternPreview } from '../ui/Preview';
 import { PatternPane } from '../ui/PointEditor';
 import { UndoToast, useUndo } from '../ui/useUndo';
-import { FABRIC, Group, PRO, StyleLayout, TabPanel } from '../ui/StyleLayout';
+import { FABRIC, Group, InCorner, PRO, StyleLayout, TabPanel } from '../ui/StyleLayout';
 
 import { Mode, ProTool, shows } from '../mode';
 import { EaseMapView } from '../ui/EaseMapView';
@@ -29,7 +29,6 @@ import { MyFabric, fabricEase, trousersFabrics } from '../engine/fabrics';
 import { FabricCard, FabricSummary } from '../ui/FabricCard';
 import { ChoicePic, chipsClass } from '../ui/ChoicePic';
 import { Explain } from '../ui/Explain';
-import { DemoButton } from '../ui/DemoButton';
 import { PiecesList, SummaryActions, formViews } from '../ui/StyleSummary';
 
 import { trousersFabricMetres } from '../fabricAmounts';
@@ -247,16 +246,15 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
           ) : (
             <span />
           )}
-          <div className="row tools">
+          <InCorner>
             {draft && formBody && values.waist_to_floor && (
               <button type="button" className="link small" onClick={() => setDrawing(choices)}>
                 Draw on your form
               </button>
             )}
-          </div>
+          </InCorner>
         </div>
         <div className="preview">
-          <DemoButton demo="style" />
           {error && <p className="msg error">{error}</p>}
           {formBody && draft && view === 'sketch' && (
             <GarmentFabric fabric={fabric}>

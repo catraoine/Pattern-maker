@@ -9,7 +9,7 @@ import { createPortal } from 'react-dom';
 /** The drawing in the preview to enlarge: the sketch or the pattern, not the turning form (a canvas). */
 // The drawing in the preview: not the fabric's own defs, and not the Enlarge button's icon, which sits in the preview too.
 const sketchIn = (preview: Element) =>
-  preview.querySelector('.all-round') ? null : Array.from(preview.querySelectorAll<SVGSVGElement>('svg:not(.fabric-defs)')).find((svg) => !svg.closest('.enlarge')) ?? null;
+  preview.querySelector('.all-round') ? null : Array.from(preview.querySelectorAll<SVGSVGElement>('svg:not(.fabric-defs)')).find((svg) => !svg.closest('.enlarge, .preview-corner')) ?? null;
 
 // When the enlarged preview gives way to the drawing tool (Draw on your form), the tool opens enlarged too. The tool
 // is drawn while the preview is still up, so it asks whether the preview is enlarged now, or was a moment ago.
@@ -44,8 +44,9 @@ export const useEnlarged = () =>
 /** Marks the enlarged preview's entry in the browser's history. */
 const ENLARGED = 'enlarged';
 
-/** The Enlarge button, placed on the preview of the style page, and the full-screen preview it opens. */
-export function EnlargeSketch({ host, name }: { host: HTMLElement | null; name: string }) {
+/** The Enlarge button, placed on the preview of the style page (in the drawing's corner, first of its tools, where
+ *  there is one), and the full-screen preview it opens. */
+export function EnlargeSketch({ host, corner, name }: { host: HTMLElement | null; corner?: HTMLElement | null; name: string }) {
   const [big, setBig] = useState(false);
   const isBig = useRef(big);
   isBig.current = big;
@@ -123,6 +124,6 @@ export function EnlargeSketch({ host, name }: { host: HTMLElement | null; name: 
       </svg>
       {big ? 'Smaller' : 'Enlarge'}
     </button>,
-    spot,
+    spot === host && corner ? corner : spot,
   );
 }

@@ -23,6 +23,6 @@ test('slit: chosen on a skirt and a dress, its height set', async ({ page }, inf
   await chooseChip(page, 'Skirt', 'Straight');
   await chooseChip(page, 'Slit', 'Front');
   await expect(main.getByText(/dress with a front slit/i).first()).toBeAttached();
-  await main.getByRole('button', { name: 'Drawing', exact: true }).click();
+  await main.getByRole('button', { name: 'Flat', exact: true }).click();
   await page.screenshot({ path: info.outputPath('dress-slit.png'), fullPage: true });
 });

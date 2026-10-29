@@ -1,8 +1,10 @@
 import { Children, createContext, ReactNode, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { Mode } from '../mode';
 import type { Garment } from '../measurements';
 import { canGoBack, goBack, usePageHistory } from '../nav';
 import type { Flat } from '../engine/flat';
+import { DemoButton } from './DemoButton';
 import { EnlargeSketch } from './EnlargeSketch';
 import { Envelope } from './Envelope';
 import { CollectionEntry, ExampleTag, GarmentDrop } from './GarmentSwitch';
@@ -174,6 +176,27 @@ export function Group({ label, tab, children, className }: { label: string; tab?
   );
 }
 
+/** The drawing's top-left corner, where its tools stand stacked in square frames: Enlarge, then Draw (Cat, 2026-10-29). */
+const Corner = createContext<HTMLElement | null>(null);
+
+/** A tool for the drawing, such as Draw on your form: stood in the drawing's corner, or in place where there is none. */
+export function InCorner({ children }: { children: ReactNode }) {
+  const corner = useContext(Corner);
+  return corner ? createPortal(children, corner) : <>{children}</>;
+}
+
+/** The tag's names for the questions, where the question's own is longer than the tag has room for. */
+const TAG_NAMES: Record<string, string> = { 'Waist seam': 'Waist', Neckline: 'Neck', 'Sleeve shape': 'Sleeve', 'Your knit’s stretch': 'Stretch' };
+/** Tailor's words the tag leaves to the step itself, so its lines name what changes the look. */
+const TAG_SKIP = ['Cut', 'Darts', 'Structure', 'Bust dart from', 'Princess seams', 'Shaping'];
+/** How many lines the tag beside the drawing holds. */
+const TAG_LINES = 6;
+interface TagLine {
+  label: string;
+  pick: string;
+  mine: boolean;
+}
+
 /** Anything else that belongs on one tab, such as the inside finish on the Pro tab. */
 export function TabPanel({ tab, children }: { tab: string; children: ReactNode }) {
   const active = useContext(ActiveTab);
@@ -189,15 +212,24 @@ const WIDE = '(min-width: 1100px)';
 
 /** Whether the screen is wide enough for the computer layout, kept up to date as the window resizes. */
 export function useWide() {
-  const query = () => typeof window !== 'undefined' && !!window.matchMedia?.(WIDE).matches;
+  return useMedia(WIDE);
+}
+
+/** Whether the screen is a phone's width, where the drawing stands beside its tag of picks. */
+export function useNarrow() {
+  return useMedia('(max-width: 760px)');
+}
+
+function useMedia(q: string) {
+  const query = () => typeof window !== 'undefined' && !!window.matchMedia?.(q).matches;
   const [wide, setWide] = useState(query);
   useEffect(() => {
-    const list = window.matchMedia?.(WIDE);
+    const list = window.matchMedia?.(q);
     if (!list) return;
     const change = () => setWide(list.matches);
     list.addEventListener('change', change);
     return () => list.removeEventListener('change', change);
-  }, []);
+  }, [q]);
   return wide;
 }
 
@@ -386,6 +418,54 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
   };
   const at = steps.indexOf(active ?? '');
 
+  // The drawing's corner for its tools, made inside the drawing's area.
+  const [corner, setCorner] = useState<HTMLElement | null>(null);
+  // The tag beside the drawing on a phone (Cat's L4 + T2, 2026-10-29): a line for the main questions, each with its
+  // pick, bright once it is yours (tapped, or its step passed) and soft while it is still the starting choice.
+  const [touched, setTouched] = useState<{ of: string; labels: string[] }>({ of: label, labels: [] });
+  const mine = touched.of === label ? touched.labels : [];
+  const [tag, setTag] = useState<TagLine[]>([]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- reads the page after every render; the check stops a loop
+  useLayoutEffect(() => {
+    if (wide || page !== 'edit' || !panel.current) return;
+    const groups = steps
+      .filter((t) => t !== FABRIC)
+      .map((t, i) => [...panel.current!.querySelectorAll<HTMLElement>(`fieldset.group[data-tab="${t}"]`)].filter((el) => !TAG_SKIP.includes(el.dataset.label!)).map((el, j) => ({ el, i, j })));
+    // The first question of every step, then the second ones, in the order they are asked.
+    const picked = [0, 1]
+      .flatMap((j) => groups.map((g) => g[j]).filter(Boolean))
+      .slice(0, TAG_LINES)
+      .sort((a, b) => a.i - b.i || a.j - b.j);
+    const lines = picked.map(({ el, i }) => {
+      const on = el.querySelector<HTMLElement>('.fold-body .chips [aria-pressed="true"]') ?? el.querySelector<HTMLElement>('.fold-body [aria-pressed="true"]');
+      const name = el.dataset.label!;
+      return { label: TAG_NAMES[name] ?? name, pick: (on?.textContent ?? '').replace(/\s+/g, ' ').trim(), mine: i < at || mine.includes(name) };
+    });
+    if (JSON.stringify(lines) !== JSON.stringify(tag)) setTag(lines);
+  });
+  const touch = (e: React.MouseEvent) => {
+    const t = e.target as HTMLElement;
+    const group = t.closest<HTMLElement>('fieldset.group');
+    if (!group || !t.closest('.fold-body button, .fold-body input')) return;
+    const name = group.dataset.label!;
+    if (!mine.includes(name)) setTouched({ of: label, labels: [...mine, name] });
+  };
+
+  // On a phone the drawing stands tall at the top, then eases back once the page scrolls into the choices, so they
+  // keep their room under it.
+  const [compact, setCompact] = useState(false);
+  useEffect(() => {
+    if (wide || page !== 'edit') return;
+    const check = () => {
+      const edit = root.current?.querySelector<HTMLElement>('.style-edit');
+      const top = parseFloat(root.current?.style.getPropertyValue('--pin-top') || '0');
+      setCompact(!!edit && edit.getBoundingClientRect().top < top - 8);
+    };
+    check();
+    window.addEventListener('scroll', check, { passive: true });
+    return () => window.removeEventListener('scroll', check);
+  }, [wide, page]);
+
   const Name = name.charAt(0).toUpperCase() + name.slice(1);
   // The summary folded under one line, with its own Print and Edit measurements hidden (they're drawn here instead).
   const folded = (
@@ -429,7 +509,7 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
   const next = active === LOOKS ? steps[0] : steps[at + 1];
 
   return (
-    <div className="style-layout" ref={root}>
+    <div className={compact ? 'style-layout compact' : 'style-layout'} ref={root}>
       {/* The garment's name is the page's one big heading (Cat's K3, 2026-10-28): the word Style is only read out
           (the top bar says it), Start from a look is in the name's drop-down, and the example note is one soft line. */}
       <div className="screen-head">
@@ -441,15 +521,35 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
         <div className={tall ? 'style-pin tall' : 'style-pin'} ref={pin}>
           {/* The drawing knows which step is open: the named lengths sit beside it only on the length step. */}
           <ActiveTab.Provider value={active}>
-            <Sections.Provider value={sections}>{preview}</Sections.Provider>
+            <Sections.Provider value={sections}>
+              <Corner.Provider value={corner}>{preview}</Corner.Provider>
+            </Sections.Provider>
           </ActiveTab.Provider>
-          <EnlargeSketch host={host} name={name} />
+          {host &&
+            createPortal(
+              <>
+                <div className="preview-corner" ref={setCorner} />
+                {tag.length > 0 && (
+                  <dl className="spec-tag" aria-label="Your choices so far">
+                    {tag.map((l) => (
+                      <div key={l.label} className={l.mine ? 'mine' : undefined}>
+                        <dt>{l.label}</dt>
+                        <dd>{l.pick}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                )}
+              </>,
+              host,
+            )}
+          <EnlargeSketch host={host} corner={corner} name={name} />
         </div>
         <div
           className="style-panel"
           ref={panel}
           role="tabpanel"
           aria-label={active}
+          onClickCapture={touch}
           onTouchStart={(e) => {
             const p = e.touches[0];
             swipe.current = { x: p.clientX, y: p.clientY, sideways: scrollsSideways(e.target, e.currentTarget) };
@@ -466,11 +566,15 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
           {/* The open step as a chapter (Cat's H4 + N3, 2026-10-28): "Step 1 of 5", the step's name set large, and the
               steps as a thin line of bars to tap under it. The next step's name is only on the Next button. */}
           <div className="chapter" ref={chapter}>
-            {at >= 0 && (
-              <p className="chapter-step">
-                Step <b>{at + 1}</b> of {steps.length}
-              </p>
-            )}
+            {/* Watch demo sits across from the step (Cat's D3, 2026-10-29): it shows how the steps work. */}
+            <div className="chapter-top">
+              {at >= 0 && (
+                <p className="chapter-step">
+                  Step <b>{at + 1}</b> of {steps.length}
+                </p>
+              )}
+              <DemoButton demo="style" />
+            </div>
             <h2 className="chapter-name">{active === LOOKS ? 'Start from a look' : active}</h2>
             <div
               className={atEnd ? 'style-tabs at-end' : 'style-tabs'}
