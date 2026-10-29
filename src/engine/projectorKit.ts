@@ -1,11 +1,11 @@
 // What you need for projector mode (Cat picked K1 Fold-out, 2026-10-29), each with an Amazon search link.
-// Cat's Amazon.ca Associates tag (joined 2026-10-29) goes on amazon.ca links only: a tag earns on its own store.
+// Cat's Amazon.ca and Amazon.com Associates tags (both joined 2026-10-29); each tag earns only on its own store.
 // Add a store's tag here when she joins it; Amazon's required line shows once any tag is set.
 import type { Unit } from '../measurements';
 
 type Store = 'www.amazon.ca' | 'www.amazon.com' | 'www.amazon.co.uk';
 
-const AMAZON_TAGS: Partial<Record<Store, string>> = { 'www.amazon.ca': 'maisontrace-20' };
+const AMAZON_TAGS: Partial<Record<Store, string>> = { 'www.amazon.ca': 'maisontrace-20', 'www.amazon.com': 'maisontrace0c-20' };
 
 interface KitItem {
   name: string;
