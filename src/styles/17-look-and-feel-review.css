@@ -573,4 +573,29 @@ button.later.edit-measure {
     min-width: 36px;
     min-height: 40px;
   }
+/* What you'll need for projector mode (K1 Fold-out, 2026-10-29). */
+.projector-offer h3 .testing-tag {
+  vertical-align: middle;
+}
+.projector-kit ul {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+}
+.projector-kit li {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--guide);
+}
+.projector-kit li > span {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.projector-kit li a {
+  white-space: nowrap;
+  color: var(--gild);
 }
