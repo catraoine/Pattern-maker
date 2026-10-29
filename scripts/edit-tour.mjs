@@ -176,7 +176,8 @@ const styleJourney = async () => {
 const LIFT = WIDE ? 0 : 0.065;
 const PATTERN = WIDE
   ? { from: 1.1, speed: 0.8, zoom: [1.6, 1.66], at: [0.42, 0.72], frame: [0.1, 1.05, 0.1, 0.92, 0.002], tint: [0.84, 0.78, 0.66] }
-  : { from: 1.1, speed: 0.75, zoom: [1.1, 1.14], at: [0.5, 0.56], frame: [0.29 - LIFT, 0.712 - LIFT, -1, 2, 0.002], lift: [LIFT], tint: [0.84, 0.78, 0.66] };
+  // Drawn in close so the pieces fill the screen, the steps under the sheet masked off (Cat, 2026-10-29).
+  : { from: 1.1, speed: 0.75, zoom: [1.95, 2], at: [0.5, 0.42], frame: [0.215, 0.9, -1, 2, 0.002], tint: [0.84, 0.78, 0.66] };
 // On a phone the whole sheet of pages shows, opened under See the pages, the words round it in black (Cat, 2026-10-24:
 // 1.6 was too close).
 // On a phone the sheet of pages is thin champagne lines on black; lifted so they read (walkthrough, 2026-10-24).
@@ -222,6 +223,14 @@ const note = (line, where, shade = true) => words(WIDE && where === 'side'
   : WIDE
   ? `<div class="f" style="${shade ? 'background:linear-gradient(to bottom,rgba(0,0,0,.92) 0,rgba(0,0,0,.8) 13%,rgba(0,0,0,0) 22%);' : ''}padding:${where === 'low' ? 54 : 44}px 0 0 96px"><h1 class="t" style="font-size:46px">${line}</h1></div>`
   : `<div class="f" style="${shade ? 'background:linear-gradient(to bottom,rgba(0,0,0,.92) 0,rgba(0,0,0,.8) 11%,rgba(0,0,0,0) 17%);' : ''}padding:${where === 'low' ? 60 : 40}px 0 0 28px"><h1 class="t" style="font-size:36px">${line}</h1></div>`);
+// The scroll down the collection's looks, the way down to Print my pattern, and projector mode, as recorded
+// (record-tour-shots.mjs: the phone's scrolls are longer).
+const COLLECTION = WIDE ? { from: 0.8, dur: 8.5, speed: 1.15 } : { from: 0.8, dur: 8.5, speed: 1.45 };
+// A computer has no Review page to scroll (Print my pattern sits beside the drawing), so its projector runs longer.
+const REVIEW = WIDE ? undefined : { from: 0.4, dur: 4.4, speed: 1.15 };
+// Straight from the pages to a piece on black in projector mode, drawn in close so it fills the screen (Cat,
+// 2026-10-29: skip the second scroll down the print page; less blank space).
+const PROJECTOR = WIDE ? { from: 8.6, dur: 4.2, zoom: [1.3, 1.34], at: [0.5, 0.47] } : { from: 9.8, dur: 4, zoom: [1.6, 1.66], at: [0.5, 0.47] };
 // P2 Or Start From a Photo (Cat, 2026-10-24): after the garments, a photo of a dress (made for the film, no person in
 // it), briefly, its words the same size and place as the Style steps'. No drafted dress after it (Cat: skip that).
 const PHOTO = readFileSync(new URL('./tour/photo-dress.jpg', import.meta.url)).toString('base64');
@@ -294,6 +303,8 @@ const CUTS = {
       ...opening,
       await piece({ still: await card('02', 'Choose', 'Then what to make.'), dur: 3, fadeIn: f, fadeOut: f }),
       await piece({ shot: 'choose', from: 0.3, dur: 3.2, fadeIn: f, fadeOut: f }),
+      // Start from a look, then from a photo (Cat, 2026-10-29: the scroll through the collection back in, before the photo).
+      await piece({ shot: 'collection', ...COLLECTION, fadeIn: f, fadeOut: f, notes: [[await note('Or start from a look.'), 0.4, COLLECTION.dur - 0.3]] }),
       await photoMoment(),
       await piece({ still: await card('03', 'Style', 'Make it yours.'), dur: 3, fadeIn: f, fadeOut: f }),
       // Done lands on the pattern sheet, so the pattern follows straight on, then the dress all round (Cat,
@@ -304,7 +315,11 @@ const CUTS = {
         1,
       ),
       await piece({ still: await card('04', 'Print', 'At home, or full size.'), dur: 3, fadeIn: f, fadeOut: f }),
+      // Down to Print my pattern, the pages, then projector mode (Cat, 2026-10-29: the scroll to print and the
+      // projector back in).
+      ...(REVIEW ? [await piece({ shot: 'review', ...REVIEW, fadeIn: f })] : []),
       await pages(4.4, { fadeIn: f, fadeOut: f }),
+      await piece({ shot: 'projector', ...PROJECTOR, fadeIn: f, fadeOut: f, notes: [[await note('Or project it, true size.', 'low'), 0.3, PROJECTOR.dur - 0.3]] }),
       await piece({ still: await card('', 'Drafted<br>to your body'), dur: 4.5, fadeIn: 0.8, fadeOut: 1.2 }),
       await piece({ still: await endCard(), dur: 3, fadeIn: 0.8, fadeOut: 0.8 }),
     ];
