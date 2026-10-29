@@ -30,6 +30,8 @@ test('body stills', async ({ page, consoleErrors }, info) => {
   test.setTimeout(1_500_000);
   await page.emulateMedia({ reducedMotion: 'reduce' });
   if (process.env.FILM) await page.addInitScript(() => ((window as unknown as { __tourFilm: boolean }).__tourFilm = true));
+  // SWAY=0.8 tries a share of the back's hollow filled in (engine/body.ts SWAY_FILL).
+  if (process.env.SWAY) await page.addInitScript((v) => ((globalThis as { __swayFill?: number }).__swayFill = v), Number(process.env.SWAY));
   if (process.env.ROUND2D) await page.addInitScript(() => ((window as unknown as { __round2d: boolean }).__round2d = true));
   await startWithExample(page);
   const main = page.getByRole('main');
