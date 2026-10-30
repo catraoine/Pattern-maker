@@ -151,7 +151,10 @@ if (process.env.TOUR_WELCOME) {
   await wp.waitForTimeout(300);
   const words = (await wp.screenshot()).toString('base64');
   await wp.evaluate(async ([words, rect, FW, FH]) => {
-    const cf = await import('/src/ui/ContourForm.tsx');
+    // Loaded by the dev server inside the page, not by Node: held in a variable so the dead-code check doesn't try to
+    // resolve it from here.
+    const form = '/src/ui/ContourForm.tsx';
+    const cf = await import(form);
     const img = new Image();
     img.src = `data:image/png;base64,${words}`;
     await img.decode();
