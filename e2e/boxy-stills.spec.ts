@@ -45,7 +45,7 @@ test('boxy stills', async ({ page, consoleErrors }, info) => {
         el.dispatchEvent(new Event('input', { bubbles: true }));
       });
     await tab('Skirt & length');
-    await pick('Straight', 'Skirt');
+    await pick('Straight', 'Silhouette');
     await page.evaluate(() => [...document.querySelectorAll('main .hem-mark')].find((g) => g.textContent?.trim() === 'MINI')?.querySelector('.hit')?.dispatchEvent(new MouseEvent('click', { bubbles: true })));
     await page.waitForTimeout(400);
     await tab('Fabric');

@@ -427,7 +427,7 @@ if (process.env.TOUR_OPENER) {
 // TOUR_FIT and TOUR_SLEEVES try the dress another way (Fitted, Sleeveless) without touching the rest.
 const FIT = process.env.TOUR_FIT ?? 'Boxy';
 const SLEEVES = process.env.TOUR_SLEEVES ?? 'Short';
-for (const [tab, names] of [['Shape', [[FIT, 'Fit'], 'Dropped']], ['Neck & sleeves', ['Boat', SLEEVES]], ['Skirt & length', [['Straight', 'Skirt'], ['Inverted pleats', 'Skirt details'], ['Self band', 'Belt']]]]) {
+for (const [tab, names] of [['Shape', [[FIT, 'Fit'], 'Dropped']], ['Neck & sleeves', ['Boat', SLEEVES]], ['Skirt & length', [['Straight', 'Silhouette'], ['Inverted pleats', 'Fullness'], ['Self band', 'Belt']]]]) {
   await main.getByRole('tab', { name: tab, exact: true }).click();
   await wait(400);
   for (const n of names) await (Array.isArray(n) ? pick(...n) : pick(n));
