@@ -16,6 +16,8 @@ const CHAMPAGNE = '#d9c49b';
  *  round the body is the same tape that was pulled across the top (Cat, 2026-10-24). */
 const TAPE = '#e3d3ad';
 const TAPE_INK = '#2b2418';
+/** The app's text colour, for names drawn on a canvas. */
+const INK = '#efe4cc';
 const TAPE_HOOK = '#b8a274';
 /** The tape's marks and numbers are laid out on an 18px strip and scale with the tape's width (TAPE_PX). */
 const STRIP_PX = 18;
@@ -1121,8 +1123,43 @@ export function TapeDemo({ id, mode = 'play', kind, replay = 0, carried = false 
   return <canvas ref={ref} className="contour" aria-hidden="true" />;
 }
 
-/** One form at rest, small, for choosing which form to draft on. */
-export function FormPicture({ kind }: { kind: FormKind }) {
+/** The three girths the first pages take, as dotted lines round the front of the form, each named to the right on a
+ *  short rule (Cat's C Tape Lines, 2026-10-30): the page says what's about to be measured before Begin. */
+function paintTapeLines(g: CanvasRenderingContext2D, S: number, cx: number, Y: (y: number) => number, lw: number, kind: FormKind) {
+  const rings = (['full_bust', 'waist', 'full_hip'] as const).map((id) => {
+    const y = labelLevel(id, kind) ?? ON_FORM[id]!;
+    return { name: id === 'full_bust' ? (kind === 'menswear' ? 'Chest' : 'Bust') : id === 'waist' ? 'Waist' : 'Hip', y, r: R(y) };
+  });
+  g.font = `600 10px ${getComputedStyle(document.documentElement).getPropertyValue('--mono') || 'monospace'}`;
+  g.textBaseline = 'middle';
+  if ('letterSpacing' in g) g.letterSpacing = '2px';
+  // The names line up in one column just clear of the widest girth, kept inside the canvas.
+  const widest = Math.max(...rings.map((k) => g.measureText(k.name.toUpperCase()).width));
+  const labelX = Math.min(cx + Math.max(...rings.map((k) => k.r)) * S + 28, g.canvas.clientWidth - widest - 4);
+  for (const { name, y, r } of rings) {
+    const pts = Array.from({ length: 41 }, (_, i): Pt => {
+      const th = (Math.PI * i) / 40;
+      return [cx - Math.cos(th) * r * S, Y(y) + Math.sin(th) * r * S * DEPTH];
+    });
+    g.strokeStyle = CHAMPAGNE;
+    g.globalAlpha = 0.95;
+    g.lineWidth = Math.max(1.2, lw * 1.3);
+    g.setLineDash([2, 3]);
+    path(g, pts);
+    g.setLineDash([]);
+    g.globalAlpha = 0.6;
+    g.lineWidth = 0.8;
+    stroke(g, [cx + r * S + 8, Y(y)], [labelX - 6, Y(y)]);
+    g.globalAlpha = 1;
+    g.fillStyle = INK;
+    g.fillText(name.toUpperCase(), labelX, Y(y));
+  }
+  g.globalAlpha = 1;
+}
+
+/** One form at rest, small, for choosing which form to draft on. `tapes` dims its lines and marks the bust, waist and
+ *  hip, for the first measuring page. */
+export function FormPicture({ kind, tapes = false }: { kind: FormKind; tapes?: boolean }) {
   const ref = useCanvas(
     (g, w, h) => {
       pickForm(kind);
@@ -1132,11 +1169,13 @@ export function FormPicture({ kind }: { kind: FormKind }) {
       g.fillRect(0, 0, w, h);
       const S = Math.min(w * 0.6, (h * 0.94) / (1.3 + 1.7));
       const wy = h * 0.03 + (0.1 + 1.7) * S;
-      paintTorso(g, S, w / 2, (y: number) => wy + (y - 0.1) * S, lineFor(S), EVEN, 1, 1);
+      const Y = (y: number) => wy + (y - 0.1) * S;
+      paintTorso(g, S, w / 2, Y, lineFor(S), tapes ? () => 0.4 : EVEN, 1, 1);
+      if (tapes) paintTapeLines(g, S, w / 2, Y, lineFor(S), kind);
       fadeBottom(g, w, h);
       return false;
     },
-    [kind],
+    [kind, tapes],
   );
   return <canvas ref={ref} className="form-picture" aria-hidden="true" />;
 }

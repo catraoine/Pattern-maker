@@ -608,6 +608,37 @@ body:has(.tape-band.carried) {
   text-decoration: none;
 }
 
+/* Cat's C Tape Lines (2026-10-30): on the first page each switch is one box split in two halves, the chosen half
+   filled champagne, the other an outline. */
+.switch.two-part {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  border: var(--bw) solid var(--guide);
+}
+.switch.two-part button {
+  min-height: 46px;
+  padding: 6px 8px;
+}
+.switch.two-part button + button {
+  border-left: var(--bw) solid var(--guide);
+}
+.switch.two-part button[aria-checked='true'] {
+  background: var(--gild);
+  color: #000;
+  text-decoration: none;
+}
+.switch.two-part button:not([aria-checked='true']):hover {
+  color: var(--ink);
+}
+.switch.two-part button:focus-visible {
+  outline-offset: -4px;
+}
+.measure-step.has-tape > .step-words > .switch.two-part {
+  justify-self: stretch;
+  align-self: stretch;
+}
+
 button.later {
   align-self: center;
   min-height: 40px;
