@@ -47,7 +47,7 @@ describe('ideaRows', () => {
     expect(ideaRows(ideaChoices(idea({ bias: true }))!)).toEqual([
       ['Neckline', 'Cowl'],
       ['Sleeves', 'Sleeveless'],
-      ['Skirt', 'Bias slip'],
+      ['Silhouette', 'Bias slip'],
       ['Length', 'Midi'],
     ]);
     expect(ideaRows(ideaChoices(idea({ start: 'trousers', reading: { ...reading, trousers: { fit: { value: 'regular', confidence: 'high' }, leg: 'wide', length: 'full', elasticWaist: false, opening: 'fly', pockets: 'none' } } }))!)).toEqual([
