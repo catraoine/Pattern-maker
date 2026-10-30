@@ -29,8 +29,9 @@
 
 - **Collection** = the seasonal house looks (SS27 Collection, AW27...). Never call them drops or releases.
 - **Drop** = only the numbered, sewist-designed limited piece (Drop 01, Jun 24, 2027).
-- **The wardrobe story** = Cat's own seasonal capsule, sewn and worn by her. Social only, not in the
-  app, not sold. Don't call it a capsule or collection in copy.
+- **The collection preview** (Oct 30, replaces "the wardrobe story") = Cat sews and wears pieces
+  chosen from the coming collection's looks before launch (SS27 Collection Preview). No extra
+  garments. Social only. Don't call it a capsule or wardrobe story in copy.
 
 ## Look
 
