@@ -715,8 +715,10 @@ button.later.garment-change {
 }
 
 /* The welcome on a computer (Cat's WA Half and Half, 2026-10-21): the close-crop form fills the left half of the
-   window, top to bottom, and the title, Begin and the fine print sit together on the right. */
-@media (min-width: 960px) {
+   window, top to bottom, and the title, Begin and the fine print sit together on the right. Only on a window wider
+   than tall: an upright iPad Pro is 1024px wide, and there the half and half cut the form off (the iPad check,
+   2026-10-30), so it gets the phone's picture with the words under it. */
+@media (min-width: 960px) and (min-aspect-ratio: 1/1) {
   .welcome-card:not(.measure-step) {
     max-width: none;
     display: grid;
