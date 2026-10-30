@@ -682,8 +682,9 @@ const pickPaper = async (name, pressIt) => {
   const item = main.getByRole('menuitemradio', { name }).first();
   if (pressIt) await press(item, 900); else await item.click();
 };
-// The film shows projector mode without its In testing tag; the app keeps it until the projector test (Cat, 2026-10-29).
-await p.addStyleTag({ content: '.projector-offer .testing-tag, .projector .testing-tag { display: none !important; }' });
+// The film shows projector mode without its In testing tag; the app keeps it until the projector test (Cat, 2026-10-29),
+// and without its small heading and hint, which flashed under the words as the caption faded (Cat, 2026-10-30).
+await p.addStyleTag({ content: '.projector-offer .testing-tag, .projector .testing-tag { display: none !important; } .projector .pj-top, .projector .pj-hint { visibility: hidden !important; }' });
 await pickPaper(/^Projector/);
 await main.getByRole('button', { name: 'Open projector mode' }).click();
 await p.getByRole('button', { name: /^Next: check/ }).click();
