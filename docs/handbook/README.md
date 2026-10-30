@@ -17,7 +17,7 @@ Last full rebuild: Oct 30, 2026, from project memory, the department threads and
 | [Release state](release-state.md) | What is live, what is queued for "ship", how a release is done |
 | [Testers](testers.md) | The fit test: dates, rounds, gate, how tester mail is handled |
 | [Affiliates and partners](affiliates-and-partners.md) | Mood, Amazon, CJ/Spoonflower, printers, dyers, pattern cutter |
-| [Social and community](social-and-community.md) | Accounts, the wardrobe story, calendar, community plan |
+| [Social and community](social-and-community.md) | Accounts, the collection preview, calendar, community plan |
 | [Finance and legal](finance-and-legal.md) | Business setup, money rules, trademark, tax reminders, pricing |
 | [Departments](departments.md) | Which thread owns what, and the key docs each one keeps |
 | [Decisions log](decisions-log.md) | Dated decisions, newest first |

@@ -29,8 +29,9 @@
 
 - **Collection** = the seasonal house looks (SS27 Collection, AW27...). Never call them drops or releases.
 - **Drop** = only the numbered, sewist-designed limited piece (Drop 01, Jun 24, 2027).
-- **The wardrobe story** = Cat's own seasonal capsule, sewn and worn by her. Social only, not in the
-  app, not sold. Don't call it a capsule or collection in copy.
+- **The collection preview** (Oct 30, replaces "the wardrobe story") = Cat sews and wears pieces
+  chosen from the coming collection's looks before launch (SS27 Collection Preview). Nothing new is
+  designed and no extra garments. Social only. Don't call it a capsule or wardrobe story in copy.
 
 ## Look
 
@@ -38,8 +39,12 @@
   not cliché Paris. Taste references and the yes/never lists are in the **taste brief** (Claude Doc,
   linked from the business plan); read it before any promo, editorial or image work.
 - App look: Contour Line on true black, champagne lines (#D9C49B) and ivory text (#EFE4CC), muted
-  #9A8E78. Fonts stay Chakra Petch + Archivo. Square outline buttons; no fills, shadows or rounded
-  cards. One job per screen, one main button, few words.
+  #9A8E78. Square outline buttons; no fills, shadows or rounded cards. One job per screen, one main
+  button, few words.
+- Fonts (three, checked in the code Oct 30): **Chakra Petch** for the wordmark, buttons and small
+  spaced labels; **Archivo**, narrow capitals, for h1/h2 headings; **Space Grotesk** for body text.
+  No Bodoni or italic serif (removed Oct 18). Mock-ups, option sheets and video titles use the same
+  three.
 - Logo: R1 wordmark (MAISON / TRACÉ stacked, MT favicon); loading screen L1 slim-dart piece (Oct 21).
 - **Brand palette for marketing** (Oct 25): Champagne #c9b48a, Oxblood #5a1f24, Python Aqua (the
   app's one-way python print), Ink #1d2a3a, Chalk #e9e4da, labels on ivory #efe4cc, black ground.

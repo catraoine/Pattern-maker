@@ -14,11 +14,19 @@ something that changes how a department works. Design picks for single screens s
 - **Oct 30** First Measure page: C form + C layout, string tied at the waist, CM / IN shown once (#230).
 - **Oct 30** Form finish: M2 matte jersey form + C1 crisp plain cloth (#231).
 - **Oct 30** Photo screens get the P2 champagne Polaroid frame (#232).
+- **Oct 30** The Scoop Column (06, white heavy linen) replaces the Aqua Slip in the collection preview: aqua doesn't
+  suit Cat. Red stays (an SS27 accent colour). Reveal Feb 11 = skirt, shirt, column dress, trousers.
+- **Oct 30** Collection preview cut to **four** pieces: the Long Coat is dropped (hardest, costliest); reveal Feb 11 =
+  skirt, shirt, slip, trousers.
+- **Oct 30** Season one on social is the **SS27 Collection Preview** (was "the wardrobe story"): Cat sews
+  five pieces chosen from the SS27 looks only: shirt = Parma Shirt (01), slip dress = Aqua Slip (02),
+  trousers = Red Trouser (04), coat = Long Coat (10); skirt = Sheer Sash Skirt (09). Nothing new is designed: the
+  preview only pulls existing collection looks, each season.
 - **Oct 30** Film heading "Your pattern, in seconds."; lilac shirt look named Parma Shirt (#229).
 - **Oct 30** Trademark: full Canadian register search, then file classes 9 + 42 with Milton IP.
 - **Oct 30** Affiliates: add Etsy (Awin) and email two pattern printers; skip coupon, class and machine sites.
 - **Oct 29** Seasonal house looks are "collections"; "drop" means only the numbered sewist piece.
-- **Oct 29** Cat's capsule is called "the wardrobe story", lives on social only.
+- **Oct 29** Cat's capsule is called "the wardrobe story", lives on social only (renamed Oct 30, see above).
 - **Oct 29** Seasons run twice a year (SS from Feb, AW from Sep) with a Jan 1 / Aug 1 trend check; SS27 = 10 looks; old season to the Archive.
 - **Oct 29** Drops: sewist open call route; designer gets 30% + a free Premium year; $28; 2 drops in 2027 (Jun, Oct), 4 a year from 2028 if Drop 01 sells out. Drop 01 strip hidden until a drop piece exists.
 - **Oct 29** Plan uses a Base case (12k actives Sep 2028); 20k kept as Target; stage 3 gate 4,000 users.
