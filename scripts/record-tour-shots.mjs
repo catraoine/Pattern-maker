@@ -379,7 +379,7 @@ const LINES = {
 // tool takes it from there. The skirt is set to the knee rather than the mini of the photo, so the flat drawing
 // reads as a dress rather than a t-shirt (Cat, 2026-10-26).
 const pick = async (name, group) => {
-  const r = main.locator(group ? `fieldset[data-label="${group}"] button[aria-pressed]` : 'button[aria-pressed]').filter({ hasText: new RegExp(`^\\s*${name}\\b`) }).first();
+  const r = main.locator(group ? `fieldset[data-label="${group}"] button[aria-pressed]` : 'button[aria-pressed]').filter({ hasText: new RegExp(`^\\s*${name}(?![a-z])`) }).first();
   if (await r.count()) await r.evaluate((el) => el.click());
   await wait(250);
 };
@@ -469,29 +469,24 @@ await wait(300);
 const repeat = main.locator('#fabrepeat');
 if (await repeat.count()) await repeat.fill(process.env.TOUR_REPEAT ?? '4.5');
 await wait(300);
-// The film opens on the photo's very short length (Cat, 2026-10-30: it needs to be mini, as in the photo): drawn
-// off camera, as only the drawing tool sets a length between the named ones, and the Garment view put back.
-if (process.env.TOUR_START_MINI !== '0') {
-  await main.getByRole('button', { name: /^Enlarge the drawing/ }).click();
-  await wait(900);
-  await main.getByRole('button', { name: 'Draw on your form' }).first().click();
-  await wait(900);
-  const roomy0 = main.getByRole('button', { name: 'Enlarge', exact: true });
-  if (await roomy0.count()) { await roomy0.click(); await wait(900); }
-  const kinds0 = main.getByRole('group', { name: 'What you are drawing' });
-  await kinds0.getByRole('button', { name: 'Hem', exact: true }).click();
-  await wait(300);
-  await draw(main.getByRole('img', { name: /Your dress form from the/ }), LINES.photo, 600);
-  await main.getByRole('button', { name: 'Done', exact: true }).click();
-  await wait(1200);
-  const garmentView = main.getByRole('group', { name: 'Preview view' }).getByRole('button', { name: /^Garment/ });
-  if (await garmentView.count()) await garmentView.click();
-  await wait(600);
-  const smaller = main.getByRole('button', { name: /^Make the drawing of the .* smaller/ });
-  if (await smaller.count()) await smaller.click();
-  await wait(900);
-}
 for (const n of (process.env.TOUR_EXTRA ?? '').split('|').filter(Boolean)) { for (const t of ['Shape', 'Neck & sleeves', 'Skirt & length', 'Fabric']) { await main.getByRole('tab', { name: t, exact: true }).click(); await wait(200); await pick(n); } }
+// The film opens on the photo's very short length (Cat, 2026-10-30: it needs to be mini, as in the photo), 19 cm
+// below the dropped seam: between the named lengths, so set as a hem drawn on the form sets it, and the page opened again.
+if (process.env.TOUR_START_MINI !== '0') {
+  await wait(500);
+  await p.evaluate((cm) => {
+    const k = 'pattern-maker:skirt';
+    const saved = JSON.parse(localStorage.getItem(k) ?? '{}');
+    if (saved.dress) saved.dress.skirt = { ...saved.dress.skirt, lengthCm: cm };
+    localStorage.setItem(k, JSON.stringify(saved));
+  }, Number(process.env.TOUR_START_MINI ?? 19));
+  await p.reload();
+  await wait(1500);
+  const again = p.getByRole('button', { name: /^Carry on with your/ });
+  if (await again.count()) await again.first().click();
+  await main.getByRole('heading', { level: 1, name: /^Style your/ }).waitFor();
+  await wait(800);
+}
 await main.getByRole('tab', { name: 'Shape', exact: true }).click();
 await p.evaluate(() => window.scrollTo(0, 0));
 await wait(1200);

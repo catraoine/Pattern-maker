@@ -32,7 +32,21 @@ const fit = (d: number): ReactNode => (
     <path d={`M${13 - d} 7Q20 ${10 - d / 2} ${27 + d} 7L${28 + d} 20L${27 + d} 27L${28 + d} 42H${12 - d}L${13 - d} 27L${12 - d} 20z`} />
   </>
 );
-const FIT = { fitted: fit(0.6), regular: fit(1.8), relaxed: fit(3.6) };
+const FIT = {
+  fitted: fit(0.6),
+  regular: fit(1.8),
+  relaxed: fit(3.6),
+};
+/** The dress's fits, with its own Boxy: square at the shoulder and straight down the sides. */
+const DRESS_FIT = {
+  ...FIT,
+  boxy: (
+    <>
+      <path className="pic-faint-solid" d={BODY} />
+      <path d="M10 8.5L14 6.5Q20 9.5 26 6.5L30 8.5V42H10z" />
+    </>
+  ),
+};
 
 /** Pockets hidden in the side seams: the bags drawn dashed behind the seam. */
 const inseam = (base: string, y: number) => on(base, `M10.5 ${y}q-4 3 -1 7.5q2 1 3 -1M29.5 ${y}q4 3 1 7.5q-2 1 -3 -1`);
@@ -70,10 +84,11 @@ const DETAILS: Record<ExplainSet, Record<string, Record<string, ReactNode>>> = {
       sash: on(SKIRT, 'M13.6 8h12.8v4H13.6zM20 12L17.5 24M20.5 12L23 22'),
       sash_loops: on(SKIRT, 'M13.6 8h12.8v4H13.6zM20 12L17.5 24M20.5 12L23 22M14.5 7v6M25.5 7v6'),
       loops: on(SKIRT, 'M16 5.5v3.5M24 5.5v3.5M16.8 5.5v3.5M24.8 5.5v3.5'),
+      band: on(SKIRT, 'M13.6 8h12.8v4H13.6zM16.5 7h2.4v6h-2.4zM18.9 8.6h3.5l0.8 1.4l-0.8 1.4h-3.5'),
     },
   },
   bodice: {
-    fit: FIT,
+    fit: DRESS_FIT,
     darts: {
       bust_waist: on(TOP, 'M14 40L15.5 26L17 40M23 40L24.5 26L26 40M10 21L15 24L10 25.5M30 21L25 24L30 25.5'),
       bust: on(TOP, 'M10 21L15 24L10 25.5M30 21L25 24L30 25.5'),

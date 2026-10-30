@@ -1,7 +1,7 @@
 import { TestingTag } from '../ui/TestingTag';
 import { matchKind } from '../engine/prints';
 import { useMemo, useState } from 'react';
-import { BELTS, beltAllowed, beltPieces, skirtBelt } from '../engine/belt';
+import { SKIRT_BELTS, beltAllowed, beltPieces, skirtBelt } from '../engine/belt';
 import type { Choices } from '../savedWork';
 import { layout } from '../engine/export';
 import { PULL_ON_EASE, lengthRange, SkirtDraft, SkirtMeasurements } from '../engine/skirt';
@@ -474,7 +474,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
         </Group>
         <Group label="Belt">
           <div className="chips">
-            {BELTS.map(([id, label]) => (
+            {SKIRT_BELTS.map(([id, label]) => (
               <button
                 key={id}
                 type="button"
@@ -487,7 +487,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
               </button>
             ))}
           </div>
-          <Explain set="skirt" group="belt" options={BELTS} pick={beltOf_(choices)} />
+          <Explain set="skirt" group="belt" options={SKIRT_BELTS} pick={beltOf_(choices)} />
           {detailOf(choices, 'waist') === 'wrap' && <p className="muted small">A wrap ties at the waist already, so it takes no sash or loops.</p>}
           {detailOf(choices, 'waist') === 'elastic' && <p className="muted small">On a pull-on elastic waist a sash ties over the gathers; loops would stop it stretching.</p>}
         </Group>
