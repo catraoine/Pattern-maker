@@ -128,6 +128,19 @@ const backLine = (words: string, listed: boolean) =>
 /** Skirts and dresses show the shape, length and fit to change here; the rest change on their style screen. */
 const hasSkirt = (g: PieceKind) => g === 'skirt' || g === 'dress';
 
+/**
+ * The photo as a straight champagne Polaroid, its name on the strip (Cat's P2, 2026-10-30, as in the films):
+ * "That one" until we know what it is, then "That dress".
+ */
+function Polaroid({ caption, dim, children }: { caption: string; dim?: boolean; children: React.ReactNode }) {
+  return (
+    <figure className={dim ? 'polaroid dim' : 'polaroid'}>
+      {children}
+      <figcaption aria-hidden="true">{caption}</figcaption>
+    </figure>
+  );
+}
+
 function Tips() {
   return (
     <details className="small phototips">
@@ -271,7 +284,7 @@ export function PhotoScreen({ testerCode, measured, body, unit, onByHand, onAppl
     </label>
   );
 
-  const thumb = preview && <img src={preview} alt="Your photo" className="photothumb" />;
+  const thumb = preview && <img src={preview} alt="Your photo" className="photothumb polaroid-mini" />;
 
   if (phase === 'start')
     return (
@@ -305,10 +318,12 @@ export function PhotoScreen({ testerCode, measured, body, unit, onByHand, onAppl
         <h1 id="readtitle" className="visually-hidden">
           Reading your photo
         </h1>
-        <div className="photoframe">
-          <img src={preview} alt="Your photo" />
-          <span className="sweep" aria-hidden="true" />
-        </div>
+        <Polaroid caption="That one">
+          <div className="photoframe">
+            <img src={preview} alt="Your photo" />
+            <span className="sweep" aria-hidden="true" />
+          </div>
+        </Polaroid>
         <p className="stages" aria-hidden="true">
           {STAGES.map((s, i) => (
             <span key={s} className={i <= stage ? 'on' : undefined}>
@@ -330,9 +345,11 @@ export function PhotoScreen({ testerCode, measured, body, unit, onByHand, onAppl
     return (
       <section ref={top} className="card photoerror" aria-labelledby="errtitle">
         {preview && (
-          <div className="photoframe dim">
-            <img src={preview} alt="Your photo" />
-          </div>
+          <Polaroid caption="That one" dim>
+            <div className="photoframe dim">
+              <img src={preview} alt="Your photo" />
+            </div>
+          </Polaroid>
         )}
         <h1 id="errtitle" role="alert">
           {p.title}
@@ -415,20 +432,22 @@ export function PhotoScreen({ testerCode, measured, body, unit, onByHand, onAppl
     return (
       <section ref={top} className="card photopick" aria-labelledby="picktitle">
         <h1 id="picktitle">Which piece shall we draft?</h1>
-        <div className="photoframe">
-          <img src={preview} alt="Your photo" />
-          {pieces.map((p) => (
-            <button
-              key={p.garment}
-              type="button"
-              className={p.garment === piece ? 'piecetag on' : 'piecetag'}
-              style={{ left: `${p.x * 100}%`, top: `${p.y * 100}%` }}
-              onClick={() => choose(p.garment)}
-            >
-              {pieceName(p.garment)}
-            </button>
-          ))}
-        </div>
+        <Polaroid caption="That one">
+          <div className="photoframe">
+            <img src={preview} alt="Your photo" />
+            {pieces.map((p) => (
+              <button
+                key={p.garment}
+                type="button"
+                className={p.garment === piece ? 'piecetag on' : 'piecetag'}
+                style={{ left: `${p.x * 100}%`, top: `${p.y * 100}%` }}
+                onClick={() => choose(p.garment)}
+              >
+                {pieceName(p.garment)}
+              </button>
+            ))}
+          </div>
+        </Polaroid>
         <p className="muted small">Tap a piece. You can draft the others from this photo after.</p>
       </section>
     );
@@ -484,7 +503,11 @@ export function PhotoScreen({ testerCode, measured, body, unit, onByHand, onAppl
   if (torn) {
     return (
       <section ref={top} className="card photoresult photoq" aria-labelledby="asktitle">
-        {preview && <img src={preview} alt="Your photo" className="photobig" />}
+        {preview && (
+          <Polaroid caption={`That ${word}`}>
+            <img src={preview} alt="Your photo" className="photobig" />
+          </Polaroid>
+        )}
         <div className="photoask" role="group" aria-labelledby="asktitle">
           <p className="eyebrow">One question</p>
           <h1 id="asktitle">{`${torn.options[0][1]} or ${torn.options[1][1].toLowerCase()}?`}</h1>
