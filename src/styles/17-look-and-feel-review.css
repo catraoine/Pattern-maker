@@ -550,12 +550,13 @@ button.later.edit-measure {
     flex: none;
   }
   .projector-tools {
-    gap: 6px;
+    gap: 4px;
   }
+  /* Tighter tracking keeps the whole row, Close included, on an 844px sideways phone at the bigger caps. */
   .projector-tools button {
-    padding: 6px 8px;
+    padding: 6px 7px;
     font-size: var(--caps-size);
-    letter-spacing: 0.06em;
+    letter-spacing: 0.02em;
   }
   .projector-tools .pj-gap {
     width: 0;

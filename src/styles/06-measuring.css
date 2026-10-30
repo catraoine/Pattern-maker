@@ -33,6 +33,8 @@
 
 .measure-step .eyebrow {
   margin-bottom: -8px;
+  /* Tight at the bigger caps, so the page still fits a 390x664 phone without a scroll (fold.spec). */
+  line-height: 1.2;
 }
 
 .measure-step h1 {
