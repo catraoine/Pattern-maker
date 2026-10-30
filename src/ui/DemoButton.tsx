@@ -86,7 +86,7 @@ const DEMOS = {
       { name: 'Turn', from: 30.3 },
       { name: 'Pieces', from: 34.8 },
     ],
-    length: '0:41',
+    length: '0:39',
   },
   scale: {
     title: 'How the true size check works',
