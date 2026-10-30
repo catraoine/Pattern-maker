@@ -1,4 +1,5 @@
 import { GarmentName, expect, startWithExample, switchGarment, test } from './fixtures';
+import { writeFileSync } from 'node:fs';
 
 // Stills of All round at exact angles, for checking a body change by eye (not a CI test).
 // BODY_STILLS=<folder> [BODY_LOOKS=dress,tee,...] [FILM=1] [LINES=1] [FORM=1] [ROUND2D=1 for the canvas painter] npx playwright test -c e2e body-stills --project=phone
@@ -13,6 +14,9 @@ const ALL: [string, GarmentName, string, string[]][] = [
   ['dress-shift', 'Dress', '', ['Skirt & length:Cut:Shift', 'Skirt & length:Length:Knee', 'Neck & sleeves:Neckline:Boat', 'Neck & sleeves:Sleeves:Long']],
   ['dress-maxi', 'Dress', '', ['Skirt & length:Cut:Waist seam', 'Skirt & length:Skirt:Gathered', 'Skirt & length:Length:Maxi', 'Neck & sleeves:Neckline:Square', 'Neck & sleeves:Sleeves:Sleeveless']],
   ['coat-belted', 'Coat', 'Shape', []],
+  ['mom-jacket', 'Jacket', '', ['Shape:Length:Cropped', 'Shape:Fit:Fitted', 'Shape:Collar:Collarless', 'Shape:Sleeves:Straight', 'Shape:Hem and cuffs:Rib bands', 'Shape:Pockets:None', 'Shape:Shoulder pads:None']],
+  ['mom-top', 'Bodice', '', ['Neck & sleeves:Neckline:Scoop', 'Neck & sleeves:Sleeves:Elbow', 'Neck & sleeves:Sleeve shape:Straight', 'Shape:Length:Waist']],
+  ['mom-shorts', 'Trousers', '', ['Shape:Length:Shorts', 'Shape:Fit:Fitted']],
   ['fun-blazer', 'Jacket', '', ['Shape:Length:Cropped', 'Shape:Fit:Fitted']],
   ['fun-mini-skirt', 'Skirt', '', ['Shape:Silhouette:A-line', 'Shape:Length:Mini']],
   ['fun-one-shoulder', 'Dress', '', ['Neck & sleeves:Sleeves:Sleeveless', 'Neck & sleeves:Neckline:One-shoulder', 'Skirt & length:Cut:Waist seam', 'Skirt & length:Skirt:Full circle', 'Skirt & length:Length:Mini']],
@@ -42,6 +46,7 @@ test('body stills', async ({ page, consoleErrors }, info) => {
   consoleErrors.allow(/.*/);
   test.setTimeout(1_500_000);
   await page.emulateMedia({ reducedMotion: 'reduce' });
+  if (process.env.FRAME_FLOOR) await page.addInitScript(() => Object.assign(window, { __frameFloor: true }));
   if (process.env.OLD) await page.addInitScript((look) => Object.assign(window, { __tourFilm: 'old', __openerLook: look || undefined }), process.env.OLD_LOOK ?? '');
   else if (process.env.FILM) await page.addInitScript(() => ((window as unknown as { __tourFilm: boolean }).__tourFilm = true));
   // SWAY=0.8 tries a share of the back's hollow filled in (engine/body.ts SWAY_FILL).
@@ -51,6 +56,21 @@ test('body stills', async ({ page, consoleErrors }, info) => {
   const main = page.getByRole('main');
   let current: GarmentName = 'Skirt';
   for (const [key, g, tab, picks] of LOOKS) {
+    if (key === 'mom-shorts') {
+      // Shorts are set on the length marks, which need the leg measurements the example doesn't ask for.
+      await page.evaluate(() => {
+        const k = 'pattern-maker:account';
+        const a = JSON.parse(localStorage.getItem(k) ?? '{}');
+        for (const person of a.people ?? []) Object.assign(person.values, { waist_to_knee: 58, crotch_depth: 27 });
+        localStorage.setItem(k, JSON.stringify(a));
+      });
+      await page.reload();
+      await page.waitForTimeout(2500);
+      const carryOn = page.getByRole('button', { name: /^Carry on with your/ });
+      if (await carryOn.count()) await carryOn.first().click();
+      await page.waitForTimeout(1500);
+      current = '' as GarmentName;
+    }
     if (g !== current) await switchGarment(page, g);
     current = g;
     await page.evaluate((on) => Object.assign(window, { __mockBelt: on }), key === 'coat-belted');
@@ -63,9 +83,17 @@ test('body stills', async ({ page, consoleErrors }, info) => {
       if (await t.count()) await t.click();
       const b = main.locator(grp ? `fieldset[data-label="${grp}"] button[aria-pressed]` : 'button[aria-pressed]').filter({ hasText: new RegExp(`^\\s*${name}\\b`) }).first();
       if (grp === 'Length' && !(await b.count())) {
-        const marks = await page.evaluate(() => [...document.querySelectorAll('main .hem-mark')].map((m) => m.textContent?.trim() ?? ''));
-        if (process.env.DEBUG_PICKS) console.log('MARKS', key, name, marks);
-        await page.evaluate((n) => [...document.querySelectorAll('main .hem-mark')].find((m) => m.textContent?.trim().toUpperCase() === n.toUpperCase())?.querySelector('.hit')?.dispatchEvent(new MouseEvent('click', { bubbles: true })), name);
+        // The length is the hem dot on the drawing: stepped with the arrow keys to the named length.
+        const dot = main.locator('[role=slider][aria-label$="length"]').first();
+        if (await dot.count()) {
+          for (let n = 0; n < 8 && ((await dot.getAttribute('aria-valuetext')) ?? '').toLowerCase() !== name.toLowerCase(); n++) {
+            const now = Number(await dot.getAttribute('aria-valuenow'));
+            const want = await page.evaluate((nm) => nm, name);
+            await dot.focus();
+            await page.keyboard.press(['mini', 'shorts', 'above knee', 'cropped'].includes(want.toLowerCase()) || now > 3 ? 'ArrowUp' : 'ArrowDown');
+            await page.waitForTimeout(300);
+          }
+        } else if (process.env.DEBUG_PICKS) console.log('NO LENGTH DOT', key);
       }
       else if (await b.count()) await b.evaluate((el) => (el as HTMLElement).click());
       else if (process.env.DEBUG_PICKS) console.log('MISSING', key, pickName, await main.locator('fieldset[data-label]').evaluateAll((fs) => fs.map((f) => f.getAttribute('data-label') + ': ' + [...f.querySelectorAll('button[aria-pressed]')].map((x) => x.textContent?.trim().slice(0, 20)).join(' | '))));
@@ -116,6 +144,7 @@ test('body stills', async ({ page, consoleErrors }, info) => {
       await cv.evaluate((el, at) => el.dispatchEvent(new CustomEvent('allround-turn', { detail: { at, probe: false } })), ANGLES[k]);
       await page.waitForTimeout(150);
       await cv.screenshot({ path: `${OUT}/${info.project.name}/${key}/${k}.png` });
+      if (process.env.FRAME_FLOOR) writeFileSync(`${OUT}/${info.project.name}/${key}/${k}.json`, (await cv.getAttribute("data-frame")) ?? "");
     }
     if (process.env.ENLARGE) {
       const small = main.getByRole('button', { name: /^Make the drawing .* smaller$/ });

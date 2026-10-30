@@ -242,13 +242,16 @@ export function AllRound({ round, m, striped = false, fabric, label, draw }: Pro
 
     const draw = (now: number) => {
       const top = film ? Math.min(-2, yOf(highest) - 0.3) : Math.min(-0.45, yOf(highest) - 0.3);
-      const bottom = trousers ? FORM_FLOOR + 0.1 : Math.min(FORM_FLOOR + 0.1, Math.max(yOf(longest), sl ? yE : -9) + 0.45);
+      // Mock-up only: every garment framed to the floor, so two can be laid together (__frameFloor).
+      const toFloor = trousers || !!(window as Window & { __frameFloor?: boolean }).__frameFloor;
+      const bottom = toFloor ? FORM_FLOOR + 0.1 : Math.min(FORM_FLOOR + 0.1, Math.max(yOf(longest), sl ? yE : -9) + 0.45);
       const fig = h - strip;
       const S = Math.min((fig - 16) / (bottom - top), (w / 2 - 14) / (reach * 1.04));
       const cx = w / 2;
       const Y = (y: number) => 8 + (y - top) * S;
       const lw = Math.max(0.7, S / 252) * 1.2;
       frame = { S, cx, top, lw, fig };
+      cv.dataset.frame = JSON.stringify({ waistY: Y(WAIST), depth: radius(WAIST) * S * FORM_DEPTH, dpr, S, top, cx });
       const phi = st.phi;
       const c = Math.cos(phi);
       const s = Math.sin(phi);
