@@ -192,6 +192,10 @@ await fillAll();
 // choose: what to make, and the dress picked
 await main.getByRole('button', { name: 'Choose what to make' }).click();
 await main.getByRole('heading', { name: 'What would you like to make?' }).waitFor();
+// 'Pick a garment,' takes the top of the screen in the film, so the app's header is left out under it, the page set
+// down the same as the collection after it (Cat, 2026-10-30).
+const captionRoom = 'main .testing-tag, .topbar { display: none !important; } main { padding-top: ' + (WIDE ? 110 : 96) + 'px !important; }';
+const chooseOnly = await p.addStyleTag({ content: captionRoom });
 await wait(900);
 await start();
 await wait(1600);
@@ -199,6 +203,7 @@ await wait(1600);
 await main.getByRole('radiogroup', { name: 'What would you like to make?' }).getByRole('radio', { name: /^Dress\b/ }).evaluate((el) => el.click());
 await wait(1800);
 await stop('choose');
+await chooseOnly.evaluate((el) => el.remove());
 await main.getByRole('button', { name: /^(Next: \d+ dress measurements?|Style my dress)$/ }).click();
 await fillAll();
 await main.getByRole('heading', { level: 1, name: 'Style your dress' }).waitFor();
@@ -213,7 +218,8 @@ await main.getByRole('heading', { level: 1, name: 'The collection' }).waitFor();
 await wait(1500);
 // From the top, so the season reads (Cat picked A, 2026-10-29), in one eased glide down to the last look. In the film
 // the In testing tag and the drop alert are left out, so the season leads straight into the looks (her fixes 1 and 2).
-const filmOnly = await p.addStyleTag({ content: 'main .testing-tag, main .drop-slot { display: none !important; } main { padding-top: ' + (WIDE ? 110 : 96) + 'px !important; }' });
+// The caption takes the top of the screen, so the app's header is left out under it (Cat, 2026-10-30: the two overlapped).
+const filmOnly = await p.addStyleTag({ content: captionRoom + ' main .drop-slot { display: none !important; }' });
 await wait(300);
 const lookTop = (el) => el.getBoundingClientRect().top + scrollY - 70;
 const lastLook = await main.locator('li.house-look').last().evaluate(lookTop);

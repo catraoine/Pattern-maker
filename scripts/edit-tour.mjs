@@ -218,26 +218,30 @@ async function threeChecks() {
 // 'low' sits nearer the picture under it, over the black above the photo and the pattern sheet (Cat, 2026-10-25:
 // the photo's words a little too high, and the pattern's at the same height).
 // shade false: no dark fade behind the words, where they already sit on black (Cat, 2026-10-25: "so much black blur").
+// The shade is near solid down past the words, so a page scrolling under them never shows through (Cat, 2026-10-30).
 const note = (line, where, shade = true) => words(WIDE && where === 'side'
   ? `<div class="f" style="display:flex;flex-direction:column;justify-content:center;padding-left:96px;background:linear-gradient(to right,rgba(0,0,0,.85) 0,rgba(0,0,0,.6) 30%,rgba(0,0,0,0) 42%)"><h1 class="t" style="font-size:46px">${line}</h1></div>`
   : WIDE
-  ? `<div class="f" style="${shade ? 'background:linear-gradient(to bottom,rgba(0,0,0,.92) 0,rgba(0,0,0,.8) 13%,rgba(0,0,0,0) 22%);' : ''}padding:${where === 'low' ? 54 : 44}px 0 0 96px"><h1 class="t" style="font-size:46px">${line}</h1></div>`
-  : `<div class="f" style="${shade ? 'background:linear-gradient(to bottom,rgba(0,0,0,.92) 0,rgba(0,0,0,.8) 11%,rgba(0,0,0,0) 17%);' : ''}padding:${where === 'low' ? 60 : 40}px 0 0 28px"><h1 class="t" style="font-size:36px">${line}</h1></div>`);
+  ? `<div class="f" style="${shade ? 'background:linear-gradient(to bottom,#000 0,#000 15.5%,rgba(0,0,0,0) 21%);' : ''}padding:${where === 'low' ? 54 : 44}px 0 0 96px"><h1 class="t" style="font-size:46px">${line}</h1></div>`
+  : `<div class="f" style="${shade ? 'background:linear-gradient(to bottom,#000 0,#000 14.5%,rgba(0,0,0,0) 19%);' : ''}padding:${where === 'low' ? 60 : 40}px 0 0 28px"><h1 class="t" style="font-size:36px">${line}</h1></div>`);
 // The scroll down the collection's looks, the way down to Print my pattern, and projector mode, as recorded
 // (record-tour-shots.mjs: the phone's scrolls are longer).
 const COLLECTION = WIDE ? { from: 0.8, dur: 8.5, speed: 1.45 } : { from: 0.8, dur: 8.5, speed: 1.75 };
 // A computer has no Review page to scroll (Print my pattern sits beside the drawing), so its projector runs longer.
 const REVIEW = WIDE ? undefined : { from: 0.4, dur: 4.4, speed: 1.15 };
 // Straight from the pages to a piece on black in projector mode, drawn in close so it fills the screen (Cat,
-// 2026-10-29: skip the second scroll down the print page; less blank space).
-const PROJECTOR = WIDE ? { from: 8.6, dur: 4.2, zoom: [1.3, 1.34], at: [0.5, 0.47] } : { from: 10.1, dur: 4, zoom: [1.6, 1.66], at: [0.5, 0.47] };
+// 2026-10-29: skip the second scroll down the print page; less blank space). On a phone it sits low and large, its
+// foot level with the pattern sheet's (Cat, 2026-10-30: it was cut off under the words).
+const PROJECTOR = WIDE ? { from: 8.6, dur: 4.2, zoom: [1.3, 1.34], at: [0.5, 0.47] } : { from: 10.1, dur: 4, zoom: [1.74, 1.78], at: [0.5, 0.282] };
 // P2 Or Start From a Photo (Cat, 2026-10-24): after the garments, a photo of a dress (made for the film, no person in
 // it), briefly, its words the same size and place as the Style steps'. No drafted dress after it (Cat: skip that).
 const PHOTO = readFileSync(new URL('./tour/photo-dress.jpg', import.meta.url)).toString('base64');
 async function photoMoment() {
-  const pic = await words(`<div class="f" style="display:flex;align-items:center;justify-content:center;padding-top:${WIDE ? 70 : 60}px"><img src="data:image/jpeg;base64,${PHOTO}" style="height:${WIDE ? 640 : 560}px;max-width:94%;object-fit:cover"></div>`, { solid: true });
+  // P2 Champagne Polaroid (Cat picked, 2026-10-30): the photo in a straight champagne frame, 'That dress' on its strip.
+  const k = WIDE ? 1.25 : 1;
+  const pic = await words(`<div class="f" style="display:flex;align-items:center;justify-content:center;padding-top:${WIDE ? 70 : 60}px"><div style="background:#efe4cc;padding:${18 * k}px ${18 * k}px ${76 * k}px;box-shadow:0 12px 28px rgba(0,0,0,.6);position:relative"><img src="data:image/jpeg;base64,${PHOTO}" style="display:block;width:${304 * k}px;height:${360 * k}px;object-fit:cover;filter:saturate(.92) contrast(1.04)"><div style="position:absolute;left:0;right:0;bottom:${28 * k}px;text-align:center;font:400 ${12 * k}px/1 'Chakra Petch',monospace;letter-spacing:.3em;text-transform:uppercase;color:#6b5a3a">That dress</div></div></div>`, { solid: true });
   // Held long enough to read (Cat, 2026-10-25).
-  return piece({ still: pic, dur: 3.2, zoom: [1, 1.03], fadeIn: 0.5, fadeOut: 0.5, notes: [[await note('Or start from a photo.', 'low'), 0.2, 3.2]] });
+  return piece({ still: pic, dur: 3.2, zoom: [1, 1.03], fadeIn: 0.5, fadeOut: 0.5, notes: [[await note('Or upload a photo.', 'low'), 0.2, 3.2]] });
 }
 // The opening (Cat, 2026-10-22: the old one repeated the loading screen and welcome the viewer had just seen).
 const INTRO = process.env.TOUR_INTRO ?? 'C2'; // Cat's pick, 2026-10-22: C2 Pull Back
@@ -302,7 +306,9 @@ const CUTS = {
     return [
       ...opening,
       await piece({ still: await card('02', 'Choose', 'Then what to make.'), dur: 3, fadeIn: f, fadeOut: f }),
-      await piece({ shot: 'choose', from: 0.3, dur: 3.2, fadeIn: f, fadeOut: f }),
+      // Three ways in, each its own line: a garment, or a look, or a photo (Cat, 2026-10-30: the garment had to read
+      // as a way to start too, not a filter on the looks).
+      await piece({ shot: 'choose', from: 0.3, dur: 3.2, fadeIn: f, fadeOut: f, notes: [[await note('Pick a garment.', 'low'), 0.2, 3.0]] }),
       // Start from a look, then from a photo (Cat, 2026-10-29: the scroll through the collection back in, before the photo).
       await piece({ shot: 'collection', ...COLLECTION, fadeIn: f, fadeOut: f, notes: [[await note('Or start from a look.', 'low'), 0, COLLECTION.dur - 0.3]] }),
       await photoMoment(),
