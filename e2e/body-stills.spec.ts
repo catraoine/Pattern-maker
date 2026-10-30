@@ -23,6 +23,8 @@ const ALL: [string, GarmentName, string, string[]][] = [
   ['el-gown', 'Dress', '', ['Neck & sleeves:Sleeves:Sleeveless', 'Neck & sleeves:Neckline:Sweetheart', 'Skirt & length:Cut:Waist seam', 'Skirt & length:Skirt:Full circle', 'Skirt & length:Length:Maxi']],
   ['el-halter', 'Dress', '', ['Neck & sleeves:Sleeves:Sleeveless', 'Neck & sleeves:Neckline:Halter', 'Skirt & length:Cut:Waist seam', 'Skirt & length:Skirt:Trumpet', 'Skirt & length:Length:Maxi']],
   ['el-empire', 'Dress', '', ['Neck & sleeves:Neckline:V-neck', 'Neck & sleeves:Sleeves:Sleeveless', 'Skirt & length:Cut:Waist seam', 'Shape:Waist seam:Empire', 'Skirt & length:Skirt:A-line', 'Skirt & length:Length:Maxi']],
+  ['el-trumpet', 'Dress', '', ['Neck & sleeves:Sleeves:Sleeveless', 'Neck & sleeves:Neckline:Square', 'Skirt & length:Cut:Waist seam', 'Skirt & length:Skirt:Trumpet', 'Skirt & length:Length:Maxi']],
+  ['el-highlow', 'Dress', '', ['Neck & sleeves:Neckline:Boat', 'Neck & sleeves:Sleeves:Elbow', 'Skirt & length:Cut:Waist seam', 'Skirt & length:Skirt:Half circle', 'Skirt & length:Length:Midi', 'Skirt & length:Hem:High-low']],
   ['fun-blazer', 'Jacket', '', ['Shape:Length:Cropped', 'Shape:Fit:Fitted']],
   ['fun-mini-skirt', 'Skirt', '', ['Shape:Silhouette:A-line', 'Shape:Length:Mini']],
   ['fun-one-shoulder', 'Dress', '', ['Neck & sleeves:Sleeves:Sleeveless', 'Neck & sleeves:Neckline:One-shoulder', 'Skirt & length:Cut:Waist seam', 'Skirt & length:Skirt:Full circle', 'Skirt & length:Length:Mini']],
