@@ -49,6 +49,12 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
 7. Form finish (Oct 30, PR #231): matte charcoal form and crisp plain cloth on the Style drawings.
    Measuring and welcome keep the line form; satin/finish only from Style on.
 
+## Style steps
+
+- **No repeated names** (Oct 30): a question never carries its step's name (no "Details" question on the
+  Details step); pleats, godets, flounces, tiers and ruching are called **Fullness** everywhere, as on the Draw tool.
+  On the skirt's Details step, Waist comes first.
+
 ## Fixing problems
 
 - **Auto-fix rule** (Oct 18): never point out problems the user's own edits cause (uneven seams,

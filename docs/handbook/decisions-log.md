@@ -8,6 +8,7 @@ something that changes how a department works. Design picks for single screens s
 - **Oct 30** Boxy dress fit (freeze broken knowingly; a full launch fit, no In testing tag, Cat Oct 30): straight from the bust, square shoulder cut in (no pad), bust darts kept, plus a Self band belt at the seam. From Cat's gingham drop-waist dress.
 - **Oct 30** Projector upgrades (freeze broken knowingly): C1 paper line-up (no mat), C2 grid over the whole table, L1 + L3 Lines panel (layers, mm thickness, colour), M2 loupe. Pitch: no printing, no taping, no mat, just a projector.
 - **Oct 30** Every mock-up sheet labels each option on the image itself: option code + name, screen, device, NOW for today; codes match the message ([working with Cat](working-with-cat.md)).
+- **Oct 30** Style step names: no question repeats its step's name; skirt "Details" question is now Fullness, asked after Waist and Pockets (D2); dress "Skirt" / "Skirt details" are Silhouette / Fullness.
 - **Oct 30** Waitlist kill rule: under 1,000 sign-ups by **Feb 11, 2027** ends stage 2 (Jan 25 is only the ~830 checkpoint).
 - **Oct 30** All affiliate payouts, Amazon included, go to the Maison Tracé chequing.
 - **Oct 30** The measuring film is filmed at the Nov 8 shoot with Evan.

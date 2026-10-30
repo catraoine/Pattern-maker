@@ -18,11 +18,11 @@ test('wrap: a dress and a skirt that cross over and tie', async ({ page }, info)
   await startWithExample(page);
   const main = page.getByRole('main');
   await switchGarment(page, 'Dress');
-  await chooseChip(page, 'Skirt', 'A-line');
+  await chooseChip(page, 'Silhouette', 'A-line');
   await chooseChip(page, 'Opening', 'Wrap');
   await expect(main.getByText(/wrap dress with/i).first()).toBeAttached();
   // The skirt wraps too, so it takes no circle, pleats or pockets.
-  const skirt = await openGroup(page, 'Skirt');
+  const skirt = await openGroup(page, 'Silhouette');
   await expect(skirt.getByRole('button', { name: 'Full circle', exact: true })).toBeDisabled();
   await page.screenshot({ path: info.outputPath('dress-form.png'), fullPage: true });
   await main.getByRole('button', { name: 'Flat', exact: true }).click();

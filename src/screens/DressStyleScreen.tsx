@@ -111,7 +111,7 @@ const noSeamLines = (draft: DressDraft, side: 'front' | 'back') => {
  * bodice with its darts running on through the waist seam.
  */
 /** The dress's skirt choices on one tab of their own. */
-const DRESS_SECTIONS: Record<string, string> = { Cut: 'Skirt & length', Skirt: 'Skirt & length', Length: 'Skirt & length', Hem: 'Skirt & length', Slit: 'Skirt & length', 'Skirt details': 'Skirt & length', Pockets: 'Skirt & length', Belt: 'Skirt & length' };
+const DRESS_SECTIONS: Record<string, string> = { Cut: 'Skirt & length', Silhouette: 'Skirt & length', Length: 'Skirt & length', Hem: 'Skirt & length', Slit: 'Skirt & length', Fullness: 'Skirt & length', Pockets: 'Skirt & length', Belt: 'Skirt & length' };
 
 
 /** A sheath's sides: plain, or ruched below the hip. */
@@ -200,7 +200,8 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
     ...(noSeam
       ? []
       : [
-          { id: 'silhouette', label: 'Skirt', options: GROUPS[1].options },
+          // Named as on the skirt, so the Skirt & length step doesn't ask a question called Skirt (Cat, 2026-10-30).
+          { id: 'silhouette', label: 'Silhouette', options: GROUPS[1].options },
         ]),
     ...(noSeam || wrapped
       ? []
@@ -208,7 +209,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           // The dress's zip runs down the centre back, so its skirt can't be cut whole for a diagonal hem.
           { id: 'asymHem', label: 'Hem', options: GROUPS[3].options.filter(([id]) => id !== 'diagonal') as [string, string][] },
           { id: 'slit', label: 'Slit', options: SLIT_PLACES },
-          { id: 'volume', label: 'Skirt details', options: DETAIL_OPTIONS },
+          { id: 'volume', label: 'Fullness', options: DETAIL_OPTIONS },
           { id: 'pockets', label: 'Pockets', options: DETAIL_GROUPS[1].options },
         ]),
     // A wrap ties already, so it takes no sash.
