@@ -11,9 +11,10 @@ the engine's specification, so read them before the code.
   worker; `src/swUpdate.ts` handles updates.
 - **Hosted on Netlify.** `netlify.toml` builds with `npm run build` and serves `dist/`. Every merge to
   `main` deploys. Server code is in `netlify/functions/*.mts` (one file per endpoint).
-- **No database yet.** Everything a person makes stays on their device in `localStorage`
+- **No database in use yet.** Everything a person makes stays on their device in `localStorage`
   (`src/store.ts`, `src/account.ts`); toile photos sit in IndexedDB (`src/photoStore.ts`). A backup
-  file or a send-to-device link (`src/moveLink.ts`) moves it between devices. Real sign-in is a stage 2 item.
+  file or a send-to-device link (`src/moveLink.ts`) moves it between devices. Real sign-in (Supabase, `src/cloud/`)
+  is built and hidden behind `?signin=preview` until it is switched on.
 
 ## The drafting engine (`src/engine/`)
 
