@@ -22,10 +22,11 @@ a little at the start of the season only. No AI people.
 
 - Atelier diary, no dare or countdown. Title card "SS27 Collection Preview · Piece 01 / 05".
   Each post ends on "in the SS27 collection, join the waitlist".
-- Pieces (Oct 30, W2), all SS27 house looks: skirt by Nov 8 (Look 09 Sheer Sash Skirt proposed, to
-  confirm; was the ivory A-line midi), Look 01 Parma Shirt by Nov 29, Look 02 Aqua Slip by Dec 13,
+- Pieces (Oct 30, W2), all SS27 house looks: Look 09 Sheer Sash Skirt by Nov 8 (white cotton organza;
+  replaces the ivory A-line midi), Look 01 Parma Shirt by Nov 29, Look 02 Aqua Slip by Dec 13,
   Look 04 Red Trouser by Jan 10, Look 10 Long Coat by Feb 1. The Sewing Lead sews each piece to her
-  own body as the fit check.
+  own body as the fit check. No new designs: each season's preview only pulls looks from that
+  season's collection.
 - Shoot 1: Sun Nov 8 (Nov 7 backup), ~3 hours at home, Evan filming. Episode 01 out Thu Nov 19. The "mastering measuring" film close-ups are shot the same day.
   Finale on launch night, Thu Feb 11. Same plain dark outfit for solo and Evan shots.
 - Social launch Mon Nov 2 (Cat films week-one posts solo on her phone).

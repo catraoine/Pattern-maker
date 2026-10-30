@@ -13,7 +13,8 @@ something that changes how a department works. Design picks for single screens s
 - **Oct 30** Photo screens get the P2 champagne Polaroid frame (#232).
 - **Oct 30** Season one on social is the **SS27 Collection Preview** (was "the wardrobe story"): Cat sews
   five pieces chosen from the SS27 looks only: shirt = Parma Shirt (01), slip dress = Aqua Slip (02),
-  trousers = Red Trouser (04), coat = Long Coat (10); skirt Look 09 Sheer Sash Skirt proposed, to confirm.
+  trousers = Red Trouser (04), coat = Long Coat (10); skirt = Sheer Sash Skirt (09). Nothing new is designed: the
+  preview only pulls existing collection looks, each season.
 - **Oct 30** Film heading "Your pattern, in seconds."; lilac shirt look named Parma Shirt (#229).
 - **Oct 30** Trademark: full Canadian register search, then file classes 9 + 42 with Milton IP.
 - **Oct 30** Affiliates: add Etsy (Awin) and email two pattern printers; skip coupon, class and machine sites.
