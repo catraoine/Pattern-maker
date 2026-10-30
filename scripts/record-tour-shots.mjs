@@ -211,16 +211,20 @@ await main.getByRole('menuitemradio', { name: /Start from a look/ }).click();
 await main.getByRole('button', { name: 'Start from the Maison collection' }).click();
 await main.getByRole('heading', { level: 1, name: 'The collection' }).waitFor();
 await wait(1500);
+// From the top, so the season reads (Cat picked A, 2026-10-29), in one eased glide down to the last look. In the film
+// the In testing tag and the drop alert are left out, so the season leads straight into the looks (her fixes 1 and 2).
+const filmOnly = await p.addStyleTag({ content: 'main .testing-tag, main .drop-slot { display: none !important; } main { padding-top: ' + (WIDE ? 110 : 96) + 'px !important; }' });
+await wait(300);
 const lookTop = (el) => el.getBoundingClientRect().top + scrollY - 70;
-const firstLook = await main.locator('li.house-look').first().evaluate(lookTop);
 const lastLook = await main.locator('li.house-look').last().evaluate(lookTop);
-await p.evaluate((y) => window.scrollTo(0, y), firstLook);
+await p.evaluate(() => window.scrollTo(0, 0));
 await wait(1000);
 await start();
-await wait(1200);
-await glide(lastLook, WIDE ? 9000 : 12000);
+await wait(1400);
+await glide(lastLook, WIDE ? 11000 : 14000);
 await wait(1400);
 await stop('collection');
+await filmOnly.evaluate((el) => el.remove());
 await main.getByRole('button', { name: 'Back to styling' }).click();
 await main.getByRole('heading', { level: 1, name: 'Style your dress' }).waitFor();
 await p.evaluate(() => window.scrollTo(0, 0));
