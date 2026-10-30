@@ -1,0 +1,119 @@
+/* ---- The accessibility review (Cat's "apply all", 2026-10-30). ---- */
+
+/* A6: one clear champagne ring on whatever the keyboard is on, across the app. It has no weight of its own, so the
+   rings already drawn for the swatches, the play buttons and the drawing's handles still win. */
+:where(a, button, input, select, textarea, summary, [tabindex], [role='slider'], [role='tab']):focus-visible {
+  outline: 2px solid var(--gild);
+  outline-offset: 2px;
+}
+.shape .hem-mark .hit:focus-visible {
+  stroke: var(--ink);
+  stroke-width: 0.15;
+  stroke-dasharray: 0.6 0.6;
+  outline: none;
+}
+.shape .hem-mark:has(.hit:focus-visible) :is(line, text) {
+  stroke: var(--ink);
+}
+.chapter .style-tabs button:focus-visible {
+  outline-offset: 4px;
+}
+
+/* A4: the small links and switches look the same but take a bigger tap (at least 44px tall), with the extra laid
+   invisibly around them. */
+:is(.inline-link, .unit-switch button, .fold-link > summary) {
+  position: relative;
+}
+:is(.inline-link, .unit-switch button, .fold-link > summary, .demo-play)::before {
+  content: '';
+  position: absolute;
+  inset: -13px -4px;
+}
+.demo-play::before {
+  inset: -8px -6px;
+}
+.unit-switch button::before {
+  inset: -13px -8px;
+}
+/* The Print tick boxes: the whole line is the tap, and it reaches past the words without moving them. */
+.check {
+  padding-block: 6px;
+  margin-block: -6px;
+}
+
+/* A5: a short screen (a computer zoomed to 200%, or a phone on its side) has no height to spare for a pinned drawing,
+   so the drawing, its row and the header all scroll with the page and the choices get the screen. Next stays at the
+   foot. */
+@media (max-height: 500px) {
+  .topbar.steady {
+    position: static;
+  }
+  .style-pin,
+  .style-pin > section,
+  .style-pin > section > .preview,
+  .style-pin > section:not(.live-big) > :is(.row.between.wrap, .lookboxes),
+  .style-tabs {
+    position: static !important;
+  }
+  .style-pin > section:not(.live-big) > .lookboxes {
+    position: relative !important;
+  }
+}
+
+/* A2: the How to do it sheet's other way, for measuring seated or alone. The sheet scrolls on a short screen. */
+.how-panel {
+  max-height: 100dvh;
+  overflow-y: auto;
+}
+.how-seated {
+  margin: 0;
+  line-height: 1.45;
+}
+
+/* A7: the films in words. Read it sits by Close, quiet, and opens what each part shows over the film. */
+.tour-acts {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+}
+.tour-skip.film-read {
+  border-color: transparent;
+  background: none;
+  color: var(--gild);
+}
+.film-words.open {
+  position: absolute;
+  top: calc(env(safe-area-inset-top) + 64px);
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 2;
+  overflow-y: auto;
+  padding: 8px 20px calc(24px + env(safe-area-inset-bottom));
+  background: var(--paper);
+}
+.film-words ol {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 18px;
+}
+.film-words p {
+  margin: 4px 0 0;
+  font-family: var(--sans);
+  line-height: 1.45;
+}
+.film-part {
+  min-height: 32px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--gild);
+  font: var(--w-body) var(--caps-size)/1 var(--mono);
+  letter-spacing: var(--caps-track);
+  text-transform: uppercase;
+  cursor: pointer;
+}

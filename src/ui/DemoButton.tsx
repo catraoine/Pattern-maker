@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { FilmWords, type FilmPart } from './TourPlayer';
 
 // Watch demo (Cat's pick L1 Whisper, 2026-10-20): small deep champagne caps with the play mark after the words,
 // in the bottom-right corner of a tool's box. A light runs across it once when it arrives, so it is noticed without
@@ -10,8 +11,8 @@ type Demo = {
   /** What the clip shows, for the dialog and the button's label. */
   title: string;
   base: string;
-  /** Where each part starts, in seconds. Update with the clip. */
-  parts: { name: string; from: number }[];
+  /** Where each part starts, in seconds, and what its caption says. Update with the clip (record-demos.mjs). */
+  parts: FilmPart[];
   length: string;
 };
 
@@ -20,13 +21,13 @@ const DEMOS = {
     title: 'How Style works',
     base: '/demos/style',
     parts: [
-      { name: 'Steps', from: 0 },
-      { name: 'Shape', from: 6.6 },
-      { name: 'Length & hem', from: 16.6 },
-      { name: 'Details', from: 21.0 },
-      { name: 'Undo', from: 25.1 },
-      { name: 'Pattern', from: 27.9 },
-      { name: 'Review', from: 33.3 },
+      { name: 'Steps', from: 0, says: 'Choices come in five steps under the drawing. Your picks show beside it.' },
+      { name: 'Shape', from: 6.6, says: 'Tap a shape. The pattern redraws to your body.' },
+      { name: 'Length & hem', from: 16.6, says: 'Drag the hem on the sketch for length. Pick its shape here.' },
+      { name: 'Details', from: 21.0, says: 'Pockets, waistband or elastic.' },
+      { name: 'Undo', from: 25.1, says: 'Changed your mind? Undo is always at the bottom.' },
+      { name: 'Pattern', from: 27.9, says: 'Pattern shows the pieces you will cut.' },
+      { name: 'Review', from: 33.3, says: 'Happy with it? Review, then print.' },
     ],
     length: '0:40',
   },
@@ -34,10 +35,10 @@ const DEMOS = {
     title: 'How drawing on your form works',
     base: '/demos/draw',
     parts: [
-      { name: 'Open it', from: 0 },
-      { name: 'Draw', from: 11.3 },
-      { name: 'Undo', from: 23.1 },
-      { name: 'Done', from: 28.5 },
+      { name: 'Open it', from: 0, says: 'Tap the pencil by the drawing, then Draw on your form. This is a dress form built from your measurements.' },
+      { name: 'Draw', from: 11.3, says: 'Pick Hem, then draw where you want it with your finger. The pattern follows your line. Try the back too.' },
+      { name: 'Undo', from: 23.1, says: 'Undo takes the last line back. Redo puts it back.' },
+      { name: 'Done', from: 28.5, says: 'Done keeps your lines and shows the pattern.' },
     ],
     length: '0:35',
   },
@@ -45,10 +46,10 @@ const DEMOS = {
     title: 'How starting from a photo works',
     base: '/demos/photo',
     parts: [
-      { name: 'Start', from: 0 },
-      { name: 'Photo', from: 9.1 },
-      { name: 'Check', from: 14.8 },
-      { name: 'Draft', from: 18.9 },
+      { name: 'Start', from: 0, says: 'Seen something you love? Start from a look, then a photo.' },
+      { name: 'Photo', from: 9.1, says: 'Take one, or choose one. Worn or laid flat. We read the shape, the length and the fit.' },
+      { name: 'Check', from: 14.8, says: 'Anything wrong? Change it. Here, a midi instead.' },
+      { name: 'Draft', from: 18.9, says: 'Then draft it, to your measurements. Your pattern, matched to the photo. Style it from here.' },
     ],
     length: '0:28',
   },
@@ -56,10 +57,10 @@ const DEMOS = {
     title: 'How fabric and the lay plan work',
     base: '/demos/fabric',
     parts: [
-      { name: 'Fabric', from: 0 },
-      { name: 'Print', from: 9.7 },
-      { name: 'Lay plan', from: 14.2 },
-      { name: 'Width', from: 21.3 },
+      { name: 'Fabric', from: 0, says: 'On Style, the Fabric tab: pick what you will sew it in.' },
+      { name: 'Print', from: 9.7, says: 'Tell us the print, so pieces line up on checks or motifs.' },
+      { name: 'Lay plan', from: 14.2, says: 'On Print, the lay plan shows every piece on your cloth.' },
+      { name: 'Width', from: 21.3, says: 'Change the fabric width, and the metres to buy change too.' },
     ],
     length: '0:34',
   },
@@ -67,10 +68,10 @@ const DEMOS = {
     title: 'How printing works',
     base: '/demos/print',
     parts: [
-      { name: 'Paper', from: 0 },
-      { name: 'Pages', from: 15.6 },
-      { name: 'Tape', from: 19.8 },
-      { name: 'Download', from: 23.6 },
+      { name: 'Paper', from: 0, says: 'Review, then Print my pattern. Pick your paper size.' },
+      { name: 'Pages', from: 15.6, says: 'Each page is numbered on the drawing, so you know where it goes.' },
+      { name: 'Tape', from: 19.8, says: 'Trim, match the half diamonds, and tape the pages together.' },
+      { name: 'Download', from: 23.6, says: 'Download the PDF and print it at 100%, not fit to page.' },
     ],
     length: '0:29',
   },
@@ -78,13 +79,13 @@ const DEMOS = {
     title: 'How projector mode works',
     base: '/demos/projector',
     parts: [
-      { name: 'Paper', from: 0 },
-      { name: 'Open', from: 12.0 },
-      { name: 'Line up', from: 14.7 },
-      { name: 'Check', from: 20.7 },
-      { name: 'Project', from: 26.8 },
-      { name: 'Turn', from: 30.3 },
-      { name: 'Pieces', from: 34.8 },
+      { name: 'Paper', from: 0, says: 'On Print, pick Projector as your paper.' },
+      { name: 'Open', from: 12.0, says: 'Projector plugged in and pointing at your mat? Open projector mode.' },
+      { name: 'Line up', from: 14.7, says: 'Drag each corner onto a corner of your cutting mat’s grid.' },
+      { name: 'Check', from: 20.7, says: 'Lay a ruler across the square. Is each side 10 cm?' },
+      { name: 'Project', from: 26.8, says: 'Each piece shows at true size. Drag it where you want it on the cloth.' },
+      { name: 'Turn', from: 30.3, says: 'Turn it, flip it, or make the lines thicker for dark cloth.' },
+      { name: 'Pieces', from: 34.8, says: 'Cut it, then go on to the next piece.' },
     ],
     length: '0:39',
   },
@@ -92,10 +93,10 @@ const DEMOS = {
     title: 'How the true size check works',
     base: '/demos/scale',
     parts: [
-      { name: 'Open it', from: 0 },
-      { name: 'Card', from: 12.0 },
-      { name: 'Measure', from: 21.1 },
-      { name: 'Seam', from: 26.9 },
+      { name: 'Open it', from: 0, says: 'On Print, under Fit it in a toile first: See a piece at true size.' },
+      { name: 'Card', from: 12.0, says: 'Hold a bank card on the screen and match the shape to it.' },
+      { name: 'Measure', from: 21.1, says: 'Now the piece is at its real size. Tap two points to measure.' },
+      { name: 'Seam', from: 26.9, says: 'Walk a seam: tap an edge to see its length.' },
     ],
     length: '0:36',
   },
@@ -103,11 +104,11 @@ const DEMOS = {
     title: 'How fitting after your toile works',
     base: '/demos/fitting',
     parts: [
-      { name: 'Open it', from: 0 },
-      { name: 'Tick', from: 12.1 },
-      { name: 'Amount', from: 14.4 },
-      { name: 'Correction', from: 18.0 },
-      { name: 'Save', from: 21.2 },
+      { name: 'Open it', from: 0, says: 'Sewn a toile and tried it on? On Print: I’ve tried on a toile.' },
+      { name: 'Tick', from: 12.1, says: 'Tick what you see, like pulling across the hips.' },
+      { name: 'Amount', from: 14.4, says: 'Set how much. The pattern is corrected the way a cutter would.' },
+      { name: 'Correction', from: 18.0, says: 'Dashed line: the pattern now. Solid: corrected, in millimetres.' },
+      { name: 'Save', from: 21.2, says: 'Save it as version 2, and print the corrected pattern.' },
     ],
     length: '0:28',
   },
@@ -158,9 +159,18 @@ function DemoPlayer({ demo, onClose }: { demo: Demo; onClose: () => void }) {
         <span className="tour-tag">
           {demo.title} · {parts[part].name}
         </span>
-        <button ref={close} type="button" className="tour-skip" onClick={onClose}>
-          Close ✕
-        </button>
+        <span className="tour-acts">
+          <FilmWords
+            id="demo-words"
+            parts={parts}
+            onPart={(from) => {
+              if (video.current) video.current.currentTime = from;
+            }}
+          />
+          <button ref={close} type="button" className="tour-skip" onClick={onClose}>
+            Close ✕
+          </button>
+        </span>
       </div>
       <video
         ref={video}
@@ -172,7 +182,9 @@ function DemoPlayer({ demo, onClose }: { demo: Demo; onClose: () => void }) {
         preload="auto"
         onLoadedMetadata={(e) => Number.isFinite(e.currentTarget.duration) && setLength(e.currentTarget.duration)}
         onTimeUpdate={(e) => setAt(e.currentTarget.currentTime)}
-        onEnded={onClose}
+        aria-describedby="demo-words"
+        // It stays open at the end, the focus on Close (the accessibility review, 2026-10-30).
+        onEnded={() => close.current?.focus()}
       >
         <source src={`${demo.base}.mp4`} type='video/mp4; codecs="avc1.640032"' />
         <source src={`${demo.base}.webm`} type='video/webm; codecs="vp9"' />
