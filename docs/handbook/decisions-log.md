@@ -11,6 +11,8 @@ something that changes how a department works. Design picks for single screens s
 - **Oct 30** First Measure page: C form + C layout, string tied at the waist, CM / IN shown once (#230).
 - **Oct 30** Form finish: M2 matte jersey form + C1 crisp plain cloth (#231).
 - **Oct 30** Photo screens get the P2 champagne Polaroid frame (#232).
+- **Oct 30** Collection preview cut to **four** pieces: the Long Coat is dropped (hardest, costliest); reveal Feb 11 =
+  skirt, shirt, slip, trousers.
 - **Oct 30** Season one on social is the **SS27 Collection Preview** (was "the wardrobe story"): Cat sews
   five pieces chosen from the SS27 looks only: shirt = Parma Shirt (01), slip dress = Aqua Slip (02),
   trousers = Red Trouser (04), coat = Long Coat (10); skirt = Sheer Sash Skirt (09). Nothing new is designed: the
