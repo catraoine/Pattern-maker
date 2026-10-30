@@ -884,8 +884,8 @@ const WRAP_FROM = 0.55;
 const startsAtWaist = (t: Tape) => (t.kind === 'side' || t.kind === 'back' || t.kind === 'front') && (t.from === 0.1 || t.to === 0.1);
 
 /** The string tied round the waist: a thin ring, its back half faint, with a small bow at the front. */
-function paintWaistString(g: CanvasRenderingContext2D, S: number, cx: number, Y: (y: number) => number, lw: number) {
-  const r = R(0.1) * S + lw;
+function paintWaistString(g: CanvasRenderingContext2D, S: number, cx: number, Y: (y: number) => number, lw: number, at = R(0.1)) {
+  const r = at * S + lw;
   const wy = Y(0.1);
   g.save();
   g.strokeStyle = CHAMPAGNE;
@@ -1123,21 +1123,13 @@ export function TapeDemo({ id, mode = 'play', kind, replay = 0, carried = false 
   return <canvas ref={ref} className="contour" aria-hidden="true" />;
 }
 
-/** The three girths the first pages take, as dotted lines round the front of the form, each named to the right on a
- *  short rule (Cat's C Tape Lines, 2026-10-30): the page says what's about to be measured before Begin. */
+/** The three girths the first pages take, round the front of the form (Cat's C Tape Lines + T1, 2026-10-30): the waist
+ *  as the string tied round it, the first measure and where the lengths start from, marked CM / IN once on a short rule
+ *  to its right; the bust and hip as dotted lines. */
 function paintTapeLines(g: CanvasRenderingContext2D, S: number, cx: number, Y: (y: number) => number, lw: number, kind: FormKind) {
-  const rings = (['full_bust', 'waist', 'full_hip'] as const).map((id) => {
-    const y = labelLevel(id, kind) ?? ON_FORM[id]!;
-    // Each line is named by its units, not the measurement (Cat, 2026-10-30): the next pages say which is which.
-    return { name: 'cm / in', y, r: R(y) };
-  });
-  g.font = `600 10px ${getComputedStyle(document.documentElement).getPropertyValue('--mono') || 'monospace'}`;
-  g.textBaseline = 'middle';
-  if ('letterSpacing' in g) g.letterSpacing = '2px';
-  // The names line up in one column just clear of the widest girth, kept inside the canvas.
-  const widest = Math.max(...rings.map((k) => g.measureText(k.name.toUpperCase()).width));
-  const labelX = Math.min(cx + Math.max(...rings.map((k) => k.r)) * S + 28, g.canvas.clientWidth - widest - 4);
-  for (const { name, y, r } of rings) {
+  const at = (id: 'full_bust' | 'waist' | 'full_hip') => labelLevel(id, kind) ?? ON_FORM[id]!;
+  for (const y of [at('full_bust'), at('full_hip')]) {
+    const r = R(y);
     const pts = Array.from({ length: 41 }, (_, i): Pt => {
       const th = (Math.PI * i) / 40;
       return [cx - Math.cos(th) * r * S, Y(y) + Math.sin(th) * r * S * DEPTH];
@@ -1148,18 +1140,27 @@ function paintTapeLines(g: CanvasRenderingContext2D, S: number, cx: number, Y: (
     g.setLineDash([2, 3]);
     path(g, pts);
     g.setLineDash([]);
-    g.globalAlpha = 0.6;
-    g.lineWidth = 0.8;
-    stroke(g, [cx + r * S + 8, Y(y)], [labelX - 6, Y(y)]);
-    g.globalAlpha = 1;
-    g.fillStyle = INK;
-    g.fillText(name.toUpperCase(), labelX, Y(y));
   }
+  const wy = at('waist');
+  const r = R(wy);
+  paintWaistString(g, S, cx, (y: number) => Y(wy) + (y - 0.1) * S, lw, r);
+  const name = 'CM / IN';
+  g.font = `600 10px ${getComputedStyle(document.documentElement).getPropertyValue('--mono') || 'monospace'}`;
+  g.textBaseline = 'middle';
+  if ('letterSpacing' in g) g.letterSpacing = '2px';
+  // Just clear of the widest girth, kept inside the canvas.
+  const widest = Math.max(R(at('full_bust')), r, R(at('full_hip')));
+  const labelX = Math.min(cx + widest * S + 28, g.canvas.clientWidth - g.measureText(name).width - 4);
+  g.globalAlpha = 0.6;
+  g.lineWidth = 0.8;
+  stroke(g, [cx + r * S + 8, Y(wy)], [labelX - 6, Y(wy)]);
   g.globalAlpha = 1;
+  g.fillStyle = INK;
+  g.fillText(name, labelX, Y(wy));
 }
 
-/** One form at rest, small, for choosing which form to draft on. `tapes` dims its lines and marks the bust, waist and
- *  hip, for the first measuring page. */
+/** One form at rest, small, for choosing which form to draft on. `tapes` dims its lines and marks the bust, the waist
+ *  string and the hip, for the first measuring page. */
 export function FormPicture({ kind, tapes = false }: { kind: FormKind; tapes?: boolean }) {
   const ref = useCanvas(
     (g, w, h) => {
