@@ -13,6 +13,12 @@ const ALL: [string, GarmentName, string, string[]][] = [
   ['dress-shift', 'Dress', '', ['Skirt & length:Cut:Shift', 'Skirt & length:Length:Knee', 'Neck & sleeves:Neckline:Boat', 'Neck & sleeves:Sleeves:Long']],
   ['dress-maxi', 'Dress', '', ['Skirt & length:Cut:Waist seam', 'Skirt & length:Skirt:Gathered', 'Skirt & length:Length:Maxi', 'Neck & sleeves:Neckline:Square', 'Neck & sleeves:Sleeves:Sleeveless']],
   ['coat-belted', 'Coat', 'Shape', []],
+  ['fun-blazer', 'Jacket', '', ['Shape:Length:Cropped', 'Shape:Fit:Fitted']],
+  ['fun-mini-skirt', 'Skirt', '', ['Shape:Silhouette:A-line', 'Shape:Length:Mini']],
+  ['fun-one-shoulder', 'Dress', '', ['Neck & sleeves:Sleeves:Sleeveless', 'Neck & sleeves:Neckline:One-shoulder', 'Skirt & length:Cut:Waist seam', 'Skirt & length:Skirt:Full circle', 'Skirt & length:Length:Mini']],
+  ['fun-halter', 'Dress', '', ['Skirt & length:Skirt:Straight', 'Skirt & length:Cut:Sheath', 'Skirt & length:Length:Mini', 'Neck & sleeves:Neckline:Halter']],
+  ['fun-slip', 'Dress', '', ['Skirt & length:Cut:Waist seam', 'Skirt & length:Skirt:Trumpet', 'Skirt & length:Length:Above knee', 'Neck & sleeves:Neckline:Cowl']],
+  ['fun-puff', 'Dress', '', ['Skirt & length:Skirt:Gathered', 'Skirt & length:Length:Mini', 'Neck & sleeves:Neckline:Square', 'Neck & sleeves:Sleeves:Short']],
   ['dress', 'Dress', 'Neck & sleeves', ['Crew', 'Short']],
   ['dress-boat', 'Dress', 'Neck & sleeves', ['Boat', 'Short']],
   ['dress-sleeveless', 'Dress', 'Neck & sleeves', ['Scoop', 'Sleeveless']],
@@ -48,12 +54,19 @@ test('body stills', async ({ page, consoleErrors }, info) => {
     if (g !== current) await switchGarment(page, g);
     current = g;
     await page.evaluate((on) => Object.assign(window, { __mockBelt: on }), key === 'coat-belted');
+    // The length marks stand beside the Form view, not All round.
+    const formView = main.getByRole('group', { name: 'Garment view' }).getByRole('button', { name: 'Form', exact: true });
+    if (await formView.count()) await formView.click();
     for (const pickName of picks) {
       const [tb, grp, name] = pickName.includes(':') ? pickName.split(':') : [tab, '', pickName];
       const t = main.getByRole('tab', { name: tb, exact: true });
       if (await t.count()) await t.click();
       const b = main.locator(grp ? `fieldset[data-label="${grp}"] button[aria-pressed]` : 'button[aria-pressed]').filter({ hasText: new RegExp(`^\\s*${name}\\b`) }).first();
-      if (grp === 'Length') await page.evaluate((n) => [...document.querySelectorAll('main .hem-mark')].find((m) => m.textContent?.trim().toUpperCase() === n.toUpperCase())?.querySelector('.hit')?.dispatchEvent(new MouseEvent('click', { bubbles: true })), name);
+      if (grp === 'Length' && !(await b.count())) {
+        const marks = await page.evaluate(() => [...document.querySelectorAll('main .hem-mark')].map((m) => m.textContent?.trim() ?? ''));
+        if (process.env.DEBUG_PICKS) console.log('MARKS', key, name, marks);
+        await page.evaluate((n) => [...document.querySelectorAll('main .hem-mark')].find((m) => m.textContent?.trim().toUpperCase() === n.toUpperCase())?.querySelector('.hit')?.dispatchEvent(new MouseEvent('click', { bubbles: true })), name);
+      }
       else if (await b.count()) await b.evaluate((el) => (el as HTMLElement).click());
       else if (process.env.DEBUG_PICKS) console.log('MISSING', key, pickName, await main.locator('fieldset[data-label]').evaluateAll((fs) => fs.map((f) => f.getAttribute('data-label') + ': ' + [...f.querySelectorAll('button[aria-pressed]')].map((x) => x.textContent?.trim().slice(0, 20)).join(' | '))));
       await page.waitForTimeout(250);
