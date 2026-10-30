@@ -17,6 +17,12 @@ const ALL: [string, GarmentName, string, string[]][] = [
   ['mom-jacket', 'Jacket', '', ['Shape:Length:Cropped', 'Shape:Fit:Fitted', 'Shape:Collar:Collarless', 'Shape:Sleeves:Straight', 'Shape:Hem and cuffs:Rib bands', 'Shape:Pockets:None', 'Shape:Shoulder pads:None']],
   ['mom-top', 'Bodice', '', ['Neck & sleeves:Neckline:Scoop', 'Neck & sleeves:Sleeves:Elbow', 'Neck & sleeves:Sleeve shape:Straight', 'Shape:Length:Waist']],
   ['mom-shorts', 'Trousers', '', ['Shape:Length:Shorts', 'Shape:Fit:Fitted']],
+  ['el-slip', 'Dress', '', ['Neck & sleeves:Sleeves:Sleeveless', 'Neck & sleeves:Neckline:Cami straps', 'Skirt & length:Skirt:Straight', 'Skirt & length:Cut:Sheath', 'Skirt & length:Length:Maxi']],
+  ['el-column', 'Dress', '', ['Neck & sleeves:Sleeves:Sleeveless', 'Neck & sleeves:Neckline:Boat', 'Skirt & length:Skirt:Straight', 'Skirt & length:Cut:Sheath', 'Skirt & length:Length:Maxi']],
+  ['el-halfcircle', 'Dress', '', ['Neck & sleeves:Neckline:V-neck', 'Neck & sleeves:Sleeves:Long', 'Skirt & length:Cut:Waist seam', 'Skirt & length:Skirt:Half circle', 'Skirt & length:Length:Midi']],
+  ['el-gown', 'Dress', '', ['Neck & sleeves:Sleeves:Sleeveless', 'Neck & sleeves:Neckline:Sweetheart', 'Skirt & length:Cut:Waist seam', 'Skirt & length:Skirt:Full circle', 'Skirt & length:Length:Maxi']],
+  ['el-halter', 'Dress', '', ['Neck & sleeves:Sleeves:Sleeveless', 'Neck & sleeves:Neckline:Halter', 'Skirt & length:Cut:Waist seam', 'Skirt & length:Skirt:Trumpet', 'Skirt & length:Length:Maxi']],
+  ['el-empire', 'Dress', '', ['Neck & sleeves:Neckline:V-neck', 'Neck & sleeves:Sleeves:Sleeveless', 'Skirt & length:Cut:Waist seam', 'Shape:Waist seam:Empire', 'Skirt & length:Skirt:A-line', 'Skirt & length:Length:Maxi']],
   ['fun-blazer', 'Jacket', '', ['Shape:Length:Cropped', 'Shape:Fit:Fitted']],
   ['fun-mini-skirt', 'Skirt', '', ['Shape:Silhouette:A-line', 'Shape:Length:Mini']],
   ['fun-one-shoulder', 'Dress', '', ['Neck & sleeves:Sleeves:Sleeveless', 'Neck & sleeves:Neckline:One-shoulder', 'Skirt & length:Cut:Waist seam', 'Skirt & length:Skirt:Full circle', 'Skirt & length:Length:Mini']],
@@ -86,12 +92,14 @@ test('body stills', async ({ page, consoleErrors }, info) => {
         // The length is the hem dot on the drawing: stepped with the arrow keys to the named length.
         const dot = main.locator('[role=slider][aria-label$="length"]').first();
         if (await dot.count()) {
+          // To the longest, then back up until the named length.
+          await dot.focus();
+          for (let n = 0; n < 8; n++) await page.keyboard.press('ArrowDown');
+          await page.waitForTimeout(400);
           for (let n = 0; n < 8 && ((await dot.getAttribute('aria-valuetext')) ?? '').toLowerCase() !== name.toLowerCase(); n++) {
-            const now = Number(await dot.getAttribute('aria-valuenow'));
-            const want = await page.evaluate((nm) => nm, name);
             await dot.focus();
-            await page.keyboard.press(['mini', 'shorts', 'above knee', 'cropped'].includes(want.toLowerCase()) || now > 3 ? 'ArrowUp' : 'ArrowDown');
-            await page.waitForTimeout(300);
+            await page.keyboard.press('ArrowUp');
+            await page.waitForTimeout(400);
           }
         } else if (process.env.DEBUG_PICKS) console.log('NO LENGTH DOT', key);
       }
