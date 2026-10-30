@@ -41,4 +41,6 @@ test('sleeves: any length on the slider, cap and flutter', async ({ page }, info
   const dressSlider = (await openGroup(page, 'Sleeves')).getByRole('slider', { name: 'Sleeve length, in cm from the shoulder' });
   await dressSlider.fill('40');
   await expect((await openGroup(page, 'Sleeves')).getByText(/^40 cm from the shoulder\./)).toBeVisible();
+  // With no chip picked, the phone's tag of picks reads the slider's length, not a blank.
+  if (info.project.name === 'phone') await expect(page.locator('.spec-tag div').filter({ has: page.locator('dt', { hasText: /^Sleeves$/ }) }).locator('dd')).toHaveText('40 cm');
 });

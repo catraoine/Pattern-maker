@@ -128,8 +128,7 @@ export function Group({ label, tab, children, className }: { label: string; tab?
   // eslint-disable-next-line react-hooks/exhaustive-deps -- reads the page after every render; the check stops a loop
   useLayoutEffect(() => {
     const el = ref.current;
-    const on = el?.querySelector<HTMLElement>('.chips [aria-pressed="true"]') ?? el?.querySelector<HTMLElement>('[aria-pressed="true"]');
-    const text = (on?.textContent ?? '').replace(/\s+/g, ' ').trim();
+    const text = el ? pickIn(el) : '';
     if (text !== pick) setPick(text);
   });
   const folds = !!fold && !solo && t !== PRO;
@@ -186,6 +185,17 @@ export function InCorner({ children }: { children: ReactNode }) {
 }
 
 /** The tag's names for the questions, where the question's own is longer than the tag has room for. */
+/**
+ * The picked choice's name in a question: a picked chip, or any pressed button when there are none.
+ * A length set on a slider between the named ones presses no chip, so it reads as the slider's cm.
+ */
+function pickIn(el: HTMLElement): string {
+  const on = el.querySelector<HTMLElement>('.chips [aria-pressed="true"]') ?? el.querySelector<HTMLElement>('[aria-pressed="true"]');
+  if (on) return (on.textContent ?? '').replace(/\s+/g, ' ').trim();
+  const slider = el.querySelector<HTMLInputElement>('input[type="range"][aria-label*="in cm"]');
+  return slider ? `${slider.value} cm` : '';
+}
+
 const TAG_NAMES: Record<string, string> = { 'Waist seam': 'Waist', Neckline: 'Neck', 'Sleeve shape': 'Sleeve', 'Your knit’s stretch': 'Stretch' };
 /** Tailor's words the tag leaves to the step itself, so its lines name what changes the look. */
 const TAG_SKIP = ['Cut', 'Darts', 'Structure', 'Bust dart from', 'Princess seams', 'Shaping'];
@@ -437,9 +447,8 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
       .slice(0, TAG_LINES)
       .sort((a, b) => a.i - b.i || a.j - b.j);
     const lines = picked.map(({ el, i }) => {
-      const on = el.querySelector<HTMLElement>('.fold-body .chips [aria-pressed="true"]') ?? el.querySelector<HTMLElement>('.fold-body [aria-pressed="true"]');
       const name = el.dataset.label!;
-      return { label: TAG_NAMES[name] ?? name, pick: (on?.textContent ?? '').replace(/\s+/g, ' ').trim(), mine: i < at || mine.includes(name) };
+      return { label: TAG_NAMES[name] ?? name, pick: pickIn(el.querySelector<HTMLElement>('.fold-body') ?? el), mine: i < at || mine.includes(name) };
     });
     if (JSON.stringify(lines) !== JSON.stringify(tag)) setTag(lines);
   });
