@@ -22,4 +22,6 @@ Rules:
 - Mood bans coupon and cashback sites. Skip sewing-class sites and coupon sites generally.
 - Cart Ready (shop fabric in the app) uses each shop's own checkout; no money, tax or refunds pass
   through Maison Tracé.
-- Payouts go to the Maison Tracé chequing account (see finance page).
+- Payouts (Amazon Associates, Awin, CJ) go to the Maison Tracé chequing account, confirmed by Cat Oct 30.
+- CJ: one publisher account only. Its company ID is the one in CJ's own account emails to hello@
+  (Oct 26). An older note with a different number was wrong.

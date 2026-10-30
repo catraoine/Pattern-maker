@@ -5,6 +5,9 @@ something that changes how a department works. Design picks for single screens s
 
 ## October 2026
 
+- **Oct 30** Waitlist kill rule: under 1,000 sign-ups by **Feb 11, 2027** ends stage 2 (Jan 25 is only the ~830 checkpoint).
+- **Oct 30** All affiliate payouts, Amazon included, go to the Maison Tracé chequing.
+- **Oct 30** The measuring film is filmed at the Nov 8 shoot with Evan.
 - **Oct 30** First Measure page: C form + C layout, string tied at the waist, CM / IN shown once (#230).
 - **Oct 30** Form finish: M2 matte jersey form + C1 crisp plain cloth (#231).
 - **Oct 30** Photo screens get the P2 champagne Polaroid frame (#232).

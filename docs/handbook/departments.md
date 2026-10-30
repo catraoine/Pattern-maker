@@ -13,7 +13,7 @@ handoff, and this table is updated.
 | Accessibility | Accessibility reviews (A1 to A7 waiting on apply) | Screens in project files `accessibility/` |
 | QA: Devices | Device and browser checks | — |
 | Media: Demo videos | How it works films, Watch demo clips, re-records after visual changes | Film rules in project memory |
-| Media: Measuring video | "Mastering measuring" film (option C picked) | Mastering measuring doc |
+| Media: Measuring video | "Mastering measuring" film (option C picked; films at the Nov 8 shoot) | Mastering measuring doc |
 | Media: All Round intro | Film opening | — |
 | Design: The Collection | Seasonal collections (SS27), drops path, open calls | Collection calendar, drop path doc |
 | Design: The Wardrobe Story | Cat's own capsule pieces | Capsule doc |

@@ -44,13 +44,17 @@ community limits, the trademark choice, pricing, the Base/Target plan cases, the
 | Evan's start | Hours and agreement from Nov 2 (team, tax reminders) | Available only after Nov 6 (Oct 27) |
 | Release cadence | "Bundled, 2 to 3 a week" | In practice almost daily (Releases 37 to 42 in three days) |
 
-## Needs Cat to confirm
+## Confirmed by Cat (Oct 30)
 
-- **Waitlist kill rule date:** the plan says under 1,000 sign-ups by **Jan 25** ends stage 2; the
-  social "Waitlist to 1,000" plan targets 1,000 by **Feb 11** with ~830 on Jan 25. Which is the rule?
-- **Amazon Associates payout account:** one record says personal chequing, the Affiliates thread says
-  the Maison Tracé chequing.
-- **CJ account number:** two different CIDs are recorded (Oct 26 vs Oct 28). Check which is live.
+- **Waitlist kill rule date:** Feb 11, 2027. Jan 25 stays only as the ~830 checkpoint.
+- **Amazon Associates payout account:** the Maison Tracé chequing (update it in Associates if it still
+  shows the personal account).
+- **CJ account number:** CJ's own account emails (Oct 26) name one company ID; the other number in
+  memory was a mistake. One account only.
+- **Measuring film:** films at the Nov 8 shoot.
+
+## Still open
+
 - **To-do list:** two different links are in use for "Cat's to-do list". Check they're the same doc.
 - **Evan's one-page note:** due "before Nov 2"; no record it's signed (Nov 1 reminder is set).
 - **Netlify credits:** nobody has checked the monthly credit use since the Friday digest was paused,
@@ -58,8 +62,8 @@ community limits, the trademark choice, pricing, the Base/Target plan cases, the
 
 ## Waiting and at risk of being forgotten
 
-- **Mastering measuring film:** picked option C on Oct 26, then waiting on Cat's OK of the script and
-  a filming date with Evan. Nothing since. Could share Shoot 1 on Nov 8.
+- **Mastering measuring film:** option C, films at Shoot 1 on Nov 8 (confirmed Oct 30). The Media:
+  Measuring video thread still needs to prep the shot list for that day.
 - **maisontrace.com offer:** ~US$400 sent Oct 20; no reply recorded.
 - **Taste brief** questions Q2 to Q5 still open since Oct 19.
 - **Drop schedule** open decisions (who wears Drop 02, Thursday drop day, stage 4 fabric line).

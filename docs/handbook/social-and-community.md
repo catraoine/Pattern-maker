@@ -24,7 +24,7 @@ a little at the start of the season only. No AI people.
 - Pieces (C1+ adjusted): A-line elastic-waist midi skirt in ivory wool crepe (no polyester), shirt,
   burgundy bias slip dress, wide trousers, statement coat. The Sewing Lead sews each piece to her own
   body as the fit check.
-- Shoot 1: Sun Nov 8 (Nov 7 backup), ~3 hours at home, Evan filming. Episode 01 out Thu Nov 19.
+- Shoot 1: Sun Nov 8 (Nov 7 backup), ~3 hours at home, Evan filming. Episode 01 out Thu Nov 19. The "mastering measuring" film close-ups are shot the same day.
   Finale on launch night, Thu Feb 11. Same plain dark outfit for solo and Evan shots.
 - Social launch Mon Nov 2 (Cat films week-one posts solo on her phone).
 
@@ -51,4 +51,5 @@ only IG + FB after Nov 2, ask weekly "what worked and why", paste to Claude; no 
 ## Targets
 
 1,000 waitlist sign-ups by Feb 11 (checkpoint ~830 on Jan 25). The plan's firm kill rule: under
-1,000 by Jan 25, 2027 ends stage 2. These two dates disagree; see the memory audit.
+1,000 by **Feb 11, 2027** (launch day) ends stage 2. Cat confirmed Feb 11 on Oct 30; the old Jan 25
+date is now only the ~830 checkpoint.
