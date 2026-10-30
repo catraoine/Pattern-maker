@@ -1,5 +1,4 @@
 import { GarmentName, expect, startWithExample, switchGarment, test } from './fixtures';
-import { writeFileSync } from 'node:fs';
 
 // Stills of All round at exact angles, for checking a body change by eye (not a CI test).
 // BODY_STILLS=<folder> [BODY_LOOKS=dress,tee,...] [FILM=1] [LINES=1] [FORM=1] [ROUND2D=1 for the canvas painter] npx playwright test -c e2e body-stills --project=phone
@@ -7,30 +6,6 @@ const OUT = process.env.BODY_STILLS;
 test.skip(!OUT, 'Set BODY_STILLS to a folder to take the stills');
 
 const ALL: [string, GarmentName, string, string[]][] = [
-  ['dress-default', 'Dress', 'Neck & sleeves', []],
-  // Tab:Group:Name picks, for looks across tabs.
-  ['dress-sheath', 'Dress', '', ['Skirt & length:Cut:Sheath', 'Skirt & length:Length:Midi', 'Neck & sleeves:Sleeves:Short']],
-  ['dress-circle', 'Dress', '', ['Skirt & length:Cut:Waist seam', 'Skirt & length:Skirt:Full circle', 'Skirt & length:Length:Midi', 'Neck & sleeves:Neckline:Sweetheart', 'Neck & sleeves:Sleeves:Sleeveless']],
-  ['dress-shift', 'Dress', '', ['Skirt & length:Cut:Shift', 'Skirt & length:Length:Knee', 'Neck & sleeves:Neckline:Boat', 'Neck & sleeves:Sleeves:Long']],
-  ['dress-maxi', 'Dress', '', ['Skirt & length:Cut:Waist seam', 'Skirt & length:Skirt:Gathered', 'Skirt & length:Length:Maxi', 'Neck & sleeves:Neckline:Square', 'Neck & sleeves:Sleeves:Sleeveless']],
-  ['coat-belted', 'Coat', 'Shape', []],
-  ['mom-jacket', 'Jacket', '', ['Shape:Length:Cropped', 'Shape:Fit:Fitted', 'Shape:Collar:Collarless', 'Shape:Sleeves:Straight', 'Shape:Hem and cuffs:Rib bands', 'Shape:Pockets:None', 'Shape:Shoulder pads:None']],
-  ['mom-top', 'Bodice', '', ['Neck & sleeves:Neckline:Scoop', 'Neck & sleeves:Sleeves:Elbow', 'Neck & sleeves:Sleeve shape:Straight', 'Shape:Length:Waist']],
-  ['mom-shorts', 'Trousers', '', ['Shape:Length:Shorts', 'Shape:Fit:Fitted']],
-  ['el-slip', 'Dress', '', ['Neck & sleeves:Sleeves:Sleeveless', 'Neck & sleeves:Neckline:Cami straps', 'Skirt & length:Skirt:Straight', 'Skirt & length:Cut:Sheath', 'Skirt & length:Length:Maxi']],
-  ['el-column', 'Dress', '', ['Neck & sleeves:Sleeves:Sleeveless', 'Neck & sleeves:Neckline:Boat', 'Skirt & length:Skirt:Straight', 'Skirt & length:Cut:Sheath', 'Skirt & length:Length:Maxi']],
-  ['el-halfcircle', 'Dress', '', ['Neck & sleeves:Neckline:V-neck', 'Neck & sleeves:Sleeves:Long', 'Skirt & length:Cut:Waist seam', 'Skirt & length:Skirt:Half circle', 'Skirt & length:Length:Midi']],
-  ['el-gown', 'Dress', '', ['Neck & sleeves:Sleeves:Sleeveless', 'Neck & sleeves:Neckline:Sweetheart', 'Skirt & length:Cut:Waist seam', 'Skirt & length:Skirt:Full circle', 'Skirt & length:Length:Maxi']],
-  ['el-halter', 'Dress', '', ['Neck & sleeves:Sleeves:Sleeveless', 'Neck & sleeves:Neckline:Halter', 'Skirt & length:Cut:Waist seam', 'Skirt & length:Skirt:Trumpet', 'Skirt & length:Length:Maxi']],
-  ['el-empire', 'Dress', '', ['Neck & sleeves:Neckline:V-neck', 'Neck & sleeves:Sleeves:Sleeveless', 'Skirt & length:Cut:Waist seam', 'Shape:Waist seam:Empire', 'Skirt & length:Skirt:A-line', 'Skirt & length:Length:Maxi']],
-  ['el-trumpet', 'Dress', '', ['Neck & sleeves:Sleeves:Sleeveless', 'Neck & sleeves:Neckline:Square', 'Skirt & length:Cut:Waist seam', 'Skirt & length:Skirt:Trumpet', 'Skirt & length:Length:Maxi']],
-  ['el-highlow', 'Dress', '', ['Neck & sleeves:Neckline:Boat', 'Neck & sleeves:Sleeves:Elbow', 'Skirt & length:Cut:Waist seam', 'Skirt & length:Skirt:Half circle', 'Skirt & length:Length:Midi', 'Skirt & length:Hem:High-low']],
-  ['fun-blazer', 'Jacket', '', ['Shape:Length:Cropped', 'Shape:Fit:Fitted']],
-  ['fun-mini-skirt', 'Skirt', '', ['Shape:Silhouette:A-line', 'Shape:Length:Mini']],
-  ['fun-one-shoulder', 'Dress', '', ['Neck & sleeves:Sleeves:Sleeveless', 'Neck & sleeves:Neckline:One-shoulder', 'Skirt & length:Cut:Waist seam', 'Skirt & length:Skirt:Full circle', 'Skirt & length:Length:Mini']],
-  ['fun-halter', 'Dress', '', ['Skirt & length:Skirt:Straight', 'Skirt & length:Cut:Sheath', 'Skirt & length:Length:Mini', 'Neck & sleeves:Neckline:Halter']],
-  ['fun-slip', 'Dress', '', ['Skirt & length:Cut:Waist seam', 'Skirt & length:Skirt:Trumpet', 'Skirt & length:Length:Above knee', 'Neck & sleeves:Neckline:Cowl']],
-  ['fun-puff', 'Dress', '', ['Skirt & length:Skirt:Gathered', 'Skirt & length:Length:Mini', 'Neck & sleeves:Neckline:Square', 'Neck & sleeves:Sleeves:Short']],
   ['dress', 'Dress', 'Neck & sleeves', ['Crew', 'Short']],
   ['dress-boat', 'Dress', 'Neck & sleeves', ['Boat', 'Short']],
   ['dress-sleeveless', 'Dress', 'Neck & sleeves', ['Scoop', 'Sleeveless']],
@@ -54,9 +29,7 @@ test('body stills', async ({ page, consoleErrors }, info) => {
   consoleErrors.allow(/.*/);
   test.setTimeout(1_500_000);
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  if (process.env.FRAME_FLOOR) await page.addInitScript(() => Object.assign(window, { __frameFloor: true }));
-  if (process.env.OLD) await page.addInitScript((look) => Object.assign(window, { __tourFilm: 'old', __openerLook: look || undefined }), process.env.OLD_LOOK ?? '');
-  else if (process.env.FILM) await page.addInitScript(() => ((window as unknown as { __tourFilm: boolean }).__tourFilm = true));
+  if (process.env.FILM) await page.addInitScript(() => ((window as unknown as { __tourFilm: boolean }).__tourFilm = true));
   // SWAY=0.8 tries a share of the back's hollow filled in (engine/body.ts SWAY_FILL).
   if (process.env.SWAY) await page.addInitScript((v) => ((globalThis as { __swayFill?: number }).__swayFill = v), Number(process.env.SWAY));
   if (process.env.ROUND2D) await page.addInitScript(() => ((window as unknown as { __round2d: boolean }).__round2d = true));
@@ -64,49 +37,13 @@ test('body stills', async ({ page, consoleErrors }, info) => {
   const main = page.getByRole('main');
   let current: GarmentName = 'Skirt';
   for (const [key, g, tab, picks] of LOOKS) {
-    if (key === 'mom-shorts') {
-      // Shorts are set on the length marks, which need the leg measurements the example doesn't ask for.
-      await page.evaluate(() => {
-        const k = 'pattern-maker:account';
-        const a = JSON.parse(localStorage.getItem(k) ?? '{}');
-        for (const person of a.people ?? []) Object.assign(person.values, { waist_to_knee: 58, crotch_depth: 27 });
-        localStorage.setItem(k, JSON.stringify(a));
-      });
-      await page.reload();
-      await page.waitForTimeout(2500);
-      const carryOn = page.getByRole('button', { name: /^Carry on with your/ });
-      if (await carryOn.count()) await carryOn.first().click();
-      await page.waitForTimeout(1500);
-      current = '' as GarmentName;
-    }
     if (g !== current) await switchGarment(page, g);
     current = g;
-    await page.evaluate((on) => Object.assign(window, { __mockBelt: on }), key === 'coat-belted');
-    // The length marks stand beside the Form view, not All round.
-    const formView = main.getByRole('group', { name: 'Garment view' }).getByRole('button', { name: 'Form', exact: true });
-    if (await formView.count()) await formView.click();
-    for (const pickName of picks) {
-      const [tb, grp, name] = pickName.includes(':') ? pickName.split(':') : [tab, '', pickName];
-      const t = main.getByRole('tab', { name: tb, exact: true });
+    for (const name of picks) {
+      const t = main.getByRole('tab', { name: tab, exact: true });
       if (await t.count()) await t.click();
-      const b = main.locator(grp ? `fieldset[data-label="${grp}"] button[aria-pressed]` : 'button[aria-pressed]').filter({ hasText: new RegExp(`^\\s*${name}\\b`) }).first();
-      if (grp === 'Length' && !(await b.count())) {
-        // The length is the hem dot on the drawing: stepped with the arrow keys to the named length.
-        const dot = main.locator('[role=slider][aria-label$="length"]').first();
-        if (await dot.count()) {
-          // To the longest, then back up until the named length.
-          await dot.focus();
-          for (let n = 0; n < 8; n++) await page.keyboard.press('ArrowDown');
-          await page.waitForTimeout(400);
-          for (let n = 0; n < 8 && ((await dot.getAttribute('aria-valuetext')) ?? '').toLowerCase() !== name.toLowerCase(); n++) {
-            await dot.focus();
-            await page.keyboard.press('ArrowUp');
-            await page.waitForTimeout(400);
-          }
-        } else if (process.env.DEBUG_PICKS) console.log('NO LENGTH DOT', key);
-      }
-      else if (await b.count()) await b.evaluate((el) => (el as HTMLElement).click());
-      else if (process.env.DEBUG_PICKS) console.log('MISSING', key, pickName, await main.locator('fieldset[data-label]').evaluateAll((fs) => fs.map((f) => f.getAttribute('data-label') + ': ' + [...f.querySelectorAll('button[aria-pressed]')].map((x) => x.textContent?.trim().slice(0, 20)).join(' | '))));
+      const b = main.locator('button[aria-pressed]').filter({ hasText: new RegExp(`^\\s*${name}\\b`) }).first();
+      if (await b.count()) await b.evaluate((el) => (el as HTMLElement).click());
       await page.waitForTimeout(250);
     }
     if (!process.env.LINES) {
@@ -154,7 +91,6 @@ test('body stills', async ({ page, consoleErrors }, info) => {
       await cv.evaluate((el, at) => el.dispatchEvent(new CustomEvent('allround-turn', { detail: { at, probe: false } })), ANGLES[k]);
       await page.waitForTimeout(150);
       await cv.screenshot({ path: `${OUT}/${info.project.name}/${key}/${k}.png` });
-      if (process.env.FRAME_FLOOR) writeFileSync(`${OUT}/${info.project.name}/${key}/${k}.json`, (await cv.getAttribute("data-frame")) ?? "");
     }
     if (process.env.ENLARGE) {
       const small = main.getByRole('button', { name: /^Make the drawing .* smaller$/ });
