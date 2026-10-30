@@ -11,6 +11,11 @@ phone, in short bursts, often by voice dictation. Everything here is a standing 
 - **Cat reviews every pick herself** (Oct 29). Always recommend, but never build on "Claude's pick"
   without her word, and don't suggest skipping her review: looking at each sheet is how she spots
   other problems.
+- **Label every mock-up on the image itself** (Oct 30, every department). Each picture carries, in
+  large readable type: the option code and name ("S4 · Garment view"), the screen (Style, Print,
+  Measure), the device and size, and "NOW" on today's version. Add a one-line "what changes" caption
+  per option, and use the same codes in the message and the decision card. Show every step Cat would
+  need to judge it (how you get to the next step, not just the hero screen).
 - **Card taps are often accidental.** Echo a decision-card pick in one line before building; a
   typed message always beats a tap.
 - **Heads-up before a likely mistake.** If she asks for something that looks wrong, especially
