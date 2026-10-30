@@ -1128,7 +1128,8 @@ export function TapeDemo({ id, mode = 'play', kind, replay = 0, carried = false 
 function paintTapeLines(g: CanvasRenderingContext2D, S: number, cx: number, Y: (y: number) => number, lw: number, kind: FormKind) {
   const rings = (['full_bust', 'waist', 'full_hip'] as const).map((id) => {
     const y = labelLevel(id, kind) ?? ON_FORM[id]!;
-    return { name: id === 'full_bust' ? (kind === 'menswear' ? 'Chest' : 'Bust') : id === 'waist' ? 'Waist' : 'Hip', y, r: R(y) };
+    // Each line is named by its units, not the measurement (Cat, 2026-10-30): the next pages say which is which.
+    return { name: 'cm / in', y, r: R(y) };
   });
   g.font = `600 10px ${getComputedStyle(document.documentElement).getPropertyValue('--mono') || 'monospace'}`;
   g.textBaseline = 'middle';
