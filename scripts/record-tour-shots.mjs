@@ -444,6 +444,12 @@ await main.getByRole('tab', { name: 'Skirt & length', exact: true }).click();
 await wait(300);
 // The length is set from the marks beside the form.
 await p.evaluate((m) => [...document.querySelectorAll('main .hem-mark')].find((g) => g.textContent.trim() === m)?.querySelector('.hit')?.dispatchEvent(new MouseEvent('click', { bubbles: true })), process.env.TOUR_MARK ?? 'KNEE');
+// TOUR_SHORTER takes the hem up from that mark, 2 cm a step, on the length dot's arrow keys.
+for (let i = 0; i < Number(process.env.TOUR_SHORTER ?? 0); i++) {
+  await main.locator('[role=slider][aria-label$="length"]').first().press('ArrowUp');
+  await wait(120);
+}
+if (process.env.TOUR_SHORTER) console.log('LENGTH', await main.locator('[role=slider][aria-label$="length"]').evaluateAll((els) => els.map((e) => `${e.getAttribute('aria-label')}=${e.getAttribute('aria-valuenow')}`)));
 await wait(400);
 await main.getByRole('tab', { name: 'Fabric', exact: true }).click();
 await wait(400);
@@ -463,6 +469,28 @@ await wait(300);
 const repeat = main.locator('#fabrepeat');
 if (await repeat.count()) await repeat.fill(process.env.TOUR_REPEAT ?? '4.5');
 await wait(300);
+// The film opens on the photo's very short length (Cat, 2026-10-30: it needs to be mini, as in the photo): drawn
+// off camera, as only the drawing tool sets a length between the named ones, and the Garment view put back.
+if (process.env.TOUR_START_MINI !== '0') {
+  await main.getByRole('button', { name: /^Enlarge the drawing/ }).click();
+  await wait(900);
+  await main.getByRole('button', { name: 'Draw on your form' }).first().click();
+  await wait(900);
+  const roomy0 = main.getByRole('button', { name: 'Enlarge', exact: true });
+  if (await roomy0.count()) { await roomy0.click(); await wait(900); }
+  const kinds0 = main.getByRole('group', { name: 'What you are drawing' });
+  await kinds0.getByRole('button', { name: 'Hem', exact: true }).click();
+  await wait(300);
+  await draw(main.getByRole('img', { name: /Your dress form from the/ }), LINES.photo, 600);
+  await main.getByRole('button', { name: 'Done', exact: true }).click();
+  await wait(1200);
+  const garmentView = main.getByRole('group', { name: 'Preview view' }).getByRole('button', { name: /^Garment/ });
+  if (await garmentView.count()) await garmentView.click();
+  await wait(600);
+  const smaller = main.getByRole('button', { name: /^Make the drawing of the .* smaller/ });
+  if (await smaller.count()) await smaller.click();
+  await wait(900);
+}
 for (const n of (process.env.TOUR_EXTRA ?? '').split('|').filter(Boolean)) { for (const t of ['Shape', 'Neck & sleeves', 'Skirt & length', 'Fabric']) { await main.getByRole('tab', { name: t, exact: true }).click(); await wait(200); await pick(n); } }
 await main.getByRole('tab', { name: 'Shape', exact: true }).click();
 await p.evaluate(() => window.scrollTo(0, 0));
