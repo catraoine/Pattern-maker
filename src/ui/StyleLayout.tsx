@@ -232,6 +232,15 @@ export function useWide() {
   return useMedia(WIDE);
 }
 
+/** A tablet's screen (an iPad upright, or a mini on its side): too narrow for the computer layout, too big for the
+ *  phone's single column. A phone on its side is under 700px tall, so it keeps the phone layout. */
+const TABLET = '(min-width: 700px) and (max-width: 1099px) and (min-height: 700px)';
+
+/** Whether the screen is a tablet's, as in TABLET. */
+export function useTablet() {
+  return useMedia(TABLET);
+}
+
 /** Whether the screen is a phone's width, where the drawing stands beside its tag of picks. */
 export function useNarrow() {
   return useMedia('(max-width: 760px)');

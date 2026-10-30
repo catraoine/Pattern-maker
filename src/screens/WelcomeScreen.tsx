@@ -43,6 +43,9 @@ const WIDE_MARKS = Array.from({ length: 100 }, (_, i) => i + 1);
  *  the form begins (the form's own drawing takes 1.6s handed over drawn, 2.6s from fresh), and how long it takes. */
 const CURTAIN_AT = { drawn: 1900, fresh: 2900 };
 const CURTAIN_MS = 1100;
+/** When the welcome puts the form beside the words, as in styles/13-wide-and-tape.css: a wide window, not an upright
+ *  iPad Pro, which gets the phone's picture with the words under it (the iPad check, 2026-10-30). */
+const SIDE_BY_SIDE = '(min-width: 960px) and (min-aspect-ratio: 1/1)';
 
 export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume, waitlist }: Props) {
   const [touring, setTouring] = useState(false);
@@ -59,7 +62,7 @@ export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume, wait
   const [leaving, setLeaving] = useState<false | 'phone' | 'computer'>(false);
   // A computer already opens the waitlist on the full-size form, beside the words, so the curtain is for phones.
   const [curtain, setCurtain] = useState<'down' | 'up' | 'off'>(() =>
-    waitlist && !matchMedia('(min-width: 960px)').matches && !matchMedia('(prefers-reduced-motion: reduce)').matches ? 'down' : 'off',
+    waitlist && !matchMedia(SIDE_BY_SIDE).matches && !matchMedia('(prefers-reduced-motion: reduce)').matches ? 'down' : 'off',
   );
   const done = useRef(onFinish);
   done.current = onFinish;
@@ -79,7 +82,7 @@ export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume, wait
   // place beside the title while its lines drop; the words come in as it arrives, the play button last (Cat, 2026-10-21).
   useLayoutEffect(() => {
     const el = hero.current;
-    if (formStart !== 'drawn' || !el || !matchMedia('(min-width: 960px)').matches || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (formStart !== 'drawn' || !el || !matchMedia(SIDE_BY_SIDE).matches || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const r = el.getBoundingClientRect();
     const dx = window.innerWidth / 2 - (r.left + r.width / 2);
     if (Math.abs(dx) < 8) return;

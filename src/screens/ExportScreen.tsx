@@ -1,5 +1,5 @@
 import { DropMenu } from '../ui/DropMenu';
-import { useWide } from '../ui/StyleLayout';
+import { useTablet, useWide } from '../ui/StyleLayout';
 import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { SendToDevice } from '../ui/SendToDevice';
 import { OVERLAP, PAGE_MARGIN, Paper, Sheet, layout, pageCount, pageName, pageSize, tileGrid, toSvg, usedTiles } from '../engine/export';
@@ -223,6 +223,8 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
   const [exampleOk, setExampleOk] = useState(false);
   // On a computer the pages sit in their own column beside the controls, so they stay open there.
   const wide = useWide();
+  // On an iPad the pages have the room to show from the start, under the cover and the print buttons (the iPad check, 2026-10-30).
+  const tablet = useTablet();
   const [seePages, setSeePages] = useState(false);
   if (!made || !sheet || !guide) {
     return (
@@ -241,7 +243,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
   const fileName = `${fileBase}-${paper === 'projectorDark' ? 'projector-black' : paper}.pdf`;
   const ready = pdf?.paper === paper ? pdf.bytes : null;
 
-  const showPages = wide || seePages;
+  const showPages = wide || tablet || seePages;
   const checked = (go: () => void) => () => (example && !exampleOk ? setAsking(() => go) : go());
   const share = async () => {
     if (!ready) return;
@@ -450,7 +452,7 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
           </div>
           <div className="print-sheet">
             {/* On a phone the pages fold behind one line (Cat applied P3, 2026-10-24), so Print is a shorter scroll. */}
-            {!wide && (
+            {!wide && !tablet && (
               <button type="button" className="later go see-pages" aria-expanded={seePages} onClick={() => setSeePages(!seePages)}>
                 {seePages ? 'Hide the pages' : projector ? 'See the page' : `See the ${pages} ${pages === 1 ? 'page' : 'pages'}`} <span aria-hidden="true">{seePages ? '‹' : '›'}</span>
               </button>
