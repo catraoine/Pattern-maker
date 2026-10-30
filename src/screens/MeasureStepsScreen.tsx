@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { FIELDS, checkMeasurements, type Check, type FormKind, type Garment, type MeasurementId, type MeasurementValues, type Unit } from '../measurements';
-import { BASE, baseDone, begun, fieldOf, fullSetMissing, GARMENT_NAME, GARMENTS, labelOf, mistakesOf, neededFor, stepsOf, stringOf, tipOf, titleOf } from '../measureFlow';
+import { BASE, baseDone, begun, fieldOf, fullSetMissing, GARMENT_NAME, GARMENTS, labelOf, mistakesOf, neededFor, seatedOf, stepsOf, stringOf, tipOf, titleOf } from '../measureFlow';
 import { createPortal } from 'react-dom';
 import { takeTapeRest, tapeRested } from '../ui/tapeHandoff';
 import { WEIGHT_HARD, WeightEntry, fromKg, weightUnitOf } from '../ui/WeightEntry';
@@ -1015,6 +1015,12 @@ export function MeasurePage({
                 <li key={s}>{s}</li>
               ))}
             </ul>
+            {!helper && seatedOf(id, form) && (
+              <>
+                <p className="eyebrow how-mistakes-title">Seated, or on your own</p>
+                <p className="how-seated">{seatedOf(id, form)}</p>
+              </>
+            )}
             <button type="button" className="primary" autoFocus onClick={() => setHow(false)}>
               Got it
             </button>

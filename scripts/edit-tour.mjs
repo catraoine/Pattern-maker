@@ -172,7 +172,7 @@ const styleJourney = async () => {
 };
 // Cat (2026-10-22): the cream pattern paper was too bright after the black pages; a deeper champagne here.
 // Wide: from the moment the pattern is up, slowed a touch to fill its time (Cat, 2026-10-22: the drawing flashed before it).
-// On a phone the sheet rises the last part of the journey, to sit just under 'Your pattern, drafted.'
+// On a phone the sheet rises the last part of the journey, to sit just under 'Your pattern, in seconds.'
 const LIFT = WIDE ? 0 : 0.065;
 const PATTERN = WIDE
   ? { from: 1.1, speed: 0.8, zoom: [1.6, 1.66], at: [0.42, 0.72], frame: [0.1, 1.05, 0.1, 0.92, 0.002], tint: [0.84, 0.78, 0.66] }
@@ -218,12 +218,13 @@ async function threeChecks() {
 // 'low' sits nearer the picture under it, over the black above the photo and the pattern sheet (Cat, 2026-10-25:
 // the photo's words a little too high, and the pattern's at the same height).
 // shade false: no dark fade behind the words, where they already sit on black (Cat, 2026-10-25: "so much black blur").
-// The shade is near solid down past the words, so a page scrolling under them never shows through (Cat, 2026-10-30).
+// On a phone the words are 32px, so the longest line ('Your pattern, in seconds.') still sits on one line (Cat,
+// 2026-10-30). The shade is near solid down past the words, so a page scrolling under them never shows through (Cat, 2026-10-30).
 const note = (line, where, shade = true) => words(WIDE && where === 'side'
   ? `<div class="f" style="display:flex;flex-direction:column;justify-content:center;padding-left:96px;background:linear-gradient(to right,rgba(0,0,0,.85) 0,rgba(0,0,0,.6) 30%,rgba(0,0,0,0) 42%)"><h1 class="t" style="font-size:46px">${line}</h1></div>`
   : WIDE
   ? `<div class="f" style="${shade ? 'background:linear-gradient(to bottom,#000 0,#000 15.5%,rgba(0,0,0,0) 21%);' : ''}padding:${where === 'low' ? 54 : 44}px 0 0 96px"><h1 class="t" style="font-size:46px">${line}</h1></div>`
-  : `<div class="f" style="${shade ? 'background:linear-gradient(to bottom,#000 0,#000 14.5%,rgba(0,0,0,0) 19%);' : ''}padding:${where === 'low' ? 60 : 40}px 0 0 28px"><h1 class="t" style="font-size:36px">${line}</h1></div>`);
+  : `<div class="f" style="${shade ? 'background:linear-gradient(to bottom,#000 0,#000 14.5%,rgba(0,0,0,0) 19%);' : ''}padding:${where === 'low' ? 60 : 40}px 0 0 28px"><h1 class="t" style="font-size:32px">${line}</h1></div>`);
 // The scroll down the collection's looks, the way down to Print my pattern, and projector mode, as recorded
 // (record-tour-shots.mjs: the phone's scrolls are longer).
 const COLLECTION = WIDE ? { from: 0.8, dur: 8.5, speed: 1.45 } : { from: 0.8, dur: 8.5, speed: 1.75 };
@@ -320,7 +321,7 @@ const CUTS = {
       // Done lands on the pattern sheet, so the pattern follows straight on, then the dress all round (Cat,
       // 2026-10-24: no flash back to the dress between them), each dissolving into the next.
       await dissolve(
-        await dissolve(await styleJourney(), await piece({ shot: 'pattern', dur: 3.6, ...PATTERN, notes: [[await note('Your pattern, drafted.', 'low', false), 0.5, 3.4]] }), 0.8),
+        await dissolve(await styleJourney(), await piece({ shot: 'pattern', dur: 3.6, ...PATTERN, notes: [[await note('Your pattern, in seconds.', 'low', false), 0.5, 3.4]] }), 0.8),
         await piece({ shot: 'round', from: 0.3, dur: 8.6, fadeOut: f, overs: (await threeChecks()).map((p, i) => [p, 0.9 + i * 1.8]) }),
         1,
       ),

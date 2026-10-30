@@ -141,7 +141,14 @@ export function Group({ label, tab, children, className }: { label: string; tab?
     const all = [...(ref.current?.parentElement?.querySelectorAll<HTMLFieldSetElement>(`fieldset.group[data-tab="${t}"]`) ?? [])];
     const next = all[all.indexOf(ref.current!) + 1];
     window.clearTimeout(timer.current);
-    if (next) timer.current = window.setTimeout(() => fold.set(t, next.dataset.label!), 700);
+    // A pick made from the keyboard (or a screen reader) carries the focus on to the next question, which opens
+    // folded to the chip the focus was on; otherwise the focus would fall back to the top of the page.
+    const keys = e.detail === 0;
+    if (next)
+      timer.current = window.setTimeout(() => {
+        fold.set(t, next.dataset.label!);
+        if (keys) requestAnimationFrame(() => next.querySelector<HTMLElement>('.fold-head')?.focus());
+      }, 700);
   };
   return (
     <fieldset
@@ -223,6 +230,15 @@ const WIDE = '(min-width: 1100px)';
 /** Whether the screen is wide enough for the computer layout, kept up to date as the window resizes. */
 export function useWide() {
   return useMedia(WIDE);
+}
+
+/** A tablet's screen (an iPad upright, or a mini on its side): too narrow for the computer layout, too big for the
+ *  phone's single column. A phone on its side is under 700px tall, so it keeps the phone layout. */
+const TABLET = '(min-width: 700px) and (max-width: 1099px) and (min-height: 700px)';
+
+/** Whether the screen is a tablet's, as in TABLET. */
+export function useTablet() {
+  return useMedia(TABLET);
 }
 
 /** Whether the screen is a phone's width, where the drawing stands beside its tag of picks. */
@@ -600,8 +616,19 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
                   role="tab"
                   aria-selected={active === t}
                   aria-label={t}
+                  title={t}
+                  tabIndex={active === t ? 0 : -1}
                   className={[active === t ? 'on' : '', t === PRO ? 'pro' : ''].filter(Boolean).join(' ')}
                   onClick={() => choose(t)}
+                  onKeyDown={(e) => {
+                    // One stop in the tab order for the steps; the arrow keys move along them, as tabs do.
+                    const by = ({ ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 } as Record<string, number | undefined>)[e.key];
+                    const to = e.key === 'Home' ? 0 : e.key === 'End' ? strip_.length - 1 : by && strip_.indexOf(t) + by;
+                    if (to === undefined || to < 0 || to >= strip_.length) return;
+                    e.preventDefault();
+                    choose(strip_[to]);
+                    requestAnimationFrame(() => document.getElementById(`tab-${strip_[to]}`)?.focus());
+                  }}
                 >
                   {steps.includes(t) && (
                     <span className="step-no" aria-hidden="true">

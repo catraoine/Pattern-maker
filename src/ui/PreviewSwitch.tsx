@@ -12,7 +12,7 @@ export function PreviewSwitch({ look, onLook }: { look: Look; onLook: (look: Loo
   return (
     <div className="lookboxes" role="group" aria-label="Preview view">
       {boxes.map(([id, name, hint]) => (
-        <button key={id} type="button" aria-pressed={look === id} className={look === id ? 'on' : ''} onClick={() => onLook(id)}>
+        <button key={id} type="button" aria-pressed={look === id} className={look === id ? 'on' : ''} tabIndex={look === id ? -1 : undefined} onClick={() => onLook(id)}>
           <span className="lookname">{name}</span>
           <span className="lookhint">{hint}</span>
         </button>

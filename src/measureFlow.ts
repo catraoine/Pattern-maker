@@ -166,6 +166,33 @@ const MISTAKES: Partial<Record<MeasurementId, string[]>> = {
   crotch_length: ['Letting the tape sag between the legs.', 'Stopping below the waist at the back. A friend holding the back end helps most here.'],
   crotch_depth: ['Sitting on a soft chair or sofa.', 'Measuring at an angle, not straight down.'],
 };
+/** Another way for anyone measuring seated or alone (the accessibility review, 2026-10-30): the "How to do it" sheet
+ *  assumed standing barefoot and reaching your own back. Written to the wearer measuring on their own. */
+const SEATED: Partial<Record<MeasurementId, string>> = {
+  height: 'Can\'t stand against a wall? The height on your ID or from a recent check-up works.',
+  waist: 'Seated? Sit up tall with your feet flat. Standing with a hand on a chair back is better still, as sitting can add a little.',
+  full_bust: 'Seated is fine for this one: sit up tall with your arms resting down.',
+  full_hip: 'Stand for this one if you can, even holding a chair: sitting spreads the seat and makes the number bigger.',
+  waist_to_floor:
+    'Can\'t stand for this one? Lay full-length trousers that fit you flat. Measure the side from the top of the waistband to the hem, then add the gap between the hem and the floor when you wear them.',
+  waist_to_knee: 'Seated or alone? Lay a skirt that ends at your knee flat and measure it at the side, waistband top to hem.',
+  waist_to_hip: 'Seated? Measure from your waist down the side of your hip to the chair seat.',
+  shoulder_width:
+    'Can\'t reach your back? Lay a woven shirt that fits you well flat, buttoned, and measure across the back from one shoulder seam to the other.',
+  across_back:
+    'Can\'t reach your back? Lay a shirt that fits you well flat and measure across the back halfway between the shoulder seam and the underarm, seam to seam.',
+  nape_to_waist: 'Can\'t reach your back? Lay a fitted top flat and measure the back from the neck seam at the centre down to where your waist sits in it.',
+  arm_length: 'On your own? Lay a long-sleeved shirt that fits you flat and measure the sleeve from the shoulder seam to the end of the cuff.',
+  crotch_length:
+    'On your own? Measure the seam of trousers that fit you well, from the front waistband down between the legs and up to the back waistband.',
+};
+
+/** Another way to take one measurement seated or alone, or nothing when the usual way already works sitting down. */
+export function seatedOf(id: MeasurementId, form?: FormKind): string | undefined {
+  const s = SEATED[id];
+  return s && worded(s, form);
+}
+
 const GIRTH_MISTAKES = ['Measuring over clothes.', 'Pulling the tape tight.', 'The tape twisted or not level all the way round.'];
 const LENGTH_MISTAKES = ['Starting or stopping in the wrong place.', 'The tape sagging or twisted.'];
 

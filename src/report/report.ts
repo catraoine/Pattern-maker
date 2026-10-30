@@ -66,11 +66,14 @@ interface Options {
   now?: () => Date;
 }
 
-/** The family and major version of a browser, and its system, from the user agent: "Safari 17 iOS". */
-export function browserFamily(ua: string): string {
-  const os = /iPhone|iPad|iPod/.test(ua)
+/** The family and major version of a browser, and its system, from the user agent: "Safari 17 iOS". An iPad's Safari
+ *  says it is a Mac; its touch points give it away (`touchPoints`, from navigator.maxTouchPoints). */
+export function browserFamily(ua: string, touchPoints = 0): string {
+  const os = /iPhone|iPod/.test(ua)
     ? 'iOS'
-    : /Android/.test(ua)
+    : /iPad/.test(ua) || (/Macintosh/.test(ua) && touchPoints > 1)
+      ? 'iPadOS'
+      : /Android/.test(ua)
       ? 'Android'
       : /CrOS/.test(ua)
         ? 'ChromeOS'
@@ -166,7 +169,7 @@ export function startReports(version: string) {
   })());
   reporter = new Reporter({
     version,
-    browser: browserFamily(nav.userAgent),
+    browser: browserFamily(nav.userAgent, nav.maxTouchPoints),
     counting: !(nav.doNotTrack === '1' || nav.globalPrivacyControl === true),
     send: (body) => {
       // The dev server has no functions: show what would go instead.

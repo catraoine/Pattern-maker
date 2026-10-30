@@ -451,7 +451,8 @@
 .photosum {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
+  /* Centred, not on the baseline: Change is a tall tap target, so on the baseline it sat below the words. */
+  align-items: center;
   gap: 4px 12px;
   margin: 0;
 }

@@ -18,14 +18,42 @@ const SOURCES = {
 };
 const WIDE_SCREEN = '(min-width: 900px) and (min-aspect-ratio: 1/1)';
 /** Where each part starts in the video, in seconds, and how long it runs. Update with the video. */
-const PARTS: { name: string; from: number }[] = [
-  { name: 'Measure', from: 0 },
-  { name: 'Choose', from: 17.3 },
-  { name: 'Style', from: 35.2 },
-  { name: 'Print', from: 65.4 },
+/** says: what the part shows, in words, for anyone who can't see the film (the accessibility review, 2026-10-30). */
+const PARTS: FilmPart[] = [
+  { name: 'Measure', from: 0, says: 'Just a few measurements, taken once. The dress form takes your shape as you go.' },
+  { name: 'Choose', from: 17.3, says: 'Then what to make: pick a garment, start from a look in the collection, or upload a photo of a piece you love.' },
+  { name: 'Style', from: 35.2, says: 'Make it yours: its shape, length, hem and details, step by step on the drawing. Your pattern is drafted as you go.' },
+  { name: 'Print', from: 65.4, says: 'Print it at home on ordinary paper, full size at a copy shop, or project it true size onto your fabric. Drafted to your body.' },
 ];
 const TOUR_LENGTH = 89;
 export const TOUR_LABEL = '1:29';
+
+export type FilmPart = { name: string; from: number; says: string };
+
+/** The film in words: a Read it switch in the film's top bar opens what each part shows, and a screen reader is
+ *  given the words with the film. Tapping a part's name plays the film from there. */
+export function FilmWords({ id, parts, onPart }: { id: string; parts: FilmPart[]; onPart: (from: number) => void }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button type="button" className="tour-skip film-read" aria-expanded={open} aria-controls={id} onClick={() => setOpen(!open)}>
+        {open ? 'Hide' : 'Read it'}
+      </button>
+      <div id={id} className={open ? 'film-words open' : 'film-words visually-hidden'}>
+        <ol>
+          {parts.map((p) => (
+            <li key={p.name}>
+              <button type="button" className="film-part" onClick={() => onPart(p.from)}>
+                {p.name}
+              </button>
+              <p>{p.says}</p>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </>
+  );
+}
 
 export function TourPlayer({ onClose }: { onClose: () => void }) {
   const video = useRef<HTMLVideoElement>(null);
@@ -66,9 +94,18 @@ export function TourPlayer({ onClose }: { onClose: () => void }) {
         {/* Just the house name (Cat, 2026-10-22); the bar along the bottom already marks the part. The film itself
             doesn't say it again. */}
         <span className="tour-tag">Maison Tracé</span>
-        <button ref={close} type="button" className="tour-skip" onClick={onClose}>
-          Skip tour ✕
-        </button>
+        <span className="tour-acts">
+          <FilmWords
+            id="tour-words"
+            parts={PARTS}
+            onPart={(from) => {
+              if (video.current) video.current.currentTime = from;
+            }}
+          />
+          <button ref={close} type="button" className="tour-skip" onClick={onClose}>
+            Skip tour ✕
+          </button>
+        </span>
       </div>
       <video
         ref={video}
@@ -78,7 +115,10 @@ export function TourPlayer({ onClose }: { onClose: () => void }) {
         preload="auto"
         onLoadedMetadata={(e) => Number.isFinite(e.currentTarget.duration) && setLength(e.currentTarget.duration)}
         onTimeUpdate={(e) => setAt(e.currentTarget.currentTime)}
-        onEnded={onClose}
+        aria-describedby="tour-words"
+        // It stays open at the end (the accessibility review, 2026-10-30), so nothing vanishes from under a viewer;
+        // the focus goes to Skip tour, to close it.
+        onEnded={() => close.current?.focus()}
       >
         {SOURCES[shape].map((v) => (
           <source key={v.src} src={v.src} type={v.type} />
