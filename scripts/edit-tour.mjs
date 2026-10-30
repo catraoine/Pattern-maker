@@ -248,6 +248,32 @@ async function photoMoment() {
   // Held long enough to read (Cat, 2026-10-25).
   return piece({ still: pic, dur: 3.2, zoom: [1, 1.03], fadeIn: 0.5, fadeOut: 0.5, notes: [[await note('Or upload a photo.', 'low'), 0.2, 3.2]] });
 }
+// N3b Shop the fabric (Cat, 2026-10-30): after Style, six of the partner shop's fabrics as the app's cream tags with a
+// photo of the cloth in each, landing one after another. Every name sits on one line, so every tag is the same size
+// (two shop names shortened to fit).
+const SHOP = [
+  ['silk', 'Silk charmeuse', '$39.96/yd · 3 colours'],
+  ['wool', 'Double wool crepe', '$79.96/yd · 1 colour'],
+  ['linen', 'Linen and cotton', '$24.96/yd · 2 colours'],
+  ['cotton', 'Stretch cotton poplin', '$8/yd · 1 colour'],
+  ['corduroy', 'Featherwale corduroy', '$26.96/yd · 2 colours'],
+  ['denim', 'Cotton denim, 10.5 oz', '$15.96/yd · 2 colours'],
+];
+async function shopMoment() {
+  // Phone: two across, three down. Computer: three across, two down.
+  const [cols, w, tex, gap, top] = WIDE ? [3, 250, 175, 22, 190] : [2, 180, 120, 14, 150];
+  const strip = WIDE ? 80 : 66;
+  const left = (VW - cols * w - (cols - 1) * gap) / 2;
+  const tags = [];
+  for (let i = 0; i < SHOP.length; i++) {
+    const [img, name, price] = SHOP[i];
+    const photo = readFileSync(new URL(`../public/fabrics/${img}.jpg`, import.meta.url)).toString('base64');
+    const x = left + (i % cols) * (w + gap);
+    const y = top + Math.floor(i / cols) * (tex + strip + gap);
+    tags.push([await words(`<div style="position:fixed;left:${x}px;top:${y}px;width:${w}px;box-shadow:0 10px 24px rgba(0,0,0,.55)"><img src="data:image/jpeg;base64,${photo}" style="display:block;width:100%;height:${tex}px;object-fit:cover"><div style="height:${strip}px;box-sizing:border-box;padding:${WIDE ? 14 : 10}px;background:linear-gradient(90deg,#ece2cb 0%,#ece2cb 78%,#d3c7ab 100%);font-family:'Chakra Petch',monospace;text-transform:uppercase;white-space:nowrap;overflow:hidden"><div style="font-weight:600;font-size:${WIDE ? 12 : 9.5}px;letter-spacing:.15em;color:#151311">${name}</div><div style="font-size:${WIDE ? 9.5 : 8}px;letter-spacing:.12em;color:#6c6250;margin-top:5px">Mood Fabrics</div><div style="font-size:${WIDE ? 9.5 : 8}px;letter-spacing:.12em;color:#6c6250;margin-top:3px">${price}</div></div></div>`), 0.3 + 0.3 * i]);
+  }
+  return piece({ still: await words('', { solid: true }), dur: 4.6, fadeIn: 0.5, fadeOut: 0.5, overs: tags, notes: [[await note('Shop the fabric.', 'low'), 0.2, 4.6]] });
+}
 // The opening (Cat, 2026-10-22: the old one repeated the loading screen and welcome the viewer had just seen).
 const INTRO = process.env.TOUR_INTRO ?? 'W'; // Cat's pick, 2026-10-30: W Welcome Push (was C2 Pull Back)
 const TITLE = `<h1 class="t" style="font-size:${WIDE ? 84 : 64}px">How it works</h1>`;
@@ -329,6 +355,7 @@ const CUTS = {
         await piece({ shot: 'round', from: 0.3, dur: 8.6, fadeOut: f, overs: (await threeChecks()).map((p, i) => [p, 0.9 + i * 1.8]) }),
         1,
       ),
+      await shopMoment(),
       await piece({ still: await card('04', 'Print', 'At home, or full size.'), dur: 3, fadeIn: f, fadeOut: f }),
       // Down to Print my pattern, the pages, then projector mode (Cat, 2026-10-29: the scroll to print and the
       // projector back in).
