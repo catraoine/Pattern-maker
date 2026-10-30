@@ -198,7 +198,8 @@ export function InCorner({ children }: { children: ReactNode }) {
  */
 function pickIn(el: HTMLElement): string {
   const on = el.querySelector<HTMLElement>('.chips [aria-pressed="true"]') ?? el.querySelector<HTMLElement>('[aria-pressed="true"]');
-  if (on) return (on.textContent ?? '').replace(/\s+/g, ' ').trim();
+  // The chip's own name, without an In testing tag inside it ("Boxy", not "BoxyIn testing").
+  if (on) return [...on.childNodes].map((n) => (n instanceof HTMLElement && n.classList.contains('testing-tag') ? '' : n.textContent)).join('').replace(/\s+/g, ' ').trim();
   const slider = el.querySelector<HTMLInputElement>('input[type="range"][aria-label*="in cm"]');
   return slider ? `${slider.value} cm` : '';
 }

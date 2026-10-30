@@ -92,6 +92,19 @@ export interface DressChoices {
   waistSeamCm?: number;
 }
 
+/** The dress's fit: the skirt's three, and Boxy, the dress's own (Cat, 2026-10-30): straight from the bust, with
+ * a square shoulder cut in. Its chip carries the In testing tag. */
+export const DRESS_FIT_GROUP = {
+  id: 'fit',
+  label: 'Fit',
+  options: [
+    ['fitted', 'Fitted'],
+    ['regular', 'Regular'],
+    ['relaxed', 'Relaxed'],
+    ['boxy', 'Boxy'],
+  ] as [BodiceFit, string][],
+};
+
 /** The dress's waist seam, from just under the bust down to low on the hip. */
 export const WAIST_SEAM_GROUP = {
   id: 'waistSeam',
@@ -538,6 +551,8 @@ export const DARTS_FOR_FIT: Record<BodiceFit, BodiceDarts[]> = {
   fitted: ['bust_waist'],
   regular: ['bust_waist', 'bust'],
   relaxed: ['bust_waist', 'bust', 'none'],
+  // Boxy keeps its darts: bust darts for the shape over the bust, waist darts only as long fish-eyes.
+  boxy: ['bust', 'bust_waist'],
 };
 
 const NECK_WORDS: Record<Neckline, string> = { crew: 'crew neck', scoop: 'scoop neck', v: 'V-neck', square: 'square neck', boat: 'boat neck', one_shoulder: 'one-shoulder neckline', cowl: 'cowl neck', strapless: 'strapless', sweetheart: 'strapless sweetheart', cami: 'cami', halter: 'halter' };

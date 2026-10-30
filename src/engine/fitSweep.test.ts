@@ -1,8 +1,8 @@
 // Fit sweep: the skirt and bodice drafted for many bodies, and the drawn pieces measured against the body
 // the way a toile would be, not just against each other. Added after the Fable fit check of 2026-10-24.
 import { describe, expect, it } from 'vitest';
-import { draftSkirt, FIT_EASE } from './skirt';
-import { BODICE_FIT_EASE, draftBodice, girthBelowWaist } from './bodice';
+import { draftSkirt, FIT_EASE, skirtFitOf } from './skirt';
+import { BODICE_FIT_EASE, BOXY, draftBodice, girthBelowWaist } from './bodice';
 import { draftDress } from './dress';
 import { draftTrousers, TROUSER_EASE, TrousersMeasurements } from './trousers';
 import { draftOuter, OUTER_EASE } from './outerwear';
@@ -359,6 +359,55 @@ describe('the SS27 looks measured against the body', () => {
       // Asked for, a slit keeps its height.
       const asked = draftSkirt(m, { fit: 'fitted', silhouette: 'straight', length: 'maxi', slit: 'back', slitCm: 20 });
       if (asked.slit?.cm !== 20) failures.push(`${tag} column: asked for 20, got ${asked.slit?.cm}`);
+    }
+    expect(failures.slice(0, 10), `${failures.length} failures`).toEqual([]);
+  });
+});
+
+// The boxy dress (Cat, 2026-10-30, from her gingham drop-waist dress): straight from the bust, squared at the shoulder
+// by the cut, bust darts kept, short straight sleeves.
+describe('the boxy dress measured against the body', () => {
+  /** The shoulder seam's outer end on a bodice piece: the end of its 'shoulder' run away from the neck. */
+  const shoulderTip = (pc: Piece) => {
+    const { pts, tags } = pc.outline.taggedPoints(2);
+    const run = pts.filter((_, i) => tags[i] === 'shoulder' || tags[i - 1] === 'shoulder');
+    return run.reduce((a, q) => (Math.abs(q.x) > Math.abs(a.x) ? q : a));
+  };
+  const styles = [
+    { seam: 'dropped', silhouette: 'straight', darts: 'bust_waist' },
+    { seam: 'natural', silhouette: 'a_line', darts: 'bust' },
+    { seam: 'low', silhouette: 'straight', darts: 'bust' },
+  ] as const;
+
+  it(`hangs straight from the bust, squares the shoulder in the cut and sews up with its sleeves, for ${BODIES} bodies`, () => {
+    const failures: string[] = [];
+    for (let seed = 1; seed <= BODIES; seed++) {
+      const r = rng(seed + 41000);
+      const b = randomBody(r);
+      const m = { ...b, ...randomArms(b, r) };
+      for (const st of styles) {
+        const tag = `seed ${seed} ${st.seam} ${st.silhouette}`;
+        const bodice = { fit: 'boxy', neckline: 'boat', darts: st.darts } as const;
+        const d = draftDress(m, bodice, { fit: skirtFitOf('boxy'), silhouette: st.silhouette, length: 'mini' }, st.seam);
+        // The relaxed dress's bodice, to measure the square against (its skirt may not draft where the waist passes the hip).
+        const relaxed = draftBodice(m, { ...bodice, fit: 'relaxed', length: 'waist' });
+        if (d.warnings.length) failures.push(`${tag}: ${d.warnings.join('; ')}`);
+        if (Math.abs(d.finishedBust - (m.full_bust + BODICE_FIT_EASE.boxy.bust)) > 0.6) failures.push(`${tag}: bust ${d.finishedBust}`);
+        // Straight: the waist no narrower than the bust less BOXY.waist, a moved seam no narrower than the bust.
+        if (d.finishedWaist < d.finishedBust - BOXY.waist - 0.6) failures.push(`${tag}: waist ${d.finishedWaist} under a ${d.finishedBust} bust`);
+        if (d.seamCm && d.seamCm < d.finishedBust - 0.6) failures.push(`${tag}: seam ${d.seamCm} under a ${d.finishedBust} bust`);
+        // Squared in the cut: each shoulder point higher and further out than the relaxed dress's, by about BOXY.
+        for (const side of ['front', 'back'] as const)
+          if (relaxed.shoulderSlope[side] - d.bodice.shoulderSlope[side] < 3) failures.push(`${tag} ${side}: shoulder only ${r1(relaxed.shoulderSlope[side] - d.bodice.shoulderSlope[side])} degrees squarer`);
+        for (const i of [0, 1]) {
+          const [box, rel] = [shoulderTip(d.bodice.pieces[i]), shoulderTip(relaxed.pieces[i])];
+          if (rel.y - box.y < 0.6) failures.push(`${tag} ${d.bodice.pieces[i].name}: shoulder only ${r1(rel.y - box.y)} cm higher`);
+          if (box.x - rel.x < BOXY.extend * 0.6) failures.push(`${tag} ${d.bodice.pieces[i].name}: shoulder only ${r1(box.x - rel.x)} cm wider`);
+        }
+        const sl = draftSleeve(d.bodice, m, { length: 'short', lengthCm: 20, shape: 'straight', fit: 'boxy', seamAllowance: 1.5, armholeAllowance: 1, hemAllowance: 2.5 });
+        const pieces = [...d.pieces, ...sl.pieces];
+        for (const c of checkPattern(pieces, { finishedWaist: d.seamCm ?? d.finishedWaist })) if (!c.ok) failures.push(`${tag}: ${c.label} (${c.detail})`);
+      }
     }
     expect(failures.slice(0, 10), `${failures.length} failures`).toEqual([]);
   });
