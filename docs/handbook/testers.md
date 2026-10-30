@@ -11,7 +11,7 @@ Tester names, emails and codes live there and in Cat's Gmail, never in this repo
 | Nov 4 (opens) to Nov 8 | Tester call for the full round; sign-up asks "Have you sewn a jacket or coat?" |
 | Nov 9 to 13 | Fixes from the early round |
 | Nov 13 | Full-round invites |
-| Nov 16 to Dec 6 | Full round: 40 sewists; about 4 testers each on four SS27 looks (boxy jacket, A-line coat, gathered sheer skirt, collared shirt) |
+| Nov 16 to Dec 6 | Full round: 40 sewists; about 4 testers each on four SS27 looks (boxy jacket, A-line coat, gathered sheer skirt, collared shirt); plus one tester sews a boxy dress (Cat, Oct 30: Boxy launches untagged) |
 | Dec 7 to 11 | Fix week (sign-in switches on) |
 | Jan 4 to 17 | Round 2 |
 | **Mon Jan 18, 2027** | **Fit gate**: 20 sewists averaging 4 of 5 on a skirt or bodice toile |
