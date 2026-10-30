@@ -61,7 +61,6 @@ testing". A tag comes off by hand, once its proof is in: delete the entry and th
 | The collection and the Archive | the Collection heading | drop 01 published |
 | Projector mode | Print, Projector, and inside projector mode | two sewists cut a garment with it on their own projectors |
 | Ruffles, ruching, cape and balloon hem (ruffled hems and sleeve hems, ruched sides, cape, balloon hem) | the chips for each on the Style screens | three testers sew a ruffled hem, ruched sides and a cape and each hangs as drawn |
-| Boxy dress fit and self band (straight body, square cut shoulder, bust darts kept; a self-fabric band at the waist seam) | the Boxy chip under Fit and the Self band chip under Belt, on the dress Style screen | three testers sew a boxy dress and it hangs straight with a level, square shoulder |
 
 Lingerie and swimwear stay hidden (`?lingerie=preview`, PR #102). Tracé Engine, Atelier Nights, Deadstock and
 Cut For You are sign-ups only: nothing more is built behind them before the gate.

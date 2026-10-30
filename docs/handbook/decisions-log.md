@@ -5,7 +5,7 @@ something that changes how a department works. Design picks for single screens s
 
 ## October 2026
 
-- **Oct 30** Boxy dress fit (freeze broken knowingly, In testing): straight from the bust, square shoulder cut in (no pad), bust darts kept, plus a Self band belt at the seam. From Cat's gingham drop-waist dress.
+- **Oct 30** Boxy dress fit (freeze broken knowingly; a full launch fit, no In testing tag, Cat Oct 30): straight from the bust, square shoulder cut in (no pad), bust darts kept, plus a Self band belt at the seam. From Cat's gingham drop-waist dress.
 - **Oct 30** Waitlist kill rule: under 1,000 sign-ups by **Feb 11, 2027** ends stage 2 (Jan 25 is only the ~830 checkpoint).
 - **Oct 30** All affiliate payouts, Amazon included, go to the Maison Tracé chequing.
 - **Oct 30** The measuring film is filmed at the Nov 8 shoot with Evan.
