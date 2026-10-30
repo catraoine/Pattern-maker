@@ -99,7 +99,8 @@ export function TourPlayer({ onClose }: { onClose: () => void }) {
                 <span className="tour-track">
                   <span style={{ transform: `scaleX(${fill})` }} />
                 </span>
-                0{i + 1} {p.name}
+                <span className="tour-num">0{i + 1} </span>
+                {p.name}
               </button>
             </li>
           );

@@ -192,6 +192,11 @@ button.link.how-link {
   display: inline-block;
   margin: 0 auto 0 0;
   padding: 2px 8px;
+  /* Hugs its words: it is also a .chip, whose 44px tap height made the box stand twice as high as its text, with
+     the word stuck at the top (Cat, 2026-10-30). It isn't tapped, so it needs no tap height. */
+  min-height: 0;
+  line-height: 1.4;
+  vertical-align: middle;
   border: 1px solid var(--line-strong);
 }
 

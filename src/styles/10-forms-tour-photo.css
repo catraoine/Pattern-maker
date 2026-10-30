@@ -123,6 +123,13 @@
   cursor: pointer;
 }
 
+/* On a phone the parts keep their names and drop the 01 to 04, so "Measure" stays on one line (Cat's F3, 2026-10-30). */
+@media (max-width: 640px) {
+  .tour-parts .tour-num {
+    display: none;
+  }
+}
+
 .tour-parts li.on button {
   color: var(--ink);
 }

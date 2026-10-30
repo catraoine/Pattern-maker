@@ -26,7 +26,8 @@
 /* Shape choices as little drawings (Cat's S1): a tile per choice, its words under the drawing. */
 .chips.pics {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+  /* Wide enough that a two-word name ("Waist seam") stays on one line at the bigger caps (Cat's F1, 2026-10-30). */
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
   gap: 8px;
 }
 .chips.pics .chip {
