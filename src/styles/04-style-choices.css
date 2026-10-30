@@ -18,7 +18,7 @@
   font-family: var(--mono);
   font-stretch: normal;
   font-weight: 400;
-  font-size: 11px;
+  font-size: var(--caps-size);
   letter-spacing: 0.1em;
   color: var(--muted);
 }
@@ -38,8 +38,8 @@
   min-height: 0;
   padding: 10px 4px 7px;
   border-color: var(--line-strong);
-  font-size: 10px;
-  letter-spacing: 0.14em;
+  font-size: var(--caps-size);
+  letter-spacing: var(--caps-track);
   line-height: 1.3;
 }
 .chips.pics .chip .pic {
@@ -219,8 +219,8 @@
   border: 1px solid var(--guide);
   background: var(--paper);
   color: var(--gild);
-  font: var(--w-strong) 11px/1 var(--sans);
-  letter-spacing: 0.14em;
+  font: var(--w-strong) var(--caps-size)/1 var(--sans);
+  letter-spacing: var(--caps-track);
   text-transform: uppercase;
   cursor: zoom-in;
 }
@@ -325,8 +325,8 @@ section.live-big .preview > svg:not(.fabric-defs),
   border: 1px solid var(--muted);
   color: var(--muted);
   font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: var(--track);
+  font-size: var(--caps-size);
+  letter-spacing: var(--caps-track);
   text-transform: uppercase;
   vertical-align: 1px;
 }
@@ -343,7 +343,7 @@ button.ghost {
   border-radius: var(--pill);
   background: transparent;
   color: var(--ink);
-  font-size: 12px;
+  font-size: var(--caps-size);
   cursor: pointer;
 }
 button.ghost.on {
@@ -427,8 +427,8 @@ button.ghost:disabled {
   border: var(--bw) solid var(--ink);
   background: var(--paper);
   font-family: var(--mono);
-  font-size: 12px;
-  letter-spacing: var(--track);
+  font-size: var(--caps-size);
+  letter-spacing: var(--caps-track);
   text-transform: uppercase;
   white-space: nowrap;
   pointer-events: none;
@@ -438,8 +438,8 @@ button.ghost:disabled {
 }
 .draft-caption {
   bottom: 12px;
-  font-size: 11px;
-  letter-spacing: 0.14em;
+  font-size: var(--caps-size);
+  letter-spacing: var(--caps-track);
 }
 
 .preview-svg .drawn {

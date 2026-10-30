@@ -163,7 +163,7 @@ button.link.inline-link {
   min-height: 52px;
   padding: 0 24px;
   justify-content: center;
-  font-size: 12px;
+  font-size: var(--caps-size);
 }
 
 .filebtn.primary {

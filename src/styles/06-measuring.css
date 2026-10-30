@@ -84,8 +84,8 @@ button.link.how-link {
 
 .need dt {
   font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: var(--track);
+  font-size: var(--caps-size);
+  letter-spacing: var(--caps-track);
   text-transform: uppercase;
   color: var(--muted);
 }
@@ -178,8 +178,8 @@ button.link.how-link {
   display: block;
   margin-top: 4px;
   font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: var(--track);
+  font-size: var(--caps-size);
+  letter-spacing: var(--caps-track);
   text-transform: uppercase;
   color: var(--muted);
 }
@@ -291,7 +291,7 @@ button.link.how-link {
 .how-panel li::before {
   content: counter(how, decimal-leading-zero);
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--caps-size);
   color: var(--muted);
   padding-top: 3px;
 }
@@ -327,8 +327,8 @@ button.link.how-link {
 
 .entry-box label {
   font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: var(--track);
+  font-size: var(--caps-size);
+  letter-spacing: var(--caps-track);
   text-transform: uppercase;
   color: var(--muted);
 }
@@ -379,8 +379,8 @@ button.link.how-link {
   background: none;
   color: var(--muted);
   font-family: var(--mono);
-  font-size: 12px;
-  letter-spacing: var(--track);
+  font-size: var(--caps-size);
+  letter-spacing: var(--caps-track);
   text-transform: uppercase;
   cursor: pointer;
 }

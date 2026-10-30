@@ -31,8 +31,8 @@
   border: var(--bw) solid var(--gild);
   background: none;
   color: var(--gild);
-  font: var(--w-body) 11px/1 var(--mono);
-  letter-spacing: 0.18em;
+  font: var(--w-body) var(--caps-size)/1 var(--mono);
+  letter-spacing: var(--caps-track);
   text-transform: uppercase;
   cursor: pointer;
 }
@@ -189,8 +189,8 @@ fieldset.fold.open > .fold-body {
   .style-pin > section > .row.between.wrap > .link.small::before,
   .style-pin > section > .row.between.wrap > .row.tools > .link.small::before {
     content: '✎ Draw' / '';
-    font-size: 11px;
-    letter-spacing: var(--track);
+    font-size: var(--caps-size);
+    letter-spacing: var(--caps-track);
   }
   .style-pin > section > .row.between.wrap > .drawmenu > summary::before {
     content: '✎ ' / '';

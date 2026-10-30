@@ -7,8 +7,8 @@
 .who-q {
   margin: 0;
   color: var(--muted);
-  font: var(--w-body) 11px/1.2 var(--mono);
-  letter-spacing: var(--track);
+  font: var(--w-body) var(--caps-size)/1.2 var(--mono);
+  letter-spacing: var(--caps-track);
   text-transform: uppercase;
 }
 
@@ -33,8 +33,8 @@
   border: var(--bw) solid var(--disabled);
   background: none;
   color: var(--muted);
-  font: var(--w-body) 11px/1.2 var(--mono);
-  letter-spacing: var(--track);
+  font: var(--w-body) var(--caps-size)/1.2 var(--mono);
+  letter-spacing: var(--caps-track);
   text-transform: uppercase;
   cursor: pointer;
   min-height: 0;
@@ -74,8 +74,8 @@
 
 .tour-tag {
   color: var(--muted);
-  font: var(--w-body) 10px/1 var(--mono);
-  letter-spacing: 0.25em;
+  font: var(--w-body) var(--caps-size)/1 var(--mono);
+  letter-spacing: var(--caps-track);
   text-transform: uppercase;
 }
 
@@ -85,8 +85,8 @@
   border-radius: 0;
   background: var(--paper);
   color: var(--ink);
-  font: var(--w-body) 10px/1 var(--mono);
-  letter-spacing: 0.22em;
+  font: var(--w-body) var(--caps-size)/1 var(--mono);
+  letter-spacing: var(--caps-track);
   text-transform: uppercase;
   cursor: pointer;
 }
@@ -116,8 +116,8 @@
   border: 0;
   background: none;
   color: var(--muted);
-  font: var(--w-body) 10px/1 var(--mono);
-  letter-spacing: 0.22em;
+  font: var(--w-body) var(--caps-size)/1 var(--mono);
+  letter-spacing: var(--caps-track);
   text-transform: uppercase;
   text-align: left;
   cursor: pointer;
@@ -271,8 +271,8 @@
   gap: 18px;
   margin: 0;
   font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 0.2em;
+  font-size: var(--caps-size);
+  letter-spacing: var(--caps-track);
   text-transform: uppercase;
   color: var(--guide);
 }
@@ -386,8 +386,8 @@
   border: var(--bw) solid var(--gild);
   background: var(--paper);
   color: var(--ink);
-  font: 500 11px/1 var(--mono);
-  letter-spacing: var(--track);
+  font: 500 var(--caps-size)/1 var(--mono);
+  letter-spacing: var(--caps-track);
   text-transform: uppercase;
   cursor: pointer;
 }
@@ -421,7 +421,7 @@
 }
 .photo-matched button.link {
   margin-left: auto;
-  font-size: 12px;
+  font-size: var(--caps-size);
 }
 
 /* An unsure reading's one question, asked first and on its own, under the photo. */
@@ -460,7 +460,7 @@
 }
 .photolinks .filelink,
 .photolinks button.link {
-  font-size: 12px;
+  font-size: var(--caps-size);
 }
 /* The optional back photo, beside its line. */
 .photoback {

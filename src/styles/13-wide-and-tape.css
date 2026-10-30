@@ -409,8 +409,8 @@ body:has(.tape-band.carried) {
 }
 .step-group-name {
   margin: 0 0 6px;
-  font: var(--w-body) 10px/1.4 var(--mono);
-  letter-spacing: var(--track);
+  font: var(--w-body) var(--caps-size)/1.4 var(--mono);
+  letter-spacing: var(--caps-track);
   text-transform: uppercase;
   color: var(--muted);
 }
@@ -437,7 +437,7 @@ body:has(.tape-band.carried) {
 .step-list li em {
   font-style: normal;
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: var(--caps-size);
   color: var(--gild);
   white-space: nowrap;
 }
@@ -562,9 +562,9 @@ body:has(.tape-band.carried) {
 }
 .ft-in > span {
   color: var(--muted);
-  font: var(--w-body) 12px/1 var(--mono);
+  font: var(--w-body) var(--caps-size)/1 var(--mono);
   text-transform: uppercase;
-  letter-spacing: var(--track);
+  letter-spacing: var(--caps-track);
 }
 
 /* The first measuring page (Cat's R1 Two Switches, 2026-10-21): the body alone, filling the room above two
@@ -585,8 +585,8 @@ body:has(.tape-band.carried) {
   border: none;
   background: none;
   color: var(--muted);
-  font: var(--w-strong) 11px/1 var(--mono);
-  letter-spacing: var(--track);
+  font: var(--w-strong) var(--caps-size)/1 var(--mono);
+  letter-spacing: var(--caps-track);
   text-transform: uppercase;
 }
 
@@ -602,8 +602,8 @@ body:has(.tape-band.carried) {
   display: inline-block;
   margin: 0 0 0 6px;
   vertical-align: 0.6em;
-  font-size: 10px;
-  letter-spacing: 0.12em;
+  font-size: var(--caps-size);
+  letter-spacing: var(--caps-track);
   opacity: 0.75;
   text-decoration: none;
 }
@@ -615,8 +615,8 @@ button.later {
   border: none;
   background: none;
   color: var(--muted);
-  font: var(--w-strong) 11px/1 var(--mono);
-  letter-spacing: var(--track);
+  font: var(--w-strong) var(--caps-size)/1 var(--mono);
+  letter-spacing: var(--caps-track);
   text-transform: uppercase;
 }
 
@@ -782,8 +782,8 @@ button.later.garment-change {
     gap: 10px;
     transform: translateY(-50%);
     white-space: nowrap;
-    font: var(--w-strong) 11px/1 var(--mono);
-    letter-spacing: var(--track);
+    font: var(--w-strong) var(--caps-size)/1 var(--mono);
+    letter-spacing: var(--caps-track);
     text-transform: uppercase;
     color: var(--muted);
   }

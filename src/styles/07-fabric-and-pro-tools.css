@@ -31,8 +31,8 @@
 }
 .picks .tag {
   font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: var(--track);
+  font-size: var(--caps-size);
+  letter-spacing: var(--caps-track);
   text-transform: uppercase;
   color: var(--gild);
   border: var(--bw) solid var(--line-strong);
@@ -123,8 +123,8 @@
   font-family: var(--mono);
   font-weight: var(--w-strong);
   text-transform: uppercase;
-  letter-spacing: var(--track);
-  font-size: 12px;
+  letter-spacing: var(--caps-track);
+  font-size: var(--caps-size);
   color: var(--gild);
 }
 dialog.guide {
@@ -168,8 +168,8 @@ dialog.guide::backdrop {
 .scalebar b {
   display: block;
   font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: var(--track);
+  font-size: var(--caps-size);
+  letter-spacing: var(--caps-track);
   text-transform: uppercase;
   color: var(--gild);
   font-weight: 400;
@@ -413,7 +413,7 @@ table.history td.moved {
   padding: 0;
   list-style: none;
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: var(--caps-size);
 }
 .easelegend li {
   display: flex;
@@ -624,8 +624,8 @@ button.link.garment-change {
 .check-list em.add {
   font-style: normal;
   font-family: var(--mono);
-  font-size: 12px;
-  letter-spacing: 0.2em;
+  font-size: var(--caps-size);
+  letter-spacing: var(--caps-track);
   text-transform: uppercase;
   color: var(--gild);
 }

@@ -28,8 +28,8 @@ summary.later {
   min-height: 36px;
   padding: 6px 0;
   color: var(--gild);
-  font: var(--w-strong) 11px/1 var(--mono);
-  letter-spacing: var(--track);
+  font: var(--w-strong) var(--caps-size)/1 var(--mono);
+  letter-spacing: var(--caps-track);
   text-transform: uppercase;
 }
 summary.later:hover {
@@ -56,8 +56,8 @@ details[open] > summary.later::after,
   cursor: pointer;
   margin: 6px 0;
   color: var(--gild);
-  font: var(--w-strong) 11px/1.4 var(--mono);
-  letter-spacing: var(--track);
+  font: var(--w-strong) var(--caps-size)/1.4 var(--mono);
+  letter-spacing: var(--caps-track);
   text-transform: uppercase;
 }
 .fold-link > summary::-webkit-details-marker,
@@ -110,7 +110,7 @@ button.later.edit-measure {
 .style-bar-meta button.later.bar-review {
   min-height: 24px;
   padding: 0;
-  font-size: 10px;
+  font-size: var(--caps-size);
 }
 
 /* R1: Review as the pattern's envelope. */
@@ -152,8 +152,8 @@ button.later.edit-measure {
   cursor: pointer;
   border-top: 1px solid var(--guide);
   border-bottom: 1px solid var(--guide);
-  font: var(--w-strong) 12px/1 var(--mono);
-  letter-spacing: var(--track);
+  font: var(--w-strong) var(--caps-size)/1 var(--mono);
+  letter-spacing: var(--caps-track);
   text-transform: uppercase;
   color: var(--ink);
 }
@@ -210,7 +210,7 @@ button.later.edit-measure {
     line-height: 1.4;
   }
   .measure-step.has-hero .step-words .testing-note {
-    font-size: 12px;
+    font-size: var(--caps-size);
   }
   .measure-step.has-hero .step-words .field.plain input,
   .measure-step.has-hero .step-words .entry-box input {
@@ -218,7 +218,7 @@ button.later.edit-measure {
   }
   .measure-step.has-hero .step-words button.later,
   .measure-step.has-hero .step-words .how-row button {
-    font-size: 12px;
+    font-size: var(--caps-size);
   }
   .measure-step.has-hero .step-words button.primary {
     min-height: 60px;
@@ -533,7 +533,7 @@ button.later.edit-measure {
   }
   .projector-panel .eyebrow,
   .projector-panel .small {
-    font-size: 11px;
+    font-size: var(--caps-size);
   }
   .projector-panel .row button {
     padding: 8px 10px;
@@ -554,7 +554,7 @@ button.later.edit-measure {
   }
   .projector-tools button {
     padding: 6px 8px;
-    font-size: 11px;
+    font-size: var(--caps-size);
     letter-spacing: 0.06em;
   }
   .projector-tools .pj-gap {
