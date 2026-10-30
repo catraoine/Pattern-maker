@@ -19,26 +19,20 @@
   outline-offset: 4px;
 }
 
-/* A4: the small links and switches look the same but take a bigger tap (at least 44px tall), with the extra laid
-   invisibly around them. */
+/* A4: the small links and switches look the same but take a bigger tap (at least 24px each way), with the extra laid
+   invisibly around them. Only a little, so it never reaches over a neighbouring control. */
 :is(.inline-link, .unit-switch button, .fold-link > summary) {
   position: relative;
 }
-:is(.inline-link, .unit-switch button, .fold-link > summary, .demo-play)::before {
+:is(.inline-link, .unit-switch button, .fold-link > summary)::before {
   content: '';
   position: absolute;
-  inset: -13px -4px;
-}
-.demo-play::before {
-  inset: -8px -6px;
-}
-.unit-switch button::before {
-  inset: -13px -8px;
+  inset: -5px -4px;
 }
 /* The Print tick boxes: the whole line is the tap, and it reaches past the words without moving them. */
 .check {
-  padding-block: 6px;
-  margin-block: -6px;
+  padding-block: 3px;
+  margin-block: -3px;
 }
 
 /* A5: a short screen (a computer zoomed to 200%, or a phone on its side) has no height to spare for a pinned drawing,
