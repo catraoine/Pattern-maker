@@ -5,6 +5,7 @@ something that changes how a department works. Design picks for single screens s
 
 ## October 2026
 
+- **Oct 30** Style step names: no question repeats its step's name; skirt "Details" question is now Fullness, asked after Waist and Pockets (D2); dress "Skirt" / "Skirt details" are Silhouette / Fullness.
 - **Oct 30** Waitlist kill rule: under 1,000 sign-ups by **Feb 11, 2027** ends stage 2 (Jan 25 is only the ~830 checkpoint).
 - **Oct 30** All affiliate payouts, Amazon included, go to the Maison Tracé chequing.
 - **Oct 30** The measuring film is filmed at the Nov 8 shoot with Evan.

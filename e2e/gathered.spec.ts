@@ -21,7 +21,7 @@ test('gathered skirt: a skirt and a dress skirt, gathered at the waist', async (
   await group.screenshot({ path: info.outputPath('skirt.png') });
 
   await switchGarment(page, 'Dress');
-  await chooseChip(page, 'Skirt', 'Gathered');
-  await expect((await openGroup(page, 'Skirt')).getByRole('button', { name: 'Gathered', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await chooseChip(page, 'Silhouette', 'Gathered');
+  await expect((await openGroup(page, 'Silhouette')).getByRole('button', { name: 'Gathered', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await page.screenshot({ path: info.outputPath('dress.png'), fullPage: true });
 });
