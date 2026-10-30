@@ -31,8 +31,9 @@ const CSS = `
   .f{position:fixed;inset:0;color:#efe4cc;font-family:'Space Grotesk',sans-serif}
   .k{font:400 10px/1 'Chakra Petch',monospace;letter-spacing:.34em;text-transform:uppercase;color:#d9c49b}
   .r{width:96px;height:1px;background:#d9c49b;margin:18px 0}
-  .t{font-family:'Archivo Variable',sans-serif;font-stretch:75%;font-weight:600;text-transform:uppercase;line-height:.9;letter-spacing:.005em;margin:0}
-  .l{font-weight:300;font-size:17px;line-height:1.45;margin:0}
+  /* Every word the film says is gold, its own voice apart from the app's cream (Cat, 2026-10-30: gold everywhere). */
+  .t{color:#d9b878;font-family:'Archivo Variable',sans-serif;font-stretch:75%;font-weight:600;text-transform:uppercase;line-height:.9;letter-spacing:.005em;margin:0}
+  .l{color:#d9b878;font-weight:300;font-size:17px;line-height:1.45;margin:0}
   .mid{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
   .mid .r{margin:20px auto}`;
 let n = 0;
@@ -92,7 +93,7 @@ const eased = (stops, i) => {
   return e;
 };
 // notes: captions, each [picture, when it fades in, when it fades out], so a first-time viewer knows what each tap does.
-async function piece({ shot, src, slide = 0, still, from = 0, dur, speed = 1, zoom = [1, 1], at = [0.5, 0.5], cam, frame, tint, fadeIn = 0, fadeOut = 0, over, overIn = 0.4, overAt = 0, overs = [], notes = [], reverse = false, lift }) {
+async function piece({ shot, src, slide = 0, still, from = 0, dur, speed = 1, zoom = [1, 1], at = [0.5, 0.5], cam, frame, tint, fadeIn = 0, fadeOut = 0, over, overIn = 0.4, overAt = 0, overs = [], notes = [], reverse = false, lift, drop }) {
   const edge = frame ? await mask(frame) : undefined;
   const out = join(work, `p${String(k++).padStart(3, '0')}.mp4`);
   const frames = Math.round(dur * FPS);
@@ -118,6 +119,8 @@ async function piece({ shot, src, slide = 0, still, from = 0, dur, speed = 1, zo
     const px = Math.round(l * H);
     v += `,pad=iw:ih+${px}:0:0:black,crop=${W}:${H}:0:'${px}*clip((t-${a})/${d},0,1)'`;
   }
+  // drop: how far, of the frame height, the picture sits lower, to leave room for two lines of words above it.
+  if (drop) v += `,pad=iw:ih+${Math.round(drop * H)}:0:${Math.round(drop * H)}:black,crop=${W}:${H}:0:0`;
   if (slide) v += `,pad=iw*2:ih:iw:0:black,crop=${W}:${H}:x='${W}*(0.3*min(1,t/${slide})+0.7*pow(min(1,t/${slide}),2))':y=0`;
   // tint: [r, g, b] multipliers, e.g. to take the cream pattern paper down to a deeper champagne.
   if (tint) v += `,colorchannelmixer=rr=${tint[0]}:gg=${tint[1]}:bb=${tint[2]}`;
@@ -150,8 +153,8 @@ function tapeAcross(t) {
 }
 
 const MARKS = WIDE
-  ? { fabric: 2.6, enlarge: 8.0, draw: 9.9, hem: 11.4, side: 16.8, done: 21.0 }
-  : { fabric: 2.6, enlarge: 7.9, draw: 9.8, hem: 11.3, side: 16.7, done: 20.9 };
+  ? { fabric: 2.6, enlarge: 9.5, draw: 11.6, hem: 13.2, side: 20.0, done: 26.1 }
+  : { fabric: 2.6, enlarge: 9.1, draw: 11.1, hem: 12.7, side: 19.1, done: 24.3 };
 const JOURNEY = { from: 0.6, to: MARKS.done + 0.9, dur: 17 };
 const atOut = (t) => ((t - JOURNEY.from) * JOURNEY.dur) / (JOURNEY.to - JOURNEY.from);
 // [shot time, zoom, x, y]: on a computer, the whole page, then in on the enlarged form to draw, and back as the
@@ -204,7 +207,7 @@ async function threeChecks() {
   const size = WIDE ? 54 : 40;
   const pics = [];
   for (let i = 0; i < lines.length; i++) {
-    const h = lines.map((l, j) => `<h1 class="t" style="font-size:${size}px;margin:0 0 10px;${j === 2 ? 'color:#d9c49b;' : ''}opacity:${j === i ? 1 : 0}">${l}</h1>`).join('');
+    const h = lines.map((l, j) => `<h1 class="t" style="font-size:${size}px;margin:0 0 10px;${j === 2 ? 'color:#efe4cc;' : ''}opacity:${j === i ? 1 : 0}">${l}</h1>`).join('');
     const band = i === 0;
     pics.push(await words(WIDE
       ? `<div class="f" style="display:flex;flex-direction:column;justify-content:center;padding-left:96px;${band ? 'background:linear-gradient(to right,rgba(0,0,0,.75) 0,rgba(0,0,0,.45) 30%,rgba(0,0,0,0) 42%)' : ''}"><div>${h}</div></div>`
@@ -218,16 +221,17 @@ async function threeChecks() {
 // 'low' sits nearer the picture under it, over the black above the photo and the pattern sheet (Cat, 2026-10-25:
 // the photo's words a little too high, and the pattern's at the same height).
 // shade false: no dark fade behind the words, where they already sit on black (Cat, 2026-10-25: "so much black blur").
-// On a phone the words are 32px, so the longest line ('Your pattern, in seconds.') still sits on one line (Cat,
-// 2026-10-30). The shade is near solid down past the words, so a page scrolling under them never shows through (Cat, 2026-10-30).
+// The film's words are gold (.t), so they read apart from the app's cream headings; on a phone they are 40px, the longer
+// lines breaking in two (Cat, 2026-10-30: T1 C; 32px read too small next to the app's bigger headings).
+// The shade is near solid down past the words, so a page scrolling under them never shows through (Cat, 2026-10-30).
 const note = (line, where, shade = true) => words(WIDE && where === 'side'
   ? `<div class="f" style="display:flex;flex-direction:column;justify-content:center;padding-left:96px;background:linear-gradient(to right,rgba(0,0,0,.85) 0,rgba(0,0,0,.6) 30%,rgba(0,0,0,0) 42%)"><h1 class="t" style="font-size:46px">${line}</h1></div>`
   : WIDE
   ? `<div class="f" style="${shade ? 'background:linear-gradient(to bottom,#000 0,#000 15.5%,rgba(0,0,0,0) 21%);' : ''}padding:${where === 'low' ? 54 : 44}px 0 0 96px"><h1 class="t" style="font-size:46px">${line}</h1></div>`
-  : `<div class="f" style="${shade ? 'background:linear-gradient(to bottom,#000 0,#000 14.5%,rgba(0,0,0,0) 19%);' : ''}padding:${where === 'low' ? 60 : 40}px 0 0 28px"><h1 class="t" style="font-size:32px">${line}</h1></div>`);
+  : `<div class="f" style="${shade ? `background:linear-gradient(to bottom,#000 0,#000 ${line.includes('<br>') ? '19%,rgba(0,0,0,0) 23.5%' : '14.5%,rgba(0,0,0,0) 19%'});` : ''}padding:${where === 'low' ? 60 : 40}px 0 0 28px"><h1 class="t" style="font-size:40px">${line}</h1></div>`);
 // The scroll down the collection's looks, the way down to Print my pattern, and projector mode, as recorded
 // (record-tour-shots.mjs: the phone's scrolls are longer).
-const COLLECTION = WIDE ? { from: 0.8, dur: 8.5, speed: 1.45 } : { from: 0.8, dur: 8.5, speed: 1.75 };
+const COLLECTION = WIDE ? { from: 0.8, dur: 8.5, speed: 1.45 } : { from: 0.8, dur: 8.5, speed: 1.75, drop: 0.05 };
 // A computer has no Review page to scroll (Print my pattern sits beside the drawing), so its projector runs longer.
 const REVIEW = WIDE ? undefined : { from: 0.4, dur: 4.4, speed: 1.15 };
 // Straight from the pages to a piece on black in projector mode, drawn in close so it fills the screen (Cat,
@@ -243,6 +247,32 @@ async function photoMoment() {
   const pic = await words(`<div class="f" style="display:flex;align-items:center;justify-content:center;padding-top:${WIDE ? 70 : 60}px"><div style="background:#efe4cc;padding:${18 * k}px ${18 * k}px ${76 * k}px;box-shadow:0 12px 28px rgba(0,0,0,.6);position:relative"><img src="data:image/jpeg;base64,${PHOTO}" style="display:block;width:${304 * k}px;height:${360 * k}px;object-fit:cover;filter:saturate(.92) contrast(1.04)"><div style="position:absolute;left:0;right:0;bottom:${28 * k}px;text-align:center;font:400 ${12 * k}px/1 'Chakra Petch',monospace;letter-spacing:.3em;text-transform:uppercase;color:#6b5a3a">That dress</div></div></div>`, { solid: true });
   // Held long enough to read (Cat, 2026-10-25).
   return piece({ still: pic, dur: 3.2, zoom: [1, 1.03], fadeIn: 0.5, fadeOut: 0.5, notes: [[await note('Or upload a photo.', 'low'), 0.2, 3.2]] });
+}
+// N3b Shop the fabric (Cat, 2026-10-30): after Style, six of the partner shop's fabrics as the app's cream tags with a
+// photo of the cloth in each, landing one after another. Every name sits on one line, so every tag is the same size
+// (two shop names shortened to fit).
+const SHOP = [
+  ['silk', 'Silk charmeuse', '$39.96/yd · 3 colours'],
+  ['wool', 'Double wool crepe', '$79.96/yd · 1 colour'],
+  ['linen', 'Linen and cotton', '$24.96/yd · 2 colours'],
+  ['cotton', 'Stretch cotton poplin', '$8/yd · 1 colour'],
+  ['corduroy', 'Featherwale corduroy', '$26.96/yd · 2 colours'],
+  ['denim', 'Cotton denim, 10.5 oz', '$15.96/yd · 2 colours'],
+];
+async function shopMoment() {
+  // Phone: two across, three down. Computer: three across, two down.
+  const [cols, w, tex, gap, top] = WIDE ? [3, 250, 175, 22, 190] : [2, 180, 120, 14, 150];
+  const strip = WIDE ? 80 : 66;
+  const left = (VW - cols * w - (cols - 1) * gap) / 2;
+  const tags = [];
+  for (let i = 0; i < SHOP.length; i++) {
+    const [img, name, price] = SHOP[i];
+    const photo = readFileSync(new URL(`../public/fabrics/${img}.jpg`, import.meta.url)).toString('base64');
+    const x = left + (i % cols) * (w + gap);
+    const y = top + Math.floor(i / cols) * (tex + strip + gap);
+    tags.push([await words(`<div style="position:fixed;left:${x}px;top:${y}px;width:${w}px;box-shadow:0 10px 24px rgba(0,0,0,.55)"><img src="data:image/jpeg;base64,${photo}" style="display:block;width:100%;height:${tex}px;object-fit:cover"><div style="height:${strip}px;box-sizing:border-box;padding:${WIDE ? 14 : 10}px;background:linear-gradient(90deg,#ece2cb 0%,#ece2cb 78%,#d3c7ab 100%);font-family:'Chakra Petch',monospace;text-transform:uppercase;white-space:nowrap;overflow:hidden"><div style="font-weight:600;font-size:${WIDE ? 12 : 9.5}px;letter-spacing:.15em;color:#151311">${name}</div><div style="font-size:${WIDE ? 9.5 : 8}px;letter-spacing:.12em;color:#6c6250;margin-top:5px">Mood Fabrics</div><div style="font-size:${WIDE ? 9.5 : 8}px;letter-spacing:.12em;color:#6c6250;margin-top:3px">${price}</div></div></div>`), 0.3 + 0.3 * i]);
+  }
+  return piece({ still: await words('', { solid: true }), dur: 4.6, fadeIn: 0.5, fadeOut: 0.5, overs: tags, notes: [[await note('Shop the fabric.', 'low'), 0.2, 4.6]] });
 }
 // The opening (Cat, 2026-10-22: the old one repeated the loading screen and welcome the viewer had just seen).
 const INTRO = process.env.TOUR_INTRO ?? 'W'; // Cat's pick, 2026-10-30: W Welcome Push (was C2 Pull Back)
@@ -315,22 +345,23 @@ const CUTS = {
       // as a way to start too, not a filter on the looks).
       await piece({ shot: 'choose', from: 0.3, dur: 3.2, fadeIn: f, fadeOut: f, notes: [[await note('Pick a garment.', 'low'), 0.2, 3.0]] }),
       // Start from a look, then from a photo (Cat, 2026-10-29: the scroll through the collection back in, before the photo).
-      await piece({ shot: 'collection', ...COLLECTION, fadeIn: f, fadeOut: f, notes: [[await note('Or start from a look.', 'low'), 0, COLLECTION.dur - 0.3]] }),
+      await piece({ shot: 'collection', ...COLLECTION, fadeIn: f, fadeOut: f, notes: [[await note(WIDE ? 'Or start from a look.' : 'Or start<br>from a look.', 'low'), 0, COLLECTION.dur - 0.3]] }),
       await photoMoment(),
       await piece({ still: await card('03', 'Style', 'Make it yours.'), dur: 3, fadeIn: f, fadeOut: f }),
       // Done lands on the pattern sheet, so the pattern follows straight on, then the dress all round (Cat,
       // 2026-10-24: no flash back to the dress between them), each dissolving into the next.
       await dissolve(
-        await dissolve(await styleJourney(), await piece({ shot: 'pattern', dur: 3.6, ...PATTERN, notes: [[await note('Your pattern, in seconds.', 'low', false), 0.5, 3.4]] }), 0.8),
+        await dissolve(await styleJourney(), await piece({ shot: 'pattern', dur: 3.6, ...PATTERN, notes: [[await note(WIDE ? 'Your pattern, in seconds.' : 'Your pattern,<br>in seconds.', 'low', false), 0.5, 3.4]] }), 0.8),
         await piece({ shot: 'round', from: 0.3, dur: 8.6, fadeOut: f, overs: (await threeChecks()).map((p, i) => [p, 0.9 + i * 1.8]) }),
         1,
       ),
+      await shopMoment(),
       await piece({ still: await card('04', 'Print', 'At home, or full size.'), dur: 3, fadeIn: f, fadeOut: f }),
       // Down to Print my pattern, the pages, then projector mode (Cat, 2026-10-29: the scroll to print and the
       // projector back in).
       ...(REVIEW ? [await piece({ shot: 'review', ...REVIEW, fadeIn: f })] : []),
       await pages(4.4, { fadeIn: f, fadeOut: f }),
-      await piece({ shot: 'projector', ...PROJECTOR, fadeIn: f, fadeOut: f, notes: [[await note('Or project it, true size.', 'low'), 0.3, PROJECTOR.dur - 0.3]] }),
+      await piece({ shot: 'projector', ...PROJECTOR, fadeIn: f, fadeOut: f, notes: [[await note(WIDE ? 'Or project it, true size.' : 'Or project it,<br>true size.', 'low'), 0.3, PROJECTOR.dur - 0.3]] }),
       await piece({ still: await card('', 'Drafted<br>to your body'), dur: 4.5, fadeIn: 0.8, fadeOut: 1.2 }),
       await piece({ still: await endCard(), dur: 3, fadeIn: 0.8, fadeOut: 0.8 }),
     ];

@@ -370,8 +370,8 @@ const mark = (what) => console.log(`  style ${what}: ${((Date.now() - t0) / 1000
 // 2026-10-24: longer and flare, the neck and waist kept as in her photo).
 const LINES = {
   photo: [[0.13, 0.639], [0.5, 0.652], [0.87, 0.639]],
-  hem: [[0.104, 0.975], [0.5, 0.99], [0.896, 0.975]],
-  side: [[0.143, 0.483], [0.102, 0.638], [-0.104, 0.975]],
+  hem: [[0.104, 0.99], [0.5, 1.0], [0.896, 0.99]],
+  side: [[0.143, 0.483], [0.102, 0.638], [-0.104, 0.99]],
 };
 // Off camera, the dress is made to match the photo the film has just shown, Cat's own check silk dress (Cat,
 // 2026-10-24: show that starting from a photo works): a boat neck, short sleeves, a waist seam dropped low on the hip,
@@ -379,7 +379,7 @@ const LINES = {
 // tool takes it from there. The skirt is set to the knee rather than the mini of the photo, so the flat drawing
 // reads as a dress rather than a t-shirt (Cat, 2026-10-26).
 const pick = async (name, group) => {
-  const r = main.locator(group ? `fieldset[data-label="${group}"] button[aria-pressed]` : 'button[aria-pressed]').filter({ hasText: new RegExp(`^\\s*${name}\\b`) }).first();
+  const r = main.locator(group ? `fieldset[data-label="${group}"] button[aria-pressed]` : 'button[aria-pressed]').filter({ hasText: new RegExp(`^\\s*${name}(?![a-z])`) }).first();
   if (await r.count()) await r.evaluate((el) => el.click());
   await wait(250);
 };
@@ -425,9 +425,9 @@ if (process.env.TOUR_OPENER) {
   process.exit(0);
 }
 // TOUR_FIT and TOUR_SLEEVES try the dress another way (Fitted, Sleeveless) without touching the rest.
-const FIT = process.env.TOUR_FIT ?? 'Relaxed';
+const FIT = process.env.TOUR_FIT ?? 'Boxy';
 const SLEEVES = process.env.TOUR_SLEEVES ?? 'Short';
-for (const [tab, names] of [['Shape', [[FIT, 'Fit'], 'Dropped']], ['Neck & sleeves', ['Boat', SLEEVES]], ['Skirt & length', [['Straight', 'Skirt'], ['Inverted pleats', 'Skirt details']]]]) {
+for (const [tab, names] of [['Shape', [[FIT, 'Fit'], 'Dropped']], ['Neck & sleeves', ['Boat', SLEEVES]], ['Skirt & length', [['Straight', 'Skirt'], ['Inverted pleats', 'Skirt details'], ['Self band', 'Belt']]]]) {
   await main.getByRole('tab', { name: tab, exact: true }).click();
   await wait(400);
   for (const n of names) await (Array.isArray(n) ? pick(...n) : pick(n));
@@ -443,7 +443,13 @@ await wait(300);
 await main.getByRole('tab', { name: 'Skirt & length', exact: true }).click();
 await wait(300);
 // The length is set from the marks beside the form.
-await p.evaluate(() => [...document.querySelectorAll('main .hem-mark')].find((g) => g.textContent.trim() === 'KNEE')?.querySelector('.hit')?.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+await p.evaluate((m) => [...document.querySelectorAll('main .hem-mark')].find((g) => g.textContent.trim() === m)?.querySelector('.hit')?.dispatchEvent(new MouseEvent('click', { bubbles: true })), process.env.TOUR_MARK ?? 'KNEE');
+// TOUR_SHORTER takes the hem up from that mark, 2 cm a step, on the length dot's arrow keys.
+for (let i = 0; i < Number(process.env.TOUR_SHORTER ?? 0); i++) {
+  await main.locator('[role=slider][aria-label$="length"]').first().press('ArrowUp');
+  await wait(120);
+}
+if (process.env.TOUR_SHORTER) console.log('LENGTH', await main.locator('[role=slider][aria-label$="length"]').evaluateAll((els) => els.map((e) => `${e.getAttribute('aria-label')}=${e.getAttribute('aria-valuenow')}`)));
 await wait(400);
 await main.getByRole('tab', { name: 'Fabric', exact: true }).click();
 await wait(400);
@@ -463,6 +469,27 @@ await wait(300);
 const repeat = main.locator('#fabrepeat');
 if (await repeat.count()) await repeat.fill(process.env.TOUR_REPEAT ?? '4.5');
 await wait(300);
+for (const n of (process.env.TOUR_EXTRA ?? '').split('|').filter(Boolean)) { for (const t of ['Shape', 'Neck & sleeves', 'Skirt & length', 'Fabric']) { await main.getByRole('tab', { name: t, exact: true }).click(); await wait(200); await pick(n); } }
+// The film opens on the photo's very short length (Cat, 2026-10-30: it needs to be mini, as in the photo), 19 cm
+// below the dropped seam: between the named lengths, so set as a hem drawn on the form sets it, and the page opened again.
+if (process.env.TOUR_START_MINI !== '0') {
+  await wait(500);
+  await p.evaluate((cm) => {
+    const k = 'pattern-maker:skirt';
+    const saved = JSON.parse(localStorage.getItem(k) ?? '{}');
+    if (saved.dress) saved.dress.skirt = { ...saved.dress.skirt, lengthCm: cm };
+    localStorage.setItem(k, JSON.stringify(saved));
+  }, Number(process.env.TOUR_START_MINI ?? 19));
+  await p.reload();
+  await wait(1500);
+  const again = p.getByRole('button', { name: /^Carry on with your/ });
+  if (await again.count()) await again.first().click();
+  await main.getByRole('heading', { level: 1, name: /^Style your/ }).waitFor();
+  await addPen();
+  await wait(800);
+}
+// The film shows the Boxy fit without its In testing tag, as it does projector mode (Cat, 2026-10-29); the app keeps it.
+await p.addStyleTag({ content: 'main button[aria-pressed] .testing-tag { display: none !important; }' });
 await main.getByRole('tab', { name: 'Shape', exact: true }).click();
 await p.evaluate(() => window.scrollTo(0, 0));
 await wait(1200);
@@ -535,7 +562,8 @@ await wait(900);
 const roomy = main.getByRole('button', { name: 'Enlarge', exact: true });
 if (await roomy.count()) await tap(roomy, 900);
 await tap(kinds.getByRole('button', { name: 'Hem', exact: true }), 300);
-await draw(form, LINES.photo, 600);
+// The dress already opens at the photo's length (TOUR_START_MINI); drawn again only when it doesn't.
+if (process.env.TOUR_START_MINI === '0') await draw(form, LINES.photo, 600);
 await tap(kinds.getByRole('button', { name: 'Neckline', exact: true }), 600);
 await p.evaluate(() => { document.getElementById('pen').style.visibility = ''; });
 cut(false);
@@ -682,8 +710,9 @@ const pickPaper = async (name, pressIt) => {
   const item = main.getByRole('menuitemradio', { name }).first();
   if (pressIt) await press(item, 900); else await item.click();
 };
-// The film shows projector mode without its In testing tag; the app keeps it until the projector test (Cat, 2026-10-29).
-await p.addStyleTag({ content: '.projector-offer .testing-tag, .projector .testing-tag { display: none !important; }' });
+// The film shows projector mode without its In testing tag; the app keeps it until the projector test (Cat, 2026-10-29),
+// and without its small heading and hint, which flashed under the words as the caption faded (Cat, 2026-10-30).
+await p.addStyleTag({ content: '.projector-offer .testing-tag, .projector .testing-tag { display: none !important; } .projector .pj-top, .projector .pj-hint { visibility: hidden !important; }' });
 await pickPaper(/^Projector/);
 await main.getByRole('button', { name: 'Open projector mode' }).click();
 await p.getByRole('button', { name: /^Next: check/ }).click();

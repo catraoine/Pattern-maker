@@ -19,7 +19,8 @@ interface Props {
 
 type Shelf = 'house' | 'archive';
 
-const lookNo = (n: number) => `Look ${String(n).padStart(2, '0')}`;
+// Each look carries its season, as a house's lookbook does (Cat, 2026-10-30).
+const lookNo = (n: number) => `${SEASON.code} · Look ${String(n).padStart(2, '0')}`;
 
 /** The time now, ticking each second while a drop clock is on screen. */
 function useNow(ticking: boolean): Date {
