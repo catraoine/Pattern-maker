@@ -7,6 +7,12 @@ test.skip(!OUT, 'Set BODY_STILLS to a folder to take the stills');
 
 const ALL: [string, GarmentName, string, string[]][] = [
   ['dress-default', 'Dress', 'Neck & sleeves', []],
+  // Tab:Group:Name picks, for looks across tabs.
+  ['dress-sheath', 'Dress', '', ['Skirt & length:Cut:Sheath', 'Skirt & length:Length:Midi', 'Neck & sleeves:Sleeves:Short']],
+  ['dress-circle', 'Dress', '', ['Skirt & length:Cut:Waist seam', 'Skirt & length:Skirt:Full circle', 'Skirt & length:Length:Midi', 'Neck & sleeves:Neckline:Sweetheart', 'Neck & sleeves:Sleeves:Sleeveless']],
+  ['dress-shift', 'Dress', '', ['Skirt & length:Cut:Shift', 'Skirt & length:Length:Knee', 'Neck & sleeves:Neckline:Boat', 'Neck & sleeves:Sleeves:Long']],
+  ['dress-maxi', 'Dress', '', ['Skirt & length:Cut:Waist seam', 'Skirt & length:Skirt:Gathered', 'Skirt & length:Length:Maxi', 'Neck & sleeves:Neckline:Square', 'Neck & sleeves:Sleeves:Sleeveless']],
+  ['coat-belted', 'Coat', 'Shape', []],
   ['dress', 'Dress', 'Neck & sleeves', ['Crew', 'Short']],
   ['dress-boat', 'Dress', 'Neck & sleeves', ['Boat', 'Short']],
   ['dress-sleeveless', 'Dress', 'Neck & sleeves', ['Scoop', 'Sleeveless']],
@@ -41,11 +47,15 @@ test('body stills', async ({ page, consoleErrors }, info) => {
   for (const [key, g, tab, picks] of LOOKS) {
     if (g !== current) await switchGarment(page, g);
     current = g;
-    for (const name of picks) {
-      const t = main.getByRole('tab', { name: tab, exact: true });
+    await page.evaluate((on) => Object.assign(window, { __mockBelt: on }), key === 'coat-belted');
+    for (const pickName of picks) {
+      const [tb, grp, name] = pickName.includes(':') ? pickName.split(':') : [tab, '', pickName];
+      const t = main.getByRole('tab', { name: tb, exact: true });
       if (await t.count()) await t.click();
-      const b = main.locator('button[aria-pressed]').filter({ hasText: new RegExp(`^\\s*${name}\\b`) }).first();
-      if (await b.count()) await b.evaluate((el) => (el as HTMLElement).click());
+      const b = main.locator(grp ? `fieldset[data-label="${grp}"] button[aria-pressed]` : 'button[aria-pressed]').filter({ hasText: new RegExp(`^\\s*${name}\\b`) }).first();
+      if (grp === 'Length') await page.evaluate((n) => [...document.querySelectorAll('main .hem-mark')].find((m) => m.textContent?.trim().toUpperCase() === n.toUpperCase())?.querySelector('.hit')?.dispatchEvent(new MouseEvent('click', { bubbles: true })), name);
+      else if (await b.count()) await b.evaluate((el) => (el as HTMLElement).click());
+      else if (process.env.DEBUG_PICKS) console.log('MISSING', key, pickName, await main.locator('fieldset[data-label]').evaluateAll((fs) => fs.map((f) => f.getAttribute('data-label') + ': ' + [...f.querySelectorAll('button[aria-pressed]')].map((x) => x.textContent?.trim().slice(0, 20)).join(' | '))));
       await page.waitForTimeout(250);
     }
     if (!process.env.LINES) {

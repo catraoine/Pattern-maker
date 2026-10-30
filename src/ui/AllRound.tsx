@@ -187,7 +187,7 @@ export function AllRound({ round, m, striped = false, fabric, label, draw }: Pro
     // The film's 'old look': the form's lines run on through the whole garment, as the released film had it.
     const through = flag === 'old';
     // Mock-up looks for the film's opening All round (Cat, 2026-10-30): 'now' as it is, or A tidy, B contour, C rings, D outline.
-    const look = through ? ((window as Window & { __openerLook?: string }).__openerLook ?? 'now') : 'now';
+    const look = through ? ((window as Window & { __openerLook?: string }).__openerLook ?? 'A') : 'now';
     const solid = look !== 'now';
     const isTop = round.kind === 'top' || round.kind === 'dress';
     // Drawing on it, the figure has the whole canvas: no hem strip, the status line under it reads the hem.
@@ -526,6 +526,46 @@ export function AllRound({ round, m, striped = false, fabric, label, draw }: Pro
           g.strokeStyle = hollow;
           g.lineWidth = 1;
           g.stroke();
+        }
+        // Through the neckline you see the form's chest and neck, not the inside of the back.
+        if (isTop) {
+          const rim = (a: number) => P(a, shell(a, topY(a)), topY(a));
+          const formOnly = (clip: () => void, halfWidth: (y: number) => number) => {
+            g.save();
+            clip();
+            g.clip();
+            g.beginPath();
+            const ys = Array.from({ length: 41 }, (_, i) => NECK_Y - 0.6 + ((yOf(longest) - NECK_Y + 0.6) * i) / 40);
+            ys.forEach((y, i) => (i ? g.lineTo(cx - halfWidth(y) * S, Y(y)) : g.moveTo(cx - halfWidth(y) * S, Y(y))));
+            [...ys].reverse().forEach((y) => g.lineTo(cx + halfWidth(y) * S, Y(y)));
+            g.clip();
+            g.fillStyle = '#000';
+            g.fillRect(0, 0, w, h);
+            g.globalAlpha = 0.6;
+            g.strokeStyle = GILD;
+            paintFigure(g, S, cx, Y, lw, 0, false, phi, { half: formHalfWidth, shape: shapeAt, satin: false, head: false });
+            g.restore();
+            g.globalAlpha = 1;
+          };
+          formOnly(() => {
+            g.beginPath();
+            for (let i = 0; i <= 144; i++) {
+              const q = rim(-Math.PI + (TAU * i) / 144);
+              if (i) g.lineTo(q[0], q[1]);
+              else g.moveTo(q[0], q[1]);
+            }
+          }, (y) => bodyEdge(y));
+          formOnly(() => {
+            g.beginPath();
+            for (let i = 0; i <= 72; i++) {
+              const q = rim(-Math.PI / 2 - phi + (Math.PI * i) / 72);
+              if (i) g.lineTo(q[0], q[1]);
+              else g.moveTo(q[0], q[1]);
+            }
+            g.lineTo(rim(Math.PI / 2 - phi)[0], 0);
+            g.lineTo(rim(-Math.PI / 2 - phi)[0], 0);
+            g.closePath();
+          }, (y) => Math.min(bodyEdge(y), neckOnly));
         }
         // Through an open armhole you see the form's side, not the inside of the dress.
         if (arm && !sl) {
@@ -970,6 +1010,48 @@ export function AllRound({ round, m, striped = false, fabric, label, draw }: Pro
         for (const dt of round.darts) line(along([dt.base, dt.tip]), GILD, lw * 0.8, solid ? 0 : 0.2, film ? 0.5 : 1);
         for (const sm of round.seams.filter(drawn)) line(along(sm.pts, sm.leg), GLOW, lw * 1.1, solid ? 0 : 0.2);
       }
+      }
+      // Mock-up only (Cat, 2026-10-30): a tie belt at the waist, for the belted coat in the opener look.
+      if (solid && (window as Window & { __mockBelt?: boolean }).__mockBelt && !trousers) {
+        const bw = 0.06;
+        const near = (y: number) => Array.from({ length: 73 }, (_, i) => -Math.PI / 2 - phi + (Math.PI * i) / 72).map((a) => P(a, shell(a, y) + 0.012, y));
+        const t0 = near(WAIST - bw), t1 = near(WAIST + bw);
+        g.globalAlpha = 1;
+        g.fillStyle = '#000';
+        g.beginPath();
+        t0.forEach((q, i) => (i ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1])));
+        [...t1].reverse().forEach((q) => g.lineTo(q[0], q[1]));
+        g.closePath();
+        g.fill();
+        line(t0, GLOW, lw * 1.1, 0, 1);
+        line(t1, GLOW, lw * 1.1, 0, 1);
+        // The knot, a little right of centre front, and its two ends hanging.
+        const ka = 0.35;
+        const k = P(ka, shell(ka, WAIST) + 0.02, WAIST);
+        if (k[2] > 0.1) {
+          const u = S * 0.06;
+          g.globalAlpha = k[2];
+          g.fillStyle = '#000';
+          g.strokeStyle = GLOW;
+          g.lineWidth = lw * 1.1;
+          g.beginPath();
+          g.ellipse(k[0], k[1], u * 1.1, u * 0.9, 0, 0, TAU);
+          g.fill();
+          g.stroke();
+          for (const [dx, len, tilt] of [[-0.4, 3.2, -0.12], [0.5, 2.6, 0.14]]) {
+            const x0 = k[0] + dx * u, y0 = k[1] + u * 0.8;
+            const x1 = x0 + tilt * len * u, y1 = y0 + len * u * 1.6;
+            g.beginPath();
+            g.moveTo(x0 - u * 0.5, y0);
+            g.lineTo(x1 - u * 0.5, y1);
+            g.lineTo(x1 + u * 0.5, y1 + u * 0.4);
+            g.lineTo(x0 + u * 0.5, y0);
+            g.closePath();
+            g.fill();
+            g.stroke();
+          }
+          g.globalAlpha = 1;
+        }
       }
       // The zip, buttons and where things meet.
       if (round.zip) {
