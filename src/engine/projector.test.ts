@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { apply, convex, homography, invert, localMatrix, matToScreen, placePoint, pxPerCm, startCorners } from './projector';
+import { describe, expect, it, vi } from 'vitest';
+import { START_LOOK, apply, convex, homography, invert, lensAt, loadLook, localMatrix, matToScreen, onScreenArea, paperSize, placePoint, pxPerCm, startCorners } from './projector';
 
 const mat = { w: 60, h: 45 };
 // A projector leaning to one side: the mat lands as a lopsided shape on the screen.
@@ -81,5 +81,49 @@ describe('placing a piece', () => {
   it('flips left to right', () => {
     const q = placePoint({ x: 15, y: 20 }, mid, { at: { x: 30, y: 30 }, turn: 0, flip: true });
     expect(q.x).toBeCloseTo(25, 6);
+  });
+});
+
+describe('lining up on paper, and the check grid', () => {
+  it('turns the paper sideways when the corners are wider than tall', () => {
+    expect(paperSize('a4', corners)).toEqual({ w: 29.7, h: 21 });
+    const upright = [
+      { x: 0, y: 0 },
+      { x: 210, y: 0 },
+      { x: 210, y: 297 },
+      { x: 0, y: 297 },
+    ];
+    expect(paperSize('letter', upright)).toEqual({ w: 21.59, h: 27.94 });
+  });
+
+  it('covers the whole screen around a small sheet of paper, but never further than the reach', () => {
+    // A4 lined up small in the middle of a 1280 × 800 screen at 10 px per cm.
+    const paper = { w: 21, h: 29.7 };
+    const h = matToScreen({ mat: paper, corners: startCorners(1280, 800, paper, undefined, 0.371) })!;
+    const a = onScreenArea(h, 1280, 800, paper);
+    expect(a.x0).toBeLessThan(-40);
+    expect(a.x1).toBeGreaterThan(60);
+    expect(a.y0).toBeLessThan(0);
+    const far = onScreenArea(h, 1e6, 1e6, paper, 150);
+    expect(far.x1).toBe(21 + 150);
+  });
+});
+
+describe('the loupe', () => {
+  it('sits to the right of the spot, or to the left near the right edge, and above the tools', () => {
+    expect(lensAt({ x: 300, y: 300 }, 120, 3, 1280, 800).x).toBeGreaterThan(300);
+    expect(lensAt({ x: 1200, y: 300 }, 120, 3, 1280, 800).x).toBeLessThan(1200);
+    expect(lensAt({ x: 300, y: 790 }, 120, 3, 1280, 800, 64).y).toBe(800 - 64 - 128);
+  });
+});
+
+describe('how the lines look', () => {
+  it('starts with every line shown at 3 mm in white, and ignores anything odd it finds saved', () => {
+    const kept = new Map<string, string>();
+    vi.stubGlobal('localStorage', { getItem: (k: string) => kept.get(k) ?? null, setItem: (k: string, v: string) => kept.set(k, v) });
+    expect(loadLook()).toEqual(START_LOOK);
+    kept.set('pattern-maker:projector-look', JSON.stringify({ mm: 99, ink: 'red', show: { labels: false }, dim: true }));
+    expect(loadLook()).toEqual({ ...START_LOOK, show: { ...START_LOOK.show, labels: false }, dim: true });
+    vi.unstubAllGlobals();
   });
 });

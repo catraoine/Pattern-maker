@@ -350,7 +350,7 @@ button.later.edit-measure {
 }
 .pj-ink {
   fill: none;
-  stroke: #fff;
+  stroke: var(--pj-ink, #fff);
 }
 .pj-stitch {
   opacity: 0.8;
@@ -361,7 +361,7 @@ button.later.edit-measure {
   opacity: 0.25;
 }
 .pj-text {
-  fill: #fff;
+  fill: var(--pj-ink, #fff);
   font-family: var(--mono);
   letter-spacing: 0.1em;
 }
@@ -626,6 +626,123 @@ button.later.edit-measure {
     flex: 1;
     padding-left: 8px;
     padding-right: 8px;
+  }
+}
+/* Projector upgrades (Cat applied 2026-10-30): paper line-up (C1), check grid over the whole table (C2), a Lines panel
+   with layers, thickness and colour (L1 + L3), and a loupe (M2). */
+.pj-ref {
+  gap: 6px;
+  margin: 12px 0 0;
+}
+.pj-ref button,
+.pj-pop button {
+  padding: 8px 11px;
+  border: 1.3px solid var(--guide);
+  background: #000;
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.pj-ref button.on,
+.pj-pop button.on {
+  border-color: var(--gild);
+  color: var(--gild);
+}
+.pj-check {
+  opacity: 0.4;
+}
+.projector-stage.pj-dim {
+  background: #262626;
+}
+.pj-pop {
+  position: absolute;
+  right: 18px;
+  width: min(300px, calc(100vw - 36px));
+  overflow-y: auto;
+  padding: 14px 16px;
+  background: #000;
+  border: 1px solid var(--gild);
+}
+.pj-pop .eyebrow {
+  margin: 12px 0 6px;
+}
+.pj-pop .eyebrow:first-child {
+  margin-top: 0;
+}
+.pj-pop .small {
+  margin: 6px 0 0;
+}
+.pj-switch {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0;
+  font-size: 14px;
+}
+.pj-switch input,
+.pj-thick input {
+  accent-color: var(--gild);
+}
+.pj-switch input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+}
+.pj-thick {
+  gap: 10px;
+  align-items: center;
+}
+.pj-thick input {
+  flex: 1;
+}
+.pj-inks {
+  gap: 8px;
+}
+.pj-pop .pj-inks button {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+}
+.pj-pop .pj-inks button.on {
+  outline: 2px solid var(--gild);
+  outline-offset: 2px;
+}
+.pj-lens {
+  fill: none;
+  stroke: var(--gild);
+}
+.pj-spot {
+  stroke-dasharray: 6 5;
+}
+.pj-lens-ground {
+  fill: #000;
+}
+.pj-dim .pj-lens-ground {
+  fill: #262626;
+}
+.pj-lens-note {
+  fill: var(--gild);
+  font-family: var(--mono);
+  font-size: 14px;
+}
+@media (max-height: 500px) {
+  .pj-pop {
+    padding: 10px 12px;
+  }
+  .pj-pop .eyebrow {
+    margin: 8px 0 4px;
+  }
+  .pj-switch {
+    padding: 2px 0;
+    font-size: 13px;
+  }
+  .pj-ref {
+    margin-top: 8px;
+  }
+  .pj-ref button {
+    padding: 6px 8px;
+    font-size: var(--caps-size);
   }
 }
 /* What you'll need for projector mode (K1 Fold-out, 2026-10-29). */
