@@ -412,24 +412,14 @@ function beltOn<V extends Omit<FlatView, 'at' | 'origin'>>(v: V, y: number, b: B
   const X = halfWidthAt(body, y) || halfWidthAt(body, y + 1);
   if (!X) return v;
   const shapes = [...v.shapes];
-  const w = b.sash?.widthCm ?? b.band?.widthCm ?? b.loops?.holdsCm ?? 3;
-  if (b.band) {
-    // A flat self band round the seam, its buckle covered in the same cloth just off the centre front and the
-    // slanted end lying on past it (Cat's gingham dress, 2026-10-30).
-    shapes.push([p(-X - 0.2, y - w / 2), p(X + 0.2, y - w / 2), p(X + 0.2, y + w / 2), p(-X - 0.2, y + w / 2)]);
-    if (v.label === 'FRONT') {
-      const bx = -X * 0.3;
-      shapes.push([p(bx - 1.2, y - w / 2 - 0.5), p(bx + 1.2, y - w / 2 - 0.5), p(bx + 1.2, y + w / 2 + 0.5), p(bx - 1.2, y + w / 2 + 0.5)]);
-      shapes.push([p(bx + 1.2, y - w / 2 + 0.3), p(bx + 6, y - w / 2 + 0.3), p(bx + 7, y), p(bx + 6, y + w / 2 - 0.3), p(bx + 1.2, y + w / 2 - 0.3)]);
-    }
-  }
+  const w = b.sash?.widthCm ?? b.loops?.holdsCm ?? 3;
   if (b.sash) {
     shapes.push([p(-X - 0.2, y - w / 2), p(X + 0.2, y - w / 2), p(X + 0.2, y + w / 2), p(-X - 0.2, y + w / 2)]);
     if (v.label === 'FRONT') shapes.push(...tieKnot(p(0.5, y)));
   }
   if (b.loops) {
     const [top, foot] = band ? [y - band / 2, y + band / 2 + 0.6] : [y - w / 2 - 0.5, y + w / 2 + 0.5];
-    const xs = b.sash || b.band ? [X - 0.9] : [X * 0.5];
+    const xs = b.sash ? [X - 0.9] : [X * 0.5];
     for (const x of xs) for (const s2 of [1, -1]) shapes.push([p(s2 * x - 0.5, top), p(s2 * x + 0.5, top), p(s2 * x + 0.5, foot), p(s2 * x - 0.5, foot)]);
   }
   return { ...v, shapes };

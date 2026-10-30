@@ -1,4 +1,4 @@
-import { SkirtDraft, SkirtMeasurements, draftSkirt, skirtFitOf } from './engine/skirt';
+import { SkirtDraft, SkirtMeasurements, draftSkirt } from './engine/skirt';
 import { BodiceDraft, BodiceMeasurements, draftBodice } from './engine/bodice';
 import { DressDraft, DressMeasurements, draftDress } from './engine/dress';
 import { TrousersDraft, TrousersMeasurements, draftTrousers, trousersWaistband } from './engine/trousers';
@@ -89,7 +89,7 @@ const dressStylesOf = (i: DraftInputs, f: Fitting | undefined) => {
   const dress = dressOf(i.saved);
   return {
     bodice: { ...validDetails({ ...dress.bodice, length: 'waist' }, 'dress'), fit: dress.fit, length: 'waist' as const, fitting: bodiceFitting(i, f) },
-    skirt: { ...dress.skirt, fit: skirtFitOf(dress.fit), fitting: skirtFitting(i, f) },
+    skirt: { ...dress.skirt, fit: dress.fit, fitting: skirtFitting(i, f) },
     seam: { at: dress.waistSeam, cm: dress.waistSeamCm },
   };
 };

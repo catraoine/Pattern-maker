@@ -53,8 +53,8 @@ export interface SleeveStyle {
 
 /** Bicep and crown ease for jacket and coat sleeves, by fit. */
 const OUTER_SLEEVE_EASE: Record<'jacket' | 'coat', Record<BodiceFit, { bicep: number; crown: number }>> = {
-  jacket: { fitted: { bicep: 8, crown: 3.5 }, regular: { bicep: 10, crown: 3 }, relaxed: { bicep: 13, crown: 2.5 }, boxy: { bicep: 13, crown: 2.5 } },
-  coat: { fitted: { bicep: 10, crown: 3.5 }, regular: { bicep: 13, crown: 3 }, relaxed: { bicep: 16, crown: 2.5 }, boxy: { bicep: 16, crown: 2.5 } },
+  jacket: { fitted: { bicep: 8, crown: 3.5 }, regular: { bicep: 10, crown: 3 }, relaxed: { bicep: 13, crown: 2.5 } },
+  coat: { fitted: { bicep: 10, crown: 3.5 }, regular: { bicep: 13, crown: 3 }, relaxed: { bicep: 16, crown: 2.5 } },
 };
 
 /** Ease round the upper arm, and the crown ease eased into the armhole, by fit. */
@@ -62,8 +62,6 @@ export const SLEEVE_EASE: Record<BodiceFit, { bicep: number; crown: number }> = 
   fitted: { bicep: 5, crown: 3 },
   regular: { bicep: 6.5, crown: 2.5 },
   relaxed: { bicep: 9, crown: 1.8 },
-  // Boxy: a straight sleeve that stands a little off the arm, with a flatter crown for the squared shoulder.
-  boxy: { bicep: 10, crown: 1.5 },
 };
 
 /** Share of the crown ease that goes into the back half. */

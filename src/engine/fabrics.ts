@@ -4,7 +4,7 @@
 // one knit garment: its advice is in knits.ts, hooked in below.
 // Keep to plain ASCII punctuation: these words go into the PDF and the tech pack.
 import { rucheAllowed } from './ruche';
-import { skirtFitOf, type Fit, type Length, type Silhouette, type SkirtFitting } from './skirt';
+import type { Fit, Length, Silhouette, SkirtFitting } from './skirt';
 import type { AsymHem } from './asymHem';
 import type { BodiceDarts, BodiceFit, BodiceFitting, BodiceLength, Neckline } from './bodice';
 import type { Leg } from './trousers';
@@ -279,14 +279,6 @@ const BODICE: Record<BodiceFit, { picks: FabricPick[]; avoid: string }> = {
     ],
     avoid: 'Stiff, heavy fabrics like canvas or heavy denim. Without darts they stand away from the body.',
   },
-  boxy: {
-    picks: [
-      pick('Silk taffeta or dupion', ['medium'], 'crisp', 'Holds the straight line and the square shoulder without any stiffening.'),
-      pick('Cotton sateen or gabardine', ['medium'], 'crisp', 'Hangs straight and presses a clean edge.'),
-      pick('Wool crepe or suiting', ['medium'], 'soft', 'Falls straight with a little weight.'),
-    ],
-    avoid: 'Fluid fabrics like chiffon, charmeuse or jersey. They collapse onto the body and lose the box. No interfacing is needed beyond the facings.',
-  },
 };
 
 // A boned bodice wants a firm, closely woven cloth that takes the strain over the coutil and hides
@@ -335,7 +327,7 @@ const PEPLUM_NOTES = {
   gathered: 'A gathered peplum sits neatest in a light fabric, so the gathers stay soft at the waist.',
 };
 
-const FIT_WORDS: Record<BodiceFit, string> = { fitted: 'fitted', regular: 'regular fit', relaxed: 'relaxed', boxy: 'boxy' };
+const FIT_WORDS: Record<BodiceFit, string> = { fitted: 'fitted', regular: 'regular fit', relaxed: 'relaxed' };
 
 /** Fabrics for a bodice style. */
 export function bodiceFabrics(style: { fit: BodiceFit; neckline: Neckline; length?: BodiceLength; darts?: BodiceDarts; structure?: Structure; neck?: unknown; peplum?: 'none' | 'flared' | 'gathered' }): FabricAdvice {
@@ -463,7 +455,7 @@ export function outerFabrics(style: { garment: 'jacket' | 'coat'; fit: BodiceFit
 
 /** Fabrics for a dress: the skirt's suggestions that also suit the bodice come first. */
 export function dressFabrics(style: { fit: BodiceFit; neckline: Neckline; silhouette: Silhouette; length: Length; structure?: Structure } & Partial<VolumeStyle>): FabricAdvice {
-  const skirt = skirtFabrics({ ...style, fit: skirtFitOf(style.fit) });
+  const skirt = skirtFabrics(style);
   const bodice = bodiceFabrics({ fit: style.fit, neckline: style.neckline, structure: style.structure });
   // The boned bodice sets the cloth: the skirt is cut from the same firm fabric.
   if (style.structure === 'boned') return { ...bodice, style: `a boned dress with ${skirt.style}${/skirt$/.test(skirt.style) ? '' : ' skirt'}` };

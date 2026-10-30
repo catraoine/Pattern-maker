@@ -36,8 +36,7 @@ export type TestingTool =
   | 'client_book'
   | 'collection'
   | 'projector'
-  | 'new_details'
-  | 'boxy_fit';
+  | 'new_details';
 
 export const TESTING_TOOLS: Record<TestingTool, { name: string; where: string; proof: string }> = {
   draw_lines: { name: 'Draw your lines', where: 'Style, Draw on your form', proof: 'fit testers draw a hem, a neckline and a side and the pattern follows' },
@@ -55,8 +54,6 @@ export const TESTING_TOOLS: Record<TestingTool, { name: string; where: string; p
   projector: { name: 'Projector mode', where: 'Print, Projector, and inside projector mode', proof: 'two sewists cut a garment with it on their own projectors' },
   // Cat broke the freeze for these too (2026-10-28), so a photo can name them.
   new_details: { name: 'Ruffles, ruching, cape and balloon hem', where: 'the chips for each on the Style screens', proof: 'three testers sew a ruffled hem, ruched sides and a cape and each hangs as drawn' },
-  // Cat broke the freeze for it (2026-10-30), from her gingham drop-waist dress.
-  boxy_fit: { name: 'Boxy dress fit and self band', where: 'the Boxy chip under Fit and the Self band chip under Belt, on the dress Style screen', proof: 'three testers sew a boxy dress and it hangs straight with a level, square shoulder' },
 };
 
 /** What takes a garment's tag off: moving it to LAUNCH_GARMENTS once sewists score it at the fit gate. */

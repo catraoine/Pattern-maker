@@ -9,7 +9,7 @@ import { draftBodice } from './engine/bodice';
 import { draftDress } from './engine/dress';
 import { Flat, bodiceFlat, dressFlat, outerFlat, skirtFlat, teeFlat, trousersFlat } from './engine/flat';
 import { draftOuter } from './engine/outerwear';
-import { draftSkirt, skirtFitOf } from './engine/skirt';
+import { draftSkirt } from './engine/skirt';
 import { SleeveDraft, draftSleeve, needsArms } from './engine/sleeve';
 import { draftTrousers } from './engine/trousers';
 import { draftTee } from './engine/tee';
@@ -66,7 +66,7 @@ const dress = (fit: BodiceChoices['fit'], b: Partial<BodiceChoices>, s: Partial<
   garment: 'dress',
   fit,
   bodice: bodice({ ...b, fit, length: 'waist' }),
-  skirt: skirt({ ...s, fit: skirtFitOf(fit) }),
+  skirt: skirt({ ...s, fit }),
 });
 
 /** The season the house is showing: a new set of looks each spring and autumn, drawn from that season's
@@ -205,7 +205,7 @@ export function choicesFlat(c: PatternChoices, m: MeasurementValues): Flat | und
     if (isTee(c)) return teeFlat(draftTee(m as never, c));
     if (isDress(c)) {
       const b = { ...validDetails(c.bodice, 'dress'), fit: c.fit, length: 'waist' as const };
-      const d = draftDress(m as never, b, { ...c.skirt, fit: skirtFitOf(c.fit) }, { at: c.waistSeam, cm: c.waistSeamCm });
+      const d = draftDress(m as never, b, { ...c.skirt, fit: c.fit }, { at: c.waistSeam, cm: c.waistSeamCm });
       return dressFlat(d, 'binding', { sleeve: sleeveFor(d.bodice, b, m), belt: dressBelt(c.skirt.belt, d) });
     }
     if (isBodice(c)) {

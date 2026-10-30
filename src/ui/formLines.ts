@@ -19,7 +19,7 @@ import type { DartPlace, PrincessLine } from '../engine/manipulate';
 import { isTop } from '../engine/corset';
 import { COWL_DEPTH_RANGE } from '../engine/drape';
 import { BodiceChoices, DARTS_FOR_FIT, detailAllowed, validDetails } from '../garments';
-import { FIT_EASE, Fit, Length, SkirtDraft, SkirtMeasurements, lengthRange, skirtFitOf } from '../engine/skirt';
+import { FIT_EASE, Fit, Length, SkirtDraft, SkirtMeasurements, lengthRange } from '../engine/skirt';
 import { HEM_SAMPLES, matchSides, offsetAt } from '../engine/hem';
 import { asymOffset, planFor } from '../engine/asymHem';
 import { volumeOf } from '../engine/skirtVolume';
@@ -384,7 +384,7 @@ export function readDressSide(
     const r = readFit(above, draft, m, c);
     if (r.choices) {
       bodice = r.choices;
-      next = { ...next, fit: skirtFitOf(bodice.fit) };
+      next = { ...next, fit: bodice.fit };
       said.push(r.said);
     } else if (!nearHem.length) return { said: r.said };
   }

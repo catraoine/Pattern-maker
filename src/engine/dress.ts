@@ -11,7 +11,7 @@ import { BodiceDraft, BodiceMeasurements, BodiceStyle, DROP_MIN, draftBodice, gi
 import { maxRaise, raiseBodice } from './waistline';
 import { Buttons, EXTENSION_CM, backOnFold } from './collar';
 import { BUTTONS_STOP_ABOVE_HEM, openSkirtFront, skirtFrontFacing } from './skirtFront';
-import { DraftError, FIT_EASE, LENGTHS, NoSeam, Silhouette, SkirtDraft, SkirtMeasurements, SkirtStyle, draftSkirt, lengthRange } from './skirt';
+import { DraftError, LENGTHS, NoSeam, Silhouette, SkirtDraft, SkirtMeasurements, SkirtStyle, draftSkirt, lengthRange } from './skirt';
 import { wrapSkirtAllowed } from './wrapSkirt';
 import { walkingSlit } from './slit';
 import { isTop } from './corset';
@@ -318,18 +318,7 @@ export function draftDress(m: DressMeasurements, bodiceStyle: Partial<BodiceStyl
   const join = { front: waist.front, back: waist.back, dartAt, zipCm: below };
   // A shirt dress has no centre seam front or back for a slit: only the side can open.
   const slit = wantButtons && (skirtStyle.slit === 'front' || skirtStyle.slit === 'back' || (skirtStyle.slit === undefined && walkingSlit({ silhouette: 'a_line', length: 'knee', ...skirtStyle }))) ? 'none' : skirtStyle.slit;
-  // A named length ends where it would at the natural waist, wherever the seam is: a mini scales with the
-  // waist to knee, so read from a dropped seam it came out 3 to 5 cm longer than the MINI mark beside the form.
-  const named = drop && skirtStyle.lengthCm === undefined && !skirtStyle.shape ? { lengthCm: LENGTHS[skirtStyle.length ?? 'knee'](m) - drop } : {};
-  // A boxy bodice can meet the skirt wider than the hip with its ease (a full bust over a slim hip): the skirt
-  // then hangs straight down from the seam, its hip taking as much more room as the seam has.
-  const fit = skirtStyle.fitting ?? {};
-  const hipRoom = sm.full_hip + FIT_EASE[skirtStyle.fit ?? 'regular'].hip + (fit.hipEase ?? 0);
-  // Each quarter's hip is at least its seam, the front's too (the bust's room makes it the wider), and a
-  // centimetre over, so the side seams still curve out a little and come out the same length.
-  const over = bodiceStyle.fit === 'boxy' ? 4 * Math.max(waist.front, waist.back) + 1 - hipRoom : 0;
-  const roomy = over > 0 ? { fitting: { ...fit, hipEase: (fit.hipEase ?? 0) + over } } : {};
-  const skirtOf = (j: typeof join) => draftSkirt(sm, { ...skirtStyle, ...named, ...roomy, joinTo: j, wrap: wrapped || undefined, slit });
+  const skirtOf = (j: typeof join) => draftSkirt(sm, { ...skirtStyle, joinTo: j, wrap: wrapped || undefined, slit });
   let skirt = skirtOf(join);
   // A pleated skirt split to fit the fabric has two pieces a side: their waists add up. A skirt front
   // cut whole (a bias slip) has both halves of the waist.

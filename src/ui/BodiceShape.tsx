@@ -152,9 +152,8 @@ export function drapedOutline(draft: BodiceDraft, side: Side, w: Worn, cx: numbe
   return undefined;
 }
 
-// Boxy is a cut, not an amount of ease: a dragged fit snaps only to the other three.
-const FITS = (Object.keys(BODICE_FIT_EASE) as BodiceFit[]).filter((f) => f !== 'boxy');
-const fitName = (id: BodiceFit) => BODICE_GROUPS[0].options.find((o) => o[0] === id)?.[1] ?? 'Boxy';
+const FITS = Object.keys(BODICE_FIT_EASE) as BodiceFit[];
+const fitName = (id: BodiceFit) => BODICE_GROUPS[0].options.find((o) => o[0] === id)![1];
 const lengthName = (id: BodiceChoices['length']) => BODICE_GROUPS[2].options.find((o) => o[0] === id)![1];
 
 /** Keeps the darts to what the fit allows, the way picking a fit chip does. */
@@ -177,7 +176,6 @@ export function dragDrop(m: BodiceMeasurements, c: BodiceChoices, cm: number): B
 export function dragEase(c: BodiceChoices, ease: number): BodiceChoices {
   const { bustEase: _e, ...rest } = c;
   const v = Math.min(BUST_EASE_RANGE.max, Math.max(BUST_EASE_RANGE.min, ease));
-  if (c.fit === 'boxy') return { ...rest, fit: 'boxy', bustEase: Math.round(v * 2) / 2 };
   const nearest = [...FITS].sort((a, b) => Math.abs(BODICE_FIT_EASE[a].bust - v) - Math.abs(BODICE_FIT_EASE[b].bust - v))[0];
   if (Math.abs(BODICE_FIT_EASE[nearest].bust - v) < 1) return withDarts({ ...rest, fit: nearest });
   return withDarts({ ...rest, fit: nearest, bustEase: Math.round(v * 2) / 2 });
