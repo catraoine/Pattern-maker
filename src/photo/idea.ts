@@ -45,7 +45,7 @@ function rows(groups: Groups, c: object, ids: string[], rename: Record<string, s
 
 /** The picks shown on "We can make that": the ones that make the garment what was asked for. */
 export function ideaRows(c: PatternChoices): [string, string][] {
-  if (isDress(c)) return [...rows(BODICE_GROUPS, c.bodice, ['neckline', 'sleeve']), ...rows(GROUPS, c.skirt, ['silhouette', 'length'], { silhouette: 'Skirt' })];
+  if (isDress(c)) return [...rows(BODICE_GROUPS, c.bodice, ['neckline', 'sleeve']), ...rows(GROUPS, c.skirt, ['silhouette', 'length'])];
   if (isBodice(c)) return rows(BODICE_GROUPS, c, ['neckline', 'sleeve', 'length']);
   if (isTee(c)) return rows(TEE_GROUPS, c, ['neckline', 'sleeve', 'length']);
   if (isTrousers(c)) return rows(TROUSER_GROUPS, c, ['leg', 'length', 'waist']);
