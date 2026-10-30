@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { P } from '../engine/geometry';
 import { Piece, bounds, cutLine } from '../engine/piece';
@@ -72,6 +72,8 @@ export function ProjectorMode({ pieces, unit, onClose }: Props) {
     return { mat, corners: startCorners(window.innerWidth, window.innerHeight, mat), screen };
   });
   const [stage, setStage] = useState<Stage>(() => (loadLineUp(screen) ? 'project' : 'corners'));
+  // A first line-up, not yet touched: its corners may still be re-seated clear of the panel.
+  const [fresh, setFresh] = useState(() => !loadLineUp(screen));
 
   // Full screen hides the browser's bars, which would otherwise shine onto the cloth.
   useEffect(() => {
@@ -103,7 +105,12 @@ export function ProjectorMode({ pieces, unit, onClose }: Props) {
           lineUp={lineUp}
           unit={unit}
           view={view}
-          onChange={setLineUp}
+          fresh={fresh}
+          onChange={(l) => {
+            setFresh(false);
+            setLineUp(l);
+          }}
+          onSeat={setLineUp}
           onNext={() => {
             keep(lineUp);
             setStage('check');
@@ -119,9 +126,24 @@ export function ProjectorMode({ pieces, unit, onClose }: Props) {
 }
 
 /** Step 1: drag the four corners onto the mat's grid. */
-function Corners({ lineUp, unit, view, onChange, onNext, onClose }: { lineUp: LineUp; unit: Unit; view: { w: number; h: number }; onChange: (l: LineUp) => void; onNext: () => void; onClose: () => void }) {
+function Corners({ lineUp, unit, view, fresh, onChange, onSeat, onNext, onClose }: { lineUp: LineUp; unit: Unit; view: { w: number; h: number }; fresh: boolean; onChange: (l: LineUp) => void; onSeat: (l: LineUp) => void; onNext: () => void; onClose: () => void }) {
   const [held, setHeld] = useState<number>();
   const [picked, setPicked] = useState(0);
+  const panel = useRef<HTMLDivElement>(null);
+
+  // On a phone the panel takes the bottom (held upright) or the left (turned sideways) (Cat, 2026-10-30): a first line-up
+  // starts in the space beside it, so no corner lands on the words or buttons.
+  useLayoutEffect(() => {
+    const box = panel.current?.getBoundingClientRect();
+    if (!fresh || !box) return;
+    const atBottom = box.bottom >= view.h - 2 && box.top > view.h * 0.3;
+    const atLeft = box.left < 40 && box.right < view.w * 0.6;
+    if (!atBottom && !atLeft) return;
+    const free = atBottom ? { left: 0, top: 0, right: view.w, bottom: box.top } : { left: box.right + 24, top: 0, right: view.w, bottom: view.h };
+    onSeat({ ...lineUp, corners: startCorners(view.w, view.h, lineUp.mat, free) });
+    // Only when the screen or the mat size changes, not on every drag.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fresh, view.w, view.h, lineUp.mat.w, lineUp.mat.h]);
   const { corners, mat } = lineUp;
   const ok = convex(corners);
   const h = ok ? matToScreen(lineUp) : undefined;
@@ -163,7 +185,7 @@ function Corners({ lineUp, unit, view, onChange, onNext, onClose }: { lineUp: Li
         </g>
         <polygon points={pts(corners)} className="pj-quad" />
       </svg>
-      <div className="projector-panel">
+      <div ref={panel} className="projector-panel pj-lineup">
         <p className="eyebrow">
           Projector mode · line up · 1 of 2 <TestingTag tool="projector" />
         </p>

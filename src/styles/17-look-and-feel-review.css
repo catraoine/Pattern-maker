@@ -574,6 +574,59 @@ button.later.edit-measure {
     min-height: 40px;
   }
 }
+/* An upright phone (Cat, 2026-10-30): the line-up panel docks along the bottom, smaller, and the first corners start in the
+   space above it, so no corner sits on the words or buttons. */
+@media (orientation: portrait) and (max-width: 700px) {
+  .projector-panel.pj-lineup {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    transform: none;
+    width: 100%;
+    max-height: 56vh;
+    overflow-y: auto;
+    padding: 14px 18px calc(14px + env(safe-area-inset-bottom));
+    border: 0;
+    border-top: 1px solid var(--guide);
+  }
+  .pj-lineup .eyebrow {
+    font-size: 10px;
+    margin: 0;
+  }
+  .pj-lineup .eyebrow .testing-tag {
+    margin-left: 6px;
+  }
+  .pj-lineup h2 {
+    font-size: 19px;
+    line-height: 1.15;
+    margin: 6px 0;
+  }
+  .pj-lineup .small {
+    font-size: 12px;
+    line-height: 1.45;
+    margin: 0;
+  }
+  .pj-lineup .pj-mat {
+    margin: 10px 0 8px;
+  }
+  .pj-lineup .pj-nudge {
+    margin: 0 0 10px;
+  }
+  .pj-lineup .pj-nudge button {
+    min-width: 44px;
+    min-height: 38px;
+  }
+  .pj-lineup .row.wrap:last-child {
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 6px;
+  }
+  .pj-lineup .row.wrap:last-child .primary {
+    flex: 1;
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+}
 /* What you'll need for projector mode (K1 Fold-out, 2026-10-29). */
 .projector-offer h3 .testing-tag {
   vertical-align: middle;

@@ -111,11 +111,18 @@ export function matToScreen(l: Pick<LineUp, 'corners' | 'mat'>): Homography | un
   );
 }
 
-/** Corners for a first line-up: a mat-shaped box in the middle of the screen. */
-export function startCorners(screenW: number, screenH: number, mat: { w: number; h: number }): P[] {
-  const scale = Math.min((screenW * 0.7) / mat.w, (screenH * 0.7) / mat.h);
+/** Corners for a first line-up: a mat-shaped box in the middle of the screen, or of the free area when the line-up
+ *  panel takes a side of it (a phone held upright or turned sideways). */
+export function startCorners(
+  screenW: number,
+  screenH: number,
+  mat: { w: number; h: number },
+  free = { left: 0, top: 0, right: screenW, bottom: screenH },
+): P[] {
+  const fw = free.right - free.left, fh = free.bottom - free.top;
+  const scale = Math.min((fw * 0.7) / mat.w, (fh * 0.7) / mat.h);
   const w = mat.w * scale, h = mat.h * scale;
-  const x = (screenW - w) / 2, y = (screenH - h) / 2;
+  const x = free.left + (fw - w) / 2, y = free.top + (fh - h) / 2;
   return [
     { x, y },
     { x: x + w, y },

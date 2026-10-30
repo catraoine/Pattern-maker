@@ -63,6 +63,12 @@ describe('projector line-up', () => {
     expect((c[1].x - c[0].x) / (c[3].y - c[0].y)).toBeCloseTo(60 / 45, 6);
     expect(c[0].x + c[1].x).toBeCloseTo(1000, 6);
   });
+
+  it('starts inside a free band when the panel takes the bottom of the screen', () => {
+    const c = startCorners(390, 844, mat, { left: 0, top: 0, right: 390, bottom: 420 });
+    expect(Math.max(...c.map((q) => q.y))).toBeLessThan(420);
+    expect(c[0].y + c[3].y).toBeCloseTo(420, 6);
+  });
 });
 
 describe('placing a piece', () => {
