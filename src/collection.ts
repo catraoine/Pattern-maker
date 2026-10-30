@@ -77,9 +77,10 @@ export const COLLECTION: HouseLook[] = [
   {
     id: 'klein',
     number: 1,
-    name: 'Klein Shirt',
-    line: 'A big shirt in deep blue: relaxed, buttoned up, its sleeves long and straight.',
-    fabric: 'Cobalt cotton poplin',
+    // Was the Klein Shirt in cobalt; now the Parma Shirt in lilac, to open the collection on something softer (Cat, 2026-10-30).
+    name: 'Parma Shirt',
+    line: 'A big shirt in soft lilac: relaxed, buttoned up, its sleeves long and straight.',
+    fabric: 'Lilac cotton poplin',
     garment: 'bodice',
     choices: bodice({ fit: 'relaxed', neckline: 'crew', collar: 'shirt', closure: 'front_buttons', sleeve: 'long', sleeveShape: 'straight', length: 'hip', darts: 'none' }),
   },
@@ -177,8 +178,11 @@ export function lookPatch(look: HouseLook): { garment: Garment } & Record<string
   return { garment, choices };
 }
 
-function sleeveFor(b: BodiceDraft, c: BodiceChoices, m: MeasurementValues): SleeveDraft | undefined {
+function sleeveFor(b: BodiceDraft, c: BodiceChoices, own: MeasurementValues): SleeveDraft | undefined {
   const { length, shape, cm, cuff } = sleeveOf(c);
+  // Measured for the body but not the arms yet: the drawing borrows the sample arms, so a shirt still shows its
+  // sleeves (it came out sleeveless; 2026-10-30).
+  const m = needsArms(own as never) ? { ...EXAMPLE_BODY, ...own } : own;
   if (length === 'none' || needsArms(m as never)) return undefined;
   return draftSleeve(b, m as never, { length, shape, ...(cm !== undefined ? { lengthCm: cm } : {}), ...(cuff ? { cuff } : {}), fit: c.fit, seamAllowance: b.pieces[0].seamAllowance, armholeAllowance: b.pieces[0].allowances.armhole ?? 1, hemAllowance: 2.5 });
 }

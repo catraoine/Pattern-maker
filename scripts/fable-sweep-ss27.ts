@@ -65,7 +65,7 @@ const skirtC = (c: object) => ({ fit: 'regular', silhouette: 'a_line', length: '
 const bodiceC = (c: object) => ({ ...DEFAULT_BODICE, ...c });
 const dressC = (fit: string, b: object, s: object) => ({ garment: 'dress', fit, bodice: bodiceC({ ...b, fit, length: 'waist' }), skirt: skirtC({ ...s, fit }) });
 const COLLECTION = [
-  { id: 'klein', name: 'Klein Shirt', garment: 'bodice', choices: bodiceC({ fit: 'relaxed', neckline: 'crew', collar: 'shirt', closure: 'front_buttons', sleeve: 'long', sleeveShape: 'straight', length: 'hip', darts: 'none' }) },
+  { id: 'klein', name: 'Parma Shirt', garment: 'bodice', choices: bodiceC({ fit: 'relaxed', neckline: 'crew', collar: 'shirt', closure: 'front_buttons', sleeve: 'long', sleeveShape: 'straight', length: 'hip', darts: 'none' }) },
   { id: 'aqua-slip', name: 'Aqua Slip', garment: 'dress', choices: dressC('regular', { neckline: 'cami' }, { silhouette: 'slip', length: 'midi' }) },
   { id: 'red-jacket', name: 'Red Jacket', garment: 'jacket', choices: { ...DEFAULT_JACKET_CHOICES, fit: 'relaxed', shaping: 'boxy', pads: 'none', pockets: 'patch' } },
   { id: 'red-trouser', name: 'Red Trouser', garment: 'trousers', choices: { garment: 'trousers', fit: 'relaxed', leg: 'wide', length: 'full', closure: 'fly', pockets: 'slant' } },
@@ -96,10 +96,10 @@ for (const { seed, m } of bodies) {
 for (const { seed, m } of bodies) {
   const T = (s: string) => `seed ${seed} ${s}`;
 
-  // ---------- 1 Klein Shirt: relaxed, shirt collar, buttons, hip length, no darts, long straight sleeves ----------
+  // ---------- 1 Parma Shirt: relaxed, shirt collar, buttons, hip length, no darts, long straight sleeves ----------
   {
     const c = validDetails(look('klein').choices as never);
-    const tag = T('Klein Shirt');
+    const tag = T('Parma Shirt');
     try {
       const d = draftBodice(m, c as never);
       const ease = BODICE_FIT_EASE.relaxed;
