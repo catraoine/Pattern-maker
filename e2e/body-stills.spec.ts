@@ -6,6 +6,7 @@ const OUT = process.env.BODY_STILLS;
 test.skip(!OUT, 'Set BODY_STILLS to a folder to take the stills');
 
 const ALL: [string, GarmentName, string, string[]][] = [
+  ['dress-default', 'Dress', 'Neck & sleeves', []],
   ['dress', 'Dress', 'Neck & sleeves', ['Crew', 'Short']],
   ['dress-boat', 'Dress', 'Neck & sleeves', ['Boat', 'Short']],
   ['dress-sleeveless', 'Dress', 'Neck & sleeves', ['Scoop', 'Sleeveless']],
@@ -29,7 +30,8 @@ test('body stills', async ({ page, consoleErrors }, info) => {
   consoleErrors.allow(/.*/);
   test.setTimeout(1_500_000);
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  if (process.env.FILM) await page.addInitScript(() => ((window as unknown as { __tourFilm: boolean }).__tourFilm = true));
+  if (process.env.OLD) await page.addInitScript((look) => Object.assign(window, { __tourFilm: 'old', __openerLook: look || undefined }), process.env.OLD_LOOK ?? '');
+  else if (process.env.FILM) await page.addInitScript(() => ((window as unknown as { __tourFilm: boolean }).__tourFilm = true));
   // SWAY=0.8 tries a share of the back's hollow filled in (engine/body.ts SWAY_FILL).
   if (process.env.SWAY) await page.addInitScript((v) => ((globalThis as { __swayFill?: number }).__swayFill = v), Number(process.env.SWAY));
   if (process.env.ROUND2D) await page.addInitScript(() => ((window as unknown as { __round2d: boolean }).__round2d = true));

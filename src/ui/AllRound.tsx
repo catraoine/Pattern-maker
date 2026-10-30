@@ -186,6 +186,9 @@ export function AllRound({ round, m, striped = false, fabric, label, draw }: Pro
     const film = !!flag;
     // The film's 'old look': the form's lines run on through the whole garment, as the released film had it.
     const through = flag === 'old';
+    // Mock-up looks for the film's opening All round (Cat, 2026-10-30): 'now' as it is, or A tidy, B contour, C rings, D outline.
+    const look = through ? ((window as Window & { __openerLook?: string }).__openerLook ?? 'now') : 'now';
+    const solid = look !== 'now';
     const isTop = round.kind === 'top' || round.kind === 'dress';
     // Drawing on it, the figure has the whole canvas: no hem strip, the status line under it reads the hem.
     const strip = trousers || drawing ? 0 : STRIP;
@@ -492,6 +495,64 @@ export function AllRound({ round, m, striped = false, fabric, label, draw }: Pro
         }
       }
       g.restore();
+      // The dress is cloth, not glass: the form's lines stop where it begins, and nothing behind it shows through.
+      /** Where the cloth starts at angle a: its top edge, or the armhole's edge where a sleeveless armhole is open. */
+      const openTop = (a: number) => {
+        let t = topY(a);
+        if (arm && !sl) {
+          const d = Math.abs(Math.abs(a) - HALF) / 0.32;
+          if (d < 1) t = Math.max(t, (yS + yU) / 2 + ((yU - yS) / 2) * Math.sqrt(1 - d * d));
+        }
+        return t;
+      };
+      if (solid && !trousers) {
+        const NA = 96;
+        const topOf = openTop;
+        g.globalAlpha = 1;
+        g.fillStyle = hollow;
+        for (let i = 0; i < NA; i++) {
+          const a0 = -Math.PI + (TAU * i) / NA;
+          const a1 = -Math.PI + (TAU * (i + 1.04)) / NA;
+          const col = (a: number) => {
+            const t = topOf(a), b = hemY(a);
+            return Array.from({ length: 25 }, (_, k) => { const y = t + ((b - t) * k) / 24; return P(a, shell(a, y), y); });
+          };
+          const c0 = col(a0), c1 = col(a1);
+          g.beginPath();
+          c0.forEach((q, k) => (k ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1])));
+          [...c1].reverse().forEach((q) => g.lineTo(q[0], q[1]));
+          g.closePath();
+          g.fill();
+          g.strokeStyle = hollow;
+          g.lineWidth = 1;
+          g.stroke();
+        }
+        // Through an open armhole you see the form's side, not the inside of the dress.
+        if (arm && !sl) {
+          for (const e of [1, -1]) {
+            if (Math.cos(e * HALF + phi) <= 0.05) continue;
+            const mid = (yS + yU) / 2;
+            const half = (yU - yS) / 2;
+            g.save();
+            g.beginPath();
+            for (let i = 0; i <= 48; i++) {
+              const t = (TAU * i) / 48;
+              const y = mid - half * Math.cos(t);
+              const q = P(e * HALF + 0.32 * Math.sin(t), radius(y), y);
+              if (i) g.lineTo(q[0], q[1]);
+              else g.moveTo(q[0], q[1]);
+            }
+            g.clip();
+            g.fillStyle = '#000';
+            g.fillRect(0, 0, w, h);
+            g.globalAlpha = 0.6;
+            g.strokeStyle = GILD;
+            paintFigure(g, S, cx, Y, lw, 0, false, phi, { half: formHalfWidth, shape: shapeAt, satin: false, head: false });
+            g.restore();
+          }
+          g.globalAlpha = 1;
+        }
+      }
       if (trousers) {
         const ys = Array.from({ length: 71 }, (_, i) => FORM_CROTCH + ((FORM_FLOOR - 0.02 - FORM_CROTCH) * i) / 70);
         for (const leg of [-1, 1]) {
@@ -705,7 +766,29 @@ export function AllRound({ round, m, striped = false, fabric, label, draw }: Pro
 
       // The cloth itself, as lines down the garment all the way round, so it reads over the form: hanging
       // straight where it has ease, and only pulled in where it is cut close.
-      if (!trousers && !cloth) {
+      if (solid && !trousers && !cloth) {
+        if (look === 'A' || look === 'B') {
+          // A: the cloth's long lines on the near side only. B: as many as the form's own, thinning toward the sides as the form's do.
+          const n = look === 'A' ? 22 : 46;
+          for (let j = 0; j < n; j++) {
+            const a = (TAU * (j + 0.5)) / n;
+            const y0 = openTop(a);
+            const y1 = hemY(a);
+            const pts: Pt[] = [];
+            for (let i = 0; i <= 40; i++) {
+              const y = y0 + ((y1 - y0) * i) / 40;
+              pts.push(onCloth(a, shell(a, y), y));
+            }
+            const f = Math.max(0, Math.cos(a + phi));
+            line(pts, GLOW, lw * (look === 'A' ? 0.6 : 0.6 * (0.65 + 0.35 * f)), 0, look === 'A' ? 0.6 : 0.7, 0.02);
+          }
+        } else if (look === 'C') {
+          for (let y = yOf(highest) + 0.1; y < yOf(longest) - 0.04; y += 0.085) {
+            const yy = y;
+            ring((a) => Math.max(yy, topY(a)), (a, v) => shell(a, v), GLOW, lw * 0.55, 0, 0.6);
+          }
+        }
+      } else if (!trousers && !cloth) {
         const n = through ? 18 : film ? 28 : 36;
         for (let j = 0; j < n; j++) {
           const a = (TAU * (j + 0.5)) / n;
@@ -731,8 +814,8 @@ export function AllRound({ round, m, striped = false, fabric, label, draw }: Pro
       // In cloth, the edges are fine lines: the cloth itself gives the shape.
       const edge = cloth ? 0.55 : 1;
       ring(topY, (a, y) => shell(a, y), GLOW, lw * 1.1, 0.25, edge, !!cloth);
-      for (const r of round.rings) ring((a) => yAt(a, r(a)), (a, y) => shell(a, y), GLOW, lw * 0.9, cloth ? 0 : 0.25, edge, false, !!cloth);
-      if (!trousers) ring(hemY, (a, y) => shell(a, y), GLOW, lw * 1.3, cloth ? 0 : 0.3, edge);
+      for (const r of round.rings) ring((a) => yAt(a, r(a)), (a, y) => shell(a, y), GLOW, lw * 0.9, cloth || solid ? 0 : 0.25, edge, false, !!cloth);
+      if (!trousers) ring(hemY, (a, y) => shell(a, y), GLOW, lw * 1.3, cloth || solid ? 0 : 0.3, edge);
       for (const e of cloth ? [] : [1, -1]) {
         const a = (e * Math.PI) / 2 - phi;
         const y0 = isTop && arm ? yU : topY(a);
@@ -814,7 +897,7 @@ export function AllRound({ round, m, striped = false, fabric, label, draw }: Pro
             loop.push(P(e * HALF + 0.32 * Math.sin(t), radius(y) + 0.004, y));
           }
           // With a sleeve, the sleeve's own edge is the armhole seam.
-          if (!sl) line(loop, GLOW, lw * 1.05, 0.2, edge);
+          if (!sl) line(loop, GLOW, lw * 1.05, solid ? 0 : 0.2, edge);
           if (!sl) continue;
           const y0 = yCap;
           const ys = Array.from({ length: 41 }, (_, i) => y0 + ((yE - y0) * i) / 40);
@@ -884,8 +967,8 @@ export function AllRound({ round, m, striped = false, fabric, label, draw }: Pro
           line(pts, GLOW, lw * 0.55, 0, 0.5, 0.3);
         }
       } else {
-        for (const dt of round.darts) line(along([dt.base, dt.tip]), GILD, lw * 0.8, 0.2, film ? 0.5 : 1);
-        for (const sm of round.seams.filter(drawn)) line(along(sm.pts, sm.leg), GLOW, lw * 1.1);
+        for (const dt of round.darts) line(along([dt.base, dt.tip]), GILD, lw * 0.8, solid ? 0 : 0.2, film ? 0.5 : 1);
+        for (const sm of round.seams.filter(drawn)) line(along(sm.pts, sm.leg), GLOW, lw * 1.1, solid ? 0 : 0.2);
       }
       }
       // The zip, buttons and where things meet.
