@@ -443,7 +443,7 @@ await wait(300);
 await main.getByRole('tab', { name: 'Skirt & length', exact: true }).click();
 await wait(300);
 // The length is set from the marks beside the form.
-await p.evaluate(() => [...document.querySelectorAll('main .hem-mark')].find((g) => g.textContent.trim() === 'KNEE')?.querySelector('.hit')?.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+await p.evaluate((m) => [...document.querySelectorAll('main .hem-mark')].find((g) => g.textContent.trim() === m)?.querySelector('.hit')?.dispatchEvent(new MouseEvent('click', { bubbles: true })), process.env.TOUR_MARK ?? 'KNEE');
 await wait(400);
 await main.getByRole('tab', { name: 'Fabric', exact: true }).click();
 await wait(400);
@@ -463,6 +463,7 @@ await wait(300);
 const repeat = main.locator('#fabrepeat');
 if (await repeat.count()) await repeat.fill(process.env.TOUR_REPEAT ?? '4.5');
 await wait(300);
+for (const n of (process.env.TOUR_EXTRA ?? '').split('|').filter(Boolean)) { for (const t of ['Shape', 'Neck & sleeves', 'Skirt & length', 'Fabric']) { await main.getByRole('tab', { name: t, exact: true }).click(); await wait(200); await pick(n); } }
 await main.getByRole('tab', { name: 'Shape', exact: true }).click();
 await p.evaluate(() => window.scrollTo(0, 0));
 await wait(1200);
