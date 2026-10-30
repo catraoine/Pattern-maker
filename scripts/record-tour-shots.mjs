@@ -370,8 +370,8 @@ const mark = (what) => console.log(`  style ${what}: ${((Date.now() - t0) / 1000
 // 2026-10-24: longer and flare, the neck and waist kept as in her photo).
 const LINES = {
   photo: [[0.13, 0.639], [0.5, 0.652], [0.87, 0.639]],
-  hem: [[0.104, 0.975], [0.5, 0.99], [0.896, 0.975]],
-  side: [[0.143, 0.483], [0.102, 0.638], [-0.104, 0.975]],
+  hem: [[0.104, 0.99], [0.5, 1.0], [0.896, 0.99]],
+  side: [[0.143, 0.483], [0.102, 0.638], [-0.104, 0.99]],
 };
 // Off camera, the dress is made to match the photo the film has just shown, Cat's own check silk dress (Cat,
 // 2026-10-24: show that starting from a photo works): a boat neck, short sleeves, a waist seam dropped low on the hip,
@@ -425,9 +425,9 @@ if (process.env.TOUR_OPENER) {
   process.exit(0);
 }
 // TOUR_FIT and TOUR_SLEEVES try the dress another way (Fitted, Sleeveless) without touching the rest.
-const FIT = process.env.TOUR_FIT ?? 'Relaxed';
+const FIT = process.env.TOUR_FIT ?? 'Boxy';
 const SLEEVES = process.env.TOUR_SLEEVES ?? 'Short';
-for (const [tab, names] of [['Shape', [[FIT, 'Fit'], 'Dropped']], ['Neck & sleeves', ['Boat', SLEEVES]], ['Skirt & length', [['Straight', 'Skirt'], ['Inverted pleats', 'Skirt details']]]]) {
+for (const [tab, names] of [['Shape', [[FIT, 'Fit'], 'Dropped']], ['Neck & sleeves', ['Boat', SLEEVES]], ['Skirt & length', [['Straight', 'Skirt'], ['Inverted pleats', 'Skirt details'], ['Self band', 'Belt']]]]) {
   await main.getByRole('tab', { name: tab, exact: true }).click();
   await wait(400);
   for (const n of names) await (Array.isArray(n) ? pick(...n) : pick(n));
@@ -485,8 +485,11 @@ if (process.env.TOUR_START_MINI !== '0') {
   const again = p.getByRole('button', { name: /^Carry on with your/ });
   if (await again.count()) await again.first().click();
   await main.getByRole('heading', { level: 1, name: /^Style your/ }).waitFor();
+  await addPen();
   await wait(800);
 }
+// The film shows the Boxy fit without its In testing tag, as it does projector mode (Cat, 2026-10-29); the app keeps it.
+await p.addStyleTag({ content: 'main button[aria-pressed] .testing-tag { display: none !important; }' });
 await main.getByRole('tab', { name: 'Shape', exact: true }).click();
 await p.evaluate(() => window.scrollTo(0, 0));
 await wait(1200);
@@ -559,7 +562,8 @@ await wait(900);
 const roomy = main.getByRole('button', { name: 'Enlarge', exact: true });
 if (await roomy.count()) await tap(roomy, 900);
 await tap(kinds.getByRole('button', { name: 'Hem', exact: true }), 300);
-await draw(form, LINES.photo, 600);
+// The dress already opens at the photo's length (TOUR_START_MINI); drawn again only when it doesn't.
+if (process.env.TOUR_START_MINI === '0') await draw(form, LINES.photo, 600);
 await tap(kinds.getByRole('button', { name: 'Neckline', exact: true }), 600);
 await p.evaluate(() => { document.getElementById('pen').style.visibility = ''; });
 cut(false);

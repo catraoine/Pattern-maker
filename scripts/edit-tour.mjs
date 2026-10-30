@@ -153,8 +153,8 @@ function tapeAcross(t) {
 }
 
 const MARKS = WIDE
-  ? { fabric: 2.6, enlarge: 8.0, draw: 9.9, hem: 11.4, side: 16.8, done: 21.0 }
-  : { fabric: 2.6, enlarge: 7.9, draw: 9.8, hem: 11.3, side: 16.7, done: 20.9 };
+  ? { fabric: 2.6, enlarge: 9.5, draw: 11.6, hem: 13.2, side: 20.0, done: 26.1 }
+  : { fabric: 2.6, enlarge: 9.1, draw: 11.1, hem: 12.7, side: 19.1, done: 24.3 };
 const JOURNEY = { from: 0.6, to: MARKS.done + 0.9, dur: 17 };
 const atOut = (t) => ((t - JOURNEY.from) * JOURNEY.dur) / (JOURNEY.to - JOURNEY.from);
 // [shot time, zoom, x, y]: on a computer, the whole page, then in on the enlarged form to draw, and back as the
