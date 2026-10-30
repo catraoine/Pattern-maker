@@ -1,0 +1,52 @@
+/* The photo as a straight champagne Polaroid with its name on the strip (Cat's P2, 2026-10-30), as in the films. */
+.polaroid {
+  --polaroid: #efe4cc;
+  margin: 0 auto;
+  padding: 14px 14px 0;
+  background: var(--polaroid);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.6);
+  width: fit-content;
+  max-width: 100%;
+}
+.polaroid .photoframe,
+.polaroid .photobig {
+  border: 0;
+}
+.polaroid .photoframe img,
+.polaroid .photobig {
+  display: block;
+  max-width: 100%;
+  max-height: 46vh;
+  width: auto;
+  /* A tiny or odd-shaped photo still makes a frame big enough to tap its pieces on. */
+  min-width: min(260px, 100%);
+  min-height: 220px;
+  margin: 0 auto;
+  object-fit: cover;
+  filter: saturate(0.92) contrast(1.04);
+}
+.polaroid figcaption {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: 400 11px/1 var(--mono);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: #6b5a3a;
+}
+.polaroid.dim {
+  opacity: 0.55;
+}
+.polaroid.dim .photoframe img {
+  opacity: 1;
+  max-height: 32vh;
+}
+/* The small one beside the reading keeps the white-ish frame and its deeper strip, without words. */
+.photothumb.polaroid-mini {
+  border: 0;
+  box-sizing: content-box;
+  padding: 5px 5px 16px;
+  background: #efe4cc;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.5);
+}

@@ -1,4 +1,4 @@
-// The garment on your form, standing still: the dress form as a black satin mannequin, with the garment on it
+// The garment on your form, standing still: the dress form as a matte charcoal mannequin (Cat's M2, 2026-10-30), with the garment on it
 // as cloth (Cat's G5 "In its fabric", 2026-10-23, drawn in light since her F5 Satin and Light, 2026-10-25): the
 // garment's shapes from its technical flat, filled with the fabric chosen on the Fabric tab (plain black cloth
 // until one is), shaped by the light, brightest down the front and turning into shadow at the sides, with its
@@ -61,14 +61,14 @@ export function FormHead({ head, cx }: { head: { outline: string; lines: string[
   );
 }
 
-/** The form's satin (Cat's F5 Satin and Light, 2026-10-25), lit from the upper left, a soft sheen a third of the
- *  way across, falling into shadow on the right. Warm graphite since Cat's F5 Atelier Light (2026-10-28): black
- *  satin on the black page was barely there. */
+/** The form's finish: matte charcoal jersey since Cat's M2 Matte Jersey (2026-10-30), lit softly from the upper
+ *  left and rounding into shadow on the right, with no sheen, so the garment is the only thing that catches the
+ *  eye. (It was satin from her F5 Satin and Light, 2026-10-25; the names below keep the word.) */
 const SATIN_STOPS: [number, string][] = [
-  [0, '#4d463b'],
-  [0.3, '#a3937a'],
-  [0.5, '#5a5245'],
-  [1, '#211d18'],
+  [0, '#3b3935'],
+  [0.3, '#57534c'],
+  [0.6, '#3a3834'],
+  [1, '#1d1c1a'],
 ];
 /** The satin across a drawing whose centre line is at `cx`. With arms, each arm gets the same light across its own
  *  width (`${id}0` the right arm, `${id}1` the left), so it rounds like the body instead of sitting in the body's
@@ -99,15 +99,12 @@ function SatinDefs({ id, cx, arms }: { id: string; cx: number; arms?: FormArm })
   );
 }
 
-/** Where the form's one highlight runs, as a share of the way out from the centre to the left side. */
-const SATIN_HIGHLIGHT = -0.5;
-
-/** The form as a satin mannequin: its body (and arms, when it has them) filled with the satin, a fine champagne
- *  edge round each and one soft highlight down the lit side. Drawing on your form and the Style page's drawings
+/** The form as a jersey mannequin: its body (and arms, when it has them) filled with the matte charcoal and a fine
+ *  champagne edge round each. Drawing on your form and the Style page's drawings
  *  all draw the form this way. */
 export function FormSatin({ body, cx, arms, uid, bottom = body.bottom, edge = 0.18, legsTo }: { body: FormBody; cx: number; arms?: FormArm; uid: string; bottom?: number; edge?: number; legsTo?: { y: number; half: number } }) {
   const armLines = useMemo(() => formArmLines(arms, cx), [arms, cx]);
-  const { silhouette, sides, highlight, from } = useMemo(() => {
+  const { silhouette, sides } = useMemo(() => {
     const top = body.head ? body.top - INTO_HEAD : body.top;
     // With legs below, the torso runs on down into them rather than ending in a flat cut at the hip.
     const low = legsTo ? Math.max(bottom, legsTo.y) : bottom;
@@ -124,8 +121,6 @@ export function FormSatin({ body, cx, arms, uid, bottom = body.bottom, edge = 0.
     return {
       silhouette: `${formPath([...right, ...[...left].reverse()])} Z`,
       sides: [formPath(left), formPath(right)],
-      highlight: formPath(at(SATIN_HIGHLIGHT).filter((q) => q.y >= body.top)),
-      from: body.top,
     };
   }, [body, cx, bottom, legsTo]);
   const id = `satin${uid}`;
@@ -136,13 +131,6 @@ export function FormSatin({ body, cx, arms, uid, bottom = body.bottom, edge = 0.
   return (
     <>
       <SatinDefs id={id} cx={cx} arms={arms} />
-      {/* The highlight comes in below the neck, where the shoulders round off, so it doesn't cut across them. */}
-      <defs>
-        <linearGradient id={`sheen${uid}`} gradientUnits="userSpaceOnUse" x1="0" x2="0" y1={f(from + 3)} y2={f(from + 12)}>
-          <stop offset="0" stopColor="#d9c49b" stopOpacity="0" />
-          <stop offset="1" stopColor="#d9c49b" stopOpacity="0.35" />
-        </linearGradient>
-      </defs>
       {armLines.map((a, i) => (
         <path key={`armfill${i}`} d={`${a.d} Z`} fill={`url(#${id}${i})`} stroke="none" />
       ))}
@@ -153,7 +141,6 @@ export function FormSatin({ body, cx, arms, uid, bottom = body.bottom, edge = 0.
       {sides.map((d, i) => (
         <path key={`side${i}`} d={d} className="form-line" fill="none" strokeWidth={edgeW} opacity={edgeOn} />
       ))}
-      <path d={highlight} fill="none" stroke={`url(#sheen${uid})`} strokeWidth={0.14} />
     </>
   );
 }
@@ -690,6 +677,10 @@ const ROUND_STOPS: [number, string, number][] = [
   [0.86, '#000', 0.55],
   [1, '#000', 0.78],
 ];
+/** The light on plain cloth since Cat's C1 Clean Edge (2026-10-30): the same round light, the shade under half as
+ *  deep, so a light cotton like calico reads crisp and bright instead of greyed. A special cloth (satin, velvet...)
+ *  keeps the deeper light its sheen or pile is drawn against. */
+const CRISP_STOPS: [number, string, number][] = ROUND_STOPS.map(([at, color, opacity]) => [at, color, color === '#000' ? opacity * 0.45 : opacity * 0.8]);
 /** The light down the body (Cat's D3), by height in the form's cm: a lift over the bust, shade under it that draws
  *  the waist in, a shadow under the waist seam, and the skirt coming back into the light. The bust is taken as
  *  15 cm above the waist. */
@@ -813,6 +804,8 @@ export function FormLayers({ body, m, legs, cx, top, bottom, arms, lines, outlin
   const onForm = worn ? [...sleeves, ...worn] : [];
   const pieces = onForm.map((s) => `${at(s)} Z`);
   const look = useFabricLook();
+  // Plain cloth is drawn crisp (Cat's C1 Clean Edge): lighter shade, no fold bands, sharp edges and seams.
+  const crisp = !look?.special;
   const hems = look?.border ? borderHems(onForm) : [];
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
   const shade = `shade${uid}`;
@@ -842,7 +835,7 @@ export function FormLayers({ body, m, legs, cx, top, bottom, arms, lines, outlin
       {cloth && (
         <defs>
           <linearGradient id={shade} gradientUnits="userSpaceOnUse" x1={f(cx * 0.15)} x2={f(cx * 1.85)} y1="0" y2="0">
-            {ROUND_STOPS.map(([offset, color, opacity]) => (
+            {(crisp ? CRISP_STOPS : ROUND_STOPS).map(([offset, color, opacity]) => (
               <stop key={offset} offset={offset} stopColor={color} stopOpacity={opacity} />
             ))}
           </linearGradient>
@@ -857,7 +850,7 @@ export function FormLayers({ body, m, legs, cx, top, bottom, arms, lines, outlin
             <>
               <linearGradient id={`down${uid}`} gradientUnits="userSpaceOnUse" x1="0" x2="0" y1={f(body.top)} y2={f(bottom)}>
                 {downLight(body, bottom).map(([at, color, opacity], i) => (
-                  <stop key={i} offset={f((at - body.top) / (bottom - body.top))} stopColor={color} stopOpacity={opacity} />
+                  <stop key={i} offset={f((at - body.top) / (bottom - body.top))} stopColor={color} stopOpacity={crisp ? opacity / 2 : opacity} />
                 ))}
               </linearGradient>
               {/* The lift over the bust and the shade under it are the shape of the bust, not bands across the garment
@@ -943,11 +936,15 @@ export function FormLayers({ body, m, legs, cx, top, bottom, arms, lines, outlin
                   <path d={d} fill={`url(#underbust${uid})`} stroke="none" />
                 </>
               )}
-              <path d={d} fill={`url(#bands${uid})`} stroke="none" mask={`url(#bandmask${uid})`} />
+              {!crisp && <path d={d} fill={`url(#bands${uid})`} stroke="none" mask={`url(#bandmask${uid})`} />}
               <g clipPath={`url(#${clip})`}>
-                <path d={d} className="cloth-turn" fill="none" strokeWidth={1.3} filter={`url(#${soft})`} />
+                {crisp ? (
+                  <path d={d} className="cloth-turn" fill="none" strokeWidth={0.45} opacity={0.5} />
+                ) : (
+                  <path d={d} className="cloth-turn" fill="none" strokeWidth={1.3} filter={`url(#${soft})`} />
+                )}
               </g>
-              <path d={d} className="cloth-edge" fill="none" strokeWidth={0.07} strokeLinejoin="round" opacity={0.45} />
+              <path d={d} className="cloth-edge" fill="none" strokeWidth={crisp ? 0.09 : 0.07} strokeLinejoin="round" opacity={crisp ? 0.8 : 0.45} />
             </g>
           ))}
         </g>
@@ -972,7 +969,11 @@ export function FormLayers({ body, m, legs, cx, top, bottom, arms, lines, outlin
               {cloth ? (
                 // On the cloth a seam is only a soft pressed groove (Cat's D4, 2026-10-26): no fold line, no thread of
                 // light, no drafting marks on the dress.
-                <path d={at(pts)} className="seam-groove" fill="none" strokeWidth={0.55} opacity={0.5} filter={`url(#${soft})`} strokeLinecap="round" />
+                crisp ? (
+                  <path d={at(pts)} className="seam-groove" fill="none" strokeWidth={0.22} opacity={0.4} strokeLinecap="round" />
+                ) : (
+                  <path d={at(pts)} className="seam-groove" fill="none" strokeWidth={0.55} opacity={0.5} filter={`url(#${soft})`} strokeLinecap="round" />
+                )
               ) : (
                 <path d={at(pts)} className="tape" fill="none" strokeWidth={0.3} strokeLinecap="round" />
               )}

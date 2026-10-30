@@ -16,6 +16,8 @@ const CHAMPAGNE = '#d9c49b';
  *  round the body is the same tape that was pulled across the top (Cat, 2026-10-24). */
 const TAPE = '#e3d3ad';
 const TAPE_INK = '#2b2418';
+/** The app's text colour, for names drawn on a canvas. */
+const INK = '#efe4cc';
 const TAPE_HOOK = '#b8a274';
 /** The tape's marks and numbers are laid out on an 18px strip and scale with the tape's width (TAPE_PX). */
 const STRIP_PX = 18;
@@ -882,8 +884,8 @@ const WRAP_FROM = 0.55;
 const startsAtWaist = (t: Tape) => (t.kind === 'side' || t.kind === 'back' || t.kind === 'front') && (t.from === 0.1 || t.to === 0.1);
 
 /** The string tied round the waist: a thin ring, its back half faint, with a small bow at the front. */
-function paintWaistString(g: CanvasRenderingContext2D, S: number, cx: number, Y: (y: number) => number, lw: number) {
-  const r = R(0.1) * S + lw;
+function paintWaistString(g: CanvasRenderingContext2D, S: number, cx: number, Y: (y: number) => number, lw: number, at = R(0.1)) {
+  const r = at * S + lw;
   const wy = Y(0.1);
   g.save();
   g.strokeStyle = CHAMPAGNE;
@@ -1121,8 +1123,45 @@ export function TapeDemo({ id, mode = 'play', kind, replay = 0, carried = false 
   return <canvas ref={ref} className="contour" aria-hidden="true" />;
 }
 
-/** One form at rest, small, for choosing which form to draft on. */
-export function FormPicture({ kind }: { kind: FormKind }) {
+/** The three girths the first pages take, round the front of the form (Cat's C Tape Lines + T1, 2026-10-30): the waist
+ *  as the string tied round it, the first measure and where the lengths start from, marked CM / IN once on a short rule
+ *  to its right; the bust and hip as dotted lines. */
+function paintTapeLines(g: CanvasRenderingContext2D, S: number, cx: number, Y: (y: number) => number, lw: number, kind: FormKind) {
+  const at = (id: 'full_bust' | 'waist' | 'full_hip') => labelLevel(id, kind) ?? ON_FORM[id]!;
+  for (const y of [at('full_bust'), at('full_hip')]) {
+    const r = R(y);
+    const pts = Array.from({ length: 41 }, (_, i): Pt => {
+      const th = (Math.PI * i) / 40;
+      return [cx - Math.cos(th) * r * S, Y(y) + Math.sin(th) * r * S * DEPTH];
+    });
+    g.strokeStyle = CHAMPAGNE;
+    g.globalAlpha = 0.95;
+    g.lineWidth = Math.max(1.2, lw * 1.3);
+    g.setLineDash([2, 3]);
+    path(g, pts);
+    g.setLineDash([]);
+  }
+  const wy = at('waist');
+  const r = R(wy);
+  paintWaistString(g, S, cx, (y: number) => Y(wy) + (y - 0.1) * S, lw, r);
+  const name = 'CM / IN';
+  g.font = `600 10px ${getComputedStyle(document.documentElement).getPropertyValue('--mono') || 'monospace'}`;
+  g.textBaseline = 'middle';
+  if ('letterSpacing' in g) g.letterSpacing = '2px';
+  // Just clear of the widest girth, kept inside the canvas.
+  const widest = Math.max(R(at('full_bust')), r, R(at('full_hip')));
+  const labelX = Math.min(cx + widest * S + 28, g.canvas.clientWidth - g.measureText(name).width - 4);
+  g.globalAlpha = 0.6;
+  g.lineWidth = 0.8;
+  stroke(g, [cx + r * S + 8, Y(wy)], [labelX - 6, Y(wy)]);
+  g.globalAlpha = 1;
+  g.fillStyle = INK;
+  g.fillText(name, labelX, Y(wy));
+}
+
+/** One form at rest, small, for choosing which form to draft on. `tapes` dims its lines and marks the bust, the waist
+ *  string and the hip, for the first measuring page. */
+export function FormPicture({ kind, tapes = false }: { kind: FormKind; tapes?: boolean }) {
   const ref = useCanvas(
     (g, w, h) => {
       pickForm(kind);
@@ -1132,11 +1171,13 @@ export function FormPicture({ kind }: { kind: FormKind }) {
       g.fillRect(0, 0, w, h);
       const S = Math.min(w * 0.6, (h * 0.94) / (1.3 + 1.7));
       const wy = h * 0.03 + (0.1 + 1.7) * S;
-      paintTorso(g, S, w / 2, (y: number) => wy + (y - 0.1) * S, lineFor(S), EVEN, 1, 1);
+      const Y = (y: number) => wy + (y - 0.1) * S;
+      paintTorso(g, S, w / 2, Y, lineFor(S), tapes ? () => 0.4 : EVEN, 1, 1);
+      if (tapes) paintTapeLines(g, S, w / 2, Y, lineFor(S), kind);
       fadeBottom(g, w, h);
       return false;
     },
-    [kind],
+    [kind, tapes],
   );
   return <canvas ref={ref} className="form-picture" aria-hidden="true" />;
 }

@@ -166,12 +166,12 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
       setPage({ kind: 'base', at: firstToTake() });
     };
     return (
-      // Cat's R1 Two Switches (2026-10-21): the body alone, then two switches of the same kind, for the form and
-      // for whom, Begin, and Measure later in quiet capitals. No underlined links.
+      // Cat's C Tape Lines (2026-10-30): the body with the bust, waist and hip marked on it, then two switches of two
+      // halves each, the chosen half filled, for the form and for whom; Begin, and Measure later in quiet capitals.
       <Shell title="First, let's take some measurements." tape>
-        {onForm && <FormPicture kind={chosen} />}
+        {onForm && <FormPicture kind={chosen} tapes />}
         {onForm && (
-          <div className="switch" role="radiogroup" aria-label="Which form to draft on?">
+          <div className="switch two-part" role="radiogroup" aria-label="Which form to draft on?">
             {(['womenswear', 'menswear'] as const).map((k) => (
               <button key={k} type="button" role="radio" aria-checked={chosen === k} onClick={() => setChosen(k)}>
                 {k === 'womenswear' ? 'Womenswear' : 'Menswear'}
@@ -179,7 +179,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
             ))}
           </div>
         )}
-        <div className="switch" role="radiogroup" aria-label="Who are you designing for?">
+        <div className="switch two-part" role="radiogroup" aria-label="Who are you designing for?">
           <button type="button" role="radio" aria-checked={!helper} onClick={() => setHelper(false)}>
             For me
           </button>

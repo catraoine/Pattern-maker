@@ -137,6 +137,84 @@ const glide = (to, ms) => p.evaluate(([to, ms]) => new Promise((done) => {
   requestAnimationFrame(step);
 }), [to, ms]);
 
+// welcome: the film's opening (Cat, 2026-10-30: "this smooth zoom in version"). The welcome page as it stands, then
+// its words and button fade as the camera pushes in on the form and it starts to turn, slowly. The page is taken
+// twice (whole, and without the form), then each frame is drawn on one canvas the film's size: the form painted
+// fresh at the push's scale, so its lines stay fine, and the page's words over it, fading as they grow.
+// TOUR_WELCOME=1 records only this take (welcome.mp4) and stops; edit-tour's W intro cuts the opening from it.
+if (process.env.TOUR_WELCOME) {
+  const wp = await (await b.newContext({ ...(WIDE ? { viewport: { width: 1440, height: 810 }, deviceScaleFactor: 4 / 3 } : { viewport: { width: 432, height: 768 }, deviceScaleFactor: 2.5, isMobile: true, hasTouch: true }), reducedMotion: 'reduce' })).newPage();
+  await wp.addInitScript(() => { try { localStorage.setItem('maison-trace-access', 'tester'); } catch {} });
+  await wp.goto(APP);
+  await wp.waitForTimeout(6000);
+  const rect = await wp.evaluate(() => { const c = document.querySelector('canvas.contour'); const r = c.getBoundingClientRect(); c.style.visibility = 'hidden'; return { x: r.x, y: r.y, w: r.width, h: r.height }; });
+  await wp.waitForTimeout(300);
+  const words = (await wp.screenshot()).toString('base64');
+  await wp.evaluate(async ([words, rect, FW, FH]) => {
+    // Loaded by the dev server inside the page, not by Node: held in a variable so the dead-code check doesn't try to
+    // resolve it from here.
+    const form = '/src/ui/ContourForm.tsx';
+    const cf = await import(form);
+    const img = new Image();
+    img.src = `data:image/png;base64,${words}`;
+    await img.decode();
+    document.body.innerHTML = '';
+    document.body.style.background = '#000';
+    const c = document.createElement('canvas');
+    c.width = FW; c.height = FH;
+    Object.assign(c.style, { position: 'fixed', left: 0, top: 0, width: `${innerWidth}px`, height: `${innerHeight}px` });
+    document.body.appendChild(c);
+    const g = c.getContext('2d');
+    const k = FW / innerWidth;
+    const ease = (x) => { x = Math.max(0, Math.min(1, x)); return x * x * (3 - 2 * x); };
+    const cx0 = rect.x + rect.w / 2, cy0 = rect.y + rect.h / 2;
+    // A second still, then the push: 1.35 times over 3 s, the form drawn to the middle of the screen as it comes.
+    // The turn eases in from a standstill at 1 s to about 12 degrees a second; the words are gone by 1.9 s.
+    window.__welcomeFrame = (t) => {
+      const p = ease((t - 1) / 3);
+      const z = 1 + 0.35 * p;
+      const cx = cx0 + (innerWidth / 2 - cx0) * p, cy = cy0 + (innerHeight / 2 - cy0) * p;
+      const rate = (12 * Math.PI) / 180, ramp = 1.6, tt = Math.max(0, t - 1);
+      const phi = rate * (tt < ramp ? (tt * tt) / (2 * ramp) : tt - ramp / 2);
+      g.setTransform(1, 0, 0, 1, 0, 0);
+      g.globalAlpha = 1;
+      g.globalCompositeOperation = 'source-over';
+      g.fillStyle = '#000';
+      g.fillRect(0, 0, FW, FH);
+      g.save();
+      g.setTransform(k * z, 0, 0, k * z, k * (cx - (z * rect.w) / 2), k * (cy - (z * rect.h) / 2));
+      g.beginPath(); g.rect(0, 0, rect.w, rect.h); g.clip();
+      const { w, h } = rect;
+      const S = Math.min(w * 0.82, h * 0.46), wy = h * 0.5;
+      g.strokeStyle = '#d9c49b';
+      cf.paintFigure(g, S, w / 2, (y) => wy + (y - 0.1) * S, Math.max(0.7, S / 252) * 1.2, 0, false, phi);
+      g.globalAlpha = 1;
+      const fade = g.createLinearGradient(0, h * cf.FADE_FROM, 0, h);
+      fade.addColorStop(0, 'rgba(0,0,0,0)'); fade.addColorStop(1, 'rgba(0,0,0,1)');
+      g.fillStyle = fade;
+      g.fillRect(0, h * cf.FADE_FROM, w, h * (1 - cf.FADE_FROM) + 1);
+      g.restore();
+      const ua = 1 - ease((t - 1) / 0.9);
+      if (ua > 0) {
+        g.globalAlpha = ua;
+        g.globalCompositeOperation = 'screen';
+        g.drawImage(img, k * (cx - z * cx0), k * (cy - z * cy0), FW * z, FH * z);
+      }
+      return c.toDataURL('image/jpeg', 0.94);
+    };
+  }, [words, rect, FW, FH]);
+  const work = mkdtempSync(join(tmpdir(), 'shot-'));
+  const n = 9 * 30;
+  for (let i = 0; i < n; i++) {
+    const data = await wp.evaluate((t) => window.__welcomeFrame(t), i / 30);
+    writeFileSync(join(work, `${String(i).padStart(5, '0')}.jpg`), Buffer.from(data.split(',')[1], 'base64'));
+  }
+  execFileSync('ffmpeg', ['-v', 'error', '-y', '-framerate', '30', '-i', '%05d.jpg', '-vf', `scale=${FW}:${FH},format=yuv420p`, '-c:v', 'libx264', '-crf', '16', '-preset', 'medium', join(OUT, 'welcome.mp4')], { cwd: work });
+  rmSync(work, { recursive: true, force: true });
+  console.log('welcome: 9.0 s (drawn)');
+  process.exit(0);
+}
+
 // form: the opening drawing, then the welcome's form and its tape tip
 await p.goto(`${APP}/?fresh`);
 await start();
@@ -192,6 +270,10 @@ await fillAll();
 // choose: what to make, and the dress picked
 await main.getByRole('button', { name: 'Choose what to make' }).click();
 await main.getByRole('heading', { name: 'What would you like to make?' }).waitFor();
+// 'Pick a garment,' takes the top of the screen in the film, so the app's header is left out under it, the page set
+// down the same as the collection after it (Cat, 2026-10-30).
+const captionRoom = 'main .testing-tag, .topbar { display: none !important; } main { padding-top: ' + (WIDE ? 110 : 96) + 'px !important; }';
+const chooseOnly = await p.addStyleTag({ content: captionRoom });
 await wait(900);
 await start();
 await wait(1600);
@@ -199,6 +281,7 @@ await wait(1600);
 await main.getByRole('radiogroup', { name: 'What would you like to make?' }).getByRole('radio', { name: /^Dress\b/ }).evaluate((el) => el.click());
 await wait(1800);
 await stop('choose');
+await chooseOnly.evaluate((el) => el.remove());
 await main.getByRole('button', { name: /^(Next: \d+ dress measurements?|Style my dress)$/ }).click();
 await fillAll();
 await main.getByRole('heading', { level: 1, name: 'Style your dress' }).waitFor();
@@ -211,16 +294,21 @@ await main.getByRole('menuitemradio', { name: /Start from a look/ }).click();
 await main.getByRole('button', { name: 'Start from the Maison collection' }).click();
 await main.getByRole('heading', { level: 1, name: 'The collection' }).waitFor();
 await wait(1500);
+// From the top, so the season reads (Cat picked A, 2026-10-29), in one eased glide down to the last look. In the film
+// the In testing tag and the drop alert are left out, so the season leads straight into the looks (her fixes 1 and 2).
+// The caption takes the top of the screen, so the app's header is left out under it (Cat, 2026-10-30: the two overlapped).
+const filmOnly = await p.addStyleTag({ content: captionRoom + ' main .drop-slot { display: none !important; }' });
+await wait(300);
 const lookTop = (el) => el.getBoundingClientRect().top + scrollY - 70;
-const firstLook = await main.locator('li.house-look').first().evaluate(lookTop);
 const lastLook = await main.locator('li.house-look').last().evaluate(lookTop);
-await p.evaluate((y) => window.scrollTo(0, y), firstLook);
+await p.evaluate(() => window.scrollTo(0, 0));
 await wait(1000);
 await start();
-await wait(1200);
-await glide(lastLook, WIDE ? 9000 : 12000);
+await wait(1400);
+await glide(lastLook, WIDE ? 11000 : 14000);
 await wait(1400);
 await stop('collection');
+await filmOnly.evaluate((el) => el.remove());
 await main.getByRole('button', { name: 'Back to styling' }).click();
 await main.getByRole('heading', { level: 1, name: 'Style your dress' }).waitFor();
 await p.evaluate(() => window.scrollTo(0, 0));

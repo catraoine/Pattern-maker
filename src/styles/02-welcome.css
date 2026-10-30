@@ -70,8 +70,8 @@
 .how .num,
 .how strong {
   font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: var(--track);
+  font-size: var(--caps-size);
+  letter-spacing: var(--caps-track);
   text-transform: uppercase;
 }
 

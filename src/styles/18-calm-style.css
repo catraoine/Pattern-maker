@@ -124,8 +124,8 @@
   min-height: 32px;
   padding: 0;
   white-space: nowrap;
-  font-size: 10px;
-  letter-spacing: 0.16em;
+  font-size: var(--caps-size);
+  letter-spacing: var(--caps-track);
   color: var(--muted);
 }
 .style-layout .style-pin > section:not(.live-big) .seg button.on {
@@ -225,8 +225,8 @@
 .chapter-step {
   margin: 0;
   font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 0.24em;
+  font-size: var(--caps-size);
+  letter-spacing: var(--caps-track);
   text-transform: uppercase;
   color: var(--muted);
 }
@@ -286,8 +286,8 @@
   flex: none;
   padding: 0 0 0 8px;
   background: none;
-  font-size: 10px;
-  letter-spacing: var(--track);
+  font-size: var(--caps-size);
+  letter-spacing: var(--caps-track);
   color: var(--muted);
 }
 .chapter .style-tabs button.pro .tab-full {
@@ -299,9 +299,9 @@
 .style-panel fieldset.group > legend,
 .style-panel fieldset.group > legend .fold-name {
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--caps-size);
   font-weight: 500;
-  letter-spacing: 0.24em;
+  letter-spacing: var(--caps-track);
   text-transform: uppercase;
   color: var(--gild);
 }
@@ -339,7 +339,7 @@
 }
 .style-bar .bar-review {
   flex: none;
-  font-size: 11px;
+  font-size: var(--caps-size);
 }
 .style-bar .primary,
 .step-next .step-go {

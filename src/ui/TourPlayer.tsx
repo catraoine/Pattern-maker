@@ -20,12 +20,12 @@ const WIDE_SCREEN = '(min-width: 900px) and (min-aspect-ratio: 1/1)';
 /** Where each part starts in the video, in seconds, and how long it runs. Update with the video. */
 const PARTS: { name: string; from: number }[] = [
   { name: 'Measure', from: 0 },
-  { name: 'Choose', from: 14.9 },
-  { name: 'Style', from: 32.9 },
-  { name: 'Print', from: 63.1 },
+  { name: 'Choose', from: 17.3 },
+  { name: 'Style', from: 35.2 },
+  { name: 'Print', from: 65.4 },
 ];
-const TOUR_LENGTH = 86;
-export const TOUR_LABEL = '1:26';
+const TOUR_LENGTH = 89;
+export const TOUR_LABEL = '1:29';
 
 export function TourPlayer({ onClose }: { onClose: () => void }) {
   const video = useRef<HTMLVideoElement>(null);
@@ -99,7 +99,8 @@ export function TourPlayer({ onClose }: { onClose: () => void }) {
                 <span className="tour-track">
                   <span style={{ transform: `scaleX(${fill})` }} />
                 </span>
-                0{i + 1} {p.name}
+                <span className="tour-num">0{i + 1} </span>
+                {p.name}
               </button>
             </li>
           );

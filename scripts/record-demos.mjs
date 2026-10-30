@@ -197,7 +197,7 @@ const DEMOS = {
       await tap(pick, 1400);
     };
     await card('Maison Tracé', 'Styling, in thirty seconds', 2400);
-    await cap('Tabs', 'Choices sit on tabs under the sketch. Open one at a time.');
+    await cap('Tabs', 'Choices come in five steps under the drawing. Your picks show beside it.');
     await wait(1600);
     await tab('Shape');
     await cap('Shape', 'Tap a shape. The pattern redraws to your body.');
@@ -224,7 +224,7 @@ const DEMOS = {
   draw: async ({ main, wait, card, cap, tap, draw }) => {
     const form = main.getByRole('img', { name: /Your dress form from the/ });
     await card('Maison Tracé', 'Draw on your form', 2400);
-    await cap('Open it', 'Tap Draw above the sketch, then Draw on your form.');
+    await cap('Open it', 'Tap the pencil by the drawing, then Draw on your form.');
     await wait(800);
     await tap(main.locator('.drawmenu > summary'), 1000);
     await tap(main.getByRole('button', { name: 'Draw on your form' }), 1800);
@@ -288,7 +288,9 @@ Object.assign(DEMOS, {
     await card('Maison Tracé', 'From a photo', 2400);
     await cap('Start', 'Seen something you love? Start from a look, then a photo.');
     await wait(600);
-    await tap(main.getByRole('button', { name: 'Start from a look' }), 700);
+    // Start from a look sits in the garment drop-down (Release 40).
+    await tap(main.getByRole('group', { name: 'Garment' }).locator('.drop-button'), 700);
+    await tap(main.getByRole('menuitemradio', { name: /Start from a look/ }), 700);
     await tap(main.getByRole('button', { name: 'Start from a photo' }), 1400);
     await cap('Photo', 'Take one, or choose one. Worn or laid flat.');
     await tap(main.locator('label').filter({ hasText: 'Take or choose a photo' }), 200).catch(() => {});
@@ -297,7 +299,8 @@ Object.assign(DEMOS, {
     await main.getByRole('heading', { name: /A-line/ }).waitFor({ timeout: 15000 });
     await wait(1600);
     await cap('Check', 'Anything wrong? Change it. Here, a midi instead.');
-    await tap(main.locator('.photorow').filter({ hasText: 'Length' }).getByRole('button', { name: 'Change' }), 900);
+    // One line sums up the reading, with Change beside it to open the choices.
+    await tap(main.locator('.photosum').getByRole('button', { name: 'Change' }), 900);
     await tap(main.locator('.photorow').filter({ hasText: 'Length' }).getByRole('button', { name: 'Midi', exact: true }), 1400);
     await cap('Draft', 'Then draft it, to your measurements.');
     await tap(main.getByRole('button', { name: /^Draft my|^Next/ }).first(), 1400);
@@ -345,6 +348,47 @@ Object.assign(DEMOS, {
     await point(main.getByRole('button', { name: /^Download PDF/ }), 2200);
     await cap('', '');
     await card('Maison Tracé', 'Print it. Tape it. Cut it.', 2200, true);
+  },
+  // Projector mode (Cat, 2026-10-29: its own demo): Projector paper, line up on the mat, check the square, then a
+  // piece on black moved, turned and flipped. Its In testing tag is left out, as in the How it works film.
+  projector: async (h) => {
+    const { main, wait, card, cap, tap, draw, f } = h;
+    await card('Maison Tracé', 'Projecting your pattern', 2400);
+    await cap('Paper', 'On Print, pick Projector as your paper.');
+    await toPrint(h, false);
+    await pickFrom(h, 'Paper', 'Projector', 1600);
+    await f.locator('body').evaluate((b) => {
+      const st = b.ownerDocument.createElement('style');
+      st.textContent = '.projector-offer .testing-tag, .projector .testing-tag { display: none !important; }';
+      b.appendChild(st);
+      // Full screen would cover the captions under the app; the clip keeps projector mode inside the phone.
+      b.ownerDocument.defaultView.Element.prototype.requestFullscreen = () => Promise.resolve();
+    });
+    await cap('Open', 'Projector plugged in and pointing at your mat? Open projector mode.');
+    await tap(main.getByRole('button', { name: 'Open projector mode' }), 1600);
+    const pj = f.getByRole('dialog', { name: 'Projector mode' });
+    await cap('Line up', 'Drag each corner onto a corner of your cutting mat’s grid.');
+    const box = await pj.boundingBox();
+    const corners = pj.locator('.pj-corner');
+    for (const [i, [dx, dy]] of [[0, [-0.05, -0.04]], [2, [0.05, 0.04]]]) {
+      const c = await corners.nth(i).boundingBox();
+      const fx = (c.x + c.width / 2 - box.x) / box.width;
+      const fy = (c.y + c.height / 2 - box.y) / box.height;
+      await draw(pj, [[fx, fy], [fx + dx / 2, fy + dy / 2], [fx + dx, fy + dy]], 900);
+    }
+    await cap('Check', 'Lay a ruler across the square. Is each side 10 cm?');
+    await tap(pj.getByRole('button', { name: /^Next: check/ }), 2600);
+    await tap(pj.getByRole('button', { name: 'Yes: start projecting' }), 1600);
+    await cap('Project', 'Each piece shows at true size. Drag it where you want it on the cloth.');
+    const stage = pj.locator('.projector-stage');
+    await draw(stage, [[0.5, 0.45], [0.47, 0.42], [0.44, 0.4]], 1200);
+    await cap('Turn', 'Turn it, flip it, or make the lines thicker for dark cloth.');
+    await tap(pj.getByRole('button', { name: /^Turn 90/ }), 1300);
+    await tap(pj.getByRole('button', { name: 'Flip' }), 1300);
+    await cap('Pieces', 'Cut it, then go on to the next piece.');
+    await tap(pj.getByRole('button', { name: 'Next piece' }), 2200);
+    await cap('', '');
+    await card('Maison Tracé', 'Cut straight from the cloth.', 2200, true);
   },
   scale: async (h) => {
     const { main, wait, card, cap, tap, tapAt, show } = h;

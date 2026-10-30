@@ -43,4 +43,13 @@ describe('the Maison collection', () => {
       expect(patch[key]).toBe(look.choices);
     }
   });
+
+  it('draws a long-sleeved look with its sleeves before the arms are measured', () => {
+    const shirt = COLLECTION.find((l) => l.id === 'klein')!;
+    const { arm_length: _a, upper_arm: _u, ...noArms } = EXAMPLE_VALUES;
+    const withArms = lookFlat(shirt, EXAMPLE_VALUES)!;
+    const without = lookFlat(shirt, noArms)!;
+    // Sleeves out at each side make it about as wide as when drawn with the arms; without them it is far narrower.
+    expect(without.width).toBeGreaterThan(withArms.width * 0.9);
+  });
 });

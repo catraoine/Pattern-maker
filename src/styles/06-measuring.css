@@ -33,6 +33,8 @@
 
 .measure-step .eyebrow {
   margin-bottom: -8px;
+  /* Tight at the bigger caps, so the page still fits a 390x664 phone without a scroll (fold.spec). */
+  line-height: 1.2;
 }
 
 .measure-step h1 {
@@ -84,8 +86,8 @@ button.link.how-link {
 
 .need dt {
   font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: var(--track);
+  font-size: var(--caps-size);
+  letter-spacing: var(--caps-track);
   text-transform: uppercase;
   color: var(--muted);
 }
@@ -178,8 +180,8 @@ button.link.how-link {
   display: block;
   margin-top: 4px;
   font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: var(--track);
+  font-size: var(--caps-size);
+  letter-spacing: var(--caps-track);
   text-transform: uppercase;
   color: var(--muted);
 }
@@ -192,6 +194,11 @@ button.link.how-link {
   display: inline-block;
   margin: 0 auto 0 0;
   padding: 2px 8px;
+  /* Hugs its words: it is also a .chip, whose 44px tap height made the box stand twice as high as its text, with
+     the word stuck at the top (Cat, 2026-10-30). It isn't tapped, so it needs no tap height. */
+  min-height: 0;
+  line-height: 1.4;
+  vertical-align: middle;
   border: 1px solid var(--line-strong);
 }
 
@@ -291,7 +298,7 @@ button.link.how-link {
 .how-panel li::before {
   content: counter(how, decimal-leading-zero);
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--caps-size);
   color: var(--muted);
   padding-top: 3px;
 }
@@ -327,8 +334,8 @@ button.link.how-link {
 
 .entry-box label {
   font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: var(--track);
+  font-size: var(--caps-size);
+  letter-spacing: var(--caps-track);
   text-transform: uppercase;
   color: var(--muted);
 }
@@ -379,8 +386,8 @@ button.link.how-link {
   background: none;
   color: var(--muted);
   font-family: var(--mono);
-  font-size: 12px;
-  letter-spacing: var(--track);
+  font-size: var(--caps-size);
+  letter-spacing: var(--caps-track);
   text-transform: uppercase;
   cursor: pointer;
 }

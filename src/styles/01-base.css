@@ -32,6 +32,10 @@
   --w-body: 400;
   --head-tracking: -0.01em;
   --track: 0.2em;
+  /* The small spaced capitals (labels, steps, quiet links) at a size that reads easily, with tighter tracking so
+     the words still fit (accessibility review, Cat's C, 2026-10-30). The wordmark keeps its own size. */
+  --caps-size: 13.5px;
+  --caps-track: 0.1em;
   --bw: 1.3px;
   --bw-on: 1.3px;
   --pill: 0px;
@@ -108,9 +112,9 @@ h1 .t-label {
   font-family: var(--mono);
   font-stretch: normal;
   font-weight: 400;
-  font-size: 11px;
+  font-size: var(--caps-size);
   line-height: 1.4;
-  letter-spacing: 0.3em;
+  letter-spacing: var(--caps-track);
 }
 
 p {
@@ -127,7 +131,7 @@ p {
 }
 
 .eyebrow {
-  font-size: 11px;
+  font-size: var(--caps-size);
   text-transform: uppercase;
   color: var(--muted);
   margin-bottom: 6px;
@@ -179,8 +183,8 @@ p {
   border-radius: 0;
   background: none;
   color: var(--muted);
-  font-size: 11px;
-  letter-spacing: 0.16em;
+  font-size: var(--caps-size);
+  letter-spacing: var(--caps-track);
   text-transform: uppercase;
   cursor: pointer;
 }
@@ -238,8 +242,8 @@ p {
   max-width: 1280px;
   width: 100%;
   font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 0.16em;
+  font-size: var(--caps-size);
+  letter-spacing: var(--caps-track);
   text-transform: uppercase;
   color: var(--muted);
 }
@@ -358,7 +362,7 @@ p {
 
 .field label {
   font-weight: var(--w-strong);
-  font-size: 12px;
+  font-size: var(--caps-size);
 }
 
 .field input {
@@ -465,7 +469,7 @@ button.secondary {
   padding: 0 24px;
   border-radius: var(--pill);
   border: var(--bw) solid var(--ink);
-  font-size: 12px;
+  font-size: var(--caps-size);
   font-weight: var(--w-strong);
   cursor: pointer;
 }
@@ -541,7 +545,7 @@ button.link {
   padding: 0;
   margin-bottom: 10px;
   font-weight: var(--w-strong);
-  font-size: 12px;
+  font-size: var(--caps-size);
 }
 
 .chips {
@@ -584,8 +588,8 @@ button.link {
 .look strong {
   font-family: var(--mono);
   text-transform: uppercase;
-  letter-spacing: var(--track);
-  font-size: 12px;
+  letter-spacing: var(--caps-track);
+  font-size: var(--caps-size);
 }
 .look.on {
   border-color: var(--ink);
@@ -689,7 +693,7 @@ button.link {
   border: 1px solid var(--ink);
   border-radius: var(--pill);
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: var(--caps-size);
   color: var(--ink);
 }
 

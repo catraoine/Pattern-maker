@@ -402,6 +402,8 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
                 <button type="button" className="secondary" onClick={() => setProjecting(true)}>
                   Open projector mode
                 </button>
+                {/* Its own clip (Cat, 2026-10-29): the line-up is the part that needs showing. */}
+                <DemoButton demo="projector" />
                 <details className="small fold-link projector-kit">
                   <summary>What you'll need</summary>
                   <ul>
