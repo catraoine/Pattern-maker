@@ -16,7 +16,7 @@
 .waitlist-tester {
   margin: 2px 0 0;
   text-align: center;
-  font-size: 12px;
+  font-size: var(--caps-size);
   color: var(--muted);
 }
 .waitlist-tester .inline-link {
@@ -72,8 +72,8 @@
   border-left: 1px solid var(--guide);
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23d9c49b' stroke-width='1.2'/%3E%3C/svg%3E") no-repeat right 0 center / 9px;
   font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 0.2em;
+  font-size: var(--caps-size);
+  letter-spacing: var(--caps-track);
   color: var(--muted);
 }
 .waitlist-lang select {
@@ -196,8 +196,8 @@
 }
 .drop-label {
   font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 0.24em;
+  font-size: var(--caps-size);
+  letter-spacing: var(--caps-track);
   text-transform: uppercase;
   color: var(--muted);
 }
@@ -212,8 +212,8 @@
   border-radius: 0;
   background: none;
   font-family: var(--mono);
-  font-size: 12px;
-  letter-spacing: 0.22em;
+  font-size: var(--caps-size);
+  letter-spacing: var(--caps-track);
   text-transform: uppercase;
   color: var(--ink);
   cursor: pointer;
@@ -248,8 +248,8 @@
   border-radius: 0;
   background: none;
   font-family: var(--mono);
-  font-size: 12px;
-  letter-spacing: 0.2em;
+  font-size: var(--caps-size);
+  letter-spacing: var(--caps-track);
   text-transform: uppercase;
   color: var(--muted);
   text-align: left;
@@ -267,8 +267,8 @@
 }
 .drop-list .drop-note {
   margin-left: auto;
-  font-size: 9px;
-  letter-spacing: 0.2em;
+  font-size: var(--caps-size);
+  letter-spacing: var(--caps-track);
   color: var(--muted);
   opacity: 0.8;
 }

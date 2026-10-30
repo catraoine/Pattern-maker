@@ -85,10 +85,10 @@
 .style-layout .style-pin > section:not(.live-big) .seg button,
 .style-layout .style-pin > section:not(.live-big) > .lookboxes button {
   height: 44px;
-  font-size: 12px;
+  font-size: var(--caps-size);
 }
 .style-layout .style-pin > section:not(.live-big) > .lookboxes .lookname {
-  font-size: 12px;
+  font-size: var(--caps-size);
 }
 .style-layout .style-pin > section:not(.live-big) > .lookboxes .lookname {
   height: auto;
@@ -107,8 +107,8 @@
   position: static;
   margin-left: auto;
   padding: 6px 0;
-  font-size: 11px;
-  letter-spacing: 0.18em;
+  font-size: var(--caps-size);
+  letter-spacing: var(--caps-track);
 }
 .chapter-top > .demo-play .demo-play-mark {
   color: var(--gild);

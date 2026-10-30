@@ -68,8 +68,8 @@
   align-items: baseline;
 }
 .pe-label {
-  font: 11px/1.2 var(--mono);
-  letter-spacing: 0.12em;
+  font: var(--caps-size)/1.2 var(--mono);
+  letter-spacing: var(--caps-track);
   text-transform: uppercase;
   color: var(--muted);
 }
@@ -187,8 +187,8 @@
   background: none;
   color: var(--muted);
   font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 0.16em;
+  font-size: var(--caps-size);
+  letter-spacing: var(--caps-track);
   text-transform: uppercase;
   cursor: pointer;
 }
@@ -264,7 +264,7 @@
   white-space: nowrap;
 }
 .style-bar-meta .muted {
-  font-size: 12px;
+  font-size: var(--caps-size);
 }
 .style-bar .primary {
   flex: none;
@@ -328,13 +328,13 @@
   .style-pin .seg button {
     min-height: 32px;
     padding: 0 10px;
-    font-size: 10px;
+    font-size: var(--caps-size);
   }
   .style-pin .row.tools .ghost,
   .style-pin .row.tools .link.small {
     min-height: 32px;
     padding: 0 10px;
-    font-size: 10px;
+    font-size: var(--caps-size);
   }
   .style-pin .preview {
     min-height: 0;
@@ -346,7 +346,7 @@
   }
   .style-pin > section > .muted.small,
   .style-pin > section > .row > .muted.small {
-    font-size: 11px;
+    font-size: var(--caps-size);
     margin: 0;
   }
   .style-pin .row.between.wrap {
@@ -453,8 +453,8 @@
 }
 .woven-house {
   font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: var(--track);
+  font-size: var(--caps-size);
+  letter-spacing: var(--caps-track);
 }
 
 /* Body Double: the store form to buy, the padding, and the check once it's padded */
@@ -474,8 +474,8 @@
   border-top: 0;
   padding-top: 0;
   font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: var(--track);
+  font-size: var(--caps-size);
+  letter-spacing: var(--caps-track);
   text-transform: uppercase;
   color: var(--muted);
 }
@@ -628,8 +628,8 @@
   background: var(--gild);
   color: var(--paper);
   font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: var(--track);
+  font-size: var(--caps-size);
+  letter-spacing: var(--caps-track);
   text-transform: uppercase;
   color: var(--muted);
 }
@@ -637,9 +637,9 @@
 .link-by {
   text-align: center;
   font-family: var(--mono);
-  letter-spacing: var(--track);
+  letter-spacing: var(--caps-track);
   text-transform: uppercase;
-  font-size: 10px;
+  font-size: var(--caps-size);
 }
 
 .ask-measure .chips {
@@ -722,10 +722,10 @@
   border: var(--bw) solid var(--gild);
   color: var(--gild);
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: var(--caps-size);
   font-weight: var(--w-strong);
   text-transform: uppercase;
-  letter-spacing: var(--track);
+  letter-spacing: var(--caps-track);
   text-decoration: none;
 }
 .shopbuy p {
@@ -750,8 +750,8 @@
   color: #1a1712;
   border: 1px solid #1a1712;
   font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.12em;
+  font-size: var(--caps-size);
+  letter-spacing: var(--caps-track);
   text-transform: uppercase;
 }
 
@@ -822,8 +822,8 @@
 
 .accession {
   font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: var(--track);
+  font-size: var(--caps-size);
+  letter-spacing: var(--caps-track);
   color: var(--gild);
 }
 
@@ -842,8 +842,8 @@
 
 .record-body dt {
   font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: var(--track);
+  font-size: var(--caps-size);
+  letter-spacing: var(--caps-track);
   text-transform: uppercase;
   color: var(--muted);
   padding-top: 3px;

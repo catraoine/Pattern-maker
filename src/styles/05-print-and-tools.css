@@ -155,14 +155,14 @@ details.more[open] > summary h2::after {
 /* Privacy and Terms, as quiet fine print on the welcome and in Your account */
 .fineprint {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--caps-size);
   line-height: 1.5;
   color: var(--muted);
 }
 .welcome .fineprint {
   text-align: center;
   /* Still the quiet line (Cat's L5), but readable: 12px at 0.85 clears 4.5:1 on black (accessibility check, 2026-10-23). */
-  font-size: 12px;
+  font-size: var(--caps-size);
   letter-spacing: 0.02em;
   opacity: 0.85;
 }
@@ -268,7 +268,7 @@ details.more[open] > summary h2::after {
 }
 .legal-table th {
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--caps-size);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--muted);
@@ -373,7 +373,7 @@ details.more[open] > summary h2::after {
   border: 1px solid var(--gild);
   border-radius: 999px;
   color: var(--gild);
-  font-size: 12px;
+  font-size: var(--caps-size);
 }
 .fitside {
   position: sticky;

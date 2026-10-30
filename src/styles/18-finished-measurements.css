@@ -23,8 +23,8 @@
 }
 .finished-table thead th {
   border-top: 0;
-  font: var(--w-body) 10px/1.2 var(--mono);
-  letter-spacing: var(--track);
+  font: var(--w-body) var(--caps-size)/1.2 var(--mono);
+  letter-spacing: var(--caps-track);
   text-transform: uppercase;
   color: var(--muted);
 }
@@ -46,7 +46,7 @@
   display: inline-block;
   margin-left: 6px;
   padding: 1px 5px;
-  font: var(--w-strong) 9px/1.4 var(--mono);
+  font: var(--w-strong) var(--caps-size)/1.4 var(--mono);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: #000;
@@ -54,7 +54,7 @@
 }
 .fitword.fit-held { background: #5a3a1e; color: var(--ink); }
 .fitword.fit-close,
-.fitword.fit-snug { background: #8a6d3b; color: var(--ink); }
+.fitword.fit-snug { background: #9c7c44; color: #000; } /* dark text: ivory on this brown was too faint */
 .fitword.fit-roomy { background: #eadcb8; }
 .fitword.fit-stretches { background: transparent; color: var(--gild); border: 1px solid var(--gild); }
 .style-review .finished,
