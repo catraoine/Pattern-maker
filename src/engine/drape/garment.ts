@@ -203,6 +203,22 @@ interface CollarPart {
   onStand?: boolean;
 }
 
+/** A heavily gathered panel, drawn in across its width for the sim: cloth this full folds over itself, which the sim
+ *  (no cloth-on-cloth contact) shows as tears. It hangs as a panel of SIM_GATHER fullness, and its folds are laid on
+ *  for drawing at the real fullness. */
+const SIM_GATHER = 1.8;
+function narrowed(pc: Piece): Piece {
+  const g = (pc.meta.gathered as number | undefined) ?? 1;
+  if (g <= SIM_GATHER || pc.meta.waistRadius || (globalThis as any).__noNarrow) return pc;
+  const sx = SIM_GATHER / g;
+  const o = pc.outline;
+  const f = (q: P) => pt(q.x * sx, q.y);
+  const m = new Path(f(o.start));
+  o.segs.forEach((sg: any, i: number) => (sg.kind === 'L' ? m.line(f(sg.to), o.tags[i]) : m.curve(f(sg.c1), f(sg.c2), f(sg.to), o.tags[i])));
+  m.closed = true;
+  return { ...pc, outline: m, lines: [], meta: { ...pc.meta, gathered: SIM_GATHER, gatherShown: g, simScale: sx } };
+}
+
 /** A piece cut whole (a bias slip) as the half the drape sews: its first half, closed down the centre line. */
 function halfPiece(pc: Piece): Piece {
   if (!pc.meta.whole) return pc;
@@ -232,7 +248,7 @@ function halfPiece(pc: Piece): Piece {
 }
 
 function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: number; sleeve?: Piece[]; collars?: CollarPart[]; trousers?: TrousersDraft; tiers?: TierBand[]; under?: Piece[]; puff?: number }, o: DrapeOptions): Draped {
-  if (extra.skirt) extra = { ...extra, skirt: extra.skirt.map(halfPiece) };
+  if (extra.skirt) extra = { ...extra, skirt: extra.skirt.map(halfPiece).map(narrowed) };
   const B = new Builder(sp);
   let legs: SimInput['legs'];
   const thick = o.thick ?? 0.35;
@@ -785,18 +801,19 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
   // turn so the pieces still meet.
   const foldA = (globalThis as any).__foldA ?? 1;
   for (const p of B.panels) {
-    const gather = (p.pc.meta.gathered as number | undefined) ?? 1;
+    const gather = ((p.pc.meta.gatherShown ?? p.pc.meta.gathered) as number | undefined) ?? 1;
     if (!/peplum/.test(p.role) || gather < 1.05 || !foldA) continue;
+    const simScale = (p.pc.meta.simScale as number | undefined) ?? 1;
     const xs = p.mesh.pts.map((q) => q.x);
     const ys = p.mesh.pts.map((q) => q.y);
     const x0 = Math.min(...xs);
     const W = Math.max(...xs) - x0;
     const y0 = Math.min(...ys);
     const lamCloth = ((globalThis as any).__lamC ?? 6) * gather;
-    const n = Math.max(2, Math.round(W / (lamCloth / 2)));
-    const A = Math.min(3.5, 1.4 * Math.sqrt(gather - 1)) * foldA;
+    const n = Math.max(2, Math.round(W / simScale / (lamCloth / 2)));
+    const A = Math.min(3.5, ((globalThis as any).__fk ?? 2) * Math.sqrt(gather - 1)) * foldA;
     // The fullness holds the skirt out from the body a little more the further down it falls.
-    const flare = (gather - 1) * ((globalThis as any).__flare ?? 0.12);
+    const flare = (gather - 1) * ((globalThis as any).__flare ?? 0.15);
     p.mesh.pts.forEach((q, i) => {
       const I = (p.base + i) * 3;
       const lv = q.y - y0;
