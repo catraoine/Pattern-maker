@@ -46,6 +46,14 @@
   box-sizing: border-box;
 }
 
+/* No rubber-band bounce (Cat, 2026-10-31): on an iPhone, dragging the All round figure at the foot of a page
+   pulled the whole page past its end and the Next bar jumped up and sprang back. The page still scrolls; it
+   just stops at its ends, like an app. */
+html,
+body {
+  overscroll-behavior: none;
+}
+
 body {
   margin: 0;
   color: var(--ink);
