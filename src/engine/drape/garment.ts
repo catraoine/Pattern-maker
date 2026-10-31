@@ -93,6 +93,11 @@ class Builder {
 
   add(pc: Piece, role: Panel['role'], place: (q: P, turned: boolean) => V3, thick: number, folds: [P, P][] = [], h = 1.6): Panel {
     const wedges = dartsOf(pc).map(({ near, tip, far }) => [near, tip, far] as Wedge);
+    // A fish-eye dart (top, side, bottom, side, back to the top) is two darts point to point across the waist.
+    for (const ln of pc.lines) {
+      const q = ln.points();
+      if (q.length === 5 && Math.hypot(q[0].x - q[4].x, q[0].y - q[4].y) < 1e-6) wedges.push([q[1], q[0], q[3]], [q[1], q[2], q[3]]);
+    }
     const mesh = meshPiece(pc, h, folds, wedges);
     const turned = mesh.pts.map((_, i) => mesh.side.some((s) => s[i] === 1));
     const start = mesh.pts.map((q, i) => place(q, turned[i]));
@@ -671,14 +676,16 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
     const x0 = Math.min(...xs);
     const W = Math.max(...xs) - x0;
     const y0 = Math.min(...ys);
-    const lamCloth = 5 * gather;
+    const lamCloth = ((globalThis as any).__lamC ?? 6) * gather;
     const n = Math.max(2, Math.round(W / (lamCloth / 2)));
-    const A = Math.min(2.2, 1.1 * Math.sqrt(gather - 1)) * foldA;
+    const A = Math.min(3.5, 1.4 * Math.sqrt(gather - 1)) * foldA;
+    // The fullness holds the skirt out from the body a little more the further down it falls.
+    const flare = (gather - 1) * ((globalThis as any).__flare ?? 0.07);
     p.mesh.pts.forEach((q, i) => {
       const I = (p.base + i) * 3;
       const lv = q.y - y0;
       const amp = A * (0.35 + 0.65 * Math.min(1, lv / 18));
-      const off = amp * Math.sin((Math.PI * n * (q.x - x0)) / W);
+      const off = amp * Math.sin((Math.PI * n * (q.x - x0)) / W) + flare * Math.min(lv, 45);
       const rho = Math.hypot(res[I], res[I + 2]) || 1e-9;
       const R = sp.bodyR(Math.atan2(res[I], res[I + 2]), res[I + 1]) + p.thick[i];
       const k = Math.max(rho + off, R) / rho;
