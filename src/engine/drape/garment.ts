@@ -270,6 +270,15 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
             const a = isBack ? Math.PI - phi : phi;
             return [Math.sin(a) * rr, c, Math.cos(a) * rr];
           }
+          // Gathered cloth starts in even folds round the waist (as the gathering thread draws it up), so it settles
+          // into soft gathers down the skirt rather than one crushed bulge.
+          if (!R && gather > 1.05 && !(globalThis as any).__noFolds) {
+            const lam = (globalThis as any).__lam ?? 10;
+            const k = TAU / lam;
+            const A = Math.min(2.6, (2 * Math.sqrt(gather - 1)) / k);
+            const ph = (k * q.x) / gather;
+            return ringAt(sp, arcOf(q), c, isBack, 1 + A * (1 + Math.sin(ph)) + lv * 0.12);
+          }
           return ringAt(sp, arcOf(q), c, isBack, 2 + lv * 0.15);
         },
         thick,
@@ -515,6 +524,28 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
     const ids = held.flatMap((p) => (p.mesh.runs[tag] ?? []).flat().map((i) => i + p.base));
     return { ids: Int32Array.from(ids), c: Float64Array.from(ids.map((i) => pos[i * 3 + 1])) };
   };
+  // A sleeve keeps its tube round the arm: the radius at each height is its own girth there (top and under sleeve
+  // together), less the cloth's give, so a wide coat sleeve stands round as wool does rather than folding flat.
+  const roundOf = () => {
+    const sl = B.panels.filter((p) => p.role === 'sleeve');
+    if (!sl.length || (globalThis as any).__noRound) return undefined;
+    const capH = (sl[0].pc.meta.capHeight as number) ?? 15;
+    const widthAt = (y: number) =>
+      sl.reduce((sum, p) => {
+        const xs = p.mesh.pts.filter((q) => Math.abs(q.y - y) < 1.2).map((q) => q.x);
+        return sum + (xs.length ? Math.max(...xs) - Math.min(...xs) : 0);
+      }, 0);
+    const ids: number[] = [];
+    const R: number[] = [];
+    for (const p of sl) {
+      p.mesh.pts.forEach((q, i) => {
+        if (q.y < capH + 2) return;
+        ids.push(p.base + i);
+        R.push((widthAt(q.y) / TAU) * 0.92);
+      });
+    }
+    return { ids: Int32Array.from(ids), R: Float64Array.from(R), k: (globalThis as any).__rk ?? 0.15 };
+  };
   const input: SimInput = {
     pos,
     edges: Int32Array.from(edges),
@@ -531,6 +562,7 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
     bendK: o.bendK ?? 0.05,
     pad: o.pad,
     hang: hangOf(),
+    round: roundOf(),
     legs,
     shoulder: Int32Array.from(B.panels.filter((p) => p.role === 'front' || p.role === 'back').flatMap((p) => (p.mesh.runs.shoulder ?? []).flat().map((i) => i + p.base))),
   };
@@ -543,6 +575,78 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
         res[i * 3 + d] += (target - res[i * 3 + d]) * 0.5;
       }
     }
+  }
+  // Smooth the cloth's finest ripples for drawing (a few cm of mesh noise reads as crumple on a shiny cloth); its
+  // edges and seams stay where they settled.
+  // Taubin's two-step smoothing: in, then back out, so the cloth loses its ripples but not its size.
+  const passes = (globalThis as any).__smooth ?? 16;
+  const sewn = new Uint8Array(B.n);
+  for (const { i, j, k } of seams) sewn[i] = sewn[j] = sewn[k] = 1;
+  for (const p of B.panels) {
+    const np = p.mesh.pts.length;
+    const nbr: number[][] = Array.from({ length: np }, () => []);
+    for (const [a, b, c] of p.mesh.tris) {
+      nbr[a].push(b, c);
+      nbr[b].push(a, c);
+      nbr[c].push(a, b);
+    }
+    const edge = new Uint8Array(np);
+    for (const t of Object.keys(p.mesh.runs)) for (const r of p.mesh.runs[t]) for (const i of r) edge[i] = 1;
+    for (let pass = 0; pass < passes; pass++) {
+      const nx = new Float64Array(np * 3);
+      for (let i = 0; i < np; i++) {
+        const I = (p.base + i) * 3;
+        // Above the underarm the form's arm stumps sit just under the cloth: leave it as settled there.
+        if (edge[i] || sewn[p.base + i] || !nbr[i].length || (p.role !== 'sleeve' && res[I + 1] < sp.tip.c + 17)) {
+          for (let d = 0; d < 3; d++) nx[i * 3 + d] = res[I + d];
+          continue;
+        }
+        for (let d = 0; d < 3; d++) {
+          let sum = 0;
+          for (const j of nbr[i]) sum += res[(p.base + j) * 3 + d];
+          nx[i * 3 + d] = res[I + d] + (sum / nbr[i].length - res[I + d]) * (pass % 2 ? -0.53 : 0.5);
+        }
+      }
+      for (let i = 0; i < np; i++) {
+        for (let d = 0; d < 3; d++) res[(p.base + i) * 3 + d] = nx[i * 3 + d];
+        // Smoothing draws cloth in; none goes inside the body for it.
+        if (p.role === 'sleeve' || legs) continue;
+        const I = (p.base + i) * 3;
+        const rho = Math.hypot(res[I], res[I + 2]) || 1e-9;
+        const R = sp.bodyR(Math.atan2(res[I], res[I + 2]), res[I + 1]) + p.thick[i];
+        if (rho < R) {
+          res[I] *= R / rho;
+          res[I + 2] *= R / rho;
+        }
+      }
+    }
+  }
+  // Gathered cloth: its fullness lies in soft folds round the skirt. The sim settles where the cloth hangs; the folds
+  // its mesh is too coarse to form are laid on for drawing, as many as the cloth's width holds, each seam on a fold's
+  // turn so the pieces still meet.
+  const foldA = (globalThis as any).__foldA ?? 1;
+  for (const p of B.panels) {
+    const gather = (p.pc.meta.gathered as number | undefined) ?? 1;
+    if (!/peplum/.test(p.role) || gather < 1.05 || !foldA) continue;
+    const xs = p.mesh.pts.map((q) => q.x);
+    const ys = p.mesh.pts.map((q) => q.y);
+    const x0 = Math.min(...xs);
+    const W = Math.max(...xs) - x0;
+    const y0 = Math.min(...ys);
+    const lamCloth = 5 * gather;
+    const n = Math.max(2, Math.round(W / (lamCloth / 2)));
+    const A = Math.min(2.2, 1.1 * Math.sqrt(gather - 1)) * foldA;
+    p.mesh.pts.forEach((q, i) => {
+      const I = (p.base + i) * 3;
+      const lv = q.y - y0;
+      const amp = A * (0.35 + 0.65 * Math.min(1, lv / 18));
+      const off = amp * Math.sin((Math.PI * n * (q.x - x0)) / W);
+      const rho = Math.hypot(res[I], res[I + 2]) || 1e-9;
+      const R = sp.bodyR(Math.atan2(res[I], res[I + 2]), res[I + 1]) + p.thick[i];
+      const k = Math.max(rho + off, R) / rho;
+      res[I] *= k;
+      res[I + 2] *= k;
+    });
   }
   const lines: Draped['lines'] = [];
   for (const p of B.panels) {

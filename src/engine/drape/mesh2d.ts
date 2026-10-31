@@ -308,6 +308,11 @@ export function meshPiece(pc: Piece, h = 1.6, folds: [P, P][] = [], wedges: Wedg
     kept.push(pts[i]);
   }
   tris.forEach((t, k) => (tris[k] = [used[t[0]], used[t[1]], used[t[2]]]));
+  // One winding throughout (anticlockwise as laid flat), so the cloth's shading is smooth across it.
+  tris.forEach((t, k) => {
+    const [a, b, c] = t.map((i) => kept[i]);
+    if ((b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x) < 0) tris[k] = [t[0], t[2], t[1]];
+  });
   for (const t of Object.keys(runs)) runs[t] = runs[t].map((r) => r.map((i) => used[i]).filter((i) => i >= 0)).filter((r) => r.length > 1);
   for (const [k, v] of index) index.set(k, used[v]);
   pts.length = 0;

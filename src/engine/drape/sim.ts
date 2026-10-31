@@ -32,6 +32,9 @@ export interface SimInput {
   legs?: { x: number; c0: number; c1: number; r0: number; r1: number };
   /** Points held from dropping below these levels (a skirt's waist, a strapless top edge). */
   hang?: { ids: Int32Array; c: Float64Array };
+  /** Sleeve points kept round the arm at their own sleeve's radius (cloth with body holds a tube's shape, it does not
+   *  fold flat at its seams). */
+  round?: { ids: Int32Array; R: Float64Array; k: number };
   bendK: number;
 }
 
@@ -177,6 +180,24 @@ export function simulate(s: Space, inp: SimInput, steps = (globalThis as any).__
           const I = inp.shoulder[k] * 3;
           const top = s.ridge(Math.abs(x[I])) - thick[inp.shoulder[k]] - (inp.pad ?? 0);
           if (x[I + 1] > top) x[I + 1] = top;
+        }
+      }
+      if (inp.round && it % 2 === 0) {
+        const { ids, R, k } = inp.round;
+        for (let q = 0; q < ids.length; q++) {
+          const I = ids[q] * 3;
+          const rx = x[I] - arm.a[0];
+          const ry = x[I + 1] - arm.a[1];
+          const rz = x[I + 2] - arm.a[2];
+          const u = Math.max(0, (rx * ab[0] + ry * ab[1] + rz * ab[2]) / abL2);
+          const dx = rx - ab[0] * u;
+          const dy = ry - ab[1] * u;
+          const dz = rz - ab[2] * u;
+          const d = Math.hypot(dx, dy, dz) || 1e-9;
+          const f = ((R[q] - d) / d) * k * ramp * (d < R[q] ? 1 : 0.4);
+          x[I] += dx * f;
+          x[I + 1] += dy * f;
+          x[I + 2] += dz * f;
         }
       }
       for (let i = 0; i < n; i++) {
