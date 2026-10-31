@@ -195,6 +195,8 @@ export interface DrapeOptions {
   /** Buttoned only above this level (the front's own pattern y): below it the fronts hang open, as a cardigan worn
    *  with its lower buttons undone. */
   openBelowY?: number;
+  /** Buttoned only below this level: above it the top buttons are undone and the fronts fall open. */
+  openAboveY?: number;
   /** Crisp cloth (organza, taffeta): a peplum this many times stiffer, so it stands out rather than hangs. */
   crisp?: number;
   /** Cut boxy: the cloth falls straight from the bust to the hip rather than in under the bust. */
@@ -606,7 +608,7 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
     }
     if ((p.role === 'front' || p.role === 'peplum-front') && o.closedFront && p.mesh.runs.opening) {
       pts.forEach((q, i) => {
-        if (Math.abs(q.x) < 0.6 && !p.turned[i] && (o.openBelowY === undefined || q.y < o.openBelowY)) centre.push(i + p.base);
+        if (Math.abs(q.x) < 0.6 && !p.turned[i] && (o.openBelowY === undefined || q.y < o.openBelowY) && (o.openAboveY === undefined || q.y > o.openAboveY)) centre.push(i + p.base);
       });
     }
     if (p.role === 'front' && o.pinFront) {
@@ -657,7 +659,7 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
         const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
         let d = Infinity;
         for (const q of cap) d = Math.min(d, Math.hypot(q.x - mid.x, q.y - mid.y));
-        const w = Math.max(0, 1 - d / 5);
+        const w = Math.max(0, 1 - d / ((globalThis as any).__capW ?? (o.boxy ? 10 : 5)));
         rest[e] *= 1 - (1 - capRatio) * w;
       }
     }
@@ -1059,7 +1061,7 @@ export function drapeBodice(sp: Space, d: BodiceDraft, sleeve?: SleeveDraft, o: 
   const pieces = extra.pieces ?? d.pieces;
   const torso = pieces.filter(isTorso).map((pc) => ({ pc, back: /back/i.test(pc.name), waistY: /back/i.test(pc.name) ? d.back.waistCentre.y : d.front.waistCentre.y }));
   const skirt = extra.skirt ?? pieces.filter(isSkirt);
-  const buttons = d.closure === 'front_buttons' && d.buttons ? { y: d.buttons.at.filter((y) => o.openBelowY === undefined || y < o.openBelowY), r: d.buttons.sizeCm / 2, waistY: d.front.waistCentre.y } : undefined;
+  const buttons = d.closure === 'front_buttons' && d.buttons ? { y: d.buttons.at.filter((y) => (o.openBelowY === undefined || y < o.openBelowY) && (o.openAboveY === undefined || y > o.openAboveY)), r: d.buttons.sizeCm / 2, waistY: d.front.waistCentre.y } : undefined;
   return drape(sp, torso, { skirt: skirt.length ? skirt : undefined, drop: extra.drop, tiers: extra.tiers, under: extra.under, puff: sleeve?.gathers?.crown, sleeve: sleeve?.pieces.filter(isShell), collars: collarsOf(pieces) }, { buttons, closedFront: true, ...o });
 }
 
