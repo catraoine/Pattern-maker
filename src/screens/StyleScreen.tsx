@@ -538,9 +538,17 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
           <InCorner>
             {view === 'sketch' && draft &&
               (drawing ? (
-                <button type="button" className="ghost on" aria-pressed="true" onClick={() => setDrawing(false)}>
-                  Done
-                </button>
+                <>
+                  <button type="button" className="ghost on" aria-pressed="true" onClick={() => setDrawing(false)}>
+                    Done
+                  </button>
+                  {/* Clear takes the drawn line away, back to the plain one (Cat, 2026-10-31). */}
+                  {isShaped(choices.hem) && (
+                    <button type="button" className="ghost draw-clear" onClick={() => change({ ...choices, hem: undefined })}>
+                      Clear
+                    </button>
+                  )}
+                </>
               ) : (
                 <DrawMenu>
                   <button type="button" onClick={() => setOnForm(choices)}>

@@ -5,6 +5,7 @@ something that changes how a department works. Design picks for single screens s
 
 ## October 2026
 
+- **Oct 31** Style back a step (A): a plain ← box left of Next/Review on every step after the first, last step too (named "‹ Length & Hem" link removed). Phone Undo/Redo named, across from "Step 2 of 4"; Clear under Done while drawing a hem or neck. PR #252.
 - **Oct 31** Welcome and waitlist headline: H2 "Drafted to you" / "Sewing patterns for the piece you have in mind". Collection page keeps its flats (on-the-form and All round renders rejected). "Make this look" now opens in the look's own fabric.
 - **Oct 31** All round goes quiet (Q2 Quiet in Calico, design review gap 3): no seam dots or hem chart, one line "Seams and hem checked", small disclaimer; with no fabric it turns in pale calico; faint lines no longer bead.
 - **Oct 31** One fill (design review gap 5, S1 Heavy Outline): champagne fill is only for the main button; a picked choice is a 2px champagne outline with bright words, unpicked choices go quiet. Begin measuring and the make page's button are filled; replaces the filled halves on the first Measure page.

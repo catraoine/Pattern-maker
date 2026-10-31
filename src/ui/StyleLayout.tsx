@@ -191,6 +191,22 @@ export function InCorner({ children }: { children: ReactNode }) {
   return corner ? createPortal(children, corner) : <>{children}</>;
 }
 
+/** Undo and Redo as two named words across from the step's number, on a phone. */
+function StepUndo({ undo }: { undo: Undo }) {
+  return (
+    <div className="step-undo">
+      <button type="button" onClick={undo.undo} disabled={!undo.canUndo} aria-label="Undo the last change" title="Undo">
+        <span aria-hidden="true">↶</span>
+        <small>Undo</small>
+      </button>
+      <button type="button" onClick={undo.redo} disabled={!undo.canRedo} aria-label="Redo the change you undid" title="Redo">
+        <span aria-hidden="true">↷</span>
+        <small>Redo</small>
+      </button>
+    </div>
+  );
+}
+
 /** The tag's names for the questions, where the question's own is longer than the tag has room for. */
 /**
  * The picked choice's name in a question: a picked chip, or any pressed button when there are none.
@@ -538,6 +554,13 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
     );
   // The step after this one, and its first word for the narrow bar at the bottom ("Next: Neck").
   const next = active === LOOKS ? steps[0] : steps[at + 1];
+  // Back a step is a plain arrow to the left of the way on (Cat, 2026-10-31), on every step after the first, so the
+  // way back is there on the last step too. Its name is read out, not shown.
+  const backArrow = at > 0 && (
+    <button type="button" className="step-back-arrow" aria-label={`Back to ${steps[at - 1]}`} title={steps[at - 1]} onClick={() => goStep(steps[at - 1])}>
+      <span aria-hidden="true">←</span>
+    </button>
+  );
 
   return (
     <div className={compact ? 'style-layout compact' : 'style-layout'} ref={root}>
@@ -620,6 +643,9 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
                 </button>
               )}
               {wide && <DemoButton demo="style" />}
+              {/* On a phone, Undo and Redo are named, across from "Step 2 of 4", once there is something to undo:
+                  well away from the step's back arrow in the bar (Cat, 2026-10-31). */}
+              {!wide && undo && (undo.canUndo || undo.canRedo) && <StepUndo undo={undo} />}
             </div>
             <h2 className="chapter-name">{active === LOOKS ? 'Start from a look' : active}</h2>
             <div
@@ -686,16 +712,11 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
           </ActiveTab.Provider>
           </Fold.Provider>
           {/* The way on: the next step, or Review after the last (on a computer the summary is already beside it). */}
-          {(active === LOOKS || at >= 0) && (
+          {wide && (active === LOOKS || at >= 0) && (
             <div className="step-next">
-              {at > 0 && (
-                <button type="button" className="later step-back" onClick={() => goStep(steps[at - 1])}>
-                  ‹ {steps[at - 1]}
-                </button>
-              )}
+              {backArrow}
               {/* On a phone the one box is in the bar at the bottom (F1, 2026-10-24); the computer has no bar. */}
-              {wide &&
-                (active === LOOKS && steps[0] ? (
+              {active === LOOKS && steps[0] ? (
                   <button type="button" className="step-go" onClick={() => goStep(steps[0])}>
                     Start with {steps[0]} ›
                   </button>
@@ -705,7 +726,7 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
                       Next: {steps[at + 1]} ›
                     </button>
                   )
-                ))}
+                )}
             </div>
           )}
           {/* On a phone the step ends with two quiet links (Cat's P1, 2026-10-31): Review, which left the bar so it
@@ -744,18 +765,14 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
           </div>
         ) : (
           // One box in the bar (Cat's N3, 2026-10-28, and P1, 2026-10-31): Next in champagne, or Review after the
-          // last; Review before then is a link at the end of the step. Undo and redo show only once there is
-          // something to undo.
+          // last; Review before then is a link at the end of the step. Back a step is the arrow to its left; undo
+          // and redo moved up to the drawing's corner so the two arrows are never mixed up (2026-10-31).
           <div className="style-bar">
             {/* The garment's name is read out as it changes, not shown: the drawing shows it (Cat's N3). */}
             <p className="visually-hidden" role="status">
               {Name}
             </p>
-            {undo && (
-              <div className={undo.canUndo || undo.canRedo ? 'bar-undo' : 'bar-undo idle'}>
-                <UndoTools undo={undo} />
-              </div>
-            )}
+            {backArrow}
             {next ? (
               <button type="button" className="primary" onClick={() => goStep(next)}>
                 Next: {next.split(/\s/)[0]} <span aria-hidden="true">›</span>

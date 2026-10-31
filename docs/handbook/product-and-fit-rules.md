@@ -60,6 +60,9 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
 - **Phone Style panel** (Oct 31, P1): no step bars; "Step 1 of 5" opens the list of steps. One short line
   under a pick (the short lines live in `src/explain.ts`, 40 characters at most; the computer keeps the full line).
   The bar holds one button; Review all choices and Watch demo are links at the end of the step.
+- **Back a step** (Oct 31, A): a plain ← box left of Next/Review on every step after the first, never a named
+  link. On a phone Undo/Redo are named words across from "Step 2 of 4", away from the back arrow; Clear sits
+  under Done while drawing.
 
 ## Fixing problems
 

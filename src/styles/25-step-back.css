@@ -1,0 +1,67 @@
+/* Back a step (Cat, 2026-10-31): a plain arrow to the left of the way on, in place of the named "‹ Length & Hem"
+   link, on every Style step after the first (the last one too). The same quiet square as the header's back. */
+.step-back-arrow {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  border: var(--bw) solid var(--line-strong);
+  border-radius: 0;
+  background: none;
+  color: var(--ink);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+.step-back-arrow:hover,
+.step-back-arrow:focus-visible {
+  border-color: var(--gild);
+  color: var(--gild);
+}
+/* In the phone's bar it matches the height of Next. */
+.style-bar .step-back-arrow {
+  align-self: stretch;
+  height: auto;
+  min-height: 40px;
+}
+/* Undo and Redo on a phone: named, across from "Step 2 of 4", shown once there is something to undo, so they can't
+   be taken for the step's back arrow in the bar. */
+.chapter-top > .step-undo {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+.step-undo button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 8px;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: 500 var(--caps-size)/1 var(--mono);
+  letter-spacing: var(--caps-track);
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.step-undo button span {
+  font-size: 16px;
+  color: var(--gild);
+}
+.step-undo button:last-child {
+  padding-right: 0;
+}
+.step-undo button:disabled {
+  color: #4a4336;
+  cursor: default;
+}
+.step-undo button:disabled span {
+  color: inherit;
+}
+/* While drawing, Clear sits under Done: it takes away the drawn line and puts back the plain one. */
+.preview-corner > .draw-clear {
+  order: 0;
+}
