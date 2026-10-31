@@ -19,11 +19,13 @@ import { finishDart } from './darts';
 import { Ring, pathOf, ringOf } from './manipulate';
 import type { DraftPoint, Piece } from './piece';
 import type { BodiceDraft, BodiceFit, BodiceLength, BodiceMeasurements, BodiceStyle, UnevenNeck } from './bodice';
-import { type HemShape, isShaped } from './hem';
+import { type HemShape, isShaped, shapeHemBy } from './hem';
 import { circlePiece, cm } from './skirt';
 import { facing } from './finishing';
 
 export type Peplum = 'none' | 'flared' | 'gathered';
+/** A peplum's hem: level all round, or (In testing) dropping longer at the centre back. */
+export type PeplumHem = 'level' | 'high_low';
 /** An uneven neckline (uneven.ts) isn't draped, but its front is a whole piece like these. */
 export type DrapeKind = 'one_shoulder' | 'cowl' | 'uneven';
 
@@ -69,6 +71,8 @@ export interface PeplumInfo {
   /** How far below the waist its seam sits: 0 at the waist, more on a lowered peplum (the bodice
    * fitted down past the waist and the peplum sewn to its hem). Older drafts have none. */
   seamCm?: number;
+  /** A high-low peplum (In testing): how much longer it hangs at the centre back than at the sides. */
+  backCm?: number;
 }
 
 const r1 = (v: number) => Math.round(v * 10) / 10;
@@ -710,6 +714,9 @@ const peplumDepth = (m: { waist_to_hip?: number }, seam = 0) => {
  * look, no lower than the high hip, where the body is already widening and a flare would sit on it. */
 export const PEPLUM_SEAM_MAX = 12;
 
+/** How much longer a high-low peplum hangs at the centre back: about 70% of its depth again, 8 to 14 cm. */
+export const peplumBackExtra = (depth: number) => Math.max(8, Math.min(14, Math.round(0.7 * depth)));
+
 /** Whether the bodice's length takes a peplum: at the waist, or lowered (In testing) to the high hip or a
  * dragged hem at most PEPLUM_SEAM_MAX below the waist, on a cut that nips in at the waist (not boxy or
  * oversized, which hang straight) with a level hem for the peplum to sew to. */
@@ -721,8 +728,11 @@ export function peplumLengthOk(c: { length: BodiceLength; dropCm?: number; fit?:
 }
 
 /** A gathered peplum piece: a rectangle, its waist edge gathered to the bodice's. */
-function rectPiece(name: string, w: number, h: number, isFront: boolean, sa: number): Piece {
-  const outline = new Path(p(0, 0)).line(p(w, 0), 'waist').line(p(w, h), 'side').line(p(0, h), 'hem').line(p(0, 0), isFront ? 'fold' : 'centre');
+function rectPiece(name: string, w: number, h: number, isFront: boolean, sa: number, hemSteps = 1): Piece {
+  // A hem to be reshaped (a high-low back) is laid in short steps, so it can bend.
+  const outline = new Path(p(0, 0)).line(p(w, 0), 'waist').line(p(w, h), 'side');
+  for (let i = 1; i <= hemSteps; i++) outline.line(p(w * (1 - i / hemSteps), h), 'hem');
+  outline.line(p(0, 0), isFront ? 'fold' : 'centre');
   outline.closed = true;
   const cut = isFront ? 'Cut 1 on fold' : 'Cut 2 (1 pair)';
   return {
@@ -789,14 +799,26 @@ function withPeplum(d: BodiceDraft, kind: 'flared' | 'gathered', s: BodiceStyle,
         ],
       },
     });
-    pieces = [point(rectPiece('Peplum front', GATHER * F, depth, true, s.seamAllowance), true), point(rectPiece('Peplum back', GATHER * B, depth, false, s.seamAllowance), false)];
+    pieces = [point(rectPiece('Peplum front', GATHER * F, depth, true, s.seamAllowance), true), point(rectPiece('Peplum back', GATHER * B, depth, false, s.seamAllowance, s.peplumHem === 'high_low' ? 16 : 1), false)];
     hemCm = r1(2 * GATHER * (F + B));
+  }
+  // A high-low peplum: the back's hem drops from the side seam, where it meets the front's, to its
+  // longest at the centre back, eased so it leaves the side seam and the centre back square.
+  let backCm: number | undefined;
+  if (s.peplumHem === 'high_low') {
+    backCm = peplumBackExtra(depth);
+    const extra = backCm;
+    const back = pieces[1];
+    const ease = (t: number) => t * t * (3 - 2 * t);
+    shapeHemBy(back, (t) => extra * ease(t), { origin: kind === 'flared' ? p(0, -(2 * (F + B)) / Math.PI) : undefined, alongSeams: true });
+    back.draft = back.draft && { ...back.draft, points: [...back.draft.points, { n: 'H', at: p(0, depth + extra), note: `Centre back hem, ${cm(extra)} longer than at the side: the hem curves down from the side seam, where it meets the front's, to here.` }] };
+    hemCm = r1(2 * (taggedLength(pieces[0].outline, 'hem') + taggedLength(back.outline, 'hem')));
   }
   // A peplum hangs single, its hem narrow, so it isn't lined with the bodice.
   pieces = pieces.map((pc) => ({ ...pc, meta: { ...pc.meta, unlined: true, ...(seamCm > 0 ? { sewnTo: 'hem' } : {}) } }));
   // A lowered peplum's seam is the bodice's hem: a seam allowance there, in place of the turned-up hem.
   const body = seamCm > 0 ? d.pieces.map((pc) => (isBody(pc) && pc.allowances.hem !== undefined ? { ...pc, allowances: { ...pc.allowances, hem: s.seamAllowance } } : pc)) : d.pieces;
-  return { ...d, pieces: [...body, ...pieces], peplum: { kind, depthCm: depth, hemCm, ...(seamCm > 0 ? { seamCm } : {}) } };
+  return { ...d, pieces: [...body, ...pieces], peplum: { kind, depthCm: depth, hemCm, ...(seamCm > 0 ? { seamCm } : {}), ...(backCm ? { backCm } : {}) } };
 }
 
 /** The draped neckline and the peplum, made on the drafted bodice. */

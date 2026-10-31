@@ -155,7 +155,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
   }, [draft, arms, values]);
   const sleeves = useMemo(() => (draft && onForm ? sleeveRange(draft, values as BodiceMeasurements & SleeveMeasurements, choices.fit) : undefined), [draft, onForm, values, choices.fit]);
   const round = useMemo(() => (draft ? roundBodice(draft, values, sleeve) : undefined), [draft, values, sleeve]);
-  const detail = { bustDart: choices.bustDart ?? 'side', princess: choices.princess ?? 'none', closure: choices.closure ?? 'back_zip', collar: choices.collar ?? 'none', back: valid.back ?? 'plain', structure: valid.structure ?? 'none', peplum: choices.peplum ?? 'none' };
+  const detail = { bustDart: choices.bustDart ?? 'side', princess: choices.princess ?? 'none', closure: choices.closure ?? 'back_zip', collar: choices.collar ?? 'none', back: valid.back ?? 'plain', structure: valid.structure ?? 'none', peplum: choices.peplum ?? 'none', peplumHem: choices.peplumHem ?? 'level' };
   // A draped neckline is its own shaping: the dart, seam, opening, collar and boning choices step aside.
   const draped = isDraped(choices);
   const valueOf = (id: (typeof BODICE_GROUPS)[number]['id']) =>
@@ -166,6 +166,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
     // A kimono sleeve is cut on at its named length, with no shape or cuff of its own.
     (id !== 'sleeveShape' || (chosen.length !== 'none' && chosen.cut !== 'kimono')) &&
     (id !== 'sleeveCut' || chosen.length !== 'none') &&
+    (id !== 'peplumHem' || detail.peplum !== 'none') &&
     (id !== 'sleeveCuff' || (cuffShown(chosen) && chosen.cut !== 'kimono')) &&
     (id !== 'bustDart' || (choices.darts !== 'none' && detail.princess === 'none' && !boned)) &&
     ((id !== 'bustDart' && id !== 'princess') || can('dartMoves') || moved(id)) &&
@@ -325,6 +326,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
                   {oversizedInTesting(g.id, id) && <TestingTag tool="oversized" />}
                   {g.id === 'peplum' && id !== 'none' && hemDrop(m, choices) > 0 && <TestingTag tool="low_peplum" />}
                   {g.id === 'neckline' && id === 'plunge' && <TestingTag tool="plunge" />}
+                  {g.id === 'peplumHem' && id === 'high_low' && <TestingTag tool="high_low_peplum" />}
                 </button>
               ))}
             </div>

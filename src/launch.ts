@@ -40,7 +40,8 @@ export type TestingTool =
   | 'oversized'
   | 'low_peplum'
   | 'oversized_outer'
-  | 'plunge';
+  | 'plunge'
+  | 'high_low_peplum';
 
 export const TESTING_TOOLS: Record<TestingTool, { name: string; where: string; proof: string }> = {
   draw_lines: { name: 'Draw your lines', where: 'Style, Draw on your form', proof: 'fit testers draw a hem, a neckline and a side and the pattern follows' },
@@ -64,6 +65,8 @@ export const TESTING_TOOLS: Record<TestingTool, { name: string; where: string; p
   oversized_outer: { name: 'Oversized jackets and coats', where: 'the Oversized fit chip on a jacket or coat', proof: 'two testers sew an oversized jacket and it hangs open and straight, the dropped shoulders sitting past their own' },
   // And for the plunging slip (2026-10-31): a V nearly to the waist on narrow straps.
   plunge: { name: 'Plunging V neckline', where: 'the Plunge neckline chip on a top or dress', proof: 'two testers sew a plunging slip and the V lies flat to the body without gaping' },
+  // And for the lilac top's peplum (2026-10-31), dropping longer at the back.
+  high_low_peplum: { name: 'High-low peplum', where: 'the Peplum hem chips on a top with a peplum', proof: 'two testers sew a high-low peplum and it falls smoothly from the sides to the longer back' },
   oversized: { name: 'Oversized and long tops', where: 'the Oversized fit and Long length chips on the top', proof: 'two testers sew an oversized long shirt and it hangs straight, its sleeves lifting without pulling' },
   new_details: { name: 'Ruffles, ruching, cape and balloon hem', where: 'the chips for each on the Style screens', proof: 'three testers sew a ruffled hem, ruched sides and a cape and each hangs as drawn' },
 };

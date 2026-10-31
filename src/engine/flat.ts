@@ -1056,7 +1056,7 @@ function cowlFront(d: BodiceDraft, h: Half, v: RawView & { foot: number }): RawV
 
 /** The peplum below the waist seam: a flared one rippling to a wide hem, a gathered one hanging
  * straighter from its gathers; each with its narrow hem stitched. */
-function withPeplumView(d: BodiceDraft, h: Half, v: RawView & { foot: number }): RawView & { foot: number } {
+function withPeplumView(d: BodiceDraft, h: Half, v: RawView & { foot: number }, isBack = false): RawView & { foot: number } {
   if (!d.peplum) return v;
   const lastSide = h.tags.lastIndexOf('side');
   const waist = h.run.slice(lastSide + 1).reverse();
@@ -1070,7 +1070,9 @@ function withPeplumView(d: BodiceDraft, h: Half, v: RawView & { foot: number }):
   const hem: P[] = [];
   for (let s = 0; s <= folds * per; s++) {
     const t = s / (folds * per);
-    hem.push(p(H * (1 - t), ws.y + D + amp * Math.cos(t * folds * 2 * Math.PI)));
+    // A high-low peplum's back drops from the side to its longest at the centre back.
+    const tail = isBack && d.peplum.backCm ? d.peplum.backCm * t * t * (3 - 2 * t) : 0;
+    hem.push(p(H * (1 - t), ws.y + D + tail + amp * Math.cos(t * folds * 2 * Math.PI)));
   }
   const shape = whole([...waist, ...hem]);
   const lines: FlatView['lines'] = [...v.lines];
@@ -1157,7 +1159,7 @@ function bodiceViews(d: BodiceDraft, edges: BodiceEdges, sleeve: SleeveDraft | u
   const front = sewn(bf, backFoot, style?.skip, d.hem ? d.hem.front[0] - d.hem.front[d.hem.front.length - 1] : 0);
   const hps = (h: Half) => h.run[h.tags.indexOf('shoulder')];
   return ([front, back] as const).map((h, i) => {
-    if (d.drape?.kind === 'one_shoulder') return withPeplumView(d, h, oneShoulderView(d, h, i, edges));
+    if (d.drape?.kind === 'one_shoulder') return withPeplumView(d, h, oneShoulderView(d, h, i, edges), i === 1);
     // An uneven front: both halves to the neck points, and the neckline as drafted across them.
     // A wrap: the top front's edge from its neck point down across the centre front, the under front's
     // the same the other way; the two V edges make the neckline, and the top front's runs on to its tie.
@@ -1249,7 +1251,7 @@ function bodiceViews(d: BodiceDraft, edges: BodiceEdges, sleeve: SleeveDraft | u
       for (const fold of capeFolds(neckRun, shoulderRun, capeCm)) lines.push({ pts: fold, kind: 'seam' }, { pts: mirror(fold), kind: 'seam' });
     }
     const view = { label: i === 0 ? ('FRONT' as const) : ('BACK' as const), shapes, lines, sleeves, foot: h.run[h.run.length - 1].y, ...(sleeve?.cut === 'kimono' ? { armless: armlessOf(h) } : {}) };
-    return withPeplumView(d, h, i === 0 && d.drape?.kind === 'cowl' ? cowlFront(d, h, view) : view);
+    return withPeplumView(d, h, i === 0 && d.drape?.kind === 'cowl' ? cowlFront(d, h, view) : view, i === 1);
   });
 }
 

@@ -197,6 +197,10 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       flared: ['A short skirt sewn on at the waist that flares over the hips. A longer top lowers it.'],
       gathered: ['A short ruffle gathered on at the waist, or lower on a longer top.'],
     },
+    peplumHem: {
+      level: ['The peplum is the same length all the way round.', 'easy'],
+      high_low: ['The peplum curves down from the sides to hang longer at the back, like a short tail.'],
+    },
   },
   tee: {
     stretch: {
@@ -450,6 +454,8 @@ const SHORT: Record<string, string> = {
   'structure.shirred': 'Elastic-shirred back. Pulls on.',
   'peplum.flared': 'A short flared skirt at the waist.',
   'peplum.gathered': 'A short gathered ruffle at the waist.',
+  'peplumHem.level': 'The same length all round.',
+  'peplumHem.high_low': 'Curves down, longer at the back.',
   'bodice.fit.oversized': 'Big and straight, no darts.',
   'bodice.length.long': 'Past the hip, over your seat.',
   'outer.fit.oversized': 'Big and boxy, the shoulders dropped.',

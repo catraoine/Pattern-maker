@@ -167,6 +167,10 @@ const DETAILS: Record<ExplainSet, Record<string, Record<string, ReactNode>>> = {
       flared: on(SHORT_TOP, 'M11 28L5 39Q20 43 35 39L29 28'),
       gathered: on(SHORT_TOP, 'M11 28L8 38Q11 40 14 38Q17 40 20 38Q23 40 26 38Q29 40 32 38L29 28M13 29v2M17 29v2M21 29v2M25 29v2'),
     },
+    peplumHem: {
+      level: on(SHORT_TOP, 'M11 28L5 39Q20 43 35 39L29 28'),
+      high_low: on(SHORT_TOP, 'M11 28L5 35Q12 37 15 40Q20 46 25 40Q28 37 35 35L29 28'),
+    },
   },
   tee: {
     fit: FIT,
