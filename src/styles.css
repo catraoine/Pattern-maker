@@ -24,3 +24,4 @@
 @import './styles/21-ipad.css'; /* iPads: Print upright, the photo screens, and the way on in reach on a mini or Air on its side. */
 @import './styles/22-accessibility.css'; /* The accessibility review: one focus ring, bigger taps, room at 200% zoom. */
 @import './styles/23-phone-sideways.css'; /* Phones held sideways: S4 Style, S2 Print + Measure (Oct 30). */
+@import './styles/24-one-fill.css'; /* Gaps 4 + 5 of the design review: P1 trimmed phone Style panel, S1 one fill (Oct 31). */

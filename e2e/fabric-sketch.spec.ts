@@ -1,10 +1,10 @@
-import { expect, goPrint, openGroup, startWithExample, switchGarment, test, type GarmentName } from './fixtures';
+import { expect, goPrint, goTab, openGroup, startWithExample, switchGarment, test, type GarmentName } from './fixtures';
 
 // The sketch is drawn in the fabric tapped under it, and the print screen keeps that fabric.
 test('a swatch dresses the skirt sketch and carries to the print screen', async ({ page }) => {
   await startWithExample(page);
   const main = page.getByRole('main');
-  await main.getByRole('tab', { name: 'Fabric' }).click();
+  await goTab(page, 'Fabric');
   const swatches = main.getByRole('radiogroup', { name: 'Fabric for the sketch' });
   const corduroy = swatches.getByRole('radio', { name: 'Corduroy' });
   await corduroy.click();
@@ -22,7 +22,7 @@ test('a swatch dresses the skirt sketch and carries to the print screen', async 
   // Print sums the fabric up, and its button goes back to the Fabric tab, the one place to choose it.
   await expect(main.locator('.yourfabric h2')).toContainText('Linen');
   await main.getByRole('button', { name: 'Change fabric' }).click();
-  await expect(main.getByRole('tab', { name: 'Fabric', exact: true })).toHaveAttribute('aria-selected', 'true');
+  await expect(main.getByRole('tab', { name: 'Fabric', exact: true, includeHidden: true })).toHaveAttribute('aria-selected', 'true');
   await expect(swatches.getByRole('radio', { name: 'Linen' })).toHaveAttribute('aria-checked', 'true');
 });
 
@@ -44,7 +44,7 @@ for (const g of ['Dress', 'Trousers'] as GarmentName[]) {
     await startWithExample(page);
     await switchGarment(page, g);
     const main = page.getByRole('main');
-    await main.getByRole('tab', { name: 'Fabric' }).click();
+    await goTab(page, 'Fabric');
     await main.getByRole('radiogroup', { name: 'Fabric for the sketch' }).getByRole('radio', { name: 'Denim' }).click();
     // The garment on the form wears it, and the page stays on the form; the Drawing view wears it too.
     await expect(main.locator('.garment-fabric .form-still .cloth-fill').first()).toBeVisible();
@@ -57,7 +57,7 @@ for (const g of ['Dress', 'Trousers'] as GarmentName[]) {
 test('None, a colour and a shop fabric on the skirt sketch', async ({ page }) => {
   await startWithExample(page);
   const main = page.getByRole('main');
-  await main.getByRole('tab', { name: 'Fabric' }).click();
+  await goTab(page, 'Fabric');
   const swatches = main.getByRole('radiogroup', { name: 'Fabric for the sketch' });
   const none = swatches.getByRole('radio', { name: 'None' });
   await expect(none).toHaveAttribute('aria-checked', 'true');
@@ -83,7 +83,7 @@ test('None, a colour and a shop fabric on the skirt sketch', async ({ page }) =>
 test('any colour tints the sketch and finds the closest shop colourway', async ({ page }) => {
   await startWithExample(page);
   const main = page.getByRole('main');
-  await main.getByRole('tab', { name: 'Fabric' }).click();
+  await goTab(page, 'Fabric');
   await main.getByRole('radiogroup', { name: 'Fabric for the sketch' }).getByRole('radio', { name: 'Linen' }).click();
   await main.getByRole('button', { name: 'Any colour' }).click();
   await expect(main.locator('.testing-tag[title*="shop colourways match"]')).toBeVisible();
@@ -112,7 +112,7 @@ test('any colour tints the sketch and finds the closest shop colourway', async (
 test('a colour the shops lack can be printed or dyed exactly', async ({ page }) => {
   await startWithExample(page);
   const main = page.getByRole('main');
-  await main.getByRole('tab', { name: 'Fabric' }).click();
+  await goTab(page, 'Fabric');
   await main.getByRole('radiogroup', { name: 'Fabric for the sketch' }).getByRole('radio', { name: 'Linen' }).click();
   await main.getByRole('button', { name: 'Any colour' }).click();
   await main.getByLabel('Hex').fill('#b8613f');

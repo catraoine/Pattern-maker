@@ -48,12 +48,18 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
    and the How it works film is re-recorded after it ships (stills first).
 7. Form finish (Oct 30, PR #231): matte charcoal form and crisp plain cloth on the Style drawings.
    Measuring and welcome keep the line form; satin/finish only from Style on.
+8. **All round is quiet** (Oct 31, Q2): no seam dots or hem chart; the checks are one line ("Seams and
+   hem checked") and the disclaimer is small text. With no fabric picked the garment turns in pale calico
+   (the How it works film keeps its lines).
 
 ## Style steps
 
 - **No repeated names** (Oct 30): a question never carries its step's name (no "Details" question on the
   Details step); pleats, godets, flounces, tiers and ruching are called **Fullness** everywhere, as on the Draw tool.
   On the skirt's Details step, Waist comes first.
+- **Phone Style panel** (Oct 31, P1): no step bars; "Step 1 of 5" opens the list of steps. One short line
+  under a pick (the short lines live in `src/explain.ts`, 40 characters at most; the computer keeps the full line).
+  The bar holds one button; Review all choices and Watch demo are links at the end of the step.
 
 ## Fixing problems
 

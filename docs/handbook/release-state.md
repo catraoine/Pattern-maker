@@ -4,25 +4,23 @@ _Update this page whenever a release ships or a PR is queued._
 
 ## Live
 
-**Release 42** (Oct 30, 2026, #228, main `5506136`): the phone tag of picks shows a slider-set sleeve
-or waist-seam length. Release 41 (Oct 29, #227) brought the balanced phone Style page, the SS27
-collection, projector kit and sideways mode, All round seat fix and longer films.
+**Release 46** (Oct 31, 2026, #245): iPhone page no longer bounces on Style (#244), AI-look photo
+strip removed from Start from a look (#246), welcome headline H2 "Drafted to you" and Make this look
+opens in the look's fabric (#247), All round goes quiet in calico with one check line (#248),
+phone Style panel trimmed (P1: one Next button, "Step 1 of 5" opens the step list) and champagne fill
+only on the main button (S1) (#250).
+Release 45 (Oct 31, #242) brought the Boxy dress fit and Self band, re-recorded films, projector
+upgrades, phone-sideways layouts and the Silhouette / Fullness step names.
 
 Live site: https://maisontrace.co (the cloud proxy blocks it; check
 https://whimsical-mooncake-2cf9a9.netlify.app, the same site). Strangers see the waitlist; testers
 get in with their tester link.
 
-## Queued for "ship" (as of Oct 30, 07:40 UTC)
+## Queued for "ship" (as of Oct 31, 06:00 UTC)
 
-| PR | What | Owner thread |
-| --- | --- | --- |
-| #229 | How it works films and Watch demo clips on Release 41, projector demo, welcome opening, Parma Shirt, "Your pattern, in seconds." | Media: Demo videos |
-| #230 | First Measure page: C Tape Lines, string tied at the waist, CM / IN once | UX/UI: Measure |
-| #231 | Matte charcoal form and crisp plain cloth on Style drawings | UX/UI: Fabric rendering |
-| #232 | Photo shown as a champagne Polaroid on the photo screens | UX/UI: Style & Photo |
+Nothing green is queued. #249 (Oversized fit and Long length for tops, In testing) is a draft.
 
-Order note: #229's Measure chapter is re-recorded after #230 ships, and films need re-recording after
-#231. Ship them together, then let Demo videos re-record.
+Re-record note: the How it works film needs re-recording after #248 (All round now turns in calico).
 
 ## Waiting on Cat's "apply" (not built)
 

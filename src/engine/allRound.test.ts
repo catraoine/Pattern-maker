@@ -8,7 +8,7 @@ import { draftTrousers } from './trousers';
 import { draftSleeve } from './sleeve';
 import { EXAMPLE_VALUES } from '../measurements';
 import { draftSkirt } from './skirt';
-import { roundRows } from '../ui/AllRound';
+import { checked, roundRows } from '../ui/AllRound';
 
 const m = { waist: 70, full_hip: 96, waist_to_hip: 20.5, waist_to_knee: 58, waist_to_floor: 104 };
 const side = Math.PI / 2;
@@ -57,6 +57,12 @@ describe('all round', () => {
     expect(roundRows(r, true).map((x) => x.id)).toEqual(['seams', 'hem', 'stripes']);
     const rows = roundRows(r, true).map((x) => x.text).join(' ');
     expect(rows).not.toMatch(/problem|fix|wrong|longer than/i);
+  });
+
+  it('folds the checks into one quiet line', () => {
+    const r = roundSkirt(draftSkirt(m, { silhouette: 'a_line', length: 'knee' }));
+    expect(checked(roundRows(r, false))).toBe('Seams and hem checked');
+    expect(checked(roundRows(r, 'checks'))).toBe('Seams and hem checked, checks matched');
   });
 
   // Every garment, not only skirts: tops, dresses, jackets, coats and trousers.

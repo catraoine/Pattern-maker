@@ -7,11 +7,12 @@ test('a picked choice is explained, and its drawing opens full size', async ({ p
   const main = page.getByRole('main');
   const details = main.getByRole('group', { name: 'Fullness', exact: true });
   await chooseChip(page, 'Fullness', 'Box pleats');
-  await expect(details.getByText(/Folds that face away from each other/)).toBeVisible();
+  // A phone shows the short line (Cat's P1, 2026-10-31), a computer the full one.
+  await expect(details.getByText(/Folds that face away from each other|Pleats facing apart/).filter({ visible: true })).toBeVisible();
   // A picked picture tile: tapping its drawing opens it full size, and Close closes it.
   const silhouette = main.getByRole('group', { name: 'Silhouette', exact: true });
   await chooseChip(page, 'Silhouette', 'Trumpet');
-  await expect(silhouette.getByText(/like the bell of a trumpet/)).toBeVisible();
+  await expect(silhouette.getByText(/like the bell of a trumpet|flared low down/).filter({ visible: true })).toBeVisible();
   await silhouette.getByRole('button', { name: 'Trumpet', exact: true }).locator('svg').click();
   const tile = page.getByRole('dialog', { name: 'Trumpet' });
   await expect(tile).toBeVisible();
