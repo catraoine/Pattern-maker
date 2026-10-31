@@ -18,8 +18,13 @@ export type OuterLength = 'cropped' | 'hip' | 'long' | 'thigh' | 'knee' | 'midi'
 export type OuterShaping = 'darts' | 'princess' | 'boxy';
 /** Buttons in one or two rows, or a separating zip up the centre front with no overlap. */
 export type OuterFront = 'single' | 'double' | 'zip';
-/** A notched lapel, a stand collar, no collar, or a hood in two pieces sewn to the neck. */
-export type OuterCollar = 'notched' | 'stand' | 'collarless' | 'hood';
+/** A notched lapel, a stand collar, no collar, or a hood in two pieces sewn to the neck. In testing: a peak
+ * lapel (its points rising), a shawl (lapel and collar curving into one with no notch) and a tall funnel. */
+export type OuterCollar = 'notched' | 'peak' | 'shawl' | 'stand' | 'funnel' | 'collarless' | 'hood';
+/** How the lapels are cut (In testing): classic, wide, or plunging to one button at the waist. */
+export type OuterLapel = 'classic' | 'wide' | 'plunge';
+/** The collars that roll back as lapels from the break point. */
+export const lapelled = (c: OuterCollar | undefined) => c === 'notched' || c === 'peak' || c === 'shawl';
 export type OuterPockets = 'none' | 'patch' | 'welt';
 /** 'tailored' is the two-piece sleeve, top and under sleeve; 'fitted' the one-piece with an elbow dart;
  *  'raglan' runs up to the neck, the shoulders cut off the body and on to the sleeve. */
@@ -56,6 +61,8 @@ interface OuterStyle {
   pocketAt?: P;
   /** Drawn on the form: a cutaway front, the hem curving up from the hem to the front edge over this many cm. */
   cutawayCm?: number;
+  /** How the lapels are cut (In testing); older saves have none, the classic lapel. */
+  lapel?: OuterLapel;
   seamAllowance: number;
   hemAllowance: number;
   fitting?: BodiceFitting;
@@ -461,7 +468,7 @@ function openFront(pc: Piece, s: OuterStyle, ext: number, buttons: OuterDraft['b
   let lapel: Lapel | undefined;
   let frontNeck: number;
   let join: number;
-  if (s.collar === 'notched') {
+  if (lapelled(s.collar)) {
     // The roll line runs from the break point to 2 cm beyond the neck point along the shoulder line.
     const B = p(-ext, breakY);
     const R = sub(hps, mul(uSh, 2));
@@ -469,11 +476,18 @@ function openFront(pc: Piece, s: OuterStyle, ext: number, buttons: OuterDraft['b
     const Lr = len(sub(R, B));
     const nrm = p(-u.y, u.x); // toward the body
     const at = (sAlong: number, t: number) => add(B, add(mul(u, sAlong), mul(nrm, t)));
-    const W = (s.front === 'double' ? (s.kind === 'coat' ? 10 : 9) : s.kind === 'coat' ? 8.5 : 7.5) + (s.fit === 'oversized' ? OVERSIZED_LAPEL.wider : 0);
-    // The gorge meets the roll line well below the neck point, rising a little to the notch.
+    // A wide lapel (In testing) is 3 cm broader (half that on a double front, already broad); a plunging one a little broader to carry its longer roll.
+    const W =
+      (s.front === 'double' ? (s.kind === 'coat' ? 10 : 9) : s.kind === 'coat' ? 8.5 : 7.5) +
+      (s.fit === 'oversized' ? OVERSIZED_LAPEL.wider : 0) +
+      (s.lapel === 'wide' ? (s.front === 'double' ? LAPEL_WIDER / 2 : LAPEL_WIDER) : plunges(s) ? 1.5 : 0);
+    const peak = s.collar === 'peak';
+    const shawl = s.collar === 'shawl';
+    // The gorge meets the roll line well below the neck point, rising a little to the notch. A peak's
+    // point sweeps up past the notch; a shawl has no notch, its lapel rounding straight into the collar.
     const Q = at(Lr - 10, 0);
-    const K = at(Lr - 9.4, -4.3);
-    const Lp = at(Lr - (s.front === 'double' ? 6.5 : 10.4), -W);
+    const K = shawl ? at(Lr - 9.2, -W + 0.6) : at(Lr - 9.4, -4.3);
+    const Lp = peak ? at(Lr - (s.front === 'double' ? 5 : 6.2), -W - 1.2) : shawl ? at(Lr - 10.2, -W) : at(Lr - (s.front === 'double' ? 6.5 : 10.4), -W);
     const lapelEdge = Array.from({ length: 21 }, (_, i) => cubic(Lp, at(Lr * 0.5, -W - 0.7), at(Lr * 0.18, -W * 0.7), B, i / 20)).reverse();
     // The neck seam curves up from the gorge to arrive square to the shoulder, so it runs on smoothly
     // into the back neck once the shoulders are sewn.
@@ -492,10 +506,11 @@ function openFront(pc: Piece, s: OuterStyle, ext: number, buttons: OuterDraft['b
       const across = v.x * nrm.x + v.y * nrm.y;
       return at(along, -across);
     };
-    // The collar point, turned up from the lapel's top edge to leave a notch of about 50 degrees.
+    // The collar point, turned up from the lapel's top edge to leave a notch of about 50 degrees; a peak's
+    // collar meets its lapel at a narrow notch, and a shawl's runs on from it with none.
     const dl = unit(sub(Lp, K));
-    const ang = (50 * Math.PI) / 180;
-    const Cp = add(K, mul(add(mul(dl, Math.cos(ang)), mul(u, Math.sin(ang))), s.kind === 'coat' ? 4.6 : 4));
+    const ang = ((peak ? 15 : shawl ? 88 : 50) * Math.PI) / 180;
+    const Cp = add(K, mul(add(mul(dl, Math.cos(ang)), mul(u, Math.sin(ang))), shawl ? 0.6 : peak ? 3.4 : s.kind === 'coat' ? 4.6 : 4));
     lapel = { breakPt: B, roll: [B, R], worn: [...lapelEdge, K, Q].map(reflect), notch: reflect(K), collarPoint: reflect(Cp), neckPoint: hps, gorge: Q };
     frontNeck = polyLen([...neckSeam, hps]);
     join = breakY + 4;
@@ -808,12 +823,17 @@ function weltPieces(w: number, depth: number, bag: number, sa: number): Piece[] 
   return [welt, facing, bagPiece];
 }
 
+/** A wide lapel is this much broader, in cm. */
+const LAPEL_WIDER = 3;
+/** A plunging lapel rolls to one button at the waist; it needs a single-breasted lapelled front. */
+const plunges = (s: Pick<OuterStyle, 'lapel' | 'collar' | 'front'>) => s.lapel === 'plunge' && lapelled(s.collar) && s.front === 'single';
+
 /** Buttons down the front: from the break point (or just below the neck) to above the hem, about 10 cm apart. */
 function buttonsFor(s: OuterStyle, ext: number, first: number, last: number): OuterDraft['buttons'] {
   const size = OUTER_BUTTON[s.kind];
   if (s.front === 'zip') return { at: [], sizeCm: size, columns: [0] };
   const gap = s.kind === 'coat' ? 11 : 10;
-  const count = Math.max(s.front === 'double' ? 2 : 1, Math.round((last - first) / gap)) + 1;
+  const count = plunges(s) ? 1 : Math.max(s.front === 'double' ? 2 : 1, Math.round((last - first) / gap)) + 1;
   const at = Array.from({ length: count }, (_, i) => r1(first + (count > 1 ? ((last - first) * i) / (count - 1) : 0)));
   const inset = size / 2 + 1.5;
   const columns = s.front === 'double' ? [-(ext - inset), ext - inset] : [0];
@@ -910,7 +930,7 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
   // the armhole; the sleeve is drafted to that armhole, so its crown rises with it.
   const pad = PAD_CM[s.kind][s.pads] ?? 0;
   // A zip front or a raglan sleeve has no lapel to roll: a notched collar becomes a stand collar.
-  const collarKind: OuterCollar = s.collar === 'notched' && (s.front === 'zip' || s.sleeve === 'raglan') ? 'stand' : s.collar;
+  const collarKind: OuterCollar = lapelled(s.collar) && (s.front === 'zip' || s.sleeve === 'raglan') ? 'stand' : s.collar;
   s = { ...s, collar: collarKind };
   const rib = s.trim === 'rib';
   const bodiceStyle: Partial<BodiceStyle> = {
@@ -951,7 +971,13 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
   const neckY = block[0].outline.start.y;
   const apexY = base.front.apex.y;
   const waistY = base.front.waistCentre.y;
-  const breakY = s.collar === 'notched' ? (s.front === 'double' ? apexY - 2 : apexY + (big ? OVERSIZED_LAPEL.lower : 2)) : neckY + (s.collar === 'stand' ? 2 : 1.8);
+  const breakY = plunges(s)
+    ? waistY - 1.5
+    : lapelled(s.collar)
+      ? s.front === 'double'
+        ? apexY - 2
+        : apexY + (big ? OVERSIZED_LAPEL.lower : 2)
+      : neckY + (s.collar === 'stand' || s.collar === 'funnel' ? 2 : 1.8);
   const lastY = s.kind === 'coat' ? Math.min(foot - 15, waistY + (m.waist_to_hip ?? 20) + 12) : foot - (length === 'cropped' ? 3.5 : 9);
   // A cutaway front curves back from below the last button, so the buttons stop above it.
   const cutTop = s.cutawayCm ? foot - Math.min(s.cutawayCm, foot - breakY - 18) - 4 - OUTER_BUTTON[s.kind] / 2 : Infinity;
@@ -1003,10 +1029,10 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
     });
   }
   const collar =
-    s.collar === 'notched'
+    lapelled(s.collar)
       ? [notchedCollar(opening.piece, backNeck, opening.frontNeck, s)]
-      : s.collar === 'stand'
-        ? collarPieces('mandarin', block[0], block[1], { back: backNeck, front: opening.frontNeck, ext, closure: 'front_buttons', sa })
+      : s.collar === 'stand' || s.collar === 'funnel'
+        ? collarPieces(s.collar === 'funnel' ? 'funnel' : 'mandarin', block[0], block[1], { back: backNeck, front: opening.frontNeck, ext, closure: 'front_buttons', sa })
         : s.collar === 'hood'
           ? [hoodPiece(backNeck + opening.frontNeck, s.kind, sa)]
           : [];

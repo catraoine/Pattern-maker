@@ -215,9 +215,17 @@ const DETAILS: Record<ExplainSet, Record<string, Record<string, ReactNode>>> = {
     },
     collar: {
       notched: on(JACKET, 'M15 6L12.5 14L15.5 13.5L20 24M25 6L27.5 14L24.5 13.5L20 24'),
+      peak: on(JACKET, 'M15 6L13.5 12.5L11 11L20 24M25 6L26.5 12.5L29 11L20 24'),
+      shawl: on(JACKET, 'M15 6Q11 14 20 24M25 6Q29 14 20 24'),
+      funnel: on('M9 11L15 7Q20 10 25 7L31 11L30 22L31 38H9L10 22z', 'M15 7L14 1.5Q20 3.5 26 1.5L25 7'),
       stand: on('M9 11L15 7Q20 10 25 7L31 11L30 22L31 38H9L10 22z', 'M15 7V3.5Q20 6 25 3.5V7'),
       collarless: on('M9 11L15 7Q20 13 25 7L31 11L30 22L31 38H9L10 22z', 'M15 7Q20 13 25 7'),
       hood: on('M9 11L15 7Q20 10 25 7L31 11L30 22L31 38H9L10 22z', 'M15 7Q13 -1 20 -1.5Q27 -1 25 7M17.5 5.5Q17 1.5 20 1Q23 1.5 22.5 5.5'),
+    },
+    lapel: {
+      classic: on(JACKET, 'M15 6L12.5 14L15.5 13.5L20 24M25 6L27.5 14L24.5 13.5L20 24'),
+      wide: on(JACKET, 'M15 6L9.5 15L13 14L20 24M25 6L30.5 15L27 14L20 24'),
+      plunge: on(JACKET, `M15 6L12.5 14L15.5 13.5L20 32M25 6L27.5 14L24.5 13.5L20 32${dot(20, 33)}`),
     },
     sleeve: {
       tailored: on('M13 7Q20 2 27 7Q26 20 28 26L25 44H16L14 26Q12 18 13 7z', 'M18 5.5Q16 24 18.5 44'),

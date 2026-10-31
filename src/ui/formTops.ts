@@ -13,7 +13,7 @@
 import type { P } from '../engine/geometry';
 import type { Piece } from '../engine/piece';
 import { TEE_EASE, TEE_HEM_SHAPE, TEE_NECKS, TeeDraft, TeeFit, TeeLength, TeeMeasurements, TeeNeck, TeeSleeve, draftTee, pctWords } from '../engine/tee';
-import { FLARE_PER_40, OUTER_EASE, OUTER_EXTENSION, OUTER_LENGTHS, OuterDraft, OuterFit, OuterFront, OuterMeasurements, outerDrop } from '../engine/outerwear';
+import { FLARE_PER_40, OUTER_EASE, OUTER_EXTENSION, OUTER_LENGTHS, OuterDraft, OuterFit, OuterFront, OuterMeasurements, lapelled, outerDrop } from '../engine/outerwear';
 import { OUTER_LENGTH_WORDS, OuterChoices, TeeChoices } from '../garments';
 import { FormArm, FormBody, armAt, armFor, torsoForm } from './DrawOnForm';
 import { APEX_REACH, FormLine, Reading, WAIST_REACH, bodiceLines, edgeAt, half, landmarks, median, mirror, standingBand } from './formLines';
@@ -282,8 +282,8 @@ export function readOuterCollar(stroke: P[], draft: OuterDraft, c: OuterChoices)
   if (low.y >= apex.y - 8) {
     // The lapels roll from the top button, which the front sets: a little above the bust when double-breasted.
     const breakY = draft.lapel?.breakPt.y;
-    const set = c.collar === 'notched' && breakY !== undefined && Math.abs(low.y - breakY) > 6 ? ' They roll back from the top button, so the front sets how low they go.' : '';
-    return { choices: { ...c, collar: 'notched' }, said: `Notched lapels, rolling back from the neck to the top button.${set}` };
+    const set = lapelled(c.collar) && breakY !== undefined && Math.abs(low.y - breakY) > 6 ? ' They roll back from the top button, so the front sets how low they go.' : '';
+    return { choices: { ...c, collar: lapelled(c.collar) ? c.collar : 'notched' }, said: `Lapels, rolling back from the neck to the top button.${set}` };
   }
   if (low.x < 5) {
     const neckY = draft.block[0].outline.start.y;
