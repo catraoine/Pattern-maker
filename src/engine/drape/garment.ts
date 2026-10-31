@@ -192,6 +192,9 @@ export interface DrapeOptions {
   closedFront?: boolean;
   /** Hold the centre front on the centre plane at these heights (the buttoned front of an open jacket). */
   pinFront?: { y: number; span: number }[];
+  /** Buttoned only above this level (the front's own pattern y): below it the fronts hang open, as a cardigan worn
+   *  with its lower buttons undone. */
+  openBelowY?: number;
   /** Crisp cloth (organza, taffeta): a peplum this many times stiffer, so it stands out rather than hangs. */
   crisp?: number;
 }
@@ -600,7 +603,7 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
     }
     if ((p.role === 'front' || p.role === 'peplum-front') && o.closedFront && p.mesh.runs.opening) {
       pts.forEach((q, i) => {
-        if (Math.abs(q.x) < 0.6 && !p.turned[i]) centre.push(i + p.base);
+        if (Math.abs(q.x) < 0.6 && !p.turned[i] && (o.openBelowY === undefined || q.y < o.openBelowY)) centre.push(i + p.base);
       });
     }
     if (p.role === 'front' && o.pinFront) {
@@ -1053,7 +1056,7 @@ export function drapeBodice(sp: Space, d: BodiceDraft, sleeve?: SleeveDraft, o: 
   const pieces = extra.pieces ?? d.pieces;
   const torso = pieces.filter(isTorso).map((pc) => ({ pc, back: /back/i.test(pc.name), waistY: /back/i.test(pc.name) ? d.back.waistCentre.y : d.front.waistCentre.y }));
   const skirt = extra.skirt ?? pieces.filter(isSkirt);
-  const buttons = d.closure === 'front_buttons' && d.buttons ? { y: d.buttons.at, r: d.buttons.sizeCm / 2, waistY: d.front.waistCentre.y } : undefined;
+  const buttons = d.closure === 'front_buttons' && d.buttons ? { y: d.buttons.at.filter((y) => o.openBelowY === undefined || y < o.openBelowY), r: d.buttons.sizeCm / 2, waistY: d.front.waistCentre.y } : undefined;
   return drape(sp, torso, { skirt: skirt.length ? skirt : undefined, drop: extra.drop, tiers: extra.tiers, under: extra.under, puff: sleeve?.gathers?.crown, sleeve: sleeve?.pieces.filter(isShell), collars: collarsOf(pieces) }, { buttons, closedFront: true, ...o });
 }
 
