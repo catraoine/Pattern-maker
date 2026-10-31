@@ -54,6 +54,9 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
 - **No repeated names** (Oct 30): a question never carries its step's name (no "Details" question on the
   Details step); pleats, godets, flounces, tiers and ruching are called **Fullness** everywhere, as on the Draw tool.
   On the skirt's Details step, Waist comes first.
+- **Phone Style panel** (Oct 31, P1): no step bars; "Step 1 of 5" opens the list of steps. One short line
+  under a pick (the short lines live in `src/explain.ts`, 40 characters at most; the computer keeps the full line).
+  The bar holds one button; Review all choices and Watch demo are links at the end of the step.
 
 ## Fixing problems
 

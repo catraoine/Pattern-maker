@@ -1,0 +1,173 @@
+/* One fill (the design review's gaps 4 and 5, Cat's P1 + S1, 2026-10-31).
+   S1 Heavy Outline: champagne fill is kept for the one main button. A picked choice is shown by a heavier champagne
+   outline and bright words, and the choices not picked go quiet, so a state never looks like an action. The
+   switches already underlined (the drawing's views, the form's sides) stay as they are. */
+.chip.on,
+.seg:not(.style-pin .seg, .form-sides .seg) button.on,
+.make-grid button.on,
+.unit-switch button.on,
+.fabtabs button.on,
+.lookboxes button.on,
+.piecetag.on,
+.style-panel .chips.pics .chip.on,
+.switch.two-part button[aria-checked='true'] {
+  background: transparent;
+  border-color: var(--gild);
+  box-shadow: inset 0 0 0 2px var(--gild);
+  color: var(--gild-glow);
+}
+.style-panel .chips.pics .chip.on :is(.pic, .pic-trace) {
+  stroke: var(--gild-glow);
+}
+.chips .chip:not(.on),
+.make-grid button:not(.on) {
+  border-color: #4a4335;
+  color: #a39a86;
+}
+.switch.two-part button:not([aria-checked='true']) {
+  color: var(--muted);
+}
+/* A hover is no longer a fill either. */
+.piecetag:hover:not(.on) {
+  background: transparent;
+  color: var(--gild);
+}
+/* The page's main button, filled: the one way on. */
+button.primary.main-go:not(:disabled) {
+  background: var(--gild);
+  border-color: var(--gild);
+  color: #000;
+  font-weight: 600;
+}
+
+/* P1 Strict Trim, on a phone and a tablet (the computer keeps its list of steps). */
+@media (max-width: 1099px) {
+  /* No step bars: "Step 1 of 5" says where you are, and opens the list of steps to jump to one. */
+  .chapter .style-tabs,
+  .chapter .style-tabs.at-end {
+    display: none;
+  }
+  .chapter .style-tabs.open {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 4px 0 6px;
+    border-top: 1px solid var(--guide);
+  }
+  .chapter .style-tabs.open button {
+    flex: none;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0;
+    border-bottom: 1px solid var(--guide);
+    background: none;
+    font: 400 15px/1.2 var(--sans);
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--ink);
+    text-align: left;
+  }
+  .chapter .style-tabs.open button :is(.step-no, .tab-full) {
+    display: inline;
+  }
+  .chapter .style-tabs.open button .step-no {
+    min-width: 1.2em;
+    font: 500 var(--caps-size)/1 var(--mono);
+    color: var(--muted);
+  }
+  .chapter .style-tabs.open button.on {
+    color: var(--gild);
+  }
+  .chapter .style-tabs.open button.on .step-no {
+    color: var(--gild);
+  }
+  button.chapter-step {
+    position: relative;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    align-self: flex-start;
+    min-height: 32px;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+  }
+  .chapter-step-mark {
+    width: 6px;
+    height: 6px;
+    margin-top: -4px;
+    border-right: 1.5px solid var(--muted);
+    border-bottom: 1.5px solid var(--muted);
+    transform: rotate(45deg);
+  }
+  button.chapter-step[aria-expanded='true'] .chapter-step-mark {
+    margin-top: 3px;
+    transform: rotate(-135deg);
+  }
+  /* One short line under a pick, with no rule beside it. */
+  .style-panel .explain,
+  .style-panel .explain.with-pic {
+    padding-left: 0;
+    border-left: 0;
+  }
+  .style-panel .explain-full {
+    display: none;
+  }
+  /* The bar holds one button, the whole width. */
+  .style-bar .primary {
+    flex: 1 1 auto;
+    width: 100%;
+  }
+  /* Review and Watch demo, as quiet links at the end of the step. */
+  .step-links {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin: 18px 0 8px;
+  }
+  .step-links > :only-child {
+    margin-left: auto;
+  }
+  .step-links .step-review,
+  .step-links .demo-play {
+    position: static;
+    min-height: 44px;
+    padding: 0;
+    font: 500 12px/1 var(--mono);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #a39373;
+  }
+  .step-links .step-review {
+    text-decoration: underline;
+    text-decoration-color: #5b4f3c;
+    text-underline-offset: 6px;
+  }
+  .step-links .demo-play-words {
+    border-bottom: 1px solid #5b4f3c;
+    padding-bottom: 3px;
+  }
+}
+/* The short line is the phone's; the computer keeps the full one. */
+.explain-short {
+  display: none;
+}
+@media (max-width: 1099px) {
+  .style-panel .explain-short {
+    display: inline;
+  }
+}
+/* A greyed-out undo or redo in the pinned drawing's row never catches a tap meant for the step list under it. */
+.style-pin > section:not(.live-big) > .row.between.wrap > .row.tools:has(> .undotools),
+.style-pin .undotools,
+.style-pin .undotools button:disabled {
+  pointer-events: none;
+}
+.style-pin .undotools button:not(:disabled) {
+  pointer-events: auto;
+}

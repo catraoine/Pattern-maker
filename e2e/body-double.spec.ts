@@ -56,5 +56,5 @@ test('signature labels: code, label sheet and open from a label', async ({ page 
   const byCode = main.getByRole('region', { name: 'Open from a label' });
   await byCode.getByRole('textbox', { name: 'Label code' }).fill(code.toLowerCase().replace('-', ' '));
   await byCode.getByRole('button', { name: 'Open', exact: true }).click();
-  await expect(main.getByRole('tablist', { name: 'Style choices' })).toBeVisible();
+  await expect(main.getByRole('tablist', { name: 'Style choices', includeHidden: true })).toHaveCount(1);
 });
