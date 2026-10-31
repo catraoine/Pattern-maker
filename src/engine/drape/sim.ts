@@ -35,6 +35,8 @@ export interface SimInput {
   /** Sleeve points kept round the arm at their own sleeve's radius (cloth with body holds a tube's shape, it does not
    *  fold flat at its seams). */
   round?: { ids: Int32Array; R: Float64Array; k: number };
+  /** Turned points resting on the cloth they cover (i on j, gap cm out from the body's axis). */
+  lieOn?: { i: Int32Array; j: Int32Array; gap: Float64Array };
   bendK: number;
 }
 
@@ -180,6 +182,21 @@ export function simulate(s: Space, inp: SimInput, steps = (globalThis as any).__
           const I = inp.shoulder[k] * 3;
           const top = s.ridge(Math.abs(x[I])) - thick[inp.shoulder[k]] - (inp.pad ?? 0);
           if (x[I + 1] > top) x[I + 1] = top;
+        }
+      }
+      if (inp.lieOn) {
+        const { i: LI, j: LJ, gap } = inp.lieOn;
+        const k = ((globalThis as any).__lk ?? 0.5) * ramp;
+        for (let q = 0; q < LI.length; q++) {
+          const I = LI[q] * 3;
+          const J = LJ[q] * 3;
+          const rho = Math.hypot(x[J], x[J + 2]) || 1e-9;
+          const tx = x[J] + (x[J] / rho) * gap[q];
+          const tz = x[J + 2] + (x[J + 2] / rho) * gap[q];
+          const ty = x[J + 1];
+          x[I] += (tx - x[I]) * k;
+          x[I + 1] += (ty - x[I + 1]) * k;
+          x[I + 2] += (tz - x[I + 2]) * k;
         }
       }
       if (inp.round && it % 2 === 0) {

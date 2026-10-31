@@ -28,6 +28,8 @@ export interface Panel {
   role: 'front' | 'back' | 'sleeve' | 'collar' | 'peplum-front' | 'peplum-back';
   /** Points that are the turned-back side of the cloth (a lapel, a collar's fall). */
   turned: boolean[];
+  /** The roll lines this piece turns back at. */
+  folds?: [P, P][];
 }
 
 export interface Draped {
@@ -94,7 +96,7 @@ class Builder {
     const mesh = meshPiece(pc, h, folds, wedges);
     const turned = mesh.pts.map((_, i) => mesh.side.some((s) => s[i] === 1));
     const start = mesh.pts.map((q, i) => place(q, turned[i]));
-    const p: Panel = { pc, mesh, start, thick: mesh.pts.map((_, i) => thick + (turned[i] ? 0.8 : 0)), base: this.n, role, turned };
+    const p: Panel = { pc, mesh, start, thick: mesh.pts.map((_, i) => thick + (turned[i] ? 0.8 : 0)), base: this.n, role, turned, folds };
     this.n += mesh.pts.length;
     this.panels.push(p);
     return p;
@@ -332,7 +334,10 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
         (q, turned) => {
           const r = turned && roll ? reflect(q, roll[0], roll[1]) : q;
           const cc = neckC - 1 - lift + r.y;
-          return ringAt(sp, key(q) * 0.9, cc, true, 1 + (turned ? 1 : 0));
+          // The fall lies out over the stand and spreads as it goes down onto the shoulders: its longer outer edge
+          // takes a wider ring, so it starts smooth rather than ruffled.
+          const beyond = turned && roll ? Math.max(0, cc - (neckC - 1 - lift + Math.max(roll[0].y, roll[1].y))) : 0;
+          return ringAt(sp, key(q) * ((globalThis as any).__ck ?? 1), cc, true, 1 + (turned ? 1.2 + beyond * 0.25 : 0));
         },
         thick,
         roll ? [roll] : [],
@@ -546,6 +551,38 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
     }
     return { ids: Int32Array.from(ids), R: Float64Array.from(R), k: (globalThis as any).__rk ?? 0.15 };
   };
+  // Turned cloth (a lapel, a collar's fall) lies on the cloth it was turned over: each point rests on the point of
+  // the same piece that it covers when folded at the roll line, one cloth's thickness out, as pressing sets it.
+  const lieOnOf = () => {
+    if (!(globalThis as any).__lie) return undefined;
+    const I: number[] = [];
+    const J: number[] = [];
+    const G: number[] = [];
+    for (const p of B.panels) {
+      // Only a collar's fall for now: a lapel resting this way drags a long plunge front down (not yet understood).
+      if (!p.folds?.length || (p.role !== 'collar' && !(globalThis as any).__lieLapel)) continue;
+      // (On a front, only onto the body of the front: not the button extension, which lies over the other side.)
+      const flat = p.mesh.pts.map((q, i) => ({ q, i })).filter(({ q, i }) => !p.turned[i] && (p.role === 'collar' || q.x > 1));
+      p.mesh.pts.forEach((q, i) => {
+        if (!p.turned[i]) return;
+        const r = reflect(q, p.folds![0][0], p.folds![0][1]);
+        let best = -1;
+        let bd = 1.2;
+        for (const f of flat) {
+          const d = Math.hypot(f.q.x - r.x, f.q.y - r.y);
+          if (d < bd) {
+            bd = d;
+            best = f.i;
+          }
+        }
+        if (best < 0) return;
+        I.push(p.base + i);
+        J.push(p.base + best);
+        G.push(p.thick[best] - (o.thick ?? 0.35) + (o.thick ?? 0.35) * 1.5);
+      });
+    }
+    return I.length ? { i: Int32Array.from(I), j: Int32Array.from(J), gap: Float64Array.from(G) } : undefined;
+  };
   const input: SimInput = {
     pos,
     edges: Int32Array.from(edges),
@@ -558,6 +595,7 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
     side: sideA,
     onArm: armA,
     pressed: Uint8Array.from(B.panels.flatMap((p) => p.turned.map((t) => (t ? 1 : 0)))),
+    lieOn: lieOnOf(),
     bendW: Float64Array.from(bendW),
     bendK: o.bendK ?? 0.05,
     pad: o.pad,
