@@ -22,11 +22,11 @@ const WIDE_SCREEN = '(min-width: 900px) and (min-aspect-ratio: 1/1)';
 const PARTS: FilmPart[] = [
   { name: 'Measure', from: 0, says: 'Just a few measurements, taken once. The dress form takes your shape as you go.' },
   { name: 'Choose', from: 17.3, says: 'Then what to make: pick a garment, start from a look in the collection, or upload a photo of a piece you love.' },
-  { name: 'Style', from: 35.2, says: 'Make it yours: its shape, length, hem and details, step by step on the drawing. Your pattern is drafted as you go.' },
-  { name: 'Print', from: 65.4, says: 'Print it at home on ordinary paper, full size at a copy shop, or project it true size onto your fabric. Drafted to your body.' },
+  { name: 'Style', from: 35.2, says: 'Make it yours: its shape, length, hem and details, step by step on the drawing. Your pattern is drafted as you go, and you can shop the fabric for it.' },
+  { name: 'Print', from: 70.0, says: 'Print it at home on ordinary paper, full size at a copy shop, or project it true size onto your fabric. Drafted to your body.' },
 ];
-const TOUR_LENGTH = 89;
-export const TOUR_LABEL = '1:29';
+const TOUR_LENGTH = 93;
+export const TOUR_LABEL = '1:33';
 
 export type FilmPart = { name: string; from: number; says: string };
 

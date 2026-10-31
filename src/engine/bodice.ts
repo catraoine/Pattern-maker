@@ -49,7 +49,9 @@ export interface BodiceMeasurements {
   high_hip?: number;
 }
 
-export type BodiceFit = 'fitted' | 'regular' | 'relaxed';
+/** Boxy (a dress fit, Cat 2026-10-30): a straight body from the bust down, bust darts kept, and a square
+ * shoulder line from the cut itself, with no pad and nothing stiff (see BOXY). */
+export type BodiceFit = 'fitted' | 'regular' | 'relaxed' | 'boxy';
 /** The draped necklines (one-shoulder, cowl) are drafted as whole pieces in drape.ts; the top necklines
  * (strapless, sweetheart, cami) are cut below the shoulders in corset.ts. */
 export type Neckline = 'crew' | 'scoop' | 'v' | 'square' | 'boat' | 'one_shoulder' | 'cowl' | 'strapless' | 'sweetheart' | 'cami' | 'halter';
@@ -193,7 +195,7 @@ export const NECKLINES: Record<Neckline, { frontDepth: number; width: number; ba
 };
 
 /** Hip ease (cm) for tops that reach below the waist, from the same fit options. */
-const BODICE_HIP_EASE: Record<BodiceFit, number> = { fitted: 4, regular: 7, relaxed: 11 };
+const BODICE_HIP_EASE: Record<BodiceFit, number> = { fitted: 4, regular: 7, relaxed: 11, boxy: 10 };
 
 /**
  * The body's girth `drop` cm below the waist: out to the high hip halfway down to the hip in a straight run,
@@ -222,7 +224,16 @@ export const BODICE_FIT_EASE: Record<BodiceFit, { bust: number; waist: number }>
   fitted: { bust: 4, waist: 2.5 },
   regular: { bust: 7, waist: 5 },
   relaxed: { bust: 11, waist: 10 },
+  boxy: { bust: 12, waist: 12 },
 };
+
+/**
+ * The boxy cut: the waist no narrower than the bust less `waist` cm, so the side seam falls nearly straight,
+ * and the hem below the waist no narrower than the bust, so it never tapers in. The square shoulder is cut,
+ * not padded: each shoulder point squared up `square` cm (the underarm left where it is) and the shoulder
+ * carried on `extend` cm past the body's own, so the cloth sits level and just off the shoulder tip.
+ */
+export const BOXY = { waist: 4, square: 1.5, extend: 1.5 };
 
 /** Drawn necklines flatter than this come to a point at the centre front, like a V. */
 export const POINTED_NECK = 0.2;
@@ -553,7 +564,9 @@ function finish(d: BodiceDraft, s: BodiceStyle, m: BodiceMeasurements & { arm_le
 }
 
 function draftBlock(m: BodiceMeasurements, style: BodiceStyle): BodiceDraft {
-  const s = { ...DEFAULT_BODICE_STYLE, ...style };
+  const given = { ...DEFAULT_BODICE_STYLE, ...style };
+  // A boxy cut squares the shoulder the way a pad would, but in the cut: the underarm stays put.
+  const s = given.fit === 'boxy' ? { ...given, shoulderPad: (given.shoulderPad ?? 0) + BOXY.square } : given;
   if (hemDrop({ waist_to_hip: m.waist_to_hip ?? 20 }, s) > 0 && !(m.full_hip && m.waist_to_hip)) {
     throw new DraftError('Add your full hip and waist to hip measurements to make a top that goes below the waist.');
   }
@@ -591,7 +604,9 @@ function draftBlock(m: BodiceMeasurements, style: BodiceStyle): BodiceDraft {
   }
   const result = withSides((lo + hi) / 2);
   // A slightly roomy armhole is harmless (it happens on big frames with a lot of ease); a tight one is not.
-  if (!lower && (result.armhole < target - 1 || result.armhole > target + 3)) {
+  // A boxy shoulder squared and carried on past the body's grows the armhole above the underarm, by design.
+  const grown = s.fit === 'boxy' ? 2 * (BOXY.square + BOXY.extend) : 0;
+  if (!lower && (result.armhole < target - 1 || result.armhole > target + 3 + grown)) {
     result.warnings.push(`armhole ${result.armhole} cm could not reach ${target.toFixed(1)} cm within a sensible depth`);
   }
   result.armholeTarget = r(target, 1);
@@ -669,7 +684,8 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   let FL = m.front_hps_to_waist;
   const HB = m.high_bust ?? B - 4;
   const be = bodiceEase(s).bust + (fit.bustEase ?? 0);
-  const we = bodiceEase(s).waist + (fit.waistEase ?? 0);
+  // Boxy: the waist no narrower than the bust less a little, so the side falls nearly straight.
+  const we = Math.max(bodiceEase(s).waist + (fit.waistEase ?? 0), s.fit === 'boxy' ? B + be - W - BOXY.waist : -Infinity);
   const warnings: string[] = [];
   // Shoulder angles the toile corrected, and a shoulder point dropped `by` cm along a shoulder `length` long.
   const corrected = (a: number, by: number | undefined) => Math.min(MAX_SLOPE, Math.max(MIN_SLOPE, a + ((by ?? 0) * Math.PI) / 180));
@@ -722,10 +738,12 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   // It moves along the shoulder as fitted, and a lower shoulder drops from there, so its line keeps
   // the same neck and the same shoulder length.
   const widen = Math.max(0, Math.min(nl.width, SL - 5));
+  // A boxy shoulder runs on past the body's shoulder point.
+  const ext = s.fit === 'boxy' ? BOXY.extend : 0;
   const hpsB = add(hpsB0, mul(p(Math.cos(backSlope), Math.sin(backSlope)), widen));
-  backSlope = dropped(backSlope, blen - widen);
-  const spB = add(hpsB, mul(p(Math.cos(backSlope), Math.sin(backSlope)), blen - widen));
-  if (Math.abs(spB.x - SW / 2) > 2.5) {
+  backSlope = dropped(backSlope, blen - widen + ext);
+  const spB = add(hpsB, mul(p(Math.cos(backSlope), Math.sin(backSlope)), blen - widen + ext));
+  if (Math.abs(spB.x - ext - SW / 2) > 2.5) {
     warnings.push(
       `shoulder width ${SW} cm and shoulder length ${SL} cm don't agree (the pattern's shoulders are ${r(2 * spB.x, 1)} cm wide); please re-measure both`,
     );
@@ -753,6 +771,8 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   const swB0 = p(backW - sideSupp, wb);
   // A hem below the waist is never cut narrower than the bodice at the waist, so it doesn't pull in.
   if (below) hemFull = Math.max(hemFull, 2 * (backW + frontW - 2 * sideSupp - dartB - dartF));
+  // A boxy hem is no narrower than the bust: it hangs straight down, or eases out over a fuller hip.
+  if (below && s.fit === 'boxy') hemFull = Math.max(hemFull, B + be);
   // ---- front --------------------------------------------------------------
   const nwF = nw - 0.2;
   const hpsF0 = p(nwF, -2);
@@ -777,7 +797,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   frontSlope = corrected(frontSlope, fit.frontSlope);
   // The neck gape pivots about the shoulder as fitted; a lower shoulder then drops from there.
   const fittedSlope = frontSlope;
-  frontSlope = dropped(frontSlope, SL - widen);
+  frontSlope = dropped(frontSlope, SL - widen + ext);
   // Deep necklines stop 5 cm above the bust point.
   const cfNeck = p(0, Math.max(cfNeck0.y, Math.min(cfNeck0.y + nl.frontDepth, apex.y - 5)));
 
@@ -793,7 +813,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
 
   const hpsF0t = pivot(hpsF0);
   const hpsFit = add(hpsF0, mul(p(Math.cos(fittedSlope), Math.sin(fittedSlope)), widen));
-  const spF = pivot(add(hpsFit, mul(p(Math.cos(frontSlope), Math.sin(frontSlope)), SL - widen)));
+  const spF = pivot(add(hpsFit, mul(p(Math.cos(frontSlope), Math.sin(frontSlope)), SL - widen + ext)));
   const hpsF = pivot(hpsFit);
   const uF = unit(sub(spF, hpsF));
 

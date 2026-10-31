@@ -128,7 +128,10 @@ export function roundShape(round: RoundGarment, m: RoundMeasurements, { film, th
   const waistEase = round.girth.waist && m.waist ? round.girth.waist - m.waist : undefined;
   const bustEase = round.girth.bust && m.full_bust ? round.girth.bust - m.full_bust : undefined;
   const straightCut = waistEase === undefined ? 0 : bustEase === undefined ? (waistEase - 4) / 3 : (waistEase - bustEase - 2) / 4;
-  const hangShare = seamed || !isTop ? 0 : clamp(straightCut, 0, 1) * (through ? 0 : film ? 0.5 : 1);
+  // A seamed dress follows the body unless its bodice is cut straight too (Boxy: about as wide at the waist as at the
+  // bust): its ease spread evenly round the body at the waist read as a belly and a barrel (Cat, 2026-10-30: "it
+  // just makes the person look fat"), where the cloth really falls straight from the bust in front and behind.
+  const hangShare = !isTop || (seamed && straightCut < 1) ? 0 : clamp(straightCut, 0, 1) * (through ? 0 : film ? 0.5 : 1);
   const hipR = wornR(FORM_HIP);
   // The body's widest point below the waist is the top of the thighs, a little under the hip line; trousers hang from
   // there (hung from the hip line they came in over the thighs: the hip stood out as a shelf, Cat 2026-10-28).
@@ -210,6 +213,16 @@ export function roundShape(round: RoundGarment, m: RoundMeasurements, { film, th
   const hangTop = hangShare > 0 ? BUST_Y : WAIST;
   const hangRows = Math.max(2, Math.ceil((Math.max(yOf(longest), FORM_HIP) + 0.1 - hangTop) / HANG_DY) + 1);
   const hang = new Float64Array(HANG_N * hangRows);
+  // A boxy dress hangs from the bust as a tube: below it the cloth keeps the bust's own cross-section, its sides
+  // following the pattern's girth (the bust's, then the waist's and the hip's), not the body's waist plus the ease
+  // spread evenly round it, which stood out in front and behind as a belly (Cat, 2026-10-30: "makes the person look
+  // fat"). Underneath, the body shows only where it stands out further than that, with a whisper of ease.
+  const tube = seamed && hangShare > 0;
+  const girthAt = (y: number) => {
+    const { bust = 90, waist = bust, hip = waist } = round.girth;
+    return y <= BUST_Y ? bust : y <= WAIST ? bust + (waist - bust) * ((y - BUST_Y) / (WAIST - BUST_Y)) : y <= FORM_HIP ? waist + (hip - waist) * ((y - WAIST) / (FORM_HIP - WAIST)) : hip;
+  };
+  const under = (a: number, y: number) => (tube ? bodyReach(formHalfWidth(Math.min(y, 1.3)), a, y) + 0.012 : onBody(a, y));
   for (let i = 0; i < HANG_N; i++) {
     const a = -Math.PI + (TAU * i) / HANG_N;
     const sa = Math.sin(a) ** 2;
@@ -217,10 +230,10 @@ export function roundShape(round: RoundGarment, m: RoundMeasurements, { film, th
     hang[i * hangRows] = prev;
     for (let j = 1; j < hangRows; j++) {
       const y = hangTop + j * HANG_DY;
-      const rho = radius(y) / (radius(y - HANG_DY) || 1e-6);
+      const rho = tube ? girthAt(y) / girthAt(y - HANG_DY) : radius(y) / (radius(y - HANG_DY) || 1e-6);
       const sides = Math.sqrt(sa * rho * rho + (1 - sa));
       const fell = prev * (y > FORM_HIP ? sides + (rho - sides) * allRound : sides);
-      prev = Math.max(onBody(a, y), fell);
+      prev = Math.max(y > hangTop + HANG_DY / 2 ? under(a, y) : onBody(a, y), fell);
       hang[i * hangRows + j] = prev;
     }
   }

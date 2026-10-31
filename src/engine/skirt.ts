@@ -29,6 +29,8 @@ export interface SkirtMeasurements {
 }
 
 export type Fit = 'fitted' | 'regular' | 'relaxed';
+/** A dress's one fit as its skirt takes it: a boxy dress's skirt hangs with a relaxed fit's room. */
+export const skirtFitOf = (f: Fit | 'boxy'): Fit => (f === 'boxy' ? 'relaxed' : f);
 /** 'slip' is the bias-cut slip skirt: dartless, cut whole on the bias (see slip.ts). 'gathered' is a
  * dirndl: straight panels gathered into the waistband or the bodice. */
 export type Silhouette = 'straight' | 'pencil' | 'a_line' | 'trumpet' | 'half_circle' | 'circle' | 'slip' | 'gathered';

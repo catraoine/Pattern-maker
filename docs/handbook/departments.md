@@ -16,7 +16,7 @@ handoff, and this table is updated.
 | Media: Measuring video | "Mastering measuring" film (option C picked; films at the Nov 8 shoot) | Mastering measuring doc |
 | Media: All Round intro | Film opening | — |
 | Design: The Collection | Seasonal collections (SS27), drops path, open calls | Collection calendar, drop path doc |
-| Design: The Wardrobe Story | Cat's own capsule pieces | Capsule doc |
+| Design: Collection Preview | Pieces Cat sews from the coming collection before launch | Capsule doc, preview sheet |
 | Organic Social / First solo session | Social strategy, calendar, shoots | Social strategy, social calendar deck |
 | Customer & Community | Community plan, AI stance, customer research | Community plan, Meet the sewist, AI stance |
 | Affiliates | Affiliate programmes and partner outreach | — |

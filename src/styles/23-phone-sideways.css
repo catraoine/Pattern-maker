@@ -1,0 +1,47 @@
+/* A phone held sideways (about 330px tall): Cat's pick, Oct 30. The header goes so the page gets the height.
+   Style (S4) becomes a big look at the garment with only the bar below: move on with Next or Review, and turn
+   upright to change a choice. Print (S2) puts the cover beside its buttons. Measure (S2 + S3) keeps its page and
+   says once that upright gives more room. Tablets and computers are never this short, so they are untouched. */
+@media (max-height: 500px) and (orientation: landscape) and (pointer: coarse) {
+  .topbar.steady { display: none; }
+
+  /* Style (S4) */
+  .style-layout .screen-head { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .style-edit { display: block; padding-bottom: 72px; }
+  .style-edit > .style-panel,
+  .style-edit > .style-side { display: none; }
+  .style-pin > section { position: static; }
+  .style-pin > section:not(.live-big) > .preview { height: calc(100svh - 112px); min-height: 0; max-height: none; }
+  .main:has(.style-layout) .style-layout > .example-tag { margin-left: 64px; max-width: calc(100% - 64px); }
+  .style-edit > .style-bar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+    display: flex; align-items: center; gap: 14px;
+    padding: 8px calc(16px + env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));
+    background: #14120e; border-top: 1px solid rgb(217 196 155 / 0.45);
+  }
+  .style-edit > .style-bar::before {
+    content: 'Turn upright to change it'; margin-right: auto;
+    font: 400 11px/1 var(--mono); letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted);
+  }
+  .style-edit > .style-bar .primary { flex: none; padding: 0 22px; }
+
+  /* Print (S2) */
+  .card.print-top {
+    display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 1fr);
+    grid-template-areas: 'cover head' 'cover controls' 'sheet sheet' 'more more';
+    column-gap: 28px; row-gap: 12px; align-items: start;
+  }
+  .print-head, .print-cover, .print-controls, .print-sheet, .print-more { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  .print-head { grid-area: head; }
+  .print-cover { grid-area: cover; }
+  .print-controls { grid-area: controls; }
+  .print-sheet { grid-area: sheet; }
+  .print-more { grid-area: more; }
+  .print-head h1 { font-size: 24px; }
+
+  /* Measure (S2 + S3 note) */
+  .measure-step::before {
+    content: 'Turn your phone upright for more room'; display: block; margin: 0 0 14px;
+    font: 400 11px/1.4 var(--mono); letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted);
+  }
+}

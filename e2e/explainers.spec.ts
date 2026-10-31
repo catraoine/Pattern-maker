@@ -5,8 +5,8 @@ import { chooseChip, expect, startWithExample, test } from './fixtures';
 test('a picked choice is explained, and its drawing opens full size', async ({ page }) => {
   await startWithExample(page);
   const main = page.getByRole('main');
-  const details = main.getByRole('group', { name: 'Details', exact: true });
-  await chooseChip(page, 'Details', 'Box pleats');
+  const details = main.getByRole('group', { name: 'Fullness', exact: true });
+  await chooseChip(page, 'Fullness', 'Box pleats');
   await expect(details.getByText(/Folds that face away from each other/)).toBeVisible();
   // A picked picture tile: tapping its drawing opens it full size, and Close closes it.
   const silhouette = main.getByRole('group', { name: 'Silhouette', exact: true });

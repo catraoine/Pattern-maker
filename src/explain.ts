@@ -13,6 +13,8 @@ const FIT: Record<string, Line> = {
   regular: ['The everyday fit: room to sit, reach and breathe without looking loose.', 'easy'],
   relaxed: ['Loose and easy to wear, and the most forgiving to fit.', 'easy'],
 };
+/** The dress's fits: Boxy is the dress's own (see DRESS_FIT_GROUP). */
+const DRESS_FIT: Record<string, Line> = { ...FIT, boxy: ['Straight from bust to hem, the shoulder squared by the cut, not a pad. Bust darts keep it smooth.', 'easy'] };
 
 const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
   skirt: {
@@ -83,10 +85,11 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       sash: ['A long sash in the same fabric that wraps your waist and ties in a bow or a knot.', 'easy'],
       sash_loops: ['The sash, held in place by a narrow loop at each side seam so it never slips.', 'easy'],
       loops: ['Four narrow loops at the waist to carry a belt of your own, up to 3 cm wide.'],
+      band: ['A flat band of your fabric round the waist seam, with a buckle, held by a loop at each side.', 'easy'],
     },
   },
   bodice: {
-    fit: FIT,
+    fit: DRESS_FIT,
     neckline: {
       crew: ['A round neckline that sits close at the base of the neck.', 'easy'],
       scoop: ['A wider, lower round neckline.', 'easy'],

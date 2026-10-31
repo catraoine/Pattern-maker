@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Choices } from '../savedWork';
-import { LENGTHS, type Length, type SkirtMeasurements } from '../engine/skirt';
+import { LENGTHS, type Length, type SkirtMeasurements, skirtFitOf } from '../engine/skirt';
 import type { Unit } from '../measurements';
 import { photoToJpeg } from '../photo/image';
 import type { BackReading, BackResponse, PhotoError, PhotoReading, PhotoResponse, PieceKind, TopReading, TrousersReading, UnsureGroup } from '../photo/types';
@@ -390,7 +390,7 @@ export function PhotoScreen({ testerCode, measured, body, unit, onByHand, onAppl
   const front = (skirt: Choices = choices): PatternChoices => {
     if (piece === 'skirt') return skirt;
     const c = choicesFor(reading, piece, body);
-    return isDress(c) ? { ...c, skirt: { ...skirt, fit: c.fit } } : c;
+    return isDress(c) ? { ...c, skirt: { ...skirt, fit: skirtFitOf(c.fit) } } : c;
   };
   /**
    * What the self-check needs, unless the sewist changed the shape, length or fit here: then the pattern is theirs,

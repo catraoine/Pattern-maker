@@ -18,12 +18,15 @@ Cat is the face, learning to sew openly as a true beginner; Evan films. Talking 
 hardest part for her: default to voiceover, hands, fabric, mirror and text on screen; her face shows
 a little at the start of the season only. No AI people.
 
-## Season one: the wardrobe story
+## Season one: the SS27 collection preview
 
-- Atelier diary, no dare or countdown. Title card "The wardrobe story · Piece 01 / 05".
-- Pieces (C1+ adjusted): A-line elastic-waist midi skirt in ivory wool crepe (no polyester), shirt,
-  burgundy bias slip dress, wide trousers, statement coat. The Sewing Lead sews each piece to her own
-  body as the fit check.
+- Atelier diary, no dare or countdown. Title card "SS27 Collection Preview · Piece 01 / 04".
+  Each post ends on "in the SS27 collection, join the waitlist".
+- Pieces (Oct 30, W2), all SS27 house looks: Look 09 Sheer Sash Skirt by Nov 8 (white cotton organza;
+  replaces the ivory A-line midi), Look 01 Parma Shirt by Nov 29, Look 06 Scoop Column (white linen) by Dec 13,
+  Look 04 Red Trouser by Jan 10. Four pieces (coat dropped Oct 30); full reveal Feb 11. The Sewing Lead sews each piece to her
+  own body as the fit check. No new designs: each season's preview only pulls looks from that
+  season's collection.
 - Shoot 1: Sun Nov 8 (Nov 7 backup), ~3 hours at home, Evan filming. Episode 01 out Thu Nov 19. The "mastering measuring" film close-ups are shot the same day.
   Finale on launch night, Thu Feb 11. Same plain dark outfit for solo and Evan shots.
 - Social launch Mon Nov 2 (Cat films week-one posts solo on her phone).

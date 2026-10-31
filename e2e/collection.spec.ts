@@ -16,7 +16,7 @@ test('the Maison collection: open it from styling, draw every look, make one', a
   // Making Olive Pleat opens the skirt with its knife pleats chosen.
   await looks.filter({ has: page.getByRole('heading', { name: 'Olive Pleat' }) }).getByRole('button', { name: 'Make this look' }).click();
   await expectStyle(page, 'Skirt');
-  await expect((await openGroup(page, 'Details')).getByRole('button', { name: 'Knife pleats' })).toHaveAttribute('aria-pressed', 'true');
+  await expect((await openGroup(page, 'Fullness')).getByRole('button', { name: 'Knife pleats' })).toHaveAttribute('aria-pressed', 'true');
 });
 
 test('the collection: the next drop stays hidden until it has a piece, and the Archive shows its records', async ({ page }) => {

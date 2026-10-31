@@ -1,7 +1,7 @@
 import { TestingTag } from '../ui/TestingTag';
 import { matchKind } from '../engine/prints';
 import { useMemo, useState } from 'react';
-import { BELTS, beltAllowed, beltPieces, skirtBelt } from '../engine/belt';
+import { SKIRT_BELTS, beltAllowed, beltPieces, skirtBelt } from '../engine/belt';
 import type { Choices } from '../savedWork';
 import { layout } from '../engine/export';
 import { PULL_ON_EASE, lengthRange, SkirtDraft, SkirtMeasurements } from '../engine/skirt';
@@ -304,46 +304,6 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
           <SlitSlider slit={draft?.slit} onCm={(slitCm) => change({ ...choices, slitCm })} />
           {!slitAllowed(choices) && <p className="muted small">{NO_SLIT}</p>}
         </Group>
-        <Group label="Details">
-          <div className="chips">
-            {DETAIL_OPTIONS.map(([id, label]) => (
-              <button
-                key={id}
-                type="button"
-                className={skirtDetailOf(choices) === id ? 'chip on' : 'chip'}
-                aria-pressed={skirtDetailOf(choices) === id}
-                disabled={!skirtDetailAllowed(choices, id)}
-                onClick={() => change(keepWaist(setSkirtDetail(choices, id)))}
-              >
-                {label}
-                {optionInTesting('volume', id) && <TestingTag tool="new_details" />}
-              </button>
-            ))}
-          </div>
-          <Explain set="skirt" group="volume" options={DETAIL_OPTIONS} pick={skirtDetailOf(choices)} />
-          {volumeOf(choices) === 'godets' && (
-            <div className="chips">
-              {GODET_OPTIONS.map(([n, label]) => (
-                <button key={n} type="button" className={choices.godets === n ? 'chip on' : 'chip'} aria-pressed={choices.godets === n} onClick={() => change(setVolume(choices, 'godets', n))}>
-                  {label}
-                </button>
-              ))}
-            </div>
-          )}
-          {choices.silhouette === 'slip' ? (
-            <p className="muted small">A bias slip hangs from the hip without pleats, godets, flounces or tiers.</p>
-          ) : !volumeAllowed({ ...choices, asymHem: 'none' }, 'knife') ? (
-            <p className="muted small">Pleats, godets, flounces and tiers go on a pencil, straight or A-line skirt.</p>
-          ) : choices.asymHem === 'diagonal' ? (
-            <p className="muted small">A diagonal hem is cut in whole pieces, so it takes no pleats, godets, flounces or tiers.</p>
-          ) : choices.asymHem === 'high_low' ? (
-            <p className="muted small">
-              A high-low hem takes godets{volumeAllowed(choices, 'godets') ? '' : ' on a skirt to the knee or longer'}. Pleats, flounces and tiers need a level hem.
-            </p>
-          ) : !volumeAllowed(choices, 'godets') ? (
-            <p className="muted small">Godets and tiers need a skirt to the knee or longer.</p>
-          ) : null}
-        </Group>
         {DETAIL_GROUPS.map((g) => (
           <Group key={g.id} label={g.label}>
             <div className="chips">
@@ -446,6 +406,48 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
             )}
           </Group>
         ))}
+        {/* Pleats, godets, a flounce, tiers or ruching: named Fullness, as on the Draw tool, so the step called Details
+            doesn't hold a question called Details too, and asked after the waist and pockets every skirt needs (Cat's D2, 2026-10-30). */}
+        <Group label="Fullness">
+          <div className="chips">
+            {DETAIL_OPTIONS.map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                className={skirtDetailOf(choices) === id ? 'chip on' : 'chip'}
+                aria-pressed={skirtDetailOf(choices) === id}
+                disabled={!skirtDetailAllowed(choices, id)}
+                onClick={() => change(keepWaist(setSkirtDetail(choices, id)))}
+              >
+                {label}
+                {optionInTesting('volume', id) && <TestingTag tool="new_details" />}
+              </button>
+            ))}
+          </div>
+          <Explain set="skirt" group="volume" options={DETAIL_OPTIONS} pick={skirtDetailOf(choices)} />
+          {volumeOf(choices) === 'godets' && (
+            <div className="chips">
+              {GODET_OPTIONS.map(([n, label]) => (
+                <button key={n} type="button" className={choices.godets === n ? 'chip on' : 'chip'} aria-pressed={choices.godets === n} onClick={() => change(setVolume(choices, 'godets', n))}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+          {choices.silhouette === 'slip' ? (
+            <p className="muted small">A bias slip hangs from the hip without pleats, godets, flounces or tiers.</p>
+          ) : !volumeAllowed({ ...choices, asymHem: 'none' }, 'knife') ? (
+            <p className="muted small">Pleats, godets, flounces and tiers go on a pencil, straight or A-line skirt.</p>
+          ) : choices.asymHem === 'diagonal' ? (
+            <p className="muted small">A diagonal hem is cut in whole pieces, so it takes no pleats, godets, flounces or tiers.</p>
+          ) : choices.asymHem === 'high_low' ? (
+            <p className="muted small">
+              A high-low hem takes godets{volumeAllowed(choices, 'godets') ? '' : ' on a skirt to the knee or longer'}. Pleats, flounces and tiers need a level hem.
+            </p>
+          ) : !volumeAllowed(choices, 'godets') ? (
+            <p className="muted small">Godets and tiers need a skirt to the knee or longer.</p>
+          ) : null}
+        </Group>
         <Group label={FRONT_GROUP.label}>
           <div className="chips">
             {FRONT_GROUP.options.map(([id, label]) => (
@@ -474,7 +476,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
         </Group>
         <Group label="Belt">
           <div className="chips">
-            {BELTS.map(([id, label]) => (
+            {SKIRT_BELTS.map(([id, label]) => (
               <button
                 key={id}
                 type="button"
@@ -487,7 +489,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
               </button>
             ))}
           </div>
-          <Explain set="skirt" group="belt" options={BELTS} pick={beltOf_(choices)} />
+          <Explain set="skirt" group="belt" options={SKIRT_BELTS} pick={beltOf_(choices)} />
           {detailOf(choices, 'waist') === 'wrap' && <p className="muted small">A wrap ties at the waist already, so it takes no sash or loops.</p>}
           {detailOf(choices, 'waist') === 'elastic' && <p className="muted small">On a pull-on elastic waist a sash ties over the gathers; loops would stop it stretching.</p>}
         </Group>

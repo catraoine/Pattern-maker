@@ -11,7 +11,7 @@ test('shirt dress: buttons down the front and a shirt collar', async ({ page }, 
   await chooseChip(page, 'Collar', 'Shirt collar');
   await expect(main.getByText(/shirt dress with a shirt collar/i).first()).toBeAttached();
   // The skirt shapes the buttons can't run down are closed off, and so are pleats.
-  const skirt = await openGroup(page, 'Skirt');
+  const skirt = await openGroup(page, 'Silhouette');
   await expect(skirt.getByRole('button', { name: 'Full circle', exact: true })).toBeDisabled();
   await expect(skirt.getByRole('button', { name: 'Gathered', exact: true })).toBeEnabled();
   await page.screenshot({ path: info.outputPath('form.png'), fullPage: true });

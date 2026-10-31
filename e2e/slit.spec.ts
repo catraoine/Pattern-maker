@@ -20,7 +20,7 @@ test('slit: chosen on a skirt and a dress, its height set', async ({ page }, inf
   await expect((await openGroup(page, 'Slit')).getByRole('button', { name: /Front/ })).toBeDisabled();
 
   await switchGarment(page, 'Dress');
-  await chooseChip(page, 'Skirt', 'Straight');
+  await chooseChip(page, 'Silhouette', 'Straight');
   await chooseChip(page, 'Slit', 'Front');
   await expect(main.getByText(/dress with a front slit/i).first()).toBeAttached();
   await main.getByRole('button', { name: 'Flat', exact: true }).click();

@@ -20,6 +20,10 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
 - **Launch garments:** skirt, bodice, dress. Everything else usable carries an **In testing** tag,
   listed in the registry in `src/launch.ts` (a test fails if a tag is unregistered). Tags come off only
   with their proof; the fit gate release on Jan 18 does the batch. List tagged items in ship replies.
+- **Boxy** (Oct 30) is the dress's fourth fit, a full launch fit (Cat took off In testing, Oct 30): straight from the bust (waist no narrower than the
+  bust less 4 cm, a moved seam no narrower than the bust), the shoulder squared 1.5 cm and carried on 1.5 cm in
+  the cut (Cat: "not shoulder pads, not a stiff shoulder, just the cut"), bust darts always kept. Its Self band
+  belt sits on the waist seam. A dropped-seam Mini now ends at the MINI mark (it ran 3 to 5 cm long).
 - Lingerie and swimwear stay hidden (`?lingerie=preview`) until after the fit test. Tracé Engine,
   Atelier Nights, Deadstock and Cut For You stay sign-ups only.
 
@@ -44,6 +48,12 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
    and the How it works film is re-recorded after it ships (stills first).
 7. Form finish (Oct 30, PR #231): matte charcoal form and crisp plain cloth on the Style drawings.
    Measuring and welcome keep the line form; satin/finish only from Style on.
+
+## Style steps
+
+- **No repeated names** (Oct 30): a question never carries its step's name (no "Details" question on the
+  Details step); pleats, godets, flounces, tiers and ruching are called **Fullness** everywhere, as on the Draw tool.
+  On the skirt's Details step, Waist comes first.
 
 ## Fixing problems
 
