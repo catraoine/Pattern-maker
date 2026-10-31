@@ -248,7 +248,7 @@ export const BOXY = { waist: 4, square: 1.5, extend: 1.5 };
 export const OVERSIZED = { armholeEase: 26, range: { min: 20, max: 36 } };
 
 /** Cut straight from the bust: a boxy or an oversized body. */
-export const straightCut = (f: BodiceFit) => f === 'boxy' || f === 'oversized';
+const straightCut = (f: BodiceFit) => f === 'boxy' || f === 'oversized';
 
 /** How far past the hip a long top runs, in cm: over the seat, like a shirt's tail. */
 export const LONG_BELOW_HIP = 14;
