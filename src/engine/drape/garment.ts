@@ -1,7 +1,8 @@
 // A garment's pieces laid round the body and sewn: each piece as cloth (mesh2d.ts), placed near where it is worn, its
 // seams, darts, collar and sleeves joined by the outline's own tags, then settled on the body (sim.ts). What comes back
 // is the cloth as the pattern cuts it, so whatever the pattern has (a peplum, a collar, a lapel turned back) is there.
-import { P, sub } from '../geometry';
+import { P, Path, p as pt, sub } from '../geometry';
+import type { TierBand } from '../skirtVolume';
 import { Piece } from '../piece';
 import type { BodiceDraft } from '../bodice';
 import type { OuterDraft } from '../outerwear';
@@ -198,7 +199,7 @@ interface CollarPart {
   onStand?: boolean;
 }
 
-function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: number; sleeve?: Piece[]; collars?: CollarPart[]; trousers?: TrousersDraft }, o: DrapeOptions): Draped {
+function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: number; sleeve?: Piece[]; collars?: CollarPart[]; trousers?: TrousersDraft; tiers?: TierBand[] }, o: DrapeOptions): Draped {
   const B = new Builder(sp);
   let legs: SimInput['legs'];
   const thick = o.thick ?? 0.35;
@@ -236,10 +237,19 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
 
   // What hangs from the waist (a skirt, a peplum): placed down from its waist edge, sewn to the bodice's waist if there is one.
   if (extra.skirt?.length && !(globalThis as any).__noPep) {
-    const drop = extra.drop ?? 0;
+    // A peplum sewn to a bodice's hem (a top cut below the waist) starts where that hem is worn.
+    const hemDrop = (() => {
+      const t = torso.find((t) => !t.back);
+      const f = front.find((p) => p.role === 'front');
+      if (!t || !f || !f.mesh.runs.hem) return 0;
+      const ys = f.mesh.runs.hem.flat().map((i) => f.mesh.pts[i].y);
+      return ys.reduce((a, b) => a + b, 0) / ys.length - t.waistY;
+    })();
     const levelOf = new Map<Panel, (q: P) => number>();
     for (const pc of extra.skirt) {
       const isBack = /back/i.test(pc.name);
+      const toHem = pc.meta.sewnTo === 'hem';
+      const drop = toHem ? hemDrop : extra.drop ?? 0;
       const R = pc.meta.waistRadius as number | undefined;
       const gather = (pc.meta.gathered as number | undefined) ?? 1;
       let level: (q: P) => number;
@@ -292,12 +302,51 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       );
       levelOf.set(p, level);
       const top = (isBack ? back : front).filter((t) => t.role === 'front' || t.role === 'back');
-      if (top.length) sew(seams, B.chain(top, 'waist', out), B.chain([p], 'waist', out));
+      if (top.length) sew(seams, B.chain(top, toHem ? 'hem' : 'waist', out), B.chain([p], 'waist', out));
       (isBack ? back : front).push(p);
     }
     const pf = B.panels.filter((p) => p.role === 'peplum-front');
     const pb = B.panels.filter((p) => p.role === 'peplum-back');
     if (pf.length && pb.length) sew(seams, B.chain(pf, 'side', levelOf.get(pf[0])!), B.chain(pb, 'side', levelOf.get(pb[0])!));
+    // Gathered tiers below the yoke: each a rectangle, a quarter of its round each side of the body, gathered onto
+    // the edge above and hanging from it.
+    if (extra.tiers?.length) {
+      let above = { f: { panels: pf, tag: 'tier' }, b: { panels: pb, tag: 'tier' } };
+      const edgeC = (panels: Panel[], tag: string) => {
+        const ids = panels.flatMap((p) => (p.mesh.runs[tag] ?? []).flat().map((i) => p.start[i][1]));
+        return ids.length ? ids.reduce((a, b) => a + b, 0) / ids.length : 0;
+      };
+      let c0 = (edgeC(pf, 'tier') + edgeC(pb, 'tier')) / 2;
+      for (const band of extra.tiers) {
+        const pair: Record<'f' | 'b', Panel> = {} as never;
+        for (const side of ['f', 'b'] as const) {
+          const isBack = side === 'b';
+          const w = band.round / 4;
+          const h = band.depth;
+          const outline = new Path(pt(0, 0)).line(pt(w, 0), 'waist').line(pt(w, h), 'side').line(pt(0, h), 'hem').line(pt(0, 0), 'fold');
+          outline.closed = true;
+          const pc = { name: `${band.name} ${isBack ? 'back' : 'front'}`, outline, lines: [], grain: [pt(w / 2, 1), pt(w / 2, h - 1)], notches: [], labels: [], cut: '', seamAllowance: 1, allowances: {}, meta: { gathered: band.ratio } } as unknown as Piece;
+          const g = band.ratio;
+          const lam = 6;
+          const k = TAU / lam;
+          const A = Math.min(3, (2 * Math.sqrt(Math.max(0, g - 1))) / k);
+          const top = c0;
+          const p = B.add(
+            pc,
+            isBack ? 'peplum-back' : 'peplum-front',
+            (q) => ringAt(sp, q.x / g, top + q.y, isBack, 2.5 + A * (1 + Math.sin((k * q.x) / g)) + (top + q.y) * 0.02),
+            thick,
+          );
+          const ab = isBack ? above.b : above.f;
+          sew(seams, B.chain(ab.panels, ab.tag, out), B.chain([p], 'waist', out));
+          (isBack ? back : front).push(p);
+          pair[side] = p;
+        }
+        sew(seams, B.chain([pair.f], 'side', down), B.chain([pair.b], 'side', down));
+        above = { f: { panels: [pair.f], tag: 'hem' }, b: { panels: [pair.b], tag: 'hem' } };
+        c0 += band.depth;
+      }
+    }
   }
   for (const p of B.panels) if (p.role !== 'front' && p.role !== 'back') for (const [a, b] of dartLegs(p)) sew(seams, a, b);
 
@@ -795,16 +844,16 @@ function trouserPanels(sp: Space, B: Builder, seams: SimInput['seams'], d: Trous
 const isTorso = (pc: Piece) => !pc.kind && !/skirt|peplum|yoke|sleeve/i.test(pc.name);
 const isSkirt = (pc: Piece) => !pc.kind && /skirt|peplum|yoke/i.test(pc.name) && !/underskirt/i.test(pc.name);
 
-export function drapeBodice(sp: Space, d: BodiceDraft, sleeve?: SleeveDraft, o: DrapeOptions = {}, extra: { skirt?: Piece[]; drop?: number; pieces?: Piece[] } = {}): Draped {
+export function drapeBodice(sp: Space, d: BodiceDraft, sleeve?: SleeveDraft, o: DrapeOptions = {}, extra: { skirt?: Piece[]; drop?: number; pieces?: Piece[]; tiers?: TierBand[] } = {}): Draped {
   const pieces = extra.pieces ?? d.pieces;
   const torso = pieces.filter(isTorso).map((pc) => ({ pc, back: /back/i.test(pc.name), waistY: /back/i.test(pc.name) ? d.back.waistCentre.y : d.front.waistCentre.y }));
   const skirt = extra.skirt ?? pieces.filter(isSkirt);
   const buttons = d.closure === 'front_buttons' && d.buttons ? { y: d.buttons.at, r: d.buttons.sizeCm / 2, waistY: d.front.waistCentre.y } : undefined;
-  return drape(sp, torso, { skirt: skirt.length ? skirt : undefined, drop: extra.drop, sleeve: sleeve?.pieces.filter(isShell), collars: collarsOf(pieces) }, { buttons, closedFront: true, ...o });
+  return drape(sp, torso, { skirt: skirt.length ? skirt : undefined, drop: extra.drop, tiers: extra.tiers, sleeve: sleeve?.pieces.filter(isShell), collars: collarsOf(pieces) }, { buttons, closedFront: true, ...o });
 }
 
 export function drapeDress(sp: Space, d: DressDraft, sleeve?: SleeveDraft, o: DrapeOptions = {}): Draped {
-  return drapeBodice(sp, d.bodice, sleeve, o, { pieces: d.pieces, skirt: d.pieces.filter(isSkirt), drop: d.seamDrop ?? 0 });
+  return drapeBodice(sp, d.bodice, sleeve, o, { pieces: d.pieces, skirt: d.pieces.filter(isSkirt), drop: d.seamDrop ?? 0, tiers: d.skirt?.volume?.tiers?.bands });
 }
 
 export function drapeTrousers(sp: Space, d: TrousersDraft, o: DrapeOptions = {}): Draped {
@@ -812,7 +861,7 @@ export function drapeTrousers(sp: Space, d: TrousersDraft, o: DrapeOptions = {})
 }
 
 export function drapeSkirt(sp: Space, d: SkirtDraft, o: DrapeOptions = {}): Draped {
-  return drape(sp, [], { skirt: d.pieces.filter(isSkirt) }, { closedFront: true, ...o });
+  return drape(sp, [], { skirt: d.pieces.filter(isSkirt), tiers: d.volume?.tiers?.bands }, { closedFront: true, ...o });
 }
 
 export function drapeOuter(sp: Space, d: OuterDraft, o: DrapeOptions = {}): Draped {
