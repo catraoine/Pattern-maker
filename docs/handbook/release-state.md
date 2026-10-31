@@ -4,25 +4,25 @@ _Update this page whenever a release ships or a PR is queued._
 
 ## Live
 
-**Release 42** (Oct 30, 2026, #228, main `5506136`): the phone tag of picks shows a slider-set sleeve
-or waist-seam length. Release 41 (Oct 29, #227) brought the balanced phone Style page, the SS27
-collection, projector kit and sideways mode, All round seat fix and longer films.
+**Release 45** (Oct 31, 2026, #242, main `efaa6c1`): Boxy dress fit + Self band belt as full launch
+options (#241), How it works films re-recorded with the boxy mini, gold titles and Shop the fabric
+(#239), projector upgrades: paper line-up, whole-table grid, Lines panel, loupe (#238, projector
+still In testing), phone held sideways layouts (#237), Style step names Silhouette / Fullness with
+Waist first (#243), handbook fonts + collection preview rename (#240). Release 44 (Oct 30, #235)
+brought the accessibility fixes, re-recorded films and iPad layouts.
 
 Live site: https://maisontrace.co (the cloud proxy blocks it; check
 https://whimsical-mooncake-2cf9a9.netlify.app, the same site). Strangers see the waitlist; testers
 get in with their tester link.
 
-## Queued for "ship" (as of Oct 30, 07:40 UTC)
+## Queued for "ship" (as of Oct 31, 01:15 UTC)
 
 | PR | What | Owner thread |
 | --- | --- | --- |
-| #229 | How it works films and Watch demo clips on Release 41, projector demo, welcome opening, Parma Shirt, "Your pattern, in seconds." | Media: Demo videos |
-| #230 | First Measure page: C Tape Lines, string tied at the waist, CM / IN once | UX/UI: Measure |
-| #231 | Matte charcoal form and crisp plain cloth on Style drawings | UX/UI: Fabric rendering |
-| #232 | Photo shown as a champagne Polaroid on the photo screens | UX/UI: Style & Photo |
+| #244 | Stop the page bounce on iPhone (Style) | UX/UI |
 
-Order note: #229's Measure chapter is re-recorded after #230 ships, and films need re-recording after
-#231. Ship them together, then let Demo videos re-record.
+Re-record note: the films in #239 were cut before #243 renamed the dress questions; the recorder
+now picks Silhouette / Fullness, so the next re-record works as is.
 
 ## Waiting on Cat's "apply" (not built)
 
