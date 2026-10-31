@@ -103,7 +103,7 @@ export async function skipLoading(page: Page) {
 export async function openFresh(page: Page) {
   await page.goto('/?fresh');
   await skipLoading(page);
-  await expect(heading(page, /drafted to your body/i)).toBeVisible();
+  await expect(heading(page, /sewing patterns for the piece/i)).toBeVisible();
 }
 
 /** Begin, then the quiet Skip link under the first measuring page's buttons. */
@@ -182,13 +182,30 @@ export async function chooseDrop(page: Page, name: string, item: string | RegExp
 
 /** On a style screen, "Add them" (e.g. the arms, for sleeves): the Measure list, then each measurement for a
  * closer fit on its own page, back to the list, and on to styling again. */
+/**
+ * The list of steps on a style screen. On a phone and a tablet the step bars are gone (Cat's P1, 2026-10-31) and the
+ * list opens from "Step 1 of 5", closing again once a step is picked: this opens it when it is shut.
+ */
+export async function stepTabs(page: Page) {
+  const tabs = main(page).getByRole('tablist', { name: 'Style choices' });
+  const opener = main(page).locator('button.chapter-step');
+  if (!(await tabs.isVisible()) && (await opener.isVisible())) await opener.click();
+  return tabs;
+}
+
+/** Open a step (or the Pro tab) by its name, through the list of steps. */
+export async function goTab(page: Page, name: string) {
+  await (await stepTabs(page)).getByRole('tab', { name, exact: true }).click();
+}
+
 export async function addCloserFit(page: Page, g: GarmentName) {
   const add = main(page).getByRole('button', { name: 'Add them' }).first();
-  await expect(main(page).getByRole('tablist', { name: 'Style choices' })).toBeVisible();
+  await expect(await stepTabs(page)).toBeVisible();
   // The link sits under the choice that needs them (Sleeves, Length): look through the tabs for it.
-  find: for (const tab of await main(page).getByRole('tablist', { name: 'Style choices' }).getByRole('tab').all()) {
+  const count = await main(page).getByRole('tablist', { name: 'Style choices', includeHidden: true }).getByRole('tab', { includeHidden: true }).count();
+  find: for (let i = 0; i < count; i++) {
     if (await add.isVisible()) break;
-    await tab.click();
+    await (await stepTabs(page)).getByRole('tab').nth(i).click();
     for (const head of await main(page).locator('fieldset.fold:not([hidden]) > legend > button.fold-head').all()) {
       if (await add.isVisible()) break find;
       await head.click();
@@ -210,13 +227,14 @@ export async function addCloserFit(page: Page, g: GarmentName) {
  */
 export async function openGroup(page: Page, name: string) {
   const group = main(page).getByRole('group', { name, exact: true });
-  const tabs = main(page).getByRole('tablist', { name: 'Style choices' });
-  if (!(await group.isVisible()) && (await tabs.isVisible())) {
-    const own = tabs.getByRole('tab', { name, exact: true });
-    if (await own.count()) await own.click();
+  // includeHidden: on a phone the list of steps is shut until stepTabs opens it.
+  const tabs = main(page).getByRole('tablist', { name: 'Style choices', includeHidden: true });
+  if (!(await group.isVisible()) && (await tabs.count())) {
+    const own = tabs.getByRole('tab', { name, exact: true, includeHidden: true });
+    if (await own.count()) await goTab(page, name);
     else
-      for (const tab of await tabs.getByRole('tab').all()) {
-        await tab.click();
+      for (let i = 0, n = await tabs.getByRole('tab', { includeHidden: true }).count(); i < n; i++) {
+        await (await stepTabs(page)).getByRole('tab').nth(i).click();
         if (await group.isVisible()) break;
       }
   }
@@ -241,8 +259,8 @@ export async function openLooks(page: Page) {
 /** "Show all tools": on a style screen it sits under the last tab only, so open that tab first. */
 export async function showAllTools(page: Page) {
   const all = main(page).getByRole('button', { name: 'Show all tools' });
-  const tabs = main(page).getByRole('tablist', { name: 'Style choices' });
-  if (!(await all.isVisible()) && (await tabs.isVisible())) await tabs.getByRole('tab').last().click();
+  const tabs = main(page).getByRole('tablist', { name: 'Style choices', includeHidden: true });
+  if (!(await all.isVisible()) && (await tabs.count())) await (await stepTabs(page)).getByRole('tab').last().click();
   return all;
 }
 
@@ -265,7 +283,8 @@ export async function openExtras(page: Page) {
  * (Cat's D1 Drafting Table) the summary is already beside the choices, so there's no page to open.
  */
 export async function openReview(page: Page): Promise<boolean> {
-  const review = main(page).getByRole('button', { name: 'Review', exact: true });
+  // On a phone, Review is a link at the end of each step and the bar's button on the last (Cat's P1, 2026-10-31).
+  const review = main(page).getByRole('button', { name: /^Review( all choices)?$/ }).first();
   const print = main(page).getByRole('button', { name: 'Print my pattern' });
   await expect(review.or(print).first()).toBeVisible();
   if (!(await review.isVisible())) {

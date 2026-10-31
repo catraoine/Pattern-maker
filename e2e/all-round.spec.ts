@@ -1,19 +1,18 @@
-import { GarmentName, chooseChip, expect, startWithExample, switchGarment, test } from './fixtures';
+import { GarmentName, chooseChip, expect, goTab, startWithExample, switchGarment, test } from './fixtures';
 
-// All round: the skirt turning on the form, with its seams, hem and stripes as plain facts.
-test('all round shows the skirt on the form, with its seams and hem all the way round', async ({ page }) => {
+// All round: the skirt turning on the form, its checks folded into one quiet line (Cat's Q2 Quiet in Calico).
+test('all round shows the skirt on the form, with its seams and hem checked in one quiet line', async ({ page }) => {
   await startWithExample(page);
   const main = page.getByRole('main');
   await main.getByRole('group', { name: 'Garment view' }).getByRole('button', { name: 'All round', exact: true }).click();
   await expect(main.getByRole('img', { name: /on your form, turning/ })).toBeVisible();
-  await expect(main.getByText(/All 3 seams and \d+ darts meet at the waist and the hem/)).toBeVisible();
-  await expect(main.getByText('Shape preview, not a cloth simulation')).toBeVisible();
+  await expect(main.getByText('Seams and hem checked', { exact: true })).toBeVisible();
+  await expect(main.getByText('A shape preview, not a cloth simulation.')).toBeVisible();
+  // No hem chart under the form: its CF / Left / CB / Right labels were drawn on the canvas, so the figure fills it.
 
-  // A high-low hem reads shorter at the front than at the back, and nothing is flagged.
+  // A high-low hem is still checked, and nothing is flagged.
   await chooseChip(page, 'Hem', 'High-low');
-  const hem = main.getByRole('button', { name: /^Hem \d/ });
-  await expect(hem).toContainText(/\d+ cm at the front, \d+ at the sides, \d+ at the back/);
-  await hem.click();
+  await expect(main.getByText('Seams and hem checked', { exact: true })).toBeVisible();
   await expect(main.getByText(/problem|fix/i)).toHaveCount(0);
 });
 
@@ -22,26 +21,20 @@ test('all round works for every garment', async ({ page }) => {
   test.setTimeout(120_000);
   await startWithExample(page);
   const main = page.getByRole('main');
-  const reads: [GarmentName, RegExp][] = [
-    ['Bodice', /All \d+ seams and \d+ darts meet from the neck to the hem/],
-    ['Dress', /All \d+ seams and \d+ darts meet from the neck to the hem/],
-    ['Tee', /All \d+ seams meet from the neck to the hem/],
-    ['Jacket', /All \d+ seams( and \d+ darts)? meet from the neck to the hem/],
-    ['Coat', /All \d+ seams( and \d+ darts)? meet from the neck to the hem/],
-    ['Trousers', /All 6 seams and \d+ darts meet from the waist to the hems/],
-  ];
-  for (const [g, seams] of reads) {
+  const seams = /^Seams, hem and sleeves checked$|^Seams and hem checked$/;
+  const reads: GarmentName[] = ['Bodice', 'Dress', 'Tee', 'Jacket', 'Coat', 'Trousers'];
+  for (const g of reads) {
     await switchGarment(page, g);
     await main.getByRole('group', { name: 'Garment view' }).getByRole('button', { name: 'All round', exact: true }).click();
     await expect(main.getByRole('img', { name: /on your form, turning/ })).toBeVisible();
     await expect(main.getByText(seams)).toBeVisible();
-    await expect(main.getByText('Shape preview, not a cloth simulation')).toBeVisible();
+    await expect(main.getByText('A shape preview, not a cloth simulation.')).toBeVisible();
     await expect(main.getByText(/problem|fix/i)).toHaveCount(0);
   }
 });
 
 // In the maker's fabric (Cat, 2026-10-26): with a print picked, the garment turns in it, the jade python of the
-// one-way swatch wrapped round it; with none, it stays in lines.
+// one-way swatch wrapped round it; with none, it turns in plain calico (Cat's Q2, 2026-10-31).
 test('all round shows the garment in the fabric picked', async ({ page }) => {
   await startWithExample(page);
   const main = page.getByRole('main');
@@ -59,7 +52,7 @@ test('all round shows the garment in the fabric picked', async ({ page }) => {
   await round.click();
   await page.waitForTimeout(400);
   expect(await tealAt()).toBe(0);
-  await main.getByRole('tab', { name: 'Fabric' }).click();
+  await goTab(page, 'Fabric');
   await main.locator('.fabric-more > summary').click();
   await main.getByRole('radiogroup', { name: "What's printed on your fabric" }).getByRole('radio', { name: 'One-way' }).click();
   await round.click();

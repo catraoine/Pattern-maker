@@ -1,4 +1,4 @@
-import { expect, measureMe, openFresh, startWithExample, test } from './fixtures';
+import { expect, measureMe, openFresh, startWithExample, stepTabs, test } from './fixtures';
 import type { Page } from '@playwright/test';
 
 const main = (page: Page) => page.getByRole('main');
@@ -19,7 +19,7 @@ test('a pick made from the keyboard keeps the focus on the choices', async ({ pa
 
 test('the Style steps are one stop for the Tab key, and the arrow keys move along them', async ({ page }) => {
   await startWithExample(page);
-  const tabs = main(page).getByRole('tablist', { name: 'Style choices' }).getByRole('tab');
+  const tabs = (await stepTabs(page)).getByRole('tab');
   await expect(tabs.and(page.locator('[tabindex="0"]'))).toHaveCount(1);
   const first = tabs.and(page.locator('[aria-selected="true"]'));
   const name = await first.getAttribute('aria-label');
