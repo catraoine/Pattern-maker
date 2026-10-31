@@ -443,9 +443,17 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
           <InCorner>
             {view === 'sketch' && draft &&
               (drawing ? (
-                <button type="button" className="ghost on" aria-pressed="true" onClick={() => setDrawing(false)}>
-                  Done
-                </button>
+                <>
+                  <button type="button" className="ghost on" aria-pressed="true" onClick={() => setDrawing(false)}>
+                    Done
+                  </button>
+                  {/* Clear takes the drawn line away, back to the plain one (Cat, 2026-10-31). */}
+                  {choices.neck && (
+                    <button type="button" className="ghost draw-clear" onClick={() => change({ ...choices, neck: undefined })}>
+                      Clear
+                    </button>
+                  )}
+                </>
               ) : top ? (
                 <button type="button" className="link small" onClick={() => setOnForm(choices)}>
                   Draw on your form
