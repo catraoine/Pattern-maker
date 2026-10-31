@@ -48,4 +48,4 @@ export function SummaryActions({ ready, onNext, saveState, onSave, onAccount, on
 
 /** The garment views on a form-drawn garment: on the form, as a flat (the fashion word, so it doesn't read like the
  *  Draw tool beside it; Cat, 2026-10-29), and turning all round once it can. */
-export const formViews = (round: unknown): ['sketch' | 'flat' | 'round', string][] => [['sketch', 'Form'], ['flat', 'Flat'], ...(round ? ([['round', 'All round']] as ['round', string][]) : [])];
+export const formViews = (round: unknown): ['sketch' | 'flat' | 'round', string][] => [['sketch', 'Front'], ['flat', 'Flat'], ...(round ? ([['round', 'All round']] as ['round', string][]) : [])];

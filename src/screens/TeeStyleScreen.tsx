@@ -175,7 +175,12 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
               ))}
             </div>
             <Explain set="tee" group={g.id} options={g.options} pick={choices[g.id]} />
-            {g.id === 'stretch' && <p className="muted small">How to test: {STRETCH_TEST}</p>}
+            {g.id === 'stretch' && (
+              <details className="how-to-test muted small">
+                <summary>How to test</summary>
+                <p>{STRETCH_TEST}</p>
+              </details>
+            )}
             {g.id === 'fit' && <p className="muted small">{FIT_NOTES[choices.fit]}</p>}
           </Group>
         ))}

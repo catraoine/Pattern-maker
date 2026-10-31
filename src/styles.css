@@ -25,3 +25,4 @@
 @import './styles/22-accessibility.css'; /* The accessibility review: one focus ring, bigger taps, room at 200% zoom. */
 @import './styles/23-phone-sideways.css'; /* Phones held sideways: S4 Style, S2 Print + Measure (Oct 30). */
 @import './styles/24-one-fill.css'; /* Gaps 4 + 5 of the design review: P1 trimmed phone Style panel, S1 one fill (Oct 31). */
+@import './styles/25-step-back.css'; /* Back a step: a plain arrow left of Next on Style (Oct 31). */

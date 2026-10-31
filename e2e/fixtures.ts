@@ -261,6 +261,8 @@ export async function showAllTools(page: Page) {
   const all = main(page).getByRole('button', { name: 'Show all tools' });
   const tabs = main(page).getByRole('tablist', { name: 'Style choices', includeHidden: true });
   if (!(await all.isVisible()) && (await tabs.count())) await (await stepTabs(page)).getByRole('tab').last().click();
+  // On a phone the link is on the Review page, after the last step (Cat, 2026-10-31).
+  if (!(await all.isVisible())) await main(page).getByRole('button', { name: /^Review\b/ }).last().click();
   return all;
 }
 
