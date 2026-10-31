@@ -4,7 +4,10 @@ _Update this page whenever a release ships or a PR is queued._
 
 ## Live
 
-**Release 46** (Oct 31, 2026, #245): iPhone page no longer bounces on Style (#244), AI-look photo
+**Release 47** (Oct 31, 2026, #251): pattern points follow the finger when moving points (moves drawn
+once a frame and saved on lift; a fingertip within 22 px takes a point), and Watch it draft sits under the
+pieces instead of spilling over undo/redo and Next on a phone.
+Release 46 (Oct 31, 2026, #245): iPhone page no longer bounces on Style (#244), AI-look photo
 strip removed from Start from a look (#246), welcome headline H2 "Drafted to you" and Make this look
 opens in the look's fabric (#247), All round goes quiet in calico with one check line (#248),
 phone Style panel trimmed (P1: one Next button, "Step 1 of 5" opens the step list) and champagne fill
@@ -16,9 +19,10 @@ Live site: https://maisontrace.co (the cloud proxy blocks it; check
 https://whimsical-mooncake-2cf9a9.netlify.app, the same site). Strangers see the waitlist; testers
 get in with their tester link.
 
-## Queued for "ship" (as of Oct 31, 06:00 UTC)
+## Queued for "ship" (as of Oct 31, 16:50 UTC)
 
-Nothing green is queued. #249 (Oversized fit and Long length for tops, In testing) is a draft.
+Nothing green is queued. Drafts: #252 (Style back arrow, Undo, Clear; being applied), #249 (SS27 cuts, In
+testing). This handbook update rides the next release.
 
 Re-record note: the How it works film needs re-recording after #248 (All round now turns in calico).
 
