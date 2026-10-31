@@ -768,7 +768,8 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   // A wider neckline moves the neck point out along both shoulders, leaving at least 5 cm of shoulder.
   // It moves along the shoulder as fitted, and a lower shoulder drops from there, so its line keeps
   // the same neck and the same shoulder length.
-  const widen = Math.max(0, Math.min(nl.width, SL - (s.neckline === 'plunge' && !s.neck ? PLUNGE.strap : 5)));
+  // A plunge leaves just its strap of shoulder, however long the shoulder.
+  const widen = s.neckline === 'plunge' && !s.neck ? Math.max(0, SL - PLUNGE.strap) : Math.max(0, Math.min(nl.width, SL - 5));
   // A boxy shoulder runs on past the body's shoulder point.
   const ext = s.fit === 'boxy' ? BOXY.extend : 0;
   const hpsB = add(hpsB0, mul(p(Math.cos(backSlope), Math.sin(backSlope)), widen));
