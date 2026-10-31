@@ -199,7 +199,36 @@ interface CollarPart {
   onStand?: boolean;
 }
 
+/** A piece cut whole (a bias slip) as the half the drape sews: its first half, closed down the centre line. */
+function halfPiece(pc: Piece): Piece {
+  if (!pc.meta.whole) return pc;
+  const o = pc.outline;
+  const n = o.segs.length / 2;
+  if (!Number.isInteger(n)) return pc;
+  const out = new Path(o.start);
+  for (let i = 0; i < n; i++) {
+    out.segs.push({ ...o.segs[i] });
+    out.tags.push(o.tags[i]);
+  }
+  out.line(o.start, 'fold');
+  out.closed = true;
+  const right = out.taggedPoints(4).pts.reduce((t, q) => t + q.x, 0) >= 0;
+  if (!right) {
+    // The half drawn first lies left of the centre: turn it over.
+    const m = new Path(pt(-o.start.x, o.start.y));
+    for (let i = 0; i < out.segs.length; i++) {
+      const sg = out.segs[i] as any;
+      if (sg.kind === 'L') m.line(pt(-sg.to.x, sg.to.y), out.tags[i]);
+      else m.curve(pt(-sg.c1.x, sg.c1.y), pt(-sg.c2.x, sg.c2.y), pt(-sg.to.x, sg.to.y), out.tags[i]);
+    }
+    m.closed = true;
+    return { ...pc, outline: m, lines: [], meta: { ...pc.meta, whole: false } };
+  }
+  return { ...pc, outline: out, lines: pc.lines.filter((l) => l.points(2).every((q) => q.x >= -0.01)), meta: { ...pc.meta, whole: false } };
+}
+
 function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: number; sleeve?: Piece[]; collars?: CollarPart[]; trousers?: TrousersDraft; tiers?: TierBand[]; under?: Piece[]; puff?: number }, o: DrapeOptions): Draped {
+  if (extra.skirt) extra = { ...extra, skirt: extra.skirt.map(halfPiece) };
   const B = new Builder(sp);
   let legs: SimInput['legs'];
   const thick = o.thick ?? 0.35;
