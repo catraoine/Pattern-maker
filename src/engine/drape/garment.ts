@@ -201,6 +201,8 @@ export interface DrapeOptions {
   crisp?: number;
   /** Cut boxy: the cloth falls straight from the bust to the hip rather than in under the bust. */
   boxy?: boolean;
+  /** Lapels and collar falls held pressed onto the cloth they turn over (a lapel breaking well above the waist). */
+  lieLapel?: boolean;
 }
 
 interface CollarPart {
@@ -699,13 +701,14 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
   // Turned cloth (a lapel, a collar's fall) lies on the cloth it was turned over: each point rests on the point of
   // the same piece that it covers when folded at the roll line, one cloth's thickness out, as pressing sets it.
   const lieOnOf = () => {
-    if (!(globalThis as any).__lie) return undefined;
+    const lapels = (globalThis as any).__lieLapel ?? o.lieLapel;
+    if (!(globalThis as any).__lie && !lapels) return undefined;
     const I: number[] = [];
     const J: number[] = [];
     const G: number[] = [];
     for (const p of B.panels) {
       // Only a collar's fall for now: a lapel resting this way drags a long plunge front down (not yet understood).
-      if (!p.folds?.length || (p.role !== 'collar' && !(globalThis as any).__lieLapel)) continue;
+      if (!p.folds?.length || (p.role !== 'collar' && !lapels)) continue;
       // (On a front, only onto the body of the front: not the button extension, which lies over the other side.)
       const flat = p.mesh.pts.map((q, i) => ({ q, i })).filter(({ q, i }) => !p.turned[i] && (p.role === 'collar' || q.x > 1));
       p.mesh.pts.forEach((q, i) => {
@@ -1093,6 +1096,8 @@ export function drapeOuter(sp: Space, d: OuterDraft, o: DrapeOptions = {}): Drap
     sp,
     torso,
     { sleeve: shell.filter((pc) => /sleeve/i.test(pc.name)), collars: collarsOf(d.pieces) },
-    { pad: d.pads, ...o, buttons: { y: d.buttons.at, r: d.buttons.sizeCm / 2, waistY: base.front.waistCentre.y }, pinFront: (globalThis as any).__pinAll ? [{ y: 52, span: 12 }] : d.buttons.at.map((y) => ({ y, span: 2 })) },
+    // A lapel that breaks high (a coat or jacket buttoned over the chest) is pressed onto the front; a plunging one,
+    // breaking near the waist, is left to hang (pressing drags its long front down).
+    { pad: d.pads, lieLapel: !!d.lapel && base.front.waistCentre.y - d.lapel.breakPt.y > 10, ...o, buttons: { y: d.buttons.at, r: d.buttons.sizeCm / 2, waistY: base.front.waistCentre.y }, pinFront: (globalThis as any).__pinAll ? [{ y: 52, span: 12 }] : d.buttons.at.map((y) => ({ y, span: 2 })) },
   );
 }
