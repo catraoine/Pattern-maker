@@ -41,7 +41,6 @@ export const openTabNext = (tab: string) => {
 /** The step last open on a garment's style screen, so coming back to it (from Review, Print or anywhere) opens there. */
 let leftOn: { name: string; tab: string } | undefined;
 
-const rank = (t: string) => (t === LOOKS ? 0 : t === PRO ? 3 : t === FABRIC ? 2 : 1);
 
 // The choices sit on a few tabs (Cat, 2026-10-18), so the whole row fits on a phone and the tailor's words
 // (darts, structure) sit beside the plain ones they belong to. A group not listed keeps a tab of its own.
@@ -49,6 +48,10 @@ const SHAPE = 'Shape';
 const NECK = 'Neck & sleeves';
 const LENGTH = 'Length & hem';
 const DETAILS = 'Details';
+// One order of steps for every garment (Cat, 2026-10-31): Shape, Neck & sleeves, Length & hem, Details, then any
+// step of a garment's own, Fabric, and the pro tools last. A garment skips the steps it has no questions for.
+const ORDER = [LOOKS, SHAPE, NECK, LENGTH, DETAILS];
+const rank = (t: string) => (t === PRO ? 7 : t === FABRIC ? 6 : ORDER.includes(t) ? ORDER.indexOf(t) : 5);
 const SECTIONS: Record<string, string> = {
   Fit: SHAPE,
   Silhouette: SHAPE,
@@ -59,7 +62,8 @@ const SECTIONS: Record<string, string> = {
   Structure: SHAPE,
   'Waist seam': SHAPE,
   Leg: SHAPE,
-  'Your knit’s stretch': SHAPE,
+  // The knit's stretch is about the fabric, so it opens the Fabric step, not Shape (Cat, 2026-10-31).
+  'Your knit’s stretch': FABRIC,
   Neckline: NECK,
   Neck: NECK,
   Collar: NECK,
@@ -73,6 +77,8 @@ const SECTIONS: Record<string, string> = {
   Hem: LENGTH,
   Slit: LENGTH,
   Peplum: LENGTH,
+  // The jacket's rib bands sit with its length and hem, not on a step of their own (Cat, 2026-10-31).
+  'Hem and cuffs': LENGTH,
   'Below the hip': LENGTH,
   Waist: DETAILS,
   Pockets: DETAILS,
@@ -550,6 +556,17 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
             </button>
           )}
         </p>
+        {/* The pro tools (seam allowances, lining, ease) are offered here, at the end, not under the fabric (Cat,
+            2026-10-31). Turning them on goes back to the steps, where they open on a tab of their own. */}
+        {onMode && (
+          <ModeLink
+            mode={mode}
+            onMode={(m) => {
+              onMode(m);
+              if (m === 'all') setPage('edit');
+            }}
+          />
+        )}
       </div>
     );
   // The step after this one, and its first word for the narrow bar at the bottom ("Next: Neck").
@@ -572,7 +589,7 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
       </div>
       {exampleTag}
       <div className="style-edit">
-        <div className={tall ? 'style-pin tall' : 'style-pin'} ref={pin}>
+        <div className={['style-pin', tall && 'tall', active === (sections.Length ?? SECTIONS.Length) && 'on-length'].filter(Boolean).join(' ')} ref={pin}>
           {/* The drawing knows which step is open: the named lengths sit beside it only on the length step. */}
           <ActiveTab.Provider value={active}>
             <Sections.Provider value={sections}>
@@ -706,7 +723,8 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
               </TabPanel>
             ) : (
               // Once, on the last tab, so it isn't repeated under every choice.
-              (wide || active === tabs[tabs.length - 1]) && <ModeLink mode={mode} onMode={onMode} />
+              // On a computer under every step; on a phone it is on the Review page (Cat, 2026-10-31).
+              wide && <ModeLink mode={mode} onMode={onMode} />
             )}
             </Sections.Provider>
           </ActiveTab.Provider>
@@ -775,7 +793,7 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
             {backArrow}
             {next ? (
               <button type="button" className="primary" onClick={() => goStep(next)}>
-                Next: {next.split(/\s/)[0]} <span aria-hidden="true">›</span>
+                Next: {next} <span aria-hidden="true">›</span>
               </button>
             ) : (
               <button type="button" className="primary" disabled={!ready} onClick={() => setPage('review')}>

@@ -65,3 +65,19 @@
 .preview-corner > .draw-clear {
   order: 0;
 }
+/* On the length step the named lengths (Mini to Maxi) run down the drawing's left edge, so on a phone the corner's
+   tools stand side by side above them instead of stacked over them (Cat, 2026-10-31). */
+@media (max-width: 760px) {
+  .style-pin.on-length .preview-corner {
+    flex-direction: row;
+  }
+}
+/* The T-shirt's stretch test, folded under its question. */
+.how-to-test summary {
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.how-to-test p {
+  margin: 6px 0 0;
+}

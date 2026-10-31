@@ -111,7 +111,10 @@ const noSeamLines = (draft: DressDraft, side: 'front' | 'back') => {
  * bodice with its darts running on through the waist seam.
  */
 /** The dress's skirt choices on one tab of their own. */
-const DRESS_SECTIONS: Record<string, string> = { Cut: 'Skirt & length', Silhouette: 'Skirt & length', Length: 'Skirt & length', Hem: 'Skirt & length', Slit: 'Skirt & length', Fullness: 'Skirt & length', Pockets: 'Skirt & length', Belt: 'Skirt & length' };
+// Named Length & hem as on every other garment (Cat, 2026-10-31); the Cut (waist seam, sheath or shift) is on Shape,
+// with the waist seam's height under it, so the seam is asked about once.
+const LEN = 'Length & hem';
+const DRESS_SECTIONS: Record<string, string> = { Cut: 'Shape', Silhouette: LEN, Length: LEN, Hem: LEN, Slit: LEN, Fullness: LEN, Pockets: LEN, Belt: LEN };
 
 
 /** A sheath's sides: plain, or ruched below the hip. */
@@ -168,6 +171,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
 
   const groups: Option[] = [
     DRESS_FIT_GROUP,
+    { id: 'noSeam', label: 'Cut', options: DRESS_CUTS },
     ...(noSeam ? [] : [WAIST_SEAM_GROUP]),
     ...BODICE_GROUPS.filter(
       (g) =>
@@ -194,13 +198,12 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
       label: g.label,
       options: g.options as [string, string][],
     })),
-    { id: 'noSeam', label: 'Cut', options: DRESS_CUTS },
     // A sheath can be ruched at the sides below the hip.
     ...(noSeam === 'sheath' ? [{ id: 'ruched', label: 'Sides', options: SHEATH_SIDES }] : []),
     ...(noSeam
       ? []
       : [
-          // Named as on the skirt, so the Skirt & length step doesn't ask a question called Skirt (Cat, 2026-10-30).
+          // Named as on the skirt, so the Length & hem step doesn't ask a question called Skirt (Cat, 2026-10-30).
           { id: 'silhouette', label: 'Silhouette', options: GROUPS[1].options },
         ]),
     ...(noSeam || wrapped

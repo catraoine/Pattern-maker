@@ -60,6 +60,10 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
 - **Phone Style panel** (Oct 31, P1): no step bars; "Step 1 of 5" opens the list of steps. One short line
   under a pick (the short lines live in `src/explain.ts`, 40 characters at most; the computer keeps the full line).
   The bar holds one button; Review all choices and Watch demo are links at the end of the step.
+- **One journey** (Oct 31, J1-J8): every garment's steps run Shape, Neck & sleeves, Length & hem, Details, Fabric
+  (skipping any it has nothing for), each named the same everywhere and in full on Next. The views read Front ·
+  Flat · All round on every garment. A fabric property (the knit's stretch) is asked on Fabric. On a phone Show all
+  tools is on the Review page.
 - **Back a step** (Oct 31, A): a plain ← box left of Next/Review on every step after the first, never a named
   link. On a phone Undo/Redo are named words across from "Step 2 of 4", away from the back arrow; Clear sits
   under Done while drawing.
