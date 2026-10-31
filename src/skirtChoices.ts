@@ -36,8 +36,20 @@ export const GROUPS: [ChoiceGroup<'fit'>, ChoiceGroup<'silhouette'>, ChoiceGroup
 
 /** How full a gathered skirt is (In testing): soft, full or dramatic gathers. Unchosen, it follows the fit. */
 export const GATHERS_GROUP: ChoiceGroup<'gathers'> = { id: 'gathers', label: 'Gathers', options: [['soft', 'Soft'], ['full', 'Full'], ['dramatic', 'Dramatic']] };
+/** With tiers: two or three, or one deep gathered skirt from a drop yoke (In testing). */
+export const TIERS_GROUP: { id: 'tiers'; label: string; options: ['stacked' | 'drop_yoke', string][] } = {
+  id: 'tiers',
+  label: 'Tiers',
+  options: [
+    ['stacked', 'Two or three'],
+    ['drop_yoke', 'One, drop yoke'],
+  ],
+};
+/** Whether the skirt's gathers can be chosen: a gathered skirt, or a drop yoke's skirt. */
+export const gathersChosen = (c: Pick<Choices, 'silhouette' | 'flounce' | 'dropYoke'>) => c.silhouette === 'gathered' || (c.flounce === 'tiers' && !!c.dropYoke);
 /** The gathers as they will be cut: the chosen ones, or the fit's own, named by the nearest. */
-export const gathersOf = (c: Pick<Choices, 'gathers' | 'fit'>): NonNullable<Choices['gathers']> => c.gathers ?? (c.fit === 'fitted' ? 'soft' : c.fit === 'regular' ? 'full' : 'dramatic');
+export const gathersOf = (c: Pick<Choices, 'gathers' | 'fit'>, dropYoke?: boolean): NonNullable<Choices['gathers']> =>
+  c.gathers ?? (dropYoke ? 'full' : c.fit === 'fitted' ? 'soft' : c.fit === 'regular' ? 'full' : 'dramatic');
 
 /** The chosen option in a group: older saves have no hem choice, which is a level hem. */
 export const chosen = (c: Choices, id: keyof Choices) => (id === 'asymHem' ? c.asymHem ?? 'none' : c[id]);

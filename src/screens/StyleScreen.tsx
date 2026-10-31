@@ -45,7 +45,7 @@ import { AllRound } from '../ui/AllRound';
 import { roundSkirt } from '../engine/allRound';
 import { PiecesList, SummaryActions } from '../ui/StyleSummary';
 
-import { GROUPS, GATHERS_GROUP, gathersOf, chosen, DETAIL_GROUPS, FRONT_GROUP, frontOf, ZIP_PLACES, detailOf, zipOf, withWaist, keepWrap, elasticAllowed, pocketsAllowed, keepWaist, beltOf_, currentLook, describe, fabricMetres } from '../skirtChoices';
+import { GROUPS, GATHERS_GROUP, TIERS_GROUP, gathersChosen, gathersOf, chosen, DETAIL_GROUPS, FRONT_GROUP, frontOf, ZIP_PLACES, detailOf, zipOf, withWaist, keepWrap, elasticAllowed, pocketsAllowed, keepWaist, beltOf_, currentLook, describe, fabricMetres } from '../skirtChoices';
 
 interface Props {
   finish: Finish;
@@ -284,18 +284,18 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
             <Explain set="skirt" group={g.id} options={g.options} pick={chosen(choices, g.id)} />
           </Group>
         ))}
-        {choices.silhouette === 'gathered' && (
+        {gathersChosen(choices) && (
           <Group label={GATHERS_GROUP.label}>
             <div className={chipsClass('skirt', 'gathers')}>
               {GATHERS_GROUP.options.map(([id, label]) => (
-                <button key={id} type="button" className={gathersOf(choices) === id ? 'chip on' : 'chip'} aria-pressed={gathersOf(choices) === id} onClick={() => change({ ...choices, gathers: id })}>
+                <button key={id} type="button" className={gathersOf(choices, choices.dropYoke) === id ? 'chip on' : 'chip'} aria-pressed={gathersOf(choices, choices.dropYoke) === id} onClick={() => change({ ...choices, gathers: id })}>
                   <ChoicePic set="skirt" group="gathers" id={id} />
                   {label}
                   <TestingTag tool="fullness" />
                 </button>
               ))}
             </div>
-            <Explain set="skirt" group="gathers" options={GATHERS_GROUP.options} pick={gathersOf(choices)} />
+            <Explain set="skirt" group="gathers" options={GATHERS_GROUP.options} pick={gathersOf(choices, choices.dropYoke)} />
           </Group>
         )}
         <Group label="Slit">
@@ -447,6 +447,23 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
                 </button>
               ))}
             </div>
+          )}
+          {volumeOf(choices) === 'tiers' && (
+            <>
+              <div className={chipsClass('skirt', 'tiers')}>
+                {TIERS_GROUP.options.map(([id, label]) => {
+                  const on = (id === 'drop_yoke') === !!choices.dropYoke;
+                  return (
+                    <button key={id} type="button" className={on ? 'chip on' : 'chip'} aria-pressed={on} onClick={() => change(id === 'drop_yoke' ? { ...choices, dropYoke: true } : (({ dropYoke: _d, ...rest }) => rest)(choices))}>
+                      <ChoicePic set="skirt" group="tiers" id={id} />
+                      {label}
+                      {id === 'drop_yoke' && <TestingTag tool="drop_yoke" />}
+                    </button>
+                  );
+                })}
+              </div>
+              <Explain set="skirt" group="tiers" options={TIERS_GROUP.options} pick={choices.dropYoke ? 'drop_yoke' : 'stacked'} />
+            </>
           )}
           {choices.silhouette === 'slip' ? (
             <p className="muted small">A bias slip hangs from the hip without pleats, godets, flounces or tiers.</p>

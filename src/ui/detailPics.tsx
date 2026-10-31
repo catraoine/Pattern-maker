@@ -61,6 +61,10 @@ const inseam = (base: string, y: number) => on(base, `M10.5 ${y}q-4 3 -1 7.5q2 1
 const DETAILS: Record<ExplainSet, Record<string, Record<string, ReactNode>>> = {
   skirt: {
     fit: FIT,
+    tiers: {
+      stacked: on('M15 6h10l1 12l3 12l3 14H8l3-14l3-12z', 'M14 18h12M11 30h18'),
+      drop_yoke: on('M15 6h10l1 16l8 22H6l8-22z', 'M14 22h12M16 23L13 43M20 23V43M24 23L27 43'),
+    },
     gathers: {
       soft: on('M15 6h10l3 38H12z', 'M17 7L16 43M20 7V43M23 7L24 43'),
       full: on('M15 6h10l6 38H9z', 'M16 7L13 43M18 7L17 43M20 7V43M22 7L23 43M24 7L27 43'),

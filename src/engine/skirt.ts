@@ -72,6 +72,8 @@ export interface SkirtStyle {
   asymHem?: AsymHem;
   /** A gathered skirt's fullness, chosen (In testing); unset, it follows the fit (GATHER_RATIO). */
   gathers?: Gathers;
+  /** With tiers: one deep gathered skirt from a yoke below the hip, in place of the tiers (In testing). */
+  dropYoke?: boolean;
   /** In-seam pockets in the side seams. Older saves have none. */
   pockets?: 'none' | 'inseam';
   /** A waistband with a zip, or an elastic casing that pulls on over the hips. Ignored on a dress. */

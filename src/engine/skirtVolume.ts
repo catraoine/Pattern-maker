@@ -16,8 +16,8 @@
 import { P, Path, add, len, lerp, mul, p, sub, taggedLength, unit } from './geometry';
 import { bounds, cutLine, type Label, type Piece } from './piece';
 import { layPlan } from './layplan';
-import { arc, cm, onCircle } from './skirt';
-import type { Length, Silhouette, SkirtDraft, SkirtMeasurements, SkirtStyle } from './skirt';
+import { GATHERS, arc, cm, onCircle } from './skirt';
+import type { Gathers, Length, Silhouette, SkirtDraft, SkirtMeasurements, SkirtStyle } from './skirt';
 import { rucheAllowed } from './ruche';
 import type { SewStep } from './instructions';
 import type { AsymHem } from './asymHem';
@@ -39,6 +39,10 @@ export interface VolumeStyle {
   flounce?: Flounce;
   /** A high-low or diagonal hem (asymHem.ts): only godets go with one. */
   asymHem?: AsymHem;
+  /** With tiers: one deep gathered skirt from a yoke to below the hip, in place of two or three tiers (In testing). */
+  dropYoke?: boolean;
+  /** With a drop yoke: how full its skirt is gathered (soft, full or dramatic). */
+  gathers?: Gathers;
   /** Ruched sides (ruche.ts): set in the same group, one or the other. */
   ruched?: boolean;
 }
@@ -96,7 +100,7 @@ const godetCount = (s: { godets?: GodetCount }): 4 | 6 | 8 => (s.godets === 4 ||
 
 /** The choices with one detail set and the others cleared. */
 export function setVolume<C extends Partial<VolumeStyle>>(c: C, kind: VolumeKind, godets?: GodetCount): C {
-  const { pleats: _p, godets: g, flounce: _f, ruched: _r, ...rest } = c;
+  const { pleats: _p, godets: g, flounce: _f, ruched: _r, dropYoke: _d, ...rest } = c;
   if (kind === 'none') return rest as C;
   if (kind === 'knife' || kind === 'box' || kind === 'inverted') return { ...rest, pleats: kind } as C;
   if (kind === 'godets') return { ...rest, godets: godets ?? (g ? godetCount({ godets: g }) : 6) } as C;
@@ -125,7 +129,7 @@ export function volumeWords(s: VolumeStyle): string {
   if (skirtDetailOf(s) === 'ruched') return 'with ruched sides';
   const k = volumeOf(s);
   if (k === 'godets') return `with ${godetCount(s)} godets`;
-  return { none: '', knife: 'with knife pleats', box: 'with box pleats', inverted: 'with inverted pleats', hem_flounce: 'with a hem flounce', tiers: 'with gathered tiers', ruffle: 'with a ruffled hem', balloon: 'with a balloon hem' }[k];
+  return { none: '', knife: 'with knife pleats', box: 'with box pleats', inverted: 'with inverted pleats', hem_flounce: 'with a hem flounce', tiers: s.dropYoke ? 'with a drop yoke' : 'with gathered tiers', ruffle: 'with a ruffled hem', balloon: 'with a balloon hem' }[k];
 }
 
 /** No walking slit is needed once a skirt has pleats, godets, a flounce or tiers: they give the room. */
@@ -1051,11 +1055,13 @@ function flounced(m: SkirtMeasurements, s: SkirtStyle, draft: SkirtDraft, redraf
   if (kind === 'balloon') return ballooned(s, draft, redraft);
 
   // Tiers: a yoke to just below the hip and clear of the zip, then two or three gathered tiers (two
-  // shallow ones on a skirt above the knee).
+  // shallow ones on a skirt above the knee). A drop yoke (In testing) has one deep gathered skirt instead,
+  // gathered as full as chosen, for the fitted-hip, full-below look.
   const zipEnd = draft.pieces[1].notches.find(([q, dir]) => Math.abs(q.x) < 1e-6 && dir.x < 0)?.[0].y ?? draft.zipCm;
   const yoke = Math.max(hipY + 5, zipEnd + 4);
   const T = Lc - yoke;
-  const n = T >= 48 ? 3 : T >= 12 ? 2 : 0;
+  const one = !!s.dropYoke;
+  const n = one ? (T >= 12 ? 1 : 0) : T >= 48 ? 3 : T >= 12 ? 2 : 0;
   if (!n) return draft;
   const upper = shortened(s, draft, redraft, hipY, yoke, 'tier');
   const named = upper.pieces.map((pc) => ({
@@ -1065,8 +1071,8 @@ function flounced(m: SkirtMeasurements, s: SkirtStyle, draft: SkirtDraft, redraf
   }));
   const top = 2 * named.reduce((t, pc) => t + taggedLength(pc.outline, 'tier'), 0);
   // Each tier a little deeper than the one above, and gathered to a half (two tiers) or two-thirds (three).
-  const ratio = n === 3 ? 1.5 : 1.8;
-  const weights = n === 3 ? [1, 1.15, 1.3] : [1, 1.2];
+  const ratio = one ? GATHERS[s.gathers ?? 'full'] : n === 3 ? 1.5 : 1.8;
+  const weights = one ? [1] : n === 3 ? [1, 1.15, 1.3] : [1, 1.2];
   const wsum = weights.reduce((a, b) => a + b, 0);
   const hemSa = 2;
   let above = top;
@@ -1076,7 +1082,7 @@ function flounced(m: SkirtMeasurements, s: SkirtStyle, draft: SkirtDraft, redraf
     // Panels in pairs, so a seam falls at each side; each narrow enough to cut from folded fabric.
     const perHalf = Math.ceil(round / 2 / (PANEL_MAX - 2 * sa));
     const band: TierBand = {
-      name: `Tier ${i + 1}`,
+      name: one ? 'Lower skirt' : `Tier ${i + 1}`,
       depth: r1(depth),
       round: r1(round),
       gatheredTo: r1(above),

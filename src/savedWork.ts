@@ -41,6 +41,8 @@ export interface Choices {
   asymHem?: AsymHem;
   /** A gathered skirt's fullness (In testing); unset, it follows the fit. */
   gathers?: Gathers;
+  /** With tiers: one deep gathered skirt from a drop yoke (In testing). */
+  dropYoke?: boolean;
   /** In-seam pockets. Older saves have none. */
   pockets?: 'none' | 'inseam';
   /** A tie sash, belt loops, or both, at the waist (see belt.ts). Older saves have none. On a dress, its skirt's choices carry it. */

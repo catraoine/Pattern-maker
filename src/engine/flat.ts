@@ -725,10 +725,26 @@ function volumeFlat(d: SkirtDraft, i: number, h: Half, hemY: number): { shapes: 
   // Tiers: each a little wider than the one above, gathered into the seam.
   let top = { left: centre.y, right: side };
   const ruffle = v.kind === 'ruffle';
+  // A drop yoke's one deep skirt (In testing): wider the fuller it is gathered, its gathers falling in
+  // folds to a softly rippled hem.
+  const deep = !ruffle && v.tiers?.bands.length === 1 && v.tiers.bands[0].name === 'Lower skirt';
   for (const b of v.tiers?.bands ?? []) {
-    const right = p(top.right.x + b.depth * (ruffle ? 0.5 : 0.22), top.right.y + b.depth);
+    const right = p(top.right.x + b.depth * (ruffle ? 0.5 : deep ? 0.1 * b.ratio : 0.22), top.right.y + b.depth);
     const left = top.left + b.depth;
-    if (ruffle) {
+    if (deep) {
+      const folds = Math.round(2 * b.ratio);
+      const per = 6;
+      const hem = Array.from({ length: folds * per + 1 }, (_, k) => {
+        const t = k / (folds * per);
+        return p(right.x * (1 - t), lerp(right, p(0, left), t).y + 0.5 * Math.cos(t * folds * 2 * Math.PI));
+      });
+      shapes.push(whole([p(0, top.left), top.right, ...hem]));
+      for (let f = 0; f < folds; f++) {
+        const at = hem[f * per + per / 2];
+        const from = p((top.right.x * at.x) / right.x, lerp(p(0, top.left), top.right, at.x / right.x).y + 2.5);
+        add2([from, p(lerp(from, at, 0.75).x, lerp(from, at, 0.75).y)], 'seam');
+      }
+    } else if (ruffle) {
       // A ruffle stands out wider than a tier, its hem rippling in soft folds.
       const folds = 4;
       const per = 6;
