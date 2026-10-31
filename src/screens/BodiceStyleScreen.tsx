@@ -1,13 +1,13 @@
 import { TestingTag } from '../ui/TestingTag';
 import { matchKind } from '../engine/prints';
-import { optionInTesting } from '../launch';
+import { optionInTesting, oversizedInTesting } from '../launch';
 import { BackNeck, backBlocked } from '../engine/backNeck';
 import { useMemo, useState } from 'react';
 import { layout } from '../engine/export';
 import { bodiceSpec, sleeveSpec } from '../engine/spec';
 import { FinishedTable, finishedLines } from '../ui/FinishedTable';
 import { BodiceDraft, BodiceMeasurements, bodiceEase, dropRange, needsHip } from '../engine/bodice';
-import { BODICE_GROUPS, BodiceChoices, DARTS_FOR_FIT, describeBodice, detailAllowed, sleeveOf, topAllowed, validDetails } from '../garments';
+import { BODICE_GROUPS, BodiceChoices, DARTS_FOR_FIT, dartsFor, describeBodice, detailAllowed, sleeveOf, topAllowed, validDetails } from '../garments';
 import { isStrapless, isTop } from '../engine/corset';
 import { SHIRR } from '../engine/shirred';
 import { bodiceFlat } from '../engine/flat';
@@ -194,7 +194,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
 
   const choose = (c: BodiceChoices, group?: string) => {
     // A tighter fit needs more shaping, so moving to it brings the darts back.
-    const darts = DARTS_FOR_FIT[c.fit].includes(c.darts) ? c.darts : 'bust_waist';
+    const darts = dartsFor(c);
     const next = { ...c, darts };
     // Picking a named fit, length or neckline lets go of the dragged or drawn one.
     for (const k of (group && REPLACES[group]) || []) delete next[k];
@@ -218,7 +218,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
         body={formWidth(draft, m)}
         m={m}
         legs={false}
-        bottom={Math.max(landmarks(draft).waistY + (hip ? dropRange(m).max : 0) + 6, drawArm ? drawArm.wristY + 3 : 0)}
+        bottom={Math.max(landmarks(draft).waistY + (hip ? dropRange(m, choices.length).max : 0) + 6, drawArm ? drawArm.wristY + 3 : 0)}
         arms={drawArm}
         kinds={[
           ['neckline', 'Neckline'],
@@ -321,6 +321,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
                   <ChoicePic set="bodice" group={g.id} id={id} />
                   {label}
                   {optionInTesting(g.id, id) && <TestingTag tool="new_details" />}
+                  {oversizedInTesting(g.id, id) && <TestingTag tool="oversized" />}
                 </button>
               ))}
             </div>
@@ -387,7 +388,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
             )}
             {g.id === 'collar' && !choices.neck && choices.neckline === 'crew' && detail.closure !== 'front_buttons' && <p className="muted small">A shirt collar needs the front buttons.</p>}
             {g.id === 'darts' && choices.fit !== 'relaxed' && (
-              <p className="muted small">{choices.fit === 'fitted' ? 'A fitted bodice needs bust and waist darts.' : 'Choose a relaxed fit to go without darts.'}</p>
+              <p className="muted small">{choices.fit === 'fitted' ? 'A fitted bodice needs bust and waist darts.' : choices.fit === 'oversized' ? 'An oversized top has no darts: its width covers the bust.' : 'Choose a relaxed fit to go without darts.'}</p>
             )}
           </Group>
         ))}

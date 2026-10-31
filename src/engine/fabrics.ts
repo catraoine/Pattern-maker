@@ -255,6 +255,14 @@ export function skirtFabrics(style: { fit?: Fit; silhouette: Silhouette; length:
 }
 
 const BODICE: Record<BodiceFit, { picks: FabricPick[]; avoid: string }> = {
+  oversized: {
+    picks: [
+      pick('Cotton poplin or shirting', ['light', 'medium'], 'crisp', 'The big shirt\u2019s own cloth: it stands away from the body and presses sharp at the collar and cuffs.'),
+      pick('Washed linen', ['medium'], 'crisp', 'Falls in soft folds and looks better creased.'),
+      pick('Cotton voile or silk crepe de chine', ['light'], 'soft', 'Lighter and more fluid, so all that width drapes instead of standing out.'),
+    ],
+    avoid: 'Heavy or stiff cloth like denim or canvas. With this much width it stands out like a tent.',
+  },
   fitted: {
     picks: [
       pick('Cotton poplin or sateen', ['light', 'medium'], 'crisp', 'Darts press flat and the shape stays sharp.'),
@@ -335,7 +343,7 @@ const PEPLUM_NOTES = {
   gathered: 'A gathered peplum sits neatest in a light fabric, so the gathers stay soft at the waist.',
 };
 
-const FIT_WORDS: Record<BodiceFit, string> = { fitted: 'fitted', regular: 'regular fit', relaxed: 'relaxed', boxy: 'boxy' };
+const FIT_WORDS: Record<BodiceFit, string> = { fitted: 'fitted', regular: 'regular fit', relaxed: 'relaxed', boxy: 'boxy', oversized: 'oversized' };
 
 /** Fabrics for a bodice style. */
 export function bodiceFabrics(style: { fit: BodiceFit; neckline: Neckline; length?: BodiceLength; darts?: BodiceDarts; structure?: Structure; neck?: unknown; peplum?: 'none' | 'flared' | 'gathered' }): FabricAdvice {

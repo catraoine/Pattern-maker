@@ -36,7 +36,8 @@ export type TestingTool =
   | 'client_book'
   | 'collection'
   | 'projector'
-  | 'new_details';
+  | 'new_details'
+  | 'oversized';
 
 export const TESTING_TOOLS: Record<TestingTool, { name: string; where: string; proof: string }> = {
   draw_lines: { name: 'Draw your lines', where: 'Style, Draw on your form', proof: 'fit testers draw a hem, a neckline and a side and the pattern follows' },
@@ -53,6 +54,8 @@ export const TESTING_TOOLS: Record<TestingTool, { name: string; where: string; p
   // Cat broke the freeze for it (2026-10-28), modelled on the free Pattern Projector app.
   projector: { name: 'Projector mode', where: 'Print, Projector, and inside projector mode', proof: 'two sewists cut a garment with it on their own projectors' },
   // Cat broke the freeze for these too (2026-10-28), so a photo can name them.
+  // Cat broke the freeze for the big shirt (2026-10-31), so the Parma Shirt can be cut oversized and long.
+  oversized: { name: 'Oversized and long tops', where: 'the Oversized fit and Long length chips on the top', proof: 'two testers sew an oversized long shirt and it hangs straight, its sleeves lifting without pulling' },
   new_details: { name: 'Ruffles, ruching, cape and balloon hem', where: 'the chips for each on the Style screens', proof: 'three testers sew a ruffled hem, ruched sides and a cape and each hangs as drawn' },
 };
 
@@ -75,3 +78,7 @@ const OPTIONS_IN_TESTING: Record<string, readonly string[]> = {
 };
 
 export const optionInTesting = (group: string, id: string) => !!OPTIONS_IN_TESTING[group]?.includes(id);
+
+/** The top's chips under the oversized tool. */
+const OVERSIZED_OPTIONS: Record<string, readonly string[]> = { fit: ['oversized'], length: ['long'] };
+export const oversizedInTesting = (group: string, id: string) => !!OVERSIZED_OPTIONS[group]?.includes(id);

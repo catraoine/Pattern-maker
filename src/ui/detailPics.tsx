@@ -46,6 +46,13 @@ const DRESS_FIT = {
       <path d="M10 8.5L14 6.5Q20 9.5 26 6.5L30 8.5V42H10z" />
     </>
   ),
+  /** The top's Oversized: far out from the body, the shoulder dropped past it. */
+  oversized: (
+    <>
+      <path className="pic-faint-solid" d={BODY} />
+      <path d="M6 12L14 6.5Q20 9.5 26 6.5L34 12V43H6z" />
+    </>
+  ),
 };
 
 /** Pockets hidden in the side seams: the bags drawn dashed behind the seam. */

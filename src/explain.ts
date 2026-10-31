@@ -15,6 +15,8 @@ const FIT: Record<string, Line> = {
 };
 /** The dress's fits: Boxy is the dress's own (see DRESS_FIT_GROUP). */
 const DRESS_FIT: Record<string, Line> = { ...FIT, boxy: ['Straight from bust to hem, the shoulder squared by the cut, not a pad. Bust darts keep it smooth.', 'easy'] };
+/** The top's fits: Oversized is the top's own, the big shirt. */
+const TOP_FIT: Record<string, Line> = { ...DRESS_FIT, oversized: ['The big shirt: very roomy, straight from the bust with no darts and a deep armhole. Best with dropped shoulders.', 'easy'] };
 
 const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
   skirt: {
@@ -89,7 +91,7 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
     },
   },
   bodice: {
-    fit: DRESS_FIT,
+    fit: TOP_FIT,
     neckline: {
       crew: ['A round neckline that sits close at the base of the neck.', 'easy'],
       scoop: ['A wider, lower round neckline.', 'easy'],
@@ -107,6 +109,7 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       waist: ['Ends at your waist, the natural place to meet a skirt or trousers.'],
       high_hip: ['Ends a little below the waist, at the top of the hip.'],
       hip: ['Ends at the fullest part of the hip.'],
+      long: ['Runs on past the hip to cover your seat, like a shirt worn loose.'],
     },
     waistSeam: {
       empire: ['Just under the bust, the skirt falling free from there. Make it short and full for a babydoll.'],

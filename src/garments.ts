@@ -355,13 +355,13 @@ type Group<K extends keyof BodiceChoices> = { id: K; label: string; options: [No
 
 // Options from styling/styling-options.json (top). Oversized fit needs its own block.
 export const BODICE_GROUPS: [Group<'fit'>, Group<'neckline'>, Group<'length'>, Group<'darts'>, Group<'sleeve'>, Group<'sleeveShape'>, Group<'sleeveCut'>, Group<'sleeveCuff'>, Group<'princess'>, Group<'bustDart'>, Group<'closure'>, Group<'collar'>, Group<'back'>, Group<'structure'>, Group<'peplum'>] = [
-  { id: 'fit', label: 'Fit', options: [['fitted', 'Fitted'], ['regular', 'Regular'], ['relaxed', 'Relaxed']] },
+  { id: 'fit', label: 'Fit', options: [['fitted', 'Fitted'], ['regular', 'Regular'], ['relaxed', 'Relaxed'], ['oversized', 'Oversized']] },
   {
     id: 'neckline',
     label: 'Neckline',
     options: [['crew', 'Crew'], ['scoop', 'Scoop'], ['v', 'V-neck'], ['square', 'Square'], ['boat', 'Boat'], ['one_shoulder', 'One-shoulder'], ['cowl', 'Cowl'], ['strapless', 'Strapless'], ['sweetheart', 'Sweetheart'], ['cami', 'Cami straps'], ['halter', 'Halter']],
   },
-  { id: 'length', label: 'Length', options: [['waist', 'Waist'], ['high_hip', 'High hip'], ['hip', 'Hip']] },
+  { id: 'length', label: 'Length', options: [['waist', 'Waist'], ['high_hip', 'High hip'], ['hip', 'Hip'], ['long', 'Long']] },
   { id: 'darts', label: 'Darts', options: [['bust_waist', 'Bust and waist'], ['bust', 'Bust only'], ['none', 'No darts']] },
   {
     id: 'sleeve',
@@ -553,6 +553,15 @@ export const DARTS_FOR_FIT: Record<BodiceFit, BodiceDarts[]> = {
   relaxed: ['bust_waist', 'bust', 'none'],
   // Boxy keeps its darts: bust darts for the shape over the bust, waist darts only as long fish-eyes.
   boxy: ['bust', 'bust_waist'],
+  // Oversized has none: the ease covers the bust.
+  oversized: ['none'],
+};
+
+/** The darts kept on moving to a fit: the ones chosen if the fit allows them, else bust and waist darts, or the
+ * fit's own when it has none of those (oversized). */
+export const dartsFor = (c: Pick<BodiceChoices, 'fit' | 'darts'>): BodiceDarts => {
+  const allowed = DARTS_FOR_FIT[c.fit];
+  return allowed.includes(c.darts) ? c.darts : allowed.includes('bust_waist') ? 'bust_waist' : allowed[0];
 };
 
 const NECK_WORDS: Record<Neckline, string> = { crew: 'crew neck', scoop: 'scoop neck', v: 'V-neck', square: 'square neck', boat: 'boat neck', one_shoulder: 'one-shoulder neckline', cowl: 'cowl neck', strapless: 'strapless', sweetheart: 'strapless sweetheart', cami: 'cami', halter: 'halter' };
@@ -596,7 +605,7 @@ function withPeplum(name: string, v: BodiceChoices) {
   if (!v.peplum || v.peplum === 'none') return name;
   return `${name}${/ with /.test(name) ? ' and' : ' with'} a ${v.peplum} peplum`;
 }
-const LENGTH_WORDS: Record<BodiceLength, string> = { waist: 'waist-length', high_hip: 'high-hip-length', hip: 'hip-length' };
+const LENGTH_WORDS: Record<BodiceLength, string> = { waist: 'waist-length', high_hip: 'high-hip-length', hip: 'hip-length', long: 'long' };
 
 /** The style seam as a word before "bodice": "empire-waist", "side-panel", "yoked", "front-yoke". */
 function seamAdjective(v: BodiceChoices) {
@@ -658,5 +667,7 @@ export function describeBodice(c: BodiceChoices) {
   const dropped = c.dropCm !== undefined && c.dropCm >= 3;
   const lengthWords = dropped ? '' : `${c.dropCm !== undefined ? 'waist-length' : LENGTH_WORDS[c.length]} `;
   const shapedHem = isShaped(c.hem) && (c.length !== 'waist' || dropped) ? ', with a shaped hem' : '';
-  return `${lengthWords}${neck}${princess}${seam} bodice${sleeve}${dropped ? `, ${Math.round(c.dropCm!)} cm below the waist` : ''}${shapedHem}`;
+  // Oversized is a cut of its own, so it is named; the other fits are read off the drawing.
+  const big = v.fit === 'oversized' ? 'oversized ' : '';
+  return `${lengthWords}${big}${neck}${princess}${seam} bodice${sleeve}${dropped ? `, ${Math.round(c.dropCm!)} cm below the waist` : ''}${shapedHem}`;
 }

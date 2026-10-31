@@ -51,11 +51,14 @@ export interface BodiceMeasurements {
 
 /** Boxy (a dress fit, Cat 2026-10-30): a straight body from the bust down, bust darts kept, and a square
  * shoulder line from the cut itself, with no pad and nothing stiff (see BOXY). */
-export type BodiceFit = 'fitted' | 'regular' | 'relaxed' | 'boxy';
+/** Oversized (a top's fit, Cat 2026-10-31, for the Parma Shirt): the big shirt, straight from the bust with no darts,
+ * twice a relaxed top's ease and a deep armhole, worn with a dropped shoulder (see OVERSIZED). */
+export type BodiceFit = 'fitted' | 'regular' | 'relaxed' | 'boxy' | 'oversized';
 /** The draped necklines (one-shoulder, cowl) are drafted as whole pieces in drape.ts; the top necklines
  * (strapless, sweetheart, cami) are cut below the shoulders in corset.ts. */
 export type Neckline = 'crew' | 'scoop' | 'v' | 'square' | 'boat' | 'one_shoulder' | 'cowl' | 'strapless' | 'sweetheart' | 'cami' | 'halter';
-export type BodiceLength = 'waist' | 'high_hip' | 'hip';
+/** Long runs on past the hip to cover the seat, as a big shirt does (see LONG_BELOW_HIP). */
+export type BodiceLength = 'waist' | 'high_hip' | 'hip' | 'long';
 export interface DressHem {
   belowWaist: number;
   shape: 'sheath' | 'shift';
@@ -195,7 +198,7 @@ export const NECKLINES: Record<Neckline, { frontDepth: number; width: number; ba
 };
 
 /** Hip ease (cm) for tops that reach below the waist, from the same fit options. */
-const BODICE_HIP_EASE: Record<BodiceFit, number> = { fitted: 4, regular: 7, relaxed: 11, boxy: 10 };
+const BODICE_HIP_EASE: Record<BodiceFit, number> = { fitted: 4, regular: 7, relaxed: 11, boxy: 10, oversized: 26 };
 
 /**
  * The body's girth `drop` cm below the waist: out to the high hip halfway down to the hip in a straight run,
@@ -225,6 +228,7 @@ export const BODICE_FIT_EASE: Record<BodiceFit, { bust: number; waist: number }>
   regular: { bust: 7, waist: 5 },
   relaxed: { bust: 11, waist: 10 },
   boxy: { bust: 12, waist: 12 },
+  oversized: { bust: 26, waist: 26 },
 };
 
 /**
@@ -234,6 +238,20 @@ export const BODICE_FIT_EASE: Record<BodiceFit, { bust: number; waist: number }>
  * carried on `extend` cm past the body's own, so the cloth sits level and just off the shoulder tip.
  */
 export const BOXY = { waist: 4, square: 1.5, extend: 1.5 };
+
+/**
+ * The oversized cut: the waist and hem no narrower than the bust, so it hangs straight as a big shirt does, no
+ * darts (the bust's shaping left as ease), and the armhole grown for at most `armholeEase` cm of the ease: the
+ * wide body makes a long armhole without a much deeper underarm, but a dragged fit past it would only drop the
+ * underarm. A dragged fit stays oversized within `range`.
+ */
+export const OVERSIZED = { armholeEase: 26, range: { min: 20, max: 36 } };
+
+/** Cut straight from the bust: a boxy or an oversized body. */
+export const straightCut = (f: BodiceFit) => f === 'boxy' || f === 'oversized';
+
+/** How far past the hip a long top runs, in cm: over the seat, like a shirt's tail. */
+export const LONG_BELOW_HIP = 14;
 
 /** Drawn necklines flatter than this come to a point at the centre front, like a V. */
 export const POINTED_NECK = 0.2;
@@ -247,21 +265,23 @@ export function bodiceEase(s: { fit: BodiceFit; bustEase?: number; neckline?: Ne
   if (isBoned(s)) return BONED_EASE;
   const base = BODICE_FIT_EASE[s.fit];
   if (s.bustEase === undefined) return base;
-  const bust = Math.min(BUST_EASE_RANGE.max, Math.max(BUST_EASE_RANGE.min, s.bustEase));
+  const range = s.fit === 'oversized' ? OVERSIZED.range : BUST_EASE_RANGE;
+  const bust = Math.min(range.max, Math.max(range.min, s.bustEase));
   return { bust, waist: Math.max(1, base.waist + bust - base.bust) };
 }
 
 /** A dragged hem sits on the waist or at least this far below it, so fish-eye darts fit above it. */
 export const DROP_MIN = 6;
 
-/** How low a dragged hem can go: a little past the full hip. */
-export const dropRange = (m: { waist_to_hip?: number }) => ({ min: DROP_MIN, max: (m.waist_to_hip ?? DROP_MIN) + 4 });
+/** How low a dragged hem can go: a little past the full hip, or past the long length on a long top (picking
+ * Long lets the hem down that far, so the shorter tops' drawings keep their size). */
+export const dropRange = (m: { waist_to_hip?: number }, length?: BodiceLength) => ({ min: DROP_MIN, max: (m.waist_to_hip ?? DROP_MIN) + 4 + (length === 'long' ? LONG_BELOW_HIP : 0) });
 
 /** How far below the waist the hem sits, in cm: a dragged drop, or the named length's. */
 export function hemDrop(m: { waist_to_hip?: number }, s: { length: BodiceLength; dropCm?: number }): number {
   const WH = m.waist_to_hip ?? 0;
-  if (s.dropCm !== undefined) return s.dropCm < DROP_MIN / 2 ? 0 : Math.min(dropRange(m).max, Math.max(DROP_MIN, s.dropCm));
-  return s.length === 'hip' ? WH : s.length === 'high_hip' ? WH / 2 : 0;
+  if (s.dropCm !== undefined) return s.dropCm < DROP_MIN / 2 ? 0 : Math.min(dropRange(m, s.length).max, Math.max(DROP_MIN, s.dropCm));
+  return s.length === 'long' ? WH + LONG_BELOW_HIP : s.length === 'hip' ? WH : s.length === 'high_hip' ? WH / 2 : 0;
 }
 
 const DEFAULT_BODICE_STYLE: BodiceStyle = {
@@ -593,7 +613,7 @@ function draftBlock(m: BodiceMeasurements, style: BodiceStyle): BodiceDraft {
   };
   if (!m.armscye) return withSides(table);
 
-  const target = m.armscye + 4 + 0.5 * ease.bust;
+  const target = m.armscye + 4 + 0.5 * (s.fit === 'oversized' ? Math.min(ease.bust, OVERSIZED.armholeEase) : ease.bust);
   let lo = table - 5;
   let hi = table + 3;
   for (let i = 0; i < 30; i++) {
@@ -684,8 +704,9 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   let FL = m.front_hps_to_waist;
   const HB = m.high_bust ?? B - 4;
   const be = bodiceEase(s).bust + (fit.bustEase ?? 0);
-  // Boxy: the waist no narrower than the bust less a little, so the side falls nearly straight.
-  const we = Math.max(bodiceEase(s).waist + (fit.waistEase ?? 0), s.fit === 'boxy' ? B + be - W - BOXY.waist : -Infinity);
+  // Boxy: the waist no narrower than the bust less a little, so the side falls nearly straight. Oversized: no
+  // narrower than the bust at all.
+  const we = Math.max(bodiceEase(s).waist + (fit.waistEase ?? 0), s.fit === 'boxy' ? B + be - W - BOXY.waist : s.fit === 'oversized' ? B + be - W : -Infinity);
   const warnings: string[] = [];
   // Shoulder angles the toile corrected, and a shoulder point dropped `by` cm along a shoulder `length` long.
   const corrected = (a: number, by: number | undefined) => Math.min(MAX_SLOPE, Math.max(MIN_SLOPE, a + ((by ?? 0) * Math.PI) / 180));
@@ -697,8 +718,9 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   const neckShape = s.neck ? 'drawn' : s.neckline;
   const pointed = s.neck ? s.neck.fullness < POINTED_NECK : s.neckline === 'v';
   const shiftDress = s.dressHem?.shape === 'shift';
-  const waistDarts = s.darts === 'bust_waist' && !shiftDress;
-  const bustDarts = s.darts !== 'none' && !fit.flatFront;
+  // An oversized body takes no darts: its ease covers the bust.
+  const waistDarts = s.darts === 'bust_waist' && !shiftDress && s.fit !== 'oversized';
+  const bustDarts = s.darts !== 'none' && !fit.flatFront && s.fit !== 'oversized';
   const drop = s.dressHem ? (m.waist_to_hip ?? DROP_MIN) : hemDrop(m, s);
   const below = drop > 0;
   // A shaped hem, and how high it comes: the fish-eye darts end clear of it.
@@ -771,8 +793,8 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   const swB0 = p(backW - sideSupp, wb);
   // A hem below the waist is never cut narrower than the bodice at the waist, so it doesn't pull in.
   if (below) hemFull = Math.max(hemFull, 2 * (backW + frontW - 2 * sideSupp - dartB - dartF));
-  // A boxy hem is no narrower than the bust: it hangs straight down, or eases out over a fuller hip.
-  if (below && s.fit === 'boxy') hemFull = Math.max(hemFull, B + be);
+  // A boxy or oversized hem is no narrower than the bust: it hangs straight down, or eases out over a fuller hip.
+  if (below && straightCut(s.fit)) hemFull = Math.max(hemFull, B + be);
   // ---- front --------------------------------------------------------------
   const nwF = nw - 0.2;
   const hpsF0 = p(nwF, -2);

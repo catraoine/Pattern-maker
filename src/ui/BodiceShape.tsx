@@ -13,13 +13,15 @@ import {
   BUST_EASE_RANGE,
   DROP_MIN,
   DrawnNeck,
+  LONG_BELOW_HIP,
+  OVERSIZED,
   NECKLINES,
   Neckline,
   bodiceEase,
   blockOf,
   dropRange,
 } from '../engine/bodice';
-import { BODICE_GROUPS, BodiceChoices, DARTS_FOR_FIT } from '../garments';
+import { BODICE_GROUPS, BodiceChoices, DARTS_FOR_FIT, dartsFor } from '../garments';
 import { COWL_DEPTH } from '../engine/drape';
 import { hemOffsetAt } from '../engine/bodiceHem';
 import { unevenEdge } from '../engine/uneven';
@@ -152,25 +154,27 @@ export function drapedOutline(draft: BodiceDraft, side: Side, w: Worn, cx: numbe
   return undefined;
 }
 
-// Boxy is a cut, not an amount of ease: a dragged fit snaps only to the other three.
-const FITS = (Object.keys(BODICE_FIT_EASE) as BodiceFit[]).filter((f) => f !== 'boxy');
+// Boxy and oversized are cuts, not amounts of ease: a dragged fit snaps only to the other three, and a dragged
+// oversized top stays oversized.
+const FITS = (Object.keys(BODICE_FIT_EASE) as BodiceFit[]).filter((f) => f !== 'boxy' && f !== 'oversized');
 const fitName = (id: BodiceFit) => BODICE_GROUPS[0].options.find((o) => o[0] === id)?.[1] ?? 'Boxy';
 const lengthName = (id: BodiceChoices['length']) => BODICE_GROUPS[2].options.find((o) => o[0] === id)![1];
 
 /** Keeps the darts to what the fit allows, the way picking a fit chip does. */
-const withDarts = (c: BodiceChoices): BodiceChoices => (DARTS_FOR_FIT[c.fit].includes(c.darts) ? c : { ...c, darts: 'bust_waist' });
+const withDarts = (c: BodiceChoices): BodiceChoices => (DARTS_FOR_FIT[c.fit].includes(c.darts) ? c : { ...c, darts: dartsFor(c) });
 
 /** A dragged hem: on the waist, or snapping to the high hip or hip within 1.5 cm, otherwise kept to
  * the half centimetre. */
 export function dragDrop(m: BodiceMeasurements, c: BodiceChoices, cm: number): BodiceChoices {
   const { dropCm: _d, ...rest } = c;
   if (cm < DROP_MIN / 2) return { ...rest, length: 'waist' };
-  const range = dropRange(m);
+  const range = dropRange(m, c.length);
   const v = Math.min(range.max, Math.max(range.min, cm));
   const WH = m.waist_to_hip ?? 0;
   if (Math.abs(v - WH / 2) < 1.5) return { ...rest, length: 'high_hip' };
   if (Math.abs(v - WH) < 1.5) return { ...rest, length: 'hip' };
-  return { ...rest, length: v < WH * 0.75 ? 'high_hip' : 'hip', dropCm: Math.round(v * 2) / 2 };
+  if (Math.abs(v - WH - LONG_BELOW_HIP) < 1.5) return { ...rest, length: 'long' };
+  return { ...rest, length: v < WH * 0.75 ? 'high_hip' : v < WH + LONG_BELOW_HIP / 2 ? 'hip' : 'long', dropCm: Math.round(v * 2) / 2 };
 }
 
 /** A dragged fit: bust ease moves between the fits, snapping to each one's own ease within 1 cm. */
@@ -178,6 +182,10 @@ export function dragEase(c: BodiceChoices, ease: number): BodiceChoices {
   const { bustEase: _e, ...rest } = c;
   const v = Math.min(BUST_EASE_RANGE.max, Math.max(BUST_EASE_RANGE.min, ease));
   if (c.fit === 'boxy') return { ...rest, fit: 'boxy', bustEase: Math.round(v * 2) / 2 };
+  if (c.fit === 'oversized') {
+    const o = Math.min(OVERSIZED.range.max, Math.max(OVERSIZED.range.min, ease));
+    return Math.abs(o - BODICE_FIT_EASE.oversized.bust) < 1 ? rest : { ...rest, bustEase: Math.round(o * 2) / 2 };
+  }
   const nearest = [...FITS].sort((a, b) => Math.abs(BODICE_FIT_EASE[a].bust - v) - Math.abs(BODICE_FIT_EASE[b].bust - v))[0];
   if (Math.abs(BODICE_FIT_EASE[nearest].bust - v) < 1) return withDarts({ ...rest, fit: nearest });
   return withDarts({ ...rest, fit: nearest, bustEase: Math.round(v * 2) / 2 });
@@ -272,11 +280,11 @@ export function BodiceShape({ draft, m, choices, side, drawing, label, sleeve, a
   // stays under the finger.
   const frame = useMemo(() => {
     // Room at the sides for the arms.
-    const half = SQUEEZE * ((m.full_bust + BUST_EASE_RANGE.max) / 4 + 6 + 0.2 * (m.armscye ?? 0.43 * m.full_bust));
-    const deepest = Math.max(draft.front.waistCentre.y, draft.back.waistCentre.y) + (hip ? dropRange(m).max : 0);
+    const half = SQUEEZE * ((m.full_bust + (choices.fit === 'oversized' ? OVERSIZED.range.max : BUST_EASE_RANGE.max)) / 4 + 6 + 0.2 * (m.armscye ?? 0.43 * m.full_bust));
+    const deepest = Math.max(draft.front.waistCentre.y, draft.back.waistCentre.y) + (hip ? dropRange(m, choices.length).max : 0);
     const base = formFrame(m, body, deepest + 7, arms, cloth);
     return { half: Math.max(half, base.half), top: Math.min(-8, base.top), bottom: base.bottom };
-  }, [m, hip, draft.front.waistCentre.y, draft.back.waistCentre.y, body, arms, cloth]);
+  }, [m, hip, choices.fit, choices.length, draft.front.waistCentre.y, draft.back.waistCentre.y, body, arms, cloth]);
 
   const cx = frame.half;
   const k = (frame.bottom - frame.top) / 80; // handle and label size, in proportion to the sketch
