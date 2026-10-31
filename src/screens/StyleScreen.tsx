@@ -25,6 +25,7 @@ import { FinishChoices } from '../ui/FinishChoices';
 import type { Finish } from '../savedWork';
 import { ERAS } from '../engine/eras';
 import { skirtFlat } from '../engine/flat';
+import { TechFlatView } from '../ui/TechFlatView';
 import { shapeLine } from '../photo/shape';
 import { MyFabric, fabricEase, skirtFabrics } from '../engine/fabrics';
 import { FabricCard, FabricSummary } from '../ui/FabricCard';
@@ -78,7 +79,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
   // The skirt's technical flat, for the Review page's envelope (R1, 2026-10-24).
   const flat = useMemo(() => (draft ? skirtFlat(draft, skirtBelt(choices.belt, draft)) : undefined), [draft, choices.belt]);
   const can = (t: ProTool) => shows(mode, t);
-  const [view, setView] = useState<'sketch' | 'round' | 'pattern'>('sketch');
+  const [view, setView] = useState<'sketch' | 'flat' | 'round' | 'pattern'>('sketch');
   const [fit, setFit] = useState(false);
   const canFit = !!easeMap?.length && can('easeMap');
   const [side, setSide] = useState<Side>('front');
@@ -518,11 +519,12 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
         />
         <div className="row between wrap">
           {view !== 'pattern' && draft ? (
-            <GarmentViews<Side | 'round'>
-              views={[['front', 'Front'], ['back', 'Back'], ...(round ? ([['round', 'All round']] as [Side | 'round', string][]) : [])]}
-              view={view === 'round' ? 'round' : side}
+            // The same views as every garment: Front (and Back), Flat, All round (Cat, 2026-10-31).
+            <GarmentViews<Side | 'flat' | 'round'>
+              views={[['front', 'Front'], ['back', 'Back'], ...(flat ? ([['flat', 'Flat']] as [Side | 'flat', string][]) : []), ...(round ? ([['round', 'All round']] as [Side | 'round', string][]) : [])]}
+              view={view === 'round' || view === 'flat' ? view : side}
               onView={(v) => {
-                if (v === 'round') setView('round');
+                if (v === 'round' || v === 'flat') setView(v);
                 else {
                   setSide(v);
                   setView('sketch');
@@ -583,6 +585,11 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
               onLive={onChoices}
               onDone={(before, after) => change(after, before)}
             />
+            </GarmentFabric>
+          )}
+          {flat && view === 'flat' && (
+            <GarmentFabric fabric={fabric}>
+              <TechFlatView flat={flat} title={title} />
             </GarmentFabric>
           )}
           {draft && round && view === 'round' && (

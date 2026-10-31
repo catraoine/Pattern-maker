@@ -28,7 +28,7 @@ test('enlarge the garment drawing', async ({ page }) => {
   await expect(preview).not.toHaveClass(/live-big/);
 
   // Drawing from the enlarged form opens the drawing tool enlarged too.
-  await main.getByRole('button', { name: 'Form', exact: true }).click();
+  await main.getByRole('button', { name: 'Front', exact: true }).click();
   await main.getByRole('button', { name: /^Enlarge the drawing/ }).click();
   await expect(preview).toHaveClass(/live-big/);
   await main.getByRole('button', { name: 'Draw on your form' }).first().evaluate((el) => (el as HTMLElement).click());
