@@ -103,7 +103,7 @@ export async function skipLoading(page: Page) {
 export async function openFresh(page: Page) {
   await page.goto('/?fresh');
   await skipLoading(page);
-  await expect(heading(page, /drafted to your body/i)).toBeVisible();
+  await expect(heading(page, /sewing patterns for the piece/i)).toBeVisible();
 }
 
 /** Begin, then the quiet Skip link under the first measuring page's buttons. */
