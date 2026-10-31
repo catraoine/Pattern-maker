@@ -487,7 +487,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
             </GarmentFabric>
           )}
           {draft && sheet && view === 'pattern' && !(fit && canFit) && (
-            <PatternPane><PatternPreview paper sheet={sheet} play={play} names={pieces.map((pc) => pc.name)} label={`Front and back pattern pieces for a ${title}`} /></PatternPane>
+            <PatternPane onPlay={() => setPlay(play + 1)}><PatternPreview paper sheet={sheet} play={play} names={pieces.map((pc) => pc.name)} label={`Front and back pattern pieces for a ${title}`} /></PatternPane>
           )}
           {view === 'pattern' && fit && canFit && <EaseMapView views={easeMap!} label={`The fit of the ${title}, on its pattern pieces`} />}
           <UndoToast undo={undoer} />
@@ -505,15 +505,6 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
           </p>
         )}
         {view === 'flat' && <p className="muted small">The technical flat, front and back, drawn to scale.</p>}
-        {view === 'pattern' && draft && (
-          <div className="row between wrap">
-            {!(fit && canFit) && (
-              <button type="button" className="ghost" onClick={() => setPlay(play + 1)}>
-                Watch it draft
-              </button>
-            )}
-          </div>
-        )}
         {draft?.warnings.map((w) => (
           <p key={w} className="msg small">
             {friendly(w)}
