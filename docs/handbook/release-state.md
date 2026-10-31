@@ -4,28 +4,21 @@ _Update this page whenever a release ships or a PR is queued._
 
 ## Live
 
-**Release 45** (Oct 31, 2026, #242, main `efaa6c1`): Boxy dress fit + Self band belt as full launch
-options (#241), How it works films re-recorded with the boxy mini, gold titles and Shop the fabric
-(#239), projector upgrades: paper line-up, whole-table grid, Lines panel, loupe (#238, projector
-still In testing), phone held sideways layouts (#237), Style step names Silhouette / Fullness with
-Waist first (#243), handbook fonts + collection preview rename (#240). Release 44 (Oct 30, #235)
-brought the accessibility fixes, re-recorded films and iPad layouts.
+**Release 46** (Oct 31, 2026, #245): iPhone page no longer bounces on Style (#244), AI-look photo
+strip removed from Start from a look (#246), welcome headline H2 "Drafted to you" and Make this look
+opens in the look's fabric (#247), All round goes quiet in calico with one check line (#248).
+Release 45 (Oct 31, #242) brought the Boxy dress fit and Self band, re-recorded films, projector
+upgrades, phone-sideways layouts and the Silhouette / Fullness step names.
 
 Live site: https://maisontrace.co (the cloud proxy blocks it; check
 https://whimsical-mooncake-2cf9a9.netlify.app, the same site). Strangers see the waitlist; testers
 get in with their tester link.
 
-## Queued for "ship" (as of Oct 31, 01:15 UTC)
+## Queued for "ship" (as of Oct 31, 06:00 UTC)
 
-| PR | What | Owner thread |
-| --- | --- | --- |
-| #244 | Stop the page bounce on iPhone (Style) | UX/UI |
-| #246 | Remove the AI-look photo strip from the Style page | UX/UI |
-| #247 | Headline H2; "Make this look" opens in the look's fabric | UX/UI |
-| #248 | Q2 calico All round (re-record the How it works film after it ships) | UX/UI |
+Nothing green is queued. #249 (Oversized fit and Long length for tops, In testing) is a draft.
 
-Re-record note: the films in #239 were cut before #243 renamed the dress questions; the recorder
-now picks Silhouette / Fullness, so the next re-record works as is.
+Re-record note: the How it works film needs re-recording after #248 (All round now turns in calico).
 
 ## Waiting on Cat's "apply" (not built)
 
