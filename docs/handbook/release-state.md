@@ -21,6 +21,7 @@ get in with their tester link.
 | --- | --- | --- |
 | #244 | Stop the page bounce on iPhone (Style) | UX/UI |
 | #246 | Remove the AI-look photo strip from the Style page | UX/UI |
+| #247 | Headline H2; "Make this look" opens in the look's fabric | UX/UI |
 
 Re-record note: the films in #239 were cut before #243 renamed the dress questions; the recorder
 now picks Silhouette / Fullness, so the next re-record works as is.
