@@ -15,7 +15,7 @@ import type { DartPlace, PrincessLine } from './manipulate';
 import { moveFrontDart, princessPieces } from './shaping';
 import { BackNeck, KEYHOLE, backDepthFor, backNeckOf } from './backNeck';
 import { Buttons, CAPE_NECKS, Closure, Collar, EXTENSION_CM, RUFFLE_NECKS, capeDepth, backNeckFacing, backOnFold, buttonPlaces, collarPieces, frontFacing, isBandCollar, openFront } from './collar';
-import { DrapeInfo, Peplum, PeplumHem, PeplumInfo, drapeBodice, drapeStyle } from './drape';
+import { DrapeInfo, Peplum, PeplumHem, PeplumInfo, PeplumSize, drapeBodice, drapeStyle } from './drape';
 import { Shirring, isShirred, shirredBack } from './shirred';
 import { BONED_EASE, Structure, TopDetails, bonedPanels, cutTop, isBoned, isTop, topStyle } from './corset';
 import type { HemShape } from './hem';
@@ -145,6 +145,8 @@ export interface BodiceStyle {
   peplum?: Peplum;
   /** The peplum's hem: level, or longer at the back (In testing). Older saves are level. */
   peplumHem?: PeplumHem;
+  /** The peplum's size: standard, or big (In testing). Older saves are standard. */
+  peplumSize?: PeplumSize;
   /** Boned like a corset (always with a strapless neckline, by choice with a cami); soft otherwise. */
   structure?: Structure;
   /** Style seams drawn on the form (see seams.ts), one kind at a time: a front and/or back yoke (cm

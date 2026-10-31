@@ -1063,7 +1063,7 @@ function withPeplumView(d: BodiceDraft, h: Half, v: RawView & { foot: number }, 
   const ws = waist[waist.length - 1];
   const D = d.peplum.depthCm;
   const flared = d.peplum.kind === 'flared';
-  const H = ws.x + D * (flared ? 0.55 : 0.18);
+  const H = ws.x + D * (flared ? (d.peplum.size === 'big' ? 0.8 : 0.55) : d.peplum.size === 'big' ? 0.3 : 0.18);
   const folds = flared ? 3 : 5;
   const per = 8;
   const amp = flared ? 1.2 : 0.4;

@@ -55,3 +55,25 @@ describe('the high-low peplum (In testing)', () => {
     expect(Math.abs(foot(hl, 0) - foot(lv, 0))).toBeLessThan(0.01);
   });
 });
+
+describe('the big peplum (In testing)', () => {
+  it('is longer and fuller, flared as a full circle or gathered fuller, and still sews to the bodice', () => {
+    const failures: string[] = [];
+    for (let seed = 1; seed <= sweep(20); seed++) {
+      const b = randomBody(rng(seed));
+      for (const peplum of ['flared', 'gathered'] as const)
+        for (const peplumHem of ['level', 'high_low'] as const)
+          for (const length of ['waist', 'high_hip'] as const) {
+            const style = { ...DEFAULT_BODICE, fit: 'fitted', length, peplum, peplumHem, peplumSize: 'big' } as Partial<BodiceStyle>;
+            const tag = `${seed} ${peplum} ${peplumHem} ${length}`;
+            const d = draftBodice(b, style);
+            const std = draftBodice(b, { ...style, peplumSize: 'standard' });
+            if (!(d.peplum!.depthCm > std.peplum!.depthCm * 1.3)) failures.push(`${tag}: depth ${d.peplum!.depthCm} vs ${std.peplum!.depthCm}`);
+            if (!(d.peplum!.hemCm > std.peplum!.hemCm * 1.3)) failures.push(`${tag}: hem ${d.peplum!.hemCm} vs ${std.peplum!.hemCm}`);
+            const bad = checkPattern(d.pieces.filter((pc) => !pc.kind)).filter((c) => !c.ok);
+            if (bad.length) failures.push(`${tag}: ${bad.map((c) => `${c.label} ${c.detail ?? ''}`).join('; ')}`);
+          }
+    }
+    expect(failures).toEqual([]);
+  });
+});

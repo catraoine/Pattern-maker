@@ -206,6 +206,10 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       level: ['The peplum is the same length all the way round.', 'easy'],
       high_low: ['The peplum curves down from the sides to hang longer at the back, like a short tail.'],
     },
+    peplumSize: {
+      standard: ['The usual peplum: a short flare or ruffle over the hips.', 'easy'],
+      big: ['Longer and much fuller: a full circle, or gathered extra full. Best in a crisp fabric that stands out.'],
+    },
   },
   tee: {
     stretch: {
@@ -463,6 +467,8 @@ const SHORT: Record<string, string> = {
   'peplum.flared': 'A short flared skirt at the waist.',
   'peplum.gathered': 'A short gathered ruffle at the waist.',
   'peplumHem.level': 'The same length all round.',
+  'peplumSize.standard': 'A short flare over the hips.',
+  'peplumSize.big': 'Longer and much fuller.',
   'peplumHem.high_low': 'Curves down, longer at the back.',
   'bodice.fit.oversized': 'Big and straight, no darts.',
   'bodice.length.long': 'Past the hip, over your seat.',

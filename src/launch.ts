@@ -42,7 +42,8 @@ export type TestingTool =
   | 'oversized_outer'
   | 'plunge'
   | 'high_low_peplum'
-  | 'fullness';
+  | 'fullness'
+  | 'big_peplum';
 
 export const TESTING_TOOLS: Record<TestingTool, { name: string; where: string; proof: string }> = {
   draw_lines: { name: 'Draw your lines', where: 'Style, Draw on your form', proof: 'fit testers draw a hem, a neckline and a side and the pattern follows' },
@@ -70,6 +71,8 @@ export const TESTING_TOOLS: Record<TestingTool, { name: string; where: string; p
   high_low_peplum: { name: 'High-low peplum', where: 'the Peplum hem chips on a top with a peplum', proof: 'two testers sew a high-low peplum and it falls smoothly from the sides to the longer back' },
   // And for a fuller gathered skirt (2026-10-31), so the ivory D1 dress can swing.
   fullness: { name: 'Gathered skirt fullness', where: 'the Gathers chips on a gathered skirt or dress skirt', proof: 'two testers sew a Full or Dramatic gathered skirt and the gathers sit evenly into the waist' },
+  // And for a bigger peplum on the ice-blue top (2026-10-31).
+  big_peplum: { name: 'Big peplum', where: 'the Peplum size chips on a top with a peplum', proof: 'two testers sew a big peplum and it stands out evenly from the waist' },
   oversized: { name: 'Oversized and long tops', where: 'the Oversized fit and Long length chips on the top', proof: 'two testers sew an oversized long shirt and it hangs straight, its sleeves lifting without pulling' },
   new_details: { name: 'Ruffles, ruching, cape and balloon hem', where: 'the chips for each on the Style screens', proof: 'three testers sew a ruffled hem, ruched sides and a cape and each hangs as drawn' },
 };

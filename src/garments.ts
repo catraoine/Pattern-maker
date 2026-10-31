@@ -13,7 +13,7 @@ import type { WaistSeam } from './engine/dress';
 import type { PocketStyle } from './engine/pockets';
 import type { Stretch, TeeFit, TeeLength, TeeNeck, TeeSleeve } from './engine/tee';
 import { isSwim, type CupStyle, type LegCut, type LingerieFit, type LingeriePiece, type LingerieStretch, type Rise, type StretchWay } from './engine/lingerie';
-import { Peplum, PeplumHem, isDraped, peplumLengthOk } from './engine/drape';
+import { Peplum, PeplumHem, PeplumSize, isDraped, peplumLengthOk } from './engine/drape';
 import { isShaped } from './engine/hem';
 import type { HemShape } from './engine/hem';
 import { Structure, isBoned, isStrapless, isTop } from './engine/corset';
@@ -65,6 +65,8 @@ export interface BodiceChoices {
   peplum?: Peplum;
   /** The peplum's hem: level, or longer at the back (In testing). Older saves are level. */
   peplumHem?: PeplumHem;
+  /** The peplum's size: standard, or big (In testing). Older saves are standard. */
+  peplumSize?: PeplumSize;
   /** Boned like a corset. Older saves are soft; a strapless neckline is always boned. */
   structure?: Structure;
   /** Seams drawn on the form, one kind at a time: a front and/or back yoke (cm below the neck point at
@@ -365,7 +367,7 @@ export const DEFAULT_BODICE: BodiceChoices = { garment: 'bodice', fit: 'regular'
 type Group<K extends keyof BodiceChoices> = { id: K; label: string; options: [NonNullable<BodiceChoices[K]>, string][] };
 
 // Options from styling/styling-options.json (top). Oversized fit needs its own block.
-export const BODICE_GROUPS: [Group<'fit'>, Group<'neckline'>, Group<'length'>, Group<'darts'>, Group<'sleeve'>, Group<'sleeveShape'>, Group<'sleeveCut'>, Group<'sleeveCuff'>, Group<'princess'>, Group<'bustDart'>, Group<'closure'>, Group<'collar'>, Group<'back'>, Group<'structure'>, Group<'peplum'>, Group<'peplumHem'>] = [
+export const BODICE_GROUPS: [Group<'fit'>, Group<'neckline'>, Group<'length'>, Group<'darts'>, Group<'sleeve'>, Group<'sleeveShape'>, Group<'sleeveCut'>, Group<'sleeveCuff'>, Group<'princess'>, Group<'bustDart'>, Group<'closure'>, Group<'collar'>, Group<'back'>, Group<'structure'>, Group<'peplum'>, Group<'peplumHem'>, Group<'peplumSize'>] = [
   { id: 'fit', label: 'Fit', options: [['fitted', 'Fitted'], ['regular', 'Regular'], ['relaxed', 'Relaxed'], ['oversized', 'Oversized']] },
   {
     id: 'neckline',
@@ -394,6 +396,7 @@ export const BODICE_GROUPS: [Group<'fit'>, Group<'neckline'>, Group<'length'>, G
   { id: 'structure', label: 'Structure', options: [['none', 'Soft'], ['boned', 'Boned, like a corset'], ['shirred', 'Shirred back']] },
   { id: 'peplum', label: 'Peplum', options: [['none', 'None'], ['flared', 'Flared'], ['gathered', 'Gathered']] },
   { id: 'peplumHem', label: 'Peplum hem', options: [['level', 'Level'], ['high_low', 'Longer at back']] },
+  { id: 'peplumSize', label: 'Peplum size', options: [['standard', 'Standard'], ['big', 'Big']] },
 ];
 
 const BACK_WORDS: Record<BackNeck, string> = { plain: '', scoop: 'a scoop back', v: 'a V back', keyhole: 'a keyhole back' };
@@ -617,7 +620,7 @@ function topWords(v: BodiceChoices, length: string) {
 /** A name with its peplum: "boned strapless bodice with a flared peplum". */
 function withPeplum(name: string, v: BodiceChoices) {
   if (!v.peplum || v.peplum === 'none') return name;
-  return `${name}${/ with /.test(name) ? ' and' : ' with'} a ${v.peplum} peplum${v.peplumHem === 'high_low' ? ', longer at the back' : ''}`;
+  return `${name}${/ with /.test(name) ? ' and' : ' with'} a ${v.peplumSize === 'big' ? 'big ' : ''}${v.peplum} peplum${v.peplumHem === 'high_low' ? ', longer at the back' : ''}`;
 }
 const LENGTH_WORDS: Record<BodiceLength, string> = { waist: 'waist-length', high_hip: 'high-hip-length', hip: 'hip-length', long: 'long' };
 
@@ -668,7 +671,7 @@ export function bodiceDetails(c: BodiceChoices) {
 export function describeBodice(c: BodiceChoices) {
   const v = validDetails(c);
   if (isTop(v.neckline)) return withPeplum(topWords(v, `${LENGTH_WORDS[v.length]} `), v);
-  const peplum = v.peplum && v.peplum !== 'none' ? `a ${v.peplum} peplum${v.peplumHem === 'high_low' ? ' longer at the back' : ''}` : '';
+  const peplum = v.peplum && v.peplum !== 'none' ? `a ${v.peplumSize === 'big' ? 'big ' : ''}${v.peplum} peplum${v.peplumHem === 'high_low' ? ' longer at the back' : ''}` : '';
   const sleeveWords = sleeveWordsOf(sleeveOf(v));
   const backWords = v.back && v.back !== 'plain' ? BACK_WORDS[v.back] : '';
   const sleeve = sleeveWords || peplum || backWords ? ` with ${[sleeveWords, peplum, backWords].filter(Boolean).join(' and ')}` : '';

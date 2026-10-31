@@ -176,6 +176,10 @@ const DETAILS: Record<ExplainSet, Record<string, Record<string, ReactNode>>> = {
       level: on(SHORT_TOP, 'M11 28L5 39Q20 43 35 39L29 28'),
       high_low: on(SHORT_TOP, 'M11 28L5 35Q12 37 15 40Q20 46 25 40Q28 37 35 35L29 28'),
     },
+    peplumSize: {
+      standard: on(SHORT_TOP, 'M11 28L7 37Q20 40 33 37L29 28'),
+      big: on(SHORT_TOP, 'M11 28L1 44Q20 49 39 44L29 28M15 30L9 45M20 30V47M25 30L31 45'),
+    },
   },
   tee: {
     fit: FIT,
