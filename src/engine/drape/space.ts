@@ -84,6 +84,23 @@ export function makeSpace(yOf: (c: number) => number, m: RoundMeasurements & { u
     const h = bodyHalf(y);
     for (let k = 0; k <= NA; k++) tab[r * (NA + 1) + k] = h * shapeAt((Math.PI * k) / NA, y) * s;
   }
+  // The form keeps stumps of its arms at the shoulders, wider than the chest under them. Cloth goes over the arm there
+  // (a sleeve) or round the armhole inside it, never out over the stump: above the underarm the body is held to the
+  // chest's own width.
+  const tipC0 = cOf(SHOULDER_TIP_Y);
+  const underC = tipC0 + 15;
+  const rowOf = (c: number) => Math.round((c - C0) / DC);
+  let cap = 0;
+  for (let c = underC; c < underC + 6; c += DC) cap = Math.max(cap, tab[rowOf(c) * (NA + 1) + NA / 2]);
+  for (let r = 0; r < NR; r++) {
+    const c = C0 + r * DC;
+    if (c >= underC) continue;
+    for (let k = 0; k <= NA; k++) {
+      const sa = Math.abs(Math.sin((Math.PI * k) / NA));
+      const i = r * (NA + 1) + k;
+      if (tab[i] * sa > cap) tab[i] = cap / sa;
+    }
+  }
   const bodyR = (a: number, c: number) => {
     const fr = Math.max(0, Math.min(NR - 1.001, (c - C0) / DC));
     const r = Math.floor(fr);
@@ -94,7 +111,7 @@ export function makeSpace(yOf: (c: number) => number, m: RoundMeasurements & { u
     const row = (rr: number) => tab[rr * (NA + 1) + k] * (1 - v) + tab[rr * (NA + 1) + k + 1] * v;
     return row(r) * (1 - u) + row(r + 1) * u;
   };
-  const tipC = cOf(SHOULDER_TIP_Y);
+  const tipC = tipC0;
   const tipX = bodyR(Math.PI / 2, tipC);
   const r0 = (m.upper_arm ?? 27) / TAU;
   const r1 = (m.wrist ?? 16) / TAU;
