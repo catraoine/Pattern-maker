@@ -784,7 +784,7 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
     const n = Math.max(2, Math.round(W / (lamCloth / 2)));
     const A = Math.min(3.5, 1.4 * Math.sqrt(gather - 1)) * foldA;
     // The fullness holds the skirt out from the body a little more the further down it falls.
-    const flare = (gather - 1) * ((globalThis as any).__flare ?? 0.07);
+    const flare = (gather - 1) * ((globalThis as any).__flare ?? 0.12);
     p.mesh.pts.forEach((q, i) => {
       const I = (p.base + i) * 3;
       const lv = q.y - y0;
