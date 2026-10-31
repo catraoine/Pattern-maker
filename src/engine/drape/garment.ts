@@ -796,6 +796,26 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       }
     }
   }
+  // Free edges (a lapel, a front opening, a collar's edge, a hem) drawn as smooth lines: each point eased toward its
+  // neighbours along the edge, the ends held.
+  const FREE = ['lapel', 'opening', 'opening-hem', 'collar', 'hem', 'gorge'];
+  for (let pass = 0; pass < ((globalThis as any).__edgeSm ?? 6); pass++) {
+    for (const p of B.panels) {
+      for (const tag of FREE) {
+        for (const run of p.mesh.runs[tag] ?? []) {
+          const ids = run.map((i) => i + p.base);
+          const nx = ids.map((i) => [res[i * 3], res[i * 3 + 1], res[i * 3 + 2]]);
+          for (let k = 1; k + 1 < ids.length; k++) {
+            if (sewn[ids[k]]) continue;
+            for (let d = 0; d < 3; d++) nx[k][d] = res[ids[k] * 3 + d] * 0.5 + (res[ids[k - 1] * 3 + d] + res[ids[k + 1] * 3 + d]) * 0.25;
+          }
+          ids.forEach((i, k) => {
+            for (let d = 0; d < 3; d++) res[i * 3 + d] = nx[k][d];
+          });
+        }
+      }
+    }
+  }
   // Gathered cloth: its fullness lies in soft folds round the skirt. The sim settles where the cloth hangs; the folds
   // its mesh is too coarse to form are laid on for drawing, as many as the cloth's width holds, each seam on a fold's
   // turn so the pieces still meet.
