@@ -139,8 +139,19 @@ function sewn(pc: Piece, bottom?: number, skip?: 'side' | 'all' | 'none', centre
     .map(({ a, b }) => {
       const tip = tipOf(a, b);
       const mid = mul(add(a, b), 0.5);
-      return { lo: Math.min(a.x, b.x), g: Math.abs(b.x - a.x), y: mid.y, reach: tip ? len(sub(tip, mid)) : 8, toward: tip ? Math.sign(tip.y - mid.y) || 1 : 1 };
+      return { lo: Math.min(a.x, b.x), g: Math.abs(b.x - a.x), y: mid.y, reach: tip ? len(sub(tip, mid)) : 8, toward: tip ? Math.sign(tip.y - mid.y) || 1 : 1, up: 0 };
     });
+  // A fish-eye dart inside the piece (a top cut past the waist) draws in the same way, from its widest
+  // point tapering to nothing at both ends, so the drawing nips in at the waist as the sewn top does.
+  for (const ps of linePts) {
+    if (ps.length < 3 || len(sub(ps[0], ps[ps.length - 1])) >= 0.1) continue;
+    const lo = Math.min(...ps.map((q) => q.x));
+    const hi = Math.max(...ps.map((q) => q.x));
+    const top = Math.min(...ps.map((q) => q.y));
+    const bot = Math.max(...ps.map((q) => q.y));
+    const wide = ps.reduce((m, q) => (q.x < m.x ? q : m)).y;
+    if (hi - lo > 0.1 && bot - wide > 0.5 && wide - top > 0.5) waistDarts.push({ lo, g: hi - lo, y: wide, reach: bot - wide, toward: 1, up: wide - top });
+  }
   const side = openings.find(({ a, b }) => Math.abs(b.y - a.y) >= Math.abs(b.x - a.x));
   // The bust dart's shaped end stands proud of the side seam until it is sewn: draw the seam straight past it.
   // The seam above it is angled to meet the dart too, so it runs straight from the underarm.
@@ -168,7 +179,7 @@ function sewn(pc: Piece, bottom?: number, skip?: 'side' | 'all' | 'none', centre
     // Each dart draws in toward the centre: on a piece cut whole, the darts left of it pull the other way.
     for (const d of waistDarts) {
       // The whole dart at its opening and beyond it (the waist edge), tapering to nothing at its tip.
-      const pull = d.g * clamp01(1 - Math.max(0, (q.y - d.y) * d.toward) / d.reach);
+      const pull = d.up ? d.g * clamp01(1 - (q.y < d.y ? (d.y - q.y) / d.up : (q.y - d.y) / d.reach)) : d.g * clamp01(1 - Math.max(0, (q.y - d.y) * d.toward) / d.reach);
       x += d.lo + d.g / 2 < 0 ? pull * clamp01((d.lo + d.g - q.x) / d.g) : -pull * clamp01((q.x - d.lo) / d.g);
     }
     const k = kCentre + (kSide - kCentre) * clamp01(Math.abs(q.x) / Math.max(Math.abs(footPt.x), 1));
@@ -182,15 +193,34 @@ function sewn(pc: Piece, bottom?: number, skip?: 'side' | 'all' | 'none', centre
   const top = tags.findIndex((t, i) => (t === 'fold' || t === 'centre') && tags[(i - 1 + n) % n] !== t);
   const run: P[] = [];
   const runTags: string[] = [];
+  const fishEyes = waistDarts.some((d) => d.up > 0);
   for (let s = 0; s < n; s++) {
     const i = (start + s) % n;
     if (centre >= 0 && i === top) break;
     if (!keep[i]) continue;
+    // Under a fish-eye's pull a long straight edge is walked in short steps, so it curves in and out
+    // smoothly instead of bending at the corners.
+    const prev = run.length ? pts[(start + s - 1 + n) % n] : undefined;
+    if (prev && keep[(start + s - 1 + n) % n] && fishEyes) {
+      const steps = Math.floor(len(sub(pts[i], prev)) / 1.5);
+      for (let t = 1; t < steps; t++) {
+        run.push(move(lerp(prev, pts[i], t / steps)));
+        runTags.push(tags[(start + s - 1 + n) % n]);
+      }
+    }
     run.push(move(pts[i]));
     runTags.push(tags[i]);
   }
   // End at the foot of the centre line (or back at the start when there is none).
   run.push(centre >= 0 ? move(pts[top]) : run[0]);
+  // The side seam under a fish-eye's pull bends at the dart's ends and its widest point; the sewn cloth
+  // rounds those bends, so the side is smoothed (each point eased toward its neighbours, its ends held).
+  if (fishEyes)
+    for (let pass = 0; pass < 6; pass++) {
+      const was = run.map((q) => q);
+      for (let i = 1; i < run.length - 1; i++)
+        if (runTags[i] === 'side' && runTags[i - 1] === 'side') run[i] = p((was[i - 1].x + 2 * was[i].x + was[i + 1].x) / 4, (was[i - 1].y + 2 * was[i].y + was[i + 1].y) / 4);
+    }
 
   // Darts drawn as stitched: a single line from the middle of the opening to the point, or for a
   // dart inside the piece (a fish-eye) from end to end.
@@ -1153,7 +1183,8 @@ function bodiceViews(d: BodiceDraft, edges: BodiceEdges, sleeve: SleeveDraft | u
         for (const pts of [run, mirror(run)]) for (const r of inset(pts, 0.6, shape)) lines.push({ pts: r, kind: 'stitch' });
       if (uneven) for (const r of inset(uneven, 0.6, shape)) lines.push({ pts: r, kind: 'stitch' });
     }
-    if (d.finishedHem !== undefined)
+    // A lowered peplum is sewn to the hem, so no hem stitching shows there.
+    if (d.finishedHem !== undefined && !d.peplum)
       for (const run of along(h, 'hem')) for (const pts of [run, mirror(run)]) for (const r of inset(pts, 2, shape)) lines.push({ pts: r, kind: 'stitch' });
     if (i === 0 && d.closure === 'front_buttons' && d.buttons) {
       // The right front laps over the left (the left over the right for menswear): its edge, and the buttons on the centre front.

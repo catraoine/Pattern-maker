@@ -193,8 +193,8 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
     },
     peplum: {
       none: ['No peplum.'],
-      flared: ['A short skirt of fabric sewn on at the waist that flares out over the hips.'],
-      gathered: ['A short ruffle gathered on at the waist.'],
+      flared: ['A short skirt sewn on at the waist that flares over the hips. A longer top lowers it.'],
+      gathered: ['A short ruffle gathered on at the waist, or lower on a longer top.'],
     },
   },
   tee: {

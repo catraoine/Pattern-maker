@@ -61,6 +61,7 @@ testing". A tag comes off by hand, once its proof is in: delete the entry and th
 | The collection and the Archive | the Collection heading | drop 01 published |
 | Projector mode | Print, Projector, and inside projector mode | two sewists cut a garment with it on their own projectors |
 | Oversized and long tops (the big shirt: Oversized fit and Long length; Cat broke the freeze for it, 2026-10-31) | the Oversized fit and Long length chips on the top | two testers sew an oversized long shirt and it hangs straight, its sleeves lifting without pulling |
+| Lowered peplum (the peplum sewn to a hem 6 to 12 cm below the waist, the waist still cinched; Cat broke the freeze for it, 2026-10-31) | the Peplum chips on a top longer than the waist | two testers sew a peplum lowered 6 to 9 cm and the waist stays nipped in above it |
 | Ruffles, ruching, cape and balloon hem (ruffled hems and sleeve hems, ruched sides, cape, balloon hem) | the chips for each on the Style screens | three testers sew a ruffled hem, ruched sides and a cape and each hangs as drawn |
 
 Lingerie and swimwear stay hidden (`?lingerie=preview`, PR #102). Tracé Engine, Atelier Nights, Deadstock and

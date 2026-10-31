@@ -6,7 +6,7 @@ import { useMemo, useState } from 'react';
 import { layout } from '../engine/export';
 import { bodiceSpec, sleeveSpec } from '../engine/spec';
 import { FinishedTable, finishedLines } from '../ui/FinishedTable';
-import { BodiceDraft, BodiceMeasurements, bodiceEase, dropRange, needsHip } from '../engine/bodice';
+import { BodiceDraft, BodiceMeasurements, bodiceEase, dropRange, hemDrop, needsHip } from '../engine/bodice';
 import { BODICE_GROUPS, BodiceChoices, DARTS_FOR_FIT, dartsFor, describeBodice, detailAllowed, sleeveOf, topAllowed, validDetails } from '../garments';
 import { isStrapless, isTop } from '../engine/corset';
 import { SHIRR } from '../engine/shirred';
@@ -322,6 +322,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
                   {label}
                   {optionInTesting(g.id, id) && <TestingTag tool="new_details" />}
                   {oversizedInTesting(g.id, id) && <TestingTag tool="oversized" />}
+                  {g.id === 'peplum' && id !== 'none' && hemDrop(m, choices) > 0 && <TestingTag tool="low_peplum" />}
                 </button>
               ))}
             </div>

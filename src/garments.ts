@@ -13,7 +13,7 @@ import type { WaistSeam } from './engine/dress';
 import type { PocketStyle } from './engine/pockets';
 import type { Stretch, TeeFit, TeeLength, TeeNeck, TeeSleeve } from './engine/tee';
 import { isSwim, type CupStyle, type LegCut, type LingerieFit, type LingeriePiece, type LingerieStretch, type Rise, type StretchWay } from './engine/lingerie';
-import { Peplum, isDraped } from './engine/drape';
+import { Peplum, isDraped, peplumLengthOk } from './engine/drape';
 import { isShaped } from './engine/hem';
 import type { HemShape } from './engine/hem';
 import { Structure, isBoned, isStrapless, isTop } from './engine/corset';
@@ -61,7 +61,7 @@ export interface BodiceChoices {
   collar?: Collar;
   /** A scoop or V back, or a keyhole at the back neck (see backNeck.ts). Older saves are plain. */
   back?: BackNeck;
-  /** A peplum at the waist seam, on a waist-length bodice. */
+  /** A peplum at the waist seam, on a waist-length bodice, or lowered to a hem just below it (In testing). */
   peplum?: Peplum;
   /** Boned like a corset. Older saves are soft; a strapless neckline is always boned. */
   structure?: Structure;
@@ -392,7 +392,7 @@ export const COLLAR_WORDS: Record<Collar, string> = { none: '', peter_pan: 'Pete
  * darts to carry; a top below the waist has no waist seam for the bust dart; collars sit on a high
  * round neck (a Peter Pan on a scoop too); a shirt collar needs the button front. A draped neckline
  * (one-shoulder, cowl) takes only the side bust dart, the back zip and no collar or princess seams, and
- * the one-shoulder is sleeveless. A peplum goes on a waist-length bodice, not on a dress. A drawn style
+ * the one-shoulder is sleeveless. A peplum goes on a waist-length bodice (or a fitted one just past the waist), not on a dress. A drawn style
  * seam (yoke, empire, panel) is allowed when seamBlocked finds no reason against it.
  */
 export function detailAllowed(c: BodiceChoices, id: 'princess' | 'bustDart' | 'closure' | 'collar' | 'back' | 'structure' | 'sleeve' | 'sleeveCut' | 'peplum' | SeamKind, opt: string, garment: 'bodice' | 'dress' = 'bodice'): boolean {
@@ -400,7 +400,8 @@ export function detailAllowed(c: BodiceChoices, id: 'princess' | 'bustDart' | 'c
   if (id === 'sleeveCut') return !sleeveCutBlocked(c, opt as SleeveCut);
   if (id === 'yoke' || id === 'empire' || id === 'panel') return opt === 'none' || !seamBlocked(c, id, garment, opt === 'back' ? 'back' : 'front');
   // A peplum (flared or gathered) goes on a waist-length bodice, boned or soft, never on a dress.
-  if (id === 'peplum') return opt === 'none' || (garment === 'bodice' && c.length === 'waist' && c.structure !== 'shirred' && !(c.dropCm !== undefined && c.dropCm >= 3));
+  // Lowered to a hem a few centimetres below the waist (In testing), on a cut that still nips in at the waist.
+  if (id === 'peplum') return opt === 'none' || (garment === 'bodice' && peplumLengthOk(c) && c.structure !== 'shirred');
   if (id === 'sleeve') return opt === 'none' || (c.neckline !== 'one_shoulder' && !isTop(c.neckline)) || !!c.neck;
   // Boning needs a top edge below the shoulders, and a strapless one needs the boning to stay up.
   // A halter hangs from the neck, so it stays soft.

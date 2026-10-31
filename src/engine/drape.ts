@@ -18,7 +18,8 @@ import { P, Path, add, len, lerp, mul, p, sub, taggedLength, unit } from './geom
 import { finishDart } from './darts';
 import { Ring, pathOf, ringOf } from './manipulate';
 import type { DraftPoint, Piece } from './piece';
-import type { BodiceDraft, BodiceMeasurements, BodiceStyle, UnevenNeck } from './bodice';
+import type { BodiceDraft, BodiceFit, BodiceLength, BodiceMeasurements, BodiceStyle, UnevenNeck } from './bodice';
+import { type HemShape, isShaped } from './hem';
 import { circlePiece, cm } from './skirt';
 import { facing } from './finishing';
 
@@ -65,6 +66,9 @@ export interface PeplumInfo {
   depthCm: number;
   /** Round the peplum's hem. */
   hemCm: number;
+  /** How far below the waist its seam sits: 0 at the waist, more on a lowered peplum (the bodice
+   * fitted down past the waist and the peplum sewn to its hem). Older drafts have none. */
+  seamCm?: number;
 }
 
 const r1 = (v: number) => Math.round(v * 10) / 10;
@@ -695,8 +699,26 @@ function cowl(d: BodiceDraft, s: BodiceStyle, redraft: (s: BodiceStyle) => Bodic
   };
 }
 
-/** How deep the peplum is: about 85% of the waist to hip, between 15 and 20 cm. */
-const peplumDepth = (m: { waist_to_hip?: number }) => Math.max(15, Math.min(20, Math.round(0.85 * (m.waist_to_hip ?? 20))));
+/** How deep the peplum is: about 85% of the waist to hip, between 15 and 20 cm. A lowered one is a little
+ * shorter, by 40% of how far its seam drops (at least 12 cm), so it ends lower but still above the seat. */
+const peplumDepth = (m: { waist_to_hip?: number }, seam = 0) => {
+  const atWaist = Math.max(15, Math.min(20, Math.round(0.85 * (m.waist_to_hip ?? 20))));
+  return seam > 0 ? Math.max(12, Math.round(atWaist - 0.4 * seam)) : atWaist;
+};
+
+/** How far below the waist a lowered peplum's seam can sit, in cm: a few centimetres for the long, cinched
+ * look, no lower than the high hip, where the body is already widening and a flare would sit on it. */
+export const PEPLUM_SEAM_MAX = 12;
+
+/** Whether the bodice's length takes a peplum: at the waist, or lowered (In testing) to the high hip or a
+ * dragged hem at most PEPLUM_SEAM_MAX below the waist, on a cut that nips in at the waist (not boxy or
+ * oversized, which hang straight) with a level hem for the peplum to sew to. */
+export function peplumLengthOk(c: { length: BodiceLength; dropCm?: number; fit?: BodiceFit; hem?: HemShape }): boolean {
+  const lowered = c.dropCm !== undefined ? c.dropCm >= 3 : c.length !== 'waist';
+  if (!lowered) return true;
+  if (c.fit === 'boxy' || c.fit === 'oversized' || isShaped(c.hem)) return false;
+  return c.dropCm !== undefined ? c.dropCm <= PEPLUM_SEAM_MAX : c.length === 'high_hip';
+}
 
 /** A gathered peplum piece: a rectangle, its waist edge gathered to the bodice's. */
 function rectPiece(name: string, w: number, h: number, isFront: boolean, sa: number): Piece {
@@ -724,11 +746,17 @@ function rectPiece(name: string, w: number, h: number, isFront: boolean, sa: num
 
 /** The peplum's pieces, their waist walked to the bodice's waist seam, front to front and back to back. */
 function withPeplum(d: BodiceDraft, kind: 'flared' | 'gathered', s: BodiceStyle, m: BodiceMeasurements): BodiceDraft {
-  const half = (pc: Piece) => taggedLength(pc.outline, 'waist') / (pc.meta.whole ? 2 : 1);
-  const own = d.pieces.filter((pc) => !pc.kind);
+  // A lowered peplum: the bodice is cut fitted past the waist (its fish-eye darts cinch it in) and the
+  // peplum is sewn to its hem, so the seam it walks is the hem, and the hem is a seam, not turned up.
+  const seamCm = d.drop;
+  const edge = seamCm > 0 ? 'hem' : 'waist';
+  const isBody = (pc: Piece) => !pc.kind && /front|back/i.test(pc.name);
+  const half = (pc: Piece) => taggedLength(pc.outline, edge) / (pc.meta.whole ? 2 : 1);
+  const own = d.pieces.filter(isBody);
   const F = own.filter((pc) => /front/i.test(pc.name)).reduce((t, pc) => t + half(pc), 0);
   const B = own.filter((pc) => /back/i.test(pc.name)).reduce((t, pc) => t + half(pc), 0);
-  const depth = peplumDepth(m);
+  const depth = peplumDepth(m, seamCm);
+  const where = seamCm > 0 ? `the bodice's hem, ${cm(seamCm)} below your waist,` : "the bodice's waist seam";
   let pieces: Piece[];
   let hemCm: number;
   if (kind === 'flared') {
@@ -742,9 +770,9 @@ function withPeplum(d: BodiceDraft, kind: 'flared' | 'gathered', s: BodiceStyle,
       draft: {
         frame: [],
         points: [
-          { n: '0', at: p(0, 0), note: `Centre ${isFront ? 'front' : 'back'} waist. The waist is an arc of radius ${cm(r)}: the bodice's waist seam round the body, ${cm(2 * (F + B))}, over pi, for a half circle.` },
-          { n: '1', at: p(0, depth), note: `0 to 1, peplum depth: ${cm(depth)}, about 85% of your waist to hip. The hem is an arc from the same centre.` },
-          { n: '2', at: pc.draft!.points[2].at, note: `Side waist: the arc is ${cm(isFront ? F : B)} long, the bodice ${isFront ? 'front' : 'back'}'s waist seam with its darts closed, so the two sew together exactly.` },
+          { n: '0', at: p(0, 0), note: `Centre ${isFront ? 'front' : 'back'} waist. The waist is an arc of radius ${cm(r)}: ${where} round the body, ${cm(2 * (F + B))}, over pi, for a half circle.` },
+          { n: '1', at: p(0, depth), note: `0 to 1, peplum depth: ${cm(depth)}, ${seamCm > 0 ? 'a little shorter than at the waist, so it ends above your seat' : 'about 85% of your waist to hip'}. The hem is an arc from the same centre.` },
+          { n: '2', at: pc.draft!.points[2].at, note: `Side waist: the arc is ${cm(isFront ? F : B)} long, the bodice ${isFront ? 'front' : 'back'}'s ${seamCm > 0 ? 'hem' : 'waist seam'} with its darts closed, so the two sew together exactly.` },
         ],
       },
     });
@@ -756,8 +784,8 @@ function withPeplum(d: BodiceDraft, kind: 'flared' | 'gathered', s: BodiceStyle,
       draft: {
         frame: [],
         points: [
-          { n: '0', at: p(0, 0), note: `Centre ${isFront ? 'front' : 'back'} waist. A rectangle ${cm(depth)} deep, about 85% of your waist to hip.` },
-          { n: '1', at: p(GATHER * (isFront ? F : B), 0), note: `Side waist: ${GATHER} times the bodice ${isFront ? 'front' : 'back'}'s waist seam, ${cm(isFront ? F : B)}, gathered to fit it.` },
+          { n: '0', at: p(0, 0), note: `Centre ${isFront ? 'front' : 'back'} waist. A rectangle ${cm(depth)} deep, ${seamCm > 0 ? 'a little shorter than at the waist, so it ends above your seat' : 'about 85% of your waist to hip'}.` },
+          { n: '1', at: p(GATHER * (isFront ? F : B), 0), note: `Side waist: ${GATHER} times the bodice ${isFront ? 'front' : 'back'}'s ${seamCm > 0 ? 'hem' : 'waist seam'}, ${cm(isFront ? F : B)}, gathered to fit it.` },
         ],
       },
     });
@@ -765,15 +793,17 @@ function withPeplum(d: BodiceDraft, kind: 'flared' | 'gathered', s: BodiceStyle,
     hemCm = r1(2 * GATHER * (F + B));
   }
   // A peplum hangs single, its hem narrow, so it isn't lined with the bodice.
-  pieces = pieces.map((pc) => ({ ...pc, meta: { ...pc.meta, unlined: true } }));
-  return { ...d, pieces: [...d.pieces, ...pieces], peplum: { kind, depthCm: depth, hemCm } };
+  pieces = pieces.map((pc) => ({ ...pc, meta: { ...pc.meta, unlined: true, ...(seamCm > 0 ? { sewnTo: 'hem' } : {}) } }));
+  // A lowered peplum's seam is the bodice's hem: a seam allowance there, in place of the turned-up hem.
+  const body = seamCm > 0 ? d.pieces.map((pc) => (isBody(pc) && pc.allowances.hem !== undefined ? { ...pc, allowances: { ...pc.allowances, hem: s.seamAllowance } } : pc)) : d.pieces;
+  return { ...d, pieces: [...body, ...pieces], peplum: { kind, depthCm: depth, hemCm, ...(seamCm > 0 ? { seamCm } : {}) } };
 }
 
 /** The draped neckline and the peplum, made on the drafted bodice. */
 export function drapeBodice(d: BodiceDraft, s: BodiceStyle, m: BodiceMeasurements, redraft: (s: BodiceStyle) => BodiceDraft): BodiceDraft {
   let out = d;
   if (isDraped(s)) out = s.neckline === 'cowl' ? cowl(d, s, redraft) : s.shoulder === 'right' ? toRight(oneShoulder(d, true)) : oneShoulder(d);
-  if (s.peplum && s.peplum !== 'none' && d.drop === 0) out = withPeplum(out, s.peplum, s, m);
+  if (s.peplum && s.peplum !== 'none' && (d.drop === 0 || peplumLengthOk(s))) out = withPeplum(out, s.peplum, s, m);
   return out;
 }
 
