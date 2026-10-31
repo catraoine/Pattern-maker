@@ -295,7 +295,7 @@ type OuterGroupId = 'fit' | 'length' | 'shaping' | 'front' | 'collar' | 'sleeve'
 /** The style groups for a jacket or a coat: a coat has its own lengths and a flare below the hip. */
 export function outerGroups(kind: OuterKind): { id: OuterGroupId; label: string; options: [string, string][] }[] {
   return [
-    { id: 'fit', label: 'Fit', options: [['fitted', 'Fitted'], ['regular', 'Regular'], ['relaxed', 'Relaxed']] },
+    { id: 'fit', label: 'Fit', options: [['fitted', 'Fitted'], ['regular', 'Regular'], ['relaxed', 'Relaxed'], ['oversized', 'Oversized']] },
     {
       id: 'length',
       label: 'Length',
@@ -316,9 +316,11 @@ export function outerGroups(kind: OuterKind): { id: OuterGroupId; label: string;
 /**
  * Whether a choice is allowed with the rest: boxy shaping needs room, so not with a fitted cut; a cropped jacket is too short for a vent;
  * a notched lapel needs a shoulder seam and a buttoned front, so not with raglan sleeves or a zip; a raglan is cut off a one-piece front and back, so not
- * with princess seams; rib bands at the hem leave no room for a vent.
+ * with princess seams; rib bands at the hem leave no room for a vent. An oversized one (In testing) is cut boxy, with dropped
+ * shoulders and no pads, so it takes a straight or raglan sleeve.
  */
 export const outerAllowed = (c: OuterChoices, id: OuterGroupId, opt: string) =>
+  !(c.fit === 'oversized' && ((id === 'shaping' && opt !== 'boxy') || (id === 'pads' && opt !== 'none') || (id === 'sleeve' && (opt === 'tailored' || opt === 'fitted')))) &&
   !(id === 'shaping' && opt === 'boxy' && c.fit === 'fitted') &&
   !(id === 'vent' && opt === 'centre' && (c.length === 'cropped' || c.trim === 'rib')) &&
   !(id === 'collar' && opt === 'notched' && (c.front === 'zip' || c.sleeve === 'raglan')) &&
@@ -329,14 +331,21 @@ export const outerAllowed = (c: OuterChoices, id: OuterGroupId, opt: string) =>
 export const OUTER_LENGTH_WORDS: Record<OuterLength, string> = { cropped: 'Cropped', hip: 'Hip-length', long: 'Long', thigh: 'Mid-thigh', knee: 'Knee-length', midi: 'Midi' };
 const OUTER_COLLAR_WORDS: Record<OuterCollar, string> = { notched: 'with notched lapels', stand: 'with a stand collar', collarless: 'collarless', hood: 'with a hood' };
 
+/** An oversized cut's own shaping: boxy, no pads, and a straight sleeve where a tailored or fitted one was. */
+export function oversizeOuter(c: OuterChoices): OuterChoices {
+  if (c.fit !== 'oversized') return c;
+  return { ...c, shaping: 'boxy', pads: 'none', sleeve: c.sleeve === 'raglan' ? 'raglan' : 'straight' };
+}
+
 /** A plain name, such as "Hip-length single-breasted jacket with notched lapels". */
 export function describeOuter(c: OuterChoices) {
   const front = c.front === 'double' ? 'double-breasted' : c.front === 'zip' ? 'zip-front' : 'single-breasted';
   const collar = OUTER_COLLAR_WORDS[c.collar];
   const shape = c.garment === 'coat' && c.flare === 'a_line' ? ' A-line' : '';
+  const big = c.fit === 'oversized' ? ' oversized' : '';
   return c.collar === 'collarless'
-    ? `${OUTER_LENGTH_WORDS[c.length]} collarless ${front}${shape} ${c.garment}`
-    : `${OUTER_LENGTH_WORDS[c.length]} ${front}${shape} ${c.garment} ${collar}`;
+    ? `${OUTER_LENGTH_WORDS[c.length]}${big} collarless ${front}${shape} ${c.garment}`
+    : `${OUTER_LENGTH_WORDS[c.length]}${big} ${front}${shape} ${c.garment} ${collar}`;
 }
 
 /** A saved pattern's choices. Skirt choices predate bodices, so they carry no garment field. */

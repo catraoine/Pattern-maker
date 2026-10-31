@@ -254,7 +254,7 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
     },
   },
   outer: {
-    fit: FIT,
+    fit: { ...FIT, oversized: ['Cut big and boxy, its shoulders dropped past yours and no pads, with a wide lapel that falls open like a cape.', 'easy'] },
     length: {
       cropped: ['Ends above the hip, near the waist.'],
       hip: ['Ends at the hip, the classic jacket length.'],
@@ -450,6 +450,7 @@ const SHORT: Record<string, string> = {
   'peplum.gathered': 'A short gathered ruffle at the waist.',
   'bodice.fit.oversized': 'Big and straight, no darts.',
   'bodice.length.long': 'Past the hip, over your seat.',
+  'outer.fit.oversized': 'Big and boxy, the shoulders dropped.',
   'stretch.medium': 'A fair stretch, like most jersey.',
   'stretch.high': 'Stretches a lot, so cut to hug you.',
   'leg.straight': 'Straight from hip to hem.',

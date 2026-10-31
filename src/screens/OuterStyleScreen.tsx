@@ -5,7 +5,8 @@ import { outerSpec } from '../engine/spec';
 import { FinishedTable, finishedLines } from '../ui/FinishedTable';
 import { OuterDraft, OuterMeasurements, outerDrop } from '../engine/outerwear';
 import { outerFlat, wornLines, wornShapes } from '../engine/flat';
-import { OuterChoices, describeOuter, outerAllowed, outerGroups } from '../garments';
+import { OuterChoices, describeOuter, outerAllowed, outerGroups, oversizeOuter } from '../garments';
+import { TestingTag } from '../ui/TestingTag';
 import { TechFlatView } from '../ui/TechFlatView';
 import { AllRound } from '../ui/AllRound';
 import { roundOuter } from '../engine/allRound';
@@ -197,7 +198,9 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
                     aria-pressed={choices[g.id] === id}
                     disabled={!allowed}
                     onClick={() => {
-                      const next = { ...choices, [g.id]: id } as OuterChoices;
+                      // An oversized cut goes boxy, with no pads and a plain sleeve.
+                      let next = { ...choices, [g.id]: id } as OuterChoices;
+                      if (g.id === 'fit') next = oversizeOuter(next);
                       // A fitted cut keeps its waist darts.
                       if (next.fit === 'fitted' && next.shaping === 'boxy') next.shaping = 'darts';
                       // A cropped jacket is too short for a vent; rib bands at the hem leave no room for one.
@@ -211,6 +214,7 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
                   >
                     <ChoicePic set={kind} group={g.id} id={id} />
                     {label}
+                    {g.id === 'fit' && id === 'oversized' && <TestingTag tool="oversized_outer" />}
                   </button>
                 );
               })}

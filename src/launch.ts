@@ -38,7 +38,8 @@ export type TestingTool =
   | 'projector'
   | 'new_details'
   | 'oversized'
-  | 'low_peplum';
+  | 'low_peplum'
+  | 'oversized_outer';
 
 export const TESTING_TOOLS: Record<TestingTool, { name: string; where: string; proof: string }> = {
   draw_lines: { name: 'Draw your lines', where: 'Style, Draw on your form', proof: 'fit testers draw a hem, a neckline and a side and the pattern follows' },
@@ -58,6 +59,8 @@ export const TESTING_TOOLS: Record<TestingTool, { name: string; where: string; p
   // Cat broke the freeze for the big shirt (2026-10-31), so the Parma Shirt can be cut oversized and long.
   // Cat broke the freeze for it too (2026-10-31), for the SS27 peplum top's longer, cinched look.
   low_peplum: { name: 'Lowered peplum', where: 'the Peplum chips on a top longer than the waist', proof: 'two testers sew a peplum lowered 6 to 9 cm and the waist stays nipped in above it' },
+  // And for the big jacket (2026-10-31), so the stone jacket from her picture can be cut.
+  oversized_outer: { name: 'Oversized jackets and coats', where: 'the Oversized fit chip on a jacket or coat', proof: 'two testers sew an oversized jacket and it hangs open and straight, the dropped shoulders sitting past their own' },
   oversized: { name: 'Oversized and long tops', where: 'the Oversized fit and Long length chips on the top', proof: 'two testers sew an oversized long shirt and it hangs straight, its sleeves lifting without pulling' },
   new_details: { name: 'Ruffles, ruching, cape and balloon hem', where: 'the chips for each on the Style screens', proof: 'three testers sew a ruffled hem, ruched sides and a cape and each hangs as drawn' },
 };

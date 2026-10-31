@@ -13,7 +13,7 @@ import { SleeveDraft, SleeveMeasurements, draftSleeve } from './sleeve';
 import { DraftError } from './skirt';
 
 export type OuterKind = 'jacket' | 'coat';
-export type OuterFit = 'fitted' | 'regular' | 'relaxed';
+export type OuterFit = 'fitted' | 'regular' | 'relaxed' | 'oversized';
 export type OuterLength = 'cropped' | 'hip' | 'long' | 'thigh' | 'knee' | 'midi';
 export type OuterShaping = 'darts' | 'princess' | 'boxy';
 /** Buttons in one or two rows, or a separating zip up the centre front with no overlap. */
@@ -66,9 +66,13 @@ export const OUTER_LENGTHS: Record<OuterKind, OuterLength[]> = { jacket: ['cropp
 
 /** Ease at the bust, in cm. A jacket goes on over a blouse, a coat over a jacket or a jumper. */
 export const OUTER_EASE: Record<OuterKind, Record<OuterFit, number>> = {
-  jacket: { fitted: 10, regular: 13, relaxed: 17 },
-  coat: { fitted: 13, regular: 17, relaxed: 21 },
+  jacket: { fitted: 10, regular: 13, relaxed: 17, oversized: 30 },
+  coat: { fitted: 13, regular: 17, relaxed: 21, oversized: 34 },
 };
+
+/** An oversized jacket or coat's lapel: this much wider, and a single-breasted one breaking this far below
+ * the bust point (2 cm on the others), so it falls open. */
+const OVERSIZED_LAPEL = { wider: 5, lower: 10 };
 
 /** The neckline sits a little wider and lower than a blouse's, over the clothes beneath. */
 const OUTER_NECK = { frontDepth: 2, width: 1, backDepth: 0.5, fullness: 0.45 };
@@ -465,7 +469,7 @@ function openFront(pc: Piece, s: OuterStyle, ext: number, buttons: OuterDraft['b
     const Lr = len(sub(R, B));
     const nrm = p(-u.y, u.x); // toward the body
     const at = (sAlong: number, t: number) => add(B, add(mul(u, sAlong), mul(nrm, t)));
-    const W = s.front === 'double' ? (s.kind === 'coat' ? 10 : 9) : s.kind === 'coat' ? 8.5 : 7.5;
+    const W = (s.front === 'double' ? (s.kind === 'coat' ? 10 : 9) : s.kind === 'coat' ? 8.5 : 7.5) + (s.fit === 'oversized' ? OVERSIZED_LAPEL.wider : 0);
     // The gorge meets the roll line well below the neck point, rising a little to the notch.
     const Q = at(Lr - 10, 0);
     const K = at(Lr - 9.4, -4.3);
@@ -896,6 +900,11 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
   const length = OUTER_LENGTHS[s.kind].includes(s.length) ? s.length : DEFAULT_OUTER[s.kind].length;
   // A fitted jacket needs its waist darts; only a roomier one can go boxy.
   // A raglan sleeve is cut off a one-piece front and back, so princess seams give way to darts.
+  // An oversized one (In testing) is cut big and straight from the oversized top's block: no darts or seams
+  // shaping it, its shoulders dropped past the body's (a raglan keeps its own), no pads, a plain sleeve,
+  // and a wider lapel rolling lower, so it hangs open like a cape.
+  const big = s.fit === 'oversized';
+  if (big) s = { ...s, shaping: 'boxy', pads: 'none', sleeve: s.sleeve === 'raglan' ? 'raglan' : 'straight' };
   const shaping = s.shaping === 'boxy' && s.fit === 'fitted' ? 'darts' : s.shaping === 'princess' && s.sleeve === 'raglan' ? 'darts' : s.shaping;
   // Shoulder pads drafted in: each shoulder squared up so its point rises by the pad, which lengthens
   // the armhole; the sleeve is drafted to that armhole, so its crown rises with it.
@@ -909,7 +918,7 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
     neckline: 'crew',
     neck: OUTER_NECK,
     length: length === 'cropped' ? 'high_hip' : 'hip',
-    darts: shaping === 'boxy' ? 'bust' : 'bust_waist',
+    darts: big ? 'none' : shaping === 'boxy' ? 'bust' : 'bust_waist',
     princess: shaping === 'princess' ? 'armhole' : 'none',
     bustEase: OUTER_EASE[s.kind][s.fit],
     seamAllowance: s.seamAllowance,
@@ -919,7 +928,7 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
     shoulderPad: pad,
     closure: 'back_zip',
     collar: 'none',
-    ...(s.sleeve === 'raglan' ? { sleeveCut: 'raglan' as const, sleeve: 'long' as const } : {}),
+    ...(s.sleeve === 'raglan' ? { sleeveCut: 'raglan' as const, sleeve: 'long' as const } : big ? { sleeveCut: 'drop' as const, sleeve: 'long' as const } : {}),
   };
   const base = draftBodice(m, bodiceStyle);
   const drop = Math.max(base.drop, outerDrop(m, length));
@@ -942,7 +951,7 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
   const neckY = block[0].outline.start.y;
   const apexY = base.front.apex.y;
   const waistY = base.front.waistCentre.y;
-  const breakY = s.collar === 'notched' ? (s.front === 'double' ? apexY - 2 : apexY + 2) : neckY + (s.collar === 'stand' ? 2 : 1.8);
+  const breakY = s.collar === 'notched' ? (s.front === 'double' ? apexY - 2 : apexY + (big ? OVERSIZED_LAPEL.lower : 2)) : neckY + (s.collar === 'stand' ? 2 : 1.8);
   const lastY = s.kind === 'coat' ? Math.min(foot - 15, waistY + (m.waist_to_hip ?? 20) + 12) : foot - (length === 'cropped' ? 3.5 : 9);
   // A cutaway front curves back from below the last button, so the buttons stop above it.
   const cutTop = s.cutawayCm ? foot - Math.min(s.cutawayCm, foot - breakY - 18) - 4 - OUTER_BUTTON[s.kind] / 2 : Infinity;

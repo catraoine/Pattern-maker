@@ -189,7 +189,7 @@ const DETAILS: Record<ExplainSet, Record<string, Record<string, ReactNode>>> = {
     pockets: { none: on(TROUSERS), inseam: inseam(TROUSERS, 8), slant: on(TROUSERS, 'M14 4L11.2 12M26 4L28.8 12') },
   },
   outer: {
-    fit: FIT,
+    fit: { ...FIT, oversized: DRESS_FIT.oversized },
     shaping: {
       darts: on(JACKET, 'M14.5 36L15.5 22L16.5 36M23.5 36L24.5 22L25.5 36'),
       princess: on(JACKET, 'M13 9Q15 24 14 38M27 9Q25 24 26 38'),
