@@ -320,9 +320,6 @@ interface Props {
 
 const NO_SECTIONS: Record<string, string> = {};
 
-// Preview only: ?back=head puts the back arrow beside "Step 2 of 5" instead of beside Next, to compare the two.
-const backInHead = typeof location !== 'undefined' && new URLSearchParams(location.search).get('back') === 'head';
-
 export function StyleLayout({ children, label, name, ready, onChooseGarment, onPhoto, photo, looks, mode, onMode, onEditMeasurements, sections = NO_SECTIONS, undo, flat, onPrint, finished }: Props) {
   const [options, preview, summary] = Children.toArray(children);
   const [page, setPage] = usePageHistory<'edit' | 'review'>(() => 'edit', (s) => s === 'edit' || s === 'review');
@@ -626,8 +623,7 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
             {/* Watch demo sits across from the step on a computer (Cat's D3, 2026-10-29). On a phone the step bars are
                 gone and Watch demo is a link at the end of the step (Cat's P1, 2026-10-31): "Step 1 of 5" opens the
                 list of steps instead, to jump to one. */}
-            <div className={backInHead && at > 0 ? 'chapter-top with-back' : 'chapter-top'}>
-              {backInHead && backArrow}
+            <div className="chapter-top">
               {wide ? (
                 at >= 0 && (
                   <p className="chapter-step">
@@ -718,7 +714,7 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
           {/* The way on: the next step, or Review after the last (on a computer the summary is already beside it). */}
           {wide && (active === LOOKS || at >= 0) && (
             <div className="step-next">
-              {!backInHead && backArrow}
+              {backArrow}
               {/* On a phone the one box is in the bar at the bottom (F1, 2026-10-24); the computer has no bar. */}
               {active === LOOKS && steps[0] ? (
                   <button type="button" className="step-go" onClick={() => goStep(steps[0])}>
@@ -776,7 +772,7 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
             <p className="visually-hidden" role="status">
               {Name}
             </p>
-            {!backInHead && backArrow}
+            {backArrow}
             {next ? (
               <button type="button" className="primary" onClick={() => goStep(next)}>
                 Next: {next.split(/\s/)[0]} <span aria-hidden="true">›</span>

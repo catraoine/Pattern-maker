@@ -26,17 +26,6 @@
   height: auto;
   min-height: 40px;
 }
-/* Preview B (?back=head): beside "Step 2 of 5", with no box. */
-.chapter-top.with-back {
-  justify-content: flex-start;
-}
-.chapter-top .step-back-arrow {
-  width: 32px;
-  height: 32px;
-  margin-left: -8px;
-  border-color: transparent;
-  color: var(--muted);
-}
 /* Undo and Redo on a phone: named, across from "Step 2 of 4", shown once there is something to undo, so they can't
    be taken for the step's back arrow in the bar. */
 .chapter-top > .step-undo {
