@@ -13,7 +13,7 @@ import type { TrousersDraft } from '../trousers';
 import { Mesh2D, Wedge, meshPiece } from './mesh2d';
 import { dartsOf } from '../marks';
 import { SimInput, simulate } from './sim';
-import { Space } from './space';
+import { Space, boxed } from './space';
 
 type V3 = [number, number, number];
 const TAU = Math.PI * 2;
@@ -197,6 +197,8 @@ export interface DrapeOptions {
   openBelowY?: number;
   /** Crisp cloth (organza, taffeta): a peplum this many times stiffer, so it stands out rather than hangs. */
   crisp?: number;
+  /** Cut boxy: the cloth falls straight from the bust to the hip rather than in under the bust. */
+  boxy?: boolean;
 }
 
 interface CollarPart {
@@ -251,6 +253,7 @@ function halfPiece(pc: Piece): Piece {
 }
 
 function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: number; sleeve?: Piece[]; collars?: CollarPart[]; trousers?: TrousersDraft; tiers?: TierBand[]; under?: Piece[]; puff?: number }, o: DrapeOptions): Draped {
+  if (o.boxy) sp = boxed(sp);
   if (extra.skirt) extra = { ...extra, skirt: extra.skirt.map(halfPiece).map(narrowed) };
   const B = new Builder(sp);
   let legs: SimInput['legs'];

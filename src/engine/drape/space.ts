@@ -137,3 +137,19 @@ export function makeSpace(yOf: (c: number) => number, m: RoundMeasurements & { u
   };
   return { yOf, cOf, scale, bodyR, tip: { c: tipC, x: tipX }, arm: { r0, r1, a, b }, ridge };
 }
+
+/** The same body for cloth cut boxy: below the bust the cloth falls straight to the hip instead of following the body
+ *  in under the bust and round the waist, so the space between bust and hip is filled to the straight line between them. */
+export function boxed(s: Space): Space {
+  const bC = s.cOf(BUST_Y);
+  const hC = s.cOf(FORM_HIP);
+  return {
+    ...s,
+    bodyR: (a, c) => {
+      const r = s.bodyR(a, c);
+      if (c <= bC || c >= hC) return r;
+      const u = (c - bC) / (hC - bC);
+      return Math.max(r, s.bodyR(a, bC) * (1 - u) + s.bodyR(a, hC) * u);
+    },
+  };
+}
