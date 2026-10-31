@@ -816,6 +816,27 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       }
     }
   }
+  // A roll line (the fold of a lapel) drawn as one clean crease: the points along it eased toward their neighbours.
+  for (const p of B.panels) {
+    for (const [a, b] of p.folds ?? []) {
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const L = Math.hypot(dx, dy) || 1;
+      const along = p.mesh.pts
+        .map((q, i) => ({ i, t: ((q.x - a.x) * dx + (q.y - a.y) * dy) / L, d: Math.abs(((q.x - a.x) * dy - (q.y - a.y) * dx) / L) }))
+        .filter((o) => o.d < 1.1 && o.t > -1 && o.t < L + 1 && !sewn[o.i + p.base])
+        .sort((u, v) => u.t - v.t);
+      const ids = along.map((o) => o.i + p.base);
+      for (let pass = 0; pass < 8; pass++) {
+        const nx = ids.map((i) => [res[i * 3], res[i * 3 + 1], res[i * 3 + 2]]);
+        for (let k = 2; k + 2 < ids.length; k++)
+          for (let d = 0; d < 3; d++) nx[k][d] = res[ids[k] * 3 + d] * 0.4 + (res[ids[k - 1] * 3 + d] + res[ids[k + 1] * 3 + d] + res[ids[k - 2] * 3 + d] + res[ids[k + 2] * 3 + d]) * 0.15;
+        ids.forEach((i, k) => {
+          for (let d = 0; d < 3; d++) res[i * 3 + d] = nx[k][d];
+        });
+      }
+    }
+  }
   // Gathered cloth: its fullness lies in soft folds round the skirt. The sim settles where the cloth hangs; the folds
   // its mesh is too coarse to form are laid on for drawing, as many as the cloth's width holds, each seam on a fold's
   // turn so the pieces still meet.
