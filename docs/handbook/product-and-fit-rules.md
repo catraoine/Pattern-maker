@@ -48,6 +48,9 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
    and the How it works film is re-recorded after it ships (stills first).
 7. Form finish (Oct 30, PR #231): matte charcoal form and crisp plain cloth on the Style drawings.
    Measuring and welcome keep the line form; satin/finish only from Style on.
+8. **All round is quiet** (Oct 31, Q2): no seam dots or hem chart; the checks are one line ("Seams and
+   hem checked") and the disclaimer is small text. With no fabric picked the garment turns in pale calico
+   (the How it works film keeps its lines).
 
 ## Style steps
 

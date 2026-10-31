@@ -5,6 +5,7 @@ something that changes how a department works. Design picks for single screens s
 
 ## October 2026
 
+- **Oct 31** All round goes quiet (Q2 Quiet in Calico, design review gap 3): no seam dots or hem chart, one line "Seams and hem checked", small disclaimer; with no fabric it turns in pale calico; faint lines no longer bead.
 - **Oct 30** Boxy dress fit (freeze broken knowingly; a full launch fit, no In testing tag, Cat Oct 30): straight from the bust, square shoulder cut in (no pad), bust darts kept, plus a Self band belt at the seam. From Cat's gingham drop-waist dress.
 - **Oct 30** Projector upgrades (freeze broken knowingly): C1 paper line-up (no mat), C2 grid over the whole table, L1 + L3 Lines panel (layers, mm thickness, colour), M2 loupe. Pitch: no printing, no taping, no mat, just a projector.
 - **Oct 30** Every mock-up sheet labels each option on the image itself: option code + name, screen, device, NOW for today; codes match the message ([working with Cat](working-with-cat.md)).
