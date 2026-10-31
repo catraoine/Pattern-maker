@@ -99,7 +99,7 @@ class Builder {
     // A fish-eye dart (top, side, bottom, side, back to the top) is two darts point to point across the waist.
     for (const ln of pc.lines) {
       const q = ln.points();
-      if (q.length === 5 && Math.hypot(q[0].x - q[4].x, q[0].y - q[4].y) < 1e-6) wedges.push([q[1], q[0], q[3]], [q[1], q[2], q[3]]);
+      if (q.length === 5 && Math.hypot(q[0].x - q[4].x, q[0].y - q[4].y) < 1e-6 && Math.abs(q[0].x - q[2].x) < 0.6 && Math.abs(q[1].y - q[3].y) < 0.6 && Math.abs(q[1].x - q[0].x) > 0.1) wedges.push([q[1], q[0], q[3]], [q[1], q[2], q[3]]);
     }
     const mesh = meshPiece(pc, h, folds, wedges);
     const turned = mesh.pts.map((_, i) => mesh.side.some((s) => s[i] === 1));
@@ -568,7 +568,7 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       sideA[p.base + i] = p.role === 'sleeve' || pts[i].x < 0.5 ? 0 : 1;
       armA[p.base + i] = p.role === 'sleeve' ? 1 : 0;
     });
-    for (const tag of ['fold', 'centre', 'crotch']) for (const r of p.mesh.runs[tag] ?? []) for (const i of r) if (p.role !== 'collar') centre.push(i + p.base);
+    for (const tag of ['fold', 'centre', 'crotch', 'vent']) for (const r of p.mesh.runs[tag] ?? []) for (const i of r) if (p.role !== 'collar') centre.push(i + p.base);
     if (p.role === 'collar') for (const r of p.mesh.runs.fold ?? []) for (const i of r) centre.push(i + p.base);
     if ((p.role === 'front' || p.role === 'peplum-front') && o.closedFront && p.mesh.runs.opening) {
       pts.forEach((q, i) => {
@@ -796,6 +796,38 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       res[I] *= k;
       res[I + 2] *= k;
     });
+  }
+  // Turned cloth (a lapel, a collar's fall) lies on the cloth it turns over: each turned point is laid at the radius
+  // of the garment under it, a cloth's thickness out, so a pressed lapel or collar reads flat, not crumpled.
+  if ((globalThis as any).__lay) {
+    const NA = 90;
+    const key = (a: number, c: number) => Math.round(((a + Math.PI) / TAU) * NA) * 1000 + Math.round(c * 2);
+    const under = new Map<number, number>();
+    for (const p of B.panels) {
+      if (p.role === 'sleeve' || p.role === 'collar' || p.hidden) continue;
+      p.mesh.pts.forEach((_, i) => {
+        if (p.turned[i]) return;
+        const I = (p.base + i) * 3;
+        const k = key(Math.atan2(res[I], res[I + 2]), res[I + 1]);
+        under.set(k, Math.max(under.get(k) ?? 0, Math.hypot(res[I], res[I + 2])));
+      });
+    }
+    const gap = (globalThis as any).__layGap ?? 0.5;
+    for (const p of B.panels) {
+      if (p.role === 'sleeve' || p.hidden) continue;
+      p.mesh.pts.forEach((_, i) => {
+        if (!p.turned[i]) return;
+        const I = (p.base + i) * 3;
+        const a = Math.atan2(res[I], res[I + 2]);
+        let R = 0;
+        for (const da of [-1, 0, 1]) for (const dc of [-1, 0, 1]) R = Math.max(R, under.get(key(a + (da * TAU) / NA, res[I + 1] + dc * 0.5)) ?? 0);
+        if (!R) return;
+        const rho = Math.hypot(res[I], res[I + 2]) || 1e-9;
+        const k = (R + gap) / rho;
+        res[I] *= k;
+        res[I + 2] *= k;
+      });
+    }
   }
   // A balloon hem: the outer skirt swells out below the hip and turns in to the underskirt's hem.
   const outerB = B.panels.filter((p) => /peplum/.test(p.role) && p.mesh.runs.balloon && !/underskirt/i.test(p.pc.name));
