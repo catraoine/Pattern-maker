@@ -7,6 +7,8 @@ something that changes how a department works. Design picks for single screens s
 
 - **Oct 31** Oversized fit and Long length for tops (freeze broken knowingly, for the big Parma Shirt; both In testing). Which Parma cut (B1/B2/B3) is pending Cat's apply; sheet in the SS27 cut refinements artifact (PR #249).
 - **Oct 31** Lowered peplum (freeze broken knowingly, Cat's "Yes build", In testing): a fitted top's peplum can sit on a hem 6 to 12 cm below the waist, the waist still cinched by fish-eye darts, for the SS27 peplum top's longer look.
+- **Oct 31** Oversized jackets and coats (freeze broken knowingly, Cat: "Build the jacket", In testing): boxy, dropped shoulders, no pads, wider lapel rolling lower, for the stone jacket.
+- **Oct 31** Plunge neckline (freeze broken knowingly, Cat picked "Build it, In testing"): a V to 7 cm above the waist on 2.5 cm straps, for the SS27 plunging slip; back zip only.
 - **Oct 31** Welcome and waitlist headline: H2 "Drafted to you" / "Sewing patterns for the piece you have in mind". Collection page keeps its flats (on-the-form and All round renders rejected). "Make this look" now opens in the look's own fabric.
 - **Oct 31** All round goes quiet (Q2 Quiet in Calico, design review gap 3): no seam dots or hem chart, one line "Seams and hem checked", small disclaimer; with no fabric it turns in pale calico; faint lines no longer bead.
 - **Oct 31** One fill (design review gap 5, S1 Heavy Outline): champagne fill is only for the main button; a picked choice is a 2px champagne outline with bright words, unpicked choices go quiet. Begin measuring and the make page's button are filled; replaces the filled halves on the first Measure page.

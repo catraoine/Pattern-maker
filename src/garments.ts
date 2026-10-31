@@ -368,7 +368,7 @@ export const BODICE_GROUPS: [Group<'fit'>, Group<'neckline'>, Group<'length'>, G
   {
     id: 'neckline',
     label: 'Neckline',
-    options: [['crew', 'Crew'], ['scoop', 'Scoop'], ['v', 'V-neck'], ['square', 'Square'], ['boat', 'Boat'], ['one_shoulder', 'One-shoulder'], ['cowl', 'Cowl'], ['strapless', 'Strapless'], ['sweetheart', 'Sweetheart'], ['cami', 'Cami straps'], ['halter', 'Halter']],
+    options: [['crew', 'Crew'], ['scoop', 'Scoop'], ['v', 'V-neck'], ['plunge', 'Plunge'], ['square', 'Square'], ['boat', 'Boat'], ['one_shoulder', 'One-shoulder'], ['cowl', 'Cowl'], ['strapless', 'Strapless'], ['sweetheart', 'Sweetheart'], ['cami', 'Cami straps'], ['halter', 'Halter']],
   },
   { id: 'length', label: 'Length', options: [['waist', 'Waist'], ['high_hip', 'High hip'], ['hip', 'Hip'], ['long', 'Long']] },
   { id: 'darts', label: 'Darts', options: [['bust_waist', 'Bust and waist'], ['bust', 'Bust only'], ['none', 'No darts']] },
@@ -425,7 +425,8 @@ export function detailAllowed(c: BodiceChoices, id: 'princess' | 'bustDart' | 'c
   if (id === 'princess') return opt === 'none' || (c.darts === 'bust_waist' && !top && c.closure !== 'wrap');
   if (id === 'bustDart') return c.darts !== 'none' && (opt !== 'waist' || c.length === 'waist') && !(top && (opt === 'shoulder' || opt === 'armhole')) && (c.closure !== 'wrap' || (WRAP_BUST_DARTS as readonly string[]).includes(opt));
   // A dress buttons down the front too (a shirt dress), when its skirt can carry the buttons on (see dress.ts).
-  if (id === 'closure') return opt === 'back_zip' || !top;
+  // A plunge's V runs nearly to the waist, leaving no front to button.
+  if (id === 'closure') return opt === 'back_zip' || (!top && (c.neckline !== 'plunge' || opt !== 'front_buttons'));
   if (c.closure === 'wrap' && opt !== 'none') return false;
   if (opt === 'none') return true;
   // A collar goes round the back neck, so not with a low or keyhole back.
@@ -470,7 +471,7 @@ export function seamBlocked(c: BodiceChoices, kind: SeamKind, garment: 'bodice' 
 }
 
 /** How far each named neckline drops at the centre front, in cm (NECKLINES in bodice.ts). */
-const NECKLINE_DEPTH: Record<Neckline, number> = { crew: 1, scoop: 10, v: 14, square: 10, boat: 2, one_shoulder: 1, cowl: 1, strapless: 0, sweetheart: 0, cami: 0, halter: 0 };
+const NECKLINE_DEPTH: Record<Neckline, number> = { crew: 1, scoop: 10, v: 14, plunge: 50, square: 10, boat: 2, one_shoulder: 1, cowl: 1, strapless: 0, sweetheart: 0, cami: 0, halter: 0 };
 
 /** The style seam a bodice has, one kind at a time: an empire seam, then side panels, then a yoke. */
 export function seamOf(c: BodiceChoices): SeamKind | undefined {
@@ -574,7 +575,7 @@ export const dartsFor = (c: Pick<BodiceChoices, 'fit' | 'darts'>): BodiceDarts =
   return allowed.includes(c.darts) ? c.darts : allowed.includes('bust_waist') ? 'bust_waist' : allowed[0];
 };
 
-const NECK_WORDS: Record<Neckline, string> = { crew: 'crew neck', scoop: 'scoop neck', v: 'V-neck', square: 'square neck', boat: 'boat neck', one_shoulder: 'one-shoulder neckline', cowl: 'cowl neck', strapless: 'strapless', sweetheart: 'strapless sweetheart', cami: 'cami', halter: 'halter' };
+const NECK_WORDS: Record<Neckline, string> = { crew: 'crew neck', scoop: 'scoop neck', v: 'V-neck', plunge: 'plunging V', square: 'square neck', boat: 'boat neck', one_shoulder: 'one-shoulder neckline', cowl: 'cowl neck', strapless: 'strapless', sweetheart: 'strapless sweetheart', cami: 'cami', halter: 'halter' };
 
 /**
  * What a top below the shoulders rules out: sleeves, and on a boned bodice any fit but fitted, any

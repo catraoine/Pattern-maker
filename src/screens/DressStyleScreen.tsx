@@ -554,6 +554,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
                   <ChoicePic set={(['noSeam', 'silhouette', 'length', 'asymHem', 'slit'].includes(g.id) ? 'skirt' : 'bodice')} group={g.id} id={id} />
                   {label}
                   {optionInTesting(g.id, id) && <TestingTag tool="new_details" />}
+                  {g.id === 'neckline' && id === 'plunge' && <TestingTag tool="plunge" />}
                 </button>
               ))}
             </div>

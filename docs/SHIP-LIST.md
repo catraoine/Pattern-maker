@@ -63,6 +63,7 @@ testing". A tag comes off by hand, once its proof is in: delete the entry and th
 | Oversized and long tops (the big shirt: Oversized fit and Long length; Cat broke the freeze for it, 2026-10-31) | the Oversized fit and Long length chips on the top | two testers sew an oversized long shirt and it hangs straight, its sleeves lifting without pulling |
 | Lowered peplum (the peplum sewn to a hem 6 to 12 cm below the waist, the waist still cinched; Cat broke the freeze for it, 2026-10-31) | the Peplum chips on a top longer than the waist | two testers sew a peplum lowered 6 to 9 cm and the waist stays nipped in above it |
 | Oversized jackets and coats (boxy, dropped shoulders, no pads, a wider lapel rolling lower; Cat broke the freeze for it, 2026-10-31) | the Oversized fit chip on a jacket or coat | two testers sew an oversized jacket and it hangs open and straight, the dropped shoulders sitting past their own |
+| Plunging V neckline (a V cut nearly to the waist on 2.5 cm straps; Cat broke the freeze for the SS27 slip, 2026-10-31) | the Plunge neckline chip on a top or dress | two testers sew a plunging slip and the V lies flat to the body without gaping |
 | Ruffles, ruching, cape and balloon hem (ruffled hems and sleeve hems, ruched sides, cape, balloon hem) | the chips for each on the Style screens | three testers sew a ruffled hem, ruched sides and a cape and each hangs as drawn |
 
 Lingerie and swimwear stay hidden (`?lingerie=preview`, PR #102). Tracé Engine, Atelier Nights, Deadstock and

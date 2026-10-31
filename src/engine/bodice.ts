@@ -56,7 +56,7 @@ export interface BodiceMeasurements {
 export type BodiceFit = 'fitted' | 'regular' | 'relaxed' | 'boxy' | 'oversized';
 /** The draped necklines (one-shoulder, cowl) are drafted as whole pieces in drape.ts; the top necklines
  * (strapless, sweetheart, cami) are cut below the shoulders in corset.ts. */
-export type Neckline = 'crew' | 'scoop' | 'v' | 'square' | 'boat' | 'one_shoulder' | 'cowl' | 'strapless' | 'sweetheart' | 'cami' | 'halter';
+export type Neckline = 'crew' | 'scoop' | 'v' | 'plunge' | 'square' | 'boat' | 'one_shoulder' | 'cowl' | 'strapless' | 'sweetheart' | 'cami' | 'halter';
 /** Long runs on past the hip to cover the seat, as a big shirt does (see LONG_BELOW_HIP). */
 export type BodiceLength = 'waist' | 'high_hip' | 'hip' | 'long';
 export interface DressHem {
@@ -184,6 +184,9 @@ export const NECKLINES: Record<Neckline, { frontDepth: number; width: number; ba
   crew: { frontDepth: 1, width: 0, backDepth: 0 },
   scoop: { frontDepth: 10, width: 3, backDepth: 1.5 },
   v: { frontDepth: 14, width: 2, backDepth: 1 },
+  // A plunge (In testing): a V cut down past the bust to PLUNGE.aboveWaist above the waist, on narrow
+  // straps, the neck point moved out along the shoulder until PLUNGE.strap of it is left.
+  plunge: { frontDepth: 60, width: 12, backDepth: 2 },
   square: { frontDepth: 10, width: 4, backDepth: 1.5 },
   boat: { frontDepth: 2, width: 7, backDepth: 1.5 },
   // The draped necklines start from the block's neck point moved 3 cm along the shoulder: the
@@ -196,6 +199,9 @@ export const NECKLINES: Record<Neckline, { frontDepth: number; width: number; ba
   cami: { frontDepth: 0, width: 0, backDepth: 0 },
   halter: { frontDepth: 0, width: 0, backDepth: 0 },
 };
+
+/** The plunge: its point this far above the front waist, and its straps this wide at the shoulder, in cm. */
+export const PLUNGE = { aboveWaist: 7, strap: 2.5 };
 
 /** Hip ease (cm) for tops that reach below the waist, from the same fit options. */
 const BODICE_HIP_EASE: Record<BodiceFit, number> = { fitted: 4, regular: 7, relaxed: 11, boxy: 10, oversized: 26 };
@@ -668,6 +674,7 @@ function frontNeck(path: Path, hps: P, uShoulder: P, shape: Neckline | 'drawn', 
   // shoulders are sewn. The V and the square stay straight until close to the shoulder.
   switch (shape) {
     case 'v':
+    case 'plunge':
       // Straight from the point (one edge, so the cutting line mitres onto the fold), curving at the top.
       return path.line(lerp(cf, hps, 0.5), 'neck').curve(lerp(cf, hps, 0.75), toward(0.15), hps, 'neck');
     case 'square': {
@@ -716,7 +723,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   };
   const nl = s.neck ?? NECKLINES[s.neckline];
   const neckShape = s.neck ? 'drawn' : s.neckline;
-  const pointed = s.neck ? s.neck.fullness < POINTED_NECK : s.neckline === 'v';
+  const pointed = s.neck ? s.neck.fullness < POINTED_NECK : s.neckline === 'v' || s.neckline === 'plunge';
   const shiftDress = s.dressHem?.shape === 'shift';
   // An oversized body takes no darts: its ease covers the bust.
   const waistDarts = s.darts === 'bust_waist' && !shiftDress && s.fit !== 'oversized';
@@ -759,7 +766,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   // A wider neckline moves the neck point out along both shoulders, leaving at least 5 cm of shoulder.
   // It moves along the shoulder as fitted, and a lower shoulder drops from there, so its line keeps
   // the same neck and the same shoulder length.
-  const widen = Math.max(0, Math.min(nl.width, SL - 5));
+  const widen = Math.max(0, Math.min(nl.width, SL - (s.neckline === 'plunge' && !s.neck ? PLUNGE.strap : 5)));
   // A boxy shoulder runs on past the body's shoulder point.
   const ext = s.fit === 'boxy' ? BOXY.extend : 0;
   const hpsB = add(hpsB0, mul(p(Math.cos(backSlope), Math.sin(backSlope)), widen));
@@ -820,8 +827,9 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   // The neck gape pivots about the shoulder as fitted; a lower shoulder then drops from there.
   const fittedSlope = frontSlope;
   frontSlope = dropped(frontSlope, SL - widen + ext);
-  // Deep necklines stop 5 cm above the bust point.
-  const cfNeck = p(0, Math.max(cfNeck0.y, Math.min(cfNeck0.y + nl.frontDepth, apex.y - 5)));
+  // Deep necklines stop 5 cm above the bust point; a plunge runs on past it, nearly to the waist.
+  const plunge = s.neckline === 'plunge' && !s.neck;
+  const cfNeck = p(0, Math.max(cfNeck0.y, Math.min(cfNeck0.y + nl.frontDepth, plunge ? wf - PLUNGE.aboveWaist : apex.y - 5)));
 
   // A neck gape pinned out at the toile is closed the way a pattern cutter does it: slash from the
   // middle of the neckline to the bust point, and pivot the shoulder, armhole and upper side seam

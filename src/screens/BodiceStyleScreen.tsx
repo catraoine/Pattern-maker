@@ -92,6 +92,7 @@ const NECK_NAMES: Record<BodiceChoices['neckline'], string> = {
   crew: 'crew neck',
   scoop: 'scoop neck',
   v: 'V-neck',
+  plunge: 'plunging V',
   square: 'square neck',
   boat: 'boat neck',
   one_shoulder: 'one-shoulder neckline',
@@ -323,6 +324,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
                   {optionInTesting(g.id, id) && <TestingTag tool="new_details" />}
                   {oversizedInTesting(g.id, id) && <TestingTag tool="oversized" />}
                   {g.id === 'peplum' && id !== 'none' && hemDrop(m, choices) > 0 && <TestingTag tool="low_peplum" />}
+                  {g.id === 'neckline' && id === 'plunge' && <TestingTag tool="plunge" />}
                 </button>
               ))}
             </div>
