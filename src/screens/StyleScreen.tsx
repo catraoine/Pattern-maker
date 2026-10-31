@@ -45,7 +45,7 @@ import { AllRound } from '../ui/AllRound';
 import { roundSkirt } from '../engine/allRound';
 import { PiecesList, SummaryActions } from '../ui/StyleSummary';
 
-import { GROUPS, chosen, DETAIL_GROUPS, FRONT_GROUP, frontOf, ZIP_PLACES, detailOf, zipOf, withWaist, keepWrap, elasticAllowed, pocketsAllowed, keepWaist, beltOf_, currentLook, describe, fabricMetres } from '../skirtChoices';
+import { GROUPS, GATHERS_GROUP, gathersOf, chosen, DETAIL_GROUPS, FRONT_GROUP, frontOf, ZIP_PLACES, detailOf, zipOf, withWaist, keepWrap, elasticAllowed, pocketsAllowed, keepWaist, beltOf_, currentLook, describe, fabricMetres } from '../skirtChoices';
 
 interface Props {
   finish: Finish;
@@ -284,6 +284,20 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
             <Explain set="skirt" group={g.id} options={g.options} pick={chosen(choices, g.id)} />
           </Group>
         ))}
+        {choices.silhouette === 'gathered' && (
+          <Group label={GATHERS_GROUP.label}>
+            <div className={chipsClass('skirt', 'gathers')}>
+              {GATHERS_GROUP.options.map(([id, label]) => (
+                <button key={id} type="button" className={gathersOf(choices) === id ? 'chip on' : 'chip'} aria-pressed={gathersOf(choices) === id} onClick={() => change({ ...choices, gathers: id })}>
+                  <ChoicePic set="skirt" group="gathers" id={id} />
+                  {label}
+                  <TestingTag tool="fullness" />
+                </button>
+              ))}
+            </div>
+            <Explain set="skirt" group="gathers" options={GATHERS_GROUP.options} pick={gathersOf(choices)} />
+          </Group>
+        )}
         <Group label="Slit">
           <div className={chipsClass('skirt', 'slit')}>
             {SLIT_PLACES.map(([id, label]) => (

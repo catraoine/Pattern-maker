@@ -13,7 +13,7 @@ import type { WaistSeam } from './engine/dress';
 import type { PocketStyle } from './engine/pockets';
 import type { Stretch, TeeFit, TeeLength, TeeNeck, TeeSleeve } from './engine/tee';
 import { isSwim, type CupStyle, type LegCut, type LingerieFit, type LingeriePiece, type LingerieStretch, type Rise, type StretchWay } from './engine/lingerie';
-import { Peplum, isDraped } from './engine/drape';
+import { Peplum, PeplumHem, PeplumSize, isDraped, peplumLengthOk } from './engine/drape';
 import { isShaped } from './engine/hem';
 import type { HemShape } from './engine/hem';
 import { Structure, isBoned, isStrapless, isTop } from './engine/corset';
@@ -21,7 +21,7 @@ import { isShirred } from './engine/shirred';
 import { CAPE_NECKS, RUFFLE_NECKS } from './engine/collar';
 import { WRAP_BUST_DARTS } from './engine/wrap';
 import type { Panel, SeamKind, Yoke } from './engine/seams';
-import type { OuterCollar, OuterFit, OuterFlare, OuterFront, OuterKind, OuterLength, OuterPads, OuterPockets, OuterShaping, OuterSleeve, OuterTrim, OuterVent } from './engine/outerwear';
+import { type OuterCollar, type OuterFit, type OuterFlare, type OuterFront, type OuterKind, type OuterLapel, type OuterLength, lapelled, type OuterPads, type OuterPockets, type OuterShaping, type OuterSleeve, type OuterTrim, type OuterVent } from './engine/outerwear';
 
 export interface BodiceChoices {
   garment: 'bodice';
@@ -61,8 +61,12 @@ export interface BodiceChoices {
   collar?: Collar;
   /** A scoop or V back, or a keyhole at the back neck (see backNeck.ts). Older saves are plain. */
   back?: BackNeck;
-  /** A peplum at the waist seam, on a waist-length bodice. */
+  /** A peplum at the waist seam, on a waist-length bodice, or lowered to a hem just below it (In testing). */
   peplum?: Peplum;
+  /** The peplum's hem: level, or longer at the back (In testing). Older saves are level. */
+  peplumHem?: PeplumHem;
+  /** The peplum's size: standard, or big (In testing). Older saves are standard. */
+  peplumSize?: PeplumSize;
   /** Boned like a corset. Older saves are soft; a strapless neckline is always boned. */
   structure?: Structure;
   /** Seams drawn on the form, one kind at a time: a front and/or back yoke (cm below the neck point at
@@ -284,18 +288,20 @@ export interface OuterChoices {
   /** Drawn on the form (see formOuter.ts): the vent's length, where the pockets go, and a cutaway front. Older saves have none. */
   ventCm?: number;
   pocketAt?: { x: number; y: number };
+  /** How the lapels are cut (In testing): classic, wide or plunging. Older saves have none (classic). */
+  lapel?: OuterLapel;
   cutawayCm?: number;
 }
 
 export const DEFAULT_JACKET_CHOICES: OuterChoices = { garment: 'jacket', fit: 'regular', length: 'hip', shaping: 'darts', front: 'single', collar: 'notched', pockets: 'patch', sleeve: 'tailored', flare: 'straight', pads: 'soft', vent: 'centre', trim: 'none' };
 export const DEFAULT_COAT_CHOICES: OuterChoices = { garment: 'coat', fit: 'regular', length: 'knee', shaping: 'princess', front: 'single', collar: 'notched', pockets: 'welt', sleeve: 'tailored', flare: 'straight', pads: 'soft', vent: 'centre', trim: 'none' };
 
-type OuterGroupId = 'fit' | 'length' | 'shaping' | 'front' | 'collar' | 'sleeve' | 'pads' | 'pockets' | 'vent' | 'trim' | 'flare';
+type OuterGroupId = 'fit' | 'length' | 'shaping' | 'front' | 'collar' | 'lapel' | 'sleeve' | 'pads' | 'pockets' | 'vent' | 'trim' | 'flare';
 
 /** The style groups for a jacket or a coat: a coat has its own lengths and a flare below the hip. */
 export function outerGroups(kind: OuterKind): { id: OuterGroupId; label: string; options: [string, string][] }[] {
   return [
-    { id: 'fit', label: 'Fit', options: [['fitted', 'Fitted'], ['regular', 'Regular'], ['relaxed', 'Relaxed']] },
+    { id: 'fit', label: 'Fit', options: [['fitted', 'Fitted'], ['regular', 'Regular'], ['relaxed', 'Relaxed'], ['oversized', 'Oversized']] },
     {
       id: 'length',
       label: 'Length',
@@ -303,7 +309,12 @@ export function outerGroups(kind: OuterKind): { id: OuterGroupId; label: string;
     },
     { id: 'shaping', label: 'Shaping', options: [['darts', 'Darts'], ['princess', 'Princess seams'], ['boxy', 'Boxy']] },
     { id: 'front', label: 'Front', options: [['single', 'Single-breasted'], ['double', 'Double-breasted'], ['zip', 'Zip front']] },
-    { id: 'collar', label: 'Collar', options: [['notched', 'Notched lapel'], ['stand', 'Stand collar'], ['collarless', 'Collarless'], ['hood', 'Hood']] },
+    {
+      id: 'collar',
+      label: 'Collar',
+      options: [['notched', 'Notched lapel'], ['peak', 'Peak lapel'], ['shawl', 'Shawl collar'], ['stand', 'Stand collar'], ['funnel', 'Funnel collar'], ['collarless', 'Collarless'], ['hood', 'Hood']],
+    },
+    { id: 'lapel', label: 'Lapels', options: [['classic', 'Classic'], ['wide', 'Wide'], ['plunge', 'Plunging']] },
     { id: 'sleeve', label: 'Sleeves', options: [['tailored', 'Two-piece, tailored'], ['fitted', 'One-piece, elbow dart'], ['straight', 'Straight'], ['raglan', 'Raglan']] },
     { id: 'pads', label: 'Shoulder pads', options: [['soft', kind === 'coat' ? 'Soft, 8 mm' : 'Soft, 6 mm'], ['structured', kind === 'coat' ? 'Structured, 1.5 cm' : 'Structured, 1.2 cm'], ['none', 'None']] },
     { id: 'pockets', label: 'Pockets', options: [['patch', 'Patch pockets'], ['welt', 'Welt pockets'], ['none', 'None']] },
@@ -316,27 +327,47 @@ export function outerGroups(kind: OuterKind): { id: OuterGroupId; label: string;
 /**
  * Whether a choice is allowed with the rest: boxy shaping needs room, so not with a fitted cut; a cropped jacket is too short for a vent;
  * a notched lapel needs a shoulder seam and a buttoned front, so not with raglan sleeves or a zip; a raglan is cut off a one-piece front and back, so not
- * with princess seams; rib bands at the hem leave no room for a vent.
+ * with princess seams; rib bands at the hem leave no room for a vent. An oversized one (In testing) is cut boxy, with dropped
+ * shoulders and no pads, so it takes a straight or raglan sleeve.
  */
 export const outerAllowed = (c: OuterChoices, id: OuterGroupId, opt: string) =>
+  !(c.fit === 'oversized' && ((id === 'shaping' && opt !== 'boxy') || (id === 'pads' && opt !== 'none') || (id === 'sleeve' && (opt === 'tailored' || opt === 'fitted')))) &&
   !(id === 'shaping' && opt === 'boxy' && c.fit === 'fitted') &&
   !(id === 'vent' && opt === 'centre' && (c.length === 'cropped' || c.trim === 'rib')) &&
-  !(id === 'collar' && opt === 'notched' && (c.front === 'zip' || c.sleeve === 'raglan')) &&
-  !(id === 'front' && opt === 'zip' && c.collar === 'notched') &&
-  !(id === 'sleeve' && opt === 'raglan' && (c.collar === 'notched' || c.shaping === 'princess')) &&
+  !(id === 'collar' && lapelled(opt as OuterCollar) && (c.front === 'zip' || c.sleeve === 'raglan')) &&
+  !(id === 'front' && opt === 'zip' && lapelled(c.collar)) &&
+  !(id === 'sleeve' && opt === 'raglan' && (lapelled(c.collar) || c.shaping === 'princess')) &&
+  // A plunging lapel rolls to one button at the waist, so it needs a single-breasted front.
+  !(id === 'lapel' && opt === 'plunge' && c.front !== 'single') &&
+  !(id === 'front' && opt !== 'single' && c.lapel === 'plunge') &&
   !(id === 'shaping' && opt === 'princess' && c.sleeve === 'raglan');
 
 export const OUTER_LENGTH_WORDS: Record<OuterLength, string> = { cropped: 'Cropped', hip: 'Hip-length', long: 'Long', thigh: 'Mid-thigh', knee: 'Knee-length', midi: 'Midi' };
-const OUTER_COLLAR_WORDS: Record<OuterCollar, string> = { notched: 'with notched lapels', stand: 'with a stand collar', collarless: 'collarless', hood: 'with a hood' };
+const OUTER_COLLAR_WORDS: Record<OuterCollar, string> = {
+  notched: 'with notched lapels',
+  peak: 'with peak lapels',
+  shawl: 'with a shawl collar',
+  stand: 'with a stand collar',
+  funnel: 'with a funnel collar',
+  collarless: 'collarless',
+  hood: 'with a hood',
+};
+
+/** An oversized cut's own shaping: boxy, no pads, and a straight sleeve where a tailored or fitted one was. */
+export function oversizeOuter(c: OuterChoices): OuterChoices {
+  if (c.fit !== 'oversized') return c;
+  return { ...c, shaping: 'boxy', pads: 'none', sleeve: c.sleeve === 'raglan' ? 'raglan' : 'straight' };
+}
 
 /** A plain name, such as "Hip-length single-breasted jacket with notched lapels". */
 export function describeOuter(c: OuterChoices) {
   const front = c.front === 'double' ? 'double-breasted' : c.front === 'zip' ? 'zip-front' : 'single-breasted';
   const collar = OUTER_COLLAR_WORDS[c.collar];
   const shape = c.garment === 'coat' && c.flare === 'a_line' ? ' A-line' : '';
+  const big = c.fit === 'oversized' ? ' oversized' : '';
   return c.collar === 'collarless'
-    ? `${OUTER_LENGTH_WORDS[c.length]} collarless ${front}${shape} ${c.garment}`
-    : `${OUTER_LENGTH_WORDS[c.length]} ${front}${shape} ${c.garment} ${collar}`;
+    ? `${OUTER_LENGTH_WORDS[c.length]}${big} collarless ${front}${shape} ${c.garment}`
+    : `${OUTER_LENGTH_WORDS[c.length]}${big} ${front}${shape} ${c.garment} ${collar}`;
 }
 
 /** A saved pattern's choices. Skirt choices predate bodices, so they carry no garment field. */
@@ -354,14 +385,14 @@ export const DEFAULT_BODICE: BodiceChoices = { garment: 'bodice', fit: 'regular'
 type Group<K extends keyof BodiceChoices> = { id: K; label: string; options: [NonNullable<BodiceChoices[K]>, string][] };
 
 // Options from styling/styling-options.json (top). Oversized fit needs its own block.
-export const BODICE_GROUPS: [Group<'fit'>, Group<'neckline'>, Group<'length'>, Group<'darts'>, Group<'sleeve'>, Group<'sleeveShape'>, Group<'sleeveCut'>, Group<'sleeveCuff'>, Group<'princess'>, Group<'bustDart'>, Group<'closure'>, Group<'collar'>, Group<'back'>, Group<'structure'>, Group<'peplum'>] = [
-  { id: 'fit', label: 'Fit', options: [['fitted', 'Fitted'], ['regular', 'Regular'], ['relaxed', 'Relaxed']] },
+export const BODICE_GROUPS: [Group<'fit'>, Group<'neckline'>, Group<'length'>, Group<'darts'>, Group<'sleeve'>, Group<'sleeveShape'>, Group<'sleeveCut'>, Group<'sleeveCuff'>, Group<'princess'>, Group<'bustDart'>, Group<'closure'>, Group<'collar'>, Group<'back'>, Group<'structure'>, Group<'peplum'>, Group<'peplumHem'>, Group<'peplumSize'>] = [
+  { id: 'fit', label: 'Fit', options: [['fitted', 'Fitted'], ['regular', 'Regular'], ['relaxed', 'Relaxed'], ['oversized', 'Oversized']] },
   {
     id: 'neckline',
     label: 'Neckline',
-    options: [['crew', 'Crew'], ['scoop', 'Scoop'], ['v', 'V-neck'], ['square', 'Square'], ['boat', 'Boat'], ['one_shoulder', 'One-shoulder'], ['cowl', 'Cowl'], ['strapless', 'Strapless'], ['sweetheart', 'Sweetheart'], ['cami', 'Cami straps'], ['halter', 'Halter']],
+    options: [['crew', 'Crew'], ['scoop', 'Scoop'], ['v', 'V-neck'], ['plunge', 'Plunge'], ['square', 'Square'], ['boat', 'Boat'], ['one_shoulder', 'One-shoulder'], ['cowl', 'Cowl'], ['strapless', 'Strapless'], ['sweetheart', 'Sweetheart'], ['cami', 'Cami straps'], ['halter', 'Halter']],
   },
-  { id: 'length', label: 'Length', options: [['waist', 'Waist'], ['high_hip', 'High hip'], ['hip', 'Hip']] },
+  { id: 'length', label: 'Length', options: [['waist', 'Waist'], ['high_hip', 'High hip'], ['hip', 'Hip'], ['long', 'Long']] },
   { id: 'darts', label: 'Darts', options: [['bust_waist', 'Bust and waist'], ['bust', 'Bust only'], ['none', 'No darts']] },
   {
     id: 'sleeve',
@@ -382,6 +413,8 @@ export const BODICE_GROUPS: [Group<'fit'>, Group<'neckline'>, Group<'length'>, G
   { id: 'back', label: 'Back', options: BACK_NECKS },
   { id: 'structure', label: 'Structure', options: [['none', 'Soft'], ['boned', 'Boned, like a corset'], ['shirred', 'Shirred back']] },
   { id: 'peplum', label: 'Peplum', options: [['none', 'None'], ['flared', 'Flared'], ['gathered', 'Gathered']] },
+  { id: 'peplumHem', label: 'Peplum hem', options: [['level', 'Level'], ['high_low', 'Longer at back']] },
+  { id: 'peplumSize', label: 'Peplum size', options: [['standard', 'Standard'], ['big', 'Big']] },
 ];
 
 const BACK_WORDS: Record<BackNeck, string> = { plain: '', scoop: 'a scoop back', v: 'a V back', keyhole: 'a keyhole back' };
@@ -392,7 +425,7 @@ export const COLLAR_WORDS: Record<Collar, string> = { none: '', peter_pan: 'Pete
  * darts to carry; a top below the waist has no waist seam for the bust dart; collars sit on a high
  * round neck (a Peter Pan on a scoop too); a shirt collar needs the button front. A draped neckline
  * (one-shoulder, cowl) takes only the side bust dart, the back zip and no collar or princess seams, and
- * the one-shoulder is sleeveless. A peplum goes on a waist-length bodice, not on a dress. A drawn style
+ * the one-shoulder is sleeveless. A peplum goes on a waist-length bodice (or a fitted one just past the waist), not on a dress. A drawn style
  * seam (yoke, empire, panel) is allowed when seamBlocked finds no reason against it.
  */
 export function detailAllowed(c: BodiceChoices, id: 'princess' | 'bustDart' | 'closure' | 'collar' | 'back' | 'structure' | 'sleeve' | 'sleeveCut' | 'peplum' | SeamKind, opt: string, garment: 'bodice' | 'dress' = 'bodice'): boolean {
@@ -400,7 +433,8 @@ export function detailAllowed(c: BodiceChoices, id: 'princess' | 'bustDart' | 'c
   if (id === 'sleeveCut') return !sleeveCutBlocked(c, opt as SleeveCut);
   if (id === 'yoke' || id === 'empire' || id === 'panel') return opt === 'none' || !seamBlocked(c, id, garment, opt === 'back' ? 'back' : 'front');
   // A peplum (flared or gathered) goes on a waist-length bodice, boned or soft, never on a dress.
-  if (id === 'peplum') return opt === 'none' || (garment === 'bodice' && c.length === 'waist' && c.structure !== 'shirred' && !(c.dropCm !== undefined && c.dropCm >= 3));
+  // Lowered to a hem a few centimetres below the waist (In testing), on a cut that still nips in at the waist.
+  if (id === 'peplum') return opt === 'none' || (garment === 'bodice' && peplumLengthOk(c) && c.structure !== 'shirred');
   if (id === 'sleeve') return opt === 'none' || (c.neckline !== 'one_shoulder' && !isTop(c.neckline)) || !!c.neck;
   // Boning needs a top edge below the shoulders, and a strapless one needs the boning to stay up.
   // A halter hangs from the neck, so it stays soft.
@@ -415,7 +449,8 @@ export function detailAllowed(c: BodiceChoices, id: 'princess' | 'bustDart' | 'c
   if (id === 'princess') return opt === 'none' || (c.darts === 'bust_waist' && !top && c.closure !== 'wrap');
   if (id === 'bustDart') return c.darts !== 'none' && (opt !== 'waist' || c.length === 'waist') && !(top && (opt === 'shoulder' || opt === 'armhole')) && (c.closure !== 'wrap' || (WRAP_BUST_DARTS as readonly string[]).includes(opt));
   // A dress buttons down the front too (a shirt dress), when its skirt can carry the buttons on (see dress.ts).
-  if (id === 'closure') return opt === 'back_zip' || !top;
+  // A plunge's V runs nearly to the waist, leaving no front to button.
+  if (id === 'closure') return opt === 'back_zip' || (!top && (c.neckline !== 'plunge' || opt !== 'front_buttons'));
   if (c.closure === 'wrap' && opt !== 'none') return false;
   if (opt === 'none') return true;
   // A collar goes round the back neck, so not with a low or keyhole back.
@@ -460,7 +495,7 @@ export function seamBlocked(c: BodiceChoices, kind: SeamKind, garment: 'bodice' 
 }
 
 /** How far each named neckline drops at the centre front, in cm (NECKLINES in bodice.ts). */
-const NECKLINE_DEPTH: Record<Neckline, number> = { crew: 1, scoop: 10, v: 14, square: 10, boat: 2, one_shoulder: 1, cowl: 1, strapless: 0, sweetheart: 0, cami: 0, halter: 0 };
+const NECKLINE_DEPTH: Record<Neckline, number> = { crew: 1, scoop: 10, v: 14, plunge: 50, square: 10, boat: 2, one_shoulder: 1, cowl: 1, strapless: 0, sweetheart: 0, cami: 0, halter: 0 };
 
 /** The style seam a bodice has, one kind at a time: an empire seam, then side panels, then a yoke. */
 export function seamOf(c: BodiceChoices): SeamKind | undefined {
@@ -553,9 +588,18 @@ export const DARTS_FOR_FIT: Record<BodiceFit, BodiceDarts[]> = {
   relaxed: ['bust_waist', 'bust', 'none'],
   // Boxy keeps its darts: bust darts for the shape over the bust, waist darts only as long fish-eyes.
   boxy: ['bust', 'bust_waist'],
+  // Oversized has none: the ease covers the bust.
+  oversized: ['none'],
 };
 
-const NECK_WORDS: Record<Neckline, string> = { crew: 'crew neck', scoop: 'scoop neck', v: 'V-neck', square: 'square neck', boat: 'boat neck', one_shoulder: 'one-shoulder neckline', cowl: 'cowl neck', strapless: 'strapless', sweetheart: 'strapless sweetheart', cami: 'cami', halter: 'halter' };
+/** The darts kept on moving to a fit: the ones chosen if the fit allows them, else bust and waist darts, or the
+ * fit's own when it has none of those (oversized). */
+export const dartsFor = (c: Pick<BodiceChoices, 'fit' | 'darts'>): BodiceDarts => {
+  const allowed = DARTS_FOR_FIT[c.fit];
+  return allowed.includes(c.darts) ? c.darts : allowed.includes('bust_waist') ? 'bust_waist' : allowed[0];
+};
+
+const NECK_WORDS: Record<Neckline, string> = { crew: 'crew neck', scoop: 'scoop neck', v: 'V-neck', plunge: 'plunging V', square: 'square neck', boat: 'boat neck', one_shoulder: 'one-shoulder neckline', cowl: 'cowl neck', strapless: 'strapless', sweetheart: 'strapless sweetheart', cami: 'cami', halter: 'halter' };
 
 /**
  * What a top below the shoulders rules out: sleeves, and on a boned bodice any fit but fitted, any
@@ -594,9 +638,9 @@ function topWords(v: BodiceChoices, length: string) {
 /** A name with its peplum: "boned strapless bodice with a flared peplum". */
 function withPeplum(name: string, v: BodiceChoices) {
   if (!v.peplum || v.peplum === 'none') return name;
-  return `${name}${/ with /.test(name) ? ' and' : ' with'} a ${v.peplum} peplum`;
+  return `${name}${/ with /.test(name) ? ' and' : ' with'} a ${v.peplumSize === 'big' ? 'big ' : ''}${v.peplum} peplum${v.peplumHem === 'high_low' ? ', longer at the back' : ''}`;
 }
-const LENGTH_WORDS: Record<BodiceLength, string> = { waist: 'waist-length', high_hip: 'high-hip-length', hip: 'hip-length' };
+const LENGTH_WORDS: Record<BodiceLength, string> = { waist: 'waist-length', high_hip: 'high-hip-length', hip: 'hip-length', long: 'long' };
 
 /** The style seam as a word before "bodice": "empire-waist", "side-panel", "yoked", "front-yoke". */
 function seamAdjective(v: BodiceChoices) {
@@ -645,7 +689,7 @@ export function bodiceDetails(c: BodiceChoices) {
 export function describeBodice(c: BodiceChoices) {
   const v = validDetails(c);
   if (isTop(v.neckline)) return withPeplum(topWords(v, `${LENGTH_WORDS[v.length]} `), v);
-  const peplum = v.peplum && v.peplum !== 'none' ? `a ${v.peplum} peplum` : '';
+  const peplum = v.peplum && v.peplum !== 'none' ? `a ${v.peplumSize === 'big' ? 'big ' : ''}${v.peplum} peplum${v.peplumHem === 'high_low' ? ' longer at the back' : ''}` : '';
   const sleeveWords = sleeveWordsOf(sleeveOf(v));
   const backWords = v.back && v.back !== 'plain' ? BACK_WORDS[v.back] : '';
   const sleeve = sleeveWords || peplum || backWords ? ` with ${[sleeveWords, peplum, backWords].filter(Boolean).join(' and ')}` : '';
@@ -658,5 +702,7 @@ export function describeBodice(c: BodiceChoices) {
   const dropped = c.dropCm !== undefined && c.dropCm >= 3;
   const lengthWords = dropped ? '' : `${c.dropCm !== undefined ? 'waist-length' : LENGTH_WORDS[c.length]} `;
   const shapedHem = isShaped(c.hem) && (c.length !== 'waist' || dropped) ? ', with a shaped hem' : '';
-  return `${lengthWords}${neck}${princess}${seam} bodice${sleeve}${dropped ? `, ${Math.round(c.dropCm!)} cm below the waist` : ''}${shapedHem}`;
+  // Oversized is a cut of its own, so it is named; the other fits are read off the drawing.
+  const big = v.fit === 'oversized' ? 'oversized ' : '';
+  return `${lengthWords}${big}${neck}${princess}${seam} bodice${sleeve}${dropped ? `, ${Math.round(c.dropCm!)} cm below the waist` : ''}${shapedHem}`;
 }

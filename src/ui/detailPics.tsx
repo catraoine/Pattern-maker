@@ -46,6 +46,13 @@ const DRESS_FIT = {
       <path d="M10 8.5L14 6.5Q20 9.5 26 6.5L30 8.5V42H10z" />
     </>
   ),
+  /** The top's Oversized: far out from the body, the shoulder dropped past it. */
+  oversized: (
+    <>
+      <path className="pic-faint-solid" d={BODY} />
+      <path d="M6 12L14 6.5Q20 9.5 26 6.5L34 12V43H6z" />
+    </>
+  ),
 };
 
 /** Pockets hidden in the side seams: the bags drawn dashed behind the seam. */
@@ -54,6 +61,11 @@ const inseam = (base: string, y: number) => on(base, `M10.5 ${y}q-4 3 -1 7.5q2 1
 const DETAILS: Record<ExplainSet, Record<string, Record<string, ReactNode>>> = {
   skirt: {
     fit: FIT,
+    gathers: {
+      soft: on('M15 6h10l3 38H12z', 'M17 7L16 43M20 7V43M23 7L24 43'),
+      full: on('M15 6h10l6 38H9z', 'M16 7L13 43M18 7L17 43M20 7V43M22 7L23 43M24 7L27 43'),
+      dramatic: on('M15 6h10l10 38H5z', 'M15.5 7L9 43M17 7L13 43M18.5 7L17 43M20 7V43M21.5 7L23 43M23 7L27 43M24.5 7L31 43'),
+    },
     volume: {
       none: on(SKIRT),
       knife: on(SKIRT, 'M15.5 6L13 44M18.5 6L17.5 44M21.5 6L22.5 44M24.5 6L27 44M15.5 6l1.5 3M18.5 6l1.5 3M21.5 6l1.5 3M24.5 6l1.5 3'),
@@ -160,6 +172,14 @@ const DETAILS: Record<ExplainSet, Record<string, Record<string, ReactNode>>> = {
       flared: on(SHORT_TOP, 'M11 28L5 39Q20 43 35 39L29 28'),
       gathered: on(SHORT_TOP, 'M11 28L8 38Q11 40 14 38Q17 40 20 38Q23 40 26 38Q29 40 32 38L29 28M13 29v2M17 29v2M21 29v2M25 29v2'),
     },
+    peplumHem: {
+      level: on(SHORT_TOP, 'M11 28L5 39Q20 43 35 39L29 28'),
+      high_low: on(SHORT_TOP, 'M11 28L5 35Q12 37 15 40Q20 46 25 40Q28 37 35 35L29 28'),
+    },
+    peplumSize: {
+      standard: on(SHORT_TOP, 'M11 28L7 37Q20 40 33 37L29 28'),
+      big: on(SHORT_TOP, 'M11 28L1 44Q20 49 39 44L29 28M15 30L9 45M20 30V47M25 30L31 45'),
+    },
   },
   tee: {
     fit: FIT,
@@ -182,7 +202,7 @@ const DETAILS: Record<ExplainSet, Record<string, Record<string, ReactNode>>> = {
     pockets: { none: on(TROUSERS), inseam: inseam(TROUSERS, 8), slant: on(TROUSERS, 'M14 4L11.2 12M26 4L28.8 12') },
   },
   outer: {
-    fit: FIT,
+    fit: { ...FIT, oversized: DRESS_FIT.oversized },
     shaping: {
       darts: on(JACKET, 'M14.5 36L15.5 22L16.5 36M23.5 36L24.5 22L25.5 36'),
       princess: on(JACKET, 'M13 9Q15 24 14 38M27 9Q25 24 26 38'),
@@ -195,9 +215,17 @@ const DETAILS: Record<ExplainSet, Record<string, Record<string, ReactNode>>> = {
     },
     collar: {
       notched: on(JACKET, 'M15 6L12.5 14L15.5 13.5L20 24M25 6L27.5 14L24.5 13.5L20 24'),
+      peak: on(JACKET, 'M15 6L13.5 12.5L11 11L20 24M25 6L26.5 12.5L29 11L20 24'),
+      shawl: on(JACKET, 'M15 6Q11 14 20 24M25 6Q29 14 20 24'),
+      funnel: on('M9 11L15 7Q20 10 25 7L31 11L30 22L31 38H9L10 22z', 'M15 7L14 1.5Q20 3.5 26 1.5L25 7'),
       stand: on('M9 11L15 7Q20 10 25 7L31 11L30 22L31 38H9L10 22z', 'M15 7V3.5Q20 6 25 3.5V7'),
       collarless: on('M9 11L15 7Q20 13 25 7L31 11L30 22L31 38H9L10 22z', 'M15 7Q20 13 25 7'),
       hood: on('M9 11L15 7Q20 10 25 7L31 11L30 22L31 38H9L10 22z', 'M15 7Q13 -1 20 -1.5Q27 -1 25 7M17.5 5.5Q17 1.5 20 1Q23 1.5 22.5 5.5'),
+    },
+    lapel: {
+      classic: on(JACKET, 'M15 6L12.5 14L15.5 13.5L20 24M25 6L27.5 14L24.5 13.5L20 24'),
+      wide: on(JACKET, 'M15 6L9.5 15L13 14L20 24M25 6L30.5 15L27 14L20 24'),
+      plunge: on(JACKET, `M15 6L12.5 14L15.5 13.5L20 32M25 6L27.5 14L24.5 13.5L20 32${dot(20, 33)}`),
     },
     sleeve: {
       tailored: on('M13 7Q20 2 27 7Q26 20 28 26L25 44H16L14 26Q12 18 13 7z', 'M18 5.5Q16 24 18.5 44'),

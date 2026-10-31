@@ -471,11 +471,14 @@ export function bodiceLines(draft: BodiceDraft, side: FormSide): Record<Exclude<
   }
   if (draft.peplum) {
     const d = draft.peplum.depthCm;
-    const y0 = land.waistCentre.y;
+    // A lowered peplum hangs from the bodice's hem, below the waist.
+    const low = !!draft.peplum.seamCm;
+    const y0 = low ? land.hemCentre.y : land.waistCentre.y;
+    const x0 = low ? Math.max(land.hemSide.x, 1) : waistX;
     const flare = draft.peplum.kind === 'gathered' ? 4 : 7;
-    drape.push(...mirror([{ x: waistX, y: y0 }, { x: waistX + flare, y: y0 + d }]));
+    drape.push(...mirror([{ x: x0, y: y0 }, { x: x0 + flare, y: y0 + d }]));
     drape.push(Array.from({ length: 17 }, (_, i) => {
-      const x = -(waistX + flare) + ((waistX + flare) * 2 * i) / 16;
+      const x = -(x0 + flare) + ((x0 + flare) * 2 * i) / 16;
       return { x, y: y0 + d + (draft.peplum!.kind === 'gathered' ? 0.6 * Math.sin(i * 1.6) : 0) };
     }));
   }

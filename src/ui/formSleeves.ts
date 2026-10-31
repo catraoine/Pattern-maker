@@ -13,7 +13,7 @@ import type { P } from '../engine/geometry';
 import type { BodiceDraft, BodiceMeasurements } from '../engine/bodice';
 import { SHAPES_FOR_LENGTH, SLEEVE_LENGTHS, SleeveDraft, SleeveLength, SleeveMeasurements, SleeveShape, draftSleeve } from '../engine/sleeve';
 import { sleeveCutBlocked } from '../engine/sleeveCut';
-import type { OuterSleeve } from '../engine/outerwear';
+import { type OuterSleeve, lapelled } from '../engine/outerwear';
 import { BodiceChoices, OuterChoices, detailAllowed, slideSleeve, validDetails } from '../garments';
 import { FormArm, armAt } from './DrawOnForm';
 import { FormLine, Reading, landmarks, median } from './formLines';
@@ -142,7 +142,7 @@ export function readOuterSleeve(stroke: P[], arm: FormArm, neckPoint: P, c: Oute
   if (kind === 'across') return { said: `${c.garment === 'coat' ? 'Coat' : 'Jacket'} sleeves run to the wrist. Draw down the outside of the arm for how close they sit.` };
   if (kind === 'cut_raglan') {
     // A raglan is cut off a one-piece body with no shoulder seam: princess seams give way to darts, a notched lapel to a stand collar.
-    const next: OuterChoices = { ...c, sleeve: 'raglan', shaping: c.shaping === 'princess' ? 'darts' : c.shaping, collar: c.collar === 'notched' ? 'stand' : c.collar };
+    const next: OuterChoices = { ...c, sleeve: 'raglan', shaping: c.shaping === 'princess' ? 'darts' : c.shaping, collar: lapelled(c.collar) ? 'stand' : c.collar };
     return { choices: next, said: 'Raglan sleeves: the seam runs from the neck to under the arm.' };
   }
   if (kind !== 'down') return { said: 'Draw down the outside of the arm: close to it for a fitted sleeve, further out for a straight one; from the neck to under the arm for a raglan.' };

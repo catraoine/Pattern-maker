@@ -15,6 +15,8 @@ const FIT: Record<string, Line> = {
 };
 /** The dress's fits: Boxy is the dress's own (see DRESS_FIT_GROUP). */
 const DRESS_FIT: Record<string, Line> = { ...FIT, boxy: ['Straight from bust to hem, the shoulder squared by the cut, not a pad. Bust darts keep it smooth.', 'easy'] };
+/** The top's fits: Oversized is the top's own, the big shirt. */
+const TOP_FIT: Record<string, Line> = { ...DRESS_FIT, oversized: ['The big shirt: very roomy, straight from the bust with no darts and a deep armhole. Best with dropped shoulders.', 'easy'] };
 
 const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
   skirt: {
@@ -45,6 +47,11 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       none: ['The hem is the same length all the way round.', 'easy'],
       high_low: ['Shorter at the front and longer at the back, curving between.'],
       diagonal: ['The hem slants from one side to the other.', 'skill'],
+    },
+    gathers: {
+      soft: ['About one and a half times the waist, gathered in: gentle folds that sit close.', 'easy'],
+      full: ['Twice the waist and a bit, for deep folds that swing as you walk.'],
+      dramatic: ['Nearly three times the waist, for a big, soft volume. Best in a light fabric.'],
     },
     slit: {
       none: ['No slit: the seams run closed to the hem.', 'easy'],
@@ -89,11 +96,12 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
     },
   },
   bodice: {
-    fit: DRESS_FIT,
+    fit: TOP_FIT,
     neckline: {
       crew: ['A round neckline that sits close at the base of the neck.', 'easy'],
       scoop: ['A wider, lower round neckline.', 'easy'],
       v: ['Comes down to a point at the front.'],
+      plunge: ['A deep V cut down past the bust almost to the waist, on narrow straps. Best with a slip or tape to keep it in place.', 'skill'],
       square: ['Straight across the front with square corners.'],
       boat: ['A wide, shallow neckline that runs almost from shoulder to shoulder.'],
       one_shoulder: ['Goes over one shoulder and leaves the other bare.', 'skill'],
@@ -107,6 +115,7 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       waist: ['Ends at your waist, the natural place to meet a skirt or trousers.'],
       high_hip: ['Ends a little below the waist, at the top of the hip.'],
       hip: ['Ends at the fullest part of the hip.'],
+      long: ['Runs on past the hip to cover your seat, like a shirt worn loose.'],
     },
     waistSeam: {
       empire: ['Just under the bust, the skirt falling free from there. Make it short and full for a babydoll.'],
@@ -190,8 +199,16 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
     },
     peplum: {
       none: ['No peplum.'],
-      flared: ['A short skirt of fabric sewn on at the waist that flares out over the hips.'],
-      gathered: ['A short ruffle gathered on at the waist.'],
+      flared: ['A short skirt sewn on at the waist that flares over the hips. A longer top lowers it.'],
+      gathered: ['A short ruffle gathered on at the waist, or lower on a longer top.'],
+    },
+    peplumHem: {
+      level: ['The peplum is the same length all the way round.', 'easy'],
+      high_low: ['The peplum curves down from the sides to hang longer at the back, like a short tail.'],
+    },
+    peplumSize: {
+      standard: ['The usual peplum: a short flare or ruffle over the hips.', 'easy'],
+      big: ['Longer and much fuller: a full circle, or gathered extra full. Best in a crisp fabric that stands out.'],
     },
   },
   tee: {
@@ -251,7 +268,7 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
     },
   },
   outer: {
-    fit: FIT,
+    fit: { ...FIT, oversized: ['Cut big and boxy, its shoulders dropped past yours and no pads, with a wide lapel that falls open like a cape.', 'easy'] },
     length: {
       cropped: ['Ends above the hip, near the waist.'],
       hip: ['Ends at the hip, the classic jacket length.'],
@@ -272,9 +289,17 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
     },
     collar: {
       notched: ['The classic collar with lapels and a notch where they meet.', 'skill'],
+      peak: ['Lapels whose points sweep up and out past the collar, sharp and formal.', 'skill'],
+      shawl: ['The lapel and collar curve round in one smooth line with no notch, like a tuxedo.', 'skill'],
       stand: ['A band that stands up round the neck.'],
+      funnel: ['A tall band that stands up and away from the neck. No lapels.'],
       collarless: ['No collar, with a clean round neckline.', 'easy'],
       hood: ['A hood in two pieces, seamed over the head and sewn to the neck. Goes with a zip or a plain front.'],
+    },
+    lapel: {
+      classic: ['Lapels of the usual width, rolling back to just below the bust.', 'easy'],
+      wide: ['Lapels 3 cm broader, for a bolder, more dramatic front.'],
+      plunge: ['The lapels roll all the way down to one button at the waist. Single-breasted only.'],
     },
     sleeve: {
       tailored: ['Two pieces shaped to bend with your arm, as in a tailored jacket.', 'skill'],
@@ -320,6 +345,9 @@ const SHORT: Record<string, string> = {
   'fit.fitted': 'Close fit. Make a test one first.',
   'length.mini': 'Mid-thigh, well above the knee.',
   'asymHem.none': 'The same length all round.',
+  'gathers.soft': 'Gentle folds that sit close.',
+  'gathers.full': 'Deep folds that swing.',
+  'gathers.dramatic': 'Big, soft volume.',
   'asymHem.diagonal': 'Slants from one side to the other.',
   'slit.none': 'No slit.',
   'front.buttons': 'Buttons down the front, no zip.',
@@ -384,6 +412,7 @@ const SHORT: Record<string, string> = {
   'belt.sash_loops': 'The sash, held by a loop each side.',
   'belt.loops': 'Loops for your own belt, up to 3 cm.',
   'belt.band': 'A fabric band with a buckle.',
+  'neckline.plunge': 'A deep V nearly to the waist.',
   'neckline.crew': 'Round, close at the base of the neck.',
   'neckline.boat': 'Wide and shallow, shoulder to shoulder.',
   'neckline.one_shoulder': 'Over one shoulder only.',
@@ -435,6 +464,11 @@ const SHORT: Record<string, string> = {
   'collar.ruffle': 'A soft frill round the neckline.',
   'collar.cape': 'A short cape over the shoulders.',
   'collar.notched': 'Lapels with a notch. The classic.',
+  'collar.peak': 'Lapel points sweeping up.',
+  'collar.shawl': 'One smooth curve, no notch.',
+  'lapel.classic': 'The usual width and roll.',
+  'lapel.wide': 'Broader, bolder lapels.',
+  'lapel.plunge': 'Rolls down to one waist button.',
   'collar.hood': 'A two-piece hood.',
   'back.plain': 'High, close to the neck.',
   'back.scoop': 'A low curve, taped to hug you.',
@@ -444,6 +478,14 @@ const SHORT: Record<string, string> = {
   'structure.boned': 'Boned to hold its shape, like a corset.',
   'structure.shirred': 'Elastic-shirred back. Pulls on.',
   'peplum.flared': 'A short flared skirt at the waist.',
+  'peplum.gathered': 'A short gathered ruffle at the waist.',
+  'peplumHem.level': 'The same length all round.',
+  'peplumSize.standard': 'A short flare over the hips.',
+  'peplumSize.big': 'Longer and much fuller.',
+  'peplumHem.high_low': 'Curves down, longer at the back.',
+  'bodice.fit.oversized': 'Big and straight, no darts.',
+  'bodice.length.long': 'Past the hip, over your seat.',
+  'outer.fit.oversized': 'Big and boxy, the shoulders dropped.',
   'stretch.medium': 'A fair stretch, like most jersey.',
   'stretch.high': 'Stretches a lot, so cut to hug you.',
   'leg.straight': 'Straight from hip to hem.',

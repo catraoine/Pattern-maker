@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { BodiceDraft, BodiceStyle, draftBodice } from './bodice';
 import { draftDress } from './dress';
-import { COWL_FACING, GATHER, drapeFacings, drapeLined } from './drape';
+import { COWL_FACING, GATHER, PEPLUM_SEAM_MAX, drapeFacings, drapeLined } from './drape';
 import { P, taggedLength } from './geometry';
 import { bodiceGuide, dressGuide } from './instructions';
 import { toCouture } from './couture';
@@ -41,9 +41,9 @@ function problems(d: BodiceDraft, tag: string): string[] {
   }
   if (d.drape?.kind === 'cowl' && !(d.drape.depthCm! >= 8 && d.drape.depthCm! <= 12)) out.push(`${tag} cowl depth ${d.drape.depthCm}`);
   if (d.peplum?.kind === 'gathered') {
-    const half = (pc: Piece) => taggedLength(pc.outline, 'waist') / (pc.meta.whole ? 2 : 1);
-    const bodice = d.pieces.filter((pc) => /^Bodice/.test(pc.name)).reduce((t, pc) => t + half(pc), 0);
-    const peplum = d.pieces.filter((pc) => /^Peplum/.test(pc.name)).reduce((t, pc) => t + half(pc), 0);
+    const half = (tag: string) => (pc: Piece) => taggedLength(pc.outline, tag) / (pc.meta.whole ? 2 : 1);
+    const bodice = d.pieces.filter((pc) => /^Bodice/.test(pc.name)).reduce((t, pc) => t + half(d.peplum!.seamCm ? 'hem' : 'waist')(pc), 0);
+    const peplum = d.pieces.filter((pc) => /^Peplum/.test(pc.name)).reduce((t, pc) => t + half('waist')(pc), 0);
     if (Math.abs(peplum - GATHER * bodice) > 0.05) out.push(`${tag} gathered peplum ${peplum} for ${bodice}`);
   }
   // A gathered peplum is half as wide again as the waist: on a large body it can be too wide for
@@ -270,6 +270,50 @@ describe('with the corsetry and the slip skirt', () => {
         }
     expect(n).toBe(48);
     expect(bad.slice(0, 8)).toEqual([]);
+  });
+
+  it('lowers the peplum to a hem just below the waist, the bodice still cinched at the waist, and it all walks', () => {
+    const bad: string[] = [];
+    let n = 0;
+    for (let s = 1; s <= 8; s++) {
+      const body = randomBody(rng(s));
+      for (const neckline of ['crew', 'v', 'one_shoulder', 'cowl'] as const)
+        for (const fit of ['fitted', 'regular', 'relaxed'] as const)
+          for (const at of [{ length: 'high_hip' as const }, { length: 'waist' as const, dropCm: 6 }, { length: 'waist' as const, dropCm: PEPLUM_SEAM_MAX }])
+            for (const peplum of ['flared', 'gathered'] as const) {
+              let d: BodiceDraft;
+              try {
+                d = draftBodice(body, { neckline, fit, darts: DARTS_FOR_FIT[fit][0], ...at, peplum });
+              } catch (e) {
+                if (e instanceof DraftError) continue;
+                throw e;
+              }
+              n++;
+              const tag = `${s} ${neckline} ${fit} ${at.length}${at.dropCm ?? ''} ${peplum}`;
+              if (!d.peplum) bad.push(`${tag}: no peplum`);
+              else if (d.peplum.seamCm !== d.drop || !(d.drop > 0)) bad.push(`${tag}: seam ${d.peplum.seamCm} for a hem ${d.drop} below`);
+              // The waist stays nipped in: the bodice's waist is cut to the fit, not let out to the hem.
+              if (!(d.finishedWaist < d.finishedHem! - 2)) bad.push(`${tag}: waist ${d.finishedWaist} not cinched against the seam ${d.finishedHem}`);
+              // The hem is a seam now, not a turned-up hem.
+              for (const pc of d.pieces.filter((pc) => !pc.kind && /^Bodice/.test(pc.name))) if (pc.allowances.hem !== 1.5) bad.push(`${tag} ${pc.name}: hem allowance ${pc.allowances.hem}`);
+              bad.push(...problems(d, tag));
+            }
+    }
+    expect(n).toBeGreaterThanOrEqual(400);
+    expect(bad.slice(0, 8)).toEqual([]);
+  });
+
+  it('writes the lowered peplum into the checks and the name, and keeps it off straight cuts and shaped hems', () => {
+    const body = randomBody(rng(2));
+    const d = draftBodice(body, { neckline: 'crew', fit: 'fitted', length: 'waist', dropCm: 8, peplum: 'flared' });
+    const seam = checkPattern(garment(d.pieces)).filter((c) => /Peplum seam/.test(c.label));
+    expect(seam).toHaveLength(2);
+    expect(seam.every((c) => c.ok)).toBe(true);
+    expect(d.peplum!.depthCm).toBeLessThan(draftBodice(body, { neckline: 'crew', fit: 'fitted', peplum: 'flared' }).peplum!.depthCm);
+    expect(validDetails({ ...DEFAULT_BODICE, peplum: 'flared', length: 'high_hip' }).peplum).toBe('flared');
+    expect(validDetails({ ...DEFAULT_BODICE, peplum: 'flared', dropCm: PEPLUM_SEAM_MAX + 1 }).peplum).toBe('none');
+    expect(validDetails({ ...DEFAULT_BODICE, peplum: 'flared', length: 'high_hip', fit: 'boxy' }).peplum).toBe('none');
+    expect(validDetails({ ...DEFAULT_BODICE, peplum: 'flared', length: 'high_hip', hem: { front: [8, 7, 6, 5, 4, 3, 2, 1, 0], back: [0, 0, 0, 0, 0, 0, 0, 0, 0] } }).peplum).toBe('none');
   });
 
   it('writes the peplum steps for a boned top', () => {

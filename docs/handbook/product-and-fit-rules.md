@@ -20,6 +20,8 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
 - **Launch garments:** skirt, bodice, dress. Everything else usable carries an **In testing** tag,
   listed in the registry in `src/launch.ts` (a test fails if a tag is unregistered). Tags come off only
   with their proof; the fit gate release on Jan 18 does the batch. List tagged items in ship replies.
+- **Oversized and Long tops** (Oct 31, freeze broken for the big Parma Shirt, In testing): Oversized is a top's own fit, 26 cm
+  of ease, no darts, straight from the bust, worn with dropped shoulders; Long runs 14 cm past the hip. Not offered on dresses.
 - **Boxy** (Oct 30) is the dress's fourth fit, a full launch fit (Cat took off In testing, Oct 30): straight from the bust (waist no narrower than the
   bust less 4 cm, a moved seam no narrower than the bust), the shoulder squared 1.5 cm and carried on 1.5 cm in
   the cut (Cat: "not shoulder pads, not a stiff shoulder, just the cut"), bust darts always kept. Its Self band

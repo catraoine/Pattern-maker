@@ -92,6 +92,47 @@ describe('jackets and coats', () => {
     expect(() => draftOuter(rest, { kind: 'coat' })).toThrow(/waist to knee/);
   });
 
+  it('cuts an oversized jacket or coat big and straight, its shoulders dropped and its lapel wider and lower, on 30 bodies', () => {
+    const failures: string[] = [];
+    for (let seed = 1; seed <= sweep(30); seed++) {
+      const r = rng(seed);
+      const body = randomBody(r);
+      const b = { ...body, ...randomArms(body, r), waist_to_knee: body.waist_to_knee ?? 58 };
+      for (const kind of ['jacket', 'coat'] as OuterKind[])
+        for (const front of ['single', 'double'] as const)
+          for (const collar of ['notched', 'collarless'] as const)
+            for (const sleeve of ['straight', 'tailored'] as const) {
+              const length = OUTER_LENGTHS[kind][seed % 3];
+              const style = { kind, fit: 'oversized' as const, shaping: 'darts' as const, pads: 'structured' as const, front, collar, length, sleeve, pockets: 'welt' as const, vent: 'none' as const };
+              const tag = `${seed} ${JSON.stringify(style)}`;
+              let d;
+              try {
+                d = draftOuter(b, style);
+              } catch (e) {
+                failures.push(`${tag}: ${(e as Error).message}`);
+                continue;
+              }
+              if (Math.abs(d.finishedBust - (b.full_bust! + OUTER_EASE[kind].oversized)) > 0.1) failures.push(`${tag}: bust ${d.finishedBust}`);
+              // Straight: no waist shaping and no pads, whatever was asked.
+              if (!(d.finishedWaist >= d.finishedBust - 0.5)) failures.push(`${tag}: waist ${d.finishedWaist} under the bust ${d.finishedBust}`);
+              if (d.pieces.some((pc) => /top sleeve|under sleeve/i.test(pc.name) && !pc.kind)) failures.push(`${tag}: kept the two-piece sleeve`);
+              const bad = checkPattern(d.pieces.filter((pc) => !pc.kind || pc.kind === 'collar')).filter((c) => !c.ok);
+              if (bad.length) failures.push(`${tag}: ${bad.map((c) => `${c.label} ${c.detail ?? ''}`).join('; ')}`);
+              for (const pc of d.pieces) if (pc.outline.points().some((q) => !Number.isFinite(q.x + q.y))) failures.push(`${tag} ${pc.name} not finite`);
+              if (seed <= 3) {
+                expect(outerFlat(d).views).toHaveLength(2);
+                expect(outerGuide(d, 2).steps.length).toBeGreaterThan(10);
+              }
+            }
+    }
+    expect(failures.slice(0, 6)).toEqual([]);
+    // The lapel is wider and breaks lower than a relaxed one's.
+    const big = draftOuter(m, { kind: 'jacket', fit: 'oversized' });
+    const relaxed = draftOuter(m, { kind: 'jacket', fit: 'relaxed', shaping: 'boxy' });
+    expect(big.lapel!.breakPt.y).toBeGreaterThan(relaxed.lapel!.breakPt.y + 4);
+    expect(big.finishedBust).toBeGreaterThan(relaxed.finishedBust + 10);
+  });
+
   it('drafts every style for 30 random bodies, passing every pattern check', () => {
     const failures: string[] = [];
     for (let seed = 1; seed <= sweep(30); seed++) {

@@ -36,7 +36,15 @@ export type TestingTool =
   | 'client_book'
   | 'collection'
   | 'projector'
-  | 'new_details';
+  | 'new_details'
+  | 'oversized'
+  | 'low_peplum'
+  | 'oversized_outer'
+  | 'plunge'
+  | 'high_low_peplum'
+  | 'fullness'
+  | 'big_peplum'
+  | 'jacket_collars';
 
 export const TESTING_TOOLS: Record<TestingTool, { name: string; where: string; proof: string }> = {
   draw_lines: { name: 'Draw your lines', where: 'Style, Draw on your form', proof: 'fit testers draw a hem, a neckline and a side and the pattern follows' },
@@ -53,6 +61,22 @@ export const TESTING_TOOLS: Record<TestingTool, { name: string; where: string; p
   // Cat broke the freeze for it (2026-10-28), modelled on the free Pattern Projector app.
   projector: { name: 'Projector mode', where: 'Print, Projector, and inside projector mode', proof: 'two sewists cut a garment with it on their own projectors' },
   // Cat broke the freeze for these too (2026-10-28), so a photo can name them.
+  // Cat broke the freeze for the big shirt (2026-10-31), so the Parma Shirt can be cut oversized and long.
+  // Cat broke the freeze for it too (2026-10-31), for the SS27 peplum top's longer, cinched look.
+  low_peplum: { name: 'Lowered peplum', where: 'the Peplum chips on a top longer than the waist', proof: 'two testers sew a peplum lowered 6 to 9 cm and the waist stays nipped in above it' },
+  // And for the big jacket (2026-10-31), so the stone jacket from her picture can be cut.
+  oversized_outer: { name: 'Oversized jackets and coats', where: 'the Oversized fit chip on a jacket or coat', proof: 'two testers sew an oversized jacket and it hangs open and straight, the dropped shoulders sitting past their own' },
+  // And for the plunging slip (2026-10-31): a V nearly to the waist on narrow straps.
+  plunge: { name: 'Plunging V neckline', where: 'the Plunge neckline chip on a top or dress', proof: 'two testers sew a plunging slip and the V lies flat to the body without gaping' },
+  // And for the lilac top's peplum (2026-10-31), dropping longer at the back.
+  high_low_peplum: { name: 'High-low peplum', where: 'the Peplum hem chips on a top with a peplum', proof: 'two testers sew a high-low peplum and it falls smoothly from the sides to the longer back' },
+  // And for a fuller gathered skirt (2026-10-31), so the ivory D1 dress can swing.
+  fullness: { name: 'Gathered skirt fullness', where: 'the Gathers chips on a gathered skirt or dress skirt', proof: 'two testers sew a Full or Dramatic gathered skirt and the gathers sit evenly into the waist' },
+  // And for a bigger peplum on the ice-blue top (2026-10-31).
+  big_peplum: { name: 'Big peplum', where: 'the Peplum size chips on a top with a peplum', proof: 'two testers sew a big peplum and it stands out evenly from the waist' },
+  // And for more fashion-forward jackets and coats (2026-10-31).
+  jacket_collars: { name: 'Peak, shawl and funnel collars, wide and plunging lapels', where: 'the Collar and Lapels chips on a jacket or coat', proof: 'two testers sew a peak or shawl lapel and it rolls cleanly from the break point, the collar sitting flat at the back neck' },
+  oversized: { name: 'Oversized and long tops', where: 'the Oversized fit and Long length chips on the top', proof: 'two testers sew an oversized long shirt and it hangs straight, its sleeves lifting without pulling' },
   new_details: { name: 'Ruffles, ruching, cape and balloon hem', where: 'the chips for each on the Style screens', proof: 'three testers sew a ruffled hem, ruched sides and a cape and each hangs as drawn' },
 };
 
@@ -75,3 +99,7 @@ const OPTIONS_IN_TESTING: Record<string, readonly string[]> = {
 };
 
 export const optionInTesting = (group: string, id: string) => !!OPTIONS_IN_TESTING[group]?.includes(id);
+
+/** The top's chips under the oversized tool. */
+const OVERSIZED_OPTIONS: Record<string, readonly string[]> = { fit: ['oversized'], length: ['long'] };
+export const oversizedInTesting = (group: string, id: string) => !!OVERSIZED_OPTIONS[group]?.includes(id);

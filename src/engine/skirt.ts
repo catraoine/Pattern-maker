@@ -30,7 +30,7 @@ export interface SkirtMeasurements {
 
 export type Fit = 'fitted' | 'regular' | 'relaxed';
 /** A dress's one fit as its skirt takes it: a boxy dress's skirt hangs with a relaxed fit's room. */
-export const skirtFitOf = (f: Fit | 'boxy'): Fit => (f === 'boxy' ? 'relaxed' : f);
+export const skirtFitOf = (f: Fit | 'boxy' | 'oversized'): Fit => (f === 'boxy' || f === 'oversized' ? 'relaxed' : f);
 /** 'slip' is the bias-cut slip skirt: dartless, cut whole on the bias (see slip.ts). 'gathered' is a
  * dirndl: straight panels gathered into the waistband or the bodice. */
 export type Silhouette = 'straight' | 'pencil' | 'a_line' | 'trumpet' | 'half_circle' | 'circle' | 'slip' | 'gathered';
@@ -70,6 +70,8 @@ export interface SkirtStyle {
   flounce?: Flounce;
   /** A high-low or diagonal hem, drafted in place of a drawn one. Older saves have none. */
   asymHem?: AsymHem;
+  /** A gathered skirt's fullness, chosen (In testing); unset, it follows the fit (GATHER_RATIO). */
+  gathers?: Gathers;
   /** In-seam pockets in the side seams. Older saves have none. */
   pockets?: 'none' | 'inseam';
   /** A waistband with a zip, or an elastic casing that pulls on over the hips. Ignored on a dress. */
@@ -799,6 +801,9 @@ function drafted(m: SkirtMeasurements, s: SkirtStyle): SkirtDraft {
 
 /** How full a gathered skirt is, by fit: its waist as cut, over the waist it gathers into. */
 export const GATHER_RATIO: Record<Fit, number> = { fitted: 1.6, regular: 2, relaxed: 2.5 };
+/** How full a gathered skirt is when its fullness is chosen (In testing), in place of the fit's. */
+export type Gathers = 'soft' | 'full' | 'dramatic';
+export const GATHERS: Record<Gathers, number> = { soft: 1.6, full: 2.2, dramatic: 2.8 };
 /** A gathered skirt always clears the hips by this much, however small the waist. */
 const GATHER_HIP_ROOM = 20;
 
@@ -815,7 +820,7 @@ function gatheredSkirt(
 ): SkirtDraft {
   const sa = s.seamAllowance;
   const most = 4 * (FOLD_WIDTH_MAX - 2 * sa);
-  const round = Math.round(clamp(Math.max(o.into * GATHER_RATIO[s.fit], m.full_hip + GATHER_HIP_ROOM), 0, most) * 2) / 2;
+  const round = Math.round(clamp(Math.max(o.into * (s.gathers ? GATHERS[s.gathers] : GATHER_RATIO[s.fit]), m.full_hip + GATHER_HIP_ROOM), 0, most) * 2) / 2;
   const q = round / 4;
   const L = o.length;
   const hipDepth = m.waist_to_hip;
