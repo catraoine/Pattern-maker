@@ -31,9 +31,9 @@ const CSS = `
   .f{position:fixed;inset:0;color:#efe4cc;font-family:'Space Grotesk',sans-serif}
   .k{font:400 10px/1 'Chakra Petch',monospace;letter-spacing:.34em;text-transform:uppercase;color:#d9c49b}
   .r{width:96px;height:1px;background:#d9c49b;margin:18px 0}
-  /* The film's words are cream again, with the champagne accent line (Cat, 2026-10-31: the gold looked bad). */
-  .t{font-family:'Archivo Variable',sans-serif;font-stretch:75%;font-weight:600;text-transform:uppercase;line-height:.9;letter-spacing:.005em;margin:0}
-  .l{font-weight:300;font-size:17px;line-height:1.45;margin:0}
+  /* The film's words are champagne, its own voice apart from the app's cream (Cat, 2026-10-31: the gold looked bad). */
+  .t{color:#d9c49b;font-family:'Archivo Variable',sans-serif;font-stretch:75%;font-weight:600;text-transform:uppercase;line-height:.9;letter-spacing:.005em;margin:0}
+  .l{color:#d9c49b;font-weight:300;font-size:17px;line-height:1.45;margin:0}
   .mid{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
   .mid .r{margin:20px auto}`;
 let n = 0;
@@ -207,7 +207,7 @@ async function threeChecks() {
   const size = WIDE ? 54 : 40;
   const pics = [];
   for (let i = 0; i < lines.length; i++) {
-    const h = lines.map((l, j) => `<h1 class="t" style="font-size:${size}px;margin:0 0 10px;${j === 2 ? 'color:#d9c49b;' : ''}opacity:${j === i ? 1 : 0}">${l}</h1>`).join('');
+    const h = lines.map((l, j) => `<h1 class="t" style="font-size:${size}px;margin:0 0 10px;${j === 2 ? 'color:#efe4cc;' : ''}opacity:${j === i ? 1 : 0}">${l}</h1>`).join('');
     const band = i === 0;
     pics.push(await words(WIDE
       ? `<div class="f" style="display:flex;flex-direction:column;justify-content:center;padding-left:96px;${band ? 'background:linear-gradient(to right,rgba(0,0,0,.75) 0,rgba(0,0,0,.45) 30%,rgba(0,0,0,0) 42%)' : ''}"><div>${h}</div></div>`
