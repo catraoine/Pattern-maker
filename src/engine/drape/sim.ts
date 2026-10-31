@@ -28,6 +28,10 @@ export interface SimInput {
   pad?: number;
   /** Points of the shoulder seams: they rest on the top of the shoulder, as a dressmaker pins a garment to the form. */
   shoulder?: Int32Array;
+  /** Trouser legs: below the crotch the cloth lies on two legs, not the body. */
+  legs?: { x: number; c0: number; c1: number; r0: number; r1: number };
+  /** Points held from dropping below these levels (a skirt's waist, a strapless top edge). */
+  hang?: { ids: Int32Array; c: Float64Array };
   bendK: number;
 }
 
@@ -72,7 +76,19 @@ export function simulate(s: Space, inp: SimInput, steps = (globalThis as any).__
     const a = Math.atan2(px, pz);
     const R = s.bodyR(a, pc) + t;
     let hit = false;
-    if (!inp.onArm[i] && rho < R) {
+    const L = inp.legs;
+    if (L && pc > L.c0) {
+      const u = Math.max(0, Math.min(1, (pc - L.c0) / (L.c1 - L.c0)));
+      const rr = L.r0 + (L.r1 - L.r0) * u + t;
+      const e = px >= 0 ? 1 : -1;
+      const dx = px - e * L.x;
+      const d = Math.hypot(dx, pz) || 1e-9;
+      if (d < rr) {
+        x[I] = e * L.x + (dx / d) * rr;
+        x[I + 2] = (pz / d) * rr;
+        hit = true;
+      }
+    } else if (!inp.onArm[i] && rho < R) {
       // Out along the surface's own normal: on a sloping shoulder that is up as much as out, so the cloth rests on it.
       const gc = (s.bodyR(a, pc + 0.5) - s.bodyR(a, pc - 0.5)) / 1;
       const pen = (R - rho) / (1 + gc * gc);
@@ -97,7 +113,8 @@ export function simulate(s: Space, inp: SimInput, steps = (globalThis as any).__
       const dy = x[I + 1] - cy;
       const dz = x[I + 2] - cz;
       const d = Math.hypot(dx, dy, dz) || 1e-9;
-      const rr = arm.r0 + (arm.r1 - arm.r0) * u + t + (inp.onArm[i] ? 0 : inp.pad ?? 0);
+      // A shoulder pad squares the top of the arm for the sleeve head as well as the shoulder.
+      const rr = arm.r0 + (arm.r1 - arm.r0) * u + t + (inp.pad ?? 0) * (inp.onArm[i] ? Math.max(0, 1 - u / 0.12) : 1);
       if (d < rr) {
         const k = rr / d;
         x[I] = (cx + dx * k) * e;
@@ -151,6 +168,10 @@ export function simulate(s: Space, inp: SimInput, steps = (globalThis as any).__
         }
       }
       for (let c = 0; c < centre.length; c++) x[centre[c] * 3] = 0;
+      if (inp.hang) for (let k = 0; k < inp.hang.ids.length; k++) {
+        const I = inp.hang.ids[k] * 3 + 1;
+        if (x[I] > inp.hang.c[k]) x[I] = inp.hang.c[k];
+      }
       if (inp.shoulder) {
         for (let k = 0; k < inp.shoulder.length; k++) {
           const I = inp.shoulder[k] * 3;
