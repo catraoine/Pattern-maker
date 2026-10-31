@@ -22,6 +22,10 @@ Four things, nothing else:
 the screens that already exist clearer, easier and better looking is not frozen: layout, wording, buttons, demo
 videos for existing tools and fixes like these go ahead.
 
+**Design options carry on (Cat, 31 October 2026: "the freeze is too strict").** New style choices on garments that
+already exist (lapels, collars, necklines, hems, yokes, fullness, peplums) go ahead without a freeze flag. Each one
+is In testing, with a row in the table below, until two testers sew it.
+
 | What | Where | State on 20 Oct |
 | --- | --- | --- |
 | Fit fixes from the Fable review | PR #114 | queued |
@@ -68,6 +72,7 @@ testing". A tag comes off by hand, once its proof is in: delete the entry and th
 | Gathered skirt fullness (Soft 1.6, Full 2.2 or Dramatic 2.8 times the waist, in place of the fit's own; Cat asked for fullness choices for the SS27 D1 dress, 2026-10-31) | the Gathers chips on a gathered skirt or dress skirt | two testers sew a Full or Dramatic gathered skirt and the gathers sit evenly into the waist |
 | Big peplum (1.4 times as deep, a flared one cut as a full circle, a gathered one 2.2 times its seam; Cat asked for a bigger peplum on the SS27 ice-blue top, 2026-10-31) | the Peplum size chips on a top with a peplum | two testers sew a big peplum and it stands out evenly from the waist |
 | Peak, shawl and funnel collars, wide and plunging lapels on jackets and coats (Cat asked for more lapel and collar options, 2026-10-31) | the Collar and Lapels chips on a jacket or coat | two testers sew a peak or shawl lapel and it rolls cleanly from the break point, the collar sitting flat at the back neck |
+| Flared jacket and coat hem (each seam bent out from the waist like a basque; Cat asked for the lilac blazer from her plaid-blazer picture, 2026-10-31) | the Flared chip below the waist on a jacket or coat | two testers sew a flared jacket and it stays close at the waist, kicking out evenly over the hips with a level hem |
 | Ruffles, ruching, cape and balloon hem (ruffled hems and sleeve hems, ruched sides, cape, balloon hem) | the chips for each on the Style screens | three testers sew a ruffled hem, ruched sides and a cape and each hangs as drawn |
 
 Lingerie and swimwear stay hidden (`?lingerie=preview`, PR #102). Tracé Engine, Atelier Nights, Deadstock and
@@ -90,7 +95,7 @@ In testing tag. Nothing new starts.
 
 ## Not until the gate passes
 
-New garments, new tools, new revenue streams, promo film re-records, expansion languages, app store builds,
+New garment types, new features, new revenue streams, promo film re-records, expansion languages, app store builds,
 more mock-up rounds for screens that already work. Bugs in anything already live are fixed as found.
 
 An ask that breaks the freeze is flagged before any work starts, with the cost, and Cat decides.

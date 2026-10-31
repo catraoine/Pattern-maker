@@ -250,6 +250,7 @@ const DETAILS: Record<ExplainSet, Record<string, Record<string, ReactNode>>> = {
     flare: {
       straight: on('M9 11L15 6L20 14L25 6L31 11L30 22L30.5 44H9.5L10 22z'),
       a_line: on('M9 11L15 6L20 14L25 6L31 11L30 22L34 44H6L10 22z', 'M30 22L34 44M10 22L6 44'),
+      flared: on('M9 11L15 6L20 14L25 6L31 11L29 22Q31 30 36 36Q20 40 4 36Q9 30 11 22z', 'M15 22Q14 30 12 38M25 22Q26 30 28 38'),
     },
   },
 };

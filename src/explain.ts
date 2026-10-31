@@ -328,6 +328,7 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
     flare: {
       straight: ['Falls straight down below the hip.'],
       a_line: ['Widens gently from the hip to the hem.'],
+      flared: ['Cinched at the waist, then every seam flares out over the hips, like a basque. Best in a crisp cloth.'],
     },
   },
 };
@@ -500,6 +501,7 @@ const SHORT: Record<string, string> = {
   'vent.centre': 'A back opening, to move and sit.',
   'trim.none': 'Plain hems at bottom and cuffs.',
   'trim.rib': 'Rib bands at hem and cuffs.',
+  'flare.flared': 'Cinched, then flaring over the hips.',
 };
 
 /** The phone's one short line for a choice: its own short line, or the full line's first sentence when that is short. */

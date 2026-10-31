@@ -320,7 +320,10 @@ export function outerGroups(kind: OuterKind): { id: OuterGroupId; label: string;
     { id: 'pockets', label: 'Pockets', options: [['patch', 'Patch pockets'], ['welt', 'Welt pockets'], ['none', 'None']] },
     { id: 'vent', label: 'Back vent', options: [['centre', 'Centre vent'], ['none', 'None']] },
     { id: 'trim', label: 'Hem and cuffs', options: [['none', 'Plain hems'], ['rib', 'Rib bands']] },
-    ...(kind === 'coat' ? [{ id: 'flare' as const, label: 'Below the hip', options: [['straight', 'Straight'], ['a_line', 'A-line']] as [string, string][] }] : []),
+    // Flared (In testing): out from the waist like a basque, on a jacket or a coat.
+    kind === 'coat'
+      ? { id: 'flare' as const, label: 'Below the hip', options: [['straight', 'Straight'], ['a_line', 'A-line'], ['flared', 'Flared']] as [string, string][] }
+      : { id: 'flare' as const, label: 'Below the waist', options: [['straight', 'Straight'], ['flared', 'Flared']] as [string, string][] },
   ];
 }
 
@@ -340,7 +343,10 @@ export const outerAllowed = (c: OuterChoices, id: OuterGroupId, opt: string) =>
   // A plunging lapel rolls to one button at the waist, so it needs a single-breasted front.
   !(id === 'lapel' && opt === 'plunge' && c.front !== 'single') &&
   !(id === 'front' && opt !== 'single' && c.lapel === 'plunge') &&
-  !(id === 'shaping' && opt === 'princess' && c.sleeve === 'raglan');
+  !(id === 'shaping' && opt === 'princess' && c.sleeve === 'raglan') &&
+  // A flared hem (In testing) needs length below the waist to flare, and a rib band would pull it back in.
+  !(id === 'flare' && opt === 'flared' && (c.length === 'cropped' || c.trim === 'rib')) &&
+  !(((id === 'length' && opt === 'cropped') || (id === 'trim' && opt === 'rib')) && c.flare === 'flared');
 
 export const OUTER_LENGTH_WORDS: Record<OuterLength, string> = { cropped: 'Cropped', hip: 'Hip-length', long: 'Long', thigh: 'Mid-thigh', knee: 'Knee-length', midi: 'Midi' };
 const OUTER_COLLAR_WORDS: Record<OuterCollar, string> = {
@@ -363,7 +369,7 @@ export function oversizeOuter(c: OuterChoices): OuterChoices {
 export function describeOuter(c: OuterChoices) {
   const front = c.front === 'double' ? 'double-breasted' : c.front === 'zip' ? 'zip-front' : 'single-breasted';
   const collar = OUTER_COLLAR_WORDS[c.collar];
-  const shape = c.garment === 'coat' && c.flare === 'a_line' ? ' A-line' : '';
+  const shape = c.flare === 'flared' ? ' flared' : c.garment === 'coat' && c.flare === 'a_line' ? ' A-line' : '';
   const big = c.fit === 'oversized' ? ' oversized' : '';
   return c.collar === 'collarless'
     ? `${OUTER_LENGTH_WORDS[c.length]}${big} collarless ${front}${shape} ${c.garment}`

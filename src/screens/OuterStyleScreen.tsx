@@ -222,6 +222,7 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
                     {label}
                     {g.id === 'fit' && id === 'oversized' && <TestingTag tool="oversized_outer" />}
                     {((g.id === 'collar' && (id === 'peak' || id === 'shawl' || id === 'funnel')) || (g.id === 'lapel' && id !== 'classic')) && <TestingTag tool="jacket_collars" />}
+                    {g.id === 'flare' && id === 'flared' && <TestingTag tool="flared_jacket" />}
                   </button>
                 );
               })}

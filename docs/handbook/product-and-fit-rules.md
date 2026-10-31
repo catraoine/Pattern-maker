@@ -14,9 +14,13 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
 - **Ships:** fit fixes and bugs, tester tools, the waitlist, real sign-in.
 - **Carries on without a flag** (Cat, Oct 20): UX/UI fixes and polish to screens that exist
   (layout, wording, buttons, motion, drawings, demo videos).
-- **Breaks the freeze:** a new garment, styling tool, feature or revenue stream. Say so in one line
-  with the cost before starting, then do what Cat decides. She has knowingly broken it several times
-  (projector mode, photo match details, colour wheel, exact colour, draw in All round, SS27 looks).
+- **Design options carry on without a flag** (Cat, Oct 31: "the whole point of the app is for people
+  to be able to design what they want"): new style choices on garments that exist (lapels, collars,
+  necklines, flared hems, yokes, fullness, peplums and the like) go ahead. Each is In testing until a
+  sewist fit-tests it, and must pass its sweep tests before it ships.
+- **Still breaks the freeze:** a whole new garment type with its own block (wired bras, say), a new
+  feature or revenue stream, or anything that would push the Jan 18 fit gate or the Feb 11 launch.
+  Say so in one line with the cost before starting, then do what Cat decides.
 - **Launch garments:** skirt, bodice, dress. Everything else usable carries an **In testing** tag,
   listed in the registry in `src/launch.ts` (a test fails if a tag is unregistered). Tags come off only
   with their proof; the fit gate release on Jan 18 does the batch. List tagged items in ship replies.

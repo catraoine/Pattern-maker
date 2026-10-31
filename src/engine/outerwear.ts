@@ -33,7 +33,8 @@ export type OuterSleeve = 'tailored' | 'fitted' | 'straight' | 'raglan';
 export type OuterTrim = 'none' | 'rib';
 export type OuterPads = 'none' | 'soft' | 'structured';
 export type OuterVent = 'none' | 'centre';
-export type OuterFlare = 'straight' | 'a_line';
+/** Below the hip: straight, A-line (a coat), or flared out from the waist like a basque (In testing). */
+export type OuterFlare = 'straight' | 'a_line' | 'flared';
 
 export type OuterMeasurements = BodiceMeasurements & SleeveMeasurements & { waist_to_knee?: number; waist_to_floor?: number };
 
@@ -98,7 +99,13 @@ const PAD_CM: Record<OuterKind, Record<OuterPads, number>> = { jacket: { none: 0
 const VENT_WIDTH: Record<OuterKind, number> = { jacket: 4, coat: 5 };
 
 /** Flare added to each seam at the hem, per 40 cm below the hip. */
-export const FLARE_PER_40: Record<OuterFlare, number> = { straight: 1.2, a_line: 4 };
+export const FLARE_PER_40: Record<OuterFlare, number> = { straight: 1.2, a_line: 4, flared: 1.2 };
+
+/** A flared jacket or coat (In testing): each side and panel seam is let out by this much at the hem,
+ * growing from nothing at the waist, so the body stays cinched and kicks out over the hips. */
+const FLARED_HEM: Record<OuterKind, number> = { jacket: 5, coat: 7 };
+/** How far along the hem, in cm, it curves up to meet a flared seam square. */
+const FLARE_HEM_RUN = 8;
 
 const DEFAULT_OUTER: Record<OuterKind, OuterStyle> = {
   jacket: { kind: 'jacket', fit: 'regular', length: 'hip', shaping: 'darts', front: 'single', collar: 'notched', pockets: 'patch', sleeve: 'tailored', flare: 'straight', pads: 'soft', vent: 'centre', seamAllowance: 1.5, hemAllowance: 4 },
@@ -199,6 +206,167 @@ function runOf(r: Ring, tag: string): [number, number] | undefined {
     return [i, j];
   }
   return undefined;
+}
+
+/**
+ * A flared jacket or coat (In testing): below `y0` (the waist) each side and panel seam is bent outward,
+ * away from the middle of the piece, its direction turning a little more with every step down to
+ * `turn` radians at the hem. Bending keeps every seam's length, so seams sewn together still match.
+ * The hem is spread between the seams' new ends and rises toward each one over its last few
+ * centimetres, as a circle skirt's does, so it still meets the seam square.
+ */
+function flareFromWaist(pc: Piece, y0: number, turn: number): Piece {
+  if (turn <= 0.005) return pc;
+  const r0 = ringOf(pc.outline, 12);
+  // The hem and the seams below the waist in short steps, so they bend and meet cleanly.
+  const pts0: P[] = [];
+  const tags0: string[] = [];
+  r0.pts.forEach((q, k) => {
+    const nx = r0.pts[(k + 1) % r0.pts.length];
+    const fine = r0.tags[k] === 'hem' || ((r0.tags[k] === 'side' || r0.tags[k] === 'princess') && Math.max(q.y, nx.y) > y0);
+    const steps = fine ? Math.max(1, Math.ceil(len(sub(nx, q)) / 0.5)) : 1;
+    for (let t = 0; t < steps; t++) {
+      pts0.push(lerp(q, nx, t / steps));
+      tags0.push(r0.tags[k]);
+    }
+  });
+  const r: Ring = { ...r0, pts: pts0, tags: tags0 };
+  const n = r.pts.length;
+  const pts = [...r.pts];
+  const xs = r.pts.map((q) => q.x);
+  const mid = (Math.min(...xs) + Math.max(...xs)) / 2;
+  const yH = Math.max(...r.pts.map((q) => q.y));
+  const moved = new Map<number, P>(); // a seam's bottom end, old index -> new point
+  // Every run of a side or panel seam: a side dart can split the side seam in two.
+  const runs: [number, number][] = [];
+  for (let i = 0; i < n; i++) {
+    const tag = r.tags[i];
+    if ((tag !== 'side' && tag !== 'princess') || r.tags[(i - 1 + n) % n] === tag) continue;
+    let j = i;
+    while (r.tags[(j + 1) % n] === tag && j - i < n) j++;
+    runs.push([i, j % n]);
+  }
+  for (const run of runs) {
+    const idx: number[] = [];
+    for (let k = run[0]; ; k = (k + 1) % n) {
+      idx.push(k);
+      if (k === (run[1] + 1) % n) break;
+    }
+    if (r.pts[idx[0]].y > r.pts[idx[idx.length - 1]].y) idx.reverse();
+    const bottom = r.pts[idx[idx.length - 1]];
+    if (bottom.y - y0 < 4) continue;
+    const out = Math.sign(bottom.x - mid) || 1;
+    let prev = r.pts[idx[0]];
+    let prevNew = prev;
+    for (const k of idx) {
+      const q = r.pts[k];
+      if (q.y <= y0) {
+        prev = q;
+        prevNew = q;
+        continue;
+      }
+      const t = Math.min(1, (Math.max(q.y, prev.y) - y0) / (yH - y0));
+      // Turned toward the outside: on the right of the piece, clockwise in y-down space is +x.
+      const th = out * turn * Math.pow(t, 0.6);
+      const d = sub(q, prev);
+      const rot = p(d.x * Math.cos(th) + d.y * Math.sin(th), -d.x * Math.sin(th) + d.y * Math.cos(th));
+      const nq = add(prevNew, rot);
+      prev = q;
+      prevNew = nq;
+      pts[k] = nq;
+    }
+    moved.set(idx[idx.length - 1], prevNew);
+  }
+  if (!moved.size) return pc;
+  // The hem between its two ends: spread across, then lifted toward each flared end, whose seam is
+  // taken back up its own line to meet it.
+  const hem = runOf(r, 'hem');
+  if (!hem) return { ...pc, outline: pathOf({ ...r, pts }) };
+  const hi: number[] = [];
+  for (let k = hem[0]; ; k = (k + 1) % n) {
+    hi.push(k);
+    if (k === (hem[1] + 1) % n) break;
+  }
+  const e0 = hi[0];
+  const e1 = hi[hi.length - 1];
+  const slope = Math.tan(turn);
+  const total = hi.reduce((acc, k, i) => (i ? acc + len(sub(r.pts[k], r.pts[hi[i - 1]])) : 0), 0) || 1;
+  // The same on every piece, so seams sewn together are taken up alike.
+  const R = Math.min(FLARE_HEM_RUN, total / 3);
+  // A flared end is taken back up its own seam by the same length on every piece, the seam's last
+  // points that fall within it dropped.
+  const drop = new Set<number>();
+  const raise = (e: number): P => {
+    if (!moved.has(e)) return p(0, 0);
+    const step = r.tags[(e - 1 + n) % n] !== 'hem' ? -1 : 1;
+    let want = (slope * FLARE_HEM_RUN) / 2;
+    let k = e;
+    for (let guard = 0; guard < n; guard++) {
+      const nk = (k + step + n) % n;
+      const seg = len(sub(pts[nk], pts[k]));
+      if (seg >= want) return sub(lerp(pts[k], pts[nk], want / seg), pts[e]);
+      want -= seg;
+      drop.add(nk);
+      k = nk;
+    }
+    return p(0, 0);
+  };
+  const v0 = raise(e0);
+  const v1 = raise(e1);
+  const c0 = add(pts[e0], v0);
+  const c1 = add(pts[e1], v1);
+  // Each end carries the hem near it along with it, so the hem keeps its shape where it meets a seam;
+  // the spread is taken up in the middle.
+  const d0 = add(sub(pts[e0], r.pts[e0]), p(v0.x, 0));
+  const d1 = add(sub(pts[e1], r.pts[e1]), p(v1.x, 0));
+  const span = total - 2 * R;
+  const lay = (A0: number, A1: number): P[] => {
+    const out = [...pts];
+    const dip = (dist: number, A: number) => (dist < R ? (A * (R - dist) ** 2) / (2 * R) : 0);
+    let along = 0;
+    hi.forEach((k, i) => {
+      if (i) along += len(sub(r.pts[k], r.pts[hi[i - 1]]));
+      if (k === e0 || k === e1) return;
+      const u = span > 1 ? Math.min(1, Math.max(0, (along - R) / span)) : along / total;
+      const t = u * u * (3 - 2 * u);
+      out[k] = add(add(r.pts[k], add(mul(d0, 1 - t), mul(d1, t))), p(0, -dip(along, A0) - dip(total - along, A1)));
+    });
+    out[e0] = c0;
+    out[e1] = c1;
+    return out;
+  };
+  // The corner each flared seam makes with the hem: brought back to what it was before the flare.
+  const angleAt = (q: P[], e: number) => {
+    const a1 = sub(q[(e - 1 + n) % n], q[e]);
+    const a2 = sub(q[(e + 1) % n], q[e]);
+    return Math.atan2(Math.abs(a1.x * a2.y - a1.y * a2.x), a1.x * a2.x + a1.y * a2.y);
+  };
+  const want0 = angleAt(r.pts, e0);
+  const want1 = angleAt(r.pts, e1);
+  // Each end's lift found by halving between none and four times the turn (the corner grows with it).
+  let A0 = moved.has(e0) ? slope : 0;
+  let A1 = moved.has(e1) ? slope : 0;
+  const solve = (end: number, want: number, get: (A: number) => P[]): number => {
+    let lo = 0;
+    let hi = 4 * slope + 0.05;
+    const f = (A: number) => angleAt(get(A), end) - want;
+    const flo = f(lo);
+    if (Math.sign(flo) === Math.sign(f(hi))) return Math.abs(flo) < Math.abs(f(hi)) ? lo : hi;
+    for (let it = 0; it < 30; it++) {
+      const m = (lo + hi) / 2;
+      if (Math.sign(f(m)) === Math.sign(flo)) lo = m;
+      else hi = m;
+    }
+    return (lo + hi) / 2;
+  };
+  for (let it = 0; it < 3; it++) {
+    if (moved.has(e0)) A0 = solve(e0, want0, (A) => lay(A, A1));
+    if (moved.has(e1)) A1 = solve(e1, want1, (A) => lay(A0, A));
+  }
+  const laid = lay(A0, A1);
+  for (const k of hi) pts[k] = laid[k];
+  const keep = pts.map((_, k) => k).filter((k) => !drop.has(k));
+  return { ...pc, outline: pathOf({ ...r, pts: keep.map((k) => pts[k]), tags: keep.map((k) => r.tags[k]) }) };
 }
 
 /**
@@ -961,7 +1129,16 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
     name: pc.name.replace(/^Bodice/, KIND),
     labels: pc.labels.map((l) => ({ ...l, text: l.text.replace(/^BODICE/, KIND.toUpperCase()) })),
   });
-  const prep = (pc: Piece) => rename(extendPiece(/back/i.test(pc.name) ? backOnFold(pc) : pc, extra, flare));
+  // Flared (In testing): out from the waist, front pieces from the front's side waist, back from the back's.
+  const flareG = s.flare === 'flared' && !rib ? FLARED_HEM[s.kind] : 0;
+  const flareY = (pc: Piece) => (/back/i.test(pc.name) ? base.back.waistSide.y : base.front.waistSide.y);
+  // One run from waist to hem for every piece, so seams sewn together flare alike.
+  const flareL = base.front.hemSide.y + extra - base.front.waistSide.y;
+  const prep = (pc: Piece) => {
+    const long = extendPiece(/back/i.test(pc.name) ? backOnFold(pc) : pc, extra, flare);
+    // Turned enough that each seam ends about FLARED_HEM out at the hem.
+    return rename(flareG ? flareFromWaist(long, flareY(pc), Math.min(0.25, (1.6 * flareG) / Math.max(10, flareL))) : long);
+  };
   const shell = base.pieces.map(prep);
   const [bf0, bb0] = blockOf(base);
   const block: [Piece, Piece] = [prep(bf0), prep(bb0)];

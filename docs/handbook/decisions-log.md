@@ -5,6 +5,8 @@ something that changes how a department works. Design picks for single screens s
 
 ## October 2026
 
+- **Oct 31** Flared jacket and coat hem (Cat: "flair out at bottom with cinched in"; In testing): Flared below the waist, every side and panel seam bent out from the waist, 5 cm per seam on a jacket, 7 on a coat; not cropped or with rib bands.
+- **Oct 31** Freeze narrowed (Cat: "the freeze is too strict"): new design options on existing garments go ahead without a flag, In testing until fit-tested; new garment types, features and revenue streams, or anything moving the fit gate or launch, still break it. Lives in product-and-fit-rules.md and SHIP-LIST.md.
 - **Oct 31** Oversized fit and Long length for tops (freeze broken knowingly, for the big Parma Shirt; both In testing). Which Parma cut (B1/B2/B3) is pending Cat's apply; sheet in the SS27 cut refinements artifact (PR #249).
 - **Oct 31** Lowered peplum (freeze broken knowingly, Cat's "Yes build", In testing): a fitted top's peplum can sit on a hem 6 to 12 cm below the waist, the waist still cinched by fish-eye darts, for the SS27 peplum top's longer look.
 - **Oct 31** Oversized jackets and coats (freeze broken knowingly, Cat: "Build the jacket", In testing): boxy, dropped shoulders, no pads, wider lapel rolling lower, for the stone jacket.
