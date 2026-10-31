@@ -942,7 +942,7 @@ export function drapeOuter(sp: Space, d: OuterDraft, o: DrapeOptions = {}): Drap
       pc,
       back: /back/i.test(pc.name),
       waistY: /back/i.test(pc.name) ? base.back.waistCentre.y : base.front.waistCentre.y,
-      folds: roll && /centre front/i.test(pc.name) ? [roll] : undefined,
+      folds: roll && /front/i.test(pc.name) && !/side/i.test(pc.name) ? [roll] : undefined,
     }));
   return drape(
     sp,
