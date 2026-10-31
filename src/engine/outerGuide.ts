@@ -52,6 +52,7 @@ export function outerGuide(
     ...(zip
       ? [`An open-ended (separating) zip, about ${Math.round(d.lengthCm - (rib ? rib.hem : 0))} cm long: buy the nearest length and set its bottom stop at the ${rib ? 'hem band seam' : 'hem'}`]
       : [`${count} buttons, ${n1(d.buttons.sizeCm)} across${d.buttons.columns.length > 1 ? `, plus one small button for the inside` : ''}`]),
+    ...(d.contrastCollar ? [`0.3 m of ${d.contrastCollar === 'black' ? 'black' : d.contrastCollar === 'ivory' ? 'ivory' : 'a deeper shade of your'} fabric for the upper collar, about the same weight as your own`] : []),
     ...(rib ? [`0.3 m of rib knit (tubular or 2x2 rib) for the hem band and cuffs`] : []),
     ...(d.pads ? [`A pair of set-in shoulder pads, ${d.pads < 1 ? `${Math.round(d.pads * 10)} mm` : n1(d.pads)} thick: the shoulders are drafted for them`] : []),
     ...(welts ? ['A strip of lining or pocketing for the pocket bags'] : []),
@@ -65,7 +66,7 @@ export function outerGuide(
     },
     {
       title: 'Cut the fabric',
-      text: `Fold the fabric in half with the selvedges together. Cut the ${princess ? 'centre fronts, side fronts, side backs' : 'fronts'}${vent ? ', the backs' : ''} and the ${sleevesWord} on both layers so you get pairs${vent ? '' : ', and the back on the fold'}. Cut the front facings${collar === 'hood' ? ' and the two hood pieces' : collar !== 'none' ? ' and the collar' : ''}${rib ? ', and the hem band and cuff bands from rib knit, the ribs running across the band' : ''}${pockets ? ' and the pockets' : ''}${welts ? ', the welts and the pocket facings' : ''} too. Keep each grain arrow parallel to the selvedge. Snip the notches and chalk-mark the ${darts || waistDarts ? 'darts, the ' : ''}${zip ? 'centre front' : 'buttonholes'}${d.lapel ? ', the roll line' : ''}${pockets ? ' and the pocket corners' : ''}${welts ? ' and the welt pocket boxes' : ''}${vent ? ' and the top of the vent' : ''}.`,
+      text: `Fold the fabric in half with the selvedges together. Cut the ${princess ? 'centre fronts, side fronts, side backs' : 'fronts'}${vent ? ', the backs' : ''} and the ${sleevesWord} on both layers so you get pairs${vent ? '' : ', and the back on the fold'}. Cut the front facings${collar === 'hood' ? ' and the two hood pieces' : collar !== 'none' ? (d.contrastCollar ? ' and the under collar (cut the upper collar from the contrast fabric, one layer on its fold)' : ' and the collar') : ''}${rib ? ', and the hem band and cuff bands from rib knit, the ribs running across the band' : ''}${pockets ? ' and the pockets' : ''}${welts ? ', the welts and the pocket facings' : ''} too. Keep each grain arrow parallel to the selvedge. Snip the notches and chalk-mark the ${darts || waistDarts ? 'darts, the ' : ''}${zip ? 'centre front' : 'buttonholes'}${d.lapel ? ', the roll line' : ''}${pockets ? ' and the pocket corners' : ''}${welts ? ' and the welt pocket boxes' : ''}${vent ? ' and the top of the vent' : ''}.`,
     },
     {
       title: 'Cut the lining',
@@ -151,7 +152,7 @@ export function outerGuide(
           },
           {
             title: 'Join the collar and lapels',
-            text: `Pin the facings and upper collar to the ${kind} right sides together, matching the gorge seams exactly. Sew round the outer edge of the collar, pivot at the notches without stitching across the seam, and carry on down the lapels to the break point and the front edge to the hem. Trim, clip the notch corners, and turn. Roll the lapels and collar along the roll line and press so the seam rolls just to the underside.`,
+            text: `Pin the facings and upper collar to the ${kind} right sides together, matching the gorge seams exactly. Sew round the outer edge of the collar, pivot at the notches without stitching across the seam, and carry on down the lapels to the break point and the front edge to the hem. Trim, clip the notch corners, and turn. Roll the lapels and collar along the roll line and press so the seam rolls just to the underside.${d.popped ? ' To pop the collar, turn it up along its roll line so it stands round the neck, and steam it there over a tailor\'s ham; the deeper stand holds it up.' : ''}`,
           },
         ]
       : [

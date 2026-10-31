@@ -3,6 +3,9 @@ import type { Flat } from '../engine/flat';
 import { SHADE_STOPS } from './FormSketch';
 import { ClothDefs, ClothOverlay, SHEER_OPACITY, borderHems, useFabricLook } from './ClothLook';
 
+/** A contrast collar cut in black or ivory. */
+const SECOND_FILL = { black: '#1F1E22', ivory: '#EFE8D6' };
+
 const d = (pts: { x: number; y: number }[], close = false) =>
   pts.map((q, i) => `${i ? 'L' : 'M'}${q.x.toFixed(2)},${q.y.toFixed(2)}`).join('') + (close ? 'Z' : '');
 
@@ -36,13 +39,20 @@ export function TechFlatView({ flat, title }: { flat: Flat; title: string }) {
                 ))}
               </linearGradient>
             </defs>
-            {v.shapes.map((s, i) => (
-              <g key={i}>
-                <path d={d(s, true)} className="flat-shape" fillOpacity={look?.sheer ? SHEER_OPACITY : undefined} />
-                <ClothOverlay d={d(s, true)} uid={`${uid}${k}`} k={`s${i}`} look={look} hemY={hems[i]} />
-                <path d={d(s, true)} className="flat-shade" style={{ fill: `url(#${shade})` }} opacity={look?.sheer ? 0.6 : undefined} />
-              </g>
-            ))}
+            {v.shapes.map((s, i) => {
+              // A shape cut from the second fabric: black or ivory in its own colour, or the garment's fabric
+              // in a deeper shade.
+              const second = v.contrast?.includes(i) ? flat.second : undefined;
+              const own = second === 'black' || second === 'ivory';
+              return (
+                <g key={i}>
+                  <path d={d(s, true)} className="flat-shape" style={own ? { fill: SECOND_FILL[second] } : undefined} fillOpacity={look?.sheer && !own ? SHEER_OPACITY : undefined} />
+                  {!own && <ClothOverlay d={d(s, true)} uid={`${uid}${k}`} k={`s${i}`} look={look} hemY={hems[i]} />}
+                  {second === 'deep' && <path d={d(s, true)} style={{ fill: '#000', stroke: 'none' }} opacity={0.38} />}
+                  <path d={d(s, true)} className="flat-shade" style={{ fill: `url(#${shade})` }} opacity={look?.sheer ? 0.6 : undefined} />
+                </g>
+              );
+            })}
             {v.lines.map((l, i) => (
               <path key={i} d={d(l.pts)} className={`flat-${l.kind}`} />
             ))}

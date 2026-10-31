@@ -21,7 +21,7 @@ import { isShirred } from './engine/shirred';
 import { CAPE_NECKS, RUFFLE_NECKS } from './engine/collar';
 import { WRAP_BUST_DARTS } from './engine/wrap';
 import type { Panel, SeamKind, Yoke } from './engine/seams';
-import { type OuterCollar, type OuterFit, type OuterFlare, type OuterFront, type OuterKind, type OuterLapel, type OuterLength, lapelled, type OuterPads, type OuterPockets, type OuterShaping, type OuterSleeve, type OuterTrim, type OuterVent } from './engine/outerwear';
+import { type OuterCollar, type OuterCollarWear, type OuterUpperCollar, type OuterFit, type OuterFlare, type OuterFront, type OuterKind, type OuterLapel, type OuterLength, lapelled, type OuterPads, type OuterPockets, type OuterShaping, type OuterSleeve, type OuterTrim, type OuterVent } from './engine/outerwear';
 
 export interface BodiceChoices {
   garment: 'bodice';
@@ -290,13 +290,16 @@ export interface OuterChoices {
   pocketAt?: { x: number; y: number };
   /** How the lapels are cut (In testing): classic, wide or plunging. Older saves have none (classic). */
   lapel?: OuterLapel;
+  /** A lapelled collar popped up, and its upper collar in a second fabric (In testing). Older saves have neither. */
+  collarWear?: OuterCollarWear;
+  upperCollar?: OuterUpperCollar;
   cutawayCm?: number;
 }
 
 export const DEFAULT_JACKET_CHOICES: OuterChoices = { garment: 'jacket', fit: 'regular', length: 'hip', shaping: 'darts', front: 'single', collar: 'notched', pockets: 'patch', sleeve: 'tailored', flare: 'straight', pads: 'soft', vent: 'centre', trim: 'none' };
 export const DEFAULT_COAT_CHOICES: OuterChoices = { garment: 'coat', fit: 'regular', length: 'knee', shaping: 'princess', front: 'single', collar: 'notched', pockets: 'welt', sleeve: 'tailored', flare: 'straight', pads: 'soft', vent: 'centre', trim: 'none' };
 
-type OuterGroupId = 'fit' | 'length' | 'shaping' | 'front' | 'collar' | 'lapel' | 'sleeve' | 'pads' | 'pockets' | 'vent' | 'trim' | 'flare';
+type OuterGroupId = 'fit' | 'length' | 'shaping' | 'front' | 'collar' | 'lapel' | 'collarWear' | 'upperCollar' | 'sleeve' | 'pads' | 'pockets' | 'vent' | 'trim' | 'flare';
 
 /** The style groups for a jacket or a coat: a coat has its own lengths and a flare below the hip. */
 export function outerGroups(kind: OuterKind): { id: OuterGroupId; label: string; options: [string, string][] }[] {
@@ -315,6 +318,9 @@ export function outerGroups(kind: OuterKind): { id: OuterGroupId; label: string;
       options: [['notched', 'Notched lapel'], ['peak', 'Peak lapel'], ['shawl', 'Shawl collar'], ['stand', 'Stand collar'], ['funnel', 'Funnel collar'], ['collarless', 'Collarless'], ['hood', 'Hood']],
     },
     { id: 'lapel', label: 'Lapels', options: [['classic', 'Classic'], ['wide', 'Wide'], ['plunge', 'Plunging']] },
+    // In testing: the collar popped up round the neck, and its upper collar cut from a second fabric.
+    { id: 'collarWear', label: 'Collar worn', options: [['down', 'Turned down'], ['popped', 'Popped up']] },
+    { id: 'upperCollar', label: 'Upper collar', options: [['self', 'Same fabric'], ['black', 'Black'], ['ivory', 'Ivory'], ['deep', 'Deeper shade']] },
     { id: 'sleeve', label: 'Sleeves', options: [['tailored', 'Two-piece, tailored'], ['fitted', 'One-piece, elbow dart'], ['straight', 'Straight'], ['raglan', 'Raglan']] },
     { id: 'pads', label: 'Shoulder pads', options: [['soft', kind === 'coat' ? 'Soft, 8 mm' : 'Soft, 6 mm'], ['structured', kind === 'coat' ? 'Structured, 1.5 cm' : 'Structured, 1.2 cm'], ['none', 'None']] },
     { id: 'pockets', label: 'Pockets', options: [['patch', 'Patch pockets'], ['welt', 'Welt pockets'], ['none', 'None']] },
@@ -359,6 +365,8 @@ const OUTER_COLLAR_WORDS: Record<OuterCollar, string> = {
   hood: 'with a hood',
 };
 
+const UPPER_COLLAR_WORDS: Record<Exclude<OuterUpperCollar, 'self'>, string> = { black: 'black', ivory: 'ivory', deep: 'deeper-shade' };
+
 /** An oversized cut's own shaping: boxy, no pads, and a straight sleeve where a tailored or fitted one was. */
 export function oversizeOuter(c: OuterChoices): OuterChoices {
   if (c.fit !== 'oversized') return c;
@@ -371,9 +379,11 @@ export function describeOuter(c: OuterChoices) {
   const collar = OUTER_COLLAR_WORDS[c.collar];
   const shape = c.flare === 'flared' ? ' flared' : c.garment === 'coat' && c.flare === 'a_line' ? ' A-line' : '';
   const big = c.fit === 'oversized' ? ' oversized' : '';
+  const second = lapelled(c.collar) && c.upperCollar && c.upperCollar !== 'self' ? ` and a ${UPPER_COLLAR_WORDS[c.upperCollar]} collar` : '';
+  const popped = lapelled(c.collar) && c.collarWear === 'popped' ? ', collar popped' : '';
   return c.collar === 'collarless'
     ? `${OUTER_LENGTH_WORDS[c.length]}${big} collarless ${front}${shape} ${c.garment}`
-    : `${OUTER_LENGTH_WORDS[c.length]}${big} ${front}${shape} ${c.garment} ${collar}`;
+    : `${OUTER_LENGTH_WORDS[c.length]}${big} ${front}${shape} ${c.garment} ${collar}${second}${popped}`;
 }
 
 /** A saved pattern's choices. Skirt choices predate bodices, so they carry no garment field. */

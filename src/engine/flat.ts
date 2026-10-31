@@ -37,12 +37,16 @@ export interface FlatView {
   origin: P;
   /** Which of `shapes` are the sleeves (and their bands), drawn out at an angle as flats are. */
   sleeves?: number[];
+  /** Which of `shapes` are cut from a second fabric (a contrast upper collar), drawn in its colour. */
+  contrast?: number[];
   /** A garment with sleeves cut on (kimono): the body without them, for the form, where they hang on the arms. */
   armless?: P[];
 }
 
 export interface Flat {
   views: FlatView[];
+  /** The second fabric the views' `contrast` shapes are cut from: black, ivory, or a deeper shade of the garment's. */
+  second?: 'black' | 'ivory' | 'deep';
   width: number;
   height: number;
 }
@@ -320,6 +324,7 @@ function arrange(views: Omit<FlatView, 'at' | 'origin'>[]): Flat {
       origin: p(dx, -top),
       sleeves: v.sleeves,
       ...(v.armless ? { armless: v.armless.map(shift) } : {}),
+      ...(v.contrast ? { contrast: v.contrast } : {}),
     };
   });
   return { views: placed, width: x - GAP, height: bottom - top };
@@ -1500,6 +1505,8 @@ export function outerFlat(d: OuterDraft): Flat {
     if (!d.rib) for (const run of along(h, 'hem')) for (const pts of [run, mirror(run)]) for (const r of inset(pts, 2.5, whole(h.run))) lines.push({ pts: r, kind: 'stitch' });
     const shapes: P[][] = [];
     const over: P[][] = [];
+    /** Which of `over` are cut from the contrast fabric. */
+    const contrast = new Set<number>();
     const hps = hpsOf(h);
     const shoulder = along(h, 'shoulder')[0] ?? [hps, hps];
     const uSh = unit(sub(shoulder[shoulder.length - 1], shoulder[0]));
@@ -1515,7 +1522,15 @@ export function outerFlat(d: OuterDraft): Flat {
         over.push([...L.worn]);
         const out = add(hps, mul(uSh, d.kind === 'coat' ? 4.5 : 3.8));
         const behind = p(0, hps.y - 1.6);
-        over.push([L.notch, L.collarPoint, out, add(hps, p(-hps.x * 0.5, -1.4)), behind, p(0, top.y + 0.2), top, L.gorge]);
+        if (d.popped) {
+          // Popped up: the collar rises from the gorge and stands round the neck, its points flaring out
+          // past the shoulder line and its inside (the upper collar) showing at the back of the neck.
+          const H = d.kind === 'coat' ? 9.5 : 8.2;
+          const wing = d.kind === 'coat' ? 6 : 5;
+          const pt = p(hps.x + wing, hps.y - H * 0.62);
+          over.push([L.gorge, L.notch, pt, p(hps.x + wing * 0.7, hps.y - H * 0.98), p(hps.x * 0.45, hps.y - H * 0.84), p(0, hps.y - H * 0.8), p(0, hps.y - 1.4), p(hps.x * 0.55, hps.y - 1.1), hps]);
+        } else over.push([L.notch, L.collarPoint, out, add(hps, p(-hps.x * 0.5, -1.4)), behind, p(0, top.y + 0.2), top, L.gorge]);
+        if (d.contrastCollar) contrast.add(over.length - 1);
       } else {
         half = [...cutRun(run, ext, footY, d.cutaway), ...frontCorner(ext, footY, d.cutaway), p(-ext, neckRun[0].y), ...neckRun];
         if (d.pieces.some((pc) => pc.name === 'Collar')) {
@@ -1566,10 +1581,13 @@ export function outerFlat(d: OuterDraft): Flat {
         lines.push({ pts: [p(0, ny + hang), p(0, ny + hang * 0.1)], kind: 'seam' });
       } else if (neckRun && d.pieces.some((pc) => pc.name === 'Collar')) {
         // A stand collar stands up from the neck; a notched collar's fall lies over the neck seam from its roll.
-        const up = neckRun.map((q) => p(q.x, q.y - (d.lapel ? 2.6 : 3.5)));
-        const down = d.lapel ? offsetRun(neckRun, () => (d.kind === 'coat' ? 2.4 : 1.8), p(0, -100)) : neckRun;
+        // Popped up, it stands taller from the neck seam, its under collar (self) facing out; turned down,
+        // the upper collar is the side that shows.
+        const up = neckRun.map((q) => (d.popped ? p(q.x * 1.35, q.y - (d.kind === 'coat' ? 9.5 : 8.2) * 0.86) : p(q.x, q.y - (d.lapel ? 2.6 : 3.5))));
+        const down = d.lapel && !d.popped ? offsetRun(neckRun, () => (d.kind === 'coat' ? 2.4 : 1.8), p(0, -100)) : neckRun;
         const half = [...down, ...[...up].reverse()];
         over.push([...mirror(half).reverse(), ...half]);
+        if (d.contrastCollar && !d.popped) contrast.add(over.length - 1);
       }
     }
     const sl = sleeveSide(h, d.sleeve, d.sleeve.cut === 'raglan' ? (isFront ? d.base.raglan?.front : d.base.raglan?.back) : undefined);
@@ -1591,10 +1609,15 @@ export function outerFlat(d: OuterDraft): Flat {
       shapes.push([p(-top, y0), p(top, y0), p(bottom, y0 + d.rib.hem), p(-bottom, y0 + d.rib.hem)]);
       for (let x = -bottom + 1.2; x < bottom - 0.6; x += 1.2) lines.push({ pts: [p(x * (top / bottom), y0 + 0.3), p(x, y0 + d.rib.hem - 0.3)], kind: 'stitch' });
     }
-    for (const o of over) shapes.push(isFront ? mirror(o) : o, ...(isFront ? [o] : []));
+    const second: number[] = [];
+    over.forEach((o, i) => {
+      const at = shapes.push(isFront ? mirror(o) : o, ...(isFront ? [o] : []));
+      if (contrast.has(i)) second.push(...(isFront ? [at - 2, at - 1] : [at - 1]));
+    });
+    const extra = second.length ? { contrast: second } : {};
     // Menswear buttons left over right: the same front seen in a mirror.
-    if (isFront && d.lapsLeft) return { label: 'FRONT' as const, shapes: shapes.map(mirror), lines: lines.map((l) => ({ ...l, pts: mirror(l.pts) })), sleeves };
-    return { label: isFront ? ('FRONT' as const) : ('BACK' as const), shapes, lines, sleeves };
+    if (isFront && d.lapsLeft) return { label: 'FRONT' as const, shapes: shapes.map(mirror), lines: lines.map((l) => ({ ...l, pts: mirror(l.pts) })), sleeves, ...extra };
+    return { label: isFront ? ('FRONT' as const) : ('BACK' as const), shapes, lines, sleeves, ...extra };
   });
-  return arrange(views);
+  return { ...arrange(views), ...(d.contrastCollar ? { second: d.contrastCollar } : {}) };
 }

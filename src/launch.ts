@@ -46,7 +46,8 @@ export type TestingTool =
   | 'big_peplum'
   | 'jacket_collars'
   | 'flared_jacket'
-  | 'drop_yoke';
+  | 'drop_yoke'
+  | 'contrast_collar';
 
 export const TESTING_TOOLS: Record<TestingTool, { name: string; where: string; proof: string }> = {
   draw_lines: { name: 'Draw your lines', where: 'Style, Draw on your form', proof: 'fit testers draw a hem, a neckline and a side and the pattern follows' },
@@ -81,6 +82,8 @@ export const TESTING_TOOLS: Record<TestingTool, { name: string; where: string; p
   drop_yoke: { name: 'Drop-yoke skirt', where: 'the One, drop yoke chip under Tiers on a skirt', proof: 'two testers sew a drop-yoke skirt and the yoke lies smooth over the hip, the gathers falling evenly below it' },
   // And for the flared lilac blazer from Cat's plaid-blazer picture (2026-10-31).
   flared_jacket: { name: 'Flared jacket and coat hem', where: 'the Flared chip below the waist on a jacket or coat', proof: 'two testers sew a flared jacket and it stays close at the waist, kicking out evenly over the hips with a level hem' },
+  // And for the plaid blazer's popped collar in a second fabric (2026-10-31; design options need no freeze flag).
+  contrast_collar: { name: 'Popped and contrast collars', where: 'the Collar worn and Upper collar chips on a lapelled jacket or coat', proof: 'two testers sew a popped contrast collar and it stands up evenly round the neck, the gorge seams matching' },
   jacket_collars: { name: 'Peak, shawl and funnel collars, wide and plunging lapels', where: 'the Collar and Lapels chips on a jacket or coat', proof: 'two testers sew a peak or shawl lapel and it rolls cleanly from the break point, the collar sitting flat at the back neck' },
   oversized: { name: 'Oversized and long tops', where: 'the Oversized fit and Long length chips on the top', proof: 'two testers sew an oversized long shirt and it hangs straight, its sleeves lifting without pulling' },
   new_details: { name: 'Ruffles, ruching, cape and balloon hem', where: 'the chips for each on the Style screens', proof: 'three testers sew a ruffled hem, ruched sides and a cape and each hangs as drawn' },
