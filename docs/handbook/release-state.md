@@ -6,7 +6,9 @@ _Update this page whenever a release ships or a PR is queued._
 
 **Release 46** (Oct 31, 2026, #245): iPhone page no longer bounces on Style (#244), AI-look photo
 strip removed from Start from a look (#246), welcome headline H2 "Drafted to you" and Make this look
-opens in the look's fabric (#247), All round goes quiet in calico with one check line (#248).
+opens in the look's fabric (#247), All round goes quiet in calico with one check line (#248),
+phone Style panel trimmed (P1: one Next button, "Step 1 of 5" opens the step list) and champagne fill
+only on the main button (S1) (#250).
 Release 45 (Oct 31, #242) brought the Boxy dress fit and Self band, re-recorded films, projector
 upgrades, phone-sideways layouts and the Silhouette / Fullness step names.
 
