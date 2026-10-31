@@ -11,7 +11,7 @@ type Weight = 'light' | 'medium' | 'heavy';
 type Drape = 'crisp' | 'soft' | 'fluid';
 type Fibre = 'cotton' | 'linen' | 'wool' | 'silk' | 'viscose' | 'polyester' | 'blend';
 
-export interface KnitInfo {
+interface KnitInfo {
   /** On the swatch card. */
   label: string;
   /** In a sentence and the PDF: "cotton jersey". */
