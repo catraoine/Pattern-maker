@@ -260,6 +260,7 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
   if (o.boxy) sp = boxed(sp);
   if (extra.skirt) extra = { ...extra, skirt: extra.skirt.map(halfPiece).map(narrowed) };
   const B = new Builder(sp);
+  const poppedPanels: Panel[] = [];
   let legs: SimInput['legs'];
   const thick = o.thick ?? 0.35;
   const front: Panel[] = [];
@@ -465,11 +466,34 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       const roll = c.roll;
       const key = fromFold(pc);
       const lift = c.onStand ? 3 : 0;
+      // A popped collar (a tailored collar with no roll) stands up round the neck: from its neck edge up to its fall.
+      const popped = !roll && pc.outline.tags.includes('gorge');
+      const tp = pc.outline.taggedPoints(2);
+      const nk = tp.pts.filter((_, i) => tp.tags[i] === 'neck');
+      const neckY = nk.length ? nk.reduce((t, q) => t + q.y, 0) / nk.length : 0;
+      const neckLen = nk.length ? Math.max(...nk.map((q) => key(q))) : 1;
       const p = B.add(
         pc,
         'collar',
         (q, turned) => {
           const r = turned && roll ? reflect(q, roll[0], roll[1]) : q;
+          if (popped) {
+            // Round the neck as a cone: each point at the angle of the neck point below it (centre back to the
+            // gorge), rising by its height above the neck edge and leaning out a little as it rises.
+            let n = nk[0];
+            let bd = Infinity;
+            for (const k of nk) {
+              const d = Math.hypot(k.x - q.x, k.y - q.y);
+              if (d < bd) {
+                bd = d;
+                n = k;
+              }
+            }
+            const up = Math.abs(q.y - neckY);
+            const a = Math.PI * (1 - 0.9 * Math.min(1, key(n) / (neckLen || 1)));
+            const R = sp.bodyR(a, neckC) + 1 + up * ((globalThis as any).__popOut ?? 0.25);
+            return [Math.sin(a) * R, neckC - 1 - up * 0.9, Math.cos(a) * R];
+          }
           const cc = neckC - 1 - lift + r.y;
           // The fall lies out over the stand and spreads as it goes down onto the shoulders: its longer outer edge
           // takes a wider ring, so it starts smooth rather than ruffled.
@@ -480,6 +504,7 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
         roll ? [roll] : [],
         1.2,
       );
+      if (popped) poppedPanels.push(p);
       if (c.onStand && standTop) sew(seams, B.chain([p], 'stand', key), B.chain([standTop.panel], 'stand', standTop.key));
       else {
         const target = pc.meta.collarTo === 'extension' ? joinChains(bodyNeck, frontNeck, ext) : joinChains(bodyNeck, frontNeck);
@@ -753,6 +778,26 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
     shoulder: Int32Array.from(B.panels.filter((p) => p.role === 'front' || p.role === 'back').flatMap((p) => (p.mesh.runs.shoulder ?? []).flat().map((i) => i + p.base))),
   };
   const res = simulate(sp, input);
+  // A popped collar is held up by its interfacing and its roll, which the cloth here does not have: it keeps the shape
+  // it was set in, standing round the neck, and only moves as the neck it is sewn to moves.
+  for (const p of poppedPanels) {
+    const neck = (p.mesh.runs.neck ?? []).flat();
+    if (!neck.length) continue;
+    p.mesh.pts.forEach((q, i) => {
+      let j = neck[0];
+      let bd = Infinity;
+      for (const n of neck) {
+        const d = Math.hypot(p.mesh.pts[n].x - q.x, p.mesh.pts[n].y - q.y);
+        if (d < bd) {
+          bd = d;
+          j = n;
+        }
+      }
+      const I = (p.base + i) * 3;
+      const J = (p.base + j) * 3;
+      for (let k = 0; k < 3; k++) res[I + k] = p.start[i][k] + (res[J + k] - p.start[j][k]);
+    });
+  }
   // Close what is left of each seam for drawing, so no slit of light shows along it.
   for (let pass = 0; pass < 12; pass++) {
     for (const { i, j, k, t } of seams) {
@@ -1095,7 +1140,8 @@ export function drapeOuter(sp: Space, d: OuterDraft, o: DrapeOptions = {}): Drap
   return drape(
     sp,
     torso,
-    { sleeve: shell.filter((pc) => /sleeve/i.test(pc.name)), collars: collarsOf(d.pieces) },
+    // A popped collar is not rolled down: it stands up round the neck from its stand.
+    { sleeve: shell.filter((pc) => /sleeve/i.test(pc.name)), collars: collarsOf(d.pieces).map((c) => ((d as { popped?: boolean }).popped ? { ...c, roll: undefined } : c)) },
     // A lapel that breaks high (a coat or jacket buttoned over the chest) is pressed onto the front; a plunging one,
     // breaking near the waist, is left to hang (pressing drags its long front down).
     { pad: d.pads, lieLapel: !!d.lapel && base.front.waistCentre.y - d.lapel.breakPt.y > 10, ...o, buttons: { y: d.buttons.at, r: d.buttons.sizeCm / 2, waistY: base.front.waistCentre.y }, pinFront: (globalThis as any).__pinAll ? [{ y: 52, span: 12 }] : d.buttons.at.map((y) => ({ y, span: 2 })) },
