@@ -248,34 +248,11 @@ button.secondary:disabled {
   display: none;
 }
 
-/* 7. The Looks tab's row of photographs, opening the Maison collection. */
+/* 7. The Looks tab's way into the Maison collection. */
 .collection-entry {
   display: flex;
   flex-direction: column;
   gap: 10px;
-}
-.lookstrip {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 6px;
-  width: 100%;
-  padding: 0;
-  border: 0;
-  background: none;
-  cursor: pointer;
-}
-.lookstrip img {
-  display: block;
-  width: 100%;
-  aspect-ratio: 4 / 5;
-  object-fit: cover;
-  object-position: top;
-  filter: saturate(0.9);
-}
-@media (hover: hover) {
-  .lookstrip:hover img {
-    filter: none;
-  }
 }
 
 /* 8. The envelope cover on a phone too, above the print buttons; How to sew it is a fold. */
