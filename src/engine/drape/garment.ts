@@ -410,8 +410,10 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
     const neckC = sp.cOf(-1.47);
     const fromFold = (pc: Piece) => {
       const f = pc.outline.taggedPoints(4);
-      const fx = f.pts.filter((_, i) => f.tags[i] === 'fold');
-      const at = fx.length ? fx.reduce((t, q) => t + q.x, 0) / fx.length : 0;
+      const fx = f.pts.filter((_, i) => f.tags[i] === 'fold' || f.tags[i - 1] === 'fold');
+      // A fold down the centre back; a collar drawn with its centre back on x = 0 and only a stub tagged fold has it there.
+      const tall = fx.length > 1 && Math.max(...fx.map((q) => q.y)) - Math.min(...fx.map((q) => q.y)) > 1;
+      const at = tall ? fx.reduce((t, q) => t + q.x, 0) / fx.length : Math.min(...f.pts.map((q) => q.x));
       return (q: P) => Math.abs(q.x - at);
     };
     const bodyNeck = B.chain(back.filter((t) => t.role === 'back'), 'neck', out);
@@ -455,10 +457,13 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       if (c.onStand && standTop) sew(seams, B.chain([p], 'stand', key), B.chain([standTop.panel], 'stand', standTop.key));
       else {
         const target = pc.meta.collarTo === 'extension' ? joinChains(bodyNeck, frontNeck, ext) : joinChains(bodyNeck, frontNeck);
-        sew(seams, B.chain([p], 'neck', key), target);
+        // A tailored collar's neck edge runs on along the lapel's gorge: sewn as one seam, so the short gorge end of the
+        // collar isn't made to gather the whole gorge line up into a point.
+        if (p.mesh.runs.gorge && !(globalThis as any).__oldGorge) sew(seams, joinChains(B.chain([p], 'neck', key), B.chain([p], 'gorge', key)), joinChains(target, B.chain(front, 'gorge', (q) => -q.x)));
+        else sew(seams, B.chain([p], 'neck', key), target);
         if (p.mesh.runs.stand) standTop = { panel: p, key };
       }
-      if (p.mesh.runs.gorge) sew(seams, B.chain([p], 'gorge', (q) => q.y * -1), B.chain(front, 'gorge', (q) => -q.x));
+      if (p.mesh.runs.gorge && (globalThis as any).__oldGorge) sew(seams, B.chain([p], 'gorge', (q) => q.y * -1), B.chain(front, 'gorge', (q) => -q.x));
     }
   }
 
@@ -569,7 +574,14 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       armA[p.base + i] = p.role === 'sleeve' ? 1 : 0;
     });
     for (const tag of ['fold', 'centre', 'crotch', 'vent']) for (const r of p.mesh.runs[tag] ?? []) for (const i of r) if (p.role !== 'collar') centre.push(i + p.base);
-    if (p.role === 'collar') for (const r of p.mesh.runs.fold ?? []) for (const i of r) centre.push(i + p.base);
+    if (p.role === 'collar') {
+      for (const r of p.mesh.runs.fold ?? []) for (const i of r) centre.push(i + p.base);
+      // The collar's centre back edge (x = 0 as drafted) lies on the centre plane, closed against its mirror.
+      const x0 = Math.min(...pts.map((q) => q.x));
+      pts.forEach((q, i) => {
+        if (q.x - x0 < 0.05) centre.push(i + p.base);
+      });
+    }
     if ((p.role === 'front' || p.role === 'peplum-front') && o.closedFront && p.mesh.runs.opening) {
       pts.forEach((q, i) => {
         if (Math.abs(q.x) < 0.6 && !p.turned[i]) centre.push(i + p.base);
