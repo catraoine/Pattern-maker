@@ -20,6 +20,7 @@ get in with their tester link.
 | #230 | First Measure page: C Tape Lines, string tied at the waist, CM / IN once | UX/UI: Measure |
 | #231 | Matte charcoal form and crisp plain cloth on Style drawings | UX/UI: Fabric rendering |
 | #232 | Photo shown as a champagne Polaroid on the photo screens | UX/UI: Style & Photo |
+| #244 | No rubber-band page bounce on iPhone (Next bar no longer jumps while turning All round) | UX/UI: Stop the page bounce |
 
 Order note: #229's Measure chapter is re-recorded after #230 ships, and films need re-recording after
 #231. Ship them together, then let Demo videos re-record.
