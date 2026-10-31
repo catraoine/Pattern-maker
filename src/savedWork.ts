@@ -2,7 +2,7 @@ import { Belt } from './engine/belt';
 import type { Paper } from './engine/export';
 import type { HemShape } from './engine/hem';
 import type { AsymHem } from './engine/asymHem';
-import { Fit, Length, Silhouette, NoSeam, SkirtShape, WaistStyle } from './engine/skirt';
+import { Fit, Gathers, Length, Silhouette, NoSeam, SkirtShape, WaistStyle } from './engine/skirt';
 import { type SlitPlace } from './engine/slit';
 import { BodiceEdges } from './engine/instructions';
 import { Cloth, Route } from './engine/couture';
@@ -39,6 +39,8 @@ export interface Choices {
   ruched?: boolean;
   /** A high-low or diagonal hem, in place of a drawn one. Older saves have none. */
   asymHem?: AsymHem;
+  /** A gathered skirt's fullness (In testing); unset, it follows the fit. */
+  gathers?: Gathers;
   /** In-seam pockets. Older saves have none. */
   pockets?: 'none' | 'inseam';
   /** A tie sash, belt loops, or both, at the waist (see belt.ts). Older saves have none. On a dress, its skirt's choices carry it. */

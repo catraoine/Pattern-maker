@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { taggedLength } from './geometry';
-import { GATHER_RATIO, draftSkirt } from './skirt';
+import { GATHERS, GATHER_RATIO, draftSkirt } from './skirt';
 import { draftDress } from './dress';
 import { checkPattern } from './qc';
 import { randomBody, rng } from './randomBodies';
@@ -23,6 +23,20 @@ describe('gathered skirt', () => {
       expect(d.zipCm).toBeGreaterThan(0);
       expect(d.dartsPerSide).toEqual({ front: 0, back: 0 });
     }
+  });
+
+  it('takes the fullness chosen (In testing) in place of the fit’s, on a skirt and a fitted dress', () => {
+    for (const gathers of ['soft', 'full', 'dramatic'] as const) {
+      const d = draftSkirt(m, { fit: 'fitted', silhouette: 'gathered', length: 'midi', gathers });
+      const [front, back] = d.pieces;
+      const waist = 2 * (taggedLength(front.outline, 'waist') + taggedLength(back.outline, 'waist'));
+      expect(Math.abs(waist - Math.max(d.finishedWaist * GATHERS[gathers], m.full_hip + 20))).toBeLessThan(0.6);
+      expect(checkPattern(d.pieces).filter((c) => !c.ok)).toEqual([]);
+    }
+    const body = randomBody(rng(3));
+    const soft = draftDress(body, { fit: 'fitted' }, { fit: 'fitted', silhouette: 'gathered', length: 'maxi' });
+    const dramatic = draftDress(body, { fit: 'fitted' }, { fit: 'fitted', silhouette: 'gathered', length: 'maxi', gathers: 'dramatic' });
+    expect(dramatic.skirt.gathers!.round).toBeGreaterThan(soft.skirt.gathers!.round * 1.5);
   });
 
   it('stays on folded fabric however big the waist, and always clears the hip', () => {

@@ -48,6 +48,11 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       high_low: ['Shorter at the front and longer at the back, curving between.'],
       diagonal: ['The hem slants from one side to the other.', 'skill'],
     },
+    gathers: {
+      soft: ['About one and a half times the waist, gathered in: gentle folds that sit close.', 'easy'],
+      full: ['Twice the waist and a bit, for deep folds that swing as you walk.'],
+      dramatic: ['Nearly three times the waist, for a big, soft volume. Best in a light fabric.'],
+    },
     slit: {
       none: ['No slit: the seams run closed to the hem.', 'easy'],
       back: ['A slit up the centre back seam. A short one is the walking slit a narrow skirt needs.', 'easy'],
@@ -328,6 +333,9 @@ const SHORT: Record<string, string> = {
   'fit.fitted': 'Close fit. Make a test one first.',
   'length.mini': 'Mid-thigh, well above the knee.',
   'asymHem.none': 'The same length all round.',
+  'gathers.soft': 'Gentle folds that sit close.',
+  'gathers.full': 'Deep folds that swing.',
+  'gathers.dramatic': 'Big, soft volume.',
   'asymHem.diagonal': 'Slants from one side to the other.',
   'slit.none': 'No slit.',
   'front.buttons': 'Buttons down the front, no zip.',

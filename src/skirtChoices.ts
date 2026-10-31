@@ -34,6 +34,11 @@ export const GROUPS: [ChoiceGroup<'fit'>, ChoiceGroup<'silhouette'>, ChoiceGroup
   { id: 'asymHem', label: 'Hem', options: [['none', 'Level'], ['high_low', 'High-low'], ['diagonal', 'Diagonal']] },
 ];
 
+/** How full a gathered skirt is (In testing): soft, full or dramatic gathers. Unchosen, it follows the fit. */
+export const GATHERS_GROUP: ChoiceGroup<'gathers'> = { id: 'gathers', label: 'Gathers', options: [['soft', 'Soft'], ['full', 'Full'], ['dramatic', 'Dramatic']] };
+/** The gathers as they will be cut: the chosen ones, or the fit's own, named by the nearest. */
+export const gathersOf = (c: Pick<Choices, 'gathers' | 'fit'>): NonNullable<Choices['gathers']> => c.gathers ?? (c.fit === 'fitted' ? 'soft' : c.fit === 'regular' ? 'full' : 'dramatic');
+
 /** The chosen option in a group: older saves have no hem choice, which is a level hem. */
 export const chosen = (c: Choices, id: keyof Choices) => (id === 'asymHem' ? c.asymHem ?? 'none' : c[id]);
 /** The skirt's details: in-seam pockets, and a zipped waistband, a faced or high faced waist, a pull-on
