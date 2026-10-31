@@ -31,6 +31,8 @@ export interface Panel {
   turned: boolean[];
   /** The roll lines this piece turns back at. */
   folds?: [P, P][];
+  /** Sewn in for the hang, not drawn: a layer the cloth over it hides (a balloon's underskirt). */
+  hidden?: boolean;
 }
 
 export interface Draped {
@@ -190,6 +192,8 @@ export interface DrapeOptions {
   closedFront?: boolean;
   /** Hold the centre front on the centre plane at these heights (the buttoned front of an open jacket). */
   pinFront?: { y: number; span: number }[];
+  /** Crisp cloth (organza, taffeta): a peplum this many times stiffer, so it stands out rather than hangs. */
+  crisp?: number;
 }
 
 interface CollarPart {
@@ -319,9 +323,9 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
           // Gathered cloth starts in even folds round the waist (as the gathering thread draws it up), so it settles
           // into soft gathers down the skirt rather than one crushed bulge.
           if (!R && gather > 1.05 && !(globalThis as any).__noFolds) {
-            const lam = (globalThis as any).__lam ?? 10;
+            const lam = (globalThis as any).__lam ?? 12;
             const k = TAU / lam;
-            const A = Math.min(2.6, (2 * Math.sqrt(gather - 1)) / k);
+            const A = Math.min((globalThis as any).__acap ?? 5, ((globalThis as any).__af ?? 3) * Math.sqrt(gather - 1) / k);
             const ph = (k * q.x) / gather;
             return ringAt(sp, arcOf(q), c, isBack, 1 + A * (1 + Math.sin(ph)) + lv * 0.12);
           }
@@ -388,6 +392,7 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
         const w = pts.filter((_, i) => tags[i] === 'waist' || tags[i - 1] === 'waist');
         const wy = w.length ? w.reduce((t, q) => t + q.y, 0) / w.length : 0;
         const p = B.add(pc, isBack ? 'peplum-back' : 'peplum-front', (q) => ringAt(sp, q.x, q.y - wy + (extra.drop ?? 0), isBack, 1 + (q.y - wy) * 0.08), thick * 0.6);
+        p.hidden = true;
         (isBack ? ub : uf).push(p);
         (isBack ? back : front).push(p);
       }
@@ -595,7 +600,7 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       if (opp.length === 2 && p.turned[opp[0]] === p.turned[opp[1]]) {
         bends.push(opp[0] + p.base, opp[1] + p.base);
         bendRest.push(Math.hypot(pts[opp[0]].x - pts[opp[1]].x, pts[opp[0]].y - pts[opp[1]].y));
-        bendW.push(p.role === 'collar' || p.turned[opp[0]] ? 4 : 1);
+        bendW.push(p.role === 'collar' || p.turned[opp[0]] ? 4 : o.crisp && /peplum/i.test(p.pc.name) ? o.crisp : 1);
       }
     }
   }
@@ -840,6 +845,7 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
   }
   const lines: Draped['lines'] = [];
   for (const p of B.panels) {
+    if (p.hidden) continue;
     for (const tag of Object.keys(p.mesh.runs)) for (const r of p.mesh.runs[tag]) lines.push({ kind: tag, ids: r.map((i) => i + p.base) });
   }
   // Buttons on the centre front, where the cloth lies there.
