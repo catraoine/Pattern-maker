@@ -119,7 +119,7 @@ export function simulate(s: Space, inp: SimInput, steps = (globalThis as any).__
       const dz = x[I + 2] - cz;
       const d = Math.hypot(dx, dy, dz) || 1e-9;
       // A shoulder pad squares the top of the arm for the sleeve head as well as the shoulder.
-      const rr = arm.r0 + (arm.r1 - arm.r0) * u + t + (inp.pad ?? 0) * (inp.onArm[i] ? Math.max(0, 1 - u / 0.12) : 1);
+      const rr = arm.r0 + (arm.r1 - arm.r0) * u + t + (inp.pad ?? 0) * (inp.onArm[i] ? Math.max(0, 1 - u / 0.12) : ((globalThis as any).__padT ?? 0.3));
       if (d < rr) {
         const k = rr / d;
         x[I] = (cx + dx * k) * e;
