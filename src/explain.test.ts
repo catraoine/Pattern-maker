@@ -4,7 +4,7 @@ import { DETAIL_GROUPS, FRONT_GROUP, GROUPS } from './skirtChoices';
 import { DETAIL_OPTIONS } from './engine/skirtVolume';
 import { SLIT_PLACES } from './engine/slit';
 import { BELTS } from './engine/belt';
-import { ExplainSet, explainGroups, explainLine } from './explain';
+import { ExplainSet, explainGroups, explainLine, shortLine, shortLines } from './explain';
 import { detailGroups, detailPic } from './ui/detailPics';
 import { hasPics } from './ui/ChoicePic';
 
@@ -48,5 +48,20 @@ describe('a line for every Style choice', () => {
         for (const [id, label] of g.options) expect(detailPic(set, g.id, String(id)), `${set} ${g.id} ${label}`).toBeDefined();
       }
     }
+  });
+});
+
+// The phone shows one short line under a pick (Cat's P1, 2026-10-31): every choice's phone line fits on one line, and
+// every short line written belongs to a real choice.
+describe('the phone line', () => {
+  const kinds: ExplainSet[] = ['skirt', 'bodice', 'tee', 'trousers', 'outer'];
+  it('is 40 characters or fewer for every choice', () => {
+    for (const set of kinds)
+      for (const [group, lines] of Object.entries(explainGroups(set)))
+        for (const [id, [text]] of Object.entries(lines)) expect(shortLine(set, group, id, text).length, `${set} ${group} ${id}`).toBeLessThanOrEqual(40);
+  });
+  it('has no short line without a choice', () => {
+    const real = new Set(kinds.flatMap((set) => Object.entries(explainGroups(set)).flatMap(([g, lines]) => Object.keys(lines).flatMap((id) => [`${g}.${id}`, `${set}.${g}.${id}`]))));
+    expect(Object.keys(shortLines()).filter((k) => !real.has(k))).toEqual([]);
   });
 });

@@ -1,4 +1,4 @@
-import { GarmentName, chooseChip, expect, startWithExample, switchGarment, test } from './fixtures';
+import { GarmentName, chooseChip, expect, goTab, startWithExample, switchGarment, test } from './fixtures';
 
 // All round: the skirt turning on the form, its checks folded into one quiet line (Cat's Q2 Quiet in Calico).
 test('all round shows the skirt on the form, with its seams and hem checked in one quiet line', async ({ page }) => {
@@ -52,7 +52,7 @@ test('all round shows the garment in the fabric picked', async ({ page }) => {
   await round.click();
   await page.waitForTimeout(400);
   expect(await tealAt()).toBe(0);
-  await main.getByRole('tab', { name: 'Fabric' }).click();
+  await goTab(page, 'Fabric');
   await main.locator('.fabric-more > summary').click();
   await main.getByRole('radiogroup', { name: "What's printed on your fabric" }).getByRole('radio', { name: 'One-way' }).click();
   await round.click();

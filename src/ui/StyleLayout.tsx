@@ -361,6 +361,8 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
   const strip = useRef<HTMLDivElement>(null);
   const chapter = useRef<HTMLDivElement>(null);
   const [atEnd, setAtEnd] = useState(false);
+  // On a phone the list of steps opens from "Step 1 of 5".
+  const [jump, setJump] = useState(false);
   useEffect(() => {
     const el = strip.current;
     if (!el) return;
@@ -427,7 +429,10 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
   // The numbered steps: every tab but Looks (a link by the title) and Pro (the pro tools, at the end).
   const steps = tabs.filter((t) => t !== LOOKS && t !== PRO);
   const strip_ = tabs.filter((t) => t !== LOOKS);
-  const choose = (t: string) => setActive(t);
+  const choose = (t: string) => {
+    setActive(t);
+    setJump(false);
+  };
   // Next and back bring the new step's start up under the drawing, if the page had scrolled past it.
   const goStep = (t: string) => {
     choose(t);
@@ -592,18 +597,34 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
           {/* The open step as a chapter (Cat's H4 + N3, 2026-10-28): "Step 1 of 5", the step's name set large, and the
               steps as a thin line of bars to tap under it. The next step's name is only on the Next button. */}
           <div className="chapter" ref={chapter}>
-            {/* Watch demo sits across from the step (Cat's D3, 2026-10-29): it shows how the steps work. */}
+            {/* Watch demo sits across from the step on a computer (Cat's D3, 2026-10-29). On a phone the step bars are
+                gone and Watch demo is a link at the end of the step (Cat's P1, 2026-10-31): "Step 1 of 5" opens the
+                list of steps instead, to jump to one. */}
             <div className="chapter-top">
-              {at >= 0 && (
-                <p className="chapter-step">
-                  Step <b>{at + 1}</b> of {steps.length}
-                </p>
+              {wide ? (
+                at >= 0 && (
+                  <p className="chapter-step">
+                    Step <b>{at + 1}</b> of {steps.length}
+                  </p>
+                )
+              ) : (
+                <button type="button" className="chapter-step" aria-expanded={jump} aria-controls="style-steps" onClick={() => setJump((j) => !j)}>
+                  {at >= 0 ? (
+                    <>
+                      Step <b>{at + 1}</b> of {steps.length}
+                    </>
+                  ) : (
+                    'The steps'
+                  )}
+                  <span className="chapter-step-mark" aria-hidden="true" />
+                </button>
               )}
-              <DemoButton demo="style" />
+              {wide && <DemoButton demo="style" />}
             </div>
             <h2 className="chapter-name">{active === LOOKS ? 'Start from a look' : active}</h2>
             <div
-              className={atEnd ? 'style-tabs at-end' : 'style-tabs'}
+              id="style-steps"
+              className={['style-tabs', atEnd && 'at-end', jump && 'open'].filter(Boolean).join(' ')}
               role="tablist"
               aria-label="Style choices"
               ref={strip}
@@ -627,7 +648,8 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
                     const to = e.key === 'Home' ? 0 : e.key === 'End' ? strip_.length - 1 : by && strip_.indexOf(t) + by;
                     if (to === undefined || to < 0 || to >= strip_.length) return;
                     e.preventDefault();
-                    choose(strip_[to]);
+                    // The arrow keys move along the steps with the phone's list held open; a tap picks one and shuts it.
+                    setActive(strip_[to]);
                     requestAnimationFrame(() => document.getElementById(`tab-${strip_[to]}`)?.focus());
                   }}
                 >
@@ -686,6 +708,18 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
                 ))}
             </div>
           )}
+          {/* On a phone the step ends with two quiet links (Cat's P1, 2026-10-31): Review, which left the bar so it
+              holds one button, and Watch demo. */}
+          {!wide && (
+            <div className="step-links">
+              {next && ready && (
+                <button type="button" className="later go step-review" onClick={() => setPage('review')}>
+                  Review all choices <span aria-hidden="true">›</span>
+                </button>
+              )}
+              <DemoButton demo="style" />
+            </div>
+          )}
         </div>
         {wide ? (
           <div className="style-side">
@@ -709,18 +743,14 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
             )}
           </div>
         ) : (
-          // One clear box in the bar (Cat's N3, 2026-10-28): Next in champagne, or Review after the last, with a quiet
-          // Review link beside it until then. Undo and redo show only once there is something to undo.
+          // One box in the bar (Cat's N3, 2026-10-28, and P1, 2026-10-31): Next in champagne, or Review after the
+          // last; Review before then is a link at the end of the step. Undo and redo show only once there is
+          // something to undo.
           <div className="style-bar">
             {/* The garment's name is read out as it changes, not shown: the drawing shows it (Cat's N3). */}
             <p className="visually-hidden" role="status">
               {Name}
             </p>
-            {next && ready && (
-              <button type="button" className="later go bar-review" onClick={() => setPage('review')}>
-                Review <span aria-hidden="true">›</span>
-              </button>
-            )}
             {undo && (
               <div className={undo.canUndo || undo.canRedo ? 'bar-undo' : 'bar-undo idle'}>
                 <UndoTools undo={undo} />
