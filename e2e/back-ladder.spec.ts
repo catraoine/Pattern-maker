@@ -88,7 +88,7 @@ test('after a reload, back from the welcome leaves rather than reopening old pag
   await main(page).getByRole('button', { name: 'Next' }).click();
   await page.reload();
   await skipLoading(page);
-  await expect(h1(page, /drafted to your body/i)).toBeVisible();
+  await expect(h1(page, /sewing patterns for the piece/i)).toBeVisible();
   await page.goBack();
   await expect.poll(() => page.url()).not.toContain('localhost');
 });
