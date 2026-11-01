@@ -552,7 +552,8 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       const f = pc.outline.taggedPoints(4);
       const fx = f.pts.filter((_, i) => f.tags[i] === 'fold' || f.tags[i - 1] === 'fold');
       // A fold down the centre back; a collar drawn with its centre back on x = 0 and only a stub tagged fold has it there.
-      const tall = fx.length > 1 && Math.max(...fx.map((q) => q.y)) - Math.min(...fx.map((q) => q.y)) > 1;
+      // (A band closed by a back zip is cut on the fold at the centre front: its centre back is the edge on x = 0.)
+      const tall = pc.meta.foldAt !== 'centre front' && fx.length > 1 && Math.max(...fx.map((q) => q.y)) - Math.min(...fx.map((q) => q.y)) > 1;
       const at = tall ? fx.reduce((t, q) => t + q.x, 0) / fx.length : Math.min(...f.pts.map((q) => q.x));
       return (q: P) => Math.abs(q.x - at);
     };
@@ -771,7 +772,8 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       });
     } else for (const r of p.mesh.runs.vent ?? []) for (const i of r) centre.push(i + p.base);
     if (p.role === 'collar') {
-      for (const r of p.mesh.runs.fold ?? []) for (const i of r) centre.push(i + p.base);
+      // (A band's fold and its zipped centre edge both meet their mirror: one at the front, one at the back.)
+      for (const r of [...(p.mesh.runs.fold ?? []), ...(p.mesh.runs.centre ?? [])]) for (const i of r) centre.push(i + p.base);
       // The collar's centre back edge (x = 0 as drafted) lies on the centre plane, closed against its mirror.
       const x0 = Math.min(...pts.map((q) => q.x));
       pts.forEach((q, i) => {
@@ -924,6 +926,22 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
     legs,
     shoulder: Int32Array.from(B.panels.filter((p) => p.role === 'front' || p.role === 'back').flatMap((p) => (p.mesh.runs.shoulder ?? []).flat().map((i) => i + p.base))),
   };
+  // A flared peplum cut on the fold: the cloth beside the fold bends on round it rather than folding back flat
+  // against its other half (which left a knife-edge keel down the centre front).
+  if (!knob('__noMirror')) {
+    const ids: number[] = [];
+    const mr: number[] = [];
+    for (const p of B.panels) {
+      if (p.hidden || !/^Peplum/.test(p.pc.name) || !p.mesh.runs.fold?.length) continue;
+      p.mesh.pts.forEach((q, i) => {
+        if (q.x > 0.05 && q.x < 3 && !p.turned[i]) {
+          ids.push(p.base + i);
+          mr.push(2 * q.x);
+        }
+      });
+    }
+    if (ids.length) input.mirror = { ids: Int32Array.from(ids), rest: Float64Array.from(mr), k: knob('__mk') ?? 0.5 };
+  }
   const res = simulate(sp, input);
   // A popped collar is held up by its interfacing and its roll, which the cloth here does not have: it keeps the shape
   // it was set in, standing round the neck, and only moves as the neck it is sewn to moves.
@@ -1702,6 +1720,37 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       });
     }
   }
+  // A sleeveless bodice hung from straps set out at the shoulder (a plunge's, cut down past the bust front and back)
+  // has no cloth across its middle to wrap it round the body: the coarse sim leaves its sides hanging straight down
+  // from the strap, standing well off the ribs under the arm. On a body the cut's own shaping lays them in, so below
+  // the strap the side is drawn in toward the body until it stands off no more than a sleeveless bodice's ease.
+  if (!B.panels.some((p) => p.role === 'sleeve' && !p.hidden) && !extra.trousers && !knob('__noHug')) {
+    const CAP = 1;
+    for (const p of B.panels) {
+      if (p.hidden || (p.role !== 'front' && p.role !== 'back')) continue;
+      const pts = p.mesh.pts;
+      const sh = (p.mesh.runs.shoulder ?? []).flat();
+      const waist = (p.mesh.runs.waist ?? []).flat();
+      if (!sh.length || !waist.length) continue;
+      const shY = Math.max(...sh.map((i) => pts[i].y));
+      const wY = Math.min(...waist.map((i) => pts[i].y));
+      pts.forEach((q, i) => {
+        if (q.y >= wY) return;
+        const w = Math.min(1, Math.max(0, (q.y - shY) / 8));
+        const s = w * w * (3 - 2 * w);
+        if (!s) return;
+        const I = (p.base + i) * 3;
+        const a = Math.atan2(res[I], res[I + 2]);
+        const R = sp.bodyR(a, res[I + 1]) + thick;
+        const rho = Math.hypot(res[I], res[I + 2]) || 1e-9;
+        const off = rho - R;
+        if (off <= CAP) return;
+        const k = (R + CAP + (off - CAP) * (1 - 0.9 * s)) / rho;
+        res[I] *= k;
+        res[I + 2] *= k;
+      });
+    }
+  }
   // (Last, nothing a pass above moved is left inside the body: a jacket's shoulders held out on the form. The form is
   // drawn with its height carried on straight above the neck point, where its table flattens; so is this.)
   const cTopD = sp.cOf(-1.45) + 2;
@@ -1709,7 +1758,7 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
   const drawnY = (c: number) => (c < cTopD ? sp.yOf(cTopD) + (c - cTopD) * slopeD : sp.yOf(c));
   // (Trousers too, down to the form's last row: the form is drawn down past the crotch, so between the legs at the
   // top the cloth lies over it, as it does on a dress form, rather than leaving it showing through.)
-  if (o.pinFront?.length || extra.trousers)
+  if (o.pinFront?.length || extra.trousers || !knob('__noClampAll'))
     for (const p of B.panels) {
       if (p.hidden || p.role === 'sleeve') continue;
       p.mesh.pts.forEach((_, i) => {

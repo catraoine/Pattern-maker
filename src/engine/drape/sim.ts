@@ -31,6 +31,9 @@ export interface SimInput {
   shoulder?: Int32Array;
   /** Trouser legs: below the crotch the cloth lies on two legs, not the body. */
   legs?: { x: number; c0: number; c1: number; r0: number; r1: number };
+  /** Points beside a fold and their flat distance from their own mirror across it: the cloth's bend carries on round
+   *  the fold, so they are kept from folding back flat against the other half. */
+  mirror?: { ids: Int32Array; rest: Float64Array; k: number };
   /** Points held from dropping below these levels (a skirt's waist, a strapless top edge). */
   hang?: { ids: Int32Array; c: Float64Array };
   /** Sleeve points kept round the arm at their own sleeve's radius (cloth with body holds a tube's shape, it does not
@@ -163,6 +166,14 @@ export function simulate(s: Space, inp: SimInput, steps = knob("__steps") ?? 260
     for (let it = 0; it < iters; it++) {
       for (let e = 0; e < ne; e++) dist(1, edges[2 * e], edges[2 * e + 1], rest[e]);
       for (let e = 0; e < nb; e++) dist(inp.bendK * (inp.bendW ? inp.bendW[e] : 1), bends[2 * e], bends[2 * e + 1], bendRest[e]);
+      if (inp.mirror) {
+        const { ids, rest: mr, k } = inp.mirror;
+        for (let q = 0; q < ids.length; q++) {
+          const I = ids[q] * 3;
+          const ax = Math.abs(x[I]);
+          if (2 * ax < mr[q]) x[I] = (x[I] < 0 ? -1 : 1) * (ax + (mr[q] / 2 - ax) * k);
+        }
+      }
       for (const { i, j, k, t } of seams) {
         const I = i * 3;
         const J = j * 3;
