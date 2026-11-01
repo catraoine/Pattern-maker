@@ -409,7 +409,9 @@ function buildDraped(
       // A front's button extension (cut past the centre front) laps over the other side: the under one lies a little
       // further in, or the two mirrored halves cross at the front and leave a tab at the hem.
       const under = e < 0 && p.role === 'front';
-      for (let i = 0; i < n; i++) pos.set(P(p.base + i, e, under && p.uv[i * 2] < 0.5 && !p.turned?.[i] ? -0.9 : 0), i * 3);
+      // A back vent's underlap (cut past the centre back) lies under the other side's cloth, on both sides.
+      const vent = p.role === 'back';
+      for (let i = 0; i < n; i++) pos.set(P(p.base + i, e, under && p.uv[i * 2] < -0.05 && !p.turned?.[i] ? -0.9 : vent && p.uv[i * 2] < -0.05 ? -0.6 : 0), i * 3);
       // Each triangle wound so its face looks out from the body (a back piece is laid the other way round from a front);
       // a sleeve's out from the middle of its own arm. The scene's y runs down, so out is the cross product's reverse.
       const ref = (() => {
@@ -511,7 +513,7 @@ function buildDraped(
     }
   }
   // The seams and edges: bright fine lines in lines, faint ones in cloth (the cloth itself gives the shape).
-  const SHOW = new Set(['shoulder', 'side', 'princess', 'armhole', 'neck', 'waist', 'hem', 'opening', 'lapel', 'gorge', 'collar', 'front-seam', 'back-seam', 'sleeve-front', 'opening-hem', 'centre', 'vent', 'inseam', 'outseam', 'crotch', 'yoke', 'tier']);
+  const SHOW = new Set(['shoulder', 'side', 'princess', 'armhole', 'neck', 'waist', 'hem', 'opening', 'lapel', 'gorge', 'collar', 'front-seam', 'back-seam', 'sleeve-front', 'opening-hem', 'centre', 'inseam', 'outseam', 'crotch', 'yoke', 'tier']);
   const seam = lines({ colour: GLOW, width: cloth ? 0.7 : 1.1, back: cloth ? 0 : 0.25, alpha: cloth ? 0.55 : 1 });
   for (const l of d.lines) {
     if (!SHOW.has(l.kind)) continue;

@@ -213,6 +213,10 @@ interface CollarPart {
   onStand?: boolean;
 }
 
+/** How much stiffer a coat's faced front edge bends than its cloth: about 1.4 times plain wool's stiffness, which
+ *  the sim holds steady (much past that it blows up). */
+const FACED = (o: { bendK?: number }) => Math.min(12, 1.4 / (o.bendK ?? 0.05));
+
 /** A heavily gathered panel, drawn in across its width for the sim: cloth this full folds over itself, which the sim
  *  (no cloth-on-cloth contact) shows as tears. It hangs as a panel of SIM_GATHER fullness, and its folds are laid on
  *  for drawing at the real fullness. */
@@ -267,6 +271,39 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
   const front: Panel[] = [];
   const back: Panel[] = [];
   const tipC = sp.tip.c;
+  // A jacket or coat flared below the waist starts as the cone its cloth makes there (each level as wide round as
+  // the pieces are across), so it settles with the flare held out from the hip rather than crushed in folds onto it.
+  let widthAt: ((c: number) => number) | undefined;
+  const coneOf = (() => {
+    if (!o.pinFront?.length) return undefined;
+    const outlines = torso.map((t) => ({ pts: t.pc.outline.taggedPoints(12).pts, waistY: t.waistY }));
+    const spanAt = (pts: P[], y: number) => {
+      let lo = Infinity;
+      let hi = -Infinity;
+      for (let i = 0; i < pts.length; i++) {
+        const a = pts[i];
+        const b = pts[(i + 1) % pts.length];
+        if ((a.y - y) * (b.y - y) > 0 || a.y === b.y) continue;
+        const x = a.x + ((y - a.y) * (b.x - a.x)) / (b.y - a.y);
+        lo = Math.min(lo, x);
+        hi = Math.max(hi, x);
+      }
+      return hi > lo ? hi - lo : 0;
+    };
+    widthAt = (c: number) => 2 * outlines.reduce((t, o) => t + spanAt(o.pts, c + o.waistY), 0);
+    const cache = new Map<number, number>();
+    return (c: number) => {
+      if (c <= 0) return 1;
+      const k = Math.round(c);
+      if (!cache.has(k)) {
+        const W = 2 * outlines.reduce((t, o) => t + spanAt(o.pts, k + o.waistY), 0);
+        let G = 0;
+        for (let i = 0; i < 72; i++) G += ((sp.bodyR((i / 72) * TAU - Math.PI, k) + thick + 1.5) * TAU) / 72;
+        cache.set(k, Math.max(1, (W * ((globalThis as any).__cone ?? 0.9)) / G));
+      }
+      return cache.get(k)!;
+    };
+  })();
   for (const t of torso) {
     const fold = t.folds?.[0];
     const p = B.add(
@@ -275,8 +312,9 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       (q, turned) => {
         const r = turned && fold ? reflect(q, fold[0], fold[1]) : q;
         const c = r.y - t.waistY;
-        const at = ringAt(sp, r.x, Math.max(c, tipC + 2), t.back, 1.5 + (turned ? 1 : 0));
-        return [at[0], c, at[2]];
+        const s = (globalThis as any).__noCone ? 1 : coneOf?.(c) ?? 1;
+        const at = ringAt(sp, r.x / s, Math.max(c, tipC + 2), t.back, 1.5 + (turned ? 1 : 0));
+        return [at[0] * s, c, at[2] * s];
       },
       thick,
       t.folds ?? [],
@@ -625,7 +663,15 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       sideA[p.base + i] = p.role === 'sleeve' || pts[i].x < 0.5 ? 0 : 1;
       armA[p.base + i] = p.role === 'sleeve' ? 1 : 0;
     });
-    for (const tag of ['fold', 'centre', 'crotch', 'vent']) for (const r of p.mesh.runs[tag] ?? []) for (const i of r) if (p.role !== 'collar') centre.push(i + p.base);
+    for (const tag of ['fold', 'centre', 'crotch']) for (const r of p.mesh.runs[tag] ?? []) for (const i of r) if (p.role !== 'collar') centre.push(i + p.base);
+    // A vent: its underlap is cut past the centre back and laps under the other side, so the centre line itself is
+    // what stays on the centre plane down the vent, not the underlap's edge.
+    if (p.mesh.runs.vent && !(globalThis as any).__oldVent) {
+      const top = Math.min(...p.mesh.runs.vent.flat().map((i) => pts[i].y));
+      pts.forEach((q, i) => {
+        if (q.y >= top && Math.abs(q.x) < 0.6) centre.push(i + p.base);
+      });
+    } else for (const r of p.mesh.runs.vent ?? []) for (const i of r) centre.push(i + p.base);
     if (p.role === 'collar') {
       for (const r of p.mesh.runs.fold ?? []) for (const i of r) centre.push(i + p.base);
       // The collar's centre back edge (x = 0 as drafted) lies on the centre plane, closed against its mirror.
@@ -666,7 +712,7 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
         bendRest.push(Math.hypot(pts[opp[0]].x - pts[opp[1]].x, pts[opp[0]].y - pts[opp[1]].y));
         // Below its last button a coat front is faced: the facing stiffens its edge, so the corners hang flat, not curl.
         const faced = p.role === 'front' && !!o.pinFront?.length && [opp[0], opp[1]].every((j) => pts[j].x < 7 && pts[j].y > Math.max(...o.pinFront!.map((f) => f.y)) + 4);
-        bendW.push(p.role === 'collar' || p.turned[opp[0]] ? 4 : faced ? 12 : o.crisp && /peplum/i.test(p.pc.name) ? o.crisp : 1);
+        bendW.push(p.role === 'collar' || p.turned[opp[0]] ? 4 : faced ? FACED(o) : o.crisp && /peplum/i.test(p.pc.name) ? o.crisp : 1);
       }
     }
   }
@@ -896,6 +942,61 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       }
     }
   }
+  // A jacket or coat flared below the waist: wool holds its flare out from the hip in soft flutes, where the sim's
+  // coarse cloth crumples it close in. The cloth the sim couldn't show out (the pattern's width round each level less
+  // the girth it settled at) is laid back on: part as a step out, the rest as flutes, growing from the waist down.
+  // (A coat long enough to fall past the hip has the weight to hang its flare out in the sim itself.)
+  const hemC = Math.max(0, ...B.panels.filter((p) => p.role === 'front' || p.role === 'back').flatMap((p) => p.mesh.pts.map((_, i) => res[(p.base + i) * 3 + 1])));
+  if (widthAt && !o.boxy && !(globalThis as any).__noKick && hemC < 40) {
+    const tors = B.panels.filter((p) => (p.role === 'front' || p.role === 'back') && !p.hidden);
+    const NB = 72;
+    const girth = new Map<number, number>();
+    const rows = new Map<number, number[]>();
+    for (const p of tors)
+      p.mesh.pts.forEach((_, i) => {
+        const I = (p.base + i) * 3;
+        if (res[I + 1] <= 0) return;
+        const k = Math.round(res[I + 1] / 2);
+        const row = rows.get(k) ?? new Array(NB).fill(0);
+        const a = Math.atan2(Math.abs(res[I]), res[I + 2]);
+        const b = Math.min(NB / 2 - 1, Math.floor((a / Math.PI) * (NB / 2)));
+        row[b] = Math.max(row[b], Math.hypot(res[I], res[I + 2]));
+        rows.set(k, row);
+      });
+    for (const [k, row] of rows) {
+      const filled = row.slice(0, NB / 2).filter((x) => x > 0);
+      // (A row the cloth only partly rings, at a curved hem, says nothing of how far it stands out.)
+      if (filled.length < NB * 0.4) continue;
+      girth.set(k, 2 * filled.reduce((t, x) => t + (x * Math.PI) / (NB / 2), 0) * ((NB / 2) / filled.length));
+    }
+    const kStep = (globalThis as any).__kick ?? 0.45;
+    const kFlute = (globalThis as any).__flute ?? 0.25;
+    for (const p of tors) {
+      const xs = p.mesh.pts.map((q) => q.x);
+      const x0 = Math.min(...xs);
+      const W = Math.max(...xs) - x0 || 1;
+      p.mesh.pts.forEach((q, i) => {
+        const I = (p.base + i) * 3;
+        const c = res[I + 1];
+        if (c <= 0 || p.turned[i]) return;
+        // A row the cloth only partly rings takes the step of the nearest full row above it, so the hem goes with it.
+        let k0 = Math.round(c / 2);
+        while (k0 > 0 && !girth.has(k0)) k0--;
+        const extra = Math.max(0, widthAt!(Math.min(Math.round(c), 2 * k0)) - (girth.get(k0) ?? Infinity));
+        // Growing evenly from the waist to the hem, so it flares in a clean line from the cinch rather than ballooning
+        // round the hip.
+        const ramp = Math.min(1, c / hemC);
+        // (At most a few cm: past that, cloth this full hangs down in its folds rather than out.)
+        const step = Math.min(4, (kStep * extra) / TAU) * ramp;
+        // One flute across each panel, crests between its seams, so the seams still meet.
+        const flute = Math.min(2, (kFlute * extra) / TAU) * ramp * Math.sin((Math.PI * (q.x - x0)) / W);
+        const rho = Math.hypot(res[I], res[I + 2]) || 1e-9;
+        const k = (rho + step + flute) / rho;
+        res[I] *= k;
+        res[I + 2] *= k;
+      });
+    }
+  }
   // Gathered cloth: its fullness lies in soft folds round the skirt. The sim settles where the cloth hangs; the folds
   // its mesh is too coarse to form are laid on for drawing, as many as the cloth's width holds, each seam on a fold's
   // turn so the pieces still meet.
@@ -930,7 +1031,10 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
   }
   // Turned cloth (a lapel, a collar's fall) lies on the cloth it turns over: each turned point is laid at the radius
   // of the garment under it, a cloth's thickness out, so a pressed lapel or collar reads flat, not crumpled.
-  if (knob("__lay")) {
+  // A jacket's or coat's collar fall is pressed down onto the back it turns over (its stand alone can't hold it
+  // there in the sim), so no gap opens between the collar and the back neck.
+  const collarOnly = !knob("__lay") && !!o.pinFront?.length;
+  if (knob("__lay") || collarOnly) {
     const NA = 90;
     const key = (a: number, c: number) => Math.round(((a + Math.PI) / TAU) * NA) * 1000 + Math.round(c * 2);
     const under = new Map<number, number>();
@@ -945,7 +1049,7 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
     }
     const gap = knob("__layGap") ?? 0.5;
     for (const p of B.panels) {
-      if (p.role === 'sleeve' || p.hidden) continue;
+      if (p.role === 'sleeve' || p.hidden || (collarOnly && p.role !== 'collar')) continue;
       p.mesh.pts.forEach((_, i) => {
         if (!p.turned[i]) return;
         const I = (p.base + i) * 3;
