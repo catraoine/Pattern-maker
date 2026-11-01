@@ -104,6 +104,12 @@ export const FLARE_PER_40: Record<OuterFlare, number> = { straight: 1.2, a_line:
 /** A flared jacket or coat (In testing): each side and panel seam is let out by this much at the hem,
  * growing from nothing at the waist, so the body stays cinched and kicks out over the hips. */
 const FLARED_HEM: Record<OuterKind, number> = { jacket: 5, coat: 7 };
+/** A fitted flared jacket or coat is cinched like a basque: this much less ease at the waist, in cm (8.5 to
+ * about 4.5 on a jacket), so the flare reads from a narrow waist. */
+const FLARED_CINCH = 4;
+/** A long flared jacket runs this much longer, in cm, so its hem clears a drop-yoke skirt's seam (Cat's
+ * plaid-blazer suit, 2026-11-01). */
+const FLARED_LONGER = 6;
 /** How far along the hem, in cm, it curves up to meet a flared seam square. */
 const FLARE_HEM_RUN = 8;
 
@@ -1112,14 +1118,14 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
     seamAllowance: s.seamAllowance,
     neckArmholeAllowance: 1,
     hemAllowance: s.hemAllowance,
-    fitting: s.fitting,
+    fitting: s.flare === 'flared' && s.fit === 'fitted' && !rib ? { ...s.fitting, waistEase: (s.fitting?.waistEase ?? 0) - FLARED_CINCH } : s.fitting,
     shoulderPad: pad,
     closure: 'back_zip',
     collar: 'none',
     ...(s.sleeve === 'raglan' ? { sleeveCut: 'raglan' as const, sleeve: 'long' as const } : big ? { sleeveCut: 'drop' as const, sleeve: 'long' as const } : {}),
   };
   const base = draftBodice(m, bodiceStyle);
-  const drop = Math.max(base.drop, outerDrop(m, length));
+  const drop = Math.max(base.drop, outerDrop(m, length) + (s.flare === 'flared' && length === 'long' && !rib ? FLARED_LONGER : 0));
   // A rib hem band stands in for the last of the length, where the shell is long enough to give it up.
   const extra = Math.max(0, drop - base.drop - (rib ? RIB.hem : 0));
   const flare = (FLARE_PER_40[s.flare] * extra) / 40;

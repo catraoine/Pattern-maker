@@ -5,6 +5,7 @@ something that changes how a department works. Design picks for single screens s
 
 ## October 2026
 
+- **Nov 1** Flared jacket tightened for the lilac suit (Cat's critique: needs a hard cinch, hem past the skirt's yoke): fitted + flared now has 4 cm less waist ease (about 4.5 cm, a basque cinch), and a long flared jacket runs 6 cm longer.
 - **Nov 1** No popped collars and no contrast collars (Cat: "having a different colour collar is definitely a no never", "I don't want a popped up collar"): both were built 31 Oct and taken out. The lilac suit keeps its peak lapel turned down in self fabric.
 - **Oct 31** Drop-yoke skirt (Cat: "a matching skirt, pay close attention to this silhouette"; In testing): under Tiers, One, drop yoke: the yoke to 5 cm below the hip, one deep gathered skirt below, gathers Soft/Full/Dramatic (Full by default).
 - **Oct 31** Flared jacket and coat hem (Cat: "flair out at bottom with cinched in"; In testing): Flared below the waist, every side and panel seam bent out from the waist, 5 cm per seam on a jacket, 7 on a coat; not cropped or with rib bands.

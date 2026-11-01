@@ -42,11 +42,16 @@ describe('flared jackets and coats', () => {
     expect(failures.slice(0, 6)).toEqual([]);
   });
 
-  it('keeps the waist and widens the hem', () => {
+  it('cinches a fitted waist, runs a long one longer, and widens the hem', () => {
     const base = { kind: 'jacket' as const, fit: 'fitted' as const, shaping: 'princess' as const, length: 'long' as const };
     const straight = draftOuter(m, { ...base, flare: 'straight' });
     const flared = draftOuter(m, { ...base, flare: 'flared' });
-    expect(Math.abs(flared.finishedWaist - straight.finishedWaist)).toBeLessThan(0.5);
+    // Fitted and flared, it's cinched like a basque: 4 cm less ease at the waist; a regular fit keeps its own.
+    expect(straight.finishedWaist - flared.finishedWaist).toBeCloseTo(4, 0);
+    const regular = { ...base, fit: 'regular' as const };
+    expect(Math.abs(draftOuter(m, { ...regular, flare: 'flared' }).finishedWaist - draftOuter(m, { ...regular, flare: 'straight' }).finishedWaist)).toBeLessThan(0.5);
+    // Long and flared, it runs 6 cm longer, past a drop-yoke skirt's seam.
+    expect(flared.drop - straight.drop).toBeCloseTo(6, 0);
     expect(flared.finishedHem).toBeGreaterThan(straight.finishedHem + 30);
   });
 });
