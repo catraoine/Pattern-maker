@@ -43,7 +43,22 @@ export interface Space {
   ridge: (x: number) => number;
 }
 
-export function makeSpace(yOf: (c: number) => number, m: RoundMeasurements & { upper_arm?: number; wrist?: number; arm_length?: number; shoulder_width?: number }): Space {
+export function makeSpace(yOf0: (c: number) => number, m: RoundMeasurements & { upper_arm?: number; wrist?: number; arm_length?: number; shoulder_width?: number }): Space {
+  // The form's height table flattens above the neck point; the form is drawn with its height carried on straight up
+  // from just below there, and the body the cloth lies on is read the same way, so the two agree at the neck.
+  const cOf0 = (y: number) => {
+    let lo = -80;
+    let hi = 160;
+    for (let k = 0; k < 40; k++) {
+      const mid = (lo + hi) / 2;
+      if (yOf0(mid) < y) lo = mid;
+      else hi = mid;
+    }
+    return (lo + hi) / 2;
+  };
+  const cTop = cOf0(-1.45) + 2;
+  const slopeTop = (yOf0(cTop + 4) - yOf0(cTop)) / 4;
+  const yOf = (c: number) => (c < cTop ? yOf0(cTop) + (c - cTop) * slopeTop : yOf0(c));
   const knots: [number, number][] = [
     [BUST_Y, (m.full_bust ?? 90) / perimeter(BUST_Y)],
     [WAIST_Y, (m.waist ?? 72) / perimeter(WAIST_Y)],
