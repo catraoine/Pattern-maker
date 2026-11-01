@@ -141,6 +141,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
   const flat = useMemo(() => (draft ? dressFlat(draft, 'binding', { sleeve, belt: dressBelt(choices.skirt.belt, draft) }) : undefined), [draft, sleeve, choices.skirt]);
   const title = describePattern(choices);
   const round = useMemo(() => (draft ? roundDress(draft, values, sleeve) : undefined), [draft, values, sleeve]);
+  const drapeJob = useMemo(() => (draft ? ({ kind: 'dress', draft, sleeve } as const) : undefined), [draft, sleeve]);
   const arms = !needsArms(values);
   const chosen = sleeveOf(choices.bodice);
   // A shirt dress: the buttons run on down the skirt, so it needs a skirt that can carry them.
@@ -410,7 +411,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
     return (
       <GarmentFabric fabric={fabric}>
       <DrawOnForm<DressChoices>
-        allRound={round ? { round, m: values, fabric, striped: matchKind(fabric) } : undefined}
+        allRound={round ? { round, drape: drapeJob, m: values, fabric, striped: matchKind(fabric) } : undefined}
         body={formWidth(draft.bodice, mv)}
         m={mv}
         legs
@@ -701,7 +702,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
               <TechFlatView flat={flat} title={title} />
             </GarmentFabric>
           )}
-          {round && view === 'round' && <AllRound round={round} m={values} fabric={fabric} striped={matchKind(fabric)} label={`The ${title} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`} />}
+          {round && view === 'round' && <AllRound round={round} drape={drapeJob} m={values} fabric={fabric} striped={matchKind(fabric)} label={`The ${title} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`} />}
           {sheet && view === 'pattern' && !(fit && canFit) && <PatternPane><PatternPreview paper sheet={sheet} label={`Pattern pieces for a ${title}`} /></PatternPane>}
           {view === 'pattern' && fit && canFit && <EaseMapView views={easeMap!} label={`The fit of the ${title}, on its pattern pieces`} />}
           <UndoToast undo={undo} />

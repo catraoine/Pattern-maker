@@ -3,7 +3,7 @@
 // where a cm is a cm every way, and drawn back on the form after. X runs to the wearer's left, C down from the
 // waist, Z forward.
 import { BODY_BOTTOM, BODY_TOP, SHOULDER_TIP_Y, bodyHalf, shapeAt } from '../body';
-import { FORM_HIP } from '../../ui/ContourForm';
+import { FORM_HIP } from '../form';
 import { RoundMeasurements } from '../../ui/allRoundShape';
 
 const TAU = Math.PI * 2;
@@ -105,11 +105,12 @@ export function makeSpace(yOf: (c: number) => number, m: RoundMeasurements & { u
     const fr = Math.max(0, Math.min(NR - 1.001, (c - C0) / DC));
     const r = Math.floor(fr);
     const u = fr - r;
-    const t = (Math.abs(Math.atan2(Math.sin(a), Math.cos(a))) / Math.PI) * NA;
+    const t = (Math.abs(a >= -Math.PI && a <= Math.PI ? a : Math.atan2(Math.sin(a), Math.cos(a))) / Math.PI) * NA;
     const k = Math.min(NA - 1, Math.floor(t));
     const v = t - k;
-    const row = (rr: number) => tab[rr * (NA + 1) + k] * (1 - v) + tab[rr * (NA + 1) + k + 1] * v;
-    return row(r) * (1 - u) + row(r + 1) * u;
+    const i0 = r * (NA + 1) + k;
+    const i1 = i0 + NA + 1;
+    return (tab[i0] * (1 - v) + tab[i0 + 1] * v) * (1 - u) + (tab[i1] * (1 - v) + tab[i1 + 1] * v) * u;
   };
   const tipC = tipC0;
   const tipX = bodyR(Math.PI / 2, tipC);

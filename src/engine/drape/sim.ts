@@ -2,6 +2,7 @@
 // holding the cloth out, gravity hanging what is left free (position-based dynamics: each step moves the points, then
 // nudges them till every length, seam and contact holds).
 import { Space } from './space';
+import { knob } from './knob';
 
 export interface SimInput {
   pos: Float64Array; // x, c, z for each point
@@ -40,13 +41,16 @@ export interface SimInput {
   bendK: number;
 }
 
-export function simulate(s: Space, inp: SimInput, steps = (globalThis as any).__steps ?? 260, iters = 14): Float64Array {
+export function simulate(s: Space, inp: SimInput, steps = knob("__steps") ?? 260, iters = knob("__iters") ?? 14): Float64Array {
   const n = inp.pos.length / 3;
   const x = Float64Array.from(inp.pos);
   const prev = Float64Array.from(inp.pos);
   const dt = 1 / 90;
   // A light pull down: enough to hang what is free (a peplum, a sleeve) while the cloth holds its cut lengths.
-  const g = 300 * dt * dt * ((globalThis as any).__g ?? 1);
+  const g = 300 * dt * dt * (knob("__g") ?? 1);
+  const padT = knob("__padT") ?? 0.3;
+  const lieK = knob("__lk") ?? 0.5;
+  const fric = knob("__fr") ?? 0.3;
   const { edges, rest, bends, bendRest, seams, centre, thick } = inp;
   const ne = rest.length;
   const nb = bendRest.length;
@@ -77,7 +81,7 @@ export function simulate(s: Space, inp: SimInput, steps = (globalThis as any).__
     const pz = x[I + 2];
     const t = thick[i];
     // The body.
-    const rho = Math.hypot(px, pz) || 1e-9;
+    const rho = Math.sqrt(px * px + pz * pz) || 1e-9;
     const a = Math.atan2(px, pz);
     const R = s.bodyR(a, pc) + t;
     let hit = false;
@@ -87,7 +91,7 @@ export function simulate(s: Space, inp: SimInput, steps = (globalThis as any).__
       const rr = L.r0 + (L.r1 - L.r0) * u + t;
       const e = px >= 0 ? 1 : -1;
       const dx = px - e * L.x;
-      const d = Math.hypot(dx, pz) || 1e-9;
+      const d = Math.sqrt(dx * dx + pz * pz) || 1e-9;
       if (d < rr) {
         x[I] = e * L.x + (dx / d) * rr;
         x[I + 2] = (pz / d) * rr;
@@ -103,7 +107,7 @@ export function simulate(s: Space, inp: SimInput, steps = (globalThis as any).__
       hit = true;
     }
     // The arms, one each side.
-    for (const e of [1, -1]) {
+    for (let e = 1; e >= -1; e -= 2) {
       const qx = x[I] * e;
       const rx = qx - arm.a[0];
       const ry = x[I + 1] - arm.a[1];
@@ -117,9 +121,9 @@ export function simulate(s: Space, inp: SimInput, steps = (globalThis as any).__
       const dx = qx - cx;
       const dy = x[I + 1] - cy;
       const dz = x[I + 2] - cz;
-      const d = Math.hypot(dx, dy, dz) || 1e-9;
+      const d = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1e-9;
       // A shoulder pad squares the top of the arm for the sleeve head as well as the shoulder.
-      const rr = arm.r0 + (arm.r1 - arm.r0) * u + t + (inp.pad ?? 0) * (inp.onArm[i] ? Math.max(0, 1 - u / 0.12) : ((globalThis as any).__padT ?? 0.3));
+      const rr = arm.r0 + (arm.r1 - arm.r0) * u + t + (inp.pad ?? 0) * (inp.onArm[i] ? Math.max(0, 1 - u / 0.12) : padT);
       if (d < rr) {
         const k = rr / d;
         x[I] = (cx + dx * k) * e;
@@ -186,11 +190,11 @@ export function simulate(s: Space, inp: SimInput, steps = (globalThis as any).__
       }
       if (inp.lieOn) {
         const { i: LI, j: LJ, gap } = inp.lieOn;
-        const k = ((globalThis as any).__lk ?? 0.5) * ramp;
+        const k = lieK * ramp;
         for (let q = 0; q < LI.length; q++) {
           const I = LI[q] * 3;
           const J = LJ[q] * 3;
-          const rho = Math.hypot(x[J], x[J + 2]) || 1e-9;
+          const rho = Math.sqrt(x[J] * x[J] + x[J + 2] * x[J + 2]) || 1e-9;
           const tx = x[J] + (x[J] / rho) * gap[q];
           const tz = x[J + 2] + (x[J + 2] / rho) * gap[q];
           const ty = x[J + 1];
@@ -210,7 +214,7 @@ export function simulate(s: Space, inp: SimInput, steps = (globalThis as any).__
           const dx = rx - ab[0] * u;
           const dy = ry - ab[1] * u;
           const dz = rz - ab[2] * u;
-          const d = Math.hypot(dx, dy, dz) || 1e-9;
+          const d = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1e-9;
           const f = ((R[q] - d) / d) * k * ramp * (d < R[q] ? 1 : 0.4);
           x[I] += dx * f;
           x[I + 1] += dy * f;
@@ -219,7 +223,7 @@ export function simulate(s: Space, inp: SimInput, steps = (globalThis as any).__
       }
       for (let i = 0; i < n; i++) {
         if (inp.side[i] && x[i * 3] < 0) x[i * 3] = 0;
-        collide(i, it === iters - 1 ? (globalThis as any).__fr ?? 0.3 : 0);
+        collide(i, it === iters - 1 ? fric : 0);
       }
     }
   }

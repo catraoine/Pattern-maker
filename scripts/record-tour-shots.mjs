@@ -424,10 +424,13 @@ if (process.env.TOUR_OPENER) {
     }), [K, 8500]));
   process.exit(0);
 }
-// TOUR_FIT and TOUR_SLEEVES try the dress another way (Fitted, Sleeveless) without touching the rest.
-const FIT = process.env.TOUR_FIT ?? 'Boxy';
+// TOUR_FIT and TOUR_SLEEVES try the dress another way (Fitted, Sleeveless) without touching the rest. The film dress is
+// Relaxed with a plain straight skirt, as Cat picked it in the sewn All round (2026-11-01); TOUR_PLEATS=1 puts back the
+// inverted pleats and self band of the earlier film.
+const FIT = process.env.TOUR_FIT ?? 'Relaxed';
+const SKIRT_PICKS = process.env.TOUR_PLEATS ? [['Straight', 'Silhouette'], ['Inverted pleats', 'Fullness'], ['Self band', 'Belt']] : [['Straight', 'Silhouette']];
 const SLEEVES = process.env.TOUR_SLEEVES ?? 'Short';
-for (const [tab, names] of [['Shape', [[FIT, 'Fit'], 'Dropped']], ['Neck & sleeves', ['Boat', SLEEVES]], ['Skirt & length', [['Straight', 'Silhouette'], ['Inverted pleats', 'Fullness'], ['Self band', 'Belt']]]]) {
+for (const [tab, names] of [['Shape', [[FIT, 'Fit'], 'Dropped']], ['Neck & sleeves', ['Boat', SLEEVES]], ['Length & hem', SKIRT_PICKS]]) {
   await main.getByRole('tab', { name: tab, exact: true }).click();
   await wait(400);
   for (const n of names) await (Array.isArray(n) ? pick(...n) : pick(n));
@@ -440,7 +443,7 @@ if (SLEEVES !== 'Sleeveless') await main.locator('input[type=range][aria-label="
   el.dispatchEvent(new Event('input', { bubbles: true }));
 });
 await wait(300);
-await main.getByRole('tab', { name: 'Skirt & length', exact: true }).click();
+await main.getByRole('tab', { name: 'Length & hem', exact: true }).click();
 await wait(300);
 // The length is set from the marks beside the form.
 await p.evaluate((m) => [...document.querySelectorAll('main .hem-mark')].find((g) => g.textContent.trim() === m)?.querySelector('.hit')?.dispatchEvent(new MouseEvent('click', { bubbles: true })), process.env.TOUR_MARK ?? 'KNEE');
@@ -469,7 +472,7 @@ await wait(300);
 const repeat = main.locator('#fabrepeat');
 if (await repeat.count()) await repeat.fill(process.env.TOUR_REPEAT ?? '4.5');
 await wait(300);
-for (const n of (process.env.TOUR_EXTRA ?? '').split('|').filter(Boolean)) { for (const t of ['Shape', 'Neck & sleeves', 'Skirt & length', 'Fabric']) { await main.getByRole('tab', { name: t, exact: true }).click(); await wait(200); await pick(n); } }
+for (const n of (process.env.TOUR_EXTRA ?? '').split('|').filter(Boolean)) { for (const t of ['Shape', 'Neck & sleeves', 'Length & hem', 'Fabric']) { await main.getByRole('tab', { name: t, exact: true }).click(); await wait(200); await pick(n); } }
 // The film opens on the photo's very short length (Cat, 2026-10-30: it needs to be mini, as in the photo), 19 cm
 // below the dropped seam: between the named lengths, so set as a hem drawn on the form sets it, and the page opened again.
 if (process.env.TOUR_START_MINI !== '0') {
@@ -488,7 +491,7 @@ if (process.env.TOUR_START_MINI !== '0') {
   await addPen();
   await wait(800);
 }
-// The film shows the Boxy fit without its In testing tag, as it does projector mode (Cat, 2026-10-29); the app keeps it.
+// The film shows its fit without an In testing tag, as it does projector mode (Cat, 2026-10-29); the app keeps it.
 await p.addStyleTag({ content: 'main button[aria-pressed] .testing-tag { display: none !important; }' });
 await main.getByRole('tab', { name: 'Shape', exact: true }).click();
 await p.evaluate(() => window.scrollTo(0, 0));
@@ -511,7 +514,7 @@ if (process.env.TOUR_PROBE4) {
 if (process.env.TOUR_PROBE) {
   await p.screenshot({ path: `${OUT}/probe.png` });
   console.log('LS', await p.evaluate(() => JSON.stringify(JSON.parse(localStorage.getItem('pattern-maker:skirt')).finish)));
-  for (const tab of ['Neck & sleeves', 'Skirt & length', 'Fabric']) {
+  for (const tab of ['Neck & sleeves', 'Length & hem', 'Fabric']) {
     await main.getByRole('tab', { name: tab, exact: true }).click();
     await wait(400);
     console.log(tab, JSON.stringify(await main.locator('button[aria-pressed], [role=radio]').evaluateAll((els) => els.map((e) => `${(e.getAttribute('aria-label') || e.textContent).trim().slice(0, 24)}${e.getAttribute('aria-pressed') === 'true' || e.getAttribute('aria-checked') === 'true' ? '*' : ''}${e.disabled ? '(x)' : ''}`))));

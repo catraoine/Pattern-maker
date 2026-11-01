@@ -14,6 +14,7 @@ import { Mesh2D, Wedge, meshPiece } from './mesh2d';
 import { dartsOf } from '../marks';
 import { SimInput, simulate } from './sim';
 import { Space, boxed } from './space';
+import { knob, setKnob } from './knob';
 
 type V3 = [number, number, number];
 const TAU = Math.PI * 2;
@@ -141,7 +142,7 @@ class Builder {
 
 /** Each point of one chain sewn to the same share of the way along the other, both ways. */
 function sew(seams: SimInput["seams"], A: Chain, B: Chain) {
-  if ((globalThis as any).__dbg) console.log("sew", A.ids.length, (A.s[A.s.length - 1] ?? 0).toFixed(1), B.ids.length, (B.s[B.s.length - 1] ?? 0).toFixed(1));
+  if (knob("__dbg")) console.log("sew", A.ids.length, (A.s[A.s.length - 1] ?? 0).toFixed(1), B.ids.length, (B.s[B.s.length - 1] ?? 0).toFixed(1));
   if (A.ids.length < 2 || B.ids.length < 2) return;
   const one = (X: Chain, Y: Chain) => {
     const LX = X.s[X.s.length - 1] || 1;
@@ -218,12 +219,12 @@ interface CollarPart {
 const SIM_GATHER = 1.8;
 function narrowed(pc: Piece): Piece {
   const g = (pc.meta.gathered as number | undefined) ?? 1;
-  if (g <= SIM_GATHER || pc.meta.waistRadius || (globalThis as any).__noNarrow) return pc;
+  if (g <= SIM_GATHER || pc.meta.waistRadius || knob("__noNarrow")) return pc;
   const sx = SIM_GATHER / g;
   const o = pc.outline;
   const f = (q: P) => pt(q.x * sx, q.y);
   const m = new Path(f(o.start));
-  o.segs.forEach((sg: any, i: number) => (sg.kind === 'L' ? m.line(f(sg.to), o.tags[i]) : m.curve(f(sg.c1), f(sg.c2), f(sg.to), o.tags[i])));
+  o.segs.forEach((sg, i: number) => (sg.kind === 'L' ? m.line(f(sg.to), o.tags[i]) : m.curve(f(sg.c1), f(sg.c2), f(sg.to), o.tags[i])));
   m.closed = true;
   return { ...pc, outline: m, lines: [], meta: { ...pc.meta, gathered: SIM_GATHER, gatherShown: g, simScale: sx } };
 }
@@ -246,7 +247,7 @@ function halfPiece(pc: Piece): Piece {
     // The half drawn first lies left of the centre: turn it over.
     const m = new Path(pt(-o.start.x, o.start.y));
     for (let i = 0; i < out.segs.length; i++) {
-      const sg = out.segs[i] as any;
+      const sg = out.segs[i] as { kind: string; to: P; c1: P; c2: P };
       if (sg.kind === 'L') m.line(pt(-sg.to.x, sg.to.y), out.tags[i]);
       else m.curve(pt(-sg.c1.x, sg.c1.y), pt(-sg.c2.x, sg.c2.y), pt(-sg.to.x, sg.to.y), out.tags[i]);
     }
@@ -296,7 +297,7 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
   for (const p of [...front, ...back]) for (const [a, b] of dartLegs(p)) sew(seams, a, b);
 
   // What hangs from the waist (a skirt, a peplum): placed down from its waist edge, sewn to the bodice's waist if there is one.
-  if (extra.skirt?.length && !(globalThis as any).__noPep) {
+  if (extra.skirt?.length && !knob("__noPep")) {
     // A peplum sewn to a bodice's hem (a top cut below the waist) starts where that hem is worn.
     const hemDrop = (() => {
       const t = torso.find((t) => !t.back);
@@ -349,10 +350,10 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
           }
           // Gathered cloth starts in even folds round the waist (as the gathering thread draws it up), so it settles
           // into soft gathers down the skirt rather than one crushed bulge.
-          if (!R && gather > 1.05 && !(globalThis as any).__noFolds) {
-            const lam = (globalThis as any).__lam ?? 12;
+          if (!R && gather > 1.05 && !knob("__noFolds")) {
+            const lam = knob("__lam") ?? 12;
             const k = TAU / lam;
-            const A = Math.min((globalThis as any).__acap ?? 5, ((globalThis as any).__af ?? 3) * Math.sqrt(gather - 1) / k);
+            const A = Math.min(knob("__acap") ?? 5, (knob("__af") ?? 3) * Math.sqrt(gather - 1) / k);
             const ph = (k * q.x) / gather;
             return ringAt(sp, arcOf(q), c, isBack, 1 + A * (1 + Math.sin(ph)) + lv * 0.12);
           }
@@ -433,7 +434,7 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
   for (const p of B.panels) if (p.role !== 'front' && p.role !== 'back') for (const [a, b] of dartLegs(p)) sew(seams, a, b);
 
   // Collars: each stands up from the neck (or from its stand), and turns down at its roll line if it has one.
-  if (extra.collars?.length && !(globalThis as any).__noCol) {
+  if (extra.collars?.length && !knob("__noCol")) {
     const neckC = sp.cOf(-1.47);
     const fromFold = (pc: Piece) => {
       const f = pc.outline.taggedPoints(4);
@@ -491,14 +492,14 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
             }
             const up = Math.abs(q.y - neckY);
             const a = Math.PI * (1 - 0.9 * Math.min(1, key(n) / (neckLen || 1)));
-            const R = sp.bodyR(a, neckC) + 1 + up * ((globalThis as any).__popOut ?? 0.25);
+            const R = sp.bodyR(a, neckC) + 1 + up * (knob("__popOut") ?? 0.25);
             return [Math.sin(a) * R, neckC - 1 - up * 0.9, Math.cos(a) * R];
           }
           const cc = neckC - 1 - lift + r.y;
           // The fall lies out over the stand and spreads as it goes down onto the shoulders: its longer outer edge
           // takes a wider ring, so it starts smooth rather than ruffled.
           const beyond = turned && roll ? Math.max(0, cc - (neckC - 1 - lift + Math.max(roll[0].y, roll[1].y))) : 0;
-          return ringAt(sp, key(q) * ((globalThis as any).__ck ?? 1), cc, true, 1 + (turned ? 1.2 + beyond * 0.25 : 0));
+          return ringAt(sp, key(q) * (knob("__ck") ?? 1), cc, true, 1 + (turned ? 1.2 + beyond * 0.25 : 0));
         },
         thick,
         roll ? [roll] : [],
@@ -510,17 +511,17 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
         const target = pc.meta.collarTo === 'extension' ? joinChains(bodyNeck, frontNeck, ext) : joinChains(bodyNeck, frontNeck);
         // A tailored collar's neck edge runs on along the lapel's gorge: sewn as one seam, so the short gorge end of the
         // collar isn't made to gather the whole gorge line up into a point.
-        if (p.mesh.runs.gorge && !(globalThis as any).__oldGorge) sew(seams, joinChains(B.chain([p], 'neck', key), B.chain([p], 'gorge', key)), joinChains(target, B.chain(front, 'gorge', (q) => -q.x)));
+        if (p.mesh.runs.gorge && !knob("__oldGorge")) sew(seams, joinChains(B.chain([p], 'neck', key), B.chain([p], 'gorge', key)), joinChains(target, B.chain(front, 'gorge', (q) => -q.x)));
         else sew(seams, B.chain([p], 'neck', key), target);
         if (p.mesh.runs.stand) standTop = { panel: p, key };
       }
-      if (p.mesh.runs.gorge && (globalThis as any).__oldGorge) sew(seams, B.chain([p], 'gorge', (q) => q.y * -1), B.chain(front, 'gorge', (q) => -q.x));
+      if (p.mesh.runs.gorge && knob("__oldGorge")) sew(seams, B.chain([p], 'gorge', (q) => q.y * -1), B.chain(front, 'gorge', (q) => -q.x));
     }
   }
 
   let capRatio = 1;
   // Sleeves round the arm, sewn into the armhole.
-  if (extra.sleeve?.length && !(globalThis as any).__noSl) {
+  if (extra.sleeve?.length && !knob("__noSl")) {
     const top = extra.sleeve.find((pc) => pc.meta.tailored !== 'under')!;
     const under = extra.sleeve.find((pc) => pc.meta.tailored === 'under');
     const runTop = (pc: Piece, tag: string) => {
@@ -686,7 +687,7 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
         const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
         let d = Infinity;
         for (const q of cap) d = Math.min(d, Math.hypot(q.x - mid.x, q.y - mid.y));
-        const w = Math.max(0, 1 - d / ((globalThis as any).__capW ?? (o.boxy ? 10 : 5)));
+        const w = Math.max(0, 1 - d / (knob("__capW") ?? (o.boxy ? 10 : 5)));
         rest[e] *= 1 - (1 - capRatio) * w;
       }
     }
@@ -705,7 +706,7 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
   // together), less the cloth's give, so a wide coat sleeve stands round as wool does rather than folding flat.
   const roundOf = () => {
     const sl = B.panels.filter((p) => p.role === 'sleeve');
-    if (!sl.length || (globalThis as any).__noRound) return undefined;
+    if (!sl.length || knob("__noRound")) return undefined;
     const capH = (sl[0].pc.meta.capHeight as number) ?? 15;
     const widthAt = (y: number) =>
       sl.reduce((sum, p) => {
@@ -721,13 +722,13 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
         R.push((widthAt(q.y) / TAU) * 0.92);
       });
     }
-    return { ids: Int32Array.from(ids), R: Float64Array.from(R), k: (globalThis as any).__rk ?? 0.15 };
+    return { ids: Int32Array.from(ids), R: Float64Array.from(R), k: knob("__rk") ?? 0.15 };
   };
   // Turned cloth (a lapel, a collar's fall) lies on the cloth it was turned over: each point rests on the point of
   // the same piece that it covers when folded at the roll line, one cloth's thickness out, as pressing sets it.
   const lieOnOf = () => {
-    const lapels = (globalThis as any).__lieLapel ?? o.lieLapel;
-    if (!(globalThis as any).__lie && !lapels) return undefined;
+    const lapels = (knob("__lieLapel") ?? o.lieLapel);
+    if (!knob("__lie") && !lapels) return undefined;
     const I: number[] = [];
     const J: number[] = [];
     const G: number[] = [];
@@ -810,7 +811,7 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
   // Smooth the cloth's finest ripples for drawing (a few cm of mesh noise reads as crumple on a shiny cloth); its
   // edges and seams stay where they settled.
   // Taubin's two-step smoothing: in, then back out, so the cloth loses its ripples but not its size.
-  const passes = (globalThis as any).__smooth ?? 16;
+  const passes = knob("__smooth") ?? 16;
   const sewn = new Uint8Array(B.n);
   for (const { i, j, k } of seams) sewn[i] = sewn[j] = sewn[k] = 1;
   for (const p of B.panels) {
@@ -855,7 +856,7 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
   // Free edges (a lapel, a front opening, a collar's edge, a hem) drawn as smooth lines: each point eased toward its
   // neighbours along the edge, the ends held.
   const FREE = ['lapel', 'opening', 'opening-hem', 'collar', 'hem', 'gorge'];
-  for (let pass = 0; pass < ((globalThis as any).__edgeSm ?? 6); pass++) {
+  for (let pass = 0; pass < (knob("__edgeSm") ?? 6); pass++) {
     for (const p of B.panels) {
       for (const tag of FREE) {
         for (const run of p.mesh.runs[tag] ?? []) {
@@ -896,7 +897,7 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
   // Gathered cloth: its fullness lies in soft folds round the skirt. The sim settles where the cloth hangs; the folds
   // its mesh is too coarse to form are laid on for drawing, as many as the cloth's width holds, each seam on a fold's
   // turn so the pieces still meet.
-  const foldA = (globalThis as any).__foldA ?? 1;
+  const foldA = knob("__foldA") ?? 1;
   for (const p of B.panels) {
     const gather = ((p.pc.meta.gatherShown ?? p.pc.meta.gathered) as number | undefined) ?? 1;
     if (!/peplum/.test(p.role) || gather < 1.05 || !foldA) continue;
@@ -906,11 +907,11 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
     const x0 = Math.min(...xs);
     const W = Math.max(...xs) - x0;
     const y0 = Math.min(...ys);
-    const lamCloth = ((globalThis as any).__lamC ?? 6) * gather;
+    const lamCloth = (knob("__lamC") ?? 6) * gather;
     const n = Math.max(2, Math.round(W / simScale / (lamCloth / 2)));
-    const A = Math.min(3.5, ((globalThis as any).__fk ?? 2) * Math.sqrt(gather - 1)) * foldA;
+    const A = Math.min(3.5, (knob("__fk") ?? 2) * Math.sqrt(gather - 1)) * foldA;
     // The fullness holds the skirt out from the body a little more the further down it falls.
-    const flare = (gather - 1) * ((globalThis as any).__flare ?? 0.15);
+    const flare = (gather - 1) * (knob("__flare") ?? 0.15);
     p.mesh.pts.forEach((q, i) => {
       const I = (p.base + i) * 3;
       const lv = q.y - y0;
@@ -925,7 +926,7 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
   }
   // Turned cloth (a lapel, a collar's fall) lies on the cloth it turns over: each turned point is laid at the radius
   // of the garment under it, a cloth's thickness out, so a pressed lapel or collar reads flat, not crumpled.
-  if ((globalThis as any).__lay) {
+  if (knob("__lay")) {
     const NA = 90;
     const key = (a: number, c: number) => Math.round(((a + Math.PI) / TAU) * NA) * 1000 + Math.round(c * 2);
     const under = new Map<number, number>();
@@ -938,7 +939,7 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
         under.set(k, Math.max(under.get(k) ?? 0, Math.hypot(res[I], res[I + 2])));
       });
     }
-    const gap = (globalThis as any).__layGap ?? 0.5;
+    const gap = knob("__layGap") ?? 0.5;
     for (const p of B.panels) {
       if (p.role === 'sleeve' || p.hidden) continue;
       p.mesh.pts.forEach((_, i) => {
@@ -960,7 +961,7 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
   const underB = B.panels.filter((p) => /underskirt/i.test(p.pc.name));
   if (outerB.length && underB.length) {
     const hOf = (ps: Panel[]) => Math.max(...ps.flatMap((p) => p.mesh.pts.map((q) => q.y))) - Math.min(...ps.flatMap((p) => p.mesh.pts.map((q) => q.y)));
-    const puffCm = Math.max(3, hOf(outerB) - hOf(underB)) * ((globalThis as any).__bal ?? 1);
+    const puffCm = Math.max(3, hOf(outerB) - hOf(underB)) * (knob("__bal") ?? 1);
     for (const p of outerB) {
       const ys = p.mesh.pts.map((q) => q.y);
       const y0 = Math.min(...ys);
@@ -980,7 +981,7 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
     const arm = sp.arm;
     const ab = [arm.b[0] - arm.a[0], arm.b[1] - arm.a[1], arm.b[2] - arm.a[2]];
     const L2 = ab[0] ** 2 + ab[1] ** 2 + ab[2] ** 2;
-    const P = Math.min(3.2, extra.puff * 0.22) * ((globalThis as any).__puff ?? 1);
+    const P = Math.min(3.2, extra.puff * 0.22) * (knob("__puff") ?? 1);
     for (const p of B.panels.filter((q) => q.role === 'sleeve')) {
       const ys = p.mesh.pts.map((q) => q.y);
       const y0 = Math.min(...ys);
@@ -1024,7 +1025,7 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       if (best >= 0) buttons.push({ at: [0, res[best * 3 + 1], res[best * 3 + 2] + 0.4], r: o.buttons.r });
     }
   }
-  (globalThis as any).__seams = seams;
+  setKnob("__seams", seams);
   return { panels: B.panels, pos: res, lines, buttons };
 }
 
@@ -1144,6 +1145,6 @@ export function drapeOuter(sp: Space, d: OuterDraft, o: DrapeOptions = {}): Drap
     { sleeve: shell.filter((pc) => /sleeve/i.test(pc.name)), collars: collarsOf(d.pieces).map((c) => ((d as { popped?: boolean }).popped ? { ...c, roll: undefined } : c)) },
     // A lapel that breaks high (a coat or jacket buttoned over the chest) is pressed onto the front; a plunging one,
     // breaking near the waist, is left to hang (pressing drags its long front down).
-    { pad: d.pads, lieLapel: !!d.lapel && base.front.waistCentre.y - d.lapel.breakPt.y > 10, ...o, buttons: { y: d.buttons.at, r: d.buttons.sizeCm / 2, waistY: base.front.waistCentre.y }, pinFront: (globalThis as any).__pinAll ? [{ y: 52, span: 12 }] : d.buttons.at.map((y) => ({ y, span: 2 })) },
+    { pad: d.pads, lieLapel: !!d.lapel && base.front.waistCentre.y - d.lapel.breakPt.y > 10, ...o, buttons: { y: d.buttons.at, r: d.buttons.sizeCm / 2, waistY: base.front.waistCentre.y }, pinFront: knob("__pinAll") ? [{ y: 52, span: 12 }] : d.buttons.at.map((y) => ({ y, span: 2 })) },
   );
 }

@@ -1197,14 +1197,11 @@ export function formLandmarks(): Record<'full_bust' | 'waist' | 'full_hip', numb
   };
 }
 
-/** Where the hip and floor sit on the form, and how deep its rings look, for drawing a garment round
- * the same body (its half-width is R in engine/form.ts). */
-export const FORM_HIP = 0.82;
+/** The floor, how deep the form's rings look, and the legs' half-width down from the crotch and how far apart they
+ * stand, for drawing a garment round the same body (FORM_HIP and FORM_CROTCH are in engine/form.ts, which a worker
+ * reads without loading React). */
 export const FORM_FLOOR = FLOOR;
 export const FORM_DEPTH = DEPTH;
-/** The legs' half-width down from the crotch, how far apart they stand, and the knee, for views that
- * turn the legs (the shape preview of trousers). */
 export const FORM_LEG = LEG;
 export const FORM_LEG_X = LEG_X;
-export const FORM_CROTCH = 1.2;
-export const FORM_KNEE = KNEE;
+export { FORM_CROTCH } from '../engine/form';

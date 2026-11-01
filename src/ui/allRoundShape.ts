@@ -3,7 +3,7 @@
 // (allRoundMesh.ts) the phone's graphics chip draws, and the canvas painter (AllRound.tsx) kept for a browser without it.
 import { RoundGarment } from '../engine/allRound';
 import { SHOULDER_TIP_Y, bodyHalf as formHalfWidth, depthShare, reach as bodyReach } from '../engine/body';
-import { FORM_CROTCH, FORM_FLOOR, FORM_HIP, FORM_KNEE, FORM_LEG, FORM_LEG_X } from './ContourForm';
+import { FORM_CROTCH, FORM_HIP, LEG as FORM_LEG, LEG_FLOOR as FORM_FLOOR, LEG_KNEE as FORM_KNEE, LEG_X as FORM_LEG_X } from '../engine/form';
 export { FORM_HIP };
 
 const TAU = Math.PI * 2;
