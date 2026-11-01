@@ -5,7 +5,7 @@ something that changes how a department works. Design picks for single screens s
 
 ## November 2026
 
-- **Nov 1** Fit tester call rebuilt after the Oct 31 call got no applicants: the full round sews SS27 Look 01 (ivory Big Shirt with cuffs), Look 09 (red shirt or lavender pencil skirt) and Look 10 (black low-rise pleat skirt); the call leads with those pieces turning in All round (only renders that pass); applications through a 2-minute Google Form; fashion schools emailed (KPU, VCC, Blanche Macdonald). [Testers](testers.md).
+- **Nov 1** Fit tester call rebuilt after the Oct 31 call got no applicants: testers sew a dress, skirt or top of their choice; the call shows two example SS27 looks (a dress, a skirt with a top) drawn in All round, only once Cat passes the renders; applications through a 2-minute Google Form; fashion schools emailed (KPU, VCC, Blanche Macdonald). [Testers](testers.md).
 
 ## October 2026
 
