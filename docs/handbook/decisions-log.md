@@ -5,6 +5,7 @@ something that changes how a department works. Design picks for single screens s
 
 ## October 2026
 
+- **Nov 1** Fable polish pass on the SS27 line-up (Cat: "they all need further polish and refinement. Fable?"): a ruffled hem now goes on a gathered skirt (In testing), so the pink bishop gown gets the ruffle it was named for; the other refinements are style choices drawn in All round first. A bias slip takes no slit (an engine job, not started).
 - **Nov 1** Oversized shirt cuffs (Cat: "Could you make a shirt with oversized cuffs?", ivory-shirt picture; In testing): Cuffs, Oversized cuff: a shirt cuff 14 cm deep, 8 cm ease, 3 cm past the wrist, 3 buttons. SS27 colour stories (Cat): red with lavender with butter; black and ivory; ice with gold; blush pink.
 - **Nov 1** Low-rise skirt (Cat: "Can we make the skirt low rise"; In testing): Rise At the waist / Low on the hip; low drafts from a line 6 cm below the waist (max a quarter of waist-to-hip), the hem kept at the same place on the body; not with a high waist. Also: no red with black in a look (Look 09 keeps the ivory pencil).
 - **Nov 1** Flared jacket tightened for the lilac suit (Cat's critique: needs a hard cinch, hem past the skirt's yoke): fitted + flared now has 4 cm less waist ease (about 4.5 cm, a basque cinch), and a long flared jacket runs 6 cm longer.

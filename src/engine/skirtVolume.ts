@@ -72,13 +72,16 @@ export const GODET_OPTIONS: [GodetCount, string][] = [
 ];
 
 /** Whether a detail suits the shape, length and hem: all of them need a block skirt (a circle or
- * trumpet is already full at the hem, and a bias slip is cut whole and moulds to the body), godets need
+ * trumpet is already full at the hem, and a bias slip is cut whole and moulds to the body; a gathered
+ * skirt takes only a ruffled hem), godets need
  * a skirt to the knee or longer, and a balloon hem one no longer than midi. Tiers go at any length: two
  * shallow ones on a short skirt. A diagonal hem is cut whole, single layer, so it takes
  * none of them; a high-low hem takes godets, which follow the hem, but not pleats (the folds would
  * twist round the curve), a flounce or tiers (they would need the curve drafted into them too). */
 export function volumeAllowed(s: { silhouette: Silhouette; length: Length; asymHem?: AsymHem }, kind: VolumeKind): boolean {
   if (kind === 'none') return true;
+  // A gathered skirt takes a ruffled hem (In testing): its straight panels shorten and the ruffle gathers on below.
+  if (s.silhouette === 'gathered') return kind === 'ruffle';
   if (!BLOCK.includes(s.silhouette)) return false;
   if (s.asymHem === 'diagonal') return false;
   if (s.asymHem === 'high_low' && kind !== 'godets') return false;

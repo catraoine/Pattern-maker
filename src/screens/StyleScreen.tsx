@@ -491,6 +491,8 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
           )}
           {choices.silhouette === 'slip' ? (
             <p className="muted small">A bias slip hangs from the hip without pleats, godets, flounces or tiers.</p>
+          ) : choices.silhouette === 'gathered' ? (
+            <p className="muted small">A gathered skirt takes a ruffled hem; pleats, godets, flounces and tiers go on a pencil, straight or A-line skirt.</p>
           ) : !volumeAllowed({ ...choices, asymHem: 'none' }, 'knife') ? (
             <p className="muted small">Pleats, godets, flounces and tiers go on a pencil, straight or A-line skirt.</p>
           ) : choices.asymHem === 'diagonal' ? (
