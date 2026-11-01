@@ -1102,6 +1102,55 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
   }
   // Turned cloth (a lapel, a collar's fall) lies on the cloth it turns over: each turned point is laid at the radius
   // of the garment under it, a cloth's thickness out, so a pressed lapel or collar reads flat, not crumpled.
+  // A pressed lapel lies flat on the front it is turned over: each turned point is laid on the point of the front it
+  // covers when folded at the roll line (found in the front's own settled mesh), a cloth's thickness out. Done after
+  // the sim, so the lapel can't drag the front about as it would held there during it.
+  if (o.pinFront?.length && !knob('__noPress')) {
+    for (const p of B.panels) {
+      const fold = p.folds?.[0];
+      if (p.role !== 'front' || !fold || !p.turned.some(Boolean)) continue;
+      const pts = p.mesh.pts;
+      const flat = p.mesh.tris.filter(([a, b, c]) => !p.turned[a] && !p.turned[b] && !p.turned[c]);
+      const at = (r: P): V3 | undefined => {
+        for (const [a, b, c] of flat) {
+          const A = pts[a], Bp = pts[b], C = pts[c];
+          const det = (Bp.y - C.y) * (A.x - C.x) + (C.x - Bp.x) * (A.y - C.y);
+          if (Math.abs(det) < 1e-9) continue;
+          const u = ((Bp.y - C.y) * (r.x - C.x) + (C.x - Bp.x) * (r.y - C.y)) / det;
+          const v = ((C.y - A.y) * (r.x - C.x) + (A.x - C.x) * (r.y - C.y)) / det;
+          const w = 1 - u - v;
+          if (u < -1e-6 || v < -1e-6 || w < -1e-6) continue;
+          const I = (p.base + a) * 3, J = (p.base + b) * 3, K = (p.base + c) * 3;
+          return [0, 1, 2].map((d) => res[I + d] * u + res[J + d] * v + res[K + d] * w) as V3;
+        }
+        // (Past the front's edge, as a peak can reach: the nearest point of the front.)
+        let best = -1;
+        let bd = Infinity;
+        pts.forEach((t, j) => {
+          if (p.turned[j]) return;
+          const dd = (t.x - r.x) ** 2 + (t.y - r.y) ** 2;
+          if (dd < bd) {
+            bd = dd;
+            best = j;
+          }
+        });
+        if (best < 0) return undefined;
+        const I = (p.base + best) * 3;
+        return [res[I], res[I + 1], res[I + 2]];
+      };
+      pts.forEach((q, i) => {
+        if (!p.turned[i]) return;
+        const u = at(reflect(q, fold[0], fold[1]));
+        if (!u) return;
+        const rho = Math.hypot(u[0], u[2]) || 1e-9;
+        const k = (rho + 0.6) / rho;
+        const I = (p.base + i) * 3;
+        res[I] = u[0] * k;
+        res[I + 1] = u[1];
+        res[I + 2] = u[2] * k;
+      });
+    }
+  }
   // A jacket's or coat's collar fall is pressed down onto the back it turns over (its stand alone can't hold it
   // there in the sim), so no gap opens between the collar and the back neck.
   const collarOnly = !knob("__lay") && !!o.pinFront?.length;
