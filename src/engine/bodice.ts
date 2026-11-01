@@ -205,9 +205,11 @@ export const NECKLINES: Record<Neckline, { frontDepth: number; width: number; ba
 };
 
 /** The plunge: its point this far above the front waist, and its straps this wide at the shoulder, in cm.
+ * Its edges pass at least `cover` cm inside the bust points, pulled in over the bust where a straight
+ * V would sit wider (Cat, 2026-11-01: it has to cover).
  * Sleeveless, the strap sits over the middle of the shoulder with the armhole cut in to meet it, as a
  * slip is cut, so it stays on; with a sleeve it is what the shoulder leaves past the neck. */
-export const PLUNGE = { aboveWaist: 7, strap: 2.5 };
+export const PLUNGE = { aboveWaist: 7, strap: 2.5, cover: 5 };
 
 /** Hip ease (cm) for tops that reach below the waist, from the same fit options. */
 const BODICE_HIP_EASE: Record<BodiceFit, number> = { fitted: 4, regular: 7, relaxed: 11, boxy: 10, oversized: 26 };
@@ -666,8 +668,17 @@ function squareHem(hip: P, hem: P): P {
 const fishEye = (top: P, left: P, right: P, bottom: P) => new Path(top).line(left).line(bottom).line(right).line(top);
 
 /** The front neckline from centre front up to the high point of the shoulder. */
-function frontNeck(path: Path, hps: P, uShoulder: P, shape: Neckline | 'drawn', fullness = 0.5): Path {
+function frontNeck(path: Path, hps: P, uShoulder: P, shape: Neckline | 'drawn', fullness = 0.5, cover?: P): Path {
   const cf = path.start;
+  // A plunge is pulled in over the bust: straight from the point to the cover point, then square to the shoulder.
+  if (shape === 'plunge' && cover && cover.y > hps.y + 2 && cover.y < cf.y - 2) {
+    const straight = lerp(cf, hps, (cover.y - cf.y) / (hps.y - cf.y)).x;
+    if (cover.x < straight) {
+      const drop = cf.y - hps.y;
+      const c = p(cover.x, cover.y);
+      return path.line(c, 'neck').curve(lerp(c, hps, 0.3), add(hps, mul(perp(uShoulder), drop * 0.15)), hps, 'neck');
+    }
+  }
   const drop = cf.y - hps.y;
   const toward = (k: number) => add(hps, mul(perp(uShoulder), drop * k));
   // A drawn neckline keeps the fullness it was drawn with, trued square to the centre front and to
@@ -1037,7 +1048,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   const across = waistXF - sideBust.x;
   let swF = p(waistXF, sideBust.y + Math.sqrt(Math.max(lower ** 2 - across ** 2, 0)));
 
-  const front = frontNeck(new Path(cfNeck), hpsF, uF, neckShape, s.neck?.fullness)
+  const front = frontNeck(new Path(cfNeck), hpsF, uF, neckShape, s.neck?.fullness, plunge ? pivot(p(Math.max(1, apex.x - PLUNGE.cover), apex.y)) : undefined)
     .line(spF, 'shoulder');
   frontArmhole(front, sideF, upper ? down : unit(sub(swF, sideF)));
 

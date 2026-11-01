@@ -5,6 +5,7 @@ something that changes how a department works. Design picks for single screens s
 
 ## October 2026
 
+- **Nov 1** Plunge covers the bust (Cat: "has to have narrower plunge to cover nipples"): the plunge's edges now pass at least 5 cm inside the bust points on every body, pulled in over the bust where a straight V would sit closer. On the example body the V already did; the All round drawing was letting the edge gape outward, and that is being held in the drawing too.
 - **Nov 1** Plunge slip straps moved to mid-shoulder (All round showed the 2.5 cm strap sitting at the shoulder tip, where it would slip off): sleeveless, the strap now sits over the middle of the shoulder with the armhole cut in to meet it, as a slip is cut; with a sleeve the strap stays at the tip.
 - **Nov 1** Fable polish pass on the SS27 line-up (Cat: "they all need further polish and refinement. Fable?"): a ruffled hem now goes on a gathered skirt (In testing), so the pink bishop gown gets the ruffle it was named for; the other refinements are style choices drawn in All round first. A bias slip takes no slit (an engine job, not started).
 - **Nov 1** Oversized shirt cuffs (Cat: "Could you make a shirt with oversized cuffs?", ivory-shirt picture; In testing): Cuffs, Oversized cuff: a shirt cuff 14 cm deep, 8 cm ease, 3 cm past the wrist, 3 buttons. SS27 colour stories (Cat): red with lavender with butter; black and ivory; ice with gold; blush pink.
