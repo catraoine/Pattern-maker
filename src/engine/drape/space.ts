@@ -145,7 +145,7 @@ export function makeSpace(yOf0: (c: number) => number, m: RoundMeasurements & { 
   const F = (wantTip - NECK_X) / Math.max(1, tipX0 - NECK_X);
   const widenAt = (c: number) => {
     // Full at the shoulder's top and above, gone a few cm down the armhole.
-    const u = Math.min(1, Math.max(0, (c - tipC0w - 1) / ((knob('__widenDown') ?? 3) - 1)));
+    const u = Math.min(1, Math.max(0, (c - tipC0w - 1) / ((knob('__widenDown') ?? 8) - 1)));
     return 1 + (F - 1) * (1 - u * u * (3 - 2 * u));
   };
   // Only the top of the shoulder goes out, where it runs to the arm: the chest and the back in front of and behind the

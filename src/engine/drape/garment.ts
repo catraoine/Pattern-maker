@@ -1269,6 +1269,38 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       res[I + 2] *= k;
     });
   }
+  // A bias slip: cut on the bias the cloth gives round the body, so it moulds to the hip and below it falls in a few
+  // long soft folds, deepening to the hem, as its slight flare and the bias's swing let it. Each seam lies where a
+  // fold turns, so the pieces still meet.
+  if (!knob('__noBias')) {
+    const hipC = sp.cOf(0.82);
+    for (const p of B.panels) {
+      if (p.hidden || !/peplum/.test(p.role) || !p.pc.meta.bias) continue;
+      const xs = p.mesh.pts.map((q) => q.x);
+      const x0 = Math.min(...xs);
+      const W = Math.max(...xs) - x0;
+      // (An even number of half waves: the centre line and the seam both lie flat across a fold's crest, so the
+      // halves meet without a crease and the seams match.)
+      const n = 2 * Math.max(1, Math.round(W / (2 * (knob('__biasLam') ?? 13))));
+      const A = knob('__biasA') ?? 2;
+      let hemC = -Infinity;
+      p.mesh.pts.forEach((_, i) => (hemC = Math.max(hemC, res[(p.base + i) * 3 + 1])));
+      p.mesh.pts.forEach((q, i) => {
+        const I = (p.base + i) * 3;
+        const u0 = Math.min(1, Math.max(0, (res[I + 1] - hipC) / Math.max(1, hemC - hipC)));
+        if (!u0) return;
+        const u = u0 * u0 * (3 - 2 * u0);
+        // (A fold drifts a little as it falls: the bias never hangs ruler-straight.)
+        const ph = (Math.PI * n * (q.x - x0)) / W + 0.6 * Math.sin((Math.PI * (q.x - x0)) / W) ** 2 * u;
+        const off = A * u * Math.cos(ph);
+        const rho = Math.hypot(res[I], res[I + 2]) || 1e-9;
+        const R = sp.bodyR(Math.atan2(res[I], res[I + 2]), res[I + 1]) + p.thick[i];
+        const k = Math.max(rho + off, R) / rho;
+        res[I] *= k;
+        res[I + 2] *= k;
+      });
+    }
+  }
   // A flounce sewn on below a heavily gathered skirt: the sim, with the skirt drawn in across its width and the flounce
   // not, crushes it into pillows. It is laid on instead as the skirt's own folds carried on down from its hem, as a
   // ruffle gathered onto that hem falls, flaring out a little as it goes.
