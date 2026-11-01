@@ -535,7 +535,7 @@ t0 = Date.now();
 await wait(process.env.TOUR_QUICK !== '0' ? 1400 : 2600);
 // A shorter look at the dress page and no enlarging: the drawing tool opens straight from the page (Cat, 2026-11-01:
 // show the flat view for less time, skip enlarge). TOUR_QUICK=0 keeps the enlarge step.
-const QUICK = process.env.TOUR_QUICK !== '0';
+const QUICK = !WIDE && process.env.TOUR_QUICK !== '0'; // A computer keeps the enlarge: there the drawing tool is small without it.
 mark('fabric');
 await openSteps(true);
 await press(stepTab('Fabric'), 900);
