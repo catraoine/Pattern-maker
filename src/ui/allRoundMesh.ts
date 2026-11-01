@@ -395,10 +395,10 @@ function buildDraped(
   // Drawn half a cm further out than it settled: the drawn form is not quite the body the cloth settled on, and over the
   // collarbones and shoulder blades it would poke through a cloth lying close.
   const LIFT = 0.5;
-  const P = (i: number, e: number): V3 => {
+  const P = (i: number, e: number, more = 0): V3 => {
     const x = d.pos[i * 3];
     const z = d.pos[i * 3 + 2];
-    const k = 1 + LIFT / (Math.sqrt(x * x + z * z) || 1);
+    const k = 1 + (LIFT + more) / (Math.sqrt(x * x + z * z) || 1);
     return toForm(x * k * e, d.pos[i * 3 + 1], z * k);
   };
   for (const p of d.panels) {
@@ -406,7 +406,10 @@ function buildDraped(
     const n = p.uv.length / 2;
     for (const e of [1, -1]) {
       const pos = new Float32Array(n * 3);
-      for (let i = 0; i < n; i++) pos.set(P(p.base + i, e), i * 3);
+      // A front's button extension (cut past the centre front) laps over the other side: the under one lies a little
+      // further in, or the two mirrored halves cross at the front and leave a tab at the hem.
+      const under = e < 0 && p.role === 'front';
+      for (let i = 0; i < n; i++) pos.set(P(p.base + i, e, under && p.uv[i * 2] < 0.5 && !p.turned?.[i] ? -0.9 : 0), i * 3);
       // Each triangle wound so its face looks out from the body (a back piece is laid the other way round from a front);
       // a sleeve's out from the middle of its own arm. The scene's y runs down, so out is the cross product's reverse.
       const ref = (() => {
@@ -425,8 +428,11 @@ function buildDraped(
         }
         return m.map((v) => v / (k || 1)) as V3;
       })();
+      // Cloth turned back over a fold (a lapel) lies the other way up from the rest of its piece.
+      const flipped = (a: number, b: number, c: number) => (p.turned ? p.turned[a] + p.turned[b] + p.turned[c] >= 1 : false);
       let outward = 0;
       for (const [a, b, c] of p.tris) {
+        if (flipped(a, b, c)) continue;
         const ux = pos[b * 3] - pos[a * 3];
         const uy = pos[b * 3 + 1] - pos[a * 3 + 1];
         const uz = pos[b * 3 + 2] - pos[a * 3 + 2];
@@ -443,7 +449,7 @@ function buildDraped(
       }
       const idx: number[] = [];
       for (const [a, b, c] of p.tris) {
-        if (outward > 0) idx.push(a, c, b);
+        if (outward > 0 !== flipped(a, b, c)) idx.push(a, c, b);
         else idx.push(a, b, c);
       }
       const g = new THREE.BufferGeometry();

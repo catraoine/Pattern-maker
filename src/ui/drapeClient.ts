@@ -42,7 +42,7 @@ export function requestDrape(job: DrapeJob, key = drapeKey(job)): Promise<Draped
       reject,
     });
     try {
-      get().postMessage({ id, job });
+      get().postMessage({ id, job, knobs: (globalThis as unknown as { __drapeKnobs?: Record<string, number> }).__drapeKnobs });
     } catch (e) {
       waiting.delete(id);
       reject(e as Error);
@@ -54,7 +54,7 @@ export function requestDrape(job: DrapeJob, key = drapeKey(job)): Promise<Draped
  *  bar, Cat 2026-11-01): until then they keep the earlier All round. */
 export const sewnOuter = (): boolean => {
   try {
-    return new URLSearchParams(window.location.search).get('sewn') === 'outer';
+    return new URLSearchParams(window.location.search).get('sewn') === 'outer' || !!(window as unknown as { __sewnOuter?: boolean }).__sewnOuter;
   } catch {
     return false;
   }
