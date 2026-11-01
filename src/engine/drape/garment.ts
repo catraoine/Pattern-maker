@@ -762,7 +762,7 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
     p.start.forEach((v, i) => {
       pos.set(v, (p.base + i) * 3);
       thickA[p.base + i] = p.thick[i];
-      sideA[p.base + i] = p.role === 'sleeve' || pts[i].x < 0.5 ? 0 : 1;
+      sideA[p.base + i] = p.role === 'sleeve' || pts[i].x < (knob('__sideX') ?? 0.5) ? 0 : 1;
       armA[p.base + i] = p.role === 'sleeve' ? 1 : 0;
     });
     for (const tag of ['fold', 'centre', 'crotch']) for (const r of p.mesh.runs[tag] ?? []) for (const i of r) if (p.role !== 'collar') centre.push(i + p.base);
@@ -1535,7 +1535,7 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
   // A tailored front is interfaced: above the waist it lies smooth over the chest, not crumpled. Its own wrinkles are
   // eased out (each point drawn toward its neighbours' mean, seams held) and kept clear of the body, before the lapel
   // is pressed onto it.
-  const fsIt = knob('__fsIt') ?? 0;
+  const fsIt = knob('__fsIt') ?? 30;
   if (o.pinFront?.length && fsIt > 0) {
     const nb = new Map<number, number[]>();
     for (let e = 0; e < edges.length; e += 2) {
@@ -1545,7 +1545,12 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
     }
     const held = new Set<number>();
     for (const { i, j, k } of seams) held.add(i).add(j).add(k);
-    const yBot = knob('__fsY') ?? 1e9;
+    for (const c of centre) held.add(c);
+    // (Down to the top button: below it the front hangs free, and drawing it in there would open the fronts.)
+    const pinY = B.panels
+      .filter((p) => p.role === 'front' && !p.hidden)
+      .flatMap((p) => p.mesh.pts.flatMap((q, i) => (!p.turned[i] && Math.abs(q.x) < 0.9 && o.pinFront!.some((f) => Math.abs(q.y - f.y) < f.span) ? [res[(p.base + i) * 3 + 1]] : [])));
+    const yBot = knob('__fsY') ?? (pinY.length ? pinY.reduce((a, b) => a + b, 0) / pinY.length + (knob('__fsBelow') ?? 1) : -1e9);
     for (const p of B.panels) {
       if (p.role !== 'front' || p.hidden) continue;
       const ids = p.mesh.pts.map((_, i) => p.base + i).filter((g, i) => !p.turned[i] && !held.has(g) && res[g * 3 + 1] < yBot);
@@ -1567,6 +1572,19 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
             res[I + 2] *= lo / rho;
           }
         }
+      // Below it, the front edge hangs as one straight line (its facing and canvas hold it): eased along itself, not
+      // across, so it doesn't ripple and isn't drawn in.
+      for (const run of p.mesh.runs.opening ?? []) {
+        const ids2 = run.map((i) => p.base + i).filter((g) => res[g * 3 + 1] > yBot);
+        for (let it = 0; it < (knob('__feIt') ?? 20); it++)
+          for (let k = 1; k + 1 < ids2.length; k++) {
+            if (held.has(ids2[k])) continue;
+            for (const d of [0, 2]) {
+              const I = ids2[k] * 3;
+              res[I + d] += ((res[ids2[k - 1] * 3 + d] + res[ids2[k + 1] * 3 + d]) / 2 - res[I + d]) * 0.5;
+            }
+          }
+      }
     }
   }
   if (o.pinFront?.length && !knob('__noPress')) {
@@ -1794,11 +1812,14 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
             const N = radial(v);
             return [v[0] + N[0] * by, v[1], v[2] + N[2] * by];
           };
+          // (Lying flat on with the lapel: carried straight on across the seam in the cloth's own surface there, square
+          // to the seam, as far as it is cut from it; not fitted to the lapel's settled shape, whose creases would twist it.)
+          const flatOn = (s: { h: number; P0: V3; U: V3 }): V3 => [s.P0[0] + s.h * s.U[0], s.P0[1] + s.h * s.U[1], s.P0[2] + s.h * s.U[2]];
           const mix = (u: V3, v: V3 | undefined, w: number): V3 => (v && w > 0 ? [0, 1, 2].map((d) => u[d] * (1 - w) + v[d] * w) as V3 : u);
           if (!p.turned[i]) {
             const at0 = onSeam(q);
             const w = flatW(at0.seg);
-            const flatV = w > 0 ? onBody(at0.seg, -at0.h) : undefined;
+            const flatV = w > 0 ? (knob('__oldEnds') ? onBody(at0.seg, -at0.h) : flatOn(at0)) : undefined;
             X = mix(standAt(q).X, flatV && out(flatV, 0.15), w);
           } else {
             // Turned: laid over whatever its mirror at the roll line would be, the stand or (cut wider than the stand)
@@ -1808,7 +1829,7 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
             const body = at0.h < 0 ? onBody(at0.seg, -at0.h) : undefined;
             const U0 = body ?? standAt(r).X;
             const w = flatW(at0.seg);
-            const flatV = w > 0 ? onBody(at0.seg, -at0.h) : undefined;
+            const flatV = w > 0 ? (knob('__oldEnds') ? onBody(at0.seg, -at0.h) : flatOn(at0)) : undefined;
             X = mix(out(U0, thick + gap), flatV && out(flatV, 0.15 + thick + gap), w);
           }
           // (Its centre back edge stays on the centre plane, closed against its mirror.)
