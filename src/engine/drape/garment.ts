@@ -1707,20 +1707,27 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
   const cTopD = sp.cOf(-1.45) + 2;
   const slopeD = (sp.yOf(cTopD + 4) - sp.yOf(cTopD)) / 4;
   const drawnY = (c: number) => (c < cTopD ? sp.yOf(cTopD) + (c - cTopD) * slopeD : sp.yOf(c));
-  if (o.pinFront?.length)
+  // (Trousers too, down to the form's last row: the form is drawn down past the crotch, so between the legs at the
+  // top the cloth lies over it, as it does on a dress form, rather than leaving it showing through.)
+  if (o.pinFront?.length || extra.trousers)
     for (const p of B.panels) {
       if (p.hidden || p.role === 'sleeve') continue;
       p.mesh.pts.forEach((_, i) => {
         const I = (p.base + i) * 3;
+        if (extra.trousers && drawnY(res[I + 1]) > BODY_BOTTOM) return;
+        // (Eased off over the form's last few cm, so the cloth below carries on from it without a step.)
+        const ease = extra.trousers ? Math.min(1, Math.max(0, (sp.cOf(BODY_BOTTOM) - res[I + 1]) / 0.3)) : 1;
         // (Against the form as drawn, whose shoulders the cloth's own body table holds in round the armholes.)
         const a = Math.atan2(res[I], res[I + 2]);
         const y = Math.max(BODY_TOP, Math.min(BODY_BOTTOM, drawnY(res[I + 1])));
         const drawn = bodyHalf(y) * shapeAt(Math.abs(a), y) * sp.scale(y) + thick;
         const rho = Math.hypot(res[I], res[I + 2]) || 1e-9;
         if (rho < drawn) {
-          res[I] *= drawn / rho;
-          res[I + 2] *= drawn / rho;
+          const k = 1 + (drawn / rho - 1) * ease;
+          res[I] *= k;
+          res[I + 2] *= k;
         }
+        if (ease < 1) return;
         const v = ontoBody([res[I], res[I + 1], res[I + 2]], thick);
         res[I] = v[0];
         res[I + 1] = v[1];
@@ -1974,11 +1981,14 @@ function collarsOf(pieces: Piece[], jacketRoll?: [P, P]): CollarPart[] {
 /** Trousers: the hips round the body from the centre front and back, each leg round its own leg from the crease. */
 function trouserPanels(sp: Space, B: Builder, seams: SimInput['seams'], d: TrousersDraft, thick: number): SimInput['legs'] {
   const legsM = d as unknown as { crotch?: unknown; kneeCm: number; hemCm: number; lengthCm: number };
-  const crotchC = Math.max(...d.pieces.filter(isShell).map((pc) => (pc.meta.fork as P | undefined)?.y ?? 26));
+  // A low (or high) rise is drafted from the line its waistband sits on, that far below (above) the waist: the
+  // trousers are hung from there, so the crotch still comes to the body's own.
+  const drop = -((d as { riseCm?: number }).riseCm ?? 0);
+  const crotchC = drop + Math.max(...d.pieces.filter(isShell).map((pc) => (pc.meta.fork as P | undefined)?.y ?? 26));
   const hipSide = sp.bodyR(Math.PI / 2, crotchC - 4);
   const legX = hipSide * 0.5;
   const thighR = hipSide * 0.5;
-  const legs = { x: legX, c0: crotchC - 2, c1: legsM.lengthCm, r0: thighR, r1: 3.6 };
+  const legs = { x: legX, c0: crotchC - 2, c1: legsM.lengthCm + drop, r0: thighR, r1: 3.6 };
   const panels: Panel[] = [];
   // The plain fronts and backs: a slant pocket's cut corner is filled by its facing in the garment, as in the block.
   const block = (d as unknown as { block?: Piece[] }).block;
@@ -1998,7 +2008,7 @@ function trouserPanels(sp: Space, B: Builder, seams: SimInput['seams'], d: Trous
       pc,
       back ? 'peplum-back' : 'peplum-front',
       (q) => {
-        const c = q.y;
+        const c = q.y + drop;
         const hip = ringAt(sp, Math.max(0, cfAt(q.y) - q.x), c, back, 1.5);
         const phi = back ? Math.PI - (crease - q.x) / R : (crease - q.x) / R;
         const leg: V3 = [legX + Math.sin(phi) * R, c, Math.cos(phi) * R];
