@@ -392,7 +392,15 @@ function buildDraped(
   }
   const mode: Mode = cloth?.sheen === 'gloss' ? 'gloss' : cloth?.sheen === 'pile' ? 'pile' : 'matte';
   const contrast = d.contrastCollar === 'black' ? 0x161616 : d.contrastCollar === 'ivory' ? 0xefe8d6 : d.contrastCollar ? 0x3a3530 : undefined;
-  const P = (i: number, e: number): V3 => toForm(d.pos[i * 3] * e, d.pos[i * 3 + 1], d.pos[i * 3 + 2]);
+  // Drawn half a cm further out than it settled: the drawn form is not quite the body the cloth settled on, and over the
+  // collarbones and shoulder blades it would poke through a cloth lying close.
+  const LIFT = 0.5;
+  const P = (i: number, e: number): V3 => {
+    const x = d.pos[i * 3];
+    const z = d.pos[i * 3 + 2];
+    const k = 1 + LIFT / (Math.sqrt(x * x + z * z) || 1);
+    return toForm(x * k * e, d.pos[i * 3 + 1], z * k);
+  };
   for (const p of d.panels) {
     if (p.hidden) continue;
     const n = p.uv.length / 2;
@@ -512,7 +520,7 @@ function buildDraped(
     }
   }
   for (const b of d.buttons) {
-    const q = toForm(b.at[0], b.at[1], b.at[2]);
+    const q = toForm(b.at[0], b.at[1], b.at[2] + LIFT);
     const g = new THREE.SphereGeometry(b.r / 22, 16, 8);
     g.setAttribute('shade', new THREE.Float32BufferAttribute(new Float32Array(g.getAttribute('position').count), 1));
     g.scale(1, 1, 0.4);
