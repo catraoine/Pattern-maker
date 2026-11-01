@@ -1102,6 +1102,46 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
   }
   // Turned cloth (a lapel, a collar's fall) lies on the cloth it turns over: each turned point is laid at the radius
   // of the garment under it, a cloth's thickness out, so a pressed lapel or collar reads flat, not crumpled.
+  // A tailored neckline sits close round the neck, held by its collar and the tape in its seam; the coarse sim leaves
+  // it resting out on the slope of the shoulders. The neck edge is drawn in to the neck (a little ease off it), and the
+  // cloth within a few cm of it eases in with it; the collar's stand comes with its seam.
+  if (o.pinFront?.length && !knob('__noNeckPull')) {
+    for (const p of B.panels) {
+      if (p.hidden || (p.role !== 'front' && p.role !== 'back' && p.role !== 'collar')) continue;
+      const neck = (p.mesh.runs.neck ?? []).flat();
+      if (!neck.length) continue;
+      const pts = p.mesh.pts;
+      const pull = neck.map((i) => {
+        const I = (p.base + i) * 3;
+        const rho = Math.hypot(res[I], res[I + 2]);
+        return Math.max(0, rho - (sp.bodyR(Math.atan2(res[I], res[I + 2]), res[I + 1]) + thick + 0.4));
+      });
+      const moves: [number, number][] = [];
+      pts.forEach((q, i) => {
+        if (p.turned[i]) return;
+        let best = 0;
+        let bd = Infinity;
+        neck.forEach((n, k) => {
+          const dd = Math.hypot(pts[n].x - q.x, pts[n].y - q.y);
+          if (dd < bd) {
+            bd = dd;
+            best = k;
+          }
+        });
+        const w = Math.max(0, 1 - bd / 4);
+        if (w > 0 && pull[best] > 0) moves.push([i, w * pull[best]]);
+      });
+      for (const [i, dl] of moves) {
+        const I = (p.base + i) * 3;
+        const rho = Math.hypot(res[I], res[I + 2]) || 1e-9;
+        const floor = sp.bodyR(Math.atan2(res[I], res[I + 2]), res[I + 1]) + thick;
+        const want = Math.max(floor, rho - dl);
+        if (want >= rho) continue;
+        res[I] *= want / rho;
+        res[I + 2] *= want / rho;
+      }
+    }
+  }
   // A pressed lapel lies flat on the front it is turned over: each turned point is laid on the point of the front it
   // covers when folded at the roll line (found in the front's own settled mesh), a cloth's thickness out. Done after
   // the sim, so the lapel can't drag the front about as it would held there during it.
@@ -1168,10 +1208,50 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       });
     }
     const gap = knob("__layGap") ?? 0.5;
+    // A tailored collar's fall turns down over its stand at the roll line and lies on down over the back and shoulders
+    // past it: each turned point goes to the stand point it covers, then on down the garment by however much further
+    // out it is cut than the stand.
+    const laidFall = new Set<number>();
+    if (collarOnly && !knob("__oldFall"))
+      for (const p of B.panels) {
+        const fold = p.folds?.[0];
+        if (p.role !== 'collar' || !fold || p.hidden) continue;
+        const pts = p.mesh.pts;
+        const stand = pts.map((_, j) => j).filter((j) => !p.turned[j]);
+        if (!stand.length) continue;
+        const moved: [number, V3][] = [];
+        pts.forEach((q, i) => {
+          if (!p.turned[i]) return;
+          const r = reflect(q, fold[0], fold[1]);
+          let j = stand[0];
+          let bd = Infinity;
+          for (const t of stand) {
+            const dd = (pts[t].x - r.x) ** 2 + (pts[t].y - r.y) ** 2;
+            if (dd < bd) {
+              bd = dd;
+              j = t;
+            }
+          }
+          const J = (p.base + j) * 3;
+          const a = Math.atan2(res[J], res[J + 2]);
+          const c = res[J + 1] + Math.sqrt(bd);
+          let R = 0;
+          for (const da of [-1, 0, 1]) for (const dc of [-1, 0, 1]) R = Math.max(R, under.get(key(a + (da * TAU) / NA, c + dc * 0.5)) ?? 0);
+          R = Math.max(R, sp.bodyR(a, c) + thick, Math.hypot(res[J], res[J + 2])) + gap;
+          moved.push([i, [Math.sin(a) * R, c, Math.cos(a) * R]]);
+        });
+        for (const [i, v] of moved) {
+          const I = (p.base + i) * 3;
+          res[I] = v[0];
+          res[I + 1] = v[1];
+          res[I + 2] = v[2];
+          laidFall.add(p.base + i);
+        }
+      }
     for (const p of B.panels) {
       if (p.role === 'sleeve' || p.hidden || (collarOnly && p.role !== 'collar')) continue;
       p.mesh.pts.forEach((_, i) => {
-        if (!p.turned[i]) return;
+        if (!p.turned[i] || laidFall.has(p.base + i)) return;
         const I = (p.base + i) * 3;
         const a = Math.atan2(res[I], res[I + 2]);
         let R = 0;
