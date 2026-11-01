@@ -43,6 +43,9 @@ export interface Space {
   ridge: (x: number) => number;
 }
 
+/** How much the body draws in from the form's last row to the knees (`overCm` below it): a share of its width there. */
+const LEG_DRAW_IN = { overCm: 45, side: 0.22, front: 0.1 };
+
 export function makeSpace(yOf0: (c: number) => number, m: RoundMeasurements & { upper_arm?: number; wrist?: number; arm_length?: number; shoulder_width?: number }): Space {
   // The form's height table flattens above the neck point; the form is drawn with its height carried on straight up
   // from just below there, and the body the cloth lies on is read the same way, so the two agree at the neck.
@@ -92,12 +95,21 @@ export function makeSpace(yOf0: (c: number) => number, m: RoundMeasurements & { 
   const NR = Math.round((C1 - C0) / DC) + 1;
   const NA = 96;
   const tab = new Float32Array(NR * (NA + 1));
+  // Below the form's last row the legs go on down, drawing in as they go: round both thighs to the knees, the
+  // body is narrower than at the hip, more at the sides than front and back. A pencil skirt follows them in.
+  const cBottom = cOf(BODY_BOTTOM);
   for (let r = 0; r < NR; r++) {
     const c = C0 + r * DC;
     const y = Math.max(BODY_TOP, Math.min(BODY_BOTTOM, yOf(c)));
     const s = scale(y);
     const h = bodyHalf(y);
-    for (let k = 0; k <= NA; k++) tab[r * (NA + 1) + k] = h * shapeAt((Math.PI * k) / NA, y) * s;
+    const u = Math.min(1, Math.max(0, (c - cBottom) / LEG_DRAW_IN.overCm));
+    const legs = u * u * (3 - 2 * u);
+    for (let k = 0; k <= NA; k++) {
+      const a = (Math.PI * k) / NA;
+      const side = Math.sin(a) ** 2;
+      tab[r * (NA + 1) + k] = h * shapeAt(a, y) * s * (1 - legs * (LEG_DRAW_IN.front + (LEG_DRAW_IN.side - LEG_DRAW_IN.front) * side));
+    }
   }
   // The form keeps stumps of its arms at the shoulders, wider than the chest under them. Cloth goes over the arm there
   // (a sleeve) or round the armhole inside it, never out over the stump: above the underarm the body is held to the

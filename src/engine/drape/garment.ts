@@ -1747,6 +1747,37 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       });
     }
   }
+  // A set-in sleeve's cap: its ease is shrunk away, so the cap sits round the top of the arm no fuller than the sleeve
+  // at its bicep, not standing off it in a ball. Its seam stays where it is sewn; the cloth a little way in settles.
+  if (!extra.puff && !o.boxy && !knob('__noCapSettle')) {
+    const arm = sp.arm;
+    const ab = [arm.b[0] - arm.a[0], arm.b[1] - arm.a[1], arm.b[2] - arm.a[2]];
+    const L2 = ab[0] ** 2 + ab[1] ** 2 + ab[2] ** 2;
+    for (const p of B.panels.filter((q) => q.role === 'sleeve' && q !== cuffPanel)) {
+      const cap = (p.mesh.runs.armhole ?? []).flat().map((i) => p.mesh.pts[i]);
+      if (!cap.length) continue;
+      const xs = p.mesh.pts.map((q) => q.x);
+      const Rb = (Math.max(...xs) - Math.min(...xs)) / TAU + 0.4;
+      p.mesh.pts.forEach((q, i) => {
+        let dc = Infinity;
+        for (const c of cap) dc = Math.min(dc, Math.hypot(c.x - q.x, c.y - q.y));
+        const t = Math.min(1, dc / 3);
+        const w = t * t * (3 - 2 * t);
+        if (w <= 0) return;
+        const I = (p.base + i) * 3;
+        const e = res[I] >= 0 ? 1 : -1;
+        const r = [res[I] * e - arm.a[0], res[I + 1] - arm.a[1], res[I + 2] - arm.a[2]];
+        const u = (r[0] * ab[0] + r[1] * ab[1] + r[2] * ab[2]) / L2;
+        const d = [r[0] - ab[0] * u, r[1] - ab[1] * u, r[2] - ab[2] * u];
+        const dl = Math.hypot(d[0], d[1], d[2]) || 1e-9;
+        if (dl <= Rb) return;
+        const k = (w * (dl - Rb) * 0.75) / dl;
+        res[I] -= d[0] * k * e;
+        res[I + 1] -= d[1] * k;
+        res[I + 2] -= d[2] * k;
+      });
+    }
+  }
   // A puff sleeve: the gathered crown stands out round the arm, fullest midway, drawn in to its band.
   if (extra.puff) {
     const arm = sp.arm;
