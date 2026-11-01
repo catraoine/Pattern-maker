@@ -370,8 +370,8 @@ const mark = (what) => console.log(`  style ${what}: ${((Date.now() - t0) / 1000
 // 2026-10-24: longer and flare, the neck and waist kept as in her photo).
 const LINES = {
   photo: [[0.13, 0.639], [0.5, 0.652], [0.87, 0.639]],
-  hem: [[0.104, 0.99], [0.5, 1.0], [0.896, 0.99]],
-  side: WIDE ? [[0.13, 0.6], [0.11, 0.68], [-0.104, 0.99]] : [[0.143, 0.483], [0.102, 0.638], [-0.104, 0.99]],
+  hem: WIDE ? [[0.104, 0.975], [0.5, 0.99], [0.896, 0.975]] : [[0.104, 0.99], [0.5, 1.0], [0.896, 0.99]],
+  side: WIDE ? [[0.13, 0.6], [0.11, 0.68], [-0.104, 0.975]] : [[0.143, 0.483], [0.102, 0.638], [-0.104, 0.99]],
 };
 // Off camera, the dress is made to match the photo the film has just shown, Cat's own check silk dress (Cat,
 // 2026-10-24: show that starting from a photo works): a boat neck, short sleeves, a waist seam dropped low on the hip,
@@ -605,7 +605,12 @@ if (process.env.TOUR_PROBE3) {
 }
 // Done lands on the pattern sheet, and the film stays there (Cat, 2026-10-24: no flash back to the dress).
 mark('done');
-await press(main.getByRole('button', { name: 'Done', exact: true }), 1200);
+if (WIDE) {
+  // On a computer Done now leaves the page scrolled to the summary: back up to the pattern straight away.
+  await press(main.getByRole('button', { name: 'Done', exact: true }), 0);
+  await p.evaluate(() => window.scrollTo(0, 0));
+  await wait(1200);
+} else await press(main.getByRole('button', { name: 'Done', exact: true }), 1200);
 await stop('style');
 
 // pattern: the pieces you cut
