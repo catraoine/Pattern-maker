@@ -13,7 +13,11 @@ import { RoundGarment, RoundPt, RoundSeam, stripesMeet } from '../engine/allRoun
 import { bodyHalf as formHalfWidth, reach as bodyReach, shapeAt } from '../engine/body';
 import { FORM_CROTCH, FORM_DEPTH, FORM_FLOOR, FORM_LEG, FORM_LEG_X, paintFigure } from './ContourForm';
 import { BUST_Y, FORM_HIP, NECK_Y, RoundMeasurements, WAIST, roundShape } from './allRoundShape';
-import type { Pick, PickPart, RoundView } from './allRoundMesh';
+import type { DrapedView, Pick, PickPart, RoundView } from './allRoundMesh';
+import type { DrapeJob } from '../engine/drape/run';
+import { makeSpace } from '../engine/drape/space';
+import { placeOnForm } from './allRoundShape';
+import { cachedDrape, drapeKey, requestDrape } from './drapeClient';
 
 // Matching --gild, --gild-glow, --guide, --muted and --ok in styles.css.
 const GILD = '#d9c49b';
@@ -54,6 +58,9 @@ interface Props {
   /** The draw tool inside the view: one finger draws a line on the garment (sent as it grows, then once more with
    *  `done`), two fingers turn it. The rows under the view are left out, so the view is the drawing alone. */
   draw?: { onStroke: (pts: RoundPick[], done: boolean) => void };
+  /** The garment's draft, to sew it from its own pattern pieces on the form (src/engine/drape): the cloth then hangs
+   *  as the pattern cuts it, with its collars, lapels, peplums and sleeves as they are (Cat, 2026-11-01). */
+  drape?: Omit<DrapeJob, 'm' | 'armhole'>;
 }
 
 interface Row {
@@ -116,7 +123,7 @@ export function checked(rows: Row[]): string {
   return `${list} checked${match ? `, ${match.name.toLowerCase()} matched` : ''}`;
 }
 
-export function AllRound({ round, m, striped = false, fabric, label, draw }: Props) {
+export function AllRound({ round, m, striped = false, fabric, label, draw, drape }: Props) {
   const ref = useRef<HTMLCanvasElement>(null);
   const drawRef = useRef(draw);
   drawRef.current = draw;
@@ -155,6 +162,42 @@ export function AllRound({ round, m, striped = false, fabric, label, draw }: Pro
       v3ref.current = undefined;
     };
   }, []);
+  // The garment sewn from its pattern, settled by the drape worker; until it comes back the form stands alone.
+  const job = useMemo<DrapeJob | undefined>(
+    () => (drape ? ({ ...drape, m, armhole: round.armhole, fibre: drape.fibre ?? fabric?.fibre, crisp: drape.crisp ?? fabric?.drape === 'crisp' } as DrapeJob) : undefined),
+    [drape, m, round.armhole, fabric?.fibre, fabric?.drape],
+  );
+  const jobKey = useMemo(() => (job ? drapeKey(job) : ''), [job]);
+  const [draped, setDraped] = useState<{ key: string; view: DrapedView } | undefined>();
+  const toFormOf = useMemo(() => {
+    const sp = makeSpace(placeOnForm(round, m), m);
+    // The form's height table flattens above the neck point: a collar standing up the neck is carried on at the
+    // slope below it.
+    const cTop = sp.cOf(-1.45) + 2;
+    const slope = (sp.yOf(cTop + 4) - sp.yOf(cTop)) / 4;
+    return (x: number, c: number, z: number): [number, number, number] => {
+      const y = c < cTop ? sp.yOf(cTop) + (c - cTop) * slope : sp.yOf(c);
+      const s = sp.scale(y);
+      return [x / s, y, z / s];
+    };
+  }, [round, m]);
+  useEffect(() => {
+    if (!job) return;
+    let live = true;
+    const hit = cachedDrape(jobKey);
+    if (hit) setDraped({ key: jobKey, view: { d: hit, toForm: toFormOf } });
+    else
+      requestDrape(job, jobKey).then(
+        (d) => live && setDraped({ key: jobKey, view: { d, toForm: toFormOf } }),
+        () => live && setDraped(undefined),
+      );
+    return () => {
+      live = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the job's contents
+  }, [jobKey, toFormOf]);
+  const drapedNow = job ? (draped?.key === jobKey ? draped.view : 'pending') : undefined;
+
   const turn = useRef({ phi: 0.6, target: null as number | null, dragging: false, idle: 0, probe: false, stroke: null as [number, number][] | null, picks: [] as RoundPick[] });
   const pulse = useRef(-1e9);
   const rows = useMemo(() => roundRows(round, striped), [round, striped]);
@@ -202,7 +245,7 @@ export function AllRound({ round, m, striped = false, fabric, label, draw }: Pro
 
     const sh = roundShape(round, m, { film, through });
     const v3 = through ? undefined : v3ref.current;
-    if (v3) v3.build({ round, sh, cloth, film, striped: !!striped });
+    if (v3) v3.build({ round, sh, cloth, film, striped: !!striped, draped: drapedNow });
     const { hemY, topY, wh, yAt, yOf, kY, N, krB, krW, krH, longest, highest, bandTop, arm, yS, yU, sl, ra, rh, neckOnly, radius, foldTilt, depthAt, shell, zAcross, clothDown, yE, yCap, axisX, capDepth, sleeveR, lg, yC, yH, legHemR, legR, legAxis, rAt, reach } = sh;
     /** The last frame's layout, for reading where a finger is. */
     let frame = { S: 1, cx: 0, top: 0, lw: 1, fig: 1 };
@@ -954,7 +997,7 @@ export function AllRound({ round, m, striped = false, fabric, label, draw }: Pro
         }
       }
 
-      if (!film && !drawing) text('Drag to turn', 8, fig - 4);
+      if (!film && !drawing) text(drapedNow === 'pending' ? 'Sewing your pattern…' : 'Drag to turn', 8, fig - 4);
       // The line being drawn, a fine chalk line over the garment.
       if (st.stroke && st.stroke.length > 1) {
         g.save();
@@ -1058,11 +1101,11 @@ export function AllRound({ round, m, striped = false, fabric, label, draw }: Pro
       cv.removeEventListener('pointerup', up);
       cv.removeEventListener('pointercancel', up);
     };
-  }, [round, m, striped, tiles, layers, v3ready, drawing]);
+  }, [round, m, striped, tiles, layers, v3ready, drawing, drapedNow]);
 
   return (
     <div className="all-round">
-      <canvas ref={ref} className={`all-round-canvas${round.legs ? ' all-round-tall' : ''}${drawing ? ' drawing' : ''}`} role="img" aria-label={label} />
+      <canvas ref={ref} className={`all-round-canvas${round.legs ? ' all-round-tall' : ''}${drawing ? ' drawing' : ''}`} data-sewn={drapedNow === 'pending' ? 'pending' : drapedNow ? 'ready' : undefined} role="img" aria-label={label} />
       {!drawing && (
         <div className="all-round-quiet">
           <p className="all-round-checked">

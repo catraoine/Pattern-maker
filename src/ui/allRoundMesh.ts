@@ -11,6 +11,7 @@ import { LineSegmentsGeometry } from 'three/examples/jsm/lines/LineSegmentsGeome
 import { RoundGarment, RoundPt } from '../engine/allRound';
 import { bodyHalf, reach as bodyReach } from '../engine/body';
 import { FORM_DEPTH, FORM_FLOOR, FORM_LEG, FORM_LEG_X } from './ContourForm';
+import type { DrapedLite } from '../engine/drape/run';
 import type { ClothTiles } from './allRoundCloth';
 import { RoundShape, WAIST } from './allRoundShape';
 
@@ -312,6 +313,13 @@ class Lines {
   }
 }
 
+/** The garment draped from its own pattern pieces (src/engine/drape), placed on the form: `toForm` takes a point in
+ *  the drape's cm (x across, c down from the waist, z forward) to the form's units. */
+export interface DrapedView {
+  d: DrapedLite;
+  toForm: (x: number, c: number, z: number) => V3;
+}
+
 /** What the mesh is built for. */
 export interface BuildOptions {
   round: RoundGarment;
@@ -319,6 +327,8 @@ export interface BuildOptions {
   cloth?: ClothTiles;
   film: boolean;
   striped: boolean;
+  /** The garment sewn from its pattern; 'pending' while it is still settling (the form stands alone meanwhile). */
+  draped?: DrapedView | 'pending';
 }
 
 /** What one frame is drawn with: the turn, the canvas (CSS px and device pixel ratio) and the view's own scale,
@@ -360,6 +370,165 @@ export interface RoundView {
  *  little by the depth (seen from a touch above), nothing shrinking with distance. */
 function projection({ w, h, S, cx, top }: Frame) {
   return { A: (2 * S) / w, B: (2 * cx) / w - 1, C: (-2 * S) / h, D: (-2 * S * FORM_DEPTH) / h, E: 1 - (16 - 2 * top * S) / h };
+}
+
+/** The garment sewn from its pattern pieces: each panel as cut, the wearer's left as settled and its mirror, the print
+ *  laid on each piece at its true size in cm, its seams and edges as fine lines, and its buttons. */
+function buildDraped(
+  { d, toForm }: DrapedView,
+  cloth: ClothTiles | undefined,
+  add: (geo: THREE.BufferGeometry, mat: RoundMaterial, order?: number, part?: PickPart, e?: number) => THREE.Mesh,
+  lines: (style: Style) => Lines,
+  maxAniso: number,
+  disposables: { dispose: () => void }[],
+) {
+  let tex: THREE.Texture | undefined;
+  if (cloth) {
+    tex = new THREE.CanvasTexture(cloth.body);
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = maxAniso;
+    disposables.push(tex);
+  }
+  const mode: Mode = cloth?.sheen === 'gloss' ? 'gloss' : cloth?.sheen === 'pile' ? 'pile' : 'matte';
+  const contrast = d.contrastCollar === 'black' ? 0x161616 : d.contrastCollar === 'ivory' ? 0xefe8d6 : d.contrastCollar ? 0x3a3530 : undefined;
+  // Drawn half a cm further out than it settled: the drawn form is not quite the body the cloth settled on, and over the
+  // collarbones and shoulder blades it would poke through a cloth lying close.
+  const LIFT = 0.5;
+  const P = (i: number, e: number): V3 => {
+    const x = d.pos[i * 3];
+    const z = d.pos[i * 3 + 2];
+    const k = 1 + LIFT / (Math.sqrt(x * x + z * z) || 1);
+    return toForm(x * k * e, d.pos[i * 3 + 1], z * k);
+  };
+  for (const p of d.panels) {
+    if (p.hidden) continue;
+    const n = p.uv.length / 2;
+    for (const e of [1, -1]) {
+      const pos = new Float32Array(n * 3);
+      for (let i = 0; i < n; i++) pos.set(P(p.base + i, e), i * 3);
+      // Each triangle wound so its face looks out from the body (a back piece is laid the other way round from a front);
+      // a sleeve's out from the middle of its own arm. The scene's y runs down, so out is the cross product's reverse.
+      const ref = (() => {
+        if (p.role !== 'sleeve') return undefined;
+        const m: V3 = [0, 0, 0];
+        let k = 0;
+        for (const q of d.panels) {
+          if (q.role !== 'sleeve') continue;
+          for (let i = 0; i < q.uv.length / 2; i++) {
+            const v = P(q.base + i, e);
+            m[0] += v[0];
+            m[1] += v[1];
+            m[2] += v[2];
+            k++;
+          }
+        }
+        return m.map((v) => v / (k || 1)) as V3;
+      })();
+      let outward = 0;
+      for (const [a, b, c] of p.tris) {
+        const ux = pos[b * 3] - pos[a * 3];
+        const uy = pos[b * 3 + 1] - pos[a * 3 + 1];
+        const uz = pos[b * 3 + 2] - pos[a * 3 + 2];
+        const vx = pos[c * 3] - pos[a * 3];
+        const vy = pos[c * 3 + 1] - pos[a * 3 + 1];
+        const vz = pos[c * 3 + 2] - pos[a * 3 + 2];
+        const nx = uy * vz - uz * vy;
+        const ny = uz * vx - ux * vz;
+        const nz = ux * vy - uy * vx;
+        const cx = (pos[a * 3] + pos[b * 3] + pos[c * 3]) / 3 - (ref ? ref[0] : 0);
+        const cy = ref ? (pos[a * 3 + 1] + pos[b * 3 + 1] + pos[c * 3 + 1]) / 3 - ref[1] : 0;
+        const cz = (pos[a * 3 + 2] + pos[b * 3 + 2] + pos[c * 3 + 2]) / 3 - (ref ? ref[2] : 0);
+        outward += nx * cx + ny * cy + nz * cz;
+      }
+      const idx: number[] = [];
+      for (const [a, b, c] of p.tris) {
+        if (outward > 0) idx.push(a, c, b);
+        else idx.push(a, b, c);
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      g.setAttribute('uv', new THREE.Float32BufferAttribute(p.uv, 2));
+      g.setAttribute('shade', new THREE.Float32BufferAttribute(new Float32Array(n), 1));
+      g.setIndex(idx);
+      g.computeVertexNormals();
+      // Soften the shading over a few cm: the mesh's own grain reads as dimples on a pale cloth.
+      const nrm = g.getAttribute('normal').array as Float32Array;
+      const nb: number[][] = Array.from({ length: n }, () => []);
+      for (const [a, b, c] of p.tris) {
+        nb[a].push(b, c);
+        nb[b].push(a, c);
+        nb[c].push(a, b);
+      }
+      for (let pass = 0; pass < 4; pass++) {
+        const nx = Float32Array.from(nrm);
+        nb.forEach((list, i) => {
+          if (!list.length) return;
+          let x = nrm[i * 3];
+          let y = nrm[i * 3 + 1];
+          let z = nrm[i * 3 + 2];
+          for (const j of list) {
+            x += nrm[j * 3] / 2;
+            y += nrm[j * 3 + 1] / 2;
+            z += nrm[j * 3 + 2] / 2;
+          }
+          const l = Math.hypot(x, y, z) || 1;
+          nx[i * 3] = x / l;
+          nx[i * 3 + 1] = y / l;
+          nx[i * 3 + 2] = z / l;
+        });
+        nrm.set(nx);
+      }
+      // On the centre line the two halves meet: their normals lie flat across it, or a crease shows down the middle.
+      for (let i = 0; i < n; i++) {
+        if (Math.abs(d.pos[(p.base + i) * 3]) > 0.4) continue;
+        const l = Math.hypot(nrm[i * 3 + 1], nrm[i * 3 + 2]) || 1;
+        nrm[i * 3] = 0;
+        nrm[i * 3 + 1] /= l;
+        nrm[i * 3 + 2] /= l;
+      }
+      // A contrast upper collar shows at the front; round the back its outside is the garment's own cloth.
+      const front = p.collar && contrast !== undefined;
+      const mat = !cloth ? material('black') : material(mode, tex, 1 / cloth.bodySize, cloth.sheer ? 0.6 : 1);
+      if (front && contrast !== undefined) {
+        const col = new Float32Array(n * 3);
+        const cc = new THREE.Color(contrast);
+        for (let i = 0; i < n; i++) {
+          const k = (p.base + i) * 3;
+          if (d.pos[k + 2] > -3) col.set([cc.r, cc.g, cc.b], i * 3);
+          else col.set([1, 1, 1], i * 3);
+        }
+        g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+        mat.vertexColors = true;
+      }
+      add(g, mat, 1, p.role === 'sleeve' ? 'sleeve' : 'cloth', p.role === 'sleeve' ? e : 0);
+    }
+  }
+  // The seams and edges: bright fine lines in lines, faint ones in cloth (the cloth itself gives the shape).
+  const SHOW = new Set(['shoulder', 'side', 'princess', 'armhole', 'neck', 'waist', 'hem', 'opening', 'lapel', 'gorge', 'collar', 'front-seam', 'back-seam', 'sleeve-front', 'opening-hem', 'centre', 'vent', 'inseam', 'outseam', 'crotch', 'yoke', 'tier']);
+  const seam = lines({ colour: GLOW, width: cloth ? 0.7 : 1.1, back: cloth ? 0 : 0.25, alpha: cloth ? 0.55 : 1 });
+  for (const l of d.lines) {
+    if (!SHOW.has(l.kind)) continue;
+    for (const e of [1, -1]) {
+      const run = l.ids.map((i) => {
+        const q = P(i, e);
+        const r = Math.hypot(q[0], q[2]) || 1;
+        const nrm: V3 = [q[0] / r, 0, q[2] / r];
+        return { p: [q[0] + nrm[0] * 0.004, q[1], q[2] + nrm[2] * 0.004] as V3, n: nrm };
+      });
+      if (run.length > 1) seam.add(run);
+    }
+  }
+  for (const b of d.buttons) {
+    const q = toForm(b.at[0], b.at[1], b.at[2] + LIFT);
+    const g = new THREE.SphereGeometry(b.r / 22, 16, 8);
+    g.setAttribute('shade', new THREE.Float32BufferAttribute(new Float32Array(g.getAttribute('position').count), 1));
+    g.scale(1, 1, 0.4);
+    g.translate(q[0], q[1], q[2]);
+    const m = material('gloss');
+    m.color.set(0x1c1a18);
+    add(g, m, 2, 'cloth');
+  }
 }
 
 /** The view, or nothing where the browser has no WebGL (the canvas painter draws then). */
@@ -481,6 +650,16 @@ export function createRoundView(): RoundView | undefined {
         legs.uniforms.shadeDepth.value = 0.3;
       }
       add(sweep({ at: (a, t) => T(leg * FORM_LEG_X, a, FORM_LEG(LEG_TOP + (FORM_FLOOR - LEG_TOP) * t), LEG_TOP + (FORM_FLOOR - LEG_TOP) * t), out: radial }, -Math.PI, Math.PI, 48, 60), legs, 0, 'leg', leg);
+    }
+
+    if (o.draped) {
+      if (o.draped !== 'pending') buildDraped(o.draped, cloth, add, (style) => {
+        const l = new Lines(style, turning);
+        lineSets.push(l);
+        return l;
+      }, maxAniso, disposables);
+      lwBuilt = 0;
+      return;
     }
 
     // The cloth: the garment's body from its top edge (or the armhole, under the arms) to its hem (the crotch on

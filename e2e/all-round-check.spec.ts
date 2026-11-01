@@ -192,9 +192,14 @@ for (const look of LOOKS) {
     await main.getByRole('group', { name: 'Garment view' }).getByRole('button', { name: 'All round', exact: true }).click();
     const cv = main.locator('canvas.all-round-canvas');
     await expect(cv).toBeVisible();
+    // The garment is sewn from its pattern in the background: wait till it is drawn.
+    await expect(cv).not.toHaveAttribute('data-sewn', 'pending', { timeout: 60_000 });
     await page.waitForTimeout(1200);
 
-    const found: Found[] = await page.evaluate(check, { views: VIEWS, nudge: NUDGE, mirror: look.mirror, patch: { mirror: MIRROR_PATCH, jump: JUMP_PATCH, hole: HOLE_PATCH, behind: BEHIND_PATCH } });
+    // A garment sewn from its pattern shows its real openings: from behind, the form through a sleeveless armhole is
+    // the armhole as cut, so only the old drawing is held to the seen-through check.
+    const sewn = (await cv.getAttribute('data-sewn')) === 'ready';
+    const found: Found[] = (await page.evaluate(check, { views: VIEWS, nudge: NUDGE, mirror: look.mirror, patch: { mirror: MIRROR_PATCH, jump: JUMP_PATCH, hole: HOLE_PATCH, behind: BEHIND_PATCH } })).filter((f) => !(sewn && f.kind === 'seen through'));
     // Each failing view twice: as a maker sees it, and in the check's own colours.
     for (const f of found.slice(0, 6)) {
       for (const probe of [false, true]) {

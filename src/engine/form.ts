@@ -72,3 +72,8 @@ export function legsFor(m: LegMeasurements): Legs {
   const s = ((m.full_hip / 4) * 0.97) / (LEG_X + LEG(LEG_CROTCH));
   return { crotch, knee, floor, apart: LEG_X * s, half: (y: number) => LEG(toForm(y)) * s };
 }
+
+/** Where the hip sits on the form and the crotch below it, for drawing a garment round the same body (its half-width
+ *  is R here; the floor, the legs and the knee are LEG_FLOOR, LEG, LEG_X and LEG_KNEE). */
+export const FORM_HIP = 0.82;
+export const FORM_CROTCH = 1.2;

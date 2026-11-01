@@ -154,6 +154,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
   }, [draft, arms, values]);
   const sleeves = useMemo(() => (draft && onForm ? sleeveRange(draft, values as BodiceMeasurements & SleeveMeasurements, choices.fit) : undefined), [draft, onForm, values, choices.fit]);
   const round = useMemo(() => (draft ? roundBodice(draft, values, sleeve) : undefined), [draft, values, sleeve]);
+  const drapeJob = useMemo(() => (draft ? ({ kind: 'bodice', draft, sleeve } as const) : undefined), [draft, sleeve]);
   const detail = { bustDart: choices.bustDart ?? 'side', princess: choices.princess ?? 'none', closure: choices.closure ?? 'back_zip', collar: choices.collar ?? 'none', back: valid.back ?? 'plain', structure: valid.structure ?? 'none', peplum: choices.peplum ?? 'none' };
   // A draped neckline is its own shaping: the dart, seam, opening, collar and boning choices step aside.
   const draped = isDraped(choices);
@@ -214,7 +215,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
   if (onForm && draft) {
     return (
       <DrawOnForm<BodiceChoices>
-        allRound={round ? { round, m: values, fabric, striped: matchKind(fabric) } : undefined}
+        allRound={round ? { round, drape: drapeJob, m: values, fabric, striped: matchKind(fabric) } : undefined}
         body={formWidth(draft, m)}
         m={m}
         legs={false}
@@ -488,7 +489,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
             />
             </GarmentFabric>
           )}
-          {round && view === 'round' && <AllRound round={round} m={values} fabric={fabric} striped={matchKind(fabric)} label={`The ${title} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`} />}
+          {round && view === 'round' && <AllRound round={round} drape={drapeJob} m={values} fabric={fabric} striped={matchKind(fabric)} label={`The ${title} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`} />}
           {flat && view === 'flat' && (
             <GarmentFabric fabric={fabric}>
               <TechFlatView flat={flat} title={title} />

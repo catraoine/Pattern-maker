@@ -95,6 +95,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
 
   const sheet = useMemo(() => (draft ? layout(draft.pieces, '', []) : undefined), [draft]);
   const round = useMemo(() => (draft ? roundSkirt(draft) : undefined), [draft]);
+  const drapeJob = useMemo(() => (draft ? ({ kind: 'skirt', draft } as const) : undefined), [draft]);
   const slipped = choices.silhouette === 'slip';
   const extra = fabricEase(fabric, 'skirt');
   const title = describe(choices);
@@ -181,7 +182,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
   if (onForm && draft) {
     return (
       <DrawOnForm<Choices>
-        allRound={round ? { round, m: values, fabric, striped: matchKind(fabric) } : undefined}
+        allRound={round ? { round, drape: drapeJob, m: values, fabric, striped: matchKind(fabric) } : undefined}
         body={skirtForm(m)}
         m={m}
         legs
@@ -595,6 +596,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
           {draft && round && view === 'round' && (
             <AllRound
               round={round}
+              drape={drapeJob}
               m={values}
               striped={matchKind(fabric)}
               fabric={fabric}
