@@ -257,7 +257,7 @@ function halfPiece(pc: Piece): Piece {
   return { ...pc, outline: out, lines: pc.lines.filter((l) => l.points(2).every((q) => q.x >= -0.01)), meta: { ...pc.meta, whole: false } };
 }
 
-function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: number; sleeve?: Piece[]; collars?: CollarPart[]; trousers?: TrousersDraft; tiers?: TierBand[]; under?: Piece[]; puff?: number }, o: DrapeOptions): Draped {
+function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: number; sleeve?: Piece[]; collars?: CollarPart[]; trousers?: TrousersDraft; tiers?: TierBand[]; under?: Piece[]; puff?: number; cuff?: number }, o: DrapeOptions): Draped {
   if (o.boxy) sp = boxed(sp);
   if (extra.skirt) extra = { ...extra, skirt: extra.skirt.map(halfPiece).map(narrowed) };
   const B = new Builder(sp);
@@ -386,7 +386,7 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
           const h = band.depth;
           const outline = new Path(pt(0, 0)).line(pt(w, 0), 'waist').line(pt(w, h), 'side').line(pt(0, h), 'hem').line(pt(0, 0), 'fold');
           outline.closed = true;
-          const pc = { name: `${band.name} ${isBack ? 'back' : 'front'}`, outline, lines: [], grain: [pt(w / 2, 1), pt(w / 2, h - 1)], notches: [], labels: [], cut: '', seamAllowance: 1, allowances: {}, meta: { gathered: band.ratio } } as unknown as Piece;
+          const pc = { name: `${band.name} ${isBack ? 'back' : 'front'}`, outline, lines: [], grain: [pt(w / 2, 1), pt(w / 2, h - 1)], notches: [], labels: [], cut: '', seamAllowance: 1, allowances: {}, meta: { gathered: band.ratio, tier: true } } as unknown as Piece;
           const g = band.ratio;
           const lam = 6;
           const k = TAU / lam;
@@ -664,7 +664,9 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       if (opp.length === 2 && p.turned[opp[0]] === p.turned[opp[1]]) {
         bends.push(opp[0] + p.base, opp[1] + p.base);
         bendRest.push(Math.hypot(pts[opp[0]].x - pts[opp[1]].x, pts[opp[0]].y - pts[opp[1]].y));
-        bendW.push(p.role === 'collar' || p.turned[opp[0]] ? 4 : o.crisp && /peplum/i.test(p.pc.name) ? o.crisp : 1);
+        // Below its last button a coat front is faced: the facing stiffens its edge, so the corners hang flat, not curl.
+        const faced = p.role === 'front' && !!o.pinFront?.length && [opp[0], opp[1]].every((j) => pts[j].x < 7 && pts[j].y > Math.max(...o.pinFront!.map((f) => f.y)) + 4);
+        bendW.push(p.role === 'collar' || p.turned[opp[0]] ? 4 : faced ? 12 : o.crisp && /peplum/i.test(p.pc.name) ? o.crisp : 1);
       }
     }
   }
@@ -909,14 +911,16 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
     const y0 = Math.min(...ys);
     const lamCloth = (knob("__lamC") ?? 6) * gather;
     const n = Math.max(2, Math.round(W / simScale / (lamCloth / 2)));
-    const A = Math.min(3.5, (knob("__fk") ?? 2) * Math.sqrt(gather - 1)) * foldA;
+    // A tier below a drop yoke hangs long from its seam: softer folds, and it falls more down than out.
+    const tier = !!p.pc.meta.tier;
+    const A = Math.min(3.5, (knob("__fk") ?? (tier ? 1 : 2)) * Math.sqrt(gather - 1)) * foldA;
     // The fullness holds the skirt out from the body a little more the further down it falls.
     const flare = (gather - 1) * (knob("__flare") ?? 0.15);
     p.mesh.pts.forEach((q, i) => {
       const I = (p.base + i) * 3;
       const lv = q.y - y0;
       const amp = A * (0.35 + 0.65 * Math.min(1, lv / 18));
-      const off = amp * Math.sin((Math.PI * n * (q.x - x0)) / W) + flare * Math.min(lv, 45);
+      const off = amp * Math.sin((Math.PI * n * (q.x - x0)) / W) + (tier ? Math.min(flare * Math.min(lv, 45), 1) : flare * Math.min(lv, 45));
       const rho = Math.hypot(res[I], res[I + 2]) || 1e-9;
       const R = sp.bodyR(Math.atan2(res[I], res[I + 2]), res[I + 1]) + p.thick[i];
       const k = Math.max(rho + off, R) / rho;
@@ -996,6 +1000,37 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
         const d = [r[0] - ab[0] * u, r[1] - ab[1] * u, r[2] - ab[2] * u];
         const dl = Math.hypot(d[0], d[1], d[2]) || 1e-9;
         const k = off / dl;
+        res[I] += d[0] * k * e;
+        res[I + 1] += d[1] * k;
+        res[I + 2] += d[2] * k;
+      });
+    }
+  }
+  // A bishop sleeve: its full hem is gathered onto a narrow band at the wrist, so the cloth above blouses out round
+  // the arm and is drawn in hard at the band.
+  if (extra.cuff) {
+    const arm = sp.arm;
+    const ab = [arm.b[0] - arm.a[0], arm.b[1] - arm.a[1], arm.b[2] - arm.a[2]];
+    const L2 = ab[0] ** 2 + ab[1] ** 2 + ab[2] ** 2;
+    const rc = extra.cuff / TAU + 0.4;
+    for (const p of B.panels.filter((q) => q.role === 'sleeve')) {
+      const ys = p.mesh.pts.map((q) => q.y);
+      const y0 = Math.min(...ys);
+      const H = Math.max(...ys) - y0;
+      p.mesh.pts.forEach((q, i) => {
+        const t = (q.y - y0) / H;
+        if (t < 0.55) return;
+        const I = (p.base + i) * 3;
+        const e = res[I] >= 0 ? 1 : -1;
+        const r = [res[I] * e - arm.a[0], res[I + 1] - arm.a[1], res[I + 2] - arm.a[2]];
+        const u = Math.max(0, (r[0] * ab[0] + r[1] * ab[1] + r[2] * ab[2]) / L2);
+        const d = [r[0] - ab[0] * u, r[1] - ab[1] * u, r[2] - ab[2] * u];
+        const dl = Math.hypot(d[0], d[1], d[2]) || 1e-9;
+        // Fullest a little above the band, then drawn in over the last few cm.
+        const swell = 1.6 * Math.sin((Math.PI * (t - 0.55)) / 0.4) * (t < 0.95 ? 1 : 0);
+        const w = Math.min(1, Math.max(0, (t - 0.93) / 0.07));
+        const want = (dl + Math.max(0, swell)) * (1 - w) + rc * w;
+        const k = want / dl - 1;
         res[I] += d[0] * k * e;
         res[I + 1] += d[1] * k;
         res[I + 2] += d[2] * k;
@@ -1111,7 +1146,7 @@ export function drapeBodice(sp: Space, d: BodiceDraft, sleeve?: SleeveDraft, o: 
   const torso = pieces.filter(isTorso).map((pc) => ({ pc, back: /back/i.test(pc.name), waistY: /back/i.test(pc.name) ? d.back.waistCentre.y : d.front.waistCentre.y }));
   const skirt = extra.skirt ?? pieces.filter(isSkirt);
   const buttons = d.closure === 'front_buttons' && d.buttons ? { y: d.buttons.at.filter((y) => (o.openBelowY === undefined || y < o.openBelowY) && (o.openAboveY === undefined || y > o.openAboveY)), r: d.buttons.sizeCm / 2, waistY: d.front.waistCentre.y } : undefined;
-  return drape(sp, torso, { skirt: skirt.length ? skirt : undefined, drop: extra.drop, tiers: extra.tiers, under: extra.under, puff: sleeve?.gathers?.crown, sleeve: sleeve?.pieces.filter(isShell), collars: collarsOf(pieces) }, { buttons, closedFront: true, ...o });
+  return drape(sp, torso, { skirt: skirt.length ? skirt : undefined, drop: extra.drop, tiers: extra.tiers, under: extra.under, puff: sleeve?.gathers?.crown, cuff: sleeve?.gathers?.hem ? (sleeve.pieces.find((pc) => /band|cuff/i.test(pc.name))?.meta.lengthCm as number | undefined) : undefined, sleeve: sleeve?.pieces.filter(isShell), collars: collarsOf(pieces) }, { buttons, closedFront: true, ...o });
 }
 
 export function drapeDress(sp: Space, d: DressDraft, sleeve?: SleeveDraft, o: DrapeOptions = {}): Draped {
