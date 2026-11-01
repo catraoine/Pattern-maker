@@ -11,11 +11,19 @@ Tester names, emails and codes live there and in Cat's Gmail, never in this repo
 | Nov 4 (opens) to Nov 8 | Tester call for the full round; sign-up asks "Have you sewn a jacket or coat?" |
 | Nov 9 to 13 | Fixes from the early round |
 | Nov 13 | Full-round invites |
-| Nov 16 to Dec 6 | Full round: 40 sewists; about 4 testers each on four SS27 looks (boxy jacket, A-line coat, gathered sheer skirt, collared shirt); plus one tester sews a boxy dress (Cat, Oct 30: Boxy launches untagged) |
+| Nov 16 to Dec 6 | Full round: accept 24 so 20 finish, spread over six hip bands; testers pick SS27 Look 01 (ivory Big Shirt with cuffs), Look 09 (red shirt or lavender pencil skirt) or Look 10 (black low-rise pleat skirt) (Cat, Nov 1); plus one tester sews a boxy dress (Cat, Oct 30: Boxy launches untagged) |
 | Dec 7 to 11 | Fix week (sign-in switches on) |
 | Jan 4 to 17 | Round 2 |
 | **Mon Jan 18, 2027** | **Fit gate**: 20 sewists averaging 4 of 5 on a skirt or bodice toile |
 | Thu Feb 11, 2027 | Launch |
+
+## Recruiting (Nov 1)
+
+The Oct 31 carousel got no applicants: brand-new accounts, no garment shown, email-to-apply. The plan is the
+"Fit testers: why nobody applied, and the plan" Claude Doc: the call leads with the looks turning in All round,
+applications go through a 2-minute Google Form (script in the shared fit-test folder), and most testers come from
+direct asks (early testers bring a friend, Facebook pattern-tester groups, DMs, Vancouver fashion schools), with
+paid sewists as the backstop if fewer than 16 good applicants by Nov 8.
 
 ## How it runs
 

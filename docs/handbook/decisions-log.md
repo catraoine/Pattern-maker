@@ -3,6 +3,10 @@
 Newest first. One line each: date, decision, where it lives. Add a line whenever Cat decides
 something that changes how a department works. Design picks for single screens stay in their PRs.
 
+## November 2026
+
+- **Nov 1** Fit tester call rebuilt after the Oct 31 call got no applicants: the full round sews SS27 Look 01 (ivory Big Shirt with cuffs), Look 09 (red shirt or lavender pencil skirt) and Look 10 (black low-rise pleat skirt); the call leads with those pieces turning in All round (only renders that pass); applications through a 2-minute Google Form; fashion schools emailed (KPU, VCC, Blanche Macdonald). [Testers](testers.md).
+
 ## October 2026
 
 - **Oct 31** Style journey (J1-J8): one step order for every garment (Shape, Neck & sleeves, Length & hem, Details, Fabric); jacket Hem and cuffs on Length & hem; dress Cut + Waist seam on Shape (asked once); dress step named Length & hem; Next shows the full step name; views Front · Flat · All round everywhere (skirt gains Flat); T-shirt stretch on Fabric with How to test folded; phone Show all tools on Review; phone corner tools side by side on the length step. PR #254.
