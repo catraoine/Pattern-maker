@@ -204,7 +204,9 @@ export const NECKLINES: Record<Neckline, { frontDepth: number; width: number; ba
   halter: { frontDepth: 0, width: 0, backDepth: 0 },
 };
 
-/** The plunge: its point this far above the front waist, and its straps this wide at the shoulder, in cm. */
+/** The plunge: its point this far above the front waist, and its straps this wide at the shoulder, in cm.
+ * Sleeveless, the strap sits over the middle of the shoulder with the armhole cut in to meet it, as a
+ * slip is cut, so it stays on; with a sleeve it is what the shoulder leaves past the neck. */
 export const PLUNGE = { aboveWaist: 7, strap: 2.5 };
 
 /** Hip ease (cm) for tops that reach below the waist, from the same fit options. */
@@ -770,14 +772,17 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   // A wider neckline moves the neck point out along both shoulders, leaving at least 5 cm of shoulder.
   // It moves along the shoulder as fitted, and a lower shoulder drops from there, so its line keeps
   // the same neck and the same shoulder length.
-  // A plunge leaves just its strap of shoulder, however long the shoulder.
-  const widen = s.neckline === 'plunge' && !s.neck ? Math.max(0, SL - PLUNGE.strap) : Math.max(0, Math.min(nl.width, SL - 5));
+  // A plunge leaves just its strap of shoulder, however long the shoulder: sleeveless, the strap sits
+  // over the middle of the shoulder and the armhole is cut in to meet it; with a sleeve, at the tip.
+  const plunging = s.neckline === 'plunge' && !s.neck;
+  const cutIn = plunging && (!s.sleeve || s.sleeve === 'none') ? Math.max(0, (SL - PLUNGE.strap) / 2) : 0;
+  const widen = plunging ? Math.max(0, SL - PLUNGE.strap) - cutIn : Math.max(0, Math.min(nl.width, SL - 5));
   // A boxy shoulder runs on past the body's shoulder point.
-  const ext = s.fit === 'boxy' ? BOXY.extend : 0;
+  const ext = (s.fit === 'boxy' ? BOXY.extend : 0) - cutIn;
   const hpsB = add(hpsB0, mul(p(Math.cos(backSlope), Math.sin(backSlope)), widen));
   backSlope = dropped(backSlope, blen - widen + ext);
   const spB = add(hpsB, mul(p(Math.cos(backSlope), Math.sin(backSlope)), blen - widen + ext));
-  if (Math.abs(spB.x - ext - SW / 2) > 2.5) {
+  if (!cutIn && Math.abs(spB.x - ext - SW / 2) > 2.5) {
     warnings.push(
       `shoulder width ${SW} cm and shoulder length ${SL} cm don't agree (the pattern's shoulders are ${r(2 * spB.x, 1)} cm wide); please re-measure both`,
     );

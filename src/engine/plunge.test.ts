@@ -49,6 +49,15 @@ describe('the plunging V (In testing)', () => {
           if (!(top > cfDepths(v).top + 10)) failures.push(`${tag}: plunge ${top.toFixed(1)} not well below the V ${cfDepths(v).top.toFixed(1)}`);
           const strap = taggedLength(front.outline, 'shoulder');
           if (strap > PLUNGE.strap + 3 || strap < PLUNGE.strap - 0.1) failures.push(`${tag}: strap ${strap.toFixed(1)} cm`);
+          // Sleeveless, the strap sits over the middle of the shoulder, the armhole cut in to meet it.
+          const shoulderX = (pc: Piece) => {
+            const { pts, tags } = pc.outline.taggedPoints(48);
+            const xs = tags.flatMap((t, i) => (t === 'shoulder' ? [pts[i].x, pts[i + 1].x] : []));
+            return (Math.min(...xs) + Math.max(...xs)) / 2;
+          };
+          const mid = shoulderX(draftBodice(b, { ...style, neckline: 'crew' }).pieces[0]);
+          const strapMid = shoulderX(front);
+          if (!(Math.abs(strapMid - mid) < 2.5)) failures.push(`${tag}: strap centred at ${strapMid.toFixed(1)}, shoulder middle ${mid.toFixed(1)}`);
           const pts = front.outline.points();
           for (const dt of dartsOf(front)) if (!inside(pts, dt.tip)) failures.push(`${tag}: dart point outside the front`);
           const bad = checkPattern(d.pieces.filter((pc) => !pc.kind)).filter((c) => !c.ok);
