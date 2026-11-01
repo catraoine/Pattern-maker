@@ -52,6 +52,10 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       stacked: ['Two or three gathered tiers, each fuller than the one above, from a yoke below the hip.'],
       drop_yoke: ['Smooth and fitted over the hip on a yoke, then one deep gathered skirt falling full below it.'],
     },
+    rise: {
+      natural: ['Sits at your natural waist, the narrowest part of you.', 'easy'],
+      low: ['Sits low on the hip, about 6 cm below your waist, so it hangs from the hips. The hem stays where it was.'],
+    },
     gathers: {
       soft: ['About one and a half times the waist, gathered in: gentle folds that sit close.', 'easy'],
       full: ['Twice the waist and a bit, for deep folds that swing as you walk.'],
@@ -506,6 +510,8 @@ const SHORT: Record<string, string> = {
   'trim.none': 'Plain hems at bottom and cuffs.',
   'tiers.stacked': 'Two or three tiers, each fuller.',
   'tiers.drop_yoke': 'Fitted over the hip, full below.',
+  'rise.natural': 'At your natural waist.',
+  'rise.low': 'Low on the hip.',
   'trim.rib': 'Rib bands at hem and cuffs.',
   'flare.flared': 'Cinched, then flaring over the hips.',
 };

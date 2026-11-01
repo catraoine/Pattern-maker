@@ -43,6 +43,8 @@ export interface Choices {
   gathers?: Gathers;
   /** With tiers: one deep gathered skirt from a drop yoke (In testing). */
   dropYoke?: boolean;
+  /** Sitting low on the hip (In testing); unset, at the natural waist. */
+  rise?: 'natural' | 'low';
   /** In-seam pockets. Older saves have none. */
   pockets?: 'none' | 'inseam';
   /** A tie sash, belt loops, or both, at the waist (see belt.ts). Older saves have none. On a dress, its skirt's choices carry it. */

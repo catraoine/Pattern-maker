@@ -74,6 +74,8 @@ export interface SkirtStyle {
   gathers?: Gathers;
   /** With tiers: one deep gathered skirt from a yoke below the hip, in place of the tiers (In testing). */
   dropYoke?: boolean;
+  /** Sitting low on the hip (In testing), or at the natural waist. Not with a high waist. */
+  rise?: 'natural' | 'low';
   /** In-seam pockets in the side seams. Older saves have none. */
   pockets?: 'none' | 'inseam';
   /** A waistband with a zip, or an elastic casing that pulls on over the hips. Ignored on a dress. */
@@ -528,6 +530,8 @@ export interface SkirtDraft {
   lengthCm: number;
   finishedWaist: number;
   finishedHip: number;
+  /** A low rise: how far below the natural waist the skirt's top sits, in cm. */
+  lowRise?: number;
   /** For circle skirts, how much of a circle the skirt makes (1 is a full circle). */
   circleShare?: number;
   /** Hem circumference, to show how full the skirt is. */
@@ -637,7 +641,33 @@ const hemCm = (front: Piece, back: Piece) => Math.round(2 * (taggedLength(front.
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
+/** A low rise (In testing): the skirt's top sits this far below the waist, in cm, and never more than a
+ * quarter of the way down to the hip, or it would sit where the body is nearly as wide as the hip. */
+const LOW_RISE = 6;
+export const lowRiseCm = (m: Pick<SkirtMeasurements, 'waist_to_hip'>) => Math.min(LOW_RISE, 0.25 * m.waist_to_hip);
+export const lowRiseAllowed = (s: Pick<SkirtStyle, 'waist'>) => s.waist !== 'high';
+
+/** The measurements as if the waist were `r` cm lower: its round found between the waist's and the hip's,
+ * and every length from it shorter by as much, so the hem stays where it was on the body. */
+function lowered(m: SkirtMeasurements, r: number): SkirtMeasurements {
+  const t = r / m.waist_to_hip;
+  return {
+    ...m,
+    waist: m.waist + (m.full_hip - m.waist) * (1 - (1 - t) ** 2),
+    waist_to_hip: m.waist_to_hip - r,
+    waist_to_knee: m.waist_to_knee - r,
+    waist_to_floor: m.waist_to_floor - r,
+    ...(m.front_waist_to_hip !== undefined ? { front_waist_to_hip: m.front_waist_to_hip - r } : {}),
+    ...(m.back_waist_to_hip !== undefined ? { back_waist_to_hip: m.back_waist_to_hip - r } : {}),
+  };
+}
+
 export function draftSkirt(m: SkirtMeasurements, style: Partial<SkirtStyle> = {}): SkirtDraft {
+  if (style.rise === 'low' && lowRiseAllowed(style)) {
+    const r = lowRiseCm(m);
+    const { rise: _r, ...rest } = style;
+    return { ...draftSkirt(lowered(m, r), rest), lowRise: r };
+  }
   const s = validCut({ ...DEFAULT_STYLE, ...style });
   if (s.wrap && wrapSkirtAllowed(s)) return wrapped(drafted(m, { ...s, hem: undefined }), s);
   // Cut whole (a bias slip, or a hem that differs side to side): the halves are mirrored into whole

@@ -37,6 +37,16 @@ export const GROUPS: [ChoiceGroup<'fit'>, ChoiceGroup<'silhouette'>, ChoiceGroup
 /** How full a gathered skirt is (In testing): soft, full or dramatic gathers. Unchosen, it follows the fit. */
 export const GATHERS_GROUP: ChoiceGroup<'gathers'> = { id: 'gathers', label: 'Gathers', options: [['soft', 'Soft'], ['full', 'Full'], ['dramatic', 'Dramatic']] };
 /** With tiers: two or three, or one deep gathered skirt from a drop yoke (In testing). */
+/** Where the skirt sits (In testing): at the natural waist, or low on the hip. */
+export const RISE_GROUP: { id: 'rise'; label: string; options: ['natural' | 'low', string][] } = {
+  id: 'rise',
+  label: 'Rise',
+  options: [
+    ['natural', 'At the waist'],
+    ['low', 'Low on the hip'],
+  ],
+};
+
 export const TIERS_GROUP: { id: 'tiers'; label: string; options: ['stacked' | 'drop_yoke', string][] } = {
   id: 'tiers',
   label: 'Tiers',
@@ -95,7 +105,10 @@ export const zipOf = (c: Choices): 'back' | 'side' | undefined => {
 };
 /** Picking a waist: the wrap is its own flag, so picking it puts the waistband back, and the others let it go. */
 export const withWaist = (c: Choices, id: string): Choices =>
-  id === 'wrap' ? { ...c, waist: undefined, wrap: true } : { ...c, waist: id === 'band' ? undefined : (id as Choices['waist']), wrap: undefined };
+  id === 'wrap'
+    ? { ...c, waist: undefined, wrap: true }
+    : // A high waist rises above the waist, so it puts a low rise back to the waist.
+      { ...c, waist: id === 'band' ? undefined : (id as Choices['waist']), wrap: undefined, ...(id === 'high' ? { rise: undefined } : {}) };
 /** The choices without the wrap where the skirt can no longer wrap. */
 export const keepWrap = (c: Choices): Choices => (c.wrap && !wrapSkirtAllowed(c) ? { ...c, wrap: undefined } : c);
 
@@ -157,7 +170,7 @@ export function describe(c: Choices) {
   if (c.shape) return `Skirt matched to a photo${withTail.replace(' with', ', with')}`;
   const len = c.lengthCm !== undefined ? `${Math.round(c.lengthCm)} cm` : GROUPS[2].options.find((o) => o[0] === v.length)![1];
   const sil = v.silhouette === 'slip' ? 'Bias-cut slip' : GROUPS[1].options.find((o) => o[0] === v.silhouette)![1];
-  return `${len} ${detailOf(v, 'waist') === 'high' ? 'high-waisted ' : ''}${sil === 'A-line' ? sil : sil.toLowerCase()} ${c.wrap && wrapSkirtAllowed(v) ? 'wrap ' : ''}skirt${withTail}`;
+  return `${len} ${detailOf(v, 'waist') === 'high' ? 'high-waisted ' : c.rise === 'low' ? 'low-rise ' : ''}${sil === 'A-line' ? sil : sil.toLowerCase()} ${c.wrap && wrapSkirtAllowed(v) ? 'wrap ' : ''}skirt${withTail}`;
 }
 
 /** Fabric needed on 140 cm wide fabric, from the cutting layout of the pieces and the waistband. A

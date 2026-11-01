@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { SKIRT_BELTS, beltAllowed, beltPieces, skirtBelt } from '../engine/belt';
 import type { Choices } from '../savedWork';
 import { layout } from '../engine/export';
-import { PULL_ON_EASE, lengthRange, SkirtDraft, SkirtMeasurements } from '../engine/skirt';
+import { PULL_ON_EASE, lengthRange, lowRiseAllowed, SkirtDraft, SkirtMeasurements } from '../engine/skirt';
 import { skirtSpec } from '../engine/spec';
 import { FinishedTable, finishedLines } from '../ui/FinishedTable';
 import { isShaped } from '../engine/hem';
@@ -45,7 +45,7 @@ import { AllRound } from '../ui/AllRound';
 import { roundSkirt } from '../engine/allRound';
 import { PiecesList, SummaryActions } from '../ui/StyleSummary';
 
-import { GROUPS, GATHERS_GROUP, TIERS_GROUP, gathersChosen, gathersOf, chosen, DETAIL_GROUPS, FRONT_GROUP, frontOf, ZIP_PLACES, detailOf, zipOf, withWaist, keepWrap, elasticAllowed, pocketsAllowed, keepWaist, beltOf_, currentLook, describe, fabricMetres } from '../skirtChoices';
+import { GROUPS, GATHERS_GROUP, RISE_GROUP, TIERS_GROUP, gathersChosen, gathersOf, chosen, DETAIL_GROUPS, FRONT_GROUP, frontOf, ZIP_PLACES, detailOf, zipOf, withWaist, keepWrap, elasticAllowed, pocketsAllowed, keepWaist, beltOf_, currentLook, describe, fabricMetres } from '../skirtChoices';
 
 interface Props {
   finish: Finish;
@@ -420,6 +420,30 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
             )}
           </Group>
         ))}
+        {/* Where it sits (In testing): at the waist or low on the hip. A high waist rises the other way, so not with it. */}
+        <Group label={RISE_GROUP.label}>
+          <div className={chipsClass('skirt', 'rise')}>
+            {RISE_GROUP.options.map(([id, label]) => {
+              const on = (id === 'low') === (choices.rise === 'low');
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  className={on ? 'chip on' : 'chip'}
+                  aria-pressed={on}
+                  disabled={id === 'low' && !lowRiseAllowed(choices)}
+                  onClick={() => change(id === 'low' ? { ...choices, rise: 'low' } : (({ rise: _r, ...rest }) => rest)(choices))}
+                >
+                  <ChoicePic set="skirt" group="rise" id={id} />
+                  {label}
+                  {id === 'low' && <TestingTag tool="low_rise" />}
+                </button>
+              );
+            })}
+          </div>
+          <Explain set="skirt" group="rise" options={RISE_GROUP.options} pick={choices.rise === 'low' ? 'low' : 'natural'} />
+          {!lowRiseAllowed(choices) && <p className="muted small">A high waist rises above your waist, so it can't sit low too.</p>}
+        </Group>
         {/* Pleats, godets, a flounce, tiers or ruching: named Fullness, as on the Draw tool, so the step called Details
             doesn't hold a question called Details too, and asked after the waist and pockets every skirt needs (Cat's D2, 2026-10-30). */}
         <Group label="Fullness">

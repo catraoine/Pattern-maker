@@ -46,7 +46,8 @@ export type TestingTool =
   | 'big_peplum'
   | 'jacket_collars'
   | 'flared_jacket'
-  | 'drop_yoke';
+  | 'drop_yoke'
+  | 'low_rise';
 
 export const TESTING_TOOLS: Record<TestingTool, { name: string; where: string; proof: string }> = {
   draw_lines: { name: 'Draw your lines', where: 'Style, Draw on your form', proof: 'fit testers draw a hem, a neckline and a side and the pattern follows' },
@@ -79,6 +80,8 @@ export const TESTING_TOOLS: Record<TestingTool, { name: string; where: string; p
   // And for more fashion-forward jackets and coats (2026-10-31).
   // And for the skirt to match it: fitted over the hip, full below (2026-10-31).
   drop_yoke: { name: 'Drop-yoke skirt', where: 'the One, drop yoke chip under Tiers on a skirt', proof: 'two testers sew a drop-yoke skirt and the yoke lies smooth over the hip, the gathers falling evenly below it' },
+  // For the SS27 black knife-pleat skirt (Cat, 2026-11-01: "make the skirt low rise"; design options need no flag).
+  low_rise: { name: 'Low-rise skirt', where: 'the Rise chips on a skirt', proof: 'two testers sew a low-rise skirt and it sits level on the hip without slipping, the hem where it was' },
   // And for the flared lilac blazer from Cat's plaid-blazer picture (2026-10-31).
   flared_jacket: { name: 'Flared jacket and coat hem', where: 'the Flared chip below the waist on a jacket or coat', proof: 'two testers sew a flared jacket and it stays close at the waist, kicking out evenly over the hips with a level hem' },
   jacket_collars: { name: 'Peak, shawl and funnel collars, wide and plunging lapels', where: 'the Collar and Lapels chips on a jacket or coat', proof: 'two testers sew a peak or shawl lapel and it rolls cleanly from the break point, the collar sitting flat at the back neck' },
