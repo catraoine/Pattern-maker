@@ -1224,28 +1224,49 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       res[I + 2] *= k;
     });
   }
-  // A flounce sewn on below a gathered skirt goes out with the skirt's hem, which the fullness above holds out further
-  // than the sim (with the skirt drawn in across its width) left it.
-  if (!knob('__noFlounceOut')) {
-    let out = 0;
-    for (const p of B.panels) {
-      const gather = ((p.pc.meta.gatherShown ?? p.pc.meta.gathered) as number | undefined) ?? 1;
-      if (!/peplum/.test(p.role) || gather < 1.05 || !p.mesh.runs.tier?.length || p.pc.meta.tier) continue;
-      const ys = p.mesh.pts.map((q) => q.y);
-      const H = Math.max(...ys) - Math.min(...ys);
-      out = Math.max(out, (gather - 1) * (knob('__flare') ?? 0.15) * (Math.min(H, 45) + FLARE_ON * Math.max(0, H - 45)));
-    }
-    if (out > 0)
-      for (const p of B.panels) {
-        if (p.hidden || !/peplum/.test(p.role) || !/ruffle|flounce/i.test(p.pc.name)) continue;
-        p.mesh.pts.forEach((_, i) => {
+  // A flounce sewn on below a heavily gathered skirt: the sim, with the skirt drawn in across its width and the flounce
+  // not, crushes it into pillows. It is laid on instead as the skirt's own folds carried on down from its hem, as a
+  // ruffle gathered onto that hem falls, flaring out a little as it goes.
+  if (!knob('__noFlounceLay')) {
+    for (const side of ['peplum-front', 'peplum-back']) {
+      const skirt = B.panels.filter((p) => !p.hidden && p.role === side && !p.pc.meta.tier && ((p.pc.meta.gatherShown as number | undefined) ?? 1) > 2 && p.mesh.runs.tier?.length);
+      const fl = B.panels.filter((p) => !p.hidden && p.role === side && /ruffle|flounce/i.test(p.pc.name));
+      if (!skirt.length || !fl.length) continue;
+      // The hem, in order round from the centre: where each point of it ended up.
+      const hem = skirt.flatMap((p) => p.mesh.runs.tier!.flat().map((i) => {
+        const I = (p.base + i) * 3;
+        return { x: p.mesh.pts[i].x, v: [res[I], res[I + 1], res[I + 2]] as V3 };
+      }));
+      hem.sort((u, v) => u.x - v.x);
+      const x0 = hem[0].x;
+      const x1 = hem[hem.length - 1].x;
+      const at = (t: number): V3 => {
+        const x = x0 + t * (x1 - x0);
+        let k = 1;
+        while (k < hem.length - 1 && hem[k].x < x) k++;
+        const u = hem[k - 1];
+        const w = hem[k];
+        const f = w.x - u.x > 1e-9 ? Math.min(1, Math.max(0, (x - u.x) / (w.x - u.x))) : 0;
+        return [u.v[0] + (w.v[0] - u.v[0]) * f, u.v[1] + (w.v[1] - u.v[1]) * f, u.v[2] + (w.v[2] - u.v[2]) * f];
+      };
+      for (const p of fl) {
+        const xs = p.mesh.pts.map((q) => q.x);
+        const ys = p.mesh.pts.map((q) => q.y);
+        const fx0 = Math.min(...xs);
+        const fx1 = Math.max(...xs);
+        const fy0 = Math.min(...ys);
+        p.mesh.pts.forEach((q, i) => {
           const I = (p.base + i) * 3;
-          const rho = Math.hypot(res[I], res[I + 2]) || 1e-9;
-          const k = (rho + out) / rho;
-          res[I] *= k;
-          res[I + 2] *= k;
+          const top = at((q.x - fx0) / (fx1 - fx0 || 1));
+          const down = q.y - fy0;
+          const rho = Math.hypot(top[0], top[2]) || 1e-9;
+          const k = (rho + down * (knob('__flOut') ?? 0.35)) / rho;
+          res[I] = top[0] * k;
+          res[I + 1] = top[1] + down * 0.94;
+          res[I + 2] = top[2] * k;
         });
       }
+    }
   }
   // Turned cloth (a lapel, a collar's fall) lies on the cloth it turns over: each turned point is laid at the radius
   // of the garment under it, a cloth's thickness out, so a pressed lapel or collar reads flat, not crumpled.
