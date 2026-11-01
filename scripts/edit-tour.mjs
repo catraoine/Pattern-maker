@@ -153,8 +153,8 @@ function tapeAcross(t) {
 }
 
 const MARKS = WIDE
-  ? { fabric: 2.6, enlarge: 9.5, draw: 11.6, hem: 13.2, side: 20.0, done: 26.1 }
-  : { fabric: 1.4, enlarge: 6.9, draw: 6.9, hem: 8.4, side: 14.0, done: 18.5 };
+  ? { fabric: 1.4, enlarge: 7.4, draw: 9.4, hem: 11.0, side: 17.1, done: 21.8 }
+  : { fabric: 1.4, enlarge: 6.8, draw: 6.8, hem: 8.3, side: 13.7, done: 18.0 };
 // Played at 1.4 times its speed, however long the take (Cat, 2026-11-01: less time on the dress page, no enlarge).
 const JOURNEY = { from: 0.6, to: MARKS.done + 0.9, dur: Math.round(((MARKS.done + 0.3) / 1.4) * 10) / 10 };
 const atOut = (t) => ((t - JOURNEY.from) * JOURNEY.dur) / (JOURNEY.to - JOURNEY.from);
