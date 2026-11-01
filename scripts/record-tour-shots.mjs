@@ -371,7 +371,7 @@ const mark = (what) => console.log(`  style ${what}: ${((Date.now() - t0) / 1000
 const LINES = {
   photo: [[0.13, 0.639], [0.5, 0.652], [0.87, 0.639]],
   hem: [[0.104, 0.99], [0.5, 1.0], [0.896, 0.99]],
-  side: [[0.143, 0.483], [0.102, 0.638], [-0.104, 0.99]],
+  side: WIDE ? [[0.13, 0.6], [0.11, 0.68], [-0.104, 0.99]] : [[0.143, 0.483], [0.102, 0.638], [-0.104, 0.99]],
 };
 // Off camera, the dress is made to match the photo the film has just shown, Cat's own check silk dress (Cat,
 // 2026-10-24: show that starting from a photo works): a boat neck, short sleeves, a waist seam dropped low on the hip,
