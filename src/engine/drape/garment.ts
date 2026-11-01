@@ -543,7 +543,6 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       sew(seams, B.chain(uf, 'side', down), B.chain(ub, 'side', down));
     }
   }
-  for (const p of B.panels) if (p.role !== 'front' && p.role !== 'back') for (const [a, b] of dartLegs(p)) sew(seams, a, b);
 
   // Collars: each stands up from the neck (or from its stand), and turns down at its roll line if it has one.
   if (extra.collars?.length && !knob("__noCol")) {
@@ -743,6 +742,8 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
   }
 
   // All the points, edges and bends.
+  // (Every other piece's darts, sleeves' elbow darts among them, once all the pieces are in.)
+  for (const p of B.panels) if (p.role !== 'front' && p.role !== 'back') for (const [a, b] of dartLegs(p)) sew(seams, a, b);
   const n = B.n;
   const pos = new Float64Array(n * 3);
   const thickA = new Float64Array(n);
@@ -1217,6 +1218,28 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       res[I] *= k;
       res[I + 2] *= k;
     });
+  }
+  // A flounce sewn on below a gathered skirt goes out with the skirt's hem, which the fullness above holds out further
+  // than the sim (with the skirt drawn in across its width) left it.
+  if (!knob('__noFlounceOut')) {
+    let out = 0;
+    for (const p of B.panels) {
+      const gather = ((p.pc.meta.gatherShown ?? p.pc.meta.gathered) as number | undefined) ?? 1;
+      if (!/peplum/.test(p.role) || gather < 1.05 || !p.mesh.runs.tier?.length || p.pc.meta.tier) continue;
+      const ys = p.mesh.pts.map((q) => q.y);
+      out = Math.max(out, (gather - 1) * (knob('__flare') ?? 0.15) * Math.min(Math.max(...ys) - Math.min(...ys), 45));
+    }
+    if (out > 0)
+      for (const p of B.panels) {
+        if (p.hidden || !/peplum/.test(p.role) || !/ruffle|flounce/i.test(p.pc.name)) continue;
+        p.mesh.pts.forEach((_, i) => {
+          const I = (p.base + i) * 3;
+          const rho = Math.hypot(res[I], res[I + 2]) || 1e-9;
+          const k = (rho + out) / rho;
+          res[I] *= k;
+          res[I + 2] *= k;
+        });
+      }
   }
   // Turned cloth (a lapel, a collar's fall) lies on the cloth it turns over: each turned point is laid at the radius
   // of the garment under it, a cloth's thickness out, so a pressed lapel or collar reads flat, not crumpled.
