@@ -1532,6 +1532,43 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
   // A pressed lapel lies flat on the front it is turned over: each turned point is laid on the point of the front it
   // covers when folded at the roll line (found in the front's own settled mesh), a cloth's thickness out. Done after
   // the sim, so the lapel can't drag the front about as it would held there during it.
+  // A tailored front is interfaced: above the waist it lies smooth over the chest, not crumpled. Its own wrinkles are
+  // eased out (each point drawn toward its neighbours' mean, seams held) and kept clear of the body, before the lapel
+  // is pressed onto it.
+  const fsIt = knob('__fsIt') ?? 0;
+  if (o.pinFront?.length && fsIt > 0) {
+    const nb = new Map<number, number[]>();
+    for (let e = 0; e < edges.length; e += 2) {
+      const [u, v] = [edges[e], edges[e + 1]];
+      (nb.get(u) ?? nb.set(u, []).get(u)!).push(v);
+      (nb.get(v) ?? nb.set(v, []).get(v)!).push(u);
+    }
+    const held = new Set<number>();
+    for (const { i, j, k } of seams) held.add(i).add(j).add(k);
+    const yBot = knob('__fsY') ?? 1e9;
+    for (const p of B.panels) {
+      if (p.role !== 'front' || p.hidden) continue;
+      const ids = p.mesh.pts.map((_, i) => p.base + i).filter((g, i) => !p.turned[i] && !held.has(g) && res[g * 3 + 1] < yBot);
+      const inP = (g: number) => g >= p.base && g < p.base + p.mesh.pts.length && !p.turned[g - p.base];
+      for (let it = 0; it < fsIt; it++)
+        for (const g of ids) {
+          const ns = (nb.get(g) ?? []).filter(inP);
+          if (ns.length < 3) continue;
+          const I = g * 3;
+          for (let d = 0; d < 3; d++) {
+            const m = ns.reduce((a, n) => a + res[n * 3 + d], 0) / ns.length;
+            res[I + d] += (m - res[I + d]) * 0.5;
+          }
+          const a = Math.atan2(res[I], res[I + 2]);
+          const rho = Math.hypot(res[I], res[I + 2]) || 1e-9;
+          const lo = sp.bodyR(a, res[I + 1]) + thick + 0.3;
+          if (rho < lo) {
+            res[I] *= lo / rho;
+            res[I + 2] *= lo / rho;
+          }
+        }
+    }
+  }
   if (o.pinFront?.length && !knob('__noPress')) {
     for (const p of B.panels) {
       const fold = p.folds?.[0];
@@ -1926,7 +1963,9 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       if (p.hidden || p.role !== 'back') continue;
       const pts = p.mesh.pts;
       const W0 = knob('__cbEaseW') ?? 4;
-      const near = pts.map((_, i) => i).filter((i) => Math.abs(pts[i].x) < W0 && !p.turned[i]);
+      // (Its edges stay where they were sewn: a waist seam or hem eased toward the cloth inside it would rise off it.)
+      const edge = new Set(Object.values(p.mesh.runs).flatMap((rs) => (rs ?? []).flat()));
+      const near = pts.map((_, i) => i).filter((i) => Math.abs(pts[i].x) < W0 && !p.turned[i] && !edge.has(i));
       if (!near.length) continue;
       const nb: number[][] = pts.map(() => []);
       for (const [a, b, c] of p.mesh.tris) {
