@@ -201,3 +201,14 @@
     max-height: 26dvh;
   }
 }
+
+/* Watch it draft, under the pattern inside the drawing's box, at its right like Watch demo. */
+.watch-draft {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 6px;
+}
+.watch-draft .link.small span {
+  margin-left: 6px;
+  font-size: 0.8em;
+}

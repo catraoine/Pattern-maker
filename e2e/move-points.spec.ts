@@ -26,6 +26,14 @@ test('drags a point on the flat pattern, measures one on the tape, and goes back
   await page.mouse.up();
   await expect(page.locator('.pe-ghost').first()).toBeAttached();
 
+  // A fingertip that lands beside a point still takes it (a 44 pt target, not just the small dot).
+  const before0 = await point(page, 'Bodice front', 'armhole|side#0');
+  await page.mouse.move(before0.x + 14, before0.y + 8);
+  await page.mouse.down();
+  await page.mouse.move(before0.x + 34, before0.y + 8, { steps: 6 });
+  await page.mouse.up();
+  await expect.poll(async () => (await point(page, 'Bodice front', 'armhole|side#0')).x).toBeGreaterThan(before0.x + 10);
+
   // Press and hold the shoulder point: the tape shows the shoulder length, and 1 mm more sets it.
   const tip = await point(page, 'Bodice front', 'armhole|shoulder#0');
   await page.mouse.move(tip.x, tip.y);

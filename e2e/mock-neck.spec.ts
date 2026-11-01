@@ -8,7 +8,7 @@ test('mock and funnel necks: bodice, dress and tee', async ({ page }, info) => {
 
   await switchGarment(page, 'Bodice');
   await chooseChip(page, 'Collar', 'Mock neck');
-  await expect((await openGroup(page, 'Collar')).getByText(/hugs the neck/)).toBeVisible();
+  await expect((await openGroup(page, 'Collar')).getByText(/hugs the neck/).filter({ visible: true })).toBeVisible();
   await expect(main.getByText(/mock neck/i).first()).toBeAttached();
   await page.screenshot({ path: info.outputPath('bodice-mock.png'), fullPage: true });
   await chooseChip(page, 'Collar', 'Funnel neck');

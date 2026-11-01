@@ -128,6 +128,8 @@ export interface FabricPaint {
   half: string;
   plain: string;
   look?: FabricLook;
+  /** All round's plain calico: how much of its own colour it gives off, so the lamps don't grey it. */
+  lift?: number;
 }
 
 /** The paint for a fabric, or undefined when the garment is left in lines. */

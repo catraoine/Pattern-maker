@@ -59,7 +59,7 @@ import { coverGuide, coverMissing, coverPieces, padMap } from './engine/formCove
 import { labelCode, savedCopy } from './labels';
 import { fitSummary } from './fit';
 import { ImportedPattern, importedGuide } from './engine/importDxf';
-import { lookPatch } from './collection';
+import { lookFabric, lookPatch } from './collection';
 import { archiveCut } from './archive';
 import { CollectionLink, ExampleTag, GarmentPick } from './ui/GarmentSwitch';
 import { LoadingScreen } from './ui/LoadingScreen';
@@ -822,7 +822,10 @@ export default function App() {
               onBack={() => setStep('style')}
               onMake={(look) => {
                 const { garment: g, ...next } = lookPatch(look);
-                switchGarment(g, { ...next, archive: archiveCut(look.id)?.id } as Partial<Saved>, 'style');
+                // The look comes in the cloth it's named for, so the drawing and the Fabric step open in it.
+                const cloth = lookFabric(look.fabric);
+                const withCloth = keepFinish(storedFinish, { ...finish, fabric: cloth, cloth: clothFor(cloth, finish.cloth) }, mode);
+                switchGarment(g, { ...next, archive: archiveCut(look.id)?.id, finish: withCloth } as Partial<Saved>, 'style');
                 window.scrollTo(0, 0);
               }}
             />

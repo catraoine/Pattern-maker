@@ -22,12 +22,12 @@ test('after measuring, back from Style goes to the measurements list, not throug
 
   // On to a later step, then Print: back comes to Style on the step that was open.
   await main(page).getByRole('button', { name: /^Next: / }).click();
-  const step = await page.getByRole('tab', { selected: true }).textContent();
+  const step = await main(page).locator('.chapter-name').textContent();
   await goPrint(page);
   await expect(main(page).getByRole('group', { name: 'Paper' })).toBeVisible();
   await headerBack(page).click();
   await expectStyle(page, 'Dress');
-  await expect(page.getByRole('tab', { selected: true })).toHaveText(step!);
+  await expect(main(page).locator('.chapter-name')).toHaveText(step!);
 
   await page.goBack();
   await measurements(page);
@@ -88,7 +88,7 @@ test('after a reload, back from the welcome leaves rather than reopening old pag
   await main(page).getByRole('button', { name: 'Next' }).click();
   await page.reload();
   await skipLoading(page);
-  await expect(h1(page, /drafted to your body/i)).toBeVisible();
+  await expect(h1(page, /sewing patterns for the piece/i)).toBeVisible();
   await page.goBack();
   await expect.poll(() => page.url()).not.toContain('localhost');
 });

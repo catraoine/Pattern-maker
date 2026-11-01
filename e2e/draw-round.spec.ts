@@ -1,4 +1,4 @@
-import { expect, startWithExample, switchGarment, test, drawTool } from './fixtures';
+import { drawTool, expect, goTab, startWithExample, switchGarment, test } from './fixtures';
 
 // Draw on it all round (Cat's A Draw on it, 2026-10-28): inside Draw your lines, the all round switch shows the garment
 // turning, and a line drawn on it with one finger is read as the flat tool reads it. DRAW_ROUND_STILLS=<folder> keeps
@@ -12,11 +12,11 @@ test('a hem drawn on the turning dress sets its length', async ({ page, consoleE
   const main = page.getByRole('main');
   if (OUT) {
     // For the stills, in a fabric, as a maker would see it.
-    await main.getByRole('tab', { name: 'Fabric', exact: true }).click();
+    await goTab(page, 'Fabric');
     const more = main.locator('.fabric-more');
     if (!(await more.evaluate((el) => (el as HTMLDetailsElement).open))) await main.locator('.fabric-more > summary').click();
     await main.getByRole('radiogroup', { name: "What's printed on your fabric" }).getByRole('radio', { name: 'One-way' }).click();
-    await main.getByRole('tab', { name: 'Shape', exact: true }).click();
+    await goTab(page, 'Shape');
   }
   await (await drawTool(page)).click();
   await expect(main.getByRole('heading', { name: 'Draw your lines' })).toBeVisible();

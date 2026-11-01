@@ -1,4 +1,4 @@
-import { GarmentName, expect, startWithExample, switchGarment, test } from './fixtures';
+import { GarmentName, expect, goTab, startWithExample, switchGarment, test } from './fixtures';
 
 // The all-round check (Cat, 2026-10-26: "an automatic check that turns every garment around and checks for anything
 // strange"). Every garment, and the dress and tee in each kind of neckline, in the jade python, turned all the way
@@ -180,11 +180,11 @@ for (const look of LOOKS) {
     const main = page.getByRole('main');
     if (look.g !== 'Skirt') await switchGarment(page, look.g);
     for (const pick of look.picks) {
-      await main.getByRole('tab', { name: look.tab, exact: true }).click();
+      await goTab(page, look.tab);
       const b = main.locator('button[aria-pressed]').filter({ hasText: new RegExp(`^\\s*${pick}\\b`) }).first();
       if (await b.count()) await b.evaluate((el) => (el as HTMLElement).click());
     }
-    await main.getByRole('tab', { name: 'Fabric', exact: true }).click();
+    await goTab(page, 'Fabric');
     const more = main.locator('.fabric-more');
     if (!(await more.evaluate((el) => (el as HTMLDetailsElement).open))) await main.locator('.fabric-more > summary').click();
     const print = main.getByRole('radiogroup', { name: "What's printed on your fabric" }).getByRole('radio', { name: 'One-way' });

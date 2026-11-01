@@ -15,7 +15,7 @@ test('gathered skirt: a skirt and a dress skirt, gathered at the waist', async (
   await chooseChip(page, 'Silhouette', 'Gathered');
   const group = await openGroup(page, 'Silhouette');
   await expect(group.getByRole('button', { name: 'Gathered', exact: true })).toHaveAttribute('aria-pressed', 'true');
-  await expect(group.getByText(/gathered into the waistband/)).toBeVisible();
+  await expect(group.getByText(/gathered into the waistband|Gathered at the waist/).filter({ visible: true })).toBeVisible();
   // Its fullness comes from the gathers, so there is no flare to drag.
   await expect(main.getByRole('slider', { name: /flare/i })).toHaveCount(0);
   await group.screenshot({ path: info.outputPath('skirt.png') });

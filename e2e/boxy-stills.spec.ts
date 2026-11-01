@@ -44,7 +44,7 @@ test('boxy stills', async ({ page, consoleErrors }, info) => {
         Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(el, '20');
         el.dispatchEvent(new Event('input', { bubbles: true }));
       });
-    await tab('Skirt & length');
+    await tab('Length & hem');
     await pick('Straight', 'Silhouette');
     await page.evaluate(() => [...document.querySelectorAll('main .hem-mark')].find((g) => g.textContent?.trim() === 'MINI')?.querySelector('.hit')?.dispatchEvent(new MouseEvent('click', { bubbles: true })));
     await page.waitForTimeout(400);
@@ -61,7 +61,7 @@ test('boxy stills', async ({ page, consoleErrors }, info) => {
     if (await repeat.count()) await repeat.fill('4.5');
     // The photo's self band at the seam, and its very short hem, BOXY_HEM cm below the seam, set as a hem drawn on the form would.
     if (process.env.BOXY_BAND) {
-      await tab('Skirt & length');
+      await tab('Length & hem');
       await pick('Self band', 'Belt');
     }
     if (process.env.BOXY_HEM) {
@@ -81,7 +81,7 @@ test('boxy stills', async ({ page, consoleErrors }, info) => {
     await tab('Shape');
     await page.evaluate(() => window.scrollTo(0, 0));
     const views = main.getByRole('group', { name: 'Garment view' });
-    for (const v of ['Form', 'Flat', 'All round']) {
+    for (const v of ['Front', 'Flat', 'All round']) {
       const b = views.getByRole('button', { name: v, exact: true });
       if (!(await b.count())) continue;
       await b.click();
@@ -91,6 +91,6 @@ test('boxy stills', async ({ page, consoleErrors }, info) => {
       await page.waitForTimeout(500);
       await preview.screenshot({ path: `${OUT}/${info.project.name}/${fit.toLowerCase()}${process.env.BOXY_HEM ? '-photo' : ''}-${v.replace(' ', '-').toLowerCase()}.png` });
     }
-    await views.getByRole('button', { name: 'Form', exact: true }).click();
+    await views.getByRole('button', { name: 'Front', exact: true }).click();
   }
 });

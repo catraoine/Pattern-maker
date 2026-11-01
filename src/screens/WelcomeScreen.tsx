@@ -167,7 +167,11 @@ export function WelcomeScreen({ onFinish, formStart, form, onLegal, resume, wait
         {waitlist && joined ? (
           <Title id="wtitle" big="You're on the list" label="We'll write when it opens" />
         ) : (
-          <Title id="wtitle" big="Sewing patterns" label={resume ? 'Welcome back' : 'drafted to your body'} />
+          <Title
+            id="wtitle"
+            big="Drafted to you"
+            label={resume ? 'Welcome back' : 'Sewing patterns for the piece you have in mind'}
+          />
         )}
         {waitlist ? (
           joined ? (

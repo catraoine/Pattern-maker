@@ -1,4 +1,4 @@
-import { expect, goPrint, startWithExample, test } from './fixtures';
+import { expect, goPrint, goTab, startWithExample, test } from './fixtures';
 import type { Page } from '@playwright/test';
 
 // The print picker (P1) replaces the checks switch, under "About your fabric" on the Fabric tab (the one
@@ -6,7 +6,7 @@ import type { Page } from '@playwright/test';
 // cutting layout (P4).
 async function openPrints(page: Page) {
   const main = page.getByRole('main');
-  await main.getByRole('tab', { name: 'Fabric' }).click();
+  await goTab(page, 'Fabric');
   await main.locator('.fabric-more > summary').click();
   return main.getByRole('radiogroup', { name: "What's printed on your fabric" });
 }

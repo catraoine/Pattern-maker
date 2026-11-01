@@ -224,6 +224,9 @@ interface Style {
   onTop?: boolean;
 }
 
+/** The last stencil mark a line took (Lines.build). */
+let stencilMark = 0;
+
 /** A run of points along a surface, each with the surface's normal there (for how brightly it faces you). */
 type Run = { p: V3; n: V3 }[];
 
@@ -277,6 +280,13 @@ class Lines {
     const { colour, width, back = 0, alpha = 1, graze = 0, onTop = false } = this.style;
     const make = (faint: boolean) => {
       const m = new LineMaterial({ color: colour, linewidth: width * lw, resolution: res, vertexColors: true, transparent: true, opacity: faint ? back : alpha, depthTest: !faint && !onTop, depthWrite: false });
+      // Each pixel once per line: a faint line's segments overlap at their round ends, and drawn twice there it read as
+      // a string of beads (Cat's Q2, 2026-10-31). The stencil is cleared each frame; each line takes its own mark.
+      stencilMark = (stencilMark % 255) + 1;
+      m.stencilWrite = true;
+      m.stencilRef = stencilMark;
+      m.stencilFunc = THREE.NotEqualStencilFunc;
+      m.stencilZPass = THREE.ReplaceStencilOp;
       m.onBeforeCompile = (sh) => {
         // The 'colour' of each point is the surface's normal there: how far it faces you sets how bright the line is,
         // as the canvas painter faded a line toward the edge, and a groove fades out before the edge (graze).
@@ -356,7 +366,7 @@ function projection({ w, h, S, cx, top }: Frame) {
 export function createRoundView(): RoundView | undefined {
   let renderer: THREE.WebGLRenderer;
   try {
-    renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, premultipliedAlpha: true });
+    renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, premultipliedAlpha: true, stencil: true });
   } catch {
     return undefined;
   }
@@ -481,7 +491,12 @@ export function createRoundView(): RoundView | undefined {
       tex.colorSpace = THREE.SRGBColorSpace;
       tex.anisotropy = maxAniso;
       disposables.push(tex);
-      return material(cloth?.sheen === 'gloss' ? 'gloss' : cloth?.sheen === 'pile' ? 'pile' : 'matte', tex, 1 / size, cloth?.sheer ? 0.6 : 1);
+      const mat = material(cloth?.sheen === 'gloss' ? 'gloss' : cloth?.sheen === 'pile' ? 'pile' : 'matte', tex, 1 / size, cloth?.sheer ? 0.6 : 1);
+      if (cloth?.lift && cloth.plain) {
+        mat.emissive.set(cloth.plain).convertSRGBToLinear();
+        mat.emissiveIntensity = cloth.lift;
+      }
+      return mat;
     };
     const clothMat = () => {
       if (!cloth) return material('black');

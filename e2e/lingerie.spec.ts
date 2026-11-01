@@ -1,4 +1,4 @@
-import { openReview, chooseDrop, expect, skipLoading, skipToExample, fillStepPages, test } from './fixtures';
+import { chooseDrop, expect, fillStepPages, goTab, openReview, skipLoading, skipToExample, test } from './fixtures';
 import type { Page } from '@playwright/test';
 
 // Soft lingerie and swimwear, kept out of releases until its fit test: only ?lingerie=preview shows it.
@@ -31,8 +31,8 @@ test('measures the underbust, drafts a bralette and a swimsuit, and prints', asy
 
   const choose = async (group: string, chip: string) => {
     const g = main(page).getByRole('group', { name: group, exact: true });
-    const tabs = main(page).getByRole('tablist', { name: 'Style choices' });
-    if (!(await g.isVisible()) && (await tabs.isVisible())) await tabs.getByRole('tab', { name: group, exact: true }).click();
+    const tabs = main(page).getByRole('tablist', { name: 'Style choices', includeHidden: true });
+    if (!(await g.isVisible()) && (await tabs.count())) await goTab(page, group);
     const b = g.getByRole('button', { name: chip, exact: true });
     await b.click();
     await expect(b).toHaveAttribute('aria-pressed', 'true');
@@ -42,8 +42,8 @@ test('measures the underbust, drafts a bralette and a swimsuit, and prints', asy
   await expect(main(page).getByText(/^bralette cup/i).first()).toBeVisible();
   // Tried one on: the legs gaped, so the next draft cuts the leg elastic shorter.
   const fitGroup = main(page).getByRole('group', { name: 'How did it fit?', exact: true });
-  const tabs = main(page).getByRole('tablist', { name: 'Style choices' });
-  if (!(await fitGroup.isVisible()) && (await tabs.isVisible())) await tabs.getByRole('tab', { name: 'How did it fit?', exact: true }).click();
+  const tabs = main(page).getByRole('tablist', { name: 'Style choices', includeHidden: true });
+  if (!(await fitGroup.isVisible()) && (await tabs.count())) await goTab(page, 'How did it fit?');
   await fitGroup.getByRole('group', { name: 'Cups' }).getByRole('button', { name: 'Spill over' }).click();
   await expect(fitGroup.getByText(/Redrawn: cups cut fuller/)).toBeVisible();
   await choose('Piece', 'Swimsuit');

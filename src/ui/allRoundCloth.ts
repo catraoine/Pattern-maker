@@ -31,6 +31,10 @@ export interface ClothTiles {
   sheer: boolean;
   /** Satin, leather and velvet catch the light. */
   sheen?: 'gloss' | 'pile';
+  /** Plain calico gives off this much of its own colour, so the studio lamps keep it pale (FabricPaint.lift). */
+  lift?: number;
+  /** Its colour, for the lift. */
+  plain?: string;
 }
 
 const T = 256;
@@ -86,7 +90,7 @@ export async function clothTiles(p: FabricPaint): Promise<ClothTiles> {
     g.fillRect(0, 0, T, T);
   }
   const s = p.look?.special;
-  const out: ClothTiles = { body, bodySize: p.size, sheer: !!p.look?.sheer, sheen: s === 'satin' || s === 'leather' ? 'gloss' : s === 'velvet' ? 'pile' : undefined };
+  const out: ClothTiles = { body, bodySize: p.size, sheer: !!p.look?.sheer, sheen: s === 'satin' || s === 'leather' ? 'gloss' : s === 'velvet' ? 'pile' : undefined, lift: p.lift, plain: p.plain };
   const B = p.look?.border;
   if (B) {
     const b = canvas();

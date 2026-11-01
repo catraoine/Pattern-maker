@@ -249,6 +249,7 @@ section.live-big,
   margin: 0;
   padding: max(12px, env(safe-area-inset-top, 0px)) 16px max(12px, env(safe-area-inset-bottom, 0px));
   overflow: auto;
+  overscroll-behavior: none;
   background: var(--paper);
   animation: live-big 0.35s cubic-bezier(0.2, 0.7, 0.2, 1);
 }

@@ -222,3 +222,24 @@ input.inline {
     transform: scale(1);
   }
 }
+
+/* Cat's H2 headline (2026-10-31): on a phone its label is too long for one line. There it wraps to two balanced
+   lines from the start and only fades in (no wide-to-narrow spacing), so its height never changes while it comes in.
+   After the animation rules above, so it wins over their shorthand. */
+@media (max-width: 959px) {
+  .welcome-card h1 .t-label {
+    white-space: normal;
+    text-wrap: balance;
+  }
+  .welcome.go .welcome-card h1 .t-label {
+    animation-name: label-fade;
+  }
+}
+@keyframes label-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

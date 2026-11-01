@@ -41,7 +41,6 @@ export const openTabNext = (tab: string) => {
 /** The step last open on a garment's style screen, so coming back to it (from Review, Print or anywhere) opens there. */
 let leftOn: { name: string; tab: string } | undefined;
 
-const rank = (t: string) => (t === LOOKS ? 0 : t === PRO ? 3 : t === FABRIC ? 2 : 1);
 
 // The choices sit on a few tabs (Cat, 2026-10-18), so the whole row fits on a phone and the tailor's words
 // (darts, structure) sit beside the plain ones they belong to. A group not listed keeps a tab of its own.
@@ -49,6 +48,10 @@ const SHAPE = 'Shape';
 const NECK = 'Neck & sleeves';
 const LENGTH = 'Length & hem';
 const DETAILS = 'Details';
+// One order of steps for every garment (Cat, 2026-10-31): Shape, Neck & sleeves, Length & hem, Details, then any
+// step of a garment's own, Fabric, and the pro tools last. A garment skips the steps it has no questions for.
+const ORDER = [LOOKS, SHAPE, NECK, LENGTH, DETAILS];
+const rank = (t: string) => (t === PRO ? 7 : t === FABRIC ? 6 : ORDER.includes(t) ? ORDER.indexOf(t) : 5);
 const SECTIONS: Record<string, string> = {
   Fit: SHAPE,
   Silhouette: SHAPE,
@@ -59,7 +62,8 @@ const SECTIONS: Record<string, string> = {
   Structure: SHAPE,
   'Waist seam': SHAPE,
   Leg: SHAPE,
-  'Your knit’s stretch': SHAPE,
+  // The knit's stretch is about the fabric, so it opens the Fabric step, not Shape (Cat, 2026-10-31).
+  'Your knit’s stretch': FABRIC,
   Neckline: NECK,
   Neck: NECK,
   Collar: NECK,
@@ -73,6 +77,8 @@ const SECTIONS: Record<string, string> = {
   Hem: LENGTH,
   Slit: LENGTH,
   Peplum: LENGTH,
+  // The jacket's rib bands sit with its length and hem, not on a step of their own (Cat, 2026-10-31).
+  'Hem and cuffs': LENGTH,
   'Below the hip': LENGTH,
   Waist: DETAILS,
   Pockets: DETAILS,
@@ -189,6 +195,22 @@ const Corner = createContext<HTMLElement | null>(null);
 export function InCorner({ children }: { children: ReactNode }) {
   const corner = useContext(Corner);
   return corner ? createPortal(children, corner) : <>{children}</>;
+}
+
+/** Undo and Redo as two named words across from the step's number, on a phone. */
+function StepUndo({ undo }: { undo: Undo }) {
+  return (
+    <div className="step-undo">
+      <button type="button" onClick={undo.undo} disabled={!undo.canUndo} aria-label="Undo the last change" title="Undo">
+        <span aria-hidden="true">↶</span>
+        <small>Undo</small>
+      </button>
+      <button type="button" onClick={undo.redo} disabled={!undo.canRedo} aria-label="Redo the change you undid" title="Redo">
+        <span aria-hidden="true">↷</span>
+        <small>Redo</small>
+      </button>
+    </div>
+  );
 }
 
 /** The tag's names for the questions, where the question's own is longer than the tag has room for. */
@@ -361,6 +383,8 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
   const strip = useRef<HTMLDivElement>(null);
   const chapter = useRef<HTMLDivElement>(null);
   const [atEnd, setAtEnd] = useState(false);
+  // On a phone the list of steps opens from "Step 1 of 5".
+  const [jump, setJump] = useState(false);
   useEffect(() => {
     const el = strip.current;
     if (!el) return;
@@ -427,7 +451,10 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
   // The numbered steps: every tab but Looks (a link by the title) and Pro (the pro tools, at the end).
   const steps = tabs.filter((t) => t !== LOOKS && t !== PRO);
   const strip_ = tabs.filter((t) => t !== LOOKS);
-  const choose = (t: string) => setActive(t);
+  const choose = (t: string) => {
+    setActive(t);
+    setJump(false);
+  };
   // Next and back bring the new step's start up under the drawing, if the page had scrolled past it.
   const goStep = (t: string) => {
     choose(t);
@@ -529,10 +556,28 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
             </button>
           )}
         </p>
+        {/* The pro tools (seam allowances, lining, ease) are offered here, at the end, not under the fabric (Cat,
+            2026-10-31). Turning them on goes back to the steps, where they open on a tab of their own. */}
+        {onMode && (
+          <ModeLink
+            mode={mode}
+            onMode={(m) => {
+              onMode(m);
+              if (m === 'all') setPage('edit');
+            }}
+          />
+        )}
       </div>
     );
   // The step after this one, and its first word for the narrow bar at the bottom ("Next: Neck").
   const next = active === LOOKS ? steps[0] : steps[at + 1];
+  // Back a step is a plain arrow to the left of the way on (Cat, 2026-10-31), on every step after the first, so the
+  // way back is there on the last step too. Its name is read out, not shown.
+  const backArrow = at > 0 && (
+    <button type="button" className="step-back-arrow" aria-label={`Back to ${steps[at - 1]}`} title={steps[at - 1]} onClick={() => goStep(steps[at - 1])}>
+      <span aria-hidden="true">←</span>
+    </button>
+  );
 
   return (
     <div className={compact ? 'style-layout compact' : 'style-layout'} ref={root}>
@@ -544,7 +589,7 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
       </div>
       {exampleTag}
       <div className="style-edit">
-        <div className={tall ? 'style-pin tall' : 'style-pin'} ref={pin}>
+        <div className={['style-pin', tall && 'tall', active === (sections.Length ?? SECTIONS.Length) && 'on-length'].filter(Boolean).join(' ')} ref={pin}>
           {/* The drawing knows which step is open: the named lengths sit beside it only on the length step. */}
           <ActiveTab.Provider value={active}>
             <Sections.Provider value={sections}>
@@ -592,18 +637,37 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
           {/* The open step as a chapter (Cat's H4 + N3, 2026-10-28): "Step 1 of 5", the step's name set large, and the
               steps as a thin line of bars to tap under it. The next step's name is only on the Next button. */}
           <div className="chapter" ref={chapter}>
-            {/* Watch demo sits across from the step (Cat's D3, 2026-10-29): it shows how the steps work. */}
+            {/* Watch demo sits across from the step on a computer (Cat's D3, 2026-10-29). On a phone the step bars are
+                gone and Watch demo is a link at the end of the step (Cat's P1, 2026-10-31): "Step 1 of 5" opens the
+                list of steps instead, to jump to one. */}
             <div className="chapter-top">
-              {at >= 0 && (
-                <p className="chapter-step">
-                  Step <b>{at + 1}</b> of {steps.length}
-                </p>
+              {wide ? (
+                at >= 0 && (
+                  <p className="chapter-step">
+                    Step <b>{at + 1}</b> of {steps.length}
+                  </p>
+                )
+              ) : (
+                <button type="button" className="chapter-step" aria-expanded={jump} aria-controls="style-steps" onClick={() => setJump((j) => !j)}>
+                  {at >= 0 ? (
+                    <>
+                      Step <b>{at + 1}</b> of {steps.length}
+                    </>
+                  ) : (
+                    'The steps'
+                  )}
+                  <span className="chapter-step-mark" aria-hidden="true" />
+                </button>
               )}
-              <DemoButton demo="style" />
+              {wide && <DemoButton demo="style" />}
+              {/* On a phone, Undo and Redo are named, across from "Step 2 of 4", once there is something to undo:
+                  well away from the step's back arrow in the bar (Cat, 2026-10-31). */}
+              {!wide && undo && (undo.canUndo || undo.canRedo) && <StepUndo undo={undo} />}
             </div>
             <h2 className="chapter-name">{active === LOOKS ? 'Start from a look' : active}</h2>
             <div
-              className={atEnd ? 'style-tabs at-end' : 'style-tabs'}
+              id="style-steps"
+              className={['style-tabs', atEnd && 'at-end', jump && 'open'].filter(Boolean).join(' ')}
               role="tablist"
               aria-label="Style choices"
               ref={strip}
@@ -627,7 +691,8 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
                     const to = e.key === 'Home' ? 0 : e.key === 'End' ? strip_.length - 1 : by && strip_.indexOf(t) + by;
                     if (to === undefined || to < 0 || to >= strip_.length) return;
                     e.preventDefault();
-                    choose(strip_[to]);
+                    // The arrow keys move along the steps with the phone's list held open; a tap picks one and shuts it.
+                    setActive(strip_[to]);
                     requestAnimationFrame(() => document.getElementById(`tab-${strip_[to]}`)?.focus());
                   }}
                 >
@@ -658,22 +723,18 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
               </TabPanel>
             ) : (
               // Once, on the last tab, so it isn't repeated under every choice.
-              (wide || active === tabs[tabs.length - 1]) && <ModeLink mode={mode} onMode={onMode} />
+              // On a computer under every step; on a phone it is on the Review page (Cat, 2026-10-31).
+              wide && <ModeLink mode={mode} onMode={onMode} />
             )}
             </Sections.Provider>
           </ActiveTab.Provider>
           </Fold.Provider>
           {/* The way on: the next step, or Review after the last (on a computer the summary is already beside it). */}
-          {(active === LOOKS || at >= 0) && (
+          {wide && (active === LOOKS || at >= 0) && (
             <div className="step-next">
-              {at > 0 && (
-                <button type="button" className="later step-back" onClick={() => goStep(steps[at - 1])}>
-                  ‹ {steps[at - 1]}
-                </button>
-              )}
+              {backArrow}
               {/* On a phone the one box is in the bar at the bottom (F1, 2026-10-24); the computer has no bar. */}
-              {wide &&
-                (active === LOOKS && steps[0] ? (
+              {active === LOOKS && steps[0] ? (
                   <button type="button" className="step-go" onClick={() => goStep(steps[0])}>
                     Start with {steps[0]} ›
                   </button>
@@ -683,7 +744,19 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
                       Next: {steps[at + 1]} ›
                     </button>
                   )
-                ))}
+                )}
+            </div>
+          )}
+          {/* On a phone the step ends with two quiet links (Cat's P1, 2026-10-31): Review, which left the bar so it
+              holds one button, and Watch demo. */}
+          {!wide && (
+            <div className="step-links">
+              {next && ready && (
+                <button type="button" className="later go step-review" onClick={() => setPage('review')}>
+                  Review all choices <span aria-hidden="true">›</span>
+                </button>
+              )}
+              <DemoButton demo="style" />
             </div>
           )}
         </div>
@@ -709,26 +782,18 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
             )}
           </div>
         ) : (
-          // One clear box in the bar (Cat's N3, 2026-10-28): Next in champagne, or Review after the last, with a quiet
-          // Review link beside it until then. Undo and redo show only once there is something to undo.
+          // One box in the bar (Cat's N3, 2026-10-28, and P1, 2026-10-31): Next in champagne, or Review after the
+          // last; Review before then is a link at the end of the step. Back a step is the arrow to its left; undo
+          // and redo moved up to the drawing's corner so the two arrows are never mixed up (2026-10-31).
           <div className="style-bar">
             {/* The garment's name is read out as it changes, not shown: the drawing shows it (Cat's N3). */}
             <p className="visually-hidden" role="status">
               {Name}
             </p>
-            {next && ready && (
-              <button type="button" className="later go bar-review" onClick={() => setPage('review')}>
-                Review <span aria-hidden="true">›</span>
-              </button>
-            )}
-            {undo && (
-              <div className={undo.canUndo || undo.canRedo ? 'bar-undo' : 'bar-undo idle'}>
-                <UndoTools undo={undo} />
-              </div>
-            )}
+            {backArrow}
             {next ? (
               <button type="button" className="primary" onClick={() => goStep(next)}>
-                Next: {next.split(/\s/)[0]} <span aria-hidden="true">›</span>
+                Next: {next} <span aria-hidden="true">›</span>
               </button>
             ) : (
               <button type="button" className="primary" disabled={!ready} onClick={() => setPage('review')}>

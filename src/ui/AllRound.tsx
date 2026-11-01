@@ -1,13 +1,13 @@
 // All the way round: the garment on the dress form, turning, so you can see what the flat sketch can't:
-// every seam and dart meeting where they join, the neck and the hem all the way round (the hem unrolled
-// into one line under the form), the sleeves and trouser legs, and stripes meeting at the side seams when
+// every seam and dart meeting where they join, the neck and the hem all the way round, the sleeves and trouser legs, and stripes meeting at the side seams when
 // the fabric has them. Drag anywhere to turn it. It is a shape preview drawn from the draft, not a cloth
 // simulation. Seams are trued as each garment is drafted, so nothing here is ever flagged as a problem:
 // when a change is trued, the seams glow softly, and that is the only sign. With a fabric chosen, the garment is
-// drawn in it, print and colour wrapped round as it turns (Cat, 2026-10-26); the form stays in its long lines.
+// drawn in it, print and colour wrapped round as it turns (Cat, 2026-10-26); with none, in plain calico, and the checks
+// fold into one quiet line under it (Cat's Q2 Quiet in Calico, 2026-10-31: the view read like engineering).
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { MyFabric } from '../engine/fabrics';
-import { fabricPaint } from './FabricFill';
+import { FabricPaint, fabricPaint } from './FabricFill';
 import { ClothQuad, ClothTiles, clothLayers, clothTiles, lightOf, paintCloth } from './allRoundCloth';
 import { RoundGarment, RoundPt, RoundSeam, stripesMeet } from '../engine/allRound';
 import { bodyHalf as formHalfWidth, reach as bodyReach, shapeAt } from '../engine/body';
@@ -18,7 +18,6 @@ import type { Pick, PickPart, RoundView } from './allRoundMesh';
 // Matching --gild, --gild-glow, --guide, --muted and --ok in styles.css.
 const GILD = '#d9c49b';
 const GLOW = '#f3e6c8';
-const GUIDE = '#4a4338';
 const MUTED = '#9a8e78';
 const OK = '#a9c49b';
 
@@ -26,7 +25,8 @@ const TAU = Math.PI * 2;
 const HALF = Math.PI / 2;
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const wrap = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
-const STRIP = 96; // the unrolled hem line under the figure, in px
+/** With no fabric picked, the Form view's calico (18-calm-style.css --calico), lifted so the studio lamps keep it pale. */
+const CALICO: FabricPaint = { size: 16, tone: '#f2eadb', ground: '#f2eadb', half: '#f2eadb', plain: '#f2eadb', lift: 0.4 };
 
 type Pt = [number, number, number];
 
@@ -108,13 +108,23 @@ export function roundRows(r: RoundGarment, striped: boolean | 'checks' | 'stripe
   return rows;
 }
 
+/** The checks as one quiet line: "Seams and hem checked", and stripes or checks "matched". */
+export function checked(rows: Row[]): string {
+  const names = rows.filter((r) => r.id !== 'stripes').map((r, i) => (i ? r.name.toLowerCase() : r.name));
+  const match = rows.find((r) => r.id === 'stripes');
+  const list = names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}` : names[0];
+  return `${list} checked${match ? `, ${match.name.toLowerCase()} matched` : ''}`;
+}
+
 export function AllRound({ round, m, striped = false, fabric, label, draw }: Props) {
   const ref = useRef<HTMLCanvasElement>(null);
   const drawRef = useRef(draw);
   drawRef.current = draw;
   const drawing = !!draw;
   // The cloth's tiles, once its swatch has loaded; until then (and with no fabric) the garment is in lines.
-  const paint = useMemo(() => fabricPaint(fabric, import.meta.env.BASE_URL), [fabric]);
+  // The How it works film keeps its lines with no fabric (scripts/record-tour-shots.mjs).
+  const film = !!(window as Window & { __tourFilm?: string | boolean }).__tourFilm;
+  const paint = useMemo(() => fabricPaint(fabric, import.meta.env.BASE_URL) ?? (film ? undefined : CALICO), [fabric, film]);
   const paintKey = JSON.stringify(paint ?? null);
   const [tiles, setTiles] = useState<ClothTiles | undefined>();
   useEffect(() => {
@@ -187,15 +197,13 @@ export function AllRound({ round, m, striped = false, fabric, label, draw }: Pro
     // The film's 'old look': the form's lines run on through the whole garment, as the released film had it.
     const through = flag === 'old';
     const isTop = round.kind === 'top' || round.kind === 'dress';
-    // Drawing on it, the figure has the whole canvas: no hem strip, the status line under it reads the hem.
-    const strip = trousers || drawing ? 0 : STRIP;
     // In the maker's fabric, unless the film wants its old look.
     const cloth = through ? undefined : tiles;
 
     const sh = roundShape(round, m, { film, through });
     const v3 = through ? undefined : v3ref.current;
     if (v3) v3.build({ round, sh, cloth, film, striped: !!striped });
-    const { hemY, topY, wh, yAt, yOf, kY, N, krB, krW, krH, lengths, longest, highest, bandTop, arm, yS, yU, sl, ra, rh, neckOnly, radius, foldTilt, depthAt, shell, zAcross, clothDown, yE, yCap, axisX, capDepth, sleeveR, lg, yC, yH, legHemR, legR, legAxis, rAt, reach } = sh;
+    const { hemY, topY, wh, yAt, yOf, kY, N, krB, krW, krH, longest, highest, bandTop, arm, yS, yU, sl, ra, rh, neckOnly, radius, foldTilt, depthAt, shell, zAcross, clothDown, yE, yCap, axisX, capDepth, sleeveR, lg, yC, yH, legHemR, legR, legAxis, rAt, reach } = sh;
     /** The last frame's layout, for reading where a finger is. */
     let frame = { S: 1, cx: 0, top: 0, lw: 1, fig: 1 };
 
@@ -240,7 +248,7 @@ export function AllRound({ round, m, striped = false, fabric, label, draw }: Pro
     const draw = (now: number) => {
       const top = film ? Math.min(-2, yOf(highest) - 0.3) : Math.min(-0.45, yOf(highest) - 0.3);
       const bottom = trousers ? FORM_FLOOR + 0.1 : Math.min(FORM_FLOOR + 0.1, Math.max(yOf(longest), sl ? yE : -9) + 0.45);
-      const fig = h - strip;
+      const fig = h;
       const S = Math.min((fig - 16) / (bottom - top), (w / 2 - 14) / (reach * 1.04));
       const cx = w / 2;
       const Y = (y: number) => 8 + (y - top) * S;
@@ -954,59 +962,6 @@ export function AllRound({ round, m, striped = false, fabric, label, draw }: Pro
         polyline(st.stroke, GLOW, 1.8, 0.95);
         g.restore();
       }
-      if (!strip) return;
-
-      // The hem unrolled: centre front, round by the left side and the back, to the centre front again.
-      const x0 = 14;
-      const x1 = w - 12;
-      const t0 = fig + 26;
-      const b0 = h - 22;
-      const lo = Math.min(...lengths);
-      const hi = Math.max(...lengths);
-      const span = Math.max(4, hi - lo);
-      const ax = (a: number) => x0 + ((x1 - x0) * (((a % TAU) + TAU) % TAU)) / TAU;
-      const ay = (cm: number) => t0 + ((cm - (lo - span * 0.15)) / (span * 1.3)) * (b0 - t0);
-      text('Hem from the waist, all the way round', x0, t0 - 12);
-      g.strokeStyle = GUIDE;
-      g.lineWidth = 1;
-      const marks: [number, string, CanvasTextAlign][] = [
-        [0, 'CF', 'left'],
-        [HALF, 'Left', 'center'],
-        [Math.PI, 'CB', 'center'],
-        [(3 * Math.PI) / 2, 'Right', 'center'],
-        [TAU - 1e-4, 'CF', 'right'],
-      ];
-      for (const [a, name, align] of marks) {
-        const x = ax(a);
-        seg([x, t0 - 4], [x, b0 + 2]);
-        text(name, x, b0 + 13, align);
-      }
-      g.strokeStyle = GLOW;
-      g.lineWidth = 1.4;
-      g.beginPath();
-      for (let i = 0; i <= 240; i++) {
-        const a = (TAU * i) / 240;
-        const x = ax(Math.min(a, TAU - 1e-4));
-        const y = ay(round.lengthAt(wrap(a)));
-        if (i) g.lineTo(x, y);
-        else g.moveTo(x, y);
-      }
-      g.stroke();
-      for (const sm of round.seams) {
-        const end = sm.pts[sm.pts.length - 1];
-        if (!end || sm.leg || Math.abs(end.cm - round.lengthAt(end.phi)) > 0.5) continue;
-        dot([ax(((end.phi % TAU) + TAU) % TAU), ay(end.cm), 1], OK, 3);
-      }
-      const facing = ((-phi % TAU) + TAU) % TAU;
-      g.strokeStyle = GILD;
-      g.globalAlpha = 0.6;
-      g.setLineDash([2, 3]);
-      seg([ax(facing), t0 - 6], [ax(facing), b0]);
-      g.setLineDash([]);
-      g.globalAlpha = 1;
-      const cmText = (v: number) => (v < 0 ? `${-v} cm above` : `${v} cm`);
-      text(cmText(round.readings.front), x0 + 3, ay(round.readings.front) - 5);
-      if (round.readings.back !== round.readings.front) text(cmText(round.readings.back), ax(Math.PI) + 4, ay(round.readings.back) - 5);
     };
 
     let raf = 0;
@@ -1105,28 +1060,18 @@ export function AllRound({ round, m, striped = false, fabric, label, draw }: Pro
     };
   }, [round, m, striped, tiles, layers, v3ready, drawing]);
 
-  const turnTo = (a: number) => {
-    turn.current.target = -a + 0.3;
-    turn.current.idle = performance.now();
-  };
-
   return (
     <div className="all-round">
       <canvas ref={ref} className={`all-round-canvas${round.legs ? ' all-round-tall' : ''}${drawing ? ' drawing' : ''}`} role="img" aria-label={label} />
       {!drawing && (
-      <div className="all-round-rows">
-        {rows.map((r) => (
-          <button key={r.id} type="button" className="all-round-row" onClick={() => turnTo(r.turn)}>
+        <div className="all-round-quiet">
+          <p className="all-round-checked">
             <span className="all-round-mark" aria-hidden="true" />
-            <span>
-              <span className="all-round-name">{r.name}</span>
-              <span>{r.text}</span>
-            </span>
-          </button>
-        ))}
-      </div>
+            {checked(rows)}
+          </p>
+          <p className="all-round-note">A shape preview, not a cloth simulation.</p>
+        </div>
       )}
-      {!drawing && <p className="all-round-note">Shape preview, not a cloth simulation</p>}
     </div>
   );
 }

@@ -15,12 +15,12 @@ test('legal pages open from the welcome fine print; header back and browser back
   await headerBack(page).click();
   await expect(h1(page, 'Privacy Policy')).toBeVisible();
   await page.goBack();
-  await expect(h1(page, /drafted to your body/i)).toBeVisible();
+  await expect(h1(page, /sewing patterns for the piece/i)).toBeVisible();
 
   await main.getByRole('button', { name: 'Terms', exact: true }).click();
   await expect(h1(page, 'Terms of Use')).toBeVisible();
   await headerBack(page).click();
-  await expect(h1(page, /drafted to your body/i)).toBeVisible();
+  await expect(h1(page, /sewing patterns for the piece/i)).toBeVisible();
 });
 
 test('legal pages open from Your account mid-pattern, and back returns there', async ({ page }) => {

@@ -1,4 +1,4 @@
-import { GarmentName, expect, startWithExample, switchGarment, test } from './fixtures';
+import { GarmentName, expect, goTab, startWithExample, switchGarment, test } from './fixtures';
 
 // Not a test that runs in CI: a sweep of stills for checking a drawing change by eye, every garment and every kind of
 // neckline turned all the way round in the fabric (Cat, 2026-10-26: "how do we ensure this is not happening with
@@ -37,13 +37,12 @@ test('all round sweep', async ({ page }, info) => {
     if (g !== current) await switchGarment(page, g);
     current = g;
     for (const name of picks) {
-      const t = main.getByRole('tab', { name: tab, exact: true });
-      if (await t.count()) await t.click();
+      if (await main.getByRole('tab', { name: tab, exact: true, includeHidden: true }).count()) await goTab(page, tab);
       const b = main.locator('button[aria-pressed]').filter({ hasText: new RegExp(`^\\s*${name}\\b`) }).first();
       if (await b.count()) await b.evaluate((el) => (el as HTMLElement).click());
       await page.waitForTimeout(250);
     }
-    await main.getByRole('tab', { name: 'Fabric', exact: true }).click();
+    await goTab(page, 'Fabric');
     const more = main.locator('.fabric-more');
     if (!(await more.evaluate((el) => (el as HTMLDetailsElement).open))) await main.locator('.fabric-more > summary').click();
     const print = main.getByRole('radiogroup', { name: "What's printed on your fabric" }).getByRole('radio', { name: 'One-way' });
@@ -63,6 +62,6 @@ test('all round sweep', async ({ page }, info) => {
       await page.mouse.up();
       await page.waitForTimeout(250);
     }
-    await main.getByRole('tab', { name: 'Shape', exact: true }).click();
+    await goTab(page, 'Shape');
   }
 });

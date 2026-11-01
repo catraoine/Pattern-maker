@@ -193,7 +193,8 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
             <input id="who-name" autoComplete="off" autoFocus value={name} onChange={(e) => setName(e.target.value)} />
           </div>
         )}
-        <button type="button" className="primary" disabled={helper && !name.trim()} onClick={begin}>
+        {/* The page's one filled button: the picked halves above are outlined (Cat's S1, 2026-10-31). */}
+        <button type="button" className="primary main-go" disabled={helper && !name.trim()} onClick={begin}>
           Begin measuring
         </button>
         {onSkip && (
@@ -325,7 +326,7 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
           ))}
         </div>
         {testingNote((g) => GARMENT_NAME[g], GARMENTS) && <p className="muted small testing-note">{testingNote((g) => GARMENT_NAME[g], GARMENTS)}</p>}
-        <button type="button" className="primary" disabled={!picked} onClick={() => picked && go(picked)}>
+        <button type="button" className="primary main-go" disabled={!picked} onClick={() => picked && go(picked)}>
           {chooseLabel(picked, values, form)}
         </button>
       </Shell>
