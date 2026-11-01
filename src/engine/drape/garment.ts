@@ -43,6 +43,8 @@ export interface Draped {
   /** Seams to draw: runs of points, by kind. */
   lines: { kind: string; ids: number[] }[];
   buttons: { at: V3; r: number }[];
+  /** How much each point lies in shadow its mesh is too coarse to cast (inside a pressed pleat), 0 to 1. */
+  shade?: Float32Array;
 }
 
 interface Chain {
@@ -96,14 +98,14 @@ class Builder {
   n = 0;
   constructor(public sp: Space) {}
 
-  add(pc: Piece, role: Panel['role'], place: (q: P, turned: boolean) => V3, thick: number, folds: [P, P][] = [], h = 1.6): Panel {
+  add(pc: Piece, role: Panel['role'], place: (q: P, turned: boolean) => V3, thick: number, folds: [P, P][] = [], h = 1.6, creases: [P, P][] = []): Panel {
     const wedges = dartsOf(pc).map(({ near, tip, far }) => [near, tip, far] as Wedge);
     // A fish-eye dart (top, side, bottom, side, back to the top) is two darts point to point across the waist.
     for (const ln of pc.lines) {
       const q = ln.points();
       if (q.length === 5 && Math.hypot(q[0].x - q[4].x, q[0].y - q[4].y) < 1e-6 && Math.abs(q[0].x - q[2].x) < 0.6 && Math.abs(q[1].y - q[3].y) < 0.6 && Math.abs(q[1].x - q[0].x) > 0.1) wedges.push([q[1], q[0], q[3]], [q[1], q[2], q[3]]);
     }
-    const mesh = meshPiece(pc, h, folds, wedges);
+    const mesh = meshPiece(pc, h, folds, wedges, creases);
     const turned = mesh.pts.map((_, i) => mesh.side.some((s) => s[i] === 1));
     const start = mesh.pts.map((q, i) => place(q, turned[i]));
     const p: Panel = { pc, mesh, start, thick: mesh.pts.map((_, i) => thick + (turned[i] ? 0.8 : 0)), base: this.n, role, turned, folds };
@@ -250,6 +252,25 @@ function spanOf(pts: P[], y: number): [number, number] {
 }
 
 type PleatFold = { top: P; hip: P; hem: P };
+/** How wide the shadow under a knife pleat's fold edge is, on cloth pleated s cm apart. */
+const shadowW = (s: number) => Math.min(1, s * 0.19);
+// (Wider than the mesh drops as a duplicate point, h × 0.3, so the strip keeps its own edge points.)
+const SHADOW_CORE = 0.45;
+/** How wide the light caught along a pressed fold edge is, on the face just past it. */
+const FOLD_SHINE = 0.45;
+/** Where a pleated piece's mesh is cut so its edges run straight down each fold (and, on a knife pleat, down the
+ *  edge of the shadow under it), so the fold's step and its shadow are crisp lines, not the mesh's stagger. */
+function creasesOf(pc: Piece): [P, P][] {
+  const folds = pc.meta.pleatFolds as PleatFold[] | undefined;
+  if (!folds || folds.length < 2) return [];
+  const out: [P, P][] = folds.map((f) => [f.hip, f.hem]);
+  if (pc.meta.pleatKind !== 'box') {
+    const w = shadowW(folds[1].hip.x - folds[0].hip.x);
+    // (Two lines: the shadow deepens from the outer one to the inner, and is darkest from there to the fold.)
+    for (const f of folds) for (const v of [w, SHADOW_CORE, -FOLD_SHINE]) out.push([pt(f.hip.x - v, f.hip.y), pt(f.hem.x - v, f.hem.y)]);
+  }
+  return out;
+}
 /** Where pleat fold k lies across the worn skirt at the level y (straight from the hip down, in to the waist above). */
 function foldAt(f: PleatFold, y: number): number {
   if (y <= f.hip.y) return f.top.x + ((f.hip.x - f.top.x) * (y - f.top.y)) / (f.hip.y - f.top.y || 1);
@@ -447,6 +468,10 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
           return ringAt(sp, arcOf(q), c, isBack, 2 + lv * 0.15);
         },
         thick,
+        [],
+        // (Pressed pleats on a finer mesh cut along each fold, so the fold's step and the shadow under it are crisp.)
+        pc.meta.pleatFolds ? 1.2 : 1.6,
+        creasesOf(pc),
       );
       levelOf.set(p, level);
       const top = (isBack ? back : front).filter((t) => t.role === 'front' || t.role === 'back');
@@ -1071,27 +1096,77 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
     }
   }
   // Pressed pleats: below where they are stitched down (the hip), each fold edge stands a little proud of the cloth
-  // it covers, a knife pleat stepping down to the next fold, a box pleat out to both of its folds.
+  // it covers, a knife pleat stepping down to the next fold, a box pleat out to both of its folds. `shade` darkens
+  // the cloth in under each fold and, below zero, lights the pressed edge itself (which is what shows on dark cloth).
+  let shade: Float32Array | undefined;
   for (const p of B.panels) {
     const folds = p.pc.meta.pleatFolds as PleatFold[] | undefined;
     if (!folds || knob('__noPleatFolds')) continue;
+    shade ??= new Float32Array(res.length / 3);
     const box = p.pc.meta.pleatKind === 'box';
     const hipY = folds[0].hip.y;
+    // Each pressed fold hangs as a straight line: the points the mesh has down it are evened out along it, so the
+    // fold doesn't wander from side to side with the mesh's stagger.
+    for (const [a] of creasesOf(p.pc)) {
+      const col = p.mesh.pts
+        .map((q, i) => [q, i] as const)
+        .filter(([q]) => Math.abs(q.x - a.x) < 0.05 && q.y > hipY - 4)
+        .sort((u, v) => u[0].y - v[0].y)
+        .map(([, i]) => (p.base + i) * 3);
+      for (let pass = 0; pass < 6; pass++) {
+        const was = col.map((I) => [res[I], res[I + 1], res[I + 2]]);
+        for (let j = 1; j < col.length - 1; j++) for (let e = 0; e < 3; e += 2) res[col[j] + e] = (was[j - 1][e] + 2 * was[j][e] + was[j + 1][e]) / 4;
+      }
+    }
     p.mesh.pts.forEach((q, i) => {
       if (q.y < hipY - 4) return;
       const xs = folds.map((f) => foldAt(f, q.y));
       const s = xs[1] - xs[0];
-      let k = xs.findIndex((x) => x > q.x) - 1;
+      // (A point on a fold, to within the mesh's rounding, is on its edge, not under it.)
+      let k = xs.findIndex((x) => x > q.x + 0.03) - 1;
       if (k === -2) k = xs.length - 1;
       const from = k < 0 ? xs[0] - s : xs[k];
       const t = Math.min(1, Math.max(0, (q.x - from) / s));
-      const A = (0.7 + 0.5 * Math.min(1, (q.y - hipY) / 40)) * Math.min(1, (q.y - hipY + 4) / 8);
+      const A = (1.3 + 0.7 * Math.min(1, (q.y - hipY) / 40)) * Math.min(1, (q.y - hipY + 4) / 8);
       const off = A * (box ? Math.abs(1 - 2 * t) : 1 - t);
+      // In under the next fold's edge (a box pleat's: in its middle, where its two folds meet) the cloth is in shadow.
+      const deep = box ? 1 - Math.abs(1 - 2 * t) : t;
+      const ramp = Math.min(1, (q.y - hipY + 4) / 8);
+      // (A knife pleat's shadow is a dark strip right under the fold edge; the face before it turns away a little.)
+      shade![p.base + i] = box
+        ? 0.8 * ramp * Math.pow(Math.max(0, (deep - 0.35) / 0.65), 1.2)
+        : ramp * (s * (1 - t) < SHADOW_CORE + 0.02 ? 0.85 : s * t < 0.02 ? -0.7 : 0.25 * t * t);
       const I = (p.base + i) * 3;
       const rho = Math.hypot(res[I], res[I + 2]) || 1e-9;
       res[I] *= (rho + off) / rho;
       res[I + 2] *= (rho + off) / rho;
     });
+    // (The shadow evened over the mesh's own uneven points, so it reads as a band down the pleat, not specks.)
+    const nb: number[][] = p.mesh.pts.map(() => []);
+    for (const [a, b, c] of p.mesh.tris) {
+      nb[a].push(b, c);
+      nb[b].push(a, c);
+      nb[c].push(a, b);
+    }
+    for (let pass = 0; pass < (box ? 1 : 0); pass++) {
+      const nx = p.mesh.pts.map((_, i) => (shade![p.base + i] * 2 + nb[i].reduce((a, j) => a + shade![p.base + j], 0) / (nb[i].length || 1)) / 3);
+      nx.forEach((v, i) => (shade![p.base + i] = v));
+    }
+  }
+  // A skirt's waist and hem are pressed edges: each runs level round the body, not up and down with the mesh.
+  for (const p of B.panels) {
+    if (!/peplum/.test(p.role)) continue;
+    // (The top edge is waist and pleat intake by turns: it is evened as one edge, in order across the piece.)
+    for (const tags of [['waist', 'pleat'], ['hem']]) {
+      const at = [...new Set(tags.flatMap((t) => (p.mesh.runs[t] ?? []).flat()))]
+        .filter((i) => tags[0] !== 'waist' || p.mesh.pts[i].y < 3)
+        .sort((u, v) => p.mesh.pts[u].x - p.mesh.pts[v].x);
+      const ids = at.map((i) => (p.base + i) * 3 + 1);
+      for (let pass = 0; pass < 8; pass++) {
+        const was = ids.map((I) => res[I]);
+        for (let j = 1; j < ids.length - 1; j++) res[ids[j]] = (was[j - 1] + 2 * was[j] + was[j + 1]) / 4;
+      }
+    }
   }
   // Gathered cloth: its fullness lies in soft folds round the skirt. The sim settles where the cloth hangs; the folds
   // its mesh is too coarse to form are laid on for drawing, as many as the cloth's width holds, each seam on a fold's
@@ -1835,7 +1910,7 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
     }
   }
   setKnob("__seams", seams);
-  return { panels: B.panels, pos: res, lines, buttons };
+  return { panels: B.panels, pos: res, lines, buttons, ...(shade ? { shade } : {}) };
 }
 
 /** A shirt collar, which rises from its stand and turns down a little above it. */

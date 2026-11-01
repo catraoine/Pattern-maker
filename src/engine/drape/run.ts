@@ -24,10 +24,12 @@ export type DrapeJob = { m: RoundMeasurements; armhole: RoundGarment['armhole'];
 /** What the view needs of a draped garment: each panel's points and triangles, where it is cut from (for the print),
  *  the settled positions, the seams to draw and the buttons. Plain data, so it crosses from a worker. */
 export interface DrapedLite {
-  panels: { role: string; base: number; tris: number[][]; uv: number[]; hidden?: boolean; collar: boolean; /** Points turned back over a fold (a lapel, a collar's fall). */ turned?: number[] }[];
+  panels: { role: string; base: number; tris: number[][]; uv: number[]; hidden?: boolean; collar: boolean; /** Pressed pleats: drawn crisp, their faces' shading not softened away. */ pleated?: boolean; /** Points turned back over a fold (a lapel, a collar's fall). */ turned?: number[] }[];
   pos: Float64Array;
   lines: { kind: string; ids: number[] }[];
   buttons: { at: [number, number, number]; r: number }[];
+  /** Shadow inside pressed pleats, per point (0 to 1). */
+  shade?: Float32Array;
   contrastCollar?: string;
 }
 
@@ -90,11 +92,13 @@ export function runDrape(job: DrapeJob): DrapedLite {
       uv: p.mesh.pts.flatMap((q) => [q.x, -q.y]),
       hidden: p.hidden,
       collar: p.role === 'collar',
+      ...(p.pc.meta.pleatFolds ? { pleated: true } : {}),
       turned: p.turned.some(Boolean) ? p.turned.map((t) => (t ? 1 : 0)) : undefined,
     })),
     pos: d.pos,
     lines: d.lines,
     buttons: d.buttons.map((b) => ({ at: [b.at[0], b.at[1], b.at[2]], r: b.r })),
+    ...(d.shade ? { shade: d.shade } : {}),
     contrastCollar: cc,
   };
 }

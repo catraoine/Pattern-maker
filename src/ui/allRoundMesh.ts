@@ -100,7 +100,8 @@ function material(mode: Mode, map?: THREE.Texture, scale = 1, opacity = 1): Roun
   if (vY < hideAbove || vY > hideBelow) discard;
   float own = 1.0 - clamp(vShade, 0.0, 1.0);
   if (shadeDepth > 0.0 && vY >= shadeY) own *= 0.42 + 0.58 * clamp((vY - shadeY) / shadeDepth, 0.0, 1.0);
-  diffuseColor.rgb *= own;`,
+  diffuseColor.rgb *= own;
+  diffuseColor.rgb += (1.0 - diffuseColor.rgb) * 0.22 * clamp(-vShade, 0.0, 1.0);`,
       )
       // The far side of the cloth, seen from inside through a neck or an armhole, lies in shadow.
       .replace('#include <normal_fragment_begin>', '#include <normal_fragment_begin>\nif (!gl_FrontFacing) diffuseColor.rgb *= 0.45;');
@@ -457,7 +458,7 @@ function buildDraped(
       const g = new THREE.BufferGeometry();
       g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
       g.setAttribute('uv', new THREE.Float32BufferAttribute(p.uv, 2));
-      g.setAttribute('shade', new THREE.Float32BufferAttribute(new Float32Array(n), 1));
+      g.setAttribute('shade', new THREE.Float32BufferAttribute(d.shade ? d.shade.slice(p.base, p.base + n) : new Float32Array(n), 1));
       g.setIndex(idx);
       g.computeVertexNormals();
       // Soften the shading over a few cm: the mesh's own grain reads as dimples on a pale cloth.
@@ -468,7 +469,8 @@ function buildDraped(
         nb[b].push(a, c);
         nb[c].push(a, b);
       }
-      for (let pass = 0; pass < 4; pass++) {
+      // (Pressed pleats keep their faces' light and shadow: softened once only.)
+      for (let pass = 0; pass < (p.pleated ? 1 : 4); pass++) {
         const nx = Float32Array.from(nrm);
         nb.forEach((list, i) => {
           if (!list.length) return;

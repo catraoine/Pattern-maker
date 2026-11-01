@@ -184,12 +184,22 @@ function meshRegion(edges: Edge[], h: number, wedges: Wedge[]) {
       btag.push(e.tag);
     }
   }
-  // Drop boundary points that land on top of the one before (very short edges).
+  // Drop boundary points that land on top of the one before (very short edges). A corner, where one kind of edge
+  // gives way to another, is kept and the point before it dropped instead: the region beside shares that corner,
+  // so losing it would open a crack between them and break the edge's run there.
   const keepB: number[] = [];
+  // (Where a cut meets the outline matters most: the region the other side of the cut has that point too.)
+  const corner = (i: number) => (btag[i] === '_fold' || btag[(i || bpts.length) - 1] === '_fold' ? 2 : i === 0 || btag[i] !== btag[i - 1] ? 1 : 0);
   bpts.forEach((q, i) => {
     const prev = keepB.length ? bpts[keepB[keepB.length - 1]] : undefined;
     if (!prev || Math.hypot(q.x - prev.x, q.y - prev.y) > h * 0.3) keepB.push(i);
+    else if (corner(i) > corner(keepB[keepB.length - 1]) && corner(i) > 0) keepB[keepB.length - 1] = i;
   });
+  // (And the last point, if it lands on the first.)
+  if (keepB.length > 2) {
+    const a = bpts[keepB[keepB.length - 1]];
+    if (Math.hypot(a.x - bpts[0].x, a.y - bpts[0].y) <= h * 0.3) keepB.pop();
+  }
   const B = keepB.map((i) => bpts[i]);
   const T = keepB.map((i) => btag[i]);
   const poly = B;
@@ -232,10 +242,11 @@ function meshRegion(edges: Edge[], h: number, wedges: Wedge[]) {
   return { pts, tris, nb, tags: T };
 }
 
-/** The piece as cloth, about `h` cm between points, split along each fold line (from a to b, extended across the piece). */
-export function meshPiece(pc: Piece, h = 1.6, folds: [P, P][] = [], wedges: Wedge[] = []): Mesh2D {
+/** The piece as cloth, about `h` cm between points, split along each fold line (from a to b, extended across the piece).
+ *  A crease is cut the same way, so the mesh's edges run along it, but nothing either side of it is turned. */
+export function meshPiece(pc: Piece, h = 1.6, folds: [P, P][] = [], wedges: Wedge[] = [], creases: [P, P][] = []): Mesh2D {
   let regions: Edge[][] = [outlineEdges(pc)];
-  for (const [a, b] of folds) {
+  for (const [a, b] of [...folds, ...creases]) {
     const next: Edge[][] = [];
     for (const r of regions) {
       for (const keepLeft of [true, false]) {
