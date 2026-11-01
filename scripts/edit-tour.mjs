@@ -155,7 +155,8 @@ function tapeAcross(t) {
 const MARKS = WIDE
   ? { fabric: 2.6, enlarge: 9.5, draw: 11.6, hem: 13.2, side: 20.0, done: 26.1 }
   : { fabric: 2.6, enlarge: 9.1, draw: 11.1, hem: 12.7, side: 19.1, done: 24.3 };
-const JOURNEY = { from: 0.6, to: MARKS.done + 0.9, dur: 17 };
+// Played at 1.4 times its speed, however long the take (Cat, 2026-11-01: less time on the dress page, no enlarge).
+const JOURNEY = { from: 0.6, to: MARKS.done + 0.9, dur: Math.round(((MARKS.done + 0.3) / 1.4) * 10) / 10 };
 const atOut = (t) => ((t - JOURNEY.from) * JOURNEY.dur) / (JOURNEY.to - JOURNEY.from);
 // [shot time, zoom, x, y]: on a computer, the whole page, then in on the enlarged form to draw, and back as the
 // pattern comes up. A phone shows the whole screen throughout. Both end framed as the pattern shot opens, so the
