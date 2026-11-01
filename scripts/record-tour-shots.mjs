@@ -625,6 +625,9 @@ await tap(main.getByRole('group', { name: 'Preview view' }).getByRole('button', 
 await p.evaluate((look) => { window.__tourFilm = look === 'old' ? 'old' : true; }, process.env.TOUR_LOOK);
 await main.getByRole('group', { name: 'Garment view' }).getByRole('button', { name: 'All round' }).click();
 await wait(800);
+// The garment is sewn from its pattern pieces a few seconds after All round opens: shot once it's drawn.
+await p.waitForFunction(() => document.querySelector('.all-round-canvas')?.dataset.sewn !== 'pending', null, { timeout: 60000 });
+await wait(600);
 const CLOSEST = 1.45;
 await p.evaluate((K) => {
   const c = document.querySelector('.all-round-canvas');
