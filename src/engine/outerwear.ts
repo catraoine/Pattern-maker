@@ -25,10 +25,6 @@ export type OuterCollar = 'notched' | 'peak' | 'shawl' | 'stand' | 'funnel' | 'c
 export type OuterLapel = 'classic' | 'wide' | 'plunge';
 /** The collars that roll back as lapels from the break point. */
 export const lapelled = (c: OuterCollar | undefined) => c === 'notched' || c === 'peak' || c === 'shawl';
-/** A lapelled collar worn turned down, or popped up to stand round the neck (In testing). */
-export type OuterCollarWear = 'down' | 'popped';
-/** The upper collar cut from the garment's own fabric, or a second one (In testing): black, ivory, or a deeper shade. */
-export type OuterUpperCollar = 'self' | 'black' | 'ivory' | 'deep';
 export type OuterPockets = 'none' | 'patch' | 'welt';
 /** 'tailored' is the two-piece sleeve, top and under sleeve; 'fitted' the one-piece with an elbow dart;
  *  'raglan' runs up to the neck, the shoulders cut off the body and on to the sleeve. */
@@ -68,10 +64,6 @@ interface OuterStyle {
   cutawayCm?: number;
   /** How the lapels are cut (In testing); older saves have none, the classic lapel. */
   lapel?: OuterLapel;
-  /** A lapelled collar popped up (In testing); older saves have none, turned down. */
-  collarWear?: OuterCollarWear;
-  /** The upper collar in a second fabric (In testing); older saves have none, self. */
-  upperCollar?: OuterUpperCollar;
   seamAllowance: number;
   hemAllowance: number;
   fitting?: BodiceFitting;
@@ -147,10 +139,6 @@ export interface OuterDraft {
   /** Buttoned left over right, as menswear is; right over left when missing. */
   lapsLeft?: boolean;
   lapel?: Lapel;
-  /** A lapelled collar popped up to stand round the neck. */
-  popped?: boolean;
-  /** The upper collar cut from a second fabric, and which. */
-  contrastCollar?: Exclude<OuterUpperCollar, 'self'>;
   /** Where the pockets sit on the front, as drafted: a patch pocket's outline, or a welt's opening. */
   pocket?: { x: number; y: number; w: number; h: number; kind: 'patch' | 'welt' };
   /** The pad thickness drafted into the shoulders, in cm (0 for none). */
@@ -731,13 +719,9 @@ function notchedCollar(front: Piece, backNeck: number, frontNeck: number, s: Out
   const [Q, K] = front.meta.gorge as [P, P];
   const N = front.meta.neckPoint as P;
   const Cp = front.meta.collarPoint as P;
-  // Popped up, the collar stands round the neck: a deeper stand and a straighter neck edge, so it rises
-  // close to the neck instead of rolling over it.
-  const popped = s.collarWear === 'popped';
-  const contrast = !!s.upperCollar && s.upperCollar !== 'self';
-  const stand = (s.kind === 'coat' ? 3.5 : 3) + (popped ? 1 : 0);
+  const stand = s.kind === 'coat' ? 3.5 : 3;
   const fall = s.kind === 'coat' ? 5 : 4.2;
-  const spring = popped ? 1 : 2.5;
+  const spring = 2.5;
   const L = backNeck + frontNeck;
   // The neck edge: straight across the back neck, springing down along the front neck.
   const neck = Array.from({ length: 41 }, (_, i) => {
@@ -766,7 +750,7 @@ function notchedCollar(front: Piece, backNeck: number, frontNeck: number, s: Out
   const outer = Array.from({ length: 21 }, (_, i) => cubic(Cc, lerp(Cc, top, 0.35), p(L * 0.45, top.y), top, i / 20));
   const pts = [...neckPts, Kc, ...outer];
   const tags = [...neckPts.slice(1).map(() => 'neck'), 'gorge', 'collar', ...outer.slice(1, -1).map(() => 'collar'), 'fold'];
-  const cut = contrast ? 'Cut 2 on fold (1 self, 1 contrast)' : 'Cut 2 on fold';
+  const cut = 'Cut 2 on fold';
   const mid = p(L * 0.45, -(stand + fall) / 2 + 0.4);
   return {
     name: 'Collar',
@@ -783,14 +767,14 @@ function notchedCollar(front: Piece, backNeck: number, frontNeck: number, s: Out
       { at: p(L * 0.35, -stand - 0.4), text: 'ROLL LINE', size: 0.45 },
     ],
     cut,
-    fabric: contrast ? 'Under collar in self, upper collar in contrast + interfacing' : 'Upper and under collar in self + interfacing',
+    fabric: 'Upper and under collar in self + interfacing',
     seamAllowance: s.seamAllowance,
     allowances: { neck: 1, gorge: 1, collar: 1, fold: 0 },
     meta: { foldAt: 'centre back' },
     draft: {
       frame: [],
       points: [
-        { n: '1', at: p(0, 0), note: `Square a line the back neck plus the front neck seam long, ${r1(L)} cm, and drop its front end ${spring} cm for the spring, ${popped ? 'kept small so the collar stands up close round the neck when it is popped' : 'so the fall has room to roll over'}.` },
+        { n: '1', at: p(0, 0), note: `Square a line the back neck plus the front neck seam long, ${r1(L)} cm, and drop its front end ${spring} cm for the spring, so the fall has room to roll over.` },
         { n: '2', at: top, note: `Square up ${stand} cm for the stand and ${fall} cm for the fall at the centre back.` },
         { n: '3', at: Kc, note: 'Carry the gorge line on from the front neck, the same length as the lapel\'s, to the notch.' },
         { n: '4', at: Cc, note: 'Mark the collar point to leave the notch open, and curve the outer edge back to the centre back, square to it.' },
@@ -1325,8 +1309,6 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
     buttons,
     ...(s.fitting?.flatFront ? { lapsLeft: true } : {}),
     lapel: opening.lapel,
-    ...(lapelled(s.collar) && s.collarWear === 'popped' ? { popped: true } : {}),
-    ...(lapelled(s.collar) && s.upperCollar && s.upperCollar !== 'self' ? { contrastCollar: s.upperCollar } : {}),
     ...(opening.piece.meta.cutaway ? { cutaway: opening.piece.meta.cutaway as { up: number; along: number } } : {}),
     pocket,
     pads: pad,

@@ -66,8 +66,7 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
   const onChoices = undo.change;
   const can = (t: ProTool) => shows(mode, t);
   /** The picked option of a group; lapels read classic when not chosen yet. */
-  const pick = (id: string): string | undefined =>
-    id === 'lapel' ? choices.lapel ?? 'classic' : id === 'collarWear' ? choices.collarWear ?? 'down' : id === 'upperCollar' ? choices.upperCollar ?? 'self' : (choices[id as keyof OuterChoices] as string | undefined);
+  const pick = (id: string): string | undefined => (id === 'lapel' ? choices.lapel ?? 'classic' : (choices[id as keyof OuterChoices] as string | undefined));
   const [view, setView] = useState<'sketch' | 'flat' | 'round' | 'pattern'>('sketch');
   /** Drawing on the form: the choices from before, to keep or go back to. */
   const [onForm, setOnForm] = useState<OuterChoices>();
@@ -189,7 +188,7 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
     >
       <section className="card numbered" aria-labelledby="opts">
         {outerGroups(kind)
-          .filter((g) => (g.id !== 'lapel' && g.id !== 'collarWear' && g.id !== 'upperCollar') || lapelled(choices.collar))
+          .filter((g) => g.id !== 'lapel' || lapelled(choices.collar))
           .map((g) => (
           <Group key={g.id} label={g.label}>
             <div className={chipsClass(kind, g.id)}>
@@ -224,7 +223,6 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
                     {g.id === 'fit' && id === 'oversized' && <TestingTag tool="oversized_outer" />}
                     {((g.id === 'collar' && (id === 'peak' || id === 'shawl' || id === 'funnel')) || (g.id === 'lapel' && id !== 'classic')) && <TestingTag tool="jacket_collars" />}
                     {g.id === 'flare' && id === 'flared' && <TestingTag tool="flared_jacket" />}
-                    {((g.id === 'collarWear' && id === 'popped') || (g.id === 'upperCollar' && id !== 'self')) && <TestingTag tool="contrast_collar" />}
                   </button>
                 );
               })}
