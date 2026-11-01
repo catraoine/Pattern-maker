@@ -203,6 +203,8 @@ export interface DrapeOptions {
   openAboveY?: number;
   /** Crisp cloth (organza, taffeta): a peplum this many times stiffer, so it stands out rather than hangs. */
   crisp?: number;
+  /** An unshaped top: hangs from the bust and shoulder blades as a curtain, in a few long folds. */
+  curtain?: boolean;
   /** Cut boxy: the cloth falls straight from the bust to the hip rather than in under the bust. */
   boxy?: boolean;
   /** Lapels and collar falls held pressed onto the cloth they turn over (a lapel breaking well above the waist). */
@@ -756,6 +758,7 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
   const edges: number[] = [];
   const rest: number[] = [];
   const bends: number[] = [];
+  const chain: [number, number, number, number][] = [];
   const bendRest: number[] = [];
   for (const p of B.panels) {
     const { pts, tris } = p.mesh;
@@ -810,6 +813,9 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       const [u, v] = k.split(',').map(Number);
       edges.push(u + p.base, v + p.base);
       rest.push(Math.hypot(pts[u].x - pts[v].x, pts[u].y - pts[v].y));
+      // (Running down the cloth, on a bodice: held to near its cut length in the sim, top first.)
+      if ((p.role === 'front' || p.role === 'back') && !p.turned[u] && !p.turned[v] && Math.abs(pts[u].y - pts[v].y) > 0.5 * rest[rest.length - 1])
+        chain.push(pts[u].y < pts[v].y ? [u + p.base, v + p.base, rest[rest.length - 1], pts[u].y] : [v + p.base, u + p.base, rest[rest.length - 1], pts[v].y]);
       if (opp.length === 2 && p.turned[opp[0]] === p.turned[opp[1]]) {
         bends.push(opp[0] + p.base, opp[1] + p.base);
         bendRest.push(Math.hypot(pts[opp[0]].x - pts[opp[1]].x, pts[opp[0]].y - pts[opp[1]].y));
@@ -949,6 +955,10 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
     side: sideA,
     onArm: armA,
     pressed: Uint8Array.from(B.panels.flatMap((p) => p.turned.map((t) => (t ? 1 : 0)))),
+    chain: (() => {
+      const c = [...chain].sort((m, n) => m[3] - n[3]);
+      return { up: Int32Array.from(c.map((q) => q[0])), lo: Int32Array.from(c.map((q) => q[1])), rest: Float64Array.from(c.map((q) => q[2])) };
+    })(),
     lieOn: lieOnOf(),
     bendW: Float64Array.from(bendW),
     bendK: o.bendK ?? 0.05,
@@ -958,7 +968,10 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
     legs,
     shoulder: Int32Array.from(B.panels.filter((p) => p.role === 'front' || p.role === 'back').flatMap((p) => (p.mesh.runs.shoulder ?? []).flat().map((i) => i + p.base))),
     // Sleeveless, each shoulder point is held no further out than it is cut (a set-in strap stays over the shoulder).
-    ...(!extra.sleeve?.length && !knob('__noStrapHold') ? { shoulderX: strapHold() } : {}),
+    // The shoulder seam is sewn along the top of the shoulder, as cut: the cloth hangs from it there and can't slide out
+    // along the shoulder or round to the front or back under a heavy skirt's weight.
+    ...(!knob('__noStrapHold') ? { shoulderX: strapHold() } : {}),
+    ...(!knob('__noHoldZ') ? { shoulderZ: knob('__holdZ') ?? 0.5 } : {}),
   };
   // A flared peplum (or a hem's flounce) cut on the fold: the cloth beside the fold bends on round it rather than folding back flat
   // against its other half (which left a knife-edge keel down the centre front).
@@ -2043,6 +2056,159 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       });
     }
   }
+  // An unshaped shirt or top (cut as wide at the waist as the bust) hangs from the bust and shoulder blades in a few
+  // long folds: below them it falls straight, not back in over the ribs or out over the belly in small ripples. The
+  // cloth's own small ripples are eased out first (seams held), then each point down the front and back is kept at
+  // least as far out as the cloth above it at that angle (from the bust down), so it falls as a curtain.
+  if (o.curtain && !knob('__noCurtain')) {
+    const nb = new Map<number, number[]>();
+    for (let e = 0; e < edges.length; e += 2) {
+      const [u, v] = [edges[e], edges[e + 1]];
+      (nb.get(u) ?? nb.set(u, []).get(u)!).push(v);
+      (nb.get(v) ?? nb.set(v, []).get(v)!).push(u);
+    }
+    const held = new Set<number>();
+    for (const { i, j, k } of seams) held.add(i).add(j).add(k);
+    for (const c of centre) held.add(c);
+    let bustY = 0;
+    let bR = 0;
+    for (let y = -40; y <= 0; y += 0.5) {
+      const r = sp.bodyR(0.3, y);
+      if (r > bR) {
+        bR = r;
+        bustY = y;
+      }
+    }
+    const smooth = (ids: number[], inP: (g: number) => boolean, n: number) => {
+      for (let it = 0; it < n; it++)
+        for (const g of ids) {
+          const ns = (nb.get(g) ?? []).filter(inP);
+          if (ns.length < 3) continue;
+          for (let d = 0; d < 3; d++) {
+            const m = ns.reduce((acc, q) => acc + res[q * 3 + d], 0) / ns.length;
+            res[g * 3 + d] += (m - res[g * 3 + d]) * 0.5;
+          }
+        }
+    };
+    const NB = 72;
+    for (const p of B.panels) {
+      if (p.hidden || (p.role !== 'front' && p.role !== 'back')) continue;
+      const inP = (g: number) => g >= p.base && g < p.base + p.mesh.pts.length && !p.turned[g - p.base];
+      const ids = p.mesh.pts.map((_, i) => p.base + i).filter((g) => inP(g) && !held.has(g));
+      smooth(ids, inP, knob('__curtainIt') ?? 12);
+      const run = new Float64Array(NB);
+      const bin = (a: number) => Math.min(NB - 1, Math.max(0, Math.floor(((a + Math.PI) / TAU) * NB)));
+      const order = p.mesh.pts.map((_, i) => p.base + i).filter(inP).sort((g, h) => res[g * 3 + 1] - res[h * 3 + 1]);
+      for (const g of order) {
+        const I = g * 3;
+        const a = Math.atan2(res[I], res[I + 2]);
+        const fwd = p.role === 'front' ? Math.abs(a) : Math.PI - Math.abs(a);
+        if (fwd > (knob('__curtainA') ?? 0.9) || res[I + 1] < bustY) continue;
+        const b = bin(a);
+        const rho = Math.hypot(res[I], res[I + 2]) || 1e-9;
+        // (Fading out toward the sides, which follow the body's turn.)
+        const w = Math.min(1, ((knob('__curtainA') ?? 0.9) - fwd) / 0.3);
+        const want = Math.max(run[b], run[Math.max(0, b - 1)] * 0.5 + run[Math.min(NB - 1, b + 1)] * 0.5);
+        if (rho < want) {
+          const k = (rho + (want - rho) * w) / rho;
+          res[I] *= k;
+          res[I + 2] *= k;
+        }
+        run[b] = Math.max(run[b], Math.hypot(res[I], res[I + 2]));
+      }
+      smooth(ids, inP, 3);
+    }
+  }
+  // A plunge's edge is stay-taped: it can't stretch or fall away from the body, so it lies where the pattern puts it,
+  // as far round the body from the centre front as it is cut, on the body a cloth's thickness off. The cloth within a
+  // few cm of it comes with it.
+  if (!knob('__noStay'))
+    for (const p of B.panels) {
+      if (p.hidden || p.role !== 'front' || p.turned.some(Boolean)) continue;
+      const pts = p.mesh.pts;
+      const neck = (p.mesh.runs.neck ?? []).flat();
+      if (!neck.length) continue;
+      const ny = neck.map((i) => pts[i].y);
+      if (Math.max(...ny) - Math.min(...ny) < (knob('__stayDeep') ?? 15)) continue;
+      const arcTo = (y: number, s: number) => {
+        let a = 0;
+        let acc = 0;
+        const da = 0.004;
+        while (acc < s && a < Math.PI) {
+          acc += sp.bodyR(a + da / 2, y) * da;
+          a += da;
+        }
+        return a;
+      };
+      const disp = new Map<number, V3>();
+      // Walked down the body from the neck point along the edge, each step its cut length, at the distance round from
+      // the centre front its pattern puts it: so the edge lies flat on the body, as long as it is cut, and the V's point
+      // lands as deep as it is cut.
+      const order = [...new Set(neck)].sort((a, b) => pts[a].y - pts[b].y);
+      const surf = (s0: number, c: number): V3 => {
+        const a = arcTo(c, Math.max(0, s0));
+        const r = sp.bodyR(a, c) + p.thick[order[0]] + 0.1;
+        return [Math.sin(a) * r, c, Math.cos(a) * r];
+      };
+      const I0 = (p.base + order[0]) * 3;
+      let cur: V3 = [res[I0], res[I0 + 1], res[I0 + 2]];
+      let c = res[I0 + 1];
+      order.forEach((i, k) => {
+        if (k > 0) {
+          const L = Math.hypot(pts[i].x - pts[order[k - 1]].x, pts[i].y - pts[order[k - 1]].y);
+          let nxt = surf(pts[i].x, c);
+          for (let g = 0; g < 400 && Math.hypot(nxt[0] - cur[0], nxt[1] - cur[1], nxt[2] - cur[2]) < L; g++) {
+            c += 0.1;
+            nxt = surf(pts[i].x, c);
+          }
+          cur = nxt;
+        }
+        const I = (p.base + i) * 3;
+        // (Eased in from the strap: up at the shoulder the strap's own hold governs.)
+        const f = Math.min(1, Math.max(0, (pts[i].y - Math.min(...ny)) / (knob('__stayFade') ?? 10)));
+        // (Only ever down: where the cloth already hangs lower over the bust, it stays.)
+        if (cur[1] < res[I + 1]) {
+          c = res[I + 1];
+          cur = surf(pts[i].x, c);
+        }
+        disp.set(i, [(cur[0] - res[I]) * f, (cur[1] - res[I + 1]) * f, (cur[2] - res[I + 2]) * f]);
+      });
+      const W = knob('__stayW') ?? 5;
+      // (Below the V's point the cloth down to the waist eases down with it, over that whole length.)
+      const yV = Math.max(...ny);
+      const yW = Math.min(...(p.mesh.runs.waist ?? p.mesh.runs.hem ?? []).flat().map((i) => pts[i].y), yV + 20);
+      const vBot = order[order.length - 1];
+      pts.forEach((q, i) => {
+        let best = -1;
+        let bd = Infinity;
+        for (const n of neck) {
+          const d = Math.hypot(pts[n].x - q.x, pts[n].y - q.y);
+          if (d < bd) {
+            bd = d;
+            best = n;
+          }
+        }
+        if (q.y > yV && q.x < W) {
+          // Under the point: by how far down toward the waist.
+          const t0 = 1 - (q.y - yV) / Math.max(1, yW - yV);
+          if (t0 > 0 && (bd >= W || t0 > 1 - bd / W)) {
+            best = vBot;
+            bd = (1 - t0) * W;
+          }
+        }
+        if (best < 0 || bd >= W) return;
+        const t = 1 - bd / W;
+        const w = t * t * (3 - 2 * t);
+        const D = disp.get(best)!;
+        const I = (p.base + i) * 3;
+        res[I] += D[0] * w;
+        res[I + 1] += D[1] * w;
+        res[I + 2] += D[2] * w;
+      });
+    }
+  // (The centre line stays on the centre plane, whatever the passes above moved: a hair off it and the two halves part
+  // in a slit down the front.)
+  for (const i of centre) res[i * 3] = 0;
   // (Last, nothing a pass above moved is left inside the body: a jacket's shoulders held out on the form. The form is
   // drawn with its height carried on straight above the neck point, where its table flattens; so is this.)
   const cTopD = sp.cOf(-1.45) + 2;
@@ -2396,7 +2562,7 @@ export function drapeBodice(sp: Space, d: BodiceDraft, sleeve?: SleeveDraft, o: 
   const torso = pieces.filter(isTorso).map((pc) => ({ pc, back: /back/i.test(pc.name), waistY: /back/i.test(pc.name) ? d.back.waistCentre.y : d.front.waistCentre.y }));
   const skirt = extra.skirt ?? pieces.filter(isSkirt);
   const buttons = d.closure === 'front_buttons' && d.buttons ? { y: d.buttons.at.filter((y) => (o.openBelowY === undefined || y < o.openBelowY) && (o.openAboveY === undefined || y > o.openAboveY)), r: d.buttons.sizeCm / 2, waistY: d.front.waistCentre.y } : undefined;
-  return drape(sp, torso, { skirt: skirt.length ? skirt : undefined, drop: extra.drop, tiers: extra.tiers, under: extra.under, puff: sleeve?.gathers?.crown, cuff: sleeve?.gathers?.hem ? (sleeve.pieces.find((pc) => /band|cuff/i.test(pc.name))?.meta.lengthCm as number | undefined) : undefined, cuffBand: sleeve?.pieces.find((pc) => pc.name === 'Cuff'), sleeve: sleeve?.pieces.filter(isShell), collars: collarsOf(pieces) }, { buttons, closedFront: true, ...o });
+  return drape(sp, torso, { skirt: skirt.length ? skirt : undefined, drop: extra.drop, tiers: extra.tiers, under: extra.under, puff: sleeve?.gathers?.crown, cuff: sleeve?.gathers?.hem ? (sleeve.pieces.find((pc) => /band|cuff/i.test(pc.name))?.meta.lengthCm as number | undefined) : undefined, cuffBand: sleeve?.pieces.find((pc) => pc.name === 'Cuff'), sleeve: sleeve?.pieces.filter(isShell), collars: collarsOf(pieces) }, { buttons, closedFront: true, curtain: d.finishedWaist >= d.finishedBust - 2 && !extra.skirt?.length, ...o });
 }
 
 export function drapeDress(sp: Space, d: DressDraft, sleeve?: SleeveDraft, o: DrapeOptions = {}): Draped {

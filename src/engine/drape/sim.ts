@@ -32,6 +32,10 @@ export interface SimInput {
   /** How far out from the centre each shoulder point is cut to sit (sleeveless: a strap is held there, not left to
    *  slide off down the slope of the shoulder). */
   shoulderX?: Float64Array;
+  /** Where the shoulder seam lies front to back (cm ahead of the body's side plane), held there. */
+  shoulderZ?: number;
+  /** Edges running down a bodice, top first (upper point, lower point, cut length): held to near their cut length. */
+  chain?: { up: Int32Array; lo: Int32Array; rest: Float64Array };
   /** Trouser legs: below the crotch the cloth lies on two legs, not the body. */
   legs?: { x: number; c0: number; c1: number; r0: number; r1: number };
   /** Points beside a fold and their flat distance from their own mirror across it: the cloth's bend carries on round
@@ -146,6 +150,14 @@ export function simulate(s: Space, inp: SimInput, steps = knob("__steps") ?? 260
     }
   };
 
+  // Cloth barely stretches along its length: a heavy skirt pulls a bodice down only so far. The few iterations above
+  // can't carry its whole weight up to the shoulders, so after them each step every edge that runs down the cloth is
+  // held to near its cut length, top first, the lower end drawn up to the upper (a hanging chain, settled from the top).
+  const LIM = knob('__strain') ?? 1.06;
+  const CHK = knob('__chainK') ?? 1;
+  const HZIN = knob('__holdZin') ?? -99;
+  const HZK = knob('__holdZk') ?? 0.5;
+  const HZY = (knob('__holdZy') ?? 1) > 0;
   for (let step = 0; step < steps; step++) {
     const ramp = Math.min(1, 0.05 + step / (steps * 0.35));
     for (let i = 0; i < n; i++) {
@@ -202,6 +214,11 @@ export function simulate(s: Space, inp: SimInput, steps = knob("__steps") ?? 260
           if (x[I + 1] > top) x[I + 1] = top;
           const cap = inp.shoulderX?.[k];
           if (cap !== undefined && Math.abs(x[I]) > cap) x[I] = Math.sign(x[I]) * cap;
+          // (Sewn along the top of the shoulder: neither front nor back can drag the seam round to its own side.)
+          if (inp.shoulderZ !== undefined && Math.abs(x[I]) < s.tip.x - HZIN) {
+            x[I + 2] += (inp.shoulderZ - x[I + 2]) * HZK;
+            if (HZY) x[I + 1] = top;
+          }
         }
       }
       if (inp.lieOn) {
@@ -242,6 +259,21 @@ export function simulate(s: Space, inp: SimInput, steps = knob("__steps") ?? 260
         collide(i, it === iters - 1 ? fric : 0);
       }
     }
+    if (inp.chain && LIM > 0)
+      for (let q = 0; q < inp.chain.up.length; q++) {
+        const u = inp.chain.up[q] * 3;
+        const v = inp.chain.lo[q] * 3;
+        const dx = x[v] - x[u];
+        const dy = x[v + 1] - x[u + 1];
+        const dz = x[v + 2] - x[u + 2];
+        const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        const L = inp.chain.rest[q] * LIM;
+        if (d <= L) continue;
+        const f = 1 - (1 - L / d) * CHK;
+        x[v] = x[u] + dx * f;
+        x[v + 1] = x[u + 1] + dy * f;
+        x[v + 2] = x[u + 2] + dz * f;
+      }
   }
   return x;
 }

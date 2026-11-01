@@ -169,8 +169,14 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
   );
   const jobKey = useMemo(() => (job ? drapeKey(job) : ''), [job]);
   const [draped, setDraped] = useState<{ key: string; view: DrapedView } | undefined>();
+  const spaceOf = useMemo(() => makeSpace(placeOnForm(round, m), m), [round, m]);
+  // The form stands at the wearer's shoulder width, as the body the cloth is sewn on does.
+  const formX = useMemo(() => (x: number, y: number, z: number) => {
+    const s = spaceOf.scale(y);
+    return spaceOf.widen(x * s, spaceOf.cOf(y), z * s) / s;
+  }, [spaceOf]);
   const toFormOf = useMemo(() => {
-    const sp = makeSpace(placeOnForm(round, m), m);
+    const sp = spaceOf;
     // The form's height table flattens above the neck point: a collar standing up the neck is carried on at the
     // slope below it.
     const cTop = sp.cOf(-1.45) + 2;
@@ -180,7 +186,7 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
       const s = sp.scale(y);
       return [x / s, y, z / s];
     };
-  }, [round, m]);
+  }, [spaceOf]);
   useEffect(() => {
     if (!job) return;
     let live = true;
@@ -245,7 +251,7 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
 
     const sh = roundShape(round, m, { film, through });
     const v3 = through ? undefined : v3ref.current;
-    if (v3) v3.build({ round, sh, cloth, film, striped: !!striped, draped: drapedNow });
+    if (v3) v3.build({ round, sh, cloth, film, striped: !!striped, draped: drapedNow, formX });
     const { hemY, topY, wh, yAt, yOf, kY, N, krB, krW, krH, longest, highest, bandTop, arm, yS, yU, sl, ra, rh, neckOnly, radius, foldTilt, depthAt, shell, zAcross, clothDown, yE, yCap, axisX, capDepth, sleeveR, lg, yC, yH, legHemR, legR, legAxis, rAt, reach } = sh;
     /** The last frame's layout, for reading where a finger is. */
     let frame = { S: 1, cx: 0, top: 0, lw: 1, fig: 1 };
@@ -1101,7 +1107,7 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
       cv.removeEventListener('pointerup', up);
       cv.removeEventListener('pointercancel', up);
     };
-  }, [round, m, striped, tiles, layers, v3ready, drawing, drapedNow]);
+  }, [round, m, striped, tiles, layers, v3ready, drawing, drapedNow, formX]);
 
   return (
     <div className="all-round">

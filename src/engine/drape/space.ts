@@ -5,6 +5,7 @@
 import { BODY_BOTTOM, BODY_TOP, SHOULDER_TIP_Y, bodyHalf, shapeAt } from '../body';
 import { FORM_HIP } from '../form';
 import { RoundMeasurements } from '../../ui/allRoundShape';
+import { knob } from './knob';
 
 const TAU = Math.PI * 2;
 const BUST_Y = -0.575;
@@ -41,6 +42,8 @@ export interface Space {
   /** The top of the shoulder at x cm out from the centre: its level (the form's shoulder, then on over the top of the
    *  arm, dropping gently past the tip, as a shoulder does). */
   ridge: (x: number) => number;
+  /** Where a point x cm out at level c on the form's own shape stands on the wearer's shoulders (the form drawn the same). */
+  widen: (x: number, c: number, z?: number) => number;
 }
 
 /** How much the body draws in from the form's last row to the knees (`overCm` below it): a share of its width there. */
@@ -128,6 +131,55 @@ export function makeSpace(yOf0: (c: number) => number, m: RoundMeasurements & { 
       if (tab[i] * sa > cap) tab[i] = cap / sa;
     }
   }
+  // The form's shoulders are a dress form's, narrower than the wearer's: above the underarm the body is drawn out to the
+  // side, from the neck's edge out, so its shoulder point stands where the wearer's own does (half the measured width,
+  // across the back's curve, as the bodice is drafted to). The neck and the chest below the underarm keep their shape.
+  const tipC0w = tipC0;
+  const tipX0 = (() => {
+    const fr = (tipC0w - C0) / DC;
+    const r = Math.round(fr);
+    return tab[r * (NA + 1) + NA / 2];
+  })();
+  const NECK_X = 5.5;
+  const wantTip = knob('__noWiden') ? tipX0 : Math.max(tipX0, ((m.shoulder_width ?? 38) / 2) * (knob('__widenK') ?? 0.94));
+  const F = (wantTip - NECK_X) / Math.max(1, tipX0 - NECK_X);
+  const widenAt = (c: number) => {
+    // Full at the shoulder's top and above, gone a few cm down the armhole.
+    const u = Math.min(1, Math.max(0, (c - tipC0w - 1) / ((knob('__widenDown') ?? 3) - 1)));
+    return 1 + (F - 1) * (1 - u * u * (3 - 2 * u));
+  };
+  // Only the top of the shoulder goes out, where it runs to the arm: the chest and the back in front of and behind the
+  // arm keep the form's width, so an armhole falls past the shoulder as it does round an arm.
+  const ZW = knob('__widenZ') ?? 6;
+  const widen = (x: number, c: number, z = 0) => {
+    const ax = Math.abs(x);
+    if (ax <= NECK_X || F === 1) return x;
+    const v = Math.max(0, 1 - Math.abs(z) / ZW);
+    return Math.sign(x) * (NECK_X + (ax - NECK_X) * (1 + (widenAt(c) - 1) * v * v * (3 - 2 * v)));
+  };
+  if (F !== 1) {
+    const xs = new Float64Array(NA + 1);
+    const zs = new Float64Array(NA + 1);
+    const as = new Float64Array(NA + 1);
+    for (let r = 0; r < NR; r++) {
+      const c = C0 + r * DC;
+      if (widenAt(c) === 1) continue;
+      for (let k = 0; k <= NA; k++) {
+        const a = (Math.PI * k) / NA;
+        const R = tab[r * (NA + 1) + k];
+        xs[k] = widen(Math.sin(a) * R, c, Math.cos(a) * R);
+        zs[k] = Math.cos(a) * R;
+        as[k] = Math.atan2(xs[k], zs[k]);
+      }
+      let j = 0;
+      for (let k = 0; k <= NA; k++) {
+        const a = (Math.PI * k) / NA;
+        while (j < NA - 1 && as[j + 1] < a) j++;
+        const t = Math.min(1, Math.max(0, (a - as[j]) / (as[j + 1] - as[j] || 1e-9)));
+        tab[r * (NA + 1) + k] = Math.hypot(xs[j] + (xs[j + 1] - xs[j]) * t, zs[j] + (zs[j + 1] - zs[j]) * t);
+      }
+    }
+  }
   const bodyR = (a: number, c: number) => {
     const fr = Math.max(0, Math.min(NR - 1.001, (c - C0) / DC));
     const r = Math.floor(fr);
@@ -147,7 +199,7 @@ export function makeSpace(yOf0: (c: number) => number, m: RoundMeasurements & { 
   // The arm hangs from the shoulder tip, a little out and forward. It holds only the sleeves: the body's own cloth
   // lies on the body, and the arm (pressed to the side of the chest, as an arm is) never pushes it in.
   // The form's shoulders are a dress form's, narrower than the wearer's: the arm hangs from the wearer's own shoulder.
-  const a: [number, number, number] = [Math.max(tipX + 0.5, (m.shoulder_width ?? 38) / 2 - r0 * 0.8), tipC + r0 * 1.1, 0];
+  const a: [number, number, number] = [Math.max(tipX0 + 0.5, (m.shoulder_width ?? 38) / 2 - r0 * 0.8), tipC + r0 * 1.1, 0];
   const lean = 0.08;
   const b: [number, number, number] = [a[0] + L * lean, a[1] + L, 1.5];
   const ridgeTab: number[] = [];
@@ -163,7 +215,7 @@ export function makeSpace(yOf0: (c: number) => number, m: RoundMeasurements & { 
     const k = Math.min(59, Math.floor(f));
     return ridgeTab[k] + (ridgeTab[k + 1] - ridgeTab[k]) * (f - k);
   };
-  return { yOf, cOf, scale, bodyR, tip: { c: tipC, x: tipX }, arm: { r0, r1, a, b }, ridge };
+  return { yOf, cOf, scale, bodyR, tip: { c: tipC, x: tipX }, arm: { r0, r1, a, b }, ridge, widen };
 }
 
 /** The same body for cloth cut boxy: below the bust the cloth falls straight to the hip instead of following the body

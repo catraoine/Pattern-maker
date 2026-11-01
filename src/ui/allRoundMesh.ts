@@ -330,6 +330,8 @@ export interface BuildOptions {
   striped: boolean;
   /** The garment sewn from its pattern; 'pending' while it is still settling (the form stands alone meanwhile). */
   draped?: DrapedView | 'pending';
+  /** The form drawn out at the shoulders to the wearer's width, as the cloth's body is (Space.widen, in form units). */
+  formX?: (x: number, y: number, z: number) => number;
 }
 
 /** What one frame is drawn with: the turn, the canvas (CSS px and device pixel ratio) and the view's own scale,
@@ -621,7 +623,9 @@ export function createRoundView(): RoundView | undefined {
     // The body: the satin form from the top of its neck to below the hip, its neck cut flat across, and its legs.
     const bodyAt = (a: number, y: number): V3 => {
       const yy = Math.max(y, NECK_TOP);
-      return P(a, bodyReach(bodyHalf(Math.min(yy, 1.3)), a, yy), y);
+      const q = P(a, bodyReach(bodyHalf(Math.min(yy, 1.3)), a, yy), y);
+      if (o.formX) q[0] = o.formX(q[0], yy, q[2]);
+      return q;
     };
     const satin = material('satin');
     /** Where the garment's hem is on average: the body or legs under it stand in its shadow. */
