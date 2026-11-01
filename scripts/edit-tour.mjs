@@ -31,9 +31,9 @@ const CSS = `
   .f{position:fixed;inset:0;color:#efe4cc;font-family:'Space Grotesk',sans-serif}
   .k{font:400 10px/1 'Chakra Petch',monospace;letter-spacing:.34em;text-transform:uppercase;color:#d9c49b}
   .r{width:96px;height:1px;background:#d9c49b;margin:18px 0}
-  /* Every word the film says is gold, its own voice apart from the app's cream (Cat, 2026-10-30: gold everywhere). */
-  .t{color:#d9b878;font-family:'Archivo Variable',sans-serif;font-stretch:75%;font-weight:600;text-transform:uppercase;line-height:.9;letter-spacing:.005em;margin:0}
-  .l{color:#d9b878;font-weight:300;font-size:17px;line-height:1.45;margin:0}
+  /* The film's words are champagne, its own voice apart from the app's cream (Cat, 2026-10-31: the gold looked bad). */
+  .t{color:#d9c49b;font-family:'Archivo Variable',sans-serif;font-stretch:75%;font-weight:600;text-transform:uppercase;line-height:.9;letter-spacing:.005em;margin:0}
+  .l{color:#d9c49b;font-weight:300;font-size:17px;line-height:1.45;margin:0}
   .mid{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
   .mid .r{margin:20px auto}`;
 let n = 0;
@@ -153,9 +153,10 @@ function tapeAcross(t) {
 }
 
 const MARKS = WIDE
-  ? { fabric: 2.6, enlarge: 9.5, draw: 11.6, hem: 13.2, side: 20.0, done: 26.1 }
-  : { fabric: 2.6, enlarge: 9.1, draw: 11.1, hem: 12.7, side: 19.1, done: 24.3 };
-const JOURNEY = { from: 0.6, to: MARKS.done + 0.9, dur: 17 };
+  ? { fabric: 1.4, enlarge: 7.4, draw: 9.4, hem: 11.0, side: 17.1, done: 21.8 }
+  : { fabric: 1.4, enlarge: 6.8, draw: 6.8, hem: 8.3, side: 13.7, done: 18.0 };
+// Played at 1.4 times its speed, however long the take (Cat, 2026-11-01: less time on the dress page, no enlarge).
+const JOURNEY = { from: 0.6, to: MARKS.done + 0.9, dur: Math.round(((MARKS.done + 0.3) / 1.4) * 10) / 10 };
 const atOut = (t) => ((t - JOURNEY.from) * JOURNEY.dur) / (JOURNEY.to - JOURNEY.from);
 // [shot time, zoom, x, y]: on a computer, the whole page, then in on the enlarged form to draw, and back as the
 // pattern comes up. A phone shows the whole screen throughout. Both end framed as the pattern shot opens, so the

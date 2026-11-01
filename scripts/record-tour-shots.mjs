@@ -370,8 +370,8 @@ const mark = (what) => console.log(`  style ${what}: ${((Date.now() - t0) / 1000
 // 2026-10-24: longer and flare, the neck and waist kept as in her photo).
 const LINES = {
   photo: [[0.13, 0.639], [0.5, 0.652], [0.87, 0.639]],
-  hem: [[0.104, 0.99], [0.5, 1.0], [0.896, 0.99]],
-  side: [[0.143, 0.483], [0.102, 0.638], [-0.104, 0.99]],
+  hem: WIDE ? [[0.104, 0.975], [0.5, 0.99], [0.896, 0.975]] : [[0.104, 0.99], [0.5, 1.0], [0.896, 0.99]],
+  side: WIDE ? [[0.13, 0.6], [0.11, 0.68], [-0.104, 0.975]] : [[0.143, 0.483], [0.102, 0.638], [-0.104, 0.99]],
 };
 // Off camera, the dress is made to match the photo the film has just shown, Cat's own check silk dress (Cat,
 // 2026-10-24: show that starting from a photo works): a boat neck, short sleeves, a waist seam dropped low on the hip,
@@ -383,6 +383,15 @@ const pick = async (name, group) => {
   if (await r.count()) await r.evaluate((el) => el.click());
   await wait(250);
 };
+// The style steps by name. On a phone the step bars are gone (Cat's P1, 2026-10-31): the list opens from "Step 1 of
+// 5" and shuts once a step is picked. The dress's skirt step is now Length & hem (J4).
+const STEP_NAMES = { 'Skirt & length': 'Length & hem' };
+const stepTab = (name) => main.getByRole('tablist', { name: 'Style choices', includeHidden: true }).getByRole('tab', { name: STEP_NAMES[name] ?? name, exact: true, includeHidden: true });
+const openSteps = async (on) => {
+  const opener = main.locator('button.chapter-step');
+  if (!(await main.getByRole('tablist', { name: 'Style choices' }).isVisible()) && (await opener.isVisible())) await (on ? press(opener, 700) : opener.click());
+};
+const goStep = async (name) => { await openSteps(false); await stepTab(name).click(); };
 // Sleeves need the arm measurements, which the dress didn't ask for: added off camera, straight into the saved
 // measurements, and the page opened again.
 await p.evaluate(() => {
@@ -431,19 +440,19 @@ const FIT = process.env.TOUR_FIT ?? 'Relaxed';
 const SKIRT_PICKS = process.env.TOUR_PLEATS ? [['Straight', 'Silhouette'], ['Inverted pleats', 'Fullness'], ['Self band', 'Belt']] : [['Straight', 'Silhouette']];
 const SLEEVES = process.env.TOUR_SLEEVES ?? 'Short';
 for (const [tab, names] of [['Shape', [[FIT, 'Fit'], 'Dropped']], ['Neck & sleeves', ['Boat', SLEEVES]], ['Length & hem', SKIRT_PICKS]]) {
-  await main.getByRole('tab', { name: tab, exact: true }).click();
+  await goStep(tab);
   await wait(400);
   for (const n of names) await (Array.isArray(n) ? pick(...n) : pick(n));
 }
 // The sleeves to the photo's length, about 20 cm from the shoulder, on the sleeve slider.
-await main.getByRole('tab', { name: 'Neck & sleeves', exact: true }).click();
+await goStep('Neck & sleeves');
 await wait(300);
 if (SLEEVES !== 'Sleeveless') await main.locator('input[type=range][aria-label="Sleeve length, in cm from the shoulder"]').first().evaluate((el) => {
   Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, '20');
   el.dispatchEvent(new Event('input', { bubbles: true }));
 });
 await wait(300);
-await main.getByRole('tab', { name: 'Length & hem', exact: true }).click();
+await goStep('Length & hem');
 await wait(300);
 // The length is set from the marks beside the form.
 await p.evaluate((m) => [...document.querySelectorAll('main .hem-mark')].find((g) => g.textContent.trim() === m)?.querySelector('.hit')?.dispatchEvent(new MouseEvent('click', { bubbles: true })), process.env.TOUR_MARK ?? 'KNEE');
@@ -454,7 +463,7 @@ for (let i = 0; i < Number(process.env.TOUR_SHORTER ?? 0); i++) {
 }
 if (process.env.TOUR_SHORTER) console.log('LENGTH', await main.locator('[role=slider][aria-label$="length"]').evaluateAll((els) => els.map((e) => `${e.getAttribute('aria-label')}=${e.getAttribute('aria-valuenow')}`)));
 await wait(400);
-await main.getByRole('tab', { name: 'Fabric', exact: true }).click();
+await goStep('Fabric');
 await wait(400);
 const choose = (sel, name) => p.evaluate(([sel, name]) => [...document.querySelectorAll(sel)].find((el) => el.getAttribute('aria-label') === name || el.textContent.trim().startsWith(name))?.click(), [sel, name]);
 await choose('[role=radiogroup][aria-label="Fabric for the sketch"] [role=radio]', 'Silk');
@@ -472,7 +481,7 @@ await wait(300);
 const repeat = main.locator('#fabrepeat');
 if (await repeat.count()) await repeat.fill(process.env.TOUR_REPEAT ?? '4.5');
 await wait(300);
-for (const n of (process.env.TOUR_EXTRA ?? '').split('|').filter(Boolean)) { for (const t of ['Shape', 'Neck & sleeves', 'Length & hem', 'Fabric']) { await main.getByRole('tab', { name: t, exact: true }).click(); await wait(200); await pick(n); } }
+for (const n of (process.env.TOUR_EXTRA ?? '').split('|').filter(Boolean)) { for (const t of ['Shape', 'Neck & sleeves', 'Length & hem', 'Fabric']) { await goStep(t); await wait(200); await pick(n); } }
 // The film opens on the photo's very short length (Cat, 2026-10-30: it needs to be mini, as in the photo), 19 cm
 // below the dropped seam: between the named lengths, so set as a hem drawn on the form sets it, and the page opened again.
 if (process.env.TOUR_START_MINI !== '0') {
@@ -491,9 +500,9 @@ if (process.env.TOUR_START_MINI !== '0') {
   await addPen();
   await wait(800);
 }
-// The film shows its fit without an In testing tag, as it does projector mode (Cat, 2026-10-29); the app keeps it.
-await p.addStyleTag({ content: 'main button[aria-pressed] .testing-tag { display: none !important; }' });
-await main.getByRole('tab', { name: 'Shape', exact: true }).click();
+// The film leaves off In testing tags on the Style page and drawing tool, as it does on projector mode (Cat, 2026-10-29).
+await p.addStyleTag({ content: 'main .testing-tag { display: none !important; }' });
+await goStep('Shape');
 await p.evaluate(() => window.scrollTo(0, 0));
 await wait(1200);
 if (process.env.TOUR_PROBE4) {
@@ -515,7 +524,7 @@ if (process.env.TOUR_PROBE) {
   await p.screenshot({ path: `${OUT}/probe.png` });
   console.log('LS', await p.evaluate(() => JSON.stringify(JSON.parse(localStorage.getItem('pattern-maker:skirt')).finish)));
   for (const tab of ['Neck & sleeves', 'Length & hem', 'Fabric']) {
-    await main.getByRole('tab', { name: tab, exact: true }).click();
+    await goStep(tab);
     await wait(400);
     console.log(tab, JSON.stringify(await main.locator('button[aria-pressed], [role=radio]').evaluateAll((els) => els.map((e) => `${(e.getAttribute('aria-label') || e.textContent).trim().slice(0, 24)}${e.getAttribute('aria-pressed') === 'true' || e.getAttribute('aria-checked') === 'true' ? '*' : ''}${e.disabled ? '(x)' : ''}`))));
   }
@@ -523,9 +532,13 @@ if (process.env.TOUR_PROBE) {
 }
 await start();
 t0 = Date.now();
-await wait(2600);
+await wait(process.env.TOUR_QUICK !== '0' ? 1400 : 2600);
+// A shorter look at the dress page and no enlarging: the drawing tool opens straight from the page (Cat, 2026-11-01:
+// show the flat view for less time, skip enlarge). TOUR_QUICK=0 keeps the enlarge step.
+const QUICK = !WIDE && process.env.TOUR_QUICK !== '0'; // A computer keeps the enlarge: there the drawing tool is small without it.
 mark('fabric');
-await press(main.getByRole('tab', { name: 'Fabric', exact: true }), 900);
+await openSteps(true);
+await press(stepTab('Fabric'), 900);
 // Then the fabric changed to the one-way print, the jade python (Cat, 2026-10-25: no check at all; P2 Jade). Tapping
 // the camel again clears the colour, so the print shows in its own.
 const PRINT2 = process.env.TOUR_PRINT2 ?? 'One-way';
@@ -536,9 +549,9 @@ if (PRINT2) {
   await choose('[role=radiogroup][aria-label="What\'s printed on your fabric"] [role=radio]', PRINT2);
   await wait(400);
 }
-if (process.env.TOUR_COLOUR2 !== 'none') await press(main.getByRole('radiogroup', { name: 'Colour' }).getByRole('radio', { name: process.env.TOUR_COLOUR2 ?? 'Camel', exact: true }).first(), 2200);
+if (process.env.TOUR_COLOUR2 !== 'none') await press(main.getByRole('radiogroup', { name: 'Colour' }).getByRole('radio', { name: process.env.TOUR_COLOUR2 ?? 'Camel', exact: true }).first(), QUICK ? 1200 : 2200);
 if (process.env.TOUR_PROBE_FABRIC) {
-  await main.getByRole('tab', { name: 'Shape', exact: true }).click();
+  await goStep('Shape');
   await wait(1200);
   await p.screenshot({ path: `${OUT}/fabric-${process.env.TOUR_PRINT2 ?? ''}${process.env.TOUR_COLOUR2}.png` });
   process.exit(0);
@@ -546,7 +559,7 @@ if (process.env.TOUR_PROBE_FABRIC) {
 // Enlarged, the preview fills the screen with its tools (Cat, 2026-10-24: use the tools while it's enlarged), and
 // drawing on the form from there opens the drawing tool enlarged too, the place where room matters most.
 mark('enlarge');
-await press(main.getByRole('button', { name: /^Enlarge the drawing/ }), 1300);
+if (!QUICK) await press(main.getByRole('button', { name: /^Enlarge the drawing/ }), 1300);
 mark('draw');
 const form = main.getByRole('img', { name: /Your dress form from the/ });
 const kinds = main.getByRole('group', { name: 'What you are drawing' });
@@ -563,7 +576,7 @@ await drawOn.evaluate((el) => el.click());
 await p.evaluate(() => { const d = document.getElementById('pen'); d.style.opacity = 0; d.style.visibility = 'hidden'; });
 await wait(900);
 const roomy = main.getByRole('button', { name: 'Enlarge', exact: true });
-if (await roomy.count()) await tap(roomy, 900);
+if (!QUICK && (await roomy.count())) await tap(roomy, 900);
 await tap(kinds.getByRole('button', { name: 'Hem', exact: true }), 300);
 // The dress already opens at the photo's length (TOUR_START_MINI); drawn again only when it doesn't.
 if (process.env.TOUR_START_MINI === '0') await draw(form, LINES.photo, 600);
@@ -592,7 +605,12 @@ if (process.env.TOUR_PROBE3) {
 }
 // Done lands on the pattern sheet, and the film stays there (Cat, 2026-10-24: no flash back to the dress).
 mark('done');
-await press(main.getByRole('button', { name: 'Done', exact: true }), 1200);
+if (WIDE) {
+  // On a computer Done now leaves the page scrolled to the summary: back up to the pattern straight away.
+  await press(main.getByRole('button', { name: 'Done', exact: true }), 0);
+  await p.evaluate(() => window.scrollTo(0, 0));
+  await wait(1200);
+} else await press(main.getByRole('button', { name: 'Done', exact: true }), 1200);
 await stop('style');
 
 // pattern: the pieces you cut
@@ -612,6 +630,9 @@ await tap(main.getByRole('group', { name: 'Preview view' }).getByRole('button', 
 await p.evaluate((look) => { window.__tourFilm = look === 'old' ? 'old' : true; }, process.env.TOUR_LOOK);
 await main.getByRole('group', { name: 'Garment view' }).getByRole('button', { name: 'All round' }).click();
 await wait(800);
+// The garment is sewn from its pattern pieces a few seconds after All round opens: shot once it's drawn.
+await p.waitForFunction(() => document.querySelector('.all-round-canvas')?.dataset.sewn !== 'pending', null, { timeout: 60000 });
+await wait(600);
 const CLOSEST = 1.45;
 await p.evaluate((K) => {
   const c = document.querySelector('.all-round-canvas');
@@ -657,7 +678,8 @@ await wait(600);
 // review: on a phone, the Review page scrolled down to Print my pattern and the tap (Cat, 2026-10-29: add back the
 // scroll down to print); on a computer the tap on Print my pattern beside the drawing.
 if (!WIDE) {
-  await main.getByRole('button', { name: 'Review', exact: true }).click();
+  // Review left the bar for a quiet link at the end of each step (Cat's P1, 2026-10-31).
+  await main.locator('button.step-review').or(main.getByRole('button', { name: /^Review/ })).first().evaluate((el) => el.click());
   await wait(1200);
   await p.evaluate(() => window.scrollTo(0, 0));
   await wait(600);
