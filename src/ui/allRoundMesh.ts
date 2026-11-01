@@ -531,12 +531,15 @@ function buildDraped(
   }
   for (const b of d.buttons) {
     const q = toForm(b.at[0], b.at[1], b.at[2] + LIFT);
-    const g = new THREE.SphereGeometry(b.r / 22, 16, 8);
+    // Small, self-coloured buttons: the cloth's own colour, a touch paler, with a little sheen (a quiet dark horn where
+    // there is no plain colour to match).
+    const g = new THREE.SphereGeometry(b.r / 30, 16, 8);
     g.setAttribute('shade', new THREE.Float32BufferAttribute(new Float32Array(g.getAttribute('position').count), 1));
-    g.scale(1, 1, 0.4);
+    g.scale(1, 1, 0.35);
     g.translate(q[0], q[1], q[2]);
     const m = material('gloss');
-    m.color.set(0x1c1a18);
+    if (cloth?.plain) m.color.set(new THREE.Color(cloth.plain).lerp(new THREE.Color(0xffffff), 0.12));
+    else m.color.set(0x2a2622);
     add(g, m, 2, 'cloth');
   }
 }

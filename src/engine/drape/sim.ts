@@ -29,6 +29,9 @@ export interface SimInput {
   pad?: number;
   /** Points of the shoulder seams: they rest on the top of the shoulder, as a dressmaker pins a garment to the form. */
   shoulder?: Int32Array;
+  /** How far out from the centre each shoulder point is cut to sit (sleeveless: a strap is held there, not left to
+   *  slide off down the slope of the shoulder). */
+  shoulderX?: Float64Array;
   /** Trouser legs: below the crotch the cloth lies on two legs, not the body. */
   legs?: { x: number; c0: number; c1: number; r0: number; r1: number };
   /** Points beside a fold and their flat distance from their own mirror across it: the cloth's bend carries on round
@@ -197,6 +200,8 @@ export function simulate(s: Space, inp: SimInput, steps = knob("__steps") ?? 260
           const I = inp.shoulder[k] * 3;
           const top = s.ridge(Math.abs(x[I])) - thick[inp.shoulder[k]] - (inp.pad ?? 0);
           if (x[I + 1] > top) x[I + 1] = top;
+          const cap = inp.shoulderX?.[k];
+          if (cap !== undefined && Math.abs(x[I]) > cap) x[I] = Math.sign(x[I]) * cap;
         }
       }
       if (inp.lieOn) {

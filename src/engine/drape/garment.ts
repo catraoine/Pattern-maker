@@ -448,7 +448,8 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
         pc,
         isBack ? 'peplum-back' : 'peplum-front',
         (q) => {
-          const lv = Math.max(0, level(q));
+          // (A high-waisted skirt rises past the waist, its top edge that far above it: there the level runs on up.)
+          const lv = pc.meta.rise ? level(q) : Math.max(0, level(q));
           const c = lv + drop;
           if (R && span > 0) {
             const phi = (Math.atan2(q.x, q.y + R) * Math.PI) / span;
@@ -849,7 +850,8 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
     if (tp.some((p) => p.mesh.runs.shoulder)) return undefined;
     const held = tp.length ? tp : B.panels.filter((p) => p.role === 'peplum-front' || p.role === 'peplum-back');
     const tag = tp.length ? 'neck' : 'waist';
-    const ids = held.flatMap((p) => (p.mesh.runs[tag] ?? []).flat().map((i) => i + p.base));
+    // (A high-waisted skirt hangs from its top edge, above the waist.)
+    const ids = held.flatMap((p) => (p.mesh.runs[tag] ?? (tag === 'waist' ? p.mesh.runs.top : undefined) ?? []).flat().map((i) => i + p.base));
     return { ids: Int32Array.from(ids), c: Float64Array.from(ids.map((i) => pos[i * 3 + 1])) };
   };
   // A sleeve keeps its tube round the arm: the radius at each height is its own girth there (top and under sleeve
@@ -865,11 +867,24 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       }, 0);
     const ids: number[] = [];
     const R: number[] = [];
+    // Gathered into a cuff, the sleeve's fullness falls in folds just above it rather than standing out round the arm
+    // as a tube: over the last stretch above the cuff the tube draws in to a little more than the cuff.
+    // (A cuff band is cut its round long, down the pattern.)
+    const cuffR = cuffPanel ? (Math.max(...cuffPanel.mesh.pts.map((q) => q.y)) - Math.min(...cuffPanel.mesh.pts.map((q) => q.y))) / TAU : 0;
+    const zone = knob('__cuffZone') ?? 18;
     for (const p of sl) {
+      const yHem = Math.max(...p.mesh.pts.map((q) => q.y));
       p.mesh.pts.forEach((q, i) => {
         if (q.y < capH + 2) return;
         ids.push(p.base + i);
-        R.push((widthAt(q.y) / TAU) * 0.92);
+        let r = (widthAt(q.y) / TAU) * 0.92;
+        if (cuffR && !knob('__noCuffDraw')) {
+          const t = Math.min(1, Math.max(0, (yHem - q.y) / zone));
+          const s2 = t * t * (3 - 2 * t);
+          const lo = cuffR * (knob('__cuffEase') ?? 1.15);
+          if (r > lo) r = lo + (r - lo) * s2;
+        }
+        R.push(r);
       });
     }
     return { ids: Int32Array.from(ids), R: Float64Array.from(R), k: knob("__rk") ?? 0.15 };
@@ -907,6 +922,21 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
     }
     return I.length ? { i: Int32Array.from(I), j: Int32Array.from(J), gap: Float64Array.from(G) } : undefined;
   };
+  // (Each shoulder point's distance out, as cut on the front: the back's shoulder, eased onto it, by its share along.)
+  const strapHold = (): Float64Array => {
+    const tp = B.panels.filter((p) => p.role === 'front' || p.role === 'back');
+    const fr = tp.filter((p) => p.role === 'front').flatMap((p) => (p.mesh.runs.shoulder ?? []).flat().map((i) => p.mesh.pts[i].x));
+    const f0 = Math.min(...fr);
+    const f1 = Math.max(...fr);
+    return Float64Array.from(
+      tp.flatMap((p) => {
+        const xs = (p.mesh.runs.shoulder ?? []).flat().map((i) => p.mesh.pts[i].x);
+        const a = Math.min(...xs);
+        const b = Math.max(...xs);
+        return xs.map((x) => (fr.length ? f0 + ((x - a) / (b - a || 1)) * (f1 - f0) : x) + (knob('__strapSlack') ?? 0.5));
+      }),
+    );
+  };
   const input: SimInput = {
     pos,
     edges: Int32Array.from(edges),
@@ -927,6 +957,8 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
     round: roundOf(),
     legs,
     shoulder: Int32Array.from(B.panels.filter((p) => p.role === 'front' || p.role === 'back').flatMap((p) => (p.mesh.runs.shoulder ?? []).flat().map((i) => i + p.base))),
+    // Sleeveless, each shoulder point is held no further out than it is cut (a set-in strap stays over the shoulder).
+    ...(!extra.sleeve?.length && !knob('__noStrapHold') ? { shoulderX: strapHold() } : {}),
   };
   // A flared peplum (or a hem's flounce) cut on the fold: the cloth beside the fold bends on round it rather than folding back flat
   // against its other half (which left a knife-edge keel down the centre front).
@@ -1770,6 +1802,156 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       });
     }
   }
+  // A shirt collar on a stand: the sim leaves its fall standing up round the neck like a second band. Worn, the fall
+  // turns at its roll line and lies down over the stand, its points out onto the chest: each turned point goes from
+  // the roll line it folds at down the outside of whatever is under it (the stand, then the shirt), by as far as it is
+  // cut past the roll, a cloth's thickness out.
+  const shirtFalls = (extra.collars ?? []).filter((c) => c.onStand && c.roll).map((c) => c.pc);
+  if (shirtFalls.length && !collarOnly && !knob('__noShirtFall')) {
+    const NA = 120;
+    const bin = (a: number, c: number) => Math.round(((a + Math.PI) / TAU) * NA) * 1000 + Math.round(c * 2);
+    const under = new Map<number, number>();
+    for (const p of B.panels) {
+      if (p.role === 'sleeve' || p.hidden || shirtFalls.includes(p.pc)) continue;
+      p.mesh.pts.forEach((_, i) => {
+        const I = (p.base + i) * 3;
+        const k = bin(Math.atan2(res[I], res[I + 2]), res[I + 1]);
+        under.set(k, Math.max(under.get(k) ?? 0, Math.hypot(res[I], res[I + 2])));
+      });
+    }
+    const gap = knob('__sfGap') ?? 0.35;
+    const coverR = (a: number, c: number) => {
+      let R = sp.bodyR(a, c) + thick;
+      for (const da of [-1, 0, 1]) for (const dc of [-1, 0, 1]) R = Math.max(R, under.get(bin(a + (da * TAU) / NA, c + dc * 0.5)) ?? 0);
+      return R + thick + gap;
+    };
+    const spread = knob('__sfSpread') ?? 0.35;
+    for (const p of B.panels) {
+      if (p.hidden || !shirtFalls.includes(p.pc)) continue;
+      const fold = p.folds?.[0];
+      if (!fold) continue;
+      const pts = p.mesh.pts;
+      const fx = fold[1].x - fold[0].x;
+      const fy = fold[1].y - fold[0].y;
+      const fl = Math.hypot(fx, fy) || 1;
+      const x0 = Math.min(...pts.map((q) => q.x));
+      const xEnd = Math.max(...pts.map((q) => q.x));
+      // The roll line in 3D: where the cloth lies at the foot of each turned point on it, from the unturned points
+      // nearest that foot (weighted by how near).
+      const along = (q: P) => ((q.x - fold[0].x) * fx + (q.y - fold[0].y) * fy) / fl;
+      const off = (q: P) => Math.abs((q.x - fold[0].x) * fy - (q.y - fold[0].y) * fx) / fl;
+      const flat = pts.map((q, i) => ({ q, i })).filter((e) => !p.turned[e.i]);
+      if (flat.length < 3) continue;
+      const P3 = (i: number): V3 => [res[(p.base + i) * 3], res[(p.base + i) * 3 + 1], res[(p.base + i) * 3 + 2]];
+      const rollAt = (s: number): V3 => {
+        const f = { x: fold[0].x + (fx / fl) * s, y: fold[0].y + (fy / fl) * s };
+        const near = flat.map((e) => ({ e, d: Math.hypot(e.q.x - f.x, e.q.y - f.y) })).sort((u, v) => u.d - v.d).slice(0, 5);
+        let w = 0;
+        const X: V3 = [0, 0, 0];
+        for (const { e, d } of near) {
+          const k = 1 / (d + 0.3);
+          const v = P3(e.i);
+          for (let c = 0; c < 3; c++) X[c] += v[c] * k;
+          w += k;
+        }
+        return [X[0] / w, X[1] / w, X[2] / w];
+      };
+      const moved: [number, V3][] = [];
+      pts.forEach((q, i) => {
+        if (!p.turned[i]) return;
+        const s = along(q);
+        const F = rollAt(s);
+        let a = Math.atan2(F[0], F[2]);
+        let c = F[1];
+        let R = Math.max(Math.hypot(F[0], F[2]), coverR(a, c));
+        // Down the outside of what is under it, step by step, by the length it is cut past the roll.
+        let left = off(q);
+        // (Towards its point the fall also spreads out sideways, the way a collar point lies open on the chest.)
+        const toward = Math.max(0, (q.x - x0) / (xEnd - x0 || 1) - 0.5) * 2;
+        const da = (Math.sign(F[0]) || 1) * spread * toward;
+        while (left > 1e-6) {
+          const st = Math.min(0.25, left);
+          const c2 = c + st;
+          const a2 = a + (da * st) / Math.max(4, R);
+          const R2 = Math.max(coverR(a2, c2), R - st * 0.6);
+          const ds = Math.hypot(st, R2 - R) || st;
+          const f = Math.min(1, left / ds);
+          c += st * f;
+          a += (a2 - a) * f;
+          R += (R2 - R) * f;
+          left -= ds * f;
+        }
+        let X: V3 = [Math.sin(a) * R, c, Math.cos(a) * R];
+        if (q.x - x0 < 0.3) X = [0, X[1], -Math.hypot(X[0], X[2])];
+        moved.push([i, X]);
+      });
+      for (const [i, v] of moved) {
+        const I = (p.base + i) * 3;
+        res[I] = v[0];
+        res[I + 1] = v[1];
+        res[I + 2] = v[2];
+      }
+      // (Eased over its neighbours a few times, so the laid fall is smooth cloth.)
+      const nb: number[][] = pts.map(() => []);
+      for (const [a, b, c] of p.mesh.tris) {
+        nb[a].push(b, c);
+        nb[b].push(a, c);
+        nb[c].push(a, b);
+      }
+      for (let pass = 0; pass < (knob('__sfSmooth') ?? 3); pass++) {
+        const next = moved.map(([i]) => {
+          const v = P3(i);
+          const list = nb[i].filter((j) => p.turned[j]);
+          if (!list.length || pts[i].x - x0 < 0.3) return [i, v] as [number, V3];
+          const m: V3 = [0, 0, 0];
+          for (const j of list) {
+            const u = P3(j);
+            for (let c = 0; c < 3; c++) m[c] += u[c] / list.length;
+          }
+          return [i, [0, 1, 2].map((c) => v[c] * 0.5 + m[c] * 0.5) as V3] as [number, V3];
+        });
+        for (const [i, v] of next) {
+          const I = (p.base + i) * 3;
+          res[I] = v[0];
+          res[I + 1] = v[1];
+          res[I + 2] = v[2];
+        }
+      }
+    }
+  }
+  // Down a back cut on the fold the coarse sim leaves a ripple along the centre (the cloth either side pressing on its
+  // mirror): there the back is eased over its neighbours a few times, fading out over the first few cm from the centre.
+  if (!knob('__noCbEase')) {
+    for (const p of B.panels) {
+      if (p.hidden || p.role !== 'back') continue;
+      const pts = p.mesh.pts;
+      const W0 = knob('__cbEaseW') ?? 4;
+      const near = pts.map((_, i) => i).filter((i) => Math.abs(pts[i].x) < W0 && !p.turned[i]);
+      if (!near.length) continue;
+      const nb: number[][] = pts.map(() => []);
+      for (const [a, b, c] of p.mesh.tris) {
+        nb[a].push(b, c);
+        nb[b].push(a, c);
+        nb[c].push(a, b);
+      }
+      for (let pass = 0; pass < (knob('__cbEase') ?? 6); pass++) {
+        const next = near.map((i) => {
+          const I = (p.base + i) * 3;
+          const list = nb[i];
+          const m: V3 = [0, 0, 0];
+          for (const j of list) for (let c = 0; c < 3; c++) m[c] += res[(p.base + j) * 3 + c] / list.length;
+          const w = 0.5 * (1 - Math.abs(pts[i].x) / W0);
+          return [I, [0, 1, 2].map((c) => res[I + c] * (1 - w) + m[c] * w)] as [number, number[]];
+        });
+        for (const [I, v] of next) {
+          // (Its centre stays on the centre plane.)
+          res[I] = Math.abs(res[I]) < 0.05 ? res[I] : v[0];
+          res[I + 1] = v[1];
+          res[I + 2] = v[2];
+        }
+      }
+    }
+  }
   // A sleeveless bodice hung from straps set out at the shoulder (a plunge's, cut down past the bust front and back)
   // has no cloth across its middle to wrap it round the body: the coarse sim leaves its sides hanging straight down
   // from the strap, standing well off the ribs under the arm. On a body the cut's own shaping lays them in, so below
@@ -1941,11 +2123,13 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
           hemU += u;
           nH++;
         }
-        if (fromHem > 6) return;
+        // (A plain shirt sleeve hangs straight to its cuff: drawn in over a longer stretch, to a little over the cuff.)
+        const Z = knob('__cuffDraw') ?? 16;
+        if (fromHem > Z) return;
         const d = [r[0] - dn[0] * u, r[1] - dn[1] * u, r[2] - dn[2] * u];
         const dl = Math.hypot(d[0], d[1], d[2]) || 1e-9;
-        const w = Math.pow(1 - fromHem / 6, 1.5);
-        const want = dl * (1 - w) + Math.min(dl, rc) * w;
+        const w = Math.pow(1 - fromHem / Z, 1.5);
+        const want = dl * (1 - w) + Math.min(dl, rc * (1 + (0.25 * fromHem) / Z) + 0.3) * w;
         const k = want / dl - 1;
         res[I] += d[0] * k * e;
         res[I + 1] += d[1] * k;
@@ -1960,9 +2144,17 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
     if (fv[2] < 0) fv.forEach((_, k) => (fv[k] = -fv[k]));
     bp.forEach((q, i) => {
       const x = q.x - x0;
-      const v = Math.min(x, W - x);
+      const side = x > W / 2 ? 1 : -1;
+      // Its two layers a cloth apart. The mesh's last points either side of the fold (its lower edge) are stretched to
+      // it, the outer layer's down to the edge and the inner's a little short of it: the edge then turns up and in,
+      // under the outer layer, and reads as a clean folded edge rather than the inner layer's raw rim below.
+      const v0 = Math.min(x, W - x);
+      const reach = side > 0 ? 0.1 : 0.5;
+      const t = Math.min(1, Math.max(0, (v0 - (W / 2 - 3)) / 3));
+      const v = Math.min(W / 2 - reach, v0 + 1.7 * t);
       const th = (TAU * (q.y - y0b)) / Lb2;
-      const rr = rc + (x > W / 2 ? 0.25 : 0);
+      const off = side > 0 ? 0.2 : -0.1;
+      const rr = rc + off;
       const I = (cuffPanel!.base + i) * 3;
       for (let k = 0; k < 3; k++) res[I + k] = arm.a[k] + dn[k] * (hemU - 0.5 + v) + rr * (Math.cos(th) * ov[k] + Math.sin(th) * fv[k]);
     });
@@ -2058,8 +2250,8 @@ function shirtCollar(pc: Piece): [P, P] | undefined {
   const a = st.reduce((u, v) => (v.x < u.x ? v : u));
   const b = st.reduce((u, v) => (v.x > u.x ? v : u));
   return [
-    { x: a.x, y: a.y - 1.6 },
-    { x: b.x, y: b.y - 1.6 },
+    { x: a.x, y: a.y - 0.6 },
+    { x: b.x, y: b.y - 0.6 },
   ];
 }
 
