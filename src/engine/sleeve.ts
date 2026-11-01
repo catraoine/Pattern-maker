@@ -324,7 +324,7 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
   };
   // A cuff ends the sleeve: the sleeve stops short of the hem by its depth, and blouses over it.
   // A ruffle is sewn on below a plain hem: the sleeve is shorter by its depth and does not blouse.
-  const lengthFor = (h: number) => (cuff?.kind === 'ruffle' ? setFor(h) - cuff.depth : cuff ? setFor(h) - (cuff.kind === 'elastic' ? 0 : cuff.depth) + CUFF.blouse : setFor(h) + (gathered ? 2.5 : 0));
+  const lengthFor = (h: number) => (cuff?.kind === 'ruffle' ? setFor(h) - cuff.depth : cuff ? setFor(h) - (cuff.kind === 'elastic' ? 0 : cuff.depth) + CUFF.blouse + (cuff.oversized?.past ?? 0) : setFor(h) + (gathered ? 2.5 : 0));
   // Hem width, as cut: at a named length, or between the two named ones either side of the slider's.
   const hemWidth = (h: number) => {
     if (cuff) return cuffHem(hemAt(s.length as Named));

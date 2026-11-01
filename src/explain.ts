@@ -161,6 +161,7 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
     sleeveCuff: {
       none: ['The sleeve ends in a plain hem, or the bishop sleeve in its band.', 'easy'],
       shirt: ['A buttoned cuff over a bound slit, the sleeve gathered into it, as on a shirt.', 'skill'],
+      oversized: ['A deep shirt cuff, 14 cm long and loose round the wrist, falling over the back of the hand, with three buttons.', 'skill'],
       elastic: ['Elastic in a casing at the end, so the sleeve pulls on and gathers softly round the wrist.', 'easy'],
       tie: ['A narrow band that runs on into ties, knotted at the wrist over a short slit.'],
       ruffle: ['A straight strip gathered onto the hem of a plain sleeve, so it ends in a soft frill.'],
@@ -453,6 +454,7 @@ const SHORT: Record<string, string> = {
   'sleeveCut.kimono': 'Cut in one with the bodice.',
   'sleeveCuff.none': 'A plain hem.',
   'sleeveCuff.shirt': 'A buttoned shirt cuff.',
+  'sleeveCuff.oversized': 'A deep cuff over the hand.',
   'sleeveCuff.elastic': 'Elastic gathers it at the wrist.',
   'sleeveCuff.tie': 'A band that ties at the wrist.',
   'sleeveCuff.ruffle': 'Ends in a soft gathered frill.',

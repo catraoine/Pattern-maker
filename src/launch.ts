@@ -47,7 +47,8 @@ export type TestingTool =
   | 'jacket_collars'
   | 'flared_jacket'
   | 'drop_yoke'
-  | 'low_rise';
+  | 'low_rise'
+  | 'oversized_cuff';
 
 export const TESTING_TOOLS: Record<TestingTool, { name: string; where: string; proof: string }> = {
   draw_lines: { name: 'Draw your lines', where: 'Style, Draw on your form', proof: 'fit testers draw a hem, a neckline and a side and the pattern follows' },
@@ -80,6 +81,8 @@ export const TESTING_TOOLS: Record<TestingTool, { name: string; where: string; p
   // And for more fashion-forward jackets and coats (2026-10-31).
   // And for the skirt to match it: fitted over the hip, full below (2026-10-31).
   drop_yoke: { name: 'Drop-yoke skirt', where: 'the One, drop yoke chip under Tiers on a skirt', proof: 'two testers sew a drop-yoke skirt and the yoke lies smooth over the hip, the gathers falling evenly below it' },
+  // From Cat's ivory-shirt picture (2026-11-01, "a shirt with oversized cuffs").
+  oversized_cuff: { name: 'Oversized shirt cuffs', where: 'the Oversized cuff chip on a long straight or bishop sleeve', proof: 'two testers sew oversized cuffs and they sit loose and level over the hand, the buttons lining up' },
   // For the SS27 black knife-pleat skirt (Cat, 2026-11-01: "make the skirt low rise"; design options need no flag).
   low_rise: { name: 'Low-rise skirt', where: 'the Rise chips on a skirt', proof: 'two testers sew a low-rise skirt and it sits level on the hip without slipping, the hem where it was' },
   // And for the flared lilac blazer from Cat's plaid-blazer picture (2026-10-31).

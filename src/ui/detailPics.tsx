@@ -131,6 +131,7 @@ const DETAILS: Record<ExplainSet, Record<string, Record<string, ReactNode>>> = {
     sleeveCuff: {
       none: on('M13 8Q20 2 27 8L28 44H12z', 'M12 42h16'),
       shirt: on('M13 8Q20 2 27 8L29 36Q20 39 11 36z', 'M13 36h14v7H13zM24.5 39.5h.1M15 32v4M18 33v3M22 33v3M25 32v4'),
+      oversized: on('M13 8Q20 2 27 8L28.5 28Q20 31 11.5 28z', 'M12 28h16l1 16H11zM24.5 32h.1M24.5 36h.1M24.5 40h.1'),
       elastic: on('M13 8Q20 2 27 8L29 38Q20 41 11 38z', 'M14 38h12v3H14zM15.5 38.5v2M18 38.5v2M20.5 38.5v2M23 38.5v2'),
       tie: on('M13 8Q20 2 27 8L29 38Q20 41 11 38z', 'M14 38h12v2.5H14zM26 39L31 46M26 39L33 43'),
       ruffle: on('M13 8Q20 2 27 8L28 36H12z', 'M12 36H28L32 43Q29 46 26 44Q23 47 20 44Q17 47 14 44Q11 46 8 43zM14 37l-.5 4M18 37v4M22 37v4M26 37l.5 4'),

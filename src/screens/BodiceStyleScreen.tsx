@@ -328,6 +328,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
                   {g.id === 'neckline' && id === 'plunge' && <TestingTag tool="plunge" />}
                   {g.id === 'peplumHem' && id === 'high_low' && <TestingTag tool="high_low_peplum" />}
                   {g.id === 'peplumSize' && id === 'big' && <TestingTag tool="big_peplum" />}
+                  {g.id === 'sleeveCuff' && id === 'oversized' && <TestingTag tool="oversized_cuff" />}
                 </button>
               ))}
             </div>
