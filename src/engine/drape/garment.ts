@@ -470,7 +470,8 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
         thick,
         [],
         // (Pressed pleats on a finer mesh cut along each fold, so the fold's step and the shadow under it are crisp.)
-        pc.meta.pleatFolds ? 1.2 : 1.6,
+        // (A heavily gathered skirt on a finer one too: its many folds need more than a point or two across each.)
+        pc.meta.pleatFolds ? 1.2 : ((pc.meta.gatherShown as number | undefined) ?? 1) > 2 ? (knob('__gh') ?? 0.8) : 1.6,
         creasesOf(pc),
       );
       levelOf.set(p, level);
@@ -927,13 +928,13 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
     legs,
     shoulder: Int32Array.from(B.panels.filter((p) => p.role === 'front' || p.role === 'back').flatMap((p) => (p.mesh.runs.shoulder ?? []).flat().map((i) => i + p.base))),
   };
-  // A flared peplum cut on the fold: the cloth beside the fold bends on round it rather than folding back flat
+  // A flared peplum (or a hem's flounce) cut on the fold: the cloth beside the fold bends on round it rather than folding back flat
   // against its other half (which left a knife-edge keel down the centre front).
   if (!knob('__noMirror')) {
     const ids: number[] = [];
     const mr: number[] = [];
     for (const p of B.panels) {
-      if (p.hidden || !/^Peplum/.test(p.pc.name) || !p.mesh.runs.fold?.length) continue;
+      if (p.hidden || !(/^Peplum/.test(p.pc.name) || (/peplum/.test(p.role) && /ruffle|flounce/i.test(p.pc.name))) || !p.mesh.runs.fold?.length) continue;
       p.mesh.pts.forEach((q, i) => {
         if (q.x > 0.05 && q.x < 3 && !p.turned[i]) {
           ids.push(p.base + i);
@@ -1191,6 +1192,9 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
   // its mesh is too coarse to form are laid on for drawing, as many as the cloth's width holds, each seam on a fold's
   // turn so the pieces still meet.
   const foldA = knob("__foldA") ?? 1;
+  // (Past the hip the fullness carries on holding a long skirt out, half as fast, so it hangs as a bell to its hem
+  // rather than turning back in above it.)
+  const FLARE_ON = knob('__fl2') ?? 0.5;
   for (const p of B.panels) {
     const gather = ((p.pc.meta.gatherShown ?? p.pc.meta.gathered) as number | undefined) ?? 1;
     if (!/peplum/.test(p.role) || gather < 1.05 || !foldA) continue;
@@ -1200,7 +1204,8 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
     const x0 = Math.min(...xs);
     const W = Math.max(...xs) - x0;
     const y0 = Math.min(...ys);
-    const lamCloth = (knob("__lamC") ?? 6) * gather;
+    // (Heavy gathers fall in narrower folds, which the finer mesh it is cut on can hold.)
+    const lamCloth = (knob("__lamC") ?? (p.pc.meta.gatherShown && gather > 2 ? 3 : 6)) * gather;
     const n = Math.max(2, Math.round(W / simScale / (lamCloth / 2)));
     // A tier below a drop yoke hangs long from its seam: softer folds, and it falls more down than out.
     const tier = !!p.pc.meta.tier;
@@ -1211,7 +1216,7 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       const I = (p.base + i) * 3;
       const lv = q.y - y0;
       const amp = A * (0.35 + 0.65 * Math.min(1, lv / 18));
-      const off = amp * Math.sin((Math.PI * n * (q.x - x0)) / W) + (tier ? Math.min(flare * Math.min(lv, 45), 1) : flare * Math.min(lv, 45));
+      const off = amp * Math.sin((Math.PI * n * (q.x - x0)) / W) + (tier ? Math.min(flare * Math.min(lv, 45), 1) : flare * (Math.min(lv, 45) + FLARE_ON * Math.max(0, lv - 45)));
       const rho = Math.hypot(res[I], res[I + 2]) || 1e-9;
       const R = sp.bodyR(Math.atan2(res[I], res[I + 2]), res[I + 1]) + p.thick[i];
       const k = Math.max(rho + off, R) / rho;
@@ -1227,7 +1232,8 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       const gather = ((p.pc.meta.gatherShown ?? p.pc.meta.gathered) as number | undefined) ?? 1;
       if (!/peplum/.test(p.role) || gather < 1.05 || !p.mesh.runs.tier?.length || p.pc.meta.tier) continue;
       const ys = p.mesh.pts.map((q) => q.y);
-      out = Math.max(out, (gather - 1) * (knob('__flare') ?? 0.15) * Math.min(Math.max(...ys) - Math.min(...ys), 45));
+      const H = Math.max(...ys) - Math.min(...ys);
+      out = Math.max(out, (gather - 1) * (knob('__flare') ?? 0.15) * (Math.min(H, 45) + FLARE_ON * Math.max(0, H - 45)));
     }
     if (out > 0)
       for (const p of B.panels) {
@@ -2043,7 +2049,16 @@ function collarsOf(pieces: Piece[], jacketRoll?: [P, P]): CollarPart[] {
       const cl = pc.lines[0]?.points();
       const hasStand = pc.outline.tags.includes('stand');
       const onStand = hasStand && !pc.outline.tags.includes('neck');
-      const roll: [P, P] | undefined = pc.outline.tags.includes('gorge') && cl ? [cl[0], cl[cl.length - 1]] : onStand ? shirtCollar(pc) : undefined;
+      // A neck ruffle is a strip folded along its middle, both edges sewn into the neck: it stands as the doubled
+      // half, so the half past the fold turns back over the other.
+      const ruffleFold = (): [P, P] | undefined => {
+        if (!pc.meta.ruffle || knob('__noRuffleFold')) return undefined;
+        const ys = pc.outline.points(2).map((q) => q.y);
+        const y = (Math.min(...ys) + Math.max(...ys)) / 2;
+        const xs = pc.outline.points(2).map((q) => q.x);
+        return [pt(Math.min(...xs) - 1, y), pt(Math.max(...xs) + 1, y)];
+      };
+      const roll: [P, P] | undefined = pc.outline.tags.includes('gorge') && cl ? [cl[0], cl[cl.length - 1]] : onStand ? shirtCollar(pc) : ruffleFold();
       void jacketRoll;
       return { pc, roll, onStand };
     })
