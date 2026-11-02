@@ -5,10 +5,12 @@ something that changes how a department works. Design picks for single screens s
 
 ## November 2026
 
-- **Nov 2** Fabric palette card (D1 One Palette Card): the picked fabric stands beside the form on Front as one tall card in the A1 style, on every garment; a shop fabric also shows its shop and listed price. On a phone the tag of picks moves under it (up to three lines, as many as fit) and the card stays, smaller, while the swatches scroll. PR to come from this thread.
+- **Nov 2** Fabric palette card (D1 One Palette Card): the picked fabric stands beside the form on Front as one tall card in the A1 style, on every garment; a shop fabric also shows its shop and listed price. On a phone the tag of picks moves under it (up to three lines, as many as fit) and the card stays, smaller, while the swatches scroll. PR #258.
+- **Nov 1** T-shirt Fabric step gets knit swatches only (Jersey, Slub, Modal, Rib, Interlock, Waffle, Terry, Ponte); the drawing wears the knit; a warning when the knit usually stretches less than the stretch picked. PR #255.
 
 ## October 2026
 
+- **Nov 1** In-app Claude guide ("The Première", a quiet "Ask the Première" helper for steps, fit and fabric, openly Claude, never drafts or invents looks): parked until after the 18 Jan fit gate; then test with a few testers, likely a Premium perk.
 - **Oct 31** Style journey (J1-J8): one step order for every garment (Shape, Neck & sleeves, Length & hem, Details, Fabric); jacket Hem and cuffs on Length & hem; dress Cut + Waist seam on Shape (asked once); dress step named Length & hem; Next shows the full step name; views Front · Flat · All round everywhere (skirt gains Flat); T-shirt stretch on Fabric with How to test folded; phone Show all tools on Review; phone corner tools side by side on the length step. PR #254.
 - **Oct 31** Style back a step (A): a plain ← box left of Next/Review on every step after the first, last step too (named "‹ Length & Hem" link removed). Phone Undo/Redo named, across from "Step 2 of 4"; Clear under Done while drawing a hem or neck. PR #252.
 - **Oct 31** Welcome and waitlist headline: H2 "Drafted to you" / "Sewing patterns for the piece you have in mind". Collection page keeps its flats (on-the-form and All round renders rejected). "Make this look" now opens in the look's own fabric.

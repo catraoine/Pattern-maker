@@ -7,6 +7,7 @@ import { FIBRES, FIBRE_IDS, FabricGarment, MyFabric, clothFor, printRepeat } fro
 import { PRINTS, printImage, printOf, printTileCm } from '../engine/prints';
 import { FabricDetails } from './FabricDetails';
 import { SPECIALS, Special } from '../engine/specialFabrics';
+import { KNITS, KNIT_IDS, isKnit } from '../engine/knitFabrics';
 import { CLOSENESS, closestShopColours, colourHex, coloursFor, hexToHsl, hslToHex, isHex, shopFabric, shopFabricsFor, withShopFabric } from '../engine/shopFabrics';
 import { ExactColour } from './ExactColour';
 import { TestingTag } from './TestingTag';
@@ -19,8 +20,8 @@ const SPECIAL_IDS = Object.keys(SPECIALS) as Special[];
 
 export const tileUrl = (id: string) => `${import.meta.env.BASE_URL}fabrics/flat/${id}.jpg`;
 
-/** The fabric the sketch shows: a shop fabric's own swatch, else a special cloth over the fibre it is made of. */
-export const flatId = (f: MyFabric | undefined): string | undefined => shopFabric(f?.shop)?.tile ?? f?.special ?? f?.fibre;
+/** The fabric the sketch shows: a shop fabric's own swatch, else a special cloth or a knit over the fibre it is made of. */
+export const flatId = (f: MyFabric | undefined): string | undefined => shopFabric(f?.shop)?.tile ?? f?.special ?? f?.knit ?? f?.fibre;
 
 /** The print the sketch is drawn in, if one is picked: it shows over the cloth, in its own colours. */
 const printShown = (f: MyFabric | undefined) => {
@@ -29,19 +30,25 @@ const printShown = (f: MyFabric | undefined) => {
 };
 
 export const fabricLabel = (f: MyFabric | undefined): string | undefined =>
-  shopFabric(f?.shop)?.name ?? (f?.special ? SPECIALS[f.special].label : f?.fibre ? FIBRES[f.fibre].label : undefined);
+  shopFabric(f?.shop)?.name ?? (f?.special ? SPECIALS[f.special].label : f?.knit ? KNITS[f.knit].label : f?.fibre ? FIBRES[f.fibre].label : undefined);
 
 const withFabric = (finish: Finish, fabric: MyFabric): Finish => ({ ...finish, fabric, cloth: clothFor(fabric, finish.cloth) });
 
 /** A swatch tapped on the style screen, as the finish to keep. Tapping the chosen one again clears it, as None does.
- * A plain swatch leaves any shop fabric behind. */
+ * A plain swatch leaves any shop fabric behind. A knit (the T-shirt's swatches) brings the fibre, weight and drape it
+ * usually comes in, so the fabric check can speak to it. */
 export function pickFabric(finish: Finish, id: string | undefined): Finish {
   const { shop, ...rest } = finish.fabric ?? {};
   const now: MyFabric = shop ? { ...rest, name: undefined } : rest;
-  if (!id) return withFabric(finish, { ...now, fibre: undefined, special: undefined });
+  if (!id) return withFabric(finish, { ...now, fibre: undefined, special: undefined, knit: undefined });
+  if (isKnit(id)) {
+    if (now.knit === id && !shop) return withFabric(finish, { ...now, knit: undefined, fibre: undefined });
+    const k = KNITS[id];
+    return withFabric(finish, { ...now, special: undefined, knit: id, fibre: k.fibre, weight: k.weight, drape: k.drape });
+  }
   const fabric: MyFabric = (SPECIAL_IDS as string[]).includes(id)
-    ? { ...now, special: now.special === id && !shop ? undefined : (id as Special) }
-    : { ...now, special: undefined, fibre: now.fibre === id && !now.special && !shop ? undefined : (id as MyFabric['fibre']) };
+    ? { ...now, knit: undefined, special: now.special === id && !shop ? undefined : (id as Special) }
+    : { ...now, knit: undefined, special: undefined, fibre: now.fibre === id && !now.special && !shop ? undefined : (id as MyFabric['fibre']) };
   return withFabric(finish, fabric);
 }
 
@@ -225,10 +232,11 @@ export function FabricSwatches({ finish, onFinish, garment, details }: { finish:
   const label = fabricLabel(fabric);
   const shopItems = shopFabricsFor(garment);
   const [tab, setTab] = useState<'types' | 'shop'>(fabric?.shop ? 'shop' : 'types');
-  const ids: { id: string; label: string }[] = [
-    ...FIBRE_IDS.map((id) => ({ id, label: FIBRES[id].label })),
-    ...SPECIAL_IDS.map((id) => ({ id, label: SPECIALS[id].label })),
-  ];
+  // The T-shirt is drafted for stretch, so it offers knits; every other garment offers woven fibres and special cloths.
+  const knits = garment === 'tee';
+  const ids: { id: string; label: string }[] = knits
+    ? KNIT_IDS.map((id) => ({ id, label: KNITS[id].label }))
+    : [...FIBRE_IDS.map((id) => ({ id, label: FIBRES[id].label })), ...SPECIAL_IDS.map((id) => ({ id, label: SPECIALS[id].label }))];
   // A picked print is what the sketch shows, so it names the cloth in place of the colour.
   const printed = printShown(fabric);
   const colour = printed ? (printed === 'checks' ? (fabric?.checks?.stripes ? 'Stripes' : fabric?.checks?.gingham ? 'Gingham' : 'Checks') : PRINTS[printed].label) : fabric?.colour?.trim();

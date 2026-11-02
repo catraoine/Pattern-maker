@@ -133,3 +133,17 @@ test('a colour the shops lack can be printed or dyed exactly', async ({ page }) 
   await card.getByRole('button', { name: 'Dyed to order' }).click();
   await expect(card.getByRole('button', { name: 'Tell me when it opens' })).toBeVisible();
 });
+
+// The T-shirt is drafted for stretch, so its Fabric step offers knits, not wovens, and the drawing wears the knit.
+test('the T-shirt offers knit swatches and its drawing wears the knit', async ({ page }) => {
+  await startWithExample(page);
+  await switchGarment(page, 'Tee');
+  const main = page.getByRole('main');
+  await goTab(page, 'Fabric');
+  const swatches = main.getByRole('radiogroup', { name: 'Fabric for the sketch' });
+  await expect(swatches.getByRole('radio', { name: 'Linen' })).toHaveCount(0);
+  const rib = swatches.getByRole('radio', { name: 'Rib' });
+  await rib.click();
+  await expect(rib).toHaveAttribute('aria-checked', 'true');
+  await expect(main.locator('.garment-fabric pattern image').first()).toHaveAttribute('href', /fabrics\/flat\/rib\.jpg$/);
+});

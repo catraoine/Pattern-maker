@@ -5,6 +5,7 @@ import type { FabricAdvice, FabricPick, MyFabric } from './fabrics';
 import { describeFabric, fabricLines } from './fabrics';
 import type { SewingGuide } from './instructions';
 import type { Stretch, TeeFit, TeeNeck } from './tee';
+import { knitStretchWarning } from './knitFabrics';
 import { isSwim, type LingeriePiece, type LingerieStretch } from './lingerie';
 
 /** The style the knit is checked against. */
@@ -96,8 +97,11 @@ export function lingerieFabrics(style: { piece: LingeriePiece; stretch: Lingerie
 }
 
 /** What to watch for with this knit in this style. */
-export function teeWarnings(style: { fit: TeeFit; stretch: Stretch }, { weight, drape }: Pick<MyFabric, 'weight' | 'drape'>): string[] {
+export function teeWarnings(style: { fit: TeeFit; stretch: Stretch }, { weight, drape, knit }: Pick<MyFabric, 'weight' | 'drape' | 'knit'>): string[] {
   const out: string[] = [];
+  // The crisp line below already says it for ponte and scuba.
+  const tight = drape === 'crisp' ? undefined : knitStretchWarning(knit, style.stretch);
+  if (tight) out.push(tight);
   if (drape === 'crisp') out.push('Crisp knits like ponte or scuba are firm and stretch less. Choose Low stretch so the tee is cut with more room.');
   if (drape === 'fluid' && style.fit === 'fitted') out.push('A fluid knit clings in a fitted tee and shows every line underneath. A regular or relaxed fit hangs better.');
   if (weight === 'heavy' && style.fit === 'fitted') out.push('A heavy knit feels tight in a fitted tee. Choose a regular fit, or Low stretch.');

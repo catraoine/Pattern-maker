@@ -15,7 +15,8 @@ import { PatternPreview } from '../ui/Preview';
 import { PatternPane } from '../ui/PointEditor';
 import { UndoToast, useUndo } from '../ui/useUndo';
 import type { MyFabric } from '../engine/fabrics';
-import { GarmentFabric } from '../ui/FabricFill';
+import { FabricSwatches, GarmentFabric } from '../ui/FabricFill';
+import type { Finish } from '../savedWork';
 import { teeFabrics } from '../engine/knits';
 import { FabricCard, FabricSummary } from '../ui/FabricCard';
 import type { Mode } from '../mode';
@@ -48,6 +49,9 @@ interface Props {
   /** The fabric, told on the Fabric tab. */
   fabric?: MyFabric;
   onFabric?: (f: MyFabric) => void;
+  /** The knit swatches on the Fabric step pick the cloth the drawings are shown in. */
+  finish?: Finish;
+  onFinish?: (f: Finish) => void;
   /** The T-shirt has no tucked-away choices of its own, but the link is here like every other garment, for the print screen's tools. */
   mode?: Mode;
   onMode?: (m: Mode) => void;
@@ -67,7 +71,7 @@ function friendly(w: string) {
   return 'Something in your measurements looks unusual. Please double-check them.';
 }
 
-export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices, onChooseGarment, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, fabric, onFabric, mode = 'all', onMode }: Props) {
+export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices, onChooseGarment, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, fabric, onFabric, finish, onFinish, mode = 'all', onMode }: Props) {
   const undo = useUndo(choices, setChoices);
   const onChoices = undo.change;
   const [view, setView] = useState<'sketch' | 'flat' | 'round' | 'pattern'>('sketch');
@@ -188,7 +192,11 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
         {draft && (
           <TabPanel tab={FABRIC}>
             <FabricCard metres={teeFabricMetres(draft)} advice={teeFabrics(choices)} fabric={fabric} knit>
-              {onFabric && <FabricDetails fabric={fabric} garment="tee" onFabric={onFabric} />}
+              {finish && onFinish ? (
+                <FabricSwatches finish={finish} onFinish={onFinish} garment="tee" details />
+              ) : (
+                onFabric && <FabricDetails fabric={fabric} garment="tee" onFabric={onFabric} />
+              )}
             </FabricCard>
           </TabPanel>
         )}

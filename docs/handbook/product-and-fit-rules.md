@@ -62,7 +62,8 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
   The bar holds one button; Review all choices and Watch demo are links at the end of the step.
 - **One journey** (Oct 31, J1-J8): every garment's steps run Shape, Neck & sleeves, Length & hem, Details, Fabric
   (skipping any it has nothing for), each named the same everywhere and in full on Next. The views read Front ·
-  Flat · All round on every garment. A fabric property (the knit's stretch) is asked on Fabric. On a phone Show all
+  Flat · All round on every garment. A fabric property (the knit's stretch) is asked on Fabric. The T-shirt's Fabric step offers
+  knit swatches only (Nov 1, `src/engine/knitFabrics.ts`), never wovens. On a phone Show all
   tools is on the Review page.
 - **Palette card** (Nov 2, D1): once a fabric is picked, it stands beside the form on Front as one tall palette
   card (cloth over a cream name strip); a shop fabric adds its shop and listed price. Phone: the picks sit under
