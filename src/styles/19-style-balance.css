@@ -213,12 +213,32 @@
   font-size: 0.8em;
 }
 
-/* The corner squares show only their icon (Cat, 2026-11-02: the arrows and pencil sat off centre). Their word is a
-   separate box taken out of the square, so the icon alone is centred; the button's label still names it. */
-.preview-corner .tool-word {
-  display: none;
-}
-.preview-corner > .enlarge,
+/* Enlarge and Draw as words with their small icon (Cat's E, 2026-11-02, after the worded Enlarge on the Pattern
+   view): quiet champagne caps in the drawing's corner, no square frames. */
+.preview-corner > :is(.enlarge, .link.small),
 .preview-corner > .drawmenu > summary {
-  line-height: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  width: auto;
+  height: auto;
+  min-height: 32px;
+  padding: 4px 2px;
+  border: 0;
+  background: none;
+  font-family: var(--mono);
+  font-size: var(--caps-size);
+  letter-spacing: var(--caps-track);
+  text-transform: uppercase;
+  line-height: 1;
+}
+.preview-corner > .enlarge svg,
+.preview-corner > .link.small::before,
+.preview-corner > .drawmenu > summary::before {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+.preview-corner {
+  gap: 2px;
 }

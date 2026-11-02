@@ -55,7 +55,9 @@ test('hopping between screens never makes back ping-pong', async ({ page }) => {
 
   await headerBack(page).click();
   await expectStyle(page, 'Skirt');
-  await headerBack(page).click();
+  // Style has no header back (Cat's B, 2026-11-02): the phone's own back climbs on.
+  await expect(headerBack(page)).toHaveCount(0);
+  await page.goBack();
   await measurements(page);
   await headerBack(page).click();
   await welcome(page);
