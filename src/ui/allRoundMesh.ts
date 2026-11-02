@@ -398,11 +398,13 @@ function buildDraped(
   // Drawn half a cm further out than it settled: the drawn form is not quite the body the cloth settled on, and over the
   // collarbones and shoulder blades it would poke through a cloth lying close.
   const LIFT = 0.5;
+  // (The mirrored half is drawn from its own points where they differ: a slit up the left side seam parts on the left only.)
   const P = (i: number, e: number, more = 0): V3 => {
-    const x = d.pos[i * 3];
-    const z = d.pos[i * 3 + 2];
+    const pos = e < 0 && d.posMirror ? d.posMirror : d.pos;
+    const x = pos[i * 3];
+    const z = pos[i * 3 + 2];
     const k = 1 + (LIFT + more) / (Math.sqrt(x * x + z * z) || 1);
-    return toForm(x * k * e, d.pos[i * 3 + 1], z * k);
+    return toForm(x * k * e, pos[i * 3 + 1], z * k);
   };
   for (const p of d.panels) {
     if (p.hidden) continue;

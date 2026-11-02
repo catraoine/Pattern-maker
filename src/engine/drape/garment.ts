@@ -47,6 +47,9 @@ export interface Draped {
   shade?: Float32Array;
   /** The seams as sewn: point i on the line between j and k, a share t along it (for the quality check). */
   seams?: SimInput['seams'];
+  /** The settled points before a side slit was parted: what the mirrored half (the wearer's right, with no slit) is drawn
+   *  from, so a slit up the left side seam shows on the left alone (the All round eye check, 2026-11-02). */
+  posMirror?: Float64Array;
 }
 
 interface Chain {
@@ -186,7 +189,7 @@ function dartLegs(p: Panel): [Chain, Chain][] {
   return p.mesh.darts.map(([a, b]) => [leg(a), leg(b)]);
 }
 
-const isShell = (pc: Piece) => !pc.kind;
+export const isShell = (pc: Piece) => !pc.kind;
 
 interface TorsoPiece {
   pc: Piece;
@@ -3631,7 +3634,9 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
   // A side slit parts a little as she stands: its edges a little apart, more toward the hem, each turned round the
   // body away from the other (the front edge forward, the back edge back), the cloth within a few cm turning with it.
   // They hang straight: turned, not flared out.
+  let posMirror: Float64Array | undefined;
   if (slitEdges.length && extra.slitCm && !knob('__noSlitPart')) {
+    posMirror = Float64Array.from(res);
     const part = knob('__slitPart') ?? 4;
     const band = knob('__slitBand') ?? 6;
     for (const { p, ids, toHem, sign } of slitEdges) {
@@ -4497,7 +4502,7 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       }
     }
   }
-  return { panels: B.panels, pos: res, lines, buttons, seams, ...(shade ? { shade } : {}) };
+  return { panels: B.panels, pos: res, lines, buttons, seams, ...(shade ? { shade } : {}), ...(posMirror ? { posMirror } : {}) };
 }
 
 /** A shirt collar, which rises from its stand and turns down a little above it. */
@@ -4683,16 +4688,18 @@ const isTorso = (pc: Piece) => !pc.kind && !/skirt|peplum|yoke|sleeve/i.test(pc.
 const isUnder = (pc: Piece) => !pc.kind && /underskirt/i.test(pc.name);
 const isSkirt = (pc: Piece) => !pc.kind && /skirt|peplum|yoke/i.test(pc.name) && !/underskirt/i.test(pc.name);
 
-export function drapeBodice(sp: Space, d: BodiceDraft, sleeve?: SleeveDraft, o: DrapeOptions = {}, extra: { skirt?: Piece[]; drop?: number; pieces?: Piece[]; tiers?: TierBand[]; under?: Piece[] } = {}): Draped {
+export function drapeBodice(sp: Space, d: BodiceDraft, sleeve?: SleeveDraft, o: DrapeOptions = {}, extra: { skirt?: Piece[]; drop?: number; pieces?: Piece[]; tiers?: TierBand[]; under?: Piece[]; slitCm?: number } = {}): Draped {
   const pieces = extra.pieces ?? d.pieces;
   const torso = pieces.filter(isTorso).map((pc) => ({ pc, back: /back/i.test(pc.name), waistY: /back/i.test(pc.name) ? d.back.waistCentre.y : d.front.waistCentre.y, folds: o.rollFront && !/back|side/i.test(pc.name) ? [o.rollFront] : undefined }));
   const skirt = extra.skirt ?? pieces.filter(isSkirt);
   const buttons = d.closure === 'front_buttons' && d.buttons ? { y: d.buttons.at.filter((y) => (o.openBelowY === undefined || y < o.openBelowY) && (o.openAboveY === undefined || y > o.openAboveY)), r: d.buttons.sizeCm / 2, waistY: d.front.waistCentre.y } : undefined;
-  return drape(sp, torso, { skirt: skirt.length ? skirt : undefined, drop: extra.drop, tiers: extra.tiers, under: extra.under, puff: sleeve?.gathers?.crown, cuff: sleeve?.gathers?.hem ? (sleeve.pieces.find((pc) => /band|cuff/i.test(pc.name))?.meta.lengthCm as number | undefined) : undefined, cuffBand: sleeve?.pieces.find((pc) => pc.name === 'Cuff'), sleeve: sleeve?.pieces.filter(isShell), collars: collarsOf(pieces) }, { buttons, closedFront: true, curtain: d.finishedWaist >= d.finishedBust - 2 && !extra.skirt?.length, ...o });
+  return drape(sp, torso, { skirt: skirt.length ? skirt : undefined, drop: extra.drop, tiers: extra.tiers, under: extra.under, ...(extra.slitCm ? { slitCm: extra.slitCm } : {}), puff: sleeve?.gathers?.crown, cuff: sleeve?.gathers?.hem ? (sleeve.pieces.find((pc) => /band|cuff/i.test(pc.name))?.meta.lengthCm as number | undefined) : undefined, cuffBand: sleeve?.pieces.find((pc) => pc.name === 'Cuff'), sleeve: sleeve?.pieces.filter(isShell), collars: collarsOf(pieces) }, { buttons, closedFront: true, curtain: d.finishedWaist >= d.finishedBust - 2 && !extra.skirt?.length, ...o });
 }
 
 export function drapeDress(sp: Space, d: DressDraft, sleeve?: SleeveDraft, o: DrapeOptions = {}): Draped {
-  return drapeBodice(sp, d.bodice, sleeve, { heavySkirt: true, ...o }, { pieces: d.pieces, skirt: hungSkirt(d.pieces.filter(isSkirt), d.skirt?.volume as never, { hip: d.skirt?.finishedHip, hem: d.skirt?.hemCm }), drop: d.seamDrop ?? 0, tiers: d.skirt?.volume?.tiers?.bands, under: d.pieces.filter(isUnder) });
+  const slit = (d.skirt as { slit?: { at: string; cm: number } } | undefined)?.slit;
+  const slitCm = o.openSlit && slit?.at === 'side' ? slit.cm : undefined;
+  return drapeBodice(sp, d.bodice, sleeve, { heavySkirt: true, ...o }, { pieces: d.pieces, skirt: hungSkirt(d.pieces.filter(isSkirt), d.skirt?.volume as never, { hip: d.skirt?.finishedHip, hem: d.skirt?.hemCm }), drop: d.seamDrop ?? 0, tiers: d.skirt?.volume?.tiers?.bands, under: d.pieces.filter(isUnder), ...(slitCm ? { slitCm } : {}) });
 }
 
 export function drapeTrousers(sp: Space, d: TrousersDraft, o: DrapeOptions = {}): Draped {

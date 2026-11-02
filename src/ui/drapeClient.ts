@@ -54,7 +54,18 @@ export function requestDrape(job: DrapeJob, key = drapeKey(job)): Promise<Draped
  *  bar, Cat 2026-11-01): until then they keep the earlier All round. */
 export const sewnOuter = (): boolean => {
   try {
-    return new URLSearchParams(window.location.search).get('sewn') === 'outer' || !!(window as unknown as { __sewnOuter?: boolean }).__sewnOuter;
+    const s = new URLSearchParams(window.location.search).get('sewn');
+    return s === 'outer' || s === 'all' || !!(window as unknown as { __sewnOuter?: boolean }).__sewnOuter;
+  } catch {
+    return false;
+  }
+};
+
+/** ?sewn=all shows the cloth view even when its score failed (a check by eye of what the score turns back, never for
+ *  makers): the All round eye check, Sewist Fit Testing 2026-11-02. */
+export const sewnAnyway = (): boolean => {
+  try {
+    return new URLSearchParams(window.location.search).get('sewn') === 'all';
   } catch {
     return false;
   }

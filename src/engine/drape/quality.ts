@@ -14,7 +14,8 @@
 import type { Draped } from './garment';
 import type { Space } from './space';
 
-type QualityCheck = 'broken' | 'stretched' | 'seam' | 'jagged' | 'fin' | 'inside' | 'collar' | 'hem';
+// - missing: a piece the pattern has that the drawing left out (set in run.ts, where the draft is to hand).
+type QualityCheck = 'broken' | 'stretched' | 'seam' | 'jagged' | 'fin' | 'inside' | 'collar' | 'hem' | 'missing';
 
 export interface QualityProblem {
   check: QualityCheck;
@@ -34,12 +35,15 @@ export interface Quality {
 const LIMITS = {
   /** No point further than this from the form's axis or the waist, in cm. */
   far: 250,
-  /** An edge drawn this many times as long as it is cut... */
+  /** An edge drawn this many times as long as it is cut (1.8: the eye check of 2026-11-02 found no higher setting that
+   *  kept a halter's front standing off as a wing out while letting a bishop sleeve's fullness through, so the sleeve
+   *  waits)... */
   stretch: 1.8,
   /** ...on more than this share of a piece's edges. */
   stretchShare: 0.01,
-  /** Sewn points this far apart, in cm. */
-  seamGap: 1.2,
+  /** Sewn points this far apart, in cm (1.6: a tiered maxi's yoke seams at 1.3 to 1.5 cm read closed by eye; a wrap's at
+   *  2.6 and a shirt dress's at 6.8 did not). */
+  seamGap: 1.6,
   /** An edge point this far off the line through its neighbours (cm), and as a share of their distance apart... */
   jagCm: 0.6,
   jagShare: 0.3,

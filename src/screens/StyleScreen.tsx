@@ -232,6 +232,21 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
     );
   }
 
+  // The Front drawing: shown on Front, and standing in for the sewn All round when that fails its score.
+  const sketch = draft && sheet ? (
+    <GarmentFabric fabric={fabric}>
+      <ShapeSketch
+        draft={draft}
+        m={m}
+        choices={choices}
+        side={side}
+        drawing={drawing}
+        label={`${title}, ${side} view. Drag the hem to change the length, or the side to change the flare.`}
+        onLive={onChoices}
+        onDone={(before, after) => change(after, before)}
+      />
+    </GarmentFabric>
+  ) : undefined;
   return (
     <StyleLayout
       fabric={fabric}
@@ -632,20 +647,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
         </div>
         <div className="preview">
           {error && <p className="msg error">{error}</p>}
-          {draft && sheet && view === 'sketch' && (
-            <GarmentFabric fabric={fabric}>
-            <ShapeSketch
-              draft={draft}
-              m={m}
-              choices={choices}
-              side={side}
-              drawing={drawing}
-              label={`${title}, ${side} view. Drag the hem to change the length, or the side to change the flare.`}
-              onLive={onChoices}
-              onDone={(before, after) => change(after, before)}
-            />
-            </GarmentFabric>
-          )}
+          {view === 'sketch' && sketch}
           {flat && view === 'flat' && (
             <GarmentFabric fabric={fabric}>
               <TechFlatView flat={flat} title={title} />
@@ -658,6 +660,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
               m={values}
               striped={matchKind(fabric)}
               fabric={fabric}
+              fallback={sketch}
               label={`The ${title} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`}
             />
           )}

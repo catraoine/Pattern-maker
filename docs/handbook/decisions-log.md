@@ -5,6 +5,7 @@ something that changes how a department works. Design picks for single screens s
 
 ## November 2026
 
+- **Nov 2** All round eye check (Fable, moved up from Nov 9): 34 hand-drawn designs graded by eye, 8 usable as shown. The fallback for a failing design is now the garment's Front drawing, not the old shape preview; side slits are drawn open; a dropped sleeve fails the score; seam-gap limit 1.6 cm. Findings doc linked from the business plan; fixes on the eye-check PR, merge on "ship".
 - **Nov 2** Fabric palette card (D1 One Palette Card): the picked fabric stands beside the form on Front as one tall card in the A1 style, on every garment; a shop fabric also shows its shop and listed price. On a phone the tag of picks moves under it (up to three lines, as many as fit) and the card stays, smaller, while the swatches scroll. PR #262.
 - **Nov 2** All round for any design (Cat: "users are going to design whatever they want"; applied): every drawing is scored (seams, stretch, jagged edges, fins, cloth in the form, collar, hem) before it turns in cloth; a failing design keeps its shape preview with a "still in testing" line. 300 random designs swept nightly; passing designs locked in tests. src/drapeSweep.ts.
 - **Nov 1** T-shirt Fabric step gets knit swatches only (Jersey, Slub, Modal, Rib, Interlock, Waffle, Terry, Ponte); the drawing wears the knit; a warning when the knit usually stretches less than the stretch picked. PR #255.
