@@ -8,7 +8,7 @@ import { PULL_ON_EASE, lengthRange, lowRiseAllowed, SkirtDraft, SkirtMeasurement
 import { skirtSpec } from '../engine/spec';
 import { FinishedTable, finishedLines } from '../ui/FinishedTable';
 import { isShaped } from '../engine/hem';
-import { SLIP_FACING, SLIP_HIP_EASE_LESS, cutAllowed, slipMini, validCut } from '../engine/slip';
+import { SLIP_FACING, SLIP_HIP_EASE_LESS, cutAllowed, slipMini, slipSlitAllowed, validCut } from '../engine/slip';
 import type { MeasurementValues } from '../measurements';
 import { PatternPreview } from '../ui/Preview';
 import { PatternPane } from '../ui/PointEditor';
@@ -307,17 +307,18 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
                 type="button"
                 className={slitValue === id ? 'chip on' : 'chip'}
                 aria-pressed={slitValue === id}
-                disabled={id !== 'none' && !slitAllowed(choices)}
+                disabled={id !== 'none' && !slitAllowed(choices) && !(id === 'side' && slipSlitAllowed(choices))}
                 onClick={() => change({ ...choices, slit: id, slitCm: undefined })}
               >
                 <ChoicePic set="skirt" group="slit" id={id} />
                 {label}
+                {id === 'side' && slipSlitAllowed(choices) && <TestingTag tool="slip_slit" />}
               </button>
             ))}
           </div>
           <Explain set="skirt" group="slit" options={SLIT_PLACES} pick={slitValue} />
           <SlitSlider slit={draft?.slit} onCm={(slitCm) => change({ ...choices, slitCm })} />
-          {!slitAllowed(choices) && <p className="muted small">{NO_SLIT}</p>}
+          {!slitAllowed(choices) && !slipSlitAllowed(choices) && <p className="muted small">{NO_SLIT}</p>}
         </Group>
         {DETAIL_GROUPS.map((g) => (
           <Group key={g.id} label={g.label}>

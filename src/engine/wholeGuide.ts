@@ -109,7 +109,9 @@ export function wholeGuide(draft: SkirtDraft, fabricM: number, finish: SkirtFini
     },
     {
       title: 'Sew the left side seam',
-      text: `Sew the rest of the left side seam, from the bottom of the zip to the hem, ${seam} from the edge, matching the hip notches. Press the seam open${bias ? ' and overcast or zigzag each allowance on its own: a French seam cannot go round a zip' : ''}. Try the skirt on now: this is the easiest moment to take it in or let it out at the sides.`,
+      text: draft.slit
+        ? `Fuse a 1.5 cm strip of interfacing along the left side edges of the front and back below the SLIT ENDS notches, so the bias holds its line. Sew the rest of the left side seam, from the bottom of the zip down to the SLIT ENDS notch, ${seam} from the edge, matching the hip notches, and backstitch firmly there: below it the seam stays open as a ${draft.slit.cm} cm slit. Press the seam open${bias ? ' and overcast or zigzag each allowance on its own' : ''}. Try the skirt on now: this is the easiest moment to take it in or let it out at the sides.`
+        : `Sew the rest of the left side seam, from the bottom of the zip to the hem, ${seam} from the edge, matching the hip notches. Press the seam open${bias ? ' and overcast or zigzag each allowance on its own: a French seam cannot go round a zip' : ''}. Try the skirt on now: this is the easiest moment to take it in or let it out at the sides.`,
     },
     ...(lined
       ? [
@@ -144,7 +146,7 @@ export function wholeGuide(draft: SkirtDraft, fabricM: number, finish: SkirtFini
     {
       title: 'Hem',
       text: bias
-        ? `Hang the skirt up for a day before hemming, by its waist on a clip hanger or on a dress form: cut on the bias, it drops as it hangs, unevenly and often by 2 cm or more. The hem allowance has ${n1(SLIP_LEVEL)} spare for this. Try it on with the shoes you will wear and have someone mark the hem with pins measured up from the floor${draft.asym ? `, following the ${diagonal ? 'diagonal' : 'high-low'} line of the pattern` : ''}. Trim 1 cm below the marks. Finish with a narrow rolled hem: press up 0.5 cm, then 0.5 cm more, and stitch close to the fold, or roll it by hand in silk.`
+        ? `Hang the skirt up for a day before hemming, by its waist on a clip hanger or on a dress form: cut on the bias, it drops as it hangs, unevenly and often by 2 cm or more. The hem allowance has ${n1(SLIP_LEVEL)} spare for this. Try it on with the shoes you will wear and have someone mark the hem with pins measured up from the floor${draft.asym ? `, following the ${diagonal ? 'diagonal' : 'high-low'} line of the pattern` : ''}. Trim 1 cm below the marks. Finish with a narrow rolled hem: press up 0.5 cm, then 0.5 cm more, and stitch close to the fold, or roll it by hand in silk.${draft.slit ? ' Roll the slit edges the same way, up to the SLIT ENDS notch, then bar-tack across the top of the slit so it cannot tear.' : ''}`
         : `The hem ${diagonal ? 'runs on a slant, short on the left and long on the right' : highLow ? 'curves from short at the front to long at the back' : 'is curved'}, so keep it narrow. Press up 0.5 cm, then 1 cm more, easing the curve with steam, and stitch by hand or machine.`,
     },
     {

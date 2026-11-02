@@ -15,6 +15,7 @@ import { planFor, planShape, shapeAsymHems } from './asymHem';
 import type { SkirtDraft, SkirtMeasurements, SkirtStyle } from './skirt';
 // Used only when drafting, so the two modules can import each other.
 import { raisedWaist } from './skirt';
+import { slitRange } from './slit';
 
 /** A slip takes 3 cm less hip ease than a skirt on the straight grain: the bias gives round the hip. */
 export const SLIP_HIP_EASE_LESS = 3;
@@ -292,6 +293,38 @@ function raisedHalf(pc: Piece, rise: number, plusX: boolean): Path {
   for (let i = 1; i < raised.length; i++) out.line(raised[i], tags[i - 1]);
   out.closed = true;
   return out;
+}
+
+/** A bias slip skirt (not a dress's) can take a slit up its left side seam, below the zip (In testing,
+ * Cat 2026-11-02, for the SS27 lavender slip). The edges are stayed so the bias doesn't stretch. */
+export const slipSlitAllowed = (s: { silhouette: string; joinTo?: unknown }) => s.silhouette === 'slip' && !s.joinTo;
+
+/** The length of a whole piece's side seam on the +x or -x side, waist to hem. */
+function sideLength(pc: Piece, plusX: boolean): number {
+  const { pts, tags } = pc.outline.taggedPoints(48);
+  const idx = tags.map((t, i) => (t === 'side' ? i : -1)).filter((i) => i >= 0);
+  const run = plusX ? idx.filter((i) => i <= tags.indexOf('hem')) : idx.filter((i) => i > tags.lastIndexOf('hem'));
+  return run.reduce((t, i) => t + len(sub(pts[i + 1], pts[i])), 0);
+}
+
+/**
+ * The slit up the slip's left side seam, `cm` above the hem: no higher than 5 cm below the hip line,
+ * nor than 3 cm below the zip, notched SLIT ENDS on the front (+x) and the back (-x).
+ */
+export function slipSlit(draft: SkirtDraft, m: SkirtMeasurements, cm: number): SkirtDraft {
+  const [front, back, ...rest] = draft.pieces;
+  const range = slitRange(draft.lengthCm, m.waist_to_hip);
+  range.max = Math.max(range.min, Math.min(range.max, Math.floor(draft.lengthCm - draft.zipCm - 3)));
+  const want = Math.min(range.max, Math.max(range.min, Math.round(cm)));
+  const mark = (pc: Piece, plusX: boolean): Piece => {
+    const at = downSide(pc, sideLength(pc, plusX) - want, plusX);
+    return {
+      ...pc,
+      notches: [...pc.notches, [at, p(plusX ? 1 : -1, 0)] as [P, P]],
+      labels: [...pc.labels, { at: add(at, p(plusX ? -3.8 : 3.8, 0.3)), text: 'SLIT ENDS', size: 0.7 }],
+    };
+  };
+  return { ...draft, pieces: [mark(front, true), mark(back, false), ...rest], slit: { at: 'side', cm: want, range } };
 }
 
 /** A point `dist` cm down a side seam from the waist, on the +x side or the -x side of a whole piece. */

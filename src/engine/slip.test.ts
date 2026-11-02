@@ -182,3 +182,21 @@ describe('stress: every cut and hem on random bodies', () => {
     expect(failures).toEqual([]);
   }, 120_000);
 });
+
+// A slit up the slip's left side (In testing, Cat 2026-11-02, the SS27 lavender slip).
+describe('bias slip side slit', () => {
+  it('is notched on both pieces, high but below the hip and the zip, and sewn to the notch', () => {
+    for (const length of ['knee', 'midi', 'maxi'] as const) {
+      const d = draftSkirt(m, { silhouette: 'slip', length, slit: 'side', slitCm: 200 });
+      expect(d.slit?.at).toBe('side');
+      expect(d.slit!.cm).toBe(d.slit!.range.max);
+      expect(d.lengthCm - d.slit!.cm).toBeGreaterThanOrEqual(m.waist_to_hip + 5);
+      expect(d.lengthCm - d.slit!.cm).toBeGreaterThanOrEqual(d.zipCm + 3);
+      for (const pc of d.pieces.slice(0, 2)) expect(pc.labels.some((l) => l.text === 'SLIT ENDS')).toBe(true);
+      const g = sewingGuide(d, { silhouette: 'slip', length }, 2);
+      expect(g.steps.find((s) => s.title === 'Sew the left side seam')!.text).toMatch(/SLIT ENDS/);
+    }
+    // Not on a dress's slip skirt, whose zip is at the back.
+    expect(draftSkirt(m, { silhouette: 'slip', length: 'midi', slit: 'side', joinTo: true } as never).slit).toBeUndefined();
+  });
+});

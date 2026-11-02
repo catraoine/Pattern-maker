@@ -51,6 +51,7 @@ export type TestingTool =
   | 'bias_mini'
   | 'polo_collar'
   | 'trouser_ruffle'
+  | 'slip_slit'
   | 'oversized_cuff';
 
 export const TESTING_TOOLS: Record<TestingTool, { name: string; where: string; proof: string }> = {
@@ -94,6 +95,8 @@ export const TESTING_TOOLS: Record<TestingTool, { name: string; where: string; p
   polo_collar: { name: 'Open polo collar', where: 'the Open polo chip under Collar on a top', proof: 'two testers sew an open polo collar and the slit lies flat and open, the collar points sitting level on the chest' },
   // For the SS27 black cropped flares from Cat's picture (2026-11-02, "Let's do these in black").
   trouser_ruffle: { name: 'Ruffled trouser hem', where: 'the Hem chips on trousers', proof: 'two testers sew ruffled hems and the gathers sit evenly round each leg, the trousers ending where they set them' },
+  // For the SS27 lavender bias slip (Cat, 2026-11-02: "Can the lavender skirt have a high side slit").
+  slip_slit: { name: 'Bias slip side slit', where: 'the Side chip under Slit on a bias slip skirt', proof: 'two testers sew a slit bias slip and the slit edges hang straight without stretching or flaring, the top holding' },
   // And for the flared lilac blazer from Cat's plaid-blazer picture (2026-10-31).
   flared_jacket: { name: 'Flared jacket and coat hem', where: 'the Flared chip below the waist on a jacket or coat', proof: 'two testers sew a flared jacket and it stays close at the waist, kicking out evenly over the hips with a level hem' },
   jacket_collars: { name: 'Peak, shawl and funnel collars, wide and plunging lapels', where: 'the Collar and Lapels chips on a jacket or coat', proof: 'two testers sew a peak or shawl lapel and it rolls cleanly from the break point, the collar sitting flat at the back neck' },
