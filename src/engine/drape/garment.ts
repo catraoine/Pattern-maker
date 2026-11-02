@@ -196,6 +196,9 @@ interface TorsoPiece {
 }
 
 export interface DrapeOptions {
+  /** A shirt worn open above a button: the roll line (break at the front edge, to just inside the neck point) the
+   *  fronts above it turn back along, as a soft lapel. */
+  rollFront?: [P, P];
   /** A skirt's side slit drawn open (the drape is of one half, mirrored: a slit on one side only is drawn by draping
    *  the skirt both ways and showing each side from its own). */
   openSlit?: boolean;
@@ -213,6 +216,9 @@ export interface DrapeOptions {
   openBelowY?: number;
   /** Buttoned only below this level: above it the top buttons are undone and the fronts fall open. */
   openAboveY?: number;
+  /** Below this level (the front's own pattern y) the fronts hang parted: each centre front edge held off the centre
+   *  line by `cm` at the level `to` (its hem), in proportion between (a shirt worn with one button done up). */
+  partBelow?: { y: number; cm: number; to: number };
   /** Crisp cloth (organza, taffeta): a peplum this many times stiffer, so it stands out rather than hangs. */
   crisp?: number;
   /** An unshaped top: hangs from the bust and shoulder blades as a curtain, in a few long folds. */
@@ -368,7 +374,7 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
   // A side slit's open edges (each point's distance up the seam from the hem), for the parting drawn after the sim.
   const slitEdges: { p: Panel; ids: number[]; toHem: Map<number, number>; sign: number }[] = [];
   const poppedPanels: Panel[] = [];
-  const stiffPanels: { p: Panel; by: string; roll?: [P, P]; key: (q: P) => number }[] = [];
+  const stiffPanels: { p: Panel; by: string; roll?: [P, P]; key: (q: P) => number; target?: Chain; on?: { panel: Panel; key: (q: P) => number } }[] = [];
   let legs: SimInput['legs'];
   const thick = o.thick ?? 0.35;
   const front: Panel[] = [];
@@ -683,13 +689,19 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       // A shirt's collar and stand (no lapel: no gorge) are interfaced: they keep the shape they were set in round the
       // neck, moved only as the seam each is sewn by moves.
       else if (!p.mesh.runs.gorge && !knob('__softCollar')) stiffPanels.push({ p, by: c.onStand ? 'stand' : 'neck', roll: roll ?? undefined, key });
-      if (c.onStand && standTop) sew(seams, B.chain([p], 'stand', key), B.chain([standTop.panel], 'stand', standTop.key));
-      else {
+      const stiff = stiffPanels.find((x) => x.p === p);
+      if (c.onStand && standTop) {
+        sew(seams, B.chain([p], 'stand', key), B.chain([standTop.panel], 'stand', standTop.key));
+        if (stiff) stiff.on = standTop;
+      } else {
         const target = pc.meta.collarTo === 'extension' ? joinChains(bodyNeck, frontNeck, ext) : joinChains(bodyNeck, frontNeck);
         // A tailored collar's neck edge runs on along the lapel's gorge: sewn as one seam, so the short gorge end of the
         // collar isn't made to gather the whole gorge line up into a point.
         if (p.mesh.runs.gorge && !knob("__oldGorge")) sew(seams, joinChains(B.chain([p], 'neck', key), B.chain([p], 'gorge', key)), joinChains(target, B.chain(front, 'gorge', (q) => -q.x)));
-        else sew(seams, B.chain([p], 'neck', key), target);
+        // (A shirt worn open: its stiff collar is laid on the neckline after, as it settles with the fronts turned back,
+        // not sewn to it while it settles, which would hold the turned neckline up round the neck.)
+        else if (!(o.rollFront && stiff)) sew(seams, B.chain([p], 'neck', key), target);
+        if (stiff) stiff.target = target;
         if (p.mesh.runs.stand) standTop = { panel: p, key };
       }
       if (p.mesh.runs.gorge && knob("__oldGorge")) sew(seams, B.chain([p], 'gorge', (q) => q.y * -1), B.chain(front, 'gorge', (q) => -q.x));
@@ -816,6 +828,7 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
   const armA = new Uint8Array(n);
   const bendW: number[] = [];
   const centre: number[] = [];
+  const centreX = new Map<number, number>();
   // (The cut-on-fold and centre-seam lines alone: not a buttoned front's overlap, which only rests near the centre.)
   const foldLine: number[] = [];
   const edges: number[] = [];
@@ -858,6 +871,15 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       const x0 = Math.min(...pts.map((q) => q.x));
       pts.forEach((q, i) => {
         if (q.x - x0 < 0.05) centre.push(i + p.base);
+      });
+    }
+    if (p.role === 'front' && o.partBelow && p.mesh.runs.opening) {
+      const { y: y0, cm, to } = o.partBelow;
+      pts.forEach((q, i) => {
+        if (Math.abs(q.x) < 0.6 && !p.turned[i] && q.y > y0) {
+          centre.push(i + p.base);
+          centreX.set(centre.length - 1, (cm * Math.min(1, (q.y - y0) / Math.max(1, to - y0))) as number);
+        }
       });
     }
     if ((p.role === 'front' || p.role === 'peplum-front') && o.closedFront && p.mesh.runs.opening) {
@@ -1108,6 +1130,7 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
     bendRest: Float64Array.from(bendRest),
     seams,
     centre: Int32Array.from(centre),
+    ...(centreX.size ? { centreX: Float64Array.from(centre.map((_, k) => centreX.get(k) ?? 0)) } : {}),
     thick: thickA,
     side: sideA,
     onArm: armA,
@@ -1180,16 +1203,238 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
     });
   }
   // (Each point carried by the move of the nearest point of the seam it hangs from, so the whole piece keeps its set shape.)
-  for (const { p, by, roll, key } of stiffPanels) {
+  // A shirt worn open: its collar is laid on the neckline as it settled, the seam that turned back with the fronts
+  // and lies down the chest. (Sewn to that turn, the stiff stand buckles in the cloth here: it is laid instead.)
+  // Its neck edge on the neckline at the same share of the way along; the stand rising from it, round the neck at the
+  // back and lying flat out from the opening where the neckline has turned; the collar on the stand's top edge.
+  const open = (p: Panel, key: (q: P) => number, run: string, along: (f: number) => V3 | undefined) => {
+    const ids = [...new Set((p.mesh.runs[run] ?? []).flat())];
+    if (ids.length < 2) return;
+    const k0 = Math.min(...ids.map((j) => key(p.mesh.pts[j])));
+    const k1 = Math.max(...ids.map((j) => key(p.mesh.pts[j])));
+    for (const j of ids) {
+      const X = along((key(p.mesh.pts[j]) - k0) / (k1 - k0 || 1));
+      if (X) for (let k = 0; k < 3; k++) res[(p.base + j) * 3 + k] = X[k];
+    }
+  };
+  const alongChain = (c0: Chain) => (f: number): V3 | undefined => {
+    if (c0.ids.length < 2) return undefined;
+    // (By its length as it lies, not as it is cut, so a stretch of neckline drawn long doesn't draw the collar long.)
+    const s3: number[] = [0];
+    for (let k = 1; k < c0.ids.length; k++) {
+      const [a, b] = [c0.ids[k - 1] * 3, c0.ids[k] * 3];
+      s3.push(s3[k - 1] + Math.hypot(res[b] - res[a], res[b + 1] - res[a + 1], res[b + 2] - res[a + 2]));
+    }
+    const c = knob('__cutAlong') ? c0 : { ids: c0.ids, s: s3 };
+    const L = c.s[c.s.length - 1] || 1;
+    const t0 = f * L;
+    let k = 1;
+    while (k < c.s.length - 1 && c.s[k] < t0) k++;
+    const d = c.s[k] - c.s[k - 1];
+    const t = d > 1e-9 ? Math.max(0, Math.min(1, (t0 - c.s[k - 1]) / d)) : 0;
+    return [0, 1, 2].map((q) => res[c.ids[k - 1] * 3 + q] * (1 - t) + res[c.ids[k] * 3 + q] * t) as V3;
+  };
+  const panelChain = (p: Panel, run: string, key: (q: P) => number): Chain => {
+    const ids = [...new Set((p.mesh.runs[run] ?? []).flat())].sort((a, b) => key(p.mesh.pts[a]) - key(p.mesh.pts[b]));
+    return { ids: ids.map((j) => j + p.base), s: ids.map((j) => key(p.mesh.pts[j])) };
+  };
+  // Which way a collar laid on an open neckline rises from its seam, all along it: straight up round the back of the
+  // neck, and, where the seam has dropped down the chest with the turned-back fronts, along the chest away from it.
+  // Taken at even steps down the seam, kept turning the same way from each step to the next (no flip where the seam
+  // turns back on itself at the roll), and eased smooth.
+  // Which way the shirt's cloth lies from each point of its neckline (into the shirt), as it settled.
+  const awayPts: { X: V3; D: V3 }[] = [];
+  if (o.rollFront) {
+    const nbr = new Map<number, Set<number>>();
+    for (const p of B.panels)
+      if (p.role === 'front' || p.role === 'back')
+        for (const t of p.mesh.tris)
+          for (const [u, v] of [[t[0], t[1]], [t[1], t[2]], [t[2], t[0]]]) {
+            (nbr.get(p.base + u) ?? nbr.set(p.base + u, new Set()).get(p.base + u)!).add(p.base + v);
+            (nbr.get(p.base + v) ?? nbr.set(p.base + v, new Set()).get(p.base + v)!).add(p.base + u);
+          }
+    for (const sp0 of stiffPanels)
+      for (const g of sp0.target?.ids ?? []) {
+        const ns = [...(nbr.get(g) ?? [])].filter((n) => !sp0.target!.ids.includes(n));
+        if (!ns.length) continue;
+        const X = [0, 1, 2].map((k) => res[g * 3 + k]) as V3;
+        const D = [0, 1, 2].map((k) => ns.reduce((t, n) => t + res[n * 3 + k], 0) / ns.length - X[k]) as V3;
+        const l = Math.hypot(...D) || 1;
+        awayPts.push({ X, D: D.map((v) => v / l) as V3 });
+      }
+  }
+  const awayAt = (X: V3): V3 | undefined => {
+    let best: V3 | undefined;
+    let bd = Infinity;
+    for (const a of awayPts) {
+      const d = Math.hypot(a.X[0] - X[0], a.X[1] - X[1], a.X[2] - X[2]);
+      if (d < bd) {
+        bd = d;
+        best = a.D;
+      }
+    }
+    return best;
+  };
+  const frameOf = (posAt: (s: number) => V3, s0: number, s1: number) => {
+    const n = Math.max(2, Math.ceil((s1 - s0) / 0.5));
+    const S = Array.from({ length: n + 1 }, (_, k) => s0 + ((s1 - s0) * k) / n);
+    const X = S.map(posAt);
+    const top = Math.min(...X.map((x) => x[1]));
+    const W = X.map((x) => Math.max(0, Math.min(1, (x[1] - top - (knob('__lie0') ?? 3)) / (knob('__lie1') ?? 6))));
+    // (Across the seam, along the body: kept pointing the same way from each step to the next.)
+    let prevL: V3 | undefined;
+    const Ls = X.map((x, k) => {
+      const st = knob('__frameT') ?? 3;
+      const a = X[Math.max(0, k - st)];
+      const b = X[Math.min(n, k + st)];
+      const T0: V3 = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
+      const tl = Math.hypot(...T0) || 1;
+      const T = T0.map((v) => v / tl) as V3;
+      const rho = Math.hypot(x[0], x[2]) || 1;
+      const N: V3 = [x[0] / rho, 0, x[2] / rho];
+      let L: V3 = [N[1] * T[2] - N[2] * T[1], N[2] * T[0] - N[0] * T[2], N[0] * T[1] - N[1] * T[0]];
+      if (prevL ? L[0] * prevL[0] + L[1] * prevL[1] + L[2] * prevL[2] < 0 : L[1] > 0) L = L.map((v) => -v) as V3;
+      prevL = L;
+      return L;
+    });
+    // (Lying, it lies away from the cloth of the shirt beside its seam, out over the shoulder, not back into the
+    // opening: which way that is, taken over the whole of it that lies, so it doesn't flip from one step to the next.)
+    let vote = 0;
+    X.forEach((x, k) => {
+      const into = awayAt(x);
+      if (into && W[k] > (knob('__awayW') ?? 0.2)) vote += W[k] * Math.sign(Ls[k][0] * into[0] + Ls[k][1] * into[1] + Ls[k][2] * into[2]);
+    });
+    const sg = vote > 0 && !knob('__noAway') ? -1 : 1;
+    const U = X.map((_, k) => {
+      const w = W[k];
+      const u: V3 = [sg * Ls[k][0] * w, -(1 - w) + sg * Ls[k][1] * w, sg * Ls[k][2] * w];
+      const ul = Math.hypot(...u) || 1;
+      return u.map((v) => v / ul) as V3;
+    });
+    for (let it = 0; it < (knob('__frameSm') ?? 80); it++)
+      for (let k = 1; k < n; k++) {
+        const m = [0, 1, 2].map((d) => (U[k - 1][d] + 2 * U[k][d] + U[k + 1][d]) / 4);
+        const ml = Math.hypot(...m) || 1;
+        U[k] = m.map((v) => v / ml) as V3;
+      }
+    return (s: number): { U: V3; w: number } => {
+      const f = Math.max(0, Math.min(n, ((s - s0) / (s1 - s0 || 1)) * n));
+      const k = Math.min(n - 1, Math.floor(f));
+      const t = f - k;
+      const u = [0, 1, 2].map((d) => U[k][d] * (1 - t) + U[k + 1][d] * t);
+      const ul = Math.hypot(...u) || 1;
+      return { U: u.map((v) => v / ul) as V3, w: W[k] * (1 - t) + W[k + 1] * t };
+    };
+  };
+  // (Laid out by rule, a band turning from standing to lying is drawn longer along its outer edge than it is cut: its
+  // cloth is eased back to its cut lengths, the seam it is sewn by held.)
+  const toRelax: [Panel, number[], (() => void)?][] = [];
+  // (The way the stand turns, all along it, for the collar on it to turn with.)
+  const standFr = new Map<Panel, { fr: (s: number) => { U: V3; w: number }; k0: number; k1: number }>();
+  // (How far each laid point lies rather than stands, and how far off the shirt it lies when it does.)
+  const lieOf = new Map<number, [number, number]>();
+  const relax = (p: Panel, held: number[]) => {
+    const fixed = new Set(held);
+    const E: [number, number, number][] = [];
+    const seen = new Set<string>();
+    for (const t of p.mesh.tris)
+      for (const [u, v] of [[t[0], t[1]], [t[1], t[2]], [t[2], t[0]]]) {
+        const k = u < v ? `${u},${v}` : `${v},${u}`;
+        if (seen.has(k)) continue;
+        seen.add(k);
+        E.push([u, v, Math.hypot(p.mesh.pts[u].x - p.mesh.pts[v].x, p.mesh.pts[u].y - p.mesh.pts[v].y)]);
+      }
+    for (let it = 0; it < (knob('__relaxIt') ?? 300); it++)
+      for (const [u, v, L] of E) {
+        const U = (p.base + u) * 3;
+        const V = (p.base + v) * 3;
+        const d = [res[V] - res[U], res[V + 1] - res[U + 1], res[V + 2] - res[U + 2]];
+        const l = Math.hypot(d[0], d[1], d[2]) || 1e-9;
+        const over = l - L * (knob('__relaxTo') ?? 1.5);
+        if (over <= 0) continue;
+        const fu = fixed.has(u) ? 0 : fixed.has(v) ? 1 : 0.5;
+        const fv = fixed.has(v) ? 0 : fixed.has(u) ? 1 : 0.5;
+        for (let k = 0; k < 3; k++) {
+          res[U + k] += (d[k] / l) * over * fu;
+          res[V + k] -= (d[k] / l) * over * fv;
+        }
+      }
+  };
+  for (const { p, by, roll, key, target, on } of stiffPanels) {
     const anchor = (p.mesh.runs[by] ?? []).flat();
     if (!anchor.length) continue;
+    if (o.rollFront && !knob('__noOpenCol')) {
+      // (Where the turned-back neckline curls up again at the centre front, the collar runs on straight past its
+      // lowest point instead, so it ends lying along the lapel rather than hooked back up.)
+      const onNeck = target
+        ? () => {
+            const s3: number[] = [0];
+            for (let k = 1; k < target.ids.length; k++) {
+              const [u, v] = [target.ids[k - 1] * 3, target.ids[k] * 3];
+              s3.push(s3[k - 1] + Math.hypot(res[v] - res[u], res[v + 1] - res[u + 1], res[v + 2] - res[u + 2]));
+            }
+            const L = s3[s3.length - 1] || 1;
+            const lowest = target.ids.reduce((b, g, n) => (res[g * 3 + 1] > res[target.ids[b] * 3 + 1] ? n : b), 0);
+            const base = alongChain(target);
+            const fl = s3[lowest] / L;
+            const pre = base(Math.max(0, fl - 1.5 / L))!;
+            const at0 = base(fl)!;
+            const dl = Math.hypot(at0[0] - pre[0], at0[1] - pre[1], at0[2] - pre[2]) || 1;
+            open(p, key, by, (f) => (f <= fl || knob('__hook') ? base(f) : (at0.map((v, k) => v + ((at0[k] - pre[k]) / dl) * (f - fl) * L) as V3)));
+          }
+        : undefined;
+      if (onNeck) onNeck();
+      if (!onNeck && on) open(p, key, by, alongChain(panelChain(on.panel, 'stand', on.key)));
+      if (!roll) {
+        // (The stand: each point up from the neck seam point below it by its height above the neck edge.)
+        const seam = panelChain(p, by, key);
+        const ks = seam.s;
+        const posAt = (s: number): V3 => {
+          let k = 1;
+          while (k < ks.length - 1 && ks[k] < s) k++;
+          const d = ks[k] - ks[k - 1];
+          const t = d > 1e-9 ? (s - ks[k - 1]) / d : 0;
+          return [0, 1, 2].map((q) => res[seam.ids[k - 1] * 3 + q] * (1 - t) + res[seam.ids[k] * 3 + q] * t) as V3;
+        };
+        const nk = seam.ids.map((g) => p.mesh.pts[g - p.base]);
+        const fr = frameOf(posAt, ks[0], ks[ks.length - 1]);
+        standFr.set(p, { fr, k0: ks[0], k1: ks[ks.length - 1] });
+        p.mesh.pts.forEach((q, i) => {
+          if (anchor.includes(i)) return;
+          const s0 = key(q);
+          const X = posAt(s0);
+          let h = Infinity;
+          for (const n of nk) h = Math.min(h, Math.hypot(n.x - q.x, n.y - q.y));
+          const { U, w } = fr(s0);
+          const rho = Math.hypot(X[0], X[2]) || 1;
+          const N: V3 = [X[0] / rho, 0, X[2] / rho];
+          const I = (p.base + i) * 3;
+          // (Round the back, where it stands as it does buttoned, it keeps the shape it settled in, carried by its seam.)
+          let j = anchor[0];
+          let bd = Infinity;
+          for (const a of anchor) {
+            const dd = Math.hypot(p.mesh.pts[a].x - q.x, p.mesh.pts[a].y - q.y);
+            if (dd < bd) {
+              bd = dd;
+              j = a;
+            }
+          }
+          const J = (p.base + j) * 3;
+          const v = knob('__standBlend') === 0 ? 1 : w;
+          for (let k = 0; k < 3; k++) res[I + k] = (X[k] + U[k] * h + N[k] * (0.1 + 0.3 * w)) * v + (p.start[i][k] + (res[J + k] - p.start[j][k])) * (1 - v);
+          if (w > 0) lieOf.set(p.base + i, [w, 0.1]);
+        });
+        if (!knob('__noRelax')) toRelax.push([p, anchor, onNeck]);
+        continue;
+      }
+    }
     if (roll && !knob('__oldFall')) {
       // A collar with a fall: built on the line it is sewn by, as settled. Up from it to the fold (the collar's inner
       // layer standing round the neck), then the fall turned down from the fold, out and down over the stand onto the
       // shoulders: a stiff, interfaced piece, each point at its cut distance from the fold.
       const ring = [...new Set(anchor)].map((j) => ({ s: key(p.mesh.pts[j]), d: distLine(p.mesh.pts[j], roll), X: [0, 1, 2].map((k) => res[(p.base + j) * 3 + k]) as V3 })).sort((a, b) => a.s - b.s);
       // (Its height round the neck eased smooth, so the fold runs as one clean line: mirrored at the centre back.)
-      for (let it = 0; it < (knob('__ringIt') ?? 8); it++) {
+      for (let it = 0; it < (o.rollFront ? knob('__ringItOpen') ?? 0 : knob('__ringIt') ?? 8); it++) {
         const y = ring.map((r) => r.X[1]);
         const dd = ring.map((r) => r.d);
         for (let k = 0; k + 1 < ring.length; k++) {
@@ -1229,6 +1474,15 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
         return best;
       };
       const curved = !knob('__straightRoll') && seam.length > 2;
+      // A shirt worn open: where its neck seam has turned back with the fronts and lies down the chest, the collar
+      // lies open with it rather than standing round the neck: its stand flat on the chest, away from the opening,
+      // and its fall pressed nearly flat over that. (How far each part of the seam has dropped below the back neck
+      // says how far it has turned.)
+      const sf = on ? standFr.get(on.panel) : undefined;
+      const r0 = ring[0].s;
+      const r1 = ring[ring.length - 1].s;
+      const lieFr = !o.rollFront ? undefined : sf && !knob('__ownFrame') ? (s: number) => sf.fr(sf.k0 + ((s - r0) / (r1 - r0 || 1)) * (sf.k1 - sf.k0)) : frameOf((s) => at(s).X, r0, r1);
+      const lieAt = (s: number): { U: V3; w: number } => (lieFr ? lieFr(s) : { U: [0, -1, 0], w: 0 });
       p.mesh.pts.forEach((q, i) => {
         const r = p.turned[i] ? reflect(q, roll[0], roll[1]) : q;
         const nq = curved ? near(q) : undefined;
@@ -1239,6 +1493,23 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
         const rho = Math.hypot(base.X[0], base.X[2]) || 1e-9;
         const out = [base.X[0] / rho, 0, base.X[2] / rho];
         const I = (p.base + i) * 3;
+        const lie = lieAt(s0);
+        if (lie.w > 0) {
+          const U = lie.U;
+          const ph = phi * (1 - lie.w) + (knob('__lieAng') ?? 5) * (Math.PI / 180) * lie.w;
+          const lift = 0.1 + lie.w * 0.3;
+          if (!p.turned[i]) {
+            const up = nq ? Math.min(gap, nq.dist) : Math.max(0, base.d - distLine(q, roll));
+            for (let k = 0; k < 3; k++) res[I + k] = base.X[k] + out[k] * lift + U[k] * up;
+            lieOf.set(p.base + i, [lie.w, knob("__lieIn") ?? 0.35]);
+          } else {
+            const h = nq ? Math.max(0, nq.dist - gap) : Math.hypot(q.x - r.x, q.y - r.y) / 2;
+            const T = (Math.min(p.thick[i], 0.6) * 2 + 0.15) * (1 - lie.w) + (knob("__lieT") ?? 0.5) * lie.w;
+            for (let k = 0; k < 3; k++) res[I + k] = base.X[k] + U[k] * (base.d - h * Math.cos(ph)) + out[k] * (lift + T + h * Math.sin(ph));
+            lieOf.set(p.base + i, [lie.w, knob("__lieOut") ?? 0.7]);
+          }
+          return;
+        }
         if (!p.turned[i]) {
           // (Inner layer: up from the seam by as far as it is cut from it, toward the fold.)
           const up = nq ? Math.min(gap, nq.dist) : Math.max(0, base.d - distLine(q, roll));
@@ -1248,12 +1519,13 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
         } else {
           const h = nq ? Math.max(0, nq.dist - gap) : Math.hypot(q.x - r.x, q.y - r.y) / 2;
           const top = base.X[1] - base.d;
-          const T = p.thick[i] * 2 + 0.15;
+          const T = (o.rollFront ? Math.min(p.thick[i], 0.6) : p.thick[i]) * 2 + 0.15;
           res[I] = base.X[0] + out[0] * (T + h * Math.sin(phi));
           res[I + 1] = top + h * Math.cos(phi);
           res[I + 2] = base.X[2] + out[2] * (T + h * Math.sin(phi));
         }
       });
+      if (o.rollFront && !knob('__noRelax')) toRelax.push([p, anchor, on ? () => open(p, key, by, alongChain(panelChain(on.panel, 'stand', on.key))) : undefined]);
       continue;
     }
     const moved = new Map<number, V3>();
@@ -1746,6 +2018,60 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       const W = Math.max(...xs) - x0;
       // (An even number of half waves: the centre line and the seam both lie flat across a fold's crest, so the
       // halves meet without a crease and the seams match.)
+      // (At the centre line the sim gathers what flare there is into a narrow pinch either side of it, a few cm of cloth
+      // in under a cm, which draws as a string of dimples down the centre below the hip: the cloth there is spread
+      // out evenly from the centre line to a few cm across, lying flat across the centre as it turns there.)
+      // (Out to the first fold's crest beside it: round the body from the centre line evenly, standing off it in a
+      // smooth curve, flat across the centre.)
+      const reach = knob('__biasBand') ?? 9;
+      if (reach > 0) {
+        const pts = p.mesh.pts;
+        const near = pts.map((_, i) => i).filter((i) => pts[i].x - x0 < reach + 1);
+        const P3 = (i: number) => [res[(p.base + i) * 3], res[(p.base + i) * 3 + 1], res[(p.base + i) * 3 + 2]];
+        const ang = (v: number[]) => Math.atan2(v[0], v[2]);
+        const rhoOf = (v: number[]) => Math.hypot(v[0], v[2]);
+        const out = new Map<number, [number, number]>();
+        for (const i of near) {
+          const q = pts[i];
+          const dx = q.x - x0;
+          if (dx < 0.05 || P3(i)[1] < hipC) continue;
+          const row = near.filter((j) => Math.abs(pts[j].y - q.y) < 1.0);
+          const cbs = row.filter((j) => pts[j].x - x0 < 0.05);
+          if (!cbs.length) continue;
+          const c = P3(cbs[0]);
+          // (The crest: the point of the row standing furthest out, past which the cloth turns back in.)
+          let crest = -1;
+          let best = -Infinity;
+          for (const j of row) {
+            const v = P3(j);
+            const r = rhoOf(v) - sp.bodyR(ang(v), v[1]);
+            if (pts[j].x - x0 > 1 && r > best) {
+              best = r;
+              crest = j;
+            }
+          }
+          if (crest < 0) continue;
+          const cx = pts[crest].x - x0;
+          if (dx >= cx) continue;
+          const f = P3(crest);
+          const t = dx / cx;
+          const s = t * t * (3 - 2 * t);
+          const a0 = ang(c);
+          let a1 = ang(f);
+          if (a1 - a0 > Math.PI) a1 -= 2 * Math.PI;
+          if (a0 - a1 > Math.PI) a1 += 2 * Math.PI;
+          const a = a0 + (a1 - a0) * t;
+          const y = P3(i)[1];
+          const off0 = rhoOf(c) - sp.bodyR(a0, c[1]);
+          const off1 = rhoOf(f) - sp.bodyR(ang(f), f[1]);
+          const r = Math.max(sp.bodyR(a, y) + p.thick[i], sp.bodyR(a, y) + off0 + (off1 - off0) * s);
+          out.set(i, [Math.sin(a) * r, Math.cos(a) * r]);
+        }
+        for (const [i, [x, z]] of out) {
+          res[(p.base + i) * 3] = x;
+          res[(p.base + i) * 3 + 2] = z;
+        }
+      }
       const n = 2 * Math.max(1, Math.round(W / (2 * (knob('__biasLam') ?? 13))));
       const A = knob('__biasA') ?? 2;
       let hemC = -Infinity;
@@ -1854,7 +2180,7 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       });
     }
   }
-  if (o.pinFront?.length && !knob('__noNeckPull')) {
+  if (o.pinFront?.length && !o.rollFront) {
     for (const p of B.panels) {
       if (p.hidden || (p.role !== 'front' && p.role !== 'back' && p.role !== 'collar')) continue;
       const neck = (p.mesh.runs.neck ?? []).flat();
@@ -1903,7 +2229,7 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
   // A jacket front's neckline runs from the shoulder down round the neck: the coarse sim can leave it slid out across
   // the top of the shoulder, longer than it is cut. It is drawn back along itself from the shoulder (never longer than
   // cut, a little give), onto the body, and the front within a few cm of it comes with it.
-  if (o.pinFront?.length && !knob('__noNeckChain')) {
+  if (o.pinFront?.length && !o.rollFront) {
     for (const p of B.panels) {
       if (p.hidden || p.role !== 'front') continue;
       const pts = p.mesh.pts;
@@ -2065,7 +2391,16 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
     const yBot = knob('__fsY') ?? (pinY.length ? pinY.reduce((a, b) => a + b, 0) / pinY.length + (knob('__fsBelow') ?? 1) : -1e9);
     for (const p of B.panels) {
       if (p.role !== 'front' || p.hidden) continue;
-      const ids = p.mesh.pts.map((_, i) => p.base + i).filter((g, i) => !p.turned[i] && !held.has(g) && res[g * 3 + 1] < yBot);
+      // (A shirt worn open: its edges, the fold its fronts turn back at and its neckline, are held where they hung, or
+      // smoothing would draw them in off the opening and widen it.)
+      const edge = new Set<number>();
+      if (o.rollFront && !knob('__fsEdges')) {
+        for (const run of Object.values(p.mesh.runs)) for (const r of run as number[][]) for (const i of r) edge.add(p.base + i);
+        p.mesh.pts.forEach((_, i) => {
+          if (!p.turned[i] && (nb.get(p.base + i) ?? []).some((n) => n >= p.base && n < p.base + p.mesh.pts.length && p.turned[n - p.base])) edge.add(p.base + i);
+        });
+      }
+      const ids = p.mesh.pts.map((_, i) => p.base + i).filter((g, i) => !p.turned[i] && !held.has(g) && !edge.has(g) && res[g * 3 + 1] < yBot);
       const inP = (g: number) => g >= p.base && g < p.base + p.mesh.pts.length && !p.turned[g - p.base];
       for (let it = 0; it < fsIt; it++)
         for (const g of ids) {
@@ -2174,7 +2509,7 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
   }
   // A jacket's or coat's collar fall is pressed down onto the back it turns over (its stand alone can't hold it
   // there in the sim), so no gap opens between the collar and the back neck.
-  const collarOnly = !knob("__lay") && !!o.pinFront?.length;
+  const collarOnly = !knob("__lay") && !!o.pinFront?.length && !o.rollFront;
   if (knob("__lay") || collarOnly) {
     const NA = 90;
     const key = (a: number, c: number) => Math.round(((a + Math.PI) / TAU) * NA) * 1000 + Math.round(c * 2);
@@ -3355,6 +3690,116 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       }
     }
   }
+  // (A collar laid open is eased to its cut lengths last, after the passes above have moved what it is laid on.)
+  const settle = () => {
+    for (const [p, held, reanchor] of toRelax) {
+      // (A collar on a stand that has just eased: its seam edge put back on the stand's top edge first.)
+      if (reanchor) {
+        const before = held.map((j) => [0, 1, 2].map((k) => res[(p.base + j) * 3 + k]));
+        reanchor();
+        // (The rest of it moved with its seam edge: each point by the move of the nearest point of that edge.)
+        const moved = held.map((j, n) => [0, 1, 2].map((k) => res[(p.base + j) * 3 + k] - before[n][k]));
+        const hs = new Set(held);
+        p.mesh.pts.forEach((q, i) => {
+          if (hs.has(i)) return;
+          let b = 0;
+          let bd = Infinity;
+          held.forEach((j, n) => {
+            const dd = Math.hypot(p.mesh.pts[j].x - q.x, p.mesh.pts[j].y - q.y);
+            if (dd < bd) {
+              bd = dd;
+              b = n;
+            }
+          });
+          for (let k = 0; k < 3; k++) res[(p.base + i) * 3 + k] += moved[b][k];
+        });
+      }
+      relax(p, held);
+    }
+  };
+  settle();
+  // (Where it lies, it lies on the shirt: each such point put out onto the shirt's own surface there, by as much as it
+  // lies, then eased to its cut lengths again.)
+  if (toRelax.length && lieOf.size && !knob('__noLieOn')) {
+    const NA = 180;
+    const binOf = (a: number, y: number) => Math.round(((a + Math.PI) / TAU) * NA) * 10000 + Math.round(y * 2);
+    const shell = new Map<number, number>();
+    for (const p of B.panels) {
+      if ((p.role !== 'front' && p.role !== 'back') || p.hidden) continue;
+      p.mesh.pts.forEach((_, i) => {
+        const I = (p.base + i) * 3;
+        const k = binOf(Math.atan2(res[I], res[I + 2]), res[I + 1]);
+        shell.set(k, Math.max(shell.get(k) ?? 0, Math.hypot(res[I], res[I + 2]) + (p.turned[i] ? p.thick[i] : 0)));
+      });
+    }
+    const shellAt = (a: number, y: number): number | undefined => {
+      let best: number | undefined;
+      for (let da = -2; da <= 2; da++)
+        for (let dy = -2; dy <= 2; dy++) {
+          const v = shell.get(binOf(a + (da * TAU) / NA, y + dy / 2));
+          if (v !== undefined) best = Math.max(best ?? 0, v);
+        }
+      return best;
+    };
+    for (let round = 0; round < (knob('__lieRounds') ?? 8); round++) {
+      for (const [g, [w, off]] of lieOf) {
+        const I = g * 3;
+        const a = Math.atan2(res[I], res[I + 2]);
+        const R = shellAt(a, res[I + 1]);
+        if (R === undefined) continue;
+        const rho = Math.hypot(res[I], res[I + 2]) || 1e-9;
+        const want = R + off;
+        const k = (rho + (want - rho) * Math.min(1, w * (knob('__lieK') ?? 1.5))) / rho;
+        res[I] *= k;
+        res[I + 2] *= k;
+      }
+      settle();
+      // (Its free edge drawn as a smooth line, as pressed, not with the mesh's stagger.)
+      for (const [p] of toRelax)
+        for (const run of p.mesh.runs.collar ?? [])
+          for (let it = 0; it < (knob('__lieEdge') ?? 20); it++)
+            for (let k = 1; k + 1 < run.length; k++) {
+              const [A, I, C] = [run[k - 1], run[k], run[k + 1]].map((j) => (p.base + j) * 3);
+              for (let d = 0; d < 3; d++) res[I + d] += ((res[A + d] + res[C + d]) / 2 - res[I + d]) * 0.5;
+            }
+    }
+  }
+  // (Laid open, the stand and collar are each drawn as one smooth band, not rippled: every point eased toward the
+  // middle of its neighbours (with a step back each other time, so the band keeps its depth), the seam each is sewn
+  // by held; then its edges drawn smooth, and eased back to its cut lengths.)
+  if (toRelax.length) {
+    for (const [p, held] of toRelax) {
+      const hs = new Set(held);
+      const nb = p.mesh.pts.map(() => new Set<number>());
+      for (const t of p.mesh.tris)
+        for (const [u, v] of [[t[0], t[1]], [t[1], t[2]], [t[2], t[0]]]) {
+          nb[u].add(v);
+          nb[v].add(u);
+        }
+      for (let it = 0; it < (knob('__surfSm') ?? 60); it++) {
+        const lam = it % 2 ? -0.53 : 0.5;
+        const nx = Float64Array.from(res.subarray(p.base * 3, (p.base + p.mesh.pts.length) * 3));
+        p.mesh.pts.forEach((_, i) => {
+          if (hs.has(i) || !nb[i].size) return;
+          for (let d = 0; d < 3; d++) {
+            let m = 0;
+            for (const j of nb[i]) m += res[(p.base + j) * 3 + d];
+            nx[i * 3 + d] = res[(p.base + i) * 3 + d] + (m / nb[i].size - res[(p.base + i) * 3 + d]) * lam;
+          }
+        });
+        res.set(nx, p.base * 3);
+      }
+    }
+    settle();
+    for (const [p] of toRelax)
+      for (const run of [...(p.mesh.runs.collar ?? []), ...(p.mesh.runs.stand ?? [])])
+        for (let it = 0; it < (knob('__lieEdge') ?? 20); it++)
+          for (let k = 1; k + 1 < run.length; k++) {
+            const [A, I, C] = [run[k - 1], run[k], run[k + 1]].map((j) => (p.base + j) * 3);
+            for (let d = 0; d < 3; d++) res[I + d] += ((res[A + d] + res[C + d]) / 2 - res[I + d]) * 0.5;
+          }
+    settle();
+  }
   // Buttons on the centre front, where the cloth lies there.
   const buttons: Draped['buttons'] = [];
   const f0 = front.find((p) => p.role === 'front');
@@ -3484,7 +3929,7 @@ const isSkirt = (pc: Piece) => !pc.kind && /skirt|peplum|yoke/i.test(pc.name) &&
 
 export function drapeBodice(sp: Space, d: BodiceDraft, sleeve?: SleeveDraft, o: DrapeOptions = {}, extra: { skirt?: Piece[]; drop?: number; pieces?: Piece[]; tiers?: TierBand[]; under?: Piece[] } = {}): Draped {
   const pieces = extra.pieces ?? d.pieces;
-  const torso = pieces.filter(isTorso).map((pc) => ({ pc, back: /back/i.test(pc.name), waistY: /back/i.test(pc.name) ? d.back.waistCentre.y : d.front.waistCentre.y }));
+  const torso = pieces.filter(isTorso).map((pc) => ({ pc, back: /back/i.test(pc.name), waistY: /back/i.test(pc.name) ? d.back.waistCentre.y : d.front.waistCentre.y, folds: o.rollFront && !/back|side/i.test(pc.name) ? [o.rollFront] : undefined }));
   const skirt = extra.skirt ?? pieces.filter(isSkirt);
   const buttons = d.closure === 'front_buttons' && d.buttons ? { y: d.buttons.at.filter((y) => (o.openBelowY === undefined || y < o.openBelowY) && (o.openAboveY === undefined || y > o.openAboveY)), r: d.buttons.sizeCm / 2, waistY: d.front.waistCentre.y } : undefined;
   return drape(sp, torso, { skirt: skirt.length ? skirt : undefined, drop: extra.drop, tiers: extra.tiers, under: extra.under, puff: sleeve?.gathers?.crown, cuff: sleeve?.gathers?.hem ? (sleeve.pieces.find((pc) => /band|cuff/i.test(pc.name))?.meta.lengthCm as number | undefined) : undefined, cuffBand: sleeve?.pieces.find((pc) => pc.name === 'Cuff'), sleeve: sleeve?.pieces.filter(isShell), collars: collarsOf(pieces) }, { buttons, closedFront: true, curtain: d.finishedWaist >= d.finishedBust - 2 && !extra.skirt?.length, ...o });

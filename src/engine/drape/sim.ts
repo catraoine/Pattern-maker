@@ -15,6 +15,8 @@ export interface SimInput {
   seams: { i: number; j: number; k: number; t: number }[];
   /** Points held on the centre plane (x = 0): a fold, a centre seam, the buttoned front. */
   centre: Int32Array;
+  /** Where across each centre point is held (x), when not on the centre plane itself: a front left parted below its button. */
+  centreX?: Float64Array;
   /** How far off the body each point lies: the cloth's thickness, more for a layer lying over another. */
   thick: Float64Array;
   /** Points stopped from coming in past the body's centre line (x below 0). */
@@ -208,7 +210,7 @@ export function simulate(s: Space, inp: SimInput, steps = knob("__steps") ?? 260
           x[K + d] -= diff * 0.5 * t;
         }
       }
-      for (let c = 0; c < centre.length; c++) x[centre[c] * 3] = 0;
+      for (let c = 0; c < centre.length; c++) x[centre[c] * 3] = inp.centreX ? inp.centreX[c] : 0;
       if (inp.hang) for (let k = 0; k < inp.hang.ids.length; k++) {
         const I = inp.hang.ids[k] * 3 + 1;
         if (x[I] > inp.hang.c[k]) x[I] = inp.hang.c[k];
