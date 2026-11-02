@@ -558,7 +558,8 @@ if (PRINT2) {
       [...document.querySelectorAll('main [role=radiogroup][aria-label="Colour"] [role=radio]')].find((el) => el.getAttribute('aria-label') === colour || el.textContent.trim() === colour)?.click();
     }, [PRINT2, process.env.TOUR_COLOUR2]);
     process.env.TOUR_COLOUR2 = 'none';
-    await wait(QUICK ? 1500 : 2500);
+    // Long enough for the film's palette card to land and be read (Cat's D1 One Palette Card, 2026-11-02).
+    await wait(Number(process.env.TOUR_CLOTH_HOLD ?? 2600));
   } else {
     await choose('[role=radiogroup][aria-label="What\'s printed on your fabric"] [role=radio]', PRINT2);
     await wait(400);
