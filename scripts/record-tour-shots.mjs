@@ -550,6 +550,7 @@ if (PRINT2) {
   await wait(400);
 }
 if (process.env.TOUR_FIBRE2) { await choose('[role=radiogroup][aria-label="Fabric for the sketch"] [role=radio]', process.env.TOUR_FIBRE2); await wait(400); }
+mark('cloth');
 if (process.env.TOUR_COLOUR2 !== 'none') await press(main.getByRole('radiogroup', { name: 'Colour' }).getByRole('radio', { name: process.env.TOUR_COLOUR2 ?? 'Camel', exact: true }).first(), QUICK ? 1200 : 2200);
 if (process.env.TOUR_PROBE_FABRIC) {
   await goStep('Shape');

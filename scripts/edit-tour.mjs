@@ -93,7 +93,7 @@ const eased = (stops, i) => {
   return e;
 };
 // notes: captions, each [picture, when it fades in, when it fades out], so a first-time viewer knows what each tap does.
-async function piece({ shot, src, slide = 0, still, from = 0, dur, speed = 1, zoom = [1, 1], at = [0.5, 0.5], cam, frame, tint, fadeIn = 0, fadeOut = 0, over, overIn = 0.4, overAt = 0, overs = [], notes = [], reverse = false, lift, drop }) {
+async function piece({ shot, src, slide = 0, still, from = 0, dur, speed = 1, zoom = [1, 1], at = [0.5, 0.5], cam, frame, tint, fadeIn = 0, fadeOut = 0, over, overIn = 0.4, overAt = 0, overs = [], notes = [], cards = [], reverse = false, lift, drop }) {
   const edge = frame ? await mask(frame) : undefined;
   const out = join(work, `p${String(k++).padStart(3, '0')}.mp4`);
   const frames = Math.round(dur * FPS);
@@ -104,6 +104,7 @@ async function piece({ shot, src, slide = 0, still, from = 0, dur, speed = 1, zo
   if (over) args.push('-loop', '1', '-framerate', String(FPS), '-t', String(dur), '-i', over);
   for (const [o] of overs) args.push('-loop', '1', '-framerate', String(FPS), '-t', String(dur), '-i', o);
   for (const [o] of notes) args.push('-loop', '1', '-framerate', String(FPS), '-t', String(dur), '-i', o);
+  for (const [o] of cards) args.push('-loop', '1', '-framerate', String(FPS), '-t', String(dur), '-i', o);
   const oi = edge ? 2 : 1;
   const firstOver = oi + (over ? 1 : 0);
   const [z0, z1] = zoom;
@@ -132,6 +133,13 @@ async function piece({ shot, src, slide = 0, still, from = 0, dur, speed = 1, zo
   const firstNote = firstOver + overs.length;
   notes.forEach(([, on, off], i) => {
     v += `[n${i}];[${firstNote + i}:v]format=rgba,fade=t=in:st=${on}:d=0.45:alpha=1,fade=t=out:st=${off - 0.45}:d=0.45:alpha=1[c${i}];[n${i}][c${i}]overlay=0:0:shortest=1`;
+  });
+  // cards: [picture, when it comes in, when it goes], a card that glides in a little from the right as it fades in,
+  // holds still, and fades away.
+  const firstCard = firstNote + notes.length;
+  cards.forEach(([, on, off], i) => {
+    const glide = Math.round(W * 0.03);
+    v += `[q${i}];[${firstCard + i}:v]format=rgba,fade=t=in:st=${on}:d=0.5:alpha=1,fade=t=out:st=${off - 0.4}:d=0.4:alpha=1[d${i}];[q${i}][d${i}]overlay=x='${glide}*pow(1-min(1,max(0,(t-${on})/0.6)),2)':y=0:shortest=1`;
   });
   if (fadeIn) v += `,fade=t=in:st=0:d=${fadeIn}`;
   if (fadeOut) v += `,fade=t=out:st=${(dur - fadeOut).toFixed(3)}:d=${fadeOut}`;
@@ -168,11 +176,27 @@ const STYLE_CAM = (WIDE
 // these headings, just leave it implied"), nor over the pattern: after the photo's own line, the next words are
 // "Drafted to your body".
 const STYLE_NOTES = [];
+// D1 One Palette Card (Cat, 2026-11-02): as the dress takes the new cloth, one tall swatch card of it, the app's cream
+// label strip under it, glides in beside the form and holds still, gone before the drawing tool opens. Its swatch is
+// cut from the dress itself once the cloth is on, so it is the very cloth on the form. CARD_AT: shot time the cloth
+// changes (record-tour-shots.mjs prints it as "style cloth").
+const CARD = { at: Number(process.env.CARD_AT ?? (WIDE ? 3.9 : 3.9)), name: process.env.CARD_NAME ?? 'Snakeskin', colour: process.env.CARD_COLOUR ?? 'Aqua' };
+const CARD_OFF = (WIDE ? MARKS.enlarge : MARKS.draw) - 0.3;
+async function clothCard() {
+  const grab = join(work, 'cloth.png');
+  // Phone: the bodice below the neck; computer: the same on the smaller form.
+  const [cx, cy, cw, ch] = WIDE ? [625, 330, 130, 200] : [330, 440, 200, 300];
+  execFileSync('ffmpeg', ['-v', 'error', '-y', '-ss', String(CARD.at + 0.8), '-i', join(SHOTS, 'style.mp4'), '-frames:v', '1', '-vf', `crop=${cw}:${ch}:${cx}:${cy}`, grab]);
+  const cloth = readFileSync(grab).toString('base64');
+  const [left, top, w, tex, strip] = WIDE ? [690, 250, 120, 170, 46] : [300, 118, 108, 156, 38];
+  return words(`<div style="position:fixed;left:${left}px;top:${top}px;width:${w}px;box-shadow:0 12px 28px rgba(0,0,0,.6)"><div style="height:${tex}px;background:url(data:image/png;base64,${cloth}) center/cover"></div><div style="height:${strip}px;box-sizing:border-box;padding:${WIDE ? 10 : 8}px ${WIDE ? 10 : 8}px;background:linear-gradient(90deg,#ece2cb 0%,#ece2cb 78%,#d3c7ab 100%);font-family:'Chakra Petch',monospace;text-transform:uppercase;white-space:nowrap;overflow:hidden"><div style="font-weight:600;font-size:${WIDE ? 10.5 : 8.5}px;letter-spacing:.16em;color:#151311">${CARD.name}</div><div style="font-size:${WIDE ? 8.5 : 7}px;letter-spacing:.14em;color:#6c6250;margin-top:4px">${CARD.colour}</div></div></div>`);
+}
 const styleJourney = async () => {
   // One at a time: the words are all drawn on the one page.
   const notes = [];
   for (const [line, on, off, where] of STYLE_NOTES) notes.push([await note(line, where), atOut(on), atOut(off)]);
-  return piece({ shot: 'style', from: JOURNEY.from, dur: JOURNEY.dur, speed: (JOURNEY.to - JOURNEY.from) / JOURNEY.dur, cam: STYLE_CAM, fadeIn: 0.5, notes, ...(LIFT && { lift: [LIFT, JOURNEY.dur - 2.4, 1.6] }) });
+  const cards = process.env.CARD === '0' ? [] : [[await clothCard(), atOut(CARD.at), atOut(CARD_OFF)]];
+  return piece({ shot: 'style', from: JOURNEY.from, dur: JOURNEY.dur, speed: (JOURNEY.to - JOURNEY.from) / JOURNEY.dur, cam: STYLE_CAM, fadeIn: 0.5, notes, cards, ...(LIFT && { lift: [LIFT, JOURNEY.dur - 2.4, 1.6] }) });
 };
 // Cat (2026-10-22): the cream pattern paper was too bright after the black pages; a deeper champagne here.
 // Wide: from the moment the pattern is up, slowed a touch to fill its time (Cat, 2026-10-22: the drawing flashed before it).
