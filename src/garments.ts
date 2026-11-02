@@ -94,6 +94,8 @@ export interface DressChoices {
   waistSeam?: WaistSeam;
   /** A seam dragged to its own height: cm below the natural waist, negative above it. */
   waistSeamCm?: number;
+  /** A curved waist seam: cm lower at the centre front than at the sides (In testing). Older saves have none. */
+  waistDip?: number;
 }
 
 /** The dress's fit: the skirt's three, and Boxy, the dress's own (Cat, 2026-10-30): straight from the bust, with

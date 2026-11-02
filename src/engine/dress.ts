@@ -5,7 +5,7 @@
 // the seam. One long zip opens the centre back from the neck to below the waist; a shirt dress buttons
 // down the front instead, from the neck through the waist seam and on down the skirt.
 import { rucheFor, spread } from './ruche';
-import { P, add, len, mul, p, sub, taggedLength, unit } from './geometry';
+import { P, Path, add, len, mul, p, sub, taggedLength, unit } from './geometry';
 import type { Piece } from './piece';
 import { BodiceDraft, BodiceMeasurements, BodiceStyle, DROP_MIN, draftBodice, girthBelowWaist } from './bodice';
 import { maxRaise, raiseBodice } from './waistline';
@@ -32,7 +32,13 @@ export type WaistSeam = 'empire' | 'raised' | 'natural' | 'dropped' | 'low';
 interface SeamChoice {
   at?: WaistSeam;
   cm?: number;
+  /** A curved waist seam: this many cm lower at the centre front than at the side seams, curving up to them. */
+  dip?: number;
 }
+/** How far a curved waist seam can dip at the centre front. */
+export const WAIST_DIP_MAX = 8;
+/** The curved waist chip's dip: enough to read as a curve, within what keeps the bodice front smooth. */
+export const WAIST_DIP_CM = 4;
 /** How close to the hip line a low seam can go: the skirt needs a little depth to shape over the hip. */
 const LOW_ABOVE_HIP = 6;
 
@@ -94,6 +100,8 @@ export interface DressDraft {
   /** The zip's opening ends above the hips even at the longest standard zip (a hip well over the bust), so
    * the dress goes on over the head, zip open. */
   overHead?: boolean;
+  /** A curved waist seam: how far it dips at the centre front, in cm. */
+  waistDip?: number;
   /** How far it can move on this body, the same way. */
   seamRange: { min: number; max: number };
   /** Nape to hem at the centre back. */
@@ -263,6 +271,71 @@ function hemToSeam(pc: Piece): Piece {
   return { ...pc, outline, allowances };
 }
 
+/**
+ * A front's waist seam curved down toward the centre front: `dip` cm lower there, level from `w` cm out
+ * (short of the first waist dart, so the darts sew as drafted), square to the centre line, smooth
+ * between. The bodice is let down by it and the skirt cut away by as much, so the seam curves and the
+ * hem stays level.
+ */
+function dipWaist(pc: Piece, dip: number, w: number, along?: (x: number) => number): Piece {
+  const o = pc.outline;
+  if (!o.tags.includes('waist') || w <= 0) return pc;
+  // A waist dart is measured closed: both its legs end at the same height, so they still sew together, and
+  // the curve runs on across it as one line. (Its legs are the open two-segment lines ending on the waist.)
+  const waistY = Math.max(...o.points(4).map((q) => q.y));
+  const darts = pc.lines
+    .filter((l) => !l.closed && l.segs.length === 2 && Math.abs(l.start.y - waistY) < 2 && Math.abs(l.end.y - waistY) < 2)
+    .map((l) => [Math.min(l.start.x, l.end.x), Math.max(l.start.x, l.end.x)] as const);
+  const closedX = (x: number) => {
+    let c = Math.abs(x);
+    for (const [x0, x1] of darts) c -= Math.min(Math.max(0, Math.abs(x) - x0), x1 - x0);
+    return c;
+  };
+  const f = (x: number) => {
+    if (along) return along(Math.abs(x));
+    const c = closedX(x);
+    return c >= w ? 0 : dip * Math.cos((Math.PI / 2) * (c / w)) ** 2;
+  };
+  const mv = (q: P): P => p(q.x, q.y + f(q.x));
+  // Each waist segment followed point by point (every centimetre or so), each point let down by the curve.
+  const path = Object.assign(Object.create(Object.getPrototypeOf(o)), o, { segs: [], tags: [] });
+  path.start = o.tags[0] === 'waist' ? mv(o.start) : o.start;
+  let cur = o.start;
+  o.segs.forEach((sg, i) => {
+    const tag = o.tags[i];
+    const nextWaist = o.tags[(i + 1) % o.tags.length] === 'waist';
+    if (tag !== 'waist') {
+      // A seam ending on the waist seam goes on to where its end now is.
+      const to = nextWaist || (i === o.segs.length - 1 && o.tags[0] === 'waist') ? mv(sg.to) : sg.to;
+      const dy = to.y - sg.to.y;
+      path.segs.push(sg.kind === 'C' ? { kind: 'C', c1: sg.c1, c2: p(sg.c2.x, sg.c2.y + dy), to } : { kind: 'L', to });
+      path.tags.push(tag);
+      cur = sg.to;
+      return;
+    }
+    const piece = new Path(cur);
+    piece.segs.push(sg);
+    piece.tags.push(tag);
+    const L = piece.length();
+    const k = Math.max(1, Math.ceil(L));
+    const from = cur;
+    const pts = sg.kind === 'L' ? Array.from({ length: k }, (_, j) => p(from.x + ((sg.to.x - from.x) * (j + 1)) / k, from.y + ((sg.to.y - from.y) * (j + 1)) / k)) : piece.points(k).slice(1);
+    for (const q of pts) {
+      path.segs.push({ kind: 'L', to: mv(q) });
+      path.tags.push('waist');
+    }
+    cur = sg.to;
+  });
+  const lines = pc.lines.map((l) => {
+    if (l.closed || l.segs.length !== 2 || Math.abs(l.start.y - waistY) >= 2 || Math.abs(l.end.y - waistY) >= 2) return l;
+    const out = Object.assign(Object.create(Object.getPrototypeOf(l)), l, { segs: l.segs.map((sg) => ({ ...sg })) });
+    out.start = mv(l.start);
+    out.segs[1].to = mv(l.segs[1].to);
+    return out;
+  });
+  return { ...pc, outline: path, lines };
+}
+
 export function draftDress(m: DressMeasurements, bodiceStyle: Partial<BodiceStyle> = {}, skirtStyle: Partial<SkirtStyle> = {}, seam: SeamChoice | WaistSeam = {}): DressDraft {
   if (skirtStyle.noSeam && noSeamAllowed(bodiceStyle)) return noSeamDress(m, bodiceStyle, skirtStyle, skirtStyle.noSeam);
   // A shirt dress buttons down the front when its skirt can carry the buttons on; otherwise it zips.
@@ -369,6 +442,47 @@ export function draftDress(m: DressMeasurements, bodiceStyle: Partial<BodiceStyl
       : pc;
   // A shirt dress: the skirt front opened for the buttons and faced, the back cut on the fold.
   let skirtPieces = sideOpen ? skirt.pieces.map((pc) => sideZip(pc, below)) : skirt.pieces;
+  // A curved waist: the bodice front let down toward the centre front and the skirt front cut away to match.
+  const dip = plain && !buttoned && !wrapped ? Math.min(WAIST_DIP_MAX, Math.max(0, at.dip ?? 0)) : 0;
+  // The curve runs from the centre front a little over half way to the side seam (along the waist as sewn,
+  // darts closed); on the skirt over the same share of its waist.
+  const bodiceFront = side('front');
+  const reach = waist.front * 0.55;
+  const dipped = (pcs: Piece[], wOf: (pc: Piece) => number) =>
+    dip > 0 ? pcs.map((pc) => (!pc.kind && /front/i.test(pc.name) ? dipWaist(pc, dip, wOf(pc)) : pc)) : pcs;
+  const seamPieces = bodiceFront.length === 1 ? dipped(bodicePieces, () => reach) : bodicePieces;
+  if (seamPieces !== bodicePieces) {
+    // The skirt is sewn on along the seam by length: each point of its top meets the bodice the same share of the
+    // way along. So it is cut away by what the bodice is let down at that share of the bodice's waist as curved.
+    const bf = seamPieces.find((pc) => !pc.kind && /front/i.test(pc.name))!;
+    const t = bf.outline.taggedPoints(8);
+    const run = t.pts.map((q, i) => [q, t.tags[i] === 'waist' || t.tags[i - 1] === 'waist'] as const).filter(([, w]) => w).map(([q]) => q);
+    const fromCf = Math.abs(run[0].x) < Math.abs(run[run.length - 1].x) ? run : [...run].reverse();
+    // Along it from the centre front: its length so far, and how far across (darts closed) to read the curve at.
+    const dipAt = (c: number) => (c >= reach ? 0 : dip * Math.cos((Math.PI / 2) * (c / reach)) ** 2);
+    const at: [number, number][] = [[0, dipAt(0)]];
+    let across = 0;
+    for (let i = 1; i < fromCf.length; i++) {
+      const step = len(sub(fromCf[i], fromCf[i - 1]));
+      // (Across a dart's mouth the seam is closed: no length.)
+      if (step <= 1.5) across += Math.abs(fromCf[i].x - fromCf[i - 1].x);
+      at.push([at[i - 1][0] + (step > 1.5 ? 0 : step), dipAt(across)]);
+    }
+    const total = at[at.length - 1][0] || 1;
+    const letDown = (share: number) => {
+      const s = share * total;
+      let k = 1;
+      while (k < at.length - 1 && at[k][0] < s) k++;
+      const [s0, y0] = at[k - 1];
+      const [s1, y1] = at[k];
+      return s1 > s0 ? y0 + (y1 - y0) * Math.min(1, Math.max(0, (s - s0) / (s1 - s0))) : y0;
+    };
+    skirtPieces = skirtPieces.map((pc) => {
+      if (pc.kind || !/front/i.test(pc.name)) return pc;
+      const L = halfWaist(pc) || 1;
+      return dipWaist(pc, dip, L, (x) => letDown(Math.min(1, x / L)));
+    });
+  }
   let skirtButtons: Buttons | undefined;
   if (buttoned) {
     const bf = bodice.pieces.find((pc) => /front/i.test(pc.name) && !pc.kind)!;
@@ -387,7 +501,8 @@ export function draftDress(m: DressMeasurements, bodiceStyle: Partial<BodiceStyl
     bodice,
     // The skirt as drafted, its front still whole, for its drawing and steps; the pieces to cut are opened.
     skirt: buttoned ? { ...skirt, zipCm: 0, pieces: skirt.pieces.map((pc) => (/^Skirt back/.test(pc.name) ? backOnFold(pc) : pc)) } : skirt,
-    pieces: [...bodicePieces.map(unzip), ...skirtPieces],
+    pieces: [...seamPieces.map(unzip), ...skirtPieces],
+    ...(seamPieces !== bodicePieces ? { waistDip: dip } : {}),
     zipCm: buttoned || wrapped ? 0 : zipCm,
     zipBelowWaist: below,
     ...(skirtButtons ? { skirtButtons } : {}),

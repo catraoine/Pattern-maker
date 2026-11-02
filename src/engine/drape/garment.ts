@@ -2192,7 +2192,7 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
   // stands it off them and it hangs near level: its hem let down most of the way there, the cloth above eased with it.)
   if (!knob('__noGatherLevel')) {
     const hipC = sp.cOf(0.82);
-    const gp = B.panels.filter((p) => !p.hidden && /peplum/.test(p.role) && !p.pc.meta.tier && ((p.pc.meta.gatherShown as number | undefined) ?? 1) > ((p.pc.meta.gathered as number | undefined) ?? 1) + 0.3 && !/ruffle|flounce|underskirt/i.test(p.pc.name));
+    const gp = B.panels.filter((p) => !p.hidden && /peplum/.test(p.role) && !p.pc.meta.tier && ((p.pc.meta.gatherShown as number | undefined) ?? 1) > ((p.pc.meta.gathered as number | undefined) ?? 1) + (knob('__glMin') ?? -0.5) && !/ruffle|flounce|underskirt/i.test(p.pc.name));
     const hemIds = gp.flatMap((p) => (p.mesh.runs.hem ?? []).flat().map((i) => p.base + i));
     if (hemIds.length) {
       const low = Math.max(...hemIds.map((g) => res[g * 3 + 1]));
@@ -2582,6 +2582,65 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
   // is pressed onto it.
   // (A shirt's front, buttoned but not canvassed, keeps the shape it settled in: smoothed, its collar is drawn in with it.)
   const lapelled = B.panels.some((p) => p.role === 'front' && p.turned.some(Boolean));
+  // A plain front's neck edge eased smooth just under the shoulder: a wide neck crosses the form's corner where the
+  // neck meets the shoulder, and the edge dropped into it in a little tooth. The edge is smoothed along itself (ends
+  // held, kept off the body), and the cloth beside it comes with it.
+  const nsIt = knob('__neckSmooth') ?? 30;
+  if (!lapelled && nsIt > 0)
+    for (const p of B.panels) {
+      if (p.role !== 'front' || p.hidden || !p.mesh.runs.neck?.length) continue;
+      const pts = p.mesh.pts;
+      const at3 = (i: number): V3 => [res[(p.base + i) * 3], res[(p.base + i) * 3 + 1], res[(p.base + i) * 3 + 2]];
+      const dsp = new Map<number, V3>();
+      for (const run0 of p.mesh.runs.neck) {
+        if (run0.length < 5) continue;
+        // (Ordered from the centre front up to the shoulder.)
+        const run = pts[run0[0]].y > pts[run0[run0.length - 1]].y ? run0 : [...run0].reverse();
+        const L: number[] = [0];
+        for (let k = 1; k < run.length; k++) L.push(L[k - 1] + Math.hypot(pts[run[k]].x - pts[run[k - 1]].x, pts[run[k]].y - pts[run[k - 1]].y));
+        const tot = L[L.length - 1] || 1;
+        // (Only its last fifth, just under the shoulder: the run down to the centre front keeps its drafted line.)
+        const wt = L.map((l) => Math.min(1, Math.max(0, (l / tot - 0.8) / 0.1)));
+        let cur = run.map(at3);
+        const orig = cur.map((v) => [...v] as V3);
+        for (let it = 0; it < nsIt; it++) {
+          const nx = cur.map((v) => [...v] as V3);
+          for (let k = 1; k < run.length - 1; k++) {
+            if (!wt[k]) continue;
+            for (let c = 0; c < 3; c++) nx[k][c] = cur[k][c] + 0.5 * wt[k] * ((cur[k - 1][c] + cur[k + 1][c]) / 2 - cur[k][c]);
+            const a = Math.atan2(nx[k][0], nx[k][2]);
+            const rr = Math.hypot(nx[k][0], nx[k][2]) || 1e-9;
+            const lo = sp.bodyR(a, nx[k][1]) + thick + 0.2;
+            if (rr < lo) { nx[k][0] *= lo / rr; nx[k][2] *= lo / rr; }
+          }
+          cur = nx;
+        }
+        run.forEach((i, k) => { if (wt[k] && k > 0 && k < run.length - 1) dsp.set(i, [0, 1, 2].map((c) => cur[k][c] - orig[k][c]) as V3); });
+      }
+      if (!dsp.size) continue;
+      const hold = new Set(['shoulder', 'armhole', 'side'].flatMap((k) => (p.mesh.runs[k] ?? []).flat()));
+      const R = 2.5;
+      const mv: [number, V3][] = [];
+      pts.forEach((q, i) => {
+        if (dsp.has(i)) return void mv.push([i, dsp.get(i)!]);
+        if (hold.has(i) || p.turned[i]) return;
+        let sw = 0;
+        let dmin = Infinity;
+        const acc: V3 = [0, 0, 0];
+        for (const [j, v] of dsp) {
+          const dd = Math.hypot(pts[j].x - q.x, pts[j].y - q.y);
+          if (dd >= R) continue;
+          dmin = Math.min(dmin, dd);
+          const w = 1 / (dd * dd + 0.01);
+          sw += w;
+          for (let c = 0; c < 3; c++) acc[c] += w * v[c];
+        }
+        if (!sw) return;
+        const f = (1 - dmin / R) ** 2;
+        mv.push([i, acc.map((v) => (v / sw) * f) as V3]);
+      });
+      for (const [i, v] of mv) for (let c = 0; c < 3; c++) res[(p.base + i) * 3 + c] += v[c];
+    }
   const fsIt = knob('__fsIt') ?? (lapelled ? 30 : 0);
   if (o.pinFront?.length && fsIt > 0) {
     const nb = new Map<number, number[]>();
@@ -4217,6 +4276,31 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       });
     }
   }
+  // No cloth left inside the body: a point the sim left under its surface goes back out onto it, a cloth's thickness
+  // off (else the form shows through the bodice there).
+  const CROTCH_EASE = extra.trousers ? knob('__poEase') ?? 1.5 : 1e-9;
+  // (One level for every piece, so the two sides of a seam move together.)
+  const crotchAt = B.panels.filter((p) => p.mesh.runs.crotch?.length).map((p) => Math.max(...p.mesh.runs.crotch!.flat().map((i) => res[(p.base + i) * 3 + 1])));
+  const below = !extra.trousers ? Infinity : crotchAt.length ? Math.min(...crotchAt) : -Infinity;
+  const poM = knob('__pushOut') ?? 0.3;
+  // (On trousers only above the crotch: their legs hang below the form, where its surface is no guide, and pushed
+  // out there they parted at the inside leg.)
+  if (poM > 0)
+    for (const p of B.panels) {
+      if (p.hidden || p.role === 'sleeve' || p.role === 'collar') continue;
+      for (let i = 0; i < p.mesh.pts.length; i++) {
+        if (p.turned?.[i]) continue;
+        const I = (p.base + i) * 3;
+        if (res[I + 1] >= below) continue;
+        const rho = Math.hypot(res[I], res[I + 2]) || 1e-9;
+        const lo = sp.bodyR(Math.atan2(res[I], res[I + 2]), res[I + 1]) + poM;
+        if (rho >= lo) continue;
+        // (Eased in over the last few cm above the crotch, so the cloth there isn't left in a step.)
+        const k = 1 + (lo / rho - 1) * Math.min(1, (below - res[I + 1]) / CROTCH_EASE);
+        res[I] *= k;
+        res[I + 2] *= k;
+      }
+    }
   // A skirt gathered onto a yoke hangs from the yoke's hem: its top drawn back onto the seam it is sewn to, the cloth
   // below coming with it over a hand's width (each pass above moved one side of that seam alone, and left it open).
   const gwD = knob('__gatherWeld') ?? 10;
@@ -4484,16 +4568,28 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
         for (const r of ring) if (Math.abs(r[0] - a) < Math.abs(best[0] - a)) best = r;
         return best;
       };
-      const gap = knob('__wlGap') ?? 0.1;
       const R = knob('__wlR') ?? 3;
       // (The skirt's top edge round the body, smooth: by angle, its sewn points' level.)
       const byA = [...ring].sort((u, v) => u[0] - v[0]);
-      const yAt = (a: number) => {
+      const yAt0 = (a: number) => {
         let k = 0;
         while (k < byA.length - 1 && byA[k + 1][0] < a) k++;
         const [a0, , c0] = byA[k];
         const [a1, , c1] = byA[Math.min(byA.length - 1, k + 1)];
         return a1 > a0 ? c0 + (c1 - c0) * Math.min(1, Math.max(0, (a - a0) / (a1 - a0))) : c0;
+      };
+      // (A curved seam, not level round the body: the gathers sewn along it fold in and out, so its points' order by
+      // angle zigzags in height and the edge came down in teeth. There the lowest of it within a few degrees each way.)
+      const cs = ring.map((r) => r[2]);
+      const curved = Math.max(...cs) - Math.min(...cs) > 2;
+      const win = knob('__wlWin') ?? (curved ? 0.02 : 0);
+      // (And laid a little further out over them there, clear of the folds' crests.)
+      const gap = knob('__wlGap') ?? (curved ? 0.3 : 0.1);
+      const yAt = (a: number) => {
+        if (!win) return yAt0(a);
+        let m = yAt0(a);
+        for (const [a2, , c2] of byA) if (Math.abs(a2 - a) <= win) m = Math.max(m, c2);
+        return m;
       };
       // (And its edge down to that, a little over it: where it rode up between the gathers sewn to it, the form showed
       // dark through the notch. The drop is taken smooth round the body, across both pieces and their darts, so the
@@ -4526,8 +4622,12 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
           if (e >= R) return;
           const I = (p.base + i) * 3;
           const a = Math.atan2(res[I], res[I + 2]);
-          const [, r0, y0] = near(a);
+          const [, r1, y0] = near(a);
           if (res[I + 1] < y0 - 1) return;
+          // (On a curved seam its gathers' folds stand in and out under it: laid over the outermost of them near
+          // there, so the edge runs smooth instead of in and out with each one.)
+          let r0 = r1;
+          if (win) for (const [a2, r2] of byA) if (Math.abs(a2 - a) <= win) r0 = Math.max(r0, r2);
           const rho = Math.hypot(res[I], res[I + 2]) || 1e-9;
           // (Nor left under it: tucked inside, the skirt's own top edge stood out over the bodice as a lip, in steps
           // round the side. The bodice edge lies just over the skirt's, either way.)
