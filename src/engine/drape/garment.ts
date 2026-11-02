@@ -1435,6 +1435,33 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       });
     }
   }
+  // A pressed pleated skirt hangs its own length: on its finer mesh the sim lets its weight draw it a few cm long, so
+  // its hem fell well past where it is cut to land. Its cloth is drawn back up toward the waist, evenly, until the hem
+  // sits where its pattern puts it.
+  {
+    const pl = B.panels.filter((p) => !p.hidden && p.pc.meta.pleatFolds && p.mesh.runs.waist && p.mesh.runs.hem);
+    const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / (xs.length || 1);
+    let num = 0;
+    let den = 0;
+    const waistC = new Map<Panel, number>();
+    for (const p of pl) {
+      const w = p.mesh.runs.waist!.flat();
+      const h = p.mesh.runs.hem!.flat();
+      const cw = mean(w.map((i) => res[(p.base + i) * 3 + 1]));
+      waistC.set(p, cw);
+      num += mean(h.map((i) => p.mesh.pts[i].y)) - mean(w.map((i) => p.mesh.pts[i].y));
+      den += mean(h.map((i) => res[(p.base + i) * 3 + 1])) - cw;
+    }
+    const k = den > 0 ? num / den : 1;
+    if (k < 1 && k > 0.8)
+      for (const p of pl) {
+        const cw = waistC.get(p)!;
+        for (let i = 0; i < p.mesh.pts.length; i++) {
+          const I = (p.base + i) * 3 + 1;
+          if (res[I] > cw) res[I] = cw + (res[I] - cw) * k;
+        }
+      }
+  }
   // Pressed pleats: below where they are stitched down (the hip), each fold edge stands a little proud of the cloth
   // it covers, a knife pleat stepping down to the next fold, a box pleat out to both of its folds. `shade` darkens
   // the cloth in under each fold and, below zero, lights the pressed edge itself (which is what shows on dark cloth).
@@ -1470,7 +1497,8 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       if (k === -2) k = xs.length - 1;
       const from = k < 0 ? xs[0] - s : xs[k];
       const t = Math.min(1, Math.max(0, (q.x - from) / s));
-      const A = (1.3 + 0.7 * Math.min(1, (q.y - hipY) / 40)) * Math.min(1, (q.y - hipY + 4) / 8);
+      // (Half the step it once stood out: pressed knife pleats lie nearly flush, the fold a crisp line, not a ledge.)
+      const A = 0.5 * (1.3 + 0.7 * Math.min(1, (q.y - hipY) / 40)) * Math.min(1, (q.y - hipY + 4) / 8);
       const off = A * (box ? Math.abs(1 - 2 * t) : 1 - t);
       // In under the next fold's edge (a box pleat's: in its middle, where its two folds meet) the cloth is in shadow.
       const deep = box ? 1 - Math.abs(1 - 2 * t) : t;
@@ -1501,13 +1529,54 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
     if (!/peplum/.test(p.role)) continue;
     // (The top edge is waist and pleat intake by turns: it is evened as one edge, in order across the piece.)
     for (const tags of [['waist', 'pleat'], ['hem']]) {
-      const at = [...new Set(tags.flatMap((t) => (p.mesh.runs[t] ?? []).flat()))]
+      let at = [...new Set(tags.flatMap((t) => (p.mesh.runs[t] ?? []).flat()))]
         .filter((i) => tags[0] !== 'waist' || p.mesh.pts[i].y < 3)
         .sort((u, v) => p.mesh.pts[u].x - p.mesh.pts[v].x);
+      // (A pleated hem is cut across by the narrow strips down each fold, whose bits of hem are too short to make a
+      // run of their own: every point on the hem line is taken, so none hangs below as a tab.)
+      if (tags[0] === 'hem' && p.pc.meta.pleatFolds && at.length > 1) {
+        const hp = at.map((i) => p.mesh.pts[i]);
+        const hemAt = (x: number) => {
+          let k = 0;
+          while (k < hp.length - 2 && hp[k + 1].x < x) k++;
+          const [a, b] = [hp[k], hp[k + 1]];
+          return a.y + ((b.y - a.y) * Math.min(1, Math.max(0, (x - a.x) / (b.x - a.x || 1))));
+        };
+        const more = p.mesh.pts.map((q, i) => [q, i] as const).filter(([q, i]) => !at.includes(i) && q.y >= hemAt(q.x) - 0.08 && q.x >= hp[0].x && q.x <= hp[hp.length - 1].x).map(([, i]) => i);
+        at = [...at, ...more].sort((u, v) => p.mesh.pts[u].x - p.mesh.pts[v].x);
+      }
       const ids = at.map((i) => (p.base + i) * 3 + 1);
-      for (let pass = 0; pass < 8; pass++) {
+      // (A pressed pleat's hem as one level line all round: the sim leaves each pleat's face hanging lower at one
+      // end, a sawtooth as wide as the pleat, which a few passes don't even out. The cloth above follows its hem.)
+      const pressedHem = tags[0] === 'hem' && !!p.pc.meta.pleatFolds;
+      const before = pressedHem ? ids.map((I) => res[I]) : [];
+      for (let pass = 0; pass < (pressedHem ? 80 : 8); pass++) {
         const was = ids.map((I) => res[I]);
         for (let j = 1; j < ids.length - 1; j++) res[ids[j]] = (was[j - 1] + 2 * was[j] + was[j + 1]) / 4;
+      }
+      if (pressedHem && at.length) {
+        const hemY = Math.max(...at.map((i) => p.mesh.pts[i].y));
+        const reach = 10;
+        for (let i = 0; i < p.mesh.pts.length; i++) {
+          const q = p.mesh.pts[i];
+          if (at.includes(i) || q.y < hemY - reach - 3) continue;
+          let best = 0;
+          let bd = Infinity;
+          at.forEach((h, k) => {
+            const dd = Math.abs(p.mesh.pts[h].x - q.x);
+            if (dd < bd) {
+              bd = dd;
+              best = k;
+            }
+          });
+          const up = p.mesh.pts[at[best]].y - q.y;
+          const w = Math.max(0, 1 - up / reach);
+          const I = (p.base + i) * 3 + 1;
+          res[I] += (res[ids[best]] - before[best]) * w;
+          // (Right by the hem, each point as far above it as it is cut: the sim leaves them ragged there.)
+          const near = Math.max(0, 1 - up / 3);
+          res[I] += (res[ids[best]] - up - res[I]) * near;
+        }
       }
     }
   }
