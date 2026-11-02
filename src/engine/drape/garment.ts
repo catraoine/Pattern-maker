@@ -908,6 +908,36 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       }
     }
   }
+  // A long sleeve hangs from a cap that sits higher in the sim than on an arm (the sim can't let its underarm drop below
+  // the bodice's): the drop the cap can't take is given to the upper arm just below it, so the cuff reaches the wrist
+  // without the cap peaking over the shoulder.
+  const armGive = knob('__armGive') ?? 2.4;
+  if (armGive > 0 && !extra.puff && !o.boxy) {
+    for (const p of B.panels) {
+      if (p.role !== 'sleeve' || p === cuffPanel) continue;
+      const capH = (p.pc.meta.capHeight as number) ?? 15;
+      const ys = p.mesh.pts.map((q) => q.y);
+      const y0 = Math.min(...ys);
+      // (Only a sleeve long enough to reach the forearm.)
+      if (Math.max(...ys) - y0 < capH + 25) continue;
+      const span = 20;
+      const lo = p.base;
+      const hi = p.base + p.mesh.pts.length;
+      for (let e = 0; e < rest.length; e++) {
+        const u = edges[2 * e];
+        const v = edges[2 * e + 1];
+        if (u < lo || u >= hi || v < lo || v >= hi) continue;
+        const a = p.mesh.pts[u - lo];
+        const b = p.mesh.pts[v - lo];
+        const y = (a.y + b.y) / 2 - y0;
+        const from = capH + (knob('__armGiveFrom') ?? 8);
+        if (y < from || y > from + span) continue;
+        const L = rest[e] || 1e-9;
+        rest[e] = Math.hypot(Math.abs(a.x - b.x), Math.abs(a.y - b.y) * (1 + armGive / span));
+        if (!(rest[e] > 0)) rest[e] = L;
+      }
+    }
+  }
   // Nothing over the shoulders (a skirt, a strapless or cami bodice): its top edge is held at the height it is worn,
   // as a waistband or boning holds it on the body.
   const hangOf = () => {
