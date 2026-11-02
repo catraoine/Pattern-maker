@@ -6,7 +6,7 @@ import { draftTrousers, trousersWaistband } from './trousers';
 import { draftTee } from './tee';
 import { withAllowances } from './allowances';
 import { bounds, cutLine, Piece } from './piece';
-import { columnSpans, fitRow, labelCollisions, layout, pack, packedPages, pageCount, textWidth, turnedInBox, wrapInfo } from './export';
+import { columnSpans, fitRow, labelCollisions, layout, pack, packedPages, pageCount, textWidth, turnedInBox, usedTiles, wrapInfo, type Sheet } from './export';
 import { EXAMPLE_VALUES } from '../measurements';
 
 const GAP = 4;
@@ -199,5 +199,19 @@ describe('labels on small pieces', () => {
       expect(t).toContain(name.toUpperCase());
       expect(t.some((x) => /CUT \d/.test(x))).toBe(true);
     }
+  });
+});
+
+describe('tiles that only repeat a printed neighbour', () => {
+  // A4 content area is 19 x 27.7 cm; rows step 26.7 cm. A line that dips 0.4 cm into the second row's shared
+  // strip is already on the first row's pages, so the second row isn't printed.
+  const line = (y1: number): Sheet => ({ width: 15, height: 40, prims: [{ kind: 'poly', style: 'cut', closed: false, pts: [{ x: 2, y: 2 }, { x: 12, y: y1 }] }] });
+  it('drops a row whose only ink is in the strip the row above prints', () => {
+    const used = usedTiles(line(27.1), 'a4');
+    expect(used.map((r) => r.filter(Boolean).length)).toEqual([1, 0]);
+    expect(pageCount(line(27.1), 'a4')).toBe(1);
+  });
+  it('keeps a row the ink reaches past the shared strip', () => {
+    expect(usedTiles(line(28.5), 'a4').map((r) => r.filter(Boolean).length)).toEqual([1, 1]);
   });
 });
