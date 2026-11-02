@@ -93,7 +93,7 @@ const eased = (stops, i) => {
   return e;
 };
 // notes: captions, each [picture, when it fades in, when it fades out], so a first-time viewer knows what each tap does.
-async function piece({ shot, src, slide = 0, still, from = 0, dur, speed = 1, zoom = [1, 1], at = [0.5, 0.5], cam, frame, tint, fadeIn = 0, fadeOut = 0, over, overIn = 0.4, overAt = 0, overs = [], notes = [], cards = [], reverse = false, lift, drop }) {
+async function piece({ shot, src, slide = 0, still, from = 0, dur, speed = 1, zoom = [1, 1], at = [0.5, 0.5], cam, frame, tint, fadeIn = 0, fadeOut = 0, over, overIn = 0.4, overAt = 0, overs = [], notes = [], cards = [], strip, reverse = false, lift, drop }) {
   const edge = frame ? await mask(frame) : undefined;
   const out = join(work, `p${String(k++).padStart(3, '0')}.mp4`);
   const frames = Math.round(dur * FPS);
@@ -105,6 +105,7 @@ async function piece({ shot, src, slide = 0, still, from = 0, dur, speed = 1, zo
   for (const [o] of overs) args.push('-loop', '1', '-framerate', String(FPS), '-t', String(dur), '-i', o);
   for (const [o] of notes) args.push('-loop', '1', '-framerate', String(FPS), '-t', String(dur), '-i', o);
   for (const [o] of cards) args.push('-loop', '1', '-framerate', String(FPS), '-t', String(dur), '-i', o);
+  if (strip) args.push('-loop', '1', '-framerate', String(FPS), '-t', String(dur), '-i', strip.file);
   const oi = edge ? 2 : 1;
   const firstOver = oi + (over ? 1 : 0);
   const [z0, z1] = zoom;
@@ -141,6 +142,12 @@ async function piece({ shot, src, slide = 0, still, from = 0, dur, speed = 1, zo
     const glide = Math.round(W * 0.03);
     v += `[q${i}];[${firstCard + i}:v]format=rgba,fade=t=in:st=${on}:d=0.5:alpha=1,fade=t=out:st=${off - 0.4}:d=0.4:alpha=1[d${i}];[q${i}][d${i}]overlay=x='${glide}*pow(1-min(1,max(0,(t-${on})/0.6)),2)':y=0:shortest=1`;
   });
+  // strip: { file, x0, x1, y, on } a wide row of cards (in output pixels) that fades in and glides steadily from x0 to x1
+  // across the whole piece, like turning through a swatch book (Cat's S2 Slow Strip, 2026-11-02).
+  if (strip) {
+    const si = firstCard + cards.length;
+    v += `[sb];[${si}:v]format=rgba,fade=t=in:st=${strip.on ?? 0.2}:d=0.6:alpha=1[sp];[sb][sp]overlay=x='${strip.x0}+(${strip.x1 - strip.x0})*t/${dur}':y=${strip.y}:shortest=1`;
+  }
   if (fadeIn) v += `,fade=t=in:st=0:d=${fadeIn}`;
   if (fadeOut) v += `,fade=t=out:st=${(dur - fadeOut).toFixed(3)}:d=${fadeOut}`;
   v += ',format=yuv420p[v]';
@@ -273,31 +280,45 @@ async function photoMoment() {
   // Held long enough to read (Cat, 2026-10-25).
   return piece({ still: pic, dur: 3.2, zoom: [1, 1.03], fadeIn: 0.5, fadeOut: 0.5, notes: [[await note('Or upload a photo.', 'low'), 0.2, 3.2]] });
 }
-// N3b Shop the fabric (Cat, 2026-10-30): after Style, six of the partner shop's fabrics as the app's cream tags with a
-// photo of the cloth in each, landing one after another. Every name sits on one line, so every tag is the same size
-// (two shop names shortened to fit).
+// S2 Slow Strip (Cat, 2026-11-02, replacing N3b's six tags landing one by one): one row of tall swatch cards, real
+// Mood listings Cat picked (photos cropped from her screenshots of the shop, no draped stock swirls), each with its
+// name, cloth, the shop and its price, gliding slowly sideways. Prices are the listings' regular prices per yard (CA$),
+// not the sale price, so the film doesn't date.
 const SHOP = [
-  ['silk', 'Silk charmeuse', '$39.96/yd · 3 colours'],
-  ['wool', 'Double wool crepe', '$79.96/yd · 1 colour'],
-  ['linen', 'Linen and cotton', '$24.96/yd · 2 colours'],
-  ['cotton', 'Stretch cotton poplin', '$8/yd · 1 colour'],
-  ['corduroy', 'Featherwale corduroy', '$26.96/yd · 2 colours'],
-  ['denim', 'Cotton denim, 10.5 oz', '$15.96/yd · 2 colours'],
-];
+  ...(process.env.SHOP_PYTHON === '0' ? [] : [['python', 'Aqua & Chili python', 'Silk charmeuse', '$141.94/yd']]),
+  ['ribbon', 'Black Bean & White', 'Italian silk print', '$141.89/yd'],
+  ['palm', 'Sky Blue palm leaves', 'Textured silk, Italy', '$85.15/yd'],
+  ['organza', 'Classic Blue floral', 'Silk organza', '$212.90/yd'],
+  ['poppy', 'Golden Poppy border', 'Silk charmeuse', '$141.93/yd'],
+  ['lily', 'Creme Brulee lily', 'Milly silk chiffon', '$42.57/yd'],
+].filter(([img]) => existsSync(new URL(`./tour/shop/${img}.jpg`, import.meta.url)));
 async function shopMoment() {
-  // Phone: two across, three down. Computer: three across, two down.
-  const [cols, w, tex, gap, top] = WIDE ? [3, 250, 175, 22, 190] : [2, 180, 120, 14, 150];
-  const strip = WIDE ? 80 : 66;
-  const left = (VW - cols * w - (cols - 1) * gap) / 2;
-  const tags = [];
-  for (let i = 0; i < SHOP.length; i++) {
-    const [img, name, price] = SHOP[i];
-    const photo = readFileSync(new URL(`../public/fabrics/${img}.jpg`, import.meta.url)).toString('base64');
-    const x = left + (i % cols) * (w + gap);
-    const y = top + Math.floor(i / cols) * (tex + strip + gap);
-    tags.push([await words(`<div style="position:fixed;left:${x}px;top:${y}px;width:${w}px;box-shadow:0 10px 24px rgba(0,0,0,.55)"><img src="data:image/jpeg;base64,${photo}" style="display:block;width:100%;height:${tex}px;object-fit:cover"><div style="height:${strip}px;box-sizing:border-box;padding:${WIDE ? 14 : 10}px;background:linear-gradient(90deg,#ece2cb 0%,#ece2cb 78%,#d3c7ab 100%);font-family:'Chakra Petch',monospace;text-transform:uppercase;white-space:nowrap;overflow:hidden"><div style="font-weight:600;font-size:${WIDE ? 12 : 9.5}px;letter-spacing:.15em;color:#151311">${name}</div><div style="font-size:${WIDE ? 9.5 : 8}px;letter-spacing:.12em;color:#6c6250;margin-top:5px">Mood Fabrics</div><div style="font-size:${WIDE ? 9.5 : 8}px;letter-spacing:.12em;color:#6c6250;margin-top:3px">${price}</div></div></div>`), 0.3 + 0.3 * i]);
-  }
-  return piece({ still: await words('', { solid: true }), dur: 4.6, fadeIn: 0.5, fadeOut: 0.5, overs: tags, notes: [[await note('Shop the fabric.', 'low'), 0.2, 4.6]] });
+  const dur = 7.5;
+  const [w, tex, band, gap] = WIDE ? [230, 320, 92, 28] : [140, 196, 70, 14];
+  const rowW = SHOP.length * w + (SHOP.length - 1) * gap;
+  const cardsHtml = SHOP.map(([img, name, cloth, price], i) => {
+    const photo = readFileSync(new URL(`./tour/shop/${img}.jpg`, import.meta.url)).toString('base64');
+    const small = WIDE ? 10 : 7.2;
+    return `<div style="position:absolute;left:${i * (w + gap)}px;top:0;width:${w}px;box-shadow:0 10px 24px rgba(0,0,0,.55)"><img src="data:image/jpeg;base64,${photo}" style="display:block;width:100%;height:${tex}px;object-fit:cover"><div style="height:${band}px;box-sizing:border-box;padding:${WIDE ? 14 : 10}px ${WIDE ? 14 : 9}px 0;background:linear-gradient(90deg,#ece2cb 0%,#ece2cb 78%,#d3c7ab 100%);font-family:'Chakra Petch',monospace;text-transform:uppercase;white-space:nowrap;overflow:hidden"><div style="font-weight:600;font-size:${WIDE ? 12 : 8.5}px;letter-spacing:.12em;color:#151311">${name}</div><div style="font-size:${small}px;letter-spacing:.12em;color:#6c6250;margin-top:6px">${cloth}</div><div style="font-size:${small}px;letter-spacing:.12em;color:#6c6250;margin-top:4px">Mood Fabrics${price ? ` · ${price}` : ''}</div></div></div>`;
+  }).join('');
+  // The row is wider than the screen: draw it on a wide page, then slide it under the frame.
+  const file = join(work, `w${n++}.png`);
+  const h = tex + band + 40;
+  await page.setViewportSize({ width: rowW + 40, height: Math.max(VH, h) });
+  await page.evaluate(([css, html]) => {
+    document.head.querySelectorAll('style[data-edit]').forEach((x) => x.remove());
+    const st = document.createElement('style'); st.dataset.edit = '1'; st.textContent = css; document.head.appendChild(st);
+    document.body.innerHTML = html;
+  }, [CSS, `<div style="position:absolute;left:20px;top:10px;width:${rowW}px;height:${tex + band}px">${cardsHtml}</div>`]);
+  await page.evaluate(() => document.fonts.ready);
+  await page.screenshot({ path: file, omitBackground: true, clip: { x: 0, y: 0, width: rowW + 40, height: h } });
+  await page.setViewportSize({ width: VW, height: VH });
+  const k = W / VW;
+  // From the first card a little in from the left to the last card a little in from the right.
+  const x0 = Math.round(VW * 0.12 * k - 20 * k);
+  const x1 = Math.round((VW * 0.88 - rowW - 20) * k);
+  const y = Math.round((WIDE ? 230 : 300) * k);
+  return piece({ still: await words('', { solid: true }), dur, fadeIn: 0.5, fadeOut: 0.5, strip: { file, x0, x1, y, on: 0.3 }, notes: [[await note('Shop the fabric.', 'low'), 0.2, dur]] });
 }
 // The opening (Cat, 2026-10-22: the old one repeated the loading screen and welcome the viewer had just seen).
 const INTRO = process.env.TOUR_INTRO ?? 'W'; // Cat's pick, 2026-10-30: W Welcome Push (was C2 Pull Back)
@@ -393,7 +414,8 @@ const CUTS = {
   },
 };
 
-const pieces = await CUTS.words();
+// ONLY=shop cuts just the Shop the fabric moment, for checking it on its own.
+const pieces = process.env.ONLY === 'shop' ? [await shopMoment()] : await CUTS.words();
 await b.close();
 writeFileSync(join(work, 'list.txt'), pieces.map((p) => `file '${p}'`).join('\n'));
 const film = join(work, 'film.mp4');
