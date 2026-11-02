@@ -3800,6 +3800,28 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
           }
     settle();
   }
+  // (Buttoned, the button stand past the centre front lies over the other front, as that front lies there: not folded
+  // back on its own side in a keel down the buttons.)
+  if (o.closedFront && !o.pinFront?.length && !o.rollFront && !knob('__noStandLie')) {
+    for (const p of B.panels) {
+      if (p.role !== 'front' || p.hidden || !p.mesh.runs.opening) continue;
+      const pts = p.mesh.pts;
+      // (Only where it has folded back: over onto its own side of the centre.)
+      const top = Math.min(...p.mesh.runs.opening.flat().map((i) => pts[i].y)) + 2;
+      pts.forEach((q, i) => {
+        if (q.x > -0.6 || p.turned[i] || q.y < top) return;
+        const I = (p.base + i) * 3;
+        const u = surfaceAt(p, { x: -q.x, y: q.y }, false);
+        if (!u) return;
+        const rho = Math.hypot(u[0], u[2]) || 1e-9;
+        const k = (rho + (knob('__standOff') ?? 0.15)) / rho;
+        res[I] = -u[0] * k;
+        res[I + 1] = u[1];
+        res[I + 2] = u[2] * k;
+      });
+    }
+  }
+  if (extra.trousers) layLegRuffle(B, res);
   // Buttons on the centre front, where the cloth lies there.
   const buttons: Draped['buttons'] = [];
   const f0 = front.find((p) => p.role === 'front');
@@ -3920,7 +3942,85 @@ function trouserPanels(sp: Space, B: Builder, seams: SimInput['seams'], d: Trous
   sew(seams, B.chain(f, 'side', down), B.chain(b, 'side', down));
   sew(seams, B.chain(f, 'inseam', down), B.chain(b, 'inseam', down));
   for (const p of panels) for (const [x, y] of dartLegs(p)) sew(seams, x, y);
+  // A hem ruffle: one strip round the leg's hem, laid on after the legs have hung (see layLegRuffle).
+  const strip = d.pieces.find((pc) => pc.name === 'Hem ruffle');
+  if (strip) {
+    const xs = strip.outline.points(12).map((q) => q.x);
+    const [x0, x1] = [Math.min(...xs), Math.max(...xs)];
+    const r = (d.hemCm ?? 40) / TAU;
+    B.add(strip, 'peplum-front', (q) => {
+      const a = ((q.x - x0) / (x1 - x0 || 1)) * TAU;
+      return [legX + Math.sin(a) * (r + 1), legs.c1 + q.y, Math.cos(a) * (r + 1)];
+      // (Meshed finer than the rest, for its folds to be drawn round rather than faceted.)
+    }, thick, [], knob('__rufMesh') ?? 0.8);
+  }
   return legs;
+}
+
+/** A trouser hem ruffle, laid round the leg's hem as it hung: the strip's top edge on the hem all round, from the
+ *  inside leg, and the rest falling from it, flaring a little and fluted by its gathers, more toward its edge. */
+function layLegRuffle(B: Builder, res: Float64Array): void {
+  const strip = B.panels.find((p) => p.pc.name === 'Hem ruffle' && !p.hidden);
+  if (!strip) return;
+  const legs = B.panels.filter((p) => p !== strip && !p.hidden && /peplum/.test(p.role) && p.mesh.runs.hem?.length);
+  const hem = legs.flatMap((p) => p.mesh.runs.hem!.flat().map((i) => { const I = (p.base + i) * 3; return [res[I], res[I + 1], res[I + 2]] as V3; }));
+  if (hem.length < 6) return;
+  const cx = hem.reduce((a, v) => a + v[0], 0) / hem.length;
+  const cz = hem.reduce((a, v) => a + v[2], 0) / hem.length;
+  // Round from the inside leg (toward the body's middle), through the front and back to it again.
+  const ang = (v: V3) => { let a = Math.atan2(v[2] - cz, v[0] - cx) - Math.PI; while (a < 0) a += TAU; while (a >= TAU) a -= TAU; return a; };
+  const ring = hem.map((v) => ({ a: ang(v), r: Math.hypot(v[0] - cx, v[2] - cz), y: v[1] })).sort((u, v) => u.a - v.a);
+  // (Wherever the leg stands out further just above its hem, the ruffle starts out over it, not tucked inside.)
+  const NB = 36;
+  const hy = hem.reduce((a, v) => a + v[1], 0) / hem.length;
+  const binR = new Array<number>(NB).fill(0);
+  for (const p of legs)
+    p.mesh.pts.forEach((_, i) => {
+      const I = (p.base + i) * 3;
+      if (res[I + 1] < hy - 4) return;
+      const v: V3 = [res[I], res[I + 1], res[I + 2]];
+      const k = Math.floor((ang(v) / TAU) * NB) % NB;
+      binR[k] = Math.max(binR[k], Math.hypot(v[0] - cx, v[2] - cz));
+    });
+  for (let it = 0; it < 2; it++) {
+    const c = binR.slice();
+    for (let k = 0; k < NB; k++) binR[k] = Math.max(c[k], (c[(k + NB - 1) % NB] + c[(k + 1) % NB]) / 2);
+  }
+  for (let it = 0; it < (knob('__rufBinSm') ?? 6); it++) {
+    const c = binR.slice();
+    for (let k = 0; k < NB; k++) binR[k] = (c[(k + NB - 1) % NB] + 2 * c[k] + c[(k + 1) % NB]) / 4;
+  }
+  const at = (a: number) => {
+    const n = ring.length;
+    let k = ring.findIndex((q) => q.a >= a);
+    if (k < 0) k = n;
+    const u = ring[(k - 1 + n) % n];
+    const w = ring[k % n];
+    const span = (w.a - u.a + TAU) % TAU || TAU;
+    const f = Math.min(1, Math.max(0, ((a - u.a + TAU) % TAU) / span));
+    const fb = (a / TAU) * NB - 0.5;
+    const k0 = Math.floor(fb);
+    const b = binR[((k0 % NB) + NB) % NB] * (1 - (fb - k0)) + binR[(((k0 + 1) % NB) + NB) % NB] * (fb - k0);
+    return { r: Math.max(u.r + (w.r - u.r) * f, b), y: u.y + (w.y - u.y) * f };
+  };
+  const xs = strip.mesh.pts.map((q) => q.x);
+  const ys = strip.mesh.pts.map((q) => q.y);
+  const [x0, x1, y0] = [Math.min(...xs), Math.max(...xs), Math.min(...ys)];
+  const folds = Math.max(6, Math.round((x1 - x0) / (knob('__rufFold') ?? 9)));
+  const flare = knob('__rufFlare') ?? 0.45;
+  strip.mesh.pts.forEach((q, i) => {
+    const t = (q.x - x0) / (x1 - x0 || 1);
+    const a = t * TAU;
+    const down = q.y - y0;
+    const h = at(a);
+    // (Less toward the other leg, so the two don't meet.)
+    const fl = flare * (0.7 - 0.3 * Math.cos(a));
+    const R = h.r + (knob('__rufTop') ?? 0.5) + down * fl + (0.25 + down * (knob('__rufAmp') ?? 0.2)) * Math.sin(t * folds * TAU);
+    const I = (strip.base + i) * 3;
+    res[I] = cx + Math.cos(a + Math.PI) * R;
+    res[I + 1] = h.y + down * 0.96;
+    res[I + 2] = cz + Math.sin(a + Math.PI) * R;
+  });
 }
 
 const isTorso = (pc: Piece) => !pc.kind && !/skirt|peplum|yoke|sleeve/i.test(pc.name);

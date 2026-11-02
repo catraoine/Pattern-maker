@@ -134,11 +134,15 @@ export function drapeQuality(d: Draped, sp: Pick<Space, 'bodyR' | 'tip'>, o: Qua
       // (Nor the cloth under the arm, which the sleeve hides and the arm crowds.)
       const arm = (p.mesh.runs.armhole ?? []).flat().map((i) => pts[i]);
       const nearDart = (i: number) => legs.some((q) => Math.hypot(q.x - pts[i].x, q.y - pts[i].y) < 2) || (sleeved && arm.some((q) => Math.hypot(q.x - pts[i].x, q.y - pts[i].y) < 5));
+      // (A shirt's cuff is a band folded in half along its length, round the wrist: that fold, within a mesh step, is meant.)
+      const xs = pts.map((q) => q.x);
+      const midX = (Math.min(...xs) + Math.max(...xs)) / 2;
+      const onCuffFold = (k: string) => p.pc.name === 'Cuff' && k.split(',').every((i) => Math.abs(pts[Number(i)].x - midX) < 1.2);
       let fins = 0;
       const cosMax = Math.cos((L.finDeg * Math.PI) / 180);
-      for (const fs of faces.values()) {
+      for (const [key, fs] of faces) {
         if (fs.length !== 2) continue;
-        if (fs[0].some(nearDart)) continue;
+        if (fs[0].some(nearDart) || onCuffFold(key)) continue;
         const a = normal(fs[0]);
         const b = normal(fs[1]);
         if (a[0] * b[0] + a[1] * b[1] + a[2] * b[2] < cosMax) fins++;
