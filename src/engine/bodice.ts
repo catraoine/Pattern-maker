@@ -14,7 +14,7 @@ import { DraftError, Side, cm } from './skirt';
 import type { DartPlace, PrincessLine } from './manipulate';
 import { moveFrontDart, princessPieces } from './shaping';
 import { BackNeck, KEYHOLE, backDepthFor, backNeckOf } from './backNeck';
-import { Buttons, CAPE_NECKS, Closure, Collar, EXTENSION_CM, RUFFLE_NECKS, capeDepth, backNeckFacing, backOnFold, buttonPlaces, collarPieces, frontFacing, isBandCollar, openFront } from './collar';
+import { Buttons, CAPE_NECKS, Closure, Collar, EXTENSION_CM, RUFFLE_NECKS, capeDepth, backNeckFacing, poloSlit, backOnFold, buttonPlaces, collarPieces, frontFacing, isBandCollar, openFront } from './collar';
 import { DrapeInfo, Peplum, PeplumHem, PeplumInfo, PeplumSize, drapeBodice, drapeStyle } from './drape';
 import { Shirring, isShirred, shirredBack } from './shirred';
 import { BONED_EASE, Structure, TopDetails, bonedPanels, cutTop, isBoned, isTop, topStyle } from './corset';
@@ -564,7 +564,7 @@ function finish(d: BodiceDraft, s: BodiceStyle, m: BodiceMeasurements & { arm_le
   // A ruffle goes into the seam of any neckline that rings the neck.
   const ruffle = s.collar === 'ruffle' && (RUFFLE_NECKS as readonly string[]).includes(s.neckline);
   const cape = s.collar === 'cape' && (CAPE_NECKS as readonly string[]).includes(s.neckline);
-  const collar = s.neck ? 'none' : bow ? 'bow' : ruffle ? 'ruffle' : cape ? 'cape' : s.collar === 'ruffle' || s.collar === 'cape' ? 'none' : s.collar === 'bow' || (s.collar === 'shirt' && closure !== 'front_buttons') ? 'none' : s.collar && s.collar !== 'none' && s.neckline === 'crew' ? s.collar : s.collar === 'peter_pan' && s.neckline === 'scoop' ? 'peter_pan' : 'none';
+  const collar = s.neck ? 'none' : bow ? 'bow' : ruffle ? 'ruffle' : cape ? 'cape' : s.collar === 'ruffle' || s.collar === 'cape' ? 'none' : s.collar === 'bow' || (s.collar === 'shirt' && closure !== 'front_buttons') || (s.collar === 'polo' && closure !== 'back_zip') ? 'none' : s.collar && s.collar !== 'none' && s.neckline === 'crew' ? s.collar : s.collar === 'peter_pan' && s.neckline === 'scoop' ? 'peter_pan' : 'none';
   const [bf, bb] = blockOf(d);
   let pieces = d.pieces;
   let buttons: Buttons | undefined;
@@ -588,6 +588,14 @@ function finish(d: BodiceDraft, s: BodiceStyle, m: BodiceMeasurements & { arm_le
     pieces = pieces.map((pc) => (pc === d.pieces[0] ? w.piece : /back/i.test(pc.name) ? backOnFold(pc) : pc));
     wrap = { edge: w.edge, cross: w.cross, tieAt: w.tieAt, ties: wrapTies(d.finishedWaist, s.neckArmholeAllowance) };
     return { ...d, pieces, block: [bf, bb], closure, collar: 'none', zipCm: 0, wrap, neck: Math.round((2 * taggedLength(bb.outline, 'neck') + 2 * taggedLength(w.piece.outline, 'neck')) * 10) / 10 };
+  }
+  if (collar === 'polo') {
+    // The open polo: a slit down the centre front, faced, so it falls open under the collar.
+    const front = pieces.find((pc) => pc.fold && /front/i.test(pc.name));
+    if (front) {
+      const slit = poloSlit(front);
+      pieces = [...pieces.map((pc) => (pc === front ? slit.front : pc)), slit.facing];
+    }
   }
   if (collar !== 'none') {
     const ext = closure === 'front_buttons' && collar !== 'peter_pan' && collar !== 'ruffle' && collar !== 'cape' ? EXTENSION_CM : 0;

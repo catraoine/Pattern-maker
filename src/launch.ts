@@ -49,6 +49,7 @@ export type TestingTool =
   | 'drop_yoke'
   | 'low_rise'
   | 'bias_mini'
+  | 'polo_collar'
   | 'oversized_cuff';
 
 export const TESTING_TOOLS: Record<TestingTool, { name: string; where: string; proof: string }> = {
@@ -88,6 +89,8 @@ export const TESTING_TOOLS: Record<TestingTool, { name: string; where: string; p
   low_rise: { name: 'Low-rise skirt', where: 'the Rise chips on a skirt', proof: 'two testers sew a low-rise skirt and it sits level on the hip without slipping, the hem where it was' },
   // For the SS27 shell top and bias mini (Cat, 2026-11-02: "Mini"; a design option, no freeze flag).
   bias_mini: { name: 'Bias slip mini', where: 'the Slip chip on a skirt cut above the knee', proof: 'two testers sew a bias slip mini and it moulds over the hip and swings without twisting, the hem level' },
+  // For the SS27 cropped polo set from Cat's picture (2026-11-02, "Let's make it this"; a design option, no flag).
+  polo_collar: { name: 'Open polo collar', where: 'the Open polo chip under Collar on a top', proof: 'two testers sew an open polo collar and the slit lies flat and open, the collar points sitting level on the chest' },
   // And for the flared lilac blazer from Cat's plaid-blazer picture (2026-10-31).
   flared_jacket: { name: 'Flared jacket and coat hem', where: 'the Flared chip below the waist on a jacket or coat', proof: 'two testers sew a flared jacket and it stays close at the waist, kicking out evenly over the hips with a level hem' },
   jacket_collars: { name: 'Peak, shawl and funnel collars, wide and plunging lapels', where: 'the Collar and Lapels chips on a jacket or coat', proof: 'two testers sew a peak or shawl lapel and it rolls cleanly from the break point, the collar sitting flat at the back neck' },

@@ -194,6 +194,7 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       bow: ['A soft bias strip round the neck that runs on into long ties, knotted in a bow at the front. On a crew or V neck.'],
       ruffle: ['A soft folded frill gathered into the neckline seam, falling over the neck edge all round.'],
       cape: ['A short circle cape sewn into the neckline, falling over the shoulders to just above the elbow.', 'skill'],
+      polo: ['A pointed collar with a little roll over a slit at the front that falls open into a V. No buttons.', 'skill'],
     },
     back: {
       plain: ['The back neck sits high, close to the base of the neck.', 'easy'],
@@ -474,6 +475,7 @@ const SHORT: Record<string, string> = {
   'collar.bow': 'Long ties knotted in a bow.',
   'collar.ruffle': 'A soft frill round the neckline.',
   'collar.cape': 'A short cape over the shoulders.',
+  'collar.polo': 'Pointed, over an open slit.',
   'collar.notched': 'Lapels with a notch. The classic.',
   'collar.peak': 'Lapel points sweeping up.',
   'collar.shawl': 'One smooth curve, no notch.',

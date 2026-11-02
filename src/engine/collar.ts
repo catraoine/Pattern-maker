@@ -7,7 +7,7 @@ import { facing } from './finishing';
 import { DraftPoint, Piece } from './piece';
 
 export type Closure = 'back_zip' | 'front_buttons' | 'wrap';
-export type Collar = 'none' | 'peter_pan' | 'mandarin' | 'mock' | 'funnel' | 'shirt' | 'bow' | 'ruffle' | 'cape';
+export type Collar = 'none' | 'peter_pan' | 'mandarin' | 'mock' | 'funnel' | 'shirt' | 'bow' | 'ruffle' | 'cape' | 'polo';
 /** The collars that are a single band standing up from the neck, sewn and finished like a mandarin. */
 type BandCollar = 'mandarin' | 'mock' | 'funnel';
 export const isBandCollar = (c: Collar | undefined): c is BandCollar => c === 'mandarin' || c === 'mock' || c === 'funnel';
@@ -28,6 +28,14 @@ export const BOW = { width: 4, tie: 55, slant: 4 };
 /** A ruffle round the neckline: a straight strip folded along its length to `width` cm, cut `ratio` times
  * the neckline and gathered into the neckline seam, under the binding, facing or lining. */
 export const RUFFLE = { width: 4, ratio: 2 };
+/**
+ * An open polo collar (In testing, Cat 2026-11-02, from her SS27 picture): a one-piece collar with a
+ * little roll and pointed ends, on a crew neck with a faced slit at the centre front and no buttons,
+ * so the slit falls open into a V. `slit` is the slit's depth below the centre front neck, `width` the
+ * collar's depth at the centre back, `spring` how far its neck edge curves down (the roll).
+ */
+export const POLO = { slit: 11, width: 6.5, spring: 2.6, facingIn: 6 };
+
 /** The necklines a cape goes round: those that ring the neck and sit on the shoulders. In testing. */
 export const CAPE_NECKS = ['crew', 'scoop', 'boat', 'square'] as const;
 
@@ -662,7 +670,111 @@ function capePieces(c: CollarIn, depth: number): Piece[] {
   return [piece('Cape front', c.front, buttons), piece('Cape back', c.back, !buttons)];
 }
 
+/**
+ * An open polo collar in two halves, each from the zip at the centre back round to the centre front,
+ * where the slit opens. Like a shirt collar without its stand: the neck edge curves down by the spring,
+ * so the collar rolls up off the neck and its outer edge lies over the neck seam, and each front end
+ * comes to a point that sits out on the chest when the slit falls open.
+ */
+function poloCollar(c: CollarIn): Piece[] {
+  const L = c.back + c.front;
+  const { width, spring } = POLO;
+  const lower = neckCurve(L, (t) => spring * t * t);
+  const m = lower.length - 1;
+  const end = lower[m];
+  const point = add(end, p(1.8, -(width + 1.2)));
+  const outer: P[] = [];
+  for (let i = 0; i <= 24; i++) {
+    const t = i / 24;
+    const a = p(0, -width);
+    const ctl = p(L * 0.6, -width + spring * 0.55);
+    outer.push(p((1 - t) ** 2 * a.x + 2 * (1 - t) * t * ctl.x + t * t * point.x, (1 - t) ** 2 * a.y + 2 * (1 - t) * t * ctl.y + t * t * point.y));
+  }
+  const pts = [...lower, ...[...outer].reverse()];
+  const tags = [...lower.slice(1).map(() => 'neck'), 'collar', ...outer.slice(1).map(() => 'collar'), 'centre'];
+  const outline = pathOf({ pts, tags: tags.slice(0, pts.length) });
+  const cut = 'Cut 4 (2 pairs)';
+  const mid = p(L * 0.45, -width / 2);
+  const piece: Piece = {
+    name: 'Collar',
+    kind: 'collar',
+    outline,
+    lines: [],
+    grain: [p(1.2, -width + 1.2), p(1.2, -1.2)],
+    notches: [notchAt(lower, c.back)],
+    labels: [
+      { at: add(mid, p(0, -0.3)), text: 'COLLAR', size: 0.8 },
+      { at: add(mid, p(0, 0.7)), text: cut, size: 0.5 },
+    ],
+    cut,
+    fabric: 'Self + interfacing',
+    seamAllowance: c.sa,
+    allowances: { neck: 1, collar: 1, centre: c.sa },
+    meta: { collarTo: 'centre front', polo: true },
+  };
+  piece.draft = draftNotes([
+    ['1', `Square a line half the neckline as sewn, ${L.toFixed(1)} cm, centre back to centre front, and drop its front end ${spring} cm for the roll.`],
+    ['2', `Square up ${width} cm at the centre back. Take the point 1.8 cm forward and 1.2 cm above that, and curve the outer edge to it.`],
+  ], piece);
+  return [piece];
+}
+
+/**
+ * The open polo's slit, made on the front cut on the fold: a line down the centre front from the neck,
+ * and a facing on the fold, 6 cm either side of it and 4 cm below its end, its top edge the neckline.
+ */
+export function poloSlit(front: Piece): { front: Piece; facing: Piece } {
+  const r = ringOf(front.outline);
+  const nk = runOf(r, 'neck')!;
+  const neck = r.pts.slice(nk[0], nk[1] + 2).sort((a, b) => a.x - b.x);
+  const cf = neck[0];
+  const W = POLO.facingIn;
+  const top: P[] = [];
+  for (let i = 0; i < neck.length; i++) {
+    if (neck[i].x <= W) top.push(neck[i]);
+    else {
+      const a = neck[i - 1];
+      top.push(lerp(a, neck[i], (W - a.x) / (neck[i].x - a.x || 1)));
+      break;
+    }
+  }
+  const end = p(0, cf.y + POLO.slit);
+  const foot = cf.y + POLO.slit + 4;
+  const tip = top[top.length - 1];
+  const pts = [...top, p(tip.x, foot), p(0, foot)];
+  const tags = [...top.slice(1).map(() => 'neck'), 'facing', 'facing', 'fold'];
+  const cut = 'Cut 1 on fold';
+  const mid = p(W * 0.5, (cf.y + foot) / 2);
+  const facingPiece: Piece = {
+    name: 'Slit facing',
+    kind: 'facing',
+    outline: pathOf({ pts, tags }),
+    lines: [new Path(p(0, cf.y)).line(end)],
+    grain: [p(W * 0.75, mid.y - 3), p(W * 0.75, mid.y + 3)],
+    fold: [p(0, cf.y + 1), p(0, foot - 1)],
+    notches: [[end, p(-1, 0)]],
+    labels: [
+      { at: mid, text: 'SLIT FACING', size: 0.6, rotate: 90 },
+      { at: add(mid, p(1, 0)), text: cut, size: 0.45, rotate: 90 },
+    ],
+    cut,
+    fabric: 'Self + interfacing',
+    seamAllowance: front.seamAllowance,
+    allowances: { neck: 1, facing: 0, fold: 0 },
+    meta: { slitCm: POLO.slit },
+  };
+  const slitFront: Piece = {
+    ...front,
+    lines: [...front.lines, new Path(p(0, cf.y)).line(end)],
+    notches: [...front.notches, [end, p(-1, 0)]],
+    labels: [...front.labels, { at: add(end, p(1.2, 0.3)), text: 'SLIT ENDS', size: 0.6 }],
+    meta: { ...front.meta, slitCm: POLO.slit },
+  };
+  return { front: slitFront, facing: facingPiece };
+}
+
 export function collarPieces(kind: Collar, front: Piece, back: Piece, c: CollarIn & { capeCm?: number }): Piece[] {
+  if (kind === 'polo') return poloCollar(c);
   if (kind === 'cape') return capePieces(c, c.capeCm ?? 40);
   if (kind === 'peter_pan') return peterPanCollar(front, back, c);
   if (isBandCollar(kind)) return bandCollar(c, kind);

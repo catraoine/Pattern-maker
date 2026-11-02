@@ -415,7 +415,7 @@ export const BODICE_GROUPS: [Group<'fit'>, Group<'neckline'>, Group<'length'>, G
     options: [['side', 'Side seam'], ['french', 'French (low side)'], ['shoulder', 'Shoulder'], ['neck', 'Neckline'], ['armhole', 'Armhole'], ['waist', 'Waist']],
   },
   { id: 'closure', label: 'Opening', options: [['back_zip', 'Back zip'], ['front_buttons', 'Front buttons'], ['wrap', 'Wrap']] },
-  { id: 'collar', label: 'Collar', options: [['none', 'None'], ['peter_pan', 'Peter Pan'], ['mandarin', 'Mandarin'], ['mock', 'Mock neck'], ['funnel', 'Funnel neck'], ['shirt', 'Shirt collar'], ['bow', 'Pussy bow'], ['ruffle', 'Ruffle'], ['cape', 'Cape']] },
+  { id: 'collar', label: 'Collar', options: [['none', 'None'], ['peter_pan', 'Peter Pan'], ['mandarin', 'Mandarin'], ['mock', 'Mock neck'], ['funnel', 'Funnel neck'], ['shirt', 'Shirt collar'], ['bow', 'Pussy bow'], ['ruffle', 'Ruffle'], ['cape', 'Cape'], ['polo', 'Open polo']] },
   { id: 'back', label: 'Back', options: BACK_NECKS },
   { id: 'structure', label: 'Structure', options: [['none', 'Soft'], ['boned', 'Boned, like a corset'], ['shirred', 'Shirred back']] },
   { id: 'peplum', label: 'Peplum', options: [['none', 'None'], ['flared', 'Flared'], ['gathered', 'Gathered']] },
@@ -424,7 +424,7 @@ export const BODICE_GROUPS: [Group<'fit'>, Group<'neckline'>, Group<'length'>, G
 ];
 
 const BACK_WORDS: Record<BackNeck, string> = { plain: '', scoop: 'a scoop back', v: 'a V back', keyhole: 'a keyhole back' };
-export const COLLAR_WORDS: Record<Collar, string> = { none: '', peter_pan: 'Peter Pan collar', mandarin: 'mandarin collar', mock: 'mock neck', funnel: 'funnel neck', shirt: 'shirt collar', bow: 'pussy bow', ruffle: 'ruffled neckline', cape: 'cape' };
+export const COLLAR_WORDS: Record<Collar, string> = { none: '', peter_pan: 'Peter Pan collar', mandarin: 'mandarin collar', mock: 'mock neck', funnel: 'funnel neck', shirt: 'shirt collar', bow: 'pussy bow', ruffle: 'ruffled neckline', cape: 'cape', polo: 'open polo collar' };
 
 /**
  * Which styled details a bodice allows, and why not when it doesn't: princess seams need bust and waist
@@ -462,6 +462,8 @@ export function detailAllowed(c: BodiceChoices, id: 'princess' | 'bustDart' | 'c
   // A collar goes round the back neck, so not with a low or keyhole back.
   if (c.back && c.back !== 'plain') return false;
   if (opt === 'shirt') return c.closure === 'front_buttons' && c.neckline === 'crew';
+  // An open polo collar sits on a crew neck with a slit at the centre front, so the zip stays at the back.
+  if (opt === 'polo') return (c.closure ?? 'back_zip') === 'back_zip' && c.neckline === 'crew';
   // A pussy bow ties at the centre front, on a crew or V neck, so the opening stays at the back.
   if (opt === 'bow') return c.closure !== 'front_buttons' && (c.neckline === 'crew' || c.neckline === 'v');
   // A ruffle is sewn into the neckline seam, so it goes round any neckline that rings the neck.
