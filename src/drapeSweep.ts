@@ -113,10 +113,19 @@ export function sewDesign(d: SweepDesign, values: MeasurementValues = EXAMPLE_BO
 }
 
 /** The report: how many passed, then each check's failures counted by the choices they share most. */
-export function sweepReport(results: SweepResult[]): string {
+export function sweepReport(results: SweepResult[], list = 8): string {
   const sewn = results.filter((x) => x.quality);
   const failed = sewn.filter((x) => !x.quality!.ok);
   const lines = [`# All round sweep`, '', `${sewn.length} designs sewn (${results.length - sewn.length} didn't draft), ${sewn.length - failed.length} passed, ${failed.length} not usable.`, ''];
+  // How each garment fares, so the weakest is plain at a glance.
+  const garments = [...new Set(sewn.map((x) => x.design.garment))];
+  lines.push(
+    ...garments.map((g) => {
+      const these = sewn.filter((x) => x.design.garment === g);
+      return `- ${g}: ${these.filter((x) => x.quality!.ok).length} of ${these.length} passed`;
+    }),
+    '',
+  );
   // Which choices the failures share, against how often each turns up at all.
   const tally = (xs: SweepResult[]) => {
     const t = new Map<string, number>();
@@ -135,7 +144,7 @@ export function sweepReport(results: SweepResult[]): string {
       .slice(0, 6);
     lines.push(`## ${check}: ${these.length}`, '');
     if (shared.length) lines.push(`Most often with: ${shared.map(([w, n, f]) => `${w} (${n}, ${Math.round(f * 100)}% of all with it)`).join(', ')}`, '');
-    for (const x of these.slice(0, 8)) lines.push(`- ${x.label}: ${x.quality!.problems.filter((p) => p.check === check).map((p) => `${p.part} ${p.worst}`).join(', ')}`);
+    for (const x of these.slice(0, list)) lines.push(`- ${x.label}: ${x.quality!.problems.filter((p) => p.check === check).map((p) => `${p.part} ${p.worst}`).join(', ')}`);
     lines.push('');
   }
   return lines.join('\n');

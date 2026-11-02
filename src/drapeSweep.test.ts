@@ -18,6 +18,8 @@ const LOCKED: [string, SweepDesign][] = [
   ['cami top, hip length', { garment: 'bodice', saved: { bodice: { garment: 'bodice', fit: 'regular', neckline: 'cami', length: 'hip', darts: 'bust_waist', sleeve: 'none', sleeveShape: 'cap', closure: 'back_zip', collar: 'none' } as Saved['bodice'] }, fibre: 'cotton' }],
   ['square neck, long sleeves, keyhole back', { garment: 'bodice', saved: { bodice: { garment: 'bodice', fit: 'fitted', neckline: 'square', length: 'hip', darts: 'bust_waist', sleeve: 'long', sleeveShape: 'straight', closure: 'back_zip', collar: 'none', back: 'keyhole' } as Saved['bodice'] }, fibre: 'cotton', crisp: true }],
   ['sleeveless shell (SS27 look B top)', { garment: 'bodice', saved: { bodice: { garment: 'bodice', fit: 'fitted', neckline: 'crew', length: 'high_hip', darts: 'bust_waist', sleeve: 'none', sleeveShape: 'straight' } as Saved['bodice'] }, fibre: 'silk' }],
+  ['sleeveless A-line dress, natural waist', { garment: 'dress', saved: { dress: { garment: 'dress', fit: 'regular', bodice: { garment: 'bodice', fit: 'regular', neckline: 'crew', length: 'waist', darts: 'bust_waist', sleeve: 'none', sleeveShape: 'straight', closure: 'back_zip', collar: 'none' }, skirt: { fit: 'regular', silhouette: 'a_line', length: 'knee', asymHem: 'none' }, waistSeam: 'natural' } as Saved['dress'] }, fibre: 'cotton' }],
+  ['sleeveless A-line dress, dropped waist', { garment: 'dress', saved: { dress: { garment: 'dress', fit: 'regular', bodice: { garment: 'bodice', fit: 'regular', neckline: 'crew', length: 'waist', darts: 'bust_waist', sleeve: 'none', sleeveShape: 'straight', closure: 'back_zip', collar: 'none' }, skirt: { fit: 'regular', silhouette: 'a_line', length: 'knee', asymHem: 'none' }, waistSeam: 'dropped' } as Saved['dress'] }, fibre: 'cotton' }],
   ['shirt, collar and long sleeves (SS27 9C top)', { garment: 'bodice', saved: { bodice: { garment: 'bodice', fit: 'regular', neckline: 'crew', collar: 'shirt', closure: 'front_buttons', sleeve: 'long', sleeveShape: 'straight', sleeveCuff: 'shirt', length: 'hip', darts: 'bust_waist' } as Saved['bodice'] }, fibre: 'cotton' }],
 ];
 
@@ -73,7 +75,7 @@ describe.skipIf(!N)('All round sweep of random designs', () => {
     const seed = Number(process.env.DRAPE_SEED ?? new Date().toISOString().slice(0, 10).replace(/-/g, ''));
     const r = rng(seed);
     const results = Array.from({ length: N }, () => sewDesign(randomDesign(r)));
-    const report = `Seed ${seed}\n\n${sweepReport(results)}`;
+    const report = `Seed ${seed}\n\n${sweepReport(results, Number(process.env.DRAPE_LIST ?? 8))}`;
     writeFileSync(process.env.DRAPE_REPORT ?? 'drape-sweep.md', report);
     expect(results.length).toBe(N);
   }, 6 * 60 * 60_000);

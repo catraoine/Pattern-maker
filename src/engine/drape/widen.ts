@@ -4,6 +4,9 @@
  *  (Kept free of the engine, so the view can ask it too.) */
 export function widensForm(job: { kind: string; sleeve?: unknown; draft?: unknown }): boolean {
   if (job.kind === 'outer' || job.sleeve) return false;
-  const sh = (job.draft as { shoulder?: { front?: number } } | undefined)?.shoulder?.front;
-  return !(job.kind === 'bodice' && typeof sh === 'number' && sh >= 9);
+  // (A dress's bodice is the same: its shoulder is on the bodice it is drafted from.)
+  type Shoulder = { shoulder?: { front?: number } };
+  const draft = job.draft as (Shoulder & { bodice?: Shoulder }) | undefined;
+  const sh = (job.kind === 'dress' ? draft?.bodice : draft)?.shoulder?.front;
+  return !((job.kind === 'bodice' || job.kind === 'dress') && typeof sh === 'number' && sh >= 9);
 }

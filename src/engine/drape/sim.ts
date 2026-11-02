@@ -34,6 +34,8 @@ export interface SimInput {
   shoulderX?: Float64Array;
   /** Where the shoulder seam lies front to back (cm ahead of the body's side plane), held there. */
   shoulderZ?: number;
+  /** The shoulder seam held front to back only, left to rise off the shoulder's top onto the neck's base as it will. */
+  shoulderZFree?: boolean;
   /** Edges running down a bodice, top first (upper point, lower point, cut length): held to near their cut length. */
   /** Edges down a bodice held to near their cut length, top first; `k` how hard (1 under a long skirt's weight). */
   chain?: { up: Int32Array; lo: Int32Array; rest: Float64Array; k?: number };
@@ -221,7 +223,7 @@ export function simulate(s: Space, inp: SimInput, steps = knob("__steps") ?? 260
           // (Sewn along the top of the shoulder: neither front nor back can drag the seam round to its own side.)
           if (inp.shoulderZ !== undefined && Math.abs(x[I]) < s.tip.x - HZIN) {
             x[I + 2] += (inp.shoulderZ - x[I + 2]) * HZK;
-            if (HZY) x[I + 1] = top;
+            if (HZY && !inp.shoulderZFree) x[I + 1] = top;
           }
         }
       }

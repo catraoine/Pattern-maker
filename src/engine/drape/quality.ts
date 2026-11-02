@@ -74,7 +74,7 @@ export function drapeQuality(d: Draped, sp: Pick<Space, 'bodyR' | 'tip'>, o: Qua
   const problems: QualityProblem[] = [];
   const add = (check: QualityCheck, part: string, worst: number) => {
     const had = problems.find((q) => q.check === check && q.part === part);
-    if (had) had.worst = Math.max(had.worst, worst);
+    if (had) had.worst = Math.max(had.worst, Math.round(worst * 100) / 100);
     else problems.push({ check, part, worst: Math.round(worst * 100) / 100 });
   };
   const P = (g: number): [number, number, number] => [pos[g * 3], pos[g * 3 + 1], pos[g * 3 + 2]];
