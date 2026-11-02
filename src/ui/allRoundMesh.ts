@@ -492,10 +492,18 @@ function buildDraped(
         nrm.set(nx);
       }
       // On the centre line the two halves meet: their normals lie flat across it, or a crease shows down the middle.
+      // (Not where the cloth laps over itself, a front's button extension or a back vent: there the halves don't meet
+      // on the line, and flattened there the overlap shows a ripple. Eased back in over a few cm above it.)
+      let lapTop = Infinity;
+      for (let i = 0; i < n; i++) if (p.uv[i * 2] < -0.5) lapTop = Math.min(lapTop, -p.uv[i * 2 + 1]);
       for (let i = 0; i < n; i++) {
         if (Math.abs(d.pos[(p.base + i) * 3]) > 0.4) continue;
-        const l = Math.hypot(nrm[i * 3 + 1], nrm[i * 3 + 2]) || 1;
-        nrm[i * 3] = 0;
+        const y = -p.uv[i * 2 + 1];
+        if (y > lapTop - 1) continue;
+        const w = Math.min(1, (lapTop - 1 - y) / 4);
+        nrm[i * 3] *= 1 - w;
+        const l = Math.hypot(nrm[i * 3], nrm[i * 3 + 1], nrm[i * 3 + 2]) || 1;
+        nrm[i * 3] /= l;
         nrm[i * 3 + 1] /= l;
         nrm[i * 3 + 2] /= l;
       }
