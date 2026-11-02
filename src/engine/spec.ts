@@ -45,7 +45,7 @@ export function skirtSpec(m: SkirtMeasurements, d: SkirtDraft): SpecRow[] {
       : d.faced
       ? [
           { label: `Waist facing, ${SLIP_FACING} deep`, finished: 'cut 1 front, 1 back' },
-          { label: 'Invisible zip, left side seam', finished: `${d.zipCm}` },
+          { label: `Invisible zip, ${d.zipRight ? 'right' : 'left'} side seam`, finished: `${d.zipCm}` },
         ]
       : d.waistFinish
         ? [

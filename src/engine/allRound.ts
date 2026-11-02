@@ -189,7 +189,7 @@ export function roundSkirt(draft: SkirtDraft): RoundGarment {
   const cb = !back.fold && !back.meta.whole;
   // A centre back seam unless the back is cut on the fold or whole.
   if (cb) seams.push(down(Math.PI, 'centre_back'));
-  const zipPhi = draft.opening === 'left_side' || !cb ? HALF : Math.PI;
+  const zipPhi = draft.zipRight ? -HALF : draft.opening === 'left_side' || !cb ? HALF : Math.PI;
   const blocks = draft.block ?? half;
   return {
     kind: 'skirt',

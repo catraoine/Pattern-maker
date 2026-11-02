@@ -190,13 +190,24 @@ describe('bias slip side slit', () => {
       const d = draftSkirt(m, { silhouette: 'slip', length, slit: 'side', slitCm: 200 });
       expect(d.slit?.at).toBe('side');
       expect(d.slit!.cm).toBe(d.slit!.range.max);
-      expect(d.lengthCm - d.slit!.cm).toBeGreaterThanOrEqual(m.waist_to_hip + 5);
-      expect(d.lengthCm - d.slit!.cm).toBeGreaterThanOrEqual(d.zipCm + 3);
+      // Up to the hip line, the zip moved to the right side seam (Cat, 2026-11-02).
+      expect(d.lengthCm - d.slit!.cm).toBeGreaterThanOrEqual(m.waist_to_hip);
+      expect(d.lengthCm - d.slit!.cm).toBeLessThan(m.waist_to_hip + 1);
+      expect(d.zipRight).toBe(true);
+      // The ZIP ENDS notch on the front's -x side (right as worn), SLIT ENDS on its +x side.
+      const front = d.pieces[0];
+      const zipLabel = front.labels.find((l) => l.text === 'ZIP ENDS')!;
+      const slitLabel = front.labels.find((l) => l.text === 'SLIT ENDS')!;
+      expect(zipLabel.at.x).toBeLessThan(0);
+      expect(slitLabel.at.x).toBeGreaterThan(0);
       for (const pc of d.pieces.slice(0, 2)) expect(pc.labels.some((l) => l.text === 'SLIT ENDS')).toBe(true);
       const g = sewingGuide(d, { silhouette: 'slip', length }, 2);
       expect(g.steps.find((s) => s.title === 'Sew the left side seam')!.text).toMatch(/SLIT ENDS/);
+      expect(g.steps.find((s) => s.title === 'Put in the side zip')!.text).toMatch(/right side seam/);
     }
     // Not on a dress's slip skirt, whose zip is at the back.
     expect(draftSkirt(m, { silhouette: 'slip', length: 'midi', slit: 'side', joinTo: true } as never).slit).toBeUndefined();
+    // Without a slit the zip stays in the left side seam.
+    expect(draftSkirt(m, { silhouette: 'slip', length: 'midi' }).zipRight).toBeUndefined();
   });
 });

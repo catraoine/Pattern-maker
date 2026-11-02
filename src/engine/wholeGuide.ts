@@ -93,31 +93,47 @@ export function wholeGuide(draft: SkirtDraft, fabricM: number, finish: SkirtFini
           },
         ]
       : []),
-    bias
-      ? {
-          title: 'Sew the right side seam',
-          diagram: 'french' as const,
-          text: `Sew the right side seam (as you wear it) as a French seam, so no raw edge shows through fine cloth. Pin the front to the back wrong sides together, matching the hip notches, and sew ${first} from the edge. Trim to 0.3 cm, fold right sides together along the seam, press and sew again 0.6 cm from the fold, enclosing the raw edges. Sew bias with a slightly longer stitch and let the cloth feed itself: pulled, a bias seam ripples. Press the seam toward the back.`,
-        }
-      : {
-          title: 'Sew the right side seam',
-          text: `Pin the front to the back along the right side seam (as you wear it), right sides together, matching the hip notches, and sew ${seam} from the edge. Press the seam open.`,
+    ...(draft.zipRight && draft.slit
+      ? [
+          // A slit up the left side: the zip goes in the right side seam, the left one stays open below the slit's top.
+          {
+            title: 'Put in the side zip',
+            text: `${bias ? 'Fuse a 1.5 cm strip of interfacing along the right side edges of the front and back, down past the ZIP ENDS notches, so the bias does not stretch as the zip goes in. ' : ''}Sew a ${draft.zipCm} cm invisible zip into the right side seam edges (as you wear it), with the top of the teeth ${waist} below the waist edge, stopping at the ZIP ENDS notches.`,
+          },
+          {
+            title: 'Sew the right side seam',
+            text: `Sew the rest of the right side seam, from the bottom of the zip to the hem, ${seam} from the edge, matching the hip notches. Press the seam open${bias ? ' and overcast or zigzag each allowance on its own: a French seam cannot go round a zip' : ''}.`,
+          },
+          {
+            title: 'Sew the left side seam',
+            text: `Fuse a 1.5 cm strip of interfacing along the left side edges of the front and back below the SLIT ENDS notches, so the bias holds its line. Pin the front to the back along the left side seam (as you wear it), right sides together, matching the hip notches, and sew from the waist down to the SLIT ENDS notch, ${seam} from the edge, backstitching firmly there: below it the seam stays open as a ${draft.slit.cm} cm slit, up to the hip line. Press the seam open${bias ? ' and overcast or zigzag each allowance on its own' : ''}. Try the skirt on now: this is the easiest moment to take it in or let it out at the sides.`,
+          },
+        ]
+      : [
+        bias
+          ? {
+              title: 'Sew the right side seam',
+              diagram: 'french' as const,
+              text: `Sew the right side seam (as you wear it) as a French seam, so no raw edge shows through fine cloth. Pin the front to the back wrong sides together, matching the hip notches, and sew ${first} from the edge. Trim to 0.3 cm, fold right sides together along the seam, press and sew again 0.6 cm from the fold, enclosing the raw edges. Sew bias with a slightly longer stitch and let the cloth feed itself: pulled, a bias seam ripples. Press the seam toward the back.`,
+            }
+          : {
+              title: 'Sew the right side seam',
+              text: `Pin the front to the back along the right side seam (as you wear it), right sides together, matching the hip notches, and sew ${seam} from the edge. Press the seam open.`,
+            },
+        {
+          title: 'Put in the side zip',
+          text: `${bias ? 'Fuse a 1.5 cm strip of interfacing along the left side edges of the front and back, down past the ZIP ENDS notches, so the bias does not stretch as the zip goes in. ' : ''}Sew a ${draft.zipCm} cm invisible zip into the left side seam edges (as you wear it), with the top of the teeth ${waist} below the waist edge, stopping at the ZIP ENDS notches.`,
         },
-    {
-      title: 'Put in the side zip',
-      text: `${bias ? 'Fuse a 1.5 cm strip of interfacing along the left side edges of the front and back, down past the ZIP ENDS notches, so the bias does not stretch as the zip goes in. ' : ''}Sew a ${draft.zipCm} cm invisible zip into the left side seam edges (as you wear it), with the top of the teeth ${waist} below the waist edge, stopping at the ZIP ENDS notches.`,
-    },
-    {
-      title: 'Sew the left side seam',
-      text: draft.slit
-        ? `Fuse a 1.5 cm strip of interfacing along the left side edges of the front and back below the SLIT ENDS notches, so the bias holds its line. Sew the rest of the left side seam, from the bottom of the zip down to the SLIT ENDS notch, ${seam} from the edge, matching the hip notches, and backstitch firmly there: below it the seam stays open as a ${draft.slit.cm} cm slit. Press the seam open${bias ? ' and overcast or zigzag each allowance on its own' : ''}. Try the skirt on now: this is the easiest moment to take it in or let it out at the sides.`
-        : `Sew the rest of the left side seam, from the bottom of the zip to the hem, ${seam} from the edge, matching the hip notches. Press the seam open${bias ? ' and overcast or zigzag each allowance on its own: a French seam cannot go round a zip' : ''}. Try the skirt on now: this is the easiest moment to take it in or let it out at the sides.`,
-    },
+        {
+          title: 'Sew the left side seam',
+          text: `Sew the rest of the left side seam, from the bottom of the zip to the hem, ${seam} from the edge, matching the hip notches. Press the seam open${bias ? ' and overcast or zigzag each allowance on its own: a French seam cannot go round a zip' : ''}. Try the skirt on now: this is the easiest moment to take it in or let it out at the sides.`,
+        },
+        ]),
     ...(lined
       ? [
           {
             title: 'Make the lining',
-            text: `Sew the lining side seams, ${seam} from the edge, leaving the left one open from the waist to the ZIP ENDS notch.${darts ? ' Sew the lining darts as tucks, only 3 cm down from the waist.' : ''} Press up 1 cm at the hem, then 1 cm more, and stitch.`,
+            text: `Sew the lining side seams, ${seam} from the edge, leaving the ${draft.zipRight ? 'right' : 'left'} one open from the waist to the ZIP ENDS notch${draft.zipRight && draft.slit ? ', and the left one open below the SLIT ENDS notch' : ''}.${darts ? ' Sew the lining darts as tucks, only 3 cm down from the waist.' : ''} Press up 1 cm at the hem, then 1 cm more, and stitch.`,
           },
           {
             title: 'Put the lining in',
@@ -130,7 +146,7 @@ export function wholeGuide(draft: SkirtDraft, fabricM: number, finish: SkirtFini
           {
             title: 'Face the waist',
             diagram: 'understitch' as const,
-            text: `Sew the front facing to the back facing at the right side, ${seam} from the edge, and press the seam open. Pin the facing to the skirt waist, right sides together, matching the side seams and the centre front and back, with the facing's ends turned back level with the zip tape. Sew ${waist} from the edge, trim the seam to 0.5 cm and clip the curve. Understitch: stitch the facing to the seam allowances close to the seam, so it rolls inside. Turn the facing in, press, slip-stitch its ends to the zip tape and catch it to the side seam allowances.`,
+            text: `Sew the front facing to the back facing at the ${draft.zipRight ? 'left' : 'right'} side, ${seam} from the edge, and press the seam open. Pin the facing to the skirt waist, right sides together, matching the side seams and the centre front and back, with the facing's ends turned back level with the zip tape. Sew ${waist} from the edge, trim the seam to 0.5 cm and clip the curve. Understitch: stitch the facing to the seam allowances close to the seam, so it rolls inside. Turn the facing in, press, slip-stitch its ends to the zip tape and catch it to the side seam allowances.`,
           },
         ]
       : [

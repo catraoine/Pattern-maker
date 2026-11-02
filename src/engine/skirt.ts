@@ -557,6 +557,8 @@ export interface SkirtDraft {
   halves?: [Piece, Piece];
   /** Where the invisible zip goes: the centre back seam unless the back is cut whole. */
   opening?: 'centre_back' | 'left_side';
+  /** A side-zipped skirt whose zip is in the right side seam instead (a bias slip with a side slit). */
+  zipRight?: true;
   /** A narrow faced waist in place of the waistband: the bias slip (see waistPieces in finishing.ts). */
   faced?: boolean;
   /** A high-low or diagonal hem as drafted (see asymHem.ts). */

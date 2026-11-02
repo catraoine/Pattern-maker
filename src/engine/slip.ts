@@ -295,8 +295,11 @@ function raisedHalf(pc: Piece, rise: number, plusX: boolean): Path {
   return out;
 }
 
-/** A bias slip skirt (not a dress's) can take a slit up its left side seam, below the zip (In testing,
+/** A bias slip skirt (not a dress's) can take a slit up its left side seam, the zip moved right (In testing,
  * Cat 2026-11-02, for the SS27 lavender slip). The edges are stayed so the bias doesn't stretch. */
+/** How far below the hip line a slip's side slit stops: at the hip line itself. */
+export const SLIP_SLIT_BELOW_HIP = 0;
+
 export const slipSlitAllowed = (s: { silhouette: string; joinTo?: unknown }) => s.silhouette === 'slip' && !s.joinTo;
 
 /** The length of a whole piece's side seam on the +x or -x side, waist to hem. */
@@ -308,13 +311,13 @@ function sideLength(pc: Piece, plusX: boolean): number {
 }
 
 /**
- * The slit up the slip's left side seam, `cm` above the hem: no higher than 5 cm below the hip line,
- * nor than 3 cm below the zip, notched SLIT ENDS on the front (+x) and the back (-x).
+ * The slit up the slip's left side seam, `cm` above the hem, as high as the hip line (Cat, 2026-11-02: the
+ * zip goes in the right side seam instead), notched SLIT ENDS on the front (+x) and the back (-x).
  */
 export function slipSlit(draft: SkirtDraft, m: SkirtMeasurements, cm: number): SkirtDraft {
   const [front, back, ...rest] = draft.pieces;
   const range = slitRange(draft.lengthCm, m.waist_to_hip);
-  range.max = Math.max(range.min, Math.min(range.max, Math.floor(draft.lengthCm - draft.zipCm - 3)));
+  range.max = Math.max(range.min, Math.floor(draft.lengthCm - m.waist_to_hip - SLIP_SLIT_BELOW_HIP));
   const want = Math.min(range.max, Math.max(range.min, Math.round(cm)));
   const mark = (pc: Piece, plusX: boolean): Piece => {
     const at = downSide(pc, sideLength(pc, plusX) - want, plusX);
@@ -392,10 +395,12 @@ export function cutWhole(draft: SkirtDraft, m: SkirtMeasurements, s: SkirtStyle)
   let pieces = [finish(front), finish(back)];
 
   // The zip goes in the left side seam: on a front laid right side up that is the +x side; on a back, -x.
+  // A slip slit up the left side moves it to the right side seam, so the slit can open to the hip line.
   const opening = dress ? 'centre_back' : 'left_side';
+  const zipRight = !dress && s.slit === 'side' && slipSlitAllowed(s);
   if (!dress) {
     pieces = pieces.map((pc, i) => {
-      const plusX = i === 0;
+      const plusX = (i === 0) !== zipRight;
       const at = downSide(pc, draft.zipCm, plusX);
       const out = p(plusX ? 1 : -1, 0);
       return {
@@ -429,6 +434,7 @@ export function cutWhole(draft: SkirtDraft, m: SkirtMeasurements, s: SkirtStyle)
     hemCm,
     bias: bias || undefined,
     opening,
+    zipRight: zipRight || undefined,
     faced: bias && !dress ? true : undefined,
     asym: plan,
     hem: plan ? (plan.kind === 'high_low' ? planShape(plan) : undefined) : draft.hem,

@@ -469,14 +469,20 @@ function beltOn<V extends Omit<FlatView, 'at' | 'origin'>>(v: V, y: number, b: B
  * A piece cut whole, as it hangs: its own outline (the two sides may differ), darts sewn, and for a
  * front with the zip in its left side seam (the +x side), the zip down that seam from the waist.
  */
-function wholeView(pc: Piece, zipCm?: number): { shapes: P[][]; lines: FlatView['lines']; waist: P[] } {
+function wholeView(pc: Piece, zipCm?: number, zipRight = false): { shapes: P[][]; lines: FlatView['lines']; waist: P[] } {
   const h = sewn(pc);
   const run = h.run.slice(0, -1);
   const lines: FlatView['lines'] = h.darts.map((pts) => ({ pts, kind: 'dart' as const }));
   // The waist from the -x side round to the +x side, for a band above it.
   const stretches = along(h, ['waist', 'dart']);
   const waist = stretches.length > 1 ? [...stretches[stretches.length - 1], ...stretches[0].slice(1)] : stretches[0] ?? [run[0]];
-  if (zipCm) lines.push(...sideZip(along(h, 'side')[0] ?? [], zipCm));
+  if (zipCm && !zipRight) lines.push(...sideZip(along(h, 'side')[0] ?? [], zipCm));
+  // In the right side seam: the -x side, drawn as the +x one mirrored.
+  if (zipCm && zipRight) {
+    const sides = along(h, 'side');
+    const minus = [...(sides[sides.length - 1] ?? [])].reverse().map((q) => p(-q.x, q.y));
+    lines.push(...sideZip(minus, zipCm).map((l) => ({ ...l, pts: l.pts.map((q) => p(-q.x, q.y)) })));
+  }
   return { shapes: [run], lines, waist };
 }
 
@@ -513,7 +519,7 @@ function skirtViews(d: SkirtDraft, opts: { band: boolean; zipCm?: number; seamFr
       hemY = d.lengthCm;
     } else if (wholePc) {
       // Cut whole: drawn from the whole piece, so a hem that differs side to side shows as it is.
-      ({ shapes, lines, waist } = wholeView(d.pieces[i], !back && d.opening === 'left_side' ? d.zipCm : undefined));
+      ({ shapes, lines, waist } = wholeView(d.pieces[i], !back && d.opening === 'left_side' ? d.zipCm : undefined, !!d.zipRight));
       hemY = d.lengthCm;
     } else {
       // Pleats are drawn on the skirt as it hangs; knife and box pleats take the darts' place.
