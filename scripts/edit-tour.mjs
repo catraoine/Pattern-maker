@@ -168,8 +168,8 @@ function tapeAcross(t) {
 }
 
 const MARKS = WIDE
-  ? { fabric: 1.4, enlarge: 7.4, draw: 9.4, hem: 11.0, side: 17.1, done: 21.8 }
-  : { fabric: 1.4, enlarge: 6.8, draw: 6.8, hem: 8.3, side: 13.7, done: 18.0 };
+  ? { fabric: 1.4, enlarge: 7.4, draw: 9.4, hem: 10.9, side: 16.9, done: 21.8 }
+  : { fabric: 1.4, enlarge: 8.1, draw: 8.1, hem: 9.7, side: 15.2, done: 19.6 };
 // Played at 1.4 times its speed, however long the take (Cat, 2026-11-01: less time on the dress page, no enlarge).
 const JOURNEY = { from: 0.6, to: MARKS.done + 0.9, dur: Math.round(((MARKS.done + 0.3) / 1.4) * 10) / 10 };
 const atOut = (t) => ((t - JOURNEY.from) * JOURNEY.dur) / (JOURNEY.to - JOURNEY.from);
@@ -186,13 +186,13 @@ const STYLE_NOTES = [];
 // D1 One Palette Card (Cat, 2026-11-02): as the dress takes the new cloth, one tall swatch card of it, the app's cream
 // label strip under it, glides in beside the form and holds still, gone before the drawing tool opens. Its swatch is
 // cut from the dress itself once the cloth is on, so it is the very cloth on the form. CARD_AT: shot time the cloth
-// changes (record-tour-shots.mjs prints it as "style cloth").
-const CARD = { at: Number(process.env.CARD_AT ?? (WIDE ? 3.9 : 3.9)), name: process.env.CARD_NAME ?? 'Snakeskin', colour: process.env.CARD_COLOUR ?? 'Aqua' };
+// changes on screen, about 1 s after the "style cloth" mark record-tour-shots.mjs prints.
+const CARD = { at: Number(process.env.CARD_AT ?? (WIDE ? 4.3 : 5.1)), name: process.env.CARD_NAME ?? 'Snakeskin', colour: process.env.CARD_COLOUR ?? 'Aqua' };
 const CARD_OFF = (WIDE ? MARKS.enlarge : MARKS.draw) - 0.3;
 async function clothCard() {
   const grab = join(work, 'cloth.png');
   // Phone: the bodice below the neck; computer: the same on the smaller form.
-  const [cx, cy, cw, ch] = WIDE ? [625, 330, 130, 200] : [330, 440, 200, 300];
+  const [cx, cy, cw, ch] = WIDE ? [625, 370, 130, 180] : [330, 500, 200, 280];
   execFileSync('ffmpeg', ['-v', 'error', '-y', '-ss', String(CARD.at + 0.8), '-i', join(SHOTS, 'style.mp4'), '-frames:v', '1', '-vf', `crop=${cw}:${ch}:${cx}:${cy}`, grab]);
   const cloth = readFileSync(grab).toString('base64');
   const [left, top, w, tex, strip] = WIDE ? [690, 250, 120, 170, 46] : [300, 118, 108, 156, 38];
@@ -280,20 +280,21 @@ async function photoMoment() {
   // Held long enough to read (Cat, 2026-10-25).
   return piece({ still: pic, dur: 3.2, zoom: [1, 1.03], fadeIn: 0.5, fadeOut: 0.5, notes: [[await note('Or upload a photo.', 'low'), 0.2, 3.2]] });
 }
-// S2 Slow Strip (Cat, 2026-11-02, replacing N3b's six tags landing one by one): one row of tall swatch cards, real
+// S2 Slow Strip (Cat, 2026-11-02, replacing N3b's six tags landing one by one): one row of seven tall swatch cards, real
 // Mood listings Cat picked (photos cropped from her screenshots of the shop, no draped stock swirls), each with its
 // name, cloth, the shop and its price, gliding slowly sideways. Prices are the listings' regular prices per yard (CA$),
 // not the sale price, so the film doesn't date.
 const SHOP = [
   ...(process.env.SHOP_PYTHON === '0' ? [] : [['python', 'Aqua & Chili python', 'Silk charmeuse', '$141.94/yd']]),
   ['ribbon', 'Black Bean & White', 'Italian silk print', '$141.89/yd'],
-  ['palm', 'Sky Blue palm leaves', 'Textured silk, Italy', '$85.15/yd'],
+  ['lime', 'Lime & Purple python', 'Italian silk print', '$141.94/yd'],
   ['organza', 'Classic Blue floral', 'Silk organza', '$212.90/yd'],
+  ['pink', 'Pink & Turquoise', 'Italian silk print', '$141.94/yd'],
   ['poppy', 'Golden Poppy border', 'Silk charmeuse', '$141.93/yd'],
   ['lily', 'Creme Brulee lily', 'Milly silk chiffon', '$42.57/yd'],
 ].filter(([img]) => existsSync(new URL(`./tour/shop/${img}.jpg`, import.meta.url)));
 async function shopMoment() {
-  const dur = 7.5;
+  const dur = 8;
   const [w, tex, band, gap] = WIDE ? [230, 320, 92, 28] : [140, 196, 70, 14];
   const rowW = SHOP.length * w + (SHOP.length - 1) * gap;
   const cardsHtml = SHOP.map(([img, name, cloth, price], i) => {
@@ -314,8 +315,8 @@ async function shopMoment() {
   await page.screenshot({ path: file, omitBackground: true, clip: { x: 0, y: 0, width: rowW + 40, height: h } });
   await page.setViewportSize({ width: VW, height: VH });
   const k = W / VW;
-  // From the first card a little in from the left to the last card a little in from the right.
-  const x0 = Math.round(VW * 0.12 * k - 20 * k);
+  // From the first card (the cloth on the dress) whole on screen to the last card a little in from the right.
+  const x0 = Math.round((WIDE ? VW * 0.12 : VW * 0.3) * k - 20 * k);
   const x1 = Math.round((VW * 0.88 - rowW - 20) * k);
   const y = Math.round((WIDE ? 230 : 300) * k);
   return piece({ still: await words('', { solid: true }), dur, fadeIn: 0.5, fadeOut: 0.5, strip: { file, x0, x1, y, on: 0.3 }, notes: [[await note('Shop the fabric.', 'low'), 0.2, dur]] });
