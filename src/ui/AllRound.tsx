@@ -205,7 +205,11 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the job's contents
   }, [jobKey, toFormOf]);
-  const drapedNow = job ? (draped?.key === jobKey ? draped.view : 'pending') : undefined;
+  const sewnNow = job ? (draped?.key === jobKey ? draped.view : 'pending') : undefined;
+  // A drawing that failed its quality check (see engine/drape/quality.ts) isn't shown turning in cloth: the shape
+  // preview stands in, with a line saying the cloth view for this design is still in testing (Cat, 2026-11-02).
+  const inTesting = !!sewnNow && sewnNow !== 'pending' && sewnNow.d.quality?.ok === false;
+  const drapedNow = inTesting ? undefined : sewnNow;
 
   const turn = useRef({ phi: 0.6, target: null as number | null, dragging: false, idle: 0, probe: false, stroke: null as [number, number][] | null, picks: [] as RoundPick[] });
   const pulse = useRef(-1e9);
@@ -1114,14 +1118,14 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
 
   return (
     <div className="all-round">
-      <canvas ref={ref} className={`all-round-canvas${round.legs ? ' all-round-tall' : ''}${drawing ? ' drawing' : ''}`} data-sewn={drapedNow === 'pending' ? 'pending' : drapedNow ? 'ready' : undefined} role="img" aria-label={label} />
+      <canvas ref={ref} className={`all-round-canvas${round.legs ? ' all-round-tall' : ''}${drawing ? ' drawing' : ''}`} data-sewn={drapedNow === 'pending' ? 'pending' : inTesting ? 'testing' : drapedNow ? 'ready' : undefined} role="img" aria-label={label} />
       {!drawing && (
         <div className="all-round-quiet">
           <p className="all-round-checked">
             <span className="all-round-mark" aria-hidden="true" />
             {checked(rows)}
           </p>
-          <p className="all-round-note">A shape preview, not a cloth simulation.</p>
+          <p className="all-round-note">{inTesting ? 'The cloth view of this design is still in testing, so this is its shape preview.' : 'A shape preview, not a cloth simulation.'}</p>
         </div>
       )}
     </div>

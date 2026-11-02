@@ -11,6 +11,7 @@ import type { Fibre } from '../fabrics';
 import type { RoundGarment } from '../allRound';
 import { placeOnForm, type RoundMeasurements } from '../../ui/allRoundShape';
 import { widensForm } from './widen';
+import { Quality, drapeQuality } from './quality';
 import { DrapeOptions, Draped, drapeBodice, drapeDress, drapeOuter, drapeSkirt, drapeTrousers } from './garment';
 import { makeSpace } from './space';
 
@@ -32,6 +33,8 @@ export interface DrapedLite {
   /** Shadow inside pressed pleats, per point (0 to 1). */
   shade?: Float32Array;
   contrastCollar?: string;
+  /** How good the drawing measured (see quality.ts): All round shows it turning only when it passed. */
+  quality?: Quality;
 }
 
 /** How each cloth hangs: its thickness off the body and how it resists bending, by fibre. */
@@ -57,11 +60,6 @@ export function rehydrate<T>(v: T): T {
   };
   walk(v);
   return v;
-}
-
-/** Whether the garment has sleeves (a jacket or coat always does): it then hangs from the arm, on the form as it is. */
-export function sleeved(job: Pick<DrapeJob, 'kind'> & { sleeve?: unknown }): boolean {
-  return job.kind === 'outer' || !!job.sleeve;
 }
 
 export function runDrape(job: DrapeJob): DrapedLite {
@@ -90,6 +88,9 @@ export function runDrape(job: DrapeJob): DrapedLite {
       d = drapeSkirt(sp, job.draft, t);
   }
   const cc = job.kind === 'outer' ? (job.draft as { contrastCollar?: string }).contrastCollar : undefined;
+  // (A skirt's hem, or a dress's, is cut level unless it is a high-low, a diagonal or a shaped hem.)
+  const sk = job.kind === 'skirt' ? job.draft : job.kind === 'dress' ? job.draft.skirt : undefined;
+  const quality = drapeQuality(d, sp, { seams: d.seams, levelHem: !!sk && !sk.asym && !sk.hem, legs: job.kind === 'trousers' });
   return {
     panels: d.panels.map((p) => ({
       role: p.role,
@@ -106,5 +107,6 @@ export function runDrape(job: DrapeJob): DrapedLite {
     buttons: d.buttons.map((b) => ({ at: [b.at[0], b.at[1], b.at[2]], r: b.r })),
     ...(d.shade ? { shade: d.shade } : {}),
     contrastCollar: cc,
+    quality,
   };
 }
