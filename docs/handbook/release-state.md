@@ -18,7 +18,9 @@ get in with their tester link.
 
 ## Queued for "ship" (as of Nov 2, 03:30 UTC)
 
-Nothing green is queued. Open: #260 (Collection recolour to the Paris SS27 palette; colours still
+Queued for the Nov 9 to 13 fix week: #265 (full-round readiness check fixes, Nov 2: feet-and-inches height boxes no
+longer hide under the unit switch, measurement warnings name the measurement, near-empty pattern pages dropped;
+findings doc linked from the business plan). Open: #260 (Collection recolour to the Paris SS27 palette; colours still
 being settled, held back from Release 52 on purpose), drafts #249 (SS27 cuts, In testing) and #259
 (bias slip mini lengths, stacked on #249). This handbook update rides the next release.
 
