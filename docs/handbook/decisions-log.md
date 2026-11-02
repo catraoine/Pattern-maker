@@ -5,7 +5,7 @@ something that changes how a department works. Design picks for single screens s
 
 ## November 2026
 
-- **Nov 2** Fabric palette card (D1 One Palette Card): the picked fabric stands beside the form on Front as one tall card in the A1 style, on every garment; a shop fabric also shows its shop and listed price. On a phone the tag of picks moves under it (up to three lines, as many as fit) and the card stays, smaller, while the swatches scroll. PR #258.
+- **Nov 2** Fabric palette card (D1 One Palette Card): the picked fabric stands beside the form on Front as one tall card in the A1 style, on every garment; a shop fabric also shows its shop and listed price. On a phone the tag of picks moves under it (up to three lines, as many as fit) and the card stays, smaller, while the swatches scroll. PR #262.
 - **Nov 1** T-shirt Fabric step gets knit swatches only (Jersey, Slub, Modal, Rib, Interlock, Waffle, Terry, Ponte); the drawing wears the knit; a warning when the knit usually stretches less than the stretch picked. PR #255.
 
 ## October 2026
