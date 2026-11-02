@@ -151,6 +151,7 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
 
   return (
     <StyleLayout
+      fabric={fabric}
       onEditMeasurements={onEditMeasurements}
       onPrint={onNext}
       flat={flat}

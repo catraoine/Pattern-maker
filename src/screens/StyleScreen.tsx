@@ -234,6 +234,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
 
   return (
     <StyleLayout
+      fabric={fabric}
       onEditMeasurements={onEditMeasurements}
       onPrint={onNext}
       flat={flat}
