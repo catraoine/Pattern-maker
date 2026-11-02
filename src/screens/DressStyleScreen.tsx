@@ -521,6 +521,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
 
   return (
     <StyleLayout
+      fabric={fabric}
       onEditMeasurements={onEditMeasurements}
       onPrint={onNext}
       flat={flat}

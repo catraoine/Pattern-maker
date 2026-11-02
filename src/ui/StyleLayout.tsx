@@ -12,6 +12,8 @@ import { ModeLink } from './ModeLink';
 import { PhotoEntry } from './PhotoEntry';
 import { Title } from './Title';
 import { UndoTools, type Undo } from './useUndo';
+import type { MyFabric } from '../engine/fabrics';
+import { PaletteCard, showsPalette } from './PaletteCard';
 
 // Every style screen, laid out as Cat's B Pinned Sketch with a Looks tab (2026-10-18): the sketch stays
 // pinned at the top, a row of tabs sits under it, and only one tab's choices show at a time, so choosing
@@ -231,6 +233,8 @@ const TAG_NAMES: Record<string, string> = { 'Waist seam': 'Waist', Neckline: 'Ne
 const TAG_SKIP = ['Cut', 'Darts', 'Structure', 'Bust dart from', 'Princess seams', 'Shaping'];
 /** How many lines the tag beside the drawing holds. */
 const TAG_LINES = 6;
+/** Under the palette card the tag keeps room for three lines. */
+const CARD_TAG_LINES = 3;
 interface TagLine {
   label: string;
   pick: string;
@@ -322,11 +326,13 @@ interface Props {
   onPrint?: () => void;
   /** The finished measurements and ease, open above Print rather than folded (F1, 2026-10-28). */
   finished?: ReactNode;
+  /** The picked fabric: it stands beside the form as one tall palette card (Cat's D1, 2026-11-02). */
+  fabric?: MyFabric;
 }
 
 const NO_SECTIONS: Record<string, string> = {};
 
-export function StyleLayout({ children, label, name, ready, onChooseGarment, onPhoto, photo, looks, mode, onMode, onEditMeasurements, sections = NO_SECTIONS, undo, flat, onPrint, finished }: Props) {
+export function StyleLayout({ children, label, name, ready, onChooseGarment, onPhoto, photo, looks, mode, onMode, onEditMeasurements, sections = NO_SECTIONS, undo, flat, onPrint, finished, fabric }: Props) {
   const [options, preview, summary] = Children.toArray(children);
   const [page, setPage] = usePageHistory<'edit' | 'review'>(() => 'edit', (s) => s === 'edit' || s === 'review');
   // Read here and cleared once mounted: React may run this twice, and the second run must see it too.
@@ -471,6 +477,19 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
     if (to) choose(to);
   };
   const at = steps.indexOf(active ?? '');
+  // The picked fabric's palette card, beside the garment on the form once a fabric is picked (D1).
+  const palette = showsPalette(fabric);
+  // Under the card, as many of the three main picks as fit beside the drawing (the skirt's drawing is shorter):
+  // lines drop off the end rather than run into the views below.
+  const col = useRef<HTMLDivElement>(null);
+  const [cardLines, setCardLines] = useState(CARD_TAG_LINES);
+  useEffect(() => setCardLines(CARD_TAG_LINES), [label, active, palette]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- measures after every render; the check stops a loop
+  useLayoutEffect(() => {
+    const el = col.current;
+    if (!el || !host || cardLines === 0) return;
+    if (el.offsetHeight > host.clientHeight - 8) setCardLines(cardLines - 1);
+  });
 
   // The drawing's corner for its tools, made inside the drawing's area.
   const [corner, setCorner] = useState<HTMLElement | null>(null);
@@ -600,15 +619,32 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
             createPortal(
               <>
                 <div className="preview-corner" ref={setCorner} />
-                {tag.length > 0 && (
-                  <dl className="spec-tag" aria-label="Your choices so far">
-                    {tag.map((l) => (
-                      <div key={l.label} className={l.mine ? 'mine' : undefined}>
-                        <dt>{l.label}</dt>
-                        <dd>{l.pick}</dd>
-                      </div>
-                    ))}
-                  </dl>
+                {palette ? (
+                  // The card on top, the three main picks under it (on a phone; a computer shows the card alone).
+                  <div className="palette-col" ref={col}>
+                    <PaletteCard fabric={fabric} />
+                    {tag.length > 0 && cardLines > 0 && (
+                      <dl className="spec-tag under-card" aria-label="Your choices so far">
+                        {tag.slice(0, cardLines).map((l) => (
+                          <div key={l.label} className={l.mine ? 'mine' : undefined}>
+                            <dt>{l.label}</dt>
+                            <dd>{l.pick}</dd>
+                          </div>
+                        ))}
+                      </dl>
+                    )}
+                  </div>
+                ) : (
+                  tag.length > 0 && (
+                    <dl className="spec-tag" aria-label="Your choices so far">
+                      {tag.map((l) => (
+                        <div key={l.label} className={l.mine ? 'mine' : undefined}>
+                          <dt>{l.label}</dt>
+                          <dd>{l.pick}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  )
                 )}
               </>,
               host,

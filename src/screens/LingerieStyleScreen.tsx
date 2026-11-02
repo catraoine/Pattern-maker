@@ -87,6 +87,7 @@ export function LingerieStyleScreen({ onPhoto, photo, choices, onChoices: setCho
 
   return (
     <StyleLayout
+      fabric={fabric}
       label={`your ${choices.piece}`}
       name={title}
       metres={draft ? lingerieFabricMetres(draft) : undefined}
