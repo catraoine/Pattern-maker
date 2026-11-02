@@ -6,7 +6,7 @@ _Update this page whenever a release ships or a PR is queued._
 
 **Release 54** (Nov 2, 2026): Style screen sweep (#266): views are Front, Flat and All round (no Back
 view), quiet Undo, fabric shop as one list with a buy strip, "Your picks" drop-down, worded Enlarge,
-Length/Width hem handles, named step backs, and the header back arrow gone from Measure, Style and
+Length/Width hem handles, named step backs, one font width everywhere (no narrowed headings; welcome headline rises in), and the header back arrow gone from Measure, Style and
 Print (chapter names move between chapters). All round scored before it's shown, nightly sweep and
 SS27 drape fixes (#263). Readiness check fixes: inches height boxes, named warnings, no near-empty
 PDF pages (#265). How it works films: palette card on the aqua snakeskin, Shop the fabric strip (#264).
