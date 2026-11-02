@@ -4,25 +4,22 @@ _Update this page whenever a release ships or a PR is queued._
 
 ## Live
 
-**Release 52** (Nov 2, 2026, #255 + #258): the T-shirt's Fabric step gets eight knit swatches
-(Jersey, Slub, Modal, Rib, Interlock, Waffle, French terry, Ponte); picking one sets fibre, weight and
-drape, and a warning shows when the knit stretches less than the stretch picked. The e2e CI job is
-pinned to ubuntu-24.04 (Playwright can't install Chromium on 26.04). Handbook: in-app Claude guide parked.
-Earlier: #257 (How it works films re-cut: sewn All round, shorter Style page, champagne words), #256
-(All round sewn from the pattern pieces), Release 49 (#254, Style journey J1 to J8), Release 48
-(#252, Style back arrow), Release 47 (#251, points follow the finger).
+**Release 54** (Nov 2, 2026): Style screen sweep (#266): views are Front, Flat and All round (no Back
+view), quiet Undo, fabric shop as one list with a buy strip, "Your picks" drop-down, worded Enlarge,
+Length/Width hem handles, named step backs, and the header back arrow gone from Measure, Style and
+Print (chapter names move between chapters). All round scored before it's shown, nightly sweep and
+SS27 drape fixes (#263). Readiness check fixes: inches height boxes, named warnings, no near-empty
+PDF pages (#265). How it works films: palette card on the aqua snakeskin, Shop the fabric strip (#264).
+Earlier: Release 53 (#262 palette card), Release 52 (#255 knit swatches).
 
 Live site: https://maisontrace.co (the cloud proxy blocks it; check
 https://whimsical-mooncake-2cf9a9.netlify.app, the same site). Strangers see the waitlist; testers
 get in with their tester link.
 
-## Queued for "ship" (as of Nov 2, 03:30 UTC)
+## Queued for "ship" (as of Nov 2, 14:15 UTC)
 
-Queued for the Nov 9 to 13 fix week: #265 (full-round readiness check fixes, Nov 2: feet-and-inches height boxes no
-longer hide under the unit switch, measurement warnings name the measurement, near-empty pattern pages dropped;
-findings doc linked from the business plan). Open: #260 (Collection recolour to the Paris SS27 palette; colours still
-being settled, held back from Release 52 on purpose), drafts #249 (SS27 cuts, In testing) and #259
-(bias slip mini lengths, stacked on #249). This handbook update rides the next release.
+Nothing green is queued. Open drafts: #249 (SS27 cuts, In testing) and #259 (SS27 design options,
+stacked on #249), both waiting on Cat's "apply". #260 recolour status: check before the next release.
 
 ## Waiting on Cat's "apply" (not built)
 
