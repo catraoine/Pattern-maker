@@ -4,6 +4,7 @@
 // line is read). What a line will become shows while it is drawn; each line can be undone and redone.
 // One way out each way (Cat's pick D1 Steady Top, 2026-10-18): Done keeps the lines, and the header's ←
 // (or the phone's back) leaves without them, asking first once any line is drawn.
+import type { ComponentProps } from 'react';
 import { PointerEvent, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { P } from '../engine/geometry';
 import type { BodiceDraft } from '../engine/bodice';
@@ -118,7 +119,7 @@ interface Props<C> {
   /** The pattern's finished widths at the bust, waist and hip, so the cloth is never drawn narrower than it is sewn. */
   sewn?: SewnLevel[];
   /** The garment as All round shows it, to draw on while it turns (Cat's A Draw on it, 2026-10-28). */
-  allRound?: { round: RoundGarment; m: RoundMeasurements; fabric?: MyFabric; striped?: boolean | 'checks' | 'stripes' };
+  allRound?: { round: RoundGarment; m: RoundMeasurements; fabric?: MyFabric; striped?: boolean | 'checks' | 'stripes'; drape?: ComponentProps<typeof AllRound>['drape'] };
   onDone: () => void;
   onCancel: () => void;
 }
@@ -486,6 +487,7 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
           {roundOn && allRound ? (
             <AllRound
               round={allRound.round}
+              drape={allRound.drape}
               m={allRound.m}
               fabric={allRound.fabric}
               striped={allRound.striped}

@@ -38,7 +38,7 @@ jobs:
 
   e2e:
     name: End-to-end (Playwright, phone and desktop)
-    runs-on: ubuntu-24.04 # Playwright 1.56 has no browsers for ubuntu-latest (26.04) yet
+    runs-on: ubuntu-24.04
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4

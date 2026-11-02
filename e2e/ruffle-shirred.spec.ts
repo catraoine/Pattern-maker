@@ -22,7 +22,6 @@ test('ruffle neckline on a bodice and a dress, and a shirred cami top', async ({
   await chooseChip(page, 'Structure', 'Shirred back');
   await expect(main.getByText(/cami bodice with spaghetti straps and a shirred back/i).first()).toBeAttached();
   await expect((await openGroup(page, 'Structure')).getByText(/pulls on with no zip/)).toBeVisible();
-  await main.getByRole('button', { name: 'Back', exact: true }).first().click();
   await page.screenshot({ path: info.outputPath('shirred.png'), fullPage: true });
 
   // A dress keeps its boning or soft back: no shirred back there.

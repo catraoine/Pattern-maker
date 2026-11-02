@@ -224,6 +224,7 @@ export function withShopFabric(now: MyFabric, f: ShopFabric): MyFabric {
     name: f.name,
     fibre: f.fibre,
     special: f.special,
+    knit: undefined,
     weight: f.weight,
     drape: f.drape,
     colour: f.colours[0]?.name,

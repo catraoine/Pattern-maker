@@ -25,6 +25,7 @@ import { FinishChoices } from '../ui/FinishChoices';
 import type { Finish } from '../savedWork';
 import { ERAS } from '../engine/eras';
 import { skirtFlat } from '../engine/flat';
+import { TechFlatView } from '../ui/TechFlatView';
 import { shapeLine } from '../photo/shape';
 import { MyFabric, fabricEase, skirtFabrics } from '../engine/fabrics';
 import { FabricCard, FabricSummary } from '../ui/FabricCard';
@@ -78,7 +79,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
   // The skirt's technical flat, for the Review page's envelope (R1, 2026-10-24).
   const flat = useMemo(() => (draft ? skirtFlat(draft, skirtBelt(choices.belt, draft)) : undefined), [draft, choices.belt]);
   const can = (t: ProTool) => shows(mode, t);
-  const [view, setView] = useState<'sketch' | 'round' | 'pattern'>('sketch');
+  const [view, setView] = useState<'sketch' | 'flat' | 'round' | 'pattern'>('sketch');
   const [fit, setFit] = useState(false);
   const canFit = !!easeMap?.length && can('easeMap');
   const [side, setSide] = useState<Side>('front');
@@ -94,6 +95,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
 
   const sheet = useMemo(() => (draft ? layout(draft.pieces, '', []) : undefined), [draft]);
   const round = useMemo(() => (draft ? roundSkirt(draft) : undefined), [draft]);
+  const drapeJob = useMemo(() => (draft ? ({ kind: 'skirt', draft } as const) : undefined), [draft]);
   const slipped = choices.silhouette === 'slip';
   const extra = fabricEase(fabric, 'skirt');
   const title = describe(choices);
@@ -180,7 +182,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
   if (onForm && draft) {
     return (
       <DrawOnForm<Choices>
-        allRound={round ? { round, m: values, fabric, striped: matchKind(fabric) } : undefined}
+        allRound={round ? { round, drape: drapeJob, m: values, fabric, striped: matchKind(fabric) } : undefined}
         body={skirtForm(m)}
         m={m}
         legs
@@ -230,8 +232,24 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
     );
   }
 
+  // The Front drawing: shown on Front, and standing in for the sewn All round when that fails its score.
+  const sketch = draft && sheet ? (
+    <GarmentFabric fabric={fabric}>
+      <ShapeSketch
+        draft={draft}
+        m={m}
+        choices={choices}
+        side={side}
+        drawing={drawing}
+        label={`${title}, ${side} view. Drag the hem to change the length, or the side to change the flare.`}
+        onLive={onChoices}
+        onDone={(before, after) => change(after, before)}
+      />
+    </GarmentFabric>
+  ) : undefined;
   return (
     <StyleLayout
+      fabric={fabric}
       onEditMeasurements={onEditMeasurements}
       onPrint={onNext}
       flat={flat}
@@ -577,11 +595,12 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
         />
         <div className="row between wrap">
           {view !== 'pattern' && draft ? (
-            <GarmentViews<Side | 'round'>
-              views={[['front', 'Front'], ['back', 'Back'], ...(round ? ([['round', 'All round']] as [Side | 'round', string][]) : [])]}
-              view={view === 'round' ? 'round' : side}
+            // The same views as every garment: Front, Flat, All round. Back dropped (Cat, 2026-11-02): All round shows the back.
+            <GarmentViews<Side | 'flat' | 'round'>
+              views={[['front', 'Front'], ...(flat ? ([['flat', 'Flat']] as [Side | 'flat', string][]) : []), ...(round ? ([['round', 'All round']] as [Side | 'round', string][]) : [])]}
+              view={view === 'round' || view === 'flat' ? view : side}
               onView={(v) => {
-                if (v === 'round') setView('round');
+                if (v === 'round' || v === 'flat') setView(v);
                 else {
                   setSide(v);
                   setView('sketch');
@@ -597,9 +616,17 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
           <InCorner>
             {view === 'sketch' && draft &&
               (drawing ? (
-                <button type="button" className="ghost on" aria-pressed="true" onClick={() => setDrawing(false)}>
-                  Done
-                </button>
+                <>
+                  <button type="button" className="ghost on" aria-pressed="true" onClick={() => setDrawing(false)}>
+                    Done
+                  </button>
+                  {/* Clear takes the drawn line away, back to the plain one (Cat, 2026-10-31). */}
+                  {isShaped(choices.hem) && (
+                    <button type="button" className="ghost draw-clear" onClick={() => change({ ...choices, hem: undefined })}>
+                      Clear
+                    </button>
+                  )}
+                </>
               ) : (
                 <DrawMenu>
                   <button type="button" onClick={() => setOnForm(choices)}>
@@ -622,31 +649,25 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
         </div>
         <div className="preview">
           {error && <p className="msg error">{error}</p>}
-          {draft && sheet && view === 'sketch' && (
+          {view === 'sketch' && sketch}
+          {flat && view === 'flat' && (
             <GarmentFabric fabric={fabric}>
-            <ShapeSketch
-              draft={draft}
-              m={m}
-              choices={choices}
-              side={side}
-              drawing={drawing}
-              label={`${title}, ${side} view. Drag the hem to change the length, or the side to change the flare.`}
-              onLive={onChoices}
-              onDone={(before, after) => change(after, before)}
-            />
+              <TechFlatView flat={flat} title={title} />
             </GarmentFabric>
           )}
           {draft && round && view === 'round' && (
             <AllRound
               round={round}
+              drape={drapeJob}
               m={values}
               striped={matchKind(fabric)}
               fabric={fabric}
+              fallback={sketch}
               label={`The ${title} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`}
             />
           )}
           {draft && sheet && view === 'pattern' && !(fit && canFit) && (
-            <PatternPane><PatternPreview paper sheet={sheet} play={play} names={draft.pieces.map((pc) => pc.name)} label={`Front and back pattern pieces for a ${title}`} /></PatternPane>
+            <PatternPane onPlay={() => setPlay(play + 1)}><PatternPreview paper sheet={sheet} play={play} names={draft.pieces.map((pc) => pc.name)} label={`Front and back pattern pieces for a ${title}`} /></PatternPane>
           )}
           {view === 'pattern' && fit && canFit && <EaseMapView views={easeMap!} label={`The fit of the ${title}, on its pattern pieces`} />}
           <UndoToast undo={undoer} />
@@ -657,15 +678,6 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
               ? `Draw across the ${side} of the skirt where you want the hem. Switch to the back to make a high-low hem.`
               : 'Drag the hem up or down for length, or the side out and in for flare.'}
           </p>
-        )}
-        {view === 'pattern' && draft && (
-          <div className="row between wrap">
-            {!(fit && canFit) && (
-              <button type="button" className="ghost" onClick={() => setPlay(play + 1)}>
-                Watch it draft
-              </button>
-            )}
-          </div>
         )}
       </section>
 

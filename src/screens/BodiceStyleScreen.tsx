@@ -85,7 +85,14 @@ interface Props {
 function friendly(w: string) {
   if (w.startsWith('shoulder width')) return 'Your shoulder width and shoulder length don’t quite agree. The pattern still drafts, but re-measuring both will make the shoulders fit better.';
   if (w.startsWith('front length')) return 'Your front length came out shorter than your back length, which usually means a tape slip. It’s drafted with a little extra; please re-measure it.';
-  return 'Something in your measurements looks unusual. Please double-check them.';
+  // The closer-fit measurements, named, so the person knows which page to go back to (the readiness check, 2026-11-02).
+  if (w.startsWith('front shoulder slope')) return 'Your front shoulder slope doesn’t agree with your front length and shoulder width, so the shoulder is drafted at a standard slope. Please re-measure the front shoulder slope.';
+  if (w.startsWith('back shoulder slope')) return 'Your back shoulder slope doesn’t agree with your back length and shoulder width, so the shoulder is drafted at a standard slope. Please re-measure the back shoulder slope.';
+  if (w.startsWith('armhole')) return 'Your armhole measurement is large for the rest of you, so the armhole is drafted as close to it as the block allows. Please re-measure the armhole.';
+  if (w.startsWith('sleeve widened')) return 'Your armhole is large next to your upper arm, so the sleeve is cut a little wider to fit it. Please check the armhole and upper arm.';
+  if (w.startsWith('sleeve narrowed')) return 'Your upper arm is large next to your armhole, so the sleeve is cut a little closer. Please check the armhole and upper arm.';
+  if (w.startsWith('side seam too short')) return 'Your bust sits low for your side length, so the bust dart runs close to the waist. Please check your bust depth and front length.';
+  return `One of your measurements looks unusual (${w}). Please double-check it.`;
 }
 
 const NECK_NAMES: Record<BodiceChoices['neckline'], string> = {
@@ -155,6 +162,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
   }, [draft, arms, values]);
   const sleeves = useMemo(() => (draft && onForm ? sleeveRange(draft, values as BodiceMeasurements & SleeveMeasurements, choices.fit) : undefined), [draft, onForm, values, choices.fit]);
   const round = useMemo(() => (draft ? roundBodice(draft, values, sleeve) : undefined), [draft, values, sleeve]);
+  const drapeJob = useMemo(() => (draft ? ({ kind: 'bodice', draft, sleeve } as const) : undefined), [draft, sleeve]);
   const detail = { bustDart: choices.bustDart ?? 'side', princess: choices.princess ?? 'none', closure: choices.closure ?? 'back_zip', collar: choices.collar ?? 'none', back: valid.back ?? 'plain', structure: valid.structure ?? 'none', peplum: choices.peplum ?? 'none', peplumHem: choices.peplumHem ?? 'level', peplumSize: choices.peplumSize ?? 'standard' };
   // A draped neckline is its own shaping: the dart, seam, opening, collar and boning choices step aside.
   const draped = isDraped(choices);
@@ -205,10 +213,10 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
     change(validDetails({ ...next, sleeveShape: sleeveOf(next).shape }));
   };
 
-  // The garment's own views: the sketch's two sides, the flat drawing, all round on the form.
+  // The garment's own views: the front sketch, the flat drawing, all round on the form. No Back view (Cat,
+  // 2026-11-02): every back choice is picked in the steps, and All round shows the back as it turns.
   const garmentViews: [Side | 'flat' | 'round', string][] = [
     ['front', 'Front'],
-    ['back', 'Back'],
     ['flat', 'Flat'],
     ['round', 'All round'],
   ];
@@ -216,7 +224,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
   if (onForm && draft) {
     return (
       <DrawOnForm<BodiceChoices>
-        allRound={round ? { round, m: values, fabric, striped: matchKind(fabric) } : undefined}
+        allRound={round ? { round, drape: drapeJob, m: values, fabric, striped: matchKind(fabric) } : undefined}
         body={formWidth(draft, m)}
         m={m}
         legs={false}
@@ -272,8 +280,26 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
     );
   }
 
+  // The Front drawing: shown on Front, and standing in for the sewn All round when that fails its score.
+  const sketch = draft ? (
+    <GarmentFabric fabric={fabric}>
+      <BodiceShape
+        draft={draft}
+        m={m}
+        choices={choices}
+        side={side}
+        drawing={drawing}
+        sleeve={sleeve}
+        arms={formArm}
+        label={`${title}, ${side} view. Drag the hem to change the length, or the side to change the fit.`}
+        onLive={onChoices}
+        onDone={(before, after) => change(after, before)}
+      />
+    </GarmentFabric>
+  ) : undefined;
   return (
     <StyleLayout
+      fabric={fabric}
       onEditMeasurements={onEditMeasurements}
       onPrint={onNext}
       flat={flat}
@@ -452,12 +478,20 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
           <InCorner>
             {view === 'sketch' && draft &&
               (drawing ? (
-                <button type="button" className="ghost on" aria-pressed="true" onClick={() => setDrawing(false)}>
-                  Done
-                </button>
+                <>
+                  <button type="button" className="ghost on" aria-pressed="true" onClick={() => setDrawing(false)}>
+                    Done
+                  </button>
+                  {/* Clear takes the drawn line away, back to the plain one (Cat, 2026-10-31). */}
+                  {choices.neck && (
+                    <button type="button" className="ghost draw-clear" onClick={() => change({ ...choices, neck: undefined })}>
+                      Clear
+                    </button>
+                  )}
+                </>
               ) : top ? (
-                <button type="button" className="link small" onClick={() => setOnForm(choices)}>
-                  Draw on your form
+                <button type="button" className="link small" aria-label="Draw on your form" onClick={() => setOnForm(choices)}>
+                  <span className="tool-word">Draw</span>
                 </button>
               ) : (
                 <DrawMenu>
@@ -473,30 +507,15 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
         </div>
         <div className="preview">
           {error && <p className="msg error">{error}</p>}
-          {draft && view === 'sketch' && (
-            <GarmentFabric fabric={fabric}>
-            <BodiceShape
-              draft={draft}
-              m={m}
-              choices={choices}
-              side={side}
-              drawing={drawing}
-              sleeve={sleeve}
-              arms={formArm}
-              label={`${title}, ${side} view. Drag the hem to change the length, or the side to change the fit.`}
-              onLive={onChoices}
-              onDone={(before, after) => change(after, before)}
-            />
-            </GarmentFabric>
-          )}
-          {round && view === 'round' && <AllRound round={round} m={values} fabric={fabric} striped={matchKind(fabric)} label={`The ${title} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`} />}
+          {view === 'sketch' && sketch}
+          {round && view === 'round' && <AllRound round={round} drape={drapeJob} m={values} fabric={fabric} striped={matchKind(fabric)} fallback={sketch} label={`The ${title} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`} />}
           {flat && view === 'flat' && (
             <GarmentFabric fabric={fabric}>
               <TechFlatView flat={flat} title={title} />
             </GarmentFabric>
           )}
           {draft && sheet && view === 'pattern' && !(fit && canFit) && (
-            <PatternPane><PatternPreview paper sheet={sheet} play={play} names={pieces.map((pc) => pc.name)} label={`Front and back pattern pieces for a ${title}`} /></PatternPane>
+            <PatternPane onPlay={() => setPlay(play + 1)}><PatternPreview paper sheet={sheet} play={play} names={pieces.map((pc) => pc.name)} label={`Front and back pattern pieces for a ${title}`} /></PatternPane>
           )}
           {view === 'pattern' && fit && canFit && <EaseMapView views={easeMap!} label={`The fit of the ${title}, on its pattern pieces`} />}
           <UndoToast undo={undoer} />
@@ -514,15 +533,6 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
           </p>
         )}
         {view === 'flat' && <p className="muted small">The technical flat, front and back, drawn to scale.</p>}
-        {view === 'pattern' && draft && (
-          <div className="row between wrap">
-            {!(fit && canFit) && (
-              <button type="button" className="ghost" onClick={() => setPlay(play + 1)}>
-                Watch it draft
-              </button>
-            )}
-          </div>
-        )}
         {draft?.warnings.map((w) => (
           <p key={w} className="msg small">
             {friendly(w)}

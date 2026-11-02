@@ -23,6 +23,8 @@ test('a hem drawn on the turning dress sets its length', async ({ page, consoleE
   await main.getByRole('button', { name: 'all round', exact: true }).click();
   const cv = main.locator('canvas.all-round-canvas');
   await expect(cv).toBeVisible();
+  // The garment is sewn from its pattern in the background: draw on it once it is drawn, not on the bare form.
+  await expect(cv).not.toHaveAttribute('data-sewn', 'pending', { timeout: 60_000 });
   await page.waitForTimeout(1200);
   if (OUT) await page.screenshot({ path: `${OUT}/${info.project.name}/1-open.png` });
 

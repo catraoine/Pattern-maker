@@ -12,6 +12,8 @@ import { ModeLink } from './ModeLink';
 import { PhotoEntry } from './PhotoEntry';
 import { Title } from './Title';
 import { UndoTools, type Undo } from './useUndo';
+import type { MyFabric } from '../engine/fabrics';
+import { PaletteCard, showsPalette } from './PaletteCard';
 
 // Every style screen, laid out as Cat's B Pinned Sketch with a Looks tab (2026-10-18): the sketch stays
 // pinned at the top, a row of tabs sits under it, and only one tab's choices show at a time, so choosing
@@ -41,7 +43,6 @@ export const openTabNext = (tab: string) => {
 /** The step last open on a garment's style screen, so coming back to it (from Review, Print or anywhere) opens there. */
 let leftOn: { name: string; tab: string } | undefined;
 
-const rank = (t: string) => (t === LOOKS ? 0 : t === PRO ? 3 : t === FABRIC ? 2 : 1);
 
 // The choices sit on a few tabs (Cat, 2026-10-18), so the whole row fits on a phone and the tailor's words
 // (darts, structure) sit beside the plain ones they belong to. A group not listed keeps a tab of its own.
@@ -49,6 +50,10 @@ const SHAPE = 'Shape';
 const NECK = 'Neck & sleeves';
 const LENGTH = 'Length & hem';
 const DETAILS = 'Details';
+// One order of steps for every garment (Cat, 2026-10-31): Shape, Neck & sleeves, Length & hem, Details, then any
+// step of a garment's own, Fabric, and the pro tools last. A garment skips the steps it has no questions for.
+const ORDER = [LOOKS, SHAPE, NECK, LENGTH, DETAILS];
+const rank = (t: string) => (t === PRO ? 7 : t === FABRIC ? 6 : ORDER.includes(t) ? ORDER.indexOf(t) : 5);
 const SECTIONS: Record<string, string> = {
   Fit: SHAPE,
   Silhouette: SHAPE,
@@ -59,7 +64,8 @@ const SECTIONS: Record<string, string> = {
   Structure: SHAPE,
   'Waist seam': SHAPE,
   Leg: SHAPE,
-  'Your knit’s stretch': SHAPE,
+  // The knit's stretch is about the fabric, so it opens the Fabric step, not Shape (Cat, 2026-10-31).
+  'Your knit’s stretch': FABRIC,
   Neckline: NECK,
   Neck: NECK,
   Collar: NECK,
@@ -73,6 +79,8 @@ const SECTIONS: Record<string, string> = {
   Hem: LENGTH,
   Slit: LENGTH,
   Peplum: LENGTH,
+  // The jacket's rib bands sit with its length and hem, not on a step of their own (Cat, 2026-10-31).
+  'Hem and cuffs': LENGTH,
   'Below the hip': LENGTH,
   Waist: DETAILS,
   Pockets: DETAILS,
@@ -191,6 +199,22 @@ export function InCorner({ children }: { children: ReactNode }) {
   return corner ? createPortal(children, corner) : <>{children}</>;
 }
 
+/** Undo and Redo as two named words across from the step's number, on a phone. */
+function StepUndo({ undo }: { undo: Undo }) {
+  return (
+    <div className="step-undo">
+      <button type="button" onClick={undo.undo} disabled={!undo.canUndo} aria-label="Undo the last change" title="Undo">
+        <span aria-hidden="true">↶</span>
+        <small>Undo</small>
+      </button>
+      <button type="button" onClick={undo.redo} disabled={!undo.canRedo} aria-label="Redo the change you undid" title="Redo">
+        <span aria-hidden="true">↷</span>
+        <small>Redo</small>
+      </button>
+    </div>
+  );
+}
+
 /** The tag's names for the questions, where the question's own is longer than the tag has room for. */
 /**
  * The picked choice's name in a question: a picked chip, or any pressed button when there are none.
@@ -207,7 +231,7 @@ function pickIn(el: HTMLElement): string {
 const TAG_NAMES: Record<string, string> = { 'Waist seam': 'Waist', Neckline: 'Neck', 'Sleeve shape': 'Sleeve', 'Your knit’s stretch': 'Stretch' };
 /** Tailor's words the tag leaves to the step itself, so its lines name what changes the look. */
 const TAG_SKIP = ['Cut', 'Darts', 'Structure', 'Bust dart from', 'Princess seams', 'Shaping'];
-/** How many lines the tag beside the drawing holds. */
+/** How many lines Your picks holds. */
 const TAG_LINES = 6;
 interface TagLine {
   label: string;
@@ -242,7 +266,35 @@ export function useTablet() {
   return useMedia(TABLET);
 }
 
-/** Whether the screen is a phone's width, where the drawing stands beside its tag of picks. */
+/** Your picks so far, folded shut under one line at the top right (Cat's S, 2026-11-02): the drawing keeps the whole
+ *  width, and the picks stay in the same place however far the page scrolls. A tap opens them over the drawing; a tap
+ *  anywhere else closes them. */
+function PicksDrop({ tag }: { tag: TagLine[] }) {
+  const ref = useRef<HTMLDetailsElement>(null);
+  useEffect(() => {
+    const shut = (e: PointerEvent) => {
+      const el = ref.current;
+      if (el?.open && !el.contains(e.target as Node)) el.open = false;
+    };
+    document.addEventListener('pointerdown', shut);
+    return () => document.removeEventListener('pointerdown', shut);
+  }, []);
+  return (
+    <details className="picks-drop" ref={ref}>
+      <summary>Your picks</summary>
+      <dl className="spec-tag" aria-label="Your choices so far">
+        {tag.map((l) => (
+          <div key={l.label} className={l.mine ? 'mine' : undefined}>
+            <dt>{l.label}</dt>
+            <dd>{l.pick}</dd>
+          </div>
+        ))}
+      </dl>
+    </details>
+  );
+}
+
+/** Whether the screen is a phone's width, where the picks fold into "Your picks" by the title. */
 export function useNarrow() {
   return useMedia('(max-width: 760px)');
 }
@@ -300,11 +352,13 @@ interface Props {
   onPrint?: () => void;
   /** The finished measurements and ease, open above Print rather than folded (F1, 2026-10-28). */
   finished?: ReactNode;
+  /** The picked fabric: it stands beside the form as one tall palette card (Cat's D1, 2026-11-02). */
+  fabric?: MyFabric;
 }
 
 const NO_SECTIONS: Record<string, string> = {};
 
-export function StyleLayout({ children, label, name, ready, onChooseGarment, onPhoto, photo, looks, mode, onMode, onEditMeasurements, sections = NO_SECTIONS, undo, flat, onPrint, finished }: Props) {
+export function StyleLayout({ children, label, name, ready, onChooseGarment, onPhoto, photo, looks, mode, onMode, onEditMeasurements, sections = NO_SECTIONS, undo, flat, onPrint, finished, fabric }: Props) {
   const [options, preview, summary] = Children.toArray(children);
   const [page, setPage] = usePageHistory<'edit' | 'review'>(() => 'edit', (s) => s === 'edit' || s === 'review');
   // Read here and cleared once mounted: React may run this twice, and the second run must see it too.
@@ -449,7 +503,8 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
     if (to) choose(to);
   };
   const at = steps.indexOf(active ?? '');
-
+  // The picked fabric's palette card, beside the garment on the form once a fabric is picked (D1).
+  const palette = showsPalette(fabric);
   // The drawing's corner for its tools, made inside the drawing's area.
   const [corner, setCorner] = useState<HTMLElement | null>(null);
   // The tag beside the drawing on a phone (Cat's L4 + T2, 2026-10-29): a line for the main questions, each with its
@@ -534,10 +589,28 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
             </button>
           )}
         </p>
+        {/* The pro tools (seam allowances, lining, ease) are offered here, at the end, not under the fabric (Cat,
+            2026-10-31). Turning them on goes back to the steps, where they open on a tab of their own. */}
+        {onMode && (
+          <ModeLink
+            mode={mode}
+            onMode={(m) => {
+              onMode(m);
+              if (m === 'all') setPage('edit');
+            }}
+          />
+        )}
       </div>
     );
   // The step after this one, and its first word for the narrow bar at the bottom ("Next: Neck").
   const next = active === LOOKS ? steps[0] : steps[at + 1];
+  // Back a step names the step it goes to, to the left of the way on (Cat's B, 2026-11-02, after a plain arrow from
+  // 2026-10-31 was taken for the header's back): "‹ Shape", on every step after the first.
+  const backArrow = at > 0 && (
+    <button type="button" className="step-back-arrow named" aria-label={`Back to ${steps[at - 1]}`} title={steps[at - 1]} onClick={() => goStep(steps[at - 1])}>
+      <span aria-hidden="true">‹</span> {steps[at - 1].split(/\s/)[0]}
+    </button>
+  );
 
   return (
     <div className={compact ? 'style-layout compact' : 'style-layout'} ref={root}>
@@ -549,7 +622,7 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
       </div>
       {exampleTag}
       <div className="style-edit">
-        <div className={tall ? 'style-pin tall' : 'style-pin'} ref={pin}>
+        <div className={['style-pin', tall && 'tall', active === (sections.Length ?? SECTIONS.Length) && 'on-length'].filter(Boolean).join(' ')} ref={pin}>
           {/* The drawing knows which step is open: the named lengths sit beside it only on the length step. */}
           <ActiveTab.Provider value={active}>
             <Sections.Provider value={sections}>
@@ -560,15 +633,13 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
             createPortal(
               <>
                 <div className="preview-corner" ref={setCorner} />
-                {tag.length > 0 && (
-                  <dl className="spec-tag" aria-label="Your choices so far">
-                    {tag.map((l) => (
-                      <div key={l.label} className={l.mine ? 'mine' : undefined}>
-                        <dt>{l.label}</dt>
-                        <dd>{l.pick}</dd>
-                      </div>
-                    ))}
-                  </dl>
+                {/* On the pinned drawing, so it stays put however far the page scrolls. */}
+                {!wide && tag.length > 0 && <PicksDrop tag={tag} />}
+                {/* The picked fabric's card stands beside the form; the picks themselves are in "Your picks" by the title. */}
+                {palette && (
+                  <div className="palette-col">
+                    <PaletteCard fabric={fabric} />
+                  </div>
                 )}
               </>,
               host,
@@ -620,6 +691,9 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
                 </button>
               )}
               {wide && <DemoButton demo="style" />}
+              {/* On a phone, Undo and Redo are named, across from "Step 2 of 4", once there is something to undo:
+                  well away from the step's back arrow in the bar (Cat, 2026-10-31). */}
+              {!wide && undo && (undo.canUndo || undo.canRedo) && <StepUndo undo={undo} />}
             </div>
             <h2 className="chapter-name">{active === LOOKS ? 'Start from a look' : active}</h2>
             <div
@@ -680,22 +754,18 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
               </TabPanel>
             ) : (
               // Once, on the last tab, so it isn't repeated under every choice.
-              (wide || active === tabs[tabs.length - 1]) && <ModeLink mode={mode} onMode={onMode} />
+              // On a computer under every step; on a phone it is on the Review page (Cat, 2026-10-31).
+              wide && <ModeLink mode={mode} onMode={onMode} />
             )}
             </Sections.Provider>
           </ActiveTab.Provider>
           </Fold.Provider>
           {/* The way on: the next step, or Review after the last (on a computer the summary is already beside it). */}
-          {(active === LOOKS || at >= 0) && (
+          {wide && (active === LOOKS || at >= 0) && (
             <div className="step-next">
-              {at > 0 && (
-                <button type="button" className="later step-back" onClick={() => goStep(steps[at - 1])}>
-                  ‹ {steps[at - 1]}
-                </button>
-              )}
+              {backArrow}
               {/* On a phone the one box is in the bar at the bottom (F1, 2026-10-24); the computer has no bar. */}
-              {wide &&
-                (active === LOOKS && steps[0] ? (
+              {active === LOOKS && steps[0] ? (
                   <button type="button" className="step-go" onClick={() => goStep(steps[0])}>
                     Start with {steps[0]} ›
                   </button>
@@ -705,7 +775,7 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
                       Next: {steps[at + 1]} ›
                     </button>
                   )
-                ))}
+                )}
             </div>
           )}
           {/* On a phone the step ends with two quiet links (Cat's P1, 2026-10-31): Review, which left the bar so it
@@ -744,21 +814,17 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
           </div>
         ) : (
           // One box in the bar (Cat's N3, 2026-10-28, and P1, 2026-10-31): Next in champagne, or Review after the
-          // last; Review before then is a link at the end of the step. Undo and redo show only once there is
-          // something to undo.
+          // last; Review before then is a link at the end of the step. Back a step is the arrow to its left; undo
+          // and redo moved up to the drawing's corner so the two arrows are never mixed up (2026-10-31).
           <div className="style-bar">
             {/* The garment's name is read out as it changes, not shown: the drawing shows it (Cat's N3). */}
             <p className="visually-hidden" role="status">
               {Name}
             </p>
-            {undo && (
-              <div className={undo.canUndo || undo.canRedo ? 'bar-undo' : 'bar-undo idle'}>
-                <UndoTools undo={undo} />
-              </div>
-            )}
+            {backArrow}
             {next ? (
               <button type="button" className="primary" onClick={() => goStep(next)}>
-                Next: {next.split(/\s/)[0]} <span aria-hidden="true">›</span>
+                Next: {next} <span aria-hidden="true">›</span>
               </button>
             ) : (
               <button type="button" className="primary" disabled={!ready} onClick={() => setPage('review')}>

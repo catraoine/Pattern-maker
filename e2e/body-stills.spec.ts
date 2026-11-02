@@ -56,7 +56,7 @@ test('body stills', async ({ page, consoleErrors }, info) => {
     if (process.env.FORM) {
       // The Form view and the draw tool, which share the Form/Draw figure.
       const views = main.getByRole('group', { name: 'Garment view' });
-      if (await views.count()) await views.getByRole('button', { name: 'Form', exact: true }).click();
+      if (await views.count()) await views.getByRole('button', { name: 'Front', exact: true }).click();
       await page.waitForTimeout(600);
       const preview = main.locator('.preview').first();
       await preview.scrollIntoViewIfNeeded();

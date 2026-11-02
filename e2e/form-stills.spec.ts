@@ -16,7 +16,7 @@ test('form stills', async ({ page, consoleErrors }, info) => {
     if (g !== 'Skirt') await switchGarment(page, g);
     const views = main.getByRole('group', { name: 'Garment view' });
     if (await views.count()) {
-      const form = views.getByRole('button', { name: 'Form', exact: true });
+      const form = views.getByRole('button', { name: 'Front', exact: true });
       if (await form.count()) await form.click();
     }
     await page.waitForTimeout(800);

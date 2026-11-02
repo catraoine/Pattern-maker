@@ -63,16 +63,24 @@ test('None, a colour and a shop fabric on the skirt sketch', async ({ page }) =>
   await expect(none).toHaveAttribute('aria-checked', 'true');
   await swatches.getByRole('radio', { name: 'Wool' }).click();
   await main.getByRole('radiogroup', { name: 'Colour' }).getByRole('radio', { name: 'Camel' }).click();
-  await expect(main.locator('.garment-fabric filter.fabric-tint')).toHaveCount(1);
+  await expect(main.locator('.garment-fabric:not(.palette-card .garment-fabric) filter.fabric-tint')).toHaveCount(1);
   await none.click();
   await expect(main.locator('.garment-fabric')).toHaveCount(0);
-  await main.getByRole('tab', { name: 'Shop' }).click();
-  await main.getByRole('radiogroup', { name: 'Fabric from partner shops' }).getByRole('radio', { name: /Cotton denim/ }).click();
+  // One list (Cat's D + C, 2026-11-02): pick Cotton and the cottons you can buy are right under it.
+  await swatches.getByRole('radio', { name: 'Cotton' }).click();
+  const toBuy = main.getByRole('radiogroup', { name: 'Cotton you can buy' });
+  await expect(toBuy.getByRole('radio', { name: /Silk/ })).toHaveCount(0);
+  await toBuy.getByRole('radio', { name: /Cotton denim/ }).click();
   await expect(main.locator('.garment-fabric pattern image').first()).toHaveAttribute('href', /fabrics\/flat\/denim\.jpg$/);
   await main.getByRole('radiogroup', { name: 'Colour' }).getByRole('radio', { name: 'Indigo twill' }).click();
   await main.locator('.fabric-more > summary').click();
   await expect(main.locator('#fabname')).toHaveValue('Cotton denim, 10.5 oz');
   await expect(main.locator('#fabcolour')).toHaveValue('Indigo twill');
+  // The buy strip says how much this skirt needs, about what it costs, and goes to the shop.
+  const strip = main.locator('.buystrip');
+  await expect(strip).toContainText('Mood Fabrics · Indigo twill');
+  await expect(strip).toContainText(/\d+ yd for your skirt · about \$\d+/);
+  await expect(strip.getByRole('link', { name: /Buy at Mood/ })).toHaveAttribute('href', /indigo-cotton-denim-twill-420606$/);
   await goPrint(page);
   await expect(main.locator('.yourfabric h2')).toContainText('Cotton denim, 10.5 oz');
   await expect(main.locator('.shopbuy')).toContainText('Mood Fabrics');
@@ -89,7 +97,7 @@ test('any colour tints the sketch and finds the closest shop colourway', async (
   await expect(main.locator('.testing-tag[title*="shop colourways match"]')).toBeVisible();
   await main.getByLabel('Hex').fill('#b8613f');
   await expect(main.locator('.fabric-now')).toContainText('#B8613F');
-  await expect(main.locator('.garment-fabric filter.fabric-tint')).toHaveCount(1);
+  await expect(main.locator('.garment-fabric:not(.palette-card .garment-fabric) filter.fabric-tint')).toHaveCount(1);
   if (process.env.SHOTS) {
     await main.locator('.colourbars').scrollIntoViewIfNeeded();
     await page.evaluate(() => window.scrollBy(0, 120));
@@ -100,7 +108,6 @@ test('any colour tints the sketch and finds the closest shop colourway', async (
   await main.getByLabel('Shade').fill('70');
   await expect(main.locator('.fabric-now')).not.toContainText('#B8613F');
   await rows.first().click();
-  await expect(main.getByRole('tab', { name: 'Shop' })).toHaveAttribute('aria-selected', 'true');
   await expect(main.locator('.shopfab.on')).toHaveCount(1);
   if (process.env.SHOTS) {
     await main.locator('.fabric-now').scrollIntoViewIfNeeded();
@@ -132,4 +139,18 @@ test('a colour the shops lack can be printed or dyed exactly', async ({ page }) 
   }
   await card.getByRole('button', { name: 'Dyed to order' }).click();
   await expect(card.getByRole('button', { name: 'Tell me when it opens' })).toBeVisible();
+});
+
+// The T-shirt is drafted for stretch, so its Fabric step offers knits, not wovens, and the drawing wears the knit.
+test('the T-shirt offers knit swatches and its drawing wears the knit', async ({ page }) => {
+  await startWithExample(page);
+  await switchGarment(page, 'Tee');
+  const main = page.getByRole('main');
+  await goTab(page, 'Fabric');
+  const swatches = main.getByRole('radiogroup', { name: 'Fabric for the sketch' });
+  await expect(swatches.getByRole('radio', { name: 'Linen' })).toHaveCount(0);
+  const rib = swatches.getByRole('radio', { name: 'Rib' });
+  await rib.click();
+  await expect(rib).toHaveAttribute('aria-checked', 'true');
+  await expect(main.locator('.garment-fabric pattern image').first()).toHaveAttribute('href', /fabrics\/flat\/rib\.jpg$/);
 });

@@ -111,7 +111,10 @@ const noSeamLines = (draft: DressDraft, side: 'front' | 'back') => {
  * bodice with its darts running on through the waist seam.
  */
 /** The dress's skirt choices on one tab of their own. */
-const DRESS_SECTIONS: Record<string, string> = { Cut: 'Skirt & length', Silhouette: 'Skirt & length', Length: 'Skirt & length', Hem: 'Skirt & length', Slit: 'Skirt & length', Fullness: 'Skirt & length', Pockets: 'Skirt & length', Belt: 'Skirt & length' };
+// Named Length & hem as on every other garment (Cat, 2026-10-31); the Cut (waist seam, sheath or shift) is on Shape,
+// with the waist seam's height under it, so the seam is asked about once.
+const LEN = 'Length & hem';
+const DRESS_SECTIONS: Record<string, string> = { Cut: 'Shape', Silhouette: LEN, Length: LEN, Hem: LEN, Slit: LEN, Fullness: LEN, Pockets: LEN, Belt: LEN };
 
 
 /** A sheath's sides: plain, or ruched below the hip. */
@@ -138,6 +141,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
   const flat = useMemo(() => (draft ? dressFlat(draft, 'binding', { sleeve, belt: dressBelt(choices.skirt.belt, draft) }) : undefined), [draft, sleeve, choices.skirt]);
   const title = describePattern(choices);
   const round = useMemo(() => (draft ? roundDress(draft, values, sleeve) : undefined), [draft, values, sleeve]);
+  const drapeJob = useMemo(() => (draft ? ({ kind: 'dress', draft, sleeve } as const) : undefined), [draft, sleeve]);
   const arms = !needsArms(values);
   const chosen = sleeveOf(choices.bodice);
   // A shirt dress: the buttons run on down the skirt, so it needs a skirt that can carry them.
@@ -168,6 +172,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
 
   const groups: Option[] = [
     DRESS_FIT_GROUP,
+    { id: 'noSeam', label: 'Cut', options: DRESS_CUTS },
     ...(noSeam ? [] : [WAIST_SEAM_GROUP]),
     ...BODICE_GROUPS.filter(
       (g) =>
@@ -194,13 +199,12 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
       label: g.label,
       options: g.options as [string, string][],
     })),
-    { id: 'noSeam', label: 'Cut', options: DRESS_CUTS },
     // A sheath can be ruched at the sides below the hip.
     ...(noSeam === 'sheath' ? [{ id: 'ruched', label: 'Sides', options: SHEATH_SIDES }] : []),
     ...(noSeam
       ? []
       : [
-          // Named as on the skirt, so the Skirt & length step doesn't ask a question called Skirt (Cat, 2026-10-30).
+          // Named as on the skirt, so the Length & hem step doesn't ask a question called Skirt (Cat, 2026-10-30).
           { id: 'silhouette', label: 'Silhouette', options: GROUPS[1].options },
           ...(choices.skirt.silhouette === 'gathered' ? [GATHERS_GROUP as { id: string; label: string; options: [string, string][] }] : []),
         ]),
@@ -414,7 +418,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
     return (
       <GarmentFabric fabric={fabric}>
       <DrawOnForm<DressChoices>
-        allRound={round ? { round, m: values, fabric, striped: matchKind(fabric) } : undefined}
+        allRound={round ? { round, drape: drapeJob, m: values, fabric, striped: matchKind(fabric) } : undefined}
         body={formWidth(draft.bodice, mv)}
         m={mv}
         legs
@@ -515,8 +519,15 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
     );
   }
 
+  // The Front drawing: shown on Front, and standing in for the sewn All round when that fails its score.
+  const sketch = formBody ? (
+    <GarmentFabric fabric={fabric}>
+      <FormSketch body={formBody} m={mv} legs bottom={waistY + lengthRange(mv).max + 4} lines={formLines} cloth={clothShapes} flatLines={flatLines} arms={formArm} sleeve={formArm ? sleeve : undefined} underarmY={draft ? landmarks(draft.bodice).underarm.y : undefined} sewn={sewn} hem={draft ? hem : undefined} label={`The ${title} on your form`} />
+    </GarmentFabric>
+  ) : undefined;
   return (
     <StyleLayout
+      fabric={fabric}
       onEditMeasurements={onEditMeasurements}
       onPrint={onNext}
       flat={flat}
@@ -690,24 +701,20 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
             <span />
           )}
           <InCorner>
-            <button type="button" className="link small" onClick={() => setOnForm(choices)}>
-              Draw on your form
+            <button type="button" className="link small" aria-label="Draw on your form" onClick={() => setOnForm(choices)}>
+              <span className="tool-word">Draw</span>
             </button>
           </InCorner>
         </div>
         <div className="preview">
           {error && <p className="msg error">{error}</p>}
-          {formBody && view === 'sketch' && (
-            <GarmentFabric fabric={fabric}>
-              <FormSketch body={formBody} m={mv} legs bottom={waistY + lengthRange(mv).max + 4} lines={formLines} cloth={clothShapes} flatLines={flatLines} arms={formArm} sleeve={formArm ? sleeve : undefined} underarmY={draft ? landmarks(draft.bodice).underarm.y : undefined} sewn={sewn} hem={draft ? hem : undefined} label={`The ${title} on your form`} />
-            </GarmentFabric>
-          )}
+          {view === 'sketch' && sketch}
           {flat && view === 'flat' && (
             <GarmentFabric fabric={fabric}>
               <TechFlatView flat={flat} title={title} />
             </GarmentFabric>
           )}
-          {round && view === 'round' && <AllRound round={round} m={values} fabric={fabric} striped={matchKind(fabric)} label={`The ${title} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`} />}
+          {round && view === 'round' && <AllRound round={round} drape={drapeJob} m={values} fabric={fabric} striped={matchKind(fabric)} fallback={sketch} label={`The ${title} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`} />}
           {sheet && view === 'pattern' && !(fit && canFit) && <PatternPane><PatternPreview paper sheet={sheet} label={`Pattern pieces for a ${title}`} /></PatternPane>}
           {view === 'pattern' && fit && canFit && <EaseMapView views={easeMap!} label={`The fit of the ${title}, on its pattern pieces`} />}
           <UndoToast undo={undo} />

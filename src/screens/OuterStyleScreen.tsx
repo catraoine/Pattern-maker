@@ -35,6 +35,7 @@ import { FABRIC, Group, InCorner, PRO, StyleLayout, TabPanel } from '../ui/Style
 import { PiecesList, SummaryActions, formViews } from '../ui/StyleSummary';
 
 import { outerFabricMetres } from '../fabricAmounts';
+import { sewnOuter } from '../ui/drapeClient';
 
 interface Props {
   /** Start from a photo, and the photo this garment was matched to while the app is open. */
@@ -78,6 +79,7 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
   const flat = useMemo(() => (draft ? outerFlat(draft) : undefined), [draft]);
   const title = describeOuter(choices);
   const round = useMemo(() => (draft ? roundOuter(draft, values) : undefined), [draft, values]);
+  const drapeJob = useMemo(() => (draft && sewnOuter() ? ({ kind: 'outer', draft, boxy: choices.shaping === 'boxy' || (choices.fit as string) === 'oversized' } as const) : undefined), [draft, choices]);
   const extra = fabricEase(fabric, kind);
 
   const m = values as OuterMeasurements;
@@ -97,7 +99,7 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
     return (
       <GarmentFabric fabric={fabric}>
       <DrawOnForm<OuterChoices>
-        allRound={round ? { round, m: values, fabric, striped: matchKind(fabric) } : undefined}
+        allRound={round ? { round, drape: drapeJob, m: values, fabric, striped: matchKind(fabric) } : undefined}
         cloth={clothShapes}
         arms={formArm}
         sleeve={formArm ? draft.sleeve : undefined}
@@ -159,8 +161,15 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
     );
   }
 
+  // The Front drawing: shown on Front, and standing in for the sewn All round when that fails its score.
+  const sketch = formBody ? (
+    <GarmentFabric fabric={fabric}>
+      <FormSketch body={formBody} m={m} legs={kind === 'coat'} bottom={waistY + outerDrop(m, longest) + 6} lines={formLines} cloth={clothShapes} flatLines={flatLines} arms={formArm} sleeve={formArm ? draft?.sleeve : undefined} underarmY={draft ? landmarks(draft.base).underarm.y : undefined} label={`The ${title.toLowerCase()} on your form`} />
+    </GarmentFabric>
+  ) : undefined;
   return (
     <StyleLayout
+      fabric={fabric}
       onEditMeasurements={onEditMeasurements}
       onPrint={onNext}
       flat={flat}
@@ -266,25 +275,21 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           )}
           <InCorner>
             {draft && (
-              <button type="button" className="link small" onClick={() => setOnForm(choices)}>
-                Draw on your form
+              <button type="button" className="link small" aria-label="Draw on your form" onClick={() => setOnForm(choices)}>
+                <span className="tool-word">Draw</span>
               </button>
             )}
           </InCorner>
         </div>
         <div className="preview">
           {error && <p className="msg error">{error}</p>}
-          {formBody && view === 'sketch' && (
-            <GarmentFabric fabric={fabric}>
-              <FormSketch body={formBody} m={m} legs={kind === 'coat'} bottom={waistY + outerDrop(m, longest) + 6} lines={formLines} cloth={clothShapes} flatLines={flatLines} arms={formArm} sleeve={formArm ? draft?.sleeve : undefined} underarmY={draft ? landmarks(draft.base).underarm.y : undefined} label={`The ${title.toLowerCase()} on your form`} />
-            </GarmentFabric>
-          )}
+          {view === 'sketch' && sketch}
           {flat && view === 'flat' && (
             <GarmentFabric fabric={fabric}>
               <TechFlatView flat={flat} title={title} />
             </GarmentFabric>
           )}
-          {round && view === 'round' && <AllRound round={round} m={values} fabric={fabric} striped={matchKind(fabric)} label={`The ${title.toLowerCase()} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`} />}
+          {round && view === 'round' && <AllRound round={round} drape={drapeJob} m={values} fabric={fabric} striped={matchKind(fabric)} fallback={sketch} label={`The ${title.toLowerCase()} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`} />}
           {draft && sheet && view === 'pattern' && !(fit && canFit) && <PatternPane><PatternPreview paper sheet={sheet} label={`Pattern pieces for ${title.toLowerCase()}`} /></PatternPane>}
           {view === 'pattern' && fit && canFit && <EaseMapView views={easeMap!} label={`The fit of the ${title.toLowerCase()}, on its pattern pieces`} />}
           <UndoToast undo={undo} />

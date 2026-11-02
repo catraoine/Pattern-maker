@@ -15,7 +15,8 @@ import { PatternPreview } from '../ui/Preview';
 import { PatternPane } from '../ui/PointEditor';
 import { UndoToast, useUndo } from '../ui/useUndo';
 import type { MyFabric } from '../engine/fabrics';
-import { GarmentFabric } from '../ui/FabricFill';
+import { FabricSwatches, GarmentFabric } from '../ui/FabricFill';
+import type { Finish } from '../savedWork';
 import { teeFabrics } from '../engine/knits';
 import { FabricCard, FabricSummary } from '../ui/FabricCard';
 import type { Mode } from '../mode';
@@ -48,6 +49,9 @@ interface Props {
   /** The fabric, told on the Fabric tab. */
   fabric?: MyFabric;
   onFabric?: (f: MyFabric) => void;
+  /** The knit swatches on the Fabric step pick the cloth the drawings are shown in. */
+  finish?: Finish;
+  onFinish?: (f: Finish) => void;
   /** The T-shirt has no tucked-away choices of its own, but the link is here like every other garment, for the print screen's tools. */
   mode?: Mode;
   onMode?: (m: Mode) => void;
@@ -64,10 +68,10 @@ function friendly(w: string) {
   if (w.startsWith('bust widened')) return 'Your shoulders are broad next to your bust, so the tee is cut a little roomier at the bust for the armholes to fit.';
   if (w.startsWith('sleeve')) return 'Your armhole is large next to your upper arm, so the sleeve is cut a little wider to fit it. Please check both measurements.';
   if (w.startsWith('armhole')) return 'Your armhole measurement is large for the rest of you, so the armhole is drafted as close to it as the block allows. Please re-measure it.';
-  return 'Something in your measurements looks unusual. Please double-check them.';
+  return `One of your measurements looks unusual (${w}). Please double-check it.`;
 }
 
-export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices, onChooseGarment, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, fabric, onFabric, mode = 'all', onMode }: Props) {
+export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices, onChooseGarment, values, draft, error, onEditMeasurements, onNext, saveState, onSave, onAccount, fabric, onFabric, finish, onFinish, mode = 'all', onMode }: Props) {
   const undo = useUndo(choices, setChoices);
   const onChoices = undo.change;
   const [view, setView] = useState<'sketch' | 'flat' | 'round' | 'pattern'>('sketch');
@@ -136,6 +140,7 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
 
   return (
     <StyleLayout
+      fabric={fabric}
       onEditMeasurements={onEditMeasurements}
       onPrint={onNext}
       flat={flat}
@@ -175,14 +180,23 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
               ))}
             </div>
             <Explain set="tee" group={g.id} options={g.options} pick={choices[g.id]} />
-            {g.id === 'stretch' && <p className="muted small">How to test: {STRETCH_TEST}</p>}
+            {g.id === 'stretch' && (
+              <details className="how-to-test muted small">
+                <summary>How to test</summary>
+                <p>{STRETCH_TEST}</p>
+              </details>
+            )}
             {g.id === 'fit' && <p className="muted small">{FIT_NOTES[choices.fit]}</p>}
           </Group>
         ))}
         {draft && (
           <TabPanel tab={FABRIC}>
             <FabricCard metres={teeFabricMetres(draft)} advice={teeFabrics(choices)} fabric={fabric} knit>
-              {onFabric && <FabricDetails fabric={fabric} garment="tee" onFabric={onFabric} />}
+              {finish && onFinish ? (
+                <FabricSwatches finish={finish} onFinish={onFinish} garment="tee" details />
+              ) : (
+                onFabric && <FabricDetails fabric={fabric} garment="tee" onFabric={onFabric} />
+              )}
             </FabricCard>
           </TabPanel>
         )}
@@ -202,8 +216,8 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
           )}
           <InCorner>
             {draft && (
-              <button type="button" className="link small" onClick={() => setOnForm(choices)}>
-                Draw on your form
+              <button type="button" className="link small" aria-label="Draw on your form" onClick={() => setOnForm(choices)}>
+                <span className="tool-word">Draw</span>
               </button>
             )}
           </InCorner>

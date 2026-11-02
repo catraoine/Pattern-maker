@@ -50,7 +50,9 @@ test('all round sweep', async ({ page }, info) => {
     await main.getByRole('group', { name: 'Garment view' }).getByRole('button', { name: 'All round', exact: true }).click();
     const cv = main.locator('canvas.all-round-canvas');
     await expect(cv).toBeVisible();
-    await page.waitForTimeout(1200);
+    // The garment is sewn from its pattern in the background: wait till it is drawn.
+    await expect(cv).not.toHaveAttribute('data-sewn', 'pending', { timeout: 60_000 });
+    await page.waitForTimeout(Number(process.env.ROUND_WAIT ?? 1200));
     await cv.scrollIntoViewIfNeeded();
     const name = [g, ...picks.slice(0, 1)].join('-').toLowerCase();
     for (let k = 0; k < 8; k++) {

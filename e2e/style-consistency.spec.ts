@@ -9,8 +9,9 @@ test('undo, redo and save read the same on the trousers as on the skirt', async 
   const wide = main.getByRole('group', { name: 'Leg', exact: true }).getByRole('button', { name: 'Wide', exact: true });
   const undo = main.getByRole('button', { name: 'Undo the last change' });
   const redo = main.getByRole('button', { name: 'Redo the change you undid' });
-  await expect(undo).toBeDisabled();
-  await expect(redo).toBeDisabled();
+  // Nothing to undo yet: greyed out on a computer, not shown on a phone (they appear by the step once there is).
+  await expect(main.locator('button:enabled[aria-label="Undo the last change"]')).toHaveCount(0);
+  await expect(main.locator('button:enabled[aria-label="Redo the change you undid"]')).toHaveCount(0);
   await chooseChip(page, 'Leg', 'Wide');
   await undo.click();
   await expect(main.getByRole('status').filter({ hasText: 'Undone' })).toBeVisible();
@@ -99,7 +100,7 @@ test('a new change on the skirt clears redo', async ({ page }) => {
   const main = page.getByRole('main');
   const undo = main.getByRole('button', { name: 'Undo the last change' });
   const redo = main.getByRole('button', { name: 'Redo the change you undid' });
-  await expect(undo).toBeDisabled();
+  await expect(main.locator('button:enabled[aria-label="Undo the last change"]')).toHaveCount(0);
   await chooseChip(page, 'Fit', 'Relaxed');
   await undo.click();
   await expect(redo).toBeEnabled();

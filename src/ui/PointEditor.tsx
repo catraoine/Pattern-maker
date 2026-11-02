@@ -4,7 +4,7 @@
 // dashed ghost shows the pattern as drafted once anything has moved, and pressing and holding a point
 // brings up a tape measure to set what it measures exactly. Anything a move would put out of true is
 // trued by the engine, so the editor shows no warnings (Cat's rule, 2026-10-18).
-import { PointerEvent, ReactNode, createContext, useContext, useMemo, useRef, useState } from 'react';
+import { PointerEvent, ReactNode, createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { P, add, mul } from '../engine/geometry';
 import type { Piece } from '../engine/piece';
 import { Handle, PointEdit, applyPointEdits, handlesOf, measureAt, pointOnEdge } from '../engine/pointEdit';
@@ -23,12 +23,39 @@ export const PointEditContext = createContext<PointEditing | null>(null);
 const TAPE_PX = 39;
 const HOLD_MS = 450;
 const GAP = 3;
+/** How near a finger has to land to take a point, in screen pixels: about a fingertip (a 44 pt target). */
+const HIT_PX = 22;
+/** How near an edge a tap adds a point there, in screen pixels. */
+const EDGE_PX = 14;
+/** How far a finger moves before a press becomes a drag, in screen pixels. */
+const SLOP_PX = 3;
+
+/**
+ * Watch it draft, under the pattern inside the drawing's own box: as a row of its own under the drawing it spilled out
+ * of the pinned drawing on a phone, over the undo arrows and Next (Cat, 2026-10-31).
+ */
+function WatchDraft({ onPlay }: { onPlay: () => void }) {
+  return (
+    <div className="watch-draft">
+      <button type="button" className="link small" onClick={onPlay}>
+        Watch it draft <span aria-hidden="true">▶</span>
+      </button>
+    </div>
+  );
+}
 
 /** The pattern view with a Move points switch: the pattern preview, or the editor in its place. */
-export function PatternPane({ children }: { children: ReactNode }) {
+export function PatternPane({ children, onPlay }: { children: ReactNode; onPlay?: () => void }) {
   const ctx = useContext(PointEditContext);
   const [on, setOn] = useState(false);
-  if (!ctx || !ctx.base.length) return <>{children}</>;
+  const watch = onPlay && !on && <WatchDraft onPlay={onPlay} />;
+  if (!ctx || !ctx.base.length)
+    return (
+      <>
+        {children}
+        {watch}
+      </>
+    );
   return (
     <div className="pattern-pane">
       <div className="row between wrap point-switch">
@@ -38,6 +65,7 @@ export function PatternPane({ children }: { children: ReactNode }) {
         </button>
       </div>
       {on ? <PointEditor {...ctx} /> : children}
+      {watch}
     </div>
   );
 }
@@ -84,7 +112,35 @@ function withMove(edits: PointEdit[], piece: string, at: string, by: P): PointEd
   return edits.map((e, k) => (k === i ? { ...e, by } : e));
 }
 
-function PointEditor({ base, edits, setEdits }: PointEditing) {
+function PointEditor({ base, edits: saved, setEdits: save }: PointEditing) {
+  // While a finger is down the moves stay here, drawn once a frame, and are kept (saved, and passed to the rest of the
+  // app) when it lifts: saving on every move redrew the whole app each time, so the point lagged behind the finger.
+  const [live, setLive] = useState<PointEdit[]>();
+  const edits = live ?? saved;
+  const frame = useRef<number>();
+  const pending = useRef<PointEdit[]>();
+  const setEdits = (e: PointEdit[]) => {
+    if (frame.current) cancelAnimationFrame(frame.current);
+    frame.current = undefined;
+    pending.current = undefined;
+    setLive(undefined);
+    save(e);
+  };
+  const liveMove = (e: PointEdit[]) => {
+    pending.current = e;
+    if (frame.current) return;
+    frame.current = requestAnimationFrame(() => {
+      frame.current = undefined;
+      if (pending.current) setLive(pending.current);
+    });
+  };
+  const keep = () => {
+    const last = pending.current ?? live;
+    if (last) setEdits(last);
+  };
+  useEffect(() => () => {
+    if (frame.current) cancelAnimationFrame(frame.current);
+  }, []);
   const pieces = useMemo(() => applyPointEdits(base, edits), [base, edits]);
   const handles = useMemo(() => handlesOf(pieces), [pieces]);
   const { at: place, width, height } = useMemo(() => arrange(base), [base]);
@@ -94,7 +150,7 @@ function PointEditor({ base, edits, setEdits }: PointEditing) {
   const svg = useRef<SVGSVGElement>(null);
   const [sel, setSel] = useState<{ piece: string; at: string }>();
   const [tape, setTape] = useState(false);
-  const drag = useRef<{ start: P; edits: PointEdit[]; by: P; piece: string; at: string; timer?: number; moved: boolean }>();
+  const drag = useRef<{ start: P; edits: PointEdit[]; by: P; piece: string; at: string; timer?: number; moved: boolean; slop: number }>();
   const tapeDrag = useRef<{ x: number; value: number; edits: PointEdit[] }>();
 
   const partnerOf = useMemo(() => {
@@ -106,6 +162,11 @@ function PointEditor({ base, edits, setEdits }: PointEditing) {
     return map;
   }, [pieces]);
 
+  /** Centimetres on the pattern per screen pixel, as drawn now. */
+  const cmPerPx = () => {
+    const m = svg.current?.getScreenCTM();
+    return m ? 1 / Math.hypot(m.a, m.b) : r;
+  };
   const toCm = (e: PointerEvent): P => {
     const ctm = svg.current!.getScreenCTM()!.inverse();
     const q = new DOMPoint(e.clientX, e.clientY).matrixTransform(ctm);
@@ -117,8 +178,9 @@ function PointEditor({ base, edits, setEdits }: PointEditing) {
 
   const down = (e: PointerEvent<SVGSVGElement>) => {
     const q = toCm(e);
+    const px = cmPerPx();
     let best: Handle | undefined;
-    let bd = r * 4.5;
+    let bd = Math.max(r * 4.5, HIT_PX * px);
     for (const h of handles) {
       const d = Math.hypot(posOf(h).x - q.x, posOf(h).y - q.y);
       if (d < bd) {
@@ -131,7 +193,7 @@ function PointEditor({ base, edits, setEdits }: PointEditing) {
       // An edge tapped: a new point there.
       for (const pc of pieces) {
         const o = place[pc.name];
-        const at = pointOnEdge(pc, { x: q.x - o.x, y: q.y - o.y }, r * 2.5);
+        const at = pointOnEdge(pc, { x: q.x - o.x, y: q.y - o.y }, Math.max(r * 2.5, EDGE_PX * px));
         if (at) {
           target = { piece: pc.name, at };
           break;
@@ -146,16 +208,20 @@ function PointEditor({ base, edits, setEdits }: PointEditing) {
     const prev = edits.find((x) => x.piece === target!.piece && x.at === target!.at)?.by ?? { x: 0, y: 0 };
     // A new point is kept at once, so it shows; a corner only once it moves.
     const start = target.at.startsWith('+') ? withMove(edits, target.piece, target.at, prev) : edits;
-    if (start !== edits) setEdits(start);
+    if (start !== edits) {
+      pending.current = start;
+      setLive(start);
+    }
     setSel(target);
     svg.current?.setPointerCapture(e.pointerId);
     const timer = window.setTimeout(() => {
       if (drag.current && !drag.current.moved) {
         drag.current = undefined;
+        keep();
         setTape(true);
       }
     }, HOLD_MS);
-    drag.current = { start: q, edits: start, by: prev, ...target, timer, moved: false };
+    drag.current = { start: q, edits: start, by: prev, ...target, timer, moved: false, slop: SLOP_PX * px };
   };
 
   const move = (e: PointerEvent<SVGSVGElement>) => {
@@ -163,20 +229,21 @@ function PointEditor({ base, edits, setEdits }: PointEditing) {
     if (!g) return;
     const q = toCm(e);
     const d = { x: q.x - g.start.x, y: q.y - g.start.y };
-    if (!g.moved && Math.hypot(d.x, d.y) < r * 1.2) return;
+    if (!g.moved && Math.hypot(d.x, d.y) < g.slop) return;
     g.moved = true;
     window.clearTimeout(g.timer);
-    setEdits(withMove(g.edits, g.piece, g.at, add(g.by, d)));
+    liveMove(withMove(g.edits, g.piece, g.at, add(g.by, d)));
   };
 
   const up = () => {
     if (drag.current) window.clearTimeout(drag.current.timer);
+    if (drag.current) keep();
     drag.current = undefined;
   };
 
   // The tape: what the selected point measures, set by sliding the tape under a fixed needle.
   const measure = selected && measureAt(pieces, selected);
-  const setMeasure = (from: PointEdit[], value: number) => {
+  const setMeasure = (from: PointEdit[], value: number, sliding = false) => {
     if (!sel) return;
     let next = from;
     // Two passes, as a curve's length is not quite proportional to the move.
@@ -188,7 +255,8 @@ function PointEditor({ base, edits, setEdits }: PointEditing) {
       const by = next.find((x) => x.piece === sel.piece && x.at === sel.at)?.by ?? { x: 0, y: 0 };
       next = withMove(next, sel.piece, sel.at, add(by, mul(mm.dir, value - mm.value)));
     }
-    setEdits(next);
+    if (sliding) liveMove(next);
+    else setEdits(next);
   };
 
   const changed = edits.some((e) => e.at.startsWith('+') || Math.hypot(e.by.x, e.by.y) > 0.01);
@@ -251,10 +319,16 @@ function PointEditor({ base, edits, setEdits }: PointEditing) {
             }}
             onPointerMove={(e) => {
               const t = tapeDrag.current;
-              if (t) setMeasure(t.edits, Math.max(0.5, t.value - (e.clientX - t.x) / TAPE_PX));
+              if (t) setMeasure(t.edits, Math.max(0.5, t.value - (e.clientX - t.x) / TAPE_PX), true);
             }}
-            onPointerUp={() => (tapeDrag.current = undefined)}
-            onPointerCancel={() => (tapeDrag.current = undefined)}
+            onPointerUp={() => {
+              if (tapeDrag.current) keep();
+              tapeDrag.current = undefined;
+            }}
+            onPointerCancel={() => {
+              if (tapeDrag.current) keep();
+              tapeDrag.current = undefined;
+            }}
           >
             <div className="pe-tape-marks" style={{ transform: `translateX(${-(offset ?? 0)}px)` }} aria-hidden="true">
               {Array.from({ length: Math.ceil(measure.value) + 12 }, (_, c) => (

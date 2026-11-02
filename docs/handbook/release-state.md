@@ -4,23 +4,22 @@ _Update this page whenever a release ships or a PR is queued._
 
 ## Live
 
-**Release 46** (Oct 31, 2026, #245): iPhone page no longer bounces on Style (#244), AI-look photo
-strip removed from Start from a look (#246), welcome headline H2 "Drafted to you" and Make this look
-opens in the look's fabric (#247), All round goes quiet in calico with one check line (#248),
-phone Style panel trimmed (P1: one Next button, "Step 1 of 5" opens the step list) and champagne fill
-only on the main button (S1) (#250).
-Release 45 (Oct 31, #242) brought the Boxy dress fit and Self band, re-recorded films, projector
-upgrades, phone-sideways layouts and the Silhouette / Fullness step names.
+**Release 54** (Nov 2, 2026): Style screen sweep (#266): views are Front, Flat and All round (no Back
+view), quiet Undo, fabric shop as one list with a buy strip, "Your picks" drop-down, worded Enlarge,
+Length/Width hem handles, named step backs, one font width everywhere (no narrowed headings; welcome headline rises in), and the header back arrow gone from Measure, Style and
+Print (chapter names move between chapters). All round scored before it's shown, nightly sweep and
+SS27 drape fixes, plus the All round eye check fixes (#263, #268). Readiness check fixes: inches height boxes, named warnings, no near-empty
+PDF pages (#265). How it works films: palette card on the aqua snakeskin, Shop the fabric strip (#264).
+Earlier: Release 53 (#262 palette card), Release 52 (#255 knit swatches).
 
 Live site: https://maisontrace.co (the cloud proxy blocks it; check
 https://whimsical-mooncake-2cf9a9.netlify.app, the same site). Strangers see the waitlist; testers
 get in with their tester link.
 
-## Queued for "ship" (as of Oct 31, 06:00 UTC)
+## Queued for "ship" (as of Nov 2, 14:15 UTC)
 
-Nothing green is queued. #249 (Oversized fit and Long length for tops, In testing) is a draft.
-
-Re-record note: the How it works film needs re-recording after #248 (All round now turns in calico).
+Nothing green is queued. Open drafts: #249 (SS27 cuts, In testing) and #259 (SS27 design options,
+stacked on #249), both waiting on Cat's "apply".
 
 ## Waiting on Cat's "apply" (not built)
 

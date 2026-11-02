@@ -57,6 +57,12 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
 8. **All round is quiet** (Oct 31, Q2): no seam dots or hem chart; the checks are one line ("Seams and
    hem checked") and the disclaimer is small text. With no fabric picked the garment turns in pale calico
    (the How it works film keeps its lines).
+9. **All round falls back to the Front drawing** (Nov 2, eye check): a design that fails the drape score shows its
+   garment's Front drawing with "The turning view of this design is still in testing, so this is its drawing", never
+   the old shape preview (which lost drawn details and broke on circle skirts, halters and flutter sleeves). A
+   side slit is drawn open on the wearer's left, as the pattern cuts it. A sleeve the pattern has but the drawing
+   dropped fails the score ("missing"). Developers: `?sewn=all` shows the cloth even when the score fails, `?sewn=outer`
+   sews jackets and coats. The eye-check designs live in `e2e/eye-designs.ts` (run with `EYE_CHECK=<dir>`).
 
 ## Style steps
 
@@ -66,6 +72,17 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
 - **Phone Style panel** (Oct 31, P1): no step bars; "Step 1 of 5" opens the list of steps. One short line
   under a pick (the short lines live in `src/explain.ts`, 40 characters at most; the computer keeps the full line).
   The bar holds one button; Review all choices and Watch demo are links at the end of the step.
+- **One journey** (Oct 31, J1-J8): every garment's steps run Shape, Neck & sleeves, Length & hem, Details, Fabric
+  (skipping any it has nothing for), each named the same everywhere and in full on Next. The views read Front ·
+  Flat · All round on every garment. A fabric property (the knit's stretch) is asked on Fabric. The T-shirt's Fabric step offers
+  knit swatches only (Nov 1, `src/engine/knitFabrics.ts`), never wovens. On a phone Show all
+  tools is on the Review page.
+- **Palette card** (Nov 2, D1): once a fabric is picked, it stands beside the form on Front as one tall palette
+  card (cloth over a cream name strip); a shop fabric adds its shop and listed price. Phone: the picks sit under
+  it, as many of three as fit. Not on Flat or the pattern. Code: `src/ui/PaletteCard.tsx`.
+- **Back a step** (Oct 31, A): a plain ← box left of Next/Review on every step after the first, never a named
+  link. On a phone Undo/Redo are named words across from "Step 2 of 4", away from the back arrow; Clear sits
+  under Done while drawing.
 
 ## Fixing problems
 

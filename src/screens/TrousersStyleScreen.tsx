@@ -152,6 +152,7 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
 
   return (
     <StyleLayout
+      fabric={fabric}
       onEditMeasurements={onEditMeasurements}
       onPrint={onNext}
       flat={flat}
@@ -272,8 +273,8 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
           )}
           <InCorner>
             {draft && formBody && values.waist_to_floor && (
-              <button type="button" className="link small" onClick={() => setDrawing(choices)}>
-                Draw on your form
+              <button type="button" className="link small" aria-label="Draw on your form" onClick={() => setDrawing(choices)}>
+                <span className="tool-word">Draw</span>
               </button>
             )}
           </InCorner>
