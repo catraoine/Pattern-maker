@@ -136,7 +136,6 @@ function DemoPlayer({ demo, onClose }: { demo: Demo; onClose: () => void }) {
   const video = useRef<HTMLVideoElement>(null);
   const close = useRef<HTMLButtonElement>(null);
   const [at, setAt] = useState(0);
-  const [length, setLength] = useState(0);
 
   useEffect(() => {
     close.current?.focus();
@@ -180,7 +179,6 @@ function DemoPlayer({ demo, onClose }: { demo: Demo; onClose: () => void }) {
         playsInline
         controls
         preload="auto"
-        onLoadedMetadata={(e) => Number.isFinite(e.currentTarget.duration) && setLength(e.currentTarget.duration)}
         onTimeUpdate={(e) => setAt(e.currentTarget.currentTime)}
         aria-describedby="demo-words"
         // It stays open at the end, the focus on Close (the accessibility review, 2026-10-30).
@@ -189,27 +187,6 @@ function DemoPlayer({ demo, onClose }: { demo: Demo; onClose: () => void }) {
         <source src={`${demo.base}.mp4`} type='video/mp4; codecs="avc1.640032"' />
         <source src={`${demo.base}.webm`} type='video/webm; codecs="vp9"' />
       </video>
-      <ol className="tour-parts demo-parts" aria-label="Parts of the demo">
-        {parts.map((p, i) => {
-          const end = parts[i + 1]?.from ?? (length || p.from + 5);
-          const fill = Math.max(0, Math.min(1, (at - p.from) / (end - p.from)));
-          return (
-            <li key={p.name} className={i === part ? 'on' : ''}>
-              <button
-                type="button"
-                onClick={() => {
-                  if (video.current) video.current.currentTime = p.from;
-                }}
-              >
-                <span className="tour-track">
-                  <span style={{ transform: `scaleX(${fill})` }} />
-                </span>
-                <span className="demo-part-name">{p.name}</span>
-              </button>
-            </li>
-          );
-        })}
-      </ol>
     </div>
   );
 }
