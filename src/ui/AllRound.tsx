@@ -5,7 +5,7 @@
 // when a change is trued, the seams glow softly, and that is the only sign. With a fabric chosen, the garment is
 // drawn in it, print and colour wrapped round as it turns (Cat, 2026-10-26); with none, in plain calico, and the checks
 // fold into one quiet line under it (Cat's Q2 Quiet in Calico, 2026-10-31: the view read like engineering).
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { widensForm } from '../engine/drape/widen';
 import type { MyFabric } from '../engine/fabrics';
 import { FabricPaint, fabricPaint } from './FabricFill';
@@ -18,7 +18,7 @@ import type { DrapedView, Pick, PickPart, RoundView } from './allRoundMesh';
 import type { DrapeJob } from '../engine/drape/run';
 import { makeSpace } from '../engine/drape/space';
 import { placeOnForm } from './allRoundShape';
-import { cachedDrape, drapeKey, requestDrape } from './drapeClient';
+import { cachedDrape, drapeKey, requestDrape, sewnAnyway } from './drapeClient';
 
 // Matching --gild, --gild-glow, --guide, --muted and --ok in styles.css.
 const GILD = '#d9c49b';
@@ -62,6 +62,10 @@ interface Props {
   /** The garment's draft, to sew it from its own pattern pieces on the form (src/engine/drape): the cloth then hangs
    *  as the pattern cuts it, with its collars, lapels, peplums and sleeves as they are (Cat, 2026-11-01). */
   drape?: Omit<DrapeJob, 'm' | 'armhole'>;
+  /** What stands in when the sewn drawing fails its score (quality.ts): the garment's own Front drawing, which shows every
+   *  drawn hem, neckline and seam as the maker set them. Without it the older shape preview stands in, which draws none of
+   *  those and hangs some shapes badly (the All round eye check, 2026-11-02). */
+  fallback?: ReactNode;
 }
 
 interface Row {
@@ -124,7 +128,7 @@ export function checked(rows: Row[]): string {
   return `${list} checked${match ? `, ${match.name.toLowerCase()} matched` : ''}`;
 }
 
-export function AllRound({ round, m, striped = false, fabric, label, draw, drape }: Props) {
+export function AllRound({ round, m, striped = false, fabric, label, draw, drape, fallback }: Props) {
   const ref = useRef<HTMLCanvasElement>(null);
   const drawRef = useRef(draw);
   drawRef.current = draw;
@@ -208,8 +212,11 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
   const sewnNow = job ? (draped?.key === jobKey ? draped.view : 'pending') : undefined;
   // A drawing that failed its quality check (see engine/drape/quality.ts) isn't shown turning in cloth: the shape
   // preview stands in, with a line saying the cloth view for this design is still in testing (Cat, 2026-11-02).
-  const inTesting = !!sewnNow && sewnNow !== 'pending' && sewnNow.d.quality?.ok === false;
+  const inTesting = !!sewnNow && sewnNow !== 'pending' && sewnNow.d.quality?.ok === false && !sewnAnyway();
   const drapedNow = inTesting ? undefined : sewnNow;
+  // With a Front drawing to hand, it stands in for a failed sewn drawing (the canvas stays, hidden, so the view's state
+  // and the draw tool's turning survive); the draw tool keeps the turning form to draw on.
+  const standIn = inTesting && !!fallback && !drawing;
 
   const turn = useRef({ phi: 0.6, target: null as number | null, dragging: false, idle: 0, probe: false, stroke: null as [number, number][] | null, picks: [] as RoundPick[] });
   const pulse = useRef(-1e9);
@@ -1117,15 +1124,16 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
   }, [round, m, striped, tiles, layers, v3ready, drawing, drapedNow, formX]);
 
   return (
-    <div className="all-round">
-      <canvas ref={ref} className={`all-round-canvas${round.legs ? ' all-round-tall' : ''}${drawing ? ' drawing' : ''}`} data-sewn={drapedNow === 'pending' ? 'pending' : inTesting ? 'testing' : drapedNow ? 'ready' : undefined} role="img" aria-label={label} />
+    <div className={`all-round${standIn ? ' all-round-stand-in' : ''}`}>
+      {standIn && fallback}
+      <canvas ref={ref} className={`all-round-canvas${round.legs ? ' all-round-tall' : ''}${drawing ? ' drawing' : ''}`} data-sewn={drapedNow === 'pending' ? 'pending' : inTesting ? 'testing' : drapedNow ? 'ready' : undefined} role="img" aria-label={label} hidden={standIn} />
       {!drawing && (
         <div className="all-round-quiet">
           <p className="all-round-checked">
             <span className="all-round-mark" aria-hidden="true" />
             {checked(rows)}
           </p>
-          <p className="all-round-note">{inTesting ? 'The cloth view of this design is still in testing, so this is its shape preview.' : 'A shape preview, not a cloth simulation.'}</p>
+          <p className="all-round-note">{standIn ? 'The turning view of this design is still in testing, so this is its drawing.' : inTesting ? 'The cloth view of this design is still in testing, so this is its shape preview.' : 'A shape preview, not a cloth simulation.'}</p>
         </div>
       )}
     </div>

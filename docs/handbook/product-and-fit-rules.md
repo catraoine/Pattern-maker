@@ -57,6 +57,12 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
 8. **All round is quiet** (Oct 31, Q2): no seam dots or hem chart; the checks are one line ("Seams and
    hem checked") and the disclaimer is small text. With no fabric picked the garment turns in pale calico
    (the How it works film keeps its lines).
+9. **All round falls back to the Front drawing** (Nov 2, eye check): a design that fails the drape score shows its
+   garment's Front drawing with "The turning view of this design is still in testing, so this is its drawing", never
+   the old shape preview (which lost drawn details and broke on circle skirts, halters and flutter sleeves). A
+   side slit is drawn open on the wearer's left, as the pattern cuts it. A sleeve the pattern has but the drawing
+   dropped fails the score ("missing"). Developers: `?sewn=all` shows the cloth even when the score fails, `?sewn=outer`
+   sews jackets and coats. The eye-check designs live in `e2e/eye-designs.ts` (run with `EYE_CHECK=<dir>`).
 
 ## Style steps
 

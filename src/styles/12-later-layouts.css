@@ -48,6 +48,16 @@ input.inline:focus,
   max-width: 420px;
 }
 
+/* The Front drawing standing in for a sewn drawing that failed its score: as wide as the drawing is on Front. */
+.all-round.all-round-stand-in {
+  max-width: none;
+  align-items: center;
+}
+
+.all-round-canvas[hidden] {
+  display: none;
+}
+
 .all-round-canvas {
   display: block;
   width: 100%;

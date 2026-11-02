@@ -280,6 +280,23 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
     );
   }
 
+  // The Front drawing: shown on Front, and standing in for the sewn All round when that fails its score.
+  const sketch = draft ? (
+    <GarmentFabric fabric={fabric}>
+      <BodiceShape
+        draft={draft}
+        m={m}
+        choices={choices}
+        side={side}
+        drawing={drawing}
+        sleeve={sleeve}
+        arms={formArm}
+        label={`${title}, ${side} view. Drag the hem to change the length, or the side to change the fit.`}
+        onLive={onChoices}
+        onDone={(before, after) => change(after, before)}
+      />
+    </GarmentFabric>
+  ) : undefined;
   return (
     <StyleLayout
       fabric={fabric}
@@ -489,23 +506,8 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
         </div>
         <div className="preview">
           {error && <p className="msg error">{error}</p>}
-          {draft && view === 'sketch' && (
-            <GarmentFabric fabric={fabric}>
-            <BodiceShape
-              draft={draft}
-              m={m}
-              choices={choices}
-              side={side}
-              drawing={drawing}
-              sleeve={sleeve}
-              arms={formArm}
-              label={`${title}, ${side} view. Drag the hem to change the length, or the side to change the fit.`}
-              onLive={onChoices}
-              onDone={(before, after) => change(after, before)}
-            />
-            </GarmentFabric>
-          )}
-          {round && view === 'round' && <AllRound round={round} drape={drapeJob} m={values} fabric={fabric} striped={matchKind(fabric)} label={`The ${title} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`} />}
+          {view === 'sketch' && sketch}
+          {round && view === 'round' && <AllRound round={round} drape={drapeJob} m={values} fabric={fabric} striped={matchKind(fabric)} fallback={sketch} label={`The ${title} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`} />}
           {flat && view === 'flat' && (
             <GarmentFabric fabric={fabric}>
               <TechFlatView flat={flat} title={title} />

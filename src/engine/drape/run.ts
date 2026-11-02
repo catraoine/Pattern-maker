@@ -12,7 +12,7 @@ import type { RoundGarment } from '../allRound';
 import { placeOnForm, type RoundMeasurements } from '../../ui/allRoundShape';
 import { widensForm } from './widen';
 import { Quality, drapeQuality } from './quality';
-import { DrapeOptions, Draped, drapeBodice, drapeDress, drapeOuter, drapeSkirt, drapeTrousers } from './garment';
+import { DrapeOptions, Draped, drapeBodice, drapeDress, drapeOuter, drapeSkirt, drapeTrousers, isShell } from './garment';
 import { makeSpace } from './space';
 
 export type DrapeJob = { m: RoundMeasurements; armhole: RoundGarment['armhole']; fibre?: Fibre; crisp?: boolean } & (
@@ -28,6 +28,8 @@ export type DrapeJob = { m: RoundMeasurements; armhole: RoundGarment['armhole'];
 export interface DrapedLite {
   panels: { role: string; base: number; tris: number[][]; uv: number[]; hidden?: boolean; collar: boolean; /** Pressed pleats: drawn crisp, their faces' shading not softened away. */ pleated?: boolean; /** Points turned back over a fold (a lapel, a collar's fall). */ turned?: number[] }[];
   pos: Float64Array;
+  /** The mirrored half's points, where they differ from `pos` (a slit up the left side seam only). */
+  posMirror?: Float64Array;
   lines: { kind: string; ids: number[] }[];
   buttons: { at: [number, number, number]; r: number }[];
   /** Shadow inside pressed pleats, per point (0 to 1). */
@@ -76,7 +78,8 @@ export function runDrape(job: DrapeJob): DrapedLite {
       d = drapeOuter(sp, job.draft, t);
       break;
     case 'dress':
-      d = drapeDress(sp, job.draft, job.sleeve, t);
+      // A side slit is drawn open (up the left side seam, as the pattern cuts it).
+      d = drapeDress(sp, job.draft, job.sleeve, { ...t, openSlit: true });
       break;
     case 'bodice':
       d = drapeBodice(sp, job.draft, job.sleeve, t);
@@ -85,12 +88,20 @@ export function runDrape(job: DrapeJob): DrapedLite {
       d = drapeTrousers(sp, job.draft, t);
       break;
     default:
-      d = drapeSkirt(sp, job.draft, t);
+      d = drapeSkirt(sp, job.draft, { ...t, openSlit: true });
   }
   const cc = job.kind === 'outer' ? (job.draft as { contrastCollar?: string }).contrastCollar : undefined;
   // (A skirt's hem, or a dress's, is cut level unless it is a high-low, a diagonal or a shaped hem.)
   const sk = job.kind === 'skirt' ? job.draft : job.kind === 'dress' ? job.draft.skirt : undefined;
   const quality = drapeQuality(d, sp, { seams: d.seams, levelHem: !!sk && !sk.asym && !sk.hem, legs: job.kind === 'trousers' });
+  // A sleeve piece the drape left out (a raglan's back half) is cloth missing from the drawing, which no measure of the
+  // cloth that is there can see: the eye check's oversized raglan jacket passed with its shoulders open (2026-11-02).
+  const sleevePieces = (job.kind === 'outer' ? job.draft.pieces : job.kind === 'bodice' || job.kind === 'dress' ? (job.sleeve?.pieces ?? []) : []).filter((pc) => isShell(pc) && /sleeve/i.test(pc.name) && !/band|cuff|facing/i.test(pc.name));
+  const sleevePanels = d.panels.filter((p) => p.role === 'sleeve' && !p.hidden).length;
+  if (sleevePieces.length > sleevePanels) {
+    for (const pc of sleevePieces.slice(sleevePanels)) quality.problems.push({ check: 'missing', part: pc.name, worst: sleevePieces.length - sleevePanels });
+    quality.ok = false;
+  }
   return {
     panels: d.panels.map((p) => ({
       role: p.role,
@@ -103,6 +114,7 @@ export function runDrape(job: DrapeJob): DrapedLite {
       turned: p.turned.some(Boolean) ? p.turned.map((t) => (t ? 1 : 0)) : undefined,
     })),
     pos: d.pos,
+    ...(d.posMirror ? { posMirror: d.posMirror } : {}),
     lines: d.lines,
     buttons: d.buttons.map((b) => ({ at: [b.at[0], b.at[1], b.at[2]], r: b.r })),
     ...(d.shade ? { shade: d.shade } : {}),
