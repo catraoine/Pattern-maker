@@ -3,6 +3,10 @@
 Newest first. One line each: date, decision, where it lives. Add a line whenever Cat decides
 something that changes how a department works. Design picks for single screens stay in their PRs.
 
+## November 2026
+
+- **Nov 2** Fabric palette card (D1 One Palette Card): the picked fabric stands beside the form on Front as one tall card in the A1 style, on every garment; a shop fabric also shows its shop and listed price. On a phone the tag of picks moves under it (up to three lines, as many as fit) and the card stays, smaller, while the swatches scroll. PR to come from this thread.
+
 ## October 2026
 
 - **Oct 31** Style journey (J1-J8): one step order for every garment (Shape, Neck & sleeves, Length & hem, Details, Fabric); jacket Hem and cuffs on Length & hem; dress Cut + Waist seam on Shape (asked once); dress step named Length & hem; Next shows the full step name; views Front · Flat · All round everywhere (skirt gains Flat); T-shirt stretch on Fabric with How to test folded; phone Show all tools on Review; phone corner tools side by side on the length step. PR #254.

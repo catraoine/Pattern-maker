@@ -326,7 +326,7 @@ interface Props {
   onPrint?: () => void;
   /** The finished measurements and ease, open above Print rather than folded (F1, 2026-10-28). */
   finished?: ReactNode;
-  /** The picked fabric: it stands beside the form as one tall palette card (Cat's D1, mock-up 2026-11-02). */
+  /** The picked fabric: it stands beside the form as one tall palette card (Cat's D1, 2026-11-02). */
   fabric?: MyFabric;
 }
 
@@ -477,8 +477,19 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
     if (to) choose(to);
   };
   const at = steps.indexOf(active ?? '');
-  // The picked fabric's palette card, beside the garment on the form once a fabric is picked (D1, mock-up).
+  // The picked fabric's palette card, beside the garment on the form once a fabric is picked (D1).
   const palette = showsPalette(fabric);
+  // Under the card, as many of the three main picks as fit beside the drawing (the skirt's drawing is shorter):
+  // lines drop off the end rather than run into the views below.
+  const col = useRef<HTMLDivElement>(null);
+  const [cardLines, setCardLines] = useState(CARD_TAG_LINES);
+  useEffect(() => setCardLines(CARD_TAG_LINES), [label, active, palette]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- measures after every render; the check stops a loop
+  useLayoutEffect(() => {
+    const el = col.current;
+    if (!el || !host || cardLines === 0) return;
+    if (el.offsetHeight > host.clientHeight - 8) setCardLines(cardLines - 1);
+  });
 
   // The drawing's corner for its tools, made inside the drawing's area.
   const [corner, setCorner] = useState<HTMLElement | null>(null);
@@ -610,11 +621,11 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
                 <div className="preview-corner" ref={setCorner} />
                 {palette ? (
                   // The card on top, the three main picks under it (on a phone; a computer shows the card alone).
-                  <div className="palette-col">
+                  <div className="palette-col" ref={col}>
                     <PaletteCard fabric={fabric} />
-                    {tag.length > 0 && (
+                    {tag.length > 0 && cardLines > 0 && (
                       <dl className="spec-tag under-card" aria-label="Your choices so far">
-                        {tag.slice(0, CARD_TAG_LINES).map((l) => (
+                        {tag.slice(0, cardLines).map((l) => (
                           <div key={l.label} className={l.mine ? 'mine' : undefined}>
                             <dt>{l.label}</dt>
                             <dd>{l.pick}</dd>

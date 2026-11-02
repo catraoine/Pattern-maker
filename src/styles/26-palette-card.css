@@ -1,4 +1,4 @@
-/* ---- D1 One Palette Card (Cat, 2 November 2026, mock-up): the picked fabric as one tall palette card beside the
+/* ---- D1 One Palette Card (Cat, 2 November 2026): the picked fabric as one tall palette card beside the
    form, in the A1 card style (cloth over a cream name strip). On a phone the tag of picks moves under it, and the
    card stays beside the form as the page scrolls into the swatches. ---- */
 .palette-col {
@@ -26,6 +26,9 @@
   content: '';
   position: absolute;
   inset: 0;
+  /* A fine champagne edge, so black cloth doesn't sink into the black page. */
+  border: 1px solid color-mix(in srgb, var(--gild) 28%, transparent);
+  border-bottom: 0;
   box-shadow: inset -12px 0 16px -12px rgba(0, 0, 0, 0.45);
   pointer-events: none;
 }
@@ -105,4 +108,17 @@
   .palette-col > .spec-tag {
     display: none;
   }
+}
+
+/* A partner shop's fabric: the shop and its price in small capitals under the name, as on the Shop tab's cards. */
+.palette-shop {
+  display: block;
+  margin-top: 5px;
+  font-size: 8px;
+  letter-spacing: 0.12em;
+  color: var(--card-quiet);
+}
+.style-layout.compact .palette-shop {
+  font-size: 6.5px;
+  margin-top: 3px;
 }

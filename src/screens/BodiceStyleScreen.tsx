@@ -273,6 +273,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
 
   return (
     <StyleLayout
+      fabric={fabric}
       onEditMeasurements={onEditMeasurements}
       onPrint={onNext}
       flat={flat}
