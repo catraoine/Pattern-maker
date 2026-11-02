@@ -556,13 +556,9 @@ export default function App() {
           ) : (
             <>
               <div className="steady-row">
-                {/* No header back on Style (Cat's B, 2026-11-02): the Measure tab beside it already goes there, and two
-                    arrows going different places got people lost. The bar's back names the step it goes to. */}
-                {step !== 'style' && (
-                  <button type="button" className="steady-back" aria-label="Back" onClick={back}>
-                    ←
-                  </button>
-                )}
+                <button type="button" className="steady-back" aria-label="Back" onClick={back}>
+                  ←
+                </button>
                 <nav aria-label="Steps" className="steps">
                   {STEPS.map((s) => {
                     const on = STEP_OF[step] === s.id;

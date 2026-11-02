@@ -95,3 +95,9 @@
   color: var(--gild);
   white-space: nowrap;
 }
+/* No header back on the style steps (Cat's B, 2026-11-02): the Measure tab beside it already goes there, and two
+   arrows going different places got people lost. Drawing on the form and the Review page keep it: they are a level
+   down, and it brings you back up to the steps. */
+body:has(.style-layout .style-edit) .steady-back {
+  display: none;
+}
