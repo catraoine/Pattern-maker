@@ -211,10 +211,10 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
     change(validDetails({ ...next, sleeveShape: sleeveOf(next).shape }));
   };
 
-  // The garment's own views: the sketch's two sides, the flat drawing, all round on the form.
+  // The garment's own views: the front sketch, the flat drawing, all round on the form. No Back view (Cat,
+  // 2026-11-02): every back choice is picked in the steps, and All round shows the back as it turns.
   const garmentViews: [Side | 'flat' | 'round', string][] = [
     ['front', 'Front'],
-    ['back', 'Back'],
     ['flat', 'Flat'],
     ['round', 'All round'],
   ];

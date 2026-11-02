@@ -81,3 +81,23 @@
 .how-to-test p {
   margin: 6px 0 0;
 }
+/* Named (Cat's B, 2026-11-02): "‹ Shape", the step it goes back to, in quiet caps. */
+.step-back-arrow.named {
+  width: auto;
+  padding: 0 12px;
+  gap: 6px;
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--mono);
+  font-size: var(--caps-size);
+  letter-spacing: var(--caps-track);
+  text-transform: uppercase;
+  color: var(--gild);
+  white-space: nowrap;
+}
+/* No header back on the style steps (Cat's B, 2026-11-02): the Measure tab beside it already goes there, and two
+   arrows going different places got people lost. Drawing on the form and the Review page keep it: they are a level
+   down, and it brings you back up to the steps. */
+body:has(.style-layout .style-edit) .steady-back {
+  display: none;
+}

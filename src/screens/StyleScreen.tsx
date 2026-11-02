@@ -521,9 +521,9 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
         />
         <div className="row between wrap">
           {view !== 'pattern' && draft ? (
-            // The same views as every garment: Front (and Back), Flat, All round (Cat, 2026-10-31).
+            // The same views as every garment: Front, Flat, All round. Back dropped (Cat, 2026-11-02): All round shows the back.
             <GarmentViews<Side | 'flat' | 'round'>
-              views={[['front', 'Front'], ['back', 'Back'], ...(flat ? ([['flat', 'Flat']] as [Side | 'flat', string][]) : []), ...(round ? ([['round', 'All round']] as [Side | 'round', string][]) : [])]}
+              views={[['front', 'Front'], ...(flat ? ([['flat', 'Flat']] as [Side | 'flat', string][]) : []), ...(round ? ([['round', 'All round']] as [Side | 'round', string][]) : [])]}
               view={view === 'round' || view === 'flat' ? view : side}
               onView={(v) => {
                 if (v === 'round' || v === 'flat') setView(v);

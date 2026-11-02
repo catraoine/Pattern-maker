@@ -556,9 +556,14 @@ export default function App() {
           ) : (
             <>
               <div className="steady-row">
-                <button type="button" className="steady-back" aria-label="Back" onClick={back}>
-                  ←
-                </button>
+                {/* No header back on the three chapters (Cat, 2026-11-02: "this arrow causes confusion"): Measure, Style
+                    and Print are tapped to move between them. Guided measuring, side screens, Draw and Review keep it
+                    (Style's steps hide it in 25-step-back.css). */}
+                {step !== 'measure' && step !== 'export' && (
+                  <button type="button" className="steady-back" aria-label="Back" onClick={back}>
+                    ←
+                  </button>
+                )}
                 <nav aria-label="Steps" className="steps">
                   {STEPS.map((s) => {
                     const on = STEP_OF[step] === s.id;
