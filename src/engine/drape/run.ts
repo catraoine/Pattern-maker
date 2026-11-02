@@ -10,6 +10,7 @@ import type { TrousersDraft } from '../trousers';
 import type { Fibre } from '../fabrics';
 import type { RoundGarment } from '../allRound';
 import { placeOnForm, type RoundMeasurements } from '../../ui/allRoundShape';
+import { widensForm } from './widen';
 import { DrapeOptions, Draped, drapeBodice, drapeDress, drapeOuter, drapeSkirt, drapeTrousers } from './garment';
 import { makeSpace } from './space';
 
@@ -64,7 +65,7 @@ export function sleeved(job: Pick<DrapeJob, 'kind'> & { sleeve?: unknown }): boo
 }
 
 export function runDrape(job: DrapeJob): DrapedLite {
-  const sp = makeSpace(placeOnForm({ armhole: job.armhole }, job.m), job.m, { widen: !sleeved(job) });
+  const sp = makeSpace(placeOnForm({ armhole: job.armhole }, job.m), job.m, { widen: widensForm(job) });
   const t: DrapeOptions = { ...(TUNE[job.fibre ?? 'cotton'] ?? TUNE.cotton!) };
   if (job.crisp) t.crisp = 40;
   let d: Draped;

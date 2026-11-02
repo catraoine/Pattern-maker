@@ -6,6 +6,7 @@
 // drawn in it, print and colour wrapped round as it turns (Cat, 2026-10-26); with none, in plain calico, and the checks
 // fold into one quiet line under it (Cat's Q2 Quiet in Calico, 2026-10-31: the view read like engineering).
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { widensForm } from '../engine/drape/widen';
 import type { MyFabric } from '../engine/fabrics';
 import { FabricPaint, fabricPaint } from './FabricFill';
 import { ClothQuad, ClothTiles, clothLayers, clothTiles, lightOf, paintCloth } from './allRoundCloth';
@@ -170,7 +171,7 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
   const jobKey = useMemo(() => (job ? drapeKey(job) : ''), [job]);
   const [draped, setDraped] = useState<{ key: string; view: DrapedView } | undefined>();
   // (Drawn at the wearer's shoulder width only under a sleeveless garment, as the drape worker's form is: see makeSpace.)
-  const widenForm = !(drape && (drape.kind === 'outer' || ('sleeve' in drape && !!drape.sleeve)));
+  const widenForm = !drape || widensForm(drape);
   const spaceOf = useMemo(() => makeSpace(placeOnForm(round, m), m, { widen: widenForm }), [round, m, widenForm]);
   // The form stands at the wearer's shoulder width, as the body the cloth is sewn on does.
   const formX = useMemo(() => (x: number, y: number, z: number) => {

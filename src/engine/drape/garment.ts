@@ -2574,6 +2574,38 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       });
     }
   }
+  // A sleeveless top cut to the wearer's shoulder runs on past the form's narrower shoulder tip: there, with no
+  // shoulder under it, the cloth lies down onto the top of the arm rather than standing out level as a shelf. Each
+  // point past the tip is lowered by as much as the shoulder seam above it stands off the arm's top (a smooth drop
+  // along the shoulder, not point by point, so the armhole edge stays one clean line), less with depth below it.
+  if (!B.panels.some((p) => p.role === 'sleeve' && !p.hidden) && !extra.trousers && !o.pinFront?.length && !knob('__noArmLie')) {
+    const { a, r0 } = sp.arm;
+    const tx = sp.tip.x;
+    const armTop = (x: number) => a[1] - Math.sqrt(Math.max(0, r0 * r0 - Math.min(r0 * 0.95, Math.abs(x - a[0])) ** 2));
+    for (const p of B.panels) {
+      if (p.hidden || (p.role !== 'front' && p.role !== 'back')) continue;
+      const sh = (p.mesh.runs.shoulder ?? []).flat().map((i) => [Math.abs(res[(p.base + i) * 3]), res[(p.base + i) * 3 + 1]] as [number, number]).sort((u, v) => u[0] - v[0]);
+      if (sh.length < 2) continue;
+      const seamC = (x: number) => {
+        if (x <= sh[0][0]) return sh[0][1];
+        for (let k = 1; k < sh.length; k++) if (x <= sh[k][0]) return sh[k - 1][1] + ((sh[k][1] - sh[k - 1][1]) * (x - sh[k - 1][0])) / (sh[k][0] - sh[k - 1][0] || 1);
+        return sh[sh.length - 1][1];
+      };
+      const drop = (x: number) => {
+        const w = Math.min(1, Math.max(0, (x - tx) / 1.5));
+        return w * w * (3 - 2 * w) * Math.max(0, armTop(x) - thick - seamC(x)) * (knob('__armLie') ?? 1);
+      };
+      p.mesh.pts.forEach((_, i) => {
+        const I = (p.base + i) * 3;
+        const x = Math.abs(res[I]);
+        if (x <= tx) return;
+        const dD = drop(x);
+        if (!dD) return;
+        const below = Math.max(0, res[I + 1] - seamC(x));
+        res[I + 1] += dD * Math.max(0, 1 - below / 10);
+      });
+    }
+  }
   // An unshaped shirt or top (cut as wide at the waist as the bust) hangs from the bust and shoulder blades in a few
   // long folds: below them it falls straight, not back in over the ribs or out over the belly in small ripples. The
   // cloth's own small ripples are eased out first (seams held), then each point down the front and back is kept at
@@ -2732,7 +2764,10 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
   if (!knob('__noFoldSmooth')) {
     const onC = new Set(centre);
     for (const p of B.panels) {
-      if ((p.role !== 'peplum-front' && p.role !== 'peplum-back') || !p.mesh.runs.fold?.length) continue;
+      // (A skirt cut on the fold, or a top's centre back seam: the same smoothing either way.)
+      const skirtFold = (p.role === 'peplum-front' || p.role === 'peplum-back') && !!p.mesh.runs.fold?.length;
+      const topCentre = (p.role === 'front' || p.role === 'back') && !p.mesh.runs.opening && !!(p.mesh.runs.fold?.length || p.mesh.runs.centre?.length) && !knob('__noTopFold');
+      if (!skirtFold && !topCentre) continue;
       const nb: number[][] = p.mesh.pts.map(() => []);
       for (const [a, b, c] of p.mesh.tris) for (const [u, v] of [[a, b], [b, c], [c, a]]) {
         nb[u].push(v);
