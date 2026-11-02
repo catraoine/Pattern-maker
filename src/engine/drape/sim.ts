@@ -38,6 +38,8 @@ export interface SimInput {
   shoulderZ?: number;
   /** The shoulder seam held front to back only, left to rise off the shoulder's top onto the neck's base as it will. */
   shoulderZFree?: boolean;
+  /** How far in from the shoulder's tip the seam is drawn to shoulderZ (all the way out unless given). */
+  shoulderZIn?: number;
   /** Edges running down a bodice, top first (upper point, lower point, cut length): held to near their cut length. */
   /** Edges down a bodice held to near their cut length, top first; `k` how hard (1 under a long skirt's weight). */
   chain?: { up: Int32Array; lo: Int32Array; rest: Float64Array; k?: number };
@@ -54,6 +56,12 @@ export interface SimInput {
   /** Turned points resting on the cloth they cover (i on j, gap cm out from the body's axis). */
   lieOn?: { i: Int32Array; j: Int32Array; gap: Float64Array };
   bendK: number;
+  /** How much more than the light pull down the cloth hangs by (a short top, with nothing hung below it). */
+  gK?: number;
+  /** Only from this level down (cm, as placed), over 6 cm, or out past this far from the centre over 4 cm: above it and
+   *  in from it, round the neck, the light pull. */
+  gFromY?: number;
+  gFromX?: number;
 }
 
 export function simulate(s: Space, inp: SimInput, steps = knob("__steps") ?? 260, iters = knob("__iters") ?? 14): Float64Array {
@@ -62,7 +70,10 @@ export function simulate(s: Space, inp: SimInput, steps = knob("__steps") ?? 260
   const prev = Float64Array.from(inp.pos);
   const dt = 1 / 90;
   // A light pull down: enough to hang what is free (a peplum, a sleeve) while the cloth holds its cut lengths.
-  const g = 300 * dt * dt * (knob("__g") ?? 1);
+  const g = 300 * dt * dt * (knob("__g") ?? inp.gK ?? 1);
+  const g1 = 300 * dt * dt;
+  const gY = knob('__gFromY') ?? inp.gFromY;
+  const gOf = gY === undefined ? undefined : Float64Array.from({ length: n }, (_, i) => g1 + (g - g1) * Math.min(1, Math.max(0, (inp.pos[i * 3 + 1] - gY) / 6, (Math.abs(inp.pos[i * 3]) - (knob('__gFromX') ?? inp.gFromX ?? Infinity)) / 4)));
   const padT = knob("__padT") ?? 0.3;
   const lieK = knob("__lk") ?? 0.5;
   const fric = knob("__fr") ?? 0.3;
@@ -163,7 +174,7 @@ export function simulate(s: Space, inp: SimInput, steps = knob("__steps") ?? 260
   // held to near its cut length, top first, the lower end drawn up to the upper (a hanging chain, settled from the top).
   const LIM = knob('__strain') ?? 1.06;
   const CHK = knob('__chainK') ?? 1;
-  const HZIN = knob('__holdZin') ?? -99;
+  const HZIN = knob('__holdZin') ?? inp.shoulderZIn ?? -99;
   const HZK = knob('__holdZk') ?? 0.5;
   const HZY = (knob('__holdZy') ?? 1) > 0;
   for (let step = 0; step < steps; step++) {
@@ -178,7 +189,7 @@ export function simulate(s: Space, inp: SimInput, steps = knob("__steps") ?? 260
       prev[I + 1] = x[I + 1];
       prev[I + 2] = x[I + 2];
       x[I] += vx;
-      x[I + 1] += vy + g * ramp;
+      x[I + 1] += vy + (gOf ? gOf[i] : g) * ramp;
       x[I + 2] += vz;
       if (inp.pressed?.[i]) {
         // Pressed in toward the body (the cloth under it holds it off by its thickness).
