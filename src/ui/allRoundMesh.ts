@@ -100,7 +100,8 @@ function material(mode: Mode, map?: THREE.Texture, scale = 1, opacity = 1): Roun
   if (vY < hideAbove || vY > hideBelow) discard;
   float own = 1.0 - clamp(vShade, 0.0, 1.0);
   if (shadeDepth > 0.0 && vY >= shadeY) own *= 0.42 + 0.58 * clamp((vY - shadeY) / shadeDepth, 0.0, 1.0);
-  diffuseColor.rgb *= own;`,
+  diffuseColor.rgb *= own;
+  diffuseColor.rgb += (1.0 - diffuseColor.rgb) * 0.22 * clamp(-vShade, 0.0, 1.0);`,
       )
       // The far side of the cloth, seen from inside through a neck or an armhole, lies in shadow.
       .replace('#include <normal_fragment_begin>', '#include <normal_fragment_begin>\nif (!gl_FrontFacing) diffuseColor.rgb *= 0.45;');
@@ -329,6 +330,8 @@ export interface BuildOptions {
   striped: boolean;
   /** The garment sewn from its pattern; 'pending' while it is still settling (the form stands alone meanwhile). */
   draped?: DrapedView | 'pending';
+  /** The form drawn out at the shoulders to the wearer's width, as the cloth's body is (Space.widen, in form units). */
+  formX?: (x: number, y: number, z: number) => number;
 }
 
 /** What one frame is drawn with: the turn, the canvas (CSS px and device pixel ratio) and the view's own scale,
@@ -395,10 +398,10 @@ function buildDraped(
   // Drawn half a cm further out than it settled: the drawn form is not quite the body the cloth settled on, and over the
   // collarbones and shoulder blades it would poke through a cloth lying close.
   const LIFT = 0.5;
-  const P = (i: number, e: number): V3 => {
+  const P = (i: number, e: number, more = 0): V3 => {
     const x = d.pos[i * 3];
     const z = d.pos[i * 3 + 2];
-    const k = 1 + LIFT / (Math.sqrt(x * x + z * z) || 1);
+    const k = 1 + (LIFT + more) / (Math.sqrt(x * x + z * z) || 1);
     return toForm(x * k * e, d.pos[i * 3 + 1], z * k);
   };
   for (const p of d.panels) {
@@ -406,7 +409,12 @@ function buildDraped(
     const n = p.uv.length / 2;
     for (const e of [1, -1]) {
       const pos = new Float32Array(n * 3);
-      for (let i = 0; i < n; i++) pos.set(P(p.base + i, e), i * 3);
+      // A front's button extension (cut past the centre front) laps over the other side: the under one lies a little
+      // further in, or the two mirrored halves cross at the front and leave a tab at the hem.
+      const under = e < 0 && p.role === 'front';
+      // A back vent's underlap (cut past the centre back) lies under the other side's cloth, on both sides.
+      const vent = p.role === 'back';
+      for (let i = 0; i < n; i++) pos.set(P(p.base + i, e, under && p.uv[i * 2] < -0.05 && !p.turned?.[i] ? -0.9 : vent && p.uv[i * 2] < -0.05 ? -0.6 : 0), i * 3);
       // Each triangle wound so its face looks out from the body (a back piece is laid the other way round from a front);
       // a sleeve's out from the middle of its own arm. The scene's y runs down, so out is the cross product's reverse.
       const ref = (() => {
@@ -425,8 +433,11 @@ function buildDraped(
         }
         return m.map((v) => v / (k || 1)) as V3;
       })();
+      // Cloth turned back over a fold (a lapel) lies the other way up from the rest of its piece.
+      const flipped = (a: number, b: number, c: number) => (p.turned ? p.turned[a] + p.turned[b] + p.turned[c] >= 1 : false);
       let outward = 0;
       for (const [a, b, c] of p.tris) {
+        if (flipped(a, b, c)) continue;
         const ux = pos[b * 3] - pos[a * 3];
         const uy = pos[b * 3 + 1] - pos[a * 3 + 1];
         const uz = pos[b * 3 + 2] - pos[a * 3 + 2];
@@ -443,13 +454,13 @@ function buildDraped(
       }
       const idx: number[] = [];
       for (const [a, b, c] of p.tris) {
-        if (outward > 0) idx.push(a, c, b);
+        if (outward > 0 !== flipped(a, b, c)) idx.push(a, c, b);
         else idx.push(a, b, c);
       }
       const g = new THREE.BufferGeometry();
       g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
       g.setAttribute('uv', new THREE.Float32BufferAttribute(p.uv, 2));
-      g.setAttribute('shade', new THREE.Float32BufferAttribute(new Float32Array(n), 1));
+      g.setAttribute('shade', new THREE.Float32BufferAttribute(d.shade ? d.shade.slice(p.base, p.base + n) : new Float32Array(n), 1));
       g.setIndex(idx);
       g.computeVertexNormals();
       // Soften the shading over a few cm: the mesh's own grain reads as dimples on a pale cloth.
@@ -460,7 +471,8 @@ function buildDraped(
         nb[b].push(a, c);
         nb[c].push(a, b);
       }
-      for (let pass = 0; pass < 4; pass++) {
+      // (Pressed pleats keep their faces' light and shadow: softened once only.)
+      for (let pass = 0; pass < (p.pleated ? 1 : 4); pass++) {
         const nx = Float32Array.from(nrm);
         nb.forEach((list, i) => {
           if (!list.length) return;
@@ -505,7 +517,7 @@ function buildDraped(
     }
   }
   // The seams and edges: bright fine lines in lines, faint ones in cloth (the cloth itself gives the shape).
-  const SHOW = new Set(['shoulder', 'side', 'princess', 'armhole', 'neck', 'waist', 'hem', 'opening', 'lapel', 'gorge', 'collar', 'front-seam', 'back-seam', 'sleeve-front', 'opening-hem', 'centre', 'vent', 'inseam', 'outseam', 'crotch', 'yoke', 'tier']);
+  const SHOW = new Set(['shoulder', 'side', 'princess', 'armhole', 'neck', 'waist', 'hem', 'opening', 'lapel', 'gorge', 'collar', 'front-seam', 'back-seam', 'sleeve-front', 'opening-hem', 'centre', 'pleat', 'inseam', 'outseam', 'crotch', 'yoke', 'tier']);
   const seam = lines({ colour: GLOW, width: cloth ? 0.7 : 1.1, back: cloth ? 0 : 0.25, alpha: cloth ? 0.55 : 1 });
   for (const l of d.lines) {
     if (!SHOW.has(l.kind)) continue;
@@ -521,12 +533,15 @@ function buildDraped(
   }
   for (const b of d.buttons) {
     const q = toForm(b.at[0], b.at[1], b.at[2] + LIFT);
-    const g = new THREE.SphereGeometry(b.r / 22, 16, 8);
+    // Small, self-coloured buttons: the cloth's own colour, a touch paler, with a little sheen (a quiet dark horn where
+    // there is no plain colour to match).
+    const g = new THREE.SphereGeometry(b.r / 30, 16, 8);
     g.setAttribute('shade', new THREE.Float32BufferAttribute(new Float32Array(g.getAttribute('position').count), 1));
-    g.scale(1, 1, 0.4);
+    g.scale(1, 1, 0.35);
     g.translate(q[0], q[1], q[2]);
     const m = material('gloss');
-    m.color.set(0x1c1a18);
+    if (cloth?.plain) m.color.set(new THREE.Color(cloth.plain).lerp(new THREE.Color(0xffffff), 0.12));
+    else m.color.set(0x2a2622);
     add(g, m, 2, 'cloth');
   }
 }
@@ -608,7 +623,9 @@ export function createRoundView(): RoundView | undefined {
     // The body: the satin form from the top of its neck to below the hip, its neck cut flat across, and its legs.
     const bodyAt = (a: number, y: number): V3 => {
       const yy = Math.max(y, NECK_TOP);
-      return P(a, bodyReach(bodyHalf(Math.min(yy, 1.3)), a, yy), y);
+      const q = P(a, bodyReach(bodyHalf(Math.min(yy, 1.3)), a, yy), y);
+      if (o.formX) q[0] = o.formX(q[0], yy, q[2]);
+      return q;
     };
     const satin = material('satin');
     /** Where the garment's hem is on average: the body or legs under it stand in its shadow. */

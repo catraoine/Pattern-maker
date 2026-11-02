@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { SKIRT_BELTS, beltAllowed, beltPieces, skirtBelt } from '../engine/belt';
 import type { Choices } from '../savedWork';
 import { layout } from '../engine/export';
-import { PULL_ON_EASE, lengthRange, SkirtDraft, SkirtMeasurements } from '../engine/skirt';
+import { PULL_ON_EASE, lengthRange, lowRiseAllowed, SkirtDraft, SkirtMeasurements } from '../engine/skirt';
 import { skirtSpec } from '../engine/spec';
 import { FinishedTable, finishedLines } from '../ui/FinishedTable';
 import { isShaped } from '../engine/hem';
@@ -46,7 +46,7 @@ import { AllRound } from '../ui/AllRound';
 import { roundSkirt } from '../engine/allRound';
 import { PiecesList, SummaryActions } from '../ui/StyleSummary';
 
-import { GROUPS, chosen, DETAIL_GROUPS, FRONT_GROUP, frontOf, ZIP_PLACES, detailOf, zipOf, withWaist, keepWrap, elasticAllowed, pocketsAllowed, keepWaist, beltOf_, currentLook, describe, fabricMetres } from '../skirtChoices';
+import { GROUPS, GATHERS_GROUP, RISE_GROUP, TIERS_GROUP, gathersChosen, gathersOf, chosen, DETAIL_GROUPS, FRONT_GROUP, frontOf, ZIP_PLACES, detailOf, zipOf, withWaist, keepWrap, elasticAllowed, pocketsAllowed, keepWaist, beltOf_, currentLook, describe, fabricMetres } from '../skirtChoices';
 
 interface Props {
   finish: Finish;
@@ -287,6 +287,20 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
             <Explain set="skirt" group={g.id} options={g.options} pick={chosen(choices, g.id)} />
           </Group>
         ))}
+        {gathersChosen(choices) && (
+          <Group label={GATHERS_GROUP.label}>
+            <div className={chipsClass('skirt', 'gathers')}>
+              {GATHERS_GROUP.options.map(([id, label]) => (
+                <button key={id} type="button" className={gathersOf(choices, choices.dropYoke) === id ? 'chip on' : 'chip'} aria-pressed={gathersOf(choices, choices.dropYoke) === id} onClick={() => change({ ...choices, gathers: id })}>
+                  <ChoicePic set="skirt" group="gathers" id={id} />
+                  {label}
+                  <TestingTag tool="fullness" />
+                </button>
+              ))}
+            </div>
+            <Explain set="skirt" group="gathers" options={GATHERS_GROUP.options} pick={gathersOf(choices, choices.dropYoke)} />
+          </Group>
+        )}
         <Group label="Slit">
           <div className={chipsClass('skirt', 'slit')}>
             {SLIT_PLACES.map(([id, label]) => (
@@ -409,6 +423,30 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
             )}
           </Group>
         ))}
+        {/* Where it sits (In testing): at the waist or low on the hip. A high waist rises the other way, so not with it. */}
+        <Group label={RISE_GROUP.label}>
+          <div className={chipsClass('skirt', 'rise')}>
+            {RISE_GROUP.options.map(([id, label]) => {
+              const on = (id === 'low') === (choices.rise === 'low');
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  className={on ? 'chip on' : 'chip'}
+                  aria-pressed={on}
+                  disabled={id === 'low' && !lowRiseAllowed(choices)}
+                  onClick={() => change(id === 'low' ? { ...choices, rise: 'low' } : (({ rise: _r, ...rest }) => rest)(choices))}
+                >
+                  <ChoicePic set="skirt" group="rise" id={id} />
+                  {label}
+                  {id === 'low' && <TestingTag tool="low_rise" />}
+                </button>
+              );
+            })}
+          </div>
+          <Explain set="skirt" group="rise" options={RISE_GROUP.options} pick={choices.rise === 'low' ? 'low' : 'natural'} />
+          {!lowRiseAllowed(choices) && <p className="muted small">A high waist rises above your waist, so it can't sit low too.</p>}
+        </Group>
         {/* Pleats, godets, a flounce, tiers or ruching: named Fullness, as on the Draw tool, so the step called Details
             doesn't hold a question called Details too, and asked after the waist and pockets every skirt needs (Cat's D2, 2026-10-30). */}
         <Group label="Fullness">
@@ -437,8 +475,27 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
               ))}
             </div>
           )}
+          {volumeOf(choices) === 'tiers' && (
+            <>
+              <div className={chipsClass('skirt', 'tiers')}>
+                {TIERS_GROUP.options.map(([id, label]) => {
+                  const on = (id === 'drop_yoke') === !!choices.dropYoke;
+                  return (
+                    <button key={id} type="button" className={on ? 'chip on' : 'chip'} aria-pressed={on} onClick={() => change(id === 'drop_yoke' ? { ...choices, dropYoke: true } : (({ dropYoke: _d, ...rest }) => rest)(choices))}>
+                      <ChoicePic set="skirt" group="tiers" id={id} />
+                      {label}
+                      {id === 'drop_yoke' && <TestingTag tool="drop_yoke" />}
+                    </button>
+                  );
+                })}
+              </div>
+              <Explain set="skirt" group="tiers" options={TIERS_GROUP.options} pick={choices.dropYoke ? 'drop_yoke' : 'stacked'} />
+            </>
+          )}
           {choices.silhouette === 'slip' ? (
             <p className="muted small">A bias slip hangs from the hip without pleats, godets, flounces or tiers.</p>
+          ) : choices.silhouette === 'gathered' ? (
+            <p className="muted small">A gathered skirt takes a ruffled hem; pleats, godets, flounces and tiers go on a pencil, straight or A-line skirt.</p>
           ) : !volumeAllowed({ ...choices, asymHem: 'none' }, 'knife') ? (
             <p className="muted small">Pleats, godets, flounces and tiers go on a pencil, straight or A-line skirt.</p>
           ) : choices.asymHem === 'diagonal' ? (

@@ -125,6 +125,7 @@ const NECK: Record<string, ReactNode> = {
   crew: topTo(44),
   scoop: <path d="M8 12L15 8C16 20 24 20 25 8L32 12L30 22L29 44H11L10 22z" />,
   v: <path d="M8 12L15 8L20 22L25 8L32 12L30 22L29 44H11L10 22z" />,
+  plunge: <path d="M11 10L16 7L20 32L24 7L29 10L30 22L29 44H11L10 22z" />,
   mock: (
     <>
       {topTo(44)}

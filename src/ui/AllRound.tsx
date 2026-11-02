@@ -6,6 +6,7 @@
 // drawn in it, print and colour wrapped round as it turns (Cat, 2026-10-26); with none, in plain calico, and the checks
 // fold into one quiet line under it (Cat's Q2 Quiet in Calico, 2026-10-31: the view read like engineering).
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { widensForm } from '../engine/drape/widen';
 import type { MyFabric } from '../engine/fabrics';
 import { FabricPaint, fabricPaint } from './FabricFill';
 import { ClothQuad, ClothTiles, clothLayers, clothTiles, lightOf, paintCloth } from './allRoundCloth';
@@ -169,8 +170,16 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
   );
   const jobKey = useMemo(() => (job ? drapeKey(job) : ''), [job]);
   const [draped, setDraped] = useState<{ key: string; view: DrapedView } | undefined>();
+  // (Drawn at the wearer's shoulder width only under a sleeveless garment, as the drape worker's form is: see makeSpace.)
+  const widenForm = !drape || widensForm(drape);
+  const spaceOf = useMemo(() => makeSpace(placeOnForm(round, m), m, { widen: widenForm }), [round, m, widenForm]);
+  // The form stands at the wearer's shoulder width, as the body the cloth is sewn on does.
+  const formX = useMemo(() => (x: number, y: number, z: number) => {
+    const s = spaceOf.scale(y);
+    return spaceOf.widen(x * s, spaceOf.cOf(y), z * s) / s;
+  }, [spaceOf]);
   const toFormOf = useMemo(() => {
-    const sp = makeSpace(placeOnForm(round, m), m);
+    const sp = spaceOf;
     // The form's height table flattens above the neck point: a collar standing up the neck is carried on at the
     // slope below it.
     const cTop = sp.cOf(-1.45) + 2;
@@ -180,7 +189,7 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
       const s = sp.scale(y);
       return [x / s, y, z / s];
     };
-  }, [round, m]);
+  }, [spaceOf]);
   useEffect(() => {
     if (!job) return;
     let live = true;
@@ -196,7 +205,11 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the job's contents
   }, [jobKey, toFormOf]);
-  const drapedNow = job ? (draped?.key === jobKey ? draped.view : 'pending') : undefined;
+  const sewnNow = job ? (draped?.key === jobKey ? draped.view : 'pending') : undefined;
+  // A drawing that failed its quality check (see engine/drape/quality.ts) isn't shown turning in cloth: the shape
+  // preview stands in, with a line saying the cloth view for this design is still in testing (Cat, 2026-11-02).
+  const inTesting = !!sewnNow && sewnNow !== 'pending' && sewnNow.d.quality?.ok === false;
+  const drapedNow = inTesting ? undefined : sewnNow;
 
   const turn = useRef({ phi: 0.6, target: null as number | null, dragging: false, idle: 0, probe: false, stroke: null as [number, number][] | null, picks: [] as RoundPick[] });
   const pulse = useRef(-1e9);
@@ -245,7 +258,7 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
 
     const sh = roundShape(round, m, { film, through });
     const v3 = through ? undefined : v3ref.current;
-    if (v3) v3.build({ round, sh, cloth, film, striped: !!striped, draped: drapedNow });
+    if (v3) v3.build({ round, sh, cloth, film, striped: !!striped, draped: drapedNow, formX });
     const { hemY, topY, wh, yAt, yOf, kY, N, krB, krW, krH, longest, highest, bandTop, arm, yS, yU, sl, ra, rh, neckOnly, radius, foldTilt, depthAt, shell, zAcross, clothDown, yE, yCap, axisX, capDepth, sleeveR, lg, yC, yH, legHemR, legR, legAxis, rAt, reach } = sh;
     /** The last frame's layout, for reading where a finger is. */
     let frame = { S: 1, cx: 0, top: 0, lw: 1, fig: 1 };
@@ -1101,18 +1114,18 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
       cv.removeEventListener('pointerup', up);
       cv.removeEventListener('pointercancel', up);
     };
-  }, [round, m, striped, tiles, layers, v3ready, drawing, drapedNow]);
+  }, [round, m, striped, tiles, layers, v3ready, drawing, drapedNow, formX]);
 
   return (
     <div className="all-round">
-      <canvas ref={ref} className={`all-round-canvas${round.legs ? ' all-round-tall' : ''}${drawing ? ' drawing' : ''}`} data-sewn={drapedNow === 'pending' ? 'pending' : drapedNow ? 'ready' : undefined} role="img" aria-label={label} />
+      <canvas ref={ref} className={`all-round-canvas${round.legs ? ' all-round-tall' : ''}${drawing ? ' drawing' : ''}`} data-sewn={drapedNow === 'pending' ? 'pending' : inTesting ? 'testing' : drapedNow ? 'ready' : undefined} role="img" aria-label={label} />
       {!drawing && (
         <div className="all-round-quiet">
           <p className="all-round-checked">
             <span className="all-round-mark" aria-hidden="true" />
             {checked(rows)}
           </p>
-          <p className="all-round-note">A shape preview, not a cloth simulation.</p>
+          <p className="all-round-note">{inTesting ? 'The cloth view of this design is still in testing, so this is its shape preview.' : 'A shape preview, not a cloth simulation.'}</p>
         </div>
       )}
     </div>

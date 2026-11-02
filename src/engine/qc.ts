@@ -203,7 +203,8 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
       const ratio = (side: Piece[]) => (side[0]?.meta.gathered as number | undefined) ?? 1;
       const gather = Math.max(ratio(fronts), ratio(backs));
       const f = sum(fronts, 'waist') / ratio(fronts);
-      if (!(f > 0)) continue;
+      // A lowered peplum sews to the bodice's hem below the waist, checked against that seam further down.
+      if (!(f > 0) || fronts[0]?.meta.sewnTo === 'hem') continue;
       // Two of each piece (a pair, or a piece cut on the fold that is half the front).
       const seam = 2 * (f + sum(backs, 'waist') / ratio(backs));
       checks.push({
@@ -295,16 +296,18 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
         });
     }
 
-  // A peplum: its waist edge sewn to the bodice's, front to front and back to back (gathered to it).
+  // A peplum: its waist edge sewn to the bodice's, front to front and back to back (gathered to it); a
+  // lowered one to the bodice's hem.
   if (garments.includes('Bodice') && garments.includes('Peplum'))
     for (const side of ['front', 'back'] as const) {
-      const b = sum(ofSide('Bodice', side), 'waist');
       const pp = ofSide('Peplum', side);
+      const lowered = pp[0]?.meta.sewnTo === 'hem';
+      const b = sum(ofSide('Bodice', side), lowered ? 'hem' : 'waist');
       const gather = (pp[0]?.meta.gathered as number | undefined) ?? 1;
       const k = sum(pp, 'waist') / gather;
       checks.push({
         group: 'Seams',
-        label: `Waist seam, bodice ${side} to peplum ${side}`,
+        label: `${lowered ? 'Peplum seam' : 'Waist seam'}, bodice ${side} to peplum ${side}`,
         detail: `bodice ${cm(b)}, peplum ${cm(k)}${gather > 1 ? ' once gathered' : ''}, ${Math.abs(b - k) < 0.05 ? 'identical' : `${cm(Math.abs(b - k))} apart`}`,
         ok: Math.abs(b - k) <= SEAM_TOLERANCE,
       });

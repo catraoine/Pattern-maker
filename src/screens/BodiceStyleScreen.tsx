@@ -1,13 +1,13 @@
 import { TestingTag } from '../ui/TestingTag';
 import { matchKind } from '../engine/prints';
-import { optionInTesting } from '../launch';
+import { optionInTesting, oversizedInTesting } from '../launch';
 import { BackNeck, backBlocked } from '../engine/backNeck';
 import { useMemo, useState } from 'react';
 import { layout } from '../engine/export';
 import { bodiceSpec, sleeveSpec } from '../engine/spec';
 import { FinishedTable, finishedLines } from '../ui/FinishedTable';
-import { BodiceDraft, BodiceMeasurements, bodiceEase, dropRange, needsHip } from '../engine/bodice';
-import { BODICE_GROUPS, BodiceChoices, DARTS_FOR_FIT, describeBodice, detailAllowed, sleeveOf, topAllowed, validDetails } from '../garments';
+import { BodiceDraft, BodiceMeasurements, bodiceEase, dropRange, hemDrop, needsHip } from '../engine/bodice';
+import { BODICE_GROUPS, BodiceChoices, DARTS_FOR_FIT, dartsFor, describeBodice, detailAllowed, sleeveOf, topAllowed, validDetails } from '../garments';
 import { isStrapless, isTop } from '../engine/corset';
 import { SHIRR } from '../engine/shirred';
 import { bodiceFlat } from '../engine/flat';
@@ -99,6 +99,7 @@ const NECK_NAMES: Record<BodiceChoices['neckline'], string> = {
   crew: 'crew neck',
   scoop: 'scoop neck',
   v: 'V-neck',
+  plunge: 'plunging V',
   square: 'square neck',
   boat: 'boat neck',
   one_shoulder: 'one-shoulder neckline',
@@ -162,7 +163,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
   const sleeves = useMemo(() => (draft && onForm ? sleeveRange(draft, values as BodiceMeasurements & SleeveMeasurements, choices.fit) : undefined), [draft, onForm, values, choices.fit]);
   const round = useMemo(() => (draft ? roundBodice(draft, values, sleeve) : undefined), [draft, values, sleeve]);
   const drapeJob = useMemo(() => (draft ? ({ kind: 'bodice', draft, sleeve } as const) : undefined), [draft, sleeve]);
-  const detail = { bustDart: choices.bustDart ?? 'side', princess: choices.princess ?? 'none', closure: choices.closure ?? 'back_zip', collar: choices.collar ?? 'none', back: valid.back ?? 'plain', structure: valid.structure ?? 'none', peplum: choices.peplum ?? 'none' };
+  const detail = { bustDart: choices.bustDart ?? 'side', princess: choices.princess ?? 'none', closure: choices.closure ?? 'back_zip', collar: choices.collar ?? 'none', back: valid.back ?? 'plain', structure: valid.structure ?? 'none', peplum: choices.peplum ?? 'none', peplumHem: choices.peplumHem ?? 'level', peplumSize: choices.peplumSize ?? 'standard' };
   // A draped neckline is its own shaping: the dart, seam, opening, collar and boning choices step aside.
   const draped = isDraped(choices);
   const valueOf = (id: (typeof BODICE_GROUPS)[number]['id']) =>
@@ -173,6 +174,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
     // A kimono sleeve is cut on at its named length, with no shape or cuff of its own.
     (id !== 'sleeveShape' || (chosen.length !== 'none' && chosen.cut !== 'kimono')) &&
     (id !== 'sleeveCut' || chosen.length !== 'none') &&
+    ((id !== 'peplumHem' && id !== 'peplumSize') || detail.peplum !== 'none') &&
     (id !== 'sleeveCuff' || (cuffShown(chosen) && chosen.cut !== 'kimono')) &&
     (id !== 'bustDart' || (choices.darts !== 'none' && detail.princess === 'none' && !boned)) &&
     ((id !== 'bustDart' && id !== 'princess') || can('dartMoves') || moved(id)) &&
@@ -202,7 +204,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
 
   const choose = (c: BodiceChoices, group?: string) => {
     // A tighter fit needs more shaping, so moving to it brings the darts back.
-    const darts = DARTS_FOR_FIT[c.fit].includes(c.darts) ? c.darts : 'bust_waist';
+    const darts = dartsFor(c);
     const next = { ...c, darts };
     // Picking a named fit, length or neckline lets go of the dragged or drawn one.
     for (const k of (group && REPLACES[group]) || []) delete next[k];
@@ -226,7 +228,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
         body={formWidth(draft, m)}
         m={m}
         legs={false}
-        bottom={Math.max(landmarks(draft).waistY + (hip ? dropRange(m).max : 0) + 6, drawArm ? drawArm.wristY + 3 : 0)}
+        bottom={Math.max(landmarks(draft).waistY + (hip ? dropRange(m, choices.length).max : 0) + 6, drawArm ? drawArm.wristY + 3 : 0)}
         arms={drawArm}
         kinds={[
           ['neckline', 'Neckline'],
@@ -330,6 +332,12 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
                   <ChoicePic set="bodice" group={g.id} id={id} />
                   {label}
                   {optionInTesting(g.id, id) && <TestingTag tool="new_details" />}
+                  {oversizedInTesting(g.id, id) && <TestingTag tool="oversized" />}
+                  {g.id === 'peplum' && id !== 'none' && hemDrop(m, choices) > 0 && <TestingTag tool="low_peplum" />}
+                  {g.id === 'neckline' && id === 'plunge' && <TestingTag tool="plunge" />}
+                  {g.id === 'peplumHem' && id === 'high_low' && <TestingTag tool="high_low_peplum" />}
+                  {g.id === 'peplumSize' && id === 'big' && <TestingTag tool="big_peplum" />}
+                  {g.id === 'sleeveCuff' && id === 'oversized' && <TestingTag tool="oversized_cuff" />}
                 </button>
               ))}
             </div>
@@ -396,7 +404,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
             )}
             {g.id === 'collar' && !choices.neck && choices.neckline === 'crew' && detail.closure !== 'front_buttons' && <p className="muted small">A shirt collar needs the front buttons.</p>}
             {g.id === 'darts' && choices.fit !== 'relaxed' && (
-              <p className="muted small">{choices.fit === 'fitted' ? 'A fitted bodice needs bust and waist darts.' : 'Choose a relaxed fit to go without darts.'}</p>
+              <p className="muted small">{choices.fit === 'fitted' ? 'A fitted bodice needs bust and waist darts.' : choices.fit === 'oversized' ? 'An oversized top has no darts: its width covers the bust.' : 'Choose a relaxed fit to go without darts.'}</p>
             )}
           </Group>
         ))}

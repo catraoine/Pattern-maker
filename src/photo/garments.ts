@@ -62,7 +62,7 @@ function measuredBodice(c: BodiceChoices, r: PhotoReading, body: PhotoBody | und
   if (!m) return c;
   let out = c;
   const named = NECKLINES[c.neckline];
-  if (num(m.neckDepthCm) && DEEPENED.includes(c.neckline) && (!c.collar || c.collar === 'none') && Math.abs(m.neckDepthCm - named.frontDepth) >= 2.5) {
+  if (num(m.neckDepthCm) && (DEEPENED as string[]).includes(c.neckline) && (!c.collar || c.collar === 'none') && Math.abs(m.neckDepthCm - named.frontDepth) >= 2.5) {
     out = { ...out, neck: { ...named, frontDepth: clamp(Math.round(m.neckDepthCm), 4, 30), fullness: FULLNESS[c.neckline] } };
   }
   const sleeve = sleeveOf(out);
