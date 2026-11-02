@@ -15,6 +15,7 @@ import { VolumeStyle, volumeFabrics, volumeWarnings, volumeWords } from './skirt
 import { LingerieFabricStyle, TeeFabricStyle, lingerieFabrics, teeFabrics, teeWarnings } from './knits';
 import { PrintKind, printCut, printLines, printOf } from './prints';
 import { Checks, SPECIALS, Special, specialLines, specialWarnings } from './specialFabrics';
+import { KNITS, type Knit } from './knitFabrics';
 import { isLowerBody, isOuterwear } from '../measurements';
 
 export type Weight = 'light' | 'medium' | 'heavy';
@@ -32,6 +33,8 @@ export interface MyFabric {
   drape?: Drape;
   /** A cloth that changes the cutting and sewing (denim, leather, velvet...). */
   special?: Special;
+  /** The knit, for the T-shirt (knitFabrics.ts): jersey, rib, interlock... */
+  knit?: Knit;
   /** Checks or stripes to match at the seams. */
   checks?: Checks;
   /** What is printed on it, from the print picker. Checks also set `checks`. */
@@ -549,8 +552,8 @@ export function adviceFor(style: FabricStyle): FabricAdvice {
 }
 
 /** What to watch for with this fabric in this style. */
-function styleWarnings(style: FabricStyle, { weight, drape }: MyFabric): string[] {
-  if (style.garment === 'tee') return teeWarnings(style, { weight, drape });
+function styleWarnings(style: FabricStyle, { weight, drape, knit }: MyFabric): string[] {
+  if (style.garment === 'tee') return teeWarnings(style, { weight, drape, knit });
   if (style.garment === 'lingerie') return weight === 'heavy' ? ['A heavy knit is too thick for lingerie or swimwear. Choose a light one.'] : [];
   const out: string[] = [];
   const name = adviceFor(style).style;
@@ -625,7 +628,7 @@ export function describeFabric(f: MyFabric | undefined): string | undefined {
   const name = f.name?.trim();
   if (name) return name;
   const traits = [f.weight, f.drape].filter(Boolean).join(', ');
-  const fibre = f.special ? SPECIALS[f.special].label.toLowerCase() : f.fibre ? FIBRES[f.fibre].label.toLowerCase() : '';
+  const fibre = f.special ? SPECIALS[f.special].label.toLowerCase() : f.knit ? KNITS[f.knit].words : f.fibre ? FIBRES[f.fibre].label.toLowerCase() : '';
   return [traits, fibre].filter(Boolean).join(' ') || undefined;
 }
 
@@ -640,6 +643,7 @@ export function fabricLines(f: MyFabric | undefined, garment: FabricGarment): st
   if (name) lines.push(`Fabric: ${name}${f.colour?.trim() ? `, ${f.colour.trim()}` : ''}`);
   else if (f.colour?.trim()) lines.push(`Colour: ${f.colour.trim()}`);
   if (f.special) lines.push(`Cloth: ${SPECIALS[f.special].label.toLowerCase()}`);
+  if (f.knit) lines.push(`Knit: ${KNITS[f.knit].words}`);
   if (f.fibre) lines.push(`Fibre: ${FIBRES[f.fibre].label.toLowerCase()}`);
   if (f.weight || f.drape) lines.push(`Weight and drape: ${[f.weight, f.drape].filter(Boolean).join(', ')}`);
   if (f.special) {
