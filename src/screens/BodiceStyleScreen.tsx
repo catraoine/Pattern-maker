@@ -472,8 +472,8 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
                   )}
                 </>
               ) : top ? (
-                <button type="button" className="link small" onClick={() => setOnForm(choices)}>
-                  Draw on your form
+                <button type="button" className="link small" aria-label="Draw on your form" onClick={() => setOnForm(choices)}>
+                  <span className="tool-word">Draw</span>
                 </button>
               ) : (
                 <DrawMenu>

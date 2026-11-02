@@ -75,7 +75,7 @@
 }
 .fabric-now em {
   font-family: var(--display);
-  font-stretch: 75%;
+  font-stretch: 100%;
   font-weight: 600;
   font-style: normal;
   text-transform: uppercase;

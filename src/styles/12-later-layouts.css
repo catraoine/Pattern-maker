@@ -424,7 +424,7 @@ input.inline:focus,
 }
 .env-name {
   font-family: var(--display);
-  font-stretch: 75%;
+  font-stretch: 100%;
   font-weight: 600;
   text-transform: uppercase;
   font-size: 28px;
@@ -575,7 +575,7 @@ input.inline:focus,
 }
 .extras-title {
   font-family: var(--display);
-  font-stretch: 75%;
+  font-stretch: 100%;
   font-weight: 600;
   font-size: 24px;
   line-height: 1.05;
