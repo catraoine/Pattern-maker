@@ -947,6 +947,8 @@ export default function App() {
               onMode={setMode}
               choices={teeChoices}
               onChoices={(t) => setSaved({ ...saved, tee: t })}
+              finish={finish}
+              onFinish={setFinish}
               fabric={fabric}
               onFabric={(f) => setFinish({ ...finish, fabric: f, cloth: clothFor(f, finish.cloth) })}
               onChooseGarment={chooseGarment}
