@@ -18,8 +18,8 @@ get in with their tester link.
 
 ## Queued for "ship" (as of Nov 2, 14:15 UTC)
 
-Nothing green is queued. Open drafts: #249 (SS27 cuts, In testing) and #259 (SS27 design options,
-stacked on #249), both waiting on Cat's "apply".
+Nothing green is queued. #249's SS27 cuts went live in Release 54 (In testing; Cat chose to keep
+them, #249 closed as shipped). Open draft: #259 (SS27 design options, on main), waiting on Cat's "apply".
 
 ## Waiting on Cat's "apply" (not built)
 
