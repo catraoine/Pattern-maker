@@ -1036,6 +1036,12 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
     );
   };
   const sleeved = B.panels.some((p) => p.role === 'sleeve' && !p.hidden);
+  // (Cut with full shoulders, a shell's, rather than straps: the shoulder seam's cut length, as widensForm reads it.)
+  const fullShoulders = B.panels.some((p) => {
+    if (p.role !== 'front') return false;
+    const sh = (p.mesh.runs.shoulder ?? []).flat().map((i) => p.mesh.pts[i]);
+    return sh.length > 1 && Math.hypot(sh[0].x - sh[sh.length - 1].x, sh[0].y - sh[sh.length - 1].y) >= 9;
+  });
   const input: SimInput = {
     pos,
     edges: Int32Array.from(edges),
@@ -1069,11 +1075,11 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
     ...(!knob('__noStrapHold') ? { shoulderX: strapHold() } : {}),
     // (A sleeveless top with nothing hung from it is left to settle its seam where the shoulder carries it: held
     // forward, it dragged the neck point out and down and left a crew neck sitting low.)
-    // (A sleeveless dress, or a sleeveless top with a peplum, hangs its skirt from the shoulders: the seam is held where
+    // (A sleeveless dress, or a sleeveless top with a peplum, cut with full shoulders hangs its skirt from them: the seam is held where
     // a top without one settles it, a little behind the side, and left to sit up on the neck's base. Held forward and
     // pinned down onto the shoulder's top, the back neck rode up the neck like a stand collar.)
     ...(!knob('__noHoldZ') && (sleeved || extra.skirt?.length || o.pinFront?.length || extra.trousers || knob('__holdZ') !== undefined)
-      ? !sleeved && !o.pinFront?.length && !extra.trousers && !knob('__oldHoldZ')
+      ? !sleeved && fullShoulders && !o.pinFront?.length && !extra.trousers && !knob('__oldHoldZ')
         ? { shoulderZ: knob('__holdZ') ?? -3, shoulderZFree: true }
         : { shoulderZ: knob('__holdZ') ?? 0.5 }
       : {}),
