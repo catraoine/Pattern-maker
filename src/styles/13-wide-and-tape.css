@@ -556,11 +556,16 @@ body:has(.tape-band.carried) {
   flex: 1;
   min-width: 0;
 }
+/* Each box shares the room left beside the unit switch (fixed-width boxes ran under it and hid the IN label:
+   the full-round readiness check, 2026-11-02). */
 .ft-in input {
-  width: 3.2em;
-  flex: none;
+  width: 2em;
+  flex: 1 1 2em;
+  min-width: 1.5em;
 }
 .ft-in > span {
+  flex: none;
+  white-space: nowrap;
   color: var(--muted);
   font: var(--w-body) var(--caps-size)/1 var(--mono);
   text-transform: uppercase;

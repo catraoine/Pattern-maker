@@ -85,7 +85,14 @@ interface Props {
 function friendly(w: string) {
   if (w.startsWith('shoulder width')) return 'Your shoulder width and shoulder length don’t quite agree. The pattern still drafts, but re-measuring both will make the shoulders fit better.';
   if (w.startsWith('front length')) return 'Your front length came out shorter than your back length, which usually means a tape slip. It’s drafted with a little extra; please re-measure it.';
-  return 'Something in your measurements looks unusual. Please double-check them.';
+  // The closer-fit measurements, named, so the person knows which page to go back to (the readiness check, 2026-11-02).
+  if (w.startsWith('front shoulder slope')) return 'Your front shoulder slope doesn’t agree with your front length and shoulder width, so the shoulder is drafted at a standard slope. Please re-measure the front shoulder slope.';
+  if (w.startsWith('back shoulder slope')) return 'Your back shoulder slope doesn’t agree with your back length and shoulder width, so the shoulder is drafted at a standard slope. Please re-measure the back shoulder slope.';
+  if (w.startsWith('armhole')) return 'Your armhole measurement is large for the rest of you, so the armhole is drafted as close to it as the block allows. Please re-measure the armhole.';
+  if (w.startsWith('sleeve widened')) return 'Your armhole is large next to your upper arm, so the sleeve is cut a little wider to fit it. Please check the armhole and upper arm.';
+  if (w.startsWith('sleeve narrowed')) return 'Your upper arm is large next to your armhole, so the sleeve is cut a little closer. Please check the armhole and upper arm.';
+  if (w.startsWith('side seam too short')) return 'Your bust sits low for your side length, so the bust dart runs close to the waist. Please check your bust depth and front length.';
+  return `One of your measurements looks unusual (${w}). Please double-check it.`;
 }
 
 const NECK_NAMES: Record<BodiceChoices['neckline'], string> = {
