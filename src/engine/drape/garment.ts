@@ -4420,12 +4420,14 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
     for (const p of B.panels) {
       if (p.hidden || (p.role !== 'front' && p.role !== 'back')) continue;
       const held = [...new Set([...Object.values(p.mesh.runs).flatMap((rs) => rs.flat()), ...p.mesh.pts.map((_, i) => i).filter((i) => sewn[p.base + i])])];
-      const keepIt = (globalThis as any).__relaxIt, keepTo = (globalThis as any).__relaxTo;
-      (globalThis as any).__relaxIt = knob('__brIt') ?? 200;
-      (globalThis as any).__relaxTo = knob('__brTo') ?? 1.2;
+      const g = globalThis as unknown as Record<string, number | undefined>;
+      const keepIt = g.__relaxIt;
+      const keepTo = g.__relaxTo;
+      g.__relaxIt = knob('__brIt') ?? 200;
+      g.__relaxTo = knob('__brTo') ?? 1.2;
       relax(p, held);
-      (globalThis as any).__relaxIt = keepIt;
-      (globalThis as any).__relaxTo = keepTo;
+      g.__relaxIt = keepIt;
+      g.__relaxTo = keepTo;
     }
   // (A dress's bodice edge at its waist seam stood a few mm out from the skirt sewn under it, and the gap under its
   // edge drew as dark slivers along the seam: the edge laid down onto the skirt.)
