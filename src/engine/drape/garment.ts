@@ -2356,6 +2356,47 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
           if (q.x - x0 < 0.3) X = [0, X[1], -Math.hypot(X[0], X[2])];
           moved.push([i, X]);
         });
+        // Then laid down onto what it covers (the stand, the shoulders, the chest): no air under it, a cloth's
+        // thickness off, drawn in by how far each point stands off, eased over its neighbours so the edges stay clean.
+        // (Not at the fold itself, which keeps its crease.)
+        if (!knob('__sfFloat')) {
+          const onto = thick * (knob('__sfOnto') ?? 1);
+          const nbr: number[][] = pts.map(() => []);
+          for (const [a, b, c] of p.mesh.tris) {
+            nbr[a].push(b, c);
+            nbr[b].push(a, c);
+            nbr[c].push(a, b);
+          }
+          const idx = new Map(moved.map(([i], k) => [i, k]));
+          let del = moved.map(([i, X]) => {
+            const a = Math.atan2(X[0], X[2]);
+            const R = Math.hypot(X[0], X[2]);
+            const lie = coverR(a, X[1]) - thick - gap + onto;
+            const ns = curvedSeam ? nearSeam(pts[i]) : undefined;
+            const h = ns ? Math.max(0, ns.d - fGap) : off(pts[i]);
+            return Math.min(0, lie - R) * Math.min(1, h / (knob('__sfLieFrom') ?? 0.8));
+          });
+          // (Never through it: a cloth's thickness out at the least, the easing kept above that.)
+          let fl = moved.map(([, X]) => Math.min(0, coverR(Math.atan2(X[0], X[2]), X[1]) - gap - Math.hypot(X[0], X[2])));
+          // (What it covers, read off coarse cloth, is lumpy: its floor eased smooth first.)
+          for (let it = 0; it < (knob('__sfFloorIt') ?? 6); it++)
+            fl = fl.map((v, k) => {
+              const ks = nbr[moved[k][0]].map((j) => idx.get(j)).filter((x): x is number => x !== undefined);
+              return ks.length ? v * 0.5 + (ks.reduce((t, j) => t + fl[j], 0) / ks.length) * 0.5 : v;
+            });
+          del = del.map((v, k) => Math.max(v, fl[k]));
+          for (let it = 0; it < (knob('__sfLieIt') ?? 10); it++)
+            del = del.map((v, k) => {
+              const ks = nbr[moved[k][0]].map((j) => idx.get(j)).filter((x): x is number => x !== undefined);
+              return Math.max(fl[k], ks.length ? v * 0.5 + (ks.reduce((t, j) => t + del[j], 0) / ks.length) * 0.5 : v);
+            });
+          moved.forEach(([, X], k) => {
+            const R = Math.hypot(X[0], X[2]) || 1e-9;
+            const f2 = (R + del[k]) / R;
+            X[0] *= f2;
+            X[2] *= f2;
+          });
+        }
         // Its inner layer, from the stand seam up to the same fold, so the two meet in one clean line.
         if (curvedSeam && !knob('__sfKeepInner'))
           pts.forEach((q, i) => {
