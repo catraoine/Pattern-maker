@@ -191,11 +191,12 @@ const CARD = { at: Number(process.env.CARD_AT ?? (WIDE ? 4.3 : 5.1)), name: proc
 const CARD_OFF = (WIDE ? MARKS.enlarge : MARKS.draw) - 0.3;
 async function clothCard() {
   const grab = join(work, 'cloth.png');
-  // Phone: the bodice below the neck; computer: the same on the smaller form.
-  const [cx, cy, cw, ch] = WIDE ? [625, 370, 130, 180] : [330, 500, 200, 280];
+  // Phone: the bodice below the neck; computer: the same on the smaller form. On a phone the card covers the
+  // whole spec list beside the form, so no half-hidden words show at its edges.
+  const [cx, cy, cw, ch] = WIDE ? [630, 430, 120, 190] : [290, 520, 200, 290];
   execFileSync('ffmpeg', ['-v', 'error', '-y', '-ss', String(CARD.at + 0.8), '-i', join(SHOTS, 'style.mp4'), '-frames:v', '1', '-vf', `crop=${cw}:${ch}:${cx}:${cy}`, grab]);
   const cloth = readFileSync(grab).toString('base64');
-  const [left, top, w, tex, strip] = WIDE ? [690, 250, 120, 170, 46] : [300, 118, 108, 156, 38];
+  const [left, top, w, tex, strip] = WIDE ? [690, 250, 120, 170, 46] : [300, 166, 108, 214, 44];
   return words(`<div style="position:fixed;left:${left}px;top:${top}px;width:${w}px;box-shadow:0 12px 28px rgba(0,0,0,.6)"><div style="height:${tex}px;background:url(data:image/png;base64,${cloth}) center/cover"></div><div style="height:${strip}px;box-sizing:border-box;padding:${WIDE ? 10 : 8}px ${WIDE ? 10 : 8}px;background:linear-gradient(90deg,#ece2cb 0%,#ece2cb 78%,#d3c7ab 100%);font-family:'Chakra Petch',monospace;text-transform:uppercase;white-space:nowrap;overflow:hidden"><div style="font-weight:600;font-size:${WIDE ? 10.5 : 8.5}px;letter-spacing:.16em;color:#151311">${CARD.name}</div><div style="font-size:${WIDE ? 8.5 : 7}px;letter-spacing:.14em;color:#6c6250;margin-top:4px">${CARD.colour}</div></div></div>`);
 }
 const styleJourney = async () => {
