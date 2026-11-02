@@ -30,7 +30,8 @@ export interface Person {
   /** The dress form their patterns are drafted on, picked before measuring. Missing means womenswear. */
   form?: FormKind;
   /** Their weight in kg, given if they like. Only ever read against the height to double-check the girths:
-   * never drafted from, shown on a pattern, exported or sent anywhere. */
+   * never drafted from, shown on a pattern or exported. Like every other measurement it is kept in the account once
+   * someone signs in (see src/cloud), and nowhere else. */
   weight?: number;
   /** The measurements taken with a friend holding the tape (or by the account holder, for someone else), so a fit
    * report can say which numbers were taken alone. Never drafted from. */
