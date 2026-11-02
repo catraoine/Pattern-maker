@@ -4217,6 +4217,48 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       });
     }
   }
+  // A skirt gathered onto a yoke hangs from the yoke's hem: its top drawn back onto the seam it is sewn to, the cloth
+  // below coming with it over a hand's width (each pass above moved one side of that seam alone, and left it open).
+  const gwD = knob('__gatherWeld') ?? 10;
+  if (gwD > 0)
+    for (const p of B.panels) {
+      if (p.hidden || !/peplum/.test(p.role) || (((p.pc.meta.gatherShown ?? p.pc.meta.gathered) as number | undefined) ?? 1) <= 1.05) continue;
+      const lo = p.base;
+      const hi = p.base + p.mesh.pts.length;
+      const disp = new Map<number, V3>();
+      for (const { i, j, k, t } of seams) {
+        if (i < lo || i >= hi || (j >= lo && j < hi)) continue;
+        const own = B.panels.find((q) => j >= q.base && j < q.base + q.mesh.pts.length);
+        if (!own || !/yoke/i.test(own.pc.name)) continue;
+        disp.set(i - lo, [0, 1, 2].map((d) => res[j * 3 + d] * (1 - t) + res[k * 3 + d] * t - res[i * 3 + d]) as V3);
+      }
+      if (!disp.size) continue;
+      const pts = p.mesh.pts;
+      const mv: [number, V3][] = [];
+      pts.forEach((q, i) => {
+        const own = disp.get(i);
+        if (own) return mv.push([i, own]);
+        let sw = 0;
+        let dmin = Infinity;
+        const acc: V3 = [0, 0, 0];
+        for (const [j, v] of disp) {
+          const dd = Math.hypot(pts[j].x - q.x, pts[j].y - q.y);
+          dmin = Math.min(dmin, dd);
+          const w = 1 / (dd * dd + 0.01);
+          sw += w;
+          for (let c = 0; c < 3; c++) acc[c] += w * v[c];
+        }
+        if (dmin >= gwD) return;
+        const f = (1 - dmin / gwD) ** 2;
+        mv.push([i, acc.map((v) => (v / sw) * f) as V3]);
+      });
+      for (const [i, v] of mv) {
+        const I = (p.base + i) * 3;
+        // (Its centre line stays on the centre, so the two halves never part.)
+        const onCentre = Math.abs(res[I]) < 0.6;
+        for (let c = 0; c < 3; c++) if (!(onCentre && c === 0)) res[I + c] += v[c];
+      }
+    }
   if (extra.trousers) layLegRuffle(B, res);
   // Buttons on the centre front, where the cloth lies there.
   const buttons: Draped['buttons'] = [];
