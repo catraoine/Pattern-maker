@@ -44,8 +44,11 @@ export const COLOURS: Colour[] = [
   { name: 'Ivory', hex: '#efe8d6' },
   { name: 'Grey', hex: '#8d8c88' },
   { name: 'Brown', hex: '#5e3d2a' },
+  // Mushroom and Slate from the Paris SS27 colour index Cat picked (2026-10-31).
+  { name: 'Mushroom', hex: '#9a7e68' },
   { name: 'Navy', hex: '#24304d' },
   { name: 'Cobalt', hex: '#2f55a4' },
+  { name: 'Slate', hex: '#6b7fa8' },
   { name: 'Olive', hex: '#6b6a3a' },
   { name: 'Emerald', hex: '#1f6b4c' },
   { name: 'Camel', hex: '#b48a5a' },

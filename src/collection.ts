@@ -87,9 +87,10 @@ export const COLLECTION: HouseLook[] = [
   {
     id: 'aqua-slip',
     number: 2,
-    name: 'Aqua Slip',
+    // Was the Aqua Slip; now mushroom brown, from the Paris SS27 palette (Cat, 2026-11-02). The id stays for saved work.
+    name: 'Mushroom Slip',
     line: 'The house slip: a skirt cut on the bias to the mid-calf, under a cami top on fine straps.',
-    fabric: 'Aqua silk satin',
+    fabric: 'Mushroom silk satin',
     garment: 'dress',
     choices: dress('regular', { neckline: 'cami' }, { silhouette: 'slip', length: 'midi' }),
   },
@@ -143,7 +144,8 @@ export const COLLECTION: HouseLook[] = [
     number: 8,
     name: 'Tiny Top',
     line: 'A small cami top cut to the waist, for under a big jacket or over a big skirt.',
-    fabric: 'Chartreuse silk',
+    // Was chartreuse; slate blue from the Paris SS27 palette (Cat, 2026-11-02).
+    fabric: 'Slate blue silk',
     garment: 'bodice',
     choices: bodice({ fit: 'fitted', neckline: 'cami' }),
   },

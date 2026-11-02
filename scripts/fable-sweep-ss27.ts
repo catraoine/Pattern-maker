@@ -66,7 +66,7 @@ const bodiceC = (c: object) => ({ ...DEFAULT_BODICE, ...c });
 const dressC = (fit: string, b: object, s: object) => ({ garment: 'dress', fit, bodice: bodiceC({ ...b, fit, length: 'waist' }), skirt: skirtC({ ...s, fit }) });
 const COLLECTION = [
   { id: 'klein', name: 'Parma Shirt', garment: 'bodice', choices: bodiceC({ fit: 'relaxed', neckline: 'crew', collar: 'shirt', closure: 'front_buttons', sleeve: 'long', sleeveShape: 'straight', length: 'hip', darts: 'none' }) },
-  { id: 'aqua-slip', name: 'Aqua Slip', garment: 'dress', choices: dressC('regular', { neckline: 'cami' }, { silhouette: 'slip', length: 'midi' }) },
+  { id: 'aqua-slip', name: 'Mushroom Slip', garment: 'dress', choices: dressC('regular', { neckline: 'cami' }, { silhouette: 'slip', length: 'midi' }) },
   { id: 'red-jacket', name: 'Red Jacket', garment: 'jacket', choices: { ...DEFAULT_JACKET_CHOICES, fit: 'relaxed', shaping: 'boxy', pads: 'none', pockets: 'patch' } },
   { id: 'red-trouser', name: 'Red Trouser', garment: 'trousers', choices: { garment: 'trousers', fit: 'relaxed', leg: 'wide', length: 'full', closure: 'fly', pockets: 'slant' } },
   { id: 'olive-pleat', name: 'Olive Pleat', garment: 'skirt', choices: skirtC({ fit: 'regular', silhouette: 'straight', length: 'midi', pleats: 'knife' }) },
@@ -163,11 +163,11 @@ for (const { seed, m } of bodies) {
     }
   }
 
-  // ---------- 2 Aqua Slip: regular cami bodice + bias slip skirt, midi ----------
+  // ---------- 2 Mushroom Slip: regular cami bodice + bias slip skirt, midi ----------
   {
     const lk = look('aqua-slip');
     const c = lk.choices as never as { bodice: never; skirt: never; fit: 'regular' };
-    const tag = T('Aqua Slip');
+    const tag = T('Mushroom Slip');
     try {
       const b = { ...validDetails(c.bodice, 'dress'), fit: c.fit, length: 'waist' as const };
       const d = draftDress(m, b, { ...(c.skirt as object), fit: c.fit } as never, {});

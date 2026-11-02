@@ -11,6 +11,8 @@ something that changes how a department works. Design picks for single screens s
 - **Oct 31** All round goes quiet (Q2 Quiet in Calico, design review gap 3): no seam dots or hem chart, one line "Seams and hem checked", small disclaimer; with no fabric it turns in pale calico; faint lines no longer bead.
 - **Oct 31** One fill (design review gap 5, S1 Heavy Outline): champagne fill is only for the main button; a picked choice is a 2px champagne outline with bright words, unpicked choices go quiet. Begin measuring and the make page's button are filled; replaces the filled halves on the first Measure page.
 - **Oct 31** Phone Style panel trimmed (gap 4, P1 Strict Trim): no step bars ("Step 1 of 5" opens the list of steps), one short line under a pick, one Next in the bar, Review all choices + Watch demo as links at the end of each step. Computer unchanged.
+- **Nov 2** Collection recoloured to the Paris SS27 palette (Cat's pick, Oct 31): Look 02 is now the **Mushroom Slip**
+  (was Aqua Slip), Look 08 Tiny Top is slate blue (was chartreuse). Mushroom and Slate join the fabric colours.
 - **Oct 30** Boxy dress fit (freeze broken knowingly; a full launch fit, no In testing tag, Cat Oct 30): straight from the bust, square shoulder cut in (no pad), bust darts kept, plus a Self band belt at the seam. From Cat's gingham drop-waist dress.
 - **Oct 30** Projector upgrades (freeze broken knowingly): C1 paper line-up (no mat), C2 grid over the whole table, L1 + L3 Lines panel (layers, mm thickness, colour), M2 loupe. Pitch: no printing, no taping, no mat, just a projector.
 - **Oct 30** Every mock-up sheet labels each option on the image itself: option code + name, screen, device, NOW for today; codes match the message ([working with Cat](working-with-cat.md)).
