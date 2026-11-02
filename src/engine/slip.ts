@@ -35,11 +35,15 @@ export function slipSideSupp(front: number, back: number): number {
   return Math.min(least, Math.max(least / 2, SLIP_SIDE_MAX));
 }
 
-/** The slip's length is knee, midi or maxi: it needs room below the hip to hang and swing. */
-const SLIP_LENGTHS = ['knee', 'midi', 'maxi'] as const;
+/** The slip's length: knee, midi or maxi, and (In testing, Cat 2026-11-02, for SS27 Look 07) a mini or
+ * above the knee. Every named length ends at least 12 cm below the hip, so even a mini has room to hang. */
+const SLIP_LENGTHS = ['mini', 'above_knee', 'knee', 'midi', 'maxi'] as const;
+
+/** A bias slip shorter than the knee: the In testing bias mini (tool 'bias_mini' in launch.ts). */
+export const slipMini = (c: { silhouette: string; length: string }) => c.silhouette === 'slip' && (c.length === 'mini' || c.length === 'above_knee');
 
 /**
- * Whether a skirt choice goes with the rest: a slip needs at least knee length; a diagonal hem needs
+ * Whether a skirt choice goes with the rest: a slip needs a named length; a diagonal hem needs
  * its pieces cut whole, so not on a circle (too wide to cut whole), nor where a walking slit needs a
  * centre back seam, nor on a dress, whose zip runs down the centre back.
  */
@@ -57,7 +61,7 @@ export function cutAllowed(c: { silhouette: string; length: string }, id: 'silho
   return true;
 }
 
-/** The choices made valid: a slip at least knee length, a diagonal hem only where it can be cut. */
+/** The choices made valid: a slip at a named length, a diagonal hem only where it can be cut. */
 export function validCut<T extends { silhouette: SkirtStyle['silhouette']; length: SkirtStyle['length']; asymHem?: SkirtStyle['asymHem']; joinTo?: unknown; waist?: SkirtStyle['waist']; pleats?: SkirtStyle['pleats'] }>(c: T): T {
   let out = c;
   if (out.silhouette === 'slip' && !(SLIP_LENGTHS as readonly string[]).includes(out.length)) out = { ...out, length: 'knee' };

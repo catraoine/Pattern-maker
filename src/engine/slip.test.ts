@@ -16,7 +16,7 @@ import { describePattern } from '../screens/describe';
 
 const FITS: Fit[] = ['fitted', 'regular', 'relaxed'];
 const HEMS: AsymHem[] = ['none', 'high_low', 'diagonal'];
-const SLIP_LENGTHS: Length[] = ['knee', 'midi', 'maxi'];
+const SLIP_LENGTHS: Length[] = ['mini', 'above_knee', 'knee', 'midi', 'maxi'];
 const STRAIGHT: Silhouette[] = ['straight', 'pencil', 'a_line', 'trumpet', 'half_circle', 'circle'];
 const m = { waist: 70, full_hip: 96, waist_to_hip: 20.5, waist_to_knee: 58, waist_to_floor: 104 };
 
@@ -75,15 +75,17 @@ describe('the bias-cut slip skirt', () => {
     expect(ls.metres).toBeLessThan(2.6);
   });
 
-  it('falls back to knee at a short length, and drops a diagonal hem where it cannot be cut', () => {
-    expect(validCut({ silhouette: 'slip', length: 'mini' }).length).toBe('knee');
+  it('keeps a bias mini (In testing), and drops a diagonal hem where it cannot be cut', () => {
+    expect(validCut({ silhouette: 'slip', length: 'mini' }).length).toBe('mini');
     expect(validCut({ silhouette: 'circle', length: 'knee', asymHem: 'diagonal' }).asymHem).toBe('none');
     expect(validCut({ silhouette: 'pencil', length: 'knee', asymHem: 'diagonal' }).asymHem).toBe('none');
     expect(validCut({ silhouette: 'a_line', length: 'knee', asymHem: 'diagonal' }).asymHem).toBe('diagonal');
     expect(cutAllowed({ silhouette: 'slip', length: 'midi' }, 'asymHem', 'diagonal', 'dress')).toBe(false);
-    expect(cutAllowed({ silhouette: 'slip', length: 'midi' }, 'length', 'mini')).toBe(false);
-    // An invalid choice still drafts.
-    expect(draftSkirt(m, { silhouette: 'slip', length: 'mini' }).pieces.length).toBe(2);
+    expect(cutAllowed({ silhouette: 'slip', length: 'midi' }, 'length', 'mini')).toBe(true);
+    // The mini still ends well below the hip, so the bias has room to hang.
+    const mini = draftSkirt(m, { silhouette: 'slip', length: 'mini' });
+    expect(mini.pieces.length).toBe(2);
+    expect(mini.lengthCm).toBeGreaterThanOrEqual(m.waist_to_hip + 12);
   });
 
   it('is sewn with stay-stitching, French seams, a hang before levelling and a rolled hem', () => {

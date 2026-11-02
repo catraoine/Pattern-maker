@@ -8,7 +8,7 @@ import { PULL_ON_EASE, lengthRange, lowRiseAllowed, SkirtDraft, SkirtMeasurement
 import { skirtSpec } from '../engine/spec';
 import { FinishedTable, finishedLines } from '../ui/FinishedTable';
 import { isShaped } from '../engine/hem';
-import { SLIP_FACING, SLIP_HIP_EASE_LESS, cutAllowed, validCut } from '../engine/slip';
+import { SLIP_FACING, SLIP_HIP_EASE_LESS, cutAllowed, slipMini, validCut } from '../engine/slip';
 import type { MeasurementValues } from '../measurements';
 import { PatternPreview } from '../ui/Preview';
 import { PatternPane } from '../ui/PointEditor';
@@ -278,6 +278,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
                 >
                   <ChoicePic set="skirt" group={g.id} id={id} />
                   {label}
+                  {g.id === 'silhouette' && id === 'slip' && slipMini({ ...choices, silhouette: 'slip' }) && <TestingTag tool="bias_mini" />}
                 </button>
               ))}
             </div>
