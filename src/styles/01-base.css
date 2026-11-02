@@ -77,7 +77,7 @@ label {
 h1,
 h2 {
   font-family: var(--display);
-  font-stretch: 75%;
+  font-stretch: 100%;
   text-transform: uppercase;
 }
 

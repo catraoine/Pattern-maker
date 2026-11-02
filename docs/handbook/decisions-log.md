@@ -5,6 +5,8 @@ something that changes how a department works. Design picks for single screens s
 
 ## November 2026
 
+- **Nov 2** One font width everywhere (standing rule): a font always keeps its one normal width and height; never narrowed or flattened to fit (Archivo headings were at 75%, one spot 62%). Text that does not fit wraps or is reworded. The welcome headline now rises in instead of being taken in from wide to narrow. PR #266.
+- **Nov 2** Style screen sweep: Back view dropped (Front, Flat, All round); Undone toast for screen readers only; fabric shop D One List + C Buy Strip; picks in a closed "Your picks" drop-down top right; Enlarge and Draw as words in the corner; hem handles labelled Length and Width; header ← removed on Measure, Style steps and Print (chapter names go between chapters), bottom back names its step ("‹ Shape"). PR #266.
 - **Nov 2** Fabric palette card (D1 One Palette Card): the picked fabric stands beside the form on Front as one tall card in the A1 style, on every garment; a shop fabric also shows its shop and listed price. On a phone the tag of picks moves under it (up to three lines, as many as fit) and the card stays, smaller, while the swatches scroll. PR #262.
 - **Nov 1** T-shirt Fabric step gets knit swatches only (Jersey, Slub, Modal, Rib, Interlock, Waffle, Terry, Ponte); the drawing wears the knit; a warning when the knit usually stretches less than the stretch picked. PR #255.
 
