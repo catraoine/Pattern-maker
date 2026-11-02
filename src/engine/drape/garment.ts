@@ -1555,6 +1555,9 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
         for (let j = 1; j < ids.length - 1; j++) res[ids[j]] = (was[j - 1] + 2 * was[j] + was[j + 1]) / 4;
       }
       if (pressedHem && at.length) {
+        // (Its ends too, at the side seams, which the evening above leaves where the sim put them: all at one level.)
+        const lv = ids.reduce((t, I) => t + res[I], 0) / ids.length;
+        for (const I of ids) res[I] = lv;
         const hemY = Math.max(...at.map((i) => p.mesh.pts[i].y));
         const reach = 10;
         for (let i = 0; i < p.mesh.pts.length; i++) {
