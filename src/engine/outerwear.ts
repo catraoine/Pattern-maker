@@ -342,13 +342,20 @@ function flareFromWaist(pc: Piece, y0: number, turn: number): Piece {
     return out;
   };
   // The corner each flared seam makes with the hem: brought back to what it was before the flare.
-  const angleAt = (q: P[], e: number) => {
-    const a1 = sub(q[(e - 1 + n) % n], q[e]);
-    const a2 = sub(q[(e + 1) % n], q[e]);
+  // The laid corner is measured to the neighbours that stay (the seam points taken up into the hem are
+  // dropped below), the corner before the flare to its own neighbours.
+  const near = (e: number, step: number, skip: boolean) => {
+    let k = (e + step + n) % n;
+    for (let guard = 0; skip && drop.has(k) && guard < n; guard++) k = (k + step + n) % n;
+    return k;
+  };
+  const angleAt = (q: P[], e: number, skip = true) => {
+    const a1 = sub(q[near(e, -1, skip)], q[e]);
+    const a2 = sub(q[near(e, 1, skip)], q[e]);
     return Math.atan2(Math.abs(a1.x * a2.y - a1.y * a2.x), a1.x * a2.x + a1.y * a2.y);
   };
-  const want0 = angleAt(r.pts, e0);
-  const want1 = angleAt(r.pts, e1);
+  const want0 = angleAt(r.pts, e0, false);
+  const want1 = angleAt(r.pts, e1, false);
   // Each end's lift found by halving between none and four times the turn (the corner grows with it).
   let A0 = moved.has(e0) ? slope : 0;
   let A1 = moved.has(e1) ? slope : 0;
