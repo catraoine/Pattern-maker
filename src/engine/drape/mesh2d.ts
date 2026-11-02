@@ -178,6 +178,29 @@ function meshRegion(edges: Edge[], h: number, wedges: Wedge[]) {
   const btag: string[] = [];
   for (const e of edges) {
     const L = Math.hypot(e.b.x - e.a.x, e.b.y - e.a.y);
+    // A cut (a fold or crease line) is shared by the regions either side of it, each meshed on its own: its points are
+    // set at the same places along the line for both (every h from a fixed origin), or where the two regions' ends
+    // of it differ, their points slide apart and the cloth opens along the cut.
+    if (e.tag === '_fold' && L > 1e-6) {
+      const ux = (e.b.x - e.a.x) / L;
+      const uy = (e.b.y - e.a.y) / L;
+      const flip = uy < -1e-9 || (Math.abs(uy) <= 1e-9 && ux < 0) ? -1 : 1;
+      const sA = flip * (e.a.x * ux + e.a.y * uy);
+      const sB = sA + flip * L;
+      const lo = Math.min(sA, sB);
+      const hi = Math.max(sA, sB);
+      const at: number[] = [];
+      for (let st = Math.ceil(lo / h) * h; st < hi; st += h) if (st - lo > 1e-6) at.push(st);
+      if (sB < sA) at.reverse();
+      bpts.push({ x: e.a.x, y: e.a.y });
+      btag.push(e.tag);
+      for (const st of at) {
+        const t = Math.abs(st - sA) / L;
+        bpts.push({ x: e.a.x + (e.b.x - e.a.x) * t, y: e.a.y + (e.b.y - e.a.y) * t });
+        btag.push(e.tag);
+      }
+      continue;
+    }
     const k = Math.max(1, Math.ceil(L / h - 0.2));
     for (let i = 0; i < k; i++) {
       bpts.push({ x: e.a.x + ((e.b.x - e.a.x) * i) / k, y: e.a.y + ((e.b.y - e.a.y) * i) / k });
