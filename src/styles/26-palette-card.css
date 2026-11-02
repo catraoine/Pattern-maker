@@ -1,0 +1,124 @@
+/* ---- D1 One Palette Card (Cat, 2 November 2026): the picked fabric as one tall palette card beside the
+   form, in the A1 card style (cloth over a cream name strip). On a phone the tag of picks moves under it, and the
+   card stays beside the form as the page scrolls into the swatches. ---- */
+.palette-col {
+  display: none;
+}
+.palette-card {
+  margin: 0;
+  display: grid;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
+  animation: palette-in 0.32s ease both;
+}
+.palette-tex {
+  display: block;
+  width: 100%;
+  height: var(--palette-h, 150px);
+  /* The soft shade down the right edge, as on the swatch cards. */
+  box-shadow: inset -10px 0 14px -10px rgba(0, 0, 0, 0.35);
+  transition: height 0.25s ease;
+}
+.palette-card .garment-fabric {
+  position: relative;
+  line-height: 0;
+}
+.palette-card .garment-fabric::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  /* A fine champagne edge, so black cloth doesn't sink into the black page. */
+  border: 1px solid color-mix(in srgb, var(--gild) 28%, transparent);
+  border-bottom: 0;
+  box-shadow: inset -12px 0 16px -12px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+}
+.palette-name {
+  padding: 13px 10px 15px;
+  background: linear-gradient(90deg, var(--card-strip) 0%, var(--card-strip) 78%, var(--card-edge) 100%);
+  color: var(--card-ink);
+  font: 500 10px/1.3 var(--mono);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+@keyframes palette-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .palette-card {
+    animation: none;
+  }
+}
+
+/* Only beside the garment on the form (Front), as the tag of picks; Flat and the pattern keep their width. */
+.style-pin > section:not(.live-big) > .preview:has(.form-still:not(.drawing)) > .palette-col {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 3;
+  display: grid;
+  align-content: start;
+}
+
+/* A phone: the card on top, the three main picks under it. */
+@media (max-width: 760px) {
+  .style-pin > section:not(.live-big) > .preview:has(.form-still:not(.drawing)) > .palette-col {
+    right: 0;
+    width: 120px;
+    gap: 12px;
+    --palette-h: 118px;
+  }
+  .palette-col > .spec-tag.under-card {
+    position: static !important;
+    transform: none !important;
+    width: auto !important;
+    display: grid;
+    gap: 9px;
+    margin: 0;
+    padding: 2px 0 2px 14px;
+    border-left: 1px solid color-mix(in srgb, var(--gild) 35%, transparent);
+  }
+  /* Scrolled into the choices, the drawing eases back: the card stays, smaller, and the picks step away. */
+  .style-layout.compact .style-pin > section:not(.live-big) > .preview:has(.palette-col) {
+    padding-right: 104px;
+  }
+  .style-layout.compact .palette-col {
+    width: 96px !important;
+    --palette-h: 92px !important;
+  }
+  .style-layout.compact .palette-col > .spec-tag {
+    display: none !important;
+  }
+  .style-layout.compact .palette-name {
+    padding: 8px 7px 9px;
+    font-size: 8px;
+  }
+}
+
+/* Tablet and computer: the card stands in the open space to the right of the form, a size up. */
+@media (min-width: 761px) {
+  .style-pin > section:not(.live-big) > .preview:has(.form-still:not(.drawing)) > .palette-col {
+    right: 7%;
+    width: 150px;
+    --palette-h: 196px;
+  }
+  .palette-col > .spec-tag {
+    display: none;
+  }
+}
+
+/* A partner shop's fabric: the shop and its price in small capitals under the name, as on the Shop tab's cards. */
+.palette-shop {
+  display: block;
+  margin-top: 5px;
+  font-size: 8px;
+  letter-spacing: 0.12em;
+  color: var(--card-quiet);
+}
+.style-layout.compact .palette-shop {
+  font-size: 6.5px;
+  margin-top: 3px;
+}

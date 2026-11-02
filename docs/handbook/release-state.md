@@ -4,27 +4,23 @@ _Update this page whenever a release ships or a PR is queued._
 
 ## Live
 
-**Release 47** (Oct 31, 2026, #251): pattern points follow the finger when moving points (moves drawn
-once a frame and saved on lift; a fingertip within 22 px takes a point), and Watch it draft sits under the
-pieces instead of spilling over undo/redo and Next on a phone.
-Release 46 (Oct 31, 2026, #245): iPhone page no longer bounces on Style (#244), AI-look photo
-strip removed from Start from a look (#246), welcome headline H2 "Drafted to you" and Make this look
-opens in the look's fabric (#247), All round goes quiet in calico with one check line (#248),
-phone Style panel trimmed (P1: one Next button, "Step 1 of 5" opens the step list) and champagne fill
-only on the main button (S1) (#250).
-Release 45 (Oct 31, #242) brought the Boxy dress fit and Self band, re-recorded films, projector
-upgrades, phone-sideways layouts and the Silhouette / Fullness step names.
+**Release 52** (Nov 2, 2026, #255 + #258): the T-shirt's Fabric step gets eight knit swatches
+(Jersey, Slub, Modal, Rib, Interlock, Waffle, French terry, Ponte); picking one sets fibre, weight and
+drape, and a warning shows when the knit stretches less than the stretch picked. The e2e CI job is
+pinned to ubuntu-24.04 (Playwright can't install Chromium on 26.04). Handbook: in-app Claude guide parked.
+Earlier: #257 (How it works films re-cut: sewn All round, shorter Style page, champagne words), #256
+(All round sewn from the pattern pieces), Release 49 (#254, Style journey J1 to J8), Release 48
+(#252, Style back arrow), Release 47 (#251, points follow the finger).
 
 Live site: https://maisontrace.co (the cloud proxy blocks it; check
 https://whimsical-mooncake-2cf9a9.netlify.app, the same site). Strangers see the waitlist; testers
 get in with their tester link.
 
-## Queued for "ship" (as of Oct 31, 16:50 UTC)
+## Queued for "ship" (as of Nov 2, 03:30 UTC)
 
-Nothing green is queued. Drafts: #252 (Style back arrow, Undo, Clear; being applied), #249 (SS27 cuts, In
-testing). This handbook update rides the next release.
-
-Re-record note: the How it works film needs re-recording after #248 (All round now turns in calico).
+Nothing green is queued. Open: #260 (Collection recolour to the Paris SS27 palette; colours still
+being settled, held back from Release 52 on purpose), drafts #249 (SS27 cuts, In testing) and #259
+(bias slip mini lengths, stacked on #249). This handbook update rides the next release.
 
 ## Waiting on Cat's "apply" (not built)
 
