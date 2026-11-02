@@ -1,8 +1,9 @@
+import { TestingTag } from '../ui/TestingTag';
 import { useMemo, useState } from 'react';
 import { layout } from '../engine/export';
 import { trousersSpec } from '../engine/spec';
 import { FinishedTable, finishedLines } from '../ui/FinishedTable';
-import { TROUSER_EASE, TROUSER_LENGTHS, TrousersDraft, TrousersMeasurements, trouserLength } from '../engine/trousers';
+import { TROUSER_EASE, TROUSER_LENGTHS, TROUSER_RUFFLE, TrousersDraft, TrousersMeasurements, trouserLength } from '../engine/trousers';
 import { trousersFlat, trousersView } from '../engine/flat';
 import { DrawOnForm, skirtForm } from '../ui/DrawOnForm';
 import { TROUSER_HELP, readTrouserHem, readTrouserPocket, readTrouserRise, readTrouserSide, trouserLines } from '../ui/formTrousers';
@@ -213,6 +214,29 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
             )}
           </Group>
         ))}
+        {/* A ruffle gathered round each hem (In testing, Cat's SS27 black cropped flares, 2026-11-02). */}
+        {choices.length !== 'shorts' && (
+          <Group label="Hem">
+            <div className="chips">
+              {([['plain', 'Plain'], ['ruffle', 'Ruffled']] as const).map(([id, label]) => {
+                const on = (id === 'ruffle') === !!choices.hemRuffle;
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    className={on ? 'chip on' : 'chip'}
+                    aria-pressed={on}
+                    onClick={() => onChoices(id === 'ruffle' ? { ...choices, hemRuffle: true } : (({ hemRuffle: _r, ...rest }) => rest)(choices))}
+                  >
+                    {label}
+                    {id === 'ruffle' && <TestingTag tool="trouser_ruffle" />}
+                  </button>
+                );
+              })}
+            </div>
+            {choices.hemRuffle && <p className="muted small">A strip gathered round each hem, {TROUSER_RUFFLE.depth} cm deep. The legs are cut shorter by as much, so they end where you set them.</p>}
+          </Group>
+        )}
         {can('insideFinish') && (
           <TabPanel tab={PRO}>
             <p className="eyebrow">Inside the trousers</p>

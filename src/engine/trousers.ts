@@ -55,7 +55,15 @@ interface TrousersStyle {
   /** Drawn on the form: where the waistband sits, in cm above (positive) or below (negative) your waist
    * (see RISE_RANGE). The trousers are drafted from that line as if it were the waist. */
   riseCm?: number;
+  /** A gathered ruffle sewn round each leg's hem (In testing, Cat 2026-11-02, from her SS27 picture). */
+  hemRuffle?: boolean;
 }
+
+/**
+ * The ruffle round a trouser hem: a straight strip `depth` cm deep, `ratio` times the hem, gathered
+ * onto the leg's hem. The leg is cut `depth` cm shorter, so the trousers end where they would have.
+ */
+export const TROUSER_RUFFLE = { depth: 7, ratio: 1.8 };
 
 export const DEFAULT_TROUSERS: TrousersStyle = { fit: 'regular', leg: 'straight', length: 'full', closure: 'fly', seamAllowance: 1.5, hemAllowance: 4 };
 
@@ -159,6 +167,8 @@ export interface TrousersDraft {
   pocketSides?: 'both' | 'right';
   /** The front and back before a slant pocket is cut from the front, for reading the ease. */
   block: Piece[];
+  /** The hem ruffle, when there is one: its finished depth, and its cut strip, one for each leg. */
+  ruffle?: { depth: number; cutLength: number; cutWidth: number };
 }
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
@@ -471,6 +481,7 @@ export function trouserLength(m: TrousersMeasurements, s: Pick<TrousersStyle, 'l
 }
 
 export function draftTrousers(body: TrousersMeasurements, style: Partial<TrousersStyle> = {}): TrousersDraft {
+  if (style.hemRuffle && style.length !== 'shorts') return ruffledTrousers(body, style);
   const s = { ...DEFAULT_TROUSERS, ...style };
   // A drawn rise drafts from the line the waistband sits on; a drawn length is still from your own waist.
   const rise = s.riseCm ? riseFor(body, s.riseCm) : 0;
@@ -772,4 +783,39 @@ export function trousersWaistband(d: TrousersDraft, sa: number): Piece {
     allowances: {},
     meta: { finishedWidth: WAISTBAND_CM, lengthCm: Math.round(L * 10) / 10 },
   };
+}
+
+/** The trousers with a gathered ruffle at each hem: the legs cut shorter by its depth, and the strip. */
+function ruffledTrousers(body: TrousersMeasurements, style: Partial<TrousersStyle>): TrousersDraft {
+  const { hemRuffle: _h, ...plain } = style;
+  const whole = draftTrousers(body, plain);
+  const { depth, ratio } = TROUSER_RUFFLE;
+  const d = draftTrousers(body, { ...plain, lengthCm: whole.lengthCm - depth });
+  const sa = d.pieces[0].seamAllowance;
+  const r = (v: number) => Math.round(v * 10) / 10;
+  // One strip per leg, joined at the inside leg: as deep as the ruffle, plus the seam and a 1 cm rolled hem.
+  const cutLength = r(d.hemCm * ratio + 2 * sa);
+  const cutWidth = r(depth + sa + 1);
+  const W = cutLength;
+  const H = cutWidth;
+  const strip: Piece = {
+    name: 'Hem ruffle',
+    kind: 'band',
+    outline: new Path(p(0, 0)).line(p(W, 0), 'ruffle').line(p(W, H), 'side').line(p(0, H), 'hem').line(p(0, 0), 'side'),
+    lines: [],
+    grain: [p(W / 2 - 4, H / 2), p(W / 2 + 4, H / 2)],
+    notches: [0.25, 0.5, 0.75].map((t) => [p(W * t, 0), p(0, -1)] as [P, P]),
+    labels: [
+      { at: p(W / 2, H / 2 - 0.6), text: 'HEM RUFFLE', size: 0.8 },
+      { at: p(W / 2, H / 2 + 0.8), text: 'Cut 2', size: 0.55 },
+    ],
+    cut: 'Cut 2',
+    fabric: 'Self',
+    seamAllowance: sa,
+    allowances: { ruffle: sa, side: sa, hem: 1 },
+    meta: { ruffleDepth: depth, gatheredTo: r(d.hemCm / 2) },
+  };
+  // The legs' hems are now seams the ruffle is gathered onto.
+  const pieces = [...d.pieces.map((pc) => (pc === d.pieces[0] || pc === d.pieces[1] ? { ...pc, allowances: { ...pc.allowances, hem: sa }, meta: { ...pc.meta, ruffleSeam: true } } : pc)), strip];
+  return { ...d, pieces, lengthCm: whole.lengthCm, ruffle: { depth, cutLength, cutWidth } };
 }

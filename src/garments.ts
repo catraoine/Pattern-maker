@@ -137,6 +137,8 @@ export interface TrousersChoices {
   legCm?: { knee: number; hem: number };
   lengthCm?: number;
   riseCm?: number;
+  /** A gathered ruffle at each hem (In testing). Not on shorts. */
+  hemRuffle?: boolean;
 }
 
 export const DEFAULT_TROUSERS_CHOICES: TrousersChoices = { garment: 'trousers', fit: 'regular', leg: 'straight', length: 'full', closure: 'fly' };
@@ -178,7 +180,8 @@ export function describeTrousers(c: TrousersChoices) {
   const length = (drawn ?? (c.leg === 'culotte' || shorts ? '' : { full: '', ankle: 'Ankle-length ', cropped: 'Cropped ', capri: 'Capri ', knee: 'Knee-length ', shorts: '' }[c.length])) + rise;
   const pockets = c.pockets === 'slant' ? 'slant pockets' : c.pockets === 'inseam' ? 'in-seam pockets' : '';
   const opening = c.waist === 'elastic' ? 'an elastic waist' : `a ${c.closure === 'fly' ? 'fly front' : 'side zip'}`;
-  const words = `${length}${shorts ? `${c.leg === 'straight' ? '' : `${c.leg} `}shorts` : LEG_WORDS[c.leg]} with ${opening}${pockets ? ` and ${pockets}` : ''}`;
+  const ruffle = c.hemRuffle && !shorts ? ', ruffled at the hem,' : '';
+  const words = `${length}${shorts ? `${c.leg === 'straight' ? '' : `${c.leg} `}shorts` : LEG_WORDS[c.leg]}${ruffle} with ${opening}${pockets ? ` and ${pockets}` : ''}`;
   return words[0].toUpperCase() + words.slice(1);
 }
 
