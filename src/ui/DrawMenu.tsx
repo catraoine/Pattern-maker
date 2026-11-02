@@ -6,7 +6,9 @@ export function DrawMenu({ children }: { children: ReactNode }) {
   const menu = useRef<HTMLDetailsElement>(null);
   return (
     <details className="drawmenu" ref={menu}>
-      <summary>Draw</summary>
+      <summary>
+        <span className="tool-word">Draw</span>
+      </summary>
       <div className="drawmenu-list" onClick={() => menu.current?.removeAttribute('open')}>
         {children}
       </div>

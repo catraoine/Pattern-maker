@@ -13,6 +13,7 @@ import { bodiceHemShape, hemWords } from '../engine/bodiceHem';
 import { HEM_SAMPLES, matchSides } from '../engine/hem';
 import { clampUneven, unevenEdge } from '../engine/uneven';
 import { isBoned, isTop } from '../engine/corset';
+import { PEPLUM_SEAM_MAX } from '../engine/drape';
 import { BodiceChoices, validDetails } from '../garments';
 import { dragDrop, wornHem } from './BodiceShape';
 import { FormSide, Reading, landmarks } from './formLines';
@@ -83,7 +84,6 @@ export function readBodiceHemShape(stroke: P[], draft: BodiceDraft, m: BodiceMea
   const sized = dragDrop(m, c, sideY - waistY - extra);
   const drop = hemDrop(m, sized);
   const { hem: _h, ...rest } = sized;
-  const peplum = c.peplum && c.peplum !== 'none' ? ' The peplum goes: it needs a waist-length bodice.' : '';
   if (drop === 0) {
     const curved = Math.max(...ys) - Math.min(...ys) > 3 ? ' A waist-length bodice keeps a level waist: draw the hem lower, below the waist, to shape it.' : '';
     return { choices: validDetails(rest), said: `Hem at the waist.${curved}` };
@@ -92,6 +92,9 @@ export function readBodiceHemShape(stroke: P[], draft: BodiceDraft, m: BodiceMea
   const drawn = offsetsOf(pts, width, sideY);
   const hem = bodiceHemShape(matchSides({ front: c.hem?.front ?? flat(), back: c.hem?.back ?? flat(), [side]: drawn }), m, drop);
   const next = validDetails(hem ? { ...rest, hem } : rest);
+  // A peplum can be lowered with the hem (In testing), a little way and on a level hem; past that it goes.
+  const had = !!c.peplum && c.peplum !== 'none';
+  const peplum = had && next.peplum === 'none' ? ` The peplum goes: lowered, it sews to a level hem at most ${PEPLUM_SEAM_MAX} cm below the waist.` : had ? ' The peplum is lowered with it, sewn to the hem.' : '';
   const length = next.dropCm !== undefined ? `Hem ${Math.round(next.dropCm)} cm below the waist` : next.length === 'hip' ? 'Hem at the hip' : 'Hem at the high hip';
   const shape = hem ? `, ${hemWords(hem)}.` : ', level all round.';
   return { choices: next, said: `${length}${hem ? ' at the side seams' : ''}${shape}${peplum}` };

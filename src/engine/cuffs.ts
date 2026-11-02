@@ -5,10 +5,11 @@
 import { P, Path, p } from './geometry';
 import type { Piece } from './piece';
 
-export type Cuff = 'none' | 'shirt' | 'elastic' | 'tie' | 'ruffle';
+export type Cuff = 'none' | 'shirt' | 'oversized' | 'elastic' | 'tie' | 'ruffle';
 export const CUFFS: [Cuff, string][] = [
   ['none', 'None'],
   ['shirt', 'Shirt cuff'],
+  ['oversized', 'Oversized cuff'],
   ['elastic', 'Elastic'],
   ['tie', 'Tie'],
   ['ruffle', 'Ruffle'],
@@ -24,6 +25,9 @@ export const CUFF = {
   /** A ruffle: a straight strip gathered onto the sleeve's hem, deeper on a longer sleeve. In testing. */
   ruffle: { ratio: 1.8, depth: { short: 5, elbow: 6, three_quarter: 7, long: 8 } },
   blouse: 2,
+  /** An oversized shirt cuff (In testing): 14 cm deep and loose round the wrist, falling 3 cm over the hand,
+   * with three buttons up a longer placket. */
+  oversized: { depth: 14, ease: 8, placket: 14, past: 3, buttons: 3 },
 };
 
 type Length = 'short' | 'elbow' | 'three_quarter' | 'long';
@@ -35,13 +39,13 @@ export function cuffAllowed(cuff: Cuff, length: Length | 'none', shape: string):
   // A ruffle goes on a plain straight sleeve of any length.
   if (cuff === 'ruffle') return shape === 'straight' && length !== 'none';
   if (shape !== 'straight' && shape !== 'bishop') return false;
-  if (cuff === 'shirt') return length === 'long';
+  if (cuff === 'shirt' || cuff === 'oversized') return length === 'long';
   if (cuff === 'tie') return length === 'long' || length === 'three_quarter';
   return length === 'long' || length === 'three_quarter' || length === 'elbow';
 }
 
 /** Whether the cuff choice shows: when the sleeve can take some cuff. */
-export const cuffShown = (s: { length: Length | 'none'; shape: string }) => (['shirt', 'elastic', 'tie', 'ruffle'] as const).some((c) => cuffAllowed(c, s.length, s.shape));
+export const cuffShown = (s: { length: Length | 'none'; shape: string }) => (['shirt', 'oversized', 'elastic', 'tie', 'ruffle'] as const).some((c) => cuffAllowed(c, s.length, s.shape));
 
 /** The cuff as drafted: its kind, how deep it is finished, how far round, and what goes with it. */
 export interface CuffDraft {
@@ -51,6 +55,8 @@ export interface CuffDraft {
   round: number;
   /** A ruffle: how many times the hem its strip is cut. */
   ratio?: number;
+  /** An oversized shirt cuff: deep and loose, falling this far over the hand, with this many buttons. */
+  oversized?: { past: number; buttons: number };
   /** Elastic: cut this long. Shirt: the placket slit. Tie: the ties, and the slit. */
   elasticCm?: number;
   placketCm?: number;
@@ -72,6 +78,11 @@ export function cuffOf(cuff: Exclude<Cuff, 'none'>, length: Length, wrist: numbe
   // The ruffle's round is set from the sleeve's hem once it is drafted.
   if (cuff === 'ruffle') return { kind: 'ruffle', depth: CUFF.ruffle.depth[length], round: 0, ratio: CUFF.ruffle.ratio };
   if (cuff === 'shirt') return { kind: 'shirt', depth: CUFF.shirt.depth, round: r1(arm + CUFF.shirt.ease), placketCm: CUFF.shirt.placket };
+  // An oversized cuff is a shirt cuff, deeper and looser, sewn the same way.
+  if (cuff === 'oversized') {
+    const o = CUFF.oversized;
+    return { kind: 'shirt', depth: o.depth, round: r1(arm + o.ease), placketCm: o.placket, oversized: { past: o.past, buttons: o.buttons } };
+  }
   if (cuff === 'tie') return { kind: 'tie', depth: CUFF.tie.depth, round: r1(arm + CUFF.tie.ease), tieCm: CUFF.tie.tie, slitCm: CUFF.tie.slit };
   // Elastic: the casing passes the hand, and the elastic draws it in to the arm.
   return { kind: 'elastic', depth: CUFF.elastic.depth, round: r1(arm + CUFF.elastic.ease), elasticCm: r1(arm + CUFF.elastic.ease + 1) };
@@ -114,8 +125,8 @@ export function cuffPieces(c: CuffDraft, sa: number): Piece[] {
       fold: true,
       notchAt: [CUFF.shirt.overlap],
       marks: [
-        { at: 1.2, text: 'BUTTONHOLE' },
-        { at: L - CUFF.shirt.overlap / 2, text: 'BUTTON' },
+        { at: 1.2, text: c.oversized ? `${c.oversized.buttons} BUTTONHOLES` : 'BUTTONHOLE' },
+        { at: L - CUFF.shirt.overlap / 2, text: c.oversized ? `${c.oversized.buttons} BUTTONS` : 'BUTTON' },
       ],
       fabric: 'Self + interfacing',
       meta: { finishedWidth: c.depth, lengthCm: r1(L) },
@@ -163,7 +174,7 @@ export function cuffCutWords(c: CuffDraft | undefined): string {
 /** The cuff for the pattern's notes. */
 export function cuffNote(c: CuffDraft | undefined): string {
   if (!c) return '';
-  if (c.kind === 'shirt') return `Shirt cuffs, ${c.depth} cm deep and ${c.round} cm round, buttoned over a ${c.placketCm} cm bound placket.`;
+  if (c.kind === 'shirt') return `${c.oversized ? 'Oversized shirt' : 'Shirt'} cuffs, ${c.depth} cm deep and ${c.round} cm round, buttoned over a ${c.placketCm} cm bound placket.`;
   if (c.kind === 'ruffle') return `Sleeve ruffles, ${c.depth} cm deep, gathered ${c.ratio} to 1 onto the ${c.round} cm sleeve hem.`;
   if (c.kind === 'tie') return `Tie cuffs, ${c.depth} cm deep and ${c.round} cm round, with ${c.tieCm} cm ties, over an ${c.slitCm} cm slit.`;
   return `Elastic cuffs: ${c.elasticCm} cm of ${CUFF.elastic.width} cm elastic in each, in a ${c.depth} cm casing.`;
@@ -172,6 +183,7 @@ export function cuffNote(c: CuffDraft | undefined): string {
 /** What the cuffs need besides the fabric. */
 export function cuffNotions(c: CuffDraft | undefined): string[] {
   if (!c) return [];
+  if (c.kind === 'shirt' && c.oversized) return [`${2 * c.oversized.buttons} cuff buttons, 1 cm across`, '0.3 m lightweight fusible interfacing, for the cuffs'];
   if (c.kind === 'shirt') return ['2 cuff buttons, 1 cm across', '0.2 m lightweight fusible interfacing, for the cuffs'];
   if (c.kind === 'elastic') return [`${((2 * c.elasticCm!) / 100).toFixed(1)} m of ${CUFF.elastic.width} cm wide elastic, for the cuffs`];
   return [];
@@ -194,7 +206,7 @@ export function cuffStep(c: CuffDraft, sl: { gathers?: { hem: number } }, seam: 
   if (c.kind === 'shirt') {
     return {
       title: 'Attach the cuffs',
-      text: `Fuse the interfacing to the wrong side of each cuff. Press under ${seam} along the long edge without the notch. ${gather}, or fold the fullness into two pleats toward the placket. Pin the cuff's notched edge to the sleeve hem, right sides together, with the BUTTON end at the back of the placket and the BUTTONHOLE end at the front: the back of the placket laps under by the cuff's ${CUFF.shirt.overlap} cm extension. Sew ${seam} from the edge and press the seam into the cuff. Fold the cuff right sides together along its fold line and sew across each end ${seam} in. Trim, turn it right side out and press. Stitch the pressed edge down over the seam inside, then topstitch round the cuff 0.3 cm from the edge. Work a buttonhole at BUTTONHOLE and sew a button at BUTTON. The cuff closes ${c.round} cm round.`,
+      text: `Fuse the interfacing to the wrong side of each cuff. Press under ${seam} along the long edge without the notch. ${gather}, or fold the fullness into two pleats toward the placket. Pin the cuff's notched edge to the sleeve hem, right sides together, with the BUTTON end at the back of the placket and the BUTTONHOLE end at the front: the back of the placket laps under by the cuff's ${CUFF.shirt.overlap} cm extension. Sew ${seam} from the edge and press the seam into the cuff. Fold the cuff right sides together along its fold line and sew across each end ${seam} in. Trim, turn it right side out and press. Stitch the pressed edge down over the seam inside, then topstitch round the cuff 0.3 cm from the edge. ${c.oversized ? `Work ${c.oversized.buttons} buttonholes evenly up the BUTTONHOLE end, the first 1.5 cm from each long edge, and sew the buttons to match on the BUTTON end. The cuff closes loosely, ${c.round} cm round, and falls over the back of the hand.` : `Work a buttonhole at BUTTONHOLE and sew a button at BUTTON. The cuff closes ${c.round} cm round.`}`,
     };
   }
   if (c.kind === 'ruffle') {

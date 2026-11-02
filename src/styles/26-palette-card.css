@@ -122,3 +122,72 @@
   font-size: 6.5px;
   margin-top: 3px;
 }
+
+/* Your picks (Cat's S, 2026-11-02): folded shut at the drawing's top right on a phone, opening over it. The drawing
+   gets back the room the column of picks took; a picked fabric's card still stands beside the form, under it. */
+@media (max-width: 760px) {
+  .style-pin > section:not(.live-big) > .preview:has(.form-still:not(.drawing)):not(:has(.palette-col)) {
+    padding-right: 0;
+  }
+  .picks-drop {
+    position: absolute;
+    top: 8px;
+    right: 0;
+    z-index: 6;
+  }
+  .picks-drop > summary {
+    list-style: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 32px;
+    padding: 4px 10px;
+    border: 1px solid color-mix(in srgb, var(--gild) 50%, transparent);
+    color: var(--gild);
+    font: 500 var(--caps-size) / 1 var(--mono);
+    letter-spacing: var(--caps-track);
+    text-transform: uppercase;
+  }
+  .picks-drop > summary::-webkit-details-marker {
+    display: none;
+  }
+  .picks-drop > summary::after {
+    content: '▾';
+    font-size: 9px;
+  }
+  .picks-drop[open] > summary {
+    border-color: var(--gild);
+  }
+  .picks-drop[open] > summary::after {
+    content: '▴';
+  }
+  .picks-drop > .spec-tag {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    width: 200px;
+    display: grid;
+    gap: 9px;
+    margin: 0;
+    padding: 12px 14px;
+    background: var(--paper);
+    border: 1px solid var(--gild);
+    box-shadow: 0 10px 30px rgb(0 0 0 / 0.6);
+  }
+  .style-layout.compact .picks-drop > .spec-tag {
+    display: grid !important;
+  }
+  /* The card sits under Your picks, clear of it. */
+  .style-pin > section:not(.live-big) > .preview:has(.picks-drop) > .palette-col {
+    top: calc(50% + 20px);
+  }
+}
+.picks-drop {
+  display: none;
+}
+@media (max-width: 760px) {
+  .picks-drop {
+    display: block;
+  }
+}

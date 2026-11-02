@@ -221,6 +221,7 @@ export function drapeBodiceSteps(g: SewingGuide, d: BodiceDraft, o: Opts): Sewin
   if (d.peplum) {
     const flared = d.peplum.kind === 'flared';
     const oneShoulder = d.drape?.kind === 'one_shoulder';
+    const low = !!d.peplum.seamCm;
     const c = e.get('Cut out');
     if (c && !d.drape) e.set('Cut out', c.text.replace(' Keep each grain arrow', `${flared ? ' The peplum pieces are curved: lay them by their grain arrows too.' : ''} Keep each grain arrow`));
     const open = oneShoulder ? 'right side' : 'centre back';
@@ -234,13 +235,13 @@ export function drapeBodiceSteps(g: SewingGuide, d: BodiceDraft, o: Opts): Sewin
     };
     const attach: SewStep = {
       title: 'Attach the peplum',
-      text: `Pin the peplum to the bodice's waist edge, right sides together, matching the centre front and the seams, with its open edges at the zip.${
+      text: `Pin the peplum to the bodice's ${low ? `hem edge, ${d.peplum.seamCm} cm below your waist (the bodice is fitted down to it, so the waist stays nipped in above the flare)` : 'waist edge'}, right sides together, matching the centre front and the seams, with its open edges at the zip.${
         flared ? '' : ' Pull up the gathering threads until it fits, and spread the gathers evenly.'
       } Sew ${o.seam} from the edge${flared ? '' : ', with the gathers on top so they stay even'}, overlock or zigzag the edges together, and press the seam up toward the bodice.${
-        o.edges === 'lined' ? " Turn the lining's waist edge under and slip-stitch it over the seam inside." : ''
+        o.edges === 'lined' ? ` Turn the lining's ${low ? 'hem' : 'waist'} edge under and slip-stitch it over the seam inside.` : ''
       }`,
     };
-    // In place of the bodice's own hem: the peplum is sewn to its waist edge, after the neck and sleeves.
+    // In place of the bodice's own hem: the peplum is sewn to its waist edge (a lowered one to its hem edge), after the neck and sleeves.
     if (!e.before('Hem', make)) e.before('Finish', make);
     e.after('Make the peplum', attach);
     e.drop('Hem');

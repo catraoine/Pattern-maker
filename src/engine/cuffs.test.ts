@@ -25,11 +25,11 @@ describe('cuffs', () => {
       const bd = draftBodice(b, { fit: 'regular' });
       for (const shape of ['straight', 'bishop'] as const)
         for (const length of ['elbow', 'three_quarter', 'long'] as const)
-          for (const cuff of ['shirt', 'elastic', 'tie'] as const) {
+          for (const cuff of ['shirt', 'oversized', 'elastic', 'tie'] as const) {
             if (!cuffAllowed(cuff, length, shape)) continue;
             if (shape === 'bishop' && length === 'elbow') continue;
             const d = draftSleeve(bd, a, { ...style, length, shape, fit: 'regular', cuff });
-            expect(d.cuff?.kind).toBe(cuff);
+            expect(d.cuff?.kind).toBe(cuff === 'oversized' ? 'shirt' : cuff);
             // The hem gathers into the cuff, or passes the hand for elastic.
             expect(d.gathers!.hem).toBeGreaterThan(cuff === 'elastic' ? 2 : 4);
             expect(d.hemCm).toBe(d.cuff!.round);
@@ -104,5 +104,17 @@ describe('cuffs', () => {
     expect(describeBodice({ ...DEFAULT_BODICE, sleeve: 'short', sleeveShape: 'straight', sleeveCuff: 'ruffle' })).toMatch(/short sleeves with ruffled hems/);
     // A cuff a short sleeve can't take isn't named.
     expect(describeBodice({ ...DEFAULT_BODICE, sleeve: 'short', sleeveShape: 'straight', sleeveCuff: 'tie' })).not.toMatch(/cuff/);
+  });
+
+  it('cuts an oversized cuff deep and loose, falling over the hand, with three buttons', () => {
+    const b = draftBodice(body);
+    const shirt = draftSleeve(b, arms, { ...style, length: 'long', shape: 'straight', fit: 'regular', cuff: 'shirt' });
+    const big = draftSleeve(b, arms, { ...style, length: 'long', shape: 'straight', fit: 'regular', cuff: 'oversized' });
+    expect(big.cuff!.depth).toBe(CUFF.oversized.depth);
+    expect(big.cuff!.round).toBe(arms.wrist + CUFF.oversized.ease);
+    // It ends past the shirt cuff's wrist by its fall over the hand.
+    expect(big.lengthCm + big.cuff!.depth - (shirt.lengthCm + shirt.cuff!.depth)).toBeCloseTo(CUFF.oversized.past, 0);
+    expect(big.pieces.find((pc) => pc.name === 'Cuff')!.labels.some((l) => /3 BUTTONHOLES/.test(l.text))).toBe(true);
+    expect(describeBodice({ ...DEFAULT_BODICE, sleeve: 'long', sleeveShape: 'straight', sleeveCuff: 'oversized' } as never)).toMatch(/oversized cuffs/);
   });
 });

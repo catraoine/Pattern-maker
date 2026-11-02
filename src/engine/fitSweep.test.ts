@@ -2,7 +2,7 @@
 // the way a toile would be, not just against each other. Added after the Fable fit check of 2026-10-24.
 import { describe, expect, it } from 'vitest';
 import { draftSkirt, FIT_EASE, skirtFitOf } from './skirt';
-import { BODICE_FIT_EASE, BOXY, draftBodice, girthBelowWaist } from './bodice';
+import { BODICE_FIT_EASE, BOXY, LONG_BELOW_HIP, draftBodice, girthBelowWaist } from './bodice';
 import { draftDress } from './dress';
 import { draftTrousers, TROUSER_EASE, TrousersMeasurements } from './trousers';
 import { draftOuter, OUTER_EASE } from './outerwear';
@@ -408,6 +408,33 @@ describe('the boxy dress measured against the body', () => {
         const pieces = [...d.pieces, ...sl.pieces];
         for (const c of checkPattern(pieces, { finishedWaist: d.seamCm ?? d.finishedWaist })) if (!c.ok) failures.push(`${tag}: ${c.label} (${c.detail})`);
       }
+    }
+    expect(failures.slice(0, 10), `${failures.length} failures`).toEqual([]);
+  });
+});
+
+// The oversized long shirt (Cat broke the freeze for it, 2026-10-31, for the Parma Shirt): straight from the bust
+// with the oversized ease and no darts, long over the seat, dropped shoulders and cuffed sleeves.
+describe('the oversized long shirt measured against the body', () => {
+  it(`hangs straight from the bust with its ease, runs past the hip and sews up with its sleeves, for ${BODIES} bodies`, () => {
+    const failures: string[] = [];
+    for (let seed = 1; seed <= BODIES; seed++) {
+      const r = rng(seed + 52000);
+      const b = randomBody(r);
+      const m = { ...b, ...randomArms(b, r) };
+      const tag = `seed ${seed}`;
+      const shirt = draftBodice(m, { fit: 'oversized', neckline: 'crew', collar: 'shirt', closure: 'front_buttons', length: 'long', darts: 'none', sleeve: 'long', sleeveCut: 'drop' } as never);
+      const want = m.full_bust + BODICE_FIT_EASE.oversized.bust;
+      if (Math.abs(shirt.finishedBust - want) > 3) failures.push(`${tag}: bust ${shirt.finishedBust} vs ${r1(want)}`);
+      if ((shirt.finishedHem ?? 0) < want - 1) failures.push(`${tag}: hem ${shirt.finishedHem} narrower than the ${r1(want)} bust`);
+      if ((shirt.finishedHem ?? 0) < m.full_hip + 10) failures.push(`${tag}: hem ${shirt.finishedHem} over a ${r1(m.full_hip)} hip`);
+      if (Math.abs(shirt.drop - (m.waist_to_hip + LONG_BELOW_HIP)) > 0.5) failures.push(`${tag}: hem ${shirt.drop} below the waist`);
+      // No darts take anything in: the waist is as wide as the bust.
+      if (shirt.finishedWaist < want - 1) failures.push(`${tag}: waist ${shirt.finishedWaist} narrower than the ${r1(want)} bust`);
+      if (!shirt.buttons || !shirt.pieces.some((pc) => /stand/i.test(pc.name))) failures.push(`${tag}: no collar stand or buttons`);
+      for (const w of shirt.warnings) if (/armhole/.test(w)) failures.push(`${tag}: ${w}`);
+      const sl = draftSleeve(shirt, m, { length: 'long', shape: 'straight', cuff: 'shirt', fit: 'oversized', seamAllowance: 1.5, armholeAllowance: 1, hemAllowance: 2.5 });
+      for (const c of checkPattern([...shirt.pieces, ...sl.pieces])) if (!c.ok) failures.push(`${tag}: ${c.label} (${c.detail})`);
     }
     expect(failures.slice(0, 10), `${failures.length} failures`).toEqual([]);
   });

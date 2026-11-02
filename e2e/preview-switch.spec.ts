@@ -6,7 +6,10 @@ test('garment or pattern, and Show fit shades the pieces', async ({ page }) => {
   const main = page.getByRole('main');
   const look = main.getByRole('group', { name: 'Preview view' });
   await expect(look.getByRole('button', { name: /^Garment On your form/ })).toHaveAttribute('aria-pressed', 'true');
-  await expect(main.getByRole('group', { name: 'Garment view' }).getByRole('button', { name: 'Back', exact: true })).toBeVisible();
+  // No Back view (Cat, 2026-11-02): Front, Flat and All round; All round shows the back.
+  const views = main.getByRole('group', { name: 'Garment view' });
+  await expect(views.getByRole('button', { name: 'Flat', exact: true })).toBeVisible();
+  await expect(views.getByRole('button', { name: 'Back', exact: true })).toHaveCount(0);
 
   // The fit is one of the tools tucked away for a first pattern.
   await (await showAllTools(page)).click();
