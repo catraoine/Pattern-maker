@@ -196,6 +196,9 @@ interface TorsoPiece {
 }
 
 export interface DrapeOptions {
+  /** A skirt's side slit drawn open (the drape is of one half, mirrored: a slit on one side only is drawn by draping
+   *  the skirt both ways and showing each side from its own). */
+  openSlit?: boolean;
   thick?: number;
   bendK?: number;
   /** Buttons at these levels (cm in the front's own frame), at the centre front. */
@@ -344,10 +347,12 @@ function halfPiece(pc: Piece): Piece {
   return { ...pc, outline: out, lines: pc.lines.filter((l) => l.points(2).every((q) => q.x >= -0.01)), meta: { ...pc.meta, whole: false } };
 }
 
-function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: number; sleeve?: Piece[]; collars?: CollarPart[]; trousers?: TrousersDraft; tiers?: TierBand[]; under?: Piece[]; puff?: number; cuff?: number; cuffBand?: Piece }, o: DrapeOptions): Draped {
+function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: number; slitCm?: number; sleeve?: Piece[]; collars?: CollarPart[]; trousers?: TrousersDraft; tiers?: TierBand[]; under?: Piece[]; puff?: number; cuff?: number; cuffBand?: Piece }, o: DrapeOptions): Draped {
   if (o.boxy) sp = boxed(sp);
   if (extra.skirt) extra = { ...extra, skirt: extra.skirt.map(halfPiece).map(narrowed) };
   const B = new Builder(sp);
+  // A side slit's open edges (each point's distance up the seam from the hem), for the parting drawn after the sim.
+  const slitEdges: { p: Panel; ids: number[]; toHem: Map<number, number>; sign: number }[] = [];
   const poppedPanels: Panel[] = [];
   const stiffPanels: { p: Panel; by: string; roll?: [P, P]; key: (q: P) => number }[] = [];
   let legs: SimInput['legs'];
@@ -496,7 +501,31 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
     }
     const pf = B.panels.filter((p) => p.role === 'peplum-front');
     const pb = B.panels.filter((p) => p.role === 'peplum-back');
-    if (pf.length && pb.length) sew(seams, B.chain(pf, 'side', levelOf.get(pf[0])!), B.chain(pb, 'side', levelOf.get(pb[0])!));
+    if (pf.length && pb.length) {
+      const before = seams.length;
+      sew(seams, B.chain(pf, 'side', levelOf.get(pf[0])!), B.chain(pb, 'side', levelOf.get(pb[0])!));
+      // A side slit: the seam left open from the hem up to the slit's end (measured up the seam from the hem).
+      if (extra.slitCm) {
+        const open = new Set<number>();
+        const openTo = new Map<number, number>();
+        for (const p of [...pf, ...pb]) {
+          const byY = [...new Set((p.mesh.runs.side ?? []).flat())].sort((a, b) => p.mesh.pts[b].y - p.mesh.pts[a].y);
+          let dist = 0;
+          byY.forEach((i, k) => {
+            if (k) dist += Math.hypot(p.mesh.pts[i].x - p.mesh.pts[byY[k - 1]].x, p.mesh.pts[i].y - p.mesh.pts[byY[k - 1]].y);
+            if (dist < extra.slitCm!) {
+              open.add(p.base + i);
+              openTo.set(p.base + i, dist);
+            }
+          });
+        }
+        for (const p of pf) slitEdges.push({ p, ids: [...open].filter((g) => g >= p.base && g < p.base + p.mesh.pts.length), toHem: openTo, sign: -1 });
+        for (const p of pb) slitEdges.push({ p, ids: [...open].filter((g) => g >= p.base && g < p.base + p.mesh.pts.length), toHem: openTo, sign: 1 });
+        const kept = seams.slice(before).filter((q) => !open.has(q.i) || (!open.has(q.j) && !open.has(q.k)));
+        seams.length = before;
+        seams.push(...kept);
+      }
+    }
     // Gathered tiers below the yoke: each a rectangle, a quarter of its round each side of the body, gathered onto
     // the edge above and hanging from it.
     if (extra.tiers?.length) {
@@ -2951,6 +2980,40 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       }
     }
   }
+  // A side slit parts a little as she stands: its edges a little apart, more toward the hem, each turned round the
+  // body away from the other (the front edge forward, the back edge back), the cloth within a few cm turning with it.
+  // They hang straight: turned, not flared out.
+  if (slitEdges.length && extra.slitCm && !knob('__noSlitPart')) {
+    const part = knob('__slitPart') ?? 4;
+    const band = knob('__slitBand') ?? 6;
+    for (const { p, ids, toHem, sign } of slitEdges) {
+      if (!ids.length) continue;
+      const turn = new Map<number, number>();
+      p.mesh.pts.forEach((q, i) => {
+        let best = Infinity;
+        let at = 0;
+        for (const g of ids) {
+          const e = p.mesh.pts[g - p.base];
+          const dd = Math.hypot(e.x - q.x, e.y - q.y);
+          if (dd < best) {
+            best = dd;
+            at = g;
+          }
+        }
+        if (best >= band) return;
+        const t = Math.max(0, 1 - (toHem.get(at) ?? 0) / extra.slitCm!);
+        const w = 1 - best / band;
+        turn.set(p.base + i, (part / 2) * t ** (knob('__slitPow') ?? 1.2) * w * w * (3 - 2 * w));
+      });
+      for (const [g, gap] of turn) {
+        const I = g * 3;
+        const rho = Math.hypot(res[I], res[I + 2]) || 1e-9;
+        const a = Math.atan2(res[I], res[I + 2]) + (sign * gap) / rho;
+        res[I] = Math.sin(a) * rho;
+        res[I + 2] = Math.cos(a) * rho;
+      }
+    }
+  }
   // (Last, nothing a pass above moved is left inside the body: a jacket's shoulders held out on the form. The form is
   // drawn with its height carried on straight above the neck point, where its table flattens; so is this.)
   const cTopD = sp.cOf(-1.45) + 2;
@@ -3223,6 +3286,22 @@ function shirtCollar(pc: Piece): [P, P] | undefined {
   ];
 }
 
+/** An open polo collar (no stand) rolls up off the neck and turns down: its roll line runs from a stand's height
+ * above the neck edge at the centre back down to the neck edge at the front, where the slit opens. */
+function poloRoll(pc: Piece): [P, P] | undefined {
+  const { pts, tags } = pc.outline.taggedPoints(8);
+  const nk = pts.filter((_, i) => tags[i] === 'neck');
+  if (nk.length < 2) return undefined;
+  const cb = nk.reduce((u, v) => (v.x < u.x ? v : u));
+  const cf = nk.reduce((u, v) => (v.x > u.x ? v : u));
+  const stand = knob('__poloStand') ?? 2.5;
+  const front = knob('__poloFront') ?? 0.6;
+  return [
+    { x: cb.x - 1, y: cb.y - stand - ((cf.y - front - (cb.y - stand)) / (cf.x - cb.x || 1)) * 1 },
+    { x: cf.x + 1, y: cf.y - front + ((cf.y - front - (cb.y - stand)) / (cf.x - cb.x || 1)) * 1 },
+  ];
+}
+
 function collarsOf(pieces: Piece[], jacketRoll?: [P, P]): CollarPart[] {
   return pieces
     .filter((pc) => pc.kind === 'collar')
@@ -3239,7 +3318,7 @@ function collarsOf(pieces: Piece[], jacketRoll?: [P, P]): CollarPart[] {
         const xs = pc.outline.points(2).map((q) => q.x);
         return [pt(Math.min(...xs) - 1, y), pt(Math.max(...xs) + 1, y)];
       };
-      const roll: [P, P] | undefined = pc.outline.tags.includes('gorge') && cl ? [cl[0], cl[cl.length - 1]] : onStand ? shirtCollar(pc) : ruffleFold();
+      const roll: [P, P] | undefined = pc.outline.tags.includes('gorge') && cl ? [cl[0], cl[cl.length - 1]] : onStand ? shirtCollar(pc) : pc.meta.polo ? poloRoll(pc) : ruffleFold();
       void jacketRoll;
       return { pc, roll, onStand };
     })
@@ -3318,7 +3397,9 @@ export function drapeTrousers(sp: Space, d: TrousersDraft, o: DrapeOptions = {})
 export function drapeSkirt(sp: Space, d: SkirtDraft, o: DrapeOptions = {}): Draped {
   // (A low-rise skirt hangs from its own waistband, that far below the waist.)
   const drop = (d as { lowRise?: number }).lowRise;
-  return drape(sp, [], { skirt: hungSkirt(d.pieces.filter(isSkirt), d.volume as never), tiers: d.volume?.tiers?.bands, under: d.pieces.filter(isUnder), ...(drop ? { drop } : {}) }, { closedFront: true, ...o });
+  const slit = (d as { slit?: { at: string; cm: number } }).slit;
+  const slitCm = o.openSlit && slit?.at === 'side' ? slit.cm : undefined;
+  return drape(sp, [], { skirt: hungSkirt(d.pieces.filter(isSkirt), d.volume as never), tiers: d.volume?.tiers?.bands, under: d.pieces.filter(isUnder), ...(drop ? { drop } : {}), ...(slitCm ? { slitCm } : {}) }, { closedFront: true, ...o });
 }
 
 export function drapeOuter(sp: Space, d: OuterDraft, o: DrapeOptions = {}): Draped {
