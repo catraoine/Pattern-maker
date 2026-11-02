@@ -37,3 +37,11 @@ Tester names, emails and codes live there and in Cat's Gmail, never in this repo
 Wrong print scale (measure the 10 cm square), Letter vs A4, phone-only testers (use Send link and a
 copy shop), opening the site without their link, switching devices, self-measuring errors, the
 bodice's estimated upper-body measurements, stretchy toile fabric, forgetting the form or photos.
+
+## Readiness checks
+
+- **Nov 2 (before the full round):** the stranger path walked on the live site for four bodies across the hip
+  grid on phone and computer, with 48 PDFs read page by page. Patterns true to scale, every seam walked,
+  pages line up. Three fixes on #265 (inches height boxes, named warnings, near-empty pages). The walk
+  scripts and PDF checker live in the project folder under readiness-check/spec so the run can be repeated
+  after each fix week. A large body's dress is 34 Letter pages: point big-size testers at the free A0 file and a copy shop.

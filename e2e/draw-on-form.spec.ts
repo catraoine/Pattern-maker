@@ -74,7 +74,9 @@ test('back asks first, then leaves the bodice as it was', async ({ page }) => {
   await (await drawTool(page)).click();
   await back.click();
   await expect(main.getByRole('heading', { name: 'Style your bodice' })).toBeVisible();
-  await back.click();
+  // The style steps have no header ← (Cat's B, 2026-11-02): the phone's own back carries on from there.
+  await expect(back).toBeHidden();
+  await page.goBack();
   await expect(main.getByRole('heading', { name: 'Style your bodice' })).toHaveCount(0);
 });
 
@@ -95,7 +97,7 @@ test('Done keeps the lines, and the back button then leaves the style screen', a
     await page.locator('.steady-back').click();
     await expect(main.getByRole('heading', { name: 'Style your bodice' })).toBeVisible();
   }
-  await page.locator('.steady-back').click();
+  await page.goBack();
   await expect(main.getByRole('heading', { name: 'Style your bodice' })).toHaveCount(0);
 });
 

@@ -1,0 +1,38 @@
+name: All round sweep
+
+# Every night: 300 random designs sewn on the form and their drawings scored (src/drapeSweep.ts). The report lists
+# the designs that aren't usable, grouped by the check they fail and the choices they share, so each fix covers every
+# design with that part. It doesn't block anything; the locked designs in drapeSweep.test.ts do that on every PR.
+on:
+  schedule:
+    - cron: '0 9 * * *'
+  workflow_dispatch:
+    inputs:
+      count:
+        description: How many random designs
+        default: '300'
+
+jobs:
+  sweep:
+    name: Sew and score random designs
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx vitest run src/drapeSweep.test.ts -t "sweep of random designs"
+        env:
+          DRAPE_SWEEP: ${{ github.event.inputs.count || '300' }}
+          DRAPE_REPORT: drape-sweep.md
+      - name: Report
+        if: ${{ !cancelled() }}
+        run: cat drape-sweep.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: drape-sweep
+          path: drape-sweep.md

@@ -546,10 +546,27 @@ if (PRINT2) {
   const about2 = main.locator('summary', { hasText: 'About your fabric' });
   if (!(await about2.evaluate((el) => el.parentElement.open))) await about2.evaluate((el) => el.click());
   await wait(300);
-  await choose('[role=radiogroup][aria-label="What\'s printed on your fabric"] [role=radio]', PRINT2);
-  await wait(400);
+  // The print and its colour land in one tap's time (Cat, 2026-11-02: the dress went gingham, then camel python, then
+  // aqua; one clean change reads better), so the print is chosen and coloured in the same moment below.
+  if (process.env.TOUR_COLOUR2 && process.env.TOUR_COLOUR2 !== 'Camel' && process.env.TOUR_COLOUR2 !== 'none') {
+    mark('cloth');
+    // React commits the first tap in a microtask: wait for it (no frame is painted in between), so the second tap
+    // builds on the first instead of on the fabric as it was.
+    await p.evaluate(async ([print, colour]) => {
+      [...document.querySelectorAll('[role=radiogroup][aria-label="What\'s printed on your fabric"] [role=radio]')].find((el) => el.getAttribute('aria-label') === print || el.textContent.trim().startsWith(print))?.click();
+      for (let i = 0; i < 4; i++) await Promise.resolve();
+      [...document.querySelectorAll('main [role=radiogroup][aria-label="Colour"] [role=radio]')].find((el) => el.getAttribute('aria-label') === colour || el.textContent.trim() === colour)?.click();
+    }, [PRINT2, process.env.TOUR_COLOUR2]);
+    process.env.TOUR_COLOUR2 = 'none';
+    // Long enough for the film's palette card to land and be read (Cat's D1 One Palette Card, 2026-11-02).
+    await wait(Number(process.env.TOUR_CLOTH_HOLD ?? 2600));
+  } else {
+    await choose('[role=radiogroup][aria-label="What\'s printed on your fabric"] [role=radio]', PRINT2);
+    await wait(400);
+  }
 }
-if (process.env.TOUR_COLOUR2 !== 'none') await press(main.getByRole('radiogroup', { name: 'Colour' }).getByRole('radio', { name: process.env.TOUR_COLOUR2 ?? 'Camel', exact: true }).first(), QUICK ? 1200 : 2200);
+if (process.env.TOUR_FIBRE2) { await choose('[role=radiogroup][aria-label="Fabric for the sketch"] [role=radio]', process.env.TOUR_FIBRE2); await wait(400); }
+if (process.env.TOUR_COLOUR2 !== 'none') { mark('cloth'); await press(main.getByRole('radiogroup', { name: 'Colour' }).getByRole('radio', { name: process.env.TOUR_COLOUR2 ?? 'Camel', exact: true }).first(), QUICK ? 1200 : 2200); }
 if (process.env.TOUR_PROBE_FABRIC) {
   await goStep('Shape');
   await wait(1200);

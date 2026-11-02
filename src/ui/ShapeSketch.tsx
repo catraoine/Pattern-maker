@@ -255,13 +255,15 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
         <circle cx={at.x} cy={at.y} r={r} strokeWidth={0.22} />
         <circle cx={at.x} cy={at.y} r={0.45 * k} className="dot" />
         <path d={arrows} strokeWidth={0.22} fill="none" />
+        {/* Each handle says what it does (Cat's H, 2026-11-02): Length under the hem's, Width beside the side's, so
+            the two never run into each other. */}
         <text
-          x={kind === 'hem' ? at.x + r + 1.5 * k : at.x}
-          y={kind === 'hem' ? at.y + 0.9 * k : at.y + r + 4.6 * k}
+          x={kind === 'hem' ? at.x : at.x + r + 2.6 * k}
+          y={kind === 'hem' ? at.y + r + 4.6 * k : at.y + 0.9 * k}
           fontSize={2.6 * k}
-          textAnchor={kind === 'hem' ? 'start' : 'middle'}
+          textAnchor={kind === 'hem' ? 'middle' : 'start'}
         >
-          {text.toUpperCase()}
+          {(kind === 'hem' ? `↕ Length · ${text}` : `↔ Width · ${text}`).toUpperCase()}
         </text>
         <circle
           cx={at.x}

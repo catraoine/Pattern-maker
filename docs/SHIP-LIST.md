@@ -22,6 +22,10 @@ Four things, nothing else:
 the screens that already exist clearer, easier and better looking is not frozen: layout, wording, buttons, demo
 videos for existing tools and fixes like these go ahead.
 
+**Design options carry on (Cat, 31 October 2026: "the freeze is too strict").** New style choices on garments that
+already exist (lapels, collars, necklines, hems, yokes, fullness, peplums) go ahead without a freeze flag. Each one
+is In testing, with a row in the table below, until two testers sew it.
+
 | What | Where | State on 20 Oct |
 | --- | --- | --- |
 | Fit fixes from the Fable review | PR #114 | queued |
@@ -60,6 +64,19 @@ testing". A tag comes off by hand, once its proof is in: delete the entry and th
 | Client book | Account | one dressmaker keeps three clients in it |
 | The collection and the Archive | the Collection heading | drop 01 published |
 | Projector mode | Print, Projector, and inside projector mode | two sewists cut a garment with it on their own projectors |
+| Oversized and long tops (the big shirt: Oversized fit and Long length; Cat broke the freeze for it, 2026-10-31) | the Oversized fit and Long length chips on the top | two testers sew an oversized long shirt and it hangs straight, its sleeves lifting without pulling |
+| Lowered peplum (the peplum sewn to a hem 6 to 12 cm below the waist, the waist still cinched; Cat broke the freeze for it, 2026-10-31) | the Peplum chips on a top longer than the waist | two testers sew a peplum lowered 6 to 9 cm and the waist stays nipped in above it |
+| Oversized jackets and coats (boxy, dropped shoulders, no pads, a wider lapel rolling lower; Cat broke the freeze for it, 2026-10-31) | the Oversized fit chip on a jacket or coat | two testers sew an oversized jacket and it hangs open and straight, the dropped shoulders sitting past their own |
+| Plunging V neckline (a V cut nearly to the waist on 2.5 cm straps; Cat broke the freeze for the SS27 slip, 2026-10-31) | the Plunge neckline chip on a top or dress | two testers sew a plunging slip and the V lies flat to the body without gaping |
+| High-low peplum (a top's peplum curving down to hang 8 to 14 cm longer at the centre back; Cat broke the freeze for the SS27 lilac top, 2026-10-31) | the Peplum hem chips on a top with a peplum | two testers sew a high-low peplum and it falls smoothly from the sides to the longer back |
+| Gathered skirt fullness (Soft 1.6, Full 2.2 or Dramatic 2.8 times the waist, in place of the fit's own; Cat asked for fullness choices for the SS27 D1 dress, 2026-10-31) | the Gathers chips on a gathered skirt or dress skirt | two testers sew a Full or Dramatic gathered skirt and the gathers sit evenly into the waist |
+| Big peplum (1.4 times as deep, a flared one cut as a full circle, a gathered one 2.2 times its seam; Cat asked for a bigger peplum on the SS27 ice-blue top, 2026-10-31) | the Peplum size chips on a top with a peplum | two testers sew a big peplum and it stands out evenly from the waist |
+| Peak, shawl and funnel collars, wide and plunging lapels on jackets and coats (Cat asked for more lapel and collar options, 2026-10-31) | the Collar and Lapels chips on a jacket or coat | two testers sew a peak or shawl lapel and it rolls cleanly from the break point, the collar sitting flat at the back neck |
+| Flared jacket and coat hem (each seam bent out from the waist like a basque; Cat asked for the lilac blazer from her plaid-blazer picture, 2026-10-31) | the Flared chip below the waist on a jacket or coat | two testers sew a flared jacket and it stays close at the waist, kicking out evenly over the hips with a level hem |
+| Oversized shirt cuffs (14 cm deep, 8 cm loose round the wrist, falling 3 cm over the hand, 3 buttons up a 14 cm placket; from Cat's ivory-shirt picture, 2026-11-01) | the Oversized cuff chip on a long straight or bishop sleeve | two testers sew oversized cuffs and they sit loose and level over the hand, the buttons lining up |
+| Low-rise skirt (the skirt's top drafted about 6 cm below the waist, at most a quarter of the way to the hip, the hem kept where it was; Cat's SS27 knife-pleat skirt, 2026-11-01) | the Rise chips on a skirt | two testers sew a low-rise skirt and it sits level on the hip without slipping, the hem where it was |
+| Drop-yoke skirt (a fitted yoke to below the hip, one deep gathered skirt below, Soft, Full or Dramatic; for the lilac suit, 2026-10-31) | the One, drop yoke chip under Tiers on a skirt | two testers sew a drop-yoke skirt and the yoke lies smooth over the hip, the gathers falling evenly below it |
+| Ruffled hem on a gathered skirt (the dirndl's panels shortened by the ruffle's depth, a band 1.8 times the hem gathered on below; for the SS27 pink gown, 2026-11-01) | the Ruffled hem chip on a gathered skirt | two testers sew a gathered skirt with a ruffled hem and the ruffle hangs evenly, the length kept |
 | Ruffles, ruching, cape and balloon hem (ruffled hems and sleeve hems, ruched sides, cape, balloon hem) | the chips for each on the Style screens | three testers sew a ruffled hem, ruched sides and a cape and each hangs as drawn |
 
 Lingerie and swimwear stay hidden (`?lingerie=preview`, PR #102). Tracé Engine, Atelier Nights, Deadstock and
@@ -82,7 +99,7 @@ In testing tag. Nothing new starts.
 
 ## Not until the gate passes
 
-New garments, new tools, new revenue streams, promo film re-records, expansion languages, app store builds,
+New garment types, new features, new revenue streams, promo film re-records, expansion languages, app store builds,
 more mock-up rounds for screens that already work. Bugs in anything already live are fixed as found.
 
 An ask that breaks the freeze is flagged before any work starts, with the cost, and Cat decides.

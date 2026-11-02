@@ -5,6 +5,7 @@
 import { BODY_BOTTOM, BODY_TOP, SHOULDER_TIP_Y, bodyHalf, shapeAt } from '../body';
 import { FORM_HIP } from '../form';
 import { RoundMeasurements } from '../../ui/allRoundShape';
+import { knob } from './knob';
 
 const TAU = Math.PI * 2;
 const BUST_Y = -0.575;
@@ -41,9 +42,17 @@ export interface Space {
   /** The top of the shoulder at x cm out from the centre: its level (the form's shoulder, then on over the top of the
    *  arm, dropping gently past the tip, as a shoulder does). */
   ridge: (x: number) => number;
+  /** Where a point x cm out at level c on the form's own shape stands on the wearer's shoulders (the form drawn the same). */
+  widen: (x: number, c: number, z?: number) => number;
 }
 
-export function makeSpace(yOf: (c: number) => number, m: RoundMeasurements & { upper_arm?: number; wrist?: number; arm_length?: number; shoulder_width?: number }): Space {
+/** How much the body draws in from the form's last row to the knees (`overCm` below it): a share of its width there. */
+const LEG_DRAW_IN = { overCm: 45, side: 0.22, front: 0.1 };
+
+/** `widen`: the form drawn out to the wearer's shoulder width, for a garment with nothing on the arms (a strap, a
+ *  sleeveless or wide neck rests on the wearer's own shoulder point). A sleeved garment hangs from the arm instead: its
+ *  sleeve head sets the shoulder line, and on a widened form the shoulders stand square. */
+export function makeSpace(yOfIn: (c: number) => number, m: RoundMeasurements & { upper_arm?: number; wrist?: number; arm_length?: number; shoulder_width?: number }, opts: { widen?: boolean } = {}): Space {
   const knots: [number, number][] = [
     [BUST_Y, (m.full_bust ?? 90) / perimeter(BUST_Y)],
     [WAIST_Y, (m.waist ?? 72) / perimeter(WAIST_Y)],
@@ -60,6 +69,52 @@ export function makeSpace(yOf: (c: number) => number, m: RoundMeasurements & { u
     }
     return knots[knots.length - 1][1];
   };
+  // Across, the form is the wearer's girths; up and down, its lines are placed at the wearer's lengths, measured
+  // straight down. But a back's length is measured over its curve, nape to waist, and the form's back curves out over
+  // the shoulder blades: read straight, its back is a few cm longer over the curve than the wearer's, and every
+  // bodice drafted to their length hangs short on it. So above the waist the form's heights are drawn in until its
+  // back, over its curve, is as long as theirs.
+  const N = m.nape_to_waist ?? 41;
+  const backArc = (K: number) => {
+    let s = 0;
+    let pr = 0;
+    const n = 120;
+    for (let i = 0; i <= n; i++) {
+      const c = -N * K * (1 - i / n);
+      const y = Math.max(BODY_TOP, Math.min(BODY_BOTTOM, yOfIn(c / K)));
+      const r = bodyHalf(y) * shapeAt(Math.PI, y) * scale(y);
+      if (i) s += Math.hypot((N * K) / n, r - pr);
+      pr = r;
+    }
+    return s;
+  };
+  let K = 1;
+  if (!knob('__noLenFit')) {
+    let lo = 0.8;
+    let hi = 1;
+    for (let it = 0; it < 30; it++) {
+      const mid = (lo + hi) / 2;
+      if (backArc(mid) > N) hi = mid;
+      else lo = mid;
+    }
+    K = (lo + hi) / 2;
+  }
+  const yOf0 = (c: number) => (c < 0 ? yOfIn(c / K) : yOfIn(c));
+  // The form's height table flattens above the neck point; the form is drawn with its height carried on straight up
+  // from just below there, and the body the cloth lies on is read the same way, so the two agree at the neck.
+  const cOf0 = (y: number) => {
+    let lo = -80;
+    let hi = 160;
+    for (let k = 0; k < 40; k++) {
+      const mid = (lo + hi) / 2;
+      if (yOf0(mid) < y) lo = mid;
+      else hi = mid;
+    }
+    return (lo + hi) / 2;
+  };
+  const cTop = cOf0(-1.45) + 2;
+  const slopeTop = (yOf0(cTop + 4) - yOf0(cTop)) / 4;
+  const yOf = (c: number) => (c < cTop ? yOf0(cTop) + (c - cTop) * slopeTop : yOf0(c));
   const cOf = (y: number) => {
     let lo = -80;
     let hi = 160;
@@ -77,12 +132,21 @@ export function makeSpace(yOf: (c: number) => number, m: RoundMeasurements & { u
   const NR = Math.round((C1 - C0) / DC) + 1;
   const NA = 96;
   const tab = new Float32Array(NR * (NA + 1));
+  // Below the form's last row the legs go on down, drawing in as they go: round both thighs to the knees, the
+  // body is narrower than at the hip, more at the sides than front and back. A pencil skirt follows them in.
+  const cBottom = cOf(BODY_BOTTOM);
   for (let r = 0; r < NR; r++) {
     const c = C0 + r * DC;
     const y = Math.max(BODY_TOP, Math.min(BODY_BOTTOM, yOf(c)));
     const s = scale(y);
     const h = bodyHalf(y);
-    for (let k = 0; k <= NA; k++) tab[r * (NA + 1) + k] = h * shapeAt((Math.PI * k) / NA, y) * s;
+    const u = Math.min(1, Math.max(0, (c - cBottom) / LEG_DRAW_IN.overCm));
+    const legs = u * u * (3 - 2 * u);
+    for (let k = 0; k <= NA; k++) {
+      const a = (Math.PI * k) / NA;
+      const side = Math.sin(a) ** 2;
+      tab[r * (NA + 1) + k] = h * shapeAt(a, y) * s * (1 - legs * (LEG_DRAW_IN.front + (LEG_DRAW_IN.side - LEG_DRAW_IN.front) * side));
+    }
   }
   // The form keeps stumps of its arms at the shoulders, wider than the chest under them. Cloth goes over the arm there
   // (a sleeve) or round the armhole inside it, never out over the stump: above the underarm the body is held to the
@@ -101,6 +165,101 @@ export function makeSpace(yOf: (c: number) => number, m: RoundMeasurements & { u
       if (tab[i] * sa > cap) tab[i] = cap / sa;
     }
   }
+  // The form's shoulders are a dress form's, narrower than the wearer's: above the underarm the body is drawn out to the
+  // side, from the neck's edge out, so its shoulder point stands where the wearer's own does (half the measured width,
+  // across the back's curve, as the bodice is drafted to). The neck and the chest below the underarm keep their shape.
+  const tipC0w = tipC0;
+  const tipX0 = (() => {
+    const fr = (tipC0w - C0) / DC;
+    const r = Math.round(fr);
+    return tab[r * (NA + 1) + NA / 2];
+  })();
+  const NECK_X = 5.5;
+  const wantTip = knob('__noWiden') || (opts.widen === false && !knob('__forceWiden')) ? tipX0 : Math.max(tipX0, ((m.shoulder_width ?? 38) / 2) * (knob('__widenK') ?? 0.94));
+  const F = (wantTip - NECK_X) / Math.max(1, tipX0 - NECK_X);
+  const widenAt = (c: number) => {
+    // Full at the shoulder's top and above, gone a few cm down the armhole.
+    const u = Math.min(1, Math.max(0, (c - tipC0w - 1) / ((knob('__widenDown') ?? 8) - 1)));
+    // (And less up the slope toward the neck: the shoulder keeps falling from the neck to its point, not a level shelf
+    // out to it.)
+    const w = Math.min(1, Math.max(0, (tipC0w + 1 - c) / (knob('__widenUp') ?? 4)));
+    const top = 1 - (knob('__widenTop') ?? 0.7) * w * w * (3 - 2 * w);
+    return 1 + (F - 1) * (1 - u * u * (3 - 2 * u)) * top;
+  };
+  // Only the top of the shoulder goes out, where it runs to the arm: the chest and the back in front of and behind the
+  // arm keep the form's width, so an armhole falls past the shoulder as it does round an arm.
+  const ZW = knob('__widenZ') ?? 6;
+  const widen = (x: number, c: number, z = 0) => {
+    // (The form's arm stumps are drawn no wider than the body the cloth lies on: held to the chest's width, as above.)
+    const ax = c < underC ? Math.min(Math.abs(x), cap) : Math.abs(x);
+    if (ax !== Math.abs(x) && F === 1) return Math.sign(x) * ax;
+    if (ax <= NECK_X || F === 1) return x;
+    const v = Math.max(0, 1 - Math.abs(z) / ZW);
+    const out = NECK_X + (ax - NECK_X) * (1 + (widenAt(c) - 1) * v * v * (3 - 2 * v));
+    // (Never wider below the shoulder point than at it: the arm hangs from there, and a sleeve's head covers no more.)
+    return Math.sign(x) * (c > tipC0w ? Math.min(out, Math.max(ax, wantTip)) : out);
+  };
+  if (F !== 1) {
+    const xs = new Float64Array(NA + 1);
+    const zs = new Float64Array(NA + 1);
+    const as = new Float64Array(NA + 1);
+    for (let r = 0; r < NR; r++) {
+      const c = C0 + r * DC;
+      if (widenAt(c) === 1) continue;
+      for (let k = 0; k <= NA; k++) {
+        const a = (Math.PI * k) / NA;
+        const R = tab[r * (NA + 1) + k];
+        xs[k] = widen(Math.sin(a) * R, c, Math.cos(a) * R);
+        zs[k] = Math.cos(a) * R;
+        as[k] = Math.atan2(xs[k], zs[k]);
+      }
+      let j = 0;
+      for (let k = 0; k <= NA; k++) {
+        const a = (Math.PI * k) / NA;
+        while (j < NA - 1 && as[j + 1] < a) j++;
+        const t = Math.min(1, Math.max(0, (a - as[j]) / (as[j + 1] - as[j] || 1e-9)));
+        tab[r * (NA + 1) + k] = Math.hypot(xs[j] + (xs[j + 1] - xs[j]) * t, zs[j] + (zs[j + 1] - zs[j]) * t);
+      }
+    }
+  }
+  // A dress form's shoulders run out nearly level; a wearer's fall from the neck to the shoulder point. Out along the
+  // shoulder the form is drawn lower by that fall, growing toward the point (each height takes the shape the form has
+  // that much higher up), and fading out a few cm down the armhole.
+  const DROP = knob('__shDrop') ?? 0;
+  if (DROP > 0) {
+    const src = Float64Array.from(tab);
+    const span = Math.max(1, wantTip - NECK_X);
+    const lastR = Math.min(NR - 1, Math.ceil((tipC0w + 2 + (knob('__shDropDown') ?? 6) - C0) / DC));
+    for (let k = 0; k <= NA; k++) {
+      const a = (Math.PI * k) / NA;
+      const sa = Math.abs(Math.sin(a));
+      const ca = Math.cos(a);
+      // (The height the form's top reaches out to each distance from its axis, at this angle, from the top down.)
+      const topC = (rho: number) => {
+        for (let r = 0; r <= lastR; r++) if (src[r * (NA + 1) + k] >= rho) return C0 + r * DC;
+        return Infinity;
+      };
+      const fall = (rho: number, c: number) => {
+        const t = Math.min(1, Math.max(0, (rho * sa - NECK_X) / span));
+        const v = Math.max(0, 1 - Math.abs(rho * ca) / ZW);
+        const below = Math.min(1, Math.max(0, (c - tipC0w - 2) / (knob('__shDropDown') ?? 6)));
+        return DROP * t * t * v * v * (3 - 2 * v) * (1 - below * below * (3 - 2 * below));
+      };
+      for (let r = 0; r <= lastR; r++) {
+        const c = C0 + r * DC;
+        const R = src[r * (NA + 1) + k];
+        if (fall(R, c) <= 0) continue;
+        let lo = 0;
+        let hi = R;
+        for (let it = 0; it < 24; it++) {
+          const mid = (lo + hi) / 2;
+          if (topC(mid) + fall(mid, c) <= c) lo = mid;
+          else hi = mid;
+        }
+        tab[r * (NA + 1) + k] = lo;
+      }
+    }
+  }
   const bodyR = (a: number, c: number) => {
     const fr = Math.max(0, Math.min(NR - 1.001, (c - C0) / DC));
     const r = Math.floor(fr);
@@ -112,7 +271,7 @@ export function makeSpace(yOf: (c: number) => number, m: RoundMeasurements & { u
     const i1 = i0 + NA + 1;
     return (tab[i0] * (1 - v) + tab[i0 + 1] * v) * (1 - u) + (tab[i1] * (1 - v) + tab[i1 + 1] * v) * u;
   };
-  const tipC = tipC0;
+  const tipC = tipC0 + DROP;
   const tipX = bodyR(Math.PI / 2, tipC);
   const r0 = (m.upper_arm ?? 27) / TAU;
   const r1 = (m.wrist ?? 16) / TAU;
@@ -120,7 +279,8 @@ export function makeSpace(yOf: (c: number) => number, m: RoundMeasurements & { u
   // The arm hangs from the shoulder tip, a little out and forward. It holds only the sleeves: the body's own cloth
   // lies on the body, and the arm (pressed to the side of the chest, as an arm is) never pushes it in.
   // The form's shoulders are a dress form's, narrower than the wearer's: the arm hangs from the wearer's own shoulder.
-  const a: [number, number, number] = [Math.max(tipX + 0.5, (m.shoulder_width ?? 38) / 2 - r0 * 0.8), tipC + r0 * 1.1, 0];
+  // (And pressed to the side of the chest, not sunk into it: a fitted sleeve's underarm hangs where an armpit is.)
+  const a: [number, number, number] = [Math.max(tipX0 + 0.5, (m.shoulder_width ?? 38) / 2 - r0 * 0.8, cap + r0 * (knob('__armOut') ?? 0)), tipC + r0 * (knob('__armUp') ?? 1.1), 0];
   const lean = 0.08;
   const b: [number, number, number] = [a[0] + L * lean, a[1] + L, 1.5];
   const ridgeTab: number[] = [];
@@ -136,7 +296,7 @@ export function makeSpace(yOf: (c: number) => number, m: RoundMeasurements & { u
     const k = Math.min(59, Math.floor(f));
     return ridgeTab[k] + (ridgeTab[k + 1] - ridgeTab[k]) * (f - k);
   };
-  return { yOf, cOf, scale, bodyR, tip: { c: tipC, x: tipX }, arm: { r0, r1, a, b }, ridge };
+  return { yOf, cOf, scale, bodyR, tip: { c: tipC, x: tipX }, arm: { r0, r1, a, b }, ridge, widen };
 }
 
 /** The same body for cloth cut boxy: below the bust the cloth falls straight to the hip instead of following the body

@@ -3,9 +3,10 @@ import { useMemo, useState } from 'react';
 import { layout } from '../engine/export';
 import { outerSpec } from '../engine/spec';
 import { FinishedTable, finishedLines } from '../ui/FinishedTable';
-import { OuterDraft, OuterMeasurements, outerDrop } from '../engine/outerwear';
+import { OuterDraft, OuterMeasurements, lapelled, outerDrop } from '../engine/outerwear';
 import { outerFlat, wornLines, wornShapes } from '../engine/flat';
-import { OuterChoices, describeOuter, outerAllowed, outerGroups } from '../garments';
+import { OuterChoices, describeOuter, outerAllowed, outerGroups, oversizeOuter } from '../garments';
+import { TestingTag } from '../ui/TestingTag';
 import { TechFlatView } from '../ui/TechFlatView';
 import { AllRound } from '../ui/AllRound';
 import { roundOuter } from '../engine/allRound';
@@ -65,6 +66,8 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
   const undo = useUndo(choices, setChoices);
   const onChoices = undo.change;
   const can = (t: ProTool) => shows(mode, t);
+  /** The picked option of a group; lapels read classic when not chosen yet. */
+  const pick = (id: string): string | undefined => (id === 'lapel' ? choices.lapel ?? 'classic' : (choices[id as keyof OuterChoices] as string | undefined));
   const [view, setView] = useState<'sketch' | 'flat' | 'round' | 'pattern'>('sketch');
   /** Drawing on the form: the choices from before, to keep or go back to. */
   const [onForm, setOnForm] = useState<OuterChoices>();
@@ -158,6 +161,12 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
     );
   }
 
+  // The Front drawing: shown on Front, and standing in for the sewn All round when that fails its score.
+  const sketch = formBody ? (
+    <GarmentFabric fabric={fabric}>
+      <FormSketch body={formBody} m={m} legs={kind === 'coat'} bottom={waistY + outerDrop(m, longest) + 6} lines={formLines} cloth={clothShapes} flatLines={flatLines} arms={formArm} sleeve={formArm ? draft?.sleeve : undefined} underarmY={draft ? landmarks(draft.base).underarm.y : undefined} label={`The ${title.toLowerCase()} on your form`} />
+    </GarmentFabric>
+  ) : undefined;
   return (
     <StyleLayout
       fabric={fabric}
@@ -187,7 +196,9 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
       }
     >
       <section className="card numbered" aria-labelledby="opts">
-        {outerGroups(kind).map((g) => (
+        {outerGroups(kind)
+          .filter((g) => g.id !== 'lapel' || lapelled(choices.collar))
+          .map((g) => (
           <Group key={g.id} label={g.label}>
             <div className={chipsClass(kind, g.id)}>
               {g.options.map(([id, label]) => {
@@ -196,17 +207,21 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
                   <button
                     key={id}
                     type="button"
-                    className={choices[g.id] === id ? 'chip on' : 'chip'}
-                    aria-pressed={choices[g.id] === id}
+                    className={pick(g.id) === id ? 'chip on' : 'chip'}
+                    aria-pressed={pick(g.id) === id}
                     disabled={!allowed}
                     onClick={() => {
-                      const next = { ...choices, [g.id]: id } as OuterChoices;
+                      // An oversized cut goes boxy, with no pads and a plain sleeve.
+                      let next = { ...choices, [g.id]: id } as OuterChoices;
+                      if (g.id === 'fit') next = oversizeOuter(next);
                       // A fitted cut keeps its waist darts.
                       if (next.fit === 'fitted' && next.shaping === 'boxy') next.shaping = 'darts';
                       // A cropped jacket is too short for a vent; rib bands at the hem leave no room for one.
                       if (next.length === 'cropped' || next.trim === 'rib') next.vent = 'none';
                       // A notched lapel needs a shoulder seam and a buttoned front: a zip or raglan sleeves switch it to a stand collar.
-                      if (next.collar === 'notched' && (next.front === 'zip' || next.sleeve === 'raglan')) next.collar = 'stand';
+                      if (lapelled(next.collar) && (next.front === 'zip' || next.sleeve === 'raglan')) next.collar = 'stand';
+                      // A plunging lapel needs a single-breasted lapelled front.
+                      if (next.lapel === 'plunge' && next.front !== 'single') next.lapel = undefined;
                       // A raglan sleeve is cut off a one-piece front and back: princess seams give way to darts.
                       if (next.sleeve === 'raglan' && next.shaping === 'princess') next.shaping = 'darts';
                       onChoices(next);
@@ -214,11 +229,14 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
                   >
                     <ChoicePic set={kind} group={g.id} id={id} />
                     {label}
+                    {g.id === 'fit' && id === 'oversized' && <TestingTag tool="oversized_outer" />}
+                    {((g.id === 'collar' && (id === 'peak' || id === 'shawl' || id === 'funnel')) || (g.id === 'lapel' && id !== 'classic')) && <TestingTag tool="jacket_collars" />}
+                    {g.id === 'flare' && id === 'flared' && <TestingTag tool="flared_jacket" />}
                   </button>
                 );
               })}
             </div>
-            <Explain set="outer" group={g.id} options={g.options} pick={choices[g.id]} />
+            <Explain set="outer" group={g.id} options={g.options} pick={pick(g.id)} />
             {g.id === 'shaping' && choices.fit === 'fitted' && <p className="muted small">A fitted {kind} keeps its waist shaping, so boxy needs a regular or relaxed fit.</p>}
           </Group>
         ))}
@@ -257,25 +275,21 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           )}
           <InCorner>
             {draft && (
-              <button type="button" className="link small" onClick={() => setOnForm(choices)}>
-                Draw on your form
+              <button type="button" className="link small" aria-label="Draw on your form" onClick={() => setOnForm(choices)}>
+                <span className="tool-word">Draw</span>
               </button>
             )}
           </InCorner>
         </div>
         <div className="preview">
           {error && <p className="msg error">{error}</p>}
-          {formBody && view === 'sketch' && (
-            <GarmentFabric fabric={fabric}>
-              <FormSketch body={formBody} m={m} legs={kind === 'coat'} bottom={waistY + outerDrop(m, longest) + 6} lines={formLines} cloth={clothShapes} flatLines={flatLines} arms={formArm} sleeve={formArm ? draft?.sleeve : undefined} underarmY={draft ? landmarks(draft.base).underarm.y : undefined} label={`The ${title.toLowerCase()} on your form`} />
-            </GarmentFabric>
-          )}
+          {view === 'sketch' && sketch}
           {flat && view === 'flat' && (
             <GarmentFabric fabric={fabric}>
               <TechFlatView flat={flat} title={title} />
             </GarmentFabric>
           )}
-          {round && view === 'round' && <AllRound round={round} drape={drapeJob} m={values} fabric={fabric} striped={matchKind(fabric)} label={`The ${title.toLowerCase()} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`} />}
+          {round && view === 'round' && <AllRound round={round} drape={drapeJob} m={values} fabric={fabric} striped={matchKind(fabric)} fallback={sketch} label={`The ${title.toLowerCase()} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`} />}
           {draft && sheet && view === 'pattern' && !(fit && canFit) && <PatternPane><PatternPreview paper sheet={sheet} label={`Pattern pieces for ${title.toLowerCase()}`} /></PatternPane>}
           {view === 'pattern' && fit && canFit && <EaseMapView views={easeMap!} label={`The fit of the ${title.toLowerCase()}, on its pattern pieces`} />}
           <UndoToast undo={undo} />
@@ -292,7 +306,7 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
         <PiecesList pieces={pieces} lining />
         {draft && <FabricSummary metres={outerFabricMetres(draft)} fabric={fabric} />}
         <p className="muted small">
-          Fully lined, with interfaced front facings{choices.collar === 'notched' ? ' and an upper and under collar rolled at the lapel' : ''}. The sleeves are drafted to
+          Fully lined, with interfaced front facings{lapelled(choices.collar) ? ' and an upper and under collar rolled at the lapel' : ''}. The sleeves are drafted to
           your own armhole with room for what you wear underneath{choices.pads !== 'none' ? ', and the shoulders and sleeve heads are raised to take the shoulder pads' : ''}.
         </p>
         <SummaryActions ready={!!draft} onNext={onNext} saveState={saveState} onSave={onSave} onAccount={onAccount} onEditMeasurements={onEditMeasurements} />

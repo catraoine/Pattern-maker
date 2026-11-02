@@ -125,6 +125,20 @@ describe('skirt volume', () => {
     expect(checkPattern(short.pieces, { finishedWaist: short.finishedWaist }).filter((c) => !c.ok)).toEqual([]);
   });
 
+  it('gathers a ruffle onto a gathered skirt too, the only fullness a dirndl takes', () => {
+    for (const gathers of ['soft', 'full', 'dramatic'] as const) {
+      const d = draftSkirt(m, { silhouette: 'gathered', length: 'maxi', flounce: 'ruffle', gathers });
+      const plain = draftSkirt(m, { silhouette: 'gathered', length: 'maxi', gathers });
+      expect(d.volume!.kind).toBe('ruffle');
+      const [b] = d.volume!.tiers!.bands;
+      expect(Math.abs(b.gatheredTo - plain.hemCm)).toBeLessThan(1);
+      expect(Math.abs(b.round - 1.8 * plain.hemCm)).toBeLessThan(2);
+      expect(d.lengthCm).toBeCloseTo(plain.lengthCm, 1);
+      expect(checkPattern(d.pieces, { finishedWaist: d.finishedWaist }).filter((c) => !c.ok)).toEqual([]);
+    }
+    for (const kind of KINDS) expect(volumeAllowed({ silhouette: 'gathered', length: 'maxi' }, kind)).toBe(kind === 'ruffle');
+  });
+
   it('gathers a ruffle onto the hem of the shortened skirt, keeping the length', () => {
     for (const length of LENGTHS) {
       const d = draftSkirt(m, { silhouette: 'a_line', length, flounce: 'ruffle' });

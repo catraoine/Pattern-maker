@@ -384,6 +384,8 @@ const VOLUME_FROM = 7;
 const HEM_FALL = 0.13;
 /** How much of the ease a piece shows where it is held carries down a fitted piece to the hip. */
 const HELD_EASE = 0.3;
+/** How far below the form's foot the fitted hug above it lets go, so the side runs on without a step. */
+const SETTLE = 8;
 /** How far below a seam a gathered or eased piece takes to bell out to its own width. */
 const BELL = 14;
 
@@ -515,6 +517,20 @@ function pieceOnForm(s: P[], body: FormBody, underarmY: number, sewnHalf?: numbe
           const carried = fittedHeld * Math.min(1, Math.max(0, (hipY - q.y) / 8));
           const held = Math.sign(q.x) * (w + Math.min(Math.max(0, overHeld), FITTED_UP_TO) * HELD_EASE);
           if (Math.abs(held) < Math.abs(x)) x = held * carried + x * (1 - carried);
+        }
+      }
+      // Just under the form's foot the hug above lets go over a few centimetres instead of all at once, so a skirt that
+      // flares from the hip runs on smoothly rather than jutting out in a step at the hip (Cat, 2026-11-02).
+      if (below > 0 && below < SETTLE && q.y > underarmY) {
+        const wFoot = body.width(body.bottom);
+        const overFoot = Math.abs(q.x) - wFoot;
+        if (overFoot > 0) {
+          const fitted = Math.min(1, Math.max(0, (VOLUME_FROM - overFoot) / (VOLUME_FROM - FITTED_UP_TO)));
+          const hug = Math.sign(q.x) * (wFoot + Math.min(overFoot, FITTED_UP_TO) * WORN_EASE);
+          const t = below / SETTLE;
+          const ease = t * t * (3 - 2 * t);
+          const held = hug * fitted + x * (1 - fitted);
+          x = held * (1 - ease) + x * ease;
         }
       }
       if (q.y > hipY - 2 && hemY > hipY + 8 && hemHalfFlat > body.width(body.bottom) + 1.5) {

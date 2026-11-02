@@ -13,13 +13,18 @@ import { SleeveDraft, SleeveMeasurements, draftSleeve } from './sleeve';
 import { DraftError } from './skirt';
 
 export type OuterKind = 'jacket' | 'coat';
-export type OuterFit = 'fitted' | 'regular' | 'relaxed';
+export type OuterFit = 'fitted' | 'regular' | 'relaxed' | 'oversized';
 export type OuterLength = 'cropped' | 'hip' | 'long' | 'thigh' | 'knee' | 'midi';
 export type OuterShaping = 'darts' | 'princess' | 'boxy';
 /** Buttons in one or two rows, or a separating zip up the centre front with no overlap. */
 export type OuterFront = 'single' | 'double' | 'zip';
-/** A notched lapel, a stand collar, no collar, or a hood in two pieces sewn to the neck. */
-export type OuterCollar = 'notched' | 'stand' | 'collarless' | 'hood';
+/** A notched lapel, a stand collar, no collar, or a hood in two pieces sewn to the neck. In testing: a peak
+ * lapel (its points rising), a shawl (lapel and collar curving into one with no notch) and a tall funnel. */
+export type OuterCollar = 'notched' | 'peak' | 'shawl' | 'stand' | 'funnel' | 'collarless' | 'hood';
+/** How the lapels are cut (In testing): classic, wide, or plunging to one button at the waist. */
+export type OuterLapel = 'classic' | 'wide' | 'plunge';
+/** The collars that roll back as lapels from the break point. */
+export const lapelled = (c: OuterCollar | undefined) => c === 'notched' || c === 'peak' || c === 'shawl';
 export type OuterPockets = 'none' | 'patch' | 'welt';
 /** 'tailored' is the two-piece sleeve, top and under sleeve; 'fitted' the one-piece with an elbow dart;
  *  'raglan' runs up to the neck, the shoulders cut off the body and on to the sleeve. */
@@ -28,7 +33,8 @@ export type OuterSleeve = 'tailored' | 'fitted' | 'straight' | 'raglan';
 export type OuterTrim = 'none' | 'rib';
 export type OuterPads = 'none' | 'soft' | 'structured';
 export type OuterVent = 'none' | 'centre';
-export type OuterFlare = 'straight' | 'a_line';
+/** Below the hip: straight, A-line (a coat), or flared out from the waist like a basque (In testing). */
+export type OuterFlare = 'straight' | 'a_line' | 'flared';
 
 export type OuterMeasurements = BodiceMeasurements & SleeveMeasurements & { waist_to_knee?: number; waist_to_floor?: number };
 
@@ -56,6 +62,8 @@ interface OuterStyle {
   pocketAt?: P;
   /** Drawn on the form: a cutaway front, the hem curving up from the hem to the front edge over this many cm. */
   cutawayCm?: number;
+  /** How the lapels are cut (In testing); older saves have none, the classic lapel. */
+  lapel?: OuterLapel;
   seamAllowance: number;
   hemAllowance: number;
   fitting?: BodiceFitting;
@@ -66,9 +74,13 @@ export const OUTER_LENGTHS: Record<OuterKind, OuterLength[]> = { jacket: ['cropp
 
 /** Ease at the bust, in cm. A jacket goes on over a blouse, a coat over a jacket or a jumper. */
 export const OUTER_EASE: Record<OuterKind, Record<OuterFit, number>> = {
-  jacket: { fitted: 10, regular: 13, relaxed: 17 },
-  coat: { fitted: 13, regular: 17, relaxed: 21 },
+  jacket: { fitted: 10, regular: 13, relaxed: 17, oversized: 30 },
+  coat: { fitted: 13, regular: 17, relaxed: 21, oversized: 34 },
 };
+
+/** An oversized jacket or coat's lapel: this much wider, and a single-breasted one breaking this far below
+ * the bust point (2 cm on the others), so it falls open. */
+const OVERSIZED_LAPEL = { wider: 5, lower: 10 };
 
 /** The neckline sits a little wider and lower than a blouse's, over the clothes beneath. */
 const OUTER_NECK = { frontDepth: 2, width: 1, backDepth: 0.5, fullness: 0.45 };
@@ -87,7 +99,19 @@ const PAD_CM: Record<OuterKind, Record<OuterPads, number>> = { jacket: { none: 0
 const VENT_WIDTH: Record<OuterKind, number> = { jacket: 4, coat: 5 };
 
 /** Flare added to each seam at the hem, per 40 cm below the hip. */
-export const FLARE_PER_40: Record<OuterFlare, number> = { straight: 1.2, a_line: 4 };
+export const FLARE_PER_40: Record<OuterFlare, number> = { straight: 1.2, a_line: 4, flared: 1.2 };
+
+/** A flared jacket or coat (In testing): each side and panel seam is let out by this much at the hem,
+ * growing from nothing at the waist, so the body stays cinched and kicks out over the hips. */
+const FLARED_HEM: Record<OuterKind, number> = { jacket: 5, coat: 7 };
+/** A fitted flared jacket or coat is cinched like a basque: this much less ease at the waist, in cm (8.5 to
+ * about 4.5 on a jacket), so the flare reads from a narrow waist. */
+const FLARED_CINCH = 4;
+/** A long flared jacket runs this much longer, in cm, so its hem clears a drop-yoke skirt's seam (Cat's
+ * plaid-blazer suit, 2026-11-01). */
+const FLARED_LONGER = 6;
+/** How far along the hem, in cm, it curves up to meet a flared seam square. */
+const FLARE_HEM_RUN = 8;
 
 const DEFAULT_OUTER: Record<OuterKind, OuterStyle> = {
   jacket: { kind: 'jacket', fit: 'regular', length: 'hip', shaping: 'darts', front: 'single', collar: 'notched', pockets: 'patch', sleeve: 'tailored', flare: 'straight', pads: 'soft', vent: 'centre', seamAllowance: 1.5, hemAllowance: 4 },
@@ -188,6 +212,174 @@ function runOf(r: Ring, tag: string): [number, number] | undefined {
     return [i, j];
   }
   return undefined;
+}
+
+/**
+ * A flared jacket or coat (In testing): below `y0` (the waist) each side and panel seam is bent outward,
+ * away from the middle of the piece, its direction turning a little more with every step down to
+ * `turn` radians at the hem. Bending keeps every seam's length, so seams sewn together still match.
+ * The hem is spread between the seams' new ends and rises toward each one over its last few
+ * centimetres, as a circle skirt's does, so it still meets the seam square.
+ */
+function flareFromWaist(pc: Piece, y0: number, turn: number): Piece {
+  if (turn <= 0.005) return pc;
+  const r0 = ringOf(pc.outline, 12);
+  // The hem and the seams below the waist in short steps, so they bend and meet cleanly.
+  const pts0: P[] = [];
+  const tags0: string[] = [];
+  r0.pts.forEach((q, k) => {
+    const nx = r0.pts[(k + 1) % r0.pts.length];
+    const fine = r0.tags[k] === 'hem' || ((r0.tags[k] === 'side' || r0.tags[k] === 'princess') && Math.max(q.y, nx.y) > y0);
+    const steps = fine ? Math.max(1, Math.ceil(len(sub(nx, q)) / 0.5)) : 1;
+    for (let t = 0; t < steps; t++) {
+      pts0.push(lerp(q, nx, t / steps));
+      tags0.push(r0.tags[k]);
+    }
+  });
+  const r: Ring = { ...r0, pts: pts0, tags: tags0 };
+  const n = r.pts.length;
+  const pts = [...r.pts];
+  const xs = r.pts.map((q) => q.x);
+  const mid = (Math.min(...xs) + Math.max(...xs)) / 2;
+  const yH = Math.max(...r.pts.map((q) => q.y));
+  const moved = new Map<number, P>(); // a seam's bottom end, old index -> new point
+  // Every run of a side or panel seam: a side dart can split the side seam in two.
+  const runs: [number, number][] = [];
+  for (let i = 0; i < n; i++) {
+    const tag = r.tags[i];
+    if ((tag !== 'side' && tag !== 'princess') || r.tags[(i - 1 + n) % n] === tag) continue;
+    let j = i;
+    while (r.tags[(j + 1) % n] === tag && j - i < n) j++;
+    runs.push([i, j % n]);
+  }
+  for (const run of runs) {
+    const idx: number[] = [];
+    for (let k = run[0]; ; k = (k + 1) % n) {
+      idx.push(k);
+      if (k === (run[1] + 1) % n) break;
+    }
+    if (r.pts[idx[0]].y > r.pts[idx[idx.length - 1]].y) idx.reverse();
+    const bottom = r.pts[idx[idx.length - 1]];
+    if (bottom.y - y0 < 4) continue;
+    const out = Math.sign(bottom.x - mid) || 1;
+    let prev = r.pts[idx[0]];
+    let prevNew = prev;
+    for (const k of idx) {
+      const q = r.pts[k];
+      if (q.y <= y0) {
+        prev = q;
+        prevNew = q;
+        continue;
+      }
+      const t = Math.min(1, (Math.max(q.y, prev.y) - y0) / (yH - y0));
+      // Turned toward the outside: on the right of the piece, clockwise in y-down space is +x.
+      const th = out * turn * Math.pow(t, 0.6);
+      const d = sub(q, prev);
+      const rot = p(d.x * Math.cos(th) + d.y * Math.sin(th), -d.x * Math.sin(th) + d.y * Math.cos(th));
+      const nq = add(prevNew, rot);
+      prev = q;
+      prevNew = nq;
+      pts[k] = nq;
+    }
+    moved.set(idx[idx.length - 1], prevNew);
+  }
+  if (!moved.size) return pc;
+  // The hem between its two ends: spread across, then lifted toward each flared end, whose seam is
+  // taken back up its own line to meet it.
+  const hem = runOf(r, 'hem');
+  if (!hem) return { ...pc, outline: pathOf({ ...r, pts }) };
+  const hi: number[] = [];
+  for (let k = hem[0]; ; k = (k + 1) % n) {
+    hi.push(k);
+    if (k === (hem[1] + 1) % n) break;
+  }
+  const e0 = hi[0];
+  const e1 = hi[hi.length - 1];
+  const slope = Math.tan(turn);
+  const total = hi.reduce((acc, k, i) => (i ? acc + len(sub(r.pts[k], r.pts[hi[i - 1]])) : 0), 0) || 1;
+  // The same on every piece, so seams sewn together are taken up alike.
+  const R = Math.min(FLARE_HEM_RUN, total / 3);
+  // A flared end is taken back up its own seam by the same length on every piece, the seam's last
+  // points that fall within it dropped.
+  const drop = new Set<number>();
+  const raise = (e: number): P => {
+    if (!moved.has(e)) return p(0, 0);
+    const step = r.tags[(e - 1 + n) % n] !== 'hem' ? -1 : 1;
+    let want = (slope * FLARE_HEM_RUN) / 2;
+    let k = e;
+    for (let guard = 0; guard < n; guard++) {
+      const nk = (k + step + n) % n;
+      const seg = len(sub(pts[nk], pts[k]));
+      if (seg >= want) return sub(lerp(pts[k], pts[nk], want / seg), pts[e]);
+      want -= seg;
+      drop.add(nk);
+      k = nk;
+    }
+    return p(0, 0);
+  };
+  const v0 = raise(e0);
+  const v1 = raise(e1);
+  const c0 = add(pts[e0], v0);
+  const c1 = add(pts[e1], v1);
+  // Each end carries the hem near it along with it, so the hem keeps its shape where it meets a seam;
+  // the spread is taken up in the middle.
+  const d0 = add(sub(pts[e0], r.pts[e0]), p(v0.x, 0));
+  const d1 = add(sub(pts[e1], r.pts[e1]), p(v1.x, 0));
+  const span = total - 2 * R;
+  const lay = (A0: number, A1: number): P[] => {
+    const out = [...pts];
+    const dip = (dist: number, A: number) => (dist < R ? (A * (R - dist) ** 2) / (2 * R) : 0);
+    let along = 0;
+    hi.forEach((k, i) => {
+      if (i) along += len(sub(r.pts[k], r.pts[hi[i - 1]]));
+      if (k === e0 || k === e1) return;
+      const u = span > 1 ? Math.min(1, Math.max(0, (along - R) / span)) : along / total;
+      const t = u * u * (3 - 2 * u);
+      out[k] = add(add(r.pts[k], add(mul(d0, 1 - t), mul(d1, t))), p(0, -dip(along, A0) - dip(total - along, A1)));
+    });
+    out[e0] = c0;
+    out[e1] = c1;
+    return out;
+  };
+  // The corner each flared seam makes with the hem: brought back to what it was before the flare.
+  // The laid corner is measured to the neighbours that stay (the seam points taken up into the hem are
+  // dropped below), the corner before the flare to its own neighbours.
+  const near = (e: number, step: number, skip: boolean) => {
+    let k = (e + step + n) % n;
+    for (let guard = 0; skip && drop.has(k) && guard < n; guard++) k = (k + step + n) % n;
+    return k;
+  };
+  const angleAt = (q: P[], e: number, skip = true) => {
+    const a1 = sub(q[near(e, -1, skip)], q[e]);
+    const a2 = sub(q[near(e, 1, skip)], q[e]);
+    return Math.atan2(Math.abs(a1.x * a2.y - a1.y * a2.x), a1.x * a2.x + a1.y * a2.y);
+  };
+  const want0 = angleAt(r.pts, e0, false);
+  const want1 = angleAt(r.pts, e1, false);
+  // Each end's lift found by halving between none and four times the turn (the corner grows with it).
+  let A0 = moved.has(e0) ? slope : 0;
+  let A1 = moved.has(e1) ? slope : 0;
+  const solve = (end: number, want: number, get: (A: number) => P[]): number => {
+    let lo = 0;
+    let hi = 4 * slope + 0.05;
+    const f = (A: number) => angleAt(get(A), end) - want;
+    const flo = f(lo);
+    if (Math.sign(flo) === Math.sign(f(hi))) return Math.abs(flo) < Math.abs(f(hi)) ? lo : hi;
+    for (let it = 0; it < 30; it++) {
+      const m = (lo + hi) / 2;
+      if (Math.sign(f(m)) === Math.sign(flo)) lo = m;
+      else hi = m;
+    }
+    return (lo + hi) / 2;
+  };
+  for (let it = 0; it < 3; it++) {
+    if (moved.has(e0)) A0 = solve(e0, want0, (A) => lay(A, A1));
+    if (moved.has(e1)) A1 = solve(e1, want1, (A) => lay(A0, A));
+  }
+  const laid = lay(A0, A1);
+  for (const k of hi) pts[k] = laid[k];
+  const keep = pts.map((_, k) => k).filter((k) => !drop.has(k));
+  return { ...pc, outline: pathOf({ ...r, pts: keep.map((k) => pts[k]), tags: keep.map((k) => r.tags[k]) }) };
 }
 
 /**
@@ -457,7 +649,7 @@ function openFront(pc: Piece, s: OuterStyle, ext: number, buttons: OuterDraft['b
   let lapel: Lapel | undefined;
   let frontNeck: number;
   let join: number;
-  if (s.collar === 'notched') {
+  if (lapelled(s.collar)) {
     // The roll line runs from the break point to 2 cm beyond the neck point along the shoulder line.
     const B = p(-ext, breakY);
     const R = sub(hps, mul(uSh, 2));
@@ -465,11 +657,18 @@ function openFront(pc: Piece, s: OuterStyle, ext: number, buttons: OuterDraft['b
     const Lr = len(sub(R, B));
     const nrm = p(-u.y, u.x); // toward the body
     const at = (sAlong: number, t: number) => add(B, add(mul(u, sAlong), mul(nrm, t)));
-    const W = s.front === 'double' ? (s.kind === 'coat' ? 10 : 9) : s.kind === 'coat' ? 8.5 : 7.5;
-    // The gorge meets the roll line well below the neck point, rising a little to the notch.
+    // A wide lapel (In testing) is 3 cm broader (half that on a double front, already broad); a plunging one a little broader to carry its longer roll.
+    const W =
+      (s.front === 'double' ? (s.kind === 'coat' ? 10 : 9) : s.kind === 'coat' ? 8.5 : 7.5) +
+      (s.fit === 'oversized' ? OVERSIZED_LAPEL.wider : 0) +
+      (s.lapel === 'wide' ? (s.front === 'double' ? LAPEL_WIDER / 2 : LAPEL_WIDER) : plunges(s) ? 1.5 : 0);
+    const peak = s.collar === 'peak';
+    const shawl = s.collar === 'shawl';
+    // The gorge meets the roll line well below the neck point, rising a little to the notch. A peak's
+    // point sweeps up past the notch; a shawl has no notch, its lapel rounding straight into the collar.
     const Q = at(Lr - 10, 0);
-    const K = at(Lr - 9.4, -4.3);
-    const Lp = at(Lr - (s.front === 'double' ? 6.5 : 10.4), -W);
+    const K = shawl ? at(Lr - 9.2, -W + 0.6) : at(Lr - 9.4, -4.3);
+    const Lp = peak ? at(Lr - (s.front === 'double' ? 5 : 6.2), -W - 1.2) : shawl ? at(Lr - 10.2, -W) : at(Lr - (s.front === 'double' ? 6.5 : 10.4), -W);
     const lapelEdge = Array.from({ length: 21 }, (_, i) => cubic(Lp, at(Lr * 0.5, -W - 0.7), at(Lr * 0.18, -W * 0.7), B, i / 20)).reverse();
     // The neck seam curves up from the gorge to arrive square to the shoulder, so it runs on smoothly
     // into the back neck once the shoulders are sewn.
@@ -488,10 +687,11 @@ function openFront(pc: Piece, s: OuterStyle, ext: number, buttons: OuterDraft['b
       const across = v.x * nrm.x + v.y * nrm.y;
       return at(along, -across);
     };
-    // The collar point, turned up from the lapel's top edge to leave a notch of about 50 degrees.
+    // The collar point, turned up from the lapel's top edge to leave a notch of about 50 degrees; a peak's
+    // collar meets its lapel at a narrow notch, and a shawl's runs on from it with none.
     const dl = unit(sub(Lp, K));
-    const ang = (50 * Math.PI) / 180;
-    const Cp = add(K, mul(add(mul(dl, Math.cos(ang)), mul(u, Math.sin(ang))), s.kind === 'coat' ? 4.6 : 4));
+    const ang = ((peak ? 15 : shawl ? 88 : 50) * Math.PI) / 180;
+    const Cp = add(K, mul(add(mul(dl, Math.cos(ang)), mul(u, Math.sin(ang))), shawl ? 0.6 : peak ? 3.4 : s.kind === 'coat' ? 4.6 : 4));
     lapel = { breakPt: B, roll: [B, R], worn: [...lapelEdge, K, Q].map(reflect), notch: reflect(K), collarPoint: reflect(Cp), neckPoint: hps, gorge: Q };
     frontNeck = polyLen([...neckSeam, hps]);
     join = breakY + 4;
@@ -804,12 +1004,17 @@ function weltPieces(w: number, depth: number, bag: number, sa: number): Piece[] 
   return [welt, facing, bagPiece];
 }
 
+/** A wide lapel is this much broader, in cm. */
+const LAPEL_WIDER = 3;
+/** A plunging lapel rolls to one button at the waist; it needs a single-breasted lapelled front. */
+const plunges = (s: Pick<OuterStyle, 'lapel' | 'collar' | 'front'>) => s.lapel === 'plunge' && lapelled(s.collar) && s.front === 'single';
+
 /** Buttons down the front: from the break point (or just below the neck) to above the hem, about 10 cm apart. */
 function buttonsFor(s: OuterStyle, ext: number, first: number, last: number): OuterDraft['buttons'] {
   const size = OUTER_BUTTON[s.kind];
   if (s.front === 'zip') return { at: [], sizeCm: size, columns: [0] };
   const gap = s.kind === 'coat' ? 11 : 10;
-  const count = Math.max(s.front === 'double' ? 2 : 1, Math.round((last - first) / gap)) + 1;
+  const count = plunges(s) ? 1 : Math.max(s.front === 'double' ? 2 : 1, Math.round((last - first) / gap)) + 1;
   const at = Array.from({ length: count }, (_, i) => r1(first + (count > 1 ? ((last - first) * i) / (count - 1) : 0)));
   const inset = size / 2 + 1.5;
   const columns = s.front === 'double' ? [-(ext - inset), ext - inset] : [0];
@@ -896,12 +1101,17 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
   const length = OUTER_LENGTHS[s.kind].includes(s.length) ? s.length : DEFAULT_OUTER[s.kind].length;
   // A fitted jacket needs its waist darts; only a roomier one can go boxy.
   // A raglan sleeve is cut off a one-piece front and back, so princess seams give way to darts.
+  // An oversized one (In testing) is cut big and straight from the oversized top's block: no darts or seams
+  // shaping it, its shoulders dropped past the body's (a raglan keeps its own), no pads, a plain sleeve,
+  // and a wider lapel rolling lower, so it hangs open like a cape.
+  const big = s.fit === 'oversized';
+  if (big) s = { ...s, shaping: 'boxy', pads: 'none', sleeve: s.sleeve === 'raglan' ? 'raglan' : 'straight' };
   const shaping = s.shaping === 'boxy' && s.fit === 'fitted' ? 'darts' : s.shaping === 'princess' && s.sleeve === 'raglan' ? 'darts' : s.shaping;
   // Shoulder pads drafted in: each shoulder squared up so its point rises by the pad, which lengthens
   // the armhole; the sleeve is drafted to that armhole, so its crown rises with it.
   const pad = PAD_CM[s.kind][s.pads] ?? 0;
   // A zip front or a raglan sleeve has no lapel to roll: a notched collar becomes a stand collar.
-  const collarKind: OuterCollar = s.collar === 'notched' && (s.front === 'zip' || s.sleeve === 'raglan') ? 'stand' : s.collar;
+  const collarKind: OuterCollar = lapelled(s.collar) && (s.front === 'zip' || s.sleeve === 'raglan') ? 'stand' : s.collar;
   s = { ...s, collar: collarKind };
   const rib = s.trim === 'rib';
   const bodiceStyle: Partial<BodiceStyle> = {
@@ -909,20 +1119,20 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
     neckline: 'crew',
     neck: OUTER_NECK,
     length: length === 'cropped' ? 'high_hip' : 'hip',
-    darts: shaping === 'boxy' ? 'bust' : 'bust_waist',
+    darts: big ? 'none' : shaping === 'boxy' ? 'bust' : 'bust_waist',
     princess: shaping === 'princess' ? 'armhole' : 'none',
     bustEase: OUTER_EASE[s.kind][s.fit],
     seamAllowance: s.seamAllowance,
     neckArmholeAllowance: 1,
     hemAllowance: s.hemAllowance,
-    fitting: s.fitting,
+    fitting: s.flare === 'flared' && s.fit === 'fitted' && !rib ? { ...s.fitting, waistEase: (s.fitting?.waistEase ?? 0) - FLARED_CINCH } : s.fitting,
     shoulderPad: pad,
     closure: 'back_zip',
     collar: 'none',
-    ...(s.sleeve === 'raglan' ? { sleeveCut: 'raglan' as const, sleeve: 'long' as const } : {}),
+    ...(s.sleeve === 'raglan' ? { sleeveCut: 'raglan' as const, sleeve: 'long' as const } : big ? { sleeveCut: 'drop' as const, sleeve: 'long' as const } : {}),
   };
   const base = draftBodice(m, bodiceStyle);
-  const drop = Math.max(base.drop, outerDrop(m, length));
+  const drop = Math.max(base.drop, outerDrop(m, length) + (s.flare === 'flared' && length === 'long' && !rib ? FLARED_LONGER : 0));
   // A rib hem band stands in for the last of the length, where the shell is long enough to give it up.
   const extra = Math.max(0, drop - base.drop - (rib ? RIB.hem : 0));
   const flare = (FLARE_PER_40[s.flare] * extra) / 40;
@@ -932,7 +1142,16 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
     name: pc.name.replace(/^Bodice/, KIND),
     labels: pc.labels.map((l) => ({ ...l, text: l.text.replace(/^BODICE/, KIND.toUpperCase()) })),
   });
-  const prep = (pc: Piece) => rename(extendPiece(/back/i.test(pc.name) ? backOnFold(pc) : pc, extra, flare));
+  // Flared (In testing): out from the waist, front pieces from the front's side waist, back from the back's.
+  const flareG = s.flare === 'flared' && !rib ? FLARED_HEM[s.kind] : 0;
+  const flareY = (pc: Piece) => (/back/i.test(pc.name) ? base.back.waistSide.y : base.front.waistSide.y);
+  // One run from waist to hem for every piece, so seams sewn together flare alike.
+  const flareL = base.front.hemSide.y + extra - base.front.waistSide.y;
+  const prep = (pc: Piece) => {
+    const long = extendPiece(/back/i.test(pc.name) ? backOnFold(pc) : pc, extra, flare);
+    // Turned enough that each seam ends about FLARED_HEM out at the hem.
+    return rename(flareG ? flareFromWaist(long, flareY(pc), Math.min(0.25, (1.6 * flareG) / Math.max(10, flareL))) : long);
+  };
   const shell = base.pieces.map(prep);
   const [bf0, bb0] = blockOf(base);
   const block: [Piece, Piece] = [prep(bf0), prep(bb0)];
@@ -942,7 +1161,13 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
   const neckY = block[0].outline.start.y;
   const apexY = base.front.apex.y;
   const waistY = base.front.waistCentre.y;
-  const breakY = s.collar === 'notched' ? (s.front === 'double' ? apexY - 2 : apexY + 2) : neckY + (s.collar === 'stand' ? 2 : 1.8);
+  const breakY = plunges(s)
+    ? waistY - 1.5
+    : lapelled(s.collar)
+      ? s.front === 'double'
+        ? apexY - 2
+        : apexY + (big ? OVERSIZED_LAPEL.lower : 2)
+      : neckY + (s.collar === 'stand' || s.collar === 'funnel' ? 2 : 1.8);
   const lastY = s.kind === 'coat' ? Math.min(foot - 15, waistY + (m.waist_to_hip ?? 20) + 12) : foot - (length === 'cropped' ? 3.5 : 9);
   // A cutaway front curves back from below the last button, so the buttons stop above it.
   const cutTop = s.cutawayCm ? foot - Math.min(s.cutawayCm, foot - breakY - 18) - 4 - OUTER_BUTTON[s.kind] / 2 : Infinity;
@@ -994,10 +1219,10 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
     });
   }
   const collar =
-    s.collar === 'notched'
+    lapelled(s.collar)
       ? [notchedCollar(opening.piece, backNeck, opening.frontNeck, s)]
-      : s.collar === 'stand'
-        ? collarPieces('mandarin', block[0], block[1], { back: backNeck, front: opening.frontNeck, ext, closure: 'front_buttons', sa })
+      : s.collar === 'stand' || s.collar === 'funnel'
+        ? collarPieces(s.collar === 'funnel' ? 'funnel' : 'mandarin', block[0], block[1], { back: backNeck, front: opening.frontNeck, ext, closure: 'front_buttons', sa })
         : s.collar === 'hood'
           ? [hoodPiece(backNeck + opening.frontNeck, s.kind, sa)]
           : [];

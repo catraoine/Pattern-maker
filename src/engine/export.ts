@@ -923,25 +923,60 @@ function inked(sheet: Sheet, x: number, y: number, w: number, h: number): boolea
       const q = pts[i];
       if (q.x >= x && q.x <= x + w && q.y >= y && q.y <= y + h) return true;
       if (i === 0) continue;
-      const a = pts[i - 1];
-      const lo = { x: Math.min(a.x, q.x), y: Math.min(a.y, q.y) };
-      const hi = { x: Math.max(a.x, q.x), y: Math.max(a.y, q.y) };
-      if (hi.x < x || lo.x > x + w || hi.y < y || lo.y > y + h) continue;
-      return true; // close enough: a segment's box overlapping the page almost always crosses it
+      if (throughRect(pts[i - 1], q, x, y, w, h)) return true;
     }
     return false;
   });
 }
 
-/** Which tiles have something on them. Blank ones aren't printed, which saves paper on a wide layout. */
+/** Whether the segment a-b passes through the rectangle (x, y, w, h): Liang-Barsky clipping. */
+function throughRect(a: P, b: P, x: number, y: number, w: number, h: number): boolean {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  let t0 = 0;
+  let t1 = 1;
+  for (const [pk, qk] of [
+    [-dx, a.x - x],
+    [dx, x + w - a.x],
+    [-dy, a.y - y],
+    [dy, y + h - a.y],
+  ]) {
+    if (pk === 0) {
+      if (qk < 0) return false;
+      continue;
+    }
+    const t = qk / pk;
+    if (pk < 0) t0 = Math.max(t0, t);
+    else t1 = Math.min(t1, t);
+    if (t0 > t1) return false;
+  }
+  return true;
+}
+
+/**
+ * Which tiles have something on them. Blank ones aren't printed, which saves paper on a wide layout. Nor is a
+ * tile whose only ink lies in the strip it shares with a printed page above or to its left: that page already
+ * carries the strip in full, and the tile would be trimmed away to nothing when taped over it (the full-round
+ * readiness check, 2026-11-02: a hem running a few millimetres into the next row cost up to five pages).
+ */
 export function usedTiles(sheet: Sheet, paper: Paper): boolean[][] {
   const [pw, ph] = pageSize(sheet, paper);
   const tw = pw - 2 * PAGE_MARGIN;
   const th = ph - 2 * PAGE_MARGIN;
   const { rows, cols } = tileGrid(sheet, paper);
-  return Array.from({ length: rows }, (_, r) =>
-    Array.from({ length: cols }, (_, c) => inked(sheet, c * (tw - OVERLAP), r * (th - OVERLAP), tw, th)),
-  );
+  const used: boolean[][] = Array.from({ length: rows }, () => Array.from({ length: cols }, () => false));
+  for (let r = 0; r < rows; r++)
+    for (let c = 0; c < cols; c++) {
+      const x = c * (tw - OVERLAP);
+      const y = r * (th - OVERLAP);
+      if (!inked(sheet, x, y, tw, th)) continue;
+      const above = r > 0 && used[r - 1][c];
+      const left = c > 0 && used[r][c - 1];
+      // Ink beyond the strips a printed neighbour already shows: its own part of the page.
+      const own = inked(sheet, x + (left ? OVERLAP : 0), y + (above ? OVERLAP : 0), tw - (left ? OVERLAP : 0), th - (above ? OVERLAP : 0));
+      used[r][c] = own;
+    }
+  return used;
 }
 
 export const pageCount = (sheet: Sheet, paper: Paper) => usedTiles(sheet, paper).flat().filter(Boolean).length;

@@ -178,18 +178,51 @@ function meshRegion(edges: Edge[], h: number, wedges: Wedge[]) {
   const btag: string[] = [];
   for (const e of edges) {
     const L = Math.hypot(e.b.x - e.a.x, e.b.y - e.a.y);
+    // A cut (a fold or crease line) is shared by the regions either side of it, each meshed on its own: its points are
+    // set at the same places along the line for both (every h from a fixed origin), or where the two regions' ends
+    // of it differ, their points slide apart and the cloth opens along the cut.
+    if (e.tag === '_fold' && L > 1e-6) {
+      const ux = (e.b.x - e.a.x) / L;
+      const uy = (e.b.y - e.a.y) / L;
+      const flip = uy < -1e-9 || (Math.abs(uy) <= 1e-9 && ux < 0) ? -1 : 1;
+      const sA = flip * (e.a.x * ux + e.a.y * uy);
+      const sB = sA + flip * L;
+      const lo = Math.min(sA, sB);
+      const hi = Math.max(sA, sB);
+      const at: number[] = [];
+      for (let st = Math.ceil(lo / h) * h; st < hi; st += h) if (st - lo > 0.35 * h && hi - st > 0.35 * h) at.push(st);
+      if (sB < sA) at.reverse();
+      bpts.push({ x: e.a.x, y: e.a.y });
+      btag.push(e.tag);
+      for (const st of at) {
+        const t = Math.abs(st - sA) / L;
+        bpts.push({ x: e.a.x + (e.b.x - e.a.x) * t, y: e.a.y + (e.b.y - e.a.y) * t });
+        btag.push(e.tag);
+      }
+      continue;
+    }
     const k = Math.max(1, Math.ceil(L / h - 0.2));
     for (let i = 0; i < k; i++) {
       bpts.push({ x: e.a.x + ((e.b.x - e.a.x) * i) / k, y: e.a.y + ((e.b.y - e.a.y) * i) / k });
       btag.push(e.tag);
     }
   }
-  // Drop boundary points that land on top of the one before (very short edges).
+  // Drop boundary points that land on top of the one before (very short edges). A corner, where one kind of edge
+  // gives way to another, is kept and the point before it dropped instead: the region beside shares that corner,
+  // so losing it would open a crack between them and break the edge's run there.
   const keepB: number[] = [];
+  // (Where a cut meets the outline matters most: the region the other side of the cut has that point too.)
+  const corner = (i: number) => (btag[i] === '_fold' || btag[(i || bpts.length) - 1] === '_fold' ? 2 : i === 0 || btag[i] !== btag[i - 1] ? 1 : 0);
   bpts.forEach((q, i) => {
     const prev = keepB.length ? bpts[keepB[keepB.length - 1]] : undefined;
     if (!prev || Math.hypot(q.x - prev.x, q.y - prev.y) > h * 0.3) keepB.push(i);
+    else if (corner(i) > corner(keepB[keepB.length - 1]) && corner(i) > 0) keepB[keepB.length - 1] = i;
   });
+  // (And the last point, if it lands on the first.)
+  if (keepB.length > 2) {
+    const a = bpts[keepB[keepB.length - 1]];
+    if (Math.hypot(a.x - bpts[0].x, a.y - bpts[0].y) <= h * 0.3) keepB.pop();
+  }
   const B = keepB.map((i) => bpts[i]);
   const T = keepB.map((i) => btag[i]);
   const poly = B;
@@ -232,10 +265,12 @@ function meshRegion(edges: Edge[], h: number, wedges: Wedge[]) {
   return { pts, tris, nb, tags: T };
 }
 
-/** The piece as cloth, about `h` cm between points, split along each fold line (from a to b, extended across the piece). */
-export function meshPiece(pc: Piece, h = 1.6, folds: [P, P][] = [], wedges: Wedge[] = []): Mesh2D {
+/** The piece as cloth, about `h` cm between points, split along each fold line (from a to b, extended across the piece).
+ *  A crease is cut the same way, so the mesh's edges run along it, but nothing either side of it is turned. */
+export function meshPiece(pc: Piece, h = 1.6, folds: [P, P][] = [], wedges: Wedge[] = [], creases: [P, P][] = []): Mesh2D {
   let regions: Edge[][] = [outlineEdges(pc)];
-  for (const [a, b] of folds) {
+  const cuts = folds.length + creases.length > 0;
+  for (const [a, b] of [...folds, ...creases]) {
     const next: Edge[][] = [];
     for (const r of regions) {
       for (const keepLeft of [true, false]) {
@@ -250,20 +285,47 @@ export function meshPiece(pc: Piece, h = 1.6, folds: [P, P][] = [], wedges: Wedg
   const runs: Record<string, number[][]> = {};
   const key = (q: P) => `${Math.round(q.x * 100)},${Math.round(q.y * 100)}`;
   const index = new Map<string, number>();
+  // (Points of two regions within a hair of each other are one point: where a cut meets the outline, each region
+  // works out the crossing from its own edges, a fraction apart, and left as two points the cloth opens there.)
+  const WELD = 0.15;
+  const cell = new Map<string, number[]>();
+  const cellOf = (x: number, y: number) => `${Math.floor(x / WELD)},${Math.floor(y / WELD)}`;
+  const regionOf: number[] = [];
+  let rid = 0;
   const at = (q: P) => {
     const k = key(q);
     let i = index.get(k);
+    if (i === undefined && cuts) {
+      const cx = Math.floor(q.x / WELD);
+      const cy = Math.floor(q.y / WELD);
+      let bd = WELD;
+      for (let dx = -1; dx <= 1; dx++)
+        for (let dy = -1; dy <= 1; dy++)
+          for (const j of cell.get(`${cx + dx},${cy + dy}`) ?? []) {
+            // (Only another region's: two points of one region are its own, however close.)
+            if (regionOf[j] === rid) continue;
+            const dd = Math.hypot(pts[j].x - q.x, pts[j].y - q.y);
+            if (dd < bd) {
+              bd = dd;
+              i = j;
+            }
+          }
+    }
     if (i === undefined) {
       i = pts.length;
       pts.push(q);
+      regionOf.push(rid);
       index.set(k, i);
+      const c = cellOf(q.x, q.y);
+      (cell.get(c) ?? cell.set(c, []).get(c)!).push(i);
     }
     return i;
   };
   for (const r of regions) {
     const m = meshRegion(r, h, wedges);
+    rid++;
     const ids = m.pts.map(at);
-    for (const [a, b, c] of m.tris) tris.push([ids[a], ids[b], ids[c]]);
+    for (const [a, b, c] of m.tris) if (ids[a] !== ids[b] && ids[b] !== ids[c] && ids[a] !== ids[c]) tris.push([ids[a], ids[b], ids[c]]);
     // Runs of each tag round this region's outline (the fold's own edge is not a seam).
     let cur: number[] = [];
     let curTag = '';
@@ -283,6 +345,8 @@ export function meshPiece(pc: Piece, h = 1.6, folds: [P, P][] = [], wedges: Wedg
     cur.push(ids[0]);
     flush();
   }
+  // (A point welded to its neighbour along a run is the one point.)
+  for (const t of Object.keys(runs)) runs[t] = runs[t].map((r) => r.filter((i, k) => !k || i !== r[k - 1])).filter((r) => r.length > 1);
   // Runs split where the outline was cut by a fold, or that start part way round, are joined end to start.
   for (const t of Object.keys(runs)) {
     const rs = runs[t];
@@ -301,6 +365,34 @@ export function meshPiece(pc: Piece, h = 1.6, folds: [P, P][] = [], wedges: Wedg
     }
   }
   // Points no triangle uses (left over inside a dart, or by the triangles' trimming) are dropped.
+  // A triangle left out where cut regions meet (each region's own triangles skirting a corner the other has): any
+  // three edges with cloth on one side only that close a triangle inside the piece are a hole, and filled.
+  if (cuts) {
+    const once = new Map<string, number>();
+    const ek = (u: number, v: number) => (u < v ? `${u},${v}` : `${v},${u}`);
+    for (const [a, b, c] of tris) for (const [u, v] of [[a, b], [b, c], [c, a]]) once.set(ek(u, v), (once.get(ek(u, v)) ?? 0) + 1);
+    const nbr = new Map<number, Set<number>>();
+    for (const [k, n] of once) {
+      if (n !== 1) continue;
+      const [u, v] = k.split(',').map(Number);
+      (nbr.get(u) ?? nbr.set(u, new Set()).get(u)!).add(v);
+      (nbr.get(v) ?? nbr.set(v, new Set()).get(v)!).add(u);
+    }
+    const outline = pc.outline.points(24);
+    const seen = new Set<string>();
+    for (const [u, ns] of nbr)
+      for (const v of ns)
+        for (const w of nbr.get(v) ?? []) {
+          if (w === u || !ns.has(w)) continue;
+          const k = [u, v, w].sort((x, y) => x - y).join(',');
+          if (seen.has(k)) continue;
+          seen.add(k);
+          const g = { x: (pts[u].x + pts[v].x + pts[w].x) / 3, y: (pts[u].y + pts[v].y + pts[w].y) / 3 };
+          const area = Math.abs(cross(pts[u], pts[v], pts[w])) / 2;
+          const edgeNear = () => outline.some((q, i) => segDist(g, q, outline[(i + 1) % outline.length]) < 0.3);
+          if (area > 1e-4 && area < h * h && (inPoly(outline, g) || edgeNear())) tris.push([u, v, w]);
+        }
+  }
   const used = new Int32Array(pts.length).fill(-1);
   const kept: P[] = [];
   for (const t of tris) for (const i of t) if (used[i] < 0) {

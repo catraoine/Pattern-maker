@@ -26,7 +26,7 @@ import { TechFlatView } from '../ui/TechFlatView';
 import { AllRound } from '../ui/AllRound';
 import { roundDress } from '../engine/allRound';
 import { FabricSwatches, GarmentFabric } from '../ui/FabricFill';
-import { DETAIL_GROUPS, GROUPS, pocketsAllowed } from '../skirtChoices';
+import { DETAIL_GROUPS, GATHERS_GROUP, GROUPS, gathersOf, pocketsAllowed } from '../skirtChoices';
 import { cutAllowed, validCut } from '../engine/slip';
 import { describePattern } from './describe';
 import { FABRIC, Group, InCorner, PRO, StyleLayout, TabPanel } from '../ui/StyleLayout';
@@ -42,7 +42,7 @@ import type { Finish } from '../savedWork';
 import { DETAIL_OPTIONS, GODET_OPTIONS, layoutExtras, setSkirtDetail, setVolume, skirtDetailAllowed, skirtDetailOf, volumeAllowed, volumeOf } from '../engine/skirtVolume';
 import { optionInTesting } from '../launch';
 import { isDraped, zipSide } from '../engine/drape';
-import { LENGTHS, Length, NoSeam, lengthRange, skirtFitOf } from '../engine/skirt';
+import { Gathers, LENGTHS, Length, NoSeam, lengthRange, skirtFitOf } from '../engine/skirt';
 import type { BodiceMeasurements } from '../engine/bodice';
 import type { SkirtMeasurements } from '../engine/skirt';
 import { DrawOnForm, formWidth } from '../ui/DrawOnForm';
@@ -206,6 +206,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
       : [
           // Named as on the skirt, so the Length & hem step doesn't ask a question called Skirt (Cat, 2026-10-30).
           { id: 'silhouette', label: 'Silhouette', options: GROUPS[1].options },
+          ...(choices.skirt.silhouette === 'gathered' ? [GATHERS_GROUP as { id: string; label: string; options: [string, string][] }] : []),
         ]),
     ...(noSeam || wrapped
       ? []
@@ -235,6 +236,8 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
       ? seam
       : id === 'asymHem'
         ? choices.skirt.asymHem ?? 'none'
+      : id === 'gathers'
+        ? gathersOf(choices.skirt)
       : id === 'silhouette' || id === 'length'
         ? choices.skirt[id]
         : id === 'pockets'
@@ -308,6 +311,10 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
       onChoices({ ...choices, skirt: opt === 'seam' ? skirt : { ...skirt, noSeam: opt as NoSeam } });
       return;
     }
+    if (id === 'gathers') {
+      onChoices({ ...choices, skirt: { ...choices.skirt, gathers: opt as Gathers } });
+      return;
+    }
     if (id === 'slit') {
       onChoices({ ...choices, skirt: { ...choices.skirt, slit: opt as SlitPlace, slitCm: undefined } });
       return;
@@ -315,8 +322,8 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
     if (id === 'silhouette' || id === 'length' || id === 'asymHem' || id === 'pockets') {
       // The dress skirt is styled by its chips: no era look, photo shape or hand-drawn changes.
       // Pleats, godets or a flounce stay; one the new shape, length or hem doesn't take falls back to none.
-      const { fit, silhouette, length, asymHem, pleats, godets, flounce, pockets, slit, slitCm, belt } = choices.skirt;
-      onChoices({ ...choices, skirt: validCut({ fit, silhouette, length, ...(asymHem ? { asymHem } : {}), ...(pockets ? { pockets } : {}), ...(belt ? { belt } : {}), ...(slit ? { slit } : {}), ...(slitCm !== undefined ? { slitCm } : {}), pleats, godets, flounce, [id]: opt }) });
+      const { fit, silhouette, length, asymHem, pleats, godets, flounce, pockets, slit, slitCm, belt, gathers } = choices.skirt;
+      onChoices({ ...choices, skirt: validCut({ fit, silhouette, length, ...(asymHem ? { asymHem } : {}), ...(pockets ? { pockets } : {}), ...(belt ? { belt } : {}), ...(slit ? { slit } : {}), ...(slitCm !== undefined ? { slitCm } : {}), ...(gathers ? { gathers } : {}), pleats, godets, flounce, [id]: opt }) });
       return;
     }
     if (id === 'belt') {
@@ -512,6 +519,12 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
     );
   }
 
+  // The Front drawing: shown on Front, and standing in for the sewn All round when that fails its score.
+  const sketch = formBody ? (
+    <GarmentFabric fabric={fabric}>
+      <FormSketch body={formBody} m={mv} legs bottom={waistY + lengthRange(mv).max + 4} lines={formLines} cloth={clothShapes} flatLines={flatLines} arms={formArm} sleeve={formArm ? sleeve : undefined} underarmY={draft ? landmarks(draft.bodice).underarm.y : undefined} sewn={sewn} hem={draft ? hem : undefined} label={`The ${title} on your form`} />
+    </GarmentFabric>
+  ) : undefined;
   return (
     <StyleLayout
       fabric={fabric}
@@ -546,7 +559,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
       <section className="card numbered" aria-labelledby="opts">
         {groups.map((g) => (
           <Group key={g.id} label={g.label} tab={PRO_GROUPS.includes(g.id) ? PRO : undefined}>
-            <div className={chipsClass((['noSeam', 'silhouette', 'length', 'asymHem', 'slit'].includes(g.id) ? 'skirt' : 'bodice'), g.id)}>
+            <div className={chipsClass((['noSeam', 'silhouette', 'length', 'asymHem', 'slit', 'gathers'].includes(g.id) ? 'skirt' : 'bodice'), g.id)}>
               {g.options.map(([id, label]) => (
                 <button
                   key={id}
@@ -556,13 +569,15 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
                   disabled={!allowed(g.id, id)}
                   onClick={() => choose(g.id, id)}
                 >
-                  <ChoicePic set={(['noSeam', 'silhouette', 'length', 'asymHem', 'slit'].includes(g.id) ? 'skirt' : 'bodice')} group={g.id} id={id} />
+                  <ChoicePic set={(['noSeam', 'silhouette', 'length', 'asymHem', 'slit', 'gathers'].includes(g.id) ? 'skirt' : 'bodice')} group={g.id} id={id} />
                   {label}
                   {optionInTesting(g.id, id) && <TestingTag tool="new_details" />}
+                  {g.id === 'neckline' && id === 'plunge' && <TestingTag tool="plunge" />}
+                  {g.id === 'gathers' && <TestingTag tool="fullness" />}
                 </button>
               ))}
             </div>
-            <Explain set={['noSeam', 'silhouette', 'length', 'asymHem', 'slit', 'volume', 'pockets', 'belt'].includes(g.id) ? 'skirt' : 'bodice'} group={g.id} options={g.options} pick={value(g.id)} />
+            <Explain set={['noSeam', 'silhouette', 'length', 'asymHem', 'slit', 'gathers', 'volume', 'pockets', 'belt'].includes(g.id) ? 'skirt' : 'bodice'} group={g.id} options={g.options} pick={value(g.id)} />
             {g.id === 'sleeve' && !arms && (
               <p className="muted small">
                 For sleeves, add your arm length, upper arm and wrist.{' '}
@@ -686,24 +701,20 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
             <span />
           )}
           <InCorner>
-            <button type="button" className="link small" onClick={() => setOnForm(choices)}>
-              Draw on your form
+            <button type="button" className="link small" aria-label="Draw on your form" onClick={() => setOnForm(choices)}>
+              <span className="tool-word">Draw</span>
             </button>
           </InCorner>
         </div>
         <div className="preview">
           {error && <p className="msg error">{error}</p>}
-          {formBody && view === 'sketch' && (
-            <GarmentFabric fabric={fabric}>
-              <FormSketch body={formBody} m={mv} legs bottom={waistY + lengthRange(mv).max + 4} lines={formLines} cloth={clothShapes} flatLines={flatLines} arms={formArm} sleeve={formArm ? sleeve : undefined} underarmY={draft ? landmarks(draft.bodice).underarm.y : undefined} sewn={sewn} hem={draft ? hem : undefined} label={`The ${title} on your form`} />
-            </GarmentFabric>
-          )}
+          {view === 'sketch' && sketch}
           {flat && view === 'flat' && (
             <GarmentFabric fabric={fabric}>
               <TechFlatView flat={flat} title={title} />
             </GarmentFabric>
           )}
-          {round && view === 'round' && <AllRound round={round} drape={drapeJob} m={values} fabric={fabric} striped={matchKind(fabric)} label={`The ${title} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`} />}
+          {round && view === 'round' && <AllRound round={round} drape={drapeJob} m={values} fabric={fabric} striped={matchKind(fabric)} fallback={sketch} label={`The ${title} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`} />}
           {sheet && view === 'pattern' && !(fit && canFit) && <PatternPane><PatternPreview paper sheet={sheet} label={`Pattern pieces for a ${title}`} /></PatternPane>}
           {view === 'pattern' && fit && canFit && <EaseMapView views={easeMap!} label={`The fit of the ${title}, on its pattern pieces`} />}
           <UndoToast undo={undo} />

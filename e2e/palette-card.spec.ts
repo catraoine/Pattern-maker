@@ -11,8 +11,8 @@ test('the palette card shows the picked fabric, and a shop fabric with its shop 
   await main.getByRole('radiogroup', { name: 'Fabric for the sketch' }).getByRole('radio', { name: 'Linen' }).click();
   await expect(card).toBeVisible();
   await expect(card.locator('.palette-name')).toHaveText('Linen');
-  await main.getByRole('tab', { name: 'Shop' }).click();
-  await main.getByRole('radiogroup', { name: 'Fabric from partner shops' }).getByRole('radio', { name: /Cotton denim/ }).click();
+  await main.getByRole('radiogroup', { name: 'Fabric for the sketch' }).getByRole('radio', { name: 'Cotton' }).click();
+  await main.getByRole('radiogroup', { name: 'Cotton you can buy' }).getByRole('radio', { name: /Cotton denim/ }).click();
   await main.getByRole('radiogroup', { name: 'Colour' }).getByRole('radio', { name: 'Indigo twill' }).click();
   await expect(card.locator('.palette-name')).toContainText('Cotton denim, 10.5 oz · Indigo twill');
   await expect(card.locator('.palette-shop')).toHaveText('Mood Fabrics · $13.96/yd');
