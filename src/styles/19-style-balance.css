@@ -212,3 +212,13 @@
   margin-left: 6px;
   font-size: 0.8em;
 }
+
+/* The corner squares show only their icon (Cat, 2026-11-02: the arrows and pencil sat off centre). Their word is a
+   separate box taken out of the square, so the icon alone is centred; the button's label still names it. */
+.preview-corner .tool-word {
+  display: none;
+}
+.preview-corner > .enlarge,
+.preview-corner > .drawmenu > summary {
+  line-height: 0;
+}

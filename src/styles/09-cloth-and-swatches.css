@@ -543,3 +543,46 @@
 .paper-sheet .preview-svg polyline {
   stroke-width: 0.12;
 }
+
+/* One list (Cat's D + C, 2026-11-02): the shop fabrics of the type picked sit under it with a small heading, then a
+   plain-type way back, and the picked one's buy strip: what it is, how much, about what, and the way to the shop. */
+.shopwrap-q {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: var(--caps-size);
+  letter-spacing: var(--caps-track);
+  text-transform: uppercase;
+}
+.shopwrap .plaintype {
+  justify-self: start;
+}
+.buystrip {
+  display: grid;
+  gap: 4px;
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: var(--bw) solid var(--gild);
+}
+.buystrip p {
+  margin: 0;
+}
+.buystrip-name {
+  font-family: var(--display, inherit);
+  font-weight: var(--w-strong);
+}
+.buystrip .buylink {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  gap: 6px;
+  margin: 8px 0 4px;
+  background: var(--gild);
+  color: var(--paper);
+  font-family: var(--mono);
+  font-size: var(--caps-size);
+  font-weight: var(--w-strong);
+  text-transform: uppercase;
+  letter-spacing: var(--caps-track);
+  text-decoration: none;
+}

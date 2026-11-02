@@ -1,5 +1,5 @@
 import { FabricAdvice, MyFabric, describeFabric, pickTag } from '../engine/fabrics';
-import { ReactNode } from 'react';
+import { ReactNode, createContext } from 'react';
 import { FabricGuide } from './FabricGuide';
 
 interface Props {
@@ -16,13 +16,16 @@ interface Props {
   children?: ReactNode;
 }
 
+/** The fabric this garment needs, in metres, for the shop fabric's buy strip inside the Fabric tab. */
+export const FabricMetres = createContext<number | undefined>(undefined);
+
 /** The style screen's Fabric tab (Cat's S3 Style Tab, 2026-10-18): the fabric to see the sketch in, how much to
  * buy, what suits this style, and what to avoid, all in one place. */
 export function FabricCard({ metres, advice, look, fabric, knit, lined, children }: Props) {
   const mine = describeFabric(fabric);
   return (
     <div className="fabric">
-      {children}
+      <FabricMetres.Provider value={metres}>{children}</FabricMetres.Provider>
       <p className="fabric-amount">
         <span className="big">{metres.toFixed(1)} m</span>{' '}
         <span className="muted small">{knit ? 'of 150 cm wide knit fabric, rough estimate' : 'of 140 cm wide woven fabric, rough estimate'}</span>

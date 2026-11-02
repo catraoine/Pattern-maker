@@ -59,10 +59,11 @@ export function UndoTools({ undo }: { undo: Undo }) {
   );
 }
 
-/** Says "Undone", "Redone" or "Nothing to undo" over the preview. */
+/** Says "Undone", "Redone" or "Nothing to undo" to screen readers only: on screen the drawing changing back and the
+ * greyed Undo and Redo already show it, and a box over the preview hid the very thing undone (Cat, 2026-11-02). */
 export function UndoToast({ undo }: { undo: Undo }) {
   return undo.toast ? (
-    <p className="toast" role="status">
+    <p className="visually-hidden" role="status">
       {undo.toast}
     </p>
   ) : null;

@@ -1,14 +1,15 @@
 // The style sketch drawn in the maker's fabric. The fabric lies flat and on the grain: corduroy ribs,
 // velvet pile and satin sheen run down the garment, and a waistband, cut lengthwise, has them running
 // along it. The tiles are drawn by scripts/fabric-textures.py.
-import { CSSProperties, ReactNode, useId, useState } from 'react';
+import { CSSProperties, ReactNode, useContext, useId, useState } from 'react';
 import type { Finish } from '../savedWork';
 import { FIBRES, FIBRE_IDS, FabricGarment, MyFabric, clothFor, printRepeat } from '../engine/fabrics';
 import { PRINTS, printImage, printOf, printTileCm } from '../engine/prints';
 import { FabricDetails } from './FabricDetails';
 import { SPECIALS, Special } from '../engine/specialFabrics';
 import { KNITS, KNIT_IDS, isKnit } from '../engine/knitFabrics';
-import { CLOSENESS, closestShopColours, colourHex, coloursFor, hexToHsl, hslToHex, isHex, shopFabric, shopFabricsFor, withShopFabric } from '../engine/shopFabrics';
+import { CLOSENESS, ShopFabric, buyAmount, buyLink, closestShopColours, colourHex, coloursFor, hexToHsl, hslToHex, isHex, shopFabric, shopFabricsFor, shopPrice, withShopFabric } from '../engine/shopFabrics';
+import { FabricMetres } from './FabricCard';
 import { ExactColour } from './ExactColour';
 import { TestingTag } from './TestingTag';
 import { FabricLook, FabricLookContext } from './ClothLook';
@@ -223,20 +224,31 @@ export function GarmentFabric({ fabric, children }: { fabric: MyFabric | undefin
   );
 }
 
-/** Under the sketch: None, then the fabric types or the partner shops' fabrics, then the colours for the one chosen.
- * Every swatch is a palette card (Cat's A1 + A5, 2026-10-25): the cloth above a cream name strip, the picked one taller. */
+/** Under the sketch: None and the fabric types, then the shop fabrics of the type chosen, then its colours, then
+ * what the chosen shop fabric costs for this garment and the way to buy it. Every swatch is a palette card (Cat's
+ * A1 + A5, 2026-10-25): the cloth above a cream name strip, the picked one taller.
+ * One list, no Fabrics / Shop switch (Cat's D + C, 2026-11-02): cotton shows only the cottons you can buy, and the
+ * colours under them are always the ones for what's picked. */
 /** The Fabric tab's swatches; `details` adds the folded "About your fabric" under them, the one place it's asked. */
 export function FabricSwatches({ finish, onFinish, garment, details }: { finish: Finish; onFinish: (f: Finish) => void; garment: FabricGarment; details?: boolean }) {
   const fabric = finish.fabric;
   const chosen = flatId(fabric);
   const label = fabricLabel(fabric);
   const shopItems = shopFabricsFor(garment);
-  const [tab, setTab] = useState<'types' | 'shop'>(fabric?.shop ? 'shop' : 'types');
+  const metres = useContext(FabricMetres);
   // The T-shirt is drafted for stretch, so it offers knits; every other garment offers woven fibres and special cloths.
   const knits = garment === 'tee';
   const ids: { id: string; label: string }[] = knits
     ? KNIT_IDS.map((id) => ({ id, label: KNITS[id].label }))
     : [...FIBRE_IDS.map((id) => ({ id, label: FIBRES[id].label })), ...SPECIAL_IDS.map((id) => ({ id, label: SPECIALS[id].label }))];
+  // The type the shop fabrics are listed under: the one last tapped, while it still holds the picked shop fabric
+  // (denim sits under Cotton and under Denim), else the picked shop fabric's own fibre, else the plain type picked.
+  const shop = shopFabric(fabric?.shop);
+  const [tapped, setTapped] = useState<string>();
+  const under = (f: ShopFabric, id: string | undefined) => !!id && (f.fibre === id || f.special === id);
+  const type = shop ? (under(shop, tapped) ? tapped : shop.fibre) : chosen;
+  const typeLabel = ids.find((s) => s.id === type)?.label;
+  const toBuy = shopItems.filter((f) => under(f, type));
   // A picked print is what the sketch shows, so it names the cloth in place of the colour.
   const printed = printShown(fabric);
   const colour = printed ? (printed === 'checks' ? (fabric?.checks?.stripes ? 'Stripes' : fabric?.checks?.gingham ? 'Gingham' : 'Checks') : PRINTS[printed].label) : fabric?.colour?.trim();
@@ -257,69 +269,71 @@ export function FabricSwatches({ finish, onFinish, garment, details }: { finish:
           <span className="muted">See it in your fabric</span>
         )}
       </p>
-      {shopItems.length > 0 && (
-        <div className="fabtabs" role="tablist" aria-label="Fabrics to choose from">
-          <button type="button" role="tab" aria-selected={tab === 'types'} className={tab === 'types' ? 'on' : ''} onClick={() => setTab('types')}>
-            Fabrics
-          </button>
-          <button type="button" role="tab" aria-selected={tab === 'shop'} className={tab === 'shop' ? 'on' : ''} onClick={() => setTab('shop')}>
-            Shop
-          </button>
-        </div>
-      )}
-      {tab === 'types' || shopItems.length === 0 ? (
-        <div className="swatches" role="radiogroup" aria-label="Fabric for the sketch">
-          <button
-            type="button"
-            role="radio"
-            aria-checked={!chosen}
-            aria-label="None"
-            title="None"
-            className={!chosen ? 'swatch none on' : 'swatch none'}
-            onClick={() => onFinish(pickFabric(finish, undefined))}
-          >
-            <span className="card-tex" aria-hidden="true" />
-            <span className="card-name" aria-hidden="true">None</span>
-          </button>
-          {ids.map((s) => (
+      <div className="swatches" role="radiogroup" aria-label="Fabric for the sketch">
+        <button
+          type="button"
+          role="radio"
+          aria-checked={!chosen}
+          aria-label="None"
+          title="None"
+          className={!chosen ? 'swatch none on' : 'swatch none'}
+          onClick={() => onFinish(pickFabric(finish, undefined))}
+        >
+          <span className="card-tex" aria-hidden="true" />
+          <span className="card-name" aria-hidden="true">None</span>
+        </button>
+        {ids.map((s) => {
+          const on = type === s.id;
+          return (
             <button
               key={s.id}
               type="button"
               role="radio"
-              aria-checked={!fabric?.shop && chosen === s.id}
+              aria-checked={on}
               aria-label={s.label}
               title={s.label}
-              className={!fabric?.shop && chosen === s.id ? 'swatch on' : 'swatch'}
-              onClick={() => onFinish(pickFabric(finish, s.id))}
+              className={on ? 'swatch on' : 'swatch'}
+              onClick={() => {
+                // With a shop fabric picked, tapping a type it sits under just lists that type's fabrics.
+                if (shop && under(shop, s.id)) return setTapped(s.id);
+                setTapped(s.id);
+                onFinish(pickFabric(finish, s.id));
+              }}
             >
               <span className="card-tex" style={{ backgroundImage: `url(${tileUrl(s.id)})` }} aria-hidden="true" />
               <span className="card-name" aria-hidden="true">{s.label}</span>
             </button>
-          ))}
-        </div>
-      ) : (
+          );
+        })}
+      </div>
+      {toBuy.length > 0 && typeLabel && (
         <div className="shopwrap">
-        <div className="shopfabs" role="radiogroup" aria-label="Fabric from partner shops">
-          {shopItems.map((f) => (
-            <button
-              key={f.id}
-              type="button"
-              role="radio"
-              aria-checked={fabric?.shop === f.id}
-              className={fabric?.shop === f.id ? 'shopfab on' : 'shopfab'}
-              onClick={() => onFinish(pickShopFabric(finish, f.id))}
-            >
-              <span className="shopfab-tile" style={{ backgroundImage: `url(${tileUrl(f.tile)})` }} aria-hidden="true" />
-              <span className="shopfab-text">
-                <b>{f.name}</b>
-                <span>{f.shop}</span>
-                <span>
-                  ${f.price}/{f.yards ? 'yd' : 'm'} · {f.colours.length === 1 ? '1 colour' : `${f.colours.length} colours`}
+          <p className="shopwrap-q">{typeLabel} you can buy</p>
+          <div className="shopfabs" role="radiogroup" aria-label={`${typeLabel} you can buy`}>
+            {toBuy.map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                role="radio"
+                aria-checked={fabric?.shop === f.id}
+                className={fabric?.shop === f.id ? 'shopfab on' : 'shopfab'}
+                onClick={() => onFinish(pickShopFabric(finish, f.id))}
+              >
+                <span className="shopfab-tile" style={{ backgroundImage: `url(${tileUrl(f.tile)})` }} aria-hidden="true" />
+                <span className="shopfab-text">
+                  <b>{f.name}</b>
+                  <span>
+                    {f.shop} · ${f.price}/{f.yards ? 'yd' : 'm'}
+                  </span>
                 </span>
-              </span>
+              </button>
+            ))}
+          </div>
+          {shop && type && (
+            <button type="button" className="later plaintype" onClick={() => onFinish(pickFabric(finish, type))}>
+              Or just see it in plain {typeLabel.toLowerCase()}, any colour <span aria-hidden="true">›</span>
             </button>
-          ))}
-        </div>
+          )}
         </div>
       )}
       {chosen && (
@@ -358,8 +372,49 @@ export function FabricSwatches({ finish, onFinish, garment, details }: { finish:
           )}
         </div>
       )}
-      {chosen && anyColour && anyOpen && <ColourBars finish={finish} onFinish={onFinish} garment={garment} onShop={() => setTab('shop')} />}
+      {chosen && anyColour && anyOpen && <ColourBars finish={finish} onFinish={onFinish} garment={garment} onShop={() => setTapped(undefined)} />}
+      {shop && <BuyStrip shop={shop} colour={fabric?.colour} metres={metres} garment={garment} />}
       {details && <FabricDetails fabric={fabric} garment={garment} onFabric={(f) => onFinish({ ...finish, fabric: f, cloth: clothFor(f, finish.cloth) })} />}
+    </div>
+  );
+}
+
+const GARMENT_WORD: Record<FabricGarment, string> = {
+  skirt: 'skirt',
+  bodice: 'top',
+  dress: 'dress',
+  trousers: 'trousers',
+  tee: 'T-shirt',
+  jacket: 'jacket',
+  coat: 'coat',
+  lingerie: 'set',
+};
+
+/** The picked shop fabric in words (Cat's C Buy Strip, 2026-11-02): what it is, how much this garment needs, about
+ * what it costs, and the way to the shop with that amount. */
+function BuyStrip({ shop, colour, metres, garment }: { shop: ShopFabric; colour?: string; metres?: number; garment: FabricGarment }) {
+  const amount = metres ? buyAmount(shop, metres) : undefined;
+  const cost = amount ? Math.ceil(amount.qty * shopPrice(shop, colour)) : undefined;
+  const link = buyLink(shop, colour, metres ?? 0);
+  const word = GARMENT_WORD[garment];
+  return (
+    <div className="buystrip" aria-label="The fabric you picked">
+      <p className="buystrip-name">{shop.name}</p>
+      <p className="small">
+        {shop.shop}
+        {colour && !isHex(colour) ? ` · ${colour}` : ''}
+      </p>
+      {amount && (
+        <p className="small">
+          {amount.qty} {amount.unit} for your {word} · <b>about ${cost}</b>
+        </p>
+      )}
+      {link && (
+        <a className="buylink" href={link.href} target="_blank" rel="noopener noreferrer">
+          Buy at {shop.shop.replace(/ Fabrics$/, '')} <span aria-hidden="true">›</span>
+        </a>
+      )}
+      <p className="muted small">Prices are the shop's when we added it. We may earn a commission when you buy.</p>
     </div>
   );
 }
