@@ -36,7 +36,8 @@ paid sewists as the backstop if fewer than 16 good applicants by Nov 8.
 - **Wed + Sun** a scheduled reader checks the form sheet and tester mail, updates the tracker,
   drafts replies (drafts only) and posts a ~5-line summary in the Sewist Fit Testing thread.
 - Replies often come by text, not email: ask Cat before calling someone unconfirmed.
-- Show Cat every draft before sending; clean Gmail redirect links before any send.
+- Show Cat every draft before sending. Any email with a link stays a draft for Cat, who pastes the
+  clean link herself (see [Working with Cat](working-with-cat.md), "Links in emails").
 - A paid pattern-cutter review (a Vancouver studio) checks the drafting itself; due first week of
   November, balance paid after.
 

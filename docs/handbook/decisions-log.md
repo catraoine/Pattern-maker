@@ -5,6 +5,8 @@ something that changes how a department works. Design picks for single screens s
 
 ## November 2026
 
+- **Nov 2** Emails with a link are never sent by Claude: Claude's Gmail connector turns every link into a long google.com/url link, so Claude drafts, and Cat pastes the clean link (given in a copy box) before sending. Cat had raised this before (Oct 22, Oct 24). [Working with Cat](working-with-cat.md).
+
 - **Nov 1** Fit tester call rebuilt after the Oct 31 call got no applicants: testers sew a dress, skirt or top of their choice; the call shows two example SS27 looks (a dress, a skirt with a top) drawn in All round, only once Cat passes the renders; applications through a 2-minute Google Form; fashion schools emailed (KPU, VCC, Blanche Macdonald). [Testers](testers.md).
 
 ## October 2026
