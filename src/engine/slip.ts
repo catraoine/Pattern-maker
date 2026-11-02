@@ -298,7 +298,7 @@ function raisedHalf(pc: Piece, rise: number, plusX: boolean): Path {
 /** A bias slip skirt (not a dress's) can take a slit up its left side seam, the zip moved right (In testing,
  * Cat 2026-11-02, for the SS27 lavender slip). The edges are stayed so the bias doesn't stretch. */
 /** How far below the hip line a slip's side slit stops: at the hip line itself. */
-export const SLIP_SLIT_BELOW_HIP = 0;
+const SLIP_SLIT_BELOW_HIP = 0;
 
 export const slipSlitAllowed = (s: { silhouette: string; joinTo?: unknown }) => s.silhouette === 'slip' && !s.joinTo;
 
