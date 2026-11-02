@@ -35,7 +35,8 @@ export interface SimInput {
   /** Where the shoulder seam lies front to back (cm ahead of the body's side plane), held there. */
   shoulderZ?: number;
   /** Edges running down a bodice, top first (upper point, lower point, cut length): held to near their cut length. */
-  chain?: { up: Int32Array; lo: Int32Array; rest: Float64Array };
+  /** Edges down a bodice held to near their cut length, top first; `k` how hard (1 under a long skirt's weight). */
+  chain?: { up: Int32Array; lo: Int32Array; rest: Float64Array; k?: number };
   /** Trouser legs: below the crotch the cloth lies on two legs, not the body. */
   legs?: { x: number; c0: number; c1: number; r0: number; r1: number };
   /** Points beside a fold and their flat distance from their own mirror across it: the cloth's bend carries on round
@@ -64,8 +65,10 @@ export function simulate(s: Space, inp: SimInput, steps = knob("__steps") ?? 260
   const { edges, rest, bends, bendRest, seams, centre, thick } = inp;
   const ne = rest.length;
   const nb = bendRest.length;
-  const arm = s.arm;
+  // (Nothing on the arms, a sleeveless bodice: the arm's top sits up at the shoulder tip, where a strap rests on it.)
+  const arm = inp.onArm.some((v) => v) ? s.arm : { ...s.arm, a: [s.arm.a[0], s.tip.c + s.arm.r0 * (knob('__armUpBare') ?? 0.5), s.arm.a[2]] as [number, number, number] };
   const ab = [arm.b[0] - arm.a[0], arm.b[1] - arm.a[1], arm.b[2] - arm.a[2]];
+  const armLow = arm.a[1] - arm.r0 > s.tip.c + 1;
   const abL2 = ab[0] ** 2 + ab[1] ** 2 + ab[2] ** 2;
 
   const dist = (k: number, a: number, b: number, L: number) => {
@@ -116,8 +119,9 @@ export function simulate(s: Space, inp: SimInput, steps = knob("__steps") ?? 260
       x[I + 1] = pc - gc * pen;
       hit = true;
     }
-    // The arms, one each side.
-    for (let e = 1; e >= -1; e -= 2) {
+    // The arms, one each side. (When the arm hangs from the armpit, below the shoulder, the body's own cloth never
+    // meets it: the shoulder it rests on is the body's.)
+    for (let e = 1; e >= -1 && (inp.onArm[i] || !armLow); e -= 2) {
       const qx = x[I] * e;
       const rx = qx - arm.a[0];
       const ry = x[I + 1] - arm.a[1];
@@ -269,7 +273,7 @@ export function simulate(s: Space, inp: SimInput, steps = knob("__steps") ?? 260
         const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
         const L = inp.chain.rest[q] * LIM;
         if (d <= L) continue;
-        const f = 1 - (1 - L / d) * CHK;
+        const f = 1 - (1 - L / d) * CHK * (inp.chain.k ?? 1);
         x[v] = x[u] + dx * f;
         x[v + 1] = x[u + 1] + dy * f;
         x[v + 2] = x[u + 2] + dz * f;

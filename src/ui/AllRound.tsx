@@ -169,7 +169,9 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
   );
   const jobKey = useMemo(() => (job ? drapeKey(job) : ''), [job]);
   const [draped, setDraped] = useState<{ key: string; view: DrapedView } | undefined>();
-  const spaceOf = useMemo(() => makeSpace(placeOnForm(round, m), m), [round, m]);
+  // (Drawn at the wearer's shoulder width only under a sleeveless garment, as the drape worker's form is: see makeSpace.)
+  const widenForm = !(drape && (drape.kind === 'outer' || ('sleeve' in drape && !!drape.sleeve)));
+  const spaceOf = useMemo(() => makeSpace(placeOnForm(round, m), m, { widen: widenForm }), [round, m, widenForm]);
   // The form stands at the wearer's shoulder width, as the body the cloth is sewn on does.
   const formX = useMemo(() => (x: number, y: number, z: number) => {
     const s = spaceOf.scale(y);

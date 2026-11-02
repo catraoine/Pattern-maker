@@ -58,8 +58,13 @@ export function rehydrate<T>(v: T): T {
   return v;
 }
 
+/** Whether the garment has sleeves (a jacket or coat always does): it then hangs from the arm, on the form as it is. */
+export function sleeved(job: Pick<DrapeJob, 'kind'> & { sleeve?: unknown }): boolean {
+  return job.kind === 'outer' || !!job.sleeve;
+}
+
 export function runDrape(job: DrapeJob): DrapedLite {
-  const sp = makeSpace(placeOnForm({ armhole: job.armhole }, job.m), job.m);
+  const sp = makeSpace(placeOnForm({ armhole: job.armhole }, job.m), job.m, { widen: !sleeved(job) });
   const t: DrapeOptions = { ...(TUNE[job.fibre ?? 'cotton'] ?? TUNE.cotton!) };
   if (job.crisp) t.crisp = 40;
   let d: Draped;
