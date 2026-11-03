@@ -2,6 +2,10 @@
 
 Full plan: "Sewist fit test plan" Claude Doc, linked from the business plan (Appendix A).
 Tester names, emails and codes live there and in Cat's Gmail, never in this repo.
+- **Tester codes must never match anything in this repo** (Nov 3, 2026). The example codes in the code and
+  tests (TOILE-ONE, toile-two) were once also the real ones; anyone reading the public code had them. Real codes
+  are made up fresh, live only in Netlify's TESTER_CODES and in tester emails, and are rotated if they ever
+  appear in a commit, screenshot or post.
 
 ## Dates (moved Oct 22)
 
