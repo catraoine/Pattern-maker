@@ -4,6 +4,11 @@ _Update this page whenever a release ships or a PR is queued._
 
 ## Live
 
+**Release 56** (Nov 3, 2026, #272): Print opens on a calm "Your summary" heading, one guiding line and the
+garment's name in reading type (the tab is still called Print). The Style title ("Your dress") is 36px on a
+phone, 40px on a computer, so it no longer reads squished. Privacy policy wording from the security check (#271).
+Release 55 (Nov 3, #264): no chapter bar under the How it works film or the Watch demo clips.
+
 **Release 54** (Nov 2, 2026, #267): Style screen sweep (#266): views are Front, Flat and All round (no Back
 view), quiet Undo, fabric shop as one list with a buy strip, "Your picks" drop-down, worded Enlarge,
 Length/Width hem handles, named step backs, one font width everywhere (no narrowed headings; welcome headline rises in), and the header back arrow gone from Measure, Style and
@@ -16,11 +21,10 @@ Live site: https://maisontrace.co (the cloud proxy blocks it; check
 https://whimsical-mooncake-2cf9a9.netlify.app, the same site). Strangers see the waitlist; testers
 get in with their tester link.
 
-## Queued for "ship" (as of Nov 2, 21:15 UTC)
+## Queued for "ship" (as of Nov 3, 14:45 UTC)
 
-Queued: #264's later commit (no Measure / Choose / Style / Print bar under the How it works film),
-once its tests pass. Open draft: #259 (bias slip mini + side slit, open polo collar, ruffled trouser
-hem; In testing), now based on main, waiting on Cat's "apply".
+Nothing green is queued. Open draft: #259 (bias slip mini + side slit, open polo collar, ruffled trouser
+hem; In testing), based on main, waiting on Cat's "apply".
 
 Note: #249's SS27 cuts (oversized, peplums, plunge, gathers, drop yoke, jacket collars) went live in
 Release 54 because #263 was stacked on them. Cat chose to keep them live as In testing (Nov 2); #249
