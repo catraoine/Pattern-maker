@@ -5,10 +5,10 @@ import { signinShown } from './cloud/flag';
 /** The owner's details, shown in the privacy policy and terms. Keep in step with the Claude Docs drafts. */
 export const OWNER = {
   name: 'Catraoine Mary Buckley',
-  address: '505-428 West 8th Avenue, Vancouver, British Columbia V5Y 1N9, Canada',
+  address: 'Vancouver, British Columbia, Canada',
   email: 'hello@maisontrace.co',
   law: 'British Columbia and the federal laws of Canada that apply there',
-  effective: '24 October 2026',
+  effective: '3 November 2026',
   minimumAge: '16',
   liabilityCap: 'CA$50',
   courts: 'British Columbia, sitting in Vancouver',
@@ -173,7 +173,7 @@ export const TERMS: LegalDoc = {
       heading: 'Agreeing to these terms',
       body: [
         `These terms are an agreement between you and ${OWNER.name} (“we”, “us”), which runs Maison Tracé. By using the Maison Tracé website or app, you agree to them. If you don’t agree, please don’t use it.`,
-        'Who can use it.|You must be an adult (18 or older, or the age of majority where you live) or have a parent or guardian’s permission.',
+        `Who can use it.|You must be ${OWNER.minimumAge} or older. If you’re under the age of majority where you live, you should have a parent or guardian’s permission.`,
         'Using it as a guest.|You can measure, draft, preview and export patterns without an account. Your details are saved on your device only, as our Privacy Policy explains. You’re responsible for keeping your own backups. If you clear your browser or lose your device, we can’t recover your measurements or patterns.',
         ACCOUNTS
           ? 'Your account.|If you sign in, your work is also kept in your account. There’s no password: anyone who can read your email can sign in as you, so keep your email account safe. You’re responsible for what happens under your account. You can sign out on any device, and delete your account and everything in it from Your account at any time.'
