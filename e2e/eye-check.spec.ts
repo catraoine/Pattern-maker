@@ -20,6 +20,8 @@ test('all round eye check', async ({ page, consoleErrors }, info) => {
   test.setTimeout(3_600_000);
   consoleErrors.allow(/.*/);
   await page.emulateMedia({ reducedMotion: 'reduce' });
+  // EYE_KNOBS='{"__name": 1}' sets drape tuning knobs on the page (engine/drape/knob.ts), to look at a setting by eye.
+  if (process.env.EYE_KNOBS) await page.addInitScript((k) => ((window as unknown as { __drapeKnobs: unknown }).__drapeKnobs = JSON.parse(k)), process.env.EYE_KNOBS);
   await startWithExample(page);
   const main = page.getByRole('main');
   const only = process.env.EYE_ONLY?.split(',');

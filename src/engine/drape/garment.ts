@@ -1152,8 +1152,12 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       const c = [...chain].sort((m, n) => m[3] - n[3]);
       // (Hard under a long skirt's weight, which would otherwise draw the bodice down; a top that carries only
       // itself is held gently, or the hold ratchets it up over the bust.)
+      // (A dress with sleeves stands up square at the shoulders under this hold and folds a ledge across the chest:
+      // __sleevedDressK tries a softer one. 0.3 to 0.8 cleared the shoulders but not the ledge or the back sinking into
+      // the form; All round quality, Nov 3, still open.)
       const heavy = !!o.heavySkirt;
-      return { up: Int32Array.from(c.map((q) => q[0])), lo: Int32Array.from(c.map((q) => q[1])), rest: Float64Array.from(c.map((q) => q[2])), k: heavy ? 1 : (knob('__lightK') ?? 0.3) };
+      const k = heavy ? (sleeved ? (knob('__sleevedDressK') ?? 1) : 1) : (knob('__lightK') ?? 0.3);
+      return { up: Int32Array.from(c.map((q) => q[0])), lo: Int32Array.from(c.map((q) => q[1])), rest: Float64Array.from(c.map((q) => q[2])), k };
     })(),
     lieOn: lieOnOf(),
     bendW: Float64Array.from(bendW),
