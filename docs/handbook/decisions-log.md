@@ -5,6 +5,7 @@ something that changes how a department works. Design picks for single screens s
 
 ## November 2026
 
+- **Nov 3** The Print tab keeps its name; the Print screen opens on a modest "Your summary" heading, one guiding line, and the garment's name in reading type (big capitals for the whole choice were overwhelming). The Style title ("Your dress") goes from 30px to 36px on a phone (40px on a computer) so it no longer reads squished beside the step name. [Brand and voice](brand-and-voice.md).
 - **Nov 2** Emails with a link are never sent by Claude: Claude's Gmail connector turns every link into a long google.com/url link, so Claude drafts, and Cat pastes the clean link (given in a copy box) before sending. Cat had raised this before (Oct 22, Oct 24). [Working with Cat](working-with-cat.md).
 - **Nov 2** One font width everywhere (standing rule): a font always keeps its one normal width and height; never narrowed or flattened to fit (Archivo headings were at 75%, one spot 62%). Text that does not fit wraps or is reworded. The welcome headline now rises in instead of being taken in from wide to narrow. PR #266.
 - **Nov 2** Style screen sweep: Back view dropped (Front, Flat, All round); Undone toast for screen readers only; fabric shop D One List + C Buy Strip; picks in a closed "Your picks" drop-down top right; Enlarge and Draw as words in the corner; hem handles labelled Length and Width; header ← removed on Measure, Style steps and Print (chapter names go between chapters), bottom back names its step ("‹ Shape"). PR #266.

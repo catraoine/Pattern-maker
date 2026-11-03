@@ -41,7 +41,7 @@ export const PRIVACY: LegalDoc = {
     (ACCOUNTS
       ? 'Your measurements, the people you measure for and your saved patterns stay on your own device, and in your account if you choose to sign in, so they’re there on your other devices. We receive something from you only when you sign in (your email address and the work in your account), when'
       : 'Your measurements, the people you measure for and your saved patterns stay on your own device. We receive something from you only when') +
-    ' you use photo-to-pattern (we don’t keep that photo), choose to send us fit notes, or sign up as a fit tester, for news, or to hear when something new opens. The app also sends us a short report if it crashes, and anonymous counts of visits, with nothing that identifies you.',
+    ' you use photo-to-pattern (we don’t keep that photo) or describe an idea in words (we don’t keep those either), choose to send us fit notes, or sign up as a fit tester, for news, or to hear when something new opens. The app also sends us a short report if it crashes, and anonymous counts of visits, with nothing that identifies you.',
   sections: [
     {
       heading: 'Who we are',
@@ -68,7 +68,7 @@ export const PRIVACY: LegalDoc = {
               'Our server (Netlify)',
               'Only if you tick “Send these notes to Maison Tracé”',
             ],
-            ['Photos you choose for photo-to-pattern', 'Sent for reading, then discarded', 'Yes, briefly'],
+            ['Photos you choose for photo-to-pattern, and words you type to describe an idea', 'Sent for reading, then discarded', 'Yes, briefly'],
             ['Your IP address and basic request details', 'Our hosting provider’s logs', 'Yes, as part of serving the site'],
             [
               'Crash reports (the error, the screen you were on, the app version, your browser’s name and version, and the time; never measurements, names or photos)',
@@ -107,13 +107,14 @@ export const PRIVACY: LegalDoc = {
     {
       heading: 'Photo-to-pattern and the companies we work with',
       body: [
-        'How a photo is read.|When you choose a photo, the app shrinks it on your device and sends it to our server. Our server passes it to Claude, an AI model made by Anthropic, which describes the skirt’s style (fit, shape, length, fullness). We send back the style and the photo is discarded. We don’t store your photo, and we never send your measurements or name with it.',
+        'How a photo is read.|When you choose a photo, the app shrinks it on your device and sends it to our server. Our server passes it to Claude, an AI model made by Anthropic, which describes the garment’s style (fit, shape, length, fullness, neckline, sleeves and details). We send back the style and the photo is discarded. If you ask the app to check its drawing against your photo, the photo and the app’s drawing are sent once more, in the same way. We don’t store your photo, and we never send your measurements or name with it.',
+        'Describing an idea in words.|If you type what you’d like to make instead of choosing a photo, the words you type are sent to our server and on to Claude in the same way, and aren’t stored. Please don’t put your name or anyone else’s in them.',
         'Please only use photos you have the right to use. If a person appears in the photo, make sure they’re happy for it to be used this way. A garment laid flat works too.',
         'Daily photo limits.|Each visitor gets a set number of photo readings a day. To count them we turn your IP address into a scrambled code (a one-way hash) and keep a tally for that day. We don’t store the address itself.',
         {
           table: [
             ['Company', 'What it does', 'What it sees'],
-            ['Anthropic', 'Reads the style from your photo', 'The photo'],
+            ['Anthropic', 'Reads the style from your photo, or from the words you type to describe an idea', 'The photo (and, for a drawing check, the app’s drawing), or your typed description'],
             [
               'Netlify',
               'Hosts the site and runs our server code, including the daily counters, and stores fit notes, crash reports, daily visit totals and sign-ups',
@@ -129,7 +130,7 @@ export const PRIVACY: LegalDoc = {
             ['Awin', 'Tracks shop sales that start from a Buy button, so the shop pays our commission', 'That you tapped Buy, and what you bought at the shop'],
           ],
         },
-        `Anthropic handles photos under its commercial terms for businesses using its API, which say it doesn’t train its models on that data. ${ACCOUNTS ? 'Apart from Supabase, which holds your account in Canada, these companies are based in the United States, so your photo, request details and sign-in emails may be processed there.' : 'These companies are based in the United States, so your photo and request details may be processed there.'}`,
+        `Anthropic handles photos and typed descriptions under its commercial terms for businesses using its API, which say it doesn’t train its models on that data; it may hold what we send for a short time under those terms, for safety checks, before deleting it. ${ACCOUNTS ? 'Apart from Supabase, which holds your account in Canada, these companies are based in the United States, so your photo, request details and sign-in emails may be processed there.' : 'These companies are based in the United States, so your photo and request details may be processed there.'}`,
         'We may also share information if the law requires it, or with a buyer if the business is ever sold, under this same policy.',
       ],
     },

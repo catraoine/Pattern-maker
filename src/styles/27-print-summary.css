@@ -1,0 +1,27 @@
+/* The top of Print says where you've landed (Cat, Nov 3): "the whole choice in large font is overwhelming and
+   jarring". A modest "Your summary" heading, one guiding line, then the garment's name in reading type. */
+.print-head h1 {
+  font-size: 28px;
+  line-height: 1.1;
+}
+.print-head .print-guide {
+  margin: 4px 0 0;
+  max-width: 34em;
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.45;
+  color: var(--ink);
+}
+.print-head .print-name {
+  margin: 14px 0 0;
+  font-family: var(--sans);
+  letter-spacing: 0;
+  text-transform: none;
+  font-size: 18px;
+  font-weight: var(--w-strong);
+  line-height: 1.3;
+  color: var(--gild);
+}
+.print-head .print-name + .muted {
+  margin-top: 2px;
+}
