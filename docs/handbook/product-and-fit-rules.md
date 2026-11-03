@@ -72,6 +72,10 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
    and logs it in project files `all-round-quality/sweep-history.md`. The weekly Fable eye check (Wednesdays)
    grades 12 random designs plus new options by eye; a false pass (an ugly drawing the score let through) is the
    worst finding and is fixed first.
+11. **Under the arm** (Nov 3): on a sleeved top the stretch check skips the cloth within 5 cm of the armhole, which the
+   sleeve hides and pulls as the arm hangs (long sleeves on tops read right by eye but failed). A ruffle or tie at the
+   wrist that the drawing leaves out fails the score ("missing") until it is drawn. Dresses with set-in sleeves still
+   fail for real (square shoulders, the side opening) and are the next engine fix.
 
 ## Style steps
 
