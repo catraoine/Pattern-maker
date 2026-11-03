@@ -772,14 +772,22 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
         }
       }
     }
-    cap.sort((x, y) => x.th - y.th);
+    // (Round the arm, by angle; the two underarm ends of the cap, at the same angle, are one point of the seam.)
+    cap.sort((x, y) => x.th - y.th || x.q.x - y.q.x);
+    // Along the cap edge, as it runs round the arm: measured by the angle round and the height, not across the flat
+    // piece, where the step from one underarm end to the other was counted as the sleeve's whole width. That made the
+    // cap read two or three times as long as the armhole, so a third of the cloth below it was drawn in as "ease", and
+    // (the two ends falling in either order) the back half of the cap was sewn into the top of the back armhole, which
+    // dragged a dress's underarm up its own armhole (All round quality, 2026-11-03).
     const capS: number[] = [0];
-    for (let i = 1; i < cap.length; i++) capS.push(capS[i - 1] + Math.hypot(cap[i].q.x - cap[i - 1].q.x, cap[i].q.y - cap[i - 1].q.y));
+    for (let i = 1; i < cap.length; i++) capS.push(capS[i - 1] + Math.hypot(((cap[i].th - cap[i - 1].th) * period) / TAU, cap[i].q.y - cap[i - 1].q.y));
     const fArm = B.chain(front.filter((p) => p.role === 'front'), 'armhole', down);
     const bArm = B.chain(back.filter((p) => p.role === 'back'), 'armhole', down);
     const Lf = fArm.s[fArm.s.length - 1];
     const Lb = bArm.s[bArm.s.length - 1];
-    const total = capS[capS.length - 1];
+    // (The loop closes from the last point back round to the first, at the cap's top.)
+    const last = cap[cap.length - 1];
+    const total = cap.length > 1 ? capS[capS.length - 1] + Math.hypot(((TAU - last.th + cap[0].th) * period) / TAU, cap[0].q.y - last.q.y) : 0;
     const split = (total * Lf) / (Lf + Lb);
     const capF: Chain = { ids: [], s: [] };
     const capB: Chain = { ids: [], s: [] };
@@ -1019,7 +1027,26 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
   // as a waistband or boning holds it on the body.
   const hangOf = () => {
     const tp = B.panels.filter((p) => p.role === 'front' || p.role === 'back');
-    if (tp.some((p) => p.mesh.runs.shoulder)) return undefined;
+    if (tp.some((p) => p.mesh.runs.shoulder)) {
+      // A sleeve hangs from its armhole, and the armhole is a sewn, stayed seam: it keeps its depth under the sleeve's
+      // weight (a short top's gave 2 to 3 cm, the hem dipping at the sides with it, once the cap was sewn in at its true
+      // length, All round quality 2026-11-03). Each armhole point is held from dropping below where it is cut to sit.
+      if (!B.panels.some((p) => p.role === 'sleeve' && !p.hidden) || knob('__noArmholeStay')) return undefined;
+      const ids: number[] = [];
+      const c: number[] = [];
+      const slack = knob('__armholeSlack') ?? 0.5;
+      // (Not its top few cm at the shoulder, which the shoulder seam itself holds: stayed there too, the tip floated
+      // above the shoulder.)
+      for (const p of tp) {
+        const run = [...new Set((p.mesh.runs.armhole ?? []).flat())];
+        const top = Math.min(...run.map((i) => p.mesh.pts[i].y));
+        for (const i of run) if (p.mesh.pts[i].y - top > (knob('__stayFrom') ?? 4)) {
+          ids.push(i + p.base);
+          c.push(p.start[i][1] + slack);
+        }
+      }
+      return ids.length ? { ids: Int32Array.from(ids), c: Float64Array.from(c) } : undefined;
+    }
     const held = tp.length ? tp : B.panels.filter((p) => p.role === 'peplum-front' || p.role === 'peplum-back');
     const tag = tp.length ? 'neck' : 'waist';
     // (A high-waisted skirt hangs from its top edge, above the waist.)
@@ -1152,11 +1179,7 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       const c = [...chain].sort((m, n) => m[3] - n[3]);
       // (Hard under a long skirt's weight, which would otherwise draw the bodice down; a top that carries only
       // itself is held gently, or the hold ratchets it up over the bust.)
-      // (A dress with sleeves stands up square at the shoulders under this hold and folds a ledge across the chest:
-      // __sleevedDressK tries a softer one. 0.3 to 0.8 cleared the shoulders but not the ledge or the back sinking into
-      // the form; All round quality, Nov 3, still open.)
-      const heavy = !!o.heavySkirt;
-      const k = heavy ? (sleeved ? (knob('__sleevedDressK') ?? 1) : 1) : (knob('__lightK') ?? 0.3);
+      const k = o.heavySkirt ? 1 : knob('__lightK') ?? 0.3;
       return { up: Int32Array.from(c.map((q) => q[0])), lo: Int32Array.from(c.map((q) => q[1])), rest: Float64Array.from(c.map((q) => q[2])), k };
     })(),
     lieOn: lieOnOf(),

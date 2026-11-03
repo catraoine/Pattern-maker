@@ -167,6 +167,8 @@ export function drapeQuality(d: Draped, sp: Pick<Space, 'bodyR' | 'tip'>, o: Qua
           const a = P(p.base + run[k - 1]);
           const b = P(p.base + run[k]);
           const c = P(p.base + run[k + 1]);
+          // (Two points sewn to one spot, as a sleeve cap's two underarm ends are: a doubled point, not a tooth.)
+          if (dist(a, b) < 0.05 || dist(b, c) < 0.05) continue;
           const mid = [(a[0] + c[0]) / 2, (a[1] + c[1]) / 2, (a[2] + c[2]) / 2];
           const off = dist(b, mid);
           // (Where the cut edge itself turns a corner, it may.)
