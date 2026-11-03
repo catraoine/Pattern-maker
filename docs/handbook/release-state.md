@@ -4,7 +4,7 @@ _Update this page whenever a release ships or a PR is queued._
 
 ## Live
 
-**Release 54** (Nov 2, 2026): Style screen sweep (#266): views are Front, Flat and All round (no Back
+**Release 54** (Nov 2, 2026, #267): Style screen sweep (#266): views are Front, Flat and All round (no Back
 view), quiet Undo, fabric shop as one list with a buy strip, "Your picks" drop-down, worded Enlarge,
 Length/Width hem handles, named step backs, one font width everywhere (no narrowed headings; welcome headline rises in), and the header back arrow gone from Measure, Style and
 Print (chapter names move between chapters). All round scored before it's shown, nightly sweep and
@@ -16,10 +16,15 @@ Live site: https://maisontrace.co (the cloud proxy blocks it; check
 https://whimsical-mooncake-2cf9a9.netlify.app, the same site). Strangers see the waitlist; testers
 get in with their tester link.
 
-## Queued for "ship" (as of Nov 2, 14:15 UTC)
+## Queued for "ship" (as of Nov 2, 21:15 UTC)
 
-Nothing green is queued. Open drafts: #249 (SS27 cuts, In testing) and #259 (SS27 design options,
-stacked on #249), both waiting on Cat's "apply".
+Queued: #264's later commit (no Measure / Choose / Style / Print bar under the How it works film),
+once its tests pass. Open draft: #259 (bias slip mini + side slit, open polo collar, ruffled trouser
+hem; In testing), now based on main, waiting on Cat's "apply".
+
+Note: #249's SS27 cuts (oversized, peplums, plunge, gathers, drop yoke, jacket collars) went live in
+Release 54 because #263 was stacked on them. Cat chose to keep them live as In testing (Nov 2); #249
+was closed as shipped. Before bundling, check every PR's base branch.
 
 ## Waiting on Cat's "apply" (not built)
 

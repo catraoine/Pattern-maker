@@ -5,6 +5,7 @@ something that changes how a department works. Design picks for single screens s
 
 ## November 2026
 
+- **Nov 2** Emails with a link are never sent by Claude: Claude's Gmail connector turns every link into a long google.com/url link, so Claude drafts, and Cat pastes the clean link (given in a copy box) before sending. Cat had raised this before (Oct 22, Oct 24). [Working with Cat](working-with-cat.md).
 - **Nov 2** One font width everywhere (standing rule): a font always keeps its one normal width and height; never narrowed or flattened to fit (Archivo headings were at 75%, one spot 62%). Text that does not fit wraps or is reworded. The welcome headline now rises in instead of being taken in from wide to narrow. PR #266.
 - **Nov 2** Style screen sweep: Back view dropped (Front, Flat, All round); Undone toast for screen readers only; fabric shop D One List + C Buy Strip; picks in a closed "Your picks" drop-down top right; Enlarge and Draw as words in the corner; hem handles labelled Length and Width; header ← removed on Measure, Style steps and Print (chapter names go between chapters), bottom back names its step ("‹ Shape"). PR #266.
 - **Nov 2** All round eye check (Fable, moved up from Nov 9): 34 hand-drawn designs graded by eye, 8 usable as shown. The fallback for a failing design is now the garment's Front drawing, not the old shape preview; side slits are drawn open; a dropped sleeve fails the score; seam-gap limit 1.6 cm. Findings doc linked from the business plan; fixes on the eye-check PR, merge on "ship".
@@ -19,6 +20,7 @@ something that changes how a department works. Design picks for single screens s
 - **Nov 1** Low-rise skirt (Cat: "Can we make the skirt low rise"; In testing): Rise At the waist / Low on the hip; low drafts from a line 6 cm below the waist (max a quarter of waist-to-hip), the hem kept at the same place on the body; not with a high waist. Also: no red with black in a look (Look 09 keeps the ivory pencil).
 - **Nov 1** Flared jacket tightened for the lilac suit (Cat's critique: needs a hard cinch, hem past the skirt's yoke): fitted + flared now has 4 cm less waist ease (about 4.5 cm, a basque cinch), and a long flared jacket runs 6 cm longer.
 - **Nov 1** No popped collars and no contrast collars (Cat: "having a different colour collar is definitely a no never", "I don't want a popped up collar"): both were built 31 Oct and taken out. The lilac suit keeps its peak lapel turned down in self fabric.
+- **Nov 1** Fit tester call rebuilt after the Oct 31 call got no applicants: testers sew a dress, skirt or top of their choice; the call shows two example SS27 looks (a dress, a skirt with a top) drawn in All round, only once Cat passes the renders; applications through a 2-minute Google Form; fashion schools emailed (KPU, VCC, Blanche Macdonald). [Testers](testers.md).
 
 ## October 2026
 
