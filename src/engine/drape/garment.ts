@@ -1203,12 +1203,16 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
     // The shoulder seam is sewn along the top of the shoulder, as cut: the cloth hangs from it there and can't slide out
     // along the shoulder or round to the front or back under a heavy skirt's weight.
     ...(!knob('__noStrapHold') ? { shoulderX: strapHold() } : {}),
-    // (A sleeveless top with nothing hung from it is left to settle its seam where the shoulder carries it: held
-    // forward, it dragged the neck point out and down and left a crew neck sitting low.)
+    // (A sleeveless top cut with straps, nothing hung from it, is left to settle its seam where the shoulder carries
+    // it: held forward, it dragged the neck point out and down and left a crew neck sitting low.)
     // (A sleeveless dress, or a sleeveless top with a peplum, cut with full shoulders hangs its skirt from them: the seam is held where
     // a top without one settles it, a little behind the side, and left to sit up on the neck's base. Held forward and
     // pinned down onto the shoulder's top, the back neck rode up the neck like a stand collar.)
-    ...(!knob('__noHoldZ') && (sleeved || extra.skirt?.length || o.pinFront?.length || extra.trousers || knob('__holdZ') !== undefined)
+    // (A sleeveless top cut with full shoulders is held the same way, since 2026-11-03: left to settle, its seam slid
+    // 6 to 7 cm behind the side, and the front armhole's top ran forward from there level over the arm's top as a
+    // square shelf. Held a little behind the side it sits on the shoulder as the dress's does; held nearer the side,
+    // the crew neck dropped at the front.)
+    ...(!knob('__noHoldZ') && (sleeved || extra.skirt?.length || o.pinFront?.length || extra.trousers || fullShoulders || knob('__holdZ') !== undefined)
       ? !sleeved && fullShoulders && !o.pinFront?.length && !extra.trousers && !knob('__oldHoldZ')
         ? { shoulderZ: knob('__holdZ') ?? -3, shoulderZFree: true }
         : // (A short top's sleeved shoulder seam is held only from the neck to 4 cm short of the shoulder's tip: held out
@@ -3337,11 +3341,14 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       const sh = (p.mesh.runs.shoulder ?? []).flat();
       const waist = (p.mesh.runs.waist ?? []).flat();
       if (!sh.length || !waist.length) continue;
-      const shY = Math.max(...sh.map((i) => pts[i].y));
+      // (By its height on the form, below the shoulder's tip, not by its place on the flat piece: the top of the front
+      // armhole, cut just below the tip but hanging level with it past the form's narrow shoulder, was drawn in to
+      // the body's narrow top and folded up over the shoulder as a wing, All round quality 2026-11-03.)
+      const shY = Math.max(...sh.map((i) => res[(p.base + i) * 3 + 1]));
       const wY = Math.min(...waist.map((i) => pts[i].y));
       pts.forEach((q, i) => {
         if (q.y >= wY) return;
-        const w = Math.min(1, Math.max(0, (q.y - shY) / 8));
+        const w = Math.min(1, Math.max(0, (res[(p.base + i) * 3 + 1] - shY) / 8));
         const s = w * w * (3 - 2 * w);
         if (!s) return;
         const I = (p.base + i) * 3;

@@ -83,6 +83,15 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
    across the chest). The armhole is a stayed seam: under a sleeve it is held at its cut depth (below the top 4 cm,
    which the shoulder seam holds), so a short top's armhole doesn't sag under a long sleeve. Two seam points sewn to
    one spot (the cap's underarm ends) are not a sawtooth.
+13. **Sleeveless shoulders sit on the form** (Nov 3, Fable): the pass that draws a sleeveless side in to the ribs
+   goes by each point's height on the form below the shoulder's tip, never by its place on the flat piece (the top
+   of the front armhole, cut just below the tip but hanging level with it past the form's narrow shoulder, was drawn
+   in to the body's narrow top and folded up over the shoulder as a wing, on every sleeveless dress and top). A
+   sleeveless top cut with full shoulders has its shoulder seam held a little behind the side, as a sleeveless
+   dress's is (left to settle, the seam slid 6 to 7 cm behind and the armhole's top ran forward level over the arm as
+   a square shelf; held nearer the side, a crew neck dropped at the front). Still wrong and next in line: the square
+   neck's strap corners stand up, the boat neck's shoulders stand out, and the sleeveless wrap top passes the score
+   with the form showing through its front.
 
 ## Style steps
 
