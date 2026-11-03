@@ -39,11 +39,16 @@
   border: 0;
   color: var(--ink);
   font-family: var(--display);
-  font-size: 30px;
+  /* A full heading size (Cat, Nov 3: "Your dress looks squished"): at 30px the bold capitals read short and flat
+     beside the 40px step name. 36px on a phone, the app's heading size, so "Your trousers" still sits on one line
+     beside its arrow (40px on a computer); a longer name wraps rather than shrinking. */
+  font-size: 36px;
   font-weight: 700;
-  line-height: 1.05;
+  line-height: 1;
   letter-spacing: 0;
   text-transform: uppercase;
+  text-align: left;
+  white-space: normal;
 }
 .style-layout .screen-head .drop.garment-drop .drop-button svg {
   width: 16px;
@@ -367,6 +372,6 @@
     border-left: 0;
   }
   .style-layout .screen-head .drop.garment-drop .drop-button {
-    font-size: 36px;
+    font-size: 40px;
   }
 }

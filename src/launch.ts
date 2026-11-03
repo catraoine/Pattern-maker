@@ -57,13 +57,13 @@ export const TESTING_TOOLS: Record<TestingTool, { name: string; where: string; p
   prints: { name: 'Prints beyond checks', where: "What's the print?, About your fabric", proof: 'three testers cut a one-way or border print from the lay plan' },
   any_colour: { name: 'Any colour', where: 'the colour dots on the Fabric tab', proof: 'shop colourways match the picked colour on five fabrics' },
   exact_colour: { name: 'Exact colour', where: 'under Any colour', proof: 'the first custom-dyed order delivered and matched' },
-  pro_files: { name: 'Pro files', where: 'More files on Print', proof: 'one factory or dressmaker cuts from the pack' },
-  size_run: { name: 'Size run', where: 'Print, For production', proof: 'a graded run sewn in two sizes' },
+  pro_files: { name: 'Pro files', where: 'More files on Summary', proof: 'one factory or dressmaker cuts from the pack' },
+  size_run: { name: 'Size run', where: 'Summary, For production', proof: 'a graded run sewn in two sizes' },
   check_file: { name: 'Check any pattern file', where: 'Account', proof: 'five outside files walked with no false alarm' },
   client_book: { name: 'Client book', where: 'Account', proof: 'one dressmaker keeps three clients in it' },
   collection: { name: 'The collection and the Archive', where: 'the Collection heading', proof: 'drop 01 published' },
   // Cat broke the freeze for it (2026-10-28), modelled on the free Pattern Projector app.
-  projector: { name: 'Projector mode', where: 'Print, Projector, and inside projector mode', proof: 'two sewists cut a garment with it on their own projectors' },
+  projector: { name: 'Projector mode', where: 'Summary, Projector, and inside projector mode', proof: 'two sewists cut a garment with it on their own projectors' },
   // Cat broke the freeze for these too (2026-10-28), so a photo can name them.
   // Cat broke the freeze for the big shirt (2026-10-31), so the Parma Shirt can be cut oversized and long.
   // Cat broke the freeze for it too (2026-10-31), for the SS27 peplum top's longer, cinched look.

@@ -47,6 +47,10 @@
   No Bodoni or italic serif (removed Oct 18). Mock-ups, option sheets and video titles use the same
   three. **One width, always** (Cat, Nov 2): never narrow, flatten or stretch a font to fit
   (no font-stretch other than 100%, no scaleX on text); wrap or reword instead.
+- Heading sizes (Cat, Nov 3): big Archivo headings are never small and bold, which reads squished.
+  The Style title ("Your dress") is 36px on a phone and 40px on a computer, beside the 40px step name.
+- The three steps in the header are **Measure, Style, Summary** (Cat, Nov 3; the last was Print).
+  The screen shows the pattern's summary and the print options; buttons that print still say Print.
 - Logo: R1 wordmark (MAISON / TRACÉ stacked, MT favicon); loading screen L1 slim-dart piece (Oct 21).
 - **Brand palette for marketing** (Oct 25): Champagne #c9b48a, Oxblood #5a1f24, Python Aqua (the
   app's one-way python print), Ink #1d2a3a, Chalk #e9e4da, labels on ivory #efe4cc, black ground.
