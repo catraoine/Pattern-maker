@@ -683,7 +683,8 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
         },
         thick,
         roll ? [roll] : [],
-        1.2,
+        // (A ruffle's strip meshed finer, so its flutes are drawn round, not as points.)
+        pc.meta.ruffle ? 0.5 : 1.2,
       );
       if (popped) poppedPanels.push(p);
       // A shirt's collar and stand (no lapel: no gorge) are interfaced: they keep the shape they were set in round the
@@ -2640,6 +2641,97 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
         mv.push([i, acc.map((v) => (v / sw) * f) as V3]);
       });
       for (const [i, v] of mv) for (let c = 0; c < 3; c++) res[(p.base + i) * 3 + c] += v[c];
+    }
+  // A fitted front bridges the hollows of the form above the bust: laid on it, the sim followed every ledge of the
+  // form's chest and the edge of one showed as a crease straight across. Its inner cloth (seams and the centre held)
+  // is eased toward its neighbours and kept off the body, which lifts it over hollows and leaves it on the bust.
+  const brIt = knob('__bridge') ?? 30;
+  if (!lapelled && !o.pinFront?.length && brIt > 0) {
+    const nb = new Map<number, number[]>();
+    for (let e = 0; e < edges.length; e += 2) {
+      const [u, v] = [edges[e], edges[e + 1]];
+      (nb.get(u) ?? nb.set(u, []).get(u)!).push(v);
+      (nb.get(v) ?? nb.set(v, []).get(v)!).push(u);
+    }
+    const held = new Set<number>();
+    for (const { i, j, k } of seams) held.add(i).add(j).add(k);
+    for (const c of centre) held.add(c);
+    for (const p of B.panels) {
+      if (p.role !== 'front' || p.hidden) continue;
+      const onRun = new Set(Object.values(p.mesh.runs).flatMap((rs) => (rs as number[][]).flat()).map((i) => p.base + i));
+      const ids = p.mesh.pts.map((_, i) => p.base + i).filter((g) => !held.has(g) && !onRun.has(g));
+      const inP = (g: number) => g >= p.base && g < p.base + p.mesh.pts.length;
+      for (let it = 0; it < brIt; it++)
+        for (const g of ids) {
+          const ns = (nb.get(g) ?? []).filter(inP);
+          if (ns.length < 3) continue;
+          const I = g * 3;
+          const was = [res[I], res[I + 1], res[I + 2]];
+          for (let d = 0; d < 3; d++) res[I + d] += (ns.reduce((a, n) => a + res[n * 3 + d], 0) / ns.length - res[I + d]) * 0.5;
+          const a = Math.atan2(res[I], res[I + 2]);
+          const rho = Math.hypot(res[I], res[I + 2]) || 1e-9;
+          const lo = sp.bodyR(a, res[I + 1]) + thick + 0.1;
+          // (Only ever lifted off the form, never drawn in through it.)
+          if (rho < lo) { res[I] *= lo / rho; res[I + 2] *= lo / rho; }
+          if (Math.hypot(res[I], res[I + 2]) < Math.hypot(was[0], was[2]) - 1e-6 && Math.hypot(was[0], was[2]) <= lo + 0.2) { res[I] = was[0]; res[I + 1] = was[1]; res[I + 2] = was[2]; }
+        }
+    }
+  }
+  // A neck ruffle is gathered two to one into the neckline: it stands in soft flutes all round rather than as a stiff
+  // ring (which left a flat band across the back and a gap where its ends met). Each point is laid up from the neck seam
+  // point at its place along the strip, rising and opening out as it goes, both layers of the folded strip together, and
+  // moved in and out across its face in even flutes: nothing at the seam, most at the fold, none where the ends meet.
+  const rfN = knob('__rufN') ?? 11;
+  if (rfN > 0)
+    for (const p of B.panels) {
+      if (p.hidden || !p.pc.meta.ruffle || p.role !== 'collar') continue;
+      const pts = p.mesh.pts;
+      const neckRun = [...new Set((p.mesh.runs.neck ?? []).flat())].sort((u, v) => pts[u].x - pts[v].x);
+      if (neckRun.length < 3) continue;
+      const yN = neckRun.reduce((t, k) => t + pts[k].y, 0) / neckRun.length;
+      const ys = pts.map((q) => q.y);
+      const yFar = Math.abs(Math.max(...ys) - yN) > Math.abs(Math.min(...ys) - yN) ? Math.max(...ys) : Math.min(...ys);
+      const W = Math.abs(yFar - yN) || 1;
+      const hw = W / 2;
+      const seam = neckRun.map((k) => ({ x: pts[k].x, X: [0, 1, 2].map((d) => res[(p.base + k) * 3 + d]) as V3 }));
+      const seamAt = (x: number): V3 => {
+        if (x <= seam[0].x) return seam[0].X;
+        for (let k = 1; k < seam.length; k++)
+          if (x <= seam[k].x) {
+            const t = (x - seam[k - 1].x) / (seam[k].x - seam[k - 1].x || 1);
+            return [0, 1, 2].map((d) => seam[k - 1].X[d] * (1 - t) + seam[k].X[d] * t) as V3;
+          }
+        return seam[seam.length - 1].X;
+      };
+      const amp = knob('__rufA') ?? 0.9;
+      const th0 = ((knob('__rufTh') ?? 35) * Math.PI) / 180;
+      const th1 = ((knob('__rufTh1') ?? 70) * Math.PI) / 180;
+      const gap = knob('__rufGap') ?? 0.3;
+      const L = Math.max(...pts.map((q) => Math.abs(q.x))) || 1;
+      for (let i = 0; i < pts.length; i++) {
+        const I = (p.base + i) * 3;
+        const v = Math.abs(pts[i].y - yN);
+        const outer = v > hw;
+        const h = outer ? W - v : v;
+        const P0 = seamAt(pts[i].x);
+        const rho0 = Math.hypot(P0[0], P0[2]) || 1;
+        const R: V3 = [P0[0] / rho0, 0, P0[2] / rho0];
+        // (It stands up from the seam and opens out as it rises: steeper at the seam, flaring at the fold.)
+        const u = h / hw;
+        // Integrate the curve up its height: angle from the vertical grows from th0 to th1.
+        const n = 8;
+        let ox = 0, oy = 0;
+        for (let k = 0; k < n; k++) {
+          const th = th0 + (th1 - th0) * ((k + 0.5) / n) * u;
+          ox += (Math.sin(th) * h) / n;
+          oy += (Math.cos(th) * h) / n;
+        }
+        const thE = th0 + (th1 - th0) * u;
+        const Nl: V3 = [R[0] * Math.cos(thE), Math.sin(thE), R[2] * Math.cos(thE)];
+        const a = Math.PI * (pts[i].x / L);
+        const fl = amp * Math.pow(u, 1.5) * Math.sin(rfN * a) + (outer ? gap : 0);
+        for (let d = 0; d < 3; d++) res[I + d] = P0[d] + R[d] * ox + (d === 1 ? -oy : 0) + Nl[d] * fl;
+      }
     }
   const fsIt = knob('__fsIt') ?? (lapelled ? 30 : 0);
   if (o.pinFront?.length && fsIt > 0) {
