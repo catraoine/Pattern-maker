@@ -102,6 +102,14 @@ export function runDrape(job: DrapeJob): DrapedLite {
     for (const pc of sleevePieces.slice(sleevePanels)) quality.problems.push({ check: 'missing', part: pc.name, worst: sleevePieces.length - sleevePanels });
     quality.ok = false;
   }
+  // A ruffle or a tie at the wrist the drawing leaves out: the sleeve reads plain, and the design's detail is lost (All
+  // round quality, 2026-11-03: the long sleeve's check passing showed these drawn without their ruffle or tie).
+  const drawn = new Set(d.panels.filter((p) => !p.hidden).map((p) => p.pc.name));
+  const sleeveSet = job.kind === 'bodice' || job.kind === 'dress' ? (job.sleeve?.pieces ?? []) : [];
+  for (const pc of sleeveSet.filter((pc) => /ruffle|tie cuff/i.test(pc.name) && !drawn.has(pc.name))) {
+    quality.problems.push({ check: 'missing', part: pc.name, worst: 1 });
+    quality.ok = false;
+  }
   return {
     panels: d.panels.map((p) => ({
       role: p.role,

@@ -115,10 +115,14 @@ export function drapeQuality(d: Draped, sp: Pick<Space, 'bodyR' | 'tip'>, o: Qua
       const l = Math.hypot(n[0], n[1], n[2]) || 1;
       return n.map((q) => q / l);
     };
+    // (The cloth just under the arm of a sleeved top is hidden by the sleeve and pulled by it as the arm hangs: a long
+    // sleeve stretches it there while the drawing reads right, All round quality 2026-11-03. Fins skip it too, below.)
+    const underArm = sleeved && p.role !== 'sleeve' ? (p.mesh.runs.armhole ?? []).flat().map((i) => pts[i]) : [];
+    const hidden = (i: number) => underArm.some((q) => Math.hypot(q.x - pts[i].x, q.y - pts[i].y) < 5);
     for (const t of p.mesh.tris) {
       for (const [u, v] of [[t[0], t[1]], [t[1], t[2]], [t[2], t[0]]]) {
         const cut = Math.hypot(pts[u].x - pts[v].x, pts[u].y - pts[v].y);
-        if (cut > 0.05) {
+        if (cut > 0.05 && !(hidden(u) && hidden(v))) {
           const r = dist(P(p.base + u), P(p.base + v)) / cut;
           edges++;
           if (r > L.stretch) long++;
@@ -163,6 +167,8 @@ export function drapeQuality(d: Draped, sp: Pick<Space, 'bodyR' | 'tip'>, o: Qua
           const a = P(p.base + run[k - 1]);
           const b = P(p.base + run[k]);
           const c = P(p.base + run[k + 1]);
+          // (Two points sewn to one spot, as a sleeve cap's two underarm ends are: a doubled point, not a tooth.)
+          if (dist(a, b) < 0.05 || dist(b, c) < 0.05) continue;
           const mid = [(a[0] + c[0]) / 2, (a[1] + c[1]) / 2, (a[2] + c[2]) / 2];
           const off = dist(b, mid);
           // (Where the cut edge itself turns a corner, it may.)

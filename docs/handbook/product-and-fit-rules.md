@@ -72,6 +72,17 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
    and logs it in project files `all-round-quality/sweep-history.md`. The weekly Fable eye check (Wednesdays)
    grades 12 random designs plus new options by eye; a false pass (an ugly drawing the score let through) is the
    worst finding and is fixed first.
+11. **Under the arm** (Nov 3): on a sleeved top the stretch check skips the cloth within 5 cm of the armhole, which the
+   sleeve hides and pulls as the arm hangs (long sleeves on tops read right by eye but failed). A ruffle or tie at the
+   wrist that the drawing leaves out fails the score ("missing") until it is drawn.
+12. **The sleeve cap is measured round the arm** (Nov 3, Fable): the cap edge's length, which sets how much cloth is
+   eased in and where each point is sewn into the armhole, is measured by angle round the arm and height, never across
+   the flat piece (that counted the step between the cap's two underarm ends as the sleeve's whole width, read the
+   cap as two or three times the armhole, drew a third of the sleeve top in as ease and sewed half the cap into the
+   top of the back armhole: the dress's underarm rode 8 to 10 cm up, squaring the shoulders and folding a ledge
+   across the chest). The armhole is a stayed seam: under a sleeve it is held at its cut depth (below the top 4 cm,
+   which the shoulder seam holds), so a short top's armhole doesn't sag under a long sleeve. Two seam points sewn to
+   one spot (the cap's underarm ends) are not a sawtooth.
 
 ## Style steps
 
