@@ -15,6 +15,7 @@ handoff, and this table is updated.
 | Media: Demo videos | How it works films, Watch demo clips, re-records after visual changes | Film rules in project memory |
 | Media: Measuring video | "Mastering measuring" film (option C picked; films at the Nov 8 shoot) | Mastering measuring doc |
 | Media: All Round intro | Film opening | — |
+| All round quality | Making every design look right in All round: nightly sweep, weekly Fable eye check, the Front-drawing safety net, the option check on every PR | `src/drapeSweep.ts`, `src/drapeOptions.json`, project files `all-round-quality/` |
 | Design: The Collection | Seasonal collections (SS27), drops path, open calls | Collection calendar, drop path doc |
 | Design: Collection Preview | Pieces Cat sews from the coming collection before launch | Capsule doc, preview sheet |
 | Organic Social / First solo session | Social strategy, calendar, shoots | Social strategy, social calendar deck |
@@ -30,4 +31,4 @@ add or tick items there.
 
 Scheduled routines: Mon/Wed/Fri email check (routes each email to the owning thread), Wed/Sun fit
 report reader, Sunday "waiting on Cat" digest, Monday social + community actions, weekly SR&ED log,
-Jan 1 + Aug 1 trend check for the next collection, Jan 18 In testing review, tax reminders.
+Jan 1 + Aug 1 trend check for the next collection, nightly All round sweep read (3:37am), weekly Fable All round eye check (Wed 11:13am), Jan 18 In testing review, tax reminders.

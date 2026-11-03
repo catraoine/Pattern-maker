@@ -128,6 +128,9 @@ export function checked(rows: Row[]): string {
   return `${list} checked${match ? `, ${match.name.toLowerCase()} matched` : ''}`;
 }
 
+/** How long a design may take to sew before its Front drawing stands in (a slow phone sews a dress in a few seconds). */
+const SEW_LIMIT_MS = 30_000;
+
 export function AllRound({ round, m, striped = false, fabric, label, draw, drape, fallback }: Props) {
   const ref = useRef<HTMLCanvasElement>(null);
   const drawRef = useRef(draw);
@@ -194,25 +197,42 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
       return [x / s, y, z / s];
     };
   }, [spaceOf]);
+  // A design whose sewing crashed, or is still sewing after SEW_LIMIT_MS, is treated as one that failed its score: the
+  // Front drawing stands in rather than "Sewing your pattern…" for ever (All round quality, Cat 2026-11-03).
+  const [unsewn, setUnsewn] = useState<string | undefined>();
   useEffect(() => {
     if (!job) return;
     let live = true;
     const hit = cachedDrape(jobKey);
+    let late: ReturnType<typeof setTimeout> | undefined;
     if (hit) setDraped({ key: jobKey, view: { d: hit, toForm: toFormOf } });
-    else
+    else {
+      late = setTimeout(() => live && setUnsewn(jobKey), SEW_LIMIT_MS);
       requestDrape(job, jobKey).then(
-        (d) => live && setDraped({ key: jobKey, view: { d, toForm: toFormOf } }),
-        () => live && setDraped(undefined),
+        (d) => {
+          if (!live) return;
+          clearTimeout(late);
+          setDraped({ key: jobKey, view: { d, toForm: toFormOf } });
+        },
+        () => {
+          if (!live) return;
+          clearTimeout(late);
+          setDraped(undefined);
+          setUnsewn(jobKey);
+        },
       );
+    }
     return () => {
       live = false;
+      clearTimeout(late);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the job's contents
   }, [jobKey, toFormOf]);
-  const sewnNow = job ? (draped?.key === jobKey ? draped.view : 'pending') : undefined;
+  const gaveUp = !!job && unsewn === jobKey && draped?.key !== jobKey;
+  const sewnNow = job ? (draped?.key === jobKey ? draped.view : gaveUp ? undefined : 'pending') : undefined;
   // A drawing that failed its quality check (see engine/drape/quality.ts) isn't shown turning in cloth: the shape
   // preview stands in, with a line saying the cloth view for this design is still in testing (Cat, 2026-11-02).
-  const inTesting = !!sewnNow && sewnNow !== 'pending' && sewnNow.d.quality?.ok === false && !sewnAnyway();
+  const inTesting = gaveUp || (!!sewnNow && sewnNow !== 'pending' && sewnNow.d.quality?.ok === false && !sewnAnyway());
   const drapedNow = inTesting ? undefined : sewnNow;
   // With a Front drawing to hand, it stands in for a failed sewn drawing (the canvas stays, hidden, so the view's state
   // and the draw tool's turning survive); the draw tool keeps the turning form to draw on.

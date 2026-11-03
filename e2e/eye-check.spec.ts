@@ -1,4 +1,4 @@
-import { writeFileSync, mkdirSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { expect, startWithExample, test } from './fixtures';
 
 // Not a test that runs in CI: the All round eye check (Sewist Fit Testing, 2026-11-02). About thirty unusual designs,
@@ -8,7 +8,11 @@ import { expect, startWithExample, test } from './fixtures';
 const OUT = process.env.EYE_CHECK;
 test.skip(!OUT, 'Set EYE_CHECK to a folder to take the stills');
 
-import { DESIGNS } from './eye-designs';
+import { DESIGNS as EYE_DESIGNS, Design } from './eye-designs';
+
+// EYE_FROM=<file> looks at a sample written by drapeSweep.test.ts (DRAPE_EYE) in place of the fixed designs: the
+// weekly eye check's random designs and new options (All round quality, Cat 2026-11-03).
+const DESIGNS: Design[] = process.env.EYE_FROM ? JSON.parse(readFileSync(process.env.EYE_FROM, 'utf8')) : EYE_DESIGNS;
 
 const WORD: Record<string, string> = { skirt: 'skirt', bodice: 'bodice', dress: 'dress', jacket: 'jacket', coat: 'coat' };
 
