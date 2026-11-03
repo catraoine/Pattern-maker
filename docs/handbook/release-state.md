@@ -4,6 +4,13 @@ _Update this page whenever a release ships or a PR is queued._
 
 ## Live
 
+**Release 58** (Nov 3, 2026, #275): the privacy policy and terms give "Vancouver, British Columbia, Canada" and
+the email as the contact address (no street address until incorporation); the terms' age line matches the
+policy at 16; effective date Nov 3. Handbook: tester codes never match the examples in the public repo (the
+live codes were rotated Nov 3), address and lawyer decisions.
+Release 57 (Nov 3, #273): every All round option sewn on its own in CI, Front drawing stands in for a
+crashed or slow All round, nightly sweep runs options, eye-check sample tool.
+
 **Release 56** (Nov 3, 2026, #272): Print opens on a calm "Your summary" heading, one guiding line and the
 garment's name in reading type (the tab is still called Print). The Style title ("Your dress") is 36px on a
 phone, 40px on a computer, so it no longer reads squished. Privacy policy wording from the security check (#271).
@@ -21,7 +28,7 @@ Live site: https://maisontrace.co (the cloud proxy blocks it; check
 https://whimsical-mooncake-2cf9a9.netlify.app, the same site). Strangers see the waitlist; testers
 get in with their tester link.
 
-## Queued for "ship" (as of Nov 3, 14:45 UTC)
+## Queued for "ship" (as of Nov 3, 18:30 UTC)
 
 Nothing green is queued. Open draft: #259 (bias slip mini + side slit, open polo collar, ruffled trouser
 hem; In testing), based on main, waiting on Cat's "apply".
