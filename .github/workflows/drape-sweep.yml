@@ -1,8 +1,10 @@
 name: All round sweep
 
-# Every night: 300 random designs sewn on the form and their drawings scored (src/drapeSweep.ts). The report lists
-# the designs that aren't usable, grouped by the check they fail and the choices they share, so each fix covers every
-# design with that part. It doesn't block anything; the locked designs in drapeSweep.test.ts do that on every PR.
+# Every night: 300 random designs sewn on the form and their drawings scored (src/drapeSweep.ts), then every option on
+# its own held to src/drapeOptions.json. The report lists the designs that aren't usable, grouped by the check they
+# fail and the choices they share, so each fix covers every design with that part. It doesn't block anything; the
+# locked designs and the option check in drapeSweep.test.ts do that on every PR. The All round quality department's
+# nightly read takes the summary from the "Summary" step's log and tells Cat only when something got worse.
 on:
   schedule:
     - cron: '0 9 * * *'
@@ -28,11 +30,25 @@ jobs:
         env:
           DRAPE_SWEEP: ${{ github.event.inputs.count || '300' }}
           DRAPE_REPORT: drape-sweep.md
+      - run: npx vitest run src/drapeSweep.test.ts -t "every option on its own"
+        if: ${{ !cancelled() }}
+        env:
+          DRAPE_OPTIONS: report
+          DRAPE_OPTIONS_REPORT: drape-options.md
+          DRAPE_OPTIONS_JSON: drape-options.json
       - name: Report
         if: ${{ !cancelled() }}
-        run: cat drape-sweep.md >> "$GITHUB_STEP_SUMMARY"
+        run: cat drape-sweep.md drape-options.md >> "$GITHUB_STEP_SUMMARY" || true
+      - name: Summary
+        if: ${{ !cancelled() }}
+        run: |
+          head -12 drape-sweep.md || true
+          cat drape-options.json || true
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
           name: drape-sweep
-          path: drape-sweep.md
+          path: |
+            drape-sweep.md
+            drape-options.md
+            drape-options.json

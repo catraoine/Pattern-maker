@@ -63,6 +63,15 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
    side slit is drawn open on the wearer's left, as the pattern cuts it. A sleeve the pattern has but the drawing
    dropped fails the score ("missing"). Developers: `?sewn=all` shows the cloth even when the score fails, `?sewn=outer`
    sews jackets and coats. The eye-check designs live in `e2e/eye-designs.ts` (run with `EYE_CHECK=<dir>`).
+10. **All round quality checks** (Nov 3): the Front drawing also stands in when a design's sewing crashes or takes
+   over 30 seconds (never "Sewing your pattern…" for ever). Every option of every sewn garment is sewn on its own
+   (`optionDesigns` in `src/drapeSweep.ts`, about 290) and held to `src/drapeOptions.json`: on every pull request
+   the check fails if an option that passed now fails, or if an option isn't in the file yet. A new option is
+   looked at first (the eye check, `DRAPE_EYE` + `EYE_FROM`), then added with `DRAPE_OPTIONS=write`. Nightly, the
+   sweep workflow runs 300 random designs and the options and prints a summary; the department reads it at 3:37am
+   and logs it in project files `all-round-quality/sweep-history.md`. The weekly Fable eye check (Wednesdays)
+   grades 12 random designs plus new options by eye; a false pass (an ugly drawing the score let through) is the
+   worst finding and is fixed first.
 
 ## Style steps
 

@@ -36,6 +36,32 @@ jobs:
       - run: npm ci
       - run: npm run test:full
 
+  options:
+    name: All round, every option on its own (${{ matrix.shard }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ['1/3', '2/3', '3/3']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Fails when an option whose All round passed now fails, or when a new option isn't in src/drapeOptions.json
+      # yet (look at it first: the weekly eye check, or EYE_CHECK on the new option). See drapeSweep.test.ts.
+      - run: npx vitest run src/drapeSweep.test.ts -t "every option on its own"
+        env:
+          DRAPE_OPTIONS: check
+          DRAPE_SHARD: ${{ matrix.shard }}
+          DRAPE_OPTIONS_REPORT: drape-options.md
+      - name: Report
+        if: ${{ !cancelled() }}
+        run: cat drape-options.md >> "$GITHUB_STEP_SUMMARY" || true
+
   e2e:
     name: End-to-end (Playwright, phone and desktop)
     runs-on: ubuntu-24.04

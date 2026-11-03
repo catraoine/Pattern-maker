@@ -6,7 +6,7 @@ import { EXAMPLE_BODY, MeasurementValues } from './measurements';
 import { GARMENT_DRAFTING, DraftInputs } from './garmentDrafts';
 import { INITIAL, Saved } from './savedWork';
 import { BODICE_GROUPS, BodiceChoices, DEFAULT_BODICE, DEFAULT_COAT_CHOICES, DEFAULT_JACKET_CHOICES, DRESS_FIT_GROUP, DressChoices, OuterChoices, WAIST_SEAM_GROUP, outerAllowed, outerGroups, validDetails } from './garments';
-import { GROUPS, RISE_GROUP } from './skirtChoices';
+import { DETAIL_GROUPS, FRONT_GROUP, GATHERS_GROUP, GROUPS, RISE_GROUP, withWaist } from './skirtChoices';
 import { roundBodice, roundDress, roundOuter, roundSkirt } from './engine/allRound';
 import { DrapeJob, runDrape } from './engine/drape/run';
 import type { Quality } from './engine/drape/quality';
@@ -72,6 +72,78 @@ export function randomDesign(r: () => number, garment: SweepGarment = pick(r, ['
     return { garment, saved: { dress }, fibre, crisp };
   }
   return { garment, saved: garment === 'coat' ? { coat: randomOuter(r, 'coat') } : { jacket: randomOuter(r, 'jacket') }, fibre, crisp };
+}
+
+/** One option on its own: its garment, group and value ("skirt silhouette=circle"), and the design that carries it. */
+interface OptionDesign {
+  key: string;
+  design: SweepDesign;
+}
+
+const SLEEVE_GROUPS = ['sleeveShape', 'sleeveCut', 'sleeveCuff'];
+const PEPLUM_GROUPS = ['peplumHem', 'peplumSize'];
+
+/** The skirt's fullness, waist and front choices, each as the change it makes to a plain skirt. */
+function skirtExtras(): [string, Partial<Saved['choices']>][] {
+  const c = INITIAL.choices;
+  return [
+    ...(['knife', 'box', 'inverted'] as const).map((p) => [`pleats=${p}`, { pleats: p }] as [string, Partial<Saved['choices']>]),
+    ...([4, 6, 8] as const).map((n) => [`godets=${n}`, { godets: n }] as [string, Partial<Saved['choices']>]),
+    ...(['hem_flounce', 'tiers', 'ruffle', 'balloon'] as const).map((f) => [`flounce=${f}`, { flounce: f }] as [string, Partial<Saved['choices']>]),
+    ['flounce=tiers dropYoke', { flounce: 'tiers', dropYoke: true }],
+    ['ruched', { silhouette: 'straight', ruched: true }],
+    ...GATHERS_GROUP.options.map(([g]) => [`gathers=${g}`, { silhouette: 'gathered', gathers: g }] as [string, Partial<Saved['choices']>]),
+    ...DETAIL_GROUPS[0].options.filter(([w]) => w !== 'band').map(([w]) => [`waist=${w}`, withWaist(c, w)] as [string, Partial<Saved['choices']>]),
+    ['pockets=inseam', { pockets: 'inseam' }],
+    ...FRONT_GROUP.options.filter(([f]) => f !== 'plain').map(([f]) => [`front=${f}`, f === 'yoke' ? { yoke: true } : { buttons: true }] as [string, Partial<Saved['choices']>]),
+    ...(['back', 'side', 'front'] as const).map((sl) => [`slit=${sl}`, { silhouette: 'pencil', slit: sl }] as [string, Partial<Saved['choices']>]),
+  ];
+}
+
+/** Every option of every garment All round sews, each on its own on the garment's plain design (a sleeve option on a
+ *  long sleeve, a peplum's hem on a peplum), so a fault is pinned on the option that brings it, and an option added to
+ *  the style screen shows up here the day it's added (All round quality, Cat 2026-11-03). Options the style screen
+ *  wouldn't allow alone are left out. */
+export function optionDesigns(): OptionDesign[] {
+  const out: OptionDesign[] = [];
+  const fibre: Fibre = 'cotton';
+  for (const g of [...GROUPS, RISE_GROUP] as readonly { id: string; options: readonly (readonly [string, string])[] }[])
+    for (const [o] of g.options) out.push({ key: `skirt ${g.id}=${o}`, design: { garment: 'skirt', saved: { choices: { ...INITIAL.choices, [g.id]: o } as Saved['choices'] }, fibre } });
+  for (const [k, ch] of skirtExtras()) out.push({ key: `skirt ${k}`, design: { garment: 'skirt', saved: { choices: { ...INITIAL.choices, ...ch } as Saved['choices'] }, fibre } });
+  for (const garment of ['bodice', 'dress'] as const)
+    for (const g of BODICE_GROUPS as readonly { id: string; options: readonly (readonly [string, string])[] }[]) {
+      if (garment === 'dress' && g.id === 'length') continue;
+      for (const [o] of g.options) {
+        const base: Record<string, unknown> = { ...DEFAULT_BODICE, ...(SLEEVE_GROUPS.includes(g.id) ? { sleeve: 'long' } : {}), ...(PEPLUM_GROUPS.includes(g.id) ? { peplum: 'flared' } : {}) };
+        const c = validDetails({ ...base, [g.id]: o } as unknown as BodiceChoices, garment);
+        if ((c as unknown as Record<string, unknown>)[g.id] !== o) continue;
+        const key = `${garment} ${g.id}=${o}`;
+        if (garment === 'bodice') out.push({ key, design: { garment, saved: { bodice: c }, fibre } });
+        else out.push({ key, design: { garment, saved: { dress: plainDress({ bodice: { ...c, length: 'waist' } }) }, fibre } });
+      }
+    }
+  for (const [g, opts] of [
+    ['fit', DRESS_FIT_GROUP.options],
+    ['waistSeam', WAIST_SEAM_GROUP.options],
+  ] as const)
+    for (const [o] of opts as readonly (readonly [string, string])[]) out.push({ key: `dress ${g}=${o}`, design: { garment: 'dress', saved: { dress: plainDress({ [g]: o }) }, fibre } });
+  for (const g of GROUPS as readonly { id: string; options: readonly (readonly [string, string])[] }[])
+    for (const [o] of g.options) out.push({ key: `dress skirt.${g.id}=${o}`, design: { garment: 'dress', saved: { dress: plainDress({ skirt: { ...INITIAL.choices, [g.id]: o } as Saved['choices'] }) }, fibre } });
+  for (const kind of ['jacket', 'coat'] as const) {
+    const base = kind === 'coat' ? DEFAULT_COAT_CHOICES : DEFAULT_JACKET_CHOICES;
+    for (const g of outerGroups(kind))
+      for (const [o] of g.options) {
+        if (!outerAllowed(base, g.id, o)) continue;
+        out.push({ key: `${kind} ${g.id}=${o}`, design: { garment: kind, saved: { [kind]: { ...base, [g.id]: o } }, fibre: 'wool' } });
+      }
+  }
+  // (Each key once: a default turns up in more than one place.)
+  return out.filter((x, i) => out.findIndex((y) => y.key === x.key) === i);
+}
+
+/** A plain sleeveless A-line dress at the natural waist, with the given changes. */
+function plainDress(over: Partial<DressChoices>): DressChoices {
+  return { garment: 'dress', fit: 'regular', bodice: { ...DEFAULT_BODICE, length: 'waist' }, skirt: { ...INITIAL.choices }, waistSeam: 'natural', ...over } as DressChoices;
 }
 
 /** The design's choices in words, for the report. */
@@ -149,3 +221,47 @@ export function sweepReport(results: SweepResult[], list = 8): string {
   }
   return lines.join('\n');
 }
+
+/** How each option fared against the last look at it (drapeOptions.json): passing ones that now fail, options not yet
+ *  in the file, and failing ones that now pass. */
+interface OptionCheck {
+  now: Record<string, 'passes' | 'fails'>;
+  worse: string[];
+  unseen: string[];
+  better: string[];
+  problems: Record<string, string>;
+}
+
+export function checkOptions(results: { key: string; r: SweepResult }[], known: Record<string, string>): OptionCheck {
+  const now: OptionCheck['now'] = {};
+  const problems: Record<string, string> = {};
+  for (const { key, r } of results) {
+    now[key] = r.quality?.ok ? 'passes' : 'fails';
+    if (!r.quality?.ok) problems[key] = r.error ?? r.quality!.problems.map((p) => `${p.check} (${p.part} ${p.worst})`).join(', ');
+  }
+  const keys = Object.keys(now);
+  return {
+    now,
+    problems,
+    worse: keys.filter((k) => known[k] === 'passes' && now[k] === 'fails'),
+    unseen: keys.filter((k) => !(k in known)),
+    better: keys.filter((k) => known[k] === 'fails' && now[k] === 'passes'),
+  };
+}
+
+/** The options report, in words. */
+export function optionsReport(c: OptionCheck): string {
+  const keys = Object.keys(c.now);
+  const passing = keys.filter((k) => c.now[k] === 'passes').length;
+  const lines = ['# Every option on its own', '', `${passing} of ${keys.length} options pass on their own.`, ''];
+  const list = (title: string, ks: string[], why = true) => {
+    if (!ks.length) return;
+    lines.push(`## ${title}: ${ks.length}`, '', ...ks.map((k) => `- ${k}${why && c.problems[k] ? `: ${c.problems[k]}` : ''}`), '');
+  };
+  list('Passed before, fail now', c.worse);
+  list('New, not yet looked at', c.unseen);
+  list('Failed before, pass now', c.better, false);
+  list('Still failing (they show their Front drawing)', keys.filter((k) => c.now[k] === 'fails' && !c.worse.includes(k) && !c.unseen.includes(k)));
+  return lines.join('\n');
+}
+

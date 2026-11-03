@@ -1,6 +1,6 @@
-import { writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { SweepDesign, randomDesign, sewDesign, sweepReport } from './drapeSweep';
+import { SweepDesign, checkOptions, optionDesigns, optionsReport, randomDesign, sewDesign, sweepReport } from './drapeSweep';
 import { rng } from './engine/randomBodies';
 import { drapeQuality } from './engine/drape/quality';
 import type { Draped } from './engine/drape/garment';
@@ -85,3 +85,53 @@ describe.skipIf(!N)('All round sweep of random designs', () => {
     expect(results.length).toBe(N);
   }, 6 * 60 * 60_000);
 });
+
+// Every option on its own (optionDesigns), held to drapeOptions.json: what each option's All round did when it was last
+// looked at. DRAPE_OPTIONS=check (on every pull request) fails when an option that passed now fails, or when an option
+// isn't in the file yet: a new option is looked at (the eye check) before it ships, and added to the file as it fares.
+// DRAPE_OPTIONS=report (nightly) only reports; DRAPE_OPTIONS=write rewrites the file with what the options do now.
+const OPTIONS = process.env.DRAPE_OPTIONS;
+describe.skipIf(!OPTIONS)('All round: every option on its own', () => {
+  it('sews each option and holds it to drapeOptions.json', () => {
+    const file = new URL('./drapeOptions.json', import.meta.url);
+    const known = JSON.parse(readFileSync(file, 'utf8')) as Record<string, string>;
+    // DRAPE_SHARD="2/3" sews every third option from the second, so a pull request's check runs in three parts at once.
+    const [part, parts] = (process.env.DRAPE_SHARD ?? '1/1').split('/').map(Number);
+    const results = optionDesigns()
+      .filter((_, i) => i % parts === part - 1)
+      .map(({ key, design }) => ({ key, r: sewDesign(design) }));
+    const c = checkOptions(results, known);
+    writeFileSync(process.env.DRAPE_OPTIONS_REPORT ?? 'drape-options.md', optionsReport(c));
+    writeFileSync(process.env.DRAPE_OPTIONS_JSON ?? 'drape-options.json', JSON.stringify({ passing: Object.values(c.now).filter((v) => v === 'passes').length, total: results.length, worse: c.worse, unseen: c.unseen, better: c.better }, null, 1));
+    if (OPTIONS === 'write' && parts === 1) writeFileSync(file, JSON.stringify(Object.fromEntries(Object.entries(c.now).sort(([a], [b]) => a.localeCompare(b))), null, 1) + '\n');
+    if (OPTIONS === 'check') {
+      expect(c.worse, 'options whose All round passed before and fails now').toEqual([]);
+      expect(c.unseen, 'new options: look at their All round, then add them to src/drapeOptions.json (DRAPE_OPTIONS=write)').toEqual([]);
+    }
+  }, 2 * 60 * 60_000);
+});
+
+// The weekly eye check's sample (see e2e/eye-check.spec.ts, EYE_FROM): DRAPE_EYE=<file> writes DRAPE_EYE_RANDOM random
+// designs (seeded by DRAPE_SEED, by default the date) and the options named in DRAPE_EYE_OPTIONS ("skirt pleats=box,
+// bodice collar=cape", or "unseen" for every option not yet in drapeOptions.json), as the eye check's designs.
+const EYE = process.env.DRAPE_EYE;
+describe.skipIf(!EYE)('All round: the eye check sample', () => {
+  it('writes the sample', () => {
+    const seed = Number(process.env.DRAPE_SEED ?? new Date().toISOString().slice(0, 10).replace(/-/g, ''));
+    const r = rng(seed);
+    const colours = ['#2F3A4A', '#8A9A5B', '#C9962E', '#A3236F', '#F2E8CF', '#1E1E22', '#9CC3E6', '#6B4F3A'];
+    const eye = (code: string, name: string, d: SweepDesign, i: number) => ({ code, name, garment: d.garment, saved: d.saved, fabric: { colour: colours[i % colours.length], fibre: d.fibre, ...(d.crisp ? { drape: 'crisp' } : {}) } });
+    const random = Array.from({ length: Number(process.env.DRAPE_EYE_RANDOM ?? 12) }, (_, i) => {
+      const d = randomDesign(r);
+      return eye(`R${i + 1}`, sewDesign(d).label, d, i);
+    });
+    const ask = (process.env.DRAPE_EYE_OPTIONS ?? '').split(',').map((k) => k.trim()).filter(Boolean);
+    const known = JSON.parse(readFileSync(new URL('./drapeOptions.json', import.meta.url), 'utf8')) as Record<string, string>;
+    const options = optionDesigns()
+      .filter((o) => (ask.includes('unseen') && !(o.key in known)) || ask.includes(o.key))
+      .map((o, i) => eye(`O${i + 1}`, o.key, o.design, i));
+    writeFileSync(EYE!, JSON.stringify([...options, ...random], null, 1));
+    expect(random.length + options.length).toBeGreaterThan(0);
+  });
+});
+
