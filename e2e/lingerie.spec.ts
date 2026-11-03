@@ -54,6 +54,6 @@ test('measures the underbust, drafts a bralette and a swimsuit, and prints', asy
   // The summary lists each elastic, cut shorter than its edge.
   await expect(main(page).getByText(/Each leg: \d+(\.\d)? cm, 1 cm wide/)).toBeVisible();
   await print.click();
-  await expect(main(page).getByRole('heading', { level: 1, name: 'Swimsuit' })).toBeVisible();
+  await expect(main(page).getByRole('heading', { level: 2, name: 'Swimsuit' })).toBeVisible();
   await expect(main(page).getByRole('button', { name: /^Download PDF/ })).toBeVisible();
 });

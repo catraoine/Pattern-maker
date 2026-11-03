@@ -22,6 +22,7 @@ handoff, and this table is updated.
 | Customer & Community | Community plan, AI stance, customer research | Community plan, Meet the sewist, AI stance |
 | Affiliates | Affiliate programmes and partner outreach | — |
 | Finance & Legal | Tax, legal, trademark, cost tally, grants | Tax playbook, setup doc, cost tally |
+| Engineering: Security and privacy | Security and privacy checks of accounts, server functions, API caps, the public repo and the policy | Security and privacy check doc, developer review brief |
 | Monday Fable pick | Weekly Fable job pick | — |
 
 **Cat's hub** is the business plan (Claude Doc). Every new doc, plan or agreement any department
