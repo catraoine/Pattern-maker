@@ -8,7 +8,7 @@ export type View = Step | 'plans' | 'welcome' | 'steps' | 'account' | 'photo' | 
 export const STEPS: { id: Step; label: string }[] = [
   { id: 'measure', label: 'Measure' },
   { id: 'style', label: 'Style' },
-  { id: 'export', label: 'Summary' },
+  { id: 'export', label: 'Print' },
 ];
 
 /** Which of the three steps each screen belongs to, lit in the header. Account and the legal pages belong to none. */
@@ -17,8 +17,8 @@ export const STEP_OF: Partial<Record<View, Step>> = { steps: 'measure', measure:
 /** Side screens name where they hang off, under the header, so you can see where you are. */
 export const SIDE: Partial<Record<View, [string, string]>> = {
   photo: ['Style', 'From a photo'],
-  fitting: ['Summary', 'Fitting'],
-  scale: ['Summary', 'True size'],
+  fitting: ['Print', 'Fitting'],
+  scale: ['Print', 'True size'],
   client: ['Account', 'Client book'],
   arrive: ['Account', 'Client book'],
   check: ['Account', 'Check a file'],
@@ -32,7 +32,7 @@ export const SIDE: Partial<Record<View, [string, string]>> = {
 export const NEEDS_MEASUREMENTS: View[] = ['style', 'export', 'fitting', 'scale'];
 
 /**
- * The fixed ladder back climbs (Cat's B Fixed Ladder, 2026-10-24): Summary (was Print) hangs off Style, Style off your
+ * The fixed ladder back climbs (Cat's B Fixed Ladder, 2026-10-24): Print hangs off Style, Style off your
  * measurements, the measurements off the welcome, however the sewist got there.
  */
 const RUNGS: Partial<Record<View, View[]>> = { welcome: ['welcome'], measure: ['welcome', 'measure'], style: ['welcome', 'measure', 'style'], export: ['welcome', 'measure', 'style', 'export'] };

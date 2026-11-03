@@ -350,8 +350,8 @@ export async function openFold(page: Page, title: string | RegExp) {
   return fold;
 }
 
-/** A step in the top bar: Measure, Style or Summary. */
-export const stepButton = (page: Page, name: 'Measure' | 'Style' | 'Summary') =>
+/** A step in the top bar: Measure, Style or Print. */
+export const stepButton = (page: Page, name: 'Measure' | 'Style' | 'Print') =>
   page.getByRole('navigation', { name: 'Steps' }).getByRole('button', { name: new RegExp(`${name}$`) });
 
 /** Download, save it with the test's output, and return its path and bytes. */

@@ -53,8 +53,8 @@ test('a wrong measurement is explained, not looped', async ({ page }) => {
   const box = main.getByRole('textbox');
   const next = () => main.getByRole('button', { name: /^(Next|Done)\b/ }).click();
   // Print in the header waits for the measurements, and says so.
-  await stepButton(page, 'Summary').click();
-  await expect(page.getByRole('status').filter({ hasText: /Style and Summary open once your measurements are in/ })).toBeVisible();
+  await stepButton(page, 'Print').click();
+  await expect(page.getByRole('status').filter({ hasText: /Style and Print open once your measurements are in/ })).toBeVisible();
   // The waist comes first; the bust in the wrong unit is caught on its own page.
   await box.fill('76');
   await next();

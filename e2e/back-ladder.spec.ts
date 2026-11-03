@@ -48,9 +48,9 @@ test('hopping between screens never makes back ping-pong', async ({ page }) => {
   // Measure, Print, Measure, Print from the header: back still climbs one rung at a time.
   await stepButton(page, 'Measure').click();
   await measurements(page);
-  await stepButton(page, 'Summary').click();
+  await stepButton(page, 'Print').click();
   await stepButton(page, 'Measure').click();
-  await stepButton(page, 'Summary').click();
+  await stepButton(page, 'Print').click();
   await expect(main(page).getByRole('group', { name: 'Paper' })).toBeVisible();
 
   await page.goBack();

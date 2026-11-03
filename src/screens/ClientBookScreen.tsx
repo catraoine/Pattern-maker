@@ -109,7 +109,7 @@ export function ClientBookScreen({ account, person, unit, onChange, onOpen, garm
             </button>
           </div>
         )}
-        {Object.keys(person.values).length > 0 && <p className="muted small">The DXF and tech pack are on the Summary screen, once a style is picked.</p>}
+        {Object.keys(person.values).length > 0 && <p className="muted small">The DXF and tech pack are on the Print screen, once a style is picked.</p>}
       </section>
 
       <section className="card" aria-labelledby="cbf">

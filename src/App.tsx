@@ -517,7 +517,7 @@ export default function App() {
     if (STEP_OF[step] === to && step !== 'photo' && step !== 'fitting' && step !== 'scale') return;
     if (to !== 'measure' && !canLeaveMeasure) {
       // A line, not a box over the headline, and no garment named (none may be chosen yet) (look and feel review, 2026-10-24).
-      const why = 'Style and Summary open once your measurements are in.';
+      const why = 'Style and Print open once your measurements are in.';
       if (step !== 'steps') sendToMeasure(why);
       else setStepsNote(why);
       return;
