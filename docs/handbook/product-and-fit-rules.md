@@ -89,9 +89,16 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
    in to the body's narrow top and folded up over the shoulder as a wing, on every sleeveless dress and top). A
    sleeveless top cut with full shoulders has its shoulder seam held a little behind the side, as a sleeveless
    dress's is (left to settle, the seam slid 6 to 7 cm behind and the armhole's top ran forward level over the arm as
-   a square shelf; held nearer the side, a crew neck dropped at the front). Still wrong and next in line: the square
-   neck's strap corners stand up, the boat neck's shoulders stand out, and the sleeveless wrap top passes the score
-   with the form showing through its front.
+   a square shelf; held nearer the side, a crew neck dropped at the front). A shoulder counts as full from 7 cm (a
+   square neck's 8.8 cm shoulder, left to settle as a strap, stood its corners up as wings). Still wrong and next in
+   line: the boat neck's shoulders stand out past the form (its straps sit at the tip, and the cloth beyond rests on
+   the arm the drawing doesn't show).
+14. **A wrap front is sewn as its own half** (Nov 3, Fable): each wrap front is cut whole, its own half and most of the
+   other's. Sewn whole, both halves and their mirrors lay four deep over the chest and the form showed through the
+   fighting layers (the wrap top and wrap dress failed the score and showed their Front drawing). The drape now sews
+   the own half cut 2.5 cm past the centre, lapping over the other front as a buttoned front's extension does; its
+   mirror is the under front, so the V and the lap read right. The over front's diagonal edge across the far half is
+   not drawn yet.
 
 ## Style steps
 

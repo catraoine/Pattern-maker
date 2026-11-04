@@ -342,6 +342,58 @@ function wornFolds(folds: PleatFold[], size?: { hip?: number; hem?: number }): P
   return folds.map((f) => ({ top: f.top, hip: pt(f.hip.x * sHip, f.hip.y), hem: pt(f.hem.x * sHem, f.hem.y) }));
 }
 
+/** A wrap front's own half (x >= 0) as the half the drape sews, cut down the centre line (tagged as a fold): the far
+ *  half, which laps over the other front, lies where the other front's mirror is drawn, so the drawing needs only
+ *  this half and its mirror. (Sewn whole, both halves and their mirrors lay four deep over the chest and the form
+ *  showed through the fighting layers; All round quality, 2026-11-03.) */
+function ownHalf(pc: Piece): Piece {
+  // (With a little of the far half kept past the centre, lapping over the other front as a buttoned front's extension
+  // does: cut on the centre line itself, the front edge met the cut at a hair's angle below the cross and the mesh
+  // left a keyhole there.)
+  const X0 = -(knob('__wrapOver') ?? 2.5);
+  const { pts, tags } = pc.outline.taggedPoints(12);
+  const n = tags.length;
+  const out: P[] = [];
+  const outTags: string[] = [];
+  const hit = (a: P, b: P): P => pt(X0, a.y + ((b.y - a.y) * (X0 - a.x)) / (b.x - a.x));
+  for (let i = 0; i < n; i++) {
+    const a = pts[i];
+    const b = pts[(i + 1) % pts.length];
+    const ia = a.x >= X0;
+    const ib = b.x >= X0;
+    if (ia) {
+      out.push(a);
+      outTags.push(tags[i]);
+      if (!ib) {
+        out.push(hit(a, b));
+        outTags.push('wrap');
+      }
+    } else if (ib) {
+      out.push(hit(a, b));
+      outTags.push(tags[i]);
+    }
+  }
+  // (Points within a hair of each other are one point.)
+  const ring: { pts: P[]; tags: string[] } = { pts: [], tags: [] };
+  out.forEach((q, i) => {
+    const last = ring.pts[ring.pts.length - 1];
+    if (last && Math.hypot(last.x - q.x, last.y - q.y) < 1e-6) {
+      ring.tags[ring.tags.length - 1] = outTags[i];
+      return;
+    }
+    ring.pts.push(q);
+    ring.tags.push(outTags[i]);
+  });
+  if (ring.pts.length > 1 && Math.hypot(ring.pts[0].x - ring.pts[ring.pts.length - 1].x, ring.pts[0].y - ring.pts[ring.pts.length - 1].y) < 1e-6) {
+    ring.pts.pop();
+    ring.tags.pop();
+  }
+  const path = new Path(ring.pts[0]);
+  for (let i = 0; i < ring.pts.length; i++) path.line(ring.pts[(i + 1) % ring.pts.length], ring.tags[i]);
+  path.closed = true;
+  return { ...pc, outline: path, lines: pc.lines.filter((l) => l.points(2).every((q) => q.x >= X0 - 0.01)), meta: { ...pc.meta, whole: false } };
+}
+
 /** A piece cut whole (a bias slip) as the half the drape sews: its first half, closed down the centre line. */
 function halfPiece(pc: Piece): Piece {
   if (!pc.meta.whole) return pc;
@@ -910,6 +962,13 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
         if (Math.abs(q.x) < 0.9 && o.pinFront!.some((f) => Math.abs(q.y - f.y) < f.span) && !p.turned[i]) centre.push(i + p.base);
       });
     }
+    // A wrap front's own half, cut a little past the centre (ownHalf): the centre line itself stays on the centre
+    // plane, and the strip past it laps over the other front, as a buttoned front's extension does.
+    if (p.role === 'front' && p.mesh.runs.wrap) {
+      pts.forEach((q, i) => {
+        if (Math.abs(q.x) < 0.6 && !p.turned[i]) centre.push(i + p.base);
+      });
+    }
     const edgeSet = new Map<string, number[]>();
     for (const [a, b, c] of tris) {
       for (const [u, v, w] of [
@@ -1156,11 +1215,13 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
   const shortTop =
     !extra.skirt?.length && !extra.trousers && !extra.tiers?.length && !!torso.length &&
     torso.every((t) => Math.max(...t.pc.outline.taggedPoints(12).pts.map((q) => q.y)) <= t.waistY + (knob("__shortBelow") ?? 8));
-  // (Cut with full shoulders, a shell's, rather than straps: the shoulder seam's cut length, as widensForm reads it.)
+  // (Cut with full shoulders, a shell's, rather than straps: the shoulder seam's cut length, as widensForm reads it.
+  // From 7 cm, not 9, since 2026-11-03: a square neck's 8.8 cm shoulder, left to settle as a strap, slid behind the
+  // side and stood its corners up as wings; held as a full shoulder it lies on the shoulder.)
   const fullShoulders = B.panels.some((p) => {
     if (p.role !== 'front') return false;
     const sh = (p.mesh.runs.shoulder ?? []).flat().map((i) => p.mesh.pts[i]);
-    return sh.length > 1 && Math.hypot(sh[0].x - sh[sh.length - 1].x, sh[0].y - sh[sh.length - 1].y) >= 9;
+    return sh.length > 1 && Math.hypot(sh[0].x - sh[sh.length - 1].x, sh[0].y - sh[sh.length - 1].y) >= (knob('__fullSh') ?? 7);
   });
   const input: SimInput = {
     pos,
@@ -4765,7 +4826,7 @@ const isUnder = (pc: Piece) => !pc.kind && /underskirt/i.test(pc.name);
 const isSkirt = (pc: Piece) => !pc.kind && /skirt|peplum|yoke/i.test(pc.name) && !/underskirt/i.test(pc.name);
 
 export function drapeBodice(sp: Space, d: BodiceDraft, sleeve?: SleeveDraft, o: DrapeOptions = {}, extra: { skirt?: Piece[]; drop?: number; pieces?: Piece[]; tiers?: TierBand[]; under?: Piece[]; slitCm?: number } = {}): Draped {
-  const pieces = extra.pieces ?? d.pieces;
+  const pieces = (extra.pieces ?? d.pieces).map((pc) => ((pc.meta as { wrap?: boolean }).wrap ? ownHalf(pc) : pc));
   const torso = pieces.filter(isTorso).map((pc) => ({ pc, back: /back/i.test(pc.name), waistY: /back/i.test(pc.name) ? d.back.waistCentre.y : d.front.waistCentre.y, folds: o.rollFront && !/back|side/i.test(pc.name) ? [o.rollFront] : undefined }));
   const skirt = extra.skirt ?? pieces.filter(isSkirt);
   const buttons = d.closure === 'front_buttons' && d.buttons ? { y: d.buttons.at.filter((y) => (o.openBelowY === undefined || y < o.openBelowY) && (o.openAboveY === undefined || y > o.openAboveY)), r: d.buttons.sizeCm / 2, waistY: d.front.waistCentre.y } : undefined;
