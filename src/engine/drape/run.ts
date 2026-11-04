@@ -14,6 +14,7 @@ import { widensForm } from './widen';
 import { Quality, drapeQuality } from './quality';
 import { DrapeOptions, Draped, drapeBodice, drapeDress, drapeOuter, drapeSkirt, drapeTrousers, isShell } from './garment';
 import { makeSpace } from './space';
+import { hangScales } from './hang';
 
 export type DrapeJob = { m: RoundMeasurements; armhole: RoundGarment['armhole']; fibre?: Fibre; crisp?: boolean } & (
   | { kind: 'skirt'; draft: SkirtDraft }
@@ -30,6 +31,9 @@ export interface DrapedLite {
   pos: Float64Array;
   /** The mirrored half's points, where they differ from `pos` (a slit up the left side seam only). */
   posMirror?: Float64Array;
+  /** The scale (cm per form unit) each point is drawn at where it differs from its level's own: cloth hanging clear of
+   *  the body keeps the scale of where it last touched, so it hangs plumb on the form (see hang.ts). 0 = the level's. */
+  hang?: Float32Array;
   lines: { kind: string; ids: number[] }[];
   buttons: { at: [number, number, number]; r: number }[];
   /** Shadow inside pressed pleats, per point (0 to 1). */
@@ -110,6 +114,7 @@ export function runDrape(job: DrapeJob): DrapedLite {
     quality.problems.push({ check: 'missing', part: pc.name, worst: 1 });
     quality.ok = false;
   }
+  const hang = hangScales(d, sp);
   return {
     panels: d.panels.map((p) => ({
       role: p.role,
@@ -123,6 +128,7 @@ export function runDrape(job: DrapeJob): DrapedLite {
     })),
     pos: d.pos,
     ...(d.posMirror ? { posMirror: d.posMirror } : {}),
+    ...(hang ? { hang } : {}),
     lines: d.lines,
     buttons: d.buttons.map((b) => ({ at: [b.at[0], b.at[1], b.at[2]], r: b.r })),
     ...(d.shade ? { shade: d.shade } : {}),

@@ -315,10 +315,11 @@ class Lines {
 }
 
 /** The garment draped from its own pattern pieces (src/engine/drape), placed on the form: `toForm` takes a point in
- *  the drape's cm (x across, c down from the waist, z forward) to the form's units. */
+ *  the drape's cm (x across, c down from the waist, z forward) to the form's units, at the level's own scale or, for a
+ *  point hanging clear of the body, the scale it carries (DrapedLite.hang). */
 export interface DrapedView {
   d: DrapedLite;
-  toForm: (x: number, c: number, z: number) => V3;
+  toForm: (x: number, c: number, z: number, scale?: number) => V3;
 }
 
 /** What the mesh is built for. */
@@ -404,7 +405,7 @@ function buildDraped(
     const x = pos[i * 3];
     const z = pos[i * 3 + 2];
     const k = 1 + (LIFT + more) / (Math.sqrt(x * x + z * z) || 1);
-    return toForm(x * k * e, pos[i * 3 + 1], z * k);
+    return toForm(x * k * e, pos[i * 3 + 1], z * k, d.hang?.[i] || undefined);
   };
   for (const p of d.panels) {
     if (p.hidden) continue;
