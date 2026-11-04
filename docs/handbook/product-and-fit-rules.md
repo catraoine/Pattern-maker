@@ -134,6 +134,15 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
    smoothed along its own length (the gathers had drawn it into a 1 cm zigzag, where the gathering thread sews a
    straight line). A balloon hem's swell ends at its hem, which is gathered onto the underskirt's hem and is set back
    on it; the outer skirt's fullness is not drawn out as width. The quality hem check measures only the lowest hem.
+20. **An inverted pleat is drawn closed, with its V** (Nov 4, Fable): the drape leaves off the extension behind an
+   inverted pleat (it lies hidden behind the face; sewn open it hung as a wide sheet with a gaping V down the centre
+   front and back). The face is draped as cut, and the pleat drawn on it: its two folds meet at the centre, stitched
+   to the hip (the back's from where its pleat starts, below the zip), and part below into a narrow V to the hem with
+   the cloth inside set in and darkened, deepest at the centre and out to nothing at the fold edge (a flat step drew
+   the edge as a sawtooth). Knife and box pleats are unchanged.
+21. **A hem cut unlevel stays unlevel** (Nov 4, Fable): the pass that lets a flared skirt's hem down where it rode up
+   at the sides skips a high-low, diagonal or shaped hem (`shapedHem` in the drape options). It was letting a
+   diagonal's short side down to the long side's level and stretching the cloth above it to nearly three times its cut.
 
 ## Style steps
 
