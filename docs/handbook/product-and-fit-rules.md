@@ -148,7 +148,6 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
    share, so the neck's last point and the gorge point beside it were drawn nearly three times their cut apart (the
    shawl-collar jacket and the fitted-sleeve jacket failed on it). The front is now eased back to its cut lengths
    with the neckline and shoulder held. The coat's shawl collar still tears at the collar's end (its own placement).
-<<<<<<< HEAD
 23. **Every option's printed pattern is walked** (Nov 4, Quality: Automated checks): every option of every garment on its
    own (All round's list plus trousers, the T-shirt and the lined, faced and couture finishes, about 340) is drafted to
    the example body, built into the printed pattern and walked: seams that sew together match (`checkPattern`, as the
@@ -159,15 +158,13 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
    not in the file. A fault in the file is a real one waiting on a fix, never one hidden; `PATTERN_OPTIONS=write`
    rewrites the file once it is fixed. Nightly (`quality-nightly.yml`) the same walk runs on 20 random bodies and
    only reports.
-=======
-23. **Cloth clear of the body hangs plumb on the form** (Nov 4, Fable, blush shift): the cloth settles in true cm on
+24. **Cloth clear of the body hangs plumb on the form** (Nov 4, Fable, blush shift): the cloth settles in true cm on
    the wearer's body and is drawn back on the form by the form's scale at each level (bust, waist, hip). That is right
    where the cloth lies on the body, but a dress hanging straight from the bust was drawn bowing out over the belly
    wherever the wearer's waist is smaller than the form's. Each point now carries down the scale of where its column
    of cloth last touched the body (smoothed across the panels and seams, never inside the form), so a straight fall
    draws straight; fitted cloth is unchanged. A shift's or sheath's hem is also levelled, and the one-point notches
    at the centre fold and the side seam foot are taken out.
->>>>>>> origin/claude/project-thread-m85u16
 
 ## Style steps
 
