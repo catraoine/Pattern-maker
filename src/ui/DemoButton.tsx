@@ -35,12 +35,10 @@ const DEMOS = {
     title: 'How drawing on your form works',
     base: '/demos/draw',
     parts: [
-      { name: 'Open it', from: 0, says: 'Tap the pencil by the drawing, then Draw on your form. This is a dress form built from your measurements.' },
-      { name: 'Draw', from: 11.3, says: 'Pick Hem, then draw where you want it with your finger. The pattern follows your line. Try the back too.' },
-      { name: 'Undo', from: 23.7, says: 'Undo takes the last line back. Redo puts it back.' },
-      { name: 'Done', from: 29.3, says: 'Done keeps your lines and shows the pattern.' },
+      { name: 'Draw', from: 0, says: 'Draw where you want the hem. The skirt follows your line.' },
+      { name: 'Back', from: 11.9, says: 'Turn to the back. Draw it lower for a high-low hem. Longer at the back.' },
     ],
-    length: '0:35',
+    length: '0:26',
   },
   photo: {
     title: 'How starting from a photo works',
