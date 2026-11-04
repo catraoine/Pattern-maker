@@ -5,6 +5,7 @@ something that changes how a department works. Design picks for single screens s
 
 ## November 2026
 
+- **Nov 4** Check 6, the screen check: 155 screens (81 on a phone, 74 on a computer) photographed and looked over; no words cut off and nothing past the screen's edge. All six checks Cat asked for now run on every change and nightly. [Product and fit rules](product-and-fit-rules.md) rule 30.
 - **Nov 4** Check 5, the Front drawing check: 336 of 338 options draw cleanly on the form. The jacket and coat hood's outline folds through itself in a small loop (about 1.5 cm²). [Product and fit rules](product-and-fit-rules.md) rule 29.
 - **Nov 4** Check 4, the DXF round trip: all 338 options' files carry every piece at its drafted size. Reading our own file back in (Check a file) moved notches by a dart that opens into the armhole, neckline or one-shoulder edge (up to 4.7 mm, with an extra notch) and on the wrap front (1.7 mm), in 9 options; it also lost the stitching line on facings, collars and cuffs, now fixed. [Product and fit rules](product-and-fit-rules.md) rule 28.
 - **Nov 4** Check 3, the print check: every piece is on the pages and the 10 cm square measures 10.00 cm on A4, Letter and A0. It found words cut at page joins: a label running along a piece, or a long line of the title block's notes, is printed on one page of a join but left off the other, so letters go missing when the pages are taped (7 of 21 sample prints, mostly on Letter). [Product and fit rules](product-and-fit-rules.md) rule 27.
