@@ -4,6 +4,11 @@ _Update this page whenever a release ships or a PR is queued._
 
 ## Live
 
+**Release 59** (Nov 3, 2026, #277): dresses and tops with sleeves turn in All round. The sleeve cap is
+measured round the arm (it was measured across the flat piece, so half the cap was sewn into the top of the
+back armhole: square shoulders, a chest ledge); sleeved tops are held at the armhole; a dropped wrist
+ruffle or tie fails the score. 172 of 290 options pass on their own (was 159). Handbook rule 12 (#276 release page).
+
 **Release 58** (Nov 3, 2026, #275): the privacy policy and terms give "Vancouver, British Columbia, Canada" and
 the email as the contact address (no street address until incorporation); the terms' age line matches the
 policy at 16; effective date Nov 3. Handbook: tester codes never match the examples in the public repo (the
@@ -28,7 +33,7 @@ Live site: https://maisontrace.co (the cloud proxy blocks it; check
 https://whimsical-mooncake-2cf9a9.netlify.app, the same site). Strangers see the waitlist; testers
 get in with their tester link.
 
-## Queued for "ship" (as of Nov 3, 18:30 UTC)
+## Queued for "ship" (as of Nov 3, 23:25 UTC)
 
 Nothing green is queued. Open draft: #259 (bias slip mini + side slit, open polo collar, ruffled trouser
 hem; In testing), based on main, waiting on Cat's "apply".
