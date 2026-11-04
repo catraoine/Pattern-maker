@@ -43,7 +43,7 @@ get in with their tester link.
 
 ## Queued for "ship" (as of Nov 4, 02:10 UTC)
 
-Nothing green is queued. Open draft: #259 (bias slip mini + side slit, open polo collar, ruffled trouser
+#285 (Quality: Automated checks 2 to 6, test-only plus a Check a file fix; waits green for Cat's "ship"). Open draft: #259 (bias slip mini + side slit, open polo collar, ruffled trouser
 hem; In testing), based on main, waiting on Cat's "apply".
 
 Note: #249's SS27 cuts (oversized, peplums, plunge, gathers, drop yoke, jacket collars) went live in
