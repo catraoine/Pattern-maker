@@ -148,6 +148,16 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
    share, so the neck's last point and the gorge point beside it were drawn nearly three times their cut apart (the
    shawl-collar jacket and the fitted-sleeve jacket failed on it). The front is now eased back to its cut lengths
    with the neckline and shoulder held. The coat's shawl collar still tears at the collar's end (its own placement).
+23. **Every option's printed pattern is walked** (Nov 4, Quality: Automated checks): every option of every garment on its
+   own (All round's list plus trousers, the T-shirt and the lined, faced and couture finishes, about 340) is drafted to
+   the example body, built into the printed pattern and walked: seams that sew together match (`checkPattern`, as the
+   print screen shows it), balance notches on side seams, inside legs and sleeve seams meet (a single on the front
+   against a double on the back is right; a vent's top notch is not a balance mark), every notch sits on the edge
+   within 5 mm, and no stitching or cutting line crosses itself. `src/patternSweep.ts`, held to
+   `src/patternOptions.json` (the faults each option still has): every pull request fails on a new fault or an option
+   not in the file. A fault in the file is a real one waiting on a fix, never one hidden; `PATTERN_OPTIONS=write`
+   rewrites the file once it is fixed. Nightly (`quality-nightly.yml`) the same walk runs on 20 random bodies and
+   only reports.
 
 ## Style steps
 
