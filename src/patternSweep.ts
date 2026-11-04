@@ -278,7 +278,7 @@ export function patternProblems(pieces: Piece[], finishedWaist?: number): string
 }
 
 /** One design's result: its problems, or why it didn't draft. */
-interface PatternResult {
+export interface PatternResult {
   key: string;
   problems: string[];
   error?: string;

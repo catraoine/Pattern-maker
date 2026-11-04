@@ -174,6 +174,12 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
    PDF is rendered to pixels with pdftoppm: every page is the paper's size, page A1 is printed, the 10 cm test square
    measures 10 cm both ways within half a millimetre, and where two pages overlap both show the same lines and words
    (the joining diamonds and the page footer are left out). `src/printCheck.ts`, held to `src/printKnown.json`.
+26. **Every option's DXF reads back as drafted** (Nov 4, Quality: Automated checks): every option's printed pattern
+   is written as the DXF a factory downloads and read back in as Check a file reads one. The same pieces, names,
+   quantities and cutting notes come back; cutting and stitching lines within a tenth of a millimetre (so the seam
+   allowances too); grain, fold and internal lines; every notch where it cuts into the cutting line and every drill hole
+   within half a millimetre. Inside `npm test`; nightly on random bodies too. `src/dxfRoundTrip.ts`, held to
+   `src/dxfKnown.json`.
 
 ## Style steps
 
