@@ -6,6 +6,7 @@ name: Quality checks nightly
 # - Pattern geometry: every option of every garment, on the example body and on random bodies (src/patternSweep.ts).
 # - Fit sweep: 300 new random bodies each night, a random design of every garment on each (src/fitSweep.ts).
 # - Print check: the sample patterns' PDFs on A4, Letter and A0, rendered and measured (src/printCheck.ts).
+# - Front drawing: every option's drawing on the form, read out of the real app and scored (src/frontCheck.ts).
 # - DXF round trip: every option's DXF read back and held to the draft, on random bodies too (src/dxfRoundTrip.ts).
 on:
   schedule:
@@ -126,3 +127,33 @@ jobs:
         run: |
           head -6 dxf-options.md || true
           head -8 dxf-bodies.md || true
+
+  front:
+    name: Front drawing check
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      # Reads every option's Front drawing out of the real app, then scores it; fails on a new fault, the ones already
+      # found are in src/frontKnown.json (see src/frontCheck.ts).
+      - run: npm run test:e2e -- front-drawing.spec.ts --project desktop --workers 4
+        env:
+          FRONT_CHECK: front-drawings
+      - run: npx vitest run src/frontCheck.test.ts
+        if: ${{ !cancelled() }}
+        env:
+          FRONT_FROM: front-drawings
+          FRONT_REPORT: front-drawing.md
+      - name: Report
+        if: ${{ !cancelled() }}
+        run: cat front-drawing.md >> "$GITHUB_STEP_SUMMARY" || true
+      - name: Summary
+        if: ${{ !cancelled() }}
+        run: head -6 front-drawing.md || true

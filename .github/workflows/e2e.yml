@@ -78,6 +78,40 @@ jobs:
         if: ${{ !cancelled() }}
         run: cat print-check.md >> "$GITHUB_STEP_SUMMARY" || true
 
+
+  front:
+    name: Front drawing check (every option, in the real app) (${{ matrix.shard }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ['1/2', '2/2']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      # Reads every option's Front drawing out of the real app, then scores it; fails on a new fault, the ones already
+      # found are in src/frontKnown.json (see src/frontCheck.ts).
+      - run: npm run test:e2e -- front-drawing.spec.ts --project desktop --workers 4
+        env:
+          FRONT_CHECK: front-drawings
+          FRONT_SHARD: ${{ matrix.shard }}
+      - run: npx vitest run src/frontCheck.test.ts
+        if: ${{ !cancelled() }}
+        env:
+          FRONT_FROM: front-drawings
+          FRONT_SHARD: ${{ matrix.shard }}
+          FRONT_REPORT: front-drawing.md
+      - name: Report
+        if: ${{ !cancelled() }}
+        run: cat front-drawing.md >> "$GITHUB_STEP_SUMMARY" || true
+
   options:
     name: All round, every option on its own (${{ matrix.shard }})
     runs-on: ubuntu-latest

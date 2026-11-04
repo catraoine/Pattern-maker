@@ -180,6 +180,13 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
    allowances too); grain, fold and internal lines; every notch where it cuts into the cutting line and every drill hole
    within half a millimetre. Inside `npm test`; nightly on random bodies too. `src/dxfRoundTrip.ts`, held to
    `src/dxfKnown.json`.
+27. **Every option's Front drawing is scored** (Nov 4, Quality: Automated checks): every option is opened in the real
+   app and the Front drawing (which also stands in when All round fails) is read out of the page and measured: no
+   broken points or missing cloth, no cloth past the top or bottom of the drawing's box, no outline folding through
+   itself (a loop of 0.5 cm² or more), no sawtooth edge, no hole of 2 cm² or more where the form shows through (the
+   space beside a hanging sleeve and an open front up to the neck are meant), and both sides alike unless the design
+   is cut asymmetric. Its own CI job (`e2e/front-drawing.spec.ts` captures, `src/frontCheck.ts` scores), held to
+   `src/frontKnown.json`.
 
 ## Style steps
 
