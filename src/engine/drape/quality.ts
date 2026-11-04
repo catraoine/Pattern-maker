@@ -163,18 +163,28 @@ export function drapeQuality(d: Draped, sp: Pick<Space, 'bodyR' | 'tip'>, o: Qua
       for (const run of runs) {
         if (run.length < 5) continue;
         let jag = 0;
+        // (Each point's lean off the line through its neighbours, kept so a tooth can be told from a flute: a flute
+        // on a full hem, a circle skirt's or a gathered one's, bends the same way for several points in a row, while
+        // a sawtooth turns back at every point. Only a turn against the point before or after counts, All round
+        // quality 2026-11-04: the half-circle and gathered skirts' flutes read as jagged and showed their drawing.)
+        const lean: ([number, number, number] | undefined)[] = [];
         for (let k = 1; k < run.length - 1; k++) {
           const a = P(p.base + run[k - 1]);
           const b = P(p.base + run[k]);
           const c = P(p.base + run[k + 1]);
           // (Two points sewn to one spot, as a sleeve cap's two underarm ends are: a doubled point, not a tooth.)
-          if (dist(a, b) < 0.05 || dist(b, c) < 0.05) continue;
+          if (dist(a, b) < 0.05 || dist(b, c) < 0.05) {
+            lean.push(undefined);
+            continue;
+          }
           const mid = [(a[0] + c[0]) / 2, (a[1] + c[1]) / 2, (a[2] + c[2]) / 2];
           const off = dist(b, mid);
           // (Where the cut edge itself turns a corner, it may.)
           const cutTurn = Math.hypot(pts[run[k]].x - (pts[run[k - 1]].x + pts[run[k + 1]].x) / 2, pts[run[k]].y - (pts[run[k - 1]].y + pts[run[k + 1]].y) / 2);
-          if (off - cutTurn > L.jagCm && off > L.jagShare * dist(a, c)) jag++;
+          lean.push(off - cutTurn > L.jagCm && off > L.jagShare * dist(a, c) ? [b[0] - mid[0], b[1] - mid[1], b[2] - mid[2]] : undefined);
         }
+        const against = (u: [number, number, number] | undefined, v: [number, number, number] | undefined) => !!u && !!v && u[0] * v[0] + u[1] * v[1] + u[2] * v[2] < 0;
+        for (let k = 0; k < lean.length; k++) if (lean[k] && (against(lean[k], lean[k - 1]) || against(lean[k], lean[k + 1]))) jag++;
         if (jag >= L.jagCount) add('jagged', `${name} ${tag}`, jag);
       }
     }

@@ -110,6 +110,16 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
    flat on the lapel, 4 to 5 cm apart for 1.2 cm of cloth: nearly every plain jacket and coat option (74 of 290)
    failed the score as "stretched" at the collar's end and showed its Front drawing. The laid collar is now eased back
    to its cut lengths with its neck seam held, so the end rolls from the stand into the lapel.
+16. **Godets are the skirt's own fullness in All round** (Nov 4, Fable): a godet is a sector set into a slash, and its
+   two edges are sewn to one line of the panel, which the drape's mesh does not cut; sewn as its own triangle it hung
+   loose below the hem. The drape now leaves the godet pieces out and draws the panel's cloth beyond each slash out
+   sideways by the godet's hem width (nothing at the point, all of it at the hem), kept as far from the point as it was
+   cut, so the hem gains what the godets add, stays level, and the skirt flares from the godets' height down. The
+   pattern and the flat drawing still show the real godets. A side-seam godet gives half its width to each panel.
+17. **A flute is not a sawtooth** (Nov 4, Fable): the jagged-edge check counts a point only where its lean off the line
+   through its neighbours turns against the point before or after it. A flute on a full hem (a half-circle's, a
+   gathered skirt's) leans the same way for several points and is meant; a sawtooth turns back at every point. The
+   half-circle and gathered skirts showed their Front drawing for their flutes before.
 
 ## Style steps
 

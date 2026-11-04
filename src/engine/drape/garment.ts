@@ -323,7 +323,8 @@ function pleatClosed(pc: Piece, folds: PleatFold[], kind: string): Piece {
 }
 
 /** The skirt pieces to hang: pleated ones closed as worn. */
-function hungSkirt(pieces: Piece[], vol?: { kind?: string; folds?: PleatFold[][] }, size?: { hip?: number; hem?: number }): Piece[] {
+function hungSkirt(pieces: Piece[], vol?: { kind?: string; folds?: PleatFold[][]; godets?: { hemWidth: number; inSeams: boolean } }, size?: { hip?: number; hem?: number }): Piece[] {
+  if (vol?.kind === 'godets' && vol.godets && !knob('__looseGodets')) return pieces.filter((pc) => !pc.meta.godet).map((pc) => godetsOpened(pc, vol.godets!));
   if (!vol?.folds?.length || (vol.kind !== 'knife' && vol.kind !== 'box') || knob('__openPleats')) return pieces;
   return pieces.map((pc) => (pc.meta.pleats ? pleatClosed(pc, wornFolds(vol.folds![/back/i.test(pc.name) ? 1 : 0] ?? vol.folds![0], size), vol.kind!) : pc));
 }
@@ -340,6 +341,47 @@ function wornFolds(folds: PleatFold[], size?: { hip?: number; hem?: number }): P
   const sHip = Math.max(1, need.hip / (reach('hip') || 1));
   const sHem = Math.max(sHip, need.hem / (reach('hem') || 1));
   return folds.map((f) => ({ top: f.top, hip: pt(f.hip.x * sHip, f.hip.y), hem: pt(f.hem.x * sHem, f.hem.y) }));
+}
+
+/** A godet skirt's panel as the drape sews it: the godets' fullness is given to the panel itself. Each godet is a
+ *  sector set into a slash from its point to the hem; here the panel's cloth beyond each slash is drawn out sideways
+ *  by the godet's hem width, by nothing at the point and all of it at the hem, so the hem gains what the godets add
+ *  and the skirt flares from the godets' height down, as it does worn. (Sewn as its own triangle, a godet hung loose
+ *  below the hem, since its two edges are sewn to one line of the panel the mesh does not cut; All round quality,
+ *  2026-11-04.) A side-seam godet gives half its width to each panel it sits between. */
+function godetsOpened(pc: Piece, g: { hemWidth: number; inSeams: boolean }): Piece {
+  const slashes = pc.meta.slashes as [P, P][] | undefined;
+  if (!slashes?.length) return pc;
+  const n = slashes.length;
+  const shear = (q: P): P => {
+    let out = q;
+    slashes.forEach(([top, foot], k) => {
+      const seam = g.inSeams && k === n - 1;
+      const cross = (foot.x - top.x) * (q.y - top.y) - (foot.y - top.y) * (q.x - top.x);
+      if (cross > 1e-6) return;
+      const t = Math.max(0, Math.min(1, (q.y - top.y) / (foot.y - top.y || 1)));
+      if (!t) return;
+      // (Drawn out sideways, then kept as far from the godet's point as it was cut, as a sector's hem is from its
+      // point: drawn out alone, the cloth beyond the slash was longer from the point to the hem and hung 9 cm lower
+      // at the side than at the centre.)
+      const R = Math.hypot(out.x - top.x, out.y - top.y);
+      const moved = pt(out.x + (seam ? g.hemWidth / 2 : g.hemWidth) * t, out.y);
+      const R2 = Math.hypot(moved.x - top.x, moved.y - top.y) || 1;
+      out = knob('__godetNoRadius') ? moved : pt(top.x + ((moved.x - top.x) * R) / R2, top.y + ((moved.y - top.y) * R) / R2);
+    });
+    return out;
+  };
+  const { pts, tags } = pc.outline.taggedPoints(12);
+  const path = new Path(shear(pts[0]));
+  for (let i = 0; i < pts.length; i++) path.line(shear(pts[(i + 1) % pts.length]), tags[i]);
+  path.closed = true;
+  const lines = pc.lines.map((l) => {
+    const ps = l.points(12).map(shear);
+    const out = new Path(ps[0]);
+    for (let i = 1; i < ps.length; i++) out.line(ps[i]);
+    return out;
+  });
+  return { ...pc, outline: path, lines };
 }
 
 /** A wrap front's own half (x >= 0) as the half the drape sews, cut down the centre line (tagged as a fold): the far
