@@ -104,6 +104,12 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
    the own half cut 2.5 cm past the centre, lapping over the other front as a buttoned front's extension does; its
    mirror is the under front, so the V and the lap read right. The over front's diagonal edge across the far half is
    not drawn yet.
+15. **A tailored collar is eased from its seam** (Nov 4, Fable): a jacket's or coat's collar is placed point by point
+   from the nearest stretch of its neck seam (its stand rising round the neck, its end lying flat on with the lapel).
+   Where the nearest stretch changed from the neck's to the gorge's, one point stood up the neck and its neighbour lay
+   flat on the lapel, 4 to 5 cm apart for 1.2 cm of cloth: nearly every plain jacket and coat option (74 of 290)
+   failed the score as "stretched" at the collar's end and showed its Front drawing. The laid collar is now eased back
+   to its cut lengths with its neck seam held, so the end rolls from the stand into the lapel.
 
 ## Style steps
 

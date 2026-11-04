@@ -3034,6 +3034,11 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
           res[I + 2] = v[2];
           laidFall.add(p.base + i);
         }
+        // (Placed point by point from the nearest stretch of its neck seam, the collar's end is torn where the nearest
+        // stretch changes, from the neck's to the gorge's: one point stands up the neck, its neighbour lies flat on the
+        // lapel, 4 to 5 cm apart. Eased back to its cut lengths from the seam, so the end rolls from the one into the
+        // other, All round quality 2026-11-04. Every plain jacket and coat read as stretched there before.)
+        if (!knob('__noCollarEase')) relax(p, [...onSeamPt]);
       }
     for (const p of B.panels) {
       if (p.role === 'sleeve' || p.hidden || (collarOnly && p.role !== 'collar')) continue;
