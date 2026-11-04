@@ -4,6 +4,11 @@ _Update this page whenever a release ships or a PR is queued._
 
 ## Live
 
+**Release 60** (Nov 4, 2026, #278): sleeveless shoulders sit on the form in All round (the hug-the-ribs pass no
+longer folds the front armhole's top up as a wing; a sleeveless top's seam is held as the dress's; a shoulder is full
+from 7 cm, so the square neck too); the wrap top and wrap dress turn (each wrap front sewn as its own half with a
+2.5 cm lap). 177 of 290 options pass on their own. Handbook rules 13 and 14.
+
 **Release 59** (Nov 3, 2026, #277): dresses and tops with sleeves turn in All round. The sleeve cap is
 measured round the arm (it was measured across the flat piece, so half the cap was sewn into the top of the
 back armhole: square shoulders, a chest ledge); sleeved tops are held at the armhole; a dropped wrist
@@ -33,7 +38,7 @@ Live site: https://maisontrace.co (the cloud proxy blocks it; check
 https://whimsical-mooncake-2cf9a9.netlify.app, the same site). Strangers see the waitlist; testers
 get in with their tester link.
 
-## Queued for "ship" (as of Nov 3, 23:25 UTC)
+## Queued for "ship" (as of Nov 4, 02:10 UTC)
 
 Nothing green is queued. Open draft: #259 (bias slip mini + side slit, open polo collar, ruffled trouser
 hem; In testing), based on main, waiting on Cat's "apply".
