@@ -152,7 +152,7 @@ export function cuffPieces(c: CuffDraft, sa: number): Piece[] {
       strip('Tie cuff', 'TIE CUFF', L, 2 * c.depth, 'Cut 2', sa, {
         fold: true,
         notchAt: [c.tieCm!, c.tieCm! + c.round],
-        meta: { finishedWidth: c.depth, lengthCm: r1(L) },
+        meta: { finishedWidth: c.depth, lengthCm: r1(L), roundCm: c.round, tieCm: c.tieCm },
       }),
     ];
   }

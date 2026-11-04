@@ -12,8 +12,13 @@ Cat's "apply") (#280, rule 24). The Style title matches the step name and the Ne
 (#283). Quality checks 2 to 6 run on every change and nightly: fit sweep on 300 bodies, print check, DXF round
 trip, Front drawing check, screen check (#285, rules 26 to 30), with a Check a file fix.
 
-**Release 61** (Nov 4, 2026, #282, merged early by mistake, test-only): the pattern geometry check on every option
-(handbook rule 23) and the nightly Quality checks workflow. Nothing in the app changed.
+**Release 61** (Nov 4, 2026, #279 and #282): nine overnight All round rounds. Sleeveless body cloth never meets the drape's
+unseen arm (boat neck shelf gone); an unshaped top's smoothing stops at the bust; tailored jacket and coat collars eased
+from their seam; godets carried as the skirt's own fullness; the full circle skirt hangs in eight flutes; tier, ruffle
+and balloon bands set back on their seams; the inverted pleat drawn closed with its V; a shaped or diagonal hem stays
+unlevel; the cloth beside a drawn-back jacket neckline eased. 259 of 290 options pass on their own. Handbook rules 13 and 15 to 22.
+Also the pattern geometry check on every option (handbook rule 23) and the nightly Quality checks workflow (#282,
+merged early by mistake, test-only).
 
 **Release 60** (Nov 4, 2026, #278): sleeveless shoulders sit on the form in All round (the hug-the-ribs pass no
 longer folds the front armhole's top up as a wing; a sleeveless top's seam is held as the dress's; a shoulder is full
@@ -51,8 +56,10 @@ get in with their tester link.
 
 ## Queued for "ship" (as of Nov 4, after Release 62)
 
-- #281 (All round: halter, plunge, cowl, one-shoulder necklines; collars, cuffs, raglan): left out of
-  Release 62 because its checks were not green yet; needs main merged in (handbook rule numbers clash).
+- #281 (All round: halter, plunge, cowl, one-shoulder necklines; peter pan, bow and ruffle collars; tie and
+  ruffle cuffs; raglan sleeves; jackets closed at the neck; funnel and hood collars, coat shawl end, flared coat,
+  high-low peplum, gathered dress skirt): 290 of 290 options pass on their own; main merged in Nov 4, handbook
+  rules 31 to 46; waits on green checks and Cat's "ship".
 
 Open draft: #259 (bias slip mini + side slit, open polo collar, ruffled trouser
 hem; In testing), based on main, waiting on Cat's "apply".

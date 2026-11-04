@@ -7,7 +7,7 @@ import { chromium } from '@playwright/test';
 
 const OUT = process.argv[2] ?? 'public/demos';
 const ONLY = process.argv[3];
-const APP = 'http://127.0.0.1:5173';
+const APP = process.env.APP ?? 'http://127.0.0.1:5173';
 
 const PAGE = `<html><head><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500&family=Chakra+Petch&display=swap"><style>
 html,body{margin:0;background:#000;overflow:hidden}
@@ -19,6 +19,10 @@ html,body{margin:0;background:#000;overflow:hidden}
 #pen{width:18px;height:18px;margin:-9px 0 0 -9px;background:rgba(239,228,204,.55);transition:opacity .3s}
 #card{position:fixed;inset:0;z-index:10;background:#000;color:#efe4cc;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center;transition:opacity .6s;font-family:'Space Grotesk',sans-serif}
 #card .k{font:400 11px/1 'Chakra Petch',monospace;letter-spacing:.3em;text-transform:uppercase;opacity:.75}
+body.focus #app{height:768px;border:0;transform-origin:0 0;transition:none}
+body.focus #cap{top:56px;bottom:auto;height:auto;background:none;text-align:center;padding:0 28px;z-index:8}
+body.focus #cap small{color:#c9b48a;opacity:1;margin-bottom:12px;font-size:12px}
+body.focus #cap span{font-size:22px;line-height:1.3}
 #card h2{font-weight:400;font-size:28px;margin:0 32px}#card .r{width:120px;height:1px;background:#efe4cc;opacity:.6}
 </style></head><body><iframe id="app" src="${APP}/?fresh"></iframe><div id="cap"><small></small><span></span></div><div id="tap"></div><div id="pen"></div><div id="card" style="display:none"></div></body></html>`;
 
@@ -164,7 +168,7 @@ async function record(name, script, before) {
     await wait(pause);
   };
 
-  await script({ main, wait, card, cap, tap, draw, point, tapAt, show, ctx, f });
+  await script({ main, wait, card, cap, tap, draw, point, tapAt, show, ctx, f, p });
   await cdp.send('Page.stopScreencast');
   frames.sort((a, c) => a.t - c.t);
   const endT = Date.now() / 1000;
@@ -221,26 +225,58 @@ const DEMOS = {
     await cap('', '');
     await card('Maison Tracé', 'Style it your way.', 2200, true);
   },
-  draw: async ({ main, wait, card, cap, tap, draw }) => {
-    const form = main.getByRole('img', { name: /Your dress form from the/ });
-    await card('Maison Tracé', 'Draw on your form', 2400);
-    await cap('Open it', 'Tap the pencil by the drawing, then Draw on your form.');
-    await wait(800);
-    await tap(main.locator('.drawmenu > summary'), 1000);
-    await tap(main.getByRole('button', { name: 'Draw on your form' }), 1800);
-    await cap('', 'This is a dress form built from your measurements.');
+  // Just the form (Cat's A, 2026-11-04): only the calico garment on the form, big, with one caption at the top.
+  // The screen is opened under the title card; the rest of the app is hidden and the form fills the frame.
+  draw: async ({ main, wait, card, cap, draw, f, p }) => {
+    // By class: with the rest hidden, the app is out of the accessibility tree.
+    const form = f.locator('.form-draw svg.form-svg');
+    await card('Maison Tracé', 'Draw on your form', 1200, true);
+    // Under the card, so pressed without the pointer.
+    await main.locator('.drawmenu > summary').dispatchEvent('click');
+    await main.getByRole('button', { name: 'Draw on your form' }).dispatchEvent('click');
+    await main.getByRole('group', { name: 'What you are drawing' }).getByRole('button', { name: 'Hem', exact: true }).dispatchEvent('click');
+    await f.locator('body').evaluate((b) => {
+      const st = b.ownerDocument.createElement('style');
+      st.textContent =
+        'body *{visibility:hidden!important} .form-draw svg.form-svg,.form-draw svg.form-svg *{visibility:visible!important}' +
+        ' .form-draw svg .hem-ghost text,.form-draw svg text.hint{visibility:hidden!important}';
+      b.appendChild(st);
+    });
+    // The full-height frame first, so the scroll the drawing does later doesn't move the form.
+    await p.evaluate(() => document.body.classList.add('focus'));
+    await form.evaluate((el) => el.scrollIntoView({ block: 'center' }));
+    await wait(600);
+    // The form's box, inside the app, scaled so it fills the frame under the caption.
+    const r = await form.evaluate((el) => {
+      const b = el.getBoundingClientRect();
+      return { x: b.x, y: b.y, w: b.width, h: b.height };
+    });
+    const top = 176;
+    const s = 520 / r.h;
+    await p.evaluate(([s, tx, ty]) => {
+      document.getElementById('app').style.transform = `translate(${tx}px,${ty}px) scale(${s})`;
+    }, [s, 216 - s * (r.x + r.w / 2), top - s * r.y]);
+    await wait(1000);
+    await p.evaluate(() => {
+      const c = document.getElementById('card');
+      c.style.opacity = 0;
+      setTimeout(() => (c.style.display = 'none'), 600);
+    });
+    await wait(900);
+    const side = (n) => f.locator('.form-sides .seg button').filter({ hasText: new RegExp(`^${n}$`, 'i') }).dispatchEvent('click');
+    await cap('Draw', 'Draw where you want the hem.');
+    await wait(1600);
+    await draw(form, [[0.36, 0.55], [0.5, 0.552], [0.64, 0.55]], 1200);
+    await cap('Draw', 'The skirt follows your line.');
     await wait(2200);
-    await cap('Draw', 'Pick Hem, then draw where you want it with your finger.');
-    await tap(main.getByRole('group', { name: 'What you are drawing' }).getByRole('button', { name: 'Hem', exact: true }), 900);
-    await draw(form, [[0.18, 0.62], [0.5, 0.66], [0.82, 0.74]]);
-    await cap('Draw', 'The pattern follows your line. Try the back too.');
-    await tap(main.getByRole('group', { name: 'Side of the form' }).getByRole('button', { name: 'back', exact: true }), 1000);
-    await draw(form, [[0.18, 0.78], [0.5, 0.82], [0.82, 0.78]]);
-    await cap('Undo', 'Undo takes the last line back. Redo puts it back.');
-    await tap(main.getByRole('button', { name: 'Undo the last line' }), 1400);
-    await tap(main.getByRole('button', { name: 'Redo the line you undid' }), 1400);
-    await cap('Done', 'Done keeps your lines and shows the pattern.');
-    await tap(main.getByRole('button', { name: 'Done', exact: true }), 2800);
+    await cap('Back', 'Turn to the back. Draw it lower for a high-low hem.');
+    await side('back');
+    await wait(1600);
+    await draw(form, [[0.33, 0.67], [0.41, 0.705], [0.5, 0.715], [0.59, 0.705], [0.67, 0.67]], 1200);
+    await cap('Back', 'Longer at the back.');
+    await wait(1400);
+    await side('front');
+    await wait(2200);
     await cap('', '');
     await card('Maison Tracé', 'Draw it your way.', 2200, true);
   },

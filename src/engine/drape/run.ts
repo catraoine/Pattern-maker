@@ -28,7 +28,7 @@ export type DrapeJob = { m: RoundMeasurements; armhole: RoundGarment['armhole'];
 /** What the view needs of a draped garment: each panel's points and triangles, where it is cut from (for the print),
  *  the settled positions, the seams to draw and the buttons. Plain data, so it crosses from a worker. */
 export interface DrapedLite {
-  panels: { role: string; base: number; tris: number[][]; uv: number[]; hidden?: boolean; collar: boolean; /** Drawn once, on the wearer's left only (a side tie), not mirrored. */ single?: boolean; /** Pressed pleats: drawn crisp, their faces' shading not softened away. */ pleated?: boolean; /** Points turned back over a fold (a lapel, a collar's fall). */ turned?: number[] }[];
+  panels: { role: string; base: number; tris: number[][]; uv: number[]; hidden?: boolean; collar: boolean; /** Drawn once, on the wearer's left only (a side tie), not mirrored. */ single?: boolean; /** Pressed pleats: drawn crisp, their faces' shading not softened away. */ pleated?: boolean; /** Points turned back over a fold (a lapel, a collar's fall). */ turned?: number[]; /** Cut whole (a one-shoulder's front): both halves are its own points, nothing mirrored. */ whole?: boolean }[];
   pos: Float64Array;
   /** The mirrored half's points, where they differ from `pos` (a slit up the left side seam only). */
   posMirror?: Float64Array;
@@ -142,6 +142,7 @@ export function runDrape(job: DrapeJob): DrapedLite {
       hidden: p.hidden,
       collar: p.role === 'collar',
       ...(p.pc.meta.pleatFolds ? { pleated: true } : {}),
+      ...(p.pc.meta.whole ? { whole: true } : {}),
       turned: p.turned.some(Boolean) ? p.turned.map((t) => (t ? 1 : 0)) : undefined,
     })), ...extra],
     pos,
