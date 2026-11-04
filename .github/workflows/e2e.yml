@@ -36,6 +36,26 @@ jobs:
       - run: npm ci
       - run: npm run test:full
 
+  fit:
+    name: Fit sweep (300 random bodies, every garment)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Fails on a new kind of fit fault; the kinds already found are in src/fitKnown.json (see src/fitSweep.ts).
+      - run: npx vitest run src/fitSweep.test.ts
+        env:
+          FIT_BODIES: '300'
+          FIT_REPORT: fit-sweep.md
+      - name: Report
+        if: ${{ !cancelled() }}
+        run: cat fit-sweep.md >> "$GITHUB_STEP_SUMMARY" || true
+
   options:
     name: All round, every option on its own (${{ matrix.shard }})
     runs-on: ubuntu-latest

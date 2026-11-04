@@ -158,6 +158,16 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
    not in the file. A fault in the file is a real one waiting on a fix, never one hidden; `PATTERN_OPTIONS=write`
    rewrites the file once it is fixed. Nightly (`quality-nightly.yml`) the same walk runs on 20 random bodies and
    only reports.
+24. **Every garment is fitted on 300 random bodies** (Nov 4, Quality: Automated checks): a random design of every
+   garment (skirt, top, dress, jacket, coat, trousers, T-shirt), made valid as the style screen keeps it, drafted for
+   each of 300 random bodies and held to the body: the printed finished size is the body plus its ease; the bust and
+   hip have at least the fit's ease (a bias slip 3 cm less at the hip, on purpose); woven cloth is never cut smaller
+   than the body at the bust, hip, armhole or upper arm (a boned top's bust is, on purpose; a dropped shoulder's or a
+   raglan's armhole is on the arm); a straight-cut skirt's or trousers' pieces measure the hip printed on them; the
+   hem lands at the length asked for (not a high-low or diagonal hem); a fitted or regular set-in armhole's underarm is
+   no more than 2.5 cm below the bust point. `src/fitSweep.ts`, held to `src/fitKnown.json` (the kinds of fault
+   already found): every pull request runs 300 bodies (its own CI job; 30 inside `npm test`) and fails on a new
+   kind. Nightly it runs 300 new bodies and only reports.
 
 ## Style steps
 

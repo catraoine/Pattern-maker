@@ -5,6 +5,7 @@ something that changes how a department works. Design picks for single screens s
 
 ## November 2026
 
+- **Nov 4** Check 2, the fit sweep on 300 random bodies: 2,095 patterns, one kind of fault found (oversized jackets and coats are cut with a smaller armhole than the regular fit, down to 1.4 cm round the arm on a full bust). Quality checks now wait green for "ship" like everything else: merging is a release (check 1 went out early by mistake). [Product and fit rules](product-and-fit-rules.md) rule 24.
 - **Nov 4** Cat asked for six more automated checks, built in order by the new Quality: Automated checks department, each on every change plus a nightly read. First, pattern geometry on every option: 327 of 338 patterns sound; the 11 with faults (5 separate faults) are listed for fixing, not hidden. [Product and fit rules](product-and-fit-rules.md) rule 23.
 - **Nov 4** Shawl-collar and fitted-sleeve jackets turn in All round (Fable): the front beside the drawn-back neckline is eased to its cut lengths (on fronts with a gorge, near the neck only). Every option on its own 257 to 259 of 290, nothing lost. [Product and fit rules](product-and-fit-rules.md) rule 22.
 - **Nov 4** Inverted pleats and diagonal hems turn in All round (Fable): the inverted pleat was sewn open as a wide sheet with a gaping V; it is now drawn closed with a shaded V below the hip. The diagonal hem's short side was being let down to level, stretching the cloth. Every option on its own 255 to 257 of 290, nothing lost. [Product and fit rules](product-and-fit-rules.md) rules 20 and 21.

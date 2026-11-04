@@ -4,6 +4,7 @@ name: Quality checks nightly
 # every pull request at a smaller size (see tests.yml); this run only reports. The department's nightly read takes the
 # "Summary" step's log and tells Cat only when something got worse.
 # - Pattern geometry: every option of every garment, on the example body and on random bodies (src/patternSweep.ts).
+# - Fit sweep: 300 new random bodies each night, a random design of every garment on each (src/fitSweep.ts).
 on:
   schedule:
     - cron: '30 9 * * *'
@@ -44,7 +45,31 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
-          name: quality-nightly
+          name: quality-nightly-pattern
           path: |
             pattern-options.md
             pattern-bodies.md
+
+  fit:
+    name: Fit sweep on 300 new random bodies
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx vitest run src/fitSweep.test.ts
+        env:
+          FIT_BODIES: '300'
+          FIT_SEED: ${{ github.run_id }}
+          FIT_REPORT: fit-sweep.md
+          FIT_REPORT_ONLY: '1'
+      - name: Report
+        if: ${{ !cancelled() }}
+        run: cat fit-sweep.md >> "$GITHUB_STEP_SUMMARY" || true
+      - name: Summary
+        if: ${{ !cancelled() }}
+        run: cat fit-sweep.md || true
