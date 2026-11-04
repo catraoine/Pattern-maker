@@ -1,0 +1,50 @@
+name: Quality checks nightly
+
+# Every night, the Quality: Automated checks department's checks at full size (Cat, 2026-11-04). The same checks run on
+# every pull request at a smaller size (see tests.yml); this run only reports. The department's nightly read takes the
+# "Summary" step's log and tells Cat only when something got worse.
+# - Pattern geometry: every option of every garment, on the example body and on random bodies (src/patternSweep.ts).
+on:
+  schedule:
+    - cron: '30 9 * * *'
+  workflow_dispatch:
+    inputs:
+      bodies:
+        description: How many random bodies for the pattern geometry check
+        default: '20'
+
+jobs:
+  pattern:
+    name: Pattern geometry on every option
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx vitest run src/patternSweep.test.ts -t "every option on its own"
+        env:
+          PATTERN_REPORT: pattern-options.md
+      - run: npx vitest run src/patternSweep.test.ts -t "random bodies"
+        if: ${{ !cancelled() }}
+        env:
+          PATTERN_BODIES: ${{ github.event.inputs.bodies || '20' }}
+          PATTERN_BODIES_REPORT: pattern-bodies.md
+      - name: Report
+        if: ${{ !cancelled() }}
+        run: cat pattern-options.md pattern-bodies.md >> "$GITHUB_STEP_SUMMARY" || true
+      - name: Summary
+        if: ${{ !cancelled() }}
+        run: |
+          head -6 pattern-options.md || true
+          head -8 pattern-bodies.md || true
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: quality-nightly
+          path: |
+            pattern-options.md
+            pattern-bodies.md
