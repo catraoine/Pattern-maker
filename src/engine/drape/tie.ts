@@ -10,7 +10,7 @@ export interface SideTieSpec {
   lengthCm: number;
 }
 
-export interface TieMesh {
+interface TieMesh {
   /** The tie's points, x c z. */
   pos: number[];
   tris: number[][];
