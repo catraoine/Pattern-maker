@@ -127,6 +127,13 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
    reads a circle piece's levels as arcs round its waist centre (its rows run along the fall beside the side seam,
    which that pass had flung out as a wing). The circle skirt and the circle-skirt dress pass the score and read as
    circle skirts; the half circle is unchanged.
+19. **A gathered band hangs from the edge it is gathered to** (Nov 4, Fable): a tier's or a ruffle's top is not a
+   waist. The pass that draws a skirt's top edge in to the body (its waistband) was drawing every tier's top in too, so
+   the band hung 4 to 8 cm inside the hem above it with the seam torn. Tier and ruffle tops are left alone; after the
+   skirt's own passes each band is carried whole back onto its seam (top band first), the edge it gathers onto first
+   smoothed along its own length (the gathers had drawn it into a 1 cm zigzag, where the gathering thread sews a
+   straight line). A balloon hem's swell ends at its hem, which is gathered onto the underskirt's hem and is set back
+   on it; the outer skirt's fullness is not drawn out as width. The quality hem check measures only the lowest hem.
 
 ## Style steps
 

@@ -2230,7 +2230,8 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
     const hipC = sp.cOf(0.82);
     for (const p of B.panels) {
       const gather = ((p.pc.meta.gatherShown ?? p.pc.meta.gathered) as number | undefined) ?? 1;
-      if (p.hidden || !/peplum/.test(p.role) || gather > 1.05 || p.pc.meta.bias || p.pc.meta.tier || /ruffle|flounce/i.test(p.pc.name)) continue;
+      // (Nor a balloon's outer skirt: its hem is gathered onto the underskirt's, so its fullness is not width to draw out.)
+      if (p.hidden || !/peplum/.test(p.role) || gather > 1.05 || p.pc.meta.bias || p.pc.meta.tier || /ruffle|flounce/i.test(p.pc.name) || p.mesh.runs.balloon) continue;
       const pts = p.mesh.pts;
       // (A circle skirt's levels are arcs round its waist's centre, not the piece's rows: its side seam is a radius, lying
       // along the fall. Binned by row, the row beside the seam ran from waist to hem, its drawn width across next to
@@ -2498,6 +2499,71 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       }
     }
   }
+  // A gathered band (a tier, a ruffled hem) hangs from the edge it is gathered to. The passes above move that edge (a
+  // flared skirt's hem drawn out to its cut width, a tier's own folds laid on) and not the band, which was left hanging
+  // 4 to 8 cm inside the hem above it, the seam torn. Each band is carried whole to meet its seam again, its top band
+  // first, between the two seam points either side of each point so it keeps its own folds (All round quality
+  // 2026-11-04).
+  /** The panel's edge `tag` set back on the edge it is sewn to (by the seams' own targets), the rest of the panel
+   *  carried with it: whole when `reach` is 0, else only the cloth within `reach` cm (up the piece) of the edge, easing
+   *  out. Between the two seam points either side of each point, so the panel keeps its own folds. */
+  const seatOn = (p: Panel, tag: string, reach = 0) => {
+    const edge = new Set((p.mesh.runs[tag] ?? []).flat().map((i) => p.base + i));
+    const mine = (g: number) => g >= p.base && g < p.base + p.mesh.pts.length;
+    // The edge it gathers onto is first smoothed along its length, in the order of its own piece's edge: the gathered
+    // cloth, sewn to it point by point, had drawn it into a 1 cm zigzag and bunched its points out of order round the
+    // body, where the gathering thread sews a straight line.
+    const above = new Set<number>();
+    for (const { i, j, k } of seams) if (edge.has(i) && !mine(j)) above.add(j).add(k);
+    const xOf = (g: number) => {
+      const q = B.panels.find((x) => g >= x.base && g < x.base + x.mesh.pts.length)!;
+      return q.mesh.pts[g - q.base].x;
+    };
+    const ring = [...above].sort((u, v) => xOf(u) - xOf(v));
+    for (let pass = 0; pass < (knob('__seamSmooth') ?? 3); pass++) {
+      const was = ring.map((g) => [res[g * 3], res[g * 3 + 1], res[g * 3 + 2]]);
+      for (let n = 1; n < ring.length - 1; n++) {
+        const g = ring[n] * 3;
+        for (let d = 0; d < 3; d++) res[g + d] = was[n][d] * 0.5 + (was[n - 1][d] + was[n + 1][d]) * 0.25;
+      }
+    }
+    const shift = new Map<number, V3>();
+    for (const { i, j, k, t } of seams) {
+      if (!edge.has(i) || mine(j)) continue;
+      const I = i * 3;
+      const J = j * 3;
+      const K = k * 3;
+      shift.set(i, [res[J] * (1 - t) + res[K] * t - res[I], res[J + 1] * (1 - t) + res[K + 1] * t - res[I + 1], res[J + 2] * (1 - t) + res[K + 2] * t - res[I + 2]]);
+    }
+    if (!shift.size) return;
+    const tops = [...shift.keys()].map((g) => ({ g, x: p.mesh.pts[g - p.base].x, y: p.mesh.pts[g - p.base].y })).sort((u, v) => u.x - v.x);
+    // (The shifts eased along the edge, so neighbouring columns of the panel move alike: moved point by point to a
+    // zigzagging seam, the band creased into fins down each step.)
+    for (let pass = 0; pass < 2; pass++) {
+      const was = tops.map((t) => shift.get(t.g)!);
+      for (let n = 1; n < tops.length - 1; n++) shift.set(tops[n].g, [0, 1, 2].map((d) => was[n][d] * 0.5 + (was[n - 1][d] + was[n + 1][d]) * 0.25) as V3);
+    }
+    p.mesh.pts.forEach((q, i) => {
+      let k = 0;
+      while (k < tops.length - 1 && tops[k + 1].x < q.x) k++;
+      const a = tops[k];
+      const b = tops[Math.min(tops.length - 1, k + 1)];
+      const f = b.x > a.x ? Math.min(1, Math.max(0, (q.x - a.x) / (b.x - a.x))) : 0;
+      const w = reach ? Math.max(0, 1 - Math.abs(q.y - (a.y + (b.y - a.y) * f)) / reach) : 1;
+      if (w <= 0) return;
+      const sa = shift.get(a.g)!;
+      const sb = shift.get(b.g)!;
+      const I = (p.base + i) * 3;
+      res[I] += (sa[0] + (sb[0] - sa[0]) * f) * w;
+      res[I + 1] += (sa[1] + (sb[1] - sa[1]) * f) * w;
+      res[I + 2] += (sa[2] + (sb[2] - sa[2]) * f) * w;
+    });
+  };
+  if (!knob('__noBandSeat')) {
+    const topC = (p: Panel) => Math.min(...p.mesh.runs.waist!.flat().map((i) => res[(p.base + i) * 3 + 1]));
+    const bands = B.panels.filter((p) => !p.hidden && /peplum/.test(p.role) && p.pc.meta.tier && p.mesh.runs.waist?.length).sort((a, b) => topC(a) - topC(b));
+    for (const p of bands) seatOn(p, 'waist');
+  }
   // Turned cloth (a lapel, a collar's fall) lies on the cloth it turns over: each turned point is laid at the radius
   // of the garment under it, a cloth's thickness out, so a pressed lapel or collar reads flat, not crumpled.
   // A tailored neckline sits close round the neck, held by its collar and the tape in its seam; the coarse sim leaves
@@ -2508,7 +2574,9 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
   // and the cloth below eases in with it over the hip.
   if (!torso.length && !knob('__noWaistPull')) {
     for (const p of B.panels) {
-      if (p.hidden || !/peplum/.test(p.role) || /underskirt/i.test(p.pc.name)) continue;
+      // (Not a tier's or a ruffle's top, which is gathered onto the edge above it, not held by a waistband: drawn in
+      // to the body it left the band hanging 4 to 8 cm inside the hem it is sewn to, All round quality 2026-11-04.)
+      if (p.hidden || !/peplum/.test(p.role) || /underskirt/i.test(p.pc.name) || p.pc.meta.tier) continue;
       const top = (p.mesh.runs.waist ?? []).flat();
       if (!top.length) continue;
       const pts = p.mesh.pts;
@@ -3837,15 +3905,24 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
     for (const p of outerB) {
       const ys = p.mesh.pts.map((q) => q.y);
       const y0 = Math.min(...ys);
-      const H = Math.max(...ys) - y0;
+      // (Each point's depth by the hem below it, which on an A-line piece rises toward the side: by the piece's full
+      // height, the side hem was still 2 cm up the swell and stood off the underskirt's hem.)
+      const hem = (p.mesh.runs.balloon ?? []).flat().map((i) => p.mesh.pts[i]);
+      const hemAt = (x: number) => hem.reduce((b, h) => (Math.abs(h.x - x) < Math.abs(b.x - x) ? h : b), hem[0] ?? pt(x, Math.max(...ys))).y;
       p.mesh.pts.forEach((q, i) => {
+        const H = Math.max(1, hemAt(q.x) - y0);
         const t = Math.max(0, Math.min(1, ((q.y - y0) / H - 0.3) / 0.7));
-        const off = puffCm * Math.sin(Math.PI * Math.pow(t, 0.8) * 0.88);
+        // (To nothing at its hem, which is gathered onto the underskirt's hem and must meet it: short of that, the hem
+        // stood 9 to 10 cm off the hem it is sewn to, All round quality 2026-11-04.)
+        const off = puffCm * Math.sin(Math.PI * Math.pow(t, 0.8) * (knob('__balHem') ?? 1));
         const I = (p.base + i) * 3;
         const rho = Math.hypot(res[I], res[I + 2]) || 1e-9;
         res[I] *= (rho + off) / rho;
         res[I + 2] *= (rho + off) / rho;
       });
+      // (Its hem then set back on the underskirt's hem, the cloth within 8 cm of it eased with it: the coarse sim leaves
+      // the seam 2 to 3 cm open at the sides, where the outer's fullness bunches.)
+      seatOn(p, 'balloon', 8);
     }
   }
   // A set-in sleeve's cap: its ease is shrunk away, so the cap sits round the top of the arm no fuller than the sleeve

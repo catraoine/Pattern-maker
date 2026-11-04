@@ -237,7 +237,10 @@ export function drapeQuality(d: Draped, sp: Pick<Space, 'bodyR' | 'tip'>, o: Qua
 
   // A level hem hanging far from level.
   if (o.levelHem) {
-    const hem = shown.filter((p) => /peplum/.test(p.role)).flatMap((p) => (p.mesh.runs.hem ?? []).flat().map((i) => pos[(p.base + i) * 3 + 1]));
+    // (Only the lowest hem: a tiered skirt's upper tiers have hems of their own, a tier's depth above it.)
+    const byPanel = shown.filter((p) => /peplum/.test(p.role)).map((p) => (p.mesh.runs.hem ?? []).flat().map((i) => pos[(p.base + i) * 3 + 1])).filter((h) => h.length);
+    const low = Math.max(...byPanel.map((h) => h.reduce((a, b) => a + b, 0) / h.length), -Infinity);
+    const hem = byPanel.filter((h) => h.reduce((a, b) => a + b, 0) / h.length > low - 8).flat();
     if (hem.length) {
       const range = Math.max(...hem) - Math.min(...hem);
       if (range > L.hemCm) add('hem', 'Hem', range);
