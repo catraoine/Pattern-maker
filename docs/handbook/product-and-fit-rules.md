@@ -90,15 +90,64 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
    sleeveless top cut with full shoulders has its shoulder seam held a little behind the side, as a sleeveless
    dress's is (left to settle, the seam slid 6 to 7 cm behind and the armhole's top ran forward level over the arm as
    a square shelf; held nearer the side, a crew neck dropped at the front). A shoulder counts as full from 7 cm (a
-   square neck's 8.8 cm shoulder, left to settle as a strap, stood its corners up as wings). Still wrong and next in
-   line: the boat neck's shoulders stand out past the form (its straps sit at the tip, and the cloth beyond rests on
-   the arm the drawing doesn't show).
+   square neck's 8.8 cm shoulder, left to settle as a strap, stood its corners up as wings). A sleeveless garment's
+   cloth never rests on the arm (Nov 4): the arm the drape hangs beside the form isn't drawn, and cloth resting on
+   its top rode up over it as a shelf standing in the air past the shoulder (the boat neck's straps sit at the tip,
+   so all of its armhole top did); the cloth now falls past the arm, and the old pass that lowered it onto the
+   arm's top is gone. An unshaped top (cut as wide at the waist as the bust, the oversized top) hangs as a curtain
+   from the bust down, and its smoothing pass now stops at the bust (Nov 4): run to the top, it drew the rows under
+   the shoulder seam across the shoulder's bend into the form, and the last clamp slid them 3 cm out along the
+   shoulder, read as stretched.
 14. **A wrap front is sewn as its own half** (Nov 3, Fable): each wrap front is cut whole, its own half and most of the
    other's. Sewn whole, both halves and their mirrors lay four deep over the chest and the form showed through the
    fighting layers (the wrap top and wrap dress failed the score and showed their Front drawing). The drape now sews
    the own half cut 2.5 cm past the centre, lapping over the other front as a buttoned front's extension does; its
    mirror is the under front, so the V and the lap read right. The over front's diagonal edge across the far half is
    not drawn yet.
+15. **A tailored collar is eased from its seam** (Nov 4, Fable): a jacket's or coat's collar is placed point by point
+   from the nearest stretch of its neck seam (its stand rising round the neck, its end lying flat on with the lapel).
+   Where the nearest stretch changed from the neck's to the gorge's, one point stood up the neck and its neighbour lay
+   flat on the lapel, 4 to 5 cm apart for 1.2 cm of cloth: nearly every plain jacket and coat option (74 of 290)
+   failed the score as "stretched" at the collar's end and showed its Front drawing. The laid collar is now eased back
+   to its cut lengths with its neck seam held, so the end rolls from the stand into the lapel.
+16. **Godets are the skirt's own fullness in All round** (Nov 4, Fable): a godet is a sector set into a slash, and its
+   two edges are sewn to one line of the panel, which the drape's mesh does not cut; sewn as its own triangle it hung
+   loose below the hem. The drape now leaves the godet pieces out and draws the panel's cloth beyond each slash out
+   sideways by the godet's hem width (nothing at the point, all of it at the hem), kept as far from the point as it was
+   cut, so the hem gains what the godets add, stays level, and the skirt flares from the godets' height down. The
+   pattern and the flat drawing still show the real godets. A side-seam godet gives half its width to each panel.
+17. **A flute is not a sawtooth** (Nov 4, Fable): the jagged-edge check counts a point only where its lean off the line
+   through its neighbours turns against the point before or after it. A flute on a full hem (a half-circle's, a
+   gathered skirt's) leans the same way for several points and is meant; a sawtooth turns back at every point. The
+   half-circle and gathered skirts showed their Front drawing for their flutes before.
+18. **A full circle skirt hangs in flutes** (Nov 4, Fable): a half circle starts in the drape as the cone its pieces
+   make, and settles well. A full circle's hem is more than any cone can hold, so it started as a tutu's flat disc the
+   sim then tore pulling in. It now starts as the half-circle cone with the rest of each level's round laid in eight
+   even flutes that grow from nothing at the waist, and the flare pass that draws each level out to its cut width
+   reads a circle piece's levels as arcs round its waist centre (its rows run along the fall beside the side seam,
+   which that pass had flung out as a wing). The circle skirt and the circle-skirt dress pass the score and read as
+   circle skirts; the half circle is unchanged.
+19. **A gathered band hangs from the edge it is gathered to** (Nov 4, Fable): a tier's or a ruffle's top is not a
+   waist. The pass that draws a skirt's top edge in to the body (its waistband) was drawing every tier's top in too, so
+   the band hung 4 to 8 cm inside the hem above it with the seam torn. Tier and ruffle tops are left alone; after the
+   skirt's own passes each band is carried whole back onto its seam (top band first), the edge it gathers onto first
+   smoothed along its own length (the gathers had drawn it into a 1 cm zigzag, where the gathering thread sews a
+   straight line). A balloon hem's swell ends at its hem, which is gathered onto the underskirt's hem and is set back
+   on it; the outer skirt's fullness is not drawn out as width. The quality hem check measures only the lowest hem.
+20. **An inverted pleat is drawn closed, with its V** (Nov 4, Fable): the drape leaves off the extension behind an
+   inverted pleat (it lies hidden behind the face; sewn open it hung as a wide sheet with a gaping V down the centre
+   front and back). The face is draped as cut, and the pleat drawn on it: its two folds meet at the centre, stitched
+   to the hip (the back's from where its pleat starts, below the zip), and part below into a narrow V to the hem with
+   the cloth inside set in and darkened, deepest at the centre and out to nothing at the fold edge (a flat step drew
+   the edge as a sawtooth). Knife and box pleats are unchanged.
+21. **A hem cut unlevel stays unlevel** (Nov 4, Fable): the pass that lets a flared skirt's hem down where it rode up
+   at the sides skips a high-low, diagonal or shaped hem (`shapedHem` in the drape options). It was letting a
+   diagonal's short side down to the long side's level and stretching the cloth above it to nearly three times its cut.
+22. **The cloth beside a drawn-back neckline is eased** (Nov 4, Fable): a jacket's or coat's front neckline is drawn
+   back along itself from the shoulder after the sim, by 6 to 8 cm; the cloth within 5 cm came with it on a steep
+   share, so the neck's last point and the gorge point beside it were drawn nearly three times their cut apart (the
+   shawl-collar jacket and the fitted-sleeve jacket failed on it). The front is now eased back to its cut lengths
+   with the neckline and shoulder held. The coat's shawl collar still tears at the collar's end (its own placement).
 
 ## Style steps
 
