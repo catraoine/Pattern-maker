@@ -4,6 +4,13 @@ _Update this page whenever a release ships or a PR is queued._
 
 ## Live
 
+**Release 61** (Nov 4, 2026, #279): nine overnight All round rounds. Sleeveless body cloth never meets the drape's
+unseen arm (boat neck shelf gone); an unshaped top's smoothing stops at the bust; tailored jacket and coat collars eased
+from their seam; godets carried as the skirt's own fullness; the full circle skirt hangs in eight flutes; tier, ruffle
+and balloon bands set back on their seams; the inverted pleat drawn closed with its V; a shaped or diagonal hem stays
+unlevel; the cloth beside a drawn-back jacket neckline eased. 259 of 290 options pass on their own. Handbook rules
+13 and 15 to 22.
+
 **Release 60** (Nov 4, 2026, #278): sleeveless shoulders sit on the form in All round (the hug-the-ribs pass no
 longer folds the front armhole's top up as a wing; a sleeveless top's seam is held as the dress's; a shoulder is full
 from 7 cm, so the square neck too); the wrap top and wrap dress turn (each wrap front sewn as its own half with a
