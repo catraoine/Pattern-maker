@@ -4,6 +4,14 @@ _Update this page whenever a release ships or a PR is queued._
 
 ## Live
 
+**Release 62** (Nov 4, 2026, Draw calico bundle: #280, #283, #284, #285): Draw your lines shows every garment as
+calico cloth on the form, skirt and bodice too, with its darts, pleats, pockets and slits pressed in; a slanted hem
+slants the way it is drawn; a collar on a drawn neckline shows (#284, rule 25). All round hangs cloth clear of the
+body plumb and levels a shift's hem, plus the new Belt option **Side tie** (In testing; Look 06 unchanged until
+Cat's "apply") (#280, rule 24). The Style title matches the step name and the Next button is at its real weight
+(#283). Quality checks 2 to 6 run on every change and nightly: fit sweep on 300 bodies, print check, DXF round
+trip, Front drawing check, screen check (#285, rules 26 to 30), with a Check a file fix.
+
 **Release 61** (Nov 4, 2026, #282, merged early by mistake, test-only): the pattern geometry check on every option
 (handbook rule 23) and the nightly Quality checks workflow. Nothing in the app changed.
 
@@ -41,13 +49,10 @@ Live site: https://maisontrace.co (the cloud proxy blocks it; check
 https://whimsical-mooncake-2cf9a9.netlify.app, the same site). Strangers see the waitlist; testers
 get in with their tester link.
 
-## Queued for "ship" (as of Nov 4, 15:00 UTC)
+## Queued for "ship" (as of Nov 4, after Release 62)
 
-- #280: All round draws cloth clear of the body hanging plumb on the form; a shift's or sheath's hem
-  levelled (the blush shift redesign). Drawing only; pattern and sim unchanged. Plus the new Belt option
-  **Side tie** (In testing; Cat, Nov 4 "I want the side tie let's build"): two self-fabric ties caught
-  into the left side seam at the waist and knotted, with its pattern piece, steps, flat drawing and All
-  round knot and tails. Look 06 itself is not changed until Cat's "apply".
+- #281 (All round: halter, plunge, cowl, one-shoulder necklines; collars, cuffs, raglan): left out of
+  Release 62 because its checks were not green yet; needs main merged in (handbook rule numbers clash).
 
 Open draft: #259 (bias slip mini + side slit, open polo collar, ruffled trouser
 hem; In testing), based on main, waiting on Cat's "apply".
