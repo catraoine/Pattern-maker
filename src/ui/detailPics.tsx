@@ -105,6 +105,7 @@ const DETAILS: Record<ExplainSet, Record<string, Record<string, ReactNode>>> = {
       sash_loops: on(SKIRT, 'M13.6 8h12.8v4H13.6zM20 12L17.5 24M20.5 12L23 22M14.5 7v6M25.5 7v6'),
       loops: on(SKIRT, 'M16 5.5v3.5M24 5.5v3.5M16.8 5.5v3.5M24.8 5.5v3.5'),
       band: on(SKIRT, 'M13.6 8h12.8v4H13.6zM16.5 7h2.4v6h-2.4zM18.9 8.6h3.5l0.8 1.4l-0.8 1.4h-3.5'),
+      side_tie: on(SKIRT, 'M24.6 8.4h2.8v2.8h-2.8zM25.4 11.2L24 26M26.6 11.2L28.2 24'),
     },
   },
   bodice: {

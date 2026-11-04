@@ -5623,7 +5623,79 @@ export function drapeDress(sp: Space, d: DressDraft, sleeve?: SleeveDraft, o: Dr
   const slit = (d.skirt as { slit?: { at: string; cm: number } } | undefined)?.slit;
   const slitCm = o.openSlit && slit?.at === 'side' ? slit.cm : undefined;
   const sk = d.skirt as { asym?: unknown; hem?: unknown } | undefined;
-  return drapeBodice(sp, d.bodice, sleeve, { heavySkirt: true, ...(sk?.asym || sk?.hem ? { shapedHem: true } : {}), ...o }, { pieces: d.pieces, skirt: hungSkirt(d.pieces.filter(isSkirt), d.skirt?.volume as never, { hip: d.skirt?.finishedHip, hem: d.skirt?.hemCm }), drop: d.seamDrop ?? 0, tiers: d.skirt?.volume?.tiers?.bands, under: d.pieces.filter(isUnder), ...(slitCm ? { slitCm } : {}) });
+  const out = drapeBodice(sp, d.bodice, sleeve, { heavySkirt: true, ...(sk?.asym || sk?.hem ? { shapedHem: true } : {}), ...o }, { pieces: d.pieces, skirt: hungSkirt(d.pieces.filter(isSkirt), d.skirt?.volume as never, { hip: d.skirt?.finishedHip, hem: d.skirt?.hemCm }), drop: d.seamDrop ?? 0, tiers: d.skirt?.volume?.tiers?.bands, under: d.pieces.filter(isUnder), ...(slitCm ? { slitCm } : {}) });
+  if (d.noSeam) levelHemSpikes(out);
+  return out;
+}
+
+/** A shift or sheath's hem: the cloth settles with a single point hanging a cm or two below its neighbours at the
+ *  centre fold and at the foot of the side seam, a notch in an otherwise level hem (the blush shift, 2026-11-04). Each
+ *  such point is brought up level with its neighbours along the hem, and the cloth just above it eased with it. */
+function levelHemSpikes(out: Draped): void {
+  const EASE = 8;
+  const arrs = [out.pos, ...(out.posMirror ? [out.posMirror] : [])];
+  const panels = out.panels.filter((p) => !p.hidden && (p.role === 'front' || p.role === 'back') && p.mesh.runs.hem?.length);
+  for (const p of panels) {
+    const pts = p.mesh.pts;
+    const fix = new Map<number, number>();
+    for (const run of p.mesh.runs.hem ?? []) {
+      if (run.length < 3) continue;
+      const y0 = run.map((i) => out.pos[(p.base + i) * 3 + 1]);
+      const y = [...y0];
+      for (let pass = 0; pass < 3; pass++)
+        run.forEach((_, k) => {
+          const nb = k === 0 ? y[1] : k === run.length - 1 ? y[k - 1] : Math.max(y[k - 1], y[k + 1]);
+          y[k] = Math.min(y[k], nb + 0.3);
+        });
+      run.forEach((i, k) => {
+        if (y0[k] - y[k] > 0.2) fix.set(i, y0[k] - y[k]);
+      });
+    }
+    if (!fix.size) continue;
+    const onHem = new Set((p.mesh.runs.hem ?? []).flat());
+    pts.forEach((q, i) => {
+      if (onHem.has(i)) {
+        const l = fix.get(i);
+        if (l) for (const a of arrs) a[(p.base + i) * 3 + 1] -= l;
+        return;
+      }
+      let lift = 0;
+      for (const [h, l] of fix) {
+        const w = Math.max(0, 1 - Math.hypot(q.x - pts[h].x, q.y - pts[h].y) / EASE);
+        lift = Math.max(lift, l * w * w);
+      }
+      if (lift > 0) for (const a of arrs) a[(p.base + i) * 3 + 1] -= lift;
+    });
+  }
+  // And the hem is cut level and hangs level: the front's bust dart takes up what the bust needs, so the hem does not
+  // ride up at the centre front as the settled cloth, its bust a little fuller than the draft's, has it. Each hem point
+  // is brought to the hem's level, the cloth above eased with it.
+  const LEVEL_EASE = 20;
+  const hemY = panels.flatMap((p) => (p.mesh.runs.hem ?? []).flat().map((i) => out.pos[(p.base + i) * 3 + 1])).sort((a, b) => a - b);
+  if (!hemY.length) return;
+  const level = hemY[Math.floor(hemY.length / 2)];
+  for (const p of panels) {
+    const pts = p.mesh.pts;
+    const hem = (p.mesh.runs.hem ?? []).flat();
+    const off = new Map(hem.map((i) => [i, out.pos[(p.base + i) * 3 + 1] - level]));
+    const hemTop = Math.min(...hem.map((i) => pts[i].y));
+    pts.forEach((q, i) => {
+      let best = -1;
+      let bd = Infinity;
+      for (const h of hem) {
+        const d = Math.abs(q.x - pts[h].x);
+        if (d < bd) {
+          bd = d;
+          best = h;
+        }
+      }
+      if (best < 0) return;
+      const up = Math.max(0, hemTop - q.y);
+      const w = Math.max(0, 1 - up / LEVEL_EASE);
+      const dy = (off.get(best) ?? 0) * w * w;
+      if (dy) for (const a of arrs) a[(p.base + i) * 3 + 1] -= dy;
+    });
+  }
 }
 
 export function drapeTrousers(sp: Space, d: TrousersDraft, o: DrapeOptions = {}): Draped {

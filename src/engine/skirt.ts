@@ -70,6 +70,8 @@ export interface SkirtStyle {
   flounce?: Flounce;
   /** A high-low or diagonal hem, drafted in place of a drawn one. Older saves have none. */
   asymHem?: AsymHem;
+  /** A diagonal hem the other way round: long on the wearer's left (as drawn, so a slant drawn either way lands). */
+  asymFlip?: boolean;
   /** A gathered skirt's fullness, chosen (In testing); unset, it follows the fit (GATHER_RATIO). */
   gathers?: Gathers;
   /** With tiers: one deep gathered skirt from a yoke below the hip, in place of the tiers (In testing). */

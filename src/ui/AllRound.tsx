@@ -191,9 +191,9 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
     // slope below it.
     const cTop = sp.cOf(-1.45) + 2;
     const slope = (sp.yOf(cTop + 4) - sp.yOf(cTop)) / 4;
-    return (x: number, c: number, z: number): [number, number, number] => {
+    return (x: number, c: number, z: number, scale?: number): [number, number, number] => {
       const y = c < cTop ? sp.yOf(cTop) + (c - cTop) * slope : sp.yOf(c);
-      const s = sp.scale(y);
+      const s = scale || sp.scale(y);
       return [x / s, y, z / s];
     };
   }, [spaceOf]);

@@ -16,6 +16,7 @@ handoff, and this table is updated.
 | Media: Measuring video | "Mastering measuring" film (option C picked; films at the Nov 8 shoot) | Mastering measuring doc |
 | Media: All Round intro | Film opening | — |
 | All round quality | Making every design look right in All round: nightly sweep, weekly Fable eye check, the Front-drawing safety net, the option check on every PR | `src/drapeSweep.ts`, `src/drapeOptions.json`, project files `all-round-quality/` |
+| Quality: Automated checks | The six checks Cat asked for on Nov 4, each on every PR and nightly: pattern geometry on every option, fit sweep on 300 bodies, print check, DXF round trip, Front drawing check, screen check | `src/patternSweep.ts`, `src/patternOptions.json`, `src/fitSweep.ts`, `src/fitKnown.json`, `src/printCheck.ts`, `src/printKnown.json`, `src/dxfRoundTrip.ts`, `src/dxfKnown.json`, `src/frontCheck.ts`, `src/frontKnown.json`, `e2e/front-drawing.spec.ts`, `e2e/screen-check.spec.ts`, `e2e/screenAudit.ts`, `src/screenKnown.json`, `.github/workflows/quality-nightly.yml` |
 | Design: The Collection | Seasonal collections (SS27), drops path, open calls | Collection calendar, drop path doc |
 | Design: Collection Preview | Pieces Cat sews from the coming collection before launch | Capsule doc, preview sheet |
 | Organic Social / First solo session | Social strategy, calendar, shoots | Social strategy, social calendar deck |
@@ -31,4 +32,4 @@ add or tick items there.
 
 Scheduled routines: Mon/Wed/Fri email check (routes each email to the owning thread), Wed/Sun fit
 report reader, Sunday "waiting on Cat" digest, Monday social + community actions, weekly SR&ED log,
-Jan 1 + Aug 1 trend check for the next collection, nightly All round sweep read (3:37am), weekly Fable All round eye check (Wed 11:13am), Jan 18 In testing review, tax reminders.
+Jan 1 + Aug 1 trend check for the next collection, nightly All round sweep read (3:37am), nightly Quality checks read, weekly Fable All round eye check (Wed 11:13am), Jan 18 In testing review, tax reminders.

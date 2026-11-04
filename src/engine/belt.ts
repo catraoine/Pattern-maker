@@ -1,18 +1,21 @@
 // A tie sash and belt loops for a dress or a skirt: a folded sash that wraps the waist and knots, in
 // two halves joined at the centre back; and narrow loops tacked on at the waist to hold it, or to carry
-// a belt of your own. Plain ASCII punctuation (see instructions.ts).
+// a belt of your own. Or a side tie: two narrow self-fabric ties caught into the left side seam at the
+// waist and knotted there, their ends hanging (the blush shift, Nov 2026). Plain ASCII punctuation (see
+// instructions.ts).
 import { Path, p } from './geometry';
 import { pathOf } from './manipulate';
 import type { Piece } from './piece';
 import type { SewingGuide, SewStep } from './instructions';
 
-export type Belt = 'none' | 'sash' | 'sash_loops' | 'loops' | 'band';
+export type Belt = 'none' | 'sash' | 'sash_loops' | 'loops' | 'band' | 'side_tie';
 export const BELTS: [Belt, string][] = [
   ['none', 'None'],
   ['sash', 'Tie sash'],
   ['sash_loops', 'Sash in loops'],
   ['loops', 'Belt loops'],
   ['band', 'Self band'],
+  ['side_tie', 'Side tie'],
 ];
 /** A skirt's belts: the self band is the dress's own, belted at its seam. */
 export const SKIRT_BELTS = BELTS.filter(([id]) => id !== 'band');
@@ -26,6 +29,9 @@ export const BELT = {
    * fastened with a buckle of your own, its end slanted 3 cm like the sash's. */
   band: { width: 4, lap: 8, point: 3 },
   loop: { width: 1, ease: 1, turn: 1, own: 3 },
+  /** Two ties 3 cm wide finished and 38 cm long, caught into the left side seam at the waist and knotted; their
+   * ends slanted 3 cm. */
+  sideTie: { width: 3, length: 38, slant: 3 },
 };
 
 export interface BeltDraft {
@@ -36,6 +42,8 @@ export interface BeltDraft {
   band?: { lengthCm: number; widthCm: number };
   /** How many loops, each cut this long, and the width of what they hold. */
   loops?: { count: number; cutCm: number; holdsCm: number };
+  /** A side tie: two ties, each this long and wide finished, in the left side seam at the waist. */
+  ties?: { count: number; lengthCm: number; widthCm: number };
 }
 
 /** Which garments take a belt: not a wrap, which ties already, and no loops on a pull-on elastic waist,
@@ -43,7 +51,7 @@ export interface BeltDraft {
 export function beltAllowed(belt: Belt, g: { wrap?: boolean; elastic?: boolean }): boolean {
   if (belt === 'none') return true;
   if (g.wrap) return false;
-  return belt === 'sash' || !g.elastic;
+  return belt === 'sash' || belt === 'side_tie' || !g.elastic;
 }
 
 /** The sash and loops for a finished waist in cm. */
@@ -58,6 +66,7 @@ export function beltOf(belt: Belt | undefined, waistCm: number): BeltDraft | und
       loops: { count: 2, cutCm: w + BELT.loop.ease + 2 * BELT.loop.turn, holdsCm: w },
     };
   }
+  if (belt === 'side_tie') return { kind: belt, ties: { count: 2, lengthCm: BELT.sideTie.length, widthCm: BELT.sideTie.width } };
   const sashed = belt !== 'loops';
   const holds = sashed ? BELT.sash.width : BELT.loop.own;
   return {
@@ -122,6 +131,32 @@ export function beltPieces(b: BeltDraft | undefined, sa: number): Piece[] {
       meta: { band: true },
     });
   }
+  if (b.ties) {
+    // Each tie cut as one strip, folded along its length: the straight end goes into the seam, the far end slanted.
+    const L = b.ties.lengthCm + 1;
+    const h = 2 * b.ties.widthCm;
+    const s = BELT.sideTie.slant;
+    const cut = `Cut ${b.ties.count}`;
+    out.push({
+      name: 'Side ties',
+      kind: 'band',
+      outline: pathOf({ pts: [p(0, 0), p(L, 0), p(L - s, -h), p(0, -h)], tags: ['edge', 'edge', 'edge', 'edge'] }),
+      lines: [new Path(p(0.5, -h / 2)).line(p(L - s / 2 - 0.5, -h / 2))],
+      grain: [p(L * 0.3 - 4, -h * 0.3), p(L * 0.3 + 4, -h * 0.3)],
+      notches: [],
+      labels: [
+        { at: p(L * 0.45, -h * 0.68), text: 'SIDE TIE', size: 0.6 },
+        { at: p(L * 0.45, -h * 0.18), text: cut, size: 0.5 },
+        { at: p(2.5, -h / 2 - 0.3), text: 'FOLD', size: 0.45 },
+        { at: p(1.2, -0.6), text: 'SEAM END', size: 0.4 },
+      ],
+      cut,
+      fabric: 'Self',
+      seamAllowance: sa,
+      allowances: { edge: 1 },
+      meta: { ties: b.ties.count },
+    });
+  }
   if (b.loops) {
     const L = b.loops.count * b.loops.cutCm;
     const w = 4 * BELT.loop.width;
@@ -157,7 +192,8 @@ export function beltNote(b: BeltDraft): string {
       ? `A self band ${b.band.lengthCm} cm long and ${b.band.widthCm} cm wide, for a ${b.band.widthCm} cm buckle of your own`
       : '';
   const loops = b.loops ? `${b.loops.count} belt loops${b.sash || b.band ? ' at the side seams to hold it' : ` for a belt up to ${b.loops.holdsCm} cm wide`}` : '';
-  return `${[sash, loops].filter(Boolean).join(', and ')}.`;
+  const ties = b.ties ? `${b.ties.count} side ties ${b.ties.lengthCm} cm long and ${b.ties.widthCm} cm wide, caught into the left side seam at the waist and knotted` : '';
+  return `${[sash, loops, ties].filter(Boolean).join(', and ')}.`;
 }
 
 /**
@@ -169,7 +205,7 @@ export function withBelt(g: SewingGuide, b: BeltDraft | undefined, o: { band: bo
   if (!b) return g;
   const steps = [...g.steps];
   const ci = steps.findIndex((s) => s.title === 'Cut out');
-  const cutWords = [b.sash && 'Cut the two sash halves as a pair.', b.band && 'Cut the self band once, its FOLD edge on a lengthwise fold.', b.loops && 'Cut the belt loop strip once, along the grain.'].filter(Boolean).join(' ');
+  const cutWords = [b.sash && 'Cut the two sash halves as a pair.', b.band && 'Cut the self band once, its FOLD edge on a lengthwise fold.', b.loops && 'Cut the belt loop strip once, along the grain.', b.ties && `Cut ${b.ties.count} side ties, along the grain.`].filter(Boolean).join(' ');
   if (ci >= 0) steps[ci] = { ...steps[ci], text: `${steps[ci].text} ${cutWords}` };
   const added: SewStep[] = [];
   if (b.loops) {
@@ -198,6 +234,17 @@ export function withBelt(g: SewingGuide, b: BeltDraft | undefined, o: { band: bo
       title: 'Make the self band',
       text: `Fold the band in half along its FOLD line, right sides together, and sew across the slanted end and along the long edge 1 cm from it, leaving the straight end open. Trim the corner, turn it right side out, press it flat, and edgestitch all round. Thread the straight end through a ${b.band.widthCm} cm buckle, fold it back 4 cm and stitch it down, then make a hole for the prong where the band laps.`,
     });
+  if (b.ties)
+    added.push(
+      {
+        title: 'Make the side ties',
+        text: `Fold each tie in half along its FOLD line, right sides together, and sew across the slanted end and along the long edge 1 cm from it, leaving the straight SEAM END open. Trim the corner, turn it right side out and press it flat, ${b.ties.widthCm} cm wide.`,
+      },
+      {
+        title: 'Sew in the side ties',
+        text: `Unpick 4 cm of the left side seam centred on the waist${o.sideZip ? ' (below the zip)' : ''}. Slip the open end of one tie into the seam from the front and the other from the back, each end level with the seam allowance, and sew the seam closed again through the ties. Press, and knot the ties at the side, their ends hanging.`,
+      },
+    );
   const fin = steps.findIndex((s) => s.title === 'Finish');
   steps.splice(fin >= 0 ? fin : steps.length, 0, ...added);
   return { ...g, steps };
@@ -211,4 +258,4 @@ export const dressBelt = (belt: Belt | undefined, d: { bodice: { wrap?: unknown 
   beltAllowed(belt ?? 'none', { wrap: !!d.bodice.wrap }) ? beltOf(belt, d.seamCm ?? d.finishedWaist) : undefined;
 
 /** The belt in a garment's name: "a tie sash", "a sash in loops", "belt loops". */
-export const beltWords = (b: Belt) => (b === 'sash' ? 'a tie sash' : b === 'sash_loops' ? 'a sash in loops' : b === 'loops' ? 'belt loops' : b === 'band' ? 'a self band' : '');
+export const beltWords = (b: Belt) => (b === 'sash' ? 'a tie sash' : b === 'sash_loops' ? 'a sash in loops' : b === 'loops' ? 'belt loops' : b === 'band' ? 'a self band' : b === 'side_tie' ? 'a side tie' : '');
