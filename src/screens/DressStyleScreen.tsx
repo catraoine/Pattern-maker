@@ -141,7 +141,8 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
   const flat = useMemo(() => (draft ? dressFlat(draft, 'binding', { sleeve, belt: dressBelt(choices.skirt.belt, draft) }) : undefined), [draft, sleeve, choices.skirt]);
   const title = describePattern(choices);
   const round = useMemo(() => (draft ? roundDress(draft, values, sleeve) : undefined), [draft, values, sleeve]);
-  const drapeJob = useMemo(() => (draft ? ({ kind: 'dress', draft, sleeve } as const) : undefined), [draft, sleeve]);
+  const sideTie = useMemo(() => (draft ? dressBelt(choices.skirt.belt, draft)?.ties : undefined), [draft, choices.skirt.belt]);
+  const drapeJob = useMemo(() => (draft ? ({ kind: 'dress', draft, sleeve, ...(sideTie ? { sideTie } : {}) } as const) : undefined), [draft, sleeve, sideTie]);
   const arms = !needsArms(values);
   const chosen = sleeveOf(choices.bodice);
   // A shirt dress: the buttons run on down the skirt, so it needs a skirt that can carry them.
@@ -423,6 +424,9 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
         m={mv}
         legs
         cloth={clothShapes}
+        flatLines={flatLines}
+        backCloth={flat ? wornShapes(flat, 1) : undefined}
+        backFlatLines={flat ? wornLines(flat, 1) : undefined}
         arms={drawArm}
         sleeve={formArm ? sleeve : undefined}
         underarmY={landmarks(draft.bodice).underarm.y}

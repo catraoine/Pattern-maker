@@ -31,6 +31,9 @@ describe('all round', () => {
     expect(hl.back).toBeGreaterThan(hl.left);
     const dg = roundSkirt(draftSkirt(m, { silhouette: 'a_line', length: 'knee', asymHem: 'diagonal' })).readings;
     expect(dg.left).not.toBe(dg.right);
+    // Drawn the other way round, it slants the other way (Media, 2026-11-04: a slant drawn lower on the right came out mirrored).
+    const flipped = roundSkirt(draftSkirt(m, { silhouette: 'a_line', length: 'knee', asymHem: 'diagonal', asymFlip: true })).readings;
+    expect(Math.sign(flipped.left - flipped.right)).toBe(-Math.sign(dg.left - dg.right));
   });
 
   // A hem drawn by hand is trued as it is drafted: front and back come to the same length at each side

@@ -15,7 +15,7 @@ import { P, len, sub } from './engine/geometry';
 import { Piece, cutLine } from './engine/piece';
 
 /** One design whose pattern is walked: the garment, its choices as a saved pattern keeps them, and how it's finished. */
-interface PatternDesign {
+export interface PatternDesign {
   key: string;
   garment: Garment;
   saved: Partial<Saved>;
@@ -45,8 +45,8 @@ export function patternDesigns(): PatternDesign[] {
   return out.filter((x, i) => out.findIndex((y) => y.key === x.key) === i);
 }
 
-/** The printed pattern's pieces and its finished waist, as the print screen builds them. */
-function patternOf(d: PatternDesign, values: MeasurementValues = EXAMPLE_BODY): { pieces: Piece[]; finishedWaist?: number } {
+/** The design's drafts and its printed pattern, as the app and the print screen build them. */
+export function printedPattern(d: Omit<PatternDesign, 'key'>, values: MeasurementValues = EXAMPLE_BODY) {
   const saved = { ...INITIAL, ...d.saved } as Saved;
   const finish: Finish = { ...DEFAULT_FINISH, ...d.finish };
   const inputs: DraftInputs = { saved, form: 'womenswear', fabric: undefined };
@@ -65,6 +65,12 @@ function patternOf(d: PatternDesign, values: MeasurementValues = EXAMPLE_BODY): 
     trousersChoices: trousersChoicesOf(saved),
   });
   if (!made) throw new Error('no printed pattern');
+  return { result, made };
+}
+
+/** The printed pattern's pieces and its finished waist, as the print screen builds them. */
+function patternOf(d: PatternDesign, values: MeasurementValues = EXAMPLE_BODY): { pieces: Piece[]; finishedWaist?: number } {
+  const { made } = printedPattern(d, values);
   const waist = (made.spec.find((r) => /^Waist seam, /.test(r.label)) ?? made.spec.find((r) => r.label === 'Waist'))?.finished;
   return { pieces: made.pieces, finishedWaist: typeof waist === 'number' ? waist : undefined };
 }
@@ -272,7 +278,7 @@ export function patternProblems(pieces: Piece[], finishedWaist?: number): string
 }
 
 /** One design's result: its problems, or why it didn't draft. */
-interface PatternResult {
+export interface PatternResult {
   key: string;
   problems: string[];
   error?: string;

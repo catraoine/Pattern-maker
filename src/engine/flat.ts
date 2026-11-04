@@ -457,6 +457,13 @@ function beltOn<V extends Omit<FlatView, 'at' | 'origin'>>(v: V, y: number, b: B
     shapes.push([p(-X - 0.2, y - w / 2), p(X + 0.2, y - w / 2), p(X + 0.2, y + w / 2), p(-X - 0.2, y + w / 2)]);
     if (v.label === 'FRONT') shapes.push(...tieKnot(p(0.5, y)));
   }
+  if (b.ties) {
+    // Knotted at the left side seam (the +x side), the two ends hanging down the side.
+    const K = p(X + 0.6, y);
+    const knot = [p(K.x - 1.6, K.y - 1.3), p(K.x + 1.2, K.y - 1.3), p(K.x + 1.2, K.y + 1.3), p(K.x - 1.6, K.y + 1.3)];
+    const L = b.ties.lengthCm * 0.8;
+    shapes.push(strap([p(K.x - 0.9, K.y + 1.1), p(K.x - 2.2, K.y + L)], b.ties.widthCm * 0.7), strap([p(K.x + 0.3, K.y + 1.1), p(K.x + 1.6, K.y + L * 0.85)], b.ties.widthCm * 0.7), knot);
+  }
   if (b.loops) {
     const [top, foot] = band ? [y - band / 2, y + band / 2 + 0.6] : [y - w / 2 - 0.5, y + w / 2 + 0.5];
     const xs = b.sash || b.band ? [X - 0.9] : [X * 0.5];
