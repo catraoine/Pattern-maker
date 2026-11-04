@@ -605,6 +605,15 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
 /** Ease in the crown below a raglan line, each side, in cm. */
 const RAGLAN_EASE = 0.15;
 
+/** How a raglan's shoulder piece was turned onto the sleeve: a yoke point `q` (as on the bodice) goes to
+ *  `notch + rot(a) · (flip(q) - at)`, with `flip` mirroring x. */
+export interface RaglanTurn {
+  notch: { x: number; y: number };
+  at: { x: number; y: number };
+  a: number;
+  flip: boolean;
+}
+
 function toRaglan(
   sleeve: Piece,
   o: { crown: P; frontCap: P[]; backCap: P[]; Uf: P; Ub: P; Wf: P; Wb: P; hem: P[]; h: number; L: number; w: number; yokes: { front: RaglanYoke; back: RaglanYoke }; s: SleeveStyle },
@@ -623,10 +632,13 @@ function toRaglan(
     const f = (q: P) => (flip ? p(-q.x, q.y) : q);
     const R = f(y.notch);
     const a = Math.atan2(crown.y - notch.y, crown.x - notch.x) - Math.atan2(f(y.sp).y - R.y, f(y.sp).x - R.x);
-    return (q: P) => {
+    const T = (q: P) => {
       const d = sub(f(q), R);
       return add(notch, p(d.x * Math.cos(a) - d.y * Math.sin(a), d.x * Math.sin(a) + d.y * Math.cos(a)));
     };
+    // (How it was turned on, for the drape to turn its points back onto the bodice's shoulder.)
+    const turn: RaglanTurn = { notch: { x: notch.x, y: notch.y }, at: { x: R.x, y: R.y }, a, flip };
+    return { T, turn };
   };
   /** The seam down the top of the arm: on from the shoulder, into the middle line `kd` below the crown, and down it to the hem. */
   const overarm = (hps: P, sp: P, kd: number, k = 1) => {
@@ -641,13 +653,13 @@ function toRaglan(
     // little ease below it.
     const fromUnder = y.under + RAGLAN_EASE;
     const notch = side === 'front' ? at([...o.frontCap].reverse(), fromUnder) : at(o.backCap, fromUnder);
-    const T = place(y, notch);
+    const { T, turn } = place(y, notch);
     const ring = y.ring.pts.map(T);
     const iSp = y.ring.pts.findIndex((q) => len(sub(q, y.sp)) < 1e-6);
     const iHps = y.ring.pts.findIndex((q) => len(sub(q, y.hps)) < 1e-6);
     // The crown below the notch stays: it sews to the bodice's armhole below the raglan line.
     const lower = side === 'front' ? [...splitAt(o.frontCap, nearestAlong(o.frontCap, notch))[1]].reverse() : splitAt(o.backCap, nearestAlong(o.backCap, notch))[0];
-    return { side, y, T, ring, iSp, iHps, lower, notch };
+    return { side, y, T, turn, ring, iSp, iHps, lower, notch };
   });
   const kd = Math.min(h * 0.5, o.L * 0.4);
   const lengthOf = (sd: (typeof sides)[number], k: number) => polyLen(overarm(sd.ring[sd.iHps], sd.ring[sd.iSp], kd, k));
@@ -713,7 +725,7 @@ function toRaglan(
         ...labels,
       ],
       allowances: { ...sleeve.allowances, neck: o.s.armholeAllowance },
-      meta: { ...sleeve.meta, raglan: sd.side },
+      meta: { ...sleeve.meta, raglan: sd.side, raglanTurn: sd.turn, raglanYoke: sd.ring.map((q) => ({ x: q.x, y: q.y })) },
     };
   });
 }

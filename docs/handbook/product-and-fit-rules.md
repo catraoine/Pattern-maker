@@ -157,7 +157,9 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
    from straps, has them held 1.5 cm behind the side (height left free) and goes without the short top's extra pull.
    Left to settle, the straps slid 8 cm behind the shoulder and took the V's edge round to the side of the body; pinned
    down at their cut distance out, they lay level past the shoulder as tabs; the extra pull dragged the V's edge 4 cm
-   down the chest. A plunge dress already had the hold under its skirt's weight.
+   down the chest. A plunge dress already had the hold under its skirt's weight, and keeps its straps pinned where
+   they are cut: settled 1.5 cm back, the bias slip gown's front went 2 cm inside the form (caught by the locked SS27
+   looks test, Nov 4).
 25. **A cowl front hangs in its own U** (Nov 4, Fable): the cowl's whole bias front is sewn as its right half, cut off at
    the fold line (the grown-on facing dropped), its top edge the fold from the centre front to the neck point. Above the
    bust each row is wider than the body by the spread the cowl was opened with; that spare width is placed hanging from
@@ -169,6 +171,35 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
    are sewn left to left and right to right (not all four runs strung into one chain), the skirt is sewn to the right
    half of the waist (the half it is drafted to) and the other half's waist is set on the skirt's mirror after the sim;
    All round draws a whole panel once, not mirrored. Sewn as two half-pieces strung together, the one-shoulder was a rag.
+27. **A flat collar lies on the shoulders** (Nov 4, Fable): a peter pan collar is placed out along the body's surface
+   from the neck seam, each point as far out as it is cut from the neck edge, keyed by its distance along the curved
+   neck edge (not across the piece, which read the front half of the edge as the back half again), and left as soft
+   cloth: not re-set stiff after the sim. Placed by height above the neck like a band, it stood up round the neck.
+28. **A bow and a neck ruffle are spread over half the neck ring** (Nov 4, Fable): a strip's neck edge, however long it
+   is cut (a bow's runs on into its tie, a ruffle's is cut twice the neck), is spread from the centre back to the centre
+   front by its share of the neck edge; the bow's tie then hangs down the front of the body from the centre front,
+   the strip's width across, and the ruffle stands up in waves 6 cm apart, deeper toward its edge. Both keep that shape
+   after the sim, carried by the average movement of the few centimetres of seam nearest each point (a gathered seam
+   settles in a zigzag, and carried by one seam point the strip tore). Placed round the neck by cut length, the tie
+   wrapped round the back and the ruffle went twice round.
+29. **A tie cuff's ties hang from the wrist, a sleeve ruffle is laid round the hem** (Nov 4, Fable): the tie cuff's band
+   is the middle of its strip (its `roundCm` and `tieCm` in the piece meta), laid round the wrist as the shirt cuff is,
+   and each tie turns down out of the band over 4 cm and hangs on past the hand, the two side by side. The sleeve
+   ruffle is laid round the sleeve's hem as it hung, flaring and fluted like the trouser hem ruffle. The tie cuff's
+   fold is a meant fold, not a fin. Before, the cuff's whole strip length was taken as the wrist round (the hem spread
+   to 70 cm) and neither piece was drawn. A buttoned shirt cuff's whole strip, underlap included, is still spread once
+   round the wrist: laid to its wrist round alone, the 2.5 cm underlap piled on the strip's start and buckled it.
+30. **A raglan sleeve's shoulder pieces lie on the body** (Nov 4, Fable): each raglan half is sewn as half the sleeve
+   (overarm to overarm, underarm to underarm, lower cap to its own side's armhole below the raglan line, raglan line
+   to the bodice's from the neck end, shoulder to shoulder); the shoulder piece on it, inside the outline it was turned
+   on with (`raglanYoke`, `raglanTurn` in the piece meta), is turned back to where it was cut from the bodice and placed
+   as the bodice places it, held on the shoulder and treated as body cloth. The sleeve's cloth next to the piece hangs
+   from the piece's edge down the arm and only lower lies round the arm; the cap-settle pass leaves the piece alone (it
+   was pulling it round the arm, 5 cm off its raglan seam). Before, only one half was drawn.
+31. **A jacket closed at the neck keeps the neckline the sim settles** (Nov 4, Fable): the pass that developed a
+   jacket's or coat's front neckline back along itself from the shoulder (rule 22's neighbour) is off: on a stand,
+   funnel, hood or collarless jacket or coat it ran the neckline down the chest in a drooping V, tore the front and
+   left the collar's seam 9 to 23 cm off it. Stand and collarless jackets and coats, and the double-breasted coat, pass.
 
 ## Style steps
 
