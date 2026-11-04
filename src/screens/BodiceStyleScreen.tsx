@@ -10,7 +10,7 @@ import { BodiceDraft, BodiceMeasurements, bodiceEase, dropRange, hemDrop, needsH
 import { BODICE_GROUPS, BodiceChoices, DARTS_FOR_FIT, dartsFor, describeBodice, detailAllowed, sleeveOf, topAllowed, validDetails } from '../garments';
 import { isStrapless, isTop } from '../engine/corset';
 import { SHIRR } from '../engine/shirred';
-import { bodiceFlat } from '../engine/flat';
+import { bodiceFlat, wornShapes, wornLines } from '../engine/flat';
 import { TechFlatView } from '../ui/TechFlatView';
 import { AllRound } from '../ui/AllRound';
 import { roundBodice } from '../engine/allRound';
@@ -223,6 +223,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
 
   if (onForm && draft) {
     return (
+      <GarmentFabric fabric={fabric}>
       <DrawOnForm<BodiceChoices>
         allRound={round ? { round, drape: drapeJob, m: values, fabric, striped: matchKind(fabric) } : undefined}
         body={formWidth(draft, m)}
@@ -230,6 +231,11 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
         legs={false}
         bottom={Math.max(landmarks(draft).waistY + (hip ? dropRange(m, choices.length).max : 0) + 6, drawArm ? drawArm.wristY + 3 : 0)}
         arms={drawArm}
+        // The bodice as cloth on the form, a calico toile until a fabric is picked, so each line visibly changes it.
+        cloth={flat ? wornShapes(flat) : undefined}
+        flatLines={flat ? wornLines(flat) : undefined}
+        sleeve={drawArm ? sleeve : undefined}
+        underarmY={landmarks(draft).underarm.y}
         kinds={[
           ['neckline', 'Neckline'],
           ['seam', 'Seam'],
@@ -277,6 +283,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
           setOnForm(undefined);
         }}
       />
+      </GarmentFabric>
     );
   }
 

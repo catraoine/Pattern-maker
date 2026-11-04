@@ -423,6 +423,7 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
         m={mv}
         legs
         cloth={clothShapes}
+        flatLines={flatLines}
         arms={drawArm}
         sleeve={formArm ? sleeve : undefined}
         underarmY={landmarks(draft.bodice).underarm.y}

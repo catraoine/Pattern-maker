@@ -101,6 +101,7 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
       <DrawOnForm<OuterChoices>
         allRound={round ? { round, drape: drapeJob, m: values, fabric, striped: matchKind(fabric) } : undefined}
         cloth={clothShapes}
+        flatLines={flatLines}
         arms={formArm}
         sleeve={formArm ? draft.sleeve : undefined}
         underarmY={landmarks(draft.base).underarm.y}

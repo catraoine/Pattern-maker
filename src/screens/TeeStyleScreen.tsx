@@ -94,6 +94,7 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
       <DrawOnForm<TeeChoices>
         allRound={round ? { round, m: values, fabric, striped: fabric?.checks ? (fabric.checks.stripes ? 'stripes' : 'checks') : false } : undefined}
         cloth={clothShapes}
+        flatLines={flatLines}
         sleeve={draft.sleeve}
         body={form.body}
         m={m}
