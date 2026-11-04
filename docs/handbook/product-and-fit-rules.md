@@ -143,6 +143,11 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
 21. **A hem cut unlevel stays unlevel** (Nov 4, Fable): the pass that lets a flared skirt's hem down where it rode up
    at the sides skips a high-low, diagonal or shaped hem (`shapedHem` in the drape options). It was letting a
    diagonal's short side down to the long side's level and stretching the cloth above it to nearly three times its cut.
+22. **The cloth beside a drawn-back neckline is eased** (Nov 4, Fable): a jacket's or coat's front neckline is drawn
+   back along itself from the shoulder after the sim, by 6 to 8 cm; the cloth within 5 cm came with it on a steep
+   share, so the neck's last point and the gorge point beside it were drawn nearly three times their cut apart (the
+   shawl-collar jacket and the fitted-sleeve jacket failed on it). The front is now eased back to its cut lengths
+   with the neckline and shoulder held. The coat's shawl collar still tears at the collar's end (its own placement).
 
 ## Style steps
 

@@ -2804,6 +2804,15 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
         res[I + 1] = v[1];
         res[I + 2] = v[2];
       }
+      // (The cloth beside the neckline eased back to its cut lengths, the neckline and shoulder held: drawn back 6 to
+      // 8 cm, the neck's last point and the gorge point beside it, carried by a steeper share, were drawn 2.8 times
+      // their cut apart, All round quality 2026-11-04.)
+      // (Only the cloth near the neckline is free to ease, and only on a front with a gorge, where the tear was: the
+      // whole front freed, a collarless coat's centre front folded into a fin lower down.)
+      if (!knob('__noNeckEase') && p.mesh.runs.gorge?.length) {
+        const near = (q: P) => moved.some((n) => Math.hypot(pts[n].x - q.x, pts[n].y - q.y) < (knob('__neckEaseCm') ?? 10));
+        relax(p, [...delta.keys(), ...sh, ...pts.map((q, i) => (near(q) ? -1 : i)).filter((i) => i >= 0)]);
+      }
     }
   }
   // A panel's settled surface at a point of its pattern: inside one of its triangles, or past its edge carried on
