@@ -38,9 +38,15 @@ Live site: https://maisontrace.co (the cloud proxy blocks it; check
 https://whimsical-mooncake-2cf9a9.netlify.app, the same site). Strangers see the waitlist; testers
 get in with their tester link.
 
-## Queued for "ship" (as of Nov 4, 02:10 UTC)
+## Queued for "ship" (as of Nov 4, 15:00 UTC)
 
-Nothing green is queued. Open draft: #259 (bias slip mini + side slit, open polo collar, ruffled trouser
+- #280: All round draws cloth clear of the body hanging plumb on the form; a shift's or sheath's hem
+  levelled (the blush shift redesign). Drawing only; pattern and sim unchanged. Plus the new Belt option
+  **Side tie** (In testing; Cat, Nov 4 "I want the side tie let's build"): two self-fabric ties caught
+  into the left side seam at the waist and knotted, with its pattern piece, steps, flat drawing and All
+  round knot and tails. Look 06 itself is not changed until Cat's "apply".
+
+Open draft: #259 (bias slip mini + side slit, open polo collar, ruffled trouser
 hem; In testing), based on main, waiting on Cat's "apply".
 
 Note: #249's SS27 cuts (oversized, peplums, plunge, gathers, drop yoke, jacket collars) went live in
