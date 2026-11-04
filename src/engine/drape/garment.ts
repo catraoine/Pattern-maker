@@ -589,8 +589,17 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
           const c = lv + drop;
           if (R && span > 0) {
             const phi = (Math.atan2(q.x, q.y + R) * Math.PI) / span;
-            const rr = Math.max(sp.bodyR(phi, c) + 1.5, ((R + lv) * span) / Math.PI);
             const a = isBack ? Math.PI - phi : phi;
+            // The cone holds up to a half circle's hem. Past that (a full circle) the cut round at this level is more
+            // than any cone the cloth could fall in: it starts as the half-circle cone, clear of the body, and the rest
+            // of the round hangs in even flutes, as it does on the wearer, rather than as a tutu's stiff disc the sim
+            // then tears pulling in (All round quality 2026-11-04).
+            const b = Math.max(sp.bodyR(a, c) + 1.5, (R + lv) * Math.min(span / Math.PI, 0.5));
+            const need = ((R + lv) * span) / Math.PI;
+            const n = knob('__flutes') ?? 8;
+            const k = 1 + (n * n) / 2;
+            const A = need > b && !knob('__noFlutes') ? (-2 * b + Math.sqrt(4 * b * b - 4 * k * (b * b - need * need))) / (2 * k) : 0;
+            const rr = b + A * (1 + Math.cos(n * a));
             return [Math.sin(a) * rr, c, Math.cos(a) * rr];
           }
           // Gathered cloth starts in even folds round the waist (as the gathering thread draws it up), so it settles
@@ -2223,15 +2232,21 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       const gather = ((p.pc.meta.gatherShown ?? p.pc.meta.gathered) as number | undefined) ?? 1;
       if (p.hidden || !/peplum/.test(p.role) || gather > 1.05 || p.pc.meta.bias || p.pc.meta.tier || /ruffle|flounce/i.test(p.pc.name)) continue;
       const pts = p.mesh.pts;
-      const ys = pts.map((q) => q.y);
+      // (A circle skirt's levels are arcs round its waist's centre, not the piece's rows: its side seam is a radius, lying
+      // along the fall. Binned by row, the row beside the seam ran from waist to hem, its drawn width across next to
+      // nothing, and was flung out to the side as a wing, All round quality 2026-11-04.)
+      const Rw = p.pc.meta.waistRadius as number | undefined;
+      const lvl = (q: P) => (Rw ? Math.hypot(q.x, q.y + Rw) - Rw : q.y);
+      const across = (q: P) => (Rw ? Math.atan2(q.x, q.y + Rw) : q.x);
+      const ys = pts.map(lvl);
       const y0 = Math.min(...ys);
       const nb = Math.ceil(Math.max(...ys) - y0) + 1;
       const bins: number[][] = Array.from({ length: nb }, () => []);
-      pts.forEach((q, i) => bins[Math.min(nb - 1, Math.round(q.y - y0))].push(i));
+      pts.forEach((q, i) => bins[Math.min(nb - 1, Math.round(lvl(q) - y0))].push(i));
       const ratio = bins.map((b) => {
         if (b.length < 3) return 1;
-        const o2 = [...b].sort((u, v) => pts[u].x - pts[v].x);
-        const pw = pts[o2[o2.length - 1]].x - pts[o2[0]].x;
+        const o2 = [...b].sort((u, v) => across(pts[u]) - across(pts[v]));
+        const pw = (across(pts[o2[o2.length - 1]]) - across(pts[o2[0]])) * (Rw ? Rw + lvl(pts[o2[0]]) : 1);
         let dw = 0;
         for (let k = 1; k < o2.length; k++) {
           const I = (p.base + o2[k]) * 3;
@@ -2250,22 +2265,22 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
         }
         return a / n;
       });
-      const xs = pts.map((q) => q.x);
+      const xs = pts.map(across);
       const x0 = Math.min(...xs);
       const W = Math.max(...xs) - x0;
       const lam = knob('__flareLam') ?? 16;
-      const n = 2 * Math.max(1, Math.round(W / (2 * lam)));
+      const n = 2 * Math.max(1, Math.round((W * (Rw ? Rw + Math.max(...ys) : 1)) / (2 * lam)));
       const OUT = knob('__flareOut') ?? 0.65;
       pts.forEach((q, i) => {
         const I = (p.base + i) * 3;
-        const r = sm[Math.min(nb - 1, Math.round(q.y - y0))];
+        const r = sm[Math.min(nb - 1, Math.round(lvl(q) - y0))];
         const below = Math.min(1, Math.max(0, (res[I + 1] - hipC) / 15));
         if (r <= 1.02 || !below) return;
         const sOut = 1 + (r - 1) * OUT * below;
         const rest = Math.max(0, r / sOut - 1);
         const A = (lam / Math.PI) * Math.sqrt(rest) * below * (knob('__flareFold') ?? 1);
         const rho = Math.hypot(res[I], res[I + 2]) || 1e-9;
-        const k = (rho * sOut + A * Math.cos((Math.PI * n * (q.x - x0)) / W)) / rho;
+        const k = (rho * sOut + A * Math.cos((Math.PI * n * (across(q) - x0)) / W)) / rho;
         res[I] *= k;
         res[I + 2] *= k;
       });

@@ -120,6 +120,13 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
    through its neighbours turns against the point before or after it. A flute on a full hem (a half-circle's, a
    gathered skirt's) leans the same way for several points and is meant; a sawtooth turns back at every point. The
    half-circle and gathered skirts showed their Front drawing for their flutes before.
+18. **A full circle skirt hangs in flutes** (Nov 4, Fable): a half circle starts in the drape as the cone its pieces
+   make, and settles well. A full circle's hem is more than any cone can hold, so it started as a tutu's flat disc the
+   sim then tore pulling in. It now starts as the half-circle cone with the rest of each level's round laid in eight
+   even flutes that grow from nothing at the waist, and the flare pass that draws each level out to its cut width
+   reads a circle piece's levels as arcs round its waist centre (its rows run along the fall beside the side seam,
+   which that pass had flung out as a wing). The circle skirt and the circle-skirt dress pass the score and read as
+   circle skirts; the half circle is unchanged.
 
 ## Style steps
 
