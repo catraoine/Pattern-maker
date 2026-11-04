@@ -148,6 +148,27 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
    share, so the neck's last point and the gorge point beside it were drawn nearly three times their cut apart (the
    shawl-collar jacket and the fitted-sleeve jacket failed on it). The front is now eased back to its cut lengths
    with the neckline and shoulder held. The coat's shawl collar still tears at the collar's end (its own placement).
+23. **A halter's top edge is not a plunge** (Nov 4, Fable): the stay-tape pass that lays a plunging neckline on the body
+   by its cut length runs only when the neck run's deepest point is at the centre front. A halter's top edge is tagged
+   neck all the way from the centre round the neck and down its cut-in armhole to the side, as deep as a plunge: walked
+   down from the neck point it was drawn round to the centre front, the upper chest stretched twice its cut and the
+   side seam's top dragged 4 cm.
+24. **A plunge top's straps are held on the shoulder** (Nov 4, Fable): a sleeveless front cut down to a plunge, hung
+   from straps, has them held 1.5 cm behind the side (height left free) and goes without the short top's extra pull.
+   Left to settle, the straps slid 8 cm behind the shoulder and took the V's edge round to the side of the body; pinned
+   down at their cut distance out, they lay level past the shoulder as tabs; the extra pull dragged the V's edge 4 cm
+   down the chest. A plunge dress already had the hold under its skirt's weight.
+25. **A cowl front hangs in its own U** (Nov 4, Fable): the cowl's whole bias front is sewn as its right half, cut off at
+   the fold line (the grown-on facing dropped), its top edge the fold from the centre front to the neck point. Above the
+   bust each row is wider than the body by the spread the cowl was opened with; that spare width is placed hanging from
+   the neck point on a parabola down to the centre front as deep as its length reaches (the drafted depth), the fold
+   held there, the rest of the row on the body from the neck point out as cut. The hug-the-ribs pass leaves a cowl
+   front alone. Sewn whole, both halves and their mirrors lay four deep and hung as a rag.
+26. **A piece cut whole is sewn and drawn whole** (Nov 4, Fable): a one-shoulder's front and back carry both halves.
+   A whole back is turned over first (right side up its left is the wearer's left, seen from behind), its side seams
+   are sewn left to left and right to right (not all four runs strung into one chain), the skirt is sewn to the right
+   half of the waist (the half it is drafted to) and the other half's waist is set on the skirt's mirror after the sim;
+   All round draws a whole panel once, not mirrored. Sewn as two half-pieces strung together, the one-shoulder was a rag.
 
 ## Style steps
 
