@@ -1,9 +1,13 @@
 name: Quality checks nightly
 
 # Every night, the Quality: Automated checks department's checks at full size (Cat, 2026-11-04). The same checks run on
-# every pull request at a smaller size (see tests.yml); this run only reports. The department's nightly read takes the
+# every pull request at a smaller size (see e2e.yml); this run only reports. The department's nightly read takes the
 # "Summary" step's log and tells Cat only when something got worse.
 # - Pattern geometry: every option of every garment, on the example body and on random bodies (src/patternSweep.ts).
+# - Fit sweep: 300 new random bodies each night, a random design of every garment on each (src/fitSweep.ts).
+# - Print check: the sample patterns' PDFs on A4, Letter and A0, rendered and measured (src/printCheck.ts).
+# - Front drawing: every option's drawing on the form, read out of the real app and scored (src/frontCheck.ts).
+# - DXF round trip: every option's DXF read back and held to the draft, on random bodies too (src/dxfRoundTrip.ts).
 on:
   schedule:
     - cron: '30 9 * * *'
@@ -44,7 +48,112 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
-          name: quality-nightly
+          name: quality-nightly-pattern
           path: |
             pattern-options.md
             pattern-bodies.md
+
+  fit:
+    name: Fit sweep on 300 new random bodies
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx vitest run src/fitSweep.test.ts
+        env:
+          FIT_BODIES: '300'
+          FIT_SEED: ${{ github.run_id }}
+          FIT_REPORT: fit-sweep.md
+          FIT_REPORT_ONLY: '1'
+      - name: Report
+        if: ${{ !cancelled() }}
+        run: cat fit-sweep.md >> "$GITHUB_STEP_SUMMARY" || true
+      - name: Summary
+        if: ${{ !cancelled() }}
+        run: cat fit-sweep.md || true
+
+  print:
+    name: Print check
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: sudo apt-get update -q && sudo apt-get install -y -q poppler-utils
+      - run: npx vitest run src/printCheck.test.ts
+        env:
+          PRINT_CHECK: '1'
+          PRINT_REPORT: print-check.md
+      - name: Report
+        if: ${{ !cancelled() }}
+        run: cat print-check.md >> "$GITHUB_STEP_SUMMARY" || true
+      - name: Summary
+        if: ${{ !cancelled() }}
+        run: cat print-check.md || true
+
+  dxf:
+    name: DXF round trip on every option
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx vitest run src/dxfRoundTrip.test.ts -t "every option"
+        env:
+          DXF_REPORT: dxf-options.md
+      - run: npx vitest run src/dxfRoundTrip.test.ts -t "random bodies"
+        if: ${{ !cancelled() }}
+        env:
+          DXF_BODIES: ${{ github.event.inputs.bodies || '20' }}
+          DXF_BODIES_REPORT: dxf-bodies.md
+      - name: Report
+        if: ${{ !cancelled() }}
+        run: cat dxf-options.md dxf-bodies.md >> "$GITHUB_STEP_SUMMARY" || true
+      - name: Summary
+        if: ${{ !cancelled() }}
+        run: |
+          head -6 dxf-options.md || true
+          head -8 dxf-bodies.md || true
+
+  front:
+    name: Front drawing check
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      # Reads every option's Front drawing out of the real app, then scores it; fails on a new fault, the ones already
+      # found are in src/frontKnown.json (see src/frontCheck.ts).
+      - run: npm run test:e2e -- front-drawing.spec.ts --project desktop --workers 4
+        env:
+          FRONT_CHECK: front-drawings
+      - run: npx vitest run src/frontCheck.test.ts
+        if: ${{ !cancelled() }}
+        env:
+          FRONT_FROM: front-drawings
+          FRONT_REPORT: front-drawing.md
+      - name: Report
+        if: ${{ !cancelled() }}
+        run: cat front-drawing.md >> "$GITHUB_STEP_SUMMARY" || true
+      - name: Summary
+        if: ${{ !cancelled() }}
+        run: head -6 front-drawing.md || true

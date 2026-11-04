@@ -4,6 +4,9 @@ _Update this page whenever a release ships or a PR is queued._
 
 ## Live
 
+**Release 61** (Nov 4, 2026, #282, merged early by mistake, test-only): the pattern geometry check on every option
+(handbook rule 23) and the nightly Quality checks workflow. Nothing in the app changed.
+
 **Release 60** (Nov 4, 2026, #278): sleeveless shoulders sit on the form in All round (the hug-the-ribs pass no
 longer folds the front armhole's top up as a wing; a sleeveless top's seam is held as the dress's; a shoulder is full
 from 7 cm, so the square neck too); the wrap top and wrap dress turn (each wrap front sewn as its own half with a

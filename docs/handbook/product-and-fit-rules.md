@@ -172,6 +172,35 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
    diagonal hem slants the way it is drawn (`asymFlip` when drawn lower on the right of the form). A collar drawn on a
    drawn neckline puts the neckline back to the round one it sits on (it was silently dropped before). Code:
    `cloth` and `flatLines` on `DrawOnForm`.
+26. **Every garment is fitted on 300 random bodies** (Nov 4, Quality: Automated checks): a random design of every
+   garment (skirt, top, dress, jacket, coat, trousers, T-shirt), made valid as the style screen keeps it, drafted for
+   each of 300 random bodies and held to the body: the printed finished size is the body plus its ease; the bust and
+   hip have at least the fit's ease (a bias slip 3 cm less at the hip, on purpose); woven cloth is never cut smaller
+   than the body at the bust, hip, armhole or upper arm (a boned top's bust is, on purpose; a dropped shoulder's or a
+   raglan's armhole is on the arm); a straight-cut skirt's or trousers' pieces measure the hip printed on them; the
+   hem lands at the length asked for (not a high-low or diagonal hem); a fitted or regular set-in armhole's underarm is
+   no more than 2.5 cm below the bust point. `src/fitSweep.ts`, held to `src/fitKnown.json` (the kinds of fault
+   already found): every pull request runs 300 bodies (its own CI job; 30 inside `npm test`) and fails on a new
+   kind. Nightly it runs 300 new bodies and only reports.
+27. **The printed pages are checked like a sewist checks them** (Nov 4, Quality: Automated checks): seven sample
+   patterns (A-line skirt, maxi circle skirt, shirt-collared top, midi dress, trousers, T-shirt, knee coat) on A4, US
+   Letter and A0. Every piece's lines lie on a printed page (from the sheet, inside `npm test`). In its own CI job the
+   PDF is rendered to pixels with pdftoppm: every page is the paper's size, page A1 is printed, the 10 cm test square
+   measures 10 cm both ways within half a millimetre, and where two pages overlap both show the same lines and words
+   (the joining diamonds and the page footer are left out). `src/printCheck.ts`, held to `src/printKnown.json`.
+28. **Every option's DXF reads back as drafted** (Nov 4, Quality: Automated checks): every option's printed pattern
+   is written as the DXF a factory downloads and read back in as Check a file reads one. The same pieces, names,
+   quantities and cutting notes come back; cutting and stitching lines within a tenth of a millimetre (so the seam
+   allowances too); grain, fold and internal lines; every notch where it cuts into the cutting line and every drill hole
+   within half a millimetre. Inside `npm test`; nightly on random bodies too. `src/dxfRoundTrip.ts`, held to
+   `src/dxfKnown.json`.
+29. **Every option's Front drawing is scored** (Nov 4, Quality: Automated checks): every option is opened in the real
+   app and the Front drawing (which also stands in when All round fails) is read out of the page and measured: no
+   broken points or missing cloth, no cloth past the top or bottom of the drawing's box, no outline folding through
+   itself (a loop of 0.5 cm² or more), no sawtooth edge, no hole of 2 cm² or more where the form shows through (the
+   space beside a hanging sleeve and an open front up to the neck are meant), and both sides alike unless the design
+   is cut asymmetric. Its own CI job (`e2e/front-drawing.spec.ts` captures, `src/frontCheck.ts` scores), held to
+   `src/frontKnown.json`.
 
 ## Style steps
 

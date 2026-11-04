@@ -439,7 +439,9 @@ export function importDxf(text: string): ImportedPattern {
       const f = fields(texts);
 
       const cut = o.pts.map(toCm);
-      const stitchShape = closed.find((s) => s.layer === '14' && inside(s.pts[0], o.pts));
+      // The stitching line lies inside the cutting line, or on it along an edge cut with no allowance (a facing's
+      // edge, a fold), so its first point may sit on the cutting line itself.
+      const stitchShape = closed.find((s) => s.layer === '14' && s.pts.every((q) => inside(q, o.pts) || nearestOnRing(q, o.pts).dist <= tol));
       const stitch = stitchShape ? stitchShape.pts.map(toCm) : undefined;
       const sewRing = stitch ?? cut;
 
