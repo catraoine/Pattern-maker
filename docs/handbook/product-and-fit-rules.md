@@ -187,6 +187,12 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
    space beside a hanging sleeve and an open front up to the neck are meant), and both sides alike unless the design
    is cut asymmetric. Its own CI job (`e2e/front-drawing.spec.ts` captures, `src/frontCheck.ts` scores), held to
    `src/frontKnown.json`.
+28. **Every screen is looked over on a phone and a computer** (Nov 4, Quality: Automated checks): the waitlist,
+   welcome, every measuring page, every Style step of every garment with its Flat, All round and Pattern views,
+   Review, Print and the account are photographed at phone size (390 px) and computer size (1280 px) and looked over
+   for the page scrolling sideways, anything standing past the screen's edge, and words cut off by their box or an
+   ellipsis (words in a row that scrolls, and words kept for screen readers only, don't count). Its own CI job
+   (`e2e/screen-check.spec.ts`, `e2e/screenAudit.ts`), photos kept with the run, held to `src/screenKnown.json`.
 
 ## Style steps
 

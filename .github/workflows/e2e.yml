@@ -112,6 +112,39 @@ jobs:
         if: ${{ !cancelled() }}
         run: cat front-drawing.md >> "$GITHUB_STEP_SUMMARY" || true
 
+
+  screens:
+    name: Screen check (every screen, phone and computer)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      # Photographs every screen on a phone and a computer and looks for words cut off and things past the edge; fails
+      # on a new finding, the ones already found are in src/screenKnown.json (see e2e/screenAudit.ts).
+      - run: npm run test:e2e -- screen-check.spec.ts --workers 4
+        env:
+          SCREEN_CHECK: screens
+      - run: npx vitest run src/screenCheck.test.ts
+        if: ${{ !cancelled() }}
+        env:
+          SCREEN_FROM: screens
+          SCREEN_REPORT: screens.md
+      - name: Report
+        if: ${{ !cancelled() }}
+        run: cat screens.md >> "$GITHUB_STEP_SUMMARY" || true
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: screen-photos
+          path: screens
+
   options:
     name: All round, every option on its own (${{ matrix.shard }})
     runs-on: ubuntu-latest
