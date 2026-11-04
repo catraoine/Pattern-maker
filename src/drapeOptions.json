@@ -24,7 +24,7 @@
  "bodice darts=bust_waist": "passes",
  "bodice darts=none": "passes",
  "bodice fit=fitted": "passes",
- "bodice fit=oversized": "fails",
+ "bodice fit=oversized": "passes",
  "bodice fit=regular": "passes",
  "bodice fit=relaxed": "passes",
  "bodice length=high_hip": "passes",

@@ -3463,7 +3463,10 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
     for (const p of B.panels) {
       if (p.hidden || (p.role !== 'front' && p.role !== 'back')) continue;
       const inP = (g: number) => g >= p.base && g < p.base + p.mesh.pts.length && !p.turned[g - p.base];
-      const ids = p.mesh.pts.map((_, i) => p.base + i).filter((g) => inP(g) && !held.has(g));
+      // (From the bust down, as the curtain is: smoothed to the top, the rows under the shoulder seam were drawn
+      // across the shoulder's bend into the form, and the oversized top's last clamp then slid them 3 cm out along
+      // the shoulder, All round quality 2026-11-04.)
+      const ids = p.mesh.pts.map((_, i) => p.base + i).filter((g) => inP(g) && !held.has(g) && (knob('__curtainTop') || res[g * 3 + 1] >= bustY));
       smooth(ids, inP, knob('__curtainIt') ?? 12);
       const run = new Float64Array(NB);
       const bin = (a: number) => Math.min(NB - 1, Math.max(0, Math.floor(((a + Math.PI) / TAU) * NB)));

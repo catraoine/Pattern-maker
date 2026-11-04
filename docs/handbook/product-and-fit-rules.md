@@ -94,9 +94,10 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
    cloth never rests on the arm (Nov 4): the arm the drape hangs beside the form isn't drawn, and cloth resting on
    its top rode up over it as a shelf standing in the air past the shoulder (the boat neck's straps sit at the tip,
    so all of its armhole top did); the cloth now falls past the arm, and the old pass that lowered it onto the
-   arm's top is gone. Known slip from this change: the plain oversized sleeveless top now fails the score (the rows
-   just under its shoulder seam slide 3 to 4 cm out along the flat shoulder top, read as stretched) though it looks
-   right by eye; next in line. The same shear sits just under the line on every full-shouldered sleeveless top.
+   arm's top is gone. An unshaped top (cut as wide at the waist as the bust, the oversized top) hangs as a curtain
+   from the bust down, and its smoothing pass now stops at the bust (Nov 4): run to the top, it drew the rows under
+   the shoulder seam across the shoulder's bend into the form, and the last clamp slid them 3 cm out along the
+   shoulder, read as stretched.
 14. **A wrap front is sewn as its own half** (Nov 3, Fable): each wrap front is cut whole, its own half and most of the
    other's. Sewn whole, both halves and their mirrors lay four deep over the chest and the form showed through the
    fighting layers (the wrap top and wrap dress failed the score and showed their Front drawing). The drape now sews
