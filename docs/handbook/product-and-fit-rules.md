@@ -168,6 +168,12 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
    no more than 2.5 cm below the bust point. `src/fitSweep.ts`, held to `src/fitKnown.json` (the kinds of fault
    already found): every pull request runs 300 bodies (its own CI job; 30 inside `npm test`) and fails on a new
    kind. Nightly it runs 300 new bodies and only reports.
+25. **The printed pages are checked like a sewist checks them** (Nov 4, Quality: Automated checks): seven sample
+   patterns (A-line skirt, maxi circle skirt, shirt-collared top, midi dress, trousers, T-shirt, knee coat) on A4, US
+   Letter and A0. Every piece's lines lie on a printed page (from the sheet, inside `npm test`). In its own CI job the
+   PDF is rendered to pixels with pdftoppm: every page is the paper's size, page A1 is printed, the 10 cm test square
+   measures 10 cm both ways within half a millimetre, and where two pages overlap both show the same lines and words
+   (the joining diamonds and the page footer are left out). `src/printCheck.ts`, held to `src/printKnown.json`.
 
 ## Style steps
 

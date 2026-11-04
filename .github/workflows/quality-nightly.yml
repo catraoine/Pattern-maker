@@ -5,6 +5,7 @@ name: Quality checks nightly
 # "Summary" step's log and tells Cat only when something got worse.
 # - Pattern geometry: every option of every garment, on the example body and on random bodies (src/patternSweep.ts).
 # - Fit sweep: 300 new random bodies each night, a random design of every garment on each (src/fitSweep.ts).
+# - Print check: the sample patterns' PDFs on A4, Letter and A0, rendered and measured (src/printCheck.ts).
 on:
   schedule:
     - cron: '30 9 * * *'
@@ -73,3 +74,26 @@ jobs:
       - name: Summary
         if: ${{ !cancelled() }}
         run: cat fit-sweep.md || true
+
+  print:
+    name: Print check
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: sudo apt-get update -q && sudo apt-get install -y -q poppler-utils
+      - run: npx vitest run src/printCheck.test.ts
+        env:
+          PRINT_CHECK: '1'
+          PRINT_REPORT: print-check.md
+      - name: Report
+        if: ${{ !cancelled() }}
+        run: cat print-check.md >> "$GITHUB_STEP_SUMMARY" || true
+      - name: Summary
+        if: ${{ !cancelled() }}
+        run: cat print-check.md || true
