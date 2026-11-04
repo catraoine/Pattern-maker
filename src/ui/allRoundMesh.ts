@@ -4,16 +4,16 @@
 // canvas painter drew (allRoundShape.ts), the light the same as the style drawing's (allRoundCloth.ts lightOf) and the
 // form the same black satin (ContourForm.tsx satinColour), so the two painters agree where they overlap. Drawn into a
 // canvas of its own, over a clear backdrop; AllRound.tsx lays it on its own canvas and draws the marks over it.
-import * as THREE from "three";
-import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
-import { LineSegments2 } from "three/examples/jsm/lines/LineSegments2.js";
-import { LineSegmentsGeometry } from "three/examples/jsm/lines/LineSegmentsGeometry.js";
-import { RoundGarment, RoundPt } from "../engine/allRound";
-import { bodyHalf, reach as bodyReach } from "../engine/body";
-import { FORM_DEPTH, FORM_FLOOR, FORM_LEG, FORM_LEG_X } from "./ContourForm";
-import type { DrapedLite } from "../engine/drape/run";
-import type { ClothTiles } from "./allRoundCloth";
-import { RoundShape, WAIST } from "./allRoundShape";
+import * as THREE from 'three';
+import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
+import { LineSegments2 } from 'three/examples/jsm/lines/LineSegments2.js';
+import { LineSegmentsGeometry } from 'three/examples/jsm/lines/LineSegmentsGeometry.js';
+import { RoundGarment, RoundPt } from '../engine/allRound';
+import { bodyHalf, reach as bodyReach } from '../engine/body';
+import { FORM_DEPTH, FORM_FLOOR, FORM_LEG, FORM_LEG_X } from './ContourForm';
+import type { DrapedLite } from '../engine/drape/run';
+import type { ClothTiles } from './allRoundCloth';
+import { RoundShape, WAIST } from './allRoundShape';
 
 const TAU = Math.PI * 2;
 const HALF = Math.PI / 2;
@@ -32,7 +32,7 @@ const GILD = 0xd9c49b;
 const GLOW = 0xf3e6c8;
 
 /** How a surface is drawn: in its cloth (matte, with a gloss or a pile), as the black satin form, or plain black. */
-type Mode = "matte" | "gloss" | "pile" | "satin" | "black";
+type Mode = 'matte' | 'gloss' | 'pile' | 'satin' | 'black';
 
 // Lit as in a studio (the look pass, 2026-10-28): the chip's own physically based shading, with a soft room of light
 // all round (so satin reflects and cloth has a sheen), a key high on the left, a fill low on the right and a rim from
@@ -46,12 +46,7 @@ interface RoundUniforms {
 }
 type RoundMaterial = THREE.MeshStandardMaterial & { uniforms: RoundUniforms };
 
-function material(
-  mode: Mode,
-  map?: THREE.Texture,
-  scale = 1,
-  opacity = 1,
-): RoundMaterial {
+function material(mode: Mode, map?: THREE.Texture, scale = 1, opacity = 1): RoundMaterial {
   const mat = new THREE.MeshStandardMaterial({
     side: THREE.DoubleSide,
     transparent: opacity < 1,
@@ -66,52 +61,41 @@ function material(
     mat.map = map;
   }
   switch (mode) {
-    case "matte":
+    case 'matte':
       mat.roughness = 0.85;
       break;
-    case "gloss":
+    case 'gloss':
       mat.roughness = 0.3;
       break;
-    case "pile":
+    case 'pile':
       // A velvet: no shine at all, its depth left to the folds.
       mat.roughness = 1;
       break;
-    case "satin":
+    case 'satin':
       // The black satin form (ContourForm.tsx satinColour): deep, with a soft sheen rather than a mirror.
       mat.color.set(0x0b0a08);
       mat.roughness = 0.26;
       mat.metalness = 0.05;
       break;
-    case "black":
+    case 'black':
       mat.color.set(0x000000);
       mat.roughness = 1;
       mat.envMapIntensity = 0;
       break;
   }
-  mat.uniforms = {
-    hideAbove: { value: -1e9 },
-    hideBelow: { value: 1e9 },
-    shadeY: { value: 0 },
-    shadeDepth: { value: 0 },
-  };
+  mat.uniforms = { hideAbove: { value: -1e9 }, hideBelow: { value: 1e9 }, shadeY: { value: 0 }, shadeDepth: { value: 0 } };
   mat.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, mat.uniforms);
     shader.vertexShader = shader.vertexShader
-      .replace(
-        "#include <common>",
-        "#include <common>\nattribute float shade;\nvarying float vShade;\nvarying float vY;",
-      )
-      .replace(
-        "#include <begin_vertex>",
-        "#include <begin_vertex>\nvShade = shade;\nvY = position.y;",
-      );
+      .replace('#include <common>', '#include <common>\nattribute float shade;\nvarying float vShade;\nvarying float vY;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvShade = shade;\nvY = position.y;');
     shader.fragmentShader = shader.fragmentShader
       .replace(
-        "#include <common>",
-        "#include <common>\nuniform float hideAbove;\nuniform float hideBelow;\nuniform float shadeY;\nuniform float shadeDepth;\nvarying float vShade;\nvarying float vY;",
+        '#include <common>',
+        '#include <common>\nuniform float hideAbove;\nuniform float hideBelow;\nuniform float shadeY;\nuniform float shadeDepth;\nvarying float vShade;\nvarying float vY;',
       )
       .replace(
-        "#include <map_fragment>",
+        '#include <map_fragment>',
         `#include <map_fragment>
   if (vY < hideAbove || vY > hideBelow) discard;
   float own = 1.0 - clamp(vShade, 0.0, 1.0);
@@ -120,10 +104,7 @@ function material(
   diffuseColor.rgb += (1.0 - diffuseColor.rgb) * 0.22 * clamp(-vShade, 0.0, 1.0);`,
       )
       // The far side of the cloth, seen from inside through a neck or an armhole, lies in shadow.
-      .replace(
-        "#include <normal_fragment_begin>",
-        "#include <normal_fragment_begin>\nif (!gl_FrontFacing) diffuseColor.rgb *= 0.45;",
-      );
+      .replace('#include <normal_fragment_begin>', '#include <normal_fragment_begin>\nif (!gl_FrontFacing) diffuseColor.rgb *= 0.45;');
   };
   mat.customProgramCacheKey = () => `round-${mode}`;
   return mat;
@@ -141,13 +122,7 @@ interface Sweep {
 }
 
 /** The surface as a mesh: its points, their normals (from the surface's own slope) and the cloth's cm under them. */
-function sweep(
-  s: Sweep,
-  a0: number,
-  a1: number,
-  NA: number,
-  NT: number,
-): THREE.BufferGeometry {
+function sweep(s: Sweep, a0: number, a1: number, NA: number, NT: number): THREE.BufferGeometry {
   const rowT = s.rowT ?? ((j, n) => j / n);
   const pos = new Float32Array((NA + 1) * (NT + 1) * 3);
   const nor = new Float32Array((NA + 1) * (NT + 1) * 3);
@@ -204,10 +179,10 @@ function sweep(
     }
   }
   const g = new THREE.BufferGeometry();
-  g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
-  g.setAttribute("normal", new THREE.BufferAttribute(nor, 3));
-  g.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
-  g.setAttribute("shade", new THREE.BufferAttribute(shade, 1));
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  g.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
+  g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+  g.setAttribute('shade', new THREE.BufferAttribute(shade, 1));
   g.setIndex(idx);
   return g;
 }
@@ -232,12 +207,9 @@ function cap(at: (a: number) => V3, normal: V3, n = 72): THREE.BufferGeometry {
   const idx: number[] = [];
   for (let i = 1; i <= n; i++) idx.push(0, i, i + 1);
   const g = new THREE.BufferGeometry();
-  g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
-  g.setAttribute("normal", new THREE.Float32BufferAttribute(nor, 3));
-  g.setAttribute(
-    "uv",
-    new THREE.Float32BufferAttribute(new Array((n + 2) * 2).fill(0), 2),
-  );
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(new Array((n + 2) * 2).fill(0), 2));
   g.setIndex(idx);
   return g;
 }
@@ -307,25 +279,9 @@ class Lines {
     const geo = new LineSegmentsGeometry();
     geo.setPositions(this.pts.length ? this.pts : [0, 0, 0, 0, 0, 0]);
     geo.setColors(this.nrm.length ? this.nrm : [0, 0, 1, 0, 0, 1]);
-    const {
-      colour,
-      width,
-      back = 0,
-      alpha = 1,
-      graze = 0,
-      onTop = false,
-    } = this.style;
+    const { colour, width, back = 0, alpha = 1, graze = 0, onTop = false } = this.style;
     const make = (faint: boolean) => {
-      const m = new LineMaterial({
-        color: colour,
-        linewidth: width * lw,
-        resolution: res,
-        vertexColors: true,
-        transparent: true,
-        opacity: faint ? back : alpha,
-        depthTest: !faint && !onTop,
-        depthWrite: false,
-      });
+      const m = new LineMaterial({ color: colour, linewidth: width * lw, resolution: res, vertexColors: true, transparent: true, opacity: faint ? back : alpha, depthTest: !faint && !onTop, depthWrite: false });
       // Each pixel once per line: a faint line's segments overlap at their round ends, and drawn twice there it read as
       // a string of beads (Cat's Q2, 2026-10-31). The stencil is cleared each frame; each line takes its own mark.
       stencilMark = (stencilMark % 255) + 1;
@@ -337,16 +293,13 @@ class Lines {
         // The 'colour' of each point is the surface's normal there: how far it faces you sets how bright the line is,
         // as the canvas painter faded a line toward the edge, and a groove fades out before the edge (graze).
         sh.vertexShader = sh.vertexShader.replace(
-          "vColor.xyz = ( position.y < 0.5 ) ? instanceColorStart : instanceColorEnd;",
+          'vColor.xyz = ( position.y < 0.5 ) ? instanceColorStart : instanceColorEnd;',
           `vec3 nn = normalize( normalMatrix * ( ( position.y < 0.5 ) ? instanceColorStart : instanceColorEnd ) );
            float f = nn.z;
-           float b = f > 0.0 ? ( 0.55 + 0.45 * min( 1.0, f ) ) * clamp( ( f - ${graze.toFixed(3)} ) * 4.0, 0.0, 1.0 ) : ${faint ? "1.0" : "0.0"};
+           float b = f > 0.0 ? ( 0.55 + 0.45 * min( 1.0, f ) ) * clamp( ( f - ${graze.toFixed(3)} ) * 4.0, 0.0, 1.0 ) : ${faint ? '1.0' : '0.0'};
            vColor = vec4( 1.0, 1.0, 1.0, b );`,
         );
-        sh.fragmentShader = sh.fragmentShader.replace(
-          "gl_FragColor = vec4( diffuseColor.rgb, alpha );",
-          "gl_FragColor = vec4( diffuseColor.rgb, alpha * vColor.a );",
-        );
+        sh.fragmentShader = sh.fragmentShader.replace('gl_FragColor = vec4( diffuseColor.rgb, alpha );', 'gl_FragColor = vec4( diffuseColor.rgb, alpha * vColor.a );');
       };
       // Each style compiles its own program: the fade and the pass are written into the shader.
       m.customProgramCacheKey = () => `round-line-${graze}-${faint}`;
@@ -376,7 +329,7 @@ export interface BuildOptions {
   film: boolean;
   striped: boolean;
   /** The garment sewn from its pattern; 'pending' while it is still settling (the form stands alone meanwhile). */
-  draped?: DrapedView | "pending";
+  draped?: DrapedView | 'pending';
   /** The form drawn out at the shoulders to the wearer's width, as the cloth's body is (Space.widen, in form units). */
   formX?: (x: number, y: number, z: number) => number;
 }
@@ -398,7 +351,7 @@ export interface Frame {
 
 /** What a point of the view stands on: the garment's cloth, a sleeve, a leg (the form's own, or a trouser leg),
  *  the form's body, or the air beside it. `e` is the side of a sleeve or a leg (-1 or 1). */
-export type PickPart = "cloth" | "sleeve" | "leg" | "body" | "air";
+export type PickPart = 'cloth' | 'sleeve' | 'leg' | 'body' | 'air';
 export interface Pick {
   part: PickPart;
   e: number;
@@ -419,13 +372,7 @@ export interface RoundView {
 /** The view's own projection, as the canvas painter laid it: x across by the scale, y down by the scale and a
  *  little by the depth (seen from a touch above), nothing shrinking with distance. */
 function projection({ w, h, S, cx, top }: Frame) {
-  return {
-    A: (2 * S) / w,
-    B: (2 * cx) / w - 1,
-    C: (-2 * S) / h,
-    D: (-2 * S * FORM_DEPTH) / h,
-    E: 1 - (16 - 2 * top * S) / h,
-  };
+  return { A: (2 * S) / w, B: (2 * cx) / w - 1, C: (-2 * S) / h, D: (-2 * S * FORM_DEPTH) / h, E: 1 - (16 - 2 * top * S) / h };
 }
 
 /** The garment sewn from its pattern pieces: each panel as cut, the wearer's left as settled and its mirror, the print
@@ -433,13 +380,7 @@ function projection({ w, h, S, cx, top }: Frame) {
 function buildDraped(
   { d, toForm }: DrapedView,
   cloth: ClothTiles | undefined,
-  add: (
-    geo: THREE.BufferGeometry,
-    mat: RoundMaterial,
-    order?: number,
-    part?: PickPart,
-    e?: number,
-  ) => THREE.Mesh,
+  add: (geo: THREE.BufferGeometry, mat: RoundMaterial, order?: number, part?: PickPart, e?: number) => THREE.Mesh,
   lines: (style: Style) => Lines,
   maxAniso: number,
   disposables: { dispose: () => void }[],
@@ -452,20 +393,8 @@ function buildDraped(
     tex.anisotropy = maxAniso;
     disposables.push(tex);
   }
-  const mode: Mode =
-    cloth?.sheen === "gloss"
-      ? "gloss"
-      : cloth?.sheen === "pile"
-        ? "pile"
-        : "matte";
-  const contrast =
-    d.contrastCollar === "black"
-      ? 0x161616
-      : d.contrastCollar === "ivory"
-        ? 0xefe8d6
-        : d.contrastCollar
-          ? 0x3a3530
-          : undefined;
+  const mode: Mode = cloth?.sheen === 'gloss' ? 'gloss' : cloth?.sheen === 'pile' ? 'pile' : 'matte';
+  const contrast = d.contrastCollar === 'black' ? 0x161616 : d.contrastCollar === 'ivory' ? 0xefe8d6 : d.contrastCollar ? 0x3a3530 : undefined;
   // Drawn half a cm further out than it settled: the drawn form is not quite the body the cloth settled on, and over the
   // collarbones and shoulder blades it would poke through a cloth lying close.
   const LIFT = 0.5;
@@ -478,10 +407,7 @@ function buildDraped(
     return toForm(x * k * e, pos[i * 3 + 1], z * k);
   };
   // (A piece cut whole, a one-shoulder's front, holds both its halves: drawn once, not mirrored.)
-  const wholeAt = (i: number) =>
-    d.panels.some(
-      (p) => p.whole && i >= p.base && i < p.base + p.uv.length / 2,
-    );
+  const wholeAt = (i: number) => d.panels.some((p) => p.whole && i >= p.base && i < p.base + p.uv.length / 2);
   for (const p of d.panels) {
     if (p.hidden) continue;
     const n = p.uv.length / 2;
@@ -489,30 +415,18 @@ function buildDraped(
       const pos = new Float32Array(n * 3);
       // A front's button extension (cut past the centre front) laps over the other side: the under one lies a little
       // further in, or the two mirrored halves cross at the front and leave a tab at the hem.
-      const under = e < 0 && p.role === "front";
+      const under = e < 0 && p.role === 'front';
       // A back vent's underlap (cut past the centre back) lies under the other side's cloth, on both sides.
-      const vent = p.role === "back";
-      for (let i = 0; i < n; i++)
-        pos.set(
-          P(
-            p.base + i,
-            e,
-            under && p.uv[i * 2] < -0.05 && !p.turned?.[i]
-              ? -0.9
-              : vent && p.uv[i * 2] < -0.05
-                ? -0.6
-                : 0,
-          ),
-          i * 3,
-        );
+      const vent = p.role === 'back';
+      for (let i = 0; i < n; i++) pos.set(P(p.base + i, e, under && p.uv[i * 2] < -0.05 && !p.turned?.[i] ? -0.9 : vent && p.uv[i * 2] < -0.05 ? -0.6 : 0), i * 3);
       // Each triangle wound so its face looks out from the body (a back piece is laid the other way round from a front);
       // a sleeve's out from the middle of its own arm. The scene's y runs down, so out is the cross product's reverse.
       const ref = (() => {
-        if (p.role !== "sleeve") return undefined;
+        if (p.role !== 'sleeve') return undefined;
         const m: V3 = [0, 0, 0];
         let k = 0;
         for (const q of d.panels) {
-          if (q.role !== "sleeve") continue;
+          if (q.role !== 'sleeve') continue;
           for (let i = 0; i < q.uv.length / 2; i++) {
             const v = P(q.base + i, e);
             m[0] += v[0];
@@ -524,8 +438,7 @@ function buildDraped(
         return m.map((v) => v / (k || 1)) as V3;
       })();
       // Cloth turned back over a fold (a lapel) lies the other way up from the rest of its piece.
-      const flipped = (a: number, b: number, c: number) =>
-        p.turned ? p.turned[a] + p.turned[b] + p.turned[c] >= 1 : false;
+      const flipped = (a: number, b: number, c: number) => (p.turned ? p.turned[a] + p.turned[b] + p.turned[c] >= 1 : false);
       let outward = 0;
       for (const [a, b, c] of p.tris) {
         if (flipped(a, b, c)) continue;
@@ -538,14 +451,9 @@ function buildDraped(
         const nx = uy * vz - uz * vy;
         const ny = uz * vx - ux * vz;
         const nz = ux * vy - uy * vx;
-        const cx =
-          (pos[a * 3] + pos[b * 3] + pos[c * 3]) / 3 - (ref ? ref[0] : 0);
-        const cy = ref
-          ? (pos[a * 3 + 1] + pos[b * 3 + 1] + pos[c * 3 + 1]) / 3 - ref[1]
-          : 0;
-        const cz =
-          (pos[a * 3 + 2] + pos[b * 3 + 2] + pos[c * 3 + 2]) / 3 -
-          (ref ? ref[2] : 0);
+        const cx = (pos[a * 3] + pos[b * 3] + pos[c * 3]) / 3 - (ref ? ref[0] : 0);
+        const cy = ref ? (pos[a * 3 + 1] + pos[b * 3 + 1] + pos[c * 3 + 1]) / 3 - ref[1] : 0;
+        const cz = (pos[a * 3 + 2] + pos[b * 3 + 2] + pos[c * 3 + 2]) / 3 - (ref ? ref[2] : 0);
         outward += nx * cx + ny * cy + nz * cz;
       }
       const idx: number[] = [];
@@ -554,19 +462,13 @@ function buildDraped(
         else idx.push(a, b, c);
       }
       const g = new THREE.BufferGeometry();
-      g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
-      g.setAttribute("uv", new THREE.Float32BufferAttribute(p.uv, 2));
-      g.setAttribute(
-        "shade",
-        new THREE.Float32BufferAttribute(
-          d.shade ? d.shade.slice(p.base, p.base + n) : new Float32Array(n),
-          1,
-        ),
-      );
+      g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      g.setAttribute('uv', new THREE.Float32BufferAttribute(p.uv, 2));
+      g.setAttribute('shade', new THREE.Float32BufferAttribute(d.shade ? d.shade.slice(p.base, p.base + n) : new Float32Array(n), 1));
       g.setIndex(idx);
       g.computeVertexNormals();
       // Soften the shading over a few cm: the mesh's own grain reads as dimples on a pale cloth.
-      const nrm = g.getAttribute("normal").array as Float32Array;
+      const nrm = g.getAttribute('normal').array as Float32Array;
       const nb: number[][] = Array.from({ length: n }, () => []);
       for (const [a, b, c] of p.tris) {
         nb[a].push(b, c);
@@ -597,8 +499,7 @@ function buildDraped(
       // (Not where the cloth laps over itself, a front's button extension or a back vent: there the halves don't meet
       // on the line, and flattened there the overlap shows a ripple. Eased back in over a few cm above it.)
       let lapTop = Infinity;
-      for (let i = 0; i < n; i++)
-        if (p.uv[i * 2] < -0.5) lapTop = Math.min(lapTop, -p.uv[i * 2 + 1]);
+      for (let i = 0; i < n; i++) if (p.uv[i * 2] < -0.5) lapTop = Math.min(lapTop, -p.uv[i * 2 + 1]);
       for (let i = 0; i < n; i++) {
         if (Math.abs(d.pos[(p.base + i) * 3]) > 0.4) continue;
         const y = -p.uv[i * 2 + 1];
@@ -612,9 +513,7 @@ function buildDraped(
       }
       // A contrast upper collar shows at the front; round the back its outside is the garment's own cloth.
       const front = p.collar && contrast !== undefined;
-      const mat = !cloth
-        ? material("black")
-        : material(mode, tex, 1 / cloth.bodySize, cloth.sheer ? 0.6 : 1);
+      const mat = !cloth ? material('black') : material(mode, tex, 1 / cloth.bodySize, cloth.sheer ? 0.6 : 1);
       if (front && contrast !== undefined) {
         const col = new Float32Array(n * 3);
         const cc = new THREE.Color(contrast);
@@ -623,49 +522,15 @@ function buildDraped(
           if (d.pos[k + 2] > -3) col.set([cc.r, cc.g, cc.b], i * 3);
           else col.set([1, 1, 1], i * 3);
         }
-        g.setAttribute("color", new THREE.BufferAttribute(col, 3));
+        g.setAttribute('color', new THREE.BufferAttribute(col, 3));
         mat.vertexColors = true;
       }
-      add(
-        g,
-        mat,
-        1,
-        p.role === "sleeve" ? "sleeve" : "cloth",
-        p.role === "sleeve" ? e : 0,
-      );
+      add(g, mat, 1, p.role === 'sleeve' ? 'sleeve' : 'cloth', p.role === 'sleeve' ? e : 0);
     }
   }
   // The seams and edges: bright fine lines in lines, faint ones in cloth (the cloth itself gives the shape).
-  const SHOW = new Set([
-    "shoulder",
-    "side",
-    "princess",
-    "armhole",
-    "neck",
-    "waist",
-    "hem",
-    "opening",
-    "lapel",
-    "gorge",
-    "collar",
-    "front-seam",
-    "back-seam",
-    "sleeve-front",
-    "opening-hem",
-    "centre",
-    "pleat",
-    "inseam",
-    "outseam",
-    "crotch",
-    "yoke",
-    "tier",
-  ]);
-  const seam = lines({
-    colour: GLOW,
-    width: cloth ? 0.7 : 1.1,
-    back: cloth ? 0 : 0.25,
-    alpha: cloth ? 0.55 : 1,
-  });
+  const SHOW = new Set(['shoulder', 'side', 'princess', 'armhole', 'neck', 'waist', 'hem', 'opening', 'lapel', 'gorge', 'collar', 'front-seam', 'back-seam', 'sleeve-front', 'opening-hem', 'centre', 'pleat', 'inseam', 'outseam', 'crotch', 'yoke', 'tier']);
+  const seam = lines({ colour: GLOW, width: cloth ? 0.7 : 1.1, back: cloth ? 0 : 0.25, alpha: cloth ? 0.55 : 1 });
   for (const l of d.lines) {
     if (!SHOW.has(l.kind)) continue;
     for (const e of l.ids.length && wholeAt(l.ids[0]) ? [1] : [1, -1]) {
@@ -673,10 +538,7 @@ function buildDraped(
         const q = P(i, e);
         const r = Math.hypot(q[0], q[2]) || 1;
         const nrm: V3 = [q[0] / r, 0, q[2] / r];
-        return {
-          p: [q[0] + nrm[0] * 0.004, q[1], q[2] + nrm[2] * 0.004] as V3,
-          n: nrm,
-        };
+        return { p: [q[0] + nrm[0] * 0.004, q[1], q[2] + nrm[2] * 0.004] as V3, n: nrm };
       });
       if (run.length > 1) seam.add(run);
     }
@@ -686,22 +548,13 @@ function buildDraped(
     // Small, self-coloured buttons: the cloth's own colour, a touch paler, with a little sheen (a quiet dark horn where
     // there is no plain colour to match).
     const g = new THREE.SphereGeometry(b.r / 30, 16, 8);
-    g.setAttribute(
-      "shade",
-      new THREE.Float32BufferAttribute(
-        new Float32Array(g.getAttribute("position").count),
-        1,
-      ),
-    );
+    g.setAttribute('shade', new THREE.Float32BufferAttribute(new Float32Array(g.getAttribute('position').count), 1));
     g.scale(1, 1, 0.35);
     g.translate(q[0], q[1], q[2]);
-    const m = material("gloss");
-    if (cloth?.plain)
-      m.color.set(
-        new THREE.Color(cloth.plain).lerp(new THREE.Color(0xffffff), 0.12),
-      );
+    const m = material('gloss');
+    if (cloth?.plain) m.color.set(new THREE.Color(cloth.plain).lerp(new THREE.Color(0xffffff), 0.12));
     else m.color.set(0x2a2622);
-    add(g, m, 2, "cloth");
+    add(g, m, 2, 'cloth');
   }
 }
 
@@ -709,12 +562,7 @@ function buildDraped(
 export function createRoundView(): RoundView | undefined {
   let renderer: THREE.WebGLRenderer;
   try {
-    renderer = new THREE.WebGLRenderer({
-      alpha: true,
-      antialias: true,
-      premultipliedAlpha: true,
-      stencil: true,
-    });
+    renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, premultipliedAlpha: true, stencil: true });
   } catch {
     return undefined;
   }
@@ -768,45 +616,9 @@ export function createRoundView(): RoundView | undefined {
     clear();
     built = o;
     const { round, sh, cloth, film } = o;
-    const {
-      trousers,
-      isTop,
-      yAt,
-      yOf,
-      kY,
-      longest,
-      highest,
-      bandTop,
-      arm,
-      yS,
-      yU,
-      sl,
-      rh,
-      radius,
-      shell,
-      clothDown,
-      yE,
-      yCap,
-      axisX,
-      capDepth,
-      sleeveR,
-      lg,
-      yC,
-      yK,
-      yH,
-      legHemR,
-      legR,
-      legAxis,
-      rAt,
-    } = sh;
+    const { trousers, isTop, yAt, yOf, kY, longest, highest, bandTop, arm, yS, yU, sl, rh, radius, shell, clothDown, yE, yCap, axisX, capDepth, sleeveR, lg, yC, yK, yH, legHemR, legR, legAxis, rAt } = sh;
     const k = 1 / kY; // cm of cloth to a unit of the form
-    const add = (
-      geo: THREE.BufferGeometry,
-      mat: RoundMaterial,
-      order = 1,
-      part: PickPart = "cloth",
-      e = 0,
-    ) => {
+    const add = (geo: THREE.BufferGeometry, mat: RoundMaterial, order = 1, part: PickPart = 'cloth', e = 0) => {
       const mesh = new THREE.Mesh(geo, mat);
       mesh.renderOrder = order;
       mesh.userData = { part, e };
@@ -815,17 +627,9 @@ export function createRoundView(): RoundView | undefined {
       return mesh;
     };
     /** A point round the body at angle a and radius r. */
-    const P = (a: number, r: number, y: number): V3 => [
-      Math.sin(a) * r,
-      y,
-      Math.cos(a) * r,
-    ];
+    const P = (a: number, r: number, y: number): V3 => [Math.sin(a) * r, y, Math.cos(a) * r];
     /** A point round a tube standing at x = X. */
-    const T = (X: number, a: number, r: number, y: number, zr = r): V3 => [
-      X + Math.sin(a) * r,
-      y,
-      Math.cos(a) * zr,
-    ];
+    const T = (X: number, a: number, r: number, y: number, zr = r): V3 => [X + Math.sin(a) * r, y, Math.cos(a) * zr];
     const radial = (a: number): V3 => [Math.sin(a), 0, Math.cos(a)];
 
     // The body: the satin form from the top of its neck to below the hip, its neck cut flat across, and its legs.
@@ -835,12 +639,11 @@ export function createRoundView(): RoundView | undefined {
       if (o.formX) q[0] = o.formX(q[0], yy, q[2]);
       return q;
     };
-    const satin = material("satin");
+    const satin = material('satin');
     /** Where the garment's hem is on average: the body or legs under it stand in its shadow. */
     const hemMean = (() => {
       let sum = 0;
-      for (let i = 0; i < 36; i++)
-        sum += yOf(round.lengthAt(-Math.PI + (TAU * i) / 36));
+      for (let i = 0; i < 36; i++) sum += yOf(round.lengthAt(-Math.PI + (TAU * i) / 36));
       return sum / 36;
     })();
     if (isTop) {
@@ -862,79 +665,28 @@ export function createRoundView(): RoundView | undefined {
     const SHOULDER_BAND = (-1.0 - NECK_TOP) / (BODY_BOTTOM - NECK_TOP);
     const bodyRow = (j: number, n: number) => {
       const u = j / n;
-      return u <= 0.5
-        ? (u / 0.5) * SHOULDER_BAND
-        : SHOULDER_BAND + ((u - 0.5) / 0.5) * (1 - SHOULDER_BAND);
+      return u <= 0.5 ? (u / 0.5) * SHOULDER_BAND : SHOULDER_BAND + ((u - 0.5) / 0.5) * (1 - SHOULDER_BAND);
     };
-    add(
-      sweep(
-        {
-          at: (a, t) => bodyAt(a, NECK_TOP + (BODY_BOTTOM - NECK_TOP) * t),
-          out: radial,
-          rowT: bodyRow,
-        },
-        -Math.PI,
-        Math.PI,
-        96,
-        120,
-      ),
-      satin,
-      0,
-      "body",
-    );
-    const neck = material("satin");
+    add(sweep({ at: (a, t) => bodyAt(a, NECK_TOP + (BODY_BOTTOM - NECK_TOP) * t), out: radial, rowT: bodyRow }, -Math.PI, Math.PI, 96, 120), satin, 0, 'body');
+    const neck = material('satin');
     neck.color.set(0x0e0c0a);
     neck.roughness = 0.45;
-    add(
-      cap((a) => bodyAt(a, NECK_TOP), [0, -1, 0]),
-      neck,
-      0,
-      "body",
-    );
+    add(cap((a) => bodyAt(a, NECK_TOP), [0, -1, 0]), neck, 0, 'body');
     for (const leg of [-1, 1]) {
-      const legs = material("satin");
+      const legs = material('satin');
       if (!isTop && !trousers) {
         legs.uniforms.shadeY.value = hemMean;
         legs.uniforms.shadeDepth.value = 0.3;
       }
-      add(
-        sweep(
-          {
-            at: (a, t) =>
-              T(
-                leg * FORM_LEG_X,
-                a,
-                FORM_LEG(LEG_TOP + (FORM_FLOOR - LEG_TOP) * t),
-                LEG_TOP + (FORM_FLOOR - LEG_TOP) * t,
-              ),
-            out: radial,
-          },
-          -Math.PI,
-          Math.PI,
-          48,
-          60,
-        ),
-        legs,
-        0,
-        "leg",
-        leg,
-      );
+      add(sweep({ at: (a, t) => T(leg * FORM_LEG_X, a, FORM_LEG(LEG_TOP + (FORM_FLOOR - LEG_TOP) * t), LEG_TOP + (FORM_FLOOR - LEG_TOP) * t), out: radial }, -Math.PI, Math.PI, 48, 60), legs, 0, 'leg', leg);
     }
 
     if (o.draped) {
-      if (o.draped !== "pending")
-        buildDraped(
-          o.draped,
-          cloth,
-          add,
-          (style) => {
-            const l = new Lines(style, turning);
-            lineSets.push(l);
-            return l;
-          },
-          maxAniso,
-          disposables,
-        );
+      if (o.draped !== 'pending') buildDraped(o.draped, cloth, add, (style) => {
+        const l = new Lines(style, turning);
+        lineSets.push(l);
+        return l;
+      }, maxAniso, disposables);
       lwBuilt = 0;
       return;
     }
@@ -947,16 +699,7 @@ export function createRoundView(): RoundView | undefined {
       tex.colorSpace = THREE.SRGBColorSpace;
       tex.anisotropy = maxAniso;
       disposables.push(tex);
-      const mat = material(
-        cloth?.sheen === "gloss"
-          ? "gloss"
-          : cloth?.sheen === "pile"
-            ? "pile"
-            : "matte",
-        tex,
-        1 / size,
-        cloth?.sheer ? 0.6 : 1,
-      );
+      const mat = material(cloth?.sheen === 'gloss' ? 'gloss' : cloth?.sheen === 'pile' ? 'pile' : 'matte', tex, 1 / size, cloth?.sheer ? 0.6 : 1);
       if (cloth?.lift && cloth.plain) {
         mat.emissive.set(cloth.plain).convertSRGBToLinear();
         mat.emissiveIntensity = cloth.lift;
@@ -964,7 +707,7 @@ export function createRoundView(): RoundView | undefined {
       return mat;
     };
     const clothMat = () => {
-      if (!cloth) return material("black");
+      if (!cloth) return material('black');
       return clothMaterial(cloth.body, cloth.bodySize);
     };
     const mid = (yS + yU) / 2;
@@ -1006,16 +749,8 @@ export function createRoundView(): RoundView | undefined {
               const aw = wrap(a);
               const y = topOf(aw) + (botOf(aw) - topOf(aw)) * t;
               // The valleys of the folds, and the cloth in the shadow under a sleeve.
-              const valley =
-                0.25 *
-                Math.min(1, sh.foldAmp(y) / 0.03) *
-                (0.5 - 0.5 * Math.cos(sh.FOLDS * aw + 0.6 * Math.sin(3 * aw)));
-              const underArm =
-                isTop && sl
-                  ? 0.32 *
-                    Math.exp(-(((Math.abs(aw) - HALF) / 0.33) ** 2)) *
-                    Math.exp(-(((y - yU - 0.1) / 0.28) ** 2))
-                  : 0;
+              const valley = 0.25 * Math.min(1, sh.foldAmp(y) / 0.03) * (0.5 - 0.5 * Math.cos(sh.FOLDS * aw + 0.6 * Math.sin(3 * aw)));
+              const underArm = isTop && sl ? 0.32 * Math.exp(-(((Math.abs(aw) - HALF) / 0.33) ** 2)) * Math.exp(-(((y - yU - 0.1) / 0.28) ** 2)) : 0;
               return Math.max(valley, underArm);
             },
           },
@@ -1062,16 +797,7 @@ export function createRoundView(): RoundView | undefined {
       }
     }
     /** A tube round an axis at X(y): a sleeve or a trouser leg, in its cloth. */
-    const tube = (
-      X: (y: number) => number,
-      R: (y: number) => number,
-      y0: number,
-      y1: number,
-      panels: boolean,
-      Z: (y: number) => number = () => 1,
-      seat?: (g: number) => number,
-      part: PickPart = "cloth",
-    ) => {
+    const tube = (X: (y: number) => number, R: (y: number) => number, y0: number, y1: number, panels: boolean, Z: (y: number) => number = () => 1, seat?: (g: number) => number, part: PickPart = 'cloth') => {
       const e = Math.sign(X(y0)) || 1;
       const NY = 32;
       const rowY = (t: number) => y0 + (y1 - y0) * t ** 1.6;
@@ -1106,9 +832,7 @@ export function createRoundView(): RoundView | undefined {
               const p = T(X(y), aw, r, y, r * Z(y));
               // Over the whole thigh, down to the knee: the cloth hangs from the seat and the belly and only closes
               // round the leg as the thigh narrows (over a hand's width it bulged at the seat, Cat 2026-10-28).
-              const wOut = smooth(
-                clamp(1 - (y - y0) / Math.max(0.45, (yK - y0) * 0.85), 0, 1),
-              );
+              const wOut = smooth(clamp(1 - (y - y0) / Math.max(0.45, (yK - y0) * 0.85), 0, 1));
               // The inseam side parts from the other leg straight below the crotch, so two legs show from the front.
               const wIn = smooth(clamp(1 - (y - y0) / 0.3, 0, 1));
               const w = wOut + (wIn - wOut) * smooth(clamp(-sOf / 0.6, 0, 1));
@@ -1120,8 +844,7 @@ export function createRoundView(): RoundView | undefined {
                 const rs = seat(g);
                 qx = Math.sin(g) * rs;
                 qz = Math.cos(g) * rs;
-              } else
-                qz = Math.cos(sOf) * seat(Math.cos(sOf) >= 0 ? 0 : Math.PI);
+              } else qz = Math.cos(sOf) * seat(Math.cos(sOf) >= 0 ? 0 : Math.PI);
               // Across the body each leg is on its own axis within a hand's width of the crotch; front to back it
               // keeps the seat's depth down the thigh.
               return [qx * wIn + p[0] * (1 - wIn), y, qz * w + p[2] * (1 - w)];
@@ -1142,9 +865,7 @@ export function createRoundView(): RoundView | undefined {
             shade: (a, t) => {
               // The side of a sleeve toward the body, or of a leg toward the other, in its shadow near the top.
               const e = Math.sign(X(rowY(t))) || 1;
-              return (
-                0.3 * Math.max(0, -e * Math.sin(wrap(a)) - 0.2) * (1 - t) ** 1.5
-              );
+              return 0.3 * Math.max(0, -e * Math.sin(wrap(a)) - 0.2) * (1 - t) ** 1.5;
             },
           },
           a0,
@@ -1158,49 +879,18 @@ export function createRoundView(): RoundView | undefined {
       } else add(geo(0, -Math.PI, Math.PI), clothMat(), 1, part, e);
     };
     // In lines the sleeves and trouser legs are lines alone, as the canvas painter drew them; in cloth they are cloth.
-    if (cloth && sl && arm)
-      for (const e of [1, -1])
-        tube(
-          (y) => e * axisX(y),
-          sleeveR,
-          yCap,
-          yE,
-          false,
-          capDepth,
-          undefined,
-          "sleeve",
-        );
-    if (cloth && lg)
-      for (const leg of [-1, 1])
-        tube(
-          (y) => leg * legAxis(y),
-          legR,
-          yC,
-          yH,
-          false,
-          undefined,
-          (g) => rAt(g, yC),
-          "leg",
-        );
+    if (cloth && sl && arm) for (const e of [1, -1]) tube((y) => e * axisX(y), sleeveR, yCap, yE, false, capDepth, undefined, 'sleeve');
+    if (cloth && lg) for (const leg of [-1, 1]) tube((y) => leg * legAxis(y), legR, yC, yH, false, undefined, (g) => rAt(g, yC), 'leg');
     // A waistband is cloth too, standing on the garment's top edge, not a hoop in the air above it.
     // The band lies on the body above the waist, which widens again up from it.
-    const bandR = (a: number, y = bandTop) =>
-      shell(a, Math.min(y, WAIST)) + 0.006;
+    const bandR = (a: number, y = bandTop) => shell(a, Math.min(y, WAIST)) + 0.006;
     if (cloth && round.bandCm) {
       for (const c of [0, Math.PI]) {
         add(
           sweep(
             {
-              at: (a, t) =>
-                P(
-                  wrap(a),
-                  bandR(wrap(a), bandTop + (WAIST + 0.01 - bandTop) * t),
-                  bandTop + (WAIST + 0.01 - bandTop) * t,
-                ),
-              uv: (a, t) => [
-                (a - c) * bandR(wrap(a)) * k,
-                (bandTop + (WAIST + 0.01 - bandTop) * t) * k,
-              ],
+              at: (a, t) => P(wrap(a), bandR(wrap(a), bandTop + (WAIST + 0.01 - bandTop) * t), bandTop + (WAIST + 0.01 - bandTop) * t),
+              uv: (a, t) => [(a - c) * bandR(wrap(a)) * k, (bandTop + (WAIST + 0.01 - bandTop) * t) * k],
               out: radial,
             },
             c - HALF,
@@ -1220,11 +910,7 @@ export function createRoundView(): RoundView | undefined {
       return l;
     };
     /** The cloth's normal at a point on the garment's body, from its own slope. */
-    const clothN = (
-      a: number,
-      y: number,
-      rOf: (a: number, y: number) => number,
-    ): V3 => {
+    const clothN = (a: number, y: number, rOf: (a: number, y: number) => number): V3 => {
       const d = 0.01;
       const pa = P(a + d, rOf(a + d, y), y);
       const ma = P(a - d, rOf(a - d, y), y);
@@ -1247,21 +933,10 @@ export function createRoundView(): RoundView | undefined {
       return [nx / l, ny / l, nz / l];
     };
     /** A point on the cloth, lifted a hair off it so the line sits on the surface, not in it. */
-    const onCloth = (
-      a: number,
-      y: number,
-      rOf: (a: number, y: number) => number = shell,
-    ) => {
+    const onCloth = (a: number, y: number, rOf: (a: number, y: number) => number = shell) => {
       const n = clothN(a, y, rOf);
       const p = P(a, rOf(a, y), y);
-      return {
-        p: [
-          p[0] + n[0] * 0.004,
-          p[1] + n[1] * 0.004,
-          p[2] + n[2] * 0.004,
-        ] as V3,
-        n,
-      };
+      return { p: [p[0] + n[0] * 0.004, p[1] + n[1] * 0.004, p[2] + n[2] * 0.004] as V3, n };
     };
     const onTube = (X: number, a: number, r: number, y: number, slope = 0) => {
       const n: V3 = [Math.sin(a), -slope, Math.cos(a)];
@@ -1272,21 +947,11 @@ export function createRoundView(): RoundView | undefined {
       const p = T(X, a, r + 0.004, y);
       return { p, n };
     };
-    const ring = (
-      l: Lines,
-      yAtA: (a: number) => number,
-      rOf: (a: number, y: number) => number = shell,
-      n = 144,
-    ) =>
-      l.curve(n, (i) =>
-        onCloth(-Math.PI + (TAU * i) / n, yAtA(-Math.PI + (TAU * i) / n), rOf),
-      );
+    const ring = (l: Lines, yAtA: (a: number) => number, rOf: (a: number, y: number) => number = shell, n = 144) => l.curve(n, (i) => onCloth(-Math.PI + (TAU * i) / n, yAtA(-Math.PI + (TAU * i) / n), rOf));
     const legX = (leg: number, y: number) => leg * legAxis(y);
     const spot = (p: RoundPt, leg?: number) => {
       const y = leg ? yOf(p.cm) : yAt(p.phi, p.cm);
-      return leg
-        ? onTube(legX(leg, y), p.phi, legR(y), y)
-        : onCloth(p.phi, y, rAt);
+      return leg ? onTube(legX(leg, y), p.phi, legR(y), y) : onCloth(p.phi, y, rAt);
     };
     /** A seam or dart through its points, in small steps so it follows the body. */
     const along = (l: Lines, pts: RoundPt[], leg?: number) => {
@@ -1294,105 +959,50 @@ export function createRoundView(): RoundView | undefined {
       for (let i = 1; i < pts.length; i++) {
         const a = pts[i - 1];
         const b = pts[i];
-        for (let s = i === 1 ? 0 : 1; s <= 10; s++)
-          run.push(
-            spot(
-              {
-                phi: a.phi + ((b.phi - a.phi) * s) / 10,
-                cm: a.cm + ((b.cm - a.cm) * s) / 10,
-              },
-              leg,
-            ),
-          );
+        for (let s = i === 1 ? 0 : 1; s <= 10; s++) run.push(spot({ phi: a.phi + ((b.phi - a.phi) * s) / 10, cm: a.cm + ((b.cm - a.cm) * s) / 10 }, leg));
       }
       l.add(run);
     };
 
     // In cloth, the edges are fine lines: the cloth itself gives the shape.
     const edge = cloth ? 0.55 : 1;
-    const edges = lines({
-      colour: GLOW,
-      width: 1.1,
-      back: cloth ? 0 : 0.25,
-      alpha: edge,
-    });
+    const edges = lines({ colour: GLOW, width: 1.1, back: cloth ? 0 : 0.25, alpha: edge });
     ring(edges, topY);
     if (!trousers) {
-      const hem = lines({
-        colour: GLOW,
-        width: 1.3,
-        back: cloth ? 0 : 0.3,
-        alpha: edge,
-      });
+      const hem = lines({ colour: GLOW, width: 1.3, back: cloth ? 0 : 0.3, alpha: edge });
       ring(hem, hemY);
     }
     // A sewn seam round the garment (a dress's waist seam) is a shadow in the cloth, as the side seams are, not a
     // bright edge like a hem or a neckline (Cat, 2026-10-27).
-    const grooveDark = lines({
-      colour: 0x000000,
-      width: 1.8,
-      alpha: 0.45,
-      graze: 0.3,
-    });
-    const grooveLight = lines({
-      colour: GLOW,
-      width: 0.5,
-      alpha: 0.5,
-      graze: 0.3,
-    });
-    const seams = cloth
-      ? undefined
-      : lines({ colour: GLOW, width: 1.1, back: 0.25 });
+    const grooveDark = lines({ colour: 0x000000, width: 1.8, alpha: 0.45, graze: 0.3 });
+    const grooveLight = lines({ colour: GLOW, width: 0.5, alpha: 0.5, graze: 0.3 });
+    const seams = cloth ? undefined : lines({ colour: GLOW, width: 1.1, back: 0.25 });
     for (const r of round.rings) {
       if (cloth) {
         ring(grooveDark, (a) => yAt(a, r(a)));
         ring(grooveLight, (a) => yAt(a, r(a)));
-      } else
-        ring(lines({ colour: GLOW, width: 0.9, back: 0.25 }), (a) =>
-          yAt(a, r(a)),
-        );
+      } else ring(lines({ colour: GLOW, width: 0.9, back: 0.25 }), (a) => yAt(a, r(a)));
     }
     if (round.bandCm) {
       // In cloth the band is cloth with a fine edge along its top; in lines it is drawn as a hoop with its sides.
-      ring(
-        lines({
-          colour: GLOW,
-          width: cloth ? 0.7 : 0.8,
-          back: cloth ? 0 : 0.2,
-          alpha: edge,
-        }),
-        () => bandTop,
-        cloth ? (a) => bandR(a) : (_a, y) => radius(y),
-      );
+      ring(lines({ colour: GLOW, width: cloth ? 0.7 : 0.8, back: cloth ? 0 : 0.2, alpha: edge }), () => bandTop, cloth ? (a) => bandR(a) : (_a, y) => radius(y));
       if (!cloth) {
         const sides = new Lines({ colour: GLOW, width: 1, onTop: true }, still);
         lineSets.push(sides);
-        for (const e of [-1, 1])
-          sides.add([
-            { p: [e * radius(WAIST), bandTop, 0], n: [0, 0, 1] },
-            { p: [e * radius(WAIST), WAIST, 0], n: [0, 0, 1] },
-          ]);
+        for (const e of [-1, 1]) sides.add([{ p: [e * radius(WAIST), bandTop, 0], n: [0, 0, 1] }, { p: [e * radius(WAIST), WAIST, 0], n: [0, 0, 1] }]);
       }
     }
-    const dartStyle: Style = cloth
-      ? { colour: 0x000000, width: 1.8, alpha: 0.4, graze: 0.3 }
-      : { colour: GILD, width: 0.8, back: 0.2, alpha: film ? 0.5 : 1 };
+    const dartStyle: Style = cloth ? { colour: 0x000000, width: 1.8, alpha: 0.4, graze: 0.3 } : { colour: GILD, width: 0.8, back: 0.2, alpha: film ? 0.5 : 1 };
     const darts = lines(dartStyle);
-    const dartsLight = cloth
-      ? lines({ colour: GLOW, width: 0.5, alpha: 0.45, graze: 0.3 })
-      : undefined;
+    const dartsLight = cloth ? lines({ colour: GLOW, width: 0.5, alpha: 0.45, graze: 0.3 }) : undefined;
     for (const dt of round.darts) {
       along(darts, [dt.base, dt.tip]);
       if (dartsLight) along(dartsLight, [dt.base, dt.tip]);
     }
-    const seamDark = cloth
-      ? lines({ colour: 0x000000, width: 2, alpha: 0.45, graze: 0.3 })
-      : undefined;
-    const seamLight = cloth
-      ? lines({ colour: GLOW, width: 0.55, alpha: 0.5, graze: 0.3 })
-      : undefined;
+    const seamDark = cloth ? lines({ colour: 0x000000, width: 2, alpha: 0.45, graze: 0.3 }) : undefined;
+    const seamLight = cloth ? lines({ colour: GLOW, width: 0.55, alpha: 0.5, graze: 0.3 }) : undefined;
     for (const sm of round.seams) {
-      if (sm.kind === "sleeve") continue;
+      if (sm.kind === 'sleeve') continue;
       if (seamDark && seamLight) {
         along(seamDark, sm.pts, sm.leg);
         along(seamLight, sm.pts, sm.leg);
@@ -1400,39 +1010,22 @@ export function createRoundView(): RoundView | undefined {
     }
     if (round.vent) {
       const vent = lines({ colour: GILD, width: 0.8, back: cloth ? 0 : 0.2 });
-      along(vent, [
-        { phi: Math.PI + 0.05, cm: round.vent.fromCm },
-        { phi: Math.PI + 0.05, cm: round.lengthAt(Math.PI) },
-      ]);
+      along(vent, [{ phi: Math.PI + 0.05, cm: round.vent.fromCm }, { phi: Math.PI + 0.05, cm: round.lengthAt(Math.PI) }]);
     }
 
     // The cloth itself, as lines down the garment all the way round, so it reads over the form: hanging straight
     // where it has ease, and only pulled in where it is cut close.
     if (!trousers && !cloth) {
       const n = film ? 28 : 36;
-      const down = lines({
-        colour: GLOW,
-        width: 0.55,
-        back: 0.08,
-        alpha: film ? 0.75 : 0.6,
-      });
+      const down = lines({ colour: GLOW, width: 0.55, back: 0.08, alpha: film ? 0.75 : 0.6 });
       for (let j = 0; j < n; j++) {
         const a = wrap((TAU * (j + 0.5)) / n);
         const y0 = isTop && arm ? Math.max(topY(a), yU - 0.02) : topY(a);
         const y1 = hemY(a);
         down.curve(30, (i) => onCloth(a, y0 + ((y1 - y0) * i) / 30));
       }
-      const across = lines({
-        colour: GLOW,
-        width: 0.5,
-        back: 0.08,
-        alpha: 0.45,
-      });
-      for (
-        let y = yOf(highest) + 0.12;
-        !film && y < yOf(longest) - 0.04;
-        y += 5 * kY
-      ) {
+      const across = lines({ colour: GLOW, width: 0.5, back: 0.08, alpha: 0.45 });
+      for (let y = yOf(highest) + 0.12; !film && y < yOf(longest) - 0.04; y += 5 * kY) {
         const yy = y;
         ring(across, (a) => Math.max(yy, topY(a)));
       }
@@ -1442,32 +1035,16 @@ export function createRoundView(): RoundView | undefined {
     if (arm) {
       for (const e of [1, -1]) {
         if (!sl) {
-          const loop = lines({
-            colour: GLOW,
-            width: 1.05,
-            back: 0.2,
-            alpha: edge,
-          });
+          const loop = lines({ colour: GLOW, width: 1.05, back: 0.2, alpha: edge });
           loop.curve(48, (i) => {
             const t = (TAU * i) / 48;
             const y = mid - half * Math.cos(t);
-            return onCloth(
-              e * HALF + 0.32 * Math.sin(t),
-              y,
-              (_a, yy) => radius(yy) + 0.004,
-            );
+            return onCloth(e * HALF + 0.32 * Math.sin(t), y, (_a, yy) => radius(yy) + 0.004);
           });
           continue;
         }
-        const hemRing = lines({
-          colour: GLOW,
-          width: 1.2,
-          back: film || cloth ? 0 : 0.25,
-          alpha: edge,
-        });
-        hemRing.curve(48, (i) =>
-          onTube(e * axisX(yE), -Math.PI + (TAU * i) / 48, rh, yE),
-        );
+        const hemRing = lines({ colour: GLOW, width: 1.2, back: film || cloth ? 0 : 0.25, alpha: edge });
+        hemRing.curve(48, (i) => onTube(e * axisX(yE), -Math.PI + (TAU * i) / 48, rh, yE));
         // The underarm seam, on the side of the sleeve toward the body.
         // Its faint through-the-cloth copy only in lines: in cloth it showed as a white sliver inside the near sleeve (film thread, 2026-10-28).
         const under = lines({ colour: GLOW, width: 1, back: cloth ? 0 : 0.2 });
@@ -1489,25 +1066,14 @@ export function createRoundView(): RoundView | undefined {
     }
     // Trouser leg hems.
     if (lg) {
-      const hems = lines({
-        colour: GLOW,
-        width: 1.3,
-        back: cloth ? 0 : 0.25,
-        alpha: edge,
-      });
-      for (const leg of [-1, 1])
-        hems.curve(48, (i) =>
-          onTube(legX(leg, yH), -Math.PI + (TAU * i) / 48, legHemR, yH),
-        );
+      const hems = lines({ colour: GLOW, width: 1.3, back: cloth ? 0 : 0.25, alpha: edge });
+      for (const leg of [-1, 1]) hems.curve(48, (i) => onTube(legX(leg, yH), -Math.PI + (TAU * i) / 48, legHemR, yH));
     }
 
     // The garment's outline, which stays at the sides as the form turns: its sides from the underarm (or the top
     // edge) to the hem, over the shoulder from the neck to the tip, and the sleeves' and trouser legs' own sides.
     // Drawn over everything, as the canvas painter drew them, and laid again each frame (they depend on the turn).
-    const outlines = new Lines(
-      { colour: GLOW, width: 1.2, onTop: true },
-      still,
-    );
+    const outlines = new Lines({ colour: GLOW, width: 1.2, onTop: true }, still);
     const shoulders = new Lines({ colour: GLOW, width: 1, onTop: true }, still);
     if (!cloth) {
       for (const e of [1, -1]) {
@@ -1530,10 +1096,7 @@ export function createRoundView(): RoundView | undefined {
     lineSets.push(outlines, shoulders);
     // The sleeves' and legs' sides turn with their axes: laid afresh each frame.
     if (!cloth && ((sl && arm) || lg)) {
-      const turnLines = new Lines(
-        { colour: GLOW, width: 1.1, onTop: true },
-        still,
-      );
+      const turnLines = new Lines({ colour: GLOW, width: 1.1, onTop: true }, still);
       lineSets.push(turnLines);
       outline = (f) => {
         const t = turnLines;
@@ -1548,10 +1111,7 @@ export function createRoundView(): RoundView | undefined {
               t.curve(40, (i) => {
                 const y = yCap + ((yE - yCap) * i) / 40;
                 if (side !== e && y < yU - 0.01) return undefined;
-                return {
-                  p: [X(y) * c + side * sleeveR(y), y, -X(y) * s],
-                  n: [0, 0, 1],
-                };
+                return { p: [X(y) * c + side * sleeveR(y), y, -X(y) * s], n: [0, 0, 1] };
               });
             }
           }
@@ -1561,10 +1121,7 @@ export function createRoundView(): RoundView | undefined {
             for (const e of [-1, 1]) {
               t.curve(60, (i) => {
                 const y = yC + ((yH - yC) * i) / 60;
-                return {
-                  p: [legX(leg, y) * c + e * legR(y), y, -legX(leg, y) * s],
-                  n: [0, 0, 1],
-                };
+                return { p: [legX(leg, y) * c + e * legR(y), y, -legX(leg, y) * s], n: [0, 0, 1] };
               });
             }
           }
@@ -1582,9 +1139,7 @@ export function createRoundView(): RoundView | undefined {
     // The check reads what is cloth and what is form; the lines drawn on the cloth (seams, darts, edges) are neither,
     // and on a fold's crest a side seam can sit a few pixels inside the silhouette and read as the form seen through.
     for (const l of lineSets) for (const o of l.objects) o.visible = !probe;
-    renderer.toneMapping = probe
-      ? THREE.NoToneMapping
-      : THREE.NeutralToneMapping;
+    renderer.toneMapping = probe ? THREE.NoToneMapping : THREE.NeutralToneMapping;
     const W = Math.max(1, Math.round(w * dpr));
     const Hh = Math.max(1, Math.round(h * dpr));
     if (renderer.domElement.width !== W || renderer.domElement.height !== Hh) {
@@ -1607,24 +1162,7 @@ export function createRoundView(): RoundView | undefined {
     }
     outline?.(f);
     const { A, B, C, D, E } = projection(f);
-    camera.projectionMatrix.set(
-      A,
-      0,
-      0,
-      B,
-      0,
-      C,
-      D,
-      E,
-      0,
-      0,
-      -0.25,
-      0,
-      0,
-      0,
-      0,
-      1,
-    );
+    camera.projectionMatrix.set(A, 0, 0, B, 0, C, D, E, 0, 0, -0.25, 0, 0, 0, 0, 1);
     camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
     turning.rotation.y = phi;
     renderer.render(scene, camera);
@@ -1647,23 +1185,15 @@ export function createRoundView(): RoundView | undefined {
     turning.rotation.y = f.phi;
     turning.updateMatrixWorld(true);
     // Only the surfaces themselves: the fat lines are meshes too, but take a camera to be cast at.
-    const meshes = turning.children.filter(
-      (o): o is THREE.Mesh => (o as THREE.Mesh).isMesh && "part" in o.userData,
-    );
+    const meshes = turning.children.filter((o): o is THREE.Mesh => (o as THREE.Mesh).isMesh && 'part' in o.userData);
     const hit = caster.intersectObjects(meshes, false).find((h) => {
       // What the shader leaves out (the body under trousers) is not there to touch.
-      const u = (h.object as THREE.Mesh<THREE.BufferGeometry, RoundMaterial>)
-        .material.uniforms;
+      const u = (h.object as THREE.Mesh<THREE.BufferGeometry, RoundMaterial>).material.uniforms;
       const yy = turning.worldToLocal(h.point.clone()).y;
       return !u || (yy >= u.hideAbove.value && yy <= u.hideBelow.value);
     });
-    const local = turning.worldToLocal(
-      (hit?.point ?? new THREE.Vector3(x, yAt(0), 0)).clone(),
-    );
-    const { part, e } = (hit?.object.userData ?? { part: "air", e: 0 }) as {
-      part: PickPart;
-      e: number;
-    };
+    const local = turning.worldToLocal((hit?.point ?? new THREE.Vector3(x, yAt(0), 0)).clone());
+    const { part, e } = (hit?.object.userData ?? { part: 'air', e: 0 }) as { part: PickPart; e: number };
     return { part, e, p: [local.x, local.y, local.z] };
   };
 
