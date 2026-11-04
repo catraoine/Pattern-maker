@@ -407,10 +407,12 @@ function buildDraped(
     const k = 1 + (LIFT + more) / (Math.sqrt(x * x + z * z) || 1);
     return toForm(x * k * e, pos[i * 3 + 1], z * k, d.hang?.[i] || undefined);
   };
+  // (A piece cut whole, a one-shoulder's front, holds both its halves: drawn once, not mirrored.)
+  const wholeAt = (i: number) => d.panels.some((p) => p.whole && i >= p.base && i < p.base + p.uv.length / 2);
   for (const p of d.panels) {
     if (p.hidden) continue;
     const n = p.uv.length / 2;
-    for (const e of p.single ? [1] : [1, -1]) {
+    for (const e of p.single || p.whole ? [1] : [1, -1]) {
       const pos = new Float32Array(n * 3);
       // A front's button extension (cut past the centre front) laps over the other side: the under one lies a little
       // further in, or the two mirrored halves cross at the front and leave a tab at the hem.
@@ -528,11 +530,11 @@ function buildDraped(
     }
   }
   // The seams and edges: bright fine lines in lines, faint ones in cloth (the cloth itself gives the shape).
-  const SHOW = new Set(['shoulder', 'side', 'princess', 'armhole', 'neck', 'waist', 'hem', 'opening', 'lapel', 'gorge', 'collar', 'front-seam', 'back-seam', 'sleeve-front', 'opening-hem', 'centre', 'pleat', 'inseam', 'outseam', 'crotch', 'yoke', 'tier']);
+  const SHOW = new Set(['shoulder', 'side', 'princess', 'armhole', 'neck', 'waist', 'hem', 'opening', 'lapel', 'gorge', 'collar', 'front-seam', 'back-seam', 'sleeve-front', 'opening-hem', 'centre', 'pleat', 'inseam', 'outseam', 'crotch', 'yoke', 'tier', 'face']);
   const seam = lines({ colour: GLOW, width: cloth ? 0.7 : 1.1, back: cloth ? 0 : 0.25, alpha: cloth ? 0.55 : 1 });
   for (const l of d.lines) {
     if (!SHOW.has(l.kind)) continue;
-    for (const e of [1, -1]) {
+    for (const e of l.ids.length && wholeAt(l.ids[0]) ? [1] : [1, -1]) {
       const run = l.ids.map((i) => {
         const q = P(i, e);
         const r = Math.hypot(q[0], q[2]) || 1;
