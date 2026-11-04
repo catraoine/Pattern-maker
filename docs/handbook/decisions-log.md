@@ -5,6 +5,7 @@ something that changes how a department works. Design picks for single screens s
 
 ## November 2026
 
+- **Nov 4** Style title and Next button (B Taller Type): "Your dress" matches the step name (40px, weight 600) on a phone too; the Next button is Chakra Petch at its real 500 weight (600 was a faked bold), 16px, half the spacing. [Brand and voice](brand-and-voice.md).
 - **Nov 4** Shawl-collar and fitted-sleeve jackets turn in All round (Fable): the front beside the drawn-back neckline is eased to its cut lengths (on fronts with a gorge, near the neck only). Every option on its own 257 to 259 of 290, nothing lost. [Product and fit rules](product-and-fit-rules.md) rule 22.
 - **Nov 4** Inverted pleats and diagonal hems turn in All round (Fable): the inverted pleat was sewn open as a wide sheet with a gaping V; it is now drawn closed with a shaded V below the hip. The diagonal hem's short side was being let down to level, stretching the cloth. Every option on its own 255 to 257 of 290, nothing lost. [Product and fit rules](product-and-fit-rules.md) rules 20 and 21.
 - **Nov 4** Tiers, ruffled hems and balloon hems turn in All round (Fable): a band's top was being drawn in to the body like a waistband, leaving it 4 to 8 cm inside the hem it hangs from; the balloon's swell pushed its hem 10 cm off the underskirt. Bands now hang from their seam, the balloon turns in to its underskirt: every option on its own 252 to 255 of 290, nothing lost. [Product and fit rules](product-and-fit-rules.md) rule 19.
