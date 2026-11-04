@@ -81,7 +81,7 @@ jobs:
 
   front:
     name: Front drawing check (every option, in the real app) (${{ matrix.shard }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # Playwright's browser doesn't install on later Ubuntu yet
     timeout-minutes: 40
     strategy:
       fail-fast: false
@@ -103,7 +103,6 @@ jobs:
           FRONT_CHECK: front-drawings
           FRONT_SHARD: ${{ matrix.shard }}
       - run: npx vitest run src/frontCheck.test.ts
-        if: ${{ !cancelled() }}
         env:
           FRONT_FROM: front-drawings
           FRONT_SHARD: ${{ matrix.shard }}
@@ -115,7 +114,7 @@ jobs:
 
   screens:
     name: Screen check (every screen, phone and computer)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04 # Playwright's browser doesn't install on later Ubuntu yet
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
@@ -132,7 +131,6 @@ jobs:
         env:
           SCREEN_CHECK: screens
       - run: npx vitest run src/screenCheck.test.ts
-        if: ${{ !cancelled() }}
         env:
           SCREEN_FROM: screens
           SCREEN_REPORT: screens.md
