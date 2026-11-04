@@ -24,7 +24,7 @@ import { BUTTONS_STOP_ABOVE_HEM, buttonsBlocked, yokeBlocked } from '../engine/s
 import { FinishChoices } from '../ui/FinishChoices';
 import type { Finish } from '../savedWork';
 import { ERAS } from '../engine/eras';
-import { skirtFlat } from '../engine/flat';
+import { skirtFlat, wornShapes, wornLines } from '../engine/flat';
 import { TechFlatView } from '../ui/TechFlatView';
 import { shapeLine } from '../photo/shape';
 import { MyFabric, fabricEase, skirtFabrics } from '../engine/fabrics';
@@ -95,7 +95,8 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
 
   const sheet = useMemo(() => (draft ? layout(draft.pieces, '', []) : undefined), [draft]);
   const round = useMemo(() => (draft ? roundSkirt(draft) : undefined), [draft]);
-  const drapeJob = useMemo(() => (draft ? ({ kind: 'skirt', draft } as const) : undefined), [draft]);
+  const sideTie = useMemo(() => (draft ? skirtBelt(choices.belt, draft)?.ties : undefined), [draft, choices.belt]);
+  const drapeJob = useMemo(() => (draft ? ({ kind: 'skirt', draft, ...(sideTie ? { sideTie } : {}) } as const) : undefined), [draft, sideTie]);
   const slipped = choices.silhouette === 'slip';
   const extra = fabricEase(fabric, 'skirt');
   const title = describe(choices);
@@ -181,11 +182,17 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
 
   if (onForm && draft) {
     return (
+      <GarmentFabric fabric={fabric}>
       <DrawOnForm<Choices>
         allRound={round ? { round, drape: drapeJob, m: values, fabric, striped: matchKind(fabric) } : undefined}
         body={skirtForm(m)}
         m={m}
         legs
+        // The skirt as cloth on the form, a calico toile until a fabric is picked, so each line visibly changes it.
+        cloth={flat ? wornShapes(flat) : undefined}
+        flatLines={flat ? wornLines(flat) : undefined}
+        backCloth={flat ? wornShapes(flat, 1) : undefined}
+        backFlatLines={flat ? wornLines(flat, 1) : undefined}
         bottom={lengthRange(m).max + 4}
         kinds={[
           ['hem', 'Hem'],
@@ -229,6 +236,7 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
           setOnForm(undefined);
         }}
       />
+      </GarmentFabric>
     );
   }
 

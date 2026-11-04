@@ -294,13 +294,16 @@ export function readSkirtHem(stroke: P[], waistY: number, draft: Pick<SkirtDraft
   const ys = pts.map((q) => q.y);
   const spread = Math.max(...ys) - Math.min(...ys);
   // A shape matched from a photo, and a named uneven hem, are let go of: the drawing takes over.
-  const { shape: _shape, asymHem: _a, ...rest } = skirt;
+  const { shape: _shape, asymHem: _a, asymFlip: _f, ...rest } = skirt;
   const ends = [pts[0], pts[pts.length - 1]].sort((a, b) => a.x - b.x);
   if (side === 'front' && ends[0].x < -5 && ends[1].x > 5 && Math.abs(ends[1].y - ends[0].y) > 8 && Math.abs(median(pts.map((q) => q.x))) < 8) {
     if (garment === 'dress') return { said: 'The dress zips at the centre back, so its hem can’t slant from side to side. Try longer at the back instead.' };
     if (skirt.silhouette === 'slip' || skirt.pleats) return { said: 'A slanting hem goes on a straight, pencil, A-line, trumpet or circle skirt.' };
     const { hem: _h, ...plain } = rest;
-    return { choices: { ...plain, asymHem: 'diagonal' }, said: 'A diagonal hem, cut whole so each side can differ.' };
+    // The diagonal is drafted short on the wearer's left, the right of the form as seen; drawn lower on that side,
+    // it runs the other way round.
+    const flip = ends[1].y > ends[0].y;
+    return { choices: { ...plain, asymHem: 'diagonal', ...(flip ? { asymFlip: true } : {}) }, said: 'A diagonal hem, slanting the way you drew it, cut whole so each side can differ.' };
   }
   if (side === 'front' && spread < 3) {
     const { hem: _h, ...plain } = rest;

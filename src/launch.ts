@@ -108,6 +108,7 @@ const OPTIONS_IN_TESTING: Record<string, readonly string[]> = {
   ruched: ['ruched'],
   collar: ['cape'],
   sleeveCuff: ['ruffle'],
+  belt: ['side_tie'],
 };
 
 export const optionInTesting = (group: string, id: string) => !!OPTIONS_IN_TESTING[group]?.includes(id);
