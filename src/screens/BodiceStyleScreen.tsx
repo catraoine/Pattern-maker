@@ -234,6 +234,8 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
         // The bodice as cloth on the form, a calico toile until a fabric is picked, so each line visibly changes it.
         cloth={flat ? wornShapes(flat) : undefined}
         flatLines={flat ? wornLines(flat) : undefined}
+        backCloth={flat ? wornShapes(flat, 1) : undefined}
+        backFlatLines={flat ? wornLines(flat, 1) : undefined}
         sleeve={drawArm ? sleeve : undefined}
         underarmY={landmarks(draft).underarm.y}
         kinds={[

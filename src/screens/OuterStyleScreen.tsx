@@ -102,6 +102,8 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
         allRound={round ? { round, drape: drapeJob, m: values, fabric, striped: matchKind(fabric) } : undefined}
         cloth={clothShapes}
         flatLines={flatLines}
+        backCloth={flat ? wornShapes(flat, 1) : undefined}
+        backFlatLines={flat ? wornLines(flat, 1) : undefined}
         arms={formArm}
         sleeve={formArm ? draft.sleeve : undefined}
         underarmY={landmarks(draft.base).underarm.y}

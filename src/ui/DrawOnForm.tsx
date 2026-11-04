@@ -115,6 +115,9 @@ interface Props<C> {
   /** The garment's own lines from its flat (seams, darts, pleats, pockets, slits), pressed into the cloth as on the
    *  Style page, so a line that adds one of them shows on the garment as it lands. */
   flatLines?: P[][];
+  /** The same from the back (its flat's back view, as seen from behind), so the back is drawn on the cloth too. */
+  backCloth?: P[][];
+  backFlatLines?: P[][];
   /** The drafted sleeve, to hang on the arms with the cloth. */
   sleeve?: WornSleeve;
   /** Where the underarm is: below it a fitted piece's sides follow the form. */
@@ -213,7 +216,7 @@ export function skirtForm(m: { waist: number; full_hip: number; waist_to_hip: nu
   return { width: side, top: -12, bottom: m.waist_to_hip + 8, waistY: 0 };
 }
 
-export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, onChoices, read, help: helpFor, backs = true, backKinds, arms, cloth, flatLines, sleeve, underarmY, sewn, allRound, onDone, onCancel }: Props<C>) {
+export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, onChoices, read, help: helpFor, backs = true, backKinds, arms, cloth, flatLines, backCloth, backFlatLines, sleeve, underarmY, sewn, allRound, onDone, onCancel }: Props<C>) {
   const svg = useRef<SVGSVGElement>(null);
   const [kind, setKind] = useState<FormLine>(kinds[0][0]);
   const [side, setSide] = useState<FormSide>('front');
@@ -333,14 +336,22 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
 
   // The garment on the form, front on (the back shows the form and its lines only).
   const worn = useMemo(() => (cloth ? wornCloth(cloth, body, underarmY ?? arms?.under.y, sewn) : undefined), [cloth, body, underarmY, arms, sewn]);
-  const clothOn = side === 'front' ? worn : undefined;
+  const wornBack = useMemo(() => (backCloth ? wornCloth(backCloth, body, underarmY ?? arms?.under.y, sewn) : undefined), [backCloth, body, underarmY, arms, sewn]);
+  // Every side wears its cloth (Cat, 2026-11-04: all garments, and both sides, treated the same).
+  const onBackSide = side === 'back';
+  const clothOn = onBackSide ? wornBack : worn;
   // The flat's lines on the cloth, and its folds, exactly as the Style page wears them.
   const pressed = useMemo(() => {
-    if (!cloth || !flatLines?.length) return undefined;
-    const map = wornMapper(cloth, body, underarmY ?? arms?.under.y, sewn);
-    return flatLines.map((run) => run.map(map));
-  }, [cloth, flatLines, body, underarmY, arms, sewn]);
-  const folds = useMemo(() => (cloth && worn ? wornFolds(cloth, worn) : undefined), [cloth, worn]);
+    const c = onBackSide ? backCloth : cloth;
+    const ls = onBackSide ? backFlatLines : flatLines;
+    if (!c || !ls?.length) return undefined;
+    const map = wornMapper(c, body, underarmY ?? arms?.under.y, sewn);
+    return ls.map((run) => run.map(map));
+  }, [onBackSide, cloth, flatLines, backCloth, backFlatLines, body, underarmY, arms, sewn]);
+  const folds = useMemo(() => {
+    const c = onBackSide ? backCloth : cloth;
+    return c && clothOn ? wornFolds(c, clothOn) : undefined;
+  }, [onBackSide, cloth, backCloth, clothOn]);
   // Enlarged, the garment fills the screen as on the Style page (Cat, 2026-10-25: Draw inside Enlarge too): from just
   // above it to well past its hem, so there's room to draw the hem longer, and only a little wider than it, both sides
   // alike so the back matches the front.

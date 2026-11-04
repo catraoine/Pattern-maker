@@ -190,6 +190,8 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
         // The skirt as cloth on the form, a calico toile until a fabric is picked, so each line visibly changes it.
         cloth={flat ? wornShapes(flat) : undefined}
         flatLines={flat ? wornLines(flat) : undefined}
+        backCloth={flat ? wornShapes(flat, 1) : undefined}
+        backFlatLines={flat ? wornLines(flat, 1) : undefined}
         bottom={lengthRange(m).max + 4}
         kinds={[
           ['hem', 'Hem'],

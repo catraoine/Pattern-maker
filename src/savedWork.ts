@@ -39,6 +39,8 @@ export interface Choices {
   ruched?: boolean;
   /** A high-low or diagonal hem, in place of a drawn one. Older saves have none. */
   asymHem?: AsymHem;
+  /** A diagonal hem the other way round (long on the wearer's left), as drawn. */
+  asymFlip?: boolean;
   /** A gathered skirt's fullness (In testing); unset, it follows the fit. */
   gathers?: Gathers;
   /** With tiers: one deep gathered skirt from a drop yoke (In testing). */

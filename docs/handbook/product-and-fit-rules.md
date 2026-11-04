@@ -151,7 +151,8 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
 23. **Every garment is drawn on as cloth** (Nov 4, Cat: "treat all garments the same"): Draw your lines puts the
    garment on the form as on the Style page, a calico toile until a fabric is picked, on every garment (the skirt and
    bodice showed the bare form with thin lines before, so pleats, pockets and a slanted hem seemed to do nothing). The
-   flat's own lines (darts, pleats, pockets, slits) press into the cloth as each line lands. A collar drawn on a
+   flat's own lines (darts, pleats, pockets, slits) press into the cloth as each line lands, front and back. A
+   diagonal hem slants the way it is drawn (`asymFlip` when drawn lower on the right of the form). A collar drawn on a
    drawn neckline puts the neckline back to the round one it sits on (it was silently dropped before). Code:
    `cloth` and `flatLines` on `DrawOnForm`.
 
