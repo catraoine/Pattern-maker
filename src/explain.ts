@@ -101,6 +101,7 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       sash_loops: ['The sash, held in place by a narrow loop at each side seam so it never slips.', 'easy'],
       loops: ['Four narrow loops at the waist to carry a belt of your own, up to 3 cm wide.'],
       band: ['A flat band of your fabric round the waist seam, with a buckle, held by a loop at each side.', 'easy'],
+      side_tie: ['Two narrow ties in your fabric, sewn into the left side seam at the waist and knotted there, their ends hanging.', 'easy'],
     },
   },
   bodice: {
@@ -422,6 +423,7 @@ const SHORT: Record<string, string> = {
   'belt.sash_loops': 'The sash, held by a loop each side.',
   'belt.loops': 'Loops for your own belt, up to 3 cm.',
   'belt.band': 'A fabric band with a buckle.',
+  'belt.side_tie': 'Two ties knotted at the left side.',
   'neckline.plunge': 'A deep V nearly to the waist.',
   'neckline.crew': 'Round, close at the base of the neck.',
   'neckline.boat': 'Wide and shallow, shoulder to shoulder.',

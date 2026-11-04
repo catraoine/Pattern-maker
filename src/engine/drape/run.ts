@@ -15,8 +15,9 @@ import { Quality, drapeQuality } from './quality';
 import { DrapeOptions, Draped, drapeBodice, drapeDress, drapeOuter, drapeSkirt, drapeTrousers, isShell } from './garment';
 import { makeSpace } from './space';
 import { hangScales } from './hang';
+import { sideTie, type SideTieSpec } from './tie';
 
-export type DrapeJob = { m: RoundMeasurements; armhole: RoundGarment['armhole']; fibre?: Fibre; crisp?: boolean } & (
+export type DrapeJob = { m: RoundMeasurements; armhole: RoundGarment['armhole']; fibre?: Fibre; crisp?: boolean; /** A side tie knotted at the left side seam at the waist (belt.ts). */ sideTie?: SideTieSpec } & (
   | { kind: 'skirt'; draft: SkirtDraft }
   | { kind: 'dress'; draft: DressDraft; sleeve?: SleeveDraft }
   | { kind: 'bodice'; draft: BodiceDraft; sleeve?: SleeveDraft }
@@ -27,7 +28,7 @@ export type DrapeJob = { m: RoundMeasurements; armhole: RoundGarment['armhole'];
 /** What the view needs of a draped garment: each panel's points and triangles, where it is cut from (for the print),
  *  the settled positions, the seams to draw and the buttons. Plain data, so it crosses from a worker. */
 export interface DrapedLite {
-  panels: { role: string; base: number; tris: number[][]; uv: number[]; hidden?: boolean; collar: boolean; /** Pressed pleats: drawn crisp, their faces' shading not softened away. */ pleated?: boolean; /** Points turned back over a fold (a lapel, a collar's fall). */ turned?: number[] }[];
+  panels: { role: string; base: number; tris: number[][]; uv: number[]; hidden?: boolean; collar: boolean; /** Drawn once, on the wearer's left only (a side tie), not mirrored. */ single?: boolean; /** Pressed pleats: drawn crisp, their faces' shading not softened away. */ pleated?: boolean; /** Points turned back over a fold (a lapel, a collar's fall). */ turned?: number[] }[];
   pos: Float64Array;
   /** The mirrored half's points, where they differ from `pos` (a slit up the left side seam only). */
   posMirror?: Float64Array;
@@ -114,9 +115,26 @@ export function runDrape(job: DrapeJob): DrapedLite {
     quality.problems.push({ check: 'missing', part: pc.name, worst: 1 });
     quality.ok = false;
   }
-  const hang = hangScales(d, sp);
+  let hang = hangScales(d, sp);
+  let pos = d.pos;
+  const extra: DrapedLite['panels'] = [];
+  const tie = job.sideTie && (job.kind === 'dress' || job.kind === 'skirt') ? sideTie(d, job.sideTie) : undefined;
+  if (tie) {
+    const base = pos.length / 3;
+    const joined = new Float64Array(pos.length + tie.pos.length);
+    joined.set(pos);
+    joined.set(tie.pos, pos.length);
+    pos = joined;
+    if (hang) {
+      const h = new Float32Array(base + tie.ref.length);
+      h.set(hang);
+      tie.ref.forEach((r, k) => (h[base + k] = hang![r]));
+      hang = h;
+    }
+    extra.push({ role: 'tie', base, tris: tie.tris, uv: tie.uv, collar: false, single: true });
+  }
   return {
-    panels: d.panels.map((p) => ({
+    panels: [...d.panels.map((p) => ({
       role: p.role,
       base: p.base,
       tris: p.mesh.tris,
@@ -125,8 +143,8 @@ export function runDrape(job: DrapeJob): DrapedLite {
       collar: p.role === 'collar',
       ...(p.pc.meta.pleatFolds ? { pleated: true } : {}),
       turned: p.turned.some(Boolean) ? p.turned.map((t) => (t ? 1 : 0)) : undefined,
-    })),
-    pos: d.pos,
+    })), ...extra],
+    pos,
     ...(d.posMirror ? { posMirror: d.posMirror } : {}),
     ...(hang ? { hang } : {}),
     lines: d.lines,

@@ -40,8 +40,11 @@ get in with their tester link.
 
 ## Queued for "ship" (as of Nov 4, 15:00 UTC)
 
-- #280 (green): All round draws cloth clear of the body hanging plumb on the form; a shift's or
-  sheath's hem levelled (the blush shift redesign). Drawing only; pattern and sim unchanged.
+- #280: All round draws cloth clear of the body hanging plumb on the form; a shift's or sheath's hem
+  levelled (the blush shift redesign). Drawing only; pattern and sim unchanged. Plus the new Belt option
+  **Side tie** (In testing; Cat, Nov 4 "I want the side tie let's build"): two self-fabric ties caught
+  into the left side seam at the waist and knotted, with its pattern piece, steps, flat drawing and All
+  round knot and tails. Look 06 itself is not changed until Cat's "apply".
 
 Open draft: #259 (bias slip mini + side slit, open polo collar, ruffled trouser
 hem; In testing), based on main, waiting on Cat's "apply".

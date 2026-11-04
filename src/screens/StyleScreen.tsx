@@ -95,7 +95,8 @@ export function StyleScreen({ choices, onChoices, values, draft, error, onEditMe
 
   const sheet = useMemo(() => (draft ? layout(draft.pieces, '', []) : undefined), [draft]);
   const round = useMemo(() => (draft ? roundSkirt(draft) : undefined), [draft]);
-  const drapeJob = useMemo(() => (draft ? ({ kind: 'skirt', draft } as const) : undefined), [draft]);
+  const sideTie = useMemo(() => (draft ? skirtBelt(choices.belt, draft)?.ties : undefined), [draft, choices.belt]);
+  const drapeJob = useMemo(() => (draft ? ({ kind: 'skirt', draft, ...(sideTie ? { sideTie } : {}) } as const) : undefined), [draft, sideTie]);
   const slipped = choices.silhouette === 'slip';
   const extra = fabricEase(fabric, 'skirt');
   const title = describe(choices);

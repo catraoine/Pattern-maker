@@ -410,7 +410,7 @@ function buildDraped(
   for (const p of d.panels) {
     if (p.hidden) continue;
     const n = p.uv.length / 2;
-    for (const e of [1, -1]) {
+    for (const e of p.single ? [1] : [1, -1]) {
       const pos = new Float32Array(n * 3);
       // A front's button extension (cut past the centre front) laps over the other side: the under one lies a little
       // further in, or the two mirrored halves cross at the front and leave a tab at the hem.
