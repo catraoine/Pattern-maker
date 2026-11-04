@@ -607,7 +607,7 @@ const RAGLAN_EASE = 0.15;
 
 /** How a raglan's shoulder piece was turned onto the sleeve: a yoke point `q` (as on the bodice) goes to
  *  `notch + rot(a) · (flip(q) - at)`, with `flip` mirroring x. */
-export interface RaglanTurn {
+interface RaglanTurn {
   notch: { x: number; y: number };
   at: { x: number; y: number };
   a: number;

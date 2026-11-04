@@ -57,8 +57,9 @@ get in with their tester link.
 ## Queued for "ship" (as of Nov 4, after Release 62)
 
 - #281 (All round: halter, plunge, cowl, one-shoulder necklines; peter pan, bow and ruffle collars; tie and
-  ruffle cuffs; raglan sleeves; jackets closed at the neck): 282 of 290 options pass on their own; main merged
-  in Nov 4, handbook rules 31 to 39; waits on green checks and Cat's "ship".
+  ruffle cuffs; raglan sleeves; jackets closed at the neck; funnel and hood collars, coat shawl end, flared coat,
+  high-low peplum, gathered dress skirt): 290 of 290 options pass on their own; main merged in Nov 4, handbook
+  rules 31 to 46; waits on green checks and Cat's "ship".
 
 Open draft: #259 (bias slip mini + side slit, open polo collar, ruffled trouser
 hem; In testing), based on main, waiting on Cat's "apply".

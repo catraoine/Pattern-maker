@@ -259,6 +259,36 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
    jacket's or coat's front neckline back along itself from the shoulder (rule 22's neighbour) is off: on a stand,
    funnel, hood or collarless jacket or coat it ran the neckline down the chest in a drooping V, tore the front and
    left the collar's seam 9 to 23 cm off it. Stand and collarless jackets and coats, and the double-breasted coat, pass.
+40. **A funnel collar stands away as it rises** (Nov 4, Fable): a funnel's ring is set 0.3 cm further out for every cm
+   above its neck seam, so it flares open round the face instead of sitting as a tube that crossed the centre front
+   and stretched. Jacket and coat funnels pass.
+41. **A hood hangs as a pouch from the nape** (Nov 4, Fable): a hood is a collar piece sewn by its neck edge, not a body
+   shell. Its neck edge is keyed along the seam from the centre back; the rest is hung from the nape's own level,
+   swept over the shoulder to the pouch's side first and then let down plumb on the body profile's convex hull, its
+   crown rounded in a quarter circle, its face edge drawn (not held on the centre plane) and the pouch bellied 4 cm
+   behind the neck. Neighbours hang from the one nape level, never each from its own seam point (that hung them 10 cm
+   apart). Jacket and coat hoods pass.
+42. **A collar end sewn to a pressed lapel stays on the lapel** (Nov 4, Fable): after the lapel press, the seam
+   re-close lets a collar's seam points follow the body (the body never follows the collar), and the collar lay keeps
+   its seam points on the lapel rather than pushing them out with the fall below. The coat shawl's collar-to-front
+   seam closed from 4.6 cm; notched, peak, shawl and stand collars on jacket and coat unchanged.
+43. **A long coat's hem fullness is laid out too** (Nov 4, Fable): the jacket rule that lays back the cloth the sim
+   could not show out (a step out and soft flutes, growing from the waist to the hem) now runs for coats of any length;
+   a long flared coat was left to the sim, which tucked 100 cm of hem fullness into creases beside the side seams
+   (13 fins). Below a piece's cut hem the piece keeps its hem's width, so the last rows that settle past the cut are
+   not left 4 cm inside the rows above. All 39 coat options pass.
+44. **The centre smoothing stops at a vent** (Nov 4, Fable): the pass that runs a top's centre line smooth leaves the
+   rows below a vent's top alone: there the cloth either side of the centre is the vent's overlap and underlap, two
+   layers that lap, and smoothing them together drew the underlap to 2.4 times its cut.
+45. **A high-low peplum's hem is cut unlevel on purpose** (Nov 4, Fable): a bodice with a high-low peplum is draped as a
+   shaped hem, like a dress with one, so the A-line evening does not "let down" its sides as if they rode up (it drew
+   the back peplum's side to 5 times its cut). All peplum options pass.
+46. **A gathered skirt's side seam is closed by its sewn pairing, its halves meshed alike** (Nov 4, Fable): the side
+   seam is closed point to its place on the other piece's edge, by the seam as sewn, not to the nearest point (which
+   put two points of a finer front on one point of a coarser back: a sawtooth of 47 teeth down a dress's gathered
+   skirt). A gathered skirt's front and back are meshed at the same step: with the fullness shown just over 2 on one
+   piece and just under on the other, the finer piece hung 3 to 5 cm shorter and the hem ran unlevel. Skirt and dress
+   pass with level hems.
 
 ## Style steps
 

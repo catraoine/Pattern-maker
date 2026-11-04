@@ -530,7 +530,7 @@ function buildDraped(
     }
   }
   // The seams and edges: bright fine lines in lines, faint ones in cloth (the cloth itself gives the shape).
-  const SHOW = new Set(['shoulder', 'side', 'princess', 'armhole', 'neck', 'waist', 'hem', 'opening', 'lapel', 'gorge', 'collar', 'front-seam', 'back-seam', 'sleeve-front', 'opening-hem', 'centre', 'pleat', 'inseam', 'outseam', 'crotch', 'yoke', 'tier']);
+  const SHOW = new Set(['shoulder', 'side', 'princess', 'armhole', 'neck', 'waist', 'hem', 'opening', 'lapel', 'gorge', 'collar', 'front-seam', 'back-seam', 'sleeve-front', 'opening-hem', 'centre', 'pleat', 'inseam', 'outseam', 'crotch', 'yoke', 'tier', 'face']);
   const seam = lines({ colour: GLOW, width: cloth ? 0.7 : 1.1, back: cloth ? 0 : 0.25, alpha: cloth ? 0.55 : 1 });
   for (const l of d.lines) {
     if (!SHOW.has(l.kind)) continue;

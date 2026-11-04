@@ -60,14 +60,35 @@ interface Chain {
 }
 
 /** The ring of the body at level c, out by `off` cm: the point `arc` cm round from the centre front (or back), toward the wearer's left. */
-function ringAt(sp: Space, arc: number, c: number, back: boolean, off: number): V3 {
+/** Half the body's ring at a level, from the centre back round to the centre front. */
+function halfRing(sp: Space, c: number): number {
+  return arcFromBack(sp, 0, c) || 1;
+}
+
+/** How far round the body's ring at a level a point at this angle lies, from the centre back (the inverse of ringAt). */
+function arcFromBack(sp: Space, angle: number, c: number, rOf: (a: number, c: number) => number = (a, c) => sp.bodyR(a, c)): number {
+  const a1 = Math.abs(angle);
+  let t = 0;
+  let [px, pz] = [0, -rOf(Math.PI, c)];
+  const n = Math.max(1, Math.ceil((Math.PI - a1) / 0.01));
+  for (let k = 1; k <= n; k++) {
+    const a = Math.PI - ((Math.PI - a1) * k) / n;
+    const r = rOf(a, c);
+    const [x, z] = [Math.sin(a) * r, Math.cos(a) * r];
+    t += Math.hypot(x - px, z - pz);
+    [px, pz] = [x, z];
+  }
+  return t;
+}
+
+function ringAt(sp: Space, arc: number, c: number, back: boolean, off: number, rOf: (a: number, c: number) => number = (a, c) => sp.bodyR(a, c)): V3 {
   const sign = arc < 0 ? -1 : 1;
   let left = Math.abs(arc);
   const da = 0.01;
   let a = back ? Math.PI : 0;
   const dir = back ? -1 : 1;
   const pt = (aa: number): [number, number] => {
-    const r = sp.bodyR(aa, c) + off;
+    const r = rOf(aa, c) + off;
     return [Math.sin(aa) * r, Math.cos(aa) * r];
   };
   let [px, pz] = pt(a);
@@ -194,7 +215,8 @@ function dartLegs(p: Panel): [Chain, Chain][] {
   return p.mesh.darts.map(([a, b]) => [leg(a), leg(b)]);
 }
 
-export const isShell = (pc: Piece) => !pc.kind;
+// (A hood is drafted as a shell piece; the drape hangs it from the neck as it does a collar.)
+export const isShell = (pc: Piece) => !pc.kind && !pc.meta.hood;
 
 interface TorsoPiece {
   pc: Piece;
@@ -591,7 +613,7 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
   // A side slit's open edges (each point's distance up the seam from the hem), for the parting drawn after the sim.
   const slitEdges: { p: Panel; ids: number[]; toHem: Map<number, number>; sign: number }[] = [];
   const poppedPanels: Panel[] = [];
-  const stiffPanels: { p: Panel; by: string; roll?: [P, P]; key: (q: P) => number; target?: Chain; on?: { panel: Panel; key: (q: P) => number }; carry?: (q: P) => boolean }[] = [];
+  const stiffPanels: { p: Panel; by: string; roll?: [P, P]; key: (q: P) => number; target?: Chain; on?: { panel: Panel; key: (q: P) => number }; carry?: (q: P) => boolean; hang?: (q: P, c0: number, fracNeck: number, cSeam: number) => V3 }[] = [];
   let legs: SimInput['legs'];
   const thick = o.thick ?? 0.35;
   const front: Panel[] = [];
@@ -616,7 +638,10 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       }
       return hi > lo ? hi - lo : 0;
     };
-    widthAt = (c: number) => 2 * outlines.reduce((t, o) => t + spanAt(o.pts, c + o.waistY), 0);
+    // (Below a piece's own hem, as settled cloth can fall a few cm past where it is cut, the piece keeps its hem's width:
+    // a long flared coat's last rows were given no width there, so its hem was left 4 cm inside the rows above it.)
+    const hemOf = outlines.map((o) => Math.max(...o.pts.map((q) => q.y)) - 0.5);
+    widthAt = (c: number) => 2 * outlines.reduce((t, o, i) => t + spanAt(o.pts, Math.min(c + o.waistY, hemOf[i])), 0);
     const cache = new Map<number, number>();
     return (c: number) => {
       if (c <= 0) return 1;
@@ -740,6 +765,10 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       return ys.reduce((a, b) => a + b, 0) / ys.length - t.waistY;
     })();
     const levelOf = new Map<Panel, (q: P) => number>();
+    // (A gathered skirt's front and back on the same mesh: with its fullness shown just over 2 on one piece and just
+    // under on the other, one was meshed fine and one coarse, and the finer piece hung 3 to 5 cm shorter, so the hem
+    // ran unlevel round the body, All round quality 2026-11-04.)
+    const fineGathers = !knob('__gathersApart') && extra.skirt.some((pc) => (((pc.meta.gatherShown as number | undefined) ?? 1) > 2) && !pc.meta.tier);
     for (const pc of extra.skirt) {
       const isBack = /back/i.test(pc.name);
       const toHem = pc.meta.sewnTo === 'hem';
@@ -806,7 +835,7 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
         [],
         // (Pressed pleats on a finer mesh cut along each fold, so the fold's step and the shadow under it are crisp.)
         // (A heavily gathered skirt on a finer one too: its many folds need more than a point or two across each.)
-        pc.meta.pleatFolds ? 1.2 : ((pc.meta.gatherShown as number | undefined) ?? 1) > 2 ? (knob('__gh') ?? 0.8) : 1.6,
+        pc.meta.pleatFolds ? 1.2 : ((pc.meta.gatherShown as number | undefined) ?? 1) > 2 || (fineGathers && ((pc.meta.gatherShown as number | undefined) ?? 1) > 1.05 && !pc.meta.tier) ? (knob('__gh') ?? 0.8) : 1.6,
         creasesOf(pc),
       );
       levelOf.set(p, level);
@@ -982,7 +1011,176 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
           return s[b];
         };
       };
-      const key = flat && nk.length > 1 ? alongNeck() : fromFold(pc);
+      // A hood (two pieces, seamed down the centre back and over the crown, worn down): it hangs from the neck seam
+      // down the back as a pouch, its centre seam down the spine, its face edge the pouch's side and bottom, and the
+      // front ends of its neck edge round on the chest. (Placed as a collar it was wrapped round the neck 10x stretched.)
+      const hood = !!pc.meta.hood && !knob('__noHood');
+      const hoodNeck = (() => {
+        // Its neck edge from the centre back end (the piece's far x) round to the centre front end (x = 0): one curve,
+        // so the tagged points are its two ends; a point's place along it is its share of the way across.
+        // (A tagged point starts its segment: the edge's far end is the point after its last segment.)
+        const ends = tp.pts.filter((_, i) => tp.tags[i] === 'neck' || tp.tags[(i + tp.pts.length - 1) % tp.pts.length] === 'neck');
+        const xs = ends.map((q) => q.x);
+        const [cf, cb] = [Math.min(...xs), Math.max(...xs)];
+        const span = cb - cf || 1;
+        const yOf = (x: number) => {
+          const a = ends.find((q) => q.x === cb) ?? ends[0];
+          const b = ends.find((q) => q.x === cf) ?? ends[0];
+          return a.y + ((b.y - a.y) * (cb - x)) / span;
+        };
+        return { key: (q: P) => Math.min(span, Math.max(0, cb - q.x)), total: span, yAt: (q: P) => yOf(q.x) };
+      })();
+      const key = hood ? hoodNeck.key : flat && nk.length > 1 ? alongNeck() : fromFold(pc);
+      const hoodBox = hood ? { x0: Math.min(...tp.pts.map((q) => q.x)), D: Math.max(...tp.pts.map((q) => q.x)) - Math.min(...tp.pts.map((q) => q.x)), top: Math.min(...tp.pts.map((q) => q.y)), bottom: Math.max(...tp.pts.map((q) => q.y)) } : undefined;
+      // The hood's centre seam as the piece's far edge: its x at a height up its side (it curves in to the nape), and
+      // its height across the top (the crown's curve), so a point's way across is measured from the seam itself.
+      const hoodSeam = (() => {
+        if (!hood || !hoodBox) return undefined;
+        const cp = pc.outline.taggedPoints(1);
+        const on = cp.pts.filter((_, i) => cp.tags[i] === 'centre' || cp.tags[(i + cp.pts.length - 1) % cp.pts.length] === 'centre');
+        const xMax = hoodBox.x0 + hoodBox.D;
+        // The crown: the seam's highest point; below it the seam is the side, above it the top.
+        const crown = on.reduce((b, q) => (q.x > b.x ? q : b), on[0]);
+        const side = on.filter((q) => q.y >= crown.y - 0.01).sort((a, b) => a.y - b.y);
+        const top = on.filter((q) => q.y <= crown.y + 0.01).sort((a, b) => a.x - b.x);
+        const lerp = (pts: P[], v: number, by: 'x' | 'y', out: 'x' | 'y') => {
+          if (!pts.length) return by === 'y' ? xMax : hoodBox.top;
+          if (v <= pts[0][by]) return pts[0][out];
+          for (let k = 1; k < pts.length; k++)
+            if (v <= pts[k][by]) {
+              const f = (v - pts[k - 1][by]) / (pts[k][by] - pts[k - 1][by] || 1);
+              return pts[k - 1][out] + (pts[k][out] - pts[k - 1][out]) * f;
+            }
+          return pts[pts.length - 1][out];
+        };
+        return { xAt: (y: number) => (y >= crown.y ? lerp(side, y, 'y', 'x') : xMax), yTop: (x: number) => (x <= crown.x ? lerp(top, x, 'x', 'y') : crown.y) };
+      })();
+      // The hood hung from its neck seam: from the level c0 the seam point below q settled at, and the arc round from
+      // the centre back that point lies at.
+      const hoodHang = hood && hoodBox
+        ? (q: P, c0: number, fracNeck: number, cSeam: number): V3 => {
+            // The piece as a square: p across from its centre seam (0) to its face edge (1), u up from its neck edge (0)
+            // to its top (1). Hung down the back, the centre seam (up the piece's far edge and back across its top)
+            // is the pouch's spine, down = u (1 + p), and the face edge runs from the neck round the shoulder's side
+            // down to the spine's foot, across = p (1 - u): a map with no fold in it. The cloth's spare length along
+            // the spine folds inside the pouch (not drawn); nothing is stretched.
+            const H0 = hoodBox.bottom - hoodBox.top || 1;
+            const xC = hoodSeam ? hoodSeam.xAt(q.y) - hoodBox.x0 : hoodBox.D;
+            const pp = Math.min(1, Math.max(0, (hoodBox.x0 + xC - q.x) / (xC || 1)));
+            const u = Math.min(1, Math.max(0, (hoodBox.bottom - q.y) / H0));
+            // (The top at this x: the crown's curve, which is the centre seam too, so the pouch closes on its spine
+            // all along it.)
+            const uTop = Math.min(1, Math.max(u, (hoodBox.bottom - (hoodSeam ? hoodSeam.yTop(q.x) : hoodBox.top)) / H0));
+            const Ld = H0 * (knob('__hoodLen') ?? 0.6);
+            // (The pouch hangs as wide as the shoulders for most of its length, then rounds in to its foot: the face
+            // edge runs straight down the side before it curves in to meet the spine.)
+            const u0 = Math.min(knob('__hoodRound') ?? 0.4, uTop - 0.01);
+            const th = u <= u0 ? 0 : (Math.PI / 2) * Math.min(1, (u - u0) / (uTop - u0));
+            const across = pp * Math.cos(th);
+            // Which way round the body it lies: along the neck seam at the seam (its share of the way from the centre
+            // back to the centre front), across the pouch below it. (All from the one level, the nape's: hung each
+            // from the level its own bit of seam settled at, two neighbours on the sloping front neckline walked
+            // down to places 10 cm apart.)
+            const half = halfAt(c0);
+            const arcNeck = fracNeck * half;
+            const arcPouch = across * quarterAt(c0) * (knob('__hoodW') ?? 0.65);
+            // The cloth above the front of the seam first goes back over the shoulder's top to the pouch's side, a
+            // centimetre round for each centimetre cut, and only then hangs down. (Swept round as it went down, it
+            // passed over the shoulder's point and was stretched 3x between the neck and the shoulder.)
+            const arcSide = quarterAt(c0) * (knob('__hoodW') ?? 0.65);
+            const sweep = Math.max(0, arcNeck - arcSide);
+            const s0 = u * H0;
+            const t = Math.min(1, s0 / Math.max(sweep, 1e-6));
+            const arcTop = arcNeck + (Math.min(arcNeck, arcSide) - arcNeck) * t;
+            const down = (sN: number) => ((Math.max(0, sN - sweep) * (1 + pp)) / 2) * (Ld / H0);
+            // (Round the foot the cloth comes down as a quarter circle, not a straight slant to the spine.)
+            const d = th > 0 ? down(u0 * H0) + (down(uTop * H0) - down(u0 * H0)) * Math.sin(th) : down(s0);
+            // (Down the pouch the cloth drifts from where it hangs to its own place across it: the face edge straight
+            // down the side, then round in to the spine's foot. The spine itself stays on the centre, wherever the
+            // seam's nape end settled.)
+            const g = Math.max(Math.min(1, d / (Ld * (knob('__hoodDrift') ?? 0.5))), 1 - Math.min(1, across / 0.1));
+            const at = ringAt(sp, arcTop + (arcPouch - arcTop) * g, c0, true, 0);
+            const a = Math.atan2(at[0], at[2]);
+            // Straight down from the seam, lying on the body wherever the body below is wider than the neck it hangs
+            // from (the shoulders, the back). (Walked out along the body's surface instead, as a flat collar is, the
+            // cloth went out level over the shoulders and the back's slope and hung only 11 cm below the nape.)
+            // Hanging cloth bridges straight from the seam to where it first meets the body (the shoulders' top from
+            // the side of the neck), so it lies on the body's profile's outer hull, not on each level's own width.
+            // (The cloth sweeping back over the shoulder runs along its own bit of seam, which on the front sits lower
+            // than the nape: swept round at the nape's level it sat 6 cm above the front neck seam, and the seat
+            // blend below tore it. By the end of the sweep it is at the nape's level.)
+            const cI = c0 + d + (cSeam - c0) * (1 - t);
+            const rI = Math.max(hoodHull(a, c0, d), sp.bodyR(a, cI));
+            // (The pouch rounds out from the back in its middle and comes back in at its foot.)
+            const bulge = (knob('__hoodOff') ?? 4) * Math.sin(Math.PI * Math.min(1, d / Ld)) * (1 - 0.5 * across);
+            const R = rI + 1 + bulge;
+            return [Math.sin(a) * R, cI, Math.cos(a) * R];
+          }
+        : undefined;
+      // The body's profile down from a level at an angle, as a hung cloth lies on it: the outer hull of its widths,
+      // every half centimetre down, at angles 5 degrees apart (read off between them: the body's table is uneven round
+      // the shoulder, and two points a degree apart hung 6 cm apart).
+      const hoodHulls = new Map<string, number[]>();
+      const hoodHull = (a: number, c0: number, d: number): number => {
+        const STEP = Math.PI / 36;
+        const DS = 0.5;
+        const N = 80;
+        const hull = (ak: number, ck: number): number[] => {
+          const key = `${ak},${ck}`;
+          const hit = hoodHulls.get(key);
+          if (hit) return hit;
+          const r = Array.from({ length: N + 1 }, (_, k) => sp.bodyR(ak, ck + k * DS));
+          // The upper hull from the top down: a point under the line between its neighbours on the hull is lifted to it.
+          const hv: number[] = [0];
+          for (let k = 1; k <= N; k++) {
+            while (hv.length > 1) {
+              const [i, j] = [hv[hv.length - 2], hv[hv.length - 1]];
+              if ((r[j] - r[i]) * (k - i) >= (r[k] - r[i]) * (j - i)) break;
+              hv.pop();
+            }
+            hv.push(k);
+          }
+          const out = new Array<number>(N + 1);
+          for (let h = 1; h < hv.length; h++) {
+            const [i, j] = [hv[h - 1], hv[h]];
+            for (let k = i; k <= j; k++) out[k] = r[i] + ((r[j] - r[i]) * (k - i)) / (j - i);
+          }
+          hoodHulls.set(key, out);
+          return out;
+        };
+        const ai = Math.abs(a) / STEP;
+        const k0 = Math.min(35, Math.floor(ai));
+        const fa = ai - k0;
+        const ck = Math.round(c0 * 2) / 2;
+        const di = Math.min(N - 1e-6, d / DS);
+        const n0 = Math.floor(di);
+        const fd = di - n0;
+        const at = (ak: number) => {
+          const h = hull(ak, ck);
+          return h[n0] * (1 - fd) + h[n0 + 1] * fd;
+        };
+        return at(k0 * STEP) * (1 - fa) + at((k0 + 1) * STEP) * fa;
+      };
+      const quarterCache = new Map<string, number>();
+      const ringTo = (c: number, steps: number) => {
+        const ck = `${Math.round(c * 4) / 4},${steps}`;
+        const hit = quarterCache.get(ck);
+        if (hit !== undefined) return hit;
+        const rOf = (a: number, c: number) => sp.bodyR(a, c);
+        let t = 0;
+        let [px, pz] = [0, -rOf(Math.PI, c)];
+        for (let k = 1; k <= steps; k++) {
+          const a = Math.PI * (1 - k / 180);
+          const r = rOf(a, c);
+          const [x, z] = [Math.sin(a) * r, Math.cos(a) * r];
+          t += Math.hypot(x - px, z - pz);
+          [px, pz] = [x, z];
+        }
+        quarterCache.set(ck, t);
+        return t;
+      };
+      const quarterAt = (c: number) => ringTo(c, 90);
+      const halfAt = (c: number) => ringTo(c, 180);
       // A pussy bow: a bias strip folded along its length, standing as a band round the neck, running on past the
       // centre front into a tie that hangs down the front (worn untied). A neck ruffle: a strip folded along its
       // length and gathered into the neck seam, standing up round the neck in soft waves, deeper towards its edge.
@@ -1050,6 +1248,7 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
             const t = Math.max(0, Math.min(1, (s0 - (neckRun - 3)) / 6));
             return [0, 1, 2].map((k) => band[k] * (1 - t) + tie[k] * t) as V3;
           }
+          if (hood && hoodHang) return hoodHang(q, neckC - 1, hoodNeck.key(q) / hoodNeck.total, neckC - 1);
           if (flat) {
             let n = nk[0];
             let w = Infinity;
@@ -1089,7 +1288,10 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
           // (A shirt's fall, turned down over its stand, flares out from the roll as its longer outer edge lets it: the
           // further from the fold, the further out from the neck.)
           const flare = turned && roll && !pc.outline.tags.includes('gorge') ? Math.hypot(q.x - r.x, q.y - r.y) / 2 : 0;
-          return ringAt(sp, key(q) * (knob("__ck") ?? 1), cc, true, 1 + (turned ? 1.2 + beyond * 0.25 + flare * (knob('__fallOut') ?? 0.7) : 0));
+          // (A funnel stands away from the neck as it rises: its top edge is cut longer than its neck edge. Set on the
+          // neck's own ring it overran the ring's length, and the two halves' front ends crossed at the centre front.)
+          const funnel = pc.meta.band === 'funnel' && !knob('__noFunnel') ? Math.max(0, neckY - r.y) * (knob('__funOut') ?? 0.3) : 0;
+          return ringAt(sp, key(q) * (knob("__ck") ?? 1), cc, true, 1 + funnel + (turned ? 1.2 + beyond * 0.25 + flare * (knob('__fallOut') ?? 0.7) : 0));
         },
         thick,
         roll ? [roll] : [],
@@ -1099,9 +1301,9 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       // A shirt's collar and stand (no lapel: no gorge) are interfaced: they keep the shape they were set in round the
       // neck, moved only as the seam each is sewn by moves.
       // (A flat collar is soft cloth lying on the shoulders: it settles with the body under it, not re-set stiff.)
-      else if (!p.mesh.runs.gorge && !knob('__softCollar') && !(flat && !knob('__flatStiff')))
-        // (A bow and a ruffle keep the shape they were set in, carried by the seam.)
-        stiffPanels.push({ p, by: c.onStand ? 'stand' : 'neck', roll: roll ?? undefined, key, carry: bow || gather ? () => true : undefined });
+      else if (!p.mesh.runs.gorge && !knob('__softCollar') && !(flat && !knob('__flatStiff')) && !(hood && knob('__hoodSoft')))
+        // (A bow, a ruffle and a hood keep the shape they were set in, carried by the seam.)
+        stiffPanels.push({ p, by: c.onStand ? 'stand' : 'neck', roll: roll ?? undefined, key, carry: bow || gather || hood ? () => true : undefined, hang: hoodHang });
       const stiff = stiffPanels.find((x) => x.p === p);
       if (c.onStand && standTop) {
         sew(seams, B.chain([p], 'stand', key), B.chain([standTop.panel], 'stand', standTop.key));
@@ -1430,10 +1632,12 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       // (Not an open polo's front ends: they part with the slit they are sewn to.)
       for (const r of [...(p.mesh.runs.fold ?? []), ...(p.pc.meta.polo ? [] : p.mesh.runs.centre ?? [])]) for (const i of r) centre.push(i + p.base);
       // The collar's centre back edge (x = 0 as drafted) lies on the centre plane, closed against its mirror.
+      // (Not a hood's: its x = 0 edge is its face edge, out at the pouch's side; its centre seam is tagged.)
       const x0 = Math.min(...pts.map((q) => q.x));
-      pts.forEach((q, i) => {
-        if (q.x - x0 < 0.05) centre.push(i + p.base);
-      });
+      if (!p.pc.meta.hood)
+        pts.forEach((q, i) => {
+          if (q.x - x0 < 0.05) centre.push(i + p.base);
+        });
     }
     if (p.role === 'front' && o.partBelow && p.mesh.runs.opening) {
       const { y: y0, cm, to } = o.partBelow;
@@ -2040,7 +2244,7 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
   };
   const seamOf = new Map<number, { j: number; k: number; t: number }>();
   if (stiffPanels.some((x) => x.carry)) for (const sm of seams) if (!seamOf.has(sm.i)) seamOf.set(sm.i, sm);
-  for (const { p, by, roll, key, target, on, carry } of stiffPanels) {
+  for (const { p, by, roll, key, target, on, carry, hang } of stiffPanels) {
     const anchor = (p.mesh.runs[by] ?? []).flat();
     if (!anchor.length) continue;
     if (o.rollFront && !knob('__noOpenCol')) {
@@ -2291,6 +2495,8 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       continue;
     }
     const moved = new Map<number, V3>();
+    const settled = new Map<number, V3>();
+    const arcOf = new Map<number, number>();
     for (const j of anchor) {
       const J = (p.base + j) * 3;
       let at: V3 = [res[J], res[J + 1], res[J + 2]];
@@ -2299,6 +2505,7 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       const sm = carry ? seamOf.get(p.base + j) : undefined;
       if (sm) at = [0, 1, 2].map((k) => res[sm.j * 3 + k] * (1 - sm.t) + res[sm.k * 3 + k] * sm.t) as V3;
       moved.set(j, [at[0] - p.start[j][0], at[1] - p.start[j][1], at[2] - p.start[j][2]]);
+      settled.set(j, at);
     }
     const anchors = [...new Set(anchor)];
     p.mesh.pts.forEach((q, i) => {
@@ -2330,6 +2537,33 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       }
       const I = (p.base + i) * 3;
       for (let k = 0; k < 3; k++) res[I + k] = p.start[i][k] + D[k];
+      // (A hood is hung afresh from where its neck seam settled: carried straight down with it, it was inside the
+      // shoulders, and the push back out tore it.)
+      if (hang) {
+        let arc = 0;
+        let wt = 0;
+        let cs = 0;
+        const seat: V3 = [0, 0, 0];
+        // (The level the pouch hangs from: where the seam's centre back end, the nape, settled.)
+        const nape = settled.get(anchors.reduce((b, n) => (key(p.mesh.pts[n]) < key(p.mesh.pts[b]) ? n : b), anchors[0]))![1];
+        for (const n of anchors) {
+          const d = Math.hypot(p.mesh.pts[n].x - q.x, p.mesh.pts[n].y - q.y) - bd;
+          if (d > 6) continue;
+          const w = Math.exp(-((d / 2) * (d / 2)));
+          const at = settled.get(n)!;
+          arc += (arcOf.get(n) ?? arcOf.set(n, arcFromBack(sp, Math.atan2(at[0], at[2]), at[1]) / halfRing(sp, at[1])).get(n)!) * w;
+          cs += at[1] * w;
+          for (let k = 0; k < 3; k++) seat[k] += at[k] * w;
+          wt += w;
+        }
+        if (wt > 0) {
+          const v = hang(q, nape, arc / wt, cs / wt);
+          // (Its first few centimetres up from the seam run from where the seam itself settled, which can stand off
+          // the body more than the hung cloth does.)
+          const tt = Math.min(1, bd / (knob('__hoodSeamBlend') ?? 8));
+          for (let k = 0; k < 3; k++) res[I + k] = (seat[k] / wt) * (1 - tt) + v[k] * tt;
+        }
+      }
     });
   }
   // Close what is left of each seam for drawing, so no slit of light shows along it.
@@ -2481,9 +2715,10 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
   // A jacket or coat flared below the waist: wool holds its flare out from the hip in soft flutes, where the sim's
   // coarse cloth crumples it close in. The cloth the sim couldn't show out (the pattern's width round each level less
   // the girth it settled at) is laid back on: part as a step out, the rest as flutes, growing from the waist down.
-  // (A coat long enough to fall past the hip has the weight to hang its flare out in the sim itself.)
+  // (A long coat too: it was left to hang its flare in the sim itself, which tucked the fullness of a flared coat's hem
+  // into creases beside the side seams, 13 fins, All round quality 2026-11-04.)
   const hemC = Math.max(0, ...B.panels.filter((p) => p.role === 'front' || p.role === 'back').flatMap((p) => p.mesh.pts.map((_, i) => res[(p.base + i) * 3 + 1])));
-  if (widthAt && !o.boxy && !knob('__noKick') && hemC < 40) {
+  if (widthAt && !o.boxy && !knob('__noKick') && (hemC < 40 || !knob('__kickShortOnly'))) {
     const tors = B.panels.filter((p) => (p.role === 'front' || p.role === 'back') && !p.hidden);
     const NB = 72;
     const girth = new Map<number, number>();
@@ -2533,6 +2768,13 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       });
     }
   }
+    for (const p of B.panels) {
+      if (!/side front/i.test(p.pc.name)) continue;
+      const xs = p.mesh.pts.map((q) => q.x);
+      console.log('SF', p.pc.name, 'x', Math.min(...xs).toFixed(1), Math.max(...xs).toFixed(1), 'runs', Object.entries(p.mesh.runs).map(([k, v]) => k + ':' + (v as number[][]).flat().length), 'side x', [...new Set((p.mesh.runs.side ?? []).flat().map((i) => p.mesh.pts[i].x.toFixed(1)))].join(' '));
+      const row = p.mesh.pts.map((q, i) => ({ q, i })).filter(({ q }) => Math.abs(q.y - 100.4) < 0.8 || Math.abs(q.y - 103.2) < 0.8).sort((a, b) => a.q.y - b.q.y || a.q.x - b.q.x);
+      for (const { q, i } of row) { const I = (p.base + i) * 3; console.log('  ', q.x.toFixed(1), q.y.toFixed(1), '->', res[I].toFixed(1), res[I + 1].toFixed(1), res[I + 2].toFixed(1), 'rho', Math.hypot(res[I], res[I + 2]).toFixed(1), 'ang', (Math.atan2(res[I], res[I + 2]) * 57.3).toFixed(0)); }
+    }
   // A pressed pleated skirt hangs its own length: on its finer mesh the sim lets its weight draw it a few cm long, so
   // its hem fell well past where it is cut to land. Its cloth is drawn back up toward the waist, evenly, until the hem
   // sits where its pattern puts it.
@@ -3458,7 +3700,8 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
     const body = (g: number) => roleOf.get(g) === 'front' || roleOf.get(g) === 'back';
     for (let it = 0; it < 4; it++)
       for (const { i, j, k, t } of seams) {
-        if (!body(i) || !body(j) || !body(k)) continue;
+        // A collar end sewn to a pressed lapel (a shawl's) follows the lapel; the body never follows the collar.
+        if (!body(j) || !body(k) || !(body(i) || (roleOf.get(i) === 'collar' && !knob('__noCollarFollow')))) continue;
         for (let d = 0; d < 3; d++) {
           const target = res[j * 3 + d] * (1 - t) + res[k * 3 + d] * t;
           res[i * 3 + d] += (target - res[i * 3 + d]) * 0.5;
@@ -3530,6 +3773,8 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
           res[I] = v[0];
           res[I + 1] = v[1];
           res[I + 2] = v[2];
+          // (A seam point sewn to a turned lapel stays on it: not pushed out off the lapel with the fall below.)
+          if (!knob('__pushSeam')) laidFall.add(p.base + i);
         }
         const at3 = (j: number): V3 => {
           const I = (p.base + j) * 3;
@@ -4321,7 +4566,10 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       // (And the cloth just beside the fold, along itself, so the row either side runs as smooth as the fold.)
       // (Below the hip: above it the waist and whatever is tucked in under it stay as they settled.)
       const yTop = Math.min(...pts.map((q) => q.y)) + (knob('__foldFrom') ?? 18);
-      const band = (i: number) => Math.abs(pts[i].x) < (knob('__foldBand') ?? 2.5) && !onC.has(p.base + i) && pts[i].y > yTop;
+      // (Not down a vent: the cloth beside the centre there is the vent's overlap and underlap, two layers that lap, not
+      // one fold to run smooth; smoothing them together drew the underlap 2.4 times its cut, All round quality 2026-11-04.)
+      const ventTop = p.mesh.runs.vent?.length && !knob('__foldVent') ? Math.min(...p.mesh.runs.vent.flat().map((i) => pts[i].y)) : Infinity;
+      const band = (i: number) => Math.abs(pts[i].x) < (knob('__foldBand') ?? 2.5) && !onC.has(p.base + i) && pts[i].y > yTop && pts[i].y < ventTop;
       for (let it = 0; it < (knob('__foldIt') ?? 6); it++)
         pts.forEach((_, i) => {
           if (!band(i)) return;
@@ -5106,20 +5354,35 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
     const ids = (role: RegExp) => gs.filter((p) => role.test(p.role)).flatMap((p) => (p.mesh.runs.side ?? []).flat().map((i) => p.base + i));
     const F = [...new Set(ids(/front/))];
     const Bk = [...new Set(ids(/back/))];
-    for (const f of F) {
-      let best = -1;
-      let bd = knob('__snapR') ?? 1.5;
-      for (const b of Bk) {
-        const d = Math.hypot(res[f * 3] - res[b * 3], res[f * 3 + 1] - res[b * 3 + 1], res[f * 3 + 2] - res[b * 3 + 2]);
-        if (d < bd) [bd, best] = [d, b];
+    // (Closed by the seam as sewn, each point to its place on the other piece's edge, both ways and halfway each time.
+    // Pairing each front point with the nearest back point put two front points on one back point where the front's
+    // mesh is the finer, and left the seam a sawtooth down a dress's gathered skirt: 47 teeth, All round quality
+    // 2026-11-04. The skirt alone, its back the finer, passed by luck of which piece was meshed finer.)
+    if (!knob('__oldSnap')) {
+      const onF = new Set(F);
+      const onB = new Set(Bk);
+      const across = seams.filter(({ i, j, k }) => (onF.has(i) && onB.has(j) && onB.has(k)) || (onB.has(i) && onF.has(j) && onF.has(k)));
+      for (let it = 0; it < 4; it++)
+        for (const { i, j, k, t } of across)
+          for (let d = 0; d < 3; d++) {
+            const target = res[j * 3 + d] * (1 - t) + res[k * 3 + d] * t;
+            res[i * 3 + d] += (target - res[i * 3 + d]) * 0.5;
+          }
+    } else
+      for (const f of F) {
+        let best = -1;
+        let bd = knob('__snapR') ?? 1.5;
+        for (const b of Bk) {
+          const d = Math.hypot(res[f * 3] - res[b * 3], res[f * 3 + 1] - res[b * 3 + 1], res[f * 3 + 2] - res[b * 3 + 2]);
+          if (d < bd) [bd, best] = [d, b];
+        }
+        if (best < 0) continue;
+        for (let d = 0; d < 3; d++) {
+          const m = (res[f * 3 + d] + res[best * 3 + d]) / 2;
+          res[f * 3 + d] = m;
+          res[best * 3 + d] = m;
+        }
       }
-      if (best < 0) continue;
-      for (let d = 0; d < 3; d++) {
-        const m = (res[f * 3 + d] + res[best * 3 + d]) / 2;
-        res[f * 3 + d] = m;
-        res[best * 3 + d] = m;
-      }
-    }
     // (Then the seam itself run smooth down its length: the two pieces' points along it, set at their own spacings,
     // were paired unevenly and left the seam in small bumps, drawn as a ragged edge down the side.)
     const all = [...F, ...Bk];
@@ -5390,7 +5653,7 @@ function poloRoll(pc: Piece): [P, P] | undefined {
 
 function collarsOf(pieces: Piece[], jacketRoll?: [P, P]): CollarPart[] {
   return pieces
-    .filter((pc) => pc.kind === 'collar')
+    .filter((pc) => pc.kind === 'collar' || pc.meta.hood)
     .map((pc) => {
       const cl = pc.lines[0]?.points();
       const hasStand = pc.outline.tags.includes('stand');
@@ -5615,6 +5878,9 @@ export function drapeBodice(sp: Space, d: BodiceDraft, sleeve?: SleeveDraft, o: 
   );
   const torso = pieces.filter(isTorso).map((pc) => ({ pc, back: /back/i.test(pc.name), waistY: /back/i.test(pc.name) ? d.back.waistCentre.y : d.front.waistCentre.y, folds: o.rollFront && !/back|side/i.test(pc.name) ? [o.rollFront] : undefined }));
   const skirt = extra.skirt ?? pieces.filter(isSkirt);
+  // (A high-low peplum's hem is cut unlevel on purpose: not a hem that rode up at the sides, to be let down again.
+  // The A-line evening let it down and drew the back peplum's side to 5 times its cut, All round quality 2026-11-04.)
+  if ((d as { peplum?: { backCm?: number } }).peplum?.backCm && !o.shapedHem) o = { ...o, shapedHem: true };
   const buttons = d.closure === 'front_buttons' && d.buttons ? { y: d.buttons.at.filter((y) => (o.openBelowY === undefined || y < o.openBelowY) && (o.openAboveY === undefined || y > o.openAboveY)), r: d.buttons.sizeCm / 2, waistY: d.front.waistCentre.y } : undefined;
   return drape(sp, torso, { skirt: skirt.length ? skirt : undefined, drop: extra.drop, tiers: extra.tiers, under: extra.under, ...(extra.slitCm ? { slitCm: extra.slitCm } : {}), puff: sleeve?.gathers?.crown, cuff: sleeve?.gathers?.hem ? (((pc) => (pc?.meta.roundCm ?? pc?.meta.lengthCm) as number | undefined)(sleeve.pieces.find((pc) => /band|cuff/i.test(pc.name)))) : undefined, cuffBand: sleeve?.pieces.find((pc) => pc.name === 'Cuff' || (pc.name === 'Tie cuff' && !knob('__noTieCuff'))), cuffRuffle: knob('__noCuffRuffle') ? undefined : sleeve?.pieces.find((pc) => pc.name === 'Sleeve ruffle'), sleeve: sleeve?.pieces.filter(isShell), collars: collarsOf(pieces) }, { buttons, closedFront: true, curtain: d.finishedWaist >= d.finishedBust - 2 && !extra.skirt?.length, ...o });
 }
