@@ -289,6 +289,14 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
    skirt). A gathered skirt's front and back are meshed at the same step: with the fullness shown just over 2 on one
    piece and just under on the other, the finer piece hung 3 to 5 cm shorter and the hem ran unlevel. Skirt and dress
    pass with level hems.
+47. **All round shows the cloth clean, in its own finish, and closer on request** (Nov 5, Cat's A + C): the swatch
+   pictures carry light painted into them (satin's fold bands, velvet's shading, linen's cloudy grid), which wrapped
+   round a garment read as stripes, a plaid or blotches. All round lifts those broad bands out (half the fine weave
+   kept, none on a smooth cloth) and lights each cloth in its own finish: velvet, corduroy, wool and terry glow softly
+   where they turn away, satin and silk take one broad sheen, leather a thin coat (`cleanCloth` in allRoundCloth.ts,
+   `FINISH` in allRoundMesh.ts). Prints and drawn checks are untouched. At the whole-garment size the weave is a pixel
+   or two, so "Look closer" (and a pinch, a double tap, or a trackpad pinch) zooms about 2x so the weave reads.
+   Raised weave (normal maps) and a lower side light were tried and rejected: no gain, and shimmer bands on wool.
 
 ## Style steps
 

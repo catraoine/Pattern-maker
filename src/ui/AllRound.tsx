@@ -28,6 +28,11 @@ const OK = '#a9c49b';
 
 const TAU = Math.PI * 2;
 const HALF = Math.PI / 2;
+/** Closer look: the button's and a double tap's zoom, and the most a pinch goes to. */
+const ZOOM_STEP = 2.2;
+const ZOOM_MAX = 3.5;
+/** The view starts whole: no zoom, its focus and anchor set on the first zoom. */
+const ZOOM_START = { zoom: 1, zoomTo: 1, fx: 0, fy: 0, ax: 0, ay: 0 };
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const wrap = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
 /** With no fabric picked, the Form view's calico (18-calm-style.css --calico), lifted so the studio lamps keep it pale. */
@@ -238,8 +243,12 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
   // and the draw tool's turning survive); the draw tool keeps the turning form to draw on.
   const standIn = inTesting && !!fallback && !drawing;
 
-  const turn = useRef({ phi: 0.6, target: null as number | null, dragging: false, idle: 0, probe: false, stroke: null as [number, number][] | null, picks: [] as RoundPick[] });
+  const turn = useRef({ phi: 0.6, target: null as number | null, dragging: false, idle: 0, probe: false, stroke: null as [number, number][] | null, picks: [] as RoundPick[], ...ZOOM_START });
+  // Closer look (Cat's C, 2026-11-05): pinch, ctrl-scroll (a trackpad's pinch), a double tap or the button zooms in on
+  // the turning garment so its cloth's weave shows; the button says which way it goes.
+  const [closer, setCloser] = useState(false);
   const pulse = useRef(-1e9);
+  const zoomRef = useRef<((on: boolean) => void) | undefined>(undefined);
   const rows = useMemo(() => roundRows(round, striped), [round, striped]);
 
   // When the garment changes, it has been trued as it was drafted: the seams glow, softly, once.
@@ -329,13 +338,22 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
     };
 
     const draw = (now: number) => {
-      const top = film ? Math.min(-2, yOf(highest) - 0.3) : Math.min(-0.45, yOf(highest) - 0.3);
+      const top0 = film ? Math.min(-2, yOf(highest) - 0.3) : Math.min(-0.45, yOf(highest) - 0.3);
       const bottom = trousers ? FORM_FLOOR + 0.1 : Math.min(FORM_FLOOR + 0.1, Math.max(yOf(longest), sl ? yE : -9) + 0.45);
       const fig = h;
-      const S = Math.min((fig - 16) / (bottom - top), (w / 2 - 14) / (reach * 1.04));
-      const cx = w / 2;
+      const S0 = Math.min((fig - 16) / (bottom - top0), (w / 2 - 14) / (reach * 1.04));
+      // Closer look: the whole view scaled by the zoom about its focus, a point on the figure held at its anchor on the
+      // canvas. At 1 the anchor is where the focus sits in the whole view, so nothing moves.
+      const z = st.zoom;
+      st.fy = Math.max(top0, Math.min(bottom, st.fy));
+      const home = [w / 2 + st.fx * S0, 8 + (st.fy - top0) * S0];
+      if (z <= 1.001 && st.zoomTo <= 1) [st.ax, st.ay] = home;
+      const S = S0 * z;
+      const cx = st.ax - st.fx * S;
+      const top = st.fy - (st.ay - 8) / S;
       const Y = (y: number) => 8 + (y - top) * S;
-      const lw = Math.max(0.7, S / 252) * 1.2;
+      const lw = Math.max(0.7, S0 / 252) * 1.2;
+      bounds = { S0, top0, bottom };
       frame = { S, cx, top, lw, fig };
       const phi = st.phi;
       const c = Math.cos(phi);
@@ -1047,6 +1065,29 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
       }
     };
 
+    /** The whole view's scale and height range, from the last frame, for placing a zoom's focus. */
+    let bounds = { S0: 1, top0: 0, bottom: 1 };
+    /** Zoom toward `to`, about the point (px, py) on the canvas (its middle when not given). */
+    const zoomAt = (to: number, px = w / 2, py = h * 0.4) => {
+      to = Math.max(1, Math.min(ZOOM_MAX, to));
+      if (st.zoom <= 1.001 && to > 1) {
+        // Starting from the whole view: the focus is the figure's point under (px, py), anchored where it is.
+        const { S0, top0 } = bounds;
+        st.fx = (px - w / 2) / S0;
+        st.fy = top0 + (py - 8) / S0;
+        st.ax = px;
+        st.ay = py;
+      }
+      st.zoomTo = to;
+      if ((to > 1) !== closerNow) {
+        closerNow = to > 1;
+        setCloser(closerNow);
+      }
+      cv.style.touchAction = drawing || closerNow ? 'none' : '';
+    };
+    let closerNow = st.zoomTo > 1;
+    zoomRef.current = (on: boolean) => zoomAt(on ? ZOOM_STEP : 1);
+
     let raf = 0;
     let last = performance.now();
     const loop = (now: number) => {
@@ -1059,6 +1100,16 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
           if (Math.abs(d) < 0.002) st.target = null;
         } else if (!still && !drawing && now - st.idle > 2500) st.phi += dt * 0.3;
       }
+      // The zoom eases to where it is going; back at the whole view, the anchor eases home with it.
+      if (Math.abs(st.zoomTo - st.zoom) > 0.002) {
+        const k = Math.min(1, dt * 8);
+        st.zoom += (st.zoomTo - st.zoom) * k;
+        if (st.zoomTo <= 1) {
+          const { S0, top0 } = bounds;
+          st.ax += (w / 2 + st.fx * S0 - st.ax) * k;
+          st.ay += (8 + (st.fy - top0) * S0 - st.ay) * k;
+        }
+      } else st.zoom = st.zoomTo;
       draw(now);
       raf = requestAnimationFrame(loop);
     };
@@ -1068,6 +1119,16 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
     let phi0 = 0;
     // Drawing (Cat's A Draw on it): one finger draws on the garment, a second finger turns it instead.
     const fingers = new Map<number, number>();
+    /** Where each finger is, across and down, for a pinch. */
+    const spots = new Map<number, [number, number]>();
+    let pinch: { d: number; z: number; mx: number; my: number; ax: number; ay: number } | undefined;
+    const spread = () => {
+      const [a, b] = [...spots.values()];
+      return { d: Math.hypot(a[0] - b[0], a[1] - b[1]) || 1, mx: (a[0] + b[0]) / 2, my: (a[1] + b[1]) / 2 };
+    };
+    let y0 = 0;
+    let ay0 = 0;
+    let lastTap = { t: -1e9, x: 0, y: 0 };
     // Where the finger is on the canvas, from where the canvas was when the line began: the page can shift under
     // it as the hint changes while the line is drawn.
     let rect = cv.getBoundingClientRect();
@@ -1075,6 +1136,8 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
     const meanX = () => [...fingers.values()].reduce((t, v) => t + v, 0) / (fingers.size || 1);
     const downEv = (e: PointerEvent) => {
       fingers.set(e.pointerId, e.clientX);
+      rect = cv.getBoundingClientRect();
+      spots.set(e.pointerId, at(e));
       st.target = null;
       cv.setPointerCapture(e.pointerId);
       if (drawing && fingers.size === 1) {
@@ -1087,13 +1150,41 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
       }
       st.stroke = null;
       st.picks = [];
+      // Two fingers (not drawing): a pinch, zooming about the point between them.
+      if (!drawing && spots.size === 2) {
+        const p = spread();
+        if (st.zoom <= 1.001) zoomAt(1.0001, p.mx, p.my);
+        pinch = { d: p.d, z: st.zoomTo, mx: p.mx, my: p.my, ax: st.ax, ay: st.ay };
+        st.dragging = false;
+        return;
+      }
       st.dragging = true;
       x0 = meanX();
+      y0 = at(e)[1];
+      ay0 = st.ay;
       phi0 = st.phi;
+      // A double tap goes closer at that point, or back to the whole garment.
+      const [tx, ty] = at(e);
+      if (!drawing && e.timeStamp - lastTap.t < 320 && Math.hypot(tx - lastTap.x, ty - lastTap.y) < 30) {
+        zoomAt(st.zoomTo > 1 ? 1 : ZOOM_STEP, tx, ty);
+        lastTap.t = -1e9;
+      } else lastTap = { t: e.timeStamp, x: tx, y: ty };
     };
     const move = (e: PointerEvent) => {
       if (!fingers.has(e.pointerId)) return;
       fingers.set(e.pointerId, e.clientX);
+      spots.set(e.pointerId, at(e));
+      if (pinch && spots.size === 2) {
+        const p = spread();
+        const to = Math.max(1, Math.min(ZOOM_MAX, (pinch.z * p.d) / pinch.d));
+        st.zoomTo = st.zoom = to;
+        if (to > 1) {
+          st.ax = pinch.ax + p.mx - pinch.mx;
+          st.ay = pinch.ay + p.my - pinch.my;
+        }
+        zoomAt(to);
+        return;
+      }
       if (st.stroke) {
         const q = at(e);
         st.stroke.push(q);
@@ -1101,10 +1192,30 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
         if (st.picks.length > 4 && st.picks.length % 4 === 0) drawRef.current?.onStroke(st.picks, false);
         return;
       }
-      if (st.dragging) st.phi = phi0 + ((meanX() - x0) / (cv.clientWidth || 1)) * Math.PI * 1.6;
+      if (st.dragging) {
+        st.phi = phi0 + ((meanX() - x0) / (cv.clientWidth || 1)) * Math.PI * 1.6;
+        // Closer in, a finger also moves the view up and down the garment.
+        if (st.zoomTo > 1) st.ay = ay0 + at(e)[1] - y0;
+      }
     };
     const up = (e: PointerEvent) => {
       fingers.delete(e.pointerId);
+      spots.delete(e.pointerId);
+      if (pinch && spots.size < 2) {
+        pinch = undefined;
+        // Pinched nearly shut: back to the whole garment.
+        if (st.zoomTo < 1.15) zoomAt(1);
+        st.dragging = false;
+        if (spots.size === 1) {
+          x0 = meanX();
+          phi0 = st.phi;
+          y0 = [...spots.values()][0][1];
+          ay0 = st.ay;
+          st.dragging = true;
+        }
+        st.idle = performance.now();
+        return;
+      }
       if (st.stroke) {
         const picks = st.picks;
         st.stroke = null;
@@ -1118,7 +1229,29 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
       }
       st.idle = performance.now();
     };
-    cv.style.touchAction = drawing ? 'none' : '';
+    // A trackpad's pinch arrives as a wheel with ctrl held (as does ctrl and the mouse wheel); a plain wheel scrolls the
+    // page, unless the view is already closer in, when it moves up and down the garment.
+    const wheel = (e: WheelEvent) => {
+      if (drawing) return;
+      rect = cv.getBoundingClientRect();
+      if (e.ctrlKey) {
+        e.preventDefault();
+        zoomAt(st.zoomTo * Math.exp(-e.deltaY * 0.01), e.clientX - rect.left, e.clientY - rect.top);
+      } else if (st.zoomTo > 1) {
+        e.preventDefault();
+        st.ay -= e.deltaY * 0.6;
+      }
+    };
+    const dbl = (e: MouseEvent) => {
+      // Pointer double taps are read in downEv; a mouse's double click comes here too: keep the page from selecting.
+      e.preventDefault();
+    };
+    cv.style.touchAction = drawing || closerNow ? 'none' : '';
+    if (drawing && st.zoomTo > 1) {
+      st.zoomTo = st.zoom = 1;
+      closerNow = false;
+      setCloser(false);
+    }
     // The all-round check (e2e/all-round-check.spec.ts) turns the form to an exact angle with this event.
     const turnEv = (e: Event) => {
       const { at, probe } = (e as CustomEvent<{ at: number; probe: boolean }>).detail;
@@ -1132,7 +1265,12 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
     cv.addEventListener('pointermove', move);
     cv.addEventListener('pointerup', up);
     cv.addEventListener('pointercancel', up);
+    cv.addEventListener('wheel', wheel, { passive: false });
+    cv.addEventListener('dblclick', dbl);
     return () => {
+      zoomRef.current = undefined;
+      cv.removeEventListener('wheel', wheel);
+      cv.removeEventListener('dblclick', dbl);
       cancelAnimationFrame(raf);
       ro.disconnect();
       cv.removeEventListener('pointerdown', downEv);
@@ -1149,6 +1287,11 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
       <canvas ref={ref} className={`all-round-canvas${round.legs ? ' all-round-tall' : ''}${drawing ? ' drawing' : ''}`} data-sewn={drapedNow === 'pending' ? 'pending' : inTesting ? 'testing' : drapedNow ? 'ready' : undefined} role="img" aria-label={label} hidden={standIn} />
       {!drawing && (
         <div className="all-round-quiet">
+          {!standIn && (
+            <button type="button" className="all-round-closer" aria-pressed={closer} onClick={() => zoomRef.current?.(!closer)}>
+              {closer ? 'Whole garment' : 'Look closer'}
+            </button>
+          )}
           <p className="all-round-checked">
             <span className="all-round-mark" aria-hidden="true" />
             {checked(rows)}

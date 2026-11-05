@@ -48,6 +48,29 @@ input.inline:focus,
   max-width: 420px;
 }
 
+/* Closer look (Cat's C, 2026-11-05): a quiet button at the right of the checked line under the view, in the small
+   spaced caps of "Drag to turn" (over the view it met the phone's Draw and Your picks). */
+.all-round-closer {
+  position: absolute;
+  top: -2px;
+  right: 0;
+  min-height: 32px;
+  padding: 6px 10px;
+  border: 1px solid color-mix(in srgb, var(--muted) 45%, transparent);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.all-round-closer[aria-pressed='true'] {
+  border-color: var(--gild);
+  color: var(--gild);
+}
+
 /* The Front drawing standing in for a sewn drawing that failed its score: as wide as the drawing is on Front. */
 .all-round.all-round-stand-in {
   max-width: none;
@@ -75,6 +98,7 @@ input.inline:focus,
 }
 
 .all-round-quiet {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 4px;
