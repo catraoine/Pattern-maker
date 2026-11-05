@@ -82,26 +82,17 @@ export const SEASON = { code: 'SS27', name: 'Spring Summer 2027' };
 
 export const COLLECTION: HouseLook[] = [
   {
-    id: 'butter-flare',
+    id: 'blush-shift',
     number: 1,
-    name: 'Butter Kick Flare',
-    line: 'Cropped kick flares in butter, low on the hip and worn with a small ivory cami. The collection opens on a leg.',
-    fabric: 'Butter silk twill',
-    garment: 'trousers',
-    choices: { ...DEFAULT_TROUSERS_CHOICES, fit: 'regular', leg: 'flare', length: 'cropped', pockets: 'none', riseCm: -3, legCm: { knee: 34, hem: 86 } },
-  },
-  {
-    id: 'gold-slip',
-    number: 2,
-    name: 'Gold Python Slip',
-    line: 'The house slip, cut on the bias to the floor, plunging at the front and dipping to a V at the back.',
-    fabric: 'Gold python silk satin',
+    name: 'Blush Shift',
+    line: 'A sleeveless shift above the knee with a little room at the bust, flaring just enough, and tied at one side.',
+    fabric: 'Blush wool crepe',
     garment: 'dress',
-    choices: dress('regular', { neckline: 'plunge', sleeve: 'none', back: 'v' }, { silhouette: 'slip', length: 'maxi' }),
+    choices: dress('regular', { neckline: 'crew', sleeve: 'none', darts: 'bust', bustDart: 'french', bustEase: 5 }, { silhouette: 'straight', length: 'mini', noSeam: 'shift', belt: 'side_tie', flareCm: 4 }),
   },
   {
     id: 'lavender-jacket',
-    number: 3,
+    number: 2,
     name: 'Lavender Jacket',
     line: 'A cropped, waisted jacket with a peak lapel plunging to one button, over wide trousers in the same lavender.',
     fabric: 'Lavender wool',
@@ -110,7 +101,7 @@ export const COLLECTION: HouseLook[] = [
   },
   {
     id: 'gold-shorts',
-    number: 4,
+    number: 3,
     name: 'Gold Python Shorts',
     line: 'Tailored shorts to the knee, high on the waist and sharp at the hem, in the same gold python as the slip.',
     fabric: 'Gold python silk',
@@ -119,7 +110,7 @@ export const COLLECTION: HouseLook[] = [
   },
   {
     id: 'ivory-palazzo',
-    number: 5,
+    number: 4,
     name: 'Ivory Palazzo',
     line: 'Wide and easy, falling from slanted pockets to the floor. Ivory, and nothing else.',
     fabric: 'Ivory linen',
@@ -127,17 +118,8 @@ export const COLLECTION: HouseLook[] = [
     choices: { ...DEFAULT_TROUSERS_CHOICES, fit: 'relaxed', leg: 'wide', length: 'full', pockets: 'slant' },
   },
   {
-    id: 'blush-shift',
-    number: 6,
-    name: 'Blush Shift',
-    line: 'A sleeveless shift above the knee with a little room at the bust, flaring just enough, and tied at one side.',
-    fabric: 'Blush wool crepe',
-    garment: 'dress',
-    choices: dress('regular', { neckline: 'crew', sleeve: 'none', darts: 'bust', bustDart: 'french', bustEase: 5 }, { silhouette: 'straight', length: 'mini', noSeam: 'shift', belt: 'side_tie', flareCm: 4 }),
-  },
-  {
     id: 'pleat-dress',
-    number: 7,
+    number: 5,
     name: 'Slate Pleat Dress',
     line: 'A scoop neck over a dropped waist, and knife pleats from the hip to the mid-calf, in a crisp blue-grey sateen.',
     fabric: 'Blue-grey crisp cotton sateen',
@@ -146,7 +128,7 @@ export const COLLECTION: HouseLook[] = [
   },
   {
     id: 'ice-peplum',
-    number: 8,
+    number: 6,
     name: 'Ice Peplum Top',
     line: 'Sheer ice blue, ruffled at the neck and the cuffs, with bishop sleeves and a big flared peplum from a lowered waist.',
     fabric: 'Ice sheer silk organza',
@@ -155,7 +137,7 @@ export const COLLECTION: HouseLook[] = [
   },
   {
     id: 'red-wrap',
-    number: 9,
+    number: 7,
     name: 'Red Wrap Top',
     line: 'A red wrap top with bishop sleeves on shirt cuffs, worn over a lavender slip slit to the hip.',
     fabric: 'Red viscose',
@@ -164,12 +146,21 @@ export const COLLECTION: HouseLook[] = [
   },
   {
     id: 'red-pleat',
-    number: 10,
+    number: 8,
     name: 'Red Pleat Skirt',
     line: 'Knife pleats all the way round an A-line, low on the hip and falling to just below the knee. Worn with the ice top.',
     fabric: 'Red crisp wool gabardine',
     garment: 'skirt',
     choices: skirt({ fit: 'regular', silhouette: 'a_line', length: 'midi', lengthCm: 64.6, pleats: 'knife', rise: 'low' }),
+  },
+  {
+    id: 'gold-slip',
+    number: 9,
+    name: 'Gold Python Slip',
+    line: 'The house slip, cut on the bias to the floor, plunging at the front and dipping to a V at the back.',
+    fabric: 'Gold python silk satin',
+    garment: 'dress',
+    choices: dress('regular', { neckline: 'plunge', sleeve: 'none', back: 'v' }, { silhouette: 'slip', length: 'maxi' }),
   },
 ];
 
