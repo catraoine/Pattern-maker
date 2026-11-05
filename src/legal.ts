@@ -56,7 +56,12 @@ export const PRIVACY: LegalDoc = {
         {
           table: [
             ['What', 'Where it’s kept', 'Do we receive it?'],
-            ...(ACCOUNTS ? [['Your email address, if you sign in', 'Our account service (Supabase), in Canada', 'Yes']] : []),
+            ...(ACCOUNTS
+              ? [
+                  ['Your email address, if you sign in', 'Our account service (Supabase), in Canada', 'Yes'],
+                  ['Your name and profile picture from Google, if you continue with Google', 'Our account service (Supabase), in Canada', 'Yes'],
+                ]
+              : []),
             ['Your name and the names of people you measure for', kept, received()],
             ['Body measurements and units', kept, received('you send fit notes')],
             ['Saved patterns and style choices', kept, received()],
@@ -91,7 +96,7 @@ export const PRIVACY: LegalDoc = {
           : 'Your device.|The app saves your details in your browser’s storage so they’re there next time. They never leave your device unless you export, share or back them up yourself. Clearing your browser data, or uninstalling the app, deletes them.',
         ...(ACCOUNTS
           ? [
-              'Signing in.|There’s no password: you give us your email address and we send you a link with a code. Once signed in, your name, the people you measure for, their measurements, your saved patterns and your fit notes are kept in your account as well as on your device, so they’re there when you sign in on another device, and each change is saved as you make it. Your account is held by Supabase in Canada, locked so that only you can read it. Signing out keeps the copy on your device; Delete my account, in Your account, removes your email address and everything in the account at once.',
+              'Signing in.|There’s no password: you give us your email address and we send you a link with a code, or you continue with Google, which tells us your email address, name and profile picture (nothing else from your Google account). Once signed in, your name, the people you measure for, their measurements, your saved patterns and your fit notes are kept in your account as well as on your device, so they’re there when you sign in on another device, and each change is saved as you make it. Your account is held by Supabase in Canada, locked so that only you can read it. Signing out keeps the copy on your device; Delete my account, in Your account, removes your email address and everything in the account at once.',
             ]
           : []),
         `Measurements are personal.|Body measurements can be sensitive, which is one reason we keep them on your device${ACCOUNTS ? ', and send them nowhere but your own account' : ''}. If you enter measurements for someone else, please make sure they’re happy for you to do so.`,
@@ -125,6 +130,7 @@ export const PRIVACY: LegalDoc = {
               ? [
                   ['Supabase', 'Keeps accounts: who has signed in, and the work kept in each account. Its servers for us are in Canada', 'Your email address and, once you sign in, your name, people, measurements, saved patterns and fit notes'],
                   ['Resend', 'Sends the sign-in emails', 'Your email address and the time each sign-in email was sent'],
+                  ['Google', 'Confirms who you are, only if you choose Continue with Google', 'That you signed in to Maison Tracé with your Google account'],
                 ]
               : []),
             ['Awin', 'Tracks shop sales that start from a Buy button, so the shop pays our commission', 'That you tapped Buy, and what you bought at the shop'],
