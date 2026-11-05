@@ -63,6 +63,9 @@ get in with their tester link.
 
 ## Queued for "ship" (as of Nov 5, after Release 64)
 
+- #297 (SS27 looks in the collection as Cat settled them on Nov 5: Butter Kick Flare, Gold Python Slip, Lavender
+  Jacket, Gold Python Shorts, Ivory Palazzo, Blush Shift, Slate Pleat Dress, Ice Peplum Top, Red Wrap Top, Red Pleat
+  Skirt; shorts and Bermudas draw in All round on a full-length leg): green, waits on Cat's "ship".
 - #281 (All round: halter, plunge, cowl, one-shoulder necklines; peter pan, bow and ruffle collars; tie and
   ruffle cuffs; raglan sleeves; jackets closed at the neck; funnel and hood collars, coat shawl end, flared coat,
   high-low peplum, gathered dress skirt): 290 of 290 options pass on their own; main merged in Nov 4, handbook
