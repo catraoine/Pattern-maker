@@ -107,3 +107,20 @@ test('a wrong code says so and lets you try again', async ({ page }) => {
   await data.getByRole('button', { name: 'Sign in' }).click();
   await expect(data).toContainText('Signed in as sewist@example.com');
 });
+
+test('Continue with Google signs in and brings what was made on this device, as the sign-in box says', async ({ page }, info) => {
+  await startWithExample(page);
+  const main = page.getByRole('main');
+  await openReview(page);
+  await main.getByRole('button', { name: /^(Save pattern|Keep in my patterns)$/ }).click();
+  await page.evaluate((k) => localStorage.setItem(k, '{}'), FAKE);
+  await accountAt(page, '/?signin=preview');
+  const data = await openFold(page, 'Your data');
+  await expect(data.getByTestId('signin-copied')).toHaveText('Anything already on this phone or computer is copied into your account the first time you sign in.');
+  if (SHOTS) await data.screenshot({ path: `${SHOTS}/signin-google-${info.project.name}.png` });
+  await data.getByRole('button', { name: 'Continue with Google' }).click();
+  await expect(data).toContainText('Signed in as google-sewist@example.com');
+  await expect(data.getByRole('status').first()).toHaveText('Saved to your account.');
+  const store = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)!), FAKE);
+  expect(store.users['google-sewist@example.com'].backup.account.patterns).toHaveLength(1);
+});

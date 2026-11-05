@@ -13,7 +13,12 @@ Sign-in is built but hidden: it shows only after opening the app with `?signin=p
    in another browser (or outside the home-screen app) can type it in. For example:
    `<p><a href="{{ .ConfirmationURL }}">Sign in to Maison Tracé</a></p><p>Or type this code in the app: <b>{{ .Token }}</b></p>`
 4. Authentication > SMTP: send through Resend (hello@maisontrace.co), so emails aren't capped at Supabase's few an hour.
-5. Netlify environment variables (Production and Deploy Previews):
+5. Continue with Google: a Google Cloud OAuth client (Web application) whose authorised redirect URI is
+   `https://<project>.supabase.co/auth/v1/callback`, its client ID and secret pasted into Supabase Authentication >
+   Sign In / Providers > Google. The button stays hidden until Supabase reports Google as switched on
+   (`/auth/v1/settings`), so nothing needs changing in the app. An address used with both Google and an emailed code
+   is one account.
+6. Netlify environment variables (Production and Deploy Previews):
    - `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`: Project Settings > API Keys (the anon or "publishable" key is
      public by design; the tables are protected by row level security).
    - `SUPABASE_SERVICE_ROLE_KEY`: same page (the service_role or "secret" key), marked secret, Functions scope. Only

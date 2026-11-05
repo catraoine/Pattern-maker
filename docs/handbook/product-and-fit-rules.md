@@ -4,7 +4,7 @@
 
 One installable web app (PWA) for phone and computer, hosted on Netlify from this repo. People
 measure, pick or photograph a style, and print a pattern drafted to their measurements. Data stays
-on the device; real sign-in (Supabase, email code) is built and hidden behind `?signin=preview`, to be
+on the device; real sign-in (Supabase, email code or Continue with Google) is built and hidden behind `?signin=preview`, to be
 switched on in the fix week (Dec 7 to 11). Code map: [HOW-IT-FITS-TOGETHER.md](../HOW-IT-FITS-TOGETHER.md).
 
 ## The feature freeze (to Jan 18, 2027)
