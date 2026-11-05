@@ -68,7 +68,7 @@ const SMOOTH = new Set(['satin', 'silk', 'velvet', 'viscose', 'modal', 'leather'
  * velvet's shading, the linen's cloudy grid), which wrapped round a garment read as stripes, a plaid or blotches.
  * Lift those broad bands out, so the cloth is its own colour; keep half the fine weave (none of it on a smooth cloth),
  * and let the lamps and the cloth's own finish do the rest. Returns the swatch's mean colour. */
-export function cleanCloth(c: HTMLCanvasElement, kind: string): [number, number, number] {
+function cleanCloth(c: HTMLCanvasElement, kind: string): [number, number, number] {
   const g = c.getContext('2d')!;
   const n = c.width;
   const im = g.getImageData(0, 0, n, n);
