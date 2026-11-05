@@ -2768,13 +2768,6 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       });
     }
   }
-    for (const p of B.panels) {
-      if (!/side front/i.test(p.pc.name)) continue;
-      const xs = p.mesh.pts.map((q) => q.x);
-      console.log('SF', p.pc.name, 'x', Math.min(...xs).toFixed(1), Math.max(...xs).toFixed(1), 'runs', Object.entries(p.mesh.runs).map(([k, v]) => k + ':' + (v as number[][]).flat().length), 'side x', [...new Set((p.mesh.runs.side ?? []).flat().map((i) => p.mesh.pts[i].x.toFixed(1)))].join(' '));
-      const row = p.mesh.pts.map((q, i) => ({ q, i })).filter(({ q }) => Math.abs(q.y - 100.4) < 0.8 || Math.abs(q.y - 103.2) < 0.8).sort((a, b) => a.q.y - b.q.y || a.q.x - b.q.x);
-      for (const { q, i } of row) { const I = (p.base + i) * 3; console.log('  ', q.x.toFixed(1), q.y.toFixed(1), '->', res[I].toFixed(1), res[I + 1].toFixed(1), res[I + 2].toFixed(1), 'rho', Math.hypot(res[I], res[I + 2]).toFixed(1), 'ang', (Math.atan2(res[I], res[I + 2]) * 57.3).toFixed(0)); }
-    }
   // A pressed pleated skirt hangs its own length: on its finer mesh the sim lets its weight draw it a few cm long, so
   // its hem fell well past where it is cut to land. Its cloth is drawn back up toward the waist, evenly, until the hem
   // sits where its pattern puts it.
