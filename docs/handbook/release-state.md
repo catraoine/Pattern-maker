@@ -70,10 +70,7 @@ get in with their tester link.
 
 ## Queued for "ship" (as of Nov 5, after Release 65)
 
-- #294 (All round: clean cloth in its own finish, and Look closer zoom): not green, conflicts with main; its thread
-  merges main in first.
-
-- #294 (All round: clean cloth in its own finish, and Look closer zoom; Cat's A + C, Nov 5): waits on green checks
+- #294 (All round: clean cloth in its own finish, and Look closer zoom; Cat's A + C, Nov 5): main merged in Nov 5; waits on green checks
   and Cat's "ship". After ship, the How it works film's second All round shot (the python dress) may want re-recording.
 
 Open draft: #259 (bias slip mini + side slit, open polo collar, ruffled trouser

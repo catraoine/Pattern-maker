@@ -41,24 +41,22 @@ export interface ClothTiles {
   avg?: [number, number, number];
 }
 
-/** A box blur of a wrapping grey image, r pixels each way. */
+/** A box blur of a wrapping grey image, r pixels each way: a running sum along each row, then each column. */
 function blurWrap(a: Float32Array, n: number, r: number): Float32Array {
-  const tmp = new Float32Array(n * n);
-  const out = new Float32Array(n * n);
-  const k = 2 * r + 1;
-  for (let y = 0; y < n; y++)
-    for (let x = 0; x < n; x++) {
+  const pass = (src: Float32Array, at: (i: number, j: number) => number) => {
+    const out = new Float32Array(n * n);
+    const k = 2 * r + 1;
+    for (let i = 0; i < n; i++) {
       let t = 0;
-      for (let d = -r; d <= r; d++) t += a[y * n + ((x + d + n) % n)];
-      tmp[y * n + x] = t / k;
+      for (let d = -r; d <= r; d++) t += src[at(i, (d + n) % n)];
+      for (let j = 0; j < n; j++) {
+        out[at(i, j)] = t / k;
+        t += src[at(i, (j + r + 1) % n)] - src[at(i, (j - r + n) % n)];
+      }
     }
-  for (let y = 0; y < n; y++)
-    for (let x = 0; x < n; x++) {
-      let t = 0;
-      for (let d = -r; d <= r; d++) t += tmp[((y + d + n) % n) * n + x];
-      out[y * n + x] = t / k;
-    }
-  return out;
+    return out;
+  };
+  return pass(pass(a, (y, x) => y * n + x), (x, y) => y * n + x);
 }
 
 /** Cloths whose swatch is painted light, not weave: on the turning garment they take their own colour outright. */

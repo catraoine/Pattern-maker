@@ -65,12 +65,8 @@ test('look closer zooms in on the garment and back', async ({ page }) => {
   await startWithExample(page);
   const main = page.getByRole('main');
   await main.getByRole('group', { name: 'Garment view' }).getByRole('button', { name: 'All round', exact: true }).click();
-  const closer = main.getByRole('button', { name: 'Look closer' });
-  await expect(closer).toHaveAttribute('aria-pressed', 'false');
-  await closer.click();
-  const whole = main.getByRole('button', { name: 'Whole garment' });
-  await expect(whole).toHaveAttribute('aria-pressed', 'true');
-  await whole.click();
+  await main.getByRole('button', { name: 'Look closer' }).click();
+  await main.getByRole('button', { name: 'Whole garment' }).click();
   await expect(main.getByRole('button', { name: 'Look closer' })).toBeVisible();
   // A double tap on the view goes closer too.
   await main.locator('canvas.all-round-canvas').dblclick();

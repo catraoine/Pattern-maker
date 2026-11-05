@@ -66,10 +66,7 @@ input.inline:focus,
   text-transform: uppercase;
   cursor: pointer;
 }
-.all-round-closer[aria-pressed='true'] {
-  border-color: var(--gild);
-  color: var(--gild);
-}
+
 
 /* The Front drawing standing in for a sewn drawing that failed its score: as wide as the drawing is on Front. */
 .all-round.all-round-stand-in {
@@ -105,6 +102,8 @@ input.inline:focus,
 }
 
 .all-round-checked {
+  /* Room for the Look closer button at the right of the line. */
+  padding-right: 9.5rem;
   display: flex;
   align-items: center;
   gap: 10px;
