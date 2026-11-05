@@ -12,7 +12,7 @@ import { printNap, printOf } from './engine/prints';
 import { layAmount } from './engine/layplan';
 import { withEstimates } from './estimate';
 import { EXAMPLE_BODY, FormKind, Garment, MeasurementId, MeasurementValues, Unit, checkMeasurements, isComplete, isLowerBody, isOuterwear } from './measurements';
-import { usePersistent } from './store';
+import { fillMissing, usePersistent } from './store';
 import {
 Account,
 ME,
@@ -167,7 +167,7 @@ export default function App() {
   };
   /** Everything here, put back from a backup, a move link or the signed-in account. */
   const applyBackup = (b: Backup<Saved>) => {
-    setSaved({ ...INITIAL, ...b.skirt });
+    setSaved(fillMissing(INITIAL, b.skirt));
     setAccount({ ...NEW_ACCOUNT, ...b.account, onboarded: true });
     if (b.pointEdits) setPointEdits(b.pointEdits as Record<string, PointEdit[]>);
   };
@@ -647,7 +647,7 @@ export default function App() {
               onBring={(b) => {
                 // Brought in, so a reload shouldn't offer it again.
                 dropHash();
-                setSaved({ ...INITIAL, ...(b.skirt as Partial<Saved>) });
+                setSaved(fillMissing(INITIAL, b.skirt));
                 setAccount({ ...NEW_ACCOUNT, ...b.account, onboarded: true });
                 if (b.pointEdits) setPointEdits(b.pointEdits as Record<string, PointEdit[]>);
               }}

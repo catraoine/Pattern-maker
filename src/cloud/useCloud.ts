@@ -52,6 +52,8 @@ export function useCloud<S>(backup: Backup<S>, apply: (b: Backup<S>) => void, en
   const [status, setStatus] = useState<CloudStatus>(usable ? 'checking' : 'off');
   // The account whose work has been joined with this device's; saving waits for it, so nothing is overwritten.
   const [joined, setJoined] = useState<string>();
+  // Whether to offer "Continue with Google": only once the account service says it's switched on.
+  const [googleOn, setGoogleOn] = useState(false);
   const latest = useRef(backup);
   latest.current = backup;
   const applyRef = useRef(apply);
@@ -76,6 +78,7 @@ export function useCloud<S>(backup: Backup<S>, apply: (b: Backup<S>) => void, en
     cloud().then(async (api) => {
       if (gone) return;
       off = api.onChange((u) => setUser(u));
+      void api.googleOn().then((on) => !gone && setGoogleOn(on));
       const u = await api.user().catch(() => null);
       if (gone) return;
       setUser(u);
@@ -166,6 +169,13 @@ export function useCloud<S>(backup: Backup<S>, apply: (b: Backup<S>) => void, en
     status,
     sendLink: async (email: string) => (await cloud()).sendLink(email, window.location.origin + window.location.pathname),
     verifyCode: async (email: string, code: string) => setUser(await (await cloud()).verifyCode(email, code)),
+    googleOn,
+    google: async () => {
+      const api = await cloud();
+      await api.google(window.location.origin + window.location.pathname);
+      // The stand-in signs in on the spot; the real service has already left for Google's page.
+      setUser(await api.user());
+    },
     signOut: async () => {
       await (await cloud()).signOut();
       setUser(null);

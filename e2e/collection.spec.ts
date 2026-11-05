@@ -13,13 +13,13 @@ test('the Maison collection: open it from styling, draw every look, make one', a
   // The House shows one season at a time.
   await expect(main.getByText('SS27 · Spring Summer 2027')).toBeVisible();
 
-  // Making Olive Pleat opens the skirt with its knife pleats chosen.
-  await looks.filter({ has: page.getByRole('heading', { name: 'Olive Pleat' }) }).getByRole('button', { name: 'Make this look' }).click();
+  // Making the Red Pleat Skirt opens the skirt with its knife pleats chosen.
+  await looks.filter({ has: page.getByRole('heading', { name: 'Red Pleat Skirt' }) }).getByRole('button', { name: 'Make this look' }).click();
   await expectStyle(page, 'Skirt');
   await expect((await openGroup(page, 'Fullness')).getByRole('button', { name: 'Knife pleats' })).toHaveAttribute('aria-pressed', 'true');
-  // It comes in the cloth it's named for (olive wool crepe), not the last fabric picked.
+  // It comes in the cloth it's named for (red crisp wool gabardine), not the last fabric picked.
   const cloth = await page.evaluate(() => JSON.parse(localStorage.getItem('pattern-maker:skirt') ?? '{}').finish?.fabric);
-  expect(cloth).toMatchObject({ fibre: 'wool', colour: 'Olive' });
+  expect(cloth).toMatchObject({ fibre: 'wool', colour: 'Red', drape: 'crisp' });
 });
 
 test('the collection: the next drop stays hidden until it has a piece, and the Archive shows its records', async ({ page }) => {

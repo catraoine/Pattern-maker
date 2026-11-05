@@ -110,3 +110,18 @@ export function hangScales(d: Draped, sp: Space): Float32Array | undefined {
   }
   return out;
 }
+
+/**
+ * Close the seams for the drawing: each seam point is put exactly on the edge it is sewn to (the sim leaves it a
+ * few mm off), and its hang scale made the edge's, so no hairline of the form shows through between two panels
+ * where a side seam is seen edge-on (the dark crack down the shift's side, 2026-11-05). Idempotent.
+ */
+export function closeSeams(d: Pick<Draped, 'pos' | 'posMirror' | 'seams'>, hang?: Float32Array): void {
+  if (!d.seams) return;
+  for (const arr of [d.pos, d.posMirror]) {
+    if (!arr) continue;
+    for (const { i, j, k, t } of d.seams) for (let q = 0; q < 3; q++) arr[i * 3 + q] = arr[j * 3 + q] + (arr[k * 3 + q] - arr[j * 3 + q]) * t;
+  }
+  // (A hang scale of 0 is the level's own: a seam onto an edge with one of those takes the level's own too.)
+  if (hang) for (const { i, j, k, t } of d.seams) hang[i] = hang[j] && hang[k] ? hang[j] + (hang[k] - hang[j]) * t : 0;
+}

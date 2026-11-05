@@ -22,15 +22,15 @@ interface Offer {
   thanks: string;
 }
 
-const FOUNDING_PLACES = 500;
+const FOUNDING_PLACES = 250;
 
 export const OFFERS: Record<OfferId, Offer> = {
   founding: {
     id: 'founding',
-    eyebrow: `Founding members · ${FOUNDING_PLACES} places`,
+    eyebrow: `Founding Atelier · ${FOUNDING_PLACES} numbered places`,
     title: `Be one of the first ${FOUNDING_PLACES}`,
-    text: 'Premium for life, paid once, when paid plans open. Founding members also get every new garment the day it arrives and a say in what comes next.',
-    prices: [['Founding membership', '$99 once']],
+    text: 'Premium at a founding price, locked in for as long as you stay subscribed. Founding members also get early access, their own founding number and a say in what comes next.',
+    prices: [['Founding Premium', '$35 a year (usually $49)']],
     button: 'Save my place',
     thanks: "Your place is saved. We'll email you when founding places open. Nothing is charged today.",
   },

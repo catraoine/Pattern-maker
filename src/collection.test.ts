@@ -45,7 +45,7 @@ describe('the Maison collection', () => {
   });
 
   it('draws a long-sleeved look with its sleeves before the arms are measured', () => {
-    const shirt = COLLECTION.find((l) => l.id === 'klein')!;
+    const shirt = COLLECTION.find((l) => l.id === 'ice-peplum')!;
     const { arm_length: _a, upper_arm: _u, ...noArms } = EXAMPLE_VALUES;
     const withArms = lookFlat(shirt, EXAMPLE_VALUES)!;
     const without = lookFlat(shirt, noArms)!;

@@ -23,11 +23,26 @@ function keepData() {
   }
 }
 
+const isPlain = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
+
+/**
+ * Work saved by an older version of the app, with every setting it doesn't have yet filled in from `initial`, at
+ * every depth: a dress saved before a new bodice choice existed comes back with that choice at its default, rather
+ * than blank. What was saved always wins; lists and plain values are taken as saved.
+ */
+export function fillMissing<T>(initial: T, saved: unknown): T {
+  if (saved === undefined || saved === null) return initial;
+  if (!isPlain(initial) || !isPlain(saved)) return saved as T;
+  const out: Record<string, unknown> = { ...saved };
+  for (const [k, v] of Object.entries(initial)) out[k] = k in saved ? (isPlain(v) && isPlain(saved[k]) ? fillMissing(v, saved[k]) : saved[k]) : v;
+  return out as T;
+}
+
 export function usePersistent<T>(key: string, initial: T): [T, (v: T) => void] {
   const [value, setValue] = useState<T>(() => {
     try {
       const raw = localStorage.getItem(`pattern-maker:${key}`);
-      return raw ? { ...initial, ...JSON.parse(raw) } : initial;
+      return raw ? fillMissing(initial, JSON.parse(raw)) : initial;
     } catch {
       return initial;
     }

@@ -17,6 +17,10 @@ interface CloudApi {
   sendLink(email: string, returnTo: string): Promise<void>;
   /** The 6-digit code from that email, for when the link opens in another browser (or outside the home-screen app). */
   verifyCode(email: string, code: string): Promise<CloudUser>;
+  /** Whether "Continue with Google" is switched on in the account service (it's off until Cat sets up Google). */
+  googleOn(): Promise<boolean>;
+  /** Leaves for Google's sign-in page, which sends the person back to `returnTo` signed in. */
+  google(returnTo: string): Promise<void>;
   signOut(): Promise<void>;
   /** The work kept in the account, with the stamp of its last save (null when there's none yet). */
   load(u: CloudUser): Promise<Kept | null>;
@@ -69,6 +73,24 @@ async function supabaseCloud(): Promise<CloudApi> {
       if (error || !data.user) throw error ?? new Error('No user');
       return asUser(data.user)!;
     },
+    async googleOn() {
+      // The service lists which outside sign-ins are switched on. Asked rather than assumed, so the button never leads
+      // to an error page while Google isn't set up yet. The key goes in a header, never in the address.
+      try {
+        const res = await fetch(`${SUPABASE_URL}/auth/v1/settings`, { headers: { apikey: SUPABASE_ANON_KEY! } });
+        if (!res.ok) return false;
+        const settings = (await res.json()) as { external?: { google?: boolean } };
+        return settings.external?.google === true;
+      } catch {
+        return false;
+      }
+    },
+    async google(returnTo) {
+      // Signing in with Google under the same email address as an emailed code lands in the same account: Supabase
+      // joins the two because Google has checked the address.
+      const { error } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: returnTo } });
+      if (error) throw error;
+    },
     async signOut() {
       await sb.auth.signOut();
     },
@@ -104,7 +126,8 @@ async function supabaseCloud(): Promise<CloudApi> {
 
 // --- Development stand-in -------------------------------------------------------------------------------------------
 // Turned on with localStorage 'pattern-maker:cloud-fake' (the click-through tests set it). The "server" is another
-// localStorage key, shared by every page of this browser, and the emailed code is always 123456.
+// localStorage key, shared by every page of this browser, and the emailed code is always 123456. "Continue with Google"
+// signs straight in as google-sewist@example.com, since there's no Google page to go to.
 
 const FAKE = 'pattern-maker:cloud-fake';
 const hasFake = () => {
@@ -116,6 +139,7 @@ const hasFake = () => {
 };
 
 const FAKE_CODE = '123456';
+const FAKE_GOOGLE = 'google-sewist@example.com';
 
 function fakeCloud(): CloudApi {
   type Store = { users: Record<string, { id: string; backup: Backup<unknown> | null; stamp?: string }>; session?: string; sent?: string };
@@ -144,6 +168,15 @@ function fakeCloud(): CloudApi {
       write({ ...s, session: e });
       tell();
       return current()!;
+    },
+    async googleOn() {
+      return true;
+    },
+    async google() {
+      const s = read();
+      s.users[FAKE_GOOGLE] ??= { id: `user-${Object.keys(s.users).length + 1}`, backup: null };
+      write({ ...s, session: FAKE_GOOGLE });
+      tell();
     },
     async signOut() {
       const s = read();

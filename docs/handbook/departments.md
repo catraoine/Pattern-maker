@@ -23,6 +23,7 @@ handoff, and this table is updated.
 | Customer & Community | Community plan, AI stance, customer research | Community plan, Meet the sewist, AI stance |
 | Affiliates | Affiliate programmes and partner outreach | — |
 | Finance & Legal | Tax, legal, trademark, cost tally, grants | Tax playbook, setup doc, cost tally |
+| Engineering: Code review and rules | The coding rules (CLAUDE.md), the review before every PR, the Monday weekly review of the week's merges | `CLAUDE.md`, Code review and coding rules doc |
 | Engineering: Security and privacy | Security and privacy checks of accounts, server functions, API caps, the public repo and the policy | Security and privacy check doc, developer review brief |
 | Monday Fable pick | Weekly Fable job pick | — |
 
@@ -32,4 +33,4 @@ add or tick items there.
 
 Scheduled routines: Mon/Wed/Fri email check (routes each email to the owning thread), Wed/Sun fit
 report reader, Sunday "waiting on Cat" digest, Monday social + community actions, weekly SR&ED log,
-Jan 1 + Aug 1 trend check for the next collection, nightly All round sweep read (3:37am), nightly Quality checks read, weekly Fable All round eye check (Wed 11:13am), Jan 18 In testing review, tax reminders.
+Jan 1 + Aug 1 trend check for the next collection, nightly All round sweep read (3:37am), nightly Quality checks read, weekly Fable All round eye check (Wed 11:13am), Monday code review of the week's merges, Jan 18 In testing review, tax reminders.
