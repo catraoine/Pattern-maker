@@ -168,17 +168,18 @@ function tapeAcross(t) {
 }
 
 const MARKS = WIDE
-  ? { fabric: 1.4, enlarge: 7.4, draw: 9.4, hem: 10.9, side: 16.9, done: 21.8 }
-  : { fabric: 1.4, enlarge: 8.1, draw: 8.1, hem: 9.7, side: 15.2, done: 19.6 };
+  ? { fabric: 1.4, enlarge: 7.2, draw: 9.1, hem: 10.7, side: 16.1, done: 20.2 }
+  : { fabric: 1.4, enlarge: 7.9, draw: 7.9, hem: 9.5, side: 14.8, done: 18.9 };
 // Played at 1.4 times its speed, however long the take (Cat, 2026-11-01: less time on the dress page, no enlarge).
-const JOURNEY = { from: 0.6, to: MARKS.done + 0.9, dur: Math.round(((MARKS.done + 0.3) / 1.4) * 10) / 10 };
+// Ends as Done is tapped, on the drawing: Shop the fabric follows, not the pattern sheet (Cat, 2026-11-02).
+const JOURNEY = { from: 0.6, to: MARKS.done - 0.2, dur: Math.round(((MARKS.done + 0.3) / 1.4) * 10) / 10 };
 const atOut = (t) => ((t - JOURNEY.from) * JOURNEY.dur) / (JOURNEY.to - JOURNEY.from);
 // [shot time, zoom, x, y]: on a computer, the whole page, then in on the enlarged form to draw, and back as the
 // pattern comes up. A phone shows the whole screen throughout. Both end framed as the pattern shot opens, so the
 // sheet doesn't jump as one dissolves into the other (Cat, 2026-10-25).
 const STYLE_CAM = (WIDE
-  ? [[0.6, 1, 0.5, 0.5], [MARKS.draw, 1, 0.5, 0.5], [MARKS.hem - 0.2, 1.25, 0.5, 0.44], [MARKS.done, 1.25, 0.5, 0.44], [JOURNEY.to, 1.6, 0.42, 0.72]]
-  : [[0.6, 1, 0.5, 0.5], [MARKS.done, 1.05, 0.5, 0.47], [JOURNEY.to, 1.1, 0.5, 0.56]]).map(([t, ...r]) => [atOut(t), ...r]);
+  ? [[0.6, 1, 0.5, 0.5], [MARKS.draw, 1, 0.5, 0.5], [MARKS.hem - 0.2, 1.25, 0.5, 0.44], [JOURNEY.to, 1.25, 0.5, 0.44]]
+  : [[0.6, 1, 0.5, 0.5], [JOURNEY.to, 1.05, 0.5, 0.47]]).map(([t, ...r]) => [atOut(t), ...r]);
 // No step words over the Style journey: what each move does is left to show itself (Cat, 2026-10-24: "take out
 // these headings, just leave it implied"), nor over the pattern: after the photo's own line, the next words are
 // "Drafted to your body".
@@ -203,7 +204,8 @@ const styleJourney = async () => {
   // One at a time: the words are all drawn on the one page.
   const notes = [];
   for (const [line, on, off, where] of STYLE_NOTES) notes.push([await note(line, where), atOut(on), atOut(off)]);
-  const cards = process.env.CARD === '0' ? [] : [[await clothCard(), atOut(CARD.at), atOut(CARD_OFF)]];
+  // The app now draws its own palette card beside the form (Release 53), so the film's card is off unless CARD=1.
+  const cards = process.env.CARD !== '1' ? [] : [[await clothCard(), atOut(CARD.at), atOut(CARD_OFF)]];
   return piece({ shot: 'style', from: JOURNEY.from, dur: JOURNEY.dur, speed: (JOURNEY.to - JOURNEY.from) / JOURNEY.dur, cam: STYLE_CAM, fadeIn: 0.5, notes, cards, ...(LIFT && { lift: [LIFT, JOURNEY.dur - 2.4, 1.6] }) });
 };
 // Cat (2026-10-22): the cream pattern paper was too bright after the black pages; a deeper champagne here.
