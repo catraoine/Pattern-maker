@@ -63,6 +63,10 @@ get in with their tester link.
 - #292 (coding rules in CLAUDE.md; saved work fills in new settings; tester-code check fails closed; read-out
   key in a header): from the Nov 5 code review; waits on green checks and Cat's "ship".
 
+- Blush shift round 4 (branch claude/project-thread-m85u16): clean sleeveless armhole for every sleeveless top and
+  dress (raised underarm, shoulder cut in), a shift's hem flare follows the skirt flare setting, seams closed for
+  the All round drawing (no dark crack down a side seam). Engine fit fix, no label.
+
 Open draft: #259 (bias slip mini + side slit, open polo collar, ruffled trouser
 hem; In testing), based on main, waiting on Cat's "apply".
 
