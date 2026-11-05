@@ -4,6 +4,13 @@ _Update this page whenever a release ships or a PR is queued._
 
 ## Live
 
+**Release 64** (Nov 5, 2026, #289, #290, #291, #292, plus #293 merged directly): clean sleeveless armhole for every
+sleeveless top and dress, a shift's hem flare follows the flare setting, seams closed in the All round drawing
+(Look 06 blush shift) (#289). The other seven Watch demo clips re-recorded in the Draw clip's "just the form" look
+(#290). The founding card says 250 numbered places at $35 a year (#291). Coding rules in CLAUDE.md, saved work fills
+in new settings, the tester-code check fails closed, the read-out key can go in a header (#292). Leftover debug
+printout removed from the drape engine (#293).
+
 **Release 62** (Nov 4, 2026, Draw calico bundle: #280, #283, #284, #285): Draw your lines shows every garment as
 calico cloth on the form, skirt and bodice too, with its darts, pleats, pockets and slits pressed in; a slanted hem
 slants the way it is drawn; a collar on a drawn neckline shows (#284, rule 25). All round hangs cloth clear of the
@@ -54,18 +61,12 @@ Live site: https://maisontrace.co (the cloud proxy blocks it; check
 https://whimsical-mooncake-2cf9a9.netlify.app, the same site). Strangers see the waitlist; testers
 get in with their tester link.
 
-## Queued for "ship" (as of Nov 4, after Release 62)
+## Queued for "ship" (as of Nov 5, after Release 64)
 
 - #281 (All round: halter, plunge, cowl, one-shoulder necklines; peter pan, bow and ruffle collars; tie and
   ruffle cuffs; raglan sleeves; jackets closed at the neck; funnel and hood collars, coat shawl end, flared coat,
   high-low peplum, gathered dress skirt): 290 of 290 options pass on their own; main merged in Nov 4, handbook
   rules 31 to 46; waits on green checks and Cat's "ship".
-- #292 (coding rules in CLAUDE.md; saved work fills in new settings; tester-code check fails closed; read-out
-  key in a header): from the Nov 5 code review; waits on green checks and Cat's "ship".
-
-- Blush shift round 4 (branch claude/project-thread-m85u16): clean sleeveless armhole for every sleeveless top and
-  dress (raised underarm, shoulder cut in), a shift's hem flare follows the skirt flare setting, seams closed for
-  the All round drawing (no dark crack down a side seam). Engine fit fix, no label.
 
 Open draft: #259 (bias slip mini + side slit, open polo collar, ruffled trouser
 hem; In testing), based on main, waiting on Cat's "apply".
