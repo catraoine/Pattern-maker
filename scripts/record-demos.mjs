@@ -319,7 +319,10 @@ const DEMOS = {
     await f.locator('body').evaluate((b, L) => (b.ownerDocument.getElementById('demo-focus').textContent += ` ${L}:not(#_),${L}:not(#_) *{visibility:visible!important}`), LENGTH);
     await wait(900);
     const svg = f.locator('svg.preview-svg');
-    await drag(svg.locator('circle.hit[aria-label="Skirt length"]'), svg.locator('.hem-mark').filter({ hasText: /^Midi$/i }), 1800);
+    // Straight down, to the height of the (hidden) Midi mark.
+    const handle = svg.locator('circle.hit[aria-label="Skirt length"]');
+    const [hb, mb] = [await handle.boundingBox(), await svg.locator('.hem-mark').filter({ hasText: /^Midi$/i }).boundingBox()];
+    await drag(handle, [0, mb.y + mb.height / 2 - (hb.y + hb.height / 2)], 1800);
     await cap('Hem', 'Then the shape of the hem. Here, high-low.');
     await wait(1000);
     await pick('High-low', 2000);
@@ -428,9 +431,9 @@ async function pickFrom({ R, press }, group, item, ms = 1800) {
 }
 
 /** From the style screen to Print, under the title card. */
-async function toPrint({ R, press }, allTools) {
-  await press(R('button', /^Review/), 1000);
-  await press(R('button', 'Print my pattern'), 1400);
+async function toPrint({ R, press }, allTools, quick) {
+  await press(R('button', /^Review/), quick ? 200 : 600);
+  await press(R('button', 'Print my pattern'), quick ? 400 : 900);
   if (allTools) await press(R('button', 'Show all tools'), 800);
 }
 
@@ -496,7 +499,8 @@ Object.assign(DEMOS, {
     await wait(2000);
     await cap('Lay plan', 'The lay plan shows every piece on your cloth.');
     await veil(async () => {
-      await toPrint(h, false);
+      // Quick, as the screen is dark meanwhile.
+      await toPrint(h, false, true);
       await focus('.lay-box');
     });
     // The width and the metres to buy, from the plan's own description.
