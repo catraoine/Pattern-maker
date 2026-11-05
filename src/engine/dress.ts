@@ -11,7 +11,7 @@ import { BodiceDraft, BodiceMeasurements, BodiceStyle, DROP_MIN, draftBodice, gi
 import { maxRaise, raiseBodice } from './waistline';
 import { Buttons, EXTENSION_CM, backOnFold } from './collar';
 import { BUTTONS_STOP_ABOVE_HEM, openSkirtFront, skirtFrontFacing } from './skirtFront';
-import { DraftError, FIT_EASE, LENGTHS, NoSeam, Silhouette, SkirtDraft, SkirtMeasurements, SkirtStyle, draftSkirt, lengthRange } from './skirt';
+import { DraftError, FIT_EASE, LENGTHS, NoSeam, Silhouette, SkirtDraft, SkirtMeasurements, SkirtStyle, draftSkirt, flareRange, lengthRange } from './skirt';
 import { wrapSkirtAllowed } from './wrapSkirt';
 import { walkingSlit } from './slit';
 import { isTop } from './corset';
@@ -198,7 +198,8 @@ function noSeamDress(m: DressMeasurements, bodiceStyle: Partial<BodiceStyle>, sk
     // A dress's hem: deeper than a top's, the weight helps it hang.
     hemAllowance: skirtStyle.hemAllowance ?? 4,
     ...(kind === 'shift' ? { darts: 'bust' as const } : {}),
-    dressHem: { belowWaist, shape: kind },
+    // A shift's flare: the skirt's own flare setting, else the standard easing out (see DRESS_HEM_TAPER).
+    dressHem: { belowWaist, shape: kind, ...(kind === 'shift' && skirtStyle.flareCm !== undefined ? { flare: Math.min(flareRange(m, belowWaist, 'a_line').max, Math.max(0, skirtStyle.flareCm)) } : {}) },
   });
   // The skirt as it would be under this bodice, with no waistband: its length and steps, never cut.
   // A shift's waist can be as wide as its hip, so the skirt is joined no wider than the hip.

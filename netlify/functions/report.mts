@@ -44,10 +44,12 @@ async function record(text: string) {
   return new Response(null, { status: 204 });
 }
 
-async function readOut(url: URL) {
+async function readOut(url: URL, headers: Headers) {
   const expected = Netlify.env.get('STATS_KEY');
   if (!expected) return Response.json({ ok: false, error: 'not_configured' }, { status: 503 });
-  if (!keyMatches(url.searchParams.get('key'), expected)) return Response.json({ ok: false, error: 'wrong_key' }, { status: 401 });
+  // Scripts send the key in the x-stats-key header, which stays out of browser history and logs. ?key= still works
+  // so the owner can open the read-out in a browser.
+  if (!keyMatches(headers.get('x-stats-key') ?? url.searchParams.get('key'), expected)) return Response.json({ ok: false, error: 'wrong_key' }, { status: 401 });
 
   const days = Math.min(90, Math.max(1, Number(url.searchParams.get('days')) || 30));
   const store = reports();
@@ -79,12 +81,12 @@ async function readOut(url: URL) {
       signups: { testers, news, interest },
       fitReports,
     },
-    { headers: { 'Cache-Control': 'no-store', ...(url.searchParams.has('download') ? { 'Content-Disposition': `attachment; filename="maison-trace-backup-${new Date().toISOString().slice(0, 10)}.json"` } : {}) } },
+    { headers: { 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer', ...(url.searchParams.has('download') ? { 'Content-Disposition': `attachment; filename="maison-trace-backup-${new Date().toISOString().slice(0, 10)}.json"` } : {}) } },
   );
 }
 
 export default async (req: Request) => {
   if (req.method === 'POST') return record(await req.text());
-  if (req.method === 'GET') return readOut(new URL(req.url));
+  if (req.method === 'GET') return readOut(new URL(req.url), req.headers);
   return new Response('Method not allowed', { status: 405 });
 };
