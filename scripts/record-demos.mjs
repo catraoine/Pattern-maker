@@ -1,6 +1,7 @@
-// Records the tools' Watch demo clips from the running app (npx vite --port 5173 first), with a caption under
-// each step, into public/demos/<name>.mp4 and .webm. Prints where each part starts: copy those into DEMOS in
-// src/ui/DemoButton.tsx. Usage: node scripts/record-demos.mjs public/demos [style|draw]
+// Records the tools' Watch demo clips from the running app (npx vite --port 5173 first) into public/demos/<name>.mp4
+// and .webm, in the Draw clip's look (A, Just the form): only the thing in use, big, under one caption at the top.
+// Prints where each part starts: copy those into DEMOS in src/ui/DemoButton.tsx. STILLS=1 also saves a still of
+// each part's last moment (into <out>/stills) for Cat's OK first. Usage: node scripts/record-demos.mjs public/demos [name]
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { chromium } from '@playwright/test';
@@ -19,12 +20,14 @@ html,body{margin:0;background:#000;overflow:hidden}
 #pen{width:18px;height:18px;margin:-9px 0 0 -9px;background:rgba(239,228,204,.55);transition:opacity .3s}
 #card{position:fixed;inset:0;z-index:10;background:#000;color:#efe4cc;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center;transition:opacity .6s;font-family:'Space Grotesk',sans-serif}
 #card .k{font:400 11px/1 'Chakra Petch',monospace;letter-spacing:.3em;text-transform:uppercase;opacity:.75}
-body.focus #app{height:768px;border:0;transform-origin:0 0;transition:none}
+body.focus #app{height:768px;border:0;transform-origin:0 0;transition:opacity .35s}
 body.focus #cap{top:56px;bottom:auto;height:auto;background:none;text-align:center;padding:0 28px;z-index:8}
 body.focus #cap small{color:#c9b48a;opacity:1;margin-bottom:12px;font-size:12px}
 body.focus #cap span{font-size:22px;line-height:1.3}
+#top{display:none;position:fixed;left:0;right:0;top:0;height:182px;z-index:7;background:linear-gradient(#000 88%,rgba(0,0,0,0))}
+body.focus #top{display:block}
 #card h2{font-weight:400;font-size:28px;margin:0 32px}#card .r{width:120px;height:1px;background:#efe4cc;opacity:.6}
-</style></head><body><iframe id="app" src="${APP}/?fresh"></iframe><div id="cap"><small></small><span></span></div><div id="tap"></div><div id="pen"></div><div id="card" style="display:none"></div></body></html>`;
+</style></head><body><iframe id="app" src="${APP}/?fresh"></iframe><div id="top"></div><div id="cap"><small></small><span></span></div><div id="tap"></div><div id="pen"></div><div id="card" style="display:none"></div></body></html>`;
 
 async function record(name, script, before) {
   const work = `${OUT}/work-${name}`;
@@ -77,14 +80,41 @@ async function record(name, script, before) {
     });
     await wait(600);
   };
+  // STILLS=1: a still of each part's last moment, for Cat's OK before the clips are cut.
+  let shot = 0;
+  const still = async () => {
+    if (!process.env.STILLS) return;
+    mkdirSync(`${OUT}/stills`, { recursive: true });
+    await p.screenshot({ path: `${OUT}/stills/${name}-${String(++shot).padStart(2, '0')}.png` });
+  };
+  // One reading pace (Cat, 2026-11-05: After your toile went too fast): each caption stays up at least 5 s, and
+  // longer ones longer, before the next one replaces it.
+  let shown = null;
   const cap = async (ch, t) => {
+    if (shown) {
+      const need = Math.max(5000, 2400 + shown.words * 300);
+      const left = need - (Date.now() - shown.at);
+      if (left > 0) await wait(left);
+    }
+    shown = t ? { at: Date.now(), words: t.split(/\s+/).length } : null;
+    if (await p.evaluate(() => document.querySelector('#cap span').textContent)) await still();
     if (ch && !marks.some((m) => m.ch === ch)) marks.push({ ch, at: (Date.now() - started) / 1000 });
     await p.evaluate(([c, t]) => {
       const el = document.getElementById('cap');
       el.style.opacity = 0;
       setTimeout(() => {
         el.querySelector('small').textContent = c;
-        el.querySelector('span').textContent = t;
+        // Two sentences come in one at a time (Cat, 2026-11-05): the second fades in once the first is read.
+        const [one, ...rest] = t.split(/(?<=[.?!])\s+(?=[A-Z])/);
+        const span = el.querySelector('span');
+        span.textContent = one ?? '';
+        if (rest.length) {
+          const two = document.createElement('span');
+          two.textContent = ' ' + rest.join(' ');
+          two.style.cssText = 'opacity:0;transition:opacity .5s';
+          span.appendChild(two);
+          setTimeout(() => (two.style.opacity = 1), 1400 + 260 * one.split(/\s+/).length);
+        }
         el.style.opacity = t ? 1 : 0;
       }, 300);
     }, [ch, t]);
@@ -168,7 +198,99 @@ async function record(name, script, before) {
     await wait(pause);
   };
 
-  await script({ main, wait, card, cap, tap, draw, point, tapAt, show, ctx, f, p });
+  // Look A, Just the form (Cat, 2026-11-04): only the thing in use shows, big, under one caption at the top. The
+  // rest of the app is hidden (so its controls are pressed with dispatchEvent, found with includeHidden) and the
+  // app frame is scaled onto the subject's box.
+  const fit = async (sels, { top = 176, h = 520, w = 392, s: fixed, align } = {}) => {
+    const list = [].concat(sels);
+    const r = await f.locator('body').evaluate((b, list) => {
+      let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+      for (const sel of list)
+        for (const el of b.ownerDocument.querySelectorAll(sel)) {
+          const q = el.getBoundingClientRect();
+          if (!q.width || !q.height) continue;
+          x0 = Math.min(x0, q.x); y0 = Math.min(y0, q.y); x1 = Math.max(x1, q.right); y1 = Math.max(y1, q.bottom);
+        }
+      return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+    }, list);
+    const s = fixed ?? Math.min(h / r.h, w / r.w);
+    await p.evaluate(([s, tx, ty]) => {
+      document.getElementById('app').style.transform = `translate(${tx}px,${ty}px) scale(${s})`;
+    }, [s, 216 - s * (r.x + r.w / 2), top + (align === 'top' ? 0 : (h - s * r.h) / 2) - s * r.y]);
+  };
+  /** Shows only these parts of the app, scrolled to the middle of its screen and scaled to fill the frame. */
+  const focus = async (sels, opts = {}) => {
+    const list = [].concat(sels);
+    await f.locator('body').evaluate((b, [list, hide]) => {
+      const d = b.ownerDocument;
+      let st = d.getElementById('demo-focus');
+      if (!st) {
+        st = d.createElement('style');
+        st.id = 'demo-focus';
+        b.appendChild(st);
+      }
+      st.textContent =
+        'body *{visibility:hidden!important} .testing-tag{display:none!important} ' +
+        // Fills and textures drawn from elsewhere in the app (the fabric on the drawing) stay drawn.
+        [...list, 'defs', 'pattern', 'mask', 'clipPath'].map((x) => `${x},${x} *`).join(',') + '{visibility:visible!important} ' +
+        // With an id's weight, so a part hidden inside the subject stays hidden.
+        [hide, '.demo-play'].filter(Boolean).flatMap((x) => x.split(',')).map((x) => `${x}:not(#_),${x}:not(#_) *`).join(',') + '{visibility:hidden!important}';
+    }, [list, opts.hide ?? '']);
+    await p.evaluate(() => document.body.classList.add('focus'));
+    await f.locator(list[0]).first().evaluate((el) => el.scrollIntoView({ block: 'center' }));
+    await wait(400);
+    await fit(list, opts);
+  };
+  /** Fades the app out, does what's given (pressing hidden controls, a new focus), and fades it back in. */
+  const veil = async (fn) => {
+    await p.evaluate(() => (document.getElementById('app').style.opacity = 0));
+    await wait(400);
+    await fn();
+    await wait(300);
+    await p.evaluate(() => (document.getElementById('app').style.opacity = 1));
+    await wait(500);
+  };
+  /** Lifts the title card left standing. */
+  const uncard = async () => {
+    await p.evaluate(() => {
+      const c = document.getElementById('card');
+      c.style.opacity = 0;
+      setTimeout(() => (c.style.display = 'none'), 600);
+    });
+    await wait(900);
+  };
+  // The whole app, not just main: projector mode is a dialog on the body.
+  const M = f.locator('body');
+  /** A control in the app, found even while hidden. */
+  const R = (role, name, o = {}) => M.getByRole(role, { name, exact: typeof name === 'string', includeHidden: true, ...o }).first();
+  /** Presses a hidden control (no tap ring: only the subject is on screen). */
+  const press = async (loc, pause = 900) => {
+    await loc.dispatchEvent('click');
+    await wait(pause);
+  };
+  /** The small line over the caption, for what was just picked. */
+  const label = (t) =>
+    p.evaluate((t) => {
+      const el = document.querySelector('#cap small');
+      el.style.transition = 'opacity .25s';
+      el.style.opacity = 0;
+      setTimeout(() => {
+        el.textContent = t;
+        el.style.opacity = 1;
+      }, 250);
+    }, t);
+  /** Drags from one element's middle to another's (or to a point given as [dx, dy] from it), with the finger dot. */
+  const drag = async (from, to, pause = 1400) => {
+    const a = await from.boundingBox();
+    const b2 = Array.isArray(to) ? null : await to.boundingBox();
+    const x0 = a.x + a.width / 2, y0 = a.y + a.height / 2;
+    const x1 = b2 ? b2.x + b2.width / 2 : x0 + to[0], y1 = b2 ? b2.y + b2.height / 2 : y0 + to[1];
+    const box = { x: Math.min(x0, x1) - 1, y: Math.min(y0, y1) - 1, width: Math.abs(x1 - x0) + 2, height: Math.abs(y1 - y0) + 2 };
+    const fr = (x, y) => [(x - box.x) / box.width, (y - box.y) / box.height];
+    await draw({ boundingBox: async () => box, evaluate: async () => {} }, [fr(x0, y0), fr((x0 + x1) / 2, (y0 + y1) / 2), fr(x1, y1)], pause);
+  };
+
+  await script({ main, wait, card, cap, tap, draw, point, tapAt, show, ctx, f, p, fit, focus, veil, uncard, R, press, label, drag, M });
   await cdp.send('Page.stopScreencast');
   frames.sort((a, c) => a.t - c.t);
   const endT = Date.now() / 1000;
@@ -190,38 +312,54 @@ async function record(name, script, before) {
   for (const m of marks) console.log(`  ${m.ch} from ${(m.at + lead).toFixed(1)}`);
 }
 
+// The sketch on Style, larger than its box allows: the length marks and drag handles (cut off at that size) hidden.
+const LENGTH = '.preview-svg .handle:has([aria-label="Skirt length"])';
+const SKETCH = { h: 470, top: 196, w: 1e9, hide: '.preview-svg .handle,.preview-svg .hem-marks' };
+
 const DEMOS = {
-  style: async ({ main, wait, card, cap, tap }) => {
-    const tab = (n) => tap(main.getByRole('tablist', { name: 'Style choices' }).getByRole('tab', { name: n, exact: true }), 700);
-    // A choice folded under its name opens first (the choices fold away, one open at a time).
-    const chip = async (g, c) => {
-      const group = main.getByRole('group', { name: g, exact: true });
-      const pick = group.getByRole('button', { name: c, exact: true });
-      if (!(await pick.isVisible())) await tap(group.getByRole('button', { name: g, exact: true }), 600);
-      await tap(pick, 1400);
+  // Every clip is in the Draw clip's look (A, Just the form; Cat said yes for all seven on 2026-11-05): the drawing,
+  // the pattern or the tool's own picture, big, under one caption; what is picked shows in the line over it.
+  style: async (h) => {
+    const { wait, card, cap, focus, veil, uncard, R, press, label, drag, f } = h;
+    const pick = async (c, ms = 1700) => {
+      await press(R('button', c), 0);
+      await label(c);
+      await wait(ms);
     };
-    await card('Maison Tracé', 'Styling, in thirty seconds', 2400);
-    await cap('Tabs', 'Choices come in five steps under the drawing. Your picks show beside it.');
-    await wait(1600);
-    await tab('Shape');
-    await cap('Shape', 'Tap a shape. The pattern redraws to your body.');
-    await chip('Silhouette', 'Half circle');
-    await chip('Silhouette', 'Pencil');
-    await chip('Silhouette', 'A-line');
-    await tab('Length & hem');
-    // The length is dragged on the sketch now; the tab holds the hem's shape.
-    await cap('Length & hem', 'Drag the hem on the sketch for length. Pick its shape here.');
-    await chip('Hem', 'High-low');
-    await tab('Details');
-    await cap('Details', 'Pockets, waistband or elastic.');
-    await chip('Pockets', 'In-seam');
-    await cap('Undo', 'Changed your mind? Undo is always at the bottom.');
-    await tap(main.getByRole('button', { name: /^Undo/ }).first(), 1400);
+    await card('Maison Tracé', 'Styling, in thirty seconds', 1200, true);
+    await focus('svg.preview-svg', SKETCH);
+    await uncard();
+    await cap('Shape', 'Pick a shape. The pattern redraws to your body.');
+    await wait(1200);
+    await pick('Half circle');
+    await pick('Pencil');
+    await pick('A-line');
+    await cap('Length', 'Drag the hem to the length you want.');
+    await f.locator('body').evaluate((b, L) => (b.ownerDocument.getElementById('demo-focus').textContent += ` ${L}:not(#_),${L}:not(#_) *{visibility:visible!important}`), LENGTH);
+    await wait(900);
+    const svg = f.locator('svg.preview-svg');
+    // Straight down, to the height of the (hidden) Midi mark.
+    const handle = svg.locator('circle.hit[aria-label="Skirt length"]');
+    const [hb, mb] = [await handle.boundingBox(), await svg.locator('.hem-mark').filter({ hasText: /^Midi$/i }).boundingBox()];
+    await drag(handle, [0, mb.y + mb.height / 2 - (hb.y + hb.height / 2)], 1800);
+    await cap('Hem', 'Then the shape of the hem. Here, high-low.');
+    await wait(1000);
+    await pick('High-low', 2000);
+    await cap('Details', 'Add details: pleats, a sash, pockets.');
+    await wait(900);
+    await pick('Knife pleats');
+    await pick('Tie sash', 2000);
+    await cap('Undo', 'Changed your mind? Undo takes it back.');
+    await wait(900);
+    await press(R('button', 'Undo the last change'), 0);
+    await label('Undo');
+    await wait(1900);
     await cap('Pattern', 'Pattern shows the pieces you will cut.');
-    await tap(main.getByRole('button', { name: /Pattern/ }).first(), 2200);
-    await tap(main.getByRole('button', { name: /Garment/ }).first(), 1200);
-    await cap('Review', 'Happy with it? Review, then print.');
-    await tap(main.getByRole('button', { name: 'Review', exact: true }), 2600);
+    await veil(async () => {
+      await press(R('button', /^Pattern/), 900);
+      await focus('.paper-sheet');
+    });
+    await wait(2800);
     await cap('', '');
     await card('Maison Tracé', 'Style it your way.', 2200, true);
   },
@@ -305,167 +443,241 @@ const BEFORE = {
     }),
 };
 
-/** Opens a drop-down (the paper, the fabric width) and picks from it. */
-async function pickFrom({ main, tap }, group, item, ms = 1800) {
-  const g = main.getByRole('group', { name: group, exact: true });
-  await tap(g.getByRole('button').first(), 700);
-  await tap(g.getByRole('menuitemradio', { name: item, exact: true }), ms);
+/** Picks from a drop-down (the paper, the fabric width) while it is hidden. */
+async function pickFrom({ R, press }, group, item, ms = 1800) {
+  await press(R('group', group).getByRole('button', { includeHidden: true }).first(), 400);
+  await press(R('menuitemradio', item), ms);
 }
 
-/** From the style screen to Print, with every tool showing. */
-async function toPrint({ main, tap }, allTools) {
-  await tap(main.getByRole('button', { name: 'Review', exact: true }), 1200);
-  await tap(main.getByRole('button', { name: 'Print my pattern' }).first(), 1600);
-  if (allTools) await tap(main.getByRole('button', { name: 'Show all tools' }), 1000);
+/** From the style screen to Print, under the title card. */
+async function toPrint({ R, press }, allTools, quick) {
+  await press(R('button', /^Review/), quick ? 200 : 600);
+  await press(R('button', 'Print my pattern'), quick ? 400 : 900);
+  if (allTools) await press(R('button', 'Show all tools'), 800);
 }
 
 Object.assign(DEMOS, {
-  photo: async ({ main, wait, card, cap, tap, show }) => {
-    await card('Maison Tracé', 'From a photo', 2400);
-    await cap('Start', 'Seen something you love? Start from a look, then a photo.');
-    await wait(600);
-    // Start from a look sits in the garment drop-down (Release 40).
-    await tap(main.getByRole('group', { name: 'Garment' }).locator('.drop-button'), 700);
-    await tap(main.getByRole('menuitemradio', { name: /Start from a look/ }), 700);
-    await tap(main.getByRole('button', { name: 'Start from a photo' }), 1400);
-    await cap('Photo', 'Take one, or choose one. Worn or laid flat.');
-    await tap(main.locator('label').filter({ hasText: 'Take or choose a photo' }), 200).catch(() => {});
-    await main.locator('input[type=file]').setInputFiles(PHOTO);
-    await cap('Photo', 'We read the shape, the length and the fit.');
-    await main.getByRole('heading', { name: /A-line/ }).waitFor({ timeout: 15000 });
-    await wait(1600);
-    await cap('Check', 'Anything wrong? Change it. Here, a midi instead.');
-    // One line sums up the reading, with Change beside it to open the choices.
-    await tap(main.locator('.photosum').getByRole('button', { name: 'Change' }), 900);
-    await tap(main.locator('.photorow').filter({ hasText: 'Length' }).getByRole('button', { name: 'Midi', exact: true }), 1400);
-    await cap('Draft', 'Then draft it, to your measurements.');
-    await tap(main.getByRole('button', { name: /^Draft my|^Next/ }).first(), 1400);
-    const next = main.getByRole('button', { name: /^Draft my/ });
-    if (await next.isVisible().catch(() => false)) await tap(next, 1400);
-    await main.getByRole('heading', { name: /Style your/ }).waitFor({ timeout: 10000 });
-    await cap('Draft', 'Your pattern, matched to the photo. Style it from here.');
+  photo: async (h) => {
+    const { wait, card, cap, focus, veil, uncard, R, press, label, f } = h;
+    await card('Maison Tracé', 'From a photo', 1200, true);
+    // Start from a look sits in the garment drop-down (Release 40); the photo goes in under the card.
+    await press(R('group', 'Garment').locator('.drop-button'), 500);
+    await press(R('menuitemradio', /Start from a look/), 500);
+    await press(R('button', 'Start from a photo'), 900);
+    await f.locator('main input[type=file]').setInputFiles(PHOTO);
+    await f.locator('.photohead h1').waitFor({ timeout: 15000 });
+    await focus('img.photothumb', { h: 450, top: 200 });
+    await uncard();
+    await cap('Photo', 'Seen something you love? Take a photo, or choose one.');
+    await wait(2400);
+    await cap('Read', 'We read the shape, the length and the fit.');
+    // The reading, in the line over the caption.
+    const reading = () => f.locator('.photosum').evaluate((el) => el.firstChild?.textContent?.trim() ?? el.textContent.replace(/Change|Done/g, '').trim());
+    await label(await reading());
     await wait(2600);
+    await cap('Check', 'Anything wrong? Change it. Here, midi, not maxi.');
+    await wait(1200);
+    await press(f.locator('.photosum button'), 400);
+    await press(f.locator('.photorow').filter({ hasText: 'Length' }).getByRole('button', { name: 'Midi', exact: true, includeHidden: true }), 300);
+    await label(await reading());
+    await wait(2200);
+    await cap('Draft', 'Then it is drafted to your measurements. Style it from here.');
+    await veil(async () => {
+      await press(R('button', /^Draft my/), 400);
+      await f.locator('svg.preview-svg').first().waitFor({ state: 'attached', timeout: 10000 });
+      await wait(900);
+      await focus('svg.preview-svg', SKETCH);
+    });
+    await wait(3000);
     await cap('', '');
     await card('Maison Tracé', 'Snap it. Make it yours.', 2200, true);
   },
   fabric: async (h) => {
-    const { main, wait, card, cap, tap, show } = h;
-    await card('Maison Tracé', 'Fabric and the lay plan', 2400);
-    await cap('Fabric', 'On Style, the Fabric tab: pick what you will sew it in.');
-    await tap(main.getByRole('tab', { name: 'Fabric', exact: true }), 900);
-    await tap(main.getByRole('radio', { name: 'Linen', exact: true }), 1200);
-    await tap(main.getByRole('group', { name: 'Colour' }).or(main.getByRole('radiogroup', { name: 'Colour' })).getByRole('radio').nth(2), 1400);
-    await cap('Print', 'Tell us the print, so pieces line up on checks or motifs.');
-    await tap(main.locator('summary').filter({ hasText: 'About your fabric' }), 900);
-    await tap(main.getByText('Checks, stripes', { exact: true }), 1600);
-    await cap('Lay plan', 'On Print, the lay plan shows every piece on your cloth.');
-    await toPrint(h, false);
-    await show(main.locator('.lay').first(), 1800);
-    await cap('Width', 'Change the fabric width, and the metres to buy change too.');
-    await pickFrom(h, 'Fabric width', '115 cm wide');
-    await pickFrom(h, 'Fabric width', '150 cm wide');
+    const { wait, card, cap, focus, veil, uncard, R, press, label, f } = h;
+    await card('Maison Tracé', 'Fabric and the lay plan', 1200, true);
+    await press(R('tab', 'Fabric'), 700);
+    // A first fabric under the card, so its palette card stands beside the drawing from the start.
+    await press(R('radio', 'Cotton'), 1200);
+    await focus(['svg.preview-svg', '.palette-col'], { ...SKETCH, w: 400, h: 440, top: 200 });
+    await uncard();
+    await cap('Fabric', 'Pick what you will sew it in. The drawing wears it.');
+    await label('Cotton');
+    await wait(1600);
+    await press(R('radio', 'Linen'), 0);
+    await label('Linen');
+    await wait(1800);
+    const colour = f.locator('[role=radiogroup][aria-label*="olour"] [role=radio]');
+    if ((await colour.count()) > 2) {
+      await press(colour.nth(2), 0);
+      await wait(1800);
+    }
+    await cap('Print', 'Checks or stripes? The pieces line up on them.');
+    await wait(900);
+    await press(f.locator('.printtile').filter({ hasText: 'Checks' }).first(), 0);
+    await label('Checks, stripes');
+    await wait(2000);
+    await cap('Lay plan', 'The lay plan shows every piece on your cloth.');
+    await veil(async () => {
+      // Quick, as the screen is dark meanwhile.
+      await toPrint(h, false, true);
+      await focus('.lay-box');
+    });
+    // The width and the metres to buy, from the plan's own description.
+    const metres = async () =>
+      label(await f.locator('svg.layplan').evaluate((el) => (el.getAttribute('aria-label') ?? '').replace(/^Cutting layout on /, '').replace(/ fabric, /, ' · ').replace(/ metres?.*$/, ' m')));
+    await metres();
+    await wait(2600);
+    await cap('Width', 'Set your fabric’s width. The plan, and the metres to buy, follow it.');
+    await wait(900);
+    for (const w of ['150 cm wide', '115 cm wide']) {
+      await pickFrom(h, 'Fabric width', w, 300);
+      await focus('.lay-box');
+      await metres();
+      await wait(1900);
+    }
     await cap('', '');
     await card('Maison Tracé', 'Buy just what you need.', 2200, true);
   },
   print: async (h) => {
-    const { main, wait, card, cap, tap, point, show } = h;
-    await card('Maison Tracé', 'Printing your pattern', 2400);
-    await cap('Paper', 'Review, then Print my pattern. Pick your paper size.');
+    const { wait, card, cap, focus, veil, uncard, R, press, label, f, p } = h;
+    // The pages at the frame's width, from the top; the rest is shown by panning down.
+    const TILES = { w: 400, h: 1e9, top: 190, align: 'top' };
+    const pan = async (ms) => {
+      const r = await f.locator('.preview.tiles').evaluate((el) => el.getBoundingClientRect().height);
+      await p.evaluate(([ms, r]) => {
+        const app = document.getElementById('app');
+        const m = app.style.transform.match(/translate\(([-\d.]+)px, ?([-\d.]+)px\) scale\(([\d.]+)\)/);
+        const [tx, ty, s] = m.slice(1).map(Number);
+        app.style.transition = `transform ${ms}ms ease-in-out, opacity .35s`;
+        app.style.transform = `translate(${tx}px,${ty - Math.max(0, s * r - (740 - 190))}px) scale(${s})`;
+      }, [ms, r]);
+      await wait(ms + 300);
+    };
+    await card('Maison Tracé', 'Printing your pattern', 1200, true);
     await toPrint(h, false);
-    await pickFrom(h, 'Paper', 'US Letter', 1400);
-    await pickFrom(h, 'Paper', 'A4', 1400);
-    await cap('Pages', 'Each page is numbered on the drawing, so you know where it goes.');
     // On a phone the pages fold behind one line.
-    await tap(main.getByRole('button', { name: /^See the \d+ pages?$/ }), 900);
-    await show(main.locator('.preview.tiles'), 2200);
+    await press(R('button', /^See the \d+ pages?/), 800);
+    await focus('.preview.tiles', TILES);
+    await uncard();
+    await cap('Paper', 'Pick your paper. The pattern is laid out on its pages.');
+    await wait(1400);
+    for (const paper of ['A4', 'US Letter']) {
+      await veil(async () => {
+        await pickFrom(h, 'Paper', paper, 500);
+        await focus('.preview.tiles', TILES);
+      });
+      await label(paper);
+      await wait(1700);
+    }
+    await cap('Pages', 'Each page is numbered on the drawing, so you know where it goes.');
+    await pan(5200);
     await cap('Tape', 'Trim, match the half diamonds, and tape the pages together.');
-    await tap(main.locator('summary').filter({ hasText: 'How the pages fit together' }), 2600);
-    await cap('Download', 'Download the PDF and print it at 100%, not fit to page.');
-    await point(main.getByRole('button', { name: /^Download PDF/ }), 2200);
+    await wait(3000);
+    await cap('Download', 'Download the PDF. Print it at 100%, not fit to page.');
+    await wait(3000);
     await cap('', '');
     await card('Maison Tracé', 'Print it. Tape it. Cut it.', 2200, true);
   },
-  // Projector mode (Cat, 2026-10-29: its own demo): Projector paper, line up on the mat, check the square, then a
-  // piece on black moved, turned and flipped. Its In testing tag is left out, as in the How it works film.
+  // Projector mode (Cat, 2026-10-29: its own demo). Its In testing tag is left out, as in the How it works film.
   projector: async (h) => {
-    const { main, wait, card, cap, tap, draw, f } = h;
-    await card('Maison Tracé', 'Projecting your pattern', 2400);
-    await cap('Paper', 'On Print, pick Projector as your paper.');
+    // Only the projected picture: the tools and hints around it hidden.
+    const PJ = { h: 560, top: 168, hide: '.projector-tools,.pj-top,.pj-hint,.projector-panel' };
+    const { wait, card, cap, focus, veil, uncard, R, press, label, draw, drag, f } = h;
+    await card('Maison Tracé', 'Projecting your pattern', 1200, true);
     await toPrint(h, false);
-    await pickFrom(h, 'Paper', 'Projector', 1600);
-    await f.locator('body').evaluate((b) => {
-      const st = b.ownerDocument.createElement('style');
-      st.textContent = '.projector-offer .testing-tag, .projector .testing-tag { display: none !important; }';
-      b.appendChild(st);
-      // Full screen would cover the captions under the app; the clip keeps projector mode inside the phone.
-      b.ownerDocument.defaultView.Element.prototype.requestFullscreen = () => Promise.resolve();
-    });
-    await cap('Open', 'Projector plugged in and pointing at your mat? Open projector mode.');
-    await tap(main.getByRole('button', { name: 'Open projector mode' }), 1600);
-    const pj = f.getByRole('dialog', { name: 'Projector mode' });
-    await cap('Line up', 'Drag each corner onto a corner of your cutting mat’s grid.');
-    const box = await pj.boundingBox();
-    const corners = pj.locator('.pj-corner');
-    for (const [i, [dx, dy]] of [[0, [-0.05, -0.04]], [2, [0.05, 0.04]]]) {
-      const c = await corners.nth(i).boundingBox();
-      const fx = (c.x + c.width / 2 - box.x) / box.width;
-      const fy = (c.y + c.height / 2 - box.y) / box.height;
-      await draw(pj, [[fx, fy], [fx + dx / 2, fy + dy / 2], [fx + dx, fy + dy]], 900);
-    }
+    await pickFrom(h, 'Paper', 'Projector', 800);
+    // Full screen would leave the clip's frame; projector mode stays inside the app.
+    await f.locator('body').evaluate((b) => (b.ownerDocument.defaultView.Element.prototype.requestFullscreen = () => Promise.resolve()));
+    await press(R('button', 'Open projector mode'), 1200);
+    await focus('.projector-stage', PJ);
+    await uncard();
+    await cap('Line up', 'Projector on your mat? Drag each corner onto a corner of its grid.');
+    await wait(1200);
+    for (const [i, d] of [[0, [-22, -18]], [2, [22, 18]]]) await drag(f.locator('.pj-corner .pj-hit').nth(i), d, 900);
     await cap('Check', 'Lay a ruler across the square. Is each side 10 cm?');
-    await tap(pj.getByRole('button', { name: /^Next: check/ }), 2600);
-    await tap(pj.getByRole('button', { name: 'Yes: start projecting' }), 1600);
-    await cap('Project', 'Each piece shows at true size. Drag it where you want it on the cloth.');
-    const stage = pj.locator('.projector-stage');
+    await press(R('button', /^Next: check/), 0);
+    await wait(2800);
+    await cap('Project', 'Each piece shows at true size. Drag it where you want it.');
+    await veil(async () => {
+      await press(R('button', 'Yes: start projecting'), 900);
+      await focus('.projector-stage', PJ);
+    });
+    const stage = f.locator('div.projector-stage');
     await draw(stage, [[0.5, 0.45], [0.47, 0.42], [0.44, 0.4]], 1200);
-    await cap('Turn', 'Turn it, flip it, or make the lines thicker for dark cloth.');
-    await tap(pj.getByRole('button', { name: /^Turn 90/ }), 1300);
-    await tap(pj.getByRole('button', { name: 'Flip' }), 1300);
+    await cap('Turn', 'Turn it, or flip it.');
+    await wait(700);
+    await press(R('button', /^Turn 90/), 0);
+    await label('Turn');
+    await wait(1600);
+    await press(R('button', 'Flip'), 0);
+    await label('Flip');
+    await wait(1600);
     await cap('Pieces', 'Cut it, then go on to the next piece.');
-    await tap(pj.getByRole('button', { name: 'Next piece' }), 2200);
+    await wait(900);
+    await press(R('button', 'Next piece'), 2200);
     await cap('', '');
     await card('Maison Tracé', 'Cut straight from the cloth.', 2200, true);
   },
   scale: async (h) => {
-    const { main, wait, card, cap, tap, tapAt, show } = h;
-    await card('Maison Tracé', 'Checking the true size', 2400);
-    await cap('Open it', 'On Print, under Fit it in a toile first: See a piece at true size.');
+    const { wait, card, cap, focus, veil, uncard, R, press, label, tapAt, f } = h;
+    await card('Maison Tracé', 'Checking the true size', 1200, true);
     await toPrint(h, true);
-    await tap(main.getByRole('button', { name: 'See a piece at true size' }), 1400);
-    await cap('Card', 'Hold a bank card on the screen and match the shape to it.');
-    for (let i = 0; i < 6; i++) await tap(main.getByRole('button', { name: 'Larger' }), 250);
-    await wait(800);
-    await tap(main.getByRole('button', { name: 'It matches the card' }), 1600);
+    await press(R('button', 'See a piece at true size'), 1200);
+    // Room for the card shape to grow.
+    await focus('.calcard', { s: 1.0, top: 230, h: 300 });
+    await uncard();
+    await cap('Card', 'Hold a bank card on the screen and make the shape match it.');
+    await wait(1200);
+    for (let i = 0; i < 6; i++) await press(R('button', 'Larger'), 300);
+    await wait(1400);
     await cap('Measure', 'Now the piece is at its real size. Tap two points to measure.');
-    const pan = main.locator('.truescale-pan');
-    await show(pan, 900);
+    await veil(async () => {
+      await press(R('button', 'It matches the card'), 1200);
+      await focus('.truescale-pan');
+    });
+    const pan = f.locator('.truescale-pan');
+    // What the app reads out, in the line over the caption.
+    const reading = async () => label(await f.locator('.truescale .reading').first().textContent().catch(() => ''));
+    await wait(600);
     await tapAt(pan, [0.2, 0.25], 700);
-    await tapAt(pan, [0.75, 0.7], 900);
-    await show(main.locator('.truescale .reading'), 2200);
+    await tapAt(pan, [0.75, 0.7], 300);
+    await reading();
+    await wait(2000);
     await cap('Seam', 'Walk a seam: tap an edge to see its length.');
-    await tap(main.getByRole('button', { name: 'Walk a seam', exact: true }), 900);
-    await show(pan, 600);
-    await tapAt(pan, [0.02, 0.5], 900);
-    await show(main.locator('.truescale .reading'), 2400);
+    await press(R('button', 'Walk a seam'), 900);
+    await tapAt(pan, [0.02, 0.5], 300);
+    await reading();
+    await wait(2400);
     await cap('', '');
     await card('Maison Tracé', 'Check it before you cut.', 2200, true);
   },
   fitting: async (h) => {
-    const { main, wait, card, cap, tap, show } = h;
-    await card('Maison Tracé', 'After your toile', 2400);
-    await cap('Open it', 'Sewn a toile and tried it on? On Print: I’ve tried on a toile.');
+    const { wait, card, cap, focus, uncard, R, press, label, f } = h;
+    const tick = (t) => press(f.locator('main label').filter({ hasText: t }).first(), 0);
+    await card('Maison Tracé', 'After your toile', 1200, true);
     await toPrint(h, true);
-    await tap(main.getByRole('button', { name: 'I’ve tried on a toile' }), 1400);
-    await cap('Tick', 'Tick what you see, like pulling across the hips.');
-    await tap(main.getByText('Pulls across the hips'), 1200);
+    await press(R('button', 'I’ve tried on a toile'), 1200);
+    await tick('Pulls across the hips');
+    await wait(900);
+    // Narrower, so the millimetre marks drawn past the edges stay in the frame.
+    await focus('svg.fitprev', { w: 330, h: 480, top: 196 });
+    await uncard();
+    await cap('Tick', 'Sewn a toile? Tick what you see, like pulling across the hips.');
+    await wait(2600);
     await cap('Amount', 'Set how much. The pattern is corrected the way a cutter would.');
-    const more = main.getByRole('group', { name: 'How much: Pulls across the hips' }).getByRole('button', { name: 'More' });
-    await tap(more, 500);
-    await tap(more, 1200);
-    await cap('Correction', 'Dashed line: the pattern now. Solid: corrected, in millimetres.');
-    await show(main.locator('.fitside'), 2800);
+    const more = R('group', 'How much: Pulls across the hips').getByRole('button', { name: 'More', includeHidden: true });
+    await wait(900);
+    await press(more, 900);
+    await press(more, 1800);
+    await cap('Back', 'Folds below the back waist? Tick that too.');
+    await wait(900);
+    await tick('Folds below the back waist');
+    await label('Folds below the back waist');
+    await wait(2200);
+    await cap('Correction', 'Dashed: the pattern now. Solid: corrected, in millimetres.');
+    await wait(3000);
     await cap('Save', 'Save it as version 2, and print the corrected pattern.');
-    await tap(main.getByRole('button', { name: /^Save as version/ }), 2400);
+    await wait(2600);
     await cap('', '');
     await card('Maison Tracé', 'Fitted to you.', 2200, true);
   },
