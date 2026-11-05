@@ -60,6 +60,8 @@ get in with their tester link.
   ruffle cuffs; raglan sleeves; jackets closed at the neck; funnel and hood collars, coat shawl end, flared coat,
   high-low peplum, gathered dress skirt): 290 of 290 options pass on their own; main merged in Nov 4, handbook
   rules 31 to 46; waits on green checks and Cat's "ship".
+- #292 (coding rules in CLAUDE.md; saved work fills in new settings; tester-code check fails closed; read-out
+  key in a header): from the Nov 5 code review; waits on green checks and Cat's "ship".
 
 Open draft: #259 (bias slip mini + side slit, open polo collar, ruffled trouser
 hem; In testing), based on main, waiting on Cat's "apply".
