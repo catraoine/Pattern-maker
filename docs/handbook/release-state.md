@@ -70,6 +70,7 @@ get in with their tester link.
 
 ## Queued for "ship" (as of Nov 5, after Release 65)
 
+- Butter Kick Flare out of the collection, Blush Shift now Look 01 and Gold Python Slip Look 09, the rest in order between (branch claude/project-thread-fdxaqb-remove-look01).
 - #294 (All round: clean cloth in its own finish, and Look closer zoom): not green, conflicts with main; its thread
   merges main in first.
 

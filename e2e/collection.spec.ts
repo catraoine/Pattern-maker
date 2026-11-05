@@ -8,8 +8,8 @@ test('the Maison collection: open it from styling, draw every look, make one', a
   await expect(main.getByRole('heading', { level: 1, name: 'The collection' })).toBeVisible();
   // Every look is drawn flat, front and back.
   const looks = main.getByRole('listitem');
-  await expect(looks).toHaveCount(10);
-  await expect(main.getByRole('img', { name: /Technical flat/ })).toHaveCount(10);
+  await expect(looks).toHaveCount(9);
+  await expect(main.getByRole('img', { name: /Technical flat/ })).toHaveCount(9);
   // The House shows one season at a time.
   await expect(main.getByText('SS27 · Spring Summer 2027')).toBeVisible();
 
