@@ -5669,15 +5669,20 @@ function collarsOf(pieces: Piece[], jacketRoll?: [P, P]): CollarPart[] {
 
 /** Trousers: the hips round the body from the centre front and back, each leg round its own leg from the crease. */
 function trouserPanels(sp: Space, B: Builder, seams: SimInput['seams'], d: TrousersDraft, thick: number): SimInput['legs'] {
-  const legsM = d as unknown as { crotch?: unknown; kneeCm: number; hemCm: number; lengthCm: number };
+  const legsM = d as unknown as { crotch?: unknown; kneeCm: number; hemCm: number; lengthCm: number; fullLengthCm?: number };
   // A low (or high) rise is drafted from the line its waistband sits on, that far below (above) the waist: the
   // trousers are hung from there, so the crotch still comes to the body's own.
   const drop = -((d as { riseCm?: number }).riseCm ?? 0);
   const crotchC = drop + Math.max(...d.pieces.filter(isShell).map((pc) => (pc.meta.fork as P | undefined)?.y ?? 26));
   const hipSide = sp.bodyR(Math.PI / 2, crotchC - 4);
   const legX = hipSide * 0.5;
-  const thighR = hipSide * 0.5;
-  const legs = { x: legX, c0: crotchC - 2, c1: legsM.lengthCm + drop, r0: thighR, r1: 3.6 };
+  // Each leg the cloth lies on: a thigh a little over half the hip's half-width round (a thigh is fuller than half a
+  // hip; laid on a thinner one the cloth fell in between the legs and creased into fins at a knee-length hem, and a
+  // tapered or capri leg tore), tapering to the ankle at the leg's full length whatever the trousers' length. Shorts
+  // and a knee length used to end their legs at the hem, tapered to an ankle there, so the cloth fell in on a stick of
+  // a thigh.
+  const thighR = hipSide * 0.55;
+  const legs = { x: legX, c0: crotchC - 2, c1: (legsM.fullLengthCm ?? legsM.lengthCm) + drop, r0: thighR, r1: 3.6 };
   const panels: Panel[] = [];
   // The plain fronts and backs: a slant pocket's cut corner is filled by its facing in the garment, as in the block.
   const block = (d as unknown as { block?: Piece[] }).block;
