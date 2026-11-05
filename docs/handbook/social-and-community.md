@@ -38,6 +38,10 @@ announced Apr 1, 2027 (entries close Apr 30, winner May 7, Drop 01 Jun 24); new 
 from ~Aug 1; AW27 collection post Sep 9, 2027. Projector mode gets its own post only after a real
 projector test.
 
+## Giveaways (decided Nov 5)
+
+One co-hosted Instagram giveaway only, Dec 8 to 13, in the week the Founding Atelier opens. It's a launch spark, not a repeated tactic, because repeat giveaways fill the waitlist with prize hunters. Prize: a numbered founding place (counts toward the 250), the first year of Premium free (then $35 a year), and fabric for one piece from the co-host shop. Never mention $99 or lifetime. Canadian contest rules apply: no purchase, a skill-testing question, written rules with the prize value, odds and dates, Quebec excluded, a Meta release, and the newsletter sign-up as its own unticked box. Plan, rules and pitch: https://claude.ai/artifact/UxZkcK5sN3zCj2egY5cYUo
+
 ## Community (decided Oct 28)
 
 Instagram only until launch: broadcast channel "Maison Tracé: Atelier notes" plus a private group
