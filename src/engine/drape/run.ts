@@ -14,7 +14,7 @@ import { widensForm } from './widen';
 import { Quality, drapeQuality } from './quality';
 import { DrapeOptions, Draped, drapeBodice, drapeDress, drapeOuter, drapeSkirt, drapeTrousers, isShell } from './garment';
 import { makeSpace } from './space';
-import { hangScales } from './hang';
+import { closeSeams, hangScales } from './hang';
 import { sideTie, type SideTieSpec } from './tie';
 
 export type DrapeJob = { m: RoundMeasurements; armhole: RoundGarment['armhole']; fibre?: Fibre; crisp?: boolean; /** A side tie knotted at the left side seam at the waist (belt.ts). */ sideTie?: SideTieSpec } & (
@@ -115,7 +115,9 @@ export function runDrape(job: DrapeJob): DrapedLite {
     quality.problems.push({ check: 'missing', part: pc.name, worst: 1 });
     quality.ok = false;
   }
+  closeSeams(d);
   let hang = hangScales(d, sp);
+  if (hang) closeSeams(d, hang);
   let pos = d.pos;
   const extra: DrapedLite['panels'] = [];
   const tie = job.sideTie && (job.kind === 'dress' || job.kind === 'skirt') ? sideTie(d, job.sideTie) : undefined;

@@ -61,6 +61,10 @@ get in with their tester link.
   high-low peplum, gathered dress skirt): 290 of 290 options pass on their own; main merged in Nov 4, handbook
   rules 31 to 46; waits on green checks and Cat's "ship".
 
+- Blush shift round 4 (branch claude/project-thread-m85u16): clean sleeveless armhole for every sleeveless top and
+  dress (raised underarm, shoulder cut in), a shift's hem flare follows the skirt flare setting, seams closed for
+  the All round drawing (no dark crack down a side seam). Engine fit fix, no label.
+
 Open draft: #259 (bias slip mini + side slit, open polo collar, ruffled trouser
 hem; In testing), based on main, waiting on Cat's "apply".
 
