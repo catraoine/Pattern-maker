@@ -87,7 +87,16 @@ async function record(name, script, before) {
     mkdirSync(`${OUT}/stills`, { recursive: true });
     await p.screenshot({ path: `${OUT}/stills/${name}-${String(++shot).padStart(2, '0')}.png` });
   };
+  // One reading pace (Cat, 2026-11-05: After your toile went too fast): each caption stays up at least 5 s, and
+  // longer ones longer, before the next one replaces it.
+  let shown = null;
   const cap = async (ch, t) => {
+    if (shown) {
+      const need = Math.max(5000, 2400 + shown.words * 300);
+      const left = need - (Date.now() - shown.at);
+      if (left > 0) await wait(left);
+    }
+    shown = t ? { at: Date.now(), words: t.split(/\s+/).length } : null;
     if (await p.evaluate(() => document.querySelector('#cap span').textContent)) await still();
     if (ch && !marks.some((m) => m.ch === ch)) marks.push({ ch, at: (Date.now() - started) / 1000 });
     await p.evaluate(([c, t]) => {
@@ -95,7 +104,17 @@ async function record(name, script, before) {
       el.style.opacity = 0;
       setTimeout(() => {
         el.querySelector('small').textContent = c;
-        el.querySelector('span').textContent = t;
+        // Two sentences come in one at a time (Cat, 2026-11-05): the second fades in once the first is read.
+        const [one, ...rest] = t.split(/(?<=[.?!])\s+(?=[A-Z])/);
+        const span = el.querySelector('span');
+        span.textContent = one ?? '';
+        if (rest.length) {
+          const two = document.createElement('span');
+          two.textContent = ' ' + rest.join(' ');
+          two.style.cssText = 'opacity:0;transition:opacity .5s';
+          span.appendChild(two);
+          setTimeout(() => (two.style.opacity = 1), 1400 + 260 * one.split(/\s+/).length);
+        }
         el.style.opacity = t ? 1 : 0;
       }, 300);
     }, [ch, t]);
