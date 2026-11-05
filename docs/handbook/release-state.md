@@ -61,6 +61,9 @@ get in with their tester link.
   high-low peplum, gathered dress skirt): 290 of 290 options pass on their own; main merged in Nov 4, handbook
   rules 31 to 46; waits on green checks and Cat's "ship".
 
+- #294 (All round: clean cloth in its own finish, and Look closer zoom; Cat's A + C, Nov 5): waits on green checks
+  and Cat's "ship". After ship, the How it works film's second All round shot (the python dress) may want re-recording.
+
 Open draft: #259 (bias slip mini + side slit, open polo collar, ruffled trouser
 hem; In testing), based on main, waiting on Cat's "apply".
 
