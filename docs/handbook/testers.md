@@ -33,7 +33,8 @@ paid sewists as the backstop if fewer than 16 good applicants by Nov 8.
 
 - Testers use their tester link (the site otherwise shows the waitlist). Measurements stay on the
   device they were typed on; "Send to another device" moves them to a computer to print.
-- Reports come through the branded Google Form; photos by email. Social-share consent is asked:
+- Reports come through the branded Google Form; photos by email. Anything else in the app (stuck, broken, confusing) goes
+  through Help & feedback at the foot of Your account; notes appear in the report read-out beside the crash reports. Social-share consent is asked:
   face fine / hands only / no. With testers Cat hasn't met, keep the photo ask soft and optional.
 - **Thank-you:** home sewists a $20 voucher (+ Premium for a year + credit); pros $80 flat (plus
   copy-shop print cost); jacket/coat testers in the full round a $30 voucher.

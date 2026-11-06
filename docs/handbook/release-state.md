@@ -4,6 +4,15 @@ _Update this page whenever a release ships or a PR is queued._
 
 ## Live
 
+**Release 68** (Nov 6, 2026, #304, Cat's Nov 6 "ship"): Help & feedback, the first small link at the foot of
+Your account (Cat's H3): five short answers to what testers trip on, then Send us a note (one box, optional
+screenshot; screen, app version and browser added). Notes land beside the crash reports in the report read-out.
+
+**Release 67** (Nov 6, 2026, #294, under Cat's Nov 5 "ship"): All round shows each fabric clean and in its own
+finish (no painted stripes on satin, plaid on linen or blotches on wool; velvet, cord and wool glow softly at the
+edges, satin one broad sheen, leather a thin coat), and "Look closer" (or a pinch, double tap or trackpad pinch)
+zooms about 2x so the weave reads. Rule 50. The How it works film's All round shots predate it.
+
 **Release 65** (Nov 5, 2026, #297 with #295 and #296 merged in): the collection shows the SS27 looks as Cat settled
 them (Butter Kick Flare, Gold Python Slip, Lavender Jacket, Gold Python Shorts, Ivory Palazzo, Blush Shift, Slate
 Pleat Dress, Ice Peplum Top, Red Wrap Top, Red Pleat Skirt), and shorts and Bermudas draw in All round on a
@@ -68,10 +77,8 @@ Live site: https://maisontrace.co (the cloud proxy blocks it; check
 https://whimsical-mooncake-2cf9a9.netlify.app, the same site). Strangers see the waitlist; testers
 get in with their tester link.
 
-## Queued for "ship" (as of Nov 5, after Release 65)
+## Queued for "ship" (as of Nov 6, after Release 68)
 
-- #294 (All round: clean cloth in its own finish, and Look closer zoom): not green, conflicts with main; its thread
-  merges main in first.
 - #307 (Quality: the faults the automated checks found, fixed, Nov 6): balloon skirt notch, high-waist facings,
   sweetheart cut line, hood notches, back lining notches; words cut at page joins; Check a file dart-leg notches;
   hood Front drawing. Every check's known-faults file is clean on the example body except the hood's neck angle at
