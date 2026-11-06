@@ -17,11 +17,12 @@ export const SLEEVE_CUTS: [SleeveCut, string][] = [
   ['kimono', 'Kimono'],
 ];
 
-/** A dropped shoulder runs 5 cm past the shoulder point, the underarm 3 cm lower, the sleeve's crown
- * nearly flat with 0.6 cm of ease. A raglan line leaves the neck 3 cm from the neck point (2.5 at the
+/** A dropped shoulder runs 5 cm past the shoulder point, the underarm 3 cm lower (lower still where the armhole
+ * would otherwise come out less than the arm's own plus 4 cm, the room a set-in sleeve's armhole has), the sleeve's
+ * crown nearly flat with 0.6 cm of ease. A raglan line leaves the neck 3 cm from the neck point (2.5 at the
  * back) and bows up to 1.5 cm off straight. A kimono sleeve slopes 30 degrees below level, the underarm
  * 6 cm lower, 12 cm of ease round the upper arm, a 2.5 cm hem. */
-export const DROP = { out: 5, down: 3, crownEase: 0.6 };
+export const DROP = { out: 5, down: 3, room: 4, crownEase: 0.6 };
 const RAGLAN = { neck: 3, backNeck: 2.5, bow: 1.5 };
 export const KIMONO = { angle: 30, under: 6, ease: 12, hem: 2.5, past: 8 };
 

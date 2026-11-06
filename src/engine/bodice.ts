@@ -530,7 +530,7 @@ export function draftBodice(m: BodiceMeasurements, style: Partial<BodiceStyle> =
  * drafted to before the shoulders go onto it. The underarm is lowered the same on front and back, as
  * far as the side seam allows above any side dart.
  */
-function cutSleeves(d: BodiceDraft, s: BodiceStyle, m: Partial<SleeveMeasurements>): BodiceDraft {
+function cutSleeves(d: BodiceDraft, s: BodiceStyle, m: Partial<SleeveMeasurements> & { armscye?: number }): BodiceDraft {
   const cut = sleeveCutOf(s);
   if (cut === 'set_in' || d.lowShoulder) return d;
   const [front, back] = d.pieces;
@@ -538,7 +538,24 @@ function cutSleeves(d: BodiceDraft, s: BodiceStyle, m: Partial<SleeveMeasurement
   const blocked = d.block ? [bf, bb] : undefined;
   const room = Math.min(...[front, back, bf, bb].map(sideRoom)) - 1;
   if (cut === 'drop') {
-    const lower = Math.max(0, Math.min(DROP.down, room));
+    // Redrawn from the shoulder carried out down to the lowered underarm, the armhole loses more on a big body (whose
+    // underarm sits far out past its shoulder point) than on a small one: on a 145 cm bust it came out shorter than
+    // the arm's own armhole. So the underarm goes lower until the seam goes round the arm with DROP.room to spare.
+    const [af, ab] = blocked ?? [front, back];
+    const round = (down: number) => taggedLength(dropPiece(af, down).outline, 'armhole') + taggedLength(dropPiece(ab, down).outline, 'armhole');
+    let lower = Math.max(0, Math.min(DROP.down, room));
+    const want = m.armscye !== undefined ? m.armscye + DROP.room : undefined;
+    if (want !== undefined && room > lower && round(lower) < want) {
+      // (No lower than the side seam allows: there it stops at the room it has.)
+      let lo = lower;
+      let hi = room;
+      for (let i = 0; i < 20; i++) {
+        const mid = (lo + hi) / 2;
+        if (round(mid) < want) lo = mid;
+        else hi = mid;
+      }
+      lower = hi;
+    }
     const pieces = [dropPiece(front, lower), dropPiece(back, lower), ...d.pieces.slice(2)];
     const block = blocked?.map((pc) => dropPiece(pc, lower));
     const [nf, nb] = block ?? pieces;
