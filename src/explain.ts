@@ -285,6 +285,15 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       inseam: ['Pockets hidden in the side seams.'],
       slant: ['Pockets that open on a slant at the front hip, like chinos.', 'skill'],
     },
+    pleats: {
+      none: ['A flat front, shaped with a dart.', 'easy'],
+      single: ['One pleat on each front, folded on the crease and pressed toward the centre. A little more room, the tailored look.'],
+      double: ['Two pleats on each front, pressed toward the centre. Loose and easy through the hip and thigh, like a runway Bermuda.'],
+    },
+    loops: {
+      none: ['A plain waistband.', 'easy'],
+      loops: ['Five belt loops on the waistband: the centre back, each side, and one halfway across each front.'],
+    },
   },
   outer: {
     fit: { ...FIT, oversized: ['Cut big and boxy, its shoulders dropped past yours and no pads, with a wide lapel that falls open like a cape.', 'easy'] },
@@ -400,6 +409,9 @@ const SHORT: Record<string, string> = {
   'length.high_hip': 'Ends at the top of the hip.',
   'length.tunic': 'Covers the hips, ends on the thigh.',
   'trousers.length.cropped': 'Ends a hand above the ankle.',
+  'trousers.pleats.single': 'One pleat each front, pressed to centre.',
+  'trousers.pleats.double': 'Two pleats each front, loose and easy.',
+  'trousers.loops.loops': 'Five loops on the waistband.',
   'noSeam.seam': 'Bodice and skirt joined at the waist.',
   'noSeam.sheath': 'One piece, close at waist and hips.',
   'noSeam.shift': 'One piece, straight from the bust.',

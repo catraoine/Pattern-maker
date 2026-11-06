@@ -49,6 +49,8 @@ export type TestingTool =
   | 'drop_yoke'
   | 'low_rise'
   | 'oversized_cuff'
+  | 'trouser_pleats'
+  | 'belt_loops'
   | 'balloon_peplum'
   | 'waist_plunge'
   | 'full_sleeve'
@@ -94,6 +96,9 @@ export const TESTING_TOOLS: Record<TestingTool, { name: string; where: string; p
   lace: { name: 'Lace drawn on the turning garment', where: 'All round, with a lace fabric picked', proof: 'the lace drawing matched against two bought laces' },
   // For the SS27 black knife-pleat skirt (Cat, 2026-11-01: "make the skirt low rise"; design options need no flag).
   low_rise: { name: 'Low-rise skirt', where: 'the Rise chips on a skirt', proof: 'two testers sew a low-rise skirt and it sits level on the hip without slipping, the hem where it was' },
+  // For the SS27 gold python Bermuda, loose and pleated like the season's runway shorts (Cat, 2026-11-05: "R1 with pleats").
+  trouser_pleats: { name: 'Front pleats on trousers', where: 'the Front pleats chips on trousers', proof: 'two testers sew a pleated front and the pleats lie flat and even from the waistband, releasing into the leg without pulling' },
+  belt_loops: { name: 'Belt loops on trousers', where: 'the Belt loops chips on trousers', proof: 'two testers sew the five loops and a belt sits level in them, the loops clear of the pockets and the fly' },
   // And for the flared lilac blazer from Cat's plaid-blazer picture (2026-10-31).
   flared_jacket: { name: 'Flared jacket and coat hem', where: 'the Flared chip below the waist on a jacket or coat', proof: 'two testers sew a flared jacket and it stays close at the waist, kicking out evenly over the hips with a level hem' },
   jacket_collars: { name: 'Peak, shawl and funnel collars, wide and plunging lapels', where: 'the Collar and Lapels chips on a jacket or coat', proof: 'two testers sew a peak or shawl lapel and it rolls cleanly from the break point, the collar sitting flat at the back neck' },

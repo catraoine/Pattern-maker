@@ -368,6 +368,14 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
     marks: GROUPS[2].options.filter(([id]) => allowed('length', id)).map(([id, label]) => ({ id, label, y: (draft ? landmarks(draft.bodice).waistY : 0) + LENGTHS[id as Length](mv) })),
     value: choices.skirt.length,
     onPick: (id: string) => choose('length', id),
+    // The hem glides to any length between the named ones, measured below the waist seam (Cat, 2026-11-06).
+    free: {
+      zero: (draft ? landmarks(draft.bodice).waistY + draft.seamDrop : 0),
+      min: lengthRange(mv).min - (draft?.seamDrop ?? 0),
+      max: lengthRange(mv).max - (draft?.seamDrop ?? 0),
+      cm: choices.skirt.lengthCm,
+      onCm: (cm: number) => onChoices({ ...choices, skirt: { ...choices.skirt, lengthCm: cm } }),
+    },
   };
   const waistY = draft ? landmarks(draft.bodice).waistY : 0;
   // The pattern's finished widths at the bust, waist and hip: the drawing cinches only as much as the pattern does

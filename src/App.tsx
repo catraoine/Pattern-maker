@@ -443,7 +443,7 @@ export default function App() {
   const exampleTag = !!person.example?.length && (
     <button type="button" className="example-tag" onClick={measureMe}>
       <span>Drafted to an example body</span>
-      <span className="example-tag-go">Measure me ›</span>
+      <span className="example-tag-go">Measure me</span>
     </button>
   );
   /** "Choose another garment": the same list as when measuring. */

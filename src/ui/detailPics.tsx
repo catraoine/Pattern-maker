@@ -219,6 +219,12 @@ const DETAILS: Record<ExplainSet, Record<string, Record<string, ReactNode>>> = {
       side_zip: on(TROUSERS, 'M29.2 5V17M28.2 17h2v2.5h-2z'),
     },
     pockets: { none: on(TROUSERS), inseam: inseam(TROUSERS, 8), slant: on(TROUSERS, 'M14 4L11.2 12M26 4L28.8 12') },
+    pleats: {
+      none: on(TROUSERS, 'M15 4L15.5 11M25 4L24.5 11'),
+      single: on(TROUSERS, 'M15 4L14.6 20M16.8 4L15 14M25 4L25.4 20M23.2 4L25 14'),
+      double: on(TROUSERS, 'M15 4L14.6 20M16.8 4L15 14M12.4 4L12.8 14M13.8 4L13.2 12M25 4L25.4 20M23.2 4L25 14M27.6 4L27.2 14M26.2 4L26.8 12'),
+    },
+    loops: { none: on(TROUSERS), loops: on(TROUSERS, 'M13.4 2.8v4.4h1.4V2.8zM25.2 2.8v4.4h1.4V2.8zM10.6 3.4v4h1.2v-4zM28.2 3.4v4h1.2v-4z') },
   },
   outer: {
     fit: { ...FIT, oversized: DRESS_FIT.oversized },

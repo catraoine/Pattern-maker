@@ -80,7 +80,9 @@ export function teeForm(m: TeeFormMeasurements, c: TeeChoices, draft: TeeDraft):
   const underY = draft.armholeDepth - 2;
   const arm = armFor(tip, { x: body.width(underY), y: underY }, { arm_length: m.arm_length!, upper_arm: m.upper_arm!, wrist: m.wrist });
   // Each option drafted, to see where it falls; the one chosen is the draft already made.
-  const variant = <K extends 'neckline' | 'length' | 'sleeve'>(k: K, v: TeeChoices[K]) => (c[k] === v ? draft : draftTee(m, { ...c, [k]: v }));
+  // Each named length is drafted as itself, not at a length dragged between them.
+  const variant = <K extends 'neckline' | 'length' | 'sleeve'>(k: K, v: TeeChoices[K]) =>
+    c[k] === v && (k !== 'length' || c.lengthCm === undefined) ? draft : draftTee(m, { ...c, ...(k === 'length' ? { lengthCm: undefined } : {}), [k]: v });
   const each = <K extends string>(options: K[], value: (k: K) => number) => Object.fromEntries(options.map((k) => [k, value(k)])) as Record<K, number>;
   return {
     body,
@@ -161,7 +163,7 @@ export function readTeeHem(stroke: P[], tf: TeeForm, c: TeeChoices, side: 'front
   const sides = rise > 2.5 && length !== 'cropped' ? Math.round(Math.min(TEE_HEM_SHAPE.sides, rise)) : 0;
   const curved = sides ? ` A shirttail hem, ${sides} cm higher at the side seams.` : rise > 2.5 ? ' A cropped T-shirt keeps a level hem.' : rise < -2.5 ? ' A T-shirt hem is cut level or curved up at the sides, so your line sets its length, at the middle.' : '';
   const off = Math.abs(y - tf.hems[length]) > 5 ? ' It is the nearest of the three lengths to your line.' : '';
-  const { hemShape: _h, ...rest } = c;
+  const { hemShape: _h, lengthCm: _l, ...rest } = c;
   return { choices: { ...rest, length, ...keep({ back: c.hemShape?.back, sides }) }, said: words[length] + curved + off };
 }
 
