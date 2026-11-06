@@ -190,6 +190,8 @@ export interface TeeChoices {
   neckline: TeeNeck;
   sleeve: TeeSleeve;
   length: TeeLength;
+  /** Dragged on the form between the named lengths: the centre back length in cm (see tee.ts). Older saves have none. */
+  lengthCm?: number;
   /** Drawn on the form: a shirttail or high-low hem (see tee.ts). Older saves have a level hem. */
   hemShape?: { sides?: number; back?: number };
 }
@@ -211,7 +213,7 @@ const TEE_LENGTH_WORDS: Record<TeeLength, string> = { cropped: 'Cropped ', hip: 
 /** A plain name, such as "Fitted scoop-neck T-shirt with long sleeves". */
 export function describeTee(c: TeeChoices) {
   const fit = c.fit === 'regular' ? '' : `${c.fit} `;
-  const words = `${TEE_LENGTH_WORDS[c.length]}${fit}${TEE_NECK_WORDS[c.neckline]} T-shirt with ${TEE_SLEEVE_WORDS[c.sleeve]}`;
+  const words = `${c.lengthCm !== undefined ? `${Math.round(c.lengthCm)} cm ` : TEE_LENGTH_WORDS[c.length]}${fit}${TEE_NECK_WORDS[c.neckline]} T-shirt with ${TEE_SLEEVE_WORDS[c.sleeve]}`;
   return words[0].toUpperCase() + words.slice(1);
 }
 

@@ -33,3 +33,21 @@
     display: none;
   }
 }
+
+/* A dragged hem catches on each named length, and its name pops on the handle (Cat, 2026-11-06). */
+.handle text.caught {
+  fill: var(--gild);
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: hem-caught 420ms ease-out;
+}
+@keyframes hem-caught {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .handle text.caught {
+    animation: none;
+  }
+}

@@ -332,25 +332,26 @@ export async function goPrint(page: Page) {
 /** The hem dot on the drawing, which sets the length of a skirt, dress, T-shirt or trousers. */
 export const lengthDot = (page: Page) => main(page).getByRole('slider', { name: /^(Skirt|Dress|T-shirt|Trouser) length$/ });
 
-/** Pick a named length, then check the hem dot reads it: by tapping its mark beside the skirt, or, where only the dot
- *  shows the length (dress, T-shirt, trousers), with the dot's arrow keys, which step through the named lengths. */
+/** Pick a named length with the hem dot's arrow keys, then check the dot reads it. On the dress, T-shirt and trousers
+ *  they step between the named lengths; on the skirt they move the hem 2 cm at a time, catching on each named one. */
 export async function chooseLength(page: Page, name: string) {
-  const mark = main(page).locator('.preview .hem-mark').filter({ hasText: new RegExp(`^${name}$`, 'i') });
-  if (await mark.count()) await mark.click();
-  else await stepDotTo(page, name);
+  await stepDotTo(page, name);
   await expect(lengthDot(page)).toHaveAttribute('aria-valuetext', name);
 }
 
-/** Steps the hem dot along the named lengths with its arrow keys: up to the shortest, then down until it reads one. */
+/** Steps the hem dot up to its shortest, then down until it reads a name. */
 async function stepDotTo(page: Page, name: string) {
   const dot = lengthDot(page);
+  const read = () => dot.getAttribute('aria-valuetext');
+  // One press; false once the dot has stopped moving (at the end of its run).
   const step = async (key: string) => {
-    const before = (await dot.getAttribute('aria-valuenow')) ?? '';
+    const before = await read();
     await dot.press(key);
-    await expect(dot).not.toHaveAttribute('aria-valuenow', before);
+    return expect(dot).not.toHaveAttribute('aria-valuetext', before ?? '', { timeout: 1500 }).then(() => true, () => false);
   };
-  for (let i = 0; i < 12 && Number(await dot.getAttribute('aria-valuenow')) > 1; i++) await step('ArrowUp');
-  for (let i = 0; i < 12 && (await dot.getAttribute('aria-valuetext')) !== name; i++) await step('ArrowDown');
+  if ((await read()) === name) return;
+  for (let i = 0; i < 60 && (await step('ArrowUp')); i++) if ((await read()) === name) return;
+  for (let i = 0; i < 60 && (await read()) !== name && (await step('ArrowDown')); i++);
 }
 
 export async function chooseChip(page: Page, group: string, chip: string) {

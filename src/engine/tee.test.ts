@@ -231,3 +231,19 @@ describe('knit T-shirt bust shaping', () => {
     }
   });
 });
+
+describe('a length dragged between the named ones (Cat, 2026-11-06)', () => {
+  it('drafts the centre back at the length asked, between hip and tunic, and stays in its range', () => {
+    const hip = draftTee(EX, { ...DEFAULT_TEE, length: 'hip' });
+    const tunic = draftTee(EX, { ...DEFAULT_TEE, length: 'tunic' });
+    const mid = Math.round((hip.backLength + tunic.backLength) / 2);
+    const between = draftTee(EX, { ...DEFAULT_TEE, length: 'hip', lengthCm: mid });
+    expect(between.backLength).toBeCloseTo(mid, 0);
+    expect(between.backLength).toBeGreaterThan(hip.backLength);
+    expect(between.backLength).toBeLessThan(tunic.backLength);
+    expect(checkPattern(between.pieces).filter((i) => i.level === 'error')).toEqual([]);
+    // Far past tunic or above the waist, it is held to the T-shirt's own range.
+    expect(draftTee(EX, { ...DEFAULT_TEE, lengthCm: 500 }).backLength).toBeLessThan(tunic.backLength + 15);
+    expect(draftTee(EX, { ...DEFAULT_TEE, lengthCm: 0 }).backLength).toBeGreaterThan(EX.nape_to_waist - 5);
+  });
+});

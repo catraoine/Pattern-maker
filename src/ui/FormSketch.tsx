@@ -754,7 +754,7 @@ export function FormSketch({ body, m, legs, bottom, arms, lines, outline = [], c
   const frame = useMemo(() => formFrame(m, body, bottom, arms, worn), [m, body, bottom, arms, worn]);
   const cx = frame.half;
   // The dot sits on the hem as drawn at the centre, where the cloth has one there near the length picked.
-  const picked = hem?.marks.find((k) => k.id === hem.value)?.y;
+  const picked = hem?.free?.cm !== undefined ? hem.free.zero + hem.free.cm : hem?.marks.find((k) => k.id === hem.value)?.y;
   const centre = (worn ?? []).flat().filter((q) => Math.abs(q.x) < 2);
   const low = centre.length ? Math.max(...centre.map((q) => q.y)) : undefined;
   const hemAt = picked !== undefined && low !== undefined && Math.abs(low - picked) < 6 ? low : undefined;

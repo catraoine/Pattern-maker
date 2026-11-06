@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { layout } from '../engine/export';
-import { NECKBAND_CM, STRETCH_TEST, TeeDraft, TeeMeasurements, pctWords } from '../engine/tee';
+import { NECKBAND_CM, STRETCH_TEST, TEE_NECKS, TeeDraft, TeeMeasurements, pctWords } from '../engine/tee';
 import { teeSpec } from '../engine/spec';
 import { FinishedTable, finishedLines } from '../ui/FinishedTable';
 
@@ -175,7 +175,7 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
                   type="button"
                   className={choices[g.id] === id ? 'chip on' : 'chip'}
                   aria-pressed={choices[g.id] === id}
-                  onClick={() => onChoices({ ...choices, [g.id]: id })}
+                  onClick={() => onChoices({ ...choices, [g.id]: id, ...(g.id === 'length' ? { lengthCm: undefined } : {}) })}
                 >
                   <ChoicePic set="tee" group={g.id} id={id} />
                   {label}
@@ -233,7 +233,7 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
                 body={form.body}
                 m={m}
                 legs={false}
-                bottom={form.hems.tunic + 6}
+                bottom={form.hems.tunic + 16}
                 arms={form.arm}
                 lines={formLines}
                 cloth={clothShapes} flatLines={flatLines}
@@ -242,7 +242,20 @@ export function TeeStyleScreen({ onPhoto, photo, choices, onChoices: setChoices,
                   name: 'T-shirt length',
                   marks: TEE_GROUPS.find((g) => g.id === 'length')!.options.map(([id, label]) => ({ id, label, y: form.hems[id as TeeChoices['length']] })),
                   value: choices.length,
-                  onPick: (length) => onChoices({ ...choices, length: length as TeeChoices['length'] }),
+                  onPick: (length) => onChoices({ ...choices, length: length as TeeChoices['length'], lengthCm: undefined }),
+                  // The hem glides to any length between the named ones, as the centre back length (Cat, 2026-11-06);
+                  // the nearest named length goes with it.
+                  free: {
+                    zero: TEE_NECKS[choices.neckline].backDepth + (draft.hemShape?.back ?? 0),
+                    min: m.nape_to_waist + 1 - TEE_NECKS[choices.neckline].backDepth,
+                    max: m.nape_to_waist + m.waist_to_hip + 25 - TEE_NECKS[choices.neckline].backDepth,
+                    cm: choices.lengthCm,
+                    onCm: (cm) => {
+                      const y = TEE_NECKS[choices.neckline].backDepth + (draft.hemShape?.back ?? 0) + cm;
+                      const length = (['cropped', 'hip', 'tunic'] as const).reduce((a, b) => (Math.abs(form.hems[b] - y) < Math.abs(form.hems[a] - y) ? b : a));
+                      onChoices({ ...choices, length, lengthCm: cm });
+                    },
+                  },
                 }}
                 label={`The ${title.toLowerCase()} on your form`}
               />

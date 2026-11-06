@@ -42,6 +42,9 @@ interface TeeStyle {
   neckline: TeeNeck;
   sleeve: TeeSleeve;
   length: TeeLength;
+  /** A length between the named ones, dragged on the form: the centre back from neck edge to a level hem, in cm.
+   *  `length` is then the nearest named length. Left out, the named length is drafted. */
+  lengthCm?: number;
   /** The menswear form: no bust shaping, front and back cut alike. */
   flatFront?: boolean;
   /** Drawn on the form: a shaped hem. `sides` raises it at the side seams for a shirttail, `back`
@@ -273,7 +276,10 @@ function build(m: TeeMeasurements, s: TeeStyle, scye: number, warnings: string[]
   const hipQ = (H * (1 + pct + 0.03)) / 4;
   const waistQ0 = (W * (1 + pct + 0.02)) / 4;
   const share = WAIST_SHAPING[s.fit];
-  const hemY = s.length === 'cropped' ? NW + 1 : s.length === 'hip' ? NW + WH : NW + WH + 15;
+  const named = s.length === 'cropped' ? NW + 1 : s.length === 'hip' ? NW + WH : NW + WH + 15;
+  // A dragged length sits anywhere from cropped to a little past tunic; from 7 cm below the hip it is cut as a tunic.
+  const hemY = s.lengthCm !== undefined ? Math.min(NW + WH + 25, Math.max(NW + 1, s.lengthCm + nl.backDepth)) : named;
+  const tunic = s.lengthCm !== undefined ? hemY >= NW + WH + 7 : s.length === 'tunic';
   const relaxed = s.fit === 'relaxed';
 
   // ---- neck and shoulder --------------------------------------------------
@@ -306,7 +312,7 @@ function build(m: TeeMeasurements, s: TeeStyle, scye: number, warnings: string[]
       hemQ = Math.max(bq - share * Math.max(0, bq - waistQ0), waistQ0);
       waistQ = hemQ;
     } else {
-      hemQ = Math.max(s.length === 'tunic' ? hipQ + 1.5 : hipQ, relaxed ? bq + (s.length === 'tunic' ? 1 : 0) : 0);
+      hemQ = Math.max(tunic ? hipQ + 1.5 : hipQ, relaxed ? bq + (tunic ? 1 : 0) : 0);
       const straight = bq + (hemQ - bq) * ((NW - scye) / (hemY - scye));
       waistQ = straight - share * Math.max(0, straight - waistQ0);
     }
