@@ -87,6 +87,11 @@ get in with their tester link.
 
 ## Queued for "ship" (as of Nov 6, after Release 65)
 
+Random-body pattern fixes (Quality, Nov 6): the nightly 20-body pattern walk's 716 faults on bodies other than the
+example one, fixed (cutting lines folding at tight curves, flared coat panels, knife-pleat split marks, pocket, zip and
+hip notches too close together, slant-pocket hip notch, dresses for a waist close to the hip, the waist step beside a
+trued dart). Green PR waiting on "ship".
+
 Open draft: #259 (bias slip mini + side slit, open polo collar, ruffled trouser
 hem; In testing), based on main, waiting on Cat's "apply".
 

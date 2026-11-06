@@ -8,7 +8,7 @@ import { HemShape, isShaped, matchSides, shapeHem } from './hem';
 import { Flounce, GodetCount, Pleats, VolumeDraft, addVolume, volumeOf } from './skirtVolume';
 import { AsymHem, AsymPlan, quarterAsym } from './asymHem';
 import { SLIP_HEM, SLIP_HIP_EASE_LESS, closeToHem, cutsWhole, cutWhole, slipSideSupp, validCut } from './slip';
-import { inseamPocket, markSeam } from './pockets';
+import { inseamPocket, markSeam, notchesAlong } from './pockets';
 import { foldBack, wrapSkirtAllowed, wrapSkirtFront, wrapTies } from './wrapSkirt';
 import { Slit, SlitPlace, slitOf, slitPieces, slitRange } from './slit';
 import { buttonBandLength, buttonFront, buttonsOf, frontWaist, splitYoke, yokeOf, yokeSideAt } from './skirtFront';
@@ -781,7 +781,7 @@ function wrapped(draft: SkirtDraft, s: SkirtStyle): SkirtDraft {
  */
 function withPockets(draft: SkirtDraft): SkirtDraft {
   const [front, back, ...rest] = draft.pieces;
-  const pocket = inseamPocket(front, { hemRoom: front.allowances.hem + 3 });
+  const pocket = inseamPocket(front, { hemRoom: front.allowances.hem + 3, clear: [...notchesAlong(front, 'side'), ...notchesAlong(back, 'side')] });
   if (!pocket) return draft;
   const mark = (pc: Piece) => markSeam(pc, 'side', pocket.opening, 'POCKET');
   return { ...draft, pieces: [mark(front), mark(back), ...rest, pocket.bag], pocket: pocket.opening };
@@ -938,12 +938,15 @@ function draftShape(m: SkirtMeasurements, s: SkirtStyle): SkirtDraft {
         : LENGTHS[s.length](m);
   if (!(length > hipDepth + 5)) throw new DraftError('The skirt length must reach well below the hip line.');
 
-  const finishedHip = elastic ? pullOn : m.full_hip + ease.hip;
-  const hipQ = finishedHip / 4;
   // Joined to a bodice, the waist is the bodice's; otherwise 0.5 cm moves from the back to the front.
   const join = s.joinTo;
   const waistQ = join ? (join.front + join.back) / 2 : elastic ? pullOn / 4 : (m.waist + ease.waist) / 4;
   const split = elastic ? { front: 0, back: 0 } : { front: join ? join.front - waistQ : 0.5, back: join ? join.back - waistQ : -0.5 };
+  // Where the waist is only a little under the hip, the waist's ease (or a dress bodice's) can make it the wider of
+  // the two once made up. The hip is then cut as wide as the waist, and the skirt hangs straight down from it. A waist
+  // that is itself larger than the hip is still turned away below.
+  const finishedHip = Math.max(elastic ? pullOn : m.full_hip + ease.hip, m.full_hip >= m.waist ? 4 * waistQ : 0);
+  const hipQ = finishedHip / 4;
 
   const finishedWaist = join ? 4 * waistQ : elastic ? pullOn : m.waist + ease.waist;
   const zipCm = elastic ? 0 : (join?.zipCm ?? zipLength(hipDepth));
@@ -1038,10 +1041,16 @@ function draftShape(m: SkirtMeasurements, s: SkirtStyle): SkirtDraft {
   const BACK_DART_MAX = slip ? Infinity : 3.5;
   const sideSupp = slip
     ? slipSideSupp(hipQ - (waistQ + split.front), hipQ - (waistQ + split.back))
-    : Math.max(
-        Math.min(3, (hipQ - waistQ) * 0.4),
-        hipQ - (waistQ + split.front) - 2 * FRONT_DART_MAX,
-        hipQ - (waistQ + split.back) - 2 * BACK_DART_MAX,
+    : Math.min(
+        Math.max(
+          Math.min(3, (hipQ - waistQ) * 0.4),
+          hipQ - (waistQ + split.front) - 2 * FRONT_DART_MAX,
+          hipQ - (waistQ + split.back) - 2 * BACK_DART_MAX,
+        ),
+        // Never more than the piece with the least to take in has: the side seams are shaped alike, front and back,
+        // so they still match where the waist is close to the hip.
+        hipQ - (waistQ + split.front),
+        hipQ - (waistQ + split.back),
       );
   // A flared hem is wider round its edge than the skirt a few cm up, so a deep turn-up has too much
   // cloth to lie flat and ripples: an A-line or trumpet hem, or a straight one flared out to a photo,

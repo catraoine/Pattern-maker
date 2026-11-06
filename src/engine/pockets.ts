@@ -183,9 +183,63 @@ function marked(name: string, cut: string, centre: P, grain: P, extra: Partial<P
   };
 }
 
+/** How far down a seam, from where it starts, each notch on it sits (notches more than 2 mm off it are left out). */
+export function notchesAlong(pc: Piece, tag: string): number[] {
+  return alongOf(pc, tag).filter((v): v is number => v !== undefined);
+}
+
+/** The piece without the notches on a seam within `within` cm of `at` along it, nor the other half of a double notch
+ *  one of them belongs to (a notch a centimetre from another reads as a double notch, so marks that close confuse).
+ *  Notches at the `spare` distances (a pocket's opening, say) are kept. */
+export function withoutNotchesNear(pc: Piece, tag: string, at: number, within: number, spare: number[] = []): Piece {
+  const along = alongOf(pc, tag).map((v) => (v !== undefined && spare.some((x) => Math.abs(x - v) < 0.3) ? undefined : v));
+  const gone = new Set(along.flatMap((v, i) => (v !== undefined && Math.abs(v - at) < within ? [i] : [])));
+  // Partners of partners too, whatever order the notches come in.
+  for (let grew = true; grew; ) {
+    grew = false;
+    along.forEach((v, i) => {
+      if (v !== undefined && !gone.has(i) && [...gone].some((g) => Math.abs((along[g] as number) - v) < 1.25)) {
+        gone.add(i);
+        grew = true;
+      }
+    });
+  }
+  return gone.size ? { ...pc, notches: pc.notches.filter((_, i) => !gone.has(i)) } : pc;
+}
+
+/** Each notch's distance down a seam, or undefined for one not on it. */
+function alongOf(pc: Piece, tag: string): (number | undefined)[] {
+  const r = ringOf(pc);
+  const n = r.pts.length;
+  const s = runStart(r, tag);
+  if (s < 0) return pc.notches.map(() => undefined);
+  const out: (number | undefined)[] = [];
+  for (const [q] of pc.notches) {
+    let acc = 0;
+    let best = { d: Infinity, at: 0 };
+    for (let k = 0, i = s; k < n && r.tags[i] === tag; k++, i = (i + 1) % n) {
+      const a = r.pts[i];
+      const ab = sub(r.pts[(i + 1) % n], a);
+      const l = len(ab);
+      const t = l < 1e-9 ? 0 : Math.max(0, Math.min(1, ((q.x - a.x) * ab.x + (q.y - a.y) * ab.y) / (l * l)));
+      const d = len(sub(q, add(a, mul(ab, t))));
+      if (d < best.d) best = { d, at: acc + l * t };
+      acc += l;
+    }
+    out.push(best.d <= 0.2 ? best.at : undefined);
+  }
+  return out;
+}
+
+/** How far the opening's lower notch is kept from the seam's own notches: one a centimetre from another reads as a
+ *  double notch, so the pocket's mark and the hip's would be taken for each other. */
+const INSEAM_CLEAR = 2;
+
 interface InseamOpts {
   /** The seam the pocket hangs in. */
   tag?: string;
+  /** Distances down the seam of the notches already on it, front and back, for the opening to keep clear of. */
+  clear?: number[];
   /** Kept clear above the end of the seam (the hem allowance and a little more). */
   hemRoom?: number;
   cut?: string;
@@ -209,6 +263,21 @@ export function inseamPocket(garment: Piece, opts: InseamOpts = {}): { bag: Piec
   const need = () => o1 + INSEAM.below + depth - from;
   if (need() > avail) depth = Math.max(5, depth - (need() - avail));
   if (need() > avail) o1 -= need() - avail;
+  // Clear of the hip notches: the opening's end moved to the nearest place 2 cm from all of them, as long as the
+  // opening still takes a hand and the bag still fits above the hem.
+  const clear = opts.clear ?? [];
+  const clearOf = (c: number) => clear.every((x) => Math.abs(x - c) >= INSEAM_CLEAR - 1e-6);
+  if (!clearOf(o1)) {
+    const fits = (c: number) => c - top >= 10 && c + INSEAM.below + 5 - from <= avail;
+    const best = clear
+      .flatMap((x) => [x - INSEAM_CLEAR, x + INSEAM_CLEAR])
+      .filter((c) => clearOf(c) && fits(c))
+      .sort((a, b) => Math.abs(a - o1) - Math.abs(b - o1))[0];
+    if (best !== undefined) {
+      o1 = best;
+      depth = Math.min(depth, avail - (o1 + INSEAM.below - from));
+    }
+  }
   if (o1 - top < 10) return undefined;
   const to = o1 + INSEAM.below;
   const seam = seamSlice(garment, tag, from, to);
@@ -314,8 +383,12 @@ export function slantPocket(front: Piece, opts: Partial<typeof SLANT> = {}): Sla
   // The facing's notch where the opening ends, matched to the foot of the slant on the front.
   facingPc.notches.push([B.q, mul(across, -1)]);
   facingPc.labels.push({ at: at(2.4, o.down * 0.5), text: 'PLACE UNDER THE FRONT', size: 0.5, rotate: rotationAlong(down) });
+  // The front keeps the notches still on its edges, down to the foot of the slant itself (a hip notch can sit just
+  // below it on a full hip); one above it is cut away with the corner, whose waist and side seam the facing carries.
+  const kept = (q: P) => q.y >= B.q.y - 0.05 || local(q) > o.in + 0.5;
+  facingPc.notches.push(...front.notches.filter(([q]) => !kept(q)));
   return {
-    front: { ...front, outline: fr, notches: front.notches.filter(([q]) => q.y > B.q.y + 0.5 || local(q) > o.in + 0.5) },
+    front: { ...front, outline: fr, notches: front.notches.filter(([q]) => kept(q)) },
     lining: liningPc,
     facing: facingPc,
   };

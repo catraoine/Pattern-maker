@@ -239,7 +239,11 @@ function flareFromWaist(pc: Piece, y0: number, turn: number): Piece {
   const r: Ring = { ...r0, pts: pts0, tags: tags0 };
   const n = r.pts.length;
   const pts = [...r.pts];
-  const xs = r.pts.map((q) => q.x);
+  // Which way is out for a seam: away from the middle of the piece's hem. The middle of the whole piece won't do: a
+  // coat's centre front reaches out to the shoulder, so on a full hip its panel seam can sit left of that middle at
+  // the hem and would be bent in across the panel.
+  const atHem = r.pts.filter((_, k) => r.tags[k] === 'hem' || r.tags[(k - 1 + n) % n] === 'hem');
+  const xs = (atHem.length > 1 ? atHem : r.pts).map((q) => q.x);
   const mid = (Math.min(...xs) + Math.max(...xs)) / 2;
   const yH = Math.max(...r.pts.map((q) => q.y));
   const moved = new Map<number, P>(); // a seam's bottom end, old index -> new point

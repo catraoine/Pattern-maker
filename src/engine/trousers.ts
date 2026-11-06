@@ -7,7 +7,7 @@ import { P, Path, add, len, lerp, mul, p, sub, taggedLength, unit } from './geom
 import { finishDart } from './darts';
 import type { Piece } from './piece';
 import { DraftError, Elastic, Fit, PULL_ON_EASE, SkirtFitting, WaistStyle, Waistband, WAISTBAND_CM, cm, elasticFor } from './skirt';
-import { PocketStyle, inseamPocket, markSeam, slantPocket } from './pockets';
+import { PocketStyle, inseamPocket, markSeam, notchesAlong, slantPocket } from './pockets';
 import { casingPiece } from './finishing';
 import { BELT_LOOPS, PleatedFront, TrouserLoops, TrouserPleats, beltLoopsPiece, pleatedFront } from './trouserPleats';
 
@@ -517,7 +517,7 @@ export function draftTrousers(body: TrousersMeasurements, style: Partial<Trouser
   const closure = elastic ? 'none' : s.closure;
   const fly = closure === 'fly';
   // A side zip opens to just past the hip line, so the trousers pull on over the hips: 18 to 25 cm.
-  const zipCm = elastic ? 0 : fly ? Math.min(FLY_ZIP, cd - 6) : Math.min(25, Math.max(18, Math.ceil(hd + 2)));
+  let zipCm = elastic ? 0 : fly ? Math.min(FLY_ZIP, cd - 6) : Math.min(25, Math.max(18, Math.ceil(hd + 2)));
 
   // Centre waists: the front 1 cm in from the hip line, the back raised and in for the seat. A tummy or
   // a sway back measured (or found on a toile) raises or lowers them.
@@ -601,7 +601,7 @@ export function draftTrousers(body: TrousersMeasurements, style: Partial<Trouser
   const loops = s.loops === 'loops' && !elastic;
   let pieces: Piece[] = [front.piece, back.piece];
   if (fly) pieces.push(...flyPieces(front.piece, zipCm, s.seamAllowance));
-  else if (closure === 'side_zip') markSideZip(front.piece, back.piece, zipCm);
+  else if (closure === 'side_zip') zipCm = markSideZip(front.piece, back.piece, zipCm);
   const pocketed = withPockets(pieces, s.pockets ?? 'none', closure, hemAllowance);
   pieces = pocketed.pieces;
   if (loops) pieces.push(beltLoopsPiece(s.seamAllowance));
@@ -651,7 +651,8 @@ function withPockets(pieces: Piece[], style: PocketStyle, closure: TrousersDraft
   const [front, back, ...rest] = pieces;
   if (style === 'inseam') {
     const right = closure === 'side_zip';
-    const pocket = inseamPocket(front, { hemRoom: hem + 3, cut: right ? 'Cut 2 (1 pair)' : 'Cut 4 (2 pairs)' });
+    const clear = [...notchesAlong(front, 'side'), ...notchesAlong(back, 'side')];
+    const pocket = inseamPocket(front, { hemRoom: hem + 3, cut: right ? 'Cut 2 (1 pair)' : 'Cut 4 (2 pairs)', clear });
     if (!pocket) return { pieces, style: 'none' };
     const mark = (pc: Piece) => markSeam(pc, 'side', pocket.opening, right ? 'RIGHT POCKET' : 'POCKET');
     return { pieces: [mark(front), mark(back), ...rest, pocket.bag], style, sides: right ? 'right' : 'both' };
@@ -680,8 +681,15 @@ function pointAlong(path: Path, tag: string, at: number): { q: P; dir: P } | und
   return undefined;
 }
 
-/** A side zip, in the left side seam: notches where it ends on the front and the back. */
-function markSideZip(front: Piece, back: Piece, zipCm: number) {
+/** A side zip, in the left side seam: notches where it ends on the front and the back. Returns the zip's length. */
+function markSideZip(front: Piece, back: Piece, zipCm: number): number {
+  // Down the curved side seam the hip notches sit lower than the hip depth, so on a full hip the zip's end can land a
+  // centimetre from them and read as a double notch. Then it ends lower, at the first whole centimetre 2 cm clear of
+  // every notch: lower, not higher, since the opening has to reach past the hip to pull on over it.
+  const marks = [...notchesAlong(front, 'side'), ...notchesAlong(back, 'side')];
+  const clearOf = (c: number) => marks.every((x) => Math.abs(x - c) >= 2);
+  const lower = marks.map((x) => Math.ceil(x + 2)).filter((c) => c > zipCm && clearOf(c));
+  if (!clearOf(zipCm) && lower.length) zipCm = Math.min(...lower);
   for (const pc of [front, back]) {
     const at = pointAlong(pc.outline, 'side', zipCm);
     if (!at) continue;
@@ -689,6 +697,7 @@ function markSideZip(front: Piece, back: Piece, zipCm: number) {
     pc.labels.push({ at: add(at.q, p(1.2, 0.3)), text: 'LEFT ZIP ENDS', size: 0.7 });
     pc.meta.sideZip = zipCm;
   }
+  return zipCm;
 }
 
 /**

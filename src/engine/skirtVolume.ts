@@ -667,7 +667,13 @@ function pleatPieces(block: Piece, sp: Spread, L: Layout, e: number, intake: num
   const leftBottom = slice(sp.bottom, 0, ib);
   const rightBottom = slice(sp.bottom, ib, sp.bottom.pts.length - 1);
   const xSplit = cutLine[1].x;
-  const leftOf = (q: P) => q.x < xSplit - 1e-6;
+  // Which piece a mark falls on: left of the panel seam at its own height. The seam slants in above the hip (the waist
+  // is narrower), so a mark at the waist just left of the seam's hip point can be on the side piece.
+  const seamX = (y: number) => {
+    const [a, b] = y <= cutLine[1].y ? [cutLine[0], cutLine[1]] : [cutLine[1], cutLine[2]];
+    return Math.abs(b.y - a.y) < 1e-9 ? b.x : a.x + ((b.x - a.x) * (y - a.y)) / (b.y - a.y);
+  };
+  const leftOf = (q: P) => q.x < seamX(clamp(q.y, cutLine[0].y, cutLine[2].y)) - 1e-6;
   const sideName = `${block.name.replace(/^Skirt /, 'Skirt side ')}`;
   const A = base(block.name, cutLabel, 0, xSplit);
   A.outline = outlineOf(leftTop, cutLine, 'panel', leftBottom, [cFoot, cTop], centreTag);
