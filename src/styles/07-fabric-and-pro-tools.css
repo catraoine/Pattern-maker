@@ -91,7 +91,7 @@
 /* The fabric page: a headline in the narrow heading capitals, a close-up of the cloth and photo swatches. */
 .yourfabric .fabhead {
   font-family: var(--display);
-  font-stretch: 100%;
+  font-stretch: var(--display-width);
   font-weight: 600;
   font-size: 30px;
   line-height: 1;

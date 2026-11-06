@@ -25,6 +25,8 @@
   --sans: 'Space Grotesk', system-ui, sans-serif;
   /* Headings (Cat's N1 Narrow Stack): narrow Archivo capitals, a spaced Chakra label under them. */
   --display: 'Archivo Variable', 'Archivo Narrow', 'Arial Narrow', sans-serif;
+  /* Every heading at one width (Cat's one-width rule, Nov 2): semi-narrow Archivo (Cat's F2, Nov 6; 100% before, 75% before Nov 2). */
+  --display-width: 87%;
   --grid: transparent;
   --w-head: 300;
   --w-strong: 500;
@@ -77,7 +79,7 @@ label {
 h1,
 h2 {
   font-family: var(--display);
-  font-stretch: 100%;
+  font-stretch: var(--display-width);
   text-transform: uppercase;
 }
 

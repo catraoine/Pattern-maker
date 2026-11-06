@@ -63,7 +63,7 @@
 }
 .fold-name {
   font-family: var(--display);
-  font-stretch: 100%;
+  font-stretch: var(--display-width);
   font-weight: 600;
   font-size: 17px;
   letter-spacing: 0.04em;

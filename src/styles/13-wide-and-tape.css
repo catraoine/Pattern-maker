@@ -730,7 +730,9 @@ button.later.garment-change {
     display: grid;
     /* Two columns hugging the form and the words, the pair centred, so the form and the title read as one group and
        the tape tip sits at the form's hip (Cat, 2026-10-21: the form was too far from the title). */
-    grid-template-columns: minmax(0, 52svh) minmax(0, 560px);
+    /* The words' column hugs the title: Begin and the fine print take its width, so the button lines up with the
+       title (Cat, Nov 6). The two take no width of their own (width 0, min-width 100%), so the title alone sets it. */
+    grid-template-columns: minmax(0, 52svh) fit-content(560px);
     justify-content: center;
     grid-template-rows: 1fr auto auto auto 1fr;
     column-gap: clamp(24px, 3vw, 48px);
@@ -749,18 +751,24 @@ button.later.garment-change {
     margin: 0;
   }
   .welcome-card:not(.measure-step) h1 .t-big {
-    font-size: clamp(48px, 5vw, 80px);
+    /* 80px cap before: "overwhelming" on a big screen (Cat, Nov 6). Capped where the title is as wide as its label, so
+       Begin, which takes the column's width, matches the label on every screen. */
+    font-size: clamp(40px, 3.6vw, 52px);
   }
   .welcome-card:not(.measure-step) > .stack {
     grid-column: 2;
     grid-row: 3;
-    max-width: 420px;
+    width: 0;
+    min-width: 100%;
+    max-width: none;
   }
   .welcome-card:not(.measure-step) > .fineprint {
     grid-column: 2;
     grid-row: 4;
     align-self: start;
     text-align: left;
+    width: 0;
+    min-width: 100%;
   }
 }
 
