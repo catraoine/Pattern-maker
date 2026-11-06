@@ -8,6 +8,7 @@ import { SLEEVE_CUTS, SleeveCut, sleeveCutBlocked, sleeveCutOf } from './engine/
 import type { DartPlace, PrincessLine } from './engine/manipulate';
 import type { Closure, Collar } from './engine/collar';
 import { LEG_WORDS, Leg, TrouserClosure, TrouserLength } from './engine/trousers';
+import type { TrouserLoops, TrouserPleats } from './engine/trouserPleats';
 import type { Fit, WaistStyle } from './engine/skirt';
 import type { WaistSeam } from './engine/dress';
 import type { PocketStyle } from './engine/pockets';
@@ -137,11 +138,14 @@ export interface TrousersChoices {
   legCm?: { knee: number; hem: number };
   lengthCm?: number;
   riseCm?: number;
+  /** Front pleats and belt loops (In testing, SS27 Bermuda 2026-11-05). Older saves have neither. */
+  pleats?: TrouserPleats;
+  loops?: TrouserLoops;
 }
 
-export const DEFAULT_TROUSERS_CHOICES: TrousersChoices = { garment: 'trousers', fit: 'regular', leg: 'straight', length: 'full', closure: 'fly' };
+export const DEFAULT_TROUSERS_CHOICES: TrousersChoices = { garment: 'trousers', fit: 'regular', leg: 'straight', length: 'full', closure: 'fly', pleats: 'none', loops: 'none' };
 
-type TrouserGroupId = 'fit' | 'leg' | 'length' | 'waist' | 'closure' | 'pockets';
+type TrouserGroupId = 'fit' | 'leg' | 'length' | 'waist' | 'closure' | 'pockets' | 'pleats' | 'loops';
 
 export const TROUSER_GROUPS: { id: TrouserGroupId; label: string; options: [string, string][] }[] = [
   { id: 'fit', label: 'Fit', options: [['fitted', 'Fitted'], ['regular', 'Regular'], ['relaxed', 'Relaxed']] },
@@ -150,24 +154,31 @@ export const TROUSER_GROUPS: { id: TrouserGroupId; label: string; options: [stri
   { id: 'waist', label: 'Waist', options: [['band', 'Waistband with zip'], ['elastic', 'Elastic, pull-on']] },
   { id: 'closure', label: 'Opening', options: [['fly', 'Fly zip'], ['side_zip', 'Side zip']] },
   { id: 'pockets', label: 'Pockets', options: [['none', 'None'], ['inseam', 'In-seam'], ['slant', 'Slant front']] },
+  { id: 'pleats', label: 'Front pleats', options: [['none', 'None'], ['single', 'One pleat'], ['double', 'Two pleats']] },
+  { id: 'loops', label: 'Belt loops', options: [['none', 'None'], ['loops', 'Belt loops']] },
 ];
 
-/** A trouser choice as saved, older saves falling back to no pockets and a zipped waistband. */
-export const trouserChoice = (c: TrousersChoices, id: TrouserGroupId): string => (id === 'pockets' ? (c.pockets ?? 'none') : id === 'waist' ? (c.waist ?? 'band') : c[id]);
+/** A trouser choice as saved, older saves falling back to no pockets, no pleats, no loops and a zipped waistband. */
+export const trouserChoice = (c: TrousersChoices, id: TrouserGroupId): string =>
+  id === 'pockets' ? (c.pockets ?? 'none') : id === 'waist' ? (c.waist ?? 'band') : id === 'pleats' ? (c.pleats ?? 'none') : id === 'loops' ? (c.loops ?? 'none') : c[id];
 
 /**
  * Whether a trouser choice can be picked with the rest, and why not: a pull-on waist has no opening
- * to choose, and slant pockets sit where a side zip would go.
+ * to choose, slant pockets sit where a side zip would go, and a pull-on waist is gathered, so it takes
+ * neither pleats nor belt loops.
  */
 export function trouserAllowed(c: TrousersChoices, id: TrouserGroupId, opt: string): boolean {
   if (id === 'closure') return c.waist !== 'elastic';
   if (id === 'pockets' && opt === 'slant') return c.waist === 'elastic' || c.closure === 'fly';
+  if ((id === 'pleats' || id === 'loops') && opt !== 'none') return c.waist !== 'elastic';
   return true;
 }
 
-/** The choices made valid: slant pockets beside a side zip fall back to in-seam ones. */
+/** The choices made valid: slant pockets beside a side zip fall back to in-seam ones; a pull-on waist drops its pleats and loops. */
 export function validTrousers(c: TrousersChoices): TrousersChoices {
-  return c.pockets === 'slant' && !trouserAllowed(c, 'pockets', 'slant') ? { ...c, pockets: 'inseam' } : c;
+  let v = c.pockets === 'slant' && !trouserAllowed(c, 'pockets', 'slant') ? { ...c, pockets: 'inseam' as const } : c;
+  if (v.waist === 'elastic' && ((v.pleats && v.pleats !== 'none') || (v.loops && v.loops !== 'none'))) v = { ...v, pleats: 'none', loops: 'none' };
+  return v;
 }
 
 /** A plain name, such as "Ankle-length wide-leg trousers with a side zip and in-seam pockets". */
@@ -178,7 +189,10 @@ export function describeTrousers(c: TrousersChoices) {
   const length = (drawn ?? (c.leg === 'culotte' || shorts ? '' : { full: '', ankle: 'Ankle-length ', cropped: 'Cropped ', capri: 'Capri ', knee: 'Knee-length ', shorts: '' }[c.length])) + rise;
   const pockets = c.pockets === 'slant' ? 'slant pockets' : c.pockets === 'inseam' ? 'in-seam pockets' : '';
   const opening = c.waist === 'elastic' ? 'an elastic waist' : `a ${c.closure === 'fly' ? 'fly front' : 'side zip'}`;
-  const words = `${length}${shorts ? `${c.leg === 'straight' ? '' : `${c.leg} `}shorts` : LEG_WORDS[c.leg]} with ${opening}${pockets ? ` and ${pockets}` : ''}`;
+  const pleats = c.waist !== 'elastic' && c.pleats && c.pleats !== 'none' ? (c.pleats === 'double' ? 'two front pleats' : 'a front pleat') : '';
+  const loops = c.waist !== 'elastic' && c.loops === 'loops' ? 'belt loops' : '';
+  const extras = [pleats, loops, pockets].filter(Boolean);
+  const words = `${length}${shorts ? `${c.leg === 'straight' ? '' : `${c.leg} `}shorts` : LEG_WORDS[c.leg]} with ${opening}${extras.length ? `${extras.length > 1 ? ', ' : ' and '}${extras.slice(0, -1).join(', ')}${extras.length > 1 ? ' and ' : ''}${extras[extras.length - 1]}` : ''}`;
   return words[0].toUpperCase() + words.slice(1);
 }
 
@@ -190,6 +204,8 @@ export interface TeeChoices {
   neckline: TeeNeck;
   sleeve: TeeSleeve;
   length: TeeLength;
+  /** Dragged on the form between the named lengths: the centre back length in cm (see tee.ts). Older saves have none. */
+  lengthCm?: number;
   /** Drawn on the form: a shirttail or high-low hem (see tee.ts). Older saves have a level hem. */
   hemShape?: { sides?: number; back?: number };
 }
@@ -211,7 +227,7 @@ const TEE_LENGTH_WORDS: Record<TeeLength, string> = { cropped: 'Cropped ', hip: 
 /** A plain name, such as "Fitted scoop-neck T-shirt with long sleeves". */
 export function describeTee(c: TeeChoices) {
   const fit = c.fit === 'regular' ? '' : `${c.fit} `;
-  const words = `${TEE_LENGTH_WORDS[c.length]}${fit}${TEE_NECK_WORDS[c.neckline]} T-shirt with ${TEE_SLEEVE_WORDS[c.sleeve]}`;
+  const words = `${c.lengthCm !== undefined ? `${Math.round(c.lengthCm)} cm ` : TEE_LENGTH_WORDS[c.length]}${fit}${TEE_NECK_WORDS[c.neckline]} T-shirt with ${TEE_SLEEVE_WORDS[c.sleeve]}`;
   return words[0].toUpperCase() + words.slice(1);
 }
 

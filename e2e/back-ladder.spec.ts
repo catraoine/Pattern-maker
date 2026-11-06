@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { expect, expectStyle, fillStepPages, goPrint, headerBack, measureMe, openFresh, openLooks, pickToMake, skipLoading, startWithExample, stepButton, test } from './fixtures';
+import { expect, expectStyle, fillStepPages, goPrint, headerBack, measureMe, openFresh, openLooks, pickToMake, seeChoices, skipLoading, startWithExample, stepButton, test } from './fixtures';
 
 // Back climbs a fixed ladder (Cat's B Fixed Ladder, 2026-10-24): Print, Style, Measurements, Welcome, however
 // the sewist got there, so it never walks back through measuring or ping-pongs between two screens.
@@ -21,6 +21,7 @@ test('after measuring, back from Style goes to the measurements list, not throug
   await expectStyle(page, 'Dress');
 
   // On to a later step, then Print: back comes to Style on the step that was open.
+  await seeChoices(page);
   await main(page).getByRole('button', { name: /^Next: / }).click();
   const step = await main(page).locator('.chapter-name').textContent();
   await goPrint(page);

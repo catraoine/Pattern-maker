@@ -4,6 +4,14 @@ _Update this page whenever a release ships or a PR is queued._
 
 ## Live
 
+**Release 69** (Nov 6, 2026, Cat's Nov 6 "ship"; #301, #306, #308 merged together): All round trousers hang flatter
+(no seat bump, the front falls from the band, legs plumb), with Front pleats and Belt loops as new trouser options
+(In testing) and Look 04 as the Gold Python Bermuda (#301). The How it works button blinks three times, then rests
+(#306). Style on a phone is tidier: Draw clear of the form, a down arrow to the choices, a plain Next, a bar that
+stays put, picks in the step list (P3), hems that glide and catch on each named length (#308). The Watch demo clips
+and How it works film show the old Style screen and need a scripted re-cut. Held back: #309 ruffle top options (fit
+check red; Cat said include once green), #307 automated-check fixes, #310 view-line glider.
+
 **Release 68** (Nov 6, 2026, #304, Cat's Nov 6 "ship"): Help & feedback, the first small link at the foot of
 Your account (Cat's H3): five short answers to what testers trip on, then Send us a note (one box, optional
 screenshot; screen, app version and browser added). Notes land beside the crash reports in the report read-out.
@@ -77,7 +85,7 @@ Live site: https://maisontrace.co (the cloud proxy blocks it; check
 https://whimsical-mooncake-2cf9a9.netlify.app, the same site). Strangers see the waitlist; testers
 get in with their tester link.
 
-## Queued for "ship" (as of Nov 6, after Release 68)
+## Queued for "ship" (as of Nov 6, after Release 69)
 
 - #307 (Quality: the faults the automated checks found, fixed, Nov 6): balloon skirt notch, high-waist facings,
   sweetheart cut line, hood notches, back lining notches; words cut at page joins; Check a file dart-leg notches;

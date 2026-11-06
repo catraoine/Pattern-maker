@@ -13,6 +13,7 @@ import type { BodiceEdges } from './instructions';
 import { BAND_CM, SleeveDraft } from './sleeve';
 import type { DressDraft } from './dress';
 import type { TrousersDraft } from './trousers';
+import { LOOP_PLACES, loopShape } from './trouserPleats';
 import { TeeDraft } from './tee';
 import { INSEAM, SLANT } from './pockets';
 import type { OuterDraft } from './outerwear';
@@ -1391,6 +1392,20 @@ export function trousersView(d: TrousersDraft, m: { waist_to_hip: number; crotch
     ];
     const darts = back ? [0.36, 0.66].slice(0, d.dartsPerSide.back) : [0.5].slice(0, d.dartsPerSide.front);
     for (const f of darts) lines.push(...both([p(W * f, 0), p(W * f + 0.2, back ? 12 : 8)]).map((pts) => ({ pts, kind: 'dart' as const })));
+    // Front pleats, pressed toward the centre (x = 0 here): the first folds on the crease, a second lies toward the
+    // side as the pattern cuts it; each fold runs from the waist into the crease, its placement line on the centre
+    // side closing on the fold where the pleat is stitched down.
+    if (!back && d.pleats) {
+      const first = d.pleats.lines[0].fold;
+      for (const pl of d.pleats.lines) {
+        const x = W * 0.5 + (first - pl.fold);
+        const w = pl.place - pl.fold;
+        lines.push(...both([p(x, 0), p(xc, hd + 2)]).map((pts) => ({ pts, kind: 'seam' as const })));
+        lines.push(...both([p(x - w, 0), p(x - w * 0.5, 4), p(xc - 0.3, hd + 2)]).map((pts) => ({ pts, kind: 'stitch' as const })));
+      }
+    }
+    // Belt loops: halfway across each front and at each side, and at the centre back.
+    if (d.loops) for (const f of back ? LOOP_PLACES.back : LOOP_PLACES.front) for (const s of f === 0 ? [1] : [1, -1]) shapes.push(loopShape(W * f * s, top));
     if (d.elastic) for (const s of [1, -1]) lines.push(...gathers(p(0, top), p(W * s, 0), WAISTBAND_CM));
     // Pockets, on the front: the slant opening and its topstitching, or an in-seam bag behind the side seam.
     const sideAt = (y: number) => (y >= hd ? hw : W + (hw - W) * Math.sin((Math.min(y, hd) / hd) * (Math.PI / 2)));

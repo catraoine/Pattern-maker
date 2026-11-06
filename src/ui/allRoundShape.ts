@@ -170,7 +170,9 @@ export function roundShape(round: RoundGarment, m: RoundMeasurements, { film, th
   // Cloth that hangs falls in soft folds, not as a smooth vase (Cat, 2026-10-28, "in another league"): a few gentle
   // ones down any hanging cloth from where it leaves the body, and deeper ones where a flare adds cloth.
   const foldAmp = (y: number) => {
-    const soft = isTop ? 0.028 * smooth(clamp((y - BUST_Y) / 0.6, 0, 1)) : trousers ? 0.012 * smooth(clamp((y - WAIST) / 0.5, 0, 1)) : 0.034 * smooth(clamp((y - WAIST) / 0.5, 0, 1));
+    // Trousers hang smooth: their legs are drawn without folds, so folds down the body stopped at the crotch as a row
+    // of bumps over the legs (Cat, 2026-11-06: "two banded bumps").
+    const soft = isTop ? 0.028 * smooth(clamp((y - BUST_Y) / 0.6, 0, 1)) : trousers ? 0 : 0.034 * smooth(clamp((y - WAIST) / 0.5, 0, 1));
     const flared = flares ? (0.018 + 0.06 * clamp(round.flare - 1, 0, 1)) * smooth(clamp((y - FORM_HIP) / Math.max(0.05, meanY - FORM_HIP), 0, 1)) : 0;
     return Math.max(soft, flared);
   };
@@ -212,7 +214,6 @@ export function roundShape(round: RoundGarment, m: RoundMeasurements, { film, th
   // past the body in one step at the hip, a shelf right round the garment (Cat, 2026-10-28).
   const hangTop = hangShare > 0 ? BUST_Y : WAIST;
   const hangRows = Math.max(2, Math.ceil((Math.max(yOf(longest), FORM_HIP) + 0.1 - hangTop) / HANG_DY) + 1);
-  const hang = new Float64Array(HANG_N * hangRows);
   // A boxy dress hangs from the bust as a tube: below it the cloth keeps the bust's own cross-section, its sides
   // following the pattern's girth (the bust's, then the waist's and the hip's), not the body's waist plus the ease
   // spread evenly round it, which stood out in front and behind as a belly (Cat, 2026-10-30: "makes the person look
@@ -223,21 +224,27 @@ export function roundShape(round: RoundGarment, m: RoundMeasurements, { film, th
     return y <= BUST_Y ? bust : y <= WAIST ? bust + (waist - bust) * ((y - BUST_Y) / (WAIST - BUST_Y)) : y <= FORM_HIP ? waist + (hip - waist) * ((y - WAIST) / (FORM_HIP - WAIST)) : hip;
   };
   const under = (a: number, y: number) => (tube ? bodyReach(formHalfWidth(Math.min(y, 1.3)), a, y) + 0.012 : onBody(a, y));
-  for (let i = 0; i < HANG_N; i++) {
-    const a = -Math.PI + (TAU * i) / HANG_N;
-    const sa = Math.sin(a) ** 2;
-    let prev = onBody(a, hangTop);
-    hang[i * hangRows] = prev;
-    for (let j = 1; j < hangRows; j++) {
-      const y = hangTop + j * HANG_DY;
-      const rho = tube ? girthAt(y) / girthAt(y - HANG_DY) : radius(y) / (radius(y - HANG_DY) || 1e-6);
-      const sides = Math.sqrt(sa * rho * rho + (1 - sa));
-      const fell = prev * (y > FORM_HIP ? sides + (rho - sides) * allRound : sides);
-      prev = Math.max(y > hangTop + HANG_DY / 2 ? under(a, y) : onBody(a, y), fell);
-      hang[i * hangRows + j] = prev;
+  /** The cloth down each line round the body, falling from `top` at the top row over `under` below it. */
+  const fallFrom = (under: (a: number, y: number) => number, top: (a: number, y: number) => number) => {
+    const table = new Float64Array(HANG_N * hangRows);
+    for (let i = 0; i < HANG_N; i++) {
+      const a = -Math.PI + (TAU * i) / HANG_N;
+      const sa = Math.sin(a) ** 2;
+      let prev = top(a, hangTop);
+      table[i * hangRows] = prev;
+      for (let j = 1; j < hangRows; j++) {
+        const y = hangTop + j * HANG_DY;
+        const rho = tube ? girthAt(y) / girthAt(y - HANG_DY) : radius(y) / (radius(y - HANG_DY) || 1e-6);
+        const sides = Math.sqrt(sa * rho * rho + (1 - sa));
+        const fell = prev * (y > FORM_HIP ? sides + (rho - sides) * allRound : sides);
+        prev = Math.max(y > hangTop + HANG_DY / 2 ? under(a, y) : top(a, y), fell);
+        table[i * hangRows + j] = prev;
+      }
     }
-  }
-  const hung = (a: number, y: number) => {
+    return table;
+  };
+  const hang = fallFrom(under, onBody);
+  const hungOf = (table: Float64Array) => (a: number, y: number) => {
     const f = ((((a + Math.PI) / TAU) % 1) + 1) % 1 * HANG_N;
     const i0 = Math.floor(f) % HANG_N;
     const i1 = (i0 + 1) % HANG_N;
@@ -246,9 +253,10 @@ export function roundShape(round: RoundGarment, m: RoundMeasurements, { film, th
     if (g <= 0) return onBody(a, y);
     const j0 = Math.min(hangRows - 2, Math.floor(g));
     const v = Math.min(1, g - j0);
-    const at = (i: number) => hang[i * hangRows + j0] * (1 - v) + hang[i * hangRows + j0 + 1] * v;
+    const at = (i: number) => table[i * hangRows + j0] * (1 - v) + table[i * hangRows + j0 + 1] * v;
     return at(i0) * (1 - u) + at(i1) * u;
   };
+  const hung = hungOf(hang);
   const shell = (a: number, y: number) => {
     // Cloth shaped to the body hangs from wherever the body is fullest below the waist (the belly in front, the seat
     // behind), straight on down: hung from the waist it lies on the body until then, so there is no step. Cloth
@@ -340,32 +348,60 @@ export function roundShape(round: RoundGarment, m: RoundMeasurements, { film, th
     y <= yK ? thighTop + (kneeR - thighTop) * clamp((y - yC) / (yK - yC || 1), 0, 1) : kneeR + (legHemR - kneeR) * clamp((y - yK) / (yH - yK || 1), 0, 1);
   const legAxis = (y: number) => (lg ? Math.max(FORM_LEG_X, legR(y) * 0.97) : FORM_LEG_X);
 
-  // Trousers below the waist are oval, as hips are (about three quarters as deep as they are wide), not round, so the seat
-  // runs gently into the thighs instead of standing out over them (Cat, 2026-10-26: "trousers look weird").
-  const ovalK = (y: number) => 1 - 0.28 * smooth(clamp((y - WAIST) / (FORM_HIP - WAIST), 0, 1));
-  // Front to back the cloth hangs from the fullest point above it (the belly, the seat), as it does at the sides,
-  // rather than coming in with the oval below the belly and out again at the hip in a ledge (Cat, 2026-10-28).
-  const SEAT_N = 48;
-  const seatDepth = new Float64Array(SEAT_N + 1);
-  for (let i = 0, top = 0; i <= SEAT_N; i++) {
-    const y = WAIST + ((1.3 - WAIST) * i) / SEAT_N;
-    top = Math.max(top, radius(y) * ovalK(y));
-    seatDepth[i] = top;
-  }
-  const depthOf = (y: number) => {
-    const f = clamp(((y - WAIST) / (1.3 - WAIST)) * SEAT_N, 0, SEAT_N);
-    const i = Math.min(SEAT_N - 1, Math.floor(f));
-    return seatDepth[i] + (seatDepth[i + 1] - seatDepth[i]) * (f - i);
+  // Trousers from the waist to the crotch are the body's own cross-section with the ease over it, hung as a skirt
+  // is: lying on the body from the band down, then falling straight from wherever it is fullest, the belly in
+  // front and the seat behind (shell). They used to be an oval of their own, as round as the pattern is wide at the
+  // waist and three quarters as deep by the hip, which bellied out right under the band in front and behind where
+  // the body is far flatter than it is wide, and so stood as a bulb over the legs once they hung plumb (Cat,
+  // 2026-11-06: "more of a bump now").
+  // Woven cloth takes no hollow down its length: from the band it runs straight to wherever the body stands out below,
+  // the seat behind and the belly in front, where a line down the body itself dips in at the small of the back
+  // first and then bows out over the seat as a bump (Cat, 2026-11-06: "still looks a bit too bumpy"). Down each
+  // line round the body, the hung cloth from the waist to the crotch is bridged by its own hull: the lowest
+  // line over it that never dips.
+  // On loose trousers the room does not stand out evenly all round (spread so, the front swelled as a belly and the
+  // back stood out behind the seat, Cat 2026-11-06: "flatter"): the pleats carry the fullness in front, so the front
+  // falls straight down from under the band, and the back falls from the seat with a little room behind it; the
+  // sides take the rest, at the pattern's own width.
+  const underTrousers = (a: number, y: number) => {
+    const body = formHalfWidth(Math.min(y, 1.3));
+    const ease = radius(y) - body;
+    const whisper = 0.012 + 0.25 * Math.max(0, ease - 0.012);
+    return bodyReach(body, a, y) + whisper + (ease - whisper) * Math.sin(a) ** 2;
   };
+  const hungTrousers = lg ? hungOf(fallFrom(underTrousers, underTrousers)) : hung;
+  const seatRows = lg ? Math.min(hangRows, Math.ceil((yC + 0.05 - WAIST) / HANG_DY) + 1) : 0;
+  const bridged = new Float64Array(HANG_N * seatRows);
+  for (let i = 0; i < HANG_N; i++) {
+    const a = -Math.PI + (TAU * i) / HANG_N;
+    const hull: [number, number][] = [];
+    for (let j = 0; j < seatRows; j++) {
+      const q: [number, number] = [WAIST + j * HANG_DY, hungTrousers(a, WAIST + j * HANG_DY)];
+      while (hull.length >= 2) {
+        const [p1, p2] = [hull[hull.length - 2], hull[hull.length - 1]];
+        if ((p2[0] - p1[0]) * (q[1] - p1[1]) - (p2[1] - p1[1]) * (q[0] - p1[0]) < 0) break;
+        hull.pop();
+      }
+      hull.push(q);
+    }
+    for (let j = 0, h = 0; j < seatRows; j++) {
+      const y = WAIST + j * HANG_DY;
+      while (h < hull.length - 2 && hull[h + 1][0] <= y) h++;
+      const [p1, p2] = [hull[h], hull[Math.min(h + 1, hull.length - 1)]];
+      bridged[i * seatRows + j] = p2[0] > p1[0] ? p1[1] + ((p2[1] - p1[1]) * (y - p1[0])) / (p2[0] - p1[0]) : p1[1];
+    }
+  }
   const rAt = (a: number, y: number) => {
     if (!lg || y <= WAIST) return shell(a, y);
-    const W = radius(y);
-    const r = 1 / Math.hypot(Math.sin(a) / W, Math.cos(a) / depthOf(y));
-    // The seat keeps its own depth down to the crotch: the front of the trousers hangs from the belly and the back
-    // from the seat, and each leg goes round over the thigh below (allRoundMesh.ts grows the leg out of this ring).
-    // Closed in round the thighs above the crotch, the seat bulged out over thin legs seen from the side (Cat,
-    // 2026-10-28).
-    return r;
+    const f = ((((a + Math.PI) / TAU) % 1) + 1) % 1 * HANG_N;
+    const i0 = Math.floor(f) % HANG_N;
+    const i1 = (i0 + 1) % HANG_N;
+    const u = f - Math.floor(f);
+    const g = Math.min(seatRows - 1.001, (y - WAIST) / HANG_DY);
+    const j0 = Math.floor(g);
+    const v = g - j0;
+    const at = (i: number) => bridged[i * seatRows + j0] * (1 - v) + bridged[i * seatRows + j0 + 1] * v;
+    return (at(i0) * (1 - u) + at(i1) * u) * fold(a, y);
   };
 
   const reach = Math.max(hemR, sl ? axisX(yE) + rh : 0, lg ? FORM_LEG_X + Math.max(thighTop, kneeR, legHemR) : 0, formHalfWidth(-0.55) + eB);

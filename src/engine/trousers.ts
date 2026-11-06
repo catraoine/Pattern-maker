@@ -9,6 +9,7 @@ import type { Piece } from './piece';
 import { DraftError, Elastic, Fit, PULL_ON_EASE, SkirtFitting, WaistStyle, Waistband, WAISTBAND_CM, cm, elasticFor } from './skirt';
 import { PocketStyle, inseamPocket, markSeam, slantPocket } from './pockets';
 import { casingPiece } from './finishing';
+import { BELT_LOOPS, PleatedFront, TrouserLoops, TrouserPleats, beltLoopsPiece, pleatedFront } from './trouserPleats';
 
 export interface TrousersMeasurements {
   waist: number;
@@ -55,6 +56,10 @@ interface TrousersStyle {
   /** Drawn on the form: where the waistband sits, in cm above (positive) or below (negative) your waist
    * (see RISE_RANGE). The trousers are drafted from that line as if it were the waist. */
   riseCm?: number;
+  /** One or two pleats on each front, pressed toward the centre (see trouserPleats.ts). Not on a pull-on waist. */
+  pleats?: TrouserPleats;
+  /** Belt loops on the waistband. Not on a pull-on waist. */
+  loops?: TrouserLoops;
 }
 
 export const DEFAULT_TROUSERS: TrousersStyle = { fit: 'regular', leg: 'straight', length: 'full', closure: 'fly', seamAllowance: 1.5, hemAllowance: 4 };
@@ -160,6 +165,10 @@ export interface TrousersDraft {
   /** The pockets as drafted: a side zip leaves room for an in-seam pocket on the right only. */
   pockets: PocketStyle;
   pocketSides?: 'both' | 'right';
+  /** The front pleats as cut, if any: the dart goes into the first. */
+  pleats?: PleatedFront['pleats'];
+  /** How many belt loops the waistband carries, if any. */
+  loops?: number;
   /** The front and back before a slant pocket is cut from the front, for reading the ease. */
   block: Piece[];
 }
@@ -584,12 +593,18 @@ export function draftTrousers(body: TrousersMeasurements, style: Partial<Trouser
   const crotch = front.crotch + back.crotch;
 
   front.piece.meta.crotchTarget = target;
+  // Front pleats: the front is slashed and spread for them, its dart going into the first (see trouserPleats.ts).
+  const pleated = s.pleats && s.pleats !== 'none' && !elastic ? pleatedFront(front.piece, s.pleats, hd) : undefined;
+  if (pleated) front.piece = pleated.piece;
   const block = [front.piece, back.piece];
+  const pleatCm = pleated ? 2 * pleated.pleats.openCm.reduce((t, v) => t + v, 0) : 0;
+  const loops = s.loops === 'loops' && !elastic;
   let pieces: Piece[] = [front.piece, back.piece];
   if (fly) pieces.push(...flyPieces(front.piece, zipCm, s.seamAllowance));
   else if (closure === 'side_zip') markSideZip(front.piece, back.piece, zipCm);
   const pocketed = withPockets(pieces, s.pockets ?? 'none', closure, hemAllowance);
   pieces = pocketed.pieces;
+  if (loops) pieces.push(beltLoopsPiece(s.seamAllowance));
 
   const r = (v: number) => Math.round(v * 10) / 10;
   const finishedWaist = 2 * (taggedLength(front.piece.outline, 'waist') + taggedLength(back.piece.outline, 'waist'));
@@ -603,7 +618,8 @@ export function draftTrousers(body: TrousersMeasurements, style: Partial<Trouser
     ...(rise ? { riseCm: rise } : {}),
     ...(short ? { shorts: true } : {}),
     finishedWaist: r(W),
-    finishedHip: r(H),
+    // Pleats open the fronts below the waist too: the hip gains their cloth as fullness.
+    finishedHip: r(H + pleatCm),
     hemCm: r(taggedLength(front.piece.outline, 'hem') + taggedLength(back.piece.outline, 'hem')),
     // Shorts have no knee: the leg ends above it, so the knee is the hem.
     kneeCm: short ? r(taggedLength(front.piece.outline, 'hem') + taggedLength(back.piece.outline, 'hem')) : r(2 * (len(sub(front.piece.balance![2].pts[1], front.piece.balance![2].pts[0])) + len(sub(back.piece.balance![2].pts[1], back.piece.balance![2].pts[0]))) / 2),
@@ -620,6 +636,8 @@ export function draftTrousers(body: TrousersMeasurements, style: Partial<Trouser
     ...(elastic ? { elastic: elasticFor(m.waist, r(finishedWaist)) } : {}),
     pockets: pocketed.style,
     ...(pocketed.sides ? { pocketSides: pocketed.sides } : {}),
+    ...(pleated ? { pleats: pleated.pleats } : {}),
+    ...(loops ? { loops: BELT_LOOPS } : {}),
     block,
   };
 }

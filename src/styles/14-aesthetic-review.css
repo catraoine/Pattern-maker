@@ -100,10 +100,10 @@
     scroll-margin-top: calc(var(--pin-top, 0px) + var(--pin-h, 0px) + 20px);
     scroll-margin-bottom: 96px;
   }
-  /* Room under a short tab, so its last row can still scroll up from under the drawing and out from under the bar. */
+  /* The page ends where the step does: its last row sits just above the bar, with no empty run under it
+     (Cat, 2026-11-06; it used to leave a screen's worth of room under a short step). */
   .style-panel {
-    padding-bottom: max(24px, calc(100vh - var(--pin-top, 0px) - var(--pin-h, 0px) - 140px));
-    padding-bottom: max(24px, calc(100dvh - var(--pin-top, 0px) - var(--pin-h, 0px) - 140px));
+    padding-bottom: 24px;
   }
 }
 .style-pin .seg.views,

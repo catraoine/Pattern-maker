@@ -13,7 +13,7 @@ import { bodyOutline } from './bodyOutline';
 import { CM_PER_UNIT, HEAD_CHIN, HEAD_TOP, headLines } from './ContourForm';
 import { FormArm, FormBody, armAt } from './DrawOnForm';
 import type { FormLine } from './formLines';
-import { HemChoice, HemMarks, MARGIN } from './HemMarks';
+import { HemChoice, HemMarks } from './HemMarks';
 import { useEnlarged } from './EnlargeSketch';
 import { useLengthStep, useNarrow } from './StyleLayout';
 import { ClothDefs, ClothOverlay, SHEER_OPACITY, borderHems, useFabricLook } from './ClothLook';
@@ -754,7 +754,7 @@ export function FormSketch({ body, m, legs, bottom, arms, lines, outline = [], c
   const frame = useMemo(() => formFrame(m, body, bottom, arms, worn), [m, body, bottom, arms, worn]);
   const cx = frame.half;
   // The dot sits on the hem as drawn at the centre, where the cloth has one there near the length picked.
-  const picked = hem?.marks.find((k) => k.id === hem.value)?.y;
+  const picked = hem?.free?.cm !== undefined ? hem.free.zero + hem.free.cm : hem?.marks.find((k) => k.id === hem.value)?.y;
   const centre = (worn ?? []).flat().filter((q) => Math.abs(q.x) < 2);
   const low = centre.length ? Math.max(...centre.map((q) => q.y)) : undefined;
   const hemAt = picked !== undefined && low !== undefined && Math.abs(low - picked) < 6 ? low : undefined;
@@ -764,8 +764,8 @@ export function FormSketch({ body, m, legs, bottom, arms, lines, outline = [], c
   const lowest = Math.max(...(worn ?? []).flat().map((q) => q.y), body.top + 20);
   const highest = Math.min(...(worn ?? []).flat().map((q) => q.y), body.top + 20);
   // The figure fills the frame (Cat's D5, 2026-10-26): the drawing stops a little below the hem, where the legs fade
-  // out, as in the draw tool. The named lengths show only on the length step, and there the frame reaches down to
-  // the lowest of them so every one stays in reach.
+  // out, as in the draw tool. On the length step the frame reaches down to the lowest named length so the dot can be
+  // dragged to every one.
   const ladder = useLengthStep() && !big && !!hem;
   const reach = ladder ? Math.max(...hem!.marks.map((q) => q.y)) + 6 : 0;
   const cropped = worn?.length ? Math.min(frame.bottom, Math.max(lowest + BELOW_HEM, reach)) : frame.bottom;
@@ -775,9 +775,9 @@ export function FormSketch({ body, m, legs, bottom, arms, lines, outline = [], c
   const top = narrow && worn?.length ? Math.max(frame.top, Math.min(...worn.flat().map((q) => q.y)) - 13) : frame.top;
   const view = big ? { top: Math.max(body.top + 2, highest - 10), bottom: Math.min(frame.bottom + 6, lowest + 12) } : { top, bottom: cropped };
   const k = (view.bottom - view.top) / 110;
-  // Room for the length marks on the left, and as much on the right to keep the form centred. Without them the dot
-  // still drags, and names the length it's on under itself.
-  const side = hem ? (ladder ? MARGIN : 3) * k : 0;
+  // A little room either side for the dot's handle. Only the dot shows the length, so the form keeps its width on
+  // every step (Cat, 2026-11-06: the named lengths beside it were too much clutter).
+  const side = hem ? 3 * k : 0;
   return (
     // With a hem dot it is a group, not an image: an image hides the dot inside it from screen readers.
     <svg ref={svg} viewBox={`${f(-side)} ${f(view.top)} ${f(2 * cx + 2 * side)} ${f(view.bottom - view.top)}`} role={hem ? 'group' : 'img'} aria-label={label} className="preview-svg sketch shape form-still">
