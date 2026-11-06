@@ -134,7 +134,7 @@ button.later.edit-measure {
   line-height: 0.98;
   text-transform: uppercase;
   font-family: var(--display);
-  font-stretch: 100%;
+  font-stretch: var(--display-width);
   font-weight: 600;
 }
 .style-review .envelope {

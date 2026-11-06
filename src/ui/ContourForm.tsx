@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { FormKind, MeasurementId } from '../measurements';
+import { GILD, GROUND, GROUND_RGB, INK } from './palette';
 import { LEG, LEG_FLOOR, LEG_KNEE, LEG_X } from '../engine/form';
 import { lightOf } from './allRoundCloth';
 
@@ -10,14 +11,13 @@ import { lightOf } from './allRoundCloth';
 // figure and play an ivory tape once to where each measurement goes.
 
 // Champagne lines (Cat's G4 pick), matching --gild and --gild-glow in styles.css.
-const CHAMPAGNE = '#d9c49b';
+const CHAMPAGNE = GILD;
 // The tape: an ivory band with tick marks, like a real tape measure.
 /** The tape's own colours, as the first page's strip draws it (--tape and --tape-ink in styles.css), so the tape
  *  round the body is the same tape that was pulled across the top (Cat, 2026-10-24). */
 const TAPE = '#e3d3ad';
 const TAPE_INK = '#2b2418';
 /** The app's text colour, for names drawn on a canvas. */
-const INK = '#efe4cc';
 const TAPE_HOOK = '#b8a274';
 /** The tape's marks and numbers are laid out on an 18px strip and scale with the tape's width (TAPE_PX). */
 const STRIP_PX = 18;
@@ -149,7 +149,7 @@ function paintHead(g: CanvasRenderingContext2D, S: number, cx: number, Y: (y: nu
   // Black inside the head, so the top of the neck disappears into the jaw.
   const outline: Pt[] = [...HEAD_TS.map((t): Pt => [cx + headHalf(t) * S, Y(headY(t))]), ...[...HEAD_TS].reverse().map((t): Pt => [cx - headHalf(t) * S, Y(headY(t))])];
   g.globalAlpha = alpha;
-  g.fillStyle = '#000';
+  g.fillStyle = GROUND;
   g.beginPath();
   outline.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
   g.closePath();
@@ -177,8 +177,8 @@ function paintLegs(g: CanvasRenderingContext2D, S: number, cx: number, Y: (y: nu
   if (k <= 0) return;
   const f0 = Y(0.95), f1 = Y(1.3) + S * 0.14;
   const fade = g.createLinearGradient(0, f0, 0, f1);
-  fade.addColorStop(0, 'rgba(0,0,0,0)');
-  fade.addColorStop(1, '#000');
+  fade.addColorStop(0, `rgba(${GROUND_RGB},0)`);
+  fade.addColorStop(1, GROUND);
   g.globalAlpha = k;
   g.fillStyle = fade;
   g.fillRect(cx - S * 0.8, f0, S * 1.6, f1 - f0 + 2);
@@ -265,8 +265,8 @@ export const FADE_FROM = 0.78;
 
 function fadeBottom(g: CanvasRenderingContext2D, w: number, h: number) {
   const fade = g.createLinearGradient(0, h * FADE_FROM, 0, h);
-  fade.addColorStop(0, 'rgba(0,0,0,0)');
-  fade.addColorStop(1, 'rgba(0,0,0,1)');
+  fade.addColorStop(0, `rgba(${GROUND_RGB},0)`);
+  fade.addColorStop(1, `rgba(${GROUND_RGB},1)`);
   g.globalAlpha = 1;
   g.fillStyle = fade;
   g.fillRect(0, h * FADE_FROM, w, h * (1 - FADE_FROM));
@@ -278,7 +278,7 @@ function fadeBottom(g: CanvasRenderingContext2D, w: number, h: number) {
  */
 function settledForm(g: CanvasRenderingContext2D, w: number, h: number, outline = 1, lines = 1, light: Light = EVEN) {
   g.globalAlpha = 1;
-  g.fillStyle = '#000';
+  g.fillStyle = GROUND;
   g.fillRect(0, 0, w, h);
   const { S, cx, lw, Y } = layout(w, h);
   paintTorso(g, S, cx, Y, lw, light, outline, lines);
@@ -293,7 +293,7 @@ const DOWN = 1300;
 function draw(g: CanvasRenderingContext2D, w: number, h: number, t: number, drawn: boolean) {
   const t0 = drawn ? 0 : OUTLINE;
   g.globalAlpha = 1;
-  g.fillStyle = '#000';
+  g.fillStyle = GROUND;
   g.fillRect(0, 0, w, h);
   const { S, cx, lw, Y } = welcomeLayout(w, h);
   paintTorso(g, S, cx, Y, lw, EVEN, drawn ? 1 : inOut(seg(t, 0, OUTLINE - 100)), inOut(seg(t, t0, t0 + DOWN)));
@@ -396,7 +396,7 @@ function paintArms(g: CanvasRenderingContext2D, S: number, cx: number, lw: numbe
     const X = (r: number) => cx + side * r * S;
     // Black out the form's lines behind the arm, up to the form's own side.
     g.globalAlpha = 1;
-    g.fillStyle = '#000';
+    g.fillStyle = GROUND;
     g.beginPath();
     ARM_YS.forEach((y, i) => (i ? g.lineTo(X(ARM_OUT(y)), Y(y)) : g.moveTo(X(ARM_OUT(y)), Y(y))));
     [...inner].reverse().forEach((y) => g.lineTo(X(ARM_IN(y)), Y(y)));
@@ -425,7 +425,8 @@ function satinColour(lit: number, shine: number): string {
   const t = clamp((lit - 0.25) / 0.8, 0, 1);
   const k = Math.min(1, shine * 1.4);
   const ch = (lo: number, hi: number) => Math.round(lo + (hi - lo) * t + (95 - (lo + (hi - lo) * t)) * k);
-  return `rgb(${ch(5, 62)},${ch(5, 55)},${ch(5, 42)})`;
+  // The deepest satin is the page's shadow (oxblood, not black), so the form never goes blacker than the ground's shade.
+  return `rgb(${ch(8, 62)},${ch(3, 55)},${ch(2, 42)})`;
 }
 
 /** Where a dress form's neck ends (form units): the side of the neck meets the shoulder at -1.47, the top is about
@@ -913,7 +914,7 @@ function paintWaistString(g: CanvasRenderingContext2D, S: number, cx: number, Y:
 /** One frame of a measuring page: `z` is how far the camera has come (0 to 1), `p` how far the tape has played. */
 function paintTape(g: CanvasRenderingContext2D, w: number, h: number, from: Cam, to: Cam, turn: [number, number], z: number, p: number, t: Tape | undefined) {
   g.globalAlpha = 1;
-  g.fillStyle = '#000';
+  g.fillStyle = GROUND;
   g.fillRect(0, 0, w, h);
   if (!w || !h) return;
   g.lineCap = 'round';
@@ -1006,7 +1007,7 @@ function paintTape(g: CanvasRenderingContext2D, w: number, h: number, from: Cam,
       const lead = Math.hypot(full[1][0] - full[0][0], full[1][1] - full[0][1]);
       const all = full.slice(1).reduce((acc, q, i) => acc + Math.hypot(q[0] - full[i][0], q[1] - full[i][1]), 0);
       if (run * all >= lead) {
-        g.strokeStyle = '#000';
+        g.strokeStyle = GROUND;
         g.lineWidth = Math.max(1.5, tw * 0.22);
         g.lineCap = 'butt';
         stroke(g, [pts[0][0], pts[0][1] - tw * 0.5], [pts[0][0], pts[0][1] + tw * 0.5]);
@@ -1167,7 +1168,7 @@ export function FormPicture({ kind, tapes = false }: { kind: FormKind; tapes?: b
       pickForm(kind);
       // The body only, neck to hem, filling the card (Cat, 2026-10-21: no head on the first page).
       g.globalAlpha = 1;
-      g.fillStyle = '#000';
+      g.fillStyle = GROUND;
       g.fillRect(0, 0, w, h);
       const S = Math.min(w * 0.6, (h * 0.94) / (1.3 + 1.7));
       const wy = h * 0.03 + (0.1 + 1.7) * S;

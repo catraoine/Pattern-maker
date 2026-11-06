@@ -502,14 +502,20 @@ export function squaredWaist(y0: number, xs: number, ys: number, side: P) {
 }
 
 /** Add a waist run to `path` from its end to x = toX, four points a centimetre. `turn` places the run
- * where a part of the piece swung about a point puts it, the run then starting from x = fromX. */
-function waistRun(path: Path, y: (x: number) => number, toX: number, turn: (q: P) => P = (q) => q, fromX = path.end.x) {
+ * where a part of the piece swung about a point puts it, the run then starting from x = fromX. `ends` are a dart's
+ * trued leg ends the run starts or finishes at (before turning): truing lengthens a leg a few mm past the waist line,
+ * so the run is blended to meet it rather than stepping back to the line, which would fold the cutting line there. */
+function waistRun(path: Path, y: (x: number) => number, toX: number, turn: (q: P) => P = (q) => q, fromX = path.end.x, ends: { from?: P; to?: P } = {}) {
   const n = Math.max(1, Math.ceil(Math.abs(toX - fromX) * 4));
+  const dy0 = ends.from ? ends.from.y - y(fromX) : 0;
+  const dy1 = ends.to ? ends.to.y - y(toX) : 0;
   // Points close to each end keep the direction the curve leaves and arrives in.
   const ts = [0.0005, 0.004, ...Array.from({ length: n - 1 }, (_, i) => (i + 1) / n), 0.996, 0.9995, 1].filter((t) => n > 1 || t < 0.99 || t === 1);
   for (const t of ts) {
     const x = fromX + (toX - fromX) * t;
-    path.line(turn(p(x, y(x))), 'waist');
+    // Eased in and out, so the centre front or back still leaves square.
+    const s = t * t * (3 - 2 * t);
+    path.line(turn(p(x, y(x) + dy0 * (1 - s) + dy1 * s)), 'waist');
   }
 }
 
@@ -984,11 +990,11 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
     const waistB = squaredWaist(wb, swB.x, wb, unit(sub(swB, sideB)));
     if (dartB > 0.3) {
       const d = finishDart(p(dartXB, scye - dropShoulder + 2.5), p(dartXB - dartB / 2, waistB(dartXB - dartB / 2)), p(dartXB + dartB / 2, waistB(dartXB + dartB / 2)), p(-1, 0));
-      waistRun(back, waistB, d.far.x);
+      waistRun(back, waistB, d.far.x, undefined, undefined, { to: d.far });
       back.line(d.peak, 'dart').line(d.near, 'dart');
       backLines.push(new Path(d.near).line(d.tip).line(d.far));
-    }
-    waistRun(back, waistB, 0);
+      waistRun(back, waistB, 0, undefined, undefined, { from: d.near });
+    } else waistRun(back, waistB, 0);
   } else {
     hipB = p(hemFull / 4 - 0.5 + forward, wb + drop);
     hemB = hipB;
@@ -1155,15 +1161,15 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
     if (dartF > 0.3) {
       const near = p(nearX, waistY(nearX));
       const d = finishDart(p(apex.x, apex.y + 2.5), near, swing(p(farX, waistY(farX))), unit(sub(p(nearX - 0.5, waistY(nearX - 0.5)), near)));
-      waistRun(front, waistY, unswing(d.far).x, swing, swU.x);
+      waistRun(front, waistY, unswing(d.far).x, swing, swU.x, { to: unswing(d.far) });
       if (swung) {
-        front.line(d.far, 'waist');
+        if (len(sub(front.end, d.far)) > 1e-6) front.line(d.far, 'waist');
         waistDartF = len(sub(d.far, d.near));
       }
       front.line(d.peak, 'dart').line(d.near, 'dart');
       frontLines.push(new Path(d.near).line(d.tip).line(d.far));
-    }
-    waistRun(front, waistY, 0);
+      waistRun(front, waistY, 0, undefined, undefined, { from: d.near });
+    } else waistRun(front, waistY, 0);
   } else {
     // Drop the front side seam below the waist by whatever makes it the back's length.
     const target = hipCurveLength(swB, hipB);

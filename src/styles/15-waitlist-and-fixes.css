@@ -70,7 +70,7 @@
   height: 32px;
   padding: 0 16px 0 12px;
   border-left: 1px solid var(--guide);
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23d9c49b' stroke-width='1.2'/%3E%3C/svg%3E") no-repeat right 0 center / 9px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23dfbe84' stroke-width='1.2'/%3E%3C/svg%3E") no-repeat right 0 center / 9px;
   font-family: var(--mono);
   font-size: var(--caps-size);
   letter-spacing: var(--caps-track);

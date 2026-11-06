@@ -34,8 +34,8 @@ export default defineConfig({
         name: 'Maison Tracé',
         short_name: 'Maison Tracé',
         description: 'Sewing patterns drafted to your own measurements.',
-        theme_color: '#000000',
-        background_color: '#000000',
+        theme_color: '#120805',
+        background_color: '#120805',
         display: 'standalone',
         start_url: '/',
         icons: [

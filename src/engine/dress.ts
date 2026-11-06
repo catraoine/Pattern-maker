@@ -7,6 +7,7 @@
 import { rucheFor, spread } from './ruche';
 import { P, add, len, mul, p, sub, taggedLength, unit } from './geometry';
 import type { Piece } from './piece';
+import { notchesAlong, withoutNotchesNear } from './pockets';
 import { BodiceDraft, BodiceMeasurements, BodiceStyle, DROP_MIN, draftBodice, girthBelowWaist } from './bodice';
 import { maxRaise, raiseBodice } from './waistline';
 import { Buttons, EXTENSION_CM, backOnFold } from './collar';
@@ -120,7 +121,7 @@ export function waistDartAt(pc: Piece): number | undefined {
 
 /** A skirt piece with its zip moved from the centre back to the right side seam: the back's centre
  * mark taken off, and a ZIP ENDS notch `below` cm down the side seam of the front and back. */
-function sideZip(pc: Piece, below: number): Piece {
+function sideZip(pc: Piece, below: number, crowded: boolean, spare: number[]): Piece {
   const isBack = /back/i.test(pc.name);
   const { pts, tags } = pc.outline.taggedPoints(4);
   let k = tags.indexOf('side');
@@ -135,9 +136,13 @@ function sideZip(pc: Piece, below: number): Piece {
   const at: P = add(pts[k], mul(dir, Math.min(l, below - acc)));
   const out = p(dir.y, -dir.x);
   const outward = out.x >= 0 ? out : mul(out, -1);
+  // The zip's end is a standard length down, so on a short waist to hip it can land beside the hip notches, where
+  // the two would be read as one double notch. Then the zip's notch, matched front and back, stands in for them, taken
+  // off the front and the back alike (the back's double notch sits either side of the front's single one).
+  const clear = crowded ? withoutNotchesNear(pc, 'side', below, 3, spare) : pc;
   return {
     ...pc,
-    notches: [...pc.notches.filter(([q, d]) => !(isBack && Math.abs(q.x) < 1e-6 && d.x < 0)), [at, outward]],
+    notches: [...clear.notches.filter(([q, d]) => !(isBack && Math.abs(q.x) < 1e-6 && d.x < 0)), [at, outward]],
     labels: [
       ...pc.labels.filter((lb) => lb.text !== 'ZIP ENDS'),
       ...(isBack ? [{ at: add(at, p(-4.5, 0.3)), text: 'ZIP ENDS', size: 0.7 }] : []),
@@ -369,7 +374,10 @@ export function draftDress(m: DressMeasurements, bodiceStyle: Partial<BodiceStyl
       ? { ...pc, notches: pc.notches.filter(([q, d]) => !(Math.abs(q.x) < 1e-6 && d.x < 0)), labels: pc.labels.filter((l) => l.text !== 'ZIP ENDS') }
       : pc;
   // A shirt dress: the skirt front opened for the buttons and faced, the back cut on the fold.
-  let skirtPieces = sideOpen ? skirt.pieces.map((pc) => sideZip(pc, below)) : skirt.pieces;
+  // A pocket's opening notches stay where they are; only the hip's give way.
+  const spare = skirt.pocket ?? [];
+  const crowded = !!sideOpen && skirt.pieces.some((pc) => notchesAlong(pc, 'side').some((v) => Math.abs(v - below) < 2 && !spare.some((x) => Math.abs(x - v) < 0.3)));
+  let skirtPieces = sideOpen ? skirt.pieces.map((pc) => sideZip(pc, below, crowded, spare)) : skirt.pieces;
   let skirtButtons: Buttons | undefined;
   if (buttoned) {
     const bf = bodice.pieces.find((pc) => /front/i.test(pc.name) && !pc.kind)!;

@@ -167,6 +167,7 @@ export function unlooped(pts: P[], window = 16): P[] {
       const hit = segmentHit(out[i], out[i + 1], out[j], out[j + 1]);
       if (hit) {
         out.splice(i + 1, j - i, hit);
+        i--;
         break;
       }
     }

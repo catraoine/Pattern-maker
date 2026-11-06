@@ -1,30 +1,32 @@
 /* Contour Line in champagne (Cat's G4 pick): true black, fine champagne lines, warm ivory text, small tracked labels in Chakra Petch, Space Grotesk for reading. */
 :root {
-  --ink: #efe4cc;
-  --gild: #d9c49b; /* champagne: drawings, the name, the main button */
-  --gild-glow: #f3e6c8;
-  --muted: #9a8e78;
+  --ink: #f3dfb7; /* ivory, warmed a step with the champagne (Cat's W2, Nov 6; was #efe4cc) */
+  --gild: #dfbe84; /* champagne: drawings, the name, the main button (warmed with the ground, Cat's W2, Nov 6; was #d9c49b) */
+  --gild-glow: #f6e2b6;
+  --muted: #a28c69; /* was #9a8e78 */
   /* M1 across the app (Cat's K1, 2026-10-18): no thin rules and no tinted panels, and every outline is the one
      bright line. --line and --fill are kept so the rules they drew simply disappear. */
   --line: transparent;
   --line-strong: var(--gild);
   --guide: #4a4338; /* faint guides inside drawings: knee and floor marks, the cloth under a lay plan */
   --fill: transparent;
-  --focus: #9a8e78;
+  --focus: #a28c69;
   --disabled: #5c5446;
   --warn: #e0b07a; /* fabric notes: heads up */
   --ok: #a9c49b; /* fabric notes: good match */
-  --paper: #000000;
+  --paper: #120805; /* the ground: oxblood taken down to near-black (Cat's T3, Nov 6; true black before). Warm beside black, black in daylight. */
   /* Palette card strips under each swatch (Cat's A1 + A5): cream, darker at the right edge, near-black names. */
   --card-strip: #ece2cb;
   --card-edge: #d3c7ab;
   --card-ink: #151311;
   --card-quiet: #6c6250;
-  --white: #000000; /* the "card" ground; text on --ink fills uses it too */
+  --white: #120805; /* the "card" ground; text on --ink fills uses it too */
   --mono: 'Chakra Petch', ui-monospace, Menlo, monospace;
   --sans: 'Space Grotesk', system-ui, sans-serif;
   /* Headings (Cat's N1 Narrow Stack): narrow Archivo capitals, a spaced Chakra label under them. */
   --display: 'Archivo Variable', 'Archivo Narrow', 'Arial Narrow', sans-serif;
+  /* Every heading at one width (Cat's one-width rule, Nov 2): semi-narrow Archivo (Cat's F2, Nov 6; 100% before, 75% before Nov 2). */
+  --display-width: 87%;
   --grid: transparent;
   --w-head: 300;
   --w-strong: 500;
@@ -77,7 +79,7 @@ label {
 h1,
 h2 {
   font-family: var(--display);
-  font-stretch: 100%;
+  font-stretch: var(--display-width);
   text-transform: uppercase;
 }
 

@@ -5,6 +5,7 @@
 // lace its net. A border print sits on the hem, where it is cut to lie, over plain cloth.
 import { createContext, useContext } from 'react';
 import type { Special } from '../engine/specialFabrics';
+import { SHADOW } from './palette';
 
 export interface FabricLook {
   special?: Special;
@@ -32,35 +33,35 @@ export function ClothDefs({ uid, x1, x2, look }: { uid: string; x1: number; x2: 
         <linearGradient id={`sheen${uid}`} gradientUnits="userSpaceOnUse" x1={f(x1)} x2={f(x2)} y1="0" y2="0">
           {s === 'velvet' ? (
             <>
-              <stop offset="0" stopColor="#000" stopOpacity="0.28" />
+              <stop offset="0" stopColor={SHADOW} stopOpacity="0.28" />
               <stop offset="0.22" stopColor="#fff8e6" stopOpacity="0.1" />
-              <stop offset="0.38" stopColor="#000" stopOpacity="0.1" />
-              <stop offset="0.7" stopColor="#000" stopOpacity="0.3" />
-              <stop offset="1" stopColor="#000" stopOpacity="0.55" />
+              <stop offset="0.38" stopColor={SHADOW} stopOpacity="0.1" />
+              <stop offset="0.7" stopColor={SHADOW} stopOpacity="0.3" />
+              <stop offset="1" stopColor={SHADOW} stopOpacity="0.55" />
             </>
           ) : (
             <>
-              <stop offset="0" stopColor="#000" stopOpacity="0.12" />
+              <stop offset="0" stopColor={SHADOW} stopOpacity="0.12" />
               <stop offset="0.18" stopColor="#fff" stopOpacity="0" />
               <stop offset="0.3" stopColor="#fff" stopOpacity={s === 'satin' ? 0.55 : 0.36} />
               <stop offset="0.42" stopColor="#fff" stopOpacity="0" />
-              <stop offset="0.6" stopColor="#000" stopOpacity="0.1" />
+              <stop offset="0.6" stopColor={SHADOW} stopOpacity="0.1" />
               <stop offset="0.72" stopColor="#fff" stopOpacity={s === 'satin' ? 0.2 : 0.1} />
-              <stop offset="0.82" stopColor="#000" stopOpacity="0.15" />
-              <stop offset="1" stopColor="#000" stopOpacity="0.45" />
+              <stop offset="0.82" stopColor={SHADOW} stopOpacity="0.15" />
+              <stop offset="1" stopColor={SHADOW} stopOpacity="0.45" />
             </>
           )}
         </linearGradient>
       )}
       {s === 'corduroy' && (
         <pattern id={`weave${uid}`} patternUnits="userSpaceOnUse" width="1" height="4">
-          <rect x="0" y="0" width="0.45" height="4" fill="#000" fillOpacity="0.28" />
+          <rect x="0" y="0" width="0.45" height="4" fill={SHADOW} fillOpacity="0.28" />
           <rect x="0.45" y="0" width="0.15" height="4" fill="#fff" fillOpacity="0.14" />
         </pattern>
       )}
       {s === 'denim' && (
         <pattern id={`weave${uid}`} patternUnits="userSpaceOnUse" width="1.2" height="1.2" patternTransform="rotate(-60)">
-          <rect x="0" y="0" width="0.5" height="1.2" fill="#000" fillOpacity="0.16" />
+          <rect x="0" y="0" width="0.5" height="1.2" fill={SHADOW} fillOpacity="0.16" />
           <rect x="0.5" y="0" width="0.2" height="1.2" fill="#fff" fillOpacity="0.1" />
         </pattern>
       )}

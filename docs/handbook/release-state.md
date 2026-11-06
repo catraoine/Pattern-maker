@@ -4,6 +4,18 @@ _Update this page whenever a release ships or a PR is queued._
 
 ## Live
 
+**Release 71** (Nov 6, 2026, Cat's Nov 6 "ship"; #313, #314 and #315 merged together): patterns hold up on every body. The nightly walk over
+20 random bodies found 716 pattern faults the example body doesn't show; now none (and none on 10 more bodies).
+Cutting lines no longer fold over themselves at tight curves (jacket and coat fronts, some bodices, skirt facings and
+yokes); the flared coat's front panel flares outward again; knife-pleat skirt marks stay on their own panel; pocket
+and zip notches sit 2 cm clear of the hip notch; slant-pocket trousers keep the hip notch; dresses draft for a waist
+close to the hip (the skirt hangs straight); the waist line runs smoothly into the dart (finished bodice waist reads
+2 to 4 mm less) (#313). Style on a phone: See the choices pulls the page to the end of the step's choices before
+Next shows, and every question starts folded (#315). The app's ground is oxblood (#120805, never black; projector mode stays black)
+with warmer champagne and ivory type, new icons, and semi-narrow headings with a smaller wide welcome headline (Cat's
+T3 + W2 and F2, #314; Cat's yes to adding it, Nov 6). The Watch clips, How it works films and social graphics still
+show black and need redoing. Still open: #305 cami straps, #300 Kick Flare removal, #303/#299 handbook.
+
 **Release 70** (Nov 6, 2026, Cat's Nov 6 "ship"; #307, #309, #310 merged together): Style's view line (Front, Flat,
 All round) is a glider: a low dark track with the showing view as a raised block (#310). Four In testing options for
 the Look 09 ruffle top rework: balloon peplum, plunge to the waist, full puff and bishop sleeves, lace drawn as a net
@@ -94,6 +106,11 @@ https://whimsical-mooncake-2cf9a9.netlify.app, the same site). Strangers see the
 get in with their tester link.
 
 ## Queued for "ship" (as of Nov 6, after Release 65)
+
+Random-body pattern fixes (Quality, Nov 6): the nightly 20-body pattern walk's 716 faults on bodies other than the
+example one, fixed (cutting lines folding at tight curves, flared coat panels, knife-pleat split marks, pocket, zip and
+hip notches too close together, slant-pocket hip notch, dresses for a waist close to the hip, the waist step beside a
+trued dart). Green PR waiting on "ship".
 
 Open draft: #259 (bias slip mini + side slit, open polo collar, ruffled trouser
 hem; In testing), based on main, waiting on Cat's "apply".

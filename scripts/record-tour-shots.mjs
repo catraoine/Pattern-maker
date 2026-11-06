@@ -159,7 +159,7 @@ if (process.env.TOUR_WELCOME) {
     img.src = `data:image/png;base64,${words}`;
     await img.decode();
     document.body.innerHTML = '';
-    document.body.style.background = '#000';
+    document.body.style.background = '#120805';
     const c = document.createElement('canvas');
     c.width = FW; c.height = FH;
     Object.assign(c.style, { position: 'fixed', left: 0, top: 0, width: `${innerWidth}px`, height: `${innerHeight}px` });
@@ -179,14 +179,14 @@ if (process.env.TOUR_WELCOME) {
       g.setTransform(1, 0, 0, 1, 0, 0);
       g.globalAlpha = 1;
       g.globalCompositeOperation = 'source-over';
-      g.fillStyle = '#000';
+      g.fillStyle = '#120805';
       g.fillRect(0, 0, FW, FH);
       g.save();
       g.setTransform(k * z, 0, 0, k * z, k * (cx - (z * rect.w) / 2), k * (cy - (z * rect.h) / 2));
       g.beginPath(); g.rect(0, 0, rect.w, rect.h); g.clip();
       const { w, h } = rect;
       const S = Math.min(w * 0.82, h * 0.46), wy = h * 0.5;
-      g.strokeStyle = '#d9c49b';
+      g.strokeStyle = '#dfbe84';
       cf.paintFigure(g, S, w / 2, (y) => wy + (y - 0.1) * S, Math.max(0.7, S / 252) * 1.2, 0, false, phi);
       g.globalAlpha = 1;
       const fade = g.createLinearGradient(0, h * cf.FADE_FROM, 0, h);
