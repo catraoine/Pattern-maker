@@ -17,6 +17,7 @@ import { SimInput, simulate } from './sim';
 import { Space, boxed } from './space';
 import { knob, setKnob } from './knob';
 import { cropHold } from './cropHold';
+import { flutterPlace } from './flutter';
 
 type V3 = [number, number, number];
 const TAU = Math.PI * 2;
@@ -1459,6 +1460,7 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
       });
       return ds.length ? ds.reduce((t, v) => t + v, 0) / ds.length : 0;
     })();
+    const flutter = flutterPlace(top, under, rag, capH, r0);
     for (const pc of [top, ...(under ? [under] : [])]) {
       const yk = yokeOf(pc);
       const p = B.add(
@@ -1466,6 +1468,10 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
         'sleeve',
         (q) => {
           if (yk?.inside(q)) return yk.place(q);
+          if (flutter) {
+            const { th, along, rr } = flutter(q);
+            return [0, 1, 2].map((k) => a[k] + dn[k] * along + rr * (Math.cos(th) * ov[k] + Math.sin(th) * fv[k])) as V3;
+          }
           const th = (TAU * (uOf(pc, q) - capTop.x)) / period;
           const along = q.y - capH * 0.6 + ragDrop;
           const rr = r0 + 1.5;
@@ -1850,6 +1856,9 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
   const roundOf = () => {
     const sl = B.panels.filter((p) => p.role === 'sleeve' && p !== cuffPanel);
     if (!sl.length || knob("__noRound")) return undefined;
+    // (Not a flutter: it is cut as a fan, so a row across the flat piece is no girth of it, and held to the fan's
+    // width it stood off the arm as a stiff cone. It falls in the flutes it is laid in, see flutterPlace.)
+    if (sl.some((p) => p.pc.meta.flutter) && !knob('__noFlutter')) return undefined;
     const capH = (sl[0].pc.meta.capHeight as number) ?? 15;
     const widthAt = (y: number) =>
       sl.reduce((sum, p) => {
