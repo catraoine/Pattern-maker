@@ -16,6 +16,7 @@ import { DrapeOptions, Draped, drapeBodice, drapeDress, drapeOuter, drapeSkirt, 
 import { makeSpace } from './space';
 import { closeSeams, hangScales } from './hang';
 import { sideTie, type SideTieSpec } from './tie';
+import { camiStraps } from './strap';
 
 export type DrapeJob = { m: RoundMeasurements; armhole: RoundGarment['armhole']; fibre?: Fibre; crisp?: boolean; /** A side tie knotted at the left side seam at the waist (belt.ts). */ sideTie?: SideTieSpec } & (
   | { kind: 'skirt'; draft: SkirtDraft }
@@ -119,21 +120,39 @@ export function runDrape(job: DrapeJob): DrapedLite {
   let hang = hangScales(d, sp);
   if (hang) closeSeams(d, hang);
   let pos = d.pos;
+  let posMirror = d.posMirror;
   const extra: DrapedLite['panels'] = [];
-  const tie = job.sideTie && (job.kind === 'dress' || job.kind === 'skirt') ? sideTie(d, job.sideTie) : undefined;
-  if (tie) {
+  // More cloth drawn on the settled garment (a tie, a strap): its points added after the panels', its drawn scale
+  // taken from the cloth point each hangs by.
+  const append = (m: { pos: number[]; tris: number[][]; uv: number[]; ref: number[] }, role: string, single: boolean) => {
     const base = pos.length / 3;
-    const joined = new Float64Array(pos.length + tie.pos.length);
-    joined.set(pos);
-    joined.set(tie.pos, pos.length);
-    pos = joined;
+    const join = (a: Float64Array) => {
+      const j = new Float64Array(a.length + m.pos.length);
+      j.set(a);
+      j.set(m.pos, a.length);
+      return j;
+    };
+    pos = join(pos);
+    if (posMirror) posMirror = join(posMirror);
     if (hang) {
-      const h = new Float32Array(base + tie.ref.length);
+      const h = new Float32Array(base + m.ref.length);
       h.set(hang);
-      tie.ref.forEach((r, k) => (h[base + k] = hang![r]));
+      m.ref.forEach((r, k) => (h[base + k] = hang![r]));
       hang = h;
     }
-    extra.push({ role: 'tie', base, tris: tie.tris, uv: tie.uv, collar: false, single: true });
+    extra.push({ role, base, tris: m.tris, uv: m.uv, collar: false, ...(single ? { single: true } : {}) });
+  };
+  const tie = job.sideTie && (job.kind === 'dress' || job.kind === 'skirt') ? sideTie(d, job.sideTie) : undefined;
+  if (tie) append(tie, 'tie', true);
+  // A cami's rouleau straps: given on the pattern as measurements, not pieces, so drawn here over each shoulder.
+  const top = job.kind === 'bodice' ? job.draft.top : job.kind === 'dress' ? job.draft.bodice.top : undefined;
+  if (top?.neckline === 'cami' && top.straps && top.strapAt) {
+    const straps = camiStraps(d, sp, top.strapAt);
+    if (straps) append(straps, 'strap', false);
+    else {
+      quality.problems.push({ check: 'missing', part: 'Straps', worst: 1 });
+      quality.ok = false;
+    }
   }
   return {
     panels: [...d.panels.map((p) => ({
@@ -148,7 +167,7 @@ export function runDrape(job: DrapeJob): DrapedLite {
       turned: p.turned.some(Boolean) ? p.turned.map((t) => (t ? 1 : 0)) : undefined,
     })), ...extra],
     pos,
-    ...(d.posMirror ? { posMirror: d.posMirror } : {}),
+    ...(posMirror ? { posMirror } : {}),
     ...(hang ? { hang } : {}),
     lines: d.lines,
     buttons: d.buttons.map((b) => ({ at: [b.at[0], b.at[1], b.at[2]], r: b.r })),
