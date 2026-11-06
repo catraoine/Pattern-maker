@@ -35,6 +35,59 @@ export interface ClothTiles {
   lift?: number;
   /** Its colour, for the lift. */
   plain?: string;
+  /** The swatch it was cut from (denim, wool, velvet...), for the cloth's own finish in the light. */
+  kind?: string;
+  /** The swatch's mean colour (0 to 1), for a velvet's or a wool's sheen. */
+  avg?: [number, number, number];
+}
+
+/** A box blur of a wrapping grey image, r pixels each way: a running sum along each row, then each column. */
+function blurWrap(a: Float32Array, n: number, r: number): Float32Array {
+  const pass = (src: Float32Array, at: (i: number, j: number) => number) => {
+    const out = new Float32Array(n * n);
+    const k = 2 * r + 1;
+    for (let i = 0; i < n; i++) {
+      let t = 0;
+      for (let d = -r; d <= r; d++) t += src[at(i, (d + n) % n)];
+      for (let j = 0; j < n; j++) {
+        out[at(i, j)] = t / k;
+        t += src[at(i, (j + r + 1) % n)] - src[at(i, (j - r + n) % n)];
+      }
+    }
+    return out;
+  };
+  return pass(pass(a, (y, x) => y * n + x), (x, y) => y * n + x);
+}
+
+/** Cloths whose swatch is painted light, not weave: on the turning garment they take their own colour outright. */
+const SMOOTH = new Set(['satin', 'silk', 'velvet', 'viscose', 'modal', 'leather', 'polyester']);
+
+/** Clean cloth (Cat's A, 2026-11-05): the swatches carry light painted into them (the satin's fold bands, the
+ * velvet's shading, the linen's cloudy grid), which wrapped round a garment read as stripes, a plaid or blotches.
+ * Lift those broad bands out, so the cloth is its own colour; keep half the fine weave (none of it on a smooth cloth),
+ * and let the lamps and the cloth's own finish do the rest. Returns the swatch's mean colour. */
+function cleanCloth(c: HTMLCanvasElement, kind: string): [number, number, number] {
+  const g = c.getContext('2d')!;
+  const n = c.width;
+  const im = g.getImageData(0, 0, n, n);
+  const d = im.data;
+  const N = n * n;
+  const lum = new Float32Array(N);
+  const mean = [0, 0, 0];
+  let ml = 0;
+  for (let i = 0; i < N; i++) {
+    lum[i] = (0.2126 * d[i * 4] + 0.7152 * d[i * 4 + 1] + 0.0722 * d[i * 4 + 2]) / 255;
+    for (let j = 0; j < 3; j++) mean[j] += d[i * 4 + j] / N;
+    ml += lum[i] / N;
+  }
+  const broad = blurWrap(blurWrap(lum, n, 40), n, 40);
+  const keep = SMOOTH.has(kind) ? 0.15 : 0.5;
+  for (let i = 0; i < N; i++) {
+    const k = ml / Math.max(0.02, broad[i]);
+    for (let j = 0; j < 3; j++) d[i * 4 + j] = Math.max(0, Math.min(255, mean[j] + (d[i * 4 + j] * k - mean[j]) * keep));
+  }
+  g.putImageData(im, 0, 0);
+  return [mean[0] / 255, mean[1] / 255, mean[2] / 255];
 }
 
 const T = 256;
@@ -90,7 +143,10 @@ export async function clothTiles(p: FabricPaint): Promise<ClothTiles> {
     g.fillRect(0, 0, T, T);
   }
   const s = p.look?.special;
-  const out: ClothTiles = { body, bodySize: p.size, sheer: !!p.look?.sheer, sheen: s === 'satin' || s === 'leather' ? 'gloss' : s === 'velvet' ? 'pile' : undefined, lift: p.lift, plain: p.plain };
+  // A swatch of cloth (not a print, not drawn checks) is cleaned of its painted light.
+  const kind = p.href?.match(/fabrics\/flat\/([a-z]+)\.jpg$/)?.[1];
+  const avg = kind ? cleanCloth(body, kind) : undefined;
+  const out: ClothTiles = { kind, avg, body, bodySize: p.size, sheer: !!p.look?.sheer, sheen: s === 'satin' || s === 'leather' ? 'gloss' : s === 'velvet' ? 'pile' : undefined, lift: p.lift, plain: p.plain };
   const B = p.look?.border;
   if (B) {
     const b = canvas();

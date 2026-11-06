@@ -46,8 +46,47 @@ interface RoundUniforms {
 }
 type RoundMaterial = THREE.MeshStandardMaterial & { uniforms: RoundUniforms };
 
-function material(mode: Mode, map?: THREE.Texture, scale = 1, opacity = 1): RoundMaterial {
-  const mat = new THREE.MeshStandardMaterial({
+/** Each cloth's own finish in the light (Cat's A Clean cloth, 2026-11-05): how rough it is, the soft glow a pile or a
+ * brushed cloth gives where it turns away (sheen), and the thin coat on leather. */
+const FINISH: Record<string, { rough: number; sheen?: number; sheenRough?: number; coat?: number }> = {
+  satin: { rough: 0.5 },
+  silk: { rough: 0.55 },
+  viscose: { rough: 0.6 },
+  modal: { rough: 0.65 },
+  polyester: { rough: 0.62 },
+  velvet: { rough: 1, sheen: 0.7, sheenRough: 0.5 },
+  corduroy: { rough: 0.95, sheen: 0.6, sheenRough: 0.5 },
+  wool: { rough: 0.97, sheen: 0.45, sheenRough: 0.75 },
+  terry: { rough: 1, sheen: 0.45, sheenRough: 0.8 },
+  denim: { rough: 0.92 },
+  linen: { rough: 0.96 },
+  cotton: { rough: 0.9 },
+  leather: { rough: 0.55, coat: 0.35 },
+};
+
+/** The material for a garment's cloth: its swatch, its opacity, and the finish its kind of cloth has. */
+function clothFinish(mode: Mode, cloth: ClothTiles, map: THREE.Texture, scale: number): RoundMaterial {
+  const f = cloth.kind ? FINISH[cloth.kind] : undefined;
+  const mat = material(mode, map, scale, cloth.sheer ? 0.6 : 1, !!(f?.sheen || f?.coat));
+  if (!f) return mat;
+  mat.roughness = f.rough;
+  const pm = mat as unknown as THREE.MeshPhysicalMaterial;
+  if (f.sheen) {
+    const [r, g, b] = cloth.avg ?? [0.6, 0.6, 0.6];
+    const up = (v: number) => Math.min(1, v * 1.3 + 0.06);
+    pm.sheen = f.sheen;
+    pm.sheenRoughness = f.sheenRough ?? 0.5;
+    pm.sheenColor = new THREE.Color(up(r), up(g), up(b)).convertSRGBToLinear();
+  }
+  if (f.coat) {
+    pm.clearcoat = f.coat;
+    pm.clearcoatRoughness = 0.35;
+  }
+  return mat;
+}
+
+function material(mode: Mode, map?: THREE.Texture, scale = 1, opacity = 1, physical = false): RoundMaterial {
+  const mat = new (physical ? THREE.MeshPhysicalMaterial : THREE.MeshStandardMaterial)({
     side: THREE.DoubleSide,
     transparent: opacity < 1,
     opacity,
@@ -106,7 +145,7 @@ function material(mode: Mode, map?: THREE.Texture, scale = 1, opacity = 1): Roun
       // The far side of the cloth, seen from inside through a neck or an armhole, lies in shadow.
       .replace('#include <normal_fragment_begin>', '#include <normal_fragment_begin>\nif (!gl_FrontFacing) diffuseColor.rgb *= 0.45;');
   };
-  mat.customProgramCacheKey = () => `round-${mode}`;
+  mat.customProgramCacheKey = () => `round-${mode}${physical ? '-physical' : ''}`;
   return mat;
 }
 
@@ -514,7 +553,7 @@ function buildDraped(
       }
       // A contrast upper collar shows at the front; round the back its outside is the garment's own cloth.
       const front = p.collar && contrast !== undefined;
-      const mat = !cloth ? material('black') : material(mode, tex, 1 / cloth.bodySize, cloth.sheer ? 0.6 : 1);
+      const mat = !cloth || !tex ? material('black') : clothFinish(mode, cloth, tex, 1 / cloth.bodySize);
       if (front && contrast !== undefined) {
         const col = new Float32Array(n * 3);
         const cc = new THREE.Color(contrast);
@@ -700,7 +739,9 @@ export function createRoundView(): RoundView | undefined {
       tex.colorSpace = THREE.SRGBColorSpace;
       tex.anisotropy = maxAniso;
       disposables.push(tex);
-      const mat = material(cloth?.sheen === 'gloss' ? 'gloss' : cloth?.sheen === 'pile' ? 'pile' : 'matte', tex, 1 / size, cloth?.sheer ? 0.6 : 1);
+      const mode: Mode = cloth?.sheen === 'gloss' ? 'gloss' : cloth?.sheen === 'pile' ? 'pile' : 'matte';
+      // The border band is a print: only the body's swatch takes the cloth's finish.
+      const mat = cloth && tiles === cloth.body ? clothFinish(mode, cloth, tex, 1 / size) : material(mode, tex, 1 / size, cloth?.sheer ? 0.6 : 1);
       if (cloth?.lift && cloth.plain) {
         mat.emissive.set(cloth.plain).convertSRGBToLinear();
         mat.emissiveIntensity = cloth.lift;
