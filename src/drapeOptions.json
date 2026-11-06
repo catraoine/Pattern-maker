@@ -27,6 +27,7 @@
  "bodice fit=oversized": "passes",
  "bodice fit=regular": "passes",
  "bodice fit=relaxed": "passes",
+ "bodice length=cropped": "passes",
  "bodice length=high_hip": "passes",
  "bodice length=hip": "passes",
  "bodice length=long": "passes",

@@ -421,7 +421,7 @@ export const BODICE_GROUPS: [Group<'fit'>, Group<'neckline'>, Group<'plungeDepth
     options: [['crew', 'Crew'], ['scoop', 'Scoop'], ['v', 'V-neck'], ['plunge', 'Plunge'], ['square', 'Square'], ['boat', 'Boat'], ['one_shoulder', 'One-shoulder'], ['cowl', 'Cowl'], ['strapless', 'Strapless'], ['sweetheart', 'Sweetheart'], ['cami', 'Cami straps'], ['halter', 'Halter']],
   },
   { id: 'plungeDepth', label: 'Plunge depth', options: [['standard', 'Standard'], ['waist', 'To the waist']] },
-  { id: 'length', label: 'Length', options: [['waist', 'Waist'], ['high_hip', 'High hip'], ['hip', 'Hip'], ['long', 'Long']] },
+  { id: 'length', label: 'Length', options: [['cropped', 'Cropped'], ['waist', 'Waist'], ['high_hip', 'High hip'], ['hip', 'Hip'], ['long', 'Long']] },
   { id: 'darts', label: 'Darts', options: [['bust_waist', 'Bust and waist'], ['bust', 'Bust only'], ['none', 'No darts']] },
   {
     id: 'sleeve',
@@ -476,8 +476,9 @@ export function detailAllowed(c: BodiceChoices, id: 'princess' | 'bustDart' | 'c
   if ((isDraped(c) || (c.unevenNeck && !isTop(c.neckline))) && opt !== 'none') return id === 'bustDart' ? opt === 'side' : id === 'closure' && opt === 'back_zip';
   // A top below the shoulders has no shoulder or armhole for a dart or princess line, and opens at the back.
   const top = isTop(c.neckline);
-  if (id === 'princess') return opt === 'none' || (c.darts === 'bust_waist' && !top && c.closure !== 'wrap');
-  if (id === 'bustDart') return c.darts !== 'none' && (opt !== 'waist' || c.length === 'waist') && !(top && (opt === 'shoulder' || opt === 'armhole')) && (c.closure !== 'wrap' || (WRAP_BUST_DARTS as readonly string[]).includes(opt));
+  if (id === 'princess') return opt === 'none' || (c.darts === 'bust_waist' && !top && c.closure !== 'wrap' && c.length !== 'cropped');
+  // (A cropped top is cut from the waist-length draft, so a waist bust dart is cut across as a dress's empire seam cuts it.)
+  if (id === 'bustDart') return c.darts !== 'none' && (opt !== 'waist' || c.length === 'waist' || c.length === 'cropped') && !(top && (opt === 'shoulder' || opt === 'armhole')) && (c.closure !== 'wrap' || (WRAP_BUST_DARTS as readonly string[]).includes(opt));
   // A dress buttons down the front too (a shirt dress), when its skirt can carry the buttons on (see dress.ts).
   // A plunge's V runs nearly to the waist, leaving no front to button.
   if (id === 'closure') return opt === 'back_zip' || (!top && (c.neckline !== 'plunge' || opt !== 'front_buttons'));
@@ -519,6 +520,7 @@ export function seamBlocked(c: BodiceChoices, kind: SeamKind, garment: 'bodice' 
     if (depth > 4) return 'A front yoke needs a high neckline: this one cuts through where the yoke goes.';
   }
   if (kind === 'yoke' && side === 'back' && c.neck && c.neck.backDepth > 4) return 'A back yoke needs a high back neckline: this one cuts through where the yoke goes.';
+  if (kind !== 'yoke' && garment === 'bodice' && c.length === 'cropped') return `${words} ${kind === 'panel' ? 'run' : 'runs'} to the waist, and a cropped top is cut off above it. Pick the waist length first.`;
   if (kind !== 'yoke' && garment === 'bodice' && (c.length !== 'waist' || (c.dropCm !== undefined && c.dropCm >= 3))) return `${words} ${kind === 'panel' ? 'run' : 'runs'} to the waist, so ${kind === 'panel' ? 'they need' : 'it needs'} a waist-length bodice.`;
   if (kind !== 'yoke' && c.peplum && c.peplum !== 'none') return `${words} ${kind === 'panel' ? 'run' : 'runs'} to the waist, where the peplum goes. Take the peplum off first.`;
   return undefined;
@@ -569,6 +571,13 @@ export function validDetails(c: BodiceChoices, garment: 'bodice' | 'dress' = 'bo
   if (out.sleeve && !detailAllowed(out, 'sleeve', out.sleeve, garment)) out.sleeve = 'none';
   // The plunge's depth belongs to the plunge: another neckline, or a drawn one, lets it go.
   if (out.plungeDepth && (out.neckline !== 'plunge' || out.neck)) delete out.plungeDepth;
+  // A cropped top is cut off under the bust, from a plain front and back: a hem dragged below the waist is let go,
+  // princess seams come off, and a draped neckline (cut whole, not to be cut across) keeps the waist length.
+  if (out.length === 'cropped') {
+    delete out.dropCm;
+    if (out.princess && out.princess !== 'none') out.princess = 'none';
+    if (isDraped(out)) out.length = 'waist';
+  }
   if (out.sleeveCut && sleeveCutBlocked(out, out.sleeveCut)) delete out.sleeveCut;
   if (out.peplum && !detailAllowed(out, 'peplum', out.peplum, garment)) out.peplum = 'none';
   // A balloon's hem is gathered onto its underskirt, level all round: it takes no high-low hem.
@@ -676,7 +685,7 @@ function withPeplum(name: string, v: BodiceChoices) {
   if (!v.peplum || v.peplum === 'none') return name;
   return `${name}${/ with /.test(name) ? ' and' : ' with'} a ${v.peplumSize === 'big' ? 'big ' : ''}${v.peplum} peplum${v.peplumHem === 'high_low' ? ', longer at the back' : ''}`;
 }
-const LENGTH_WORDS: Record<BodiceLength, string> = { waist: 'waist-length', high_hip: 'high-hip-length', hip: 'hip-length', long: 'long' };
+const LENGTH_WORDS: Record<BodiceLength, string> = { cropped: 'cropped', waist: 'waist-length', high_hip: 'high-hip-length', hip: 'hip-length', long: 'long' };
 
 /** The style seam as a word before "bodice": "empire-waist", "side-panel", "yoked", "front-yoke". */
 function seamAdjective(v: BodiceChoices) {

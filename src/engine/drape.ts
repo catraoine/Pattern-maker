@@ -15,6 +15,8 @@
 // Whole pieces carry meta.whole: their seams appear on both sides (meta.seams says where a seam
 // appears only once), and the pattern checks walk them half a piece at a time.
 import { P, Path, add, len, lerp, mul, p, sub, taggedLength, unit } from './geometry';
+import { maxRaise, raiseBodice } from './waistline';
+import { DraftError } from './skirt';
 import { finishDart } from './darts';
 import { Ring, pathOf, ringOf } from './manipulate';
 import type { DraftPoint, Piece } from './piece';
@@ -734,7 +736,8 @@ export const peplumBackExtra = (depth: number) => Math.max(8, Math.min(14, Math.
  * dragged hem at most PEPLUM_SEAM_MAX below the waist, on a cut that nips in at the waist (not boxy or
  * oversized, which hang straight) with a level hem for the peplum to sew to. */
 export function peplumLengthOk(c: { length: BodiceLength; dropCm?: number; fit?: BodiceFit; hem?: HemShape }): boolean {
-  const lowered = c.dropCm !== undefined ? c.dropCm >= 3 : c.length !== 'waist';
+  // (A cropped top is cut above the waist, not lowered below it: its peplum hangs from under the bust.)
+  const lowered = c.dropCm !== undefined ? c.dropCm >= 3 : c.length === 'high_hip' || c.length === 'hip' || c.length === 'long';
   if (!lowered) return true;
   if (c.fit === 'boxy' || c.fit === 'oversized' || isShaped(c.hem)) return false;
   return c.dropCm !== undefined ? c.dropCm <= PEPLUM_SEAM_MAX : c.length === 'high_hip';
@@ -874,6 +877,19 @@ function withPeplum(d: BodiceDraft, kind: 'flared' | 'gathered' | 'balloon', s: 
 export function drapeBodice(d: BodiceDraft, s: BodiceStyle, m: BodiceMeasurements, redraft: (s: BodiceStyle) => BodiceDraft): BodiceDraft {
   let out = d;
   if (isDraped(s)) out = s.neckline === 'cowl' ? cowl(d, s, redraft) : s.shoulder === 'right' ? toRight(oneShoulder(d, true)) : oneShoulder(d);
+  // A cropped top (In testing, Cat's SS27 balloon top picture, 2026-11-06): the waist-length bodice cut off under the bust,
+  // as a dress's empire seam cuts it, so a peplum hangs from under the bust and the midriff shows.
+  if (s.length === 'cropped' && out.drop === 0) {
+    // (Only a plain front and back are cut across, as a dress's empire seam cuts them: panels, a drape and boning keep
+    // their own seams, and the Style screen keeps them off a cropped top.)
+    const plain = out.pieces.filter((pc) => !pc.kind && /^Bodice/.test(pc.name)).length === 2 && !out.drape && !out.top?.boned;
+    if (!plain) throw new DraftError('A cropped top is cut from a plain front and back: take off the princess seams, the draped neckline or the boning first.');
+    const up = maxRaise(out);
+    if (!(up > 0)) throw new DraftError('A cropped top is cut off above the side bust dart, and on these measurements that dart sits at the waist: pick waist darts, or the waist length.');
+    out = { ...raiseBodice(out, up), raiseCm: up };
+    // (The button front stops 2 cm above the cut, as it stopped above the waist.)
+    if (out.buttons) out = { ...out, buttons: { ...out.buttons, at: out.buttons.at.filter((y) => y <= out.front.waistCentre.y - up - 2) } };
+  }
   if (s.peplum && s.peplum !== 'none' && (d.drop === 0 || peplumLengthOk(s))) out = withPeplum(out, s.peplum, s, m);
   return out;
 }

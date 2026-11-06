@@ -125,6 +125,7 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       waist: ['A narrow V between covered shoulders, running down to just above the waist seam.', 'skill'],
     },
     length: {
+      cropped: ['Cut off just under the bust, so the midriff shows. A peplum hangs from there.', 'skill'],
       waist: ['Ends at your waist, the natural place to meet a skirt or trousers.'],
       high_hip: ['Ends a little below the waist, at the top of the hip.'],
       hip: ['Ends at the fullest part of the hip.'],
@@ -405,6 +406,7 @@ const SHORT: Record<string, string> = {
   'silhouette.circle': 'A full circle: the most swing.',
   'silhouette.slip': 'Cut on the bias. Best in silk.',
   'length.above_knee': 'Just above the knee.',
+  'length.cropped': 'Cut off just under the bust.',
   'length.waist': 'Ends at your waist.',
   'length.high_hip': 'Ends at the top of the hip.',
   'length.tunic': 'Covers the hips, ends on the thigh.',

@@ -54,7 +54,8 @@ export type TestingTool =
   | 'balloon_peplum'
   | 'waist_plunge'
   | 'full_sleeve'
-  | 'lace';
+  | 'lace'
+  | 'cropped_top';
 
 export const TESTING_TOOLS: Record<TestingTool, { name: string; where: string; proof: string }> = {
   draw_lines: { name: 'Draw your lines', where: 'Style, Draw on your form', proof: 'fit testers draw a hem, a neckline and a side and the pattern follows' },
@@ -94,6 +95,8 @@ export const TESTING_TOOLS: Record<TestingTool, { name: string; where: string; p
   waist_plunge: { name: 'Plunge to the waist', where: 'the To the waist chip under Plunge depth on a plunge neckline', proof: 'two testers sew a plunge to the waist and the V lies flat without gaping' },
   full_sleeve: { name: 'Full puff and bishop sleeves', where: 'the Full chip under Sleeve fullness on a puff or bishop sleeve', proof: 'two testers sew a full bishop sleeve and it gathers evenly into its cuff' },
   lace: { name: 'Lace drawn on the turning garment', where: 'All round, with a lace fabric picked', proof: 'the lace drawing matched against two bought laces' },
+  // Cat's SS27 balloon-top picture again (2026-11-06, round 4): the top cut off under the bust, the peplum hanging from there.
+  cropped_top: { name: 'Cropped top', where: 'the Cropped chip under Length on a top', proof: 'two testers sew a cropped top and its hem sits under the bust without riding up' },
   // For the SS27 black knife-pleat skirt (Cat, 2026-11-01: "make the skirt low rise"; design options need no flag).
   low_rise: { name: 'Low-rise skirt', where: 'the Rise chips on a skirt', proof: 'two testers sew a low-rise skirt and it sits level on the hip without slipping, the hem where it was' },
   // For the SS27 gold python Bermuda, loose and pleated like the season's runway shorts (Cat, 2026-11-05: "R1 with pleats").

@@ -318,6 +318,22 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
    weight, its shoulders sank inside the form's and the form showed through both shoulder tops; held forward, a big
    peplum's weight drew the back 2.3 cm inside the form and stretched a big flared one's back three times its cut.
    A dress's skirt is heavy and keeps the 3 cm (`heavySkirt` in `src/engine/drape/garment.ts`).
+52. **A cropped top's seam is held under the bust, and a gathered peplum's folds meet the side seam whole** (Nov 6,
+   Fable, SS27 Look 09 round 4): a top cut off under the bust (the Cropped length, In testing) is cut from the
+   waist-length draft by the dress's empire cut (`maxRaise`, `raiseBodice` in `src/engine/waistline.ts`), 6 cm under
+   the bust point and above any side dart's lower leg, and its peplum hangs from the cut edge. In All round that edge
+   is held at its height, as a bra's band sits: the coarse sim let a big balloon peplum drag it down the ribs and the
+   bust showed through above the seam. A gathered peplum's starting folds are fitted a whole number to each piece's
+   waist (about 12 cm each), so a fold is never cut in half at the side seam and sewn to the next piece's half fold,
+   which folded over on itself as a fin and failed the quality check. A balloon peplum's outer, gathered at both
+   ends, starts in gentler folds still (two thirds the depth), since seeded as deep as a plain gathered peplum's the
+   cropped top's big balloon crumpled into fins. The hold is `src/engine/drape/cropHold.ts`; a cropped top is cut
+   only from a plain front and back (no princess seams, draped neckline or boning), as a dress's empire cut is.
+53. **A plunge to the waist is taped most of the way** (Nov 6, Fable, SS27 Look 09 round 4): left to settle, the
+   narrow V's edges fell open 4 cm each side over the bust and the V read wide (the round 3 sheet hid it, the blouse
+   being tucked into a skirt that held it closed; Cat: "R2 has changed"). Its stay tape now brings each edge 90% of
+   the way back to its cut distance from the centre front (50% on a sleeveless one, whose narrow strap stretched
+   twice its cut), the cloth within 12 cm coming with it; all the way tore the cloth beside it 2.1 times its cut.
 
 ## Style steps
 

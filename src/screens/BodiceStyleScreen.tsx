@@ -369,6 +369,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
                   {g.id === 'peplumHem' && id === 'high_low' && <TestingTag tool="high_low_peplum" />}
                   {g.id === 'peplumSize' && id === 'big' && <TestingTag tool="big_peplum" />}
                   {g.id === 'peplum' && id === 'balloon' && <TestingTag tool="balloon_peplum" />}
+                  {g.id === 'length' && id === 'cropped' && <TestingTag tool="cropped_top" />}
                   {g.id === 'plungeDepth' && id === 'waist' && <TestingTag tool="waist_plunge" />}
                   {g.id === 'sleeveFullness' && id === 'full' && <TestingTag tool="full_sleeve" />}
                   {g.id === 'sleeveCuff' && id === 'oversized' && <TestingTag tool="oversized_cuff" />}
@@ -421,7 +422,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
               </p>
             )}
             {g.id === 'sleeve' && !choices.neck && choices.neckline === 'one_shoulder' && <p className="muted small">A one-shoulder bodice is sleeveless.</p>}
-            {g.id === 'peplum' && (choices.length !== 'waist' || (choices.dropCm !== undefined && choices.dropCm >= 3)) && <p className="muted small">A peplum sits on a waist-length bodice.</p>}
+            {g.id === 'peplum' && (choices.length !== 'waist' && choices.length !== 'cropped' || (choices.dropCm !== undefined && choices.dropCm >= 3)) && <p className="muted small">A peplum sits on a waist-length or cropped bodice.</p>}
             {g.id === 'structure' && !top && <p className="muted small">Boning and a shirred back need a strapless, sweetheart or cami top.</p>}
             {g.id === 'structure' && isStrapless(choices.neckline) && <p className="muted small">A strapless bodice needs something to hold it up: boning, or a shirred back.</p>}
             {g.id === 'structure' && valid.structure === 'shirred' && (
