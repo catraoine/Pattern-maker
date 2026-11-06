@@ -806,10 +806,20 @@ export function createRoundView(): RoundView | undefined {
      */
     const seatHold = (y: number, y0: number, r: number, seatD: number) => {
       const thigh = smooth(clamp(1 - (y - y0) / Math.max(0.45, (yK - y0) * 0.85), 0, 1));
-      // The depth the cloth can give while staying as wide across as the leg inside it.
-      const room = 2 * r - (FORM_LEG(y) + 0.012);
-      const plumb = seatD > r ? clamp((room - r) / (seatD - r), 0, 1) : 0;
-      return Math.max(thigh, plumb);
+      if (seatD <= r) return thigh;
+      // The depth the cloth can give while staying as wide across as the leg inside it, as a share of the seat's
+      // (held at that share, the leg's front and back lie at that depth: tube() blends them from the seat's own
+      // line, not from a round tube). Wherever the thigh above pulled the cloth in, it hangs straight on down from
+      // there, not out again as the leg thins (which notched each leg in below the seat and out again by the knee,
+      // Cat 2026-11-06: "more of a bump now").
+      let plumb = 1;
+      for (let i = 0; i <= 6; i++) {
+        const room = 2 * r - (FORM_LEG(y0 + ((y - y0) * i) / 6) + 0.012);
+        plumb = Math.min(plumb, clamp(room / seatD, 0, 1));
+      }
+      // From the seat's own depth at the crotch the cloth eases down the thigh to the depth it can hold, over the
+      // whole thigh (held, then let go, it stepped in under the seat).
+      return plumb + (1 - plumb) * thigh;
     };
     const tube = (X: (y: number) => number, R: (y: number) => number, y0: number, y1: number, panels: boolean, Z: (y: number) => number = () => 1, seat?: (g: number) => number, part: PickPart = 'cloth') => {
       const e = Math.sign(X(y0)) || 1;
