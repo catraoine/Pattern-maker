@@ -95,8 +95,9 @@ get in with their tester link.
 
 ## Queued for "ship" (as of Nov 6, after Release 65)
 
-Open draft: #259 (bias slip mini + side slit, open polo collar, ruffled trouser
-hem; In testing), based on main, waiting on Cat's "apply".
+- #259: bias slip side slit up to the hip with the zip in the right seam (needed for the fit testers' black slit
+  slip skirt, fit check Nov 11), plus bias mini, open polo collar and ruffled trouser hem, all In testing. Main merged
+  in Nov 6; waits on "ship".
 
 Note: #249's SS27 cuts (oversized, peplums, plunge, gathers, drop yoke, jacket collars) went live in
 Release 54 because #263 was stacked on them. Cat chose to keep them live as In testing (Nov 2); #249
