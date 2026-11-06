@@ -304,6 +304,14 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
    the arm's own armhole plus 4 cm (the room a set-in sleeve's armhole has). Redrawn, the armhole lost more on a big
    body than a small one: on the oversized jacket and coat it came out up to 1.4 cm smaller than the arm on busts
    of 125 to 145 cm (`DROP` in `src/engine/sleeveCut.ts`, `cutSleeves` in `src/engine/bodice.ts`).
+50. **All round shows the cloth clean, in its own finish, and closer on request** (Nov 5, Cat's A + C): the swatch
+   pictures carry light painted into them (satin's fold bands, velvet's shading, linen's cloudy grid), which wrapped
+   round a garment read as stripes, a plaid or blotches. All round lifts those broad bands out (half the fine weave
+   kept, none on a smooth cloth) and lights each cloth in its own finish: velvet, corduroy, wool and terry glow softly
+   where they turn away, satin and silk take one broad sheen, leather a thin coat (`cleanCloth` in allRoundCloth.ts,
+   `FINISH` in allRoundMesh.ts). Prints and drawn checks are untouched. At the whole-garment size the weave is a pixel
+   or two, so "Look closer" (and a pinch, a double tap, or a trackpad pinch) zooms about 2x so the weave reads.
+   Raised weave (normal maps) and a lower side light were tried and rejected: no gain, and shimmer bands on wool.
 
 ## Style steps
 

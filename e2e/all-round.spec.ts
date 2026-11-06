@@ -58,3 +58,17 @@ test('all round shows the garment in the fabric picked', async ({ page }) => {
   await round.click();
   await expect.poll(tealAt).toBeGreaterThan(40);
 });
+
+// Closer look (Cat's C, 2026-11-05): the button zooms in on the turning garment so its cloth's weave shows, and says
+// how to go back; a double tap does the same.
+test('look closer zooms in on the garment and back', async ({ page }) => {
+  await startWithExample(page);
+  const main = page.getByRole('main');
+  await main.getByRole('group', { name: 'Garment view' }).getByRole('button', { name: 'All round', exact: true }).click();
+  await main.getByRole('button', { name: 'Look closer' }).click();
+  await main.getByRole('button', { name: 'Whole garment' }).click();
+  await expect(main.getByRole('button', { name: 'Look closer' })).toBeVisible();
+  // A double tap on the view goes closer too.
+  await main.locator('canvas.all-round-canvas').dblclick();
+  await expect(main.getByRole('button', { name: 'Whole garment' })).toBeVisible();
+});
