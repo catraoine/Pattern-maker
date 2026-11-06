@@ -81,7 +81,9 @@
  "bodice structure=none": [],
  "coat collar=collarless": [],
  "coat collar=funnel": [],
- "coat collar=hood": [],
+ "coat collar=hood": [
+  "Neckline square at centre back: #°"
+ ],
  "coat collar=notched": [],
  "coat collar=peak": [],
  "coat collar=shawl": [],
@@ -215,7 +217,9 @@
  "dress waistSeam=raised": [],
  "jacket collar=collarless": [],
  "jacket collar=funnel": [],
- "jacket collar=hood": [],
+ "jacket collar=hood": [
+  "Neckline square at centre back: #°"
+ ],
  "jacket collar=notched": [],
  "jacket collar=peak": [],
  "jacket collar=shawl": [],

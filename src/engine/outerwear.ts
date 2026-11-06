@@ -1032,15 +1032,13 @@ function hoodPiece(neckHalf: number, kind: OuterKind, sa: number): Piece {
   const { height: H } = HOOD[kind];
   let D = HOOD[kind].depth;
   const build = (depth: number) => {
-    // The neck leaves the nape square to the centre back seam (which arrives there running nearly straight down),
-    // so the two hood halves sewn together meet the neckline in a smooth curve, not a point.
-    const nape = p(depth * 0.84, H - 3.2);
-    const cbIn = unit(sub(nape, p(depth * 0.86, H - 6.5)));
+    // The neck meets the centre back at the nape at an open angle, not square: the two halves bend away from each
+    // other there once sewn, and All round's hood hangs from this shape (the pattern walk still lists it).
     const outline = new Path(p(0, H))
       .line(p(0, 1.5), 'face')
       .curve(p(depth * 0.4, -2.2), p(depth * 0.98, -0.4), p(depth, 9), 'centre')
-      .curve(p(depth * 1.01, H * 0.5), p(depth * 0.86, H - 6.5), nape, 'centre')
-      .curve(add(nape, mul(p(-cbIn.y, cbIn.x), depth * 0.25)), p(depth * 0.22, H + 1.1), p(0, H), 'neck');
+      .curve(p(depth * 1.01, H * 0.5), p(depth * 0.86, H - 6.5), p(depth * 0.84, H - 3.2), 'centre')
+      .curve(p(depth * 0.62, H + 1.6), p(depth * 0.22, H + 1.1), p(0, H), 'neck');
     outline.closed = true;
     return outline;
   };
