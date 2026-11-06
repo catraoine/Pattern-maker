@@ -25,13 +25,11 @@ test('a stranger gets the waitlist where Begin was, and joining counts against t
   // The Privacy Policy opens, and back comes home to the waitlist, not the app.
   await page.reload();
   await skipLoading(page);
-  await main.getByRole('button', { name: 'Privacy Policy' }).click();
+  // The footer is the one word Privacy (Cat's A, Nov 6): "How it's made" lives in the app, not on the waitlist.
+  await expect(main.getByRole('button', { name: "How it's made" })).toHaveCount(0);
+  await main.getByRole('button', { name: 'Privacy', exact: true }).click();
+  await expect(main.getByRole('heading', { level: 1, name: 'Privacy Policy' })).toBeVisible();
   await expect(page.getByRole('banner').getByRole('button', { name: /account/i })).toHaveCount(0);
-  await page.getByRole('banner').getByRole('button', { name: 'Back' }).click();
-  await expect(main.getByRole('button', { name: 'Join the waitlist' })).toBeVisible();
-  // So does "How it's made", for strangers wondering if it's an AI pattern (Cat's AI stance, 2026-10-28).
-  await main.getByRole('button', { name: "How it's made" }).click();
-  await expect(main.getByRole('heading', { level: 1, name: 'Drafted, not generated' })).toBeVisible();
   await page.getByRole('banner').getByRole('button', { name: 'Back' }).click();
   await expect(main.getByRole('button', { name: 'Join the waitlist' })).toBeVisible();
 });
