@@ -120,7 +120,7 @@ function material(mode: Mode, map?: THREE.Texture, scale = 1, opacity = 1, physi
     case 'satin':
       // The black satin form (ContourForm.tsx satinColour): deep, with a soft sheen rather than a mirror.
       mat.color.set(0x0b0a08);
-      mat.emissive.set(SHADOW); // its deepest shade is the page's shadow, oxblood, never pure black
+      mat.emissive.set(SHADOW); // its deepest shade is the page's shadow
       mat.roughness = 0.26;
       mat.metalness = 0.05;
       break;

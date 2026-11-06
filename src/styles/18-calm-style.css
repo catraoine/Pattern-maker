@@ -17,7 +17,7 @@
   opacity: 0.6;
 }
 .style-pin .preview:has(.form-still) {
-  background-image: radial-gradient(closest-side ellipse at 50% 48%, rgb(223 190 132 / 0.2), rgb(223 190 132 / 0.06) 55%, transparent);
+  background-image: radial-gradient(closest-side ellipse at 50% 48%, rgb(217 196 155 / 0.2), rgb(217 196 155 / 0.06) 55%, transparent);
 }
 
 /* K3: the garment's name is the one big heading. The word Style is only read out, and the example note is one soft
@@ -322,8 +322,8 @@
 
 /* H3: the choices sit on a slightly lifted sheet with a champagne line along its top, apart from the lit drawing. */
 .style-panel {
-  background: #1a0d09;
-  border-top: 1px solid rgb(223 190 132 / 0.45);
+  background: #14120e;
+  border-top: 1px solid rgb(217 196 155 / 0.45);
   padding-left: 16px;
   padding-right: 16px;
 }

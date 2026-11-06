@@ -425,7 +425,7 @@ function satinColour(lit: number, shine: number): string {
   const t = clamp((lit - 0.25) / 0.8, 0, 1);
   const k = Math.min(1, shine * 1.4);
   const ch = (lo: number, hi: number) => Math.round(lo + (hi - lo) * t + (95 - (lo + (hi - lo) * t)) * k);
-  // The deepest satin is the page's shadow (oxblood, not black), so the form never goes blacker than the ground's shade.
+  // The deepest satin is the page's shadow, so the form never goes darker than the ground's shade.
   return `rgb(${ch(8, 62)},${ch(3, 55)},${ch(2, 42)})`;
 }
 

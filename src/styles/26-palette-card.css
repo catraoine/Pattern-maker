@@ -7,7 +7,7 @@
 .palette-card {
   margin: 0;
   display: grid;
-  box-shadow: 0 10px 28px rgba(8, 3, 2, 0.55);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
   animation: palette-in 0.32s ease both;
 }
 .palette-tex {

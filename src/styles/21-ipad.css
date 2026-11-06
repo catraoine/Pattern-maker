@@ -96,7 +96,7 @@
     z-index: 2;
     margin: 0 -24px;
     padding: 14px 24px calc(14px + env(safe-area-inset-bottom));
-    background: #1a0d09;
+    background: #14120e;
     border-top: 1px solid var(--guide);
   }
 }

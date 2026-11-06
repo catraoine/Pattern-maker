@@ -259,7 +259,7 @@ button.link.how-link {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  background: rgba(8, 3, 2, 0.88);
+  background: rgba(0, 0, 0, 0.88);
 }
 
 .how-panel {

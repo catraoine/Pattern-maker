@@ -104,7 +104,7 @@
 }
 
 /* The film sits in its own box at its own shape, so there is no letterbox for the browser to paint: iPhones paint
-   the bars beside a video black whatever the page's colour, and black bands showed over the oxblood (Cat, 2026-11-06). */
+   the bars beside a video black whatever the page's colour, and black bands showed over the page (Cat, 2026-11-06). */
 .tour-stage {
   flex: 1;
   min-height: 0;

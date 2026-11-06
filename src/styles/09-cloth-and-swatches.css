@@ -13,7 +13,7 @@
 /* Where the cloth turns away at its edges: a soft shadow just inside them. */
 .form-still .cloth-turn,
 .form-svg .cloth-turn {
-  stroke: #080302;
+  stroke: #000;
   opacity: 0.3;
 }
 /* Drawing on the garment (D1 Draw on the Dress): the cloth follows each line as it lands, and the cloth takes
@@ -36,12 +36,12 @@
 }
 .form-still .seam-groove,
 .form-svg .seam-groove {
-  stroke: #080302;
+  stroke: #000;
   opacity: 0.4;
 }
 .form-still .seam-fold,
 .form-svg .seam-fold {
-  stroke: #080302;
+  stroke: #000;
   opacity: 0.55;
 }
 .form-still .seam-light,

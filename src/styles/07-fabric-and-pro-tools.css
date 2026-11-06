@@ -136,7 +136,7 @@ dialog.guide {
   color: var(--ink);
 }
 dialog.guide::backdrop {
-  background: rgba(8, 3, 2, 0.7);
+  background: rgba(0, 0, 0, 0.7);
 }
 .guide-body {
   display: grid;

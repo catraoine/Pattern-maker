@@ -5,7 +5,7 @@
   flex: none;
   gap: 0;
   padding: 3px;
-  background: #1f110c; /* a step up from the oxblood ground */
+  background: #141210;
 }
 .style-layout .style-pin > section:not(.live-big) .seg button {
   height: 26px;
@@ -17,7 +17,7 @@
   color: var(--muted);
 }
 .style-layout .style-pin > section:not(.live-big) .seg button.on {
-  background: #3f2b1d;
+  background: #3a3220;
   color: var(--ink);
   font-weight: var(--w-strong);
 }

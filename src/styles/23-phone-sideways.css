@@ -17,7 +17,7 @@
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
     display: flex; align-items: center; gap: 14px;
     padding: 8px calc(16px + env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));
-    background: #1a0d09; border-top: 1px solid rgb(223 190 132 / 0.45);
+    background: #14120e; border-top: 1px solid rgb(217 196 155 / 0.45);
   }
   .style-edit > .style-bar::before {
     content: 'Turn upright to change it'; margin-right: auto;
