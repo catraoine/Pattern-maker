@@ -101,6 +101,9 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
       <DrawOnForm<OuterChoices>
         allRound={round ? { round, drape: drapeJob, m: values, fabric, striped: matchKind(fabric) } : undefined}
         cloth={clothShapes}
+        flatLines={flatLines}
+        backCloth={flat ? wornShapes(flat, 1) : undefined}
+        backFlatLines={flat ? wornLines(flat, 1) : undefined}
         arms={formArm}
         sleeve={formArm ? draft.sleeve : undefined}
         underarmY={landmarks(draft.base).underarm.y}
@@ -161,6 +164,12 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
     );
   }
 
+  // The Front drawing: shown on Front, and standing in for the sewn All round when that fails its score.
+  const sketch = formBody ? (
+    <GarmentFabric fabric={fabric}>
+      <FormSketch body={formBody} m={m} legs={kind === 'coat'} bottom={waistY + outerDrop(m, longest) + 6} lines={formLines} cloth={clothShapes} flatLines={flatLines} arms={formArm} sleeve={formArm ? draft?.sleeve : undefined} underarmY={draft ? landmarks(draft.base).underarm.y : undefined} label={`The ${title.toLowerCase()} on your form`} />
+    </GarmentFabric>
+  ) : undefined;
   return (
     <StyleLayout
       fabric={fabric}
@@ -269,25 +278,21 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
           )}
           <InCorner>
             {draft && (
-              <button type="button" className="link small" onClick={() => setOnForm(choices)}>
-                Draw on your form
+              <button type="button" className="link small" aria-label="Draw on your form" onClick={() => setOnForm(choices)}>
+                <span className="tool-word">Draw</span>
               </button>
             )}
           </InCorner>
         </div>
         <div className="preview">
           {error && <p className="msg error">{error}</p>}
-          {formBody && view === 'sketch' && (
-            <GarmentFabric fabric={fabric}>
-              <FormSketch body={formBody} m={m} legs={kind === 'coat'} bottom={waistY + outerDrop(m, longest) + 6} lines={formLines} cloth={clothShapes} flatLines={flatLines} arms={formArm} sleeve={formArm ? draft?.sleeve : undefined} underarmY={draft ? landmarks(draft.base).underarm.y : undefined} label={`The ${title.toLowerCase()} on your form`} />
-            </GarmentFabric>
-          )}
+          {view === 'sketch' && sketch}
           {flat && view === 'flat' && (
             <GarmentFabric fabric={fabric}>
               <TechFlatView flat={flat} title={title} />
             </GarmentFabric>
           )}
-          {round && view === 'round' && <AllRound round={round} drape={drapeJob} m={values} fabric={fabric} striped={matchKind(fabric)} label={`The ${title.toLowerCase()} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`} />}
+          {round && view === 'round' && <AllRound round={round} drape={drapeJob} m={values} fabric={fabric} striped={matchKind(fabric)} fallback={sketch} label={`The ${title.toLowerCase()} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`} />}
           {draft && sheet && view === 'pattern' && !(fit && canFit) && <PatternPane><PatternPreview paper sheet={sheet} label={`Pattern pieces for ${title.toLowerCase()}`} /></PatternPane>}
           {view === 'pattern' && fit && canFit && <EaseMapView views={easeMap!} label={`The fit of the ${title.toLowerCase()}, on its pattern pieces`} />}
           <UndoToast undo={undo} />

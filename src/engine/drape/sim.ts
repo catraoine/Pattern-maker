@@ -31,6 +31,8 @@ export interface SimInput {
   pad?: number;
   /** Points of the shoulder seams: they rest on the top of the shoulder, as a dressmaker pins a garment to the form. */
   shoulder?: Int32Array;
+  /** The body's own cloth never meets the arm (a sleeveless garment: nothing rests on the arm). */
+  armFree?: boolean;
   /** How far out from the centre each shoulder point is cut to sit (sleeveless: a strap is held there, not left to
    *  slide off down the slope of the shoulder). */
   shoulderX?: Float64Array;
@@ -83,7 +85,10 @@ export function simulate(s: Space, inp: SimInput, steps = knob("__steps") ?? 260
   // (Nothing on the arms, a sleeveless bodice: the arm's top sits up at the shoulder tip, where a strap rests on it.)
   const arm = inp.onArm.some((v) => v) ? s.arm : { ...s.arm, a: [s.arm.a[0], s.tip.c + s.arm.r0 * (knob('__armUpBare') ?? 0.5), s.arm.a[2]] as [number, number, number] };
   const ab = [arm.b[0] - arm.a[0], arm.b[1] - arm.a[1], arm.b[2] - arm.a[2]];
-  const armLow = arm.a[1] - arm.r0 > s.tip.c + 1;
+  // (A sleeveless garment's cloth never meets the arm either: resting on the arm's top, which the drawn form has not
+  // got, the top of its armhole rode up over the arm as a shelf standing in the air past the shoulder, All round
+  // quality 2026-11-04.)
+  const armLow = inp.armFree || arm.a[1] - arm.r0 > s.tip.c + 1;
   const abL2 = ab[0] ** 2 + ab[1] ** 2 + ab[2] ** 2;
 
   const dist = (k: number, a: number, b: number, L: number) => {

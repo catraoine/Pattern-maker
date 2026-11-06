@@ -23,7 +23,7 @@ describe('the Archive', () => {
     expect(canMake({ ...cut, source: 'A museum' })).toBe(false);
     expect(canMake({ ...cut, source: 'A museum', credit: 'From the collection of a museum.' })).toBe(true);
     expect(archiveCut(cut.id)).toBe(cut);
-    expect(archiveCut('klein')).toBeUndefined();
+    expect(archiveCut('ice-peplum')).toBeUndefined();
   });
 
   it("keeps last season's house looks, credited to the house and open to make", () => {

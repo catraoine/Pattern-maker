@@ -93,7 +93,7 @@ const eased = (stops, i) => {
   return e;
 };
 // notes: captions, each [picture, when it fades in, when it fades out], so a first-time viewer knows what each tap does.
-async function piece({ shot, src, slide = 0, still, from = 0, dur, speed = 1, zoom = [1, 1], at = [0.5, 0.5], cam, frame, tint, fadeIn = 0, fadeOut = 0, over, overIn = 0.4, overAt = 0, overs = [], notes = [], reverse = false, lift, drop }) {
+async function piece({ shot, src, slide = 0, still, from = 0, dur, speed = 1, zoom = [1, 1], at = [0.5, 0.5], cam, frame, tint, fadeIn = 0, fadeOut = 0, over, overIn = 0.4, overAt = 0, overs = [], notes = [], cards = [], strip, reverse = false, lift, drop }) {
   const edge = frame ? await mask(frame) : undefined;
   const out = join(work, `p${String(k++).padStart(3, '0')}.mp4`);
   const frames = Math.round(dur * FPS);
@@ -104,6 +104,8 @@ async function piece({ shot, src, slide = 0, still, from = 0, dur, speed = 1, zo
   if (over) args.push('-loop', '1', '-framerate', String(FPS), '-t', String(dur), '-i', over);
   for (const [o] of overs) args.push('-loop', '1', '-framerate', String(FPS), '-t', String(dur), '-i', o);
   for (const [o] of notes) args.push('-loop', '1', '-framerate', String(FPS), '-t', String(dur), '-i', o);
+  for (const [o] of cards) args.push('-loop', '1', '-framerate', String(FPS), '-t', String(dur), '-i', o);
+  if (strip) args.push('-loop', '1', '-framerate', String(FPS), '-t', String(dur), '-i', strip.file);
   const oi = edge ? 2 : 1;
   const firstOver = oi + (over ? 1 : 0);
   const [z0, z1] = zoom;
@@ -133,6 +135,19 @@ async function piece({ shot, src, slide = 0, still, from = 0, dur, speed = 1, zo
   notes.forEach(([, on, off], i) => {
     v += `[n${i}];[${firstNote + i}:v]format=rgba,fade=t=in:st=${on}:d=0.45:alpha=1,fade=t=out:st=${off - 0.45}:d=0.45:alpha=1[c${i}];[n${i}][c${i}]overlay=0:0:shortest=1`;
   });
+  // cards: [picture, when it comes in, when it goes], a card that glides in a little from the right as it fades in,
+  // holds still, and fades away.
+  const firstCard = firstNote + notes.length;
+  cards.forEach(([, on, off], i) => {
+    const glide = Math.round(W * 0.03);
+    v += `[q${i}];[${firstCard + i}:v]format=rgba,fade=t=in:st=${on}:d=0.5:alpha=1,fade=t=out:st=${off - 0.4}:d=0.4:alpha=1[d${i}];[q${i}][d${i}]overlay=x='${glide}*pow(1-min(1,max(0,(t-${on})/0.6)),2)':y=0:shortest=1`;
+  });
+  // strip: { file, x0, x1, y, on } a wide row of cards (in output pixels) that fades in and glides steadily from x0 to x1
+  // across the whole piece, like turning through a swatch book (Cat's S2 Slow Strip, 2026-11-02).
+  if (strip) {
+    const si = firstCard + cards.length;
+    v += `[sb];[${si}:v]format=rgba,fade=t=in:st=${strip.on ?? 0.2}:d=0.6:alpha=1[sp];[sb][sp]overlay=x='${strip.x0}+(${strip.x1 - strip.x0})*t/${dur}':y=${strip.y}:shortest=1`;
+  }
   if (fadeIn) v += `,fade=t=in:st=0:d=${fadeIn}`;
   if (fadeOut) v += `,fade=t=out:st=${(dur - fadeOut).toFixed(3)}:d=${fadeOut}`;
   v += ',format=yuv420p[v]';
@@ -153,26 +168,45 @@ function tapeAcross(t) {
 }
 
 const MARKS = WIDE
-  ? { fabric: 1.4, enlarge: 7.4, draw: 9.4, hem: 11.0, side: 17.1, done: 21.8 }
-  : { fabric: 1.4, enlarge: 6.8, draw: 6.8, hem: 8.3, side: 13.7, done: 18.0 };
+  ? { fabric: 1.4, enlarge: 7.2, draw: 9.1, hem: 10.7, side: 16.1, done: 20.2 }
+  : { fabric: 1.4, enlarge: 7.9, draw: 7.9, hem: 9.5, side: 14.8, done: 18.9 };
 // Played at 1.4 times its speed, however long the take (Cat, 2026-11-01: less time on the dress page, no enlarge).
-const JOURNEY = { from: 0.6, to: MARKS.done + 0.9, dur: Math.round(((MARKS.done + 0.3) / 1.4) * 10) / 10 };
+// Ends as Done is tapped, on the drawing: Shop the fabric follows, not the pattern sheet (Cat, 2026-11-02).
+const JOURNEY = { from: 0.6, to: MARKS.done - 0.2, dur: Math.round(((MARKS.done + 0.3) / 1.4) * 10) / 10 };
 const atOut = (t) => ((t - JOURNEY.from) * JOURNEY.dur) / (JOURNEY.to - JOURNEY.from);
 // [shot time, zoom, x, y]: on a computer, the whole page, then in on the enlarged form to draw, and back as the
 // pattern comes up. A phone shows the whole screen throughout. Both end framed as the pattern shot opens, so the
 // sheet doesn't jump as one dissolves into the other (Cat, 2026-10-25).
 const STYLE_CAM = (WIDE
-  ? [[0.6, 1, 0.5, 0.5], [MARKS.draw, 1, 0.5, 0.5], [MARKS.hem - 0.2, 1.25, 0.5, 0.44], [MARKS.done, 1.25, 0.5, 0.44], [JOURNEY.to, 1.6, 0.42, 0.72]]
-  : [[0.6, 1, 0.5, 0.5], [MARKS.done, 1.05, 0.5, 0.47], [JOURNEY.to, 1.1, 0.5, 0.56]]).map(([t, ...r]) => [atOut(t), ...r]);
+  ? [[0.6, 1, 0.5, 0.5], [MARKS.draw, 1, 0.5, 0.5], [MARKS.hem - 0.2, 1.25, 0.5, 0.44], [JOURNEY.to, 1.25, 0.5, 0.44]]
+  : [[0.6, 1, 0.5, 0.5], [JOURNEY.to, 1.05, 0.5, 0.47]]).map(([t, ...r]) => [atOut(t), ...r]);
 // No step words over the Style journey: what each move does is left to show itself (Cat, 2026-10-24: "take out
 // these headings, just leave it implied"), nor over the pattern: after the photo's own line, the next words are
 // "Drafted to your body".
 const STYLE_NOTES = [];
+// D1 One Palette Card (Cat, 2026-11-02): as the dress takes the new cloth, one tall swatch card of it, the app's cream
+// label strip under it, glides in beside the form and holds still, gone before the drawing tool opens. Its swatch is
+// cut from the dress itself once the cloth is on, so it is the very cloth on the form. CARD_AT: shot time the cloth
+// changes on screen, about 1 s after the "style cloth" mark record-tour-shots.mjs prints.
+const CARD = { at: Number(process.env.CARD_AT ?? (WIDE ? 4.3 : 5.1)), name: process.env.CARD_NAME ?? 'Snakeskin', colour: process.env.CARD_COLOUR ?? 'Aqua' };
+const CARD_OFF = (WIDE ? MARKS.enlarge : MARKS.draw) - 0.3;
+async function clothCard() {
+  const grab = join(work, 'cloth.png');
+  // Phone: the bodice below the neck; computer: the same on the smaller form. On a phone the card covers the
+  // whole spec list beside the form, so no half-hidden words show at its edges.
+  const [cx, cy, cw, ch] = WIDE ? [630, 430, 120, 190] : [290, 520, 200, 290];
+  execFileSync('ffmpeg', ['-v', 'error', '-y', '-ss', String(CARD.at + 0.8), '-i', join(SHOTS, 'style.mp4'), '-frames:v', '1', '-vf', `crop=${cw}:${ch}:${cx}:${cy}`, grab]);
+  const cloth = readFileSync(grab).toString('base64');
+  const [left, top, w, tex, strip] = WIDE ? [690, 250, 120, 170, 46] : [300, 166, 108, 214, 44];
+  return words(`<div style="position:fixed;left:${left}px;top:${top}px;width:${w}px;box-shadow:0 12px 28px rgba(0,0,0,.6)"><div style="height:${tex}px;background:url(data:image/png;base64,${cloth}) center/cover"></div><div style="height:${strip}px;box-sizing:border-box;padding:${WIDE ? 10 : 8}px ${WIDE ? 10 : 8}px;background:linear-gradient(90deg,#ece2cb 0%,#ece2cb 78%,#d3c7ab 100%);font-family:'Chakra Petch',monospace;text-transform:uppercase;white-space:nowrap;overflow:hidden"><div style="font-weight:600;font-size:${WIDE ? 10.5 : 8.5}px;letter-spacing:.16em;color:#151311">${CARD.name}</div><div style="font-size:${WIDE ? 8.5 : 7}px;letter-spacing:.14em;color:#6c6250;margin-top:4px">${CARD.colour}</div></div></div>`);
+}
 const styleJourney = async () => {
   // One at a time: the words are all drawn on the one page.
   const notes = [];
   for (const [line, on, off, where] of STYLE_NOTES) notes.push([await note(line, where), atOut(on), atOut(off)]);
-  return piece({ shot: 'style', from: JOURNEY.from, dur: JOURNEY.dur, speed: (JOURNEY.to - JOURNEY.from) / JOURNEY.dur, cam: STYLE_CAM, fadeIn: 0.5, notes, ...(LIFT && { lift: [LIFT, JOURNEY.dur - 2.4, 1.6] }) });
+  // The app now draws its own palette card beside the form (Release 53), so the film's card is off unless CARD=1.
+  const cards = process.env.CARD !== '1' ? [] : [[await clothCard(), atOut(CARD.at), atOut(CARD_OFF)]];
+  return piece({ shot: 'style', from: JOURNEY.from, dur: JOURNEY.dur, speed: (JOURNEY.to - JOURNEY.from) / JOURNEY.dur, cam: STYLE_CAM, fadeIn: 0.5, notes, cards, ...(LIFT && { lift: [LIFT, JOURNEY.dur - 2.4, 1.6] }) });
 };
 // Cat (2026-10-22): the cream pattern paper was too bright after the black pages; a deeper champagne here.
 // Wide: from the moment the pattern is up, slowed a touch to fill its time (Cat, 2026-10-22: the drawing flashed before it).
@@ -249,31 +283,46 @@ async function photoMoment() {
   // Held long enough to read (Cat, 2026-10-25).
   return piece({ still: pic, dur: 3.2, zoom: [1, 1.03], fadeIn: 0.5, fadeOut: 0.5, notes: [[await note('Or upload a photo.', 'low'), 0.2, 3.2]] });
 }
-// N3b Shop the fabric (Cat, 2026-10-30): after Style, six of the partner shop's fabrics as the app's cream tags with a
-// photo of the cloth in each, landing one after another. Every name sits on one line, so every tag is the same size
-// (two shop names shortened to fit).
+// S2 Slow Strip (Cat, 2026-11-02, replacing N3b's six tags landing one by one): one row of seven tall swatch cards, real
+// Mood listings Cat picked (photos cropped from her screenshots of the shop, no draped stock swirls), each with its
+// name, cloth, the shop and its price, gliding slowly sideways. Prices are the listings' regular prices per yard (CA$),
+// not the sale price, so the film doesn't date.
 const SHOP = [
-  ['silk', 'Silk charmeuse', '$39.96/yd · 3 colours'],
-  ['wool', 'Double wool crepe', '$79.96/yd · 1 colour'],
-  ['linen', 'Linen and cotton', '$24.96/yd · 2 colours'],
-  ['cotton', 'Stretch cotton poplin', '$8/yd · 1 colour'],
-  ['corduroy', 'Featherwale corduroy', '$26.96/yd · 2 colours'],
-  ['denim', 'Cotton denim, 10.5 oz', '$15.96/yd · 2 colours'],
-];
+  ...(process.env.SHOP_PYTHON === '0' ? [] : [['python', 'Aqua & Chili python', 'Silk charmeuse', '$141.94/yd']]),
+  ['ribbon', 'Black Bean & White', 'Italian silk print', '$141.89/yd'],
+  ['lime', 'Lime & Purple python', 'Italian silk print', '$141.94/yd'],
+  ['organza', 'Classic Blue floral', 'Silk organza', '$212.90/yd'],
+  ['pink', 'Pink & Turquoise', 'Italian silk print', '$141.94/yd'],
+  ['poppy', 'Golden Poppy border', 'Silk charmeuse', '$141.93/yd'],
+  ['lily', 'Creme Brulee lily', 'Milly silk chiffon', '$42.57/yd'],
+].filter(([img]) => existsSync(new URL(`./tour/shop/${img}.jpg`, import.meta.url)));
 async function shopMoment() {
-  // Phone: two across, three down. Computer: three across, two down.
-  const [cols, w, tex, gap, top] = WIDE ? [3, 250, 175, 22, 190] : [2, 180, 120, 14, 150];
-  const strip = WIDE ? 80 : 66;
-  const left = (VW - cols * w - (cols - 1) * gap) / 2;
-  const tags = [];
-  for (let i = 0; i < SHOP.length; i++) {
-    const [img, name, price] = SHOP[i];
-    const photo = readFileSync(new URL(`../public/fabrics/${img}.jpg`, import.meta.url)).toString('base64');
-    const x = left + (i % cols) * (w + gap);
-    const y = top + Math.floor(i / cols) * (tex + strip + gap);
-    tags.push([await words(`<div style="position:fixed;left:${x}px;top:${y}px;width:${w}px;box-shadow:0 10px 24px rgba(0,0,0,.55)"><img src="data:image/jpeg;base64,${photo}" style="display:block;width:100%;height:${tex}px;object-fit:cover"><div style="height:${strip}px;box-sizing:border-box;padding:${WIDE ? 14 : 10}px;background:linear-gradient(90deg,#ece2cb 0%,#ece2cb 78%,#d3c7ab 100%);font-family:'Chakra Petch',monospace;text-transform:uppercase;white-space:nowrap;overflow:hidden"><div style="font-weight:600;font-size:${WIDE ? 12 : 9.5}px;letter-spacing:.15em;color:#151311">${name}</div><div style="font-size:${WIDE ? 9.5 : 8}px;letter-spacing:.12em;color:#6c6250;margin-top:5px">Mood Fabrics</div><div style="font-size:${WIDE ? 9.5 : 8}px;letter-spacing:.12em;color:#6c6250;margin-top:3px">${price}</div></div></div>`), 0.3 + 0.3 * i]);
-  }
-  return piece({ still: await words('', { solid: true }), dur: 4.6, fadeIn: 0.5, fadeOut: 0.5, overs: tags, notes: [[await note('Shop the fabric.', 'low'), 0.2, 4.6]] });
+  const dur = 8;
+  const [w, tex, band, gap] = WIDE ? [230, 320, 92, 28] : [140, 196, 70, 14];
+  const rowW = SHOP.length * w + (SHOP.length - 1) * gap;
+  const cardsHtml = SHOP.map(([img, name, cloth, price], i) => {
+    const photo = readFileSync(new URL(`./tour/shop/${img}.jpg`, import.meta.url)).toString('base64');
+    const small = WIDE ? 10 : 7.2;
+    return `<div style="position:absolute;left:${i * (w + gap)}px;top:0;width:${w}px;box-shadow:0 10px 24px rgba(0,0,0,.55)"><img src="data:image/jpeg;base64,${photo}" style="display:block;width:100%;height:${tex}px;object-fit:cover"><div style="height:${band}px;box-sizing:border-box;padding:${WIDE ? 14 : 10}px ${WIDE ? 14 : 9}px 0;background:linear-gradient(90deg,#ece2cb 0%,#ece2cb 78%,#d3c7ab 100%);font-family:'Chakra Petch',monospace;text-transform:uppercase;white-space:nowrap;overflow:hidden"><div style="font-weight:600;font-size:${WIDE ? 12 : 8.5}px;letter-spacing:.12em;color:#151311">${name}</div><div style="font-size:${small}px;letter-spacing:.12em;color:#6c6250;margin-top:6px">${cloth}</div><div style="font-size:${small}px;letter-spacing:.12em;color:#6c6250;margin-top:4px">Mood Fabrics${price ? ` · ${price}` : ''}</div></div></div>`;
+  }).join('');
+  // The row is wider than the screen: draw it on a wide page, then slide it under the frame.
+  const file = join(work, `w${n++}.png`);
+  const h = tex + band + 40;
+  await page.setViewportSize({ width: rowW + 40, height: Math.max(VH, h) });
+  await page.evaluate(([css, html]) => {
+    document.head.querySelectorAll('style[data-edit]').forEach((x) => x.remove());
+    const st = document.createElement('style'); st.dataset.edit = '1'; st.textContent = css; document.head.appendChild(st);
+    document.body.innerHTML = html;
+  }, [CSS, `<div style="position:absolute;left:20px;top:10px;width:${rowW}px;height:${tex + band}px">${cardsHtml}</div>`]);
+  await page.evaluate(() => document.fonts.ready);
+  await page.screenshot({ path: file, omitBackground: true, clip: { x: 0, y: 0, width: rowW + 40, height: h } });
+  await page.setViewportSize({ width: VW, height: VH });
+  const k = W / VW;
+  // From the first card (the cloth on the dress) whole on screen to the last card a little in from the right.
+  const x0 = Math.round((WIDE ? VW * 0.12 : VW * 0.3) * k - 20 * k);
+  const x1 = Math.round((VW * 0.88 - rowW - 20) * k);
+  const y = Math.round((WIDE ? 230 : 300) * k);
+  return piece({ still: await words('', { solid: true }), dur, fadeIn: 0.5, fadeOut: 0.5, strip: { file, x0, x1, y, on: 0.3 }, notes: [[await note('Shop the fabric.', 'low'), 0.2, dur]] });
 }
 // The opening (Cat, 2026-10-22: the old one repeated the loading screen and welcome the viewer had just seen).
 const INTRO = process.env.TOUR_INTRO ?? 'W'; // Cat's pick, 2026-10-30: W Welcome Push (was C2 Pull Back)
@@ -352,11 +401,12 @@ const CUTS = {
       // Done lands on the pattern sheet, so the pattern follows straight on, then the dress all round (Cat,
       // 2026-10-24: no flash back to the dress between them), each dissolving into the next.
       await dissolve(
-        await dissolve(await styleJourney(), await piece({ shot: 'pattern', dur: 3.6, ...PATTERN, notes: [[await note(WIDE ? 'Your pattern, in seconds.' : 'Your pattern,<br>in seconds.', 'low', false), 0.5, 3.4]] }), 0.8),
+        // Shop the fabric sits with Style, straight after the dress is styled (Cat, 2026-11-02: not after the
+        // pattern and All round, next to Print).
+        await dissolve(await dissolve(await styleJourney(), await shopMoment(), 0.6), await piece({ shot: 'pattern', dur: 3.6, ...PATTERN, notes: [[await note(WIDE ? 'Your pattern, in seconds.' : 'Your pattern,<br>in seconds.', 'low', false), 0.5, 3.4]] }), 0.8),
         await piece({ shot: 'round', from: 0.3, dur: 8.6, fadeOut: f, overs: (await threeChecks()).map((p, i) => [p, 0.9 + i * 1.8]) }),
         1,
       ),
-      await shopMoment(),
       await piece({ still: await card('04', 'Print', 'At home, or full size.'), dur: 3, fadeIn: f, fadeOut: f }),
       // Down to Print my pattern, the pages, then projector mode (Cat, 2026-10-29: the scroll to print and the
       // projector back in).
@@ -369,7 +419,8 @@ const CUTS = {
   },
 };
 
-const pieces = await CUTS.words();
+// ONLY=shop cuts just the Shop the fabric moment, for checking it on its own.
+const pieces = process.env.ONLY === 'shop' ? [await shopMoment()] : await CUTS.words();
 await b.close();
 writeFileSync(join(work, 'list.txt'), pieces.map((p) => `file '${p}'`).join('\n'));
 const film = join(work, 'film.mp4');

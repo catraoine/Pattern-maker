@@ -279,7 +279,11 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
       <div className="split">
         <section className="card grow print-top" aria-labelledby="ptitle">
           <div className="print-head">
-            <h1 id="ptitle">{title[0].toUpperCase() + title.slice(1)}</h1>
+            {/* Where you've landed, said calmly (Cat, Nov 3): a quiet "Your summary" heading and one line on what
+                the page is for, then the garment's name in reading type, not a wall of big capitals. */}
+            <h1 id="ptitle">Your summary</h1>
+            <p className="print-guide">Everything you picked, ready to print. Check the pieces, choose your paper, then download.</p>
+            <h2 className="print-name">{title[0].toUpperCase() + title.slice(1)}</h2>
             <p className="muted">
               {imported
                 ? `${imported.fileName} · ${made.pieces.length} ${made.pieces.length === 1 ? 'piece' : 'pieces'}${imported.source ? ` from ${imported.source}` : ''}`

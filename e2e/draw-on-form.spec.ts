@@ -74,7 +74,9 @@ test('back asks first, then leaves the bodice as it was', async ({ page }) => {
   await (await drawTool(page)).click();
   await back.click();
   await expect(main.getByRole('heading', { name: 'Style your bodice' })).toBeVisible();
-  await back.click();
+  // The style steps have no header ← (Cat's B, 2026-11-02): the phone's own back carries on from there.
+  await expect(back).toBeHidden();
+  await page.goBack();
   await expect(main.getByRole('heading', { name: 'Style your bodice' })).toHaveCount(0);
 });
 
@@ -95,7 +97,7 @@ test('Done keeps the lines, and the back button then leaves the style screen', a
     await page.locator('.steady-back').click();
     await expect(main.getByRole('heading', { name: 'Style your bodice' })).toBeVisible();
   }
-  await page.locator('.steady-back').click();
+  await page.goBack();
   await expect(main.getByRole('heading', { name: 'Style your bodice' })).toHaveCount(0);
 });
 
@@ -209,4 +211,19 @@ test('draws a yoke, an uneven neckline and a shaped hem on the bodice', async ({
   await expect(main.getByRole('status')).toHaveText(/hem|hip/i);
   await main.getByRole('button', { name: 'Done', exact: true }).click();
   await expect(main.getByRole('heading', { name: 'Style your bodice' })).toBeVisible();
+});
+
+test('the skirt is drawn on as calico cloth, and a pleat line shows on it', async ({ page }) => {
+  await startWithExample(page);
+  const main = page.getByRole('main');
+  await (await drawTool(page)).click();
+  await expect(main.getByRole('heading', { name: 'Draw your lines' })).toBeVisible();
+  // Every garment wears its cloth on the form, the skirt too (Cat, 2026-11-04).
+  await expect(page.locator('svg.form-svg.clothed')).toBeVisible();
+  const pressed = page.locator('svg.form-svg .seam-groove');
+  const before = await pressed.count();
+  await main.getByRole('button', { name: 'Fullness', exact: true }).click();
+  await draw(page, [{ x: 6, y: 1 }, { x: 6, y: 9 }]);
+  await expect(main.getByRole('status')).toHaveText(/pleats/i);
+  await expect.poll(() => pressed.count()).toBeGreaterThan(before);
 });

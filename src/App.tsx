@@ -12,7 +12,7 @@ import { printNap, printOf } from './engine/prints';
 import { layAmount } from './engine/layplan';
 import { withEstimates } from './estimate';
 import { EXAMPLE_BODY, FormKind, Garment, MeasurementId, MeasurementValues, Unit, checkMeasurements, isComplete, isLowerBody, isOuterwear } from './measurements';
-import { usePersistent } from './store';
+import { fillMissing, usePersistent } from './store';
 import {
 Account,
 ME,
@@ -167,7 +167,7 @@ export default function App() {
   };
   /** Everything here, put back from a backup, a move link or the signed-in account. */
   const applyBackup = (b: Backup<Saved>) => {
-    setSaved({ ...INITIAL, ...b.skirt });
+    setSaved(fillMissing(INITIAL, b.skirt));
     setAccount({ ...NEW_ACCOUNT, ...b.account, onboarded: true });
     if (b.pointEdits) setPointEdits(b.pointEdits as Record<string, PointEdit[]>);
   };
@@ -556,9 +556,14 @@ export default function App() {
           ) : (
             <>
               <div className="steady-row">
-                <button type="button" className="steady-back" aria-label="Back" onClick={back}>
-                  ←
-                </button>
+                {/* No header back on the three chapters (Cat, 2026-11-02: "this arrow causes confusion"): Measure, Style
+                    and Print are tapped to move between them. Guided measuring, side screens, Draw and Review keep it
+                    (Style's steps hide it in 25-step-back.css). */}
+                {step !== 'measure' && step !== 'export' && (
+                  <button type="button" className="steady-back" aria-label="Back" onClick={back}>
+                    ←
+                  </button>
+                )}
                 <nav aria-label="Steps" className="steps">
                   {STEPS.map((s) => {
                     const on = STEP_OF[step] === s.id;
@@ -642,7 +647,7 @@ export default function App() {
               onBring={(b) => {
                 // Brought in, so a reload shouldn't offer it again.
                 dropHash();
-                setSaved({ ...INITIAL, ...(b.skirt as Partial<Saved>) });
+                setSaved(fillMissing(INITIAL, b.skirt));
                 setAccount({ ...NEW_ACCOUNT, ...b.account, onboarded: true });
                 if (b.pointEdits) setPointEdits(b.pointEdits as Record<string, PointEdit[]>);
               }}

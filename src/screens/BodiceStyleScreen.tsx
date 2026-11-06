@@ -10,7 +10,7 @@ import { BodiceDraft, BodiceMeasurements, bodiceEase, dropRange, hemDrop, needsH
 import { BODICE_GROUPS, BodiceChoices, DARTS_FOR_FIT, dartsFor, describeBodice, detailAllowed, sleeveOf, topAllowed, validDetails } from '../garments';
 import { isStrapless, isTop } from '../engine/corset';
 import { SHIRR } from '../engine/shirred';
-import { bodiceFlat } from '../engine/flat';
+import { bodiceFlat, wornShapes, wornLines } from '../engine/flat';
 import { TechFlatView } from '../ui/TechFlatView';
 import { AllRound } from '../ui/AllRound';
 import { roundBodice } from '../engine/allRound';
@@ -85,7 +85,14 @@ interface Props {
 function friendly(w: string) {
   if (w.startsWith('shoulder width')) return 'Your shoulder width and shoulder length don’t quite agree. The pattern still drafts, but re-measuring both will make the shoulders fit better.';
   if (w.startsWith('front length')) return 'Your front length came out shorter than your back length, which usually means a tape slip. It’s drafted with a little extra; please re-measure it.';
-  return 'Something in your measurements looks unusual. Please double-check them.';
+  // The closer-fit measurements, named, so the person knows which page to go back to (the readiness check, 2026-11-02).
+  if (w.startsWith('front shoulder slope')) return 'Your front shoulder slope doesn’t agree with your front length and shoulder width, so the shoulder is drafted at a standard slope. Please re-measure the front shoulder slope.';
+  if (w.startsWith('back shoulder slope')) return 'Your back shoulder slope doesn’t agree with your back length and shoulder width, so the shoulder is drafted at a standard slope. Please re-measure the back shoulder slope.';
+  if (w.startsWith('armhole')) return 'Your armhole measurement is large for the rest of you, so the armhole is drafted as close to it as the block allows. Please re-measure the armhole.';
+  if (w.startsWith('sleeve widened')) return 'Your armhole is large next to your upper arm, so the sleeve is cut a little wider to fit it. Please check the armhole and upper arm.';
+  if (w.startsWith('sleeve narrowed')) return 'Your upper arm is large next to your armhole, so the sleeve is cut a little closer. Please check the armhole and upper arm.';
+  if (w.startsWith('side seam too short')) return 'Your bust sits low for your side length, so the bust dart runs close to the waist. Please check your bust depth and front length.';
+  return `One of your measurements looks unusual (${w}). Please double-check it.`;
 }
 
 const NECK_NAMES: Record<BodiceChoices['neckline'], string> = {
@@ -206,16 +213,17 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
     change(validDetails({ ...next, sleeveShape: sleeveOf(next).shape }));
   };
 
-  // The garment's own views: the sketch's two sides, the flat drawing, all round on the form.
+  // The garment's own views: the front sketch, the flat drawing, all round on the form. No Back view (Cat,
+  // 2026-11-02): every back choice is picked in the steps, and All round shows the back as it turns.
   const garmentViews: [Side | 'flat' | 'round', string][] = [
     ['front', 'Front'],
-    ['back', 'Back'],
     ['flat', 'Flat'],
     ['round', 'All round'],
   ];
 
   if (onForm && draft) {
     return (
+      <GarmentFabric fabric={fabric}>
       <DrawOnForm<BodiceChoices>
         allRound={round ? { round, drape: drapeJob, m: values, fabric, striped: matchKind(fabric) } : undefined}
         body={formWidth(draft, m)}
@@ -223,6 +231,13 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
         legs={false}
         bottom={Math.max(landmarks(draft).waistY + (hip ? dropRange(m, choices.length).max : 0) + 6, drawArm ? drawArm.wristY + 3 : 0)}
         arms={drawArm}
+        // The bodice as cloth on the form, a calico toile until a fabric is picked, so each line visibly changes it.
+        cloth={flat ? wornShapes(flat) : undefined}
+        flatLines={flat ? wornLines(flat) : undefined}
+        backCloth={flat ? wornShapes(flat, 1) : undefined}
+        backFlatLines={flat ? wornLines(flat, 1) : undefined}
+        sleeve={drawArm ? sleeve : undefined}
+        underarmY={landmarks(draft).underarm.y}
         kinds={[
           ['neckline', 'Neckline'],
           ['seam', 'Seam'],
@@ -270,9 +285,27 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
           setOnForm(undefined);
         }}
       />
+      </GarmentFabric>
     );
   }
 
+  // The Front drawing: shown on Front, and standing in for the sewn All round when that fails its score.
+  const sketch = draft ? (
+    <GarmentFabric fabric={fabric}>
+      <BodiceShape
+        draft={draft}
+        m={m}
+        choices={choices}
+        side={side}
+        drawing={drawing}
+        sleeve={sleeve}
+        arms={formArm}
+        label={`${title}, ${side} view. Drag the hem to change the length, or the side to change the fit.`}
+        onLive={onChoices}
+        onDone={(before, after) => change(after, before)}
+      />
+    </GarmentFabric>
+  ) : undefined;
   return (
     <StyleLayout
       fabric={fabric}
@@ -465,8 +498,8 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
                   )}
                 </>
               ) : top ? (
-                <button type="button" className="link small" onClick={() => setOnForm(choices)}>
-                  Draw on your form
+                <button type="button" className="link small" aria-label="Draw on your form" onClick={() => setOnForm(choices)}>
+                  <span className="tool-word">Draw</span>
                 </button>
               ) : (
                 <DrawMenu>
@@ -482,23 +515,8 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
         </div>
         <div className="preview">
           {error && <p className="msg error">{error}</p>}
-          {draft && view === 'sketch' && (
-            <GarmentFabric fabric={fabric}>
-            <BodiceShape
-              draft={draft}
-              m={m}
-              choices={choices}
-              side={side}
-              drawing={drawing}
-              sleeve={sleeve}
-              arms={formArm}
-              label={`${title}, ${side} view. Drag the hem to change the length, or the side to change the fit.`}
-              onLive={onChoices}
-              onDone={(before, after) => change(after, before)}
-            />
-            </GarmentFabric>
-          )}
-          {round && view === 'round' && <AllRound round={round} drape={drapeJob} m={values} fabric={fabric} striped={matchKind(fabric)} label={`The ${title} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`} />}
+          {view === 'sketch' && sketch}
+          {round && view === 'round' && <AllRound round={round} drape={drapeJob} m={values} fabric={fabric} striped={matchKind(fabric)} fallback={sketch} label={`The ${title} on your form, turning, with its seams, darts and hem all the way round. Drag to turn it.`} />}
           {flat && view === 'flat' && (
             <GarmentFabric fabric={fabric}>
               <TechFlatView flat={flat} title={title} />

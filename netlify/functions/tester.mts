@@ -24,7 +24,10 @@ export default async (req: Request, context: { ip?: string }) => {
     const visitor = createHash('sha256').update(context.ip ?? 'unknown').digest('hex').slice(0, 24);
     if ((await takeAllowance(blobCounts('tester-check-limits'), visitor, new Date(), CAPS)) !== 'ok') return Response.json({ ok: false, error: 'limit_reached' }, { status: 429 });
   } catch (e) {
+    // If the counter can't be reached, nothing is checked: an uncounted check is one the cap can't stop, and codes
+    // could be tried over and over. The photo reader does the same.
     console.error('tester check limit failed', e);
+    return Response.json({ ok: false, error: 'busy' }, { status: 503 });
   }
   return Response.json({ ok: true, tester: isTesterCode(code, Netlify.env.get('TESTER_CODES')) });
 };

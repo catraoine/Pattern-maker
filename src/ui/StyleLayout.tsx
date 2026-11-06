@@ -231,10 +231,8 @@ function pickIn(el: HTMLElement): string {
 const TAG_NAMES: Record<string, string> = { 'Waist seam': 'Waist', Neckline: 'Neck', 'Sleeve shape': 'Sleeve', 'Your knit’s stretch': 'Stretch' };
 /** Tailor's words the tag leaves to the step itself, so its lines name what changes the look. */
 const TAG_SKIP = ['Cut', 'Darts', 'Structure', 'Bust dart from', 'Princess seams', 'Shaping'];
-/** How many lines the tag beside the drawing holds. */
+/** How many lines Your picks holds. */
 const TAG_LINES = 6;
-/** Under the palette card the tag keeps room for three lines. */
-const CARD_TAG_LINES = 3;
 interface TagLine {
   label: string;
   pick: string;
@@ -268,7 +266,35 @@ export function useTablet() {
   return useMedia(TABLET);
 }
 
-/** Whether the screen is a phone's width, where the drawing stands beside its tag of picks. */
+/** Your picks so far, folded shut under one line at the top right (Cat's S, 2026-11-02): the drawing keeps the whole
+ *  width, and the picks stay in the same place however far the page scrolls. A tap opens them over the drawing; a tap
+ *  anywhere else closes them. */
+function PicksDrop({ tag }: { tag: TagLine[] }) {
+  const ref = useRef<HTMLDetailsElement>(null);
+  useEffect(() => {
+    const shut = (e: PointerEvent) => {
+      const el = ref.current;
+      if (el?.open && !el.contains(e.target as Node)) el.open = false;
+    };
+    document.addEventListener('pointerdown', shut);
+    return () => document.removeEventListener('pointerdown', shut);
+  }, []);
+  return (
+    <details className="picks-drop" ref={ref}>
+      <summary>Your picks</summary>
+      <dl className="spec-tag" aria-label="Your choices so far">
+        {tag.map((l) => (
+          <div key={l.label} className={l.mine ? 'mine' : undefined}>
+            <dt>{l.label}</dt>
+            <dd>{l.pick}</dd>
+          </div>
+        ))}
+      </dl>
+    </details>
+  );
+}
+
+/** Whether the screen is a phone's width, where the picks fold into "Your picks" by the title. */
 export function useNarrow() {
   return useMedia('(max-width: 760px)');
 }
@@ -479,18 +505,6 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
   const at = steps.indexOf(active ?? '');
   // The picked fabric's palette card, beside the garment on the form once a fabric is picked (D1).
   const palette = showsPalette(fabric);
-  // Under the card, as many of the three main picks as fit beside the drawing (the skirt's drawing is shorter):
-  // lines drop off the end rather than run into the views below.
-  const col = useRef<HTMLDivElement>(null);
-  const [cardLines, setCardLines] = useState(CARD_TAG_LINES);
-  useEffect(() => setCardLines(CARD_TAG_LINES), [label, active, palette]);
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- measures after every render; the check stops a loop
-  useLayoutEffect(() => {
-    const el = col.current;
-    if (!el || !host || cardLines === 0) return;
-    if (el.offsetHeight > host.clientHeight - 8) setCardLines(cardLines - 1);
-  });
-
   // The drawing's corner for its tools, made inside the drawing's area.
   const [corner, setCorner] = useState<HTMLElement | null>(null);
   // The tag beside the drawing on a phone (Cat's L4 + T2, 2026-10-29): a line for the main questions, each with its
@@ -590,11 +604,11 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
     );
   // The step after this one, and its first word for the narrow bar at the bottom ("Next: Neck").
   const next = active === LOOKS ? steps[0] : steps[at + 1];
-  // Back a step is a plain arrow to the left of the way on (Cat, 2026-10-31), on every step after the first, so the
-  // way back is there on the last step too. Its name is read out, not shown.
+  // Back a step names the step it goes to, to the left of the way on (Cat's B, 2026-11-02, after a plain arrow from
+  // 2026-10-31 was taken for the header's back): "‹ Shape", on every step after the first.
   const backArrow = at > 0 && (
-    <button type="button" className="step-back-arrow" aria-label={`Back to ${steps[at - 1]}`} title={steps[at - 1]} onClick={() => goStep(steps[at - 1])}>
-      <span aria-hidden="true">←</span>
+    <button type="button" className="step-back-arrow named" aria-label={`Back to ${steps[at - 1]}`} title={steps[at - 1]} onClick={() => goStep(steps[at - 1])}>
+      <span aria-hidden="true">‹</span> {steps[at - 1].split(/\s/)[0]}
     </button>
   );
 
@@ -619,32 +633,13 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
             createPortal(
               <>
                 <div className="preview-corner" ref={setCorner} />
-                {palette ? (
-                  // The card on top, the three main picks under it (on a phone; a computer shows the card alone).
-                  <div className="palette-col" ref={col}>
+                {/* On the pinned drawing, so it stays put however far the page scrolls. */}
+                {!wide && tag.length > 0 && <PicksDrop tag={tag} />}
+                {/* The picked fabric's card stands beside the form; the picks themselves are in "Your picks" by the title. */}
+                {palette && (
+                  <div className="palette-col">
                     <PaletteCard fabric={fabric} />
-                    {tag.length > 0 && cardLines > 0 && (
-                      <dl className="spec-tag under-card" aria-label="Your choices so far">
-                        {tag.slice(0, cardLines).map((l) => (
-                          <div key={l.label} className={l.mine ? 'mine' : undefined}>
-                            <dt>{l.label}</dt>
-                            <dd>{l.pick}</dd>
-                          </div>
-                        ))}
-                      </dl>
-                    )}
                   </div>
-                ) : (
-                  tag.length > 0 && (
-                    <dl className="spec-tag" aria-label="Your choices so far">
-                      {tag.map((l) => (
-                        <div key={l.label} className={l.mine ? 'mine' : undefined}>
-                          <dt>{l.label}</dt>
-                          <dd>{l.pick}</dd>
-                        </div>
-                      ))}
-                    </dl>
-                  )
                 )}
               </>,
               host,

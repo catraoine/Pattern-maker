@@ -1,4 +1,4 @@
-import { expect, goPrint, headerBack, openFold, openReview, startWithExample, test, showAllTools, openExtras } from './fixtures';
+import { expect, goPrint, openFold, openReview, startWithExample, test, showAllTools, openExtras } from './fixtures';
 
 // Paid extras that aren't open yet show as email sign-ups. The signup function isn't served by Vite,
 // so it's stubbed here and the test checks what the app sends.
@@ -22,12 +22,12 @@ test('offers: sign up for printing by post and a founding place', async ({ page 
   expect(sent[0]).toMatchObject({ kind: 'interest', offer: 'printed', email: 'ada@example.com', website: '' });
 
   // Back climbs to Style; on a phone, Keep is on its Review page.
-  await headerBack(page).click();
+  await page.goBack();
   await openReview(page);
   await main.getByRole('button', { name: 'Keep in my patterns' }).click();
   await main.getByRole('button', { name: 'your patterns' }).click();
   const founding = await openFold(page, 'Membership');
-  await expect(founding).toContainText('Be one of the first 500');
+  await expect(founding).toContainText('Be one of the first 250');
   await founding.screenshot({ path: info.outputPath('founding.png') });
   await founding.getByRole('textbox', { name: 'Your email' }).fill('ada@example.com');
   await founding.getByRole('button', { name: 'Save my place' }).click();

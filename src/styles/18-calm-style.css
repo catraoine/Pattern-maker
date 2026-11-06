@@ -39,11 +39,15 @@
   border: 0;
   color: var(--ink);
   font-family: var(--display);
-  font-size: 30px;
-  font-weight: 700;
-  line-height: 1.05;
-  letter-spacing: 0;
+  /* Cat's B Taller Type (Nov 4): still squished at 36px extra bold, so it now matches the step name exactly
+     (40px, weight 600, the heading tracking). "Your trousers" wraps to two lines on a phone; it never shrinks. */
+  font-size: 40px;
+  font-weight: 600;
+  line-height: 0.95;
+  letter-spacing: var(--head-tracking);
   text-transform: uppercase;
+  text-align: left;
+  white-space: normal;
 }
 .style-layout .screen-head .drop.garment-drop .drop-button svg {
   width: 16px;
@@ -347,7 +351,12 @@
   background: var(--gild);
   border-color: var(--gild);
   color: #000;
-  font-weight: 600;
+  /* Cat's B Taller Type (Nov 4, "squished down short"): Chakra Petch is loaded at 400 and 500 only, so 600 was a
+     bold the phone faked, and 0.2em spacing at 13.5px stretched it flat. The real 500, a size up, half the spacing. */
+  min-height: 58px;
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
 }
 .step-next .step-go {
   flex: none;
@@ -367,6 +376,6 @@
     border-left: 0;
   }
   .style-layout .screen-head .drop.garment-drop .drop-button {
-    font-size: 36px;
+    font-size: 40px;
   }
 }

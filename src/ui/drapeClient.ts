@@ -18,6 +18,15 @@ function get(): Worker {
     if (e.data.out) w.resolve(e.data.out);
     else w.reject(new Error(e.data.error ?? 'drape failed'));
   };
+  // A worker that dies (out of memory, a failed load) answers nobody: every waiting ask is turned back, so its All round
+  // shows the Front drawing, and the next ask starts a fresh worker.
+  worker.onerror = worker.onmessageerror = () => {
+    const ws = [...waiting.values()];
+    waiting.clear();
+    worker?.terminate();
+    worker = undefined;
+    for (const w of ws) w.reject(new Error('drape worker failed'));
+  };
   return worker;
 }
 
@@ -54,7 +63,18 @@ export function requestDrape(job: DrapeJob, key = drapeKey(job)): Promise<Draped
  *  bar, Cat 2026-11-01): until then they keep the earlier All round. */
 export const sewnOuter = (): boolean => {
   try {
-    return new URLSearchParams(window.location.search).get('sewn') === 'outer' || !!(window as unknown as { __sewnOuter?: boolean }).__sewnOuter;
+    const s = new URLSearchParams(window.location.search).get('sewn');
+    return s === 'outer' || s === 'all' || !!(window as unknown as { __sewnOuter?: boolean }).__sewnOuter;
+  } catch {
+    return false;
+  }
+};
+
+/** ?sewn=all shows the cloth view even when its score failed (a check by eye of what the score turns back, never for
+ *  makers): the All round eye check, Sewist Fit Testing 2026-11-02. */
+export const sewnAnyway = (): boolean => {
+  try {
+    return new URLSearchParams(window.location.search).get('sewn') === 'all';
   } catch {
     return false;
   }

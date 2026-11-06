@@ -18,6 +18,8 @@ export interface AsymPlan {
   amp: number;
   /** How far the middle of the wave sits below the named length (negative above), in cm. */
   shift: number;
+  /** A diagonal the other way round: long on the wearer's left, short on her right. */
+  flip?: boolean;
 }
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
@@ -38,12 +40,14 @@ function asymPlan(kind: Exclude<AsymHem, 'none'>, m: SkirtMeasurements, length: 
 
 /** The hem's offset at angle phi round the body: 0 is the centre front, pi / 2 the wearer's left side. */
 export function asymOffset(a: AsymPlan, phi: number): number {
-  return a.shift - a.amp * (a.kind === 'high_low' ? Math.cos(phi) : Math.sin(phi));
+  return a.shift - a.amp * (a.kind === 'high_low' ? Math.cos(phi) : (a.flip ? -1 : 1) * Math.sin(phi));
 }
 
 /** The plan for a style, or none when the hem is level. */
-export function planFor(s: Pick<SkirtStyle, 'asymHem'>, m: SkirtMeasurements, length: number): AsymPlan | undefined {
-  return s.asymHem && s.asymHem !== 'none' ? asymPlan(s.asymHem, m, length) : undefined;
+export function planFor(s: Pick<SkirtStyle, 'asymHem' | 'asymFlip'>, m: SkirtMeasurements, length: number): AsymPlan | undefined {
+  if (!s.asymHem || s.asymHem === 'none') return undefined;
+  const plan = asymPlan(s.asymHem, m, length);
+  return s.asymHem === 'diagonal' && s.asymFlip ? { ...plan, flip: true } : plan;
 }
 
 /**

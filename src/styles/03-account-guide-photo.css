@@ -58,6 +58,14 @@ button.secondary.sm {
   font-size: 14px;
 }
 
+/* Continue with Google: the G sits just before the words, as Google's button rules ask. */
+button.secondary.sm.google {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
 button.link.inline-link {
   min-height: 0;
   display: inline;

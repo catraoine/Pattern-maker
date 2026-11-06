@@ -14,3 +14,5 @@ evals/drawings/photos/*
 !evals/drawings/photos/README.md
 all-round-sweep/
 drape-sweep.md
+drape-options.md
+drape-options.json

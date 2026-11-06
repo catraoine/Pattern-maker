@@ -43,9 +43,19 @@
   fill is for the main button; a picked choice is a heavier champagne outline, never a fill. One job per screen, one main
   button, few words.
 - Fonts (three, checked in the code Oct 30): **Chakra Petch** for the wordmark, buttons and small
-  spaced labels; **Archivo**, narrow capitals, for h1/h2 headings; **Space Grotesk** for body text.
+  spaced labels; **Archivo**, capitals at its normal width, for h1/h2 headings; **Space Grotesk** for body text.
   No Bodoni or italic serif (removed Oct 18). Mock-ups, option sheets and video titles use the same
-  three.
+  three. **One width, always** (Cat, Nov 2): never narrow, flatten or stretch a font to fit
+  (no font-stretch other than 100%, no scaleX on text); wrap or reword instead.
+- Heading sizes (Cat, Nov 3): big Archivo headings are never small and bold, which reads squished.
+  The Style title ("Your dress") matches the step name exactly: 40px, weight 600, on phone and computer
+  (Nov 4, B Taller Type); "Your trousers" wraps to two lines on a phone rather than shrinking.
+- Buttons in Chakra Petch use only the loaded weights, 400 and 500; a heavier weight is a bold the phone
+  fakes and reads squished (Nov 4). The Style Next button is 16px, weight 500, spaced 0.1em.
+- The three steps in the header stay **Measure, Style, Print**. Every screen says where you've landed and
+  holds the sewist's hand (Cat, Nov 3: big capitals for a whole choice are "overwhelming and jarring"). Print
+  opens on a modest "Your summary" heading, one line on what the page is for, then the garment's name in
+  reading type.
 - Logo: R1 wordmark (MAISON / TRACÉ stacked, MT favicon); loading screen L1 slim-dart piece (Oct 21).
 - **Brand palette for marketing** (Oct 25): Champagne #c9b48a, Oxblood #5a1f24, Python Aqua (the
   app's one-way python print), Ink #1d2a3a, Chalk #e9e4da, labels on ivory #efe4cc, black ground.

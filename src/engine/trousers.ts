@@ -138,6 +138,9 @@ export interface TrousersDraft {
   /** No opening at all on a pull-on elastic waist. */
   closure: TrouserClosure | 'none';
   lengthCm: number;
+  /** The leg's full length to the ankle from the same waist line, whatever length the trousers are cut to: the
+   * drawing lays the cloth on legs this long, so shorts sit on a thigh, not on a leg that ends at their hem. */
+  fullLengthCm?: number;
   /** Shorts: the hem is above the knee, so there is no knee line or knee notches. Older drafts have none. */
   shorts?: boolean;
   /** Where the waistband sits, cm above (below when negative) your waist; none at the waist. */
@@ -596,6 +599,7 @@ export function draftTrousers(body: TrousersMeasurements, style: Partial<Trouser
     leg: s.leg,
     closure,
     lengthCm: r(L - rise),
+    fullLengthCm: r(full - rise),
     ...(rise ? { riseCm: rise } : {}),
     ...(short ? { shorts: true } : {}),
     finishedWaist: r(W),

@@ -25,13 +25,13 @@ test('after measuring, back from Style goes to the measurements list, not throug
   const step = await main(page).locator('.chapter-name').textContent();
   await goPrint(page);
   await expect(main(page).getByRole('group', { name: 'Paper' })).toBeVisible();
-  await headerBack(page).click();
+  await page.goBack();
   await expectStyle(page, 'Dress');
   await expect(main(page).locator('.chapter-name')).toHaveText(step!);
 
   await page.goBack();
   await measurements(page);
-  await headerBack(page).click();
+  await page.goBack();
   await welcome(page);
 });
 
@@ -53,11 +53,13 @@ test('hopping between screens never makes back ping-pong', async ({ page }) => {
   await stepButton(page, 'Print').click();
   await expect(main(page).getByRole('group', { name: 'Paper' })).toBeVisible();
 
-  await headerBack(page).click();
+  await page.goBack();
   await expectStyle(page, 'Skirt');
-  await headerBack(page).click();
+  // The chapters have no header back (Cat, 2026-11-02): the phone's own back climbs the ladder.
+  await expect(headerBack(page)).toBeHidden();
+  await page.goBack();
   await measurements(page);
-  await headerBack(page).click();
+  await page.goBack();
   await welcome(page);
 });
 

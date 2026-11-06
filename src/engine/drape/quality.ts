@@ -14,7 +14,8 @@
 import type { Draped } from './garment';
 import type { Space } from './space';
 
-type QualityCheck = 'broken' | 'stretched' | 'seam' | 'jagged' | 'fin' | 'inside' | 'collar' | 'hem';
+// - missing: a piece the pattern has that the drawing left out (set in run.ts, where the draft is to hand).
+type QualityCheck = 'broken' | 'stretched' | 'seam' | 'jagged' | 'fin' | 'inside' | 'collar' | 'hem' | 'missing';
 
 export interface QualityProblem {
   check: QualityCheck;
@@ -34,12 +35,15 @@ export interface Quality {
 const LIMITS = {
   /** No point further than this from the form's axis or the waist, in cm. */
   far: 250,
-  /** An edge drawn this many times as long as it is cut... */
+  /** An edge drawn this many times as long as it is cut (1.8: the eye check of 2026-11-02 found no higher setting that
+   *  kept a halter's front standing off as a wing out while letting a bishop sleeve's fullness through, so the sleeve
+   *  waits)... */
   stretch: 1.8,
   /** ...on more than this share of a piece's edges. */
   stretchShare: 0.01,
-  /** Sewn points this far apart, in cm. */
-  seamGap: 1.2,
+  /** Sewn points this far apart, in cm (1.6: a tiered maxi's yoke seams at 1.3 to 1.5 cm read closed by eye; a wrap's at
+   *  2.6 and a shirt dress's at 6.8 did not). */
+  seamGap: 1.6,
   /** An edge point this far off the line through its neighbours (cm), and as a share of their distance apart... */
   jagCm: 0.6,
   jagShare: 0.3,
@@ -111,10 +115,14 @@ export function drapeQuality(d: Draped, sp: Pick<Space, 'bodyR' | 'tip'>, o: Qua
       const l = Math.hypot(n[0], n[1], n[2]) || 1;
       return n.map((q) => q / l);
     };
+    // (The cloth just under the arm of a sleeved top is hidden by the sleeve and pulled by it as the arm hangs: a long
+    // sleeve stretches it there while the drawing reads right, All round quality 2026-11-03. Fins skip it too, below.)
+    const underArm = sleeved && p.role !== 'sleeve' ? (p.mesh.runs.armhole ?? []).flat().map((i) => pts[i]) : [];
+    const hidden = (i: number) => underArm.some((q) => Math.hypot(q.x - pts[i].x, q.y - pts[i].y) < 5);
     for (const t of p.mesh.tris) {
       for (const [u, v] of [[t[0], t[1]], [t[1], t[2]], [t[2], t[0]]]) {
         const cut = Math.hypot(pts[u].x - pts[v].x, pts[u].y - pts[v].y);
-        if (cut > 0.05) {
+        if (cut > 0.05 && !(hidden(u) && hidden(v))) {
           const r = dist(P(p.base + u), P(p.base + v)) / cut;
           edges++;
           if (r > L.stretch) long++;
@@ -134,10 +142,10 @@ export function drapeQuality(d: Draped, sp: Pick<Space, 'bodyR' | 'tip'>, o: Qua
       // (Nor the cloth under the arm, which the sleeve hides and the arm crowds.)
       const arm = (p.mesh.runs.armhole ?? []).flat().map((i) => pts[i]);
       const nearDart = (i: number) => legs.some((q) => Math.hypot(q.x - pts[i].x, q.y - pts[i].y) < 2) || (sleeved && arm.some((q) => Math.hypot(q.x - pts[i].x, q.y - pts[i].y) < 5));
-      // (A shirt's cuff is a band folded in half along its length, round the wrist: that fold, within a mesh step, is meant.)
+      // (A shirt's or tie cuff is a band folded in half along its length, round the wrist: that fold, within a mesh step, is meant.)
       const xs = pts.map((q) => q.x);
       const midX = (Math.min(...xs) + Math.max(...xs)) / 2;
-      const onCuffFold = (k: string) => p.pc.name === 'Cuff' && k.split(',').every((i) => Math.abs(pts[Number(i)].x - midX) < 1.2);
+      const onCuffFold = (k: string) => /^(Tie )?cuff$/i.test(p.pc.name) && k.split(',').every((i) => Math.abs(pts[Number(i)].x - midX) < 1.2);
       let fins = 0;
       const cosMax = Math.cos((L.finDeg * Math.PI) / 180);
       for (const [key, fs] of faces) {
@@ -155,16 +163,28 @@ export function drapeQuality(d: Draped, sp: Pick<Space, 'bodyR' | 'tip'>, o: Qua
       for (const run of runs) {
         if (run.length < 5) continue;
         let jag = 0;
+        // (Each point's lean off the line through its neighbours, kept so a tooth can be told from a flute: a flute
+        // on a full hem, a circle skirt's or a gathered one's, bends the same way for several points in a row, while
+        // a sawtooth turns back at every point. Only a turn against the point before or after counts, All round
+        // quality 2026-11-04: the half-circle and gathered skirts' flutes read as jagged and showed their drawing.)
+        const lean: ([number, number, number] | undefined)[] = [];
         for (let k = 1; k < run.length - 1; k++) {
           const a = P(p.base + run[k - 1]);
           const b = P(p.base + run[k]);
           const c = P(p.base + run[k + 1]);
+          // (Two points sewn to one spot, as a sleeve cap's two underarm ends are: a doubled point, not a tooth.)
+          if (dist(a, b) < 0.05 || dist(b, c) < 0.05) {
+            lean.push(undefined);
+            continue;
+          }
           const mid = [(a[0] + c[0]) / 2, (a[1] + c[1]) / 2, (a[2] + c[2]) / 2];
           const off = dist(b, mid);
           // (Where the cut edge itself turns a corner, it may.)
           const cutTurn = Math.hypot(pts[run[k]].x - (pts[run[k - 1]].x + pts[run[k + 1]].x) / 2, pts[run[k]].y - (pts[run[k - 1]].y + pts[run[k + 1]].y) / 2);
-          if (off - cutTurn > L.jagCm && off > L.jagShare * dist(a, c)) jag++;
+          lean.push(off - cutTurn > L.jagCm && off > L.jagShare * dist(a, c) ? [b[0] - mid[0], b[1] - mid[1], b[2] - mid[2]] : undefined);
         }
+        const against = (u: [number, number, number] | undefined, v: [number, number, number] | undefined) => !!u && !!v && u[0] * v[0] + u[1] * v[1] + u[2] * v[2] < 0;
+        for (let k = 0; k < lean.length; k++) if (lean[k] && (against(lean[k], lean[k - 1]) || against(lean[k], lean[k + 1]))) jag++;
         if (jag >= L.jagCount) add('jagged', `${name} ${tag}`, jag);
       }
     }
@@ -217,7 +237,10 @@ export function drapeQuality(d: Draped, sp: Pick<Space, 'bodyR' | 'tip'>, o: Qua
 
   // A level hem hanging far from level.
   if (o.levelHem) {
-    const hem = shown.filter((p) => /peplum/.test(p.role)).flatMap((p) => (p.mesh.runs.hem ?? []).flat().map((i) => pos[(p.base + i) * 3 + 1]));
+    // (Only the lowest hem: a tiered skirt's upper tiers have hems of their own, a tier's depth above it.)
+    const byPanel = shown.filter((p) => /peplum/.test(p.role)).map((p) => (p.mesh.runs.hem ?? []).flat().map((i) => pos[(p.base + i) * 3 + 1])).filter((h) => h.length);
+    const low = Math.max(...byPanel.map((h) => h.reduce((a, b) => a + b, 0) / h.length), -Infinity);
+    const hem = byPanel.filter((h) => h.reduce((a, b) => a + b, 0) / h.length > low - 8).flat();
     if (hem.length) {
       const range = Math.max(...hem) - Math.min(...hem);
       if (range > L.hemCm) add('hem', 'Hem', range);

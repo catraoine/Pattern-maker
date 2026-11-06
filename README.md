@@ -14,7 +14,8 @@ To read it all, set a read-out key:
 1. In Netlify, open the site, then **Site configuration > Environment variables > Add a variable**.
 2. Key `STATS_KEY`, value a long random string (for example from `openssl rand -hex 24`). Keep it private.
 3. Redeploy (**Deploys > Trigger deploy**) so the function picks it up.
-4. Open `https://<your-site>/.netlify/functions/report?key=<STATS_KEY>` (add `&days=90` for up to 90 days).
+4. Open `https://<your-site>/.netlify/functions/report?key=<STATS_KEY>` (add `&days=90` for up to 90 days). Scripts
+   should send the key in an `x-stats-key` header instead, so it stays out of logs and history.
 
 It returns JSON: `funnel` (the four numbers the business plan watches weekly, added up over the period: sign-ups by
 source, patterns printed, fits reported, payments), `days` (daily totals), `crashes` (the latest 100 crash reports)

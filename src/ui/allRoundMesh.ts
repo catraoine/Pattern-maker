@@ -315,10 +315,11 @@ class Lines {
 }
 
 /** The garment draped from its own pattern pieces (src/engine/drape), placed on the form: `toForm` takes a point in
- *  the drape's cm (x across, c down from the waist, z forward) to the form's units. */
+ *  the drape's cm (x across, c down from the waist, z forward) to the form's units, at the level's own scale or, for a
+ *  point hanging clear of the body, the scale it carries (DrapedLite.hang). */
 export interface DrapedView {
   d: DrapedLite;
-  toForm: (x: number, c: number, z: number) => V3;
+  toForm: (x: number, c: number, z: number, scale?: number) => V3;
 }
 
 /** What the mesh is built for. */
@@ -398,16 +399,20 @@ function buildDraped(
   // Drawn half a cm further out than it settled: the drawn form is not quite the body the cloth settled on, and over the
   // collarbones and shoulder blades it would poke through a cloth lying close.
   const LIFT = 0.5;
+  // (The mirrored half is drawn from its own points where they differ: a slit up the left side seam parts on the left only.)
   const P = (i: number, e: number, more = 0): V3 => {
-    const x = d.pos[i * 3];
-    const z = d.pos[i * 3 + 2];
+    const pos = e < 0 && d.posMirror ? d.posMirror : d.pos;
+    const x = pos[i * 3];
+    const z = pos[i * 3 + 2];
     const k = 1 + (LIFT + more) / (Math.sqrt(x * x + z * z) || 1);
-    return toForm(x * k * e, d.pos[i * 3 + 1], z * k);
+    return toForm(x * k * e, pos[i * 3 + 1], z * k, d.hang?.[i] || undefined);
   };
+  // (A piece cut whole, a one-shoulder's front, holds both its halves: drawn once, not mirrored.)
+  const wholeAt = (i: number) => d.panels.some((p) => p.whole && i >= p.base && i < p.base + p.uv.length / 2);
   for (const p of d.panels) {
     if (p.hidden) continue;
     const n = p.uv.length / 2;
-    for (const e of [1, -1]) {
+    for (const e of p.single || p.whole ? [1] : [1, -1]) {
       const pos = new Float32Array(n * 3);
       // A front's button extension (cut past the centre front) laps over the other side: the under one lies a little
       // further in, or the two mirrored halves cross at the front and leave a tab at the hem.
@@ -525,11 +530,11 @@ function buildDraped(
     }
   }
   // The seams and edges: bright fine lines in lines, faint ones in cloth (the cloth itself gives the shape).
-  const SHOW = new Set(['shoulder', 'side', 'princess', 'armhole', 'neck', 'waist', 'hem', 'opening', 'lapel', 'gorge', 'collar', 'front-seam', 'back-seam', 'sleeve-front', 'opening-hem', 'centre', 'pleat', 'inseam', 'outseam', 'crotch', 'yoke', 'tier']);
+  const SHOW = new Set(['shoulder', 'side', 'princess', 'armhole', 'neck', 'waist', 'hem', 'opening', 'lapel', 'gorge', 'collar', 'front-seam', 'back-seam', 'sleeve-front', 'opening-hem', 'centre', 'pleat', 'inseam', 'outseam', 'crotch', 'yoke', 'tier', 'face']);
   const seam = lines({ colour: GLOW, width: cloth ? 0.7 : 1.1, back: cloth ? 0 : 0.25, alpha: cloth ? 0.55 : 1 });
   for (const l of d.lines) {
     if (!SHOW.has(l.kind)) continue;
-    for (const e of [1, -1]) {
+    for (const e of l.ids.length && wholeAt(l.ids[0]) ? [1] : [1, -1]) {
       const run = l.ids.map((i) => {
         const q = P(i, e);
         const r = Math.hypot(q[0], q[2]) || 1;
