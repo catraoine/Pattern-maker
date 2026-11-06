@@ -51,3 +51,29 @@
     animation: none;
   }
 }
+
+/* Cat's P3 (2026-11-06): fewer arrows. Enlarge and Draw are plain words, with no icons and no underline. */
+.preview-corner > .enlarge svg,
+.preview-corner > .link.small::before,
+.preview-corner > .drawmenu > summary::before {
+  display: none;
+}
+.preview-corner > .link.small,
+.preview-corner > .drawmenu > summary {
+  text-decoration: none;
+}
+
+/* Each step's picks, at the right of its line in the list of steps on a phone, in place of "Your picks". */
+.step-pick {
+  display: none;
+}
+@media (max-width: 760px) {
+  .chapter .style-tabs.open button .step-pick {
+    display: inline;
+    margin-left: auto;
+    padding-left: 12px;
+    font: 400 13px/1.2 var(--sans);
+    color: var(--muted);
+    text-align: right;
+  }
+}

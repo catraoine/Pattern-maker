@@ -215,7 +215,6 @@ function StepUndo({ undo }: { undo: Undo }) {
   );
 }
 
-/** The tag's names for the questions, where the question's own is longer than the tag has room for. */
 /**
  * The picked choice's name in a question: a picked chip, or any pressed button when there are none.
  * A length set on a slider between the named ones presses no chip, so it reads as the slider's cm.
@@ -228,16 +227,8 @@ function pickIn(el: HTMLElement): string {
   return slider ? `${slider.value} cm` : '';
 }
 
-const TAG_NAMES: Record<string, string> = { 'Waist seam': 'Waist', Neckline: 'Neck', 'Sleeve shape': 'Sleeve', 'Your knit’s stretch': 'Stretch' };
-/** Tailor's words the tag leaves to the step itself, so its lines name what changes the look. */
+/** Tailor's words the list of steps leaves to the step itself, so its picks name what changes the look. */
 const TAG_SKIP = ['Cut', 'Darts', 'Structure', 'Bust dart from', 'Princess seams', 'Shaping'];
-/** How many lines Your picks holds. */
-const TAG_LINES = 6;
-interface TagLine {
-  label: string;
-  pick: string;
-  mine: boolean;
-}
 
 /** Anything else that belongs on one tab, such as the inside finish on the Pro tab. */
 export function TabPanel({ tab, children }: { tab: string; children: ReactNode }) {
@@ -266,35 +257,8 @@ export function useTablet() {
   return useMedia(TABLET);
 }
 
-/** Your picks so far, folded shut under one line at the top right (Cat's S, 2026-11-02): the drawing keeps the whole
- *  width, and the picks stay in the same place however far the page scrolls. A tap opens them over the drawing; a tap
- *  anywhere else closes them. */
-function PicksDrop({ tag }: { tag: TagLine[] }) {
-  const ref = useRef<HTMLDetailsElement>(null);
-  useEffect(() => {
-    const shut = (e: PointerEvent) => {
-      const el = ref.current;
-      if (el?.open && !el.contains(e.target as Node)) el.open = false;
-    };
-    document.addEventListener('pointerdown', shut);
-    return () => document.removeEventListener('pointerdown', shut);
-  }, []);
-  return (
-    <details className="picks-drop" ref={ref}>
-      <summary>Your picks</summary>
-      <dl className="spec-tag" aria-label="Your choices so far">
-        {tag.map((l) => (
-          <div key={l.label} className={l.mine ? 'mine' : undefined}>
-            <dt>{l.label}</dt>
-            <dd>{l.pick}</dd>
-          </div>
-        ))}
-      </dl>
-    </details>
-  );
-}
 
-/** Whether the screen is a phone's width, where the picks fold into "Your picks" by the title. */
+/** Whether the screen is a phone's width, where the picks are in the list of steps. */
 export function useNarrow() {
   return useMedia('(max-width: 760px)');
 }
@@ -568,35 +532,25 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
   const palette = showsPalette(fabric);
   // The drawing's corner for its tools, made inside the drawing's area.
   const [corner, setCorner] = useState<HTMLElement | null>(null);
-  // The tag beside the drawing on a phone (Cat's L4 + T2, 2026-10-29): a line for the main questions, each with its
-  // pick, bright once it is yours (tapped, or its step passed) and soft while it is still the starting choice.
-  const [touched, setTouched] = useState<{ of: string; labels: string[] }>({ of: label, labels: [] });
-  const mine = touched.of === label ? touched.labels : [];
-  const [tag, setTag] = useState<TagLine[]>([]);
+  // Each step's picks, for the list of steps on a phone (Cat's P3, 2026-11-06, in place of "Your picks"): its first
+  // two questions' picks, such as "Regular · At the waist".
+  const [stepPicks, setStepPicks] = useState<Record<string, string>>({});
   // eslint-disable-next-line react-hooks/exhaustive-deps -- reads the page after every render; the check stops a loop
   useLayoutEffect(() => {
     if (wide || page !== 'edit' || !panel.current) return;
-    const groups = steps
-      .filter((t) => t !== FABRIC)
-      .map((t, i) => [...panel.current!.querySelectorAll<HTMLElement>(`fieldset.group[data-tab="${t}"]`)].filter((el) => !TAG_SKIP.includes(el.dataset.label!)).map((el, j) => ({ el, i, j })));
-    // The first question of every step, then the second ones, in the order they are asked.
-    const picked = [0, 1]
-      .flatMap((j) => groups.map((g) => g[j]).filter(Boolean))
-      .slice(0, TAG_LINES)
-      .sort((a, b) => a.i - b.i || a.j - b.j);
-    const lines = picked.map(({ el, i }) => {
-      const name = el.dataset.label!;
-      return { label: TAG_NAMES[name] ?? name, pick: pickIn(el.querySelector<HTMLElement>('.fold-body') ?? el), mine: i < at || mine.includes(name) };
-    });
-    if (JSON.stringify(lines) !== JSON.stringify(tag)) setTag(lines);
+    const picks = Object.fromEntries(
+      steps.map((t) => [
+        t,
+        [...panel.current!.querySelectorAll<HTMLElement>(`fieldset.group[data-tab="${t}"]`)]
+          .filter((el) => !TAG_SKIP.includes(el.dataset.label!))
+          .slice(0, 2)
+          .map((el) => pickIn(el.querySelector<HTMLElement>('.fold-body') ?? el))
+          .filter(Boolean)
+          .join(' · '),
+      ]),
+    );
+    if (JSON.stringify(picks) !== JSON.stringify(stepPicks)) setStepPicks(picks);
   });
-  const touch = (e: React.MouseEvent) => {
-    const t = e.target as HTMLElement;
-    const group = t.closest<HTMLElement>('fieldset.group');
-    if (!group || !t.closest('.fold-body button, .fold-body input')) return;
-    const name = group.dataset.label!;
-    if (!mine.includes(name)) setTouched({ of: label, labels: [...mine, name] });
-  };
 
   // On a phone the drawing stands tall at the top, then eases back once the page scrolls into the choices, so they
   // keep their room under it.
@@ -695,8 +649,7 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
               <>
                 <div className="preview-corner" ref={setCorner} />
                 {/* On the pinned drawing, so it stays put however far the page scrolls. */}
-                {!wide && tag.length > 0 && <PicksDrop tag={tag} />}
-                {/* The picked fabric's card stands beside the form; the picks themselves are in "Your picks" by the title. */}
+                {/* The picked fabric's card stands beside the form; the picks themselves are in the list of steps. */}
                 {palette && (
                   <div className="palette-col">
                     <PaletteCard fabric={fabric} />
@@ -712,7 +665,6 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
           ref={panel}
           role="tabpanel"
           aria-label={active}
-          onClickCapture={touch}
           onTouchStart={(e) => {
             const p = e.touches[0];
             swipe.current = { x: p.clientX, y: p.clientY, sideways: scrollsSideways(e.target, e.currentTarget) };
@@ -796,6 +748,7 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
                   {/* On a phone the strip ran off the screen (the tester walk, 2026-10-27): there each tab is its first word. */}
                   <span className="tab-full">{t}</span>
                   <span className="tab-short">{t.split(/\s/)[0]}</span>
+                  {!wide && stepPicks[t] && <span className="step-pick">{stepPicks[t]}</span>}
                 </button>
               ))}
             </div>
