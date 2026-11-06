@@ -1,4 +1,1 @@
-{
- "coat: Armhole: # cm round the arm": "body 66: Armhole: 1.9 cm round the arm ({\"coat\":{\"garment\":\"coat\",\"fit\":\"oversized\",\"length\":\"midi\",\"shaping\":\"boxy\",\"front\":\"double\",\"collar\":\"funnel\",\"pockets\":\"welt\",\"sleeve\":\"straight\",\"flare\":\"straight\",\"pads\":\"none\",\"vent\":\"none\",\"trim\":\"rib\",\"lapel\":\"classic\"}})",
- "jacket: Armhole: # cm round the arm": "body 35: Armhole: 1.4 cm round the arm ({\"jacket\":{\"garment\":\"jacket\",\"fit\":\"oversized\",\"length\":\"long\",\"shaping\":\"boxy\",\"front\":\"single\",\"collar\":\"peak\",\"pockets\":\"none\",\"sleeve\":\"straight\",\"flare\":\"flared\",\"pads\":\"none\",\"vent\":\"centre\",\"trim\":\"none\",\"lapel\":\"wide\"}})"
-}
+{}
