@@ -2,10 +2,12 @@
 // reports with no measurements, names or photos). Kept in the "reports" Netlify Blobs store: daily totals under
 // day/<date>, crash reports under crash/<date>/. No IP address or per-person id is stored.
 // GET ?key=…: the owner's read-out of the daily totals, recent crash reports, sign-ups and every fit report sent, as
-// JSON. Add &download=1 to save it as a dated file (the weekly backup of the fit evidence). Needs STATS_KEY set in
+// JSON, with the latest notes from Help & feedback (a note's screenshot comes back for &shot=<its shot key>, with the key sent in the header). Add &download=1
+// to save it as a dated file (the weekly backup of the fit evidence). Needs STATS_KEY set in
 // Netlify (Site configuration > Environment variables); without it the read-out is refused.
 import { randomUUID } from 'node:crypto';
 import { getStore } from '@netlify/blobs';
+import { shotBytes, type StoredNote } from '../../src/server/notes';
 import { addBeacon, checkBeacon, byLanguage, funnel, keyMatches, lastDays, updateDay, type DayStore, type DayTotals, type StoredCrash } from '../../src/server/reports';
 
 // Provided by the Netlify runtime.
@@ -51,8 +53,17 @@ async function readOut(url: URL, headers: Headers) {
   // so the owner can open the read-out in a browser.
   if (!keyMatches(headers.get('x-stats-key') ?? url.searchParams.get('key'), expected)) return Response.json({ ok: false, error: 'wrong_key' }, { status: 401 });
 
-  const days = Math.min(90, Math.max(1, Number(url.searchParams.get('days')) || 30));
   const store = reports();
+  // One note's screenshot, as a picture. Only with the key in the x-stats-key header, never in the address (coding
+  // rule 8): a picture opened by address would leave the key in browser history.
+  const shot = url.searchParams.get('shot');
+  if (shot) {
+    if (!headers.get('x-stats-key')) return Response.json({ ok: false, error: 'key_in_header' }, { status: 401 });
+    const data = /^note-shot\/[\w/-]+$/.test(shot) ? ((await store.get(shot)) as string | null) : null;
+    return data ? new Response(shotBytes(data), { headers: { 'Content-Type': 'image/jpeg', 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' } }) : new Response(null, { status: 404 });
+  }
+
+  const days = Math.min(90, Math.max(1, Number(url.searchParams.get('days')) || 30));
   const signupStore = getStore({ name: 'signups', consistency: 'strong' });
   const totals = await Promise.all(
     lastDays(new Date(), days).map(async (day) => ({ day, totals: (await store.get(`day/${day}`, { type: 'json' })) as DayTotals | null })),
@@ -63,6 +74,12 @@ async function readOut(url: URL, headers: Headers) {
     .reverse()
     .slice(0, 100);
   const crashes = (await Promise.all(crashKeys.map((k) => store.get(k, { type: 'json' })))) as StoredCrash[];
+  const noteKeys = (await store.list({ prefix: 'note/' })).blobs
+    .map((b) => b.key)
+    .sort()
+    .reverse()
+    .slice(0, 200);
+  const notes = (await Promise.all(noteKeys.map((k) => store.get(k, { type: 'json' })))) as StoredNote[];
   const signups = async (prefix: string) => Promise.all((await signupStore.list({ prefix })).blobs.map((b) => signupStore.get(b.key, { type: 'json' })));
   const [testers, news, interest] = await Promise.all([signups('tester/'), signups('news/'), signups('interest/')]);
   const fitStore = getStore('fit-feedback');
@@ -76,6 +93,8 @@ async function readOut(url: URL, headers: Headers) {
       funnel: funnel(days_),
       days: days_,
       crashes,
+      // Notes from Help & feedback, newest first.
+      notes,
       // Which language waitlist sign-ups sew in, so the first translation follows them.
       newsByLanguage: byLanguage(news),
       signups: { testers, news, interest },
