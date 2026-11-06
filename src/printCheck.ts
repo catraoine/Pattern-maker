@@ -96,6 +96,9 @@ function renderPages(pdf: Uint8Array, dpi: number, first = 1, last?: number): Gr
 }
 
 const INK = 100;
+/** Lighter than this is paper: a grey line's anti-aliased edge still counts as ink when the other page is looked at. */
+const PAPER = 160;
+const inked = (g: Gray, x: number, y: number) => x >= 0 && y >= 0 && x < g.w && y < g.h && g.px[y * g.w + x] < PAPER;
 const dark = (g: Gray, x: number, y: number) => x >= 0 && y >= 0 && x < g.w && y < g.h && g.px[y * g.w + x] < INK;
 
 /** The middles of the dark runs along a row (or a column) of pixels between two places, in pixels. */
@@ -141,8 +144,11 @@ function stripMismatch(a: Gray, b: Gray, dpi: number, join: 'right' | 'below', p
   const furniture = (t: number) => [0.3, 0.7].some((f) => Math.abs(t / px - (join === 'right' ? th * f : tw * f)) < 1.3) || (join === 'right' && t / px > th - FOOT);
   let ink = 0;
   let off = 0;
+  // A dark pixel is matched by any ink within 2 px on the other page, not only a dark pixel: a thin grey dashed line
+  // straddles the dark threshold, so the same dash end comes out a shade darker on one page than the other, and a
+  // page where it is missing has blank paper there.
   const near = (g: Gray, x: number, y: number) => {
-    for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) if (dark(g, x + dx, y + dy)) return true;
+    for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) if (inked(g, x + dx, y + dy)) return true;
     return false;
   };
   for (let t = inset; t < span - inset; t++) {

@@ -98,6 +98,8 @@ export interface UnevenNeck {
 export interface BodiceStyle {
   fit: BodiceFit;
   neckline: Neckline;
+  /** A plunge's depth (see PlungeDepth). Standard when missing. */
+  plungeDepth?: PlungeDepth;
   length: BodiceLength;
   darts: BodiceDarts;
   seamAllowance: number;
@@ -211,7 +213,13 @@ export const NECKLINES: Record<Neckline, { frontDepth: number; width: number; ba
  * V would sit wider (Cat, 2026-11-01: it has to cover).
  * Sleeveless, the strap sits over the middle of the shoulder with the armhole cut in to meet it, as a
  * slip is cut, so it stays on; with a sleeve it is what the shoulder leaves past the neck. */
-export const PLUNGE = { aboveWaist: 7, strap: 2.5, cover: 5 };
+export const PLUNGE = { aboveWaist: 7, strap: 2.5, cover: 5, toWaist: 2, waistWidth: 3 };
+
+/** How far a plunge runs down: standard stops PLUNGE.aboveWaist above the waist, its straps out at the shoulder; 'waist'
+ * (In testing, from Cat's SS27 lace blouse picture, 2026-11-06) runs on to PLUNGE.toWaist above the waist seam, leaving
+ * just enough to sew the point, and starts from a neck widened only PLUNGE.waistWidth, as her blouse's V does: a long
+ * narrow V between covered shoulders, not the standard plunge's open shoulders. */
+export type PlungeDepth = 'standard' | 'waist';
 
 /** Hip ease (cm) for tops that reach below the waist, from the same fit options. */
 const BODICE_HIP_EASE: Record<BodiceFit, number> = { fitted: 4, regular: 7, relaxed: 11, boxy: 10, oversized: 26 };
@@ -822,10 +830,12 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   // the same neck and the same shoulder length.
   // A plunge leaves just its strap of shoulder, however long the shoulder: sleeveless, the strap sits
   // over the middle of the shoulder and the armhole is cut in to meet it; with a sleeve, at the tip.
-  const plunging = s.neckline === 'plunge' && !s.neck;
+  // A plunge to the waist keeps the shoulders: its V starts from a neck opened only a little (PlungeDepth).
+  const plunging = s.neckline === 'plunge' && !s.neck && s.plungeDepth !== 'waist';
+  const neckWidth = s.neckline === 'plunge' && !s.neck && s.plungeDepth === 'waist' ? PLUNGE.waistWidth : nl.width;
   // Otherwise a clean sleeveless shoulder stops short of the shoulder point (a boxy one runs past it instead).
   const cutIn = plunging && (!s.sleeve || s.sleeve === 'none') ? Math.max(0, (SL - PLUNGE.strap) / 2) : cleanSleeveless(s) && s.fit !== 'boxy' ? SLEEVELESS.cutIn : 0;
-  const widen = plunging ? Math.max(0, SL - PLUNGE.strap) - cutIn : Math.max(0, Math.min(nl.width, SL - 5));
+  const widen = plunging ? Math.max(0, SL - PLUNGE.strap) - cutIn : Math.max(0, Math.min(neckWidth, SL - 5));
   // A boxy shoulder runs on past the body's shoulder point.
   const ext = (s.fit === 'boxy' ? BOXY.extend : 0) - cutIn;
   const hpsB = add(hpsB0, mul(p(Math.cos(backSlope), Math.sin(backSlope)), widen));
@@ -888,7 +898,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   frontSlope = dropped(frontSlope, SL - widen + ext);
   // Deep necklines stop 5 cm above the bust point; a plunge runs on past it, nearly to the waist.
   const plunge = s.neckline === 'plunge' && !s.neck;
-  const cfNeck = p(0, Math.max(cfNeck0.y, Math.min(cfNeck0.y + nl.frontDepth, plunge ? wf - PLUNGE.aboveWaist : apex.y - 5)));
+  const cfNeck = p(0, Math.max(cfNeck0.y, Math.min(cfNeck0.y + nl.frontDepth, plunge ? wf - (s.plungeDepth === 'waist' ? PLUNGE.toWaist : PLUNGE.aboveWaist) : apex.y - 5)));
 
   // A neck gape pinned out at the toile is closed the way a pattern cutter does it: slash from the
   // middle of the neckline to the bust point, and pivot the shoulder, armhole and upper side seam
@@ -1243,8 +1253,9 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
     cut: frontCut,
     seamAllowance: s.seamAllowance,
     allowances: { neck: s.neckArmholeAllowance, armhole: s.neckArmholeAllowance, fold: 0, hem: s.hemAllowance },
-    // A V neck comes to a point at the centre front on purpose.
-    meta: pointed ? { pointedAtCentre: ['neck'] } : {},
+    // A V neck comes to a point at the centre front on purpose. A plunge to the waist is a narrow V the drape leaves to
+    // settle (see the stay-tape pass in drape/garment.ts).
+    meta: { ...(pointed ? { pointedAtCentre: ['neck'] } : {}), ...(plunge && s.plungeDepth === 'waist' ? { narrowPlunge: true } : {}) },
   };
 
   // ---- shaped hem ---------------------------------------------------------

@@ -123,6 +123,14 @@ const DETAILS: Record<ExplainSet, Record<string, Record<string, ReactNode>>> = {
       cap: on('M13 8Q20 2 27 8L28 14Q20 17 12 14z', 'M13 8Q20 2 27 8M12 14Q20 17 28 14'),
       flutter: on('M13 8Q20 2 27 8L33 22Q30 25 27 22Q24 26 20 23Q16 26 13 22Q10 25 7 22z', 'M13 8Q20 2 27 8M7 22Q10 25 13 22Q16 26 20 23Q24 26 27 22Q30 25 33 22'),
     },
+    plungeDepth: {
+      standard: on(TOP, 'M15 8L20 30L25 8'),
+      waist: on(TOP, 'M15 8L20 38L25 8'),
+    },
+    sleeveFullness: {
+      soft: on('M14 8Q20 2 26 8L30 38Q20 42 10 38z', 'M11 38Q20 42 29 38M15 40h10v4H15zM17 38v2M20 39v1.5M23 38v2'),
+      full: on('M14 8Q20 2 26 8L36 36Q20 44 4 36z', 'M5 36Q20 44 35 36M15 40h10v4H15zM12 35v3M16 37v3M20 38v2M24 37v3M28 35v3'),
+    },
     sleeveCut: {
       set_in: on(SLEEVED, 'M8 12Q11 17 10 22M32 12Q29 17 30 22'),
       drop: on('M15 8Q20 13 25 8L34 11L38 30H33L31 24L29 40H11L9 24L7 30H2L6 11z', 'M6 11L15 8M34 11L25 8M6.5 13Q9.5 19 9 24M33.5 13Q30.5 19 31 24'),
@@ -181,6 +189,7 @@ const DETAILS: Record<ExplainSet, Record<string, Record<string, ReactNode>>> = {
       none: on(SHORT_TOP),
       flared: on(SHORT_TOP, 'M11 28L5 39Q20 43 35 39L29 28'),
       gathered: on(SHORT_TOP, 'M11 28L8 38Q11 40 14 38Q17 40 20 38Q23 40 26 38Q29 40 32 38L29 28M13 29v2M17 29v2M21 29v2M25 29v2'),
+      balloon: on(SHORT_TOP, 'M11 28Q4 34 8 40Q14 44 20 42Q26 44 32 40Q36 34 29 28M13 29v2M17 29v2M21 29v2M25 29v2M12 40v2M16 42v2M24 42v2M28 40v2'),
     },
     peplumHem: {
       level: on(SHORT_TOP, 'M11 28L5 39Q20 43 35 39L29 28'),

@@ -374,8 +374,12 @@ function half(a: HalfArgs): Piece {
       })),
     ],
   };
-  // Balance notches at the hip: single on the front, double on the back, so the pieces can't be swapped.
-  const notches: [P, P][] = a.isFront ? [[sh, p(1, 0)]] : [[add(sh, p(0, -0.5)), p(1, 0)], [add(sh, p(0, 0.5)), p(1, 0)]];
+  // Balance notches at the hip: single on the front, double on the back, so the pieces can't be swapped. The lower
+  // notch of the double follows the seam below the hip, which on a wide A-line (a balloon's outer skirt) leaves the
+  // hip at an angle: straight down it would sit a few mm inside the cut edge. Where the flare starts below the hip,
+  // or a trumpet swings out from a straight start, the seam leaves the hip straight down.
+  const below = hemArc && a.flareFrom !== undefined ? p(0, 1) : unit(sub(hemSide, sh));
+  const notches: [P, P][] = a.isFront ? [[sh, p(1, 0)]] : [[add(sh, p(0, -0.5)), p(1, 0)], [add(sh, mul(below, 0.5)), p(1, 0)]];
   // The back centre seam holds the zip; its notch marks where the zip ends and the seam starts.
   const zipEnd = p(0, a.centreDrop + a.zipCm);
   const zipped = !a.isFront && a.zipCm > 0;

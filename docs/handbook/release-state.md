@@ -4,6 +4,14 @@ _Update this page whenever a release ships or a PR is queued._
 
 ## Live
 
+**Release 70** (Nov 6, 2026, Cat's Nov 6 "ship"; #307, #309, #310 merged together): Style's view line (Front, Flat,
+All round) is a glider: a low dark track with the showing view as a raised block (#310). Four In testing options for
+the Look 09 ruffle top rework: balloon peplum, plunge to the waist, full puff and bishop sleeves, lace drawn as a net
+on All round; a sleeveless peplum top's shoulder holds closed (#309; Look 09 itself unchanged until Cat applies a
+pick). The faults the automated checks found are fixed: balloon skirt notch, high-waist facings, sweetheart cutting
+line, hood and back lining notches, words cut at page joins in printed PDFs, Check a file dart-leg notches, the hood's
+Front drawing (#307). Not in this release: #305 cami straps, #300 Kick Flare removal, #303/#299 handbook.
+
 **Release 69** (Nov 6, 2026, Cat's Nov 6 "ship"; #301, #306, #308 merged together): All round trousers hang flatter
 (no seat bump, the front falls from the band, legs plumb), with Front pleats and Belt loops as new trouser options
 (In testing) and Look 04 as the Gold Python Bermuda (#301). The How it works button blinks three times, then rests

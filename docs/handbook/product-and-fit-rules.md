@@ -312,6 +312,12 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
    `FINISH` in allRoundMesh.ts). Prints and drawn checks are untouched. At the whole-garment size the weave is a pixel
    or two, so "Look closer" (and a pinch, a double tap, or a trackpad pinch) zooms about 2x so the weave reads.
    Raised weave (normal maps) and a lower side light were tried and rejected: no gain, and shimmer bands on wool.
+51. **A sleeveless peplum top is held between a top's hold and a dress's** (Nov 6, Fable, SS27 Look 09): a sleeveless
+   top cut with full shoulders and a peplum has its shoulder held 1.5 cm behind the side, not the 3 cm back that
+   suits a dress nor the half centimetre forward a plain sleeveless top takes. Held 3 cm back under the peplum's light
+   weight, its shoulders sank inside the form's and the form showed through both shoulder tops; held forward, a big
+   peplum's weight drew the back 2.3 cm inside the form and stretched a big flared one's back three times its cut.
+   A dress's skirt is heavy and keeps the 3 cm (`heavySkirt` in `src/engine/drape/garment.ts`).
 
 ## Style steps
 

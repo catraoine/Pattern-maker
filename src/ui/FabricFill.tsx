@@ -302,6 +302,7 @@ export function FabricSwatches({ finish, onFinish, garment, details }: { finish:
             >
               <span className="card-tex" style={{ backgroundImage: `url(${tileUrl(s.id)})` }} aria-hidden="true" />
               <span className="card-name" aria-hidden="true">{s.label}</span>
+              {s.id === 'lace' && <TestingTag tool="lace" />}
             </button>
           );
         })}

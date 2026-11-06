@@ -26,9 +26,14 @@ const isWaistDart = (ln: Path) => {
 };
 const fishEyeOf = (pc: Piece) => pc.lines.map((l) => l.points()).find((q) => q.length === 5 && len(sub(q[0], q[4])) < 1e-6);
 
+/** A notch moved with the piece, its way out turned the same way: a tiny step along it is moved too, so both stay on
+ *  the same side of the slash (the armhole notch sits at a vertex the move turns; a whole cm out from it did not, and
+ *  the way out came back bent along the edge, which the DXF then read as a notch a few mm off). */
 const moveNotch = (move: (q: P) => P) => ([q, d]: [P, P]): [P, P] => {
   const a = move(q);
-  return [a, sub(move(add(q, d)), a)];
+  const step = 0.01;
+  const v = mul(sub(move(add(q, mul(d, step))), a), 1 / step);
+  return [a, Math.abs(len(v) - len(d)) < 1e-3 ? v : d];
 };
 
 /** The front with its bust dart moved from the side seam to `to`. `seam` opens it on a style seam
