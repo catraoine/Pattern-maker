@@ -43,13 +43,17 @@ test('How to do it gives a way to measure seated or alone', async ({ page }) => 
   await how.getByRole('button', { name: 'Got it' }).click();
 });
 
-test('the tour can be read as words, and stays open at its end', async ({ page }) => {
+test('the tour carries its words for screen readers, has its own controls, and stays open at its end', async ({ page }) => {
   await openFresh(page);
   await main(page).getByRole('button', { name: /^Watch how it works/ }).click();
   const tour = page.getByRole('dialog', { name: 'How it works' });
-  await tour.getByRole('button', { name: 'Read it' }).click();
-  await expect(tour.getByText(/Just a few measurements, taken once/)).toBeVisible();
-  await tour.getByRole('button', { name: 'Hide' }).click();
+  // No Read it switch any more (Cat, 2026-11-06): the words stay in the page, hidden from view, tied to the film.
+  await expect(tour.getByRole('button', { name: 'Read it' })).toHaveCount(0);
+  await expect(tour.locator('#tour-words')).toContainText(/Just a few measurements, taken once/);
+  await expect(tour.locator('video')).toHaveAttribute('aria-describedby', 'tour-words');
+  // The phone's own player controls are off; ours sit under the film.
+  await expect(tour.locator('video')).not.toHaveAttribute('controls', /.*/);
+  await expect(tour.getByRole('button', { name: /^(Play|Pause)$/ })).toBeVisible();
   await tour.locator('video').evaluate((v: HTMLVideoElement) => v.dispatchEvent(new Event('ended')));
   await expect(tour).toBeVisible();
   await expect(tour.getByRole('button', { name: /Skip tour/ })).toBeFocused();

@@ -343,10 +343,11 @@ const DEMOS = {
     const handle = svg.locator('circle.hit[aria-label="Skirt length"]');
     // The named lengths are no longer drawn (the hem glides and catches on each): step the slider down to Midi to
     // learn where it sits, step back up, then drag there for the camera.
+    // It steps 2 cm at a time now, so Midi can be a good way down: up to 40 steps.
     const hb = await handle.boundingBox();
     await handle.focus();
     let steps = 0;
-    while ((await handle.getAttribute('aria-valuetext')) !== 'Midi' && steps < 8) { await p.keyboard.press('ArrowDown'); steps++; await wait(150); }
+    while ((await handle.getAttribute('aria-valuetext')) !== 'Midi' && steps < 40) { await p.keyboard.press('ArrowDown'); steps++; await wait(150); }
     if ((await handle.getAttribute('aria-valuetext')) !== 'Midi') throw new Error('Style clip: no Midi length on the hem slider');
     const mb = await handle.boundingBox();
     for (let i = 0; i < steps; i++) { await p.keyboard.press('ArrowUp'); await wait(80); }

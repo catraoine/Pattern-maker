@@ -91,17 +91,8 @@
   cursor: pointer;
 }
 
-/* The film comes in on a fade, not a cut: from the waitlist page the form sits elsewhere than in the film's first
-   frame, so a hard cut jumped (Cat, 2026-11-06). */
-.tour {
-  animation: tour-in 0.55s ease-out both;
-}
-
-@keyframes tour-in {
-  from {
-    opacity: 0;
-  }
-}
+/* No fade as the film opens (Cat, 2026-11-06): the fade hid the start of the push in on the form, so the opening no
+   longer felt like one smooth zoom on play. */
 
 /* The film sits in its own box at its own shape, so there is no letterbox for the browser to paint: iPhones paint
    the bars beside a video black whatever the page's colour, and black bands showed over the page (Cat, 2026-11-06). */
@@ -120,6 +111,69 @@
   max-width: 100%;
   max-height: 100%;
   background: var(--paper);
+}
+
+/* The films' own quiet controls (FilmControls.tsx), under the picture, never over it (Cat, 2026-11-06). */
+.film-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 16px 14px;
+}
+.film-toggle {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+.film-play {
+  display: block;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 6px 0 6px 10px;
+  border-color: transparent transparent transparent var(--gild);
+}
+.film-pause {
+  display: block;
+  box-sizing: content-box;
+  width: 4px;
+  height: 12px;
+  border-left: 3px solid var(--gild);
+  border-right: 3px solid var(--gild);
+}
+.film-line {
+  position: relative;
+  flex: 1;
+  height: 24px;
+  cursor: pointer;
+}
+.film-line::before,
+.film-line-done {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  height: 1px;
+  background: var(--gild);
+}
+.film-line::before {
+  right: 0;
+  opacity: 0.3;
+}
+.film-line-done {
+  height: 2px;
+  margin-top: -0.5px;
+}
+.tour-skip.film-sound {
+  border-color: transparent;
+  background: none;
+  color: var(--gild);
 }
 
 .tour-parts {
