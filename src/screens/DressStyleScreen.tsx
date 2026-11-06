@@ -193,6 +193,9 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
         g.id === 'sleeve' ||
         // A kimono sleeve is cut on at its named length, with no shape or cuff of its own.
         (g.id === 'sleeveShape' && chosen.length !== 'none' && chosen.cut !== 'kimono') ||
+        // Only a gathered sleeve has a fullness to pick; only a plunge has a depth.
+        (g.id === 'sleeveFullness' && (chosen.shape === 'puff' || chosen.shape === 'bishop')) ||
+        (g.id === 'plungeDepth' && choices.bodice.neckline === 'plunge' && !choices.bodice.neck) ||
         (g.id === 'sleeveCut' && chosen.length !== 'none') ||
         (g.id === 'sleeveCuff' && cuffShown(chosen) && chosen.cut !== 'kimono'),
     ).map((g) => ({
@@ -250,6 +253,10 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
               chosen.cm !== undefined ? '' : chosen.length
             : id === 'sleeveShape'
               ? chosen.shape
+              : id === 'sleeveFullness'
+                ? (chosen.fullness ?? 'soft')
+              : id === 'plungeDepth'
+                ? (choices.bodice.plungeDepth ?? 'standard')
               : id === 'sleeveCut'
                 ? (chosen.cut ?? 'set_in')
               : id === 'sleeveCuff'
@@ -577,6 +584,8 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
                   {label}
                   {optionInTesting(g.id, id) && <TestingTag tool="new_details" />}
                   {g.id === 'neckline' && id === 'plunge' && <TestingTag tool="plunge" />}
+                  {g.id === 'plungeDepth' && id === 'waist' && <TestingTag tool="waist_plunge" />}
+                  {g.id === 'sleeveFullness' && id === 'full' && <TestingTag tool="full_sleeve" />}
                   {g.id === 'gathers' && <TestingTag tool="fullness" />}
                 </button>
               ))}

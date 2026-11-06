@@ -1086,6 +1086,24 @@ function withPeplumView(d: BodiceDraft, h: Half, v: RawView & { foot: number }, 
   const ws = waist[waist.length - 1];
   const D = d.peplum.depthCm;
   const flared = d.peplum.kind === 'flared';
+  if (d.peplum.kind === 'balloon') {
+    // A balloon peplum: gathered at the waist, swelling out below it and turning back under at its hem, which is
+    // gathered onto the underskirt's, so it ends narrower than it is at its fullest.
+    const puff = d.peplum.puffCm ?? 6;
+    const wide = p(ws.x + D * (d.peplum.size === 'big' ? 0.5 : 0.35) + puff * 0.5, ws.y + D * 0.62);
+    const tuck = p(ws.x * 0.92, ws.y + D);
+    const curve = [...quad(ws, p(wide.x, ws.y + (wide.y - ws.y) * 0.4), wide, 10), ...quad(wide, p(wide.x + puff * 0.1, ws.y + D), tuck, 8).slice(1)];
+    const shape = whole([...waist, ...curve.slice(1)]);
+    const lines: FlatView['lines'] = [...v.lines];
+    // The gathers at the waist and where the hem turns under.
+    for (let s = 1; s < 8; s++) {
+      const x = (ws.x * s) / 8;
+      const y = ws.y + ((waist[0].y - ws.y) * (ws.x - x)) / Math.max(ws.x, 1);
+      lines.push(...both([p(x, y + 0.3), p(x + (wide.x - ws.x) * (x / ws.x) * 0.5, y + 2.6)]).map((pts) => ({ pts, kind: 'seam' as const })));
+      lines.push(...both([p((tuck.x * s) / 8, ws.y + D - 0.3), p((tuck.x * s) / 8 + 0.15, ws.y + D - 2.2)]).map((pts) => ({ pts, kind: 'seam' as const })));
+    }
+    return { ...v, shapes: [v.shapes[0], shape, ...v.shapes.slice(1)], lines, sleeves: v.sleeves?.map((j) => j + 1) };
+  }
   const H = ws.x + D * (flared ? (d.peplum.size === 'big' ? 0.8 : 0.55) : d.peplum.size === 'big' ? 0.3 : 0.18);
   const folds = flared ? 3 : 5;
   const per = 8;

@@ -304,6 +304,12 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
    the arm's own armhole plus 4 cm (the room a set-in sleeve's armhole has). Redrawn, the armhole lost more on a big
    body than a small one: on the oversized jacket and coat it came out up to 1.4 cm smaller than the arm on busts
    of 125 to 145 cm (`DROP` in `src/engine/sleeveCut.ts`, `cutSleeves` in `src/engine/bodice.ts`).
+50. **A sleeveless peplum top is held between a top's hold and a dress's** (Nov 6, Fable, SS27 Look 09): a sleeveless
+   top cut with full shoulders and a peplum has its shoulder held 1.5 cm behind the side, not the 3 cm back that
+   suits a dress nor the half centimetre forward a plain sleeveless top takes. Held 3 cm back under the peplum's light
+   weight, its shoulders sank inside the form's and the form showed through both shoulder tops; held forward, a big
+   peplum's weight drew the back 2.3 cm inside the form and stretched a big flared one's back three times its cut.
+   A dress's skirt is heavy and keeps the 3 cm (`heavySkirt` in `src/engine/drape/garment.ts`).
 
 ## Style steps
 

@@ -514,7 +514,7 @@ function buildDraped(
       }
       // A contrast upper collar shows at the front; round the back its outside is the garment's own cloth.
       const front = p.collar && contrast !== undefined;
-      const mat = !cloth ? material('black') : material(mode, tex, 1 / cloth.bodySize, cloth.sheer ? 0.6 : 1);
+      const mat = !cloth ? material('black') : material(mode, tex, 1 / cloth.bodySize, cloth.lace ? 0.95 : cloth.sheer ? 0.6 : 1);
       if (front && contrast !== undefined) {
         const col = new Float32Array(n * 3);
         const cc = new THREE.Color(contrast);
@@ -700,7 +700,7 @@ export function createRoundView(): RoundView | undefined {
       tex.colorSpace = THREE.SRGBColorSpace;
       tex.anisotropy = maxAniso;
       disposables.push(tex);
-      const mat = material(cloth?.sheen === 'gloss' ? 'gloss' : cloth?.sheen === 'pile' ? 'pile' : 'matte', tex, 1 / size, cloth?.sheer ? 0.6 : 1);
+      const mat = material(cloth?.sheen === 'gloss' ? 'gloss' : cloth?.sheen === 'pile' ? 'pile' : 'matte', tex, 1 / size, cloth?.lace ? 0.95 : cloth?.sheer ? 0.6 : 1);
       if (cloth?.lift && cloth.plain) {
         mat.emissive.set(cloth.plain).convertSRGBToLinear();
         mat.emissiveIntensity = cloth.lift;
