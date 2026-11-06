@@ -70,8 +70,9 @@ get in with their tester link.
 
 ## Queued for "ship" (as of Nov 6, after Release 65)
 
-- #301 (trousers: front pleats and belt loops as In-testing options, drawn in All round and the Flat view; the SS27
-  gold python Bermuda's look change waits on Cat's "apply"): based on main.
+- #301 (trousers: front pleats and belt loops as In-testing options, drawn in All round and the Flat view; Look 04 is
+  the Gold Python Bermuda with two pleats and belt loops (Cat's "apply", Nov 6); All round trouser legs hang plumb
+  from the seat): based on main, green.
 - #294 (All round: clean cloth in its own finish, and Look closer zoom): not green, conflicts with main; its thread
   merges main in first.
 
