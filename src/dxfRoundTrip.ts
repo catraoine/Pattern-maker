@@ -98,11 +98,13 @@ export function compareBack(pieces: Piece[], back: ImportedPattern): string[] {
     else if (want.grain && got.grain && (lineOff(want.grain, got.grain, shift) as number) > LINE_TOL) say('the grain line moves');
     if (!!want.fold !== !!got.fold) say(want.fold ? 'the place-on-fold line is lost' : 'a fold line appears that was not drawn');
 
-    // Notches where they cut into the cutting line, as the file and the printed pattern place them (the app adds the
-    // dart-leg notches itself, from the darts), and drill holes (dart points, fish-eye ends, godet points).
+    // Notches where they cut into the cutting line: the points the file is written with (the piece's own and one at
+    // each dart leg, as the printed pattern places them) against every notch point read from the file, before the
+    // import takes any as a dart leg's and places that itself. Drill holes (dart points, fish-eye ends, godet points)
+    // the same way.
     const onCut = (pc: Piece, cut: P[]) => allNotches(pc).map(([q, d]) => nearestOn(cut, notchSlit(pc, q, d)[0]));
     const marks: [string, string, P[], P[]][] = [
-      ['notch', 'notches', onCut(want, cutW), onCut(got, cutG)],
+      ['notch', 'notches', onCut(want, cutW), (got.meta.fileNotches as P[] | undefined) ?? onCut(got, cutG)],
       ['drill hole', 'drill holes', drillHoles(want), drillHoles(got)],
     ];
     for (const [one, many, a, c] of marks) {
