@@ -81,6 +81,11 @@ export const PRIVACY: LegalDoc = {
               'Yes, if something goes wrong',
             ],
             [
+              'Notes you send from Help & feedback (what you write, a screenshot if you add one, the screen you came from, the app version and your browser’s name and version)',
+              'Our server (Netlify)',
+              'Only if you tap Send',
+            ],
+            [
               'Anonymous daily counts (visits, and how many visits reached measuring, styling, printing or photo-to-pattern, for each garment)',
               'Our server, as daily totals only',
               'Yes, added to the day’s totals',
@@ -102,6 +107,7 @@ export const PRIVACY: LegalDoc = {
         `Measurements are personal.|Body measurements can be sensitive, which is one reason we keep them on your device${ACCOUNTS ? ', and send them nowhere but your own account' : ''}. If you enter measurements for someone else, please make sure they’re happy for you to do so.`,
         'Measure-me links.|A dressmaker can send a client a link to measure themselves, and the client sends the numbers back in a reply link. Everything travels inside the link, after the “#”, a part of a web address that browsers never send to a server, so we don’t receive or store it. The link is only as private as the message it’s sent in, and anyone who has it can read it, so send it only to the person it’s for.',
         'Fit notes.|When you note how a pattern fitted, you can choose to send those notes to us. We receive the pattern’s style, your answers, any notes you write and the measurements it was drafted from. We don’t receive your name or the name of the person it was made for, so please leave names out of your notes. We use fit notes only to improve how our patterns fit. We count how many you send each day under the same scrambled code as photo readings, so the service can’t be flooded, and we don’t store your IP address with the notes.',
+        'Notes from Help & feedback.|If you send us a note, we receive what you wrote, the screenshot if you added one, the screen you came from, the app version and your browser’s name and version. We don’t store your IP address with it. Please leave out anything private you don’t want us to see, in the note and the screenshot.',
         'Crash reports.|If the app hits an error, it sends us a short report so we can fix it: the error message and where in the app’s code it happened, the screen you were on, the app version, your browser’s name and version (such as “Safari 17 on iOS”), and the time. Before it’s stored, we remove numbers from the error message, and email addresses, file data and web address details from the whole report. It never includes your measurements, names, patterns or photos, and we don’t store your IP address with it. The same error is reported once, and no more than five a visit.',
         'Visit counts.|To see whether the app is working for people, we count visits and how many visits reached each step (measuring, choosing a style, printing or saving the PDF, and using photo-to-pattern), for each garment. Each count is added straight into a total for the day. There’s no cookie, no ID and no IP address stored, so the totals can’t be traced back to you or linked between visits. The counts are sent once, when you leave or switch away from the app. If your browser sends a “Do Not Track” or “Global Privacy Control” signal, we don’t count your visit at all.',
         'Fit testers and news.|If you sign up as a fit tester, we keep your name, email, what you’d like to sew and the size range you give (if any), and use them only to invite you to test new patterns. If you join the waitlist or sign up for news, we keep your email and the link you arrived by, and use them only to send Maison Tracé news and tell you when it opens. On the waitlist we also keep the language you sew in, to decide which language the app speaks next and to tell you when it does. Our newsletter service, Kit, holds that list and sends those emails. If you ask to hear when something opens, we keep your email, what you asked about (such as whether you’d like deadstock cloth cut for you) and the pattern you were looking at (or, for Atelier Nights, the city you picked), and use them only to tell you when it opens. If cutting opens, your pattern file and posting address will go only to the cutting studio you choose, and we’ll ask you before anything is sent. If you ask about Tracé Engine for brands, we use your email only to get in touch about early access. We count sign-ups under the same scrambled code as photo readings, so the form can’t be flooded.',
@@ -122,8 +128,8 @@ export const PRIVACY: LegalDoc = {
             ['Anthropic', 'Reads the style from your photo, or from the words you type to describe an idea', 'The photo (and, for a drawing check, the app’s drawing), or your typed description'],
             [
               'Netlify',
-              'Hosts the site and runs our server code, including the daily counters, and stores fit notes, crash reports, daily visit totals and sign-ups',
-              'Your IP address, request details, the photo in transit, fit notes and sign-ups you send, and crash reports',
+              'Hosts the site and runs our server code, including the daily counters, and stores fit notes, Help & feedback notes, crash reports, daily visit totals and sign-ups',
+              'Your IP address, request details, the photo in transit, fit notes, Help & feedback notes and sign-ups you send, and crash reports',
             ],
             ['Kit', 'Keeps the waitlist and news list and sends those emails', 'Your email, the link you arrived by, and whether you open the emails'],
             ...(ACCOUNTS
@@ -149,6 +155,7 @@ export const PRIVACY: LegalDoc = {
           'Photos: not kept by us once the style has been read.',
           'Fit notes you send: kept while we use them to improve our patterns. Because they carry no name, we can’t match them to you later unless you tell us roughly when you sent one and what it said.',
           'Daily counters: one tally per day, keyed by the scrambled code.',
+          'Notes from Help & feedback: kept while we work on what they raise, then deleted.',
           'Crash reports: kept while we work on the problems they show, then deleted.',
           'Daily visit totals: kept as totals. They hold nothing about any one person.',
           'Fit tester, news and “tell me when it opens” sign-ups: until you ask us to remove you, or we stop fit testing, sending news, or plan not to open what you asked about. Every news email will say how to stop them.',
