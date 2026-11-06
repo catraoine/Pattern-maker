@@ -32,6 +32,7 @@
  "bodice fit=oversized": [],
  "bodice fit=regular": [],
  "bodice fit=relaxed": [],
+ "bodice length=cropped": [],
  "bodice length=high_hip": [],
  "bodice length=hip": [],
  "bodice length=long": [],

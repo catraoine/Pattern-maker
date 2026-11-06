@@ -58,7 +58,8 @@ export type BodiceFit = 'fitted' | 'regular' | 'relaxed' | 'boxy' | 'oversized';
  * (strapless, sweetheart, cami) are cut below the shoulders in corset.ts. */
 export type Neckline = 'crew' | 'scoop' | 'v' | 'plunge' | 'square' | 'boat' | 'one_shoulder' | 'cowl' | 'strapless' | 'sweetheart' | 'cami' | 'halter';
 /** Long runs on past the hip to cover the seat, as a big shirt does (see LONG_BELOW_HIP). */
-export type BodiceLength = 'waist' | 'high_hip' | 'hip' | 'long';
+/** Cropped (In testing): a waist-length bodice cut off under the bust, as a dress's empire seam cuts it. */
+export type BodiceLength = 'cropped' | 'waist' | 'high_hip' | 'hip' | 'long';
 export interface DressHem {
   belowWaist: number;
   shape: 'sheath' | 'shift';
@@ -243,7 +244,7 @@ export function girthBelowWaist(m: { waist: number; full_hip: number; waist_to_h
 }
 
 /** Lengths that need the hip measurements. */
-export const needsHip = (l: BodiceLength) => l !== 'waist';
+export const needsHip = (l: BodiceLength) => l === 'high_hip' || l === 'hip' || l === 'long';
 
 // Ease in cm. Regular is a blouse's 7 cm at the bust, between a fitted dress bodice and a loose top;
 // the old 9 cm read as roomy on every tester body. Oversized has no darts, so it needs its own block.
@@ -363,6 +364,8 @@ export interface BodiceDraft {
   neckBlock: { front: { neckY: number; neckX: number }; back: { neckY: number; neckX: number } };
   /** How far the hem sits below the waist (0 at the waist). */
   drop: number;
+  /** A cropped top: how far above the waist it is cut off (under the bust), in cm. */
+  raiseCm?: number;
   /** A shaped hem as drafted, its sides matched and kept in range: offsets from the level hem. */
   hem?: HemShape;
   neck: number;
