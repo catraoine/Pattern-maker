@@ -72,6 +72,9 @@ get in with their tester link.
 
 - #294 (All round: clean cloth in its own finish, and Look closer zoom): not green, conflicts with main; its thread
   merges main in first.
+- #307 (Quality: the faults the automated checks found, fixed, Nov 6): balloon skirt notch, high-waist facings,
+  sweetheart cut line, hood notches and neck, back lining notches; words cut at page joins; Check a file dart-leg
+  notches; hood Front drawing. Every check's known-faults file is clean on the example body.
 
 Open draft: #259 (bias slip mini + side slit, open polo collar, ruffled trouser
 hem; In testing), based on main, waiting on Cat's "apply".
