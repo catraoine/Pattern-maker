@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { layout } from '../engine/export';
 import { trousersSpec } from '../engine/spec';
 import { FinishedTable, finishedLines } from '../ui/FinishedTable';
-import { TROUSER_EASE, TROUSER_LENGTHS, TrousersDraft, TrousersMeasurements, trouserLength } from '../engine/trousers';
+import { TROUSER_EASE, TROUSER_LENGTHS, TrousersDraft, TrousersMeasurements, lengthCmRange, trouserLength } from '../engine/trousers';
 import { trousersFlat, trousersView } from '../engine/flat';
 import { DrawOnForm, skirtForm } from '../ui/DrawOnForm';
 import { TROUSER_HELP, readTrouserHem, readTrouserPocket, readTrouserRise, readTrouserSide, trouserLines } from '../ui/formTrousers';
@@ -98,6 +98,8 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
           marks: TROUSER_LENGTHS.map((id) => ({ id, label: lengthGroup.options.find((o) => o[0] === id)![1], y: trouserLength(values as unknown as TrousersMeasurements, { leg: choices.leg, length: id }) })),
           value: choices.length,
           onPick: (length: string) => onChoices(validTrousers({ ...choices, length: length as TrousersChoices['length'], lengthCm: undefined })),
+          // The hem glides to any length between the named ones, measured from the waist (Cat, 2026-11-06).
+          free: { zero: 0, ...lengthCmRange(values as unknown as TrousersMeasurements), cm: choices.lengthCm, onCm: (cm: number) => onChoices(validTrousers({ ...choices, lengthCm: cm })) },
         };
   const elastic = choices.waist === 'elastic';
   const pockets = choices.pockets ?? 'none';

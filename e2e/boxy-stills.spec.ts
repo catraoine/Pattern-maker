@@ -1,4 +1,4 @@
-import { expect, startWithExample, switchGarment, test } from './fixtures';
+import { chooseLength, expect, startWithExample, switchGarment, test } from './fixtures';
 
 // Stills of the boxy dress beside the relaxed one, styled like Cat's gingham photo dress (Cat, 2026-10-30): a boat
 // neck, short straight sleeves, a dropped waist and a straight, very short skirt, in Form, Flat and All round.
@@ -46,7 +46,7 @@ test('boxy stills', async ({ page, consoleErrors }, info) => {
       });
     await tab('Length & hem');
     await pick('Straight', 'Silhouette');
-    await page.evaluate(() => [...document.querySelectorAll('main .hem-mark')].find((g) => g.textContent?.trim() === 'MINI')?.querySelector('.hit')?.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    await chooseLength(page, 'Mini');
     await page.waitForTimeout(400);
     await tab('Fabric');
     const choose = (sel: string, name: string) =>

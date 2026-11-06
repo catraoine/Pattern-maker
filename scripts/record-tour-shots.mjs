@@ -454,8 +454,14 @@ if (SLEEVES !== 'Sleeveless') await main.locator('input[type=range][aria-label="
 await wait(300);
 await goStep('Length & hem');
 await wait(300);
-// The length is set from the marks beside the form.
-await p.evaluate((m) => [...document.querySelectorAll('main .hem-mark')].find((g) => g.textContent.trim() === m)?.querySelector('.hit')?.dispatchEvent(new MouseEvent('click', { bubbles: true })), process.env.TOUR_MARK ?? 'KNEE');
+// The length is set with the hem dot's arrow keys, which step through the named lengths: up to the shortest, then
+// down to the one wanted.
+{
+  const dot = main.locator('[role=slider][aria-label$="length"]').first();
+  const want = (process.env.TOUR_MARK ?? 'KNEE').toLowerCase();
+  for (let i = 0; i < 12 && Number(await dot.getAttribute('aria-valuenow')) > 1; i++) await dot.press('ArrowUp'), await wait(150);
+  for (let i = 0; i < 12 && (await dot.getAttribute('aria-valuetext'))?.toLowerCase() !== want; i++) await dot.press('ArrowDown'), await wait(150);
+}
 // TOUR_SHORTER takes the hem up from that mark, 2 cm a step, on the length dot's arrow keys.
 for (let i = 0; i < Number(process.env.TOUR_SHORTER ?? 0); i++) {
   await main.locator('[role=slider][aria-label$="length"]').first().press('ArrowUp');

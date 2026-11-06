@@ -1,0 +1,79 @@
+/* On a phone the step's name ends the screen (Cat, 2026-11-06): this space under it reaches down to the bar, set
+   from the page by StyleLayout, so the questions start just out of sight. The bar's "See the choices" brings them up. */
+.chapter-more {
+  min-height: 44px;
+}
+
+/* The bar at the bottom never rises as the page scrolls (Cat, 2026-11-06): the page ends where it starts, with no
+   room left under it for it to be scrolled up off the bottom of the screen. */
+.main:has(.style-edit > .style-bar) {
+  padding-bottom: 0;
+}
+
+/* With the list of steps open, the open step is named once, in the list where it is marked, not also above it
+   (Cat, 2026-11-06). */
+@media (max-width: 760px) {
+  .chapter:has(.style-tabs.open) > .chapter-name {
+    display: none;
+  }
+  /* Open, the list of steps rises from the bar over the drawing, all five at once with the bar's button right under
+     them, and the page doesn't move (Cat, 2026-11-06). */
+  .style-panel > .chapter:has(.style-tabs.open) {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: var(--style-bar-h, 0px);
+    z-index: 29;
+    padding: 14px 16px 4px;
+    background: #14120e;
+    border-top: 1px solid rgb(217 196 155 / 0.45);
+    box-shadow: 0 -18px 40px rgb(0 0 0 / 0.55);
+  }
+  .chapter:has(.style-tabs.open) > .chapter-more {
+    display: none;
+  }
+}
+
+/* A dragged hem catches on each named length, and its name pops on the handle (Cat, 2026-11-06). */
+.handle text.caught {
+  fill: var(--gild);
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: hem-caught 420ms ease-out;
+}
+@keyframes hem-caught {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .handle text.caught {
+    animation: none;
+  }
+}
+
+/* Cat's P3 (2026-11-06): fewer arrows. Enlarge and Draw are plain words, with no icons and no underline. */
+.preview-corner > .enlarge svg,
+.preview-corner > .link.small::before,
+.preview-corner > .drawmenu > summary::before {
+  display: none;
+}
+.preview-corner > .link.small,
+.preview-corner > .drawmenu > summary {
+  text-decoration: none;
+}
+
+/* Each step's picks, at the right of its line in the list of steps on a phone, in place of "Your picks". */
+.step-pick {
+  display: none;
+}
+@media (max-width: 760px) {
+  .chapter .style-tabs.open button .step-pick {
+    display: inline;
+    margin-left: auto;
+    padding-left: 12px;
+    font: 400 13px/1.2 var(--sans);
+    color: var(--muted);
+    text-align: right;
+  }
+}
