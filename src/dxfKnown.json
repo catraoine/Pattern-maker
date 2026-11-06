@@ -3,22 +3,15 @@
  "bodice back=plain": [],
  "bodice back=scoop": [],
  "bodice back=v": [],
- "bodice bustDart=armhole": [
-  "Bodice front: # notches drafted, # read back",
-  "Bodice front: # notch read back up to # mm from where it was drafted"
- ],
+ "bodice bustDart=armhole": [],
  "bodice bustDart=french": [],
- "bodice bustDart=neck": [
-  "Bodice front: # notch read back up to # mm from where it was drafted"
- ],
+ "bodice bustDart=neck": [],
  "bodice bustDart=shoulder": [],
  "bodice bustDart=side": [],
  "bodice bustDart=waist": [],
  "bodice closure=back_zip": [],
  "bodice closure=front_buttons": [],
- "bodice closure=wrap": [
-  "Bodice front: # notch read back up to # mm from where it was drafted"
- ],
+ "bodice closure=wrap": [],
  "bodice collar=bow": [],
  "bodice collar=cape": [],
  "bodice collar=funnel": [],
@@ -30,10 +23,7 @@
  "bodice darts=bust": [],
  "bodice darts=bust_waist": [],
  "bodice darts=none": [],
- "bodice finish couture sleeve=long": [
-  "Bodice front: # notches drafted, # read back",
-  "Bodice front: # notches read back up to # mm from where they were drafted"
- ],
+ "bodice finish couture sleeve=long": [],
  "bodice finish facings": [],
  "bodice finish facings sleeve=long": [],
  "bodice finish lined": [],
@@ -51,9 +41,7 @@
  "bodice neckline=cowl": [],
  "bodice neckline=crew": [],
  "bodice neckline=halter": [],
- "bodice neckline=one_shoulder": [
-  "Bodice front: # notches drafted, # read back"
- ],
+ "bodice neckline=one_shoulder": [],
  "bodice neckline=plunge": [],
  "bodice neckline=scoop": [],
  "bodice neckline=square": [],
@@ -133,22 +121,15 @@
  "dress back=plain": [],
  "dress back=scoop": [],
  "dress back=v": [],
- "dress bustDart=armhole": [
-  "Bodice front: # notches drafted, # read back",
-  "Bodice front: # notch read back up to # mm from where it was drafted"
- ],
+ "dress bustDart=armhole": [],
  "dress bustDart=french": [],
- "dress bustDart=neck": [
-  "Bodice front: # notch read back up to # mm from where it was drafted"
- ],
+ "dress bustDart=neck": [],
  "dress bustDart=shoulder": [],
  "dress bustDart=side": [],
  "dress bustDart=waist": [],
  "dress closure=back_zip": [],
  "dress closure=front_buttons": [],
- "dress closure=wrap": [
-  "Bodice front: # notch read back up to # mm from where it was drafted"
- ],
+ "dress closure=wrap": [],
  "dress collar=bow": [],
  "dress collar=cape": [],
  "dress collar=funnel": [],
@@ -172,9 +153,7 @@
  "dress neckline=cowl": [],
  "dress neckline=crew": [],
  "dress neckline=halter": [],
- "dress neckline=one_shoulder": [
-  "Bodice front: # notches drafted, # read back"
- ],
+ "dress neckline=one_shoulder": [],
  "dress neckline=plunge": [],
  "dress neckline=scoop": [],
  "dress neckline=square": [],
