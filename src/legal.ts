@@ -243,3 +243,9 @@ export const TERMS: LegalDoc = {
     },
   ],
 };
+
+/** maisontrace.co/privacy and /terms (a trailing slash allowed): the page they open, so each has its own web address. */
+export function legalPath(path: string): 'privacy' | 'terms' | undefined {
+  const page = path.replace(/\/+$/, '').toLowerCase();
+  return page === '/privacy' ? 'privacy' : page === '/terms' ? 'terms' : undefined;
+}

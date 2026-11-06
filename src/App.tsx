@@ -52,7 +52,7 @@ import { LegalScreen } from './screens/LegalScreen';
 import { PhotoAllowance, UnlockGarment } from './ui/PlanPrompts';
 import { BILLING_ON, canPhotoDraft, countPhotoDraft, hasGarment, plansShown, savedLimit } from './plans';
 import { countStep, setReportView } from './report/report';
-import { PRIVACY, TERMS } from './legal';
+import { PRIVACY, TERMS, legalPath } from './legal';
 import { readLink, type MeasureReply } from './measureLink';
 import { isMoveLink, moveLink, readMoveLink } from './moveLink';
 import { coverGuide, coverMissing, coverPieces, padMap } from './engine/formCover';
@@ -176,14 +176,16 @@ export default function App() {
   const cloud = useCloud(makeBackup(saved, account, pointEdits), applyBackup, signinShown);
   /** The link that carries everything on this device to another one. */
   const sendLink = () => moveLink(window.location.origin, makeBackup(saved, account, pointEdits));
-  const [startView] = useState<View>(incoming?.kind === 'ask' ? 'link' : incoming?.kind === 'reply' ? 'arrive' : isMoveLink(window.location.hash) ? 'move' : 'welcome');
+  // maisontrace.co/privacy and /terms open those pages straight away: Google's sign-in setup needs a web address for
+  // each, and so will anyone who links to them.
+  const [startView] = useState<View>(incoming?.kind === 'ask' ? 'link' : incoming?.kind === 'reply' ? 'arrive' : isMoveLink(window.location.hash) ? 'move' : legalPath(window.location.pathname) ?? 'welcome');
   const [step, setStep] = useViewHistory<View>(startView, (to) => (NEEDS_MEASUREMENTS.includes(to) && !canLeaveMeasure ? 'measure' : to), ladder);
   const openLegal = (page: 'privacy' | 'terms' | 'tester' | 'news' | 'brands' | 'nights' | 'made' | 'help') => setStep(page);
   // The waitlist (Cat's W1, 2026-10-21): until launch, a visitor without a tester link sees the welcome with a waitlist
   // where Begin was, and the Privacy and Terms pages, nothing else. Measure-me and move links still open, as they
   // come from someone already using the app.
   const [access, setAccess] = useState(() => hasAccess(storedAccount.testerCode));
-  const gated = !access && !storedAccount.testerCode && startView === 'welcome';
+  const gated = !access && !storedAccount.testerCode && (startView === 'welcome' || startView === 'privacy' || startView === 'terms');
   // "Checking your tester link…" from the first frame when a link carries a code, so the welcome never sits bare.
   const [linkCheck, setLinkCheck] = useState<{ checking?: boolean; message?: string }>(() => (testerFromLink(window.location.search) && !hasAccess(storedAccount.testerCode) ? { checking: true } : {}));
   const linkCode = useRef<string>();

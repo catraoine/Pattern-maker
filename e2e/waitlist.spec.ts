@@ -89,3 +89,15 @@ test('on a phone the waitlist rises over the form drawn at full size, and the la
   await expect(main.getByText('DE', { exact: true })).toBeVisible();
   await expect(main).toContainText('We\'ll tell you when Maison Tracé speaks it.');
 });
+
+test('maisontrace.co/privacy and /terms open those pages for a stranger, and lead nowhere past the waitlist', async ({ page }) => {
+  const main = page.getByRole('main');
+  await page.goto('/privacy');
+  await skipLoading(page);
+  await expect(main.getByRole('heading', { level: 1, name: 'Privacy Policy' })).toBeVisible();
+  await expect(page.getByRole('banner').getByRole('button', { name: /account/i })).toHaveCount(0);
+  await page.goto('/terms/');
+  await skipLoading(page);
+  await expect(main.getByRole('heading', { level: 1, name: /Terms/ })).toBeVisible();
+  await expect(page.getByRole('banner').getByRole('button', { name: /account/i })).toHaveCount(0);
+});
