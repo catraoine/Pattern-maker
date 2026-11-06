@@ -877,13 +877,19 @@ export function createRoundView(): RoundView | undefined {
               const y = rowY(t);
               const r = R(y);
               let aw = a;
-              if (seat) {
-                const e = Math.sign(X(y)) || 1;
-                const sOf = e * wrap(a);
-                aw = sOf >= 0 ? e * (2 * sOf - HALF) : -e * HALF;
-              }
               // Over the crown the cloth is laid at the arm's own width, or the print squeezes into streaks at its top.
-              return [(aw - c) * Math.max(r, R(y1) * 0.8) * k, downAt(t) * k];
+              const own = (aw: number) => (aw - c) * Math.max(r, R(y1) * 0.8) * k;
+              if (!seat) return [own(aw), downAt(t) * k];
+              const e = Math.sign(X(y)) || 1;
+              const sOf = e * wrap(a);
+              aw = sOf >= 0 ? e * (2 * sOf - HALF) : -e * HALF;
+              // At the crotch the print carries on from the body above, laid round the seat as the body lays it (its
+              // front and back panels each from their own centre), and eases to the leg's own lay down the thigh:
+              // laid as the leg's tube from the top, the print broke along the crotch in a line (Cat, 2026-11-06).
+              const g = e * sOf;
+              const onSeat = (Math.abs(g) <= HALF ? g : g - e * Math.PI) * seat(g) * k;
+              const wB = smooth(clamp(1 - (y - y0) / 0.3, 0, 1));
+              return [onSeat * wB + own(aw) * (1 - wB), (y0 + downAt(t) - downAt(0)) * k];
             },
             out: (a) => radial(a),
             shade: (a, t) => {
@@ -984,6 +990,10 @@ export function createRoundView(): RoundView | undefined {
       if (v > 3 * HALF) v -= TAU;
       const g = leg * ((v + HALF) / 2);
       const w = seatHold(y, yC, r, Math.max(rAt(0, yC), rAt(Math.PI, yC)));
+      // Across the body too the leg is the seat's own side within a hand's width of the crotch (as tube() lays it),
+      // or a line drawn there sat inside the cloth and seemed to stop short of the crotch.
+      const wIn = smooth(clamp(1 - (y - yC) / 0.3, 0, 1));
+      q.p[0] = Math.sin(g) * rAt(g, yC) * wIn + q.p[0] * (1 - wIn);
       q.p[2] = Math.cos(g) * rAt(g, yC) * w + q.p[2] * (1 - w);
       return q;
     };

@@ -170,7 +170,9 @@ export function roundShape(round: RoundGarment, m: RoundMeasurements, { film, th
   // Cloth that hangs falls in soft folds, not as a smooth vase (Cat, 2026-10-28, "in another league"): a few gentle
   // ones down any hanging cloth from where it leaves the body, and deeper ones where a flare adds cloth.
   const foldAmp = (y: number) => {
-    const soft = isTop ? 0.028 * smooth(clamp((y - BUST_Y) / 0.6, 0, 1)) : trousers ? 0.012 * smooth(clamp((y - WAIST) / 0.5, 0, 1)) : 0.034 * smooth(clamp((y - WAIST) / 0.5, 0, 1));
+    // Trousers hang smooth: their legs are drawn without folds, so folds down the body stopped at the crotch as a row
+    // of bumps over the legs (Cat, 2026-11-06: "two banded bumps").
+    const soft = isTop ? 0.028 * smooth(clamp((y - BUST_Y) / 0.6, 0, 1)) : trousers ? 0 : 0.034 * smooth(clamp((y - WAIST) / 0.5, 0, 1));
     const flared = flares ? (0.018 + 0.06 * clamp(round.flare - 1, 0, 1)) * smooth(clamp((y - FORM_HIP) / Math.max(0.05, meanY - FORM_HIP), 0, 1)) : 0;
     return Math.max(soft, flared);
   };

@@ -537,7 +537,11 @@ export function roundTrousers(draft: TrousersDraft, m: TrouserM): RoundGarment {
   const pleats: RoundPleat[] = [];
   for (const sh of draft.pleats ? pleatShares(front, draft.pleats.lines) : [])
     for (const s of [1, -1] as const) {
-      pleats.push({ pts: [{ phi: s * HALF * (1 - sh.waist), cm: 0 }, { phi: s * HALF * (1 - sh.waist), cm: crotchCm }], press: (-s) as 1 | -1 });
+      // Down the body the pleat runs from its share of the waist to where the leg's crease meets the crotch (the seat's
+      // front half is laid round the leg's outer half, allRoundMesh.ts, so the body's angle is half the leg's from the
+      // side), then straight down the leg at its share of the hem: it used to stop short at the crotch and start again
+      // lower and further in (Cat, 2026-11-06).
+      pleats.push({ pts: [{ phi: s * HALF * (1 - sh.waist), cm: 0 }, { phi: s * HALF * (1 - sh.hem), cm: crotchCm }], press: (-s) as 1 | -1 });
       pleats.push({ pts: [{ phi: s * (HALF - sh.hem * Math.PI), cm: crotchCm }, { phi: s * (HALF - sh.hem * Math.PI), cm: L }], leg: s, press: (-s) as 1 | -1 });
     }
   return {
