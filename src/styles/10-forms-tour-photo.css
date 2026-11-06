@@ -91,11 +91,34 @@
   cursor: pointer;
 }
 
-.tour-video {
+/* The film comes in on a fade, not a cut: from the waitlist page the form sits elsewhere than in the film's first
+   frame, so a hard cut jumped (Cat, 2026-11-06). */
+.tour {
+  animation: tour-in 0.55s ease-out both;
+}
+
+@keyframes tour-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* The film sits in its own box at its own shape, so there is no letterbox for the browser to paint: iPhones paint
+   the bars beside a video black whatever the page's colour, and black bands showed over the oxblood (Cat, 2026-11-06). */
+.tour-stage {
   flex: 1;
   min-height: 0;
-  width: 100%;
-  object-fit: contain;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tour-video {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
   background: var(--paper);
 }
 

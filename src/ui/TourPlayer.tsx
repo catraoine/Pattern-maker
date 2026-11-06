@@ -102,21 +102,25 @@ export function TourPlayer({ onClose }: { onClose: () => void }) {
           </button>
         </span>
       </div>
-      <video
-        ref={video}
-        className="tour-video"
-        playsInline
-        controls
-        preload="auto"
-        aria-describedby="tour-words"
-        // It stays open at the end (the accessibility review, 2026-10-30), so nothing vanishes from under a viewer;
-        // the focus goes to Skip tour, to close it.
-        onEnded={() => close.current?.focus()}
-      >
-        {SOURCES[shape].map((v) => (
-          <source key={v.src} src={v.src} type={v.type} />
-        ))}
-      </video>
+      <div className="tour-stage">
+        <video
+          ref={video}
+          className="tour-video"
+          // Its shape before the film has loaded, so the box doesn't jump as it comes in.
+          style={{ aspectRatio: shape === 'wide' ? '16 / 9' : '9 / 16' }}
+          playsInline
+          controls
+          preload="auto"
+          aria-describedby="tour-words"
+          // It stays open at the end (the accessibility review, 2026-10-30), so nothing vanishes from under a viewer;
+          // the focus goes to Skip tour, to close it.
+          onEnded={() => close.current?.focus()}
+        >
+          {SOURCES[shape].map((v) => (
+            <source key={v.src} src={v.src} type={v.type} />
+          ))}
+        </video>
+      </div>
     </div>
   );
 }

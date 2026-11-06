@@ -164,22 +164,25 @@ function DemoPlayer({ demo, onClose }: { demo: Demo; onClose: () => void }) {
           </button>
         </span>
       </div>
-      <video
-        ref={video}
-        className="tour-video"
-        autoPlay
-        muted
-        playsInline
-        controls
-        preload="auto"
-        onTimeUpdate={(e) => setAt(e.currentTarget.currentTime)}
-        aria-describedby="demo-words"
-        // It stays open at the end, the focus on Close (the accessibility review, 2026-10-30).
-        onEnded={() => close.current?.focus()}
-      >
-        <source src={`${demo.base}.mp4`} type='video/mp4; codecs="avc1.640032"' />
-        <source src={`${demo.base}.webm`} type='video/webm; codecs="vp9"' />
-      </video>
+      <div className="tour-stage">
+        <video
+          ref={video}
+          className="tour-video"
+          style={{ aspectRatio: '9 / 16' }}
+          autoPlay
+          muted
+          playsInline
+          controls
+          preload="auto"
+          onTimeUpdate={(e) => setAt(e.currentTarget.currentTime)}
+          aria-describedby="demo-words"
+          // It stays open at the end, the focus on Close (the accessibility review, 2026-10-30).
+          onEnded={() => close.current?.focus()}
+        >
+          <source src={`${demo.base}.mp4`} type='video/mp4; codecs="avc1.640032"' />
+          <source src={`${demo.base}.webm`} type='video/webm; codecs="vp9"' />
+        </video>
+      </div>
     </div>
   );
 }
