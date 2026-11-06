@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { signinFailed } from '../cloud/flag';
 import type { Cloud } from '../cloud/useCloud';
 
 const STATUS: Record<string, string> = {
@@ -29,7 +30,8 @@ export function CloudAccount({ cloud }: { cloud: Cloud }) {
   const [sentTo, setSentTo] = useState('');
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState('');
+  // Back from Google (or an old email link) refused: say so, rather than sitting there signed out.
+  const [msg, setMsg] = useState(signinFailed ? "Couldn't sign you in. Try again, or use your email below." : '');
   const [confirmDelete, setConfirmDelete] = useState(false);
   // Signing in or out starts the section over.
   useEffect(() => {

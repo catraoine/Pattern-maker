@@ -23,3 +23,9 @@ export const signinArriving = (hash = typeof location === 'undefined' ? '' : loc
 
 /** Whether Your account offers signing in. Read once, when the app loads, before it tidies the address. */
 export const signinShown = SIGNIN_ON || signinPreview() || signinArriving();
+
+/** A sign-in that came back refused (Google's or an email link's), as the account service reports it in the address. */
+export const signinFailedIn = (search: string, hash: string) => /(^[?#]|&)error_description=/.test(search) || /(^[?#]|&)error_description=/.test(hash);
+
+/** Read once, when the app loads, before it tidies the address. */
+export const signinFailed = typeof location === 'undefined' ? false : signinFailedIn(location.search, location.hash);
