@@ -347,6 +347,7 @@ const DEMOS = {
     await handle.focus();
     let steps = 0;
     while ((await handle.getAttribute('aria-valuetext')) !== 'Midi' && steps < 8) { await p.keyboard.press('ArrowDown'); steps++; await wait(150); }
+    if ((await handle.getAttribute('aria-valuetext')) !== 'Midi') throw new Error('Style clip: no Midi length on the hem slider');
     const mb = await handle.boundingBox();
     for (let i = 0; i < steps; i++) { await p.keyboard.press('ArrowUp'); await wait(80); }
     await wait(400);
