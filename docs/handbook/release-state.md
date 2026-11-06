@@ -4,6 +4,13 @@ _Update this page whenever a release ships or a PR is queued._
 
 ## Live
 
+**Release 72** (Nov 6, 2026, Cat's Nov 6 "Ship all"; #317, #318 and #319 merged together): the Watch clips and How it
+works films re-recorded in the oxblood look (no black band; the play button appears just after the waitlist rises and
+its first blink comes within half a second) (#318). Tops get a Cropped length (In testing), the plunge to the waist is
+taped so it holds, and gathered folds are fitted whole (#317). The waitlist page's foot shows just Privacy; How it's
+made stays reachable in the app (Cat's A, #319). Still open: #305 cami straps, #300 Kick Flare removal, #303/#299
+handbook, draft #259.
+
 **Release 71** (Nov 6, 2026, Cat's Nov 6 "ship"; #313, #314 and #315 merged together): patterns hold up on every body. The nightly walk over
 20 random bodies found 716 pattern faults the example body doesn't show; now none (and none on 10 more bodies).
 Cutting lines no longer fold over themselves at tight curves (jacket and coat fronts, some bodices, skirt facings and
@@ -105,12 +112,7 @@ Live site: https://maisontrace.co (the cloud proxy blocks it; check
 https://whimsical-mooncake-2cf9a9.netlify.app, the same site). Strangers see the waitlist; testers
 get in with their tester link.
 
-## Queued for "ship" (as of Nov 6, after Release 65)
-
-Random-body pattern fixes (Quality, Nov 6): the nightly 20-body pattern walk's 716 faults on bodies other than the
-example one, fixed (cutting lines folding at tight curves, flared coat panels, knife-pleat split marks, pocket, zip and
-hip notches too close together, slant-pocket hip notch, dresses for a waist close to the hip, the waist step beside a
-trued dart). Green PR waiting on "ship".
+## Queued for "ship" (as of Nov 6, after Release 72)
 
 Open draft: #259 (bias slip mini + side slit, open polo collar, ruffled trouser
 hem; In testing), based on main, waiting on Cat's "apply".
