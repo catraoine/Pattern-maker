@@ -838,58 +838,74 @@ export function createRoundView(): RoundView | undefined {
         const j = Math.min(NY - 1, Math.floor(f));
         return y1 - (down[NY] - (down[j] + (down[j + 1] - down[j]) * (f - j)));
       };
+      const geoAt = (a: number, t: number): V3 => {
+        const y = rowY(t);
+        const r = R(y);
+        if (!seat) return T(X(y), a, r, y, r * Z(y));
+        // A trouser leg grows out of the seat (Cat, 2026-10-28: "why are pants like this?"): at the crotch its
+        // outer half is the seat's own side, from the centre front round to the centre back, and its inner half
+        // the flat inseam down the middle where the two legs meet. Down the thigh that half-seat wraps on round
+        // into the whole leg and the inseam closes to the line where the legs touch, so the seat runs into the
+        // legs with no shelf and no crease between them.
+        const e = Math.sign(X(y)) || 1;
+        const sOf = e * wrap(a);
+        const aw = sOf >= 0 ? e * (2 * sOf - HALF) : -e * HALF;
+        const p = T(X(y), aw, r, y, r * Z(y));
+        // Over the whole thigh, down to the knee: the cloth hangs from the seat and the belly and only closes
+        // round the leg as the thigh narrows (over a hand's width it bulged at the seat, Cat 2026-10-28).
+        const wOut = seatHold(y, y0, r, Math.max(seat(0), seat(Math.PI)));
+        // The inseam side parts from the other leg straight below the crotch, so two legs show from the front.
+        const wIn = smooth(clamp(1 - (y - y0) / 0.3, 0, 1));
+        const w = wOut + (wIn - wOut) * smooth(clamp(-sOf / 0.6, 0, 1));
+        if (w <= 0) return p;
+        let qx = 0;
+        let qz: number;
+        if (sOf >= 0) {
+          const g = e * sOf;
+          const rs = seat(g);
+          qx = Math.sin(g) * rs;
+          qz = Math.cos(g) * rs;
+        } else qz = Math.cos(sOf) * seat(Math.cos(sOf) >= 0 ? 0 : Math.PI);
+        // Across the body each leg is on its own axis within a hand's width of the crotch; front to back it
+        // keeps the seat's depth down the thigh.
+        return [qx * wIn + p[0] * (1 - wIn), y, qz * w + p[2] * (1 - w)];
+      };
+      // The cloth's length round each row of the leg from the inseam at the crotch (where the seat's centre front is
+      // laid, see `at`), read between the samples.
+      const ARC_N = 96;
+      const aRef = -e * HALF;
+      const arc: Float64Array[] = [];
+      const roundAt = (a: number, t: number) => {
+        if (!seat) return 0;
+        const j = Math.round(t * NY);
+        if (!arc[j]) {
+          const row = new Float64Array(ARC_N + 1);
+          let prev = geoAt(aRef, t);
+          for (let i = 1; i <= ARC_N; i++) {
+            const q = geoAt(aRef + (TAU * i) / ARC_N, t);
+            row[i] = row[i - 1] + Math.hypot(q[0] - prev[0], q[1] - prev[1], q[2] - prev[2]);
+            prev = q;
+          }
+          arc[j] = row;
+        }
+        const f = (((((a - aRef) / TAU) % 1) + 1) % 1) * ARC_N;
+        const i = Math.min(ARC_N - 1, Math.floor(f));
+        return arc[j][i] + (arc[j][i + 1] - arc[j][i]) * (f - i);
+      };
       const geo = (c: number, a0: number, a1: number) =>
         sweep(
           {
-            at: (a, t) => {
-              const y = rowY(t);
-              const r = R(y);
-              if (!seat) return T(X(y), a, r, y, r * Z(y));
-              // A trouser leg grows out of the seat (Cat, 2026-10-28: "why are pants like this?"): at the crotch its
-              // outer half is the seat's own side, from the centre front round to the centre back, and its inner half
-              // the flat inseam down the middle where the two legs meet. Down the thigh that half-seat wraps on round
-              // into the whole leg and the inseam closes to the line where the legs touch, so the seat runs into the
-              // legs with no shelf and no crease between them.
-              const e = Math.sign(X(y)) || 1;
-              const sOf = e * wrap(a);
-              const aw = sOf >= 0 ? e * (2 * sOf - HALF) : -e * HALF;
-              const p = T(X(y), aw, r, y, r * Z(y));
-              // Over the whole thigh, down to the knee: the cloth hangs from the seat and the belly and only closes
-              // round the leg as the thigh narrows (over a hand's width it bulged at the seat, Cat 2026-10-28).
-              const wOut = seatHold(y, y0, r, Math.max(seat(0), seat(Math.PI)));
-              // The inseam side parts from the other leg straight below the crotch, so two legs show from the front.
-              const wIn = smooth(clamp(1 - (y - y0) / 0.3, 0, 1));
-              const w = wOut + (wIn - wOut) * smooth(clamp(-sOf / 0.6, 0, 1));
-              if (w <= 0) return p;
-              let qx = 0;
-              let qz: number;
-              if (sOf >= 0) {
-                const g = e * sOf;
-                const rs = seat(g);
-                qx = Math.sin(g) * rs;
-                qz = Math.cos(g) * rs;
-              } else qz = Math.cos(sOf) * seat(Math.cos(sOf) >= 0 ? 0 : Math.PI);
-              // Across the body each leg is on its own axis within a hand's width of the crotch; front to back it
-              // keeps the seat's depth down the thigh.
-              return [qx * wIn + p[0] * (1 - wIn), y, qz * w + p[2] * (1 - w)];
-            },
+            at: geoAt,
             uv: (a, t) => {
               const y = rowY(t);
               const r = R(y);
-              let aw = a;
               // Over the crown the cloth is laid at the arm's own width, or the print squeezes into streaks at its top.
-              const own = (aw: number) => (aw - c) * Math.max(r, R(y1) * 0.8) * k;
-              if (!seat) return [own(aw), downAt(t) * k];
-              const e = Math.sign(X(y)) || 1;
-              const sOf = e * wrap(a);
-              aw = sOf >= 0 ? e * (2 * sOf - HALF) : -e * HALF;
-              // At the crotch the print carries on from the body above, laid round the seat as the body lays it (its
-              // front and back panels each from their own centre), and eases to the leg's own lay down the thigh:
-              // laid as the leg's tube from the top, the print broke along the crotch in a line (Cat, 2026-11-06).
-              const g = e * sOf;
-              const onSeat = (Math.abs(g) <= HALF ? g : g - e * Math.PI) * seat(g) * k;
-              const wB = smooth(clamp(1 - (y - y0) / 0.3, 0, 1));
-              return [onSeat * wB + own(aw) * (1 - wB), (y0 + downAt(t) - downAt(0)) * k];
+              if (!seat) return [(a - c) * Math.max(r, R(y1) * 0.8) * k, downAt(t) * k];
+              // On a leg the print is laid by the length of cloth round it, row by row, from the inseam at the crotch
+              // (the centre front of the seat, so it carries on from the body's print) round the outside: laid by the
+              // leg's own angle and width it broke along the crotch in a line, and eased from the seat's lay it
+              // smeared across the top of the thigh (Cat, 2026-11-06).
+              return [roundAt(a, t) * k, (y0 + downAt(t) - downAt(0)) * k];
             },
             out: (a) => radial(a),
             shade: (a, t) => {
