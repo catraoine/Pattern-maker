@@ -19,11 +19,9 @@ import type { DrapeJob } from '../engine/drape/run';
 import { makeSpace } from '../engine/drape/space';
 import { placeOnForm } from './allRoundShape';
 import { cachedDrape, drapeKey, requestDrape, sewnAnyway } from './drapeClient';
+import { GILD, GLOW, GROUND, MUTED, SHADOW } from './palette';
 
 // Matching --gild, --gild-glow, --guide, --muted and --ok in styles.css.
-const GILD = '#d9c49b';
-const GLOW = '#f3e6c8';
-const MUTED = '#9a8e78';
 const OK = '#a9c49b';
 
 const TAU = Math.PI * 2;
@@ -448,7 +446,7 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
         // bright edge like a hem or a neckline (Cat, 2026-10-27).
         const draw = (run: Pt[]) => {
           if (groove) {
-            line(run, '#000', width * 1.8, 0, 0.45, 0.3);
+            line(run, SHADOW, width * 1.8, 0, 0.45, 0.3);
             line(run, GLOW, width * 0.5, 0, 0.5, 0.3);
           } else line(run, colour, width, back, alpha);
         };
@@ -491,8 +489,8 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
       };
       // For the all-round check, the backdrop and the hollow inside the garment are painted in colours of their own
       // (red and magenta) so a picture can tell them from the form's own black; nobody else ever sees them.
-      const backdrop = st.probe ? '#f00' : '#000';
-      const hollow = st.probe ? '#f0f' : '#000';
+      const backdrop = st.probe ? '#f00' : GROUND;
+      const hollow = st.probe ? '#f0f' : GROUND;
       g.globalAlpha = 1;
       g.fillStyle = backdrop;
       g.fillRect(0, 0, w, h);
@@ -571,7 +569,7 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
             [...ys].reverse().forEach((y) => g.lineTo(cx + halfWidth(y) * S, Y(y)));
             g.clip();
             g.globalAlpha = 1;
-            g.fillStyle = '#000';
+            g.fillStyle = GROUND;
             g.fillRect(0, 0, w, h);
             g.globalAlpha = 0.6;
             paintFigure(g, S, cx, Y, lw, 1, false, phi, { half: formHalfWidth, shape: shapeAt, satin: !through, head: false });
@@ -852,7 +850,7 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
           const x = cx + Math.sin(a) * radius(WAIST) * S;
           const w = Math.max(1, lw * 2.2 * z);
           const run: Pt[] = [[x, Y(bandTop) - lw * 1.2, z], [x, Y(WAIST) + lw * 1.2, z]];
-          line(run, '#000', w + lw * 1.4, 0, 0.5);
+          line(run, SHADOW, w + lw * 1.4, 0, 0.5);
           line(run, GLOW, w, 0, 0.8);
         }
       }
@@ -1000,7 +998,7 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
 
       // A pressed pleat: a strip of shadow in under its edge, and the edge itself catching the light.
       for (const pl of round.pleats ?? []) {
-        if (cloth) line(along(pl.pts.map((q) => ({ phi: q.phi + pl.press * 0.045, cm: q.cm })), pl.leg), '#000', lw * 3.2, 0, 0.38, 0.3);
+        if (cloth) line(along(pl.pts.map((q) => ({ phi: q.phi + pl.press * 0.045, cm: q.cm })), pl.leg), SHADOW, lw * 3.2, 0, 0.38, 0.3);
         line(along(pl.pts, pl.leg), cloth ? GLOW : GILD, lw * 0.9, cloth ? 0 : 0.2, cloth ? 0.75 : film ? 0.5 : 1, cloth ? 0.3 : 0);
       }
       // Darts, seams and the vent.
@@ -1008,12 +1006,12 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
         // In cloth, seams and darts are grooves: a shadow line with a fine light edge, as on the style drawing.
         for (const dt of round.darts) {
           const pts = along([dt.base, dt.tip]);
-          line(pts, '#000', lw * 1.8, 0, 0.4, 0.3);
+          line(pts, SHADOW, lw * 1.8, 0, 0.4, 0.3);
           line(pts, GLOW, lw * 0.5, 0, 0.45, 0.3);
         }
         for (const sm of round.seams.filter(drawn)) {
           const pts = along(sm.pts, sm.leg);
-          line(pts, '#000', lw * 2, 0, 0.45, 0.3);
+          line(pts, SHADOW, lw * 2, 0, 0.45, 0.3);
           line(pts, GLOW, lw * 0.55, 0, 0.5, 0.3);
         }
       } else {

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { FADE_FROM, formOutline } from './ContourForm';
 import type { FormKind } from '../measurements';
+import { GILD, GLOW as PALE, GROUND, GROUND_RGB, INK } from './palette';
 
 // The loading screen shown when the app opens, one thing at a time (Cat's M1, 2026-10-18): MAISON TRACÉ
 // appears and rises into the header, then a pen drafts the bodice block, as big as the form it is about to
@@ -18,11 +19,11 @@ const FADE = 400;
 const LOOP = 420; // points on each outline while one becomes the other
 const ASPECT = 0.58; // the block's width to its height
 
-// Champagne, as picked for the app's look
-const LINE = '#D9C49B';
-const BRIGHT = '#F3E6C8';
-const TEXT = '#EFE4CC';
-const GLOW = 'rgba(243,230,200,.9)';
+// Champagne, as picked for the app's look, the same as the form it hands over to
+const LINE = GILD;
+const BRIGHT = PALE;
+const TEXT = INK;
+const GLOW = 'rgba(246,226,182,.9)';
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const seg = (t: number, a: number, b: number) => clamp((t - a) / (b - a), 0, 1);
@@ -111,7 +112,7 @@ function findName(): NameSpot | null {
 
 function draw(g: CanvasRenderingContext2D, w: number, h: number, t: number, box: FormBox | null, spot: NameSpot | null) {
   g.globalAlpha = 1;
-  g.fillStyle = '#000';
+  g.fillStyle = GROUND;
   g.fillRect(0, 0, w, h);
   g.strokeStyle = LINE;
   g.lineCap = 'round';
@@ -194,8 +195,8 @@ function morph(g: CanvasRenderingContext2D, bodice: Pt[], box: FormBox, m: numbe
   g.stroke();
   const fadeTop = box.y + box.h * FADE_FROM;
   const fade = g.createLinearGradient(0, fadeTop, 0, box.y + box.h);
-  fade.addColorStop(0, 'rgba(0,0,0,0)');
-  fade.addColorStop(1, `rgba(0,0,0,${m})`);
+  fade.addColorStop(0, `rgba(${GROUND_RGB},0)`);
+  fade.addColorStop(1, `rgba(${GROUND_RGB},${m})`);
   g.fillStyle = fade;
   g.fillRect(0, fadeTop, g.canvas.clientWidth, box.h * (1 - FADE_FROM) + 1);
   g.restore();

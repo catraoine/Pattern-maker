@@ -17,7 +17,7 @@
 .form-draw button.primary.done,
 .form-leave button.primary.done {
   background: var(--gild);
-  color: #000;
+  color: var(--paper);
   border-color: var(--gild);
 }
 .form-draw .screen-head button.done {
@@ -103,7 +103,7 @@
   z-index: 50;
   display: flex;
   align-items: flex-end;
-  background: rgba(0, 0, 0, 0.72);
+  background: rgba(8, 3, 2, 0.72);
 }
 .form-leave-box {
   display: grid;

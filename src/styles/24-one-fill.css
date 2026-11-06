@@ -36,7 +36,7 @@
 button.primary.main-go:not(:disabled) {
   background: var(--gild);
   border-color: var(--gild);
-  color: #000;
+  color: var(--paper);
   font-weight: 600;
 }
 
