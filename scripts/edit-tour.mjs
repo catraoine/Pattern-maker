@@ -28,12 +28,12 @@ await page.goto(APP);
 await page.waitForTimeout(1500);
 const CSS = `
   html,body{margin:0;background:transparent!important;width:${VW}px;height:${VH}px;overflow:hidden}
-  .f{position:fixed;inset:0;color:#efe4cc;font-family:'Space Grotesk',sans-serif}
-  .k{font:400 10px/1 'Chakra Petch',monospace;letter-spacing:.34em;text-transform:uppercase;color:#d9c49b}
-  .r{width:96px;height:1px;background:#d9c49b;margin:18px 0}
+  .f{position:fixed;inset:0;color:#f3dfb7;font-family:'Space Grotesk',sans-serif}
+  .k{font:400 10px/1 'Chakra Petch',monospace;letter-spacing:.34em;text-transform:uppercase;color:#dfbe84}
+  .r{width:96px;height:1px;background:#dfbe84;margin:18px 0}
   /* The film's words are champagne, its own voice apart from the app's cream (Cat, 2026-10-31: the gold looked bad). */
-  .t{color:#d9c49b;font-family:'Archivo Variable',sans-serif;font-stretch:75%;font-weight:600;text-transform:uppercase;line-height:.9;letter-spacing:.005em;margin:0}
-  .l{color:#d9c49b;font-weight:300;font-size:17px;line-height:1.45;margin:0}
+  .t{color:#dfbe84;font-family:'Archivo Variable',sans-serif;font-stretch:75%;font-weight:600;text-transform:uppercase;line-height:.9;letter-spacing:.005em;margin:0}
+  .l{color:#dfbe84;font-weight:300;font-size:17px;line-height:1.45;margin:0}
   .mid{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
   .mid .r{margin:20px auto}`;
 let n = 0;
@@ -41,7 +41,7 @@ async function words(html, { solid = false } = {}) {
   const file = join(work, `w${n++}.png`);
   await page.evaluate(([css, h, s]) => {
     document.head.querySelectorAll('style[data-edit]').forEach((x) => x.remove());
-    const st = document.createElement('style'); st.dataset.edit = '1'; st.textContent = css + (s ? 'html,body{background:#000!important}' : ''); document.head.appendChild(st);
+    const st = document.createElement('style'); st.dataset.edit = '1'; st.textContent = css + (s ? 'html,body{background:#120805!important}' : ''); document.head.appendChild(st);
     document.body.innerHTML = h;
   }, [CSS, html, solid]);
   await page.evaluate(() => document.fonts.ready);
@@ -71,7 +71,7 @@ async function dissolve(a, b2, d) {
 const masks = {};
 async function mask([top, bottom, left = -1, right = 2, soft = 0.03]) {
   const key = `${top}-${bottom}-${left}-${right}-${soft}`;
-  const band = (dir, a, b, sa = 0.03) => `linear-gradient(${dir},#000 0,#000 ${(a - sa) * 100}%,rgba(0,0,0,0) ${a * 100}%,rgba(0,0,0,0) ${b * 100}%,#000 ${(b + 0.03) * 100}%,#000 100%)`;
+  const band = (dir, a, b, sa = 0.03) => `linear-gradient(${dir},#120805 0,#120805 ${(a - sa) * 100}%,rgba(18,8,5,0) ${a * 100}%,rgba(18,8,5,0) ${b * 100}%,#120805 ${(b + 0.03) * 100}%,#120805 100%)`;
   masks[key] ??= await words(`<div class="f" style="background:${band('to bottom', top, bottom, soft)},${band('to right', left, right)}"></div>`);
   return masks[key];
 }
@@ -119,11 +119,11 @@ async function piece({ shot, src, slide = 0, still, from = 0, dur, speed = 1, zo
   if (lift) {
     const [l, a = -1, d = 0.001] = lift;
     const px = Math.round(l * H);
-    v += `,pad=iw:ih+${px}:0:0:black,crop=${W}:${H}:0:'${px}*clip((t-${a})/${d},0,1)'`;
+    v += `,pad=iw:ih+${px}:0:0:0x120805,crop=${W}:${H}:0:'${px}*clip((t-${a})/${d},0,1)'`;
   }
   // drop: how far, of the frame height, the picture sits lower, to leave room for two lines of words above it.
-  if (drop) v += `,pad=iw:ih+${Math.round(drop * H)}:0:${Math.round(drop * H)}:black,crop=${W}:${H}:0:0`;
-  if (slide) v += `,pad=iw*2:ih:iw:0:black,crop=${W}:${H}:x='${W}*(0.3*min(1,t/${slide})+0.7*pow(min(1,t/${slide}),2))':y=0`;
+  if (drop) v += `,pad=iw:ih+${Math.round(drop * H)}:0:${Math.round(drop * H)}:0x120805,crop=${W}:${H}:0:0`;
+  if (slide) v += `,pad=iw*2:ih:iw:0:0x120805,crop=${W}:${H}:x='${W}*(0.3*min(1,t/${slide})+0.7*pow(min(1,t/${slide}),2))':y=0`;
   // tint: [r, g, b] multipliers, e.g. to take the cream pattern paper down to a deeper champagne.
   if (tint) v += `,colorchannelmixer=rr=${tint[0]}:gg=${tint[1]}:bb=${tint[2]}`;
   if (edge) v += `[raw];[raw][1:v]overlay=0:0:shortest=1`;
@@ -198,7 +198,7 @@ async function clothCard() {
   execFileSync('ffmpeg', ['-v', 'error', '-y', '-ss', String(CARD.at + 0.8), '-i', join(SHOTS, 'style.mp4'), '-frames:v', '1', '-vf', `crop=${cw}:${ch}:${cx}:${cy}`, grab]);
   const cloth = readFileSync(grab).toString('base64');
   const [left, top, w, tex, strip] = WIDE ? [690, 250, 120, 170, 46] : [300, 166, 108, 214, 44];
-  return words(`<div style="position:fixed;left:${left}px;top:${top}px;width:${w}px;box-shadow:0 12px 28px rgba(0,0,0,.6)"><div style="height:${tex}px;background:url(data:image/png;base64,${cloth}) center/cover"></div><div style="height:${strip}px;box-sizing:border-box;padding:${WIDE ? 10 : 8}px ${WIDE ? 10 : 8}px;background:linear-gradient(90deg,#ece2cb 0%,#ece2cb 78%,#d3c7ab 100%);font-family:'Chakra Petch',monospace;text-transform:uppercase;white-space:nowrap;overflow:hidden"><div style="font-weight:600;font-size:${WIDE ? 10.5 : 8.5}px;letter-spacing:.16em;color:#151311">${CARD.name}</div><div style="font-size:${WIDE ? 8.5 : 7}px;letter-spacing:.14em;color:#6c6250;margin-top:4px">${CARD.colour}</div></div></div>`);
+  return words(`<div style="position:fixed;left:${left}px;top:${top}px;width:${w}px;box-shadow:0 12px 28px rgba(8,3,2,.6)"><div style="height:${tex}px;background:url(data:image/png;base64,${cloth}) center/cover"></div><div style="height:${strip}px;box-sizing:border-box;padding:${WIDE ? 10 : 8}px ${WIDE ? 10 : 8}px;background:linear-gradient(90deg,#ece2cb 0%,#ece2cb 78%,#d3c7ab 100%);font-family:'Chakra Petch',monospace;text-transform:uppercase;white-space:nowrap;overflow:hidden"><div style="font-weight:600;font-size:${WIDE ? 10.5 : 8.5}px;letter-spacing:.16em;color:#151311">${CARD.name}</div><div style="font-size:${WIDE ? 8.5 : 7}px;letter-spacing:.14em;color:#6c6250;margin-top:4px">${CARD.colour}</div></div></div>`);
 }
 const styleJourney = async () => {
   // One at a time: the words are all drawn on the one page.
@@ -242,11 +242,11 @@ async function threeChecks() {
   const size = WIDE ? 54 : 40;
   const pics = [];
   for (let i = 0; i < lines.length; i++) {
-    const h = lines.map((l, j) => `<h1 class="t" style="font-size:${size}px;margin:0 0 10px;${j === 2 ? 'color:#efe4cc;' : ''}opacity:${j === i ? 1 : 0}">${l}</h1>`).join('');
+    const h = lines.map((l, j) => `<h1 class="t" style="font-size:${size}px;margin:0 0 10px;${j === 2 ? 'color:#f3dfb7;' : ''}opacity:${j === i ? 1 : 0}">${l}</h1>`).join('');
     const band = i === 0;
     pics.push(await words(WIDE
-      ? `<div class="f" style="display:flex;flex-direction:column;justify-content:center;padding-left:96px;${band ? 'background:linear-gradient(to right,rgba(0,0,0,.75) 0,rgba(0,0,0,.45) 30%,rgba(0,0,0,0) 42%)' : ''}"><div>${h}</div></div>`
-      : `<div class="f" style="display:flex;flex-direction:column;justify-content:flex-end;align-items:center;text-align:center;padding:0 28px 70px;${band ? 'background:linear-gradient(to top,rgba(0,0,0,.8) 0,rgba(0,0,0,.5) 22%,rgba(0,0,0,0) 34%)' : ''}"><div>${h}</div></div>`));
+      ? `<div class="f" style="display:flex;flex-direction:column;justify-content:center;padding-left:96px;${band ? 'background:linear-gradient(to right,rgba(8,3,2,.75) 0,rgba(8,3,2,.45) 30%,rgba(18,8,5,0) 42%)' : ''}"><div>${h}</div></div>`
+      : `<div class="f" style="display:flex;flex-direction:column;justify-content:flex-end;align-items:center;text-align:center;padding:0 28px 70px;${band ? 'background:linear-gradient(to top,rgba(8,3,2,.8) 0,rgba(8,3,2,.5) 22%,rgba(18,8,5,0) 34%)' : ''}"><div>${h}</div></div>`));
   }
   return pics;
 }
@@ -260,10 +260,10 @@ async function threeChecks() {
 // lines breaking in two (Cat, 2026-10-30: T1 C; 32px read too small next to the app's bigger headings).
 // The shade is near solid down past the words, so a page scrolling under them never shows through (Cat, 2026-10-30).
 const note = (line, where, shade = true) => words(WIDE && where === 'side'
-  ? `<div class="f" style="display:flex;flex-direction:column;justify-content:center;padding-left:96px;background:linear-gradient(to right,rgba(0,0,0,.85) 0,rgba(0,0,0,.6) 30%,rgba(0,0,0,0) 42%)"><h1 class="t" style="font-size:46px">${line}</h1></div>`
+  ? `<div class="f" style="display:flex;flex-direction:column;justify-content:center;padding-left:96px;background:linear-gradient(to right,rgba(8,3,2,.85) 0,rgba(8,3,2,.6) 30%,rgba(18,8,5,0) 42%)"><h1 class="t" style="font-size:46px">${line}</h1></div>`
   : WIDE
-  ? `<div class="f" style="${shade ? 'background:linear-gradient(to bottom,#000 0,#000 15.5%,rgba(0,0,0,0) 21%);' : ''}padding:${where === 'low' ? 54 : 44}px 0 0 96px"><h1 class="t" style="font-size:46px">${line}</h1></div>`
-  : `<div class="f" style="${shade ? `background:linear-gradient(to bottom,#000 0,#000 ${line.includes('<br>') ? '19%,rgba(0,0,0,0) 23.5%' : '14.5%,rgba(0,0,0,0) 19%'});` : ''}padding:${where === 'low' ? 60 : 40}px 0 0 28px"><h1 class="t" style="font-size:40px">${line}</h1></div>`);
+  ? `<div class="f" style="${shade ? 'background:linear-gradient(to bottom,#120805 0,#120805 15.5%,rgba(18,8,5,0) 21%);' : ''}padding:${where === 'low' ? 54 : 44}px 0 0 96px"><h1 class="t" style="font-size:46px">${line}</h1></div>`
+  : `<div class="f" style="${shade ? `background:linear-gradient(to bottom,#120805 0,#120805 ${line.includes('<br>') ? '19%,rgba(18,8,5,0) 23.5%' : '14.5%,rgba(18,8,5,0) 19%'});` : ''}padding:${where === 'low' ? 60 : 40}px 0 0 28px"><h1 class="t" style="font-size:40px">${line}</h1></div>`);
 // The scroll down the collection's looks, the way down to Print my pattern, and projector mode, as recorded
 // (record-tour-shots.mjs: the phone's scrolls are longer).
 const COLLECTION = WIDE ? { from: 0.8, dur: 8.5, speed: 1.45 } : { from: 0.8, dur: 8.5, speed: 1.75, drop: 0.05 };
@@ -279,7 +279,7 @@ const PHOTO = readFileSync(new URL('./tour/photo-dress.jpg', import.meta.url)).t
 async function photoMoment() {
   // P2 Champagne Polaroid (Cat picked, 2026-10-30): the photo in a straight champagne frame, 'That dress' on its strip.
   const k = WIDE ? 1.25 : 1;
-  const pic = await words(`<div class="f" style="display:flex;align-items:center;justify-content:center;padding-top:${WIDE ? 70 : 60}px"><div style="background:#efe4cc;padding:${18 * k}px ${18 * k}px ${76 * k}px;box-shadow:0 12px 28px rgba(0,0,0,.6);position:relative"><img src="data:image/jpeg;base64,${PHOTO}" style="display:block;width:${304 * k}px;height:${360 * k}px;object-fit:cover;filter:saturate(.92) contrast(1.04)"><div style="position:absolute;left:0;right:0;bottom:${28 * k}px;text-align:center;font:400 ${12 * k}px/1 'Chakra Petch',monospace;letter-spacing:.3em;text-transform:uppercase;color:#6b5a3a">That dress</div></div></div>`, { solid: true });
+  const pic = await words(`<div class="f" style="display:flex;align-items:center;justify-content:center;padding-top:${WIDE ? 70 : 60}px"><div style="background:#f3dfb7;padding:${18 * k}px ${18 * k}px ${76 * k}px;box-shadow:0 12px 28px rgba(8,3,2,.6);position:relative"><img src="data:image/jpeg;base64,${PHOTO}" style="display:block;width:${304 * k}px;height:${360 * k}px;object-fit:cover;filter:saturate(.92) contrast(1.04)"><div style="position:absolute;left:0;right:0;bottom:${28 * k}px;text-align:center;font:400 ${12 * k}px/1 'Chakra Petch',monospace;letter-spacing:.3em;text-transform:uppercase;color:#6b5a3a">That dress</div></div></div>`, { solid: true });
   // Held long enough to read (Cat, 2026-10-25).
   return piece({ still: pic, dur: 3.2, zoom: [1, 1.03], fadeIn: 0.5, fadeOut: 0.5, notes: [[await note('Or upload a photo.', 'low'), 0.2, 3.2]] });
 }
@@ -303,7 +303,7 @@ async function shopMoment() {
   const cardsHtml = SHOP.map(([img, name, cloth, price], i) => {
     const photo = readFileSync(new URL(`./tour/shop/${img}.jpg`, import.meta.url)).toString('base64');
     const small = WIDE ? 10 : 7.2;
-    return `<div style="position:absolute;left:${i * (w + gap)}px;top:0;width:${w}px;box-shadow:0 10px 24px rgba(0,0,0,.55)"><img src="data:image/jpeg;base64,${photo}" style="display:block;width:100%;height:${tex}px;object-fit:cover"><div style="height:${band}px;box-sizing:border-box;padding:${WIDE ? 14 : 10}px ${WIDE ? 14 : 9}px 0;background:linear-gradient(90deg,#ece2cb 0%,#ece2cb 78%,#d3c7ab 100%);font-family:'Chakra Petch',monospace;text-transform:uppercase;white-space:nowrap;overflow:hidden"><div style="font-weight:600;font-size:${WIDE ? 12 : 8.5}px;letter-spacing:.12em;color:#151311">${name}</div><div style="font-size:${small}px;letter-spacing:.12em;color:#6c6250;margin-top:6px">${cloth}</div><div style="font-size:${small}px;letter-spacing:.12em;color:#6c6250;margin-top:4px">Mood Fabrics${price ? ` · ${price}` : ''}</div></div></div>`;
+    return `<div style="position:absolute;left:${i * (w + gap)}px;top:0;width:${w}px;box-shadow:0 10px 24px rgba(8,3,2,.55)"><img src="data:image/jpeg;base64,${photo}" style="display:block;width:100%;height:${tex}px;object-fit:cover"><div style="height:${band}px;box-sizing:border-box;padding:${WIDE ? 14 : 10}px ${WIDE ? 14 : 9}px 0;background:linear-gradient(90deg,#ece2cb 0%,#ece2cb 78%,#d3c7ab 100%);font-family:'Chakra Petch',monospace;text-transform:uppercase;white-space:nowrap;overflow:hidden"><div style="font-weight:600;font-size:${WIDE ? 12 : 8.5}px;letter-spacing:.12em;color:#151311">${name}</div><div style="font-size:${small}px;letter-spacing:.12em;color:#6c6250;margin-top:6px">${cloth}</div><div style="font-size:${small}px;letter-spacing:.12em;color:#6c6250;margin-top:4px">Mood Fabrics${price ? ` · ${price}` : ''}</div></div></div>`;
   }).join('');
   // The row is wider than the screen: draw it on a wide page, then slide it under the frame.
   const file = join(work, `w${n++}.png`);
@@ -328,10 +328,10 @@ async function shopMoment() {
 const INTRO = process.env.TOUR_INTRO ?? 'W'; // Cat's pick, 2026-10-30: W Welcome Push (was C2 Pull Back)
 const TITLE = `<h1 class="t" style="font-size:${WIDE ? 84 : 64}px">How it works</h1>`;
 const title = async (where = 'centre') => words(where === 'centre'
-  ? `<div class="f mid" style="display:flex;background:radial-gradient(ellipse at center,rgba(0,0,0,.55) 0,rgba(0,0,0,0) 60%)">${TITLE}</div>`
+  ? `<div class="f mid" style="display:flex;background:radial-gradient(ellipse at center,rgba(8,3,2,.55) 0,rgba(18,8,5,0) 60%)">${TITLE}</div>`
   : WIDE
-    ? `<div class="f" style="display:flex;flex-direction:column;justify-content:center;padding-left:96px;background:linear-gradient(to right,rgba(0,0,0,.75) 0,rgba(0,0,0,.45) 30%,rgba(0,0,0,0) 42%)">${TITLE}</div>`
-    : `<div class="f" style="display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding-bottom:84px;background:linear-gradient(to top,rgba(0,0,0,.8) 0,rgba(0,0,0,.5) 22%,rgba(0,0,0,0) 34%)">${TITLE}</div>`);
+    ? `<div class="f" style="display:flex;flex-direction:column;justify-content:center;padding-left:96px;background:linear-gradient(to right,rgba(8,3,2,.75) 0,rgba(8,3,2,.45) 30%,rgba(18,8,5,0) 42%)">${TITLE}</div>`
+    : `<div class="f" style="display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding-bottom:84px;background:linear-gradient(to top,rgba(8,3,2,.8) 0,rgba(8,3,2,.5) 22%,rgba(18,8,5,0) 34%)">${TITLE}</div>`);
 const INTROS = {
   // W Welcome Push (Cat, 2026-10-30: "this smooth zoom in version"): the welcome page as the viewer has just seen it,
   // its words fading as the camera pushes in on the form and it starts to turn, slowly, the title arriving over the

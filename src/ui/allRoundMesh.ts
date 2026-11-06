@@ -14,6 +14,7 @@ import { FORM_DEPTH, FORM_FLOOR, FORM_LEG, FORM_LEG_X } from './ContourForm';
 import type { DrapedLite } from '../engine/drape/run';
 import type { ClothTiles } from './allRoundCloth';
 import { RoundShape, WAIST } from './allRoundShape';
+import { hex, GILD as GILD_HEX, GLOW as GLOW_HEX, GROUND as GROUND_HEX, SHADOW as SHADOW_HEX } from './palette';
 
 const TAU = Math.PI * 2;
 const HALF = Math.PI / 2;
@@ -28,8 +29,9 @@ const LEG_TOP = 1.2;
 type V3 = [number, number, number];
 
 // Matching --gild, --gild-glow in styles.css.
-const GILD = 0xd9c49b;
-const GLOW = 0xf3e6c8;
+const GILD = hex(GILD_HEX);
+const GLOW = hex(GLOW_HEX);
+const SHADOW = hex(SHADOW_HEX);
 
 /** How a surface is drawn: in its cloth (matte, with a gloss or a pile), as the black satin form, or plain black. */
 type Mode = 'matte' | 'gloss' | 'pile' | 'satin' | 'black';
@@ -118,11 +120,14 @@ function material(mode: Mode, map?: THREE.Texture, scale = 1, opacity = 1, physi
     case 'satin':
       // The black satin form (ContourForm.tsx satinColour): deep, with a soft sheen rather than a mirror.
       mat.color.set(0x0b0a08);
+      mat.emissive.set(SHADOW); // its deepest shade is the page's shadow, oxblood, never pure black
       mat.roughness = 0.26;
       mat.metalness = 0.05;
       break;
     case 'black':
+      // The page's ground, lit by nothing, so bare cloth sinks into it whatever the lamps do.
       mat.color.set(0x000000);
+      mat.emissive.set(hex(GROUND_HEX));
       mat.roughness = 1;
       mat.envMapIntensity = 0;
       break;
@@ -1084,7 +1089,7 @@ export function createRoundView(): RoundView | undefined {
     }
     // A sewn seam round the garment (a dress's waist seam) is a shadow in the cloth, as the side seams are, not a
     // bright edge like a hem or a neckline (Cat, 2026-10-27).
-    const grooveDark = lines({ colour: 0x000000, width: 1.8, alpha: 0.45, graze: 0.3 });
+    const grooveDark = lines({ colour: SHADOW, width: 1.8, alpha: 0.45, graze: 0.3 });
     const grooveLight = lines({ colour: GLOW, width: 0.5, alpha: 0.5, graze: 0.3 });
     const seams = cloth ? undefined : lines({ colour: GLOW, width: 1.1, back: 0.25 });
     for (const r of round.rings) {
@@ -1103,7 +1108,7 @@ export function createRoundView(): RoundView | undefined {
       }
       // Belt loops: a strip of cloth 1.2 cm wide standing a little proud of the band at each, its long edges shaded
       // so it reads as a loop; in lines, two short strokes down the band.
-      const loopEdges = lines(cloth ? { colour: 0x000000, width: 1.6, alpha: 0.5, graze: 0.3 } : { colour: GLOW, width: 0.8, back: 0.2, alpha: edge });
+      const loopEdges = lines(cloth ? { colour: SHADOW, width: 1.6, alpha: 0.5, graze: 0.3 } : { colour: GLOW, width: 0.8, back: 0.2, alpha: edge });
       for (const at of round.loops ?? []) {
         const dw = (0.6 * kY) / Math.max(0.05, bandR(at));
         const top = bandTop - 0.2 * kY;
@@ -1119,7 +1124,7 @@ export function createRoundView(): RoundView | undefined {
         }
       }
     }
-    const dartStyle: Style = cloth ? { colour: 0x000000, width: 1.8, alpha: 0.4, graze: 0.3 } : { colour: GILD, width: 0.8, back: 0.2, alpha: film ? 0.5 : 1 };
+    const dartStyle: Style = cloth ? { colour: SHADOW, width: 1.8, alpha: 0.4, graze: 0.3 } : { colour: GILD, width: 0.8, back: 0.2, alpha: film ? 0.5 : 1 };
     const darts = lines(dartStyle);
     const dartsLight = cloth ? lines({ colour: GLOW, width: 0.5, alpha: 0.45, graze: 0.3 }) : undefined;
     for (const dt of round.darts) {
@@ -1128,14 +1133,14 @@ export function createRoundView(): RoundView | undefined {
     }
     // A pressed pleat: a strip of shadow in under its edge, and the edge itself catching the light along its length.
     if (round.pleats?.length) {
-      const pleatShade = cloth ? lines({ colour: 0x000000, width: 3.2, alpha: 0.38, graze: 0.3 }) : undefined;
+      const pleatShade = cloth ? lines({ colour: SHADOW, width: 3.2, alpha: 0.38, graze: 0.3 }) : undefined;
       const pleatEdge = lines(cloth ? { colour: GLOW, width: 0.9, alpha: 0.75, graze: 0.3 } : dartStyle);
       for (const pl of round.pleats) {
         if (pleatShade) along(pleatShade, pl.pts.map((q) => ({ phi: q.phi + pl.press * 0.045, cm: q.cm })), pl.leg);
         along(pleatEdge, pl.pts, pl.leg);
       }
     }
-    const seamDark = cloth ? lines({ colour: 0x000000, width: 2, alpha: 0.45, graze: 0.3 }) : undefined;
+    const seamDark = cloth ? lines({ colour: SHADOW, width: 2, alpha: 0.45, graze: 0.3 }) : undefined;
     const seamLight = cloth ? lines({ colour: GLOW, width: 0.55, alpha: 0.5, graze: 0.3 }) : undefined;
     for (const sm of round.seams) {
       if (sm.kind === 'sleeve') continue;

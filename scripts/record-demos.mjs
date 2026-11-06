@@ -11,22 +11,22 @@ const ONLY = process.argv[3];
 const APP = process.env.APP ?? 'http://127.0.0.1:5173';
 
 const PAGE = `<html><head><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500&family=Chakra+Petch&display=swap"><style>
-html,body{margin:0;background:#000;overflow:hidden}
-#app{position:fixed;left:0;top:0;width:432px;height:672px;border:0;border-bottom:1px solid rgba(239,228,204,.3)}
-#cap{position:fixed;left:0;right:0;bottom:0;height:96px;box-sizing:border-box;padding:16px 20px;background:#000;color:#efe4cc;font:500 16px/1.35 'Space Grotesk',sans-serif;transition:opacity .35s;opacity:0}
+html,body{margin:0;background:#120805;overflow:hidden}
+#app{position:fixed;left:0;top:0;width:432px;height:672px;border:0;border-bottom:1px solid rgba(243,223,183,.3)}
+#cap{position:fixed;left:0;right:0;bottom:0;height:96px;box-sizing:border-box;padding:16px 20px;background:#120805;color:#f3dfb7;font:500 16px/1.35 'Space Grotesk',sans-serif;transition:opacity .35s;opacity:0}
 #cap small{display:block;font:400 10px/1 'Chakra Petch',monospace;letter-spacing:.22em;text-transform:uppercase;opacity:.7;margin-bottom:6px}
 #tap,#pen{position:fixed;z-index:9;border-radius:50%;pointer-events:none;opacity:0}
-#tap{width:44px;height:44px;margin:-22px 0 0 -22px;border:2px solid #efe4cc;background:rgba(239,228,204,.25)}
-#pen{width:18px;height:18px;margin:-9px 0 0 -9px;background:rgba(239,228,204,.55);transition:opacity .3s}
-#card{position:fixed;inset:0;z-index:10;background:#000;color:#efe4cc;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center;transition:opacity .6s;font-family:'Space Grotesk',sans-serif}
+#tap{width:44px;height:44px;margin:-22px 0 0 -22px;border:2px solid #f3dfb7;background:rgba(243,223,183,.25)}
+#pen{width:18px;height:18px;margin:-9px 0 0 -9px;background:rgba(243,223,183,.55);transition:opacity .3s}
+#card{position:fixed;inset:0;z-index:10;background:#120805;color:#f3dfb7;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center;transition:opacity .6s;font-family:'Space Grotesk',sans-serif}
 #card .k{font:400 11px/1 'Chakra Petch',monospace;letter-spacing:.3em;text-transform:uppercase;opacity:.75}
 body.focus #app{height:768px;border:0;transform-origin:0 0;transition:opacity .35s}
 body.focus #cap{top:56px;bottom:auto;height:auto;background:none;text-align:center;padding:0 28px;z-index:8}
 body.focus #cap small{color:#c9b48a;opacity:1;margin-bottom:12px;font-size:12px}
 body.focus #cap span{font-size:22px;line-height:1.3}
-#top{display:none;position:fixed;left:0;right:0;top:0;height:222px;z-index:7;background:linear-gradient(#000 88%,rgba(0,0,0,0))}
+#top{display:none;position:fixed;left:0;right:0;top:0;height:222px;z-index:7;background:linear-gradient(#120805 88%,rgba(18,8,5,0))}
 body.focus #top{display:block}
-#card h2{font-weight:400;font-size:28px;margin:0 32px}#card .r{width:120px;height:1px;background:#efe4cc;opacity:.6}
+#card h2{font-weight:400;font-size:28px;margin:0 32px}#card .r{width:120px;height:1px;background:#f3dfb7;opacity:.6}
 </style></head><body><iframe id="app" src="${APP}/?fresh"></iframe><div id="top"></div><div id="cap"><small></small><span></span></div><div id="tap"></div><div id="pen"></div><div id="card" style="display:none"></div></body></html>`;
 
 async function record(name, script, before) {

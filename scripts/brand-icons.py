@@ -1,5 +1,5 @@
 """Draws the app icons from the name alone (Cat's R1 The Name, 2026-10-21): MAISON over TRACÉ in Chakra Petch,
-champagne on black, with MT for the browser tab where the full name is too small to read.
+champagne on the oxblood ground (Cat's T3 + W2, Nov 6), with MT for the browser tab where the full name is too small to read.
 
 The letters are written out as outlines, so the icons look the same on every device whether or not the font is
 installed. Writes public/icon.svg (home screen, install) and public/favicon.svg (browser tab); the PNG icons are
@@ -15,7 +15,7 @@ from fontTools.ttLib import TTFont
 ROOT = Path(__file__).resolve().parent.parent
 FONTS = ROOT / 'node_modules' / '@fontsource' / 'chakra-petch' / 'files'
 OUT = ROOT / 'public'
-CHAMPAGNE = '#D9C49B'
+CHAMPAGNE = '#DFBE84'
 SIZE = 512
 
 
@@ -36,7 +36,7 @@ def line(font: TTFont, text: str, size: float, tracking: float, cx: float, basel
 
 def icon(paths: list[str]) -> str:
     body = ''.join(f'<path d="{d}" fill="{CHAMPAGNE}"/>' for d in paths)
-    return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {SIZE} {SIZE}"><rect width="{SIZE}" height="{SIZE}" fill="#000000"/>{body}</svg>\n'
+    return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {SIZE} {SIZE}"><rect width="{SIZE}" height="{SIZE}" fill="#120805"/>{body}</svg>\n'
 
 
 medium = TTFont(FONTS / 'chakra-petch-latin-500-normal.woff')

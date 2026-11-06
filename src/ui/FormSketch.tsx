@@ -15,6 +15,7 @@ import { FormArm, FormBody, armAt } from './DrawOnForm';
 import type { FormLine } from './formLines';
 import { HemChoice, HemMarks } from './HemMarks';
 import { useEnlarged } from './EnlargeSketch';
+import { SHADOW } from './palette';
 import { useLengthStep, useNarrow } from './StyleLayout';
 import { ClothDefs, ClothOverlay, SHEER_OPACITY, borderHems, useFabricLook } from './ClothLook';
 
@@ -685,31 +686,31 @@ interface Props {
  *  where the cloth turns away, so a print reads and black cloth has form without an outline. Each stop is where
  *  across the drawing it sits, its colour and how strong. */
 const ROUND_STOPS: [number, string, number][] = [
-  [0, '#000', 0.72],
-  [0.1, '#000', 0.34],
+  [0, SHADOW, 0.72],
+  [0.1, SHADOW, 0.34],
   [0.3, '#fff8e6', 0.22],
   [0.46, '#fff8e6', 0.05],
-  [0.68, '#000', 0.26],
-  [0.86, '#000', 0.55],
-  [1, '#000', 0.78],
+  [0.68, SHADOW, 0.26],
+  [0.86, SHADOW, 0.55],
+  [1, SHADOW, 0.78],
 ];
 /** The light on plain cloth since Cat's C1 Clean Edge (2026-10-30): the same round light, the shade under half as
  *  deep, so a light cotton like calico reads crisp and bright instead of greyed. A special cloth (satin, velvet...)
  *  keeps the deeper light its sheen or pile is drawn against. */
-const CRISP_STOPS: [number, string, number][] = ROUND_STOPS.map(([at, color, opacity]) => [at, color, color === '#000' ? opacity * 0.45 : opacity * 0.8]);
+const CRISP_STOPS: [number, string, number][] = ROUND_STOPS.map(([at, color, opacity]) => [at, color, color === SHADOW ? opacity * 0.45 : opacity * 0.8]);
 /** The light down the body (Cat's D3), by height in the form's cm: a lift over the bust, shade under it that draws
  *  the waist in, a shadow under the waist seam, and the skirt coming back into the light. The bust is taken as
  *  15 cm above the waist. */
 function downLight(body: FormBody, bottom: number): [number, string, number][] {
   const w = body.waistY;
   return [
-    [body.top, '#000', 0],
-    [w - 7, '#000', 0],
-    [w - 3, '#000', 0.14],
-    [w, '#000', 0.22],
-    [w + 0.6, '#000', 0.3],
-    [w + 5, '#000', 0.1],
-    [w + 16, '#000', 0],
+    [body.top, SHADOW, 0],
+    [w - 7, SHADOW, 0],
+    [w - 3, SHADOW, 0.14],
+    [w, SHADOW, 0.22],
+    [w + 0.6, SHADOW, 0.3],
+    [w + 5, SHADOW, 0.1],
+    [w + 16, SHADOW, 0],
     [bottom, '#fff8e6', 0.03],
   ];
 }
@@ -717,15 +718,15 @@ function downLight(body: FormBody, bottom: number): [number, string, number][] {
 const BUST_ABOVE_WAIST = 15;
 /** Soft bands of shade across the skirt below the hip, the folds its fullness falls in. */
 const FOLD_BANDS: [string, string, number][] = [
-  ['0', '#000', 0.1],
-  ['0.12', '#000', 0],
-  ['0.24', '#000', 0.11],
-  ['0.38', '#000', 0],
-  ['0.52', '#000', 0.09],
-  ['0.66', '#000', 0],
-  ['0.8', '#000', 0.12],
-  ['0.92', '#000', 0.02],
-  ['1', '#000', 0.1],
+  ['0', SHADOW, 0.1],
+  ['0.12', SHADOW, 0],
+  ['0.24', SHADOW, 0.11],
+  ['0.38', SHADOW, 0],
+  ['0.52', SHADOW, 0.09],
+  ['0.66', SHADOW, 0],
+  ['0.8', SHADOW, 0.12],
+  ['0.92', SHADOW, 0.02],
+  ['1', SHADOW, 0.1],
 ];
 
 /** The light on the flat drawing: lit from the left, falling into shade on the right. Each stop is where along
@@ -733,8 +734,8 @@ const FOLD_BANDS: [string, string, number][] = [
 export const SHADE_STOPS: [number, string, number][] = [
   [0, '#fff8e6', 0.16],
   [0.3, '#fff8e6', 0.04],
-  [0.55, '#000', 0.08],
-  [1, '#000', 0.5],
+  [0.55, SHADOW, 0.08],
+  [1, SHADOW, 0.5],
 ];
 
 /** Which of the garment's lines the cloth's own edges already show. */
@@ -877,8 +878,8 @@ export function FormLayers({ body, m, legs, cx, top, bottom, arms, lines, outlin
                 <stop offset="1" stopColor="#fff8e6" stopOpacity="0" />
               </radialGradient>
               <radialGradient id={`underbust${uid}`} gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform={`translate(${f(cx)} ${f(body.waistY - BUST_ABOVE_WAIST + 9)}) scale(${f(SQUEEZE * body.width(body.waistY - BUST_ABOVE_WAIST) * 1.5)} 6)`}>
-                <stop offset="0" stopColor="#000" stopOpacity="0.12" />
-                <stop offset="1" stopColor="#000" stopOpacity="0" />
+                <stop offset="0" stopColor={SHADOW} stopOpacity="0.12" />
+                <stop offset="1" stopColor={SHADOW} stopOpacity="0" />
               </radialGradient>
               <linearGradient id={`bands${uid}`} gradientUnits="userSpaceOnUse" x1={f(cx * 0.25)} x2={f(cx * 1.75)} y1="0" y2="0">
                 {FOLD_BANDS.map(([at, color, opacity], i) => (
@@ -899,7 +900,7 @@ export function FormLayers({ body, m, legs, cx, top, bottom, arms, lines, outlin
             <feGaussianBlur stdDeviation="0.6" />
           </filter>
           <filter id={cast} x="-20%" y="-20%" width="140%" height="140%">
-            <feDropShadow dx="0.5" dy="0.9" stdDeviation="0.9" floodColor="#000" floodOpacity="0.85" />
+            <feDropShadow dx="0.5" dy="0.9" stdDeviation="0.9" floodColor={SHADOW} floodOpacity="0.85" />
           </filter>
         </defs>
       )}

@@ -38,8 +38,8 @@
 - Brand direction: high fashion mixed with street style (Paris, Berlin, London, Scandi), cutting-edge,
   not cliché Paris. Taste references and the yes/never lists are in the **taste brief** (Claude Doc,
   linked from the business plan); read it before any promo, editorial or image work.
-- App look: Contour Line on true black, champagne lines (#D9C49B) and ivory text (#EFE4CC), muted
-  #9A8E78. Square outline buttons; no shadows or rounded cards. One fill only (Oct 31): champagne
+- App look: Contour Line on an oxblood near-black ground #120805 (Nov 6; true black before), champagne lines
+  (#DFBE84) and ivory text (#F3DFB7), muted #A28C69, shadows a deeper oxblood #080302, never black. Square outline buttons; no shadows or rounded cards. One fill only (Oct 31): champagne
   fill is for the main button; a picked choice is a heavier champagne outline, never a fill. One job per screen, one main
   button, few words.
 - Fonts (three, checked in the code Oct 30): **Chakra Petch** for the wordmark, buttons and small
@@ -58,9 +58,9 @@
   reading type.
 - Logo: R1 wordmark (MAISON / TRACÉ stacked, MT favicon); loading screen L1 slim-dart piece (Oct 21).
 - **Brand palette for marketing** (Oct 25): Champagne #c9b48a, Oxblood #5a1f24, Python Aqua (the
-  app's one-way python print), Ink #1d2a3a, Chalk #e9e4da, labels on ivory #efe4cc, black ground.
+  app's one-way python print), Ink #1d2a3a, Chalk #e9e4da, labels on ivory #f3dfb7, oxblood ground #120805 (black before Nov 6).
   These are not the app's fabric colour list.
-- Kit email colours: black, champagne #D9C49B, ivory #EFE4CC, taupe #9A8E78.
+- Kit email colours: oxblood #120805, champagne #DFBE84, ivory #F3DFB7, taupe #A28C69 (black / #D9C49B / #EFE4CC / #9A8E78 before Nov 6).
 - Editorial imagery is real photography. No line-drawn people on editorial pages, and **no AI
   people** (the AI-model promo film is parked; Cat is the face).
 - The dress form is the same shape everywhere in the app; menswear keeps its own form.

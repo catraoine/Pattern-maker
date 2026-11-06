@@ -22,6 +22,7 @@ import type { RoundMeasurements } from './allRoundShape';
 import type { MyFabric } from '../engine/fabrics';
 import { tookEnlarged } from './EnlargeSketch';
 import { isLadderStep } from '../nav';
+import { SHADOW } from './palette';
 
 type Measures = { full_bust?: number; neck?: number; waist: number; full_hip?: number; waist_to_hip?: number; waist_to_knee?: number; waist_to_floor?: number; crotch_depth?: number };
 
@@ -577,7 +578,7 @@ export function DrawOnForm<C>({ body, m, legs, bottom, kinds, lines, choices, on
               (current[id] ?? []).map((pts, i) =>
                 clothOn && id !== kind ? (
                   <g key={`${id}${i}`}>
-                    <path d={at(pts)} fill="none" stroke="#000" opacity={0.5} strokeWidth={0.55} filter={`url(#drawsoft${satinId})`} strokeLinecap="round" />
+                    <path d={at(pts)} fill="none" stroke={SHADOW} opacity={0.5} strokeWidth={0.55} filter={`url(#drawsoft${satinId})`} strokeLinecap="round" />
                     <path d={at(pts)} className="tape" fill="none" strokeWidth={0.1} opacity={0.4} strokeLinecap="round" />
                   </g>
                 ) : (
