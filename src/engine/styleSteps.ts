@@ -106,6 +106,7 @@ export function styleBodiceSteps(g: SewingGuide, draft: BodiceDraft, o: { seam: 
     if (collar === 'peter_pan') extra.push(buttons ? 'Cut the collar twice on the fold, once for the top collar and once for the under collar, and once from interfacing.' : 'Cut four collar pieces (two pairs), two for the top collar and two for the under collar, and interface the top pair.');
     if (isBandCollar(collar)) extra.push('Cut the collar twice on the fold, once for the outer band and once for the inner band, and interface the outer one.');
     if (collar === 'shirt') extra.push('Cut the collar and the collar stand twice each on the fold, and interface one of each.');
+    if (collar === 'polo') extra.push(`Cut four collar pieces (two pairs), two for the top collar and two for the under collar, and interface the top pair. Cut the slit facing on the fold, and again from fusible interfacing, and chalk the slit line down the centre front of the bodice front to the SLIT ENDS notch.`);
     if (collar === 'bow') extra.push('Cut the two bow strips as a pair, single layer on the true bias, and snip their notches.');
     if (collar === 'ruffle') extra.push(`Cut the neck ruffle with its fold end on the fold, so it opens out into one long strip, and snip its notches.`);
     if (collar === 'cape') extra.push(`Cut the cape ${buttons ? 'back on the fold and the cape fronts as a pair' : 'front on the fold and the cape backs as a pair'}, single layer if the fabric is narrow, and snip the notches at the middle of each neck edge.`);
@@ -177,6 +178,21 @@ export function styleBodiceSteps(g: SewingGuide, draft: BodiceDraft, o: { seam: 
         text: buttons
           ? `Pin the collar to the neckline, under collar against the right side of the bodice, matching the centre backs, the notches to the shoulder seams and the collar ends to the centre front marks. Baste it ${o.curve} from the edge.`
           : `Pin each collar half to the neckline, under collar against the right side of the bodice, the centre back ends at the zip seam line and the front ends meeting at the centre front, the notches at the shoulder seams. Baste ${o.curve} from the edge.`,
+      },
+    );
+  } else if (collar === 'polo') {
+    collarSteps.push(
+      {
+        title: 'Face the slit',
+        text: `Fuse the interfacing to the slit facing and neaten its sides and lower edge. Pin it to the bodice front, right sides together, matching the centre fronts and the neck edges. On the facing, draw a narrow V round the slit line: 0.5 cm either side of it at the neck, coming to a point at the SLIT ENDS notch. Stitch along the V with a short stitch, pivoting once at the point. Cut down the slit line to the point, clipping right to the stitching without cutting it. Turn the facing to the inside, roll the seam just to the inside, and press, so the slit lies open in a narrow V. Baste the facing to the neckline, ${o.curve} from the edge.`,
+      },
+      {
+        title: 'Make the collar',
+        text: `Pin the top collar to the under collar, right sides together. Sew the centre front end and round the outer edge to the centre back, ${o.curve} from it, leaving the neck edge and the centre back end open. Trim, cut across the point, turn it right side out and press, rolling the seam a little toward the under collar. Make the second half the same way.`,
+      },
+      {
+        title: 'Attach the collar',
+        text: `Pin each collar half to the neckline, under collar against the right side of the bodice, the centre back ends at the zip seam line, the notches at the shoulder seams and the points just meeting at the top of the slit. Baste ${o.curve} from the edge, through the slit facing.`,
       },
     );
   } else if (isBandCollar(collar)) {
@@ -265,8 +281,8 @@ export function styleBodiceSteps(g: SewingGuide, draft: BodiceDraft, o: { seam: 
     if (buttons && (isBandCollar(collar) || collar === 'shirt')) replace.push(buttonFacing, ...collarSteps);
     else if (buttons) replace.push(...collarSteps, buttonFacing);
     else if (isBandCollar(collar) || collar === 'bow') replace.push(...collarSteps);
-    else if (collar === 'peter_pan' || collar === 'ruffle' || collar === 'cape') {
-      const over = collar === 'peter_pan' ? 'collar' : collar;
+    else if (collar === 'peter_pan' || collar === 'polo' || collar === 'ruffle' || collar === 'cape') {
+      const over = collar === 'peter_pan' || collar === 'polo' ? 'collar' : collar;
       replace.push(...collarSteps, { ...neckStep, text: neckStep.text.replace(/to the neckline/, `to the neckline over the ${over}`).replace(/round the neckline/, `round the neckline over the ${over}`) });
     }
     else replace.push(neckStep);

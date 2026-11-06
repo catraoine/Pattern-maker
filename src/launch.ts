@@ -48,6 +48,10 @@ export type TestingTool =
   | 'flared_jacket'
   | 'drop_yoke'
   | 'low_rise'
+  | 'bias_mini'
+  | 'polo_collar'
+  | 'trouser_ruffle'
+  | 'slip_slit'
   | 'oversized_cuff'
   | 'trouser_pleats'
   | 'belt_loops'
@@ -99,6 +103,14 @@ export const TESTING_TOOLS: Record<TestingTool, { name: string; where: string; p
   cropped_top: { name: 'Cropped top', where: 'the Cropped chip under Length on a top', proof: 'two testers sew a cropped top and its hem sits under the bust without riding up' },
   // For the SS27 black knife-pleat skirt (Cat, 2026-11-01: "make the skirt low rise"; design options need no flag).
   low_rise: { name: 'Low-rise skirt', where: 'the Rise chips on a skirt', proof: 'two testers sew a low-rise skirt and it sits level on the hip without slipping, the hem where it was' },
+  // For the SS27 shell top and bias mini (Cat, 2026-11-02: "Mini"; a design option, no freeze flag).
+  bias_mini: { name: 'Bias slip mini', where: 'the Slip chip on a skirt cut above the knee', proof: 'two testers sew a bias slip mini and it moulds over the hip and swings without twisting, the hem level' },
+  // For the SS27 cropped polo set from Cat's picture (2026-11-02, "Let's make it this"; a design option, no flag).
+  polo_collar: { name: 'Open polo collar', where: 'the Open polo chip under Collar on a top', proof: 'two testers sew an open polo collar and the slit lies flat and open, the collar points sitting level on the chest' },
+  // For the SS27 black cropped flares from Cat's picture (2026-11-02, "Let's do these in black").
+  trouser_ruffle: { name: 'Ruffled trouser hem', where: 'the Hem chips on trousers', proof: 'two testers sew ruffled hems and the gathers sit evenly round each leg, the trousers ending where they set them' },
+  // For the SS27 lavender bias slip (Cat, 2026-11-02: "Can the lavender skirt have a high side slit").
+  slip_slit: { name: 'Bias slip side slit', where: 'the Side chip under Slit on a bias slip skirt', proof: 'two testers sew a slit bias slip and the slit edges hang straight without stretching or flaring, the top holding' },
   // For the SS27 gold python Bermuda, loose and pleated like the season's runway shorts (Cat, 2026-11-05: "R1 with pleats").
   trouser_pleats: { name: 'Front pleats on trousers', where: 'the Front pleats chips on trousers', proof: 'two testers sew a pleated front and the pleats lie flat and even from the waistband, releasing into the leg without pulling' },
   belt_loops: { name: 'Belt loops on trousers', where: 'the Belt loops chips on trousers', proof: 'two testers sew the five loops and a belt sits level in them, the loops clear of the pockets and the fly' },

@@ -16,7 +16,7 @@ import { describePattern } from '../screens/describe';
 
 const FITS: Fit[] = ['fitted', 'regular', 'relaxed'];
 const HEMS: AsymHem[] = ['none', 'high_low', 'diagonal'];
-const SLIP_LENGTHS: Length[] = ['knee', 'midi', 'maxi'];
+const SLIP_LENGTHS: Length[] = ['mini', 'above_knee', 'knee', 'midi', 'maxi'];
 const STRAIGHT: Silhouette[] = ['straight', 'pencil', 'a_line', 'trumpet', 'half_circle', 'circle'];
 const m = { waist: 70, full_hip: 96, waist_to_hip: 20.5, waist_to_knee: 58, waist_to_floor: 104 };
 
@@ -75,15 +75,17 @@ describe('the bias-cut slip skirt', () => {
     expect(ls.metres).toBeLessThan(2.6);
   });
 
-  it('falls back to knee at a short length, and drops a diagonal hem where it cannot be cut', () => {
-    expect(validCut({ silhouette: 'slip', length: 'mini' }).length).toBe('knee');
+  it('keeps a bias mini (In testing), and drops a diagonal hem where it cannot be cut', () => {
+    expect(validCut({ silhouette: 'slip', length: 'mini' }).length).toBe('mini');
     expect(validCut({ silhouette: 'circle', length: 'knee', asymHem: 'diagonal' }).asymHem).toBe('none');
     expect(validCut({ silhouette: 'pencil', length: 'knee', asymHem: 'diagonal' }).asymHem).toBe('none');
     expect(validCut({ silhouette: 'a_line', length: 'knee', asymHem: 'diagonal' }).asymHem).toBe('diagonal');
     expect(cutAllowed({ silhouette: 'slip', length: 'midi' }, 'asymHem', 'diagonal', 'dress')).toBe(false);
-    expect(cutAllowed({ silhouette: 'slip', length: 'midi' }, 'length', 'mini')).toBe(false);
-    // An invalid choice still drafts.
-    expect(draftSkirt(m, { silhouette: 'slip', length: 'mini' }).pieces.length).toBe(2);
+    expect(cutAllowed({ silhouette: 'slip', length: 'midi' }, 'length', 'mini')).toBe(true);
+    // The mini still ends well below the hip, so the bias has room to hang.
+    const mini = draftSkirt(m, { silhouette: 'slip', length: 'mini' });
+    expect(mini.pieces.length).toBe(2);
+    expect(mini.lengthCm).toBeGreaterThanOrEqual(m.waist_to_hip + 12);
   });
 
   it('is sewn with stay-stitching, French seams, a hang before levelling and a rolled hem', () => {
@@ -179,4 +181,33 @@ describe('stress: every cut and hem on random bodies', () => {
     }
     expect(failures).toEqual([]);
   }, 120_000);
+});
+
+// A slit up the slip's left side (In testing, Cat 2026-11-02, the SS27 lavender slip).
+describe('bias slip side slit', () => {
+  it('is notched on both pieces, high but below the hip and the zip, and sewn to the notch', () => {
+    for (const length of ['knee', 'midi', 'maxi'] as const) {
+      const d = draftSkirt(m, { silhouette: 'slip', length, slit: 'side', slitCm: 200 });
+      expect(d.slit?.at).toBe('side');
+      expect(d.slit!.cm).toBe(d.slit!.range.max);
+      // Up to the hip line, the zip moved to the right side seam (Cat, 2026-11-02).
+      expect(d.lengthCm - d.slit!.cm).toBeGreaterThanOrEqual(m.waist_to_hip);
+      expect(d.lengthCm - d.slit!.cm).toBeLessThan(m.waist_to_hip + 1);
+      expect(d.zipRight).toBe(true);
+      // The ZIP ENDS notch on the front's -x side (right as worn), SLIT ENDS on its +x side.
+      const front = d.pieces[0];
+      const zipLabel = front.labels.find((l) => l.text === 'ZIP ENDS')!;
+      const slitLabel = front.labels.find((l) => l.text === 'SLIT ENDS')!;
+      expect(zipLabel.at.x).toBeLessThan(0);
+      expect(slitLabel.at.x).toBeGreaterThan(0);
+      for (const pc of d.pieces.slice(0, 2)) expect(pc.labels.some((l) => l.text === 'SLIT ENDS')).toBe(true);
+      const g = sewingGuide(d, { silhouette: 'slip', length }, 2);
+      expect(g.steps.find((s) => s.title === 'Sew the left side seam')!.text).toMatch(/SLIT ENDS/);
+      expect(g.steps.find((s) => s.title === 'Put in the side zip')!.text).toMatch(/right side seam/);
+    }
+    // Not on a dress's slip skirt, whose zip is at the back.
+    expect(draftSkirt(m, { silhouette: 'slip', length: 'midi', slit: 'side', joinTo: true } as never).slit).toBeUndefined();
+    // Without a slit the zip stays in the left side seam.
+    expect(draftSkirt(m, { silhouette: 'slip', length: 'midi' }).zipRight).toBeUndefined();
+  });
 });

@@ -7,10 +7,10 @@ import { Piece, withAlternate } from './piece';
 import { HemShape, isShaped, matchSides, shapeHem } from './hem';
 import { Flounce, GodetCount, Pleats, VolumeDraft, addVolume, volumeOf } from './skirtVolume';
 import { AsymHem, AsymPlan, quarterAsym } from './asymHem';
-import { SLIP_HEM, SLIP_HIP_EASE_LESS, closeToHem, cutsWhole, cutWhole, slipSideSupp, validCut } from './slip';
+import { SLIP_HEM, SLIP_HIP_EASE_LESS, closeToHem, cutsWhole, cutWhole, slipSideSupp, slipSlit, slipSlitAllowed, validCut } from './slip';
 import { inseamPocket, markSeam, notchesAlong } from './pockets';
 import { foldBack, wrapSkirtAllowed, wrapSkirtFront, wrapTies } from './wrapSkirt';
-import { Slit, SlitPlace, slitOf, slitPieces, slitRange } from './slit';
+import { SLIT, Slit, SlitPlace, slitOf, slitPieces, slitRange } from './slit';
 import { buttonBandLength, buttonFront, buttonsOf, frontWaist, splitYoke, yokeOf, yokeSideAt } from './skirtFront';
 import { EXTENSION_CM } from './collar';
 import type { Buttons } from './collar';
@@ -563,6 +563,8 @@ export interface SkirtDraft {
   halves?: [Piece, Piece];
   /** Where the invisible zip goes: the centre back seam unless the back is cut whole. */
   opening?: 'centre_back' | 'left_side';
+  /** A side-zipped skirt whose zip is in the right side seam instead (a bias slip with a side slit). */
+  zipRight?: true;
   /** A narrow faced waist in place of the waistband: the bias slip (see waistPieces in finishing.ts). */
   faced?: boolean;
   /** A high-low or diagonal hem as drafted (see asymHem.ts). */
@@ -679,7 +681,10 @@ export function draftSkirt(m: SkirtMeasurements, style: Partial<SkirtStyle> = {}
   // Cut whole (a bias slip, or a hem that differs side to side): the halves are mirrored into whole
   // pieces, then hemmed and fitted to one side as whole pieces. Neither takes pleats, godets or a flounce,
   // nor in-seam pockets.
-  if (cutsWhole(s)) return cutWhole(drafted(m, s), m, s);
+  if (cutsWhole(s)) {
+    const whole = cutWhole(drafted(m, s), m, s);
+    return s.slit === 'side' && slipSlitAllowed(s) ? slipSlit(whole, m, s.slitCm ?? SLIT.start.side) : whole;
+  }
   // Pleats, godets and flounces are drafted on the plain block, without a drawn hem. In-seam pockets
   // go in a plain side seam, so not where pleats, godets or a flounce change the skirt's pieces.
   const plain = volumeOf(s) !== 'none' ? { ...s, hem: undefined } : s;

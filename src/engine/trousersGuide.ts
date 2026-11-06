@@ -161,7 +161,12 @@ export function trousersGuide(d: TrousersDraft, fabricM: number, finish: { seams
             text: `Fold the band along its fold line, right sides together, and sew across each end ${seam} in, and along the extension. Trim the corners and turn it right side out. Press under ${seam} on the loose edge, then hand-stitch it over the seam inside, or stitch in the ditch from the outside.${loops ? ' Turn each belt loop up over the band, turn its top end under and stitch it across the top of the band by machine, through the loop and the band.' : ''}`,
           },
         ]),
-    {
+    d.ruffle
+      ? {
+          title: 'Add the hem ruffles',
+          text: `Join each ruffle strip into a ring with a French seam. Roll a narrow hem on one long edge: press up 0.5 cm, then 0.5 cm more, and stitch. Run two rows of long gathering stitches along the other edge, either side of the seam line. Pin it round the leg's hem, right sides together, the seam at the inside leg and the quarter notches spaced evenly, and pull up the gathers to fit. Sew ${seam} from the edge, neaten the seam together and press it up into the leg.`,
+        }
+      : {
       title: 'Hem',
       text: `Try the ${things} on with the shoes you will wear and pin up the hem: ${
         culotte

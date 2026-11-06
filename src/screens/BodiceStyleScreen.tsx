@@ -366,6 +366,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
                   {oversizedInTesting(g.id, id) && <TestingTag tool="oversized" />}
                   {g.id === 'peplum' && id !== 'none' && hemDrop(m, choices) > 0 && <TestingTag tool="low_peplum" />}
                   {g.id === 'neckline' && id === 'plunge' && <TestingTag tool="plunge" />}
+                  {g.id === 'collar' && id === 'polo' && <TestingTag tool="polo_collar" />}
                   {g.id === 'peplumHem' && id === 'high_low' && <TestingTag tool="high_low_peplum" />}
                   {g.id === 'peplumSize' && id === 'big' && <TestingTag tool="big_peplum" />}
                   {g.id === 'peplum' && id === 'balloon' && <TestingTag tool="balloon_peplum" />}
