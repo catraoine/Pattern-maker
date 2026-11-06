@@ -336,6 +336,7 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       fitted: ['One piece with a small dart at the elbow so it bends with your arm.'],
       straight: ['One straight piece. The simplest sleeve.', 'easy'],
       raglan: ['A seam from the neck to the underarm, the shoulder cut as part of the sleeve. Sporty and easy to move in.'],
+      none: ['No sleeves: a tailored waistcoat, its armholes finished with the lining. No shoulder pads.'],
     },
     pads: {
       soft: ['Thin pads that smooth the shoulder without changing its shape.'],

@@ -1626,7 +1626,8 @@ export function outerFlat(d: OuterDraft): Flat {
     }
     const sl = sleeveSide(h, d.sleeve, d.sleeve.cut === 'raglan' ? (isFront ? d.base.raglan?.front : d.base.raglan?.back) : undefined);
     const sleeves: number[] = [];
-    for (const flip of [false, true]) {
+    // (Sleeveless, a waistcoat: the armhole is its edge, with no sleeve drawn on it.)
+    for (const flip of d.sleeveless ? [] : [false, true]) {
       const f = (pts: P[]) => (flip ? mirror(pts) : pts);
       if (sl.shape.length) sleeves.push(shapes.push(f(sl.shape)) - 1);
       if (sl.band) sleeves.push(shapes.push(f(sl.band)) - 1);

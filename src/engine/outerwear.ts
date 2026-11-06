@@ -27,8 +27,9 @@ export type OuterLapel = 'classic' | 'wide' | 'plunge';
 export const lapelled = (c: OuterCollar | undefined) => c === 'notched' || c === 'peak' || c === 'shawl';
 export type OuterPockets = 'none' | 'patch' | 'welt';
 /** 'tailored' is the two-piece sleeve, top and under sleeve; 'fitted' the one-piece with an elbow dart;
- *  'raglan' runs up to the neck, the shoulders cut off the body and on to the sleeve. */
-export type OuterSleeve = 'tailored' | 'fitted' | 'straight' | 'raglan';
+ *  'raglan' runs up to the neck, the shoulders cut off the body and on to the sleeve; 'none' a jacket without sleeves,
+ *  a waistcoat (In testing, from Cat's SS27 vest picture, 2026-11-06), its armholes bagged out with the lining. */
+export type OuterSleeve = 'tailored' | 'fitted' | 'straight' | 'raglan' | 'none';
 /** Rib knit bands at the hem and the cuffs (a bomber, a fleece), or plain hems. */
 export type OuterTrim = 'none' | 'rib';
 export type OuterPads = 'none' | 'soft' | 'structured';
@@ -136,6 +137,8 @@ export interface OuterDraft {
   /** The bodice block it was drafted on: the sleeve is drafted to its armhole. */
   base: BodiceDraft;
   sleeve: SleeveDraft;
+  /** Cut without sleeves (a waistcoat): `sleeve` is still drafted to the armhole, for its measurements, but has no pieces. */
+  sleeveless?: true;
   /** Every piece, in print order: the shell, the collar, the facings and pockets, then the lining. */
   pieces: Piece[];
   /** The front and back as sewn, closed at the centre front and down to the hem: for the flat and the ease map. */
@@ -1116,7 +1119,10 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
   // shaping it, its shoulders dropped past the body's (a raglan keeps its own), no pads, a plain sleeve,
   // and a wider lapel rolling lower, so it hangs open like a cape.
   const big = s.fit === 'oversized';
-  if (big) s = { ...s, shaping: 'boxy', pads: 'none', sleeve: s.sleeve === 'raglan' ? 'raglan' : 'straight' };
+  if (big) s = { ...s, shaping: 'boxy', pads: 'none', sleeve: s.sleeve === 'raglan' || s.sleeve === 'none' ? s.sleeve : 'straight' };
+  // Without sleeves (a waistcoat, In testing) there is no sleeve crown for a pad to hold out, so it has none.
+  const bare = s.sleeve === 'none';
+  if (bare) s = { ...s, pads: 'none' };
   const shaping = s.shaping === 'boxy' && s.fit === 'fitted' ? 'darts' : s.shaping === 'princess' && s.sleeve === 'raglan' ? 'darts' : s.shaping;
   // Shoulder pads drafted in: each shoulder squared up so its point rises by the pad, which lengthens
   // the armhole; the sleeve is drafted to that armhole, so its crown rises with it.
@@ -1140,7 +1146,7 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
     shoulderPad: pad,
     closure: 'back_zip',
     collar: 'none',
-    ...(s.sleeve === 'raglan' ? { sleeveCut: 'raglan' as const, sleeve: 'long' as const } : big ? { sleeveCut: 'drop' as const, sleeve: 'long' as const } : {}),
+    ...(s.sleeve === 'raglan' ? { sleeveCut: 'raglan' as const, sleeve: 'long' as const } : big && !bare ? { sleeveCut: 'drop' as const, sleeve: 'long' as const } : {}),
   };
   const base = draftBodice(m, bodiceStyle);
   const drop = Math.max(base.drop, outerDrop(m, length) + (s.flare === 'flared' && length === 'long' && !rib ? FLARED_LONGER : 0));
@@ -1254,7 +1260,7 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
 
   const sleeveStyle = {
     length: 'long' as const,
-    shape: s.sleeve === 'raglan' ? ('straight' as const) : s.sleeve,
+    shape: s.sleeve === 'raglan' || s.sleeve === 'none' ? ('straight' as const) : s.sleeve,
     fit: s.fit,
     outer: s.kind,
     seamAllowance: sa,
@@ -1318,8 +1324,8 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
   const backPiece = backs.find((pc) => pc.fold) ?? backs[0];
   const shellHem = r1(2 * shell.reduce((t, pc) => t + taggedLength(pc.outline, 'hem'), 0));
   // The rib bands: one hem band cut on the fold, and a cuff for each sleeve.
-  const bands = rib ? [ribBand('Hem band', shellHem, RIB.hem, sa, 'Cut 1 on fold', true), ribBand('Cuff band', sleeve.hemCm / RIB.draw, RIB.cuff, sa, 'Cut 2', false)] : [];
-  const pieces = [...fronts, ...backs, ...sleevePieces, ...collar, ...bands, ...facings, ...pocketPieces, ...linings, ...sleeveLining];
+  const bands = rib ? [ribBand('Hem band', shellHem, RIB.hem, sa, 'Cut 1 on fold', true), ...(bare ? [] : [ribBand('Cuff band', sleeve.hemCm / RIB.draw, RIB.cuff, sa, 'Cut 2', false)])] : [];
+  const pieces = [...fronts, ...backs, ...(bare ? [] : sleevePieces), ...collar, ...bands, ...facings, ...pocketPieces, ...linings, ...(bare ? [] : sleeveLining)];
   const finishedHem = rib ? r1(shellHem * RIB.draw) : shellHem;
   const cbTop = backPiece.outline.points(4).filter((q) => Math.abs(q.x) < 1e-6).reduce((mn, q) => Math.min(mn, q.y), Infinity);
   const cbFoot = backPiece.outline.points(4).filter((q) => Math.abs(q.x) < 1e-6).reduce((mx, q) => Math.max(mx, q.y), -Infinity);
@@ -1327,6 +1333,7 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
     kind: s.kind,
     base,
     sleeve,
+    ...(bare ? { sleeveless: true as const } : {}),
     pieces,
     block,
     ext,

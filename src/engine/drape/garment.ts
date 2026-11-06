@@ -16,6 +16,7 @@ import { dartsOf } from '../marks';
 import { SimInput, simulate } from './sim';
 import { Space, boxed } from './space';
 import { knob, setKnob } from './knob';
+import { frontPins, tapeRollLines } from './rollLine';
 import { cropHold } from './cropHold';
 import { flutterPlace } from './flutter';
 
@@ -3746,6 +3747,8 @@ function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; drop?: 
         }
       }
   }
+  // A buttoned jacket's roll line is taped and its lapels pressed (rollLine.ts), before its collar is laid on.
+  if (o.pinFront?.length && !o.rollFront && !knob('__noBridle')) tapeRollLines(B.panels, res, sp);
   // A jacket's or coat's collar fall is pressed down onto the back it turns over (its stand alone can't hold it
   // there in the sim), so no gap opens between the collar and the back neck.
   const collarOnly = !knob("__lay") && !!o.pinFront?.length && !o.rollFront;
@@ -6070,6 +6073,6 @@ export function drapeOuter(sp: Space, d: OuterDraft, o: DrapeOptions = {}): Drap
     { sleeve: shell.filter((pc) => /sleeve/i.test(pc.name)), collars: collarsOf(d.pieces).map((c) => ((d as { popped?: boolean }).popped ? { ...c, roll: undefined } : c)) },
     // A lapel that breaks high (a coat or jacket buttoned over the chest) is pressed onto the front; a plunging one,
     // breaking near the waist, is left to hang (pressing drags its long front down).
-    { pad: d.pads, lieLapel: !!d.lapel && base.front.waistCentre.y - d.lapel.breakPt.y > 10, ...o, buttons: { y: d.buttons.at, r: d.buttons.sizeCm / 2, waistY: base.front.waistCentre.y }, pinFront: knob("__pinAll") ? [{ y: 52, span: 12 }] : d.buttons.at.map((y) => ({ y, span: 2 })) },
+    { pad: d.pads, lieLapel: !!d.lapel && base.front.waistCentre.y - d.lapel.breakPt.y > 10, ...o, buttons: { y: d.buttons.at, r: d.buttons.sizeCm / 2, waistY: base.front.waistCentre.y }, pinFront: knob("__pinAll") ? [{ y: 52, span: 12 }] : knob('__oldPins') || d.hood ? d.buttons.at.map((y) => ({ y, span: 2 })) : frontPins(d.buttons.at, shell) },
   );
 }

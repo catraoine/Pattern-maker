@@ -431,7 +431,8 @@ export function roundOuter(draft: OuterDraft, m: Nape): RoundGarment {
     openFront: shellFront,
     pieces: [...shell, ...sleeves],
     napeToWaist: napeOf(m, 41),
-    sleeve: draft.sleeve,
+    // (Sleeveless, a waistcoat: no sleeve in the turning view.)
+    ...(draft.sleeveless ? {} : { sleeve: draft.sleeve }),
     buttons: draft.buttons.at,
     vent: draft.vent,
     // Past the hip it keeps the bust's ease over the hip, then flares to its hem.

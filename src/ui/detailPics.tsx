@@ -258,6 +258,7 @@ const DETAILS: Record<ExplainSet, Record<string, Record<string, ReactNode>>> = {
       fitted: on('M13 7Q20 2 27 7L25 44H16L13 7z', 'M14.5 24L18 25.5L14.8 27'),
       straight: on('M13 7Q20 2 27 7L27 44H13z', 'M13 44h14'),
       raglan: on(JACKET, 'M17 10L9.5 22M23 10L30.5 22'),
+      none: on('M11 9L15 6L20 14L25 6L29 9Q27 16 30 21L31 38H9L10 21Q13 16 11 9z'),
     },
     pads: {
       soft: on(JACKET, 'M9.5 10.5Q12 7.5 15 6.5'),

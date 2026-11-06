@@ -147,8 +147,8 @@ export function readOuterSleeve(stroke: P[], arm: FormArm, neckPoint: P, c: Oute
   }
   if (kind !== 'down') return { said: 'Draw down the outside of the arm: close to it for a fitted sleeve, further out for a straight one; from the neck to under the arm for a raglan.' };
   const s = standOff(stroke, arm);
-  const sleeve: OuterSleeve = s.most < 1.6 ? 'fitted' : s.most > 3.2 ? 'straight' : 'tailored';
-  const words: Record<OuterSleeve, string> = {
+  const sleeve: Exclude<OuterSleeve, 'none'> = s.most < 1.6 ? 'fitted' : s.most > 3.2 ? 'straight' : 'tailored';
+  const words: Record<Exclude<OuterSleeve, 'none'>, string> = {
     fitted: 'A fitted sleeve: one piece, close to the arm, with an elbow dart.',
     tailored: 'A tailored sleeve: two pieces, following the arm’s bend.',
     straight: 'A straight sleeve: one piece, with room down to the wrist.',

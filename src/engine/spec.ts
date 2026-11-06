@@ -212,7 +212,8 @@ export function outerSpec(m: OuterMeasurements, d: OuterDraft): SpecRow[] {
     row('Centre back length', undefined, d.lengthCm),
     row('Armhole', m.armscye, d.base.armhole),
     row('Shoulder seam (back)', m.shoulder_length, d.base.shoulder.back),
-    ...sleeveSpec(m, d.sleeve),
+    // (A sleeveless jacket, a waistcoat, has no sleeve to measure.)
+    ...(d.sleeveless ? [] : sleeveSpec(m, d.sleeve)),
     { label: `Buttons, ${d.buttons.columns.length > 1 ? 'double-breasted' : 'single-breasted'}`, finished: `${d.buttons.at.length * d.buttons.columns.length} x ${d.buttons.sizeCm}` },
     row('Extension beyond the centre front', undefined, d.ext),
     ...(d.pads ? [row('Shoulder pad, drafted in', undefined, d.pads)] : []),

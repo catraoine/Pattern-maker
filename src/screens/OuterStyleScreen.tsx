@@ -90,7 +90,8 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
   const clothShapes = useMemo(() => (flat ? wornShapes(flat) : undefined), [flat]);
   const flatLines = useMemo(() => (flat ? wornLines(flat) : undefined), [flat]);
   const formArm = useMemo(() => {
-    if (!draft || !m.arm_length || !m.upper_arm) return undefined;
+    // (Sleeveless, a waistcoat: no sleeve to draw on the arm, so the arm isn't drawn.)
+    if (!draft || draft.sleeveless || !m.arm_length || !m.upper_arm) return undefined;
     const { shoulderTip, underarm } = landmarks(draft.base);
     return armFor(shoulderTip, underarm, { arm_length: m.arm_length, upper_arm: m.upper_arm, wrist: m.wrist });
   }, [draft, m]);
@@ -217,6 +218,8 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
                       // An oversized cut goes boxy, with no pads and a plain sleeve.
                       let next = { ...choices, [g.id]: id } as OuterChoices;
                       if (g.id === 'fit') next = oversizeOuter(next);
+                      // Without sleeves there is no sleeve head for a pad to hold out.
+                      if (next.sleeve === 'none') next.pads = 'none';
                       // A fitted cut keeps its waist darts.
                       if (next.fit === 'fitted' && next.shaping === 'boxy') next.shaping = 'darts';
                       // A cropped jacket is too short for a vent; rib bands at the hem leave no room for one.
@@ -235,6 +238,7 @@ export function OuterStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
                     {g.id === 'fit' && id === 'oversized' && <TestingTag tool="oversized_outer" />}
                     {((g.id === 'collar' && (id === 'peak' || id === 'shawl' || id === 'funnel')) || (g.id === 'lapel' && id !== 'classic')) && <TestingTag tool="jacket_collars" />}
                     {g.id === 'flare' && id === 'flared' && <TestingTag tool="flared_jacket" />}
+                    {g.id === 'sleeve' && id === 'none' && <TestingTag tool="sleeveless_outer" />}
                   </button>
                 );
               })}

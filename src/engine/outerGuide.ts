@@ -36,6 +36,8 @@ export function outerGuide(
   const pockets = names.includes('Patch pocket');
   const welts = names.includes('Welt');
   const tailored = names.includes('Top sleeve');
+  // Sleeveless (a waistcoat, In testing): no sleeves to cut, set in or line; the armholes are bagged out with the lining.
+  const bare = !!d.sleeveless;
   const vent = d.vent;
   const darts = !princess && d.base.bustDart > 0.3;
   const waistDarts = !princess && (d.base.waistDarts.front > 0.3 || d.base.waistDarts.back > 0.3);
@@ -52,7 +54,7 @@ export function outerGuide(
     ...(zip
       ? [`An open-ended (separating) zip, about ${Math.round(d.lengthCm - (rib ? rib.hem : 0))} cm long: buy the nearest length and set its bottom stop at the ${rib ? 'hem band seam' : 'hem'}`]
       : [`${count} buttons, ${n1(d.buttons.sizeCm)} across${d.buttons.columns.length > 1 ? `, plus one small button for the inside` : ''}`]),
-    ...(rib ? [`0.3 m of rib knit (tubular or 2x2 rib) for the hem band and cuffs`] : []),
+    ...(rib ? [`0.3 m of rib knit (tubular or 2x2 rib) for the hem band${bare ? '' : ' and cuffs'}`] : []),
     ...(d.pads ? [`A pair of set-in shoulder pads, ${d.pads < 1 ? `${Math.round(d.pads * 10)} mm` : n1(d.pads)} thick: the shoulders are drafted for them`] : []),
     ...(welts ? ['A strip of lining or pocketing for the pocket bags'] : []),
     zip ? 'Matching thread' : 'Matching thread, and silk thread for the buttonholes if you sew them by hand',
@@ -65,17 +67,17 @@ export function outerGuide(
     },
     {
       title: 'Cut the fabric',
-      text: `Fold the fabric in half with the selvedges together. Cut the ${princess ? 'centre fronts, side fronts, side backs' : 'fronts'}${vent ? ', the backs' : ''} and the ${sleevesWord} on both layers so you get pairs${vent ? '' : ', and the back on the fold'}. Cut the front facings${collar === 'hood' ? ' and the two hood pieces' : collar !== 'none' ? ' and the collar' : ''}${rib ? ', and the hem band and cuff bands from rib knit, the ribs running across the band' : ''}${pockets ? ' and the pockets' : ''}${welts ? ', the welts and the pocket facings' : ''} too. Keep each grain arrow parallel to the selvedge. Snip the notches and chalk-mark the ${darts || waistDarts ? 'darts, the ' : ''}${zip ? 'centre front' : 'buttonholes'}${d.lapel ? ', the roll line' : ''}${pockets ? ' and the pocket corners' : ''}${welts ? ' and the welt pocket boxes' : ''}${vent ? ' and the top of the vent' : ''}.`,
+      text: `Fold the fabric in half with the selvedges together. Cut the ${princess ? 'centre fronts, side fronts, side backs' : 'fronts'}${vent ? ', the backs' : ''}${bare ? '' : ` and the ${sleevesWord}`} on both layers so you get pairs${vent ? '' : ', and the back on the fold'}. Cut the front facings${collar === 'hood' ? ' and the two hood pieces' : collar !== 'none' ? ' and the collar' : ''}${rib ? `, and the hem band${bare ? '' : ' and cuff bands'} from rib knit, the ribs running across the band` : ''}${pockets ? ' and the pockets' : ''}${welts ? ', the welts and the pocket facings' : ''} too. Keep each grain arrow parallel to the selvedge. Snip the notches and chalk-mark the ${darts || waistDarts ? 'darts, the ' : ''}${zip ? 'centre front' : 'buttonholes'}${d.lapel ? ', the roll line' : ''}${pockets ? ' and the pocket corners' : ''}${welts ? ' and the welt pocket boxes' : ''}${vent ? ' and the top of the vent' : ''}.`,
     },
     {
       title: 'Cut the lining',
       text: vent
-        ? `Cut the ${panelFacing ? '' : 'front linings, '}${princess ? 'side front linings, ' : ''}two back linings${princess ? ', side back linings' : ''} and the ${raglan ? 'raglan sleeve linings' : tailored ? 'top and under sleeve linings' : 'sleeve linings'} from the lining fabric${welts ? ', and four pocket bags' : ''}. Cut the left back lining on the main line and the right one on the second line, which stops short at the vent. Each back lining is wider at the centre back for a pleat that gives you room to reach forward.${panelFacing ? ' There is no front lining: the front facing is the whole centre front panel, cut to the princess seam.' : ''}`
-        : `Cut the ${panelFacing ? '' : 'front linings, '}${princess ? 'side front linings, ' : ''}the back lining on the fold${princess ? ', side back linings' : ''} and the ${raglan ? 'raglan sleeve linings' : tailored ? 'top and under sleeve linings' : 'sleeve linings'} from the lining fabric${welts ? ', and four pocket bags' : ''}. The back lining is wider at the centre back for a pleat that gives you room to reach forward.${panelFacing ? ' There is no front lining: the front facing is the whole centre front panel, cut to the princess seam.' : ''}`,
+        ? `Cut the ${panelFacing ? '' : 'front linings, '}${princess ? 'side front linings, ' : ''}two back linings${princess ? ', side back linings' : ''}${bare ? '' : ` and the ${raglan ? 'raglan sleeve linings' : tailored ? 'top and under sleeve linings' : 'sleeve linings'}`} from the lining fabric${welts ? ', and four pocket bags' : ''}. Cut the left back lining on the main line and the right one on the second line, which stops short at the vent. Each back lining is wider at the centre back for a pleat that gives you room to reach forward.${panelFacing ? ' There is no front lining: the front facing is the whole centre front panel, cut to the princess seam.' : ''}`
+        : `Cut the ${panelFacing ? '' : 'front linings, '}${princess ? 'side front linings, ' : ''}the back lining on the fold${princess ? ', side back linings' : ''}${bare ? '' : ` and the ${raglan ? 'raglan sleeve linings' : tailored ? 'top and under sleeve linings' : 'sleeve linings'}`} from the lining fabric${welts ? ', and four pocket bags' : ''}. The back lining is wider at the centre back for a pleat that gives you room to reach forward.${panelFacing ? ' There is no front lining: the front facing is the whole centre front panel, cut to the princess seam.' : ''}`,
     },
     {
       title: 'Interface',
-      text: `Fuse interfacing to the wrong side of the front facings${collar === 'hood' ? ", a 3 cm strip along each hood piece's face edge" : collar !== 'none' ? ', both collar pieces' : ''}, and the top 10 cm of each ${princess ? 'centre front' : 'front'} and the back${pockets ? ', and the top fold of each pocket' : ''}${welts ? ', the welts, and a 5 cm strip behind each welt pocket box' : ''}${vent ? ', and the vent underlaps' : ''}. ${rib ? 'The hem and sleeve edges take rib bands, so they need no strip.' : 'Fuse a 5 cm strip along the hem of every shell piece and the sleeve hems.'} Use a press cloth and hold the iron still for 10 seconds at a time; let each piece cool flat before you move it.`,
+      text: `Fuse interfacing to the wrong side of the front facings${collar === 'hood' ? ", a 3 cm strip along each hood piece's face edge" : collar !== 'none' ? ', both collar pieces' : ''}, and the top 10 cm of each ${princess ? 'centre front' : 'front'} and the back${pockets ? ', and the top fold of each pocket' : ''}${welts ? ', the welts, and a 5 cm strip behind each welt pocket box' : ''}${vent ? ', and the vent underlaps' : ''}. ${rib ? `The hem${bare ? '' : ' and sleeve edges'} take${bare ? 's a rib band' : ' rib bands'}, so ${bare ? 'it needs' : 'they need'} no strip.` : `Fuse a 5 cm strip along the hem of every shell piece${bare ? '' : ' and the sleeve hems'}.`} Use a press cloth and hold the iron still for 10 seconds at a time; let each piece cool flat before you move it.`,
     },
     ...(darts || waistDarts
       ? [
@@ -165,7 +167,7 @@ export function outerGuide(
                   : `Pin the front facings to the fronts right sides together, and sew up each front edge and round the neck as far as the shoulder seam, ${curve} from the edge. Trim and clip the curve, then understitch the facing and press it to the inside. The back neck is finished by the lining.`,
           },
         ]),
-    ...(raglan
+    ...(raglan || bare
       ? []
       : [
           {
@@ -176,11 +178,11 @@ export function outerGuide(
     rib
       ? {
           title: 'Sew on the rib bands',
-          text: `Join the short ends of the hem band into a ring and fold it in half lengthwise, wrong sides together, so both raw edges are together. Divide the band and the ${kind}'s hem into quarters with pins. Pin the band to the hem right sides together, raw edges level, matching the pins, and sew with a narrow zigzag or a stretch stitch, stretching the band to fit between the pins so the ${kind} gathers in evenly onto it. Make each cuff band the same way, in a ring, and sew it to the sleeve hem. Press the seams up into the ${kind}, never flattening the rib.`,
+          text: `Join the short ends of the hem band into a ring and fold it in half lengthwise, wrong sides together, so both raw edges are together. Divide the band and the ${kind}'s hem into quarters with pins. Pin the band to the hem right sides together, raw edges level, matching the pins, and sew with a narrow zigzag or a stretch stitch, stretching the band to fit between the pins so the ${kind} gathers in evenly onto it. ${bare ? '' : 'Make each cuff band the same way, in a ring, and sew it to the sleeve hem. '} Press the seams up into the ${kind}, never flattening the rib.`,
         }
       : {
           title: 'Hem the shell',
-          text: `Turn up the ${kind} hem by ${n1(hem)} and the sleeve hems by ${n1(sleeveHem)}, press, and catch-stitch the raw edges by hand to the interfacing. Leave the front facings unfolded at the hem for now.${vent ? " At the vent, mitre the corner of the right back facing and turn the left back underlap's hem up with the rest." : ''}`,
+          text: `Turn up the ${kind} hem by ${n1(hem)}${bare ? '' : ` and the sleeve hems by ${n1(sleeveHem)}`}, press, and catch-stitch the raw edges by hand to the interfacing. Leave the front facings unfolded at the hem for now.${vent ? " At the vent, mitre the corner of the right back facing and turn the left back underlap's hem up with the rest." : ''}`,
         },
     {
       title: 'Make the lining',
@@ -190,7 +192,7 @@ export function outerGuide(
           : princess
             ? `Sew each side front lining to its front lining and each side back lining to its back lining along the princess seams, ${seam} from the edge, and press the seams open. `
             : ''
-      }${vent ? 'Sew the back linings together down the centre back to just above the vent, then tack the pleat' : 'Tack the back lining pleat'} along its line, 8 cm down from the neck. ${raglan ? "Sew the lining's side seams, the raglan sleeve linings' top and underarm seams, and sew the sleeve linings into their openings" : "Sew the lining's shoulders, side seams and sleeve seams, and set the sleeve linings into the armholes"}, leaving a 25 cm gap in one sleeve lining seam for turning. ${panelFacing ? `Sew each side front lining to its front facing along the princess seam, right sides together, ${seam} from the edge, so the facing is the lining's centre front panel` : 'Sew the lining to the inner edges of the front facings'}${
+      }${vent ? 'Sew the back linings together down the centre back to just above the vent, then tack the pleat' : 'Tack the back lining pleat'} along its line, 8 cm down from the neck. ${bare ? "Sew the lining's shoulders and side seams, leaving a 25 cm gap in one side seam for turning" : raglan ? "Sew the lining's side seams, the raglan sleeve linings' top and underarm seams, and sew the sleeve linings into their openings" : "Sew the lining's shoulders, side seams and sleeve seams, and set the sleeve linings into the armholes"}${bare ? '' : ', leaving a 25 cm gap in one sleeve lining seam for turning'}. ${panelFacing ? `Sew each side front lining to its front facing along the princess seam, right sides together, ${seam} from the edge, so the facing is the lining's centre front panel` : 'Sew the lining to the inner edges of the front facings'}${
         collar === 'notched'
           ? " and the upper collar to the lining's back neck"
           : collar === 'stand'
@@ -202,7 +204,7 @@ export function outerGuide(
     },
     {
       title: 'Bag the lining',
-      text: `With the ${kind} and its lining right sides together, sew the lining to the ${rib ? 'hem band seam allowance' : 'hem allowance'} of the ${kind} all round, 1 cm from the lining's edge, so a small fold of lining (the jump hem) stands below the stitching.${vent ? " Sew the back linings' lower edges round the vent: the left one to the underlap's edge, the right one to the vent facing's edge." : ''} Reach into each sleeve and sew the sleeve lining hems to the ${rib ? 'cuff band seam allowances' : 'sleeve hems'} the same way. Turn the ${kind} right side out through the gap in the sleeve lining, then close the gap by machine close to the edge.`,
+      text: `With the ${kind} and its lining right sides together, sew the lining to the ${rib ? 'hem band seam allowance' : 'hem allowance'} of the ${kind} all round, 1 cm from the lining's edge, so a small fold of lining (the jump hem) stands below the stitching.${vent ? " Sew the back linings' lower edges round the vent: the left one to the underlap's edge, the right one to the vent facing's edge." : ''}${bare ? ` Then pin each armhole of the lining to the armhole of the ${kind}, right sides together, matching the shoulder seams and the side seams, and sew round it ${seam} from the edge; trim to 5 mm, clip the curve every 1 cm and understitch the lining where you can reach.` : ` Reach into each sleeve and sew the sleeve lining hems to the ${rib ? 'cuff band seam allowances' : 'sleeve hems'} the same way.`} Turn the ${kind} right side out through the gap in the ${bare ? 'lining side seam' : 'sleeve lining'}, then close the gap by machine close to the edge.${bare ? ' Roll each armhole edge so the lining sits 2 mm inside and press it.' : ''}`,
     },
     ...(zip
       ? []

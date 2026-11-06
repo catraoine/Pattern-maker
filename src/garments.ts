@@ -340,7 +340,7 @@ export function outerGroups(kind: OuterKind): { id: OuterGroupId; label: string;
       options: [['notched', 'Notched lapel'], ['peak', 'Peak lapel'], ['shawl', 'Shawl collar'], ['stand', 'Stand collar'], ['funnel', 'Funnel collar'], ['collarless', 'Collarless'], ['hood', 'Hood']],
     },
     { id: 'lapel', label: 'Lapels', options: [['classic', 'Classic'], ['wide', 'Wide'], ['plunge', 'Plunging']] },
-    { id: 'sleeve', label: 'Sleeves', options: [['tailored', 'Two-piece, tailored'], ['fitted', 'One-piece, elbow dart'], ['straight', 'Straight'], ['raglan', 'Raglan']] },
+    { id: 'sleeve', label: 'Sleeves', options: [['tailored', 'Two-piece, tailored'], ['fitted', 'One-piece, elbow dart'], ['straight', 'Straight'], ['raglan', 'Raglan'], ['none', 'Sleeveless']] },
     { id: 'pads', label: 'Shoulder pads', options: [['soft', kind === 'coat' ? 'Soft, 8 mm' : 'Soft, 6 mm'], ['structured', kind === 'coat' ? 'Structured, 1.5 cm' : 'Structured, 1.2 cm'], ['none', 'None']] },
     { id: 'pockets', label: 'Pockets', options: [['patch', 'Patch pockets'], ['welt', 'Welt pockets'], ['none', 'None']] },
     { id: 'vent', label: 'Back vent', options: [['centre', 'Centre vent'], ['none', 'None']] },
@@ -361,6 +361,8 @@ export function outerGroups(kind: OuterKind): { id: OuterGroupId; label: string;
 export const outerAllowed = (c: OuterChoices, id: OuterGroupId, opt: string) =>
   !(c.fit === 'oversized' && ((id === 'shaping' && opt !== 'boxy') || (id === 'pads' && opt !== 'none') || (id === 'sleeve' && (opt === 'tailored' || opt === 'fitted')))) &&
   !(id === 'shaping' && opt === 'boxy' && c.fit === 'fitted') &&
+  // Sleeveless (a waistcoat, In testing) has no sleeve crown for a pad to hold out.
+  !(id === 'pads' && opt !== 'none' && c.sleeve === 'none') &&
   !(id === 'vent' && opt === 'centre' && (c.length === 'cropped' || c.trim === 'rib')) &&
   !(id === 'collar' && lapelled(opt as OuterCollar) && (c.front === 'zip' || c.sleeve === 'raglan')) &&
   !(id === 'front' && opt === 'zip' && lapelled(c.collar)) &&
@@ -384,10 +386,11 @@ const OUTER_COLLAR_WORDS: Record<OuterCollar, string> = {
   hood: 'with a hood',
 };
 
-/** An oversized cut's own shaping: boxy, no pads, and a straight sleeve where a tailored or fitted one was. */
+/** An oversized cut's own shaping: boxy, no pads, and a straight sleeve where a tailored or fitted one was (a
+ *  sleeveless one stays sleeveless). */
 export function oversizeOuter(c: OuterChoices): OuterChoices {
   if (c.fit !== 'oversized') return c;
-  return { ...c, shaping: 'boxy', pads: 'none', sleeve: c.sleeve === 'raglan' ? 'raglan' : 'straight' };
+  return { ...c, shaping: 'boxy', pads: 'none', sleeve: c.sleeve === 'raglan' || c.sleeve === 'none' ? c.sleeve : 'straight' };
 }
 
 /** A plain name, such as "Hip-length single-breasted jacket with notched lapels". */
