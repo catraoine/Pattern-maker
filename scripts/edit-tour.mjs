@@ -59,7 +59,10 @@ const endCard = () => {
   return words(`<div class="f mid"><div style="width:${w}px">${LOGO}</div><div class="r" style="margin:26px auto 18px;opacity:.7"></div><div class="k" style="font-size:${u}px;text-transform:lowercase">maisontrace.co</div></div>`, { solid: true });
 };
 // The house name isn't on the cards: the player's corner already says it (Cat, 2026-10-22). No kicker, no rule.
-const card = (kicker, title, line = '', size = WIDE ? 76 : 64) => words(`<div class="f mid">${kicker ? `<div class="k">${kicker}</div><div class="r"></div>` : ''}<h1 class="t" style="font-size:${size}px">${title}</h1>${line ? `<p class="l" style="margin-top:18px">${line}</p>` : ''}</div>`, { solid: true });
+// One size for every title card, How it works included, small enough that HOW IT WORKS sits on one line on a phone
+// (Cat, 2026-11-06: "on one line and smaller", and the same size as Measure, Choose, Style and Print).
+const HEAD = WIDE ? 62 : 52;
+const card = (kicker, title, line = '', size = HEAD) => words(`<div class="f mid">${kicker ? `<div class="k">${kicker}</div><div class="r"></div>` : ''}<h1 class="t" style="font-size:${size}px">${title}</h1>${line ? `<p class="l" style="margin-top:18px">${line}</p>` : ''}</div>`, { solid: true });
 
 // Two pieces as one, the first dissolving into the second over d seconds, for a move with no dip to black.
 async function dissolve(a, b2, d) {
@@ -275,11 +278,15 @@ const note = (line0, where, shade = true) => {
 // (record-tour-shots.mjs: the phone's scrolls are longer).
 const COLLECTION = WIDE ? { from: 0.8, dur: 8.5, speed: 1.45 } : { from: 0.8, dur: 8.5, speed: 1.75, drop: 0.05 };
 // A computer has no Review page to scroll (Print my pattern sits beside the drawing), so its projector runs longer.
-const REVIEW = WIDE ? undefined : { from: 0.4, dur: 4.4, speed: 1.15 };
+// Print opens straight on the pattern pieces' sideways scroll, no Review page first (Cat, 2026-11-06), so on a phone
+// too there is nothing here; REVIEW=1 brings the scroll down the Review page back.
+const REVIEW = WIDE || process.env.REVIEW !== '1' ? undefined : { from: 0.4, dur: 4.4, speed: 1.15 };
 // Straight from the pages to a piece on black in projector mode, drawn in close so it fills the screen (Cat,
 // 2026-10-29: skip the second scroll down the print page; less blank space). On a phone it sits low and large, its
 // foot level with the pattern sheet's (Cat, 2026-10-30: it was cut off under the words).
-const PROJECTOR = WIDE ? { from: 8.6, dur: 4.2, zoom: [1.3, 1.34], at: [0.5, 0.47] } : { from: 10.1, dur: 4, zoom: [1.74, 1.78], at: [0.5, 0.282] };
+const PROJECTOR = WIDE ? { from: 8.6, dur: 4.2, zoom: [1.3, 1.34], at: [0.5, 0.47] } : { from: 10.1, dur: 4, zoom: [1.5, 1.53], at: [0.5, 0.3], drop: 0.07 };
+// Phone: drawn in a little less and set lower, so the piece sits whole under its two lines of words (Cat, 2026-11-06:
+// cut off by the words at the top).
 // P2 Or Start From a Photo (Cat, 2026-10-24): after the garments, a photo of a dress (made for the film, no person in
 // it), briefly, its words the same size and place as the Style steps'. No drafted dress after it (Cat: skip that).
 const PHOTO = readFileSync(new URL('./tour/photo-dress.jpg', import.meta.url)).toString('base64');
@@ -305,12 +312,13 @@ const SHOP = [
 ].filter(([img]) => existsSync(new URL(`./tour/shop/${img}.jpg`, import.meta.url)));
 async function shopMoment() {
   const dur = 8;
-  const [w, tex, band, gap] = WIDE ? [230, 320, 92, 28] : [140, 196, 70, 14];
+  // Big enough to fill the frame, not a thin row with black above and below (Cat, 2026-11-06).
+  const [w, tex, band, gap] = WIDE ? [300, 420, 116, 32] : [210, 360, 100, 18];
   const rowW = SHOP.length * w + (SHOP.length - 1) * gap;
   const cardsHtml = SHOP.map(([img, name, cloth, price], i) => {
     const photo = readFileSync(new URL(`./tour/shop/${img}.jpg`, import.meta.url)).toString('base64');
-    const small = WIDE ? 10 : 7.2;
-    return `<div style="position:absolute;left:${i * (w + gap)}px;top:0;width:${w}px;box-shadow:0 10px 24px rgba(0,0,0,.55)"><img src="data:image/jpeg;base64,${photo}" style="display:block;width:100%;height:${tex}px;object-fit:cover"><div style="height:${band}px;box-sizing:border-box;padding:${WIDE ? 14 : 10}px ${WIDE ? 14 : 9}px 0;background:linear-gradient(90deg,#ece2cb 0%,#ece2cb 78%,#d3c7ab 100%);font-family:'Chakra Petch',monospace;text-transform:uppercase;white-space:nowrap;overflow:hidden"><div style="font-weight:600;font-size:${WIDE ? 12 : 8.5}px;letter-spacing:.12em;color:#151311">${name}</div><div style="font-size:${small}px;letter-spacing:.12em;color:#6c6250;margin-top:6px">${cloth}</div><div style="font-size:${small}px;letter-spacing:.12em;color:#6c6250;margin-top:4px">Mood Fabrics${price ? ` · ${price}` : ''}</div></div></div>`;
+    const small = WIDE ? 12.5 : 10.5;
+    return `<div style="position:absolute;left:${i * (w + gap)}px;top:0;width:${w}px;box-shadow:0 10px 24px rgba(0,0,0,.55)"><img src="data:image/jpeg;base64,${photo}" style="display:block;width:100%;height:${tex}px;object-fit:cover"><div style="height:${band}px;box-sizing:border-box;padding:${WIDE ? 18 : 14}px ${WIDE ? 18 : 13}px 0;background:linear-gradient(90deg,#ece2cb 0%,#ece2cb 78%,#d3c7ab 100%);font-family:'Chakra Petch',monospace;text-transform:uppercase;white-space:nowrap;overflow:hidden"><div style="font-weight:600;font-size:${WIDE ? 15 : 12.5}px;letter-spacing:.12em;color:#151311">${name}</div><div style="font-size:${small}px;letter-spacing:.12em;color:#6c6250;margin-top:8px">${cloth}</div><div style="font-size:${small}px;letter-spacing:.12em;color:#6c6250;margin-top:4px">Mood Fabrics${price ? ` · ${price}` : ''}</div></div></div>`;
   }).join('');
   // The row is wider than the screen: draw it on a wide page, then slide it under the frame.
   const file = join(work, `w${n++}.png`);
@@ -326,14 +334,14 @@ async function shopMoment() {
   await page.setViewportSize({ width: VW, height: VH });
   const k = W / VW;
   // From the first card (the cloth on the dress) whole on screen to the last card a little in from the right.
-  const x0 = Math.round((WIDE ? VW * 0.12 : VW * 0.3) * k - 20 * k);
+  const x0 = Math.round((WIDE ? VW * 0.12 : VW * 0.12) * k - 20 * k);
   const x1 = Math.round((VW * 0.88 - rowW - 20) * k);
-  const y = Math.round((WIDE ? 230 : 300) * k);
+  const y = Math.round((WIDE ? 200 : 190) * k);
   return piece({ still: await words('', { solid: true }), dur, fadeIn: 0.5, fadeOut: 0.5, strip: { file, x0, x1, y, on: 0.3 }, notes: [[await note('Shop the fabric.', 'low'), 0.2, dur]] });
 }
 // The opening (Cat, 2026-10-22: the old one repeated the loading screen and welcome the viewer had just seen).
 const INTRO = process.env.TOUR_INTRO ?? 'W'; // Cat's pick, 2026-10-30: W Welcome Push (was C2 Pull Back)
-const TITLE = `<h1 class="t" style="font-size:${WIDE ? 84 : 64}px">How it works</h1>`;
+const TITLE = `<h1 class="t" style="font-size:${HEAD}px;white-space:nowrap">How it works</h1>`;
 const title = async (where = 'centre') => words(where === 'centre'
   ? `<div class="f mid" style="display:flex;background:radial-gradient(ellipse at center,rgba(0,0,0,.55) 0,rgba(0,0,0,0) 60%)">${TITLE}</div>`
   : WIDE
