@@ -68,8 +68,10 @@ Live site: https://maisontrace.co (the cloud proxy blocks it; check
 https://whimsical-mooncake-2cf9a9.netlify.app, the same site). Strangers see the waitlist; testers
 get in with their tester link.
 
-## Queued for "ship" (as of Nov 5, after Release 65)
+## Queued for "ship" (as of Nov 6, after Release 65)
 
+- #301 (trousers: front pleats and belt loops as In-testing options, drawn in All round and the Flat view; the SS27
+  gold python Bermuda's look change waits on Cat's "apply"): based on main.
 - #294 (All round: clean cloth in its own finish, and Look closer zoom): not green, conflicts with main; its thread
   merges main in first.
 
