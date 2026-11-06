@@ -1534,11 +1534,17 @@ export function outerFlat(d: OuterDraft): Flat {
       shapes.push(mirror(half), half);
       lines.push({ pts: [p(-ext, footY), p(-ext, d.lapel ? d.lapel.breakPt.y : neckRun[0].y)], kind: zip ? 'zip' : 'seam' });
       if (d.hood) {
-        // The hood behind the head, its face edge standing up behind the neck.
+        // The hood behind the head, its face edge standing up behind the neck: `up` above the neck at the centre front,
+        // and at least 3 cm above the neck's highest point at the shoulder. Measured from the centre front alone, a
+        // front neck deeper than the rise put the hood's top below the shoulder end of the neck, so its outline folded
+        // back through the neckline (the Front drawing check's "twisted" hood).
         const nx = neckRun[neckRun.length - 1].x;
         const ny = neckRun[0].y;
+        const sy = Math.min(...neckRun.map((q) => q.y));
         const up = Math.min(d.hood.height * 0.26, 9);
-        over.push([...neckRun, p(nx * 1.08, ny - up * 0.55), p(nx * 0.7, ny - up * 0.92), p(0, ny - up)]);
+        const top = Math.min(ny - up, sy - 3);
+        const rise = sy - top;
+        over.push([...neckRun, p(nx * 1.08, sy - rise * 0.45), p(nx * 0.7, sy - rise * 0.85), p(0, top)]);
       }
       for (const y of d.buttons.at) for (const x of d.buttons.columns) lines.push({ pts: circle(h.move(p(x, y)), d.buttons.sizeCm / 2), kind: 'seam' });
       if (d.pocket) {
