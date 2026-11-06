@@ -9,7 +9,7 @@ import type { P } from '../geometry';
 import type { Draped } from './garment';
 import type { Space } from './space';
 
-export interface StrapMesh {
+interface StrapMesh {
   pos: number[];
   tris: number[][];
   uv: number[];
@@ -18,7 +18,7 @@ export interface StrapMesh {
 }
 
 /** A turned rouleau's finished width, cm (cut 2.5 cm on the bias, about 6 mm turned). */
-export const ROULEAU_WIDTH = 0.65;
+const ROULEAU_WIDTH = 0.65;
 
 /** The settled point of a role's panels cut nearest a point on the pattern, if there is one within 3 cm. */
 function settledAt(d: Pick<Draped, 'panels' | 'pos'>, role: 'front' | 'back', q: P): { i: number; x: number; c: number; z: number } | undefined {
