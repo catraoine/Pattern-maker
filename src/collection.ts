@@ -17,12 +17,11 @@ import type { BodiceDraft } from './engine/bodice';
 import {
   BodiceChoices,
   DEFAULT_BODICE,
-  DEFAULT_COAT_CHOICES,
   DEFAULT_JACKET_CHOICES,
+  DEFAULT_TROUSERS_CHOICES,
   DressChoices,
   OuterChoices,
   PatternChoices,
-  TrousersChoices,
   isBodice,
   isDress,
   isOuter,
@@ -34,17 +33,25 @@ import {
 } from './garments';
 import { EXAMPLE_BODY, Garment, MeasurementValues, isComplete } from './measurements';
 
+/** The house's own colours, named in a look's fabric words and not on the shop's list (SS27, 2026-11-05). */
+const HOUSE_COLOURS: [string, string][] = [['gold', '#C9962E'], ['ice', '#9CC3E6'], ['lavender', '#a796c4'], ['blue-grey', '#B9C3CF']];
+
 /** The fabric a look is named for, read from its words, so its thumbnail draws in that cloth. */
 export function lookFabric(words: string): MyFabric {
   const w = words.toLowerCase();
   const special = (['denim', 'leather', 'velvet', 'corduroy', 'satin', 'lace', 'sequin'] as const).find((k) => w.includes(k));
   const sheer = /georgette|chiffon|organza|voile|sheer/.test(w);
   const fibre = (['silk', 'wool', 'cotton', 'linen', 'viscose', 'polyester'] as const).find((k) => w.includes(k));
-  const colour = COLOURS.map((c) => c.name).find((c) => w.includes(c.toLowerCase()));
+  const colour = COLOURS.map((c) => c.name).find((c) => w.includes(c.toLowerCase())) ?? HOUSE_COLOURS.find(([n]) => w.includes(n))?.[1];
+  // A python (or any animal skin) is a one-way print: its scales run one way down the cloth.
+  const print = /python|snake|leopard|zebra/.test(w) ? 'oneway' : undefined;
+  const crisp = /crisp|sateen|gabardine|poplin|taffeta/.test(w);
   return {
     ...(fibre ? { fibre } : {}),
     ...(special ? { special: special === 'sequin' ? 'sequins' : special } : sheer ? { special: 'sheer' } : {}),
     ...(colour ? { colour } : {}),
+    ...(print ? { print } : {}),
+    ...(crisp ? { drape: 'crisp' } : {}),
   };
 }
 
@@ -75,95 +82,94 @@ export const SEASON = { code: 'SS27', name: 'Spring Summer 2027' };
 
 export const COLLECTION: HouseLook[] = [
   {
-    id: 'klein',
+    id: 'butter-flare',
     number: 1,
-    // Was the Klein Shirt in cobalt; now the Parma Shirt in lilac, to open the collection on something softer (Cat, 2026-10-30).
-    name: 'Parma Shirt',
-    line: 'A big shirt in soft lilac: relaxed, buttoned up, its sleeves long and straight.',
-    fabric: 'Lilac cotton poplin',
-    garment: 'bodice',
-    choices: bodice({ fit: 'relaxed', neckline: 'crew', collar: 'shirt', closure: 'front_buttons', sleeve: 'long', sleeveShape: 'straight', length: 'hip', darts: 'none' }),
-  },
-  {
-    id: 'aqua-slip',
-    number: 2,
-    name: 'Aqua Slip',
-    line: 'The house slip: a skirt cut on the bias to the mid-calf, under a cami top on fine straps.',
-    fabric: 'Aqua silk satin',
-    garment: 'dress',
-    choices: dress('regular', { neckline: 'cami' }, { silhouette: 'slip', length: 'midi' }),
-  },
-  {
-    id: 'red-jacket',
-    number: 3,
-    name: 'Red Jacket',
-    line: 'Soft, boxy tailoring with no shoulder pads, meant to be worn red from head to toe.',
-    fabric: 'Red wool and linen',
-    garment: 'jacket',
-    choices: { ...DEFAULT_JACKET_CHOICES, fit: 'relaxed', shaping: 'boxy', pads: 'none', pockets: 'patch' } as OuterChoices,
-  },
-  {
-    id: 'red-trouser',
-    number: 4,
-    name: 'Red Trouser',
-    line: 'Slouchy and wide, falling to the floor: the other half of the red suit.',
-    fabric: 'Red wool and linen',
+    name: 'Butter Kick Flare',
+    line: 'Cropped kick flares in butter, low on the hip and worn with a small ivory cami. The collection opens on a leg.',
+    fabric: 'Butter silk twill',
     garment: 'trousers',
-    choices: { garment: 'trousers', fit: 'relaxed', leg: 'wide', length: 'full', closure: 'fly', pockets: 'slant' } as TrousersChoices,
+    choices: { ...DEFAULT_TROUSERS_CHOICES, fit: 'regular', leg: 'flare', length: 'cropped', pockets: 'none', riseCm: -3, legCm: { knee: 34, hem: 86 } },
   },
   {
-    id: 'olive-pleat',
+    id: 'gold-slip',
+    number: 2,
+    name: 'Gold Python Slip',
+    line: 'The house slip, cut on the bias to the floor, plunging at the front and dipping to a V at the back.',
+    fabric: 'Gold python silk satin',
+    garment: 'dress',
+    choices: dress('regular', { neckline: 'plunge', sleeve: 'none', back: 'v' }, { silhouette: 'slip', length: 'maxi' }),
+  },
+  {
+    id: 'lavender-jacket',
+    number: 3,
+    name: 'Lavender Jacket',
+    line: 'A cropped, waisted jacket with a peak lapel plunging to one button, over wide trousers in the same lavender.',
+    fabric: 'Lavender wool',
+    garment: 'jacket',
+    choices: { ...DEFAULT_JACKET_CHOICES, fit: 'fitted', shaping: 'princess', pads: 'structured', pockets: 'none', length: 'cropped', collar: 'peak', lapel: 'plunge' } as OuterChoices,
+  },
+  {
+    id: 'gold-shorts',
+    number: 4,
+    name: 'Gold Python Bermuda',
+    line: 'Loose pleated Bermudas falling straight from the hip to just below the knee, belt loops at the waist, in the same gold python as the slip.',
+    fabric: 'Gold python silk',
+    garment: 'trousers',
+    choices: { ...DEFAULT_TROUSERS_CHOICES, fit: 'relaxed', leg: 'wide', length: 'knee', lengthCm: 68, legCm: { knee: 66, hem: 66 }, pockets: 'slant', pleats: 'double', loops: 'loops' },
+  },
+  {
+    id: 'ivory-palazzo',
     number: 5,
-    name: 'Olive Pleat',
-    line: 'Knife pleats all the way round, stitched flat to the hip and falling free to the mid-calf.',
-    fabric: 'Olive wool crepe, or a fine gabardine that holds a crease',
-    garment: 'skirt',
-    choices: skirt({ fit: 'regular', silhouette: 'straight', length: 'midi', pleats: 'knife' }),
+    name: 'Ivory Palazzo',
+    line: 'Wide and easy, falling from slanted pockets to the floor. Ivory, and nothing else.',
+    fabric: 'Ivory linen',
+    garment: 'trousers',
+    choices: { ...DEFAULT_TROUSERS_CHOICES, fit: 'relaxed', leg: 'wide', length: 'full', pockets: 'slant' },
   },
   {
-    id: 'scoop-column',
+    id: 'blush-shift',
     number: 6,
-    name: 'Scoop Column',
-    line: 'A wide, low scoop neck over a narrow column to the floor. White, and nothing else.',
-    fabric: 'White heavy linen',
+    name: 'Blush Shift',
+    line: 'A sleeveless shift above the knee with a little room at the bust, flaring just enough, and tied at one side.',
+    fabric: 'Blush wool crepe',
     garment: 'dress',
-    choices: dress('fitted', { neckline: 'scoop' }, { silhouette: 'straight', length: 'maxi' }),
+    choices: dress('regular', { neckline: 'crew', sleeve: 'none', darts: 'bust', bustDart: 'french', bustEase: 5 }, { silhouette: 'straight', length: 'mini', noSeam: 'shift', belt: 'side_tie', flareCm: 4 }),
   },
   {
-    id: 'butter-shift',
+    id: 'pleat-dress',
     number: 7,
-    name: 'Butter Shift',
-    line: 'Straight from a boat neck to above the knee. Sixties, and worn with flat shoes.',
-    fabric: 'Butter wool crepe',
+    name: 'Slate Pleat Dress',
+    line: 'A scoop neck over a dropped waist, and knife pleats from the hip to the mid-calf, in a crisp blue-grey sateen.',
+    fabric: 'Blue-grey crisp cotton sateen',
     garment: 'dress',
-    choices: dress('regular', { neckline: 'boat' }, { silhouette: 'straight', length: 'above_knee', noSeam: 'shift' }),
+    choices: { ...dress('regular', { neckline: 'scoop', sleeve: 'none', darts: 'bust', bustDart: 'french' }, { silhouette: 'straight', length: 'midi', pleats: 'knife' }), waistSeam: 'dropped' },
   },
   {
-    id: 'tiny-top',
+    id: 'ice-peplum',
     number: 8,
-    name: 'Tiny Top',
-    line: 'A small cami top cut to the waist, for under a big jacket or over a big skirt.',
-    fabric: 'Chartreuse silk',
+    name: 'Ice Peplum Top',
+    line: 'Sheer ice blue, ruffled at the neck and the cuffs, with bishop sleeves and a big flared peplum from a lowered waist.',
+    fabric: 'Ice sheer silk organza',
     garment: 'bodice',
-    choices: bodice({ fit: 'fitted', neckline: 'cami' }),
+    choices: bodice({ fit: 'fitted', neckline: 'crew', collar: 'ruffle', sleeve: 'long', sleeveShape: 'bishop', sleeveCuff: 'ruffle', length: 'waist', dropCm: 6, peplum: 'flared', peplumSize: 'big' }),
   },
   {
-    id: 'sash-skirt',
+    id: 'red-wrap',
     number: 9,
-    name: 'Sheer Sash Skirt',
-    line: 'Gathered to the floor in a sheer cloth, and tied at the waist like a scarf.',
-    fabric: 'White cotton organza',
-    garment: 'skirt',
-    choices: skirt({ fit: 'regular', silhouette: 'gathered', length: 'maxi', belt: 'sash' }),
+    name: 'Red Wrap Top',
+    line: 'A red wrap top with bishop sleeves on shirt cuffs, worn over a lavender slip slit to the hip.',
+    fabric: 'Red viscose',
+    garment: 'bodice',
+    choices: bodice({ fit: 'regular', darts: 'bust', neckline: 'v', closure: 'wrap', sleeve: 'long', sleeveShape: 'bishop', sleeveCuff: 'shirt', length: 'waist' }),
   },
   {
-    id: 'long-coat',
+    id: 'red-pleat',
     number: 10,
-    name: 'Long Coat',
-    line: 'Oversized and double-breasted, flaring to an A-line below the hip, for a cold spring.',
-    fabric: 'Camel cotton gabardine',
-    garment: 'coat',
-    choices: { ...DEFAULT_COAT_CHOICES, fit: 'relaxed', front: 'double', flare: 'a_line', pads: 'soft' } as OuterChoices,
+    name: 'Red Pleat Skirt',
+    line: 'Knife pleats all the way round an A-line, low on the hip and falling to just below the knee. Worn with the ice top.',
+    fabric: 'Red crisp wool gabardine',
+    garment: 'skirt',
+    choices: skirt({ fit: 'regular', silhouette: 'a_line', length: 'midi', lengthCm: 64.6, pleats: 'knife', rise: 'low' }),
   },
 ];
 
@@ -179,12 +185,12 @@ export function lookPatch(look: HouseLook): { garment: Garment } & Record<string
 }
 
 function sleeveFor(b: BodiceDraft, c: BodiceChoices, own: MeasurementValues): SleeveDraft | undefined {
-  const { length, shape, cm, cuff } = sleeveOf(c);
+  const { length, shape, cm, cuff, fullness } = sleeveOf(c);
   // Measured for the body but not the arms yet: the drawing borrows the sample arms, so a shirt still shows its
   // sleeves (it came out sleeveless; 2026-10-30).
   const m = needsArms(own as never) ? { ...EXAMPLE_BODY, ...own } : own;
   if (length === 'none' || needsArms(m as never)) return undefined;
-  return draftSleeve(b, m as never, { length, shape, ...(cm !== undefined ? { lengthCm: cm } : {}), ...(cuff ? { cuff } : {}), fit: c.fit, seamAllowance: b.pieces[0].seamAllowance, armholeAllowance: b.pieces[0].allowances.armhole ?? 1, hemAllowance: 2.5 });
+  return draftSleeve(b, m as never, { length, shape, ...(cm !== undefined ? { lengthCm: cm } : {}), ...(cuff ? { cuff } : {}), ...(fullness ? { fullness } : {}), fit: c.fit, seamAllowance: b.pieces[0].seamAllowance, armholeAllowance: b.pieces[0].allowances.armhole ?? 1, hemAllowance: 2.5 });
 }
 
 /** The measurements a look is drawn to: the sewist's own when the garment has all it needs, or the sample set. */

@@ -141,7 +141,8 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
   const flat = useMemo(() => (draft ? dressFlat(draft, 'binding', { sleeve, belt: dressBelt(choices.skirt.belt, draft) }) : undefined), [draft, sleeve, choices.skirt]);
   const title = describePattern(choices);
   const round = useMemo(() => (draft ? roundDress(draft, values, sleeve) : undefined), [draft, values, sleeve]);
-  const drapeJob = useMemo(() => (draft ? ({ kind: 'dress', draft, sleeve } as const) : undefined), [draft, sleeve]);
+  const sideTie = useMemo(() => (draft ? dressBelt(choices.skirt.belt, draft)?.ties : undefined), [draft, choices.skirt.belt]);
+  const drapeJob = useMemo(() => (draft ? ({ kind: 'dress', draft, sleeve, ...(sideTie ? { sideTie } : {}) } as const) : undefined), [draft, sleeve, sideTie]);
   const arms = !needsArms(values);
   const chosen = sleeveOf(choices.bodice);
   // A shirt dress: the buttons run on down the skirt, so it needs a skirt that can carry them.
@@ -192,6 +193,9 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
         g.id === 'sleeve' ||
         // A kimono sleeve is cut on at its named length, with no shape or cuff of its own.
         (g.id === 'sleeveShape' && chosen.length !== 'none' && chosen.cut !== 'kimono') ||
+        // Only a gathered sleeve has a fullness to pick; only a plunge has a depth.
+        (g.id === 'sleeveFullness' && (chosen.shape === 'puff' || chosen.shape === 'bishop')) ||
+        (g.id === 'plungeDepth' && choices.bodice.neckline === 'plunge' && !choices.bodice.neck) ||
         (g.id === 'sleeveCut' && chosen.length !== 'none') ||
         (g.id === 'sleeveCuff' && cuffShown(chosen) && chosen.cut !== 'kimono'),
     ).map((g) => ({
@@ -249,6 +253,10 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
               chosen.cm !== undefined ? '' : chosen.length
             : id === 'sleeveShape'
               ? chosen.shape
+              : id === 'sleeveFullness'
+                ? (chosen.fullness ?? 'soft')
+              : id === 'plungeDepth'
+                ? (choices.bodice.plungeDepth ?? 'standard')
               : id === 'sleeveCut'
                 ? (chosen.cut ?? 'set_in')
               : id === 'sleeveCuff'
@@ -360,6 +368,14 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
     marks: GROUPS[2].options.filter(([id]) => allowed('length', id)).map(([id, label]) => ({ id, label, y: (draft ? landmarks(draft.bodice).waistY : 0) + LENGTHS[id as Length](mv) })),
     value: choices.skirt.length,
     onPick: (id: string) => choose('length', id),
+    // The hem glides to any length between the named ones, measured below the waist seam (Cat, 2026-11-06).
+    free: {
+      zero: (draft ? landmarks(draft.bodice).waistY + draft.seamDrop : 0),
+      min: lengthRange(mv).min - (draft?.seamDrop ?? 0),
+      max: lengthRange(mv).max - (draft?.seamDrop ?? 0),
+      cm: choices.skirt.lengthCm,
+      onCm: (cm: number) => onChoices({ ...choices, skirt: { ...choices.skirt, lengthCm: cm } }),
+    },
   };
   const waistY = draft ? landmarks(draft.bodice).waistY : 0;
   // The pattern's finished widths at the bust, waist and hip: the drawing cinches only as much as the pattern does
@@ -423,6 +439,9 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
         m={mv}
         legs
         cloth={clothShapes}
+        flatLines={flatLines}
+        backCloth={flat ? wornShapes(flat, 1) : undefined}
+        backFlatLines={flat ? wornLines(flat, 1) : undefined}
         arms={drawArm}
         sleeve={formArm ? sleeve : undefined}
         underarmY={landmarks(draft.bodice).underarm.y}
@@ -573,6 +592,8 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
                   {label}
                   {optionInTesting(g.id, id) && <TestingTag tool="new_details" />}
                   {g.id === 'neckline' && id === 'plunge' && <TestingTag tool="plunge" />}
+                  {g.id === 'plungeDepth' && id === 'waist' && <TestingTag tool="waist_plunge" />}
+                  {g.id === 'sleeveFullness' && id === 'full' && <TestingTag tool="full_sleeve" />}
                   {g.id === 'gathers' && <TestingTag tool="fullness" />}
                 </button>
               ))}

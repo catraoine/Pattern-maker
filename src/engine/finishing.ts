@@ -1,6 +1,7 @@
 // The pieces that finish a garment beyond its block: a printed waistband, lining and facings.
-import { P, Path, add, intersect, len, lerp, mul, p, sub, unit } from './geometry';
+import { P, Path, add, intersect, len, lerp, mul, p, sub, unit, unlooped } from './geometry';
 import { Piece } from './piece';
+import { insidePolygon } from './marks';
 import { BUTTON_CM, EXTENSION_CM } from './collar';
 import { WAISTBAND_CM } from './skirt';
 import type { SkirtDraft } from './skirt';
@@ -355,10 +356,18 @@ export function facing(pc: Piece, tag: string, width: number, name: string): Pie
   inner[m] = tail[tail.length - 1];
   inner[0] = head[head.length - 1];
 
+  // The band can't reach past the seams it ends on. Square to a top edge that slopes a little, the inner edge's
+  // points near a seam that leans the other way (a high waist's side seam, swinging out above the waist) land
+  // beyond it; those are left out, so the inner edge runs straight to its end on the seam instead of crossing it.
+  // Where the edge has a small kink (a dart closed along it), the inner edge offset from it folds over itself in a
+  // tiny loop, cut out too.
+  const trimmed = inner.filter((q, i) => i === 0 || i === m || insidePolygon(q, P2));
+  // A piece narrower than the band (a strap) would lose the whole inner edge to the trim; it keeps its own.
+  const innerLine = unlooped(trimmed.length > 2 ? trimmed : inner);
   const outline = new Path(edge[0]);
   edge.slice(1).forEach((q) => outline.line(q, tag));
   tail.forEach((q) => outline.line(q, after));
-  [...inner].reverse().slice(1).forEach((q) => outline.line(q, 'facing'));
+  [...innerLine].reverse().slice(1).forEach((q) => outline.line(q, 'facing'));
   [...head].reverse().slice(1).forEach((q) => outline.line(q, before));
   outline.line(edge[0], before);
   outline.closed = true;

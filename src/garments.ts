@@ -8,12 +8,15 @@ import { SLEEVE_CUTS, SleeveCut, sleeveCutBlocked, sleeveCutOf } from './engine/
 import type { DartPlace, PrincessLine } from './engine/manipulate';
 import type { Closure, Collar } from './engine/collar';
 import { LEG_WORDS, Leg, TrouserClosure, TrouserLength } from './engine/trousers';
+import type { TrouserLoops, TrouserPleats } from './engine/trouserPleats';
 import type { Fit, WaistStyle } from './engine/skirt';
 import type { WaistSeam } from './engine/dress';
 import type { PocketStyle } from './engine/pockets';
 import type { Stretch, TeeFit, TeeLength, TeeNeck, TeeSleeve } from './engine/tee';
 import { isSwim, type CupStyle, type LegCut, type LingerieFit, type LingeriePiece, type LingerieStretch, type Rise, type StretchWay } from './engine/lingerie';
 import { Peplum, PeplumHem, PeplumSize, isDraped, peplumLengthOk } from './engine/drape';
+import type { PlungeDepth } from './engine/bodice';
+import type { SleeveFullness } from './engine/sleeve';
 import { isShaped } from './engine/hem';
 import type { HemShape } from './engine/hem';
 import { Structure, isBoned, isStrapless, isTop } from './engine/corset';
@@ -27,6 +30,8 @@ export interface BodiceChoices {
   garment: 'bodice';
   fit: BodiceFit;
   neckline: Neckline;
+  /** How far a plunge runs down: the standard point above the waist, or to the waist (In testing). Older saves are standard. */
+  plungeDepth?: PlungeDepth;
   length: BodiceLength;
   darts: BodiceDarts;
   /** Shaped by hand on the sketch: a dragged hem (cm below the waist), a dragged fit (bust ease in
@@ -41,6 +46,8 @@ export interface BodiceChoices {
   /** Older saves have no sleeves. */
   sleeve?: SleeveLength;
   sleeveShape?: SleeveShape;
+  /** How full a puff or bishop sleeve is cut: soft (the shape's own) or full, about twice the arm (In testing). Older saves are soft. */
+  sleeveFullness?: SleeveFullness;
   /** Set on the sleeve slider: crown point to hem in cm, in place of the named length's. `sleeve` is
    * kept as the named length nearest it, which says which shapes it can have. */
   sleeveCm?: number;
@@ -139,11 +146,14 @@ export interface TrousersChoices {
   riseCm?: number;
   /** A gathered ruffle at each hem (In testing). Not on shorts. */
   hemRuffle?: boolean;
+  /** Front pleats and belt loops (In testing, SS27 Bermuda 2026-11-05). Older saves have neither. */
+  pleats?: TrouserPleats;
+  loops?: TrouserLoops;
 }
 
-export const DEFAULT_TROUSERS_CHOICES: TrousersChoices = { garment: 'trousers', fit: 'regular', leg: 'straight', length: 'full', closure: 'fly' };
+export const DEFAULT_TROUSERS_CHOICES: TrousersChoices = { garment: 'trousers', fit: 'regular', leg: 'straight', length: 'full', closure: 'fly', pleats: 'none', loops: 'none' };
 
-type TrouserGroupId = 'fit' | 'leg' | 'length' | 'waist' | 'closure' | 'pockets';
+type TrouserGroupId = 'fit' | 'leg' | 'length' | 'waist' | 'closure' | 'pockets' | 'pleats' | 'loops';
 
 export const TROUSER_GROUPS: { id: TrouserGroupId; label: string; options: [string, string][] }[] = [
   { id: 'fit', label: 'Fit', options: [['fitted', 'Fitted'], ['regular', 'Regular'], ['relaxed', 'Relaxed']] },
@@ -152,24 +162,31 @@ export const TROUSER_GROUPS: { id: TrouserGroupId; label: string; options: [stri
   { id: 'waist', label: 'Waist', options: [['band', 'Waistband with zip'], ['elastic', 'Elastic, pull-on']] },
   { id: 'closure', label: 'Opening', options: [['fly', 'Fly zip'], ['side_zip', 'Side zip']] },
   { id: 'pockets', label: 'Pockets', options: [['none', 'None'], ['inseam', 'In-seam'], ['slant', 'Slant front']] },
+  { id: 'pleats', label: 'Front pleats', options: [['none', 'None'], ['single', 'One pleat'], ['double', 'Two pleats']] },
+  { id: 'loops', label: 'Belt loops', options: [['none', 'None'], ['loops', 'Belt loops']] },
 ];
 
-/** A trouser choice as saved, older saves falling back to no pockets and a zipped waistband. */
-export const trouserChoice = (c: TrousersChoices, id: TrouserGroupId): string => (id === 'pockets' ? (c.pockets ?? 'none') : id === 'waist' ? (c.waist ?? 'band') : c[id]);
+/** A trouser choice as saved, older saves falling back to no pockets, no pleats, no loops and a zipped waistband. */
+export const trouserChoice = (c: TrousersChoices, id: TrouserGroupId): string =>
+  id === 'pockets' ? (c.pockets ?? 'none') : id === 'waist' ? (c.waist ?? 'band') : id === 'pleats' ? (c.pleats ?? 'none') : id === 'loops' ? (c.loops ?? 'none') : c[id];
 
 /**
  * Whether a trouser choice can be picked with the rest, and why not: a pull-on waist has no opening
- * to choose, and slant pockets sit where a side zip would go.
+ * to choose, slant pockets sit where a side zip would go, and a pull-on waist is gathered, so it takes
+ * neither pleats nor belt loops.
  */
 export function trouserAllowed(c: TrousersChoices, id: TrouserGroupId, opt: string): boolean {
   if (id === 'closure') return c.waist !== 'elastic';
   if (id === 'pockets' && opt === 'slant') return c.waist === 'elastic' || c.closure === 'fly';
+  if ((id === 'pleats' || id === 'loops') && opt !== 'none') return c.waist !== 'elastic';
   return true;
 }
 
-/** The choices made valid: slant pockets beside a side zip fall back to in-seam ones. */
+/** The choices made valid: slant pockets beside a side zip fall back to in-seam ones; a pull-on waist drops its pleats and loops. */
 export function validTrousers(c: TrousersChoices): TrousersChoices {
-  return c.pockets === 'slant' && !trouserAllowed(c, 'pockets', 'slant') ? { ...c, pockets: 'inseam' } : c;
+  let v = c.pockets === 'slant' && !trouserAllowed(c, 'pockets', 'slant') ? { ...c, pockets: 'inseam' as const } : c;
+  if (v.waist === 'elastic' && ((v.pleats && v.pleats !== 'none') || (v.loops && v.loops !== 'none'))) v = { ...v, pleats: 'none', loops: 'none' };
+  return v;
 }
 
 /** A plain name, such as "Ankle-length wide-leg trousers with a side zip and in-seam pockets". */
@@ -181,7 +198,10 @@ export function describeTrousers(c: TrousersChoices) {
   const pockets = c.pockets === 'slant' ? 'slant pockets' : c.pockets === 'inseam' ? 'in-seam pockets' : '';
   const opening = c.waist === 'elastic' ? 'an elastic waist' : `a ${c.closure === 'fly' ? 'fly front' : 'side zip'}`;
   const ruffle = c.hemRuffle && !shorts ? ', ruffled at the hem,' : '';
-  const words = `${length}${shorts ? `${c.leg === 'straight' ? '' : `${c.leg} `}shorts` : LEG_WORDS[c.leg]}${ruffle} with ${opening}${pockets ? ` and ${pockets}` : ''}`;
+  const pleats = c.waist !== 'elastic' && c.pleats && c.pleats !== 'none' ? (c.pleats === 'double' ? 'two front pleats' : 'a front pleat') : '';
+  const loops = c.waist !== 'elastic' && c.loops === 'loops' ? 'belt loops' : '';
+  const extras = [pleats, loops, pockets].filter(Boolean);
+  const words = `${length}${shorts ? `${c.leg === 'straight' ? '' : `${c.leg} `}shorts` : LEG_WORDS[c.leg]}${ruffle} with ${opening}${extras.length ? `${extras.length > 1 ? ', ' : ' and '}${extras.slice(0, -1).join(', ')}${extras.length > 1 ? ' and ' : ''}${extras[extras.length - 1]}` : ''}`;
   return words[0].toUpperCase() + words.slice(1);
 }
 
@@ -193,6 +213,8 @@ export interface TeeChoices {
   neckline: TeeNeck;
   sleeve: TeeSleeve;
   length: TeeLength;
+  /** Dragged on the form between the named lengths: the centre back length in cm (see tee.ts). Older saves have none. */
+  lengthCm?: number;
   /** Drawn on the form: a shirttail or high-low hem (see tee.ts). Older saves have a level hem. */
   hemShape?: { sides?: number; back?: number };
 }
@@ -214,7 +236,7 @@ const TEE_LENGTH_WORDS: Record<TeeLength, string> = { cropped: 'Cropped ', hip: 
 /** A plain name, such as "Fitted scoop-neck T-shirt with long sleeves". */
 export function describeTee(c: TeeChoices) {
   const fit = c.fit === 'regular' ? '' : `${c.fit} `;
-  const words = `${TEE_LENGTH_WORDS[c.length]}${fit}${TEE_NECK_WORDS[c.neckline]} T-shirt with ${TEE_SLEEVE_WORDS[c.sleeve]}`;
+  const words = `${c.lengthCm !== undefined ? `${Math.round(c.lengthCm)} cm ` : TEE_LENGTH_WORDS[c.length]}${fit}${TEE_NECK_WORDS[c.neckline]} T-shirt with ${TEE_SLEEVE_WORDS[c.sleeve]}`;
   return words[0].toUpperCase() + words.slice(1);
 }
 
@@ -394,13 +416,14 @@ export const DEFAULT_BODICE: BodiceChoices = { garment: 'bodice', fit: 'regular'
 type Group<K extends keyof BodiceChoices> = { id: K; label: string; options: [NonNullable<BodiceChoices[K]>, string][] };
 
 // Options from styling/styling-options.json (top). Oversized fit needs its own block.
-export const BODICE_GROUPS: [Group<'fit'>, Group<'neckline'>, Group<'length'>, Group<'darts'>, Group<'sleeve'>, Group<'sleeveShape'>, Group<'sleeveCut'>, Group<'sleeveCuff'>, Group<'princess'>, Group<'bustDart'>, Group<'closure'>, Group<'collar'>, Group<'back'>, Group<'structure'>, Group<'peplum'>, Group<'peplumHem'>, Group<'peplumSize'>] = [
+export const BODICE_GROUPS: [Group<'fit'>, Group<'neckline'>, Group<'plungeDepth'>, Group<'length'>, Group<'darts'>, Group<'sleeve'>, Group<'sleeveShape'>, Group<'sleeveFullness'>, Group<'sleeveCut'>, Group<'sleeveCuff'>, Group<'princess'>, Group<'bustDart'>, Group<'closure'>, Group<'collar'>, Group<'back'>, Group<'structure'>, Group<'peplum'>, Group<'peplumHem'>, Group<'peplumSize'>] = [
   { id: 'fit', label: 'Fit', options: [['fitted', 'Fitted'], ['regular', 'Regular'], ['relaxed', 'Relaxed'], ['oversized', 'Oversized']] },
   {
     id: 'neckline',
     label: 'Neckline',
     options: [['crew', 'Crew'], ['scoop', 'Scoop'], ['v', 'V-neck'], ['plunge', 'Plunge'], ['square', 'Square'], ['boat', 'Boat'], ['one_shoulder', 'One-shoulder'], ['cowl', 'Cowl'], ['strapless', 'Strapless'], ['sweetheart', 'Sweetheart'], ['cami', 'Cami straps'], ['halter', 'Halter']],
   },
+  { id: 'plungeDepth', label: 'Plunge depth', options: [['standard', 'Standard'], ['waist', 'To the waist']] },
   { id: 'length', label: 'Length', options: [['waist', 'Waist'], ['high_hip', 'High hip'], ['hip', 'Hip'], ['long', 'Long']] },
   { id: 'darts', label: 'Darts', options: [['bust_waist', 'Bust and waist'], ['bust', 'Bust only'], ['none', 'No darts']] },
   {
@@ -409,6 +432,7 @@ export const BODICE_GROUPS: [Group<'fit'>, Group<'neckline'>, Group<'length'>, G
     options: [['none', 'Sleeveless'], ['short', 'Short'], ['elbow', 'Elbow'], ['three_quarter', 'Three-quarter'], ['long', 'Long']],
   },
   { id: 'sleeveShape', label: 'Sleeve shape', options: [['fitted', 'Fitted'], ['straight', 'Straight'], ['cap', 'Cap'], ['flutter', 'Flutter'], ['puff', 'Puff'], ['bishop', 'Bishop']] },
+  { id: 'sleeveFullness', label: 'Sleeve fullness', options: [['soft', 'Soft'], ['full', 'Full']] },
   { id: 'sleeveCut', label: 'Sleeve cut', options: SLEEVE_CUTS },
   { id: 'sleeveCuff', label: 'Cuffs', options: CUFFS },
   { id: 'princess', label: 'Princess seams', options: [['none', 'None'], ['shoulder', 'From the shoulder'], ['armhole', 'From the armhole']] },
@@ -421,7 +445,7 @@ export const BODICE_GROUPS: [Group<'fit'>, Group<'neckline'>, Group<'length'>, G
   { id: 'collar', label: 'Collar', options: [['none', 'None'], ['peter_pan', 'Peter Pan'], ['mandarin', 'Mandarin'], ['mock', 'Mock neck'], ['funnel', 'Funnel neck'], ['shirt', 'Shirt collar'], ['bow', 'Pussy bow'], ['ruffle', 'Ruffle'], ['cape', 'Cape'], ['polo', 'Open polo']] },
   { id: 'back', label: 'Back', options: BACK_NECKS },
   { id: 'structure', label: 'Structure', options: [['none', 'Soft'], ['boned', 'Boned, like a corset'], ['shirred', 'Shirred back']] },
-  { id: 'peplum', label: 'Peplum', options: [['none', 'None'], ['flared', 'Flared'], ['gathered', 'Gathered']] },
+  { id: 'peplum', label: 'Peplum', options: [['none', 'None'], ['flared', 'Flared'], ['gathered', 'Gathered'], ['balloon', 'Balloon']] },
   { id: 'peplumHem', label: 'Peplum hem', options: [['level', 'Level'], ['high_low', 'Longer at back']] },
   { id: 'peplumSize', label: 'Peplum size', options: [['standard', 'Standard'], ['big', 'Big']] },
 ];
@@ -548,8 +572,12 @@ export function validDetails(c: BodiceChoices, garment: 'bodice' | 'dress' = 'bo
   if (out.collar && !detailAllowed(out, 'collar', out.collar, garment)) out.collar = 'none';
   if (out.back && backBlocked(out, out.back)) delete out.back;
   if (out.sleeve && !detailAllowed(out, 'sleeve', out.sleeve, garment)) out.sleeve = 'none';
+  // The plunge's depth belongs to the plunge: another neckline, or a drawn one, lets it go.
+  if (out.plungeDepth && (out.neckline !== 'plunge' || out.neck)) delete out.plungeDepth;
   if (out.sleeveCut && sleeveCutBlocked(out, out.sleeveCut)) delete out.sleeveCut;
   if (out.peplum && !detailAllowed(out, 'peplum', out.peplum, garment)) out.peplum = 'none';
+  // A balloon's hem is gathered onto its underskirt, level all round: it takes no high-low hem.
+  if (out.peplum === 'balloon' && out.peplumHem) delete out.peplumHem;
   // A drawn seam the rest no longer allows is let go of, and only one kind is kept.
   const kind = seamOf(out);
   for (const k of ['empire', 'panel', 'yoke'] as const) if (k !== kind) delete out[k];
@@ -564,7 +592,7 @@ export function validDetails(c: BodiceChoices, garment: 'bodice' | 'dress' = 'bo
 }
 
 /** The sleeve as chosen, made valid: a shape the length allows. */
-export function sleeveOf(c: BodiceChoices): { length: SleeveLength; shape: SleeveShape; cm?: number; cuff?: Exclude<Cuff, 'none'>; cut?: Exclude<SleeveCut, 'set_in'> } {
+export function sleeveOf(c: BodiceChoices): { length: SleeveLength; shape: SleeveShape; cm?: number; cuff?: Exclude<Cuff, 'none'>; cut?: Exclude<SleeveCut, 'set_in'>; fullness?: 'full' } {
   const length = c.sleeve ?? 'none';
   // A kimono sleeve is cut on at its named length, with no shape, slider or cuff of its own.
   const cut = sleeveCutOf(c);
@@ -575,7 +603,9 @@ export function sleeveOf(c: BodiceChoices): { length: SleeveLength; shape: Sleev
   const cm = length !== 'none' && shape !== 'cap' ? c.sleeveCm : undefined;
   // A cuff the sleeve can't take is let go, the way a shape the length doesn't allow is.
   const cuff = c.sleeveCuff && c.sleeveCuff !== 'none' && cuffAllowed(c.sleeveCuff, length, shape) ? c.sleeveCuff : undefined;
-  return { length, shape, ...(cm === undefined ? {} : { cm }), ...(cuff ? { cuff } : {}), ...(cut === 'set_in' ? {} : { cut }) };
+  // Only a gathered sleeve (puff or bishop) has a fullness to choose; the others are cut as their shape says.
+  const fullness = c.sleeveFullness === 'full' && (shape === 'puff' || shape === 'bishop') ? 'full' : undefined;
+  return { length, shape, ...(cm === undefined ? {} : { cm }), ...(cuff ? { cuff } : {}), ...(cut === 'set_in' ? {} : { cut }), ...(fullness ? { fullness } : {}) };
 }
 
 /**

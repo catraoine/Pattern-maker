@@ -18,6 +18,15 @@ function get(): Worker {
     if (e.data.out) w.resolve(e.data.out);
     else w.reject(new Error(e.data.error ?? 'drape failed'));
   };
+  // A worker that dies (out of memory, a failed load) answers nobody: every waiting ask is turned back, so its All round
+  // shows the Front drawing, and the next ask starts a fresh worker.
+  worker.onerror = worker.onmessageerror = () => {
+    const ws = [...waiting.values()];
+    waiting.clear();
+    worker?.terminate();
+    worker = undefined;
+    for (const w of ws) w.reject(new Error('drape worker failed'));
+  };
   return worker;
 }
 

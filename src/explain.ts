@@ -101,6 +101,7 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       sash_loops: ['The sash, held in place by a narrow loop at each side seam so it never slips.', 'easy'],
       loops: ['Four narrow loops at the waist to carry a belt of your own, up to 3 cm wide.'],
       band: ['A flat band of your fabric round the waist seam, with a buckle, held by a loop at each side.', 'easy'],
+      side_tie: ['Two narrow ties in your fabric, sewn into the left side seam at the waist and knotted there, their ends hanging.', 'easy'],
     },
   },
   bodice: {
@@ -118,6 +119,10 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       sweetheart: ['Curves over the bust in two arches, dipping in the middle like the top of a heart.', 'skill'],
       cami: ['Thin straps over the shoulders, like a camisole.'],
       halter: ['Rises to the neck and ties behind it, leaving the shoulders and upper back bare.'],
+    },
+    plungeDepth: {
+      standard: ['The V opens the shoulders to narrow straps and ends above the waist.'],
+      waist: ['A narrow V between covered shoulders, running down to just above the waist seam.', 'skill'],
     },
     length: {
       waist: ['Ends at your waist, the natural place to meet a skirt or trousers.'],
@@ -151,6 +156,10 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       bishop: ['Full lower down and gathered into a band at the end.', 'skill'],
       cap: ['A tiny sleeve that just covers the top of the shoulder.', 'easy'],
       flutter: ['A short sleeve that flares out and ripples at the hem. Best in a light, drapey fabric.'],
+    },
+    sleeveFullness: {
+      soft: ['The usual fullness: a gentle puff, or a bishop that swells softly to its band.', 'easy'],
+      full: ['Nearly twice the arm: a high, blousy puff, or a bishop that billows to its band.', 'skill'],
     },
     sleeveCut: {
       set_in: ['The sleeve is sewn into a round armhole at your shoulder point. The usual way.', 'easy'],
@@ -211,6 +220,7 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       none: ['No peplum.'],
       flared: ['A short skirt sewn on at the waist that flares over the hips. A longer top lowers it.'],
       gathered: ['A short ruffle gathered on at the waist, or lower on a longer top.'],
+      balloon: ['A full peplum gathered at its hem onto a shorter hidden underskirt, so it puffs out and turns under.', 'skill'],
     },
     peplumHem: {
       level: ['The peplum is the same length all the way round.', 'easy'],
@@ -275,6 +285,15 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       none: ['No pockets.', 'easy'],
       inseam: ['Pockets hidden in the side seams.'],
       slant: ['Pockets that open on a slant at the front hip, like chinos.', 'skill'],
+    },
+    pleats: {
+      none: ['A flat front, shaped with a dart.', 'easy'],
+      single: ['One pleat on each front, folded on the crease and pressed toward the centre. A little more room, the tailored look.'],
+      double: ['Two pleats on each front, pressed toward the centre. Loose and easy through the hip and thigh, like a runway Bermuda.'],
+    },
+    loops: {
+      none: ['A plain waistband.', 'easy'],
+      loops: ['Five belt loops on the waistband: the centre back, each side, and one halfway across each front.'],
     },
   },
   outer: {
@@ -391,6 +410,9 @@ const SHORT: Record<string, string> = {
   'length.high_hip': 'Ends at the top of the hip.',
   'length.tunic': 'Covers the hips, ends on the thigh.',
   'trousers.length.cropped': 'Ends a hand above the ankle.',
+  'trousers.pleats.single': 'One pleat each front, pressed to centre.',
+  'trousers.pleats.double': 'Two pleats each front, loose and easy.',
+  'trousers.loops.loops': 'Five loops on the waistband.',
   'noSeam.seam': 'Bodice and skirt joined at the waist.',
   'noSeam.sheath': 'One piece, close at waist and hips.',
   'noSeam.shift': 'One piece, straight from the bust.',
@@ -423,6 +445,7 @@ const SHORT: Record<string, string> = {
   'belt.sash_loops': 'The sash, held by a loop each side.',
   'belt.loops': 'Loops for your own belt, up to 3 cm.',
   'belt.band': 'A fabric band with a buckle.',
+  'belt.side_tie': 'Two ties knotted at the left side.',
   'neckline.plunge': 'A deep V nearly to the waist.',
   'neckline.crew': 'Round, close at the base of the neck.',
   'neckline.boat': 'Wide and shallow, shoulder to shoulder.',
@@ -449,6 +472,10 @@ const SHORT: Record<string, string> = {
   'sleeveShape.bishop': 'Full low down, gathered into a band.',
   'sleeveShape.cap': 'Just covers the top of the shoulder.',
   'sleeveShape.flutter': 'Short, flared and rippling.',
+  'sleeveFullness.soft': 'A gentle puff or bishop.',
+  'sleeveFullness.full': 'Nearly twice the arm: blousy.',
+  'plungeDepth.standard': 'Open shoulders, ends above the waist.',
+  'plungeDepth.waist': 'A narrow V down to the waist.',
   'sleeveCut.set_in': 'Sewn into a round armhole. The usual.',
   'sleeveCut.drop': 'Starts below the shoulder. Relaxed.',
   'sleeveCut.raglan': 'Seam from neck to underarm.',
@@ -492,6 +519,7 @@ const SHORT: Record<string, string> = {
   'structure.shirred': 'Elastic-shirred back. Pulls on.',
   'peplum.flared': 'A short flared skirt at the waist.',
   'peplum.gathered': 'A short gathered ruffle at the waist.',
+  'peplum.balloon': 'Puffs out and turns under at its hem.',
   'peplumHem.level': 'The same length all round.',
   'peplumSize.standard': 'A short flare over the hips.',
   'peplumSize.big': 'Longer and much fuller.',

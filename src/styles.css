@@ -27,3 +27,7 @@
 @import './styles/24-one-fill.css'; /* Gaps 4 + 5 of the design review: P1 trimmed phone Style panel, S1 one fill (Oct 31). */
 @import './styles/25-step-back.css'; /* Back a step: a plain arrow left of Next on Style (Oct 31). */
 @import './styles/26-palette-card.css'; /* D1 One Palette Card beside the form (Nov 2). */
+@import './styles/27-print-summary.css'; /* Print opens on a calm "Your summary" (Nov 3). */
+@import './styles/28-help.css'; /* Help & feedback: the account page's first small link, short answers and a note to us (Nov 6). */
+@import './styles/28-step-arrow.css'; /* A down arrow under the step's name on a phone (Nov 6). */
+@import './styles/29-view-glider.css'; /* Style's view line as a glider: a low dark track, the view showing a raised block (Nov 6). */

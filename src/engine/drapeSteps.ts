@@ -4,6 +4,7 @@
 // step is the same kind of work, so the couture route can still find them. Plain ASCII punctuation
 // (see instructions.ts).
 import { taggedLength } from './geometry';
+import { BALLOON_PEPLUM } from './drape';
 import type { BodiceDraft } from './bodice';
 import type { DressDraft } from './dress';
 import type { SewStep, SewingGuide } from './instructions';
@@ -218,7 +219,34 @@ export function drapeBodiceSteps(g: SewingGuide, d: BodiceDraft, o: Opts): Sewin
     );
   }
 
-  if (d.peplum) {
+  if (d.peplum && d.peplum.kind === 'balloon') {
+    // A balloon peplum: the outer's hem is gathered onto a shorter underskirt's, then the two are turned and basted
+    // together at the waist and sewn on as one gathered peplum (the skirt's balloon hem, on a peplum).
+    const low = !!d.peplum.seamCm;
+    const open = d.drape?.kind === 'one_shoulder' ? 'right side' : 'centre back';
+    const c = e.get('Cut out');
+    // (The outer is cut deeper than the underskirt by the puff and the 2 cm the underskirt stops short, so it turns under.)
+    if (c && !d.drape) e.set('Cut out', `${c.text} Cut the peplum underskirt front and back the same way, from the same fabric or a matching lining: the peplum is ${(d.peplum.puffCm ?? 0) + BALLOON_PEPLUM.underUp} cm deeper than it, and the extra puffs out over the join.`);
+    const oneShoulder = d.drape?.kind === 'one_shoulder';
+    const make: SewStep = {
+      title: 'Make the peplum',
+      text: `${oneShoulder ? "Sew the peplum's centre back seam and its left side seam" : 'Sew the peplum front to the peplum backs at the side seams'}, right sides together, ${o.seam} from the edge, and press the seams open; do the same with the underskirt. Leave the ${open} of both open: the peplum parts there below the zip. Neaten those open edges: press each under 0.5 cm twice and stitch close to the fold. Sew two rows of long machine stitches along the peplum's waist edge and along its lower edge, 0.5 cm and 1 cm from each, stopping and starting again at each seam, and leave long threads.`,
+    };
+    const join: SewStep = {
+      title: 'Join the peplum to its underskirt',
+      text: `Turn the peplum inside out and slip the underskirt inside it, right sides together, so their lower edges meet. Pin them together at the side seams and the centre front, pull up the lower gathering threads until the peplum fits the underskirt's edge, spread the gathers evenly and sew ${o.seam} from the edge, gathers on top. Neaten the seam and press it toward the underskirt. Turn the underskirt up inside the peplum, wrong sides together, so the seam rolls just under: the peplum puffs out over it. Match the two at the waist and baste them together 1 cm from the edge. From here on they are one piece.`,
+    };
+    const attach: SewStep = {
+      title: 'Attach the peplum',
+      text: `Pin the peplum to the bodice's ${low ? `hem edge, ${d.peplum.seamCm} cm below your waist (the bodice is fitted down to it, so the waist stays nipped in above the puff)` : 'waist edge'}, right sides together, matching the centre front and the seams, with its open edges at the zip. Pull up the waist gathering threads until it fits, and spread the gathers evenly. Sew ${o.seam} from the edge, with the gathers on top so they stay even, overlock or zigzag the edges together, and press the seam up toward the bodice.${
+        o.edges === 'lined' ? ` Turn the lining's ${low ? 'hem' : 'waist'} edge under and slip-stitch it over the seam inside.` : ''
+      }`,
+    };
+    if (!e.before('Hem', make)) e.before('Finish', make);
+    e.after('Make the peplum', join);
+    e.after('Join the peplum to its underskirt', attach);
+    e.drop('Hem');
+  } else if (d.peplum) {
     const flared = d.peplum.kind === 'flared';
     const oneShoulder = d.drape?.kind === 'one_shoulder';
     const low = !!d.peplum.seamCm;

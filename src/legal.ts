@@ -5,10 +5,10 @@ import { signinShown } from './cloud/flag';
 /** The owner's details, shown in the privacy policy and terms. Keep in step with the Claude Docs drafts. */
 export const OWNER = {
   name: 'Catraoine Mary Buckley',
-  address: '505-428 West 8th Avenue, Vancouver, British Columbia V5Y 1N9, Canada',
+  address: 'Vancouver, British Columbia, Canada',
   email: 'hello@maisontrace.co',
   law: 'British Columbia and the federal laws of Canada that apply there',
-  effective: '24 October 2026',
+  effective: '3 November 2026',
   minimumAge: '16',
   liabilityCap: 'CA$50',
   courts: 'British Columbia, sitting in Vancouver',
@@ -41,7 +41,7 @@ export const PRIVACY: LegalDoc = {
     (ACCOUNTS
       ? 'Your measurements, the people you measure for and your saved patterns stay on your own device, and in your account if you choose to sign in, so they’re there on your other devices. We receive something from you only when you sign in (your email address and the work in your account), when'
       : 'Your measurements, the people you measure for and your saved patterns stay on your own device. We receive something from you only when') +
-    ' you use photo-to-pattern (we don’t keep that photo), choose to send us fit notes, or sign up as a fit tester, for news, or to hear when something new opens. The app also sends us a short report if it crashes, and anonymous counts of visits, with nothing that identifies you.',
+    ' you use photo-to-pattern (we don’t keep that photo) or describe an idea in words (we don’t keep those either), choose to send us fit notes, or sign up as a fit tester, for news, or to hear when something new opens. The app also sends us a short report if it crashes, and anonymous counts of visits, with nothing that identifies you.',
   sections: [
     {
       heading: 'Who we are',
@@ -56,7 +56,12 @@ export const PRIVACY: LegalDoc = {
         {
           table: [
             ['What', 'Where it’s kept', 'Do we receive it?'],
-            ...(ACCOUNTS ? [['Your email address, if you sign in', 'Our account service (Supabase), in Canada', 'Yes']] : []),
+            ...(ACCOUNTS
+              ? [
+                  ['Your email address, if you sign in', 'Our account service (Supabase), in Canada', 'Yes'],
+                  ['Your name and profile picture from Google, if you continue with Google', 'Our account service (Supabase), in Canada', 'Yes'],
+                ]
+              : []),
             ['Your name and the names of people you measure for', kept, received()],
             ['Body measurements and units', kept, received('you send fit notes')],
             ['Saved patterns and style choices', kept, received()],
@@ -68,12 +73,17 @@ export const PRIVACY: LegalDoc = {
               'Our server (Netlify)',
               'Only if you tick “Send these notes to Maison Tracé”',
             ],
-            ['Photos you choose for photo-to-pattern', 'Sent for reading, then discarded', 'Yes, briefly'],
+            ['Photos you choose for photo-to-pattern, and words you type to describe an idea', 'Sent for reading, then discarded', 'Yes, briefly'],
             ['Your IP address and basic request details', 'Our hosting provider’s logs', 'Yes, as part of serving the site'],
             [
               'Crash reports (the error, the screen you were on, the app version, your browser’s name and version, and the time; never measurements, names or photos)',
               'Our server (Netlify)',
               'Yes, if something goes wrong',
+            ],
+            [
+              'Notes you send from Help & feedback (what you write, a screenshot if you add one, the screen you came from, the app version and your browser’s name and version)',
+              'Our server (Netlify)',
+              'Only if you tap Send',
             ],
             [
               'Anonymous daily counts (visits, and how many visits reached measuring, styling, printing or photo-to-pattern, for each garment)',
@@ -91,12 +101,13 @@ export const PRIVACY: LegalDoc = {
           : 'Your device.|The app saves your details in your browser’s storage so they’re there next time. They never leave your device unless you export, share or back them up yourself. Clearing your browser data, or uninstalling the app, deletes them.',
         ...(ACCOUNTS
           ? [
-              'Signing in.|There’s no password: you give us your email address and we send you a link with a code. Once signed in, your name, the people you measure for, their measurements, your saved patterns and your fit notes are kept in your account as well as on your device, so they’re there when you sign in on another device, and each change is saved as you make it. Your account is held by Supabase in Canada, locked so that only you can read it. Signing out keeps the copy on your device; Delete my account, in Your account, removes your email address and everything in the account at once.',
+              'Signing in.|There’s no password: you give us your email address and we send you a link with a code, or you continue with Google, which tells us your email address, name and profile picture (nothing else from your Google account). Once signed in, your name, the people you measure for, their measurements, your saved patterns and your fit notes are kept in your account as well as on your device, so they’re there when you sign in on another device, and each change is saved as you make it. Your account is held by Supabase in Canada, locked so that only you can read it. Signing out keeps the copy on your device; Delete my account, in Your account, removes your email address and everything in the account at once.',
             ]
           : []),
         `Measurements are personal.|Body measurements can be sensitive, which is one reason we keep them on your device${ACCOUNTS ? ', and send them nowhere but your own account' : ''}. If you enter measurements for someone else, please make sure they’re happy for you to do so.`,
         'Measure-me links.|A dressmaker can send a client a link to measure themselves, and the client sends the numbers back in a reply link. Everything travels inside the link, after the “#”, a part of a web address that browsers never send to a server, so we don’t receive or store it. The link is only as private as the message it’s sent in, and anyone who has it can read it, so send it only to the person it’s for.',
         'Fit notes.|When you note how a pattern fitted, you can choose to send those notes to us. We receive the pattern’s style, your answers, any notes you write and the measurements it was drafted from. We don’t receive your name or the name of the person it was made for, so please leave names out of your notes. We use fit notes only to improve how our patterns fit. We count how many you send each day under the same scrambled code as photo readings, so the service can’t be flooded, and we don’t store your IP address with the notes.',
+        'Notes from Help & feedback.|If you send us a note, we receive what you wrote, the screenshot if you added one, the screen you came from, the app version and your browser’s name and version. We don’t store your IP address with it. Please leave out anything private you don’t want us to see, in the note and the screenshot.',
         'Crash reports.|If the app hits an error, it sends us a short report so we can fix it: the error message and where in the app’s code it happened, the screen you were on, the app version, your browser’s name and version (such as “Safari 17 on iOS”), and the time. Before it’s stored, we remove numbers from the error message, and email addresses, file data and web address details from the whole report. It never includes your measurements, names, patterns or photos, and we don’t store your IP address with it. The same error is reported once, and no more than five a visit.',
         'Visit counts.|To see whether the app is working for people, we count visits and how many visits reached each step (measuring, choosing a style, printing or saving the PDF, and using photo-to-pattern), for each garment. Each count is added straight into a total for the day. There’s no cookie, no ID and no IP address stored, so the totals can’t be traced back to you or linked between visits. The counts are sent once, when you leave or switch away from the app. If your browser sends a “Do Not Track” or “Global Privacy Control” signal, we don’t count your visit at all.',
         'Fit testers and news.|If you sign up as a fit tester, we keep your name, email, what you’d like to sew and the size range you give (if any), and use them only to invite you to test new patterns. If you join the waitlist or sign up for news, we keep your email and the link you arrived by, and use them only to send Maison Tracé news and tell you when it opens. On the waitlist we also keep the language you sew in, to decide which language the app speaks next and to tell you when it does. Our newsletter service, Kit, holds that list and sends those emails. If you ask to hear when something opens, we keep your email, what you asked about (such as whether you’d like deadstock cloth cut for you) and the pattern you were looking at (or, for Atelier Nights, the city you picked), and use them only to tell you when it opens. If cutting opens, your pattern file and posting address will go only to the cutting studio you choose, and we’ll ask you before anything is sent. If you ask about Tracé Engine for brands, we use your email only to get in touch about early access. We count sign-ups under the same scrambled code as photo readings, so the form can’t be flooded.',
@@ -107,29 +118,31 @@ export const PRIVACY: LegalDoc = {
     {
       heading: 'Photo-to-pattern and the companies we work with',
       body: [
-        'How a photo is read.|When you choose a photo, the app shrinks it on your device and sends it to our server. Our server passes it to Claude, an AI model made by Anthropic, which describes the skirt’s style (fit, shape, length, fullness). We send back the style and the photo is discarded. We don’t store your photo, and we never send your measurements or name with it.',
+        'How a photo is read.|When you choose a photo, the app shrinks it on your device and sends it to our server. Our server passes it to Claude, an AI model made by Anthropic, which describes the garment’s style (fit, shape, length, fullness, neckline, sleeves and details). We send back the style and the photo is discarded. If you ask the app to check its drawing against your photo, the photo and the app’s drawing are sent once more, in the same way. We don’t store your photo, and we never send your measurements or name with it.',
+        'Describing an idea in words.|If you type what you’d like to make instead of choosing a photo, the words you type are sent to our server and on to Claude in the same way, and aren’t stored. Please don’t put your name or anyone else’s in them.',
         'Please only use photos you have the right to use. If a person appears in the photo, make sure they’re happy for it to be used this way. A garment laid flat works too.',
         'Daily photo limits.|Each visitor gets a set number of photo readings a day. To count them we turn your IP address into a scrambled code (a one-way hash) and keep a tally for that day. We don’t store the address itself.',
         {
           table: [
             ['Company', 'What it does', 'What it sees'],
-            ['Anthropic', 'Reads the style from your photo', 'The photo'],
+            ['Anthropic', 'Reads the style from your photo, or from the words you type to describe an idea', 'The photo (and, for a drawing check, the app’s drawing), or your typed description'],
             [
               'Netlify',
-              'Hosts the site and runs our server code, including the daily counters, and stores fit notes, crash reports, daily visit totals and sign-ups',
-              'Your IP address, request details, the photo in transit, fit notes and sign-ups you send, and crash reports',
+              'Hosts the site and runs our server code, including the daily counters, and stores fit notes, Help & feedback notes, crash reports, daily visit totals and sign-ups',
+              'Your IP address, request details, the photo in transit, fit notes, Help & feedback notes and sign-ups you send, and crash reports',
             ],
             ['Kit', 'Keeps the waitlist and news list and sends those emails', 'Your email, the link you arrived by, and whether you open the emails'],
             ...(ACCOUNTS
               ? [
                   ['Supabase', 'Keeps accounts: who has signed in, and the work kept in each account. Its servers for us are in Canada', 'Your email address and, once you sign in, your name, people, measurements, saved patterns and fit notes'],
                   ['Resend', 'Sends the sign-in emails', 'Your email address and the time each sign-in email was sent'],
+                  ['Google', 'Confirms who you are, only if you choose Continue with Google', 'That you signed in to Maison Tracé with your Google account'],
                 ]
               : []),
             ['Awin', 'Tracks shop sales that start from a Buy button, so the shop pays our commission', 'That you tapped Buy, and what you bought at the shop'],
           ],
         },
-        `Anthropic handles photos under its commercial terms for businesses using its API, which say it doesn’t train its models on that data. ${ACCOUNTS ? 'Apart from Supabase, which holds your account in Canada, these companies are based in the United States, so your photo, request details and sign-in emails may be processed there.' : 'These companies are based in the United States, so your photo and request details may be processed there.'}`,
+        `Anthropic handles photos and typed descriptions under its commercial terms for businesses using its API, which say it doesn’t train its models on that data; it may hold what we send for a short time under those terms, for safety checks, before deleting it. ${ACCOUNTS ? 'Apart from Supabase, which holds your account in Canada, these companies are based in the United States, so your photo, request details and sign-in emails may be processed there.' : 'These companies are based in the United States, so your photo and request details may be processed there.'}`,
         'We may also share information if the law requires it, or with a buyer if the business is ever sold, under this same policy.',
       ],
     },
@@ -142,6 +155,7 @@ export const PRIVACY: LegalDoc = {
           'Photos: not kept by us once the style has been read.',
           'Fit notes you send: kept while we use them to improve our patterns. Because they carry no name, we can’t match them to you later unless you tell us roughly when you sent one and what it said.',
           'Daily counters: one tally per day, keyed by the scrambled code.',
+          'Notes from Help & feedback: kept while we work on what they raise, then deleted.',
           'Crash reports: kept while we work on the problems they show, then deleted.',
           'Daily visit totals: kept as totals. They hold nothing about any one person.',
           'Fit tester, news and “tell me when it opens” sign-ups: until you ask us to remove you, or we stop fit testing, sending news, or plan not to open what you asked about. Every news email will say how to stop them.',
@@ -172,7 +186,7 @@ export const TERMS: LegalDoc = {
       heading: 'Agreeing to these terms',
       body: [
         `These terms are an agreement between you and ${OWNER.name} (“we”, “us”), which runs Maison Tracé. By using the Maison Tracé website or app, you agree to them. If you don’t agree, please don’t use it.`,
-        'Who can use it.|You must be an adult (18 or older, or the age of majority where you live) or have a parent or guardian’s permission.',
+        `Who can use it.|You must be ${OWNER.minimumAge} or older. If you’re under the age of majority where you live, you should have a parent or guardian’s permission.`,
         'Using it as a guest.|You can measure, draft, preview and export patterns without an account. Your details are saved on your device only, as our Privacy Policy explains. You’re responsible for keeping your own backups. If you clear your browser or lose your device, we can’t recover your measurements or patterns.',
         ACCOUNTS
           ? 'Your account.|If you sign in, your work is also kept in your account. There’s no password: anyone who can read your email can sign in as you, so keep your email account safe. You’re responsible for what happens under your account. You can sign out on any device, and delete your account and everything in it from Your account at any time.'

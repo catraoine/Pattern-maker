@@ -2,6 +2,10 @@
 
 Full plan: "Sewist fit test plan" Claude Doc, linked from the business plan (Appendix A).
 Tester names, emails and codes live there and in Cat's Gmail, never in this repo.
+- **Tester codes must never match anything in this repo** (Nov 3, 2026). The example codes in the code and
+  tests (TOILE-ONE, toile-two) were once also the real ones; anyone reading the public code had them. Real codes
+  are made up fresh, live only in Netlify's TESTER_CODES and in tester emails, and are rotated if they ever
+  appear in a commit, screenshot or post.
 
 ## Dates (moved Oct 22)
 
@@ -11,24 +15,34 @@ Tester names, emails and codes live there and in Cat's Gmail, never in this repo
 | Nov 4 (opens) to Nov 8 | Tester call for the full round; sign-up asks "Have you sewn a jacket or coat?" |
 | Nov 9 to 13 | Fixes from the early round |
 | Nov 13 | Full-round invites |
-| Nov 16 to Dec 6 | Full round: 40 sewists; about 4 testers each on four SS27 looks (boxy jacket, A-line coat, gathered sheer skirt, collared shirt); plus one tester sews a boxy dress (Cat, Oct 30: Boxy launches untagged) |
+| Nov 16 to Dec 6 | Full round: accept 24 so 20 finish, spread over six hip bands; each tester sews a dress, skirt or top of their choice; the call shows two example SS27 looks, a dress and a skirt with a top, and testers can change the length or style (Cat, Nov 1); plus one tester sews a boxy dress (Cat, Oct 30: Boxy launches untagged) |
 | Dec 7 to 11 | Fix week (sign-in switches on) |
 | Jan 4 to 17 | Round 2 |
 | **Mon Jan 18, 2027** | **Fit gate**: 20 sewists averaging 4 of 5 on a skirt or bodice toile |
 | Thu Feb 11, 2027 | Launch |
 
+## Recruiting (Nov 1)
+
+The Oct 31 carousel got no applicants: brand-new accounts, no garment shown, email-to-apply. The plan is the
+"Fit testers: why nobody applied, and the plan" Claude Doc: the call leads with the looks turning in All round,
+applications go through a 2-minute Google Form (script in the shared fit-test folder), and most testers come from
+direct asks (early testers bring a friend, Facebook pattern-tester groups, DMs, Vancouver fashion schools), with
+paid sewists as the backstop if fewer than 16 good applicants by Nov 8.
+
 ## How it runs
 
 - Testers use their tester link (the site otherwise shows the waitlist). Measurements stay on the
   device they were typed on; "Send to another device" moves them to a computer to print.
-- Reports come through the branded Google Form; photos by email. Social-share consent is asked:
+- Reports come through the branded Google Form; photos by email. Anything else in the app (stuck, broken, confusing) goes
+  through Help & feedback at the foot of Your account; notes appear in the report read-out beside the crash reports. Social-share consent is asked:
   face fine / hands only / no. With testers Cat hasn't met, keep the photo ask soft and optional.
 - **Thank-you:** home sewists a $20 voucher (+ Premium for a year + credit); pros $80 flat (plus
   copy-shop print cost); jacket/coat testers in the full round a $30 voucher.
 - **Wed + Sun** a scheduled reader checks the form sheet and tester mail, updates the tracker,
   drafts replies (drafts only) and posts a ~5-line summary in the Sewist Fit Testing thread.
 - Replies often come by text, not email: ask Cat before calling someone unconfirmed.
-- Show Cat every draft before sending; clean Gmail redirect links before any send.
+- Show Cat every draft before sending. Any email with a link stays a draft for Cat, who pastes the
+  clean link herself (see [Working with Cat](working-with-cat.md), "Links in emails").
 - A paid pattern-cutter review (a Vancouver studio) checks the drafting itself; due first week of
   November, balance paid after.
 

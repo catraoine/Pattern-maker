@@ -1,0 +1,80 @@
+/* Help & feedback (Cat's H3, Nov 6, 2026): the first of the account page's small links, a touch brighter, opening a
+   page of short answers and a plain note to us. */
+.fineprint.plain .inline-link.help-link {
+  color: var(--ink);
+  font-weight: var(--w-strong);
+}
+
+.help-answers details {
+  border-top: 1px solid var(--guide);
+  padding: 12px 0;
+}
+.help-answers details:last-child {
+  border-bottom: 1px solid var(--guide);
+}
+.help-answers summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  list-style: none;
+  cursor: pointer;
+}
+.help-answers summary::-webkit-details-marker {
+  display: none;
+}
+.help-answers summary::after {
+  content: '+';
+}
+.help-answers details[open] summary::after {
+  content: '−';
+}
+.help-answers details p {
+  margin: 8px 0 2px;
+}
+
+.help-note {
+  margin-top: 22px;
+}
+.help-note p {
+  margin: 0 0 4px;
+}
+.help-note button {
+  margin-top: 10px;
+}
+
+.help-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.help-top .eyebrow {
+  margin: 0;
+}
+.help textarea {
+  width: 100%;
+  min-height: 160px;
+  box-sizing: border-box;
+  resize: vertical;
+}
+.row.help-shot {
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 12px;
+}
+.help-shot img {
+  width: 54px;
+  height: 96px;
+  object-fit: cover;
+  border: 1px solid var(--guide);
+}
+.help-shot .link {
+  margin-left: auto;
+}
+.help-added {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: var(--caps-size);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}

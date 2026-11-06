@@ -12,7 +12,7 @@ import { printNap, printOf } from './engine/prints';
 import { layAmount } from './engine/layplan';
 import { withEstimates } from './estimate';
 import { EXAMPLE_BODY, FormKind, Garment, MeasurementId, MeasurementValues, Unit, checkMeasurements, isComplete, isLowerBody, isOuterwear } from './measurements';
-import { usePersistent } from './store';
+import { fillMissing, usePersistent } from './store';
 import {
 Account,
 ME,
@@ -95,6 +95,7 @@ const SignupScreen = screen(() => import('./screens/SignupScreen').then((m) => m
 const BrandsScreen = screen(() => import('./screens/BrandsScreen').then((m) => m.BrandsScreen));
 const NightsScreen = screen(() => import('./screens/NightsScreen').then((m) => m.NightsScreen));
 const MadeScreen = screen(() => import('./screens/MadeScreen').then((m) => m.MadeScreen));
+const HelpScreen = screen(() => import('./screens/HelpScreen').then((m) => m.HelpScreen));
 const PlansScreen = screen(() => import('./screens/PlansScreen').then((m) => m.PlansScreen));
 const FittingScreen = screen(() => import('./screens/FittingScreen').then((m) => m.FittingScreen));
 const TrueScaleScreen = screen(() => import('./screens/TrueScaleScreen').then((m) => m.TrueScaleScreen));
@@ -167,7 +168,7 @@ export default function App() {
   };
   /** Everything here, put back from a backup, a move link or the signed-in account. */
   const applyBackup = (b: Backup<Saved>) => {
-    setSaved({ ...INITIAL, ...b.skirt });
+    setSaved(fillMissing(INITIAL, b.skirt));
     setAccount({ ...NEW_ACCOUNT, ...b.account, onboarded: true });
     if (b.pointEdits) setPointEdits(b.pointEdits as Record<string, PointEdit[]>);
   };
@@ -177,7 +178,7 @@ export default function App() {
   const sendLink = () => moveLink(window.location.origin, makeBackup(saved, account, pointEdits));
   const [startView] = useState<View>(incoming?.kind === 'ask' ? 'link' : incoming?.kind === 'reply' ? 'arrive' : isMoveLink(window.location.hash) ? 'move' : 'welcome');
   const [step, setStep] = useViewHistory<View>(startView, (to) => (NEEDS_MEASUREMENTS.includes(to) && !canLeaveMeasure ? 'measure' : to), ladder);
-  const openLegal = (page: 'privacy' | 'terms' | 'tester' | 'news' | 'brands' | 'nights' | 'made') => setStep(page);
+  const openLegal = (page: 'privacy' | 'terms' | 'tester' | 'news' | 'brands' | 'nights' | 'made' | 'help') => setStep(page);
   // The waitlist (Cat's W1, 2026-10-21): until launch, a visitor without a tester link sees the welcome with a waitlist
   // where Begin was, and the Privacy and Terms pages, nothing else. Measure-me and move links still open, as they
   // come from someone already using the app.
@@ -234,6 +235,12 @@ export default function App() {
     setReportView(step);
     if (step === 'export') countStep('styled', garment);
   }, [step, garment]);
+  // The screen a note from Help & feedback is about: the last screen of the making itself (Measure, Style, Print and
+  // their side screens), not the account pages and fine print passed through on the way to Help.
+  const [noteFrom, setNoteFrom] = useState<View>(step);
+  useEffect(() => {
+    if (STEP_OF[step]) setNoteFrom(step);
+  }, [step]);
   // The loading screen plays when someone first opens the app, on the way into the welcome. People coming
   // back to their work go straight to it.
   const [opening, setOpening] = useState(step === 'welcome');
@@ -254,6 +261,21 @@ export default function App() {
   const alterations = useMemo(() => alterationSheet(carried.fitting, garment), [carried, garment]);
   // Simple or all tools: the simple view prints with home allowances and the quick route, and keeps the rest for later.
   const mode = modeOf(account);
+  /** Measure later: try the app with the example measurements, under any already taken, and open Style. */
+  const tryWithExample = (g?: Garment) => {
+    const example = (Object.keys(EXAMPLE_BODY) as MeasurementId[]).filter((id) => measured[id] === undefined);
+    setAccount(updatePerson({ ...account, onboarded: true, mode }, person.id, { values: { ...EXAMPLE_BODY, ...values }, example }));
+    if (g && g !== garment) setSaved({ ...saved, garment: g });
+    setStep('style');
+  };
+  // Review link (Cat, Nov 6: previews should open on the spot to review): ?go=style opens Style on the dress with the
+  // example body, as Measure later would, so a preview link lands on the screen that changed. Pair it with ?fresh.
+  useEffect(() => {
+    if (gated || new URLSearchParams(window.location.search).get('go') !== 'style') return;
+    window.history.replaceState(window.history.state, '', window.location.pathname + window.location.hash);
+    tryWithExample('dress');
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once on arrival; the link decides, not later state
+  }, [gated]);
   const setMode = (m: Mode) => setAccount({ ...account, mode: m });
   const storedFinish = { ...DEFAULT_FINISH, ...saved.finish };
   const finish = finishFor(storedFinish, mode);
@@ -436,7 +458,7 @@ export default function App() {
   const exampleTag = !!person.example?.length && (
     <button type="button" className="example-tag" onClick={measureMe}>
       <span>Drafted to an example body</span>
-      <span className="example-tag-go">Measure me ›</span>
+      <span className="example-tag-go">Measure me</span>
     </button>
   );
   /** "Choose another garment": the same list as when measuring. */
@@ -647,7 +669,7 @@ export default function App() {
               onBring={(b) => {
                 // Brought in, so a reload shouldn't offer it again.
                 dropHash();
-                setSaved({ ...INITIAL, ...(b.skirt as Partial<Saved>) });
+                setSaved(fillMissing(INITIAL, b.skirt));
                 setAccount({ ...NEW_ACCOUNT, ...b.account, onboarded: true });
                 if (b.pointEdits) setPointEdits(b.pointEdits as Record<string, PointEdit[]>);
               }}
@@ -706,13 +728,7 @@ export default function App() {
               onMade={() => openLegal('made')}
               onNews={() => openLegal('news')}
               onLater={() => setStep('welcome')}
-              onSkip={(g?: Garment) => {
-                // Skip on the tape: try the app with the example measurements, under any already taken.
-                const example = (Object.keys(EXAMPLE_BODY) as MeasurementId[]).filter((id) => measured[id] === undefined);
-                setAccount(updatePerson({ ...account, onboarded: true, mode }, person.id, { values: { ...EXAMPLE_BODY, ...values }, example }));
-                if (g && g !== garment) setSaved({ ...saved, garment: g });
-                setStep('style');
-              }}
+              onSkip={tryWithExample}
             />
           )}
           {(step === 'privacy' || step === 'terms') && (
@@ -728,6 +744,7 @@ export default function App() {
           {step === 'brands' && <BrandsScreen onPrivacy={() => openLegal('privacy')} />}
           {step === 'nights' && <NightsScreen onPrivacy={() => openLegal('privacy')} />}
           {step === 'made' && <MadeScreen onPrivacy={() => openLegal('privacy')} />}
+          {step === 'help' && <HelpScreen from={noteFrom} onDone={back} />}
           {step === 'photo' && plansShown() && <PhotoAllowance account={account} onPlans={openPlans} />}
           {step === 'photo' && canPhotoDraft(account) && (
             <PhotoScreen

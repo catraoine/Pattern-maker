@@ -499,7 +499,8 @@ function peterPanCollar(front: Piece, back: Piece, c: CollarIn): Piece[] {
     fabric: 'Self + interfacing',
     seamAllowance: c.sa,
     allowances: { neck: 1, collar: 1, fold: 0, centre: 1 },
-    meta: { collarTo: 'centre front', foldAt: 'centre back' },
+    // (flat: it lies out over the shoulders and chest from the neck seam, not up round the neck; the drape places it so.)
+    meta: { collarTo: 'centre front', foldAt: 'centre back', flat: true },
   };
   // Grain parallel to the centre back.
   const g0 = add(lerp(neck[0], outer[0], 0.5), mul(p(-cbDir.y, cbDir.x), 2.5));

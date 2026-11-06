@@ -75,6 +75,13 @@ export function readCollar(stroke: P[], draft: BodiceDraft, c: BodiceChoices, ga
     next = { ...next, closure: 'front_buttons' };
     also = ' It buttons down the front.';
   }
+  // A collar sits round the named neckline; a neckline drawn in its place would leave it off the garment
+  // (the draft drops a collar on a drawn neck), so the line seemed to do nothing. It goes back to the neckline.
+  if (collar !== 'none' && (next.neck || next.unevenNeck)) {
+    const { neck: _n, unevenNeck: _u, ...rest } = next;
+    next = rest;
+    also += ' The drawn neckline goes back to the round one it sits on.';
+  }
   if (!detailAllowed(next, 'collar', collar, garment)) return { said: COLLAR_NEEDS[collar] ?? 'A collar goes on a crew neckline (a Peter Pan on a scoop too), with a plain back and no wrap.' };
   return { choices: validDetails(next, garment), said: COLLAR_WORDS[collar] + also };
 }

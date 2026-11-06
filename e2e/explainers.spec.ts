@@ -13,7 +13,11 @@ test('a picked choice is explained, and its drawing opens full size', async ({ p
   const silhouette = main.getByRole('group', { name: 'Silhouette', exact: true });
   await chooseChip(page, 'Silhouette', 'Trumpet');
   await expect(silhouette.getByText(/like the bell of a trumpet|flared low down/).filter({ visible: true })).toBeVisible();
-  await silhouette.getByRole('button', { name: 'Trumpet', exact: true }).locator('svg').click();
+  // Into the middle of the screen first: on a phone the pinned drawing and the bottom bar cover the top and foot,
+  // and where the tile lands after the default scroll moves with the heading sizes above it.
+  const drawing = silhouette.getByRole('button', { name: 'Trumpet', exact: true }).locator('svg');
+  await drawing.evaluate((el) => el.scrollIntoView({ block: 'center' }));
+  await drawing.click();
   const tile = page.getByRole('dialog', { name: 'Trumpet' });
   await expect(tile).toBeVisible();
   await tile.getByRole('button', { name: 'Close' }).click();

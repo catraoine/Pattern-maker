@@ -23,7 +23,7 @@ import { type HemShape, isShaped, shapeHemBy } from './hem';
 import { circlePiece, cm } from './skirt';
 import { facing } from './finishing';
 
-export type Peplum = 'none' | 'flared' | 'gathered';
+export type Peplum = 'none' | 'flared' | 'gathered' | 'balloon';
 /** A peplum's hem: level all round, or (In testing) dropping longer at the centre back. */
 export type PeplumHem = 'level' | 'high_low';
 /** A peplum's size: standard, or (In testing) big: longer, a flared one cut as a full circle and a
@@ -31,6 +31,10 @@ export type PeplumHem = 'level' | 'high_low';
 export type PeplumSize = 'standard' | 'big';
 /** A big peplum: this many times as deep, and a gathered one cut this many times its seam. */
 const BIG_PEPLUM = { depth: 1.4, gather: 2.2 };
+/** A balloon peplum (In testing): the outer is cut this much deeper than its underskirt and gathered back onto the
+ * underskirt's hem, so it puffs; the puff is about a third of the depth, between 5 and 9 cm. The underskirt ends
+ * 2 cm above where the outer's hem is caught, so it never shows. */
+export const BALLOON_PEPLUM = { puffShare: 0.35, puffMin: 5, puffMax: 9, underUp: 2 };
 /** An uneven neckline (uneven.ts) isn't draped, but its front is a whole piece like these. */
 export type DrapeKind = 'one_shoulder' | 'cowl' | 'uneven';
 
@@ -69,7 +73,7 @@ export interface DrapeInfo {
 }
 
 export interface PeplumInfo {
-  kind: 'flared' | 'gathered';
+  kind: 'flared' | 'gathered' | 'balloon';
   depthCm: number;
   /** Round the peplum's hem. */
   hemCm: number;
@@ -80,6 +84,8 @@ export interface PeplumInfo {
   backCm?: number;
   /** A big peplum (In testing): longer, and fuller. */
   size?: 'big';
+  /** A balloon peplum (In testing): how much deeper the outer is cut than its underskirt, to puff out. */
+  puffCm?: number;
 }
 
 const r1 = (v: number) => Math.round(v * 10) / 10;
@@ -734,11 +740,12 @@ export function peplumLengthOk(c: { length: BodiceLength; dropCm?: number; fit?:
   return c.dropCm !== undefined ? c.dropCm <= PEPLUM_SEAM_MAX : c.length === 'high_hip';
 }
 
-/** A gathered peplum piece: a rectangle, its waist edge gathered to the bodice's. */
-function rectPiece(name: string, w: number, h: number, isFront: boolean, sa: number, hemSteps = 1, gather = GATHER): Piece {
+/** A gathered peplum piece: a rectangle, its waist edge gathered to the bodice's. A balloon's pieces end in a seam
+ * (tagged `balloon`) in place of the hem: the outer's gathered onto the underskirt's; the underskirt is cut plain. */
+function rectPiece(name: string, w: number, h: number, isFront: boolean, sa: number, hemSteps = 1, gather = GATHER, balloon = false): Piece {
   // A hem to be reshaped (a high-low back) is laid in short steps, so it can bend.
   const outline = new Path(p(0, 0)).line(p(w, 0), 'waist').line(p(w, h), 'side');
-  for (let i = 1; i <= hemSteps; i++) outline.line(p(w * (1 - i / hemSteps), h), 'hem');
+  for (let i = 1; i <= hemSteps; i++) outline.line(p(w * (1 - i / hemSteps), h), balloon ? 'balloon' : 'hem');
   outline.line(p(0, 0), isFront ? 'fold' : 'centre');
   outline.closed = true;
   const cut = isFront ? 'Cut 1 on fold' : 'Cut 2 (1 pair)';
@@ -752,17 +759,18 @@ function rectPiece(name: string, w: number, h: number, isFront: boolean, sa: num
     labels: [
       { at: p(w * 0.35, h * 0.45), text: name.toUpperCase(), size: 1.2 },
       { at: p(w * 0.35, h * 0.45 + 2), text: cut, size: 0.8 },
-      { at: p(w * 0.35, 1.6), text: 'GATHER', size: 0.6 },
+      ...(gather > 1 ? [{ at: p(w * 0.35, 1.6), text: 'GATHER', size: 0.6 }] : []),
+      ...(balloon && gather > 1 ? [{ at: p(w * 0.35, h - 1.6), text: 'GATHER', size: 0.6 }] : []),
     ],
     cut,
     seamAllowance: sa,
-    allowances: { hem: 1, fold: 0 },
-    meta: { gathered: gather },
+    allowances: balloon ? { balloon: sa, fold: 0 } : { hem: 1, fold: 0 },
+    meta: gather > 1 ? { gathered: gather } : {},
   };
 }
 
 /** The peplum's pieces, their waist walked to the bodice's waist seam, front to front and back to back. */
-function withPeplum(d: BodiceDraft, kind: 'flared' | 'gathered', s: BodiceStyle, m: BodiceMeasurements): BodiceDraft {
+function withPeplum(d: BodiceDraft, kind: 'flared' | 'gathered' | 'balloon', s: BodiceStyle, m: BodiceMeasurements): BodiceDraft {
   // A lowered peplum: the bodice is cut fitted past the waist (its fish-eye darts cinch it in) and the
   // peplum is sewn to its hem, so the seam it walks is the hem, and the hem is a seam, not turned up.
   const seamCm = d.drop;
@@ -782,7 +790,37 @@ function withPeplum(d: BodiceDraft, kind: 'flared' | 'gathered', s: BodiceStyle,
   const where = seamCm > 0 ? `the bodice's hem, ${cm(seamCm)} below your waist,` : "the bodice's waist seam";
   let pieces: Piece[];
   let hemCm: number;
-  if (kind === 'flared') {
+  let puffCm: number | undefined;
+  if (kind === 'balloon') {
+    // A balloon: an outer gathered at the waist like a gathered peplum, cut deeper by the puff, and gathered back onto
+    // the hem of a plain underskirt that ends a little above, so the outer puffs out and turns under (as the skirt's
+    // balloon hem does). The two are basted together at the waist and sewn on as one.
+    puffCm = r1(Math.max(BALLOON_PEPLUM.puffMin, Math.min(BALLOON_PEPLUM.puffMax, depth * BALLOON_PEPLUM.puffShare)));
+    const underDepth = depth - BALLOON_PEPLUM.underUp;
+    const outerDepth = depth + puffCm;
+    const point = (pc: Piece, isFront: boolean, outer: boolean): Piece => ({
+      ...pc,
+      draft: {
+        frame: [],
+        points: outer
+          ? [
+              { n: '0', at: p(0, 0), note: `Centre ${isFront ? 'front' : 'back'} waist. A rectangle ${cm(outerDepth)} deep: ${depthWhy}, plus ${cm(puffCm!)} of puff, taken back up when its hem is gathered onto the underskirt's.` },
+              { n: '1', at: p(gather * (isFront ? F : B), 0), note: `Side waist: ${gather} times the bodice ${isFront ? 'front' : 'back'}'s ${seamCm > 0 ? 'hem' : 'waist seam'}, ${cm(isFront ? F : B)}, gathered to fit it. The hem is gathered the same way onto the underskirt's hem, ${cm(isFront ? F : B)}.` },
+            ]
+          : [
+              { n: '0', at: p(0, 0), note: `Centre ${isFront ? 'front' : 'back'} waist. The underskirt: a plain rectangle ${cm(underDepth)} deep, ${cm(BALLOON_PEPLUM.underUp)} shorter than the peplum, so it stays hidden inside the puff.` },
+              { n: '1', at: p(isFront ? F : B, 0), note: `Side waist: the bodice ${isFront ? 'front' : 'back'}'s ${seamCm > 0 ? 'hem' : 'waist seam'}, ${cm(isFront ? F : B)}, sewn flat.` },
+            ],
+      },
+    });
+    pieces = [
+      point(rectPiece('Peplum front', gather * F, outerDepth, true, s.seamAllowance, 1, gather, true), true, true),
+      point(rectPiece('Peplum back', gather * B, outerDepth, false, s.seamAllowance, 1, gather, true), false, true),
+      point(rectPiece('Peplum underskirt front', F, underDepth, true, s.seamAllowance, 1, 1, true), true, false),
+      point(rectPiece('Peplum underskirt back', B, underDepth, false, s.seamAllowance, 1, 1, true), false, false),
+    ];
+    hemCm = r1(2 * (F + B));
+  } else if (kind === 'flared') {
     const common = { r, darts: [], dartLen: 0, length: depth, hipDepth: depth + 100, sa: s.seamAllowance, hemSa: 1, zipCm: 0 };
     const tidy = (pc: Piece, isFront: boolean): Piece => ({
       ...pc,
@@ -816,7 +854,7 @@ function withPeplum(d: BodiceDraft, kind: 'flared' | 'gathered', s: BodiceStyle,
   // A high-low peplum: the back's hem drops from the side seam, where it meets the front's, to its
   // longest at the centre back, eased so it leaves the side seam and the centre back square.
   let backCm: number | undefined;
-  if (s.peplumHem === 'high_low') {
+  if (s.peplumHem === 'high_low' && kind !== 'balloon') {
     backCm = peplumBackExtra(depth);
     const extra = backCm;
     const back = pieces[1];
@@ -829,7 +867,7 @@ function withPeplum(d: BodiceDraft, kind: 'flared' | 'gathered', s: BodiceStyle,
   pieces = pieces.map((pc) => ({ ...pc, meta: { ...pc.meta, unlined: true, ...(seamCm > 0 ? { sewnTo: 'hem' } : {}) } }));
   // A lowered peplum's seam is the bodice's hem: a seam allowance there, in place of the turned-up hem.
   const body = seamCm > 0 ? d.pieces.map((pc) => (isBody(pc) && pc.allowances.hem !== undefined ? { ...pc, allowances: { ...pc.allowances, hem: s.seamAllowance } } : pc)) : d.pieces;
-  return { ...d, pieces: [...body, ...pieces], peplum: { kind, depthCm: depth, hemCm, ...(seamCm > 0 ? { seamCm } : {}), ...(backCm ? { backCm } : {}), ...(big ? { size: 'big' as const } : {}) } };
+  return { ...d, pieces: [...body, ...pieces], peplum: { kind, depthCm: depth, hemCm, ...(seamCm > 0 ? { seamCm } : {}), ...(backCm ? { backCm } : {}), ...(big ? { size: 'big' as const } : {}), ...(puffCm ? { puffCm } : {}) } };
 }
 
 /** The draped neckline and the peplum, made on the drafted bodice. */

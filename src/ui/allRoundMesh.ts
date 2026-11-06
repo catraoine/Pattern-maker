@@ -46,8 +46,52 @@ interface RoundUniforms {
 }
 type RoundMaterial = THREE.MeshStandardMaterial & { uniforms: RoundUniforms };
 
-function material(mode: Mode, map?: THREE.Texture, scale = 1, opacity = 1): RoundMaterial {
-  const mat = new THREE.MeshStandardMaterial({
+/** Each cloth's own finish in the light (Cat's A Clean cloth, 2026-11-05): how rough it is, the soft glow a pile or a
+ * brushed cloth gives where it turns away (sheen), and the thin coat on leather. */
+const FINISH: Record<string, { rough: number; sheen?: number; sheenRough?: number; coat?: number }> = {
+  satin: { rough: 0.5 },
+  silk: { rough: 0.55 },
+  viscose: { rough: 0.6 },
+  modal: { rough: 0.65 },
+  polyester: { rough: 0.62 },
+  velvet: { rough: 1, sheen: 0.7, sheenRough: 0.5 },
+  corduroy: { rough: 0.95, sheen: 0.6, sheenRough: 0.5 },
+  wool: { rough: 0.97, sheen: 0.45, sheenRough: 0.75 },
+  terry: { rough: 1, sheen: 0.45, sheenRough: 0.8 },
+  denim: { rough: 0.92 },
+  linen: { rough: 0.96 },
+  cotton: { rough: 0.9 },
+  leather: { rough: 0.55, coat: 0.35 },
+};
+
+/** The material for a garment's cloth: its swatch, its opacity, and the finish its kind of cloth has. */
+/** A lace's tile is already a net, so it is laid nearly solid; a plain sheer fades to 0.6. */
+function opacityOf(cloth: ClothTiles): number {
+  return cloth.lace ? 0.95 : cloth.sheer ? 0.6 : 1;
+}
+
+function clothFinish(mode: Mode, cloth: ClothTiles, map: THREE.Texture, scale: number): RoundMaterial {
+  const f = cloth.kind ? FINISH[cloth.kind] : undefined;
+  const mat = material(mode, map, scale, opacityOf(cloth), !!(f?.sheen || f?.coat));
+  if (!f) return mat;
+  mat.roughness = f.rough;
+  const pm = mat as unknown as THREE.MeshPhysicalMaterial;
+  if (f.sheen) {
+    const [r, g, b] = cloth.avg ?? [0.6, 0.6, 0.6];
+    const up = (v: number) => Math.min(1, v * 1.3 + 0.06);
+    pm.sheen = f.sheen;
+    pm.sheenRoughness = f.sheenRough ?? 0.5;
+    pm.sheenColor = new THREE.Color(up(r), up(g), up(b)).convertSRGBToLinear();
+  }
+  if (f.coat) {
+    pm.clearcoat = f.coat;
+    pm.clearcoatRoughness = 0.35;
+  }
+  return mat;
+}
+
+function material(mode: Mode, map?: THREE.Texture, scale = 1, opacity = 1, physical = false): RoundMaterial {
+  const mat = new (physical ? THREE.MeshPhysicalMaterial : THREE.MeshStandardMaterial)({
     side: THREE.DoubleSide,
     transparent: opacity < 1,
     opacity,
@@ -106,7 +150,7 @@ function material(mode: Mode, map?: THREE.Texture, scale = 1, opacity = 1): Roun
       // The far side of the cloth, seen from inside through a neck or an armhole, lies in shadow.
       .replace('#include <normal_fragment_begin>', '#include <normal_fragment_begin>\nif (!gl_FrontFacing) diffuseColor.rgb *= 0.45;');
   };
-  mat.customProgramCacheKey = () => `round-${mode}`;
+  mat.customProgramCacheKey = () => `round-${mode}${physical ? '-physical' : ''}`;
   return mat;
 }
 
@@ -315,10 +359,11 @@ class Lines {
 }
 
 /** The garment draped from its own pattern pieces (src/engine/drape), placed on the form: `toForm` takes a point in
- *  the drape's cm (x across, c down from the waist, z forward) to the form's units. */
+ *  the drape's cm (x across, c down from the waist, z forward) to the form's units, at the level's own scale or, for a
+ *  point hanging clear of the body, the scale it carries (DrapedLite.hang). */
 export interface DrapedView {
   d: DrapedLite;
-  toForm: (x: number, c: number, z: number) => V3;
+  toForm: (x: number, c: number, z: number, scale?: number) => V3;
 }
 
 /** What the mesh is built for. */
@@ -404,12 +449,14 @@ function buildDraped(
     const x = pos[i * 3];
     const z = pos[i * 3 + 2];
     const k = 1 + (LIFT + more) / (Math.sqrt(x * x + z * z) || 1);
-    return toForm(x * k * e, pos[i * 3 + 1], z * k);
+    return toForm(x * k * e, pos[i * 3 + 1], z * k, d.hang?.[i] || undefined);
   };
+  // (A piece cut whole, a one-shoulder's front, holds both its halves: drawn once, not mirrored.)
+  const wholeAt = (i: number) => d.panels.some((p) => p.whole && i >= p.base && i < p.base + p.uv.length / 2);
   for (const p of d.panels) {
     if (p.hidden) continue;
     const n = p.uv.length / 2;
-    for (const e of [1, -1]) {
+    for (const e of p.single || p.whole ? [1] : [1, -1]) {
       const pos = new Float32Array(n * 3);
       // A front's button extension (cut past the centre front) laps over the other side: the under one lies a little
       // further in, or the two mirrored halves cross at the front and leave a tab at the hem.
@@ -511,7 +558,7 @@ function buildDraped(
       }
       // A contrast upper collar shows at the front; round the back its outside is the garment's own cloth.
       const front = p.collar && contrast !== undefined;
-      const mat = !cloth ? material('black') : material(mode, tex, 1 / cloth.bodySize, cloth.sheer ? 0.6 : 1);
+      const mat = !cloth || !tex ? material('black') : clothFinish(mode, cloth, tex, 1 / cloth.bodySize);
       if (front && contrast !== undefined) {
         const col = new Float32Array(n * 3);
         const cc = new THREE.Color(contrast);
@@ -527,11 +574,11 @@ function buildDraped(
     }
   }
   // The seams and edges: bright fine lines in lines, faint ones in cloth (the cloth itself gives the shape).
-  const SHOW = new Set(['shoulder', 'side', 'princess', 'armhole', 'neck', 'waist', 'hem', 'opening', 'lapel', 'gorge', 'collar', 'front-seam', 'back-seam', 'sleeve-front', 'opening-hem', 'centre', 'pleat', 'inseam', 'outseam', 'crotch', 'yoke', 'tier']);
+  const SHOW = new Set(['shoulder', 'side', 'princess', 'armhole', 'neck', 'waist', 'hem', 'opening', 'lapel', 'gorge', 'collar', 'front-seam', 'back-seam', 'sleeve-front', 'opening-hem', 'centre', 'pleat', 'inseam', 'outseam', 'crotch', 'yoke', 'tier', 'face']);
   const seam = lines({ colour: GLOW, width: cloth ? 0.7 : 1.1, back: cloth ? 0 : 0.25, alpha: cloth ? 0.55 : 1 });
   for (const l of d.lines) {
     if (!SHOW.has(l.kind)) continue;
-    for (const e of [1, -1]) {
+    for (const e of l.ids.length && wholeAt(l.ids[0]) ? [1] : [1, -1]) {
       const run = l.ids.map((i) => {
         const q = P(i, e);
         const r = Math.hypot(q[0], q[2]) || 1;
@@ -614,7 +661,7 @@ export function createRoundView(): RoundView | undefined {
     clear();
     built = o;
     const { round, sh, cloth, film } = o;
-    const { trousers, isTop, yAt, yOf, kY, longest, highest, bandTop, arm, yS, yU, sl, rh, radius, shell, clothDown, yE, yCap, axisX, capDepth, sleeveR, lg, yC, yK, yH, legHemR, legR, legAxis, rAt } = sh;
+    const { trousers, isTop, yAt, yOf, kY, longest, highest, bandTop, arm, yS, yU, sl, rh, radius, shell, clothDown, yE, yCap, axisX, capDepth, sleeveR, lg, yC, yK, yH, legR, legAxis, rAt } = sh;
     const k = 1 / kY; // cm of cloth to a unit of the form
     const add = (geo: THREE.BufferGeometry, mat: RoundMaterial, order = 1, part: PickPart = 'cloth', e = 0) => {
       const mesh = new THREE.Mesh(geo, mat);
@@ -697,7 +744,9 @@ export function createRoundView(): RoundView | undefined {
       tex.colorSpace = THREE.SRGBColorSpace;
       tex.anisotropy = maxAniso;
       disposables.push(tex);
-      const mat = material(cloth?.sheen === 'gloss' ? 'gloss' : cloth?.sheen === 'pile' ? 'pile' : 'matte', tex, 1 / size, cloth?.sheer ? 0.6 : 1);
+      const mode: Mode = cloth?.sheen === 'gloss' ? 'gloss' : cloth?.sheen === 'pile' ? 'pile' : 'matte';
+      // The border band is a print: only the body's swatch takes the cloth's finish.
+      const mat = cloth && tiles === cloth.body ? clothFinish(mode, cloth, tex, 1 / size) : material(mode, tex, 1 / size, cloth ? opacityOf(cloth) : 1);
       if (cloth?.lift && cloth.plain) {
         mat.emissive.set(cloth.plain).convertSRGBToLinear();
         mat.emissiveIntensity = cloth.lift;
@@ -795,6 +844,29 @@ export function createRoundView(): RoundView | undefined {
       }
     }
     /** A tube round an axis at X(y): a sleeve or a trouser leg, in its cloth. */
+    /**
+     * How far, at height y, a trouser leg's cloth keeps the seat's depth rather than closing to its own round tube of
+     * radius r: over the thigh on any leg, and the whole way down a leg with cloth enough to hang plumb from the seat
+     * and the belly, as a straight tube leg does (closing to a round tube below the thigh, the seat read as a bump
+     * over the leg from the side, Cat 2026-11-06). `seatD` is the seat's depth at the crotch.
+     */
+    const seatHold = (y: number, y0: number, r: number, seatD: number) => {
+      const thigh = smooth(clamp(1 - (y - y0) / Math.max(0.45, (yK - y0) * 0.85), 0, 1));
+      if (seatD <= r) return thigh;
+      // The depth the cloth can give while staying as wide across as the leg inside it, as a share of the seat's
+      // (held at that share, the leg's front and back lie at that depth: tube() blends them from the seat's own
+      // line, not from a round tube). Wherever the thigh above pulled the cloth in, it hangs straight on down from
+      // there, not out again as the leg thins (which notched each leg in below the seat and out again by the knee,
+      // Cat 2026-11-06: "more of a bump now").
+      let plumb = 1;
+      for (let i = 0; i <= 6; i++) {
+        const room = 2 * r - (FORM_LEG(y0 + ((y - y0) * i) / 6) + 0.012);
+        plumb = Math.min(plumb, clamp(room / seatD, 0, 1));
+      }
+      // From the seat's own depth at the crotch the cloth eases down the thigh to the depth it can hold, over the
+      // whole thigh (held, then let go, it stepped in under the seat).
+      return plumb + (1 - plumb) * thigh;
+    };
     const tube = (X: (y: number) => number, R: (y: number) => number, y0: number, y1: number, panels: boolean, Z: (y: number) => number = () => 1, seat?: (g: number) => number, part: PickPart = 'cloth') => {
       const e = Math.sign(X(y0)) || 1;
       const NY = 32;
@@ -812,52 +884,74 @@ export function createRoundView(): RoundView | undefined {
         const j = Math.min(NY - 1, Math.floor(f));
         return y1 - (down[NY] - (down[j] + (down[j + 1] - down[j]) * (f - j)));
       };
+      const geoAt = (a: number, t: number): V3 => {
+        const y = rowY(t);
+        const r = R(y);
+        if (!seat) return T(X(y), a, r, y, r * Z(y));
+        // A trouser leg grows out of the seat (Cat, 2026-10-28: "why are pants like this?"): at the crotch its
+        // outer half is the seat's own side, from the centre front round to the centre back, and its inner half
+        // the flat inseam down the middle where the two legs meet. Down the thigh that half-seat wraps on round
+        // into the whole leg and the inseam closes to the line where the legs touch, so the seat runs into the
+        // legs with no shelf and no crease between them.
+        const e = Math.sign(X(y)) || 1;
+        const sOf = e * wrap(a);
+        const aw = sOf >= 0 ? e * (2 * sOf - HALF) : -e * HALF;
+        const p = T(X(y), aw, r, y, r * Z(y));
+        // Over the whole thigh, down to the knee: the cloth hangs from the seat and the belly and only closes
+        // round the leg as the thigh narrows (over a hand's width it bulged at the seat, Cat 2026-10-28).
+        const wOut = seatHold(y, y0, r, Math.max(seat(0), seat(Math.PI)));
+        // The inseam side parts from the other leg straight below the crotch, so two legs show from the front.
+        const wIn = smooth(clamp(1 - (y - y0) / 0.3, 0, 1));
+        const w = wOut + (wIn - wOut) * smooth(clamp(-sOf / 0.6, 0, 1));
+        if (w <= 0) return p;
+        let qx = 0;
+        let qz: number;
+        if (sOf >= 0) {
+          const g = e * sOf;
+          const rs = seat(g);
+          qx = Math.sin(g) * rs;
+          qz = Math.cos(g) * rs;
+        } else qz = Math.cos(sOf) * seat(Math.cos(sOf) >= 0 ? 0 : Math.PI);
+        // Across the body each leg is on its own axis within a hand's width of the crotch; front to back it
+        // keeps the seat's depth down the thigh.
+        return [qx * wIn + p[0] * (1 - wIn), y, qz * w + p[2] * (1 - w)];
+      };
+      // The cloth's length round each row of the leg from the inseam at the crotch (where the seat's centre front is
+      // laid, see `at`), read between the samples.
+      const ARC_N = 96;
+      const aRef = -e * HALF;
+      const arc: Float64Array[] = [];
+      const roundAt = (a: number, t: number) => {
+        if (!seat) return 0;
+        const j = Math.round(t * NY);
+        if (!arc[j]) {
+          const row = new Float64Array(ARC_N + 1);
+          let prev = geoAt(aRef, t);
+          for (let i = 1; i <= ARC_N; i++) {
+            const q = geoAt(aRef + (TAU * i) / ARC_N, t);
+            row[i] = row[i - 1] + Math.hypot(q[0] - prev[0], q[1] - prev[1], q[2] - prev[2]);
+            prev = q;
+          }
+          arc[j] = row;
+        }
+        const f = (((((a - aRef) / TAU) % 1) + 1) % 1) * ARC_N;
+        const i = Math.min(ARC_N - 1, Math.floor(f));
+        return arc[j][i] + (arc[j][i + 1] - arc[j][i]) * (f - i);
+      };
       const geo = (c: number, a0: number, a1: number) =>
         sweep(
           {
-            at: (a, t) => {
-              const y = rowY(t);
-              const r = R(y);
-              if (!seat) return T(X(y), a, r, y, r * Z(y));
-              // A trouser leg grows out of the seat (Cat, 2026-10-28: "why are pants like this?"): at the crotch its
-              // outer half is the seat's own side, from the centre front round to the centre back, and its inner half
-              // the flat inseam down the middle where the two legs meet. Down the thigh that half-seat wraps on round
-              // into the whole leg and the inseam closes to the line where the legs touch, so the seat runs into the
-              // legs with no shelf and no crease between them.
-              const e = Math.sign(X(y)) || 1;
-              const sOf = e * wrap(a);
-              const aw = sOf >= 0 ? e * (2 * sOf - HALF) : -e * HALF;
-              const p = T(X(y), aw, r, y, r * Z(y));
-              // Over the whole thigh, down to the knee: the cloth hangs from the seat and the belly and only closes
-              // round the leg as the thigh narrows (over a hand's width it bulged at the seat, Cat 2026-10-28).
-              const wOut = smooth(clamp(1 - (y - y0) / Math.max(0.45, (yK - y0) * 0.85), 0, 1));
-              // The inseam side parts from the other leg straight below the crotch, so two legs show from the front.
-              const wIn = smooth(clamp(1 - (y - y0) / 0.3, 0, 1));
-              const w = wOut + (wIn - wOut) * smooth(clamp(-sOf / 0.6, 0, 1));
-              if (w <= 0) return p;
-              let qx = 0;
-              let qz: number;
-              if (sOf >= 0) {
-                const g = e * sOf;
-                const rs = seat(g);
-                qx = Math.sin(g) * rs;
-                qz = Math.cos(g) * rs;
-              } else qz = Math.cos(sOf) * seat(Math.cos(sOf) >= 0 ? 0 : Math.PI);
-              // Across the body each leg is on its own axis within a hand's width of the crotch; front to back it
-              // keeps the seat's depth down the thigh.
-              return [qx * wIn + p[0] * (1 - wIn), y, qz * w + p[2] * (1 - w)];
-            },
+            at: geoAt,
             uv: (a, t) => {
               const y = rowY(t);
               const r = R(y);
-              let aw = a;
-              if (seat) {
-                const e = Math.sign(X(y)) || 1;
-                const sOf = e * wrap(a);
-                aw = sOf >= 0 ? e * (2 * sOf - HALF) : -e * HALF;
-              }
               // Over the crown the cloth is laid at the arm's own width, or the print squeezes into streaks at its top.
-              return [(aw - c) * Math.max(r, R(y1) * 0.8) * k, downAt(t) * k];
+              if (!seat) return [(a - c) * Math.max(r, R(y1) * 0.8) * k, downAt(t) * k];
+              // On a leg the print is laid by the length of cloth round it, row by row, from the inseam at the crotch
+              // (the centre front of the seat, so it carries on from the body's print) round the outside: laid by the
+              // leg's own angle and width it broke along the crotch in a line, and eased from the seat's lay it
+              // smeared across the top of the thigh (Cat, 2026-11-06).
+              return [roundAt(a, t) * k, (y0 + downAt(t) - downAt(0)) * k];
             },
             out: (a) => radial(a),
             shade: (a, t) => {
@@ -947,9 +1041,27 @@ export function createRoundView(): RoundView | undefined {
     };
     const ring = (l: Lines, yAtA: (a: number) => number, rOf: (a: number, y: number) => number = shell, n = 144) => l.curve(n, (i) => onCloth(-Math.PI + (TAU * i) / n, yAtA(-Math.PI + (TAU * i) / n), rOf));
     const legX = (leg: number, y: number) => leg * legAxis(y);
+    /** A point on a trouser leg's cloth at angle `a` round it, as the leg's tube is laid (see `tube`): its outer
+     *  side holds the seat's depth where the cloth does, so the lines drawn on it sit on the cloth. */
+    const onLeg = (leg: number, a: number, y: number) => {
+      const r = legR(y);
+      const q = onTube(legX(leg, y), a, r, y);
+      let v = leg * wrap(a);
+      // The quarter toward the other leg is the flat inseam, its line left on the tube.
+      if (v < -HALF + 1e-6) return q;
+      if (v > 3 * HALF) v -= TAU;
+      const g = leg * ((v + HALF) / 2);
+      const w = seatHold(y, yC, r, Math.max(rAt(0, yC), rAt(Math.PI, yC)));
+      // Across the body too the leg is the seat's own side within a hand's width of the crotch (as tube() lays it),
+      // or a line drawn there sat inside the cloth and seemed to stop short of the crotch.
+      const wIn = smooth(clamp(1 - (y - yC) / 0.3, 0, 1));
+      q.p[0] = Math.sin(g) * rAt(g, yC) * wIn + q.p[0] * (1 - wIn);
+      q.p[2] = Math.cos(g) * rAt(g, yC) * w + q.p[2] * (1 - w);
+      return q;
+    };
     const spot = (p: RoundPt, leg?: number) => {
       const y = leg ? yOf(p.cm) : yAt(p.phi, p.cm);
-      return leg ? onTube(legX(leg, y), p.phi, legR(y), y) : onCloth(p.phi, y, rAt);
+      return leg ? onLeg(leg, p.phi, y) : onCloth(p.phi, y, rAt);
     };
     /** A seam or dart through its points, in small steps so it follows the body. */
     const along = (l: Lines, pts: RoundPt[], leg?: number) => {
@@ -989,6 +1101,23 @@ export function createRoundView(): RoundView | undefined {
         lineSets.push(sides);
         for (const e of [-1, 1]) sides.add([{ p: [e * radius(WAIST), bandTop, 0], n: [0, 0, 1] }, { p: [e * radius(WAIST), WAIST, 0], n: [0, 0, 1] }]);
       }
+      // Belt loops: a strip of cloth 1.2 cm wide standing a little proud of the band at each, its long edges shaded
+      // so it reads as a loop; in lines, two short strokes down the band.
+      const loopEdges = lines(cloth ? { colour: 0x000000, width: 1.6, alpha: 0.5, graze: 0.3 } : { colour: GLOW, width: 0.8, back: 0.2, alpha: edge });
+      for (const at of round.loops ?? []) {
+        const dw = (0.6 * kY) / Math.max(0.05, bandR(at));
+        const top = bandTop - 0.2 * kY;
+        const foot = WAIST + 0.2 * kY;
+        if (cloth)
+          add(
+            sweep({ at: (a, t) => P(wrap(a), bandR(wrap(a), top + (foot - top) * t) + 0.012, top + (foot - top) * t), uv: (a, t) => [(a - at) * bandR(wrap(a)) * k, (top + (foot - top) * t) * k], out: radial }, at - dw, at + dw, 3, 4),
+            clothMat(),
+          );
+        for (const e of [-1, 1]) {
+          const a = wrap(at + e * dw);
+          loopEdges.curve(4, (i) => ({ p: P(a, bandR(a, top + ((foot - top) * i) / 4) + 0.014, top + ((foot - top) * i) / 4), n: [Math.sin(a), 0, Math.cos(a)] }));
+        }
+      }
     }
     const dartStyle: Style = cloth ? { colour: 0x000000, width: 1.8, alpha: 0.4, graze: 0.3 } : { colour: GILD, width: 0.8, back: 0.2, alpha: film ? 0.5 : 1 };
     const darts = lines(dartStyle);
@@ -996,6 +1125,15 @@ export function createRoundView(): RoundView | undefined {
     for (const dt of round.darts) {
       along(darts, [dt.base, dt.tip]);
       if (dartsLight) along(dartsLight, [dt.base, dt.tip]);
+    }
+    // A pressed pleat: a strip of shadow in under its edge, and the edge itself catching the light along its length.
+    if (round.pleats?.length) {
+      const pleatShade = cloth ? lines({ colour: 0x000000, width: 3.2, alpha: 0.38, graze: 0.3 }) : undefined;
+      const pleatEdge = lines(cloth ? { colour: GLOW, width: 0.9, alpha: 0.75, graze: 0.3 } : dartStyle);
+      for (const pl of round.pleats) {
+        if (pleatShade) along(pleatShade, pl.pts.map((q) => ({ phi: q.phi + pl.press * 0.045, cm: q.cm })), pl.leg);
+        along(pleatEdge, pl.pts, pl.leg);
+      }
     }
     const seamDark = cloth ? lines({ colour: 0x000000, width: 2, alpha: 0.45, graze: 0.3 }) : undefined;
     const seamLight = cloth ? lines({ colour: GLOW, width: 0.55, alpha: 0.5, graze: 0.3 }) : undefined;
@@ -1065,7 +1203,7 @@ export function createRoundView(): RoundView | undefined {
     // Trouser leg hems.
     if (lg) {
       const hems = lines({ colour: GLOW, width: 1.3, back: cloth ? 0 : 0.25, alpha: edge });
-      for (const leg of [-1, 1]) hems.curve(48, (i) => onTube(legX(leg, yH), -Math.PI + (TAU * i) / 48, legHemR, yH));
+      for (const leg of [-1, 1]) hems.curve(48, (i) => onLeg(leg, -Math.PI + (TAU * i) / 48, yH));
     }
 
     // The garment's outline, which stays at the sides as the form turns: its sides from the underarm (or the top

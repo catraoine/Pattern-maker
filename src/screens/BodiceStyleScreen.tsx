@@ -10,7 +10,7 @@ import { BodiceDraft, BodiceMeasurements, bodiceEase, dropRange, hemDrop, needsH
 import { BODICE_GROUPS, BodiceChoices, DARTS_FOR_FIT, dartsFor, describeBodice, detailAllowed, sleeveOf, topAllowed, validDetails } from '../garments';
 import { isStrapless, isTop } from '../engine/corset';
 import { SHIRR } from '../engine/shirred';
-import { bodiceFlat } from '../engine/flat';
+import { bodiceFlat, wornShapes, wornLines } from '../engine/flat';
 import { TechFlatView } from '../ui/TechFlatView';
 import { AllRound } from '../ui/AllRound';
 import { roundBodice } from '../engine/allRound';
@@ -163,18 +163,23 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
   const sleeves = useMemo(() => (draft && onForm ? sleeveRange(draft, values as BodiceMeasurements & SleeveMeasurements, choices.fit) : undefined), [draft, onForm, values, choices.fit]);
   const round = useMemo(() => (draft ? roundBodice(draft, values, sleeve) : undefined), [draft, values, sleeve]);
   const drapeJob = useMemo(() => (draft ? ({ kind: 'bodice', draft, sleeve } as const) : undefined), [draft, sleeve]);
-  const detail = { bustDart: choices.bustDart ?? 'side', princess: choices.princess ?? 'none', closure: choices.closure ?? 'back_zip', collar: choices.collar ?? 'none', back: valid.back ?? 'plain', structure: valid.structure ?? 'none', peplum: choices.peplum ?? 'none', peplumHem: choices.peplumHem ?? 'level', peplumSize: choices.peplumSize ?? 'standard' };
+  const detail = { bustDart: choices.bustDart ?? 'side', princess: choices.princess ?? 'none', closure: choices.closure ?? 'back_zip', collar: choices.collar ?? 'none', back: valid.back ?? 'plain', structure: valid.structure ?? 'none', peplum: choices.peplum ?? 'none', peplumHem: choices.peplumHem ?? 'level', peplumSize: choices.peplumSize ?? 'standard', plungeDepth: choices.plungeDepth ?? 'standard' };
   // A draped neckline is its own shaping: the dart, seam, opening, collar and boning choices step aside.
   const draped = isDraped(choices);
   const valueOf = (id: (typeof BODICE_GROUPS)[number]['id']) =>
-    id === 'sleeveShape' ? chosen.shape : id === 'sleeveCut' ? (chosen.cut ?? 'set_in') : id === 'sleeveCuff' ? (chosen.cuff ?? 'none') : id === 'sleeve' ? chosen.length : id in detail ? detail[id as keyof typeof detail] : choices[id];
+    id === 'sleeveShape' ? chosen.shape : id === 'sleeveFullness' ? (chosen.fullness ?? 'soft') : id === 'sleeveCut' ? (chosen.cut ?? 'set_in') : id === 'sleeveCuff' ? (chosen.cuff ?? 'none') : id === 'sleeve' ? chosen.length : id in detail ? detail[id as keyof typeof detail] : choices[id];
   // The simple view leaves moving the shaping to the pattern cutter's tools, unless it has been moved already.
   const moved = (id: string) => (id === 'bustDart' && detail.bustDart !== 'side') || (id === 'princess' && detail.princess !== 'none');
   const shown = (id: string) =>
     // A kimono sleeve is cut on at its named length, with no shape or cuff of its own.
     (id !== 'sleeveShape' || (chosen.length !== 'none' && chosen.cut !== 'kimono')) &&
     (id !== 'sleeveCut' || chosen.length !== 'none') &&
+    // Only a gathered sleeve has a fullness to pick; only a plunge has a depth.
+    (id !== 'sleeveFullness' || chosen.shape === 'puff' || chosen.shape === 'bishop') &&
+    (id !== 'plungeDepth' || (choices.neckline === 'plunge' && !choices.neck)) &&
     ((id !== 'peplumHem' && id !== 'peplumSize') || detail.peplum !== 'none') &&
+    // A balloon's hem is gathered onto its underskirt, level all round: no hem shape to pick.
+    (id !== 'peplumHem' || detail.peplum !== 'balloon') &&
     (id !== 'sleeveCuff' || (cuffShown(chosen) && chosen.cut !== 'kimono')) &&
     (id !== 'bustDart' || (choices.darts !== 'none' && detail.princess === 'none' && !boned)) &&
     ((id !== 'bustDart' && id !== 'princess') || can('dartMoves') || moved(id)) &&
@@ -223,6 +228,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
 
   if (onForm && draft) {
     return (
+      <GarmentFabric fabric={fabric}>
       <DrawOnForm<BodiceChoices>
         allRound={round ? { round, drape: drapeJob, m: values, fabric, striped: matchKind(fabric) } : undefined}
         body={formWidth(draft, m)}
@@ -230,6 +236,13 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
         legs={false}
         bottom={Math.max(landmarks(draft).waistY + (hip ? dropRange(m, choices.length).max : 0) + 6, drawArm ? drawArm.wristY + 3 : 0)}
         arms={drawArm}
+        // The bodice as cloth on the form, a calico toile until a fabric is picked, so each line visibly changes it.
+        cloth={flat ? wornShapes(flat) : undefined}
+        flatLines={flat ? wornLines(flat) : undefined}
+        backCloth={flat ? wornShapes(flat, 1) : undefined}
+        backFlatLines={flat ? wornLines(flat, 1) : undefined}
+        sleeve={drawArm ? sleeve : undefined}
+        underarmY={landmarks(draft).underarm.y}
         kinds={[
           ['neckline', 'Neckline'],
           ['seam', 'Seam'],
@@ -277,6 +290,7 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
           setOnForm(undefined);
         }}
       />
+      </GarmentFabric>
     );
   }
 
@@ -355,6 +369,9 @@ export function BodiceStyleScreen({ onPhoto, photo, choices, onChoices, onChoose
                   {g.id === 'collar' && id === 'polo' && <TestingTag tool="polo_collar" />}
                   {g.id === 'peplumHem' && id === 'high_low' && <TestingTag tool="high_low_peplum" />}
                   {g.id === 'peplumSize' && id === 'big' && <TestingTag tool="big_peplum" />}
+                  {g.id === 'peplum' && id === 'balloon' && <TestingTag tool="balloon_peplum" />}
+                  {g.id === 'plungeDepth' && id === 'waist' && <TestingTag tool="waist_plunge" />}
+                  {g.id === 'sleeveFullness' && id === 'full' && <TestingTag tool="full_sleeve" />}
                   {g.id === 'sleeveCuff' && id === 'oversized' && <TestingTag tool="oversized_cuff" />}
                 </button>
               ))}

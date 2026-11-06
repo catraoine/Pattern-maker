@@ -83,6 +83,9 @@ const RUNS_ON: Record<string, string> = { shoulder: 'overarm', overarm: 'shoulde
 const isFront = (pc: Piece) => /front/i.test(pc.name);
 /** The garment a piece belongs to, from its first word: Bodice, Skirt. */
 const garmentOf = (pc: Piece) => pc.name.split(' ')[0];
+/** A balloon peplum's underskirt: cut plain to the bodice's own waist and sewn into the same seam under the gathered
+ * outer, so it is left out of the seam sums (counted in, it doubled the peplum's waist). */
+const isUnderskirt = (pc: Piece) => /underskirt/i.test(pc.name);
 /** A seam's length on one side of the body, with any part cut from the piece and sewn back (a slant
  * pocket's facing). A piece cut whole (single layer, both halves in one: see drape.ts and the bias
  * skirt) has each seam twice, unless meta.seams says it has it once (a one-shoulder's one shoulder). */
@@ -196,8 +199,8 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
   const garments = [...new Set(all.map((g) => garmentOf(g.front)))];
   if (opts.finishedWaist)
     for (const g of garments) {
-      const fronts = pieces.filter((pc) => isFront(pc) && garmentOf(pc) === g);
-      const backs = pieces.filter((pc) => isBack(pc) && garmentOf(pc) === g);
+      const fronts = pieces.filter((pc) => isFront(pc) && garmentOf(pc) === g && !isUnderskirt(pc));
+      const backs = pieces.filter((pc) => isBack(pc) && garmentOf(pc) === g && !isUnderskirt(pc));
       // A gathered piece (a peplum) is cut longer and gathered to the seam.
       // Front and back can be cut to different ratios, so each side is divided by its own.
       const ratio = (side: Piece[]) => (side[0]?.meta.gathered as number | undefined) ?? 1;
@@ -258,7 +261,7 @@ export function checkPattern(pieces: Piece[], opts: { finishedWaist?: number } =
     }
 
   // A dress: the bodice's waist sewn to the skirt's, front to front and back to back.
-  const ofSide = (g: string, side: 'front' | 'back') => pieces.filter((pc) => garmentOf(pc) === g && (side === 'front' ? isFront(pc) : isBack(pc)));
+  const ofSide = (g: string, side: 'front' | 'back') => pieces.filter((pc) => garmentOf(pc) === g && !isUnderskirt(pc) && (side === 'front' ? isFront(pc) : isBack(pc)));
   const bodice = garments.includes('Bodice') && garments.includes('Skirt');
   if (bodice)
     for (const side of ['front', 'back'] as const) {

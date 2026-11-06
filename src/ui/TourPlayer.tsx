@@ -25,7 +25,6 @@ const PARTS: FilmPart[] = [
   { name: 'Style', from: 35.2, says: 'Make it yours: its shape, length, hem and details, step by step on the drawing. Your pattern is drafted as you go, and you can shop the fabric for it.' },
   { name: 'Print', from: 69.5, says: 'Print it at home on ordinary paper, full size at a copy shop, or project it true size onto your fabric. Drafted to your body.' },
 ];
-const TOUR_LENGTH = 93;
 export const TOUR_LABEL = '1:33';
 
 export type FilmPart = { name: string; from: number; says: string };
@@ -58,8 +57,6 @@ export function FilmWords({ id, parts, onPart }: { id: string; parts: FilmPart[]
 export function TourPlayer({ onClose }: { onClose: () => void }) {
   const video = useRef<HTMLVideoElement>(null);
   const close = useRef<HTMLButtonElement>(null);
-  const [at, setAt] = useState(0);
-  const [length, setLength] = useState(TOUR_LENGTH);
   // Chosen once, as the tour opens, so turning a tablet doesn't restart it.
   const [shape] = useState<'tall' | 'wide'>(() => (matchMedia(WIDE_SCREEN).matches ? 'wide' : 'tall'));
 
@@ -86,13 +83,11 @@ export function TourPlayer({ onClose }: { onClose: () => void }) {
     });
   }, []);
 
-  const part = PARTS.reduce((p, x, i) => (at >= x.from ? i : p), 0);
-
   return (
     <div className="tour" role="dialog" aria-modal="true" aria-label="How it works">
       <div className="tour-top">
-        {/* Just the house name (Cat, 2026-10-22); the bar along the bottom already marks the part. The film itself
-            doesn't say it again. */}
+        {/* Just the house name (Cat, 2026-10-22). No Measure / Choose / Style / Print bar under the film (Cat,
+            2026-11-02: it cluttered the demo); Read it still lists the parts and jumps to each. */}
         <span className="tour-tag">Maison Tracé</span>
         <span className="tour-acts">
           <FilmWords
@@ -113,8 +108,6 @@ export function TourPlayer({ onClose }: { onClose: () => void }) {
         playsInline
         controls
         preload="auto"
-        onLoadedMetadata={(e) => Number.isFinite(e.currentTarget.duration) && setLength(e.currentTarget.duration)}
-        onTimeUpdate={(e) => setAt(e.currentTarget.currentTime)}
         aria-describedby="tour-words"
         // It stays open at the end (the accessibility review, 2026-10-30), so nothing vanishes from under a viewer;
         // the focus goes to Skip tour, to close it.
@@ -124,28 +117,6 @@ export function TourPlayer({ onClose }: { onClose: () => void }) {
           <source key={v.src} src={v.src} type={v.type} />
         ))}
       </video>
-      <ol className="tour-parts" aria-label="Parts of the tour">
-        {PARTS.map((p, i) => {
-          const end = PARTS[i + 1]?.from ?? length;
-          const fill = Math.max(0, Math.min(1, (at - p.from) / (end - p.from)));
-          return (
-            <li key={p.name} className={i === part ? 'on' : ''}>
-              <button
-                type="button"
-                onClick={() => {
-                  if (video.current) video.current.currentTime = p.from;
-                }}
-              >
-                <span className="tour-track">
-                  <span style={{ transform: `scaleX(${fill})` }} />
-                </span>
-                <span className="tour-num">0{i + 1} </span>
-                {p.name}
-              </button>
-            </li>
-          );
-        })}
-      </ol>
     </div>
   );
 }

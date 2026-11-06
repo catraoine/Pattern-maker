@@ -15,6 +15,7 @@ import type { DressDraft } from './dress';
 import type { TeeDraft } from './tee';
 import type { OuterDraft } from './outerwear';
 import type { TrousersDraft } from './trousers';
+import { loopAngles, pleatShares } from './trouserPleats';
 import type { SleeveDraft } from './sleeve';
 
 /** A point on the garment: its angle round the body (0 the centre front, pi / 2 the wearer's left side,
@@ -49,6 +50,13 @@ export interface RoundZip {
   toCm: number;
 }
 
+/** A trouser front pleat's pressed edge: a line down the body, then down the leg, its shadow lying `press` way round. */
+export interface RoundPleat {
+  pts: RoundPt[];
+  leg?: 1 | -1;
+  press: 1 | -1;
+}
+
 export interface RoundGarment {
   kind: 'skirt' | 'top' | 'dress' | 'trousers';
   /** Where the top edge sits at angle phi: the waist for skirts and trousers, the neckline for tops. */
@@ -62,6 +70,10 @@ export interface RoundGarment {
   zip?: RoundZip;
   /** A waistband's height above the top edge, in cm (0 for none or a facing). */
   bandCm: number;
+  /** Belt loops on the band, by their angle round the body (0 at the centre front). */
+  loops?: number[];
+  /** Trouser front pleats, each drawn as its pressed edge. */
+  pleats?: RoundPleat[];
   /** The hem's girth over the hip's: above 1 flares out, below 1 tapers in. */
   flare: number;
   /** Finished girths, in cm, where the garment reaches them. */
@@ -520,6 +532,18 @@ export function roundTrousers(draft: TrousersDraft, m: TrouserM): RoundGarment {
   }
   const zip: RoundZip | undefined =
     draft.closure === 'none' || !(draft.zipCm > 0) ? undefined : { phi: draft.closure === 'fly' ? 0 : HALF, fromCm: 0, toCm: draft.zipCm };
+  // Front pleats: each one's pressed edge runs from the waist down the body to the crotch, then down the front of
+  // the leg to the hem, pressed toward the centre front (so toward the inside leg below the crotch).
+  const pleats: RoundPleat[] = [];
+  for (const sh of draft.pleats ? pleatShares(front, draft.pleats.lines) : [])
+    for (const s of [1, -1] as const) {
+      // Down the body the pleat runs from its share of the waist to where the leg's crease meets the crotch (the seat's
+      // front half is laid round the leg's outer half, allRoundMesh.ts, so the body's angle is half the leg's from the
+      // side), then straight down the leg at its share of the hem: it used to stop short at the crotch and start again
+      // lower and further in (Cat, 2026-11-06).
+      pleats.push({ pts: [{ phi: s * HALF * (1 - sh.waist), cm: 0 }, { phi: s * HALF * (1 - sh.hem), cm: crotchCm }], press: (-s) as 1 | -1 });
+      pleats.push({ pts: [{ phi: s * (HALF - sh.hem * Math.PI), cm: crotchCm }, { phi: s * (HALF - sh.hem * Math.PI), cm: L }], leg: s, press: (-s) as 1 | -1 });
+    }
   return {
     kind: 'trousers',
     topAt: () => 0,
@@ -529,6 +553,9 @@ export function roundTrousers(draft: TrousersDraft, m: TrouserM): RoundGarment {
     rings: [],
     zip,
     bandCm: 3.5,
+    // Belt loops on the band, where the strip's loops go (see trouserPleats.ts).
+    ...(draft.loops ? { loops: loopAngles() } : {}),
+    ...(pleats.length ? { pleats } : {}),
     flare: 1,
     girth: { waist: draft.finishedWaist, hip: draft.finishedHip },
     legs: { crotchCm, lengthCm: L, kneeCm: draft.kneeCm, hemCm: draft.hemCm },

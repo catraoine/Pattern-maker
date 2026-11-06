@@ -4,6 +4,7 @@ import { SEAM_WIDTHS, SeamWidths } from './allowances';
 import { ELASTIC_FINISH, POCKET_CUT, casingSteps, elasticNotions, pocketBagsStep, pocketSeamWords } from './instructions';
 import type { SewingGuide, SewStep } from './instructions';
 import type { TrouserLength, TrousersDraft } from './trousers';
+import { PLEAT_STITCH_CM } from './trouserPleats';
 
 const n1 = (v: number) => `${v} cm`;
 
@@ -36,6 +37,8 @@ export function trousersGuide(d: TrousersDraft, fabricM: number, finish: { seams
   const culotte = d.leg === 'culotte';
   const inseam = d.pockets === 'inseam';
   const slant = d.pockets === 'slant';
+  const pleats = d.pleats?.count ?? 0;
+  const loops = d.loops ?? 0;
   // Beside a left side zip the in-seam pocket is on the right only.
   const rightOnly = d.pocketSides === 'right';
   const pocketCut = inseam
@@ -58,7 +61,7 @@ export function trousersGuide(d: TrousersDraft, fabricM: number, finish: { seams
     },
     {
       title: 'Cut out',
-      text: `Fold the fabric in half with the selvedges together. Place the trousers front and back on both layers so you get a pair of each, with the crease line on each parallel to the selvedge. Cut along the solid outer line, snip the notches${darts ? ' and chalk-mark the darts' : ''}. Mark the crease line on the wrong side with tailor's chalk.${fly ? ' Cut the fly facing and the fly shield, and the fly facing again from fusible interfacing.' : ''}${pocketCut}`,
+      text: `Fold the fabric in half with the selvedges together. Place the trousers front and back on both layers so you get a pair of each, with the crease line on each parallel to the selvedge. Cut along the solid outer line, snip the notches${darts ? ' and chalk-mark the darts' : ''}. Mark the crease line on the wrong side with tailor's chalk.${pleats ? ' Snip the notches for the pleat folds and placement lines on each front, and chalk the fold lines.' : ''}${fly ? ' Cut the fly facing and the fly shield, and the fly facing again from fusible interfacing.' : ''}${pocketCut}${loops ? ' Cut the belt loop strip with the grain along its length.' : ''}`,
     },
     {
       title: 'Cut the waistband',
@@ -76,6 +79,14 @@ export function trousersGuide(d: TrousersDraft, fabricM: number, finish: { seams
           {
             title: `Sew the ${darts} darts`,
             text: 'Fold each dart with right sides together so the dart lines meet. Stitch from the waist to the point, running off the fold, and knot the threads. Press front darts toward the centre front and back darts toward the centre back.',
+          },
+        ]
+      : []),
+    ...(pleats
+      ? [
+          {
+            title: `Fold the front pleat${pleats > 1 ? 's' : ''}`,
+            text: `On each front, fold along the chalked fold line${pleats > 1 ? 's' : ''} with wrong sides together and bring the fold over to its placement notch, so the pleat faces the centre front${pleats > 1 ? ', the pleat nearer the crease first' : ''}. Pin, then stitch each pleat down ${PLEAT_STITCH_CM} cm from the waist edge, just inside the fold, and tack across the top inside the seam allowance so it stays put under the waistband. Press the folded part flat toward the centre front; below the stitching the pleat hangs free.`,
           },
         ]
       : []),
@@ -131,6 +142,14 @@ export function trousersGuide(d: TrousersDraft, fabricM: number, finish: { seams
     ...(elastic
       ? casingSteps(elastic, seam, waist, 'trousers', 'the centre back seam')
       : [
+          ...(loops
+            ? [
+                {
+                  title: 'Make the belt loops',
+                  text: `Press the belt loop strip into thirds along its length, the raw edges inside, and topstitch close to both long edges. Cut it into ${loops} pieces at the notches. Pin a loop to the right side of the trousers waist at the centre back, at each side seam and halfway across each front, each hanging down the leg with its top end level with the waist edge, so the waistband seam catches it.`,
+                },
+              ]
+            : []),
           {
             title: 'Attach the waistband',
             text: fly
@@ -139,7 +158,7 @@ export function trousersGuide(d: TrousersDraft, fabricM: number, finish: { seams
           },
           {
             title: 'Finish the waistband',
-            text: `Fold the band along its fold line, right sides together, and sew across each end ${seam} in, and along the extension. Trim the corners and turn it right side out. Press under ${seam} on the loose edge, then hand-stitch it over the seam inside, or stitch in the ditch from the outside.`,
+            text: `Fold the band along its fold line, right sides together, and sew across each end ${seam} in, and along the extension. Trim the corners and turn it right side out. Press under ${seam} on the loose edge, then hand-stitch it over the seam inside, or stitch in the ditch from the outside.${loops ? ' Turn each belt loop up over the band, turn its top end under and stitch it across the top of the band by machine, through the loop and the band.' : ''}`,
           },
         ]),
     d.ruffle

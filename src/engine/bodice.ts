@@ -15,7 +15,7 @@ import type { DartPlace, PrincessLine } from './manipulate';
 import { moveFrontDart, princessPieces } from './shaping';
 import { BackNeck, KEYHOLE, backDepthFor, backNeckOf } from './backNeck';
 import { Buttons, CAPE_NECKS, Closure, Collar, EXTENSION_CM, RUFFLE_NECKS, capeDepth, backNeckFacing, poloSlit, backOnFold, buttonPlaces, collarPieces, frontFacing, isBandCollar, openFront } from './collar';
-import { DrapeInfo, Peplum, PeplumHem, PeplumInfo, PeplumSize, drapeBodice, drapeStyle } from './drape';
+import { DrapeInfo, Peplum, PeplumHem, PeplumInfo, PeplumSize, drapeBodice, drapeStyle, isDraped } from './drape';
 import { Shirring, isShirred, shirredBack } from './shirred';
 import { BONED_EASE, Structure, TopDetails, bonedPanels, cutTop, isBoned, isTop, topStyle } from './corset';
 import type { HemShape } from './hem';
@@ -62,6 +62,8 @@ export type BodiceLength = 'waist' | 'high_hip' | 'hip' | 'long';
 export interface DressHem {
   belowWaist: number;
   shape: 'sheath' | 'shift';
+  /** A shift's own flare at each side seam, in cm at the hem, in place of DRESS_HEM_TAPER's. */
+  flare?: number;
 }
 /** How far a dress cut with no waist seam narrows (sheath) or widens (shift) from the hip to the hem, a quarter. */
 const DRESS_HEM_TAPER: Record<DressHem['shape'], number> = { sheath: -1.5, shift: 2 };
@@ -96,6 +98,8 @@ export interface UnevenNeck {
 export interface BodiceStyle {
   fit: BodiceFit;
   neckline: Neckline;
+  /** A plunge's depth (see PlungeDepth). Standard when missing. */
+  plungeDepth?: PlungeDepth;
   length: BodiceLength;
   darts: BodiceDarts;
   seamAllowance: number;
@@ -209,7 +213,13 @@ export const NECKLINES: Record<Neckline, { frontDepth: number; width: number; ba
  * V would sit wider (Cat, 2026-11-01: it has to cover).
  * Sleeveless, the strap sits over the middle of the shoulder with the armhole cut in to meet it, as a
  * slip is cut, so it stays on; with a sleeve it is what the shoulder leaves past the neck. */
-export const PLUNGE = { aboveWaist: 7, strap: 2.5, cover: 5 };
+export const PLUNGE = { aboveWaist: 7, strap: 2.5, cover: 5, toWaist: 2, waistWidth: 3 };
+
+/** How far a plunge runs down: standard stops PLUNGE.aboveWaist above the waist, its straps out at the shoulder; 'waist'
+ * (In testing, from Cat's SS27 lace blouse picture, 2026-11-06) runs on to PLUNGE.toWaist above the waist seam, leaving
+ * just enough to sew the point, and starts from a neck widened only PLUNGE.waistWidth, as her blouse's V does: a long
+ * narrow V between covered shoulders, not the standard plunge's open shoulders. */
+export type PlungeDepth = 'standard' | 'waist';
 
 /** Hip ease (cm) for tops that reach below the waist, from the same fit options. */
 const BODICE_HIP_EASE: Record<BodiceFit, number> = { fitted: 4, regular: 7, relaxed: 11, boxy: 10, oversized: 26 };
@@ -260,6 +270,17 @@ export const BOXY = { waist: 4, square: 1.5, extend: 1.5 };
  * underarm. A dragged fit stays oversized within `range`.
  */
 export const OVERSIZED = { armholeEase: 26, range: { min: 20, max: 36 } };
+
+/**
+ * Sleeveless, cut clean: a sleeve needs a deep, roomy armhole to go into, a bare arm does not. The armhole is
+ * the arm's own plus `ease` cm and a quarter of the bust ease (a sleeved one has 4 cm and half), so the underarm
+ * sits about `raise` cm higher and close under the arm; without an armhole measurement the depth is raised by
+ * `raise`. The shoulder stops `cutIn` cm short of the shoulder point, so the strap sits on the shoulder and the
+ * armhole shows none of it. A top cut below the shoulders, a draped neckline and the oversized cut keep their own.
+ */
+const SLEEVELESS = { ease: 2.5, easeShare: 0.25, raise: 2, cutIn: 1.2 };
+/** Sleeveless and cut clean (see SLEEVELESS). */
+const cleanSleeveless = (s: BodiceStyle) => s.sleeve === 'none' && s.fit !== 'oversized' && !isTop(s.neckline) && !isDraped(s);
 
 /** Cut straight from the bust: a boxy or an oversized body. */
 const straightCut = (f: BodiceFit) => f === 'boxy' || f === 'oversized';
@@ -517,7 +538,7 @@ export function draftBodice(m: BodiceMeasurements, style: Partial<BodiceStyle> =
  * drafted to before the shoulders go onto it. The underarm is lowered the same on front and back, as
  * far as the side seam allows above any side dart.
  */
-function cutSleeves(d: BodiceDraft, s: BodiceStyle, m: Partial<SleeveMeasurements>): BodiceDraft {
+function cutSleeves(d: BodiceDraft, s: BodiceStyle, m: Partial<SleeveMeasurements> & { armscye?: number }): BodiceDraft {
   const cut = sleeveCutOf(s);
   if (cut === 'set_in' || d.lowShoulder) return d;
   const [front, back] = d.pieces;
@@ -525,7 +546,24 @@ function cutSleeves(d: BodiceDraft, s: BodiceStyle, m: Partial<SleeveMeasurement
   const blocked = d.block ? [bf, bb] : undefined;
   const room = Math.min(...[front, back, bf, bb].map(sideRoom)) - 1;
   if (cut === 'drop') {
-    const lower = Math.max(0, Math.min(DROP.down, room));
+    // Redrawn from the shoulder carried out down to the lowered underarm, the armhole loses more on a big body (whose
+    // underarm sits far out past its shoulder point) than on a small one: on a 145 cm bust it came out shorter than
+    // the arm's own armhole. So the underarm goes lower until the seam goes round the arm with DROP.room to spare.
+    const [af, ab] = blocked ?? [front, back];
+    const round = (down: number) => taggedLength(dropPiece(af, down).outline, 'armhole') + taggedLength(dropPiece(ab, down).outline, 'armhole');
+    let lower = Math.max(0, Math.min(DROP.down, room));
+    const want = m.armscye !== undefined ? m.armscye + DROP.room : undefined;
+    if (want !== undefined && room > lower && round(lower) < want) {
+      // (No lower than the side seam allows: there it stops at the room it has.)
+      let lo = lower;
+      let hi = room;
+      for (let i = 0; i < 20; i++) {
+        const mid = (lo + hi) / 2;
+        if (round(mid) < want) lo = mid;
+        else hi = mid;
+      }
+      lower = hi;
+    }
     const pieces = [dropPiece(front, lower), dropPiece(back, lower), ...d.pieces.slice(2)];
     const block = blocked?.map((pc) => dropPiece(pc, lower));
     const [nf, nb] = block ?? pieces;
@@ -614,7 +652,8 @@ function draftBlock(m: BodiceMeasurements, style: BodiceStyle): BodiceDraft {
   }
   const ease = bodiceEase(s);
   const hb = m.high_bust ?? m.full_bust - 4;
-  const table = 21 + (hb - 82) * 0.1 + ease.bust / 10;
+  const clean = cleanSleeveless(s);
+  const table = 21 + (hb - 82) * 0.1 + ease.bust / 10 - (clean ? SLEEVELESS.raise : 0);
   const fit = s.fitting ?? {};
   // The armhole is found for the measurements as drafted, then lowered or raised as the toile asked.
   const lower = fit.armhole ?? 0;
@@ -635,7 +674,7 @@ function draftBlock(m: BodiceMeasurements, style: BodiceStyle): BodiceDraft {
   };
   if (!m.armscye) return withSides(table);
 
-  const target = m.armscye + 4 + 0.5 * (s.fit === 'oversized' ? Math.min(ease.bust, OVERSIZED.armholeEase) : ease.bust);
+  const target = clean ? m.armscye + SLEEVELESS.ease + SLEEVELESS.easeShare * ease.bust : m.armscye + 4 + 0.5 * (s.fit === 'oversized' ? Math.min(ease.bust, OVERSIZED.armholeEase) : ease.bust);
   let lo = table - 5;
   let hi = table + 3;
   for (let i = 0; i < 30; i++) {
@@ -793,9 +832,12 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   // the same neck and the same shoulder length.
   // A plunge leaves just its strap of shoulder, however long the shoulder: sleeveless, the strap sits
   // over the middle of the shoulder and the armhole is cut in to meet it; with a sleeve, at the tip.
-  const plunging = s.neckline === 'plunge' && !s.neck;
-  const cutIn = plunging && (!s.sleeve || s.sleeve === 'none') ? Math.max(0, (SL - PLUNGE.strap) / 2) : 0;
-  const widen = plunging ? Math.max(0, SL - PLUNGE.strap) - cutIn : Math.max(0, Math.min(nl.width, SL - 5));
+  // A plunge to the waist keeps the shoulders: its V starts from a neck opened only a little (PlungeDepth).
+  const plunging = s.neckline === 'plunge' && !s.neck && s.plungeDepth !== 'waist';
+  const neckWidth = s.neckline === 'plunge' && !s.neck && s.plungeDepth === 'waist' ? PLUNGE.waistWidth : nl.width;
+  // Otherwise a clean sleeveless shoulder stops short of the shoulder point (a boxy one runs past it instead).
+  const cutIn = plunging && (!s.sleeve || s.sleeve === 'none') ? Math.max(0, (SL - PLUNGE.strap) / 2) : cleanSleeveless(s) && s.fit !== 'boxy' ? SLEEVELESS.cutIn : 0;
+  const widen = plunging ? Math.max(0, SL - PLUNGE.strap) - cutIn : Math.max(0, Math.min(neckWidth, SL - 5));
   // A boxy shoulder runs on past the body's shoulder point.
   const ext = (s.fit === 'boxy' ? BOXY.extend : 0) - cutIn;
   const hpsB = add(hpsB0, mul(p(Math.cos(backSlope), Math.sin(backSlope)), widen));
@@ -858,7 +900,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   frontSlope = dropped(frontSlope, SL - widen + ext);
   // Deep necklines stop 5 cm above the bust point; a plunge runs on past it, nearly to the waist.
   const plunge = s.neckline === 'plunge' && !s.neck;
-  const cfNeck = p(0, Math.max(cfNeck0.y, Math.min(cfNeck0.y + nl.frontDepth, plunge ? wf - PLUNGE.aboveWaist : apex.y - 5)));
+  const cfNeck = p(0, Math.max(cfNeck0.y, Math.min(cfNeck0.y + nl.frontDepth, plunge ? wf - (s.plungeDepth === 'waist' ? PLUNGE.toWaist : PLUNGE.aboveWaist) : apex.y - 5)));
 
   // A neck gape pinned out at the toile is closed the way a pattern cutter does it: slash from the
   // middle of the neckline to the bust point, and pivot the shoulder, armhole and upper side seam
@@ -965,7 +1007,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
     }
     // A dress with no waist seam carries the side seam on from the hip, straight to its hem.
     if (s.dressHem) {
-      hemB = p(hipB.x + DRESS_HEM_TAPER[s.dressHem.shape], wb + Math.max(drop + 2, s.dressHem.belowWaist));
+      hemB = p(hipB.x + (s.dressHem.shape === 'shift' && s.dressHem.flare !== undefined ? s.dressHem.flare : DRESS_HEM_TAPER[s.dressHem.shape]), wb + Math.max(drop + 2, s.dressHem.belowWaist));
       back.line(hemB, 'side');
       // Square off the tapered (or flared) side seam, then level to the centre back.
       back.curve(squareHem(hipB, hemB), p(hemB.x * 0.35, hemB.y), p(0, hemB.y), 'hem');
@@ -1213,8 +1255,9 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
     cut: frontCut,
     seamAllowance: s.seamAllowance,
     allowances: { neck: s.neckArmholeAllowance, armhole: s.neckArmholeAllowance, fold: 0, hem: s.hemAllowance },
-    // A V neck comes to a point at the centre front on purpose.
-    meta: pointed ? { pointedAtCentre: ['neck'] } : {},
+    // A V neck comes to a point at the centre front on purpose. A plunge to the waist is a narrow V the drape leaves to
+    // settle (see the stay-tape pass in drape/garment.ts).
+    meta: { ...(pointed ? { pointedAtCentre: ['neck'] } : {}), ...(plunge && s.plungeDepth === 'waist' ? { narrowPlunge: true } : {}) },
   };
 
   // ---- shaped hem ---------------------------------------------------------

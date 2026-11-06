@@ -28,6 +28,11 @@ const OK = '#a9c49b';
 
 const TAU = Math.PI * 2;
 const HALF = Math.PI / 2;
+/** Closer look: the button's and a double tap's zoom, and the most a pinch goes to. */
+const ZOOM_STEP = 2.2;
+const ZOOM_MAX = 3.5;
+/** The view starts whole: no zoom, its focus and anchor set on the first zoom. */
+const ZOOM_START = { zoom: 1, zoomTo: 1, fx: 0, fy: 0, ax: 0, ay: 0 };
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const wrap = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
 /** With no fabric picked, the Form view's calico (18-calm-style.css --calico), lifted so the studio lamps keep it pale. */
@@ -128,6 +133,9 @@ export function checked(rows: Row[]): string {
   return `${list} checked${match ? `, ${match.name.toLowerCase()} matched` : ''}`;
 }
 
+/** How long a design may take to sew before its Front drawing stands in (a slow phone sews a dress in a few seconds). */
+const SEW_LIMIT_MS = 30_000;
+
 export function AllRound({ round, m, striped = false, fabric, label, draw, drape, fallback }: Props) {
   const ref = useRef<HTMLCanvasElement>(null);
   const drawRef = useRef(draw);
@@ -188,38 +196,59 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
     // slope below it.
     const cTop = sp.cOf(-1.45) + 2;
     const slope = (sp.yOf(cTop + 4) - sp.yOf(cTop)) / 4;
-    return (x: number, c: number, z: number): [number, number, number] => {
+    return (x: number, c: number, z: number, scale?: number): [number, number, number] => {
       const y = c < cTop ? sp.yOf(cTop) + (c - cTop) * slope : sp.yOf(c);
-      const s = sp.scale(y);
+      const s = scale || sp.scale(y);
       return [x / s, y, z / s];
     };
   }, [spaceOf]);
+  // A design whose sewing crashed, or is still sewing after SEW_LIMIT_MS, is treated as one that failed its score: the
+  // Front drawing stands in rather than "Sewing your pattern…" for ever (All round quality, Cat 2026-11-03).
+  const [unsewn, setUnsewn] = useState<string | undefined>();
   useEffect(() => {
     if (!job) return;
     let live = true;
     const hit = cachedDrape(jobKey);
+    let late: ReturnType<typeof setTimeout> | undefined;
     if (hit) setDraped({ key: jobKey, view: { d: hit, toForm: toFormOf } });
-    else
+    else {
+      late = setTimeout(() => live && setUnsewn(jobKey), SEW_LIMIT_MS);
       requestDrape(job, jobKey).then(
-        (d) => live && setDraped({ key: jobKey, view: { d, toForm: toFormOf } }),
-        () => live && setDraped(undefined),
+        (d) => {
+          if (!live) return;
+          clearTimeout(late);
+          setDraped({ key: jobKey, view: { d, toForm: toFormOf } });
+        },
+        () => {
+          if (!live) return;
+          clearTimeout(late);
+          setDraped(undefined);
+          setUnsewn(jobKey);
+        },
       );
+    }
     return () => {
       live = false;
+      clearTimeout(late);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the job's contents
   }, [jobKey, toFormOf]);
-  const sewnNow = job ? (draped?.key === jobKey ? draped.view : 'pending') : undefined;
+  const gaveUp = !!job && unsewn === jobKey && draped?.key !== jobKey;
+  const sewnNow = job ? (draped?.key === jobKey ? draped.view : gaveUp ? undefined : 'pending') : undefined;
   // A drawing that failed its quality check (see engine/drape/quality.ts) isn't shown turning in cloth: the shape
   // preview stands in, with a line saying the cloth view for this design is still in testing (Cat, 2026-11-02).
-  const inTesting = !!sewnNow && sewnNow !== 'pending' && sewnNow.d.quality?.ok === false && !sewnAnyway();
+  const inTesting = gaveUp || (!!sewnNow && sewnNow !== 'pending' && sewnNow.d.quality?.ok === false && !sewnAnyway());
   const drapedNow = inTesting ? undefined : sewnNow;
   // With a Front drawing to hand, it stands in for a failed sewn drawing (the canvas stays, hidden, so the view's state
   // and the draw tool's turning survive); the draw tool keeps the turning form to draw on.
   const standIn = inTesting && !!fallback && !drawing;
 
-  const turn = useRef({ phi: 0.6, target: null as number | null, dragging: false, idle: 0, probe: false, stroke: null as [number, number][] | null, picks: [] as RoundPick[] });
+  const turn = useRef({ phi: 0.6, target: null as number | null, dragging: false, idle: 0, probe: false, stroke: null as [number, number][] | null, picks: [] as RoundPick[], ...ZOOM_START });
+  // Closer look (Cat's C, 2026-11-05): pinch, ctrl-scroll (a trackpad's pinch), a double tap or the button zooms in on
+  // the turning garment so its cloth's weave shows; the button says which way it goes.
+  const [closer, setCloser] = useState(false);
   const pulse = useRef(-1e9);
+  const zoomRef = useRef<((on: boolean) => void) | undefined>(undefined);
   const rows = useMemo(() => roundRows(round, striped), [round, striped]);
 
   // When the garment changes, it has been trued as it was drafted: the seams glow, softly, once.
@@ -309,13 +338,30 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
     };
 
     const draw = (now: number) => {
-      const top = film ? Math.min(-2, yOf(highest) - 0.3) : Math.min(-0.45, yOf(highest) - 0.3);
+      const top0 = film ? Math.min(-2, yOf(highest) - 0.3) : Math.min(-0.45, yOf(highest) - 0.3);
       const bottom = trousers ? FORM_FLOOR + 0.1 : Math.min(FORM_FLOOR + 0.1, Math.max(yOf(longest), sl ? yE : -9) + 0.45);
       const fig = h;
-      const S = Math.min((fig - 16) / (bottom - top), (w / 2 - 14) / (reach * 1.04));
-      const cx = w / 2;
+      const S0 = Math.min((fig - 16) / (bottom - top0), (w / 2 - 14) / (reach * 1.04));
+      // Closer look: the whole view scaled by the zoom about its focus, a point on the figure held at its anchor on the
+      // canvas. At 1 the anchor is where the focus sits in the whole view, so nothing moves.
+      const z = st.zoom;
+      st.fy = Math.max(top0, Math.min(bottom, st.fy));
+      const home = [w / 2 + st.fx * S0, 8 + (st.fy - top0) * S0];
+      if (z <= 1.001 && st.zoomTo <= 1) [st.ax, st.ay] = home;
+      const S = S0 * z;
+      let cx = st.ax - st.fx * S;
+      let top = st.fy - (st.ay - 8) / S;
+      if (z > 1.001) {
+        // Closer in, the view never leaves the garment: kept within its height and its reach either side.
+        top = Math.max(top0, Math.min(Math.max(top0, bottom - (fig - 16) / S), top));
+        const R = reach * 1.04 * S;
+        cx = R * 2 > w ? Math.max(w - R, Math.min(R, cx)) : w / 2;
+        st.ay = 8 + (st.fy - top) * S;
+        st.ax = cx + st.fx * S;
+      }
       const Y = (y: number) => 8 + (y - top) * S;
-      const lw = Math.max(0.7, S / 252) * 1.2;
+      const lw = Math.max(0.7, S0 / 252) * 1.2;
+      bounds = { S0, top0, bottom };
       frame = { S, cx, top, lw, fig };
       const phi = st.phi;
       const c = Math.cos(phi);
@@ -798,6 +844,17 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
       if (round.bandCm) {
         ring(() => bandTop, () => radius(WAIST), GLOW, lw * 0.8, 0.2);
         for (const e of [-1, 1]) seg([cx + e * radius(WAIST) * S, Y(bandTop)], [cx + e * radius(WAIST) * S, Y(WAIST)]);
+        // Belt loops: a short strip over the band at each, drawn where it faces the viewer.
+        for (const at of round.loops ?? []) {
+          const a = at - phi;
+          const z = Math.cos(a);
+          if (z < 0.08) continue;
+          const x = cx + Math.sin(a) * radius(WAIST) * S;
+          const w = Math.max(1, lw * 2.2 * z);
+          const run: Pt[] = [[x, Y(bandTop) - lw * 1.2, z], [x, Y(WAIST) + lw * 1.2, z]];
+          line(run, '#000', w + lw * 1.4, 0, 0.5);
+          line(run, GLOW, w, 0, 0.8);
+        }
       }
       // In cloth, the edges are fine lines: the cloth itself gives the shape.
       const edge = cloth ? 0.55 : 1;
@@ -941,6 +998,11 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
         }
       }
 
+      // A pressed pleat: a strip of shadow in under its edge, and the edge itself catching the light.
+      for (const pl of round.pleats ?? []) {
+        if (cloth) line(along(pl.pts.map((q) => ({ phi: q.phi + pl.press * 0.045, cm: q.cm })), pl.leg), '#000', lw * 3.2, 0, 0.38, 0.3);
+        line(along(pl.pts, pl.leg), cloth ? GLOW : GILD, lw * 0.9, cloth ? 0 : 0.2, cloth ? 0.75 : film ? 0.5 : 1, cloth ? 0.3 : 0);
+      }
       // Darts, seams and the vent.
       if (cloth) {
         // In cloth, seams and darts are grooves: a shadow line with a fine light edge, as on the style drawing.
@@ -1027,6 +1089,31 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
       }
     };
 
+    /** The whole view's scale and height range, from the last frame, for easing a zoom back home. */
+    let bounds = { S0: 1, top0: 0, bottom: 1 };
+    /** Zoom about the point (px, py) on the canvas from here on: the figure's point under it, held where it is. */
+    const refocus = (px: number, py: number) => {
+      const { S, cx, top } = frame;
+      st.fx = (px - cx) / S;
+      st.fy = top + (py - 8) / S;
+      st.ax = px;
+      st.ay = py;
+    };
+    /** Zoom toward `to`, about the point (px, py) when given; the button zooms in about the view's upper middle. */
+    const zoomAt = (to: number, px?: number, py?: number) => {
+      to = Math.max(1, Math.min(ZOOM_MAX, to));
+      if (px !== undefined && py !== undefined) refocus(px, py);
+      else if (st.zoomTo <= 1 && to > 1) refocus(w / 2, h * 0.4);
+      st.zoomTo = to;
+      if ((to > 1) !== closerNow) {
+        closerNow = to > 1;
+        setCloser(closerNow);
+      }
+      cv.style.touchAction = drawing || closerNow ? 'none' : '';
+    };
+    let closerNow = st.zoomTo > 1;
+    zoomRef.current = (on: boolean) => zoomAt(on ? ZOOM_STEP : 1);
+
     let raf = 0;
     let last = performance.now();
     const loop = (now: number) => {
@@ -1039,6 +1126,16 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
           if (Math.abs(d) < 0.002) st.target = null;
         } else if (!still && !drawing && now - st.idle > 2500) st.phi += dt * 0.3;
       }
+      // The zoom eases to where it is going; back at the whole view, the anchor eases home with it.
+      if (Math.abs(st.zoomTo - st.zoom) > 0.002) {
+        const k = Math.min(1, dt * 8);
+        st.zoom += (st.zoomTo - st.zoom) * k;
+        if (st.zoomTo <= 1) {
+          const { S0, top0 } = bounds;
+          st.ax += (w / 2 + st.fx * S0 - st.ax) * k;
+          st.ay += (8 + (st.fy - top0) * S0 - st.ay) * k;
+        }
+      } else st.zoom = st.zoomTo;
       draw(now);
       raf = requestAnimationFrame(loop);
     };
@@ -1048,6 +1145,18 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
     let phi0 = 0;
     // Drawing (Cat's A Draw on it): one finger draws on the garment, a second finger turns it instead.
     const fingers = new Map<number, number>();
+    /** Where each finger is, across and down, for a pinch. */
+    const spots = new Map<number, [number, number]>();
+    let pinch: { d: number; z: number; mx: number; my: number; ax: number; ay: number } | undefined;
+    const spread = () => {
+      const [a, b] = [...spots.values()];
+      return { d: Math.hypot(a[0] - b[0], a[1] - b[1]) || 1, mx: (a[0] + b[0]) / 2, my: (a[1] + b[1]) / 2 };
+    };
+    let y0 = 0;
+    let ay0 = 0;
+    /** The last press that let go where it began, quickly: the first of a double tap. */
+    let lastTap = { t: -1e9, x: 0, y: 0 };
+    let press = { t: 0, x: 0, y: 0, still: true };
     // Where the finger is on the canvas, from where the canvas was when the line began: the page can shift under
     // it as the hint changes while the line is drawn.
     let rect = cv.getBoundingClientRect();
@@ -1055,6 +1164,8 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
     const meanX = () => [...fingers.values()].reduce((t, v) => t + v, 0) / (fingers.size || 1);
     const downEv = (e: PointerEvent) => {
       fingers.set(e.pointerId, e.clientX);
+      rect = cv.getBoundingClientRect();
+      spots.set(e.pointerId, at(e));
       st.target = null;
       cv.setPointerCapture(e.pointerId);
       if (drawing && fingers.size === 1) {
@@ -1067,13 +1178,51 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
       }
       st.stroke = null;
       st.picks = [];
+      // A third finger is let be: the pinch goes on with the first two.
+      if (!drawing && spots.size > 2) return;
+      // Two fingers (not drawing): a pinch, zooming about the point between them.
+      if (!drawing && spots.size === 2) {
+        startPinch();
+        st.dragging = false;
+        return;
+      }
       st.dragging = true;
       x0 = meanX();
+      y0 = at(e)[1];
+      ay0 = st.ay;
       phi0 = st.phi;
+      // A double tap goes closer at that point, or back to the whole garment: two quick presses that each let go
+      // where they began (a quick turn of the garment is not a tap).
+      const [tx, ty] = at(e);
+      press = { t: e.timeStamp, x: tx, y: ty, still: true };
+      if (!drawing && e.timeStamp - lastTap.t < 350 && Math.hypot(tx - lastTap.x, ty - lastTap.y) < 30) {
+        zoomAt(st.zoomTo > 1 ? 1 : ZOOM_STEP, tx, ty);
+        lastTap.t = -1e9;
+        press.still = false;
+      }
+    };
+    const startPinch = () => {
+      const p = spread();
+      refocus(p.mx, p.my);
+      pinch = { d: p.d, z: Math.max(1, st.zoomTo), mx: p.mx, my: p.my, ax: st.ax, ay: st.ay };
     };
     const move = (e: PointerEvent) => {
       if (!fingers.has(e.pointerId)) return;
       fingers.set(e.pointerId, e.clientX);
+      spots.set(e.pointerId, at(e));
+      if (press.still && Math.hypot(at(e)[0] - press.x, at(e)[1] - press.y) > 8) press.still = false;
+      if (pinch) {
+        if (spots.size !== 2) return;
+        const p = spread();
+        const to = Math.max(1, Math.min(ZOOM_MAX, (pinch.z * p.d) / pinch.d));
+        st.zoomTo = st.zoom = to;
+        if (to > 1) {
+          st.ax = pinch.ax + p.mx - pinch.mx;
+          st.ay = pinch.ay + p.my - pinch.my;
+        }
+        zoomAt(to);
+        return;
+      }
       if (st.stroke) {
         const q = at(e);
         st.stroke.push(q);
@@ -1081,10 +1230,36 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
         if (st.picks.length > 4 && st.picks.length % 4 === 0) drawRef.current?.onStroke(st.picks, false);
         return;
       }
-      if (st.dragging) st.phi = phi0 + ((meanX() - x0) / (cv.clientWidth || 1)) * Math.PI * 1.6;
+      if (st.dragging) {
+        st.phi = phi0 + ((meanX() - x0) / (cv.clientWidth || 1)) * Math.PI * 1.6;
+        // Closer in, a finger also moves the view up and down the garment.
+        if (st.zoomTo > 1) st.ay = ay0 + at(e)[1] - y0;
+      }
     };
     const up = (e: PointerEvent) => {
       fingers.delete(e.pointerId);
+      spots.delete(e.pointerId);
+      // Back to two fingers after a third: the pinch carries on from where they are.
+      if (pinch && spots.size === 2) {
+        startPinch();
+        return;
+      }
+      if (!pinch && press.still && !fingers.size && e.type === 'pointerup' && e.timeStamp - press.t < 300) lastTap = { t: e.timeStamp, x: press.x, y: press.y };
+      if (pinch && spots.size < 2) {
+        pinch = undefined;
+        // Pinched nearly shut: back to the whole garment.
+        if (st.zoomTo < 1.15) zoomAt(1);
+        st.dragging = false;
+        if (spots.size === 1) {
+          x0 = meanX();
+          phi0 = st.phi;
+          y0 = [...spots.values()][0][1];
+          ay0 = st.ay;
+          st.dragging = true;
+        }
+        st.idle = performance.now();
+        return;
+      }
       if (st.stroke) {
         const picks = st.picks;
         st.stroke = null;
@@ -1098,7 +1273,31 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
       }
       st.idle = performance.now();
     };
-    cv.style.touchAction = drawing ? 'none' : '';
+    // A trackpad's pinch arrives as a wheel with ctrl held (as does ctrl and the mouse wheel); a plain wheel scrolls the
+    // page, unless the view is already closer in, when it moves up and down the garment.
+    const wheel = (e: WheelEvent) => {
+      if (drawing) return;
+      rect = cv.getBoundingClientRect();
+      // A mouse wheel may count in lines or pages, not pixels.
+      const dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? h : 1);
+      if (e.ctrlKey) {
+        e.preventDefault();
+        zoomAt(st.zoomTo * Math.exp(-dy * 0.01), e.clientX - rect.left, e.clientY - rect.top);
+      } else if (st.zoomTo > 1) {
+        e.preventDefault();
+        st.ay -= dy * 0.6;
+      }
+    };
+    const dbl = (e: MouseEvent) => {
+      // Pointer double taps are read in downEv; a mouse's double click comes here too: keep the page from selecting.
+      e.preventDefault();
+    };
+    cv.style.touchAction = drawing || closerNow ? 'none' : '';
+    if (drawing && st.zoomTo > 1) {
+      st.zoomTo = st.zoom = 1;
+      closerNow = false;
+      setCloser(false);
+    }
     // The all-round check (e2e/all-round-check.spec.ts) turns the form to an exact angle with this event.
     const turnEv = (e: Event) => {
       const { at, probe } = (e as CustomEvent<{ at: number; probe: boolean }>).detail;
@@ -1112,7 +1311,12 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
     cv.addEventListener('pointermove', move);
     cv.addEventListener('pointerup', up);
     cv.addEventListener('pointercancel', up);
+    cv.addEventListener('wheel', wheel, { passive: false });
+    cv.addEventListener('dblclick', dbl);
     return () => {
+      zoomRef.current = undefined;
+      cv.removeEventListener('wheel', wheel);
+      cv.removeEventListener('dblclick', dbl);
       cancelAnimationFrame(raf);
       ro.disconnect();
       cv.removeEventListener('pointerdown', downEv);
@@ -1129,6 +1333,11 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
       <canvas ref={ref} className={`all-round-canvas${round.legs ? ' all-round-tall' : ''}${drawing ? ' drawing' : ''}`} data-sewn={drapedNow === 'pending' ? 'pending' : inTesting ? 'testing' : drapedNow ? 'ready' : undefined} role="img" aria-label={label} hidden={standIn} />
       {!drawing && (
         <div className="all-round-quiet">
+          {!standIn && (
+            <button type="button" className="all-round-closer" onClick={() => zoomRef.current?.(!closer)}>
+              {closer ? 'Whole garment' : 'Look closer'}
+            </button>
+          )}
           <p className="all-round-checked">
             <span className="all-round-mark" aria-hidden="true" />
             {checked(rows)}

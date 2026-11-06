@@ -439,7 +439,9 @@ export function importDxf(text: string): ImportedPattern {
       const f = fields(texts);
 
       const cut = o.pts.map(toCm);
-      const stitchShape = closed.find((s) => s.layer === '14' && inside(s.pts[0], o.pts));
+      // The stitching line lies inside the cutting line, or on it along an edge cut with no allowance (a facing's
+      // edge, a fold), so its first point may sit on the cutting line itself.
+      const stitchShape = closed.find((s) => s.layer === '14' && s.pts.every((q) => inside(q, o.pts) || nearestOnRing(q, o.pts).dist <= tol));
       const stitch = stitchShape ? stitchShape.pts.map(toCm) : undefined;
       const sewRing = stitch ?? cut;
 
@@ -447,8 +449,24 @@ export function importDxf(text: string): ImportedPattern {
       // common distance is the piece's allowance; edges that differ get their own tag, the bottom one
       // named the hem, so the PDF labels them and notches land on the cut line.
       const edgeSa = sewRing.map((q, i) => (stitch ? Math.round(nearestOnRing(mul(add(q, sewRing[(i + 1) % sewRing.length]), 0.5), cut).dist * 10) / 10 : 0));
+      // Where a dart meets the edge, the stitching line dips in between its two legs (the edge as it is sewn out).
+      // Those short runs are the dart's, not an edge with an allowance of its own: tagged so, and left out of the
+      // tally, so a notch at a dart leg is cut from the edge the dart sits on, as the app drafts it.
+      const dartRun = new Set<number>();
+      const ringAt = (q: P) => sewRing.findIndex((r) => near(r, q, 0.05));
+      for (const sh of shapes.filter((x) => INTERNAL_LAYERS.has(x.layer) && !x.closed && x.pts.length === 3)) {
+        const [a, b] = [ringAt(toCm(sh.pts[0])), ringAt(toCm(sh.pts[2]))];
+        if (a < 0 || b < 0 || a === b) continue;
+        const n = sewRing.length;
+        const forward = (b - a + n) % n;
+        const [from, steps] = forward <= (a - b + n) % n ? [a, forward] : [b, (a - b + n) % n];
+        if (steps > 3) continue;
+        for (let k = 0; k < steps; k++) dartRun.add((from + k) % n);
+      }
       const counts = new Map<number, number>();
-      edgeSa.forEach((d) => counts.set(d, (counts.get(d) ?? 0) + 1));
+      edgeSa.forEach((d, i) => {
+        if (!dartRun.has(i)) counts.set(d, (counts.get(d) ?? 0) + 1);
+      });
       const sa = [...counts.entries()].sort((x, y) => y[1] - x[1] || x[0] - y[0])[0][0];
       const bottom = Math.max(...sewRing.map((q) => q.y));
       const top = Math.min(...sewRing.map((q) => q.y));
@@ -456,13 +474,13 @@ export function importDxf(text: string): ImportedPattern {
       const tagOf = new Map<number, string>();
       let others = 0;
       for (const v of [...counts.keys()].filter((v) => v !== sa).sort((x, y) => y - x)) {
-        const mids = edgeSa.flatMap((d, i) => (d === v ? [mul(add(sewRing[i], sewRing[(i + 1) % sewRing.length]), 0.5).y] : []));
+        const mids = edgeSa.flatMap((d, i) => (d === v && !dartRun.has(i) ? [mul(add(sewRing[i], sewRing[(i + 1) % sewRing.length]), 0.5).y] : []));
         const low = mids.every((y) => y > top + 0.85 * (bottom - top));
         const tag = v === 0 && foldShapeOf(shapes) ? 'fold' : low && !Object.keys(allowances).includes('hem') ? 'hem' : ++others === 1 ? 'edge' : `edge ${others}`;
         allowances[tag] = v;
         tagOf.set(v, tag);
       }
-      const sewTags = edgeSa.map((d) => tagOf.get(d) ?? '');
+      const sewTags = edgeSa.map((d, i) => (dartRun.has(i) ? 'dart' : (tagOf.get(d) ?? '')));
 
       const lines = shapes
         .filter((s) => INTERNAL_LAYERS.has(s.layer) && s.pts.length > 1)
@@ -524,15 +542,19 @@ export function importDxf(text: string): ImportedPattern {
         allowances,
         meta: {
           imported: true,
+          // Every notch point the file holds, on the cutting line, before any is taken as a dart leg's: what a
+          // cutting room gets (the DXF round trip holds the drafted pattern's notches to these).
+          fileNotches: notchAt.map(m),
           ...(f.get('size') ? { size: f.get('size') } : {}),
           ...(category ? { category } : {}),
           ...(g.name ? { block: g.name } : {}),
         },
       };
       // Dart-leg notches are added by the app itself wherever a dart meets the edge, so a file that
-      // already carries them (our own export does) would get them twice.
+      // already carries them (our own export does) would get them twice. The file's may sit a little off where the
+      // app puts them (its allowance at the leg is read off the file), so anything within 4 mm is the leg's.
       const legs = dartsOf(piece).flatMap(({ near: a, tip, far }) => [a, far].map((q) => nearestOnRing(notchSlit(piece, q, sub(q, tip))[0], piece.cutOutline!).at));
-      piece.notches = piece.notches.filter(([q, d]) => !legs.some((l) => near(l, nearestOnRing(notchSlit(piece, q, d)[0], piece.cutOutline!).at, 0.3)));
+      piece.notches = piece.notches.filter(([q, d]) => !legs.some((l) => near(l, nearestOnRing(notchSlit(piece, q, d)[0], piece.cutOutline!).at, 0.4)));
       // Drill holes the app would not already place at a dart point.
       const auto = drillHoles(piece);
       const drills = points.filter((q) => DRILL_LAYERS.has(q.layer)).map((q) => m(toCm(q.at)));

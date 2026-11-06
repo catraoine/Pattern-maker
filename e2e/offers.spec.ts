@@ -27,7 +27,7 @@ test('offers: sign up for printing by post and a founding place', async ({ page 
   await main.getByRole('button', { name: 'Keep in my patterns' }).click();
   await main.getByRole('button', { name: 'your patterns' }).click();
   const founding = await openFold(page, 'Membership');
-  await expect(founding).toContainText('Be one of the first 500');
+  await expect(founding).toContainText('Be one of the first 250');
   await founding.screenshot({ path: info.outputPath('founding.png') });
   await founding.getByRole('textbox', { name: 'Your email' }).fill('ada@example.com');
   await founding.getByRole('button', { name: 'Save my place' }).click();

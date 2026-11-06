@@ -13,6 +13,7 @@ import type { BodiceEdges } from './instructions';
 import { BAND_CM, SleeveDraft } from './sleeve';
 import type { DressDraft } from './dress';
 import type { TrousersDraft } from './trousers';
+import { LOOP_PLACES, loopShape } from './trouserPleats';
 import { TeeDraft } from './tee';
 import { INSEAM, SLANT } from './pockets';
 import type { OuterDraft } from './outerwear';
@@ -456,6 +457,13 @@ function beltOn<V extends Omit<FlatView, 'at' | 'origin'>>(v: V, y: number, b: B
   if (b.sash) {
     shapes.push([p(-X - 0.2, y - w / 2), p(X + 0.2, y - w / 2), p(X + 0.2, y + w / 2), p(-X - 0.2, y + w / 2)]);
     if (v.label === 'FRONT') shapes.push(...tieKnot(p(0.5, y)));
+  }
+  if (b.ties) {
+    // Knotted at the left side seam (the +x side), the two ends hanging down the side.
+    const K = p(X + 0.6, y);
+    const knot = [p(K.x - 1.6, K.y - 1.3), p(K.x + 1.2, K.y - 1.3), p(K.x + 1.2, K.y + 1.3), p(K.x - 1.6, K.y + 1.3)];
+    const L = b.ties.lengthCm * 0.8;
+    shapes.push(strap([p(K.x - 0.9, K.y + 1.1), p(K.x - 2.2, K.y + L)], b.ties.widthCm * 0.7), strap([p(K.x + 0.3, K.y + 1.1), p(K.x + 1.6, K.y + L * 0.85)], b.ties.widthCm * 0.7), knot);
   }
   if (b.loops) {
     const [top, foot] = band ? [y - band / 2, y + band / 2 + 0.6] : [y - w / 2 - 0.5, y + w / 2 + 0.5];
@@ -1085,6 +1093,24 @@ function withPeplumView(d: BodiceDraft, h: Half, v: RawView & { foot: number }, 
   const ws = waist[waist.length - 1];
   const D = d.peplum.depthCm;
   const flared = d.peplum.kind === 'flared';
+  if (d.peplum.kind === 'balloon') {
+    // A balloon peplum: gathered at the waist, swelling out below it and turning back under at its hem, which is
+    // gathered onto the underskirt's, so it ends narrower than it is at its fullest.
+    const puff = d.peplum.puffCm ?? 6;
+    const wide = p(ws.x + D * (d.peplum.size === 'big' ? 0.5 : 0.35) + puff * 0.5, ws.y + D * 0.62);
+    const tuck = p(ws.x * 0.92, ws.y + D);
+    const curve = [...quad(ws, p(wide.x, ws.y + (wide.y - ws.y) * 0.4), wide, 10), ...quad(wide, p(wide.x + puff * 0.1, ws.y + D), tuck, 8).slice(1)];
+    const shape = whole([...waist, ...curve.slice(1)]);
+    const lines: FlatView['lines'] = [...v.lines];
+    // The gathers at the waist and where the hem turns under.
+    for (let s = 1; s < 8; s++) {
+      const x = (ws.x * s) / 8;
+      const y = ws.y + ((waist[0].y - ws.y) * (ws.x - x)) / Math.max(ws.x, 1);
+      lines.push(...both([p(x, y + 0.3), p(x + (wide.x - ws.x) * (x / ws.x) * 0.5, y + 2.6)]).map((pts) => ({ pts, kind: 'seam' as const })));
+      lines.push(...both([p((tuck.x * s) / 8, ws.y + D - 0.3), p((tuck.x * s) / 8 + 0.15, ws.y + D - 2.2)]).map((pts) => ({ pts, kind: 'seam' as const })));
+    }
+    return { ...v, shapes: [v.shapes[0], shape, ...v.shapes.slice(1)], lines, sleeves: v.sleeves?.map((j) => j + 1) };
+  }
   const H = ws.x + D * (flared ? (d.peplum.size === 'big' ? 0.8 : 0.55) : d.peplum.size === 'big' ? 0.3 : 0.18);
   const folds = flared ? 3 : 5;
   const per = 8;
@@ -1390,6 +1416,20 @@ export function trousersView(d: TrousersDraft, m: { waist_to_hip: number; crotch
     ];
     const darts = back ? [0.36, 0.66].slice(0, d.dartsPerSide.back) : [0.5].slice(0, d.dartsPerSide.front);
     for (const f of darts) lines.push(...both([p(W * f, 0), p(W * f + 0.2, back ? 12 : 8)]).map((pts) => ({ pts, kind: 'dart' as const })));
+    // Front pleats, pressed toward the centre (x = 0 here): the first folds on the crease, a second lies toward the
+    // side as the pattern cuts it; each fold runs from the waist into the crease, its placement line on the centre
+    // side closing on the fold where the pleat is stitched down.
+    if (!back && d.pleats) {
+      const first = d.pleats.lines[0].fold;
+      for (const pl of d.pleats.lines) {
+        const x = W * 0.5 + (first - pl.fold);
+        const w = pl.place - pl.fold;
+        lines.push(...both([p(x, 0), p(xc, hd + 2)]).map((pts) => ({ pts, kind: 'seam' as const })));
+        lines.push(...both([p(x - w, 0), p(x - w * 0.5, 4), p(xc - 0.3, hd + 2)]).map((pts) => ({ pts, kind: 'stitch' as const })));
+      }
+    }
+    // Belt loops: halfway across each front and at each side, and at the centre back.
+    if (d.loops) for (const f of back ? LOOP_PLACES.back : LOOP_PLACES.front) for (const s of f === 0 ? [1] : [1, -1]) shapes.push(loopShape(W * f * s, top));
     if (d.elastic) for (const s of [1, -1]) lines.push(...gathers(p(0, top), p(W * s, 0), WAISTBAND_CM));
     // Pockets, on the front: the slant opening and its topstitching, or an in-seam bag behind the side seam.
     const sideAt = (y: number) => (y >= hd ? hw : W + (hw - W) * Math.sin((Math.min(y, hd) / hd) * (Math.PI / 2)));
@@ -1533,11 +1573,17 @@ export function outerFlat(d: OuterDraft): Flat {
       shapes.push(mirror(half), half);
       lines.push({ pts: [p(-ext, footY), p(-ext, d.lapel ? d.lapel.breakPt.y : neckRun[0].y)], kind: zip ? 'zip' : 'seam' });
       if (d.hood) {
-        // The hood behind the head, its face edge standing up behind the neck.
+        // The hood behind the head, its face edge standing up behind the neck: `up` above the neck at the centre front,
+        // and at least 3 cm above the neck's highest point at the shoulder. Measured from the centre front alone, a
+        // front neck deeper than the rise put the hood's top below the shoulder end of the neck, so its outline folded
+        // back through the neckline (the Front drawing check's "twisted" hood).
         const nx = neckRun[neckRun.length - 1].x;
         const ny = neckRun[0].y;
+        const sy = Math.min(...neckRun.map((q) => q.y));
         const up = Math.min(d.hood.height * 0.26, 9);
-        over.push([...neckRun, p(nx * 1.08, ny - up * 0.55), p(nx * 0.7, ny - up * 0.92), p(0, ny - up)]);
+        const top = Math.min(ny - up, sy - 3);
+        const rise = sy - top;
+        over.push([...neckRun, p(nx * 1.08, sy - rise * 0.45), p(nx * 0.7, sy - rise * 0.85), p(0, top)]);
       }
       for (const y of d.buttons.at) for (const x of d.buttons.columns) lines.push({ pts: circle(h.move(p(x, y)), d.buttons.sizeCm / 2), kind: 'seam' });
       if (d.pocket) {

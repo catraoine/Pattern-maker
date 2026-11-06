@@ -15,6 +15,15 @@ legal drafts. This page holds only the rules.
 - Merchant of record (Paddle by default) from the first sale; billing is built but switched off.
 - Privacy policy and terms: BC law, minimum age 16, liability cap CA$50; in `src/legal.ts` and the
   Claude Docs drafts (keep both in step). Update both when sign-in, billing or analytics change.
+- Contact address in the policy and terms (Cat, Nov 3, 2026): city, province and country plus the email, no
+  street address, until incorporation. Get a PO box or virtual mailbox before the first paid sale and before
+  the German launch (those markets require a postal address), and add it to the cost tally then.
+- Lawyer: none engaged yet. One fixed-fee BC small-business lawyer at incorporation (March 2027) reviews the
+  company setup, Evan's agreement and the policy and terms together.
+- Security and privacy check (Nov 2, 2026, Engineering): no exposed secret in the repo or its history, Supabase
+  row rules sound, API caps hold. Findings and the open items (tester code check, policy address, minimum age
+  16 vs 18 for the lawyer) are in the Security and privacy check doc, linked from the business plan. Repeat the
+  check before sign-in is switched on and before payments take money.
 
 ## Rules
 

@@ -29,12 +29,67 @@ export interface ClothTiles {
   border?: HTMLCanvasElement;
   borderSize?: number;
   sheer: boolean;
+  /** A lace: its tile is already thinned to a net between the motifs, so it is laid nearly solid (see laceTile). */
+  lace?: boolean;
   /** Satin, leather and velvet catch the light. */
   sheen?: 'gloss' | 'pile';
   /** Plain calico gives off this much of its own colour, so the studio lamps keep it pale (FabricPaint.lift). */
   lift?: number;
   /** Its colour, for the lift. */
   plain?: string;
+  /** The swatch it was cut from (denim, wool, velvet...), for the cloth's own finish in the light. */
+  kind?: string;
+  /** The swatch's mean colour (0 to 1), for a velvet's or a wool's sheen. */
+  avg?: [number, number, number];
+}
+
+/** A box blur of a wrapping grey image, r pixels each way: a running sum along each row, then each column. */
+function blurWrap(a: Float32Array, n: number, r: number): Float32Array {
+  const pass = (src: Float32Array, at: (i: number, j: number) => number) => {
+    const out = new Float32Array(n * n);
+    const k = 2 * r + 1;
+    for (let i = 0; i < n; i++) {
+      let t = 0;
+      for (let d = -r; d <= r; d++) t += src[at(i, (d + n) % n)];
+      for (let j = 0; j < n; j++) {
+        out[at(i, j)] = t / k;
+        t += src[at(i, (j + r + 1) % n)] - src[at(i, (j - r + n) % n)];
+      }
+    }
+    return out;
+  };
+  return pass(pass(a, (y, x) => y * n + x), (x, y) => y * n + x);
+}
+
+/** Cloths whose swatch is painted light, not weave: on the turning garment they take their own colour outright. */
+const SMOOTH = new Set(['satin', 'silk', 'velvet', 'viscose', 'modal', 'leather', 'polyester']);
+
+/** Clean cloth (Cat's A, 2026-11-05): the swatches carry light painted into them (the satin's fold bands, the
+ * velvet's shading, the linen's cloudy grid), which wrapped round a garment read as stripes, a plaid or blotches.
+ * Lift those broad bands out, so the cloth is its own colour; keep half the fine weave (none of it on a smooth cloth),
+ * and let the lamps and the cloth's own finish do the rest. Returns the swatch's mean colour. */
+function cleanCloth(c: HTMLCanvasElement, kind: string): [number, number, number] {
+  const g = c.getContext('2d')!;
+  const n = c.width;
+  const im = g.getImageData(0, 0, n, n);
+  const d = im.data;
+  const N = n * n;
+  const lum = new Float32Array(N);
+  const mean = [0, 0, 0];
+  let ml = 0;
+  for (let i = 0; i < N; i++) {
+    lum[i] = (0.2126 * d[i * 4] + 0.7152 * d[i * 4 + 1] + 0.0722 * d[i * 4 + 2]) / 255;
+    for (let j = 0; j < 3; j++) mean[j] += d[i * 4 + j] / N;
+    ml += lum[i] / N;
+  }
+  const broad = blurWrap(blurWrap(lum, n, 40), n, 40);
+  const keep = SMOOTH.has(kind) ? 0.15 : 0.5;
+  for (let i = 0; i < N; i++) {
+    const k = ml / Math.max(0.02, broad[i]);
+    for (let j = 0; j < 3; j++) d[i * 4 + j] = Math.max(0, Math.min(255, mean[j] + (d[i * 4 + j] * k - mean[j]) * keep));
+  }
+  g.putImageData(im, 0, 0);
+  return [mean[0] / 255, mean[1] / 255, mean[2] / 255];
 }
 
 const T = 256;
@@ -67,6 +122,59 @@ const canvas = () => {
   return c;
 };
 
+/** Lace (In testing, Cat's SS27 lace blouse picture, 2026-11-06): the cloth thinned to its net ground, with its motifs
+ * (a flower in each cell of a diagonal trellis, a 4 cm repeat on the 16 cm tile) left in full cloth, so the form shows
+ * through between them the way it does through a bought lace, where a plain sheer only fades the whole cloth. */
+function laceTile(body: HTMLCanvasElement) {
+  const full = canvas();
+  full.getContext('2d')!.drawImage(body, 0, 0);
+  const shapes = canvas();
+  const m = shapes.getContext('2d')!;
+  m.fillStyle = m.strokeStyle = '#fff';
+  const C = T / 4;
+  // Cells one past each edge too, so the motifs crossing an edge wrap round the tile.
+  for (let i = -1; i <= 4; i++)
+    for (let j = -1; j <= 4; j++) {
+      const cx = (i + 0.5) * C;
+      const cy = (j + 0.5) * C;
+      // The trellis: a bar from each flower to its four diagonal neighbours.
+      m.lineWidth = 3;
+      for (const [dx, dy] of [[C / 2, C / 2], [-C / 2, C / 2]]) {
+        m.beginPath();
+        m.moveTo(cx - dx, cy - dy);
+        m.lineTo(cx + dx, cy + dy);
+        m.stroke();
+      }
+      // The flower: six petals round a heart.
+      for (let k = 0; k < 6; k++) {
+        const a = (k / 6) * Math.PI * 2;
+        m.beginPath();
+        m.ellipse(cx + Math.cos(a) * 10, cy + Math.sin(a) * 10, 7.5, 5.5, a, 0, Math.PI * 2);
+        m.fill();
+      }
+      m.beginPath();
+      m.arc(cx, cy, 5, 0, Math.PI * 2);
+      m.fill();
+      // A ring round the flower, where the net is drawn in tighter.
+      m.lineWidth = 1.5;
+      m.beginPath();
+      m.arc(cx, cy, 24, 0, Math.PI * 2);
+      m.stroke();
+    }
+  // The motifs cut out of the full cloth, then laid over the cloth thinned to its ground.
+  const motifs = canvas();
+  const mg = motifs.getContext('2d')!;
+  mg.drawImage(full, 0, 0);
+  mg.globalCompositeOperation = 'destination-in';
+  mg.drawImage(shapes, 0, 0);
+  const g = body.getContext('2d')!;
+  g.globalCompositeOperation = 'destination-out';
+  g.fillStyle = 'rgba(0,0,0,0.62)';
+  g.fillRect(0, 0, T, T);
+  g.globalCompositeOperation = 'source-over';
+  g.drawImage(motifs, 0, 0);
+}
+
 /** The tiles for a fabric: drawn checks, a tinted swatch, or plain colour. */
 export async function clothTiles(p: FabricPaint): Promise<ClothTiles> {
   const body = canvas();
@@ -90,7 +198,12 @@ export async function clothTiles(p: FabricPaint): Promise<ClothTiles> {
     g.fillRect(0, 0, T, T);
   }
   const s = p.look?.special;
-  const out: ClothTiles = { body, bodySize: p.size, sheer: !!p.look?.sheer, sheen: s === 'satin' || s === 'leather' ? 'gloss' : s === 'velvet' ? 'pile' : undefined, lift: p.lift, plain: p.plain };
+  // A swatch of cloth (not a print, not drawn checks) is cleaned of its painted light.
+  const kind = p.href?.match(/fabrics\/flat\/([a-z]+)\.jpg$/)?.[1];
+  const avg = kind ? cleanCloth(body, kind) : undefined;
+  // Lace is thinned to its net once the swatch is clean, so the motifs keep the cleaned colour.
+  if (s === 'lace') laceTile(body);
+  const out: ClothTiles = { kind, avg, body, bodySize: p.size, sheer: !!p.look?.sheer, ...(s === 'lace' ? { lace: true } : {}), sheen: s === 'satin' || s === 'leather' ? 'gloss' : s === 'velvet' ? 'pile' : undefined, lift: p.lift, plain: p.plain };
   const B = p.look?.border;
   if (B) {
     const b = canvas();
@@ -261,7 +374,8 @@ export function paintCloth(g: CanvasRenderingContext2D, layers: ClothLayers, til
   }
   cg.globalCompositeOperation = 'source-over';
   g.save();
-  g.globalAlpha = tiles.sheer ? 0.6 : 1;
+  // A lace is thinned on its tile, between the motifs; a plain sheer is faded whole.
+  g.globalAlpha = tiles.lace ? 0.95 : tiles.sheer ? 0.6 : 1;
   g.drawImage(layers.cloth, 0, 0, w, h);
   g.restore();
 }

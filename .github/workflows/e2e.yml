@@ -36,6 +36,139 @@ jobs:
       - run: npm ci
       - run: npm run test:full
 
+  fit:
+    name: Fit sweep (300 random bodies, every garment)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Fails on a new kind of fit fault; the kinds already found are in src/fitKnown.json (see src/fitSweep.ts).
+      - run: npx vitest run src/fitSweep.test.ts
+        env:
+          FIT_BODIES: '300'
+          FIT_REPORT: fit-sweep.md
+      - name: Report
+        if: ${{ !cancelled() }}
+        run: cat fit-sweep.md >> "$GITHUB_STEP_SUMMARY" || true
+
+  print:
+    name: Print check (PDF pages, test square, page joins)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # pdftoppm renders the PDF's pages to pixels, as a printer prints them.
+      - run: sudo apt-get update -q && sudo apt-get install -y -q poppler-utils
+      # Fails on a new print fault; the ones already found are in src/printKnown.json (see src/printCheck.ts).
+      - run: npx vitest run src/printCheck.test.ts
+        env:
+          PRINT_CHECK: '1'
+          PRINT_REPORT: print-check.md
+      - name: Report
+        if: ${{ !cancelled() }}
+        run: cat print-check.md >> "$GITHUB_STEP_SUMMARY" || true
+
+
+  front:
+    name: Front drawing check (every option, in the real app) (${{ matrix.shard }})
+    runs-on: ubuntu-24.04 # Playwright's browser doesn't install on later Ubuntu yet
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ['1/2', '2/2']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      # Reads every option's Front drawing out of the real app, then scores it; fails on a new fault, the ones already
+      # found are in src/frontKnown.json (see src/frontCheck.ts).
+      - run: npm run test:e2e -- front-drawing.spec.ts --project desktop --workers 4
+        env:
+          FRONT_CHECK: front-drawings
+          FRONT_SHARD: ${{ matrix.shard }}
+      - run: npx vitest run src/frontCheck.test.ts
+        env:
+          FRONT_FROM: front-drawings
+          FRONT_SHARD: ${{ matrix.shard }}
+          FRONT_REPORT: front-drawing.md
+      - name: Report
+        if: ${{ !cancelled() }}
+        run: cat front-drawing.md >> "$GITHUB_STEP_SUMMARY" || true
+
+
+  screens:
+    name: Screen check (every screen, phone and computer)
+    runs-on: ubuntu-24.04 # Playwright's browser doesn't install on later Ubuntu yet
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      # Photographs every screen on a phone and a computer and looks for words cut off and things past the edge; fails
+      # on a new finding, the ones already found are in src/screenKnown.json (see e2e/screenAudit.ts).
+      - run: npm run test:e2e -- screen-check.spec.ts --workers 4
+        env:
+          SCREEN_CHECK: screens
+      - run: npx vitest run src/screenCheck.test.ts
+        env:
+          SCREEN_FROM: screens
+          SCREEN_REPORT: screens.md
+      - name: Report
+        if: ${{ !cancelled() }}
+        run: cat screens.md >> "$GITHUB_STEP_SUMMARY" || true
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: screen-photos
+          path: screens
+
+  options:
+    name: All round, every option on its own (${{ matrix.shard }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ['1/3', '2/3', '3/3']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Fails when an option whose All round passed now fails, or when a new option isn't in src/drapeOptions.json
+      # yet (look at it first: the weekly eye check, or EYE_CHECK on the new option). See drapeSweep.test.ts.
+      - run: npx vitest run src/drapeSweep.test.ts -t "every option on its own"
+        env:
+          DRAPE_OPTIONS: check
+          DRAPE_SHARD: ${{ matrix.shard }}
+          DRAPE_OPTIONS_REPORT: drape-options.md
+      - name: Report
+        if: ${{ !cancelled() }}
+        run: cat drape-options.md >> "$GITHUB_STEP_SUMMARY" || true
+
   e2e:
     name: End-to-end (Playwright, phone and desktop)
     runs-on: ubuntu-24.04

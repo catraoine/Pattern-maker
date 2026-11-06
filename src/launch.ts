@@ -52,7 +52,13 @@ export type TestingTool =
   | 'polo_collar'
   | 'trouser_ruffle'
   | 'slip_slit'
-  | 'oversized_cuff';
+  | 'oversized_cuff'
+  | 'trouser_pleats'
+  | 'belt_loops'
+  | 'balloon_peplum'
+  | 'waist_plunge'
+  | 'full_sleeve'
+  | 'lace';
 
 export const TESTING_TOOLS: Record<TestingTool, { name: string; where: string; proof: string }> = {
   draw_lines: { name: 'Draw your lines', where: 'Style, Draw on your form', proof: 'fit testers draw a hem, a neckline and a side and the pattern follows' },
@@ -87,6 +93,11 @@ export const TESTING_TOOLS: Record<TestingTool, { name: string; where: string; p
   drop_yoke: { name: 'Drop-yoke skirt', where: 'the One, drop yoke chip under Tiers on a skirt', proof: 'two testers sew a drop-yoke skirt and the yoke lies smooth over the hip, the gathers falling evenly below it' },
   // From Cat's ivory-shirt picture (2026-11-01, "a shirt with oversized cuffs").
   oversized_cuff: { name: 'Oversized shirt cuffs', where: 'the Oversized cuff chip on a long straight or bishop sleeve', proof: 'two testers sew oversized cuffs and they sit loose and level over the hand, the buttons lining up' },
+  // Four from Cat's two SS27 runway pictures for Look 09 (2026-11-06): a puffed peplum top and a sheer lace plunge blouse.
+  balloon_peplum: { name: 'Balloon peplum', where: 'the Balloon chip under Peplum on a top', proof: 'two testers sew a balloon peplum in a crisp cloth and it puffs out and turns under all round' },
+  waist_plunge: { name: 'Plunge to the waist', where: 'the To the waist chip under Plunge depth on a plunge neckline', proof: 'two testers sew a plunge to the waist and the V lies flat without gaping' },
+  full_sleeve: { name: 'Full puff and bishop sleeves', where: 'the Full chip under Sleeve fullness on a puff or bishop sleeve', proof: 'two testers sew a full bishop sleeve and it gathers evenly into its cuff' },
+  lace: { name: 'Lace drawn on the turning garment', where: 'All round, with a lace fabric picked', proof: 'the lace drawing matched against two bought laces' },
   // For the SS27 black knife-pleat skirt (Cat, 2026-11-01: "make the skirt low rise"; design options need no flag).
   low_rise: { name: 'Low-rise skirt', where: 'the Rise chips on a skirt', proof: 'two testers sew a low-rise skirt and it sits level on the hip without slipping, the hem where it was' },
   // For the SS27 shell top and bias mini (Cat, 2026-11-02: "Mini"; a design option, no freeze flag).
@@ -97,6 +108,9 @@ export const TESTING_TOOLS: Record<TestingTool, { name: string; where: string; p
   trouser_ruffle: { name: 'Ruffled trouser hem', where: 'the Hem chips on trousers', proof: 'two testers sew ruffled hems and the gathers sit evenly round each leg, the trousers ending where they set them' },
   // For the SS27 lavender bias slip (Cat, 2026-11-02: "Can the lavender skirt have a high side slit").
   slip_slit: { name: 'Bias slip side slit', where: 'the Side chip under Slit on a bias slip skirt', proof: 'two testers sew a slit bias slip and the slit edges hang straight without stretching or flaring, the top holding' },
+  // For the SS27 gold python Bermuda, loose and pleated like the season's runway shorts (Cat, 2026-11-05: "R1 with pleats").
+  trouser_pleats: { name: 'Front pleats on trousers', where: 'the Front pleats chips on trousers', proof: 'two testers sew a pleated front and the pleats lie flat and even from the waistband, releasing into the leg without pulling' },
+  belt_loops: { name: 'Belt loops on trousers', where: 'the Belt loops chips on trousers', proof: 'two testers sew the five loops and a belt sits level in them, the loops clear of the pockets and the fly' },
   // And for the flared lilac blazer from Cat's plaid-blazer picture (2026-10-31).
   flared_jacket: { name: 'Flared jacket and coat hem', where: 'the Flared chip below the waist on a jacket or coat', proof: 'two testers sew a flared jacket and it stays close at the waist, kicking out evenly over the hips with a level hem' },
   jacket_collars: { name: 'Peak, shawl and funnel collars, wide and plunging lapels', where: 'the Collar and Lapels chips on a jacket or coat', proof: 'two testers sew a peak or shawl lapel and it rolls cleanly from the break point, the collar sitting flat at the back neck' },
@@ -120,6 +134,7 @@ const OPTIONS_IN_TESTING: Record<string, readonly string[]> = {
   ruched: ['ruched'],
   collar: ['cape'],
   sleeveCuff: ['ruffle'],
+  belt: ['side_tie'],
 };
 
 export const optionInTesting = (group: string, id: string) => !!OPTIONS_IN_TESTING[group]?.includes(id);

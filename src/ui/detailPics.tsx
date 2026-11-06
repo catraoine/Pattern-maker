@@ -105,6 +105,7 @@ const DETAILS: Record<ExplainSet, Record<string, Record<string, ReactNode>>> = {
       sash_loops: on(SKIRT, 'M13.6 8h12.8v4H13.6zM20 12L17.5 24M20.5 12L23 22M14.5 7v6M25.5 7v6'),
       loops: on(SKIRT, 'M16 5.5v3.5M24 5.5v3.5M16.8 5.5v3.5M24.8 5.5v3.5'),
       band: on(SKIRT, 'M13.6 8h12.8v4H13.6zM16.5 7h2.4v6h-2.4zM18.9 8.6h3.5l0.8 1.4l-0.8 1.4h-3.5'),
+      side_tie: on(SKIRT, 'M24.6 8.4h2.8v2.8h-2.8zM25.4 11.2L24 26M26.6 11.2L28.2 24'),
     },
   },
   bodice: {
@@ -121,6 +122,14 @@ const DETAILS: Record<ExplainSet, Record<string, Record<string, ReactNode>>> = {
       bishop: on('M14 8Q20 2 26 8L31 38Q20 42 9 38z', 'M10 38Q20 42 30 38M14 40h12v4H14zM16 38v2M20 39v1.5M24 38v2'),
       cap: on('M13 8Q20 2 27 8L28 14Q20 17 12 14z', 'M13 8Q20 2 27 8M12 14Q20 17 28 14'),
       flutter: on('M13 8Q20 2 27 8L33 22Q30 25 27 22Q24 26 20 23Q16 26 13 22Q10 25 7 22z', 'M13 8Q20 2 27 8M7 22Q10 25 13 22Q16 26 20 23Q24 26 27 22Q30 25 33 22'),
+    },
+    plungeDepth: {
+      standard: on(TOP, 'M15 8L20 30L25 8'),
+      waist: on(TOP, 'M15 8L20 38L25 8'),
+    },
+    sleeveFullness: {
+      soft: on('M14 8Q20 2 26 8L30 38Q20 42 10 38z', 'M11 38Q20 42 29 38M15 40h10v4H15zM17 38v2M20 39v1.5M23 38v2'),
+      full: on('M14 8Q20 2 26 8L36 36Q20 44 4 36z', 'M5 36Q20 44 35 36M15 40h10v4H15zM12 35v3M16 37v3M20 38v2M24 37v3M28 35v3'),
     },
     sleeveCut: {
       set_in: on(SLEEVED, 'M8 12Q11 17 10 22M32 12Q29 17 30 22'),
@@ -181,6 +190,7 @@ const DETAILS: Record<ExplainSet, Record<string, Record<string, ReactNode>>> = {
       none: on(SHORT_TOP),
       flared: on(SHORT_TOP, 'M11 28L5 39Q20 43 35 39L29 28'),
       gathered: on(SHORT_TOP, 'M11 28L8 38Q11 40 14 38Q17 40 20 38Q23 40 26 38Q29 40 32 38L29 28M13 29v2M17 29v2M21 29v2M25 29v2'),
+      balloon: on(SHORT_TOP, 'M11 28Q4 34 8 40Q14 44 20 42Q26 44 32 40Q36 34 29 28M13 29v2M17 29v2M21 29v2M25 29v2M12 40v2M16 42v2M24 42v2M28 40v2'),
     },
     peplumHem: {
       level: on(SHORT_TOP, 'M11 28L5 39Q20 43 35 39L29 28'),
@@ -210,6 +220,12 @@ const DETAILS: Record<ExplainSet, Record<string, Record<string, ReactNode>>> = {
       side_zip: on(TROUSERS, 'M29.2 5V17M28.2 17h2v2.5h-2z'),
     },
     pockets: { none: on(TROUSERS), inseam: inseam(TROUSERS, 8), slant: on(TROUSERS, 'M14 4L11.2 12M26 4L28.8 12') },
+    pleats: {
+      none: on(TROUSERS, 'M15 4L15.5 11M25 4L24.5 11'),
+      single: on(TROUSERS, 'M15 4L14.6 20M16.8 4L15 14M25 4L25.4 20M23.2 4L25 14'),
+      double: on(TROUSERS, 'M15 4L14.6 20M16.8 4L15 14M12.4 4L12.8 14M13.8 4L13.2 12M25 4L25.4 20M23.2 4L25 14M27.6 4L27.2 14M26.2 4L26.8 12'),
+    },
+    loops: { none: on(TROUSERS), loops: on(TROUSERS, 'M13.4 2.8v4.4h1.4V2.8zM25.2 2.8v4.4h1.4V2.8zM10.6 3.4v4h1.2v-4zM28.2 3.4v4h1.2v-4z') },
   },
   outer: {
     fit: { ...FIT, oversized: DRESS_FIT.oversized },
