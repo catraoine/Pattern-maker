@@ -46,10 +46,9 @@
  "bodice neckline=scoop": [],
  "bodice neckline=square": [],
  "bodice neckline=strapless": [],
- "bodice neckline=sweetheart": [
-  "Bodice centre front: the cutting line crosses itself near (#, #)"
- ],
+ "bodice neckline=sweetheart": [],
  "bodice neckline=v": [],
+ "bodice peplum=balloon": [],
  "bodice peplum=flared": [],
  "bodice peplum=gathered": [],
  "bodice peplum=none": [],
@@ -57,6 +56,8 @@
  "bodice peplumHem=level": [],
  "bodice peplumSize=big": [],
  "bodice peplumSize=standard": [],
+ "bodice plungeDepth=standard": [],
+ "bodice plungeDepth=waist": [],
  "bodice princess=armhole": [],
  "bodice princess=none": [],
  "bodice princess=shoulder": [],
@@ -74,6 +75,8 @@
  "bodice sleeveCut=drop": [],
  "bodice sleeveCut=raglan": [],
  "bodice sleeveCut=set_in": [],
+ "bodice sleeveFullness=full": [],
+ "bodice sleeveFullness=soft": [],
  "bodice sleeveShape=bishop": [],
  "bodice sleeveShape=cap": [],
  "bodice sleeveShape=fitted": [],
@@ -84,7 +87,6 @@
  "coat collar=collarless": [],
  "coat collar=funnel": [],
  "coat collar=hood": [
-  "Hood: a notch at (#, #) is # cm off the edge of the piece",
   "Neckline square at centre back: #°"
  ],
  "coat collar=notched": [],
@@ -119,13 +121,9 @@
  "coat sleeve=straight": [],
  "coat sleeve=tailored": [],
  "coat trim=none": [],
- "coat trim=rib": [
-  "Back lining: a notch at (#, #) is # cm off the edge of the piece"
- ],
+ "coat trim=rib": [],
  "coat vent=centre": [],
- "coat vent=none": [
-  "Back lining: a notch at (#, #) is # cm off the edge of the piece"
- ],
+ "coat vent=none": [],
  "dress back=keyhole": [],
  "dress back=plain": [],
  "dress back=scoop": [],
@@ -167,15 +165,15 @@
  "dress neckline=scoop": [],
  "dress neckline=square": [],
  "dress neckline=strapless": [],
- "dress neckline=sweetheart": [
-  "Bodice centre front: the cutting line crosses itself near (#, #)"
- ],
+ "dress neckline=sweetheart": [],
  "dress neckline=v": [],
  "dress peplum=none": [],
  "dress peplumHem=high_low": [],
  "dress peplumHem=level": [],
  "dress peplumSize=big": [],
  "dress peplumSize=standard": [],
+ "dress plungeDepth=standard": [],
+ "dress plungeDepth=waist": [],
  "dress princess=armhole": [],
  "dress princess=none": [],
  "dress princess=shoulder": [],
@@ -212,6 +210,8 @@
  "dress sleeveCut=drop": [],
  "dress sleeveCut=raglan": [],
  "dress sleeveCut=set_in": [],
+ "dress sleeveFullness=full": [],
+ "dress sleeveFullness=soft": [],
  "dress sleeveShape=bishop": [],
  "dress sleeveShape=cap": [],
  "dress sleeveShape=fitted": [],
@@ -227,7 +227,6 @@
  "jacket collar=collarless": [],
  "jacket collar=funnel": [],
  "jacket collar=hood": [
-  "Hood: a notch at (#, #) is # cm off the edge of the piece",
   "Neckline square at centre back: #°"
  ],
  "jacket collar=notched": [],
@@ -245,9 +244,7 @@
  "jacket lapel=classic": [],
  "jacket lapel=plunge": [],
  "jacket lapel=wide": [],
- "jacket length=cropped": [
-  "Back lining: a notch at (#, #) is # cm off the edge of the piece"
- ],
+ "jacket length=cropped": [],
  "jacket length=hip": [],
  "jacket length=long": [],
  "jacket pads=none": [],
@@ -263,13 +260,9 @@
  "jacket sleeve=straight": [],
  "jacket sleeve=tailored": [],
  "jacket trim=none": [],
- "jacket trim=rib": [
-  "Back lining: a notch at (#, #) is # cm off the edge of the piece"
- ],
+ "jacket trim=rib": [],
  "jacket vent=centre": [],
- "jacket vent=none": [
-  "Back lining: a notch at (#, #) is # cm off the edge of the piece"
- ],
+ "jacket vent=none": [],
  "skirt asymHem=diagonal": [],
  "skirt asymHem=high_low": [],
  "skirt asymHem=none": [],
@@ -278,10 +271,7 @@
  "skirt fit=fitted": [],
  "skirt fit=regular": [],
  "skirt fit=relaxed": [],
- "skirt flounce=balloon": [
-  "Skirt front / Skirt back side: a notch # cm down the front with none at that place on the back (it has #)",
-  "Skirt front / Skirt back side: a notch # cm down the back with none at that place on the front (it has #)"
- ],
+ "skirt flounce=balloon": [],
  "skirt flounce=hem_flounce": [],
  "skirt flounce=ruffle": [],
  "skirt flounce=tiers": [],
@@ -319,10 +309,7 @@
  "skirt slit=side": [],
  "skirt waist=elastic": [],
  "skirt waist=faced": [],
- "skirt waist=high": [
-  "Front waist facing: the stitching line crosses itself near (#, #)",
-  "Back waist facing: the stitching line crosses itself near (#, #)"
- ],
+ "skirt waist=high": [],
  "skirt waist=wrap": [],
  "tee fit=fitted": [],
  "tee fit=regular": [],

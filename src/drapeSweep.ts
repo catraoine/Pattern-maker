@@ -80,8 +80,10 @@ interface OptionDesign {
   design: SweepDesign;
 }
 
-const SLEEVE_GROUPS = ['sleeveShape', 'sleeveCut', 'sleeveCuff'];
+const SLEEVE_GROUPS = ['sleeveShape', 'sleeveFullness', 'sleeveCut', 'sleeveCuff'];
 const PEPLUM_GROUPS = ['peplumHem', 'peplumSize'];
+// A sleeve's fullness is sewn on a bishop sleeve, a plunge's depth on a plunge: the plain design can't show them.
+const GROUP_BASE: Record<string, Record<string, unknown>> = { sleeveFullness: { sleeveShape: 'bishop' }, plungeDepth: { neckline: 'plunge' } };
 
 /** The skirt's fullness, waist and front choices, each as the change it makes to a plain skirt. */
 function skirtExtras(): [string, Partial<Saved['choices']>][] {
@@ -114,7 +116,7 @@ export function optionDesigns(): OptionDesign[] {
     for (const g of BODICE_GROUPS as readonly { id: string; options: readonly (readonly [string, string])[] }[]) {
       if (garment === 'dress' && g.id === 'length') continue;
       for (const [o] of g.options) {
-        const base: Record<string, unknown> = { ...DEFAULT_BODICE, ...(SLEEVE_GROUPS.includes(g.id) ? { sleeve: 'long' } : {}), ...(PEPLUM_GROUPS.includes(g.id) ? { peplum: 'flared' } : {}) };
+        const base: Record<string, unknown> = { ...DEFAULT_BODICE, ...(SLEEVE_GROUPS.includes(g.id) ? { sleeve: 'long' } : {}), ...(PEPLUM_GROUPS.includes(g.id) ? { peplum: 'flared' } : {}), ...GROUP_BASE[g.id] };
         const c = validDetails({ ...base, [g.id]: o } as unknown as BodiceChoices, garment);
         if ((c as unknown as Record<string, unknown>)[g.id] !== o) continue;
         const key = `${garment} ${g.id}=${o}`;

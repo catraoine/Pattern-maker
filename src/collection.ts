@@ -185,12 +185,12 @@ export function lookPatch(look: HouseLook): { garment: Garment } & Record<string
 }
 
 function sleeveFor(b: BodiceDraft, c: BodiceChoices, own: MeasurementValues): SleeveDraft | undefined {
-  const { length, shape, cm, cuff } = sleeveOf(c);
+  const { length, shape, cm, cuff, fullness } = sleeveOf(c);
   // Measured for the body but not the arms yet: the drawing borrows the sample arms, so a shirt still shows its
   // sleeves (it came out sleeveless; 2026-10-30).
   const m = needsArms(own as never) ? { ...EXAMPLE_BODY, ...own } : own;
   if (length === 'none' || needsArms(m as never)) return undefined;
-  return draftSleeve(b, m as never, { length, shape, ...(cm !== undefined ? { lengthCm: cm } : {}), ...(cuff ? { cuff } : {}), fit: c.fit, seamAllowance: b.pieces[0].seamAllowance, armholeAllowance: b.pieces[0].allowances.armhole ?? 1, hemAllowance: 2.5 });
+  return draftSleeve(b, m as never, { length, shape, ...(cm !== undefined ? { lengthCm: cm } : {}), ...(cuff ? { cuff } : {}), ...(fullness ? { fullness } : {}), fit: c.fit, seamAllowance: b.pieces[0].seamAllowance, armholeAllowance: b.pieces[0].allowances.armhole ?? 1, hemAllowance: 2.5 });
 }
 
 /** The measurements a look is drawn to: the sewist's own when the garment has all it needs, or the sample set. */

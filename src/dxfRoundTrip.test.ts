@@ -1,5 +1,6 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import type { P } from './engine/geometry';
 import { checkPatterns, patternDesigns, patternReport } from './patternSweep';
 import { compareBack, dxfProblems, roundTripDesign } from './dxfRoundTrip';
 import { toDxf } from './engine/dxf';
@@ -56,7 +57,9 @@ describe('the DXF round trip check', () => {
   it('finds a piece that comes back different', () => {
     const ps = pieces();
     const back = importDxf(toDxf(ps, { style: 'Round trip', size: 'Example', date: '2026-11-04' }));
-    back.pieces[0] = { ...back.pieces[0], cut: 'Cut 3', notches: back.pieces[0].notches.slice(1), grain: undefined };
+    // A notch gone from the file: the check reads the file's own notch points.
+    const fileNotches = (back.pieces[0].meta.fileNotches as P[]).slice(1);
+    back.pieces[0] = { ...back.pieces[0], cut: 'Cut 3', notches: back.pieces[0].notches.slice(1), grain: undefined, meta: { ...back.pieces[0].meta, fileNotches } };
     back.pieces[1] = { ...back.pieces[1], cutOutline: back.pieces[1].cutOutline!.map((q) => ({ x: q.x * 1.01, y: q.y })) };
     const found = compareBack(ps, back).join('\n');
     expect(found).toMatch(/Skirt front: cut 3 in the file, 1 drafted/i);

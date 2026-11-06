@@ -65,9 +65,14 @@ const FINISH: Record<string, { rough: number; sheen?: number; sheenRough?: numbe
 };
 
 /** The material for a garment's cloth: its swatch, its opacity, and the finish its kind of cloth has. */
+/** A lace's tile is already a net, so it is laid nearly solid; a plain sheer fades to 0.6. */
+function opacityOf(cloth: ClothTiles): number {
+  return cloth.lace ? 0.95 : cloth.sheer ? 0.6 : 1;
+}
+
 function clothFinish(mode: Mode, cloth: ClothTiles, map: THREE.Texture, scale: number): RoundMaterial {
   const f = cloth.kind ? FINISH[cloth.kind] : undefined;
-  const mat = material(mode, map, scale, cloth.sheer ? 0.6 : 1, !!(f?.sheen || f?.coat));
+  const mat = material(mode, map, scale, opacityOf(cloth), !!(f?.sheen || f?.coat));
   if (!f) return mat;
   mat.roughness = f.rough;
   const pm = mat as unknown as THREE.MeshPhysicalMaterial;
@@ -741,7 +746,7 @@ export function createRoundView(): RoundView | undefined {
       disposables.push(tex);
       const mode: Mode = cloth?.sheen === 'gloss' ? 'gloss' : cloth?.sheen === 'pile' ? 'pile' : 'matte';
       // The border band is a print: only the body's swatch takes the cloth's finish.
-      const mat = cloth && tiles === cloth.body ? clothFinish(mode, cloth, tex, 1 / size) : material(mode, tex, 1 / size, cloth?.sheer ? 0.6 : 1);
+      const mat = cloth && tiles === cloth.body ? clothFinish(mode, cloth, tex, 1 / size) : material(mode, tex, 1 / size, cloth ? opacityOf(cloth) : 1);
       if (cloth?.lift && cloth.plain) {
         mat.emissive.set(cloth.plain).convertSRGBToLinear();
         mat.emissiveIntensity = cloth.lift;

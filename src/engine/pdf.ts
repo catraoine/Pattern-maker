@@ -112,7 +112,24 @@ function drawSheet(
         borderDashArray: st.dash ? st.dash.map((v) => v * CM) : undefined,
       });
     } else {
-      if (pr.at.x < ox - 40 || pr.at.x > ox + w + 40 || pr.at.y < oy - 2 || pr.at.y > oy + h + 2) continue;
+      // Skip words entirely outside this view, by where the words reach, not where they start: a label running up a
+      // piece or a wide name block anchored off this page can still cross onto it. Culled by its anchor alone, it was
+      // left off one page and printed on the next, so the words were cut where the two pages overlap.
+      const font = fonts[pr.face ?? 'body'];
+      const size = pr.size * CM * 0.85;
+      const width = (font.widthOfTextAtSize(worded(pr.text), size) + (pr.tracking ?? 0) * size * Math.max(0, pr.text.length - 1)) / CM;
+      const rad = (pr.rotate * Math.PI) / 180;
+      const u = { x: Math.cos(rad), y: Math.sin(rad) };
+      const from = pr.anchor === 'middle' ? width / 2 : 0;
+      const ends = [-from, width - from].map((k) => ({ x: pr.at.x + u.x * k, y: pr.at.y + u.y * k }));
+      const pad = pr.size + 0.5;
+      if (
+        Math.max(...ends.map((q) => q.x)) + pad < ox ||
+        Math.min(...ends.map((q) => q.x)) - pad > ox + w ||
+        Math.max(...ends.map((q) => q.y)) + pad < oy ||
+        Math.min(...ends.map((q) => q.y)) - pad > oy + h
+      )
+        continue;
       const at = (q: P) => ({ x: (q.x - ox + left) * CM, y: (ph - top - (q.y - oy)) * CM });
       drawText(page, pr.text, {
         ...at(pr.at),
