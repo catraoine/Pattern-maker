@@ -120,6 +120,10 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       cami: ['Thin straps over the shoulders, like a camisole.'],
       halter: ['Rises to the neck and ties behind it, leaving the shoulders and upper back bare.'],
     },
+    plungeDepth: {
+      standard: ['The V opens the shoulders to narrow straps and ends above the waist.'],
+      waist: ['A narrow V between covered shoulders, running down to just above the waist seam.', 'skill'],
+    },
     length: {
       waist: ['Ends at your waist, the natural place to meet a skirt or trousers.'],
       high_hip: ['Ends a little below the waist, at the top of the hip.'],
@@ -152,6 +156,10 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       bishop: ['Full lower down and gathered into a band at the end.', 'skill'],
       cap: ['A tiny sleeve that just covers the top of the shoulder.', 'easy'],
       flutter: ['A short sleeve that flares out and ripples at the hem. Best in a light, drapey fabric.'],
+    },
+    sleeveFullness: {
+      soft: ['The usual fullness: a gentle puff, or a bishop that swells softly to its band.', 'easy'],
+      full: ['Nearly twice the arm: a high, blousy puff, or a bishop that billows to its band.', 'skill'],
     },
     sleeveCut: {
       set_in: ['The sleeve is sewn into a round armhole at your shoulder point. The usual way.', 'easy'],
@@ -211,6 +219,7 @@ const EXPLAIN: Record<ExplainSet, Record<string, Record<string, Line>>> = {
       none: ['No peplum.'],
       flared: ['A short skirt sewn on at the waist that flares over the hips. A longer top lowers it.'],
       gathered: ['A short ruffle gathered on at the waist, or lower on a longer top.'],
+      balloon: ['A full peplum gathered at its hem onto a shorter hidden underskirt, so it puffs out and turns under.', 'skill'],
     },
     peplumHem: {
       level: ['The peplum is the same length all the way round.', 'easy'],
@@ -462,6 +471,10 @@ const SHORT: Record<string, string> = {
   'sleeveShape.bishop': 'Full low down, gathered into a band.',
   'sleeveShape.cap': 'Just covers the top of the shoulder.',
   'sleeveShape.flutter': 'Short, flared and rippling.',
+  'sleeveFullness.soft': 'A gentle puff or bishop.',
+  'sleeveFullness.full': 'Nearly twice the arm: blousy.',
+  'plungeDepth.standard': 'Open shoulders, ends above the waist.',
+  'plungeDepth.waist': 'A narrow V down to the waist.',
   'sleeveCut.set_in': 'Sewn into a round armhole. The usual.',
   'sleeveCut.drop': 'Starts below the shoulder. Relaxed.',
   'sleeveCut.raglan': 'Seam from neck to underarm.',
@@ -504,6 +517,7 @@ const SHORT: Record<string, string> = {
   'structure.shirred': 'Elastic-shirred back. Pulls on.',
   'peplum.flared': 'A short flared skirt at the waist.',
   'peplum.gathered': 'A short gathered ruffle at the waist.',
+  'peplum.balloon': 'Puffs out and turns under at its hem.',
   'peplumHem.level': 'The same length all round.',
   'peplumSize.standard': 'A short flare over the hips.',
   'peplumSize.big': 'Longer and much fuller.',

@@ -17,6 +17,9 @@ import { DROP, RaglanYoke, SHAPES_FOR_LENGTH, SleeveCut } from './sleeveCut';
 export type SleeveLength = 'none' | 'short' | 'elbow' | 'three_quarter' | 'long';
 /** 'tailored' is the two-piece sleeve of a jacket or coat: long only, and not offered on a bodice. */
 export type SleeveShape = 'fitted' | 'straight' | 'puff' | 'bishop' | 'cap' | 'flutter' | 'tailored';
+/** How full a puff or bishop sleeve is cut: 'soft' is the shape's own fullness; 'full' (In testing, from Cat's SS27
+ * lace blouse picture, 2026-11-06) is about twice the arm, the blousy runway bishop. */
+export type SleeveFullness = 'soft' | 'full';
 
 export { SHAPES_FOR_LENGTH } from './sleeveCut';
 
@@ -32,6 +35,8 @@ export interface SleeveStyle {
   length: Exclude<SleeveLength, 'none'>;
   shape: SleeveShape;
   fit: BodiceFit;
+  /** A puff or bishop sleeve's fullness (see SleeveFullness). Soft when missing. */
+  fullness?: SleeveFullness;
   seamAllowance: number;
   armholeAllowance: number;
   hemAllowance: number;
@@ -262,7 +267,10 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
   const flutter = shape === 'flutter';
 
   let w = m.upper_arm + ease.bicep;
-  if (shape === 'puff') w *= 1.3;
+  const full = s.fullness === 'full';
+  // A full puff is cut nearly twice the arm round, so it stands up when gathered in; a full bishop keeps the arm width
+  // at the top and swells to its hem (hemAt).
+  if (shape === 'puff') w *= full ? 1.9 : 1.3;
   const target = front.length + back.length + (shape === 'puff' ? 0 : ease.crown);
 
   // Find the crown height for the length, and the crown point for the split; widen or narrow the
@@ -302,7 +310,7 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
     if (shape === 'puff') {
       // A puff sleeve's crown is raised for the fullness and gathered in.
       const base = solve(m.upper_arm! + ease.bicep);
-      return solve(w, Math.min(depth * 1.05, base.h + 4));
+      return solve(w, Math.min(depth * 1.05, base.h + (full ? 7 : 4)));
     }
     const fit = solve(w);
     const total = totalOf(fit.c);
@@ -342,7 +350,7 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
   const cuffHem = (plain: number) => (!cuff || cuff.kind === 'ruffle' ? plain : cuff.kind === 'elastic' ? Math.max(plain, hand + 4) : Math.max(plain, cuff.round + 6));
   const hemAt = (length: Named) => {
     if (shape === 'puff' || cap_ || flutter) return w;
-    if (shape === 'bishop') return w * 1.5;
+    if (shape === 'bishop') return w * (full ? 2.3 : 1.5);
     if (s.outer && length === 'long') return shape === 'fitted' ? Math.max(wrist + (s.outer === 'coat' ? 14 : 11), hand + 5) : Math.max(w * 0.85, hand + 8);
     if (shape === 'fitted') {
       // A fitted long sleeve is woven (a knit tee's sleeve is drafted straight), so without an
@@ -511,7 +519,7 @@ export function draftSleeveTo(bf: Piece, bb: Piece, m: SleeveMeasurements, s: Sl
       armhole: s.armholeAllowance,
       hem: cuff?.kind === 'elastic' ? cuff.depth + 0.5 : gathered || cuff ? s.seamAllowance : flutter ? 1 : cap_ ? Math.min(1.5, s.hemAllowance) : s.hemAllowance,
     },
-    meta: { capHeight: r1(h), ...(shape === 'puff' ? { gatheredCrown: true } : {}), ...(flutter ? { flutter: true } : {}), ...(cap_ ? { cap: true } : {}) },
+    meta: { capHeight: r1(h), ...(shape === 'puff' ? { gatheredCrown: true } : {}), ...(flutter ? { flutter: true } : {}), ...(cap_ ? { cap: true } : {}), ...(full ? { full: true } : {}) },
   };
   const named = namedAt(h);
   const lengthInfo = { cm: r1(setFor(h)), min: r1(h + MIN_UNDERSEAM), max: r1(named.long), named: Object.fromEntries(SLEEVE_LENGTHS.map((l) => [l, r1(named[l])])) as Record<Named, number> };

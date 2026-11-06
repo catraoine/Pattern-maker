@@ -344,12 +344,13 @@ const COWL: { picks: FabricPick[]; avoid: string } = {
 const PEPLUM_NOTES = {
   flared: 'A flared peplum swings best in a soft fabric of the same weight as the bodice.',
   gathered: 'A gathered peplum sits neatest in a light fabric, so the gathers stay soft at the waist.',
+  balloon: 'A balloon peplum needs a crisp cloth to hold its puff: taffeta, poplin or a crisp silk. A fluid fabric collapses into folds.',
 };
 
 const FIT_WORDS: Record<BodiceFit, string> = { fitted: 'fitted', regular: 'regular fit', relaxed: 'relaxed', boxy: 'boxy', oversized: 'oversized' };
 
 /** Fabrics for a bodice style. */
-export function bodiceFabrics(style: { fit: BodiceFit; neckline: Neckline; length?: BodiceLength; darts?: BodiceDarts; structure?: Structure; neck?: unknown; peplum?: 'none' | 'flared' | 'gathered' }): FabricAdvice {
+export function bodiceFabrics(style: { fit: BodiceFit; neckline: Neckline; length?: BodiceLength; darts?: BodiceDarts; structure?: Structure; neck?: unknown; peplum?: 'none' | 'flared' | 'gathered' | 'balloon' }): FabricAdvice {
   if (style.structure === 'boned')
     return { style: 'a boned bodice', picks: BONED.picks, avoid: BONED.avoid, note: BONED.note, lining: BODICE_LINING };
   // Shirring draws up only light cloth.

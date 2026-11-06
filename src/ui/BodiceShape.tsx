@@ -157,8 +157,10 @@ export function drapedOutline(draft: BodiceDraft, side: Side, w: Worn, cx: numbe
 // Boxy and oversized are cuts, not amounts of ease: a dragged fit snaps only to the other three, and a dragged
 // oversized top stays oversized.
 const FITS = (Object.keys(BODICE_FIT_EASE) as BodiceFit[]).filter((f) => f !== 'boxy' && f !== 'oversized');
-const fitName = (id: BodiceFit) => BODICE_GROUPS[0].options.find((o) => o[0] === id)?.[1] ?? 'Boxy';
-const lengthName = (id: BodiceChoices['length']) => BODICE_GROUPS[2].options.find((o) => o[0] === id)![1];
+// (By the group's id, not its place in the list: a group added before Length (the plunge's depth, 2026-11-06) put the
+// wrong group at that place and crashed the screen for a top cut to the high hip.)
+const fitName = (id: BodiceFit) => BODICE_GROUPS.find((g) => g.id === 'fit')!.options.find((o) => o[0] === id)?.[1] ?? 'Boxy';
+const lengthName = (id: BodiceChoices['length']) => BODICE_GROUPS.find((g) => g.id === 'length')!.options.find((o) => o[0] === id)![1];
 
 /** Keeps the darts to what the fit allows, the way picking a fit chip does. */
 const withDarts = (c: BodiceChoices): BodiceChoices => (DARTS_FOR_FIT[c.fit].includes(c.darts) ? c : { ...c, darts: dartsFor(c) });
