@@ -6,6 +6,9 @@ import { OUTER_EASE, OUTER_LENGTHS, OuterKind, draftOuter } from './outerwear';
 import { outerFlat } from './flat';
 import { outerGuide } from './outerGuide';
 import { EXAMPLE_VALUES } from '../measurements';
+import { DROP } from './sleeveCut';
+
+const r1 = (v: number) => Math.round(v * 10) / 10;
 
 const m = EXAMPLE_VALUES as Parameters<typeof draftOuter>[0];
 
@@ -116,6 +119,9 @@ describe('jackets and coats', () => {
               // Straight: no waist shaping and no pads, whatever was asked.
               if (!(d.finishedWaist >= d.finishedBust - 0.5)) failures.push(`${tag}: waist ${d.finishedWaist} under the bust ${d.finishedBust}`);
               if (d.pieces.some((pc) => /top sleeve|under sleeve/i.test(pc.name) && !pc.kind)) failures.push(`${tag}: kept the two-piece sleeve`);
+              // The dropped shoulder's seam goes round the arm with room, on the biggest bodies too (on a 145 cm bust it
+              // came out shorter than the arm's own armhole).
+              if (d.base.armhole < b.armscye! + DROP.room - 0.1) failures.push(`${tag}: armhole ${d.base.armhole} for an armhole of ${r1(b.armscye!)}`);
               const bad = checkPattern(d.pieces.filter((pc) => !pc.kind || pc.kind === 'collar')).filter((c) => !c.ok);
               if (bad.length) failures.push(`${tag}: ${bad.map((c) => `${c.label} ${c.detail ?? ''}`).join('; ')}`);
               for (const pc of d.pieces) if (pc.outline.points().some((q) => !Number.isFinite(q.x + q.y))) failures.push(`${tag} ${pc.name} not finite`);

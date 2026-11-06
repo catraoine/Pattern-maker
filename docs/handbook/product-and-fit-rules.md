@@ -299,6 +299,11 @@ Source of truth: [SHIP-LIST.md](../SHIP-LIST.md).
    the edge it is sewn to; before drawing, it is put exactly on that edge (`closeSeams` in
    `src/engine/drape/hang.ts`), so no hairline of the form shows between two panels where a side seam is seen
    edge-on.
+49. **A dropped shoulder's armhole goes round the arm with room** (Nov 6, Fit Quality): the shoulder runs 5 cm
+   past the shoulder point and the underarm drops 3 cm, lower still where the armhole would otherwise be less than
+   the arm's own armhole plus 4 cm (the room a set-in sleeve's armhole has). Redrawn, the armhole lost more on a big
+   body than a small one: on the oversized jacket and coat it came out up to 1.4 cm smaller than the arm on busts
+   of 125 to 145 cm (`DROP` in `src/engine/sleeveCut.ts`, `cutSleeves` in `src/engine/bodice.ts`).
 
 ## Style steps
 
