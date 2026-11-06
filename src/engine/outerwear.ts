@@ -840,7 +840,9 @@ function backLining(pc: Piece, pleat: number): Piece {
   const top = Math.min(a.y, b.y);
   const bottom = Math.max(a.y, b.y);
   const cut = 'Cut 1 on fold';
-  return cutFrom(pc, { pts, tags }, 'Back lining', {
+  // The outline moved over by the pleat, so the back's notches move with it to stay on the lining's edges.
+  const shifted: Piece = { ...pc, notches: pc.notches.map(([q, d]): [P, P] => [add(q, p(pleat, 0)), d]) };
+  return cutFrom(shifted, { pts, tags }, 'Back lining', {
     kind: 'lining',
     fabric: 'Lining',
     cut,
@@ -1030,11 +1032,15 @@ function hoodPiece(neckHalf: number, kind: OuterKind, sa: number): Piece {
   const { height: H } = HOOD[kind];
   let D = HOOD[kind].depth;
   const build = (depth: number) => {
+    // The neck leaves the nape square to the centre back seam (which arrives there running nearly straight down),
+    // so the two hood halves sewn together meet the neckline in a smooth curve, not a point.
+    const nape = p(depth * 0.84, H - 3.2);
+    const cbIn = unit(sub(nape, p(depth * 0.86, H - 6.5)));
     const outline = new Path(p(0, H))
       .line(p(0, 1.5), 'face')
       .curve(p(depth * 0.4, -2.2), p(depth * 0.98, -0.4), p(depth, 9), 'centre')
-      .curve(p(depth * 1.01, H * 0.5), p(depth * 0.86, H - 6.5), p(depth * 0.84, H - 3.2), 'centre')
-      .curve(p(depth * 0.62, H + 1.6), p(depth * 0.22, H + 1.1), p(0, H), 'neck');
+      .curve(p(depth * 1.01, H * 0.5), p(depth * 0.86, H - 6.5), nape, 'centre')
+      .curve(add(nape, mul(p(-cbIn.y, cbIn.x), depth * 0.25)), p(depth * 0.22, H + 1.1), p(0, H), 'neck');
     outline.closed = true;
     return outline;
   };
@@ -1042,14 +1048,17 @@ function hoodPiece(neckHalf: number, kind: OuterKind, sa: number): Piece {
   for (let i = 0; i < 3; i++) D *= neckHalf / taggedLength(build(D), 'neck');
   const outline = build(D);
   const cut = 'Cut 2 (1 pair)';
+  // A notch on the edge itself: the point of the named edge nearest to `x` across the hood.
+  const { pts, tags } = outline.taggedPoints(48);
+  const onEdge = (tag: string, x: number): P => pts.filter((_, i) => tags[i] === tag).sort((u, v) => Math.abs(u.x - x) - Math.abs(v.x - x))[0];
   return {
     name: 'Hood',
     outline,
     lines: [],
     grain: [p(D * 0.45, 6), p(D * 0.45, H - 6)],
     notches: [
-      [p(D * 0.6, 1.2), p(0, -1)],
-      [p(D * 0.4, H + 0.2), p(0, 1)],
+      [onEdge('centre', D * 0.6), p(0, -1)],
+      [onEdge('neck', D * 0.4), p(0, 1)],
     ],
     labels: [
       { at: p(D * 0.5, H * 0.4), text: 'HOOD', size: 1.4 },

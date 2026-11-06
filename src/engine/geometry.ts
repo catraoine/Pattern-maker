@@ -158,9 +158,9 @@ function segmentHit(a: P, b: P, c: P, d: P): P | null {
   return t > 1e-9 && t < 1 - 1e-9 && u > 1e-9 && u < 1 - 1e-9 ? add(a, mul(r, t)) : null;
 }
 
-/** Where a concave curve is tighter than the offset distance (a neckline corner, say), the offset
- * folds back over itself in a small loop. Cut each loop out at the point where it crosses. */
-function removeLoops(pts: P[], window = 16): P[] {
+/** An open line with its small loops cut out, each at the point where it crosses itself (a facing's inner edge
+ *  where it is offset from a closed dart's kink, say). */
+export function unlooped(pts: P[], window = 16): P[] {
   const out = [...pts];
   for (let i = 0; i < out.length; i++) {
     for (let j = i + 2; j < Math.min(out.length - 1, i + window); j++) {
@@ -172,4 +172,20 @@ function removeLoops(pts: P[], window = 16): P[] {
     }
   }
   return out;
+}
+
+/** Where a concave curve is tighter than the offset distance (a neckline corner, say), the offset
+ * folds back over itself in a small loop. Cut each loop out at the point where it crosses. */
+function removeLoops(pts: P[], window = 16): P[] {
+  const pass = (arr: P[]) => unlooped(arr, window);
+  const once = pass(pts);
+  // The line is closed, so a loop can run across the join between its last point and its first (a sweetheart's dip
+  // at the centre front fold, where the line starts). A pass that starts there never sees that loop as one, so run
+  // again starting halfway round, then turn the result to start at the earliest point of the original that is left.
+  const half = Math.floor(once.length / 2);
+  const twice = pass([...once.slice(half), ...once.slice(0, half)]);
+  const order = new Map(once.map((q, i) => [q, i]));
+  let first = 0;
+  for (let i = 1; i < twice.length; i++) if ((order.get(twice[i]) ?? Infinity) < (order.get(twice[first]) ?? Infinity)) first = i;
+  return [...twice.slice(first), ...twice.slice(0, first)];
 }
