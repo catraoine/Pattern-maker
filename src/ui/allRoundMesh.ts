@@ -617,7 +617,7 @@ export function createRoundView(): RoundView | undefined {
     clear();
     built = o;
     const { round, sh, cloth, film } = o;
-    const { trousers, isTop, yAt, yOf, kY, longest, highest, bandTop, arm, yS, yU, sl, rh, radius, shell, clothDown, yE, yCap, axisX, capDepth, sleeveR, lg, yC, yK, yH, legHemR, legR, legAxis, rAt } = sh;
+    const { trousers, isTop, yAt, yOf, kY, longest, highest, bandTop, arm, yS, yU, sl, rh, radius, shell, clothDown, yE, yCap, axisX, capDepth, sleeveR, lg, yC, yK, yH, legR, legAxis, rAt } = sh;
     const k = 1 / kY; // cm of cloth to a unit of the form
     const add = (geo: THREE.BufferGeometry, mat: RoundMaterial, order = 1, part: PickPart = 'cloth', e = 0) => {
       const mesh = new THREE.Mesh(geo, mat);
@@ -798,6 +798,19 @@ export function createRoundView(): RoundView | undefined {
       }
     }
     /** A tube round an axis at X(y): a sleeve or a trouser leg, in its cloth. */
+    /**
+     * How far, at height y, a trouser leg's cloth keeps the seat's depth rather than closing to its own round tube of
+     * radius r: over the thigh on any leg, and the whole way down a leg with cloth enough to hang plumb from the seat
+     * and the belly, as a straight tube leg does (closing to a round tube below the thigh, the seat read as a bump
+     * over the leg from the side, Cat 2026-11-06). `seatD` is the seat's depth at the crotch.
+     */
+    const seatHold = (y: number, y0: number, r: number, seatD: number) => {
+      const thigh = smooth(clamp(1 - (y - y0) / Math.max(0.45, (yK - y0) * 0.85), 0, 1));
+      // The depth the cloth can give while staying as wide across as the leg inside it.
+      const room = 2 * r - (FORM_LEG(y) + 0.012);
+      const plumb = seatD > r ? clamp((room - r) / (seatD - r), 0, 1) : 0;
+      return Math.max(thigh, plumb);
+    };
     const tube = (X: (y: number) => number, R: (y: number) => number, y0: number, y1: number, panels: boolean, Z: (y: number) => number = () => 1, seat?: (g: number) => number, part: PickPart = 'cloth') => {
       const e = Math.sign(X(y0)) || 1;
       const NY = 32;
@@ -833,7 +846,7 @@ export function createRoundView(): RoundView | undefined {
               const p = T(X(y), aw, r, y, r * Z(y));
               // Over the whole thigh, down to the knee: the cloth hangs from the seat and the belly and only closes
               // round the leg as the thigh narrows (over a hand's width it bulged at the seat, Cat 2026-10-28).
-              const wOut = smooth(clamp(1 - (y - y0) / Math.max(0.45, (yK - y0) * 0.85), 0, 1));
+              const wOut = seatHold(y, y0, r, Math.max(seat(0), seat(Math.PI)));
               // The inseam side parts from the other leg straight below the crotch, so two legs show from the front.
               const wIn = smooth(clamp(1 - (y - y0) / 0.3, 0, 1));
               const w = wOut + (wIn - wOut) * smooth(clamp(-sOf / 0.6, 0, 1));
@@ -950,9 +963,23 @@ export function createRoundView(): RoundView | undefined {
     };
     const ring = (l: Lines, yAtA: (a: number) => number, rOf: (a: number, y: number) => number = shell, n = 144) => l.curve(n, (i) => onCloth(-Math.PI + (TAU * i) / n, yAtA(-Math.PI + (TAU * i) / n), rOf));
     const legX = (leg: number, y: number) => leg * legAxis(y);
+    /** A point on a trouser leg's cloth at angle `a` round it, as the leg's tube is laid (see `tube`): its outer
+     *  side holds the seat's depth where the cloth does, so the lines drawn on it sit on the cloth. */
+    const onLeg = (leg: number, a: number, y: number) => {
+      const r = legR(y);
+      const q = onTube(legX(leg, y), a, r, y);
+      let v = leg * wrap(a);
+      // The quarter toward the other leg is the flat inseam, its line left on the tube.
+      if (v < -HALF + 1e-6) return q;
+      if (v > 3 * HALF) v -= TAU;
+      const g = leg * ((v + HALF) / 2);
+      const w = seatHold(y, yC, r, Math.max(rAt(0, yC), rAt(Math.PI, yC)));
+      q.p[2] = Math.cos(g) * rAt(g, yC) * w + q.p[2] * (1 - w);
+      return q;
+    };
     const spot = (p: RoundPt, leg?: number) => {
       const y = leg ? yOf(p.cm) : yAt(p.phi, p.cm);
-      return leg ? onTube(legX(leg, y), p.phi, legR(y), y) : onCloth(p.phi, y, rAt);
+      return leg ? onLeg(leg, p.phi, y) : onCloth(p.phi, y, rAt);
     };
     /** A seam or dart through its points, in small steps so it follows the body. */
     const along = (l: Lines, pts: RoundPt[], leg?: number) => {
@@ -1094,7 +1121,7 @@ export function createRoundView(): RoundView | undefined {
     // Trouser leg hems.
     if (lg) {
       const hems = lines({ colour: GLOW, width: 1.3, back: cloth ? 0 : 0.25, alpha: edge });
-      for (const leg of [-1, 1]) hems.curve(48, (i) => onTube(legX(leg, yH), -Math.PI + (TAU * i) / 48, legHemR, yH));
+      for (const leg of [-1, 1]) hems.curve(48, (i) => onLeg(leg, -Math.PI + (TAU * i) / 48, yH));
     }
 
     // The garment's outline, which stays at the sides as the form turns: its sides from the underarm (or the top
