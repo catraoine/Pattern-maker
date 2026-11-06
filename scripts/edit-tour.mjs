@@ -32,7 +32,10 @@ const CSS = `
   .k{font:400 10px/1 'Chakra Petch',monospace;letter-spacing:.34em;text-transform:uppercase;color:#dfbe84}
   .r{width:96px;height:1px;background:#dfbe84;margin:18px 0}
   /* The film's words are champagne, its own voice apart from the app's cream (Cat, 2026-10-31: the gold looked bad). */
-  .t{color:#dfbe84;font-family:'Archivo Variable',sans-serif;font-stretch:75%;font-weight:600;text-transform:uppercase;line-height:.9;letter-spacing:.005em;margin:0}
+  .t{color:#dfbe84;font-family:'Archivo Variable',sans-serif;font-stretch:87%;font-weight:600;text-transform:uppercase;line-height:.9;letter-spacing:.005em;margin:0}
+  /* The captions over the app (Cat's V5, 2026-11-06): Space Grotesk medium in sentence case, one line, champagne, big
+     enough to be read at once, so the viewer knows where to look. */
+  .n{color:#dfbe84;font-family:'Space Grotesk',sans-serif;font-weight:500;text-transform:none;font-stretch:100%;line-height:1.1;letter-spacing:-0.005em;white-space:nowrap;margin:0}
   .l{color:#dfbe84;font-weight:300;font-size:17px;line-height:1.45;margin:0}
   .mid{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
   .mid .r{margin:20px auto}`;
@@ -166,10 +169,9 @@ function tapeAcross(t) {
   execFileSync('ffmpeg', ['-v', 'error', '-y', '-ss', String(t), '-i', join(SHOTS, 'tape.mp4'), '-frames:v', '1', out]);
   return out;
 }
-
 const MARKS = WIDE
-  ? { fabric: 1.4, enlarge: 7.2, draw: 9.1, hem: 10.7, side: 16.1, done: 20.2 }
-  : { fabric: 1.4, enlarge: 7.9, draw: 7.9, hem: 9.5, side: 14.8, done: 18.9 };
+  ? { fabric: 1.4, enlarge: 6.8, draw: 8.8, hem: 10.3, side: 15.6, done: 19.9 }
+  : { fabric: 1.4, enlarge: 7.2, draw: 7.2, hem: 8.7, side: 14.3, done: 18.6 };
 // Played at 1.4 times its speed, however long the take (Cat, 2026-11-01: less time on the dress page, no enlarge).
 // Ends as Done is tapped, on the drawing: Shop the fabric follows, not the pattern sheet (Cat, 2026-11-02).
 const JOURNEY = { from: 0.6, to: MARKS.done - 0.2, dur: Math.round(((MARKS.done + 0.3) / 1.4) * 10) / 10 };
@@ -259,11 +261,16 @@ async function threeChecks() {
 // The film's words are gold (.t), so they read apart from the app's cream headings; on a phone they are 40px, the longer
 // lines breaking in two (Cat, 2026-10-30: T1 C; 32px read too small next to the app's bigger headings).
 // The shade is near solid down past the words, so a page scrolling under them never shows through (Cat, 2026-10-30).
-const note = (line, where, shade = true) => words(WIDE && where === 'side'
-  ? `<div class="f" style="display:flex;flex-direction:column;justify-content:center;padding-left:96px;background:linear-gradient(to right,rgba(8,3,2,.85) 0,rgba(8,3,2,.6) 30%,rgba(18,8,5,0) 42%)"><h1 class="t" style="font-size:46px">${line}</h1></div>`
+// V5 (Cat, 2026-11-06): one line of Space Grotesk medium, 72px on the 1080-wide phone film (29px here), 34px on the
+// computer's; the two-line phone captions are joined into one.
+const note = (line0, where, shade = true) => {
+  const line = line0.replace(/<br>/g, ' ');
+  return words(WIDE && where === 'side'
+  ? `<div class="f" style="display:flex;flex-direction:column;justify-content:center;padding-left:96px;background:linear-gradient(to right,rgba(8,3,2,.85) 0,rgba(8,3,2,.6) 30%,rgba(18,8,5,0) 42%)"><h1 class="n" style="font-size:34px">${line}</h1></div>`
   : WIDE
-  ? `<div class="f" style="${shade ? 'background:linear-gradient(to bottom,#120805 0,#120805 15.5%,rgba(18,8,5,0) 21%);' : ''}padding:${where === 'low' ? 54 : 44}px 0 0 96px"><h1 class="t" style="font-size:46px">${line}</h1></div>`
-  : `<div class="f" style="${shade ? `background:linear-gradient(to bottom,#120805 0,#120805 ${line.includes('<br>') ? '19%,rgba(18,8,5,0) 23.5%' : '14.5%,rgba(18,8,5,0) 19%'});` : ''}padding:${where === 'low' ? 60 : 40}px 0 0 28px"><h1 class="t" style="font-size:40px">${line}</h1></div>`);
+  ? `<div class="f" style="${shade ? 'background:linear-gradient(to bottom,#120805 0,#120805 15.5%,rgba(18,8,5,0) 21%);' : ''}padding:${where === 'low' ? 54 : 44}px 0 0 96px"><h1 class="n" style="font-size:34px">${line}</h1></div>`
+  : `<div class="f" style="${shade ? 'background:linear-gradient(to bottom,#120805 0,#120805 14.5%,rgba(18,8,5,0) 19%);' : ''}padding:${where === 'low' ? 44 : 38}px 0 0 22px"><h1 class="n" style="font-size:29px">${line}</h1></div>`);
+};
 // The scroll down the collection's looks, the way down to Print my pattern, and projector mode, as recorded
 // (record-tour-shots.mjs: the phone's scrolls are longer).
 const COLLECTION = WIDE ? { from: 0.8, dur: 8.5, speed: 1.45 } : { from: 0.8, dur: 8.5, speed: 1.75, drop: 0.05 };

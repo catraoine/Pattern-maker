@@ -190,7 +190,7 @@ if (process.env.TOUR_WELCOME) {
       cf.paintFigure(g, S, w / 2, (y) => wy + (y - 0.1) * S, Math.max(0.7, S / 252) * 1.2, 0, false, phi);
       g.globalAlpha = 1;
       const fade = g.createLinearGradient(0, h * cf.FADE_FROM, 0, h);
-      fade.addColorStop(0, 'rgba(0,0,0,0)'); fade.addColorStop(1, 'rgba(0,0,0,1)');
+      fade.addColorStop(0, 'rgba(18,8,5,0)'); fade.addColorStop(1, 'rgba(18,8,5,1)'); // the page's ground, not black: a black fade left a dark band under the form (Cat, Nov 6)
       g.fillStyle = fade;
       g.fillRect(0, h * cf.FADE_FROM, w, h * (1 - cf.FADE_FROM) + 1);
       g.restore();
@@ -420,7 +420,7 @@ if (process.env.TOUR_OPENER) {
     const c = document.querySelector('.all-round-canvas');
     document.body.appendChild(c);
     const w = innerWidth * K, h = (innerHeight + 96) * K;
-    Object.assign(c.style, { position: 'fixed', zIndex: 9999, background: '#000', maxWidth: 'none', maxHeight: 'none', aspectRatio: 'auto', margin: 0, width: `${w}px`, height: `${h}px`, left: `${innerWidth / 2 - w / 2}px`, top: `${innerHeight / 2 - 0.47 * h}px`, transformOrigin: '50% 47%', transform: `scale(${1 / K})` });
+    Object.assign(c.style, { position: 'fixed', zIndex: 9999, background: '#120805', maxWidth: 'none', maxHeight: 'none', aspectRatio: 'auto', margin: 0, width: `${w}px`, height: `${h}px`, left: `${innerWidth / 2 - w / 2}px`, top: `${innerHeight / 2 - 0.47 * h}px`, transformOrigin: '50% 47%', transform: `scale(${1 / K})` });
   }, K);
   await wait(1200);
   await stepped('opener', 9500, () =>
@@ -520,7 +520,7 @@ if (process.env.TOUR_PROBE4) {
     const c = document.querySelector('.all-round-canvas');
     document.body.appendChild(c);
     const w = innerWidth * K, h = (innerHeight + 96) * K;
-    Object.assign(c.style, { position: 'fixed', zIndex: 9999, background: '#000', maxWidth: 'none', maxHeight: 'none', aspectRatio: 'auto', margin: 0, width: `${w}px`, height: `${h}px`, left: `${innerWidth / 2 - w / 2}px`, top: `${innerHeight / 2 - 0.34 * h}px` });
+    Object.assign(c.style, { position: 'fixed', zIndex: 9999, background: '#120805', maxWidth: 'none', maxHeight: 'none', aspectRatio: 'auto', margin: 0, width: `${w}px`, height: `${h}px`, left: `${innerWidth / 2 - w / 2}px`, top: `${innerHeight / 2 - 0.34 * h}px` });
   }, 1.7);
   await wait(1200);
   await p.screenshot({ path: `${OUT}/probe4-close.png` });
@@ -661,7 +661,7 @@ await p.evaluate((K) => {
   const c = document.querySelector('.all-round-canvas');
   document.body.appendChild(c);
   const w = innerWidth * K, h = (innerHeight + 96) * K;
-  Object.assign(c.style, { position: 'fixed', zIndex: 9999, background: '#000', maxWidth: 'none', maxHeight: 'none', aspectRatio: 'auto', margin: 0, width: `${w}px`, height: `${h}px`, left: `${innerWidth / 2 - w / 2}px` });
+  Object.assign(c.style, { position: 'fixed', zIndex: 9999, background: '#120805', maxWidth: 'none', maxHeight: 'none', aspectRatio: 'auto', margin: 0, width: `${w}px`, height: `${h}px`, left: `${innerWidth / 2 - w / 2}px` });
 }, CLOSEST);
 const zoomTo = (from, to, ms, delay = 0) => p.evaluate(([from, to, ms, K, delay]) => new Promise((done) => {
   const c = document.querySelector('.all-round-canvas');
