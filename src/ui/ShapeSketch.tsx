@@ -12,7 +12,7 @@ import { LENGTHS, Length, Silhouette, SkirtDraft, SkirtMeasurements, flareRange,
 import { GROUPS } from '../skirtChoices';
 import { skirtForm } from './DrawOnForm';
 import { FormLayers, SQUEEZE, formFrame, hemCorner, wornCloth, wornFolds, wornMapper } from './FormSketch';
-import { LengthMarks, MARGIN } from './HemMarks';
+import { CATCH, CATCH_SHARE, MARGIN } from './HemMarks';
 
 export type Side = 'front' | 'back';
 
@@ -76,11 +76,11 @@ const lengthName = (id: Length) => GROUPS[2].options.find((o) => o[0] === id)![1
 const silName = (id: Silhouette) => GROUPS[1].options.find((o) => o[0] === id)![1];
 
 /** A dragged length: snaps to a named length within 1.5 cm, otherwise kept to the half centimetre. */
-export function dragLength(m: SkirtMeasurements, c: Choices, cm: number): Choices {
+export function dragLength(m: SkirtMeasurements, c: Choices, cm: number, catchCm = 1.5): Choices {
   const v = lengthRange(m).clamp(cm);
   const named = LENGTH_IDS.map((id) => ({ id, at: LENGTHS[id](m) })).sort((a, b) => Math.abs(a.at - v) - Math.abs(b.at - v))[0];
   const { look: _look, lengthCm: _l, ...rest } = c;
-  return Math.abs(named.at - v) < 1.5 ? { ...rest, length: named.id } : { ...rest, length: named.id, lengthCm: Math.round(v * 2) / 2 };
+  return Math.abs(named.at - v) < catchCm ? { ...rest, length: named.id } : { ...rest, length: named.id, lengthCm: Math.round(v * 2) / 2 };
 }
 
 /** A dragged flare: moves between pencil, straight and A-line, snapping to each one's own shape. */
@@ -189,6 +189,9 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
   const hemCentre = skirt.length ? skirt.reduce((a, b) => (b.y > a.y ? b : a)) : { x: 0, y: draft.lengthCm };
   const hemSide = hemCorner(skirt) ?? { x: w.hem[0].x, y: w.hem[0].y };
 
+  // Dragged, the hem catches on each named length as on every garment: a finger's few millimetres either side of it.
+  const marksAt = LENGTH_IDS.map((id) => LENGTHS[id](m)).sort((a, b) => a - b);
+  const catchCm = Math.min(CATCH * k, CATCH_SHARE * Math.min(...marksAt.slice(1).map((y, i) => y - marksAt[i])));
   const toSvg = (e: PointerEvent): P => {
     const ctm = svg.current!.getScreenCTM()!.inverse();
     const pt = new DOMPoint(e.clientX, e.clientY).matrixTransform(ctm);
@@ -207,7 +210,7 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
       const at = toSvg(e);
       const next =
         drag.kind === 'hem'
-          ? dragLength(m, drag.base, drag.length + at.y - drag.start.y)
+          ? dragLength(m, drag.base, drag.length + at.y - drag.start.y, catchCm)
           : dragFlare(m, drag.base, draft.lengthCm, drag.flare + ((at.x - drag.start.x) * (drag.start.x >= cx ? 1 : -1)) / SQUEEZE);
       onLive(next);
     } else if (stroke) {
@@ -257,7 +260,10 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
         <path d={arrows} strokeWidth={0.22} fill="none" />
         {/* Each handle says what it does (Cat's H, 2026-11-02): Length under the hem's, Width beside the side's, so
             the two never run into each other. */}
+        {/* Caught on a named length while dragging (dragLength holds it there), its name pops, as on every garment. */}
         <text
+          key={active && kind === 'hem' && !choices.lengthCm ? choices.length : ''}
+          className={active && kind === 'hem' && !choices.lengthCm ? 'caught' : undefined}
           x={kind === 'hem' ? at.x : at.x + r + 2.6 * k}
           y={kind === 'hem' ? at.y + r + 4.6 * k : at.y + 0.9 * k}
           fontSize={2.6 * k}
@@ -292,7 +298,7 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
   return (
     <svg
       ref={svg}
-      // Room for the length marks on the left, and as much on the right to keep the form centred.
+      // Room either side for the handles' names, keeping the form centred.
       viewBox={shown.width ? `${shown.left} ${shown.top} ${shown.width} ${shown.bottom - shown.top}` : `${-MARGIN * k} ${frame.top} ${2 * cx + 2 * MARGIN * k} ${frame.bottom - frame.top}`}
       // A group, not an image: an image hides the length and flare handles inside it from screen readers.
       role="group"
@@ -308,19 +314,6 @@ export function ShapeSketch({ draft, m, choices, side, drawing, label, onLive, o
       onPointerCancel={end}
     >
       <FormLayers body={body} m={m} legs cx={cx} top={frame.top} bottom={frame.bottom} lines={lines} worn={cloth} folds={folds} />
-      {!drawing && !big && (
-        <g className="hem-marks">
-          <LengthMarks
-            marks={LENGTH_IDS.map((id) => ({ id, label: lengthName(id), y: LENGTHS[id](m) }))}
-            on={choices.lengthCm ? undefined : choices.length}
-            k={k}
-            onPick={(id) => {
-              const { look: _look, lengthCm: _l, shape: _s, ...rest } = choices;
-              if (id !== choices.length || choices.lengthCm || choices.shape) onDone(choices, { ...rest, length: id as Length });
-            }}
-          />
-        </g>
-      )}
       {guide(m.waist_to_floor, 'FLOOR')}
       {!drawing && handle({ x: cx + SQUEEZE * hemCentre.x, y: hemCentre.y }, 'hem', lengthLabel)}
       {!drawing && !circle && choices.silhouette !== 'gathered' && handle({ x: cx + SQUEEZE * hemSide.x, y: hemSide.y }, 'side', flareLabel)}
