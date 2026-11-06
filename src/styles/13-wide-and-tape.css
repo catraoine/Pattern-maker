@@ -272,22 +272,23 @@ body:has(.tape-band.carried) {
 }
 
 /* A champagne blink every 4 s, the tap flash's look, to draw the eye (Cat, 2026-10-26: A Champagne Blink).
-   Three blinks, then it rests, so it catches the eye without nagging (Cat, Nov 6) */
+   Three blinks, then it rests, so it catches the eye without nagging (Cat, Nov 6). The first comes within half a
+   second of the button showing, not 3.5 s on (Cat, Nov 6: "should flash sooner"). */
 @keyframes tour-blink {
-  0%, 80%, 100% {
+  0%, 22%, 100% {
     background: rgba(8, 3, 2, 0.6);
     border-color: var(--ink);
   }
-  88% {
+  10% {
     background: var(--gild);
     border-color: var(--gild);
   }
 }
 @keyframes tour-blink-tri {
-  0%, 80%, 100% {
+  0%, 22%, 100% {
     border-left-color: var(--ink);
   }
-  88% {
+  10% {
     border-left-color: var(--paper);
   }
 }
