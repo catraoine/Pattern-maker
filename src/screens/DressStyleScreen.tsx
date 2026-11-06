@@ -4,7 +4,7 @@ import { BELTS, Belt, beltAllowed, beltPieces, dressBelt } from '../engine/belt'
 import { useMemo, useState } from 'react';
 import { layout } from '../engine/export';
 import { isTop } from '../engine/corset';
-import { BUTTONS_STOP_ABOVE_HEM, buttonsOnSkirt, fromSeam, noSeamAllowed, WAIST_DIP_CM } from '../engine/dress';
+import { BUTTONS_STOP_ABOVE_HEM, buttonsOnSkirt, fromSeam, noSeamAllowed } from '../engine/dress';
 import type { DressDraft, DressMeasurements, WaistSeam } from '../engine/dress';
 import { wrapSkirtAllowed } from '../engine/wrapSkirt';
 import { SLIT_PLACES, SlitPlace, slitAllowed } from '../engine/slit';
@@ -641,20 +641,6 @@ export function DressStyleScreen({ onPhoto, photo, choices, onChoices: setChoice
                 <p className="muted small" aria-live="polite">
                   {seamWords(Math.round(draft.seamDrop), draft.seamRange)}
                   {!canRaise && ' Princess seams or panels keep it at the waist or below.'}
-                </p>
-                <p className="muted small">
-                  <span className="seg" role="group" aria-label="Waist seam line">
-                    {(['straight', 'curved'] as const).map((line) => {
-                      const on = (choices.waistDip ? 'curved' : 'straight') === line;
-                      return (
-                        <button key={line} type="button" aria-pressed={on} className={on ? 'on' : ''} onClick={() => onChoices(line === 'curved' ? { ...choices, waistDip: WAIST_DIP_CM } : (({ waistDip: _d, ...rest }) => rest)(choices))}>
-                          {line}
-                        </button>
-                      );
-                    })}
-                  </span>{' '}
-                  <TestingTag tool="new_details" />{' '}
-                  {choices.waistDip ? (draft.waistDip ? `Dips ${draft.waistDip} cm at the centre front, curving up to the sides.` : 'A curved seam needs a plain front: no buttons, wrap or princess panels.') : 'Level all the way round.'}
                 </p>
               </div>
             )}

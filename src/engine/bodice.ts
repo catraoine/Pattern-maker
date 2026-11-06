@@ -80,8 +80,6 @@ export interface DrawnNeck {
   width: number;
   backDepth: number;
   fullness: number;
-  /** A V's point rounded off: how far up each side, in cm, the rounding runs (0 or none: a sharp point). */
-  tip?: number;
 }
 
 /** A front neckline drawn differently on the two sides (see uneven.ts), cut across a whole front: its
@@ -670,7 +668,7 @@ function squareHem(hip: P, hem: P): P {
 const fishEye = (top: P, left: P, right: P, bottom: P) => new Path(top).line(left).line(bottom).line(right).line(top);
 
 /** The front neckline from centre front up to the high point of the shoulder. */
-function frontNeck(path: Path, hps: P, uShoulder: P, shape: Neckline | 'drawn', fullness = 0.5, cover?: P, tip = 0): Path {
+function frontNeck(path: Path, hps: P, uShoulder: P, shape: Neckline | 'drawn', fullness = 0.5, cover?: P): Path {
   const cf = path.start;
   // A plunge is pulled in over the bust: straight from the point to the cover point, then square to the shoulder.
   if (shape === 'plunge' && cover && cover.y > hps.y + 2 && cover.y < cf.y - 2) {
@@ -695,24 +693,6 @@ function frontNeck(path: Path, hps: P, uShoulder: P, shape: Neckline | 'drawn', 
     case 'v':
     case 'plunge':
       // Straight from the point (one edge, so the cutting line mitres onto the fold), curving at the top.
-      // A rounded point leaves the centre front square to it and curves into the straight run.
-      if (tip > 0 && shape === 'v') {
-        // (And straight on up most of the way, a soft V rather than one bowed out below the shoulder.)
-        // The point is a circular round of radius `tip` set into the V: square to the centre front at the
-        // neckline's depth and running on tangent into the straight side (the V it rounds off, had it run
-        // to a point, would reach a little lower).
-        const hi = lerp(cf, hps, 0.8);
-        const v0 = unit(sub(hi, cf));
-        const alpha = Math.atan2(-v0.y, v0.x);
-        const beta = Math.PI / 2 - alpha;
-        const R = Math.min(tip, (len(sub(hi, cf)) / 3) * Math.tan(beta));
-        const vertex = p(cf.x, cf.y + (R / Math.sin(beta) - R));
-        const d2 = unit(sub(hi, vertex));
-        const touch = add(vertex, mul(d2, R / Math.tan(beta)));
-        const k = (4 / 3) * Math.tan(alpha / 4) * R;
-        path.curve(p(cf.x + k, cf.y), sub(touch, mul(d2, k)), touch, 'neck');
-        return path.line(hi, 'neck').curve(lerp(cf, hps, 0.9), toward(0.08), hps, 'neck');
-      }
       return path.line(lerp(cf, hps, 0.5), 'neck').curve(lerp(cf, hps, 0.75), toward(0.15), hps, 'neck');
     case 'square': {
       const corner = p(hps.x, cf.y);
@@ -1068,7 +1048,7 @@ function draft(m: BodiceMeasurements, s: BodiceStyle, scye: number, side: SideLi
   const across = waistXF - sideBust.x;
   let swF = p(waistXF, sideBust.y + Math.sqrt(Math.max(lower ** 2 - across ** 2, 0)));
 
-  const front = frontNeck(new Path(cfNeck), hpsF, uF, neckShape, s.neck?.fullness, plunge ? pivot(p(Math.max(1, apex.x - PLUNGE.cover), apex.y)) : undefined, s.neck?.tip)
+  const front = frontNeck(new Path(cfNeck), hpsF, uF, neckShape, s.neck?.fullness, plunge ? pivot(p(Math.max(1, apex.x - PLUNGE.cover), apex.y)) : undefined)
     .line(spF, 'shoulder');
   frontArmhole(front, sideF, upper ? down : unit(sub(swF, sideF)));
 

@@ -205,7 +205,7 @@ export function choicesFlat(c: PatternChoices, m: MeasurementValues): Flat | und
     if (isTee(c)) return teeFlat(draftTee(m as never, c));
     if (isDress(c)) {
       const b = { ...validDetails(c.bodice, 'dress'), fit: c.fit, length: 'waist' as const };
-      const d = draftDress(m as never, b, { ...c.skirt, fit: skirtFitOf(c.fit) }, { at: c.waistSeam, cm: c.waistSeamCm, dip: c.waistDip });
+      const d = draftDress(m as never, b, { ...c.skirt, fit: skirtFitOf(c.fit) }, { at: c.waistSeam, cm: c.waistSeamCm });
       return dressFlat(d, 'binding', { sleeve: sleeveFor(d.bodice, b, m), belt: dressBelt(c.skirt.belt, d) });
     }
     if (isBodice(c)) {

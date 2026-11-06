@@ -90,7 +90,7 @@ const dressStylesOf = (i: DraftInputs, f: Fitting | undefined) => {
   return {
     bodice: { ...validDetails({ ...dress.bodice, length: 'waist' }, 'dress'), fit: dress.fit, length: 'waist' as const, fitting: bodiceFitting(i, f) },
     skirt: { ...dress.skirt, fit: skirtFitOf(dress.fit), fitting: skirtFitting(i, f) },
-    seam: { at: dress.waistSeam, cm: dress.waistSeamCm, dip: dress.waistDip },
+    seam: { at: dress.waistSeam, cm: dress.waistSeamCm },
   };
 };
 
