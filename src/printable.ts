@@ -195,7 +195,7 @@ function drafted({ result, values, finish, fabric, garment, ownFitting, carriedN
             : trousers.closure === 'fly'
               ? `A ${trousers.zipCm} cm fly zip with its facing and shield, and the waistband`
               : `A ${trousers.zipCm} cm invisible zip in the left side seam, and the waistband`
-        }${pocketWords(trousers.pockets, trousers.pocketSides)}. The crease line is the grain line. Sewing steps are on the last pages.`,
+        }${pocketWords(trousers.pockets, trousers.pocketSides)}${trousers.pleats ? `, ${trousers.pleats.count > 1 ? 'two pleats' : 'a pleat'} on each front` : ''}${trousers.loops ? `, ${trousers.loops} belt loops` : ''}. The crease line is the grain line. Sewing steps are on the last pages.`,
         ...fittingNotes,
       ],
       guide: withFabric(trousersGuide(trousers, lays.find((l) => l.fabric === 'self')?.metres ?? trousersFabricMetres(trousers), { seams, width: finish.fabricWidth, length: trousersChoices.length }), fabric, 'trousers'),

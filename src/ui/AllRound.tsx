@@ -818,6 +818,17 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
       if (round.bandCm) {
         ring(() => bandTop, () => radius(WAIST), GLOW, lw * 0.8, 0.2);
         for (const e of [-1, 1]) seg([cx + e * radius(WAIST) * S, Y(bandTop)], [cx + e * radius(WAIST) * S, Y(WAIST)]);
+        // Belt loops: a short strip over the band at each, drawn where it faces the viewer.
+        for (const at of round.loops ?? []) {
+          const a = at - phi;
+          const z = Math.cos(a);
+          if (z < 0.08) continue;
+          const x = cx + Math.sin(a) * radius(WAIST) * S;
+          const w = Math.max(1, lw * 2.2 * z);
+          const run: Pt[] = [[x, Y(bandTop) - lw * 1.2, z], [x, Y(WAIST) + lw * 1.2, z]];
+          line(run, '#000', w + lw * 1.4, 0, 0.5);
+          line(run, GLOW, w, 0, 0.8);
+        }
       }
       // In cloth, the edges are fine lines: the cloth itself gives the shape.
       const edge = cloth ? 0.55 : 1;
@@ -961,6 +972,11 @@ export function AllRound({ round, m, striped = false, fabric, label, draw, drape
         }
       }
 
+      // A pressed pleat: a strip of shadow in under its edge, and the edge itself catching the light.
+      for (const pl of round.pleats ?? []) {
+        if (cloth) line(along(pl.pts.map((q) => ({ phi: q.phi + pl.press * 0.045, cm: q.cm })), pl.leg), '#000', lw * 3.2, 0, 0.38, 0.3);
+        line(along(pl.pts, pl.leg), cloth ? GLOW : GILD, lw * 0.9, cloth ? 0 : 0.2, cloth ? 0.75 : film ? 0.5 : 1, cloth ? 0.3 : 0);
+      }
       // Darts, seams and the vent.
       if (cloth) {
         // In cloth, seams and darts are grooves: a shadow line with a fine light edge, as on the style drawing.
