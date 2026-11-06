@@ -1,0 +1,23 @@
+/* The view line on Style (Front / Flat / All round) as a glider (Cat's G5, Nov 6): the three views sit in a low dark
+   track, and the one showing is a quiet raised block with ivory words, so where you are reads at a glance. Pattern
+   stays a word on the right, as before. The track is kept short (32px) so the line stays a line, not a bar. */
+.style-layout .style-pin > section:not(.live-big) .seg {
+  flex: none;
+  gap: 0;
+  padding: 3px;
+  background: #141210;
+}
+.style-layout .style-pin > section:not(.live-big) .seg button {
+  height: 26px;
+  min-height: 26px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 0;
+  line-height: 26px;
+  color: var(--muted);
+}
+.style-layout .style-pin > section:not(.live-big) .seg button.on {
+  background: #3a3220;
+  color: var(--ink);
+  font-weight: var(--w-strong);
+}
