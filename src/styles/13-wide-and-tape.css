@@ -232,7 +232,8 @@ body:has(.tape-band.carried) {
   position: relative;
   width: 88px;
   height: 88px;
-  border: 1px solid var(--ink);
+  /* Champagne like the main button, so the two read as the app's things to tap (Cat, Nov 6) */
+  border: 1px solid var(--gild);
   border-radius: 50%;
   background: rgba(8, 3, 2, 0.6);
 }
@@ -243,7 +244,7 @@ body:has(.tape-band.carried) {
   left: 50%;
   top: 50%;
   transform: translate(-35%, -50%);
-  border-left: 22px solid var(--ink);
+  border-left: 22px solid var(--gild);
   border-top: 13px solid transparent;
   border-bottom: 13px solid transparent;
 }
@@ -277,7 +278,7 @@ body:has(.tape-band.carried) {
 @keyframes tour-blink {
   0%, 22%, 100% {
     background: rgba(8, 3, 2, 0.6);
-    border-color: var(--ink);
+    border-color: var(--gild);
   }
   10% {
     background: var(--gild);
@@ -286,7 +287,7 @@ body:has(.tape-band.carried) {
 }
 @keyframes tour-blink-tri {
   0%, 22%, 100% {
-    border-left-color: var(--ink);
+    border-left-color: var(--gild);
   }
   10% {
     border-left-color: var(--paper);
