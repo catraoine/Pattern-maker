@@ -29,6 +29,7 @@ import { MyFabric, fabricEase, trousersFabrics } from '../engine/fabrics';
 import { FabricCard, FabricSummary } from '../ui/FabricCard';
 import { ChoicePic, chipsClass } from '../ui/ChoicePic';
 import { Explain } from '../ui/Explain';
+import { TestingTag } from '../ui/TestingTag';
 import { PiecesList, SummaryActions, formViews } from '../ui/StyleSummary';
 
 import { trousersFabricMetres } from '../fabricAmounts';
@@ -193,6 +194,8 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
                 >
                   <ChoicePic set="trousers" group={g.id} id={id} />
                   {label}
+                  {g.id === 'pleats' && id !== 'none' && <TestingTag tool="trouser_pleats" />}
+                  {g.id === 'loops' && id !== 'none' && <TestingTag tool="belt_loops" />}
                 </button>
               ))}
             </div>
@@ -206,6 +209,12 @@ export function TrousersStyleScreen({ onPhoto, photo, choices, onChoices: setCho
               </p>
             )}
             {g.id === 'closure' && elastic && <p className="muted small">An elastic waist pulls on, so it needs no opening.</p>}
+            {(g.id === 'pleats' || g.id === 'loops') && elastic && <p className="muted small">A pull-on waist is gathered onto its elastic, so it takes no pleats or belt loops.</p>}
+            {g.id === 'pleats' && !elastic && draft?.pleats && (
+              <p className="muted small">
+                Each pleat opens the front {draft.pleats.openCm.map((v) => `${v} cm`).join(' and ')} at the waist and runs the leg's length, so the hip is cut {draft.finishedHip} cm round. The dart folds in with the first pleat.
+              </p>
+            )}
             {g.id === 'pockets' && !elastic && choices.closure === 'side_zip' && (
               <p className="muted small">
                 Slant pockets need the fly front or an elastic waist: the side zip runs where the left one would sit.

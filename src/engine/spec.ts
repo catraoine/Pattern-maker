@@ -161,6 +161,8 @@ export function trousersSpec(m: TrousersMeasurements, d: TrousersDraft): SpecRow
     ...(d.shorts ? [] : [row('Knee, round', undefined, d.kneeCm)]),
     row('Hem, round', undefined, d.hemCm),
     ...(d.pockets !== 'none' ? [{ label: d.pockets === 'slant' ? 'Slant pockets' : d.pocketSides === 'right' ? 'In-seam pocket, right side' : 'In-seam pockets', finished: d.pockets === 'slant' ? `opening ${SLANT.in} in, ${SLANT.down} down` : `opening ${INSEAM.opening}` }] : []),
+    ...(d.pleats ? [{ label: `Front pleat${d.pleats.count > 1 ? 's' : ''}, each front`, finished: d.pleats.lines.map((l) => `${Math.round((l.place - l.fold) * 10) / 10} deep`).join(', ') }] : []),
+    ...(d.loops ? [{ label: 'Belt loops', finished: `${d.loops}` }] : []),
     ...waistRows(d, d.closure === 'fly' ? 'Trouser zip, fly front' : 'Invisible zip, left side'),
   ];
 }

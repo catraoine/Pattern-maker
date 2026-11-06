@@ -77,7 +77,7 @@ Live site: https://maisontrace.co (the cloud proxy blocks it; check
 https://whimsical-mooncake-2cf9a9.netlify.app, the same site). Strangers see the waitlist; testers
 get in with their tester link.
 
-## Queued for "ship" (as of Nov 5, after Release 65)
+## Queued for "ship" (as of Nov 6, after Release 65)
 
 Open draft: #259 (bias slip mini + side slit, open polo collar, ruffled trouser
 hem; In testing), based on main, waiting on Cat's "apply".
