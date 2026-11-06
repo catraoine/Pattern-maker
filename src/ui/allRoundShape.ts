@@ -346,7 +346,44 @@ export function roundShape(round: RoundGarment, m: RoundMeasurements, { film, th
   // waist and three quarters as deep by the hip, which bellied out right under the band in front and behind where
   // the body is far flatter than it is wide, and so stood as a bulb over the legs once they hung plumb (Cat,
   // 2026-11-06: "more of a bump now").
-  const rAt = (a: number, y: number) => shell(a, y);
+  // Woven cloth takes no hollow down its length: from the band it runs straight to wherever the body stands out below,
+  // the seat behind and the belly in front, where a line down the body itself dips in at the small of the back
+  // first and then bows out over the seat as a bump (Cat, 2026-11-06: "still looks a bit too bumpy"). Down each
+  // line round the body, the hung cloth from the waist to the crotch is bridged by its own hull: the lowest
+  // line over it that never dips.
+  const seatRows = lg ? Math.min(hangRows, Math.ceil((yC + 0.05 - WAIST) / HANG_DY) + 1) : 0;
+  const bridged = new Float64Array(HANG_N * seatRows);
+  for (let i = 0; i < HANG_N; i++) {
+    const a = -Math.PI + (TAU * i) / HANG_N;
+    const hull: [number, number][] = [];
+    for (let j = 0; j < seatRows; j++) {
+      const q: [number, number] = [WAIST + j * HANG_DY, hung(a, WAIST + j * HANG_DY)];
+      while (hull.length >= 2) {
+        const [p1, p2] = [hull[hull.length - 2], hull[hull.length - 1]];
+        if ((p2[0] - p1[0]) * (q[1] - p1[1]) - (p2[1] - p1[1]) * (q[0] - p1[0]) < 0) break;
+        hull.pop();
+      }
+      hull.push(q);
+    }
+    for (let j = 0, h = 0; j < seatRows; j++) {
+      const y = WAIST + j * HANG_DY;
+      while (h < hull.length - 2 && hull[h + 1][0] <= y) h++;
+      const [p1, p2] = [hull[h], hull[Math.min(h + 1, hull.length - 1)]];
+      bridged[i * seatRows + j] = p2[0] > p1[0] ? p1[1] + ((p2[1] - p1[1]) * (y - p1[0])) / (p2[0] - p1[0]) : p1[1];
+    }
+  }
+  const rAt = (a: number, y: number) => {
+    if (!lg || y <= WAIST) return shell(a, y);
+    const f = ((((a + Math.PI) / TAU) % 1) + 1) % 1 * HANG_N;
+    const i0 = Math.floor(f) % HANG_N;
+    const i1 = (i0 + 1) % HANG_N;
+    const u = f - Math.floor(f);
+    const g = Math.min(seatRows - 1.001, (y - WAIST) / HANG_DY);
+    const j0 = Math.floor(g);
+    const v = g - j0;
+    const at = (i: number) => bridged[i * seatRows + j0] * (1 - v) + bridged[i * seatRows + j0 + 1] * v;
+    return (at(i0) * (1 - u) + at(i1) * u) * fold(a, y);
+  };
 
   const reach = Math.max(hemR, sl ? axisX(yE) + rh : 0, lg ? FORM_LEG_X + Math.max(thighTop, kneeR, legHemR) : 0, formHalfWidth(-0.55) + eB);
   const hemY = (a: number) => yOf(round.lengthAt(a));
