@@ -50,7 +50,7 @@ interface Props {
   openFit?: string;
   onReset: () => void;
   /** Opens the Privacy Policy or the Terms of Use. */
-  onLegal: (page: 'privacy' | 'terms' | 'tester' | 'news' | 'brands' | 'nights' | 'made') => void;
+  onLegal: (page: 'privacy' | 'terms' | 'tester' | 'news' | 'brands' | 'nights' | 'made' | 'help') => void;
   onBackup: () => void;
   /** The link that carries everything on this device to another one; see moveLink.ts. */
   sendLink: () => Promise<string>;
@@ -357,6 +357,11 @@ export function AccountScreen({ account, unit, onName, onUnit, onEditMeasurement
       </div>
 
       <p className="fineprint plain">
+        {/* First and a touch brighter (Cat's H3, Nov 6, 2026): where the best apps keep help, without a box. */}
+        <button type="button" className="inline-link help-link" onClick={() => onLegal('help')}>
+          Help &amp; feedback
+        </button>
+        {' · '}
         <button type="button" className="inline-link" onClick={() => onLegal('made')}>
           How your pattern is made
         </button>

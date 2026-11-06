@@ -95,6 +95,7 @@ const SignupScreen = screen(() => import('./screens/SignupScreen').then((m) => m
 const BrandsScreen = screen(() => import('./screens/BrandsScreen').then((m) => m.BrandsScreen));
 const NightsScreen = screen(() => import('./screens/NightsScreen').then((m) => m.NightsScreen));
 const MadeScreen = screen(() => import('./screens/MadeScreen').then((m) => m.MadeScreen));
+const HelpScreen = screen(() => import('./screens/HelpScreen').then((m) => m.HelpScreen));
 const PlansScreen = screen(() => import('./screens/PlansScreen').then((m) => m.PlansScreen));
 const FittingScreen = screen(() => import('./screens/FittingScreen').then((m) => m.FittingScreen));
 const TrueScaleScreen = screen(() => import('./screens/TrueScaleScreen').then((m) => m.TrueScaleScreen));
@@ -177,7 +178,7 @@ export default function App() {
   const sendLink = () => moveLink(window.location.origin, makeBackup(saved, account, pointEdits));
   const [startView] = useState<View>(incoming?.kind === 'ask' ? 'link' : incoming?.kind === 'reply' ? 'arrive' : isMoveLink(window.location.hash) ? 'move' : 'welcome');
   const [step, setStep] = useViewHistory<View>(startView, (to) => (NEEDS_MEASUREMENTS.includes(to) && !canLeaveMeasure ? 'measure' : to), ladder);
-  const openLegal = (page: 'privacy' | 'terms' | 'tester' | 'news' | 'brands' | 'nights' | 'made') => setStep(page);
+  const openLegal = (page: 'privacy' | 'terms' | 'tester' | 'news' | 'brands' | 'nights' | 'made' | 'help') => setStep(page);
   // The waitlist (Cat's W1, 2026-10-21): until launch, a visitor without a tester link sees the welcome with a waitlist
   // where Begin was, and the Privacy and Terms pages, nothing else. Measure-me and move links still open, as they
   // come from someone already using the app.
@@ -234,6 +235,12 @@ export default function App() {
     setReportView(step);
     if (step === 'export') countStep('styled', garment);
   }, [step, garment]);
+  // The screen a note from Help & feedback is about: the last screen of the making itself (Measure, Style, Print and
+  // their side screens), not the account pages and fine print passed through on the way to Help.
+  const [noteFrom, setNoteFrom] = useState<View>(step);
+  useEffect(() => {
+    if (STEP_OF[step]) setNoteFrom(step);
+  }, [step]);
   // The loading screen plays when someone first opens the app, on the way into the welcome. People coming
   // back to their work go straight to it.
   const [opening, setOpening] = useState(step === 'welcome');
@@ -728,6 +735,7 @@ export default function App() {
           {step === 'brands' && <BrandsScreen onPrivacy={() => openLegal('privacy')} />}
           {step === 'nights' && <NightsScreen onPrivacy={() => openLegal('privacy')} />}
           {step === 'made' && <MadeScreen onPrivacy={() => openLegal('privacy')} />}
+          {step === 'help' && <HelpScreen from={noteFrom} onDone={back} />}
           {step === 'photo' && plansShown() && <PhotoAllowance account={account} onPlans={openPlans} />}
           {step === 'photo' && canPhotoDraft(account) && (
             <PhotoScreen
