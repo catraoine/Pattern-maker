@@ -256,13 +256,26 @@ export async function openLooks(page: Page) {
   await main(page).getByRole('menuitemradio', { name: /Start from a look/ }).click();
 }
 
+/** On a phone the bar says "See the choices" until the step's questions have been in view (Cat's N3, 2026-11-06):
+ *  tap it, so the bar turns into Next or Review. */
+export async function seeChoices(page: Page) {
+  const see = main(page).getByRole('button', { name: /^See the choices/ });
+  if (!(await see.isVisible())) return;
+  // It may already have turned into Next, if the page scrolled the questions into view on its own.
+  await see.click({ timeout: 3000 }).catch(() => {});
+  await expect(see).toBeHidden();
+}
+
 /** "Show all tools": on a style screen it sits under the last tab only, so open that tab first. */
 export async function showAllTools(page: Page) {
   const all = main(page).getByRole('button', { name: 'Show all tools' });
   const tabs = main(page).getByRole('tablist', { name: 'Style choices', includeHidden: true });
   if (!(await all.isVisible()) && (await tabs.count())) await (await stepTabs(page)).getByRole('tab').last().click();
   // On a phone the link is on the Review page, after the last step (Cat, 2026-10-31).
-  if (!(await all.isVisible())) await main(page).getByRole('button', { name: /^Review\b/ }).last().click();
+  if (!(await all.isVisible())) {
+    await seeChoices(page);
+    await main(page).getByRole('button', { name: /^Review\b/ }).last().click();
+  }
   return all;
 }
 
@@ -286,6 +299,7 @@ export async function openExtras(page: Page) {
  */
 export async function openReview(page: Page): Promise<boolean> {
   // On a phone, Review is a link at the end of each step and the bar's button on the last (Cat's P1, 2026-10-31).
+  await seeChoices(page);
   const review = main(page).getByRole('button', { name: /^Review( all choices)?$/ }).first();
   const print = main(page).getByRole('button', { name: 'Print my pattern' });
   await expect(review.or(print).first()).toBeVisible();

@@ -490,31 +490,47 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
   // Where the pinned drawing and its row of views end on the screen, on a phone.
   const pinnedBottom = () => Math.max(0, ...[...(pin.current?.querySelectorAll<HTMLElement>('.preview, .row.between.wrap') ?? [])].map((e) => parseFloat(getComputedStyle(e).top) + e.offsetHeight || 0));
   const scrollBehavior = (): ScrollBehavior => (matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth');
-  // Next and back bring the new step's start up under the drawing, if the page had scrolled past it.
+  // Next and back open the new step as the page first opens (Cat's N3, 2026-11-06): the page back at the top, the
+  // drawing full size, the step's name, and "See the choices" in the bar.
   const goStep = (t: string) => {
     choose(t);
-    const head = chapter.current;
-    if (!head || wide) return;
-    // The step's chapter lands just under the pinned drawing and its row of views.
-    const top = window.scrollY + head.getBoundingClientRect().top - pinnedBottom();
-    if (window.scrollY > top) window.scrollTo({ top, behavior: scrollBehavior() });
+    if (!wide && window.scrollY > 0) window.scrollTo({ top: 0, behavior: scrollBehavior() });
   };
-  // On a phone the step's name ends the screen with a down arrow, not the top of its first question peeking in under
-  // it (Cat, 2026-11-06). The arrow's box reaches down to the bar at the bottom, so the first question starts just out
-  // of sight; tapping it scrolls the questions up under the drawing.
-  const more = useRef<HTMLButtonElement>(null);
+  // On a phone the step's name ends the screen, not the top of its first question peeking in under it (Cat,
+  // 2026-11-06): a space under the name reaches down to the bar at the bottom, so the first question starts just out
+  // of sight. Until the step's questions have come into view, the bar's button says "See the choices" and scrolls
+  // them up under the drawing; then it turns into Next (Cat's N3), so no one moves on without seeing them.
+  const more = useRef<HTMLDivElement>(null);
+  const [seenStep, setSeenStep] = useState<string>();
+  const seen = wide || seenStep === active;
   useLayoutEffect(() => {
     const b = more.current;
     if (!b) return;
+    const bar = () => document.querySelector<HTMLElement>('.style-bar');
+    // Measured with the page at the top, as it opens: scrolled, the drawing eases smaller and the sums change.
     const fit = () => {
+      // The bar's height, for the list of steps, which opens just above it.
+      document.documentElement.style.setProperty('--style-bar-h', `${bar()?.offsetHeight ?? 0}px`);
+      if (window.scrollY > 1) return;
       b.style.minHeight = '';
-      const bar = document.querySelector<HTMLElement>('.style-bar');
-      const room = window.innerHeight - (bar?.offsetHeight ?? 0) - (b.getBoundingClientRect().top + window.scrollY);
+      const room = window.innerHeight - (bar()?.offsetHeight ?? 0) - (b.getBoundingClientRect().top + window.scrollY);
       b.style.minHeight = `${Math.max(44, Math.ceil(room))}px`;
+    };
+    // Seen once the page is scrolled and the first question shows clear of the bar. At the top it never is: that's
+    // where the space under the step's name keeps the questions out of sight.
+    const look = () => {
+      fit();
+      if (window.scrollY < 2) return;
+      const top = bar()?.getBoundingClientRect().top ?? window.innerHeight;
+      if (b.getBoundingClientRect().bottom < top - 24) setSeenStep(active);
     };
     fit();
     window.addEventListener('resize', fit);
-    return () => window.removeEventListener('resize', fit);
+    window.addEventListener('scroll', look, { passive: true });
+    return () => {
+      window.removeEventListener('resize', fit);
+      window.removeEventListener('scroll', look);
+    };
   }, [active, wide, jump]);
   // The drawing eases smaller once the page scrolls, by as much as the questions then rise, so the browser is kept
   // from holding its place on the page while it does (it would pull the questions back down). Where they land is
@@ -525,6 +541,8 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
     const html = document.documentElement.style;
     if (!b || Math.abs(by) < 4 || !tries) {
       html.removeProperty('overflow-anchor');
+      // The questions are in view now (or were already, with nothing left to scroll): the bar turns into Next.
+      setSeenStep(active);
       return;
     }
     html.setProperty('overflow-anchor', 'none');
@@ -782,9 +800,7 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
               ))}
             </div>
             {!wide && (
-              <button type="button" className="chapter-more" ref={more} aria-label={`Show the choices for ${active === LOOKS ? 'the looks' : active}`} onClick={() => showChoices()}>
-                <span className="chapter-more-mark" aria-hidden="true" />
-              </button>
+              <div className="chapter-more" ref={more} aria-hidden="true" />
             )}
           </div>
           <Fold.Provider value={fold}>
@@ -870,7 +886,11 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
               {Name}
             </p>
             {backArrow}
-            {next ? (
+            {!seen ? (
+              <button type="button" className="primary" onClick={() => showChoices()}>
+                See the choices <span aria-hidden="true">↓</span>
+              </button>
+            ) : next ? (
               // Just "Next" on the button (Cat, 2026-11-06): the step's name is read out, not shown.
               <button type="button" className="primary" aria-label={`Next: ${next}`} onClick={() => goStep(next)}>
                 Next <span aria-hidden="true">›</span>

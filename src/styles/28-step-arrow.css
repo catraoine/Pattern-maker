@@ -1,37 +1,35 @@
-/* On a phone the step's name is followed by a down arrow that takes you to its questions, in place of the first
-   question's name peeking in at the bottom of the screen (Cat, 2026-11-06). Its box reaches down to the bar, set
-   from the page by StyleLayout, so the questions start just out of sight. */
+/* On a phone the step's name ends the screen (Cat, 2026-11-06): this space under it reaches down to the bar, set
+   from the page by StyleLayout, so the questions start just out of sight. The bar's "See the choices" brings them up. */
 .chapter-more {
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  align-self: stretch;
-  width: 100%;
   min-height: 44px;
-  margin: 0;
-  padding: 10px 0 0;
-  border: 0;
-  background: none;
-  color: var(--gild);
-  cursor: pointer;
-}
-.chapter-more-mark {
-  width: 14px;
-  height: 14px;
-  border-right: 1.5px solid currentColor;
-  border-bottom: 1.5px solid currentColor;
-  transform: rotate(45deg);
-}
-.chapter-more:focus-visible {
-  outline: none;
-}
-.chapter-more:focus-visible .chapter-more-mark {
-  outline: 2px solid var(--gild);
-  outline-offset: 6px;
 }
 
 /* The bar at the bottom never rises as the page scrolls (Cat, 2026-11-06): the page ends where it starts, with no
    room left under it for it to be scrolled up off the bottom of the screen. */
 .main:has(.style-edit > .style-bar) {
   padding-bottom: 0;
+}
+
+/* With the list of steps open, the open step is named once, in the list where it is marked, not also above it
+   (Cat, 2026-11-06). */
+@media (max-width: 760px) {
+  .chapter:has(.style-tabs.open) > .chapter-name {
+    display: none;
+  }
+  /* Open, the list of steps rises from the bar over the drawing, all five at once with the bar's button right under
+     them, and the page doesn't move (Cat, 2026-11-06). */
+  .style-panel > .chapter:has(.style-tabs.open) {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: var(--style-bar-h, 0px);
+    z-index: 29;
+    padding: 14px 16px 4px;
+    background: #14120e;
+    border-top: 1px solid rgb(217 196 155 / 0.45);
+    box-shadow: 0 -18px 40px rgb(0 0 0 / 0.55);
+  }
+  .chapter:has(.style-tabs.open) > .chapter-more {
+    display: none;
+  }
 }
