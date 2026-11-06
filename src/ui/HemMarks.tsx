@@ -1,6 +1,7 @@
-// Length on the drawing (Cat's L1 and the hem dot on every garment, 2026-10-24): the named lengths sit as marks
-// beside the body, and a dot on the hem drags between them. It replaces the Length buttons, so the drawing shows
-// where each length falls on you. Tap a name to jump to it; the arrow keys step through them.
+// Length on the drawing (Cat's L1 and the hem dot on every garment, 2026-10-24): a dot on the hem drags between the
+// named lengths and says which one it is on. It replaces the Length buttons, so the drawing shows where each length
+// falls on you; the arrow keys step through them. The named lengths no longer stand as lines beside the body on the
+// dress, T-shirt and trousers: the dot's own name says it, with less clutter (Cat, 2026-11-06).
 import { PointerEvent, RefObject, useState } from 'react';
 import type { P } from '../engine/geometry';
 
@@ -21,7 +22,7 @@ interface Props extends HemChoice {
   k: number;
   /** Where the hem is drawn at the centre, when the cloth has one there (not between trouser legs). */
   hemAt?: number;
-  /** Just the dot, without the named lengths beside the body: when the drawing is enlarged to the garment. */
+  /** Framed close to the garment (off the length step, or enlarged): the dot's name goes under it, not beside it. */
   bare?: boolean;
 }
 
@@ -68,7 +69,6 @@ export function HemMarks({ name, marks, value, onPick, svg, cx, k, hemAt, bare }
   const dot: P = { x: cx, y };
   return (
     <g className="hem-marks">
-      {!bare && <LengthMarks marks={marks} on={shown} k={k} onPick={(id) => id !== value && onPick(id)} />}
       <g className={held ? 'handle on' : 'handle'}>
         <circle cx={dot.x} cy={dot.y} r={r} strokeWidth={0.22} />
         <circle cx={dot.x} cy={dot.y} r={0.45 * k} className="dot" />

@@ -487,15 +487,58 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
     setActive(t);
     setJump(false);
   };
+  // Where the pinned drawing and its row of views end on the screen, on a phone.
+  const pinnedBottom = () => Math.max(0, ...[...(pin.current?.querySelectorAll<HTMLElement>('.preview, .row.between.wrap') ?? [])].map((e) => parseFloat(getComputedStyle(e).top) + e.offsetHeight || 0));
+  const scrollBehavior = (): ScrollBehavior => (matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth');
   // Next and back bring the new step's start up under the drawing, if the page had scrolled past it.
   const goStep = (t: string) => {
     choose(t);
     const head = chapter.current;
     if (!head || wide) return;
     // The step's chapter lands just under the pinned drawing and its row of views.
-    const pinned = Math.max(0, ...[...(pin.current?.querySelectorAll<HTMLElement>('.preview, .row.between.wrap') ?? [])].map((e) => parseFloat(getComputedStyle(e).top) + e.offsetHeight || 0));
-    const top = window.scrollY + head.getBoundingClientRect().top - pinned;
-    if (window.scrollY > top) window.scrollTo({ top, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    const top = window.scrollY + head.getBoundingClientRect().top - pinnedBottom();
+    if (window.scrollY > top) window.scrollTo({ top, behavior: scrollBehavior() });
+  };
+  // On a phone the step's name ends the screen with a down arrow, not the top of its first question peeking in under
+  // it (Cat, 2026-11-06). The arrow's box reaches down to the bar at the bottom, so the first question starts just out
+  // of sight; tapping it scrolls the questions up under the drawing.
+  const more = useRef<HTMLButtonElement>(null);
+  useLayoutEffect(() => {
+    const b = more.current;
+    if (!b) return;
+    const fit = () => {
+      b.style.minHeight = '';
+      const bar = document.querySelector<HTMLElement>('.style-bar');
+      const room = window.innerHeight - (bar?.offsetHeight ?? 0) - (b.getBoundingClientRect().top + window.scrollY);
+      b.style.minHeight = `${Math.max(44, Math.ceil(room))}px`;
+    };
+    fit();
+    window.addEventListener('resize', fit);
+    return () => window.removeEventListener('resize', fit);
+  }, [active, wide, jump]);
+  // The drawing eases smaller once the page scrolls, by as much as the questions then rise, so the browser is kept
+  // from holding its place on the page while it does (it would pull the questions back down). Where they land is
+  // checked again once the page has stopped, and set right if it moved.
+  const showChoices = (tries = 3) => {
+    const b = more.current;
+    const by = b ? b.getBoundingClientRect().bottom - pinnedBottom() : 0;
+    const html = document.documentElement.style;
+    if (!b || Math.abs(by) < 4 || !tries) {
+      html.removeProperty('overflow-anchor');
+      return;
+    }
+    html.setProperty('overflow-anchor', 'none');
+    window.scrollTo({ top: window.scrollY + by, behavior: scrollBehavior() });
+    let done = false;
+    const again = () => {
+      if (done) return;
+      done = true;
+      window.removeEventListener('scrollend', again);
+      // A beat later, so the drawing has finished easing smaller (and the browser has held its place on the page).
+      setTimeout(() => showChoices(tries - 1), 250);
+    };
+    window.addEventListener('scrollend', again);
+    setTimeout(again, 700);
   };
   const step = (by: number) => {
     const i = strip_.indexOf(active ?? '');
@@ -602,7 +645,7 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
         )}
       </div>
     );
-  // The step after this one, and its first word for the narrow bar at the bottom ("Next: Neck").
+  // The step after this one: the bar's Next goes there, and says only "Next" (Cat, 2026-11-06).
   const next = active === LOOKS ? steps[0] : steps[at + 1];
   // Back a step names the step it goes to, to the left of the way on (Cat's B, 2026-11-02, after a plain arrow from
   // 2026-10-31 was taken for the header's back): "‹ Shape", on every step after the first.
@@ -622,8 +665,8 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
       </div>
       {exampleTag}
       <div className="style-edit">
-        <div className={['style-pin', tall && 'tall', active === (sections.Length ?? SECTIONS.Length) && 'on-length'].filter(Boolean).join(' ')} ref={pin}>
-          {/* The drawing knows which step is open: the named lengths sit beside it only on the length step. */}
+        <div className={['style-pin', tall && 'tall'].filter(Boolean).join(' ')} ref={pin}>
+          {/* The drawing knows which step is open: on the length step it reaches down to the longest length. */}
           <ActiveTab.Provider value={active}>
             <Sections.Provider value={sections}>
               <Corner.Provider value={corner}>{preview}</Corner.Provider>
@@ -738,6 +781,11 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
                 </button>
               ))}
             </div>
+            {!wide && (
+              <button type="button" className="chapter-more" ref={more} aria-label={`Show the choices for ${active === LOOKS ? 'the looks' : active}`} onClick={() => showChoices()}>
+                <span className="chapter-more-mark" aria-hidden="true" />
+              </button>
+            )}
           </div>
           <Fold.Provider value={fold}>
           <ActiveTab.Provider value={active}>
@@ -771,8 +819,8 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
                   </button>
                 ) : (
                   steps[at + 1] && (
-                    <button type="button" className="step-go" onClick={() => goStep(steps[at + 1])}>
-                      Next: {steps[at + 1]} ›
+                    <button type="button" className="step-go" aria-label={`Next: ${steps[at + 1]}`} onClick={() => goStep(steps[at + 1])}>
+                      Next ›
                     </button>
                   )
                 )}
@@ -823,8 +871,9 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
             </p>
             {backArrow}
             {next ? (
-              <button type="button" className="primary" onClick={() => goStep(next)}>
-                Next: {next} <span aria-hidden="true">›</span>
+              // Just "Next" on the button (Cat, 2026-11-06): the step's name is read out, not shown.
+              <button type="button" className="primary" aria-label={`Next: ${next}`} onClick={() => goStep(next)}>
+                Next <span aria-hidden="true">›</span>
               </button>
             ) : (
               <button type="button" className="primary" disabled={!ready} onClick={() => setPage('review')}>

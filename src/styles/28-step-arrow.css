@@ -1,0 +1,37 @@
+/* On a phone the step's name is followed by a down arrow that takes you to its questions, in place of the first
+   question's name peeking in at the bottom of the screen (Cat, 2026-11-06). Its box reaches down to the bar, set
+   from the page by StyleLayout, so the questions start just out of sight. */
+.chapter-more {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  align-self: stretch;
+  width: 100%;
+  min-height: 44px;
+  margin: 0;
+  padding: 10px 0 0;
+  border: 0;
+  background: none;
+  color: var(--gild);
+  cursor: pointer;
+}
+.chapter-more-mark {
+  width: 14px;
+  height: 14px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg);
+}
+.chapter-more:focus-visible {
+  outline: none;
+}
+.chapter-more:focus-visible .chapter-more-mark {
+  outline: 2px solid var(--gild);
+  outline-offset: 6px;
+}
+
+/* The bar at the bottom never rises as the page scrolls (Cat, 2026-11-06): the page ends where it starts, with no
+   room left under it for it to be scrolled up off the bottom of the screen. */
+.main:has(.style-edit > .style-bar) {
+  padding-bottom: 0;
+}

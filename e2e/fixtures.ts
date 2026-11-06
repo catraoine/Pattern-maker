@@ -318,10 +318,25 @@ export async function goPrint(page: Page) {
 /** The hem dot on the drawing, which sets the length of a skirt, dress, T-shirt or trousers. */
 export const lengthDot = (page: Page) => main(page).getByRole('slider', { name: /^(Skirt|Dress|T-shirt|Trouser) length$/ });
 
-/** Pick a named length by tapping its mark beside the drawing, then check the hem dot reads it. */
+/** Pick a named length, then check the hem dot reads it: by tapping its mark beside the skirt, or, where only the dot
+ *  shows the length (dress, T-shirt, trousers), with the dot's arrow keys, which step through the named lengths. */
 export async function chooseLength(page: Page, name: string) {
-  await main(page).locator('.preview .hem-mark').filter({ hasText: new RegExp(`^${name}$`, 'i') }).click();
+  const mark = main(page).locator('.preview .hem-mark').filter({ hasText: new RegExp(`^${name}$`, 'i') });
+  if (await mark.count()) await mark.click();
+  else await stepDotTo(page, name);
   await expect(lengthDot(page)).toHaveAttribute('aria-valuetext', name);
+}
+
+/** Steps the hem dot along the named lengths with its arrow keys: up to the shortest, then down until it reads one. */
+async function stepDotTo(page: Page, name: string) {
+  const dot = lengthDot(page);
+  const step = async (key: string) => {
+    const before = (await dot.getAttribute('aria-valuenow')) ?? '';
+    await dot.press(key);
+    await expect(dot).not.toHaveAttribute('aria-valuenow', before);
+  };
+  for (let i = 0; i < 12 && Number(await dot.getAttribute('aria-valuenow')) > 1; i++) await step('ArrowUp');
+  for (let i = 0; i < 12 && (await dot.getAttribute('aria-valuetext')) !== name; i++) await step('ArrowDown');
 }
 
 export async function chooseChip(page: Page, group: string, chip: string) {
