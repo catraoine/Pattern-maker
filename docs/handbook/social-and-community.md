@@ -41,7 +41,13 @@ projector test.
 ## Community (decided Oct 28)
 
 Instagram only until launch: broadcast channel "Maison Tracé: Atelier notes" plus a private group
-chat. Circle only after ~250 active members; no Discord or WhatsApp. Founding Atelier = first 100.
+chat. Circle only after ~250 active members; no Discord or WhatsApp. Founding Atelier = 250 numbered places
+(No. 001 to 250, never reissued; decided Nov 6, see the Founding member strategy doc
+https://claude.ai/artifact/GvRLqzJfNjaPGC6yneRbrV): testers 001 to 040, then unpicked
+applicants (place given automatically), then waitlist claims from Dec 7, first come, free.
+Premium $35/yr locked while subscribed (testers: free first year, then $35). Founders' preview
+Tue Feb 9; claims close at 250 or Apr 30; two invite links each (five if fewer than 120 claimed
+by the Jan 25 backstop). Never lower the price or reopen numbers. No lifetime deals.
 Pre-launch only: First Wear Friday, group replies, Fit Clinic every other week, monthly challenge
 from December (Thrift to dress). **Keep it to ~2 hours a week, never more than 3.** Co-hosts: the
 Sewing Lead first; a second picked mid-November from helpful testers.
