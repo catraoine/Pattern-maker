@@ -10,6 +10,8 @@ test('a pick made from the keyboard keeps the focus on the choices', async ({ pa
   await page.addInitScript(() => localStorage.removeItem('maison-trace-steady'));
   await startWithExample(page);
   const panel = page.locator('.style-panel');
+  // Every question starts folded (Cat, 2026-11-06): open the first from its folded line.
+  await panel.locator('fieldset.group.fold .fold-head').first().click();
   const chip = panel.locator('fieldset.group.fold.open .chips button[aria-pressed="false"]').first();
   await chip.focus();
   await page.keyboard.press('Enter');
