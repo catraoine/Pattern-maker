@@ -339,7 +339,8 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
   const swipe = useRef<{ x: number; y: number; sideways: boolean }>();
   const wide = useWide();
   const exampleTag = useContext(ExampleTag);
-  // The open question on each step: the first one until another is opened.
+  // The open question on each step. Every question starts folded (Cat, 2026-11-06: the first one stood open, so
+  // See the choices didn't show the whole list); a tap on one opens it.
   const [folds, setFolds] = useState<Record<string, string>>({});
   const [steady] = useState(steadyNow);
   const fold = { open: folds, set: (t: string, l: string) => setFolds((f) => (f[t] === l ? f : { ...f, [t]: l })), steady };
@@ -361,10 +362,6 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
     }
     // It opens on the first step; Looks is there for the link by the title.
     if (!active || !next.includes(active)) setActive(next.find((t) => t !== LOOKS) ?? next[0]);
-    if (active && !folds[active]) {
-      const first = panel.current.querySelector<HTMLElement>(`fieldset.group.fold[data-tab="${active}"]`);
-      if (first) setFolds((f) => ({ ...f, [active]: first.dataset.label! }));
-    }
   });
 
   // The sketch pins under the app's header, whatever height the header is.
@@ -451,8 +448,6 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
     setActive(t);
     setJump(false);
   };
-  // Where the pinned drawing and its row of views end on the screen, on a phone.
-  const pinnedBottom = () => Math.max(0, ...[...(pin.current?.querySelectorAll<HTMLElement>('.preview, .row.between.wrap') ?? [])].map((e) => parseFloat(getComputedStyle(e).top) + e.offsetHeight || 0));
   const scrollBehavior = (): ScrollBehavior => (matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth');
   // Next and back open the new step as the page first opens (Cat's N3, 2026-11-06): the page back at the top, the
   // drawing full size, the step's name, and "See the choices" in the bar.
@@ -462,11 +457,13 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
   };
   // On a phone the step's name ends the screen, not the top of its first question peeking in under it (Cat,
   // 2026-11-06): a space under the name reaches down to the bar at the bottom, so the first question starts just out
-  // of sight. Until the step's questions have come into view, the bar's button says "See the choices" and scrolls
-  // them up under the drawing; then it turns into Next (Cat's N3), so no one moves on without seeing them.
+  // of sight. Until the page has been pulled up to the end of the step's choices, the bar's button says "See the
+  // choices" and scrolls right to the end; there it turns into Next (Cat's N3, and Cat 2026-11-06 live: it turned
+  // into Next as soon as the page moved, and stayed so back at the top). It follows where the page is, so back up
+  // at the step's name it asks to choose again.
   const more = useRef<HTMLDivElement>(null);
-  const [seenStep, setSeenStep] = useState<string>();
-  const seen = wide || seenStep === active;
+  const [inView, setInView] = useState(false);
+  const seen = wide || inView;
   useLayoutEffect(() => {
     const b = more.current;
     if (!b) return;
@@ -480,15 +477,14 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
       const room = window.innerHeight - (bar()?.offsetHeight ?? 0) - (b.getBoundingClientRect().top + window.scrollY);
       b.style.minHeight = `${Math.max(44, Math.ceil(room))}px`;
     };
-    // Seen once the page is scrolled and the first question shows clear of the bar. At the top it never is: that's
-    // where the space under the step's name keeps the questions out of sight.
+    // At the end once the page is scrolled down as far as it goes (give or take a finger's slip). At the top it
+    // never is: that's where the space under the step's name keeps the questions out of sight.
     const look = () => {
       fit();
-      if (window.scrollY < 2) return;
-      const top = bar()?.getBoundingClientRect().top ?? window.innerHeight;
-      if (b.getBoundingClientRect().bottom < top - 24) setSeenStep(active);
+      const end = document.documentElement.scrollHeight - window.innerHeight;
+      setInView(window.scrollY >= 2 && window.scrollY >= end - 24);
     };
-    fit();
+    look();
     window.addEventListener('resize', fit);
     window.addEventListener('scroll', look, { passive: true });
     return () => {
@@ -496,17 +492,28 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
       window.removeEventListener('scroll', look);
     };
   }, [active, wide, jump]);
-  // The drawing eases smaller once the page scrolls, by as much as the questions then rise, so the browser is kept
-  // from holding its place on the page while it does (it would pull the questions back down). Where they land is
-  // checked again once the page has stopped, and set right if it moved.
-  const showChoices = (tries = 3) => {
-    const b = more.current;
-    const by = b ? b.getBoundingClientRect().bottom - pinnedBottom() : 0;
+  // Pulls the page up to the end of the step's choices. The drawing eases smaller once the page scrolls, which
+  // shortens the page as it goes, so the browser is kept from holding its place on the page while it does, and
+  // where it lands is checked again once the page has stopped, and taken on to the end if it fell short.
+  // A touch, wheel or key of the person's own stops the chase, so a quick scroll back up isn't pulled down again.
+  const chase = useRef(0);
+  useEffect(() => {
+    const stop = () => chase.current++;
+    const on = ['touchstart', 'wheel', 'keydown'] as const;
+    on.forEach((e) => window.addEventListener(e, stop, { passive: true }));
+    return () => on.forEach((e) => window.removeEventListener(e, stop));
+  }, []);
+  const showChoices = (tries = 3, id = ++chase.current) => {
+    const by = document.documentElement.scrollHeight - window.innerHeight - window.scrollY;
     const html = document.documentElement.style;
-    if (!b || Math.abs(by) < 4 || !tries) {
+    if (id !== chase.current) {
       html.removeProperty('overflow-anchor');
-      // The questions are in view now (or were already, with nothing left to scroll): the bar turns into Next.
-      setSeenStep(active);
+      return;
+    }
+    if (by < 4 || !tries) {
+      html.removeProperty('overflow-anchor');
+      // At the end of the choices now (or as near as the page goes): the bar turns into Next.
+      setInView(true);
       return;
     }
     html.setProperty('overflow-anchor', 'none');
@@ -516,11 +523,11 @@ export function StyleLayout({ children, label, name, ready, onChooseGarment, onP
       if (done) return;
       done = true;
       window.removeEventListener('scrollend', again);
-      // A beat later, so the drawing has finished easing smaller (and the browser has held its place on the page).
-      setTimeout(() => showChoices(tries - 1), 250);
+      // A beat later, so the drawing has finished easing smaller.
+      setTimeout(() => showChoices(tries - 1, id), 250);
     };
     window.addEventListener('scrollend', again);
-    setTimeout(again, 700);
+    setTimeout(again, 900);
   };
   const step = (by: number) => {
     const i = strip_.indexOf(active ?? '');
