@@ -212,7 +212,6 @@ export function roundShape(round: RoundGarment, m: RoundMeasurements, { film, th
   // past the body in one step at the hip, a shelf right round the garment (Cat, 2026-10-28).
   const hangTop = hangShare > 0 ? BUST_Y : WAIST;
   const hangRows = Math.max(2, Math.ceil((Math.max(yOf(longest), FORM_HIP) + 0.1 - hangTop) / HANG_DY) + 1);
-  const hang = new Float64Array(HANG_N * hangRows);
   // A boxy dress hangs from the bust as a tube: below it the cloth keeps the bust's own cross-section, its sides
   // following the pattern's girth (the bust's, then the waist's and the hip's), not the body's waist plus the ease
   // spread evenly round it, which stood out in front and behind as a belly (Cat, 2026-10-30: "makes the person look
@@ -223,21 +222,27 @@ export function roundShape(round: RoundGarment, m: RoundMeasurements, { film, th
     return y <= BUST_Y ? bust : y <= WAIST ? bust + (waist - bust) * ((y - BUST_Y) / (WAIST - BUST_Y)) : y <= FORM_HIP ? waist + (hip - waist) * ((y - WAIST) / (FORM_HIP - WAIST)) : hip;
   };
   const under = (a: number, y: number) => (tube ? bodyReach(formHalfWidth(Math.min(y, 1.3)), a, y) + 0.012 : onBody(a, y));
-  for (let i = 0; i < HANG_N; i++) {
-    const a = -Math.PI + (TAU * i) / HANG_N;
-    const sa = Math.sin(a) ** 2;
-    let prev = onBody(a, hangTop);
-    hang[i * hangRows] = prev;
-    for (let j = 1; j < hangRows; j++) {
-      const y = hangTop + j * HANG_DY;
-      const rho = tube ? girthAt(y) / girthAt(y - HANG_DY) : radius(y) / (radius(y - HANG_DY) || 1e-6);
-      const sides = Math.sqrt(sa * rho * rho + (1 - sa));
-      const fell = prev * (y > FORM_HIP ? sides + (rho - sides) * allRound : sides);
-      prev = Math.max(y > hangTop + HANG_DY / 2 ? under(a, y) : onBody(a, y), fell);
-      hang[i * hangRows + j] = prev;
+  /** The cloth down each line round the body, falling from `top` at the top row over `under` below it. */
+  const fallFrom = (under: (a: number, y: number) => number, top: (a: number, y: number) => number) => {
+    const table = new Float64Array(HANG_N * hangRows);
+    for (let i = 0; i < HANG_N; i++) {
+      const a = -Math.PI + (TAU * i) / HANG_N;
+      const sa = Math.sin(a) ** 2;
+      let prev = top(a, hangTop);
+      table[i * hangRows] = prev;
+      for (let j = 1; j < hangRows; j++) {
+        const y = hangTop + j * HANG_DY;
+        const rho = tube ? girthAt(y) / girthAt(y - HANG_DY) : radius(y) / (radius(y - HANG_DY) || 1e-6);
+        const sides = Math.sqrt(sa * rho * rho + (1 - sa));
+        const fell = prev * (y > FORM_HIP ? sides + (rho - sides) * allRound : sides);
+        prev = Math.max(y > hangTop + HANG_DY / 2 ? under(a, y) : top(a, y), fell);
+        table[i * hangRows + j] = prev;
+      }
     }
-  }
-  const hung = (a: number, y: number) => {
+    return table;
+  };
+  const hang = fallFrom(under, onBody);
+  const hungOf = (table: Float64Array) => (a: number, y: number) => {
     const f = ((((a + Math.PI) / TAU) % 1) + 1) % 1 * HANG_N;
     const i0 = Math.floor(f) % HANG_N;
     const i1 = (i0 + 1) % HANG_N;
@@ -246,9 +251,10 @@ export function roundShape(round: RoundGarment, m: RoundMeasurements, { film, th
     if (g <= 0) return onBody(a, y);
     const j0 = Math.min(hangRows - 2, Math.floor(g));
     const v = Math.min(1, g - j0);
-    const at = (i: number) => hang[i * hangRows + j0] * (1 - v) + hang[i * hangRows + j0 + 1] * v;
+    const at = (i: number) => table[i * hangRows + j0] * (1 - v) + table[i * hangRows + j0 + 1] * v;
     return at(i0) * (1 - u) + at(i1) * u;
   };
+  const hung = hungOf(hang);
   const shell = (a: number, y: number) => {
     // Cloth shaped to the body hangs from wherever the body is fullest below the waist (the belly in front, the seat
     // behind), straight on down: hung from the waist it lies on the body until then, so there is no step. Cloth
@@ -351,13 +357,24 @@ export function roundShape(round: RoundGarment, m: RoundMeasurements, { film, th
   // first and then bows out over the seat as a bump (Cat, 2026-11-06: "still looks a bit too bumpy"). Down each
   // line round the body, the hung cloth from the waist to the crotch is bridged by its own hull: the lowest
   // line over it that never dips.
+  // On loose trousers the room does not stand out evenly all round (spread so, the front swelled as a belly and the
+  // back stood out behind the seat, Cat 2026-11-06: "flatter"): the pleats carry the fullness in front, so the front
+  // falls straight down from under the band, and the back falls from the seat with a little room behind it; the
+  // sides take the rest, at the pattern's own width.
+  const underTrousers = (a: number, y: number) => {
+    const body = formHalfWidth(Math.min(y, 1.3));
+    const ease = radius(y) - body;
+    const whisper = 0.012 + 0.25 * Math.max(0, ease - 0.012);
+    return bodyReach(body, a, y) + whisper + (ease - whisper) * Math.sin(a) ** 2;
+  };
+  const hungTrousers = lg ? hungOf(fallFrom(underTrousers, underTrousers)) : hung;
   const seatRows = lg ? Math.min(hangRows, Math.ceil((yC + 0.05 - WAIST) / HANG_DY) + 1) : 0;
   const bridged = new Float64Array(HANG_N * seatRows);
   for (let i = 0; i < HANG_N; i++) {
     const a = -Math.PI + (TAU * i) / HANG_N;
     const hull: [number, number][] = [];
     for (let j = 0; j < seatRows; j++) {
-      const q: [number, number] = [WAIST + j * HANG_DY, hung(a, WAIST + j * HANG_DY)];
+      const q: [number, number] = [WAIST + j * HANG_DY, hungTrousers(a, WAIST + j * HANG_DY)];
       while (hull.length >= 2) {
         const [p1, p2] = [hull[hull.length - 2], hull[hull.length - 1]];
         if ((p2[0] - p1[0]) * (q[1] - p1[1]) - (p2[1] - p1[1]) * (q[0] - p1[0]) < 0) break;
