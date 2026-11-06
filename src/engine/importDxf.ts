@@ -453,7 +453,7 @@ export function importDxf(text: string): ImportedPattern {
       // Those short runs are the dart's, not an edge with an allowance of its own: tagged so, and left out of the
       // tally, so a notch at a dart leg is cut from the edge the dart sits on, as the app drafts it.
       const dartRun = new Set<number>();
-      const ringAt = (q: P) => sewRing.findIndex((r) => near(r, q, 1e-3));
+      const ringAt = (q: P) => sewRing.findIndex((r) => near(r, q, 0.05));
       for (const sh of shapes.filter((x) => INTERNAL_LAYERS.has(x.layer) && !x.closed && x.pts.length === 3)) {
         const [a, b] = [ringAt(toCm(sh.pts[0])), ringAt(toCm(sh.pts[2]))];
         if (a < 0 || b < 0 || a === b) continue;
@@ -551,10 +551,10 @@ export function importDxf(text: string): ImportedPattern {
         },
       };
       // Dart-leg notches are added by the app itself wherever a dart meets the edge, so a file that
-      // already carries them (our own export does) would get them twice. The file's may sit a few mm from where
-      // the app puts them (its allowance at the leg is read off the file), so anything within 6 mm is the leg's.
+      // already carries them (our own export does) would get them twice. The file's may sit a little off where the
+      // app puts them (its allowance at the leg is read off the file), so anything within 4 mm is the leg's.
       const legs = dartsOf(piece).flatMap(({ near: a, tip, far }) => [a, far].map((q) => nearestOnRing(notchSlit(piece, q, sub(q, tip))[0], piece.cutOutline!).at));
-      piece.notches = piece.notches.filter(([q, d]) => !legs.some((l) => near(l, nearestOnRing(notchSlit(piece, q, d)[0], piece.cutOutline!).at, 0.6)));
+      piece.notches = piece.notches.filter(([q, d]) => !legs.some((l) => near(l, nearestOnRing(notchSlit(piece, q, d)[0], piece.cutOutline!).at, 0.4)));
       // Drill holes the app would not already place at a dart point.
       const auto = drillHoles(piece);
       const drills = points.filter((q) => DRILL_LAYERS.has(q.layer)).map((q) => m(toCm(q.at)));

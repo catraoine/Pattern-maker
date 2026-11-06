@@ -1,6 +1,7 @@
 // The pieces that finish a garment beyond its block: a printed waistband, lining and facings.
 import { P, Path, add, intersect, len, lerp, mul, p, sub, unit, unlooped } from './geometry';
 import { Piece } from './piece';
+import { insidePolygon } from './marks';
 import { BUTTON_CM, EXTENSION_CM } from './collar';
 import { WAISTBAND_CM } from './skirt';
 import type { SkirtDraft } from './skirt';
@@ -360,7 +361,9 @@ export function facing(pc: Piece, tag: string, width: number, name: string): Pie
   // beyond it; those are left out, so the inner edge runs straight to its end on the seam instead of crossing it.
   // Where the edge has a small kink (a dart closed along it), the inner edge offset from it folds over itself in a
   // tiny loop, cut out too.
-  const innerLine = unlooped(inner.filter((q, i) => i === 0 || i === m || inside(q, P2)));
+  const trimmed = inner.filter((q, i) => i === 0 || i === m || insidePolygon(q, P2));
+  // A piece narrower than the band (a strap) would lose the whole inner edge to the trim; it keeps its own.
+  const innerLine = unlooped(trimmed.length > 2 ? trimmed : inner);
   const outline = new Path(edge[0]);
   edge.slice(1).forEach((q) => outline.line(q, tag));
   tail.forEach((q) => outline.line(q, after));
@@ -409,17 +412,6 @@ export function facing(pc: Piece, tag: string, width: number, name: string): Pie
     allowances: { ...pc.allowances, facing: 0 },
     meta: {},
   };
-}
-
-/** Whether a point lies inside a closed outline (even-odd crossing count). */
-function inside(q: P, pts: P[]): boolean {
-  let c = false;
-  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
-    const a = pts[i];
-    const b = pts[j];
-    if (a.y > q.y !== b.y > q.y && q.x < ((b.x - a.x) * (q.y - a.y)) / (b.y - a.y) + a.x) c = !c;
-  }
-  return c;
 }
 
 function distToSeg(q: P, a: P, b: P): number {

@@ -107,6 +107,10 @@ export function compareBack(pieces: Piece[], back: ImportedPattern): string[] {
       ['notch', 'notches', onCut(want, cutW), (got.meta.fileNotches as P[] | undefined) ?? onCut(got, cutG)],
       ['drill hole', 'drill holes', drillHoles(want), drillHoles(got)],
     ];
+    // And once the import has placed the dart legs itself, the piece carries as many notches as were drafted: a
+    // file notch wrongly kept beside a leg, or one wrongly taken as a leg's, shows here.
+    const placed = allNotches(got).length;
+    if (placed !== allNotches(want).length) say(`${allNotches(want).length} notches drafted, ${placed} on the piece once read in`);
     for (const [one, many, a, c] of marks) {
       if (a.length !== c.length) say(`${a.length} ${a.length === 1 ? one : many} drafted, ${c.length} read back`);
       const off = a.map((q) => Math.min(Infinity, ...c.map((r) => len(sub(sub(q, shift), r))))).filter((d) => d > MARK_TOL);
