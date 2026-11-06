@@ -321,7 +321,7 @@ const DEMOS = {
   // Every clip is in the Draw clip's look (A, Just the form; Cat said yes for all seven on 2026-11-05): the drawing,
   // the pattern or the tool's own picture, big, under one caption; what is picked shows in the line over it.
   style: async (h) => {
-    const { wait, card, cap, focus, veil, uncard, R, press, label, drag, f } = h;
+    const { wait, card, cap, focus, veil, uncard, R, press, label, drag, f, p } = h;
     const pick = async (c, ms = 1700) => {
       await press(R('button', c), 0);
       await label(c);
@@ -341,7 +341,15 @@ const DEMOS = {
     const svg = f.locator('svg.preview-svg');
     // Straight down, to the height of the (hidden) Midi mark.
     const handle = svg.locator('circle.hit[aria-label="Skirt length"]');
-    const [hb, mb] = [await handle.boundingBox(), await svg.locator('.hem-mark').filter({ hasText: /^Midi$/i }).boundingBox()];
+    // The named lengths are no longer drawn (the hem glides and catches on each): step the slider down to Midi to
+    // learn where it sits, step back up, then drag there for the camera.
+    const hb = await handle.boundingBox();
+    await handle.focus();
+    let steps = 0;
+    while ((await handle.getAttribute('aria-valuetext')) !== 'Midi' && steps < 8) { await p.keyboard.press('ArrowDown'); steps++; await wait(150); }
+    const mb = await handle.boundingBox();
+    for (let i = 0; i < steps; i++) { await p.keyboard.press('ArrowUp'); await wait(80); }
+    await wait(400);
     await drag(handle, [0, mb.y + mb.height / 2 - (hb.y + hb.height / 2)], 1800);
     await cap('Hem', 'Pick the shape of the hem. Here, high-low.');
     await wait(1000);
@@ -452,6 +460,14 @@ async function pickFrom({ R, press }, group, item, ms = 1800) {
 
 /** From the style screen to Print, under the title card. */
 async function toPrint({ R, press }, allTools, quick) {
+  // On a phone the bar says "See the choices" until the step's questions have been scrolled into view (Nov 6);
+  // only then does Review appear, as a link under the step or as the bar's own button.
+  const see = R('button', /^See the choices/);
+  if (await see.count()) {
+    // It scrolls the questions up in a few tries (with nothing to scroll in the clip's frame, up to ~3 s).
+    await press(see, 300);
+    await R('button', /^Review/).waitFor({ state: 'attached', timeout: 8000 });
+  }
   await press(R('button', /^Review/), quick ? 200 : 600);
   await press(R('button', 'Print my pattern'), quick ? 400 : 900);
   if (allTools) await press(R('button', 'Show all tools'), 800);
