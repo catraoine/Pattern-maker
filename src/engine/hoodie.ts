@@ -33,14 +33,14 @@ export interface HoodieStyle {
   flatFront?: boolean;
 }
 
-export const DEFAULT_HOODIE: HoodieStyle = { fit: 'relaxed', stretch: 'low', length: 'hip', front: 'pullover', pocket: 'kangaroo', hood: 'standard', hemBand: true };
+const DEFAULT_HOODIE: HoodieStyle = { fit: 'relaxed', stretch: 'low', length: 'hip', front: 'pullover', pocket: 'kangaroo', hood: 'standard', hemBand: true };
 
 /** Rib depths, finished, in cm: the hem band and the cuffs. A long hoodie's are deeper. */
-export const HOODIE_RIB: Record<HoodieLength, { hem: number; cuff: number }> = { cropped: { hem: 5, cuff: 6 }, hip: { hem: 6, cuff: 6 }, long: { hem: 8, cuff: 9 } };
+const HOODIE_RIB: Record<HoodieLength, { hem: number; cuff: number }> = { cropped: { hem: 5, cuff: 6 }, hip: { hem: 6, cuff: 6 }, long: { hem: 8, cuff: 9 } };
 /** The hood, before it is sized to the neckline: neck to crown, and face edge to the back. */
-export const HOOD_SIZE: Record<HoodSize, { height: number; depth: number }> = { standard: { height: 34, depth: 25 }, big: { height: 37, depth: 28.5 } };
+const HOOD_SIZE: Record<HoodSize, { height: number; depth: number }> = { standard: { height: 34, depth: 25 }, big: { height: 37, depth: 28.5 } };
 /** The half-zip's opening from the neck, and the zip's tape each side. */
-export const HALF_ZIP_CM = 18;
+const HALF_ZIP_CM = 18;
 const ZIP_SEAM = 1.5;
 /** The drawcord channel round the face, finished, in cm. */
 const CHANNEL_CM = 2.5;
@@ -61,7 +61,7 @@ export interface HoodieDraft {
 const r1 = (v: number) => Math.round(v * 10) / 10;
 
 /** Where each length ends below the waist at the side, the band included. */
-export function hoodieBelowWaist(m: Pick<TeeMeasurements, 'waist_to_hip'>, l: HoodieLength): number {
+function hoodieBelowWaist(m: Pick<TeeMeasurements, 'waist_to_hip'>, l: HoodieLength): number {
   return { cropped: 2, hip: m.waist_to_hip + 2, long: m.waist_to_hip + 16 }[l];
 }
 

@@ -122,6 +122,25 @@ function hood(v: RawView, front: boolean, height: number, zipped: boolean) {
   } else v.lines.push({ pts: [p(0, top - H - 1.8), p(0, neckFront)], kind: 'seam' });
 }
 
+/** The hood worn down, seen from the front on the form: it folds back round the neck, showing either side of it
+ *  as a soft roll, so the face and neck stay clear (the flat shows it up, its whole shape). */
+function hoodDown(v: RawView, zipped: boolean) {
+  const body = v.shapes[0];
+  const top = Math.min(...body.map((q) => q.y));
+  const neckW = halfWidth(body, top + 0.6) || 9;
+  const neckFront = Math.max(...body.filter((q) => Math.abs(q.x) < 0.8 && q.y < top + 20).map((q) => q.y));
+  for (const s of [1, -1]) {
+    const lobe = [
+      p(s * (zipped ? 0.4 : 2.5), neckFront - (zipped ? 0 : 1)),
+      ...curve(p(s * (zipped ? 0.4 : 2.5), neckFront - (zipped ? 0 : 1)), p(s * (neckW + 1.5), neckFront - 1), p(s * (neckW + 4), top + 1)),
+      ...curve(p(s * (neckW + 4), top + 1), p(s * (neckW + 3), top - 4.5), p(s * (neckW - 0.5), top - 3.5)),
+      ...curve(p(s * (neckW - 0.5), top - 3.5), p(s * (neckW - 1.5), top + 3), p(s * (zipped ? 0.4 : 2.5), neckFront - 3)),
+    ];
+    v.shapes.push(lobe);
+    v.lines.push({ pts: curve(p(s * (neckW + 3.2), top), p(s * (neckW + 1), top + 3), p(s * (zipped ? 0.6 : 3), neckFront - 2)), kind: 'seam' });
+  }
+}
+
 /** The kangaroo pocket (or a split pair beside a zip), on the front above the hem band. */
 function pocket(v: RawView, kind: 'kangaroo' | 'split', hemY: number) {
   const y1 = hemY - 0.3;
@@ -137,7 +156,7 @@ function pocket(v: RawView, kind: 'kangaroo' | 'split', hemY: number) {
 }
 
 /** The hoodie: the T-shirt's flat without its neckband, the hood, the pocket, the zip, rib cuffs and band. */
-export function hoodieFlat(d: HoodieDraft): Flat {
+export function hoodieFlat(d: HoodieDraft, worn = false): Flat {
   const flat = teeFlat(d.tee);
   const views = raw(flat).map((v) => {
     // The neckband's two halves are the last shapes the tee flat draws: the hood sews to the neckline in its place.
@@ -156,7 +175,8 @@ export function hoodieFlat(d: HoodieDraft): Flat {
     const top = Math.min(...body.filter((q) => Math.abs(q.x) < 1).map((q) => q.y));
     if (front && d.style.front === 'zip') v.lines.push({ pts: [p(0, top), p(0, hemY + (rib.hemBand ? (d.style.length === 'long' ? 8 : 6) : 0))], kind: 'zip' });
     if (front && d.style.front === 'half_zip') v.lines.push({ pts: [p(0, top), p(0, top + (d.zipCm ?? 18))], kind: 'zip' });
-    hood(v, front, d.hood.height, front && d.style.front !== 'pullover');
+    if (worn && front) hoodDown(v, d.style.front !== 'pullover');
+    else hood(v, front, d.hood.height, front && d.style.front !== 'pullover');
   });
   return arrange(views);
 }

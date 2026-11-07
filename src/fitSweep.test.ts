@@ -17,12 +17,14 @@ describe('fit sweep on random bodies', () => {
   it(`drafts every garment for ${BODIES} random bodies to the body plus its ease, with no new kind of fault`, () => {
     const known = JSON.parse(readFileSync(file, 'utf8')) as Record<string, string>;
     const r = rng(SEED);
+    // The Garment range (2026-11-07) draws its designs from a stream of its own, so the other garments' designs stay as before.
+    const range = rng(SEED + 7_000_000);
     const found = new Map<string, { count: number; example: string }>();
     let drafted = 0;
     for (let i = 0; i < BODIES; i++) {
       const values = randomValues(r);
       for (const g of FIT_GARMENTS) {
-        const d = randomFitDesign(r, g);
+        const d = randomFitDesign(g === 'knit_dress' || g === 'hoodie' || g === 'jumpsuit' ? range : r, g);
         let problems: string[];
         try {
           problems = fitProblems(d, values);

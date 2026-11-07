@@ -44,6 +44,7 @@ import { withFinishedMarks } from './engine/finishedMarks';
 
 import type { Choices, Finish } from './savedWork';
 import type { Drafts } from './garmentDrafts';
+import { rangePrintable } from './rangePrintable';
 
 // The printed pattern for a garment: its pieces with allowances, the notes on its first page, the sewing guide, the
 // spec sheet, the cutting layouts and the flat drawing. Built from the drafts App makes, for the print screen and
@@ -110,6 +111,9 @@ function drafted({ result, values, finish, fabric, garment, ownFitting, carriedN
   // The couture route's cloth follows the recorded fibre; either route opens with preparing the fabric.
   const route = (guide: SewingGuide, c: { garment: 'skirt' | 'bodice' | 'dress'; lined: boolean; zipCm: number }) =>
     withFabric(finish.route === 'couture' ? toCouture(guide, { ...c, cloth: clothFor(fabric, finish.cloth), traced: couture }) : guide, fabric, c.garment);
+  // The Garment range prints from its own file (2026-11-07).
+  const range = rangePrintable(result, { values, width: finish.fabricWidth, nap, hide, border, fabric, seams, couture, allow, fittingNotes });
+  if (range) return range;
   if (tee) {
     // Knit allowances (1 cm, 2.5 cm at the hem) whatever the allowance style, and a knit lay.
     const pieces = tee.pieces;

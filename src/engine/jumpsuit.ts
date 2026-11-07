@@ -9,13 +9,12 @@
 //   (BODY_RISE), the one change a one-piece needs over two.
 // - It zips down the centre back, on past the waist into the back seam so it steps in over the hips; a buttoned
 //   top (a boiler suit) opens with a fly below the waist instead.
-import { taggedLength } from './geometry';
+import { p, taggedLength } from './geometry';
 import type { Piece } from './piece';
 import { BodiceDraft, BodiceMeasurements, BodiceStyle, draftBodice } from './bodice';
 import { draftSleeve, SleeveDraft } from './sleeve';
 import type { SleeveMeasurements, SleeveStyle } from './sleeve';
-import { TrousersDraft, TrousersMeasurements, TrousersStyle, draftTrousers } from './trousers';
-import { p } from './geometry';
+import { TrousersDraft, TrousersMeasurements, TrousersStyle, draftTrousers, pointAlong, trouserLength } from './trousers';
 
 export type JumpsuitMeasurements = BodiceMeasurements & TrousersMeasurements & SleeveMeasurements;
 
@@ -55,7 +54,9 @@ export function draftJumpsuit(m: JumpsuitMeasurements, style: JumpsuitStyle): Ju
   const waistOf = (pcs: Piece[]) => pcs.reduce((t, pc) => t + taggedLength(pc.outline, 'waist') / (pc.meta.whole ? 2 : 1), 0);
   const want = { front: waistOf(side('front')), back: waistOf(side('back')) };
   const body: TrousersMeasurements = { ...m, crotch_depth: m.crotch_depth + BODY_RISE.depth, crotch_length: m.crotch_length + BODY_RISE.crotch };
-  const legsOf = (j: { front: number; back: number }) => draftTrousers(body, { ...style.legs, closure: buttoned ? 'fly' : 'side_zip', joinTo: j, loops: 'none', pleats: style.legs.pleats });
+  // Shorts are measured from the crotch: pinned to where they'd land on the body, so the lower crotch doesn't lengthen them.
+  const shortsCm = style.legs.length === 'shorts' && style.legs.leg !== 'culotte' && style.legs.lengthCm === undefined ? trouserLength(m, { leg: style.legs.leg ?? 'straight', length: 'shorts' }) : style.legs.lengthCm;
+  const legsOf = (j: { front: number; back: number }) => draftTrousers(body, { ...style.legs, lengthCm: shortsCm, closure: buttoned ? 'fly' : 'side_zip', joinTo: j, loops: 'none', pleats: style.legs.pleats });
   const join = { ...want };
   let legs = legsOf(join);
   const legWaist = (d: TrousersDraft, i: 0 | 1) => taggedLength(d.pieces[i].outline, 'waist');
@@ -75,11 +76,19 @@ export function draftJumpsuit(m: JumpsuitMeasurements, style: JumpsuitStyle): Ju
   // The zip runs on through the waist into the back seam: the bodice loses its zip-end mark, the legs' back gets one.
   let zipCm = 0;
   if (!buttoned) {
+    // The zip's end on the back's crotch seam, measured down it from the waist (the seam runs either way round).
     const back = legPieces[1];
-    const cb = back.outline.points().filter((q) => q.x < 0.5 && q.x > -0.5);
-    const top0 = cb.length ? Math.min(...cb.map((q) => q.y)) : 0;
-    back.notches = [...back.notches, [p(0, top0 + ZIP_BELOW_WAIST), p(-1, 0)]];
-    back.labels = [...back.labels, { at: p(3, top0 + ZIP_BELOW_WAIST + 0.3), text: 'ZIP ENDS', size: 0.7 }];
+    const run = taggedLength(back.outline, 'crotch');
+    const [a, b] = [pointAlong(back.outline, 'crotch', 0.01), pointAlong(back.outline, 'crotch', run - 0.01)];
+    const fromWaist = !!a && !!b && a.q.y < b.q.y;
+    const at = pointAlong(back.outline, 'crotch', fromWaist ? ZIP_BELOW_WAIST : run - ZIP_BELOW_WAIST);
+    if (at) {
+      const inward = p(-at.dir.y, at.dir.x);
+      back.notches = [...back.notches, [at.q, inward]];
+      const xs = back.outline.points().map((q) => q.x);
+      const toMiddle = Math.sign((Math.min(...xs) + Math.max(...xs)) / 2 - at.q.x) || 1;
+      back.labels = [...back.labels, { at: p(at.q.x + toMiddle * 2.5, at.q.y + 0.3), text: 'ZIP ENDS', size: 0.7 }];
+    }
     zipCm = r1(bodice.backLength + ZIP_BELOW_WAIST);
   } else zipCm = legs.zipCm;
   const unzip = (pc: Piece): Piece => (/back/i.test(pc.name) && !buttoned ? { ...pc, labels: pc.labels.filter((l) => l.text !== 'ZIP ENDS'), notches: pc.notches.filter(([q, d]) => !(Math.abs(q.x) < 1e-6 && d.x < 0)) } : pc);

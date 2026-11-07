@@ -13,13 +13,16 @@ import { SLIP_HIP_EASE_LESS, validCut } from './engine/slip';
 import { BODICE_FIT_EASE } from './engine/bodice';
 import { TROUSER_EASE, trouserLength } from './engine/trousers';
 import { OUTER_EASE } from './engine/outerwear';
+import { BODY_RISE } from './engine/jumpsuit';
 import { randomArms, randomBody, randomCrotch } from './engine/randomBodies';
 import type { Piece } from './engine/piece';
 import { widthAt } from './engine/easeMap';
 import type { Saved } from './savedWork';
+import { DEFAULT_HOODIE_CHOICES, DEFAULT_JUMPSUIT_CHOICES, DEFAULT_KNIT_DRESS_CHOICES, HOODIE_GROUPS, JUMPSUIT_GROUPS, KNIT_DRESS_GROUPS, type JumpsuitChoices, validJumpsuit } from './garmentRange';
 
-type FitGarment = 'skirt' | 'bodice' | 'dress' | 'jacket' | 'coat' | 'trousers' | 'tee';
-export const FIT_GARMENTS: FitGarment[] = ['skirt', 'bodice', 'dress', 'jacket', 'coat', 'trousers', 'tee'];
+type FitGarment = 'skirt' | 'bodice' | 'dress' | 'jacket' | 'coat' | 'trousers' | 'tee' | 'knit_dress' | 'hoodie' | 'jumpsuit';
+// The Garment range (knit dress, hoodie, jumpsuit; 2026-11-07) is walked like the rest.
+export const FIT_GARMENTS: FitGarment[] = ['skirt', 'bodice', 'dress', 'jacket', 'coat', 'trousers', 'tee', 'knit_dress', 'hoodie', 'jumpsuit'];
 
 const pick = <T>(r: () => number, xs: readonly T[]): T => xs[Math.floor(r() * xs.length)];
 
@@ -37,6 +40,16 @@ export function randomFitDesign(r: () => number, garment: FitGarment): Omit<Patt
     const c: Record<string, unknown> = { ...DEFAULT_TEE_CHOICES };
     for (const g of TEE_GROUPS) c[g.id] = pick(r, g.options)[0];
     return { garment, saved: { tee: c as unknown as Saved['tee'] } };
+  }
+  if (garment === 'knit_dress' || garment === 'hoodie' || garment === 'jumpsuit') {
+    const [groups, start] = garment === 'knit_dress' ? [KNIT_DRESS_GROUPS, DEFAULT_KNIT_DRESS_CHOICES] : garment === 'hoodie' ? [HOODIE_GROUPS, DEFAULT_HOODIE_CHOICES] : [JUMPSUIT_GROUPS, DEFAULT_JUMPSUIT_CHOICES];
+    const c: Record<string, unknown> = { ...start };
+    for (const g of groups as { id: string; options: [string, string][] }[]) {
+      const o = pick(r, g.options)[0];
+      c[g.id] = o === 'true' ? true : o === 'false' ? false : o;
+    }
+    if (garment === 'jumpsuit') return { garment, saved: { jumpsuit: validJumpsuit(c as unknown as JumpsuitChoices) } };
+    return { garment, saved: garment === 'hoodie' ? { hoodie: c as unknown as Saved['hoodie'] } : { knitDress: c as unknown as Saved['knitDress'] } };
   }
   // The skirt made valid as the style screen keeps it (a slip at least knee length, a diagonal hem only where it cuts).
   const saved = randomDesign(r, garment).saved;
@@ -70,6 +83,8 @@ function promised(d: Omit<PatternDesign, 'key'>): { bust?: number; hip?: number 
       return { bust: BODICE_FIT_EASE[s.dress!.fit].bust, hip: FIT_EASE[skirtFitOf(s.dress!.fit)].hip - (s.dress!.skirt.silhouette === 'slip' ? SLIP_HIP_EASE_LESS : 0) };
     case 'trousers':
       return { hip: TROUSER_EASE[s.trousers!.fit].hip };
+    case 'jumpsuit':
+      return { bust: BODICE_FIT_EASE[s.jumpsuit!.fit].bust, hip: TROUSER_EASE[s.jumpsuit!.legFit].hip };
     case 'jacket':
     case 'coat': {
       const c = (s.coat ?? s.jacket)!;
@@ -92,7 +107,7 @@ export function fitProblems(d: Omit<PatternDesign, 'key'>, values: MeasurementVa
   const { result, made } = printedPattern(d, values);
   const spec = made.spec;
   const row = (label: string) => spec.find((x) => x.label === label && typeof x.finished === 'number');
-  const knit = d.garment === 'tee';
+  const knit = d.garment === 'tee' || d.garment === 'knit_dress' || d.garment === 'hoodie';
   const s = d.saved;
   const bodiceChoices = s.bodice ?? s.dress?.bodice;
   // A dropped shoulder or a raglan moves the armhole seam off the armhole: it isn't held to the body's armhole.
@@ -118,8 +133,9 @@ export function fitProblems(d: Omit<PatternDesign, 'key'>, values: MeasurementVa
 
   // 3. The pieces measure what is printed on them: round the hip line of a skirt or trousers cut straight down (a
   // circle's or a bias slip's pieces don't lie level across the hip), every piece counted as often as it is cut.
-  const lower = result.trousers?.block ?? (result.skirt ?? result.dress?.skirt)?.block ?? (result.skirt ?? result.dress?.skirt)?.pieces;
-  const straight = !!result.trousers || ['pencil', 'straight', 'a_line', 'trumpet'].includes(skirtChoicesOf(d)?.silhouette ?? '');
+  const legs = result.trousers ?? result.jumpsuit?.trousers;
+  const lower = legs?.block ?? (result.skirt ?? result.dress?.skirt)?.block ?? (result.skirt ?? result.dress?.skirt)?.pieces;
+  const straight = !!legs || ['pencil', 'straight', 'a_line', 'trumpet'].includes(skirtChoicesOf(d)?.silhouette ?? '');
   const hipLine = lower && lower[0] && balanceY(lower[0], 'HIP LINE');
   if (hip && lower && straight && hipLine !== undefined && !skirtChoicesOf(d)?.pleats) {
     const own = lower.filter((pc) => !pc.kind && /front|back/i.test(pc.name));
@@ -139,10 +155,12 @@ export function fitProblems(d: Omit<PatternDesign, 'key'>, values: MeasurementVa
     const off = skirt.lengthCm + (result.dress?.seamDrop ?? 0) - target;
     if (rise === 'natural' && Math.abs(off) > 1.5) out.push(`Hem: lands ${r1(Math.abs(off))} cm ${off > 0 ? 'below' : 'above'} the ${length.replace('_', ' ')} length`);
   }
-  if (d.garment === 'trousers' && result.trousers) {
-    const c = s.trousers!;
-    const target = trouserLength(values as never, { leg: c.leg, length: c.length });
-    const off = result.trousers.lengthCm - target;
+  if ((d.garment === 'trousers' || d.garment === 'jumpsuit') && legs) {
+    const c = s.trousers ?? s.jumpsuit!;
+    // A jumpsuit's crotch is cut lower to sit in, and shorts keep at least 10 cm of leg below it.
+    const own = trouserLength(values as never, { leg: c.leg, length: c.length });
+    const target = d.garment === 'jumpsuit' && c.length === 'shorts' && c.leg !== 'culotte' ? Math.max(own, (values as unknown as { crotch_depth: number }).crotch_depth + BODY_RISE.depth + 10) : own;
+    const off = legs.lengthCm - target;
     if (Math.abs(off) > 1.5) out.push(`Hem: the trousers' outside leg lands ${r1(Math.abs(off))} cm ${off > 0 ? 'below' : 'above'} the ${c.length} length`);
   }
 

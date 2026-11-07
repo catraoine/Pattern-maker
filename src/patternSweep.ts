@@ -9,6 +9,7 @@ import { GARMENT_DRAFTING, DraftInputs, dressOf, skirtStyleOf, trousersChoicesOf
 import { DEFAULT_FINISH, INITIAL, Finish, Saved } from './savedWork';
 import { DEFAULT_TEE_CHOICES, DEFAULT_TROUSERS_CHOICES, TEE_GROUPS, TROUSER_GROUPS, TrousersChoices, trouserAllowed, validTrousers } from './garments';
 import { optionDesigns } from './drapeSweep';
+import { rangeDesigns } from './rangeDesigns';
 import { printableFor } from './printable';
 import { checkPattern } from './engine/qc';
 import { P, len, sub } from './engine/geometry';
@@ -34,6 +35,8 @@ export function patternDesigns(): PatternDesign[] {
     }
   out.push({ key: 'trousers waist=elastic pockets=slant', garment: 'trousers', saved: { trousers: { ...DEFAULT_TROUSERS_CHOICES, waist: 'elastic', pockets: 'slant' } } });
   for (const g of TEE_GROUPS) for (const [o] of g.options) out.push({ key: `tee ${g.id}=${o}`, garment: 'tee', saved: { tee: { ...DEFAULT_TEE_CHOICES, [g.id]: o } as Saved['tee'] } });
+  // The Garment range (2026-11-07): every option and the fifteen Looks.
+  out.push(...rangeDesigns());
   out.push({ key: 'skirt finish lined', garment: 'skirt', saved: {}, finish: { skirtLined: true } });
   for (const edges of ['facings', 'lined'] as const) {
     out.push({ key: `bodice finish ${edges}`, garment: 'bodice', saved: {}, finish: { bodiceEdges: edges } });

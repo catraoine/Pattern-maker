@@ -63,7 +63,7 @@ interface TeeStyle {
  * - `hemFlare`: cm added to each quarter at the hem over the hip's width (negative narrows it to hug the leg);
  *   the side seam runs through the hip at its full width first, so the hem can never pinch the seat.
  */
-export interface TeeCarry {
+interface TeeCarry {
   belowWaist: number;
   hemFlare?: number;
 }

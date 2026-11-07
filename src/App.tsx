@@ -73,7 +73,8 @@ import { PointEditContext } from './ui/PointEditor';
 import { Mode, finishFor, keepFinish, modeOf } from './mode';
 
 import { printableFor } from './printable';
-import { GARMENT_DRAFTING, dressOf, lingerieChoicesOf, outerChoicesOf, skirtStyleOf, teeChoicesOf, trousersChoicesOf, type DraftInputs, type Drafts } from './garmentDrafts';
+import { GARMENT_DRAFTING, dressOf, hoodieChoicesOf, jumpsuitChoicesOf, knitDressChoicesOf, lingerieChoicesOf, outerChoicesOf, skirtStyleOf, teeChoicesOf, trousersChoicesOf, type DraftInputs, type Drafts } from './garmentDrafts';
+import { isRangeGarment, rangeSlot } from './garmentRange';
 import { DEFAULT_FINISH, INITIAL, choicesPatch, type Finish, type Saved } from './savedWork';
 import { PhotoCheck } from './ui/PhotoCheck';
 import type { PhotoSource } from './photo/check';
@@ -87,6 +88,7 @@ const BodiceStyleScreen = screen(() => import('./screens/BodiceStyleScreen').the
 const DressStyleScreen = screen(() => import('./screens/DressStyleScreen').then((m) => m.DressStyleScreen));
 const TrousersStyleScreen = screen(() => import('./screens/TrousersStyleScreen').then((m) => m.TrousersStyleScreen));
 const TeeStyleScreen = screen(() => import('./screens/TeeStyleScreen').then((m) => m.TeeStyleScreen));
+const RangeStyleScreen = screen(() => import('./screens/RangeStyleScreen').then((m) => m.RangeStyleScreen));
 const LingerieStyleScreen = screen(() => import('./screens/LingerieStyleScreen').then((m) => m.LingerieStyleScreen));
 const OuterStyleScreen = screen(() => import('./screens/OuterStyleScreen').then((m) => m.OuterStyleScreen));
 const AccountScreen = screen(() => import('./screens/AccountScreen').then((m) => m.AccountScreen));
@@ -286,11 +288,11 @@ export default function App() {
   // What every garment drafts from (see garmentDrafts.ts), and the open garment's entry in the catalogue.
   const inputs = useMemo(
     (): DraftInputs => ({
-      saved: { choices: saved.choices, bodice: saved.bodice, dress: saved.dress, trousers: saved.trousers, tee: saved.tee, lingerie: saved.lingerie, jacket: saved.jacket, coat: saved.coat },
+      saved: { choices: saved.choices, bodice: saved.bodice, dress: saved.dress, trousers: saved.trousers, tee: saved.tee, knitDress: saved.knitDress, hoodie: saved.hoodie, jumpsuit: saved.jumpsuit, lingerie: saved.lingerie, jacket: saved.jacket, coat: saved.coat },
       form,
       fabric,
     }),
-    [saved.choices, saved.bodice, saved.dress, saved.trousers, saved.tee, saved.lingerie, saved.jacket, saved.coat, form, fabric],
+    [saved.choices, saved.bodice, saved.dress, saved.trousers, saved.tee, saved.knitDress, saved.hoodie, saved.jumpsuit, saved.lingerie, saved.jacket, saved.coat, form, fabric],
   );
   const drafting = GARMENT_DRAFTING[garment];
   const skirtStyle = useMemo(() => skirtStyleOf(inputs, fitting), [inputs, fitting]);
@@ -298,6 +300,7 @@ export default function App() {
   const trousersChoices = trousersChoicesOf(saved);
   const teeChoices = teeChoicesOf(saved);
   const lingerieChoices = lingerieChoicesOf(saved);
+  const rangeChoices = garment === 'knit_dress' ? knitDressChoicesOf(saved) : garment === 'hoodie' ? hoodieChoicesOf(saved) : jumpsuitChoicesOf(saved);
   const isOuterGarment = isOuterwear(garment);
   const outerChoices = useMemo(() => outerChoicesOf(inputs.saved, garment === 'coat' ? 'coat' : 'jacket'), [inputs, garment]);
 
@@ -325,11 +328,11 @@ export default function App() {
     if (!moved?.length) return drafts;
     const edit = <T extends { pieces: Piece[] }>(d: T | undefined): T | undefined => d && { ...d, pieces: applyPointEdits(d.pieces, moved) };
     const { dress: d } = drafts;
-    return { ...drafts, skirt: edit(drafts.skirt), bodice: edit(drafts.bodice), trousers: edit(drafts.trousers), tee: edit(drafts.tee), lingerie: edit(drafts.lingerie), outer: edit(drafts.outer), dress: d && { ...edit(d)!, skirt: edit(d.skirt)! } };
+    return { ...drafts, skirt: edit(drafts.skirt), bodice: edit(drafts.bodice), trousers: edit(drafts.trousers), tee: edit(drafts.tee), knitDress: edit(drafts.knitDress), hoodie: edit(drafts.hoodie), jumpsuit: edit(drafts.jumpsuit), lingerie: edit(drafts.lingerie), outer: edit(drafts.outer), dress: d && { ...edit(d)!, skirt: edit(d.skirt)! } };
   }, [drafts, moved]);
   const pointEditing = useMemo(() => {
-    const { skirt, bodice, dress: d, trousers, tee, lingerie, outer } = drafts;
-    const base = (bodice ?? d ?? trousers ?? tee ?? lingerie ?? outer ?? skirt)?.pieces.filter((pc) => !pc.kind) ?? [];
+    const { skirt, bodice, dress: d, trousers, tee, knitDress, hoodie, jumpsuit, lingerie, outer } = drafts;
+    const base = (bodice ?? d ?? trousers ?? tee ?? knitDress ?? hoodie ?? jumpsuit ?? lingerie ?? outer ?? skirt)?.pieces.filter((pc) => !pc.kind) ?? [];
     return { base, edits: moved ?? [], setEdits: (e: PointEdit[]) => setPointEdits({ ...pointEdits, [garment]: e }) };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [drafts, moved, garment, pointEdits]);
@@ -986,6 +989,30 @@ export default function App() {
               onAccount={() => setStep('account')}
             />
           )}
+          {step === 'style' && isRangeGarment(garment) && (
+            <RangeStyleScreen
+              key={garment}
+              onPhoto={() => setStep('photo')}
+              photo={photoFor === garment ? photoPreview : undefined}
+              mode={mode}
+              onMode={setMode}
+              choices={rangeChoices}
+              onChoices={(c) => setSaved({ ...saved, [rangeSlot(garment)]: c })}
+              finish={finish}
+              onFinish={setFinish}
+              fabric={fabric}
+              onFabric={(f) => setFinish({ ...finish, fabric: f, cloth: clothFor(f, finish.cloth) })}
+              onChooseGarment={chooseGarment}
+              values={values}
+              draft={garment === 'knit_dress' ? result.knitDress : garment === 'hoodie' ? result.hoodie : result.jumpsuit}
+              error={result.error}
+              onEditMeasurements={() => setStep('measure')}
+              onNext={() => setStep('export')}
+              saveState={saveState}
+              onSave={() => setAccount(savePattern(account, current, describePattern(current), person.id))}
+              onAccount={() => setStep('account')}
+            />
+          )}
           {step === 'style' && garment === 'lingerie' && (
             <LingerieStyleScreen
               onPhoto={() => setStep('photo')}
@@ -1069,6 +1096,10 @@ export default function App() {
                       ? { garment, fit: trousersChoices.fit, leg: trousersChoices.leg }
                       : garment === 'tee'
                         ? { garment, fit: teeChoices.fit, stretch: teeChoices.stretch, neckline: teeChoices.neckline }
+                      : rangeChoices.garment !== 'jumpsuit' && isRangeGarment(garment)
+                        ? { garment: 'tee', fit: rangeChoices.fit, stretch: rangeChoices.stretch, neckline: 'neckline' in rangeChoices ? rangeChoices.neckline : 'crew' }
+                      : rangeChoices.garment === 'jumpsuit' && garment === 'jumpsuit'
+                        ? { garment: 'trousers', fit: rangeChoices.legFit, leg: rangeChoices.leg }
                       : garment === 'lingerie'
                         ? { garment, piece: lingerieChoices.piece, stretch: lingerieChoices.stretch }
                       : { garment: 'skirt', silhouette: saved.choices.silhouette, length: saved.choices.length, asymHem: saved.choices.asymHem, pleats: saved.choices.pleats, godets: saved.choices.godets, flounce: saved.choices.flounce }

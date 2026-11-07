@@ -681,7 +681,7 @@ function withPockets(pieces: Piece[], style: PocketStyle, closure: TrousersDraft
 }
 
 /** Where along a tagged edge, by length from its start, a point falls. */
-function pointAlong(path: Path, tag: string, at: number): { q: P; dir: P } | undefined {
+export function pointAlong(path: Path, tag: string, at: number): { q: P; dir: P } | undefined {
   const { pts, tags } = path.taggedPoints(48);
   let run = 0;
   for (let i = 0; i < tags.length; i++) {

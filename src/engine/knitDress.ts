@@ -36,7 +36,7 @@ export interface KnitDressStyle {
   flatFront?: boolean;
 }
 
-export const DEFAULT_KNIT_DRESS: KnitDressStyle = { fit: 'regular', stretch: 'medium', neckline: 'crew', sleeve: 'short', skirt: 'straight', length: 'knee' };
+const DEFAULT_KNIT_DRESS: KnitDressStyle = { fit: 'regular', stretch: 'medium', neckline: 'crew', sleeve: 'short', skirt: 'straight', length: 'knee' };
 
 /** Each length as cm below the waist at the side, from the knee and the floor. */
 export function lengthBelowWaist(m: Pick<KnitDressMeasurements, 'waist_to_knee' | 'waist_to_floor'>, l: KnitDressLength): number {
@@ -51,9 +51,9 @@ const HUG: Record<Stretch, number> = { low: 0, medium: -1.5, high: -3 };
 /** An A-line's spread at the hem for each 10 cm below the hip, each quarter. */
 const A_LINE_PER_10 = 1.8;
 /** The skater skirt's fullness: the share of a full circle the whole skirt makes at its waist. */
-export const SKATER_CIRCLE = 0.7;
+const SKATER_CIRCLE = 0.7;
 /** The rib finish's depths. */
-export const DRESS_BANDS: Bands = { hem: 6, cuff: 7 };
+const DRESS_BANDS: Bands = { hem: 6, cuff: 7 };
 
 export interface KnitDressDraft {
   pieces: Piece[];

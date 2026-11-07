@@ -58,6 +58,11 @@ export interface JumpsuitChoices {
 export type JumpsuitNeck = Extract<Neckline, 'crew' | 'scoop' | 'v' | 'square' | 'boat' | 'cami' | 'halter'>;
 
 export type RangeChoices = KnitDressChoices | HoodieChoices | JumpsuitChoices;
+type RangeGarment = RangeChoices['garment'];
+export const isRangeGarment = (g: string): g is RangeGarment => g === 'knit_dress' || g === 'hoodie' || g === 'jumpsuit';
+/** Where each is kept in the saved work. */
+const RANGE_SLOT = { knit_dress: 'knitDress', hoodie: 'hoodie', jumpsuit: 'jumpsuit' } as const satisfies Record<RangeGarment, string>;
+export const rangeSlot = (g: RangeGarment) => RANGE_SLOT[g];
 const garmentOf = (c: object) => (c as { garment?: string }).garment;
 export const isKnitDress = (c: object): c is KnitDressChoices => garmentOf(c) === 'knit_dress';
 export const isHoodie = (c: object): c is HoodieChoices => garmentOf(c) === 'hoodie';
@@ -65,7 +70,7 @@ export const isJumpsuit = (c: object): c is JumpsuitChoices => garmentOf(c) === 
 export const isRange = (c: object): c is RangeChoices => isKnitDress(c) || isHoodie(c) || isJumpsuit(c);
 
 /** One starting Look: its code on the option sheet, its name, and the choices it sets. */
-export interface RangeLook<C> {
+interface RangeLook<C> {
   code: string;
   name: string;
   choices: C;

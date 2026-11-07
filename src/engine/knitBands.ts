@@ -8,7 +8,7 @@ import type { Piece } from './piece';
 import { KNIT_SEAM } from './tee';
 
 /** How far rib is cut shorter than the edge it is sewn to. */
-export const RIB_RATIO = { hem: 0.85, cuff: 0.75 };
+const RIB_RATIO = { hem: 0.85, cuff: 0.75 };
 /** How far a rib band stretches on and off without strain: a quarter past its length is comfortable. */
 export const RIB_STRETCH = 1.3;
 /** The least a cuff can be round and still pass the hand (a hand is about 21 cm round the knuckles). */
@@ -17,12 +17,12 @@ export const HAND_CM = 21;
 const r1 = (v: number) => Math.round(v * 10) / 10;
 
 /** A band's cut length: the edge's length pulled in by rib, but no less than what must pass through it, stretched. */
-export function ribLength(edge: number, ratio: number, passage: number): number {
+function ribLength(edge: number, ratio: number, passage: number): number {
   return Math.max(edge * ratio, passage / RIB_STRETCH);
 }
 
 /** One rib band: half its length wide (cut on the fold), twice its finished depth high (folded in half). */
-export function ribPiece(name: string, length: number, depth: number, cut = 'Cut 1 on fold from rib'): Piece {
+function ribPiece(name: string, length: number, depth: number, cut = 'Cut 1 on fold from rib'): Piece {
   const L = length / 2;
   const Hh = 2 * depth;
   const outline = new Path(p(0, 0)).line(p(L, 0), 'band').line(p(L, Hh), 'end').line(p(0, Hh), 'band').line(p(0, 0), 'fold');

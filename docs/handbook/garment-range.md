@@ -7,7 +7,7 @@ freeze"; "Move forward": everything at once, no second wave).
 
 - **Jumpsuit**: the top and the trousers joined at a waist seam, the body cut a little longer so you can sit.
 - **Knit dress**: the T-shirt carried on past the hip.
-- **Hoodie**: the T-shirt in a sweatshirt knit with the jacket's two-piece hood.
+- **Hoodie**: the T-shirt in a sweatshirt knit with a lined two-piece hood.
 
 Other gaps from the Nov 6 flexibility rating belong elsewhere: trousers and tee in All round and the 80% mixed-design
 rate (All round quality), pockets, jacket and trouser options (styling options), your own fabric photo (Fabric).
@@ -26,3 +26,13 @@ rate (All round quality), pockets, jacket and trouser options (styling options),
 ## Where it stands
 
 - Nov 7: round 1 sheet sent (J1 to J5 jumpsuits, K1 to K5 knit dresses, H1 to H5 hoodies), waiting on Cat's pick.
+- Nov 7: Cat kept all fifteen ("All"). Built: `engine/knitDress.ts`, `engine/hoodie.ts`, `engine/jumpsuit.ts`,
+  `engine/knitBands.ts` (rib bands), `engine/rangeFlat.ts` (flats; the hoodie's hood is drawn down on the form so the
+  face shows), `engine/rangeGuide.ts` (sewing steps), `rangePrintable.ts` (notes, spec, lays),
+  `garmentRange.ts` (choices, Looks, names) and `screens/RangeStyleScreen.tsx` (one style page for the three, Looks
+  from the garment menu). The T-shirt draft gained an optional carry past the hip and a sleeve length; its own
+  default is unchanged. The jumpsuit's back zip runs 20 cm below the waist; its crotch is 2 cm lower and its crotch
+  seam 4 cm longer than trousers' (`BODY_RISE`), with shorts pinned to where trousers' shorts land.
+- Checks: every option and Look is in the pattern geometry and DXF sweeps (`rangeDesigns.ts`), and the three are in
+  the 300-body fit sweep on their own random stream (so the other garments' designs are unchanged). All pass.
+- Stills: `e2e/garment-range-stills.spec.ts` (RANGE_STILLS=<folder>).
