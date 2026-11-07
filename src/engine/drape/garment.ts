@@ -1730,9 +1730,10 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
     // see skirtBend.)
     // (A circle's piece gives half as much: its grain swings round it, and at the full give its back folded into a fin
     // in a silk or satin half circle at the knee.)
-    // (A piece cut on the bias, a slip, gives three times as much, up to 0.6: along its length the cloth is all bias,
-    // and pulled down it narrows round the hip and thigh, as a bias slip clings. Fabric behaviour round 2.)
-    const biasOf = o.bias && (o.fallOn === 'all' || (o.fallOn === 'skirt' && p.role.startsWith('peplum'))) && !knob('__noBias') ? knob('__bias') ?? (p.pc.meta.bias ? Math.min(0.6, o.bias * 3) : p.pc.meta.waistRadius ? o.bias * (knob('__circleBias') ?? 0.5) : o.bias) : 0;
+    // (A piece cut on the bias, a slip, gives up to 0.3: along its length the cloth is all bias, and pulled down it
+    // narrows round the hip and thigh, as a bias slip clings. Fabric behaviour round 2; at 0.6 a silk slip gown's back
+    // folded through itself once the skirt was kept from passing through itself, release M.)
+    const biasOf = o.bias && (o.fallOn === 'all' || (o.fallOn === 'skirt' && p.role.startsWith('peplum'))) && !knob('__noBias') ? knob('__bias') ?? (p.pc.meta.bias ? Math.min(0.3, o.bias * 3) : p.pc.meta.waistRadius ? o.bias * (knob('__circleBias') ?? 0.5) : o.bias) : 0;
     const gr = p.pc.grain ? [p.pc.grain[1].x - p.pc.grain[0].x, p.pc.grain[1].y - p.pc.grain[0].y] : [0, 1];
     const grL = Math.hypot(gr[0], gr[1]) || 1;
     for (const [k, opp] of edgeSet) {
