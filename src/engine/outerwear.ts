@@ -736,8 +736,8 @@ function openFront(pc: Piece, s: OuterStyle, ext: number, buttons: OuterDraft['b
     // The collar point, turned up from the lapel's top edge to leave a notch of about 50 degrees; a peak's
     // collar meets its lapel at a narrow notch, and a shawl's runs on from it with none.
     const dl = unit(sub(Lp, K));
-    const ang = ((peak ? 15 : shawl ? 88 : lowLapel ? HIGH_LAPEL.notchAngle : 50) * Math.PI) / 180;
-    const Cp = add(K, mul(add(mul(dl, Math.cos(ang)), mul(u, Math.sin(ang))), shawl ? 0.6 : peak ? 3.4 : s.kind === 'coat' ? 4.6 : 4));
+    const ang = ((peak ? 15 : shawl ? 88 : lowLapel ? HIGH_LAPEL.collarAngle : 50) * Math.PI) / 180;
+    const Cp = add(K, mul(add(mul(dl, Math.cos(ang)), mul(u, Math.sin(ang))), shawl ? 0.6 : peak ? 3.4 : lowLapel ? HIGH_LAPEL.collarLength : s.kind === 'coat' ? 4.6 : 4));
     lapel = { breakPt: B, roll: [B, R], worn: [...lapelEdge, K, Q].map(reflect), notch: reflect(K), collarPoint: reflect(Cp), neckPoint: hps, gorge: Q };
     frontNeck = polyLen([...neckSeam, hps]);
     join = breakY + 4;
@@ -839,7 +839,9 @@ function notchedCollar(front: Piece, backNeck: number, frontNeck: number, s: Out
     seamAllowance: s.seamAllowance,
     allowances: { neck: 1, gorge: 1, collar: 1, fold: 0 },
     // (Pressed flat when worn: a low-rolled collar's fall, left to the sim, lies lumpy and pulled.)
-    meta: { foldAt: 'centre back', ...(low ? { pressed: true } : {}) },
+    // (A high lapel's long collar end is drafted on the front: how to carry a point of the collar back to the front's
+    // pattern, so the drawing can lay that end on the lapel it covers.)
+    meta: { foldAt: 'centre back', ...(low ? { pressed: true, overLapel: { E, tE, up, Q, d1, nF } } : {}) },
     draft: {
       frame: [],
       points: [
@@ -988,10 +990,10 @@ const plunges = (s: Pick<OuterStyle, 'lapel' | 'collar' | 'front'>) => s.lapel =
 /** A high lapel breaks this far below the neck at the centre front, its gorge this share of the way down its roll: short, the front
  *  buttoned up over the bust with three buttons well apart, as a tailored waistcoat is (measured off Cat's SS27 vest
  *  picture against the wearer: the break a head's length below the neck, the buttons about 14 cm apart). */
-// (Its notch is a small tight nick 2 cm in from the roll line, the collar's square end meeting the lapel at 15 degrees, and
-// the lapel's point sits 1.5 cm lower down the roll than the notch, so its top edge slopes down and the point aims down
-// and out, as Cat drew it over her SS27 vest picture, 2026-11-07.)
-const HIGH_LAPEL = { breakBelowNeck: 17, gorge: 0.37, width: 8, notch: -2, notchAngle: 15, pointDrop: 1.5, buttons: 3, gap: 14 };
+// (The collar is the big piece: from the notch, a small tight nick 2 cm in from the roll line, its outer edge runs 9.5 cm
+// out to a point aiming down and out, 25 degrees below the lapel's line, and the 6 cm lapel tucks in under it, its point
+// level with the notch, as Cat drew it over her SS27 vest picture and asked "a touch bigger for more drama", 2026-11-07.)
+const HIGH_LAPEL = { breakBelowNeck: 17, gorge: 0.37, width: 6, notch: -2, collarAngle: -25, collarLength: 9.5, pointDrop: 0, buttons: 3, gap: 14 };
 const highLapel = (s: Pick<OuterStyle, 'lapel' | 'collar'>) => s.lapel === 'high' && lapelled(s.collar);
 
 /** Buttons down the front: from the break point (or just below the neck) to above the hem, about 10 cm apart. */
@@ -1102,6 +1104,10 @@ export function draftOuter(m: OuterMeasurements, style: Partial<OuterStyle> & { 
   if (s.shoulderCm && Number.isFinite(s.shoulderCm) && m.shoulder_length) {
     const by = Math.min(OUTER_SHOULDER.max, Math.max(OUTER_SHOULDER.min, s.shoulderCm));
     m = { ...m, shoulder_length: m.shoulder_length + by, ...(m.shoulder_width ? { shoulder_width: m.shoulder_width + 2 * by } : {}) };
+    // Without a sleeve the armhole drops straight from the longer shoulder, as a boxy waistcoat's does, instead of
+    // hooking back in under it to her own across back and front, which left the shoulder a flap that folded down
+    // (Cat: "make sure the shoulder is long for that boxy shape", 2026-11-07).
+    if (style.sleeve === 'none' && by > 0) m = { ...m, across_back: m.across_back + 2 * by, across_front: m.across_front + 2 * by };
   }
   const length = OUTER_LENGTHS[s.kind].includes(s.length) ? s.length : DEFAULT_OUTER[s.kind].length;
   // A fitted jacket needs its waist darts; only a roomier one can go boxy.
