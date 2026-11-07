@@ -268,6 +268,9 @@ export interface DrapeOptions {
   lieLapel?: boolean;
   /** The skirt's hem is cut unlevel on purpose (a high-low, a diagonal, a shaped hem): it is not let down to level. */
   shapedHem?: boolean;
+  /** The sleeve's crown is cut flat to a dropped shoulder (a knit tee's): it has next to nothing to ease, so none is
+   *  shrunk away. */
+  flatCrown?: boolean;
 }
 
 interface CollarPart {
@@ -1728,7 +1731,7 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
   // (Half of it: shrunk away entirely, the cap's edge draws in tighter than the armhole it is sewn to and a slit of the
   // seam opens; a little left, the head still rounds over the shoulder rather than standing up in a peak.)
   const capEase = knob('__capEase') ?? 0.5;
-  if (capRatio < 1 && capEase !== 0) {
+  if (capRatio < 1 && capEase !== 0 && !o.flatCrown) {
     for (const p of B.panels) {
       if (p.role !== 'sleeve') continue;
       const cap = (p.mesh.runs.armhole ?? []).flat().map((i) => p.mesh.pts[i]);

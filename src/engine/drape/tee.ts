@@ -16,7 +16,7 @@ export function drapeTee(sp: Space, d: TeeDraft, o: DrapeOptions = {}): Draped {
   const [front, back] = ['Tee front', 'Tee back'].map((n) => d.pieces.find((pc) => pc.name === n)!);
   const torso = [front, back].map((pc) => ({ pc, back: pc === back, waistY: d.waistY }));
   const mock = d.neckline === 'mock' ? [band({ back: taggedLength(back.outline, 'neck'), front: taggedLength(front.outline, 'neck'), ext: 0, closure: 'back_zip', sa: 0 }, 'Collar', Math.min(MOCK_DRAWN_CM, d.neckband.width), 1.4).piece].map((pc) => ({ ...pc, meta: { ...pc.meta, knit: true } })) : [];
-  const out = drape(sp, torso, { sleeve: d.sleeveless ? [] : d.sleeve.pieces.filter(isShell), collars: collarsOf(mock) }, { closedFront: true, curtain: d.finishedWaist >= d.finishedBust - 2, ...(d.hemShape ? { shapedHem: true } : {}), ...o });
+  const out = drape(sp, torso, { sleeve: d.sleeveless ? [] : d.sleeve.pieces.filter(isShell), collars: collarsOf(mock) }, { closedFront: true, curtain: d.finishedWaist >= d.finishedBust - 2, ...(d.hemShape ? { shapedHem: true } : {}), ...(d.shoulder === 'dropped' ? { flatCrown: true } : {}), ...o });
   // (A knit's straight hem settles with a point hanging below its neighbours at the fold and the side seam, as a shift's.)
   if (!d.hemShape) levelHemSpikes(out);
   return out;
