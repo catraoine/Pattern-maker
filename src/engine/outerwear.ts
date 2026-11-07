@@ -742,7 +742,7 @@ function openFront(pc: Piece, s: OuterStyle, ext: number, buttons: OuterDraft['b
     frontNeck = polyLen([...neckSeam, hps]);
     join = breakY + 4;
     // For the collar: where the gorge runs and where the collar point sits, on the flat front.
-    pc = { ...pc, meta: { ...pc.meta, gorge: [Q, K], collarPoint: Cp, neckPoint: hps } };
+    pc = { ...pc, meta: { ...pc.meta, gorge: [Q, K], collarPoint: Cp, neckPoint: hps, roll: [B, R], neckSeam: [...neckSeam, hps] } };
   } else {
     frontNeck = taggedLength(pc.outline, 'neck');
     pts = [...r.pts.slice(0, fi + 1), p(-ext, foot.y), p(-ext, neckCF.y)];
@@ -839,9 +839,10 @@ function notchedCollar(front: Piece, backNeck: number, frontNeck: number, s: Out
     seamAllowance: s.seamAllowance,
     allowances: { neck: 1, gorge: 1, collar: 1, fold: 0 },
     // (Pressed flat when worn: a low-rolled collar's fall, left to the sim, lies lumpy and pulled.)
-    // (A high lapel's long collar end is drafted on the front: how to carry a point of the collar back to the front's
-    // pattern, so the drawing can lay that end on the lapel it covers.)
-    meta: { foldAt: 'centre back', ...(low ? { pressed: true, overLapel: { E, tE, up, Q, d1, nF } } : {}) },
+    // (A high lapel's long collar end is drafted on the front, beside its lapel as cut: how to carry a point of the
+    // collar back to the front's pattern, and the roll line the lapel turns back over, so the drawing can lay that end
+    // where it falls when worn, over the lapel and on past it onto the chest.)
+    meta: { foldAt: 'centre back', ...(low ? { pressed: true, onFront: { neckC: neckPts, neckF: front.meta.neckSeam, Q, d1, nF, roll: front.meta.roll } } : {}) },
     draft: {
       frame: [],
       points: [

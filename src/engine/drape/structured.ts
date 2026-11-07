@@ -4,6 +4,7 @@
 // and its ripples are smoothed into one plane, as a stiff cloth lies (Cat's SS27 vest picture, 2026-11-07).
 import type { Panel } from './garment';
 import { knob } from './knob';
+import { CollarOnFront, collarOnFront } from './collarEnd';
 
 const NA = 48;
 
@@ -262,7 +263,11 @@ export function pressCollar(panels: Panel[], res: Float64Array | number[], relax
       }
       // (Its seams to the neck and the gorge stay sewn where they are, even where the roll line turns them over.)
       const sewn = new Set([...(p.mesh.runs.neck ?? []), ...(p.mesh.runs.gorge ?? [])].flat());
-      const fall = p.mesh.pts.map((_, i) => i).filter((i) => p.turned[i] && !sewn.has(i));
+      // (A high lapel's long collar end is already laid where it falls when worn, on the lapel and chest, a cloth's
+      // thickness out (collarEnd.ts): left there, as pressing it again pulled it in to a spike.)
+      const onFront = p.pc.meta.onFront as CollarOnFront | undefined;
+      const laid = new Set(onFront ? p.mesh.pts.map((q, i) => (p.turned[i] && collarOnFront(q, onFront).w > 0.5 ? i : -1)).filter((i) => i >= 0) : []);
+      const fall = p.mesh.pts.map((_, i) => i).filter((i) => p.turned[i] && !sewn.has(i) && !laid.has(i));
       // Smoothed: each fall point toward its neighbours, so ripples and lumps press out into one plane.
       const next = fall.map((i) => {
         const m = [0, 0, 0];
@@ -286,7 +291,7 @@ export function pressCollar(panels: Panel[], res: Float64Array | number[], relax
         res[I + 2] *= k;
       }
       // And back to its cut: pressing never stretches it.
-      relax(p, p.mesh.pts.map((_, i) => i).filter((i) => !p.turned[i] || sewn.has(i)));
+      relax(p, p.mesh.pts.map((_, i) => i).filter((i) => !p.turned[i] || sewn.has(i) || laid.has(i)));
     }
   }
 }

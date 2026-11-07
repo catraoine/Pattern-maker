@@ -21,6 +21,7 @@ import { Space, boxed } from './space';
 import { knob, setKnob } from './knob';
 import { frontPins, tapeRollLines } from './rollLine';
 import { pressCollar, standStiff } from './structured';
+import { CollarOnFront, collarOnFront } from './collarEnd';
 import { cropHold } from './cropHold';
 import { flutterPlace } from './flutter';
 import { closeBalloonHem } from './balloonHem';
@@ -4166,7 +4167,7 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
           if (rho < lo) X = [X[0] * (lo / rho), X[1], X[2] * (lo / rho)];
           return { X, U, N };
         };
-        const overLapel = p.pc.meta.overLapel as { E: P; tE: P; up: P; Q: P; d1: P; nF: P } | undefined;
+        const onFront = p.pc.meta.onFront as CollarOnFront | undefined;
         const lapelFront = B.panels.find((pp) => pp.role === 'front' && !pp.hidden && pp.turned.some(Boolean));
         pts.forEach((q, i) => {
           if (onSeamPt.has(i)) return;
@@ -4204,17 +4205,12 @@ export function drape(sp: Space, torso: TorsoPiece[], extra: { skirt?: Piece[]; 
             const flatV = w > 0 ? (knob('__oldEnds') ? onBody(at0.seg, -at0.h) : flatOn(at0)) : undefined;
             X = mix(out(U0, thick + gap), flatV && out(flatV, 0.15 + thick + gap), w);
           }
-          // A collar cut with a long end past its gorge (a high lapel's, pointing down over the lapel) lies that end on the
-          // lapel it covers: the end is drafted on the front's own pattern, so each point goes where that place on the
-          // turned lapel lies, a cloth's thickness out, blended in over the last 2 cm before the gorge.
-          if (overLapel && lapelFront && q.x > overLapel.E.x - 1) {
-            const c2 = { x: q.x - overLapel.E.x, y: q.y - overLapel.E.y };
-            const a2 = c2.x * overLapel.tE.x + c2.y * overLapel.tE.y;
-            const b2 = c2.x * overLapel.up.x + c2.y * overLapel.up.y;
-            const qf = { x: overLapel.Q.x + overLapel.d1.x * a2 + overLapel.nF.x * b2, y: overLapel.Q.y + overLapel.d1.y * a2 + overLapel.nF.y * b2 };
-            const on = surfaceAt(lapelFront, qf, true);
-            const wl = Math.min(1, Math.max(0, (q.x - overLapel.E.x + 1) / 2));
-            if (on) X = mix(X, out(on, 2 * thick + gap), wl);
+          // A high lapel's long collar end lies where it falls when worn, over the lapel and on onto the chest (see
+          // collarEnd.ts), two cloths' thickness out; its stand still rises round the neck.
+          if (onFront && lapelFront && (p.turned[i] || q.x > onFront.neckC[onFront.neckC.length - 1].x - 1)) {
+            const { at, w } = collarOnFront(q, onFront);
+            const on = w > 0 ? surfaceAt(lapelFront, at, false) : undefined;
+            if (on) X = mix(X, out(on, 2 * thick + gap), w);
           }
           // (Its centre back edge stays on the centre plane, closed against its mirror.)
           if (q.x - x0 < 0.3) X = [0, X[1], -Math.hypot(X[0], X[2])];
