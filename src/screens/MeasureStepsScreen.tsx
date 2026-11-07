@@ -35,8 +35,8 @@ interface Props {
   /** Where to open. By default the start (or the check, once the base set is in). "choose" opens the list of what
    * to make; a garment opens on the first measurement it still needs; "redo" opens one measurement and comes back. */
   start?: StepsStart;
-  /** Measuring someone else: their name, given on the first page, before any measurement is taken. */
-  onSomeoneElse?: (name: string) => void;
+  /** Measuring someone else: their name, given on the first page, before any measurement is taken, with the form picked for them. */
+  onSomeoneElse?: (name: string, form: FormKind) => void;
   /** The measurements in use are someone else's, so every page is worded for the person holding the tape. */
   theirs?: boolean;
   /** Skip, the quiet link under the button: try the app with example measurements (for the garment being measured). */
@@ -161,8 +161,9 @@ export function MeasureStepsScreen({ testerCode, garment: current, unit, values,
       // The tape across the top goes on down to the waist, the first measurement (Cat, 2026-10-21).
       const strip = document.querySelector('.tape-band.landed');
       if (strip) tapeRested(strip);
-      if (helper) onSomeoneElse?.(name.trim());
-      onForm?.(chosen);
+      // One change for someone else: their name and form together. Two in a row lost the new person (Nov 7).
+      if (helper && onSomeoneElse) onSomeoneElse(name.trim(), chosen);
+      else onForm?.(chosen);
       setPage({ kind: 'base', at: firstToTake() });
     };
     return (

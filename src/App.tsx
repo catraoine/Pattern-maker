@@ -713,7 +713,10 @@ export default function App() {
               key={stepsStart.at}
               testerCode={account.testerCode}
               start={stepsStart.start}
-              onSomeoneElse={(name) => setAccount(addPerson(account, name))}
+              onSomeoneElse={(name, f) => {
+                const added = addPerson(account, name);
+                setAccount(updatePerson(added, added.active!, { form: f }));
+              }}
               theirs={person.id !== ME}
               form={form}
               onForm={(f) => setAccount(updatePerson(account, person.id, { form: f }))}

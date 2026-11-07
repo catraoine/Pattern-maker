@@ -280,15 +280,15 @@ export function ExportScreen({ example, onMeasureMe, unit = 'cm', paper: savedPa
         <section className="card grow print-top" aria-labelledby="ptitle">
           <div className="print-head">
             {/* Where you've landed, said calmly (Cat, Nov 3): a quiet "Your summary" heading and one line on what
-                the page is for, then the garment's name in reading type, not a wall of big capitals. */}
+                the page is for. The garment's name and who it's for are on the card below, so they aren't
+                repeated here (Cat, Nov 7: less clutter). An imported pattern still says which file it came from. */}
             <h1 id="ptitle">Your summary</h1>
             <p className="print-guide">Everything you picked, ready to print. Check the pieces, choose your paper, then download.</p>
-            <h2 className="print-name">{title[0].toUpperCase() + title.slice(1)}</h2>
-            <p className="muted">
-              {imported
-                ? `${imported.fileName} · ${made.pieces.length} ${made.pieces.length === 1 ? 'piece' : 'pieces'}${imported.source ? ` from ${imported.source}` : ''}`
-                : `For ${profile === 'Me' ? 'you' : profile} · ${fit[0].toUpperCase() + fit.slice(1)} fit`}
-            </p>
+            {imported && (
+              <p className="muted">
+                {`${imported.fileName} · ${made.pieces.length} ${made.pieces.length === 1 ? 'piece' : 'pieces'}${imported.source ? ` from ${imported.source}` : ''}`}
+              </p>
+            )}
           </div>
           <div className="print-cover">
             <Envelope name={title[0].toUpperCase() + title.slice(1)} flat={made.flat} mark={edition} foot={imported ? undefined : `Drafted to ${profile === 'Me' ? 'you' : profile}`} />

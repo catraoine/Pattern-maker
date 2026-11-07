@@ -1,5 +1,5 @@
 /* The top of Print says where you've landed (Cat, Nov 3): "the whole choice in large font is overwhelming and
-   jarring". A modest "Your summary" heading, one guiding line, then the garment's name in reading type. */
+   jarring". A modest "Your summary" heading, one guiding line. The name sits on the card below (Nov 7). */
 .print-head h1 {
   font-size: 28px;
   line-height: 1.1;
@@ -11,17 +11,4 @@
   font-size: 16px;
   line-height: 1.45;
   color: var(--ink);
-}
-.print-head .print-name {
-  margin: 14px 0 0;
-  font-family: var(--sans);
-  letter-spacing: 0;
-  text-transform: none;
-  font-size: 18px;
-  font-weight: var(--w-strong);
-  line-height: 1.3;
-  color: var(--gild);
-}
-.print-head .print-name + .muted {
-  margin-top: 2px;
 }
